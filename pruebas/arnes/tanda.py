@@ -63,8 +63,8 @@ class Cartucho:
 
     def __init__(self, nombre):
         self.nombre = nombre
-        self.dir = os.path.join(cartuchos.DESTINO, nombre)
-        self.sfc = os.path.join(self.dir, "prueba.sfc")
+        self.dir = cartuchos.directorio(nombre)
+        self.sfc = cartuchos.rom_de(nombre)
         viejo = cartuchos.viejo(nombre)
         if viejo:
             raise AssertionError(
@@ -91,8 +91,7 @@ def rom(caso, en=None):
 
     Sin `en`, el cartucho de pruebas si lo lleva, y si no el único que lo
     lleve: los chicos existen por lo que no entra en el grande, y cada caso
-    vive en uno. Un caso que está en dos —los del cartucho del juego, que
-    repite algunos a propósito— se pide con `en`.
+    vive en uno. Un caso que está en dos se pide con `en`.
     """
     nombres = [en] if en else cartuchos.donde_esta(caso)
     if not nombres:
@@ -119,9 +118,15 @@ def partida(caso, nucleo=None, en=None, switches=(), titulo=None, pila=False):
     zona de la pila antes del primer cuadro, y lo usa una sola prueba: ver
     `consola.marcar_la_pila`.
     """
-    uno, k = rom(caso, en)
+    if caso is None:
+        # Sin caso: la ROM como arranca, que es lo único que tiene un cartucho
+        # sin páginas de prueba, como `release`.
+        uno, k, salta = cartucho(en), 0, False
+    else:
+        uno, k = rom(caso, en)
+        salta = uno.saltan[k]
     return Partida(uno.sfc, uno.simbolos, uno.mapas, switches=switches,
-                   titulo=titulo, nucleo=nucleo, caso=k, salta=uno.saltan[k],
+                   titulo=titulo, nucleo=nucleo, caso=k, salta=salta,
                    pila=pila)
 
 

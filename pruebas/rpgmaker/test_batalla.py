@@ -240,13 +240,14 @@ def modelo_de(base, actores=GRUPO, tropa=TROPA_DROIDE):
          for n, e in enumerate(base.troops[tropa].members)])
 
 
-def en_el_droide(partida, con_tema=False):
+def en_el_droide(partida, con_musica=None):
     # El mapa del droide no trae tema, y sin uno no se puede comprobar que el
-    # del mapa vuelva al terminar la pelea: el cartucho del juego arranca con
-    # uno sonando, `--tema-de-arranque`. Y desde el 2026-09-20 es también el
-    # que lleva la pantalla de título, así que se entra por ella.
-    una = partida(caso=LINKAGE, en="juego" if con_tema else None,
-                  titulo=0 if con_tema else None)
+    # del mapa vuelva al terminar la pelea: con `con_musica` se llega con el
+    # de la apertura sonando, que un mapa sin tema deja seguir.
+    if con_musica:
+        una = con_musica()
+    else:
+        una = partida(caso=LINKAGE)
     una.poner_grupo(*GRUPO)
     una.ir_al_mapa(2, *DROIDE)
     una.poner_byte("hero_dir", una.simbolos["DIR_UP"])
@@ -850,11 +851,11 @@ def test_ganar_prende_el_tema_de_la_victoria(partida):
         % (cursor_del_stream(una), antes))
 
 
-def test_al_terminar_vuelve_lo_que_sonaba_en_el_mapa(partida):
+def test_al_terminar_vuelve_lo_que_sonaba_en_el_mapa(partida, con_musica):
     """El `before_battle_music` de RM2k: `Scene_Battle` lo anota al entrar y
     `Game_Map` lo repone al volver.
 
-    El mapa 2 **no trae música**, así que sin `--tema-de-arranque` lo que
+    El mapa 2 **no trae música**, así que sin un tema sonando lo que
     tiene que volver es el silencio —y eso no distingue nada: al salir se
     recarga el paquete del mapa, y recargarlo ya calla—. Con un tema puesto el
     caso mide de verdad: si el `batalla_bgm` del final no estuviera, el mapa
@@ -864,7 +865,7 @@ def test_al_terminar_vuelve_lo_que_sonaba_en_el_mapa(partida):
     paquete de la pelea las desaloja, así que salir sin recargar el del mapa
     dejaría el tema sonando contra el bloque de silencio.
     """
-    una = en_el_droide(partida, con_tema=True)
+    una = en_el_droide(partida, con_musica)
     tema = una.palabra("tema_actual")
     assert not una.byte("music_apagada"), \
         "el mapa tenía que arrancar con su tema: el caso no mide nada"
@@ -1150,7 +1151,8 @@ def test_un_actor_sin_habilidades_no_abre_la_lista(partida):
     assert pelea.byte("BA_HAB_N") == 0
 
 
-def test_con_una_pista_de_msu_la_pelea_anota_el_tema_del_mapa(partida):
+def test_con_una_pista_de_msu_la_pelea_anota_el_tema_del_mapa(partida,
+                                                                con_musica):
     """Con MSU-1, el tema del mapa también tiene que volver al terminar.
 
     Con una pista de CD sonando, `music_start` deja el SPC700 callado a
@@ -1163,7 +1165,7 @@ def test_con_una_pista_de_msu_la_pelea_anota_el_tema_del_mapa(partida):
     escritas a mano— y se mira qué anota la pelea. Sin el arreglo de
     `pelea_arrancar` anota $FF.
     """
-    una = en_el_droide(partida, con_tema=True)
+    una = en_el_droide(partida, con_musica)
     tema = una.palabra("tema_actual")
     assert tema < 0xFF, "el mapa tenía que arrancar con su tema: no mide nada"
     # `MSU_SUENA` se declara con el banco adelante, y la RAM del core se

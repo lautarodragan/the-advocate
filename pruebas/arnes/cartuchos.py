@@ -78,6 +78,57 @@ _DE_PRUEBAS = _con_mapas(MAPA_DE_ARRANQUE, "--sin-titulo", "--sin-timer", *[
     f for charset, indice in GRAFICOS
     for f in ("--grafico-de-prueba", charset, indice)])
 
+# **La ROM que taro juega**: la cadena entera de la apertura hasta Lashe City,
+# con pantalla de título, en `rom/build/release/abl.sfc`, que es donde él la
+# busca. Se arma con `just build release`, y `just pruebas` la arma sola.
+#
+# **Es un cartucho más desde el 2026-09-24**, y a propósito: las pruebas que
+# juegan —el recorrido, la pantalla de título, las escenas de la apertura—
+# corren sobre ella y no sobre un parecido. Hasta ese día corrían sobre
+# `juego`, que tenía otros once mapas y cuatro páginas de prueba, así que la
+# ROM que taro juega no la miraba ninguna prueba. No lleva casos: una ROM que
+# se entrega no puede llevar páginas de prueba. Tampoco comparte directorio
+# con los demás, y su archivo se llama `abl.sfc`: el MSU-1 busca sus pistas
+# por el nombre del `.sfc`.
+#
+# Es una sola y **siempre con título**: hasta el 2026-09-20 eran dos, con y sin,
+# y la de sin no la jugaba nadie —la pantalla de título la cubren por su lado
+# los cartuchos de `cartuchos`—. Es la misma decisión que dejó un solo `.sfc` en
+# `pruebas-manuales/`; está en AGENTS.md.
+#
+# **Con el grupo de verdad, el 10**, y no con el 11 del banco de pruebas. El
+# juego arranca con DummyHero y la apertura del mapa 1 lo da por sentado: con
+# Kersh ya en el grupo la página automática no corre, y queda Kersh sobre negro,
+# sin música y sin cámara. La referencia hace lo mismo, así que no sería un bug
+# de la ROM: sería una ROM mal armada. La familia `cinematica` de la tanda usa
+# el 10 por la misma razón.
+#
+# Con cronómetro, para hacerle lugar al rojo de los dígitos. La lista de
+# mapas es **el subárbol de "Lashe City" que entra**: el camino a la fábrica, el auditorio y el Director, Sector 30 y los Rat Tracks,
+# Sector 27 con sus dos negocios y el galpón, la fuga del 27 y el auto, y la
+# misión de los Neon Viper.
+#
+# **Lo que quedó afuera, y por qué**, porque acá es donde se va a mirar:
+#
+#   la persecución en auto   casi ninguna de sus páginas automáticas compila:
+#                            leen la posición del auto con un `ControlVars` de
+#                            clase 6 —coordenadas de un personaje—, que la ROM no
+#                            hace, y el 49 además tiene un `KeyInputProc`. Sin
+#                            eso el auto no dobla y el tráfico no aparece. De
+#                            paso, sus tres mapas de 500x40 no entraban en los
+#                            2 MB del cartucho. Ver
+#                            `wishlist/la-carrera-en-release.md`.
+#   los sectores con auto    a dónde lleva la elección del mapa 36. El **38 no
+#                            entra en ningún reparto de VRAM**: sus tiles de
+#                            fondo y de sprite más la ventana no entran en los
+#                            64 KB. Y la elección del 36 es una sola página: o
+#                            compilan los cuatro destinos o no compila ninguno.
+RELEASE = "release"
+_DE_RELEASE = ["--grupo", "10", "--map-id", "4", "--mapas",
+               "1", "2", "3", "5", "6", "7", "8", "9", "10", "11", "12", "13",
+               "14", "16", "17", "18", "19", "20", "21", "23", "26", "28",
+               "29", "30", "32", "33", "34", "36"]
+
 CARTUCHOS = {
     PRUEBAS: (_DE_PRUEBAS, None),
     # Lo que no entra en `test-main` o cuida una disposición del cartucho y
@@ -114,33 +165,11 @@ CARTUCHOS = {
               ["parado-tapado", "grupo-11-12-13",
                "grupo-11-en-255", "batalla", "batalla-item", "batalla-droide",
                "pelea-82-grupo-11-12", "empujon"]),
-    # El juego como se juega: arranca en el 4, con cronómetro en todos los
-    # mapas y **con la pantalla de título delante**, que es por donde entra el
-    # jugador y como sale `abl`, la ROM que taro juega. Llegar al 4 con un
-    # `Teleport` no es arrancar ahí —la cinemática sale con otra rampa de
-    # fundido y otro tinte— y el cronómetro le saca una paleta a cada mapa,
-    # que en `test-main` movía goldens.
-    #
-    # Hasta el 2026-09-20 el título vivía en un cartucho aparte, `titulo`: el
-    # de pruebas —hoy `test-main`— con la pantalla delante, con sus mismos
-    # cuarenta mapas y sus cien casos, para que `test_titulo_es_el_mismo_juego` pudiera compararlo
-    # contra el de pruebas. Los dos se fundieron acá, y lo que lo permitió
-    # está medido: **el título no mueve una sola golden**. Las cuatro de la
-    # pantalla misma y las diecisiete de `cinematica`, `apertura` y `cartel`
-    # —congeladas cuando el cartucho no lo llevaba— salen byte por byte
-    # iguales sacadas a través de él. O sea que lo que aquella comparación
-    # buscaba lo cobran ahora ellas, en cada corrida.
-    #
-    # El tema de arranque es para las pruebas de música, porque el 4 no trae
-    # uno propio. Y los casos son pocos a propósito: lo que pedía los cien era
-    # ser el gemelo de `test-main`, y eso ya no hace falta.
-    "juego": (_con_mapas(4, "--tema-de-arranque", "escape_newyork"),
-              ["nada", "cartel", "en-2", "guardar-198-titulo"]),
+    RELEASE: (_DE_RELEASE, []),
 }
 
 # Los casos que no van en `test-main` porque viven en otro.
-FUERA = {"cartel",
-         "grupo-11-12-13", "batalla", "batalla-item", "batalla-droide",
+FUERA = {"grupo-11-12-13", "batalla", "batalla-item", "batalla-droide",
          "pelea-82-grupo-11-12",
          # Y el empujón, que sólo hace falta en `test-special`, donde se mide el
          # borde de banco. Hasta el 2026-09-24 además no cabía acá: el
@@ -226,8 +255,21 @@ def sello(nombre, fuentes=None):
                        (flags, _contenido(casos_de(nombre))))
 
 
+def directorio(nombre):
+    """Dónde queda el cartucho: `release` en el suyo, los demás en DESTINO."""
+    if nombre == RELEASE:
+        return os.path.join(RAIZ, "rom", "build", RELEASE)
+    return os.path.join(DESTINO, nombre)
+
+
+def rom_de(nombre):
+    """El `.sfc` del cartucho. El de `release` se llama como el juego."""
+    return os.path.join(directorio(nombre),
+                        "abl.sfc" if nombre == RELEASE else "prueba.sfc")
+
+
 def _archivo(nombre, que):
-    return os.path.join(DESTINO, nombre, que)
+    return os.path.join(directorio(nombre), que)
 
 
 def viejo(nombre, fuentes=None):
@@ -265,9 +307,9 @@ def armar(nombre, fuentes):
     if not viejo(nombre, fuentes):
         return False
     flags, _casos = CARTUCHOS[nombre]
-    destino = os.path.join(DESTINO, nombre)
+    destino = directorio(nombre)
     os.makedirs(destino, exist_ok=True)
-    sfc = _archivo(nombre, "prueba.sfc")
+    sfc = rom_de(nombre)
     # Los casos van al final: detrás de un `--caso`, cualquier flag del
     # cartucho sería de ese caso, y el conversor lo rechaza.
     de_casos = []

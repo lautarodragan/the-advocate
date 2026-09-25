@@ -352,7 +352,7 @@ def test_titulo(nombre, sosteniendo, toques):
 
     Las cuatro ranuras salen vacías porque la SRAM del emulador arranca virgen.
     """
-    consola = encender("juego", ARRANQUE_CON_TITULO)
+    consola = encender("release", ARRANQUE_CON_TITULO)
     correr_hardware(consola, 20, toques=toques, sosteniendo=sosteniendo)
     golden(nombre, consola.imagen())
 

@@ -7,13 +7,13 @@ mapa y la diferencia está en la RAM.
 
 El reparto es el de siempre: la tanda mira la pantalla y esto mira el estado.
 
-La ROM de estas pruebas lleva la pantalla de título —no pide `--sin-titulo`—, y
-el único cartucho de la tanda que la lleva es `juego`, el que arranca en el 4
-como el juego de verdad: la pantalla cambia el arranque —sin ella la partida
+La ROM de estas pruebas es `release`, la que se juega, que es la que lleva la
+pantalla de título: la pantalla cambia el arranque —sin ella la partida
 guardada se carga sola, con ella espera a que el menú lo decida— y ése es
-justamente el camino que hay que probar. Desde el
-2026-09-20 no hay un cartucho de título aparte: se fundió con el del juego, así
-que estas pruebas arrancan donde arranca el jugador.
+justamente el camino que hay que probar. Así que estas pruebas arrancan donde
+arranca el jugador, y **guardan como él**: con el menú de pausa, en el mapa 5,
+porque `release` no lleva páginas de prueba. Hasta el 2026-09-24 corrían sobre
+`juego`, un cartucho parecido con una página que abría la pantalla de guardar.
 """
 
 import os
@@ -23,15 +23,23 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))), "tools"))
 
-# Cuántos ticks espera la página de prueba antes de guardar, como en
-# `test_guardar`: alcanzan para irse a otro mapa —el fundido son 90— y sobra.
-ESPERA = 198
-
 EMPEZAR, SEGUIR = 0, 1
 
-# El mapa donde arranca el cartucho `juego`, que es el que lleva la pantalla de
-# título: el 4, el del juego de verdad. Ver `pruebas/arnes/cartuchos.py`.
+# El mapa donde arranca `release`: el 4, el del juego de verdad.
 MAPA_DE_ARRANQUE = 4
+
+# Dónde se guarda: el mapa 5, donde el héroe tiene el control apenas llega. En
+# el de arranque no se puede: el 4 es el enrutador de la apertura, y mientras
+# su página corre el menú de pausa no se abre.
+PARA_GUARDAR = (5, 39, 34)
+
+
+def con_el_control(partida):
+    """La partida después de "Begin the Story", parada en el mapa 5 con el
+    control, que es donde se puede guardar con el menú."""
+    una = partida(titulo=EMPEZAR)
+    una.ir_al_mapa(*PARA_GUARDAR)
+    return una
 
 
 def test_empezar_la_historia_arranca_en_el_mapa_inicial(partida):
@@ -76,9 +84,9 @@ def test_seguir_la_historia_carga_la_partida(partida):
     sería más contundente y hoy no se puede: ver
     `test_irse_de_mapa_antes_de_guardar_no_guarda`, acá abajo.
     """
-    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
+    una = con_el_control(partida)
     una.prender(7)
-    una.guardar_en()
+    una.guardar_por_el_menu()
     assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
 
     una.reiniciar(SEGUIR)
@@ -113,10 +121,9 @@ def test_irse_de_mapa_antes_de_guardar_guarda(partida):
     veces. taro además confirmó ese día que el save point guarda en mednafen,
     en mesen y en la SNES de verdad.
     """
-    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
-    una.ir_al_mapa(5, 39, 34)
+    una = con_el_control(partida)
     una.prender(7)
-    una.guardar_en()
+    una.guardar_por_el_menu()
     assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
 
 
@@ -138,9 +145,9 @@ def test_empezar_ignora_la_partida_guardada(partida):
     de ranuras y se cuelga si no se abre, que fue lo que lo delató; y la
     aserción sobre la SRAM está para que no vuelva a pasar.
     """
-    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
+    una = con_el_control(partida)
     una.prender(7)
-    una.guardar_en()
+    una.guardar_por_el_menu()
     assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
 
     una.reiniciar(EMPEZAR)
@@ -151,7 +158,7 @@ def test_empezar_ignora_la_partida_guardada(partida):
         "el switch 7 de la partida guardada sobrevivió a empezar de nuevo")
 
 
-def test_la_musica_viaja_en_la_partida(partida):
+def test_la_musica_viaja_en_la_partida(con_musica):
     """El tema que está sonando se guarda en la SRAM, como un switch.
 
     Lo prende un `PlayBGM` de un evento, así que es estado del mundo: sin
@@ -165,14 +172,14 @@ def test_la_musica_viaja_en_la_partida(partida):
     sacado de `partida_tabla`** —se comprobó, y pasa—. Mirar la SRAM no depende
     de eso: si el campo no se guarda, los bytes no están.
 
-    La ROM lleva `--tema-de-arranque` porque los mapas de las pruebas no traen
-    música propia.
+    Se guarda al final de la apertura, que es donde hay música y control:
+    ver `con_musica` en conftest.py.
     """
-    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
+    una = con_musica()
     assert not una.byte("music_apagada"), (
         "esta ROM tenía que arrancar con un tema sonando y arrancó callada: "
         "sin eso el caso no compara nada")
-    una.guardar_en()
+    una.guardar_por_el_menu()
     assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
 
     # Las dos entradas de la música en `partida_tabla`, en su orden:
@@ -208,7 +215,7 @@ def test_la_musica_viaja_en_la_partida(partida):
         % (cola[1] | (cola[2] << 8), una.palabra("tema_actual")))
 
 
-def test_la_partida_cargada_arranca_con_su_musica(partida):
+def test_la_partida_cargada_arranca_con_su_musica(con_musica):
     """Y al cargar, la ROM la usa en vez del tema del mapa inicial.
 
     Es la otra mitad de lo de arriba: que el dato esté en la SRAM no alcanza si
@@ -217,8 +224,8 @@ def test_la_partida_cargada_arranca_con_su_musica(partida):
     sin ensuciarla el estado viejo sobrevive solo y no se compara nada. Es la
     misma trampa que escondió el bug de página directa de `partida_suma`.
     """
-    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
-    una.guardar_en()
+    una = con_musica()
+    una.guardar_por_el_menu()
     assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
     sonaba = una.palabra("tema_actual")
 
@@ -245,9 +252,9 @@ def test_la_pantalla_de_ranuras_carga_la_que_se_elige(partida):
     mitad de este caso pasaría igual —hay una partida y se carga— y sólo la
     segunda lo delataría. Por eso están las dos.
     """
-    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
+    una = con_el_control(partida)
     una.prender(7)
-    una.guardar_en(1)                   # se elige la segunda en la pantalla
+    una.guardar_por_el_menu(1)                   # se elige la segunda en la pantalla
     base = una.simbolos["SRAM_MAGIA"] + una.simbolos["SRAM_STRIDE"]
     assert una.sram(base, 4) == b"ABLS", "no quedó nada en la ranura 1"
 
@@ -274,9 +281,9 @@ def test_cada_ranura_carga_lo_que_se_guardo_en_ella(partida, ranura):
 
     Sin el arreglo, la 3 de este caso da rojo y las otras tres no.
     """
-    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
+    una = con_el_control(partida)
     una.prender(7)
-    una.guardar_en(ranura)
+    una.guardar_por_el_menu(ranura)
     una.reiniciar(SEGUIR, ranura=ranura)
     assert una.switch(7), (
         "se guardó en la ranura %d —la %da de la pantalla— y al elegirla desde "
@@ -312,9 +319,9 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     from render.render_map import GAME_DIR
     from tanda import quince_bits
 
-    una = partida(titulo=EMPEZAR, caso="guardar-198-titulo")
+    una = con_el_control(partida)
     una.poner_grupo(14, 10)
-    una.guardar_en(1)
+    una.guardar_por_el_menu(1)
     una.abrir_ranuras_desde_el_titulo()
 
     db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))

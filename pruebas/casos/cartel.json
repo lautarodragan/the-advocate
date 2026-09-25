@@ -1,5 +1,0 @@
-{
-  "event_commands": [
-    {"code": "ControlSwitches", "parameters": [0, 21, 21, 0]}
-  ]
-}

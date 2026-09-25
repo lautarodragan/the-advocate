@@ -13,13 +13,14 @@ ese mapa era el de arranque de su cartucho.
 
 ## ROMs
 
-Se arman con `just build <cual>`. La que se juega es `release`, y la tanda
-corre sobre tres cartuchos, que `just pruebas` arma solo:
+Son tres, y la tanda corre sobre los tres. Se arman con `just build <cual>`,
+y `just pruebas` los arma solos antes de correr:
 
 * `test-main`, con todos los casos de `pruebas/casos/`: las pruebas normales
 * `test-special`, lo que no entra en `test-main` o cuida una disposición del
   cartucho
-* `juego`, que arranca como el juego de verdad, con pantalla de título
+* `release`, la ROM que se juega: las pruebas que juegan —el recorrido, el
+  título, las escenas de la apertura— corren sobre ella
 
 Qué lleva cada uno, y por qué, en `pruebas/arnes/cartuchos.py`.
 

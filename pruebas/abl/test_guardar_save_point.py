@@ -21,8 +21,7 @@ condición que hace fallar a la página de prueba.
 Los dos casos son el mismo camino con y sin pantalla de título, y esa pareja es
 el punto: el defecto del `xfail` sólo aparece con título, así que si el save
 point guardara en un caso y no en el otro, el defecto sería del juego. El de
-con título arranca en el 4 —es el cartucho `juego`, que desde el 2026-09-20
-lleva la pantalla— y el de sin título llega al 4 con el caso `en-4` desde el
+con título arranca en el 4 —es `release`, la ROM que se juega— y el de sin título llega al 4 con el caso `en-4` desde el
 cartucho de pruebas, porque ya no queda ninguna ROM sin título que arranque
 ahí. Para este caso da lo mismo: lo que se mira es el `OpenSaveMenu` del mapa
 8, que está a dos mapas de distancia, y no la rampa del fundido con que se
@@ -127,8 +126,7 @@ def test_el_save_point_guarda_con_titulo_y_tras_cambiar_de_mapa(partida,
     lo que se escribió era esta partida y no el estado del arranque.
     """
     r = caminar_hasta_el_save_point(
-        partida(caso="nada", switch=[UN_ANO_DESPUES],
-                titulo=EMPEZAR), mundo)
+        partida(switch=[UN_ANO_DESPUES], titulo=EMPEZAR), mundo)
     p = guardar(r)
     assert p.sram(0x100, 4) == b"ABLS", (
         "se eligió la ranura y la partida no quedó en la SRAM. %s" % r.estado())
@@ -169,7 +167,7 @@ def test_el_cursor_de_guardar_arranca_en_la_ranura_en_uso(partida, mundo):
     abre la pantalla sin caminar un paso.
     """
     r = caminar_hasta_el_save_point(
-        partida(caso="nada", switch=[UN_ANO_DESPUES], titulo=EMPEZAR), mundo)
+        partida(switch=[UN_ANO_DESPUES], titulo=EMPEZAR), mundo)
     p = guardar(r, ranura=2)
     base = p.simbolos["SRAM_MAGIA"] + 2 * p.simbolos["SRAM_STRIDE"]
     assert p.sram(base, 4) == b"ABLS", (

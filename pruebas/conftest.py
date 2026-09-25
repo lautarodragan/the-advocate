@@ -29,6 +29,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 "arnes"))
 
 import tanda                                                 # noqa: E402
+import cartuchos                                             # noqa: E402
 
 # Dónde arranca una prueba de estado que no pide otra cosa: el mapa 5, con el
 # grupo del juego. Es el caso `en-5`, el `Teleport` a la celda donde el héroe
@@ -47,16 +48,18 @@ def partida():
     Devuelve la partida arrancada en el caso que se pida —`en-5` si no se
     pide ninguno—. `switch` se escribe en la RAM antes del primer cuadro de
     juego; para ir a otro mapa, `.ir_al_mapa(...)`. Con `titulo` la partida
-    pasa la pantalla de título del cartucho `juego`, que es el único que
-    la lleva.
+    es la de `release`, la ROM que se juega, que es la que lleva la pantalla
+    de título; ahí no hay casos, porque una ROM que se entrega no lleva
+    páginas de prueba.
     """
     def hacer(switch=(), caso=None, titulo=None, en=None):
         if titulo is not None:
-            # La pantalla de título la lleva `juego`, el cartucho que arranca
-            # en el 4 como el juego de verdad; ahí el caso que no pide nada es
-            # `nada`, que deja el grupo del juego en el mapa de arranque.
-            en = en or "juego"
-            caso = caso or "nada"
+            en = en or cartuchos.RELEASE
+        if en == cartuchos.RELEASE:
+            assert caso is None, (
+                "`release` no lleva páginas de prueba, así que no tiene el "
+                "caso %r" % caso)
+            return tanda.partida(None, en=en, switches=switch, titulo=titulo)
         return tanda.partida(caso or ARRANQUE, en=en, switches=switch,
                              titulo=titulo)
 
@@ -68,8 +71,8 @@ def partida():
 # buscan por ese mismo nombre: ver `Recorrido.foto`.
 FOTOS = os.path.join(tanda.RAIZ, "rom", "build", "pruebas", "recorrido")
 
-# "Begin the Story", la primera opción de la pantalla de título, que el
-# cartucho `juego` lleva delante. Una jugada empieza por ahí como la empieza
+# "Begin the Story", la primera opción de la pantalla de título, que
+# `release` lleva delante. Una jugada empieza por ahí como la empieza
 # cualquiera.
 EMPEZAR = 0
 
@@ -93,12 +96,31 @@ def mundo():
 
 @pytest.fixture
 def recorrido(partida, mundo):
-    """Una jugada sobre el cartucho `juego`, entrando por la pantalla de
-    título, con sus capturas en `FOTOS/<nombre>`."""
+    """Una jugada sobre `release`, la ROM que se juega, entrando por la
+    pantalla de título, con sus capturas en `FOTOS/<nombre>`."""
     from recorrido import Recorrido
 
     def hacer(nombre, switch=()):
-        return Recorrido(partida(switch=switch, caso="nada", en="juego",
-                                 titulo=EMPEZAR),
+        return Recorrido(partida(switch=switch, titulo=EMPEZAR),
                          mundo, fotos=os.path.join(FOTOS, nombre))
+    return hacer
+
+
+@pytest.fixture
+def con_musica(recorrido):
+    """Una fábrica: `con_musica()` es la apertura de `release` jugada hasta
+    que Kersh toma el control, con su tema sonando.
+
+    Es el primer lugar de la ROM que se juega con música y con el control:
+    después de "Begin the Story" no suena nada —el tema del título se corta y
+    el mapa 4 no trae uno— hasta que la apertura pone el suyo, y el héroe no
+    se mueve hasta que termina. Hasta el 2026-09-24 las pruebas de música
+    tenían eso gratis: corrían en `juego`, que arrancaba con un tema puesto.
+    """
+    def hacer():
+        r = recorrido("con-musica")
+        r.esperar("que la apertura termine y Kersh tome el control",
+                  lambda p: p.switch(3) and not p.corriendo_una_pagina(),
+                  tope=6000)
+        return r.p
     return hacer

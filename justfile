@@ -203,67 +203,19 @@ parches: (build "release")
 parches-check *builds="rom/build/pruebas-unico rom/build/release":
   python3 tools/port/parches.py {{builds}} --check
 
-#     release        la que taro juega, en `rom/build/release/abl.sfc`
-#     test-main      los cartuchos de la tanda, en `rom/build/pruebas-unico/`;
-#     test-special   `just pruebas` los arma solos. Qué lleva cada uno, en
-#     juego          `pruebas/arnes/cartuchos.py`
+# Arma un cartucho por nombre, si no está al día:
 #
-# Las que se juegan se llaman `abl.sfc` aunque el directorio cambie, porque
-# el MSU-1 busca sus pistas por el nombre del `.sfc`: ver `msu`.
+#     release        la ROM que taro juega, en `rom/build/release/abl.sfc`
+#     test-main      los de la tanda, en `rom/build/pruebas-unico/`
+#     test-special
 #
-# Arma una ROM por nombre: release, test-main, test-special o juego.
+# `just pruebas` los arma todos antes de correr. Qué lleva cada uno, y por
+# qué, en `pruebas/arnes/cartuchos.py`: los flags de `release` también viven
+# ahí, para que la ROM que se juega y la que prueba la tanda sean la misma.
+#
+# Arma una ROM por nombre: release, test-main o test-special.
 build cual:
-  #!/usr/bin/env bash
-  set -euo pipefail
-  case "{{cual}}" in
-    release) just _release ;;
-    *) python3 pruebas/arnes/cartuchos.py "{{cual}}" ;;
-  esac
-
-# **La ROM que taro juega**: la cadena entera de la apertura hasta Lashe City,
-# con pantalla de título, en `rom/build/release/abl.sfc`, que es donde él la busca.
-#
-# Es una sola y **siempre con título**: hasta el 2026-09-20 eran dos, con y sin,
-# y la de sin no la jugaba nadie —la pantalla de título la cubren por su lado
-# los cartuchos de `cartuchos`—. Es la misma decisión que dejó un solo `.sfc` en
-# `pruebas-manuales/`; está en AGENTS.md.
-#
-# **Con el grupo de verdad, el 10**, y no con el 11 del banco de pruebas. El
-# juego arranca con DummyHero y la apertura del mapa 1 lo da por sentado: con
-# Kersh ya en el grupo la página automática no corre, y queda Kersh sobre negro,
-# sin música y sin cámara. La referencia hace lo mismo, así que no sería un bug
-# de la ROM: sería una ROM mal armada. La familia `cinematica` de la tanda usa
-# el 10 por la misma razón.
-#
-# Con cronómetro, para hacerle lugar al rojo de los dígitos. La lista de mapas es **el subárbol de "Lashe City" que entra**: el
-# camino a la fábrica, el auditorio y el Director, Sector 30 y los Rat Tracks,
-# Sector 27 con sus dos negocios y el galpón, la fuga del 27 y el auto, y la
-# misión de los Neon Viper.
-#
-# **Lo que quedó afuera, y por qué**, porque acá es donde se va a mirar:
-#
-#   la persecución en auto   casi ninguna de sus páginas automáticas compila:
-#                            leen la posición del auto con un `ControlVars` de
-#                            clase 6 —coordenadas de un personaje—, que la ROM no
-#                            hace, y el 49 además tiene un `KeyInputProc`. Sin
-#                            eso el auto no dobla y el tráfico no aparece. De
-#                            paso, sus tres mapas de 500x40 no entraban en los
-#                            2 MB del cartucho. Ver
-#                            `wishlist/la-carrera-en-release.md`.
-#   los sectores con auto    a dónde lleva la elección del mapa 36. El **38 no
-#                            entra en ningún reparto de VRAM**: sus tiles de
-#                            fondo y de sprite más la ventana no entran en los
-#                            64 KB. Y la elección del 36 es una sola página: o
-#                            compilan los cuatro destinos o no compila ninguno.
-_release:
-  mkdir -p rom/build/release
-  python3 tools/port/snes_convert.py --grupo 10 --map-id 4 \
-      --mapas 1 2 3 5 6 7 8 9 10 11 12 13 14 16 17 18 19 20 21 23 26 28 29 30 \
-              32 33 34 36 \
-      -o rom/build/release/mapdata.inc
-  {{ensamblar}} rom/src/main.s -I rom/build/release \
-      -o rom/build/release/abl.sfc \
-      --simbolos rom/build/release/abl.sfc.sym
+  python3 pruebas/arnes/cartuchos.py {{cual}}
 
 # Es para que taro vea y escuche un build sin correrlo. Las jugadas son partes
 # del nombre de las pruebas de `pruebas/abl/test_recorrido.py` —`apertura`,
@@ -277,11 +229,17 @@ _release:
 video cual salida +jugadas:
   python3 -O pruebas/arnes/video.py rom/build/{{cual}} {{salida}} {{jugadas}}
 
-# Las pistas de MSU-1 al lado de una ROM ya armada: el `.msu` que lo enciende
-# —puede estar vacío— y un `.pcm` por tema de `PISTAS_MSU`. No va adentro de
-# `build` porque no hace falta para jugar: sin estos archivos la ROM suena
-# como siempre, por el SPC700. Y porque es cara —renderiza el MIDI con
-# fluidsynth y normaliza en Python— y pesa: son 10,6 MB por minuto de música.
+# La ROM de release con sus pistas de MSU-1, en `rom/build/release-msu/`: una
+# copia de `abl.sfc`, el `.msu` que lo enciende —puede estar vacío— y un
+# `.pcm` por tema de `PISTAS_MSU`. No va adentro de `build` porque no hace
+# falta para jugar: sin estos archivos la ROM suena como siempre, por el
+# SPC700. Y porque es cara —renderiza el MIDI con fluidsynth y normaliza en
+# Python— y pesa: son 10,6 MB por minuto de música.
+#
+# **Va en otro directorio que el de `release` a propósito**: el emulador busca
+# el `.msu` al lado del `.sfc`, así que con las pistas ahí la tanda corría con
+# MSU-1 —el SPC700 callado— o sin él según si alguien había corrido esto. Pasó
+# el 2026-09-24.
 #
 # En la tarjeta del FX Pak los tres van en el mismo directorio y con el mismo
 # nombre base que la ROM: renombrar el `.sfc` obliga a renombrar los otros, o
@@ -291,5 +249,7 @@ video cual salida +jugadas:
 # del soundfont, de fluidsynth y de cómo se normaliza, nada de eso es del
 # cartucho, y todo eso está en la clave. Ver `clave_de_la_pista` en msu.py.
 # Con `SIN_CACHE=1` se rehacen todas.
-msu cual="release":
-  python3 tools/audio/msu.py rom/build/{{cual}}/abl.sfc
+msu: (build "release")
+  mkdir -p rom/build/release-msu
+  cp rom/build/release/abl.sfc rom/build/release-msu/abl.sfc
+  python3 tools/audio/msu.py rom/build/release-msu/abl.sfc

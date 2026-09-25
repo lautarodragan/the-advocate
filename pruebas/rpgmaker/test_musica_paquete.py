@@ -27,7 +27,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))), "tools"))
 
-EMPEZAR = 0
+EMPEZAR, SEGUIR = 0, 1
 
 
 def test_el_tema_del_titulo_tiene_sus_muestras_en_la_aram(partida):
@@ -65,7 +65,7 @@ def test_el_tema_del_titulo_tiene_sus_muestras_en_la_aram(partida):
         % (faltan, sorted(una.muestras_del_tema(tema))))
 
 
-def test_entrar_al_juego_devuelve_las_muestras_del_tema_del_mapa(partida):
+def test_entrar_al_juego_devuelve_las_muestras_del_tema_del_mapa(con_musica):
     """Y al salir del título, el tema del mapa recupera las suyas.
 
     Es la otra punta del mismo camino: subir el tema del título **desaloja** lo
@@ -76,11 +76,16 @@ def test_entrar_al_juego_devuelve_las_muestras_del_tema_del_mapa(partida):
 
     Los dos temas piden muestras distintas —se comprueba, porque si pidieran
     las mismas el caso pasaría sin mover nada—.
+
+    Se entra al juego **cargando** una partida guardada con el tema de la
+    apertura sonando: en `release` el mapa de arranque no trae tema, así que
+    "Begin the Story" no tiene nada que reponer, y cargar también sale del
+    título. Ver `con_musica` en conftest.py.
     """
-    una = partida(titulo=EMPEZAR)
-    # Un tick, para que el mapa arranque su tema: en el cartucho de pruebas la
-    # primera vuelta del lazo termina unos cuadros después de que `Partida`
-    # entrega la consola.
+    una = con_musica()
+    una.guardar_por_el_menu()
+    una.reiniciar(SEGUIR)
+    # Un tick, para que el mapa arranque su tema.
     una.correr(1)
 
     del_mapa = una.palabra("tema_actual")

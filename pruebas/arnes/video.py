@@ -2,7 +2,7 @@
 
 No trae una jugada propia: juega **las del recorrido**, llamando a las funciones
 de `pruebas/abl/test_recorrido.py` tal cual, con una fábrica de `recorrido` que
-apunta a esta ROM en vez de al cartucho `juego`. Así la jugada es una sola y
+apunta a la ROM que se le pida. Así la jugada es una sola y
 esperan por RAM, no por cuadros contados: ver `recorrido.py`. Lo que se graba
 se toma de `retro.Consola.correr`, parcheado desde acá: cada cuadro de hardware
 va a ffmpeg y su audio a un wav, y al final se juntan.

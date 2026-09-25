@@ -329,6 +329,51 @@ class Partida:
         self.correr(10)
         return self
 
+    def guardar_por_el_menu(self, ranura=0):
+        """Guarda en `ranura` como el jugador: B abre el menú de pausa, se baja
+        hasta Save, y en la pantalla de ranuras se elige; después B cierra el
+        menú. Hace falta que el héroe tenga el control, o el menú no se abre.
+
+        **El permiso de guardar se habilita desde afuera**, y es a propósito:
+        la apertura lo prohíbe con `ChangeSaveAccess` y en la ROM que se juega
+        no hay otra forma de llegar a guardar temprano. Es preparación, como
+        prender un switch: lo que se prueba después es que la partida vuelva,
+        no el permiso —ése lo cobran las pruebas del menú—.
+        """
+        acceso = self.simbolos["FAR_ACCESO"]
+        permiso = self.consola.ram(acceso, 1)[0]
+        self.consola.escribir_ram(
+            acceso, [permiso & ~self.simbolos["ACCESO_SIN_GUARDAR"] & 0xFF])
+        self.consola.apretar("b")
+        self.consola.correr(2)
+        self.consola.apretar()
+        for _ in range(120):
+            if self.byte("menu_abierto"):
+                break
+            self.consola.correr(1)
+        else:
+            raise RuntimeError("B no abrió el menú de pausa: ¿el héroe tenía "
+                               "el control?")
+        self.consola.correr(TITULO_AIRE)
+        self._bajar_y_elegir(self.simbolos["MENU_GUARDAR"])
+        # La pantalla de ranuras, arriba del menú: el menú sigue abierto
+        # abajo, así que no hay bandera que esperar, y se le da el aire del
+        # título, que sube más.
+        self.consola.correr(TITULO_AIRE)
+        self._bajar_y_elegir(ranura)
+        self.consola.correr(TITULO_AIRE)
+        self.consola.apretar("b")
+        self.consola.correr(2)
+        self.consola.apretar()
+        for _ in range(120):
+            if not self.byte("menu_abierto"):
+                break
+            self.consola.correr(1)
+        else:
+            raise RuntimeError("B no cerró el menú de pausa")
+        self.correr(10)
+        return self
+
     def reiniciar(self, opcion=None, ranura=0):
         """El botón de reset: la SRAM del cartucho sobrevive y la WRAM no.
 

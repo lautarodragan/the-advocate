@@ -34,6 +34,7 @@ valen también para ella.
 
 import pytest
 
+from cartuchos import RELEASE
 from tanda import golden, partida
 
 # Cada caso es: nombre —que es también el de su página de prueba, con el
@@ -144,18 +145,19 @@ def test_escena(nombre, cuadros, apretar, toques):
 TOQUES_APERTURA = (841, 901, 961, 1021, 1474, 1595, 1776, 1897, 2018, 2078,
                    2259, 2380, 2489, 2683, 2743)
 
-# "Begin the Story", que es por donde se entra al cartucho `juego` desde que
-# lleva la pantalla de título. Las seis goldens de `cinematica`, las seis de
+# "Begin the Story", que es por donde se entra a `release`, la ROM que se
+# juega. Las seis goldens de `cinematica`, las seis de
 # `apertura` y las cinco de `cartel` se congelaron cuando no la llevaba y salen
 # byte por byte iguales a través de ella: el título no cambia lo que se dibuja
 # adentro del mapa. Ver `pruebas/arnes/cartuchos.py`.
 EMPEZAR = 0
 
-# Las cinemáticas: nombre, los ticks, los toques de A, la página de prueba
-# —la que prende el switch con que arranca, o `nada`— y el cartucho. Las que
-# arrancan en el 4 van en `juego`, que arranca ahí como el juego de verdad:
-# llegar al 4 con un `Teleport` no da lo mismo —la rampa del fundido y el
-# tinte salen corridos—.
+# Las cinemáticas: nombre, los ticks, los toques de A, cómo arranca y el
+# cartucho. Las que arrancan en el 4 van en `release`, la ROM que se juega,
+# que arranca ahí como el juego de verdad: llegar al 4 con un `Teleport` no da
+# lo mismo —la rampa del fundido y el tinte salen corridos—. Ahí no hay
+# páginas de prueba, así que "cómo arranca" son los switches que se escriben
+# en la RAM antes del primer cuadro; en los demás es la página de prueba.
 CINEMATICAS = (
     # La misma que `apertura`, mirada en otros ticks: los dos primeros caen
     # adentro de la rampa del primer fundido. Hasta el 2026-09-17 iba sin
@@ -163,12 +165,12 @@ CINEMATICAS = (
     # mensajes— no compilaba: la golden del 750 había congelado la escena
     # teñida y sin personajes para siempre.
     ("cinematica", (50, 68, 170, 370, 750, 1110), TOQUES_APERTURA,
-     "nada", "juego"),
+     (), "release"),
     # La cinemática no termina en el teletransporte: el último paso pisa el
     # evento 2, que es la escena de apertura entera, con cuatro personajes
     # caminando en el mismo mapa, o sea las poses en caliente en su caso real.
     ("apertura", (370, 770, 830, 1210, 1980, 2910),
-     TOQUES_APERTURA, "nada", "juego"),
+     TOQUES_APERTURA, (), "release"),
     # El recuerdo de CORE y MANTA, que lo destraba el switch 16: lo prende una
     # página de un mapa que no está en el cartucho del caso. Son 3900 ticks y
     # 34 toques de A, del mapa 5 al 6. Lo que sigue —el 6 salta al 3 y el 3 al
@@ -179,12 +181,12 @@ CINEMATICAS = (
       3018, 3079, 3110, 3141, 3214, 3510, 3541, 3723, 3826), "manta", None),
     # El cartel de "One year previously", que es lo único que este port dibuja
     # de `ShowPicture`. Arranca con el switch 21 —el que prende el final del
-    # recuerdo— así que la página 3 del evento 1 del mapa 4 corre sola, y los
+    # recuerdo; hasta el 2026-09-24 lo prendía la página `cartel`— así que la página 3 del evento 1 del mapa 4 corre sola, y los
     # cinco ticks agarran el fundido entero: recién puesto y casi negro (470),
     # a mitad de la rampa de subida (550), a pleno (660), a mitad de la de
     # bajada (800) y ya borrado (880). El de la mitad no es adorno: es el único
     # que cobra la interpolación cuadro a cuadro.
-    ("cartel", (470, 550, 660, 800, 880), (), "cartel", "juego"),
+    ("cartel", (470, 550, 660, 800, 880), (), (21,), "release"),
     # Delcentric Factory con ventana, el único mapa que toma el tercer reparto
     # de VRAM —`LAYOUT_VENTANA_SPRITE`, 512 tiles de sprite y 384 de fondo—. Va
     # con el mapa 1 al lado **a propósito**: es el que pone lluvia, y sin las
@@ -226,6 +228,9 @@ def test_cinematica(nombre, cuadros, apretar, caso, en):
       mismo cuadro.
     """
     for cuadro in cuadros:
-        p = partida(caso, en=en, titulo=EMPEZAR if en == "juego" else None)
+        if en == RELEASE:
+            p = partida(None, en=en, switches=caso, titulo=EMPEZAR)
+        else:
+            p = partida(caso, en=en)
         p.correr(cuadro, apretar_a=apretar)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
