@@ -105,7 +105,7 @@ def _items():
 def _tocar(consola, boton, cuadros=8):
     """Un flanco del botón y `cuadros` de hardware de espera.
 
-    Es `test_menu.tocar` a mano, en cuadros de hardware: adentro de un menú el
+    Es `menu.tocar` a mano, en cuadros de hardware: adentro de un menú el
     reloj del juego no corre, así que `Partida.correr` no termina nunca.
     """
     consola.apretar(boton)

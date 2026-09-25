@@ -9,7 +9,7 @@ import os
 from port import pantallas as P
 
 from consola import TITULO_AIRE
-from test_menu import tocar
+from menu import tocar
 
 VENDE = [96, 92, 93]                    # el cuchillo, el caño y la cachiporra
 CANO = 92

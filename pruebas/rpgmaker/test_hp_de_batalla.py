@@ -21,7 +21,7 @@ alguna vez cambia, cambió una fórmula de la pelea y hay que saberlo.
 
 import os
 
-from test_menu import abrir
+from menu import abrir
 
 # La pelea es la de la página de prueba `pelea-82-grupo-11-12`: la tropa del
 # droide del mapa 2, la misma que usan las demás pruebas de pelea, 18 ticks
@@ -127,7 +127,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
 # sea que un GiantRat dice "20" porque tiene 20, y no porque le haya quedado
 # eso de la pelea anterior.
 
-from test_game_over import con_encuentros                    # noqa: E402
+from batalla import con_encuentros                    # noqa: E402
 
 
 def enemigos_de(una):

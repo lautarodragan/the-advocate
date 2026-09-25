@@ -24,7 +24,7 @@ from port import batalla as modelo
 from render.render_map import GAME_DIR
 
 from consola import en_la_rom, en_la_wram
-from test_batalla import Pelea, en_el_droide, modelo_de
+from batalla import Pelea, en_el_droide, modelo_de
 
 # El encuentro al azar de Sector 27: la celda cae adentro del área 31, y con esa
 # semilla sale la tropa 100 —un DecayingShambler y dos AlleyMuck, que se tapan

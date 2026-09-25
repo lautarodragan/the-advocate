@@ -13,8 +13,8 @@ from port import batalla as modelo
 from port import experiencia
 
 from consola import en_la_rom
-from test_batalla import (GRUPO, TROPA_DROIDE, Pelea, db,
-                          en_el_droide)
+from batalla import GRUPO, TROPA_DROIDE, Pelea, en_el_droide
+from test_batalla import db
 
 
 def rom_de(una):
@@ -237,7 +237,7 @@ def test_full_heal_llena_hasta_el_maximo_del_nivel_de_ahora(partida):
     """`FullHeal` es `SetHp(GetMaxHp())`, y el máximo es el del nivel que el
     actor tiene. Es el camino de `test_curar.py`, con un nivel que no es el
     de arranque."""
-    from test_curar import DESPUES_DE_PERDER, grupo_de, palabra_de, sin_hp
+    from batalla import DESPUES_DE_PERDER, grupo_de, palabra_de, sin_hp
     una = partida(caso="pelea-82-curar")
     base = db()
     sin_hp(una)
@@ -323,7 +323,7 @@ def referencias():
 
 def test_el_menu_muestra_el_nivel_y_el_maximo_de_ahora(partida):
     from port import titulo
-    from test_menu import GRUPO as GRUPO_MENU, ORO, abrir, con_grupo
+    from menu import GRUPO as GRUPO_MENU, ORO, abrir, con_grupo
     base, skin, game_dir = referencias()
     assert set(NIVELES_DEL_MENU) == set(GRUPO_MENU)
     una = con_grupo(partida())
@@ -348,7 +348,7 @@ def test_la_ranura_muestra_el_nivel_que_tenia_esa_partida(partida):
     pantalla, así que un 9 en la ranura sólo puede haber salido de la SRAM."""
     from port import titulo
     from consola import TITULO_AIRE
-    from test_menu import GRUPO as GRUPO_MENU, abrir, con_grupo, tocar
+    from menu import GRUPO as GRUPO_MENU, abrir, con_grupo, tocar
     base, skin, game_dir = referencias()
     lider = GRUPO_MENU[0]
     una = con_grupo(partida())

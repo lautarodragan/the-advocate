@@ -19,8 +19,8 @@ no cobre cuando no, y que "No" no toque nada.
 
 import os
 
-from test_curar import grupo_de, maximos, palabra_de
-from test_game_over import sin_hp
+from batalla import grupo_de, palabra_de, sin_hp
+from test_curar import maximos
 from test_oro import leer as leer_oro, poner as poner_oro
 
 # El bum y su precio, del `ShowInn [0, 5, 0]` de la página. La celda es la de

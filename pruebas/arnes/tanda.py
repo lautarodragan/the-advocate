@@ -73,6 +73,12 @@ class Cartucho:
         self.casos, self.saltan = cartuchos.manifiesto(nombre)
 
 
+# El mapa 2 solo: el Linkage Block entero. Sus dos cuartos parecen dos mapas
+# jugando pero son el mismo, y se cruzan con teletransportes internos. Ver
+# `test_puerta_misma.py`. Lo usan también las peleas contra el droide.
+LINKAGE = "en-2"
+
+
 _CARGADOS = {}
 
 

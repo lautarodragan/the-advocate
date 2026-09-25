@@ -12,7 +12,7 @@ import os
 from port import titulo
 
 from consola import TITULO_AIRE
-from test_menu import abrir, tocar
+from menu import abrir, tocar
 
 # Una poción de más de diez, un arma y la consola: el arma va en gris. Es lo
 # que da la página de prueba `items-pantalla`, y `MUCHOS` lo que da

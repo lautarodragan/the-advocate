@@ -34,6 +34,8 @@ from port import eventos
 from rpgmaker import lcf
 from render.render_map import GAME_DIR
 
+from batalla import con_encuentros, cuadros_hasta_reiniciar, sin_hp
+
 # Las páginas de prueba `pelea-82` y `pelea-82-game-over` pelean contra la
 # tropa del droide del mapa 2, que es la que ya viaja en los cartuchos de
 # prueba: cuál sea da lo mismo, porque nadie llega a pelearla. Esperan 18
@@ -50,30 +52,6 @@ RAT_TRACKS_B1, COFRE_TRAMPA = 21, 20
 # para volver al lazo. El arranque son BOOT_CUADROS y encima la subida al
 # SPC700, que no se cuenta en cuadros: el doble es paciencia de sobra.
 VOLVER_TOPE = 600
-
-
-def sin_hp(una):
-    """Todo el grupo caído, escrito en la RAM lejana."""
-    largo = una.simbolos["FAR_SP"] - una.simbolos["FAR_HP"]
-    una.consola.escribir_ram(una.simbolos["FAR_HP"], [0] * largo)
-    return una
-
-
-def cuadros_hasta_reiniciar(una, tope=900):
-    """Cuántos cuadros de hardware pasan hasta que `vueltas` se va para atrás.
-
-    Se cuenta en cuadros y no en ticks a propósito: `Partida.correr` avanza
-    hasta que `vueltas` **suba**, y un reinicio la pone en cero, así que
-    esperar un tick después del Game Over no terminaría nunca.
-    """
-    alto = una.palabra("vueltas")
-    for n in range(tope):
-        una.consola.correr(1)
-        ahora = una.palabra("vueltas")
-        if ahora < alto:
-            return n
-        alto = ahora
-    return None
 
 
 def cuadros_hasta_volver(una, tope=VOLVER_TOPE):
@@ -261,10 +239,6 @@ def caminar(una, cuadros, tope_sin_reinicio=False):
         alto = max(alto, ahora)
     una.consola.apretar()
     return None
-
-
-def con_encuentros(partida):
-    return partida(caso="grupo-11-12-13", en="test-special")
 
 
 def test_perder_un_encuentro_al_azar_es_game_over(partida):

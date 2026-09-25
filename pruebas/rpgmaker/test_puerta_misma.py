@@ -21,7 +21,7 @@ siempre. Al volver, las franjas reaparecían.
 """
 
 
-from conftest import LINKAGE
+from tanda import LINKAGE
 
 MAPA = 2
 PUERTA_X, PUERTA_Y = 4, 54      # la celda de abajo de la puerta

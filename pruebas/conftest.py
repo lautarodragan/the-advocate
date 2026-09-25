@@ -28,10 +28,6 @@ from ensamblado import cartuchos
 # grupo del juego. Es el caso `en-5`, el `Teleport` a la celda donde el héroe
 # caía cuando el 5 era el mapa de arranque de su cartucho.
 ARRANQUE = "en-5"
-# Y el mapa 2 solo: el Linkage Block entero. Sus dos cuartos parecen dos mapas
-# jugando pero son el mismo, y se cruzan con teletransportes internos. Ver
-# `test_puerta_misma.py`.
-LINKAGE = "en-2"
 
 
 # Las pruebas cuyas capturas son todas la misma pantalla **a propósito**, con
@@ -136,7 +132,7 @@ EMPEZAR = 0
 # pytest antes que cualquiera—. Vivían en un `conftest.py` de `pruebas/abl/`
 # hasta el 2026-09-23, y eso duró una corrida: acá no hay paquetes, así que los
 # dos conftest se importan los dos como `conftest` y el segundo tapa al
-# primero. `test_batalla.py` hace `from conftest import LINKAGE` y cinco
+# primero. `test_batalla.py` hacía `from conftest import LINKAGE` y cinco
 # módulos se cayeron con `ImportError`.
 @pytest.fixture(scope="session")
 def mundo():

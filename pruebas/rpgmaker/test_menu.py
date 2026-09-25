@@ -13,27 +13,7 @@ import os
 import pytest
 
 from consola import TITULO_AIRE
-
-GRUPO = (14, 11)
-ORO = 1234
-
-
-def tocar(una, boton, cuadros=4):
-    """Un toque en cuadros de hardware: el menú no cuenta ticks."""
-    una.consola.apretar(boton)
-    una.consola.correr(2)
-    una.consola.apretar()
-    una.consola.correr(cuadros)
-
-
-def abrir(una, tope=60):
-    tocar(una, "b", 0)
-    for _ in range(tope):
-        if una.menu_abierto():
-            una.consola.correr(3)
-            return una
-        una.consola.correr(1)
-    raise AssertionError("B no abrió el menú en %d cuadros" % tope)
+from menu import GRUPO, ORO, abrir, con_grupo, tocar
 
 
 def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
@@ -54,14 +34,6 @@ def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
     assert distintos == 0, (
         "el menú con el cursor en la %d difiere de la referencia en %d "
         "pixeles; están en %s" % (elegida, distintos, donde))
-
-
-def con_grupo(una):
-    una.correr(5)
-    una.poner_grupo(*GRUPO)
-    una.consola.escribir_ram(una.simbolos["oro"],
-                             list(ORO.to_bytes(3, "little")))
-    return una
 
 
 def test_el_menu_se_ve_como_la_referencia_y_no_cuenta_ticks(partida):

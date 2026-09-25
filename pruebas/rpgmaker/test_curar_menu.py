@@ -24,8 +24,9 @@ son lo último que la pantalla de ítems pinta antes de abrir la elección.
 import os
 
 from consola import TITULO_AIRE
-from test_curar import maximos, palabra_de
-from test_menu import abrir, tocar
+from batalla import palabra_de
+from test_curar import maximos
+from menu import abrir, tocar
 
 TALAN, ARDEN = 14, 15
 SANDWICH, VINO, ELIXIR, BOTAS = 97, 103, 115, 262

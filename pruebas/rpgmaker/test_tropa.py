@@ -34,7 +34,7 @@ from port import eventos
 from render.render_map import GAME_DIR
 
 from consola import en_la_rom
-from test_batalla import Pelea, ORDEN, FIN, hab_id
+from batalla import FIN, ORDEN, Pelea, hab_id
 
 CASO = "tropa-talan-aura"
 TALAN = 14

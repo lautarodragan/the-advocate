@@ -21,12 +21,8 @@ ningún evento que toque el grupo, y el control necesita las dos cosas.
 
 import os
 
-from test_game_over import cuadros_hasta_reiniciar, sin_hp
-
-# Cuántos ticks se le dan a la página para perder la pelea y correr el
-# manejador. La pelea sale a los 18 y, perdida sin pelear, no abre pantalla.
-DESPUES_DE_PERDER = 60
-
+from batalla import (DESPUES_DE_PERDER, cuadros_hasta_reiniciar, grupo_de,
+                     palabra_de, sin_hp)
 
 def maximos():
     """Los HP y SP máximos de cada actor, sacados del LDB y no de la ROM.
@@ -42,16 +38,6 @@ def maximos():
     return {a: (titulo.parametro_de(actor, "maxhp"),
                 titulo.parametro_de(actor, "maxsp"))
             for a, actor in db.actors.items()}
-
-
-def palabra_de(una, simbolo, actor):
-    bajo, alto = una.consola.ram(una.simbolos[simbolo] + 2 * actor, 2)
-    return bajo | (alto << 8)
-
-
-def grupo_de(una):
-    """Hasta `grupo_n`: las ranuras de más no se limpian y traen basura."""
-    return list(una.consola.ram(una.simbolos["grupo"], una.palabra("grupo_n")))
 
 
 def perdida_y_curada(partida):

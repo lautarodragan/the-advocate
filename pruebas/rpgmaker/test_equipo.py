@@ -11,7 +11,7 @@ import os
 from port import pantallas
 
 from consola import TITULO_AIRE
-from test_menu import abrir, tocar
+from menu import abrir, tocar
 
 TALAN, KERSH = 14, 11
 PALO, LANZA, ESCUDO = 17, 19, 44        # la lanza es a dos manos
