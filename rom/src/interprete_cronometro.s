@@ -2,6 +2,12 @@
 .a8
 .i16
 
+; --- el intérprete: el cronómetro ------------------------------------------
+;
+; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
+; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
+; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+
 ; El cronómetro: poner, arrancar o parar. Los cinco bytes de operando son fijos
 ; aunque cada operación use dos, así que el cursor avanza igual en las tres.
 .proc op_timer

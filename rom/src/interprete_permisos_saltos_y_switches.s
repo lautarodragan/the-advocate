@@ -2,6 +2,12 @@
 .a8
 .i16
 
+; --- el intérprete: permisos, saltos y switches ----------------------------
+;
+; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
+; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
+; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+
 ; `ChangeSaveAccess`, `ChangeMainMenuAccess` y `ChangeEscapeAccess`: **el bit**
 ; del permiso y si queda permitido. Prende o apaga ese bit de "prohibido" de
 ; `FAR_ACCESO`.

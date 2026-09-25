@@ -1,14 +1,16 @@
 ---
 name: "La segunda etapa de partir main.s"
-description: "Las mudanzas están hechas; falta que taro elija cómo partir interprete.s"
+description: "Mudanzas e interprete.s partido (B) hechos; falta el despacho por tabla (C)"
 type: refactor
 ---
 
 El corte del 2026-09-25 (`391930c`, ver `done/partir-main.s.md`) partió
 `rom/src/main.s` en tramos contiguos **sin reordenar**, porque partir no
 cambia la ROM y mover sí. Así que quedaron rutinas en un archivo que no es el
-suyo. Eso ya está hecho (ver "Las mudanzas"). Lo que queda es
-`interprete.s`, y es una decisión de taro: ver "interprete.s", al final.
+suyo. Eso ya está hecho (ver "Las mudanzas"). Después vino `interprete.s`:
+taro eligió **B, y C después** entre las particiones de "interprete.s". B está
+hecha (ver "B, hecha"); **lo que queda es C** (ver "C, pendiente", al final),
+y se hace con B ya mergeada en `main`.
 
 ## Las mudanzas
 
@@ -72,8 +74,8 @@ al de `curar_actor`, que era el final de `nivel.s`) y 10 de 28
 ## interprete.s
 
 Un solo `.proc correr_codigo` con los 46 manejadores adentro —medido el
-2026-09-25, igual que todo lo de abajo—. **No se hizo nada**; esto es lo
-medido y la propuesta.
+2026-09-25, igual que todo lo de abajo—. Esto es lo medido y la propuesta
+de antes de elegir; lo que se hizo está en "B, hecha".
 
 ### Cuánto se toca cada parte
 
@@ -159,3 +161,74 @@ separa del resto, salvo el despacho, que es de lo que se ocupa C.
 ROMs iguales—, con un archivo por familia de la tabla. **C después y aparte**,
 si taro quiere los doscientos bytes o sacar el despacho del camino: cambia la
 ROM, y es la que de verdad saca el punto donde chocan las ramas.
+
+## B, hecha
+
+El 2026-09-25, en cuatro commits: cada manejador a su propio `.proc` en el
+mismo archivo; el corte en archivos (sólo la salida de un script descartable
+modelado sobre `partir_main.py`); el `.segment` y los anchos al principio de
+cada archivo nuevo; y la prosa. Los tres primeros con las tres ROMs byte por
+byte iguales a las de antes y `just pruebas` en verde; ver los mensajes.
+
+Dos correcciones a lo medido arriba. Las referencias que cruzan de un
+manejador a otro son **46, no 42**: los 45 `jmp otro` —todos los del
+intérprete— y el `bra lugar_plantar`. El `bne op_route_event` no cruza:
+`op_route_event` es una etiqueta de `op_route`, no un manejador. Y los
+manejadores son 46 porque `op_battle_destination` —al que `op_battle` salta
+con `jmp`— queda en su propio `.proc`, pero el despacho compara **45**
+opcodes: los de `events.toml` menos `OP_DONE`.
+
+**No quedó un archivo por familia**, porque las familias están intercaladas
+en el orden de la ROM y juntarlas es mover código: las escenas caen en cinco
+tramos y pantalla en cuatro. Quedó un archivo por tramo contiguo con un
+tema, `interprete_*.s`, y cuando un tema sigue en otro archivo el encabezado
+lo dice. La lista es la de `main.s`; el porqué de cada agrupación está en el
+mensaje del commit del corte.
+
+`blame -C --diff-algorithm=histogram` cruza el corte: sobre las 2399
+líneas, cada una da el mismo commit que en el `interprete.s` de antes salvo
+el blanco final de doce archivos, que culpa al corte de `main.s`. Ninguna
+culpa al corte de `interprete.s`.
+
+## C, pendiente
+
+**Un despacho por tabla**: `jmp (tabla, x)` con una `.addr` por opcode, en
+lugar de la cadena de `cmp`/`bne`/`jmp`. Cambia la ROM. Es lo que de verdad
+saca el punto donde chocan dos ramas que agregan un opcode cada una —con B,
+la cadena de `interprete.s` sigue siendo el único lugar que todas tocan—.
+
+Lo que se sabe, de la propuesta de antes (cuentas de la tabla de ciclos del
+65816, no medidas): la cadena cuesta `5k + 7` ciclos al opcode en la
+posición k, de 7 (`OP_MESSAGE`) a 227 (`OP_GAME_OVER`, el 45º), y la tabla
+unos 23 para todos; en bytes del banco 0, la cadena son 45 × 7 = 315 y la
+tabla 46 × 2 = 92 más unos 15 de código, **unos 200 bytes libres en el banco
+más apretado**. Si la tabla la emite `tools/protocol/` desde `events.toml`
+—el manejador de `OP_X` se llama `op_x`, por convención—, agregar un opcode
+deja de tocar el despacho. Darle a `tools/protocol/` esa salida nueva es una
+decisión de ese proyecto (que está en inglés y no sabe de este juego: el
+nombre del manejador tendría que salir de una regla, no de un campo).
+
+Lo que se aprendió haciendo B y cambia o afina C:
+
+* **Los números ya son contiguos**: `events.toml` va de `0x00` a `0x2D` sin
+  huecos, y los 45 que no son `OP_DONE` tienen su `op_x` con ese nombre
+  exacto. La tabla no tiene que rellenar nada; `OP_DONE` (y cualquier número
+  de más, con un `cmp` contra la cantidad y un `bcs`) va al `stz ev_activo`
+  / `rts` de hoy.
+* **Ningún manejador lee X antes de escribirlo**, en el orden del texto y
+  sin seguir saltos ni `jsr` (un script descartable sobre los 45). El
+  despacho de hoy no toca X, así que pisarlo sería nuevo, pero ninguno lo
+  espera.
+* **`tax` con A de 8 bits e índices de 16 copia los 16 bits de C**, o sea
+  que el byte alto de A tiene que estar en cero antes: con el opcode leído en
+  8 bits, B trae lo que haya quedado del manejador anterior. Hace falta un
+  `rep #$20` / `and #$00FF` / `asl` / `tax` / `sep #$20`, o equivalente.
+* **`jmp (tabla, x)` lee la tabla del banco del programa**, no del de datos,
+  y eso importa acá: el intérprete corre con el banco de datos en el del
+  bytecode (ver el comentario de `op_shop`). Una tabla leída con `lda
+  tabla, x` leería otro banco.
+* **Todos entran con `.a8`/`.i16`** y Y en el primer operando, y ninguno
+  depende del ancho que le deja el anterior en el texto (el prototipo con los
+  anchos explícitos lo mostró): el orden de los manejadores en la ROM no le
+  importa al despacho.
+* `op_battle_destination` no es un opcode: no va en la tabla.

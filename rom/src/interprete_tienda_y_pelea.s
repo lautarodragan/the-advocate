@@ -2,6 +2,16 @@
 .a8
 .i16
 
+; --- el intérprete: la tienda y la pelea -----------------------------------
+;
+; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
+; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
+; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+;
+; La pelea se arranca con `pelea_arrancar`, que está al final de
+; interprete_teletransporte_y_pelea.s: estaba detrás del último manejador,
+; y traerla acá es mover código, que cambia la ROM.
+
 ; `OpenShop`: tipo, juego, cuántos y la lista, de a dos bytes cada ítem. La
 ; tienda se abre acá adentro y, al salir, el mapa vuelve y la página sigue.
 .proc op_shop

@@ -2,6 +2,12 @@
 .a8
 .i16
 
+; --- el intérprete: los tiles del mapa -------------------------------------
+;
+; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
+; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
+; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+
 ; `TileSubstitution`: de ahora en más, donde la grilla diga tal bloque se
 ; dibuja tal otro. La instrucción trae **varios** pares porque RM2k sustituye
 ; por número de tile y acá la unidad es el bloque de 16x16, que lleva las dos

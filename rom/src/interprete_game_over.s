@@ -2,6 +2,12 @@
 .a8
 .i16
 
+; --- el intérprete: Game Over ----------------------------------------------
+;
+; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
+; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
+; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+
 ; `GameOver`: volver al arranque, igual que perder una pelea sin manejador de
 ; derrota —ver `op_battle_destination`—, y por lo mismo con `jml`: no hay a
 ; dónde volver.

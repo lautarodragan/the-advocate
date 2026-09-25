@@ -2,6 +2,12 @@
 .a8
 .i16
 
+; --- el intérprete: guardar ------------------------------------------------
+;
+; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
+; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
+; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+
 ; `OpenSaveMenu`: la pantalla de ranuras en modo guardar, y la partida a la
 ; que el jugador elija. Sin operandos. La referencia hace lo mismo con el mismo
 ; opcode: ver `OP_SAVE` en tools/port/eventos.py.

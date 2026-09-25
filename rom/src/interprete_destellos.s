@@ -2,6 +2,12 @@
 .a8
 .i16
 
+; --- el intérprete: el temblor y los destellos -----------------------------
+;
+; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
+; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
+; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+
 ; `ShakeScreen`: `ShakeOnce`, que no reinicia la posición para que dos
 ; sacudidas seguidas se encadenen suaves, o `ShakeEnd` con cero cuadros. No
 ; corta el cuadro: si la página espera, el conversor le pone un OP_DELAY

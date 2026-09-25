@@ -2,6 +2,14 @@
 .a8
 .i16
 
+; --- el intérprete: esperar y parar las rutas ------------------------------
+;
+; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
+; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
+; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+;
+; Arrancarlas está en interprete_movimiento.s.
+
 ; "Esperá a que terminen las rutas". Si no queda ninguna corriendo no cuesta ni
 ; un cuadro, que es lo que hace el `while` de `Game_Interpreter::Update`; y si
 ; queda, el cursor se deja **en el opcode** y se corta el cuadro, así que el

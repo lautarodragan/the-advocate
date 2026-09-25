@@ -2,6 +2,12 @@
 .a8
 .i16
 
+; --- el intérprete: el mensaje ---------------------------------------------
+;
+; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
+; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
+; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+
 ; Abre la ventana de mensaje y corta el cuadro. El cursor ya quedó en el
 ; comando siguiente —el `iny` del lazo— pero `eventos_tick` no vuelve a llamar
 ; acá hasta que el jugador apriete A.

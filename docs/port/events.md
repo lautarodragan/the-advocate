@@ -5,7 +5,7 @@ Cada página de evento que se puede compilar viaja en el cartucho como
 
     tools/protocol/events.toml  lo declara: cada opcode, su número y los bytes que lleva
     tools/port/eventos.py       lo emite: `_compilar`, un caso por comando de RM2k
-    rom/src/interprete.s        lo ejecuta: `correr_codigo` y un `op_*` por opcode
+    rom/src/interprete*.s       lo ejecuta: `correr_codigo` y un `.proc op_*` por opcode
 
 De `tools/protocol/events.toml` salen generados `tools/port/event_opcodes.py` y
 `rom/src/event_opcodes.inc`; ver `tools/protocol/README.md`, que está en inglés porque

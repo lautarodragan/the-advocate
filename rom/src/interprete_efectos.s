@@ -2,6 +2,12 @@
 .a8
 .i16
 
+; --- el intérprete: sonido, imágenes, animación y clima --------------------
+;
+; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
+; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
+; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+
 ; `OP_SOUND`: el índice en `sonido_tabla`. Queda pendiente y arranca al
 ; final de `music_tick`, detrás de lo que la música escriba en el cuadro.
 .proc op_sound

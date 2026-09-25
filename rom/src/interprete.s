@@ -1,5 +1,20 @@
 .segment "CODE"
 
+; --- el intérprete de eventos: el lazo y el despacho -------------------------
+;
+; `correr_codigo` lee un opcode por vuelta y salta a su manejador. Cada
+; manejador es su propio `.proc op_*` y está en uno de los `interprete_*.s`
+; que main.s incluye detrás de éste, en el mismo orden que tenían cuando todo
+; era un solo `.proc` (hasta el 2026-09-25). Los archivos son tramos
+; **contiguos** agrupados por tema, no por familia: las familias estaban
+; intercaladas —la tienda y la pelea, guardar, Game Over y el teletransporte
+; caen en cuatro lugares distintos— y juntarlas es mover código, que cambia la
+; ROM. Por eso hay temas en más de un archivo; cuando uno sigue en otro, el
+; encabezado lo dice.
+;
+; Un opcode nuevo toca tres lugares: su número en tools/protocol/events.toml,
+; su comparación en la cadena de abajo y su `.proc` en el archivo que le toque.
+
 ; El bucle del intérprete: un opcode por vuelta hasta el FIN.
 ;
 ; Y es el cursor del bytecode y tiene que sobrevivir a todo el bucle, así que

@@ -2,6 +2,12 @@
 .a8
 .i16
 
+; --- el intérprete: las condiciones ----------------------------------------
+;
+; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
+; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
+; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+
 ; `ConditionalBranch` con condición de switch. Los operandos son el número (dos
 ; bytes), la polaridad —copiada tal cual de RM2k, donde 0 quiere decir "tiene
 ; que estar prendido"— y el destino: **el índice absoluto dentro de la página**

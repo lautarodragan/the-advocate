@@ -2,6 +2,12 @@
 .a8
 .i16
 
+; --- el intérprete: la tecla y la espera -----------------------------------
+;
+; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
+; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
+; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+
 ; `KeyInputProc`: qué tecla apretó el jugador, guardada en una variable. Ver
 ; OP_KEY en eventos.py, que es donde está el porqué de que la forma que
 ; espera se emita dos veces.

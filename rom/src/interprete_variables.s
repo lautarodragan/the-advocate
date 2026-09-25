@@ -2,6 +2,15 @@
 .a8
 .i16
 
+; --- el intérprete: las variables ------------------------------------------
+;
+; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
+; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
+; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+;
+; Los switches están en interprete_permisos_saltos_y_switches.s y el
+; cronómetro en interprete_cronometro.s.
+
 ; `ControlVars`, de a una variable: ranura, operación, clase del operando, y
 ; a y b de dieciséis bits. Ver OP_VAR en eventos.py. Dieciséis bits con signo,
 ; dando la vuelta.

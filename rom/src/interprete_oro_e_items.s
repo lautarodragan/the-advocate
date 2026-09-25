@@ -2,6 +2,12 @@
 .a8
 .i16
 
+; --- el intérprete: el oro y los ítems -------------------------------------
+;
+; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
+; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
+; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+
 ; `ChangeGold`: suma o resta y recorta a [0, ORO_MAX], que es lo que hace
 ; `Game_Party::GainGold`. El monto va en tres bytes porque el tope de RM2k son
 ; 999999 y este juego usa el valor entero.

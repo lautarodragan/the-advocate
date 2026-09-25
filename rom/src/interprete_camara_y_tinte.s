@@ -2,6 +2,12 @@
 .a8
 .i16
 
+; --- el intérprete: la cámara y el tinte -----------------------------------
+;
+; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
+; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
+; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+
 ; `PanScreen`, en sus dos operaciones: correr la cámara sin el héroe y
 ; devolverla. El desplazamiento viene con signo y en 1/16 de pixel, y el paso
 ; por cuadro ya resuelto; lo que se cuenta acá son los cuadros que la página

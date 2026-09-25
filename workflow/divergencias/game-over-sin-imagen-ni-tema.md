@@ -5,9 +5,10 @@ Un `EnemyEncounter` con `defeat_mode` 0, o un `GameOver`, manda en RM2k a
 tecla la pantalla de título.
 
 La ROM hace la última parte y no las dos primeras: vuelve al arranque con un
-`jml reset` —ver `BATALLA_PERDER` en `tools/port/eventos.py` y `op_battle` en
-`rom/src/interprete.s`—, o sea a la pantalla de título si el cartucho la lleva, con
-la partida guardada esperando en la SRAM.
+`jml reset` —ver `BATALLA_PERDER` en `tools/port/eventos.py` y
+`op_battle_destination` en `rom/src/interprete_tienda_y_pelea.s`—, o sea a la
+pantalla de título si el cartucho la lleva, con la partida guardada esperando
+en la SRAM.
 
 * **La imagen no se dibuja**: una de 320x240 pediría prestarle una capa al
   cartel, ver `tasks/wishlist/sistema-de-imagenes.md`.

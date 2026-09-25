@@ -23,7 +23,7 @@ from rpgmaker import rm2k
 
 # Los números de los opcodes, sus largos y su layout. **No se declaran acá**:
 # salen de `tools/protocol/events.toml`, que es de los dos lados —de esto y del
-# intérprete en rom/src/interprete.s— y de ninguno. Ver tools/protocol/README.md.
+# intérprete en rom/src/interprete*.s— y de ninguno. Ver tools/protocol/README.md.
 from port.event_opcodes import *   # noqa: F401,F403
 from port.event_opcodes import OPCODE_SIZE, opcode_size  # noqa: F401
 
