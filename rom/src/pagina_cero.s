@@ -97,7 +97,6 @@ obj_x:      .res 2      ; posición en pantalla del objeto que se está armando
 obj_y:      .res 2
 obj_tile:   .res 1
 obj_attr:   .res 1
-wait_frames: .res 1     ; cuántos cuadros faltan para el próximo evento
 token:      .res 1      ; testigo del handshake con el SPC700
 es_pal:     .res 1      ; 1 si la consola corre a 50 cuadros por segundo
 pal_tick:   .res 1      ; para meter el cuadro de música que falta

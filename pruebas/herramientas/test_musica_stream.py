@@ -2,9 +2,9 @@
 se suelta y con qué envolvente.
 
 No corren ninguna ROM: las notas y el banco se arman a mano, del tamaño justo
-para que pase lo que se quiere mirar, y lo que se mira es el stream
-empaquetado —lo mismo que la ROM le va a mandar al DSP—, leído de vuelta con
-`_leer`. Las de las envolventes leen el SoundFont de verdad, por `gunter` del
+para que pase lo que se quiere mirar, y lo que se mira es lo que el stream le
+escribe al DSP —el stream por nota empaquetado y decodificado, que tiene que
+dar `escrituras`: lo mismo que la ROM le va a mandar—, con `_salen`. Las de las envolventes leen el SoundFont de verdad, por `gunter` del
 PATH: lo que cobran es justamente que los números salgan de ahí.
 """
 
@@ -57,26 +57,28 @@ def _nota(start, end, channel=0, pitch=60):
     return nota
 
 
+def _salen(frames, largo):
+    """Lo que el tema le escribe al DSP, (cuadro, registro, valor): el stream
+    por nota empaquetado y decodificado, que tiene que dar `escrituras`."""
+    stream, sonidos = snes_music.pack(frames, largo, snes_music.init_writes())
+    salen = snes_music.decodificar(stream, sonidos)
+    assert salen == snes_music.escrituras(frames, largo,
+                                          snes_music.init_writes())
+    return salen
+
+
 def _armar(notas, voces, programas=None, banco=None):
     drums = set(voces.get(midi.DRUM_CHANNEL, []))
     frames = snes_music.build_events(notas, voces, programas or {0: PIANO},
                                      drums, banco or _Banco())
-    return snes_music.pack(frames, max(n.end for n in notas) + 10,
-                           snes_music.init_writes())
+    return _salen(frames, max(n.end for n in notas) + 10)
 
 
-def _leer(stream):
+def _leer(salen):
     """Por voz, los cuadros de sus KON y los de sus releases —ADSR1 en cero,
     que es lo que le pasa el mando a GAIN—, en orden."""
     kon, release = {}, {}
-    cuadro, i = 0, 0
-    while stream[i] != snes_music.OP_END:
-        if stream[i] == snes_music.OP_WAIT:
-            cuadro += stream[i + 1]
-            i += 2
-            continue
-        registro, valor = stream[i + 1], stream[i + 2]
-        i += 3
+    for cuadro, registro, valor in salen:
         if registro == sdsp.KON:
             for voz in range(sdsp.VOICES):
                 if valor >> voz & 1:
@@ -91,8 +93,8 @@ def test_la_nota_robada_no_suelta_a_la_que_le_robo_la_voz():
     mitad de camino y dura más que ella. El release de la primera —cuadro
     100— caía sobre la segunda, que se apagaba cien cuadros antes de su fin:
     329 notas de `escape_newyork` hasta el 2026-09-25."""
-    stream = _armar([_nota(0, 100), _nota(50, 200)], {0: [0]})
-    kon, release = _leer(stream)
+    salen = _armar([_nota(0, 100), _nota(50, 200)], {0: [0]})
+    kon, release = _leer(salen)
     assert kon[0] == [0, 50]
     assert release[0] == [200], (
         "la voz 0 se suelta en %s: la segunda nota termina en 200" % release[0])
@@ -119,15 +121,10 @@ def test_una_nota_sin_muestra_no_ocupa_una_voz():
     assert kon.get(6) == [0] and kon.get(7) == [10], kon
 
 
-def _registros(stream, voz):
+def _registros(salen, voz):
     """Lo que cada registro de la voz fue recibiendo, en orden."""
-    escrito, i = {}, 0
-    while stream[i] != snes_music.OP_END:
-        if stream[i] == snes_music.OP_WAIT:
-            i += 2
-            continue
-        registro, valor = stream[i + 1], stream[i + 2]
-        i += 3
+    escrito = {}
+    for _cuadro, registro, valor in salen:
         if registro >> 4 == voz and registro & 0x0F < 8:
             escrito.setdefault(registro & 0x0F, []).append(valor)
     return escrito
@@ -138,9 +135,9 @@ def test_el_bajo_sintetico_se_suelta_en_lo_que_dice_el_soundfont():
     familias de `sdsp` —las de antes del 2026-09-25— arrastraba 2,4 s de cola
     con GAIN exponencial; ahora el release es GAIN lineal, porque la
     exponencial más rápida no llega a cero en menos de 25 ms."""
-    stream = _armar([_nota(0, 30, pitch=36)], {0: [0]},
+    salen = _armar([_nota(0, 30, pitch=36)], {0: [0]},
                     {0: BAJO_SINTETICO}, _BancoDelSoundFont())
-    gain = _registros(stream, 0)[sdsp.V_GAIN][-1]
+    gain = _registros(salen, 0)[sdsp.V_GAIN][-1]
     assert gain & 0xE0 == sdsp.GAIN_LINEAR_DECREASE, "GAIN $%02X" % gain
     segundos = 64 * sdsp.PERIODO[gain & 0x1F] / float(sdsp.SAMPLE_RATE)
     assert segundos < 0.1, "el release dura %.3f s" % segundos
@@ -152,9 +149,9 @@ def test_el_piano_decae_distinto_en_cada_tecla_y_hasta_callarse():
     nivel de sostenido del DSP va arriba de todo (SL = 7, la fase de
     decaimiento termina en el acto) y la tasa de sostenido cambia entre un do
     grave y uno agudo. Las familias le daban el mismo ADSR a todas las teclas."""
-    stream = _armar([_nota(0, 30, pitch=36), _nota(40, 70, pitch=84)],
+    salen = _armar([_nota(0, 30, pitch=36), _nota(40, 70, pitch=84)],
                     {0: [0]}, {0: PIANO}, _BancoDelSoundFont())
-    adsr2 = _registros(stream, 0)[sdsp.V_ADSR2]
+    adsr2 = _registros(salen, 0)[sdsp.V_ADSR2]
     assert len(adsr2) == 2, "ADSR2 recibió %s" % adsr2
     grave, agudo = adsr2
     assert grave >> 5 == 7 and agudo >> 5 == 7, "ADSR2 %s" % adsr2
@@ -189,20 +186,13 @@ def _armar_con(notas, controles, voces=None):
     drums = set(voces.get(midi.DRUM_CHANNEL, []))
     frames = snes_music.build_events(notas, voces, {0: PIANO}, drums,
                                      _Banco(), controles)
-    return snes_music.pack(frames, max(n.end for n in notas) + 10,
-                           snes_music.init_writes())
+    return _salen(frames, max(n.end for n in notas) + 10)
 
 
-def _escrituras(stream, voz):
+def _escrituras(salen, voz):
     """(cuadro, registro de la voz, valor) de cada escritura, en orden."""
-    out, cuadro, i = [], 0, 0
-    while stream[i] != snes_music.OP_END:
-        if stream[i] == snes_music.OP_WAIT:
-            cuadro += stream[i + 1]
-            i += 2
-            continue
-        registro, valor = stream[i + 1], stream[i + 2]
-        i += 3
+    out = []
+    for cuadro, registro, valor in salen:
         if registro >> 4 == voz and registro & 0x0F < 8:
             out.append((cuadro, registro & 0x0F, valor))
     return out
@@ -243,10 +233,10 @@ def test_la_expresion_y_el_volumen_se_multiplican():
     fluidsynth. El volumen se mide contra 100, así que 127 sube."""
     nota = midi.Note(10, 0, 60, 127)
     nota.end = 50
-    stream = _armar_con([nota], [_control(0, midi.EXPRESSION, 64),
+    salen = _armar_con([nota], [_control(0, midi.EXPRESSION, 64),
                                  _control(0, midi.VOLUME, 127)])
     esperado = int(round(sdsp.CEILING * (127 / 100.0) ** 2 * (64 / 127.0) ** 2))
-    assert _registros(stream, 0)[sdsp.V_VOL_L] == [esperado]
+    assert _registros(salen, 0)[sdsp.V_VOL_L] == [esperado]
 
 
 def test_el_paneo_reparte_la_nota_entre_los_dos_lados():
@@ -258,9 +248,9 @@ def test_el_paneo_reparte_la_nota_entre_los_dos_lados():
     izquierda.end = 50
     medio = midi.Note(60, 0, 60, 127)
     medio.end = 90
-    stream = _armar_con([izquierda, medio], [_control(0, midi.PAN, 0),
+    salen = _armar_con([izquierda, medio], [_control(0, midi.PAN, 0),
                                              _control(55, midi.PAN, 32)])
-    vol = _registros(stream, 0)
+    vol = _registros(salen, 0)
     l0, l1 = vol[sdsp.V_VOL_L]
     r0, r1 = vol[sdsp.V_VOL_R]
     assert (l0, r0) == (int(round(sdsp.CEILING * 2 ** 0.5)), 0), (l0, r0)
@@ -273,9 +263,9 @@ def test_el_bend_mueve_la_altura_antes_y_durante_la_nota():
     arrancan las de `dcbest`— y uno durante le reescribe la altura a la voz."""
     nota = midi.Note(10, 0, 60, 127)
     nota.end = 100
-    stream = _armar_con([nota], [_control(0, midi.BEND, 1.0),
+    salen = _armar_con([nota], [_control(0, midi.BEND, 1.0),
                                  _control(50, midi.BEND, -2.0)])
-    escrito = _escrituras(stream, 0)
+    escrito = _escrituras(salen, 0)
     altura = {}
     for cuadro, registro, valor in escrito:
         if registro == sdsp.V_PITCH_L:
@@ -302,10 +292,10 @@ def test_un_control_no_toca_la_voz_de_otro_canal_ni_la_de_la_bateria():
         [melodia, otra, bombo], voces, {0: PIANO, 1: PIANO}, drums, _Banco(),
         [_control(40, midi.VOLUME, 50, 0),
          _control(40, midi.BEND, 2.0, midi.DRUM_CHANNEL)])
-    stream = snes_music.pack(frames, 110, snes_music.init_writes())
-    assert [c for c, r, v in _escrituras(stream, 0) if r == sdsp.V_VOL_L] == [0, 40]
-    assert [c for c, r, v in _escrituras(stream, 1) if r == sdsp.V_VOL_L] == [0]
-    assert [c for c, r, v in _escrituras(stream, 6)
+    salen = _salen(frames, 110)
+    assert [c for c, r, v in _escrituras(salen, 0) if r == sdsp.V_VOL_L] == [0, 40]
+    assert [c for c, r, v in _escrituras(salen, 1) if r == sdsp.V_VOL_L] == [0]
+    assert [c for c, r, v in _escrituras(salen, 6)
             if r == sdsp.V_PITCH_L] == [0]
 
 

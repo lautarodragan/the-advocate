@@ -77,7 +77,7 @@ def test_el_inc_y_el_py_dicen_los_mismos_numeros(nombre, modulo, inc, py):
     """
     del_inc = {}
     for linea in open(os.path.join(REPO, inc), encoding="utf-8"):
-        m = re.match(r"^(OP_[A-Z_]+)\s*=\s*\$([0-9A-Fa-f]+)\s*$", linea)
+        m = re.match(r"^(OP_[A-Z0-9_]+)\s*=\s*\$([0-9A-Fa-f]+)\s*$", linea)
         if m:
             del_inc[m.group(1)] = int(m.group(2), 16)
     assert del_inc, "no se leyó un solo opcode de %s" % inc
@@ -95,13 +95,13 @@ def test_ningun_opcode_de_la_rom_quedo_sin_declarar():
     """
     fuente = ensamblar.texto_de_la_fuente(MAIN)
     # Sólo los usos como operando: los nombres sueltos de los comentarios no.
-    usados = set(re.findall(r"#(OP_[A-Z_]+)\b", fuente))
+    usados = set(re.findall(r"#(OP_[A-Z0-9_]+)\b", fuente))
     assert usados, "no se encontró un solo uso de un opcode en rom/src/"
     todos = set()
     for _, modulo, _, _ in GENERADOS:
         todos |= set(declarados(modulo))
     # Y que no haya vuelto a aparecer uno escrito a mano en la propia ROM.
-    propios = set(re.findall(r"^(OP_[A-Z_]+)\s*=", fuente, re.M))
+    propios = set(re.findall(r"^(OP_[A-Z0-9_]+)\s*=", fuente, re.M))
     assert not propios, (
         "rom/src/ declara %s a mano: eso va en tools/protocol/"
         % ", ".join(sorted(propios)))

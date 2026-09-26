@@ -28,7 +28,7 @@ efectos de sonido que le saquen las voces, y en las pruebas suena el SPC700 y
 no el MSU-1 —ver `test_musica_paquete.py`—.
 """
 
-from consola import EMPEZAR, en_la_rom, en_la_wram
+from consola import EMPEZAR, en_la_wram
 
 # Los registros de una voz del DSP que la música escribe: la parte baja del
 # número del registro. ENVX y OUTX (8 y 9) son de lectura y no se escriben.
@@ -41,48 +41,6 @@ NOMBRE = ["VOL L", "VOL R", "PITCH L", "PITCH H", "SRCN", "ADSR1", "ADSR2",
 # hace falta, por el título que tarda en arrancar el tema y porque el conteo
 # de cuadros de acá y el de la IRQ no tienen por qué coincidir al cuadro.
 MARGEN = 120
-
-
-def _stream(una, tema):
-    """Las escrituras al DSP del tema, con el cuadro del stream en que caen.
-
-    Se leen del cartucho, con el mismo recorrido que `music_frame`: `OP_WAIT n`
-    son n cuadros, y un byte que cae en $xxFFFF sigue en el banco siguiente
-    desde $8000 —ver `advance` en rom/src/musica.s—.
-    """
-    s = una.simbolos
-    with open(una.sfc, "rb") as archivo:
-        rom = archivo.read()
-
-    def byte(direccion):
-        return rom[en_la_rom(direccion)]
-
-    def avanzar(direccion):
-        direccion += 1
-        if direccion & 0xFFFF == 0:
-            direccion += 0x8000
-        return direccion
-
-    puntero = (byte(s["tema_lo"] + tema) | byte(s["tema_hi"] + tema) << 8
-               | byte(s["tema_bk"] + tema) << 16)
-    cuadro = 0
-    escrituras = []
-    while True:
-        op = byte(puntero)
-        puntero = avanzar(puntero)
-        if op == s["OP_END"]:
-            return escrituras
-        if op == s["OP_WAIT"]:
-            cuadro += byte(puntero)
-            puntero = avanzar(puntero)
-            continue
-        assert op == s["OP_DSP"], "el stream del tema %d trae el opcode $%02X" % (
-            tema, op)
-        registro = byte(puntero)
-        puntero = avanzar(puntero)
-        valor = byte(puntero)
-        puntero = avanzar(puntero)
-        escrituras.append((cuadro, registro, valor))
 
 
 def test_las_voces_de_la_bateria_reciben_lo_que_la_musica_les_manda(partida):
@@ -99,7 +57,7 @@ def test_las_voces_de_la_bateria_reciben_lo_que_la_musica_les_manda(partida):
     posibles = {v: [{0} for _ in range(REGISTROS_DE_VOZ)] for v in voces}
     faltan = {(v, r) for v in voces for r in (VOL_L, VOL_R, PITCH_L)}
     hasta = None
-    for cuadro, registro, valor in _stream(una, tema):
+    for cuadro, registro, valor in una.escrituras_del_tema(tema):
         for voz, (base, _sombra) in voces.items():
             if base <= registro < base + REGISTROS_DE_VOZ:
                 posibles[voz][registro - base].add(valor)

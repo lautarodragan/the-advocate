@@ -6928,8 +6928,10 @@ def main():
         # es lo que se oye como "le faltan voces", y hasta el 2026-09-14 no lo
         # decía nadie. Ver "Varios temas en el cartucho" en el README.
         suenan = tema["resumen"].get("notas")
-        print("  %d. %-16s %4.0f s, %6d B de stream, %s de las notas%s"
+        print("  %d. %-16s %4.0f s, %6d B de stream y %4d de sonidos, "
+              "%s de las notas%s"
               % (i, tema["nombre"], tema["segundos"], len(tema["stream"]),
+                 6 * len(tema["sonidos"]),
                  "todas" if suenan is None or suenan > 0.999
                  else "%.0f%%" % (100 * suenan),
                  ", suena desde el arranque" if i == arranque else ""))
