@@ -2,32 +2,38 @@
 
 ; --- LZ2: lo que el cartucho trae comprimido --------------------------------
 ;
-; Los tiles del mapa, de los sprites, de la capa de encima y de la animación
-; del ChipSet viajan en el cartucho en LC_LZ2, el formato de Nintendo, y se
-; descomprimen a la WRAM al cargar el mapa, con la pantalla apagada adentro del
-; fundido. El formato y el porqué de éste y no otro están en
+; Los tiles del mapa, de los sprites, de la capa de encima, de la animación del
+; ChipSet y la grilla viajan en el cartucho en LC_LZ2, el formato de Nintendo,
+; y se descomprimen a la WRAM al cargar el mapa, con la pantalla apagada
+; adentro del fundido. El formato y el porqué de éste y no otro están en
 ; tools/port/comprimir.py; el compresor es `tools/lz2/`.
 ;
 ; Cada comando del flujo es un encabezado —qué es y cuántos bytes hace— y su
-; operando. Los cinco se resuelven con `mvn`, menos el creciente, que ningún
-; bloque de hoy usa y va de a un byte:
+; operando. Casi todo se resuelve con `mvn`:
 ;
 ;   literal      `mvn` del flujo a la salida
-;   relleno      el byte del flujo a la salida, y un `mvn` de la salida sobre
-;                sí misma corrido en uno, que lo repite: `mvn` copia de a un
-;                byte hacia adelante, así que cada byte que lee es el que
-;                acaba de escribir
+;   relleno      el byte a la salida, y un `mvn` de la salida sobre sí misma
+;                corrido en uno, que lo repite: `mvn` copia de a un byte hacia
+;                adelante, así que cada byte que lee es el que acaba de escribir
 ;   palabra      lo mismo con los dos bytes, corrido en dos
 ;   repetición   `mvn` de la salida a la salida: la dirección que trae es
-;                absoluta —cuenta desde el principio de la salida— y se le
-;                suma la base
+;                absoluta —cuenta desde el principio de la salida— y se le suma
+;                la base
 ;
-; `mvn` lleva los dos bancos **adentro de la instrucción**, y el del flujo
-; cambia de bloque a bloque, así que las dos se arman en la RAM al empezar
-; —`LZ2_TRAMPA_LIT` y `LZ2_TRAMPA_REP`— y se llaman con `jsl`. Correr desde la
-; WRAM cuesta unos ciclos por byte contra el espejo rápido de la ROM (el `mvn`
-; vuelve a leer su código en cada byte), y es lo que hay: la otra forma es un
-; `mvn` escrito por cada banco del cartucho.
+; El creciente (3), que es el único que un `mvn` no hace, y la palabra de un
+; solo byte **no se leen**: el conversor no los emite y lo cobra —ver
+; `lo_que_la_rom_no_lee` en tools/port/comprimir.py—. Leerlos sería un camino
+; que ninguna prueba ejecuta.
+;
+; `mvn` lleva los dos bancos **adentro de la instrucción**. El de la salida es
+; uno de dos —$7E o $7F—, así que el cuerpo está escrito dos veces, una por
+; banco, con el `mvn` de la salida sobre sí misma adentro: es por donde pasan
+; casi todos los bytes —los tiles y más todavía la grilla son sobre todo
+; repeticiones y rellenos— y así se leen del espejo rápido de la ROM. El del
+; flujo cambia de bloque a bloque, así que el `mvn` del literal se arma en la
+; RAM al empezar —`LZ2_TRAMPA_LIT`— y se llama con `jsl`; correr desde la WRAM
+; le cuesta unos ciclos por byte, porque `mvn` vuelve a leer su código en cada
+; uno.
 ;
 ; El flujo se lee con el banco de datos puesto en el suyo y `lda a:0, x`, por el
 ; espejo rápido: la página directa está llena y no hay dónde poner un puntero
@@ -36,9 +42,10 @@
 
 ; Descomprime un flujo. Entra con A en ocho bits y X e Y en dieciséis: X y A
 ; dónde está el flujo —dirección y banco—, Y dónde va la salida adentro del
-; banco `LZ2_BANCO`, que pone quien llama. Sale con X en el byte que sigue al
-; $FF —ahí empieza el flujo siguiente, si hay otro pegado— e Y en el que sigue
-; al último que escribió. Pisa A; deja P y el banco de datos como estaban.
+; banco `LZ2_BANCO`, que pone quien llama y es $7E o $7F. Sale con X en el
+; byte que sigue al $FF —ahí empieza el flujo siguiente, si hay otro pegado— e
+; Y en el que sigue al último que escribió. Pisa A; deja P y el banco de datos
+; como estaban.
 ;
 ; La salida no puede cruzar de banco: Y da la vuelta en $FFFF y el conversor lo
 ; cuida, con flujos de hasta 32 KB.
@@ -49,25 +56,35 @@
     phb
     ora #^RAPIDO                ; el flujo, por el espejo rápido
     pha
-    ; Las dos trampas. En el código de máquina de `mvn` el banco de destino va
-    ; primero y el de origen después.
+    ; La trampa del literal. En el código de máquina de `mvn` el banco de
+    ; destino va primero y el de origen después.
     sta f:LZ2_TRAMPA_LIT + 2
     lda #$54                    ; mvn
     sta f:LZ2_TRAMPA_LIT
-    sta f:LZ2_TRAMPA_REP
     lda #$6B                    ; rtl
     sta f:LZ2_TRAMPA_LIT + 3
-    sta f:LZ2_TRAMPA_REP + 3
     lda f:LZ2_BANCO
     sta f:LZ2_TRAMPA_LIT + 1
-    sta f:LZ2_TRAMPA_REP + 1
-    sta f:LZ2_TRAMPA_REP + 2
     plb                         ; el banco del flujo
     rep #$20
 .a16
     tya
     pha                         ; 3,s: la base de la salida
     pha                         ; 1,s: el largo del comando, menos uno
+    sep #$20
+.a8
+    lda f:LZ2_BANCO
+    cmp #^GRILLA_ALTA
+    bne en_el_7e
+    jmp lz2_cuerpo_7f
+en_el_7e:
+    jmp lz2_cuerpo_7e
+.endproc
+
+; El cuerpo, para la salida en el banco `salida`. Se entra de
+; `lz2_descomprimir` con el banco del flujo puesto y el largo y la base en la
+; pila, y se vuelve de ahí mismo.
+.macro LZ2_CUERPO salida
 comando:
     sep #$20
 .a8
@@ -107,7 +124,7 @@ despachar:
     asl a
     bcs repeticion              ; 4: el 5 y el 6 no existen
     asl a
-    bcs palabra_o_creciente
+    bcs palabra                 ; 2; el 3, el creciente, no llega nunca
     asl a
     bcs relleno
     ; 0: los bytes, del flujo a la salida.
@@ -132,49 +149,39 @@ fin:
 
 relleno:
 .a8
+    ; 1: el byte a la salida, y se repite corrido en uno.
+    lda a:0, x
+    inx
+    phx                         ; el flujo, mientras X apunta a la salida
+    tyx
+    sta f:salida << 16, x
+    iny
     rep #$20
 .a16
-    lda #0
-    phb
-    jsl f:LZ2_TRAMPA_LIT        ; el byte, del flujo a la salida
-    plb
-    lda 1, s
-    beq comando                 ; era uno solo
+    lda 3, s                    ; el largo menos uno, corrido por el `phx`
+    beq listo                   ; era uno solo
     dec a                       ; los que faltan, menos uno
-    phx
-    tyx
-    dex                         ; desde el que se acaba de escribir
     bra en_la_salida
 
-palabra_o_creciente:
+palabra:
 .a8
-    asl a
-    bcs creciente
-    ; 2: los dos bytes, y después se repiten corridos en dos.
+    ; 2: los dos bytes a la salida, y se repiten corridos en dos. Siempre son
+    ; dos o más: ver arriba.
     rep #$20
 .a16
-    lda 1, s
-    beq palabra_de_uno
-    lda #1
-    phb
-    jsl f:LZ2_TRAMPA_LIT
-    plb
-    lda 1, s
-    dec a
-    beq comando                 ; eran dos
-    dec a
+    lda a:0, x
+    inx
+    inx
     phx
     tyx
-    dex
-    dex
+    sta f:salida << 16, x
+    iny
+    iny
+    lda 3, s                    ; el largo menos uno, corrido por el `phx`
+    dec a
+    beq listo                   ; eran dos
+    dec a
     bra en_la_salida
-palabra_de_uno:
-    lda #0
-    phb
-    jsl f:LZ2_TRAMPA_LIT
-    plb
-    inx                         ; el segundo byte viene igual y no sale
-    jmp comando
 
 repeticion:
 .a8
@@ -192,43 +199,22 @@ repeticion:
     lda 3, s                    ; y el largo menos uno, a 3,s
 en_la_salida:
     ; Con X adentro de la salida, A el largo menos uno y el puntero del flujo
-    ; en la pila.
+    ; en la pila. El `mvn` deja el banco de datos en el de la salida.
     phb
-    jsl f:LZ2_TRAMPA_REP
+    mvn #salida, #salida
     plb
+listo:
     plx
     jmp comando
 
-creciente:
-.a8
-    ; 3: b, b+1, b+2... De a un byte y con el banco de la salida puesto: no
-    ; hay `mvn` que sume. X cuenta mientras tanto.
-    lda a:0, x
-    inx
-    phx
-    pha                         ; 1,s: el que va
-    rep #$20
-.a16
-    lda 4, s                    ; el largo menos uno, corrido por los dos push
-    inc a
-    tax
-    sep #$20
-.a8
-    phb
-    lda f:LZ2_BANCO
-    pha
-    plb
-    lda 2, s
-subir:
-    sta a:0, y
-    iny
-    inc a
-    dex
-    bne subir
-    plb
-    pla
-    plx
-    jmp comando
+.endmacro
+
+.proc lz2_cuerpo_7e
+    LZ2_CUERPO ^GRILLA
+.endproc
+
+.proc lz2_cuerpo_7f
+    LZ2_CUERPO ^GRILLA_ALTA
 .endproc
 
 ; X y A del flujo que apunta el campo Y del registro del mapa: su dirección y

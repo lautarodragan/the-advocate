@@ -12,14 +12,15 @@ const NO: u8 = 1;
 const MISUSE: u8 = 2;
 
 const USAGE: &str = "\
-usage: lz2 compress   IN OUT [IN OUT ...]
+usage: lz2 compress   [--no-increasing] IN OUT [IN OUT ...]
        lz2 decompress IN OUT [IN OUT ...]
        lz2 stats      IN [IN ...]
 
 compress    writes each IN as one LC_LZ2 stream, the shortest there is for the
             format and, among the shortest, the one with the fewest commands.
             IN can be at most 65536 bytes: a repeat addresses the output with
-            16 bits.
+            16 bits. --no-increasing leaves out command 3, for decoders
+            that do not implement it.
 decompress  writes each stream back; refuses a stream with bytes after its $FF.
 stats       for each stream: its size, its output size and how many commands
             of each kind it has, one line of JSON per stream.
@@ -85,9 +86,16 @@ fn run(args: &[String]) -> Result<(), (u8, String)> {
     };
     match command {
         "compress" => {
+            let mut options = lz2::Options::default();
+            let mut rest = rest;
+            if rest.first().map(|a| a.as_str()) == Some("--no-increasing") {
+                options.increasing = false;
+                rest = &rest[1..];
+            }
             for (input, output) in pairs(rest).map_err(|e| (MISUSE, format!("{}\n\n{}", e, USAGE)))? {
                 let data = read(input)?;
-                let stream = lz2::compress(&data).map_err(|e| (NO, format!("{}: {}", input, e)))?;
+                let stream =
+                    lz2::compress_with(&data, options).map_err(|e| (NO, format!("{}: {}", input, e)))?;
                 write(output, &stream)?;
             }
             Ok(())

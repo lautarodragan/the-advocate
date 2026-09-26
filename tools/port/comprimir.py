@@ -53,7 +53,7 @@ def comprimir_varios(bloques):
     if not bloques:
         return []
     with tempfile.TemporaryDirectory(prefix="lz2-") as d:
-        args = [binario(), "compress"]
+        args = [binario(), "compress", "--no-increasing"]
         for k, b in enumerate(bloques):
             entrada = os.path.join(d, "%d.bin" % k)
             with open(entrada, "wb") as f:
@@ -66,7 +66,12 @@ def comprimir_varios(bloques):
         salida = []
         for k in range(len(bloques)):
             with open(os.path.join(d, "%d.bin.lz2" % k), "rb") as f:
-                salida.append(f.read())
+                flujo = f.read()
+            falta = lo_que_la_rom_no_lee(flujo)
+            if falta:
+                raise SystemExit("lz2 emitió %s, que `lz2_descomprimir` no lee"
+                                 % falta)
+            salida.append(flujo)
         return salida
 
 
@@ -74,10 +79,10 @@ def comprimir(bloque):
     return comprimir_varios([bloque])[0]
 
 
-def comandos(flujo):
-    """Cuántos comandos tiene un flujo: lo que cuesta descomprimirlo depende
-    de esto y de cuántos bytes salen. Lee sólo los encabezados."""
-    i, n = 0, 0
+def recorrer(flujo):
+    """Los comandos de un flujo, como (comando, largo). Lee sólo los
+    encabezados."""
+    i = 0
     while flujo[i] != 0xFF:
         encabezado = flujo[i]
         if encabezado >> 5 == 7:
@@ -88,5 +93,25 @@ def comandos(flujo):
             comando, largo = encabezado >> 5, (encabezado & 31) + 1
             i += 1
         i += {0: largo, 1: 1, 2: 2, 3: 1, 4: 2}[comando]
-        n += 1
-    return n
+        yield comando, largo
+
+
+def comandos(flujo):
+    """Cuántos comandos tiene un flujo: lo que cuesta descomprimirlo depende
+    de esto y de cuántos bytes salen."""
+    return sum(1 for _ in recorrer(flujo))
+
+
+# Los dos comandos que el formato tiene y `lz2_descomprimir` no lee, a
+# propósito: ningún bloque los usaba y un camino que ninguna prueba ejecuta es
+# el que más veces mordió en este repo. El creciente (3) no lo emite el
+# compresor con `--no-increasing`, y casi no cuesta; la palabra de un solo
+# byte no la elige nunca, porque un literal de uno cuesta menos. Si alguno
+# aparece, se corta acá y no en la consola.
+def lo_que_la_rom_no_lee(flujo):
+    for comando, largo in recorrer(flujo):
+        if comando == 3:
+            return "un relleno creciente"
+        if comando == 2 and largo == 1:
+            return "una palabra de un byte"
+    return None

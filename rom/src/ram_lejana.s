@@ -591,7 +591,7 @@ ANIMB_BUF = $7E7000
 ;
 ; Ver `lz2_descomprimir` en descomprimir.s. Reservado el 2026-09-26:
 ;
-;   $7E7800  las dos trampas de `mvn`, cuatro bytes cada una, que se arman con
+;   $7E7800  la trampa del `mvn` del literal, cuatro bytes que se arman con
 ;            los bancos de cada llamada, y el banco de la salida
 ;   $7F0000  el buffer de carga: cada bloque de tiles se descomprime acá y se
 ;            sube a la VRAM con el mismo DMA de antes. Vale sólo mientras se
@@ -607,8 +607,7 @@ ANIMB_BUF = $7E7000
 ; Los topes de cada bloque los cobra `descomprimir.s` contra los que emite el
 ; conversor.
 LZ2_TRAMPA_LIT = $7E7800        ; mvn salida, flujo; rtl
-LZ2_TRAMPA_REP = $7E7804        ; mvn salida, salida; rtl
-LZ2_BANCO      = $7E7808        ; el banco de la salida
+LZ2_BANCO      = $7E7804        ; el banco de la salida
 LZ2_BUFFER     = $7F0000
 ANIM_DIBUJOS   = $7F6000
 ANIM_DIBUJOS_FIN = $7F8000

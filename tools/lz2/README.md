@@ -4,6 +4,7 @@ LC_LZ2 is the LZ format Nintendo used in its own Super NES games. This tool
 writes it and reads it back.
 
     lz2 compress   tiles.bin tiles.lz2 grid.bin grid.lz2
+    lz2 compress   --no-increasing tiles.bin tiles.lz2
     lz2 decompress tiles.lz2 tiles.bin
     lz2 stats      tiles.lz2 grid.lz2
 
@@ -50,6 +51,10 @@ copies upwards does exactly that.
 that size, **the one with the fewest commands**. The decoder spends a fixed
 time per command on top of its time per byte, so fewer commands decode faster
 at no cost in size.
+
+`--no-increasing` leaves command 3 out, for decoders that do not implement
+it: the increasing fill is the one command a block move cannot do. The stream
+is then the shortest without it.
 
 It is not a greedy matcher. It is a shortest path over the input: from every
 position, every command that fits and every length that command could take.

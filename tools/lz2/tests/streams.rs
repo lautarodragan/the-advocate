@@ -1,7 +1,7 @@
 //! Round trips, the edges of the header, and streams a correct decoder has to
 //! refuse.
 
-use lz2::{compress, decompress, decompress_prefix, parse, Error};
+use lz2::{compress, compress_with, decompress, decompress_prefix, parse, Error, Options, INCREASING};
 
 /// A small deterministic generator, so a failing case can be rerun as is.
 struct Rng(u64);
@@ -200,4 +200,16 @@ fn an_output_past_the_limit_is_refused() {
     }
     stream.push(0xFF);
     assert!(matches!(decompress(&stream), Err(Error::Overflow(_))));
+}
+
+#[test]
+fn without_increasing_a_counter_takes_other_commands() {
+    let data: Vec<u8> = (0..=255u8).chain(0..=255u8).collect();
+    let options = Options { increasing: false };
+    let stream = compress_with(&data, options).unwrap();
+    assert_eq!(decompress(&stream).unwrap(), data);
+    let commands = lz2::parse_with(&data, options).unwrap();
+    assert!(commands.iter().all(|c| c.kind != INCREASING), "{:?}", commands);
+    // The second counter repeats the first.
+    assert!(stream.len() < 256 + 16, "{} bytes", stream.len());
 }

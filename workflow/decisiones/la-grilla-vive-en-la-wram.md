@@ -33,7 +33,7 @@ está ahí— también.
   Antes de esto la RAM lejana usada llegaba a `$7E7FFF` y de `$7E8000` en
   adelante no había nada; el día que haga falta más estado de RM2k —más
   variables, más switches, más eventos por mapa, un segundo intérprete— ahí
-  era donde iba a ir. Quedan `$7E7809-$7E7FFF` y los huecos de abajo.
+  era donde iba a ir. Quedan `$7E7805-$7E7FFF` y los huecos de abajo.
 * **La mitad alta del $7F la comparte con la pelea** (`ESC_ESCENA`), que la
   pisa: en los mapas de más de 32 KB de grilla hay que volver a descomprimirla
   al salir de una pelea. `volver_de_batalla` la descomprime entera siempre,

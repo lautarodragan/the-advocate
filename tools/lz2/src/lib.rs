@@ -299,9 +299,28 @@ fn longest_matches(data: &[u8]) -> Vec<(usize, usize)> {
     best
 }
 
+/// Which commands the parser may use. Some decoders leave out the increasing
+/// fill —it is the one command a block move cannot do—, and a stream meant
+/// for one of those must not contain it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Options {
+    pub increasing: bool,
+}
+
+impl Default for Options {
+    fn default() -> Options {
+        Options { increasing: true }
+    }
+}
+
 /// The shortest command sequence for `data`, fewest commands among the
 /// shortest.
 pub fn parse(data: &[u8]) -> Result<Vec<Command>, Error> {
+    parse_with(data, Options::default())
+}
+
+/// [`parse`], with only the commands `options` allows.
+pub fn parse_with(data: &[u8], options: Options) -> Result<Vec<Command>, Error> {
     let n = data.len();
     if n > MAX_OUTPUT {
         return Err(Error::TooLong(n));
@@ -382,7 +401,9 @@ pub fn parse(data: &[u8]) -> Result<Vec<Command>, Error> {
         if remaining >= 2 {
             try_run(WORD_FILL, word_run[i], 0, &mut best, &mut best_cmd);
         }
-        try_run(INCREASING, inc_run[i], 0, &mut best, &mut best_cmd);
+        if options.increasing {
+            try_run(INCREASING, inc_run[i], 0, &mut best, &mut best_cmd);
+        }
         let (mlen, mfrom) = matches[i];
         if mlen > 0 {
             try_run(REPEAT, mlen, mfrom, &mut best, &mut best_cmd);
@@ -459,7 +480,12 @@ pub fn encode(data: &[u8], commands: &[Command]) -> Vec<u8> {
 
 /// `data` as an LC_LZ2 stream.
 pub fn compress(data: &[u8]) -> Result<Vec<u8>, Error> {
-    let commands = parse(data)?;
+    compress_with(data, Options::default())
+}
+
+/// [`compress`], with only the commands `options` allows.
+pub fn compress_with(data: &[u8], options: Options) -> Result<Vec<u8>, Error> {
+    let commands = parse_with(data, options)?;
     Ok(encode(data, &commands))
 }
 
