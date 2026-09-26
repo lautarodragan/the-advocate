@@ -20,8 +20,8 @@ Por eso **no hay un modo por lotes**, que era la otra forma de hacer esto.
 Arrancar el binario cuesta 0,0005 s —0,30 s las 608, medidas sueltas—, así que
 juntar todas las muestras en una sola invocación ahorraría 0,35 s, a cambio de
 un modo más en Gunter. Y encima no se pueden juntar del todo:
-`snes_samples.build_bank` decide el presupuesto de la muestra siguiente mirando
-cuánto ocupó la anterior, así que los trabajos no existen todos juntos en
+el `Banco` de `snes_music` rearma las muestras de un paquete que se pasó
+mirando cuánto ocuparon, así que los trabajos no existen todos juntos en
 ningún momento.
 
 Lo que sí cambió desde aquella medición es contra qué se compara ese 0,35 s: el

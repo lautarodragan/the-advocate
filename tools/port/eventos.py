@@ -716,6 +716,9 @@ class Temas:
         # está compilando, y cada tema y cada efecto quedan anotados en el
         # suyo, en el orden en que aparecen. Es lo que arma el paquete de
         # audio de cada mapa: ver `paquete_cargar` en rom/src/paquete_de_audio.s.
+        # Y a qué mapas de la ROM salta cada uno —`destinos`, índices de la
+        # tabla de mapas—, que es de dónde sale qué tema puede venir sonando
+        # al cargar un paquete: ver `temas_heredados` en snes_convert.py.
         self.mapa = None
         self.por_mapa = {}
 
@@ -723,7 +726,7 @@ class Temas:
         if self.mapa is None:
             return
         lista = self.por_mapa.setdefault(
-            self.mapa, {"temas": [], "sonidos": []})[que]
+            self.mapa, {"temas": [], "sonidos": [], "destinos": []})[que]
         if valor not in lista:
             lista.append(valor)
 
@@ -732,6 +735,9 @@ class Temas:
             self.nombres.append(nombre)
         self._anotar("temas", self.nombres.index(nombre))
         return self.nombres.index(nombre)
+
+    def destino(self, mapa):
+        self._anotar("destinos", mapa)
 
     def sonido(self, nombre, volumen, tempo, balance):
         clave = (nombre, volumen, tempo, balance)
@@ -3953,6 +3959,8 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         destino = indice_de_mapa(p[0])
         if destino is None:
             raise NoSePuede()       # el mapa no entró en la ROM
+        if temas is not None:
+            temas.destino(destino)
         return bytes([OP_TELEPORT, destino & 0xFF, destino >> 8,
                       p[1] & 0xFF, p[1] >> 8, p[2] & 0xFF, p[2] >> 8])
 

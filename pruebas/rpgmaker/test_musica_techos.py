@@ -45,8 +45,8 @@ def _cerca():
 def test_la_tabla_de_techos_es_la_de_esta_mezcla():
     release = tanda.cartucho()
     tabla = _tabla()
-    hechos = {t["nombre"]: t for t in techos._armar_en_memoria(release.dir)
-              if t["escrituras"]}
+    hechos = {t["nombre"]: t for t in techos.temas_armados(release.dir)
+              if t["largo"]}
     assert sorted(hechos) == sorted(tabla), (
         "los temas del release no son los de la tabla de techos: sobran %s, "
         "faltan %s. Correr `just techos`."

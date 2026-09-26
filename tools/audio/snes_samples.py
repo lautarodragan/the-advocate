@@ -29,7 +29,6 @@ Tres restricciones mandan en el resultado:
 """
 
 import hashlib
-import math
 import os
 
 from audio import muestras_brr
@@ -50,12 +49,6 @@ SOUNDFONT = os.environ.get(
 BLOCK = muestras_brr.BLOQUE_MUESTRAS   # 16 muestras por bloque de BRR
 REFERENCE_KEY = 60                 # do central: con qué nota se elige la zona
 PEAK = 0x6800                      # a cuánto se normaliza cada muestra
-
-# El SPC700 tiene 64 KB y no todo es nuestro: el driver, el directorio de
-# muestras y el buffer de eco viven ahí también. El reparto entre melódicos y
-# percusión deja 8 KB de aire.
-ARAM_BUDGET = 40 * 1024
-DRUM_BUDGET = 16 * 1024
 
 # La percusión de General MIDI vive en el banco 128, y ahí cada tecla es un
 # instrumento distinto en vez de una altura distinta. Eso es del formato, así
@@ -90,14 +83,15 @@ class Voice:
 # ése nunca fue el problema — la preparación en Python que va antes sí. Medido
 # con `cProfile` sobre una conversión de `abl` **con el caché
 # caliente**: de 165 s de perfil, 114,6 eran audio, y de ésos 108,9 los ponía
-# `build_drum_bank`, que en una conversión se llama 790 veces.
+# `build_drum_bank` —el reparto de la percusión hasta el paso 6—, que en una
+# conversión se llamaba 790 veces.
 #
 # **Se cachea el golpe y no el banco** —`build_drum(golpe, presupuesto)` y no
 # `build_drum_bank(golpes, presupuesto)`— y ésa es la decisión. El banco tiene
 # menos claves, pero su clave lleva *qué golpes* pide el cartucho, así que dos
 # cartuchos con listas de temas distintas no comparten ni una entrada. El golpe
 # suelto sí: la clave es una nota y un presupuesto, y ésos se repiten entre las
-# 790 vueltas, entre los cinco cartuchos de prueba y la demo.
+# vueltas del reparto, entre los cartuchos de prueba y la demo.
 
 _version = None
 _huellas = {}
@@ -301,138 +295,3 @@ def _build_drum(soundfont, note, budget, seconds):
     audio = normalize(resample(sample.pcm[:frames], out))
     data = muestras_brr.codificar(audio, loop_block=None)
     return Voice(note, sample.nombre, data, rate, sample.nota, 0, out)
-
-
-def brightness(samples, rate):
-    """Dónde está el centro de gravedad del espectro, en Hz.
-
-    Es la cuenta clásica del centroide espectral, hecha en el dominio del
-    tiempo: la energía de las diferencias entre muestras consecutivas contra la
-    energía de la señal da cuánto pesa lo agudo, sin necesidad de una FFT.
-
-    Sirve para repartir el presupuesto entre golpes de percusión. Repartir por
-    cuántas veces suena cada uno es exactamente el criterio equivocado: el
-    bombo suena cien veces y no tiene un solo agudo, y el plato suena dieciséis
-    y es todo agudo. Medir el brillo pone la resolución donde hace falta.
-    """
-    energy = sum(s * s for s in samples)
-    if not energy:
-        return rate / 4.0
-    diff = sum((samples[i] - samples[i - 1]) ** 2
-               for i in range(1, len(samples)))
-    return rate / (2.0 * math.pi) * math.sqrt(diff / energy)
-
-
-_pedidos = {}
-
-
-def _pedido_del_golpe(soundfont, note):
-    """Qué tasa justifica el brillo de un golpe, y cuánto dura. O None.
-
-    **No depende del presupuesto**, y ahí está la gracia de tenerlo aparte:
-    `build_drum_bank` se llama cientos de veces con el mismo juego de golpes y
-    otro presupuesto, y el centroide de cada uno da lo mismo todas las veces.
-    Recorrerlo de nuevo costaba 48 de los 165 s del perfil.
-
-    Alcanza con la memoria del proceso y no va al disco: adentro de una
-    conversión esto son unas decenas de golpes, y el que las paga una sola vez
-    ya no las vuelve a ver.
-    """
-    clave = (soundfont, note)
-    if clave not in _pedidos:
-        sample = muestras_brr.extraer("drum:%d" % note, soundfont)
-        if sample is None:
-            _pedidos[clave] = None
-        else:
-            frames = min(sample.cuadros, int(DRUM_SECONDS * sample.tasa))
-            audio = sample.pcm[:min(frames, 8192)]
-            rate = 2.4 * brightness(audio, sample.tasa)
-            _pedidos[clave] = (max(MIN_RATE, min(MAX_RATE, rate)), frames,
-                               sample.tasa)
-    return _pedidos[clave]
-
-
-def build_drum_bank(notes, budget=DRUM_BUDGET, soundfont=SOUNDFONT):
-    """Un golpe por cada nota de percusión que el MIDI use.
-
-    A cada uno se le pide la tasa que su brillo justifica —un poco más del
-    doble del centroide, que deja lugar para lo que hay por encima— y recién si
-    la suma no entra se bajan todas en la misma proporción.
-    """
-    wanted = {}
-    for note in notes:
-        pedido = _pedido_del_golpe(soundfont, note)
-        if pedido is not None:
-            wanted[note] = pedido
-
-    # Lo que costaría darle a cada uno lo que pide, en bytes de BRR.
-    def cost(rate, frames, source_rate):
-        return (frames * (rate / source_rate)
-                * muestras_brr.BLOQUE_BYTES / BLOCK)
-
-    # Primero la pregunta simple: ¿entran todos a su tasa original? Bajar la
-    # tasa sin filtrar antes mete replegado, así que si hay lugar no se toca
-    # nada. Con el banco de Windows, que ya viene a 22 kHz, la respuesta suele
-    # ser que sí.
-    native = sum(cost(r, f, r) for _, f, r in wanted.values())
-    if native <= budget:
-        scale = None
-    else:
-        # Y si no entran, el brillo decide quién cede: el bombo no tiene un
-        # solo agudo y el plato es todo agudo.
-        scale = budget / (sum(cost(*wanted[n]) for n in wanted) or 1)
-
-    drums = []
-    for note in sorted(wanted):
-        rate, frames, source_rate = wanted[note]
-        share = (cost(source_rate, frames, source_rate) if scale is None
-                 else cost(rate * scale, frames, source_rate))
-        drum = build_drum(soundfont, note, max(512, int(share)))
-        if drum is not None:
-            drums.append(drum)
-    return drums
-
-
-# Cuánto de su parte tiene que haber gastado un instrumento para que se lo
-# considere "con hambre" y entre en el reparto de lo que sobró. No es 100%
-# porque el largo real se redondea a bloques de 16 muestras y casi nunca cae
-# justo.
-PARTE_LLENA = 0.95
-VUELTAS_DE_REPARTO = 3
-
-
-def build_bank(programs, budget=ARAM_BUDGET, soundfont=SOUNDFONT,
-               key=REFERENCE_KEY):
-    """Un banco con todos los instrumentos pedidos, repartiendo el presupuesto.
-
-    Se reparte en partes iguales. Podría ponderarse por cuánto suena cada uno,
-    pero el que más suena no es el que más resolución necesita: un bajo aguanta
-    4 kHz sin que se note y un arpa no.
-
-    **Y lo que sobra se vuelve a repartir**, que es lo que hace que varios temas
-    puedan compartir un banco sin sonar peor. Un instrumento corto, o uno que
-    topa en MAX_RATE, no gasta su parte: con cinco programas sobraban 10 de los
-    40 KB. Repartir ese sobrante entre los que sí la gastaron es la diferencia
-    entre que el piano de `escape_newyork` baje a 12,6 kHz al meter cuatro temas
-    y que se quede en 21. Dos o tres vueltas alcanzan para converger; después no
-    queda nadie con hambre.
-    """
-    parte = budget // max(1, len(programs))
-    reparto = {program: parte for program in programs}
-    hechas = {}
-
-    for _ in range(max(1, VUELTAS_DE_REPARTO)):
-        for program in programs:
-            if program not in hechas:
-                hechas[program] = build_voice(soundfont, program,
-                                              reparto[program], key)
-        voices = [hechas[p] for p in programs if hechas[p] is not None]
-        sobra = budget - sum(len(v.data) for v in voices)
-        hambrientos = [v.program for v in voices
-                       if len(v.data) >= reparto[v.program] * PARTE_LLENA]
-        if sobra <= 0 or not hambrientos:
-            break
-        for program in hambrientos:
-            reparto[program] += sobra // len(hambrientos)
-            del hechas[program]         # sólo se rearman los que cambiaron
-    return voices
