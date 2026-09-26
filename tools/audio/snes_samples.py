@@ -9,10 +9,11 @@ altura de la nota, así que guardar a 8 o 12 kHz no cuesta nada extra en tiempo
 de ejecución: sólo cuesta agudos. Es exactamente lo que hacían los juegos de la
 consola, y por eso suenan como suenan.
 
-Con el banco de Windows, sin embargo, la palanca casi no se usa: sus muestras ya
-vienen a 22 kHz y son cortas, así que el banco entero entra sin remuestrear
-nada. Eso importa porque acá se remuestrea sin filtrar antes, y bajar la tasa
-así mete replegado. La regla es no tocar la tasa mientras haya lugar.
+Con el banco de Windows la palanca se usa poco: sus muestras ya vienen a 22 kHz
+y son cortas, así que en un paquete con lugar van enteras. En los que llenan
+la ARAM —los mapas con muchos efectos, la pelea— baja, y para eso `resample`
+filtra antes de bajar la tasa. La regla sigue siendo no tocar la tasa mientras
+haya lugar: el filtro evita el replegado, no devuelve los agudos.
 
 Tres restricciones mandan en el resultado:
 
@@ -29,6 +30,7 @@ Tres restricciones mandan en el resultado:
 """
 
 import hashlib
+import math
 import os
 
 from audio import muestras_brr
@@ -154,18 +156,64 @@ def _cacheada(memoria, clave, partes, hacer):
     return guardado[0]
 
 
-def resample(samples, count):
-    """Cambia el largo de una señal por interpolación lineal.
+# Hasta dónde llega el pasabajos antes de bajar la tasa, como fracción de la
+# mitad de la tasa nueva: un poco por debajo, porque la caída del filtro no
+# es vertical y lo que pasa de la mitad se repliega. Y cuántos ciclos de la
+# frecuencia de corte abarca su núcleo: más es una caída más empinada y un
+# filtro más largo.
+CORTE = 0.9
+CICLOS = 12
 
-    Para bajar la tasa lo correcto sería filtrar antes, si no los agudos se
-    repliegan sobre los graves. Acá no se hace: en instrumentos de tono estos
+
+def _pasabajos(muestras, fraccion, circular=False, despues=()):
+    """`muestras` sin lo que pasa de `fraccion` de su tasa (en ciclos por
+    muestra), como floats: un sinc con ventana de Blackman.
+
+    `circular` es para el loop: la señal se repite, así que el filtro la ve
+    como periódica y el punto de loop no queda con un escalón. `despues` es
+    lo que sigue a la señal —el loop, detrás del ataque—, para que el final
+    del ataque se filtre con lo que de verdad suena después y no contra
+    ceros."""
+    import numpy as np
+    x = np.asarray(muestras, dtype=float)
+    mitad = max(8, int(math.ceil(CICLOS / (2.0 * fraccion))))
+    n = np.arange(-mitad, mitad + 1)
+    nucleo = 2 * fraccion * np.sinc(2 * fraccion * n) * np.blackman(len(n))
+    nucleo /= nucleo.sum()
+    if circular:
+        largo = len(x)
+        doblado = np.zeros(largo)
+        np.add.at(doblado, n % largo, nucleo)
+        return np.fft.irfft(np.fft.rfft(x) * np.fft.rfft(doblado), largo)
+    cola = np.asarray(list(despues), dtype=float)
+    if len(cola):
+        cola = np.tile(cola, int(math.ceil(mitad / float(len(cola)))) + 1)
+    return np.convolve(np.concatenate([x, cola[:mitad]]), nucleo,
+                       mode="same")[:len(x)]
+
+
+def resample(samples, count, circular=False, despues=()):
+    """Cambia el largo de una señal: pasabajos si se baja la tasa, y después
+    interpolación lineal.
+
+    Hasta el 2026-09-26 no se filtraba —"en instrumentos de tono estos
     parciales son débiles, y el error del BRR es bastante mayor que el del
-    replegado. Si alguna vez suena áspero en los agudos, éste es el lugar.
+    replegado"—, y con el banco de Windows casi no hacía falta, porque casi
+    todo iba a la tasa del SoundFont. Desde el presupuesto por paquete hay
+    muestras que bajan de 22 a 10 kHz, y ahí lo que pasa de 5 kHz se
+    repliega sobre los graves como ruido que no está en el instrumento. Es
+    el paso 6 de `workflow/tasks/todo/la-calidad-de-la-musica.md`, con lo
+    que se midió.
+
+    `circular` y `despues` son los de `_pasabajos`.
     """
-    if count <= 0 or not samples:
+    if count <= 0 or not len(samples):
         return []
     if count == len(samples):
         return list(samples)
+    if count < len(samples):
+        samples = _pasabajos(samples, CORTE * 0.5 * count / len(samples),
+                             circular, despues)
 
     step = (len(samples) - 1) / float(count)
     out = []
@@ -249,10 +297,10 @@ def _build_voice(soundfont, program, budget, key):
 
     attack_out = int(round(attack_frames * ratio / BLOCK)) * BLOCK
 
-    audio = resample(sample.pcm[:attack_frames], attack_out)
+    lazo = sample.pcm[sample.loop_start:sample.loop_end] if looped else ()
+    audio = resample(sample.pcm[:attack_frames], attack_out, despues=lazo)
     if looped:
-        audio += resample(sample.pcm[sample.loop_start:sample.loop_end],
-                          loop_out)
+        audio += resample(lazo, loop_out, circular=True)
     audio = normalize(audio)
 
     data = muestras_brr.codificar(
