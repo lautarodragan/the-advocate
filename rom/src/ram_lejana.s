@@ -576,6 +576,17 @@ MUS_BITACORA    = FAR_MUSICA + $200
 MUS_BITACORA_LARGO = $200
 .assert MUS_BITACORA + MUS_BITACORA_LARGO <= $7E7000, error, "la bitácora se sale de su lugar"
 
+; --- el cuadro de la animación de batalla, en la RAM lejana -----------------
+;
+; Los 2 KB del cuadro que el vblank sube a la caja. El cartucho no los guarda
+; enteros —sólo los tiles que no son todo cero, ver `cuadro_sin_vacios` en
+; snes_convert.py— y `anim_cuadro_armar` los rearma acá, fuera del vblank. El
+; DMA de `animacion_dibujo_dma` sale de acá y no del cartucho.
+;
+; $7000 a $77FF es de esto, reservado el 2026-09-26. **No viaja en la
+; partida**: cargar un mapa lo pone en cero.
+ANIMB_BUF = $7E7000
+
 ; En qué cuadro termina el arranque, contado desde el reset. El arranque
 ; —cargar el mapa, subir el driver al SPC700 y el paquete de audio del mapa—
 ; tarda lo que tarda, y eso cambiaba con cada cambio de código o de datos: un

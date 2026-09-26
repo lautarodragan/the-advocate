@@ -3123,6 +3123,39 @@ def animaciones_de_la_rom(mapas, renderer):
     return salida
 
 
+def cuadro_de_animacion(cuadro):
+    """Los 2 KB de un cuadro de animación de batalla tal como quedan en la VRAM:
+    los 64 tiles de 4bpp de la caja, en orden."""
+    datos = bytearray(animacion_mod.TILES * 32)
+    for tile, celda in animacion_mod.celdas(cuadro).items():
+        datos[tile * 32:(tile + 1) * 32] = pack_tile(celda, planes=4)
+    return bytes(datos)
+
+
+# El fin de un cuadro sin sus tiles vacíos: ningún tile de la caja llega a 64.
+CUADRO_FIN = 0xFF
+
+
+def cuadro_sin_vacios(datos):
+    """Un cuadro de `cuadro_de_animacion` como lo guarda el cartucho: sólo sus
+    tiles que no son todo cero, cada uno con su número delante, y `CUADRO_FIN`.
+
+    Los cuadros son **casi todos transparencia**, así que guardarlos enteros
+    era pagar ceros: lo medido está en la tarea
+    `la-compresion-de-mapas-y-graficos.md`. Lo que queda en la VRAM no cambia:
+    `anim_cuadro_armar` rearma los 2 KB en la RAM lejana y el vblank los sube
+    enteros, como antes.
+    """
+    out = bytearray()
+    for tile in range(animacion_mod.TILES):
+        uno = datos[tile * 32:(tile + 1) * 32]
+        if any(uno):
+            out.append(tile)
+            out += uno
+    out.append(CUADRO_FIN)
+    return bytes(out)
+
+
 def animaciones_asm(animaciones, mapas):
     """Las animaciones de batalla del cartucho, listas para el `.inc`.
 
@@ -3134,10 +3167,11 @@ def animaciones_asm(animaciones, mapas):
                              contador que la otra adivine.
       `anim_batalla_tabla`   por entrada: cuántos cuadros, dónde cae su ancla
                              adentro de la caja y en qué cuadro arranca.
-      `anim_batalla_cuadros` por cuadro, el puntero de 24 bits a sus 2 KB de
-                             tiles. Uno por cuadro y no un bloque seguido por
-                             animación: 28 cuadros son 57 KB y un banco tiene
-                             32, así que no hay bloque que entre entero.
+      `anim_batalla_cuadros` por cuadro, el puntero de 24 bits a sus tiles sin
+                             los vacíos: ver `cuadro_sin_vacios`. Uno por
+                             cuadro y no un bloque seguido por animación, que
+                             es de cuando cada cuadro medía 2 KB y 28 no
+                             entraban en un banco.
       `anim_batalla_cgram`   sus dieciséis colores, que la ROM sube cuando la
                              animación empieza.
       `anim_batalla_reparto` por mapa, dónde y con qué paleta se dibuja acá, o
@@ -3203,10 +3237,8 @@ def animaciones_asm(animaciones, mapas):
     for numero in orden:
         info = animaciones[numero]
         for k, cuadro in enumerate(info["cuadros"]):
-            datos = bytearray(animacion_mod.TILES * 32)
-            for tile, celda in animacion_mod.celdas(cuadro).items():
-                datos[tile * 32:(tile + 1) * 32] = pack_tile(celda, planes=4)
-            out.append(bloque("anim_batalla_%d_%d" % (numero, k), bytes(datos)))
+            out.append(bloque("anim_batalla_%d_%d" % (numero, k),
+                              cuadro_sin_vacios(cuadro_de_animacion(cuadro))))
     reparto = bytearray()
     for mapa in mapas:
         sprite = mapa["sprite"]

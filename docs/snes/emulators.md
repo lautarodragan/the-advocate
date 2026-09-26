@@ -6,7 +6,13 @@ Emulators to test the ROM manually on Linux:
 
 Ares and Mesen support the MSU1 chip. The higher quality music
 can be heard with them.
-Mednafen doesn't.
+So does Mednafen, but **only with the `snes_faust` module**: its default
+`snes` module has no MSU-1. With `abl.msu` and the `abl-N.pcm` tracks next
+to the ROM, same base name:
+
+    mednafen -force_module snes_faust abl.sfc
+
+Confirmed by taro on 2026-09-26: tracks and the data port both work.
 
 On the other hand, Mednafen is more comfortable to use under Linux.
 Ares and Mesen have clunky UIs.
@@ -34,7 +40,8 @@ libretro cores installed here, and by running the ROM on each:
   no direct pointer, so DMA takes the slow path through `S9xGetPPU`, which
   routes `$2000-$2007` to the MSU-1.
 - **mesen-s** (`Core/Msu1.cpp`): same registers; also only with a `.msu`.
-- **Mednafen**: no MSU-1 at all.
+- **Mednafen**: the default `snes` module has no MSU-1; `snes_faust` does
+  (`-force_module snes_faust`), confirmed by taro playing the ROM.
 
 None of them ever sets the data-busy bit: seeks are instant. Only real
 hardware (the FX Pak Pro reads the SD card) exercises the wait.
