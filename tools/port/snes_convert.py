@@ -2185,8 +2185,9 @@ RANURA_VRAM = 0x2000
 RANURA_TEXTO_ANCHO = 32
 RANURA_TEXTO_NIVEL = 16         # el nombre entra en trece, y sobran tres
 RANURA_TEXTO_MAX = RANURA_TEXTO_NIVEL + titulo_mod.NIVEL_CIFRAS
-# En cuántos pedazos se parten los 32 KB de tiles de una escena de batalla:
-# un bloque de 32 KB es un banco entero y no entra al lado de nada.
+# En cuántos pedazos se parten los tiles del respaldo de un fondo de batalla.
+# Nació cuando eran 32 KB, que son un banco entero y no entran al lado de
+# nada; desde el respaldo liviano son 16 KB, dos trozos.
 ESCENA_TROZO = 8192
 RANURA_MAP = 0x3C00
 
@@ -3327,6 +3328,9 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
                 print("  el fondo %r no está en el juego" % nombre)
                 fondo_de[nombre] = 0xFF
             else:
+                # El de la ROM es el liviano; `info` es el de calidad, que va
+                # al `.msu`. Ver "El respaldo liviano" en tools/port/escena.py.
+                info["respaldo"] = E.fondo_liviano(nombre, game_dir)
                 fondo_de[nombre] = len(datos["fondos"])
                 datos["fondos"].append(info)
         return fondo_de[nombre]
@@ -3374,6 +3378,34 @@ def fondo_bytes(info):
     return bytes(tiles_), bytes(cgram)
 
 
+def respaldo_bytes(info):
+    """El respaldo liviano de un fondo, como lo lleva la ROM: `(tiles,
+    colores)`, sus 512 tiles de 4bpp y sus `RESPALDO_COLORES` colores. Los
+    tiles guardan el índice **dentro de su paleta**: la ROM les pone los planos
+    de `CGRAM_BASE` al copiarlos, ver `respaldo_alto`."""
+    E = escena_mod
+    liviano = info["respaldo"]
+    tiles_ = bytearray()
+    for celda in E.tiles(liviano["indices"]):
+        tiles_ += pack_tile([[v - E.CGRAM_BASE for v in fila] for fila in celda],
+                            planes=E.RESPALDO_PLANOS)
+    colores = list(liviano["paleta"])
+    colores += [(0, 0, 0)] * (E.RESPALDO_COLORES - len(colores))
+    cgram = bytearray()
+    for color in colores:
+        cgram += cgram_word(color).to_bytes(2, "little")
+    return bytes(tiles_), bytes(cgram)
+
+
+def respaldo_alto():
+    """La mitad de arriba de un tile de 8bpp del respaldo: los planos 4 a 7,
+    que son los de `CGRAM_BASE` en todos los pixeles. Es lo que la ROM pega
+    detrás de cada tile de 4bpp."""
+    E = escena_mod
+    lleno = [[E.CGRAM_BASE] * E.CELDA for _ in range(E.CELDA)]
+    return pack_tile(lleno, planes=8)[E.RESPALDO_PLANOS * 8:]
+
+
 def escenas_asm(datos, tropas, db):
     """La escena de batalla del cartucho, lista para el `.inc`.
 
@@ -3384,11 +3416,11 @@ def escenas_asm(datos, tropas, db):
       `escena_tropa_fondo`  por índice de tropa —el orden de `tropa_id`—, el
                             fondo que nombra su `EnemyEncounter`, o $FF.
       `escena_mapa_fondo`   por índice de mapa, el de sus encuentros al azar.
-      `fondo_trozo`         por fondo y trozo, el puntero de 24 bits a sus
-                            8 KB de tiles. Cuatro trozos y no un bloque seguido
-                            porque 32 KB son un banco entero y no hay bloque
-                            que entre al lado de nada.
-      `fondo_cgram`         sus 96 colores, que van a la CGRAM desde la 32.
+      `fondo_trozo`         por fondo y trozo, el puntero de 24 bits a 8 KB de
+                            tiles de 4bpp del respaldo liviano.
+      `fondo_cgram`         sus 16 colores, que van a la CGRAM desde la 32.
+      `respaldo_alto`       los planos 4 a 7 que la ROM le pega a cada tile.
+      `msu_fondo_pos`       dónde está el de calidad en el `.msu`.
       `battler_*`           por battler: cuántos bytes mide una fila de un
                             plano, cuántas filas, cuánto mide un plano, dónde
                             están sus bytes y sus quince colores.
@@ -3400,7 +3432,7 @@ def escenas_asm(datos, tropas, db):
     lazo. Emitirlo serían 2 KB de cartucho para escribir 0, 1, 2...
     """
     E = escena_mod
-    trozos = E.TILES * 64 // ESCENA_TROZO
+    trozos = E.TILES * E.RESPALDO_PLANOS * 8 // ESCENA_TROZO
     fondos, battlers = datos["fondos"], datos["battlers"]
     out = [
         "\n; --- la escena de la batalla: los fondos y los battlers ---",
@@ -3421,6 +3453,11 @@ def escenas_asm(datos, tropas, db):
         "ESCENA_MAPA     = $%04X" % E.VRAM_MAPA,
         "ESCENA_TROZO    = %d" % ESCENA_TROZO,
         "ESCENA_TROZOS   = %d" % trozos,
+        "; El respaldo liviano de la ROM: 4bpp y una sola paleta. Ver",
+        "; tools/port/escena.py.",
+        "RESPALDO_COLORES = %d" % E.RESPALDO_COLORES,
+        "RESPALDO_TILE   = %d" % (E.RESPALDO_PLANOS * 8),
+        "RESPALDO_POR_TROZO = %d" % (ESCENA_TROZO // (E.RESPALDO_PLANOS * 8)),
         "ESCENA_BAT_PALETA = %d" % E.BATTLER_PALETA,
         "; El tile con el que se tapa lo que queda abajo de la escena. Cae",
         "; **fuera** del bloque de tiles: 512 tiles de 8bpp son las 16.384",
@@ -3442,11 +3479,12 @@ def escenas_asm(datos, tropas, db):
     if not fondos:
         punteros.append("    .dword 0")
     out.append("\n".join(punteros))
-    bytes_de = [fondo_bytes(info) for info in fondos]
+    bytes_de = [respaldo_bytes(info) for info in fondos]
     cgram = b"".join(colores for _tiles, colores in bytes_de)
     out.append(bloque("fondo_cgram", cgram or b"\x00\x00"))
-    # Y dónde está cada fondo en el `.msu`, con la firma que la ROM espera
-    # encontrar al principio: si no está, lee los de arriba. Ver
+    out.append(bloque("respaldo_alto", respaldo_alto()))
+    # Y dónde está cada fondo de calidad en el `.msu`, con la firma que la ROM
+    # espera encontrar al principio: si no está, lee los livianos de arriba. Ver
     # tools/port/msu_datos.py y `escena_msu` en rom/src/batalla_escena.s.
     firma, posiciones = datos.get("msu", (bytes(msu_datos.FIRMA), []))
     out.append(bloque("msu_datos_firma", firma))
@@ -6611,7 +6649,8 @@ def main():
     # tools/port/escena.py, que es donde está el porqué y el presupuesto.
     escenas = escena_de_la_rom(renderer.database, tropas, mapas, renderer.tree,
                                encuentros, args.game_dir)
-    # El `.msu`: los mismos fondos, para leerlos por el MSU-1 cuando está. Se
+    # El `.msu`: los fondos de calidad, para leerlos por el MSU-1 cuando está
+    # —la ROM lleva los livianos, ver "El respaldo liviano" en escena.py—. Se
     # escribe siempre, aunque el cartucho no lleve fondos, porque es también
     # el archivo que enciende el MSU-1 para las pistas. Al lado y reemplazando,
     # como las pistas: un emulador puede tenerlo abierto.
@@ -6626,11 +6665,16 @@ def main():
     print("  .msu: %d fondo(s) en %d B, firma %s -> %s"
           % (len(posiciones), len(archivo), firma.hex(), msu))
     for info in escenas["fondos"]:
-        print("  fondo de batalla %r: %dx%d, %d tiles de 8bpp (%d B), %d "
-              "colores desde la entrada %d de la CGRAM"
+        rom_tiles, rom_colores = respaldo_bytes(info)
+        msu_tiles, msu_colores = fondo_bytes(info)
+        print("  fondo de batalla %r: %dx%d, %d tiles desde la entrada %d de "
+              "la CGRAM; en la ROM 4bpp y %d colores (%d B), en el .msu 8bpp "
+              "y %d colores (%d B)"
               % (info["nombre"], escena_mod.ANCHO, escena_mod.ALTO,
-                 escena_mod.TILES, escena_mod.TILES * 64, len(info["paleta"]),
-                 escena_mod.CGRAM_BASE))
+                 escena_mod.TILES, escena_mod.CGRAM_BASE,
+                 len(info["respaldo"]["paleta"]),
+                 len(rom_tiles) + len(rom_colores), len(info["paleta"]),
+                 len(msu_tiles) + len(msu_colores)))
     for info in escenas["battlers"]:
         d = escena_mod.informe_battler(info)
         print("  battler %r: %dx%d, %d B, %d colores de %d"

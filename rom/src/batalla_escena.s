@@ -676,11 +676,20 @@ hay_escena:
     sta ESC_MSU
 sin_msu:
 
-    ; --- el fondo, a los dos búferes ---
-    lda #0
-    jsr esc_llenar
-    lda #$80
-    jsr esc_llenar
+    ; --- el fondo: sus colores y los dos búferes ---
+    lda ESC_MSU
+    pha
+    jsr esc_fondo
+    ; Si empezó del `.msu` y alguna búsqueda no llegó a tiempo, lo que ya se
+    ; leyó de ahí es el fondo de calidad y lo que sigue el liviano: no
+    ; comparten colores ni tiles. Todo de nuevo desde la ROM, que no falla.
+    pla
+    cmp #0                      ; `pla` deja Z de lo que sacó, no de ESC_MSU
+    beq fondo_listo
+    lda ESC_MSU
+    bne fondo_listo
+    jsr esc_fondo
+fondo_listo:
 
     ; --- los battlers, en el orden de dibujo: el de después tapa ---
     rep #$20
@@ -779,63 +788,6 @@ celda_pone:
     sep #$20
 .a8
 
-    ; --- los 96 colores del fondo, desde la entrada ESCENA_CGRAM ---
-    lda ESC_FONDO
-    cmp #$FF
-    beq colores_battlers
-    lda #ESCENA_CGRAM
-    sta f:CGADD
-    lda ESC_MSU
-    beq colores_de_la_rom
-    ; Del `.msu`: su entrada de colores es la segunda del fondo.
-    rep #$20
-.a16
-    lda ESC_FONDO
-    and #$00FF
-    asl a
-    asl a
-    asl a                       ; por 8: dos posiciones de 32 bits
-    tax
-    lda f:msu_fondo_pos + 6, x
-    tay
-    lda f:msu_fondo_pos + 4, x
-    jsr msu_datos_buscar
-.a8
-    bcs colores_de_la_rom       ; no la encontró a tiempo: los del cartucho
-    rep #$20
-.a16
-    lda #(ESCENA_COLORES * 2)
-    sta f:DAS0L
-    sep #$20
-.a8
-    lda #$22                    ; CGDATA
-    jsr esc_dma_msu
-    bra colores_battlers
-colores_de_la_rom:
-    rep #$20
-.a16
-    lda ESC_FONDO
-    and #$00FF
-    asl a
-    asl a
-    asl a
-    asl a
-    asl a
-    asl a                       ; por 64
-    sta ESC_T0
-    asl a                       ; por 128
-    clc
-    adc ESC_T0                  ; y por 192, que son ESCENA_COLORES * 2
-    clc
-    adc #.loword(fondo_cgram)
-    sta f:A1T0L
-    lda #(ESCENA_COLORES * 2)
-    sta f:DAS0L
-    sep #$20
-.a8
-    lda #^fondo_cgram
-    jsr esc_dma_cgram
-
     ; --- y una paleta de dieciséis por battler, desde la 8 ---
 colores_battlers:
     lda #0
@@ -885,6 +837,81 @@ sin_escena:
     lda #$FF
     sta BA_ESCENA
     rts
+.endproc
+
+; El fondo de `ESC_FONDO`, de donde diga `ESC_MSU`: sus colores y los dos
+; búferes. Si una búsqueda del `.msu` no llega a tiempo, deja ESC_MSU en 0 y
+; sigue desde la ROM: ver quién la llama.
+.proc esc_fondo
+.a8
+.i16
+    jsr esc_colores
+    lda #0
+    jsr esc_llenar
+    lda #$80
+    jmp esc_llenar
+.endproc
+
+; Los colores del fondo, desde la entrada ESCENA_CGRAM: los 96 del de calidad
+; si sale del `.msu`, los 16 del liviano si sale de la ROM. Nada con el liso.
+.proc esc_colores
+.a8
+.i16
+    lda ESC_FONDO
+    cmp #$FF
+    bne hay
+    rts
+hay:
+    lda #ESCENA_CGRAM
+    sta f:CGADD
+    lda ESC_MSU
+    beq de_la_rom
+    ; Del `.msu`: su entrada de colores es la segunda del fondo.
+    rep #$20
+.a16
+    lda ESC_FONDO
+    and #$00FF
+    asl a
+    asl a
+    asl a                       ; por 8: dos posiciones de 32 bits
+    tax
+    lda f:msu_fondo_pos + 6, x
+    tay
+    lda f:msu_fondo_pos + 4, x
+    jsr msu_datos_buscar
+.a8
+    bcs no_la_encontro
+    rep #$20
+.a16
+    lda #(ESCENA_COLORES * 2)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #$22                    ; CGDATA
+    jmp esc_dma_msu
+no_la_encontro:
+    lda #0
+    sta ESC_MSU
+de_la_rom:
+    rep #$20
+.a16
+    lda ESC_FONDO
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; por 32, que son RESPALDO_COLORES * 2
+    .assert RESPALDO_COLORES * 2 = 32, error, "fondo_cgram cambió de paso"
+    clc
+    adc #.loword(fondo_cgram)
+    sta f:A1T0L
+    lda #(RESPALDO_COLORES * 2)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #^fondo_cgram
+    jmp esc_dma_cgram
 .endproc
 
 ; El DMA a la CGRAM con origen y largo ya puestos: A el banco del origen.
@@ -986,21 +1013,33 @@ con_fondo:
     lda #$80                    ; WMDATA
     jmp esc_dma_msu
 no_la_encontro:
-    ; El MSU-1 no terminó de buscar a tiempo: esta pelea sale entera del
-    ; cartucho, colores incluidos, que son los mismos bytes.
+    ; El MSU-1 no terminó de buscar a tiempo: este búfer sale de la ROM, y
+    ; `escena_subir` rehace lo demás desde ahí.
     lda #0
     sta ESC_MSU
 de_la_rom:
+    ; El respaldo liviano, agrandado de 4bpp a 8bpp mientras se copia: por
+    ; tile, los 32 bytes de sus planos 0 a 3 por el canal 0 y los 32 fijos
+    ; de `respaldo_alto` por el 7, en ese orden porque MDMAEN corre los
+    ; canales de menor a mayor. WMADD sigue solo de uno al otro. El canal 0
+    ; sigue solo por el trozo —A1T0 avanza con la transferencia y nadie más
+    ; usa DMA mientras tanto: ni la NMI ni `irq_musica`—, y el 7 se rebobina
+    ; en cada tile. Ver "El respaldo liviano" en tools/port/escena.py.
+    lda #0
+    sta f:DMAP0                 ; de a un byte, el origen avanzando
+    sta f:DMAP7
+    lda #$80                    ; WMDATA
+    sta f:BBAD7
+    lda #^respaldo_alto
+    sta f:A1B7
     lda ESC_FONDO
-    ; Los cuatro trozos del fondo, uno detrás del otro: la dirección de la
-    ; WRAM sigue sola.
     rep #$20
 .a16
     and #$00FF
     asl a
     asl a
-    asl a
     asl a                       ; por ESCENA_TROZOS * 4: la fila de punteros
+    .assert ESCENA_TROZOS = 2, error, "la fila de fondo_trozo cambió de largo"
     tax
     sep #$20
 .a8
@@ -1011,16 +1050,28 @@ trozo:
 .a16
     lda f:fondo_trozo, x
     sta f:A1T0L
-    lda #ESCENA_TROZO
-    sta f:DAS0L
     sep #$20
 .a8
     lda f:fondo_trozo + 2, x
     sta f:A1B0
-    lda #0
-    sta f:DMAP0
-    lda #$01
+    phx
+    ldx #RESPALDO_POR_TROZO
+tile:
+    rep #$20
+.a16
+    lda #RESPALDO_TILE
+    sta f:DAS0L
+    lda #(64 - RESPALDO_TILE)
+    sta f:DAS7L
+    lda #.loword(respaldo_alto)
+    sta f:A1T7L
+    sep #$20
+.a8
+    lda #$81                    ; los canales 0 y 7
     sta f:MDMAEN
+    dex
+    bne tile
+    plx
     inx
     inx
     inx

@@ -7,10 +7,11 @@ bit 7 de $2000 y lee de $2001 byte por byte, avanzando solo; por DMA con el
 origen fijo en $2001 se lee a la velocidad de cualquier DMA. El mecanismo de
 este lado y del de la ROM está en docs/port/msu-datos.md.
 
-Es un piloto, y lo que lleva son **los fondos de batalla**: los mismos bytes
-que el cartucho ya tiene. **Sin MSU-1 el juego tiene que andar igual**
-—Mednafen no lo tiene—, así que el fondo sigue en la ROM y el `.msu` lo
-reemplaza cuando está y es el de este cartucho.
+Es un piloto, y lo que lleva son **los fondos de batalla de calidad**: 8bpp y
+96 colores. **Sin MSU-1 el juego tiene que andar igual** —Mednafen no lo
+tiene—, así que la ROM lleva de cada uno un respaldo liviano, 4bpp y 16
+colores, y el `.msu` lo reemplaza cuando está y es el de este cartucho. Son
+distintos a propósito: ver "El respaldo liviano" en tools/port/escena.py.
 
 ## El formato
 
@@ -40,8 +41,9 @@ herramientas de este lado (`leer`) y para que sumar otra cosa después sea
 sumar entradas, sin cambiar el formato.
 
 Cada fondo son dos entradas, en este orden: sus 512 tiles de 8bpp —32.768
-bytes, lo que hoy va en `fondo_K_T`— y sus 96 colores de 15 bits —192 bytes,
-lo que hoy va en `fondo_cgram`—.
+bytes, tal cual van a la WRAM— y sus 96 colores de 15 bits —192 bytes, tal
+cual van a la CGRAM desde la entrada 32—. Los arma `fondo_bytes` en
+snes_convert.py.
 """
 
 import hashlib
