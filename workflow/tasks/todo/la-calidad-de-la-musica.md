@@ -18,7 +18,8 @@ arriba y para el reparto** → reparto y rampa → muestras por mapa. **Hechos
 el 0, el 1 y el 2**, el 2026-09-25, **y el 3, el 4 y el 5** el 2026-09-26:
 ver cada uno abajo. Después del 5, el mismo día: **el 5b**, la frase de la
 batalla que el reparto cortaba, y **el aire por tema** (la opción B, al final
-del 5). Queda el 6.
+del 5). El 6, el mismo día, **medido, prototipado y con el plan**: hecho su
+primer paso, lo demás espera que taro decida escuchando.
 
 
 taro, el 2026-09-25: *"`escape_newyork` se escucha particularmente mal, y tal
@@ -1135,13 +1136,381 @@ la voz de arriba del canal 0 en todo el tema, y entre paréntesis en la frase.
 ## 6. Las muestras: presupuesto por paquete y zonas
 
 Es lo que más cambia el sonido (el 10 solo ya se acerca más que el 07) y lo
-más caro. Las 11 muestras del tema a 22 kHz ocupan 36,5 KB de ARAM contra
-~12 KB de hoy; el mapa 1, donde suena, también sube la lluvia y el trueno
-entero (23,8 KB), así que **hay que medir qué tasa entra de verdad** en su
-paquete. Es `wishlist/presupuesto-de-muestras-por-paquete.md`, y detrás
-`wishlist/una-muestra-por-instrumento.md`: la línea de bajo con sierra es el
-caso que la justifica. Cuesta cuadros de carga al cambiar de mapa, que taro
-ya dijo que prefiere pagar.
+más caro: es `wishlist/presupuesto-de-muestras-por-paquete.md`, y detrás
+`wishlist/una-muestra-por-instrumento.md`. taro escuchó la variante 08/10 y
+dijo que hace "una diferencia notoria", y aprobó arrancar.
+
+**Estado, 2026-09-26**: medido, prototipado y grabado; el plan está abajo y
+tiene decisiones para taro. **Hecho y listo para merge sólo el paso 1** —el
+paquete que no entró se completa en el próximo `PlayBGM`—, que arregla algo
+que pasa hoy en el juego y que el resto necesita. Medido sobre `03c21fb`, con
+el `release` de 32 temas.
+
+* **Para escuchar**: `/shared/audio/2026-09-26-paso-6/`, con su `LEEME.txt`:
+  `escape_newyork`, la batalla, el título y `3D-Galax` (uno de los 19 que hoy
+  no aportan) en cinco versiones —hoy, por paquete, por paquete con la zona
+  más usada, con dos zonas, y el techo a 22 kHz—, a la misma sonoridad.
+* **Los prototipos**: rama local `proto-paso-6` (commit `06a40ef`), **no para
+  mergear**: una sonda de tiempos en `paquete_cargar_ya` y un `Banco` que arma
+  cada muestra con el presupuesto de un JSON (`PROTO_PASO6`).
+* **Los scripts**, descartables, en el scratchpad de la sesión
+  (`audio-paso-6/`): `volcar.py` saca del conversor lo que recibe `emit`
+  —paquetes, temas, muestras—, `reparto.py` hace el reparto, `herencia.py`
+  el grafo de qué tema puede venir sonando, `medir_subida.py` y
+  `herencia_rom.py` miden en la ROM, `grabar.py` y `distancia.py` graban y
+  comparan contra la pista de MSU-1.
+
+### Lo que no era como se pensaba: la subida ya no va por el IPL
+
+* **El IPL sólo sube el driver y el directorio** —menos de 1 KB, menos de un
+  cuadro—. Las muestras las sube `paquete_cargar_ya` por el comando 3 del
+  driver: **ternas por los puertos 0, 1 y 2, con el testigo en el 3**. O sea
+  que el "cargador de cuatro puertos" de
+  `decisiones/el-arranque-esta-dimensionado-para-el-techo-de-aram.md` **ya
+  existe** desde los paquetes por mapa.
+* **Medido en la ROM**, con la sonda —cuadro y línea al entrar y salir de
+  `paquete_cargar_ya`—, en dieciocho paquetes: **1,33 a 1,42 cuadros por
+  KB**, unos 45 KB/s. Es casi lo mismo que el comentario de `BOOT_CUADROS`
+  medía para el IPL byte a byte (1,4): la terna no ganó lo que prometía.
+* **El techo es el SPC700**: su lazo de terna son 56 ciclos a 1,024 MHz, 55
+  KB/s. Lo que falta hasta ahí es la latencia del acuse, la IRQ de la música
+  —que sigue sonando durante la subida— y el rearmado del puntero cada 255 B.
+  Un lazo más apretado (almacenar con `mov !abs+y` en vez de `[dp]+y`, acusar
+  antes del último almacenamiento) llega a unos 48 ciclos: **entre 10 y 20%
+  más rápido, estimado**. No se prototipó: no paga un comando nuevo del
+  driver.
+* **El arranque**: termina su trabajo en el cuadro 20 —el paquete del mapa 4,
+  7,4 KB, son 10 cuadros— y espera hasta el 112. Con la ARAM llena por el
+  comando 3 serían 62 KB × 1,36 + 9 = 94 cuadros, así que `BOOT_CUADROS`
+  sigue cubriendo el techo, pero **lo que lo compraría de vuelta ya no es un
+  cargador**: es dimensionarlo para el paquete de arranque y no para el techo.
+  Es una decisión (ver abajo).
+
+### El presupuesto por paquete, medido
+
+**Cómo**: se corrió el conversor de `release` interceptando `emit` —los
+paquetes de cada mapa y el de la pelea, los temas, las muestras de los
+efectos— y más el paquete del título (el tema del título con el paquete del
+mapa 4, que es lo que arma `tema_asegurar`). Para cada paquete, lo libre es
+la ARAM menos el directorio, menos sus efectos, menos 1 KB de margen; y cada
+muestra —una por programa y una por golpe, en todo el cartucho, como hoy—
+tiene que entrar en **todos** los paquetes donde está. El reparto es un
+llenado progresivo sobre la fracción de su tamaño a la tasa del SF2: se sube
+a todas juntas hasta que un paquete se llena, esas quedan fijas, y se sigue
+con las demás. Las voces salen de `build_voice` y `build_drum` con ese
+presupuesto, o sea son las que armaría el conversor.
+
+**Qué temas pueden sonar en cada mapa**: los del paquete —el propio y los que
+prende un `PlayBGM` de sus páginas—, y **el que viene sonando del mapa
+anterior**, porque casi ningún mapa del juego trae tema propio: lo prende una
+página, y hasta entonces sigue el de antes. Seguir los `Teleport` sin mirar
+condiciones da que cualquier tema puede llegar a cualquier mapa (el 4 es el
+enrutador); con la regla "un mapa con `PlayBGM` se va con uno de los suyos"
+queda la columna de abajo. Ningún evento común tiene `PlayBGM`.
+
+Las variantes: **A**, una muestra por programa limitada por su peor paquete,
+y los temas que vienen sonando pesan sólo como temas (sus muestras más las del
+paquete tienen que entrar, sin los efectos: ver "La herencia"); **B**, una
+copia por tema, limitada sólo por los paquetes de ese tema. "Subida" es la
+música más los efectos del paquete a 1,36 cuadros por KB.
+
+| Paquete | Temas | Puede venir sonando | Efectos | Música hoy | Música A | Música B | Libre A | Subida hoy → A (cuadros) |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| 4 | hzstream | Astpgmarch, Fantasia Of Th, dcbest, evilrhys, lufsorr | 0 | 7452 | 14490 | 13041 | 48093 | 10 → 19 |
+| 1 | escape newyork | hzstream | 26289 | 9387 | 23472 | 35568 | 12822 | 47 → 66 |
+| 2 | TF3 1 awe | escape newyork | 36765 | 10935 | 25731 | 24660 | 87 | 63 → 83 |
+| 3 | evilrhys, lufsorr | TF3 1 awe, hzstream | 43029 | 14598 | 19404 | 18909 | 150 | 77 → 83 |
+| 7 | hzstream | — | 12375 | 7452 | 14490 | 13041 | 35718 | 26 → 36 |
+| 8 | cd4 | C3classi, cd2, hzstream | 15228 | 5706 | 12645 | 11763 | 34710 | 28 → 37 |
+| 9 | hzstream, cd4, C3classi | rshinld | 10413 | 18837 | 42957 | 40752 | 9213 | 39 → 71 |
+| 11 | rshinld | C3classi, cd4, hzstream | 16182 | 9342 | 22455 | 20952 | 23946 | 34 → 51 |
+| 12 | cd2, hzstream | cd4 | 2529 | 14805 | 29385 | 38079 | 30669 | 23 → 42 |
+| 14 | hzbreach | cd2, hzstream | 1728 | 9063 | 19062 | 23994 | 41793 | 14 → 28 |
+| 16 | hzbreach, wb3mlair | — | 2529 | 14454 | 31023 | 39789 | 29031 | 23 → 45 |
+| 17 | hzstream | hzbreach | 8046 | 7452 | 14490 | 13041 | 40047 | 21 → 30 |
+| 18 | Astpgmarch | hzstream | 6543 | 10962 | 52281 | 48789 | 3759 | 23 → 78 |
+| 19 | Gaden, 3D-Galax | hzstream | 18234 | 9522 | 44163 | 43497 | 186 | 37 → 83 |
+| 20 | wb3shop | 3D-Galax, Gaden, KSSMKEND | 13518 | 7353 | 22734 | 24984 | 26331 | 28 → 48 |
+| 21 | KSSMKEND | — | 4797 | 2124 | 8082 | 7803 | 49704 | 9 → 17 |
+| 26 | KSSMKEND, vswar | — | 15777 | 11709 | 46728 | 46260 | 78 | 37 → 83 |
+| 28 | Lunar Pyramid | KSSMKEND, wb3shop | 7146 | 9531 | 30546 | 36684 | 24891 | 22 → 50 |
+| 32 | dcbest | Lunar Pyramid | 12384 | 1809 | 13086 | 14481 | 37113 | 19 → 34 |
+| 33 | dcbest | — | 5058 | 1809 | 13086 | 14481 | 44439 | 9 → 24 |
+| 36 | golden axe-turtlev | hzstream | 0 | 1161 | 14319 | 15129 | 48264 | 2 → 19 |
+| 52 | Fire Mustang Intro | — | 7587 | 4149 | 13752 | 15480 | 41244 | 16 → 28 |
+| 70 | 11h035 | — | 0 | 6003 | 13581 | 22986 | 49002 | 8 → 18 |
+| 73 | 11h035 | — | 0 | 6003 | 13581 | 22986 | 49002 | 8 → 18 |
+| 74 | prepara | — | 7326 | 4896 | 20178 | 24984 | 35079 | 16 → 37 |
+| 121 | T ProjectJustice D, bubstix, wb3town | — | 2529 | 15327 | 54873 | 58977 | 5181 | 24 → 76 |
+| 133 | pn28year | — | 5922 | 1629 | 5886 | 7866 | 50775 | 10 → 16 |
+| 255 | Tnt07 | — | 4797 | 1620 | 9891 | 11916 | 47895 | 9 → 20 |
+| 261 | Deflector1 | — | 15840 | 7695 | 25119 | 31815 | 21624 | 31 → 54 |
+| 269 | MML2 MotherZone | — | 4797 | 1485 | 12672 | 15039 | 45114 | 8 → 23 |
+| 348 | T ProjectJustice D | — | 0 | 7614 | 26784 | 23571 | 35799 | 10 → 36 |
+| pelea | T VGFighterMAX Mas | — | 14832 | 15642 | 42327 | 46557 | 5424 | 40 → 76 |
+| titulo | Fantasia Of The Wi, hzstream | — | 0 | 11520 | 23400 | 27225 | 39183 | 15 → 31 |
+
+(Los mapas 5, 6, 10, 13, 23, 29, 30 y 34 no tienen temas en el paquete y no
+limitan a nadie; los de la segunda mitad de la tabla son los de prueba.)
+
+Y lo que le toca a cada programa melódico. "Lo limita" es el paquete que lo
+fijó en A ("4+Astpgmar" es el 4 con `Astpgmarch` sonando); "A+herencia" es A
+con el tema heredado **y los efectos** en el presupuesto; B da el rango entre
+las copias de los temas que lo usan. kHz:
+
+| Programa | Muestra | Temas | Hoy | A | Lo limita | A+herencia | B |
+|---|---|---:|---:|---:|---|---:|---:|
+| 0 | PIANO64 | 6 | 4.5 | 14.7 | 4+Astpgmar | 17.4 | 13.2–22.1 |
+| 1 | PIANO56 | 1 | 4.7 | 22.1 | — | 22.1 | 22.1–22.1 |
+| 2 | PIANO56 | 3 | 4.7 | 22.1 | — | 22.1 | 14.9–22.1 |
+| 7 | CLAVI60 | 3 | 21.1 | 21.1 | — | 21.1 | 21.1–21.1 |
+| 8 | CELST77 | 2 | 22.5 | 18.2 | 3 | 18.2 | 18.2–22.5 |
+| 10 | M_BOX82 | 2 | no está | 19.9 | 26 | 21.5 | 14.9–21.5 |
+| 11 | VIBE_64A | 3 | 7.9 | 22.3 | — | 22.3 | 15.8–18.4 |
+| 13 | XYLO_72 | 1 | 22.8 | 22.8 | — | 22.8 | 14.3–14.3 |
+| 15 | SANTR74 | 1 | 22.5 | 22.5 | — | 22.5 | 22.5–22.5 |
+| 16 | EORG173 | 1 | no está | 18.0 | 26 | 22.5 | 18.0–18.0 |
+| 17 | EORG253 | 2 | 11.1 | 22.3 | — | 22.3 | 15.3–22.3 |
+| 18 | EORG379 | 3 | no está | 19.5 | 19 | 20.9 | 14.9–16.6 |
+| 20 | R_ORG53 | 1 | 22.1 | 22.1 | — | 22.1 | 22.1–22.1 |
+| 24 | NYLON57A | 2 | 11.1 | 22.2 | — | 22.2 | 15.2–18.1 |
+| 25 | STLGT57B | 1 | 9.4 | 22.2 | — | 22.2 | 17.6–17.6 |
+| 26 | JAZGT59A | 1 | no está | 19.6 | 26 | 22.0 | 15.8–15.8 |
+| 27 | CLNGT60 | 1 | no está | 22.0 | — | 22.0 | 14.7–14.7 |
+| 30 | DSTGT64 | 3 | 21.3 | 21.3 | — | 21.3 | 16.0–21.3 |
+| 32 | ACOBS60A | 2 | no está | 20.6 | — | 20.6 | 20.6–20.6 |
+| 33 | MMBAS62 | 12 | 21.0 | 18.4 | 19 | 21.0 | 13.1–21.0 |
+| 34 | PCKBS50A | 2 | 12.9 | 15.2 | 4+Astpgmar | 5.8 | 12.9–15.2 |
+| 35 | FRTLS48A | 3 | 8.3 | 10.4 | 3 | 6.2 | 10.4–22.9 |
+| 36 | SLPBS43 | 2 | no está | 22.1 | — | 22.1 | 22.1–22.1 |
+| 37 | SLPMT52A | 2 | 22.3 | 11.1 | 3 | 5.9 | 9.8–15.7 |
+| 38 | SYBS148A | 6 | 10.3 | 20.6 | 26 | 22.6 | 14.4–22.6 |
+| 39 | SYBS248A | 2 | no está | 19.5 | 26 | 21.6 | 15.4–17.5 |
+| 40 | VIOLN68 | 1 | no está | 23.3 | — | 23.3 | 16.7–16.7 |
+| 42 | CELLH64 | 2 | 21.0 | 21.0 | — | 21.0 | 21.0–21.0 |
+| 44 | STRNG71B | 2 | no está | 22.1 | — | 22.1 | 15.0–22.1 |
+| 45 | PIZZ_71 | 3 | 19.7 | 22.4 | — | 22.4 | 17.9–22.4 |
+| 46 | HARP_57A | 7 | 12.0 | 10.6 | 3 | 5.6 | 9.9–21.8 |
+| 47 | TMPNI47 | 2 | 7.2 | 11.0 | 3 | 6.0 | 9.9–15.3 |
+| 48 | STRNG71B | 10 | 4.1 | 10.8 | 3 | 5.9 | 9.6–22.1 |
+| 49 | STRNG71B | 3 | no está | 19.5 | 19 | 20.9 | 15.8–22.1 |
+| 50 | SSTR162A | 2 | no está | 22.0 | — | 22.0 | 14.9–22.0 |
+| 52 | CHOIR65A | 4 | no está | 19.7 | 19 | 21.1 | 15.9–22.3 |
+| 53 | POPVX64A | 1 | no está | 21.4 | — | 21.4 | 21.4–21.4 |
+| 56 | TRMPT65 | 2 | no está | 19.3 | 26 | 22.1 | 16.6–19.3 |
+| 58 | TRMBN62A | 2 | no está | 13.8 | 4+Astpgmar | 18.3 | 13.8–18.3 |
+| 61 | BRASS64 | 1 | 5.4 | 21.7 | — | 21.7 | 16.3–16.3 |
+| 63 | SBRS255 | 1 | no está | 21.9 | — | 21.9 | 21.9–21.9 |
+| 68 | OBOE_61A | 3 | 21.9 | 8.8 | 3 | 4.4 | 8.8–21.9 |
+| 69 | EHORN61A | 1 | no está | 17.5 | 19 | 21.9 | 17.5–17.5 |
+| 71 | SYNCL64 | 1 | no está | 20.4 | 19 | 20.4 | 20.4–20.4 |
+| 73 | FLUTE65A | 1 | 21.8 | 10.9 | 3 | 5.4 | 10.9–10.9 |
+| 75 | PNFLT72 | 2 | 11.9 | 18.9 | 19 | 20.3 | 16.0–21.4 |
+| 77 | SHAKU63 | 1 | 8.0 | 22.1 | — | 22.1 | 15.0–15.0 |
+| 79 | OCARI72A | 2 | 16.1 | 16.1 | 4+Astpgmar | 16.1 | 16.1–24.1 |
+| 80 | SQUAR60 | 6 | 6.2 | 14.7 | 4+Astpgmar | 5.8 | 13.1–22.0 |
+| 81 | SAW0_60 | 4 | 4.6 | 14.7 | 4+Astpgmar | 11.7 | 13.1–22.0 |
+| 82 | CALLI72 | 2 | 8.3 | 22.0 | — | 22.0 | 14.9–22.0 |
+| 83 | CHFFR72A | 1 | no está | 25.3 | — | 25.3 | 25.3–25.3 |
+| 87 | BS_LD48 | 3 | 14.6 | 20.8 | 2 | 6.2 | 16.7–22.9 |
+| 88 | FANTA53 | 3 | 8.6 | 22.0 | — | 22.0 | 17.8–22.0 |
+| 89 | WRMPD72A | 1 | no está | 22.0 | — | 22.0 | 22.0–22.0 |
+| 90 | POLY_60A | 3 | 8.4 | 16.9 | 2 | 4.2 | 12.6–21.1 |
+| 91 | SPACE79 | 3 | 7.2 | 19.1 | 2 | 5.9 | 15.0–22.1 |
+| 92 | ELP1_56 | 1 | no está | 19.6 | 19 | 22.9 | 16.4–16.4 |
+| 94 | CHOIR65A | 1 | no está | 19.7 | 19 | 21.1 | 16.7–16.7 |
+| 96 | ICE__60A | 1 | no está | 22.1 | — | 22.1 | 18.1–18.1 |
+| 99 | ATMOS60A | 3 | no está | 21.1 | — | 21.1 | 21.1–21.1 |
+| 102 | CHOIR65A | 1 | no está | 22.3 | — | 22.3 | 18.2–18.2 |
+| 107 | KOTO_57 | 1 | 24.4 | 24.4 | — | 24.4 | 16.3–16.3 |
+| 112 | TNKBLA5 | 1 | no está | 22.4 | — | 22.4 | 22.4–22.4 |
+| 116 | SURDO60 | 1 | 9.6 | 10.7 | 3 | 5.9 | 9.6–9.6 |
+| 118 | SYNDR56 | 1 | no está | 20.8 | — | 20.8 | 20.8–20.8 |
+| 127 | PISTL60 | 2 | 11.4 | 22.1 | — | 22.1 | 15.0–22.1 |
+
+Lo que dice:
+
+* **Los 19 temas que hoy no aportan pasan a aportar todos**: en A están
+  todos los programas y todos los golpes del cartucho (116 muestras contra
+  67). `3D-Galax`, por ejemplo, recupera el órgano, el piano eléctrico y el
+  coro, que hoy no suenan.
+* **La mediana de los programas pasa de 11,1 a 20,8 kHz**, y la de los golpes
+  de 7 a 14,7 (hoy sólo 28 de los 49 golpes están en el banco). El piano pasa
+  de 4,5 a 14,7, las cuerdas de 4,1 a 10,8, la sierra de 4,6 a 14,7, el
+  bronce de 5,4 a 21,7.
+* **Lo que manda son los efectos de los mapas 2 y 3**: 36,8 y 43 KB de sus
+  64. Todo lo que tocan `evilrhys` y `lufsorr` en el 3 queda cerca de 10 kHz,
+  y como la muestra es una por programa, queda así en todos los temas: el
+  arpa, las cuerdas 48, los golpes de batería comunes. **Seis programas
+  quedan peor que hoy**, porque hoy eran cortos y el banco les daba la tasa
+  del SF2 —el oboe (21,9 → 8,8), la flauta (21,8 → 10,9), el slap (22,3 →
+  11,1), la celesta, el arpa y el bajo sintético 33—, y el bombo y el charles
+  de la batalla bajan de 19,4 y 14,9 a unos 10,7.
+* **B** —una copia por tema— saca ese techo: cada tema queda limitado sólo
+  por sus propios paquetes (`escape_newyork` todo a unos 21,5 kHz, la batalla
+  a 16–22). Pero son **430 muestras** y el SRCN es un byte: hoy los 92 efectos
+  ocupan su lugar en el mismo directorio, así que a la música le quedan 163.
+  Ver el orden de implementación.
+
+### La herencia: el tema que viene sonando, y los efectos
+
+`paquete_cargar_ya` no mueve las muestras del tema que suena —la música sigue
+durante el fundido—, y acomoda el paquete nuevo alrededor, en orden: sus
+temas y después sus efectos. Lo que no entra, no sube. Medido en la ROM
+(`herencia_rom.py`: el salto con el tema del mapa de origen marcado como el
+que suena, que es lo único que mira `paquete_cargar_ya`):
+
+* **Hoy ya pasa, en el juego**: del 2 al 3 la página del ascensor salta con el
+  tema del 2 sonando —recién después vuelve a pedirlo— y al 3 le faltaban
+  efectos, que no volvían en toda la escena aunque la página del 3 prendiera
+  enseguida `evilrhys`. Es lo que arregla el paso 1.
+* **Con A, sin nada más**, faltan muchos más, porque cada paquete ya llena la
+  ARAM solo: del 1 al 2 con `escape_newyork` sonando faltan 6 efectos del 2,
+  del 2 al 3 faltan 10, del 4 al 19 faltan 6, y del 4 al 1 con `hzstream`
+  sonando falta **el trueno entero** (23,8 KB). Y con los saltos que no son del
+  juego —el arnés salta de cualquier lado— faltan también un par de muestras
+  de los temas, porque las muestras quietas dejan la ARAM partida en huecos.
+
+Las dos maneras de pagarlo:
+
+1. **Presupuestar la herencia entera** —cada paquete tiene que entrar con
+   cualquiera de los temas que pueden venir sonando, efectos incluidos— es la
+   columna "A+herencia": el polysynth de `escape_newyork` a 4,2 kHz, las
+   cuerdas y la onda cuadrada a 5,8. Peor que hoy en los temas que importan.
+2. **Que el tema que suena tenga prioridad y los efectos esperen**: el
+   paquete se arma igual, lo que no entra queda anotado, y el primer
+   `PlayBGM` —que arranca el tema de cero y calla el viejo— sube lo que
+   faltaba. Es el paso 1, y cuesta un congelado del tamaño de lo que faltaba
+   en ese `PlayBGM`: con A, del orden de 10 a 25 KB en esos saltos, o sea
+   **15 a 35 cuadros**. Los efectos del mapa no suenan entre la llegada y ese
+   `PlayBGM`; en el 2 y en el 3 del juego, la página prende su tema antes de
+   usarlos. A es esto: los temas heredados cuentan en el presupuesto sólo
+   como temas.
+
+La 2 es la que hace que A valga la pena; la 1 no.
+
+### Los efectos de sonido
+
+Son lo último de cada paquete y van a 6 kHz, recortados a 0,75 s (el trueno
+del mapa 1 entero, a 22 kHz). En el presupuesto por paquete son un costo fijo
+que se resta antes de repartir: por eso los mapas 2 y 3 son los que limitan.
+Con el paso 1 sobreviven a la herencia; al cambio de paquete ya sobrevivían,
+porque son del paquete. Si alguna vez hace falta más lugar, los del 3 son el
+lugar donde buscarlo: son veinte, casi todos de la secuencia del final del
+mapa, y el trueno a 6 kHz está dos veces (en el 3 y entero en el 1).
+
+### Una muestra por zona
+
+Hoy cada programa lleva la muestra de la zona del do central. **El 34% del
+tiempo-nota melódico de los 32 temas suena a 12 semitonos o más de la raíz de
+esa muestra, en teclas para las que el SF2 tiene otra.** Y es muy concentrado:
+32 pares (tema, programa) tocan más de un cuarto de sus notas en otra zona, y
+muchos **todas** —el bajo sintético 33 en doce temas toca `MMBAS40` y no la
+del 62; la sierra de `escape_newyork` y de `hzstream`, `SAW0_48`—.
+
+* **La zona más usada** (variante 3): cada programa lleva la muestra de la
+  zona que más tiempo-nota suma en el cartucho, en vez de la del do central.
+  **No cuesta ARAM** —sigue siendo una por programa— y es lo que más cerca
+  dejó a `3D-Galax` de la referencia (agudos: 11,8 dB de diferencia hoy, 7,3
+  por paquete, 3,4 con la zona más usada, 3,8 el techo). Lo que pierde: un
+  programa que dos temas tocan en registros distintos queda bien para uno
+  solo.
+* **Dos zonas** (variante 4, las que tienen al menos el 15% del programa):
+  **149 muestras en vez de 116**, cada una a menos tasa (mediana de 14,7 a
+  12,6 kHz en los temas grabados). En la cuenta del espectro sale peor que una
+  sola, porque la cuenta mide agudos y no timbre; es para escuchar en los
+  graves.
+* **Tres zonas** serían 151: casi nadie usa una tercera con más del 15%.
+
+### Cuánto cuesta en cuadros, y dónde se paga
+
+La tabla de arriba tiene la subida de cada paquete. Dónde cae:
+
+* **El cambio de mapa**: en el fundido, que no se ve. El peor pasa de 77 a 83
+  cuadros (1,4 s); los mapas 2, 3, 19 y 26 quedan todos ahí.
+* **La pelea**: hoy congela unos 40 cuadros al entrar y otros tantos al
+  salir; con A, unos 76 (1,3 s) cada vez. Es lo único que se vería seguido.
+* **El título**: 15 → 31 cuadros, al aparecer.
+* **Un `PlayBGM` a mitad de escena**: ninguno cambia de paquete —los temas
+  que prende cada página ya están en el paquete de su mapa, y los eventos
+  comunes no tienen `PlayBGM`—, salvo el completado del paso 1, que es lo que
+  faltaba y nada más.
+* **El arranque**: 10 → 19 cuadros de trabajo, adentro de los 112 que ya
+  espera.
+
+### Cartucho, banco 0 y la tanda
+
+* **El `release` pasa de 3.246.058 a 3.518.487 B usados** con A (77,4% a
+  83,9% de los 4 MB): 166 KB de muestras más —cada programa a lo que da su
+  peor paquete, 116 muestras— y 106 KB de stream, que es lo que los 19 temas
+  que no aportaban tenían sin muestra.
+* **El banco 0 no se mueve con A**: es todo del conversor. Con el paso 1 pasó
+  de 1.168 a 1.144 B libres en `release`.
+* **Lo que se rompe** al implementar A: `test_un_tema_pierde_sus_muestras_pero_nunca_su_numero`
+  y `test_un_tema_que_no_aporta_pierde_notas_y_la_ROM_lo_dice` prueban el
+  recorte de aportantes, que se va; la huella de los 32 temas en
+  `techos.toml`, que hay que volver a medir con `just techos`.
+
+### Decisiones que habría que tomar o reescribir
+
+* **`decisiones/un-solo-banco-de-muestras.md` no se revierte con A: se
+  reescribe su porqué.** Sigue habiendo un banco, una muestra por programa,
+  subido en paquetes por mapa. Lo que se va es la regla de `build_varios` de
+  que el banco **entero** tiene que entrar en la ARAM, y con ella el recorte
+  de aportantes y `--banco-entero`. Con B sí se revierte: cada tema tiene sus
+  copias.
+* **Una nueva: cuando el tema que viene sonando y el paquete no entran
+  juntos, gana el tema y los efectos esperan al próximo `PlayBGM`.** Es la
+  del paso 1, y la que hace posible A.
+* **`decisiones/el-arranque-esta-dimensionado-para-el-techo-de-aram.md`**:
+  su "lo que lo compraría" quedó viejo —el cargador de varios puertos ya
+  existe—. Lo que queda por decidir es si se achica `BOOT_CUADROS` al paquete
+  de arranque (con A, 19 cuadros de trabajo más 9 de mapa: se podría bajar a
+  unos 48 con margen y ganar un segundo al encender) con una aserción en el
+  conversor de que el paquete del mapa de arranque entra en ese tiempo.
+* **La pelea a 1,3 s de congelado en cada punta**, en vez de 0,7: la memoria
+  de taro dice que la calidad del audio vale unos cuadros de carga; esto es
+  medio segundo más, en cada pelea.
+* **`wishlist/velocidad-presupuesto-percusion.md` se va con A**: el lazo que
+  baja la percusión de a 10% es el de `Banco`, que A reemplaza.
+* **`wishlist/musica-del-lado-del-spc700.md`**: si algún día el secuenciador
+  va al SPC700, necesita un buffer en la ARAM, y con A cada paquete la llena.
+  Habría que reservarlo en el presupuesto (es cambiar el margen).
+
+### El orden de implementación, en commits verificables
+
+1. **Hecho: el paquete que no entró se completa en el próximo `PlayBGM`**
+   (commit "Audio: el paquete que no entró con otro tema sonando se completa
+   en el próximo PlayBGM"). `PAQ_INCOMPLETO` y el rearmado en
+   `tema_asegurar`. Arregla ya el paso del 2 al 3. Lo cobra
+   `test_el_paquete_que_no_entro_con_otro_tema_sonando_se_completa` con el
+   caso `paquete-incompleto`, que exige que el paquete haya quedado
+   incompleto al llegar —si no, no prueba nada— y da rojo sin el arreglo.
+2. **El presupuesto por paquete (A), en el conversor.** Las listas de los
+   paquetes se arman antes de `build_varios` —los temas y los nombres de los
+   efectos ya se saben; los tamaños de los efectos salen de `build_efectos`,
+   que es determinista— y se le pasan; `Banco` reemplaza los 40 KB y el lazo
+   de la percusión por el llenado progresivo; el recorte de aportantes se va.
+   El conversor calcula también la herencia realista (los `Teleport` y los
+   `PlayBGM` de cada mapa, lo de `herencia.py`) y **se corta** si un paquete
+   no entra solo, o si con un tema heredado no entran los temas. Imprime la
+   tasa de cada muestra y qué paquete la limitó. Verificación: la ROM entera
+   con `SIN_CACHE=1` igual a la de con caché, `just techos`, `just pruebas`
+   con las dos pruebas del recorte reemplazadas por una que pida que cada
+   paquete entre y que todos los temas tengan todas sus muestras, y
+   `test_cores.py` dos veces. Para escuchar: la variante 2.
+3. **La zona más usada** (variante 3), si taro la prefiere escuchando: la
+   tecla con que se pide la muestra de cada programa pasa de 60 a la raíz de
+   su zona más usada, y la altura de cada nota sale de esa raíz. No cambia la
+   ARAM. `just techos`.
+4. **El remuestreo con filtro**, aparte: `snes_samples.resample` interpola
+   lineal sin filtrar, y a 10 kHz desde 22 eso repliega. Sólo cambia bytes de
+   muestras; se mide con la cuenta del espectro y se escucha. `just techos`.
+5. **Si hace falta más**, en este orden: bajar `BOOT_CUADROS` (decisión de
+   arriba); darle a los efectos su propio lugar en el directorio —unos veinte
+   por paquete en vez de los 92 del cartucho— para que entre **B** para los
+   programas que limita un paquete ajeno (el oboe, la flauta, las cuerdas 48,
+   la batería); y una segunda zona sólo donde se oiga.
 
 # Qué medir en los otros temas
 
