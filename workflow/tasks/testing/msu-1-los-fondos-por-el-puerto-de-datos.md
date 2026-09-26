@@ -105,3 +105,7 @@ Mednafen"*. Con los dos fondos iguales no había cómo.
 * Si se suman otras cosas al `.msu`, la firma sigue cubriendo todo el archivo:
   cualquier cambio en cualquier entrada invalida el `.msu` entero, que es lo
   simple y lo correcto mientras el `.msu` viaje con el build.
+
+**Lo que dijo taro mirando las goldens lado a lado, el 2026-09-25**: "en el
+celular se nota, pero no es tan grave. Sospecho que en la tele de tubo casi no
+se va a notar." Falta que lo vea en la consola.
