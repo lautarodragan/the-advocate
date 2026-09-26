@@ -14,6 +14,7 @@ sin él sea igual a la referencia no probaría nada.
 
 import os
 import shutil
+from array import array
 
 from audio import snes_music
 from emulador import retro
@@ -228,3 +229,49 @@ def test_con_msu_la_pista_del_titulo_no_sigue_en_la_partida(tmp_path):
         "%d cuadros después de empezar la partida la pista del título sigue "
         "sonando por el MSU-1: `music_boot` calló el SPC700 y no la pista"
         % AL_EMPEZAR)
+
+
+# --- con MSU-1, el `FadeOutBGM` baja la pista y no los efectos ---------------
+#
+# El caso de `pruebas/rpgmaker/test_fundido_del_tema.py`, con las pistas al
+# lado: `evilrhys` tiene pista, así que el fundido baja MSU_VOLUMEN y al
+# llegar a cero la para, y el volumen general del DSP no se toca. Lo que se
+# pide es eso, y que el efecto de después del fundido suene: con la pista
+# parada, lo único que se oye es él.
+
+# Por debajo de esto un pico es ruido de redondeo, no un efecto que suena.
+AUDIBLE = 1000
+
+
+def test_con_msu_el_fundido_para_la_pista_y_los_efectos_siguen(tmp_path):
+    una = _con_pistas(tmp_path, caso="efecto-tras-el-fundido")
+    sonaba = False
+    efectos, actual = [], None
+    for _ in range(900):
+        antes = len(una.consola.audio)
+        suena = _lejano(una, "MSU_SUENA")[0]
+        sonaba |= bool(suena)
+        una.correr(1)
+        ocupada = any(_lejano(una, v, 3) != b"\0\0\0"
+                      for v in ("SE_CUADROS", "SE2_CUADROS"))
+        if ocupada:
+            if actual is None:
+                actual = [antes, suena, una.byte("bgm_fundido")]
+                efectos.append(actual)
+            actual[3:] = [len(una.consola.audio)]
+        else:
+            actual = None
+            if len(efectos) == 3:
+                break
+    assert sonaba, "evilrhys no sonó por la pista: esta prueba no mide nada"
+    assert len(efectos) == 3, (
+        "el caso tenía que tocar tres efectos y se vieron %d" % len(efectos))
+    inicio, suena, fundiendo, fin = efectos[2]
+    assert not suena and not fundiendo, (
+        "el tercer efecto arrancó con la pista sonando o el fundido andando: "
+        "el `FadeOutBGM` no paró la pista del MSU-1")
+    muestras = array("h", bytes(una.consola.audio[inicio:fin]))
+    pico = max(abs(m) for m in muestras)
+    assert pico >= AUDIBLE, (
+        "con MSU-1, el efecto de después del fundido picó %d: el fundido de "
+        "la pista calló también los efectos" % pico)

@@ -585,6 +585,16 @@ MUS_BITACORA    = FAR_MUSICA + $200
 MUS_BITACORA_LARGO = $200
 .assert MUS_BITACORA + MUS_BITACORA_LARGO <= $7E7000, error, "la bitácora se sale de su lugar"
 
+; El factor del `FadeOutBGM` sobre el volumen de las voces, de 0 a 256 —256 es
+; el volumen entero—: el de este cuadro y el del anterior, que es el que el DSP
+; tiene. Los escribe `bgm_fundido_tick` y los lee la música, las dos cosas
+; adentro de `irq_musica`. Ver `volumen_al_dia`.
+;
+; $7860 a $7863, de lo que se le repartió a esto el 2026-09-26 —$7860 a
+; $786F—: había otros agentes eligiendo RAM a la vez.
+FUNDIDO_N     = $7E7860          ; palabra
+FUNDIDO_ANTES = $7E7862          ; palabra
+
 ; --- el cuadro de la animación de batalla, en la RAM lejana -----------------
 ;
 ; Los 2 KB del cuadro que el vblank sube a la caja. El cartucho no los guarda

@@ -195,8 +195,8 @@ sin tema; en el juego pagarían lo de la tabla.
 # Encontrado de paso
 
 **Sin MSU-1, el `FadeOutBGM` calla también los efectos** hasta que arranca
-otro tema: `divergencias/el-fundido-del-tema-calla-los-efectos.md`. El trueno
-del final del mapa 3 es uno de los que caen ahí.
+otro tema. El trueno del final del mapa 3 es uno de los que caen ahí.
+Arreglado el 2026-09-26: `tasks/testing/el-fundido-del-tema-calla-los-efectos.md`.
 
 # Lo de antes: el 2026-09-24
 

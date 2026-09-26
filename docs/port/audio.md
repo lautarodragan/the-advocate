@@ -46,6 +46,9 @@ muestra y con qué envolvente, y la consola sólo reproduce.
   deja libre en cada paquete, así que no le bajan la tasa a ningún
   instrumento; el trueno de la apertura es el único que la música paga:
   `workflow/decisiones/el-trueno-va-entero-a-22-khz.md`.
+* **El `FadeOutBGM` baja el tema y nada más**: el volumen de cada voz de la
+  música, o el de la pista del MSU-1, y nunca el general del DSP, que es
+  también el de los efectos. `bgm_fundido_tick`, en `rom/src/musica.s`.
 * **El MSU-1**: los temas de `PISTAS_MSU` suenan desde un PCM al lado de la
   ROM, y la ROM calla el SPC700 mientras tanto. Las pistas las arma
   `tools/audio/msu.py`. Con MSU-1, el paquete no sube las muestras de los

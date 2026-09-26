@@ -42,7 +42,7 @@ brillo:      .res 1
 bgm_fundido: .res 1
 bgm_nivel:   .res 2
 bgm_paso:    .res 2
-dsp_valor:   .res 1     ; el byte que `escribir_dsp` le manda al SPC700
+dsp_valor:   .res 1     ; de paso del fundido de la pista: ver `bgm_fundido_tick`
 
 ; La cámara corrida sin el héroe: `PanScreen`. Dónde está y adónde va, las dos
 ; en 1/16 de pixel y con signo, y cuánto corre por cuadro. `pan_px` y `pan_py`
