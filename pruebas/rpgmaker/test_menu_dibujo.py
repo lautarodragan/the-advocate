@@ -11,7 +11,7 @@ mitad de un paso.
 from consola import TITULO_AIRE
 import datos
 from dibujo import comparar_pantalla, pixeles_distintos
-from menu import GRUPO, ORO, abrir, con_grupo, tocar
+from menu import GRUPO, ORO, abrir, con_grupo
 
 
 def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
@@ -34,14 +34,14 @@ def test_el_menu_se_ve_como_la_referencia_y_no_cuenta_ticks(partida):
     abrir(una)
     antes = una.palabra("vueltas")
     comparar(una, 0)
-    tocar(una, "down")
-    tocar(una, "down")
+    una.tocar_cuadros("down")
+    una.tocar_cuadros("down")
     comparar(una, 2)
     for _ in range(3):
-        tocar(una, "up")
+        una.tocar_cuadros("up")
     comparar(una, 4)                    # desde la primera, arriba da la vuelta
     assert una.palabra("vueltas") == antes, "el reloj corrió con el menú"
-    tocar(una, "b", 10)
+    una.tocar_cuadros("b", 10)
     assert not una.menu_abierto()
     una.correr(30)
     assert not una.menu_abierto(), "el B que cerró el menú lo volvió a abrir"
@@ -53,9 +53,9 @@ def test_guardar_desde_el_menu(partida):
     una = con_grupo(partida())
     abrir(una)
     for _ in range(3):                  # hasta Save
-        tocar(una, "down")
-    tocar(una, "a", TITULO_AIRE)        # la pantalla de ranuras
-    tocar(una, "a", TITULO_AIRE)        # la primera ranura
+        una.tocar_cuadros("down")
+    una.tocar_cuadros("a", TITULO_AIRE)  # la pantalla de ranuras
+    una.tocar_cuadros("a", TITULO_AIRE)  # la primera ranura
     assert una.hay_partida(), "la partida no se guardó"
     assert una.menu_abierto(), "después de guardar se cerró el menú"
     comparar(una, 3, nombre="menu-guardado")
@@ -69,8 +69,8 @@ def test_guardar_prohibido_va_en_gris_y_no_hace_nada(partida):
     assert una.acceso() & 1, "la página no prohibió guardar"
     abrir(una)
     for _ in range(3):
-        tocar(una, "down")
-    tocar(una, "a", TITULO_AIRE)
+        una.tocar_cuadros("down")
+    una.tocar_cuadros("a", TITULO_AIRE)
     comparar(una, 3, guardar=False, nombre="menu-sin-guardar")
     assert not una.hay_partida()
 
@@ -78,7 +78,7 @@ def test_guardar_prohibido_va_en_gris_y_no_hace_nada(partida):
 def test_menu_prohibido_b_no_lo_abre(partida):
     una = con_grupo(partida(caso="sin-menu"))
     una.correr(30)
-    tocar(una, "b", 40)
+    una.tocar_cuadros("b", 40)
     assert not una.menu_abierto(), "el menú se abrió estando prohibido"
     assert not una.acceso() & 0x80, "quedó un pedido de menú anotado"
 

@@ -530,7 +530,7 @@ sin_paginas:
 ; Corren con los **mismos** globales que el primer plano —`cod_ptr`, `ev_cur`,
 ; `ev_esperando`, `ev_activo`, `ev_corriendo`— así que ese contexto se guarda en
 ; la pila y se devuelve al final. Doce bytes, y cuánta pila queda debajo lo mide
-; `pruebas/herramientas/test_pila.py`: este camino es uno de los que corre.
+; `pruebas/rpgmaker/test_pila.py`: este camino es uno de los que corre.
 ;
 ; El estado de cada uno va en la RAM del banco 1 e **indexado por evento**, no
 ; por ranura, y lleva de qué página es: si la página activa cambia, RM2k rehace

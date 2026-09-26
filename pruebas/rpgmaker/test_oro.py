@@ -41,7 +41,7 @@ def test_la_escena_del_despertar_le_da_cien(partida):
         if una.oro() == 100:
             break
         if una.byte("msg_abierto"):
-            una.tocar("a")
+            una.tocar_ticks("a")
         else:
             una.correr(1)
     assert una.oro() == 100, \
@@ -66,12 +66,12 @@ def test_el_peaje_cobra_si_alcanza_y_no_da_la_vuelta_si_no(partida):
         for _ in range(30):
             if una.oro() != antes:
                 break
-            una.tocar("a")
+            una.tocar_ticks("a")
             for _ in range(40):
                 if una.oro() != antes:
                     break
                 if una.byte("msg_abierto"):
-                    una.tocar("a")
+                    una.tocar_ticks("a")
                 else:
                     una.correr(1)
         assert una.oro() == despues, \
