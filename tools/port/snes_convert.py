@@ -42,6 +42,7 @@ import multiprocessing
 import os
 import shutil
 import sys
+import zlib
 
 # Corrido como script —que es como lo corren las recetas—, Python pone en el
 # `sys.path` la carpeta de este archivo y no `tools/`, que es de donde se
@@ -5607,6 +5608,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                 bits[r >> 3] |= 1 << (r & 7)
         handle.write("; Cuántos bytes ocupan los bits de las habilidades en `FAR_HAB`.\n"
                      "HAB_BYTES = %d\n" % hab_bytes)
+        handle.write("; La firma del formato de la partida: ver `SRAM_FIRMA`.\n"
+                     "PARTIDA_FIRMA = $%04X\n" % firma_de_la_partida(
+                         pares, experiencia_ranuras(db, ranuras["actores"]),
+                         actores_n))
         words_asm("hab_par_ini", hab_par_ini, declarar=True)
         bytes_asm("hab_par_n", hab_par_n, declarar=True)
         bytes_asm("hab_par_k", [lugar_hab.get(h, 0xFF)
@@ -6156,6 +6161,32 @@ def eventos_movibles(game_map, indice_de_mapa, asociaciones=()):
 def graficos_de_prueba(argumento):
     """Los (CharSet, índice) de `--grafico-de-prueba`, o () si no hay."""
     return tuple((charset, int(indice)) for charset, indice in argumento or ())
+
+
+def firma_de_la_partida(pares, ranuras_exp, actores_n):
+    """Dieciséis bits que cambian cuando cambia **qué significa** cada byte de
+    la partida guardada, para que la ROM rechace una de otro build.
+
+    El tamaño lo cuida la ROM sola —`PARTIDA_BYTES`, que sale de las mismas
+    constantes—; esto cubre lo que el tamaño no ve: qué variable de RM2k va
+    en cada ranura, de qué actor es cada par de habilidad y cada ranura de
+    experiencia. Dos builds pueden llevar el mismo número de variables y que
+    la ranura 5 sea otra variable en cada uno; ahí la partida cargaría con
+    el mismo largo y todo corrido.
+
+    Son las asignaciones y no la ROM entera a propósito: dos builds cuya
+    partida se lee igual tienen que poder compartirla, aunque cambie todo
+    lo demás.
+    """
+    forma = {
+        "variables": sorted(eventos.VARIABLE_SLOT.items(), key=lambda x: x[1]),
+        "items": eventos.ITEMS_N,
+        "switches": SWITCH_BYTES,
+        "actores": actores_n,
+        "habilidades": [[a, h, r] for (a, h), r in pares],
+        "experiencia": ranuras_exp,
+    }
+    return zlib.crc32(json.dumps(forma).encode()) & 0xFFFF
 
 
 def variables_n():
