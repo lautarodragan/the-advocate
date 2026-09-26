@@ -1601,10 +1601,8 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     venir sonando al cargarlo). `paquete_cargar_ya` no mueve las muestras
     del tema que suena, así que las del paquete tienen que entrar al lado;
     **los efectos no**: si no entran, esperan al próximo `PlayBGM`, que
-    completa el paquete —ver `tema_asegurar`—. Es la que hace que el
-    presupuesto por paquete valga la pena: contar los efectos también dejaba
-    al polysynth de `escape_newyork` a 4 kHz (el paso 6 de
-    `workflow/tasks/todo/la-calidad-de-la-musica.md`).
+    completa el paquete —ver `tema_asegurar`—. Es la decisión
+    `workflow/decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`.
 
     `techos` es el aire de cada tema, por nombre —si no viene, el que está
     versionado: ver `leer_techos`—, y `aire_de_medida` lo pisa para todos: es

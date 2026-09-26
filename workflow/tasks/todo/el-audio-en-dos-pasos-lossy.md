@@ -37,6 +37,12 @@ tema" no identifica la decisión.
 2, 3 y 4 son el mismo paso: son función de **todos los temas del juego** + la
 SoundFont + el presupuesto de ARAM + la prioridad.
 
+(El 2026-09-26, con el presupuesto por paquete —el paso 6 de
+`la-calidad-de-la-musica.md`—, el 2 desapareció: aportan todos. El 3 y el 4
+son ahora uno solo: cada muestra con lo que le deja su peor paquete, y la
+función pasa a ser de todos los temas + la SoundFont + **los paquetes de cada
+mapa, con sus efectos y lo que puede venir sonando**. La prioridad se fue.)
+
 # El acoplamiento que fija el orden
 
 **Una nota se cae del stream cuando su programa no está en el banco**

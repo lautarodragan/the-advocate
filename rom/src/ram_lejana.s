@@ -577,22 +577,20 @@ MUS_BITACORA_LARGO = $200
 .assert MUS_BITACORA + MUS_BITACORA_LARGO <= $7E7000, error, "la bitácora se sale de su lugar"
 
 ; En qué cuadro termina el arranque, contado desde el reset. El arranque
-; —cargar el mapa, subir el banco al SPC700— tarda lo que tarda, y eso cambiaba
-; con cada cambio de código o de datos: un bucle más y el lazo principal
-; arrancaba un cuadro después, y cada receta que compara cuadros en movimiento
-; lleva ese número medido a mano. Ahora se espera hasta este cuadro y el lazo
-; arranca siempre en el mismo. Una ROM cuyo arranque tarde más que esto sale
-; sin esperar, más tarde, pero igual de fijo para ella.
+; —cargar el mapa, subir el driver al SPC700 y el paquete de audio del mapa—
+; tarda lo que tarda, y eso cambiaba con cada cambio de código o de datos: un
+; bucle más y el lazo principal arrancaba un cuadro después, y cada receta que
+; compara cuadros en movimiento lleva ese número medido a mano. Ahora se espera
+; hasta este cuadro y el lazo arranca siempre en el mismo. Una ROM cuyo
+; arranque tarde más que esto sale sin esperar, más tarde, pero igual de fijo
+; para ella.
 ;
-; Eran 64 hasta el 2026-09-06, cuando el cartucho pasó a llevar varios temas: el
-; banco de muestras lo comparten todos y creció, y **la subida al SPC700 va byte
-; a byte con acuse**, que es lo caro —unos 1,4 cuadros por kilobyte—. El número
-; está medido y sale del techo, no del banco de hoy: con la ARAM llena, 62310 B,
-; la ROM llega al lazo en el cuadro 101. 112 lo cubre con margen, y de paso hace
-; que llenar la ARAM no cueste nada: el arranque ya está pagado.
-;
-; Lo que compraría los 48 cuadros de vuelta es subir por los cuatro puertos en
-; vez de por el protocolo del IPL, que manda uno.
+; Está dimensionado para el paquete del mapa de arranque, y **el conversor se
+; corta si no entra**: la cuenta, por lo alto, es `cuadros_del_arranque` en
+; tools/audio/snes_music.py. Medido el 2026-09-26: el trabajo de `release`
+; termina en el cuadro 30 y la cuenta da 34. Era 112 hasta ese día, pensado
+; para subir la ARAM llena por el IPL; ver
+; workflow/decisiones/el-arranque-esta-dimensionado-para-el-paquete-de-arranque.md.
 BOOT_CUADROS = 40
 VIEW_ROWS = 29
 

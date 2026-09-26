@@ -286,9 +286,9 @@ cargar:
     lda #$0F
     sta INIDISP                 ; pantalla encendida, brillo al máximo
 
-    ; La subida al SPC700 va después de prender la pantalla, no antes: son casi
-    ; siete décimas de segundo, y así el mapa aparece de entrada en vez de
-    ; hacerte mirar una pantalla negra hasta que termine.
+    ; La subida al SPC700 va después de prender la pantalla, no antes: con el
+    ; paquete de audio del mapa es un tercio de segundo, y así el mapa aparece
+    ; de entrada en vez de hacerte mirar una pantalla negra hasta que termine.
     ;
     ; Y antes de subir nada, el comando 4: **que el SPC700 vuelva a su ROM del
     ; IPL**. Acá se llega de dos maneras y sólo una de las dos deja al SPC700

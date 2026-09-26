@@ -4,6 +4,17 @@ description: "Repartir la ARAM por paquete de mapa y no por banco"
 type: feature
 ---
 
+# Hecho, el 2026-09-26
+
+Es el paso 6 de `tasks/todo/la-calidad-de-la-musica.md`, la opción A, con lo
+medido y lo que salió: cada muestra con el presupuesto de su peor paquete,
+los efectos restados, y el tema que puede venir sonando contado sólo como
+tema (`decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`). Las tres
+decisiones de abajo quedaron así: la unidad sigue siendo el mapa; el freno se
+paga en el fundido de cada mapa y en la pelea; y la muestra de un programa es
+una sola para todo el cartucho, a la tasa de su peor paquete. Lo de abajo es
+cómo estaba escrito antes.
+
 # Qué
 
 Que el presupuesto de ARAM se reparta **por paquete y no por banco**: darle a
