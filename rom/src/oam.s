@@ -92,9 +92,9 @@ cerrar:
 .endproc
 
 ; El salto del héroe: consume las órdenes hasta `end_jump`, suma lo que aportan
-; y lo pone del otro lado de una. Los once cuadros que dura no dependen de la
-; distancia: `remaining_step` baja de 256 a 0 a SALTO_VELOCIDAD por cuadro,
-; salte una celda o cinco.
+; y lo pone del otro lado de una. Lo que dura no depende de la distancia:
+; `remaining_step` baja de 256 a 0 a `salto_del_heroe` por cuadro, salte una
+; celda o cinco; a la velocidad 4 son once cuadros.
 .proc armar_salto_heroe
 .a8
 .i16
@@ -176,7 +176,14 @@ se_puede:
     jsr direccion_del_salto
     sta hero_dir
 sin_girar:
-    lda #(SALTO_PASO - SALTO_VELOCIDAD)
+    ; El primer descuento va en el mismo cuadro que arma el salto, como en
+    ; `Game_Character::Update`, que después de `UpdateNextMovementAction` ya lo
+    ; ve saltando y llama a `UpdateMovement`. SALTO_PASO es 256 y no entra en
+    ; un byte: `256 - s` en ocho bits es el complemento a dos de `s`, que
+    ; nunca es cero.
+    jsr salto_del_heroe
+    eor #$FF
+    inc a
     sta ruta_salto
     ; La celda ya es la de destino y los pixeles van detrás, igual que en un
     ; paso: así la cámara acompaña el arco en vez de saltar de una.
@@ -197,16 +204,19 @@ sin_girar:
 ; héroe quedaba flotando a mitad del arco para siempre, y 196 de las 410 rutas
 ; con salto del juego terminan en el salto. Ver `test_salto_colgado.py`.
 ;
-; El descuento es fijo porque es el de la velocidad 4, la del héroe: RM2k lo
-; saca de `jump_speed[move_speed - 1]`, que para los eventos es `salto_por_vel`.
-; Un `increase_movement_speed` sobre el héroe le cambia el paso y no el salto;
-; es una divergencia que ya estaba y que no toca este arreglo.
+; El descuento se lee de la velocidad cada cuadro, como `Update` de RM2k, que
+; llama a `GetMoveSpeed()` cada vez. Hasta el 2026-09-26 era la constante de la
+; velocidad 4 y un `increase_movement_speed` sobre el héroe le cambiaba el paso
+; y no el salto. Ver `test_salto_velocidad.py`.
 .proc salto_avanzar_heroe
 .a8
 .i16
-    lda ruta_salto
+    ; `ruta_salto - s` sin guardar `s` en ningún lado: `~s + 1` con el acarreo
+    ; en uno es la resta, y el acarreo sale en cero si hubo préstamo.
+    jsr salto_del_heroe
+    eor #$FF
     sec
-    sbc #SALTO_VELOCIDAD
+    adc ruta_salto
     bcs guardar
     lda #0
 guardar:

@@ -67,7 +67,7 @@ def test_con_a_y_una_direccion_la_piedra_sale_volando(partida):
     lejos = celda_de(p, STONE)
     assert lejos != DEBAJO_DE_LA_REJA
 
-    p.tocar("a")
+    p.tocar_ticks("a")
     assert p.variable(ranura(5)) == eventos.TECLA_VALOR_DECISION, (
         "el primer KeyInputProc tendría que haber leído la tecla de acción, y "
         "la variable 5 quedó en %d" % p.variable(ranura(5)))
@@ -85,7 +85,7 @@ def test_con_a_y_una_direccion_la_piedra_sale_volando(partida):
         % (celda_de(p, STONE),))
 
     p.correr(4)
-    p.tocar("left")
+    p.tocar_ticks("left")
     assert p.variable(ranura(8)) == eventos.TECLA_VALOR_DIR[3], (
         "el segundo KeyInputProc tendría que haber leído izquierda —2 en "
         "`CheckInput`— y la variable 8 quedó en %d" % p.variable(ranura(8)))
@@ -108,7 +108,7 @@ def test_una_direccion_sola_no_tira_nada(partida):
     p = hablarle_a_la_reja(partida(caso=MAPAS))
     p.correr(4)
     lejos = celda_de(p, STONE)
-    p.tocar("left")
+    p.tocar_ticks("left")
     p.correr(20)
     assert p.variable(ranura(8)) == 0, (
         "sin apretar A antes, la dirección no la tiene que leer nadie: la "
@@ -133,9 +133,9 @@ def tirarle_a_la_pc(p):
     mensaje del guardia abierto y el motor de nuevo esperando la A."""
     p.ir_al_mapa(11, *FRENTE_A_LA_PC)
     p.correr(10)
-    p.tocar("a")
+    p.tocar_ticks("a")
     p.correr(4)
-    p.tocar("up")
+    p.tocar_ticks("up")
     for _ in range(TOPE_HASTA_EL_MENSAJE):
         if p.byte("msg_abierto"):
             break
@@ -164,7 +164,7 @@ def test_la_a_que_cierra_el_mensaje_no_saca_una_piedra(partida):
     lejos = celda_de(p, STONE)
     assert lejos != FRENTE_A_LA_PC
 
-    p.tocar("a")
+    p.tocar_ticks("a")
     assert not p.byte("msg_abierto"), "el toque de A tendría que cerrarlo"
     p.correr(30)
     assert p.variable(ranura(5)) == 0, (
@@ -175,7 +175,7 @@ def test_la_a_que_cierra_el_mensaje_no_saca_una_piedra(partida):
 
     # El control: sin mensaje, la A siguiente sí es del motor. Sin esto, un
     # motor que dejara de leer la A para siempre daría verde arriba.
-    p.tocar("a")
+    p.tocar_ticks("a")
     assert p.variable(ranura(5)) == eventos.TECLA_VALOR_DECISION, (
         "con el mensaje cerrado, la A siguiente tendría que preparar la "
         "piedra, y la variable 5 quedó en %d" % p.variable(ranura(5)))
@@ -202,13 +202,13 @@ def test_la_a_que_cierra_el_mensaje_no_le_habla_al_de_enfrente(partida):
     p = hablarle_a_la_reja(partida(caso=MAPAS))
     p.ir_al_mapa(11, *AL_LADO_DE_EV0060)
     p.correr(10)
-    p.tocar("a")
+    p.tocar_ticks("a")
     p.correr(4)
-    p.tocar("left")
+    p.tocar_ticks("left")
     # Mientras vuela, el héroe se da vuelta hacia el evento. No camina: el
     # evento ocupa la celda.
     p.correr(20)
-    p.tocar("right")
+    p.tocar_ticks("right")
     assert (p.palabra("tile_x"), p.palabra("tile_y")) == AL_LADO_DE_EV0060
     assert p.byte("hero_dir") == p.simbolos["DIR_RIGHT"], (
         "el héroe tendría que mirar a EV0060")
@@ -226,7 +226,7 @@ def test_la_a_que_cierra_el_mensaje_no_le_habla_al_de_enfrente(partida):
         "el mensaje es del paralelo: no tendría que haber una página de "
         "primer plano corriendo")
 
-    p.tocar("a")
+    p.tocar_ticks("a")
     assert not p.byte("msg_abierto"), "el toque de A tendría que cerrarlo"
     assert not p.byte("ev_activo") and not p.byte("msg_estado"), (
         "el A que cerró el mensaje le habló también a EV0060, que el héroe "
@@ -257,7 +257,7 @@ def test_un_paralelo_espera_a_su_propio_mensaje(partida):
             "abierto: su paralelo siguió corriendo detrás de su propio "
             "`ShowMessage`" % numero)
 
-    p.tocar("a")
+    p.tocar_ticks("a")
     assert not p.byte("msg_abierto"), "el toque de A tendría que cerrarlo"
     p.correr(10)
     for numero in SWITCHES_DEL_GUARDIA:
