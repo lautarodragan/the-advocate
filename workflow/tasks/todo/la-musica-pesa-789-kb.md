@@ -48,7 +48,9 @@ Lo que **no** hay, y que la pregunta suponía:
 * **Ni un byte de eventos de control.** `midi.py` tira los CC, el pitch bend y
   el aftertouch al leer; el stream no tiene volumen de canal, paneo ni bends.
   Los MIDI sí los traen —4.427 CC11, 3.851 CC7, 1.532 CC10 y 1.058 bends entre
-  los 32—: sumarlos algún día **agrega** bytes, no los saca.
+  los 32—: sumarlos algún día **agrega** bytes, no los saca. (Se sumaron el
+  2026-09-26, en el paso 3 de `la-calidad-de-la-musica.md`: +2,7% de stream,
+  y la lista de lo que el stream lleva desde ahí está ahí.)
 * **Ni loops desenrollados.** Ningún MIDI trae CC111, el punto de loop que
   respeta RM2k, así que el stream es el MIDI una vez y al terminar vuelve a
   empezar (`music_frame`). Lo que sí hay es **música que se repite adentro del

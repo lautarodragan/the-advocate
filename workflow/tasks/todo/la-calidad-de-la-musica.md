@@ -15,7 +15,8 @@ reparto suma +74% de stream en el formato de hoy (~436 KB, todo el margen del
 cartucho unido). Así que: batería → notas que se sueltan antes de tiempo →
 envolventes → velocidad y CC → **el formato por nota, diseñado para todo lo de
 arriba y para el reparto** → reparto y rampa → muestras por mapa. **Hechos
-el 0, el 1 y el 2**, el 2026-09-25: ver cada uno abajo.
+el 0, el 1 y el 2**, el 2026-09-25, **y el 3** el 2026-09-26: ver cada uno
+abajo.
 
 
 taro, el 2026-09-25: *"`escape_newyork` se escucha particularmente mal, y tal
@@ -304,13 +305,178 @@ el release del bajo sintético y el decaimiento del piano por tecla.
 **Para escuchar**: `/shared/audio/2026-09-25-pasos-1-y-2/`, con su
 `LEEME.txt`.
 
-## 3. Curva de velocidad y controladores
+## 3. Curva de velocidad y controladores: hecho
 
-La velocidad al cuadrado y CC7, CC11 y CC10 sobre las notas que suenan.
-**Costo**: +4% de stream en el formato de hoy —en otros temas hay 4.427
-CC11, 3.851 CC7 y 1.532 CC10—; nada de ARAM ni de ciclos. El pitch bend no se
-prototipó porque este tema no tiene: hay 1.058 entre los 32 MIDI, y cuesta
-una escritura de altura por paso del bend.
+Hecho el 2026-09-26 (commit "Música: la velocidad al cuadrado, y los
+controladores del MIDI"). Medido sobre `55098bd`, con el `release` de hoy,
+que tiene **32 temas** y no los 22 de las tablas de arriba: los diez nuevos
+van al final de la tabla.
+
+**La curva**, medida con fluidsynth y el SF2 —una nota sola, RMS, contra
+velocidad 127—: la velocidad baja 40·log10(127/v) dB exactos (64 da -11,9;
+29, -25,7). CC7 y CC11 igual, cada uno —CC7 medido contra 100, su valor de
+GM, así que un canal en 127 suena **+4 dB**—; el paneo es seno y coseno con
+el centro a -3 dB de un paneo total (0 da +3,0 dB y silencio; 32, +2,3 y
+-5,3). Así quedó `sdsp.volume`; el piso bajó de 4 a 2.
+
+**Qué entró** —`midi.py` ya no los tira; ver su encabezado—:
+
+* **CC7, CC11 y CC10**, a la nota que arranca y a la que ya sonaba (también
+  en su cola). CC7 hay 3.851 en 25 temas, CC10 1.532 en 21, CC11 4.427 en
+  tres (`vswar`, `3D-Galax`, `Fire_Mustang`).
+* **El pitch bend**, con el rango del RPN 0 (CC101 y CC100 en cero, y CC6/
+  CC38). Lo usan de verdad tres temas: `3D-Galax` (194, la sierra de la
+  melodía, 116 con la nota sonando), `dcbest` (396 en el bajo, casi todos
+  **entre** notas: desafinan la que viene, hasta 1,2 semitonos) y `vswar`
+  (445 en el canal 13, que no tiene voz: no suena). Entró porque cuesta
+  **2.270 B** en los 32 temas y la altura al arrancar la nota es gratis.
+  `3D-Galax` pide un rango de **95 semitonos**; fluidsynth lo respeta
+  (medido: la caída llega a -20,6 semitonos) y un sintetizador GS lo topa en
+  24. Se siguió a fluidsynth, que es la referencia y de donde sale la pista
+  de MSU-1: si suena raro, es lo primero para mirar. Un CC101 sin su CC100
+  no elige el RPN —medido; es el caso de `dcbest`, que queda en 2—.
+* **El pedal (CC64)**, que no es un evento del stream: alarga las notas que
+  se sueltan con el pedal abajo. Lo usan el título (`Fantasia_Of_The_Wind`,
+  38, el piano) y `pn28year` (606). **Baja** el stream 5.481 B, porque una
+  nota sostenida hasta que la roba otra ya no escribe su release.
+
+**Qué no entró**, y quién lo usa:
+
+* **Modulación (CC1)**: sólo `Tnt07` de verdad (392); `vswar` y `11h035`
+  la mandan en 0. Es el vibrato del SF2, o sea una escritura de altura por
+  cuadro mientras suena, o un LFO en el driver. Anotado para el formato.
+* **Reverb y chorus (CC91, CC93)**: en 13 temas, casi siempre un valor fijo
+  al principio. La referencia sale seca (`-R 0 -C 0`) y el eco del DSP está
+  apagado: va con el eco, si alguna vez se prende.
+* **Los NRPN del AWE32** de `TF3_1_awe` (4.134, MSB 127): corte y resonancia
+  del filtro, que el DSP no tiene.
+* **El aftertouch**: ningún tema lo usa.
+* **El paneo por tecla del SF2** —el charles a un lado, el bombo al centro—:
+  `gunter` no devuelve el generador 17. La batería suena al centro salvo por
+  el CC10 de su canal.
+* **Los cambios de programa a mitad del tema**, que ya se ignoraban (vale el
+  primero de cada canal): `hzbreach`, `Astpgmarch` y `bubstix`.
+
+**Bytes del stream**, antes → después, y **saturación** —muestras en el
+tope, L+R, con el método del paso 2 y **el mismo aire**: 0,5 y MASTER
+`$7F`—, con pico (dBFS) y LUFS integrados:
+
+| Tema | Stream antes | Paso 3 | Recortes antes | Paso 3 | Pico | LUFS |
+|---|---:|---:|---:|---:|---:|---:|
+| hzstream | 11.999 | 11.999 | 36 | 36 | -0.1 → -0.1 | -9.6 → -9.6 |
+| escape_newyork | 33.193 | 33.235 | 0 | 0 | -2.6 → -5.4 | -17.3 → -20.7 |
+| TF3_1_awe | 21.546 | 30.054 | 460 | 0 | -0.1 → -1.8 | -9.0 → -13.4 |
+| T_VGFighterMAX_Masako | 148.312 | 148.312 | 70 | 290 | -0.1 → -0.1 | -10.7 → -10.3 |
+| evilrhys | 35.876 | 35.882 | 0 | 232 | -0.5 → -0.1 | -13.6 → -11.1 |
+| lufsorr | 11.529 | 12.231 | 0 | 0 | -0.4 → -2.4 | -12.6 → -15.0 |
+| cd4 | 45.886 | 45.799 | 0 | 0 | -3.4 → -3.7 | -17.4 → -17.9 |
+| C3classi | 27.537 | 27.537 | 0 | 0 | -3.7 → -3.6 | -15.9 → -16.6 |
+| rshinld | 7.406 | 8.906 | 0 | **4.552** | -0.1 → -0.1 | -12.1 → -8.7 |
+| cd2 | 29.261 | 29.255 | 0 | 0 | -2.7 → -4.1 | -15.0 → -16.7 |
+| hzbreach | 29.626 | 29.626 | 816 | 834 | -0.1 → -0.1 | -8.6 → -8.6 |
+| wb3mlair | 7.497 | 7.497 | 0 | 0 | -6.2 → -9.3 | -22.2 → -24.7 |
+| Astpgmarch | 6.527 | 6.527 | 0 | 0 | -1.9 → -1.7 | -14.0 → -14.0 |
+| Gaden | 5.639 | 5.639 | 0 | 0 | -12.7 → -17.9 | -23.0 → -31.3 |
+| 3D-Galax | 49.080 | 52.615 | 0 | 166 | -2.3 → -0.1 | -16.9 → -13.9 |
+| wb3shop | 9.046 | 9.046 | 0 | 0 | -3.0 → -5.1 | -19.2 → -21.3 |
+| KSSMKEND | 10.980 | 10.980 | 0 | 0 | -9.0 → -10.9 | -23.7 → -24.7 |
+| vswar | 20.536 | 26.345 | 0 | 0 | -5.3 → -6.8 | -16.9 → -20.3 |
+| Lunar_Pyramid | 32.792 | 32.792 | 0 | 0 | -3.0 → -0.3 | -15.5 → -14.1 |
+| dcbest | 5.017 | 6.594 | 0 | 0 | -10.5 → -6.3 | -21.1 → -17.0 |
+| golden_axe-turtlevillage2 | 831 | 831 | 0 | 0 | -11.2 → -8.2 | -20.7 → -17.7 |
+| Fantasia_Of_The_Wind | 14.902 | 14.545 | 0 | 0 | -0.6 → -4.9 | -13.1 → -16.3 |
+| Fire_Mustang_Intro_And_Level_2_By_Luiz_Vasco | 15.030 | 15.030 | 0 | 0 | -4.2 → -3.9 | -16.2 → -15.8 |
+| bubstix | 29.988 | 29.988 | 0 | 0 | -2.3 → -3.4 | -15.8 → -17.1 |
+| wb3town | 6.002 | 6.002 | 0 | 0 | -5.7 → -7.7 | -18.2 → -20.2 |
+| 11h035 | 17.342 | 17.234 | 0 | 0 | -4.9 → -7.8 | -18.0 → -21.2 |
+| prepara | 630 | 630 | 0 | 0 | -9.3 → -13.8 | -20.5 → -26.3 |
+| T_ProjectJustice_DiscLoad | 15.819 | 15.819 | 0 | 0 | -6.5 → -7.9 | -22.9 → -24.3 |
+| pn28year | 19.767 | 17.781 | 4 | 0 | -0.1 → -4.8 | -13.0 → -19.2 |
+| Tnt07 | 8.299 | 8.299 | 0 | 0 | -7.5 → -9.6 | -21.8 → -23.8 |
+| Deflector1 | 31.025 | 31.025 | 0 | 178 | -1.6 → -0.1 | -16.6 → -14.2 |
+| MML2_MotherZone | 2.640 | 2.640 | 0 | 0 | -10.7 → -9.2 | -21.2 → -19.7 |
+| **Los 32** | 711.560 | 730.695 | 1.386 | 6.288 | | |
+| **Los 22 de las tablas de arriba** | 565.018 | 586.247 | 1.382 | 6.110 | | |
+
+* **Stream: +19.135 B (+2,7%)** en los 32. Desglosado: la curva sola −12
+  B, CC7/10/11 +22.328, el bend +2.270, el pedal −5.481. Los que cambian
+  son los que usan CC de verdad: `TF3_1_awe` +39% (dos ondas cuadradas con
+  CC7 de compuerta, 34 → 0 → 34 cada ~10 cuadros, y paneo en todo),
+  `dcbest` +31% (el bend), `vswar` +28%, `rshinld` +20%. Seguir
+  actualizando las colas —las voces cuya nota ya se soltó— cuesta 1.195 B
+  de eso: no vale un caso aparte.
+* **Saturación: de 1.386 a 6.288 muestras**, 4,5 veces más, y casi todo en
+  **`rshinld` (4.552, de 3,1 millones)**: CC7 en 127 en casi todos sus
+  canales, +4 dB sobre el techo que el aire suponía. Los demás que empiezan
+  a recortar lo hacen poco (la batalla 290, `evilrhys` 232, `Deflector1`
+  178, `3D-Galax` 166), y `TF3_1_awe` deja de recortar. **El aire no se
+  tocó**, como pidió taro: la tabla de techos por tema del paso 2 había que
+  volver a medirla después de este paso y del 5.
+* **El nivel** baja en los que tienen colchones suaves (`escape_newyork`
+  -3,4 LUFS, `Gaden` -8,3, `pn28year` -6,2) y sube en los que piden CC7
+  alto (`rshinld` +3,4, `dcbest` +4,1). Contra la referencia —fluidsynth con
+  el SF2, LUFS integrados—, en los 13 temas que aportan al banco, y por eso
+  suenan enteros, la distancia ROM − referencia queda **más pareja entre
+  temas: su desvío baja de 2,7 dB a 1,5**. Contando los 22 con los
+  mutilados no cambia (4,1), porque ahí manda lo que no suena.
+* **Hay estéreo**: `TF3_1_awe` pasa de mono a lado/centro -8,8 dB.
+* **El fundido del final de `escape_newyork` existe**: baja unos 25 dB en
+  los últimos 12 s, donde antes seguía al mismo nivel hasta el corte.
+
+**Lo cobra** `pruebas/herramientas/test_musica_stream.py`: la curva, CC7 a
+mitad de una nota, CC7 por CC11, el paneo, el bend antes y durante, que un
+control no toque otro canal ni la altura de la batería, y en el lector el
+RPN 0 y el pedal. Las ocho dan rojo con las `tools/` de `55098bd`.
+
+**Para escuchar**: `/shared/audio/2026-09-26-paso-3/`, con su `LEEME.txt`:
+`escape_newyork`, la batalla, el título (el pedal), `3D-Galax` (CC11 y el
+bend), `vswar` (CC11), `rshinld` (el que más recorta) y `TF3_1_awe` (el
+estéreo y la compuerta), antes y después.
+
+### Lo que el stream lleva después del paso 3: la lista para el formato
+
+Todo cuenta por voz del DSP; las cantidades son de los 32 temas del
+`release`, 3.741 s de música, con el reparto de hoy.
+
+**Por nota** (50.565 notas que arrancan):
+
+* altura: 14 bits, `sdsp.pitch_for(tecla + bend del canal, raíz, tasa)`
+  —con el bend es una altura cualquiera, no una tecla—; la batería no se
+  transpone ni se dobla;
+* muestra (SRCN), ADSR1 y ADSR2: juntos son "el instrumento", y ADSR2
+  cambia por tecla dentro de un programa (el piano);
+* volumen izquierdo y derecho: **distintos en 12.056 notas (24%)**, muchas
+  por un paneo de 60 a 63, casi al centro. Salen de cinco cosas —velocidad,
+  CC7, CC11 y CC10 del canal, y el techo melódico o de batería—, así que un
+  formato que guarde la velocidad por nota y el estado del canal aparte los
+  reconstruye; guardar L y R ya calculados es lo de hoy;
+* KON.
+
+**Por release** (15.450): ADSR1 en 0 y el GAIN del release, que es **por
+instrumento y tecla** —sale de la misma envolvente que ADSR1 y ADSR2—, así
+que puede vivir en la tabla del instrumento y el evento ser "soltar la voz".
+
+**Por controlador, a una voz que ya suena** —en 3.976 cuadros, 1,06 por
+segundo de música en promedio pero muy concentrados: `vswar` 9,3 cuadros
+por segundo, `pn28year` 8,5, `TF3_1_awe` 7,6; 24 de los 32 no tienen
+ninguno—:
+
+* **volumen L y R de una voz**: 4.301. Va el par entero: un CC cambia el
+  volumen o el paneo, y los dos lados se recalculan. Un CC7 de canal
+  escribe **todas las voces de ese canal a la vez**, así que el peor cuadro
+  son 8 voces × 2 registros = 16 escrituras (`rshinld`, que tiene pocos
+  cuadros con controladores —36— pero cada uno toca las ocho). Un evento
+  "volumen del canal" que el driver aplique a sus voces lo achicaría, pero
+  el driver tendría que saber qué voz es de qué canal, y con el reparto del
+  5 eso cambia nota a nota;
+* **altura de una voz**: 563, los bends con la nota sonando (`dcbest` 395,
+  `3D-Galax` 168). Los dos bytes de PITCH;
+* nada más: la expresión y el volumen se funden en L y R, y el pedal ya
+  viene aplicado a los fines de las notas.
+
+**Lo que no lleva y el formato podría querer después**: la modulación (CC1,
+`Tnt07`: vibrato, o sea altura por cuadro o un LFO del driver), el paneo por
+tecla de la batería y la rampa del 5.
 
 ## 4. El formato por nota
 
@@ -323,11 +489,13 @@ una sola vez:
 
 * el instrumento como índice a (SRCN, ADSR1, ADSR2), y el ADSR2 puede variar
   por tecla dentro de un programa;
-* volumen izquierdo y derecho distintos cuando hay paneo;
+* volumen izquierdo y derecho distintos cuando hay paneo (24% de las
+  notas desde el paso 3);
 * el GAIN del release por instrumento, no uno por tema;
 * un evento de "rampa" de un byte para el punto 5, o que el decodificador la
   deduzca;
-* cambios de volumen de un canal que suena, por CC7/CC11.
+* cambios de volumen de un canal que suena, por CC7/CC11/CC10, y de altura
+  por el bend: la lista exacta, con cuántos hay, está al final del paso 3.
 
 ## 5. El reparto de las ocho voces, y la rampa
 

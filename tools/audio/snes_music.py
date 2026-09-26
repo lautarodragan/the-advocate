@@ -499,16 +499,21 @@ class Frame:
     al revés, la nota arrancaría con los valores de la anterior.
     """
 
-    __slots__ = ("release", "setup", "kon", "kof")
+    __slots__ = ("release", "setup", "kon", "kof", "control")
 
     def __init__(self):
         self.release = []       # las notas que se sueltan en este cuadro
         self.setup = []
         self.kon = 0
         self.kof = 0
+        # Lo que los controladores le cambian a una voz que ya sonaba:
+        # registro -> valor, y gana el último del cuadro. Un dict y no una
+        # lista porque un fundido trae varios CC7 por cuadro, y escribir los
+        # del medio son bytes que el DSP no llega a usar.
+        self.control = {}
 
 
-def build_events(notes, voices, programs, drum_voices, banco):
+def build_events(notes, voices, programs, drum_voices, banco, controls=()):
     """Las escrituras al DSP, cuadro por cuadro.
 
     Cada canal tiene su grupo de voces; una nota que arranca toma la que lleve
@@ -519,9 +524,68 @@ def build_events(notes, voices, programs, drum_voices, banco):
     El banco viene de afuera y no se arma acá: lo comparten todos los temas de
     la ROM, así que los índices de `V_SRCN` que este stream escribe son los de
     ese banco y no los de uno propio. Ver `Banco`.
+
+    `controls` son los `midi.Control` del tema, ya en cuadros: el volumen, la
+    expresión y el paneo entran en el volumen de cada lado de la nota, y el
+    bend en su altura. Los de un cuadro se aplican antes que sus notas, así
+    que la nota arranca con el estado con que termina el cuadro; y a una voz
+    que ya sonaba —o que está en su cola— se le reescriben sus registros.
     """
     frames = collections.defaultdict(Frame)
     bank, index_of, drum_index = banco.voces, banco.melodicas, banco.golpes
+
+    estado = collections.defaultdict(lambda: dict(midi.DEFAULTS))
+    pendientes = sorted(controls, key=lambda c: c.start)
+    siguiente = 0
+
+    def lados(note, drums):
+        c = estado[note.channel]
+        return sdsp.volume(note.velocity,
+                           sdsp.CEILING_DRUM if drums else sdsp.CEILING,
+                           c[midi.VOLUME], c[midi.EXPRESSION], c[midi.PAN])
+
+    def altura(note, drums):
+        if drums:
+            # En General MIDI la nota elige el instrumento, no la altura, así
+            # que cada golpe tiene su propia muestra y se toca a su tasa
+            # original: transponerla convertiría un bombo en otra cosa. Por
+            # eso el bend tampoco la mueve.
+            drum = bank[drum_index[note.pitch]]
+            return sdsp.pitch_for(drum.root, drum.root, drum.rate)
+        instrument = bank[index_of[programs.get(note.channel, 0)]]
+        return sdsp.pitch_for(note.pitch + estado[note.channel][midi.BEND],
+                              instrument.root, instrument.rate)
+
+    def controlar(hasta):
+        """Aplica los controladores hasta el cuadro `hasta`, y a las voces
+        cuya nota es de ese canal les reescribe lo que cambió."""
+        nonlocal siguiente
+        while (siguiente < len(pendientes)
+               and pendientes[siguiente].start <= hasta):
+            c = pendientes[siguiente]
+            siguiente += 1
+            if estado[c.channel][c.number] == c.value:
+                continue
+            estado[c.channel][c.number] = c.value
+            # `owner` sigue teniendo a la nota después de su fin, así que
+            # esto también le cambia el volumen a una cola que se apaga, como
+            # fluidsynth. Cortarlo en el fin de la nota ahorraba 1.195 B en
+            # los 32 temas del `release` (2026-09-26): no vale un caso aparte.
+            for voice, note in owner.items():
+                if note.channel != c.channel:
+                    continue
+                base, drums = voice * 0x10, voice in drum_voices
+                frame = frames[c.start].control
+                if c.number == midi.BEND:
+                    if drums:
+                        continue
+                    step = altura(note, drums)
+                    frame[base + sdsp.V_PITCH_L] = step & 0xFF
+                    frame[base + sdsp.V_PITCH_H] = step >> 8
+                else:
+                    izquierda, derecha = lados(note, drums)
+                    frame[base + sdsp.V_VOL_L] = izquierda
+                    frame[base + sdsp.V_VOL_R] = derecha
 
     busy = {}
     # De quién es cada voz ahora: la última nota que la tomó. El release de
@@ -543,6 +607,7 @@ def build_events(notes, voices, programs, drum_voices, banco):
         if source is None:
             continue                    # el banco no trae ese golpe o programa
 
+        controlar(note.start)
         free = [v for v in group if busy.get(v, 0) <= note.start]
         voice = min(free or group, key=lambda v: busy.get(v, 0))
         busy[voice] = note.end
@@ -552,16 +617,17 @@ def build_events(notes, voices, programs, drum_voices, banco):
 
         start = frames[note.start]
         base = voice * 0x10
+        # Lo que los controladores le reescribían a la dueña anterior en este
+        # cuadro ya no va: esta nota escribe los suyos, con el mismo estado.
+        for registro in (sdsp.V_VOL_L, sdsp.V_VOL_R, sdsp.V_PITCH_L,
+                         sdsp.V_PITCH_H):
+            start.control.pop(base + registro, None)
+        step = altura(note, drums)
+        izquierda, derecha = lados(note, drums)
 
         if drums:
-            # En General MIDI la nota elige el instrumento, no la altura, así
-            # que cada golpe tiene su propia muestra y se toca a su tasa
-            # original: transponerla convertiría un bombo en otra cosa.
-            drum = bank[source]
-            step = sdsp.pitch_for(drum.root, drum.root, drum.rate)
-            level = sdsp.volume(note.velocity, sdsp.CEILING_DRUM)
-            start.setup += [(base + sdsp.V_VOL_L, level),
-                            (base + sdsp.V_VOL_R, level),
+            start.setup += [(base + sdsp.V_VOL_L, izquierda),
+                            (base + sdsp.V_VOL_R, derecha),
                             (base + sdsp.V_PITCH_L, step & 0xFF),
                             (base + sdsp.V_PITCH_H, step >> 8),
                             (base + sdsp.V_SRCN, source),
@@ -571,12 +637,9 @@ def build_events(notes, voices, programs, drum_voices, banco):
                             (base + sdsp.V_ADSR1, 0x8F),
                             (base + sdsp.V_ADSR2, 0xE0)]
         else:
-            instrument = bank[source]
-            step = sdsp.pitch_for(note.pitch, instrument.root, instrument.rate)
-            level = sdsp.volume(note.velocity)
             adsr1, adsr2, gain = banco.envolvente(program, note.pitch)
-            start.setup += [(base + sdsp.V_VOL_L, level),
-                            (base + sdsp.V_VOL_R, level),
+            start.setup += [(base + sdsp.V_VOL_L, izquierda),
+                            (base + sdsp.V_VOL_R, derecha),
                             (base + sdsp.V_PITCH_L, step & 0xFF),
                             (base + sdsp.V_PITCH_H, step >> 8),
                             (base + sdsp.V_SRCN, source),
@@ -586,6 +649,10 @@ def build_events(notes, voices, programs, drum_voices, banco):
         start.kon |= 1 << voice
         if not drums:
             sounded.append((note, base, gain))
+
+    # Los que quedan después de la última nota: el fundido del final de
+    # `escape_newyork` es CC7 sobre las notas que ya sonaban.
+    controlar(float("inf"))
 
     for note, base, gain in sounded:
         # Robada en el mismo cuadro en que termina tampoco se suelta: la
@@ -660,7 +727,8 @@ def pack(frames, length, init):
         if at > length:
             break
         frame = frames[at]
-        if not (frame.release or frame.setup or frame.kon or frame.kof):
+        if not (frame.release or frame.setup or frame.kon or frame.kof
+                or frame.control):
             continue
 
         wait_until(at, previous)
@@ -674,6 +742,8 @@ def pack(frames, length, init):
             write(base + sdsp.V_ADSR1, 0x00)    # apagar ADSR: manda GAIN
             write(base + sdsp.V_GAIN, gain)
         for register, value in frame.setup:
+            write(register, value)
+        for register, value in sorted(frame.control.items()):
             write(register, value)
         if frame.kof:
             write(sdsp.KOF, frame.kof)
@@ -722,12 +792,15 @@ def leer_tema(name, game_dir=GAME_DIR):
             if name else None)
     if not path or not path.lower().endswith(".mid"):
         return None
-    notes, tempos, division, programs = midi.read(path)
+    notes, tempos, division, programs, controls = midi.read(path)
     voices = assign(notes)
+    largo = musica.timeline(notes, tempos, division)
+    musica.timeline(controls, tempos, division)
     return {
         "nombre": name,
         "notas": notes,
-        "largo": musica.timeline(notes, tempos, division),
+        "controles": controls,
+        "largo": largo,
         "voces": voices,
         "programas": programs,
         "percusion": set(voices.get(midi.DRUM_CHANNEL, [])),
@@ -809,7 +882,8 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=(),
                           "segundos": 0.0, "resumen": {}})
             continue
         frames = build_events(leido["notas"], leido["voces"],
-                              leido["programas"], leido["percusion"], banco)
+                              leido["programas"], leido["percusion"], banco,
+                              leido["controles"])
         stream = pack(frames, leido["largo"], init_writes())
         temas.append({"nombre": nombre, "stream": stream,
                       "segundos": leido["largo"] / TICKS_PER_SECOND,
