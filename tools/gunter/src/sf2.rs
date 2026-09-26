@@ -41,10 +41,14 @@ pub const GEN_ENDLOOP_OFFSET: u16 = 3;
 pub const GEN_START_COARSE: u16 = 4;
 pub const GEN_END_COARSE: u16 = 12;
 pub const GEN_PAN: u16 = 17;
+pub const GEN_DELAY: u16 = 33;
 pub const GEN_ATTACK: u16 = 34;
 pub const GEN_HOLD: u16 = 35;
 pub const GEN_DECAY: u16 = 36;
+pub const GEN_SUSTAIN: u16 = 37;
 pub const GEN_RELEASE: u16 = 38;
+pub const GEN_KEY_TO_HOLD: u16 = 39;
+pub const GEN_KEY_TO_DECAY: u16 = 40;
 pub const GEN_INSTRUMENT: u16 = 41;
 pub const GEN_KEY_RANGE: u16 = 43;
 pub const GEN_STARTLOOP_COARSE: u16 = 45;
@@ -65,13 +69,17 @@ const COARSE: [(u16, u16); 4] = [
 ];
 
 /// Generators whose amount is a signed value rather than a plain number.
-const SIGNED: [u16; 7] = [
+const SIGNED: [u16; 11] = [
     GEN_COARSE_TUNE,
     GEN_FINE_TUNE,
+    GEN_DELAY,
     GEN_ATTACK,
     GEN_DECAY,
+    GEN_SUSTAIN,
     GEN_RELEASE,
     GEN_HOLD,
+    GEN_KEY_TO_HOLD,
+    GEN_KEY_TO_DECAY,
     GEN_PAN,
 ];
 
@@ -143,6 +151,77 @@ impl Zone {
     pub fn looped(&self) -> bool {
         let modes = self.get_or(GEN_SAMPLE_MODES, LOOP_NONE);
         modes == LOOP_CONTINUOUS || modes == LOOP_UNTIL_RELEASE
+    }
+}
+
+/// The volume envelope of a zone, generators 33 to 40, in the units the
+/// specification gives them: times in timecents (1200 per doubling, 0 is one
+/// second, -12000 is "instant"), the sustain level in centibels of attenuation
+/// below the peak, and the two key scalings in timecents per key, applied
+/// around key 60.
+///
+/// Turning these into seconds, or into anything a particular chip can play,
+/// is the caller's decision: this only resolves what the file says.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct VolumeEnvelope {
+    pub delay: i32,
+    pub attack: i32,
+    pub hold: i32,
+    pub decay: i32,
+    pub sustain: i32,
+    pub release: i32,
+    pub key_to_hold: i32,
+    pub key_to_decay: i32,
+}
+
+/// Each generator of the envelope: its default when no zone sets it, and the
+/// range the specification allows. A preset only *adds* to the instrument's
+/// value, and the sum is what gets clamped, which is how two individually
+/// legal amounts can add up to an illegal one.
+const ENVELOPE: [(u16, i32, i32, i32); 8] = [
+    (GEN_DELAY, -12000, -12000, 5000),
+    (GEN_ATTACK, -12000, -12000, 8000),
+    (GEN_HOLD, -12000, -12000, 5000),
+    (GEN_DECAY, -12000, -12000, 8000),
+    (GEN_SUSTAIN, 0, 0, 1440),
+    (GEN_RELEASE, -12000, -12000, 8000),
+    (GEN_KEY_TO_HOLD, 0, -1200, 1200),
+    (GEN_KEY_TO_DECAY, 0, -1200, 1200),
+];
+
+impl VolumeEnvelope {
+    /// The instrument zone's values, plus the preset zone's on top, clamped.
+    pub fn resolve(preset: &Zone, instrument: &Zone) -> VolumeEnvelope {
+        let value = |operator: u16| -> i32 {
+            let &(_, default, low, high) =
+                ENVELOPE.iter().find(|(op, ..)| *op == operator).unwrap();
+            (instrument.get_or(operator, default) + preset.get_or(operator, 0)).clamp(low, high)
+        };
+        VolumeEnvelope {
+            delay: value(GEN_DELAY),
+            attack: value(GEN_ATTACK),
+            hold: value(GEN_HOLD),
+            decay: value(GEN_DECAY),
+            sustain: value(GEN_SUSTAIN),
+            release: value(GEN_RELEASE),
+            key_to_hold: value(GEN_KEY_TO_HOLD),
+            key_to_decay: value(GEN_KEY_TO_DECAY),
+        }
+    }
+}
+
+/// What `zone_for` finds: the instrument zone with its sample, and the preset
+/// zone that led to it, whose generators add to the instrument's.
+#[derive(Clone, Debug)]
+pub struct Found {
+    pub preset: Zone,
+    pub zone: Zone,
+    pub sample: Sample,
+}
+
+impl Found {
+    pub fn envelope(&self) -> VolumeEnvelope {
+        VolumeEnvelope::resolve(&self.preset, &self.zone)
     }
 }
 
@@ -384,12 +463,13 @@ impl SoundFont {
         Self::zones(&self.inst_bags, &self.inst_gens, first, last, GEN_SAMPLE_ID)
     }
 
-    /// The instrument zone covering that note, with its sample.
+    /// The instrument zone covering that note, with its sample and the preset
+    /// zone above it.
     ///
     /// Where several zones cover the note —usually velocity layers— the first
     /// one wins, which in the common banks is the softest and the one with the
     /// least attack noise.
-    pub fn zone_for(&self, program: u16, key: u8, bank: u16) -> Option<(Zone, Sample)> {
+    pub fn zone_for(&self, program: u16, key: u8, bank: u16) -> Option<Found> {
         let preset = self.find_preset(program, bank)?;
         for zone in self.preset_zones(preset) {
             let Some(instrument) = zone.get(GEN_INSTRUMENT) else { continue };
@@ -410,7 +490,7 @@ impl SoundFont {
                     continue;
                 }
                 let sample = self.samples[id].clone();
-                return Some((inner, sample));
+                return Some(Found { preset: zone, zone: inner, sample });
             }
         }
         None
@@ -526,6 +606,42 @@ mod tests {
         let e = SoundFont::open(&path).unwrap_err();
         let _ = std::fs::remove_file(&path);
         assert!(e.0.contains("no smpl chunk"), "{e}");
+    }
+
+    #[test]
+    fn an_envelope_is_the_instrument_plus_the_preset_clamped_to_the_spec() {
+        let mut preset = Zone::default();
+        let mut instrument = Zone::default();
+        instrument.gens.insert(GEN_RELEASE, 1200);
+        preset.gens.insert(GEN_RELEASE, -2400);
+        instrument.gens.insert(GEN_DECAY, 7000);
+        preset.gens.insert(GEN_DECAY, 2000);
+        instrument.gens.insert(GEN_SUSTAIN, 1400);
+        preset.gens.insert(GEN_SUSTAIN, 100);
+        let env = VolumeEnvelope::resolve(&preset, &instrument);
+        // A preset shifts the instrument's value; it does not replace it.
+        assert_eq!(env.release, -1200);
+        // Each summand is legal and the sum is not: the sum is what clamps.
+        assert_eq!(env.decay, 8000);
+        assert_eq!(env.sustain, 1440);
+    }
+
+    #[test]
+    fn an_envelope_nobody_sets_is_instant_and_holds_at_full_level() {
+        let env = VolumeEnvelope::resolve(&Zone::default(), &Zone::default());
+        assert_eq!(
+            env,
+            VolumeEnvelope {
+                delay: -12000,
+                attack: -12000,
+                hold: -12000,
+                decay: -12000,
+                sustain: 0,
+                release: -12000,
+                key_to_hold: 0,
+                key_to_decay: 0,
+            }
+        );
     }
 
     #[test]

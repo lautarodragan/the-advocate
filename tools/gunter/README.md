@@ -41,6 +41,32 @@ prints the same thing in one line a build script can read:
      "bytes": 4608, "loop_block": 64, "loop_sample": 1024,
      "worst_error_percent": "1.870", "within_limit": true}
 
+## The envelope comes with the sample
+
+A SoundFont zone says how loud its sample is over time, and a player that
+plays the audio without that envelope plays a different instrument: a piano
+that never decays, a bass that rings for seconds after it is let go. So
+`--extract` also reports the zone's **volume envelope**, generators 33 to 40:
+
+    $ gunter sf2 bank.sf2 --extract program:38 --json
+    {..., "env_delay_timecents": -12000, "env_attack_timecents": -12000,
+     "env_hold_timecents": -12000, "env_decay_timecents": 2604,
+     "env_sustain_centibels": 44, "env_release_timecents": -6071,
+     "env_key_to_hold": 0, "env_key_to_decay": 37}
+
+The values are resolved and nothing more. A preset zone's generators **add**
+to the instrument zone's rather than replace them, generators nobody sets
+take the specification's defaults, and the sum is clamped to the ranges the
+specification allows —two legal amounts can add up to an illegal one—. They
+stay in the file's units: timecents for times (1200 per doubling, 0 is one
+second, -12000 is none), centibels of attenuation for the sustain level, and
+timecents per key for the two key scalings, which apply around key 60.
+Turning that into seconds, or into what some chip's envelope can do, is the
+caller's business. Without `-o` nothing is written, so asking for the
+envelope of every key a piece plays is cheap: well under a millisecond each.
+
+A `sample:NAME` selector has no zone, so its envelope fields are `null`.
+
 ## The loop has to fall on a block
 
 The DSP comes back to the **start of a nine-byte block**, so a loop point is a
