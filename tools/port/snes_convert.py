@@ -76,6 +76,7 @@ from port import pantallas as pantallas_mod
 from port import batalla as batalla_mod
 from port import experiencia as X
 from port import escena as escena_mod
+from port import msu_datos
 from audio import snes_music
 from port.asignador import CELL, cut_tiles, tile_colors
 from rpgmaker.rm2k import collect_npcs, hero_start, passability_map
@@ -3355,6 +3356,22 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
     return datos
 
 
+def fondo_bytes(info):
+    """Un fondo de batalla como lo lee la consola: `(tiles, colores)`, sus 512
+    tiles de 8bpp en el orden del tilemap y sus `COLORES` colores de 15 bits,
+    rellenos con negro."""
+    E = escena_mod
+    tiles_ = bytearray()
+    for celda in E.tiles(info["indices"]):
+        tiles_ += pack_tile(celda, planes=8)
+    colores = list(info["paleta"])
+    colores += [(0, 0, 0)] * (E.COLORES - len(colores))
+    cgram = bytearray()
+    for color in colores:
+        cgram += cgram_word(color).to_bytes(2, "little")
+    return bytes(tiles_), bytes(cgram)
+
+
 def escenas_asm(datos, tropas, db):
     """La escena de batalla del cartucho, lista para el `.inc`.
 
@@ -3423,21 +3440,24 @@ def escenas_asm(datos, tropas, db):
     if not fondos:
         punteros.append("    .dword 0")
     out.append("\n".join(punteros))
-    cgram = bytearray()
-    for info in fondos:
-        colores = list(info["paleta"])
-        colores += [(0, 0, 0)] * (E.COLORES - len(colores))
-        for color in colores:
-            cgram += cgram_word(color).to_bytes(2, "little")
-    out.append(bloque("fondo_cgram", bytes(cgram) or b"\x00\x00"))
+    bytes_de = [fondo_bytes(info) for info in fondos]
+    cgram = b"".join(colores for _tiles, colores in bytes_de)
+    out.append(bloque("fondo_cgram", cgram or b"\x00\x00"))
+    # Y dónde está cada fondo en el `.msu`, con la firma que la ROM espera
+    # encontrar al principio: si no está, lee los de arriba. Ver
+    # tools/port/msu_datos.py y `escena_msu` en rom/src/batalla_escena.s.
+    firma, posiciones = datos.get("msu", (bytes(msu_datos.FIRMA), []))
+    out.append(bloque("msu_datos_firma", firma))
+    pos = [".bloque %d" % (8 * max(1, len(posiciones))), "msu_fondo_pos:"]
+    pos += ["    .dword $%08X, $%08X" % par for par in posiciones]
+    if not posiciones:
+        pos.append("    .dword 0, 0")
+    out.append("\n".join(pos))
     # Sesenta y cuatro ceros: el tile transparente con el que se tapa lo que
     # queda abajo de la escena, y de paso el origen fijo del DMA que llena de
     # cero el fondo liso.
     out.append(bloque("escena_cero", bytes(64)))
-    for k, info in enumerate(fondos):
-        tiles_ = bytearray()
-        for celda in E.tiles(info["indices"]):
-            tiles_ += pack_tile(celda, planes=8)
+    for k, (tiles_, _colores) in enumerate(bytes_de):
         for t in range(trozos):
             out.append(bloque("fondo_%d_%d" % (k, t),
                               bytes(tiles_[t * ESCENA_TROZO:
@@ -5931,6 +5951,11 @@ def parser_de_flags():
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("-o", "--output",
                         default=os.path.join(REPO, "rom/build/inc/mapdata.inc"))
+    parser.add_argument("--msu",
+                        help="dónde escribir el .msu con los datos que el\n"
+                             "MSU-1 le sirve a la ROM: al lado del .sfc y con\n"
+                             "su nombre, para que el emulador lo encuentre.\n"
+                             "Sin esto, datos.msu al lado del --output")
     parser.add_argument("--relleno-de-textos", type=int, default=0,
                         help="textos muertos detrás de los de los ítems, para\n"
                              "que los índices de la batalla pasen de 255 sin\n"
@@ -6584,6 +6609,20 @@ def main():
     # tools/port/escena.py, que es donde está el porqué y el presupuesto.
     escenas = escena_de_la_rom(renderer.database, tropas, mapas, renderer.tree,
                                encuentros, args.game_dir)
+    # El `.msu`: los mismos fondos, para leerlos por el MSU-1 cuando está. Se
+    # escribe siempre, aunque el cartucho no lleve fondos, porque es también
+    # el archivo que enciende el MSU-1 para las pistas. Al lado y reemplazando,
+    # como las pistas: un emulador puede tenerlo abierto.
+    archivo, firma, posiciones = msu_datos.fondos(
+        [fondo_bytes(info) for info in escenas["fondos"]])
+    escenas["msu"] = (firma, posiciones)
+    msu = args.msu or os.path.join(os.path.dirname(os.path.abspath(
+        args.output)), "datos.msu")
+    with open(msu + ".nuevo", "wb") as handle:
+        handle.write(archivo)
+    os.replace(msu + ".nuevo", msu)
+    print("  .msu: %d fondo(s) en %d B, firma %s -> %s"
+          % (len(posiciones), len(archivo), firma.hex(), msu))
     for info in escenas["fondos"]:
         print("  fondo de batalla %r: %dx%d, %d tiles de 8bpp (%d B), %d "
               "colores desde la entrada %d de la CGRAM"

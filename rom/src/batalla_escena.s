@@ -45,6 +45,9 @@ ESC_CLIP_C1  = $6646
 ; las tablas `miembro_*`. Ver `esc_por_orden`.
 ESC_K        = $6648
 ESC_INI      = $6649
+; 1 si el fondo de esta pelea sale del MSU-1 y no del cartucho: ver
+; `esc_llenar`. Lo leen también las pruebas, para saber qué camino corrió.
+ESC_MSU      = $664A
 ; Lo que había en la página directa que se toma prestada: ver `esc_dp_tomar`.
 ESC_DP_GUARDA = $6680
 ESC_DP_BYTES = 48
@@ -664,6 +667,15 @@ hay_escena:
     lda #0
     sta BA_ESCENA
 
+    ; --- de dónde sale el fondo: del MSU-1 si está y es el de este cartucho ---
+    sta ESC_MSU
+    lda ESC_FONDO
+    cmp #$FF
+    beq sin_msu                 ; el liso no se lee de ningún lado
+    jsr msu_datos_validos
+    sta ESC_MSU
+sin_msu:
+
     ; --- el fondo, a los dos búferes ---
     lda #0
     jsr esc_llenar
@@ -773,6 +785,33 @@ celda_pone:
     beq colores_battlers
     lda #ESCENA_CGRAM
     sta f:CGADD
+    lda ESC_MSU
+    beq colores_de_la_rom
+    ; Del `.msu`: su entrada de colores es la segunda del fondo.
+    rep #$20
+.a16
+    lda ESC_FONDO
+    and #$00FF
+    asl a
+    asl a
+    asl a                       ; por 8: dos posiciones de 32 bits
+    tax
+    lda f:msu_fondo_pos + 6, x
+    tay
+    lda f:msu_fondo_pos + 4, x
+    jsr msu_datos_buscar
+.a8
+    bcs colores_de_la_rom       ; no la encontró a tiempo: los del cartucho
+    rep #$20
+.a16
+    lda #(ESCENA_COLORES * 2)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #$22                    ; CGDATA
+    jsr esc_dma_msu
+    bra colores_battlers
+colores_de_la_rom:
     rep #$20
 .a16
     lda ESC_FONDO
@@ -862,6 +901,28 @@ sin_escena:
     rts
 .endproc
 
+; El DMA desde el puerto de datos del MSU-1, con el largo ya puesto y el
+; `.msu` ya buscado: A es el registro del B-bus de destino. El origen es $2001
+; **fijo** —el bit 3 de DMAP—: es un registro que avanza solo, no memoria.
+.proc esc_dma_msu
+.a8
+.i16
+    sta f:BBAD0
+    rep #$20
+.a16
+    lda #MSU_DATOS
+    sta f:A1T0L
+    sep #$20
+.a8
+    lda #0                      ; el banco 0, donde vive el MSU-1
+    sta f:A1B0
+    lda #$08                    ; de a un byte, con el origen fijo
+    sta f:DMAP0
+    lda #$01
+    sta f:MDMAEN
+    rts
+.endproc
+
 ; Uno de los dos búferes de la escena, con el fondo de `ESC_FONDO` o con ceros:
 ; A es el byte del medio de su dirección, 0 el limpio y $80 el compuesto.
 ; Por la ventana de la WRAM, que es la única forma de copiar de la ROM a la RAM
@@ -896,6 +957,41 @@ sin_escena:
     sta f:MDMAEN
     rts
 con_fondo:
+    lda ESC_MSU
+    beq de_la_rom
+    ; Del `.msu`, los 32 KB de una vez: se busca el principio de los tiles
+    ; cada vez, porque el flujo ya avanzó hasta el final con el búfer
+    ; anterior. Copiar de un búfer al otro no se puede por DMA —WRAM a WRAM
+    ; no anda— y con `mvn` serían varios cuadros.
+    rep #$20
+.a16
+    lda ESC_FONDO
+    and #$00FF
+    asl a
+    asl a
+    asl a                       ; por 8: dos posiciones de 32 bits
+    tax
+    lda f:msu_fondo_pos + 2, x
+    tay
+    lda f:msu_fondo_pos, x
+    jsr msu_datos_buscar
+.a8
+    bcs no_la_encontro
+    rep #$20
+.a16
+    lda #(ESCENA_TILES * 64)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #$80                    ; WMDATA
+    jmp esc_dma_msu
+no_la_encontro:
+    ; El MSU-1 no terminó de buscar a tiempo: esta pelea sale entera del
+    ; cartucho, colores incluidos, que son los mismos bytes.
+    lda #0
+    sta ESC_MSU
+de_la_rom:
+    lda ESC_FONDO
     ; Los cuatro trozos del fondo, uno detrás del otro: la dirección de la
     ; WRAM sigue sola.
     rep #$20
