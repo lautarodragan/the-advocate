@@ -51,6 +51,12 @@ MSU_FACTOR  = $7E30EA
     lda #0
     sta f:MSU_SUENA
     ldx #$0000
+limpiar:
+    sta f:MSU_FALTA, x          ; ninguna pista faltó todavía
+    inx
+    cpx #MSU_FALTA_BYTES
+    bcc limpiar
+    ldx #$0000
 mirar:
     lda MSU_FIRMA, x
     cmp msu_firma, x
@@ -149,18 +155,21 @@ listo:
     ; título y la de la apertura—, y sin pantalla de título la primera es la
     ; única.
     ;
-    ; La pista se guarda en Y mientras tanto: la espera usa X.
+    ; La pista se guarda en Y mientras tanto: la espera usa X. El tema va a
+    ; la pila, para anotarlo si la pista falla.
+    phx
     tay
     jsr msu_esperar
-    bcs no                      ; sigue ocupado: que suene el SPC700
+    bcs falla                   ; sigue ocupado: que suene el SPC700
     tya
     sta MSU_PISTA
     stz MSU_PISTA + 1
     jsr msu_esperar             ; y ahora, que termine de abrirla
-    bcs no
+    bcs falla
     lda MSU_ESTADO
     and #$08                    ; la pista no está en la tarjeta
-    bne no
+    bne falla
+    plx
     lda #MSU_VOLUMEN_MAX
     sta MSU_VOLUMEN
     lda #$03                    ; tocar y repetir
@@ -168,12 +177,41 @@ listo:
     lda #1
     sta f:MSU_SUENA
     rts
+falla:
+    ; El tema suena por el SPC700 y necesita sus muestras, que el paquete no
+    ; subió porque contaba con la pista —ver `tema_por_msu`—: las sube
+    ; `tema_asegurar`, que es lo que `music_start` llama a continuación, y
+    ; desde ahora los paquetes de este tema las suben de entrada.
+    plx
+    rep #$20
+.a16
+    txa
+    and #$0007
+    tay                         ; el bit
+    txa
+    lsr a
+    lsr a
+    lsr a
+    tax                         ; el byte
+    sep #$20
+.a8
+    lda #1
+correr:
+    dey
+    bmi corrido
+    asl a
+    bra correr
+corrido:
+    ora f:MSU_FALTA, x
+    sta f:MSU_FALTA, x
+    bra no
 sin_msu1:
     pla
 no:
     lda #0
     rts
 .endproc
+.assert TEMA_TOTAL <= 8 * MSU_FALTA_BYTES, error, "MSU_FALTA no tiene un bit para cada tema"
 
 
 ; --- el puerto de datos -----------------------------------------------------
