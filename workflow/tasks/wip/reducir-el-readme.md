@@ -15,3 +15,4 @@ Anotado para él:
   arriba) que no existe, y el docstring de `tools/audio/msu.py` la cita.
 * El flag `--inicio` se sacó el 2026-09-25: la línea de `README.md` que lo
   menciona ("sigue existiendo para las recetas") se va.
+* El párrafo "Cómo se suelta una nota" (~líneas 851-853) dice que "el valor por familia está en `sdsp.py`": desde el 2026-09-25 las envolventes salen del SoundFont y las familias se fueron.
