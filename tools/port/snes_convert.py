@@ -36,7 +36,9 @@ los flags del cartucho antes del primero. El arnés elige cuál corre con
 
 import argparse
 import collections
+import contextlib
 import json
+import multiprocessing
 import os
 import shutil
 import sys
@@ -384,12 +386,15 @@ def sprite_colors(image, index, poses=None):
     base_x = (index % 4) * SPRITE_W * 3
     base_y = (index // 4) * SPRITE_H * 4
     counts = collections.Counter()
+    # `load()` y no `getpixel`: lee lo mismo, pero `getpixel` paga un
+    # `load()` por pixel, y acá se leen millones por ROM.
+    pixeles = image.load()
     for pose in (sorted(TODAS_LAS_POSES) if poses is None else sorted(poses)):
         ox = base_x + (pose % 3) * SPRITE_W
         oy = base_y + (pose // 3) * SPRITE_H
         for y in range(SPRITE_H):
             for x in range(SPRITE_W):
-                red, green, blue, alpha = image.getpixel((ox + x, oy + y))
+                red, green, blue, alpha = pixeles[ox + x, oy + y]
                 if alpha:
                     counts[(red >> 3, green >> 3, blue >> 3)] += 1
     return counts
@@ -464,6 +469,7 @@ def pose_tiles(image, index, pose, lookup, mapping):
     por eso una pose se sube con cuatro DMA de 128 bytes.
     """
     ox, oy = pose_origin(index, pose)
+    pixeles = image.load()          # ver `sprite_colors`
     out = []
     for ty in range(4):
         for tx in range(4):
@@ -474,7 +480,7 @@ def pose_tiles(image, index, pose, lookup, mapping):
                     sx = tx * CELL + x - (OBJ_W - SPRITE_W) // 2
                     sy = ty * CELL + y
                     if 0 <= sx < SPRITE_W and 0 <= sy < SPRITE_H:
-                        r, g, b, a = image.getpixel((ox + sx, oy + sy))
+                        r, g, b, a = pixeles[ox + sx, oy + sy]
                         row.append(lookup[mapping[(r >> 3, g >> 3,
                                                    b >> 3)]] if a else 0)
                     else:
@@ -1739,8 +1745,11 @@ def capas_convertidas(renderer, game_map):
     en_disco = None
     if insumos is not None:
         en_disco = cache_disco.clave(_version_capas(), *insumos)
+        if en_disco in _capas_en_memoria:
+            return _capas_en_memoria[en_disco]
         hecho = cache_disco.leer("capas", en_disco)
         if hecho is not None:
+            _capas_en_memoria[en_disco] = hecho
             return hecho
     base, above_img, variantes = renderer.capas_animadas(game_map)
     if base is None:
@@ -1748,7 +1757,62 @@ def capas_convertidas(renderer, game_map):
     hecho = _convert_layers(base, above_img, variantes)
     if en_disco is not None:
         cache_disco.guardar("capas", en_disco, hecho)
+        _capas_en_memoria[en_disco] = hecho
     return hecho
+
+
+# Las capas ya convertidas en esta corrida, con la clave del caché en disco.
+# Las llena `precalcular_capas` y funciona también con `SIN_CACHE=1`: no es un
+# caché entre corridas sino el mismo cálculo hecho antes y en paralelo.
+_capas_en_memoria = {}
+
+
+def precalcular_capas(renderer, map_ids, args):
+    """Las capas de todos los mapas, convertidas en paralelo antes de que
+    `convertir` las pida.
+
+    Es lo más caro de un build en frío —o de uno caliente después de tocar
+    este archivo, que invalida las capas guardadas— y cada mapa es
+    independiente, así que va un proceso por mapa. Los procesos se
+    bifurcan con todo el estado ya armado, preparan el mapa como `convertir`
+    y devuelven lo que calcularon con su clave; `convertir` después pregunta
+    por la misma clave. **Un mapa preparado distinto acá que allá no da una
+    ROM distinta**: da otra clave, y `convertir` la calcula como siempre.
+    """
+    if len(map_ids) < 2:
+        return
+    global _para_precalcular
+    _para_precalcular = (renderer, args)
+    procesos = min(len(map_ids), os.cpu_count() or 1)
+    with multiprocessing.get_context("fork").Pool(procesos) as pool:
+        for hechas in pool.map(_capas_de_un_mapa, map_ids, chunksize=1):
+            _capas_en_memoria.update(hechas)
+    _para_precalcular = None
+
+
+_para_precalcular = None
+
+
+def _capas_de_un_mapa(map_id):
+    """Lo que `precalcular_capas` hace en cada proceso: los mismos pasos que
+    `convertir` hasta sus dos llamadas a `capas_convertidas`."""
+    renderer, args = _para_precalcular
+    try:
+        # Callado: lo que tenga para decir lo dice `convertir`, en orden.
+        with open(os.devnull, "w") as nulo, contextlib.redirect_stdout(nulo):
+            game_map = renderer.cargar_mapa(
+                os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
+            separar_del_heroe(renderer, game_map, args,
+                              comandos_de_casos(args, map_id))
+            capas_convertidas(renderer, game_map)
+            horneados = eventos_horneables(renderer, game_map)
+            if horneados:
+                hornear_en_el_mapa(game_map, horneados)
+                capas_convertidas(renderer, game_map)
+    except BaseException:
+        # Si falla, que falle en `convertir`, que sabe decir por qué.
+        pass
+    return _capas_en_memoria
 
 
 def _convert_layers(base, above_img, variantes=None):
@@ -6453,6 +6517,7 @@ def main():
         [lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % m))
          for m in todos], de_archivo)
 
+    precalcular_capas(renderer, todos, args)
     mapas = [convertir(renderer, map_id, args) for map_id in todos]
     # Antes acá se reconvertían los mapas cuya capa de encima arrancaba más
     # arriba que la paleta de la ventana, para apretarles el fondo debajo de
@@ -7404,47 +7469,74 @@ def lideres_posibles(renderer, map_ids, grupo):
     directorio.
     """
     actores = list(grupo[:1])
-    indices = {m: i for i, m in enumerate(map_ids)}
-    for map_id in map_ids:
+    for cambios in _cambios_de_grupo(map_ids):
         estado = eventos.Estado(grupo)
-        game_map = lcf.Map(os.path.join(args_game_dir[0],
-                                        "Map%04d.lmu" % map_id))
-        del_mapa = eventos.Eventos(game_map)
-        for evento in game_map.events:
-            for page in evento.pages:
-                # Con el contexto del mapa, que es el mismo que usa el filtro de
-                # verdad. Sin él, una página que mande a caminar a otro evento no
-                # compila acá aunque sí compile allá, y los actores que agregue
-                # se pierden: la cinemática de apertura suma a Kersh al grupo
-                # justo después de mandar a caminar al evento 8, así que el héroe
-                # se quedaba sin tabla de poses y no se dibujaba.
-                # **Con el mismo contexto que la compilación de verdad**, y
-                # no sólo con el bloque de textos. Faltaban `Temas`,
-                # `Graficos` e `Imagenes`, y sin ellos una página que empieza
-                # con un `PlayBGM` no compila **acá** y sí compila allá: los
-                # actores que meta al grupo se pierden. Es exactamente lo que
-                # le pasaba al auto de la persecución —`RaceController1` del
-                # mapa 49 arranca con `PlayBGM` y después mete a `CarRED`—, y
-                # el síntoma era que el héroe no se dibujaba: `hero_poses` en
-                # cero porque el actor no estaba en la tabla del mapa.
-                if eventos.compilar_pagina(
-                        page, indices.get,
-                        eventos.Mensajes(),
-                        del_mapa.para(evento.id), eventos.Temas(),
-                        eventos.Graficos(), eventos.Imagenes(
-                            args_game_dir[0])) is None:
-                    continue
-                for cmd in page.commands:
-                    if cmd.code != eventos.CHANGE_PARTY_MEMBERS:
-                        continue
-                    p = cmd.parameters
-                    if len(p) < 3 or p[1] != eventos.GRUPO_ID_FIJO:
-                        continue
-                    estado.cambiar_grupo(p[0], p[2])
-                    lider = estado.lider()
-                    if lider is not None and lider not in actores:
-                        actores.append(lider)
+        for quien, operacion in cambios:
+            estado.cambiar_grupo(quien, operacion)
+            lider = estado.lider()
+            if lider is not None and lider not in actores:
+                actores.append(lider)
     return actores
+
+
+def _cambios_de_grupo(map_ids):
+    """Los `ChangePartyMembers` de las páginas que compilan, mapa por mapa y
+    en orden: lo único de cada mapa que mira `lideres_posibles`.
+
+    **Se calcula una vez por conversión**, porque no depende del grupo:
+    `lideres_posibles` corre otra vez por cada caso de prueba que toca el
+    grupo, y cada corrida cargaba y compilaba todos los mapas de nuevo. La
+    compilación sólo lee los índices globales de `eventos`, que se llenan
+    antes de la primera llamada y no cambian después.
+    """
+    clave = (args_game_dir[0], tuple(map_ids))
+    if clave not in _cambios_por_mapas:
+        _cambios_por_mapas[clave] = [_cambios_del_mapa(map_id, map_ids)
+                                     for map_id in map_ids]
+    return _cambios_por_mapas[clave]
+
+
+_cambios_por_mapas = {}
+
+
+def _cambios_del_mapa(map_id, map_ids):
+    indices = {m: i for i, m in enumerate(map_ids)}
+    cambios = []
+    game_map = lcf.Map(os.path.join(args_game_dir[0],
+                                    "Map%04d.lmu" % map_id))
+    del_mapa = eventos.Eventos(game_map)
+    for evento in game_map.events:
+        for page in evento.pages:
+            # Con el contexto del mapa, que es el mismo que usa el filtro de
+            # verdad. Sin él, una página que mande a caminar a otro evento no
+            # compila acá aunque sí compile allá, y los actores que agregue
+            # se pierden: la cinemática de apertura suma a Kersh al grupo
+            # justo después de mandar a caminar al evento 8, así que el héroe
+            # se quedaba sin tabla de poses y no se dibujaba.
+            # **Con el mismo contexto que la compilación de verdad**, y
+            # no sólo con el bloque de textos. Faltaban `Temas`,
+            # `Graficos` e `Imagenes`, y sin ellos una página que empieza
+            # con un `PlayBGM` no compila **acá** y sí compila allá: los
+            # actores que meta al grupo se pierden. Es exactamente lo que
+            # le pasaba al auto de la persecución —`RaceController1` del
+            # mapa 49 arranca con `PlayBGM` y después mete a `CarRED`—, y
+            # el síntoma era que el héroe no se dibujaba: `hero_poses` en
+            # cero porque el actor no estaba en la tabla del mapa.
+            if eventos.compilar_pagina(
+                    page, indices.get,
+                    eventos.Mensajes(),
+                    del_mapa.para(evento.id), eventos.Temas(),
+                    eventos.Graficos(), eventos.Imagenes(
+                        args_game_dir[0])) is None:
+                continue
+            for cmd in page.commands:
+                if cmd.code != eventos.CHANGE_PARTY_MEMBERS:
+                    continue
+                p = cmd.parameters
+                if len(p) < 3 or p[1] != eventos.GRUPO_ID_FIJO:
+                    continue
+                cambios.append((p[0], p[2]))
+    return cambios
 
 
 # El directorio del juego, para `lideres_posibles`. Es feo pero es un solo

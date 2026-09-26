@@ -293,8 +293,22 @@ def reajustar(lineas, columnas=ventana.COLUMNAS, renglones=ventana.LINEAS):
     Devuelve `[lineas]` sin tocar si el cuadro ya entra, o si trae un escape
     que no compila —`eventos.NoSePuede`—: esa página no llega a la ROM, así
     que no hay nada que acomodar.
+
+    Se recuerda por texto: la cuenta es pura, y un mapa se carga varias veces
+    por conversión —cada vez con todos sus cuadros— así que la mayoría de las
+    llamadas repiten una anterior. Se devuelve una copia, porque hay quien
+    agrega renglones a lo que recibe.
     """
-    lineas = list(lineas)
+    clave = (tuple(lineas), columnas, renglones)
+    if clave not in _reajustados:
+        _reajustados[clave] = _reajustar(list(lineas), columnas, renglones)
+    return [list(cuadro) for cuadro in _reajustados[clave]]
+
+
+_reajustados = {}
+
+
+def _reajustar(lineas, columnas, renglones):
     try:
         if entra(lineas, columnas, renglones):
             return [lineas]

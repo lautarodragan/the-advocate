@@ -43,7 +43,6 @@ disco, al lado de la ROM; guardarlas sería tener dos copias de lo mismo.
 Con `SIN_CACHE=1` se rehacen todas, que es como se comprueba que salen iguales.
 """
 import argparse
-import array
 import hashlib
 import os
 import shutil
@@ -51,6 +50,8 @@ import struct
 import subprocess
 import sys
 import wave
+
+import numpy
 
 # Corrido como script, Python pone en el `sys.path` la carpeta de este archivo
 # y no `tools/`, que es de donde se importan los paquetes: ver el mismo
@@ -196,20 +197,21 @@ def pista(wav, salida, loop=0, pico=PICO):
     con = wave.open(wav)
     if (con.getnchannels(), con.getsampwidth(), con.getframerate()) != (2, 2, 44100):
         raise SystemExit("%s no es estéreo de 16 bits a 44100" % wav)
-    datos = array.array("h", con.readframes(con.getnframes()))
-    if sys.byteorder == "big":
-        datos.byteswap()
-    alto = max(abs(v) for v in datos) or 1
+    # Con numpy y no muestra por muestra: son la misma cuenta —el producto en
+    # doble precisión, truncado hacia el cero como `int()`, y recortado—, y
+    # las pistas salen iguales byte por byte. En Python puro era casi todo el
+    # tiempo de rehacer una pista. El `int32` es por el -32768, cuyo valor
+    # absoluto no entra en 16 bits.
+    datos = numpy.frombuffer(con.readframes(con.getnframes()), dtype="<i2")
+    alto = int(numpy.abs(datos.astype(numpy.int32)).max()) or 1
     escala = pico * 32767.0 / alto
     if escala < 1.0 or escala > 1.02:
-        datos = array.array("h", (max(-32768, min(32767, int(v * escala)))
-                                  for v in datos))
+        datos = numpy.clip(numpy.trunc(datos.astype(numpy.float64) * escala),
+                           -32768, 32767)
     with open(salida, "wb") as handle:
         handle.write(b"MSU1")
         handle.write(struct.pack("<I", loop))
-        if sys.byteorder == "big":
-            datos.byteswap()
-        handle.write(datos.tobytes())
+        handle.write(datos.astype("<i2").tobytes())
     return con.getnframes(), escala
 
 

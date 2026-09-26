@@ -109,7 +109,25 @@ def merge_least_visible(counts, keep, accept=None):
     `accept` decide cuándo parar: para el mapa es "los tiles entran en las
     paletas", para el sprite es "quedan 15 colores o menos". Devuelve el mapeo
     de color viejo a color nuevo y la lista de fusiones hechas.
+
+    Sin `accept` se recuerda: el mismo personaje se cuantiza igual en cada mapa
+    donde aparece, y la cuenta es pura. La clave lleva los colores **en su
+    orden**, porque el mapeo sale en ese orden, y se devuelven copias, porque
+    hay quien completa el mapeo que recibe.
     """
+    if accept is None:
+        clave = (tuple(counts.items()), keep)
+        if clave not in _fusionados:
+            _fusionados[clave] = _merge_least_visible(counts, keep, None)
+        mapping, merged = _fusionados[clave]
+        return dict(mapping), list(merged)
+    return _merge_least_visible(counts, keep, accept)
+
+
+_fusionados = {}
+
+
+def _merge_least_visible(counts, keep, accept):
     mapping = {c: c for c in counts}
     merged = []
     weight = collections.Counter(counts)
