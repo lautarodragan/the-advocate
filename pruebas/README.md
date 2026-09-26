@@ -148,9 +148,12 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `herramientas/test_musica_stream.py`: el stream que arma el conversor: a
   qué voz va cada nota y cuándo se suelta
 * `rpgmaker/test_musica_reparto.py`: las ocho voces repartidas nota a nota,
-  sobre `escape_newyork`: el acorde entero y los canales que antes no sonaban
+  sobre `escape_newyork` —el acorde entero y los canales que antes no
+  sonaban— y sobre el de batalla, cuya melodía no pierde notas
 * `rpgmaker/test_musica_escrituras.py`: que el decodificador del stream le
   escriba al DSP lo que el stream dice, cuadro por cuadro
+* `rpgmaker/test_musica_techos.py`: que ningún tema recorte con su techo de
+  volumen, y que la tabla de techos sea la de la mezcla de hoy
 * `abl/test_msu.py`: las pistas de MSU-1
 
 **Lo propio de ABL**

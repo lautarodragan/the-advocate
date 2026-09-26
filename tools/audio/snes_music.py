@@ -699,7 +699,8 @@ class Preparacion(collections.namedtuple(
                 (base + sdsp.V_ADSR2, self.adsr2)]
 
 
-def build_events(notes, voices, programs, banco, controls=(), reparto=None):
+def build_events(notes, voices, programs, banco, controls=(), reparto=None,
+                 aire=sdsp.AIRE):
     """Las escrituras al DSP, cuadro por cuadro.
 
     Cada canal tiene su grupo de voces —desde el paso 5, las ocho para todos:
@@ -723,8 +724,12 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None):
     voz o None, hasta cuándo la sostiene —el fin de la nota, o el de la
     muestra si es un golpe más corto que ella—). Es de dónde sale cuánto
     tiempo-nota se pierde.
+
+    `aire` es el techo de las voces de este tema, el de `sdsp.AIRE` o uno
+    más bajo: ver `leer_techos`.
     """
     frames = collections.defaultdict(Frame)
+    techo = aire / sdsp.AIRE
     bank, index_of, drum_index = banco.voces, banco.melodicas, banco.golpes
 
     estado = collections.defaultdict(lambda: dict(midi.DEFAULTS))
@@ -734,7 +739,8 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None):
     def lados(note, drums):
         c = estado[note.channel]
         return sdsp.volume(note.velocity,
-                           sdsp.CEILING_DRUM if drums else sdsp.CEILING,
+                           techo * (sdsp.CEILING_DRUM if drums
+                                    else sdsp.CEILING),
                            c[midi.VOLUME], c[midi.EXPRESSION], c[midi.PAN])
 
     def altura(note, drums):
@@ -1386,8 +1392,56 @@ def leer_tema(name, game_dir=GAME_DIR):
     }
 
 
+# --- el techo de cada tema --------------------------------------------------
+
+# El aire de cada tema que recortaría con el de `sdsp.AIRE`: la opción B del
+# paso 5 de `workflow/tasks/todo/la-calidad-de-la-musica.md`, elegida por taro
+# el 2026-09-26. El DSP suma las ocho voces y satura la suma a 16 bits antes
+# del volumen general, así que lo único que evita el recorte es el techo de
+# cada voz; con uno solo para todos, lo fija el tema que más suma —`rshinld`,
+# por su CC7 en 127— y los que no recortan bajan casi 4 dB sin necesidad. Con
+# uno por tema, cada uno baja lo justo.
+#
+# **No se escribe a mano**: lo mide `tools/audio/techos.py` (`just techos`)
+# tocando cada tema en la ROM, y lo que queda es un dato versionado, como las
+# decisiones de `parches/auto/`. Un tema que no está en la tabla va con
+# `sdsp.AIRE`. Cada cambio de la mezcla —las muestras, las envolventes, el
+# reparto— la deja vieja, y eso lo cobra `test_musica_techos.py`.
+TECHOS = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))), "parches", "auto", "musica", "techos.toml")
+
+
+def leer_techos(ruta=TECHOS):
+    """{tema: aire} de la tabla versionada; vacío si no existe."""
+    import tomllib
+    try:
+        with open(ruta, "rb") as archivo:
+            tabla = tomllib.load(archivo)
+    except FileNotFoundError:
+        return {}
+    return {nombre: fila["aire"] for nombre, fila in tabla["temas"].items()}
+
+
+def huella_de_la_mezcla(escrituras_del_tema, banco):
+    """De qué depende el pico de un tema, resumido: lo que le escribe al DSP
+    —con su aire ya puesto— y las muestras que toca, con su loop. Lo que
+    cambie esto puede mover el pico, y la tabla de techos lo guarda para que
+    la prueba sepa si lo que se midió sigue siendo lo que suena. El driver
+    no entra: no mezcla nada, pasa escrituras."""
+    import hashlib
+    h = hashlib.sha256(repr(escrituras_del_tema).encode())
+    muestras = sorted({valor for _c, registro, valor in escrituras_del_tema
+                       if registro < 0x80
+                       and registro & 0x0F == sdsp.V_SRCN})
+    for i in muestras:
+        if i < len(banco.voces):
+            v = banco.voces[i]
+            h.update(b"%d:%d:" % (i, v.loop_block or 0) + bytes(v.data))
+    return h.hexdigest()[:16]
+
+
 def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=(),
-                 tope=None):
+                 tope=None, techos=None, aire_de_medida=None):
     """Todos los temas de la ROM, compartiendo un solo banco de muestras.
 
     Devuelve (driver, las voces —las del banco y detrás los efectos, cada una
@@ -1432,8 +1486,14 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=(),
     repartir 40 KB melódicos entre diecinueve temas en vez de once baja la tasa
     mediana de 12,5 a 8,4 kHz, y eso se oye en los once que hoy suenan bien.
     Aflojarlo de verdad pide presupuestar por paquete: ver el README.
+
+    `techos` es el aire de cada tema, por nombre —si no viene, el que está
+    versionado: ver `leer_techos`—, y `aire_de_medida` lo pisa para todos: es
+    con lo que `tools/audio/techos.py` arma la ROM en que mide los picos.
     """
     driver = spc700.assemble(DRIVER, DRIVER_ADDR)
+    if techos is None:
+        techos = leer_techos()
     leidos = [leer_tema(n, game_dir) for n in nombres]
 
     orden = [i for i in prioridad if 0 <= i < len(leidos)]
@@ -1457,14 +1517,16 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=(),
                           "segundos": 0.0, "resumen": {}})
             continue
         reparto = []
+        aire = aire_de_medida or techos.get(nombre, sdsp.AIRE)
         frames = build_events(leido["notas"], leido["voces"],
                               leido["programas"], banco, leido["controles"],
-                              reparto)
+                              reparto, aire)
         referencia = escrituras(frames, leido["largo"], init_writes())
         stream, sonidos = pack(frames, leido["largo"], init_writes())
         verificar_formato(nombre, stream, sonidos, referencia)
         temas.append({"nombre": nombre, "stream": stream, "sonidos": sonidos,
-                      "escrituras": referencia,
+                      "escrituras": referencia, "aire": aire,
+                      "huella": huella_de_la_mezcla(referencia, banco),
                       "segundos": leido["largo"] / TICKS_PER_SECOND,
                       "resumen": resumen_del_tema(leido, banco, reparto)})
     # Los efectos, con lo que la música dejó libre. Van detrás del banco en

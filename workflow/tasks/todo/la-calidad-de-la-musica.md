@@ -16,7 +16,9 @@ cartucho unido). Así que: batería → notas que se sueltan antes de tiempo →
 envolventes → velocidad y CC → **el formato por nota, diseñado para todo lo de
 arriba y para el reparto** → reparto y rampa → muestras por mapa. **Hechos
 el 0, el 1 y el 2**, el 2026-09-25, **y el 3, el 4 y el 5** el 2026-09-26:
-ver cada uno abajo. Queda el 6, y antes decidir el aire: ver el final del 5.
+ver cada uno abajo. Después del 5, el mismo día: **el 5b**, la frase de la
+batalla que el reparto cortaba, y **el aire por tema** (la opción B, al final
+del 5). Queda el 6.
 
 
 taro, el 2026-09-25: *"`escape_newyork` se escucha particularmente mal, y tal
@@ -909,6 +911,92 @@ grabación más la ganancia; el de hoy, el medido.
 | Tnt07 | -8.6 | 0.500 | +0.0 | -23.7 | -27.6 | -23.7 |
 | Deflector1 | +2.4 | 0.379 | -2.4 | -13.0 | -16.9 | -15.4 |
 | MML2_MotherZone | -3.3 | 0.500 | +0.0 | -17.9 | -21.7 | -17.8 |
+
+### El aire: un techo por tema (la opción B): hecho
+
+taro eligió la B. Hecho el 2026-09-26, después del 5b —que cambia la mezcla
+de la batalla—, en el commit "Música: un techo de volumen por tema, medido".
+El porqué vive en `leer_techos` (tools/audio/snes_music.py) y cómo se mide
+en tools/audio/techos.py.
+
+* **La tabla**: `parches/auto/musica/techos.toml`, versionada como las
+  decisiones de `parches/auto/`: el aire de cada tema —los 32, los que no
+  recortan con 0,5—, el pico y los LUFS con él, hasta qué cuadro hay que
+  tocarlo para pasar por su pico y la huella de su mezcla. `build_varios` la
+  lee y `build_events` multiplica el techo de cada voz por aire/0,5.
+* **No se escribe a mano: `just techos`**, unos cuatro minutos. Arma una
+  copia de `release` en `rom/build/techos/` con todos los temas a 0,25
+  (`--aire-de-medida` del conversor), toca cada uno entero en snes9x sin
+  MSU-1 —la pantalla de título parchada al tema, como los scripts de los
+  pasos anteriores, ocho a la vez—, le da el aire más alto que deja su pico
+  0,5 dB bajo el tope (topado en 0,5), escribe la tabla, rearma `release` y
+  lo vuelve a medir; si alguno recortara todavía, lo baja y repite. La
+  primera vez entraron todos en una vuelta. `just techos --medir` sólo mide
+  el `release` armado.
+* **El sello de los cartuchos mira los aires de la tabla** (`cartuchos.huella`):
+  cambiar uno rearma, y reescribir los picos o las huellas no.
+* **La prueba**, `pruebas/rpgmaker/test_musica_techos.py`:
+  `test_la_tabla_de_techos_es_la_de_esta_mezcla` arma los 32 temas en
+  memoria (3 s) y compara la huella de cada uno —lo que le escribe al DSP y
+  las muestras que toca— con la de la tabla: cualquier cambio de la mezcla
+  (el paso 6) la pone en rojo diciendo qué tema y que hay que correr `just
+  techos`. Y `test_el_tema_no_recorta_en_su_pico`, uno por tema de los que
+  quedaron a menos de 1,5 dB del tope —12—, toca el tema en la ROM hasta su
+  `hasta` y pide cero muestras en el tope: 42.555 cuadros en total, **unos 21
+  s de CPU, 5 s con los ocho procesos**; el más largo, 3D-Galax, 3,5 s. Tocar
+  los 32 enteros serían unos 2 minutos de CPU.
+* **Por qué sólo los cercanos**: con la mezcla igual (la huella), lo único
+  que mueve el pico es en qué momento del cuadro cae cada escritura, que
+  cambia con cualquier cambio de la ROM. Medido: `11h035`, `cd4` y `vswar`
+  tienen el mismo stream antes y después de este cambio, y su pico se movió
+  0,2 dB. Los que están a más de 1,5 dB no llegan al tope por eso.
+* **Cómo se la vio fallar**: con el aire de la batalla cambiado a mano a
+  0,45 en la tabla, rojo las dos: la huella de la batalla, y 224 muestras en
+  el tope en sus primeros 8.700 cuadros.
+
+Antes: el `release` con el 5b y el aire en 0,5 para todos, medido con `just
+techos --medir`. Después: la tabla. "dB" es lo que baja cada tema.
+
+| Tema | Aire | dB | Recortes antes → después | Pico antes → después (dB) | LUFS antes → después |
+|---|---:|---:|---:|---:|---:|
+| rshinld | 0,298 | -4,5 | 7790 → 0 | 0,0 → -0,7 | -8,2 → -12,7 |
+| T_VGFighterMAX_Masako | 0,350 | -3,1 | 2384 → 0 | 0,0 → -0,5 | -10,1 → -13,1 |
+| Lunar_Pyramid | 0,356 | -3,0 | 5436 → 0 | 0,0 → -0,5 | -11,5 → -14,5 |
+| Deflector1 | 0,363 | -2,8 | 792 → 0 | 0,0 → -0,6 | -13,1 → -15,9 |
+| 3D-Galax | 0,366 | -2,7 | 1380 → 0 | 0,0 → -0,5 | -13,7 → -16,4 |
+| evilrhys | 0,380 | -2,4 | 538 → 0 | 0,0 → -0,5 | -10,5 → -12,9 |
+| hzbreach | 0,381 | -2,4 | 556 → 0 | 0,0 → -0,4 | -8,9 → -11,2 |
+| hzstream | 0,389 | -2,2 | 130 → 0 | 0,0 → -0,5 | -9,5 → -11,8 |
+| Fire_Mustang_Intro_And_Level_2_By_Luiz_Vasco | 0,438 | -1,1 | 7 → 0 | 0,0 → -0,5 | -13,5 → -14,7 |
+| TF3_1_awe | 0,440 | -1,1 | 14 → 0 | 0,0 → -0,5 | -11,4 → -12,5 |
+| 11h035 | 0,500 | 0,0 | 0 → 0 | -6,6 → -6,4 | -21,2 → -21,2 |
+| Astpgmarch | 0,500 | 0,0 | 0 → 0 | -1,2 → -1,2 | -14,2 → -14,2 |
+| C3classi | 0,500 | 0,0 | 0 → 0 | -3,1 → -3,1 | -15,8 → -15,8 |
+| Fantasia_Of_The_Wind | 0,500 | 0,0 | 0 → 0 | -4,4 → -4,4 | -16,3 → -16,3 |
+| Gaden | 0,500 | 0,0 | 0 → 0 | -8,2 → -8,2 | -11,0 → -11,1 |
+| KSSMKEND | 0,500 | 0,0 | 0 → 0 | -7,9 → -7,9 | -24,4 → -24,4 |
+| MML2_MotherZone | 0,500 | 0,0 | 0 → 0 | -3,5 → -3,5 | -17,9 → -17,9 |
+| T_ProjectJustice_DiscLoad | 0,500 | 0,0 | 0 → 0 | -5,0 → -5,0 | -20,9 → -20,9 |
+| Tnt07 | 0,500 | 0,0 | 0 → 0 | -8,6 → -8,6 | -23,6 → -23,6 |
+| bubstix | 0,500 | 0,0 | 0 → 0 | -3,1 → -3,1 | -17,2 → -17,2 |
+| cd2 | 0,500 | 0,0 | 0 → 0 | -3,2 → -3,2 | -16,5 → -16,5 |
+| cd4 | 0,500 | 0,0 | 0 → 0 | -1,3 → -1,1 | -16,2 → -16,2 |
+| dcbest | 0,500 | 0,0 | 0 → 0 | -3,8 → -3,8 | -15,9 → -15,9 |
+| escape_newyork | 0,500 | 0,0 | 0 → 0 | -5,1 → -5,1 | -18,5 → -18,5 |
+| golden_axe-turtlevillage2 | 0,500 | 0,0 | 0 → 0 | -8,0 → -8,0 | -17,7 → -17,7 |
+| lufsorr | 0,500 | 0,0 | 0 → 0 | -3,1 → -3,1 | -15,0 → -15,0 |
+| pn28year | 0,500 | 0,0 | 0 → 0 | -5,1 → -5,1 | -19,5 → -19,5 |
+| prepara | 0,500 | 0,0 | 0 → 0 | -13,7 → -13,7 | -25,3 → -25,3 |
+| vswar | 0,500 | 0,0 | 0 → 0 | -3,6 → -3,8 | -18,4 → -18,4 |
+| wb3mlair | 0,500 | 0,0 | 0 → 0 | -9,4 → -9,4 | -24,9 → -24,9 |
+| wb3shop | 0,500 | 0,0 | 0 → 0 | -4,0 → -4,0 | -20,3 → -20,3 |
+| wb3town | 0,500 | 0,0 | 0 → 0 | -6,1 → -6,1 | -20,2 → -20,2 |
+
+**Los recortes, de 19.027 muestras a cero.** Los 22 que no recortaban
+quedan igual (el pico de tres se movió 0,2 dB por lo de arriba). Los diez
+que recortaban bajan entre 1,1 dB (`TF3_1_awe`, `Fire_Mustang`) y 4,5 dB
+(`rshinld`), un poco más que lo que estimaba la opción B por el margen de
+0,5 dB; la batalla, 3,1 dB, a -13,1 LUFS.
 
 ## 5b. La frase de la batalla, que el reparto cortaba: hecho
 

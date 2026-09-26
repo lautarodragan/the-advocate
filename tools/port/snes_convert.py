@@ -6068,6 +6068,12 @@ def parser_de_flags():
                              "todas. El banco pasa a no entrar entero en la "
                              "ARAM, que no es un problema: ahí vive un "
                              "paquete de mapa por vez")
+    parser.add_argument("--aire-de-medida", type=float, metavar="AIRE",
+                        help="el mismo aire para todos los temas, en vez de "
+                             "la tabla de techos: es con lo que "
+                             "`tools/audio/techos.py` arma la ROM en que mide "
+                             "el pico de cada tema. Ver `leer_techos` en "
+                             "tools/audio/snes_music.py")
     parser.add_argument("--sin-timer", action="store_true",
                         help="los dígitos del cronómetro —once glifos de la "
                              "imagen de System al final del banco de sprites, "
@@ -6859,7 +6865,8 @@ def main():
     driver, muestras, hechos, banco, afuera = snes_music.build_varios(
         pedidos, args.game_dir, pedidos_se,
         prioridad=[t for t in (tema_titulo, arranque) if t != 0xFF],
-        tope=(1 << 30) if args.banco_entero else None)
+        tope=(1 << 30) if args.banco_entero else None,
+        aire_de_medida=args.aire_de_medida)
     # El paquete de audio de cada mapa, en el orden de la tabla de mapas: los
     # temas que sus páginas pueden prender —más, en el de arranque, el que
     # suena desde el principio, y en todos el propio del mapa— y las muestras
