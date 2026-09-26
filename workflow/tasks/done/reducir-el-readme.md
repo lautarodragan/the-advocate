@@ -105,3 +105,5 @@ defaults de `justfile`, `tools/` (`render_map.py`, `msu.py`,
 `snes_samples.py`, `entregar.py`, `ensamblar.py`, `retro.py`, `batalla.py`,
 `experiencia.py`, `fuente.py`, `fork.py`, `cache_disco.py`), `rom/src/msu1.s`
 y cuatro pruebas.
+
+**taro lo dio por bueno el 2026-09-26.**
