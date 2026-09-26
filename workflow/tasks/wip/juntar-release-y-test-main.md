@@ -188,3 +188,16 @@ libre de `FAR` es el relleno del `.align` que cierra `cabecera.s`. El banco 0
 coincide con el método del `.res` de AGENTS.md. Los tiempos son de un worktree
 con `rom/build/` vacío (frío) o con el caché lleno y los cartuchos borrados
 (caliente), con otro agente usando CPU a la vez.
+
+# Lo hecho (2026-09-25, en curso)
+
+taro decidió juntar con la forma recomendada: `release` pasa a ser el unido y
+`test-main` deja de existir. `test-special` queda.
+
+Antes de empezar, sobre `cfb100e` (con el tinte ya arreglado y el respaldo
+liviano adentro): `just cartuchos` en frío 266 s —`test-main` 154, 
+`test-special` 13, `release` 28 y las pistas de MSU-1 71—, y `just pruebas`
+632 casos en verde.
+
+1. El `Teleport` al 6 delante de los 24 casos que corrían en el mapa de
+   arranque: commit aparte, 632 en verde, ninguna golden se movió.
