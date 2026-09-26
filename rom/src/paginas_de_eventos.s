@@ -1159,6 +1159,25 @@ listo:
     rts
 .endproc
 
+; Cuánto avanza el salto del héroe por cuadro, en A: `jump_speed[move_speed - 1]`
+; de RM2k, con la velocidad que le dejó la última ruta. Conserva X.
+.proc salto_del_heroe
+.a8
+.i16
+    phx
+    jsr hero_vel_leer
+    rep #$20
+.a16
+    and #$00FF
+    dec a
+    tax
+    sep #$20
+.a8
+    lda f:salto_por_vel, x
+    plx
+    rts
+.endproc
+
 ; La capa de la página activa del evento cuyo índice trae A, o $FF si no tiene
 ; ninguna. Es la misma pasada que `encolar_por_accion`: gana la última página
 ; cuyas condiciones se cumplen. Conserva X e Y; pisa `pag_*` y `pg_*`, que

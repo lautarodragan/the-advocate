@@ -72,6 +72,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_saltos.py`: teletransportes encadenados
 * `rpgmaker/test_salto_atraviesa.py`, `rpgmaker/test_salto_colgado.py`: saltos
   con atravesar, y al final de una ruta forzada
+* `rpgmaker/test_salto_velocidad.py`: lo que dura el salto del héroe según
+  su velocidad
 * `rpgmaker/test_puerta_misma.py`: una puerta al mismo mapa
 * `rpgmaker/test_carga_descomprimida.py`: la VRAM, la grilla y los dibujos
   de la animación después de cargar cada mapa y de volver de una pelea,

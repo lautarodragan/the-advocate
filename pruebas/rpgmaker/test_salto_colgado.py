@@ -114,8 +114,8 @@ def test_un_teleport_al_mismo_mapa_no_deja_al_heroe_con_arco(partida):
 
     Medido: acá no pasa tampoco, y por una razón que no es la de RM2k sino de
     plazos. Un `Teleport` cuesta el fundido —la celda nueva aparece unos noventa
-    ticks después del comando— y un salto del héroe dura once: `SALTO_PASO`
-    sobre `SALTO_VELOCIDAD`. El salto siempre aterriza antes. La prueba está acá
+    ticks después del comando— y un salto del héroe dura once a la velocidad 4,
+    y treinta y dos a la 1. El salto siempre aterriza antes. La prueba está acá
     para que se sepa si algún día eso deja de valer, porque el orden es lo único
     que lo sostiene.
     """
