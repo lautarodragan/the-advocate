@@ -3,7 +3,7 @@
 ; --- la lluvia ------------------------------------------------------------------
 ;
 ; `Game_Screen::UpdateRain` y `Weather::DrawRain`, con la regla de RM2k sobre
-; la pantalla de 256x224: ver OP_WEATHER en eventos.py, que es la referencia. El
+; la pantalla de 256x224: ver OP_WEATHER en eventos.py, que tiene el porqué. El
 ; estado vive en la RAM lejana: el tipo y la fuerza del clima, cuántas gotas
 ; hay y el azar de la lluvia —un xorshift propio, sembrado cada vez que el
 ; clima cambia— en `FAR_CLIMA`, y tres bytes por gota —x, y y la vida— en

@@ -119,8 +119,8 @@ reusada:
 ; un giro con la frecuencia que trae A. Es el contador de parada de RM2k
 ; —`SetMaxStopCountForStep` y `ForTurn`— y con la 8 los dos dan cero, que es
 ; por lo que "girar es gratis y los pasos van seguidos" era exacto sin saberlo.
-; Las tablas las emite el conversor con las mismas funciones que usa la
-; referencia. Usan Y y no X, porque X es la ranura de quien pregunta.
+; Las tablas las emite el conversor desde `eventos.espera_tras_paso` y
+; `espera_tras_giro`. Usan Y y no X, porque X es la ranura de quien pregunta.
 .proc tras_paso
 .a8
 .i16
@@ -253,8 +253,9 @@ siguiente:
 
 ; Un cuadro de la ruta de la ranura que apunta X. Es el mismo programa que
 ; `paso_de_ruta` para el héroe, y por eso las dos hacen lo mismo con las mismas
-; órdenes: si acá se contara distinto, una ruta terminaría en otro cuadro que en
-; la referencia y `ProceedWithMovement` soltaría la página cuando no toca.
+; órdenes: si acá se contara distinto, la ruta de un evento terminaría en otro
+; cuadro que la del héroe y `ProceedWithMovement` soltaría la página cuando no
+; toca.
 ; Los saltos de acá adentro van con `jmp` y no con `bra`, por lo mismo que en
 ; `paso_de_ruta`: el cuerpo creció y los 127 bytes de alcance se quedaron cortos.
 .proc cuadro_de_ruta_ev
@@ -731,7 +732,8 @@ listo:
 
 ; Y la mueve una celda en la dirección que trae A. Se hace al **empezar** el
 ; paso, no al terminarlo: es lo que hace `begin_step` con el héroe, y contarlo
-; distinto dejaría a los dos lados con la celda cambiada en cuadros distintos.
+; distinto dejaría al héroe y a los eventos con la celda cambiada en cuadros
+; distintos.
 ; Pone la celda del evento de la ranura X en `celda_x`, `celda_y`. Lo usa el
 ; salto, que la mueve de una en vez de de a un paso.
 .proc mover_celda_a_evento

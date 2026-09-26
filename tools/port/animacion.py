@@ -2,9 +2,8 @@
 """El **dibujo** de una animación de batalla sobre el mapa.
 
 Vive aparte de `snes_convert.py` por la misma razón que `imagen.py`: no es un
-mapa. Es un dibujo suelto que hay que meter en la pantalla, y lo único que el
-conversor y la referencia tienen que compartir es **exactamente dónde cae y de
-qué color es cada pixel**. Los sonidos y los destellos de la misma animación
+mapa. Es un dibujo suelto que hay que meter en la pantalla, y lo único que
+hay que decidir es **exactamente dónde cae y de qué color es cada pixel**. Los sonidos y los destellos de la misma animación
 no están acá: ésos son `OP_ANIMATION` en `eventos.py`, y existen desde el
 2026-09-11.
 
@@ -30,7 +29,7 @@ achica entera hasta entrar en la caja**, con su proporción, y cuánto se achic�
 lo dice el conversor animación por animación. Las chicas casi no se tocan —una
 de 96x96 queda en 64x64, el 67%— y las grandes de la intro sí: la 82 mide
 536x416 y queda en 64x49, el 11%. Nada se dibuja mal en silencio: el criterio
-es una cuenta, la emite el conversor y la referencia la repite.
+es una cuenta, `tamano`, y es la que exige `test_parches.py`.
 
 Lo que se pierde, y está declarado en
 `workflow/divergencias/la-animacion-de-batalla-achicada.md`:
@@ -78,7 +77,7 @@ POS_ARRIBA, POS_CENTRO, POS_ABAJO = 0, 1, 2
 ALCANCE_PANTALLA = 1        # `Animation::Scope_screen`
 
 # El alfa a partir del cual un pixel se dibuja. La mitad, y redondeando para
-# arriba: un pixel medio a medio se queda. Los dos lados hacen esta cuenta.
+# arriba: un pixel medio a medio se queda.
 ALFA_MINIMO = 128
 
 _CACHE = {}
@@ -141,7 +140,7 @@ def tamano(ancho, alto):
     la caja, con su proporción.
 
     El denominador es el lado que más se pasa, y nunca menos que la caja: una
-    animación que ya entra no se agranda. Va con enteros de los dos lados.
+    animación que ya entra no se agranda. Va con enteros.
     """
     den = max(ancho, alto, CAJA)
     return max(1, ancho * CAJA // den), max(1, alto * CAJA // den)
@@ -188,7 +187,7 @@ def _tenir(trozo, tono):
 
     `eventos.tenir` trabaja sobre los quince bits de la consola, que es donde
     la comparación mira: teñir los ocho del PNG y recortar después daría otro
-    número, y sería una diferencia que los dos lados no comparten.
+    número que el del tinte de pantalla sobre el mismo color.
     """
     from port import eventos
     from PIL import Image
@@ -237,8 +236,7 @@ def convertir(anim, hoja):
         entero.paste(chico, (ox, oy))
         cuadros.append(entero)
     # Los colores de todos los cuadros juntos, a quince. `titulo.reducir` no
-    # promedia, así que no inventa un color que haya que volver a cuantizar, y
-    # da lo mismo en el conversor y en la referencia.
+    # promedia, así que no inventa un color que haya que volver a cuantizar.
     pixeles = []
     for entero in cuadros:
         for r, g, b, a in entero.get_flattened_data():
@@ -273,7 +271,7 @@ def de_numero(renderer, numero):
     """La animación `numero` convertida, cacheada por proceso.
 
     Convertir una son unos cuantos `resize` grandes y el conversor la pide una
-    vez por mapa que la muestre; la referencia, una vez por cuadro que dibuje.
+    vez por mapa que la muestre.
     """
     from port import eventos
     if numero in _CACHE:

@@ -8,8 +8,8 @@
 ; pixel y direcciona CGRAM en directo, queda teñido exactamente.
 ;
 ; La cuenta es `i * valor / 100` con enteros. Las dos operaciones las hace el
-; hardware y son exactas, así que la referencia en Python hace la misma cuenta
-; y da siempre lo mismo. Una aproximación con corrimientos no serviría: la
+; hardware y son exactas, así que la misma cuenta en Python da siempre lo
+; mismo. Una aproximación con corrimientos no serviría: la
 ; comparación es pixel por pixel.
 
 ; t[i] = i * valor / 100 para i de 0 a 31, topado en 31. A = valor, X = tabla.
@@ -182,8 +182,8 @@ hay_colores:
     ; del líder —en CoreRetro II son 151— y el lazo largo salía 205 ciclos cada
     ; uno. Con eso la vuelta del cuadro en que corre el tinte terminaba en la
     ; línea 224 de 262: **una** de margen. El primer evento de más que pidió
-    ; una paleta la voló, y la pantalla quedó un cuadro sin teñir contra la
-    ; referencia. Medido con la sonda de `contar_perdidos`.
+    ; una paleta la voló, y la pantalla quedó un cuadro sin teñir. Medido con
+    ; la sonda de `contar_perdidos`.
     lda tinte_s
     cmp #TINTE_NEUTRO
     bne cada_color
@@ -228,8 +228,8 @@ sigue_color:
 .a8
     ; La saturación va **antes** del color, que es el orden de `ToneBlit`: allá
     ; `saturation_tone` corre antes que `color_tone`. Al revés el gris se
-    ; calcularía sobre el color ya teñido, y es de las que la comparación no
-    ; vería porque los dos lados harían lo mismo mal.
+    ; calcularía sobre el color ya teñido, y es de las que una golden no vería:
+    ; se sacaría con el error puesto y lo defendería.
     ;
     ; Y sólo cuando hace falta, igual que el `apply_sat` de easyrpg: no se puede
     ; hacer canal por canal —necesita el gris del color entero, o sea los tres a

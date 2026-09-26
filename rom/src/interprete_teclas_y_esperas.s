@@ -14,9 +14,8 @@
 ;
 ; La que **espera** y no encuentra nada rebobina su propio cursor a este mismo
 ; opcode y devuelve el control: el cuadro que viene se la vuelve a ejecutar. Es
-; lo mismo que hace la referencia devolviendo `(i, 0, None)`, y es lo que evita
-; tener que guardar "estoy esperando" en algún lado —el intérprete de un evento
-; paralelo son siete bytes y no le sobra ninguno—.
+; lo que evita tener que guardar "estoy esperando" en algún lado —el
+; intérprete de un evento paralelo son siete bytes y no le sobra ninguno—.
 .proc op_key
 .a8
 .i16

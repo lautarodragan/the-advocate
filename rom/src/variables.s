@@ -393,10 +393,8 @@ menor:
 ; es el `Input::IsTriggered` de allá. Sostener abajo no baja de a un renglón por
 ; cuadro.
 ;
-; **Este camino no lo cubre la tanda de pixeles**, que sólo sabe apretar A, y
-; por eso la referencia no lo modela: escribir del otro lado código que ninguna
-; prueba corre es la manera en que este repo ya se equivocó tres veces. Lo cubre
-; `pruebas/rpgmaker/test_elegir.py`, que sí puede apretar cualquier botón.
+; Lo cubre `pruebas/rpgmaker/test_elegir.py`, que puede apretar cualquier
+; botón.
 .proc eleccion_tick
 .a8
 .i16
