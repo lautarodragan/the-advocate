@@ -43,6 +43,8 @@ import os
 import shutil
 import sys
 
+import numpy
+
 # Corrido como script —que es como lo corren las recetas—, Python pone en el
 # `sys.path` la carpeta de este archivo y no `tools/`, que es de donde se
 # importan los paquetes. Se la reemplaza en vez de sumar `tools/` al lado: con
@@ -222,6 +224,19 @@ def pack_tile(indices, planes=8):
     return bytes(data)
 
 
+def pack_tiles(tiles, planes=8):
+    """`pack_tile` de varios tiles a la vez: `tiles` es un arreglo de numpy
+    de (n, 8, 8) índices, y sale la lista de los n tiles empaquetados."""
+    bits = (tiles[..., None] >> numpy.arange(planes, dtype=numpy.uint8)) & 1
+    # (n, y, x, plano) -> un byte por fila y plano, el pixel de la izquierda
+    # en el bit alto; y de ahí al orden del PPU: pares de planos, y adentro
+    # de cada par fila por fila.
+    filas = numpy.packbits(bits, axis=2, bitorder="big")[:, :, 0, :]
+    ppu = filas.reshape(-1, CELL, planes // 2, 2).transpose(0, 2, 1, 3)
+    datos = numpy.ascontiguousarray(ppu).reshape(len(tiles), planes * 8)
+    return [bytes(fila) for fila in datos]
+
+
 def cgram_word(color):
     """Palabra de CGRAM: 0BBB BBGG GGGR RRRR."""
     red, green, blue = color
@@ -385,18 +400,36 @@ def sprite_colors(image, index, poses=None):
     """
     base_x = (index % 4) * SPRITE_W * 3
     base_y = (index // 4) * SPRITE_H * 4
+    # Con numpy y no pixel por pixel: el bloque del personaje a un arreglo,
+    # las poses por slicing, y cada color de 15 bits como un solo entero
+    # para contarlos con `unique`. Se leen millones de pixeles por ROM.
+    bloque = numpy.asarray(image.crop((base_x, base_y,
+                                       base_x + SPRITE_W * 3,
+                                       base_y + SPRITE_H * 4)))
+    vistos = numpy.concatenate([
+        bloque[(pose // 3) * SPRITE_H:(pose // 3 + 1) * SPRITE_H,
+               (pose % 3) * SPRITE_W:(pose % 3 + 1) * SPRITE_W].reshape(-1, 4)
+        for pose in (sorted(TODAS_LAS_POSES) if poses is None
+                     else sorted(poses))])
+    return _contar_colores(vistos)
+
+
+def _contar_colores(pixeles):
+    """Un Counter de los colores de 15 bits de los pixeles RGBA opacos.
+
+    **Las claves van en el orden en que aparecen**, que es el que tenía el
+    `Counter` armado pixel por pixel: quien lo recorre —`merge_least_visible`
+    desempata por ese orden— tiene que ver lo mismo.
+    """
+    opacos = pixeles[pixeles[:, 3] != 0, :3] >> 3
+    codigos = ((opacos[:, 0].astype(numpy.int32) << 10)
+               | (opacos[:, 1].astype(numpy.int32) << 5) | opacos[:, 2])
+    unicos, primero, cuantos = numpy.unique(codigos, return_index=True,
+                                            return_counts=True)
     counts = collections.Counter()
-    # `load()` y no `getpixel`: lee lo mismo, pero `getpixel` paga un
-    # `load()` por pixel, y acá se leen millones por ROM.
-    pixeles = image.load()
-    for pose in (sorted(TODAS_LAS_POSES) if poses is None else sorted(poses)):
-        ox = base_x + (pose % 3) * SPRITE_W
-        oy = base_y + (pose // 3) * SPRITE_H
-        for y in range(SPRITE_H):
-            for x in range(SPRITE_W):
-                red, green, blue, alpha = pixeles[ox + x, oy + y]
-                if alpha:
-                    counts[(red >> 3, green >> 3, blue >> 3)] += 1
+    for k in numpy.argsort(primero, kind="stable").tolist():
+        c = int(unicos[k])
+        counts[(c >> 10, (c >> 5) & 31, c & 31)] = int(cuantos[k])
     return counts
 
 
@@ -469,25 +502,27 @@ def pose_tiles(image, index, pose, lookup, mapping):
     por eso una pose se sube con cuatro DMA de 128 bytes.
     """
     ox, oy = pose_origin(index, pose)
-    pixeles = image.load()          # ver `sprite_colors`
-    out = []
-    for ty in range(4):
-        for tx in range(4):
-            cell = []
-            for y in range(CELL):
-                row = []
-                for x in range(CELL):
-                    sx = tx * CELL + x - (OBJ_W - SPRITE_W) // 2
-                    sy = ty * CELL + y
-                    if 0 <= sx < SPRITE_W and 0 <= sy < SPRITE_H:
-                        r, g, b, a = pixeles[ox + sx, oy + sy]
-                        row.append(lookup[mapping[(r >> 3, g >> 3,
-                                                   b >> 3)]] if a else 0)
-                    else:
-                        row.append(0)
-                cell.append(tuple(row))
-            out.append(pack_tile(tuple(cell), planes=4))
-    return out
+    # Con numpy, como `sprite_colors`: la pose a un arreglo, cada color
+    # distinto traducido una sola vez, y los planos de bits de los dieciséis
+    # tiles juntos.
+    pixeles = numpy.asarray(image.crop((ox, oy, ox + SPRITE_W,
+                                        oy + SPRITE_H)))
+    rgb = pixeles[:, :, :3] >> 3
+    codigos = ((rgb[:, :, 0].astype(numpy.int32) << 10)
+               | (rgb[:, :, 1].astype(numpy.int32) << 5) | rgb[:, :, 2])
+    opaco = pixeles[:, :, 3] != 0
+    unicos, cual = numpy.unique(codigos[opaco], return_inverse=True)
+    indices = numpy.array(
+        [lookup[mapping[(c >> 10, (c >> 5) & 31, c & 31)]]
+         for c in unicos.tolist()], dtype=numpy.uint8)
+    pose_entera = numpy.zeros((OBJ_H, OBJ_W), dtype=numpy.uint8)
+    margen = (OBJ_W - SPRITE_W) // 2
+    centro = numpy.zeros((SPRITE_H, SPRITE_W), dtype=numpy.uint8)
+    centro[opaco] = indices[cual]
+    pose_entera[:SPRITE_H, margen:margen + SPRITE_W] = centro
+    tiles = pose_entera.reshape(4, CELL, 4, CELL).swapaxes(1, 2).reshape(
+        16, CELL, CELL)
+    return pack_tiles(tiles, planes=4)
 
 
 def cambia_de_grafico(evento):
