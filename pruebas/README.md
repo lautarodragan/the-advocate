@@ -145,6 +145,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_tema_del_mapa.py`: el tema de cada mapa
 * `rpgmaker/test_bateria_suena.py`: lo que la música les escribe a las voces
   de la batería
+* `herramientas/test_musica_stream.py`: el stream que arma el conversor: a
+  qué voz va cada nota y cuándo se suelta
 * `abl/test_msu.py`: las pistas de MSU-1
 
 **Lo propio de ABL**
