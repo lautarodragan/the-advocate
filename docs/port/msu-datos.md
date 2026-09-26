@@ -83,7 +83,8 @@ Mednafen se lee guardando el estado (F5): el `.mc0` de `~/.mednafen/mcs/` es
 un gzip, y la WRAM va entera en su entrada `WRAM`.
 
 En el FX Pak buscar dentro de su búfer de 16 KB es inmediato, y fuera de él
-es leer la tarjeta SD —`prepare_data` en `/extras/ref/sd2snes/src/msu1.c`—.
+es leer la tarjeta SD —`prepare_data` en `src/msu1.c` de sd2snes, su
+firmware—.
 Eso **no está medido**. El tope de la espera —`MSU_ESPERA`, en
 `rom/src/msu1.s`— es unas diez veces lo que tarda Mednafen.
 

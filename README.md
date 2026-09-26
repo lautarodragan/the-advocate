@@ -151,6 +151,8 @@ La consola:
 * el [wiki de superfamicom.org](https://wiki.superfamicom.org/)
 * "SNES translucency", de Bregalad — el color math explicado; está en
   `docs/snes/snes-translucency-by-bregalad.txt`
+* [sd2snes](https://github.com/mrehkopf/sd2snes) — el firmware del FX Pak
+  Pro: cómo implementa de verdad el MSU-1
 * [el desensamblado de Final Fantasy VI](https://github.com/everything8215/ff6)
   — el texto como un byte por letra que compone el 65816, que es lo que hace
   la ventana de mensaje

@@ -55,7 +55,8 @@ audio-busy bit. Reading `$2000` doesn't bring the MSU-1 up to date, so in
 practice the bit clears at the end of the frame in which those cycles run
 out: every seek costs one or two frames. bsnes, snes9x, mesen-s, Mesen2
 and ares never set either bit. On the FX Pak Pro a seek outside its 16 KB
-buffer reads the SD card (`prepare_data` in `/extras/ref/sd2snes/src/msu1.c`).
+buffer reads the SD card (`prepare_data` in `src/msu1.c` of sd2snes, its
+firmware).
 
 The data port running in Mednafen was checked on 2026-09-26 by saving a
 Mednafen state (F5) in the droid fight and reading the WRAM out of the
