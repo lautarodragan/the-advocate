@@ -29,8 +29,8 @@ Tres cosas **no** son de RM2k, y las tres son a propósito:
   azar es el mismo xorshift de dieciséis bits que el port ya usa para
   `ControlVars` —`eventos.azar_siguiente`—, pero con **semilla propia**:
   `BATALLA_SEMILLA`. Tener la suya y no compartir `FAR_AZAR` es lo que hace que
-  pelear no le corra el azar al mapa, que es lo que la referencia de pixeles
-  supone cuando dice que una batalla no cuesta ningún tick.
+  pelear no le corra el azar al mapa: un `ControlVars` al azar da lo mismo
+  con una pelea en el medio y sin ella.
 
 * **Las divisiones.** Donde easyrpg hace la cuenta en punto flotante y la
   trunca al devolverla, acá es entera. En el ajuste por agilidad eso importa y
