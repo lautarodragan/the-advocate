@@ -2,6 +2,7 @@
 name: "La victoria avisa la experiencia"
 description: "Que la pelea diga N EXP received y Level up"
 type: feature
+assignee: taro
 ---
 
 **Que la victoria diga la experiencia ganada y quién subió de nivel.**
@@ -47,3 +48,11 @@ Lo que queda afuera, a propósito:
 Lo cubre `pruebas/rpgmaker/test_victoria.py`, que lee el texto del tilemap.
 Usa la RAM lejana `$7E7810-$7E781F` (`BA_VIC*` en `ram_lejana.s`); ningún
 opcode nuevo.
+
+Falta que taro lo juegue: que el ritmo de las páginas con A se sienta bien y
+que la pelea se cierre en la última. Las capturas de antes y después están
+en `/shared/goldens/2026-09-26-victoria/`. Ninguna golden de la tanda se
+movió: ninguna captura la pantalla de la victoria. `test_cores.py` tampoco
+pasa por ella, así que la comparación entre snes9x y bsnes no cobra la RAM
+nueva; `ba_vic_empezar` escribe las ocho posiciones antes de que nadie las
+lea.
