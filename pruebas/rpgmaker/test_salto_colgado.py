@@ -30,7 +30,7 @@ def sin_ruta_ni_mensaje(una, cuadros):
     """Corre `cuadros` ticks cerrando todo mensaje que se abra."""
     for _ in range(cuadros):
         if una.byte("msg_abierto"):
-            una.tocar("a")
+            una.tocar_ticks("a")
         else:
             una.correr(1)
 

@@ -47,7 +47,7 @@ def pasar_mensajes(una, cuantos):
             una.correr(1)
         else:
             raise AssertionError("no se abrió el mensaje que se esperaba")
-        una.tocar("a")
+        una.tocar_ticks("a")
     return una
 
 
@@ -62,7 +62,7 @@ def frente_al_shave(partida):
     for _ in range(30):
         if abierta(una):
             return una
-        una.tocar("a")
+        una.tocar_ticks("a")
         for _ in range(60):
             if abierta(una):
                 return una
@@ -80,7 +80,7 @@ def test_la_eleccion_se_abre_con_el_cursor_en_la_primera(partida):
 
 def test_a_elige_la_marcada(partida):
     una = frente_al_shave(partida)
-    una.tocar("a")
+    una.tocar_ticks("a")
     # La rama "Yes" dice algo antes de prender el switch, así que hay que
     # cerrarle el mensaje para que la página llegue hasta el final.
     pasar_mensajes(una, 1)
@@ -90,9 +90,9 @@ def test_a_elige_la_marcada(partida):
 
 def test_abajo_mueve_el_cursor_y_elige_la_otra(partida):
     una = frente_al_shave(partida)
-    una.tocar("down")
+    una.tocar_ticks("down")
     assert una.byte("eleg_sel") == 1, "abajo no movió el cursor"
-    una.tocar("a")
+    una.tocar_ticks("a")
     pasar_mensajes(una, 1)
     una.correr(60)
     assert not una.switch(USADO), \
@@ -104,9 +104,9 @@ def test_abajo_mueve_el_cursor_y_elige_la_otra(partida):
 def test_el_cursor_da_la_vuelta(partida):
     """Arriba desde la primera va a la última, que es `column_max` en uno."""
     una = frente_al_shave(partida)
-    una.tocar("up")
+    una.tocar_ticks("up")
     assert una.byte("eleg_sel") == 1, "arriba no dio la vuelta"
-    una.tocar("down")
+    una.tocar_ticks("down")
     assert una.byte("eleg_sel") == 0, "abajo no dio la vuelta"
 
 
@@ -117,7 +117,7 @@ def test_cancelar_elige_la_que_dice_el_dato(partida):
     """
     una = frente_al_shave(partida)
     assert una.byte("eleg_cancel") == 2, "no leyó el `cancel_type` del dato"
-    una.tocar("b")
+    una.tocar_ticks("b")
     pasar_mensajes(una, 1)
     una.correr(60)
     assert not una.switch(USADO), "cancelar corrió la rama equivocada"

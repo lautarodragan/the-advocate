@@ -15,8 +15,7 @@ Cuántas son y cuántas pasan lo dice la corrida; `python3 -m pytest pruebas
     pruebas/rpgmaker/      lo que el motor tiene que hacer igual que RM2k
     pruebas/abl/           lo propio del juego: el recorrido, las piedras,
                            el recuerdo, el cartel, las escenas y cinemáticas
-    pruebas/herramientas/  las que no corren ninguna ROM —salvo `test_pila`,
-                           que mide la pila del cartucho corriendo—
+    pruebas/herramientas/  las que no corren ninguna ROM
     pruebas/arnes/         consola, tanda, recorrido y video; y lo que
                            comparten varias pruebas: menu, batalla, datos,
                            dibujo y piedras. Ninguna prueba importa de otra
@@ -83,6 +82,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_terreno.py`: `StoreTerrainID`
 * `rpgmaker/test_cores.py`: snes9x contra bsnes, para la memoria sin
   inicializar —ver `AGENTS.md`, "La regla que sostiene todo"—
+* `rpgmaker/test_pila.py`: la hondura de la pila contra `bancos.PILA`, en
+  los caminos más hondos que se conocen
 
 **Eventos y comandos**
 
@@ -186,8 +187,6 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `herramientas/test_reservas_de_la_wram.py`: que nadie más caiga en la mitad
   alta de la WRAM, que es de la grilla y de la pelea
 * `herramientas/test_bancos.py`: el acomodo de bancos
-* `herramientas/test_pila.py`: la hondura de la pila contra `bancos.PILA`,
-  con la ROM corriendo
 * `herramientas/test_ensamblar.py`: `ensamblar.py`
 * `herramientas/test_protocolo.py`: el bytecode: las declaraciones y los
   generados
