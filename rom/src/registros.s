@@ -50,6 +50,21 @@ WRDIVH   = $4205
 WRDIVB   = $4206        ; divisor de 8: escribirlo arranca la cuenta
 RDDIVL   = $4214        ; el cociente de 16 bits
 
+; El otro multiplicador, el del PPU: el de la matriz del modo 7, que multiplica
+; M7A —dieciséis bits con signo, dos escrituras— por el último byte escrito en
+; M7B —ocho con signo— y deja el producto de 24 bits en $2134-$2136 **al
+; instante**. Vale fuera del modo 7, y este port está en el modo 3 fijo.
+;
+; **Es de `irq_musica` y de nadie más**: el fundido del tema escala con él el
+; volumen de cada voz —ver `volumen_al_dia`—. El de arriba no se puede usar
+; ahí, porque el código principal lo usa en treinta lugares y una
+; interrupción entre su escritura y su lectura le cambiaría la cuenta. Con
+; éste pasa lo mismo al revés: si algún día el código principal lo usa, tiene
+; que hacerlo con las interrupciones cortadas.
+M7A      = $211B
+M7B      = $211C
+MPYM     = $2135        ; el byte del medio del producto: entre 256
+
 ; --- el PPU ----------------------------------------------------------------
 BGMODE   = $2105        ; qué modo gráfico y con cuántos bits por pixel
 BG1SC    = $2107        ; dónde vive el tilemap de BG1 y de qué tamaño es

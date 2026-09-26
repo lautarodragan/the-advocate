@@ -167,7 +167,10 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   escriba al DSP lo que el stream dice, cuadro por cuadro
 * `rpgmaker/test_musica_techos.py`: que ningún tema recorte con su techo de
   volumen, y que la tabla de techos sea la de la mezcla de hoy
-* `abl/test_msu.py`: las pistas de MSU-1
+* `rpgmaker/test_fundido_del_tema.py`: que el `FadeOutBGM` y la salida del
+  título bajen el tema y no los efectos, escuchando el audio del core
+* `abl/test_msu.py`: las pistas de MSU-1, y lo que pasa con ellas al salir
+  del título y en un fundido
 
 **Lo propio de ABL**
 
