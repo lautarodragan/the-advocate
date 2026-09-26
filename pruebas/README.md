@@ -172,6 +172,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 
 **El conversor y los generados**, sin ROM
 
+* `herramientas/test_lz2.py`: cada bloque que la ROM descomprime al cargar un
+  mapa, ida y vuelta por el compresor y por la referencia
 * `herramientas/test_bancos.py`: el acomodo de bancos
 * `herramientas/test_pila.py`: la hondura de la pila contra `bancos.PILA`,
   con la ROM corriendo
