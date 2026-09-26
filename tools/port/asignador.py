@@ -30,19 +30,6 @@ COLORS_PER_PALETTE = 16
 USABLE_COLORS = COLORS_PER_PALETTE - 1
 
 
-def cut_tiles(rows):
-    """La imagen partida en celdas de 8x8, como tuplas de filas."""
-    height, width = len(rows), len(rows[0])
-    grid = []
-    for ty in range(height // CELL):
-        line = []
-        for tx in range(width // CELL):
-            line.append(tuple(tuple(rows[ty * CELL + y][tx * CELL:(tx + 1) * CELL])
-                              for y in range(CELL)))
-        grid.append(line)
-    return grid
-
-
 def tile_colors(tile):
     """Los colores de un tile, sin contar los píxeles transparentes."""
     return frozenset(p for row in tile for p in row if p is not None)
