@@ -54,12 +54,12 @@ porqué de la decisión está en `DITTO.md` y lo que hay adentro, en
 ## Cómo se arma
 
 **Hace falta `python`, un core de libretro y `ca65` + `ld65`**, más las
-herramientas de Rust del repo —`ditto`, `protocol`, `gunter` y `voodoo`—, que
-**se consumen desde el PATH**: se instalan una vez y ningún script ni prueba de
-este juego llama a `cargo`. El porqué, y cómo se compila `cc65`, que no viene
+herramientas de Rust del repo —las lista `tools/README.md`—, que **se consumen
+desde el PATH**: se instalan una vez y ningún script ni prueba de este juego
+llama a `cargo`. El porqué, y cómo se compila `cc65`, que no viene
 empaquetado en Arch, están en `AGENTS.md`. Nada de esto pide un contenedor.
 
-    just herramientas     # instala ditto, protocol, gunter y voodoo
+    just herramientas     # instala las herramientas de Rust
     just cartuchos        # arma las ROMs: release y las de prueba
     just pruebas          # la tanda entera; arma antes lo que haga falta
 
@@ -115,10 +115,12 @@ instrucción y **obliga a que el índice sea X**, porque el direccionamiento
 absoluto largo indexado con Y no existe.
 
 Lo que no entra en un banco no puede recorrerse con un índice: la grilla de
-celdas de un mapa grande no entra, y se lee con un puntero de 24 bits. Ahí
-aparece la otra cara de LoROM: pasarse del `$FFFF` no lleva al `$0000` del
-banco siguiente sino a su `$8000`. `ptr_mas` y `ptr_menos` son las únicas
-rutinas que saben eso; todo lo demás las usa y se olvida del tema. Y una tabla
+celdas de un mapa grande no entra, y se lee con un puntero de 24 bits. Vive
+descomprimida en la mitad alta de los dos bancos de la WRAM —ver
+`workflow/decisiones/la-grilla-vive-en-la-wram.md`—, que tiene la misma forma
+que LoROM: pasarse del `$FFFF` no lleva al `$0000` del banco siguiente sino a
+su `$8000`. `ptr_mas` y `ptr_menos` son las únicas rutinas que saben eso; todo
+lo demás las usa y se olvida del tema. Y una tabla
 mudada, o una que se recorra con `[ptr], y`, **tiene que declararse con
 `.bloque`** para no quedar partida entre dos bancos: ver `bloque` en
 `tools/port/snes_convert.py`.
