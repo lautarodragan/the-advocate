@@ -1,15 +1,18 @@
 ---
 name: "Reducir el README"
-description: "taro está reescribiendo README.md a mano para que sea mucho más corto"
+description: "README.md mucho más corto: fuera el relato y lo duplicado, lo demás a docs/ y decisiones/"
 type: docs
 assignee: taro
 ---
 
-taro lo está reescribiendo a mano desde el 2026-09-25. **Mientras esté en
-`wip/`, nadie más toca `README.md`**: lo que haya que cambiarle se anota acá
-abajo y lo resuelve él.
+taro lo empezó a mano el 2026-09-25 y el 2026-09-26 se lo pasó a un agente,
+con sus criterios: fuera lo que es relato (lo tiene el registro de commits),
+a `docs/` o `decisiones/` lo que se pueda, y nada que ya explique un README
+más acotado. Se queda qué es el proyecto, cómo arrancar, los porqués de
+arquitectura sin línea de código donde vivir y "Lo que falta".
 
-Anotado para él:
+Los párrafos viejos o falsos que distintos agentes anotaron durante esos
+días, y que esta pasada corrige o saca:
 
 * `README.md` enlaza a una sección "El MSU-1" (`#el-msu-1`, en el índice de
   arriba) que no existe, y el docstring de `tools/audio/msu.py` la cita.
@@ -53,3 +56,32 @@ Anotado para él:
   de arranque por el comando 3. `BOOT_CUADROS` bajó de 112 a 40 el
   2026-09-26 y ya no está dimensionado sobre el techo: ver
   `workflow/decisiones/el-arranque-esta-dimensionado-para-el-paquete-de-arranque.md`.
+
+## Cómo quedó
+
+Los ocho puntos de arriba están resueltos: el ancla y la cita de `msu.py`, en
+el índice nuevo y en el commit de las citas; `--inicio` se fue con "Cómo se
+verifica", que estaba entera en los docstrings de las pruebas; el resto, en
+el commit de los párrafos viejos del audio. Cada commit de la pasada dice en
+su mensaje adónde fue cada sección que sacó.
+
+Lo que conviene que taro lea, porque es criterio y no lo verifica nada:
+
+* el README entero, que ahora es corto;
+* las dos decisiones nuevas, `decisiones/las-poses-se-suben-en-caliente.md` y
+  `decisiones/el-color-math-no-se-usa.md`;
+* la divergencia que vuelve,
+  `divergencias/atravesar-paredes-vale-mientras-dura-la-ruta.md`, que se
+  había perdido en la reescritura del 2026-09-20 y que `celda_bloqueada`
+  seguía citando.
+
+Lo que se dejó sin tocar a propósito, porque ya no es el README:
+
+* dos comentarios de `tools/port/eventos.py` citan secciones que no existen
+  ("Lo que falta", por `PlayBGM`, y "la tabla de orden", por `PlaySound`),
+  pero el párrafo entero está viejo —dice que la ROM sube un solo banco— y
+  arreglarlo es criterio, no una cita;
+* la línea de `README.md` en el mapa de arriba de `AGENTS.md` dice "el port
+  a SNES entero con sus trampas", y `decisiones/README.md` dice que "el
+  porqué largo de varias está además en `README.md`": los dos describen el
+  README de antes.
