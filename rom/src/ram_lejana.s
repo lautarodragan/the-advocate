@@ -190,6 +190,10 @@ MED_SP        = FAR_MED + 11    ; palabra: el `sp_change`
 MED_P         = FAR_MED + 13    ; cuatro bytes: el producto, y el cociente
 MED_R         = FAR_MED + 17    ; palabra: el resto
 MED_ID        = FAR_MED + 19    ; palabra: el número de RM2k del ítem
+; Los bits de `item_medicina`, que emite el conversor. `medicina_usar` los
+; escribe con el número; la pelea, que los lee desde el 2026-09-26, por nombre.
+MED_KO_ONLY   = $01             ; sólo sobre un caído
+MED_LEVANTA   = $02             ; saca el estado de muerto: levanta al caído
 
 ; Lo que `par_ev` vale mientras corre una página de tropa: ni el primer plano
 ; ($FF) ni un evento del mapa, que son menos de EV_MAX. Es lo que le dice a
@@ -288,6 +292,11 @@ BA_ACC     = FAR_BATALLA + 48     ; dos bytes por combatiente: orden y blanco
 BA_EJEC    = FAR_BATALLA + 72     ; el orden de ejecución, un combatiente por byte
 BA_CAND    = FAR_BATALLA + 88     ; los vivos de un lado, para elegir blanco
 BA_UNO     = FAR_BATALLA + 96     ; los combatientes, BA_BYTES cada uno
+; Si el ítem del mensaje en curso levantó a un caído: cambia el segundo renglón.
+; **Fuera de `FAR_BATALLA`**, en $7E7850-$7E785F, que es lo que se le repartió
+; a esto el 2026-09-26 —había otros agentes eligiendo RAM a la vez—. Como todo
+; lo de la pelea, con dirección de dieciséis bits y el banco de datos en $7E.
+BA_MREVIVIO = $7850
 
 ; Los combatientes: los cuatro primeros son el grupo y los ocho siguientes la
 ; tropa. Que el lugar sea fijo y no una lista compactada es lo que hace que un
