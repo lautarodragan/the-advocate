@@ -38,15 +38,15 @@ SAMPLES_ADDR = 0x0400
 
 BLOQUE = muestras_brr.BLOQUE_MUESTRAS   # 16 muestras por bloque de BRR
 
-# Y cuánto queda para las muestras: de $0400 hasta el final de los 64 KB.
-# Entero, sin reserva: el eco está apagado —FLG con el bit de "no escribir el
-# buffer"— y la pila del SPC700 vive en $0100, o sea debajo. Es el límite que
-# decide cuántos temas entran, porque el banco es uno solo y lo comparten
-# todos: ver `Banco`.
-ARAM_LIBRE = 0x10000 - SAMPLES_ADDR
-# Y lo que se le deja libre igual. No lo necesita nadie: es para que el último
-# golpe de percusión, que se pide por presupuesto y se guarda redondeado a
-# bloques de BRR, no se pase de los 64 KB por unos cientos de bytes.
+# Las muestras van de $0400 hasta el final de los 64 KB —`ARAM_FIN`, más
+# abajo—, sin reserva: el eco está apagado —FLG con el bit de "no escribir el
+# buffer"— y la pila del SPC700 vive en $0100, o sea debajo. Ahí entra un
+# paquete por vez, y es contra eso que se reparte: ver `Banco`.
+#
+# Y lo que se le deja libre a cada paquete al repartir. El largo de cada
+# muestra se redondea a bloques de BRR y el reparto pide por presupuesto, así
+# que es holgura para eso; `Banco` comprueba lo que ocupan de verdad contra
+# la ARAM sin margen. Con 1 KB es con lo que se midió el paso 6.
 ARAM_MARGEN = 1024
 
 # Los opcodes del stream **no se declaran acá**: salen de
@@ -565,67 +565,205 @@ def _orden_del_cuadro(notas, nivel):
 
 # --- el banco compartido ----------------------------------------------------
 
+# Las muestras se piden por clave: ("p", programa, tecla) una melódica,
+# ("g", tecla) un golpe de percusión. Es una por programa de General MIDI y
+# una por golpe en todo el cartucho, así que dos temas que tocan piano usan
+# la misma. La tecla de la melódica elige la zona del SoundFont: ver
+# `zonas_mas_usadas`.
+def claves_del_tema(leido, teclas=None):
+    """Las muestras que pide un tema leído por `leer_tema`, o ninguna.
+    `teclas` son las de `zonas_mas_usadas`; sin ella, el do central."""
+    if not leido:
+        return set()
+    teclas = teclas or {}
+    return ({("p", p, teclas.get(p, snes_samples.REFERENCE_KEY))
+             for p in leido["melodicos"]}
+            | {("g", g) for g in leido["golpes"]})
+
+
+def zonas_mas_usadas(leidos):
+    """{programa: tecla}: con qué tecla se pide la muestra de cada programa,
+    que es la que elige la zona del SoundFont.
+
+    **La zona donde el cartucho entero toca más tiempo-nota de ese
+    programa**, y no la del do central. Una muestra suena bien cerca de su
+    raíz: lejos, el DSP la estira o la aprieta y se oye —una octava abajo
+    los agudos que faltan, una arriba el loop que se acorta—. Medido el
+    2026-09-26 con los 32 temas del `release`: el 34% del tiempo-nota
+    melódico sonaba a doce semitonos o más de la raíz de la muestra del do
+    central, en teclas para las que el SoundFont tiene otra; el bajo
+    sintético 33, en doce temas, toca la zona de `MMBAS40` y no la del 62.
+    Es una por programa igual que antes, así que no cuesta ARAM; lo que
+    pierde es que un programa que dos temas tocan en registros distintos
+    queda bien para uno solo. Es el paso 6 de
+    `workflow/tasks/todo/la-calidad-de-la-musica.md`.
+
+    La tecla es la raíz de esa zona si la zona la cubre —así dos temas que
+    tocan la misma zona piden la misma muestra—, y si no, la tecla que más
+    suena adentro de la zona.
+    """
+    tiempo = collections.defaultdict(collections.Counter)
+    adentro = collections.defaultdict(collections.Counter)
+    for leido in leidos:
+        if not leido:
+            continue
+        for nota in leido["notas"]:
+            if (nota.channel == midi.DRUM_CHANNEL
+                    or nota.channel not in leido["voces"]):
+                continue
+            programa = leido["programas"].get(nota.channel, 0)
+            zona = muestras_brr.zona("program:%d@%d" % (programa, nota.pitch),
+                                     snes_samples.SOUNDFONT)
+            if zona is None:
+                continue
+            tiempo[programa][zona] += nota.end - nota.start
+            adentro[programa, zona][nota.pitch] += nota.end - nota.start
+    teclas = {}
+    for programa, por_zona in tiempo.items():
+        zona = max(por_zona, key=lambda z: (por_zona[z], z))
+        raiz = zona[1]
+        if muestras_brr.zona("program:%d@%d" % (programa, raiz),
+                             snes_samples.SOUNDFONT) == zona:
+            teclas[programa] = raiz
+        else:
+            cuanto = adentro[programa, zona]
+            teclas[programa] = max(cuanto, key=lambda k: (cuanto[k], -k))
+    return teclas
+
+
+def _muestra(clave, presupuesto):
+    """La voz de una clave con ese presupuesto en bytes de BRR, o None si el
+    SoundFont no la tiene."""
+    if clave[0] == "p":
+        return snes_samples.build_voice(snes_samples.SOUNDFONT, clave[1],
+                                        presupuesto, key=clave[2])
+    return snes_samples.build_drum(snes_samples.SOUNDFONT, clave[1],
+                                   presupuesto)
+
+
+# Un presupuesto que nadie alcanza: con él, cada muestra sale a la tasa del
+# SoundFont —topada en `MAX_RATE`—, que es lo que pesaría sin recortar.
+NATIVA = 1 << 24
+# Lo mínimo que se le da a una muestra aunque su paquete esté lleno.
+PISO = 256
+
+
+class Restriccion(collections.namedtuple("Restriccion",
+                                         "nombre claves libre")):
+    """Un grupo de muestras que tiene que entrar junto en `libre` bytes: las
+    de los temas de un paquete, con lo que ocupan sus efectos ya restado, o
+    las de un paquete más las del tema que puede venir sonando."""
+    __slots__ = ()
+
+
+def repartir(claves, restricciones, margen=None):
+    """({clave: presupuesto}, {clave: restricción que la limitó}): cuánto le
+    toca a cada muestra para que cada restricción entre en lo suyo menos
+    `margen`.
+
+    Es un llenado progresivo sobre la fracción del tamaño nativo de cada
+    muestra: se sube la fracción de todas juntas hasta que alguna restricción
+    se llena, las de ésa quedan fijas, y se sigue con las demás. Así una
+    muestra queda limitada por su **peor** paquete y no por el banco entero,
+    y el que tiene lugar de sobra no paga por el que no. Lo que no está en
+    ninguna restricción que se llene va entera.
+    """
+    margen = ARAM_MARGEN if margen is None else margen
+    nativas = {k: len(_muestra(k, NATIVA).data) for k in claves}
+    fraccion, limita = {}, {}
+    libres = set(claves)
+    activas = [r for r in restricciones if r.claves & libres]
+    while libres and activas:
+        peor, cual = None, None
+        for r in activas:
+            suyas = [k for k in r.claves if k in libres]
+            if not suyas:
+                continue
+            fijo = sum(fraccion[k] * nativas[k] for k in r.claves
+                       if k in fraccion)
+            f = (r.libre - margen - fijo) / sum(nativas[k] for k in suyas)
+            if peor is None or f < peor:
+                peor, cual = f, r
+        if peor is None or peor >= 1:
+            break
+        for k in cual.claves & libres:
+            fraccion[k] = max(0.0, peor)
+            limita[k] = cual.nombre
+        libres -= cual.claves
+        activas.remove(cual)
+    return ({k: max(PISO, int(fraccion.get(k, 1.0) * nativas[k]))
+             for k in claves}, limita)
+
+
 class Banco:
-    """Las muestras que comparten **todos** los temas de la ROM.
+    """Las muestras que comparten **todos** los temas de la ROM, una por
+    programa y una por golpe, cada una con el presupuesto de su peor paquete.
 
-    Es uno solo, y no por ahorrar cartucho —de ése sobra— sino por ARAM: las
-    muestras viven en los 64 KB del SPC700. Un banco por tema pediría subirlo
-    en cada `PlayBGM`, y con 32 KB por banco eso es del orden de medio segundo:
-    treinta cuadros de juego frenado. Hoy ese costo se paga en el fundido de un
-    cambio de mapa, que es donde no se ve; ver `paquete_cargar` en `rom/src/paquete_de_audio.s`.
+    Es uno solo, y no por ahorrar cartucho —de ése sobra— sino por la
+    numeración: el SRCN que el stream escribe es el índice de la muestra en
+    el cartucho, así que dos temas que tocan piano apuntan a la misma. Pero
+    **no se sube entero**: a la ARAM van de a paquetes, uno por mapa —ver
+    `paquete_cargar` en rom/src/paquete_de_audio.s—, así que lo que tiene que
+    entrar en los 64 KB no es el banco sino cada paquete, con sus efectos.
 
-    Compartirlo sale casi gratis porque el banco es por **programa** de General
-    MIDI: dos temas que tocan piano usan la misma muestra. Lo que crece es la
-    cantidad de programas distintos, y de que eso no se pague en calidad se
-    ocupa el reparto de sobrantes de `snes_samples.build_bank`. Medido con los
-    cuatro temas de las primeras secuencias: doce programas y dieciocho golpes
-    ocupan 62310 de los 64512 B, y ninguna muestra melódica baja de 21 kHz, que
-    es donde estaban con un tema solo.
+    Por eso el presupuesto es por paquete: el paso 6 de
+    `workflow/tasks/todo/la-calidad-de-la-musica.md`, la opción A, elegida
+    por taro el 2026-09-26. Hasta ese día el banco entero tenía que entrar
+    en la ARAM —40 KB para lo melódico y la percusión con lo que sobrara—, y
+    los temas que no cabían dejaban de aportar programas: diecinueve de los
+    treinta y dos del `release` sonaban con lo que otros habían puesto, o
+    mudos.
 
-    Y conviene tener claro cuál es el límite de verdad. Lo melódico está topado
-    en `ARAM_BUDGET` y la percusión se lleva lo que sobre, así que el que crece
-    con cada tema nuevo es el **directorio** —4 B por muestra— y, sobre todo,
-    el piso: cada programa y cada golpe ocupan algo aunque se les dé casi nada.
-    Con los once temas de la demo de hoy son 54 muestras y 56952 B; con los
-    diecinueve que la demo pide, 89 y 66353, y ahí el lazo de `build_varios`
-    que saca aportantes se dispara de verdad.
-
-    Lo que se degrada mientras tanto es la resolución, y sin aviso: los mismos
-    40 KB melódicos repartidos entre diecinueve temas en vez de once bajan la
-    tasa mediana de 12,5 a 8,4 kHz. Por eso el recorte existe, y por eso no
-    alcanza con subirlo: para que entren todos hace falta presupuestar por
-    paquete de mapa en vez de por banco, anotado en "Lo que falta" del README.
+    `restricciones` son las de `repartir`; `limita` dice cuál fijó cada
+    muestra, para el informe del conversor.
     """
 
-    def __init__(self, programas, golpes, reserva=0):
-        melodicas = snes_samples.build_bank(sorted(programas))
-        # A la percusión se le da **lo que sobre**, y no los 16 KB fijos de
-        # `DRUM_BUDGET`. Con un tema solo daba igual; compartiendo, no: los
-        # ocho golpes de `evilrhys` pasaban a ser catorce entre los tres temas
-        # de la demo y su plato chino bajaba de 18,3 a 11,9 kHz, que se oye.
-        # Repartiendo lo libre vuelve a 20,2. Y no le cuesta un tema a nadie:
-        # el que se queda corto es el golpe, no el tema, que es lo que pasaría
-        # subiendo `DRUM_BUDGET` a secas.
-        golpes = sorted(golpes)
-        libre = (ARAM_LIBRE - ARAM_MARGEN - 4 * (len(melodicas) + len(golpes))
-                 - sum(len(v.data) for v in melodicas) - reserva)
-        percusion = []
-        while golpes and libre > 0:
-            percusion = snes_samples.build_drum_bank({n: 1 for n in golpes},
-                                                     budget=libre)
-            if sum(len(v.data) for v in percusion) <= libre:
+    def __init__(self, claves, restricciones=(), margen=None):
+        claves = {k for k in claves if _muestra(k, NATIVA) is not None}
+        presupuesto, self.limita = repartir(claves, restricciones, margen)
+        voz = {k: _muestra(k, presupuesto[k]) for k in claves}
+        # El presupuesto es una guía: el largo real se redondea a bloques de
+        # BRR, así que se comprueba lo que ocupa de verdad y, si una
+        # restricción se pasa de lo suyo —sin el margen: el margen es para
+        # esto—, se les pide menos a sus muestras y se vuelve a armar.
+        for _ in range(20):
+            pasadas = [r for r in restricciones
+                       if self._suma(voz, r.claves) > r.libre]
+            if not pasadas:
                 break
-            # Se pasó: el presupuesto es una guía y el largo real se redondea
-            # a bloques. Se pide menos y se vuelve a preguntar.
-            libre = libre * 9 // 10
-        self.voces = melodicas + percusion
+            for r in pasadas:
+                usa = self._suma(voz, r.claves)
+                for k in r.claves & set(voz):
+                    presupuesto[k] = max(PISO, int(presupuesto[k] * r.libre
+                                                   / usa * 0.98))
+                    voz[k] = _muestra(k, presupuesto[k])
+        else:
+            raise SystemExit(
+                "las muestras de %s no entran en la ARAM ni con el mínimo"
+                % ", ".join("%s (%d de %d B)" % (r.nombre,
+                                                 self._suma(voz, r.claves),
+                                                 r.libre) for r in pasadas))
+        self.restricciones = list(restricciones)
+        self.claves = ([k for k in sorted(claves) if k[0] == "p"]
+                       + [k for k in sorted(claves) if k[0] == "g"])
+        self.voces = [voz[k] for k in self.claves]
         # De programa de MIDI a índice en el banco, que es lo que va en
         # `V_SRCN`; los golpes van después de los melódicos, así que el DSP no
         # distingue percusión de nada más.
-        self.melodicas = {v.program: i for i, v in enumerate(melodicas)}
-        self.golpes = {d.program: len(melodicas) + i
-                       for i, d in enumerate(percusion)}
+        self.melodicas = {k[1]: i for i, k in enumerate(self.claves)
+                          if k[0] == "p"}
+        self.golpes = {k[1]: i for i, k in enumerate(self.claves)
+                       if k[0] == "g"}
         self._envolventes = {}
+
+    @staticmethod
+    def _suma(voz, claves):
+        return sum(len(voz[k].data) for k in claves if k in voz)
+
+    def ocupa(self, claves):
+        """Cuánto ocupan en la ARAM las muestras de esas claves."""
+        return sum(len(v.data) for k, v in zip(self.claves, self.voces)
+                   if k in claves)
 
     def envolvente(self, program, key):
         """(ADSR1, ADSR2, GAIN del release) de una nota melódica: la
@@ -633,7 +771,7 @@ class Banco:
         `sdsp.envelope`.
 
         La zona puede no ser la de la muestra —cada programa lleva una sola,
-        la del do central—, y es a propósito: es la envolvente que el
+        la de `zonas_mas_usadas`—, y es a propósito: es la envolvente que el
         SoundFont le daría a esa tecla, y en el piano el decaimiento cambia
         tecla por tecla. Si ninguna zona cubre la tecla, la del do central.
         """
@@ -1440,52 +1578,31 @@ def huella_de_la_mezcla(escrituras_del_tema, banco):
     return h.hexdigest()[:16]
 
 
-def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=(),
-                 tope=None, techos=None, aire_de_medida=None):
+def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
+                 herencia=(), techos=None, aire_de_medida=None):
     """Todos los temas de la ROM, compartiendo un solo banco de muestras.
 
     Devuelve (driver, las voces —las del banco y detrás los efectos, cada una
-    con su número de muestra—, temas, banco, los que no aportan al banco).
-    Hay un dict por tema en el orden en que vinieron: los índices son los de
-    `Temas`, el bytecode ya los lleva emitidos, así que **no se pueden
-    reordenar**.
+    con su número de muestra—, temas, banco). Hay un dict por tema en el
+    orden en que vinieron: los índices son los de `Temas`, el bytecode ya los
+    lleva emitidos, así que **no se pueden reordenar**.
 
-    **Todos los temas pedidos salen en el cartucho, siempre.** Un índice no
-    cuesta ARAM: cuesta su stream, que vive en el cartucho, y de ése sobra.
-    Hasta el 2026-09-12 el que no entraba en el banco se caía de la lista
-    entera, y con eso se caían dos cosas que no tenían por qué: el `PlayBGM`
-    quedaba apuntando a un tema que no existe, y —peor— **la pista de MSU-1 de
-    ese tema quedaba inalcanzable**, cuando una pista no gasta ni una muestra
-    de ARAM: lo único que necesita es que el tema tenga número. Así se quedó
-    muda la pantalla de título al agregar los 29 mapas de Lashe City.
+    **Todos los temas pedidos salen en el cartucho, y todos con todas sus
+    muestras.** Un índice no cuesta ARAM: cuesta su stream, que vive en el
+    cartucho. Lo que compite por la ARAM son las muestras, y eso se reparte
+    por paquete: ver `Banco` y `repartir`.
 
-    Lo que sí compite por la ARAM son las **muestras**, y por eso lo que se
-    recorta acá es quién aporta programas al banco y no quién existe. Un tema
-    que no aporta suena con lo que otros ya pusieron —los programas se
-    comparten por número de General MIDI— y en el peor caso sale mudo, que es
-    exactamente lo que hacía antes, sólo que ahora con MSU-1 suena igual.
+    `paquetes` son los de la ROM, por nombre: (nombre, índices de sus temas,
+    nombres de sus efectos). Cada uno tiene que entrar solo en la ARAM, con
+    sus efectos, y lo que ocupan sus efectos se resta antes de repartir. Si
+    no viene, cada tema es un paquete sin efectos.
 
-    `prioridad` son los índices que aportan primero, y el recorte se lleva a
-    los últimos: el del título va ahí, porque es la primera pantalla del juego
-    y no un tema de un mapa que el jugador puede no visitar nunca.
-
-    `tope` es contra cuánto se mide el banco. Con `ARAM_LIBRE`, que es lo de
-    siempre, entran los primeros y los últimos quedan mutilados: una nota cuyo
-    programa no está en el banco **se cae del stream** —ver el `continue` de
-    `build_events`—, y en `abl` eso son nueve temas a los que les
-    sobrevive entre el 12% y el 72% de las notas. Con un tope más alto aportan
-    todos y lo que se paga es resolución para todos, porque los mismos 40 KB
-    melódicos se reparten entre más programas. **Cuál de las dos suena peor lo
-    dice el oído**, y por eso hay con qué armar las dos: `--banco-entero` en el
-    conversor. Ver "Varios temas en el cartucho" en el README.
-
-    El límite sigue siendo el banco entero contra `ARAM_LIBRE`, que es más
-    estricto de lo que el hardware pide desde que el audio sube por paquetes de
-    mapa —en la ARAM viven el directorio y **un** paquete, no el banco—; queda
-    así a propósito, porque es el que mantiene la resolución de las muestras:
-    repartir 40 KB melódicos entre diecinueve temas en vez de once baja la tasa
-    mediana de 12,5 a 8,4 kHz, y eso se oye en los once que hoy suenan bien.
-    Aflojarlo de verdad pide presupuestar por paquete: ver el README.
+    `herencia` son pares (nombre de un paquete, índice de un tema que puede
+    venir sonando al cargarlo). `paquete_cargar_ya` no mueve las muestras
+    del tema que suena, así que las del paquete tienen que entrar al lado;
+    **los efectos no**: si no entran, esperan al próximo `PlayBGM`, que
+    completa el paquete —ver `tema_asegurar`—. Es la decisión
+    `workflow/decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`.
 
     `techos` es el aire de cada tema, por nombre —si no viene, el que está
     versionado: ver `leer_techos`—, y `aire_de_medida` lo pisa para todos: es
@@ -1495,19 +1612,38 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=(),
     if techos is None:
         techos = leer_techos()
     leidos = [leer_tema(n, game_dir) for n in nombres]
+    teclas = zonas_mas_usadas(leidos)
+    claves_de = [claves_del_tema(t, teclas) for t in leidos]
+    # Los efectos van **todos**: cuáles caben lo decide la ROM mapa por mapa,
+    # al armar su paquete de audio. Se arman antes que el banco porque lo que
+    # ocupan los de cada paquete es lo primero que se resta.
+    efectos_hechos = build_efectos(list(efectos), game_dir, 1 << 30)
+    lista = sorted(efectos_hechos.values(), key=lambda e: list(efectos).index(
+        e.name) if e.name in efectos else 0)
 
-    orden = [i for i in prioridad if 0 <= i < len(leidos)]
-    orden += [i for i in range(len(leidos)) if i not in orden]
-    tope = ARAM_LIBRE if tope is None else tope
-    aportan, afuera = [i for i in orden if leidos[i]], []
-    while True:
-        banco = Banco(set().union(*[leidos[i]["melodicos"] for i in aportan])
-                      if aportan else set(),
-                      set().union(*[leidos[i]["golpes"] for i in aportan])
-                      if aportan else set())
-        if banco.bytes <= tope or not aportan:
-            break
-        afuera.insert(0, nombres[aportan.pop()])
+    # Lo libre para muestras: la ARAM desde detrás del directorio —una
+    # entrada por muestra del cartucho— y del silencio hasta `ARAM_FIN`.
+    todas = {k for ks in claves_de for k in ks
+             if _muestra(k, NATIVA) is not None}
+    libre = ARAM_FIN - (SAMPLES_ADDR + 4 * (len(todas) + len(lista))
+                        + len(SILENCIO))
+    if paquetes is None:
+        paquetes = [(nombre, [i], []) for i, nombre in enumerate(nombres)]
+    restricciones, temas_de = [], {}
+    for nombre, suyos, suyas in paquetes:
+        temas_de[nombre] = list(suyos)
+        ks = set().union(*[claves_de[t] for t in suyos]) & todas
+        ocupan = sum(len(efectos_hechos[e].data) for e in set(suyas)
+                     if e in efectos_hechos)
+        if ks:
+            restricciones.append(Restriccion(str(nombre), ks, libre - ocupan))
+    for nombre, heredado in herencia:
+        ks = set().union(claves_de[heredado],
+                         *[claves_de[t] for t in temas_de[nombre]]) & todas
+        restricciones.append(Restriccion("%s+%s" % (nombre, nombres[heredado]),
+                                         ks, libre))
+    banco = Banco(todas, restricciones)
+    banco.libre = libre
 
     temas = []
     for nombre, leido in zip(nombres, leidos):
@@ -1529,17 +1665,11 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=(),
                       "huella": huella_de_la_mezcla(referencia, banco),
                       "segundos": leido["largo"] / TICKS_PER_SECOND,
                       "resumen": resumen_del_tema(leido, banco, reparto)})
-    # Los efectos, con lo que la música dejó libre. Van detrás del banco en
-    # el mismo directorio: su `V_SRCN` es el lugar que les toca después de las
-    # muestras de la música.
-    # Van **todos**: cuáles caben lo decide la ROM mapa por mapa, al armar
-    # su paquete de audio. Ver `paquete_cargar` en rom/src/paquete_de_audio.s.
-    efectos_hechos = build_efectos(list(efectos), game_dir, 1 << 30)
-    lista = sorted(efectos_hechos.values(), key=lambda e: list(efectos).index(
-        e.name) if e.name in efectos else 0)
+    # Los efectos van detrás del banco en el mismo directorio: su `V_SRCN` es
+    # el lugar que les toca después de las muestras de la música.
     banco.efectos = {e.name: (len(banco.voces) + i, e)
                      for i, e in enumerate(lista)}
-    return (driver, list(banco.voces) + lista, temas, banco, afuera)
+    return (driver, list(banco.voces) + lista, temas, banco)
 
 
 def resumen_del_tema(leido, banco, reparto=()):
@@ -1645,6 +1775,45 @@ def muestras_del_tema(tema):
                    in decodificar(tema["stream"], tema["sonidos"])
                    if _es_de_voz(registro)
                    and registro & 0x0F == sdsp.V_SRCN})
+
+
+# Lo que cuesta subir al SPC700, en cuadros, para la cuenta del arranque. Las
+# muestras de un paquete van de a ternas por el comando 3 del driver —ver
+# `subir_muestra` en rom/src/paquete_de_audio.s—: medido en la ROM el
+# 2026-09-26, de 1,33 a 1,42 cuadros por KB en dieciocho paquetes, y acá va
+# un poco más. El driver y el directorio van byte a byte por el IPL, que
+# medía 1,4. Y cargar el mapa, sin audio, son unos 8 cuadros (medido con el
+# mapa 6 de `test-special`, que no tiene paquete); acá van 10.
+CUADROS_POR_KB_PAQUETE = 1.45
+CUADROS_POR_KB_IPL = 1.5
+CUADROS_DEL_MAPA = 10
+# Dónde vive `BOOT_CUADROS`, que es de la ROM y no de acá.
+RAM_LEJANA = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))), "rom", "src", "ram_lejana.s")
+
+
+def cuadros_del_arranque(driver, voces, temas, paquete):
+    """Cuánto tarda el arranque, por lo alto: el mapa, el driver y el
+    directorio por el IPL, y las muestras del paquete del mapa de arranque
+    —(índices de temas, índices de muestras de efectos), el de `emit`—.
+    Devuelve (cuadros, bytes del paquete)."""
+    suyos, efectos = paquete
+    indices = set(efectos)
+    for t in suyos:
+        if temas[t]["sonidos"]:
+            indices |= set(muestras_del_tema(temas[t]))
+    del_paquete = sum(len(voces[i].data) for i in indices)
+    ipl = len(driver) + 4 * max(1, len(voces)) + len(SILENCIO)
+    return (CUADROS_DEL_MAPA + ipl * CUADROS_POR_KB_IPL / 1024.0
+            + del_paquete * CUADROS_POR_KB_PAQUETE / 1024.0, del_paquete)
+
+
+def boot_cuadros(ruta=RAM_LEJANA):
+    """El `BOOT_CUADROS` de la ROM, leído del fuente."""
+    import re
+    with open(ruta) as archivo:
+        return int(re.search(r"^BOOT_CUADROS\s*=\s*(\d+)", archivo.read(),
+                             re.M).group(1))
 
 
 def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,

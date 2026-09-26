@@ -326,6 +326,11 @@ nuevos **no aportan muestras** y suenan con las de otros: `Kfmus5` (la guarida
 de Wick) con el 8% de sus notas, `tsmedit` (el cirujano) con el 53%, y
 `fm2bar_gs` (Stash) con el 83%. Ninguno tiene pista de MSU-1 (`PISTAS_MSU` en
 `tools/audio/snes_music.py`).
+*Desde el 2026-09-26 esto cambió*: con el presupuesto por paquete todos los
+temas aportan todas sus muestras, así que los tres entrarían enteros; lo que
+cuesta un mapa nuevo es la tasa de las muestras que comparte con los paquetes
+más llenos, y lo dice el informe del conversor ("la limita …"). Hay que
+volver a medirlo al meter los 18.
 
 **Páginas paralelas**: uno por mapa como mucho (37, 45, 47, 48, 59); lejos de
 `PARALELO_MAX`.
@@ -391,6 +396,16 @@ declaración de ese momento.
 # Riesgos y preguntas para taro
 
 **Lo que taro ya contestó (2026-09-25):**
+
+* **(2026-09-26)** El cierre del 36 ("get out"): **un "fin de demo" con un
+  mensaje de texto**, bien simple, en vez del `Teleport` al 49.
+* **(2026-09-26)** Las transiciones de zoom: **van como fundido**.
+* **(2026-09-26)** AG7 **no puede perder habilidades**, y las armas cobran SP
+  si en el original lo hacen: **fiel al original**.
+* **(2026-09-26)** El tutorial del droide (164): **se conserva**.
+* **(2026-09-26)** El 38 ya entra en la VRAM (`done/el-tilemap-del-fondo-lo-elige-el-reparto.md`): no hace falta partirlo.
+* Pendiente: el soborno del guardia (switch 29) —taro preguntó cómo se juega—,
+  el cartel "REC" del 45 y los mapas 64, 83 y 84.
 
 * **Primero el espacio, después los mapas.** El orden: el tinte (si tiene
   sentido arreglarlo), juntar `release` y `test-main`, y en paralelo mirar por

@@ -30,3 +30,5 @@ números tema por tema y cómo se midieron, en el punto 1 de
 **Para taro**: está en `testing/` porque se oye —poco: sobre todo el bajo de
 `escape_newyork` y el de `cd4`, que ya no se cortan antes—. Las grabaciones,
 en `/shared/audio/2026-09-25-pasos-1-y-2/` (las `-1-`).
+
+**taro escuchó las grabaciones y lo dio por bueno el 2026-09-26.**

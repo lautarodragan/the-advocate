@@ -9,10 +9,11 @@ altura de la nota, así que guardar a 8 o 12 kHz no cuesta nada extra en tiempo
 de ejecución: sólo cuesta agudos. Es exactamente lo que hacían los juegos de la
 consola, y por eso suenan como suenan.
 
-Con el banco de Windows, sin embargo, la palanca casi no se usa: sus muestras ya
-vienen a 22 kHz y son cortas, así que el banco entero entra sin remuestrear
-nada. Eso importa porque acá se remuestrea sin filtrar antes, y bajar la tasa
-así mete replegado. La regla es no tocar la tasa mientras haya lugar.
+Con el banco de Windows la palanca se usa poco: sus muestras ya vienen a 22 kHz
+y son cortas, así que en un paquete con lugar van enteras. En los que llenan
+la ARAM —los mapas con muchos efectos, la pelea— baja, y para eso `resample`
+filtra antes de bajar la tasa. La regla sigue siendo no tocar la tasa mientras
+haya lugar: el filtro evita el replegado, no devuelve los agudos.
 
 Tres restricciones mandan en el resultado:
 
@@ -51,12 +52,6 @@ BLOCK = muestras_brr.BLOQUE_MUESTRAS   # 16 muestras por bloque de BRR
 REFERENCE_KEY = 60                 # do central: con qué nota se elige la zona
 PEAK = 0x6800                      # a cuánto se normaliza cada muestra
 
-# El SPC700 tiene 64 KB y no todo es nuestro: el driver, el directorio de
-# muestras y el buffer de eco viven ahí también. El reparto entre melódicos y
-# percusión deja 8 KB de aire.
-ARAM_BUDGET = 40 * 1024
-DRUM_BUDGET = 16 * 1024
-
 # La percusión de General MIDI vive en el banco 128, y ahí cada tecla es un
 # instrumento distinto en vez de una altura distinta. Eso es del formato, así
 # que quien lo sabe es `gunter sf2`: acá se pide `drum:36` y nada más.
@@ -90,14 +85,15 @@ class Voice:
 # ése nunca fue el problema — la preparación en Python que va antes sí. Medido
 # con `cProfile` sobre una conversión de `abl` **con el caché
 # caliente**: de 165 s de perfil, 114,6 eran audio, y de ésos 108,9 los ponía
-# `build_drum_bank`, que en una conversión se llama 790 veces.
+# `build_drum_bank` —el reparto de la percusión hasta el paso 6—, que en una
+# conversión se llamaba 790 veces.
 #
 # **Se cachea el golpe y no el banco** —`build_drum(golpe, presupuesto)` y no
 # `build_drum_bank(golpes, presupuesto)`— y ésa es la decisión. El banco tiene
 # menos claves, pero su clave lleva *qué golpes* pide el cartucho, así que dos
 # cartuchos con listas de temas distintas no comparten ni una entrada. El golpe
 # suelto sí: la clave es una nota y un presupuesto, y ésos se repiten entre las
-# 790 vueltas, entre los cinco cartuchos de prueba y la demo.
+# vueltas del reparto, entre los cartuchos de prueba y la demo.
 
 _version = None
 _huellas = {}
@@ -160,18 +156,64 @@ def _cacheada(memoria, clave, partes, hacer):
     return guardado[0]
 
 
-def resample(samples, count):
-    """Cambia el largo de una señal por interpolación lineal.
+# Hasta dónde llega el pasabajos antes de bajar la tasa, como fracción de la
+# mitad de la tasa nueva: un poco por debajo, porque la caída del filtro no
+# es vertical y lo que pasa de la mitad se repliega. Y cuántos ciclos de la
+# frecuencia de corte abarca su núcleo: más es una caída más empinada y un
+# filtro más largo.
+CORTE = 0.9
+CICLOS = 12
 
-    Para bajar la tasa lo correcto sería filtrar antes, si no los agudos se
-    repliegan sobre los graves. Acá no se hace: en instrumentos de tono estos
+
+def _pasabajos(muestras, fraccion, circular=False, despues=()):
+    """`muestras` sin lo que pasa de `fraccion` de su tasa (en ciclos por
+    muestra), como floats: un sinc con ventana de Blackman.
+
+    `circular` es para el loop: la señal se repite, así que el filtro la ve
+    como periódica y el punto de loop no queda con un escalón. `despues` es
+    lo que sigue a la señal —el loop, detrás del ataque—, para que el final
+    del ataque se filtre con lo que de verdad suena después y no contra
+    ceros."""
+    import numpy as np
+    x = np.asarray(muestras, dtype=float)
+    mitad = max(8, int(math.ceil(CICLOS / (2.0 * fraccion))))
+    n = np.arange(-mitad, mitad + 1)
+    nucleo = 2 * fraccion * np.sinc(2 * fraccion * n) * np.blackman(len(n))
+    nucleo /= nucleo.sum()
+    if circular:
+        largo = len(x)
+        doblado = np.zeros(largo)
+        np.add.at(doblado, n % largo, nucleo)
+        return np.fft.irfft(np.fft.rfft(x) * np.fft.rfft(doblado), largo)
+    cola = np.asarray(list(despues), dtype=float)
+    if len(cola):
+        cola = np.tile(cola, int(math.ceil(mitad / float(len(cola)))) + 1)
+    return np.convolve(np.concatenate([x, cola[:mitad]]), nucleo,
+                       mode="same")[:len(x)]
+
+
+def resample(samples, count, circular=False, despues=()):
+    """Cambia el largo de una señal: pasabajos si se baja la tasa, y después
+    interpolación lineal.
+
+    Hasta el 2026-09-26 no se filtraba —"en instrumentos de tono estos
     parciales son débiles, y el error del BRR es bastante mayor que el del
-    replegado. Si alguna vez suena áspero en los agudos, éste es el lugar.
+    replegado"—, y con el banco de Windows casi no hacía falta, porque casi
+    todo iba a la tasa del SoundFont. Desde el presupuesto por paquete hay
+    muestras que bajan de 22 a 10 kHz, y ahí lo que pasa de 5 kHz se
+    repliega sobre los graves como ruido que no está en el instrumento. Es
+    el paso 6 de `workflow/tasks/todo/la-calidad-de-la-musica.md`, con lo
+    que se midió.
+
+    `circular` y `despues` son los de `_pasabajos`.
     """
-    if count <= 0 or not samples:
+    if count <= 0 or not len(samples):
         return []
     if count == len(samples):
         return list(samples)
+    if count < len(samples):
+        samples = _pasabajos(samples, CORTE * 0.5 * count / len(samples),
+                             circular, despues)
 
     step = (len(samples) - 1) / float(count)
     out = []
@@ -255,10 +297,10 @@ def _build_voice(soundfont, program, budget, key):
 
     attack_out = int(round(attack_frames * ratio / BLOCK)) * BLOCK
 
-    audio = resample(sample.pcm[:attack_frames], attack_out)
+    lazo = sample.pcm[sample.loop_start:sample.loop_end] if looped else ()
+    audio = resample(sample.pcm[:attack_frames], attack_out, despues=lazo)
     if looped:
-        audio += resample(sample.pcm[sample.loop_start:sample.loop_end],
-                          loop_out)
+        audio += resample(lazo, loop_out, circular=True)
     audio = normalize(audio)
 
     data = muestras_brr.codificar(
@@ -301,138 +343,3 @@ def _build_drum(soundfont, note, budget, seconds):
     audio = normalize(resample(sample.pcm[:frames], out))
     data = muestras_brr.codificar(audio, loop_block=None)
     return Voice(note, sample.nombre, data, rate, sample.nota, 0, out)
-
-
-def brightness(samples, rate):
-    """Dónde está el centro de gravedad del espectro, en Hz.
-
-    Es la cuenta clásica del centroide espectral, hecha en el dominio del
-    tiempo: la energía de las diferencias entre muestras consecutivas contra la
-    energía de la señal da cuánto pesa lo agudo, sin necesidad de una FFT.
-
-    Sirve para repartir el presupuesto entre golpes de percusión. Repartir por
-    cuántas veces suena cada uno es exactamente el criterio equivocado: el
-    bombo suena cien veces y no tiene un solo agudo, y el plato suena dieciséis
-    y es todo agudo. Medir el brillo pone la resolución donde hace falta.
-    """
-    energy = sum(s * s for s in samples)
-    if not energy:
-        return rate / 4.0
-    diff = sum((samples[i] - samples[i - 1]) ** 2
-               for i in range(1, len(samples)))
-    return rate / (2.0 * math.pi) * math.sqrt(diff / energy)
-
-
-_pedidos = {}
-
-
-def _pedido_del_golpe(soundfont, note):
-    """Qué tasa justifica el brillo de un golpe, y cuánto dura. O None.
-
-    **No depende del presupuesto**, y ahí está la gracia de tenerlo aparte:
-    `build_drum_bank` se llama cientos de veces con el mismo juego de golpes y
-    otro presupuesto, y el centroide de cada uno da lo mismo todas las veces.
-    Recorrerlo de nuevo costaba 48 de los 165 s del perfil.
-
-    Alcanza con la memoria del proceso y no va al disco: adentro de una
-    conversión esto son unas decenas de golpes, y el que las paga una sola vez
-    ya no las vuelve a ver.
-    """
-    clave = (soundfont, note)
-    if clave not in _pedidos:
-        sample = muestras_brr.extraer("drum:%d" % note, soundfont)
-        if sample is None:
-            _pedidos[clave] = None
-        else:
-            frames = min(sample.cuadros, int(DRUM_SECONDS * sample.tasa))
-            audio = sample.pcm[:min(frames, 8192)]
-            rate = 2.4 * brightness(audio, sample.tasa)
-            _pedidos[clave] = (max(MIN_RATE, min(MAX_RATE, rate)), frames,
-                               sample.tasa)
-    return _pedidos[clave]
-
-
-def build_drum_bank(notes, budget=DRUM_BUDGET, soundfont=SOUNDFONT):
-    """Un golpe por cada nota de percusión que el MIDI use.
-
-    A cada uno se le pide la tasa que su brillo justifica —un poco más del
-    doble del centroide, que deja lugar para lo que hay por encima— y recién si
-    la suma no entra se bajan todas en la misma proporción.
-    """
-    wanted = {}
-    for note in notes:
-        pedido = _pedido_del_golpe(soundfont, note)
-        if pedido is not None:
-            wanted[note] = pedido
-
-    # Lo que costaría darle a cada uno lo que pide, en bytes de BRR.
-    def cost(rate, frames, source_rate):
-        return (frames * (rate / source_rate)
-                * muestras_brr.BLOQUE_BYTES / BLOCK)
-
-    # Primero la pregunta simple: ¿entran todos a su tasa original? Bajar la
-    # tasa sin filtrar antes mete replegado, así que si hay lugar no se toca
-    # nada. Con el banco de Windows, que ya viene a 22 kHz, la respuesta suele
-    # ser que sí.
-    native = sum(cost(r, f, r) for _, f, r in wanted.values())
-    if native <= budget:
-        scale = None
-    else:
-        # Y si no entran, el brillo decide quién cede: el bombo no tiene un
-        # solo agudo y el plato es todo agudo.
-        scale = budget / (sum(cost(*wanted[n]) for n in wanted) or 1)
-
-    drums = []
-    for note in sorted(wanted):
-        rate, frames, source_rate = wanted[note]
-        share = (cost(source_rate, frames, source_rate) if scale is None
-                 else cost(rate * scale, frames, source_rate))
-        drum = build_drum(soundfont, note, max(512, int(share)))
-        if drum is not None:
-            drums.append(drum)
-    return drums
-
-
-# Cuánto de su parte tiene que haber gastado un instrumento para que se lo
-# considere "con hambre" y entre en el reparto de lo que sobró. No es 100%
-# porque el largo real se redondea a bloques de 16 muestras y casi nunca cae
-# justo.
-PARTE_LLENA = 0.95
-VUELTAS_DE_REPARTO = 3
-
-
-def build_bank(programs, budget=ARAM_BUDGET, soundfont=SOUNDFONT,
-               key=REFERENCE_KEY):
-    """Un banco con todos los instrumentos pedidos, repartiendo el presupuesto.
-
-    Se reparte en partes iguales. Podría ponderarse por cuánto suena cada uno,
-    pero el que más suena no es el que más resolución necesita: un bajo aguanta
-    4 kHz sin que se note y un arpa no.
-
-    **Y lo que sobra se vuelve a repartir**, que es lo que hace que varios temas
-    puedan compartir un banco sin sonar peor. Un instrumento corto, o uno que
-    topa en MAX_RATE, no gasta su parte: con cinco programas sobraban 10 de los
-    40 KB. Repartir ese sobrante entre los que sí la gastaron es la diferencia
-    entre que el piano de `escape_newyork` baje a 12,6 kHz al meter cuatro temas
-    y que se quede en 21. Dos o tres vueltas alcanzan para converger; después no
-    queda nadie con hambre.
-    """
-    parte = budget // max(1, len(programs))
-    reparto = {program: parte for program in programs}
-    hechas = {}
-
-    for _ in range(max(1, VUELTAS_DE_REPARTO)):
-        for program in programs:
-            if program not in hechas:
-                hechas[program] = build_voice(soundfont, program,
-                                              reparto[program], key)
-        voices = [hechas[p] for p in programs if hechas[p] is not None]
-        sobra = budget - sum(len(v.data) for v in voices)
-        hambrientos = [v.program for v in voices
-                       if len(v.data) >= reparto[v.program] * PARTE_LLENA]
-        if sobra <= 0 or not hambrientos:
-            break
-        for program in hambrientos:
-            reparto[program] += sobra // len(hambrientos)
-            del hechas[program]         # sólo se rearman los que cambiaron
-    return voices

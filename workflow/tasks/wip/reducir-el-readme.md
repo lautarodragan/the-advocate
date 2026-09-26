@@ -37,3 +37,19 @@ Anotado para él:
   máximo, y el tema que con él recortaría va con el suyo, medido por `just
   techos` y versionado en `parches/auto/musica/techos.toml` (ver
   `leer_techos` en `tools/audio/snes_music.py`).
+* "Varios temas en el cartucho" (~líneas 130-200) quedó viejo entero el
+  2026-09-26, con el presupuesto por paquete (el paso 6 de
+  `tasks/todo/la-calidad-de-la-musica.md`): ya no hay recorte de aportantes
+  —todos los temas aportan todas sus muestras—, `build_bank`, el reparto de
+  sobrantes, la percusión "con lo que sobre" y `--banco-entero` se fueron, y
+  "Por qué el límite sigue estando" es justo lo que se cambió: ahora cada
+  muestra tiene el presupuesto de su peor paquete. El porqué que queda está
+  en `workflow/decisiones/un-solo-banco-de-muestras.md` y en `Banco`
+  (`tools/audio/snes_music.py`). El enlace a
+  `workflow/wishlist/presupuesto-de-muestras-por-paquete.md` apunta ahora a
+  `workflow/tasks/done/`.
+* "Lo que sí cuesta caro es el arranque" (~línea 217): el arranque ya no sube
+  el banco por el IPL; sube el driver y el directorio, y el paquete del mapa
+  de arranque por el comando 3. `BOOT_CUADROS` bajó de 112 a 40 el
+  2026-09-26 y ya no está dimensionado sobre el techo: ver
+  `workflow/decisiones/el-arranque-esta-dimensionado-para-el-paquete-de-arranque.md`.

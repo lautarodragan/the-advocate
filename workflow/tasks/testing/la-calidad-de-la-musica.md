@@ -18,8 +18,10 @@ arriba y para el reparto** → reparto y rampa → muestras por mapa. **Hechos
 el 0, el 1 y el 2**, el 2026-09-25, **y el 3, el 4 y el 5** el 2026-09-26:
 ver cada uno abajo. Después del 5, el mismo día: **el 5b**, la frase de la
 batalla que el reparto cortaba, y **el aire por tema** (la opción B, al final
-del 5). El 6, el mismo día, **medido, prototipado y con el plan**: hecho su
-primer paso, lo demás espera que taro decida escuchando.
+del 5). **Y el 6**, el mismo día: medido, prototipado, decidido por taro
+(la opción A) e implementado entero, con el arranque bajado a 40 cuadros.
+Con eso están todos los pasos del plan: lo que queda son detalles, en "Qué
+queda de la calidad de la música", al final del 6.
 
 
 taro, el 2026-09-25: *"`escape_newyork` se escucha particularmente mal, y tal
@@ -1140,8 +1142,128 @@ más caro: es `wishlist/presupuesto-de-muestras-por-paquete.md`, y detrás
 `wishlist/una-muestra-por-instrumento.md`. taro escuchó la variante 08/10 y
 dijo que hace "una diferencia notoria", y aprobó arrancar.
 
-**Estado, 2026-09-26**: medido, prototipado y grabado; el plan está abajo y
-tiene decisiones para taro. **Hecho y listo para merge sólo el paso 1** —el
+### Hecho, el 2026-09-26
+
+taro eligió la opción A (*"1,3 s es un costo muy bajo que pagar por lo que
+obtenemos a cambio"*) y bajar el arranque a menos de un segundo. Implementado
+en cuatro commits más el de la prosa, sobre `d5caa40`:
+
+1. **El presupuesto por paquete** (A): `repartir` y `Banco` en
+   `tools/audio/snes_music.py`, los paquetes armados en el conversor antes que
+   el banco, la herencia con `temas_heredados` (los teletransportes de las
+   páginas compiladas, que ahora anota `Temas.destino`). Se fueron el recorte
+   de aportantes, `--banco-entero`, `build_bank`, `build_drum_bank` y el
+   brillo de los golpes. **Y un cambio en la ROM que no estaba en el plan**:
+   con cada paquete llenando la ARAM, las muestras que el paquete nuevo
+   comparte con el anterior se quedaban donde estaban y los huecos dejaban
+   afuera muestras de paquetes que entran solos —con la música callada, en
+   cinco de trece saltos entre los mapas más llenos, y al volver de una
+   pelea—. `paquete_cargar_ya` ahora decide primero dónde va cada una, sin
+   subir, y si algo no entra acomoda todo desde cero (salvo el tema que
+   suena) antes de subir. Lo cobra
+   `test_cada_paquete_entra_entero_aunque_la_aram_quede_partida`.
+2. **La zona más usada**: `zonas_mas_usadas`, una por programa.
+3. **El pasabajos** antes de bajar la tasa (`resample` en
+   `tools/audio/snes_samples.py`): un sinc con ventana de Blackman, circular
+   en el loop. `gunter` no cambió.
+4. **El arranque**: `BOOT_CUADROS` de 112 a 40, con la cuenta en el conversor
+   (`cuadros_del_arranque`), que se corta si el paquete del mapa de arranque
+   no entra.
+
+**Los números**, medidos sobre `release` antes (`d5caa40`) y después:
+
+* **Tasas**: la mediana de los 67 programas pasa de **11,1 a 21,4 kHz**
+  (antes sólo 39 estaban en el banco), y la de los 49 golpes de **7 a 14,4**
+  (antes 28). Todos los temas tienen todas sus notas, salvo siete golpes de
+  `Astpgmarch`, `vswar` y `bubstix` en teclas que el kit GS del SoundFont no
+  tiene (10, 13, 22, 23, 88, 124, 125): tampoco suenan en la referencia.
+  La lista entera, con qué paquete limita a cada muestra, la imprime el
+  conversor en `rom/build/release/conversor.log`.
+* **Los que quedaron peor que antes**, todos por el mapa 3 (43 KB de
+  efectos): el oboe (21,9 → 6,8 kHz), la flauta (21,8 → 8,8), el slap, el
+  arpa, las cuerdas 48 (4,1 → 10,4: mejor que antes, pero lo más bajo de
+  `escape_newyork`), y el bombo, la caja y el charles (≈19 → 10,3, en todos
+  los temas). Con la zona más usada, algunas zonas son más largas y el
+  polysynth de `escape_newyork` quedó en 12,6 kHz (16,9 con sólo el paso 1)
+  y su bajo en 14,6 (20,8).
+* **Subida, medida en la ROM** con la sonda del prototipo (cuadros de
+  `paquete_cargar_ya`, desde el 4 y con lo que venga sonando):
+
+  | | antes | después |
+  |---|---:|---:|
+  | mapa 1 | 40 | 52 |
+  | mapa 2 | 58 | 71 |
+  | mapa 3 | 58 | 84 |
+  | mapa 9 | 32 | 59 |
+  | mapa 19 | 32 | 58 |
+  | mapa 26 | 23 | 83 |
+  | entrar a la pelea | 36 | 58 |
+  | salir de la pelea (al 2) | 58 | 63 |
+  | el paquete del arranque | 10 | 21 |
+  | el tema del título | 6 | 12 |
+
+  El trabajo del arranque de `release` termina en el cuadro 30 (antes 20):
+  con `BOOT_CUADROS` en 40, **el juego arranca 72 cuadros antes, 1,2 s**.
+* **Recortes**: cero, con los techos medidos de nuevo en cada commit que
+  cambió la mezcla (`just techos`; lo cobra `test_musica_techos.py`).
+* **Cartucho** (suma de segmentos de `ld65`): de 3.238.073 a 3.510.754 B.
+  **Banco 0** en `release`: de 1.144 a 1.015 B libres (el reacomodo de
+  `paquete_cargar_ya`); en `test-special`, 1.713.
+* **El pasabajos**, contra un remuestreo ideal por FFT en las 62 muestras
+  que bajan de su tasa: 5,5 dB más de relación señal/error en la mediana, y
+  en los platillos, el charles, la pandereta y la cabasa de -9..-3 dB (lo
+  replegado más fuerte que la señal) a +7..+17. Contra la pista de MSU-1,
+  con la "diferencia de agudos" de arriba, no se ve (±0,1 dB): lo replegado
+  pesa poco en el espectro promedio del tema entero.
+
+Contra la pista de MSU-1 (agudos, en dB, la cuenta de las grabaciones de
+arriba): `escape_newyork` 10,4 → 7,6, la batalla 3,5 → 3,1, el título 5,3 →
+1,3, `3D-Galax` 11,8 → 4,1, `Gaden` 7,4 → 1,8.
+
+**Para escuchar**: `/shared/audio/2026-09-26-paso-6-final/`, con su
+`LEEME.txt`: los cuatro temas de antes y `Gaden` —uno de los 19 que no
+aportaban: sonaban dos canales de siete—, de la ROM final sin MSU-1, a la
+misma sonoridad.
+
+**Lo que no cubre `just pruebas`**: que con el tema heredado sonando los temas
+del paquete entren con la ARAM partida en los saltos del juego. Lo miró un
+script aparte con catorce saltos de la herencia (a ningún tema le faltó nada;
+a seis les faltaron efectos, que completa el `PlayBGM`); el conversor sólo
+comprueba que la suma entre.
+
+### Qué queda de la calidad de la música
+
+Con el 6 hecho, **los pasos del plan están todos**: la batería, las notas que
+se soltaban antes, las envolventes, la velocidad y los controladores, el
+formato por nota, el reparto y la rampa, el aire por tema y las muestras. Lo
+que queda son detalles, en el orden en que los haría:
+
+1. **Taparlo**: el fundido de la pelea
+   (`todo/el-fundido-al-entrar-y-salir-de-la-pelea.md`), que es lo único del
+   paso 6 que se ve seguido.
+2. **Los efectos del mapa 3**, que fijan la tasa de lo que más se oye en todo
+   el cartucho: el bombo, la caja y el charles a 10 kHz, el oboe a 7, la
+   flauta a 9. Son veinte, casi todos de la secuencia del final del mapa, y el
+   trueno a 6 kHz está dos veces (en el 3, y entero en el 1). Recortarlos o
+   deduplicarlos le devuelve la tasa a todos los temas; es también
+   `todo/efectos-de-sonido-sin-recortes.md`. Si no alcanza, darles a los
+   efectos su propio lugar en el directorio para que entre **B** (una copia
+   por tema) sólo para los programas que limita un paquete ajeno.
+3. **Escucharlo contra la referencia** en los temas que no se grabaron nunca:
+   los 19 que no aportaban suenan por primera vez enteros, y es donde puede
+   haber sorpresas —un programa en un registro que la zona más usada no
+   cubre, un golpe que el kit no tiene—.
+4. **Una segunda zona sólo donde se oiga**, si taro la extraña en algún bajo.
+5. **La polifonía**: `escape_newyork` pierde el 40% del tiempo-nota por falta
+   de voces (piso 20%) y la batalla el 47% (piso 35%). Es de ocho voces y no
+   de las muestras; lo que se podría es mirar qué se pierde, no ganarlo.
+6. **El lazo de subida del SPC700** (almacenar con `mov !abs+y`, acusar antes
+   del último almacenamiento): entre 10 y 20% menos cuadros en cada paquete,
+   estimado. Sólo si el fundido no alcanza a taparlo.
+### Lo que se midió antes de implementarlo
+
+**Estado, 2026-09-26, antes de la decisión**: medido, prototipado y grabado;
+el plan está abajo y tiene decisiones para taro. **Hecho y listo para merge sólo el paso 1** —el
 paquete que no entró se completa en el próximo `PlayBGM`—, que arregla algo
 que pasa hoy en el juego y que el resto necesita. Medido sobre `03c21fb`, con
 el `release` de 32 temas.

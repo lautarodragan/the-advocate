@@ -128,8 +128,11 @@ anotando `SE_CUADROS`/`SE_NUEVO` por cuadro, que hoy es un script descartable.
      escuchar ya está `just video`; lo que falta es algo que lo verifique solo.
 2. **Efectos más largos en todos los mapas**, sin el bucle de 0,4 s. Como
    subir el tope para todos no entra en los mapas 2 y 3, esto pide antes
-   deduplicar o comprimir muestras. Se acerca a
-   `wishlist/presupuesto-de-muestras-por-paquete.md`.
+   deduplicar o comprimir muestras. Desde el presupuesto por paquete
+   (2026-09-26, `tasks/done/presupuesto-de-muestras-por-paquete.md`) es
+   también un canje con la música: los efectos de cada paquete se restan antes
+   de repartir, así que efectos más largos en el 2 o el 3 le bajan la tasa a
+   los programas que esos mapas comparten con los demás.
    Para el trueno esto no es opcional: con el bucle suena mal aunque nada lo
    pise. **Es lo siguiente**, empezando por el trueno a 22 kHz, que hoy vive en
    un alias de la rama del experimento.

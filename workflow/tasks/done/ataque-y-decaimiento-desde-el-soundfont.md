@@ -37,3 +37,5 @@ y pedir GAIN—, pero la velocidad del GAIN ahora sale del SoundFont en vez de
 la familia, porque con la de la familia el bajo arrastraba 2,4 s de cola
 donde el SoundFont pide 30 ms. Ese párrafo del README —"el valor por familia
 está en `sdsp.py`"— quedó viejo, y no se tocó porque taro lo está editando.
+
+**taro escuchó las grabaciones y lo dio por bueno el 2026-09-26.**

@@ -20,7 +20,7 @@ import collections
 
 def _tema():
     from audio import snes_music
-    _d, _v, temas, banco, _afuera = snes_music.build_varios(["escape_newyork"])
+    _d, _v, temas, banco = snes_music.build_varios(["escape_newyork"])
     return snes_music.leer_tema("escape_newyork"), temas[0], banco
 
 
@@ -57,7 +57,7 @@ def test_la_melodia_de_la_batalla_no_pierde_notas():
     la melodía, que por ser lo más agudo elegía última: no sonaban 214 de sus
     536 notas. El orden de cada cuadro es `_orden_del_cuadro`."""
     from audio import snes_music
-    _d, _v, _temas, banco, _afuera = snes_music.build_varios([BATALLA])
+    _d, _v, _temas, banco = snes_music.build_varios([BATALLA])
     leido = snes_music.leer_tema(BATALLA)
     reparto = []
     snes_music.build_events(leido["notas"], leido["voces"],

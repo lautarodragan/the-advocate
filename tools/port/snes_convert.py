@@ -6143,18 +6143,6 @@ def parser_de_flags():
                              "tanda de regresión: la pantalla de título le "
                              "agregaría cuadros al arranque, y los casos "
                              "comparan cuadros contados desde el reset.")
-    parser.add_argument("--banco-entero", action="store_true",
-                        help="que **todos** los temas aporten muestras al "
-                             "banco compartido, en vez de recortar los "
-                             "últimos hasta que el banco entre en la ARAM. "
-                             "El recorte es lo que hace que en `abl` "
-                             "a los nueve temas del final les falten entre el "
-                             "28%% y el 88%% de las notas —las que piden un "
-                             "programa que no está—; con esto no falta "
-                             "ninguna y lo que baja es la resolución de "
-                             "todas. El banco pasa a no entrar entero en la "
-                             "ARAM, que no es un problema: ahí vive un "
-                             "paquete de mapa por vez")
     parser.add_argument("--aire-de-medida", type=float, metavar="AIRE",
                         help="el mismo aire para todos los temas, en vez de "
                              "la tabla de techos: es con lo que "
@@ -6924,12 +6912,12 @@ def main():
     # había generado a mano. Emitirlos juntos es lo único que garantiza que los
     # dos describan la misma ROM.
     #
-    # Van **todos los temas que quepan**, compartiendo un solo banco de
-    # muestras, y suena el del mapa donde la ROM arranca; los demás los prende
-    # un `PlayBGM`, o el mapa al que se entra si trae uno propio —ver
-    # `mapa_tema_callar` en rom/src/cargar_mapa.s—. Lo que decide cuántos entran es la ARAM y
-    # no el cartucho: ver `Banco` en snes_music.py, y "Varios temas en el
-    # cartucho" en el README.
+    # Van **todos los temas**, compartiendo un solo banco de muestras, y
+    # suena el del mapa donde la ROM arranca; los demás los prende un
+    # `PlayBGM`, o el mapa al que se entra si trae uno propio —ver
+    # `mapa_tema_callar` en rom/src/cargar_mapa.s—. A qué tasa queda cada
+    # muestra lo decide la ARAM, paquete por paquete: ver `Banco` en
+    # snes_music.py.
     musica = os.path.join(os.path.dirname(os.path.abspath(args.output)),
                           "musicdata.inc")
     pedidos, arranque, tema_titulo, tema_de_mapa = temas_de_la_rom(
@@ -6943,23 +6931,13 @@ def main():
     for nombre, _v, _t, _b in temas.sonidos:
         if nombre not in pedidos_se:
             pedidos_se.append(nombre)
-    # Quién aporta primero al banco compartido: **el del título y el del
-    # arranque**, y detrás la lista tal cual. El del título es la primera
-    # pantalla del juego y hasta el 2026-09-12 iba último —`temas_de_la_rom` lo
-    # agrega al final para no renumerar el bytecode—, así que era el primero en
-    # caerse; un tema de un mapa que el jugador puede no visitar nunca le
-    # ganaba la ARAM. Ningún tema se cae de la lista: ver `build_varios`.
-    driver, muestras, hechos, banco, afuera = snes_music.build_varios(
-        pedidos, args.game_dir, pedidos_se,
-        prioridad=[t for t in (tema_titulo, arranque) if t != 0xFF],
-        tope=(1 << 30) if args.banco_entero else None,
-        aire_de_medida=args.aire_de_medida)
     # El paquete de audio de cada mapa, en el orden de la tabla de mapas: los
     # temas que sus páginas pueden prender —más, en el de arranque, el que
-    # suena desde el principio, y en todos el propio del mapa— y las muestras
-    # de sus efectos, en el orden en que aparecen, que es la prioridad con que
-    # la ROM los sube si no entran todos. Ver `paquete_cargar` en rom/src/paquete_de_audio.s.
-    efectos = getattr(banco, "efectos", {})
+    # suena desde el principio, y en todos el propio del mapa— y sus efectos,
+    # en el orden en que aparecen, que es la prioridad con que la ROM los sube
+    # si no entran todos. Ver `paquete_cargar` en rom/src/paquete_de_audio.s.
+    # Se arman **antes** que el banco, por nombre, porque el presupuesto de
+    # cada muestra sale de ellos: ver `snes_music.Banco`.
     paquetes = []
     for i, _mapa in enumerate(mapas):
         pide = temas.por_mapa.get(i, {"temas": [], "sonidos": []})
@@ -6975,22 +6953,64 @@ def main():
             if tema_de_mapa[i] in suyos:
                 suyos.remove(tema_de_mapa[i])
             suyos.insert(0, tema_de_mapa[i])
-        paquetes.append((suyos, [efectos[n][0] for n in pide["sonidos"]
-                                 if n in efectos]))
+        paquetes.append((suyos, list(pide["sonidos"])))
     # Y el paquete de la pelea, detrás de los mapas: el tema de batalla y sus
     # efectos, que la ROM sube al abrir la pelea y descarga al cerrarla. Va
-    # aparte y no adentro del paquete del mapa porque el tema de batalla son
-    # 51.480 B de los 64.512 de ARAM; ver `eventos.PAQUETE_BATALLA`.
+    # aparte y no adentro del paquete del mapa porque el tema de batalla solo
+    # llena la ARAM; ver `eventos.PAQUETE_BATALLA`.
     pide = temas.por_mapa.get(eventos.PAQUETE_BATALLA)
     if pide:
-        assert len(paquetes) == len(mapas), (
+        paquetes.append((list(pide["temas"]), list(pide["sonidos"])))
+    nombres_de_paquete = ([str(m["id"]) for m in mapas]
+                          + (["pelea"] if pide else []))
+    por_nombre = [(nombre, suyos, suyas) for nombre, (suyos, suyas)
+                  in zip(nombres_de_paquete, paquetes)]
+    # Y el de la pantalla de título, que no está en la tabla: `tema_asegurar`
+    # sube su tema con el paquete del mapa de arranque detrás.
+    if tema_titulo != 0xFF:
+        suyos, suyas = paquetes[args.inicial]
+        por_nombre.append(("titulo", [tema_titulo] + suyos, suyas))
+    herencia = temas_heredados(temas, tema_de_mapa, args.inicial,
+                               tema_titulo, nombres_de_paquete)
+    driver, muestras, hechos, banco = snes_music.build_varios(
+        pedidos, args.game_dir, pedidos_se, por_nombre, herencia,
+        aire_de_medida=args.aire_de_medida)
+    # Y lo que `tools/audio/techos.py` necesita de cada tema —cuánto dura y
+    # la huella de su mezcla—, escrito al lado: el banco ya no se puede
+    # rearmar sin compilar las páginas, que es de donde salen los paquetes.
+    with open(os.path.join(os.path.dirname(musica), "musica.json"),
+              "w") as handle:
+        json.dump({"temas": [
+            {"nombre": t["nombre"],
+             "largo": t["escrituras"][-1][0] + 1 if t["escrituras"] else 0,
+             "huella": t.get("huella", "")} for t in hechos]},
+            handle, indent=1)
+    efectos = getattr(banco, "efectos", {})
+    paquetes = [(suyos, [efectos[n][0] for n in suyas if n in efectos])
+                for suyos, suyas in paquetes]
+    if pide:
+        assert len(paquetes) == len(mapas) + 1, (
             "el paquete de la pelea tiene que quedar en el índice que emitió "
             "`emit` como PAQUETE_BATALLA")
-        paquetes.append((list(pide["temas"]),
-                         [efectos[n][0] for n in pide["sonidos"]
-                          if n in efectos]))
         print("  paquete de audio de la pelea: %d tema(s), %d efecto(s)"
               % (len(pide["temas"]), len(paquetes[-1][1])))
+    # **Y que el arranque entre en `BOOT_CUADROS`**: la ROM espera hasta ese
+    # cuadro para que el lazo arranque siempre en el mismo, y si subir el
+    # paquete del mapa de arranque tardara más, saldría más tarde y las
+    # pruebas —que cuentan desde ahí— contarían mal. Ver el comentario de
+    # `BOOT_CUADROS` en rom/src/ram_lejana.s.
+    cuadros, del_paquete = snes_music.cuadros_del_arranque(
+        driver, muestras, hechos, paquetes[args.inicial])
+    tope = snes_music.boot_cuadros()
+    if cuadros > tope:
+        raise SystemExit(
+            "el arranque no entra en BOOT_CUADROS: el paquete del mapa de "
+            "arranque son %d B y con el mapa, el driver y el directorio la "
+            "cuenta da %.0f cuadros, contra %d. Subir BOOT_CUADROS en "
+            "rom/src/ram_lejana.s, o achicar ese paquete"
+            % (del_paquete, cuadros, tope))
+    print("  arranque: el paquete del mapa de arranque son %d B, %.0f de "
+          "los %d cuadros de BOOT_CUADROS" % (del_paquete, cuadros, tope))
     snes_music.emit(musica, hechos, driver, muestras, arranque, tema_titulo,
                     snes_music.tabla_de_sonidos(temas.sonidos, banco),
                     paquetes, tema_de_mapa)
@@ -7034,23 +7054,64 @@ def main():
                  else "%.0f%%" % (100 * suenan), 100 * perdido, 100 * piso,
                  ", suena desde el arranque" if i == arranque else ""))
     if hechos:
-        print("  banco compartido: %d muestras, %d B de los %d de ARAM"
-              % (len(banco.voces), banco.bytes, snes_music.ARAM_LIBRE))
-    if afuera:
-        print("  no aportan muestras al banco: %s" % ", ".join(afuera))
-        con_pista = [t for t in afuera if t in snes_music.PISTAS_MSU]
-        print("    (existen igual, y suenan con lo que otros temas ya "
-              "pusieron: el porcentaje de arriba dice cuánto)")
-        # Cuáles de ésos tienen pista de MSU-1 se dice acá y no de memoria: el
-        # 2026-09-14 esta línea afirmaba "hoy ninguno de éstos tiene" y en el
-        # mismo commit habían pasado a tenerla todos.
-        if con_pista:
-            print("    con MSU-1 suenan enteros %d de ellos: %s"
-                  % (len(con_pista), ", ".join(con_pista)))
-        if len(con_pista) < len(afuera):
-            print("    sin pista de MSU-1, o sea recortados siempre: %s"
-                  % ", ".join(t for t in afuera
-                              if t not in snes_music.PISTAS_MSU))
+        print("  banco compartido: %d muestras, %d B en el cartucho; cada "
+              "paquete tiene %d B de ARAM para sus muestras"
+              % (len(banco.voces), sum(len(v.data) for v in banco.voces),
+                 banco.libre))
+        # A qué tasa quedó cada muestra y qué paquete la limitó: es lo que se
+        # oye, y lo que dice dónde buscar lugar si hace falta.
+        for clave, voz in zip(banco.claves, banco.voces):
+            print("    %s %3d %-10s %5.1f kHz, %5d B%s%s"
+                  % ("programa" if clave[0] == "p" else "golpe   ", clave[1],
+                     voz.name.strip()[:10], voz.rate / 1000.0, len(voz.data),
+                     ", raíz %d" % voz.root if clave[0] == "p" else "",
+                     ", la limita " + banco.limita[clave]
+                     if clave in banco.limita else ""))
+        # Y cuánto le sobra a cada paquete, con sus efectos.
+        for r in banco.restricciones:
+            print("    paquete %-28s %5d B de muestras, sobran %5d"
+                  % (r.nombre[:28], banco.ocupa(r.claves),
+                     r.libre - banco.ocupa(r.claves)))
+
+
+def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete):
+    """[(nombre del paquete, índice de un tema que puede venir sonando al
+    cargarlo)], para `snes_music.build_varios`.
+
+    Casi ningún mapa del juego trae tema propio: lo prende una página, y
+    hasta entonces sigue el del mapa de antes, y `paquete_cargar_ya` no mueve
+    sus muestras. Así que el paquete de un mapa sin tema propio tiene que
+    entrar al lado de lo que puede venir sonando.
+
+    Se siguen los teletransportes de las páginas compiladas —`destinos` de
+    `Temas.por_mapa`— sin mirar condiciones, con una regla que es la que
+    hace que la cuenta sea realista y no "cualquier tema a cualquier mapa"
+    (el 4 es el enrutador del juego): **un mapa con `PlayBGM` se va con uno
+    de los suyos**, porque la página que salta es casi siempre la que antes
+    prendió el tema. Un mapa con tema propio calla lo que suena antes de
+    cargar el suyo —`mapa_tema_callar`—, así que no hereda nada; y al de
+    arranque se llega con el del título sonando. Es lo que midió el paso 6 de
+    `workflow/tasks/todo/la-calidad-de-la-musica.md` con un script aparte.
+    """
+    n = len(tema_de_mapa)
+    pide = [temas.por_mapa.get(i, {}) for i in range(n)]
+    entra = [set() for _ in range(n)]
+    if titulo != 0xFF:
+        entra[inicial].add(titulo)
+    cambio = True
+    while cambio:
+        cambio = False
+        for i in range(n):
+            sale = ({tema_de_mapa[i]} if tema_de_mapa[i] != 0xFF
+                    else set(pide[i].get("temas", ())) or entra[i])
+            for destino in pide[i].get("destinos", ()):
+                if (destino != i and tema_de_mapa[destino] == 0xFF
+                        and not sale <= entra[destino]):
+                    entra[destino] |= sale
+                    cambio = True
+    return [(nombres_de_paquete[i], t) for i in range(n)
+            for t in sorted(entra[i])
+            if t not in pide[i].get("temas", ()) and t != tema_de_mapa[i]]
 
 
 def temas_de_la_rom(map_id, temas, game_dir, titulo=None, map_ids=()):
@@ -7060,21 +7121,18 @@ def temas_de_la_rom(map_id, temas, game_dir, titulo=None, map_ids=()):
     Se piden **todos**: los que los `PlayBGM` compilados nombran, más el del
     mapa donde la ROM arranca, que es el que suena sin que pase nada. **Y
     entran todos**: el índice lo da la lista y no cuesta ARAM. Lo que la ARAM
-    limita son las muestras, y eso lo reparte `snes_music.build_varios`, que
-    puede dejar a un tema sin las suyas —mudo por el SPC700, entero por
-    MSU-1— pero nunca sin número.
+    limita son las muestras, y eso lo reparte `snes_music.build_varios` por
+    paquete: a la tasa que dé el peor paquete de cada una, pero todas.
 
     Los índices son los de `Temas` y no se tocan: el bytecode ya los lleva
     emitidos. Por eso el del mapa se agrega **al final**, que es lo único que
-    no renumera a los demás; que ir último no signifique perder la ARAM lo
-    arregla la prioridad que se le pasa a `build_varios`.
+    no renumera a los demás. Ir último no cuesta nada: desde el presupuesto
+    por paquete ningún tema pierde muestras por su lugar en la lista.
 
     Y el tema propio de cada mapa de `map_ids` —en el orden de la tabla de
     mapas—, que es el `Game_Map::PlayBgm` de easyrpg: lo que suena al entrar
     por un teletransporte. Van detrás de todos, por la misma razón, y como el
-    índice de cada uno o $FF, que es "entrar no cambia la música". Un tema que
-    no entró en la ARAM se pide igual: suena por MSU-1, o con lo que otros
-    pusieron en el banco.
+    índice de cada uno o $FF, que es "entrar no cambia la música".
     """
     propio = snes_music.tema_del_mapa(map_id, game_dir)
     if propio:
