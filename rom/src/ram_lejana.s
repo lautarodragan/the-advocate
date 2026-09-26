@@ -612,6 +612,11 @@ LZ2_BUFFER     = $7F0000
 ANIM_DIBUJOS   = $7F6000
 ANIM_DIBUJOS_FIN = $7F8000
 
+; --- la transición de la pelea ----------------------------------------------
+;
+; $7E7840 a $7E784F, reservado el 2026-09-26. Ver `fundido_de_pelea.s`.
+PELEA_PRENDIDA = $7E7840        ; 1 si la pelea llegó a prender su pantalla
+
 ; --- la grilla del mapa, en la WRAM -----------------------------------------
 ;
 ; **$7E8000 a $7EFFFF es de la grilla**, y sigue en $7F8000 si pasa de 32 KB:

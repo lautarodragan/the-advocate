@@ -65,8 +65,16 @@ hay_grupo:
 sin_pagina_al_empezar:
     jsr ba_componer
     jsl f:ba_t_subir
+    ; Prender la pantalla **en negro**, que la muestra la transición de
+    ; entrada: `ranura_ppu_prender` escribe el brillo lleno, así que se la
+    ; llama adentro de un vblank y en el mismo vblank se baja a cero —no llega
+    ; a dibujarse ninguna línea—. Ver `fundido_de_pelea.s`.
+    jsl f:ba_t_vblank
     jsl f:ba_t_ppu
+    lda #0
+    sta f:INIDISP
     jsr escena_prender
+    jsr pelea_fundir_mostrando
     lda #1
     sta menu_abierto
 
