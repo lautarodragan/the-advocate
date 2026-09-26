@@ -7404,47 +7404,74 @@ def lideres_posibles(renderer, map_ids, grupo):
     directorio.
     """
     actores = list(grupo[:1])
-    indices = {m: i for i, m in enumerate(map_ids)}
-    for map_id in map_ids:
+    for cambios in _cambios_de_grupo(map_ids):
         estado = eventos.Estado(grupo)
-        game_map = lcf.Map(os.path.join(args_game_dir[0],
-                                        "Map%04d.lmu" % map_id))
-        del_mapa = eventos.Eventos(game_map)
-        for evento in game_map.events:
-            for page in evento.pages:
-                # Con el contexto del mapa, que es el mismo que usa el filtro de
-                # verdad. Sin él, una página que mande a caminar a otro evento no
-                # compila acá aunque sí compile allá, y los actores que agregue
-                # se pierden: la cinemática de apertura suma a Kersh al grupo
-                # justo después de mandar a caminar al evento 8, así que el héroe
-                # se quedaba sin tabla de poses y no se dibujaba.
-                # **Con el mismo contexto que la compilación de verdad**, y
-                # no sólo con el bloque de textos. Faltaban `Temas`,
-                # `Graficos` e `Imagenes`, y sin ellos una página que empieza
-                # con un `PlayBGM` no compila **acá** y sí compila allá: los
-                # actores que meta al grupo se pierden. Es exactamente lo que
-                # le pasaba al auto de la persecución —`RaceController1` del
-                # mapa 49 arranca con `PlayBGM` y después mete a `CarRED`—, y
-                # el síntoma era que el héroe no se dibujaba: `hero_poses` en
-                # cero porque el actor no estaba en la tabla del mapa.
-                if eventos.compilar_pagina(
-                        page, indices.get,
-                        eventos.Mensajes(),
-                        del_mapa.para(evento.id), eventos.Temas(),
-                        eventos.Graficos(), eventos.Imagenes(
-                            args_game_dir[0])) is None:
-                    continue
-                for cmd in page.commands:
-                    if cmd.code != eventos.CHANGE_PARTY_MEMBERS:
-                        continue
-                    p = cmd.parameters
-                    if len(p) < 3 or p[1] != eventos.GRUPO_ID_FIJO:
-                        continue
-                    estado.cambiar_grupo(p[0], p[2])
-                    lider = estado.lider()
-                    if lider is not None and lider not in actores:
-                        actores.append(lider)
+        for quien, operacion in cambios:
+            estado.cambiar_grupo(quien, operacion)
+            lider = estado.lider()
+            if lider is not None and lider not in actores:
+                actores.append(lider)
     return actores
+
+
+def _cambios_de_grupo(map_ids):
+    """Los `ChangePartyMembers` de las páginas que compilan, mapa por mapa y
+    en orden: lo único de cada mapa que mira `lideres_posibles`.
+
+    **Se calcula una vez por conversión**, porque no depende del grupo:
+    `lideres_posibles` corre otra vez por cada caso de prueba que toca el
+    grupo, y cada corrida cargaba y compilaba todos los mapas de nuevo. La
+    compilación sólo lee los índices globales de `eventos`, que se llenan
+    antes de la primera llamada y no cambian después.
+    """
+    clave = (args_game_dir[0], tuple(map_ids))
+    if clave not in _cambios_por_mapas:
+        _cambios_por_mapas[clave] = [_cambios_del_mapa(map_id, map_ids)
+                                     for map_id in map_ids]
+    return _cambios_por_mapas[clave]
+
+
+_cambios_por_mapas = {}
+
+
+def _cambios_del_mapa(map_id, map_ids):
+    indices = {m: i for i, m in enumerate(map_ids)}
+    cambios = []
+    game_map = lcf.Map(os.path.join(args_game_dir[0],
+                                    "Map%04d.lmu" % map_id))
+    del_mapa = eventos.Eventos(game_map)
+    for evento in game_map.events:
+        for page in evento.pages:
+            # Con el contexto del mapa, que es el mismo que usa el filtro de
+            # verdad. Sin él, una página que mande a caminar a otro evento no
+            # compila acá aunque sí compile allá, y los actores que agregue
+            # se pierden: la cinemática de apertura suma a Kersh al grupo
+            # justo después de mandar a caminar al evento 8, así que el héroe
+            # se quedaba sin tabla de poses y no se dibujaba.
+            # **Con el mismo contexto que la compilación de verdad**, y
+            # no sólo con el bloque de textos. Faltaban `Temas`,
+            # `Graficos` e `Imagenes`, y sin ellos una página que empieza
+            # con un `PlayBGM` no compila **acá** y sí compila allá: los
+            # actores que meta al grupo se pierden. Es exactamente lo que
+            # le pasaba al auto de la persecución —`RaceController1` del
+            # mapa 49 arranca con `PlayBGM` y después mete a `CarRED`—, y
+            # el síntoma era que el héroe no se dibujaba: `hero_poses` en
+            # cero porque el actor no estaba en la tabla del mapa.
+            if eventos.compilar_pagina(
+                    page, indices.get,
+                    eventos.Mensajes(),
+                    del_mapa.para(evento.id), eventos.Temas(),
+                    eventos.Graficos(), eventos.Imagenes(
+                        args_game_dir[0])) is None:
+                continue
+            for cmd in page.commands:
+                if cmd.code != eventos.CHANGE_PARTY_MEMBERS:
+                    continue
+                p = cmd.parameters
+                if len(p) < 3 or p[1] != eventos.GRUPO_ID_FIJO:
+                    continue
+                cambios.append((p[0], p[2]))
+    return cambios
 
 
 # El directorio del juego, para `lideres_posibles`. Es feo pero es un solo
