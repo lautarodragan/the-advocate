@@ -100,6 +100,16 @@ A1B0     = $4304
 DAS0L    = $4305        ; cuántos bytes
 MDMAEN   = $420B        ; arrancar
 
+; --- DMA, canal 7 ----------------------------------------------------------
+; El segundo canal de DMA común, para cuando una copia intercala dos orígenes
+; y no vale la pena rearmar el canal 0 entre uno y otro: ver `esc_llenar`. Los
+; canales 1 a 3 son del HDMA, abajo.
+DMAP7    = $4370
+BBAD7    = $4371
+A1T7L    = $4372
+A1B7     = $4374
+DAS7L    = $4375
+
 ; --- HDMA, canales 1 y 2 ---------------------------------------------------
 ; El DMA de siempre transfiere todo de una, con la pantalla apagada o en el
 ; vblank. El HDMA es otra cosa: el mismo hardware, pero disparado **una vez por

@@ -88,9 +88,38 @@ código con el fondo en cero, y no un parche: es también lo que pasa sin fondo
 —un `EnemyEncounter` que no nombra ninguno, o un mapa que hereda el del
 terreno— y lo que va a pasar sin MSU-1 el día que los fondos vengan de ahí.
 
-Desde el 2026-09-25 los mismos fondos van también en el `.msu`, y con MSU-1 la
-ROM los lee de ahí: es el piloto del puerto de datos, ver
-tools/port/msu_datos.py.
+Desde el 2026-09-25 los fondos van también en el `.msu`, y con MSU-1 la ROM
+los lee de ahí: es el piloto del puerto de datos, ver tools/port/msu_datos.py.
+
+## El respaldo liviano
+
+Y desde el mismo día **no son los mismos**: el `.msu` lleva el fondo de
+calidad —8bpp, 96 colores, 32 KB— y la ROM uno de **16 colores en 4bpp, 16
+KB**, que es lo que ve quien juega sin MSU-1. Lo pidió taro para poder ver a
+ojo de qué lado salió el fondo, y de paso ahorra la mitad de cada uno.
+
+La capa sigue siendo **una sola de 8bpp**: lo que cambia es sólo cómo viaja el
+respaldo. Sus dieciséis colores van en la paleta de `CGRAM_BASE` —las entradas
+32 a 47—, así que en 8bpp sus índices son `CGRAM_BASE + i` y los planos 4 a 7
+de todos sus pixeles son los mismos: los de `CGRAM_BASE`. Y un tile de 4bpp es
+exactamente la primera mitad de uno de 8bpp —ver `pack_tile` en
+snes_convert.py—, así que la ROM lo agranda al copiarlo a la WRAM: los 32
+bytes del tile y detrás 32 fijos, dos DMA por tile. De ahí para adelante todo
+es igual —componer, borrar a un muerto, subir a la VRAM—, porque en la WRAM
+queda un fondo de 8bpp como el del `.msu`. Ver `esc_llenar` en
+rom/src/batalla_escena.s.
+
+La otra salida era que el `.msu` llevara también 4bpp, "más calidad dentro
+del mismo formato"; pero dieciséis colores son el techo de 4bpp, así que la
+calidad no tendría adónde crecer. Y bajar la resolución —128x64 ampliado—
+pedía agrandar en la ROM pixel por pixel, que en planar es rearmar cada byte.
+
+Los dieciséis salen de `asignador.merge_least_visible`, el de los battlers, y
+no de `titulo.reducir`, que es el que arma los 96: reducir se queda con los
+más usados, y en un fondo los dieciséis más usados son todos del piso y de
+las paredes —el cartel verde y el agua violeta se volvían gris—. Fundir por
+lo que menos se nota deja los acentos. Los 96 no se cambiaron de reductor
+porque son los bytes del `.msu`, y con eso su firma.
 """
 
 import collections
@@ -107,6 +136,12 @@ ESCALA_NUM, ESCALA_DEN = ANCHO, FONDO_RM[0]     # 256/320
 # presupuesto".
 COLORES = 96
 CGRAM_BASE = 32
+# Los del respaldo liviano, que va en 4bpp: ver "El respaldo liviano". Caben en
+# una paleta de dieciséis, y `CGRAM_BASE` tiene que ser el principio de una
+# para que los planos 4 a 7 sean los mismos en todos sus pixeles.
+RESPALDO_COLORES = 16
+RESPALDO_PLANOS = 4
+assert CGRAM_BASE % RESPALDO_COLORES == 0
 # Las paletas de los battlers: de la 8 a la 15, o sea las entradas 128 a 255.
 # Una por battler distinto de la tropa, y una tropa tiene a lo sumo ocho
 # enemigos, así que siempre alcanzan.
@@ -261,6 +296,34 @@ def fondo(nombre, game_dir):
     paleta, mapa = titulo.reducir(pixeles, COLORES)
     donde = {color: i + CGRAM_BASE for i, color in enumerate(paleta)}
     indices = [[donde[mapa[pixeles[y * ANCHO + x]]] for x in range(ANCHO)]
+               for y in range(ALTO)]
+    return {"nombre": nombre, "indices": indices, "paleta": paleta}
+
+
+def fondo_liviano(nombre, game_dir):
+    """El respaldo del fondo: el que va en la ROM, con `RESPALDO_COLORES`.
+
+    Lo mismo que `fondo` —la misma imagen, al mismo tamaño— con dieciséis
+    colores y fundidos por `asignador.merge_least_visible`: ver "El respaldo
+    liviano". La paleta va de más usado a menos, y a igual cuenta por color,
+    para que salga siempre igual.
+    """
+    from PIL import Image
+    from port import asignador
+    imagen = _abrir(game_dir, "Backdrop", nombre)
+    if imagen is None:
+        return None
+    imagen = imagen.convert("RGB").resize((ANCHO, ALTO), Image.LANCZOS)
+    pixeles = [(r >> 3, g >> 3, b >> 3)
+               for r, g, b in imagen.get_flattened_data()]
+    cuenta = collections.Counter(pixeles)
+    mapeo, _fusiones = asignador.merge_least_visible(cuenta, RESPALDO_COLORES)
+    finales = collections.Counter()
+    for color, n in cuenta.items():
+        finales[mapeo[color]] += n
+    paleta = sorted(finales, key=lambda c: (-finales[c], c))
+    donde = {color: i + CGRAM_BASE for i, color in enumerate(paleta)}
+    indices = [[donde[mapeo[pixeles[y * ANCHO + x]]] for x in range(ANCHO)]
                for y in range(ALTO)]
     return {"nombre": nombre, "indices": indices, "paleta": paleta}
 
