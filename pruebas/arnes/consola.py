@@ -140,7 +140,7 @@ class Partida:
         # lo pide `video.py`, para que el video suene como la ROM que se juega.
         # Ver `retro.Consola`.
         self.consola = retro.Consola(sfc, nucleo or NUCLEO, msu=msu)
-        # `pila` es sólo para `pruebas/herramientas/test_pila.py`, y va acá
+        # `pila` es sólo para `pruebas/rpgmaker/test_pila.py`, y va acá
         # porque acá es el único momento en que la marca llega antes del primer
         # cuadro: una línea después la ROM ya corrió el `reset`. Apagado por
         # omisión porque marcar es **inicializar memoria**, y `test_cores.py`
