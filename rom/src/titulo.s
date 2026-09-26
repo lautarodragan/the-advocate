@@ -299,16 +299,16 @@ cargar_el_mapa:
     ; `TEMA_ARRANQUE` en $FF quiere decir que el mapa arranca callado y que lo
     ; prende un `PlayBGM`, que es lo normal en este juego. `music_boot` no le
     ; escribe nada al DSP porque en el arranque no hay nada sonando; **acá sí
-    ; lo hay**, así que el volumen general hay que bajarlo a mano. El
-    ; `PlayBGM` que venga lo vuelve a subir: su stream escribe los dos
-    ; registros al arrancar.
+    ; lo hay**, así que las voces del título se sueltan a mano. Con KOF y por
+    ; `dsp_musica`, que deja afuera a las que tengan un efecto, y **no** con
+    ; el volumen general, que es también el de los efectos: hasta el
+    ; 2026-09-26 se bajaba ése, y los efectos quedaban mudos hasta el primer
+    ; `PlayBGM`.
     php
     sei                         ; el SPC700 atiende de a uno: ver `irq_musica`
-    stz dsp_valor
-    lda #DSP_MVOL_L
-    jsr escribir_dsp
-    lda #DSP_MVOL_R
-    jsr escribir_dsp
+    lda #$FF
+    ldx #SE_KOF
+    jsr dsp_musica
     plp
 listo_musica:
     lda #$0F

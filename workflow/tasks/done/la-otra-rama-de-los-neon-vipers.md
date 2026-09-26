@@ -40,3 +40,40 @@ Y lo que apareció midiendo la reja —la cámara que queda tres celdas corrida 
 salir— **ya está contestado y no es nuestro**: lo hace el `PanScreen` del Bum,
 que nadie devuelve, y el RPG_RT original queda igual de corrido. Ver
 `workflow/decisiones/la-camara-corrida-de-la-reja-es-del-juego.md`.
+
+---
+
+## Al 2026-09-26: cubierta
+
+`pruebas/abl/test_recorrido_vipers_otras_ramas_golden.py`, con
+`Recorrido.elegir` —ver `done/elegir-una-opcion-en-el-recorrido.md`—. Tres
+casos, que arrancan con `ir_al_mapa` en el techo del HQ y entran por la puerta:
+el camino del caño ya lo juega el tramo del "Yes".
+
+Lo que se aprendió leyendo los eventos, que la descripción de arriba tenía mal:
+
+- **Los dos saltos de cinco celdas no son del mapa 12**: son las rutas del
+  "No" y de la reja, que están escritas en el 12 pero corren **después** del
+  `Teleport` al 8, en (40,51) → (40,56). Lo que sí corre en el 12 es un salto
+  de dos celdas sobre la reja, y ése **no se da**, ni acá ni en RM2k: el
+  `through` está adentro del par `begin_jump`/`end_jump`, donde RM2k lo
+  ignora, y (1,49) no es pisable.
+- **Al 14 no lleva ninguna de las dos ramas**: lleva la página 2 de la puerta
+  del HQ, con el Idol —ítem 90— y el switch 53, que deja al héroe sobre el
+  hotplate, cuya página 2 es automática y termina en `Teleport [14, 44, 13]`.
+  La cinemática del 14 corre sola, con cinco `PanScreen`, y termina en el 16.
+- **La reja se alcanza sin la cinemática**: el camino corto de la puerta a
+  (1,47) baja por la columna 3 y el hotplate está en la 5.
+- **Aterrizar en el 8 dispara al Bum**: las dos salidas prenden el switch 36, y
+  la página automática del evento 10 lo apaga al terminar. La prueba espera eso
+  —el 36 visto prendido y después apagado— antes de mirar la celda.
+
+**Lo del mapa corrido, medido**: el salto de cinco celdas, a la velocidad 4,
+son once vueltas de 7 u 8 px, con la cámara detrás a lo mismo. No llega a los
+más de 8 que hacen falta, así que esta candidata queda descartada; la que queda es el `PanScreen`
+de los chicos del mapa 8.
+
+**Un aviso para las fotos del tramo del "Yes"**: la partida que arranca por
+"Begin the Story" tiene de líder a DummyHero, el actor 10, que no tiene gráfico.
+En `test_recorrido_vipers_golden.py` las fotos del 8 y el 12 salen **sin
+Talan**. Ésta le pone el grupo —Talan es el 14— antes de entrar.

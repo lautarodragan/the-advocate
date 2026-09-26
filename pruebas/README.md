@@ -15,8 +15,7 @@ Cuántas son y cuántas pasan lo dice la corrida; `python3 -m pytest pruebas
     pruebas/rpgmaker/      lo que el motor tiene que hacer igual que RM2k
     pruebas/abl/           lo propio del juego: el recorrido, las piedras,
                            el recuerdo, el cartel, las escenas y cinemáticas
-    pruebas/herramientas/  las que no corren ninguna ROM —salvo `test_pila`,
-                           que mide la pila del cartucho corriendo—
+    pruebas/herramientas/  las que no corren ninguna ROM
     pruebas/arnes/         consola, tanda, recorrido y video; y lo que
                            comparten varias pruebas: menu, batalla, datos,
                            dibujo y piedras. Ninguna prueba importa de otra
@@ -72,6 +71,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_saltos.py`: teletransportes encadenados
 * `rpgmaker/test_salto_atraviesa.py`, `rpgmaker/test_salto_colgado.py`: saltos
   con atravesar, y al final de una ruta forzada
+* `rpgmaker/test_salto_velocidad.py`: lo que dura el salto del héroe según
+  su velocidad
 * `rpgmaker/test_puerta_misma.py`: una puerta al mismo mapa
 * `rpgmaker/test_carga_descomprimida.py`: la VRAM, la grilla y los dibujos
   de la animación después de cargar cada mapa y de volver de una pelea,
@@ -81,6 +82,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_terreno.py`: `StoreTerrainID`
 * `rpgmaker/test_cores.py`: snes9x contra bsnes, para la memoria sin
   inicializar —ver `AGENTS.md`, "La regla que sostiene todo"—
+* `rpgmaker/test_pila.py`: la hondura de la pila contra `bancos.PILA`, en
+  los caminos más hondos que se conocen
 
 **Eventos y comandos**
 
@@ -164,12 +167,17 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   escriba al DSP lo que el stream dice, cuadro por cuadro
 * `rpgmaker/test_musica_techos.py`: que ningún tema recorte con su techo de
   volumen, y que la tabla de techos sea la de la mezcla de hoy
-* `abl/test_msu.py`: las pistas de MSU-1
+* `rpgmaker/test_fundido_del_tema.py`: que el `FadeOutBGM` y la salida del
+  título bajen el tema y no los efectos, escuchando el audio del core
+* `abl/test_msu.py`: las pistas de MSU-1, y lo que pasa con ellas al salir
+  del título y en un fundido
 
 **Lo propio de ABL**
 
 * `abl/test_recorrido_golden.py`: el recorrido largo, jugado desde el título
 * `abl/test_recorrido_vipers_golden.py`: el tramo de los Neon Vipers
+* `abl/test_recorrido_vipers_otras_ramas_golden.py`: lo que ese tramo deja
+  afuera —la rama del "No", la reja y el mapa 14—, eligiendo con el cursor
 * `abl/test_escenas_golden.py`: las escenas y cinemáticas
 * `abl/test_recuerdo.py`: el recuerdo de CORE y MANTA
 * `abl/test_un_ano_antes.py`: el cartel de "1 year earlier"
@@ -184,8 +192,6 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `herramientas/test_reservas_de_la_wram.py`: que nadie más caiga en la mitad
   alta de la WRAM, que es de la grilla y de la pelea
 * `herramientas/test_bancos.py`: el acomodo de bancos
-* `herramientas/test_pila.py`: la hondura de la pila contra `bancos.PILA`,
-  con la ROM corriendo
 * `herramientas/test_ensamblar.py`: `ensamblar.py`
 * `herramientas/test_protocolo.py`: el bytecode: las declaraciones y los
   generados

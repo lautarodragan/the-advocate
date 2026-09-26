@@ -28,7 +28,7 @@ def test_pararse_encima_de_la_puerta_y_apretar_a_la_abre(partida):
     for _ in range(25):
         if una.mapa() == DESTINO:
             break
-        una.tocar("a")
+        una.tocar_ticks("a")
         for _ in range(90):
             if una.mapa() == DESTINO or una.byte("msg_abierto"):
                 break
@@ -51,7 +51,7 @@ def test_de_frente_no_la_dispara(partida):
     una.ir_al_mapa(MAPA, ABAJO[0], ABAJO[1] + 1)
     una.poner_byte("hero_dir", una.simbolos["DIR_UP"])
     for _ in range(6):
-        una.tocar("a")
+        una.tocar_ticks("a")
         una.correr(30)
     assert una.mapa() == MAPA, \
         "se disparó algo mirando de frente a un evento que no es de la capa " \

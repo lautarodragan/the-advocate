@@ -139,6 +139,13 @@ sin_pista:
     pla
     php
     sei
+    ; Se cancela el fundido que hubiera, que si no seguiría bajando el tema que
+    ; el `PlayBGM` acaba de prender. Acá y no en `music_start_ya`, que es
+    ; también la vuelta al principio del tema: un tema que da la vuelta en
+    ; medio de un `FadeOutBGM` se sigue apagando, como en RM2k. Hasta el
+    ; 2026-09-26 la vuelta lo cancelaba, porque el comienzo del stream reponía
+    ; el volumen general, que era lo que el fundido bajaba.
+    stz bgm_fundido
     jsr music_start_ya
     plp
     rts
@@ -177,26 +184,29 @@ sin_pista:
     sep #$20
 .a8
     stz music_apagada
-    ; Y se cancela el fundido que hubiera: el stream vuelve a escribir el
-    ; volumen general al arrancar, así que seguir bajándolo apagaría el tema
-    ; que el `PlayBGM` acaba de prender.
-    stz bgm_fundido
     rts
 .endproc
 
-; Un cuadro del `FadeOutBGM`: baja el volumen general del DSP y, cuando llega a
-; cero, corta el tema. Es `Game_System::BgmFade`, que en RM2k tampoco bloquea a
-; la página que lo pidió.
+; Un cuadro del `FadeOutBGM`: baja el tema y, cuando llega a cero, lo corta. Es
+; `Game_System::BgmFade`, que en RM2k tampoco bloquea a la página que lo pidió.
 ;
-; El nivel es de dieciséis bits y va de 65535 a cero; el volumen que se escribe
-; es `TEMA_VOLUMEN` por su byte alto, con el multiplicador del hardware. La
-; alternativa —bajar el registro de siete bits de a uno— daría noventa y seis
-; escalones para un fundido de trescientos cuadros y se oiría a escalones.
+; El nivel es de dieciséis bits y va de 65535 a cero. La alternativa —bajar un
+; registro de siete bits de a uno— daría noventa y seis escalones para un
+; fundido de trescientos cuadros y se oiría a escalones.
+;
+; **Lo que baja es el tema y nada más**: sin MSU-1, el volumen de cada voz de
+; la música —ver `volumen_al_dia`—, y con MSU-1, el de la pista. Hasta el
+; 2026-09-26 sin MSU-1 bajaba el volumen general del DSP, que es también el de
+; los efectos de sonido, y lo dejaba en cero hasta el próximo tema: el trueno
+; del final del mapa 3 sonaba mudo. Lo cobra `test_fundido_del_tema.py`.
 .proc bgm_fundido_tick
 .a8
 .i16
     rep #$20
 .a16
+    lda bgm_nivel
+    jsr factor_de_nivel
+    sta f:FUNDIDO_ANTES         ; el que el DSP tiene
     lda bgm_nivel
     sec
     sbc bgm_paso
@@ -204,6 +214,8 @@ sin_pista:
     lda #0
 baja:
     sta bgm_nivel
+    jsr factor_de_nivel
+    sta f:FUNDIDO_N             ; el de este cuadro
     sep #$20
 .a8
     lda bgm_nivel
@@ -213,23 +225,20 @@ baja:
     lda #1
     sta music_apagada           ; el tema se corta, como `BgmFade`
 sigue:
-    ; TEMA_VOLUMEN por el nivel, entre 256. **No con el multiplicador**: esto
-    ; corre en `irq_musica`, y el código principal lo usa en treinta lugares
-    ; —el divisor comparte el registro del resultado—; una interrupción entre
-    ; su escritura y su lectura le cambiaría la cuenta. Así que a mano, de a
-    ; un bit del nivel, con `dsp_valor` de lugar: es sólo de la música.
-    ; El factor es el techo de lo que se está fundiendo: el volumen del tema
-    ; si suena el SPC700, y el de la pista si hay MSU-1 —que no es 255, ver
-    ; MSU_VOLUMEN_MAX—. Es un solo producto y un solo camino: con dos, el del
-    ; MSU-1 se equivocaría solo.
-    ldy #TEMA_VOLUMEN
     lda f:MSU_SUENA
-    beq con_factor
-    ldy #MSU_VOLUMEN_MAX
-con_factor:
+    bne pista
+    jmp voces_al_dia
+pista:
+    ; Con pista, el fundido baja **su** volumen: MSU_VOLUMEN_MAX por el nivel,
+    ; entre 256. **No con el multiplicador de la CPU**: esto corre en
+    ; `irq_musica`, y el código principal lo usa en treinta lugares —el divisor
+    ; comparte el registro del resultado—; una interrupción entre su escritura
+    ; y su lectura le cambiaría la cuenta. Tampoco con el del PPU, que es de
+    ; ocho bits con signo y MSU_VOLUMEN_MAX no entra. Así que a mano, de a un
+    ; bit del nivel, con `dsp_valor` de lugar: es sólo de la música.
     rep #$20
 .a16
-    tya
+    lda #MSU_VOLUMEN_MAX
     sta f:MSU_FACTOR            ; el lazo lo suma con `adc f:`: no hay dónde
     sep #$20                    ; tener un parcial, y `,s` no existe acá
 .a8
@@ -255,47 +264,108 @@ sin_sumar:
     xba                         ; el byte alto del producto, o sea entre 256
     sep #$20
 .a8
-    sta dsp_valor
-    ; Y lo mismo para la pista del MSU-1, que es la que suena si hay: el
-    ; `FadeOutBGM` la baja igual. Al llegar a cero se corta.
-    lda f:MSU_SUENA
-    beq sin_msu
-    ; Con pista, el fundido baja **su** volumen y no el del DSP. El volumen
-    ; general del SPC700 es el que oyen los efectos de sonido, así que bajarlo
-    ; acá los dejaba mudos hasta el `PlayBGM` siguiente, que es el único que lo
-    ; repone.
-    ;
-    ; El producto ya está hecho arriba, y con el factor de la pista: `dsp_valor`
-    ; es el nivel escalado contra MSU_VOLUMEN_MAX, que es el techo de la pista y
-    ; no 255. Acá no hay ninguna cuenta que rehacer.
-    lda dsp_valor
     sta MSU_VOLUMEN
+    cmp #0
     bne listo_msu
     jsr msu_parar               ; llegó a cero: la pista se corta
 listo_msu:
     rts
-sin_msu:
-    lda #DSP_MVOL_L
-    jsr escribir_dsp
-    lda #DSP_MVOL_R
-    jsr escribir_dsp
+.endproc
+
+; A de dieciséis: el nivel del fundido. Vuelve con el factor que le toca, de 0
+; a 256: el byte alto más uno, salvo el cero. Así el nivel entero, $FFFF, es
+; 256, que es el volumen **sin tocar** —con 255 el primer cuadro ya bajaría
+; todas las voces un escalón—, y el cero es silencio.
+.proc factor_de_nivel
+.a16
+.i16
+    cmp #0
+    beq listo
+    xba
+    and #$00FF
+    inc a
+listo:
     rts
 .endproc
 
-; Le escribe `dsp_valor` al registro que trae A, con el testigo del SPC700. Es
-; el mismo protocolo que usa `music_frame` con cada escritura del stream.
-.proc escribir_dsp
+; El volumen de las voces de la música, al día con el fundido: VOL_L y VOL_R de
+; cada voz que ya tocó en este tema, escalados por FUNDIDO_N. Se reescribe sólo
+; el que cambió desde el cuadro anterior —el escalado por FUNDIDO_ANTES es lo
+; que el DSP ya tiene—: un fundido de trescientos cuadros mueve cada volumen
+; una vez cada tantos, y cada escritura espera al SPC700.
+;
+; Van por `dsp_musica`, así que las voces que tienen un efecto sonando no se
+; tocan: el valor va a su sombra, y se les devuelve escalado cuando el efecto
+; termina.
+.proc voces_al_dia
 .a8
 .i16
-    sta APUIO0
-    lda dsp_valor
-    sta APUIO1
-    inc token                   ; el testigo le avisa al SPC700 que hay algo
-    lda token
-    sta APUIO3
-espera:
-    cmp APUIO3
-    bne espera
+    ldx #0                      ; VOL_L de la voz: el registro del DSP
+    ldy #0                      ; la voz
+otra_voz:
+    lda f:MUS_VISTAS
+    and bit_de_voz, y
+    beq siguiente               ; no tocó en este tema: no suena
+    jsr volumen_al_dia
+    inx
+    jsr volumen_al_dia          ; VOL_R
+    dex
+siguiente:
+    rep #$21                    ; y el carry en cero
+.a16
+    txa
+    adc #$10
+    tax
+    sep #$20
+.a8
+    iny
+    cpy #8
+    bcc otra_voz
+    rts
+.endproc
+
+; El registro de volumen X de una voz, con lo que el stream le escribió
+; —MUS_SOMBRA— por FUNDIDO_N, entre 256, si eso cambió respecto de
+; FUNDIDO_ANTES. El producto lo hace el multiplicador del PPU, que es de
+; `irq_musica` —ver M7A—: con signo, que es lo que es un volumen del DSP, y
+; sin esperar. No toca X ni Y.
+.proc volumen_al_dia
+.a8
+.i16
+    lda f:MUS_SOMBRA, x
+    sta M7B
+    lda f:FUNDIDO_ANTES
+    sta M7A
+    lda f:FUNDIDO_ANTES + 1
+    sta M7A
+    lda MPYM
+    pha                         ; lo que el DSP tiene
+    lda f:FUNDIDO_N
+    sta M7A
+    lda f:FUNDIDO_N + 1
+    sta M7A
+    lda MPYM                    ; lo que tiene que tener
+    cmp 1, s
+    beq igual
+    jsr dsp_musica
+igual:
+    pla
+    rts
+.endproc
+
+; A: un volumen de voz que el stream le va a escribir al DSP. Vuelve con él por
+; FUNDIDO_N, entre 256. Es la misma cuenta que `volumen_al_dia`, así que lo
+; que escribe la música en medio de un fundido y lo que el fundido reescribe
+; después coinciden. No toca X, Y ni V.
+.proc volumen_fundido
+.a8
+.i16
+    sta M7B
+    lda f:FUNDIDO_N
+    sta M7A
+    lda f:FUNDIDO_N + 1
+    sta M7A
+    lda MPYM
     rts
 .endproc
 
@@ -334,7 +404,11 @@ del_mapa:
 callado:
     lda #1
     sta music_apagada
-    rts
+    ; Y la pista del MSU-1, que `music_apagada` no calla: viniendo del título
+    ; su pista seguía sonando adentro de la partida hasta el primer `PlayBGM`,
+    ; y una pelea en el medio la anotaba como el tema a reponer. Lo cobra
+    ; `test_con_msu_la_pista_del_titulo_no_sigue_en_la_partida`.
+    jmp msu_parar
 suena:
     jmp music_start
 .endproc
@@ -612,6 +686,22 @@ bit_de_voz:
     beq igual
 escribir:
     sta f:MUS_SOMBRA, x
+    ; En medio de un `FadeOutBGM`, el volumen va escalado: la sombra guarda el
+    ; del stream, que es contra el que compara el caché y del que
+    ; `volumen_al_dia` saca el de cada cuadro. VOL_L y VOL_R son los dos
+    ; primeros registros de la voz.
+    pha
+    lda bgm_fundido
+    beq tal_cual
+    txa
+    and #$0E
+    bne tal_cual
+    pla
+    jsr volumen_fundido
+    bra mandar
+tal_cual:
+    pla
+mandar:
     jsr dsp_musica
 igual:
     plx

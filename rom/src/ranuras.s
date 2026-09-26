@@ -20,9 +20,11 @@
 ; **se lleva `ranura`**: `ranuras_pantalla` la guarda al entrar y la repone al
 ; salir.
 ;
-; Mira sólo la magia y no la suma: es para pintar la lista, y recorrer los 159
-; bytes de cada ranura para dibujar una pantalla sería pagar de más. La suma la
-; comprueba `cargar_partida` cuando el jugador elige, que es donde importa.
+; Mira la magia y el formato —una partida de otro build se ve vacía, ver
+; `ranura_de_este_formato`— pero no la suma: es para pintar la lista, y
+; recorrer los bytes de cada ranura para dibujar una pantalla sería pagar de
+; más. La suma la comprueba `cargar_partida` cuando el jugador elige, que es
+; donde importa.
 .proc ranura_llena
 .a8
 .i16
@@ -32,18 +34,8 @@
     lda #SRAM_BANCO
     pha
     plb
-    lda SRAM_MAGIA, x
-    cmp #$41
-    bne no
-    lda SRAM_MAGIA + 1, x
-    cmp #$42
-    bne no
-    lda SRAM_MAGIA + 2, x
-    cmp #$4C
-    bne no
-    lda SRAM_MAGIA + 3, x
-    cmp #$53
-    bne no
+    jsr ranura_de_este_formato
+    beq no                      ; el `plb` de abajo pisa Z: se mira antes
     plb
     lda #$01
     rts
