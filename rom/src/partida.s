@@ -44,7 +44,20 @@ SRAM_STRIDE = 2048
 ; que la partida no cargara en mednafen, en Mesen ni en la consola.
 SRAM_MAGIA = $0100          ; cuatro bytes: "ABLS", $41 $42 $4C $53
 SRAM_SUMA  = $0104          ; la suma de los bytes de la partida
-SRAM_DATOS = $0106
+; Y de qué formato es: la magia y la suma dicen que la ranura está entera, no
+; que sea de este build. Desde que los casos de prueba viajan en la ROM que se
+; juega, la partida cambia de forma cada vez que un caso nombra una variable
+; o trae una tropa, y una de otro build **cargaba corrupta** —con ceros
+; detrás la suma cuadraba igual— o no cargaba según lo que hubiera en la SRAM.
+; Una que no coincide es "no hay partida": ver `ranura_de_este_formato`.
+;
+; Son dos palabras y ninguna se escribe a mano: el largo sale de las mismas
+; constantes que `partida_tabla`, y la firma la calcula el conversor de qué
+; variable, actor y habilidad va en cada ranura —`firma_de_la_partida`—, que
+; es lo que el largo no ve.
+SRAM_BYTES = $0106          ; PARTIDA_BYTES
+SRAM_FIRMA = $0108          ; PARTIDA_FIRMA
+SRAM_DATOS = $010A
 
 ; `partida_tabla` vive en RODATA —ver "lo que no hace falta que viva en el
 ; banco 0"— y se lee con `lda f:partida_tabla, x`.
@@ -255,6 +268,10 @@ cuadra:
 .a16
     lda temp + 2
     sta SRAM_SUMA, x
+    lda #PARTIDA_BYTES
+    sta SRAM_BYTES, x
+    lda #PARTIDA_FIRMA
+    sta SRAM_FIRMA, x
     sep #$20
 .a8
     lda #$41
@@ -272,10 +289,6 @@ cuadra:
 ; Si la SRAM tiene una partida, la carga y devuelve A distinto de cero. Corre en
 ; el arranque, antes de cargar el mapa: los switches deciden qué página está
 ; activa en cada evento, así que tienen que estar puestos antes.
-;
-; La magia se compara contra inmediatos y no contra una tabla de la ROM porque
-; con el banco de datos en la SRAM no hay cómo leer la ROM: el ensamblador no
-; tiene direccionamiento largo y la página directa está llena.
 .proc cargar_partida
 .a8
 .i16
@@ -284,18 +297,8 @@ cuadra:
     lda #SRAM_BANCO
     pha
     plb
-    lda SRAM_MAGIA, x
-    cmp #$41
-    bne no_hay
-    lda SRAM_MAGIA + 1, x
-    cmp #$42
-    bne no_hay
-    lda SRAM_MAGIA + 2, x
-    cmp #$4C
-    bne no_hay
-    lda SRAM_MAGIA + 3, x
-    cmp #$53
-    bne no_hay
+    jsr ranura_de_este_formato
+    beq no_hay
     phx
     jsr partida_suma            ; se lleva X
     plx
@@ -315,6 +318,56 @@ no_hay:
     plb
     lda #$FF
     sta ranura                  ; el centinela: no hay partida cargada
+    lda #$00
+    rts
+.endproc
+
+; Si la ranura lleva una partida **de este formato**: la magia, el largo y la
+; firma. Devuelve A = 1 si sí y 0 si no, con Z según A —el `lda #` del final
+; lo deja—. Pide el banco de datos en la SRAM y X con el desplazamiento de la
+; ranura, y no toca X.
+;
+; La usan la pantalla de ranuras y `cargar_partida`, y es una sola para que
+; las dos contesten lo mismo: una partida de otro build se ve vacía y no
+; carga. Si sólo la carga la rechazara, la pantalla mostraría el nombre y el
+; nivel leídos de un formato que no es el suyo —basura— y elegirla empezaría
+; de cero sin decir por qué.
+;
+; La magia se compara contra inmediatos y no contra una tabla de la ROM porque
+; con el banco de datos en la SRAM no hay cómo leer la ROM: el ensamblador no
+; tiene direccionamiento largo y la página directa está llena.
+.proc ranura_de_este_formato
+.a8
+.i16
+    lda SRAM_MAGIA, x
+    cmp #$41
+    bne no
+    lda SRAM_MAGIA + 1, x
+    cmp #$42
+    bne no
+    lda SRAM_MAGIA + 2, x
+    cmp #$4C
+    bne no
+    lda SRAM_MAGIA + 3, x
+    cmp #$53
+    bne no
+    rep #$20
+.a16
+    lda SRAM_BYTES, x
+    cmp #PARTIDA_BYTES
+    bne no_16
+    lda SRAM_FIRMA, x
+    cmp #PARTIDA_FIRMA
+    bne no_16
+    sep #$20
+.a8
+    lda #$01
+    rts
+no_16:
+.a16
+    sep #$20
+.a8
+no:
     lda #$00
     rts
 .endproc
