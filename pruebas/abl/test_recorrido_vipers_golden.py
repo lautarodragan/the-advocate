@@ -62,6 +62,7 @@ están bendecidas**: son para que taro las mire. Ver `Recorrido.foto`.
 """
 
 from recorrido import A_CADA
+from port import eventos
 
 # El switch que prende el despertador de Talan —"se levantó y va a trabajar"—.
 # No es decoración: la página 0 del hotplate lo pide, y las tres del caño
@@ -107,24 +108,25 @@ def sin_quedarse_en_el_aire(partida, a_cada=A_CADA):
 
     Lo que mira es `ruta_salto`, el descuento del arco, y lo que le tolera es
     **lo que dura un salto y una muestra más**, contado de los símbolos de la
-    ROM y no a ojo: `SALTO_PASO` sobre `SALTO_VELOCIDAD` son las vueltas que
-    tarda en aterrizar, y el vigilante corre una vez cada `a_cada`. Si alguien
-    cambia la velocidad del salto, el tope se mueve solo.
+    ROM y de la velocidad del héroe, no a ojo: `SALTO_PASO` sobre lo que baja
+    el salto a esa velocidad son las vueltas que tarda en aterrizar, y el
+    vigilante corre una vez cada `a_cada`. Si una ruta le cambia la velocidad,
+    el tope se mueve solo.
 
     Un salto que no se termina no da rojo en ningún otro lado de este tramo: la
     escena no espera a que el héroe toque el piso —sus esperas son `Wait` de
     décimas y no `ProceedWithMovement`— así que sigue de largo y lo único que
     queda mal es el estado.
     """
-    dura = -(-partida.simbolos["SALTO_PASO"]
-             // partida.simbolos["SALTO_VELOCIDAD"])
-    tope = -(-dura // a_cada) + 1
     seguidas = [0]
 
     def mirar(p):
         if not p.byte("ruta_salto"):
             seguidas[0] = 0
             return
+        dura = -(-partida.simbolos["SALTO_PASO"]
+                 // eventos.SALTO_POR_VELOCIDAD[p.velocidad_del_heroe() - 1])
+        tope = -(-dura // a_cada) + 1
         seguidas[0] += 1
         assert seguidas[0] <= tope, (
             "el héroe lleva %d muestras de %d ticks en el aire y un salto dura "

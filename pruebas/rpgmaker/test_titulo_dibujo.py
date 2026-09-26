@@ -284,3 +284,84 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     una.consola.apretar()
     una.consola.correr(2)
     comparar(1)
+
+
+def _suma(bytes_):
+    return sum(bytes_) & 0xFFFF
+
+
+def _de_otro_build(simbolos, guardado, como):
+    """La ranura entera —desde `SRAM_MAGIA`— de una partida guardada por otro
+    build, armada con los bytes de `guardado`, que son los de una de éste.
+
+    El otro formato se simula corriendo todo dos bytes desde la mitad de la
+    partida —una variable menos, que es lo que pasó al juntar `release` y
+    `test-main`— y con **ceros detrás**: con ceros la suma de control cuadra
+    igual, que es el caso en que antes cargaba corrupta.
+    """
+    mitad = len(guardado) // 2
+    corrida = guardado[:mitad] + guardado[mitad + 2:] + bytes(2)
+    magia = b"ABLS"
+    if como == "sin-cabecera":
+        # Un build de antes de que la partida llevara su formato: la suma y
+        # los datos pegados, sin nada en el medio.
+        return magia + _suma(corrida).to_bytes(2, "little") + corrida
+    bytes_ = simbolos["PARTIDA_BYTES"]
+    firma = simbolos["PARTIDA_FIRMA"]
+    if como == "otro-largo":
+        bytes_ -= 2
+    else:
+        firma ^= 0x0100
+    relleno = bytes(simbolos["SRAM_DATOS"] - simbolos["SRAM_MAGIA"] - 10)
+    return (magia + _suma(corrida).to_bytes(2, "little")
+            + bytes_.to_bytes(2, "little") + firma.to_bytes(2, "little")
+            + relleno + corrida)
+
+
+@pytest.mark.parametrize("como", ["sin-cabecera", "otro-largo", "otra-firma"])
+def test_una_partida_de_otro_build_se_ve_vacia_y_no_carga(partida, como):
+    """Una partida de otro formato es "no hay partida": la pantalla de ranuras
+    la muestra vacía, pixel por pixel, y elegirla empieza de cero.
+
+    Vacía y no "corrupta" como en EasyRPG: el "Savegame corrupted" de su
+    `Window_SaveFile` es un texto suyo, en inglés y escrito en el código, y no
+    uno de los términos del LDB, que es de donde la ROM saca todo lo que
+    dice. Y es lo que la ROM ya hacía con una ranura cuya suma no cuadra.
+
+    `sin-cabecera` es la partida que existe de verdad: la de un build de
+    antes de este cambio. Contra la ROM sin el cambio este caso da rojo en
+    la comparación de pixeles —la ranura se ve con el grupo guardado— y,
+    salteando esa, en el switch: la partida corrida carga.
+    """
+    from port import titulo
+    from render.render_map import GAME_DIR
+
+    una = con_el_control(partida)
+    una.poner_grupo(14, 10)
+    una.prender(7)
+    una.guardar_por_el_menu(1)
+    s = una.simbolos
+    base = s["SRAM_STRIDE"]
+    guardado = una.sram(base + s["SRAM_DATOS"], s["PARTIDA_BYTES"])
+    ranura = _de_otro_build(s, guardado, como)
+    una.poner_sram(base + s["SRAM_MAGIA"],
+                   ranura + bytes(s["SRAM_STRIDE"] - len(ranura)))
+    una.abrir_ranuras_desde_el_titulo()
+
+    db, skin = datos.base(), datos.skin()
+    ranuras = s["SRAM_RANURAS"]
+    esperada = titulo.render_ranuras(skin, db, ranuras, [False] * ranuras,
+                                     0, 0, db.font_id, {}, GAME_DIR)
+    comparar_pantalla(una, esperada, "ranuras-otro-build-%s" % como,
+                      "la pantalla de ranuras con una partida de otro build "
+                      "en la 1")
+
+    # Y elegirla no carga nada ni se cuelga: arranca como "Begin the Story".
+    una._bajar_y_elegir(1)
+    una.consola.correr(3)
+    una.correr(1)
+    assert una.mapa() == MAPA_DE_ARRANQUE, (
+        "elegir la partida de otro build dejó el juego en el mapa %d"
+        % una.mapa())
+    assert not una.switch(7), (
+        "la partida de otro build cargó: el switch 7 volvió de la SRAM")

@@ -530,7 +530,7 @@ sin_paginas:
 ; Corren con los **mismos** globales que el primer plano —`cod_ptr`, `ev_cur`,
 ; `ev_esperando`, `ev_activo`, `ev_corriendo`— así que ese contexto se guarda en
 ; la pila y se devuelve al final. Doce bytes, y cuánta pila queda debajo lo mide
-; `pruebas/herramientas/test_pila.py`: este camino es uno de los que corre.
+; `pruebas/rpgmaker/test_pila.py`: este camino es uno de los que corre.
 ;
 ; El estado de cada uno va en la RAM del banco 1 e **indexado por evento**, no
 ; por ranura, y lleva de qué página es: si la página activa cambia, RM2k rehace
@@ -1154,6 +1154,25 @@ listo:
 .a8
     phx                         ; X trae la ranura y el que llama cuenta con ella
     tyx
+    lda f:salto_por_vel, x
+    plx
+    rts
+.endproc
+
+; Cuánto avanza el salto del héroe por cuadro, en A: `jump_speed[move_speed - 1]`
+; de RM2k, con la velocidad que le dejó la última ruta. Conserva X.
+.proc salto_del_heroe
+.a8
+.i16
+    phx
+    jsr hero_vel_leer
+    rep #$20
+.a16
+    and #$00FF
+    dec a
+    tax
+    sep #$20
+.a8
     lda f:salto_por_vel, x
     plx
     rts

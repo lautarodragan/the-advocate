@@ -103,11 +103,13 @@ def _items():
     return correr_hardware(consola, 80, toques_hardware=A_LOS_ITEMS)
 
 
-def _tocar(consola, boton, cuadros=8):
-    """Un flanco del botón y `cuadros` de hardware de espera.
+def _tocar_cuadros(consola, boton, cuadros=8):
+    """Un flanco del botón —un cuadro apretado— y `cuadros` de hardware de
+    espera.
 
-    Es `menu.tocar` a mano, en cuadros de hardware: adentro de un menú el
-    reloj del juego no corre, así que `Partida.correr` no termina nunca.
+    Es `Partida.tocar_cuadros` sobre una consola sin `Partida`, y por eso a
+    mano: adentro de un menú el reloj del juego no corre, así que
+    `Partida.correr` no termina nunca.
     """
     consola.apretar(boton)
     consola.correr(1)
@@ -126,7 +128,7 @@ def _tienda():
     una = partida("tienda", pila=True)
     una.correr(85, apretar_a=(25,))
     consola = una.consola
-    _tocar(consola, "a", 40)            # "Yo. I got weapons.", y la tienda
+    _tocar_cuadros(consola, "a", 40)    # "Yo. I got weapons.", y la tienda
     for _ in range(120):
         if una.menu_abierto():
             break
@@ -137,7 +139,7 @@ def _tienda():
     # con su pantalla de cuántos, que es lo que llama más hondo.
     for boton in ("a", "down", "a", "right", "a", "b", "down", "a", "a", "up",
                   "a"):
-        _tocar(consola, boton)
+        _tocar_cuadros(consola, boton)
     return consola
 
 
@@ -176,7 +178,7 @@ def _tropa():
     # turno siguiente.
     corrio = False
     for boton in ("right", "a", "a") + ("a",) * 40:
-        _tocar(consola, boton)
+        _tocar_cuadros(consola, boton)
         corrio = corrio or any(consola.ram(una.simbolos["BA_PAG_HECHA"],
                                            una.simbolos["TROPA_PAG_MAX"]))
     assert corrio, (

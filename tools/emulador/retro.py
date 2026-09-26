@@ -341,6 +341,22 @@ class Consola:
             largo = total - direccion
         return ctypes.string_at(base + direccion, largo)
 
+    def escribir_sram(self, direccion, datos):
+        """Escribe bytes en la SRAM del cartucho: es poner otro `.srm` en el
+        cartucho, como el que dejó un build anterior. Existe para probar que la
+        ROM rechaza una partida que no es de su formato."""
+        self.lib.retro_get_memory_data.restype = ctypes.c_void_p
+        self.lib.retro_get_memory_size.restype = ctypes.c_size_t
+        base = self.lib.retro_get_memory_data(self.MEMORIA_SRAM)
+        total = self.lib.retro_get_memory_size(self.MEMORIA_SRAM)
+        if not base or not total:
+            raise RuntimeError("este core no expone la SRAM del cartucho")
+        datos = bytes(datos)
+        if direccion + len(datos) > total:
+            raise ValueError("escribir %d bytes en %d se pasa de la SRAM (%d)"
+                             % (len(datos), direccion, total))
+        ctypes.memmove(base + direccion, datos, len(datos))
+
     def reset(self):
         """El botón de reset de la consola: la SRAM sobrevive y la WRAM no.
 
