@@ -29,3 +29,11 @@ Anotado para él:
   batería va primero a las voces 6 y 7 pero no las tiene fijas, y
   `share_voices`/`coverage` se fueron. Cuánto tiempo-nota se pierde lo
   imprime el conversor por tema.
+  Desde el 2026-09-26, también: el orden en que eligen voz las notas de un
+  mismo cuadro es `_orden_del_cuadro` (golpes primero, uno por familia; lo
+  melódico por nivel dividido por su lugar en el acorde).
+* "Lo que sí queda de ellas son los números de `sdsp.py`" (~líneas 962-966):
+  el techo por voz ya no es uno solo desde el 2026-09-26. `sdsp.AIRE` es el
+  máximo, y el tema que con él recortaría va con el suyo, medido por `just
+  techos` y versionado en `parches/auto/musica/techos.toml` (ver
+  `leer_techos` en `tools/audio/snes_music.py`).
