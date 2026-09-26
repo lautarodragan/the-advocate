@@ -43,6 +43,7 @@ import argparse
 import collections
 import json
 import os
+import shutil
 import sys
 
 # Corrido como script —que es como lo corren las recetas—, Python pone en el
@@ -3866,6 +3867,59 @@ def terreno_del_mapa(mapa):
             else bytes(mapa["terreno"]))
 
 
+# Lo que la ROM descomprime al cargar un mapa, por clase de bloque. Ver
+# `lz2_descomprimir` en rom/src/descomprimir.s.
+CLASES_COMPRIMIDAS = ("map_tiles", "above_tiles", "sprite_tiles", "anim_tiles",
+                      "map_celdas")
+
+
+# La grilla va a la mitad alta de los dos bancos de la WRAM —ver
+# `lz2_grilla`—, así que se comprime en dos flujos de hasta 32 KB: cada uno cae
+# entero en un banco, y el descompresor no tiene que saber cruzar.
+GRILLA_MITAD = 0x8000
+
+
+def partes_comprimidas(clase, datos):
+    """Los trozos de un bloque que se comprimen cada uno en su flujo."""
+    if clase == "map_celdas":
+        return [datos[:GRILLA_MITAD], datos[GRILLA_MITAD:]]
+    return [datos]
+
+
+def crudos_del_mapa(mapa):
+    """{clase: los bytes sin comprimir} de un mapa, para `CLASES_COMPRIMIDAS`."""
+    above, sprite = mapa["above"], mapa["sprite"]
+    return {"map_tiles": bytes(mapa["tiles"]),
+            "above_tiles": bytes(above[0]),
+            "sprite_tiles": bytes(sprite[0]) if sprite else b"",
+            "anim_tiles": bytes(mapa["anim"]),
+            "map_celdas": bytes(mapa["celdas"])}
+
+
+def escribir_crudos(directorio, mapas):
+    """Deja en `directorio/crudos/` lo que la ROM tiene que tener en la VRAM y
+    en la WRAM después de cargar cada mapa, sin comprimir: `<índice>.<clase>
+    .bin`, con el índice del mapa en la ROM.
+
+    Es la otra punta de las pruebas de la compresión: `test_lz2.py` hace la ida
+    y vuelta de cada bloque, y `test_carga_descomprimida.py` compara contra
+    esto lo que la ROM descomprimió. Viene del conversor y no de la ROM
+    justamente para que no sea la ROM la que se contesta a sí misma.
+
+    Se borra entero antes de escribir: un mapa que salió del cartucho dejaría
+    su archivo, y una prueba que recorra el directorio lo miraría.
+    """
+    donde = os.path.join(directorio, "crudos")
+    if os.path.isdir(donde):
+        shutil.rmtree(donde)
+    os.makedirs(donde)
+    for numero, mapa in enumerate(mapas):
+        for clase, datos in crudos_del_mapa(mapa).items():
+            with open(os.path.join(donde, "%d.%s.bin" % (numero, clase)),
+                      "wb") as f:
+                f.write(datos)
+
+
 def datos_del_mapa(mapa, numero, indice_global, materiales):
     """Los bloques de datos de un mapa, con el número pegado a cada etiqueta.
 
@@ -4500,6 +4554,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         for g, datos in enumerate(bancos):
             handle.write(bloque("sprite_poses_%d" % g, datos) + "\n")
         handle.write("\n")
+        escribir_crudos(os.path.dirname(os.path.abspath(path)), mapas)
         materiales = Materiales(deduplicar=True)
         etiquetas = []
         for numero, mapa in enumerate(mapas):

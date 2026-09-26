@@ -27,15 +27,17 @@ una de su misma fila ni de más arriba.
 
     port/        el conversor a SNES —snes_convert— y todo lo que sólo él usa:
                  eventos, event_opcodes, batalla, pantallas, imagen, titulo,
-                 ventana, fuente, escena, animacion, asignador, tiles_bin
+                 ventana, fuente, escena, animacion, asignador, tiles_bin,
+                 comprimir
 
-Y los cuatro proyectos de Rust, que no son capas del port sino herramientas
-aparte, en inglés y sin una mención a este juego (ver AGENTS.md):
+Y los proyectos de Rust, que no son capas del port sino herramientas aparte,
+en inglés y sin una mención a este juego (ver AGENTS.md):
 
     ditto/       lee y escribe los formatos de RPG Maker 2000
     protocol/    declara un bytecode y genera las constantes de sus dos lados
     gunter/      Gunter: códec BRR y lector de SoundFont
     voodoo/      Voodoo: de una imagen a tiles, paletas y tilemap
+    lz2/         el LC_LZ2 de Nintendo, con un parser óptimo
 
 Se instalan con `just herramientas` y se usan desde el PATH: ningún `.py` de
 acá los compila ni los busca en `target/`.
