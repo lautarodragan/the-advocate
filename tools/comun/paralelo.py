@@ -19,11 +19,15 @@ def en_paralelo(funcion, argumentos):
     `SystemExit` que se escapa de un proceso del pool lo mata sin avisar, y
     el conversor tiene que cortar con el mismo mensaje que cortaba en serie.
 
-    Con un solo argumento o un solo núcleo, en serie y en este proceso.
+    Con un solo argumento o un solo núcleo, en serie y en este proceso. Y
+    también si este proceso ya tiene otros hilos —un worker de pytest con un
+    core de libretro cargado, por ejemplo—: bifurcar un proceso con hilos
+    puede dejar al hijo trabado en un lock que otro hilo tenía tomado, y
+    Python lo avisa. El conversor corre en un proceso propio y de un hilo.
     """
     argumentos = list(argumentos)
     procesos = min(len(argumentos), os.cpu_count() or 1)
-    if procesos < 2:
+    if procesos < 2 or not _un_solo_hilo():
         return [funcion(a) for a in argumentos]
     import multiprocessing
     global _funcion
@@ -47,3 +51,13 @@ def _uno(argumento):
         return _funcion(argumento), None
     except BaseException as e:      # noqa: B036 — ver `en_paralelo`
         return None, e
+
+
+def _un_solo_hilo():
+    """Si este proceso tiene un solo hilo, contando los que no son de
+    Python: es lo mismo que mira Python para avisar."""
+    try:
+        return len(os.listdir("/proc/self/task")) == 1
+    except OSError:
+        import threading
+        return threading.active_count() == 1
