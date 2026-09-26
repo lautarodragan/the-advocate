@@ -142,8 +142,15 @@ def casos_de(nombre):
 
 
 def donde_esta(caso):
-    """Los cartuchos que llevan el caso, `test-main` primero."""
-    return [n for n in CARTUCHOS if caso in casos_de(n)]
+    """Los cartuchos que llevan el caso: primero el que lleva todos, después
+    los demás por nombre.
+
+    **No sale del orden de `CARTUCHOS`**, a propósito: un caso que está en
+    dos —`parado-tapado`— corre en el primero, y con el diccionario en otro
+    orden corría en el chico y movía su golden sin que nadie tocara el caso.
+    """
+    return sorted((n for n in CARTUCHOS if caso in casos_de(n)),
+                  key=lambda n: (CARTUCHOS[n][1] is not None, n))
 
 
 def _contenido(casos):

@@ -108,3 +108,18 @@ def test_el_dbg_nombra_los_fuentes_relativos_a_la_raiz(nombre):
     faltan = [n for n in nombres
               if not os.path.isfile(os.path.join(cartuchos.RAIZ, n))]
     assert faltan == []
+
+
+def test_donde_corre_un_caso_no_depende_del_orden_de_los_cartuchos(monkeypatch):
+    """Un caso que está en dos cartuchos corre en el que lleva todos, lo diga
+    como lo diga el diccionario. Con `test-special` primero, `parado-tapado`
+    corrió en el chico y movió su golden."""
+    antes = {caso: cartuchos.donde_esta(caso)
+             for caso in cartuchos.todos_los_casos()}
+    monkeypatch.setattr(cartuchos, "CARTUCHOS",
+                        dict(reversed(list(cartuchos.CARTUCHOS.items()))))
+    despues = {caso: cartuchos.donde_esta(caso)
+               for caso in cartuchos.todos_los_casos()}
+    assert antes == despues
+    assert any(len(donde) > 1 for donde in antes.values()), (
+        "ningún caso está en dos cartuchos: esta prueba no mira nada")
