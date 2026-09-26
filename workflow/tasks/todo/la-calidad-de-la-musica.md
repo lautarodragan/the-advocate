@@ -4,6 +4,19 @@ description: "Por qué escape_newyork suena mal por el SPC700, once versiones gr
 type: feature
 ---
 
+**Lo que taro eligió escuchando, el 2026-09-25**: lo que más le importa, y
+mucho, es **el reparto de voces** (la variante 09 "es muy aceptable"); después
+**las envolventes**; después **la batería**; y **las muestras a 22 kHz** hacen
+una diferencia notoria pero importan menos. Quiere **todas juntas**, sabiendo
+que aun así se nota la diferencia con la referencia (para eso está el MSU-1).
+
+El orden de implementación no es el de sus prioridades por el espacio: el
+reparto suma +74% de stream en el formato de hoy (~436 KB, todo el margen del
+cartucho unido). Así que: batería → notas que se sueltan antes de tiempo →
+envolventes → velocidad y CC → **el formato por nota, diseñado para todo lo de
+arriba y para el reparto** → reparto y rampa → muestras por mapa.
+
+
 taro, el 2026-09-25: *"`escape_newyork` se escucha particularmente mal, y tal
 vez incluir las envolventes lo mejore mucho. Y hay notas que se cortan muy
 abruptamente."* Esto es la investigación: **el diagnóstico, once versiones
