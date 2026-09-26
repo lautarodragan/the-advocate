@@ -41,18 +41,21 @@ como antes.
   MSU-1 tiene que verse el de calidad, y en Mednafen el de 16 colores. Si el
   fondo sale bien pero la entrada tarda más que en un emulador, es la
   búsqueda en la SD.
-* **No lo corre nadie: la espera del bit de datos ocupados.** Ningún
-  emulador lo prende; sólo el hardware busca de verdad.
+* **La espera del bit de datos ocupados: en Mednafen, a mano.** Es el único
+  emulador que lo prende —400.000 ciclos maestros por búsqueda, ver
+  `docs/snes/emulators.md`—, y el 2026-09-26 la pelea del droide leyó el
+  fondo del `.msu` ahí, jugando desde el título. Lo que no corre nadie es
+  el corte por tope.
 * **No lo cubre la firma**: un `.msu` con la cabecera intacta y los datos
   dañados. La ROM no hashea los fondos al empezar cada pelea.
 
 ## Cuánto tarda
 
-Lo mismo por los dos caminos en los tres emuladores: `ESC_CUADROS` da igual
-con MSU-1 y sin él, porque el DMA va a 8 ciclos maestros por byte venga de
-donde venga y buscar es instantáneo. En el hardware se suman cuatro búsquedas
-por pelea —la firma, los tiles dos veces (uno por búfer) y los colores—, que
-no están medidas.
+En snes9x, bsnes y mesen-s buscar es instantáneo, y el DMA va a 8 ciclos
+maestros por byte venga de donde venga. En Mednafen cada una de las cuatro
+búsquedas por pelea —la firma, los tiles dos veces (uno por búfer) y los
+colores— cuesta uno o dos cuadros: unos siete en total, medido. En el FX Pak
+no están medidas. Ver "Cuánto tarda" en `docs/port/msu-datos.md`.
 
 ## Cómo viaja a taro
 
@@ -109,3 +112,30 @@ Mednafen"*. Con los dos fondos iguales no había cómo.
 **Lo que dijo taro mirando las goldens lado a lado, el 2026-09-25**: "en el
 celular se nota, pero no es tan grave. Sospecho que en la tele de tubo casi no
 se va a notar." Falta que lo vea en la consola.
+
+## "En Mednafen y en ares no veo ninguna diferencia" (2026-09-26)
+
+taro jugó la pelea del droide en Mednafen (`snes_faust`) y en ares, con y
+sin el `.msu`, y vio lo mismo. La sospecha era la espera: que Mednafen tarda
+en buscar y los cores de la tanda no. **No se reprodujo**:
+
+* Mednafen sí tarda —`MSU1_WriteDataSeek` prende el bit 7 por 400.000
+  ciclos maestros—, y la espera de la ROM llega: su tope es unas diez veces
+  eso.
+* Con el build que jugó taro (`d7056b6`) y con `main`, jugando desde el
+  título hasta el droide en el Mednafen de acá (1.32.1, el mismo paquete de
+  Arch), la pelea sale con `ESC_MSU` en 1 y el fondo del `.msu`: leído del
+  estado guardado con F5 y comparado contra las capturas de los dos caminos.
+  Sin el `.msu`, `ESC_MSU` en 0 y el liviano.
+* ares busca en el acto (`dataBusy` no se prende nunca), así que corre el
+  mismo camino que bsnes, que la tanda prueba.
+
+Lo más probable es que **la diferencia no se vea a tamaño de juego**: en la
+pared violeta, el de calidad es un degradé con la cara y el liviano la misma
+cara posterizada en dos o tres violetas. Lado a lado y agrandado se nota;
+jugando, no tanto. Las capturas, en `/shared/capturas/2026-09-26-msu-mednafen/`.
+
+**Lo que tiene que mirar taro**, si quiere confirmarlo sin mirar el fondo:
+en Mednafen, Alt+D abre el depurador y Alt+3 su editor de memoria; con la
+pelea abierta, el byte `$664A` del espacio `wram` —`$7E664A`— es `ESC_MSU`:
+1 si el fondo salió del `.msu`, 0 si salió de la ROM.

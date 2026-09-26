@@ -86,16 +86,18 @@ listo:
 ; Espera a que el MSU-1 suelte `AUDIO_BUSY`. Vuelve con el acarreo limpio si lo
 ; soltó y puesto si se acabó el tiempo. Se lleva X.
 ;
-; **Este lazo no lo ejercita ningún emulador.** bsnes no pone `io.audioBusy`
-; nunca —arranca en falso en `power()` y no se escribe en ningún lado; está en
-; `/extras/ref/bsnes-libretro/bsnes/sfc/coprocessor/msu1/msu1.cpp`—, así que en
-; la tanda, en las pruebas de estado y en cualquier corrida de acá adentro sale
-; en la primera vuelta. En el FX Pak la pista sale de la tarjeta SD y abrirla
-; lleva tiempo de verdad, así que **el único lugar donde esto corre es el
-; hardware**, que es la definición de camino sin red.
+; **Este lazo no lo ejercita ningún core de la tanda.** bsnes no pone
+; `io.audioBusy` nunca —arranca en falso en `power()` y no se escribe en ningún
+; lado; está en `/extras/ref/bsnes-libretro/bsnes/sfc/coprocessor/msu1/msu1.cpp`—,
+; y snes9x tampoco, así que en la tanda sale en la primera vuelta. **Mednafen
+; sí** (`-force_module snes_faust`): prende el bit 6 por 400.000 ciclos maestros
+; al elegir la pista —`MSU1_WriteTrack` en `snes_faust/msu1.cpp`— y recién lo
+; apaga al final del cuadro en que se cumplen, o sea uno o dos cuadros. Que las
+; pistas suenen ahí es la prueba de que este lazo espera. En el FX Pak la pista
+; sale de la tarjeta SD, y eso no está medido.
 ;
-; Por eso el tope es generoso y no ajustado: son $FFFF vueltas de unos dieciséis
-; ciclos, del orden de tres décimas de segundo. Antes eran $4000 —setenta
+; Por eso el tope es generoso y no ajustado: $FFFF vueltas de 96 ciclos maestros
+; —desde el espejo rápido—, unos diecisiete cuadros. Antes eran $4000 —setenta
 ; milisegundos— y el precio de quedarse corto no es un cuadro perdido sino que
 ; el tema entero suene por el SPC700.
 MSU_ESPERA = $FFFF
@@ -205,11 +207,21 @@ MSU_DATOS   = $2001             ; leer: el byte que sigue
 ; Las escrituras de dieciséis bits van primero al byte bajo, así que $2003, la
 ; que busca, es la última: es el orden que pide el MSU-1.
 ;
-; **La espera tampoco la ejercita ningún emulador**, igual que `msu_esperar`:
-; bsnes, snes9x y mesen-s no ponen nunca `dataBusy` —buscan en el acto—, así
-; que la primera vuelta ya lo encuentra apagado. En el FX Pak buscar es leer la
-; tarjeta SD, y el tope es el mismo que el del audio y por lo mismo: quedarse
-; corto no cuesta un cuadro sino que la pelea use el fondo de la ROM.
+; **La espera no la ejercita ningún core de la tanda**, igual que
+; `msu_esperar`: bsnes, snes9x, mesen-s y ares no ponen nunca `dataBusy` —buscan
+; en el acto—. **Mednafen sí**: `MSU1_WriteDataSeek` prende el bit 7 por 400.000
+; ciclos maestros, y como `MSU1_ReadStatus` no se pone al día, se apaga al final
+; del cuadro en que se cumplen: cada búsqueda cuesta uno o dos cuadros. Medido
+; el 2026-09-26 en la pelea del droide jugando desde el título: el fondo sale
+; del `.msu`, con `ESC_CUADROS` en 11 contra 4 de snes9x. Ver "Cuánto tarda"
+; en docs/port/msu-datos.md.
+;
+; En el FX Pak buscar fuera de su búfer de 16 KB es leer la tarjeta SD
+; —`prepare_data` en `/extras/ref/sd2snes/src/msu1.c`—, unos milisegundos. El
+; tope es el mismo que el del audio y por lo mismo: $FFFF vueltas de 114 ciclos
+; maestros —esto corre en el banco 1, lento—, unos veintiún cuadros, diez veces
+; lo que tarda Mednafen. Quedarse corto no cuesta un cuadro sino que la pelea
+; use el fondo de la ROM.
 .proc msu_datos_buscar
 .a16
 .i16
