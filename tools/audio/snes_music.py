@@ -502,7 +502,9 @@ class Frame:
     __slots__ = ("release", "setup", "kon", "kof", "control")
 
     def __init__(self):
-        self.release = []       # las notas que se sueltan en este cuadro
+        # Las notas que se sueltan en este cuadro: (voz, GAIN del release).
+        self.release = []
+        # Las que arrancan: una `Preparacion` por nota, en orden.
         self.setup = []
         self.kon = 0
         self.kof = 0
@@ -511,6 +513,24 @@ class Frame:
         # lista porque un fundido trae varios CC7 por cuadro, y escribir los
         # del medio son bytes que el DSP no llega a usar.
         self.control = {}
+
+
+# Lo que una nota le escribe a su voz antes del KON, y el GAIN con que se va
+# a soltar —None en la batería, que no se suelta—. Las siete escrituras salen
+# de `Preparacion.escrituras`, en el orden en que van al DSP.
+class Preparacion(collections.namedtuple(
+        "Preparacion", "voz izquierda derecha altura muestra adsr1 adsr2 gain")):
+    __slots__ = ()
+
+    def escrituras(self):
+        base = self.voz * 0x10
+        return [(base + sdsp.V_VOL_L, self.izquierda),
+                (base + sdsp.V_VOL_R, self.derecha),
+                (base + sdsp.V_PITCH_L, self.altura & 0xFF),
+                (base + sdsp.V_PITCH_H, self.altura >> 8),
+                (base + sdsp.V_SRCN, self.muestra),
+                (base + sdsp.V_ADSR1, self.adsr1),
+                (base + sdsp.V_ADSR2, self.adsr2)]
 
 
 def build_events(notes, voices, programs, drum_voices, banco, controls=()):
@@ -626,41 +646,30 @@ def build_events(notes, voices, programs, drum_voices, banco, controls=()):
         izquierda, derecha = lados(note, drums)
 
         if drums:
-            start.setup += [(base + sdsp.V_VOL_L, izquierda),
-                            (base + sdsp.V_VOL_R, derecha),
-                            (base + sdsp.V_PITCH_L, step & 0xFF),
-                            (base + sdsp.V_PITCH_H, step >> 8),
-                            (base + sdsp.V_SRCN, source),
-                            # Ataque instantáneo y sin decaimiento: el golpe ya
-                            # trae su propia forma, la envolvente sólo lo apaga
-                            # al final para que no siga leyendo memoria.
-                            (base + sdsp.V_ADSR1, 0x8F),
-                            (base + sdsp.V_ADSR2, 0xE0)]
+            # Ataque instantáneo y sin decaimiento: el golpe ya trae su propia
+            # forma, la envolvente sólo lo apaga al final para que no siga
+            # leyendo memoria. No tiene release, así que tampoco GAIN.
+            adsr1, adsr2, gain = 0x8F, 0xE0, None
         else:
             adsr1, adsr2, gain = banco.envolvente(program, note.pitch)
-            start.setup += [(base + sdsp.V_VOL_L, izquierda),
-                            (base + sdsp.V_VOL_R, derecha),
-                            (base + sdsp.V_PITCH_L, step & 0xFF),
-                            (base + sdsp.V_PITCH_H, step >> 8),
-                            (base + sdsp.V_SRCN, source),
-                            (base + sdsp.V_ADSR1, adsr1),
-                            (base + sdsp.V_ADSR2, adsr2)]
+        start.setup.append(Preparacion(voice, izquierda, derecha, step, source,
+                                       adsr1, adsr2, gain))
 
         start.kon |= 1 << voice
         if not drums:
-            sounded.append((note, base, gain))
+            sounded.append((note, voice, gain))
 
     # Los que quedan después de la última nota: el fundido del final de
     # `escape_newyork` es CC7 sobre las notas que ya sonaban.
     controlar(float("inf"))
 
-    for note, base, gain in sounded:
+    for note, voice, gain in sounded:
         # Robada en el mismo cuadro en que termina tampoco se suelta: la
         # ladrona escribe su ADSR1 detrás del release y lo deshace, así que
         # serían seis bytes que no hacen nada.
         if robbed.get(id(note), note.end + 1) <= note.end:
             continue
-        frames[note.end].release.append((base, gain))
+        frames[note.end].release.append((voice, gain))
 
     return frames
 
@@ -738,11 +747,12 @@ def pack(frames, length, init):
             stream.extend([OP_DSP, sdsp.KON, 0x00])
             sounding = 0
         write(sdsp.KOF, 0x00)
-        for base, gain in frame.release:
-            write(base + sdsp.V_ADSR1, 0x00)    # apagar ADSR: manda GAIN
-            write(base + sdsp.V_GAIN, gain)
-        for register, value in frame.setup:
-            write(register, value)
+        for voice, gain in frame.release:
+            write(voice * 0x10 + sdsp.V_ADSR1, 0x00)    # apagar ADSR: manda GAIN
+            write(voice * 0x10 + sdsp.V_GAIN, gain)
+        for preparacion in frame.setup:
+            for register, value in preparacion.escrituras():
+                write(register, value)
         for register, value in sorted(frame.control.items()):
             write(register, value)
         if frame.kof:
