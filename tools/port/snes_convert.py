@@ -3362,6 +3362,53 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
     return datos
 
 
+def usos_de_los_parches(mapas, db, tree):
+    """Quién pide cada animación y cada battler del cartucho: por clase de
+    parche, `{clave: [origen, ...]}`, donde el origen es el id del mapa cuya
+    página o cuyo encuentro al azar lo pide, o `"caso"` si lo pide una página
+    de prueba.
+
+    Es lo que deja a `parches.revisar` saber qué no es del juego en la ROM que
+    se juega, que lleva también los mapas y las páginas de la tanda: una
+    animación que sólo pide un caso, o un battler que sólo aparece en un mapa
+    de prueba, no se versiona. Se recorre el bytecode, como en
+    `animaciones_de_la_rom`, así que cuenta lo que quedó emitido. Una tropa
+    que alguien pidió y ninguna página emitida nombra —una página que se cayó
+    después de pedirla— no tiene origen, y `revisar` la trata como del juego:
+    la duda va para el lado de pedir el parche.
+    """
+    E = escena_mod
+    animaciones = collections.defaultdict(set)
+    tropas = collections.defaultdict(set)
+    for mapa in mapas:
+        for pagina in mapa.get("paginas", ()):
+            origen = "caso" if pagina.get("prueba") else mapa["id"]
+            codigo = pagina.get("codigo") or b""
+            for i, c in eventos.recorrer_codigo(codigo):
+                if (c[i] == eventos.OP_ANIMATION
+                        and c[i + 1] != eventos.ANIM_SIN_DIBUJO):
+                    animaciones[c[i + 1]].add(origen)
+                elif c[i] == eventos.OP_BATTLE:
+                    tropas[c[i + 1] | (c[i + 2] << 8)].add(origen)
+        game_map = mapa["game_map"]
+        for *_rect, cuales in eventos.zonas_de_encuentro(
+                tree, mapa["id"], game_map.width, game_map.height):
+            for numero in cuales:
+                tropas[numero].add(mapa["id"])
+    battlers = collections.defaultdict(set)
+    for numero, origenes in tropas.items():
+        if numero not in db.troops:
+            continue
+        for enemigo in db.troops[numero].members[:batalla_mod.ENEMIGOS_MAX]:
+            if enemigo not in db.enemies:
+                continue
+            e = db.enemies[enemigo]
+            if e.battler_name:
+                battlers[E.clave(e.battler_name,
+                                 getattr(e, "battler_hue", 0) or 0)] |= origenes
+    return {"animacion": animaciones, "battler": battlers}
+
+
 def fondo_bytes(info):
     """Un fondo de batalla como lo lee la consola: `(tiles, colores)`, sus 512
     tiles de 8bpp en el orden del tilemap y sus `COLORES` colores de 15 bits,
@@ -6768,6 +6815,10 @@ def main():
                                                    escenas["battlers"])
     print("parches de %d battler(s) -> %s (%d B)"
           % (cuantos, parches_mod.EN_BUILD_BAT, pesan))
+    # Y quién pidió cada uno, que no se versiona: es lo que separa, en la ROM
+    # que se juega, lo del juego de lo que sólo existe por la tanda.
+    parches_mod.escribir_usos(destino_parches, usos_de_los_parches(
+        mapas, renderer.database, renderer.tree))
     if informe:
         print("material compartido entre mapas:")
         for linea in informe:

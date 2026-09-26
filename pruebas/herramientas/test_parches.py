@@ -97,3 +97,31 @@ def test_armar_otra_vez_no_deja_los_parches_de_la_corrida_anterior(tmp_path):
     parches.escribir_battlers(str(tmp_path), [])
     quedan = [str(v) for v in viejos if v.exists()]
     assert not quedan, "quedaron parches de una corrida anterior: %s" % quedan
+
+
+def test_lo_que_sale_solo_por_la_tanda_no_pide_parche(tmp_path):
+    """La ROM que se juega lleva también los mapas y las páginas de la tanda,
+    y eso no se versiona: un mapa de prueba, y una animación o un battler que
+    sólo piden los mapas de prueba o los casos. Lo que pide también un mapa
+    del juego, o lo que no dice quién lo pidió, sí."""
+    clases = dict((c.clave, c) for c in parches.CLASES)
+    prueba = parches.mapas_de_prueba()
+    uno = min(prueba)
+    del_juego = min(cartuchos.MAPAS_DEL_JUEGO)
+    assert not prueba & set(cartuchos.MAPAS_DEL_JUEGO)
+    (tmp_path / "parches").mkdir()
+    parches.escribir_usos(str(tmp_path), {
+        "animacion": {91: {"caso"}, 92: {uno, "caso"}, 93: {uno, del_juego}},
+        "battler": {"solo-prueba": {uno}, "de-los-dos": {"caso", del_juego}}})
+
+    def de_prueba(clase, cual):
+        return parches.de_prueba(str(tmp_path), clases[clase], cual, prueba)
+    assert de_prueba("mapa", uno)
+    assert not de_prueba("mapa", del_juego)
+    assert de_prueba("animacion", 91) and de_prueba("animacion", 92)
+    assert not de_prueba("animacion", 93)
+    assert not de_prueba("animacion", 94), "sin origen conocido es del juego"
+    assert de_prueba("battler", "solo-prueba")
+    assert not de_prueba("battler", "de-los-dos")
+    assert not parches.de_prueba(str(tmp_path / "sin-usos"),
+                                 clases["animacion"], 91, prueba)

@@ -391,6 +391,56 @@ def diferencias_battler(viejo, nuevo):
     return salida
 
 
+# --- lo que no es del juego -------------------------------------------------
+
+# Quién pidió cada parche del cartucho, al lado de sus parches y **sin
+# versionar**: lo escribe el conversor —ver `usos_de_los_parches` en
+# snes_convert.py— y lo lee `de_prueba`. Hace falta desde que la ROM que se
+# juega lleva también los mapas y las páginas de la tanda.
+USOS = os.path.join("parches", "usos.json")
+
+
+def escribir_usos(destino, usos):
+    """`usos` es `{clave de la clase: {clave: [origen, ...]}}`; el origen es un
+    id de mapa o `"caso"`."""
+    import json
+    with open(os.path.join(destino, USOS), "w") as f:
+        json.dump({clase: {str(k): sorted(v, key=str)
+                           for k, v in sorted(cuales.items(), key=str)}
+                   for clase, cuales in usos.items()}, f, indent=1)
+
+
+def mapas_de_prueba():
+    """Los mapas que sólo existen por la tanda. Salen de `cartuchos.py`, que es
+    donde se decide qué mapas lleva cada cartucho; acá no se escriben otra
+    vez."""
+    herramientas = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if herramientas not in sys.path:
+        sys.path.insert(0, herramientas)
+    from ensamblado import cartuchos
+    return set(cartuchos.MAPAS_DE_PRUEBA)
+
+
+def de_prueba(build, clase, cual, prueba):
+    """Si `cual` está en el cartucho `build` sólo por la tanda: un mapa de
+    prueba, o una animación o un battler que sólo piden los mapas de prueba y
+    las páginas de los casos. `prueba` es `mapas_de_prueba()`.
+
+    Sin `usos.json`, o sin origen conocido, **no**: la duda va para el lado de
+    pedir el parche, que es la queja que se ve.
+    """
+    if clase.clave == "mapa":
+        return cual in prueba
+    import json
+    try:
+        with open(os.path.join(build, USOS)) as f:
+            origenes = json.load(f).get(clase.clave, {}).get(str(cual))
+    except OSError:
+        return False
+    return bool(origenes) and all(o == "caso" or o in prueba
+                                  for o in origenes)
+
+
 # --- la verificación --------------------------------------------------------
 
 def _leer(ruta_):
@@ -528,6 +578,9 @@ def revisar(raiz, builds, jugable="release"):
     —un mapa que no lleva, una animación que no muestra—, así que el cartucho
     de prueba decidió solo y eso no se versiona; sale en `propios`, que es
     información sobre cuánto se parecen los cartuchos al juego y no un error.
+    Del ROM jugable, en cambio, todo tiene que estar versionado **salvo lo que
+    lleva sólo por la tanda** —ver `de_prueba`—, que también sale en
+    `propios`.
 
     Lo que **sí** está versionado se compara contra lo commiteado en cada
     cartucho que lo lleve. Para las dos clases de hoy eso no puede dar distinto
@@ -549,6 +602,7 @@ def revisar(raiz, builds, jugable="release"):
 
 def _revisar_clase(clase, raiz, builds, jugable):
     quejas, propios = [], {}
+    prueba = mapas_de_prueba()
     tengo = set(versionados(raiz, clase))
     vistos = set()
     # Una queja por situación **y por juego de diferencias**: cuatro cartuchos
@@ -567,7 +621,8 @@ def _revisar_clase(clase, raiz, builds, jugable):
             doc = _leer(os.path.join(carpeta, nombre))
             cual = doc[clase.clave]
             if cual not in tengo:
-                if cartucho == jugable:
+                if cartucho == jugable and not de_prueba(build, clase, cual,
+                                                          prueba):
                     # Lo que el ROM jugable convierte **tiene** que estar
                     # versionado: si no, el juego pierde algo en algún lado y
                     # no queda escrito. En un cartucho de prueba, en cambio, es
@@ -660,8 +715,14 @@ def _copiar(raiz, build, clase):
     os.makedirs(destino, exist_ok=True)
     carpeta = os.path.join(build, clase.directorio)
     vistos, bytes_ = set(), 0
+    prueba = mapas_de_prueba()
     for nombre in sorted(os.listdir(carpeta) if os.path.isdir(carpeta) else []):
         if not nombre.endswith(".toml"):
+            continue
+        # Lo que el ROM jugable lleva sólo por la tanda no se versiona: ver
+        # `de_prueba`.
+        if de_prueba(build, clase, _leer(os.path.join(carpeta, nombre))[
+                clase.clave], prueba):
             continue
         with open(os.path.join(carpeta, nombre)) as f:
             contenido = f.read()

@@ -37,9 +37,22 @@ MAPA_DE_ARRANQUE = 6
 
 # Cada mapa que se suma al proyecto se suma a todos los cartuchos. El 66 no:
 # la ventana no le entra en la VRAM.
-MAPAS = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20,
-         21, 23, 26, 28, 29, 30, 32, 33, 34, 36, 52, 70, 73, 74, 119, 121, 133,
-         255, 261, 269, 348)
+#
+# Los del juego son lo de Lashe City que entra. Afuera quedan la persecución
+# en auto, por `ControlVars` de clase 6 —ver `wishlist/la-carrera-en-release.md`—,
+# y los sectores con auto: la elección del 36 es una sola página que compila
+# con sus cuatro destinos o con ninguno, y los cuatro son de la etapa de Lashe
+# City. El 38 ya entra en la VRAM —`LAYOUT_VENTANA_AMBOS`—; hasta el
+# 2026-09-25 no entraba.
+MAPAS_DEL_JUEGO = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18,
+                   19, 20, 21, 23, 26, 28, 29, 30, 32, 33, 34, 36)
+
+# Y los que sólo existen por la tanda: situaciones que ningún mapa del juego
+# que entra ejercita. `parches.revisar` los lee de acá para no pedirles parche
+# versionado.
+MAPAS_DE_PRUEBA = (52, 70, 73, 74, 119, 121, 133, 255, 261, 269, 348)
+
+MAPAS = MAPAS_DEL_JUEGO + MAPAS_DE_PRUEBA
 
 # Los que los casos ponen con la orden 34 o `ChangeSpriteAssociation`.
 GRAFICOS = (("Future1", "0"), ("nobodyhere", "0"))
@@ -59,18 +72,9 @@ _DE_PRUEBAS = _con_mapas(MAPA_DE_ARRANQUE, "--sin-titulo", "--sin-timer", *[
 # La ROM que se juega, y la que usan las pruebas que juegan. Sin casos: no se
 # entrega una ROM con páginas de prueba. El grupo es el 10 y no el 11 de las
 # pruebas porque la apertura del mapa 1 no corre con Kersh ya en el grupo.
-#
-# Los mapas son lo de Lashe City que entra. Afuera quedan la persecución en
-# auto, por `ControlVars` de clase 6 —ver `wishlist/la-carrera-en-release.md`—,
-# y los sectores con auto: la elección del 36 es una sola página que compila
-# con sus cuatro destinos o con ninguno, y los cuatro son de la etapa de Lashe
-# City. El 38 ya entra en la VRAM —`LAYOUT_VENTANA_AMBOS`—; hasta el
-# 2026-09-25 no entraba.
 RELEASE = "release"
-_DE_RELEASE = ["--grupo", "10", "--map-id", "4", "--mapas",
-               "1", "2", "3", "5", "6", "7", "8", "9", "10", "11", "12", "13",
-               "14", "16", "17", "18", "19", "20", "21", "23", "26", "28",
-               "29", "30", "32", "33", "34", "36"]
+_DE_RELEASE = ["--grupo", "10", "--map-id", "4", "--mapas"] + [
+    str(m) for m in MAPAS_DEL_JUEGO if m != 4]
 
 CARTUCHOS = {
     PRUEBAS: (_DE_PRUEBAS, None),
