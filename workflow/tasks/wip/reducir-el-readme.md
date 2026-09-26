@@ -1,15 +1,17 @@
 ---
 name: "Reducir el README"
-description: "taro está reescribiendo README.md a mano para que sea mucho más corto"
+description: "README.md mucho más corto: fuera el relato y lo duplicado, lo demás a docs/ y decisiones/"
 type: docs
-assignee: taro
 ---
 
-taro lo está reescribiendo a mano desde el 2026-09-25. **Mientras esté en
-`wip/`, nadie más toca `README.md`**: lo que haya que cambiarle se anota acá
-abajo y lo resuelve él.
+taro lo empezó a mano el 2026-09-25 y el 2026-09-26 se lo pasó a un agente,
+con sus criterios: fuera lo que es relato (lo tiene el registro de commits),
+a `docs/` o `decisiones/` lo que se pueda, y nada que ya explique un README
+más acotado. Se queda qué es el proyecto, cómo arrancar, los porqués de
+arquitectura sin línea de código donde vivir y "Lo que falta".
 
-Anotado para él:
+Los párrafos viejos o falsos que distintos agentes anotaron durante esos
+días, y que esta pasada corrige o saca:
 
 * `README.md` enlaza a una sección "El MSU-1" (`#el-msu-1`, en el índice de
   arriba) que no existe, y el docstring de `tools/audio/msu.py` la cita.
