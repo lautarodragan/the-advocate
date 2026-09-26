@@ -19,6 +19,8 @@ Voodoo.
 import collections
 import sys
 
+import numpy
+
 CELL = 8
 
 # Cuántos colores entra en una paleta de cuatro bits, menos el índice 0 que es
@@ -130,50 +132,73 @@ _fusionados = {}
 def _merge_least_visible(counts, keep, accept):
     mapping = {c: c for c in counts}
     merged = []
-    weight = collections.Counter(counts)
-    alive = set(counts)
+    # Con numpy, y cada color por su puesto en el orden de las tuplas: así el
+    # desempate por color de los `min` —el vecino por `(distancia, color)`,
+    # la víctima por `(costo, color)`— es el desempate por puesto, entero y
+    # sin floats. `luma_distance` y el costo son los de siempre.
+    colores = sorted(counts)
+    puesto = {c: i for i, c in enumerate(colores)}
+    n = len(colores)
+    rojo, verde, azul = (numpy.array([c[k] for c in colores], dtype=numpy.int64)
+                         for k in range(3))
+    orden = numpy.arange(n, dtype=numpy.int64)
+    peso = numpy.array([counts[c] for c in colores], dtype=numpy.int64)
+    vivo = numpy.ones(n, dtype=bool)
+    nunca = numpy.iinfo(numpy.int64).max
+    # Qué colores originales están hoy en cada uno, para no recorrer el
+    # mapeo entero en cada fusión.
+    adentro = [[c] for c in colores]
     # El vecino más barato de cada color vivo, y lo que cuesta mandarlo ahí.
     # Se recalcula sólo para los que lo tenían al muerto —y para el que
     # engordó—, que es lo que hace que esto no sea cúbico: las láminas del
     # fondo llegan a trescientos colores y fusionan cien.
-    cerca = {}
+    costo = numpy.zeros(n, dtype=numpy.int64)
+    vecino = numpy.full(n, -1, dtype=numpy.int64)
 
-    def recalcular(color):
-        otros = alive - {color}
-        if not otros:
-            cerca.pop(color, None)
+    def recalcular(i):
+        distancia = (30 * (rojo - rojo[i]) ** 2 + 59 * (verde - verde[i]) ** 2
+                     + 11 * (azul - azul[i]) ** 2)
+        clave = numpy.where(vivo, distancia * n + orden, nunca)
+        clave[i] = nunca
+        j = int(clave.argmin())
+        if clave[j] == nunca:
+            vecino[i] = -1
             return
-        vecino = min(otros, key=lambda o: (luma_distance(color, o), o))
-        cerca[color] = (weight[color] * luma_distance(color, vecino), vecino)
+        costo[i] = peso[i] * distancia[j]
+        vecino[i] = j
 
-    for color in alive:
-        recalcular(color)
+    for i in range(n):
+        recalcular(i)
+    vivos = n
 
     while True:
         if accept is None:
-            if len(alive) <= keep:
+            if vivos <= keep:
                 return mapping, merged
         else:
             result = accept(mapping)
             if result is not None:
                 return mapping, merged, result
 
-        if len(alive) <= 1:
+        if vivos <= 1:
             sys.exit("No se pudo reducir la paleta lo suficiente.")
 
-        victim = min(alive, key=lambda c: (cerca[c][0], c, cerca[c][1]))
-        target = cerca[victim][1]
-        for original, current in mapping.items():
-            if current == victim:
-                mapping[original] = target
-        merged.append((victim, target, weight[victim]))
-        weight[target] += weight[victim]
-        alive.discard(victim)
-        del cerca[victim]
-        recalcular(target)
-        for color in alive:
-            if color != target and cerca[color][1] == victim:
-                recalcular(color)
+        candidatos = numpy.where(vivo, costo, nunca)
+        victima = int(numpy.flatnonzero(vivo & (candidatos
+                                                == candidatos.min()))[0])
+        blanco = int(vecino[victima])
+        victim, target = colores[victima], colores[blanco]
+        for original in adentro[victima]:
+            mapping[original] = target
+        adentro[blanco] += adentro[victima]
+        merged.append((victim, target, int(peso[victima])))
+        peso[blanco] += peso[victima]
+        vivo[victima] = False
+        vivos -= 1
+        recalcular(blanco)
+        for i in numpy.flatnonzero(vivo & (vecino == victima)).tolist():
+            if i != blanco:
+                recalcular(i)
 
 
 def reduce_colors(grid, budget):
