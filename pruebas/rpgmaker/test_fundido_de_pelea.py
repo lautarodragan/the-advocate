@@ -44,7 +44,7 @@ class Grabador:
         self.cuadros.append((negro, paquete != self._paquete))
         self._paquete = paquete
 
-    def tocar(self, boton="a"):
+    def tocar_cuadros(self, boton="a"):
         for _ in range(2):
             self.cuadro(boton)
         for _ in range(2):
@@ -60,12 +60,12 @@ class Grabador:
 
 def _entrar(una, tope=2000):
     grabador = Grabador(una)
-    grabador.tocar("a")                 # hablarle al droide
+    grabador.tocar_cuadros("a")         # hablarle al droide
     for _ in range(tope):
         if una.byte("menu_abierto"):
             return grabador
         if una.byte("msg_abierto"):
-            grabador.tocar("a")
+            grabador.tocar_cuadros("a")
         else:
             grabador.cuadro()
     raise AssertionError("la pelea no se abrió")
@@ -80,7 +80,7 @@ def _salir(una, tope=600):
     pelea.esperar("FIN")
     vueltas = una.palabra("vueltas")
     grabador = Grabador(una)
-    grabador.tocar("a")                 # el mensaje de la victoria
+    grabador.tocar_cuadros("a")         # el mensaje de la victoria
     for _ in range(tope):
         if una.palabra("vueltas") != vueltas:
             return grabador             # el mapa volvió a correr

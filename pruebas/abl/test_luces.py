@@ -85,7 +85,7 @@ def test_la_piedra_en_la_lampara_apaga_su_cono(partida):
     una.correr(10)
     for _ in range(40):
         una.correr(1)
-        una.tocar("a")
+        una.tocar_ticks("a")
         if una.byte("sub_n"):
             break
 

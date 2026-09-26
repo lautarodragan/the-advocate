@@ -815,7 +815,7 @@ class Recorrido:
                 return self
             if mirar is not None:
                 self.mirar_a(mirar)
-            self.p.tocar("a")
+            self.p.tocar_ticks("a")
             # Y un rato de paciencia por intento, siguiéndole tocando A: la
             # página que arranca puede ser un diálogo entero —el guardia de la
             # fábrica pregunta y hay que contestarle— y lo que `hasta` mira

@@ -40,7 +40,7 @@ def caminar(una, tecla, destino, vueltas=80):
         una.consola.correr(2)
         una.cuadro += 2
         if una.byte("msg_abierto"):
-            una.tocar("a")
+            una.tocar_ticks("a")
     return una.heroe() == destino
 
 
@@ -52,7 +52,7 @@ def abierta(partida):
     for _ in range(40):
         if una.switch(5):
             break
-        una.tocar("a")
+        una.tocar_ticks("a")
         for _ in range(60):
             if una.byte("msg_abierto"):
                 break
