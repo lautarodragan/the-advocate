@@ -23,19 +23,24 @@ como antes.
 
 ## En qué está verificado
 
-* **Sin MSU-1**: la tanda entera, sin ninguna golden cambiada.
+* **Sin MSU-1**: la tanda entera. En el piloto, sin ninguna golden
+  cambiada; con el respaldo liviano, con las diez de batalla cambiadas.
 * **Con MSU-1, en snes9x y en bsnes**: `pruebas/abl/test_msu_datos.py`. La
-  pelea de Sector 27 se ve igual por los dos caminos, un control con los
-  tiles del `.msu` cambiados se ve distinto —que es lo que prueba que la
-  imagen salió del `.msu`—, y un `.msu` de otro build o vacío cae a la ROM.
-* **mesen-s**: los mismos tres casos, a mano, con el mismo resultado. No va
+  pelea de Sector 27, cada camino contra su golden y el fondo limpio de la
+  WRAM contra los bytes del conversor; un control con los tiles del `.msu`
+  cambiados se ve distinto —que es lo que prueba que la imagen salió del
+  `.msu`—, y un `.msu` de otro build o vacío cae a la ROM.
+* **mesen-s**: los mismos tres casos, a mano, con el mismo resultado —en el
+  piloto; con el respaldo liviano no se volvió a mirar—. No va
   en la tanda por el arrastre de estado entre consolas del mismo proceso que
   documenta `test_cores.py`.
 * **No verificado: el FX Pak Pro.** Es lo que falta que taro pruebe: con
   `abl.sfc`, `abl.msu` y las pistas en la misma carpeta, entrar a una pelea
   con fondo —la del droide, o un encuentro al azar en Sector 27 o 30— y ver
-  que el fondo es el de siempre. Si el fondo sale bien pero la entrada tarda
-  más que en un emulador, es la búsqueda en la SD.
+  que el fondo es el de siempre. Con el respaldo liviano es más fácil: con
+  MSU-1 tiene que verse el de calidad, y en Mednafen el de 16 colores. Si el
+  fondo sale bien pero la entrada tarda más que en un emulador, es la
+  búsqueda en la SD.
 * **No lo corre nadie: la espera del bit de datos ocupados.** Ningún
   emulador lo prende; sólo el hardware busca de verdad.
 * **No lo cubre la firma**: un `.msu` con la cabecera intacta y los datos
@@ -56,12 +61,42 @@ no están medidas.
 `abl.sfc` de otro build no se rompe nada: la ROM no encuentra su firma y lee
 los fondos de sí misma.
 
+## El respaldo liviano (en su rama, sin mergear)
+
+Pedido de taro el mismo día: *"quiero poder confirmar que está efectivamente
+cargando por MSU, pudiendo comparar y ver que carga otro fondo en
+Mednafen"*. Con los dos fondos iguales no había cómo.
+
+* **Qué es**: la ROM lleva cada fondo en **4bpp y 16 colores**; el `.msu`
+  sigue con el de 8bpp y 96, byte por byte el de antes —la firma no cambió—.
+  La capa sigue siendo de 8bpp: `esc_llenar` agranda el respaldo al copiarlo
+  a la WRAM, dos DMA por tile (el tile por el canal 0, los planos 4 a 7 fijos
+  por el 7). El porqué de esta forma y no otra, en "El respaldo liviano" de
+  `tools/port/escena.py`.
+* **Cuánto ahorra**: lo imprime el conversor en `conversor.log` ("fondo de
+  batalla …: en la ROM … B, en el .msu … B"). Es propiedad del formato:
+  16.384 B de tiles y 160 de colores por fondo, menos 32 B de patrón para
+  todos.
+* **Cuánto tarda**: el respaldo un cuadro más que el `.msu` en la pelea del
+  droide (`ESC_CUADROS`, en snes9x y en bsnes): copiar de a un tile rearma
+  los registros 512 veces por búfer.
+* **Cambia lo que ve la tanda**: las diez goldens de batalla, sólo en la
+  escena. Vieja y nueva lado a lado en
+  `/shared/goldens/2026-09-25-fondo-liviano/`. **taro decide** si se queda.
+* **Build para mirar**: `/shared/builds/2026-09-25-demo-fondo-liviano/`, con
+  su `LEEME.txt` y dos capturas de la misma pelea por los dos caminos.
+* **Lo que se ve raro**: en Sector 27 el cartel verde se ve **en el liviano y
+  no en el de calidad**. No es del respaldo: `titulo.reducir`, que arma los
+  96, se queda con los colores más usados y el verde del cartel no está entre
+  ellos; `merge_least_visible`, que arma los 16, lo conserva. Cambiar los 96
+  de reductor cambia el `.msu` y su firma, y queda para después.
+* **No lo corre ninguna prueba**: que una búsqueda del MSU-1 no llegue a
+  tiempo a mitad de camino. Con fondos distintos eso dejaría colores de uno y
+  tiles del otro, así que `escena_subir` rehace el fondo entero desde la ROM;
+  ningún emulador busca con demora.
+
 ## El paso siguiente
 
-* **El respaldo liviano.** Que la ROM lleve una versión más barata del fondo
-  —menos colores, o a media resolución y ampliado— y el `.msu` la buena. Ahí
-  "se ve igual por los dos caminos" deja de valer: cada camino contra su
-  propia golden, y la tanda que corre sin MSU-1 cubre el liviano.
 * **Los demás fondos.** El juego nombra una quincena; en el `.msu` no cuestan
   cartucho, así que el respaldo de los que no están en `FONDOS` puede seguir
   siendo el fondo liso.
