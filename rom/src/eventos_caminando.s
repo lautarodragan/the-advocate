@@ -8,8 +8,7 @@
 ; `build_oam` lee.
 
 ; Un cuadro del ciclo de caminata de la ranura X. Es `animate_hero`, letra por
-; letra, y por eso las dos hacen lo mismo: la referencia usa una sola fórmula
-; —`columna_de_caminata`— para el héroe y para los eventos.
+; letra, a propósito: el héroe y los eventos caminan con la misma cuenta.
 .proc animar_ruta_ev
 .a8
 .i16

@@ -78,11 +78,9 @@ anim_por_vel:
 ; dibujo en A y en `temp + 3` un 1 si **este** tick es aquel en que cambia, o
 ; sea si el reloj cayó justo en el borde.
 ;
-; El tick es `vueltas`, el mismo número que cuenta la referencia. Como es de
-; dieciséis bits, cada 65536 ticks —dieciocho minutos— da la vuelta y el ciclo
-; se saltea un dibujo; RM2k cuenta en treinta y dos. La referencia da la misma
-; vuelta —ver `TICK_MASCARA` en tools/rpgmaker/rm2k.py— así que los dos lados
-; siguen diciendo lo mismo, y lo que se pierde está declarado en
+; El tick es `vueltas`. Como es de dieciséis bits, cada 65536 ticks
+; —dieciocho minutos— da la vuelta y el ciclo se saltea un dibujo; RM2k cuenta
+; en treinta y dos. Lo que se pierde está declarado en
 ; workflow/divergencias/el-chipset-se-saltea-un-dibujo-cada-18-minutos.md.
 .proc anim_paso
 .a8
