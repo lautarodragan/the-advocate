@@ -85,3 +85,23 @@ Lo que se dejó sin tocar a propósito, porque ya no es el README:
   a SNES entero con sus trampas", y `decisiones/README.md` dice que "el
   porqué largo de varias está además en `README.md`": los dos describen el
   README de antes.
+
+## La segunda pasada
+
+taro pidió el 2026-09-26 sacar "Por qué la Super Nintendo" y toda
+comparación con la Mega Drive, mudar lo que había quedado por dudoso, dejar
+"Referencias" como una lista con enlaces, y que ninguna documentación salvo
+`AGENTS.md` nombre el ambiente (contenedor, `/extras`, `/shared`, `box`).
+Adónde fue cada cosa:
+
+* el audio, a `docs/port/audio.md`;
+* las trampas del hardware, al encabezado de `rom/src/main.s`;
+* los translúcidos horneados, a `decisiones/los-translucidos-van-horneados.md`;
+* la regla del ambiente, a `AGENTS.md`.
+
+Lo que queda nombrando el ambiente, a propósito, porque taro dejó afuera las
+tareas y el código: las tareas de `tasks/` y `ESTADO.md`, y comentarios y
+defaults de `justfile`, `tools/` (`render_map.py`, `msu.py`,
+`snes_samples.py`, `entregar.py`, `ensamblar.py`, `retro.py`, `batalla.py`,
+`experiencia.py`, `fuente.py`, `fork.py`, `cache_disco.py`), `rom/src/msu1.s`
+y cuatro pruebas.
