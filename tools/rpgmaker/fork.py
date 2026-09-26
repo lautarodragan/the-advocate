@@ -75,7 +75,42 @@ def mapas():
     Se valida entero en cada llamada y no sólo el mapa que se pide: un fork a
     medias tiene que romper el build lo arme quien lo arme, y no sólo cuando
     toca cargar justo ese mapa.
+
+    Lo validado se recuerda mientras el directorio no cambie —los nombres,
+    fechas y tamaños de sus archivos, y si están los originales—: cada
+    `lcf.Map` pasa por acá, y leer los JSON de los forks enteros para mirarles
+    el id eran ~2 ms por mapa, unas novecientas veces por conversión. Un fork
+    roto no se recuerda: sigue rompiendo en cada llamada.
     """
+    huella = _huella()
+    if huella in _validados:
+        return dict(_validados[huella])
+    encontrados = _validar()
+    _validados[huella] = dict(encontrados)
+    return encontrados
+
+
+_validados = {}
+
+
+def _huella():
+    """Lo que tiene que cambiar para que el fork validado deje de valer."""
+    if not os.path.isdir(MAPAS):
+        return None
+    partes = [MAPAS, REPO]
+    for entrada in sorted(os.listdir(MAPAS)):
+        try:
+            estado = os.stat(os.path.join(MAPAS, entrada))
+            partes.append((entrada, estado.st_mtime_ns, estado.st_size))
+        except OSError:
+            partes.append((entrada, None, None))
+        base = os.path.splitext(entrada)[0]
+        partes.append(os.path.isfile(os.path.join(REPO, "data", "maps",
+                                                  base + ".json")))
+    return tuple(partes)
+
+
+def _validar():
     encontrados = {}
     if not os.path.isdir(MAPAS):
         return encontrados
