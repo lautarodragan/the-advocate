@@ -31,12 +31,16 @@ def "main ls" [
       }
 
       let name = $yml | get -o name | default "(Not Named)"
+      let task_type = $yml | get -o type | default "(no task type assigned)"
       
-      print (['  ' (ansi red) $name (ansi reset)] | str join)
-      print (['    ' (ansi green) $file (ansi reset)] | str join)
+      print (['  ' (ansi green) $task_type (ansi reset) ': ' (ansi red_bold) $name (ansi reset)] | str join)
+      # print (['  ' (ansi green) $task_type (ansi green)] | str join)
+      # print (['    ' (ansi green) $file (ansi reset)] | str join)
+      # print (['    ' (ansi reset) $file (ansi reset)] | str join)
       if ($yml | get -o description | is-not-empty) {
-        print (['    ' (ansi green) $yml.description (ansi reset)] | str join)
+        print (['    ' (ansi reset) $yml.description (ansi reset)] | str join)
       }
+      print '' 
       
     }; 
     print '' 
