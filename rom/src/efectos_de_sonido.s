@@ -134,6 +134,10 @@ espera:
 .a8
 .i16
     xba                         ; B = el valor
+    lda f:MUS_BITACORA_SI
+    beq sin_bitacora
+    jsr bitacora
+sin_bitacora:
     txa
     and #$F0
     cmp #SE_REG
@@ -195,6 +199,43 @@ enviar:
     jmp dsp_par
 .endproc
 
+; Anota en MUS_BITACORA el par que `dsp_musica` está por mandar: X el
+; registro, B el valor. No toca X, Y, B ni V.
+.proc bitacora
+.a8
+.i16
+    xba
+    pha                         ; el valor
+    phx                         ; el registro, dos bytes
+    rep #$20
+.a16
+    lda f:MUS_BITACORA_I
+    tax
+    inc a
+    inc a
+    and #MUS_BITACORA_LARGO - 1
+    sta f:MUS_BITACORA_I
+    sep #$20
+.a8
+    lda 1, s                    ; el byte bajo del registro
+    sta f:MUS_BITACORA, x
+    lda 3, s                    ; el valor
+    sta f:MUS_BITACORA + 1, x
+    plx
+    pla
+    xba                         ; B = el valor, como vino
+    rts
+.endproc
+
+; La marca con que empieza cada cuadro de música en la bitácora.
+.proc bitacora_cuadro
+.a8
+.i16
+    lda #0
+    xba
+    ldx #MUS_BITACORA_MARCA
+    jmp bitacora
+.endproc
 
 ; Antes de la música, en cada cuadro: bajar el disparo que dejó un efecto, y
 ; devolverle su voz a la música si el efecto terminó en el cuadro anterior.

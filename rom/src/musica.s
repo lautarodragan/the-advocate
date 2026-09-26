@@ -379,7 +379,8 @@ listo:
 ; Un cuadro de música. El stream es por nota —ver "el formato por nota" en
 ; tools/audio/snes_music.py y el encabezado de tools/protocol/music.toml— y
 ; acá se expande a las escrituras al DSP que manda `dsp_musica`: exactamente
-; las de `escrituras`, cuadro por cuadro. Se lee hasta toparse con una
+; las de `escrituras`, cuadro por cuadro, y lo cobra
+; pruebas/rpgmaker/test_musica_escrituras.py. Se lee hasta toparse con una
 ; espera, que cierra el cuadro: dispara las voces que recibieron nota, y el
 ; cuadro siguiente abre bajando ese disparo. Al llegar al final vuelve a
 ; empezar.
@@ -398,6 +399,10 @@ listo:
 .a8
 .i16
     stz reinicio
+    lda f:MUS_BITACORA_SI
+    beq sin_marca
+    jsr bitacora_cuadro
+sin_marca:
     rep #$20
 .a16
     lda f:MUS_ESPERA
@@ -781,8 +786,8 @@ con_gain:
     jmp music_frame::leer
 .endproc
 
-; El estado del decodificador en cero. En el reset: la RAM lejana arranca con
-; basura.
+; El estado del decodificador en cero, y la bitácora apagada. En el reset: la
+; RAM lejana arranca con basura.
 .proc musica_limpiar
 .a8
 .i16
@@ -793,5 +798,8 @@ otro:
     inx
     cpx #MUS_ESTADO_BYTES
     bcc otro
+    sta f:MUS_BITACORA_SI
+    sta f:MUS_BITACORA_I
+    sta f:MUS_BITACORA_I + 1
     rts
 .endproc

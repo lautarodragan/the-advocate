@@ -700,7 +700,8 @@ def escrituras(frames, length, init):
     Es **la especificación del stream**, y lo que hasta el 2026-09-26 era el
     stream mismo —un `OP_DSP registro valor` de tres bytes por escritura—. El
     formato por nota de `pack` tiene que expandirse a exactamente esto, cuadro
-    por cuadro: lo verifica `build_varios` con cada tema que arma.
+    por cuadro: lo verifica `build_varios` con cada tema que arma, y en la ROM
+    `pruebas/rpgmaker/test_musica_escrituras.py`.
 
     Los registros del DSP son simples cerrojos: vuelto a escribir el mismo valor
     no pasa nada. Así que se lleva la cuenta de qué tiene cada uno y se saltean
@@ -771,7 +772,8 @@ def escrituras(frames, length, init):
 # valor`, tres bytes cada una— y pesaba más de la quinta parte del cartucho.
 # Ahora son eventos, y el 65816 los expande (`music_frame`) a **las mismas
 # escrituras, cuadro por cuadro**: el formato no puede cambiar cómo suena. Lo
-# verifica `build_varios` con cada tema que arma.
+# verifica `build_varios` con cada tema que arma, y en la ROM
+# `pruebas/rpgmaker/test_musica_escrituras.py`.
 #
 # Un tema es su stream y su tabla de *sonidos*: todo lo que una nota le
 # escribe a su voz salvo el volumen —altura, muestra, ADSR— más el GAIN con que

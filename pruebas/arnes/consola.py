@@ -985,6 +985,24 @@ def en_la_wram(direccion):
     return direccion & 0x1FFFF
 
 
+def indice_del_tema(una, nombre):
+    """El índice del tema en el cartucho, leído de la cabecera del
+    `musicdata.inc` que se armó con él: `; Temas: a, b, …`, en el orden de
+    `Temas`."""
+    inc = os.path.join(os.path.dirname(una.sfc), "musicdata.inc")
+    with open(inc) as archivo:
+        for linea in archivo:
+            if linea.startswith("; Temas: "):
+                nombres = linea[len("; Temas: "):].strip().split(", ")
+                break
+        else:
+            raise AssertionError("no encontré la lista de temas en %s" % inc)
+    assert nombre in nombres, (
+        "el cartucho no lleva %s: el conversor no le pidió el tema al mapa"
+        % nombre)
+    return nombres.index(nombre)
+
+
 class DelCartucho:
     """Los bytes del cartucho desde `direccion`, como una secuencia. En LoROM
     el byte que sigue a $xxFFFF está en $(xx+1)8000, que en el archivo es el
