@@ -1239,9 +1239,9 @@ def banco_de_poses(images, personajes, colores):
     todos: cada uno va con `.bloque`, así que ningún DMA de una pose cruza de
     banco. Y **de la ROM entera, no del mapa**: los mapas 1 y 2 comparten a
     Core, a Manta y a Kersh, y con una copia por mapa la ROM del arranque con
-    ventana se pasaba del cartucho por 19 KB. La pose `p` del personaje `g`
-    está en `sprite_poses_g + p * 512`, con `g` el índice de la ROM; el mapa
-    lleva sus personajes animados en orden y `emit` traduce.
+    ventana se pasaba del cartucho por 19 KB. `emit` los parte en poses y
+    emite cada pose distinta una sola vez; el mapa lleva sus personajes
+    animados en orden y `emit` traduce.
     """
     bancos = {}
     for charset, index in personajes:
@@ -3809,8 +3809,8 @@ class Materiales:
     mismos de siempre y la ROM sale byte por byte igual: es a propósito, para
     que este paso se pueda verificar sin depender de la tanda.
 
-    `sprite_poses` ya funcionaba así desde antes —`indice_global` en `emit`— y
-    es de donde sale la forma.
+    Las poses ya funcionaban así desde antes —`indice_global` en `emit`— y es
+    de donde sale la forma.
     """
 
     def __init__(self, deduplicar=False, comprimidos=None):
@@ -4010,9 +4010,9 @@ def escribir_crudos(directorio, mapas):
 def datos_del_mapa(mapa, numero, indice_global, materiales):
     """Los bloques de datos de un mapa, con el número pegado a cada etiqueta.
 
-    `indice_global` es el número que lleva en la ROM el banco de doce poses de
-    cada (CharSet, índice) **tal como este mapa lo cuantizó**: ver
-    `banco_de_poses`, y el reparto de bancos en `emit`.
+    `indice_global` son las etiquetas de las doce poses de cada (CharSet,
+    índice) **tal como este mapa lo cuantizó**: ver `banco_de_poses`, y el
+    reparto de poses en `emit`.
     """
     above, sprite = mapa["above"], mapa["sprite"]
     pares = [
@@ -4644,9 +4644,30 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             indice_por_mapa.append(propio)
         handle.write("; --- las poses de los personajes que cambian de pose, "
                      "de toda la ROM ---\n")
-        for g, datos in enumerate(bancos):
-            handle.write(bloque("sprite_poses_%d" % g, datos) + "\n")
+        # **Cada pose una vez**, aunque la repitan varios personajes o el
+        # mismo: las tablas de poses llevan un puntero por pose —`npc_poses`,
+        # `actor_table`—, así que dos iguales apuntan al mismo bloque y la ROM
+        # sube los mismos bytes desde otro lugar. Pasa mucho: los cuadros de
+        # caminata iguales de un mismo CharSet, y los personajes que se
+        # repiten entre mapas con otra cuantización que no cambió una pose.
+        # Cada una con su `.bloque`, porque se sube por DMA.
+        etiqueta_de_pose, poses_de_banco = {}, []
+        for datos in bancos:
+            suyas = []
+            for pose in range(SPRITE_POSES):
+                bytes_ = datos[pose * POSE_BYTES:(pose + 1) * POSE_BYTES]
+                if bytes_ not in etiqueta_de_pose:
+                    etiqueta_de_pose[bytes_] = "pose_%d" % len(etiqueta_de_pose)
+                    handle.write(bloque(etiqueta_de_pose[bytes_], bytes_) + "\n")
+                suyas.append(etiqueta_de_pose[bytes_])
+            poses_de_banco.append(suyas)
         handle.write("\n")
+        print("  poses: %d distintas de %d, %.1f KB menos"
+              % (len(etiqueta_de_pose), SPRITE_POSES * len(bancos),
+                 (SPRITE_POSES * len(bancos) - len(etiqueta_de_pose))
+                 * POSE_BYTES / 1024.0))
+        indice_por_mapa = [{par: poses_de_banco[g] for par, g in propio.items()}
+                           for propio in indice_por_mapa]
         escribir_crudos(os.path.dirname(os.path.abspath(path)), mapas)
         materiales = Materiales(deduplicar=True,
                                 comprimidos=comprimidos
@@ -6174,16 +6195,15 @@ def npc_poses_asm(numero, animados, indice_global):
 
     Una entrada por personaje animado —`k`, el mismo índice que lleva la fila
     del NPC en +9 y el actor en su tabla— y en cada una doce punteros de 24
-    bits a `sprite_poses_N_k + pose * 512`. Son simbólicos porque apuntan
-    adentro de bloques que ubica el enlazador, como los de las páginas.
+    bits a sus poses, `pose_N`. Son simbólicos porque apuntan a bloques que
+    ubica el enlazador, como los de las páginas; dos poses iguales son el
+    mismo bloque.
     """
     out = [".bloque %d" % (3 * SPRITE_POSES * max(1, len(animados))),
            "npc_poses_%d:" % numero]
     for par in animados:
         for pose in range(SPRITE_POSES):
-            out.append("    .byte " + puntero(
-                "sprite_poses_%d + %d" % (indice_global[par],
-                                          pose * POSE_BYTES)))
+            out.append("    .byte " + puntero(indice_global[par][pose]))
     if not animados:
         out.append("    .byte $00")     # una etiqueta no puede quedar vacía
     return "\n".join(out)
@@ -6211,8 +6231,7 @@ def actor_table_asm(numero, actores, animados, indice_global):
                 out.append("    .byte $FF, $FF, $FF")
             else:
                 out.append("    .byte " + puntero(
-                    "sprite_poses_%d + %d" % (indice_global[animados[k]],
-                                              pose * POSE_BYTES)))
+                    indice_global[animados[k]][pose]))
     if not actores:
         out.append("    .byte $00")
     return "\n".join(out)
