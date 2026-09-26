@@ -67,7 +67,7 @@ unos 21 KB.
 **La pila no se puede bajar dos veces.** `PILA` bajó de 256 a 128 el
 2026-09-20 —decisión de taro— y eso no movió un solo byte de la ROM, porque la
 BSS se asigna de `$0100` para arriba. Los 128 que quedan son el margen que
-cuida `pruebas/herramientas/test_pila.py`, no lugar disponible: la prueba
+cuida `pruebas/rpgmaker/test_pila.py`, no lugar disponible: la prueba
 marca la zona con centinelas antes del primer cuadro —después de
 `retro_load_game` y antes del primer `retro_run`, así que el `reset` entra en
 la medición y no le cuesta un byte a la ROM—, corre los ocho caminos más

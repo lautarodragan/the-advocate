@@ -160,11 +160,23 @@ apagar:
 ;     hacia <  canal:  canal - (canal - hacia) * nivel / 31
 ;
 ; La resta va siempre del lado positivo, porque el divisor no tiene signo.
+;
+; Los productos salen de la fila del nivel en `prod31_tabla`, y la distancia
+; al destino baja de a uno hasta el destino y después sube de a uno, así que
+; en vez de calcular cada índice se lo camina: X baja por la fila en el
+; primer tramo y sube en el segundo. Hasta el 2026-09-26 cada entrada
+; comparaba, restaba y llamaba a una rutina que armaba el índice, a unos 70
+; ciclos cada una; en la terraza del mapa 32 el cuadro impar del destello
+; pasaba de las cien líneas y, junto con un `FlashSprite`, se pasaba del
+; cuadro. Así son menos de 30.
+;
+; El destino es de cinco bits: el conversor no deja pasar otro, ni en
+; `FlashScreen` ni en las animaciones de batalla.
 .proc una_tabla_de_destello
 .a8
 .i16
     sta dest_hacia
-    ; La fila del nivel en `prod31_tabla`, en temp + 2: temp es el puntero.
+    stz dest_hacia + 1
     lda dest_nivel
     rep #$20
 .a16
@@ -174,53 +186,47 @@ apagar:
     asl a
     asl a
     asl a
-    sta temp + 2
+    sta temp + 2                ; la fila del nivel
+    clc
+    adc dest_hacia
+    tax                         ; X: la fila, en la distancia del canal 0
+    lda dest_hacia
+    inc a
+    sta dest_fin                ; el primer canal que queda arriba del destino
     sep #$20
 .a8
     ldy #0
-valor:
-    tya                         ; el valor, de 0 a 31
-    sta dest_v
-    cmp dest_hacia
-    bcc sube
-    beq sube
-    sec
-    sbc dest_hacia
-    jsr producto_sobre_31
-    sta dest_d
-    lda dest_v
-    sec
-    sbc dest_d
-    bra guardar
 sube:
-    lda dest_hacia
-    sec
-    sbc dest_v
-    jsr producto_sobre_31
+    tya                         ; el canal, que es Y
     clc
-    adc dest_v
-guardar:
+    adc f:prod31_tabla, x
     sta (temp), y
+    dex
     iny
+    cpy dest_fin
+    bne sube
     cpy #32
-    bne valor
-    rts
-
-; A = A * nivel / 31, de `prod31_tabla`, que el conversor arma con la misma
-; cuenta. Hasta el 2026-09-11 salía del multiplicador y el divisor, con sus
-; esperas, y las 96 entradas de un cuadro impar costaban unas 45 líneas.
-producto_sobre_31:
+    beq listo
     rep #$20
 .a16
-    and #$001F
-    clc
-    adc temp + 2
-    tax
+    lda temp + 2
+    inc a
+    tax                         ; y del otro lado la distancia arranca en uno
     sep #$20
 .a8
-    lda f:prod31_tabla, x
+baja:
+    tya
+    sec
+    sbc f:prod31_tabla, x
+    sta (temp), y
+    inx
+    iny
+    cpy #32
+    bne baja
+listo:
     rts
 .endproc
+
 
 ; Las paletas del fondo y de la capa de encima, de la sombra a `pal_buf`
 ; pasadas por las tablas. Son las mismas entradas y cuentas que `subir_tinte`.

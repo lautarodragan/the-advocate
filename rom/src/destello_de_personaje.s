@@ -187,23 +187,17 @@ listo:
     stx flash_ranura            ; `tabla_canal_flash` usa X para la tabla
     lda flash_ev + 1, x
     sta flash_dest
-    lda tinte_r
-    ldx #.loword(tabla_r)
-    ldy #0                       ; el rojo de `puro`, o el verde, o el azul
+    ldy #0                      ; el rojo de `puro` y de las de trabajo
     jsr tabla_canal_flash
     ldx flash_ranura
     lda flash_ev + 2, x
     sta flash_dest
-    lda tinte_g
-    ldx #.loword(tabla_g)
-    ldy #32                       ; el rojo de `puro`, o el verde, o el azul
+    ldy #32                     ; el verde
     jsr tabla_canal_flash
     ldx flash_ranura
     lda flash_ev + 3, x
     sta flash_dest
-    lda tinte_b
-    ldx #.loword(tabla_b)
-    ldy #64                       ; el rojo de `puro`, o el verde, o el azul
+    ldy #64                     ; el azul
     jsr tabla_canal_flash
 
     ; La paleta del personaje: dieciséis colores de dos bytes, y en CGRAM la
@@ -313,9 +307,11 @@ copiar:
     rts
 .endproc
 
-; Como `tabla_canal`, pero mezclando antes hacia el color del destello. A trae
-; el valor del tinte, X dónde va la tabla, `flash_dest` el canal del destello y
-; `flash_alfa` con cuánta fuerza.
+; Como `tabla_canal`, pero mezclando antes hacia el color del destello. Y trae
+; qué canal: 0, 32 o 64, que es a la vez el desplazamiento en `puro` y en las
+; tablas de trabajo —`tabla_r`, `tabla_g` y `tabla_b` van pegadas, igual que
+; las tres de `puro`—; `flash_dest` el canal del destello y `flash_alfa` con
+; cuánta fuerza.
 ;
 ; La mezcla es la de easyrpg puesta en cinco bits: `destino * a + canal *
 ; (255 - a)` sobre 255, con `a` el nivel por ocho —`Flash::MakeColor` y el
@@ -337,77 +333,78 @@ copiar:
 .proc tabla_canal_flash
 .a8
 .i16
-    stx temp + 2                ; dónde va la tabla
-    sty puro_ofs                ; y cuál de las tres de `puro` le toca: 0, 32
-                                ; o 64, que lo dice el llamador
-    ldy #$0000
-cada:
-    ; Primero la mezcla del destello, sobre el canal crudo.
-    lda #255
-    sec
-    sbc flash_alfa
-    sta WRMPYA
-    tya
-    sta WRMPYB
-    nop
-    nop
-    nop
-    nop
-    rep #$20
-.a16
-    lda RDMPYL
-    sta flash_parcial
-    sep #$20
-.a8
+    ; La mezcla de la entrada c es `(destino * a + c * (255 - a)) / 255`, y de
+    ; una entrada a la que sigue el numerador crece siempre lo mismo: 255 - a.
+    ; Así que la división se hace una vez, para c = 0, y después se lleva el
+    ; resto: cada vez que pasa de 254 se le restan 255 y el cociente sube uno.
+    ; Da el mismo cociente que dividir cada vez, porque 255 - a no llega a
+    ; 255 * 2 y el resto no puede pasarse dos veces en un paso.
+    ;
+    ; Hasta el 2026-09-26 cada una de las 96 entradas hacía dos productos y
+    ; una división con sus esperas, a unos 150 ciclos por entrada: un destello
+    ; de personaje se comía ~94 líneas por cuadro, y en la terraza del mapa 32,
+    ; sumado a un `FlashScreen`, la vuelta se pasaba del cuadro. Así son unos
+    ; 30 ciclos por entrada.
+    ;
+    ; No hace falta topar el cociente en 31, como hacía la división suelta:
+    ; el destino y el canal son de cinco bits —el conversor no deja pasar
+    ; otra cosa, ni en los eventos ni en las animaciones de batalla—, así que
+    ; la mezcla tampoco se pasa.
     lda flash_dest
     sta WRMPYA
     lda flash_alfa
-    sta WRMPYB
-    nop
-    nop
-    nop
-    nop
+    sta WRMPYB                  ; el producto tarda ocho ciclos
     rep #$20
 .a16
-    lda RDMPYL
+    tya
     clc
-    adc flash_parcial
+    adc #32
+    sta puro_ofs                ; dónde termina este canal
+    lda RDMPYL
     sta WRDIVL
     sep #$20
 .a8
     lda #255
-    sta WRDIVB
+    sta WRDIVB                  ; el cociente tarda dieciséis
+    sec
+    sbc flash_alfa
+    sta flash_parcial           ; el paso del numerador, 255 - a
     nop
     nop
     nop
     nop
-    nop
-    nop
-    nop
-    nop
-    lda RDDIVL
-    cmp #32
-    bcc mezclado
-    lda #31
-mezclado:
-    ; Y ahora el tinte, que ya está resuelto: buscar el canal mezclado en la
-    ; tabla del tinte solo **es** el hard light, y saca del lazo un producto y
-    ; una división por entrada.
     rep #$20
 .a16
-    and #$00FF
+    tya
     clc
-    adc puro_ofs
+    adc RDDIVL                  ; X: el cociente, en el canal de `puro`
     tax
     sep #$20
 .a8
+    ; El resto va corrido uno arriba —de 1 a 255 en vez de 0 a 254— para que
+    ; "se pasó de 254" sea el acarreo de la suma de ocho bits; y al pasarse,
+    ; restar 255 es quedarse con el byte y sumarle uno. Vive en B mientras A
+    ; lee `puro`.
+    lda RDMPYL
+    inc a
+cada:
+    xba
+    ; Y el tinte, que ya está resuelto: buscar el canal mezclado en la tabla
+    ; del tinte solo **es** el hard light, y saca del lazo un producto y una
+    ; división por entrada.
     lda puro, x
-    sta (temp + 2), y
-    iny
-    cpy #32
-    beq fin
-    jmp cada                    ; `bne` no llega: el lazo es largo
-fin:
+    sta tabla_r, y
+    xba
+    clc
+    adc flash_parcial
+    bcc :+
+    inc a
+    inx
+:   iny
+    cpy puro_ofs
+    bne cada
     rts
 .endproc
+.assert tabla_g = tabla_r + 32 && tabla_b = tabla_r + 64, error, "tabla_canal_flash indexa las tres desde tabla_r"
+
 

@@ -198,6 +198,11 @@ tecla_dir_val:
     .byte TECLA_VALOR_ARRIBA, TECLA_VALOR_DERECHA
     .byte TECLA_VALOR_IZQUIERDA, TECLA_VALOR_ABAJO
 
+; Agregar, sacar o agrandar un renglón cambia `PARTIDA_BYTES`, y con él la
+; cabecera: las partidas guardadas antes dejan de cargar, que es lo que tiene
+; que pasar —ver `SRAM_BYTES`—. **Reordenar dos renglones sin cambiar el total
+; no lo ve nadie**: la cabecera sale igual y una partida vieja cargaría
+; corrida. La firma del conversor no mira esta tabla, que es fuente a mano.
 partida_tabla:
     .word hero_x, 2
     .word hero_y, 2
