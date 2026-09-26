@@ -3123,6 +3123,15 @@ def animaciones_de_la_rom(mapas, renderer):
     return salida
 
 
+def cuadro_de_animacion(cuadro):
+    """Los 2 KB de un cuadro de animación de batalla tal como quedan en la VRAM:
+    los 64 tiles de 4bpp de la caja, en orden."""
+    datos = bytearray(animacion_mod.TILES * 32)
+    for tile, celda in animacion_mod.celdas(cuadro).items():
+        datos[tile * 32:(tile + 1) * 32] = pack_tile(celda, planes=4)
+    return bytes(datos)
+
+
 def animaciones_asm(animaciones, mapas):
     """Las animaciones de batalla del cartucho, listas para el `.inc`.
 
@@ -3203,10 +3212,8 @@ def animaciones_asm(animaciones, mapas):
     for numero in orden:
         info = animaciones[numero]
         for k, cuadro in enumerate(info["cuadros"]):
-            datos = bytearray(animacion_mod.TILES * 32)
-            for tile, celda in animacion_mod.celdas(cuadro).items():
-                datos[tile * 32:(tile + 1) * 32] = pack_tile(celda, planes=4)
-            out.append(bloque("anim_batalla_%d_%d" % (numero, k), bytes(datos)))
+            out.append(bloque("anim_batalla_%d_%d" % (numero, k),
+                              cuadro_de_animacion(cuadro)))
     reparto = bytearray()
     for mapa in mapas:
         sprite = mapa["sprite"]
