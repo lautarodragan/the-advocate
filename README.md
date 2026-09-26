@@ -192,26 +192,6 @@ melódicas de su stream son las mismas con banco propio y con banco compartido.
 Lo que lo tiene al límite es que tiene ocho canales melódicos para seis voces,
 así que dos no suenan nunca y los seis que quedan son monofónicos.
 
-### El personaje
-
-Las poses de RM2k son de 24x32 y la SNES no tiene ese tamaño de objeto: el más
-chico que las cubre es 32x32, así que se rellena con transparente a los costados
-y se pierde una cuarta parte de los tiles. Son 192 tiles, 6 KB, las doce poses
-de un personaje.
-
-#### Las poses se suben en caliente
-
-**En VRAM vive una pose por personaje**, y las doce de
-cada uno que cambia de pose viven en el cartucho. Antes iban todas a VRAM, y
-el día que compiló la escena de apertura —Core, Manta, el droide y Kersh
-caminando en el mismo mapa— pidió 768 tiles de objeto contra los 512 que
-direcciona la PPU, que son los dos bancos de nombres y no un reparto. Es lo
-que hacen los RPG de la consola con más de dos personajes animados; con todas
-las poses residentes, 512 tiles son dos personajes y medio. Lo eligió taro
-frente a la otra salida, que era armar cada personaje con doce objetos de 8x8
-para compartir tiles y reventar los 128 lugares de OAM en cualquier mapa con
-gente.
-
 #### Los eventos translúcidos van horneados
 
 El "Trans" de una página —`translucent`— en RM2k dibuja el evento con
@@ -239,43 +219,6 @@ en `(x*16 - 4, y*16 - 16)`, que es donde `charset.draw` apoya el cuadro de
 mezclan contra el mismo pedazo: el save point del mapa 8, que anima quieto,
 sale bien cuadro por cuadro.
 
-#### El color math, implementado y descartado
-
-La consola sabe hacer transparencia de verdad —suma y mitad entre la pantalla
-principal y la subpantalla— y **está implementado y verificado**, en el tag
-`color-math` (commit `6e0e355`). No se usa: taro lo probó el
-2026-09-12 y lo rechazó por dos cosas que no tienen vuelta, ninguna de ellas un
-defecto de la implementación.
-
-* **El objeto deja de animar.** El translúcido sale de OAM y pasa a ser tiles
-  de BG2, que se suben una vez al entrar al mapa. De los 39 translúcidos que
-  dibujan algo, **35 animan, y 33 de ésos son el save point**. Revivirlo pide
-  subirle los tiles por DMA con la cadencia del evento, que es la máquina que
-  ya existe para los tiles animados del ChipSet.
-* **El héroe se ve a través.** No es una elección: el orden del modo 3 no deja
-  ninguna ranura de capa de fondo entre el piso y el héroe, así que la única
-  disponible queda por encima. Es lo de FF5, y a taro no le gustó.
-
-Cómo estaba hecho, para quien lo retome: `ppu_init` fija `TS` y `CGWSEL` para
-siempre y **`CGADSUB` solo** prende y apaga la mezcla, escrito desde
-`flush_video` con el valor por mapa que emite el conversor;
-`render_map.dibujar_translucidos` mete el objeto adentro de la capa de encima,
-así que no hubo que tocar el reparto de VRAM ni el de CGRAM.
-
-Y dejó dos cosas que valen aunque la rama no entre:
-
-* **La ventana de mensaje también es BG2**, así que prender la mezcla la volvía
-  semitransparente y el mapa se asomaba por debajo de las letras. Se arregla
-  con un canal de HDMA que pone `CGADSUB` en cero en las 80 líneas de la
-  ventana. Verificado con el control corrido: sin ese canal, `bum-vuelve` da
-  17.586 pixeles de diferencia.
-* **snes9x redondea distinto que el hardware en la suma de color math**: con la
-  misma ROM, bsnes y mesen-s coinciden entre ellos —truncan, que es lo que hace
-  el chip—, y snes9x redondea para arriba cuando la suma de un canal es impar.
-  Son trece pixeles y no se ven, pero es **la primera vez que el emulador con el
-  que se capturan las goldens se aparta de la consola**: si algún día se compara
-  color math, el caso va a `pruebas/rpgmaker/test_cores.py`.
-
 ### Las tablas van en el banco 0
 
 `lda tabla, x` direcciona **el registro de banco de datos**, no el banco donde
@@ -300,12 +243,6 @@ registro de banco de datos; cuesta un byte por instrucción y **obliga a que el
 existe. Los dos usos de `mapa_tabla` con Y pasaron a X, con X yendo y volviendo
 por la pila.
 
-Y una tabla mudada necesita su `.bloque` igual que las de acá abajo, o se parte
-contra el final del banco. Es exactamente la clase de error que aparece o
-desaparece al agregar un byte en cualquier otra parte del cartucho, y que un
-solo caso de la tanda cobra mientras los demás no lo ven, porque depende de
-dónde caiga la tabla.
-
 Y lo que no entre en un banco no puede recorrerse con un índice, punto: la
 grilla de celdas llega a 40 KB. Ésa se lee con un puntero de 24 bits, y ahí
 aparece la otra cara de LoROM: **un banco sólo tiene sus 32 K de arriba**, así
@@ -313,14 +250,9 @@ que pasarse del `$FFFF` no lleva al `$0000` del banco siguiente sino a su
 `$8000`. Dos rutinas de diez líneas, `ptr_mas` y `ptr_menos`, son las únicas que
 saben eso; todo lo demás las usa y se olvida del tema.
 
-Y una tabla que se recorra con `[ptr], y` sin cruzar de banco **tiene que
-declararse con `.bloque`**, que es lo que le dice al enlazador que la ponga
-entera de un lado. Que sus punteros sean simbólicos no alcanza: la tabla de
-páginas de evento quedó a caballo de `$02FFFF` el día que los sprites de un mapa
-crecieron, y de ahí para adelante la ROM la leyó desde `$03:0000`, que es el
-espejo de la WRAM. La tanda lo cobra con un fondo corrido seis pixeles y nada
-que diga por qué; lo dice la RAM, con `pg_evento` en `$5555`, que es con lo que
-snes9x llena la memoria.
+Y una tabla mudada, o una que se recorra con `[ptr], y`, **tiene que
+declararse con `.bloque`** para no quedar partida entre dos bancos: ver
+`bloque` en `tools/port/snes_convert.py`.
 
 ### Cómo está armado
 
@@ -429,35 +361,6 @@ voces y recién después aplica el volumen general, sin limitar en el medio; la
 primera versión saturaba (pico 32768 clavado) y el techo por voz salió de medir
 el pico del WAV, no de la teoría, porque la teoría supone que todas las voces
 pican juntas y en fase y eso no pasa nunca.
-
-### El parche de bsnes
-
-`tools/emulador/bsnes-wram.patch` es un parche para **bsnes-libretro**, no para este
-repo, y **desde que las goldens son capturas de snes9x importa más que antes**:
-sin bsnes no hay con qué contestar "anda en el emulador y no en la consola", que
-es lo único que `pruebas/rpgmaker/test_cores.py` existe para contestar.
-
-Existe porque el reloj de las pruebas le pregunta a la ROM en qué vuelta del
-lazo va —lo lleva en `vueltas`, en la WRAM— y bsnes no expone la WRAM:
-`retro_get_memory_data` devuelve nulo para **todos** los ids. Sin el parche, los
-casos que corren bajo bsnes caen al camino viejo de contar cuadros de hardware,
-que sirve mientras la ROM no se atrase.
-
-El comentario que hay arriba de esa función en bsnes dice por qué está así, y es
-razonable: la interfaz de memoria de libretro se usa para cargar y guardar la
-**SRAM**, y bsnes prefiere hacerlo él. Pero `RETRO_MEMORY_SYSTEM_RAM` es otra
-cosa —la RAM de trabajo, la que los frontends leen para cheats, logros y
-depuración— y no participa de nada de eso. El parche expone sólo ésa y deja el
-resto igual, que es lo que lo hace defendible río arriba.
-
-Para armarlo hace falta `gcc` y `make`, y nada más: el target unix de libretro
-tiene `LIBS =` vacío.
-
-    git clone https://github.com/libretro/bsnes-libretro
-    cd bsnes-libretro
-    git am < .../tools/emulador/bsnes-wram.patch
-    make -j$(nproc)
-    cp bsnes_libretro.so /usr/lib/libretro/
 
 ### Trampas del hardware
 

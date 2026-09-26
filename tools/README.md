@@ -68,3 +68,25 @@ Los scripts se corren por su ruta, desde donde sea:
 Los que importan paquetes —`snes_convert` y `msu`— cambian, sólo si corren
 como script, la carpeta que Python les pone al frente del `sys.path` por
 `tools/`. Las pruebas ponen `tools/` ellas mismas.
+
+## El parche de bsnes
+
+`emulador/bsnes-wram.patch` es para **bsnes-libretro**, no para este repo.
+bsnes no expone la WRAM —`retro_get_memory_data` devuelve nulo para todos los
+ids— y el reloj de las pruebas le pregunta a la ROM en qué vuelta del lazo va,
+que vive en `vueltas`, en la WRAM. Sin el parche, lo que corre bajo bsnes cae
+a contar cuadros de hardware, que sirve mientras la ROM no se atrase. Y sin
+bsnes no hay con qué contestar lo que `pruebas/rpgmaker/test_cores.py` existe
+para contestar.
+
+El parche expone sólo `RETRO_MEMORY_SYSTEM_RAM` y deja el resto como está: el
+comentario de bsnes sobre esa función es por la SRAM, que no se toca, y por
+eso es defendible río arriba. Su mensaje de commit dice el resto.
+
+Para armarlo hace falta `gcc` y `make`, y nada más:
+
+    git clone https://github.com/libretro/bsnes-libretro
+    cd bsnes-libretro
+    git am < .../tools/emulador/bsnes-wram.patch
+    make -j$(nproc)
+    cp bsnes_libretro.so /usr/lib/libretro/

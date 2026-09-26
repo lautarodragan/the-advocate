@@ -3637,6 +3637,15 @@ def bloque(label, data, per_line=16, alinear=None, acomodar=True):
     hace falta el banco entero: sólo que sus palabras no queden partidas entre
     el final de un banco y el principio del siguiente.
 
+    Lo mismo vale para una tabla que se recorre con `[ptr], y` o con
+    `lda f:tabla, x`: tiene que quedar entera de un lado, y que sus punteros
+    sean simbólicos no alcanza. Partida, la ROM lee la segunda mitad desde el
+    `$0000` del banco siguiente, que en LoROM es el espejo de la WRAM. Así
+    quedó la tabla de páginas de evento a caballo de `$02FFFF` el día que los
+    sprites de un mapa crecieron, y lo que se vio fue un fondo corrido seis
+    pixeles: es un error que aparece o desaparece al agregar un byte en
+    cualquier otra parte del cartucho.
+
     `acomodar=False` es para lo que va a TABLAS: esa área vive entera adentro
     del banco 0 —termina en $7FC0—, así que nada de lo que caiga ahí puede
     cruzar, y declararlo emitía una cuenta que siempre daba cero.
