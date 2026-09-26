@@ -42,9 +42,24 @@ libretro cores installed here, and by running the ROM on each:
 - **mesen-s** (`Core/Msu1.cpp`): same registers; also only with a `.msu`.
 - **Mednafen**: the default `snes` module has no MSU-1; `snes_faust` does
   (`-force_module snes_faust`), confirmed by taro playing the ROM.
+- **ares** (`ares/sfc/coprocessor/msu1/msu1.cpp`): same registers. The
+  frontend enables the MSU-1 only if a `*.msu` sits next to the ROM
+  (`mia/medium/super-famicom.cpp`), so without it the tracks don't play
+  either.
 
-None of them ever sets the data-busy bit: seeks are instant. Only real
-hardware (the FX Pak Pro reads the SD card) exercises the wait.
+**Mednafen's `snes_faust` is the only one that makes seeks take time**, and
+the only emulator here that exercises the ROM's waits. A write to `$2003`
+sets the data-busy bit for 400,000 master cycles (`MSU1_WriteDataSeek` in
+`snes_faust/msu1.cpp`), and selecting a track does the same with the
+audio-busy bit. Reading `$2000` doesn't bring the MSU-1 up to date, so in
+practice the bit clears at the end of the frame in which those cycles run
+out: every seek costs one or two frames. bsnes, snes9x, mesen-s, Mesen2
+and ares never set either bit. On the FX Pak Pro a seek outside its 16 KB
+buffer reads the SD card (`prepare_data` in `/extras/ref/sd2snes/src/msu1.c`).
+
+The data port running in Mednafen was checked on 2026-09-26 by saving a
+Mednafen state (F5) in the droid fight and reading the WRAM out of the
+`.mc0` file: the backdrop came from the `.msu`.
 
 ## Debugging with Mesen2
 

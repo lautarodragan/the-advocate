@@ -66,18 +66,32 @@ entradas sin cambiar el formato.
 
 Se mide con `ESC_CUADROS`, que `escena_subir` deja en la RAM al abrir la
 pelea: `pruebas/abl/test_msu_datos.py` arma los dos caminos, y leerlo ahí es
-una línea. En los emuladores el `.msu` tarda un cuadro **menos** que la ROM
-—medido en la pelea del droide, en snes9x y en bsnes—: los dos son DMA a la
-misma velocidad y buscar es instantáneo, pero el respaldo se copia de a un
-tile, con dos DMA de 32 bytes cada uno y los registros rearmados en el medio.
-En el FX Pak buscar es leer la tarjeta SD, y son cuatro búsquedas por pelea:
-la firma, los colores y los tiles para cada uno de los dos búferes de la
-WRAM. Eso **no está medido**.
+una línea. En snes9x y en bsnes el `.msu` tarda **menos** que la ROM
+—medido en la pelea del droide—: los dos son DMA a la misma velocidad y ahí
+buscar es instantáneo, pero el respaldo se copia de a un tile, con dos DMA de
+32 bytes cada uno y los registros rearmados en el medio.
+
+**Mednafen es el único emulador en el que buscar tarda**
+(`-force_module snes_faust`; qué hace cada uno, en
+`docs/snes/emulators.md`): cada búsqueda cuesta uno o dos cuadros, y son
+cuatro por pelea —la firma, los colores y los tiles para cada uno de los dos
+búferes de la WRAM—. Medido el 2026-09-26 en la pelea del droide, jugada
+desde el título con la pista del mapa sonando: `ESC_CUADROS` en 11 con el
+`.msu`, contra 5 sin él en Mednafen y 4 con él en snes9x y en bsnes. O sea
+unos siete cuadros de espera, poco más de una décima de segundo. La RAM de
+Mednafen se lee guardando el estado (F5): el `.mc0` de `~/.mednafen/mcs/` es
+un gzip, y la WRAM va entera en su entrada `WRAM`.
+
+En el FX Pak buscar dentro de su búfer de 16 KB es inmediato, y fuera de él
+es leer la tarjeta SD —`prepare_data` en `/extras/ref/sd2snes/src/msu1.c`—.
+Eso **no está medido**. El tope de la espera —`MSU_ESPERA`, en
+`rom/src/msu1.s`— es unas diez veces lo que tarda Mednafen.
 
 Si una búsqueda no llega a tiempo, lo que ya se leyó del `.msu` es el fondo
 de calidad y lo que sigue saldría del liviano, que no comparten ni colores ni
 tiles: `escena_subir` lo nota y rehace el fondo entero desde la ROM. Ningún
-emulador busca con demora, así que ese camino **no lo corre ninguna prueba**.
+emulador tarda tanto como para cortar la espera, así que ese camino **no lo
+corre ninguna prueba**.
 
 ## Cómo se prueba
 
@@ -86,3 +100,15 @@ liviano. `pruebas/abl/test_msu_datos.py` corre los dos caminos en snes9x y
 en bsnes y compara **cada uno contra su golden** —`msu-datos-rom` y
 `msu-datos-msu`— y el fondo limpio de la WRAM contra los bytes que arma el
 conversor: el de calidad tal cual y el liviano agrandado a 8bpp.
+
+**La espera no la cubre la tanda**, porque los tres cores de libretro que
+hay acá buscan en el acto, y el arnés no puede simular la demora: ve la
+memoria, no el bus, así que no tiene cómo contestar otra cosa cuando la ROM
+lee `$2000`. Lo que la ejercita es Mednafen, a mano: un cartucho que abra la
+pelea al empezar la partida —los flags de `release` con `batalla-droide`
+como página 0—, Xvfb y `xdotool` para pasar el título, F5 en la pelea, y
+leer `ESC_MSU` del `.mc0`. Así se verificó el 2026-09-26, y además jugando
+hasta el droide con la partida de la tanda cargada en la SRAM de Mednafen.
+Meterlo en la tanda costaría un cartucho más y una prueba que corre en
+tiempo real contra un emulador con ventana; no se hizo. Lo que sigue sin
+correr nadie es el corte por tope, arriba.
