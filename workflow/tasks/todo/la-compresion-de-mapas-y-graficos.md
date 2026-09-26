@@ -264,9 +264,12 @@ cartucho de 3162 a 2650 KB usados, y el último banco de `$6B` a `$5B`.
 prueba nueva `pruebas/rpgmaker/test_animacion_cuadros.py`, que pone a la ROM a
 dibujar cada animación del cartucho —cambiándole la fila de la animación que
 está dibujando— y compara la caja de la VRAM, cuadro por cuadro, los 274,
-contra `cuadro_de_animacion`, la cuenta sin comprimir. Se la vio fallar
-rompiendo el rearmado de dos maneras: sin borrar el cuadro anterior (274 de
-274 mal) y leyendo los tiles corridos un byte (216 de 274).
+contra `cuadro_de_animacion`, la cuenta sin comprimir. Corre también en
+bsnes, que enciende con la WRAM llena de basura; ahí compara `ANIMB_BUF`
+porque el core no expone la VRAM. Se la vio fallar rompiendo el rearmado de
+tres maneras: sin borrar el cuadro anterior (274 de 274 mal), leyendo los
+tiles corridos un byte (216 de 274), y sin el borrado de la carga del mapa
+(274 de 274, en los dos cores).
 
 **Si hiciera falta bajar el peor caso**: no borrar los tiles del anterior que
 el nuevo pisa (en la 132 son casi todos), o un DMA a `$2180` en vez de la
