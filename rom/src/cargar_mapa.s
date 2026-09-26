@@ -339,41 +339,6 @@ puesto:
     jmp volver_al_mapa
 .endproc
 
-; El tinte que haya pedido un evento, con la pantalla apagada mientras dura.
-;
-; CGRAM no acepta escrituras con el PPU dibujando, así que esto no puede correr
-; en cualquier momento. Se intentó primero meterlo en `flush_video`, que corre en
-; el vblank, y no entra: `aplicar_tinte` arma tres tablas de canal de treinta y
-; dos entradas y sube tres paletas por DMA. Lo que se pasaba del vblank caía con
-; el PPU dibujando, y el resultado era un tinte a medias distinto cada vez —una
-; vez la capa de encima y un sprite, otra vez el fondo con el héroe en negro y
-; los NPCs sin teñir—.
-;
-; Y esto la tanda no lo cobra: snes9x **acepta** las escrituras a CGRAM con el
-; PPU dibujando y mednafen no, así que un tinte roto puede dar verde en las
-; sesenta comparaciones y verse mal en la consola. Cuando algo de CGRAM o VRAM
-; anda acá adentro y no en el hardware, ésta es la primera sospecha.
-;
-; La otra salida que se probó —apagar la pantalla a mitad del cuadro, escribir
-; el tinte y volver a prenderla— es otra trampa de las que el emulador tapa: en
-; la consola son líneas negras mientras dura la cuenta, y en el emulador un
-; cuadro teñido de la mitad para abajo. La vio la sacudida de pantalla, que es
-; la primera receta que compara cuadro por cuadro.
-;
-; Apagar la pantalla es lo que ya hace el teletransporte —`cargar_lo_pedido`—
-; por la misma razón. Cuesta un cuadro en negro, que en RM2k tampoco desentona: el
-; motor original funde a negro en las transiciones.
-.proc tinte_de_evento
-.a8
-.i16
-    lda tinte_pendiente
-    beq nada
-    stz tinte_pendiente
-    jsr aplicar_tinte           ; a la sombra; CGRAM se escribe en el vblank
-nada:
-    rts
-.endproc
-
 ; Se acabó: algo que no puede pasar pasó. A trae el código, que queda en
 ; `panico` para que una prueba de estado pueda decir cuál fue.
 ;
