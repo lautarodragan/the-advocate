@@ -201,3 +201,58 @@ liviano adentro): `just cartuchos` en frío 266 s —`test-main` 154,
 
 1. El `Teleport` al 6 delante de los 24 casos que corrían en el mapa de
    arranque: commit aparte, 632 en verde, ninguna golden se movió.
+2. El conversor vacía `rom/build/<cartucho>/parches/` antes de escribir
+   (cierra `el-conversor-no-limpia-los-parches-viejos.md`).
+3. `donde_esta` ya no depende del orden de `CARTUCHOS`.
+4. `parches.revisar` sabe qué es de prueba: los mapas salen de
+   `cartuchos.MAPAS_DE_PRUEBA`, y para las animaciones y los battlers —la 91 y
+   doce battlers existen sólo por los mapas de prueba o por un caso, cosa que
+   la medición no había visto— el conversor deja un `usos.json` sin versionar
+   con quién pide cada uno.
+5. La junta: `release` lleva todos los mapas y todos los casos, con
+   `PRIMERO = "nada"`; `test-main` no existe más. El arnés pasa el título solo
+   (`Cartucho.titulo`), `reiniciar()` vuelve por "Resume" y las dos pruebas
+   del GameOver pasan el título. El control "sin título" de
+   `test_guardar_save_point` se perdió: no queda ninguna ROM sin título que
+   llegue al 8.
+
+Medido en la junta:
+
+* Se mueven **36 goldens de 9 pruebas**, todas por el cronómetro (lado a lado
+  en `/shared/goldens/2026-09-25-juntar-cartuchos/`). Las cinco de la puerta
+  del mapa 7 ya no, por `c3910f4`. Lo nuevo es lo que el `release` de antes ya
+  dibujaba: el mapa 9 da igual pixel por pixel en las dos ROMs.
+* **Las partidas guardadas con el `release` de antes no sirven en el unido.**
+  `PARTIDA_BYTES` pasa de 1850 a 1868: una variable más (la del caso, que va
+  última, así que las del juego no se corren) y cuatro entradas más de
+  `EXP_K` (las tropas de los mapas de prueba). Todo lo que va detrás de las
+  variables se corre dos bytes. Con la SRAM que deja snes9x detrás de la
+  partida (bytes `$60`) la suma no da y la partida **no carga**; con ceros
+  detrás la suma da igual y **carga corrupta**: inventario, HP, SP, equipo,
+  gráficos y habilidades corridos. Y el formato va a seguir cambiando cada vez
+  que un caso nombre una variable nueva o traiga una tropa nueva, porque ahora
+  los casos son parte de la ROM que se juega.
+
+Después, sobre la rama con `main` mergeado (`4d33549`):
+
+* `just pruebas`: 640 en verde. Sin `main` eran 633: las 632 de antes, más
+  tres pruebas nuevas (parches viejos, `donde_esta`, `de_prueba`) y menos los
+  dos casos de `test_protocolo` y `test_ensamblar` que se parametrizaban por
+  `test-main`. `test_cores.py` tres veces en verde.
+* `just cartuchos` en frío: 235 s —`release` 150, las pistas y
+  `test-special` 85—, contra 266 antes. El `gunter` del PATH cambió a mitad
+  de `test-special`, así que ese tramo no es limpio.
+* Espacio, sumando los segmentos del `.dbg`: `release` pasa de 70,9% a
+  86,5% del cartucho (último banco $76); `test-main` estaba en 86,6%. El
+  estudio daba 89,6% para el unido con otro método y antes del respaldo
+  liviano.
+
+# Lo que queda para taro
+
+* Mirar las 36 goldens de `/shared/goldens/2026-09-25-juntar-cartuchos/`
+  antes del merge.
+* Jugar la ROM: arranca como antes (el recorrido, el título y las escenas
+  pasan), pero ahora lleva las páginas y los mapas de prueba adentro.
+* **Las partidas de antes no sirven**: ver arriba. Si importa, lo que falta
+  es que la partida lleve su tamaño o una versión y la ROM rechace las que no
+  son suyas; hoy, con ceros detrás, carga una corrupta.
