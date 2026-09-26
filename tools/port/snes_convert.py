@@ -3903,9 +3903,6 @@ def terreno_del_mapa(mapa):
 # `lz2_descomprimir` en rom/src/descomprimir.s.
 CLASES_COMPRIMIDAS = ("map_tiles", "above_tiles", "sprite_tiles", "anim_tiles",
                       "map_celdas")
-# Las que el cartucho ya lleva comprimidas. La grilla todavía no: se lee con
-# un puntero directo al cartucho.
-CLASES_EN_LZ2 = ("map_tiles", "above_tiles", "sprite_tiles", "anim_tiles")
 
 # Lo más grande que puede medir cada bloque descomprimido, por dónde cae en la
 # WRAM: ver la reserva de LZ2 en rom/src/ram_lejana.s, que es de donde salen, y
@@ -3915,6 +3912,7 @@ CLASES_EN_LZ2 = ("map_tiles", "above_tiles", "sprite_tiles", "anim_tiles")
 LZ2_TOPE_FONDO = 0x8000
 LZ2_TOPE_ENCIMA_Y_SPRITES = 0x6000
 LZ2_TOPE_ANIM = 0x2000
+LZ2_TOPE_GRILLA = 0x10000       # dos mitades de GRILLA_MITAD
 
 
 # Lo que cuesta descomprimir en la ROM, en ciclos maestros, **por lo alto**:
@@ -3930,7 +3928,7 @@ def cuadros_de_descomprimir(mapa, comprimidos):
     """Cuántos cuadros se lleva descomprimir los bloques de un mapa."""
     ciclos = 0
     for clase, datos in crudos_del_mapa(mapa).items():
-        if clase not in CLASES_EN_LZ2:
+        if clase not in CLASES_COMPRIMIDAS:
             continue
         for parte in partes_comprimidas(clase, datos):
             ciclos += (comprimir.comandos(comprimidos[parte])
@@ -3945,11 +3943,12 @@ def comprimir_los_bloques(mapas):
     topes = {"map_tiles": LZ2_TOPE_FONDO,
              "above_tiles": LZ2_TOPE_ENCIMA_Y_SPRITES,
              "sprite_tiles": LZ2_TOPE_ENCIMA_Y_SPRITES,
-             "anim_tiles": LZ2_TOPE_ANIM}
+             "anim_tiles": LZ2_TOPE_ANIM,
+             "map_celdas": LZ2_TOPE_GRILLA}
     partes = []
     for mapa in mapas:
         for clase, datos in crudos_del_mapa(mapa).items():
-            if clase not in CLASES_EN_LZ2:
+            if clase not in CLASES_COMPRIMIDAS:
                 continue
             if clase in topes and len(datos) > topes[clase]:
                 raise SystemExit(
@@ -4043,7 +4042,7 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
     ]
     etiquetas, out = {}, []
     for nombre, datos in pares:
-        if nombre in CLASES_EN_LZ2:
+        if nombre in CLASES_COMPRIMIDAS:
             etiquetas[nombre], texto = materiales.guardar_comprimido(nombre, datos)
         else:
             etiquetas[nombre], texto = materiales.guardar(nombre, datos)
@@ -4055,9 +4054,10 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
     out.append(npc_poses_asm(numero, animados, indice_global))
     out.append(actor_table_asm(numero, sprite[4] if sprite else [],
                                animados, indice_global))
-    # La grilla va aparte porque es la única que no se sube por DMA.
-    etiquetas["map_celdas"], texto = materiales.guardar(
-        "map_celdas", mapa["celdas"], alinear=2)
+    # La grilla, en sus dos flujos: ver `lz2_grilla`. Entera en un banco, como
+    # todo lo comprimido, porque el descompresor no cruza.
+    etiquetas["map_celdas"], texto = materiales.guardar_comprimido(
+        "map_celdas", mapa["celdas"])
     if texto:
         out.append(texto)
     out.append(tabla_de_paginas(mapa, numero, etiquetas["evcodigo"]))
@@ -4654,9 +4654,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write("; Los topes de LZ2, que cobra descomprimir.s\n"
                      "LZ2_TOPE_FONDO = $%04X\n"
                      "LZ2_TOPE_ENCIMA_Y_SPRITES = $%04X\n"
-                     "LZ2_TOPE_ANIM = $%04X\n\n"
+                     "LZ2_TOPE_ANIM = $%04X\n"
+                     "LZ2_TOPE_GRILLA = $%05X\n\n"
                      % (LZ2_TOPE_FONDO, LZ2_TOPE_ENCIMA_Y_SPRITES,
-                        LZ2_TOPE_ANIM))
+                        LZ2_TOPE_ANIM, LZ2_TOPE_GRILLA))
         etiquetas = []
         for numero, mapa in enumerate(mapas):
             handle.write("; --- %d: mapa %d %r ---\n"

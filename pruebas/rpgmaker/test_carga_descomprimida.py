@@ -162,12 +162,36 @@ def _mirar_la_vram(p, indice):
     return mal
 
 
-def _mirar_la_wram(p, indice):
-    """Lo que no coincide en la WRAM: los dibujos de la animación, que quedan
-    todo lo que dure el mapa, y el buffer de carga, que tiene lo último que se
-    descomprimió —los sprites: ver `cargar_mapa_sin_eventos`—."""
+def _grilla(p):
+    """La grilla que hay en la WRAM, con el largo de la del mapa: la mitad
+    alta del banco $7E y, si pasa de 32 KB, la del $7F. Ver `GRILLA`."""
     s = p.simbolos
-    mal = []
+    largo = p.palabra("mapa_ancho") * p.palabra("mapa_alto") * 2
+    mitad = s["GRILLA_FIN"] - s["GRILLA"]
+    baja = p.consola.ram(en_la_wram(s["GRILLA"]), min(largo, mitad))
+    alta = (p.consola.ram(en_la_wram(s["GRILLA_ALTA"]), largo - mitad)
+            if largo > mitad else b"")
+    return bytes(baja) + bytes(alta)
+
+
+def _mirar_la_grilla(p, indice):
+    crudo = _crudo(p, indice, "map_celdas")
+    visto = _grilla(p)
+    if visto == crudo:
+        return []
+    if len(visto) != len(crudo):
+        return ["la grilla mide %d y el conversor dice %d" % (len(visto), len(crudo))]
+    celdas = [k for k in range(0, len(crudo), 2) if visto[k:k + 2] != crudo[k:k + 2]]
+    return ["%d celdas de la grilla distintas, la primera en el byte %d"
+            % (len(celdas), celdas[0])]
+
+
+def _mirar_la_wram(p, indice):
+    """Lo que no coincide en la WRAM: la grilla, los dibujos de la animación,
+    que quedan todo lo que dure el mapa, y el buffer de carga, que tiene lo
+    último que se descomprimió —los sprites: ver `cargar_mapa_sin_eventos`—."""
+    s = p.simbolos
+    mal = _mirar_la_grilla(p, indice)
     for simbolo, clase in (("ANIM_DIBUJOS", "anim_tiles"),
                            ("LZ2_BUFFER", "sprite_tiles")):
         crudo = _crudo(p, indice, clase)
@@ -199,3 +223,53 @@ def test_lo_cargado_es_lo_que_el_conversor_dice_en_cada_mapa(nucleo):
     mal = ["mapa %d: %s" % (m, "; ".join(v)) for m, v in vistos.items() if v]
     assert not mal, "%d de %d mapas con otra cosa:\n%s" % (
         len(mal), len(vistos), "\n".join(mal))
+
+
+# --- la grilla y la pelea -----------------------------------------------------
+#
+# La mitad alta del banco $7F es a la vez el final de las grillas de más de 32
+# KB y `ESC_ESCENA`, la escena compuesta de la pelea: pelear la pisa, y
+# `volver_de_batalla` vuelve a descomprimir la grilla. El mapa 52 es el de la
+# grilla más grande, 40.000 B, y el caso `pelea-en-52` pelea ahí contra el
+# droide con Kersh, que lo gana.
+
+PELEA_EN_52 = "pelea-en-52"
+
+
+@pytest.mark.parametrize("nucleo", (None, BSNES), ids=("snes9x", "bsnes"))
+def test_la_grilla_vuelve_entera_de_una_pelea(nucleo):
+    p = partida(PELEA_EN_52, nucleo=nucleo)
+    s = p.simbolos
+    indice = p.mapas.index(52)
+    crudo = _crudo(p, indice, "map_celdas")
+    mitad = s["GRILLA_FIN"] - s["GRILLA"]
+    assert len(crudo) > mitad, (
+        "la grilla del mapa 52 mide %d: no llega a la mitad del $7F y esto no "
+        "prueba nada" % len(crudo))
+    assert _grilla(p) == crudo, "la grilla ya estaba mal antes de pelear"
+    alta = en_la_wram(s["GRILLA_ALTA"])
+    pisada, cuadros = False, 0
+    # Todo en cuadros de hardware: la pelea no cuenta ticks. A cada nueve
+    # cuadros, que es lo que pasa los mensajes y elige atacar.
+    for cuadros in range(1, 4000):
+        p.consola.apretar(*(("a",) if cuadros % 9 < 2 else ()))
+        p.consola.correr(1)
+        if p.byte("menu_abierto"):
+            pisada = pisada or (bytes(p.consola.ram(alta, len(crudo) - mitad))
+                                != crudo[mitad:])
+        elif pisada:
+            break
+    else:
+        raise AssertionError("la pelea no terminó en %d cuadros" % cuadros)
+    p.consola.apretar()
+    assert pisada, (
+        "la pelea no pisó la mitad alta del $7F: si la escena se mudó, esta "
+        "prueba ya no mira el camino de `volver_de_batalla`")
+    antes = p.palabra("vueltas")
+    for _ in range(240):
+        p.consola.correr(1)
+        if p.palabra("vueltas") - antes >= 2:
+            break
+    assert p.mapa() == 52, "la pelea no volvió al mapa 52: volvió al %d" % p.mapa()
+    mal = _mirar_la_grilla(p, indice)
+    assert not mal, "la grilla después de la pelea: %s" % mal

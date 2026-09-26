@@ -302,9 +302,40 @@ subir:
     rtl
 .endproc
 
+; La grilla del mapa, descomprimida en `GRILLA`: sus primeros 32 KB en la
+; mitad alta del banco $7E y el resto en la del $7F, que es la forma que
+; esperan `ptr_mas` y `ptr_menos`. El conversor la parte en dos flujos, uno por
+; mitad, así que ninguna salida cruza de banco; el segundo va pegado al
+; primero, y puede no tener nada más que su $FF.
+;
+; La pelea pisa la mitad del $7F —es `ESC_ESCENA`—, así que `volver_de_batalla`
+; la vuelve a descomprimir. Ver la decisión en
+; workflow/decisiones/la-grilla-vive-en-la-wram.md.
+.proc lz2_grilla
+.a8
+.i16
+    ldy #M_PTR_MAP_CELDAS
+    jsr lz2_del_campo
+    pha                         ; el banco del flujo, para el segundo
+    lda #^GRILLA
+    sta f:LZ2_BANCO
+    pla
+    pha
+    ldy #.loword(GRILLA)
+    jsl f:lz2_descomprimir + RAPIDO     ; deja X en el segundo flujo
+    lda #^GRILLA_ALTA
+    sta f:LZ2_BANCO
+    pla
+    ldy #.loword(GRILLA_ALTA)
+    jsl f:lz2_descomprimir + RAPIDO
+    rtl
+.endproc
+
 ; Los topes de cada bloque salen de la reserva de ram_lejana.s y el conversor
 ; los cobra al comprimir: si alguno de los dos lados se mueve solo, que no
 ; arme.
 .assert LZ2_BUFFER + LZ2_TOPE_FONDO <= ANIM_DIBUJOS_FIN, error, "los tiles del fondo no entran en el buffer de carga"
 .assert LZ2_BUFFER + LZ2_TOPE_ENCIMA_Y_SPRITES <= ANIM_DIBUJOS, error, "la capa de encima o los sprites pisarían los dibujos de la animación"
 .assert ANIM_DIBUJOS + LZ2_TOPE_ANIM <= ANIM_DIBUJOS_FIN, error, "los dibujos de la animación no entran en su lugar"
+.assert GRILLA_ALTA = GRILLA + $10000, error, "las dos mitades de la grilla tienen que ser la misma dirección en dos bancos seguidos: así las recorre `ptr_mas`"
+.assert LZ2_TOPE_GRILLA <= 2 * (GRILLA_FIN - GRILLA), error, "la grilla más grande no entra en las dos mitades altas de la WRAM"

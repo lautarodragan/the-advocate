@@ -613,6 +613,23 @@ LZ2_BUFFER     = $7F0000
 ANIM_DIBUJOS   = $7F6000
 ANIM_DIBUJOS_FIN = $7F8000
 
+; --- la grilla del mapa, en la WRAM -----------------------------------------
+;
+; **$7E8000 a $7EFFFF es de la grilla**, y sigue en $7F8000 si pasa de 32 KB:
+; la mitad alta de los dos bancos, que tiene la forma de dos bancos de LoROM
+; seguidos —ver `ptr_mas`—. La descomprime `lz2_grilla` al cargar el mapa y la
+; lee todo el que pregunte por una celda. Reservado el 2026-09-26, y es una
+; decisión con costo: era la mitad de la RAM lejana que quedaba libre. Qué se
+; pierde, cómo se revierte y qué lo cobra, en
+; workflow/decisiones/la-grilla-vive-en-la-wram.md; `test_reservas_de_la_wram.py`
+; falla si otro símbolo cae adentro.
+;
+; La mitad del $7F la comparte con `ESC_ESCENA`: la pelea la pisa, y
+; `volver_de_batalla` vuelve a descomprimir la grilla entera.
+GRILLA      = $7E8000
+GRILLA_FIN  = $7F0000
+GRILLA_ALTA = $7F8000
+
 ; En qué cuadro termina el arranque, contado desde el reset. El arranque
 ; —cargar el mapa, subir el driver al SPC700 y el paquete de audio del mapa—
 ; tarda lo que tarda, y eso cambiaba con cada cambio de código o de datos: un
