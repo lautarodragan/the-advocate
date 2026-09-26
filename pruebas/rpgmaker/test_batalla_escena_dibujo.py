@@ -104,8 +104,9 @@ def _colores(una):
 
     colores = {}
     fondo = _byte(una, "ESC_FONDO")
-    base = en_la_rom(s["fondo_cgram"]) + fondo * escena.COLORES * 2
-    for i in range(escena.COLORES):
+    # Los del respaldo liviano, que es el que la tanda ve: corre sin MSU-1.
+    base = en_la_rom(s["fondo_cgram"]) + fondo * escena.RESPALDO_COLORES * 2
+    for i in range(escena.RESPALDO_COLORES):
         colores[escena.CGRAM_BASE + i] = color(base + 2 * i)
     for j in range(_byte(una, "ESC_PAL_N")):
         b = _byte(una, "ESC_PAL_BAT", j)
@@ -180,11 +181,13 @@ def test_escena_un_encuentro_al_azar_hereda_el_fondo_del_mapa(partida):
 
     El fondo de una pelea al azar es el del mapa, subiendo por el árbol como
     RM2k. Se compara el fondo limpio que quedó en la
-    WRAM contra el de `ABLBackdropSJ03` convertido de este lado.
+    WRAM contra el de `ABLBackdropSJ03` convertido de este lado: el respaldo
+    liviano, porque la tanda corre sin MSU-1. Que en la WRAM esté entero en
+    8bpp prueba también que la ROM lo agrandó bien desde 4bpp.
     """
     una = en_sector_27(partida)
     assert _byte(una, "ESC_FONDO") != 0xFF, "la pelea al azar quedó sin fondo"
-    fondo = escena.fondo("ABLBackdropSJ03", GAME_DIR)
+    fondo = escena.fondo_liviano("ABLBackdropSJ03", GAME_DIR)
     limpio = _bufer(una, "ESC_LIMPIO")
     assert _distintos(limpio, fondo["indices"]) == 0, \
         "el fondo de la pelea no es el de Sector 27"
