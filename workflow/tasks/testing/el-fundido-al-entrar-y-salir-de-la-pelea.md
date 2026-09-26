@@ -68,3 +68,5 @@ entrada baja a 20 cuadros y la de salida a 49, las dos en negro: entrar dura
 * ya estaba antes: al empezar la pelea del droide vuelve a verse el último
   mensaje ("Get ready everyone!") durante los destellos y el fundido. Está
   igual en `main` sin este cambio —antes se veía congelado—, no es de acá.
+
+**taro miró las capturas el 2026-09-26 y las ve bien.** Falta jugarlo.

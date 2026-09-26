@@ -56,3 +56,5 @@ movió: ninguna captura la pantalla de la victoria. `test_cores.py` tampoco
 pasa por ella, así que la comparación entre snes9x y bsnes no cobra la RAM
 nueva; `ba_vic_empezar` escribe las ocho posiciones antes de que nadie las
 lea.
+
+**taro miró las capturas el 2026-09-26 y las ve bien.** Falta jugarlo.
