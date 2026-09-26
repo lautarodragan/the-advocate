@@ -339,35 +339,6 @@ puesto:
     jmp volver_al_mapa
 .endproc
 
-; Se acabó: algo que no puede pasar pasó. A trae el código, que queda en
-; `panico` para que una prueba de estado pueda decir cuál fue.
-;
-; No hay `printf` en una SNES y volver de acá no tiene sentido —el estado ya es
-; inconsistente—, así que lo que queda es que se vea: la pantalla parpadea entre
-; negro y pleno para siempre. Es feo a propósito. Lo que se quiere evitar es lo
-; contrario, que el juego siga andando como si nada y el error aparezca media
-; hora después convertido en otra cosa.
-.proc entrar_en_panico
-.a8
-.i16
-    sta panico
-    sei                         ; ni siquiera el vblank: nada más va a pasar
-lazo:
-    ldx #$2000
-espera_prendido:
-    dex
-    bne espera_prendido
-    lda #$0F
-    sta INIDISP
-    ldx #$2000
-espera_apagado:
-    dex
-    bne espera_apagado
-    lda #$80
-    sta INIDISP
-    bra lazo
-.endproc
-
 ; Arranca un fundido de teletransporte. A trae qué hay que hacer cuando la
 ; pantalla llegue a negro; el mapa, si hace falta, ya está en `fundido_mapa`.
 .proc empezar_fundido
