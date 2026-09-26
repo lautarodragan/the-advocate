@@ -872,7 +872,7 @@ class Recorrido:
                               "%d ticks. %s" % (tope, self.estado()))
             antes = p.cuadro
             if p.byte("msg_abierto") and not p.byte("eleg_activo"):
-                p.tocar("a")
+                p.tocar_ticks("a")
             else:
                 p._un_tick()
             gastado += p.cuadro - antes
@@ -891,7 +891,7 @@ class Recorrido:
             if not p.byte("eleg_activo"):
                 raise Trabado("la elección se cerró mientras se bajaba el "
                               "cursor. %s" % self.estado())
-            p.tocar("down")
+            p.tocar_ticks("down")
         else:
             raise Trabado("el cursor no llegó a la opción %d en %d toques de "
                           "abajo: quedó en %d. %s"
@@ -928,7 +928,7 @@ class Recorrido:
                 raise Trabado("el cursor se movió de %d a %d mientras se "
                               "confirmaba. %s" % (marcada, p.byte("eleg_sel"),
                                                   self.estado()))
-            p.tocar("a")
+            p.tocar_ticks("a")
         else:
             raise Trabado("la elección no contestó a %d toques de A. %s"
                           % (INSISTIR * 2, self.estado()))
