@@ -208,20 +208,30 @@ enviar:
     xba
     pha                         ; el valor
     phx                         ; el registro, dos bytes
+    ; **Primero el par y después el índice**: la prueba lee la bitácora entre
+    ; dos cuadros del emulador, y un cuadro de música pesado sigue corriendo
+    ; cuando el emulador entrega el suyo. Con el índice adelante, un corte
+    ; justo en el medio le mostraba un par nuevo con los bytes de la vuelta
+    ; anterior —pasó el 2026-09-26 con el de batalla, al correrse el código—.
     rep #$20
 .a16
     lda f:MUS_BITACORA_I
     tax
-    inc a
-    inc a
-    and #MUS_BITACORA_LARGO - 1
-    sta f:MUS_BITACORA_I
     sep #$20
 .a8
     lda 1, s                    ; el byte bajo del registro
     sta f:MUS_BITACORA, x
     lda 3, s                    ; el valor
     sta f:MUS_BITACORA + 1, x
+    rep #$20
+.a16
+    txa
+    inc a
+    inc a
+    and #MUS_BITACORA_LARGO - 1
+    sta f:MUS_BITACORA_I
+    sep #$20
+.a8
     plx
     pla
     xba                         ; B = el valor, como vino

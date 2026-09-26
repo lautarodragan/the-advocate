@@ -1277,6 +1277,17 @@ item:
 .a8
     lda BA_MBLA
     jsr ba_nombre
+    lda BA_MREVIVIO
+    beq recupero
+    ; Levantado: `<blanco> has revived!`, el `message_recovery` del estado de
+    ; muerto, pegado al nombre. RM2k no pone el de los HP cuando levanta
+    ; —`IsRevived` en el `ePreHp` de `ProcessBattleActionParamEffects`— sino
+    ; el de los estados que sacó —`ProcessBattleActionStateEffects`—, y de ésos
+    ; el port sólo sabe el de muerto.
+    ldx #BA_TXT_REVIVIO
+    jsr ba_termino
+    rts
+recupero:
     lda #$20
     jsl f:ba_t_glifo
     ldx #BA_TXT_HP

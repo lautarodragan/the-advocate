@@ -481,6 +481,16 @@ def terminos_batalla(db):
     return {n: lcf.to_string(db.terminos[t]) for n, t in BA_TERMINOS}
 
 
+def texto_revivio(db):
+    """Lo que la pelea escribe detrás del nombre de un caído que un ítem
+    levantó: el `message_recovery` del estado 1, el de muerto, que es lo que
+    `BattleMessage::GetStateRecoveryMessage` pega al nombre. En el ABL dice
+    " has revived!"."""
+    from rpgmaker import lcf
+    muerto = lcf.por_id(db.secciones["states"])[1]
+    return lcf.campo(muerto, "message_recovery")
+
+
 def texto_de_orden(termino):
     """Una de las cinco órdenes como la escribe la pantalla.
 

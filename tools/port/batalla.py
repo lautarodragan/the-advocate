@@ -88,22 +88,29 @@ def item_usable_en_batalla(item):
     liblcf, que el volcado a JSON llama 6— se puede usar salvo que esté
     marcada `occasion_field1`, "sólo fuera de batalla".
 
-    Y de esas, este port ofrece **sólo las que recuperan HP y no son
-    `ko_only`**. Lo que queda afuera y por qué:
+    Y de esas, este port ofrece **sólo las que recuperan HP**, con una
+    condición más para las `ko_only`: que levanten, o sea que saquen el estado
+    de muerto, porque una `ko_only` que no levanta no le sirve a nadie —ver
+    `efecto_de_item`—. Lo que queda afuera y por qué:
 
     * las de SP: **los SP ya son estado desde el 2026-09-13**, así que esto
       pasó de imposible a deuda —falta el `recover_sp` del lado del ítem, que
       es la misma cuenta que la de HP—;
-    * las `ko_only` —Phoenix Down, Pungent Elixir, Jumper Cable— porque
-      revivir es sacar el estado de muerto y los estados no existen;
-    * las que suben un parámetro para siempre, por lo mismo.
+    * las que suben un parámetro para siempre: no hay estados de eso.
 
-    Está declarado en workflow/tasks/done/battle.md. Lo que sí entra son las veinte medicinas de
-    HP del juego, de la Potion de 50 a la Miracle Drop, que cura todo.
+    Las `ko_only` —Phoenix Down, Pungent Elixir, Jumper Cable— entran desde el
+    2026-09-26: levantar es sacar el estado de muerto, y la pelea de este port
+    no tiene más estados que ése, que es tener cero HP.
     """
     return (item.type == TIPO_MEDICINA and not item.occasion_field1
-            and not item.ko_only
-            and (item.recover_hp or item.recover_hp_rate))
+            and (item.recover_hp or item.recover_hp_rate)
+            and (levanta(item) or not item.ko_only))
+
+
+def levanta(item):
+    """Si el ítem saca el estado de muerto: el primero de su `state_set`, que
+    es el estado 1. Es el bit `MED_LEVANTA` de `item_medicina`."""
+    return item.state_set[:1] == [True]
 
 
 def curacion(item, blanco):
@@ -118,6 +125,31 @@ def curacion(item, blanco):
     """
     hp = item.recover_hp_rate * blanco.hp_max // 100 + item.recover_hp
     return max(0, min(hp, blanco.hp_max - blanco.hp))
+
+
+def efecto_de_item(item, blanco):
+    """Los HP con los que queda el blanco de una medicina: `vExecute` y lo que
+    `ApplyAll` hace después, rama por rama.
+
+    * en pie y `ko_only`: nada —`SetIsSuccess` sin efecto—;
+    * en pie: la `curacion`;
+    * caído y el ítem no levanta: nada, porque `ApplyHpEffect` no toca a un
+      muerto. Hasta el 2026-09-26 los dos lados lo levantaban sumándole la
+      cura a los cero HP, y ninguna prueba lo veía porque no se podía elegir a
+      un caído;
+    * caído y levanta: el `SetHp(1)` de `RemoveStates` y después el
+      `ChangeHp(hp - 1)` de `ApplyStateEffect`, o sea `max(1, curacion)`. Es lo
+      mismo que `Game_Battler::UseItem` desde el menú.
+
+    Devuelve `(hp, levantado)`.
+    """
+    if blanco.vivo:
+        if item.ko_only:
+            return blanco.hp, False
+        return blanco.hp + curacion(item, blanco), False
+    if not levanta(item):
+        return blanco.hp, False
+    return max(1, curacion(item, blanco)), True
 
 
 # `Item::Type_medicine`, que en liblcf es el 0. El volcado a JSON de este repo
@@ -711,14 +743,18 @@ class Batalla:
                 continue
             if orden == ORDEN_ITEM:
                 # Un ítem no puede fallar ni lo esquiva nadie: no tira azar.
-                # El blanco muerto **no** se reapunta, que es lo contrario de
-                # un ataque: `Game_BattleAlgorithm::Item` cura al que se
-                # eligió, y si se murió en el camino el ítem se gasta igual.
+                # El blanco **no** se reapunta, que es lo contrario de un
+                # ataque: `Game_BattleAlgorithm::Item` va al que se eligió, y
+                # si cambió en el camino el ítem se gasta igual y hace lo que
+                # `efecto_de_item` diga con él como esté ahora. Un levantado
+                # no actúa en este turno —no tenía orden— y en el que viene
+                # vuelve a pedir, que es `vivos` al repartirlas.
                 item, blanco = blanco
-                cura = curacion(item, blanco)
-                blanco.hp = min(blanco.hp_max, blanco.hp + cura)
+                antes = blanco.hp
+                blanco.hp, _levantado = efecto_de_item(item, blanco)
                 self.registro.append((self.turno, quien.nombre, blanco.nombre,
-                                      True, False, -cura, blanco.hp))
+                                      True, False, antes - blanco.hp,
+                                      blanco.hp))
                 continue
             if not blanco.vivo:
                 # `Game_BattleAlgorithm` reapunta a otro del mismo lado cuando
