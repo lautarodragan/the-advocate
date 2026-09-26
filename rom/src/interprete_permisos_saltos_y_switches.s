@@ -49,19 +49,6 @@ acceso_listo:
 
 .endproc
 
-; El salto sin condición que el conversor pone donde estaba el `else`, para que
-; la rama de arriba se saltee la de abajo.
-.proc op_goto
-    rep #$20
-.a16
-    lda [cod_ptr], y
-    tay
-    sep #$20
-.a8
-    jmp correr_codigo::otro
-
-.endproc
-
 .proc op_switch
     rep #$20
 .a16
