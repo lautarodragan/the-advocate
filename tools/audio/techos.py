@@ -57,9 +57,12 @@ MARGEN = 10 ** (-0.5 / 20)
 # las voces a 16 bits y después la multiplica por el volumen general, MVOL/128.
 TOPE = 32767 * sdsp.MASTER >> 7
 
-# Los cuadros desde el encendido hasta que la pantalla de título prende su
-# tema, con aire. Es lo que esperaba el script que midió el paso 5.
-ENCENDIDO = 90
+# Cuántos cuadros antes del fin del arranque —`BOOT_CUADROS`, que se lee de
+# la ROM— se empieza a grabar: la pantalla de título prende su tema después,
+# así que es aire. Eran 90 cuadros fijos desde el encendido, con el arranque
+# en 112, que es lo que esperaba el script que midió el paso 5; desde que el
+# arranque bajó, un número fijo cortaría el principio de cada tema.
+ANTES_DEL_TITULO = 22
 
 # Cuántos cuadros más allá del pico toca la prueba.
 DESPUES_DEL_PICO = 60
@@ -103,15 +106,16 @@ def tocar(sfc, tema, cuadros):
     tema desde que el título lo prende, en snes9x sin MSU-1."""
     import numpy as np
     from emulador import retro
+    simbolos = simbolos_de(sfc)
     with open(sfc, "rb") as archivo:
-        rom = con_el_tema_en_el_titulo(archivo.read(), simbolos_de(sfc), tema)
+        rom = con_el_tema_en_el_titulo(archivo.read(), simbolos, tema)
     with tempfile.TemporaryDirectory() as tmp:
         ruta = os.path.join(tmp, "tema.sfc")
         with open(ruta, "wb") as archivo:
             archivo.write(rom)
         consola = retro.Consola(ruta, msu=False)
         tasa = consola.tasa()
-        consola.correr(ENCENDIDO)
+        consola.correr(simbolos["BOOT_CUADROS"] - ANTES_DEL_TITULO)
         consola.audio = bytearray()
         partes = []
         for _ in range(cuadros):
@@ -169,9 +173,9 @@ def _lufs(x, tasa):
 def medir(directorio, lufs=False):
     """{tema: {recortes, pico, cuadro[, lufs]}}: cada tema entero, una vez."""
     nombres = temas_de(directorio)
-    hechos = _armar_en_memoria(directorio)
-    _largos[directorio] = {i: t["escrituras"][-1][0] + 1
-                           for i, t in enumerate(hechos) if t["escrituras"]}
+    hechos = temas_armados(directorio)
+    _largos[directorio] = {i: t["largo"]
+                           for i, t in enumerate(hechos) if t["largo"]}
     trabajos = [(directorio, i, cuadros_del_tema(directorio, i), lufs)
                 for i, n in enumerate(nombres) if n and i in _largos[directorio]]
     with Pool(int(os.environ.get("PROCESOS", "8"))) as pool:
@@ -179,19 +183,19 @@ def medir(directorio, lufs=False):
     return {nombres[i]: fila for i, fila in filas.items()}
 
 
-def _armar_en_memoria(directorio, **pisar):
-    """Los temas del cartucho, armados acá igual que los armó el conversor:
-    mismos nombres, misma prioridad en el banco. Es de donde salen el largo y
-    la huella de cada uno. `pisar` va a `build_varios`."""
-    with open(os.path.join(directorio, "musicdata.inc")) as archivo:
-        inc = archivo.read()
-    prioridad = []
-    for simbolo in ("TEMA_TITULO", "TEMA_ARRANQUE"):
-        valor = int(re.search(simbolo + r" += \$(\w+)", inc).group(1), 16)
-        if valor != 0xFF:
-            prioridad.append(valor)
-    return snes_music.build_varios(temas_de(directorio),
-                                   prioridad=prioridad, **pisar)[2]
+def temas_armados(directorio):
+    """Los temas del cartucho como los armó el conversor, en el orden de sus
+    índices: el nombre, el largo en cuadros y la huella de cada uno. Los
+    escribe el conversor en `musica.json`, al lado de `musicdata.inc`.
+
+    Hasta el 2026-09-26 se volvían a armar acá con `build_varios`, que daba
+    lo mismo porque el banco dependía sólo de los temas. Desde el
+    presupuesto por paquete depende también de los paquetes de cada mapa y
+    de qué tema puede venir sonando en cada uno, que salen de compilar las
+    páginas: rearmarlo acá sería una segunda manera de contestar lo mismo."""
+    import json
+    with open(os.path.join(directorio, "musica.json")) as archivo:
+        return json.load(archivo)["temas"]
 
 
 def db(pico):
@@ -291,7 +295,7 @@ def main():
         sys.exit("después de cuatro vueltas siguen recortando: %s"
                  % ", ".join(recortan))
     huellas = {t["nombre"]: t["huella"]
-               for t in _armar_en_memoria(release) if t["escrituras"]}
+               for t in temas_armados(release) if t["largo"]}
     # Lo que se reescribe ahora —los picos, las huellas— no cambia los
     # aires, así que el cartucho que se acaba de medir sigue al día: su sello
     # mira sólo los aires de la tabla (ver `cartuchos.huella`).

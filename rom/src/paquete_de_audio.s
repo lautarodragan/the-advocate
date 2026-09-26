@@ -21,7 +21,8 @@ FAR_ARAM_DE = $7E3100           ; una palabra por muestra
 FAR_QUIERE  = $7E3300           ; un byte por muestra: 2 las que no se mueven
 APU_LISTO   = $7E30D0           ; si el driver ya corre
 PAQ_EXTRA   = $7E30D1           ; un tema que va primero, o $FF
-PAQ_CURSOR  = $7E30D2           ; dónde se acomoda la que sigue
+PAQ_COMPACTAR = $7E30D2         ; 1 si el paquete se está acomodando de nuevo
+                                ; desde cero: ver `paquete_cargar_ya`
 PAQ_LARGO   = $7E30D4
 PAQ_DEST    = $7E30D6
 PAQ_S       = $7E30D8           ; la muestra que se acomoda
@@ -304,9 +305,11 @@ listo:
     rts
 .endproc
 
-; Acomoda y sube la muestra A, si no está. En el primer lugar desde
-; PAQ_CURSOR que no pise a ninguna de las que no se mueven; si no entra antes
-; de ARAM_FIN, no sube y no suena.
+; Le busca lugar a la muestra A, si no está: el primer hueco desde ARAM_DATOS
+; que no pise a ninguna de las que ya tienen lugar. Si no entra antes de
+; ARAM_FIN, no sube y no suena. **No la sube**: la anota con 3 en FAR_QUIERE y
+; la sube `subir_colocadas`, cuando ya se sabe que el paquete entra; ver
+; `paquete_cargar_ya`.
 .proc colocar_muestra
 .a8
 .i16
@@ -391,19 +394,58 @@ corrido:
     clc
     adc #2
     sta f:INT_N
-    ; Y se anota, se sube y se pone en el directorio.
+    ; Y se anota dónde va, y que falta subirla.
     lda f:PAQ_S
     and #$00FF
+    tax
+    sep #$20
+.a8
+    lda #3
+    sta f:FAR_QUIERE, x
+    rep #$20
+.a16
+    txa
     asl a
     tax
     lda f:PAQ_A
     sta f:FAR_ARAM_DE, x
-    lda f:PAQ_S
     sep #$20
 .a8
+    rts
+.endproc
+
+; Sube las muestras que `colocar_muestra` anotó con 3, cada una a su lugar, y
+; les escribe la entrada del directorio.
+.proc subir_colocadas
+.a8
+.i16
+    ldx #0
+otra:
+    lda f:FAR_QUIERE, x
+    cmp #3
+    bne sigue
+    phx
+    txa
+    sta f:PAQ_S
+    rep #$20
+.a16
+    txa
+    asl a
+    tax
+    lda f:FAR_ARAM_DE, x
+    sta f:PAQ_A
+    sep #$20
+.a8
+    lda f:PAQ_S
     jsr fila_de_muestra
     jsr subir_muestra
-    jmp escribir_directorio
+    jsr escribir_directorio
+    plx
+sigue:
+    inx
+    cpx #MUESTRAS_N
+    bcc otra
+    rts
 .endproc
 
 ; Las muestras del tema A: X al principio de su lista en `tema_muestras`.
@@ -503,6 +545,7 @@ listo:
 listo_apu:
     lda #0
     sta f:PAQ_INCOMPLETO
+    sta f:PAQ_COMPACTAR
     jsr se_callar
     ldx #0
 limpiar:
@@ -617,14 +660,57 @@ efectos:
 otro_efecto:
     lda f:paquetes, x
     cmp #$FF
-    beq listo
+    beq colocadas
     phx
     jsr colocar_muestra
     plx
     inx
     bra otro_efecto
-listo:
-    rts
+colocadas:
+    ; **Si algo no entró, se acomoda todo de nuevo desde cero**, salvo las
+    ; del tema que suena, y recién después se sube. Las que el paquete quiere
+    ; y ya estaban se quedan donde estaban, que es lo que hace barato un
+    ; cambio de mapa que comparte muestras con el anterior; pero con el
+    ; presupuesto por paquete cada uno llena la ARAM casi entera, y esos
+    ; huecos alcanzaban para dejar afuera muestras de un paquete que entra
+    ; solo: volviendo de una pelea, o de un mapa a otro con la música
+    ; callada. Por eso se decide primero dónde va cada una y se sube al
+    ; final: rehacer la subida entera costaría el doble de cuadros.
+    lda f:PAQ_INCOMPLETO
+    beq subir
+    lda f:PAQ_COMPACTAR
+    bne subir                   ; ya se rehízo: es el tema que suena
+    lda #1
+    sta f:PAQ_COMPACTAR
+    lda #0
+    sta f:PAQ_INCOMPLETO
+    ldx #0
+compactar:
+    lda f:FAR_QUIERE, x
+    cmp #2
+    beq quieta                  ; las del tema que suena no se mueven
+    cmp #0
+    beq quieta                  ; y las que nadie quiere ya se olvidaron
+    lda #1
+    sta f:FAR_QUIERE, x
+    phx
+    rep #$20
+.a16
+    txa
+    asl a
+    tax
+    lda #0
+    sta f:FAR_ARAM_DE, x
+    sep #$20
+.a8
+    plx
+quieta:
+    inx
+    cpx #MUESTRAS_N
+    bcc compactar
+    jmp marcadas
+subir:
+    jmp subir_colocadas
 .endproc
 
 ; X al principio de la lista del paquete de PAQ_MAPA.

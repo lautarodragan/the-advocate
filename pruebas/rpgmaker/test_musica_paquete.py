@@ -102,124 +102,108 @@ def test_entrar_al_juego_devuelve_las_muestras_del_tema_del_mapa(con_musica):
         "muestras %s de las %s que usa" % (faltan, sorted(suyas)))
 
 
-def test_un_tema_pierde_sus_muestras_pero_nunca_su_numero():
-    """Y el del título se las queda antes que un mapa que nadie visite.
+def test_el_presupuesto_de_cada_muestra_es_el_de_su_peor_paquete():
+    """Todos los temas con todas sus muestras, y cada muestra limitada sólo
+    por los paquetes donde está.
 
-    Esta es la otra mitad del mismo defecto, y la única de este archivo que
-    **no** le pregunta a una ROM corriendo: lo que se rompió vive en el
-    conversor, y para verlo desde la consola haría falta un cartucho con los
-    diecinueve temas de la demo, que son cuatro minutos de conversión por caso.
-    Acá se le pide a `build_varios` el mismo reparto con tres temas y el límite
-    de ARAM apretado a mano hasta donde el recorte se dispara.
+    Es la opción A del paso 6 de `workflow/tasks/todo/la-calidad-de-la-musica.md`,
+    y la única prueba de este archivo que **no** le pregunta a una ROM
+    corriendo: se le pide a `build_varios` el reparto con tres temas y la
+    ARAM achicada a mano, para que el paquete de dos de ellos no entre sin
+    recortar y el del tercero sí.
 
-    Lo que se rompió el 2026-09-12, al pasar la demo a 29 mapas: el banco
-    compartido se llenó y el conversor sacó a ocho temas **de la lista entera**,
-    entre ellos el del título —que va último porque agregarlo al final es lo
-    único que no renumera el bytecode—. Con eso `TEMA_TITULO` salía `$FF` y la
-    pantalla de título no intentaba ni arrancar música.
+    Lo que reemplaza: hasta el 2026-09-26 el banco entero tenía que entrar en
+    la ARAM, y los temas que no cabían dejaban de aportar programas —una nota
+    cuyo programa no está en el banco **no llega al stream**—. Así sonaban
+    diecinueve de los treinta y dos del `release`, y de `Gaden` quedaban dos
+    canales de siete. Ahora no se recorta a nadie: todas las notas llegan, y
+    lo que se paga es la tasa de las muestras de los paquetes llenos.
 
-    Y el agravante, que es lo que hace que perder el número no sea lo mismo que
-    perder las muestras: `Fantasia_Of_The_Wind` **tiene pista de MSU-1**. Una
-    pista no gasta ni un byte de ARAM; lo único que necesita es que el tema
-    tenga número. Sin número no hay nada que tocar ni con los archivos al lado.
+    Y la herencia: un paquete tiene que entrar también con el tema que puede
+    venir sonando, **sin sus efectos** —ésos esperan al próximo `PlayBGM`—.
     """
     from audio import snes_music
 
     nombres = ["escape_newyork", "evilrhys", "Fantasia_Of_The_Wind"]
-    titulo = nombres.index("Fantasia_Of_The_Wind")
-
-    # El tope se mide, no se escribe: es lo que ocupa el banco de los dos que
-    # tienen que quedar —el del título primero, por la prioridad—, así que el
-    # recorte se lleva exactamente a uno. Un número fijo acá se desfasaría con
-    # el soundfont y la prueba dejaría de apretar nada.
     leidos = [snes_music.leer_tema(n) for n in nombres]
-    quedan = [leidos[titulo], leidos[0]]
-    tope = snes_music.Banco(
-        set().union(*[t["melodicos"] for t in quedan]),
-        set().union(*[t["golpes"] for t in quedan])).bytes
+    teclas = snes_music.zonas_mas_usadas(leidos)
+    claves = [snes_music.claves_del_tema(t, teclas) for t in leidos]
+    nativo = {k: len(snes_music._muestra(k, snes_music.NATIVA).data)
+              for k in set().union(*claves)}
+    apretados = claves[0] | claves[1]
+    solo_del_tercero = claves[2] - apretados
+    assert solo_del_tercero, (
+        "el tercer tema no tiene muestras propias, así que no hay con qué ver "
+        "que un paquete con lugar no pague por uno lleno")
 
-    viejo = snes_music.ARAM_LIBRE
+    # La ARAM se mide, no se escribe: la mitad de lo que ocuparían enteras
+    # las muestras de los dos primeros, más el directorio. Un número fijo
+    # acá se desfasaría con el soundfont y la prueba dejaría de apretar.
+    libre = sum(nativo[k] for k in apretados) // 2
+    assert libre > sum(nativo[k] for k in claves[2]), (
+        "el tercer tema entero no entra en la ARAM achicada: la prueba no "
+        "distinguiría un paquete con lugar de uno lleno")
+    viejo = snes_music.ARAM_FIN
     try:
-        snes_music.ARAM_LIBRE = tope
-        _driver, _voces, temas, _banco, afuera = snes_music.build_varios(
-            nombres, prioridad=[titulo])
+        snes_music.ARAM_FIN = (snes_music.SAMPLES_ADDR + libre
+                               + 4 * len(nativo) + len(snes_music.SILENCIO))
+        _d, _v, temas, banco = snes_music.build_varios(
+            nombres, paquetes=[("lleno", [0, 1], []), ("holgado", [2], [])],
+            herencia=[("holgado", 0)])
     finally:
-        snes_music.ARAM_LIBRE = viejo
+        snes_music.ARAM_FIN = viejo
 
-    assert [t["nombre"] for t in temas] == nombres, (
-        "un tema se cayó de la lista por no entrar en el banco: sin número no "
-        "hay `PlayBGM` que lo prenda ni pista de MSU-1 que tocar")
-    assert afuera == ["evilrhys"], (
-        "el banco apretado tenía que dejar afuera al de menor prioridad y "
-        "dejó afuera a %s" % (afuera,))
-    assert snes_music.muestras_del_tema(temas[titulo]), (
-        "el tema del título quedó sin una sola muestra aunque tenía la "
-        "prioridad: es la primera pantalla del juego y suena antes que "
-        "cualquier mapa")
+    assert [t["nombre"] for t in temas] == nombres
+    for tema in temas:
+        assert tema["resumen"]["notas"] == 1.0, (
+            "a %s le faltan notas (%.3f): todos los temas aportan sus "
+            "muestras al banco" % (tema["nombre"], tema["resumen"]["notas"]))
+    assert banco.ocupa(apretados) <= banco.libre, (
+        "el paquete de los dos primeros ocupa %d B y hay %d"
+        % (banco.ocupa(apretados), banco.libre))
+    assert banco.ocupa(apretados) < sum(nativo[k] for k in apretados), (
+        "el paquete lleno no recortó nada: la ARAM no se achicó")
+    assert banco.ocupa(claves[0] | claves[2]) <= banco.libre, (
+        "el paquete del tercero no entra con el primero sonando")
+    for k in solo_del_tercero:
+        i = banco.claves.index(k)
+        assert len(banco.voces[i].data) == nativo[k], (
+            "la muestra %s sólo está en el paquete con lugar y aun así se "
+            "recortó (%d de %d B): pagó por el paquete lleno"
+            % (k, len(banco.voces[i].data), nativo[k]))
 
 
-def test_un_tema_que_no_aporta_pierde_notas_y_la_ROM_lo_dice():
-    """Y cuánto pierde tiene que estar dicho, porque es lo que se oye.
+def test_cada_paquete_entra_entero_aunque_la_aram_quede_partida(partida):
+    """Saltos entre los mapas de paquete más lleno, con la música callada
+    antes de cada uno: el paquete de llegada tiene que quedar entero.
 
-    Esto es lo que taro escuchó en la consola el 2026-09-13 y describió como
-    que a la música *"le falta una voz"*: una nota cuyo programa de General MIDI
-    no está en el banco compartido **no llega al stream** —`build_events` la
-    saltea con un `continue`—, así que el canal entero desaparece. De `Gaden`,
-    con siete canales, quedan dos.
-
-    Lo que esta prueba fija no es el número sino que exista y que se mueva: el
-    conversor imprimía "no aportan muestras al banco" y una lista de nombres, o
-    sea la causa sin la consecuencia, y con eso la demo pasó de once a
-    veintiún temas sin que nadie viera el costo.
-
-    Y fija la otra mitad: que `--banco-entero` —el `tope` de `build_varios`— lo
-    devuelva. Es el lever con el que se decide de oído entre los primeros temas
-    perfectos y todos completos pero más chillones.
-
-    **Ojo con medirlo con `perdido`**, que es el otro número del resumen —hasta
-    el 2026-09-26, `coverage`—: ése mide polifonía, sobre las notas que sí
-    tienen muestra, así que no ve lo que el banco se lleva; con él parecía que
-    compartir no costaba nada. Son dos preguntas distintas y por eso van las
-    dos.
+    Sin nada sonando no hay muestras que no se puedan mover, y cada paquete
+    entra solo —lo garantiza el conversor—. Lo que podía dejar algo afuera
+    es que las muestras que el paquete nuevo comparte con el anterior se
+    quedan donde estaban, y con el presupuesto por paquete cada uno llena la
+    ARAM casi entera: los huecos que dejaban alcanzaban para que no entrara
+    una muestra, y pasaba en cinco de estos trece saltos. `paquete_cargar_ya`
+    decide primero dónde va cada una y, si algo no entra, vuelve a acomodar
+    todo desde cero antes de subir nada. Es también lo que pasa al volver de
+    una pelea, que calla la música antes de cargar el paquete del mapa.
     """
-    from audio import snes_music
-
-    nombres = ["escape_newyork", "evilrhys", "Fantasia_Of_The_Wind"]
-    titulo = nombres.index("Fantasia_Of_The_Wind")
-
-    # El mismo tope medido que la prueba de arriba: lo que ocupan los dos que
-    # tienen que quedar, así que el recorte se lleva exactamente a `evilrhys`.
-    leidos = [snes_music.leer_tema(n) for n in nombres]
-    quedan = [leidos[titulo], leidos[0]]
-    tope = snes_music.Banco(
-        set().union(*[t["melodicos"] for t in quedan]),
-        set().union(*[t["golpes"] for t in quedan])).bytes
-
-    _d, _v, apretado, _b, afuera = snes_music.build_varios(
-        nombres, prioridad=[titulo], tope=tope)
-    assert afuera == ["evilrhys"], (
-        "el banco apretado tenía que dejar afuera a evilrhys y dejó a %s"
-        % (afuera,))
-
-    recortado = apretado[nombres.index("evilrhys")]["resumen"]["notas"]
-    assert recortado < 1.0, (
-        "evilrhys no aporta ninguna muestra al banco y sin embargo el resumen "
-        "dice que suenan todas sus notas (%.3f): si esto pasa, el conversor "
-        "imprime un 100%% sobre un tema al que le faltan voces" % recortado)
-    for i, nombre in enumerate(nombres):
-        if nombre != "evilrhys":
-            assert apretado[i]["resumen"]["notas"] == 1.0, (
-                "%s sí aporta al banco, así que tienen que sonar todas sus "
-                "notas" % nombre)
-
-    _d, _v, enteros, _b, afuera = snes_music.build_varios(
-        nombres, prioridad=[titulo], tope=1 << 30)
-    assert not afuera, (
-        "con el tope sacado no tenía que quedar ningún tema sin aportar, y "
-        "quedaron %s" % (afuera,))
-    assert enteros[nombres.index("evilrhys")]["resumen"]["notas"] == 1.0, (
-        "con el tope sacado evilrhys tiene que recuperar todas sus notas, y "
-        "quedó en %.3f" % enteros[nombres.index("evilrhys")]["resumen"]["notas"])
+    una = partida(titulo=EMPEZAR)
+    faltas = []
+    for mapa in (18, 2, 19, 3, 26, 9, 121, 2, 18, 3, 19, 26, 2):
+        if mapa not in una.mapas:
+            continue
+        una.poner_byte("music_apagada", 1)
+        una.ir_al_mapa(mapa, 5, 5, cuadros=60)
+        temas, efectos = una.muestras_del_paquete(una.mapas.index(mapa))
+        quiere = set(efectos)
+        for tema in temas:
+            quiere |= set(una.muestras_del_tema(tema))
+        faltan = sorted(quiere - una.muestras_en_la_aram())
+        if faltan:
+            faltas.append("mapa %d: %s de %d" % (mapa, faltan, len(quiere)))
+    assert not faltas, (
+        "paquetes que llegaron incompletos con la música callada: %s"
+        % "; ".join(faltas))
 
 
 def test_el_paquete_que_no_entro_con_otro_tema_sonando_se_completa(partida):

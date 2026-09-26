@@ -326,6 +326,11 @@ nuevos **no aportan muestras** y suenan con las de otros: `Kfmus5` (la guarida
 de Wick) con el 8% de sus notas, `tsmedit` (el cirujano) con el 53%, y
 `fm2bar_gs` (Stash) con el 83%. Ninguno tiene pista de MSU-1 (`PISTAS_MSU` en
 `tools/audio/snes_music.py`).
+*Desde el 2026-09-26 esto cambió*: con el presupuesto por paquete todos los
+temas aportan todas sus muestras, así que los tres entrarían enteros; lo que
+cuesta un mapa nuevo es la tasa de las muestras que comparte con los paquetes
+más llenos, y lo dice el informe del conversor ("la limita …"). Hay que
+volver a medirlo al meter los 18.
 
 **Páginas paralelas**: uno por mapa como mucho (37, 45, 47, 48, 59); lejos de
 `PARALELO_MAX`.

@@ -12,7 +12,7 @@ la tabla de símbolos que sale de `rom/src/` de verdad, con las direcciones de l
 RAM **y** las constantes del ensamblador:
 
     mapa_actual 90
-    BOOT_CUADROS 112
+    BOOT_CUADROS 40
     FLAG_AUTO 2
 
 Por eso acá no hay ninguna dirección escrita a mano. Si alguien renombra una

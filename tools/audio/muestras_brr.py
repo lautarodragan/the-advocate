@@ -20,8 +20,8 @@ Por eso **no hay un modo por lotes**, que era la otra forma de hacer esto.
 Arrancar el binario cuesta 0,0005 s —0,30 s las 608, medidas sueltas—, así que
 juntar todas las muestras en una sola invocación ahorraría 0,35 s, a cambio de
 un modo más en Gunter. Y encima no se pueden juntar del todo:
-`snes_samples.build_bank` decide el presupuesto de la muestra siguiente mirando
-cuánto ocupó la anterior, así que los trabajos no existen todos juntos en
+el `Banco` de `snes_music` rearma las muestras de un paquete que se pasó
+mirando cuánto ocuparon, así que los trabajos no existen todos juntos en
 ningún momento.
 
 Lo que sí cambió desde aquella medición es contra qué se compara ese 0,35 s: el
@@ -210,22 +210,41 @@ CAMPOS_ENVOLVENTE = ("env_delay_timecents", "env_attack_timecents",
                      "env_key_to_hold", "env_key_to_decay")
 
 
-def envolvente(selector, soundfont):
-    """La envolvente de volumen de la zona que el selector elige, como dict
-    con `CAMPOS_ENVOLVENTE`, o None si el banco no tiene nada ahí.
+def _contrato(selector, soundfont):
+    """Lo que `gunter sf2 --extract --json` dice de la zona que el selector
+    elige, sin extraer el PCM, o None si el banco no tiene nada ahí.
 
     Es una llamada por zona y no se cachea en disco: sin `-o` el binario no
     escribe nada y contesta en menos de un milisegundo.
     """
     clave = (selector, soundfont)
-    if clave not in _envolventes:
+    if clave not in _contratos:
         try:
-            campos = _json(_correr(["sf2", soundfont, "--extract", selector,
-                                    "--json"]))
+            _contratos[clave] = _json(_correr(["sf2", soundfont, "--extract",
+                                               selector, "--json"]))
         except Error as e:
             if "salió con 1" not in str(e):
                 raise
-            campos = None
+            _contratos[clave] = None
+    return _contratos[clave]
+
+
+_contratos = {}
+
+
+def zona(selector, soundfont):
+    """(nombre de la muestra, su nota raíz) de la zona que el selector elige,
+    o None. Es lo que distingue una zona de otra sin extraerla."""
+    campos = _contrato(selector, soundfont)
+    return (campos["name"], campos["root_key"]) if campos else None
+
+
+def envolvente(selector, soundfont):
+    """La envolvente de volumen de la zona que el selector elige, como dict
+    con `CAMPOS_ENVOLVENTE`, o None si el banco no tiene nada ahí."""
+    clave = (selector, soundfont)
+    if clave not in _envolventes:
+        campos = _contrato(selector, soundfont)
         if campos is not None:
             if any(c not in campos for c in CAMPOS_ENVOLVENTE):
                 raise SystemExit("el `gunter` del PATH (%s) no devuelve la "
