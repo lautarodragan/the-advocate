@@ -28,10 +28,11 @@ PAQ_S       = $7E30D8           ; la muestra que se acomoda
 PAQ_X7      = $7E30DA           ; su fila en `muestra_tabla`
 PAQ_A       = $7E30DC           ; dónde se prueba ponerla
 PAQ_MAPA    = $7E30DE           ; el mapa del paquete, en un word desde que
-                                ; el índice de mapa no entra en un byte.
-                                ; $30E0 a $30E7 siguen libres: lo próximo
-                                ; que hay es MSU_HAY en $30E8
+                                ; el índice de mapa no entra en un byte
 INT_N       = $7E30E0           ; cuántos ocupados, en bytes: dos por cada uno
+                                ; $30E2 a $30E6 son de la animación de batalla
+PAQ_INCOMPLETO = $7E30E7        ; 1 si algo del paquete no entró: ver
+                                ; `tema_asegurar`. Lo que sigue es MSU_HAY
 INT_INI     = $7E3400           ; lo ocupado, en orden: dónde empieza
 INT_FIN     = $7E3500           ; y dónde termina
 
@@ -41,6 +42,7 @@ INT_FIN     = $7E3500           ; y dónde termina
 .i16
     lda #0
     sta f:APU_LISTO
+    sta f:PAQ_INCOMPLETO
     lda #$FF
     sta f:PAQ_EXTRA
     ldx #0
@@ -360,6 +362,8 @@ al_final:
 no_entra:
     sep #$20
 .a8
+    lda #1
+    sta f:PAQ_INCOMPLETO        ; que el próximo `PlayBGM` lo complete
     rts                         ; no entra: no suena
 .a16
 aca:
@@ -497,6 +501,8 @@ listo:
     bne listo_apu
     rts                         ; en el reset, antes de que corra el driver
 listo_apu:
+    lda #0
+    sta f:PAQ_INCOMPLETO
     jsr se_callar
     ldx #0
 limpiar:
@@ -722,6 +728,17 @@ corrido:
 ; se suelta todo y se rearma el paquete del mapa con él adelante. Pasa con un
 ; `PlayBGM` de un tema que el mapa no traía —el del título, o uno de un evento
 ; común— y congela la imagen lo que tarde en subir.
+;
+; Y lo mismo si el paquete del mapa **quedó incompleto**, aunque al tema no le
+; falte nada. Pasa al entrar a un mapa con el tema de otro sonando: sus
+; muestras no se mueven —ver `paquete_cargar_ya`— y lo que no entra al lado
+; es lo último del paquete, los efectos. El caso del juego es el paso del
+; mapa 2 al 3, que se hace con el tema del 2 sonando y dejaba afuera algunos
+; efectos del 3 hasta el próximo cambio de mapa, aunque su página prendiera
+; enseguida su propio tema. Un `PlayBGM` arranca el tema de cero y calla lo que sonaba, así que
+; es el primer momento en que esas muestras se pueden soltar: se rearma, y
+; sube sólo lo que faltaba. Si el paquete no entra ni así, el rearmado no
+; sube nada y cuesta menos de un cuadro.
 .proc tema_asegurar
 .a8
 .i16
@@ -731,6 +748,9 @@ corrido:
     lda temp + 1
     cmp #TEMA_TOTAL
     bcs listo
+    lda f:PAQ_INCOMPLETO
+    bne falta                   ; aunque al tema no le falte nada
+    lda temp + 1                ; el tema: `lista_del_tema` lo lee de A
     jsr lista_del_tema
 mirar:
     lda f:tema_muestras, x
