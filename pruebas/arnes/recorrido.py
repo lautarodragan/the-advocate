@@ -831,6 +831,124 @@ class Recorrido:
                       "celdas probadas. %s"
                       % (destino, len(intentos), self.estado()))
 
+    # --- elegir en un `ShowChoice` -----------------------------------------
+    #
+    # Tocar A donde el juego pide A elige siempre la opción de arriba, porque
+    # `Window_Selectable` arranca con el cursor ahí. Para las demás ramas hay
+    # que bajar el cursor, y eso tiene tres trampas, las tres de tiempo:
+    #
+    # * **la ventana no mira el pad mientras se compone**: `eleccion_tick`
+    #   contesta cero mientras `msg_abierto` esté apagado, que son de nueve a
+    #   diecinueve vueltas según el texto. Un toque ahí no pasa;
+    # * **un toque se puede perder** aunque caiga con la ventana lista: la ROM
+    #   lee el pad una vez por vuelta —ver `mirar_a`—;
+    # * **un A de más elige**: la paciencia de `esperar` toca A a ciegas, y si
+    #   uno cae con la elección recién compuesta se lleva la opción de arriba.
+    #
+    # Así que nada se toca sin mirar antes la RAM, y cada toque se comprueba.
+
+    def _eleccion_lista(self):
+        """La elección está en pantalla y mira el pad. Los dos bytes, igual
+        que `abierta` de `pruebas/rpgmaker/test_elegir.py`: `eleg_activo` se
+        prende en `op_choice`, antes de que la ventana termine de componerse."""
+        return bool(self.p.byte("eleg_activo") and self.p.byte("msg_abierto"))
+
+    def marcar(self, opcion, tope=4000):
+        """Espera a que se abra el próximo `ShowChoice` y le deja el cursor en
+        `opcion`, desde cero, **sin confirmar**. Es la mitad de `elegir`, suelta
+        para poder sacarle una foto a la ventana con el cursor puesto.
+
+        Mientras espera cierra los mensajes que haya antes —con A, que es lo
+        que el juego pide ahí— pero **sólo cuando hay un mensaje abierto y la
+        elección no**: el toque que cierra el último mensaje no puede elegir,
+        porque la elección que arranca en esa misma vuelta todavía no está
+        compuesta. Lo demás —rutas, esperas, fundidos— corre sin tocar nada.
+        """
+        p = self.p
+        gastado = 0
+        while not self._eleccion_lista():
+            if gastado >= tope:
+                raise Trabado("esperando un ShowChoice no se abrió ninguno en "
+                              "%d ticks. %s" % (tope, self.estado()))
+            antes = p.cuadro
+            if p.byte("msg_abierto") and not p.byte("eleg_activo"):
+                p.tocar_ticks("a")
+            else:
+                p._un_tick()
+            gastado += p.cuadro - antes
+        n = p.byte("eleg_n")
+        if not 0 <= opcion < n:
+            raise Trabado("la elección tiene %d opciones y se pidió la %d. %s"
+                          % (n, opcion, self.estado()))
+        # Abajo, de a un toque y mirando el cursor entre toque y toque. Un
+        # toque perdido se repite; uno que llegó no se repite nunca, porque la
+        # ventana mira flancos y el cursor ya dice dónde quedó. El tope es
+        # generoso a propósito: con `INSISTIR` toques perdidos por renglón
+        # también llega.
+        for _ in range(n * INSISTIR):
+            if p.byte("eleg_sel") == opcion:
+                break
+            if not p.byte("eleg_activo"):
+                raise Trabado("la elección se cerró mientras se bajaba el "
+                              "cursor. %s" % self.estado())
+            p.tocar_ticks("down")
+        else:
+            raise Trabado("el cursor no llegó a la opción %d en %d toques de "
+                          "abajo: quedó en %d. %s"
+                          % (opcion, n * INSISTIR, p.byte("eleg_sel"),
+                             self.estado()))
+        # Mover el cursor recompone la ventana —ver `eleg_abrir`—, y una foto
+        # sacada a mitad de eso muestra el renglón viejo. `msg_estado` en 1 es
+        # "componiendo". No hace falta para elegir: sólo para mirar.
+        for _ in range(PASO_TOPE):
+            if p.byte("msg_estado") != 1:
+                break
+            p._un_tick()
+        return self
+
+    def confirmar(self):
+        """Toca A sobre la elección abierta hasta que la resuelva, y
+        comprueba que se eligió la opción marcada.
+
+        Resuelta es que la ventana deje de estar lista: al elegir,
+        `eleccion_tick` apaga `eleg_activo` y `msg_abierto` en la misma vuelta.
+        Si la rama empieza con **otra** elección, `eleg_activo` se vuelve a
+        prender enseguida, pero esa no está compuesta todavía, así que no se la
+        confunde con la de antes ni se la contesta de paso.
+        """
+        p = self.p
+        if not self._eleccion_lista():
+            raise Trabado("no hay ninguna elección abierta para confirmar. %s"
+                          % self.estado())
+        marcada = p.byte("eleg_sel")
+        for _ in range(INSISTIR * 2):
+            if not self._eleccion_lista():
+                break
+            if p.byte("eleg_sel") != marcada:
+                raise Trabado("el cursor se movió de %d a %d mientras se "
+                              "confirmaba. %s" % (marcada, p.byte("eleg_sel"),
+                                                  self.estado()))
+            p.tocar_ticks("a")
+        else:
+            raise Trabado("la elección no contestó a %d toques de A. %s"
+                          % (INSISTIR * 2, self.estado()))
+        # Si ya se abrió la elección siguiente, `op_choice` volvió a poner el
+        # cursor en cero y lo que eligió ésta no se puede leer más.
+        if not p.byte("eleg_activo") and p.byte("eleg_sel") != marcada:
+            raise Trabado("se confirmó con el cursor en %d y se eligió la %d. "
+                          "%s" % (marcada, p.byte("eleg_sel"), self.estado()))
+        return self
+
+    def elegir(self, opcion, tope=4000):
+        """Espera el próximo `ShowChoice`, pasando los mensajes de antes, y
+        elige la opción `opcion`, desde cero. Es `marcar` y `confirmar`.
+
+        Después de elegir no sigue: lo que la rama haga se espera con
+        `esperar`, que sí toca A a ciegas, y eso vale mientras la rama no
+        traiga otra elección —si la trae, es otro `elegir`—.
+        """
+        return self.marcar(opcion, tope).confirmar()
+
     # --- guardar en un save point ------------------------------------------
 
     def abrir_el_save_point(self, toques=40):

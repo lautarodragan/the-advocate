@@ -173,6 +173,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 
 * `abl/test_recorrido_golden.py`: el recorrido largo, jugado desde el título
 * `abl/test_recorrido_vipers_golden.py`: el tramo de los Neon Vipers
+* `abl/test_recorrido_vipers_otras_ramas_golden.py`: lo que ese tramo deja
+  afuera —la rama del "No", la reja y el mapa 14—, eligiendo con el cursor
 * `abl/test_escenas_golden.py`: las escenas y cinemáticas
 * `abl/test_recuerdo.py`: el recuerdo de CORE y MANTA
 * `abl/test_un_ano_antes.py`: el cartel de "1 year earlier"
