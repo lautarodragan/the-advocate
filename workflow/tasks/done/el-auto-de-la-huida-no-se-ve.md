@@ -58,3 +58,5 @@ rojo contra el `main.s` de antes del arreglo: las dos filas en cero.
 
 Lo que **no** se corrió: la huida jugada entera, desde el techo. La prueba
 llega al mapa 4 con los switches puestos a mano.
+
+**Confirmado por taro jugando el 2026-09-26: anda perfecto.**

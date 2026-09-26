@@ -392,6 +392,16 @@ declaración de ese momento.
 
 **Lo que taro ya contestó (2026-09-25):**
 
+* **(2026-09-26)** El cierre del 36 ("get out"): **un "fin de demo" con un
+  mensaje de texto**, bien simple, en vez del `Teleport` al 49.
+* **(2026-09-26)** Las transiciones de zoom: **van como fundido**.
+* **(2026-09-26)** AG7 **no puede perder habilidades**, y las armas cobran SP
+  si en el original lo hacen: **fiel al original**.
+* **(2026-09-26)** El tutorial del droide (164): **se conserva**.
+* **(2026-09-26)** El 38 ya entra en la VRAM (`done/el-tilemap-del-fondo-lo-elige-el-reparto.md`): no hace falta partirlo.
+* Pendiente: el soborno del guardia (switch 29) —taro preguntó cómo se juega—,
+  el cartel "REC" del 45 y los mapas 64, 83 y 84.
+
 * **Primero el espacio, después los mapas.** El orden: el tinte (si tiene
   sentido arreglarlo), juntar `release` y `test-main`, y en paralelo mirar por
   qué la música pesa 789 KB y un piloto de fondos de batalla leídos del MSU-1.
