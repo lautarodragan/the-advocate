@@ -541,6 +541,12 @@ p_sigue:
 modo_fin:
     jsr ba_flanco_a
     beq espera3
+    ; La victoria tiene más de una página: "N EXP", y una por cada actor que
+    ; subió de nivel.
+    jsr ba_vic_siguiente
+    beq cerrar
+    jmp recomponer
+cerrar:
     ; Los HP y los SP del grupo vuelven a la partida: desde que hay batallas
     ; son estado de verdad y viajan en la ranura de SRAM.
     lda #0
@@ -575,7 +581,6 @@ guarda:
     inc BA_S0
     bra guarda
 guardados:
-    jsr ba_exp_repartir
     rtl
 
 recomponer:

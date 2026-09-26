@@ -1141,8 +1141,9 @@ ancho_listo:
     rts
 .endproc
 
-; Los dos renglones del mensaje, según `BA_MTIPO`. Todas las palabras salen
-; del LDB —`attacking`, `enemy_damaged`, `victory`...— y se arman como
+; Los dos renglones del mensaje, según `BA_MTIPO`. La victoria no pasa por
+; acá: va en los renglones del grupo, ver `ba_vic_mensaje`. Todas las palabras salen
+; del LDB —`attacking`, `enemy_damaged`, `defeat`...— y se arman como
 ; `game_message_terms.cpp`: el nombre pegado al término, y en el de daño el
 ; número en el medio. Ninguna es nuestra.
 .proc ba_mensaje
@@ -1167,8 +1168,6 @@ ancho_listo:
     beq no_huyo
     cmp #BA_MSG_HUYO
     beq huyo
-    cmp #BA_MSG_VICTORIA
-    beq victoria
     cmp #BA_MSG_ITEM
     beq usa_item
     cmp #BA_MSG_HAB
@@ -1179,9 +1178,6 @@ usa_hab:
     jmp habilidad
 usa_item:
     jmp item
-victoria:
-    ldx #BA_TXT_VICTORIA
-    jmp solo
 huyo:
     ldx #BA_TXT_HUYO
     jmp solo

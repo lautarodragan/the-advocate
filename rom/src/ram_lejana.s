@@ -618,6 +618,25 @@ ANIMB_BUF = $7E7000
 LZ2_TRAMPA_LIT = $7E7800        ; mvn salida, flujo; rtl
 LZ2_BANCO      = $7E7804        ; el banco de la salida
 
+; --- lo que la victoria cuenta -----------------------------------------------
+;
+; $7E7810 a $7E781F, reservado el 2026-09-26: las páginas de "N EXP" y "Level
+; up!" de `batalla_victoria.s`. Como `FAR_BATALLA`, se nombran con dirección
+; de dieciséis bits porque las lee la pelea, con el banco de datos en $7E. Las
+; escribe todas `ba_vic_empezar` al ganar y nadie las lee antes, así que no
+; hace falta ponerlas en nada al arrancar.
+BA_VIC        = $7810
+BA_VIC_ACTOR  = BA_VIC + 0      ; de quién es la página, o $FF la primera
+BA_VIC_ANTES  = BA_VIC + 1      ; el nivel antes de ganar, uno por ranura del
+                                ; grupo; 0 si no tiene experiencia
+BA_VIC_SALTEAR = BA_VIC + 5     ; los renglones de habilidad de páginas
+                                ; anteriores del mismo actor
+BA_VIC_SIG    = BA_VIC + 6      ; los de ésta y las anteriores: lo que
+                                ; saltea la que sigue
+BA_VIC_MAS    = BA_VIC + 7      ; si quedaron habilidades para otra página
+BA_VIC_FIN    = BA_VIC + 8
+.assert BA_VIC_FIN <= $7820, error, "lo de la victoria se sale de su lugar"
+
 ; --- las pistas de MSU-1 que faltaron ----------------------------------------
 ;
 ; $7E7820 a $7E782F, reservado el 2026-09-26: un bit por tema, prendido cuando

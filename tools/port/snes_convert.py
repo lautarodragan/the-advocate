@@ -5039,10 +5039,17 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # eso correría el texto de su columna.
         term_batalla = P.terminos_batalla(db)
         texto_batalla = None
+        victoria = P.renglones_de_la_victoria(term_batalla["victoria"])
+        if len(victoria) > P.BA_VIC_TERMINO_MAX:
+            raise SystemExit("el término de la victoria ocupa %d renglones y "
+                             "la ventana le deja %d: %r"
+                             % (len(victoria), P.BA_VIC_TERMINO_MAX, victoria))
         for nombre, _termino in P.BA_TERMINOS:
             texto = term_batalla[nombre]
             if nombre in ("atacar", "defender", "huir"):
                 texto = P.texto_de_orden(texto)
+            if nombre == "victoria":
+                texto = victoria[0]
             t = texto_nuevo(texto)
             if texto_batalla is None:
                 texto_batalla = t
@@ -5051,6 +5058,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # No es un término sino un dato del estado, así que va aparte y con su
         # propio índice. Ver `ba_mensaje`.
         texto_revivio = texto_nuevo(P.texto_revivio(db))
+        # El segundo renglón de la victoria, vacío si entra en uno: va aparte
+        # para no correr los índices de `BA_TERMINOS`.
+        texto_victoria2 = texto_nuevo((victoria + [""])[1])
         enemigos_rom = sorted({e for numero in tropas
                                if numero in db.troops
                                for e in db.troops[numero].members})
@@ -5074,6 +5084,18 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         texto_hab_desc = {h: texto_nuevo(titulo_mod.texto_de_item(
             db.skills[h].description, P.BA_HAB_DESC_ANCHO))
             for h in habilidades_rom}
+        # Y el nombre **entero** de las que se aprenden al subir de nivel, que
+        # es lo que dice "<habilidad> acquired!" en la victoria: el de la lista
+        # va cortado a su columna, y hay de éstas que la pelea no sabe ofrecer
+        # —Lurk In Shadows, de Arden— y no están en la lista. Ver
+        # `hab_par_aprende_txt`.
+        ensenadas = {h for (a, h) in eventos.HABILIDAD_RANURA
+                     if a in ranuras["actores"] and a in db.actors
+                     and B.nivel_en_que_aprende(db, a, h)
+                     > X.nivel_inicial(db.actors[a])}
+        texto_hab_entero = {
+            h: texto_nuevo(titulo_mod.texto_de_item(db.skills[h].name, 255))
+            for h in sorted(ensenadas)}
         # Los dos renglones que RM2k dice al usarla: `using_message1` va detrás
         # del nombre del que la usa y `using_message2` solo, en el renglón de
         # abajo. `GetSkillFirstStartMessage2k` y su hermana.
@@ -5600,6 +5622,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         bytes_asm("hab_par_nivel", [B.nivel_en_que_aprende(db, a, h)
                                     if a in db.actors else 0
                                     for (a, h), _r in pares], declarar=True)
+        # Y con qué nombre lo cuenta la victoria —"<habilidad> acquired!"—,
+        # o $FFFF si no se aprende subiendo de nivel desde el de arranque.
+        words_asm("hab_par_aprende_txt", [
+            texto_hab_entero[h] if a in ranuras["actores"]
+            and B.nivel_en_que_aprende(db, a, h) > 0 and h in texto_hab_entero
+            else 0xFFFF for (a, h), _r in pares], "$%04X", declarar=True)
         if len(habilidades_rom) > 255:
             raise SystemExit("las habilidades del cartucho son %d y `hab_par_k` "
                              "es de un byte" % len(habilidades_rom))
@@ -5633,6 +5661,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                 raise SystemExit("la tropa %d da %d de experiencia y la ROM "
                                  "la suma en dieciséis bits" % (n, exp))
         words_asm("tropa_exp", exp_tropa, declarar=True)
+        # Lo que la victoria escribe tiene que entrar en su renglón: la ROM lo
+        # arma con un número o un nombre en el medio y no lo parte.
+        P.cobrar_la_victoria(
+            term_batalla, max(exp_tropa, default=0),
+            [db.actors[a].name for a in ranuras["actores"] if a in db.actors],
+            [db.skills[h].name for h in sorted(ensenadas)])
         bytes_asm("tropa_ini", inicios)
         bytes_asm("tropa_n", [len(db.troops[n].members[:B.ENEMIGOS_MAX])
                               for n in usadas])
@@ -5815,6 +5849,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                   ("item_se", "BA_SE_ITEM")):
             handle.write("%-18s= $%04X\n"
                          % (constante, audio.get(nombre, 0xFFFF)))
+        handle.write("BA_TXT_VICTORIA2  = %d\n"
+                     "BA_VIC_TERMINO_N  = %d\n"
+                     % (texto_victoria2, len(victoria)))
         # Los términos, por su lugar en `pantallas.BA_TERMINOS`.
         for k, (nombre, _termino) in enumerate(P.BA_TERMINOS):
             handle.write("BA_TXT_%-11s= BA_TXT_BASE + %d\n"
