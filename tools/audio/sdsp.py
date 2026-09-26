@@ -5,10 +5,8 @@ una leyendo una muestra de la memoria del SPC700 a la velocidad que se le pida,
 con envolvente ADSR y volumen por canal. La altura de la nota sale de la
 velocidad de lectura, así que una sola muestra sirve para todas las notas.
 
-Eso cambia por completo el problema respecto del YM2612. Allá el timbre había
-que construirlo con cuatro operadores y nueve parámetros cada uno, a ciegas.
-Acá el timbre es la muestra, y las muestras salen de un SoundFont de General
-MIDI: las arma snes_samples.py.
+Así que el timbre es la muestra, y las muestras salen de un SoundFont de
+General MIDI: las arma snes_samples.py.
 
 Las envolventes también salen del SoundFont: `envelope` traduce las de cada
 zona a lo que el ADSR y el GAIN del DSP saben hacer.
@@ -164,8 +162,7 @@ def pitch(note, length=CYCLE):
     Despejando sale la cuenta de abajo.
 
     El registro tiene 14 bits, o sea que el paso máximo es 4x: con 32 muestras
-    por ciclo, unos 4 kHz. Arriba de eso se baja la nota de octava, igual que
-    hacía el PSG cuando se le acababa el divisor por abajo.
+    por ciclo, unos 4 kHz. Arriba de eso se baja la nota de octava.
     """
     while True:
         hertz = 440.0 * 2.0 ** ((note - 69) / 12.0)

@@ -8,9 +8,6 @@ paneo (CC10), expresión (CC11) y pitch bend, que se devuelven como
 hace un sintetizador con él. Lo demás —reverb, chorus, modulación, los NRPN
 del AWE32, el aftertouch— se tira: ver "El paso 3" en
 `workflow/tasks/todo/la-calidad-de-la-musica.md` para qué temas lo usan.
-
-Nació para el PSG de la Mega Drive, que no tenía qué hacer con los
-controladores; los lee desde el 2026-09-26, para el S-DSP.
 """
 
 import struct

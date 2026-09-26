@@ -1,20 +1,15 @@
 #!/usr/bin/env python3
 """Convierte un mapa de A Blurred Line a datos que consume el PPU de la SNES.
 
-Comparte con el resto de las herramientas todo lo que no depende del
-chip: el reparto de colores en paletas, la fusión de los menos usados cuando no
-entran, y el reuso de tiles espejados. Esos problemas son los mismos en las dos
-consolas y el código vive allá.
+El reparto de colores en paletas y la fusión de los menos usados cuando no
+entran viven en `asignador.py`, y el reuso de tiles espejados en Voodoo. Lo
+que queda acá es lo que depende del hardware:
 
-Lo que cambia es el hardware, y para mejor:
-
-  * **El color es de 15 bits, cinco por canal**, contra los 9 de la Mega Drive.
-    De los 72 colores del render de Map0007 sobreviven 60; en la Mega Drive
-    quedaban 32.
+  * **El color es de 15 bits, cinco por canal.** De los 72 colores del render
+    de Map0007 sobreviven 60.
   * **El fondo va en modo 3, con 8 bits por pixel.** Ahí cada pixel es un índice
     directo a CGRAM y no hay paleta por tile, así que el problema de repartir
-    los colores en grupos —el que dominaba todo el conversor de la Mega Drive—
-    simplemente no existe. Con 4 bits y 8 paletas, Map0007 perdía 32 de sus 60
+    los colores en grupos simplemente no existe. Con 4 bits y 8 paletas, Map0007 perdía 32 de sus 60
     colores; con 8 bits no pierde ninguno.
 
     Cuesta el doble de VRAM por tile, 64 bytes en vez de 32. Con 92 tiles son
@@ -253,8 +248,7 @@ def repartir_encima(grid, limite):
         # muchas que se le den. El segundo no lo arregla ningún reparto.
         #
         # Los dos los arregla lo mismo: fusionar el color menos usado con su
-        # vecino más cercano y reintentar. Es lo que la Mega Drive ya hacía con
-        # el fondo, y el código vive allá.
+        # vecino más cercano y reintentar.
         grid, groups, merged, _ = asignador.reduce_colors(grid, limite)
     return grid, [sorted(g) for g in groups], merged
 
@@ -1649,8 +1643,8 @@ def build_palette(grid, bg_colors, otras=()):
 
     Con 8 bits por pixel el único límite es cuántas entradas de CGRAM quedan
     libres debajo de la capa de encima. Map0007 usa 60, así que no se fusiona
-    nada; el camino de fusión existe para mapas más cargados y es el mismo de
-    la Mega Drive.
+    nada; el camino de fusión existe para mapas más cargados y es
+    `asignador.reduce_colors`.
 
     `otras` son las grillas de los otros dibujos de la animación del ChipSet.
     Cuentan para la paleta como el dibujo de siempre —el agua del mapa 5 trae

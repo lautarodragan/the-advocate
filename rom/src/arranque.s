@@ -536,8 +536,7 @@ in:
 ; nosotros no lo hayamos pedido.
 ;
 ; Por eso no alcanza con escribir los registros que usamos: hay que escribir
-; todos. Es la misma lección que el registro 23 del VDP en la Mega Drive, donde
-; también andaba en emulador y no en consola.
+; todos.
 .proc ppu_reset
 .a8
 .i16
