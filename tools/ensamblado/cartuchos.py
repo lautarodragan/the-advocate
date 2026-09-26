@@ -14,6 +14,7 @@ enrutador del juego, cuya cinemática no espera a nadie.
 """
 
 import argparse
+import concurrent.futures
 import glob
 import hashlib
 import json
@@ -302,11 +303,20 @@ def main():
             print("%s (%d): %s" % (nombre, len(casos), " ".join(casos)))
         return
     fuentes = huella()
-    for nombre in args.nombres or CARTUCHOS:
-        print("%s: %s" % (nombre, "armado" if armar(nombre, fuentes)
-                          else "al día"))
-        if nombre == RELEASE:
-            pistas()
+    nombres = args.nombres or list(CARTUCHOS)
+    # Los cartuchos y las pistas se arman a la vez, en hilos: cada uno escribe
+    # en su directorio, y lo pesado corre en subprocesos —el conversor,
+    # `ca65`, fluidsynth—. Lo que comparten es el caché en disco, que escribe
+    # aparte y renombra. Lo que se imprime sigue en el orden de siempre.
+    with concurrent.futures.ThreadPoolExecutor(len(nombres) + 1) as hilos:
+        armados = {nombre: hilos.submit(armar, nombre, fuentes)
+                   for nombre in nombres}
+        hechas = hilos.submit(pistas) if RELEASE in nombres else None
+        for nombre in nombres:
+            print("%s: %s" % (nombre, "armado" if armados[nombre].result()
+                              else "al día"))
+            if nombre == RELEASE:
+                print(hechas.result())
 
 
 def pistas():
@@ -317,11 +327,12 @@ def pistas():
     cartucho sino del MIDI, del soundfont y del sintetizador, y `msu.armar` ya
     sabe cuáles están —ver `clave_de_la_pista`—. Que estén al lado no cambia
     la tanda: el arnés le esconde las pistas al core, ver `retro.Consola`.
+    Devuelve la línea que lo cuenta, que `main` imprime en su lugar.
     """
     from audio import msu       # fluidsynth y ffmpeg, sólo para `release`
     hechas, estaban = msu.armar(rom_de(RELEASE), charlar=False)
-    print("%s: pistas de MSU-1, %d hechas y %d que ya estaban"
-          % (RELEASE, hechas, estaban))
+    return ("%s: pistas de MSU-1, %d hechas y %d que ya estaban"
+            % (RELEASE, hechas, estaban))
 
 
 if __name__ == "__main__":
