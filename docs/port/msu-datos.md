@@ -39,8 +39,8 @@ tiene en `fondo_trozo` y `fondo_cgram` otra cosa: el respaldo liviano, que
 
 Lo escribe el conversor —es el que tiene los bytes y decide el orden—, al lado
 de cada `.sfc` y con su nombre: `cartuchos.py` le pasa `--msu`. Lo llevan los
-tres cartuchos, así que la prueba del camino con MSU-1 corre sobre
-`test-main`.
+dos cartuchos, y la prueba del camino con MSU-1 corre sobre `release`, que es
+la ROM que se juega.
 
 ## Cómo sabe la ROM que el `.msu` es el suyo
 

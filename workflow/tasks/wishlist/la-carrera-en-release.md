@@ -6,15 +6,15 @@ type: feature
 
 # Qué
 
-Meter la persecución en auto —los mapas 49 a 54— en `release` y en
-`test-main`, cuando se la encare.
+Meter la persecución en auto —los mapas 49 a 54— en `release`, cuando se la
+encare. (Hasta el 2026-09-25 decía "y en `test-main`": se juntaron.)
 
 # Status
 
 Hasta el 2026-09-24 tenía su propia ROM, `just build carrera` —antes
 `demo-carrera`—, armada aparte. taro la sacó ese día: fue un experimento para
 probar ese caso, y no tiene sentido adelantarse tanto. Se retoma cuando entre
-en `release` y en `test-main`.
+en `release`.
 
 Lo que sigue es el comentario que tenía la receta, que es lo que costó
 averiguar. La receta no se guarda: arrancaba en el mapa 49 plantando al héroe

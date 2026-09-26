@@ -69,7 +69,7 @@ misma razón por la que `capas_convertidas` las puede cachear con una clave que
 no sabe qué cartucho se está armando—. Que eso sea cierto **no se supone**:
 `--check` compara contra lo versionado **todos** los cartuchos que lleven un
 mapa versionado, así que si alguno decidiera distinto, la tanda lo dice con su
-nombre puesto. Medido el 2026-09-21: los tres cartuchos de prueba y `abl`
+nombre puesto. Medido el 2026-09-21: los tres cartuchos de prueba de entonces y `abl`
 emiten los mismos 29 archivos byte por byte.
 
 Y una cosa que el formato deja abierta a propósito. El rumbo es que qué mapas

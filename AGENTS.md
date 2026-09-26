@@ -343,9 +343,11 @@ el 2026-09-13 la misma pregunta se contestó **81**, **1** y **85** bytes en la
 misma tarde, y las tres estaban bien —cada una con un `mapdata.inc` distinto—.
 Así que al decir "quedan N bytes" hay que decir con cuál.
 
-**El que manda es el más apretado, y no suele ser la demo**: los cartuchos
-de prueba llevan más mapas que `abl`, así que medir sólo en ella dice que hay
-lugar cuando no lo hay. Cuál es el más apretado cambia, y dos veces quedó
+**El que manda es el más apretado**: hasta el 2026-09-25 los cartuchos de
+prueba llevaban más mapas que `abl`, y medir sólo en ella decía que había
+lugar cuando no lo había. Desde que `abl` es también el cartucho de la tanda
+lleva todos, pero `test-special` tiene sus flags propios. Cuál es el más
+apretado cambia, y dos veces quedó
 escrito acá y se quedó viejo: **no se escribe, se mide**, y hay que medirlos
 todos: `abl` y los que arma `cartuchos`.
 
