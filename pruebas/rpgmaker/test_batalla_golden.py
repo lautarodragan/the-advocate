@@ -40,15 +40,21 @@ from tanda import (consola_cruda, correr_hardware, golden, partida,
 # La pantalla de batalla: nombre, la página de prueba —la pelea, con su
 # grupo de tres y su inventario—, cuántos cuadros de hardware, los toques que
 # pelean y el cartucho, si no es el de pruebas.
+#
+# La pelea de `batalla` recién toma el control en el cuadro 186: antes van la
+# transición de entrada —dos destellos, el fundido del mapa, la carga del
+# paquete de audio en negro y el mosaico, ver `fundido_de_pelea.s`— y un toque
+# que caiga ahí se pierde. Hasta el 2026-09-26 la tomaba en el 118, y todos
+# los números de acá se corrieron 68 cuadros sin que cambiara ninguna golden.
 BATALLAS = (
-    ("batalla", "batalla", 200, (), None),
-    ("batalla-blanco", "batalla", 200, ("a:130", "down:140", "down:150"),
+    ("batalla", "batalla", 268, (), None),
+    ("batalla-blanco", "batalla", 268, ("a:198", "down:208", "down:218"),
      None),
     # La tropa del droide del mapa 2 sobre su fondo: un enemigo y otro fondo,
     # o sea el otro camino de
     # `escena.py`. Sin esto, el único fondo que la tanda miraría sería el de
     # los Lazer Teeth.
-    ("batalla-droide", "batalla-droide", 200, (), None),
+    ("batalla-droide", "batalla-droide", 268, (), None),
     # Los dos modos de `Use Item`: la lista de ítems donde iban los enemigos, y
     # la misma lista en gris con el cursor eligiendo a quién curárselo. El
     # inventario lo pone la página de prueba —tres Potion y dos Cold Sandwich—.
@@ -57,10 +63,10 @@ BATALLAS = (
     #
     # **Son tres derechas**: el menú tiene el orden del original —Attack /
     # <habilidad> / Defend / Use Item— y `Use Item` es la cuarta.
-    ("batalla-item", "batalla-item", 220,
-     ("right:130", "right:140", "right:150", "a:160"), None),
-    ("batalla-item-blanco", "batalla-item", 250,
-     ("right:130", "right:140", "right:150", "a:160", "a:170", "down:180"),
+    ("batalla-item", "batalla-item", 288,
+     ("right:198", "right:208", "right:218", "a:228"), None),
+    ("batalla-item-blanco", "batalla-item", 318,
+     ("right:198", "right:208", "right:218", "a:228", "a:238", "down:248"),
      None),
     # Los tres modos de las habilidades. Una derecha lleva el cursor a la
     # segunda orden, que **no dice "Tech Skill"** sino el `skill_name` del
@@ -77,11 +83,11 @@ BATALLAS = (
     #                       después de elegirla el cursor se va a los actores,
     #                       con la lista en gris. Es el camino que la de ítems
     #                       ya tenía y que una habilidad de enemigo no toca
-    ("batalla-hab", "batalla", 220, ("right:130", "a:140"), None),
-    ("batalla-hab-dos", "batalla", 240, ("right:130", "a:140", "right:150"),
+    ("batalla-hab", "batalla", 288, ("right:198", "a:208"), None),
+    ("batalla-hab-dos", "batalla", 308, ("right:198", "a:208", "right:218"),
      None),
-    ("batalla-hab-blanco", "batalla", 240,
-     ("right:130", "a:140", "a:150"), None),
+    ("batalla-hab-blanco", "batalla", 308,
+     ("right:198", "a:208", "a:218"), None),
     # Y el menú con los textos del cartucho **pasados del 255**, que es lo que
     # taro jugó: en la ROM que se juega los textos de la batalla arrancaban
     # pasado el 255, así que la tabla de un byte que los nombraba dibujaba
@@ -92,7 +98,7 @@ BATALLAS = (
     # El relleno son textos muertos de largo cero. Verificado en rojo con la
     # tabla de un byte puesta: 754 pixeles, 1,31%, todos en los dos renglones
     # del menú.
-    ("batalla-textos-lejos", "batalla", 200, (), "test-special"),
+    ("batalla-textos-lejos", "batalla", 268, (), "test-special"),
 )
 
 
@@ -163,7 +169,7 @@ def test_encuentro():
     cuenta ticks.
     """
     consola = consola_cruda("grupo-11-12-13", en="test-special")
-    correr_hardware(consola, 200, sosteniendo=("up",))
+    correr_hardware(consola, 268, sosteniendo=("up",))
     golden("encuentro", consola.imagen())
 
 

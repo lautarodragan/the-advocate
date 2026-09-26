@@ -185,12 +185,28 @@ class Pelea:
             self.tocar()
         raise AssertionError("el turno no terminó")
 
-    def cerrar(self, tope=200):
+    def cerrar(self, tope=200, transicion=600):
+        """Toca A hasta que la pelea termina, y espera a que el mapa vuelva
+        a correr.
+
+        Lo segundo es por la transición de salida —`fundido_de_pelea.s`—, que
+        dura de dos a tres segundos entre el mosaico, la carga del paquete del
+        mapa en negro y el fundido de vuelta, **sin que corra ningún tick**:
+        un `Partida.correr(1)` justo después se daba por colgado, porque le da
+        a cada tick sesenta cuadros por lado.
+        """
         for _ in range(tope):
             if not self.abierta():
-                return self
+                break
             self.tocar()
-        raise AssertionError("la batalla no se cerró")
+        else:
+            raise AssertionError("la batalla no se cerró")
+        vueltas = self.una.palabra("vueltas")
+        for _ in range(transicion):
+            if self.una.palabra("vueltas") != vueltas:
+                return self
+            self.una.consola.correr(1)
+        raise AssertionError("el mapa no volvió a correr después de la pelea")
 
 
 def modelo_de(base, actores=GRUPO, tropa=TROPA_DROIDE):

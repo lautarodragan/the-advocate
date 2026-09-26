@@ -15,8 +15,10 @@ Anotado, sin empezar.
 
 # Por qué
 
-El fundido está, y es **la que este juego usa**: `transition_out` y
-`transition_in` valen 0 en su base. Pero `Transition::Type` tiene **38**, y un
+El fundido está, y es **la que este juego usa** para los teletransportes:
+`transition_out` y `transition_in` valen 0 en su base. La pelea pide otras
+dos —el zoom, 16, y el mosaico, 17—: el mosaico es el del PPU, y el zoom va
+como fundido, porque acercar el mapa es modo 7. Ver `rom/src/fundido_de_pelea.s`. Pero `Transition::Type` tiene **38**, y un
 evento puede pedir cualquiera de ellas.
 
 Lo que las hace caras no es la cantidad: las de bloques, persianas y barridos

@@ -217,7 +217,9 @@ def test_escena_de_la_pelea():
         s = una.simbolos
         una.consola.escribir_ram(en_la_wram(s["ENC_SEM"]), [22, 0])
         una.consola.escribir_ram(en_la_wram(s["ENC_PIDE"]), [1])
-        una.consola.correr(120)
+        # Con la transición de entrada adelante: los destellos, el fundido, la
+        # carga en negro y el mosaico. Ver `fundido_de_pelea.s`.
+        una.consola.correr(200)
         assert una.byte("menu_abierto"), "la pelea no se abrió"
         donde = s["BA_UNO"] + (s["BA_GRUPO_MAX"] + 1) * s["BA_BYTES"]
         una.consola.escribir_ram(en_la_wram(donde), [0, 0])
