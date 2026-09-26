@@ -70,3 +70,5 @@ con X apretado desde el encendido —el arnés aprieta después del arranque—.
 * En los menús, la tienda, la pelea y el título: X repite A (elige, compra).
 * A y X juntos: tiene que sentirse como A sola.
 * Soltar X a mitad: no tiene que quedar nada apretado ni salir un toque más.
+
+**Confirmado por taro jugando el 2026-09-26: anda bien.**
