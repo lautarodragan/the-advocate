@@ -21,10 +21,11 @@ cosas de la misma zona, y las tres necesitan `Recorrido.elegir`:
 Los saltos largos son el caso extremo de `salto_avanzar_heroe`, y el salto
 colgado de la semana del 2026-09-22 vivía justo ahí: cada salto se cobra con el
 vigilante de `sin_quedarse_en_el_aire` y con `ruta_salto` en cero al final. El
-de cinco celdas, medido tick por tick el 2026-09-26: once vueltas de 7 u 8 px,
-con la cámara detrás a lo mismo, así que **tampoco** llega a los más de 8 px por
-vuelta que hacen falta para dejar una fila sin redibujar —ver
-`test_recorrido_vipers_golden.py`, "no alcanza, medido"—.
+de cinco celdas, medido tick por tick el 2026-09-26 a la velocidad 4, que es la
+del héroe acá: once vueltas de 7 u 8 px, con la cámara detrás a lo mismo, así
+que **tampoco** llega a los más de 8 px por vuelta que hacen falta para dejar
+una fila sin redibujar —ver `test_recorrido_vipers_golden.py`, "no alcanza,
+medido"—.
 
 **El salto de dos celdas sobre la reja no se da, y está bien.** La ruta es
 `begin_jump`, `through`, abajo, abajo, `end_jump`, y el `through` queda
@@ -45,6 +46,7 @@ lo que cobra esta prueba es la RAM.
 """
 
 from recorrido import A_CADA
+from port import eventos
 
 # Los mismos de `test_recorrido_vipers_golden.py`, que se repiten porque
 # ninguna prueba importa de otra —ver `pruebas/README.md`—.
@@ -99,20 +101,21 @@ EL_MAPA_16 = (16, 53, 7)
 def sin_quedarse_en_el_aire(partida, a_cada=A_CADA):
     """Un vigilante para `esperar(mirando=...)`: el héroe aterriza siempre.
 
-    Es el de `test_recorrido_vipers_golden.py`: tolera lo que dura un salto,
-    contado de los símbolos de la ROM, y una muestra más. Un salto de cinco
-    celdas dura lo mismo que uno en el lugar —el arco es fijo y lo que cambia
-    es cuánto se avanza por vuelta—, así que el tope no depende del salto.
+    Es el de `test_recorrido_vipers_golden.py`: tolera lo que dura un salto a
+    la velocidad que el héroe tenga, contado de los símbolos de la ROM, y una
+    muestra más. Un salto de cinco celdas dura lo mismo que uno en el lugar —el
+    arco es fijo y lo que cambia es cuánto se avanza por vuelta—, así que el
+    tope no depende del salto.
     """
-    dura = -(-partida.simbolos["SALTO_PASO"]
-             // partida.simbolos["SALTO_VELOCIDAD"])
-    tope = -(-dura // a_cada) + 1
     seguidas = [0]
 
     def mirar(p):
         if not p.byte("ruta_salto"):
             seguidas[0] = 0
             return
+        dura = -(-partida.simbolos["SALTO_PASO"]
+                 // eventos.SALTO_POR_VELOCIDAD[p.velocidad_del_heroe() - 1])
+        tope = -(-dura // a_cada) + 1
         seguidas[0] += 1
         assert seguidas[0] <= tope, (
             "el héroe lleva %d muestras de %d ticks en el aire y un salto dura "

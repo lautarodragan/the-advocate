@@ -68,9 +68,9 @@ Lo que se aprendió leyendo los eventos, que la descripción de arriba tenía ma
   la página automática del evento 10 lo apaga al terminar. La prueba espera eso
   —el 36 visto prendido y después apagado— antes de mirar la celda.
 
-**Lo del mapa corrido, medido**: el salto de cinco celdas son once vueltas de 7
-u 8 px, con la cámara detrás a lo mismo. No llega a los más de 8 que hacen
-falta, así que esta candidata queda descartada; la que queda es el `PanScreen`
+**Lo del mapa corrido, medido**: el salto de cinco celdas, a la velocidad 4,
+son once vueltas de 7 u 8 px, con la cámara detrás a lo mismo. No llega a los
+más de 8 que hacen falta, así que esta candidata queda descartada; la que queda es el `PanScreen`
 de los chicos del mapa 8.
 
 **Un aviso para las fotos del tramo del "Yes"**: la partida que arranca por
