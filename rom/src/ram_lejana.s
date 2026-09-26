@@ -526,6 +526,56 @@ FAR_VRAM_MAPA = $7E6B80
 FAR_FLASH_PAL = $7E6900         ; FLASH_MAX * 32
 .assert FLASH_MAX * 32 <= $100, error, "las paletas de destello se salen de su lugar"
 
+; --- el decodificador de la música, en la RAM lejana -------------------------
+;
+; El estado de `music_frame`, que expande el stream por nota a escrituras al
+; DSP: ver "el formato por nota" en tools/audio/snes_music.py. Lo lee y lo
+; escribe `irq_musica`, que cae en cualquier punto del código principal, así
+; que se llega con direccionamiento largo y nunca por la ventana de WMADD.
+;
+; $6C00 a $6FFF es de esto, reservado el 2026-09-26. **No viaja en la
+; partida**: arrancar el tema lo pone en cero.
+;
+;   MUS_SOMBRA   lo último que el stream le escribió a cada registro de voz,
+;                indexado por el número del registro —$v0 a $v7—, y en el $v8,
+;                que es ENVX y no se escribe, el GAIN del release del sonido
+;                de la última nota de la voz
+;   MUS_ESPERA   palabra: cuántos cuadros faltan para leer el stream
+;   MUS_KON      las voces que recibieron nota en el cuadro que se está leyendo
+;   MUS_SONANDO  las que se dispararon al cerrar el anterior: se bajan al abrir
+;   MUS_BASE     palabra: dónde empiezan los sonidos del tema en `musica_sonidos`
+;   MUS_VISTAS   las voces que ya tuvieron una nota desde que arrancó el tema
+;   MUS_GAINS    las que ya recibieron un GAIN
+;   MUS_BIT      el bit de la voz del evento que se está leyendo
+;   MUS_T        palabra de paso
+FAR_MUSICA   = $7E6C00
+MUS_SOMBRA   = FAR_MUSICA
+MUS_ESPERA   = FAR_MUSICA + $80
+MUS_KON      = FAR_MUSICA + $82
+MUS_SONANDO  = FAR_MUSICA + $83
+MUS_BASE     = FAR_MUSICA + $84
+MUS_VISTAS   = FAR_MUSICA + $86
+MUS_GAINS    = FAR_MUSICA + $87
+MUS_BIT      = FAR_MUSICA + $88
+MUS_T        = FAR_MUSICA + $89
+; Los bytes de MUS_ESPERA a MUS_T, que `musica_limpiar` pone en cero.
+MUS_ESTADO_BYTES = $0B
+; La bitácora de lo que el stream le pide al DSP: `dsp_musica` anota cada par
+; (registro, valor) acá si MUS_BITACORA_SI no es cero, y MUS_BITACORA_I es
+; dónde va el que sigue, en bytes. Es la red de `test_musica_escrituras.py`:
+; la prende la prueba, que la lee cuadro a cuadro. Da la vuelta a los 512
+; bytes, 256 escrituras, y un cuadro de música no pasa de cien. Cada cuadro
+; de música empieza con una marca, el registro MUS_BITACORA_MARCA —que el DSP
+; no tiene—: la IRQ de un cuadro pesado termina después de que el emulador
+; entregó el cuadro, y sin la marca sus últimas escrituras parecerían del
+; siguiente.
+MUS_BITACORA_MARCA = $FF
+MUS_BITACORA_SI = FAR_MUSICA + $F0
+MUS_BITACORA_I  = FAR_MUSICA + $F2     ; palabra
+MUS_BITACORA    = FAR_MUSICA + $200
+MUS_BITACORA_LARGO = $200
+.assert MUS_BITACORA + MUS_BITACORA_LARGO <= $7E7000, error, "la bitácora se sale de su lugar"
+
 ; En qué cuadro termina el arranque, contado desde el reset. El arranque
 ; —cargar el mapa, subir el banco al SPC700— tarda lo que tarda, y eso cambiaba
 ; con cada cambio de código o de datos: un bucle más y el lazo principal

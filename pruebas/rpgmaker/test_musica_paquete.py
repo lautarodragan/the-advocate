@@ -152,7 +152,7 @@ def test_un_tema_pierde_sus_muestras_pero_nunca_su_numero():
     assert afuera == ["evilrhys"], (
         "el banco apretado tenía que dejar afuera al de menor prioridad y "
         "dejó afuera a %s" % (afuera,))
-    assert snes_music.muestras_del_stream(temas[titulo]["stream"]), (
+    assert snes_music.muestras_del_tema(temas[titulo]), (
         "el tema del título quedó sin una sola muestra aunque tenía la "
         "prioridad: es la primera pantalla del juego y suena antes que "
         "cualquier mapa")

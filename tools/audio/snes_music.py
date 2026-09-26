@@ -11,8 +11,8 @@ acá las ocho son iguales y buenas, en vez de seis decentes y tres de onda
 cuadrada.
 
 Salen dos cosas: el bloque que se sube a la memoria del SPC700 (el directorio
-de muestras más las muestras en BRR) y el stream de escrituras al DSP, que el
-65816 va escupiendo cuadro a cuadro. Quien lo llama es el conversor, con
+de muestras más las muestras en BRR) y el stream de cada tema, por nota, que el
+65816 expande a escrituras al DSP cuadro a cuadro: ver "el formato por nota". Quien lo llama es el conversor, con
 todos los temas del cartucho a la vez: ver `build_varios`.
 """
 
@@ -502,7 +502,9 @@ class Frame:
     __slots__ = ("release", "setup", "kon", "kof", "control")
 
     def __init__(self):
-        self.release = []       # las notas que se sueltan en este cuadro
+        # Las notas que se sueltan en este cuadro: (voz, GAIN del release).
+        self.release = []
+        # Las que arrancan: una `Preparacion` por nota, en orden.
         self.setup = []
         self.kon = 0
         self.kof = 0
@@ -511,6 +513,24 @@ class Frame:
         # lista porque un fundido trae varios CC7 por cuadro, y escribir los
         # del medio son bytes que el DSP no llega a usar.
         self.control = {}
+
+
+# Lo que una nota le escribe a su voz antes del KON, y el GAIN con que se va
+# a soltar —None en la batería, que no se suelta—. Las siete escrituras salen
+# de `Preparacion.escrituras`, en el orden en que van al DSP.
+class Preparacion(collections.namedtuple(
+        "Preparacion", "voz izquierda derecha altura muestra adsr1 adsr2 gain")):
+    __slots__ = ()
+
+    def escrituras(self):
+        base = self.voz * 0x10
+        return [(base + sdsp.V_VOL_L, self.izquierda),
+                (base + sdsp.V_VOL_R, self.derecha),
+                (base + sdsp.V_PITCH_L, self.altura & 0xFF),
+                (base + sdsp.V_PITCH_H, self.altura >> 8),
+                (base + sdsp.V_SRCN, self.muestra),
+                (base + sdsp.V_ADSR1, self.adsr1),
+                (base + sdsp.V_ADSR2, self.adsr2)]
 
 
 def build_events(notes, voices, programs, drum_voices, banco, controls=()):
@@ -626,41 +646,30 @@ def build_events(notes, voices, programs, drum_voices, banco, controls=()):
         izquierda, derecha = lados(note, drums)
 
         if drums:
-            start.setup += [(base + sdsp.V_VOL_L, izquierda),
-                            (base + sdsp.V_VOL_R, derecha),
-                            (base + sdsp.V_PITCH_L, step & 0xFF),
-                            (base + sdsp.V_PITCH_H, step >> 8),
-                            (base + sdsp.V_SRCN, source),
-                            # Ataque instantáneo y sin decaimiento: el golpe ya
-                            # trae su propia forma, la envolvente sólo lo apaga
-                            # al final para que no siga leyendo memoria.
-                            (base + sdsp.V_ADSR1, 0x8F),
-                            (base + sdsp.V_ADSR2, 0xE0)]
+            # Ataque instantáneo y sin decaimiento: el golpe ya trae su propia
+            # forma, la envolvente sólo lo apaga al final para que no siga
+            # leyendo memoria. No tiene release, así que tampoco GAIN.
+            adsr1, adsr2, gain = 0x8F, 0xE0, None
         else:
             adsr1, adsr2, gain = banco.envolvente(program, note.pitch)
-            start.setup += [(base + sdsp.V_VOL_L, izquierda),
-                            (base + sdsp.V_VOL_R, derecha),
-                            (base + sdsp.V_PITCH_L, step & 0xFF),
-                            (base + sdsp.V_PITCH_H, step >> 8),
-                            (base + sdsp.V_SRCN, source),
-                            (base + sdsp.V_ADSR1, adsr1),
-                            (base + sdsp.V_ADSR2, adsr2)]
+        start.setup.append(Preparacion(voice, izquierda, derecha, step, source,
+                                       adsr1, adsr2, gain))
 
         start.kon |= 1 << voice
         if not drums:
-            sounded.append((note, base, gain))
+            sounded.append((note, voice, gain))
 
     # Los que quedan después de la última nota: el fundido del final de
     # `escape_newyork` es CC7 sobre las notas que ya sonaban.
     controlar(float("inf"))
 
-    for note, base, gain in sounded:
+    for note, voice, gain in sounded:
         # Robada en el mismo cuadro en que termina tampoco se suelta: la
         # ladrona escribe su ADSR1 detrás del release y lo deshace, así que
         # serían seis bytes que no hacen nada.
         if robbed.get(id(note), note.end + 1) <= note.end:
             continue
-        frames[note.end].release.append((base, gain))
+        frames[note.end].release.append((voice, gain))
 
     return frames
 
@@ -685,8 +694,14 @@ def init_writes():
     return writes
 
 
-def pack(frames, length, init):
-    """Los eventos como stream de opcodes, con las esperas entre medio.
+def escrituras(frames, length, init):
+    """Lo que el tema le escribe al DSP: (cuadro, registro, valor), en orden.
+
+    Es **la especificación del stream**, y lo que hasta el 2026-09-26 era el
+    stream mismo —un `OP_DSP registro valor` de tres bytes por escritura—. El
+    formato por nota de `pack` tiene que expandirse a exactamente esto, cuadro
+    por cuadro: lo verifica `build_varios` con cada tema que arma, y en la ROM
+    `pruebas/rpgmaker/test_musica_escrituras.py`.
 
     Los registros del DSP son simples cerrojos: vuelto a escribir el mismo valor
     no pasa nada. Así que se lleva la cuenta de qué tiene cada uno y se saltean
@@ -702,27 +717,21 @@ def pack(frames, length, init):
     El DSP lo mira cada dos milisegundos y arranca las voces cuyo bit esté
     puesto, así que hay que bajarlo a mano o la nota se repite sola.
     """
-    stream = bytearray()
+    salen = []
     state = {}
+    cuadro = 0
 
     def write(register, value):
         value &= 0xFF
         if state.get(register) == value:
             return
         state[register] = value
-        stream.extend([OP_DSP, register & 0xFF, value])
-
-    def wait_until(at, previous):
-        wait = at - previous
-        while wait > 0:
-            step = min(255, wait)
-            stream.extend([OP_WAIT, step])
-            wait -= step
+        salen.append((cuadro, register & 0xFF, value))
 
     for register, value in init:
         write(register, value)
 
-    previous, sounding = 0, 0
+    sounding = 0
     for at in sorted(frames):
         if at > length:
             break
@@ -730,33 +739,376 @@ def pack(frames, length, init):
         if not (frame.release or frame.setup or frame.kon or frame.kof
                 or frame.control):
             continue
-
-        wait_until(at, previous)
-        previous = at
+        cuadro = at
 
         if sounding:                       # bajar el disparo del cuadro anterior
-            stream.extend([OP_DSP, sdsp.KON, 0x00])
+            salen.append((cuadro, sdsp.KON, 0x00))
             sounding = 0
         write(sdsp.KOF, 0x00)
-        for base, gain in frame.release:
-            write(base + sdsp.V_ADSR1, 0x00)    # apagar ADSR: manda GAIN
-            write(base + sdsp.V_GAIN, gain)
-        for register, value in frame.setup:
-            write(register, value)
+        for voice, gain in frame.release:
+            write(voice * 0x10 + sdsp.V_ADSR1, 0x00)    # apagar ADSR: manda GAIN
+            write(voice * 0x10 + sdsp.V_GAIN, gain)
+        for preparacion in frame.setup:
+            for register, value in preparacion.escrituras():
+                write(register, value)
         for register, value in sorted(frame.control.items()):
             write(register, value)
         if frame.kof:
             write(sdsp.KOF, frame.kof)
         if frame.kon:
-            stream.extend([OP_DSP, sdsp.KON, frame.kon])
+            salen.append((cuadro, sdsp.KON, frame.kon))
             sounding = frame.kon
 
     # Al final se apaga todo, si no la última nota queda sonando en el loop.
-    wait_until(length, previous)
-    stream.extend([OP_DSP, sdsp.KON, 0x00])
-    stream.extend([OP_DSP, sdsp.KOF, 0xFF])
-    stream.append(OP_END)
-    return bytes(stream)
+    cuadro = max(cuadro, length)
+    salen.append((cuadro, sdsp.KON, 0x00))
+    salen.append((cuadro, sdsp.KOF, 0xFF))
+    return salen
+
+
+# --- el formato por nota ---------------------------------------------------
+#
+# Hasta el 2026-09-26 el stream eran las escrituras mismas —`OP_DSP registro
+# valor`, tres bytes cada una— y pesaba más de la quinta parte del cartucho.
+# Ahora son eventos, y el 65816 los expande (`music_frame`) a **las mismas
+# escrituras, cuadro por cuadro**: el formato no puede cambiar cómo suena. Lo
+# verifica `build_varios` con cada tema que arma, y en la ROM
+# `pruebas/rpgmaker/test_musica_escrituras.py`.
+#
+# Un tema es su stream y su tabla de *sonidos*: todo lo que una nota le
+# escribe a su voz salvo el volumen —altura, muestra, ADSR— más el GAIN con que
+# se va a soltar. La altura va adentro, y no aparte, porque con eso el
+# instrumento y la tecla son un solo byte: la batería cambia de golpe en casi
+# cada nota, y el piano de ADSR2 con la tecla.
+#
+# Lo que el formato **no** asume, a propósito, es de qué canal es cada voz: el
+# evento dice la voz y el conversor la eligió. Así el reparto por prioridad del
+# paso 5 de `la-calidad-de-la-musica.md` —cualquier voz para cualquier canal—
+# entra sin tocarlo: que una voz cambie de instrumento nota a nota cuesta lo
+# mismo que no cambiarlo, un sonido por nota. Y la rampa antes de reusar una
+# voz que suena es un `OP_RELEASE_GAIN` con el GAIN de la rampa, un cuadro
+# antes de la nota.
+#
+# El caché de registros de `escrituras` lo lleva el 65816 y no el stream: cada
+# evento dice valores y el decodificador saltea el que el registro ya tiene.
+# Tiene una sola trampa, que es que no sabe decir "no sé" —ver `decodificar`—.
+# El KON tampoco va en el stream: lo juntan las notas y lo dispara la espera
+# que cierra el cuadro, que es exactamente la regla de `escrituras`.
+
+VOCES = sdsp.VOICES
+# Los registros de voz que el decodificador lleva en su caché: de VOL_L a GAIN.
+REGISTROS_DE_VOZ = 8
+
+
+# Las familias de ocho opcodes, una por voz: la voz va en los tres bits bajos
+# y la familia en los de arriba, que es como las encuentra el decodificador.
+# Ver el encabezado de `tools/protocol/music.toml`, que no las puede declarar.
+FAMILIAS = ["NOTE", "NOTE_VOL", "NOTE_PAN", "RELEASE", "RELEASE_GAIN",
+            "SET_VOL", "SET_PAN", "SET_PITCH"]
+for _k, _familia in enumerate(FAMILIAS):
+    for _v in range(VOCES):
+        assert globals()["OP_%s_V%d" % (_familia, _v)] == 8 * _k + _v, (
+            "music.toml: OP_%s_V%d no está donde la familia lo espera"
+            % (_familia, _v))
+# Las esperas cortas, de OP_WAIT_1 a OP_WAIT_32: un byte cierra el cuadro y
+# espera. Entran casi todas; las demás van con OP_WAIT, de dieciséis bits.
+ESPERA_CORTA = 32
+for _n in range(1, ESPERA_CORTA + 1):
+    assert globals()["OP_WAIT_%d" % _n] == OP_WAIT_1 + _n - 1, _n
+assert OP_WAIT_1 == 8 * len(FAMILIAS)
+
+
+def _es_de_voz(registro):
+    return registro < 0x80 and registro & 0x0F < REGISTROS_DE_VOZ
+
+
+def escrituras_del_arranque():
+    """Lo que escribe `OP_INIT`: la tabla `dsp_init_*` que `emit` le deja a la
+    ROM —el arranque sin KON ni KOF— y detrás KON y KOF en cero."""
+    return ([(r, v) for r, v in init_writes() if r not in (sdsp.KON, sdsp.KOF)]
+            + [(sdsp.KON, 0x00), (sdsp.KOF, 0x00)])
+
+
+class _Codificador:
+    """Arma el stream por nota de un tema. Lleva el mismo estado que el
+    decodificador del 65816 —el caché de los registros de voz, el sonido de
+    cada voz, el KON juntado del cuadro— y el mismo caché que `escrituras`,
+    así que decide cada evento sabiendo exactamente qué escrituras va a
+    producir."""
+
+    def __init__(self):
+        self.stream = bytearray()
+        self.sonidos, self._sonido = [], {}
+        self.state = {}             # el caché de `escrituras`
+        self.sonido_de = {}         # el sonido de la última nota de cada voz
+
+    def sonido(self, p):
+        # En el orden en que se escriben —PITCH_L, PITCH_H, SRCN, ADSR1,
+        # ADSR2—, que es lo que deja al 65816 recorrerlo con un solo índice.
+        clave = (p.altura & 0xFF, p.altura >> 8, p.muestra, p.adsr1, p.adsr2,
+                 0 if p.gain is None else p.gain)
+        if clave not in self._sonido:
+            self._sonido[clave] = len(self.sonidos)
+            self.sonidos.append(clave)
+        return self._sonido[clave]
+
+    def cambia(self, registro, valor):
+        return self.state.get(registro) != valor & 0xFF
+
+    def escribir(self, registro, valor):
+        self.state[registro] = valor & 0xFF
+
+    def op(self, codigo, *datos):
+        self.stream.extend((codigo,) + datos)
+
+    def global_(self, registro, valor):
+        """Una escritura cacheada fuera de las voces: va cruda si cambia."""
+        assert not _es_de_voz(registro), registro
+        if self.cambia(registro, valor):
+            self.escribir(registro, valor)
+            self.op(OP_DSP, registro, valor & 0xFF)
+
+    def nota(self, p):
+        v, base = p.voz, p.voz * 0x10
+        s = self.sonido(p)
+        if (not self.cambia(base + sdsp.V_VOL_L, p.izquierda)
+                and not self.cambia(base + sdsp.V_VOL_R, p.derecha)):
+            self.op(OP_NOTE_V0 + v, s)
+        elif p.izquierda == p.derecha:
+            self.op(OP_NOTE_VOL_V0 + v, p.izquierda, s)
+        else:
+            self.op(OP_NOTE_PAN_V0 + v, p.izquierda, p.derecha, s)
+        self.sonido_de[v] = s
+        for registro, valor in p.escrituras():
+            self.escribir(registro, valor)
+
+    def release(self, v, gain):
+        base = v * 0x10
+        if (not self.cambia(base + sdsp.V_ADSR1, 0)
+                and not self.cambia(base + sdsp.V_GAIN, gain)):
+            return                      # no escribiría nada
+        if self.sonidos[self.sonido_de[v]][5] == gain:
+            self.op(OP_RELEASE_V0 + v)
+        else:
+            self.op(OP_RELEASE_GAIN_V0 + v, gain)
+        self.escribir(base + sdsp.V_ADSR1, 0)
+        self.escribir(base + sdsp.V_GAIN, gain)
+
+    def controles(self, control):
+        por_voz = collections.defaultdict(dict)
+        for registro, valor in control.items():
+            assert _es_de_voz(registro), (
+                "un controlador escribe $%02X, que no es de una voz" % registro)
+            por_voz[registro >> 4][registro & 0x0F] = valor
+        for v in sorted(por_voz):
+            regs, base = por_voz[v], v * 0x10
+            assert set(regs) in ({0, 1}, {2, 3}, {0, 1, 2, 3}), (
+                "un controlador le escribe a la voz %d los registros %s: el "
+                "formato sólo sabe del par de volumen y el de altura"
+                % (v, sorted(regs)))
+            if 0 in regs and (self.cambia(base, regs[0])
+                              or self.cambia(base + 1, regs[1])):
+                if regs[0] == regs[1]:
+                    self.op(OP_SET_VOL_V0 + v, regs[0])
+                else:
+                    self.op(OP_SET_PAN_V0 + v, regs[0], regs[1])
+                self.escribir(base, regs[0])
+                self.escribir(base + 1, regs[1])
+            if 2 in regs and (self.cambia(base + 2, regs[2])
+                              or self.cambia(base + 3, regs[3])):
+                self.op(OP_SET_PITCH_V0 + v, regs[2], regs[3])
+                self.escribir(base + 2, regs[2])
+                self.escribir(base + 3, regs[3])
+
+    def esperar(self, cuadros):
+        if 1 <= cuadros <= ESPERA_CORTA:
+            self.op(OP_WAIT_1 + cuadros - 1)
+        else:
+            self.op(OP_WAIT, cuadros & 0xFF, cuadros >> 8)
+
+
+def pack(frames, length, init):
+    """El tema en el formato por nota: (stream, sonidos).
+
+    `sonidos` son los que el tema toca, en el orden de sus índices: cada uno
+    es (PITCH_L, PITCH_H, SRCN, ADSR1, ADSR2, GAIN del release), y el stream
+    los nombra por índice. Lo que el stream produce en el DSP es
+    **exactamente** `escrituras(frames, length, init)`, escritura por
+    escritura y cuadro por cuadro; lo verifica `build_varios` con
+    `decodificar`, que es el modelo del decodificador del 65816.
+    """
+    c = _Codificador()
+    init = list(init)
+    if [(r, v & 0xFF) for r, v in init] == escrituras_del_arranque():
+        c.op(OP_INIT)
+        for r, v in init:
+            c.escribir(r, v)
+    else:
+        for r, v in init:
+            c.global_(r, v)
+
+    previo, sonando = 0, 0
+    for at in sorted(frames):
+        if at > length:
+            break
+        frame = frames[at]
+        if not (frame.release or frame.setup or frame.kon or frame.kof
+                or frame.control):
+            continue
+        if at > previo:
+            c.esperar(at - previo)
+            sonando = 0                 # el decodificador baja el KON al abrir
+        previo = at
+        c.global_(sdsp.KOF, 0x00)
+        for voz, gain in frame.release:
+            c.release(voz, gain)
+        kon = 0
+        for p in frame.setup:
+            c.nota(p)
+            kon |= 1 << p.voz
+        c.controles(frame.control)
+        if frame.kof:
+            c.global_(sdsp.KOF, frame.kof)
+        assert kon == frame.kon, "el KON del cuadro no es el de sus notas"
+        sonando = kon
+
+    # El final: `escrituras` baja KON y apaga todo en el cuadro `length`.
+    if length > previo:
+        c.esperar(length - previo)
+        if not sonando:
+            c.op(OP_DSP, sdsp.KON, 0x00)
+    else:
+        c.op(OP_WAIT, 0, 0)             # suelta el KON sin esperar
+        c.op(OP_DSP, sdsp.KON, 0x00)
+    c.op(OP_DSP, sdsp.KOF, 0xFF)
+    c.op(OP_END)
+    if len(c.sonidos) > 256:
+        raise SystemExit("el tema usa %d sonidos y el índice es de un byte"
+                         % len(c.sonidos))
+    return bytes(c.stream), c.sonidos
+
+
+def decodificar(stream, sonidos):
+    """El modelo del decodificador del 65816 —`music_frame`, en
+    rom/src/musica.s—, paso por paso: lo que el stream escribe, (cuadro,
+    registro, valor), hasta su `OP_END`. Tiene que dar lo mismo que
+    `escrituras`.
+
+    Imita también lo que el 65816 **no** sabe. Su caché no tiene "vacío":
+    al arrancar el tema tiene lo que haya quedado, y lo que lo reemplaza es
+    que la primera nota de cada voz escribe todo sin mirarlo, y el primer
+    release escribe su GAIN igual. Si el stream llegara a comparar contra un
+    registro que nadie escribió todavía, en la consola estaría comparando
+    contra basura: acá eso corta.
+    """
+    salen, cache, vistas, con_gain = [], {}, set(), set()
+    gain_de = {}
+    cuadro, kon, sonando, i = 0, 0, 0, 0
+
+    def w(registro, valor):
+        salen.append((cuadro, registro, valor))
+
+    def escribir(registro, valor, forzar=False):
+        if not forzar:
+            assert registro in cache, (
+                "el stream compara el registro $%02X contra el caché antes "
+                "de escribirlo: en la ROM sería basura" % registro)
+            if cache[registro] == valor:
+                return
+        cache[registro] = valor
+        w(registro, valor)
+
+    def leer():
+        nonlocal i
+        i += 1
+        return stream[i - 1]
+
+    while True:
+        op = leer()
+        if op == OP_END:
+            return salen
+        if op == OP_INIT:
+            for r, v in escrituras_del_arranque():
+                w(r, v)
+            continue
+        if op == OP_DSP:
+            r, v = leer(), leer()
+            assert not _es_de_voz(r)
+            w(r, v)
+            continue
+        if op == OP_WAIT or OP_WAIT_1 <= op < OP_WAIT_1 + ESPERA_CORTA:
+            if op == OP_WAIT:
+                n = leer()
+                n |= leer() << 8
+            else:
+                n = op - OP_WAIT_1 + 1
+            if kon:
+                w(sdsp.KON, kon)
+                sonando, kon = kon, 0
+            if n:
+                cuadro += n
+                if sonando:
+                    w(sdsp.KON, 0)
+                    sonando = 0
+            continue
+        assert op < OP_WAIT_1, "opcode $%02X" % op
+        familia, v = FAMILIAS[op >> 3], op & 7
+        base = v * 0x10
+        if familia.startswith("NOTE"):
+            # La primera nota de la voz escribe todo: ver arriba.
+            forzar = v not in vistas
+            vistas.add(v)
+            if familia == "NOTE_VOL":
+                vol = leer()
+                escribir(base + sdsp.V_VOL_L, vol, forzar)
+                escribir(base + sdsp.V_VOL_R, vol, forzar)
+            elif familia == "NOTE_PAN":
+                izq, der = leer(), leer()
+                escribir(base + sdsp.V_VOL_L, izq, forzar)
+                escribir(base + sdsp.V_VOL_R, der, forzar)
+            sonido = sonidos[leer()]
+            for k in range(5):          # de PITCH_L a ADSR2, en ese orden
+                escribir(base + sdsp.V_PITCH_L + k, sonido[k], forzar)
+            gain_de[v] = sonido[5]
+            kon |= 1 << v
+        elif familia.startswith("RELEASE"):
+            gain = leer() if familia == "RELEASE_GAIN" else gain_de[v]
+            escribir(base + sdsp.V_ADSR1, 0)
+            escribir(base + sdsp.V_GAIN, gain, v not in con_gain)
+            con_gain.add(v)
+        elif familia == "SET_VOL":
+            vol = leer()
+            escribir(base + sdsp.V_VOL_L, vol)
+            escribir(base + sdsp.V_VOL_R, vol)
+        elif familia == "SET_PAN":
+            izq, der = leer(), leer()
+            escribir(base + sdsp.V_VOL_L, izq)
+            escribir(base + sdsp.V_VOL_R, der)
+        elif familia == "SET_PITCH":
+            lo, hi = leer(), leer()
+            escribir(base + sdsp.V_PITCH_L, lo)
+            escribir(base + sdsp.V_PITCH_H, hi)
+        else:
+            raise AssertionError("opcode $%02X" % op)
+
+
+def verificar_formato(nombre, stream, sonidos, referencia):
+    """Que el stream de un tema, decodificado, escriba lo mismo que
+    `escrituras`: cada registro, cada valor, en el mismo orden y el mismo
+    cuadro. Se corta el conversor en la primera diferencia."""
+    salen = decodificar(stream, sonidos)
+    if salen == referencia:
+        return
+    for n, (a, b) in enumerate(zip(salen, referencia)):
+        if a != b:
+            break
+    else:
+        n = min(len(salen), len(referencia))
+    raise SystemExit(
+        "el stream de %s no escribe lo que tiene que escribir: la escritura "
+        "%d es %s y tenía que ser %s (cuadro, registro, valor)"
+        % (nombre, n, salen[n] if n < len(salen) else "ninguna",
+           referencia[n] if n < len(referencia) else "ninguna"))
 
 
 def tema_del_mapa(map_id, game_dir=GAME_DIR):
@@ -879,13 +1231,17 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=(),
     for nombre, leido in zip(nombres, leidos):
         if leido is None:
             temas.append({"nombre": nombre, "stream": bytes([OP_END]),
+                          "sonidos": [], "escrituras": [],
                           "segundos": 0.0, "resumen": {}})
             continue
         frames = build_events(leido["notas"], leido["voces"],
                               leido["programas"], leido["percusion"], banco,
                               leido["controles"])
-        stream = pack(frames, leido["largo"], init_writes())
-        temas.append({"nombre": nombre, "stream": stream,
+        referencia = escrituras(frames, leido["largo"], init_writes())
+        stream, sonidos = pack(frames, leido["largo"], init_writes())
+        verificar_formato(nombre, stream, sonidos, referencia)
+        temas.append({"nombre": nombre, "stream": stream, "sonidos": sonidos,
+                      "escrituras": referencia,
                       "segundos": leido["largo"] / TICKS_PER_SECOND,
                       "resumen": resumen_del_tema(leido, banco)})
     # Los efectos, con lo que la música dejó libre. Van detrás del banco en
@@ -967,23 +1323,15 @@ SILENCIO = bytes([0x03]) + bytes(8)
 ARAM_FIN = 0x10000 - 64
 
 
-def muestras_del_stream(stream):
+def muestras_del_tema(tema):
     """Qué muestras usa un tema: los valores que su stream escribe en los
     registros SRCN de las voces. Es lo que la ROM tiene que tener en la ARAM
-    para tocarlo, sacado de lo que el tema hace y no de cómo se armó."""
-    usadas, i = set(), 0
-    while i < len(stream):
-        op = stream[i]
-        if op == OP_END:
-            break
-        if op == OP_WAIT:
-            i += 2
-            continue
-        registro, valor = stream[i + 1], stream[i + 2]
-        if registro & 0x0F == sdsp.V_SRCN:
-            usadas.add(valor)
-        i += 3
-    return sorted(usadas)
+    para tocarlo, sacado de lo que el tema hace —su stream, decodificado— y
+    no de cómo se armó."""
+    return sorted({valor for _cuadro, registro, valor
+                   in decodificar(tema["stream"], tema["sonidos"])
+                   if _es_de_voz(registro)
+                   and registro & 0x0F == sdsp.V_SRCN})
 
 
 def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
@@ -1049,6 +1397,23 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
     # teletransporte, con `lda f:mapa_tema, x`.
     tabla_mapa_tema = "mapa_tema:\n    .byte " + ", ".join(
         "$%02X" % t for t in (list(tema_de_mapa) or [0xFF]))
+    # Y los sonidos de la música —los de `pack`: seis bytes, la altura,
+    # SRCN, ADSR1, ADSR2 y el GAIN del release—, los de todos los temas en una
+    # tabla y dónde empiezan los de cada uno. En un solo banco, porque
+    # `music_frame` llega con `lda f:musica_sonidos, x` y la X de dieciséis
+    # bits no cruza de banco.
+    cuerpo, bases = bytearray(), []
+    for t in temas:
+        bases.append(len(cuerpo))
+        for sonido in t["sonidos"]:
+            cuerpo += bytes(sonido)
+    if len(cuerpo) > 0x8000:
+        raise SystemExit("los sonidos de la música pasan de un banco: %d B"
+                         % len(cuerpo))
+    tabla_mapa_tema += ("\ntema_sonidos:\n    .word "
+                        + ", ".join("%d" % b for b in bases or [0]) + "\n"
+                        + block("musica_sonidos", bytes(cuerpo) or bytes(6),
+                                bloque=True))
     # Y los efectos de sonido: siete bytes por entrada de `Temas.sonidos`.
     # Fuera del banco 0: `op_sound` los lee con `lda f:sonido_tabla, x`.
     filas = list(sonidos) or [(0xFF, 0, 0, 0, 0)]
@@ -1085,7 +1450,7 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
         datos_ = b"".join(o.to_bytes(2, "little") for o in ofs) + bytes(cuerpo)
         return block(label, datos_ or b"\xFF", bloque=True)
     tema_muestras = listas("tema_muestras",
-                           [[muestras_del_stream(st)] for st in streams])
+                           [[muestras_del_tema(t)] for t in temas] or [[[]]])
     paquetes = list(paquetes) or [([], [])]
     bloque_paquetes = listas("paquetes", [[list(t), list(m)]
                                            for t, m in paquetes])

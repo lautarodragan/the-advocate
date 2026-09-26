@@ -15,8 +15,8 @@ reparto suma +74% de stream en el formato de hoy (~436 KB, todo el margen del
 cartucho unido). Así que: batería → notas que se sueltan antes de tiempo →
 envolventes → velocidad y CC → **el formato por nota, diseñado para todo lo de
 arriba y para el reparto** → reparto y rampa → muestras por mapa. **Hechos
-el 0, el 1 y el 2**, el 2026-09-25, **y el 3** el 2026-09-26: ver cada uno
-abajo.
+el 0, el 1 y el 2**, el 2026-09-25, **y el 3 y el 4** el 2026-09-26: ver cada
+uno abajo.
 
 
 taro, el 2026-09-25: *"`escape_newyork` se escucha particularmente mal, y tal
@@ -478,24 +478,178 @@ ninguno—:
 `Tnt07`: vibrato, o sea altura por cuadro o un LFO del driver), el paneo por
 tecla de la batería y la rampa del 5.
 
-## 4. El formato por nota
+## 4. El formato por nota: hecho
 
-`la-musica-pesa-789-kb.md`, idea 1. Va **acá, antes del reparto**, por los
-bytes: el reparto del 5 suma **+74% de stream** en el formato de hoy —las
-voces cambian de instrumento y de volumen seguido, y cada cambio son tres
-bytes por registro—; en el formato por nota es un índice de instrumento de un
-byte cuando cambia. Lo que este estudio le pide al formato, para diseñarlo
-una sola vez:
+Hecho el 2026-09-26 (commits "Música: el stream es por nota, y el 65816 lo
+expande a las mismas escrituras" y "Música: la ROM anota lo que le pide al
+DSP, y una prueba lo compara cuadro a cuadro"). Es la idea 1 de
+`la-musica-pesa-789-kb.md`. El porqué de cada decisión está donde vive: "el
+formato por nota" en `tools/audio/snes_music.py`, el encabezado de
+`tools/protocol/music.toml` y `music_frame` en `rom/src/musica.s`.
 
-* el instrumento como índice a (SRCN, ADSR1, ADSR2), y el ADSR2 puede variar
-  por tecla dentro de un programa;
-* volumen izquierdo y derecho distintos cuando hay paneo (24% de las
-  notas desde el paso 3);
-* el GAIN del release por instrumento, no uno por tema;
-* un evento de "rampa" de un byte para el punto 5, o que el decodificador la
-  deduzca;
-* cambios de volumen de un canal que suena, por CC7/CC11/CC10, y de altura
-  por el bend: la lista exacta, con cuántos hay, está al final del paso 3.
+**La propiedad que lo sostiene: la secuencia de escrituras al DSP, cuadro por
+cuadro, es la de antes.** `escrituras` es lo que era `pack` —la
+especificación—, y el conversor se corta si un tema, decodificado, no la da.
+El SPC700 no cambió.
+
+### El formato
+
+Un tema es su stream y su tabla de **sonidos**: seis bytes —PITCH_L,
+PITCH_H, SRCN, ADSR1, ADSR2 y el GAIN del release— por cada combinación que
+el tema toca. La voz va en los tres bits bajos del opcode.
+
+| Opcodes | Nombre | Argumentos | Qué escribe |
+|---|---|---|---|
+| `$00`-`$07` | `OP_NOTE_V0`-`V7` | sonido | PITCH, SRCN, ADSR1, ADSR2; KON al cerrar el cuadro |
+| `$08`-`$0F` | `OP_NOTE_VOL_Vv` | volumen, sonido | VOL_L = VOL_R, y lo de `OP_NOTE` |
+| `$10`-`$17` | `OP_NOTE_PAN_Vv` | izquierda, derecha, sonido | VOL_L, VOL_R, y lo de `OP_NOTE` |
+| `$18`-`$1F` | `OP_RELEASE_Vv` | — | ADSR1 en 0 y el GAIN del sonido de la voz |
+| `$20`-`$27` | `OP_RELEASE_GAIN_Vv` | GAIN | ADSR1 en 0 y ese GAIN |
+| `$28`-`$2F` | `OP_SET_VOL_Vv` | volumen | VOL_L = VOL_R, a una voz que suena |
+| `$30`-`$37` | `OP_SET_PAN_Vv` | izquierda, derecha | VOL_L y VOL_R, a una voz que suena |
+| `$38`-`$3F` | `OP_SET_PITCH_Vv` | altura (palabra) | PITCH_L y PITCH_H, a una voz que suena |
+| `$40`-`$5F` | `OP_WAIT_1`-`32` | — | cierra el cuadro —dispara el KON— y espera |
+| `$60` | `OP_WAIT` | cuadros (palabra) | lo mismo, más largo; 0 dispara sin esperar |
+| `$61` | `OP_DSP` | registro, valor | una escritura cruda, no de voz: el KOF del final |
+| `$62` | `OP_INIT` | — | el arranque del DSP, la tabla `dsp_init_*`, y KON y KOF en 0 |
+| `$63` | `OP_END` | — | vuelve a empezar |
+
+Todas las escrituras de voz pasan por el caché del 65816 —`MUS_SOMBRA`, ocho
+registros por voz—, así que el stream nunca dice lo que no cambia: una nota
+en la misma voz y con el mismo volumen que la anterior son **dos bytes**, la
+familia con la voz y el sonido, y escribe sólo lo que el caché no tiene —en
+el caso típico la altura y el ADSR1 que el release había apagado—. Antes eran
+tres bytes por escritura: una nota así eran 9 más su parte del KON.
+
+**De qué está hecho**, en los 32 temas del `release`: notas sin volumen 50%,
+esperas 16,5%, notas con volumen 11,7%, releases 7,4%, notas con paneo 5,9%,
+la tabla de sonidos 4,5%, cambios de volumen y altura a una voz que suena 4%.
+`OP_RELEASE_GAIN` no lo usa ningún tema todavía: está para la rampa del 5.
+
+### Bytes
+
+Del `conversor.log` de cada cartucho, que los imprime por tema. Antes: el
+`release` de `fb12bbb`.
+
+| Tema | Antes | Stream | Sonidos | Después | % |
+|---|---:|---:|---:|---:|---:|
+| T_VGFighterMAX_Masako | 148.312 | 40.796 | 540 | 41.336 | 28% |
+| 3D-Galax | 52.615 | 14.548 | 276 | 14.824 | 28% |
+| cd4 | 45.799 | 12.395 | 276 | 12.671 | 28% |
+| evilrhys | 35.882 | 9.648 | 624 | 10.272 | 29% |
+| escape_newyork | 33.235 | 8.539 | 426 | 8.965 | 27% |
+| Lunar_Pyramid | 32.792 | 7.820 | 252 | 8.072 | 25% |
+| Deflector1 | 31.025 | 8.455 | 528 | 8.983 | 29% |
+| TF3_1_awe | 30.054 | 9.538 | 426 | 9.964 | 33% |
+| bubstix | 29.988 | 7.793 | 540 | 8.333 | 28% |
+| hzbreach | 29.626 | 8.645 | 630 | 9.275 | 31% |
+| cd2 | 29.255 | 6.696 | 246 | 6.942 | 24% |
+| C3classi | 27.537 | 7.262 | 438 | 7.700 | 28% |
+| vswar | 26.345 | 8.992 | 192 | 9.184 | 35% |
+| pn28year | 17.781 | 5.364 | 264 | 5.628 | 32% |
+| 11h035 | 17.234 | 4.433 | 360 | 4.793 | 28% |
+| T_ProjectJustice_DiscLoad | 15.819 | 4.230 | 78 | 4.308 | 27% |
+| Fire_Mustang_Intro_And_Level_2_By_Luiz_Vasco | 15.030 | 3.870 | 114 | 3.984 | 27% |
+| Fantasia_Of_The_Wind | 14.545 | 3.672 | 528 | 4.200 | 29% |
+| lufsorr | 12.231 | 3.002 | 330 | 3.332 | 27% |
+| hzstream | 11.999 | 3.434 | 594 | 4.028 | 34% |
+| KSSMKEND | 10.980 | 2.885 | 114 | 2.999 | 27% |
+| wb3shop | 9.046 | 2.469 | 132 | 2.601 | 29% |
+| rshinld | 8.906 | 3.040 | 402 | 3.442 | 39% |
+| Tnt07 | 8.299 | 2.511 | 102 | 2.613 | 31% |
+| wb3mlair | 7.497 | 2.073 | 216 | 2.289 | 31% |
+| dcbest | 6.594 | 2.696 | 30 | 2.726 | 41% |
+| Astpgmarch | 6.527 | 1.835 | 330 | 2.165 | 33% |
+| wb3town | 6.002 | 1.481 | 156 | 1.637 | 27% |
+| Gaden | 5.639 | 1.203 | 114 | 1.317 | 23% |
+| MML2_MotherZone | 2.640 | 509 | 24 | 533 | 20% |
+| golden_axe-turtlevillage2 | 831 | 255 | 12 | 267 | 32% |
+| prepara | 630 | 205 | 132 | 337 | 53% |
+| **Los 32** | 730.695 | 200.294 | 9.426 | 209.720 | 28,7% |
+
+`test-special`, con sus 5 temas: de 221.558 a 61.910 (27,9%).
+
+**El cartucho `release`**, sumando los segmentos del `.dbg`: de 3.649.137 B
+usados a 3.128.883 (87,0% a 74,6%), **520 KB libres más**. El banco 0 paga
+el decodificador: de 1.825 B libres a 1.168 —581 del decodificador y 76 de
+la bitácora—. Si hace falta, el decodificador se puede mudar al banco 1 con
+un puente para `dsp_musica`, como la pelea.
+
+### Ciclos
+
+Medidos con una sonda en una copia descartable de los dos árboles —`fb12bbb`
+y éste—: la línea de barrido al entrar y al salir de `music_tick`, en cada
+cuadro de los 32 temas enteros, en snes9x. La IRQ cae en la línea 112.
+
+* **El peor cuadro de todos baja de 94 líneas a 89.** Es la vuelta al
+  principio del de batalla, con el arranque y las ocho voces escritas
+  enteras; lo que manda ahí es la espera del SPC700 por cada escritura.
+* Lo que sube es el cuadro con muchas notas y pocas escrituras: el de
+  `escape_newyork` con 16 notas y 43 escrituras pasa de 65 líneas a 78.
+* Por regresión sobre los 224.436 cuadros: antes, 1,05 + 1,59 líneas por
+  escritura; ahora, 1,02 + 1,34 por escritura + 1,27 por evento de voz. En
+  total la música ocupa un 7,8% más de líneas. Una nota cuyo sonido ya
+  estaba entero en el caché cuesta del orden de una línea y cuarto.
+
+Lo que queda para ganar, si el 5 lo pide: en `nota_sonido`, copiar el sonido
+y comparar en línea, sin un `jsr` por registro —del orden de 75 ciclos por
+nota, estimado—.
+
+### RAM
+
+Nada en la `BSS`, y la página cero **gana** el byte de `wait_frames`. Lo del
+decodificador va a la RAM lejana, **`$6C00` a `$6FFF`**, que no usaba nadie
+(`ram_lejana.s` tiene el mapa): `MUS_SOMBRA` 128 B —72 usados, ocho registros
+y el GAIN del sonido por voz—, 11 B de estado —la espera de dieciséis bits, el
+KON juntado, el que hay que bajar, dónde empiezan los sonidos del tema, qué
+voces ya tuvieron nota y GAIN—, y la bitácora de la prueba, 4 B y 512 de
+anillo.
+
+### Cómo se verificó
+
+* **En Python, en cada armado**: `build_varios` decodifica el stream de cada
+  tema con `decodificar` —el modelo de `music_frame`, que imita también que
+  el caché del 65816 no sabe decir "no sé"— y se corta si no da `escrituras`.
+  Pasa en los 32 temas del `release` y los 5 de `test-special`. Antes de
+  cambiar el formato, `escrituras` se comparó contra los streams viejos de
+  los dos cartuchos: las mismas escrituras en los mismos cuadros.
+* **En la ROM**: `dsp_musica` anota lo que recibe en `MUS_BITACORA` si la
+  prueba la prende, y `test_musica_escrituras.py` toca temas enteros y lo
+  compara cuadro por cuadro contra el modelo corriendo sobre los bytes del
+  cartucho: el del título, prendido por el código principal al encender;
+  `escape_newyork`, el de batalla, 3D-Galax y TF3_1_awe, prendidos por la
+  IRQ al volver al principio. Y la segunda vuelta de cada uno.
+* **Cómo se la vio fallar**, rompiendo el decodificador y armando cada vez:
+  sin el `iny` entre los dos lados de `OP_NOTE_PAN`, rojo el título y
+  TF3_1_awe en el cuadro 0; sin escribir sin mirar la primera nota de cada
+  voz, rojo tres de cinco en la vuelta al principio; con la espera inicial
+  cargada con B sucio, rojo el título en el cuadro 0.
+* **Ese último fue el único error de verdad**: `music_start_ya` ponía la
+  espera en cero con un `lda #0` de ocho bits y un `sta` de dieciséis. Lo
+  encontró `test_bateria_suena`, porque la batería del título no llegaba: el
+  tema esperaba miles de cuadros. El camino de la IRQ no lo ve —B llega en
+  cero—, y por eso la prueba prende el título por el otro.
+
+### Cómo encaja el 5
+
+* **El reparto por prioridad no toca el formato.** El formato no sabe de
+  canales: cada evento dice la voz, y la elige el conversor. Que una voz pase
+  de un canal a otro es una nota más con su sonido, y cambiar de instrumento
+  cuesta lo mismo que no cambiarlo —el sonido va en cada nota—. Lo que en el
+  formato viejo sumaba +74% de stream acá es, a lo sumo, un byte de volumen
+  más por nota cuando la voz viene de otro canal. No está medido.
+* **La rampa es un `OP_RELEASE_GAIN`** con el GAIN de la rampa, en el cuadro
+  antes de la nota: es lo que hacía el prototipo (`frames[at].release` con
+  `RAMPA`), y en `Frame.release` ya entra tal cual, como (voz, GAIN). Queda
+  del lado del 65816, sin latencia ni temporizador en el driver: la duda de
+  abajo sobre hacerla en el SPC700 se contesta con que no hace falta.
+* **Los ciclos**: el peor cuadro del prototipo pasaba de 56 a 80 escrituras.
+  Con 1,34 líneas por escritura y 1,27 por evento, eso son del orden de 30
+  líneas más en el peor cuadro, que hoy es de 89. Si no entra, lo de
+  `nota_sonido` de arriba.
+* **Lo que el formato no tiene y el 5 no necesita**: la modulación (CC1) y
+  el paneo por tecla de la batería. Si entran, una altura por cuadro es un
+  `OP_SET_PITCH`, y el paneo es el volumen del sonido de cada golpe.
 
 ## 5. El reparto de las ocho voces, y la rampa
 
@@ -506,15 +660,18 @@ acordes, el clavinet y la onda cuadrada, y lo que más ataca los clics:
 seco. **Costos**:
 
 * **Ciclos**: el peor cuadro pasa de 56 a 80 escrituras al DSP, +43% del peor
-  caso de `irq_musica` —del orden de 20 a 29 líneas—.
+  caso de `irq_musica` —del orden de 20 a 29 líneas—. Eso era una
+  estimación: medido en el 4, el peor cuadro de hoy son 89 líneas, y las 24
+  escrituras de más serían del orden de 30.
 * **ARAM**: los canales que hoy no tienen voz suman sus programas al banco:
   7 muestras más entre los 22 temas, que bajan la tasa de las demás —el piano
   de 6 a 4,5 kHz—. Eso lo compensa el 6.
-* **Stream**: ver el 4.
+* **Stream**: ver el 4, "Cómo encaja el 5".
 
 La rampa se puede hacer también del lado del SPC700 —que el driver baje las
 voces antes de cada `KON`—, pero le agrega un cuadro de latencia o un temporizador
-al driver; conviene decidirlo con el formato.
+al driver. Con el formato por nota no hace falta: es un `OP_RELEASE_GAIN` del
+lado del 65816 (ver el 4).
 
 ## 6. Las muestras: presupuesto por paquete y zonas
 

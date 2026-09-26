@@ -15,9 +15,9 @@ La consola de las pruebas no le deja ver al core las pistas de MSU-1 —ver
 mismo `music_start` que usa un `PlayBGM`.
 """
 
-import os
-
 import pytest
+
+from consola import indice_del_tema
 
 # Los Rat Tracks: el 21 y el 26 traen `KSSMKEND`, y el 23 —hijo del 21— es un
 # `music_type` 1, o sea que entrar ahí no cambia lo que suena.
@@ -30,24 +30,6 @@ AL_23 = (23, 11, 12)            # y el del 21 al 23
 # vaya más adelante de lo que llegaría si se reiniciara en el cuadro negro del
 # fundido siguiente, que es a mitad de sus noventa cuadros.
 QUEDARSE = 300
-
-
-def indice_del_tema(una, nombre):
-    """El índice del tema en el cartucho, leído de la cabecera del
-    `musicdata.inc` que se armó con él: `; Temas: a, b, …`, en el orden de
-    `Temas`."""
-    inc = os.path.join(os.path.dirname(una.sfc), "musicdata.inc")
-    with open(inc) as archivo:
-        for linea in archivo:
-            if linea.startswith("; Temas: "):
-                nombres = linea[len("; Temas: "):].strip().split(", ")
-                break
-        else:
-            raise AssertionError("no encontré la lista de temas en %s" % inc)
-    assert nombre in nombres, (
-        "el cartucho no lleva %s: el conversor no le pidió el tema al mapa"
-        % nombre)
-    return nombres.index(nombre)
 
 
 def puntero_del_stream(una):

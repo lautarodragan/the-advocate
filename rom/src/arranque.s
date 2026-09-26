@@ -236,6 +236,7 @@ grupo_listo:
     jsr actor_graf_limpiar
     jsr clima_limpiar
     jsr se_limpiar
+    jsr musica_limpiar
     jsr giro_limpiar
     jsr aram_limpiar
     jsr animacion_limpiar

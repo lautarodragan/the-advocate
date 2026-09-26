@@ -852,7 +852,7 @@ class Partida:
         cartucho**.
 
         Es la misma tabla que mira `tema_asegurar`, y se lee de la ROM en vez
-        de recalcularla con `snes_music.muestras_del_stream`: recalcularla
+        de recalcularla con `snes_music.muestras_del_tema`: recalcularla
         sería una segunda manera de contestar la pregunta, y las dos se pueden
         equivocar igual. Un índice de desplazamientos de dos bytes por tema
         —`TEMA_TOTAL` de ellos— y detrás una lista por tema cerrada con $FF.
@@ -874,6 +874,31 @@ class Partida:
             "el tema %d dice no usar ninguna muestra: o la tabla se leyó mal "
             "o la ROM no lleva música" % indice)
         return muestras
+
+    def stream_del_tema(self, indice):
+        """(dirección del stream, sus sonidos) del tema, leídos **del
+        cartucho** con las mismas tablas que usa `music_start_ya`: `tema_lo`,
+        `tema_hi` y `tema_bk`, y `tema_sonidos` dentro de `musica_sonidos`."""
+        s = self.simbolos
+        with open(self.sfc, "rb") as archivo:
+            rom = archivo.read()
+        lo, hi, bk = (rom[en_la_rom(s[t] + indice)]
+                      for t in ("tema_lo", "tema_hi", "tema_bk"))
+        base = en_la_rom(s["tema_sonidos"] + 2 * indice)
+        desde = en_la_rom(s["musica_sonidos"]) + (rom[base] | rom[base + 1] << 8)
+        sonidos = [tuple(rom[desde + 6 * i:desde + 6 * i + 6])
+                   for i in range(256)]
+        return lo | hi << 8 | bk << 16, sonidos
+
+    def escrituras_del_tema(self, indice):
+        """Lo que el stream del tema le escribe al DSP, (cuadro, registro,
+        valor), una vuelta: sus bytes en el cartucho, decodificados con
+        `snes_music.decodificar`, que es el modelo de `music_frame`."""
+        from audio import snes_music
+        direccion, sonidos = self.stream_del_tema(indice)
+        with open(self.sfc, "rb") as archivo:
+            rom = archivo.read()
+        return snes_music.decodificar(DelCartucho(rom, direccion), sonidos)
 
     def acceso(self):
         """El byte de permisos: bit 0 guardar prohibido, bit 1 el menú
@@ -958,6 +983,37 @@ def en_la_wram(direccion):
     símbolo se enmascara en vez de suponerse.
     """
     return direccion & 0x1FFFF
+
+
+def indice_del_tema(una, nombre):
+    """El índice del tema en el cartucho, leído de la cabecera del
+    `musicdata.inc` que se armó con él: `; Temas: a, b, …`, en el orden de
+    `Temas`."""
+    inc = os.path.join(os.path.dirname(una.sfc), "musicdata.inc")
+    with open(inc) as archivo:
+        for linea in archivo:
+            if linea.startswith("; Temas: "):
+                nombres = linea[len("; Temas: "):].strip().split(", ")
+                break
+        else:
+            raise AssertionError("no encontré la lista de temas en %s" % inc)
+    assert nombre in nombres, (
+        "el cartucho no lleva %s: el conversor no le pidió el tema al mapa"
+        % nombre)
+    return nombres.index(nombre)
+
+
+class DelCartucho:
+    """Los bytes del cartucho desde `direccion`, como una secuencia. En LoROM
+    el byte que sigue a $xxFFFF está en $(xx+1)8000, que en el archivo es el
+    siguiente, así que alcanza con el desplazamiento: es el salto de banco de
+    `advance` en rom/src/musica.s, visto desde el archivo."""
+
+    def __init__(self, rom, direccion):
+        self.rom, self.base = rom, en_la_rom(direccion)
+
+    def __getitem__(self, i):
+        return self.rom[self.base + i]
 
 
 def en_la_rom(direccion):

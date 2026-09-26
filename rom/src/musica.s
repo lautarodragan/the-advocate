@@ -1,10 +1,12 @@
 .segment "CODE"
 
 ; --- música ----------------------------------------------------------------
-; El stream son opcodes: escribir un registro del DSP, esperar cuadros, o fin.
-; Los tres los declara `tools/protocol/music.toml` y el equate sale generado: hasta
-; el 2026-09-15 estaban escritos a mano acá **y** en tools/audio/snes_music.py, que
-; es el que escribe el stream, sin nada que atara las dos copias.
+; El stream es por nota: notas, releases, cambios de volumen o de altura de una
+; voz que suena, y esperas; `music_frame` lo expande a escrituras al DSP. Los
+; opcodes los declara `tools/protocol/music.toml` y el equate sale generado:
+; hasta el 2026-09-15 estaban escritos a mano acá **y** en
+; tools/audio/snes_music.py, que es el que escribe el stream, sin nada que atara
+; las dos copias.
 
 ; Un cuadro de música por cuadro de video, más uno extra cada cinco si la
 ; consola es PAL: seis cada cinco son exactamente 60 por cada 50.
@@ -154,7 +156,26 @@ sin_pista:
     sta music + 1
     lda tema_bk, x
     sta music + 2
-    stz wait_frames
+    ; El decodificador de cero: sin espera, sin disparos pendientes, y con el
+    ; caché sin nada que valga —la primera nota de cada voz lo reescribe—.
+    ; Pasa también al volver al principio del tema, y es lo que hace que la
+    ; segunda vuelta escriba lo mismo que la primera.
+    lda #0
+    sta f:MUS_KON
+    sta f:MUS_SONANDO
+    sta f:MUS_VISTAS
+    sta f:MUS_GAINS
+    rep #$20
+.a16
+    lda #0                      ; de nuevo: el `lda #0` de ocho bits no
+    sta f:MUS_ESPERA            ; limpió B, y la espera es de dieciséis
+    lda tema_actual
+    asl a
+    tax
+    lda f:tema_sonidos, x
+    sta f:MUS_BASE
+    sep #$20
+.a8
     stz music_apagada
     ; Y se cancela el fundido que hubiera: el stream vuelve a escribir el
     ; volumen general al arrancar, así que seguir bajándolo apagaría el tema
@@ -318,8 +339,51 @@ suena:
     jmp music_start
 .endproc
 
-; Un cuadro de música. El stream se recorre hasta toparse con una espera, y al
-; llegar al final vuelve a empezar.
+; Avanza el puntero de música un byte, devolviendo en A lo que ya se leyó.
+;
+; En LoROM cada banco expone sólo su mitad alta, $8000-$FFFF, así que el byte
+; que sigue a $00FFFF no es $010000 sino $018000. Un incremento común de 24 bits
+; caería en la RAM del banco 1 y leería basura. Con el tema entero más las
+; muestras pasando los 64 KB, esto no es teórico: se cruza sí o sí.
+.proc advance
+.a8
+.i16
+; El acumulador trae el byte que el llamador acaba de leer, así que hay que
+; devolverlo intacto: por eso el pha/pla en la rama del salto de banco.
+    inc music
+    bne done
+alto:                           ; donde sigue `LEER` cuando el byte bajo dio la vuelta
+    inc music + 1
+    bne done                    ; si la parte alta no dio la vuelta, listo
+    pha
+    lda #$80                    ; dio la vuelta: al banco siguiente, en $8000
+    sta music + 1
+    pla
+    inc music + 2
+done:
+    rts
+.endproc
+
+; `lda [music]` y `jsr advance`, sin el `jsr` en el caso de siempre: es lo que
+; más se repite por evento, y el byte bajo del puntero da la vuelta una vez
+; cada 256.
+.macro LEER
+    .local listo
+    lda [music]
+    inc music
+    bne listo
+    jsr advance::alto
+listo:
+.endmacro
+
+; Un cuadro de música. El stream es por nota —ver "el formato por nota" en
+; tools/audio/snes_music.py y el encabezado de tools/protocol/music.toml— y
+; acá se expande a las escrituras al DSP que manda `dsp_musica`: exactamente
+; las de `escrituras`, cuadro por cuadro, y lo cobra
+; pruebas/rpgmaker/test_musica_escrituras.py. Se lee hasta toparse con una
+; espera, que cierra el cuadro: dispara las voces que recibieron nota, y el
+; cuadro siguiente abre bajando ese disparo. Al llegar al final vuelve a
+; empezar.
 ;
 ; Volver a empezar tiene una trampa: un stream **vacío** es un OP_END solo, así
 ; que reiniciar lleva a leer OP_END otra vez y el lazo no sale nunca. La ROM se
@@ -335,22 +399,55 @@ suena:
 .a8
 .i16
     stz reinicio
-    lda wait_frames
-    beq run
-    dec wait_frames
+    lda f:MUS_BITACORA_SI
+    beq sin_marca
+    jsr bitacora_cuadro
+sin_marca:
+    rep #$20
+.a16
+    lda f:MUS_ESPERA
+    beq abrir
+    dec a
+    sta f:MUS_ESPERA
+    sep #$20
+.a8
     rts
 
-run:
-    lda [music]
-    jsr advance
+abrir:
+.a16
+    sep #$20
+.a8
+    lda f:MUS_SONANDO           ; bajar el disparo del cuadro anterior
+    beq leer
+    lda #0
+    sta f:MUS_SONANDO
+    ldx #SE_KON
+    jsr dsp_musica
+
+leer:
+    LEER
+    cmp #OP_WAIT_1
+    bcs no_es_de_voz
+    jmp de_voz
+no_es_de_voz:
+    cmp #OP_WAIT
+    bcc espera_corta
+    beq espera_larga
+    cmp #OP_DSP
+    beq cruda
+    cmp #OP_INIT
+    bne no_init
+    jmp arranque
+no_init:
     cmp #OP_END
-    bne check_wait
+    bne mudo                    ; un opcode que no existe: callar antes que
+                                ; escribirle cualquier cosa al DSP
     lda reinicio
     bne mudo
     inc reinicio
     lda tema_actual             ; se terminó: el mismo, de nuevo desde arriba
     jsr music_start_ya          ; adentro de la IRQ: sin `sei` y sin paquete
-    bra run
+    bra leer
 mudo:
     ; Un stream vacío: nada que tocar, ni en este cuadro ni en los que vienen.
     ; Y hay que decirlo con la bandera, porque `advance` dejó el puntero **un
@@ -365,20 +462,9 @@ mudo:
     sta music_apagada
     rts
 
-check_wait:
-    cmp #OP_WAIT
-    bne write_dsp
+cruda:
+    ; Un registro que no es de una voz, así que no pasa por el caché.
     lda [music]
-    jsr advance
-    sta wait_frames
-    beq run
-    dec wait_frames
-    rts
-
-write_dsp:
-    ; El registro y el valor, y los manda `dsp_musica`, que es la que sabe
-    ; que la voz del efecto de sonido puede no ser de la música ahora.
-    lda [music]                 ; registro del DSP
     jsr advance
     rep #$20
 .a16
@@ -386,34 +472,334 @@ write_dsp:
     tax
     sep #$20
 .a8
-    lda [music]                 ; valor
+    lda [music]
     jsr advance
     jsr dsp_musica
-    jmp run
+    bra leer
+
+espera_corta:
+    sec
+    sbc #OP_WAIT_1 - 1          ; de 1 a ESPERA_CORTA
+    rep #$20
+.a16
+    and #$00FF
+    bra cerrar
+espera_larga:
+.a8
+    lda [music]
+    jsr advance
+    xba
+    lda [music]
+    jsr advance
+    xba                         ; A de dieciséis: los dos bytes, bajo primero
+    rep #$20
+.a16
+cerrar:
+    ; Se cierra el cuadro: las voces que recibieron nota se disparan juntas.
+    pha
+    sep #$20
+.a8
+    lda f:MUS_KON
+    beq sin_kon
+    sta f:MUS_SONANDO
+    ldx #SE_KON
+    jsr dsp_musica
+    lda #0
+    sta f:MUS_KON
+sin_kon:
+    rep #$20
+.a16
+    ; El `pla` deja Z del valor que saca, y es a propósito: una espera de
+    ; cero cuadros dispara y sigue leyendo en el mismo, sin abrir otro.
+    pla
+    beq sigue
+    dec a
+    sta f:MUS_ESPERA
+    sep #$20
+.a8
+    rts
+sigue:
+.a16
+    sep #$20
+.a8
+    jmp leer
+
+arranque:
+    ; El arranque del DSP: la misma tabla que usa el camino del MSU-1, y
+    ; detrás KON y KOF en cero. Ver `escrituras_del_arranque`.
+    ldy #0
+otro_init:
+    lda dsp_init_reg, y
+    cmp #$FF
+    beq init_listo
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda dsp_init_val, y
+    jsr dsp_musica              ; no toca Y
+    iny
+    bra otro_init
+init_listo:
+    lda #0
+    ldx #SE_KON
+    jsr dsp_musica
+    lda #0
+    ldx #SE_KOF
+    jsr dsp_musica
+    jmp leer
+
+de_voz:
+    ; La voz en los tres bits bajos y la familia en los de arriba: ver el
+    ; encabezado de music.toml. Y queda con el registro VOL_L de la voz.
+    rep #$20
+.a16
+    and #$00FF
+    pha
+    and #$0007
+    tax                         ; la voz
+    asl a
+    asl a
+    asl a
+    asl a
+    tay
+    sep #$20
+.a8
+    lda bit_de_voz, x
+    sta f:MUS_BIT
+    rep #$20
+.a16
+    pla
+    and #$0038
+    lsr a
+    lsr a                       ; la familia por dos
+    tax
+    sep #$20
+.a8
+    jmp (familias, x)
 .endproc
 
-; Avanza el puntero de música un byte, devolviendo en A lo que ya se leyó.
-;
-; En LoROM cada banco expone sólo su mitad alta, $8000-$FFFF, así que el byte
-; que sigue a $00FFFF no es $010000 sino $018000. Un incremento común de 24 bits
-; caería en la RAM del banco 1 y leería basura. Con el tema entero más las
-; muestras pasando los 64 KB, esto no es teórico: se cruza sí o sí.
-.proc advance
+; Una por familia, en el orden de sus números.
+familias:
+    .addr ev_nota, ev_nota_vol, ev_nota_pan, ev_release, ev_release_gain
+    .addr ev_set_vol, ev_set_pan, ev_set_pitch
+.assert OP_NOTE_V0 = 0, error, "music.toml: las familias empiezan en 0"
+.assert OP_NOTE_VOL_V0 = OP_NOTE_V0 + 8, error, "music.toml: familias fuera de orden"
+.assert OP_NOTE_PAN_V0 = OP_NOTE_VOL_V0 + 8, error, "music.toml: familias fuera de orden"
+.assert OP_RELEASE_V0 = OP_NOTE_PAN_V0 + 8, error, "music.toml: familias fuera de orden"
+.assert OP_RELEASE_GAIN_V0 = OP_RELEASE_V0 + 8, error, "music.toml: familias fuera de orden"
+.assert OP_SET_VOL_V0 = OP_RELEASE_GAIN_V0 + 8, error, "music.toml: familias fuera de orden"
+.assert OP_SET_PAN_V0 = OP_SET_VOL_V0 + 8, error, "music.toml: familias fuera de orden"
+.assert OP_SET_PITCH_V0 = OP_SET_PAN_V0 + 8, error, "music.toml: familias fuera de orden"
+.assert OP_WAIT_1 = OP_SET_PITCH_V0 + 8, error, "music.toml: las esperas van detrás"
+
+bit_de_voz:
+    .byte $01, $02, $04, $08, $10, $20, $40, $80
+
+; Escribe A en el registro Y, salvo que el caché diga que ya lo tiene. Con V
+; prendido escribe sin mirar: así va la primera nota de cada voz desde que
+; arrancó el tema, y el primer GAIN, porque el caché arranca con lo que haya
+; quedado y no tiene manera de decir "no sé". No toca X, Y ni V.
+.proc mus_escribir
 .a8
 .i16
-; El acumulador trae el byte que el llamador acaba de leer, así que hay que
-; devolverlo intacto: por eso el pha/pla en la rama del salto de banco.
-    inc music
-    bne done
-    inc music + 1
-    bne done                    ; si la parte alta no dio la vuelta, listo
-    pha
-    lda #$80                    ; dio la vuelta: al banco siguiente, en $8000
-    sta music + 1
-    pla
-    inc music + 2
-done:
+    phx
+    tyx
+    bvs escribir
+    cmp f:MUS_SOMBRA, x
+    beq igual
+escribir:
+    sta f:MUS_SOMBRA, x
+    jsr dsp_musica
+igual:
+    plx
     rts
 .endproc
 
+; V prendido si la voz del evento todavía no tuvo nota, y la marca. No toca
+; X ni Y.
+.proc nota_primera
+.a8
+.i16
+    clv
+    lda f:MUS_BIT
+    and f:MUS_VISTAS
+    bne ya
+    lda f:MUS_BIT
+    ora f:MUS_VISTAS
+    sta f:MUS_VISTAS
+    sep #$40                    ; V
+ya:
+    rts
+.endproc
 
+.proc ev_nota_vol
+.a8
+.i16
+    jsr nota_primera
+    LEER
+    pha
+    jsr mus_escribir            ; VOL_L
+    iny
+    pla
+    jsr mus_escribir            ; VOL_R, el mismo
+    iny
+    jmp nota_sonido
+.endproc
+
+.proc ev_nota_pan
+.a8
+.i16
+    jsr nota_primera
+    LEER
+    jsr mus_escribir            ; VOL_L
+    iny
+    LEER
+    jsr mus_escribir            ; VOL_R
+    iny
+    jmp nota_sonido
+.endproc
+
+.proc ev_nota
+.a8
+.i16
+    jsr nota_primera
+    iny
+    iny
+    ; sigue en nota_sonido
+.endproc
+
+; El sonido de la nota: Y en PITCH_L de la voz y V como lo dejó
+; `nota_primera`. Sus cinco primeros bytes van a PITCH_L, PITCH_H, SRCN, ADSR1
+; y ADSR2, en ese orden, y el sexto es el GAIN con que se va a soltar.
+.proc nota_sonido
+.a8
+.i16
+    LEER
+    php                         ; las sumas pisan V
+    rep #$21                    ; A de dieciséis y el carry en cero
+.a16
+    and #$00FF
+    sta f:MUS_T
+    asl a
+    adc f:MUS_T
+    asl a                       ; por seis
+    adc f:MUS_BASE
+    tax
+    plp
+.a8
+    .repeat 5, k
+    lda f:musica_sonidos + k, x
+    jsr mus_escribir
+    iny
+    .endrepeat
+    lda f:musica_sonidos + 5, x
+    tyx                         ; el registro 8 de la voz, que es ENVX
+    sta f:MUS_SOMBRA + 1, x
+    lda f:MUS_BIT
+    ora f:MUS_KON
+    sta f:MUS_KON
+    jmp music_frame::leer
+.endproc
+
+.proc ev_release_gain
+.a8
+.i16
+    lda [music]
+    jsr advance
+soltar:
+    pha
+    iny
+    iny
+    iny
+    iny
+    iny                         ; ADSR1
+    clv
+    lda #0
+    jsr mus_escribir
+    iny
+    iny                         ; GAIN
+    lda f:MUS_BIT
+    and f:MUS_GAINS
+    bne con_gain
+    lda f:MUS_BIT
+    ora f:MUS_GAINS
+    sta f:MUS_GAINS
+    sep #$40                    ; el primero va sin mirar el caché
+con_gain:
+    pla
+    jsr mus_escribir
+    jmp music_frame::leer
+.endproc
+
+.proc ev_release
+.a8
+.i16
+    tyx
+    lda f:MUS_SOMBRA + 8, x     ; el GAIN del sonido de la voz
+    bra ev_release_gain::soltar
+.endproc
+
+.proc ev_set_vol
+.a8
+.i16
+    clv
+    lda [music]
+    jsr advance
+    pha
+    jsr mus_escribir
+    iny
+    pla
+    jsr mus_escribir
+    jmp music_frame::leer
+.endproc
+
+.proc ev_set_pan
+.a8
+.i16
+    clv
+    lda [music]
+    jsr advance
+    jsr mus_escribir
+    iny
+    lda [music]
+    jsr advance
+    jsr mus_escribir
+    jmp music_frame::leer
+.endproc
+
+.proc ev_set_pitch
+.a8
+.i16
+    clv
+    iny
+    iny                         ; PITCH_L
+    lda [music]
+    jsr advance
+    jsr mus_escribir
+    iny
+    lda [music]
+    jsr advance
+    jsr mus_escribir
+    jmp music_frame::leer
+.endproc
+
+; El estado del decodificador en cero, y la bitácora apagada. En el reset: la
+; RAM lejana arranca con basura.
+.proc musica_limpiar
+.a8
+.i16
+    ldx #0
+    lda #0
+otro:
+    sta f:MUS_ESPERA, x
+    inx
+    cpx #MUS_ESTADO_BYTES
+    bcc otro
+    sta f:MUS_BITACORA_SI
+    sta f:MUS_BITACORA_I
+    sta f:MUS_BITACORA_I + 1
+    rts
+.endproc
