@@ -18,3 +18,13 @@ En un mapa que llene las ocho paletas a quince colores. Ahí se le hace lugar
 bajando a un personaje a catorce —el que menos pixeles mueva, y nunca uno de
 líder—, y si ni eso alcanza el conversor corta y lo dice. Ver "por último, el
 cronómetro" en `tools/port/snes_convert.py`.
+
+# Lo que obliga en la ROM
+
+Como la paleta es de un personaje, **el tinte no la puede saltear entera**: los
+dígitos no se tiñen y el personaje sí. `subir_timer_pal` sube sin teñir sólo
+las entradas de los dígitos, y sólo mientras se ven. Hasta el 2026-09-25 subía
+la paleta entera, que era lo correcto cuando los dígitos la tenían para ellos
+solos, y el personaje quedaba sin teñir. Los colores que el personaje comparte
+con los dígitos siguen sin teñirse mientras el cronómetro se ve: ver
+`divergencias/el-cronometro-y-su-vecino-comparten-colores.md`.

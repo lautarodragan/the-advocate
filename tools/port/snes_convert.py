@@ -1376,12 +1376,14 @@ def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
     el tile `base + t` y abajo el `base + 16 + t`. Devuelve (tiles, base,
     número de paleta).
 
-    **Y tampoco en la del cronómetro**, por la misma clase de razón que las
-    ranuras de líder: ésa la vuelve a subir `subir_timer_pal` **sin teñir**
-    —los dígitos van encima del tinte, `Priority_Timer` es 140 y
-    `Priority_Screen` 90—, así que una gota metida ahí se queda gris en una
-    pantalla teñida. La lluvia sí se tiñe en RM2k: `Priority_Weather` es 80,
-    o sea debajo del tinte.
+    **Y tampoco en la del cronómetro.** La razón era que `subir_timer_pal`
+    volvía a subir esa paleta entera **sin teñir** —los dígitos van encima del
+    tinte, `Priority_Timer` es 140 y `Priority_Screen` 90—, y una gota metida
+    ahí se quedaba gris en una pantalla teñida; la lluvia sí se tiñe en RM2k,
+    `Priority_Weather` es 80. Desde el 2026-09-25 sube sólo las entradas de
+    los dígitos, así que una gota ya no se quedaría gris, salvo en un color
+    que compartiera con ellos. Se sigue evitando porque sacarlo puede mover
+    dónde caen las gotas, y eso no se midió.
     """
     quiere = [c for c in eventos.LLUVIA_COLORES]
     evitar = set(de_lider)
