@@ -18,8 +18,16 @@ cuadros. Medir primero en bsnes.
 
 # Status
 
-2026-09-26, en `wip/`: las dos cuentas rehechas sin cambiar un solo valor;
-falta la tanda.
+2026-09-26, en `testing/`: las dos cuentas rehechas sin cambiar un solo
+valor. `just pruebas` en verde y ninguna golden se movió; `test_cores.py`
+dos veces en verde. Lo que queda es que taro juegue la terraza —ranura 2 de
+los `.srm` de `/shared/experimentos/2026-09-26-paralelos-cada-n/`— y diga si
+el lag se fue, también en el destello azul de Kersh.
+
+Además de las goldens, la escena de la terraza se corrió con la ROM de antes
+y la de después apretando la A por vuelta del lazo y no por cuadro —así un
+cuadro perdido de menos no corre la escena—, y las 1971 pantallas, una por
+vuelta, salieron iguales en snes9x y en bsnes.
 
 # Dónde se iba el tiempo
 
