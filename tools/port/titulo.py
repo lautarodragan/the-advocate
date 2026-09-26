@@ -21,6 +21,8 @@ De ahí sale el único paso que no es mecánico: de 369 colores a 256.
 
 import collections
 
+import numpy
+
 from port import asignador
 from port import fuente
 
@@ -776,11 +778,19 @@ def pantalla_items(sys_img, font_id=None):
                                       chr(ITEM_PRIMER_CARACTER + n),
                                       color=3 if gris else 0, font_id=font_id)
             capas.append((gris, n, una))
+    # Los colores de cada juego, con numpy: es una imagen del tamaño de la
+    # pantalla por carácter y por color, con la letra en una esquina, y
+    # recorrerlas pixel por pixel era casi todo lo que costaba esta pantalla.
+    # El orden en que se cuentan no importa: la paleta sale ordenada.
     vistos = [collections.Counter(), collections.Counter()]
     for gris, _, una in capas:
-        for r, g, b, a in una.get_flattened_data():
-            if a:
-                vistos[gris][(r >> 3, g >> 3, b >> 3)] += 1
+        pixeles = numpy.asarray(una).reshape(-1, 4)
+        rgb = pixeles[pixeles[:, 3] != 0, :3].astype(numpy.int32) >> 3
+        codigos, cuantos = numpy.unique(
+            (rgb[:, 0] << 10) | (rgb[:, 1] << 5) | rgb[:, 2],
+            return_counts=True)
+        for c, k in zip(codigos.tolist(), cuantos.tolist()):
+            vistos[gris][(c >> 10, (c >> 5) & 31, c & 31)] += k
     paletas, indices = [], []
     for cuenta in vistos:
         if len(cuenta) > 15:
