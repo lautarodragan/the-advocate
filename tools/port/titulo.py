@@ -61,12 +61,12 @@ def reducir(pixeles, tope=COLORES):
     más cercano de los que quedaron. **No es mediancut**: no promedia colores,
     así que no puede inventar uno que no estuviera en la imagen y no hay que
     volver a cuantizar a 15 bits después. Y no depende de qué versión de PIL
-    esté instalada, que es lo que hace que la referencia y el conversor puedan
-    llamarlo y obtener lo mismo.
+    esté instalada, que es lo que hace que la ROM salga igual byte por byte en
+    cualquier máquina.
 
     El desempate es por el color, no por el orden en que aparecieron: dos
     colores con la misma cuenta tienen que caer siempre del mismo lado o la
-    ROM y la referencia se separan sin que nadie haya tocado nada.
+    ROM cambia sin que nadie haya tocado nada.
     """
     cuenta = collections.Counter(pixeles)
     # El negro se queda con el índice 0 aunque no fuera de los más usados: es

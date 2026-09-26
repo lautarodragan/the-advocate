@@ -2,8 +2,8 @@
 
 ; El xorshift de la pelea, el mismo que `eventos.azar_siguiente` y que
 ; `lluvia_azar`, pero sobre `BA_SEM`, que tiene **semilla propia**: pelear no
-; le corre el azar del mapa, que es lo que la referencia de pixeles supone
-; cuando dice que una batalla no cuesta ningún tick.
+; le corre el azar del mapa, así que un `ControlVars` al azar da lo mismo con
+; una pelea en el medio y sin ella.
 .proc ba_azar
 .a16
 .i16

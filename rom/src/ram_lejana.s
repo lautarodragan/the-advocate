@@ -627,6 +627,16 @@ BA_VIC_SIG    = BA_VIC + 6      ; los de ésta y las anteriores: lo que
 BA_VIC_MAS    = BA_VIC + 7      ; si quedaron habilidades para otra página
 BA_VIC_FIN    = BA_VIC + 8
 .assert BA_VIC_FIN <= $7820, error, "lo de la victoria se sale de su lugar"
+
+; --- las pistas de MSU-1 que faltaron ----------------------------------------
+;
+; $7E7820 a $7E782F, reservado el 2026-09-26: un bit por tema, prendido cuando
+; el tema tenía pista y el MSU-1 no la pudo tocar —no estaba en la tarjeta, o
+; no terminó de abrirla a tiempo— y sonó por el SPC700. Ver `tema_por_msu` en
+; paquete_de_audio.s. Lo limpia `msu_detectar` en el reset; no viaja en la
+; partida, porque lo que dice es de la tarjeta y no del juego.
+MSU_FALTA      = $7E7820
+MSU_FALTA_BYTES = 16
 LZ2_BUFFER     = $7F0000
 ANIM_DIBUJOS   = $7F6000
 ANIM_DIBUJOS_FIN = $7F8000
