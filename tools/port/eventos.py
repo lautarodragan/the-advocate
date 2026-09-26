@@ -2027,11 +2027,37 @@ AUDIO_BATALLA_BGM = ("battle_music", "battle_end_music")
 AUDIO_APAGADO = ("", "(OFF)")
 
 
+def base_de_datos(game_dir):
+    """El LDB del juego, **para leer**: lo comparten los `indexar_*` y los
+    barridos, que antes lo cargaban cada uno por su lado.
+
+    Nadie de los que lo piden acá lo modifica, y por eso puede ser el mismo
+    objeto. Se recuerda mientras no cambie nada de lo que lo arma: los
+    archivos del volcado y los ChipSets del fork —nombre, fecha y tamaño— y
+    los dos ganchos de `lcf`, que cambian lo que se lee.
+    """
+    from rpgmaker import fork, lcf
+    ruta = os.path.join(game_dir, "RPG_RT.ldb")
+    huella = [ruta, lcf.REAJUSTAR_TEXTOS, lcf.DECORAR_TRANSLUCIDO]
+    for carpeta in (os.path.join(lcf.volcado(ruta), "db"), fork.CHIPSETS):
+        if os.path.isdir(carpeta):
+            for nombre in sorted(os.listdir(carpeta)):
+                estado = os.stat(os.path.join(carpeta, nombre))
+                huella.append((carpeta, nombre, estado.st_mtime_ns,
+                               estado.st_size))
+    huella = tuple(huella)
+    if _BASE[:1] != [huella]:
+        _BASE[:] = [huella, lcf.Database(ruta)]
+    return _BASE[1]
+
+
+_BASE = []
+
+
 def indexar_audio_de_batalla(game_dir):
     """El tema y los efectos de la pelea, del LDB. Lo llaman el conversor y la
     referencia, igual que `indexar_animaciones`."""
-    from rpgmaker import lcf
-    db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
+    db = base_de_datos(game_dir)
     AUDIO_BATALLA.clear()
     AUDIO_BATALLA["battle_music"] = db.battle_music
     AUDIO_BATALLA["battle_end_music"] = db.battle_end_music
@@ -2167,8 +2193,7 @@ def indexar_animaciones(game_dir):
     """Las animaciones de batalla del LDB, por id: sus cuadros y sus
     timings, con los valores por omisión de liblcf —el decodificador omite
     los que no están—. Lo llaman el conversor y la referencia."""
-    from rpgmaker import lcf
-    db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
+    db = base_de_datos(game_dir)
     ANIMACIONES.clear()
     for numero, anim in db.decode().get("animations", {}).items():
         timings = []
@@ -2286,7 +2311,6 @@ def variables_de(game_dir, map_ids=None, extra=()):
     No era circular —no dependía de que la página compilara—: este barrido mira
     todos los comandos compilen o no, y a éste no lo miraba.
     """
-    from rpgmaker import lcf
     ids = set(extra)
     ids |= barrer_los_mapas(
         game_dir, mapas_del_juego(game_dir) if map_ids is None else map_ids,
@@ -2297,7 +2321,7 @@ def variables_de(game_dir, map_ids=None, extra=()):
         # los personajes llevan cada uno sus contadores —la 81 y la 106 de
         # Talan cuentan cuántas veces absorbió cada técnica—, y ningún mapa
         # los nombra.
-        db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
+        db = base_de_datos(game_dir)
         for tropa in db.troops.values():
             for pagina in tropa.pages:
                 if "variable" in pagina.activos:
@@ -2400,8 +2424,7 @@ def indexar_comunes(game_dir):
     `indexar_variables`, y por lo mismo: `CallEvent` los compila en el lugar,
     así que los dos lados tienen que estar mirando la misma base.
     """
-    from rpgmaker import lcf
-    db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
+    db = base_de_datos(game_dir)
     COMUNES.clear()
     COMUNES.update(db.common_events)
     return COMUNES
@@ -2426,9 +2449,8 @@ def indexar_actores(game_dir):
     `AGENTS.md` nombra. Por eso hay una lista que dice si se llamó y `OP_IF_ACTOR`
     la mira.
     """
-    from rpgmaker import lcf
     from port import batalla
-    db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
+    db = base_de_datos(game_dir)
     ACTOR_EQUIPO.clear()
     ACTOR_SABE.clear()
     ACTOR_EQUIPO.update({a: tuple(act.initial_equipment)
@@ -2458,7 +2480,7 @@ def indexar_terminos(game_dir):
     a leer para decidir.
     """
     from rpgmaker import lcf
-    db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
+    db = base_de_datos(game_dir)
     terminos = db.secciones["terms"]
     TERMINOS_POSADA.clear()
     TERMINOS_POSADA["gold"] = lcf.campo(terminos, "gold")
@@ -2538,8 +2560,7 @@ def pares_de_habilidad(game_dir, extra=()):
     Ver `HABILIDAD_RANURA`. Los que nombran un actor o una habilidad que el
     LDB no tiene se descartan: RM2k los ignora con un aviso, y acá no
     compilan."""
-    from rpgmaker import lcf
-    db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
+    db = base_de_datos(game_dir)
     pares = set(extra)
     for numero, actor in db.actors.items():
         pares |= {(numero, s) for _nivel, s in actor.skills if s}
