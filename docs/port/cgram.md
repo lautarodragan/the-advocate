@@ -9,8 +9,7 @@ Un corte fijo no sirve: con dos paletas clavadas para la capa de encima se caen
 los mapas cuya capa de encima pide tres o más, que son varias decenas y entre
 ellos los tres primeros del juego. Y hay una causa que **no la arregla ningún
 reparto**: un tile suelto de 17 colores no entra en una paleta de 15 por muchas
-que haya, y eso se arregla fusionando, que es lo que la Mega Drive ya hacía con
-el fondo.
+que haya, y eso se arregla fusionando colores: `asignador.reduce_colors`.
 
 Así que el corte lo decide el conversor mapa por mapa, y **el fondo tiene la
 primera opción**: se queda con las paletas que necesita para los colores que

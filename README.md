@@ -15,7 +15,6 @@ el mapa de arriba de `AGENTS.md`, y cada una con README explica lo suyo.
 * [El juego original](#el-juego-original)
 * [Los datos en formato versionable](#los-datos-en-formato-versionable)
 * [Cómo se arma](#cómo-se-arma)
-* [Por qué la Super Nintendo](#por-qué-la-super-nintendo)
 * [La arquitectura](#la-arquitectura)
     * [El fondo va en modo 3, siempre](#el-fondo-va-en-modo-3-siempre)
     * [Las tablas van en el banco 0](#las-tablas-van-en-el-banco-0)
@@ -67,14 +66,6 @@ La ROM que se juega sale en `rom/build/release/abl.sfc`, con su `abl.msu` y las
 pistas de MSU-1 al lado. Qué pasa entre el juego y la ROM está en
 `docs/port/pipeline.md`; qué ROMs hay y qué prueba cubre qué, en
 `pruebas/README.md`; qué hace cada carpeta de `tools/`, en `tools/README.md`.
-
-## Por qué la Super Nintendo
-
-El MIDI de la PC lo tocaba un sintetizador **por muestras**, y la SNES también
-es por muestras: el problema deja de ser "imitar un piano con cuatro
-operadores", como en el YM2612 de la Mega Drive, y pasa a ser "comprimir estas
-muestras", que es mecánico. De paso, 15 bits de color contra 9 y ocho paletas
-contra cuatro. Hubo un port a Mega Drive; vive aparte, en `abl-sega`.
 
 ## La arquitectura
 
