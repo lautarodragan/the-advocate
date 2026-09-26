@@ -13,8 +13,7 @@ pase a Rust, esto es lo que se lleva primero.
 
 Hasta el 2026-09-17 se llamaba `pixeles.py` y hacía también la parte que no
 decide nada —indexar un tile en su paleta, probar sus espejados—, que pasó a
-Voodoo. Antes todavía estaba adentro de `md_convert.py`, que es de donde salió
-el port a Mega Drive.
+Voodoo.
 """
 
 import collections
@@ -23,9 +22,8 @@ import sys
 CELL = 8
 
 # Cuántos colores entra en una paleta de cuatro bits, menos el índice 0 que es
-# transparente. Es el caso que las dos consolas comparten —los tiles de fondo de
-# la Mega Drive y los sprites de la Super Nintendo—, y por eso vive acá; el
-# fondo de la SNES va en ocho bits y pasa su propio límite por parámetro.
+# transparente: el de los sprites y la capa de encima. El fondo va en ocho bits
+# y pasa su propio límite por parámetro.
 COLORS_PER_PALETTE = 16
 USABLE_COLORS = COLORS_PER_PALETTE - 1
 
@@ -161,7 +159,7 @@ def merge_least_visible(counts, keep, accept=None):
 
 
 def reduce_colors(grid, budget):
-    """Fusiona colores hasta que los tiles entren en las 4 paletas del VDP.
+    """Fusiona colores hasta que los tiles entren en `budget` paletas.
 
     El límite real no es la cantidad de colores sino cómo se reparten: un tile
     con 14 colores obliga a que esos 14 estén en la misma paleta. La cola de la

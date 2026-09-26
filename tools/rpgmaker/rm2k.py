@@ -5,10 +5,8 @@ Por dónde se puede caminar, qué capa tapa a cuál, qué gráfico le toca a un
 evento, cuáles de ellos se dibujan. Son las reglas del motor original, y valen
 igual para cualquier port —y para cualquier juego de RM2k—.
 
-Salieron de `md_convert.py`, donde estaban mezcladas con el formato del VDP: el
-port a SNES importaba de ahí dieciséis nombres que no tenían nada de Mega Drive.
-Lo que dicen estas reglas se contrasta contra liblcf y easyrpg-player, que están
-en /extras/ref; ninguno de estos números se escribió de memoria.
+Lo que dicen estas reglas se contrasta contra liblcf y easyrpg-player; ninguno
+de estos números se escribió de memoria.
 """
 
 import os
@@ -148,7 +146,7 @@ def paso_animado(tick):
 #
 # Un CharSet de RM2k son 4 personajes de ancho por 2 de alto; cada uno ocupa
 # 72x128 y tiene 12 poses: 3 columnas de caminata por 4 direcciones. Cada pose
-# mide 24x32, o sea 3x4 celdas del VDP, que es un tamaño legal de sprite.
+# mide 24x32, o sea 3x4 celdas de 8x8.
 
 SPRITE_CELLS_W = 3
 SPRITE_CELLS_H = 4

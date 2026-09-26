@@ -1,21 +1,14 @@
 #!/usr/bin/env python3
-"""Del MIDI a notas y voces: lo que las dos consolas hacen igual.
+"""Del MIDI a notas y voces: lo que no depende del chip.
 
 Cuánto dura cada nota y cuántas suenan a la vez. Hasta el 2026-09-26 también
 repartía un presupuesto de voces entre canales —`share_voices`—, que se fue
 con el reparto fijo: ver `assign` en `snes_music.py`.
-Nada de esto depende del chip: el YM2612 pide construir el timbre con cuatro
-operadores y el S-DSP pide una forma de onda, pero antes de eso el problema es
-el mismo.
-
-Salió de `md_music.py`, que era del port a Mega Drive y sin embargo el port a
-SNES le importaba seis cosas. Mismo caso que `asignador.py` —que se llamó
-`pixeles.py`— y `rm2k.py`.
 """
 
 import collections
 
-# Un tick por cuadro: es la unidad en la que los dos ports cuentan el tiempo.
+# Un tick por cuadro: es la unidad en la que el port cuenta el tiempo.
 TICKS_PER_SECOND = 60
 
 def note_time(notes):
@@ -54,7 +47,3 @@ def timeline(notes, tempos, division):
         note.start, note.end = to_frame(note.start), to_frame(note.end)
         note.end = max(note.end, note.start + 1)
     return max((n.end for n in notes), default=0)
-
-
-# --- PSG --------------------------------------------------------------------
-

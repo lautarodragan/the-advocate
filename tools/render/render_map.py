@@ -342,8 +342,7 @@ class Renderer:
 
         La de abajo es opaca y va detrás del héroe; la de arriba lleva sólo los
         tiles marcados como "por encima del héroe" y es transparente en todo lo
-        demás. En el VDP van a planos distintos: la de abajo al B sin prioridad
-        y la de arriba al A con prioridad, que es justo el orden del hardware.
+        demás.
         """
         chipset = self.database.chipsets[game_map.chipset_id]
         atlas = self.atlas(chipset)

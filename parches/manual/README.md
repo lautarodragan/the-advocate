@@ -42,7 +42,7 @@ entrada de la base envejece sin avisar el día que `just datos` la cambie;
 agregando una entrada nueva no hay nada que pueda quedar viejo.
 
 **Y su imagen no se versiona: se arma.** El arte del juego no es nuestro para
-redistribuir —vive en `/extras`, ver `docs/rpgmaker/rtp.md`—, así que el fork
+redistribuir —no está en el repo, ver `docs/rpgmaker/rtp.md`—, así que el fork
 guarda la **receta**: qué bloque de autotile y qué tile alto se copian adónde.
 El PNG sale a `rom/build/parches-manual/ChipSet/`, que es un directorio de build como
 cualquier otro.
@@ -114,13 +114,13 @@ Lo mira `test_fork_donde_borro_un_evento_del_piso_la_celda_sigue_cerrada`.
 El **mapa 11**, el HQ de los Lazer Teeth, con el minijuego de las piedras
 rediseñado: sus 52 baldosas de luz dejaron de ser eventos y pasaron a ser tiles
 del mapa. El porqué, con todo lo medido, está en
-`workflow/done/el-mapa-11-se-rediseno.md`.
+`workflow/tasks/done/el-mapa-11-se-rediseno.md`.
 
 Y el **mapa 18**, el Auditorio, con su público horneado: 31 eventos que no
 hacían nada más que estar sentados mirando al escenario pasaron a ser ocho
 tiles de un ChipSet propio, y con eso el mapa se bajó del techo de paletas de
 sprite donde estaba clavado. El porqué, con todo lo medido, está en
-`workflow/done/hornear-la-decoracion-en-un-chipset.md`.
+`workflow/tasks/done/hornear-la-decoracion-en-un-chipset.md`.
 
 Lo que el horneado del 18 **no** conserva: el público era de la capa del héroe
 y se ordenaba con él por Y, y ahora es fondo. Vale porque en ese mapa no se

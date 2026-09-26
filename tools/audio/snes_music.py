@@ -1,14 +1,8 @@
 """Convierte el MIDI de un mapa a muestras BRR y un stream para el S-DSP.
 
-Es el equivalente de musica.py para la Super Nintendo, y comparte con él todo
-lo que no depende del chip: leer el MIDI y pasar los tiempos a cuadros. Las
-voces se reparten nota a nota, las ocho para todos los canales: ver `assign`.
-
-Lo que cambia es el final. El YM2612 pide construir cada timbre con cuatro
-operadores; el S-DSP pide una forma de onda, que está en sdsp.py. Y son ocho
-voces contra las nueve de la Mega Drive —seis de FM más tres del PSG—, sólo que
-acá las ocho son iguales y buenas, en vez de seis decentes y tres de onda
-cuadrada.
+Lo que no depende del chip —leer el MIDI y pasar los tiempos a cuadros— está
+en midi.py y musica.py; lo del S-DSP, en sdsp.py. Las voces se reparten nota a
+nota, las ocho para todos los canales: ver `assign`.
 
 Salen dos cosas: el bloque que se sube a la memoria del SPC700 (el directorio
 de muestras más las muestras en BRR) y el stream de cada tema, por nota, que el

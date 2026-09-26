@@ -63,7 +63,7 @@ Se rearma cuando se bumpea liblcf, que hasta hoy pasó cero veces, así que no
 tiene receta: el comando entero es éste, y sale byte por byte igual al
 commiteado.
 
-    python3 - /extras/ref/liblcf > tools/rpgmaker/event_codes.json <<'PY'
+    python3 - <clon de liblcf> > tools/rpgmaker/event_codes.json <<'PY'
     import json, re, sys
     fuente = sys.argv[1] + "/src/generated/lcf/rpg/eventcommand.h"
     cuerpo = re.search(r"enum class Code\s*\{(.*?)\n\s*\};",

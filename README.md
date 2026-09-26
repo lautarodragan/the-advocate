@@ -15,24 +15,20 @@ el mapa de arriba de `AGENTS.md`, y cada una con README explica lo suyo.
 * [El juego original](#el-juego-original)
 * [Los datos en formato versionable](#los-datos-en-formato-versionable)
 * [Cómo se arma](#cómo-se-arma)
-* [Por qué la Super Nintendo](#por-qué-la-super-nintendo)
 * [La arquitectura](#la-arquitectura)
     * [El fondo va en modo 3, siempre](#el-fondo-va-en-modo-3-siempre)
     * [Las tablas van en el banco 0](#las-tablas-van-en-el-banco-0)
-    * [Los eventos translúcidos van horneados](#los-eventos-translúcidos-van-horneados)
-    * [Cómo está armado el audio](#cómo-está-armado-el-audio)
-    * [Trampas del hardware](#trampas-del-hardware)
 * [Lo que falta](#lo-que-falta)
 * [Referencias](#referencias)
 
 ## El juego original
 
-**No está en el repo**: vive en `/extras/abl-rm` —se puede apuntar a otra
-copia con `ABL_GAME_DIR`— y de ahí salen los mapas (`.lmu`), la base de datos
-(`RPG_RT.ldb`), el árbol de mapas (`RPG_RT.lmt`), las imágenes, los MIDI y los
-WAV. Lo que el juego no trae lo pone el RTP de Don Miguel, que tampoco es
-nuestro para redistribuir: ver `docs/rpgmaker/rtp.md`. Lo que hay que saber del
-formato —los ChipSets, las dos capas— está en `docs/rpgmaker/`.
+**No está en el repo**: se lee de la carpeta que diga `ABL_GAME_DIR`, y de ahí
+salen los mapas (`.lmu`), la base de datos (`RPG_RT.ldb`), el árbol de mapas
+(`RPG_RT.lmt`), las imágenes, los MIDI y los WAV. Lo que el juego no trae lo
+pone el RTP de Don Miguel, que tampoco es nuestro para redistribuir: ver
+`docs/rpgmaker/rtp.md`. Lo que hay que saber del formato —los ChipSets, las dos
+capas— está en `docs/rpgmaker/`.
 
 El mapa de arranque del juego es el 4, un cuarto vacío que sólo teletransporta.
 El primer mapa de verdad es el 1.
@@ -56,8 +52,9 @@ porqué de la decisión está en `DITTO.md` y lo que hay adentro, en
 **Hace falta `python`, un core de libretro y `ca65` + `ld65`**, más las
 herramientas de Rust del repo —las lista `tools/README.md`—, que **se consumen
 desde el PATH**: se instalan una vez y ningún script ni prueba de este juego
-llama a `cargo`. El porqué, y cómo se compila `cc65`, que no viene
-empaquetado en Arch, están en `AGENTS.md`. Nada de esto pide un contenedor.
+llama a `cargo`. El porqué está en `AGENTS.md`. `ca65` y `ld65` salen de
+cc65, que no viene empaquetado en todas las distribuciones y se compila de sus
+fuentes: ver "Referencias".
 
     just herramientas     # instala las herramientas de Rust
     just cartuchos        # arma las ROMs: release y las de prueba
@@ -65,16 +62,9 @@ empaquetado en Arch, están en `AGENTS.md`. Nada de esto pide un contenedor.
 
 La ROM que se juega sale en `rom/build/release/abl.sfc`, con su `abl.msu` y las
 pistas de MSU-1 al lado. Qué pasa entre el juego y la ROM está en
-`docs/port/pipeline.md`; qué ROMs hay y qué prueba cubre qué, en
-`pruebas/README.md`; qué hace cada carpeta de `tools/`, en `tools/README.md`.
-
-## Por qué la Super Nintendo
-
-El MIDI de la PC lo tocaba un sintetizador **por muestras**, y la SNES también
-es por muestras: el problema deja de ser "imitar un piano con cuatro
-operadores", como en el YM2612 de la Mega Drive, y pasa a ser "comprimir estas
-muestras", que es mecánico. De paso, 15 bits de color contra 9 y ocho paletas
-contra cuatro. Hubo un port a Mega Drive; vive aparte, en `abl-sega`.
+`docs/port/pipeline.md`, y el audio en `docs/port/audio.md`; qué ROMs hay y
+qué prueba cubre qué, en `pruebas/README.md`; qué hace cada carpeta de
+`tools/`, en `tools/README.md`.
 
 ## La arquitectura
 
@@ -126,79 +116,6 @@ Y una tabla mudada, o una que se recorra con `[ptr], y`, **tiene que
 declararse con `.bloque`** para no quedar partida entre dos bancos: ver
 `bloque` en `tools/port/snes_convert.py`.
 
-### Los eventos translúcidos van horneados
-
-El "Trans" de una página —`translucent`— en RM2k dibuja el evento con opacidad
-160 de 255. La consola tiene transparencia de verdad, el color math, pero la
-aplica a todos los sprites de las paletas 4 a 7 a la vez, y un mapa con
-translúcidos tendría que dejarles esas cuatro paletas solas. Probado, además,
-tiene dos costos que taro no aceptó: ver
-`workflow/decisiones/el-color-math-no-se-usa.md`. Tramarlos —dejar caer parte
-de sus pixeles, que es lo que hacían los juegos de la época— tampoco alcanza en
-este juego: **los fuegos del mapa 9 están sobre negro casi puro**, así que la
-trama no simula transparencia, agujerea la llama.
-
-Así que la mezcla **se calcula en el conversor y queda horneada en el
-gráfico**. Lo que lo permite es que las páginas translúcidas del juego son
-todas estáticas —`move_type` 0 y sin ruta propia—: si ni el objeto ni el fondo
-se mueven, la mezcla contra la capa de abajo de su celda da siempre lo mismo y
-se puede calcular una vez, exacta, sin trama y sin gastar color math ni
-paletas. Cómo, en `decorar_translucido` (`tools/rpgmaker/rm2k.py`); lo que se
-pierde, en `workflow/divergencias/los-translucidos-quedan-opacos.md`.
-
-### Cómo está armado el audio
-
-El audio lo maneja el **SPC700**, un procesador aparte con sus propios 64 KB
-de ARAM. El 65816 no puede tocar el DSP: sólo hablarle al SPC700 por cuatro
-puertos. Al encender, el SPC700 corre una ROM interna con un protocolo de
-carga, el IPL; con él se suben un driver mínimo y el directorio de muestras, y
-de ahí en más el driver atiende comandos: pares (registro, valor) para el DSP,
-y ternas de bytes para subir a la ARAM el paquete de muestras de cada mapa
-mientras la música suena. Ver `DRIVER` en `tools/audio/snes_music.py`.
-
-**Toda la lógica vive en Python**: el conversor decide qué nota va a qué voz,
-con qué muestra y con qué envolvente, y deja por tema un stream **por nota**.
-En la consola, el 65816 lo expande a escrituras al DSP cuadro a cuadro
-—`music_frame`, en `rom/src/musica.s`— y se las pasa al driver; el formato
-está en "el formato por nota" de `snes_music.py`. Las muestras salen del
-SoundFont con el que se compuso el juego, y qué va a la ARAM en cada mapa lo
-dice `workflow/decisiones/un-solo-banco-de-muestras.md`.
-
-### Trampas del hardware
-
-Las del 65816 y las del PPU viven en el código, pegadas a la instrucción o al
-registro que muerden, y la que más veces mordió está en `AGENTS.md`. Lo que
-queda acá son las que no tienen una línea donde vivir, porque valen para
-`rom/src/` entero.
-
-**Un `jsr` te devuelve `X` e `Y` como se le da la gana.** No hay convención de
-llamada acá: cada rutina usa los índices para lo suyo. Cuando un registro es un
-cursor que tiene que sobrevivir a una llamada —el del bytecode del intérprete lo
-es— hay que guardarlo con `phy` en el que llama, y el que llama es el único que
-sabe que hace falta.
-
-**El ancho de A y de X/Y es estado, y el ensamblador lo cree.** Las directivas
-`.a8` y `.a16` no describen: mandan. Toda transferencia entre registros de
-ancho distinto —`tax` con X de 16 bits, `ldx` con un índice de un solo byte— se
-lleva el byte de al lado. Y toda etiqueta a la que se salte desde otro ancho
-tiene que declarar el suyo, porque `ca65` lleva el ancho en orden de lectura y
-**no lo comprueba**:
-
-    bne baja
-    rep #$20
-    .a16
-    lda tira_paso_col
-    bra entra
-    baja:            <- se llega acá en ocho bits
-    cmp #DIR_DOWN    <- pero el ensamblador cree que en dieciséis
-
-El `cmp` se emite con un inmediato de **dos** bytes, la CPU en ocho lee uno
-solo, y el segundo —el `$00` del byte alto— se ejecuta como `BRK`: la ROM se va
-por la ventana y dibuja cualquier cosa. No lo ve el diff, no lo ve la
-comparación pixel a pixel, y bisecar con `rts` tampoco sirve, porque
-desbalancea la pila y uno termina midiendo eso. Si una ROM se va por la ventana
-sin razón aparente, mirar primero ahí.
-
 ## Lo que falta
 
 No se escribe acá, porque acá envejecía sin que nadie lo notara:
@@ -213,10 +130,42 @@ No se escribe acá, porque acá envejecía sin que nadie lo notara:
 
 ## Referencias
 
-Clonadas adentro del contenedor, en `/extras/ref`. **De ahí salen los números y
-la semántica de RM2k, no de la memoria**: ya pasó una vez que tres códigos de
-comando se pusieron de memoria y estaban mal.
+**De acá salen los números y la semántica, no de la memoria**: ya pasó una vez
+que tres códigos de comando de RM2k se pusieron de memoria y estaban mal.
 
-* `liblcf` — el formato LCF y los ids de chunk
-* `easyrpg-player` — el intérprete de referencia
-* `Game-Decompilations` — para lo que easyrpg no explica
+RPG Maker 2000:
+
+* [liblcf](https://github.com/EasyRPG/liblcf) — el formato LCF, los ids de
+  chunk y los códigos de comando; de ahí sale el esquema de Ditto
+* [EasyRPG Player](https://github.com/EasyRPG/Player) — el intérprete de
+  referencia: qué hace cada comando y cada orden de ruta
+* [Game-Decompilations](https://github.com/SamidyFR/Game-Decompilations) —
+  una lista de decompilaciones, para lo que EasyRPG no explica
+
+La consola:
+
+* [fullsnes](https://problemkaputt.de/fullsnes.htm), de nocash — la
+  referencia del hardware entero
+* los documentos de anomie —registros, tiempos, el SPC700—, que la mayoría de
+  las demás referencias citan
+* el [wiki de superfamicom.org](https://wiki.superfamicom.org/)
+* "SNES translucency", de Bregalad — el color math explicado; está en
+  `docs/snes/snes-translucency-by-bregalad.txt`
+* [sd2snes](https://github.com/mrehkopf/sd2snes) — el firmware del FX Pak
+  Pro: cómo implementa de verdad el MSU-1
+* [el desensamblado de Final Fantasy VI](https://github.com/everything8215/ff6)
+  — el texto como un byte por letra que compone el 65816, que es lo que hace
+  la ventana de mensaje
+
+Los emuladores, que además de correr la ROM son el código que se lee cuando la
+documentación no alcanza —con cuáles se prueba a mano y qué implementa cada
+uno, en `docs/snes/emulators.md`—:
+
+* [bsnes](https://github.com/bsnes-emu/bsnes),
+  [snes9x](https://github.com/snes9xgit/snes9x),
+  [Mesen2](https://github.com/SourMesen/Mesen2),
+  [Mesen-S](https://github.com/SourMesen/Mesen-S),
+  [ares](https://github.com/ares-emulator/ares) y
+  [Mednafen](https://mednafen.github.io/)
+
+Y [cc65](https://github.com/cc65/cc65), de donde salen `ca65` y `ld65`.

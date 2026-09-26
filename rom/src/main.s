@@ -19,6 +19,24 @@
 ;   un bloque o entre un `:+` y su `:`, y cualquier corte nuevo tiene que
 ;   respetar lo mismo.
 ;
+; Y dos trampas que valen para todos los archivos y no tienen una línea donde
+; vivir:
+;
+; * **El ancho de A y de X/Y es estado, y `ca65` lo cree sin comprobarlo.**
+;   `.a8` y `.a16` no describen: mandan cómo se emite cada inmediato. Una
+;   etiqueta a la que se salta desde otro ancho tiene que declarar el suyo
+;   —ver `baja` en `celdas.s`—, o el inmediato sale de dos bytes, la CPU en
+;   ocho lee uno, y el `$00` que sobra se ejecuta como `BRK`. La ROM se va por
+;   la ventana, no lo ve el diff ni la comparación pixel a pixel, y bisecar
+;   con `rts` no sirve porque desbalancea la pila: si una ROM se va por la
+;   ventana sin razón aparente, mirar primero acá. Lo mismo las
+;   transferencias entre anchos distintos —`tax` con X de 16 bits, `ldx` de
+;   una variable de un byte—, que se llevan el byte de al lado.
+; * **No hay convención de llamada**: un `jsr` devuelve X e Y como le
+;   convenga a la rutina. Si un índice tiene que sobrevivir a la llamada —el
+;   cursor del bytecode del intérprete—, lo guarda con `phy` el que llama, que
+;   es el único que sabe que hace falta.
+;
 ; Lo que se queda escrito acá es lo que no es un subsistema: dónde entran los
 ; `.inc` generados —los dos bytecodes y los datos del cartucho—. Un archivo
 ; nuevo se agrega a la lista en el lugar que le toca en la ROM; la huella de
