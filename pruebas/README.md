@@ -169,6 +169,7 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   conversor, sobre `release` armado
 * `herramientas/test_fork_mapas.py`: el fork de `parches/manual/`
 * `herramientas/test_horneados.py`: los eventos horneados en el mapa
+* `herramientas/test_repartos.py`: los repartos de VRAM, su orden y el del 38
 * `herramientas/test_sustituciones.py`: el tope de `TileSubstitution`
 * `herramientas/test_textos.py`, `herramientas/test_escapes.py`: los cuadros
   de texto rearmados y los escapes `\|` y `\^`
