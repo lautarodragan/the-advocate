@@ -389,6 +389,17 @@ declaración de ese momento.
 
 # Riesgos y preguntas para taro
 
+**Lo que taro ya contestó (2026-09-25):**
+
+* **Primero el espacio, después los mapas.** El orden: el tinte (si tiene
+  sentido arreglarlo), juntar `release` y `test-main`, y en paralelo mirar por
+  qué la música pesa 789 KB y un piloto de fondos de batalla leídos del MSU-1.
+  Este plan se encara cuando terminen esas mejoras, no antes.
+* **Partir mapas, mejor no** (pregunta 2): da ventajas, pero obliga a analizar
+  estáticamente los eventos del mapa y todas sus ubicaciones y cambios, y las
+  fallas no serían obvias. Para el 38 buscar primero otra salida (menos tiles,
+  cargar tiles al caminar) y partir sólo si no hay otra.
+
 1. **El límite del 49.** ¿Qué hace la ROM cuando el jugador elige "We've got to
    get out of here"? Las salidas: (a) un fork del 36 que cambie ese `Teleport`
    por un cartel de fin de demo o por la vuelta al título, y que se borre el día
