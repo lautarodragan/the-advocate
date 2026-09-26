@@ -76,3 +76,26 @@ abrir:
 
 .endproc
 
+; `ShowChoice`: abre la ventana con las opciones y corta el cuadro, igual que
+; un mensaje. La diferencia es que la página **no retoma donde quedó**: cuando
+; el jugador elige, `eleccion_tick` le pone al cursor el destino de la opción
+; marcada. Por eso acá no se guarda `ev_cur`: lo que se guarda es dónde está la
+; tabla, que es de donde salen los dos, el cuadro que se dibuja y el destino.
+.proc op_choice
+    lda [cod_ptr], y            ; cuántas opciones
+    sta eleg_n
+    iny
+    lda [cod_ptr], y            ; qué opción elige cancelar, más uno
+    sta eleg_cancel
+    iny
+    sty eleg_tabla
+    stz eleg_sel                ; `Window_Selectable` arranca con el índice en
+                                ; cero, y la primera opción es la marcada
+    lda #1
+    sta eleg_activo
+    jsr eleg_abrir
+    rts
+
+
+.endproc
+
