@@ -280,7 +280,8 @@ sprite (18 ranuras, 8 paletas). Los tres repartos con ventana dan 448/448,
 sprite** en el segundo. En bytes entraría —476×64 + 347×32 son 41,5 KB de los
 42 que quedan—; lo que no deja es la alineación: el tilemap de BG1 está clavado
 en `$5800` (`VRAM_MAP`) en los cuatro repartos y corta el fondo en 448. Los
-otros 18 convierten.
+otros 18 convierten. (Resuelto el 2026-09-25 con la opción (d) de la pregunta 2:
+ver ahí.)
 
 **El conversor se planta en el 37** antes de llegar a la VRAM: "el evento 11 se
 hornea en el mapa y además se dibujaba con una paleta ajena". Es `PawnDoorTop`,
@@ -417,6 +418,10 @@ declaración de ese momento.
    podar 28 tiles de fondo del 38 en un fork, que es artístico. (c) bajar 91 de
    sprite. (d) mover el tilemap de BG1 por reparto, que es tocar el motor.
    **Recomendado: (a) con la regla de `fork.py` cambiada a propósito.**
+   **(d) está hecho (2026-09-25)**: un cuarto reparto baja el tilemap de BG1 a
+   $1800 y da 480 de fondo con 384 de sprite; el 38 convierte con 4 tiles de
+   fondo y 37 de sprite de margen, sin cambiarle el reparto a ningún mapa. Ver
+   `done/el-tilemap-del-fondo-lo-elige-el-reparto.md`.
 3. **El cartucho.** `release` con esto ronda el 86% —el umbral de revisar la
    decisión de 4 MB— y la carrera viene después. Y `test-main` no entra con los
    18 mapas. ¿`test-main` deja de llevar todos los mapas (y las pruebas de la
