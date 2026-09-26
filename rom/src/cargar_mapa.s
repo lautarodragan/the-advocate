@@ -149,6 +149,18 @@ puesto:
 .a8
     lda f:mapa_tabla + M_BG12NBA_VALUE, x
     sta BG12NBA
+    ; Y el tilemap del fondo, que también sale del reparto: casi siempre en
+    ; $5800, pero no en todos. Se copia a la RAM porque lo suman `build_column`
+    ; y `build_row`, que tienen la X ocupada y no pueden leer la tabla.
+    rep #$20
+.a16
+    lda f:mapa_tabla + M_VRAM_MAP, x
+    sta f:FAR_VRAM_MAPA
+    sep #$20
+.a8
+    xba
+    ora #MAP_LAYOUT
+    sta BG1SC
 
     ; La cámara corrida vuelve a cero al cambiar de mapa, y de golpe: es lo que
     ; hace `Game_Player::PerformTeleport` con `map_changed`, que le devuelve a
@@ -241,7 +253,7 @@ puesto:
 ; Así que se vuelve a subir el banco de tiles con `load_map` —que además trae
 ; la CGRAM de abajo y la del mapa, y el dibujo de la animación que toca—, se
 ; tiñe de nuevo porque lo que subió viene sin teñir, y los registros los pone
-; `ppu_init` más el BG12NBA del mapa. Es un subconjunto de
+; `ppu_init` más el BG12NBA y el BG1SC del mapa. Es un subconjunto de
 ; `cargar_mapa_sin_eventos`, elegido a mano: lo que falta de ahí es estado
 ; —eventos, rutas, poses, la cola de VRAM— y reponerlo reiniciaría el juego.
 ;
@@ -262,6 +274,9 @@ puesto:
     ldx mapa_ofs
     lda f:mapa_tabla + M_BG12NBA_VALUE, x
     sta BG12NBA
+    lda f:mapa_tabla + M_VRAM_MAP + 1, x
+    ora #MAP_LAYOUT
+    sta BG1SC                   ; la pelea lo deja apuntando a su escena
     jsr load_map
     ; Y la capa de encima, por su paleta: las caras de la pantalla usan hasta
     ; ocho paletas de BG2, o sea las entradas 16 a 127, y `load_map` repone
@@ -281,10 +296,12 @@ puesto:
 ; escriben nada más que `RANURA_VRAM` y `RANURA_MAP`, elegidos para caer adentro
 ; del banco de tiles de BG1 en los cuatro repartos. La escena de la batalla no:
 ; `escena_subir` sube **32 KB**, o sea las palabras $4000 a $8000, más su
-; tilemap en $3800 y 64 bytes en la palabra 0. En los tres repartos de
+; tilemap en $3800 y 64 bytes en la palabra 0. En los repartos de
 ; `vram_layout` eso se lleva puesto, además del banco de BG1:
 ;
-;   $5800  el tilemap del mapa          lo llena `fill_window`
+;   $5800  el tilemap del mapa          lo llena `fill_window`; en el reparto
+;                                       que lo baja a $1800 no lo toca, y
+;                                       `fill_window` lo rellena igual
 ;   $7800  el de la capa de encima      el mismo
 ;   $6800  los tiles de la ventana      `load_ventana`, con su tilemap y su HDMA
 ;   los sprites                         `load_sprite`: arrancan en 0, y la

@@ -367,7 +367,7 @@ class Consola:
 
         Se pide en palabras y no en bytes porque así es como el 65816 le habla
         al PPU: `VMADDL` es una dirección de palabra, y los símbolos de `rom/src/`
-        —`VRAM_MAP`, `VRAM_ABOVE_MAP`— están escritos en esas unidades. Pedirla
+        —`VRAM_ABOVE_MAP`, `M_VRAM_MAP`— están escritos en esas unidades. Pedirla
         en bytes obligaría a que cada quien se acuerde del por dos.
 
         Es lo único que deja comprobar el tilemap sin mirar la pantalla: la

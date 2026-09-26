@@ -391,7 +391,12 @@ listo:
     sta VMAIN
     rep #$20
 .a16
-    lda f:mapa_tabla + M_VRAM_ABOVE, x
+    ; La base de BG2 no tiene campo propio en el registro, que está lleno: es
+    ; el nibble alto de BG12NBA, en pasos de 4096 palabras. El byte de arriba
+    ; que trae la lectura de dieciséis bits es ABOVE_FIRST, y se tira.
+    lda f:mapa_tabla + M_BG12NBA_VALUE, x
+    and #$00F0
+    xba
     sta VMADDL
     sep #$20
 .a8

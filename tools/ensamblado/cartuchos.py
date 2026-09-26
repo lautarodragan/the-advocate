@@ -62,8 +62,10 @@ _DE_PRUEBAS = _con_mapas(MAPA_DE_ARRANQUE, "--sin-titulo", "--sin-timer", *[
 #
 # Los mapas son lo de Lashe City que entra. Afuera quedan la persecución en
 # auto, por `ControlVars` de clase 6 —ver `wishlist/la-carrera-en-release.md`—,
-# y los sectores con auto: el 38 no entra en la VRAM, y la elección del 36 es
-# una sola página que compila con sus cuatro destinos o con ninguno.
+# y los sectores con auto: la elección del 36 es una sola página que compila
+# con sus cuatro destinos o con ninguno, y los cuatro son de la etapa de Lashe
+# City. El 38 ya entra en la VRAM —`LAYOUT_VENTANA_AMBOS`—; hasta el
+# 2026-09-25 no entraba.
 RELEASE = "release"
 _DE_RELEASE = ["--grupo", "10", "--map-id", "4", "--mapas",
                "1", "2", "3", "5", "6", "7", "8", "9", "10", "11", "12", "13",

@@ -2068,10 +2068,10 @@ BLOCK_BYTES = 16                # cuatro celdas de BG1 y cuatro de BG2
 # $7800, que son los únicos dos huecos que quedan alineados en los cuatro
 # repartos.
 LAYOUT_VENTANA = {"sprites": (0x0000, 448), "ventana_map": (0x1C00, 1),
-                  "tiles": (0x2000, 448),
+                  "tiles": (0x2000, 448), "mapa": (0x5800, 1),
                   "encima": (0x6000, 128), "ventana": (0x6800, 256)}
 LAYOUT_VENTANA_FONDO = {"sprites": (0x0000, 256), "tiles": (0x1000, 480),
-                        "ventana_map": (0x4C00, 1),
+                        "ventana_map": (0x4C00, 1), "mapa": (0x5800, 1),
                         "encima": (0x6000, 128), "ventana": (0x6800, 256)}
 
 # Y el tercero, que hace lo contrario del segundo: cambia tiles de fondo por
@@ -2104,8 +2104,48 @@ LAYOUT_VENTANA_FONDO = {"sprites": (0x0000, 256), "tiles": (0x1000, 480),
 # que ningún mapa que ya tenía reparto cambia de reparto por esto: sólo lo toman
 # los que en los otros dos no entraban.
 LAYOUT_VENTANA_SPRITE = {"sprites": (0x0000, 512), "tiles": (0x2000, 384),
-                         "ventana_map": (0x5000, 1),
+                         "ventana_map": (0x5000, 1), "mapa": (0x5800, 1),
                          "encima": (0x6000, 128), "ventana": (0x6800, 256)}
+
+# Y el cuarto, el único que **muda el tilemap del mapa**: lo pidió `Sector 34
+# With Car`, el mapa 38, que gasta **476 tiles de fondo y 347 de sprite** y no
+# entraba en ninguno de los tres —le faltaban 28 de fondo en el primero y 91 de
+# sprite en el segundo—. En bytes sí entraba; lo que no dejaba era el tilemap
+# clavado en $5800, que cortaba el banco de BG1 en 448 tiles. Bajándolo a los
+# 2 KB que quedan libres entre los sprites y el fondo:
+#
+#   sprites     $0000  12 KB  384 tiles de 4bpp   base de OBJ en 0
+#   mapa        $1800   4 KB  el tilemap de BG1   <- acá abajo, y no en $5800
+#   tiles       $2000  30 KB  480 tiles de 8bpp   <- la base de BG1
+#   ventana_map $5C00   2 KB  el tilemap de 32x32 de la ventana
+#   encima      $6000   8 KB  128 tiles           <- la base de BG2
+#   ventana     $6800   8 KB  256 tiles           <- los índices 128..383
+#   tilemap     $7800   4 KB  el de la capa de encima, que no se mueve
+#
+# 480 es el techo con 347 sprites aunque el tilemap pudiera ir a cualquier lado
+# —medido enumerando todas las bases que el hardware permite—: el banco de BG1
+# arranca en $2000 porque los sprites pasan de $1000, y el tilemap de la
+# ventana necesita una base múltiplo de 1024 palabras detrás del fondo.
+#
+# Que el tilemap se mueva lo pagan `build_column` y `build_row`, que suman
+# `FAR_VRAM_MAPA` en vez de una constante, y el paso a la capa de encima de
+# `push_strips`, que enmascara en vez de sumar una distancia fija. Por eso
+# **las dos bases tienen que ser múltiplo de 2048 palabras**, y la del mapa no
+# puede ser cero: `col_addr` en cero quiere decir "no hay columna". Lo
+# comprueba `_controlar_repartos`.
+#
+# **Va último a propósito**, por lo mismo que el anterior: ningún mapa que ya
+# entraba cambia de reparto.
+LAYOUT_VENTANA_AMBOS = {"sprites": (0x0000, 384), "mapa": (0x1800, 1),
+                        "tiles": (0x2000, 480), "ventana_map": (0x5C00, 1),
+                        "encima": (0x6000, 128), "ventana": (0x6800, 256)}
+
+# En el orden en que `vram_layout` los prueba. **Se agrega al final**, nunca en
+# el medio: así un reparto nuevo no le cambia el suyo a ningún mapa.
+LAYOUTS = (("VENTANA", LAYOUT_VENTANA),
+           ("VENTANA_FONDO", LAYOUT_VENTANA_FONDO),
+           ("VENTANA_SPRITE", LAYOUT_VENTANA_SPRITE),
+           ("VENTANA_AMBOS", LAYOUT_VENTANA_AMBOS))
 # Cuántas ranuras de partida guardada tiene el cartucho. El mismo número está
 # en `rom/src/partida.s` como `SRAM_RANURAS`, y la ROM lo comprueba: si no dieran iguales,
 # la pantalla mostraría un número de ranuras y la SRAM tendría otro.
@@ -2121,11 +2161,12 @@ RANURAS = 4
 # menú —$4400 y $5000— caían en los sprites de un reparto sin ventana que ya no
 # existe: los NPCs volvían del menú con las poses rotas y el héroe también si
 # no era el del bloque 0. Las de acá están en la intersección del banco de BG1
-# de los tres repartos, que es $2000..$4000:
+# de los cuatro repartos, que es $2000..$4000:
 #
 #   LAYOUT_VENTANA        $2000..$5800
 #   LAYOUT_VENTANA_FONDO  $1000..$4C00
 #   LAYOUT_VENTANA_SPRITE $2000..$5000
+#   LAYOUT_VENTANA_AMBOS  $2000..$5C00
 #
 # La base de tiles de un BG va de a 4096 palabras y el tilemap de a 1024: los
 # tiles en $2000, que con las caras del grupo son unos 300 y pueden llegar a
@@ -2146,7 +2187,8 @@ RANURA_TEXTO_MAX = RANURA_TEXTO_NIVEL + titulo_mod.NIVEL_CIFRAS
 ESCENA_TROZO = 8192
 RANURA_MAP = 0x3C00
 
-VRAM_MAP = 0x5800
+# El tilemap de la capa de encima sí es fijo: el del fondo lo elige el reparto
+# —ver LAYOUT_VENTANA_AMBOS—.
 VRAM_ABOVE_MAP = 0x7800
 
 # Dónde arranca el banco de la ventana **contado desde la base de BG2**, que es
@@ -2165,13 +2207,13 @@ MAX_BLOCKS = 1024
 def vram_layout(tiles, sprites=0):
     """Qué reparto de VRAM le toca a un mapa, según lo que gasta.
 
-    Los dos números se miran en los tres repartos, y se devuelve el primero que
-    entre.
+    Los dos números se miran en los cuatro repartos, y se devuelve el primero
+    que entre.
     """
     # Los dos números se miran en los dos repartos. Antes se miraba el fondo en
     # uno y los sprites en el otro, y eso dejaba pasar un mapa de 620 tiles de
     # fondo a un banco de 512: ver el comentario de LAYOUT_VENTANA_FONDO.
-    for layout in (LAYOUT_VENTANA, LAYOUT_VENTANA_FONDO, LAYOUT_VENTANA_SPRITE):
+    for _nombre, layout in LAYOUTS:
         if tiles <= layout["tiles"][1] and sprites <= layout["sprites"][1]:
             return layout
     raise SystemExit(
@@ -2192,9 +2234,7 @@ def _controlar_ranuras(ranura_tiles):
         raise SystemExit(
             "los %d tiles de la pantalla de ranuras llegan a $%04X y pisan su "
             "tilemap en $%04X" % (ranura_tiles, fin_tiles, RANURA_MAP))
-    for nombre, layout in (("VENTANA", LAYOUT_VENTANA),
-                           ("VENTANA_FONDO", LAYOUT_VENTANA_FONDO),
-                           ("VENTANA_SPRITE", LAYOUT_VENTANA_SPRITE)):
+    for nombre, layout in LAYOUTS:
         base, cuantos = layout["tiles"]
         tope = base + cuantos * (BYTES_PER_TILE // 2)
         for que, desde, hasta in (("los tiles", RANURA_VRAM, fin_tiles),
@@ -2205,6 +2245,49 @@ def _controlar_ranuras(ranura_tiles):
                     "banco de BG1 de LAYOUT_%s es $%04X..$%04X: al volver del "
                     "menú `load_map` no lo repondría"
                     % (que, desde, hasta, nombre, base, tope))
+
+
+def _controlar_repartos():
+    """Que cada reparto respete al hardware y a lo que la ROM supone de él.
+
+    Nada de esto depende del mapa, así que se mira una vez por conversión.
+    """
+    for nombre, layout in LAYOUTS:
+        # En palabras: lo que ocupa cada cosa, y de a cuánto va su base. Los
+        # tiles de sprite y de la capa de encima son de 4bpp, 16 palabras.
+        piezas = {
+            "sprites": (layout["sprites"][1] * 16, 0x2000),
+            "tiles": (layout["tiles"][1] * (BYTES_PER_TILE // 2), 0x1000),
+            "encima": (layout["encima"][1] * 16, 0x1000),
+            "ventana": (layout["ventana"][1] * 16, 1),
+            "ventana_map": (32 * 32, 0x400),
+            # 2048 y no 1024, que es lo que pide `BG1SC`: `push_strips` pasa a
+            # la capa de encima enmascarando once bits. Ver `push_una_columna`.
+            "mapa": (WINDOW_W * WINDOW_H, 0x800),
+        }
+        tramos = [("mapa de encima", VRAM_ABOVE_MAP, VRAM_ABOVE_MAP
+                   + WINDOW_W * WINDOW_H)]
+        for pieza, (largo, paso) in piezas.items():
+            base = layout[pieza][0]
+            if base % paso:
+                raise SystemExit("LAYOUT_%s: %s en $%04X, y su base va de a $%X "
+                                 "palabras" % (nombre, pieza, base, paso))
+            tramos.append((pieza, base, base + largo))
+        if layout["mapa"][0] == 0:
+            raise SystemExit("LAYOUT_%s: el tilemap en $0000, y `col_addr` en "
+                             "cero quiere decir que no hay columna" % nombre)
+        if layout["ventana"][0] - layout["encima"][0] != VENTANA_TILE_BASE * 16:
+            raise SystemExit("LAYOUT_%s: la ventana no arranca en el tile %d de "
+                             "BG2, que es lo que dice VENTANA_TILE_BASE"
+                             % (nombre, VENTANA_TILE_BASE))
+        tramos.sort(key=lambda t: t[1])
+        for (a, _, fin), (b, desde, _) in zip(tramos, tramos[1:]):
+            if fin > desde:
+                raise SystemExit("LAYOUT_%s: %s termina en $%04X y %s arranca "
+                                 "en $%04X" % (nombre, a, fin, b, desde))
+        if tramos[-1][2] > 0x8000:
+            raise SystemExit("LAYOUT_%s: %s se pasa de la VRAM"
+                             % (nombre, tramos[-1][0]))
 
 
 # La ventana de mensaje, partida en dos: lo que la ROM lleva hecho y lo que
@@ -2709,7 +2792,9 @@ MAPA_ESCALARES = [
     ("HERO_START_X", "dónde arranca, en pixeles"),
     ("HERO_START_Y", ""),
     ("VRAM_TILES", "el reparto de la VRAM, en palabras"),
-    ("VRAM_ABOVE", ""),
+    # Dónde va el tilemap del fondo. La base de la capa de encima no tiene
+    # campo: es el nibble alto de BG12NBA_VALUE, y el registro está lleno.
+    ("VRAM_MAP", ""),
     ("VRAM_SPRITE", ""),
     ("VRAM_VENTANA", "0 si esta ROM no lleva ventana de mensaje"),
     ("VRAM_VENTANA_MAP", "y su tilemap propio de 32x32"),
@@ -2809,7 +2894,7 @@ def campos_del_mapa(mapa):
         "CAM_MAX_Y": max(0, height * CELL - 224),
         "HERO_MAX_X": width * CELL - 16, "HERO_MAX_Y": height * CELL - 16,
         "HERO_START_X": collision[1] * 16, "HERO_START_Y": collision[2] * 16,
-        "VRAM_TILES": layout["tiles"][0], "VRAM_ABOVE": layout["encima"][0],
+        "VRAM_TILES": layout["tiles"][0], "VRAM_MAP": layout["mapa"][0],
         "VRAM_SPRITE": layout["sprites"][0],
         "VRAM_VENTANA": layout.get("ventana", (0, 0))[0],
         "VRAM_VENTANA_MAP": layout.get("ventana_map", (0, 0))[0],
@@ -3791,9 +3876,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "MAPA_COUNT   = %d\n"
         "MAPA_STRIDE  = %d\n"
         "MAPA_INICIAL = %d\n"
-        "; Lo que no depende del mapa: el tilemap vive siempre en el mismo\n"
-        "; lugar de la VRAM, y el paso de la tabla de NPCs no cambia.\n"
-        "VRAM_MAP       = $%04X\n"
+        "; Lo que no depende del mapa: el tilemap de la capa de encima vive\n"
+        "; siempre en el mismo lugar de la VRAM —el del fondo lo elige el\n"
+        "; reparto, M_VRAM_MAP—, y el paso de la tabla de NPCs no cambia.\n"
         "VRAM_ABOVE_MAP = $%04X\n"
         "MAP_LAYOUT  = %d\n"
         "NPC_STRIDE  = %d\n"
@@ -4133,7 +4218,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         ".assert TITULO_MENU_CGRAM = %d, error, \"dos cuentas del CGRAM del menú\"\n\n"
         % (", ".join("%d %s" % (m["id"], m["nombre"]) for m in mapas),
            len(mapas), MAPA_STRIDE, inicial,
-           VRAM_MAP, VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
+           VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
            NPC_QUIETO,
            EV_STRIDE, EV_MAX, RUTA_EV_MAX,
            PAGINA_BYTES, GIRO_NINGUNO, RUTA_GRAF_MAX,
@@ -6432,6 +6517,7 @@ def main():
                      "items_paletas": items_paletas,
                      "items_glifos": items_glifos}
     _controlar_ranuras(len(ranura_tiles))
+    _controlar_repartos()
     print("  pantalla de ranuras: %d, %d tiles de 4bpp (%d B) + %d paletas, "
           "%d B de celdas; %d actores con cara: %s"
           % (RANURAS, len(ranura_tiles), len(ranura_tiles) * 32,

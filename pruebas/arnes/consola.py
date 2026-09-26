@@ -688,8 +688,11 @@ class Partida:
         cols, filas = self.simbolos["WINDOW_COLS"], self.simbolos["WINDOW_ROWS"]
         # Las dos pantallas de 32x32 del tilemap no son contiguas: la de la
         # derecha vive 1024 palabras más adelante, que es como las escribe
-        # `push_strips`.
-        fondo = self.consola.vram(self.simbolos["VRAM_MAP"], 32 * 32 * 2)
+        # `push_strips`. Dónde está el del fondo depende del reparto del mapa,
+        # y la ROM lo deja en `FAR_VRAM_MAPA`.
+        bajo, alto_ = self.consola.ram(
+            en_la_wram(self.simbolos["FAR_VRAM_MAPA"]), 2)
+        fondo = self.consola.vram(bajo | (alto_ << 8), 32 * 32 * 2)
         encima = self.consola.vram(self.simbolos["VRAM_ABOVE_MAP"], 32 * 32 * 2)
         visto = {}
         for my in range(win_row, win_row + self.simbolos["VIEW_ROWS"]):
