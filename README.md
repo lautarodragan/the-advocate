@@ -88,110 +88,6 @@ escribe es **Ditto** (`tools/ditto/`), que además sabe volver: `ditto pack` rea
 en `rom/build/ditto-exacto/` y que no se versiona—. El porqué de la decisión
 está en `DITTO.md` y lo que hay adentro, en `data/README.md`.
 
-#### Varios temas en el cartucho
-
-**Lo que los limita no es el cartucho: es la ARAM.** Las muestras viven en los
-64 KB del SPC700 y se suben una sola vez al arrancar, con el protocolo del IPL,
-que después de saltar al driver ya no está. De streams sobra lugar —tres temas
-son 95 KB de los 480 que quedan— pero de bancos de muestras entra uno solo, y
-el de `escape_newyork` son 32 KB.
-
-Gana **un solo banco compartido**, y lo que lo decide es el tiempo: subir
-32 KB byte a byte con acuse es del orden de medio segundo, o sea que un
-`PlayBGM` frenaría el juego treinta cuadros. Volver a subir se puede —la ROM
-manda el SPC700 de vuelta al IPL en cada cambio de mapa, ver
-`paquete_cargar`—, así que lo que queda por resolver es dónde se paga ese
-freno: `workflow/wishlist/presupuesto-de-muestras-por-paquete.md`.
-
-Compartir sale casi gratis porque **el banco es por programa de General MIDI**:
-dos temas que tocan piano usan la misma muestra. Lo que crece es la cantidad de
-programas distintos, y ahí estaba la trampa: `build_bank` repartía el
-presupuesto en partes iguales, así que doce programas recibían la mitad que
-cinco y el piano de `escape_newyork` bajaba de 22,1 a 12,6 kHz. **Lo que lo
-arregla es repartir lo que sobra**: un instrumento corto, o uno que topa en
-`MAX_RATE`, no gasta su parte —con cinco programas sobraban 10 de los 40 KB— y
-devolvérsela a los que sí la gastaron los deja a todos donde estaban. Está
-medido y es exacto, no aproximado: las escrituras melódicas al DSP del stream
-de `evilrhys` con el banco compartido son **las mismas 8627** que con un banco
-propio, byte por byte.
-
-Lo que sí cambia es la percusión. Ahí no hay programas que compartir: cada
-tecla es un golpe distinto, así que dieciocho golpes se reparten lo que ocho
-tenían. Se le da lo que sobre de ARAM en vez de un presupuesto fijo, que
-alcanza para que los platos vuelvan a su tasa nativa, pero un bombo de tres
-temas juntos igual queda más grueso que solo. Es el precio de compartir.
-
-**Y un tema que no entra en el banco no se cae del cartucho.** Sacar temas de la
-lista entera cuando el banco no entra en la ARAM cuesta dos cosas distintas, y la
-segunda es la cara: un `PlayBGM` de ese tema no hace nada, y **su pista de MSU-1
-queda inalcanzable**, porque una pista no gasta un byte de ARAM y lo único que
-necesita es que el tema tenga número. Con los 29 mapas de Lashe City la ROM pide
-19 temas y el banco se llena —89 muestras y 66353 B contra los 64512 de ARAM—;
-entre los que se caían estaba el del título, que va último porque agregarlo al
-final es lo único que no renumera el bytecode.
-
-La lista es completa siempre —un índice y su stream cuestan cartucho, y
-de eso sobra— y lo que se recorta es **quién aporta programas al banco**, en
-orden de prioridad: primero el del título, después el del mapa donde la ROM
-arranca, y detrás la lista tal cual. Un tema que no aporta suena con lo que
-otros ya pusieron, porque el banco es por programa de General MIDI. Antes no
-sonaba ninguno.
-
-**Lo que cuesta, contado en notas.** Una nota cuyo programa no está en el banco
-no suena más bajo: **se cae del stream** —el `continue` de `build_events`— y la
-voz desaparece. Los primeros de la lista quedan enteros y los últimos mutilados;
-cuáles y cuánto lo dice el informe del conversor, tema por tema.
-
-Jugando no se oye como un deterioro progresivo aunque lo parezca: es un tema
-distinto por mapa, y el recorte se lleva a los últimos de la lista, que es más o
-menos el orden en que se visitan los mapas. Y **no lo tapa el MSU-1**: los temas
-que el recorte alcanza son justamente los que no tienen pista.
-
-**El lever para decidirlo de oído es `--banco-entero`**, que le saca el tope a
-`build_varios`. Corriendo el conversor con y sin el flag se ve el canje en sus
-dos líneas —cuántas muestras entran, cuántos bytes ocupan, la tasa mediana y
-cuántos temas quedan mutilados—: o los primeros perfectos y los últimos con la
-mitad de las notas, o todos enteros y todos bastante más chillones. Con
-`--banco-entero` el banco deja de entrar en la ARAM de una vez, y eso está
-bien: ahí vive **un paquete de mapa por vez**. Cuál de las dos suena peor no lo
-contesta un número.
-
-**Por qué el límite sigue estando, ahora que el audio sube por paquetes de
-mapa.** En la ARAM no vive el banco entero sino el directorio y **un** paquete,
-así que el hardware aguanta de sobra: el conversor imprime el directorio y el
-peor paquete, y entran. Lo que no aguanta es el oído: los mismos 40 KB
-melódicos repartidos entre casi el doble de programas bajan la tasa mediana a
-la mitad, y eso se lo cobran los temas que hoy suenan bien. El límite se queda
-hasta que haya un presupuesto **por paquete** en vez de por banco; está en "Lo
-que falta".
-
-**En la ROM cambia poco.** Tres tablas de un byte —`tema_lo`, `tema_hi`,
-`tema_bk`— en el banco 0, porque se leen con un índice; `music_start` toma el
-índice en A y arma el puntero; `tema_actual` recuerda cuál está sonando, que es
-lo que `music_frame` necesita para volver a empezar el mismo cuando el stream
-termina. Cambiar de tema **no cuesta un cuadro**: no hay nada que subir.
-
-De paso se fue el `.bloque` de los tres bloques de música. Eso es relleno para
-que un DMA no cruce de banco, y nada de acá va por DMA: el driver y las
-muestras se mandan byte a byte —`spc_block` hace el salto de banco a mano— y el
-stream lo recorre `advance`, que hace el mismo salto. Puesto igual, un stream
-de más de 32 KB alineaba a banco **y cruzaba lo mismo**: eran hasta 32 KB de
-relleno por bloque a cambio de nada.
-
-**Lo que sí cuesta caro es el arranque.** La subida al SPC700 va byte a byte con
-acuse, unos 1,4 cuadros por kilobyte, así que un banco de 62 KB tarda el doble
-que uno de 32, y `BOOT_CUADROS` está dimensionado sobre el techo por eso: ver
-"El arranque dura siempre lo mismo".
-
-**Que las notas de cada tema salgan de los índices de muestra del banco de
-todos no lo verifica ninguna prueba**: lo medía `just bgm`, que se fue el
-2026-09-19 —ver "Cómo se verificaba el audio"—. Las pruebas son visuales.
-
-**`evilrhys` está al límite, y no por el banco compartido**: las escrituras
-melódicas de su stream son las mismas con banco propio y con banco compartido.
-Lo que lo tiene al límite es que tiene ocho canales melódicos para seis voces,
-así que dos no suenan nunca y los seis que quedan son monofónicos.
-
 #### Los eventos translúcidos van horneados
 
 El "Trans" de una página —`translucent`— en RM2k dibuja el evento con
@@ -254,67 +150,23 @@ Y una tabla mudada, o una que se recorra con `[ptr], y`, **tiene que
 declararse con `.bloque`** para no quedar partida entre dos bancos: ver
 `bloque` en `tools/port/snes_convert.py`.
 
-### Cómo está armado
+### Cómo está armado el audio
 
-El audio lo maneja el **SPC700**, un procesador aparte con sus propios 64 KB. El
-65816 no puede tocar el DSP: sólo hablarle al SPC700 por cuatro puertos. Al
-encender, el SPC700 corre una ROM interna con un protocolo de carga; se lo usa
-para meterle las muestras y un driver, y después ese driver se queda esperando
-pares (registro, valor) que le pasa el 65816.
+El audio lo maneja el **SPC700**, un procesador aparte con sus propios 64 KB
+de ARAM. El 65816 no puede tocar el DSP: sólo hablarle al SPC700 por cuatro
+puertos. Al encender, el SPC700 corre una ROM interna con un protocolo de
+carga, el IPL; con él se suben un driver mínimo y el directorio de muestras, y
+de ahí en más el driver atiende comandos: pares (registro, valor) para el DSP,
+y ternas de bytes para subir a la ARAM el paquete de muestras de cada mapa
+mientras la música suena. Ver `DRIVER` en `tools/audio/snes_music.py`.
 
-Eso deja el mismo reparto que en la Mega Drive: **toda la lógica en Python, y en
-la consola sólo un intérprete de un stream de escrituras.** El driver del SPC700
-son **20 bytes**.
-
-    rom/src/spc700.s             65816: la carga al SPC700
-    rom/src/musica.s             65816: el reproductor del stream
-    tools/audio/spc700.py        ensamblador de SPC700, porque no hay uno empaquetado
-    tools/gunter/                Gunter: códec BRR y lector de SoundFont, en Rust
-    tools/audio/muestras_brr.py  el puente entre el conversor y ese binario
-    tools/audio/sdsp.py          registros del DSP y el banco de timbres
-    tools/audio/snes_music.py    el MIDI del mapa a muestras y stream
-
-El valor por familia está en `sdsp.py` y se elige de oído, como el resto del
-banco: el piano y la campana resuenan (11 y 9, unos 300-400 ms), el órgano y los
-vientos cortan casi con la nota (17, unos 130 ms).
-
-### La percusión
-
-Era lo que peor sonaba, y por lejos: el generador de ruido del DSP con la
-frecuencia cambiada por golpe. Ahora cada golpe tiene su grabación, del kit
-estándar de General MIDI —banco 128 del SoundFont, donde cada tecla es un
-instrumento distinto en vez de una altura distinta—. El tema de prueba usa
-cinco: bombo, charles cerrado, ride, cabasa y maracas.
-
-Dos decisiones acá:
-
-**Se recorta a medio segundo.** El ride de FluidR3 dura 2,6 segundos y el
-charles cerrado 0,7, casi todo cola que se apaga. Enteros costarían más que
-todos los melódicos juntos; se cortan y el resto lo hace la envolvente del DSP,
-que es para lo que sirve.
-
-**El presupuesto se reparte por brillo, no por uso.** El primer intento repartió
-por cuántas veces suena cada golpe, y salió al revés de lo que hacía falta: el
-bombo suena cien veces y no tiene un solo agudo, se llevó 24 kHz; el ride suena
-dieciséis y es todo agudo, quedó en 4 kHz y sonaba a lata. Ahora se le mide el
-centroide espectral a cada muestra —la energía de las diferencias entre muestras
-consecutivas contra la energía total, que es la misma cuenta sin necesidad de
-una FFT— y la tasa sale de ahí:
-
-    bombo       brillo    473 Hz  ->   4000 Hz
-    charles     brillo   9218 Hz  ->  17002 Hz
-    ride        brillo   8012 Hz  ->  14780 Hz
-    cabasa      brillo  11012 Hz  ->  18448 Hz
-
-Con el mismo total de bytes. La percusión se lleva además una segunda voz del
-DSP: con una sola, un bombo y un charles que caen en el mismo cuadro se pisan, y
-en un patrón de batería eso pasa todo el tiempo. Cuesta un punto de cobertura
-melódica (90% a 89%) y se nota mucho menos que perder la mitad de los golpes.
-
-Ocho voces, todas iguales, contra las nueve de la Mega Drive —seis de FM
-decentes y tres de onda cuadrada—. Con el reparto de voces por cobertura, que es
-el mismo código de `md_music.py`, se reproduce el **90%** del tiempo-nota del
-tema de prueba contra el 95% de la Mega Drive.
+**Toda la lógica vive en Python**: el conversor decide qué nota va a qué voz,
+con qué muestra y con qué envolvente, y deja por tema un stream **por nota**.
+En la consola, el 65816 lo expande a escrituras al DSP cuadro a cuadro
+—`music_frame`, en `rom/src/musica.s`— y se las pasa al driver; el formato
+está en "el formato por nota" de `snes_music.py`. Las muestras salen del
+SoundFont con el que se compuso el juego, y qué va a la ARAM en cada mapa lo
+dice `workflow/decisiones/un-solo-banco-de-muestras.md`.
 
 ### Toolchain
 
@@ -353,14 +205,6 @@ Hoy todas las etiquetas a las que se llega saltando con otro ancho lo declaran
 con `.a8`/`.a16`/`.i8`/`.i16`, pero **no lo comprueba nadie**: una etiqueta
 nueva que lo necesite y no lo diga es un `BRK` que aparece lejos. Si
 una ROM se va por la ventana sin razón aparente, mirar primero ahí.
-
-### Cómo se verificaba el audio
-
-Lo que sí queda de ellas son los números de `sdsp.py`: el DSP suma las ocho
-voces y recién después aplica el volumen general, sin limitar en el medio; la
-primera versión saturaba (pico 32768 clavado) y el techo por voz salió de medir
-el pico del WAV, no de la teoría, porque la teoría supone que todas las voces
-pican juntas y en fase y eso no pasa nunca.
 
 ### Trampas del hardware
 
