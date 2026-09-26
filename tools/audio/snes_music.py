@@ -261,6 +261,11 @@ SE_VOZ2 = 6
 # nombre aparte para la misma WAV, que `_compilar` pone sólo en el mapa 1,
 # porque el 3 también pide el trueno y ahí entero no entra sin bajarle la
 # tasa a su tema.
+#
+# Y es el único que **sí** lo paga la música, si hace falta: taro lo eligió
+# entero a 22 kHz escuchándolo, antes de esta regla. En `release` su paquete
+# no limita a ninguna muestra, así que no le cuesta nada a nadie; en
+# `test-special`, que lleva otros temas, sí, y ahí el trueno gana.
 SE_ENTEROS = {
     "Thunder9@entero": 22050,
     "Sword3": 22050, "Monster2": 22050, "Recovery4": 22050, "Flame5": 22050,
@@ -271,6 +276,7 @@ SE_ENTEROS = {
     "Sword2": 11025, "Dark1": 11025, "Sword1": 11025,
     "Numbness3": 6000, "Refer Book": 6000, "Earth1": 6000, "Thunder5": 6000,
 }
+SE_ENTEROS_PAGADOS = {"Thunder9@entero"}
 
 
 class Efecto:
@@ -1742,7 +1748,8 @@ def _enteros_entran(banco, paquetes, herencia, efectos, presupuestado,
     banco.enteros_de_mas = {}
     for paquete in paquetes:
         nombre, suyas = paquete[0], set(paquete[2]) & set(efectos)
-        enteros = sorted(e for e in suyas if e in SE_ENTEROS)
+        enteros = sorted(e for e in suyas
+                         if e in SE_ENTEROS and e not in SE_ENTEROS_PAGADOS)
         if not enteros:
             continue
         ocupan = sum(len(efectos[e].data) for e in suyas)
@@ -1760,7 +1767,8 @@ def _enteros_entran(banco, paquetes, herencia, efectos, presupuestado,
     efectos_de = {p[0]: set(p[2]) & set(efectos) for p in paquetes}
     for nombre, heredado in herencia:
         suyas = efectos_de[nombre]
-        if not any(e in SE_ENTEROS for e in suyas):
+        if not any(e in SE_ENTEROS and e not in SE_ENTEROS_PAGADOS
+                   for e in suyas):
             continue
         musica = banco.ocupa(claves_de[nombre]
                              | set(banco.asignacion[heredado].values()))
@@ -1820,7 +1828,7 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     # vaya entero. Ver `SE_ENTEROS`.
     presupuestado = {n: len(e.data) for n, e in efectos_hechos.items()}
     for n in efectos_hechos:
-        if n in SE_ENTEROS:
+        if n in SE_ENTEROS and n not in SE_ENTEROS_PAGADOS:
             presupuestado[n] = len(build_efecto(n, game_dir, enteros={}).data)
 
     # Las claves que el SoundFont tiene; las demás no suenan en ningún lado.
