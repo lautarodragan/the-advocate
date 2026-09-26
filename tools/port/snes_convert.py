@@ -3270,6 +3270,22 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
     return datos
 
 
+def fondo_bytes(info):
+    """Un fondo de batalla como lo lee la consola: `(tiles, colores)`, sus 512
+    tiles de 8bpp en el orden del tilemap y sus `COLORES` colores de 15 bits,
+    rellenos con negro."""
+    E = escena_mod
+    tiles_ = bytearray()
+    for celda in E.tiles(info["indices"]):
+        tiles_ += pack_tile(celda, planes=8)
+    colores = list(info["paleta"])
+    colores += [(0, 0, 0)] * (E.COLORES - len(colores))
+    cgram = bytearray()
+    for color in colores:
+        cgram += cgram_word(color).to_bytes(2, "little")
+    return bytes(tiles_), bytes(cgram)
+
+
 def escenas_asm(datos, tropas, db):
     """La escena de batalla del cartucho, lista para el `.inc`.
 
@@ -3338,21 +3354,14 @@ def escenas_asm(datos, tropas, db):
     if not fondos:
         punteros.append("    .dword 0")
     out.append("\n".join(punteros))
-    cgram = bytearray()
-    for info in fondos:
-        colores = list(info["paleta"])
-        colores += [(0, 0, 0)] * (E.COLORES - len(colores))
-        for color in colores:
-            cgram += cgram_word(color).to_bytes(2, "little")
-    out.append(bloque("fondo_cgram", bytes(cgram) or b"\x00\x00"))
+    bytes_de = [fondo_bytes(info) for info in fondos]
+    cgram = b"".join(colores for _tiles, colores in bytes_de)
+    out.append(bloque("fondo_cgram", cgram or b"\x00\x00"))
     # Sesenta y cuatro ceros: el tile transparente con el que se tapa lo que
     # queda abajo de la escena, y de paso el origen fijo del DMA que llena de
     # cero el fondo liso.
     out.append(bloque("escena_cero", bytes(64)))
-    for k, info in enumerate(fondos):
-        tiles_ = bytearray()
-        for celda in E.tiles(info["indices"]):
-            tiles_ += pack_tile(celda, planes=8)
+    for k, (tiles_, _colores) in enumerate(bytes_de):
         for t in range(trozos):
             out.append(bloque("fondo_%d_%d" % (k, t),
                               bytes(tiles_[t * ESCENA_TROZO:
