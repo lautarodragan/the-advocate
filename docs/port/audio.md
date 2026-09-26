@@ -44,8 +44,10 @@ muestra y con qué envolvente, y la consola sólo reproduce.
   `rom/src/efectos_de_sonido.s` y `build_efectos` en `snes_music.py`. Los
   que van enteros y a más tasa —`SE_ENTEROS`— se acomodan en lo que la música
   deja libre en cada paquete, así que no le bajan la tasa a ningún
-  instrumento; el trueno de la apertura es el único que la música paga:
-  `workflow/decisiones/el-trueno-va-entero-a-22-khz.md`.
+  instrumento. Los de `SE_ENTEROS_PAGADOS` —el trueno de la apertura y los
+  que taro eligió enteros aunque costaran— sí los paga la música de su
+  paquete: `workflow/decisiones/el-trueno-va-entero-a-22-khz.md`. Uno que en
+  un mapa suena con otra muestra es un alias: `SE_DEL_MAPA`.
 * **El `FadeOutBGM` baja el tema y nada más**: el volumen de cada voz de la
   música, o el de la pista del MSU-1, y nunca el general del DSP, que es
   también el de los efectos. `bgm_fundido_tick`, en `rom/src/musica.s`.

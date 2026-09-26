@@ -258,14 +258,13 @@ SE_VOZ2 = 6
 # `decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`).
 #
 # El trueno de la apertura es un alias: lo que va después de la `@` es un
-# nombre aparte para la misma WAV, que `_compilar` pone sólo en el mapa 1,
-# porque el 3 también pide el trueno y ahí entero no entra sin bajarle la
-# tasa a su tema.
+# nombre aparte para la misma WAV, que `_compilar` pone sólo en el mapa 1
+# (ver `SE_DEL_MAPA`), porque el 3 también pide el trueno y ahí a 22 kHz no
+# entra.
 #
-# Y es el único que **sí** lo paga la música, si hace falta: taro lo eligió
-# entero a 22 kHz escuchándolo, antes de esta regla. En `release` su paquete
-# no limita a ninguna muestra, así que no le cuesta nada a nadie; en
-# `test-special`, que lleva otros temas, sí, y ahí el trueno gana.
+# Y **sí** lo paga la música, si hace falta: taro lo eligió entero a 22 kHz
+# escuchándolo, antes de esta regla. Lo mismo los de abajo, en
+# `SE_ENTEROS_PAGADOS`.
 SE_ENTEROS = {
     "Thunder9@entero": 22050,
     "Sword3": 22050, "Monster2": 22050, "Recovery4": 22050, "Flame5": 22050,

@@ -26,6 +26,8 @@ el mapa 1: el 3 también pide el trueno, y ahí entero no entra sin bajarle la
 tasa a su tema. Desde el 2026-09-26 hay más efectos enteros (`SE_ENTEROS` en
 `tools/audio/snes_music.py`), pero con otra regla: ésos van sólo en lo que la
 música deja libre en cada paquete, y no le cuestan nada a ningún instrumento.
-**El trueno es el único que la música paga si hace falta** —en `release` no
-hace falta: su paquete no limita a ninguna muestra—, porque taro lo eligió
-así antes de esa regla. Ver `tasks/*/efectos-de-sonido-sin-recortes.md`.
+**El trueno lo paga la música si hace falta** —en `release` no hacía falta:
+su paquete no limitaba a ninguna muestra—, porque taro lo eligió así antes de
+esa regla. Después eligió igual los demás que no entraban en lo libre
+(`SE_ENTEROS_PAGADOS`), y con la lluvia entera al lado el paquete del mapa 1
+pasó a limitar. Ver `tasks/*/efectos-de-sonido-sin-recortes.md`.
