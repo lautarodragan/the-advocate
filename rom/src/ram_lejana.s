@@ -587,6 +587,32 @@ MUS_BITACORA_LARGO = $200
 ; partida**: cargar un mapa lo pone en cero.
 ANIMB_BUF = $7E7000
 
+; --- LZ2: lo que el cartucho trae comprimido, en la WRAM --------------------
+;
+; Ver `lz2_descomprimir` en descomprimir.s. Reservado el 2026-09-26:
+;
+;   $7E7800  las dos trampas de `mvn`, cuatro bytes cada una, que se arman con
+;            los bancos de cada llamada, y el banco de la salida
+;   $7F0000  el buffer de carga: cada bloque de tiles se descomprime acá y se
+;            sube a la VRAM con el mismo DMA de antes. Vale sólo mientras se
+;            carga; la escena de la pelea usa el banco $7F entero —ver
+;            `ESC_LIMPIO`—, y nada de acá tiene que sobrevivirle
+;   $7F6000  los dibujos de la animación del ChipSet del mapa, que `anim_subir`
+;            sube cada vez que cambia el reloj: **viven mientras se esté en el
+;            mapa**, y por eso van arriba del buffer y se descomprimen después
+;            de los tiles del fondo y antes de la capa de encima y los
+;            sprites. Lo que sí se los lleva es la pelea, y `volver_al_mapa`
+;            los vuelve a descomprimir
+;
+; Los topes de cada bloque los cobra `descomprimir.s` contra los que emite el
+; conversor.
+LZ2_TRAMPA_LIT = $7E7800        ; mvn salida, flujo; rtl
+LZ2_TRAMPA_REP = $7E7804        ; mvn salida, salida; rtl
+LZ2_BANCO      = $7E7808        ; el banco de la salida
+LZ2_BUFFER     = $7F0000
+ANIM_DIBUJOS   = $7F6000
+ANIM_DIBUJOS_FIN = $7F8000
+
 ; En qué cuadro termina el arranque, contado desde el reset. El arranque
 ; —cargar el mapa, subir el driver al SPC700 y el paquete de audio del mapa—
 ; tarda lo que tarda, y eso cambiaba con cada cambio de código o de datos: un

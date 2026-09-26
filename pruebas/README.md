@@ -73,6 +73,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_salto_atraviesa.py`, `rpgmaker/test_salto_colgado.py`: saltos
   con atravesar, y al final de una ruta forzada
 * `rpgmaker/test_puerta_misma.py`: una puerta al mismo mapa
+* `rpgmaker/test_carga_descomprimida.py`: la VRAM y la WRAM después de
+  cargar cada mapa, contra lo que el conversor dejó sin comprimir
 * `rpgmaker/test_camara.py`: la ventana del tilemap contra la cámara
 * `rpgmaker/test_accion_propia.py`: la tecla de acción sobre la celda del héroe
 * `rpgmaker/test_terreno.py`: `StoreTerrainID`

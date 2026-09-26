@@ -72,3 +72,21 @@ def comprimir_varios(bloques):
 
 def comprimir(bloque):
     return comprimir_varios([bloque])[0]
+
+
+def comandos(flujo):
+    """Cuántos comandos tiene un flujo: lo que cuesta descomprimirlo depende
+    de esto y de cuántos bytes salen. Lee sólo los encabezados."""
+    i, n = 0, 0
+    while flujo[i] != 0xFF:
+        encabezado = flujo[i]
+        if encabezado >> 5 == 7:
+            comando = (encabezado >> 2) & 7
+            largo = ((encabezado & 3) << 8 | flujo[i + 1]) + 1
+            i += 2
+        else:
+            comando, largo = encabezado >> 5, (encabezado & 31) + 1
+            i += 1
+        i += {0: largo, 1: 1, 2: 2, 3: 1, 4: 2}[comando]
+        n += 1
+    return n
