@@ -43,6 +43,7 @@ import argparse
 import collections
 import json
 import os
+import shutil
 import sys
 
 # Corrido como script —que es como lo corren las recetas—, Python pone en el
@@ -55,6 +56,7 @@ if __name__ == "__main__":
 
 from ensamblado import bancos
 from port import tiles_bin
+from port import comprimir
 from rpgmaker import event_codes
 from port import eventos
 from rpgmaker import lcf
@@ -1237,9 +1239,9 @@ def banco_de_poses(images, personajes, colores):
     todos: cada uno va con `.bloque`, así que ningún DMA de una pose cruza de
     banco. Y **de la ROM entera, no del mapa**: los mapas 1 y 2 comparten a
     Core, a Manta y a Kersh, y con una copia por mapa la ROM del arranque con
-    ventana se pasaba del cartucho por 19 KB. La pose `p` del personaje `g`
-    está en `sprite_poses_g + p * 512`, con `g` el índice de la ROM; el mapa
-    lleva sus personajes animados en orden y `emit` traduce.
+    ventana se pasaba del cartucho por 19 KB. `emit` los parte en poses y
+    emite cada pose distinta una sola vez; el mapa lleva sus personajes
+    animados en orden y `emit` traduce.
     """
     bancos = {}
     for charset, index in personajes:
@@ -3816,16 +3818,36 @@ class Materiales:
     mismos de siempre y la ROM sale byte por byte igual: es a propósito, para
     que este paso se pueda verificar sin depender de la tanda.
 
-    `sprite_poses` ya funcionaba así desde antes —`indice_global` en `emit`— y
-    es de donde sale la forma.
+    Las poses ya funcionaban así desde antes —`indice_global` en `emit`— y es
+    de donde sale la forma.
     """
 
-    def __init__(self, deduplicar=False):
+    def __init__(self, deduplicar=False, comprimidos=None):
         self.deduplicar = deduplicar
         self.donde = {}
         self.cuantos = collections.Counter()
         self.ahorro = collections.Counter()
         self.repetidos = collections.Counter()
+        # {bytes crudos: su flujo LZ2}, ya comprimidos de una vez: ver
+        # `comprimir_los_bloques`. Y cuánto pesaba y pesa cada clase, de los
+        # bloques que sí se emitieron.
+        self.comprimidos = comprimidos or {}
+        self.crudo = collections.Counter()
+        self.lz2 = collections.Counter()
+
+    def guardar_comprimido(self, clase, datos):
+        """Como `guardar`, pero lo que va al cartucho es su flujo LZ2, o sus
+        flujos pegados si el bloque va en trozos: ver `partes_comprimidas`.
+        Se deduplica por el contenido crudo, que es lo mismo que por el
+        flujo."""
+        datos = bytes(datos)
+        flujo = b"".join(self.comprimidos[parte]
+                         for parte in partes_comprimidas(clase, datos))
+        etiqueta, texto = self.guardar(clase, flujo)
+        if texto:
+            self.crudo[clase] += len(datos)
+            self.lz2[clase] += len(flujo)
+        return etiqueta, texto
 
     def guardar(self, clase, datos, alinear=None):
         """(etiqueta, el asm a emitir). El asm es vacío si el bloque ya estaba.
@@ -3847,10 +3869,21 @@ class Materiales:
         return etiqueta, bloque(etiqueta, datos, alinear=alinear)
 
     def informe(self):
-        """Qué se compartió, para que el ahorro sea un número y no una idea."""
+        """Qué se compartió y cuánto se comprimió, para que el ahorro sea un
+        número y no una idea."""
+        lineas = ["  %-14s %6.1f KB en LZ2, eran %6.1f"
+                  % (clase, self.lz2[clase] / 1024.0,
+                     self.crudo[clase] / 1024.0)
+                  for clase in CLASES_COMPRIMIDAS if self.crudo[clase]]
+        if self.crudo:
+            lineas.append("  %-14s %6.1f KB en LZ2, eran %6.1f: %.1f KB menos"
+                          % ("", sum(self.lz2.values()) / 1024.0,
+                             sum(self.crudo.values()) / 1024.0,
+                             (sum(self.crudo.values())
+                              - sum(self.lz2.values())) / 1024.0))
         if not self.deduplicar or not self.ahorro:
-            return []
-        return ["  %-14s %2d bloque(s) compartido(s), %6.1f KB"
+            return lineas
+        return lineas + ["  %-14s %2d bloque(s) compartido(s), %6.1f KB"
                 % (clase, self.repetidos[clase], self.ahorro[clase] / 1024.0)
                 for clase, _ in self.ahorro.most_common()] + [
             "  %-14s %2d              %6.1f KB en total"
@@ -3875,12 +3908,120 @@ def terreno_del_mapa(mapa):
             else bytes(mapa["terreno"]))
 
 
+# Lo que la ROM descomprime al cargar un mapa, por clase de bloque. Ver
+# `lz2_descomprimir` en rom/src/descomprimir.s.
+CLASES_COMPRIMIDAS = ("map_tiles", "above_tiles", "sprite_tiles", "anim_tiles",
+                      "map_celdas")
+
+# Lo más grande que puede medir cada bloque descomprimido, por dónde cae en la
+# WRAM: ver la reserva de LZ2 en rom/src/ram_lejana.s, que es de donde salen, y
+# `.assert` de descomprimir.s, que los cobra contra los de acá. Los tiles del
+# fondo se descomprimen antes que los dibujos de la animación y pueden pisar
+# su lugar; la capa de encima y los sprites van después y no.
+LZ2_TOPE_FONDO = 0x8000
+LZ2_TOPE_ENCIMA_Y_SPRITES = 0x6000
+LZ2_TOPE_ANIM = 0x2000
+LZ2_TOPE_GRILLA = 0x10000       # dos mitades de GRILLA_MITAD
+
+
+# Lo que cuesta descomprimir en la ROM, en ciclos maestros, **por lo alto**:
+# medido el 2026-09-26 sobre los cuarenta mapas de `release`, contra la carga
+# sin comprimir, lo medido no pasa de este modelo por más de medio cuadro. Un
+# cuadro de NTSC son 357.954 ciclos maestros. Lo usa la cuenta del arranque.
+LZ2_CICLOS_POR_COMANDO = 700
+LZ2_CICLOS_POR_BYTE = 60
+CICLOS_POR_CUADRO = 357954
+
+
+def cuadros_de_descomprimir(mapa, comprimidos):
+    """Cuántos cuadros se lleva descomprimir los bloques de un mapa."""
+    ciclos = 0
+    for clase, datos in crudos_del_mapa(mapa).items():
+        if clase not in CLASES_COMPRIMIDAS:
+            continue
+        for parte in partes_comprimidas(clase, datos):
+            ciclos += (comprimir.comandos(comprimidos[parte])
+                       * LZ2_CICLOS_POR_COMANDO
+                       + len(parte) * LZ2_CICLOS_POR_BYTE)
+    return ciclos / float(CICLOS_POR_CUADRO)
+
+
+def comprimir_los_bloques(mapas):
+    """{bytes crudos: flujo LZ2} de todo lo que el cartucho lleva comprimido,
+    con un solo proceso de `lz2`. De paso cobra los topes de la WRAM."""
+    topes = {"map_tiles": LZ2_TOPE_FONDO,
+             "above_tiles": LZ2_TOPE_ENCIMA_Y_SPRITES,
+             "sprite_tiles": LZ2_TOPE_ENCIMA_Y_SPRITES,
+             "anim_tiles": LZ2_TOPE_ANIM,
+             "map_celdas": LZ2_TOPE_GRILLA}
+    partes = []
+    for mapa in mapas:
+        for clase, datos in crudos_del_mapa(mapa).items():
+            if clase not in CLASES_COMPRIMIDAS:
+                continue
+            if clase in topes and len(datos) > topes[clase]:
+                raise SystemExit(
+                    "mapa %d: %s mide %d bytes y en la WRAM entran %d: ver la "
+                    "reserva de LZ2 en rom/src/ram_lejana.s"
+                    % (mapa["id"], clase, len(datos), topes[clase]))
+            partes += partes_comprimidas(clase, datos)
+    partes = list(dict.fromkeys(partes))
+    return dict(zip(partes, comprimir.comprimir_varios(partes)))
+
+
+# La grilla va a la mitad alta de los dos bancos de la WRAM —ver
+# `lz2_grilla`—, así que se comprime en dos flujos de hasta 32 KB: cada uno cae
+# entero en un banco, y el descompresor no tiene que saber cruzar.
+GRILLA_MITAD = 0x8000
+
+
+def partes_comprimidas(clase, datos):
+    """Los trozos de un bloque que se comprimen cada uno en su flujo."""
+    if clase == "map_celdas":
+        return [datos[:GRILLA_MITAD], datos[GRILLA_MITAD:]]
+    return [datos]
+
+
+def crudos_del_mapa(mapa):
+    """{clase: los bytes sin comprimir} de un mapa, para `CLASES_COMPRIMIDAS`."""
+    above, sprite = mapa["above"], mapa["sprite"]
+    return {"map_tiles": bytes(mapa["tiles"]),
+            "above_tiles": bytes(above[0]),
+            "sprite_tiles": bytes(sprite[0]) if sprite else b"",
+            "anim_tiles": bytes(mapa["anim"]),
+            "map_celdas": bytes(mapa["celdas"])}
+
+
+def escribir_crudos(directorio, mapas):
+    """Deja en `directorio/crudos/` lo que la ROM tiene que tener en la VRAM y
+    en la WRAM después de cargar cada mapa, sin comprimir: `<índice>.<clase>
+    .bin`, con el índice del mapa en la ROM.
+
+    Es la otra punta de las pruebas de la compresión: `test_lz2.py` hace la ida
+    y vuelta de cada bloque, y `test_carga_descomprimida.py` compara contra
+    esto lo que la ROM descomprimió. Viene del conversor y no de la ROM
+    justamente para que no sea la ROM la que se contesta a sí misma.
+
+    Se borra entero antes de escribir: un mapa que salió del cartucho dejaría
+    su archivo, y una prueba que recorra el directorio lo miraría.
+    """
+    donde = os.path.join(directorio, "crudos")
+    if os.path.isdir(donde):
+        shutil.rmtree(donde)
+    os.makedirs(donde)
+    for numero, mapa in enumerate(mapas):
+        for clase, datos in crudos_del_mapa(mapa).items():
+            with open(os.path.join(donde, "%d.%s.bin" % (numero, clase)),
+                      "wb") as f:
+                f.write(datos)
+
+
 def datos_del_mapa(mapa, numero, indice_global, materiales):
     """Los bloques de datos de un mapa, con el número pegado a cada etiqueta.
 
-    `indice_global` es el número que lleva en la ROM el banco de doce poses de
-    cada (CharSet, índice) **tal como este mapa lo cuantizó**: ver
-    `banco_de_poses`, y el reparto de bancos en `emit`.
+    `indice_global` son las etiquetas de las doce poses de cada (CharSet,
+    índice) **tal como este mapa lo cuantizó**: ver `banco_de_poses`, y el
+    reparto de poses en `emit`.
     """
     above, sprite = mapa["above"], mapa["sprite"]
     pares = [
@@ -3910,7 +4051,10 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
     ]
     etiquetas, out = {}, []
     for nombre, datos in pares:
-        etiquetas[nombre], texto = materiales.guardar(nombre, datos)
+        if nombre in CLASES_COMPRIMIDAS:
+            etiquetas[nombre], texto = materiales.guardar_comprimido(nombre, datos)
+        else:
+            etiquetas[nombre], texto = materiales.guardar(nombre, datos)
         if texto:
             out.append(texto)
     # Las dos tablas de punteros a las poses de la ROM: la de los NPCs que
@@ -3919,9 +4063,10 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
     out.append(npc_poses_asm(numero, animados, indice_global))
     out.append(actor_table_asm(numero, sprite[4] if sprite else [],
                                animados, indice_global))
-    # La grilla va aparte porque es la única que no se sube por DMA.
-    etiquetas["map_celdas"], texto = materiales.guardar(
-        "map_celdas", mapa["celdas"], alinear=2)
+    # La grilla, en sus dos flujos: ver `lz2_grilla`. Entera en un banco, como
+    # todo lo comprimido, porque el descompresor no cruza.
+    etiquetas["map_celdas"], texto = materiales.guardar_comprimido(
+        "map_celdas", mapa["celdas"])
     if texto:
         out.append(texto)
     out.append(tabla_de_paginas(mapa, numero, etiquetas["evcodigo"]))
@@ -3987,8 +4132,10 @@ def encuentros_de_la_rom(mapas, tree, pasos_de_prueba, tropas):
 def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
          ventana=None, titulo=None, ranuras=None, cartel=None,
          animaciones=None, tropas=(), audio_batalla=None, escenas=None,
-         encuentros=None, paginas_tropa=None):
+         encuentros=None, paginas_tropa=None, comprimidos=None):
     """El .inc que se ensambla junto con main.s.
+
+    `comprimidos` es lo de `comprimir_los_bloques`; si falta se comprime acá.
 
     `titulo` es la pantalla de título —la imagen y su menú— y puede faltar;
     `ranuras` es la pantalla de ranuras y **va siempre**: la abre el save point
@@ -4506,10 +4653,41 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             indice_por_mapa.append(propio)
         handle.write("; --- las poses de los personajes que cambian de pose, "
                      "de toda la ROM ---\n")
-        for g, datos in enumerate(bancos):
-            handle.write(bloque("sprite_poses_%d" % g, datos) + "\n")
+        # **Cada pose una vez**, aunque la repitan varios personajes o el
+        # mismo: las tablas de poses llevan un puntero por pose —`npc_poses`,
+        # `actor_table`—, así que dos iguales apuntan al mismo bloque y la ROM
+        # sube los mismos bytes desde otro lugar. Pasa mucho: los cuadros de
+        # caminata iguales de un mismo CharSet, y los personajes que se
+        # repiten entre mapas con otra cuantización que no cambió una pose.
+        # Cada una con su `.bloque`, porque se sube por DMA.
+        etiqueta_de_pose, poses_de_banco = {}, []
+        for datos in bancos:
+            suyas = []
+            for pose in range(SPRITE_POSES):
+                bytes_ = datos[pose * POSE_BYTES:(pose + 1) * POSE_BYTES]
+                if bytes_ not in etiqueta_de_pose:
+                    etiqueta_de_pose[bytes_] = "pose_%d" % len(etiqueta_de_pose)
+                    handle.write(bloque(etiqueta_de_pose[bytes_], bytes_) + "\n")
+                suyas.append(etiqueta_de_pose[bytes_])
+            poses_de_banco.append(suyas)
         handle.write("\n")
-        materiales = Materiales(deduplicar=True)
+        print("  poses: %d distintas de %d, %.1f KB menos"
+              % (len(etiqueta_de_pose), SPRITE_POSES * len(bancos),
+                 (SPRITE_POSES * len(bancos) - len(etiqueta_de_pose))
+                 * POSE_BYTES / 1024.0))
+        indice_por_mapa = [{par: poses_de_banco[g] for par, g in propio.items()}
+                           for propio in indice_por_mapa]
+        escribir_crudos(os.path.dirname(os.path.abspath(path)), mapas)
+        materiales = Materiales(deduplicar=True,
+                                comprimidos=comprimidos
+                                or comprimir_los_bloques(mapas))
+        handle.write("; Los topes de LZ2, que cobra descomprimir.s\n"
+                     "LZ2_TOPE_FONDO = $%04X\n"
+                     "LZ2_TOPE_ENCIMA_Y_SPRITES = $%04X\n"
+                     "LZ2_TOPE_ANIM = $%04X\n"
+                     "LZ2_TOPE_GRILLA = $%05X\n\n"
+                     % (LZ2_TOPE_FONDO, LZ2_TOPE_ENCIMA_Y_SPRITES,
+                        LZ2_TOPE_ANIM, LZ2_TOPE_GRILLA))
         etiquetas = []
         for numero, mapa in enumerate(mapas):
             handle.write("; --- %d: mapa %d %r ---\n"
@@ -6026,16 +6204,15 @@ def npc_poses_asm(numero, animados, indice_global):
 
     Una entrada por personaje animado —`k`, el mismo índice que lleva la fila
     del NPC en +9 y el actor en su tabla— y en cada una doce punteros de 24
-    bits a `sprite_poses_N_k + pose * 512`. Son simbólicos porque apuntan
-    adentro de bloques que ubica el enlazador, como los de las páginas.
+    bits a sus poses, `pose_N`. Son simbólicos porque apuntan a bloques que
+    ubica el enlazador, como los de las páginas; dos poses iguales son el
+    mismo bloque.
     """
     out = [".bloque %d" % (3 * SPRITE_POSES * max(1, len(animados))),
            "npc_poses_%d:" % numero]
     for par in animados:
         for pose in range(SPRITE_POSES):
-            out.append("    .byte " + puntero(
-                "sprite_poses_%d + %d" % (indice_global[par],
-                                          pose * POSE_BYTES)))
+            out.append("    .byte " + puntero(indice_global[par][pose]))
     if not animados:
         out.append("    .byte $00")     # una etiqueta no puede quedar vacía
     return "\n".join(out)
@@ -6063,8 +6240,7 @@ def actor_table_asm(numero, actores, animados, indice_global):
                 out.append("    .byte $FF, $FF, $FF")
             else:
                 out.append("    .byte " + puntero(
-                    "sprite_poses_%d + %d" % (indice_global[animados[k]],
-                                              pose * POSE_BYTES)))
+                    indice_global[animados[k]][pose]))
     if not actores:
         out.append("    .byte $00")
     return "\n".join(out)
@@ -6777,10 +6953,11 @@ def main():
              paginas_tropa.paginas, len(paginas_tropa.donde),
              len(paginas_tropa.cuerpos), len(paginas_tropa.mensajes.datos),
              len(paginas_tropa.mensajes.textos)))
+    comprimidos = comprimir_los_bloques(mapas)
     informe = emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
                    ventana_datos, titulo_datos, ranuras_datos,
                    args.imagenes.info, animaciones, tropas.ids, audio_batalla,
-                   escenas, encuentros, paginas_tropa)
+                   escenas, encuentros, paginas_tropa, comprimidos)
     # Qué entradas de su paleta usan los dígitos del cronómetro, un bit por
     # entrada y una palabra por mapa, en el orden de `mapa_tabla`.
     # `subir_timer_pal` vuelve a subir sin teñir **ésas** y no la paleta
@@ -6855,7 +7032,7 @@ def main():
     parches_mod.escribir_usos(destino_parches, usos_de_los_parches(
         mapas, renderer.database, renderer.tree))
     if informe:
-        print("material compartido entre mapas:")
+        print("material comprimido y compartido entre mapas:")
         for linea in informe:
             print(linea)
 
@@ -6954,7 +7131,8 @@ def main():
     # pruebas —que cuentan desde ahí— contarían mal. Ver el comentario de
     # `BOOT_CUADROS` en rom/src/ram_lejana.s.
     cuadros, del_paquete = snes_music.cuadros_del_arranque(
-        driver, muestras, hechos, paquetes[args.inicial])
+        driver, muestras, hechos, paquetes[args.inicial],
+        cuadros_de_descomprimir(mapas[args.inicial], comprimidos))
     tope = snes_music.boot_cuadros()
     if cuadros > tope:
         raise SystemExit(

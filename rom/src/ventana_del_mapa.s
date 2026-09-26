@@ -19,9 +19,11 @@
 ; mapa más grande pase de 175 KB —más que la ROM entera— a 40.
 
 ; La grilla llega a 40 KB y no entra en un banco, así que se recorre con un
-; puntero de 24 bits. En LoROM un banco sólo tiene sus 32 K de arriba: pasarse
-; del $FFFF no lleva al $0000 del banco siguiente sino a su $8000, y estas dos
-; rutinas son las únicas que saben eso.
+; puntero de 24 bits. Vive en la mitad alta de los dos bancos de la WRAM
+; —ver `GRILLA`—, que tiene la misma forma que un banco de LoROM: pasarse del
+; $FFFF no lleva al $0000 del banco siguiente sino a su $8000, y estas dos
+; rutinas son las únicas que saben eso. Era así cuando la grilla se leía del
+; cartucho, y por eso pasarla a la WRAM no tocó a nadie más.
 .proc ptr_mas
 .a16
 .i16
@@ -664,13 +666,13 @@ tiras:
     sta win_block
 
     ; celdas = la grilla del mapa + win_block filas. Se suma de a una en vez de
-    ; multiplicar: pasa una sola vez y el 65816 no multiplica.
-    ldx mapa_ofs
-    lda f:mapa_tabla + M_PTR_MAP_CELDAS, x
+    ; multiplicar: pasa una sola vez y el 65816 no multiplica. La grilla está
+    ; en la WRAM, donde la descomprimió `lz2_grilla` al cargar el mapa.
+    lda #.loword(GRILLA)
     sta celdas_ptr
     sep #$20
 .a8
-    lda f:mapa_tabla + M_PTR_MAP_CELDAS + 2, x
+    lda #^GRILLA
     sta celdas_ptr + 2
     rep #$20
 .a16

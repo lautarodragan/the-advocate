@@ -563,12 +563,11 @@ positivo:
 .i16
     rep #$20
 .a16
-    ldx mapa_ofs
-    lda f:mapa_tabla + M_PTR_MAP_CELDAS, x
+    lda #.loword(GRILLA)        ; en la WRAM: ver `lz2_grilla`
     sta celdas_ptr
     sep #$20
 .a8
-    lda f:mapa_tabla + M_PTR_MAP_CELDAS + 2, x
+    lda #^GRILLA
     sta celdas_ptr + 2
     rep #$20
 .a16

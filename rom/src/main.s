@@ -127,6 +127,7 @@ TEXTO_BUF_BYTES = VENTANA_TEXTO_COLS * 2 * 32
 .include "banco_de_la_pantalla.s"
 .include "encuentros.s"
 .include "animacion_de_batalla_cuadros.s"
+.include "descomprimir.s"
 .include "pantalla_de_equipo.s"
 .include "tienda.s"
 .include "cabecera.s"

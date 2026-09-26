@@ -85,6 +85,13 @@ ditto-volcado DIR="/extras/volcado-ditto":
 voodoo-pruebas:
   cd tools/voodoo && cargo test
 
+# LZ2 (`tools/lz2/`): el LC_LZ2 de Nintendo, con el que el conversor comprime
+# los tiles y las grillas que la ROM descomprime al cargar un mapa —ver
+# `tools/port/comprimir.py`—. Sus pruebas no necesitan el juego; las que pasan
+# todos los bloques del cartucho por la referencia son `test_lz2.py`.
+lz2-pruebas:
+  cd tools/lz2 && cargo test --release
+
 # Arma la ROM: `ca65` + `ld65`, más el checksum y la tabla de símbolos que
 # leen las pruebas. Lo usan todas las recetas que ensamblan `main.s`, y también
 # `pruebas/arnes/consola.py`. El mapa de memoria lo escribe el conversor al lado de
@@ -95,15 +102,16 @@ ensamblar := "python3 tools/ensamblado/ensamblar.py"
 # PATH; desde el host conviene `CARGO_ROOT=~/.cargo`, el default de cargo.
 cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
 # --- Las herramientas de Rust ----------------------------------------------
-# `tools/protocol/`, `tools/gunter/`, `tools/ditto/` y `tools/voodoo/` son
-# proyectos aparte, y el port los consume **desde el PATH**, como consume
-# python3 o un core de libretro: ningún script ni prueba de este juego llama a
-# `cargo`. Se instalan una vez y quedan.
+# `tools/protocol/`, `tools/gunter/`, `tools/ditto/`, `tools/voodoo/` y
+# `tools/lz2/` son proyectos aparte, y el port los consume **desde el PATH**,
+# como consume python3 o un core de libretro: ningún script ni prueba de este
+# juego llama a `cargo`. Se instalan una vez y quedan.
 herramientas:
   cargo install --locked --path tools/protocol --root {{cargo_root}}
   cargo install --locked --path tools/gunter --root {{cargo_root}}
   cargo install --locked --path tools/ditto --root {{cargo_root}}
   cargo install --locked --path tools/voodoo --root {{cargo_root}}
+  cargo install --locked --path tools/lz2 --root {{cargo_root}}
 
 # --- Super Nintendo --------------------------------------------------------
 # El port. El toolchain son tres cosas: python, un core de libretro y las
