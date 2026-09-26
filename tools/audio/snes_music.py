@@ -500,26 +500,39 @@ def build_events(notes, voices, programs, drum_voices, banco):
     bank, index_of, drum_index = banco.voces, banco.melodicas, banco.golpes
 
     busy = {}
+    # De quién es cada voz ahora: la última nota que la tomó. El release de
+    # una nota se agenda recién al final, y sólo si llegó a su fin siendo la
+    # dueña: si otra le robó la voz antes, soltarla soltaría a la ladrona.
+    # Hasta el 2026-09-25 se agendaba al tomar la voz y eran 329 notas de
+    # `escape_newyork` cortadas antes de tiempo, casi todas del bajo.
+    owner, robbed, sounded = {}, {}, []
     for note in sorted(notes, key=lambda n: n.start):
         group = voices.get(note.channel)
         if not group:
             continue
+        program = programs.get(note.channel, 0)
+        drums = group[0] in drum_voices
+        # Antes de elegir voz: una nota sin muestra no suena, y si ocupara la
+        # voz le quitaría el lugar a una que sí.
+        source = (drum_index.get(note.pitch) if drums
+                  else index_of.get(program))
+        if source is None:
+            continue                    # el banco no trae ese golpe o programa
 
         free = [v for v in group if busy.get(v, 0) <= note.start]
         voice = min(free or group, key=lambda v: busy.get(v, 0))
         busy[voice] = note.end
+        if voice in owner:
+            robbed.setdefault(id(owner[voice]), note.start)
+        owner[voice] = note
 
-        start, end = frames[note.start], frames[note.end]
+        start = frames[note.start]
         base = voice * 0x10
-        program = programs.get(note.channel, 0)
 
-        if voice in drum_voices:
+        if drums:
             # En General MIDI la nota elige el instrumento, no la altura, así
             # que cada golpe tiene su propia muestra y se toca a su tasa
             # original: transponerla convertiría un bombo en otra cosa.
-            source = drum_index.get(note.pitch)
-            if source is None:
-                continue
             drum = bank[source]
             step = sdsp.pitch_for(drum.root, drum.root, drum.rate)
             level = sdsp.volume(note.velocity, sdsp.CEILING_DRUM)
@@ -534,9 +547,6 @@ def build_events(notes, voices, programs, drum_voices, banco):
                             (base + sdsp.V_ADSR1, 0x8F),
                             (base + sdsp.V_ADSR2, 0xE0)]
         else:
-            source = index_of.get(program)
-            if source is None:
-                continue                # el SoundFont no trae ese programa
             instrument = bank[source]
             step = sdsp.pitch_for(note.pitch, instrument.root, instrument.rate)
             level = sdsp.volume(note.velocity)
@@ -550,8 +560,17 @@ def build_events(notes, voices, programs, drum_voices, banco):
                             (base + sdsp.V_ADSR2, adsr2)]
 
         start.kon |= 1 << voice
-        if voice not in drum_voices:
-            end.release.append((base, sdsp.fade(sdsp.for_program(program))))
+        if not drums:
+            sounded.append((note, base, program))
+
+    for note, base, program in sounded:
+        # Robada en el mismo cuadro en que termina tampoco se suelta: la
+        # ladrona escribe su ADSR1 detrás del release y lo deshace, así que
+        # serían seis bytes que no hacen nada.
+        if robbed.get(id(note), note.end + 1) <= note.end:
+            continue
+        frames[note.end].release.append(
+            (base, sdsp.fade(sdsp.for_program(program))))
 
     return frames
 
