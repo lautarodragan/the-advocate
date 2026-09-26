@@ -19,8 +19,8 @@ from audio import snes_music
 from emulador import retro
 
 import tanda
-from consola import (NUCLEO, Partida, en_la_rom, en_la_wram,
-                     indice_del_tema)
+from consola import (EMPEZAR, NUCLEO, TITULO_AIRE, Partida, en_la_rom,
+                     en_la_wram, indice_del_tema)
 from ensamblado import cartuchos
 
 # Del encendido: a esta altura el tema del título ya suena, y con el MSU-1 lo
@@ -70,10 +70,14 @@ def test_las_pistas_de_release_no_llegan_al_core(tmp_path):
 ARRANQUE = "en-5"
 
 
-def _con_pistas(tmp_path, sin_pista=(), sin_tema_msu=()):
+def _con_pistas(tmp_path, sin_pista=(), sin_tema_msu=(), caso=ARRANQUE,
+                titulo=True):
     """Una copia de `release` con su `.msu` y sus pistas al lado, salvo las de
     los temas `sin_pista` —la tarjeta no las tiene— y con los temas
-    `sin_tema_msu` marcados sin pista en el cartucho. Devuelve la partida."""
+    `sin_tema_msu` marcados sin pista en el cartucho. Devuelve la partida.
+
+    `caso=None` es la partida de verdad, la página 0; `titulo=False` la deja
+    en la pantalla de título, sin elegir nada."""
     uno = tanda.cartucho(cartuchos.RELEASE)
     base = os.path.splitext(uno.sfc)[0]
     with open(uno.sfc, "rb") as archivo:
@@ -95,9 +99,10 @@ def _con_pistas(tmp_path, sin_pista=(), sin_tema_msu=()):
                os.path.join(directorio, "musicdata.inc"))
     for numero in set(snes_music.PISTAS_MSU.values()) - faltan:
         os.symlink("%s-%d.pcm" % (base, numero), "%s-%d.pcm" % (otra, numero))
-    k = uno.casos.index(ARRANQUE)
-    return Partida(sfc, uno.simbolos, uno.mapas, caso=k, salta=uno.saltan[k],
-                   msu=True, titulo=uno.titulo)
+    k = 0 if caso is None else uno.casos.index(caso)
+    return Partida(sfc, uno.simbolos, uno.mapas, caso=k,
+                   salta=bool(k) and uno.saltan[k], msu=True,
+                   titulo=uno.titulo if titulo else None)
 
 
 def _temas(sfc):
@@ -186,3 +191,40 @@ def test_con_msu_la_pista_que_falta_cae_al_spc700_con_sus_muestras(tmp_path):
     falta = _lejano(una, "MSU_FALTA", (tema >> 3) + 1)[tema >> 3]
     assert falta & (1 << (tema & 7)), (
         "la pista de KSSMKEND faltó y MSU_FALTA no lo anotó")
+
+
+# --- con MSU-1, la pista del título se calla al empezar -----------------------
+#
+# Al elegir "Begin the Story", `pantalla_titulo` llama a `music_boot`, que con
+# el mapa inicial callado —el de la apertura no trae tema: lo prende un
+# `PlayBGM`— marcaba `music_apagada` y nada más. El SPC700 quedaba callado,
+# pero la pista del título seguía sonando por el MSU-1 hasta el primer
+# `PlayBGM`, y una pelea en el medio la anotaba como el tema a reponer.
+
+# Cuadros de hardware desde que se elige hasta mirar: los que tarda en cargar
+# el mapa y llamar a `music_boot`, con aire.
+AL_EMPEZAR = 120
+
+
+def test_con_msu_la_pista_del_titulo_no_sigue_en_la_partida(tmp_path):
+    una = _con_pistas(tmp_path, caso=None, titulo=False)
+    una.consola.correr(TITULO_AIRE)
+    titulo = una.simbolos["TEMA_TITULO"]
+    assert una.palabra("tema_actual") == titulo and _lejano(
+        una, "MSU_SUENA")[0], (
+        "la pantalla de título no está tocando su pista por el MSU-1: esta "
+        "prueba no mide nada")
+
+    una.titulo = EMPEZAR
+    una.pasar_el_titulo(EMPEZAR)
+    una.consola.correr(AL_EMPEZAR)
+    assert una.byte("music_apagada"), (
+        "la partida no arrancó con el SPC700 callado: o el mapa inicial "
+        "trae tema, o un `PlayBGM` ya sonó, y el caso no pasa por el camino "
+        "callado de `music_boot`")
+    sigue = _lejano(una, "MSU_SUENA")[0] and una.palabra(
+        "tema_actual") == titulo
+    assert not sigue, (
+        "%d cuadros después de empezar la partida la pista del título sigue "
+        "sonando por el MSU-1: `music_boot` calló el SPC700 y no la pista"
+        % AL_EMPEZAR)

@@ -334,7 +334,11 @@ del_mapa:
 callado:
     lda #1
     sta music_apagada
-    rts
+    ; Y la pista del MSU-1, que `music_apagada` no calla: viniendo del título
+    ; su pista seguía sonando adentro de la partida hasta el primer `PlayBGM`,
+    ; y una pelea en el medio la anotaba como el tema a reponer. Lo cobra
+    ; `test_con_msu_la_pista_del_titulo_no_sigue_en_la_partida`.
+    jmp msu_parar
 suena:
     jmp music_start
 .endproc
