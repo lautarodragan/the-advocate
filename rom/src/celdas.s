@@ -67,8 +67,7 @@ no:
 ;
 ; Un movimiento bloqueado se saltea. En las 26 rutas de eventos que este juego
 ; compila eso pasa **una sola vez**, en el mapa 117, y por esa sola vez hay que
-; modelarlo: si los dos lados lo ignoraran igual, esa ruta duraría ocho cuadros
-; de más de los dos lados y la comparación daría cero.
+; modelarlo: sin eso, esa ruta duraría ocho cuadros de más.
 .proc puede_celda
 .a8
 .i16

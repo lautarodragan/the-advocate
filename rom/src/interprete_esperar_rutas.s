@@ -35,7 +35,7 @@ op_wait_routes_next:
 ; Lo que **no** hace, y es lo que lo separa de `MoveTo`: el paso y el salto en
 ; curso se terminan, y hacia dónde mira cada uno queda donde la ruta lo dejó.
 ; `hay_rutas` los sigue mirando, así que un `ProceedWithMovement` pegado atrás
-; espera los cuadros que le falten al paso; la referencia cuenta igual.
+; espera los cuadros que le falten al paso.
 ;
 ; Y quien tenía ruta propia de página vuelve a la suya con `retomar_pagina`,
 ; que es la misma rutina que corre cuando una forzada termina sola: cancelarla

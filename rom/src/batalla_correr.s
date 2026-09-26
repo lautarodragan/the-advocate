@@ -4,8 +4,8 @@
 ; ya en $7E, y se vuelve con el resultado en `BA_RESULT`.
 ;
 ; Corre **su propio lazo de cuadros**, como `ranuras_pantalla` y como la
-; tienda: `vueltas` no avanza mientras se ve, así que para la referencia la
-; pelea no cuesta ningún tick, tarde lo que tarde el jugador. Ver `OP_BATTLE`
+; tienda: `vueltas` no avanza mientras se ve, así que la pelea no cuesta
+; ningún tick, tarde lo que tarde el jugador. Ver `OP_BATTLE`
 ; en tools/port/eventos.py.
 .proc batalla_correr
 .a8
@@ -273,14 +273,16 @@ i_no_abajo:
 i_mira_a:
     jsr ba_flanco_a
     beq espera4
-    ; A quién curárselo: al primero vivo del grupo.
+    ; A quién dárselo: al primero del grupo al que le sirve —en pie para una
+    ; poción, caído para un elixir—. Si no le sirve a nadie, A no pasa de la
+    ; lista: ver `ba_item_sirve_sobre`.
     lda #0
     sta BA_ACTOR2
 busca_vivo:
     lda BA_ACTOR2
     cmp BA_NACT
-    bcs espera4                 ; no puede pasar: el que ordena está vivo
-    jsr ba_vivo
+    bcs espera4
+    jsr ba_item_sirve_sobre
     bne hay_blanco_act
     inc BA_ACTOR2
     bra busca_vivo
@@ -612,18 +614,19 @@ ver_abajo:
 listo_ver:
     rts
 
-; El cursor de a quién se le da el ítem, al actor vivo de arriba o de abajo.
-; Si para ese lado no queda ninguno vivo, se queda donde está. Es el hermano
-; de `ba_blanco_arriba`, sobre el grupo en vez de sobre la tropa.
+; El cursor de a quién se le da el ítem, al actor de arriba o de abajo en el
+; que puede pararse —ver `ba_blanco_act_sirve`—. Si para ese lado no queda
+; ninguno, se queda donde está. Es el hermano de `ba_blanco_arriba`, sobre el
+; grupo en vez de sobre la tropa.
 ba_blanco_act_arriba:
     lda BA_ITEM_BLA
 mira_arriba_act:
     beq nada_act
     dec a
-    sta BA_S0
-    jsr ba_vivo
+    sta BA_ACTOR2               ; `ba_item_sirve_sobre` se lleva `BA_S0`
+    jsr ba_blanco_act_sirve
     bne pone_act
-    lda BA_S0
+    lda BA_ACTOR2
     bra mira_arriba_act
 ba_blanco_act_abajo:
     lda BA_ITEM_BLA
@@ -631,16 +634,32 @@ mira_abajo_act:
     inc a
     cmp BA_NACT
     bcs nada_act
-    sta BA_S0
-    jsr ba_vivo
+    sta BA_ACTOR2
+    jsr ba_blanco_act_sirve
     bne pone_act
-    lda BA_S0
+    lda BA_ACTOR2
     bra mira_abajo_act
 pone_act:
-    lda BA_S0
+    lda BA_ACTOR2
     sta BA_ITEM_BLA
 nada_act:
     rts
+
+; Si el cursor de a quién puede pararse en el actor A8: Z=0 si sí. Lo
+; comparten un ítem y una habilidad que apunta al grupo, y cuál de los dos es
+; lo dice `BA_ORDEN`. Una habilidad sólo sobre los que están en pie, que es lo
+; que `Skill::IsTargetValid` deja con las de este port —ninguna saca la
+; muerte—; un ítem, sobre el que le sirva, que puede ser un caído.
+ba_blanco_act_sirve:
+    pha
+    lda BA_ORDEN
+    cmp #BA_ORDEN_HABILIDAD
+    beq sirve_hab
+    pla
+    jmp ba_item_sirve_sobre
+sirve_hab:
+    pla
+    jmp ba_vivo
 
 ; El cursor del blanco, al enemigo vivo de arriba o de abajo. Si para ese lado
 ; no queda ninguno vivo, se queda donde está.

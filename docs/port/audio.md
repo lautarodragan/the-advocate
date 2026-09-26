@@ -48,7 +48,9 @@ muestra y con qué envolvente, y la consola sólo reproduce.
   `workflow/decisiones/el-trueno-va-entero-a-22-khz.md`.
 * **El MSU-1**: los temas de `PISTAS_MSU` suenan desde un PCM al lado de la
   ROM, y la ROM calla el SPC700 mientras tanto. Las pistas las arma
-  `tools/audio/msu.py`.
+  `tools/audio/msu.py`. Con MSU-1, el paquete no sube las muestras de los
+  temas con pista, salvo que la pista haya faltado en la tarjeta:
+  `tema_por_msu`, en `rom/src/paquete_de_audio.s`.
 
 Qué prueba cubre qué: `pruebas/rpgmaker/test_musica_*.py` corren la ROM
 —las escrituras, el reparto, el paquete, los techos— y

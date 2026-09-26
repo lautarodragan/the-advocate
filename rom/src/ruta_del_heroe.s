@@ -14,8 +14,7 @@
 .i16
     ; Un `wait` en curso se lleva el cuadro entero y no mira la ruta. Son
     ; RUTA_ESPERA cuadros y no uno: es `SetMaxStopCountForWait` de RM2k, que con
-    ; la frecuencia 8 da veinte. Valía uno de los dos lados a la vez, así que la
-    ; comparación daba cero —el mismo error que el hard light del tinte—.
+    ; la frecuencia 8 da veinte.
     ; El salto en curso no se mira acá sino en `move_hero`: ver
     ; `salto_avanzar_heroe`.
     lda ruta_espera
@@ -115,8 +114,8 @@ frecuencia:
     ;
     ; Con la 1 la espera tras un paso son 256 cuadros y no entran en el byte de
     ; `ruta_tras_paso`; que no se llegue lo garantiza el conversor, que rechaza
-    ; la ruta entera. Acá se topa igual en 1, como RM2k: topar distinto sería
-    ; que los dos lados se equivoquen igual el día que ese guard falle.
+    ; la ruta entera. Acá se topa igual en 1, como RM2k, por si ese guard
+    ; alguna vez falla.
     and #$01
     bne frec_menos
     lda ruta_frec
@@ -163,7 +162,7 @@ giro_espera:
 ;   de los sprites del mapa.
 ; * No sobrevive al cambio de mapa: `elegir_grafico_heroe` corre al cargar y lo
 ;   repone. No es pereza —las poses viven en el banco de sprites **del mapa**,
-;   así que el gráfico de allá no existe acá—, y la referencia lo repone igual.
+;   así que el gráfico de allá no existe acá—.
 ;   La página del `EV0047` del mapa 8, que es la que pidió todo esto, cambia a
 ;   `Crown7` justo antes de teletransportarse y vuelve a `Future1` justo
 ;   después, así que en el juego no se nota.

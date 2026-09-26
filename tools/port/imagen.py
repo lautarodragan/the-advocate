@@ -2,9 +2,8 @@
 """El cartel de un `ShowPicture` en la pantalla de la consola.
 
 Vive aparte de `snes_convert.py` por la misma razón que `titulo.py`: no es un
-mapa. Es una imagen suelta que hay que meter en la pantalla, y lo único que el
-conversor y la referencia tienen que compartir es **exactamente dónde cae y de
-qué color es cada pixel**.
+mapa. Es una imagen suelta que hay que meter en la pantalla, y lo único que
+hay que decidir es **exactamente dónde cae y de qué color es cada pixel**.
 
 Tres decisiones, y las tres se pagan:
 
@@ -125,7 +124,7 @@ def convertir(imagen, cx, cy):
 
 def cabe(info):
     """Si el cartel entra en el modelo: un objeto de alto y hasta `OBJETOS_MAX`
-    de ancho. Lo preguntan el conversor y la referencia con la misma cuenta."""
+    de ancho. Lo pregunta `eventos.Imagenes` al elegir el cartel."""
     return 0 < info["alto"] <= OBJ and 0 < info["objetos"] <= OBJETOS_MAX
 
 

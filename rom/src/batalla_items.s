@@ -3,10 +3,12 @@
 ; --- usar un ítem en la pelea ---------------------------------------------
 ;
 ; `Game_BattleAlgorithm::Item` con lo que este port sabe hacer: las medicinas
-; que recuperan HP. Qué entra en la lista y cuánto cura no se decide acá sino
-; en `batalla.item_usable_en_batalla` y `batalla.curacion`, que es el modelo con
-; el que `pruebas/rpgmaker/test_batalla.py` predice el HP exacto; el conversor emite el
-; resultado en `item_batalla`, `item_cura_rate` e `item_cura_hp`.
+; que recuperan HP, y desde el 2026-09-26 las que levantan a un caído. Qué
+; entra en la lista y cuánto cura no se decide acá sino en
+; `batalla.item_usable_en_batalla` y `batalla.efecto_de_item`, que es el
+; modelo con el que `pruebas/rpgmaker/test_batalla.py` predice el HP exacto; el
+; conversor emite el resultado en `item_batalla`, `item_cura_rate`,
+; `item_cura_hp` e `item_medicina`, que es la misma de `medicina_usar`.
 ;
 ; Todo esto corre con el banco de datos en $7E, así que **el inventario se lee
 ; con direccionamiento absoluto**: `FAR_ITEMS` vive en ese banco y en él las
@@ -143,16 +145,96 @@ topado:
     rts
 .endproc
 
-; El ítem que eligió el actor `BA_MQUIEN`, sobre `BA_MBLA`: cura, anota cuánto
-; y deja el mensaje listo. No tira azar: un ítem no falla ni lo esquiva nadie,
-; y **el blanco muerto no se reapunta**, que es lo contrario de un ataque.
+; Si el cursor de a quién se le da puede pararse en el actor A8, con el ítem
+; que marca `BA_ITEM_SEL`: Z=0 si sí. Tiene que estar en el grupo y el ítem
+; tiene que servirle —sobre un caído, sólo uno que saque el estado de muerto;
+; sobre uno en pie, cualquiera que no sea `ko_only`—, que son las dos salidas
+; de `Game_BattleAlgorithm::Item::vExecute` sin efecto.
+;
+; **RM2k deja pararse en cualquiera** —`status_window` con `ChoiceMode_All`—
+; y el ítem que no sirve se gasta sin hacer nada. Acá el cursor lo saltea, que
+; es lo que ya hacía con los caídos antes de que existiera levantarlos: gastar
+; una poción sobre un muerto no es algo que nadie quiera hacer. Si no le sirve
+; a nadie —un elixir con todos en pie—, A no pasa de la lista, como una orden
+; vacía. Se lleva `BA_S0` y X.
+.proc ba_item_sirve_sobre
+.a8
+.i16
+    sta BA_S0
+    cmp BA_NACT
+    bcs no
+    jsr ba_x
+    lda BA_UNO + BA_FLAGS, x
+    and #BAF_HAY
+    beq no
+    rep #$20
+.a16
+    lda BA_UNO + BA_HP, x
+    sep #$20
+.a8
+    beq caido
+    lda BA_ITEM_SEL
+    jsr ba_item_de_lista
+    jsr ba_ax
+    lda f:item_medicina, x
+    and #MED_KO_ONLY
+    beq si
+no:
+    lda #0
+    rts
+caido:
+    lda BA_ITEM_SEL
+    jsr ba_item_de_lista
+    jsr ba_ax
+    lda f:item_medicina, x
+    and #MED_LEVANTA
+    beq no
+si:
+    lda #1
+    rts
+.endproc
+
+; El ítem que eligió el actor `BA_MQUIEN`, sobre `BA_MBLA`: cura o levanta,
+; anota cuánto y deja el mensaje listo. No tira azar: un ítem no falla ni lo
+; esquiva nadie, y **el blanco no se reapunta**, que es lo contrario de un
+; ataque: si cambió entre que se eligió y que le toca, el ítem se gasta igual y
+; hace lo que `vExecute` haga con él como esté ahora.
+;
+; Es `batalla.efecto_de_item`, rama por rama:
+;
+; * en pie y `ko_only`: nada, `SetIsSuccess` sin efecto;
+; * en pie: la cura de `ba_item_cura`;
+; * caído y el ítem no saca la muerte: nada, porque `ApplyHpEffect` no toca a
+;   un muerto;
+; * caído y la saca: el `SetHp(1)` de `RemoveStates` y después
+;   `ChangeHp(hp - 1)` de `ApplyStateEffect`, o sea `max(1, cura)` con la cura
+;   topada contra el máximo entero. Es lo mismo que hace `medicina_usar` desde
+;   el menú.
+;
+; `BA_MREVIVIO` le dice al mensaje cuál de los dos renglones de abajo va.
 .proc ba_item_usar
 .a8
 .i16
+    stz BA_MREVIVIO
     lda BA_MQUIEN
     jsr ba_ax
     lda BA_ACC_ITEM, x
     sta BA_MITEM
+    jsr ba_ax
+    lda f:item_medicina, x
+    sta BA_S2                   ; sus banderas
+    lda BA_MBLA
+    jsr ba_x
+    rep #$20
+.a16
+    lda BA_UNO + BA_HP, x
+    sep #$20
+.a8
+    beq caido
+    lda BA_S2
+    and #MED_KO_ONLY
+    bne nada
+    lda BA_MITEM
     jsr ba_item_cura
 .a16
     sta BA_MCURA
@@ -164,5 +246,32 @@ topado:
     sep #$20
 .a8
     rts
+caido:
+.a8
+    lda BA_S2
+    and #MED_LEVANTA
+    beq nada
+    lda BA_MITEM
+    jsr ba_item_cura            ; con cero HP, el tope es el máximo entero
+.a16
+    cmp #0
+    bne levanta
+    lda #1                      ; el `SetHp(1)`, aunque el ítem no cure nada
+levanta:
+    sta BA_MCURA
+    ldx BA_S4
+    sta BA_UNO + BA_HP, x
+    sep #$20
+.a8
+    lda #1
+    sta BA_MREVIVIO
+    rts
+nada:
+.a8
+    rep #$20
+.a16
+    stz BA_MCURA
+    sep #$20
+.a8
+    rts
 .endproc
-
