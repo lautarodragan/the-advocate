@@ -9,8 +9,8 @@ que queda acá es lo que depende del hardware:
     de Map0007 sobreviven 60.
   * **El fondo va en modo 3, con 8 bits por pixel.** Ahí cada pixel es un índice
     directo a CGRAM y no hay paleta por tile, así que el problema de repartir
-    los colores en grupos simplemente no existe. Con 4 bits y 8 paletas, Map0007 perdía 32 de sus 60
-    colores; con 8 bits no pierde ninguno.
+    los colores en grupos simplemente no existe. Con 4 bits y 8 paletas,
+    Map0007 perdía 32 de sus 60 colores; con 8 bits no pierde ninguno.
 
     Cuesta el doble de VRAM por tile, 64 bytes en vez de 32. Con 92 tiles son
     5,8 KB de los 64 disponibles, así que no es una restricción real.

@@ -6,10 +6,11 @@
 ; hablarle al SPC700 por cuatro puertos.
 ;
 ; Al encender, el SPC700 corre una ROM interna que implementa un protocolo de
-; carga. Lo usamos para meterle en memoria las muestras y un driver mínimo, y
-; después ese driver se queda esperando pares (registro, valor) del DSP que le
-; manda el 65816. O sea que toda la música la sigue manejando el 65816, igual
-; que en la Mega Drive.
+; carga. Lo usamos para meterle en memoria un driver mínimo y el directorio de
+; muestras —las muestras van después, de a paquetes: ver `paquete_cargar`—, y
+; después ese driver se queda esperando comandos del 65816, sobre todo pares
+; (registro, valor) del DSP: ver `DRIVER` en tools/audio/snes_music.py. O sea
+; que toda la música la sigue manejando el 65816.
 ;
 ; El protocolo de la ROM interna del SPC700:
 ;

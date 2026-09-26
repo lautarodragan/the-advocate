@@ -488,11 +488,12 @@ IGNORABLES = {
 # Es una deuda, no una equivalencia, y por eso está en una lista aparte con
 # nombre propio: quien agregue algo acá tiene que poder decir qué se rompe.
 #
-# PlayBGM cambia el tema que suena. La ROM sube un solo banco de muestras al
-# SPC700 al arrancar, así que cambiar de tema en caliente pide varios bancos en
-# el cartucho y volver a subir en mitad del juego; es una feature de audio, no
-# un comando más. Lo que se pierde: una página que cambie la música deja la que
-# venía sonando. La pantalla no lo nota. Ver "Lo que falta" en README.md.
+# PlayBGM cambia el tema que suena, y ya no es de éstos: se hace, ver OP_BGM.
+# Cada mapa sube a la ARAM su paquete de audio, con los temas que sus páginas
+# pueden prender —`paquete_cargar`, en rom/src/paquete_de_audio.s—, y el
+# presupuesto de cada muestra es el de su peor paquete: ver
+# `workflow/decisiones/un-solo-banco-de-muestras.md`. Sólo se acepta sin
+# hacerse cuando se compila sin registro de temas.
 # WeatherEffects prende o apaga la lluvia. Se acepta sin dibujarla, y la deuda
 # es de las grandes, así que va con todas las letras.
 #
@@ -525,16 +526,17 @@ WEATHER_EFFECTS = 11070
 # tocarlo, y era la deuda más barata de todas las que hay acá: **no se
 # ve**. La pantalla que se compara es exactamente la misma con y sin sonido.
 #
-# Lo que costaba hacerlo era la ARAM: la ROM sube **un solo banco de muestras**
-# al SPC700 al arrancar. Se resolvió metiendo los efectos en ese mismo banco,
-# con lo que la música deja libre; este juego usa 116 efectos distintos y en
-# la demo entran 5, así que el resto se sigue aceptando callado.
+# Lo que costaba hacerlo era la ARAM. Los efectos van en el paquete de audio de
+# cada mapa, junto con sus temas —`paquete_cargar`, en
+# rom/src/paquete_de_audio.s—, con el mismo presupuesto por paquete que las
+# muestras de la música: `workflow/decisiones/un-solo-banco-de-muestras.md`. El
+# que no entra en su paquete no suena.
 #
 # Cuánto destraba, medido y no supuesto: **+10 páginas de tecla de acción y +6
 # automáticas**. Es mucho menos de lo que parece: `PlaySound` es el comando que
 # corta *primero* en 349 páginas, pero casi todas están cortadas además por otra
-# cosa. Es exactamente la trampa que la tabla de orden de `README.md` ya tiene
-# anotada, y vale la pena que quede escrita también acá.
+# cosa: el comando que corta primero no es el único que corta, y contar por él
+# promete más de lo que destraba.
 #
 # Lo que sí destraba es concreto: el Insta-Shave del pad de Talan toca cuatro
 # efectos antes de su mensaje, así que sin esto esa rama no corre.

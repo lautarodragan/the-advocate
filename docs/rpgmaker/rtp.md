@@ -9,10 +9,8 @@ el japonés — `Future1-3`, por ejemplo. El RTP libre de EasyRPG **no sirve**: 
 un reemplazo con arte distinto y otros nombres (`Actor1-4` en vez de
 `Chara1-4`).
 
-No está en el repo: vive en `/extras/rtp`, del mismo lado que el juego original
-y por la misma razón —no es nuestro para redistribuir—. Para reponerlo, de
-`RTPE.EXE` (un SFX de RAR):
+No está en el repo, por la misma razón que el juego original —no es nuestro
+para redistribuir—: se lee de la carpeta que diga `ABL_RTP_DIR`. Para
+reponerlo, de `RTPE.EXE` (un SFX de RAR):
 
-    7z x -oRTP-tmp RTPE.EXE && mv RTP-tmp/Data/RTP /extras/rtp && rm -rf RTP-tmp
-
-Se puede apuntar a otra copia con `ABL_RTP_DIR`.
+    7z x -oRTP-tmp RTPE.EXE && mv RTP-tmp/Data/RTP "$ABL_RTP_DIR" && rm -rf RTP-tmp

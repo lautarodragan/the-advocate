@@ -7,17 +7,18 @@ el 65816 no toca el DSP, sólo le habla al SPC700 por cuatro puertos. **La
 lógica vive en Python**: el conversor decide qué nota va a qué voz, con qué
 muestra y con qué envolvente, y la consola sólo reproduce.
 
-    MIDI + SoundFont      --tools/audio/snes_music.py-->  musicdata.inc: el banco,
-                            (snes_samples, gunter)        un stream por tema, los paquetes
-    stream por nota       --music_frame (musica.s)-->     escrituras al DSP, cuadro a cuadro
-    escrituras            --dsp_musica (efectos_de_sonido.s)-->  el driver del SPC700
+    MIDI + SoundFont  --snes_music.py-->  musicdata.inc: el banco, un stream por
+                                          tema, los paquetes de cada mapa
+    stream por nota   --music_frame-->    escrituras al DSP, cuadro a cuadro
+    escrituras        --dsp_musica-->     el driver del SPC700
 
 * **El arranque**: `spc_upload` (`rom/src/spc700.s`) sube por el IPL el
   driver y el directorio de muestras, nada más. Qué atiende el driver —pares
   (registro, valor) para el DSP, ternas para la ARAM, volver al IPL— está en
   `DRIVER`, en `tools/audio/snes_music.py`. Cuánto espera la ROM al encender
   es `BOOT_CUADROS` (`rom/src/ram_lejana.s`), y el conversor se corta si no
-  alcanza: `workflow/decisiones/el-arranque-esta-dimensionado-para-el-paquete-de-arranque.md`.
+  alcanza: ver
+  `workflow/decisiones/el-arranque-esta-dimensionado-para-el-paquete-de-arranque.md`.
 * **El stream es por nota**: notas, releases, cambios de volumen o de altura,
   y esperas, que el 65816 expande a las mismas escrituras que antes iban en el
   stream. El formato está en "el formato por nota" de `snes_music.py` y los

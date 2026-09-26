@@ -1,7 +1,7 @@
 # JetBrains
 
-Lo que hace falta configurar en el IDE para trabajar en este repo. Es del
-host: adentro del contenedor `.git/config` es de sólo lectura.
+Lo que hace falta configurar en el IDE para trabajar en este repo, del lado
+de la máquina donde corre el IDE.
 
 ## Que el annotate atraviese el corte de `main.s`
 

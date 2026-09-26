@@ -19,8 +19,7 @@ cambiar de mapa, en `PerformTeleport` con `map_changed`. Las dos cosas son las
 que hace `rom/src/camara.s`, así que el port lo copia bien.
 
 taro lo jugó en el RPG_RT original el 2026-09-23 —el de 2000, el que trae el
-juego, corriendo con Wine— y la cámara queda igual de corrida. Las capturas
-están en `/extras/capturas/reja-original/`.
+juego, corriendo con Wine— y la cámara queda igual de corrida.
 
 # Qué hacer si aparece de nuevo
 

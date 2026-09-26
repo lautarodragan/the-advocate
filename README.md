@@ -23,12 +23,12 @@ el mapa de arriba de `AGENTS.md`, y cada una con README explica lo suyo.
 
 ## El juego original
 
-**No está en el repo**: vive en `/extras/abl-rm` —se puede apuntar a otra
-copia con `ABL_GAME_DIR`— y de ahí salen los mapas (`.lmu`), la base de datos
-(`RPG_RT.ldb`), el árbol de mapas (`RPG_RT.lmt`), las imágenes, los MIDI y los
-WAV. Lo que el juego no trae lo pone el RTP de Don Miguel, que tampoco es
-nuestro para redistribuir: ver `docs/rpgmaker/rtp.md`. Lo que hay que saber del
-formato —los ChipSets, las dos capas— está en `docs/rpgmaker/`.
+**No está en el repo**: se lee de la carpeta que diga `ABL_GAME_DIR`, y de ahí
+salen los mapas (`.lmu`), la base de datos (`RPG_RT.ldb`), el árbol de mapas
+(`RPG_RT.lmt`), las imágenes, los MIDI y los WAV. Lo que el juego no trae lo
+pone el RTP de Don Miguel, que tampoco es nuestro para redistribuir: ver
+`docs/rpgmaker/rtp.md`. Lo que hay que saber del formato —los ChipSets, las dos
+capas— está en `docs/rpgmaker/`.
 
 El mapa de arranque del juego es el 4, un cuarto vacío que sólo teletransporta.
 El primer mapa de verdad es el 1.
@@ -52,8 +52,9 @@ porqué de la decisión está en `DITTO.md` y lo que hay adentro, en
 **Hace falta `python`, un core de libretro y `ca65` + `ld65`**, más las
 herramientas de Rust del repo —las lista `tools/README.md`—, que **se consumen
 desde el PATH**: se instalan una vez y ningún script ni prueba de este juego
-llama a `cargo`. El porqué, y cómo se compila `cc65`, que no viene
-empaquetado en Arch, están en `AGENTS.md`. Nada de esto pide un contenedor.
+llama a `cargo`. El porqué está en `AGENTS.md`. `ca65` y `ld65` salen de
+cc65, que no viene empaquetado en todas las distribuciones y se compila de sus
+fuentes: ver "Referencias".
 
     just herramientas     # instala las herramientas de Rust
     just cartuchos        # arma las ROMs: release y las de prueba
@@ -129,10 +130,40 @@ No se escribe acá, porque acá envejecía sin que nadie lo notara:
 
 ## Referencias
 
-Clonadas adentro del contenedor, en `/extras/ref`. **De ahí salen los números y
-la semántica de RM2k, no de la memoria**: ya pasó una vez que tres códigos de
-comando se pusieron de memoria y estaban mal.
+**De acá salen los números y la semántica, no de la memoria**: ya pasó una vez
+que tres códigos de comando de RM2k se pusieron de memoria y estaban mal.
 
-* `liblcf` — el formato LCF y los ids de chunk
-* `easyrpg-player` — el intérprete de referencia
-* `Game-Decompilations` — para lo que easyrpg no explica
+RPG Maker 2000:
+
+* [liblcf](https://github.com/EasyRPG/liblcf) — el formato LCF, los ids de
+  chunk y los códigos de comando; de ahí sale el esquema de Ditto
+* [EasyRPG Player](https://github.com/EasyRPG/Player) — el intérprete de
+  referencia: qué hace cada comando y cada orden de ruta
+* [Game-Decompilations](https://github.com/SamidyFR/Game-Decompilations) —
+  una lista de decompilaciones, para lo que EasyRPG no explica
+
+La consola:
+
+* [fullsnes](https://problemkaputt.de/fullsnes.htm), de nocash — la
+  referencia del hardware entero
+* los documentos de anomie —registros, tiempos, el SPC700—, que la mayoría de
+  las demás referencias citan
+* el [wiki de superfamicom.org](https://wiki.superfamicom.org/)
+* "SNES translucency", de Bregalad — el color math explicado; está en
+  `docs/snes/snes-translucency-by-bregalad.txt`
+* [el desensamblado de Final Fantasy VI](https://github.com/everything8215/ff6)
+  — el texto como un byte por letra que compone el 65816, que es lo que hace
+  la ventana de mensaje
+
+Los emuladores, que además de correr la ROM son el código que se lee cuando la
+documentación no alcanza —con cuáles se prueba a mano y qué implementa cada
+uno, en `docs/snes/emulators.md`—:
+
+* [bsnes](https://github.com/bsnes-emu/bsnes),
+  [snes9x](https://github.com/snes9xgit/snes9x),
+  [Mesen2](https://github.com/SourMesen/Mesen2),
+  [Mesen-S](https://github.com/SourMesen/Mesen-S),
+  [ares](https://github.com/ares-emulator/ares) y
+  [Mednafen](https://mednafen.github.io/)
+
+Y [cc65](https://github.com/cc65/cc65), de donde salen `ca65` y `ld65`.

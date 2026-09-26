@@ -57,7 +57,7 @@ that `ld65` leaves next to each ROM (`rom/build/release/abl.sfc.dbg`,
   files* on (the default), opening `abl.sfc` loads `abl.sfc.dbg` from
   the same folder.
 - **Names work wherever the `.dbg` sits next to the ROM**, including a
-  build copied to `/shared/builds/`. Labels inside a `.proc` lose their
+  build handed over with `just entregar`. Labels inside a `.proc` lose their
   scope: Mesen2 uses the bare name and numbers the repeats, so the
   many `listo` labels show up as `listo`, `listo_2`, `listo_3`… The
   macro-local `LOCAL-MACRO_SYMBOL-*` names are skipped, since Mesen2
@@ -67,8 +67,8 @@ that `ld65` leaves next to each ROM (`rom/build/release/abl.sfc.dbg`,
   `rom/build/release/mapdata.inc`) and Mesen2 looks for that path next to
   the `.dbg`, then one folder up, and so on until it finds it. That works
   opening `rom/build/release/abl.sfc` in the clone, and also from a build
-  in `/shared/builds/`: `just entregar` puts the commit's `rom/src/` next to
-  the ROM. The generated `mapdata.inc` and `musicdata.inc` are not copied
+  handed over with `just entregar`, which puts the commit's `rom/src/` next
+  to the ROM. The generated `mapdata.inc` and `musicdata.inc` are not copied
   (~15 MB), so code that lands in them only shows as disassembly there.
   *Ctrl+Q* in the code window switches between disassembly and source.
 
@@ -76,7 +76,7 @@ This was checked by reimplementing Mesen2's lookup (`DbgImporter.cs`,
 commit `b9fa69d`) and running it against every cartridge. taro confirmed
 the names in the Mesen2 UI on 2026-09-25 —disassembly, RAM variables and
 call stack, stopped on a breakpoint in `espera_boton`—, and the source
-view with the ROM opened from `rom/build/release/`. From a `/shared/builds/`
+view with the ROM opened from `rom/build/release/`. From a `just entregar`
 build the lookup finds every `.s` and misses only the two generated `.inc`
 files; that was checked with the same reimplementation, not yet in the UI.
 
