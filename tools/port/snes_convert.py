@@ -6907,6 +6907,23 @@ def main():
             "`emit` como PAQUETE_BATALLA")
         print("  paquete de audio de la pelea: %d tema(s), %d efecto(s)"
               % (len(pide["temas"]), len(paquetes[-1][1])))
+    # **Y que el arranque entre en `BOOT_CUADROS`**: la ROM espera hasta ese
+    # cuadro para que el lazo arranque siempre en el mismo, y si subir el
+    # paquete del mapa de arranque tardara más, saldría más tarde y las
+    # pruebas —que cuentan desde ahí— contarían mal. Ver el comentario de
+    # `BOOT_CUADROS` en rom/src/ram_lejana.s.
+    cuadros, del_paquete = snes_music.cuadros_del_arranque(
+        driver, muestras, hechos, paquetes[args.inicial])
+    tope = snes_music.boot_cuadros()
+    if cuadros > tope:
+        raise SystemExit(
+            "el arranque no entra en BOOT_CUADROS: el paquete del mapa de "
+            "arranque son %d B y con el mapa, el driver y el directorio la "
+            "cuenta da %.0f cuadros, contra %d. Subir BOOT_CUADROS en "
+            "rom/src/ram_lejana.s, o achicar ese paquete"
+            % (del_paquete, cuadros, tope))
+    print("  arranque: el paquete del mapa de arranque son %d B, %.0f de "
+          "los %d cuadros de BOOT_CUADROS" % (del_paquete, cuadros, tope))
     snes_music.emit(musica, hechos, driver, muestras, arranque, tema_titulo,
                     snes_music.tabla_de_sonidos(temas.sonidos, banco),
                     paquetes, tema_de_mapa)

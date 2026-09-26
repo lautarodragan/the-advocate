@@ -593,7 +593,7 @@ MUS_BITACORA_LARGO = $200
 ;
 ; Lo que compraría los 48 cuadros de vuelta es subir por los cuatro puertos en
 ; vez de por el protocolo del IPL, que manda uno.
-BOOT_CUADROS = 112
+BOOT_CUADROS = 40
 VIEW_ROWS = 29
 
 ; La ventana de mensaje: 256x80 pegada abajo de una pantalla de 224 líneas, o

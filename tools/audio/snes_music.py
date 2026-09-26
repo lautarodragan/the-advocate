@@ -1779,6 +1779,45 @@ def muestras_del_tema(tema):
                    and registro & 0x0F == sdsp.V_SRCN})
 
 
+# Lo que cuesta subir al SPC700, en cuadros, para la cuenta del arranque. Las
+# muestras de un paquete van de a ternas por el comando 3 del driver —ver
+# `subir_muestra` en rom/src/paquete_de_audio.s—: medido en la ROM el
+# 2026-09-26, de 1,33 a 1,42 cuadros por KB en dieciocho paquetes, y acá va
+# un poco más. El driver y el directorio van byte a byte por el IPL, que
+# medía 1,4. Y cargar el mapa, sin audio, son unos 8 cuadros (medido con el
+# mapa 6 de `test-special`, que no tiene paquete); acá van 10.
+CUADROS_POR_KB_PAQUETE = 1.45
+CUADROS_POR_KB_IPL = 1.5
+CUADROS_DEL_MAPA = 10
+# Dónde vive `BOOT_CUADROS`, que es de la ROM y no de acá.
+RAM_LEJANA = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))), "rom", "src", "ram_lejana.s")
+
+
+def cuadros_del_arranque(driver, voces, temas, paquete):
+    """Cuánto tarda el arranque, por lo alto: el mapa, el driver y el
+    directorio por el IPL, y las muestras del paquete del mapa de arranque
+    —(índices de temas, índices de muestras de efectos), el de `emit`—.
+    Devuelve (cuadros, bytes del paquete)."""
+    suyos, efectos = paquete
+    indices = set(efectos)
+    for t in suyos:
+        if temas[t]["sonidos"]:
+            indices |= set(muestras_del_tema(temas[t]))
+    del_paquete = sum(len(voces[i].data) for i in indices)
+    ipl = len(driver) + 4 * max(1, len(voces)) + len(SILENCIO)
+    return (CUADROS_DEL_MAPA + ipl * CUADROS_POR_KB_IPL / 1024.0
+            + del_paquete * CUADROS_POR_KB_PAQUETE / 1024.0, del_paquete)
+
+
+def boot_cuadros(ruta=RAM_LEJANA):
+    """El `BOOT_CUADROS` de la ROM, leído del fuente."""
+    import re
+    with open(ruta) as archivo:
+        return int(re.search(r"^BOOT_CUADROS\s*=\s*(\d+)", archivo.read(),
+                             re.M).group(1))
+
+
 def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
          sonidos=(), paquetes=(), tema_de_mapa=()):
     """El .inc que arma el ensamblador junto con main.s.

@@ -57,9 +57,12 @@ MARGEN = 10 ** (-0.5 / 20)
 # las voces a 16 bits y después la multiplica por el volumen general, MVOL/128.
 TOPE = 32767 * sdsp.MASTER >> 7
 
-# Los cuadros desde el encendido hasta que la pantalla de título prende su
-# tema, con aire. Es lo que esperaba el script que midió el paso 5.
-ENCENDIDO = 90
+# Cuántos cuadros antes del fin del arranque —`BOOT_CUADROS`, que se lee de
+# la ROM— se empieza a grabar: la pantalla de título prende su tema después,
+# así que es aire. Eran 90 cuadros fijos desde el encendido, con el arranque
+# en 112, que es lo que esperaba el script que midió el paso 5; desde que el
+# arranque bajó, un número fijo cortaría el principio de cada tema.
+ANTES_DEL_TITULO = 22
 
 # Cuántos cuadros más allá del pico toca la prueba.
 DESPUES_DEL_PICO = 60
@@ -103,15 +106,16 @@ def tocar(sfc, tema, cuadros):
     tema desde que el título lo prende, en snes9x sin MSU-1."""
     import numpy as np
     from emulador import retro
+    simbolos = simbolos_de(sfc)
     with open(sfc, "rb") as archivo:
-        rom = con_el_tema_en_el_titulo(archivo.read(), simbolos_de(sfc), tema)
+        rom = con_el_tema_en_el_titulo(archivo.read(), simbolos, tema)
     with tempfile.TemporaryDirectory() as tmp:
         ruta = os.path.join(tmp, "tema.sfc")
         with open(ruta, "wb") as archivo:
             archivo.write(rom)
         consola = retro.Consola(ruta, msu=False)
         tasa = consola.tasa()
-        consola.correr(ENCENDIDO)
+        consola.correr(simbolos["BOOT_CUADROS"] - ANTES_DEL_TITULO)
         consola.audio = bytearray()
         partes = []
         for _ in range(cuadros):
