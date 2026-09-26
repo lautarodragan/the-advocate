@@ -598,6 +598,15 @@ def zonas_mas_usadas(leidos):
     """
     tiempo = collections.defaultdict(collections.Counter)
     adentro = collections.defaultdict(collections.Counter)
+    # Las zonas que el lazo de abajo va a pedir, pedidas antes todas juntas:
+    # ver `muestras_brr.precargar`.
+    muestras_brr.precargar(
+        ("program:%d@%d" % (leido["programas"].get(nota.channel, 0),
+                            nota.pitch)
+         for leido in leidos if leido for nota in leido["notas"]
+         if nota.channel != midi.DRUM_CHANNEL
+         and nota.channel in leido["voces"]),
+        snes_samples.SOUNDFONT)
     for leido in leidos:
         if not leido:
             continue
