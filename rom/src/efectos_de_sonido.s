@@ -127,7 +127,9 @@ espera:
 
 ; Una escritura del stream de la música: X el registro, A el valor. Si es de
 ; una voz de efecto, va a su sombra, y si la voz tiene efecto no se manda; KON
-; y KOF salen sin los bits de las voces ocupadas.
+; y KOF salen sin los bits de las voces ocupadas. Pisa la parte alta de Y: el
+; `sep #$10` de las voces 6 y 7 la pone en cero, y el único que llama, el lazo
+; de `music_frame`, no usa Y.
 .proc dsp_musica
 .a8
 .i16
@@ -145,15 +147,20 @@ voz_7:
     cmp #8
     bcs no_voz                  ; ENVX y OUTX no se escriben nunca
     phx
-    rep #$20
-.a16
-    and #$000F
+    ; El índice sale de A en ocho bits, con X en ocho —que le pone cero a la
+    ; parte alta—, y no de un `and #$000F` en dieciséis: ése borraba B, que
+    ; es donde está el valor, y desde 854dba9 (la voz 7) y 8c9c182 (la 6)
+    ; toda escritura de la música a las voces de la batería llegaba al DSP
+    ; como cero. A ya viene con `and #$0F` de arriba. Lo cobra
+    ; pruebas/rpgmaker/test_bateria_suena.py.
+    sep #$10
+.i8
     tax
-    sep #$20
-.a8
+    rep #$10
+.i16
     xba
     sta f:SE_SOMBRA, x          ; a la sombra
-    xba
+    xba                         ; A = el índice, B = el valor, para `enviar`
     plx
     jsr se_ocupada
     beq enviar
@@ -164,12 +171,11 @@ voz_6:
     cmp #8
     bcs no_voz
     phx
-    rep #$20
-.a16
-    and #$000F
+    sep #$10                    ; como en voz_7: sin tocar B
+.i8
     tax
-    sep #$20
-.a8
+    rep #$10
+.i16
     xba
     sta f:SE2_SOMBRA, x
     xba

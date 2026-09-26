@@ -10,7 +10,9 @@ hasta que una prueba lo midió: es lo que hace falta acá.
 
 `pruebas/rpgmaker/test_musica_paquete.py` le pregunta a la ROM si las muestras del
 tema que dice estar tocando están de verdad en la ARAM (`FAR_ARAM_DE` contra
-`tema_muestras`). 
+`tema_muestras`), y `pruebas/rpgmaker/test_bateria_suena.py` que las voces 6 y 7
+—la batería, compartidas con los efectos— reciban lo que el stream les
+escribe, leyendo su sombra.
 
 Lo que **sigue** sin mirar nadie es que lo que sale del DSP
 suene a lo que tiene que sonar: eso es oído, y es de taro.
