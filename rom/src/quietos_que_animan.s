@@ -48,9 +48,9 @@ otra:
 .a16
     and #$00FF
     tax
-    ; El tick que dibuja la referencia es `vueltas + 1` visto desde acá, que es
-    ; el mismo número que mira la animación del ChipSet —ella lo lee después
-    ; del `inc vueltas`—. Medido: sin el `inc`, el save point del mapa 8 se
+    ; El tick que se dibuja es `vueltas + 1` visto desde acá, que es el mismo
+    ; número que mira la animación del ChipSet —ella lo lee después del `inc
+    ; vueltas`—. Medido: sin el `inc`, el save point del mapa 8 se
     ; queda una columna atrás y son 76 pixeles. Sin los ticks congelados, como
     ; ella: ver `vueltas_congeladas`.
     lda vueltas

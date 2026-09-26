@@ -190,7 +190,7 @@ copia:
 ;
 ; Cuestan **veinticuatro de los treinta y cuatro tiles por línea** en las
 ; veintinueve líneas que ocupan, así que ahí entran dos personajes más y no
-; más. La referencia cuenta lo mismo y declara las líneas donde no alcanza.
+; más.
 .proc imagen_oam
 .a8
 .i16

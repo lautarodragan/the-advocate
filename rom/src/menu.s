@@ -6,8 +6,8 @@
 ; bloques salen de `titulo.py`, y `render_menu` es la referencia. Se abre con
 ; B, cuando el héroe está quieto: `pedir_menu` anota el pedido y `move_hero`
 ; lo atiende, que es como lo hace RM2k con `menu_calling`. El reloj del juego
-; no corre mientras se ve —como en la pantalla de ranuras— así que para la
-; referencia el menú no cuesta ningún tick.
+; no corre mientras se ve —como en la pantalla de ranuras— así que el menú no
+; cuesta ningún tick.
 ;
 ; Hoy hacen algo usar ítems —la pantalla de ítems, en `items.s`— y guardar, que
 ; abre la pantalla de ranuras y vuelve al menú. Las otras tres se dibujan en

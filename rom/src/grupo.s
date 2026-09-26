@@ -225,7 +225,7 @@ lo_encontre:
     ; actor: es el `actor->SetSprite` de RM2k, y vive en el actor, así que
     ; **cruza el teletransporte**. Si su gráfico no está en el banco de sprites
     ; de este mapa se cae al del LDB, que es a lo que apunta el camino de
-    ; abajo; la referencia hace lo mismo. Ver OP_ACTOR_SPRITE en eventos.py.
+    ; abajo. Ver OP_ACTOR_SPRITE en eventos.py.
     phy                         ; la entrada del actor, por si no hay cambio
     lda temp                    ; el líder
     jsr actor_graf_leer

@@ -140,9 +140,9 @@ con_fin:
     ; Atravesando paredes se cae en cualquier celda: es el mismo
     ; `if (self.GetThrough()) return true;` que mira un paso, y `puede_caer`
     ; lo lee de `atravesando`, que acá nadie ponía. La ruta de EV0041 del mapa
-    ; 8 —`through`, salto de una celda sobre la reja, cuatro pasos— saltaba
-    ; en la referencia y en la ROM caminaba: el salto se salteaba por la reja y
-    ; los pasos de después sí atravesaban. Medido el 2026-09-10, 40840
+    ; 8 —`through`, salto de una celda sobre la reja, cuatro pasos— en RM2k
+    ; salta y en la ROM caminaba: el salto se salteaba por la reja y los pasos
+    ; de después sí atravesaban. Medido el 2026-09-10, 40840
     ; pixeles en el cuadro 60.
     lda ruta_atraviesa
     beq sin_atravesar

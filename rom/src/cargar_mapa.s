@@ -464,11 +464,9 @@ sin_eleccion:
     beq sin_mensaje
     ; La pausa del `\|`, si el cuadro trae alguna. Se cuenta **desde que la
     ; página pidió el mensaje** y no desde que la ventana terminó de
-    ; componerse, que es lo único que la hace coincidir cuadro a cuadro con la
-    ; referencia: allá la ventana se dibuja de golpe y acá tarda entre nueve y
-    ; diecinueve cuadros en componerse. Con una pausa de 61 la composición
-    ; termina mucho antes, así que en pantalla se ve lo mismo.
-    ;
+    ; componerse: así no depende de lo que tarde la composición, que va de
+    ; nueve a diecinueve cuadros según el texto. Con una pausa de 61 la
+    ; composición termina mucho antes, así que en pantalla se ve lo mismo.
     ; **A no la saltea**: en `Window_Message::Update` el `if (wait_count > 0)`
     ; va antes de `WaitForInput()`, así que mientras la pausa corre el botón no
     ; se mira. Por eso va arriba de todo y no después del flanco.
@@ -519,7 +517,7 @@ espera_boton:
 sigue:
     ; Y la página sigue **en este mismo cuadro**, cayendo en el `jsr
     ; correr_codigo` de siempre. Cerrar acá y retomar el cuadro siguiente
-    ; sería un cuadro de diferencia contra la referencia.
+    ; le costaría un cuadro a cada página que cierra un mensaje.
     bra sin_mensaje
 no_avanza:
     rts
@@ -532,9 +530,7 @@ sin_mensaje:
     bne hay_esperando
 
     ; Nada corriendo y nada esperando: el jugador tiene el control, así que la
-    ; cadena de teletransportes terminó y el presupuesto se repone. Es el
-    ; alcance que el tope tiene en la referencia, donde `saltos` es local a
-    ; `entrar_al_mapa` y se reinicia en cada entrada.
+    ; cadena de teletransportes terminó y el presupuesto se repone.
     ;
     ; Antes lo reponía sólo `cargar_mapa`, y a esa altura el único que la
     ; llamaba era una **puerta**: un comando `Teleport` carga el mapa por
@@ -656,9 +652,7 @@ hubo_salto:
     bra pedir_fundido
 otro_mapa:
     ; El presupuesto de saltos se gasta **acá y no antes**, o sea sólo cuando
-    ; se cambia de mapa. Es lo que hace la referencia, donde `saltos` es local
-    ; a `entrar_al_mapa` y sólo lo baja el lazo que entra a un mapa nuevo; un
-    ; salto al mismo mapa no lo toca.
+    ; se cambia de mapa: un salto al mismo mapa no lo toca.
     ;
     ; Cobrándoselo a los saltos al mismo mapa —que es lo que hacía— el
     ; presupuesto se drenaba sin reponerse nunca, porque un salto al mismo mapa
@@ -726,8 +720,7 @@ espera_apagado:
     sta fundido
     ; El reloj del fundido son **vueltas del lazo**, o sea ticks, y no cuadros
     ; de hardware: así el fundido dura FUNDIDO_TOTAL ticks tarde lo que tarde la
-    ; carga del mapa adentro del negro. La referencia lo contaba igual, con un
-    ; contador que subía una vez por cuadro de mundo; ya no está.
+    ; carga del mapa adentro del negro.
     ;
     ; Estuvo contando `boot_cuadros` —cuadros de hardware— desde que la carga
     ; empezó a tardar seis o siete cuadros adentro de una sola vuelta: contando
@@ -938,8 +931,7 @@ hecho:
     ; Y OAM, que si no se queda con la del mapa que se dejó. El lazo no la
     ; rearma mientras el fundido dura —`build_oam` es de las cosas que se
     ; saltea— así que la rampa de vuelta iría dibujando el mapa nuevo con los
-    ; sprites viejos. No es teórico: son los mil y pico de pixeles que la
-    ; referencia cobró la primera vez que se comparó adentro de un fundido.
+    ; sprites viejos.
     jsr build_oam
 listo:
     rts

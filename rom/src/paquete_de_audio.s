@@ -6,7 +6,8 @@
 ; temas de la demo son 53 KB y los efectos que piden los mapas 2 y 3, 43 y
 ; 55 más—, así que se suben por mapa: al cargar uno, los temas que sus páginas
 ; pueden prender y los efectos que piden, en el orden en que aparecen. Es la
-; tabla `paquetes` que arma el conversor. Los que no entran no suenan.
+; tabla `paquetes` que arma el conversor. Los que no entran no suenan. Con
+; MSU-1, los temas que tienen pista no: ver `tema_por_msu`.
 ;
 ; Las muestras tienen número fijo en todo el cartucho —el SRCN que el stream
 ; de la música ya escribe— y el directorio del SPC700 tiene una entrada por
@@ -482,6 +483,98 @@ listo:
     rts
 .endproc
 
+; C en 1 si el tema A va a sonar por el MSU-1 y no por el SPC700: hay MSU-1,
+; el tema tiene pista y esa pista no faltó nunca. Ésas son muestras que el
+; paquete no sube, porque con pista el SPC700 no toca la música —ver
+; `music_start`—: la carga es más corta y la ARAM queda para los efectos. Sin
+; MSU-1 contesta siempre que no, y el paquete es el de siempre.
+;
+; **Contar con la pista es una apuesta**, porque la ROM no sabe si está en la
+; tarjeta hasta que la pide. Si falta, `msu_arrancar` prende su bit en
+; MSU_FALTA y `music_start` cae a `tema_asegurar`, que ve las muestras sin
+; subir y rearma el paquete con el tema adelante: esa vez congela lo que tarde
+; en subir, y de ahí en más este tema ya no se saltea. Por lo mismo, el tema
+; extra de `paquete_cargar_ya` no pasa por acá: es el que se está pidiendo.
+;
+; Guarda A, X e Y: los lazos del paquete llevan el índice en X y `marcar_tema`
+; la marca en Y.
+.proc tema_por_msu
+.a8
+.i16
+    pha
+    lda f:MSU_HAY
+    beq no
+    lda 1, s
+    cmp #TEMA_TOTAL
+    bcs no
+    phx
+    phy
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:tema_msu, x
+    cmp #$FF
+    beq no_xy                   ; no tiene pista
+    rep #$20
+.a16
+    txa
+    lsr a
+    lsr a
+    lsr a
+    tax                         ; su byte de MSU_FALTA
+    lda 5, s                    ; el tema, detrás de Y y de X
+    and #$0007
+    tay                         ; y su bit
+    sep #$20
+.a8
+    lda f:MSU_FALTA, x
+correr:
+    dey
+    bmi corrido
+    lsr a
+    bra correr
+corrido:
+    and #1
+    bne no_xy                   ; la pista faltó: suena por el SPC700
+    ply
+    plx
+    pla
+    sec
+    rts
+no_xy:
+    ply
+    plx
+no:
+    pla
+    clc
+    rts
+.endproc
+
+; `marcar_tema` y `colocar_tema` para los temas de la lista del paquete, que
+; se saltean los que van a sonar por el MSU-1.
+.proc marcar_tema_del_paquete
+.a8
+.i16
+    jsr tema_por_msu
+    bcs listo
+    jmp marcar_tema
+listo:
+    rts
+.endproc
+
+.proc colocar_tema_del_paquete
+.a8
+.i16
+    jsr tema_por_msu
+    bcs listo
+    jmp colocar_tema
+listo:
+    rts
+.endproc
+
 ; Calla los efectos de sonido que estén sonando: sus muestras se van a mover.
 .proc se_callar
 .a8
@@ -563,7 +656,9 @@ limpiar:
     ldy #2
     jsr marcar_tema
 sin_fijas:
-    ; Las que el paquete quiere: 1, si no eran ya 2.
+    ; Las que el paquete quiere: 1, si no eran ya 2. Las del extra **aunque
+    ; tenga pista**: si se pide es porque va a sonar por el SPC700. Las de los
+    ; temas del paquete, no si van a sonar por el MSU-1: ver `tema_por_msu`.
     lda f:PAQ_EXTRA
     cmp #$FF
     beq sin_extra
@@ -583,7 +678,7 @@ temas_q:
     beq efectos_q
     phx
     ldy #1
-    jsr marcar_tema
+    jsr marcar_tema_del_paquete
     plx
     inx
     bra temas_q
@@ -608,7 +703,7 @@ otro_s:
     beq marcadas
     phx
     ldy #1
-    jsr marcar_tema
+    jsr marcar_tema_del_paquete
     plx
     inx
     bra otro_s
@@ -674,7 +769,7 @@ temas:
     cmp #$FF
     beq efectos
     phx
-    jsr colocar_tema
+    jsr colocar_tema_del_paquete
     plx
     inx
     bra temas
@@ -702,7 +797,7 @@ otro_de_salida:
     cmp #$FF
     beq salida_puesta
     phx
-    jsr colocar_tema
+    jsr colocar_tema_del_paquete
     plx
     inx
     bra otro_de_salida
