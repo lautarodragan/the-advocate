@@ -1218,7 +1218,7 @@ en cuatro commits más el de la prosa, sobre `d5caa40`:
 
 Contra la pista de MSU-1 (agudos, en dB, la cuenta de las grabaciones de
 arriba): `escape_newyork` 10,4 → 7,6, la batalla 3,5 → 3,1, el título 5,3 →
-1,3, `3D-Galax` 11,8 → 4,0.
+1,3, `3D-Galax` 11,8 → 4,1, `Gaden` 7,4 → 1,8.
 
 **Para escuchar**: `/shared/audio/2026-09-26-paso-6-final/`, con su
 `LEEME.txt`: los cuatro temas de antes y `Gaden` —uno de los 19 que no
