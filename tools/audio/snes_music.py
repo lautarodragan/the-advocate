@@ -444,13 +444,13 @@ def _victima(nota, t, grupo, voces, nivel):
     sostenidas, o None si no le roba a ninguna y no suena.
 
     Es la regla del prototipo —lo que taro escuchó en la variante 09 y dijo
-    que "es muy aceptable"—. Medida en los 32 temas del `release` contra
-    robarle siempre a la más vieja o siempre a la más débil sin ceder nunca,
-    pierde menos tiempo-nota que las dos; protegerle además la nota más grave
-    y la más aguda, o robar primero dentro del propio canal, empatan con ella
-    en promedio y ganan en unos temas lo que pierden en otros, así que no
-    entraron. Los números, en el paso 5 de
-    `workflow/tasks/todo/la-calidad-de-la-musica.md`.
+    que "es muy aceptable"—. Medida en los 32 temas del `release`: robarle
+    siempre a la más vieja sin ceder nunca pierde el mismo tiempo-nota pero
+    corta 2,5 veces más notas mientras suenan, y robarle siempre a la más
+    débil pierde más; protegerle además la nota más grave y la más aguda, o
+    robar primero dentro del propio canal, empatan con ella en promedio y
+    ganan en unos temas lo que pierden en otros, así que no entraron. Los
+    números, en el paso 5 de `workflow/tasks/todo/la-calidad-de-la-musica.md`.
 
     * La misma tecla del mismo canal que vuelve a sonar le roba a sí misma:
       es un sintetizador que redispara la nota.
@@ -645,7 +645,9 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None):
 
     `reparto`, si viene una lista, se llena con lo que le tocó a cada nota que
     tiene muestra: (nota, voz o None si no sonó, cuadro en que le robaron la
-    voz o None). Es de dónde sale cuánto tiempo-nota se pierde.
+    voz o None, hasta cuándo la sostiene —el fin de la nota, o el de la
+    muestra si es un golpe más corto que ella—). Es de dónde sale cuánto
+    tiempo-nota se pierde.
     """
     frames = collections.defaultdict(Frame)
     bank, index_of, drum_index = banco.voces, banco.melodicas, banco.golpes
@@ -737,10 +739,10 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None):
             # hasta que la muestra se acaba. Pero la voz la sostiene sólo
             # hasta el fin de la nota en el MIDI, y lo que sigue es como la
             # cola de un release: se la puede tomar otra nota. Sostenerla
-            # hasta el final de la muestra perdía, en los 32 temas, 0,3% más
-            # de tiempo-nota en promedio —Lunar_Pyramid 25,5% en vez de
-            # 17,6%— para salvar colas de golpes que en fluidsynth también se
-            # sueltan con el fin de la nota.
+            # hasta el final de la muestra le hacía perder a lo melódico, en
+            # los 32 temas, 8,3% del tiempo-nota en promedio en vez de 7,9%
+            # —Lunar_Pyramid 33% en vez de 23%— para salvar colas de golpes
+            # que en fluidsynth también se sueltan con el fin de la nota.
             adsr1, adsr2, gain = 0x8F, 0xE0, None
             muestra = bank[source]
             cola = note.start + int(math.ceil(
@@ -758,7 +760,7 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None):
             voice = _victima(note, t, group, voces, izquierda + derecha)
         if voice is None:
             if reparto is not None:
-                reparto.append([note, None, None])
+                reparto.append([note, None, None, fin])
             continue
         if voice in owner:
             robbed.setdefault(id(owner[voice]), t)
@@ -774,7 +776,7 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None):
         voces[voice] = _Voz(note, fin, cola, izquierda + derecha)
         owner[voice] = note
         if reparto is not None:
-            reparto.append([note, voice, None])
+            reparto.append([note, voice, None, fin])
             de_la_voz[voice] = reparto[-1]
 
         start = frames[note.start]
@@ -1421,23 +1423,29 @@ def tiempo_perdido(reparto):
     con muestra no suena por falta de voces, y qué fracción no podría sonar
     con ninguna regla —lo que pasa de ocho notas a la vez—.
 
-    El tiempo-nota es lo que dura la nota en el MIDI, del arranque al fin, y
-    se pierde entero si la nota no consigue voz y desde que se la roban si le
-    roban la suya antes del fin. La cola del release no cuenta: no está en el
-    MIDI. Es la cuenta del prototipo, que en `escape_newyork` dio 55% con el
-    reparto fijo por canal contra un piso de 23%.
+    El tiempo-nota es lo que la nota sostiene su voz: del arranque al fin en
+    el MIDI, o al fin de la muestra si es un golpe que se acaba antes. Se
+    pierde entero si la nota no consigue voz, y desde que se la roban si le
+    roban la suya antes de ese fin. La cola del release no cuenta: no está en
+    el MIDI. Es la cuenta del prototipo, que en `escape_newyork` dio 55% con
+    el reparto fijo por canal contra un piso de 23%.
     """
     total = perdido = 0
-    for nota, voz, robada in reparto:
-        largo = nota.end - nota.start
+    tramos = []
+    for nota, voz, robada, fin in reparto:
+        largo = fin - nota.start
         total += largo
+        tramos.append(_Tramo(nota.start, fin))
         if voz is None:
             perdido += largo
         elif robada is not None:
-            perdido += max(0, nota.end - robada)
-    spans = musica.note_time([nota for nota, _v, _r in reparto])
+            perdido += max(0, fin - robada)
+    spans = musica.note_time(tramos)
     piso = sum(max(0, n - sdsp.VOICES) * cuadros for n, cuadros in spans.items())
     return perdido / float(max(1, total)), piso / float(max(1, total))
+
+
+_Tramo = collections.namedtuple("_Tramo", "start end")
 
 
 def notas_que_suenan(leido, banco):

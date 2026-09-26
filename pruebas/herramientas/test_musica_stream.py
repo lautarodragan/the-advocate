@@ -207,7 +207,7 @@ def test_un_acorde_suena_entero_aunque_haya_mas_canales_que_voces():
     notas += [_nota(700, 750, midi.DRUM_CHANNEL, BOMBO)]
     notas += [_nota(800, 900, 0, 60 + k) for k in (0, 4, 7, 12)]
     salen, reparto = _repartir(notas)
-    sin_voz = [(n.channel, n.pitch) for n, v, _r in reparto if v is None]
+    sin_voz = [(n.channel, n.pitch) for n, v, _r, _f in reparto if v is None]
     assert not sin_voz, "notas sin voz con voces libres: %s" % sin_voz
     kon, _release = _leer(salen)
     en_el_acorde = [v for v, cuadros in kon.items() if 800 in cuadros]
@@ -230,20 +230,20 @@ def test_ninguna_nota_se_queda_sin_voz_si_hay_una_libre():
         nota.end = inicio + azar.randrange(1, 120)
         notas.append(nota)
     _salen_, reparto = _repartir(notas)
-    assert any(v is None for _n, v, _r in reparto), (
+    assert any(v is None for _n, v, _r, _f in reparto), (
         "el caso no llega a pasar de ocho voces: no prueba nada")
 
-    def sostenida(n, v, robada, t):
+    def sostenida(n, v, robada, fin, t):
         # Quién sostiene una voz en `t`: arrancó antes, no terminó y no se la
-        # robaron. La batería suelta la voz con el fin de la nota en el MIDI
-        # —el `_Muestra` de acá dura un segundo, más que cualquier nota—.
-        return (v is not None and n.start <= t < n.end
+        # robaron. Un golpe la suelta con el fin de la nota o el de la
+        # muestra, lo que llegue antes: es el cuarto campo de `reparto`.
+        return (v is not None and n.start <= t < fin
                 and (robada is None or robada > t))
-    for nota, voz, _r in reparto:
+    for nota, voz, _r, _f in reparto:
         if voz is not None:
             continue
         t = nota.start
-        ocupadas = {v for n, v, r in reparto if sostenida(n, v, r, t)}
+        ocupadas = {v for n, v, r, f in reparto if sostenida(n, v, r, f, t)}
         assert len(ocupadas) == sdsp.VOICES, (
             "la nota de las %d del canal %d no sonó con %d voces sostenidas"
             % (t, nota.channel, len(ocupadas)))
@@ -261,7 +261,7 @@ def test_se_le_roba_a_la_mas_debil_y_no_a_la_ultima_de_un_canal():
     solita.end = 500
     nueva = _nota(100, 200, 2, 80)
     _salen_, reparto = _repartir(notas + [suave, solita, nueva])
-    voz = {id(n): (v, r) for n, v, r in reparto}
+    voz = {id(n): (v, r) for n, v, r, _f in reparto}
     assert voz[id(nueva)][0] == voz[id(suave)][0], (
         "la nota nueva tomó la voz %s y la suave del canal 0 era la %s"
         % (voz[id(nueva)][0], voz[id(suave)][0]))
