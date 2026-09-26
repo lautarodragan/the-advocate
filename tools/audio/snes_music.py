@@ -278,6 +278,54 @@ SE_ENTEROS = {
 }
 SE_ENTEROS_PAGADOS = {"Thunder9@entero"}
 
+# **Los que sí paga la música**, del 2026-09-26: taro, escuchando los que no
+# entraban en lo libre, *"tengo cero dudas de que tienen que tener su
+# longitud completa (todos)"*, y la tasa, de la baja a la media como mínimo.
+# Van enteros aunque le bajen la tasa a los instrumentos de su paquete: cuánto
+# y a cuáles está en `tasks/*/efectos-de-sonido-sin-recortes.md`.
+#
+# La media es 11.025 Hz, o 16.000 donde así se grabó para que taro eligiera
+# (los golpes de la pelea). **Donde la media no entra, 6.000**, que sigue
+# siendo entero:
+#
+# * la lluvia de la apertura: entera a 11 kHz son 31 KB, al lado de los 24 del
+#   trueno, y la música del mapa 1 no entra ni con cada muestra en `PISO`;
+# * los del mapa 3, que suman 43 KB de efectos: los cinco enteros a 11 kHz
+#   pasan de la ARAM sin música. Ahí van con un alias (`SE_DEL_MAPA`), así
+#   que en los demás paquetes siguen a la media. Cada alias es una entrada
+#   del directorio, que está lleno: le cuesta la última copia a `copias`.
+#
+# Bow2 y Holy5 están además en el 26 y el 261, llenos con los de
+# `SE_ENTEROS`: para que les entren a la media, ahí bajan Monster2, Thunder4 y
+# Buzzer1 de 22 a 16 kHz, que ya no tienen que ver con la música.
+SE_ENTEROS.update({
+    "Monster2": 16000, "Thunder4": 16000, "Buzzer1": 16000,
+    "Rain1": 6000,
+    "Attack2": 16000, "Damage1": 16000, "Evasion1": 16000, "Escape": 16000,
+    "Bite": 11025, "Item2": 11025, "Monster1": 11025,
+    "Thunder9": 11025, "Darkness": 11025, "Explosion4": 11025,
+    "Glass": 11025, "Switch1": 11025,
+    "Bow2": 11025, "Holy5": 11025, "Blow2": 11025,
+    "Thunder9@3": 6000, "Darkness@3": 6000, "Explosion4@3": 6000,
+    "Glass@3": 6000,
+})
+SE_ENTEROS_PAGADOS |= {
+    "Rain1", "Attack2", "Damage1", "Evasion1", "Escape", "Bite", "Item2",
+    "Monster1", "Thunder9", "Darkness", "Explosion4", "Glass", "Switch1",
+    "Bow2", "Holy5", "Blow2",
+    "Thunder9@3", "Darkness@3", "Explosion4@3", "Glass@3",
+}
+
+# Los alias por mapa: (nombre en RM2k, id del mapa) -> la muestra que suena
+# ahí. Los pone `_compilar`, en tools/port/eventos.py.
+SE_DEL_MAPA = {
+    ("Thunder9", 1): "Thunder9@entero",
+    ("Thunder9", 3): "Thunder9@3",
+    ("Darkness", 3): "Darkness@3",
+    ("Explosion4", 3): "Explosion4@3",
+    ("Glass", 3): "Glass@3",
+}
+
 
 class Efecto:
     """Un efecto listo para el SPC700: `data` en BRR, a `rate`, que vuelve al

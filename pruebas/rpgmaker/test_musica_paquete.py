@@ -80,8 +80,12 @@ def test_entrar_al_juego_devuelve_las_muestras_del_tema_del_mapa(con_musica):
     una = con_musica()
     una.guardar_por_el_menu()
     una.reiniciar(SEGUIR)
-    # Un tick, para que el mapa arranque su tema.
-    una.correr(1)
+    # Unos ticks, para que el mapa arranque su tema. Más de uno porque el
+    # primero puede tardar dos subidas: las muestras del tema que suena no se
+    # mueven, los efectos enteros del mapa 1 no encuentran un hueco entre
+    # ellas, y el `PlayBGM` calla y acomoda el paquete de nuevo (ver
+    # `PAQ_INCOMPLETO`); `correr(1)` se corta a los 120 cuadros.
+    una.correr(3)
 
     del_mapa = una.palabra("tema_actual")
     assert not una.byte("music_apagada"), (
