@@ -148,12 +148,12 @@ def abrir_la_lista(una, pelea):
     que la ROM la arme: `BA_HAB_LISTA` se arma al entrar."""
     pelea.esperar("ORDEN")
     for _ in range(5):
-        pelea.tocar("left")
-    pelea.tocar("right")
-    pelea.tocar()
+        pelea.tocar_cuadros("left")
+    pelea.tocar_cuadros("right")
+    pelea.tocar_cuadros()
     lugares = (lugar_en_la_lista(una, pelea, DETECT_AURA),
                lugar_en_la_lista(una, pelea, ABSORB_AURA))
-    pelea.tocar("b")
+    pelea.tocar_cuadros("b")
     return lugares
 
 
