@@ -2288,13 +2288,9 @@ def variables_de(game_dir, map_ids=None, extra=()):
     """
     from rpgmaker import lcf
     ids = set(extra)
-    for map_id in (mapas_del_juego(game_dir) if map_ids is None else map_ids):
-        game_map = lcf.Map(os.path.join(game_dir, "Map%04d.lmu" % map_id))
-        for evento in game_map.events:
-            for page in evento.pages:
-                if "variable" in page.condition.active:
-                    ids.add(page.condition.ids["variable"])
-                ids |= variables_de_comandos(page.commands)
+    ids |= barrer_los_mapas(
+        game_dir, mapas_del_juego(game_dir) if map_ids is None else map_ids,
+        _variables_del_mapa)
     if map_ids is None:
         # Y las de las páginas de las tropas, que son del juego entero y no de
         # un mapa. Suman **cuarenta**, medido el 2026-09-21: los sistemas de
@@ -2309,6 +2305,62 @@ def variables_de(game_dir, map_ids=None, extra=()):
         for comandos in comandos_de_las_tropas(db):
             ids |= variables_de_comandos(comandos)
     return {variable: ranura for ranura, variable in enumerate(sorted(ids))}
+
+
+def _variables_del_mapa(game_map):
+    """El barrido de `variables_de` sobre un mapa."""
+    ids = set()
+    for evento in game_map.events:
+        for page in evento.pages:
+            if "variable" in page.condition.active:
+                ids.add(page.condition.ids["variable"])
+            ids |= variables_de_comandos(page.commands)
+    return ids
+
+
+def barrer_los_mapas(game_dir, map_ids, barrido):
+    """La unión de `barrido(mapa)` —un conjunto— sobre esos mapas.
+
+    Los barridos de `variables_de` y `pares_de_habilidad` cargan cada uno los
+    328 mapas del juego, y cargarlos es casi todo lo que cuestan: van en
+    paralelo, en procesos bifurcados que devuelven cada uno la unión de los
+    suyos. El resultado es un conjunto, así que el orden no importa.
+    """
+    from rpgmaker import lcf
+    map_ids = list(map_ids)
+    rutas = [os.path.join(game_dir, "Map%04d.lmu" % m) for m in map_ids]
+    procesos = min(len(rutas), os.cpu_count() or 1)
+    if procesos < 2:
+        return set().union(*(barrido(lcf.Map(r)) for r in rutas))
+    import multiprocessing
+    global _barriendo
+    _barriendo = barrido
+    try:
+        with multiprocessing.get_context("fork").Pool(procesos) as pool:
+            partes = pool.map(_barrer_unos, [rutas[k::procesos]
+                                             for k in range(procesos)])
+    finally:
+        _barriendo = None
+    hallado = set()
+    for parte, error in partes:
+        if error is not None:
+            raise error
+        hallado |= parte
+    return hallado
+
+
+_barriendo = None
+
+
+def _barrer_unos(rutas):
+    """Lo que hace cada proceso de `barrer_los_mapas`. Una excepción vuelve
+    como valor: un `SystemExit` suelto mataría al proceso del pool sin
+    avisar."""
+    from rpgmaker import lcf
+    try:
+        return set().union(*(_barriendo(lcf.Map(r)) for r in rutas)), None
+    except BaseException as e:      # noqa: B036 — ver el docstring
+        return None, e
 
 
 def comandos_de_las_tropas(db):
@@ -2496,6 +2548,15 @@ def pares_de_habilidad_de_comandos(comandos):
     return pares
 
 
+def _pares_del_mapa(game_map):
+    """El barrido de `pares_de_habilidad` sobre un mapa."""
+    pares = set()
+    for evento in game_map.events:
+        for page in evento.pages:
+            pares |= pares_de_habilidad_de_comandos(page.commands)
+    return pares
+
+
 def pares_de_habilidad(game_dir, extra=()):
     """Cada par (actor, habilidad) que el juego puede mirar, con su ranura.
 
@@ -2507,11 +2568,8 @@ def pares_de_habilidad(game_dir, extra=()):
     pares = set(extra)
     for numero, actor in db.actors.items():
         pares |= {(numero, s) for _nivel, s in actor.skills if s}
-    for map_id in mapas_del_juego(game_dir):
-        game_map = lcf.Map(os.path.join(game_dir, "Map%04d.lmu" % map_id))
-        for evento in game_map.events:
-            for page in evento.pages:
-                pares |= pares_de_habilidad_de_comandos(page.commands)
+    pares |= barrer_los_mapas(game_dir, mapas_del_juego(game_dir),
+                              _pares_del_mapa)
     for comandos in db.common_events.values():
         pares |= pares_de_habilidad_de_comandos(comandos)
     # Y las páginas de las tropas, que desde el 2026-09-21 corren en la pelea.
