@@ -5046,6 +5046,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             t = texto_nuevo(texto)
             if texto_batalla is None:
                 texto_batalla = t
+        # Y el renglón de un caído que un ítem levantó: el `message_recovery`
+        # del estado de muerto, que va pegado al nombre —"Core has revived!"—.
+        # No es un término sino un dato del estado, así que va aparte y con su
+        # propio índice. Ver `ba_mensaje`.
+        texto_revivio = texto_nuevo(P.texto_revivio(db))
         enemigos_rom = sorted({e for numero in tropas
                                if numero in db.troops
                                for e in db.troops[numero].members})
@@ -5814,6 +5819,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         for k, (nombre, _termino) in enumerate(P.BA_TERMINOS):
             handle.write("BA_TXT_%-11s= BA_TXT_BASE + %d\n"
                          % (nombre.upper(), k))
+        handle.write("BA_TXT_REVIVIO    = %d\n" % texto_revivio)
         # Las cinco órdenes del menú, con lo que la ROM necesita de cada una:
         # en qué renglón y en qué columna va, qué término la nombra y si va
         # siempre en gris. Van en tablas y no en una cuenta porque desde el
