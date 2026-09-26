@@ -41,8 +41,11 @@ muestra y con qué envolvente, y la consola sólo reproduce.
   tema: `workflow/decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`.
 * **Los efectos de sonido** —`PlaySound`— le roban dos voces a la música
   mientras duran, las que el reparto llena primero con la percusión:
-  `rom/src/efectos_de_sonido.s` y `build_efectos` en `snes_music.py`. El que va
-  entero es `workflow/decisiones/el-trueno-va-entero-a-22-khz.md`.
+  `rom/src/efectos_de_sonido.s` y `build_efectos` en `snes_music.py`. Los
+  que van enteros y a más tasa —`SE_ENTEROS`— se acomodan en lo que la música
+  deja libre en cada paquete, así que no le bajan la tasa a ningún
+  instrumento; el trueno de la apertura es el único que la música paga:
+  `workflow/decisiones/el-trueno-va-entero-a-22-khz.md`.
 * **El MSU-1**: los temas de `PISTAS_MSU` suenan desde un PCM al lado de la
   ROM, y la ROM calla el SPC700 mientras tanto. Las pistas las arma
   `tools/audio/msu.py`. Con MSU-1, el paquete no sube las muestras de los
