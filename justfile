@@ -219,8 +219,10 @@ parches-check *builds="rom/build/tests rom/build/release":
 # ahí, para que la ROM que se juega y la que prueba la tanda sean la misma.
 #
 # **`release` lleva siempre sus pistas de MSU-1** al lado de `abl.sfc`: el
-# `abl.msu` que lo enciende —vacío— y un `abl-N.pcm` por tema de
-# `PISTAS_MSU`. Sin la extensión la ROM suena como siempre, por el SPC700. Las
+# `abl.msu` que lo enciende y un `abl-N.pcm` por tema de `PISTAS_MSU`. Sin la
+# extensión la ROM suena como siempre, por el SPC700. El `.msu` lo escribe el
+# conversor, y lo llevan los tres cartuchos: son los fondos de batalla que la
+# ROM lee por el MSU-1 si está —ver tools/port/msu_datos.py—. Las
 # renderiza `tools/audio/msu.py` con fluidsynth, y sólo las que cambiaron: una
 # pista depende del MIDI, del soundfont, del sintetizador y de cómo se
 # normaliza, no del cartucho. Con `SIN_CACHE=1` se rehacen todas.
@@ -249,7 +251,8 @@ build cual:
 # Se niega con cambios sin commitear en lo que entra en la ROM: el build se
 # nombra por commit y tiene que ser ese commit. Y avisa si las pistas de MSU-1
 # no son las de `/shared/msu/`, pero no las copia sin `--actualizar-msu`:
-# pesan medio giga.
+# pesan medio giga. El `abl.msu` sí va siempre, al build y a `/shared/msu/`:
+# es del build —los fondos de batalla— y pesa 32 KB por fondo.
 #
 #     just entregar "Qué cambió desde el build anterior y qué mirar."
 #     just entregar "..." --actualizar-msu

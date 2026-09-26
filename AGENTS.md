@@ -441,6 +441,13 @@ Lo que hay que hacer siempre:
   2026-09-25, cuando `release` pasó a llevarlas siempre. `just entregar`
   avisa si no coinciden con las del build, y las copia sólo con
   `--actualizar-msu`.
+
+  **El `abl.msu` sí va en el build, y además a `/shared/msu/` siempre.**
+  Desde el 2026-09-25 no está vacío: lleva los fondos de batalla que la ROM
+  lee por el MSU-1 —ver `docs/port/msu-datos.md`—, así que cambia con el
+  conversor y es del build, no de las pistas; y pesa 32 KB por fondo. Con el
+  `abl.sfc` de otro build no se rompe nada: la ROM no encuentra su firma en
+  el `.msu` y usa los fondos que lleva.
 * **Y la ROM que se le da a probar sale de `main` mergeado, no de la rama del
   agente.** La del agente tiene su arreglo y **ninguno de los demás**. 
   La del agente sirve para aislar **su** cambio; la que se juega, no.
