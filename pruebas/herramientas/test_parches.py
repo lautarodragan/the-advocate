@@ -78,3 +78,22 @@ def test_el_tamano_de_cada_animacion_versionada_sale_de_su_caja_y_de_nada_mas():
             % (numero, doc["tamano"], doc["original"],
                animacion.tamano(*doc["original"])))
         assert max(doc["tamano"]) <= animacion.CAJA
+
+
+def test_armar_otra_vez_no_deja_los_parches_de_la_corrida_anterior(tmp_path):
+    """Un cartucho que deja de llevar un mapa, una animación o un battler no
+    puede seguir teniendo su parche al lado de la ROM: `revisar` mira lo que
+    hay en el directorio, y un `.toml` viejo cuenta como convertido. Pasó al
+    sacar los mapas de prueba de `release`: el `0052.toml` de la corrida
+    anterior hacía caer la prueba de arriba."""
+    viejos = []
+    for clase in parches.CLASES:
+        carpeta = tmp_path / clase.directorio
+        carpeta.mkdir(parents=True)
+        viejos.append(carpeta / "9999.toml")
+        viejos[-1].write_text("de la corrida anterior\n")
+    parches.escribir(str(tmp_path), [])
+    parches.escribir_animaciones(str(tmp_path), [])
+    parches.escribir_battlers(str(tmp_path), [])
+    quedan = [str(v) for v in viejos if v.exists()]
+    assert not quedan, "quedaron parches de una corrida anterior: %s" % quedan

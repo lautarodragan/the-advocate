@@ -188,6 +188,19 @@ def _cadena(valor):
     return '"%s"' % str(valor).replace("\\", "\\\\").replace('"', '\\"')
 
 
+def _vaciar(carpeta):
+    """La carpeta de una clase en el build, creada y sin los `.toml` de la
+    corrida anterior. Sin esto, un cartucho que deja de llevar un mapa o una
+    animación seguía teniendo su parche viejo al lado de la ROM, y
+    `revisar` lo contaba como convertido: al sacar los mapas de prueba de
+    `release`, el `0052.toml` que había quedado hacía caer `test_parches`."""
+    os.makedirs(carpeta, exist_ok=True)
+    for viejo in os.listdir(carpeta):
+        if viejo.endswith(".toml"):
+            os.remove(os.path.join(carpeta, viejo))
+    return carpeta
+
+
 def escribir(destino, mapas):
     """Los parches de los mapas de un cartucho, en
     `<destino>/parches/auto/mapas/`.
@@ -195,8 +208,7 @@ def escribir(destino, mapas):
     `mapas` son los que devuelve `main()` del conversor. Devuelve cuántos
     archivos escribió y cuántos bytes ocupan.
     """
-    carpeta = os.path.join(destino, EN_BUILD)
-    os.makedirs(carpeta, exist_ok=True)
+    carpeta = _vaciar(os.path.join(destino, EN_BUILD))
     bytes_ = 0
     for mapa in mapas:
         contenido = texto(mapa["id"], mapa["nombre"], mapa["resumen"])
@@ -259,8 +271,7 @@ def escribir_animaciones(destino, animaciones):
 
     Devuelve cuántos archivos escribió y cuántos bytes ocupan.
     """
-    carpeta = os.path.join(destino, EN_BUILD_ANIM)
-    os.makedirs(carpeta, exist_ok=True)
+    carpeta = _vaciar(os.path.join(destino, EN_BUILD_ANIM))
     bytes_ = 0
     for datos in animaciones:
         contenido = texto_animacion(datos)
@@ -341,11 +352,7 @@ def texto_battler(info):
 def escribir_battlers(destino, battlers):
     """Los parches de los battlers de un cartucho, en
     `<destino>/parches/auto/battlers/`. Devuelve cuántos y cuántos bytes."""
-    carpeta = os.path.join(destino, EN_BUILD_BAT)
-    os.makedirs(carpeta, exist_ok=True)
-    for viejo in os.listdir(carpeta):
-        if viejo.endswith(".toml"):
-            os.remove(os.path.join(carpeta, viejo))
+    carpeta = _vaciar(os.path.join(destino, EN_BUILD_BAT))
     bytes_ = 0
     for info in battlers:
         contenido = texto_battler(info)
