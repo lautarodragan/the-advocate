@@ -9,7 +9,9 @@ SPC700 y la toca; sin MSU-1 la firma no está y todo suena como siempre. Ver
 Una pista es `<rom>-<número>.pcm`: la firma "MSU1", el punto de loop en
 muestras —cuatro bytes— y el audio crudo, estéreo de 16 bits con signo a
 44,1 kHz. Y al lado tiene que estar `<rom>.msu`, que es lo que enciende el
-MSU-1; puede estar vacío.
+MSU-1. Ése no lo escribe esto sino el conversor, con los fondos de batalla que
+el MSU-1 le sirve a la ROM —ver `port/msu_datos.py`—; para las pistas puede
+estar vacío.
 
 El audio sale de renderizar el MIDI con fluidsynth y **el mismo soundfont con
 el que el juego sonaba en la PC**, que es el que ya usa `snes_samples.py` para
@@ -219,7 +221,10 @@ def armar(rom, game_dir=GAME_DIR, soundfont=snes_samples.SOUNDFONT,
     """
     hechas = estaban = 0
     base = os.path.splitext(rom)[0]
-    # El archivo que enciende el MSU-1. Vacío alcanza: no leemos datos.
+    # El archivo que enciende el MSU-1. Lo escribe el conversor con sus datos,
+    # así que acá se crea sólo si falta —una ROM suelta, armada a mano—, y
+    # vacío: sin la firma que espera, la ROM lee los fondos de sí misma. El
+    # modo "ab" no lo trunca si ya está.
     abierto = open(base + ".msu", "ab")
     abierto.close()
     for nombre, numero in sorted(snes_music.PISTAS_MSU.items(),

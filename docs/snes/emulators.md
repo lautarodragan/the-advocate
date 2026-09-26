@@ -18,6 +18,27 @@ Both Ares and Mednafen can run from the command line:
 `ares abl.sfc` and `mednafen abl.sfc` work well.
 Mesen doesn't support opening roms via command line args.
 
+## The MSU-1 data port
+
+Besides audio tracks, the MSU-1 serves `<rom>.msu` as a byte stream: write
+a 32-bit offset to `$2000..$2003` (the write to `$2003` seeks), wait for
+bit 7 of `$2000` to clear, then read `$2001`, which auto-increments. DMA
+with a fixed A-bus source of `$00:2001` works. Checked in the sources of the
+libretro cores installed here, and by running the ROM on each:
+
+- **bsnes** (`sfc/coprocessor/msu1/msu1.cpp`): `readIO` serves `$2001`,
+  and DMA only refuses `$2100-$21FF` and the CPU registers (`validA` in
+  `sfc/cpu/dma.cpp`). The libretro target maps `msu1/data.rom` to
+  `<rom>.msu` and only enables the MSU-1 when that file exists.
+- **snes9x** (`msu1.c`): `S9xMSU1ReadPort`. Page `$2000` is `MAP_PPU`, with
+  no direct pointer, so DMA takes the slow path through `S9xGetPPU`, which
+  routes `$2000-$2007` to the MSU-1.
+- **mesen-s** (`Core/Msu1.cpp`): same registers; also only with a `.msu`.
+- **Mednafen**: no MSU-1 at all.
+
+None of them ever sets the data-busy bit: seeks are instant. Only real
+hardware (the FX Pak Pro reads the SD card) exercises the wait.
+
 ## Debugging with Mesen2
 
 Mesen2's debugger can show our routine names and, next to the
