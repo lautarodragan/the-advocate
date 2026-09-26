@@ -21,6 +21,7 @@ from audio import muestras_brr
 from audio import sdsp
 from audio import snes_samples
 from audio import spc700
+from comun.paralelo import en_paralelo
 from render.render_map import GAME_DIR, find_resource
 
 TICKS_PER_SECOND = musica.TICKS_PER_SECOND
@@ -317,10 +318,15 @@ def build_efectos(pedidos, game_dir=GAME_DIR, budget=SE_ARAM):
     lista de nombres ya ordenada de más a menos pedido. Devuelve {nombre:
     Efecto} con los que entraron."""
     hechos, usado = {}, 0
+    # Cada efecto se arma solo —leer el WAV, remuestrearlo, codificarlo— y
+    # eso es puro: todos a la vez, y después el reparto en el orden pedido.
+    unicos = list(dict.fromkeys(pedidos))
+    armados = dict(zip(unicos, en_paralelo(
+        lambda n: build_efecto(n, game_dir), unicos)))
     for nombre in pedidos:
         if nombre in hechos:
             continue
-        efecto = build_efecto(nombre, game_dir)
+        efecto = armados[nombre]
         if efecto is None:
             continue
         costo = len(efecto.data) + 4          # la muestra y su entrada
@@ -1738,7 +1744,8 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     driver = spc700.assemble(DRIVER, DRIVER_ADDR)
     if techos is None:
         techos = leer_techos()
-    leidos = [leer_tema(n, game_dir) for n in nombres]
+    # Leer los MIDI es puro y son uno por tema: en paralelo, como armarlos.
+    leidos = en_paralelo(lambda n: leer_tema(n, game_dir), nombres)
     teclas = zonas_mas_usadas(leidos)
     claves_de = [claves_del_tema(t, teclas) for t in leidos]
     # Los efectos van **todos**: cuáles caben lo decide la ROM mapa por mapa,
@@ -1778,27 +1785,11 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     banco.asignacion = asignacion
 
     # Cada tema es independiente una vez repartido el banco, y armarlos era
-    # la mitad de esta función: van en paralelo, un proceso bifurcado por
-    # tema con todo el estado ya armado, y vuelven en el orden de siempre.
-    global _para_los_temas
-    _para_los_temas = (nombres, leidos, asignacion, banco, techos,
-                       aire_de_medida)
-    try:
-        if len(nombres) > 1:
-            import multiprocessing
-            procesos = min(len(nombres), os.cpu_count() or 1)
-            with multiprocessing.get_context("fork").Pool(procesos) as pool:
-                hechos = pool.map(_armar_tema, range(len(nombres)),
-                                  chunksize=1)
-        else:
-            hechos = [_armar_tema(i) for i in range(len(nombres))]
-    finally:
-        _para_los_temas = None
-    temas = []
-    for tema, error in hechos:
-        if error is not None:
-            raise error
-        temas.append(tema)
+    # la mitad de esta función: van en paralelo, y vuelven en el orden de
+    # siempre.
+    contexto = (nombres, leidos, asignacion, banco, techos, aire_de_medida)
+    temas = en_paralelo(lambda i: _armar_tema(contexto, i),
+                        range(len(nombres)))
     # Los efectos van detrás del banco en el mismo directorio: su `V_SRCN` es
     # el lugar que les toca después de las muestras de la música.
     banco.efectos = {e.name: (len(banco.voces) + i, e)
@@ -1806,41 +1797,28 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     return (driver, list(banco.voces) + lista, temas, banco)
 
 
-_para_los_temas = None
-
-
-def _armar_tema(i):
-    """Un tema de `build_varios`, con el estado que dejó en `_para_los_temas`.
-
-    Devuelve (tema, None), o (None, la excepción): un `SystemExit` que se
-    escapa de un proceso del pool lo mata sin avisar, y el conversor tiene
-    que cortar con el mismo mensaje que cortaba en serie.
-    """
-    nombres, leidos, asignacion, banco, techos, aire_de_medida = \
-        _para_los_temas
+def _armar_tema(contexto, i):
+    """Un tema de `build_varios`: lo que hace en paralelo."""
+    nombres, leidos, asignacion, banco, techos, aire_de_medida = contexto
     nombre, leido, suya = nombres[i], leidos[i], asignacion[i]
-    try:
-        if leido is None:
-            return ({"nombre": nombre, "stream": bytes([OP_END]),
-                     "sonidos": [], "escrituras": [],
-                     "segundos": 0.0, "resumen": {}}, None)
-        reparto = []
-        aire = aire_de_medida or techos.get(nombre, sdsp.AIRE)
-        del_tema = banco.del_tema(suya)
-        frames = build_events(leido["notas"], leido["voces"],
-                              leido["programas"], del_tema,
-                              leido["controles"], reparto, aire)
-        referencia = escrituras(frames, leido["largo"], init_writes())
-        stream, sonidos = pack(frames, leido["largo"], init_writes())
-        verificar_formato(nombre, stream, sonidos, referencia)
-        return ({"nombre": nombre, "stream": stream, "sonidos": sonidos,
-                 "escrituras": referencia, "aire": aire,
-                 "huella": huella_de_la_mezcla(referencia, banco),
-                 "segundos": leido["largo"] / TICKS_PER_SECOND,
-                 "resumen": resumen_del_tema(leido, del_tema, reparto)},
-                None)
-    except BaseException as e:      # noqa: B036 — ver el docstring
-        return None, e
+    if leido is None:
+        return {"nombre": nombre, "stream": bytes([OP_END]),
+                "sonidos": [], "escrituras": [],
+                "segundos": 0.0, "resumen": {}}
+    reparto = []
+    aire = aire_de_medida or techos.get(nombre, sdsp.AIRE)
+    del_tema = banco.del_tema(suya)
+    frames = build_events(leido["notas"], leido["voces"],
+                          leido["programas"], del_tema,
+                          leido["controles"], reparto, aire)
+    referencia = escrituras(frames, leido["largo"], init_writes())
+    stream, sonidos = pack(frames, leido["largo"], init_writes())
+    verificar_formato(nombre, stream, sonidos, referencia)
+    return {"nombre": nombre, "stream": stream, "sonidos": sonidos,
+            "escrituras": referencia, "aire": aire,
+            "huella": huella_de_la_mezcla(referencia, banco),
+            "segundos": leido["largo"] / TICKS_PER_SECOND,
+            "resumen": resumen_del_tema(leido, del_tema, reparto)}
 
 
 def resumen_del_tema(leido, banco, reparto=()):

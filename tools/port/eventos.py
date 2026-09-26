@@ -2323,44 +2323,19 @@ def barrer_los_mapas(game_dir, map_ids, barrido):
 
     Los barridos de `variables_de` y `pares_de_habilidad` cargan cada uno los
     328 mapas del juego, y cargarlos es casi todo lo que cuestan: van en
-    paralelo, en procesos bifurcados que devuelven cada uno la unión de los
-    suyos. El resultado es un conjunto, así que el orden no importa.
+    paralelo, de a tandas, y cada tanda devuelve la unión de lo suyo. El
+    resultado es un conjunto, así que el orden no importa.
     """
     from rpgmaker import lcf
-    map_ids = list(map_ids)
+    from comun.paralelo import en_paralelo
     rutas = [os.path.join(game_dir, "Map%04d.lmu" % m) for m in map_ids]
-    procesos = min(len(rutas), os.cpu_count() or 1)
-    if procesos < 2:
-        return set().union(*(barrido(lcf.Map(r)) for r in rutas))
-    import multiprocessing
-    global _barriendo
-    _barriendo = barrido
-    try:
-        with multiprocessing.get_context("fork").Pool(procesos) as pool:
-            partes = pool.map(_barrer_unos, [rutas[k::procesos]
-                                             for k in range(procesos)])
-    finally:
-        _barriendo = None
+    tandas = max(1, min(len(rutas), os.cpu_count() or 1))
     hallado = set()
-    for parte, error in partes:
-        if error is not None:
-            raise error
+    for parte in en_paralelo(
+            lambda suyas: set().union(*(barrido(lcf.Map(r)) for r in suyas)),
+            [rutas[k::tandas] for k in range(tandas)]):
         hallado |= parte
     return hallado
-
-
-_barriendo = None
-
-
-def _barrer_unos(rutas):
-    """Lo que hace cada proceso de `barrer_los_mapas`. Una excepción vuelve
-    como valor: un `SystemExit` suelto mataría al proceso del pool sin
-    avisar."""
-    from rpgmaker import lcf
-    try:
-        return set().union(*(_barriendo(lcf.Map(r)) for r in rutas)), None
-    except BaseException as e:      # noqa: B036 — ver el docstring
-        return None, e
 
 
 def comandos_de_las_tropas(db):
