@@ -5,9 +5,9 @@ AGENTS.md; esto es esa regla escrita una sola vez.
     python3 tools/ensamblado/entregar.py "qué mirar"
     python3 tools/ensamblado/entregar.py "qué mirar" --actualizar-msu
 
-El build lleva `abl.sfc`, `abl.sfc.dbg`, el `rom/src/` del commit y un
-`LEEME.txt`. Las pistas de MSU-1 no: van a `/shared/msu/`, y sólo con
-`--actualizar-msu`.
+El build lleva `abl.sfc`, `abl.sfc.dbg`, `abl.msu`, el `rom/src/` del commit
+y un `LEEME.txt`. Las pistas de MSU-1 no: van a `/shared/msu/`, y sólo con
+`--actualizar-msu`. El `abl.msu` va también ahí, siempre: ver `MSU_DEL_BUILD`.
 """
 
 import argparse
@@ -37,7 +37,16 @@ BUILD = re.compile(r"^(\d{4}-\d{2}-\d{2})-([0-9a-f]{7,40})")
 
 # Lo que escribe esto adentro del build. Si el directorio ya existía, se pisa
 # esto y nada más: taro deja ahí la partida de su emulador (`abl.ram`).
-LO_NUESTRO = ("abl.sfc", "abl.sfc.dbg", "LEEME.txt", "rom")
+LO_NUESTRO = ("abl.sfc", "abl.sfc.dbg", "abl.msu", "LEEME.txt", "rom")
+
+# **El `abl.msu` es del build, no de las pistas.** Lleva los fondos de batalla
+# que el MSU-1 le sirve a la ROM —ver tools/port/msu_datos.py—, así que cambia
+# con lo que cambie el conversor, y pesa 32 KB por fondo y no medio giga. Va en
+# el build, para que cada `abl.sfc` tenga el suyo al lado, y se copia siempre a
+# /shared/msu/, que es donde taro juega con MSU-1: ahí tiene que estar el del
+# último build. Con el `abl.sfc` de otro build no se rompe nada: la ROM no
+# encuentra su firma y lee los fondos de sí misma.
+MSU_DEL_BUILD = "abl.msu"
 
 # El comando de la huella tal cual lo escribe `/shared/msu/LEEME.txt`, y se
 # corre con un shell y no reimplementado: la línea que hashea el segundo
@@ -73,15 +82,16 @@ def huella_msu_entregada():
 
 
 def actualizar_msu(commit, fecha, huella):
-    """Copia `abl.msu` y los `abl-N.pcm` a /shared/msu/, borra los `.pcm` que
-    ya no salen, y le cambia al LEEME el commit y la huella. No toca el
-    `abl.sfc` ni la partida que taro tenga ahí."""
+    """Copia los `abl-N.pcm` a /shared/msu/, borra los que ya no salen, y le
+    cambia al LEEME el commit y la huella. No toca el `abl.sfc` ni la partida
+    que taro tenga ahí. El `abl.msu` no va acá: se copia con cada build, ver
+    `MSU_DEL_BUILD`."""
     os.makedirs(MSU, exist_ok=True)
     nuevas = {os.path.basename(p) for p in glob.glob(os.path.join(RELEASE, "abl-*.pcm"))}
     for vieja in glob.glob(os.path.join(MSU, "abl-*.pcm")):
         if os.path.basename(vieja) not in nuevas:
             os.remove(vieja)
-    for nombre in sorted(nuevas) + ["abl.msu"]:
+    for nombre in sorted(nuevas):
         shutil.copyfile(os.path.join(RELEASE, nombre), os.path.join(MSU, nombre))
     leeme = os.path.join(MSU, "LEEME.txt")
     with open(leeme, encoding="utf-8") as f:
@@ -110,6 +120,10 @@ docs/snes/emulators.md.
 Para el MSU-1: las pistas están en /shared/msu/ y no acá, porque pesan medio
 giga. Se escucha copiando ahí este abl.sfc y el abl.sfc.dbg (y el rom/ si se
 quiere el fuente). {msu}
+
+abl.msu: los fondos de batalla que la ROM lee por el MSU-1 cuando está. Es de
+este build y ya se copió a /shared/msu/; con otro abl.sfc hay que llevar el
+suyo, y si no se lleva anda igual, con los fondos de la ROM.
 """
 
 
@@ -137,7 +151,7 @@ def main():
         fallar("hay cambios sin commitear en lo que entra en la ROM, y el build "
                "se nombra por commit:\n" + sucio)
 
-    for nombre in ("abl.sfc", "abl.sfc.dbg"):
+    for nombre in ("abl.sfc", "abl.sfc.dbg", MSU_DEL_BUILD):
         if not os.path.isfile(os.path.join(RELEASE, nombre)):
             fallar("falta rom/build/release/%s: `just build release`." % nombre)
 
@@ -156,8 +170,11 @@ def main():
               % (destino, ", ".join(LO_NUESTRO)))
     os.makedirs(destino, exist_ok=True)
 
-    for nombre in ("abl.sfc", "abl.sfc.dbg"):
+    for nombre in ("abl.sfc", "abl.sfc.dbg", MSU_DEL_BUILD):
         shutil.copyfile(os.path.join(RELEASE, nombre), os.path.join(destino, nombre))
+    os.makedirs(MSU, exist_ok=True)
+    shutil.copyfile(os.path.join(RELEASE, MSU_DEL_BUILD),
+                    os.path.join(MSU, MSU_DEL_BUILD))
 
     # `git archive` y no una copia del árbol: así es el del commit, sin nada
     # sin trackear que haya quedado en rom/src/.

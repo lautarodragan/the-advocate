@@ -173,3 +173,94 @@ no:
     rts
 .endproc
 
+
+; --- el puerto de datos -----------------------------------------------------
+;
+; El `.msu` no es sólo lo que enciende el MSU-1: es un archivo que la ROM lee
+; como un flujo. Se escribe una posición de 32 bits en $2000..$2003 —la
+; escritura a $2003 es la que busca—, se espera a que se apague el bit 7 de
+; $2000 y se lee de $2001, que avanza solo. Por DMA con el origen fijo en
+; $2001 sale a la velocidad de cualquier DMA: en bsnes el A-bus sólo excluye
+; $2100..$21FF y los registros de la CPU (`validA`, en sfc/cpu/dma.cpp), y en
+; snes9x la página $2000 es `MAP_PPU`, sin puntero directo, así que el DMA va
+; byte por byte por `S9xGetPPU`, que atiende al MSU-1.
+;
+; Qué hay adentro y en qué formato lo decide el conversor: ver
+; tools/port/msu_datos.py y docs/port/msu-datos.md. Hoy son los fondos de
+; batalla, y **la ROM sigue llevando los suyos**: esto los reemplaza sólo si
+; hay MSU-1 y el `.msu` es el de este cartucho.
+;
+; Va en el banco 1 porque lo llama la escena de la pelea, que corre ahí y con
+; el banco de datos en $7E: por eso cada registro va con `f:`. Un `lda $2000`
+; suelto leería la WRAM.
+MSU_BUSCAR  = $2000             ; escribir: la posición, cuatro bytes
+MSU_DATOS   = $2001             ; leer: el byte que sigue
+.segment "FAR"
+
+; Busca en el `.msu` la posición de 32 bits que viene en A —los dieciséis de
+; abajo, con A de dieciséis bits— y en Y —los de arriba— y espera a que el
+; MSU-1 la tenga. Vuelve con A de ocho bits, el acarreo limpio si quedó lista y
+; puesto si se acabó el tiempo. Se lleva X.
+;
+; Las escrituras de dieciséis bits van primero al byte bajo, así que $2003, la
+; que busca, es la última: es el orden que pide el MSU-1.
+;
+; **La espera tampoco la ejercita ningún emulador**, igual que `msu_esperar`:
+; bsnes, snes9x y mesen-s no ponen nunca `dataBusy` —buscan en el acto—, así
+; que la primera vuelta ya lo encuentra apagado. En el FX Pak buscar es leer la
+; tarjeta SD, y el tope es el mismo que el del audio y por lo mismo: quedarse
+; corto no cuesta un cuadro sino que la pelea use el fondo de la ROM.
+.proc msu_datos_buscar
+.a16
+.i16
+    sta f:MSU_BUSCAR
+    tya
+    sta f:MSU_BUSCAR + 2
+    sep #$20
+.a8
+    ldx #$0000
+otra:
+    lda f:MSU_ESTADO
+    bpl listo                   ; el bit 7: todavía buscando
+    inx
+    cpx #MSU_ESPERA
+    bcc otra
+    sec
+    rts
+listo:
+    clc
+    rts
+.endproc
+
+; Si el `.msu` es el de este cartucho: A en 1 si hay MSU-1 y los 8 primeros
+; bytes del `.msu` son `msu_datos_firma`, que el conversor saca del contenido.
+; Con otro `.msu` —de otro build, vacío, cortado— o sin MSU-1, A en 0 y la ROM
+; usa lo suyo. Un `.msu` más corto que la firma también da 0: los tres
+; emuladores devuelven cero pasado el final, y la firma no es ocho ceros más
+; que por un azar de uno en 2^64.
+.proc msu_datos_validos
+.a8
+.i16
+    lda f:MSU_HAY
+    beq no
+    rep #$20
+.a16
+    lda #0
+    tay
+    jsr msu_datos_buscar
+.a8
+    bcs no
+    ldx #0
+compara:
+    lda f:MSU_DATOS
+    cmp f:msu_datos_firma, x
+    bne no
+    inx
+    cpx #8
+    bcc compara
+    lda #1
+    rts
+no:
+    lda #0
+    rts
+.endproc

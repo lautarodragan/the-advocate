@@ -172,6 +172,14 @@ def rom_de(nombre):
                         "abl.sfc" if nombre == RELEASE else "prueba.sfc")
 
 
+def msu_de(nombre):
+    """El `.msu` del cartucho: lo escribe el conversor, con los fondos de
+    batalla que el MSU-1 le sirve a la ROM —ver tools/port/msu_datos.py—, y es
+    también lo que enciende el MSU-1 para las pistas. Al lado del `.sfc` y con
+    su nombre, que es donde lo buscan el emulador y el FX Pak."""
+    return os.path.splitext(rom_de(nombre))[0] + ".msu"
+
+
 def _archivo(nombre, que):
     return os.path.join(directorio(nombre), que)
 
@@ -182,11 +190,16 @@ def viejo(nombre, fuentes=None):
         return "no existe"
     try:
         with open(_archivo(nombre, "sello.txt")) as archivo:
-            if archivo.read() == sello(nombre, fuentes):
-                return None
+            sellado = archivo.read()
     except OSError:
         return "no está armado"
-    return "se armó con otros fuentes, otros flags u otros casos"
+    if sellado != sello(nombre, fuentes):
+        return "se armó con otros fuentes, otros flags u otros casos"
+    # Lo escribe el conversor junto con la ROM y no entra en el sello: sin él
+    # el cartucho andaría, pero la prueba del MSU-1 no tendría qué leer.
+    if not os.path.isfile(msu_de(nombre)):
+        return "no tiene su .msu"
+    return None
 
 
 def manifiesto(nombre):
@@ -220,7 +233,8 @@ def armar(nombre, fuentes):
             os.path.join("pruebas", "casos", caso + ".json")]
     convertir = ([sys.executable, os.path.join(RAIZ, "tools", "port",
                                                "snes_convert.py"),
-                  "-o", _archivo(nombre, "mapdata.inc")] + flags + de_casos)
+                  "-o", _archivo(nombre, "mapdata.inc"),
+                  "--msu", msu_de(nombre)] + flags + de_casos)
     hecho = subprocess.run(convertir, cwd=RAIZ, capture_output=True,
                            text=True)
     with open(_archivo(nombre, "conversor.log"), "w") as archivo:

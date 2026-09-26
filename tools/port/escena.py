@@ -87,6 +87,10 @@ va sobre fondo liso, con los mismos battlers compuestos encima. Es el mismo
 código con el fondo en cero, y no un parche: es también lo que pasa sin fondo
 —un `EnemyEncounter` que no nombra ninguno, o un mapa que hereda el del
 terreno— y lo que va a pasar sin MSU-1 el día que los fondos vengan de ahí.
+
+Desde el 2026-09-25 los mismos fondos van también en el `.msu`, y con MSU-1 la
+ROM los lee de ahí: es el piloto del puerto de datos, ver
+tools/port/msu_datos.py.
 """
 
 import collections
