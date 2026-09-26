@@ -177,6 +177,9 @@ puesto:
     sep #$20
 .a8
 
+    ; La grilla, a la WRAM, antes que nadie pregunte por una celda: viene
+    ; comprimida. Ver `GRILLA`.
+    jsl f:lz2_grilla + RAPIDO
     jsr follow_camera
     jsr load_map
     jsr load_above
@@ -326,6 +329,12 @@ puesto:
     jsr load_sprite             ; el banco de poses, la paleta de objetos y OBSEL
     jsr poses_npc_olvidar
     jsr load_ventana
+    ; La grilla, que la escena pisó en la mitad del banco $7F —es
+    ; `ESC_ESCENA`— si el mapa pasa de 32 KB de grilla. Se vuelve a
+    ; descomprimir entera, que es más simple que llevar dónde empieza el
+    ; segundo flujo y cuesta lo mismo que al entrar al mapa. Antes de
+    ; `fill_window`, que la lee.
+    jsl f:lz2_grilla + RAPIDO
     jsr fill_window
     jmp volver_al_mapa
 .endproc

@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.join(RAIZ, "tools"))
 from audio import muestras_brr                          # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
 from port import tiles_bin                              # noqa: E402
+from port import comprimir                              # noqa: E402
 
 CASOS = os.path.join(RAIZ, "pruebas", "casos")
 FUENTE = os.path.join(RAIZ, "rom", "src")
@@ -133,7 +134,8 @@ def archivos_de_la_huella(fuente=FUENTE):
     partes = (sorted(r for r in glob.glob(os.path.join(fuente, "**"),
                                           recursive=True) if os.path.isfile(r))
               + ensamblar.binarios()
-              + [tiles_bin.binario(), muestras_brr.binario()])
+              + [tiles_bin.binario(), muestras_brr.binario(),
+                 comprimir.binario()])
     partes += sorted(glob.glob(os.path.join(RAIZ, "tools", "*", "*.py")))
     partes += sorted(glob.glob(os.path.join(RAIZ, "parches", "manual", "*",
                                             "*")))

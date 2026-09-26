@@ -55,6 +55,15 @@ def pelear(una, tope=20000):
         una.consola.correr(1)
         if not una.byte("menu_abierto"):
             una.consola.apretar()
+            # Y hasta que el lazo del mapa vuelva a correr: la vuelta de la
+            # pelea descomprime los tiles del mapa y dura unos cuadros, y un B
+            # apretado mientras tanto no lo ve nadie. Eran diez cuadros fijos
+            # hasta que la carga creció, el 2026-09-26.
+            antes = una.palabra("vueltas")
+            for _ in range(240):
+                una.consola.correr(1)
+                if una.palabra("vueltas") - antes >= 2:
+                    break
             una.consola.correr(10)
             return una
     raise AssertionError("la pelea no terminó en %d cuadros" % tope)

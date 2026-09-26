@@ -69,16 +69,17 @@ tiene que decir; lo que el código ya dice, no.
 
 Todo este repo va en castellano —comentarios, documentación y mensajes de
 commit—, **salvo los directorios que son proyectos aparte**, que van en inglés
-de punta a punta: código, comentarios, nombres de pruebas y README. Al
-2026-09-16 son cuatro, y desde el 2026-09-19 viven adentro de `tools/`, al lado
-de los paquetes de Python del port —ver `tools/README.md`—:
+de punta a punta: código, comentarios, nombres de pruebas y README. Desde el
+2026-09-19 viven adentro de `tools/`, al lado de los paquetes de Python del
+port —ver `tools/README.md`—:
 
     tools/ditto/     lee y escribe los formatos de RPG Maker 2000
     tools/protocol/  declara un bytecode y genera las constantes de sus dos lados
     tools/gunter/    Gunter: códec BRR y lector de SoundFont
     tools/voodoo/    Voodoo: de una imagen a tiles, paletas y tilemap
+    tools/lz2/       el LC_LZ2 de Nintendo, con el que se comprimen los mapas
 
-Hasta ese día había un quinto, `w65/`, el ensamblador de 65816. Lo reemplazaron
+Hasta el 2026-09-16 hubo otro más, `w65/`, el ensamblador de 65816. Lo reemplazaron
 `ca65` y `ld65`, del proyecto cc65: ver "Dónde corre esto".
 
 **Se consumen desde el PATH, no desde `target/release`.** Se instalan con
@@ -109,7 +110,8 @@ segundo bytecode quedó claro que hacerlo hablar castellano lo ata a este repo.
 
 Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 `DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
-mensaje; `tools/protocol/`, `tools/gunter/` y `tools/voodoo/` no necesitan nada.
+mensaje; `tools/protocol/`, `tools/gunter/`, `tools/voodoo/` y `tools/lz2/` no
+necesitan nada.
 
 ### `tools/voodoo/` no decide colores, y eso no se arregla
 

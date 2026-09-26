@@ -173,21 +173,16 @@ saltar:
     dey
     bra saltar
 puesto:
-    ; El bloque vive en el cartucho y su puntero está en el registro del mapa.
-    ; El acomodo de `tools/ensamblado/bancos.py` garantiza que entra entero en un banco,
-    ; así que la suma de
-    ; dieciséis bits no se sale.
-    phx
-    ldx mapa_ofs
-    lda f:mapa_tabla + M_PTR_ANIM_TILES, x
+    ; Los dibujos están en la WRAM, donde los dejó `lz2_anim` al cargar el
+    ; mapa: el cartucho los trae comprimidos.
+    lda #.loword(ANIM_DIBUJOS)
     clc
     adc temp + 2
     sta A1T0L
     sep #$20
 .a8
-    lda f:mapa_tabla + M_PTR_ANIM_TILES + 2, x
+    lda #^ANIM_DIBUJOS
     sta A1B0
-    plx
     lda #$01
     sta MDMAEN
     rts

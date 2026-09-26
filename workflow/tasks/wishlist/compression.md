@@ -27,5 +27,8 @@ Comprimir mapas tiene un desafío extra, porque los stremeamos en vivo del
 cartucho, y cambiarles el formato afectaría el acceso aleatorio.
 
 **Medido por clase y algoritmo, con el costo de descomprimir cada cosa y el
-orden en que conviene hacerlo**: `tasks/todo/la-compresion-de-mapas-y-graficos.md`,
-del 2026-09-26. Las animaciones de batalla ya se guardan sin sus tiles vacíos.
+orden en que conviene hacerlo**: `tasks/testing/la-compresion-de-mapas-y-graficos.md`,
+del 2026-09-26. Las animaciones de batalla ya se guardan sin sus tiles vacíos,
+los tiles y las grillas de los mapas van en LZ2 —la grilla se descomprime
+entera a la WRAM, así que el acceso aleatorio siguió igual— y las poses
+iguales se guardan una vez.

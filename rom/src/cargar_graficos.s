@@ -40,7 +40,7 @@
     sep #$20
 .a8
     ldy #M_PTR_MAP_TILES
-    jsr dma_origen
+    jsl f:lz2_campo + RAPIDO    ; comprimidos: ver descomprimir.s
     ldx mapa_ofs
     rep #$20
 .a16
@@ -65,6 +65,10 @@
     ; El mapa trae en la VRAM el dibujo 0 de cada corrida y el reloj puede estar
     ; en cualquier otro: es un reloj de la partida y no del mapa. Acá se sube el
     ; que toca, sin presupuesto de vblank porque la pantalla está apagada.
+    ; Sus dibujos vienen comprimidos y se descomprimen a la WRAM, de donde
+    ; los sube `anim_subir` mientras dure el mapa. Van después de los tiles
+    ; del fondo, que usan el mismo banco de la WRAM: ver `ANIM_DIBUJOS`.
+    jsl f:lz2_anim + RAPIDO
     jsr anim_cargar
 
     ; --- los colores ---
@@ -137,7 +141,7 @@
     sep #$20
 .a8
     ldy #M_PTR_SPRITE_TILES
-    jsr dma_origen
+    jsl f:lz2_campo + RAPIDO
     ldx mapa_ofs
     rep #$20
 .a16
@@ -401,7 +405,7 @@ listo:
     sep #$20
 .a8
     ldy #M_PTR_ABOVE_TILES
-    jsr dma_origen
+    jsl f:lz2_campo + RAPIDO
     ldx mapa_ofs
     rep #$20
 .a16

@@ -1782,8 +1782,9 @@ def muestras_del_tema(tema):
 # `subir_muestra` en rom/src/paquete_de_audio.s—: medido en la ROM el
 # 2026-09-26, de 1,33 a 1,42 cuadros por KB en dieciocho paquetes, y acá va
 # un poco más. El driver y el directorio van byte a byte por el IPL, que
-# medía 1,4. Y cargar el mapa, sin audio, son unos 8 cuadros (medido con el
-# mapa 6 de `test-special`, que no tiene paquete); acá van 10.
+# medía 1,4. Y cargar el mapa, sin audio y sin descomprimir, son unos 8
+# cuadros (medido con el mapa 6 de `test-special`, que no tiene paquete); acá
+# van 10. Lo que cuesta descomprimir depende del mapa y va aparte.
 CUADROS_POR_KB_PAQUETE = 1.45
 CUADROS_POR_KB_IPL = 1.5
 CUADROS_DEL_MAPA = 10
@@ -1792,10 +1793,13 @@ RAM_LEJANA = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))), "rom", "src", "ram_lejana.s")
 
 
-def cuadros_del_arranque(driver, voces, temas, paquete):
+def cuadros_del_arranque(driver, voces, temas, paquete, descomprimir=0.0):
     """Cuánto tarda el arranque, por lo alto: el mapa, el driver y el
     directorio por el IPL, y las muestras del paquete del mapa de arranque
     —(índices de temas, índices de muestras de efectos), el de `emit`—.
+    `descomprimir` son los cuadros que se lleva descomprimir los bloques LZ2
+    del mapa de arranque, que `CUADROS_DEL_MAPA` no cuenta: ver
+    `cuadros_de_descomprimir` en snes_convert.py.
     Devuelve (cuadros, bytes del paquete)."""
     suyos, efectos = paquete
     indices = set(efectos)
@@ -1804,7 +1808,8 @@ def cuadros_del_arranque(driver, voces, temas, paquete):
             indices |= set(muestras_del_tema(temas[t]))
     del_paquete = sum(len(voces[i].data) for i in indices)
     ipl = len(driver) + 4 * max(1, len(voces)) + len(SILENCIO)
-    return (CUADROS_DEL_MAPA + ipl * CUADROS_POR_KB_IPL / 1024.0
+    return (CUADROS_DEL_MAPA + descomprimir
+            + ipl * CUADROS_POR_KB_IPL / 1024.0
             + del_paquete * CUADROS_POR_KB_PAQUETE / 1024.0, del_paquete)
 
 
