@@ -78,7 +78,6 @@ TEXTO_BUF_BYTES = VENTANA_TEXTO_COLS * 2 * 32
 .include "interprete_oro_e_items.s"
 .include "interprete_tienda_y_pelea.s"
 .include "interprete_efectos.s"
-.include "interprete_permisos_saltos_y_switches.s"
 .include "interprete_movimiento.s"
 .include "interprete_destellos.s"
 .include "interprete_cronometro.s"
