@@ -73,20 +73,19 @@ class Pelea:
     def abierta(self):
         return bool(self.una.byte("menu_abierto"))
 
-    def tocar(self, boton="a", cuadros=3):
-        self.una.consola.apretar(boton)
-        self.una.consola.correr(cuadros)
-        self.una.consola.apretar()
-        self.una.consola.correr(cuadros)
+    def tocar_cuadros(self, boton="a", aire=3):
+        """`Partida.tocar_cuadros`, con A y tres de aire por omisión: la pelea
+        congela el reloj del juego."""
+        self.una.tocar_cuadros(boton, aire)
 
     def abrir(self, tope=400):
         """Le habla al droide y pasa los cuatro cuadros de texto."""
-        self.una.tocar("a")
+        self.una.tocar_ticks("a")
         for _ in range(tope):
             if self.abierta():
                 return self
             if self.una.byte("msg_abierto"):
-                self.tocar("a", 2)
+                self.tocar_cuadros("a", 2)
             else:
                 self.una.consola.correr(1)
         raise AssertionError("la batalla no se abrió")
@@ -123,21 +122,21 @@ class Pelea:
         # habilidades con B lo deja donde estaba, así que contar derechas desde
         # donde quedó elegiría otra orden.
         for _ in range(5):
-            self.tocar("left")
+            self.tocar_cuadros("left")
         for _ in range(pasos):
-            self.tocar("right")
+            self.tocar_cuadros("right")
         assert self.byte("BA_ORDEN") == pasos, (
             "el cursor tenía que quedar en la orden %d y quedó en %d"
             % (pasos, self.byte("BA_ORDEN")))
-        self.tocar()
+        self.tocar_cuadros()
         if cual == "defender":
             return self
         if cual == "habilidad":
             self.esperar("HAB", tope)
             for _ in range(que[1]):
-                self.tocar("right")
+                self.tocar_cuadros("right")
             assert self.byte("BA_HAB_SEL") == que[1]
-            self.tocar()
+            self.tocar_cuadros()
             if len(que) == 2:
                 # Una de switch no pide blanco: `Scene_Battle::AssignSkill`
                 # la anota sobre el que la usa. El cursor ya está en el que
@@ -155,8 +154,8 @@ class Pelea:
             raise AssertionError("la orden no pidió blanco")
         destino = que[-1]
         for _ in range(destino):
-            self.tocar("down")
-        self.tocar()
+            self.tocar_cuadros("down")
+        self.tocar_cuadros()
         return self
 
     def correr_turno(self, tope=600):
@@ -165,7 +164,7 @@ class Pelea:
         for _ in range(tope):
             if self.modo() in ("ORDEN", "FIN"):
                 return self
-            self.tocar()
+            self.tocar_cuadros()
         raise AssertionError("el turno no terminó")
 
     def turno(self, cuantos, tope=400):
@@ -174,23 +173,39 @@ class Pelea:
             for _ in range(tope):
                 if self.modo() != "ORDEN":
                     break
-                self.tocar()
+                self.tocar_cuadros()
             for _ in range(tope):
                 if self.modo() != "BLANCO":
                     break
-                self.tocar()
+                self.tocar_cuadros()
         for _ in range(tope):
             if self.modo() in ("ORDEN", "FIN"):
                 return self
-            self.tocar()
+            self.tocar_cuadros()
         raise AssertionError("el turno no terminó")
 
-    def cerrar(self, tope=200):
+    def cerrar(self, tope=200, transicion=600):
+        """Toca A hasta que la pelea termina, y espera a que el mapa vuelva
+        a correr.
+
+        Lo segundo es por la transición de salida —`fundido_de_pelea.s`—, que
+        dura de dos a tres segundos entre el mosaico, la carga del paquete del
+        mapa en negro y el fundido de vuelta, **sin que corra ningún tick**:
+        un `Partida.correr(1)` justo después se daba por colgado, porque le da
+        a cada tick sesenta cuadros por lado.
+        """
         for _ in range(tope):
             if not self.abierta():
+                break
+            self.tocar_cuadros()
+        else:
+            raise AssertionError("la batalla no se cerró")
+        vueltas = self.una.palabra("vueltas")
+        for _ in range(transicion):
+            if self.una.palabra("vueltas") != vueltas:
                 return self
-            self.tocar()
-        raise AssertionError("la batalla no se cerró")
+            self.una.consola.correr(1)
+        raise AssertionError("el mapa no volvió a correr después de la pelea")
 
 
 def modelo_de(base, actores=GRUPO, tropa=TROPA_DROIDE):

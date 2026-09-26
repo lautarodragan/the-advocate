@@ -473,12 +473,92 @@ BA_TERMINOS = (
     ("habilidad", "command_skill"),      # "Tech Skill"
     ("uso", "use_item"),                 # " used."
     ("recupero", "hp_recovery"),         # " Recovered"
+    # Los cuatro de lo que la victoria cuenta, desde el 2026-09-26: ver
+    # `ba_vic_mensaje` en batalla_victoria.s.
+    ("exp_recibida", "exp_received"),    # " EXP"
+    ("nivel", "level"),                  # "LEVEL"
+    ("subio", "level_up"),               # " achieved!"
+    ("aprendio", "skill_learned"),       # " acquired!"
 )
+
+# Lo que la victoria cuenta va, como en RM2k, en la ventana de mensaje que tapa
+# al grupo: los mismos cuatro renglones de `BA_PAG_MSG_FILA0`, con su ancho.
+# La primera página es el término de la victoria y la experiencia; cada actor
+# que subió de nivel tiene la suya después.
+#
+# El término de la victoria del ABL no entra en un renglón —" The combat has
+# resulted in victory!" son 36— así que el conversor lo parte en dos, en un
+# espacio: `renglones_de_la_victoria`. Lo demás se arma en la ROM con un
+# número o un nombre en el medio, y lo que el conversor cobra es que entre.
+BA_VIC_TERMINO_MAX = 2
+
+
+def renglones_de_la_victoria(termino, ancho=BA_PAG_MSG_ANCHO):
+    """El término de la victoria partido en renglones de `ancho`, en los
+    espacios. **Los espacios de adelante se quedan**: RM2k los escribe, y en la
+    ventana del mapa de este port también se ven."""
+    sangria = termino[:len(termino) - len(termino.lstrip(" "))]
+    renglones, actual = [], sangria
+    for palabra in termino.split():
+        vacio = not actual.strip()
+        junto = actual + palabra if vacio else actual + " " + palabra
+        if len(junto) <= ancho:
+            actual = junto
+            continue
+        if vacio:
+            raise SystemExit("el término de la victoria tiene una palabra más "
+                             "larga que el renglón: %r" % palabra)
+        renglones.append(actual)
+        actual = palabra
+    renglones.append(actual)
+    return renglones
+
+
+def renglon_de_experiencia(term, exp):
+    """`GetExperienceGainedMessage` de RM2k sin placeholders: el número pegado
+    al término. El `\\.` que easyrpg le agrega es una espera, no una letra."""
+    return "%d%s" % (exp, term["exp_recibida"])
+
+
+def renglon_de_nivel(term, nombre, nivel):
+    """`GetLevelUpMessage` de RM2k en inglés: "<nombre> <level> <n><level_up>",
+    que en el ABL es "Kersh LEVEL 21 achieved!"."""
+    return "%s %s %d%s" % (nombre, term["nivel"], nivel, term["subio"])
+
+
+def renglon_de_habilidad(term, habilidad):
+    """`GetLearningMessage`: el nombre pegado al término."""
+    return habilidad + term["aprendio"]
+
+
+def cobrar_la_victoria(term, exp_max, actores, habilidades):
+    """Corta el armado si algún renglón de la victoria no entra en
+    `BA_PAG_MSG_ANCHO`: la ROM los arma pegando pedazos y no los parte, así
+    que uno largo se pasaría al renglón de abajo. Los niveles se miden con dos
+    cifras, que es el tope de RM2k."""
+    renglones = ([renglon_de_experiencia(term, exp_max)]
+                 + [renglon_de_nivel(term, n, 99) for n in actores]
+                 + [renglon_de_habilidad(term, h) for h in habilidades])
+    largos = [r for r in renglones if len(r) > BA_PAG_MSG_ANCHO]
+    if largos:
+        raise SystemExit("estos renglones de la victoria no entran en los %d "
+                         "caracteres de la ventana: %r"
+                         % (BA_PAG_MSG_ANCHO, largos))
 
 
 def terminos_batalla(db):
     from rpgmaker import lcf
     return {n: lcf.to_string(db.terminos[t]) for n, t in BA_TERMINOS}
+
+
+def texto_revivio(db):
+    """Lo que la pelea escribe detrás del nombre de un caído que un ítem
+    levantó: el `message_recovery` del estado 1, el de muerto, que es lo que
+    `BattleMessage::GetStateRecoveryMessage` pega al nombre. En el ABL dice
+    " has revived!"."""
+    from rpgmaker import lcf
+    muerto = lcf.por_id(db.secciones["states"])[1]
+    return lcf.campo(muerto, "message_recovery")
 
 
 def texto_de_orden(termino):
@@ -487,8 +567,7 @@ def texto_de_orden(termino):
     Los términos del LDB traen espacios adelante —`battle_escape` del ABL dice
     " Escape"— y en el renglón de abajo eso correría el texto de su columna.
     Va acá y no en la ROM porque el conversor emite el texto **ya recortado**:
-    así los dos lados escriben los mismos bytes sin que la ROM tenga que saber
-    recortar.
+    así la ROM no tiene que saber recortar.
     """
     return titulo.texto_de_item(termino.strip(), BA_ORDEN_ANCHO)
 

@@ -66,8 +66,8 @@ def luma_distance(a, b):
     mismo que con los coeficientes fraccionarios, y a cambio dos distancias
     iguales comparan iguales: `merge_least_visible` multiplica esto por la
     cuenta de píxeles y después ordena, y ahí un empate resuelto por el último
-    bit de un float es exactamente la clase de diferencia que separa a la ROM
-    de la referencia sin que nadie haya tocado nada.
+    bit de un float es exactamente la clase de diferencia que cambia la ROM
+    sin que nadie haya tocado nada.
     """
     return (30 * (a[0] - b[0]) ** 2 + 59 * (a[1] - b[1]) ** 2
             + 11 * (a[2] - b[2]) ** 2)

@@ -11,7 +11,7 @@ from port import pantallas
 from consola import TITULO_AIRE
 import datos
 from dibujo import comparar_pantalla
-from menu import abrir, tocar
+from menu import abrir
 
 TALAN, KERSH = 14, 11
 PALO, LANZA, ESCUDO = 17, 19, 44        # la lanza es a dos manos
@@ -30,10 +30,10 @@ def entrar(una):
     una.poner_grupo(TALAN, KERSH)
     una.correr(25)
     abrir(una)
-    tocar(una, "down")
-    tocar(una, "down")
-    tocar(una, "a", TITULO_AIRE)        # a quién
-    tocar(una, "a", TITULO_AIRE)        # Talan
+    una.tocar_cuadros("down")
+    una.tocar_cuadros("down")
+    una.tocar_cuadros("a", TITULO_AIRE)  # a quién
+    una.tocar_cuadros("a", TITULO_AIRE)  # Talan
     return una
 
 
@@ -53,11 +53,11 @@ def test_equipar_desde_el_menu(partida):
     inv = dict(INVENTARIO)
     comparar_pantalla(una, pantallas.pantalla_equipo(db, TALAN, puesto, inv, 0)
              .render(skin, db.font_id), "equipo")
-    tocar(una, "a", 10)
+    una.tocar_cuadros("a", 10)
     comparar_pantalla(una, pantallas.pantalla_equipo(db, TALAN, puesto, inv, 0, True,
                                             0).render(skin, db.font_id),
              "equipo-lista")
-    tocar(una, "a", 10)                 # el palo
+    una.tocar_cuadros("a", 10)          # el palo
     pantallas.equipar(db, puesto, inv, 0, PALO)
     assert una.equipo(TALAN) == puesto
     assert una.item(PALO) == 1
@@ -69,14 +69,14 @@ def test_la_lanza_a_dos_manos_saca_el_escudo(partida):
     """Con el escudo puesto, ponerse la lanza lo devuelve al inventario."""
     db, skin = datos.base(), datos.skin()
     una = entrar(partida(caso="equipo-inventario"))
-    tocar(una, "down")                  # el escudo
-    tocar(una, "a", 10)
-    tocar(una, "a", 10)                 # el escudo, único en la lista
+    una.tocar_cuadros("down")           # el escudo
+    una.tocar_cuadros("a", 10)
+    una.tocar_cuadros("a", 10)          # el escudo, único en la lista
     assert una.equipo(TALAN)[1] == ESCUDO
     assert una.item(ESCUDO) == 0
-    tocar(una, "up")                    # el arma
-    tocar(una, "a", 10)
-    tocar(una, "down")                  # la lanza, segunda en la lista
+    una.tocar_cuadros("up")             # el arma
+    una.tocar_cuadros("a", 10)
+    una.tocar_cuadros("down")           # la lanza, segunda en la lista
     puesto = list(db.actors[TALAN].initial_equipment)
     puesto[1] = ESCUDO
     inv = dict(INVENTARIO)
@@ -84,7 +84,7 @@ def test_la_lanza_a_dos_manos_saca_el_escudo(partida):
     comparar_pantalla(una, pantallas.pantalla_equipo(db, TALAN, puesto, inv, 0, True,
                                             1).render(skin, db.font_id),
              "equipo-lanza")
-    tocar(una, "a", 10)
+    una.tocar_cuadros("a", 10)
     assert una.equipo(TALAN)[:2] == [LANZA, 0]
     assert una.item(ESCUDO) == 1, "el escudo no volvió al inventario"
     assert una.item(LANZA) == 0
@@ -94,10 +94,10 @@ def test_la_linea_vacia_saca_lo_puesto(partida):
     """La ropa de trabajo de Talan: la lista de la armadura es sólo la línea
     vacía, y elegirla la devuelve al inventario."""
     una = entrar(partida(caso="equipo-inventario"))
-    tocar(una, "down")
-    tocar(una, "down")                  # la armadura
-    tocar(una, "a", 10)
-    tocar(una, "a", 10)
+    una.tocar_cuadros("down")
+    una.tocar_cuadros("down")           # la armadura
+    una.tocar_cuadros("a", 10)
+    una.tocar_cuadros("a", 10)
     assert una.equipo(TALAN)[2] == 0
     assert una.item(89) == 1
 

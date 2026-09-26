@@ -36,8 +36,8 @@ APU_CMD_IPL = 4
 ; La consola multiplica y divide por hardware, que es lo único que hace falta
 ; para el tinte de pantalla: escala cada canal por un valor de 0 a 200 con 100
 ; como neutro, o sea multiplicar y dividir por cien. Las dos son exactas y con
-; enteros, así que la referencia en Python puede hacer la misma cuenta y dar
-; siempre lo mismo.
+; enteros, así que la misma cuenta en Python —`eventos.tenir`— da siempre lo
+; mismo.
 ;
 ; El producto tarda 8 ciclos en estar listo y el cociente 16. No hay que
 ; esperarlos con un lazo: alcanza con no leer el resultado enseguida, y el
@@ -65,6 +65,10 @@ VMDATAL  = $2118        ; y el dato, de a una palabra con VMAIN en $80
 CGADD    = $2121        ; índice de CGRAM
 CGDATA   = $2122        ; y el color, de a byte: primero el de abajo
 TM       = $212C        ; qué capas se ven en la pantalla principal
+MOSAIC   = $2106        ; el mosaico: tamaño en el nibble alto, capas en el bajo
+CGWSEL   = $2130        ; dónde vale el color math y contra qué color
+CGADSUB  = $2131        ; sumar o restar, y a qué capas
+COLDATA  = $2132        ; el color fijo: tres bits de canal y la intensidad
 OBSEL    = $2101        ; tamaño de los sprites y dónde viven sus tiles
 OAMADDL  = $2102        ; índice dentro de OAM, en palabras
 OBJSEL_TM = $212C

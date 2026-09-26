@@ -820,7 +820,11 @@ enemigos_listos:
     ;
     ; Salvo que haya un mensaje de una página de tropa, que va en sus renglones:
     ; en RM2k la ventana de mensaje de la pelea tapa la del grupo. Ver
-    ; `ba_pag_mensaje`.
+    ; `ba_pag_mensaje`. Y lo mismo con lo que la victoria cuenta.
+    jsr ba_vic_en_pantalla
+    beq sin_victoria
+    jmp ba_vic_mensaje
+sin_victoria:
     lda BA_MODO
     cmp #BA_M_PAGINA
     bne con_grupo

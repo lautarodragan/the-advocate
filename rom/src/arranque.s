@@ -394,12 +394,9 @@ loop:
     ; El cronómetro va **antes** del intérprete, que es donde lo pone
     ; `Game_Map::Update`: `UpdateTimers()` corre y recién después
     ; `UpdateForegroundEvents`. O sea que la página que lo arranca no se lleva
-    ; un cuadro en el mismo cuadro en que lo arranca. Acá estaba después, y por
-    ; eso la ROM iba un cuadro adelante de la referencia para siempre: se veía
-    ; sólo en los cuadros en que los dos puntos parpadean o cambia un dígito.
-    ; No lo cobraba nadie porque `snes-timer` tiñe la pantalla, el tinte
-    ; costaba un cuadro perdido, y el cuadro perdido tapaba justo este uno de
-    ; más. Los dos errores juntos daban cero.
+    ; un cuadro en el mismo cuadro en que lo arranca. Después del intérprete
+    ; la ROM iba un cuadro adelante de RM2k para siempre, y se veía sólo en los
+    ; cuadros en que los dos puntos parpadean o cambia un dígito.
     jsr timer_tick
     ; `UpdateForegroundEvents`, **después** del héroe: lo que el paso recién
     ; terminado encoló —un evento de contacto, un cofre, una trampa— arranca en
@@ -422,10 +419,7 @@ loop:
                                 ; suya ahí esperando el vblank. Al revés, el
                                 ; cartel le pisaba los primeros dieciséis
                                 ; colores del fondo en el cuadro en que los
-                                ; dos corren. Del lado de la referencia el
-                                ; orden da igual —son dos estados que no se
-                                ; tocan— y está escrito igual para que se lean
-                                ; en el mismo orden.
+                                ; dos corren.
     jsr destello_tick           ; y uno del destello de pantalla
     jsr lluvia_tick             ; y uno de la lluvia
     jsr animate_hero

@@ -2,8 +2,8 @@
 
 ; El xorshift de la pelea, el mismo que `eventos.azar_siguiente` y que
 ; `lluvia_azar`, pero sobre `BA_SEM`, que tiene **semilla propia**: pelear no
-; le corre el azar del mapa, que es lo que la referencia de pixeles supone
-; cuando dice que una batalla no cuesta ningún tick.
+; le corre el azar del mapa, así que un `ControlVars` al azar da lo mismo con
+; una pelea en el medio y sin ella.
 .proc ba_azar
 .a16
 .i16
@@ -1141,8 +1141,9 @@ ancho_listo:
     rts
 .endproc
 
-; Los dos renglones del mensaje, según `BA_MTIPO`. Todas las palabras salen
-; del LDB —`attacking`, `enemy_damaged`, `victory`...— y se arman como
+; Los dos renglones del mensaje, según `BA_MTIPO`. La victoria no pasa por
+; acá: va en los renglones del grupo, ver `ba_vic_mensaje`. Todas las palabras salen
+; del LDB —`attacking`, `enemy_damaged`, `defeat`...— y se arman como
 ; `game_message_terms.cpp`: el nombre pegado al término, y en el de daño el
 ; número en el medio. Ninguna es nuestra.
 .proc ba_mensaje
@@ -1167,8 +1168,6 @@ ancho_listo:
     beq no_huyo
     cmp #BA_MSG_HUYO
     beq huyo
-    cmp #BA_MSG_VICTORIA
-    beq victoria
     cmp #BA_MSG_ITEM
     beq usa_item
     cmp #BA_MSG_HAB
@@ -1179,9 +1178,6 @@ usa_hab:
     jmp habilidad
 usa_item:
     jmp item
-victoria:
-    ldx #BA_TXT_VICTORIA
-    jmp solo
 huyo:
     ldx #BA_TXT_HUYO
     jmp solo
@@ -1277,6 +1273,17 @@ item:
 .a8
     lda BA_MBLA
     jsr ba_nombre
+    lda BA_MREVIVIO
+    beq recupero
+    ; Levantado: `<blanco> has revived!`, el `message_recovery` del estado de
+    ; muerto, pegado al nombre. RM2k no pone el de los HP cuando levanta
+    ; —`IsRevived` en el `ePreHp` de `ProcessBattleActionParamEffects`— sino
+    ; el de los estados que sacó —`ProcessBattleActionStateEffects`—, y de ésos
+    ; el port sólo sabe el de muerto.
+    ldx #BA_TXT_REVIVIO
+    jsr ba_termino
+    rts
+recupero:
     lda #$20
     jsl f:ba_t_glifo
     ldx #BA_TXT_HP

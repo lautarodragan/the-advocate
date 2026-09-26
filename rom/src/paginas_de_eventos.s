@@ -99,7 +99,7 @@
 ; Son dos pasadas y no un lazo adentro del otro: la tabla de páginas se recorre
 ; una sola vez anotando la ganadora de cada evento, y después se mira evento
 ; por evento. Con eventos por páginas costaba más de un cuadro, y un cuadro
-; perdido en un switch es un cuadro corrido contra la referencia.
+; perdido en un switch atrasa un cuadro todo lo que viene después.
 ; `Game_Map::Refresh` entero: elegir las páginas activas y aplicarlas.
 .proc rutas_de_pagina
 .a8
@@ -530,7 +530,7 @@ sin_paginas:
 ; Corren con los **mismos** globales que el primer plano —`cod_ptr`, `ev_cur`,
 ; `ev_esperando`, `ev_activo`, `ev_corriendo`— así que ese contexto se guarda en
 ; la pila y se devuelve al final. Doce bytes, y cuánta pila queda debajo lo mide
-; `pruebas/herramientas/test_pila.py`: este camino es uno de los que corre.
+; `pruebas/rpgmaker/test_pila.py`: este camino es uno de los que corre.
 ;
 ; El estado de cada uno va en la RAM del banco 1 e **indexado por evento**, no
 ; por ranura, y lleva de qué página es: si la página activa cambia, RM2k rehace
@@ -875,8 +875,8 @@ sin_ranura:
     ; página, y antes del 2026-09-08 el conversor tenía que elegir: elegía
     ; caminar, y entonces la fila —que nace escondida cuando al cargar el mapa
     ; ninguna página cumple— no aparecía nunca. taro lo encontró con el `Bum` y
-    ; el `Mechanic` de Lashe City; la referencia los dibujaba y la ROM no, 245
-    ; y 191 pixeles.
+    ; el `Mechanic` de Lashe City; RM2k los dibuja y la ROM no, 245 y 191
+    ; pixeles.
     ;
     ; No es un bit nuevo porque en +13 no queda ninguno: con ruta propia los
     ; cinco de abajo son las banderas de la ruta. Y no hace falta, porque

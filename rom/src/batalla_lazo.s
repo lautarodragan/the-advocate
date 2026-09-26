@@ -368,8 +368,8 @@ limpia:
 ; **la suma entera** a cada actor vivo del grupo —`GetActiveBattlers`, o sea los
 ; que no están muertos—, no la divide entre ellos. La suma ya viene hecha por
 ; tropa en `tropa_exp`: todos los enemigos de una victoria están muertos, que es
-; lo que `Game_EnemyParty::GetExp` pide. Corre al cerrar la pelea, con los HP ya
-; de vuelta en la partida. Se lleva `BA_S0`, `BA_T*`, A y X.
+; lo que `Game_EnemyParty::GetExp` pide. Corre al ganar, desde
+; `ba_vic_empezar`, antes de mostrar nada. Se lleva `BA_S0`, `BA_T*`, A y X.
 .proc ba_exp_repartir
 .a8
 .i16
@@ -429,7 +429,11 @@ listo:
     ; es porque el dato es del juego y no nuestro.
     lda #BA_TEMA_FIN
     jsl f:ba_t_bgm
-    bra termina
+    jsr ba_vic_empezar
+    jsr ba_mostrar
+    lda #BA_M_FIN
+    sta BA_MODO
+    rts
 siguen:
     lda #0
     sta BA_ACTOR

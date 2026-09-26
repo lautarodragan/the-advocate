@@ -16,3 +16,8 @@ Dos casos, los dos de la pantalla de pelea:
   tropa.
 
 Salen de `done/el-sistema-de-batalla-de-talan.md`.
+
+**Otro caso, visto el 2026-09-26 al hacer el elixir en la pelea**: "Kersh
+Pungent Elixir-LIFE  used." pasa de 32 columnas y el punto cae en la columna
+0 del renglón de abajo, delante de "Core has revived!". Pasa con cualquier
+ítem de nombre largo, y el nombre del LDB trae un espacio al final.

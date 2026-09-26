@@ -742,7 +742,7 @@ caminando:
     ; como `GetAnimCount() >= stationary_limit`: si una ruta cambia la
     ; velocidad a mitad de un frame, el frame que viene ya sale con la nueva.
     ; Contando para abajo desde el tope, como antes, la nueva recién valía un
-    ; frame después, y la referencia y la ROM diferían en un cuadro.
+    ; frame después: un cuadro de diferencia con RM2k.
     inc anim_timer
     jsr anim_cuadros_del_heroe
     cmp anim_timer

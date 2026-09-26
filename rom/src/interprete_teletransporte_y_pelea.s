@@ -84,6 +84,11 @@ anotado:
     ; Se calla antes de rearmar, como hace `tema_asegurar`: `paquete_cargar`
     ; deja quietas las muestras del tema que suena, y las del mapa no tienen
     ; por qué ocupar lugar adentro de la pelea.
+    ;
+    ; **Con el mapa ya en negro**: la carga tarda de medio segundo a uno y
+    ; medio, y es la transición de entrada la que la tapa. Ver
+    ; `fundido_de_pelea.s`.
+    jsl f:pelea_fundir_entrando
     ldx #BA_PAQUETE
     jsr batalla_audio_cargar
     lda #BA_TEMA
@@ -112,12 +117,18 @@ anotado:
     phb
     phk
     plb                         ; el banco 0, por lo mismo que al entrar
+    jsl f:pelea_fundir_saliendo ; la pelea hasta negro, que tapa la carga
     ldx mapa_actual             ; y el audio del mapa vuelve al SPC700
     jsr batalla_audio_cargar
     lda f:BAT_LARGO + BA_TEMA_ANT
     jsr batalla_bgm             ; el tema del mapa, o el silencio que había
     plb
     jsr volver_de_batalla
+    phb
+    phk
+    plb
+    jsr pelea_fundir_al_mapa    ; y el mapa desde negro, con `flush_video`
+    plb
     rts
 .endproc
 
