@@ -30,6 +30,10 @@ CASO = "animacion-dibujo"
 ANIM_B_STRIDE = 8
 ANIM_B_BYTES = 2048
 SIN_DIBUJO = 0xFF
+# Y en bsnes también, que enciende con la WRAM llena de basura: el buffer donde
+# se rearma el cuadro es RAM lejana, y lo único que lo pone en cero es la carga
+# del mapa. Ver `test_cores.py`.
+BSNES = "/usr/lib/libretro/bsnes_libretro.so"
 
 
 def _palabra(p, nombre, valor=None):
@@ -56,12 +60,16 @@ def _animaciones_del_cartucho(p):
             if rom[de + n] != SIN_DIBUJO}
 
 
-def _caja(p):
+def _caja(p, nucleo):
+    """Lo que hay en la caja. bsnes no expone la VRAM por libretro, así que ahí
+    se mira `ANIMB_BUF`, que es de donde el vblank la copia entera."""
+    if nucleo == BSNES:
+        return p.consola.ram(en_la_wram(p.simbolos["ANIMB_BUF"]), ANIM_B_BYTES)
     palabras = p.consola.vram(_palabra(p, "ANIMB_VRAM"), ANIM_B_BYTES // 2)
     return b"".join(w.to_bytes(2, "little") for w in palabras)
 
 
-def _correr_la_animacion(p, fila, cuadros):
+def _correr_la_animacion(p, nucleo, fila, cuadros):
     """Pone a dibujar la animación de la fila `fila` desde su primer cuadro y
     devuelve {cuadro: lo que quedó en la caja después de subirlo}."""
     _palabra(p, "ANIMB_FILA", fila * ANIM_B_STRIDE)
@@ -77,7 +85,7 @@ def _correr_la_animacion(p, fila, cuadros):
         # Recién elegido y todavía no subido: la caja tiene el anterior.
         if _byte(p, "ANIMB_SUBIR"):
             continue
-        vistos.setdefault(_palabra(p, "ANIMB_CUADRO"), _caja(p))
+        vistos.setdefault(_palabra(p, "ANIMB_CUADRO"), _caja(p, nucleo))
     return vistos
 
 
@@ -89,8 +97,9 @@ def esperados():
                            animacion.de_numero(renderer, numero)["cuadros"]]
 
 
-def test_la_caja_tiene_cada_cuadro_de_cada_animacion(esperados):
-    p = partida(CASO)
+@pytest.mark.parametrize("nucleo", (None, BSNES), ids=("snes9x", "bsnes"))
+def test_la_caja_tiene_cada_cuadro_de_cada_animacion(esperados, nucleo):
+    p = partida(CASO, nucleo=nucleo)
     p.correr(20)
     assert _byte(p, "ANIMB_ACTIVA"), (
         "la 78 no se está dibujando: el caso %s dejó de mostrarla" % CASO)
@@ -99,7 +108,7 @@ def test_la_caja_tiene_cada_cuadro_de_cada_animacion(esperados):
     mal, cuadros_vistos = [], 0
     for numero, fila in sorted(filas.items()):
         quiero = esperados(numero)
-        vistos = _correr_la_animacion(p, fila, len(quiero))
+        vistos = _correr_la_animacion(p, nucleo, fila, len(quiero))
         assert set(vistos) == set(range(len(quiero))), (
             "la animación %d tiene %d cuadros y la caja mostró %s"
             % (numero, len(quiero), sorted(vistos)))
