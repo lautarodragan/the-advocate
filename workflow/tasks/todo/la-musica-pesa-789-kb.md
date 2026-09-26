@@ -4,6 +4,13 @@ description: "El stream de cada tema son escrituras crudas al DSP; un formato po
 type: refactor
 ---
 
+**Decisión de taro, el 2026-09-25: el formato nuevo espera a la calidad de la
+música.** Antes de armar un formato que represente el stream de hoy, van los
+cambios de audio a nivel feature (envolventes, controles de MIDI que hoy se
+tiran, muestras): si el formato se armara primero, habría que cambiarlo
+después. Mientras tanto, lo de abajo queda como medición.
+
+
 La radiografía de `juntar-release-y-test-main.md` pone a `tema_stream` arriba
 de todo: 789 KB en el cartucho unido, el 21%. Esto es **por qué pesa eso y qué
 se ganaría**, medido el 2026-09-25 sobre `6f1dc4a`. No hay nada implementado.
