@@ -334,11 +334,12 @@ RUTA_CAMBIAR_GRAFICO = 34
 PASO_POR_VELOCIDAD = (4, 8, 16, 32, 64, 128)
 
 # Un salto dura lo que tarda `remaining_step` en bajar de 256 a 0 a
-# `jump_speed[move_speed - 1]` por cuadro. Con la velocidad 4 —la de este
-# juego— son 24 por cuadro, o sea once cuadros, y **no depende de la
-# distancia**: saltar cinco celdas cuesta lo mismo que saltar en el lugar.
+# `jump_speed[move_speed - 1]` por cuadro. Con la velocidad 4 —la del héroe al
+# arrancar— son 24 por cuadro, o sea once cuadros, y **no depende de la
+# distancia**: saltar cinco celdas cuesta lo mismo que saltar en el lugar. La
+# ROM tiene la misma tabla en `salto_por_vel`; ésta es la que miran las pruebas.
 SALTO_PASO = 256
-SALTO_VELOCIDAD = 24
+SALTO_POR_VELOCIDAD = (8, 12, 16, 24, 32, 64)
 
 # Las cuatro diagonales de ruta, cada una con sus dos componentes: primero la
 # vertical y después la horizontal. Son `move_upright`, `move_downright`,
