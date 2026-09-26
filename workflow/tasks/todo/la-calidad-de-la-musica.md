@@ -151,14 +151,56 @@ y medios.
 
 # Qué haría, en qué orden, y cuánto cuesta
 
-## 0. El arreglo de `dsp_musica`, ya
+## 0. El arreglo de `dsp_musica`: hecho
 
-Es un bug y vuelve la batería de todos los temas. **Ciclos**: tres
-instrucciones más por escritura a las voces 6 y 7. **Stream, ARAM**: nada.
-Lo que tiene que venir con él es la prueba que faltó: grabar el audio de un
-tema con sólo percusión y exigir que no sea silencio, o algo equivalente que
-mire las voces 6 y 7. Hoy ninguna prueba ejecuta ese camino con valores
-distintos de cero, y por eso sobrevivió dos semanas.
+Hecho el 2026-09-25, en `1d8a2ba`. No es el del prototipo: el índice de la
+sombra se arma con X en ocho bits (`sep #$10` / `tax` / `rep #$10`) y A no se
+ensancha, así que B no se toca; sale tres bytes más corto por voz y pisa la
+parte alta de Y, que `music_frame` no usa. Lo cobra
+`pruebas/rpgmaker/test_bateria_suena.py`: toca el tema del título y exige que
+la sombra de las voces 6 y 7 tenga lo que el stream les escribe, con volumen y
+pitch distintos de cero. Sin el arreglo da rojo.
+
+De paso: **la sombra no se inicializa**, así que antes de la primera
+escritura de la música tiene lo que traía la WRAM ($55 en snes9x). Si un
+efecto termina antes de que la música le haya escrito a su voz, se le
+devuelve esa basura al DSP. Pendiente, chico.
+
+**La saturación, con sólo el arreglo** (sin tocar la mezcla). Cómo se midió:
+el `release` de `1d8a2ba` con el `lda #TEMA_TITULO` de `titulo.s` parcheado
+en la ROM a cada tema —así cada uno suena solo, con sus muestras subidas por
+`tema_asegurar`; se comprobó que no le falta ninguna—, snes9x, sin MSU-1, el
+stream entero una vez, contando las muestras del audio del core (L+R) en el
+tope. **El tope no es 32767 sino 24575**: el DSP recorta la suma de las voces
+a 16 bits y recién después multiplica por `MASTER` (`$60`), así que un audio
+que llega a ±24575 está recortado. El script es descartable; volver a medir
+antes de fijar el aire.
+
+| Tema | Sin el arreglo | Con el arreglo |
+|---|---:|---:|
+| T_VGFighterMAX_Masako (batalla) | 168.213 | 309.040 |
+| hzbreach | 70.186 | 146.578 |
+| TF3_1_awe | 60.996 | 110.894 |
+| hzstream | 6.370 | 57.672 |
+| rshinld | 2.876 | 10.344 |
+| evilrhys | 148 | 6.920 |
+| Lunar_Pyramid | 0 | 4.574 |
+| 3D-Galax | 0 | 3.404 |
+| lufsorr | 268 | 2.336 |
+| cd4 | 102 | 1.036 |
+| cd2 | 0 | 894 |
+| Astpgmarch | 24 | 858 |
+| Fantasia_Of_The_Wind (título) | 2 | 542 |
+| wb3shop | 0 | 382 |
+| escape_newyork | 0 | 140 |
+| C3classi | 0 | 112 |
+| wb3mlair, Gaden, KSSMKEND, vswar, dcbest, golden_axe-turtlevillage2 | 0 | 0 |
+
+O sea: **16 de los 22 temas recortan con la batería de vuelta**, y tres ya
+recortaban fuerte sin ella —el de batalla el que más—, así que el aire del
+paso 2 no es sólo por la batería. `golden_axe-turtlevillage2` es todo
+percusión: sin el arreglo su pico era 0, silencio entero. `dcbest` no tiene
+batería y da igual en las dos.
 
 ## 1. Las notas que se sueltan antes de tiempo
 
@@ -251,8 +293,8 @@ ya dijo que prefiere pagar.
 
 Con los scripts de `tools/audio/proto/` en la rama del prototipo:
 
-* **La batería que vuelve**: con el 0, todos los temas suenan más fuerte y
-  pueden saturar; mirar el recorte tema por tema antes de fijar el aire.
+* **La batería que vuelve**: medido en el 0, con la tabla; volver a medirlo
+  con las envolventes puestas antes de fijar el aire.
 * **Polifonía contra 8 voces y tiempo-nota perdido**, con el reparto de hoy y
   con el del 06: `robos.py` lo da por canal. `escape_newyork` puede no ser el
   peor.

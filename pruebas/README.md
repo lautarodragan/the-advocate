@@ -143,6 +143,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 
 * `rpgmaker/test_musica_paquete.py`: las muestras del tema, en la ARAM
 * `rpgmaker/test_tema_del_mapa.py`: el tema de cada mapa
+* `rpgmaker/test_bateria_suena.py`: lo que la música les escribe a las voces
+  de la batería
 * `abl/test_msu.py`: las pistas de MSU-1
 
 **Lo propio de ABL**
