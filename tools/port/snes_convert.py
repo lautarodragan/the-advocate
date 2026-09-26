@@ -4370,11 +4370,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; `20 + (1 << (8 - frecuencia))`, y con la frecuencia 8 —la única\n"
         "; que el conversor deja pasar— son veinte.\n"
         "RUTA_ESPERA = %d\n"
-        "; Y el salto: cuánto le queda al arrancar y cuánto baja por cuadro.\n"
-        "; No depende de la distancia —saltar cinco celdas cuesta lo mismo\n"
-        "; que saltar en el lugar—, y son once cuadros.\n"
+        "; Y el salto: cuánto le queda al arrancar. Cuánto baja por cuadro\n"
+        "; depende de la velocidad —`salto_por_vel`— y no de la distancia.\n"
         "SALTO_PASO = %d\n"
-        "SALTO_VELOCIDAD = %d\n"
         "TINTE_NEUTRO = %d\n"
         "; El fundido de los teletransportes: 35 cuadros de ida y 35 de\n"
         "; vuelta, como RM2k, y de cada 35 la rampa son 24. El mapa se carga\n"
@@ -4599,7 +4597,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.TRIGGER_TOCA_HEROE, eventos.TRIGGER_PARALELO,
            eventos.CUADROS_POR_CELDA, eventos.RUTA_FRECUENCIA,
            eventos.CUADROS_DE_ESPERA_DE_RUTA,
-           eventos.SALTO_PASO, eventos.SALTO_VELOCIDAD,
+           eventos.SALTO_PASO,
            eventos.TINTE_NEUTRO,
            eventos.FUNDIDO_RAMPA,
            eventos.FUNDIDO_CUADROS, eventos.FUNDIDO_TOTAL,
