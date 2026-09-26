@@ -1,8 +1,8 @@
 """Convierte el MIDI de un mapa a muestras BRR y un stream para el S-DSP.
 
 Es el equivalente de musica.py para la Super Nintendo, y comparte con él todo
-lo que no depende del chip: leer el MIDI, pasar los tiempos a cuadros y repartir
-las voces entre los canales según cuánta cobertura gana cada una.
+lo que no depende del chip: leer el MIDI y pasar los tiempos a cuadros. Las
+voces se reparten nota a nota, las ocho para todos los canales: ver `assign`.
 
 Lo que cambia es el final. El YM2612 pide construir cada timbre con cuatro
 operadores; el S-DSP pide una forma de onda, que está en sdsp.py. Y son ocho
@@ -17,6 +17,7 @@ todos los temas del cartucho a la vez: ver `build_varios`.
 """
 
 import collections
+import math
 import os
 
 from rpgmaker import lcf
@@ -53,12 +54,6 @@ ARAM_MARGEN = 1024
 # de ninguno. Hasta el 2026-09-15 estaban escritos a mano de los dos lados, en
 # este archivo y en main.s, sin nada que los atara.
 from audio.music_opcodes import *   # noqa: E402,F401,F403
-
-# La percusión se lleva dos voces. Con una sola, un bombo y un charles que caen
-# en el mismo cuadro se pisan, y en un patrón de batería eso pasa todo el
-# tiempo. Cuesta una voz melódica y se nota menos que perder la mitad de los
-# golpes.
-DRUM_VOICES = 2
 
 
 # Los temas que además tienen pista de MSU-1, y con qué número. El MSU-1 no es
@@ -244,8 +239,8 @@ SE_MAX_SEGUNDOS = 0.75           # desde el paquete por mapa: ver `paquete_carga
 SE_LOOP_SEGUNDOS = 0.4
 SE_VOZ = 7                      # la que se le roba a la música
 # Y la segunda, para que dos efectos suenen a la vez —la lluvia y el trueno de
-# la apertura—, como en RM2k. También es de percusión: con dos efectos
-# sonando, la batería se queda sin voces.
+# la apertura—, como en RM2k. Las dos son las que el reparto de la música
+# llena primero con la percusión: ver `VOCES_DE_EFECTOS`.
 SE_VOZ2 = 6
 # Los que van enteros, sin tope ni bucle, a su propia tasa: terminan cuando
 # termina la muestra, que es lo que hacen en RM2k. Con el tope, el trueno
@@ -369,34 +364,128 @@ def volumen_de_efecto(volumen, balance):
 # --- reparto de voces -------------------------------------------------------
 
 def assign(notes):
-    """Qué voz del DSP le toca a cada canal del MIDI.
+    """Qué voces del DSP puede tomar cada canal del MIDI: las ocho, todos.
 
-    La percusión se lleva un par de voces fijas al final. Las demás se reparten
-    entre los canales melódicos por la misma cuenta que en la Mega Drive: de a
-    una, siempre a la que más tiempo-nota agregue.
+    Hasta el 2026-09-26 cada canal melódico tenía sus voces fijas —repartidas
+    por cuánto tiempo-nota agregaba cada una— y la batería dos al final. En
+    `escape_newyork` eso dejaba una voz para los acordes de tres notas de las
+    cuerdas, una para los de seis del polysynth, y ninguna para el clavinet y
+    la onda cuadrada: se perdía el 55% del tiempo-nota contra el 23% que se
+    pierde sin remedio con ocho voces. Ahora el reparto es nota a nota, en
+    `build_events`: una nota toma una voz libre, y si no hay, le roba a otra
+    por prioridad —ver `_victima`—. Es el paso 5 de
+    `workflow/tasks/todo/la-calidad-de-la-musica.md`.
+
+    Sigue devolviendo un grupo por canal porque `build_events` los acepta
+    distintos, y las pruebas lo usan para armar casos chicos.
     """
-    melodic = collections.defaultdict(list)
-    for note in notes:
-        if note.channel != midi.DRUM_CHANNEL:
-            melodic[note.channel].append(note)
+    return {channel: list(range(sdsp.VOICES))
+            for channel in sorted({n.channel for n in notes})}
 
-    drums = any(n.channel == midi.DRUM_CHANNEL for n in notes)
-    budget = sdsp.VOICES - (DRUM_VOICES if drums else 0)
 
-    spans = {channel: musica.note_time(ns) for channel, ns in melodic.items()}
-    busiest = sorted(spans, key=lambda c: -sum(a * b for a, b in spans[c].items()))
-    kept = busiest[:budget]
+# Las voces que los efectos de sonido le sacan a la música: `SE_VOZ` y
+# `SE_VOZ2`. Mientras un efecto suena, lo que la música le escribe a su voz va
+# a la sombra y no al DSP —ver `dsp_musica`—, así que la nota que estuviera
+# ahí se calla. Por eso ahí van primero los golpes de percusión, que duran
+# medio segundo, y las notas melódicas sólo si no queda otra libre: es lo que
+# pasaba cuando la batería tenía esas dos voces fijas.
+VOCES_DE_EFECTOS = (SE_VOZ2, SE_VOZ)
 
-    voices, next_voice = {}, 0
-    for channel, count in musica.share_voices({c: spans[c] for c in kept},
-                                                budget).items():
-        voices[channel] = list(range(next_voice, next_voice + count))
-        next_voice += count
 
-    if drums:
-        voices[midi.DRUM_CHANNEL] = list(range(sdsp.VOICES - DRUM_VOICES,
-                                               sdsp.VOICES))
-    return voices
+# El GAIN con que se baja una voz que suena un cuadro antes de dársela a otra
+# nota: lineal, 64 pasos de 6 muestras, así que llega a cero en 12 ms, antes
+# del cuadro siguiente. Lo que evita es el clic del KON, que pone la
+# envolvente en cero de golpe: el prototipo del paso 5 de
+# `workflow/tasks/todo/la-calidad-de-la-musica.md` lo grabó (la variante 07).
+# Es un `OP_RELEASE_GAIN` más del stream: el driver no cambia.
+RAMPA = sdsp.GAIN_LINEAR_DECREASE | 26
+assert 64 * sdsp.PERIODO[RAMPA & 0x1F] <= sdsp.SAMPLE_RATE // TICKS_PER_SECOND
+
+
+class _Voz:
+    """Lo que el reparto sabe de una voz: la nota que la tiene, hasta cuándo
+    la sostiene —`fin`— y hasta cuándo se oye —`cola`, con el release o lo que
+    dura el golpe—, y con qué volumen arrancó, izquierda más derecha."""
+
+    __slots__ = ("nota", "fin", "cola", "nivel")
+
+    def __init__(self, nota, fin, cola, nivel):
+        self.nota, self.fin, self.cola, self.nivel = nota, fin, cola, nivel
+
+
+def _cuadros_del_release(gain):
+    """Cuántos cuadros tarda en callarse una voz soltada con ese GAIN, desde
+    arriba: el lineal baja 1/64 por paso, y el exponencial llega a cero en
+    `PASOS_HASTA_CERO` —ver `sdsp`—."""
+    periodo = sdsp.PERIODO[gain & 0x1F] or 0
+    pasos = (64 if gain & 0xE0 == sdsp.GAIN_LINEAR_DECREASE
+             else sdsp.PASOS_HASTA_CERO)
+    return int(pasos * periodo * TICKS_PER_SECOND / sdsp.SAMPLE_RATE) + 1
+
+
+def _libre(voz, t, voces, nota, drums):
+    """El orden entre las voces libres —las que nadie sostiene en `t`—: la
+    menor gana."""
+    s = voces.get(voz)
+    # Primero las calladas: reusar una que todavía suena en su cola la corta.
+    # Entre las que suenan, la que se apaga antes.
+    suena = s is not None and s.cola > t
+    return (suena, s.cola if suena else 0,
+            # Los golpes, a las voces de los efectos; lo melódico, a las otras.
+            (voz in VOCES_DE_EFECTOS) != drums,
+            # Y la que tuvo una nota del mismo canal: mismo instrumento y
+            # mismo volumen, así que la nota nueva sale en dos bytes.
+            s is None or s.nota.channel != nota.channel,
+            voz)
+
+
+def _victima(nota, t, grupo, voces, nivel):
+    """A qué voz le roba `nota` cuando todas las de su grupo están
+    sostenidas, o None si no le roba a ninguna y no suena.
+
+    Es la regla del prototipo —lo que taro escuchó en la variante 09 y dijo
+    que "es muy aceptable"—. Medida en los 32 temas del `release`: robarle
+    siempre a la más vieja sin ceder nunca pierde el mismo tiempo-nota pero
+    corta 2,5 veces más notas mientras suenan, y robarle siempre a la más
+    débil pierde más; protegerle además la nota más grave y la más aguda, o
+    robar primero dentro del propio canal, empatan con ella en promedio y
+    ganan en unos temas lo que pierden en otros, así que no entraron. Los
+    números, en el paso 5 de `workflow/tasks/todo/la-calidad-de-la-musica.md`.
+
+    * La misma tecla del mismo canal que vuelve a sonar le roba a sí misma:
+      es un sintetizador que redispara la nota.
+    * Nunca a una nota que arrancó en este mismo cuadro, que no llegaría a
+      sonar; ni a la última voz de un canal, que lo dejaría mudo.
+    * Entre las demás, a la más débil —el volumen con que arrancó— y, a la
+      par, a la más vieja.
+    * Y la nota nueva cede en vez de robar si su canal ya suena y la víctima
+      es la última de otro, o es más fuerte que ella y su canal no tiene más
+      voces que el de la nueva.
+    """
+    por_canal = collections.Counter(voces[v].nota.channel for v in grupo)
+    for v in grupo:
+        s = voces[v].nota
+        if s.channel == nota.channel and s.pitch == nota.pitch:
+            return v
+
+    def ultima(s):
+        # La última voz de otro canal: robársela lo deja mudo. La del mismo
+        # no, que sigue sonando con la nota nueva.
+        return s.nota.channel != nota.channel and por_canal[s.nota.channel] <= 1
+
+    def costo(v):
+        s = voces[v]
+        return (s.nota.start == t, ultima(s), s.nivel, s.nota.start, v)
+
+    v = min(grupo, key=costo)
+    s = voces[v]
+    if s.nota.start == t:
+        return None
+    if por_canal[nota.channel] >= 1 and s.nota.channel != nota.channel and (
+            ultima(s) or (s.nivel > nivel and por_canal[s.nota.channel]
+                          <= por_canal[nota.channel])):
+        return None
+    return v
 
 
 # --- el banco compartido ----------------------------------------------------
@@ -502,7 +591,9 @@ class Frame:
     __slots__ = ("release", "setup", "kon", "kof", "control")
 
     def __init__(self):
-        # Las notas que se sueltan en este cuadro: (voz, GAIN del release).
+        # Las notas que se sueltan en este cuadro: (voz, GAIN del release), y
+        # las voces que se bajan con `RAMPA` porque otra nota las toma en el
+        # cuadro siguiente.
         self.release = []
         # Las que arrancan: una `Preparacion` por nota, en orden.
         self.setup = []
@@ -533,13 +624,14 @@ class Preparacion(collections.namedtuple(
                 (base + sdsp.V_ADSR2, self.adsr2)]
 
 
-def build_events(notes, voices, programs, drum_voices, banco, controls=()):
+def build_events(notes, voices, programs, banco, controls=(), reparto=None):
     """Las escrituras al DSP, cuadro por cuadro.
 
-    Cada canal tiene su grupo de voces; una nota que arranca toma la que lleve
-    más tiempo libre, y si están todas ocupadas se la saca a la que termina
-    antes. Es lo mismo que hace un sintetizador cuando se le acaba la polifonía,
-    y lo mismo que ya hacíamos en la Mega Drive.
+    Cada canal tiene su grupo de voces —desde el paso 5, las ocho para todos:
+    ver `assign`—; una nota que arranca toma una libre, la que menos corte
+    según `_libre`, y si están todas sostenidas le roba a la que diga
+    `_victima`, o no suena. Es lo que hace un sintetizador cuando se le acaba
+    la polifonía.
 
     El banco viene de afuera y no se arma acá: lo comparten todos los temas de
     la ROM, así que los índices de `V_SRCN` que este stream escribe son los de
@@ -550,6 +642,12 @@ def build_events(notes, voices, programs, drum_voices, banco, controls=()):
     bend en su altura. Los de un cuadro se aplican antes que sus notas, así
     que la nota arranca con el estado con que termina el cuadro; y a una voz
     que ya sonaba —o que está en su cola— se le reescriben sus registros.
+
+    `reparto`, si viene una lista, se llena con lo que le tocó a cada nota que
+    tiene muestra: (nota, voz o None si no sonó, cuadro en que le robaron la
+    voz o None, hasta cuándo la sostiene —el fin de la nota, o el de la
+    muestra si es un golpe más corto que ella—). Es de dónde sale cuánto
+    tiempo-nota se pierde.
     """
     frames = collections.defaultdict(Frame)
     bank, index_of, drum_index = banco.voces, banco.melodicas, banco.golpes
@@ -594,7 +692,8 @@ def build_events(notes, voices, programs, drum_voices, banco, controls=()):
             for voice, note in owner.items():
                 if note.channel != c.channel:
                     continue
-                base, drums = voice * 0x10, voice in drum_voices
+                base = voice * 0x10
+                drums = note.channel == midi.DRUM_CHANNEL
                 frame = frames[c.start].control
                 if c.number == midi.BEND:
                     if drums:
@@ -607,19 +706,22 @@ def build_events(notes, voices, programs, drum_voices, banco, controls=()):
                     frame[base + sdsp.V_VOL_L] = izquierda
                     frame[base + sdsp.V_VOL_R] = derecha
 
-    busy = {}
-    # De quién es cada voz ahora: la última nota que la tomó. El release de
-    # una nota se agenda recién al final, y sólo si llegó a su fin siendo la
-    # dueña: si otra le robó la voz antes, soltarla soltaría a la ladrona.
-    # Hasta el 2026-09-25 se agendaba al tomar la voz y eran 329 notas de
+    # De quién es cada voz ahora: la última nota que la tomó, con hasta
+    # cuándo la sostiene y hasta cuándo se oye. El release de una nota se
+    # agenda recién al final, y sólo si llegó a su fin siendo la dueña: si
+    # otra le robó la voz antes, soltarla soltaría a la ladrona. Hasta el
+    # 2026-09-25 se agendaba al tomar la voz y eran 329 notas de
     # `escape_newyork` cortadas antes de tiempo, casi todas del bajo.
-    owner, robbed, sounded = {}, {}, []
-    for note in sorted(notes, key=lambda n: n.start):
+    voces, owner, robbed, sounded, rampas = {}, {}, {}, [], []
+    de_la_voz = {}                  # la entrada de `reparto` de su dueña
+    # Las más fuertes de cada cuadro eligen primero: si el acorde no entra, la
+    # que se queda afuera es la más suave.
+    for note in sorted(notes, key=lambda n: (n.start, -n.velocity, n.pitch)):
         group = voices.get(note.channel)
         if not group:
             continue
         program = programs.get(note.channel, 0)
-        drums = group[0] in drum_voices
+        drums = note.channel == midi.DRUM_CHANNEL
         # Antes de elegir voz: una nota sin muestra no suena, y si ocupara la
         # voz le quitaría el lugar a una que sí.
         source = (drum_index.get(note.pitch) if drums
@@ -628,12 +730,54 @@ def build_events(notes, voices, programs, drum_voices, banco, controls=()):
             continue                    # el banco no trae ese golpe o programa
 
         controlar(note.start)
-        free = [v for v in group if busy.get(v, 0) <= note.start]
-        voice = min(free or group, key=lambda v: busy.get(v, 0))
-        busy[voice] = note.end
+        step = altura(note, drums)
+        izquierda, derecha = lados(note, drums)
+        if drums:
+            # Ataque instantáneo y sin decaimiento: el golpe ya trae su propia
+            # forma, la envolvente sólo lo apaga al final para que no siga
+            # leyendo memoria. No tiene release, así que tampoco GAIN: se oye
+            # hasta que la muestra se acaba. Pero la voz la sostiene sólo
+            # hasta el fin de la nota en el MIDI, y lo que sigue es como la
+            # cola de un release: se la puede tomar otra nota. Sostenerla
+            # hasta el final de la muestra le hacía perder a lo melódico, en
+            # los 32 temas, 8,3% del tiempo-nota en promedio en vez de 7,9%
+            # —Lunar_Pyramid 33% en vez de 23%— para salvar colas de golpes
+            # que en fluidsynth también se sueltan con el fin de la nota.
+            adsr1, adsr2, gain = 0x8F, 0xE0, None
+            muestra = bank[source]
+            cola = note.start + int(math.ceil(
+                muestra.frames * TICKS_PER_SECOND / float(muestra.rate)))
+            fin = min(cola, note.end)
+        else:
+            adsr1, adsr2, gain = banco.envolvente(program, note.pitch)
+            fin, cola = note.end, note.end + _cuadros_del_release(gain)
+
+        t = note.start
+        libres = [v for v in group if v not in voces or voces[v].fin <= t]
+        if libres:
+            voice = min(libres, key=lambda v: _libre(v, t, voces, note, drums))
+        else:
+            voice = _victima(note, t, group, voces, izquierda + derecha)
+        if voice is None:
+            if reparto is not None:
+                reparto.append([note, None, None, fin])
+            continue
         if voice in owner:
-            robbed.setdefault(id(owner[voice]), note.start)
+            robbed.setdefault(id(owner[voice]), t)
+            if voice in de_la_voz:
+                de_la_voz[voice][2] = t
+            # Si la voz todavía suena, se la baja a cero en el cuadro de antes:
+            # el KON pone la envolvente en cero de golpe, y eso es un clic. No
+            # a una nota que arrancó en ese mismo cuadro, que se prepara detrás
+            # del release y lo deshace.
+            anterior = voces[voice]
+            if anterior.cola > t - 1 and anterior.nota.start < t - 1:
+                rampas.append((t - 1, voice))
+        voces[voice] = _Voz(note, fin, cola, izquierda + derecha)
         owner[voice] = note
+        if reparto is not None:
+            reparto.append([note, voice, None, fin])
+            de_la_voz[voice] = reparto[-1]
 
         start = frames[note.start]
         base = voice * 0x10
@@ -642,16 +786,6 @@ def build_events(notes, voices, programs, drum_voices, banco, controls=()):
         for registro in (sdsp.V_VOL_L, sdsp.V_VOL_R, sdsp.V_PITCH_L,
                          sdsp.V_PITCH_H):
             start.control.pop(base + registro, None)
-        step = altura(note, drums)
-        izquierda, derecha = lados(note, drums)
-
-        if drums:
-            # Ataque instantáneo y sin decaimiento: el golpe ya trae su propia
-            # forma, la envolvente sólo lo apaga al final para que no siga
-            # leyendo memoria. No tiene release, así que tampoco GAIN.
-            adsr1, adsr2, gain = 0x8F, 0xE0, None
-        else:
-            adsr1, adsr2, gain = banco.envolvente(program, note.pitch)
         start.setup.append(Preparacion(voice, izquierda, derecha, step, source,
                                        adsr1, adsr2, gain))
 
@@ -670,6 +804,9 @@ def build_events(notes, voices, programs, drum_voices, banco, controls=()):
         if robbed.get(id(note), note.end + 1) <= note.end:
             continue
         frames[note.end].release.append((voice, gain))
+    # Las rampas van después de los releases de su cuadro, para ganarles.
+    for cuadro, voice in rampas:
+        frames[cuadro].release.append((voice, RAMPA))
 
     return frames
 
@@ -1155,7 +1292,6 @@ def leer_tema(name, game_dir=GAME_DIR):
         "largo": largo,
         "voces": voices,
         "programas": programs,
-        "percusion": set(voices.get(midi.DRUM_CHANNEL, [])),
         # Lo que aporta al banco compartido: los programas de sus canales
         # melódicos y las teclas de percusión que toca.
         "melodicos": {programs.get(c, 0) for c in voices
@@ -1234,16 +1370,17 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=(),
                           "sonidos": [], "escrituras": [],
                           "segundos": 0.0, "resumen": {}})
             continue
+        reparto = []
         frames = build_events(leido["notas"], leido["voces"],
-                              leido["programas"], leido["percusion"], banco,
-                              leido["controles"])
+                              leido["programas"], banco, leido["controles"],
+                              reparto)
         referencia = escrituras(frames, leido["largo"], init_writes())
         stream, sonidos = pack(frames, leido["largo"], init_writes())
         verificar_formato(nombre, stream, sonidos, referencia)
         temas.append({"nombre": nombre, "stream": stream, "sonidos": sonidos,
                       "escrituras": referencia,
                       "segundos": leido["largo"] / TICKS_PER_SECOND,
-                      "resumen": resumen_del_tema(leido, banco)})
+                      "resumen": resumen_del_tema(leido, banco, reparto)})
     # Los efectos, con lo que la música dejó libre. Van detrás del banco en
     # el mismo directorio: su `V_SRCN` es el lugar que les toca después de las
     # muestras de la música.
@@ -1257,30 +1394,58 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=(),
     return (driver, list(banco.voces) + lista, temas, banco, afuera)
 
 
-def resumen_del_tema(leido, banco):
+def resumen_del_tema(leido, banco, reparto=()):
     """Lo que imprime la receta: voces, timbres y cuánto se llega a tocar."""
-    notes, voices = leido["notas"], leido["voces"]
-    programs = leido["programas"]
-    spans = {c: musica.note_time([n for n in notes if n.channel == c])
-             for c in {n.channel for n in notes}}
-    total = sum(sum(a * b for a, b in spans[c].items()) for c in spans)
+    voices, programs = leido["voces"], leido["programas"]
     return {
         "voices": {c: v for c, v in sorted(voices.items())},
         "sounds": {c: programs.get(c, 0)
                    for c in sorted(voices) if c != midi.DRUM_CHANNEL},
         "bank": ["%s (%.0f Hz, %d B)" % (v.name.strip(), v.rate, len(v.data))
                  for v in banco.voces],
-        "coverage": sum(musica.coverage(spans[c], len(voices.get(c, [])))
-                        * sum(a * b for a, b in spans[c].items())
-                        for c in spans) / max(1, total),
+        # Cuánto del tiempo-nota se pierde por falta de voces, y cuánto se
+        # perdería sin remedio con ocho: ver `tiempo_perdido`.
+        "perdido": tiempo_perdido(reparto),
         # Y cuántas de sus notas llegan al stream. Una nota cuyo programa no
         # está en el banco **no suena más bajo: no existe** —el `continue` de
         # `build_events`—, así que esto es la voz que el jugador no oye. Es un
-        # número distinto de `coverage`, que mide la polifonía; se confundieron
-        # el 2026-09-14 y por un rato pareció que compartir el banco no costaba
-        # nada, porque `coverage` da igual con el banco entero o compartido.
+        # número distinto de `perdido`, que mide la polifonía; hasta el
+        # 2026-09-26 ése era `coverage`, una cuenta del reparto fijo por canal,
+        # y se confundieron el 2026-09-14: por un rato pareció que compartir
+        # el banco no costaba nada, porque `coverage` daba igual con el banco
+        # entero o compartido.
         "notas": notas_que_suenan(leido, banco),
     }
+
+
+def tiempo_perdido(reparto):
+    """(lo que se pierde, el piso): qué fracción del tiempo-nota de las notas
+    con muestra no suena por falta de voces, y qué fracción no podría sonar
+    con ninguna regla —lo que pasa de ocho notas a la vez—.
+
+    El tiempo-nota es lo que la nota sostiene su voz: del arranque al fin en
+    el MIDI, o al fin de la muestra si es un golpe que se acaba antes. Se
+    pierde entero si la nota no consigue voz, y desde que se la roban si le
+    roban la suya antes de ese fin. La cola del release no cuenta: no está en
+    el MIDI. Es la cuenta del prototipo, que en `escape_newyork` dio 55% con
+    el reparto fijo por canal contra un piso de 23%.
+    """
+    total = perdido = 0
+    tramos = []
+    for nota, voz, robada, fin in reparto:
+        largo = fin - nota.start
+        total += largo
+        tramos.append(_Tramo(nota.start, fin))
+        if voz is None:
+            perdido += largo
+        elif robada is not None:
+            perdido += max(0, fin - robada)
+    spans = musica.note_time(tramos)
+    piso = sum(max(0, n - sdsp.VOICES) * cuadros for n, cuadros in spans.items())
+    return perdido / float(max(1, total)), piso / float(max(1, total))
+
+
+_Tramo = collections.namedtuple("_Tramo", "start end")
 
 
 def notas_que_suenan(leido, banco):

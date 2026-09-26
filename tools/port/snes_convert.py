@@ -6928,12 +6928,16 @@ def main():
         # es lo que se oye como "le faltan voces", y hasta el 2026-09-14 no lo
         # decía nadie. Ver "Varios temas en el cartucho" en el README.
         suenan = tema["resumen"].get("notas")
+        # Y cuánto de lo que sí tiene muestra se pierde por falta de voces,
+        # contra lo que se perdería sin remedio con ocho: es lo que mide el
+        # reparto de `snes_music.assign`.
+        perdido, piso = tema["resumen"].get("perdido", (0.0, 0.0))
         print("  %d. %-16s %4.0f s, %6d B de stream y %4d de sonidos, "
-              "%s de las notas%s"
+              "%s de las notas, %.0f%% del tiempo-nota sin voz (piso %.0f%%)%s"
               % (i, tema["nombre"], tema["segundos"], len(tema["stream"]),
                  6 * len(tema["sonidos"]),
                  "todas" if suenan is None or suenan > 0.999
-                 else "%.0f%%" % (100 * suenan),
+                 else "%.0f%%" % (100 * suenan), 100 * perdido, 100 * piso,
                  ", suena desde el arranque" if i == arranque else ""))
     if hechos:
         print("  banco compartido: %d muestras, %d B de los %d de ARAM"

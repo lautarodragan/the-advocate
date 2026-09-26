@@ -147,6 +147,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   de la batería
 * `herramientas/test_musica_stream.py`: el stream que arma el conversor: a
   qué voz va cada nota y cuándo se suelta
+* `rpgmaker/test_musica_reparto.py`: las ocho voces repartidas nota a nota,
+  sobre `escape_newyork`: el acorde entero y los canales que antes no sonaban
 * `rpgmaker/test_musica_escrituras.py`: que el decodificador del stream le
   escriba al DSP lo que el stream dice, cuadro por cuadro
 * `abl/test_msu.py`: las pistas de MSU-1

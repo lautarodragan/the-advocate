@@ -3,7 +3,8 @@
 ; --- los efectos de sonido -------------------------------------------------------
 ;
 ; `PlaySound`, en dos voces que se le roban a la música mientras duran: SE_VOZ
-; y SE2_VOZ, las dos de percusión. Ver `build_efectos` en snes_music.py. En
+; y SE2_VOZ, las que el reparto de la música llena primero con la percusión
+; (`VOCES_DE_EFECTOS` en snes_music.py). Ver `build_efectos` allá. En
 ; RM2k los efectos se suman —EasyRPG tiene 31 canales—, y con una sola voz la
 ; lluvia de la apertura le cortaba el trueno a la mitad: medido, 73 de sus 144
 ; cuadros, y una vez 7.
