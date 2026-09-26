@@ -565,25 +565,79 @@ def _orden_del_cuadro(notas, nivel):
 
 # --- el banco compartido ----------------------------------------------------
 
-# Las muestras se piden por clave: ("p", programa) una melódica, ("g", tecla)
-# un golpe de percusión. Es una por programa de General MIDI y una por golpe
-# en todo el cartucho, así que dos temas que tocan piano usan la misma.
-def claves_del_tema(leido):
-    """Las muestras que pide un tema leído por `leer_tema`, o ninguna."""
+# Las muestras se piden por clave: ("p", programa, tecla) una melódica,
+# ("g", tecla) un golpe de percusión. Es una por programa de General MIDI y
+# una por golpe en todo el cartucho, así que dos temas que tocan piano usan
+# la misma. La tecla de la melódica elige la zona del SoundFont: ver
+# `zonas_mas_usadas`.
+def claves_del_tema(leido, teclas=None):
+    """Las muestras que pide un tema leído por `leer_tema`, o ninguna.
+    `teclas` son las de `zonas_mas_usadas`; sin ella, el do central."""
     if not leido:
         return set()
-    return ({("p", p) for p in leido["melodicos"]}
+    teclas = teclas or {}
+    return ({("p", p, teclas.get(p, snes_samples.REFERENCE_KEY))
+             for p in leido["melodicos"]}
             | {("g", g) for g in leido["golpes"]})
+
+
+def zonas_mas_usadas(leidos):
+    """{programa: tecla}: con qué tecla se pide la muestra de cada programa,
+    que es la que elige la zona del SoundFont.
+
+    **La zona donde el cartucho entero toca más tiempo-nota de ese
+    programa**, y no la del do central. Una muestra suena bien cerca de su
+    raíz: lejos, el DSP la estira o la aprieta y se oye —una octava abajo
+    los agudos que faltan, una arriba el loop que se acorta—. Medido el
+    2026-09-26 con los 32 temas del `release`: el 34% del tiempo-nota
+    melódico sonaba a doce semitonos o más de la raíz de la muestra del do
+    central, en teclas para las que el SoundFont tiene otra; el bajo
+    sintético 33, en doce temas, toca la zona de `MMBAS40` y no la del 62.
+    Es una por programa igual que antes, así que no cuesta ARAM; lo que
+    pierde es que un programa que dos temas tocan en registros distintos
+    queda bien para uno solo. Es el paso 6 de
+    `workflow/tasks/todo/la-calidad-de-la-musica.md`.
+
+    La tecla es la raíz de esa zona si la zona la cubre —así dos temas que
+    tocan la misma zona piden la misma muestra—, y si no, la tecla que más
+    suena adentro de la zona.
+    """
+    tiempo = collections.defaultdict(collections.Counter)
+    adentro = collections.defaultdict(collections.Counter)
+    for leido in leidos:
+        if not leido:
+            continue
+        for nota in leido["notas"]:
+            if (nota.channel == midi.DRUM_CHANNEL
+                    or nota.channel not in leido["voces"]):
+                continue
+            programa = leido["programas"].get(nota.channel, 0)
+            zona = muestras_brr.zona("program:%d@%d" % (programa, nota.pitch),
+                                     snes_samples.SOUNDFONT)
+            if zona is None:
+                continue
+            tiempo[programa][zona] += nota.end - nota.start
+            adentro[programa, zona][nota.pitch] += nota.end - nota.start
+    teclas = {}
+    for programa, por_zona in tiempo.items():
+        zona = max(por_zona, key=lambda z: (por_zona[z], z))
+        raiz = zona[1]
+        if muestras_brr.zona("program:%d@%d" % (programa, raiz),
+                             snes_samples.SOUNDFONT) == zona:
+            teclas[programa] = raiz
+        else:
+            cuanto = adentro[programa, zona]
+            teclas[programa] = max(cuanto, key=lambda k: (cuanto[k], -k))
+    return teclas
 
 
 def _muestra(clave, presupuesto):
     """La voz de una clave con ese presupuesto en bytes de BRR, o None si el
     SoundFont no la tiene."""
-    tipo, numero = clave
-    if tipo == "p":
-        return snes_samples.build_voice(snes_samples.SOUNDFONT, numero,
-                                        presupuesto)
-    return snes_samples.build_drum(snes_samples.SOUNDFONT, numero,
+    if clave[0] == "p":
+        return snes_samples.build_voice(snes_samples.SOUNDFONT, clave[1],
+                                        presupuesto, key=clave[2])
+    return snes_samples.build_drum(snes_samples.SOUNDFONT, clave[1],
                                    presupuesto)
 
 
@@ -717,7 +771,7 @@ class Banco:
         `sdsp.envelope`.
 
         La zona puede no ser la de la muestra —cada programa lleva una sola,
-        la del do central—, y es a propósito: es la envolvente que el
+        la de `zonas_mas_usadas`—, y es a propósito: es la envolvente que el
         SoundFont le daría a esa tecla, y en el piano el decaimiento cambia
         tecla por tecla. Si ninguna zona cubre la tecla, la del do central.
         """
@@ -1560,7 +1614,8 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     if techos is None:
         techos = leer_techos()
     leidos = [leer_tema(n, game_dir) for n in nombres]
-    claves_de = [claves_del_tema(t) for t in leidos]
+    teclas = zonas_mas_usadas(leidos)
+    claves_de = [claves_del_tema(t, teclas) for t in leidos]
     # Los efectos van **todos**: cuáles caben lo decide la ROM mapa por mapa,
     # al armar su paquete de audio. Se arman antes que el banco porque lo que
     # ocupan los de cada paquete es lo primero que se resta.

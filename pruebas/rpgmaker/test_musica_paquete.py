@@ -126,7 +126,8 @@ def test_el_presupuesto_de_cada_muestra_es_el_de_su_peor_paquete():
 
     nombres = ["escape_newyork", "evilrhys", "Fantasia_Of_The_Wind"]
     leidos = [snes_music.leer_tema(n) for n in nombres]
-    claves = [snes_music.claves_del_tema(t) for t in leidos]
+    teclas = snes_music.zonas_mas_usadas(leidos)
+    claves = [snes_music.claves_del_tema(t, teclas) for t in leidos]
     nativo = {k: len(snes_music._muestra(k, snes_music.NATIVA).data)
               for k in set().union(*claves)}
     apretados = claves[0] | claves[1]

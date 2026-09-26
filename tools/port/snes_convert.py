@@ -6957,9 +6957,10 @@ def main():
         # A qué tasa quedó cada muestra y qué paquete la limitó: es lo que se
         # oye, y lo que dice dónde buscar lugar si hace falta.
         for clave, voz in zip(banco.claves, banco.voces):
-            print("    %s %3d %-10s %5.1f kHz, %5d B%s"
+            print("    %s %3d %-10s %5.1f kHz, %5d B%s%s"
                   % ("programa" if clave[0] == "p" else "golpe   ", clave[1],
                      voz.name.strip()[:10], voz.rate / 1000.0, len(voz.data),
+                     ", raíz %d" % voz.root if clave[0] == "p" else "",
                      ", la limita " + banco.limita[clave]
                      if clave in banco.limita else ""))
         # Y cuánto le sobra a cada paquete, con sus efectos.
