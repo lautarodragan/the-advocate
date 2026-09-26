@@ -568,8 +568,8 @@ CHANGE_ITEMS = 10320
 # imagen encima de todo, movida y borrada.
 #
 # **Desde el 2026-09-12 se hace una**: el cartel del "One year previously", y
-# cualquier otro que entre en el mismo molde. Ver `Imagenes`, OP_PICTURE y "El
-# cartel de 'One year previously'" en el README. Los que no entran —los 27 de
+# cualquier otro que entre en el mismo molde. Ver `Imagenes`, OP_PICTURE y
+# workflow/tasks/done/show-picture-phase-1.md. Los que no entran —los 27 de
 # los 34 que el juego tiene— se siguen aceptando sin hacerse, y lo que sigue
 # vale para ésos.
 #
@@ -621,8 +621,8 @@ INN_STAY, INN_NO_STAY, INN_END = 20730, 20731, 20732
 # tema del sistema pasaría a ser estado que viaja en la partida, y los temas
 # que nombran esas 130 apariciones tendrían que entrar en el paquete de audio
 # de sus mapas. Hoy el peor paquete son 54945 de 63831 B de ARAM; agregarle un
-# tema de pelea a veinticinco mapas es exactamente lo que "presupuestar por
-# paquete" —en "Lo que falta" del README— tiene que resolver antes.
+# tema de pelea a veinticinco mapas pide lugar en esos paquetes: ver
+# workflow/decisiones/un-solo-banco-de-muestras.md.
 CHANGE_SYSTEM_BGM = 10660
 
 # `ChangeHeroTitle` (10620): el "título" de un actor, que en RM2k es el texto
@@ -1802,7 +1802,7 @@ HALT_ALL_MOVEMENT = 11350
 # `ChangePBG`, el fondo parallax. **Se acepta y se tira**, que es lo mismo que
 # el port ya hace con el panorama entero: el modo 3 tiene dos capas de fondo y
 # las dos están tomadas —el mapa y la capa de encima con la ventana—, así que
-# no hay dónde dibujarlo. Ver README, "Lo que falta": "El panorama".
+# no hay dónde dibujarlo. Ver workflow/tasks/wishlist/panorama-del-mapa-2.md.
 #
 # Se tira **al compilar**, así que la referencia tampoco lo modela y los dos
 # lados quedan iguales por construcción, como las órdenes de ruta 26 y 27.
@@ -3130,7 +3130,7 @@ def tropa_de_encuentro(cmd):
       ellas el jefe de los Rat Tracks.
 
     El fondo no se mira: la pantalla de batalla va sobre un color plano, que es
-    lo que taro pidió para esta vuelta. Ver "la batalla" en README.md.
+    lo que taro pidió para esta vuelta. Ver workflow/tasks/done/battle.md.
     """
     p = cmd.parameters
     if len(p) < 6:

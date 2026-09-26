@@ -1287,8 +1287,8 @@ siguiente:
     bra recorrer
 es_heroe:
     ; **`atravesando` y no `ruta_atraviesa`**, que es la divergencia declarada
-    ; en el README, "Atravesar paredes vale mientras dura la ruta": la bandera
-    ; que deja la orden 36 vale mientras el paso lo dé la ruta forzada —ahí
+    ; en workflow/divergencias/atravesar-paredes-vale-mientras-dura-la-ruta.md:
+    ; la bandera que deja la orden 36 vale mientras el paso lo dé la ruta forzada —ahí
     ; `paso_de_ruta` la copia a `atravesando`— y no para la caminata con el
     ; pad, que la deja en cero. Leyendo la pegajosa, cualquier página que
     ; prendiera el 36 y no lo apagara dejaba al héroe caminando por encima de

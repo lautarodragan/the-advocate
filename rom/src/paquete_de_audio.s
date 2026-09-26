@@ -16,7 +16,7 @@
 ; **Las del tema que está sonando no se mueven**: la música sigue durante el
 ; fundido del salto, y pisarle una muestra que está tocando sería ruido. Todo
 ; lo demás se vuelve a acomodar desde el principio de la ARAM, saltando esas.
-; Ver "El paquete de audio de cada mapa" en el README.
+; Ver "El paquete de audio de cada mapa" en workflow/tasks/done/audio-bgm.md.
 FAR_ARAM_DE = $7E3100           ; una palabra por muestra
 FAR_QUIERE  = $7E3300           ; un byte por muestra: 2 las que no se mueven
 APU_LISTO   = $7E30D0           ; si el driver ya corre

@@ -17,10 +17,10 @@ hacerse.
 # Por qué
 
 La ROM dibuja **un** `ShowPicture` por cartucho, que es el caso fácil: ver
-`done/show-picture-phase-1.md`, y el cómo en `README.md`.
+`done/show-picture-phase-1.md`, que dice también cómo.
 
 Lo que costaría el resto está medido, y el detalle está en "Lo que costaría el
-sistema de imágenes entero" del README: **34 `ShowPicture` en el juego, 20
+sistema de imágenes entero", en esa misma tarea: **34 `ShowPicture` en el juego, 20
 carteles distintos**, y 7 de esos 34 comandos son de los que el modelo de hoy
 sabe hacer.
 

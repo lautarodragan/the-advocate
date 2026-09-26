@@ -1,7 +1,7 @@
 # Qué
 
-La colisión con los eventos **está** —ver "La colisión con los eventos" en
-`README.md`— y deja afuera cuatro cosas que RM2k sí hace:
+La colisión con los eventos **está** —ver su fila en la tabla de mecánicas de
+`docs/port/events.md`— y deja afuera cuatro cosas que RM2k sí hace:
 
 * **`overlap_forbidden`**, que son 17 páginas del juego;
 * el **conflicto de un evento con gráfico de tile contra su propio bloque**;

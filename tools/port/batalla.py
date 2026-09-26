@@ -98,7 +98,7 @@ def item_usable_en_batalla(item):
       revivir es sacar el estado de muerto y los estados no existen;
     * las que suben un parámetro para siempre, por lo mismo.
 
-    Está declarado en el README. Lo que sí entra son las veinte medicinas de
+    Está declarado en workflow/tasks/done/battle.md. Lo que sí entra son las veinte medicinas de
     HP del juego, de la Potion de 50 a la Miracle Drop, que cura todo.
     """
     return (item.type == TIPO_MEDICINA and not item.occasion_field1

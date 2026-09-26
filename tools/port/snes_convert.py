@@ -4219,7 +4219,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; Su prioridad de objeto. $10 —debajo de la capa de encima— en\n"
         "; toda ROM que no sea la de `encima`, que la sube a $20\n"
         "; para ejercitar la prioridad 2. Ningún evento del juego llega\n"
-        "; a ejercitarla: ver 'Cómo se verifica' en README.md.\n"
+        "; a ejercitarla: ver `test_encima` en test_caminar_golden.py.\n"
         "HERO_PRIORITY = $%02X\n"
         "; La ventana de mensaje: sus tiles viven en la segunda mitad del\n"
         "; banco de BG2, o sea a partir del índice 256, y sus celdas ya\n"
@@ -5763,8 +5763,8 @@ NPC_QUIETO = 0xFF        # en +9: este NPC no camina
 #
 # El número no es ése desde el 2026-09-06, y no por gusto: la fila mide
 # dieciséis bytes, así que el tope se lleva dos kilos de los ocho que tiene el
-# banco 0 de RAM, y la RAM se acabó —ver "La pila y la BSS comparten los ocho
-# kilos" en README.md—. **El mapa con más filas de todo el juego tiene 99**,
+# banco 0 de RAM, y la RAM se acabó —ver `PILA` en
+# tools/ensamblado/bancos.py—. **El mapa con más filas de todo el juego tiene 99**,
 # medido sobre los 328, así que 104 deja cinco de aire y devuelve 368 bytes. No
 # puede quedar corto en silencio: el conversor corta si algún mapa se pasa.
 NPC_MAX = 104
@@ -6994,7 +6994,7 @@ def main():
     for i, tema in enumerate(hechos):
         # El porcentaje de notas que llegan al stream va acá y no escondido:
         # es lo que se oye como "le faltan voces", y hasta el 2026-09-14 no lo
-        # decía nadie. Ver "Varios temas en el cartucho" en el README.
+        # decía nadie. Ver workflow/decisiones/un-solo-banco-de-muestras.md.
         suenan = tema["resumen"].get("notas")
         # Y cuánto de lo que sí tiene muestra se pierde por falta de voces,
         # contra lo que se perdería sin remedio con ocho: es lo que mide el

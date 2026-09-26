@@ -4,7 +4,8 @@ El MSU-1 no es hardware de la Super Nintendo: es una extensión que soportan el
 FX Pak Pro y los emuladores, con la música en archivos PCM al lado de la ROM.
 Cuando un tema tiene pista —`PISTAS_MSU` en snes_music.py— la ROM calla el
 SPC700 y la toca; sin MSU-1 la firma no está y todo suena como siempre. Ver
-"El MSU-1" en el README.
+`workflow/tasks/done/audio-msu-1.md`, y para los fondos de batalla que viajan
+en el `.msu`, `docs/port/msu-datos.md`.
 
 Una pista es `<rom>-<número>.pcm`: la firma "MSU1", el punto de loop en
 muestras —cuatro bytes— y el audio crudo, estéreo de 16 bits con signo a
