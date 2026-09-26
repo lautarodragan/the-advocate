@@ -8,8 +8,8 @@ entendiendo más. La regla que hace que eso sea seguro es una sola:
 
 Si aparece uno que no modelamos, la página no se emite y el evento no hace
 nada. Ejecutar la mitad de un script sería peor que no ejecutarlo: dejaría al
-juego en un estado que no existe, y la comparación pixel a pixel no lo vería
-porque la referencia haría exactamente lo mismo mal.
+juego en un estado que no existe, y una golden sacada ahí lo defendería como
+bueno desde el primer día.
 
 Los códigos de comando salen de tools/rpgmaker/event_codes.py, que se genera desde
 liblcf. Nunca de memoria: la primera versión del filtro de puertas los puso a
@@ -165,7 +165,7 @@ def cola_de_escapes(lineas):
     La cola puede llevar espacios entre medio —pasa una sola vez, en el
     `RunDirectorScene` del mapa 98, que escribe `\| \| \| \^`— y se los come:
     un espacio al final de un renglón no dibuja un solo pixel, así que sacarlo
-    da la misma pantalla de los dos lados.
+    no cambia la pantalla.
     """
     lineas = list(lineas)
     pausas = 0
@@ -202,8 +202,8 @@ def cola_de_escapes(lineas):
 # entraron últimos porque en RM2k el personaje camina celda por celda a lo largo
 # de varios cuadros, y eso hay que compararlo *mientras* camina: comparar sólo
 # dónde termina deja pasar el ciclo de animación entero. Un movimiento bloqueado
-# se saltea, que es la decisión de modelo que comparten los dos lados —RM2k
-# reintentaría para siempre y una prueba colgada no dice nada—.
+# se saltea, que es una decisión nuestra y no de RM2k —RM2k reintentaría para
+# siempre y una prueba colgada no dice nada—.
 RUTA_HEROE = 10001
 RUTA_ESTE_EVENTO = 10005                    # "este evento", el dueño de la página
 # Del 10002 al 10004 son los vehículos —barco, nave, avión—, que acá no existen.
@@ -217,8 +217,7 @@ RUTA_ESPERAR = 23
 # Cuánto cuesta un `wait` adentro de una ruta forzada. **No es un cuadro**: en
 # RM2k es `SetMaxStopCountForWait`, que da `20 + (1 << (8 - frecuencia))`, y con
 # la frecuencia 8 —la única que este repo acepta, ver `RUTA_FRECUENCIA`— son
-# veinte. Acá valía uno, en la ROM y en la referencia a la vez, así que la
-# comparación daba cero: es el mismo error que el hard light del tinte.
+# veinte.
 CUADROS_DE_ESPERA_DE_RUTA = 20
 
 # La frecuencia con la que se camina una ruta forzada. Manda dos cosas: cuánto
@@ -502,8 +501,7 @@ IGNORABLES = {
 # objetos tampoco: la lluvia de RM2k son hasta 100 hilos de 6x24 repartidos por
 # toda la pantalla, y la consola dibuja 34 tiles de sprite por línea —un objeto
 # de 32x32 se lleva cuatro—, así que una lluvia que cubra la pantalla revienta
-# el presupuesto en casi todas las líneas. Nuestra propia referencia marca esas
-# líneas como no comparables, así que la prueba dejaría de medir justo ahí.
+# el presupuesto en casi todas las líneas.
 #
 # Y aunque entrara: cada gota va con su propia transparencia —`alpha = min((5 +
 # fuerza) * t, 255)` en `Weather::DrawParticles`— y la consola tiene una sola
@@ -711,8 +709,8 @@ class Temas:
         self.nombres = []
         # Y los efectos de `PlaySound`, de la misma manera: cada combinación
         # de efecto, volumen, tempo y paneo es una entrada, y el bytecode lleva
-        # su índice. Viven acá y no aparte porque es lo que el conversor y la
-        # referencia ya se pasan de compilación en compilación.
+        # su índice. Viven acá y no aparte porque es lo que el conversor ya
+        # se pasa de compilación en compilación.
         self.sonidos = []
         # Y quién pide qué: el conversor pone en `mapa` el índice del mapa que
         # está compilando, y cada tema y cada efecto quedan anotados en el
@@ -1064,11 +1062,10 @@ FUNDIDO_TOTAL = FUNDIDO_CUADROS * 2
 # pasos y nada más, así que estirar la rampa sobre los 35 cuadros no da un
 # fundido más fino, sólo repite pasos. Y el negro del final no es relleno: **es
 # donde se carga el mapa**. La carga escribe VRAM y CGRAM por DMA y cuesta seis
-# o siete cuadros, que hasta ahora la referencia no modelaba y dejaban a los
-# dos lados desalineados para siempre después de un salto; adentro del negro no
-# se ven y no corren el reloj, porque el fundido se cuenta en cuadros de
-# hardware y no en vueltas del lazo. Entre que el mapa se carga —cuadro 24— y
-# que la rampa de vuelta sale del cero —cuadro 47— hay 23 cuadros de margen.
+# o siete cuadros; adentro del negro no se ven y no corren el reloj, porque el
+# fundido se cuenta en cuadros de hardware y no en vueltas del lazo. Entre que
+# el mapa se carga —cuadro 24— y que la rampa de vuelta sale del cero —cuadro
+# 47— hay 23 cuadros de margen.
 FUNDIDO_RAMPA = 24
 FUNDIDO_NEGRO = FUNDIDO_CUADROS - FUNDIDO_RAMPA
 BRILLO_MAX = 15
@@ -1267,13 +1264,6 @@ class Mensajes:
     conversor lo emite una sola vez. Lo repetido se guarda una sola vez —el
     juego repite cuadros enteros, y son 418 de 2895— y sale gratis porque el
     contenido ya es la clave.
-
-    **Los dos lados lo arman en el mismo orden.** El conversor para emitirlo y
-    la referencia para saber qué texto dibujar cuando el bytecode abra un
-    mensaje; si se juntaran en otro orden, el mismo desplazamiento nombraría
-    otro texto y la comparación mediría dos juegos distintos. Por eso la
-    referencia compila todos los mapas de la tabla al construirse, en vez de
-    hacerlo cuando el héroe pisa cada uno.
     """
 
     def __init__(self, paso=1):
@@ -1284,7 +1274,7 @@ class Mensajes:
         self.paso = paso
         self.datos = bytearray()
         self.donde = {}         # las líneas ya guardadas -> su desplazamiento
-        self.textos = {}        # y la vuelta, que es lo que usa la referencia
+        self.textos = {}        # y la vuelta: el desplazamiento -> las líneas
 
     def agregar(self, lineas):
         r"""El desplazamiento de este cuadro, guardándolo si es la primera vez.
@@ -1305,8 +1295,7 @@ class Mensajes:
         **La clave de la deduplicación lleva la cola**, y no es un detalle: dos
         cuadros con el mismo texto y distinta cola son dos cuadros distintos
         —uno espera al jugador y el otro no— y compartir desplazamiento los
-        haría durar lo mismo en la ROM y en la referencia a la vez, o sea que la
-        comparación daría cero con el error puesto.
+        haría durar lo mismo.
         """
         from port import ventana as ventana_mod
         lineas, pausas, autocierre = cola_de_escapes(lineas)
@@ -1328,8 +1317,7 @@ class Mensajes:
         return self.donde[clave] // self.paso
 
     def lineas(self, donde):
-        """Las líneas que hay en ese desplazamiento. Es lo que dibuja la
-        referencia: la ROM lee los mismos bytes del cartucho."""
+        """Las líneas que `agregar` guardó en ese desplazamiento."""
         return self.textos[donde * self.paso]
 
     def cola(self, donde):
@@ -1553,12 +1541,12 @@ COND_VARIABLE = 1
 # todos los mapas del juego** y les da una **ranura** cada una, de cero en
 # adelante —`VARIABLE_SLOT`—, y el bytecode habla de ranuras. Así la RAM que
 # cuesta es 162 bytes, viven en la RAM del banco 1 (`FAR_VARIABLES`) y viajan
-# en la partida guardada. El mismo índice lo arma la referencia con
-# `indexar_variables`. Hasta el 2026-09-10 a la noche el índice era de los
-# mapas de cada ROM —seis variables en los mapas 1 a 10— y con eso una partida
-# guardada con una ROM no valía para otra con más mapas: las ranuras se
-# corrían. Con el índice del juego entero la ranura de una variable es la
-# misma en cualquier ROM, y la partida pasó de 256 a 512 bytes de SRAM.
+# en la partida guardada. El índice lo arma `indexar_variables`. Hasta el
+# 2026-09-10 a la noche el índice era de los mapas de cada ROM —seis variables
+# en los mapas 1 a 10— y con eso una partida guardada con una ROM no valía para
+# otra con más mapas: las ranuras se corrían. Con el índice del juego entero la
+# ranura de una variable es la misma en cualquier ROM, y la partida pasó de 256
+# a 512 bytes de SRAM.
 #
 # Son de **dieciséis bits con signo**: RM2k las lleva a 32 y las topa en
 # ±999999, pero ninguna del juego pasa de unos cientos —segundos de
@@ -1647,7 +1635,7 @@ ITEM_MAX = 99
 # un lugar al azar— sobre la pantalla de 256x224, con **las gotas escaladas a
 # esa superficie**: RM2k tiene 20, 60 y 100 en 320x240, y acá son 15, 45 y 75,
 # la misma densidad. El azar es un xorshift propio, sembrado cada vez que el
-# clima cambia, igual de los dos lados; el de RM2k no se puede reproducir.
+# clima cambia; el de RM2k no se puede reproducir.
 #
 # Cada gota es una raya de 4x16 con la pendiente de la de RM2k, que es de 6x24:
 # dos objetos de 8x8 con prioridad 2, que la ventana de mensaje tapa con la
@@ -1689,8 +1677,7 @@ def lluvia_pixeles(x, y):
 # con qué muestra, qué altura, qué volumen de cada lado y cuántos cuadros. Las
 # muestras van en la ARAM junto al banco de la música, con un presupuesto
 # propio: ver `build_efectos` en snes_music.py. Suenan en la voz 7, que se le
-# roba a la música mientras duran. No se ven, así que la referencia sólo los
-# salta: no cuestan ningún tick, como en RM2k.
+# roba a la música mientras duran. No cuestan ningún tick, como en RM2k.
 #
 # OP_SOUND: índice (word)
 
@@ -1710,7 +1697,7 @@ def lluvia_pixeles(x, y):
 # `min((7 - (d + 1) / 2) * potencia / 6, 31)` durante diez cuadros, a
 # escalones; acá es un `FlashScreen` o un `FlashSprite` que arranca en la
 # primera y baja lineal en `ANIM_DESTELLO_CUADROS`. Es la misma luz y dura lo
-# mismo, y los dos lados hacen esta cuenta.
+# mismo.
 #
 # OP_ANIMATION: n, y n entradas de ANIM_ENTRADA bytes
 ANIM_ENTRADA = 8
@@ -1718,8 +1705,8 @@ ANIM_SONIDO, ANIM_DESTELLO, ANIM_FLASH = 0, 1, 2
 # Diez, que es lo que dura el de RM2k, y **par** a propósito: el destello de
 # pantalla trabaja en dos fases según la paridad de lo que le queda —ver
 # `destello_tick`—, y un `FlashScreen` del juego dura siempre décimas por seis.
-# Con once la primera fase era la par, un camino que ninguna página toma y
-# donde la ROM y la referencia no coinciden: `animacion` lo mostró.
+# Con once la primera fase era la par, un camino que ninguna página toma y que
+# por eso no prueba nada: `animacion` lo mostró.
 ANIM_DESTELLO_CUADROS = 10
 ANIMACIONES = {}
 # El **dibujo**, desde el 2026-09-12. El opcode lleva dos bytes más: el número
@@ -1778,8 +1765,8 @@ IMAGEN_CUADROS_MAX = 255
 #
 # El número de tropa va **tal cual el de RM2k** y no como índice nuestro, a
 # propósito: quién entra en el cartucho lo decide el conversor mirando todas
-# las páginas, y si el bytecode llevara el índice, la referencia y la ROM
-# podrían numerar distinto según qué mapas lleve cada ROM. Con el número de
+# las páginas, y si el bytecode llevara el índice, el mismo número querría
+# decir otra tropa según qué mapas lleve cada ROM. Con el número de
 # RM2k adentro, el bytecode de una página es el mismo siempre; la ROM lo
 # resuelve buscándolo en `tropa_id`, y una tropa que no esté ahí es una pelea
 # que no se hace y que sale por la rama de victoria.
@@ -1832,8 +1819,8 @@ HALT_ALL_MOVEMENT = 11350
 # las dos están tomadas —el mapa y la capa de encima con la ventana—, así que
 # no hay dónde dibujarlo. Ver workflow/tasks/wishlist/panorama-del-mapa-2.md.
 #
-# Se tira **al compilar**, así que la referencia tampoco lo modela y los dos
-# lados quedan iguales por construcción, como las órdenes de ruta 26 y 27.
+# Se tira **al compilar**: no emite nada y la ROM no se entera, como las
+# órdenes de ruta 26 y 27.
 #
 # Aparece **una sola vez en todo el juego**: siete comandos en una sola página,
 # la del viaje en el Hover-Tram del mapa 13, donde el paisaje de la tarde corre
@@ -1858,8 +1845,7 @@ CHANGE_PBG = 11720
 # del mapa, el actor se queda con el suyo del LDB en vez de dejar de dibujarse.
 # Es la diferencia con la orden 34, que ahí esconde la fila, y está elegida:
 # acá el blanco es el héroe, y un héroe invisible por un mapa donde el CharSet
-# no entró es peor que un héroe con el gráfico viejo. Los dos lados hacen lo
-# mismo con la misma función.
+# no entró es peor que un héroe con el gráfico viejo.
 # **El número se elige mirando los que ya están, no el último que uno
 # recuerde.** El 2026-09-13 tres ramas de sub-agente eligieron "el siguiente
 # libre" a la vez y sin verse: salieron $23 dos veces y $24 dos veces, git las
@@ -1898,9 +1884,9 @@ CHANGE_PBG = 11720
 # `KEY_INPUT_PROC`, que tiene las dos mediciones— y para armar la ROM que taro
 # puede jugar mientras la otra mitad del arreglo no esté.
 #
-# **Una ROM armada con esto no se compara contra la referencia**: es
-# exactamente el camino que todavía diverge. No ponerlo en ninguna receta de la
-# tanda.
+# **Una ROM armada con esto no va a la tanda**: es exactamente el camino que
+# todavía diverge de RM2k, y una golden sacada con él lo defendería. No ponerlo
+# en ninguna receta de la tanda.
 PERMITIR_TECLA_SIN_ESPERA = bool(os.environ.get("TECLA_SIN_ESPERA"))
 TECLA_ESPERA   = 0x01
 TECLA_DIRS     = 0x02
@@ -1943,8 +1929,8 @@ def tecla_de(banderas, apretadas):
     """Qué valor le toca a la variable con estas teclas apretadas.
 
     `apretadas` es el conjunto de lo que el jugador tiene puesto: los enteros
-    0 a 3 para las direcciones, "a" y "b" para las dos teclas. La usan los dos
-    lados —acá la referencia, allá `op_key`— y el orden es el de `CheckInput`.
+    0 a 3 para las direcciones, "a" y "b" para las dos teclas. Es lo que
+    `test_tecla.py` espera de `op_key`, y el orden es el de `CheckInput`.
 
     **Qué conjunto se le pasa depende de la forma del comando**, y eso lo
     decide quien llama: la que espera mira los **flancos** de este cuadro
@@ -2005,11 +1991,11 @@ BATALLA_DERROTA_GAME_OVER = 0
 # se registra nada por él: un nombre que no resuelve a ningún archivo entra
 # igual en las tablas pero ocuparía una entrada para siempre muda.
 #
-# **Esto se registra de los dos lados**, y no porque la referencia suene: los
-# índices de `Temas` los lleva el bytecode de cada `PlayBGM` y cada
-# `PlaySound`, así que un tema que un lado numere y el otro no correría todos
-# los que vengan detrás. Por eso vive acá, en la función que las dos puntas
-# llaman, y no en el conversor.
+# **Esto se registra adentro de la compilación** —`audio_de_batalla`, al
+# compilar el `EnemyEncounter`— y no en el conversor: los índices de `Temas`
+# los lleva el bytecode de cada `PlayBGM` y cada `PlaySound`, así que todo el
+# que compile páginas tiene que numerar igual, y un tema anotado por fuera
+# correría todos los que vengan detrás.
 AUDIO_BATALLA = {}
 
 # El orden es el contrato con la ROM: el conversor emite `BA_SE_<n>` con el
@@ -2027,8 +2013,8 @@ AUDIO_APAGADO = ("", "(OFF)")
 
 
 def indexar_audio_de_batalla(game_dir):
-    """El tema y los efectos de la pelea, del LDB. Lo llaman el conversor y la
-    referencia, igual que `indexar_animaciones`."""
+    """El tema y los efectos de la pelea, del LDB. Lo llaman el conversor y las
+    pruebas que compilan páginas, igual que `indexar_animaciones`."""
     from rpgmaker import lcf
     db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
     AUDIO_BATALLA.clear()
@@ -2078,9 +2064,8 @@ def audio_de_batalla(temas):
 class Imagenes:
     """El único cartel que entra en el cartucho, y qué comandos lo mueven.
 
-    Es el hermano de `Temas` y de `Graficos`: el conversor y la referencia
-    arman uno y los dos deciden lo mismo, porque la decisión está acá y no en
-    ninguno de los dos.
+    Es el hermano de `Temas` y de `Graficos`: el conversor arma uno, y la
+    decisión está acá y no en él.
 
     **Uno solo por ROM**, y ésa es la decisión que acota el alcance. Se lleva
     una paleta de sprite entera —quince colores que no se pueden fusionar con
@@ -2113,13 +2098,8 @@ class Imagenes:
         """Cuál de los `ShowPicture` de la ROM se queda con la ranura.
 
         Se decide **antes de compilar una sola página** y mirando todos los
-        mapas del cartucho en el orden de la tabla, y no por orden de llegada.
-        La diferencia importa: la referencia compila los mapas en un orden que
-        depende de si la ROM lleva ventana, y con "el primero que pase" bastaba
-        que dos carteles compitieran para que los dos lados eligieran distinto.
-        Eso no se vería como un cartel equivocado sino como dos streams de
-        bytecode distintos, que es la clase de error que la comparación reporta
-        sin decir dónde.
+        mapas del cartucho en el orden de la tabla, y no por orden de llegada:
+        así la elección no depende del orden en que se compilen los mapas.
         """
         from port import imagen as imagen_mod
         if self.nombre is not None:
@@ -2165,7 +2145,8 @@ class Imagenes:
 def indexar_animaciones(game_dir):
     """Las animaciones de batalla del LDB, por id: sus cuadros y sus
     timings, con los valores por omisión de liblcf —el decodificador omite
-    los que no están—. Lo llaman el conversor y la referencia."""
+    los que no están—. Lo llaman el conversor y las pruebas que compilan
+    páginas."""
     from rpgmaker import lcf
     db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
     ANIMACIONES.clear()
@@ -2185,7 +2166,7 @@ def indexar_animaciones(game_dir):
         # Y lo que hace falta para **dibujarla**, desde el 2026-09-12: la hoja
         # de `Battle`, las celdas de cada cuadro y dónde va la caja. Lo lee
         # `animacion.py`, que es el único que sabe qué hacer con esto; acá se
-        # guarda tal cual sale del LDB para que las dos puntas lean lo mismo.
+        # guarda tal cual sale del LDB.
         cuadros = anim.get("frames") or {}
         ANIMACIONES[numero] = {"cuadros": [cuadros[k].get("cells") or {}
                                            for k in sorted(cuadros)],
@@ -2246,11 +2227,10 @@ VAR_PERSONAJE = 6
 PERSONAJE_X, PERSONAJE_Y = 1, 2
 CMP_IGUAL, CMP_MAYOR_IGUAL, CMP_MENOR_IGUAL, CMP_MAYOR, CMP_MENOR, \
     CMP_DISTINTO = range(6)
-# El generador de azar, **el mismo de los dos lados**: un xorshift de dieciséis
-# bits —x ^= x << 7; x ^= x >> 9; x ^= x << 8— sembrado en el reset. Que la
-# ROM y la referencia coincidan pixel por pixel en una página con azar es
-# porque las dos sacan la misma secuencia; no hay entropía de verdad, y no la
-# hay en RPG_RT tampoco a los efectos de esta comparación.
+# El generador de azar: un xorshift de dieciséis bits —x ^= x << 7; x ^= x >>
+# 9; x ^= x << 8— sembrado en el reset. No hay entropía de verdad, a propósito:
+# una página con azar saca siempre la misma secuencia, y por eso lo que dibuja
+# se puede congelar en una golden.
 AZAR_SEMILLA = 0xACE1
 TIMER_PONER_VAR = 3     # la cuarta operación del cronómetro: los segundos desde
                         # una variable. Las tres de RM2k son 0, 1 y 2.
@@ -2368,9 +2348,9 @@ COMUNES = {}            # evento común de RM2k -> sus comandos
 def indexar_comunes(game_dir):
     """Deja en `COMUNES` los comandos de cada evento común.
 
-    Lo llaman el conversor y la referencia antes de compilar nada, igual que
-    `indexar_variables`, y por lo mismo: `CallEvent` los compila en el lugar,
-    así que los dos lados tienen que estar mirando la misma base.
+    Lo llaman el conversor y las pruebas que compilan páginas antes de compilar
+    nada, igual que `indexar_variables`: `CallEvent` los compila en el lugar,
+    así que sin la base cargada no compila ninguno.
     """
     from rpgmaker import lcf
     db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
@@ -2381,9 +2361,9 @@ def indexar_comunes(game_dir):
 
 # Lo que las dos preguntas de actor de `ConditionalBranch` necesitan saber del
 # LDB: qué tiene puesto cada uno al empezar y qué habilidades sabe. Van en un
-# índice de módulo, como `COMUNES` y `VARIABLE_SLOT`, y por lo mismo: el
-# conversor y la referencia lo arman con la misma función antes de compilar
-# nada, así que no hay dos lecturas del LDB que puedan discrepar.
+# índice de módulo, como `COMUNES` y `VARIABLE_SLOT`: se arma una sola vez
+# antes de compilar nada, así que todas las páginas leen la misma lectura del
+# LDB.
 ACTOR_EQUIPO = {}       # actor de RM2k -> sus cinco ranuras, en el orden de
                         # `pantallas.RANURAS_EQUIPO`
 ACTOR_SABE = {}         # actor de RM2k -> las habilidades que sabe
@@ -2542,8 +2522,8 @@ def ranura_de_habilidad(actor, habilidad):
 
 def indexar_variables(game_dir, extra=()):
     """Deja en `VARIABLE_SLOT` el índice del juego entero. Lo llaman el
-    conversor y la referencia antes de compilar nada; tarda un tercio de
-    segundo en leer los 328 mapas."""
+    conversor y las pruebas que compilan páginas antes de compilar nada; tarda
+    un tercio de segundo en leer los 328 mapas."""
     VARIABLE_SLOT.clear()
     VARIABLE_SLOT.update(variables_de(game_dir, None, extra))
     return dict(VARIABLE_SLOT)
@@ -2750,7 +2730,7 @@ class Tropas:
     depende de él**. `Temas` numera y el opcode lleva el número; acá el opcode
     lleva el id de RM2k y esto sólo junta la lista, así que un registro con
     otras tropas adentro no cambia un solo byte de ninguna página. Es lo que
-    permite que la referencia compile sin saber qué tablas tiene el cartucho.
+    permite compilar una página suelta sin saber qué tablas tiene el cartucho.
     """
 
     def __init__(self):
@@ -2986,9 +2966,8 @@ ENC_RATE = 100
 # La semilla del azar de los encuentros. Es otra que `AZAR_SEMILLA` y otra que
 # `BATALLA_SEMILLA` a propósito, y por lo mismo que aquélla: caminar no le
 # corre el azar al mapa —un `ControlVars` al azar tiene que dar lo mismo con
-# encuentros y sin ellos— y la referencia de pixeles necesita que los dos lados
-# tiren los mismos números. Lo único que se le pide es no ser cero —el xorshift
-# se queda clavado— y ser el mismo de los dos lados.
+# encuentros y sin ellos—. Lo único que se le pide es no ser cero —el xorshift
+# se queda clavado— y ser el mismo en `Encuentros` y en la ROM.
 ENC_SEMILLA = 0x5A17
 
 
@@ -3280,8 +3259,7 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                 if tropas is not None:
                     tropas.pedir(tropa, fondo_de_encuentro(cmd))
                 # El tema y los efectos que la pelea hace sonar, anotados en el
-                # paquete de audio de este mapa. Va de los dos lados: ver
-                # `audio_de_batalla`.
+                # paquete de la pelea: ver `audio_de_batalla`.
                 audio_de_batalla(temas)
                 perder_es_game_over = (len(cmd.parameters) > 4
                                        and cmd.parameters[4]
@@ -3533,8 +3511,7 @@ def _compilar_llamada(cmd, largo, hondo, indice_de_mapa, mensajes,
     ninguna diferencia observable: **ninguna llamada de este juego es
     recursiva**, y el único precio del pegado es el tamaño, medido abajo.
 
-    Y sale sin tocar la ROM ni la referencia: los dos corren el mismo bytecode,
-    así que no hay dos lados que puedan separarse.
+    Y sale sin tocar la ROM: corre el mismo bytecode de siempre.
 
     **Si el llamado no compila, la llamada se saltea**, que es lo que el port
     viene haciendo desde siempre con este comando. Es deuda declarada y no
@@ -3901,7 +3878,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # tanda sostenía una dirección desde el arranque y apretaba A en
         # cuadros anotados, así que un flanco de cruceta a mitad de una escena
         # no lo podía producir ningún caso, y modelarlo igual habría sido
-        # escribir de los dos lados un camino que nada ejecuta.
+        # escribir un camino que nada ejecuta.
         #
         # Esa razón dejó de valer con `pruebas/arnes/recorrido.py`, que juega el
         # juego de verdad y puede apretar cualquier botón en cualquier cuadro,
@@ -4070,20 +4047,16 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             if blanco is None:
                 raise NoSePuede()   # un vehículo, o un evento que no existe
             # **Un destello sobre un evento que comparte paleta se emite igual.**
-            # Hasta el 2026-09-13 la página no compilaba: en la consola el
-            # destello es un tinte de CGRAM —`pintar_flash` sube la fila
-            # entera— así que dos eventos con el mismo gráfico destellan
-            # juntos, y emitirlo con la referencia destellando uno solo era
-            # medir dos programas distintos. El corte costaba **51 páginas**,
-            # medidas, y una de ellas es el `EV0027` del mapa 20: la cinemática
-            # del Bum que prende el evento de Rat Tracks B2. Sin ella el
-            # jugador aparece invisible y el juego no se puede seguir.
+            # En la consola el destello es un tinte de CGRAM —`pintar_flash`
+            # sube la fila entera— así que dos eventos con el mismo gráfico
+            # destellan juntos. Hasta el 2026-09-13 eso cortaba la página, y
+            # el corte costaba **51 páginas**, medidas, y una de ellas es el
+            # `EV0027` del mapa 20: la cinemática del Bum que prende el evento
+            # de Rat Tracks B2. Sin ella el jugador aparece invisible y el
+            # juego no se puede seguir.
             #
-            # Lo que se hizo en vez de aflojar el corte: la referencia modela
-            # lo que la consola hace y destella **la fila de paleta** —ver el
-            # reparto de la referencia—, así que los dos lados volvían a ser
-            # el mismo programa. Lo que queda es una divergencia declarada con
-            # RM2k, que destella la imagen de un sprite solo, y está en
+            # Lo que queda es una divergencia declarada con RM2k, que destella
+            # la imagen de un sprite solo, y está en
             # `workflow/divergencias/destello-sobre-la-paleta-de-otro.md`.
         if any(not 0 <= v <= 31 for v in p[1:5]):
             raise NoSePuede()
@@ -4207,14 +4180,13 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
                 # el bytecode sigue siendo un byte por orden. La
                 # transparencia, ver RUTA_TRANSPARENCIA.
                 continue
-            # Girar, esperar y moverse. Los `move_*` entraron el 2026-09-03,
-            # cuando los dos lados empezaron a coincidir *durante* la caminata y
-            # no sólo al final: lo prueba `ruta`, que compara cuatro
-            # cuadros de una ruta de doce celdas con esperas en el medio. Lo
-            # que entra de `rpg::MoveCommand::Code` es `RUTA_ORDENES`, y moverse
-            # hacia el héroe está adentro desde el 2026-09-12 —ver
-            # RUTA_HACIA_HEROE—; alejarse de él, girar en el lugar y los
-            # switches siguen afuera.
+            # Girar, esperar y moverse. Los `move_*` entraron el 2026-09-03, y
+            # se miran *durante* la caminata y no sólo al final: lo prueba
+            # `ruta`, que compara cuatro cuadros de una ruta de doce celdas con
+            # esperas en el medio. Lo que entra de `rpg::MoveCommand::Code` es
+            # `RUTA_ORDENES`, y moverse hacia el héroe está adentro desde el
+            # 2026-09-12 —ver RUTA_HACIA_HEROE—; alejarse de él, girar en el
+            # lugar y los switches siguen afuera.
             if orden not in RUTA_ORDENES:
                 raise NoSePuede()
             if orden in (RUTA_ENCARAR_HEROE, RUTA_HACIA_HEROE) and blanco == 0:
@@ -4510,9 +4482,8 @@ class Estado:
 # con `resta` los cuadros que le quedan, y la posición en pixeles que se le
 # suman a la cámara al dibujar el mapa —`GetDisplayX`—: la ventana de mensaje
 # no se mueve. RPG_RT lo hace en punto flotante y trunca; acá el seno es una
-# tabla de 256 bytes a escala 127 y la división es entera, **de los dos lados
-# igual**, así que la ROM y la referencia coinciden exacto y las dos pueden
-# diferir de RPG_RT en un pixel en algún cuadro. La tabla la emite el
+# tabla de 256 bytes a escala 127 y la división es entera, así que la ROM
+# puede diferir de RPG_RT en un pixel en algún cuadro. La tabla la emite el
 # conversor al mapdata.inc desde esta misma lista.
 SENO_SACUDIDA = [round(math.sin(t * math.pi / 128) * 127) for t in range(256)]
 
@@ -4569,9 +4540,8 @@ VARIABLE_DE_CASO = 1000
 COMPARAR_AL_MENOS = 1   # el `>=` de las condiciones de página de RM2k
 # El switch que no se prende nunca: es lo que lleva como `switch_a` una página
 # con una condición que el port no puede cumplir —un ítem, ver
-# `rm2k.CONDICIONES_IMPOSIBLES`— para que ni la ROM ni la referencia la elijan
-# jamás, y las otras páginas del evento sí. Los dos lados leen la misma tabla,
-# así que no hay dos maneras de equivocarse. El juego consulta switches hasta el
+# `rm2k.CONDICIONES_IMPOSIBLES`— para que la ROM no la elija jamás, y las
+# otras páginas del evento sí. El juego consulta switches hasta el
 # 1003 y el 1023 es el de la página de prueba.
 SWITCH_IMPOSIBLE = 1021
 
@@ -4625,12 +4595,12 @@ def tenir_canal(canal, valor):
         valor  > 100:  31 - (200 - valor) * (31 - canal) / 100
 
     La primera mitad es exactamente lo que este repo venía haciendo, y por eso
-    los tintes que oscurecen no cambian: la ROM y la referencia dan lo mismo que
-    antes. La segunda no lo era. `canal * valor / 100` con valor hasta 200
-    multiplica por dos y topa, y eso **no es** lo que hace RM2k: la diferencia
-    llega a 31 de 31 con valor 200, o sea la pantalla entera. No lo cobró nadie
-    porque ninguna página que compilara usaba un tinte que aclare; las dos que
-    lo destraba la saturación —los mapas 229 y 230— sí, con (0, 120, 120).
+    los tintes que oscurecen no cambian. La segunda no lo era.
+    `canal * valor / 100` con valor hasta 200 multiplica por dos y topa, y eso
+    **no es** lo que hace RM2k: la diferencia llega a 31 de 31 con valor 200, o
+    sea la pantalla entera. No lo cobró nadie porque ninguna página que
+    compilara usaba un tinte que aclare; las dos que lo destraba la saturación
+    —los mapas 229 y 230— sí, con (0, 120, 120).
 
     Medido contra la cuenta de easyrpg sobre ocho bits, esta versión difiere en
     **un valor de 31 como mucho**, para todos los tintes que el juego usa. Es la
@@ -4648,7 +4618,7 @@ def tenir(palabra, tinte):
     Primero la saturación y después el color, que es el orden de `ToneBlit`:
     allá `saturation_tone` corre antes que `color_tone`. Hacerlo al revés da
     otra cosa —el gris se calcularía sobre el color ya teñido— y es de las que
-    la comparación no vería, porque los dos lados harían lo mismo mal.
+    una golden no vería: se sacaría con el error puesto y lo defendería.
 
     La cuenta va con enteros y sobre los 15 bits, no sobre los 24 del PNG: la
     consola tiene cinco bits por canal y redondearía distinto.
@@ -4747,13 +4717,11 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
             # Es el idioma con el que RM2k desactiva un evento —una página de
             # abajo prende el switch que activa una de arriba, y ésa está
             # vacía—, así que no es un caso raro: en Rat Tracks B1 son dos, y el
-            # mapa era injugable. Lo delató `heroe 21` al tardar catorce
-            # minutos, porque la referencia se comía sus 100.000 ticks de
-            # páginas automáticas antes de empezar a caminar.
+            # mapa era injugable.
             #
-            # Se apaga poniéndole el código en None, que es lo que los dos lados
-            # ya miran para decidir si una página automática cuenta
-            # (`eventos_auto` acá, el bit 7 de la página en el conversor).
+            # Se apaga poniéndole el código en None, que es lo que el conversor
+            # ya mira para decidir si una página automática cuenta: el bit 7
+            # de la página.
             vacia = not page.commands and page.trigger in (TRIGGER_AUTOMATICO,
                                                            TRIGGER_PARALELO)
             if page.trigger in TRIGGERS and puede_dispararse(page) and not vacia:
