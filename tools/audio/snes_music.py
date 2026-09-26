@@ -1777,13 +1777,53 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     banco.libre = libre
     banco.asignacion = asignacion
 
+    # Cada tema es independiente una vez repartido el banco, y armarlos era
+    # la mitad de esta función: van en paralelo, un proceso bifurcado por
+    # tema con todo el estado ya armado, y vuelven en el orden de siempre.
+    global _para_los_temas
+    _para_los_temas = (nombres, leidos, asignacion, banco, techos,
+                       aire_de_medida)
+    try:
+        if len(nombres) > 1:
+            import multiprocessing
+            procesos = min(len(nombres), os.cpu_count() or 1)
+            with multiprocessing.get_context("fork").Pool(procesos) as pool:
+                hechos = pool.map(_armar_tema, range(len(nombres)),
+                                  chunksize=1)
+        else:
+            hechos = [_armar_tema(i) for i in range(len(nombres))]
+    finally:
+        _para_los_temas = None
     temas = []
-    for nombre, leido, suya in zip(nombres, leidos, asignacion):
+    for tema, error in hechos:
+        if error is not None:
+            raise error
+        temas.append(tema)
+    # Los efectos van detrás del banco en el mismo directorio: su `V_SRCN` es
+    # el lugar que les toca después de las muestras de la música.
+    banco.efectos = {e.name: (len(banco.voces) + i, e)
+                     for i, e in enumerate(lista)}
+    return (driver, list(banco.voces) + lista, temas, banco)
+
+
+_para_los_temas = None
+
+
+def _armar_tema(i):
+    """Un tema de `build_varios`, con el estado que dejó en `_para_los_temas`.
+
+    Devuelve (tema, None), o (None, la excepción): un `SystemExit` que se
+    escapa de un proceso del pool lo mata sin avisar, y el conversor tiene
+    que cortar con el mismo mensaje que cortaba en serie.
+    """
+    nombres, leidos, asignacion, banco, techos, aire_de_medida = \
+        _para_los_temas
+    nombre, leido, suya = nombres[i], leidos[i], asignacion[i]
+    try:
         if leido is None:
-            temas.append({"nombre": nombre, "stream": bytes([OP_END]),
-                          "sonidos": [], "escrituras": [],
-                          "segundos": 0.0, "resumen": {}})
-            continue
+            return ({"nombre": nombre, "stream": bytes([OP_END]),
+                     "sonidos": [], "escrituras": [],
+                     "segundos": 0.0, "resumen": {}}, None)
         reparto = []
         aire = aire_de_medida or techos.get(nombre, sdsp.AIRE)
         del_tema = banco.del_tema(suya)
@@ -1793,16 +1833,14 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
         referencia = escrituras(frames, leido["largo"], init_writes())
         stream, sonidos = pack(frames, leido["largo"], init_writes())
         verificar_formato(nombre, stream, sonidos, referencia)
-        temas.append({"nombre": nombre, "stream": stream, "sonidos": sonidos,
-                      "escrituras": referencia, "aire": aire,
-                      "huella": huella_de_la_mezcla(referencia, banco),
-                      "segundos": leido["largo"] / TICKS_PER_SECOND,
-                      "resumen": resumen_del_tema(leido, del_tema, reparto)})
-    # Los efectos van detrás del banco en el mismo directorio: su `V_SRCN` es
-    # el lugar que les toca después de las muestras de la música.
-    banco.efectos = {e.name: (len(banco.voces) + i, e)
-                     for i, e in enumerate(lista)}
-    return (driver, list(banco.voces) + lista, temas, banco)
+        return ({"nombre": nombre, "stream": stream, "sonidos": sonidos,
+                 "escrituras": referencia, "aire": aire,
+                 "huella": huella_de_la_mezcla(referencia, banco),
+                 "segundos": leido["largo"] / TICKS_PER_SECOND,
+                 "resumen": resumen_del_tema(leido, del_tema, reparto)},
+                None)
+    except BaseException as e:      # noqa: B036 — ver el docstring
+        return None, e
 
 
 def resumen_del_tema(leido, banco, reparto=()):
