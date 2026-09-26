@@ -1,6 +1,6 @@
 ---
 name: "La compresión de mapas y gráficos"
-description: "Cuánto pesa cada cosa del cartucho, cuánto comprime, cuánto cuesta descomprimirla, y el piloto de las animaciones de batalla (hecho)"
+description: "Cuánto pesa cada cosa del cartucho, cuánto comprime y cuánto cuesta descomprimirla; hechos el piloto, los tiles y las grillas en LZ2 y las poses deduplicadas"
 type: refactor
 ---
 
@@ -25,15 +25,87 @@ vuelve a medir, no los copia. El método está al final.
 
 # Status
 
-**El piloto está hecho**: las animaciones de batalla se guardan sin sus tiles
-vacíos (`bb3a4fc`), y eso bajó `release` de 3162 a 2650 KB usados —del 77% al
-65%—. Lo que queda es la recomendación, en orden. Nada de eso está empezado.
+**Hechos el piloto y los puntos 2, 3 y 4 de la recomendación.** Quedan el 5
+(las poses espejadas) y el 6 (battlers y fondos), que nadie empezó.
 
-**taro tiene que ver una animación en el juego**: la escena del Emitter Room
-(mapa 3), o cualquier `ShowBattleAnimation`. La tanda compara cada cuadro de
-las catorce animaciones del cartucho contra la cuenta sin comprimir, así que
-lo que se vería mal sería un cuadro perdido, no un dibujo distinto: ver "El
-piloto".
+* El piloto: las animaciones de batalla sin tiles vacíos (`bb3a4fc`).
+* **2 y 3, el 2026-09-26**: los tiles del fondo, de la capa de encima, de los
+  sprites, los dibujos de la animación del ChipSet y las grillas viajan en
+  LC_LZ2 y la ROM los descomprime a la WRAM al cargar el mapa. Ver "Lo que se
+  hizo", abajo.
+* **4, el mismo día**: las poses iguales se guardan una sola vez.
+
+**taro tiene que jugar**: cambiar de mapa mucho —con puertas, teletransportes
+y el save point— y pelear, mirando que los mapas se dibujen enteros, que el
+agua y los tiles animados se muevan, que los personajes caminen con sus
+poses y que al volver de una pelea el mapa y las paredes sigan donde estaban.
+Lo que se ve distinto es **el negro entre mapas**, más largo: ver los cuadros
+abajo. Y taro tenía que ver una animación de batalla en el juego por el
+piloto; sigue en pie.
+
+# Lo que se hizo, el 2026-09-26
+
+Medido sobre `main` con el paso 6 del audio mergeado (`2d6b665`), en
+`release`.
+
+    antes de todo esto (con el piloto)   2916,5 KB usados, 71,2%, último banco $63
+    tiles en LZ2                         2480,4 KB, 60,6%
+    grillas en LZ2 (y un caso nuevo)     2234,4 KB, 54,6%
+    poses deduplicadas                   2141,2 KB, 52,3%, último banco $46
+
+    por clase             crudo      LZ2
+    map_tiles            458,9    262,5
+    sprite_tiles         287,8     62,4
+    above_tiles           19,3     13,0
+    anim_tiles            14,6      6,6
+    map_celdas           278,2     32,1
+    total               1058,7    376,9   (681,8 KB menos)
+    poses: 545 distintas de 732          (93,5 KB menos)
+
+El compresor es un proyecto aparte, `tools/lz2/`, con un parser óptimo: sale
+un poco más chico que el greedy de la medición (262,5 contra 266,4 en los
+tiles del fondo). No emite el relleno creciente, que la ROM no lee.
+
+**Cuadros de carga**, la vuelta del lazo que carga cada uno de los cuarenta
+mapas, en el mismo orden antes y después y en la segunda pasada —así el
+paquete de audio de cada mapa es el mismo y lo que cambia es sólo la
+descompresión—. Incluye la subida del paquete de audio, que es lo que más
+pesa:
+
+    sin comprimir              33,9 de media, 76 el peor (mapa 26, audio)
+    con todo, al final         40,3 de media, 80 el peor
+    lo que suma comprimir       6,4 de media, 14 el que más (mapa 52)
+
+Contra las estimaciones que taro dio por buenas —5 de media y 12 el peor,
+sólo los tiles— queda un poco arriba porque suma la grilla, que se estimaba
+aparte (1,2 de media, 5,8 el peor). El modelo de la medición (400 ciclos por
+comando, 46 por byte) subestimaba un 40%; el que usa la cuenta del arranque es
+700 y 60, que lo medido no pasa por más de medio cuadro.
+
+**Lo que bajaría más**: un DMA a `$2180` para los literales y los rellenos, a
+8 ciclos por byte contra unos 46 del `mvn`. Se descartó por lo mismo que en
+el piloto —el cruce de un DMA general con el HDMA en la primera revisión de
+la CPU—, aunque acá la pantalla está apagada y se podría apagar el HDMA
+mientras dura la carga. No se probó en la consola.
+
+**Dónde**: el descompresor es `lz2_descomprimir`, en el banco 1 (461 bytes con
+sus entradas); el banco 0 quedó en 1029 libres en `release` y 1727 en
+`test-special`. La WRAM: `$7F0000` es el buffer de carga, `$7F6000` los
+dibujos de la animación, y la grilla en `$7E8000`, que es **la decisión con
+costo**: `workflow/decisiones/la-grilla-vive-en-la-wram.md`.
+
+**La grilla y la pelea**: la escena de la pelea es la mitad alta del `$7F`, así
+que pisa el final de las grillas de más de 32 KB (hoy, sólo la del mapa 52).
+`volver_de_batalla` vuelve a descomprimir la grilla entera.
+
+**Cómo se verificó**: `test_lz2.py` hace la ida y vuelta de cada bloque de
+cada cartucho por el compresor y por una referencia escrita aparte;
+`test_carga_descomprimida.py` compara, en los cuarenta mapas, la VRAM recién
+cargada, la grilla y los dibujos de la animación en la WRAM contra lo que el
+conversor deja sin comprimir en `crudos/`, en snes9x y en bsnes, y la grilla
+después de pelear en el mapa 52 (caso `pelea-en-52`). Se la vio fallar
+rompiendo el relleno y sacando la segunda descompresión de la grilla; las
+poses, apuntando cada una a su vecina (46 casos de la tanda en rojo).
 
 # La radiografía
 
@@ -279,13 +351,9 @@ general con el HDMA en la primera revisión de la CPU; ver el comentario de
 
 # Preguntas
 
-1. **¿Se puede reservar `$7E8000-$7EFFFF` para la grilla?** Hoy no lo usa
-   nadie, pero es la mitad de la RAM lejana que queda libre, y el día que
-   haya más estado de RM2k iría ahí.
-2. **¿Cinco cuadros más de negro por cambio de mapa, doce en el peor, están
-   bien?** Es lo que cuesta el 2 con este modelo. Hay margen para bajarlo
-   —la mitad del costo son las cabeceras de comando—, pero primero hay que
-   medirlo en la ROM, no en el modelo.
+Las dos, contestadas por taro el 2026-09-26: reservar `$7E8000-$7EFFFF` para
+la grilla, sí, como prueba y con la decisión escrita; y los cuadros de más por
+cambio de mapa, "perfectamente aceptables".
 
 # Método
 

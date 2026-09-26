@@ -18,5 +18,27 @@ solas.
 
 Dónde está el héroe dentro de la grilla tampoco es un índice sino un **puntero
 que se mueve con él**, una celda o una fila por paso. Así nunca hay que
-multiplicar ni armar una dirección de 24 bits desde cero, que en LoROM es
-incómodo porque los bancos no son contiguos.
+multiplicar ni armar una dirección de 24 bits desde cero, que es incómodo
+porque la grilla cruza de banco y los bancos no son contiguos: pasarse del
+`$FFFF` lleva al `$8000` del siguiente, y lo saben sólo `ptr_mas` y
+`ptr_menos`.
+
+#### La grilla vive en la WRAM, y el cartucho la trae comprimida
+
+Desde el 2026-09-26 la grilla viaja en el cartucho en LZ2 y se descomprime
+entera al cargar el mapa en `$7E8000`, siguiendo en `$7F8000` si pasa de 32 KB
+(`GRILLA` en `rom/src/ram_lejana.s`, `lz2_grilla` en `descomprimir.s`). La
+mitad alta de dos bancos seguidos de la WRAM tiene la forma de dos bancos de
+LoROM, así que los lectores no cambiaron: antes el puntero apuntaba al
+cartucho, ahora a la WRAM. La pelea pisa la mitad del `$7F`, y
+`volver_de_batalla` la vuelve a descomprimir. Qué costó reservar esa RAM y cómo
+se revierte: `workflow/decisiones/la-grilla-vive-en-la-wram.md`.
+
+Lo mismo pasa con los tiles del fondo, de la capa de encima, de los sprites y
+con los dibujos de la animación del ChipSet: viajan en LZ2, se descomprimen a
+`$7F0000` y se suben con el mismo DMA de antes. Los dibujos de la animación
+quedan en `$7F6000` mientras dure el mapa, porque se suben cada vez que cambia
+el reloj. El formato y el compresor: `tools/port/comprimir.py` y `tools/lz2/`.
+Lo que queda en la VRAM y en la WRAM después de cargar lo compara
+`pruebas/rpgmaker/test_carga_descomprimida.py` contra lo que el conversor deja
+sin comprimir en `rom/build/<cartucho>/crudos/`.
