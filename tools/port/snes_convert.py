@@ -6898,25 +6898,35 @@ def main():
             if tema_de_mapa[i] in suyos:
                 suyos.remove(tema_de_mapa[i])
             suyos.insert(0, tema_de_mapa[i])
-        paquetes.append((suyos, list(pide["sonidos"])))
+        # Y los de salida, aparte y detrás de los efectos: los que el mapa
+        # prende sólo para irse no tienen por qué entrar con sus efectos. Ver
+        # `Temas.de_salida`. El propio del mapa y el del arranque no: ésos
+        # suenan al entrar.
+        salida = [t for t in temas.de_salida(i)
+                  if t in suyos and t != tema_de_mapa[i]
+                  and not (i == args.inicial and t == arranque)]
+        suyos = [t for t in suyos if t not in salida]
+        paquetes.append((suyos, list(pide["sonidos"]), salida))
     # Y el paquete de la pelea, detrás de los mapas: el tema de batalla y sus
     # efectos, que la ROM sube al abrir la pelea y descarga al cerrarla. Va
     # aparte y no adentro del paquete del mapa porque el tema de batalla solo
     # llena la ARAM; ver `eventos.PAQUETE_BATALLA`.
     pide = temas.por_mapa.get(eventos.PAQUETE_BATALLA)
     if pide:
-        paquetes.append((list(pide["temas"]), list(pide["sonidos"])))
+        paquetes.append((list(pide["temas"]), list(pide["sonidos"]), []))
     nombres_de_paquete = ([str(m["id"]) for m in mapas]
                           + (["pelea"] if pide else []))
-    por_nombre = [(nombre, suyos, suyas) for nombre, (suyos, suyas)
+    por_nombre = [(nombre, suyos, suyas, salida)
+                  for nombre, (suyos, suyas, salida)
                   in zip(nombres_de_paquete, paquetes)]
     # Y el de la pantalla de título, que no está en la tabla: `tema_asegurar`
     # sube su tema con el paquete del mapa de arranque detrás.
     if tema_titulo != 0xFF:
-        suyos, suyas = paquetes[args.inicial]
+        suyos, suyas, _salida = paquetes[args.inicial]
         por_nombre.append(("titulo", [tema_titulo] + suyos, suyas))
     herencia = temas_heredados(temas, tema_de_mapa, args.inicial,
-                               tema_titulo, nombres_de_paquete)
+                               tema_titulo, nombres_de_paquete,
+                               [suyos for suyos, _e, _s in paquetes])
     driver, muestras, hechos, banco = snes_music.build_varios(
         pedidos, args.game_dir, pedidos_se, por_nombre, herencia,
         aire_de_medida=args.aire_de_medida)
@@ -6931,8 +6941,8 @@ def main():
              "huella": t.get("huella", "")} for t in hechos]},
             handle, indent=1)
     efectos = getattr(banco, "efectos", {})
-    paquetes = [(suyos, [efectos[n][0] for n in suyas if n in efectos])
-                for suyos, suyas in paquetes]
+    paquetes = [(suyos, [efectos[n][0] for n in suyas if n in efectos], salida)
+                for suyos, suyas, salida in paquetes]
     if pide:
         assert len(paquetes) == len(mapas) + 1, (
             "el paquete de la pelea tiene que quedar en el índice que emitió "
@@ -6959,10 +6969,13 @@ def main():
     snes_music.emit(musica, hechos, driver, muestras, arranque, tema_titulo,
                     snes_music.tabla_de_sonidos(temas.sonidos, banco),
                     paquetes, tema_de_mapa)
-    for i, (suyos, suyas) in enumerate(paquetes[:len(mapas)]):
-        if suyos or suyas:
-            print("  paquete de audio del mapa %d: %d tema(s), %d efecto(s)"
-                  % (mapas[i]["id"], len(suyos), len(suyas)))
+    for i, (suyos, suyas, salida) in enumerate(paquetes[:len(mapas)]):
+        if suyos or suyas or salida:
+            print("  paquete de audio del mapa %d: %d tema(s), %d efecto(s)%s"
+                  % (mapas[i]["id"], len(suyos), len(suyas),
+                     ", y de salida %s" % ", ".join(hechos[t]["nombre"]
+                                                    for t in salida)
+                     if salida else ""))
     if pedidos_se:
         print("  efectos de sonido: %d, %d B en el cartucho"
               % (len(efectos), sum(len(e.data) for _s, e in efectos.values())))
@@ -7004,14 +7017,24 @@ def main():
               % (len(banco.voces), sum(len(v.data) for v in banco.voces),
                  banco.libre))
         # A qué tasa quedó cada muestra y qué paquete la limitó: es lo que se
-        # oye, y lo que dice dónde buscar lugar si hace falta.
+        # oye, y lo que dice dónde buscar lugar si hace falta. Una clave con
+        # copias sale una vez por copia, con los temas que la usan: ver
+        # `snes_music.copias`.
+        usan = collections.defaultdict(list)
+        for tema, suya in zip(hechos, banco.asignacion):
+            for muestra in suya.values():
+                usan[muestra].append(tema["nombre"])
         for clave, voz in zip(banco.claves, banco.voces):
-            print("    %s %3d %-10s %5.1f kHz, %5d B%s%s"
+            print("    %s %3d %-10s %5.1f kHz, %5d B%s%s%s"
                   % ("programa" if clave[0] == "p" else "golpe   ", clave[1],
                      voz.name.strip()[:10], voz.rate / 1000.0, len(voz.data),
                      ", raíz %d" % voz.root if clave[0] == "p" else "",
                      ", la limita " + banco.limita[clave]
-                     if clave in banco.limita else ""))
+                     if clave in banco.limita else "",
+                     ", para " + " ".join(usan[clave])
+                     if len(clave) > (3 if clave[0] == "p" else 2)
+                     or any(len(k) > len(clave) and k[:len(clave)] == clave
+                            for k in banco.claves) else ""))
         # Y cuánto le sobra a cada paquete, con sus efectos.
         for r in banco.restricciones:
             print("    paquete %-28s %5d B de muestras, sobran %5d"
@@ -7019,7 +7042,8 @@ def main():
                      r.libre - banco.ocupa(r.claves)))
 
 
-def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete):
+def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,
+                    del_paquete=None):
     """[(nombre del paquete, índice de un tema que puede venir sonando al
     cargarlo)], para `snes_music.build_varios`.
 
@@ -7037,6 +7061,12 @@ def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete):
     cargar el suyo —`mapa_tema_callar`—, así que no hereda nada; y al de
     arranque se llega con el del título sonando. Es lo que midió el paso 6 de
     `workflow/tasks/todo/la-calidad-de-la-musica.md` con un script aparte.
+
+    `del_paquete` son los temas que el paquete de cada mapa sube al entrar
+    —sin los de salida, ver `Temas.de_salida`—: un tema que llega sonando y
+    no está ahí tiene que entrar al lado. Sin él, los que prenden sus
+    páginas. Lo que sale de un mapa sigue siendo cualquiera de los que
+    prenden, los de salida incluidos: son justamente los que se van con él.
     """
     n = len(tema_de_mapa)
     pide = [temas.por_mapa.get(i, {}) for i in range(n)]
@@ -7054,9 +7084,11 @@ def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete):
                         and not sale <= entra[destino]):
                     entra[destino] |= sale
                     cambio = True
+    if del_paquete is None:
+        del_paquete = [pide[i].get("temas", ()) for i in range(n)]
     return [(nombres_de_paquete[i], t) for i in range(n)
             for t in sorted(entra[i])
-            if t not in pide[i].get("temas", ()) and t != tema_de_mapa[i]]
+            if t not in del_paquete[i] and t != tema_de_mapa[i]]
 
 
 def temas_de_la_rom(map_id, temas, game_dir, titulo=None, map_ids=()):

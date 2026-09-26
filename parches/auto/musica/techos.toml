@@ -20,224 +20,224 @@ margen_db = -0.5
 
 [temas."11h035"]
 aire = 0.500
-pico = -5.4
-lufs = -20.6
-hasta = 329
-huella = "34c861bbd7e6201f"
+pico = -6.1
+lufs = -20.7
+hasta = 3042
+huella = "4e98680f38324e0c"
 
 [temas."3D-Galax"]
-aire = 0.342
-pico = -0.6
+aire = 0.337
+pico = -0.5
 lufs = -14.4
-hasta = 11230
-huella = "47d145ff267103c6"
+hasta = 11236
+huella = "e6814008213e6471"
 
 [temas."Astpgmarch"]
 aire = 0.500
-pico = -1.0
+pico = -1.2
 lufs = -14.2
-hasta = 340
-huella = "33974b21839e8096"
+hasta = 1363
+huella = "8381614dc5d9f265"
 
 [temas."C3classi"]
-aire = 0.500
-pico = -1.1
-lufs = -14.7
-hasta = 1453
-huella = "dd8b1ded7a3c2289"
+aire = 0.466
+pico = -0.5
+lufs = -15.3
+hasta = 978
+huella = "a795271a74712779"
 
 [temas."Deflector1"]
-aire = 0.340
+aire = 0.342
 pico = -0.6
-lufs = -15.4
-hasta = 3476
-huella = "d001c07d380d4f5b"
+lufs = -15.6
+hasta = 3479
+huella = "939b37aa7114ea9e"
 
 [temas."Fantasia_Of_The_Wind"]
 aire = 0.500
-pico = -3.4
+pico = -3.8
 lufs = -16.0
-hasta = 11835
-huella = "4a0f3f91458bc011"
+hasta = 9229
+huella = "fb3af844468a2c85"
 
 [temas."Fire_Mustang_Intro_And_Level_2_By_Luiz_Vasco"]
-aire = 0.395
-pico = -0.2
-lufs = -15.0
-hasta = 5394
-huella = "ad781b0799606f8f"
+aire = 0.373
+pico = -0.5
+lufs = -15.6
+hasta = 6681
+huella = "f3ced7d8b9385703"
 
 [temas."Gaden"]
 aire = 0.500
-pico = -2.2
-lufs = -12.5
-hasta = 5901
-huella = "0be22eca986cc0d8"
+pico = -1.5
+lufs = -12.6
+hasta = 5760
+huella = "856f52d7a88b182d"
 
 [temas."KSSMKEND"]
 aire = 0.500
-pico = -6.5
-lufs = -19.2
-hasta = 3190
-huella = "88382be0334a3638"
+pico = -6.3
+lufs = -19.0
+hasta = 3675
+huella = "b0a401f8fe2f691a"
 
 [temas."Lunar_Pyramid"]
-aire = 0.287
+aire = 0.302
 pico = -0.6
-lufs = -15.6
-hasta = 7578
-huella = "a84c61f66746836d"
+lufs = -15.4
+hasta = 8956
+huella = "f4b82564ed0aa6be"
 
 [temas."MML2_MotherZone"]
-aire = 0.500
+aire = 0.482
 pico = -0.5
-lufs = -12.7
-hasta = 1877
-huella = "e6816983d13f144c"
+lufs = -13.0
+hasta = 2499
+huella = "c70e3a44fbb85670"
 
 [temas."TF3_1_awe"]
-aire = 0.360
-pico = -0.5
-lufs = -13.9
-hasta = 2547
-huella = "c37837391b4d1963"
+aire = 0.363
+pico = -0.4
+lufs = -13.8
+hasta = 2556
+huella = "5c3a99b0e2a5004e"
 
 [temas."T_ProjectJustice_DiscLoad"]
 aire = 0.500
-pico = -1.4
-lufs = -16.4
-hasta = 765
-huella = "8e747f4ce0d02ebc"
+pico = -1.5
+lufs = -16.7
+hasta = 1289
+huella = "3817091b98db752c"
 
 [temas."T_VGFighterMAX_Masako"]
-aire = 0.338
-pico = -0.6
-lufs = -12.4
-hasta = 8732
-huella = "dfe8693db1963c3a"
+aire = 0.344
+pico = -0.7
+lufs = -12.3
+hasta = 3209
+huella = "e2031a62962e0cfc"
 
 [temas."Tnt07"]
 aire = 0.500
 pico = -3.8
 lufs = -17.2
-hasta = 4446
-huella = "a8f2a370139defdc"
+hasta = 4447
+huella = "84df2fa7ea789612"
 
 [temas."bubstix"]
 aire = 0.500
-pico = -1.3
-lufs = -15.0
-hasta = 9529
-huella = "50ec8582403d312f"
+pico = -0.7
+lufs = -14.9
+hasta = 9018
+huella = "28e871750906685c"
 
 [temas."cd2"]
 aire = 0.500
-pico = -2.5
-lufs = -15.4
-hasta = 7127
-huella = "14bd9b4710dc05d4"
+pico = -3.1
+lufs = -15.5
+hasta = 4453
+huella = "be12185711a054a5"
 
 [temas."cd4"]
-aire = 0.494
+aire = 0.488
 pico = -0.5
-lufs = -15.7
-hasta = 4780
-huella = "40c9a4746728fe1a"
+lufs = -15.9
+hasta = 7026
+huella = "c56ada2b83105f58"
 
 [temas."dcbest"]
-aire = 0.373
-pico = -0.5
-lufs = -12.4
-hasta = 3587
-huella = "c6dfbb59d4dd1f94"
+aire = 0.329
+pico = -0.6
+lufs = -13.4
+hasta = 690
+huella = "b5ca5ad6be639224"
 
 [temas."escape_newyork"]
 aire = 0.500
-pico = -4.1
-lufs = -18.4
-hasta = 6403
-huella = "3cee4617fad67353"
+pico = -4.0
+lufs = -18.5
+hasta = 6423
+huella = "834355e3383f9617"
 
 [temas."evilrhys"]
-aire = 0.347
+aire = 0.303
 pico = -0.6
-lufs = -12.7
-hasta = 5250
-huella = "f80fae78a113555e"
+lufs = -13.8
+hasta = 5254
+huella = "f26fd67740e5858e"
 
 [temas."golden_axe-turtlevillage2"]
-aire = 0.489
-pico = -0.5
-lufs = -11.7
-hasta = 309
-huella = "0fc3c0bdeb392544"
+aire = 0.494
+pico = -0.6
+lufs = -11.8
+hasta = 960
+huella = "9f9aa61bdc8b6bfe"
 
 [temas."hzbreach"]
-aire = 0.370
-pico = -0.1
-lufs = -11.5
-hasta = 2591
-huella = "726fd3645e11142c"
+aire = 0.385
+pico = -0.5
+lufs = -11.4
+hasta = 3710
+huella = "4574dc6d9f8cb9a4"
 
 [temas."hzstream"]
-aire = 0.370
+aire = 0.383
 pico = -0.5
-lufs = -11.6
+lufs = -11.4
 hasta = 882
-huella = "354072ecb41321fa"
+huella = "cb0f26f7855c1f4a"
 
 [temas."lufsorr"]
 aire = 0.500
 pico = -3.0
-lufs = -16.0
-hasta = 5710
-huella = "7cd4c93d4d868797"
+lufs = -15.5
+hasta = 8628
+huella = "38c63c21ba2482bf"
 
 [temas."pn28year"]
 aire = 0.500
 pico = -2.8
-lufs = -18.2
-hasta = 615
-huella = "33940e5d56c75508"
+lufs = -18.3
+hasta = 616
+huella = "a7e8deeb4a976b12"
 
 [temas."prepara"]
 aire = 0.500
-pico = -12.4
-lufs = -22.5
-hasta = 407
-huella = "51409bb11a6f50dc"
+pico = -12.2
+lufs = -22.3
+hasta = 974
+huella = "c0ca73185889ce90"
 
 [temas."rshinld"]
-aire = 0.292
+aire = 0.249
 pico = -0.7
-lufs = -12.0
-hasta = 825
-huella = "31d47bf876c7451d"
+lufs = -13.5
+hasta = 627
+huella = "8b9c1d6dd35a45b8"
 
 [temas."vswar"]
-aire = 0.396
-pico = -0.9
-lufs = -17.1
-hasta = 4193
-huella = "f0baff9c6c835a28"
+aire = 0.461
+pico = -0.5
+lufs = -16.2
+hasta = 4227
+huella = "df2501127e48014d"
 
 [temas."wb3mlair"]
 aire = 0.500
 pico = -8.7
-lufs = -22.8
-hasta = 4133
-huella = "2dbd2f4726a1c91e"
+lufs = -22.7
+hasta = 4138
+huella = "82d86ab88417e4df"
 
 [temas."wb3shop"]
 aire = 0.500
-pico = -2.7
-lufs = -18.1
-hasta = 981
-huella = "cdff2cc0845ebf9d"
+pico = -2.9
+lufs = -18.2
+hasta = 1512
+huella = "73817ec453c68f15"
 
 [temas."wb3town"]
 aire = 0.500
-pico = -3.5
-lufs = -14.7
-hasta = 1192
-huella = "88ba2180b14adf5b"
+pico = -3.7
+lufs = -14.1
+hasta = 1277
+huella = "5ae10d7af5592425"

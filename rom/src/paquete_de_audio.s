@@ -570,6 +570,12 @@ sin_fijas:
     ldy #1
     jsr marcar_tema
 sin_extra:
+    ; Un tema de salida que pide su `PlayBGM` va solo: nada más del paquete
+    ; se queda. Ver `extra_de_salida`.
+    jsr extra_de_salida
+    bcc con_paquete
+    jmp marcadas
+con_paquete:
     jsr lista_del_paquete
 temas_q:
     lda f:paquetes, x
@@ -586,13 +592,26 @@ efectos_q:
 otro_q:
     lda f:paquetes, x
     cmp #$FF
-    beq marcadas
+    beq salida_q
     phx
     ldy #1
     jsr marcar_muestra
     plx
     inx
     bra otro_q
+salida_q:
+    ; Y los temas de salida, que se quieren igual: si ya estaban, quedan.
+    inx
+otro_s:
+    lda f:paquetes, x
+    cmp #$FF
+    beq marcadas
+    phx
+    ldy #1
+    jsr marcar_tema
+    plx
+    inx
+    bra otro_s
 marcadas:
     ; Las que nadie quiere se olvidan, y con las que quedan se arma la lista
     ; de lo ocupado, en orden: es donde `colocar_muestra` busca los huecos.
@@ -645,6 +664,10 @@ proxima:
     beq sin_extra2
     jsr colocar_tema
 sin_extra2:
+    jsr extra_de_salida
+    bcc con_paquete2
+    jmp colocadas
+con_paquete2:
     jsr lista_del_paquete
 temas:
     lda f:paquetes, x
@@ -660,12 +683,32 @@ efectos:
 otro_efecto:
     lda f:paquetes, x
     cmp #$FF
-    beq colocadas
+    beq de_salida
     phx
     jsr colocar_muestra
     plx
     inx
     bra otro_efecto
+de_salida:
+    ; Los temas de salida, detrás de todo y **si hay lugar**: que no entren
+    ; no deja el paquete incompleto —no hace falta su `PlayBGM` para
+    ; completarlo, ni rearmar todo desde cero—, porque su `PlayBGM` los sube
+    ; solos. Por eso PAQ_INCOMPLETO se guarda y se repone alrededor.
+    inx
+    lda f:PAQ_INCOMPLETO
+    pha
+otro_de_salida:
+    lda f:paquetes, x
+    cmp #$FF
+    beq salida_puesta
+    phx
+    jsr colocar_tema
+    plx
+    inx
+    bra otro_de_salida
+salida_puesta:
+    pla
+    sta f:PAQ_INCOMPLETO
 colocadas:
     ; **Si algo no entró, se acomoda todo de nuevo desde cero**, salvo las
     ; del tema que suena, y recién después se sube. Las que el paquete quiere
@@ -710,7 +753,56 @@ quieta:
     bcc compactar
     jmp marcadas
 subir:
-    jmp subir_colocadas
+    jsr subir_colocadas
+    ; Con un tema de salida subido solo, lo demás del paquete se soltó: si la
+    ; página no se va del mapa, el próximo `PlayBGM` lo completa.
+    jsr extra_de_salida
+    bcc listo
+    lda #1
+    sta f:PAQ_INCOMPLETO
+listo:
+    rts
+.endproc
+
+; C en 1 si PAQ_EXTRA es uno de los temas de salida del paquete de PAQ_MAPA:
+; la tercera lista de `paquetes`. Son los que el mapa prende sólo para irse
+; —ver `Temas.de_salida` en tools/port/eventos.py—, y el caso del juego es
+; `lufsorr` en el mapa 3: suena después de la secuencia de efectos, así que
+; no tiene por qué caber con ellos, y el conversor le da la tasa de un tema
+; solo. Cuando su `PlayBGM` lo pide y no está, se sube **él solo**, soltando
+; lo demás, y no el paquete entero con él adelante: eso último no entraría,
+; y rearmarlo desde cero sería subir la ARAM entera.
+.proc extra_de_salida
+.a8
+.i16
+    lda f:PAQ_EXTRA
+    cmp #$FF
+    beq no
+    jsr lista_del_paquete
+temas:
+    lda f:paquetes, x
+    inx
+    cmp #$FF
+    bne temas
+efectos:
+    lda f:paquetes, x
+    inx
+    cmp #$FF
+    bne efectos
+salida:
+    lda f:paquetes, x
+    cmp #$FF
+    beq no
+    cmp f:PAQ_EXTRA
+    beq si
+    inx
+    bra salida
+si:
+    sec
+    rts
+no:
+    clc
+    rts
 .endproc
 
 ; X al principio de la lista del paquete de PAQ_MAPA.

@@ -879,15 +879,25 @@ class Partida:
         """(los temas, las muestras de sus efectos) del paquete de audio
         `indice` —el de un mapa, en el orden de la tabla de mapas—, leídos de
         `paquetes` en el cartucho, que es lo que recorre `paquete_cargar_ya`:
-        un índice de desplazamientos de dos bytes y detrás, por paquete, dos
-        listas cerradas con $FF."""
+        un índice de desplazamientos de dos bytes y detrás, por paquete, tres
+        listas cerradas con $FF. La tercera, los temas de salida, la da
+        `temas_de_salida`: ésos no tienen por qué estar."""
+        return self._listas_del_paquete(indice)[:2]
+
+    def temas_de_salida(self, indice):
+        """Los temas de salida del paquete `indice`: los que el mapa prende
+        sólo para irse, que se suben si hay lugar. Ver `extra_de_salida` en
+        rom/src/paquete_de_audio.s."""
+        return self._listas_del_paquete(indice)[2]
+
+    def _listas_del_paquete(self, indice):
         with open(self.sfc, "rb") as archivo:
             rom = archivo.read()
         base = en_la_rom(self.simbolos["paquetes"])
         salto = base + 2 * indice
         lista = base + (rom[salto] | (rom[salto + 1] << 8))
         partes = []
-        for _ in range(2):
+        for _ in range(3):
             parte = []
             while rom[lista] != 0xFF:
                 parte.append(rom[lista])

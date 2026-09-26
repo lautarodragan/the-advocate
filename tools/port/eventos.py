@@ -721,6 +721,11 @@ class Temas:
         # al cargar un paquete: ver `temas_heredados` en snes_convert.py.
         self.mapa = None
         self.por_mapa = {}
+        # Y qué `PlayBGM` de cada mapa son **de salida**: ver `salida`.
+        self.salidas = {}
+        # Cuántas veces se pidió un efecto, para que la página vea si un
+        # comando hizo sonar alguno: ver `_seguir_la_salida`.
+        self.pedidos = 0
 
     def _anotar(self, que, valor):
         if self.mapa is None:
@@ -739,7 +744,29 @@ class Temas:
     def destino(self, mapa):
         self._anotar("destinos", mapa)
 
+    def salida(self, tema, sale):
+        """Anota un `PlayBGM` del tema en el mapa que se compila: `sale` si
+        detrás, sin ramas ni efectos en el medio, la página salta a otro
+        mapa. Un tema es de salida en un mapa si **todos** sus `PlayBGM` de
+        ahí lo son: ver `de_salida`."""
+        if self.mapa is None:
+            return
+        anotadas = self.salidas.setdefault(self.mapa, {})
+        anotadas[tema] = anotadas.get(tema, True) and sale
+
+    def de_salida(self, mapa):
+        """Los temas que un mapa prende sólo para irse: cada `PlayBGM` suyo
+        va seguido de un salto a otro mapa, sin efectos ni ramas en el
+        medio. En el juego es `lufsorr` en el mapa 3: suena después de la
+        secuencia de efectos, cuando ya no queda ninguno por tocar, y el
+        mapa se deja enseguida. Así que no tiene por qué caber en la ARAM
+        con esos efectos: va en el paquete **aparte**, se sube si hay lugar,
+        y si no lo sube su `PlayBGM` —ver `extra_de_salida` en
+        rom/src/paquete_de_audio.s—. Es del 2026-09-26."""
+        return [t for t, sale in self.salidas.get(mapa, {}).items() if sale]
+
     def sonido(self, nombre, volumen, tempo, balance):
+        self.pedidos += 1
         clave = (nombre, volumen, tempo, balance)
         if clave not in self.sonidos:
             self.sonidos.append(clave)
@@ -3243,7 +3270,10 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                            or comandos[i + 1].code not in BATALLA_HANDLERS)}
         eleg = []            # las elecciones abiertas
         bat = []             # y las batallas abiertas, igual que ellas
+        bgm = [None, []]     # el `PlayBGM` pendiente y lo anotado: ver
+                             # `_seguir_la_salida`
         for cmd, extra in agrupar(comandos):
+            pedidos = temas.pedidos if temas is not None else 0
             if cmd.code == ENEMY_ENCOUNTER:
                 tropa = tropa_de_encuentro(cmd)
                 if tropas is not None:
@@ -3408,6 +3438,9 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                 if cmd.code == TELEPORT and eventos_mapa is not None \
                         and cmd.parameters[0] != eventos_mapa.map_id:
                     eventos_mapa = eventos_mapa.afuera()
+            if temas is not None:
+                _seguir_la_salida(cmd, bgm, temas, indice_de_mapa,
+                                  temas.pedidos != pedidos)
             piezas.append(pieza)
             largo += len(pieza)
         if pila:
@@ -3416,6 +3449,12 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
             raise NoSePuede("una elección sin cerrar")
         if bat:
             raise NoSePuede("una batalla sin cerrar")
+        # Lo que se anotó de los `PlayBGM` vale sólo si la página compila: una
+        # que no, no corre, y no dice nada de cómo se deja el mapa.
+        if bgm[0] is not None:
+            bgm[1].append((bgm[0], False))
+        for tema, sale in bgm[1]:
+            temas.salida(tema, sale)
         codigo = b"".join(piezas)
         # El `OP_DONE` es de la página y no del pedazo: un cuerpo en línea que
         # lo llevara terminaría la página del que llamó en vez de devolverle el
@@ -3425,6 +3464,44 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
         if mensajes is not None:
             mensajes.volver(marca)
         return None
+
+
+# Lo que corta un `PlayBGM` de salida antes del salto: ramas, elecciones,
+# peleas, llamadas y lazos —con ellos, lo que sigue ya no es una sola línea—.
+# Los efectos también, pero ésos se ven en `Temas.pedidos`, que cuenta
+# también los de una animación.
+CORTAN_LA_SALIDA = frozenset((
+    COND_RAMA, COND_SINO, COND_FIN, SHOW_CHOICE, SHOW_CHOICE_OPTION,
+    SHOW_CHOICE_END, ENEMY_ENCOUNTER, END_BATTLE, CALL_EVENT, SHOW_INN,
+    INN_STAY, INN_NO_STAY, INN_END) + BATALLA_HANDLERS
+    # Label, JumpToLabel, Loop, BreakLoop, EndLoop y EndEventProcessing.
+    + (12110, 12120, 12210, 12220, 22210, 12310))
+
+
+def _seguir_la_salida(cmd, salida, temas, indice_de_mapa, sono):
+    """Sigue, comando por comando, si el último `PlayBGM` de la página es de
+    salida —ver `Temas.de_salida`—: lo es si lo que viene hasta un
+    `Teleport` a otro mapa no toca ningún efecto (`sono`), no prende otro
+    tema y no se parte. `salida` es [el tema pendiente o None, lo anotado];
+    lo anotado se le pasa a `temas` recién si la página compila.
+
+    Un salto al mismo mapa también lo corta: recarga el paquete con el tema
+    sonando, que es el caso de la herencia y no el de irse."""
+    pendiente, anotado = salida
+    if cmd.code == PLAY_BGM and cmd.string:
+        if pendiente is not None:
+            anotado.append((pendiente, False))
+        salida[0] = temas.nombres.index(cmd.string)
+        return
+    if pendiente is None:
+        return
+    if cmd.code == TELEPORT:
+        sale = indice_de_mapa(cmd.parameters[0]) != temas.mapa
+        anotado.append((pendiente, sale))
+        salida[0] = None
+    elif sono or cmd.code in CORTAN_LA_SALIDA:
+        anotado.append((pendiente, False))
+        salida[0] = None
 
 
 # Hasta dónde se anida un `CallEvent`. No es una precaución abstracta: un
