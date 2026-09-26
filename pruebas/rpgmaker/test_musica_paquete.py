@@ -21,7 +21,7 @@ pueden prender. O sea que es el único tema de la ROM que depende de que
 `tema_asegurar` lo cargue en caliente, y por eso es el que delata el camino.
 """
 
-from consola import EMPEZAR, SEGUIR
+from consola import EMPEZAR, SEGUIR, en_la_wram
 
 
 def test_el_tema_del_titulo_tiene_sus_muestras_en_la_aram(partida):
@@ -220,3 +220,53 @@ def test_un_tema_que_no_aporta_pierde_notas_y_la_ROM_lo_dice():
     assert enteros[nombres.index("evilrhys")]["resumen"]["notas"] == 1.0, (
         "con el tope sacado evilrhys tiene que recuperar todas sus notas, y "
         "quedó en %.3f" % enteros[nombres.index("evilrhys")]["resumen"]["notas"])
+
+
+def test_el_paquete_que_no_entro_con_otro_tema_sonando_se_completa(partida):
+    """Entrar a un mapa con el tema de otro sonando, y el `PlayBGM` de después.
+
+    Las muestras del tema que suena no se mueven al cargar el paquete del mapa
+    nuevo —la música sigue durante el fundido—, así que lo que el paquete
+    trae entra en lo que queda al lado, y lo último de la lista, los efectos,
+    puede no entrar. Es el paso del mapa 2 al 3 del juego: la página del
+    ascensor salta al 3 y recién ahí vuelve a pedir el tema del 2, así que el
+    3 se carga con él sonando y algunos de sus efectos quedaban afuera hasta
+    el cambio de mapa siguiente, aunque la página del 3 prendiera enseguida
+    su propio tema.
+
+    El caso hace ese paso con el tema del 2 sonando y después prende
+    el del 3. Se pide primero que el paquete haya quedado incompleto al
+    llegar —si no, el caso no ejercita nada: pasaría también sin el arreglo,
+    por ejemplo si el reparto de la ARAM cambia y todo entra—, y después que
+    con el tema nuevo sonando estén todos los efectos del 3.
+    """
+    una = partida(caso="paquete-incompleto")
+    s = una.simbolos
+    tema_del_3 = None
+    incompleto_al_llegar = False
+    for _ in range(600):
+        una.correr(1)
+        if una.mapa() != 3:
+            continue
+        sonando = None if una.byte("music_apagada") else una.palabra("tema_actual")
+        if tema_del_3 is None and sonando is not None:
+            # El primero que suena en el 3 es el que venía del 2.
+            tema_del_3 = sonando
+        if sonando == tema_del_3 and una.consola.ram(
+                en_la_wram(s["PAQ_INCOMPLETO"]), 1)[0]:
+            incompleto_al_llegar = True
+        if sonando is not None and sonando != tema_del_3:
+            break
+    else:
+        raise AssertionError(
+            "el caso no llegó a prender el tema del mapa 3 en 600 cuadros")
+    assert incompleto_al_llegar, (
+        "el paquete del mapa 3 entró entero con el tema del 2 sonando, así "
+        "que el caso no ejercita el completado: buscar otro paso que no entre")
+
+    _temas, efectos = una.muestras_del_paquete(una.mapas.index(3))
+    faltan = sorted(set(efectos) - una.muestras_en_la_aram())
+    assert not faltan, (
+        "con el tema del mapa 3 sonando, a su paquete le siguen faltando los "
+        "efectos %s de %s: el `PlayBGM` tenía que completar lo que no entró "
+        "al llegar con el tema del 2" % (faltan, sorted(efectos)))

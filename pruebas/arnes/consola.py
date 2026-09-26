@@ -875,6 +875,27 @@ class Partida:
             "o la ROM no lleva música" % indice)
         return muestras
 
+    def muestras_del_paquete(self, indice):
+        """(los temas, las muestras de sus efectos) del paquete de audio
+        `indice` —el de un mapa, en el orden de la tabla de mapas—, leídos de
+        `paquetes` en el cartucho, que es lo que recorre `paquete_cargar_ya`:
+        un índice de desplazamientos de dos bytes y detrás, por paquete, dos
+        listas cerradas con $FF."""
+        with open(self.sfc, "rb") as archivo:
+            rom = archivo.read()
+        base = en_la_rom(self.simbolos["paquetes"])
+        salto = base + 2 * indice
+        lista = base + (rom[salto] | (rom[salto + 1] << 8))
+        partes = []
+        for _ in range(2):
+            parte = []
+            while rom[lista] != 0xFF:
+                parte.append(rom[lista])
+                lista += 1
+            partes.append(parte)
+            lista += 1
+        return tuple(partes)
+
     def stream_del_tema(self, indice):
         """(dirección del stream, sus sonidos) del tema, leídos **del
         cartucho** con las mismas tablas que usa `music_start_ya`: `tema_lo`,
