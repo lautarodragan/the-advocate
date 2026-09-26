@@ -21,3 +21,11 @@ Anotado para él:
   stream es por nota y el 65816 lo expande a escrituras: ver "el formato por
   nota" en `tools/audio/snes_music.py`—. Lo del driver del SPC700, que espera
   pares (registro, valor), sigue valiendo: el driver no cambió.
+* Los dos párrafos al final de "las muestras de percusión" (~líneas 890-898):
+  "La percusión se lleva además una segunda voz del DSP" y "Con el reparto de
+  voces por cobertura, que es el mismo código de `md_music.py`" dejaron de ser
+  ciertos el 2026-09-26: las ocho voces son de todos los canales y se reparten
+  nota a nota (`assign` y `_victima` en `tools/audio/snes_music.py`); la
+  batería va primero a las voces 6 y 7 pero no las tiene fijas, y
+  `share_voices`/`coverage` se fueron. Cuánto tiempo-nota se pierde lo
+  imprime el conversor por tema.

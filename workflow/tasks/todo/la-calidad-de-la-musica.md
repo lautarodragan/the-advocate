@@ -15,8 +15,8 @@ reparto suma +74% de stream en el formato de hoy (~436 KB, todo el margen del
 cartucho unido). Así que: batería → notas que se sueltan antes de tiempo →
 envolventes → velocidad y CC → **el formato por nota, diseñado para todo lo de
 arriba y para el reparto** → reparto y rampa → muestras por mapa. **Hechos
-el 0, el 1 y el 2**, el 2026-09-25, **y el 3 y el 4** el 2026-09-26: ver cada
-uno abajo.
+el 0, el 1 y el 2**, el 2026-09-25, **y el 3, el 4 y el 5** el 2026-09-26:
+ver cada uno abajo. Queda el 6, y antes decidir el aire: ver el final del 5.
 
 
 taro, el 2026-09-25: *"`escape_newyork` se escucha particularmente mal, y tal
@@ -651,27 +651,264 @@ anillo.
   el paneo por tecla de la batería. Si entran, una altura por cuadro es un
   `OP_SET_PITCH`, y el paneo es el volumen del sonido de cada golpe.
 
-## 5. El reparto de las ocho voces, y la rampa
+## 5. El reparto de las ocho voces, y la rampa: hecho
 
-Las ocho en un solo grupo, robando por prioridad —lo del 06—, y la rampa de
-12 ms antes de reusar una voz que suena —lo del 07—. Es lo que devuelve los
-acordes, el clavinet y la onda cuadrada, y lo que más ataca los clics:
-**287 robos en vez de 1.068**, y cada uno con rampa en vez de un `KON` en
-seco. **Costos**:
+Hecho el 2026-09-26, en dos commits que se pueden escuchar y medir por
+separado: "Música: las ocho voces para todos los canales, repartidas nota a
+nota" y "Música: una voz que suena se baja en 12 ms antes de dársela a otra
+nota"; y un tercero que corrige cómo se cuenta el tiempo-nota de un golpe
+("Música: el tiempo-nota de un golpe se cuenta hasta que suelta la voz"),
+que no cambia la ROM. Medido sobre `92754ab`, con el `release` de 32 temas.
+El porqué de cada regla está donde vive: `assign`, `_libre`, `_victima` y
+`RAMPA` en `tools/audio/snes_music.py`.
 
-* **Ciclos**: el peor cuadro pasa de 56 a 80 escrituras al DSP, +43% del peor
-  caso de `irq_musica` —del orden de 20 a 29 líneas—. Eso era una
-  estimación: medido en el 4, el peor cuadro de hoy son 89 líneas, y las 24
-  escrituras de más serían del orden de 30.
-* **ARAM**: los canales que hoy no tienen voz suman sus programas al banco:
-  7 muestras más entre los 22 temas, que bajan la tasa de las demás —el piano
-  de 6 a 4,5 kHz—. Eso lo compensa el 6.
-* **Stream**: ver el 4, "Cómo encaja el 5".
+**Para escuchar**: `/shared/audio/2026-09-26-paso-5/`, con su `LEEME.txt`:
+`escape_newyork`, la batalla, el título, `cd4`, `Lunar_Pyramid` y
+`T_ProjectJustice_DiscLoad`, antes, con el reparto, y con el reparto y la
+rampa, todos a la misma sonoridad.
 
-La rampa se puede hacer también del lado del SPC700 —que el driver baje las
-voces antes de cada `KON`—, pero le agrega un cuadro de latencia o un temporizador
-al driver. Con el formato por nota no hace falta: es un `OP_RELEASE_GAIN` del
-lado del 65816 (ver el 4).
+### El reparto
+
+* **Las ocho voces son de todos los canales** (`assign`). Una nota toma una
+  voz libre —la que nadie sostiene—, primero una callada y si no la que
+  termina antes su cola; los golpes prefieren las voces 6 y 7 —las de los
+  efectos, como cuando la batería las tenía fijas— y lo melódico las otras;
+  y a igual, la que tuvo una nota del mismo canal, que sale más barata.
+* **Si las ocho están sostenidas, la regla del prototipo** (`_victima`): la
+  misma tecla del mismo canal se roba a sí misma; nunca a una nota que
+  arrancó en ese cuadro ni a la última voz de otro canal; entre las demás,
+  a la más débil —el volumen con que arrancó— y a la par a la más vieja; y
+  la nota nueva cede si su canal ya suena y la víctima es la última de otro,
+  o es más fuerte que ella y su canal no tiene más voces. En cada cuadro
+  eligen primero las notas más fuertes.
+* **Un golpe sostiene su voz hasta el fin de la nota en el MIDI** o el de su
+  muestra, lo que llegue antes; lo que queda de la muestra es como una cola.
+  Sostenerla hasta el fin de la muestra le hacía perder a lo melódico 8,3%
+  del tiempo-nota en vez de 7,9% (Lunar_Pyramid 33% en vez de 23%).
+
+**Las reglas que se probaron**, en los 32 temas, con un script descartable
+(`audio-paso-5/evaluar.py`) que arma todo con cada regla. "Pesado" es el
+tiempo-nota perdido pesado por la velocidad al cuadrado, que es como baja
+el volumen; "robos" son las notas cortadas mientras sonaban:
+
+| Regla | Perdido | Pesado | Robos | Stream |
+|---|---:|---:|---:|---:|
+| la del prototipo (la que quedó) | 7,4% | 6,74% | 2.883 | 322.752 |
+| robarle a la más vieja, sin ceder nunca | 7,4% | 6,85% | 7.121 | 336.426 |
+| robarle a la más débil, sin ceder nunca | 7,6% | 6,91% | 3.597 | 326.689 |
+| la del prototipo, protegiendo la más grave y la más aguda | 7,4% | 6,73% | 2.636 | 321.687 |
+| la del prototipo, robando primero dentro del propio canal | 7,4% | 6,75% | 2.905 | 322.761 |
+
+(Con la rampa puesta, por eso el stream.) Proteger los extremos gana en
+`escape_newyork`, `TF3_1_awe` y la batalla lo que pierde en `11h035` y
+`evilrhys`: no entró. Lo que no se probó y podría ganar algo: estimar el
+nivel actual de la víctima con su envolvente —el piano sostenido decae— en
+vez del volumen con que arrancó, y dejar arrancar tarde una nota larga que
+no consiguió voz (la onda cuadrada de `escape_newyork` pierde el 99%: sus
+nueve notas caen en cuadros con nueve notas o más, y son de las más suaves).
+
+**El formato no cambió** ni el driver: cada evento ya decía su voz. El
+conversor imprime por tema cuánto tiempo-nota se pierde contra el piso de
+ocho voces (`tiempo_perdido`), que reemplaza a `coverage`; `share_voices`
+y `coverage` se fueron de `musica.py`.
+
+**Lo cobran** tres pruebas nuevas en `test_musica_stream.py` —el acorde con
+más canales que voces, que ninguna nota se quede sin voz con una libre, a
+quién se le roba— y `pruebas/rpgmaker/test_musica_reparto.py`, sobre
+`escape_newyork` de verdad: el primer acorde de las cuerdas dispara tres
+voces, y el clavinet y la onda cuadrada están en el banco y suenan. Las
+cinco dan rojo con el reparto de antes, reproducido en el script.
+
+### La rampa
+
+En el cuadro anterior a la nota que toma una voz que todavía suena
+—sostenida o en su cola—, ADSR1 en cero y GAIN `RAMPA`: lineal, 64 pasos de
+6 muestras, 12 ms. Es un `OP_RELEASE_GAIN` más. No va a una nota que arrancó
+en ese mismo cuadro, ni a una voz callada. **Son 28.714 rampas contra
+64.274 notas**: 20.331 sobre colas melódicas —14.298 a las que les quedaban
+menos de 15 cuadros—, 5.138 sobre golpes, 2.815 sobre notas sostenidas.
+Una rampa sólo donde la cola todavía se oiría achicaría el costo, pero pide
+estimar su nivel; no se hizo.
+
+**Lo cobran** dos pruebas en `test_musica_stream.py`: el robo de una nota
+sostenida y el de una cola. Una medida grosera de clics sobre las
+grabaciones —ventanas de 1 ms donde la segunda diferencia salta 8 veces
+sobre su entorno, que también cuenta los golpes de batería— da, con reparto
+→ con rampa: el título 116 → 8, la batalla 642 → 424, `escape_newyork`
+3.497 → 3.407 (casi todo batería), `cd4` 519 → 522.
+
+### Bytes, pérdida y ciclos
+
+Bytes: stream más sonidos, del `conversor.log`. Pérdida: `tiempo_perdido`,
+y la de antes con el reparto viejo reproducido en el script. Ciclos: la
+sonda del paso 4 —la línea de barrido al entrar y salir de `music_tick`—,
+cada tema entero desde su vuelta al principio, en snes9x; la IRQ cae en la
+línea 112.
+
+| Tema | Stream antes | Reparto | Rampa | Tiempo-nota perdido antes → después | Piso | Peor cuadro (líneas) antes → reparto → rampa |
+|---|---:|---:|---:|---:|---:|---:|
+| hzstream | 4.028 | 4.268 | 4.452 | 0.0% → 0.0% | 0.0% | 32 → 38 → 37 |
+| escape_newyork | 8.965 | 10.458 | 12.329 | 57.6% → 40.8% | 19.9% | 78 → 76 → 78 |
+| TF3_1_awe | 9.964 | 12.378 | 16.786 | 23.1% → 11.5% | 4.1% | 54 → 73 → 73 |
+| T_VGFighterMAX_Masako | 41.336 | 50.212 | 72.203 | 53.2% → 48.9% | 35.4% | 89 → 100 → 100 |
+| evilrhys | 10.272 | 11.556 | 16.436 | 44.7% → 33.6% | 14.5% | 81 → 98 → 98 |
+| lufsorr | 3.332 | 4.319 | 6.168 | 0.0% → 0.0% | 0.0% | 36 → 47 → 48 |
+| cd4 | 12.671 | 15.119 | 16.910 | 27.2% → 0.1% | 0.1% | 62 → 65 → 66 |
+| C3classi | 7.700 | 10.369 | 14.883 | 17.8% → 0.0% | 0.0% | 58 → 64 → 65 |
+| rshinld | 3.442 | 4.558 | 7.089 | 28.0% → 11.3% | 4.9% | 63 → 73 → 75 |
+| cd2 | 6.942 | 7.168 | 8.083 | 4.8% → 0.0% | 0.0% | 50 → 61 → 61 |
+| hzbreach | 9.275 | 10.019 | 14.047 | 0.0% → 0.0% | 0.0% | 40 → 49 → 48 |
+| wb3mlair | 2.289 | 2.600 | 2.720 | 0.0% → 0.0% | 0.0% | 45 → 45 → 45 |
+| Astpgmarch | 2.165 | 2.275 | 2.381 | 0.0% → 0.0% | 0.0% | 40 → 40 → 40 |
+| Gaden | 1.317 | 2.010 | 2.189 | 69.4% → 0.0% | 0.0% | 23 → 29 → 29 |
+| 3D-Galax | 14.824 | 17.869 | 17.914 | 0.4% → 0.0% | 0.0% | 34 → 38 → 38 |
+| wb3shop | 2.601 | 2.874 | 3.252 | 5.4% → 0.0% | 0.0% | 74 → 81 → 81 |
+| KSSMKEND | 2.999 | 3.328 | 3.454 | 1.0% → 0.0% | 0.0% | 44 → 43 → 43 |
+| vswar | 9.184 | 14.179 | 15.007 | 54.7% → 0.0% | 0.0% | 33 → 48 → 49 |
+| Lunar_Pyramid | 8.072 | 9.376 | 12.536 | 57.9% → 18.9% | 3.1% | 79 → 94 → 94 |
+| dcbest | 2.726 | 3.979 | 3.979 | 0.0% → 0.0% | 0.0% | 25 → 27 → 27 |
+| golden_axe-turtlevillage2 | 267 | 267 | 321 | 0.0% → 0.0% | 0.0% | 30 → 30 → 30 |
+| Fire_Mustang_Intro_And_Level_2_By_Luiz_Vasco | 3.984 | 7.024 | 7.720 | 0.0% → 0.0% | 0.0% | 42 → 52 → 52 |
+| bubstix | 8.333 | 11.295 | 13.064 | 0.0% → 0.0% | 0.0% | 30 → 55 → 55 |
+| wb3town | 1.637 | 1.913 | 2.002 | 0.3% → 0.0% | 0.0% | 38 → 52 → 52 |
+| Fantasia_Of_The_Wind | 4.200 | 5.337 | 7.879 | 18.9% → 11.5% | 8.9% | 61 → 79 → 78 |
+| 11h035 | 4.793 | 5.362 | 6.875 | 13.4% → 8.9% | 1.4% | 70 → 76 → 77 |
+| prepara | 337 | 668 | 778 | 15.5% → 0.0% | 0.0% | 38 → 48 → 48 |
+| T_ProjectJustice_DiscLoad | 4.308 | 4.826 | 5.190 | 21.3% → 0.0% | 0.0% | 72 → 85 → 85 |
+| pn28year | 5.628 | 6.349 | 9.224 | 60.9% → 50.6% | 49.9% | 46 → 47 → 55 |
+| Tnt07 | 2.613 | 2.835 | 2.835 | 0.0% → 0.0% | 0.0% | 44 → 43 → 43 |
+| Deflector1 | 8.983 | 11.184 | 11.844 | 31.0% → 0.0% | 0.0% | 37 → 52 → 51 |
+| MML2_MotherZone | 533 | 1.629 | 2.202 | 28.4% → 0.0% | 0.0% | 29 → 42 → 42 |
+| **Los 32** | 209.720 | 257.603 | 322.752 | | | |
+
+* **Stream: de 209.720 a 257.603 B con el reparto (+23%) y a 322.752 con la
+  rampa (+25% más)**. El +74% del prototipo era en el formato viejo; en el
+  por nota, que una voz cambie de canal cuesta un byte de volumen. La
+  batalla es la que más paga la rampa (50.212 → 72.203): es la más densa.
+* **El cartucho `release`, de 74,6% a 75,7% con el reparto y a 77,3% con la
+  rampa** (3.128.883 → 3.176.812 → 3.241.961 B usados, sumando los
+  segmentos del `.dbg`). El banco 0 no cambia: 1.168 B libres.
+* **Ciclos: el peor cuadro de todos, de 89 líneas a 100** con el reparto, y
+  la rampa no lo mueve. Es la vuelta al principio del de batalla —el
+  arranque y las ocho voces escritas enteras—, que termina en la línea 212,
+  13 antes del vblank. El peor a mitad de un tema **baja** de 82 a 79 con el
+  reparto (los acordes ya no se pisan en una voz) y queda en 78 con la
+  rampa. En total la música ocupa 24% más de líneas con el reparto y 37%
+  con la rampa. Lo de `nota_sonido` del paso 4 no hizo falta.
+* **Pérdida de tiempo-nota: en promedio de 19,8% a 7,4%**, con un piso de
+  4,4%. `escape_newyork` de 58% a 41% (piso 20%; el prototipo contaba
+  55% → 39% y un piso de 23% midiendo los golpes por su largo en el MIDI);
+  doce temas que perdían algo pasan a no perder nada.
+* **El banco**: los canales que no tenían voz suman siete programas —la
+  celesta, la guitarra de acero, el timbal, el shakuhachi, el fantasía, el
+  space voice y el koto—, 67 muestras en vez de 60 en los mismos 57 KB, y
+  las demás bajan de tasa: el piano de 6,1 a 4,5 kHz, las cuerdas de 5,5 a
+  4,1, la sierra de 6,1 a 4,6, el bronce de 10,8 a 5,4. Siguen sin aportar
+  los mismos 19 temas. Lo compensa el 6.
+
+### La saturación, y las dos opciones del aire
+
+Con el método de los pasos anteriores —cada tema en el título, snes9x sin
+MSU-1, el tema entero, muestras de L+R en el tope, que con MASTER `$7F` es
+32.511— y **sin tocar el aire** (0,5, MASTER `$7F`), como pidió taro:
+
+| Tema | Recortes antes | Reparto | Rampa | Pico antes → rampa (dBFS) | LUFS antes → reparto → rampa |
+|---|---:|---:|---:|---:|---:|
+| hzstream | 36 | 84 | 88 | -0.1 → -0.1 | -9.6 → -9.5 → -9.5 |
+| escape_newyork | 0 | 0 | 0 | -5.1 → -4.2 | -20.7 → -18.5 → -18.5 |
+| TF3_1_awe | 0 | 6 | 7 | -1.8 → -0.1 | -13.4 → -11.3 → -11.4 |
+| T_VGFighterMAX_Masako | 298 | 2.400 | 2.528 | -0.1 → -0.1 | -10.4 → -10.9 → -11.2 |
+| evilrhys | 240 | 1.458 | 1.468 | -0.1 → -0.1 | -11.1 → -10.6 → -10.7 |
+| lufsorr | 0 | 0 | 0 | -2.4 → -3.0 | -15.0 → -14.9 → -15.0 |
+| cd4 | 0 | 0 | 0 | -3.7 → -1.4 | -17.9 → -16.1 → -16.1 |
+| C3classi | 0 | 0 | 0 | -3.6 → -3.1 | -16.6 → -15.7 → -15.8 |
+| rshinld | 4.724 | 7.888 | 7.786 | -0.1 → -0.1 | -8.7 → -8.1 → -8.2 |
+| cd2 | 0 | 0 | 0 | -4.1 → -3.3 | -16.7 → -16.5 → -16.5 |
+| hzbreach | 846 | 514 | 536 | -0.1 → -0.1 | -8.6 → -8.9 → -8.9 |
+| wb3mlair | 0 | 0 | 0 | -9.6 → -9.5 | -24.7 → -24.9 → -24.9 |
+| Astpgmarch | 0 | 0 | 0 | -1.7 → -1.2 | -14.0 → -14.2 → -14.2 |
+| Gaden | 0 | 0 | 0 | -17.9 → -8.3 | -31.3 → -11.0 → -11.3 |
+| 3D-Galax | 186 | 1.410 | 1.406 | -0.1 → -0.1 | -13.9 → -13.7 → -13.7 |
+| wb3shop | 0 | 0 | 0 | -5.1 → -3.8 | -21.3 → -20.3 → -20.3 |
+| KSSMKEND | 0 | 0 | 0 | -10.9 → -7.9 | -24.7 → -24.4 → -24.4 |
+| vswar | 0 | 0 | 0 | -6.7 → -3.6 | -20.3 → -18.4 → -18.4 |
+| Lunar_Pyramid | 28 | 5.723 | 5.852 | -0.1 → -0.1 | -14.1 → -11.6 → -11.6 |
+| dcbest | 0 | 0 | 0 | -6.3 → -3.9 | -17.0 → -15.8 → -15.8 |
+| golden_axe-turtlevillage2 | 0 | 0 | 0 | -8.1 → -8.1 | -17.7 → -17.7 → -17.7 |
+| Fire_Mustang_Intro_And_Level_2_By_Luiz_Vasco | 0 | 8 | 11 | -4.1 → -0.1 | -15.8 → -13.5 → -13.5 |
+| bubstix | 0 | 0 | 0 | -3.3 → -3.4 | -17.1 → -17.3 → -17.3 |
+| wb3town | 0 | 0 | 0 | -8.0 → -6.2 | -20.2 → -20.1 → -20.1 |
+| Fantasia_Of_The_Wind | 0 | 0 | 0 | -5.0 → -4.3 | -16.3 → -16.2 → -16.3 |
+| 11h035 | 0 | 0 | 0 | -8.0 → -6.8 | -21.2 → -21.1 → -21.2 |
+| prepara | 0 | 0 | 0 | -14.4 → -13.8 | -26.3 → -25.2 → -25.2 |
+| T_ProjectJustice_DiscLoad | 0 | 0 | 0 | -7.9 → -4.9 | -24.3 → -20.9 → -20.9 |
+| pn28year | 0 | 0 | 0 | -4.6 → -5.2 | -19.2 → -19.4 → -19.4 |
+| Tnt07 | 0 | 0 | 0 | -9.6 → -8.6 | -23.8 → -23.7 → -23.7 |
+| Deflector1 | 178 | 806 | 806 | -0.1 → -0.1 | -14.2 → -13.0 → -13.0 |
+| MML2_MotherZone | 0 | 0 | 0 | -9.2 → -3.5 | -19.7 → -17.9 → -17.9 |
+| **Los 32** | 6.536 | 20.297 | 20.488 | | |
+
+
+**Los recortes se triplican**, de 6.536 a 20.488 muestras, casi todos en
+cinco temas: `rshinld` (7.786, el que ya más recortaba, por CC7 en 127),
+`Lunar_Pyramid` (28 → 5.852), la batalla (298 → 2.528), `evilrhys` (240 →
+1.468) y `3D-Galax` (186 → 1.406). La rampa casi no cambia nada. El nivel
+sube donde el reparto devolvió canales: `escape_newyork` +2,2 LUFS, `cd4`
++1,8, `Gaden` +20 (tenía casi todo lo que suena sin voz).
+
+**Las dos opciones**, para que taro elija. Las dos salen del pico verdadero
+de cada tema: se armó el mismo commit con el aire en 0,25 —el techo de cada
+voz en un cuarto del original, 24 y 21—, que no recorta en ninguno, se midió
+el pico y se lo multiplicó por 2 (el volumen es lineal; el redondeo del
+registro a 0,25 lo hace aproximado). El LUFS de las opciones es el de esa
+grabación más la ganancia; el de hoy, el medido.
+
+* **A, un aire global**: 0,318 en vez de 0,5, **−3,9 dB para todos**. Lo fija
+  `rshinld`, cuyo pico verdadero pasa 3,9 dB del tope. No recorta ninguno,
+  y los 22 temas que hoy no recortan bajan 3,9 dB sin necesidad
+  (`escape_newyork` a -22,7 LUFS).
+* **B, un techo por tema**: cada uno con el aire más alto que no recorta,
+  topado en el 0,5 de hoy. **22 temas quedan como están**; bajan los 10 que
+  pasan del tope, de −0,5 dB (`TF3_1_awe`) a −3,9 (`rshinld`), la batalla
+  −2,9. Cuesta una tabla —un volumen por tema que `build_events` aplique en
+  `lados`— y **volver a medirla con cada cambio de la mezcla**: el paso 6
+  cambia las muestras y con ellas los picos. Medirla es este mismo script
+  con el aire en 0,25, 30 s de snes9x por tema en paralelo.
+
+| Tema | Pico verdadero con 0,5 (dB sobre el tope) | B: aire del tema | B: dB | LUFS hoy | A: LUFS | B: LUFS |
+|---|---:|---:|---:|---:|---:|---:|
+| hzstream | +1.1 | 0.438 | -1.1 | -9.5 | -13.4 | -10.6 |
+| escape_newyork | -4.2 | 0.500 | +0.0 | -18.5 | -22.7 | -18.8 |
+| TF3_1_awe | +0.5 | 0.470 | -0.5 | -11.4 | -15.3 | -11.9 |
+| T_VGFighterMAX_Masako | +2.9 | 0.358 | -2.9 | -11.2 | -15.0 | -14.0 |
+| evilrhys | +2.3 | 0.382 | -2.3 | -10.7 | -14.6 | -13.0 |
+| lufsorr | -2.9 | 0.500 | +0.0 | -15.0 | -18.8 | -14.9 |
+| cd4 | -1.3 | 0.500 | +0.0 | -16.1 | -20.0 | -16.1 |
+| C3classi | -3.0 | 0.500 | +0.0 | -15.8 | -19.8 | -15.9 |
+| rshinld | +3.9 | 0.318 | -3.9 | -8.2 | -12.0 | -12.0 |
+| cd2 | -3.3 | 0.500 | +0.0 | -16.5 | -20.3 | -16.4 |
+| hzbreach | +2.2 | 0.390 | -2.2 | -8.9 | -12.8 | -11.0 |
+| wb3mlair | -9.3 | 0.500 | +0.0 | -24.9 | -28.8 | -24.9 |
+| Astpgmarch | -1.3 | 0.500 | +0.0 | -14.2 | -18.1 | -14.2 |
+| Gaden | -8.0 | 0.500 | +0.0 | -11.3 | -15.1 | -11.2 |
+| 3D-Galax | +2.2 | 0.388 | -2.2 | -13.7 | -17.5 | -15.8 |
+| wb3shop | -3.7 | 0.500 | +0.0 | -20.3 | -24.3 | -20.4 |
+| KSSMKEND | -7.8 | 0.500 | +0.0 | -24.4 | -28.5 | -24.6 |
+| vswar | -3.5 | 0.500 | +0.0 | -18.4 | -22.3 | -18.4 |
+| Lunar_Pyramid | +2.5 | 0.377 | -2.5 | -11.6 | -15.6 | -14.1 |
+| dcbest | -3.8 | 0.500 | +0.0 | -15.8 | -19.7 | -15.8 |
+| golden_axe-turtlevillage2 | -8.2 | 0.500 | +0.0 | -17.7 | -21.8 | -17.9 |
+| Fire_Mustang_Intro_And_Level_2_By_Luiz_Vasco | +0.6 | 0.467 | -0.6 | -13.5 | -17.5 | -14.2 |
+| bubstix | -3.4 | 0.500 | +0.0 | -17.3 | -21.2 | -17.3 |
+| wb3town | -6.1 | 0.500 | +0.0 | -20.1 | -24.0 | -20.1 |
+| Fantasia_Of_The_Wind | -4.3 | 0.500 | +0.0 | -16.3 | -20.2 | -16.3 |
+| 11h035 | -6.6 | 0.500 | +0.0 | -21.2 | -25.1 | -21.2 |
+| prepara | -13.5 | 0.500 | +0.0 | -25.2 | -28.9 | -25.0 |
+| T_ProjectJustice_DiscLoad | -5.0 | 0.500 | +0.0 | -20.9 | -24.9 | -21.0 |
+| pn28year | -4.9 | 0.500 | +0.0 | -19.4 | -23.3 | -19.4 |
+| Tnt07 | -8.6 | 0.500 | +0.0 | -23.7 | -27.6 | -23.7 |
+| Deflector1 | +2.4 | 0.379 | -2.4 | -13.0 | -16.9 | -15.4 |
+| MML2_MotherZone | -3.3 | 0.500 | +0.0 | -17.9 | -21.7 | -17.8 |
 
 ## 6. Las muestras: presupuesto por paquete y zonas
 
@@ -690,9 +927,9 @@ Con los scripts de `tools/audio/proto/` en la rama del prototipo:
 
 * **La batería que vuelve**: medido en el 0, con la tabla; volver a medirlo
   con las envolventes puestas antes de fijar el aire.
-* **Polifonía contra 8 voces y tiempo-nota perdido**, con el reparto de hoy y
-  con el del 06: `robos.py` lo da por canal. `escape_newyork` puede no ser el
-  peor.
+* **Polifonía contra 8 voces y tiempo-nota perdido**: medido en el 5, y lo
+  imprime el conversor por tema. El peor es `pn28year` (51%, con un piso de
+  50%), después la batalla (49%, piso 35%).
 * **Qué temas usan CC7, CC10, CC11 y pitch bend**, y cuánto stream sumarían.
 * **Golpes recortados sin fundido**: `_build_drum` corta en 0,5 s sin
   fundido, y el platillo, el ride y el charles abierto del SF2 duran más y
