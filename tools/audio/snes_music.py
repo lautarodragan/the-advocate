@@ -2088,8 +2088,10 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
                 cuerpo += bytes(parte) + b"\xFF"
         datos_ = b"".join(o.to_bytes(2, "little") for o in ofs) + bytes(cuerpo)
         return block(label, datos_ or b"\xFF", bloque=True)
-    tema_muestras = listas("tema_muestras",
-                           [[muestras_del_tema(t)] for t in temas] or [[[]]])
+    # Decodificar los streams para saberlo es puro y cuesta: en paralelo.
+    tema_muestras = listas("tema_muestras", [
+        [m] for m in en_paralelo(lambda i: muestras_del_tema(temas[i]),
+                                 range(len(temas)))] or [[[]]])
     # Cada paquete, tres listas: sus temas, las muestras de sus efectos y sus
     # temas de salida —ver `extra_de_salida` en rom/src/paquete_de_audio.s—.
     paquetes = [tuple(p) + ((),) * (3 - len(p)) for p in paquetes] or \
