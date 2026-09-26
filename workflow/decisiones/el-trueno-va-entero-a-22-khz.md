@@ -19,10 +19,13 @@ Con una sola voz, la lluvia le cortaba el trueno, porque se vuelve a disparar
 cada pocos segundos. Las dos voces ya están en `main`: ver "los efectos de
 sonido" en `rom/src/efectos_de_sonido.s`.
 
-# Lo que todavía no está
+# Cómo quedó
 
-El trueno entero **sólo existe en la rama `worktree-agent-af7bb3c8b214b75b1`**,
-como un alias `Thunder9@entero` que `_compilar` pone sólo en el mapa 1. No es
-un mecanismo general. Llevarlo a `main` bien es el paso 2 de
-`tasks/todo/efectos-de-sonido-sin-recortes.md`: qué efectos van enteros y a
-qué tasa, cumpliendo que todos los mapas tengan todos sus efectos.
+El trueno entero es un alias, `Thunder9@entero`, que `_compilar` pone sólo en
+el mapa 1: el 3 también pide el trueno, y ahí entero no entra sin bajarle la
+tasa a su tema. Desde el 2026-09-26 hay más efectos enteros (`SE_ENTEROS` en
+`tools/audio/snes_music.py`), pero con otra regla: ésos van sólo en lo que la
+música deja libre en cada paquete, y no le cuestan nada a ningún instrumento.
+**El trueno es el único que la música paga si hace falta** —en `release` no
+hace falta: su paquete no limita a ninguna muestra—, porque taro lo eligió
+así antes de esa regla. Ver `tasks/*/efectos-de-sonido-sin-recortes.md`.
