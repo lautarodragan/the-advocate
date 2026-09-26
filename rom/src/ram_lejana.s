@@ -617,6 +617,16 @@ ANIMB_BUF = $7E7000
 ; conversor.
 LZ2_TRAMPA_LIT = $7E7800        ; mvn salida, flujo; rtl
 LZ2_BANCO      = $7E7804        ; el banco de la salida
+
+; --- las pistas de MSU-1 que faltaron ----------------------------------------
+;
+; $7E7820 a $7E782F, reservado el 2026-09-26: un bit por tema, prendido cuando
+; el tema tenía pista y el MSU-1 no la pudo tocar —no estaba en la tarjeta, o
+; no terminó de abrirla a tiempo— y sonó por el SPC700. Ver `tema_por_msu` en
+; paquete_de_audio.s. Lo limpia `msu_detectar` en el reset; no viaja en la
+; partida, porque lo que dice es de la tarjeta y no del juego.
+MSU_FALTA      = $7E7820
+MSU_FALTA_BYTES = 16
 LZ2_BUFFER     = $7F0000
 ANIM_DIBUJOS   = $7F6000
 ANIM_DIBUJOS_FIN = $7F8000
