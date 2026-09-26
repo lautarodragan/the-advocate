@@ -364,13 +364,16 @@ sin_fila:
     ldy #(WINDOW_ROWS * 2)
     jsr dma_a_vram
 
-    ; La capa de encima: media ventana más adelante en la VRAM, y su tira
-    ; pegada a la otra en la RAM.
+    ; La capa de encima: la misma ranura en su tilemap, y su tira pegada a la
+    ; otra en la RAM. La ranura sale de enmascarar y no de sumar una distancia
+    ; fija porque el tilemap del fondo no está siempre en el mismo lugar —ver
+    ; LAYOUT_VENTANA_AMBOS—; alcanza con que los dos arranquen en múltiplos de
+    ; 2048 palabras, que el conversor comprueba para el del fondo.
     rep #$20
 .a16
     lda tira_vram
-    clc
-    adc #(VRAM_ABOVE_MAP - VRAM_MAP)
+    and #(WINDOW_COLS * WINDOW_ROWS - 1)
+    ora #VRAM_ABOVE_MAP
     sta tira_vram
     lda tira_de
     clc
@@ -388,8 +391,13 @@ sin_fila:
 
 ; Y una fila, que sale de cuatro: las dos pantallas de 32x32 no son contiguas
 ; —la de la derecha vive 1024 palabras más adelante— y la capa de encima vive
-; media ventana más allá. El orden es: fondo izquierda, fondo derecha, encima
+; en su propio tilemap. El orden es: fondo izquierda, fondo derecha, encima
 ; izquierda, encima derecha, y cada paso avanza las dos variables.
+;
+; A la capa de encima se llega enmascarando la dirección, acá y en
+; `push_una_columna`, y eso pide que su tilemap arranque en un múltiplo del
+; tamaño de la ventana.
+.assert VRAM_ABOVE_MAP .mod (WINDOW_COLS * WINDOW_ROWS) = 0, error, "el tilemap de encima no se puede enmascarar"
 .proc push_una_fila
 .a8
 .i16
@@ -404,10 +412,13 @@ sin_fila:
 .a16
     lda #1024                   ; la pantalla de la derecha vive acá
     jsr fila_siguiente
-    ; Y la capa de encima, media ventana más adelante: se descuenta el 1024 que
-    ; el paso anterior ya sumó.
-    lda #(VRAM_ABOVE_MAP - VRAM_MAP - 1024)
-    jsr fila_siguiente
+    ; Y la capa de encima: la misma fila en la pantalla izquierda de su
+    ; tilemap. Se enmascara con diez bits y no con once para descontar el 1024
+    ; que el paso anterior ya sumó.
+    lda tira_vram
+    and #(WINDOW_COLS * WINDOW_ROWS / 2 - 1)
+    ora #VRAM_ABOVE_MAP
+    jsr fila_en_a
     lda #1024                   ; y su mitad derecha
     jsr fila_siguiente
     sep #$20
@@ -423,6 +434,11 @@ sin_fila:
 .i16
     clc
     adc tira_vram
+    ; Y sigue en `fila_en_a`, que es el mismo paso con la dirección ya hecha.
+.endproc
+.proc fila_en_a
+.a16
+.i16
     sta tira_vram
     lda tira_de
     clc

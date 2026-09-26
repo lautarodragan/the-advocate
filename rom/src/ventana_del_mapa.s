@@ -148,7 +148,7 @@ dentro:
     sta temp
     and #$001F
     clc
-    adc #VRAM_MAP
+    adc f:FAR_VRAM_MAPA         ; lo elige el reparto: ver LAYOUT_VENTANA_AMBOS
     sta col_addr
     lda temp
     and #$0020
@@ -254,7 +254,7 @@ dentro:
     asl a
     asl a                       ; cada fila de la pantalla mide 32 palabras
     clc
-    adc #VRAM_MAP
+    adc f:FAR_VRAM_MAPA
     sta row_addr
 
     txa
@@ -599,7 +599,12 @@ listo:
 .i16
     lda #$80
     sta VMAIN                   ; avanzar una palabra tras el byte alto
-    ldx #VRAM_MAP
+    rep #$20
+.a16
+    lda f:FAR_VRAM_MAPA
+    tax
+    sep #$20
+.a8
     jsr cero_a_tilemap
     ldx #VRAM_ABOVE_MAP
     jsr cero_a_tilemap

@@ -503,6 +503,17 @@ FAR_TIRA_COL2 = $7E6B40
 .assert FAR_TIRA_ROW2 = FAR_TIRA_ROW + WINDOW_COLS * 2, error, "tiras de fila separadas"
 .assert FAR_TIRA_COL2 = FAR_TIRA_COL + WINDOW_ROWS * 2, error, "tiras de columna separadas"
 
+; --- dónde está el tilemap del fondo, en la RAM lejana ----------------------
+;
+; La palabra de VRAM del tilemap de BG1 del mapa cargado. La copia `cargar_mapa`
+; de `M_VRAM_MAP` y la suman `build_column` y `build_row`, que no pueden leer
+; la tabla porque tienen la X ocupada. Es $5800 en todos los repartos menos uno:
+; ver LAYOUT_VENTANA_AMBOS. En la BSS no entra.
+;
+; $6B80 y $6B81 son de esto, reservados el 2026-09-25. **No viaja en la
+; partida**: cargarla carga el mapa, y eso la vuelve a poner.
+FAR_VRAM_MAPA = $7E6B80
+
 ; --- las paletas de los destellos, en la RAM lejana -------------------------
 ;
 ; Una por ranura de destello, treinta y dos bytes cada una, y el vblank sube

@@ -648,15 +648,15 @@ anim_continua:
 .i16
     lda #$03
     sta BGMODE
-    ; BG1SC lleva la dirección del tilemap en el byte alto y el tamaño en los
-    ; dos bits bajos; con VRAM_MAP en $7000 y el tamaño 1 —dos pantallas de
-    ; 32x32 una al lado de la otra, o sea 64x32— queda $71.
-    lda #>VRAM_MAP | MAP_LAYOUT
-    sta BG1SC                   ; la ventana del mapa, siempre de 64x32
+    ; BG2SC lleva la dirección del tilemap en el byte alto y el tamaño en los
+    ; dos bits bajos; con VRAM_ABOVE_MAP en $7800 y el tamaño 1 —dos pantallas
+    ; de 32x32 una al lado de la otra, o sea 64x32— queda $79.
     lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
-    sta BG2SC                   ; y la de la capa de encima, del mismo tamaño
-    ; BG12NBA sale del mapa, así que lo pone cargar_mapa. Acá quedaría con el
-    ; valor del mapa anterior en cuanto haya más de uno.
+    sta BG2SC                   ; la ventana de la capa de encima
+    ; BG12NBA y BG1SC salen del mapa, así que los pone cargar_mapa —y
+    ; `volver_al_mapa`—. Acá quedarían con el valor del mapa anterior en cuanto
+    ; haya más de uno: el tilemap del fondo no está en el mismo lugar en todos
+    ; los repartos, ver LAYOUT_VENTANA_AMBOS.
     stz BG1HOFS                 ; el scroll es de dos escrituras, byte bajo
     stz BG1HOFS                 ; y byte alto
     ; El PPU muestra la línea vofs+1 en el primer scanline visible, no la vofs.
