@@ -49,21 +49,3 @@ acceso_listo:
 
 .endproc
 
-.proc op_switch
-    rep #$20
-.a16
-    lda [cod_ptr], y            ; el número, de 16 bits
-    sta temp
-    sep #$20
-.a8
-    iny
-    iny
-    lda [cod_ptr], y            ; y si va encendido o apagado
-    iny
-    phy
-    jsr poner_switch
-    ply
-    jmp correr_codigo::otro     ; `bra` no llega: el lazo quedó lejos
-
-.endproc
-
