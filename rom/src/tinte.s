@@ -644,8 +644,9 @@ sin_lider_pal:
     ; el tinte es una propiedad de los dibujables del mapa —`Priority_Screen`
     ; es 90 y `Priority_Timer` 140—, así que la pantalla se oscurece y los
     ; dígitos no. Acá el tinte es una transformación de CGRAM y se lleva por
-    ; delante todo lo que toca, pero los dígitos tienen una paleta para ellos
-    ; solos, así que alcanza con volver a subir la de la ROM.
+    ; delante todo lo que toca, así que `subir_timer_pal` vuelve a subir de la
+    ; ROM las entradas de los dígitos, y sólo ésas: la paleta la comparten con
+    ; un personaje.
     ;
     ; La ventana de mensaje tampoco se tiñe, y sin hacer nada: vive en las
     ; entradas de abajo de todo y el fondo arranca en `CGRAM_BASE`, así que
@@ -658,8 +659,8 @@ sin_lider_pal:
     rts
 .endproc
 
-; Sube a CGRAM las tres paletas teñidas de `cgram_sombra`, y la del cronómetro
-; sin teñir detrás. Es para el vblank, o para `cargar_mapa` con la pantalla
+; Sube a CGRAM las tres paletas teñidas de `cgram_sombra`, y las entradas del
+; cronómetro sin teñir detrás. Es para el vblank, o para `cargar_mapa` con la pantalla
 ; apagada. Los tres DMA juntos son a lo sumo 544 bytes.
 .proc subir_tinte
 .a8
@@ -754,17 +755,65 @@ nada:
     rts
 .endproc
 
-; La paleta del cronómetro, tal cual está en la ROM. Es la última de las de
-; sprite, así que arranca en el color 128 + TIMER_PAL*16 y son 16 colores.
+; Las entradas de los dígitos del cronómetro, sin teñir, encima de lo que
+; acaba de subir. **Sólo esas entradas y no la paleta entera**: desde
+; `034d721` los dígitos comparten la paleta con un personaje —el que tenga
+; lugar para sus dos colores—, y ese personaje sí se tiñe. Subir la paleta
+; entera lo dejaba sin teñir en cualquier pantalla teñida, con el cronómetro
+; prendido o no: `release` lleva los dígitos en todos los mapas.
+;
+; Y sólo **con el cronómetro en pantalla**. Sin dígitos que dibujar esas
+; entradas son del personaje nada más y van teñidas como las demás; al
+; prenderlo o apagarlo, `timer_repintar` pide volver a subir. Lo que queda
+; sin arreglo es una entrada que el personaje y los dígitos comparten —el
+; negro, casi siempre, y el rojo del save point—: mientras el cronómetro se ve,
+; ésa queda sin teñir para los dos, porque los dígitos mandan. El negro sólo
+; se nota con un tinte que aclara: oscurecer y desaturar lo dejan negro.
+;
+; Qué entradas son lo dice `timer_mascara`, un bit por entrada y una palabra
+; por mapa, que emite el conversor.
 .proc subir_timer_pal
 .a8
 .i16
-    ldx mapa_ofs
-    lda f:mapa_tabla + M_TIMER_BASE, x
-    ora f:mapa_tabla + M_TIMER_BASE + 1, x
-    bne hay                     ; TIMER_BASE = 0: esta ROM no lleva cronómetro
+    lda timer_visible
+    bne visible
     rts
+visible:
+    rep #$20
+.a16
+    lda mapa_ofs
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a                       ; de 128 bytes por mapa a dos
+    tax
+    lda f:timer_mascara, x
+    bne hay
+    sep #$20
+.a8
+    rts                         ; este mapa no lleva los dígitos
+.a16
 hay:
+    sta tin_count               ; los bits que faltan: ni `temp`, que en el
+                                ; vblank puede estar ocupado
+    ; La paleta en la ROM, y la entrada 0 de CGRAM que le toca.
+    ldx mapa_ofs
+    lda f:mapa_tabla + M_TIMER_PAL, x
+    and #$0007
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; 32 bytes por paleta
+    clc
+    adc f:mapa_tabla + M_PTR_SPRITE_CGRAM, x
+    sta tin_ptr                 ; el bloque entra entero en un banco: lo
+    sep #$20                    ; sube un DMA
+.a8
+    lda f:mapa_tabla + M_PTR_SPRITE_CGRAM + 2, x
+    sta tin_ptr + 2
     lda f:mapa_tabla + M_TIMER_PAL, x
     asl a
     asl a
@@ -772,35 +821,60 @@ hay:
     asl a                       ; dieciséis colores por paleta
     clc
     adc #128
-    sta CGADD
-
-    ldy #M_PTR_SPRITE_CGRAM
-    jsr dma_origen
-    ; Y el desplazamiento de la paleta adentro del bloque: el doble, porque
-    ; cada color son dos bytes.
-    ldx mapa_ofs
-    lda f:mapa_tabla + M_TIMER_PAL, x
+    sta tin_cgadd
+    ldy #$0000
+cada:
     rep #$20
 .a16
-    and #$00FF
-    asl a
-    asl a
-    asl a
-    asl a
-    asl a                       ; 32 bytes por paleta
-    clc
-    adc A1T0L
-    sta A1T0L
-    lda #32
-    sta DAS0L
+    lsr tin_count
     sep #$20
 .a8
-    lda #$00
-    sta DMAP0                   ; un registro, de a bytes
-    lda #$22
-    sta BBAD0                   ; destino: CGDATA
-    lda #$01
-    sta MDMAEN
+    bcc siguiente
+    lda tin_cgadd
+    sta CGADD
+    lda [tin_ptr], y
+    sta CGDATA                  ; primero el byte de abajo
+    iny
+    lda [tin_ptr], y
+    sta CGDATA
+    dey
+siguiente:
+    inc tin_cgadd
+    iny
+    iny
+    lda tin_count
+    ora tin_count + 1
+    bne cada                    ; sin más bits, lo demás ya quedó teñido
+    rts
+.endproc
+
+; El cronómetro se acaba de prender o de apagar, y sus entradas cambian de
+; dueño: sin teñir si se ve, teñidas con el personaje si no. Se vuelven a
+; subir en el vblank que viene, con todo lo demás, desde la sombra.
+;
+; Con el tinte neutro no hace falta: teñidas o no son el mismo color. Y
+; preguntarlo no es por ahorrar el DMA sino el presupuesto: el cuadro que sube
+; el tinte sube menos poses —ver `flush_video`—, y eso movería al que camina
+; justo cuando arranca un cronómetro sin tinte.
+.proc timer_repintar
+.a8
+.i16
+    lda tinte_r
+    cmp #TINTE_NEUTRO
+    bne pedir
+    lda tinte_g
+    cmp #TINTE_NEUTRO
+    bne pedir
+    lda tinte_b
+    cmp #TINTE_NEUTRO
+    bne pedir
+    lda tinte_s
+    cmp #TINTE_NEUTRO
+    bne pedir
+    rts
+pedir:
+    lda #1
+    sta tinte_listo
     rts
 .endproc
 

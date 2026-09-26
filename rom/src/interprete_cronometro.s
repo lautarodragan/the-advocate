@@ -55,14 +55,20 @@ no_pone_var:
     iny
     iny
     lda [cod_ptr], y            ; si se ve
+    dey
+    dey
+    cmp timer_visible
+    beq timer_fin               ; ya se veía, o ya no: nada que repintar
     sta timer_visible
-    dey
-    dey
+    jsr timer_repintar          ; sus entradas de paleta cambian de dueño
     bra timer_fin
 timer_para:
     ; `StopTimer` apaga las dos cosas, no sólo la cuenta.
+    lda timer_visible
     stz timer_activo
-    stz timer_visible
+    stz timer_visible           ; `stz` no toca Z: el salto mira el `lda`
+    beq timer_fin
+    jsr timer_repintar
 timer_fin:
     rep #$20
 .a16

@@ -38,7 +38,11 @@ apagar_16:
 .a8
 apagar:
     stz timer_activo
-    stz timer_visible
+    lda timer_visible
+    stz timer_visible           ; `stz` no toca Z: el salto mira el `lda`
+    beq ya_no_se_veia
+    jsr timer_repintar          ; sus entradas vuelven a teñirse
+ya_no_se_veia:
     rts
 .endproc
 

@@ -63,6 +63,7 @@ VMAIN    = $2115        ; cómo avanza el puntero de VRAM tras cada escritura
 VMADDL   = $2116        ; dirección de VRAM, en palabras
 VMDATAL  = $2118        ; y el dato, de a una palabra con VMAIN en $80
 CGADD    = $2121        ; índice de CGRAM
+CGDATA   = $2122        ; y el color, de a byte: primero el de abajo
 TM       = $212C        ; qué capas se ven en la pantalla principal
 OBSEL    = $2101        ; tamaño de los sprites y dónde viven sus tiles
 OAMADDL  = $2102        ; índice dentro de OAM, en palabras

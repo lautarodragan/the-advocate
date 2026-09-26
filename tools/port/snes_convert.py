@@ -6528,6 +6528,27 @@ def main():
                    ventana_datos, titulo_datos, ranuras_datos,
                    args.imagenes.info, animaciones, tropas.ids, audio_batalla,
                    escenas, encuentros, paginas_tropa)
+    # Qué entradas de su paleta usan los dígitos del cronómetro, un bit por
+    # entrada y una palabra por mapa, en el orden de `mapa_tabla`.
+    # `subir_timer_pal` vuelve a subir sin teñir **ésas** y no la paleta
+    # entera, porque la paleta es de un personaje que sí se tiñe. Va aparte y
+    # no como campo del registro porque el registro está en sus 128 justos.
+    # El índice es el mismo `index + 1` con el que `digitos_del_timer` pintó
+    # los glifos: el primero que tiene ese color.
+    colores_timer = sorted(colores_del_timer(skin))
+    mascaras = []
+    for mapa in mapas:
+        sprite, mascara = mapa["sprite"], 0
+        if sprite and sprite[5]:
+            paleta = sprite[1][sprite[6]]
+            for color in colores_timer:
+                mascara |= 1 << (paleta.index(color) + 1)
+        mascaras.append(mascara)
+    with open(args.output, "a") as handle:
+        handle.write('\n.segment "RODATA"\n.bloque %d\ntimer_mascara:\n'
+                     '    .word %s\n'
+                     % (2 * len(mascaras),
+                        ", ".join("$%04X" % m for m in mascaras)))
     if len(args.casos) > 1:
         # Dónde escribe el arnés el número de caso: ver `--caso`.
         with open(args.output, "a") as handle:
