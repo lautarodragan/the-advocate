@@ -1377,12 +1377,14 @@ def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
     el tile `base + t` y abajo el `base + 16 + t`. Devuelve (tiles, base,
     número de paleta).
 
-    **Y tampoco en la del cronómetro**, por la misma clase de razón que las
-    ranuras de líder: ésa la vuelve a subir `subir_timer_pal` **sin teñir**
-    —los dígitos van encima del tinte, `Priority_Timer` es 140 y
-    `Priority_Screen` 90—, así que una gota metida ahí se queda gris en una
-    pantalla teñida. La lluvia sí se tiñe en RM2k: `Priority_Weather` es 80,
-    o sea debajo del tinte.
+    **Y tampoco en la del cronómetro.** La razón era que `subir_timer_pal`
+    volvía a subir esa paleta entera **sin teñir** —los dígitos van encima del
+    tinte, `Priority_Timer` es 140 y `Priority_Screen` 90—, y una gota metida
+    ahí se quedaba gris en una pantalla teñida; la lluvia sí se tiñe en RM2k,
+    `Priority_Weather` es 80. Desde el 2026-09-25 sube sólo las entradas de
+    los dígitos, así que una gota ya no se quedaría gris, salvo en un color
+    que compartiera con ellos. Se sigue evitando porque sacarlo puede mover
+    dónde caen las gotas, y eso no se midió.
     """
     quiere = [c for c in eventos.LLUVIA_COLORES]
     evitar = set(de_lider)
@@ -6567,6 +6569,27 @@ def main():
                    ventana_datos, titulo_datos, ranuras_datos,
                    args.imagenes.info, animaciones, tropas.ids, audio_batalla,
                    escenas, encuentros, paginas_tropa)
+    # Qué entradas de su paleta usan los dígitos del cronómetro, un bit por
+    # entrada y una palabra por mapa, en el orden de `mapa_tabla`.
+    # `subir_timer_pal` vuelve a subir sin teñir **ésas** y no la paleta
+    # entera, porque la paleta es de un personaje que sí se tiñe. Va aparte y
+    # no como campo del registro porque el registro está en sus 128 justos.
+    # El índice es el mismo `index + 1` con el que `digitos_del_timer` pintó
+    # los glifos: el primero que tiene ese color.
+    colores_timer = sorted(colores_del_timer(skin))
+    mascaras = []
+    for mapa in mapas:
+        sprite, mascara = mapa["sprite"], 0
+        if sprite and sprite[5]:
+            paleta = sprite[1][sprite[6]]
+            for color in colores_timer:
+                mascara |= 1 << (paleta.index(color) + 1)
+        mascaras.append(mascara)
+    with open(args.output, "a") as handle:
+        handle.write('\n.segment "RODATA"\n.bloque %d\ntimer_mascara:\n'
+                     '    .word %s\n'
+                     % (2 * len(mascaras),
+                        ", ".join("$%04X" % m for m in mascaras)))
     if len(args.casos) > 1:
         # Dónde escribe el arnés el número de caso: ver `--caso`.
         with open(args.output, "a") as handle:
