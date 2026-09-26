@@ -24,6 +24,7 @@ PIANO, BAJO_SINTETICO, BOMBO, SIN_MUESTRA = 0, 38, 36, 35
 class _Muestra:
     def __init__(self, program):
         self.program, self.root, self.rate = program, 60, 16000
+        self.frames = self.rate         # un segundo: lo que suena un golpe
 
 
 class _Banco:
@@ -68,9 +69,8 @@ def _salen(frames, largo):
 
 
 def _armar(notas, voces, programas=None, banco=None):
-    drums = set(voces.get(midi.DRUM_CHANNEL, []))
     frames = snes_music.build_events(notas, voces, programas or {0: PIANO},
-                                     drums, banco or _Banco())
+                                     banco or _Banco())
     return _salen(frames, max(n.end for n in notas) + 10)
 
 
@@ -175,6 +175,91 @@ def test_un_release_largo_llega_a_cero_donde_el_soundfont_anda_por_40_db():
     assert 0.3 < hasta_cero < 0.55, "llega a cero en %.3f s" % hasta_cero
 
 
+# --- el reparto de las voces ------------------------------------------------
+
+def _repartir(notas, programas=None):
+    """Las notas con las voces de `assign` —las ocho para todos—: lo que
+    salió y a qué voz fue cada una."""
+    reparto = []
+    programas = programas or {c: PIANO for c in range(16)
+                              if c != midi.DRUM_CHANNEL}
+    frames = snes_music.build_events(notas, snes_music.assign(notas),
+                                     programas, _Banco(), (), reparto)
+    return _salen(frames, max(n.end for n in notas) + 10), reparto
+
+
+def test_un_acorde_suena_entero_aunque_haya_mas_canales_que_voces():
+    """Siete canales melódicos y la batería, que se turnan, y el canal 0
+    toca un acorde de cuatro. Con el reparto fijo por canal —hasta el
+    2026-09-26— la batería se llevaba dos voces, los seis canales más
+    ocupados una cada uno, el séptimo ninguna, y del acorde sonaba una nota:
+    en `escape_newyork` eran los acordes de las cuerdas y del polysynth, y el
+    clavinet y la onda cuadrada, que no sonaban nunca."""
+    notas = [_nota(100 * c, 100 * c + 50, c) for c in range(7)]
+    notas += [_nota(700, 750, midi.DRUM_CHANNEL, BOMBO)]
+    notas += [_nota(800, 900, 0, 60 + k) for k in (0, 4, 7, 12)]
+    salen, reparto = _repartir(notas)
+    sin_voz = [(n.channel, n.pitch) for n, v, _r in reparto if v is None]
+    assert not sin_voz, "notas sin voz con voces libres: %s" % sin_voz
+    kon, _release = _leer(salen)
+    en_el_acorde = [v for v, cuadros in kon.items() if 800 in cuadros]
+    assert len(en_el_acorde) == 4, (
+        "del acorde de cuatro suenan %d voces: %s" % (len(en_el_acorde),
+                                                       sorted(en_el_acorde)))
+
+
+def test_ninguna_nota_se_queda_sin_voz_si_hay_una_libre():
+    """Un tema al azar, con más polifonía que voces a ratos: una nota que no
+    consigue voz sólo puede ser una que llega con las ocho sostenidas."""
+    import random
+    azar = random.Random(5)
+    notas = []
+    for _ in range(400):
+        inicio = azar.randrange(0, 2000)
+        canal = azar.choice([0, 1, 2, 3, 4, 5, 6, 7, 8, midi.DRUM_CHANNEL])
+        tecla = BOMBO if canal == midi.DRUM_CHANNEL else azar.randrange(40, 90)
+        nota = midi.Note(inicio, canal, tecla, azar.randrange(20, 128))
+        nota.end = inicio + azar.randrange(1, 120)
+        notas.append(nota)
+    _salen_, reparto = _repartir(notas)
+    assert any(v is None for _n, v, _r in reparto), (
+        "el caso no llega a pasar de ocho voces: no prueba nada")
+
+    def sostenida(n, v, robada, t):
+        # Quién sostiene una voz en `t`: arrancó antes, no terminó y no se la
+        # robaron. La batería suelta la voz con el fin de la nota en el MIDI
+        # —el `_Muestra` de acá dura un segundo, más que cualquier nota—.
+        return (v is not None and n.start <= t < n.end
+                and (robada is None or robada > t))
+    for nota, voz, _r in reparto:
+        if voz is not None:
+            continue
+        t = nota.start
+        ocupadas = {v for n, v, r in reparto if sostenida(n, v, r, t)}
+        assert len(ocupadas) == sdsp.VOICES, (
+            "la nota de las %d del canal %d no sonó con %d voces sostenidas"
+            % (t, nota.channel, len(ocupadas)))
+
+
+def test_se_le_roba_a_la_mas_debil_y_no_a_la_ultima_de_un_canal():
+    """Las ocho sostenidas: el canal 0 con siete notas, una de ellas suave, y
+    el canal 1 con una sola, la más suave de todas. La nota nueva del canal 2
+    le roba la voz a la suave del canal 0: robarle al canal 1 lo dejaría
+    mudo. Es la regla del prototipo, la de la variante que taro escuchó."""
+    notas = [_nota(0, 500, 0, 60 + k) for k in range(6)]
+    suave = midi.Note(0, 0, 70, 40)
+    suave.end = 500
+    solita = midi.Note(0, 1, 50, 30)
+    solita.end = 500
+    nueva = _nota(100, 200, 2, 80)
+    _salen_, reparto = _repartir(notas + [suave, solita, nueva])
+    voz = {id(n): (v, r) for n, v, r in reparto}
+    assert voz[id(nueva)][0] == voz[id(suave)][0], (
+        "la nota nueva tomó la voz %s y la suave del canal 0 era la %s"
+        % (voz[id(nueva)][0], voz[id(suave)][0]))
+    assert voz[id(suave)][1] == 100 and voz[id(solita)][1] is None
+
+
 # --- velocidad y controladores ----------------------------------------------
 
 def _control(cuadro, numero, valor, canal=0):
@@ -183,9 +268,8 @@ def _control(cuadro, numero, valor, canal=0):
 
 def _armar_con(notas, controles, voces=None):
     voces = voces or {0: [0]}
-    drums = set(voces.get(midi.DRUM_CHANNEL, []))
-    frames = snes_music.build_events(notas, voces, {0: PIANO}, drums,
-                                     _Banco(), controles)
+    frames = snes_music.build_events(notas, voces, {0: PIANO}, _Banco(),
+                                     controles)
     return _salen(frames, max(n.end for n in notas) + 10)
 
 
@@ -287,9 +371,8 @@ def test_un_control_no_toca_la_voz_de_otro_canal_ni_la_de_la_bateria():
     bombo = midi.Note(0, midi.DRUM_CHANNEL, BOMBO, 127)
     bombo.end = 100
     voces = {0: [0], 1: [1], midi.DRUM_CHANNEL: [6]}
-    drums = {6}
     frames = snes_music.build_events(
-        [melodia, otra, bombo], voces, {0: PIANO, 1: PIANO}, drums, _Banco(),
+        [melodia, otra, bombo], voces, {0: PIANO, 1: PIANO}, _Banco(),
         [_control(40, midi.VOLUME, 50, 0),
          _control(40, midi.BEND, 2.0, midi.DRUM_CHANNEL)])
     salen = _salen(frames, 110)

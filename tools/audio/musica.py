@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Del MIDI a notas y voces: lo que las dos consolas hacen igual.
 
-Cuánto dura cada nota, cuántas voces pide un canal, cómo repartir un
-presupuesto de voces entre canales y cuánto de lo que suena llegamos a tocar.
+Cuánto dura cada nota y cuántas suenan a la vez. Hasta el 2026-09-26 también
+repartía un presupuesto de voces entre canales —`share_voices`—, que se fue
+con el reparto fijo: ver `assign` en `snes_music.py`.
 Nada de esto depende del chip: el YM2612 pide construir el timbre con cuatro
 operadores y el S-DSP pide una forma de onda, pero antes de eso el problema es
 el mismo.
@@ -33,41 +34,6 @@ def note_time(notes):
         playing += edges[at]
         previous = at
     return spans
-
-
-def coverage(spans, voices):
-    """Qué fracción del tiempo-nota se reproduce con esa cantidad de voces."""
-    total = sum(count * span for count, span in spans.items())
-    if not total:
-        return 1.0
-    return sum(min(count, voices) * span for count, span in spans.items()) / total
-
-
-def share_voices(channels, budget):
-    """Reparte las voces de a una, siempre a la que más cobertura gane.
-
-    Se pondera por cuánto suena cada canal: ganar diez puntos en el que lleva
-    la melodía vale más que ganarlos en uno que aparece dos veces.
-    """
-    if not channels:
-        return {}
-
-    given = {channel: 1 for channel in channels}
-    weight = {channel: sum(c * s for c, s in spans.items())
-              for channel, spans in channels.items()}
-
-    while sum(given.values()) < budget:
-        def gain(channel):
-            spans = channels[channel]
-            return weight[channel] * (coverage(spans, given[channel] + 1)
-                                      - coverage(spans, given[channel]))
-
-        best = max(channels, key=gain)
-        if gain(best) <= 0:
-            break
-        given[best] += 1
-    return given
-
 
 
 def timeline(notes, tempos, division):

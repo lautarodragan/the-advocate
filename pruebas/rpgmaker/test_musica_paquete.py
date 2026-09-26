@@ -176,10 +176,11 @@ def test_un_tema_que_no_aporta_pierde_notas_y_la_ROM_lo_dice():
     devuelva. Es el lever con el que se decide de oído entre los primeros temas
     perfectos y todos completos pero más chillones.
 
-    **Ojo con medirlo con `coverage`**, que es el otro número del resumen: ése
-    mide polifonía y da exactamente lo mismo con el banco compartido que con el
-    banco propio, así que con él parecía que compartir no costaba nada. Son dos
-    preguntas distintas y por eso van las dos.
+    **Ojo con medirlo con `perdido`**, que es el otro número del resumen —hasta
+    el 2026-09-26, `coverage`—: ése mide polifonía, sobre las notas que sí
+    tienen muestra, así que no ve lo que el banco se lleva; con él parecía que
+    compartir no costaba nada. Son dos preguntas distintas y por eso van las
+    dos.
     """
     from audio import snes_music
 

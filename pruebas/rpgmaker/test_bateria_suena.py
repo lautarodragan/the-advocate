@@ -1,5 +1,5 @@
-"""Que lo que la música les escribe a las voces 6 y 7 —las de la batería— les
-llegue.
+"""Que lo que la música les escribe a las voces 6 y 7 —las de la batería hasta
+el 2026-09-26, y desde entonces las que el reparto le da primero— les llegue.
 
 Esas dos voces las comparte la música con los efectos de sonido, así que
 `dsp_musica` (rom/src/efectos_de_sonido.s) no manda sus escrituras derecho al
