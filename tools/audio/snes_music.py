@@ -488,6 +488,81 @@ def _victima(nota, t, grupo, voces, nivel):
     return v
 
 
+# Los golpes de General MIDI que son el mismo instrumento tocado de otra
+# manera: dos bombos, dos cajas, el charles cerrado, con pedal y abierto, dos
+# platos de choque, dos rides. Un MIDI que los pide juntos está engordando el
+# golpe, no tocando dos —el de batalla pega 35 y 36 en cada tiempo, y 38 y 40
+# en cada caja—. Los toms no: son tambores distintos y un redoble los junta.
+FAMILIAS_DE_GOLPES = {35: "bombo", 36: "bombo", 38: "caja", 40: "caja",
+                      42: "charles", 44: "charles", 46: "charles",
+                      49: "platillo", 57: "platillo", 51: "ride", 59: "ride"}
+
+
+def _orden_del_cuadro(notas, nivel):
+    """En qué orden eligen voz las notas que arrancan en un mismo cuadro:
+    cuando no hay para todas, las últimas son las que se quedan afuera,
+    porque `_victima` no le roba a una nota que arrancó en el cuadro.
+
+    * **Primero los golpes, uno por familia** (`FAMILIAS_DE_GOLPES`), del más
+      fuerte al más suave: duran poco, y son el ritmo.
+    * **Después lo melódico, por su nivel dividido por su lugar en su
+      canal**: la nota más fuerte de cada canal va con su nivel, la segunda
+      con la mitad, la tercera con un tercio. Así la voz de arriba de un
+      acorde va antes que un canal más suave, pero la segunda nota de ese
+      acorde va después, salvo que ese canal sea poco más que un susurro.
+    * **Al final, el golpe repetido de una familia**, que sólo suena si
+      sobra una voz.
+
+    `nivel` es el de cada nota con los controladores del cuadro, izquierda
+    más derecha: el de `_victima`, que es con el que la nota va a sonar.
+
+    Hasta el 2026-09-26 el orden era el de la velocidad, y entre iguales el
+    más grave primero. En el de batalla todo va con velocidad 127, así que
+    los cinco o seis golpes de cada tiempo —dos bombos, dos cajas, charles—,
+    los dos bajos y los metales tomaban las ocho voces antes de que llegara
+    la melodía, que es lo más agudo; y no se le puede robar a una nota del
+    mismo cuadro. De las 536 notas de la voz de arriba de su órgano —el
+    canal 0, el más fuerte de la mezcla por su CC7— 214 no sonaban, y la
+    frase principal (de los 15 a los 22 s) se cortaba una nota sí y otra no.
+    Con el reparto fijo de antes del paso 5 no pasaba: el órgano tenía su
+    voz. Medido con los 32 temas del `release`, con un script descartable:
+
+    * la melodía de la batalla pasa de perder 48% de su tiempo a 0%;
+    * en promedio, el tiempo-nota perdido baja de 7,38% a 7,05%, y los robos
+      de 2.883 a 2.528; la nota más aguda de cada instante se pierde 6,9% del
+      tiempo en vez de 10,7%, la más grave 3,7% en vez de 3,3%; los golpes
+      que no suenan —contando una familia por cuadro— bajan de 0,39% a 0,12%;
+    * el stream baja 3,6 KB, porque hay menos robos y con ellos menos rampas.
+
+    Lo que se probó y no alcanzó, en la tarea
+    (`workflow/tasks/todo/la-calidad-de-la-musica.md`, paso 5b): ordenar por
+    nivel sin más, sin repartir por canal (la melodía pierde 22%); una ronda
+    estricta —cada canal su primera nota antes que cualquiera su segunda—,
+    que salva la melodía igual pero le da voz a las cuerdas de velocidad 29
+    de `escape_newyork` a costa del polysynth; y lo que se hace en
+    `_victima` —no robar una nota recién empezada, un tope de voces para la
+    batería, que los golpes no roben—, que no cambia nada: la melodía no se
+    perdía por robos sino por llegar última a su cuadro.
+    """
+    niveles = {id(n): nivel(n) for n in notas}
+    lugar = {}
+    por_canal = collections.defaultdict(list)
+    for n in notas:
+        por_canal[n.channel].append(n)
+    for canal, ns in por_canal.items():
+        if canal == midi.DRUM_CHANNEL:
+            vistas = set()
+            for n in sorted(ns, key=lambda n: (-niveles[id(n)], n.pitch)):
+                familia = FAMILIAS_DE_GOLPES.get(n.pitch, n.pitch)
+                lugar[id(n)] = (2 if familia in vistas else 0, -niveles[id(n)])
+                vistas.add(familia)
+        else:
+            por_nivel = sorted(ns, key=lambda n: (-niveles[id(n)], -n.pitch))
+            for i, n in enumerate(por_nivel):
+                lugar[id(n)] = (1, -niveles[id(n)] / (1.0 + i))
+    return sorted(notas, key=lambda n: lugar[id(n)] + (n.pitch,))
+
+
 # --- el banco compartido ----------------------------------------------------
 
 class Banco:
@@ -706,6 +781,20 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None):
                     frame[base + sdsp.V_VOL_L] = izquierda
                     frame[base + sdsp.V_VOL_R] = derecha
 
+    def en_orden():
+        """Las notas cuadro por cuadro, cada cuadro en el orden de
+        `_orden_del_cuadro`. Los controladores del cuadro se aplican antes de
+        ordenarlo, porque el orden va por el nivel con que arranca cada nota;
+        y como es un generador, eso pasa recién cuando el cuadro anterior ya
+        repartió sus voces, que es cuando lo hacía cada nota."""
+        por_cuadro = collections.defaultdict(list)
+        for note in notes:
+            por_cuadro[note.start].append(note)
+        for cuadro in sorted(por_cuadro):
+            controlar(cuadro)
+            yield from _orden_del_cuadro(por_cuadro[cuadro], lambda n: sum(
+                lados(n, n.channel == midi.DRUM_CHANNEL)))
+
     # De quién es cada voz ahora: la última nota que la tomó, con hasta
     # cuándo la sostiene y hasta cuándo se oye. El release de una nota se
     # agenda recién al final, y sólo si llegó a su fin siendo la dueña: si
@@ -714,9 +803,7 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None):
     # `escape_newyork` cortadas antes de tiempo, casi todas del bajo.
     voces, owner, robbed, sounded, rampas = {}, {}, {}, [], []
     de_la_voz = {}                  # la entrada de `reparto` de su dueña
-    # Las más fuertes de cada cuadro eligen primero: si el acorde no entra, la
-    # que se queda afuera es la más suave.
-    for note in sorted(notes, key=lambda n: (n.start, -n.velocity, n.pitch)):
+    for note in en_orden():
         group = voices.get(note.channel)
         if not group:
             continue
@@ -729,7 +816,6 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None):
         if source is None:
             continue                    # el banco no trae ese golpe o programa
 
-        controlar(note.start)
         step = altura(note, drums)
         izquierda, derecha = lados(note, drums)
         if drums:

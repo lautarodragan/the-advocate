@@ -910,6 +910,140 @@ grabación más la ganancia; el de hoy, el medido.
 | Deflector1 | +2.4 | 0.379 | -2.4 | -13.0 | -16.9 | -15.4 |
 | MML2_MotherZone | -3.3 | 0.500 | +0.0 | -17.9 | -21.7 | -17.8 |
 
+## 5b. La frase de la batalla, que el reparto cortaba: hecho
+
+taro, el 2026-09-26, escuchando las grabaciones del 5: *"algunos mejoran
+mucho, pero uno empeora: el tema de batalla. [...] la frase principal (que
+empieza en el segundo 15 y termina en el segundo 22, aprox, y luego se
+repite) se interrumpe constantemente, lo cual lo vuelve inescuchable."*
+Hecho el mismo día, en el commit "Música: la melodía de la batalla no llega
+última a su cuadro". El porqué vive en `_orden_del_cuadro` de
+`tools/audio/snes_music.py`.
+
+**Para escuchar**: `/shared/audio/2026-09-26-batalla/`, con su `LEEME.txt`:
+la batalla (47 s: la referencia, antes del reparto, el paso 5 y las dos
+variantes que la arreglan), y `escape_newyork` y el título enteros con el
+paso 5 y las dos variantes.
+
+### El diagnóstico
+
+* **La frase es la voz de arriba de los acordes del órgano**, el canal 0
+  (programa 20): acordes de tres notas —la de arriba con velocidad 127, las
+  otras dos con 100—, que empiezan a los 15,43 s con un acorde de 1,7 s y
+  bajan 72, 71, 69, 67... hasta los 22,2 s, y vuelven a empezar. Es el canal
+  más fuerte de la mezcla: su CC7 lo deja en un nivel de 124 contra 114 del
+  bajo y 82 de la batería. En la pista de MSU-1, el pico del espectro entre
+  300 y 1200 Hz sigue exactamente esa línea (una octava arriba, el segundo
+  armónico del órgano). El canal 1 es un eco: las mismas notas 9 cuadros
+  después, con un tercio del nivel. Los canales 2 y 3 tocan el bajo
+  **nota por nota igual**, con dos programas.
+* **No la cortaba ni el robo ni la rampa: la nota no conseguía voz.** De sus
+  536 notas en todo el tema, 290 sonaban enteras, 32 se las robaban a mitad
+  y **214 no sonaban**; en la frase, 5 de 21 sin voz y 1 robada, una nota sí
+  y otra no (17,57 s, 18,43 s, 21,00 s, 21,65 s, 21,97 s...). El órgano
+  quedaba callado el 48% del tiempo en que el MIDI lo hace sonar (52% en la
+  frase).
+* **Las 214 son el mismo caso**: las ocho voces ya habían arrancado en ese
+  mismo cuadro, y a una nota del cuadro no se le roba. Quién las tenía, en
+  suma sobre los 214 cuadros: la batería 946 voces de 1.712 —4,4 por
+  cuadro—, los dos bajos 214 cada uno, los metales 238, la guitarra 100. En
+  cada tiempo el tema pega cinco o seis golpes juntos —35 y 36, dos bombos;
+  38 y 40, dos cajas; el charles— y todo va con velocidad 127, así que el
+  orden del cuadro —por velocidad y, a la par, el más grave primero— dejaba
+  a la melodía, lo más agudo, para el final.
+* **Con el reparto fijo de antes no pasaba**: el órgano tenía su voz fija y
+  la batería dos, así que el órgano no se callaba nunca (0%), aunque sonara
+  la nota de abajo del acorde y no la de arriba (la de arriba se "perdía" el
+  94%, pero en su voz sonaba otra del mismo acorde, con el mismo ritmo). Lo
+  que se oye como "se interrumpe" es el ritmo: que el canal calle.
+* **Ni un tope de voces para la batería ni proteger las notas recién
+  empezadas cambian nada**: la melodía no se perdía por robos entre cuadros
+  sino por el orden dentro de uno. Lo confirman las grabaciones: en las
+  ventanas de las notas 71 y 67 de la frase, la energía de la melodía es 24%
+  y 10% del total entre 300 y 1200 Hz en el paso 5, contra 80% y 60% con el
+  arreglo y 51% y 48% en la referencia.
+
+### Las variantes
+
+Con un script descartable (`audio-batalla/variantes.py` en el scratchpad),
+que arma los 32 temas del `release` con cada regla. Como en el 5: "perdido"
+es el tiempo-nota perdido en promedio por tema; "pesado", pesado por el
+nivel con que arranca cada nota (con los controladores; el del 5 pesaba por
+la velocidad sola); "arriba" y "abajo", en qué fracción de los cuadros no
+suena la nota más aguda (más grave) de lo melódico que el MIDI tiene
+sonando; "golpes", qué fracción de los golpes no suena, contando una sola
+vez los de una familia en un mismo cuadro —dos bombos juntos son un
+golpe—; "stream", stream más sonidos de los 32. La melodía de la batalla es
+la voz de arriba del canal 0 en todo el tema, y entre paréntesis en la frase.
+
+| Regla | Perdido | Pesado | Robos | Arriba | Abajo | Golpes | Stream | Batalla: melodía perdida (15-22 s) | Órgano callado |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| el reparto fijo por canal, de antes del paso 5 | 19,84% | 19,99% | 13.968 | 11,2% | 10,8% | 2,49% | 283.360 | 94% (91%) | 0% |
+| el paso 5: por velocidad, y a la par el más grave primero | 7,38% | 6,06% | 2.883 | 10,7% | 3,3% | 0,39% | 322.752 | 48% (52%) | 48% |
+| paso 5, y una nota con menos de 4 cuadros no se roba | 7,39% | 6,06% | 2.124 | 10,6% | 3,4% | 0,44% | 319.527 | 56% (57%) | 56% |
+| ídem, 8 cuadros | 7,42% | 6,10% | 1.760 | 10,7% | 3,3% | 0,52% | 317.748 | 73% (63%) | 73% |
+| paso 5, y la batería sostiene a lo sumo 2 voces | 7,31% | 6,00% | 2.811 | 10,7% | 3,3% | 0,64% | 322.764 | 48% (52%) | 48% |
+| ídem, 3 voces | 7,33% | 6,02% | 2.851 | 10,7% | 3,3% | 0,52% | 322.833 | 48% (52%) | 48% |
+| paso 5, y una nota de menos de 8 cuadros no roba | 6,94% | 5,76% | 1.559 | 9,8% | 3,1% | 2,58% | 308.736 | 25% (20%) | 25% |
+| paso 5, y un golpe no le roba a lo melódico | 7,08% | 5,77% | 2.728 | 10,4% | 3,2% | 2,29% | 322.102 | 48% (52%) | 48% |
+| paso 5, y el golpe repetido de una familia al final del cuadro | 7,09% | 5,79% | 2.815 | 9,4% | 3,1% | 0,35% | 323.081 | 31% (23%) | 31% |
+| por nivel (con el CC7) en vez de velocidad | 7,06% | 5,60% | 3.051 | 8,3% | 3,3% | 2,52% | 326.081 | 22% (29%) | 22% |
+| por nivel, y el golpe repetido al final | 6,90% | 5,48% | 3.064 | 7,4% | 3,3% | 2,14% | 326.174 | 22% (29%) | 22% |
+| ronda: la primera de cada canal antes que la segunda de cualquiera | 6,92% | 5,97% | 1.998 | 4,4% | 3,7% | 2,54% | 315.482 | 0% (0%) | 0% |
+| golpes primero, lo melódico por nivel / lugar en su canal | 7,39% | 6,12% | 2.761 | 7,5% | 3,9% | 0,15% | 320.540 | 25% (34%) | 25% |
+| **ronda** por nivel, cada familia de golpes un canal, golpes primero a la par, repetidos al final | 6,94% | 5,91% | 2.511 | 5,6% | 3,7% | 0,18% | 318.665 | 0% (0%) | 0% |
+| **nivel y lugar** (la que quedó): golpes primero uno por familia, lo melódico por nivel / lugar, repetidos al final | 7,05% | 5,82% | 2.528 | 6,9% | 3,7% | 0,12% | 319.160 | 0% (0%) | 0% |
+| nivel y lugar, y el golpe repetido no roba | 6,91% | 5,73% | 2.446 | 6,7% | 3,6% | 0,12% | 318.586 | 0% (0%) | 0% |
+
+* **Lo que decide es el orden del cuadro, no a quién se roba.** Todo lo que
+  se hace en `_victima` —no robar lo recién empezado, un tope para la
+  batería, que los golpes no roben, que lo corto no robe— deja la melodía
+  igual o peor. La idea de detectar el canal de la melodía (el registro, el
+  volumen, el que más suena solo) no hizo falta: ordenar por el nivel real
+  ya la pone primera, porque es lo más fuerte.
+* **La ronda estricta** salva la melodía, pero le cuesta a la batería
+  (golpes 2,54%; la de la batalla pierde el 44% de sus golpes) si la
+  batería es un canal más; con cada familia como un canal, 0,18%. Y en
+  `escape_newyork` les da voz a las cuerdas de velocidad 29 —nivel 6, casi
+  inaudibles— a costa del polysynth (nivel 36): el pesado de ese tema sube
+  de 24,7% a 28,1%.
+* **Nivel y lugar** —la elegida— es la ronda sin ese defecto: la segunda
+  nota de un canal vale la mitad de su nivel, así que va antes que la
+  primera de un canal que suena a menos de la mitad. Contra el paso 5:
+  perdido 7,38% → 7,05%, robos 2.883 → 2.528, arriba 10,7% → 6,9%, golpes
+  0,39% → 0,12%; lo que empeora es abajo, 3,3% → 3,7%. Por tema, lo que
+  cambia: la batalla 48,9% → 47,0% (su batería pierde el 30% del tiempo de
+  golpe, casi todo el segundo bombo y la segunda caja: por familia, 0,1%);
+  `evilrhys` 33,6% → 29,4%; `Lunar_Pyramid` 18,9% → 14,0%; `escape_newyork`
+  40,8% → 39,7% y sus golpes 6,9% → 3,3%; `11h035` 8,9% → 10,3% y
+  `pn28year` pierde más el bajo (abajo 55,9% → 64,5%, con un piso de 50%).
+  `cd4`, `vswar` y `Gaden` siguen en 0%.
+* **Que el golpe repetido no robe** gana un poco más (6,91%, 2.446 robos)
+  pero es una regla más en `_victima`: no entró. Las dos que quedan parejas
+  para elegir escuchando son nivel y lugar (implementada) y la ronda (en las
+  grabaciones, `-3-ronda`; es cambiar la clave de `_orden_del_cuadro`).
+
+### Bytes, ciclos y la prueba
+
+* **Stream: de 322.752 a 319.160 B** en los 32 temas (la batalla 72.203 →
+  69.613): menos robos, menos rampas. El `release` usa 3,6 KB menos; el
+  banco 0 no cambia (1.168 B libres).
+* **Ciclos**, con la sonda del paso 4 en snes9x, cada tema entero desde su
+  vuelta al principio: **el peor cuadro sigue en 100 líneas** —la vuelta al
+  principio de la batalla—, el peor a mitad de un tema (sin los últimos 31
+  cuadros) baja de 91 a 90, y la música ocupa 1,2% menos líneas en total.
+  Lo que más sube es `cd2` (61 → 68) y `3D-Galax` (38 → 44), que no pierden
+  nada pero reparten las voces en otro orden.
+* **La prueba**: `test_la_melodia_de_la_batalla_no_pierde_notas`
+  (`pruebas/rpgmaker/test_musica_reparto.py`) arma el tema y pide que cada
+  nota de la voz de arriba del canal 0 suene entera, en todo el tema; con la
+  regla del paso 5 da rojo con 214 + 32. Y
+  `test_la_voz_de_arriba_del_acorde_no_llega_ultima_a_su_cuadro`
+  (`pruebas/herramientas/test_musica_stream.py`), el caso armado a mano:
+  once notas en un cuadro, cinco golpes de tres familias, y afuera quedan
+  el segundo bombo, la segunda caja y la nota de abajo del acorde; con la
+  regla del paso 5 el que queda afuera es el acorde entero.
+
 ## 6. Las muestras: presupuesto por paquete y zonas
 
 Es lo que más cambia el sonido (el 10 solo ya se acerca más que el 07) y lo

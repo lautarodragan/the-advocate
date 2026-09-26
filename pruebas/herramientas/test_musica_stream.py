@@ -268,6 +268,40 @@ def test_se_le_roba_a_la_mas_debil_y_no_a_la_ultima_de_un_canal():
     assert voz[id(suave)][1] == 100 and voz[id(solita)][1] is None
 
 
+def test_la_voz_de_arriba_del_acorde_no_llega_ultima_a_su_cuadro():
+    """Once notas en el mismo cuadro, todas con la misma velocidad: cinco
+    golpes —dos bombos, dos cajas y el charles—, tres canales de una nota y
+    el acorde de tres del canal 0. Primero van los golpes, uno por familia;
+    después lo melódico, la nota más fuerte de cada canal antes que la
+    segunda de cualquiera; al final los golpes repetidos. Afuera quedan el
+    segundo bombo, la segunda caja y la nota de abajo del acorde.
+
+    Hasta el 2026-09-26 el orden era la velocidad y, a la par, el más grave
+    primero: la voz de arriba del acorde —la melodía— llegaba última y no
+    conseguía voz, porque no se le roba a una nota que arrancó en el mismo
+    cuadro. En el de batalla eran 214 de las 536 notas de su melodía."""
+    class _BancoConBateria(_Banco):
+        def __init__(self):
+            super().__init__()
+            for tecla in (35, 38, 40, 42):
+                self.golpes[tecla] = len(self.voces)
+                self.voces.append(_Muestra(tecla))
+
+    notas = [_nota(0, 30, midi.DRUM_CHANNEL, tecla)
+             for tecla in (35, 36, 38, 40, 42)]
+    notas += [_nota(0, 100, canal, tecla)
+              for canal, tecla in ((1, 40), (2, 45), (3, 50))]
+    notas += [_nota(0, 100, 0, tecla) for tecla in (64, 67, 72)]
+    reparto = []
+    snes_music.build_events(notas, snes_music.assign(notas),
+                            {c: PIANO for c in range(4)}, _BancoConBateria(),
+                            (), reparto)
+    sin_voz = sorted((n.channel, n.pitch) for n, v, _r, _f in reparto
+                     if v is None)
+    assert sin_voz == [(0, 64), (midi.DRUM_CHANNEL, 36),
+                       (midi.DRUM_CHANNEL, 40)], sin_voz
+
+
 def test_la_voz_que_suena_se_baja_un_cuadro_antes_de_robarla():
     """Una voz, dos notas: la segunda le roba la voz a la primera mientras
     suena. En el cuadro de antes la voz tiene que bajar con la rampa —ADSR1
