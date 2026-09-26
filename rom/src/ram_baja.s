@@ -496,9 +496,7 @@ dest_tab_r:  .res 32    ; las tres tablas, de 32 bytes cada una
 dest_tab_g:  .res 32
 dest_tab_b:  .res 32
 dest_nivel:  .res 1
-dest_hacia:  .res 1
-dest_v:      .res 1
-dest_d:      .res 1
+dest_hacia:  .res 2    ; de dieciséis bits: se suma a un índice
 dest_fin:    .res 2
 ; Cuántas poses puede subir `vram_drenar` este vblank: VQ_POR_CUADRO, salvo
 ; que el tinte ya se haya llevado parte del presupuesto.
