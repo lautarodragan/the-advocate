@@ -84,7 +84,6 @@ TEXTO_BUF_BYTES = VENTANA_TEXTO_COLS * 2 * 32
 .include "interprete_cronometro.s"
 .include "interprete_musica.s"
 .include "interprete_guardar.s"
-.include "interprete_esperar_rutas.s"
 .include "interprete_variables.s"
 .include "interprete_grupo.s"
 .include "interprete_game_over.s"
