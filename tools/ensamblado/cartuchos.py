@@ -117,6 +117,11 @@ def huella():
     for ruta in archivos_de_la_huella():
         with open(ruta, "rb") as archivo:
             h.update(archivo.read())
+    # Y el techo de cada tema, que cambia los streams: por sus valores y no
+    # por el archivo, porque `just techos` lo reescribe con lo que midió —el
+    # pico, la huella de la mezcla— después de armar, y eso no cambia la ROM.
+    from audio import snes_music
+    h.update(repr(sorted(snes_music.leer_techos().items())).encode())
     return h.hexdigest()[:16]
 
 
@@ -242,10 +247,19 @@ def armar(nombre, fuentes):
     """Convierte y ensambla el cartucho, si no está al día. Dice si lo armó."""
     if not viejo(nombre, fuentes):
         return False
+    convertir(nombre, directorio(nombre), rom_de(nombre))
+    with open(_archivo(nombre, "sello.txt"), "w") as archivo:
+        archivo.write(sello(nombre, fuentes))
+    return True
+
+
+def convertir(nombre, destino, sfc, extra=()):
+    """Convierte y ensambla el cartucho en `destino`, sin sello y aunque esté
+    al día. `extra` son flags de más para el conversor: `tools/audio/techos.py`
+    arma así una copia de `release` con otro volumen, sin tocar la de verdad."""
     flags, _casos = CARTUCHOS[nombre]
-    destino = directorio(nombre)
     os.makedirs(destino, exist_ok=True)
-    sfc = rom_de(nombre)
+    log = os.path.join(destino, "conversor.log")
     # Los casos van al final: detrás de un `--caso`, cualquier flag del
     # cartucho sería de ese caso, y el conversor lo rechaza.
     de_casos = []
@@ -253,23 +267,19 @@ def armar(nombre, fuentes):
         de_casos += (["--caso"] if k else []) + [
             "--comandos-de-prueba",
             os.path.join("pruebas", "casos", caso + ".json")]
-    convertir = ([sys.executable, os.path.join(RAIZ, "tools", "port",
-                                               "snes_convert.py"),
-                  "-o", _archivo(nombre, "mapdata.inc"),
-                  "--msu", msu_de(nombre)] + flags + de_casos)
-    hecho = subprocess.run(convertir, cwd=RAIZ, capture_output=True,
-                           text=True)
-    with open(_archivo(nombre, "conversor.log"), "w") as archivo:
+    orden = ([sys.executable, os.path.join(RAIZ, "tools", "port",
+                                           "snes_convert.py"),
+              "-o", os.path.join(destino, "mapdata.inc"),
+              "--msu", os.path.splitext(sfc)[0] + ".msu"]
+             + flags + list(extra) + de_casos)
+    hecho = subprocess.run(orden, cwd=RAIZ, capture_output=True, text=True)
+    with open(log, "w") as archivo:
         archivo.write(hecho.stdout + hecho.stderr)
     if hecho.returncode:
         sys.stderr.write(hecho.stdout[-3000:] + hecho.stderr)
-        sys.exit("%s: el conversor falló; todo está en %s"
-                 % (nombre, _archivo(nombre, "conversor.log")))
+        sys.exit("%s: el conversor falló; todo está en %s" % (nombre, log))
     ensamblar.ensamblar(os.path.join(RAIZ, "rom", "src", "main.s"),
                         destino, sfc, sfc + ".sym")
-    with open(_archivo(nombre, "sello.txt"), "w") as archivo:
-        archivo.write(sello(nombre, fuentes))
-    return True
 
 
 def main():

@@ -216,8 +216,9 @@ def pitch_for(note, root, rate, length=None):
 # alcanzó: los 16 seguían recortando, hzbreach 107.218 muestras. Con 0,5
 # recortan cinco, a lo sumo 858 muestras (hzbreach), y el nivel baja unos
 # 3,6 dB donde antes no recortaba —`escape_newyork` sale a -17,3 LUFS—.
-# Para bajar más sin perder nivel hace falta un techo por tema: la tabla y
-# lo que costaría están en `workflow/tasks/todo/la-calidad-de-la-musica.md`.
+# **Y es el techo, no el de todos**: desde el 2026-09-26 el tema que con 0,5
+# recortaría va con uno más bajo, el suyo, medido y versionado —ver
+# `leer_techos` en snes_music.py—. Lo que no recorta queda en 0,5.
 AIRE = 0.5
 MASTER = min(0x7F, int(round(0x60 / AIRE)))
 CEILING = int(round(96 * AIRE))

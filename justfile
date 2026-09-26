@@ -208,6 +208,18 @@ parches: (build "release")
 parches-check *builds:
   python3 tools/port/parches.py {{builds}} --check
 
+# **El techo de volumen de cada tema**, medido: arma una copia de `release`
+# con todos los temas a medio volumen, toca cada uno entero en snes9x, le da el
+# más alto que no recorta y escribe `parches/auto/musica/techos.toml`; después
+# rearma `release` con la tabla y lo vuelve a medir. Unos cuatro minutos. Es
+# deliberado como `parches`: lo que se mira es el diff de la tabla, y hay que
+# correrlo con cada cambio de la mezcla —las muestras, las envolventes, el
+# reparto—, que es cuando `test_musica_techos.py` avisa que quedó vieja. El
+# porqué, en `leer_techos` de tools/audio/snes_music.py. `--medir` sólo mide
+# el `release` armado, sin escribir nada: recortes, pico y LUFS por tema.
+techos *args:
+  python3 tools/audio/techos.py {{args}}
+
 # Arma un cartucho por nombre, si no está al día:
 #
 #     release        la ROM que taro juega y la que corre casi toda la tanda,
