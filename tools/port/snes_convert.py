@@ -384,12 +384,15 @@ def sprite_colors(image, index, poses=None):
     base_x = (index % 4) * SPRITE_W * 3
     base_y = (index // 4) * SPRITE_H * 4
     counts = collections.Counter()
+    # `load()` y no `getpixel`: lee lo mismo, pero `getpixel` paga un
+    # `load()` por pixel, y acá se leen millones por ROM.
+    pixeles = image.load()
     for pose in (sorted(TODAS_LAS_POSES) if poses is None else sorted(poses)):
         ox = base_x + (pose % 3) * SPRITE_W
         oy = base_y + (pose // 3) * SPRITE_H
         for y in range(SPRITE_H):
             for x in range(SPRITE_W):
-                red, green, blue, alpha = image.getpixel((ox + x, oy + y))
+                red, green, blue, alpha = pixeles[ox + x, oy + y]
                 if alpha:
                     counts[(red >> 3, green >> 3, blue >> 3)] += 1
     return counts
@@ -464,6 +467,7 @@ def pose_tiles(image, index, pose, lookup, mapping):
     por eso una pose se sube con cuatro DMA de 128 bytes.
     """
     ox, oy = pose_origin(index, pose)
+    pixeles = image.load()          # ver `sprite_colors`
     out = []
     for ty in range(4):
         for tx in range(4):
@@ -474,7 +478,7 @@ def pose_tiles(image, index, pose, lookup, mapping):
                     sx = tx * CELL + x - (OBJ_W - SPRITE_W) // 2
                     sy = ty * CELL + y
                     if 0 <= sx < SPRITE_W and 0 <= sy < SPRITE_H:
-                        r, g, b, a = image.getpixel((ox + sx, oy + sy))
+                        r, g, b, a = pixeles[ox + sx, oy + sy]
                         row.append(lookup[mapping[(r >> 3, g >> 3,
                                                    b >> 3)]] if a else 0)
                     else:
