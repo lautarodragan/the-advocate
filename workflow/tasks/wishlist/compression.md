@@ -25,3 +25,7 @@ donde mirar es un RLE sobre la grilla de bloques, no los ceros de la capa.
 
 Comprimir mapas tiene un desafío extra, porque los stremeamos en vivo del
 cartucho, y cambiarles el formato afectaría el acceso aleatorio.
+
+**Medido por clase y algoritmo, con el costo de descomprimir cada cosa y el
+orden en que conviene hacerlo**: `tasks/todo/la-compresion-de-mapas-y-graficos.md`,
+del 2026-09-26. Las animaciones de batalla ya se guardan sin sus tiles vacíos.

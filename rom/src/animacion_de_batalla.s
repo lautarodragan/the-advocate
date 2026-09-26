@@ -167,6 +167,8 @@ ANIMB_N      = $7E3611          ; cuántos cuadros tiene, palabra
 ANIMB_SUBIR  = $7E3613          ; hay un cuadro esperando el vblank
 ANIMB_PAL    = $7E3614          ; y una paleta
 ANIMB_I      = $7E3615          ; cuál de los cuatro objetos se está armando
+ANIMB_PREV   = $7E3616          ; tres bytes: el último cuadro armado en
+                                ; ANIMB_BUF, con el banco en 0 si no hay
 
 ; El reparto de este mapa, al cargarlo. El byte es 0 —"acá no se dibuja"— o el
 ; bit 7 prendido con el bloque de 64 tiles y la paleta, de tres bits cada uno.
@@ -174,6 +176,7 @@ ANIMB_I      = $7E3615          ; cuál de los cuatro objetos se está armando
 .proc animacion_dibujo_mapa
 .a8
 .i16
+    jsl f:anim_buf_limpiar      ; con la pantalla apagada, donde no se nota
     lda #0
     sta f:ANIMB_ACTIVA
     sta f:ANIMB_SUBIR
@@ -377,6 +380,9 @@ sigue:
 .a8
     lda #1
     sta f:ANIMB_SUBIR           ; el vblank que viene lo manda a la VRAM
+    ; Y se arma ya, acá afuera: el vblank sólo copia. No hay carrera con el
+    ; DMA porque el lazo sube lo pendiente antes de volver a llamar a esto.
+    jsl f:anim_cuadro_armar + RAPIDO   ; desde el espejo rápido: ver MEMSEL
     rep #$20
 .a16
 igual:
@@ -395,20 +401,11 @@ igual:
 .proc animacion_dibujo_dma
 .a8
 .i16
-    ; Qué cuadro: el primero de esta animación más el que toca, y de ahí su
-    ; puntero de 24 bits. Van uno por cuadro y no un bloque seguido por
-    ; animación porque 28 cuadros son 57 KB y un banco tiene 32.
+    ; De la RAM lejana y no del cartucho: el cuadro ya lo armó
+    ; `anim_cuadro_armar` cuando el tick lo eligió.
     rep #$20
 .a16
-    lda f:ANIMB_FILA
-    tax
-    lda f:anim_batalla_tabla + 4, x
-    clc
-    adc f:ANIMB_CUADRO
-    asl a
-    asl a                       ; cuatro bytes por puntero
-    tax
-    lda f:anim_batalla_cuadros, x
+    lda #.loword(ANIMB_BUF)
     sta A1T0L
     lda f:ANIMB_VRAM
     sta VMADDL
@@ -416,7 +413,7 @@ igual:
     sta DAS0L
     sep #$20
 .a8
-    lda f:anim_batalla_cuadros + 2, x
+    lda #^ANIMB_BUF
     sta A1B0
     lda #$80                    ; de a palabra, incrementando en $2119
     sta VMAIN

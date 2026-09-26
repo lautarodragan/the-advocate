@@ -84,6 +84,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_comandos_golden.py`: los comandos sueltos de página —texto,
   tecla, variables, destello, tinte, timer, pan, sacudir, animación, ventana,
   espera y las ramas de ítem y de actor—
+* `rpgmaker/test_animacion_cuadros.py`: cada cuadro de cada animación de
+  batalla llega entero a la caja de la VRAM, aunque el cartucho lo guarde sin
+  sus tiles vacíos
 * `rpgmaker/test_hablar_golden.py`: hablarle a algo: condiciones, giro, cola
 * `rpgmaker/test_condicional.py`: `ConditionalBranch`
 * `rpgmaker/test_rama_grupo.py`: `ConditionalBranch` "¿está en el grupo?"
