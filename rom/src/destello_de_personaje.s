@@ -245,9 +245,9 @@ listo:
     ; La paleta armada se guarda aparte y se sube en el vblank que viene, no
     ; acá. Escribir CGRAM en mitad del cuadro deja la mitad de arriba de la
     ; pantalla con la paleta vieja y la de abajo con la nueva: el sprite sale
-    ; con un nivel y el resto con otro, y la referencia no modela eso. Es la
-    ; misma razón por la que el tinte apaga la pantalla para aplicarse. Cada
-    ; ranura en su lugar de FAR_FLASH_PAL: ver ahí.
+    ; con un nivel y el resto con otro. Es la misma razón por la que el tinte
+    ; apaga la pantalla para aplicarse. Cada ranura en su lugar de
+    ; FAR_FLASH_PAL: ver ahí.
     rep #$20
 .a16
     lda flash_ranura
@@ -325,20 +325,15 @@ copiar:
 ; una comparación: hace falta una captura de EasyRPG tomada durante un destello.
 ;
 ; **Y va antes del tinte, no después.** easyrpg hace al revés —`ToneBlit` y
-; después `BlendBlit`— pero allá el tono es del sprite y acá el tinte se aplica
-; a la pantalla entera al final, del lado de la referencia. Con el tinte neutro
-; da lo mismo; con tinte, los dos lados hacen `tinte(destello(c))` y RM2k
-; `destello(tono(c))`. Es otra deuda declarada del mismo tipo que la de los
-; cinco bits, y la única que se ve es en una página que tiña y destelle a la vez.
+; después `BlendBlit`— pero allá el tono es del sprite y acá el tinte es de la
+; pantalla entera. Con el tinte neutro da lo mismo; con tinte, la ROM hace
+; `tinte(destello(c))` y RM2k `destello(tono(c))`. Es otra deuda declarada del
+; mismo tipo que la de los cinco bits, y la única que se ve es en una página
+; que tiña y destelle a la vez.
 ;
-; **Con saturación se suma una segunda de la misma familia.** `armar_paleta`
-; satura el color crudo, antes de esta mezcla, porque la saturación necesita los
-; tres canales juntos y esta tabla es de a uno; la referencia satura al final,
-; sobre el pixel ya destellado. O sea `hardlight(destello(saturar(c)))` contra
-; `hardlight(saturar(destello(c)))`. Medido con `snes-destello` y el tinte
-; `12 0 0 50 0`: 49 pixeles de 57344 en el cuadro 25, todos de un valor de 31.
-; Sin destello o sin saturación no hay diferencia, y ninguna página del juego
-; combina las dos cosas hoy.
+; **La saturación va antes de esta mezcla**: `armar_paleta` satura el color
+; crudo, porque la saturación necesita los tres canales juntos y esta tabla es
+; de a uno. Es el orden de RM2k, donde saturar es parte de `ToneBlit`.
 .proc tabla_canal_flash
 .a8
 .i16

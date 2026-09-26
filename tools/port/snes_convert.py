@@ -174,9 +174,9 @@ FUENTE_ANCHO, FUENTE_ALTO = 6, 12
 # caminar por debajo.
 #
 # Estos dos valores son los únicos del programa: la ROM recibe el del héroe en
-# HERO_PRIORITY y el de cada NPC viene armado en su byte de atributos. Tenerlos
-# escritos también en `rom/src/` fue lo que dejó que este error sobreviviera a la
-# primera comparación: los dos lados se equivocaron igual y dio cero.
+# HERO_PRIORITY y el de cada NPC viene armado en su byte de atributos. No se
+# escriben también en `rom/src/`: una segunda copia es un lugar más donde
+# equivocarse sin que nada lo note.
 OBJ_PRIORITY = 0x10                      # prioridad 1: debajo de BG2 1
 OBJ_PRIORITY_ABOVE = 0x20                # prioridad 2: por encima
 
@@ -185,8 +185,7 @@ OBJ_PRIORITY_ABOVE = 0x20                # prioridad 2: por encima
 # no tiene nada y más allá de sus bordes, y desde el 2026-09-05 eso se ve: la
 # sacudida de pantalla asoma lo que hay a los costados. Antes era magenta, un
 # centinela para el ojo —"si asoma dentro de la pantalla es que algo está
-# mal"—; la comparación contra la referencia no lo necesita, porque los dos
-# lados lo pintan con esta misma constante.
+# mal"—.
 BACKDROP = (0, 0, 0)
 
 
@@ -877,13 +876,12 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
     un portal negro—, así que dibujar los que entran y avisar de los que no es
     estrictamente mejor.
 
-    La regla es una sola y la corren los dos lados con esta función: primero
-    se reparten los líderes posibles, los NPCs con CharSet y los gráficos a los
-    que las rutas cambian con la orden 34 —que son un personaje más, con su
-    paleta—, en el orden del mapa y con el mismo primer-lugar-que-entre de
-    `build_characters`; después los tiles, en el orden del mapa, cada uno
-    mientras quepa. Devuelve la lista
-    de NPCs que se dibujan y la de los (evento, tile) que quedaron afuera.
+    La regla es una sola: primero se reparten los líderes posibles, los NPCs
+    con CharSet y los gráficos a los que las rutas cambian con la orden 34 —que
+    son un personaje más, con su paleta—, en el orden del mapa y con el mismo
+    primer-lugar-que-entre de `build_characters`; después los tiles, en el
+    orden del mapa, cada uno mientras quepa. Devuelve la lista de NPCs que se
+    dibujan y la de los (evento, tile) que quedaron afuera.
     Un tile que quedó afuera no se dibuja, pero su evento sigue ahí: cierra el
     paso y dispara igual.
     """
@@ -895,9 +893,9 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
     # Las paletas de los líderes posibles. **Nadie más se mete ahí**, y no es
     # por prolijidad: el destello de un evento —`FlashSprite`— en la consola es
     # un tinte de CGRAM, así que tiñe la paleta entera y con ella todo lo que la
-    # comparta. La referencia, en cambio, lo aplica sobre la imagen del sprite,
-    # que es lo que hace RM2k; o sea que compartir la paleta del héroe es una
-    # diferencia real entre los dos lados y no un detalle de empaquetado.
+    # comparta. RM2k, en cambio, lo aplica sobre la imagen del sprite; o sea
+    # que compartir la paleta del héroe es una diferencia real con RM2k y no un
+    # detalle de empaquetado.
     #
     # taro lo vio el 2026-09-07 en el Emitter Room: cuando Talan absorbe el
     # enojo de Core y destella en rojo, dos tiles negros encima de unos cofres
@@ -910,8 +908,7 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
     # acá. Si aparece un destello sobre otro evento, va a filtrar igual.
     de_lider = set()
     # Qué poses puede mostrar cada gráfico, que es sobre lo que se eligen sus
-    # quince colores. Sin él —la referencia vieja, o un llamador que no lo
-    # pase— son las doce de siempre.
+    # quince colores. Sin él son las doce de siempre.
     poses = dict(poses or {})
 
     def cabe(charset, index, forzar, lider=False):
@@ -1198,9 +1195,7 @@ def build_characters(images, personajes, ranuras, reparto):
         union = palettes[paleta_de[(charset, index)]]
         # Los colores que no estén en la paleta que le tocó van al más cercano
         # de los que hay. Pasa cuando el mapa se quedó sin paletas y
-        # `npcs_dibujables` le prestó una ajena: se ve mal, pero se ve. La
-        # cuenta de "más cercano" es la misma de allá, así que los dos lados
-        # eligen igual.
+        # `npcs_dibujables` le prestó una ajena: se ve mal, pero se ve.
         lookup = {}
         for color in palette:
             if color in union:
@@ -1433,8 +1428,7 @@ def cartel_de_imagen(info, tiles, palettes, base_previa=None):
     Quedando fuera del rango, no hay que acordarse de saltearlas.
 
     Devuelve (tiles, base, número de paleta), o (tiles, 0, 0) si el mapa ya usa
-    las ocho paletas de sprite: ahí este mapa no dibuja el cartel, y la
-    referencia lo sabe con la misma cuenta.
+    las ocho paletas de sprite: ahí este mapa no dibuja el cartel.
     """
     if len(palettes) >= OBJ_PALETTES:
         return bytes(tiles), 0, 0
@@ -1523,11 +1517,8 @@ def tope_de_paletas_del_mapa(renderer, game_map, lideres, graficos,
     sus dos colores no hay cronómetro en toda la ROM. Ahí se vuelve a ocho y
     este mapa no dibuja animaciones, que es lo que le pasa al mapa 9.
 
-    Vive suelta y no adentro de `convertir` porque **la referencia tiene que
-    tomar la misma decisión**: si los dos lados repartieran las paletas
-    distinto, no estarían dibujando el mismo mapa. La referencia se fue el
-    2026-09-16 y esto quedó donde estaba: sigue siendo una decisión de
-    reparto y no un detalle de `convertir`.
+    Vive suelta y no adentro de `convertir` porque es una decisión de reparto
+    y no un detalle de `convertir`.
     """
     if not muestra_animacion:
         return OBJ_PALETTES
@@ -1608,11 +1599,9 @@ def npc_table(npcs, where, movibles=(), indice_animado=None, anima_quieto=()):
     el objeto con índice más bajo de OAM es el que se ve encima, así que la
     tabla va del frente hacia el fondo.
 
-    **Este orden inicial es parte del contrato con la referencia.** Los que
-    caminan cambian de Y y la ROM los reacomoda de a uno, con una inserción que
-    respeta el orden de los empatados; la referencia ordena de nuevo con un
-    `sorted` estable sobre esta misma lista. Las dos cosas dan lo mismo sólo si
-    las dos arrancan de acá.
+    **Este orden inicial manda también después.** Los que caminan cambian de Y
+    y la ROM los reacomoda de a uno, con una inserción que respeta el orden de
+    los empatados: entre dos empatados sigue valiendo el de esta lista.
 
     Los de `movibles` llevan además en qué banco de poses del cartucho están
     sus doce, para que la ROM las suba en caliente mientras caminan.
@@ -4141,7 +4130,7 @@ def encuentros_de_la_rom(mapas, tree, pasos_de_prueba, tropas):
 
     Los datos viven en el árbol y no en el `.lmu`: cada nodo trae su lista de
     tropas, cada cuántos pasos, y —si es un área— el rectángulo que tapa. Ver
-    `eventos.zonas_de_encuentro`, que es lo que usa también la referencia.
+    `eventos.zonas_de_encuentro`.
 
     De paso **pide las tropas**, que es lo que hace que el cartucho lleve sus
     enemigos y el paquete de audio de la pelea: sin eso un encuentro arrancaría
@@ -4150,8 +4139,7 @@ def encuentros_de_la_rom(mapas, tree, pasos_de_prueba, tropas):
     `pasos_de_prueba` reemplaza el `encounter_steps` de todos los mapas. Es
     para las ROMs de prueba: con los del juego —de 25 a 85— un encuentro tarda
     más de cien pasos, que es lo que se quiere jugando y no lo que se quiere
-    en un caso de la tanda. La referencia toma el mismo número por el mismo
-    flag.
+    en un caso de la tanda.
     """
     registros, zonas, tropas_de_zona, por_mapa = [], [], [], []
     for mapa in mapas:
@@ -4369,9 +4357,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "TRIGGER_ACCION     = %d\n"
         "TRIGGER_TOCA_HEROE = %d\n"
         "TRIGGER_PARALELO   = %d\n"
-        "; Cuántos cuadros dura un paso de una celda. Sale del modelo y no de\n"
-        "; una cuenta en la ROM: es lo que los dos lados tienen que contar\n"
-        "; igual para que una ruta forzada termine en el mismo cuadro.\n"
+        "; Cuántos cuadros dura un paso de una celda. Sale de eventos.py y no\n"
+        "; de una cuenta en la ROM.\n"
         "CUADROS_POR_CELDA = %d\n"
         "; La frecuencia más alta de una ruta, que es donde topan las\n"
         "; órdenes 30 y 31. La más baja la topa la ROM en 1, como RM2k;\n"
@@ -4459,8 +4446,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; La animación del ChipSet. Cada mapa tiene una entrada en\n"
         "; `anim_tabla` con sus dos corridas y un bloque con los dibujos;\n"
         "; ver `anim_tabla` en snes_convert.py. Las cadencias y el ciclo\n"
-        "; del agua salen de `rm2k.py`, que es de donde los lee la\n"
-        "; referencia.\n"
+        "; del agua salen de `rm2k.py`.\n"
         "ANIM_FAMILIAS  = %d\n"
         "ANIM_STRIDE    = %d\n"
         "ANIM_FAM_STRIDE = %d\n"
@@ -4672,9 +4658,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write(desplazamientos())
         handle.write("\n\n")
         # La rampa del fundido, en el banco 0 porque `fundido_tick` la lee con
-        # `lda fundido_rampa, x`. Sale de `eventos.rampa_de_fundido()`, que es
-        # la misma que usa la referencia: escribirla también en rom/src/ sería la
-        # duplicación de siempre, dos lados que se pueden equivocar igual.
+        # `lda fundido_rampa, x`. Sale de `eventos.rampa_de_fundido()`:
+        # escribirla también en rom/src/ sería tener dos copias que se pueden
+        # desincronizar sin que nada lo note.
         handle.write('.segment "TABLAS"\n'
                      '; El brillo maestro en cada cuadro de la rampa, de negro\n'
                      '; a lleno. Bajando se lee al revés.\n'
@@ -5891,9 +5877,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # escena en BG1: en modo 3 el orden del PPU deja BG1 de prioridad 0
         # **arriba** de BG2 de prioridad 0, así que sin esto el fondo taparía
         # las letras. En las otras pantallas que usan estos glifos —ítems,
-        # equipo, tienda— BG1 está apagado y el bit no cambia un pixel; la
-        # referencia lo ignora, que es lo que hace el PPU con los pixeles
-        # transparentes de las celdas vacías.
+        # equipo, tienda— BG1 está apagado y el bit no cambia un pixel, y en
+        # las celdas vacías tampoco, porque sus pixeles son transparentes.
         words_asm("item_glifo_celdas", [
             entry(celda, False, False, priority=1) for gris in (0, 1)
             for n in range(T.ITEM_CARACTERES)
@@ -5912,8 +5897,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # Cuántos cuadros se queda quieto un personaje después de un paso y
         # después de un giro, por frecuencia de ruta: el contador de parada de
         # RM2k, en dos tablas de nueve para indexar con la frecuencia tal cual.
-        # Salen de las mismas funciones que usa la referencia. La 0 y la 1 no
-        # se compilan; llevan cero para que la tabla no tenga agujeros.
+        # Salen de `eventos.espera_tras_paso` y `espera_tras_giro`. La 0 y la
+        # 1 no se compilan; llevan cero para que la tabla no tenga agujeros.
         handle.write("ruta_tras_paso:\n    .byte %s\n" % ",".join(
             "%d" % (eventos.espera_tras_paso(f)
                     if f >= eventos.RUTA_FRECUENCIA_MIN else 0)
@@ -6021,7 +6006,7 @@ def orden_de_dibujo(npc):
 
         The rendering order of characters is: Highest Y, Highest X, Highest ID
 
-    Los dos desempates faltaban de los dos lados. Con NPCs quietos casi no se
+    Los dos desempates faltaban. Con NPCs quietos casi no se
     nota —hay que tener dos en la misma fila y que alguno tape al otro— pero en
     cuanto uno camina cambia de fila todo el tiempo y empata con cualquiera.
 
@@ -6230,8 +6215,8 @@ def npc_bytes(table):
         out.append(prioridad | ((npc["palette"] & 0x07) << 1)
                    | ((npc["tile"] >> 8) & 0x01))
         # El índice del evento va **siempre**, aunque el NPC no camine: es el
-        # último desempate del orden de dibujado, y la referencia lo usa para
-        # todos. Lo que distingue a los que caminan es la tabla de poses.
+        # último desempate del orden de dibujado, y vale para todos. Lo que
+        # distingue a los que caminan es la tabla de poses.
         out.append(npc["evento"])
         out.append(NPC_QUIETO if npc["poses"] is None else npc["poses"])
         # Hacia dónde mira su página. Una ruta forzada que todavía no dio
@@ -6365,7 +6350,7 @@ def parser_de_flags():
                         help="cada cuántos pasos hay un encuentro al azar, "
                              "para todos los mapas del cartucho. Sin esto vale "
                              "el del árbol del juego, que va de 25 a 85 pasos; "
-                             "0 los apaga. La referencia toma el mismo número")
+                             "0 los apaga")
     parser.add_argument("--heroe-encima", action="store_true",
                         help="el héroe en prioridad 2 de objeto, por "
                              "encima de la capa que debería taparlo. "
@@ -6432,8 +6417,7 @@ def main():
     # El gráfico del héroe sale del grupo, no de acá. En RM2k lo da el primero
     # de la lista, y este juego arranca con el actor 10 —'DummyHero', que es
     # Chubby2[2]—. Hasta ahora había un default puesto a mano que daba
-    # Future1[0], o sea el sprite de otro personaje; los dos lados de la
-    # comparación lo tenían igual de mal, así que el cero no lo delataba.
+    # Future1[0], o sea el sprite de otro personaje.
     # --charset queda para forzarlo a mano cuando hace falta.
     grupo = args.grupo if args.grupo else renderer.database.party
     if args.charset is None:
@@ -6458,8 +6442,7 @@ def main():
     # gráfico**, o sea que el auto no se veía. Es el mismo agujero que ya
     # estaba anotado para las cuentas de páginas, en otro lugar.
     #
-    # Las variables del juego entero, con su ranura. La referencia arma el
-    # mismo índice.
+    # Las variables del juego entero, con su ranura.
     extra = eventos.variables_de_comandos(de_archivo)
     if len(args.casos) > 1:
         # La que elige el caso: ver `eventos.VARIABLE_DE_CASO`. Con uno solo
@@ -6469,15 +6452,14 @@ def main():
     # Y las animaciones de batalla, que `ShowBattleAnimation` compila con su
     # línea de tiempo adentro: ver OP_ANIMATION.
     eventos.indexar_animaciones(args.game_dir)
-    # Y los eventos comunes, que `CallEvent` compila en el lugar:
-    # los dos lados tienen que mirar la misma base.
+    # Y los eventos comunes, que `CallEvent` compila en el lugar.
     eventos.indexar_comunes(args.game_dir)
     eventos.indexar_audio_de_batalla(args.game_dir)
     # Y los términos de la posada, con los que `ShowInn` arma su saludo.
     eventos.indexar_terminos(args.game_dir)
     # Y el equipo y las habilidades de cada actor del LDB: es lo que contestan
-    # las dos ramas de actor con dos operandos, y la referencia lo arma con la
-    # misma función. **Antes de `lideres_posibles`**, que compila páginas: ver
+    # las dos ramas de actor con dos operandos. **Antes de
+    # `lideres_posibles`**, que compila páginas: ver
     # su comentario.
     eventos.indexar_actores(args.game_dir)
     # Y los pares (actor, habilidad) del juego entero, con los de las páginas
@@ -6507,7 +6489,7 @@ def main():
                                                    args.game_dir)
     # El cartel del `ShowPicture`, uno por ROM: ver `eventos.Imagenes`. Se lo
     # queda el primer mapa de la tabla que lo muestre, que es el orden en que
-    # `convertir` los recorre; la referencia elige con la misma función.
+    # `convertir` los recorre.
     args.imagenes = eventos.Imagenes(args.game_dir)
     args.imagenes.mapa = None
     # Y las ranuras que `ChangeSpriteAssociation` le reserva a la tabla de
@@ -6570,8 +6552,7 @@ def main():
 
     # El bloque de textos es de la ROM entera y se arma mientras se compilan las
     # páginas: cada `ShowMessage` deja su texto acá y se lleva un
-    # desplazamiento, que es lo que va en el bytecode. La referencia arma el
-    # mismo bloque en el mismo orden.
+    # desplazamiento, que es lo que va en el bytecode.
     mensajes = eventos.Mensajes(paso=eventos.MENSAJES_PASO)
     # Los temas que los PlayBGM de las páginas piden, numerados en el orden en
     # que aparecen. La ROM lleva uno solo —ver `Temas`— y lo elige más abajo,
@@ -6739,8 +6720,8 @@ def main():
                 "item": 0, "capa": 0,
                 "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
                 "codigo": de_prueba[k]} for k in range(len(args.casos))] + [{
-                # Y la que la apaga: misma idea que en la referencia, ver
-                # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
+                # Y la que la apaga: pide `SWITCH_DE_PRUEBA` y no tiene
+                # código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que
                 # correr y la primera no se repite.
                 "evento": 0, "pagina": len(args.casos), "prueba": True,
@@ -6804,8 +6785,8 @@ def main():
                      % (mapa["id"], claves, SUB_MAX))
         # Cuántos eventos distintos puede llegar a mandar a caminar este mapa.
         # La ROM tiene RUTA_EV_MAX ranuras y una ruta que no encuentre lugar se
-        # descarta **sin decir nada**, que es la clase de diferencia que ninguna
-        # comparación vería: la referencia la caminaría y la consola no. Con los
+        # descarta **sin decir nada**: el NPC se queda quieto y, si la golden
+        # se saca así, la prueba defiende el error. Con los
         # datos de este juego el peor mapa usa dos, así que el control no molesta
         # a nadie; está para que un cambio futuro no las tire en silencio.
         #
@@ -7398,9 +7379,6 @@ def inicio_del_mapa(renderer, map_id, passable, width, height, ocupadas=()):
     usa el tile abierto más cercano al centro, que es lo que las pruebas
     necesitan: un lugar desde el cual se pueda caminar.
 
-    Está acá y no en cada llamador porque la referencia con la que se compara
-    tiene que pararlo en el mismo lugar que la ROM.
-
     **Y hay mapas donde ninguna celda está abierta por los cuatro lados**: los
     cuartos de cinemática, que son una pantalla negra a la que siempre se llega
     por teletransporte con las coordenadas puestas. `LasheCityVehicle` —el mapa
@@ -7844,8 +7822,7 @@ def convertir(renderer, map_id, args):
     #
     # Los dígitos del cronómetro se llevan una de las ocho paletas de sprite,
     # así que el techo baja a siete. Los eventos dibujados con un tile del
-    # chipset entran mientras quepan en ese techo; la referencia dibuja
-    # exactamente los mismos, con la misma función.
+    # chipset entran mientras quepan en ese techo.
     # Quiénes van a caminar y a qué gráficos cambian las rutas. Va **antes**
     # del reparto de paletas porque un gráfico de la orden 34 es un personaje
     # más y pide paleta como cualquiera: repartiendo sin contarlo, entraría
@@ -8109,7 +8086,7 @@ def convertir(renderer, map_id, args):
                   "paletas de sprite y acá no llueve" % map_id)
     # El cartel del `ShowPicture`, si el suyo es de este mapa. La ranura la
     # elige `Imagenes.elegir` **en el orden de la tabla de mapas**, que es este
-    # mismo lazo, y la referencia elige igual mirando todos los mapas de una.
+    # mismo lazo.
     imagen_base, imagen_pal = 0, 0
     registro = getattr(args, "imagenes", None)
     if registro is not None:
@@ -8146,9 +8123,9 @@ def convertir(renderer, map_id, args):
                   "necesita una entera" % (map_id, OBJ_PALETTES))
         else:
             # La VRAM, en cambio, **corta**: que entre o no depende del reparto
-            # de tiles y no de las paletas, y la referencia no lo puede
-            # recalcular sin rehacer el banco entero. Antes que dibujar de un
-            # lado y del otro no, se dice cuál es el mapa.
+            # de tiles y no de las paletas. Cortaba porque la referencia de
+            # Python no lo podía recalcular sin rehacer el banco entero; sin
+            # ella podría avisar y seguir, como con las paletas.
             cuantos = len(probando) // 32
             try:
                 layout = vram_layout(len(tile_data) // BYTES_PER_TILE, cuantos)
@@ -8213,8 +8190,8 @@ def convertir(renderer, map_id, args):
     # Las celdas con un NPC quedan afuera: si el héroe arrancara sobre uno, los
     # dos tendrían la misma clave de orden y cuál queda encima dependería de un
     # desempate que no tiene por qué coincidir entre la consola y el render.
-    # Con **todos** los que se dibujan en alguna página, que es lo que mira
-    # la referencia: un tile que quedó afuera de las paletas igual ocupa.
+    # Con **todos** los que se dibujan en alguna página: un tile que quedó
+    # afuera de las paletas igual ocupa.
     ocupadas = {(n["x"], n["y"]) for n in collect_npcs(game_map)}
     start_x, start_y = inicio_del_mapa(
         renderer, map_id, passable, game_map.width, game_map.height, ocupadas)

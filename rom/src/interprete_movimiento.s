@@ -43,7 +43,7 @@
     ; intérprete: en RM2k `ForceMoveRoute` es asincrónico y la página sigue.
     ; Lo que se corta es la espera —`SetStopCount(0xFFFF)`: la primera orden
     ; corre ya— y nada más: el paso o el salto en curso se terminan, como
-    ; allá. Acá se cortaba también el salto, y la referencia no.
+    ; allá. Acá se cortaba también el salto, y RM2k no lo corta.
     lda ruta_cuantas
     sta temp
     stz ruta_i

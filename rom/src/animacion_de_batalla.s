@@ -445,8 +445,7 @@ queda:
 ; de la lista, porque gana el índice más bajo.
 ;
 ; Cuestan **ocho de los treinta y cuatro tiles por línea** en las 64 líneas que
-; ocupan: dos objetos de cuatro tiles de ancho en cada una. La referencia
-; cuenta lo mismo y declara las líneas donde no alcanza.
+; ocupan: dos objetos de cuatro tiles de ancho en cada una.
 .proc animacion_dibujo_oam
 .a8
 .i16

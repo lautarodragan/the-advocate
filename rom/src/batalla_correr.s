@@ -4,8 +4,8 @@
 ; ya en $7E, y se vuelve con el resultado en `BA_RESULT`.
 ;
 ; Corre **su propio lazo de cuadros**, como `ranuras_pantalla` y como la
-; tienda: `vueltas` no avanza mientras se ve, así que para la referencia la
-; pelea no cuesta ningún tick, tarde lo que tarde el jugador. Ver `OP_BATTLE`
+; tienda: `vueltas` no avanza mientras se ve, así que la pelea no cuesta
+; ningún tick, tarde lo que tarde el jugador. Ver `OP_BATTLE`
 ; en tools/port/eventos.py.
 .proc batalla_correr
 .a8

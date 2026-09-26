@@ -99,7 +99,7 @@
 ; Son dos pasadas y no un lazo adentro del otro: la tabla de páginas se recorre
 ; una sola vez anotando la ganadora de cada evento, y después se mira evento
 ; por evento. Con eventos por páginas costaba más de un cuadro, y un cuadro
-; perdido en un switch es un cuadro corrido contra la referencia.
+; perdido en un switch atrasa un cuadro todo lo que viene después.
 ; `Game_Map::Refresh` entero: elegir las páginas activas y aplicarlas.
 .proc rutas_de_pagina
 .a8
@@ -875,8 +875,8 @@ sin_ranura:
     ; página, y antes del 2026-09-08 el conversor tenía que elegir: elegía
     ; caminar, y entonces la fila —que nace escondida cuando al cargar el mapa
     ; ninguna página cumple— no aparecía nunca. taro lo encontró con el `Bum` y
-    ; el `Mechanic` de Lashe City; la referencia los dibujaba y la ROM no, 245
-    ; y 191 pixeles.
+    ; el `Mechanic` de Lashe City; RM2k los dibuja y la ROM no, 245 y 191
+    ; pixeles.
     ;
     ; No es un bit nuevo porque en +13 no queda ninguno: con ruta propia los
     ; cinco de abajo son las banderas de la ruta. Y no hace falta, porque

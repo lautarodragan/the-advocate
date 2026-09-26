@@ -190,7 +190,7 @@
 ; pierde un cuadro, con 6 tampoco y con 8 se pierde uno. Va en 5 y no en 7 por
 ; margen, porque la vuelta cuesta distinto en cada mapa —el streaming del fondo,
 ; los NPCs, la música— y perder cuadros no se ve mirando: lo que pasa es que el
-; héroe camina más lento que en la referencia.
+; héroe camina más lento que en RM2k.
 ;
 ; Lo que cuesta: el mensaje de tres renglones y 51 caracteres de `snes-ventana`
 ; tarda unos 15 cuadros en aparecer, y uno de cuatro renglones llenos tardaría

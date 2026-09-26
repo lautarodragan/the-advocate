@@ -102,9 +102,9 @@ msg_duenio:  .res 1
 ; pide: se compone de a MSG_CHARS caracteres por vuelta del lazo, renglón por
 ; renglón, y recién cuando está entero se prende el HDMA.
 ;
-; El presupuesto por vuelta no es una optimización sino lo que mantiene honesta
-; la comparación: si una vuelta se pasara del cuadro, `wait_vblank` agarraría el
-; siguiente y el héroe caminaría la mitad de rápido que en la referencia.
+; El presupuesto por vuelta no es una optimización sino lo que mantiene el
+; ritmo del juego: si una vuelta se pasara del cuadro, `wait_vblank` agarraría
+; el siguiente y el héroe caminaría a la mitad de la velocidad.
 msg_estado:  .res 1     ; 0 quieto, 1 componiendo, 2 listo
 msg_linea:   .res 1     ; qué renglón se está armando
 msg_lineas:  .res 1     ; cuántos trae el mensaje

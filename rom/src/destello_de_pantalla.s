@@ -17,7 +17,7 @@
 ; Pasar las tres paletas —doscientas y pico entradas, a más de cien ciclos
 ; cada una— no entra en un cuadro junto con todo lo demás: medido con
 ; `cuadros_perdidos`, se perdía uno por cuadro, y el resto de la escena
-; quedaba treinta cuadros atrás de la referencia. Así que va en dos cuadros:
+; quedaba treinta cuadros atrasado. Así que va en dos cuadros:
 ; con la resta impar se arman las tablas y se pasan el fondo y la capa de
 ; encima; con la resta par se pasan los sprites y se sube todo. Lo que se ve
 ; cambia cuadro por medio. Un tinte que cambie en el cuadro impar pisa

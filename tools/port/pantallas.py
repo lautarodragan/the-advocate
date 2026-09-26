@@ -497,8 +497,7 @@ def texto_de_orden(termino):
     Los términos del LDB traen espacios adelante —`battle_escape` del ABL dice
     " Escape"— y en el renglón de abajo eso correría el texto de su columna.
     Va acá y no en la ROM porque el conversor emite el texto **ya recortado**:
-    así los dos lados escriben los mismos bytes sin que la ROM tenga que saber
-    recortar.
+    así la ROM no tiene que saber recortar.
     """
     return titulo.texto_de_item(termino.strip(), BA_ORDEN_ANCHO)
 

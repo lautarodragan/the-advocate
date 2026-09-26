@@ -126,8 +126,8 @@ mudo:
     ; CGRAM entera: las TITULO_MENU_CGRAM de abajo son del menú y las
     ; TITULO_COLORES de arriba, de la imagen. Subir sólo las de la imagen
     ; dejaba las últimas dieciséis sin escribir, y ahí viven los colores menos
-    ; usados —el degradé de los créditos—: 145 pixeles de diferencia contra la
-    ; referencia, todos en el mismo par de renglones.
+    ; usados —el degradé de los créditos—: 145 pixeles de diferencia, todos en
+    ; el mismo par de renglones.
     lda #((TITULO_COLORES + TITULO_MENU_CGRAM) * 2)
     sta DAS0L
     lda #<(titulo_cgram)
