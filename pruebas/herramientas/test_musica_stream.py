@@ -76,15 +76,23 @@ def _armar(notas, voces, programas=None, banco=None):
 
 def _leer(salen):
     """Por voz, los cuadros de sus KON y los de sus releases —ADSR1 en cero,
-    que es lo que le pasa el mando a GAIN—, en orden."""
-    kon, release = {}, {}
+    que es lo que le pasa el mando a GAIN—, en orden. Un ADSR1 en cero con el
+    GAIN de `RAMPA` no es un release sino la rampa antes de un robo, y no
+    cuenta."""
+    kon, apagada, gain = {}, [], {}
     for cuadro, registro, valor in salen:
         if registro == sdsp.KON:
             for voz in range(sdsp.VOICES):
                 if valor >> voz & 1:
                     kon.setdefault(voz, []).append(cuadro)
-        elif registro & 0x0F == sdsp.V_ADSR1 and registro < 0x80 and valor == 0:
-            release.setdefault(registro >> 4, []).append(cuadro)
+        elif registro < 0x80 and registro & 0x0F == sdsp.V_ADSR1 and valor == 0:
+            apagada.append((cuadro, registro >> 4))
+        elif registro < 0x80 and registro & 0x0F == sdsp.V_GAIN:
+            gain[(cuadro, registro >> 4)] = valor
+    release = {}
+    for cuadro, voz in apagada:
+        if gain.get((cuadro, voz)) != snes_music.RAMPA:
+            release.setdefault(voz, []).append(cuadro)
     return kon, release
 
 
@@ -258,6 +266,34 @@ def test_se_le_roba_a_la_mas_debil_y_no_a_la_ultima_de_un_canal():
         "la nota nueva tomó la voz %s y la suave del canal 0 era la %s"
         % (voz[id(nueva)][0], voz[id(suave)][0]))
     assert voz[id(suave)][1] == 100 and voz[id(solita)][1] is None
+
+
+def test_la_voz_que_suena_se_baja_un_cuadro_antes_de_robarla():
+    """Una voz, dos notas: la segunda le roba la voz a la primera mientras
+    suena. En el cuadro de antes la voz tiene que bajar con la rampa —ADSR1
+    en cero y GAIN `RAMPA`, 12 ms lineales—, porque el KON la pone en cero de
+    golpe y eso es un clic. La tercera nota llega con la voz callada hace
+    rato: ésa no necesita rampa."""
+    salen = _armar([_nota(0, 100), _nota(50, 120), _nota(400, 450)], {0: [0]})
+    escrito = _escrituras(salen, 0)
+    gain = [(c, v) for c, r, v in escrito if r == sdsp.V_GAIN]
+    assert (49, snes_music.RAMPA) in gain, (
+        "la voz 0 no baja con la rampa antes del robo del cuadro 50: %s" % gain)
+    assert (49, sdsp.V_ADSR1, 0) in escrito, (
+        "sin ADSR1 en cero el GAIN de la rampa no manda")
+    assert not [c for c, v in gain if v == snes_music.RAMPA and c > 49], (
+        "la tercera nota llega con la voz callada y no necesita rampa: %s"
+        % gain)
+
+
+def test_la_cola_de_un_release_tambien_se_baja_antes_de_reusar_la_voz():
+    """La primera nota ya se soltó, pero su cola sigue sonando cuando la
+    segunda toma la voz —el GAIN de `_Banco` es exponencial y lento—: la
+    rampa va igual."""
+    salen = _armar([_nota(0, 40), _nota(60, 100)], {0: [0]})
+    gain = [(c, v) for c, r, v in _escrituras(salen, 0) if r == sdsp.V_GAIN]
+    assert gain[:2] == [(40, sdsp.GAIN_EXP_DECREASE | 12),
+                        (59, snes_music.RAMPA)], gain
 
 
 # --- velocidad y controladores ----------------------------------------------

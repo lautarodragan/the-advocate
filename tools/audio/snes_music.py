@@ -392,6 +392,16 @@ def assign(notes):
 VOCES_DE_EFECTOS = (SE_VOZ2, SE_VOZ)
 
 
+# El GAIN con que se baja una voz que suena un cuadro antes de dársela a otra
+# nota: lineal, 64 pasos de 6 muestras, así que llega a cero en 12 ms, antes
+# del cuadro siguiente. Lo que evita es el clic del KON, que pone la
+# envolvente en cero de golpe: el prototipo del paso 5 de
+# `workflow/tasks/todo/la-calidad-de-la-musica.md` lo grabó (la variante 07).
+# Es un `OP_RELEASE_GAIN` más del stream: el driver no cambia.
+RAMPA = sdsp.GAIN_LINEAR_DECREASE | 26
+assert 64 * sdsp.PERIODO[RAMPA & 0x1F] <= sdsp.SAMPLE_RATE // TICKS_PER_SECOND
+
+
 class _Voz:
     """Lo que el reparto sabe de una voz: la nota que la tiene, hasta cuándo
     la sostiene —`fin`— y hasta cuándo se oye —`cola`, con el release o lo que
@@ -581,7 +591,9 @@ class Frame:
     __slots__ = ("release", "setup", "kon", "kof", "control")
 
     def __init__(self):
-        # Las notas que se sueltan en este cuadro: (voz, GAIN del release).
+        # Las notas que se sueltan en este cuadro: (voz, GAIN del release), y
+        # las voces que se bajan con `RAMPA` porque otra nota las toma en el
+        # cuadro siguiente.
         self.release = []
         # Las que arrancan: una `Preparacion` por nota, en orden.
         self.setup = []
@@ -698,7 +710,7 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None):
     # otra le robó la voz antes, soltarla soltaría a la ladrona. Hasta el
     # 2026-09-25 se agendaba al tomar la voz y eran 329 notas de
     # `escape_newyork` cortadas antes de tiempo, casi todas del bajo.
-    voces, owner, robbed, sounded = {}, {}, {}, []
+    voces, owner, robbed, sounded, rampas = {}, {}, {}, [], []
     de_la_voz = {}                  # la entrada de `reparto` de su dueña
     # Las más fuertes de cada cuadro eligen primero: si el acorde no entra, la
     # que se queda afuera es la más suave.
@@ -752,6 +764,13 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None):
             robbed.setdefault(id(owner[voice]), t)
             if voice in de_la_voz:
                 de_la_voz[voice][2] = t
+            # Si la voz todavía suena, se la baja a cero en el cuadro de antes:
+            # el KON pone la envolvente en cero de golpe, y eso es un clic. No
+            # a una nota que arrancó en ese mismo cuadro, que se prepara detrás
+            # del release y lo deshace.
+            anterior = voces[voice]
+            if anterior.cola > t - 1 and anterior.nota.start < t - 1:
+                rampas.append((t - 1, voice))
         voces[voice] = _Voz(note, fin, cola, izquierda + derecha)
         owner[voice] = note
         if reparto is not None:
@@ -783,6 +802,9 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None):
         if robbed.get(id(note), note.end + 1) <= note.end:
             continue
         frames[note.end].release.append((voice, gain))
+    # Las rampas van después de los releases de su cuadro, para ganarles.
+    for cuadro, voice in rampas:
+        frames[cuadro].release.append((voice, RAMPA))
 
     return frames
 
