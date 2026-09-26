@@ -139,3 +139,5 @@ jugando, no tanto. Las capturas, en `/shared/capturas/2026-09-26-msu-mednafen/`.
 en Mednafen, Alt+D abre el depurador y Alt+3 su editor de memoria; con la
 pelea abierta, el byte `$664A` del espacio `wram` —`$7E664A`— es `ESC_MSU`:
 1 si el fondo salió del `.msu`, 0 si salió de la ROM.
+
+**Confirmado por taro el 2026-09-26, en Mednafen con `snes_faust`**: el fondo del `.msu` carga y la diferencia con el de la ROM existe, pero tuvo que sacar capturas para verla: jugando no es obvia, y en la tele de tubo lo será menos. Queda sin probar el FX Pak Pro (el riesgo de la lectura de 32 KB en un solo DMA).
