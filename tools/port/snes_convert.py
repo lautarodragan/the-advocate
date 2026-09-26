@@ -7281,11 +7281,13 @@ def main():
                      if len(clave) > (3 if clave[0] == "p" else 2)
                      or any(len(k) > len(clave) and k[:len(clave)] == clave
                             for k in banco.claves) else ""))
-        # Y cuánto le sobra a cada paquete, con sus efectos.
+        # Y cuánto le sobra a cada paquete, con sus efectos: los enteros con
+        # lo que ocupan de verdad, no con lo que la música les presupuestó.
         for r in banco.restricciones:
             print("    paquete %-28s %5d B de muestras, sobran %5d"
                   % (r.nombre[:28], banco.ocupa(r.claves),
-                     r.libre - banco.ocupa(r.claves)))
+                     r.libre - banco.ocupa(r.claves)
+                     - banco.enteros_de_mas.get(r.nombre, 0)))
 
 
 def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,

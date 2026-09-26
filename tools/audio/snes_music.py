@@ -236,16 +236,41 @@ SE_VOZ = 7                      # la que se le roba a la música
 # la apertura—, como en RM2k. Las dos son las que el reparto de la música
 # llena primero con la percusión: ver `VOCES_DE_EFECTOS`.
 SE_VOZ2 = 6
-# Los que van enteros, sin tope ni bucle, a su propia tasa: terminan cuando
-# termina la muestra, que es lo que hacen en RM2k. Con el tope, el trueno
-# repetía sus 0,35–0,75 s hasta cumplir los cuadros y taro lo oyó tartamudear.
-# Hoy es sólo el trueno de la apertura, y a 22 kHz: decidido, ver
-# `decisiones/el-trueno-va-entero-a-22-khz.md`. La regla general —qué efecto
-# va entero, a qué tasa y en qué paquete— todavía no está, y **el alias es
-# provisorio**: lo que va después de la `@` es un nombre aparte para la misma
-# WAV, que `_compilar` pone sólo en el mapa 1, porque el mapa 3 también pide
-# el trueno y con éste entero su paquete no entra en la ARAM.
-SE_ENTEROS = {"Thunder9@entero": 22050}
+# Los que van enteros, sin tope ni bucle, a la tasa que dice cada uno:
+# terminan cuando termina la muestra, que es lo que hacen en RM2k. Con el
+# tope, el trueno repetía sus 0,35–0,75 s hasta cumplir los cuadros y taro lo
+# oyó tartamudear: `decisiones/el-trueno-va-entero-a-22-khz.md`.
+#
+# **Lo que un efecto entero ocupa de más no le cuesta nada a la música**: el
+# banco se reparte contando cada efecto como si no estuviera acá, y lo de más
+# tiene que entrar en lo que la música deja libre en cada paquete donde está
+# —si no, el conversor se corta; ver `_enteros_entran`—. Es de taro: *"No me
+# parece aceptable que instrumentos pierdan calidad por un solo mapa, pero
+# tampoco quiero perder calidad en los efectos de sonido."* Un efecto que
+# está en un paquete que limita muestras —cuál limita a cada una lo imprime
+# el conversor— no puede estar acá sin que algún instrumento lo pague, y eso
+# lo decide taro escuchando: ver la tarea `efectos-de-sonido-sin-recortes.md`.
+#
+# La tasa de cada uno se eligió el 2026-09-26: los que más se oyen primero, a
+# la más alta que entra —22.050 Hz es la de los WAV, así que no se
+# remuestrean—, y sin que los efectos de un paquete que hoy entran al lado de
+# un tema que puede venir sonando dejen de entrar (ver
+# `decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`).
+#
+# El trueno de la apertura es un alias: lo que va después de la `@` es un
+# nombre aparte para la misma WAV, que `_compilar` pone sólo en el mapa 1,
+# porque el 3 también pide el trueno y ahí entero no entra sin bajarle la
+# tasa a su tema.
+SE_ENTEROS = {
+    "Thunder9@entero": 22050,
+    "Sword3": 22050, "Monster2": 22050, "Recovery4": 22050, "Flame5": 22050,
+    "Explosion5": 22050, "Dark5": 22050, "Cold2": 22050, "Thunder6": 22050,
+    "Thunder4": 22050, "Decision2": 22050, "Earth8": 22050, "Fall2": 22050,
+    "Buzzer1": 22050, "Blow7": 22050, "Failure1": 22050,
+    "Holy6": 16000, "Kill3": 16000,
+    "Sword2": 11025, "Dark1": 11025, "Sword1": 11025,
+    "Numbness3": 6000, "Refer Book": 6000, "Earth1": 6000, "Thunder5": 6000,
+}
 
 
 class Efecto:
@@ -289,15 +314,18 @@ def leer_wav(nombre, game_dir=GAME_DIR):
     return crudo, tasa
 
 
-def build_efecto(nombre, game_dir=GAME_DIR, tasa=SE_TASA):
+def build_efecto(nombre, game_dir=GAME_DIR, tasa=SE_TASA, enteros=None):
+    """`enteros` es `SE_ENTEROS` si no viene; con {} sale el de siempre, que
+    es lo que la música le presupuesta: ver `SE_ENTEROS`."""
+    enteros = SE_ENTEROS if enteros is None else enteros
     leido = leer_wav(nombre.split("@")[0], game_dir)
     if not leido or not leido[0]:
         return None
     crudo, fuente = leido
     segundos = len(crudo) / float(fuente)
     guardar = min(len(crudo), int(SE_MAX_SEGUNDOS * fuente))
-    if nombre in SE_ENTEROS:
-        tasa, guardar = SE_ENTEROS[nombre], len(crudo)
+    if nombre in enteros:
+        tasa, guardar = enteros[nombre], len(crudo)
     salen = max(BLOQUE,
                 int(round(guardar * tasa / float(fuente)))
                 // BLOQUE * BLOQUE)
@@ -1694,6 +1722,56 @@ def huella_de_la_mezcla(escrituras_del_tema, banco):
     return h.hexdigest()[:16]
 
 
+def _enteros_entran(banco, paquetes, herencia, efectos, presupuestado,
+                    nombres):
+    """Que lo que los `SE_ENTEROS` ocupan de más entre, en cada paquete, en
+    lo que la música dejó libre: el banco ya está repartido sin contarlo, así
+    que si no entra no hay a quién sacárselo sin bajarle la tasa a un
+    instrumento, y el conversor se corta diciendo cuál.
+
+    Y dice —sin cortarse— con qué tema que puede venir sonando los efectos de
+    un paquete entraban al lado con el tamaño de siempre y enteros ya no: ahí
+    esperan al próximo `PlayBGM` (ver
+    `decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`)."""
+    claves_de = {}
+    for paquete in paquetes:
+        nombre, suyos = paquete[0], paquete[1]
+        claves_de[nombre] = set().union(
+            *[set(banco.asignacion[t].values()) for t in suyos])
+    no_entran = []
+    banco.enteros_de_mas = {}
+    for paquete in paquetes:
+        nombre, suyas = paquete[0], set(paquete[2]) & set(efectos)
+        enteros = sorted(e for e in suyas if e in SE_ENTEROS)
+        if not enteros:
+            continue
+        ocupan = sum(len(efectos[e].data) for e in suyas)
+        banco.enteros_de_mas[str(nombre)] = ocupan - sum(presupuestado[e]
+                                                         for e in suyas)
+        musica = banco.ocupa(claves_de[nombre])
+        if musica + ocupan > banco.libre:
+            no_entran.append("%s en el paquete %s (%d B de más)" % (
+                ", ".join(enteros), nombre, musica + ocupan - banco.libre))
+    if no_entran:
+        raise SystemExit(
+            "los efectos enteros no entran sin bajarle la tasa a un "
+            "instrumento: %s. Bajarles la tasa en SE_ENTEROS, o sacarlos"
+            % "; ".join(no_entran))
+    efectos_de = {p[0]: set(p[2]) & set(efectos) for p in paquetes}
+    for nombre, heredado in herencia:
+        suyas = efectos_de[nombre]
+        if not any(e in SE_ENTEROS for e in suyas):
+            continue
+        musica = banco.ocupa(claves_de[nombre]
+                             | set(banco.asignacion[heredado].values()))
+        antes = musica + sum(presupuestado[e] for e in suyas)
+        ahora = musica + sum(len(efectos[e].data) for e in suyas)
+        if antes <= banco.libre < ahora:
+            print("  con %s sonando, los efectos enteros del paquete %s no "
+                  "entran al lado: esperan al PlayBGM"
+                  % (nombres[heredado], nombre))
+
+
 def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
                  herencia=(), techos=None, aire_de_medida=None):
     """Todos los temas de la ROM, compartiendo un solo banco de muestras.
@@ -1738,6 +1816,12 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     efectos_hechos = build_efectos(list(efectos), game_dir, 1 << 30)
     lista = sorted(efectos_hechos.values(), key=lambda e: list(efectos).index(
         e.name) if e.name in efectos else 0)
+    # Lo que la música le presupuesta a cada efecto: el de siempre, aunque
+    # vaya entero. Ver `SE_ENTEROS`.
+    presupuestado = {n: len(e.data) for n, e in efectos_hechos.items()}
+    for n in efectos_hechos:
+        if n in SE_ENTEROS:
+            presupuestado[n] = len(build_efecto(n, game_dir, enteros={}).data)
 
     # Las claves que el SoundFont tiene; las demás no suenan en ningún lado.
     claves_de = [{k for k in ks if _muestra(k, NATIVA) is not None}
@@ -1753,7 +1837,7 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
         nombre, suyos, suyas = paquete[:3]
         salida = paquete[3] if len(paquete) > 3 else ()
         temas_de[nombre] = list(suyos)
-        ocupan = sum(len(efectos_hechos[e].data) for e in set(suyas)
+        ocupan = sum(presupuestado[e] for e in set(suyas)
                      if e in efectos_hechos)
         grupos.append(Grupo(str(nombre), tuple(suyos), ocupan))
         for t in salida:
@@ -1767,6 +1851,8 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     banco = Banco(todas, restricciones_de(asignacion, grupos, libre))
     banco.libre = libre
     banco.asignacion = asignacion
+    _enteros_entran(banco, paquetes, herencia, efectos_hechos, presupuestado,
+                    nombres)
 
     temas = []
     for nombre, leido, suya in zip(nombres, leidos, asignacion):
