@@ -544,3 +544,5 @@ Con los scripts de `tools/audio/proto/` en la rama del prototipo:
 * **Notas lejos del do central**, que suenan con la zona equivocada.
 * El de batalla, `T_VGFighterMAX_Masako`, que es el más pesado y el que más
   se oye.
+
+**El rango de pitch bend de 3D-Galax (95 semitonos)**: taro decidió dejarlo como pide el MIDI, que es como lo toca fluidsynth y como suena la versión de Amiga (la última nota de la frase cae varias octavas). En Windows con un sintetizador GS se habría topado en 24. Respetarlo no cuesta nada: el bend ya se escribe igual, sólo cambia el valor de la altura. 2026-09-26.
