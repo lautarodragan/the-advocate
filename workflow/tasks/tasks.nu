@@ -30,6 +30,13 @@ def parse_file [file: string] {
   }
 }
 
+def print_task [] {
+  print (['  ' (ansi green) $in.task_type (ansi reset) ': ' (ansi red_bold) $in.name (ansi reset)] | str join)
+  # print (['    ' (ansi reset) $file (ansi reset)] | str join)
+  print (['    ' (ansi reset) $in.description (ansi reset)] | str join)
+  print '' 
+}
+
 def "main ls" [
   --status (-s): string = "wip"
 ] {
@@ -44,13 +51,8 @@ def "main ls" [
 
     let parsed = ls $in.name | where type == file | get name | each { parse_file $in } | sort-by task_type
     
-    $parsed | each {
-      print (['  ' (ansi green) $in.task_type (ansi reset) ': ' (ansi red_bold) $in.name (ansi reset)] | str join)
-      # print (['    ' (ansi reset) $file (ansi reset)] | str join)
-      print (['    ' (ansi reset) $in.description (ansi reset)] | str join)
-      print '' 
-      
-    }; 
+    $parsed | each { print_task }
+    
     print '' 
   };
 
