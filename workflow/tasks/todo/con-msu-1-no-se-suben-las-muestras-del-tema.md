@@ -27,3 +27,22 @@ es el lugar para cobrarlo.
 
 Idea de taro, el 2026-09-26: en el peor caso, con MSU-1 la música va por la
 pista y los efectos entran enteros en la ARAM sin competir con la música.
+
+## Y la otra mitad: los efectos de calidad desde el `.msu`
+
+También de taro, el mismo día: **los efectos livianos en la ROM y los de
+calidad en el `.msu`**, con el mecanismo de los fondos de batalla
+(`docs/port/msu-datos.md`: la ROM lee el `.msu` por el puerto de datos si hay
+MSU-1 y la firma coincide, y si no usa lo suyo).
+
+Encaja con lo de arriba: con MSU-1 las muestras del tema no ocupan la ARAM, así
+que hay lugar para los efectos de calidad; sin MSU-1, los efectos más livianos
+dejan lugar para las muestras de la música, que es justo la pelea de hoy entre
+los efectos del mapa 3 y el oboe, la flauta y la batería. Y achica la ROM: los
+efectos son ~211 KB de los ~262 de `muestra`.
+
+Ojo: esto no reproduce los efectos por el audio del MSU-1 (tiene un solo
+flujo de audio, que es el de la música): los sube a la ARAM desde el puerto de
+datos y los sigue tocando el SPC700. Y sin MSU-1 los efectos quedarían más
+livianos que hoy, que es lo que taro no quería perder: decidirlo con
+grabaciones de las dos versiones delante (como el trueno).
