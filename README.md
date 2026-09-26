@@ -117,13 +117,14 @@ absoluto largo indexado con Y no existe.
 Lo que no entra en un banco no puede recorrerse con un índice: la grilla de
 celdas de un mapa grande no entra, y se lee con un puntero de 24 bits. Vive
 descomprimida en la mitad alta de los dos bancos de la WRAM —ver
-`workflow/decisiones/la-grilla-vive-en-la-wram.md`—, que tiene la misma forma
-que LoROM: pasarse del `$FFFF` no lleva al `$0000` del banco siguiente sino a
-su `$8000`. `ptr_mas` y `ptr_menos` son las únicas rutinas que saben eso; todo
-lo demás las usa y se olvida del tema. Y una tabla
-mudada, o una que se recorra con `[ptr], y`, **tiene que declararse con
-`.bloque`** para no quedar partida entre dos bancos: ver `bloque` en
-`tools/port/snes_convert.py`.
+`workflow/decisiones/la-grilla-vive-en-la-wram.md` y `docs/port/maps.md`—,
+que tiene la misma forma que LoROM: pasarse del `$FFFF` no lleva al `$0000`
+del banco siguiente sino a su `$8000`. `ptr_mas` y `ptr_menos` son las únicas
+rutinas que saben eso; todo lo demás las usa y se olvida del tema.
+
+Y una tabla mudada, o una que se recorra con `[ptr], y`, **tiene que
+declararse con `.bloque`** para no quedar partida entre dos bancos: ver
+`bloque` en `tools/port/snes_convert.py`.
 
 ### Los eventos translúcidos van horneados
 
