@@ -203,9 +203,9 @@ parches: (build "release")
 
 # Y la verificación, que es lo que corre la tanda: falla diciendo **qué
 # decisión cambió** —"la animación 82 se dibujaba a 64x50 y ahora se dibuja a
-# 64x49"—, no que el archivo difiere. Mira todos los cartuchos que haya
-# armados, porque lo versionado tiene que salir igual en todos.
-parches-check *builds="rom/build/tests rom/build/release":
+# 64x49"—, no que el archivo difiere. Sin argumentos mira todos los cartuchos
+# de `cartuchos.py`, porque lo versionado tiene que salir igual en todos.
+parches-check *builds:
   python3 tools/port/parches.py {{builds}} --check
 
 # Arma un cartucho por nombre, si no está al día:

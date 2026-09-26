@@ -17,11 +17,11 @@ sostiene que el cartucho no entre en la clave —medido el 2026-09-21, con las
 capas y con las animaciones: todos los cartuchos emitían los mismos archivos
 byte por byte—.
 
-Lo versionado es lo que decide `release`, el ROM jugable. Lo que los cartuchos de
-prueba llevan de más —mapas que el juego no tiene, y una animación que sólo
-muestra un caso de la tanda— no se versiona: ahí el cartucho decide solo y esto
-no le pide nada; cuáles son los imprime `just parches-check`. De `release`, en
-cambio, exige que todo lo que convierte esté versionado.
+Lo versionado es lo que decide `release`, el ROM jugable. Lo que lleva sólo por
+la tanda —los mapas de prueba, y las animaciones y los battlers que sólo piden
+ellos o los casos— no se versiona: ahí el cartucho decide solo y esto no le
+pide nada; cuáles son los imprime `just parches-check`. Todo lo demás que
+convierte `release` tiene que estar versionado.
 """
 
 import os
@@ -38,12 +38,12 @@ def _armados():
     """Los cartuchos que dejó `just cartuchos`, con sus parches adentro.
 
     `release` también, y es el que más importa: es el único del que
-    `parches.revisar` exige que todo lo que convierte esté versionado. Vive
-    fuera de `DESTINO`, así que listar ese directorio no lo encontraba.
+    `parches.revisar` exige que todo lo que convierte esté versionado. Salen
+    de `CARTUCHOS` y no de listar `DESTINO`: ahí puede quedar el directorio
+    de un cartucho que ya no existe —`main`, hasta el 2026-09-25— con
+    decisiones de otro día.
     """
-    candidatos = ([os.path.join(cartuchos.DESTINO, nombre)
-                   for nombre in sorted(os.listdir(cartuchos.DESTINO))]
-                  + [cartuchos.directorio(cartuchos.RELEASE)])
+    candidatos = [cartuchos.directorio(n) for n in sorted(cartuchos.CARTUCHOS)]
     return [c for c in candidatos
             if os.path.isdir(os.path.join(c, parches.EN_BUILD))]
 

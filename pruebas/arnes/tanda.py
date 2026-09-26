@@ -33,8 +33,8 @@ Tres cosas que este archivo hace y conviene tener a la vista:
 
 import os
 
-from consola import (NUCLEO, RAIZ, RETRASO_DE_PANTALLA, Partida, Simbolos,
-                     en_la_rom, mapas_de, marcar_la_pila, toques_de)
+from consola import (EMPEZAR, NUCLEO, RAIZ, RETRASO_DE_PANTALLA, Partida,
+                     Simbolos, en_la_rom, mapas_de, marcar_la_pila, toques_de)
 
 from emulador import retro
 
@@ -68,6 +68,10 @@ class Cartucho:
         self.simbolos = Simbolos(self.sfc + ".sym")
         self.mapas = mapas_de(os.path.join(self.dir, "mapdata.inc"))
         self.casos, self.saltan = cartuchos.manifiesto(nombre)
+        # Lo que se elige en la pantalla de título si nadie pide otra cosa:
+        # "Begin the Story", que en la ROM que se juega es por donde se entra
+        # a cualquier caso. None si el cartucho no tiene título.
+        self.titulo = (None if cartuchos.sin_titulo(nombre) else EMPEZAR)
 
 
 # El mapa 2 solo: el Linkage Block entero. Sus dos cuartos parecen dos mapas
@@ -79,7 +83,7 @@ LINKAGE = "en-2"
 _CARGADOS = {}
 
 
-def cartucho(nombre=cartuchos.PRUEBAS):
+def cartucho(nombre=cartuchos.RELEASE):
     """El cartucho `nombre`, leído una vez por corrida."""
     if nombre not in _CARGADOS:
         _CARGADOS[nombre] = Cartucho(nombre)
@@ -89,9 +93,9 @@ def cartucho(nombre=cartuchos.PRUEBAS):
 def rom(caso, en=None):
     """(el cartucho, la página) donde está el caso.
 
-    Sin `en`, el cartucho de pruebas si lo lleva, y si no el único que lo
-    lleve: los chicos existen por lo que no entra en el grande, y cada caso
-    vive en uno. Un caso que está en dos se pide con `en`.
+    Sin `en`, `release` si lo lleva, y si no el único que lo lleve: los chicos
+    existen por lo que no entra en el grande, y cada caso vive en uno. Un caso
+    que está en dos se pide con `en`.
     """
     nombres = [en] if en else cartuchos.donde_esta(caso)
     if not nombres:
@@ -117,14 +121,21 @@ def partida(caso, nucleo=None, en=None, switches=(), titulo=None, pila=False):
     en snes9x y en bsnes. `en` elige el cartucho: ver `rom`. `pila` marca la
     zona de la pila antes del primer cuadro, y lo usa una sola prueba: ver
     `consola.marcar_la_pila`.
+
+    En un cartucho con pantalla de título, `titulo` dice qué se elige ahí, y
+    sin él es "Begin the Story": el caso se elige después, como al encender
+    uno sin título. Medido al juntar `release` con `test-main`: pasar por el
+    título no mueve ninguna golden.
     """
     if caso is None:
-        # Sin caso: la ROM como arranca, que es lo único que tiene un cartucho
-        # sin páginas de prueba, como `release`.
+        # Sin caso: la ROM como arranca, que es la página 0 —`nada` en
+        # `release`: la partida de verdad—.
         uno, k, salta = cartucho(en), 0, False
     else:
         uno, k = rom(caso, en)
         salta = uno.saltan[k]
+    if titulo is None:
+        titulo = uno.titulo
     return Partida(uno.sfc, uno.simbolos, uno.mapas, switches=switches,
                    titulo=titulo, nucleo=nucleo, caso=k, salta=salta,
                    pila=pila)

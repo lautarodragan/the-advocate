@@ -660,13 +660,18 @@ def main(argv=None):
         os.path.abspath(__file__))))
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
-        "builds", nargs="+",
+        "builds", nargs="*",
         help="los directorios de los cartuchos armados. Sin --check tiene que "
              "ser el del ROM jugable y nada más: lo versionado es lo que "
-             "decide `abl`")
+             "decide `abl`. Con --check y sin ninguno, los de todos los "
+             "cartuchos de `cartuchos.py`")
     parser.add_argument("--check", action="store_true",
                         help="no escribe: falla si lo versionado quedó viejo")
     args = parser.parse_args(argv)
+    if not args.builds and args.check:
+        mapas_de_prueba()       # deja `tools/` en el camino de los imports
+        from ensamblado import cartuchos
+        args.builds = [cartuchos.directorio(n) for n in cartuchos.CARTUCHOS]
     builds = []
     for build in args.builds:
         if _tiene_parches(build):
@@ -693,7 +698,7 @@ def main(argv=None):
                 # No es una queja: son situaciones que `abl` no tiene, así que
                 # el cartucho de prueba decidió solo y eso no se versiona. Se
                 # imprime porque dice cuánto se parece la tanda al juego.
-                print("  y %d que sólo existe(n) en los cartuchos de prueba, "
+                print("  y %d que sólo existe(n) por la tanda, "
                       "que deciden solos: %s"
                       % (len(mios), ", ".join(str(m) for m in sorted(mios))))
         return
