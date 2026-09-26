@@ -445,6 +445,11 @@ class Partida:
         """La SRAM del cartucho, que es lo que un frontend vuelca a un `.srm`."""
         return self.consola.sram(direccion, largo)
 
+    def poner_sram(self, direccion, datos):
+        """Escribe la SRAM del cartucho, como si trajera el `.srm` de otro
+        build."""
+        self.consola.escribir_sram(direccion, datos)
+
     def magia(self, ranura=0):
         """Los cuatro bytes de la marca de la ranura, en la SRAM."""
         return self.sram(self.simbolos["SRAM_MAGIA"]
