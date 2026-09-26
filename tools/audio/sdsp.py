@@ -225,10 +225,45 @@ CEILING_DRUM = int(round(84 * AIRE))    # la percusión pega fuerte y dura
                                         # poco: aguanta más
 
 
-def volume(velocity, ceiling=CEILING):
-    """El volumen de una voz, de 0 a 127 (el registro tiene signo).
+# Cuánto baja cada cosa, medido con fluidsynth y el SoundFont —que es contra
+# lo que se compara y de donde salen las pistas de MSU-1—, relativo a una nota
+# con velocidad 127 y los controladores en su valor de GM:
+#
+# * **la velocidad, 40·log10(127/v) dB**, o sea la amplitud al cuadrado.
+#   La especificación de SF2 la define como una curva cóncava de 96 dB, que
+#   no es exactamente esto; fluidsynth da esto, y se sigue a fluidsynth.
+#   Medido: 64 da -11,9 dB, 29 da -25,7. Hasta el 2026-09-26 era lineal —29
+#   daba -12,8— y la mezcla salía corrida hacia los colchones, que en los
+#   MIDI van con velocidad baja;
+# * **el volumen (CC7) y la expresión (CC11), igual**: 40·log10 cada uno.
+#   CC7 se mide contra 100, que es su valor por omisión en GM: un canal en
+#   127 suena 4 dB **más fuerte** que uno que no dice nada, y así sale acá;
+# * **el paneo (CC10), seno y coseno**, con el centro en -3 dB de cada lado
+#   respecto de un paneo total: 0 da +3 dB a la izquierda, 32 da +2,3 y
+#   -5,3. El centro se deja en el techo, así que un paneo total pasa del
+#   techo en 1,41: es lo que hace fluidsynth.
+#
+# El piso: una nota que el cálculo no deja en cero se oye al menos con 2
+# —el del prototipo, lo que taro escuchó—. Hasta el 2026-09-26 era 4, que
+# con la curva lineal casi nunca se tocaba y con ésta taparía a las notas
+# suaves: 4 es la velocidad 37.
+VOLUMEN_PISO = 2
 
-    Se le deja un piso: una nota con velocidad muy baja tiene que oírse, y el
-    banco de Windows con el que se compone esto era bastante compresor.
-    """
-    return max(4, min(ceiling, int(round(velocity / 127.0 * ceiling))))
+
+def volume(velocity, ceiling=CEILING, cc7=100, cc11=127, pan=64):
+    """Izquierda y derecha de una voz, de 0 a 127 (el registro tiene signo),
+    con la velocidad de la nota y los controladores de su canal."""
+    amplitud = (ceiling * (velocity / 127.0) ** 2 * (cc7 / 100.0) ** 2
+                * (cc11 / 127.0) ** 2)
+    # fluidsynth lleva el paneo de GM a un ángulo con 128 pasos, no 127: el
+    # 64 es el centro exacto y el 127 no llega del todo a la derecha.
+    angulo = min(127, max(0, pan)) / 128.0 * math.pi / 2
+    centro = math.cos(math.pi / 4)
+
+    def lado(x):
+        if x < 0.5:
+            return 0
+        return max(VOLUMEN_PISO, min(0x7F, int(round(x))))
+
+    return (lado(amplitud * math.cos(angulo) / centro),
+            lado(amplitud * math.sin(angulo) / centro))
