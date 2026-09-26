@@ -534,18 +534,44 @@ class Partida:
         bajo, alto = self.consola.ram(self.simbolos[nombre], 2)
         return bajo | (alto << 8)
 
-    def tocar(self, *botones):
-        """Un toque de los botones que se le digan: un cuadro apretados y uno
-        suelto, que es el flanco que la ROM mira.
+    # Hay dos toques, y el nombre dice con qué reloj cuenta cada uno. Afuera
+    # de ellos quedan dos a propósito: `Grabador.tocar_cuadros` en
+    # `test_fundido_de_pelea.py`, que es este mismo toque pero fotografiando
+    # cada cuadro, y `_tocar_cuadros` en `test_pila.py`, que no tiene
+    # `Partida` y aprieta un cuadro solo.
 
-        Es el toque de ahora, sin agendar: las listas de `correr` los ponen en
-        un tick dado de antemano, y esto sirve para ir tocando a medida que se
-        mira el estado —el cursor de `ShowChoice`, un menú—.
+    def tocar_ticks(self, *botones):
+        """Un toque en ticks: un tick apretados y uno suelto, que es el flanco
+        que la ROM mira.
+
+        Es el toque del mapa: el de ahora, sin agendar —las listas de `correr`
+        los ponen en un tick dado de antemano—, para ir tocando a medida que
+        se mira el estado —el cursor de `ShowChoice`, un mensaje—. **No sirve
+        con una pantalla que congela el reloj** —el menú, la tienda, la pelea,
+        el título—: ahí `vueltas` no avanza y el segundo tick no llega nunca.
+        Para ésas está `tocar_cuadros`.
         """
         self.consola.apretar(*botones)
         self._un_tick()
         self.consola.apretar()
         self._un_tick()
+        return self
+
+    def tocar_cuadros(self, boton, aire=4):
+        """Un toque en cuadros de hardware: dos cuadros apretado y `aire`
+        sueltos.
+
+        Es el de las pantallas que congelan el reloj del juego —el menú de
+        pausa y lo que se abre desde él, la tienda, la pelea, la pantalla de
+        ranuras—. Hasta el 2026-09-26 la pelea tenía el suyo, que dejaba
+        apretado tantos cuadros como de aire; se unificó con éste porque
+        ninguna de las pruebas que lo usaban cambió de resultado, y ninguna
+        compara contra una golden.
+        """
+        self.consola.apretar(boton)
+        self.consola.correr(2)
+        self.consola.apretar()
+        self.consola.correr(aire)
         return self
 
     def sostener(self, ticks, *botones):

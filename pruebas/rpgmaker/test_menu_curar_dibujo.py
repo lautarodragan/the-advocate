@@ -25,7 +25,7 @@ from consola import TITULO_AIRE
 import datos
 from dibujo import comparar_pantalla, diferencia
 from datos import maximos
-from menu import abrir, tocar
+from menu import abrir
 
 TALAN, ARDEN = 14, 15
 SANDWICH, VINO, ELIXIR, BOTAS = 97, 103, 115, 262
@@ -43,7 +43,7 @@ def en_los_items(partida, hp_arden):
     una.poner_hp(ARDEN, hp_arden)
     una.correr(30)
     abrir(una)
-    tocar(una, "a", TITULO_AIRE)
+    una.tocar_cuadros("a", TITULO_AIRE)
     assert una.menu_abierto()
     return una
 
@@ -51,10 +51,10 @@ def en_los_items(partida, hp_arden):
 def usar_sobre_la_segunda(una, fila_del_item):
     """El ítem de esa fila, sobre la segunda fila del grupo."""
     for _ in range(fila_del_item):
-        tocar(una, "down")
-    tocar(una, "a", TITULO_AIRE)        # la elección de actor
-    tocar(una, "down")                  # la segunda fila
-    tocar(una, "a", 20)
+        una.tocar_cuadros("down")
+    una.tocar_cuadros("a", TITULO_AIRE)  # la elección de actor
+    una.tocar_cuadros("down")           # la segunda fila
+    una.tocar_cuadros("a", 20)
 
 
 def diferencia_con_la_eleccion(una, elegida, hp):
@@ -127,7 +127,7 @@ def test_el_vino_repone_los_sp(partida):
     una.poner_sp(ARDEN, 0)
     una.correr(30)
     abrir(una)
-    tocar(una, "a", TITULO_AIRE)
+    una.tocar_cuadros("a", TITULO_AIRE)
     usar_sobre_la_segunda(una, FILA_VINO)
     esperado = min(20, maximos()[ARDEN][1])
     assert una.sp(ARDEN) == esperado, (
@@ -145,7 +145,7 @@ def test_el_sandwich_no_sirve_a_quien_no_puede_usarlo(partida):
     una.poner_hp(AG7, 1)
     una.correr(30)
     abrir(una)
-    tocar(una, "a", TITULO_AIRE)
+    una.tocar_cuadros("a", TITULO_AIRE)
     usar_sobre_la_segunda(una, FILA_SANDWICH)
     assert una.hp(AG7) == 1, (
         "el sándwich curó a AG7-17, que no lo puede usar: quedó en %d"
@@ -189,7 +189,7 @@ def test_el_ultimo_elixir_sale_de_la_lista_al_volver(partida):
     from port import titulo
     una = en_los_items(partida, 0)
     usar_sobre_la_segunda(una, FILA_ELIXIR)
-    tocar(una, "b", TITULO_AIRE)
+    una.tocar_cuadros("b", TITULO_AIRE)
     db, skin = datos.base(), datos.skin()
     quedan = {SANDWICH: 2, VINO: 1, BOTAS: 1}
     esperada = titulo.render_items(skin, db, quedan, FILA_ELIXIR, 0,
@@ -218,12 +218,12 @@ def test_la_eleccion_se_ve_igual_al_volver_a_entrar(partida):
     rojo sin el arreglo, 1580 pixeles.
     """
     una = en_los_items(partida, 10)
-    tocar(una, "a", TITULO_AIRE)
+    una.tocar_cuadros("a", TITULO_AIRE)
     assert diferencia_con_la_eleccion(una, 0, {ARDEN: 10}) == 0, (
         "la elección, entrando derecho desde la lista, difiere de la "
         "referencia; está en pruebas/snapshots/pantallas/curar-eleccion*.png")
-    tocar(una, "b", TITULO_AIRE)
-    tocar(una, "a", TITULO_AIRE)
+    una.tocar_cuadros("b", TITULO_AIRE)
+    una.tocar_cuadros("a", TITULO_AIRE)
     assert diferencia_con_la_eleccion(una, 0, {ARDEN: 10}) == 0, (
         "la elección, al volver a entrar sin cerrar el menú, difiere de la "
         "referencia; está en pruebas/snapshots/pantallas/curar-eleccion*.png")

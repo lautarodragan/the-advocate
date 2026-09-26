@@ -9,7 +9,6 @@ from port import pantallas as P
 from consola import TITULO_AIRE
 import datos
 from dibujo import comparar_pantalla
-from menu import tocar
 
 VENDE = [96, 92, 93]                    # el cuchillo, el caño y la cachiporra
 CANO = 92
@@ -25,9 +24,9 @@ def entrar(partida):
     una.ir_al_mapa(10, 42, 6)
     una.poner_byte("hero_dir", una.simbolos["DIR_UP"])  # mirando al vendedor
     una.correr(5)
-    una.tocar("a")                      # "Yo. I got weapons."
+    una.tocar_ticks("a")                # "Yo. I got weapons."
     una.correr(40)
-    tocar(una, "a", 0)                  # y la tienda, que congela el reloj
+    una.tocar_cuadros("a", 0)           # y la tienda, que congela el reloj
     for _ in range(60):
         if una.menu_abierto():
             break
@@ -48,38 +47,38 @@ def test_comprar_y_vender(partida):
             resaludo).render(skin, db.font_id), "tienda-" + nombre)
 
     ver(P.TI_PRINCIPAL, {}, ORO, nombre="principal")
-    tocar(una, "a", 8)
+    una.tocar_cuadros("a", 8)
     ver(P.TI_COMPRAR, {}, ORO, nombre="comprar")
-    tocar(una, "down", 8)
+    una.tocar_cuadros("down", 8)
     ver(P.TI_COMPRAR, {}, ORO, 1, nombre="comprar-2")
-    tocar(una, "a", 8)
+    una.tocar_cuadros("a", 8)
     ver(P.TI_CUANTOS_COMPRA, {}, ORO, 1, nombre="cuantos")
-    tocar(una, "right", 8)
+    una.tocar_cuadros("right", 8)
     ver(P.TI_CUANTOS_COMPRA, {}, ORO, 1, 2, nombre="cuantos-2")
-    tocar(una, "right", 8)              # 150 / 65: no alcanza para tres
+    una.tocar_cuadros("right", 8)       # 150 / 65: no alcanza para tres
     ver(P.TI_CUANTOS_COMPRA, {}, ORO, 1, 2, nombre="cuantos-tope")
-    tocar(una, "a", 8)
+    una.tocar_cuadros("a", 8)
     queda = ORO - 2 * 65
     assert una.oro() == queda
     assert una.item(CANO) == 2
     ver(P.TI_COMPRADO, {CANO: 2}, queda, 1, nombre="comprado")
     una.consola.correr(P.TI_SEGUNDO)
     ver(P.TI_COMPRAR, {CANO: 2}, queda, 1, nombre="comprar-despues")
-    tocar(una, "b", 8)
+    una.tocar_cuadros("b", 8)
     ver(P.TI_PRINCIPAL, {CANO: 2}, queda, 0, resaludo=True,
         nombre="resaludo")
-    tocar(una, "down", 8)
-    tocar(una, "a", 8)
+    una.tocar_cuadros("down", 8)
+    una.tocar_cuadros("a", 8)
     ver(P.TI_VENDER, {CANO: 2}, queda, nombre="vender")
-    tocar(una, "a", 8)
-    tocar(una, "up", 8)                 # +10, topado en los dos que tiene
+    una.tocar_cuadros("a", 8)
+    una.tocar_cuadros("up", 8)          # +10, topado en los dos que tiene
     ver(P.TI_CUANTOS_VENTA, {CANO: 2}, queda, 0, 2, nombre="cuantos-venta")
-    tocar(una, "a", 8)
+    una.tocar_cuadros("a", 8)
     assert una.oro() == queda + 2 * (65 // 2)
     assert una.item(CANO) == 0
     una.consola.correr(P.TI_SEGUNDO)
-    tocar(una, "b", 8)
-    tocar(una, "down", 8)
-    tocar(una, "down", 8)
-    tocar(una, "a", 20)                 # Leave
+    una.tocar_cuadros("b", 8)
+    una.tocar_cuadros("down", 8)
+    una.tocar_cuadros("down", 8)
+    una.tocar_cuadros("a", 20)          # Leave
     assert not una.menu_abierto(), "Leave no cerró la tienda"

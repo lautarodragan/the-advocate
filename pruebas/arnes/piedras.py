@@ -49,12 +49,12 @@ def hablarle_a_la_reja(p):
     """Los cuatro cuadros de texto de `Grate1`, hasta que Talan tiene tres
     piedras. Devuelve la partida con el minijuego ya andando."""
     p.ir_al_mapa(11, *DEBAJO_DE_LA_REJA)
-    p.tocar("up")           # gira sin moverse: la reja no se pisa
+    p.tocar_ticks("up")     # gira sin moverse: la reja no se pisa
     assert (p.palabra("tile_x"), p.palabra("tile_y")) == DEBAJO_DE_LA_REJA, (
         "tocar arriba contra la reja no tendría que mover al héroe")
     for _ in range(40):
         p.correr(1)
-        p.tocar("a")
+        p.tocar_ticks("a")
         if p.switch(43):
             return p
     raise AssertionError(

@@ -338,19 +338,19 @@ def test_la_ranura_muestra_el_nivel_que_tenia_esa_partida(partida):
     pantalla, así que un 9 en la ranura sólo puede haber salido de la SRAM."""
     from port import titulo
     from consola import TITULO_AIRE
-    from menu import GRUPO as GRUPO_MENU, abrir, con_grupo, tocar
+    from menu import GRUPO as GRUPO_MENU, abrir, con_grupo
     base, skin, game_dir = referencias()
     lider = GRUPO_MENU[0]
     una = con_grupo(partida())
     poner_exp(una, lider, experiencia.lista_de(base.actors[lider])[8], 9)
     abrir(una)
     for _ in range(3):                  # hasta Save
-        tocar(una, "down")
-    tocar(una, "a", TITULO_AIRE)        # la pantalla de ranuras
-    tocar(una, "a", TITULO_AIRE)        # guarda en la primera
+        una.tocar_cuadros("down")
+    una.tocar_cuadros("a", TITULO_AIRE)  # la pantalla de ranuras
+    una.tocar_cuadros("a", TITULO_AIRE)  # guarda en la primera
     assert una.hay_partida(), "la partida no se guardó"
     poner_exp(una, lider, experiencia.lista_de(base.actors[lider])[4], 5)
-    tocar(una, "a", TITULO_AIRE)        # y la vuelve a abrir
+    una.tocar_cuadros("a", TITULO_AIRE)  # y la vuelve a abrir
     ranuras = una.simbolos["SRAM_RANURAS"]
     llenas = [True] + [False] * (ranuras - 1)
     grupos = {0: GRUPO_MENU}
