@@ -1,8 +1,16 @@
 ---
 name: "La música pesa 789 KB"
-description: "El stream de cada tema son escrituras crudas al DSP; un formato por nota lo baja a un tercio sin cambiar ni una escritura"
+description: "El stream eran escrituras crudas al DSP; el formato por nota (hecho) lo bajó al 29% sin cambiar ni una escritura, y quedan tres ideas más"
 type: refactor
 ---
+
+**La idea 1, el formato por nota, está hecha desde el 2026-09-26**: es el
+paso 4 de `la-calidad-de-la-musica.md`, que tiene el formato, los bytes, los
+ciclos y cómo se verificó. Los 32 temas del `release` pasaron de 730.695 B a
+209.720 contando sus tablas, y el cartucho del 87% al 74,6%. **Quedan la 2, la
+3 y la 4**, y sus números de abajo están medidos sobre el formato del
+prototipo —con diccionario de alturas—, no sobre el que quedó: antes de hacer
+cualquiera hay que volver a medirla.
 
 **Decisión de taro, el 2026-09-25: el formato nuevo espera a la calidad de la
 música.** Antes de armar un formato que represente el stream de hoy, van los
@@ -13,7 +21,8 @@ después. Mientras tanto, lo de abajo queda como medición.
 
 La radiografía de `juntar-release-y-test-main.md` pone a `tema_stream` arriba
 de todo: 789 KB en el cartucho unido, el 21%. Esto es **por qué pesa eso y qué
-se ganaría**, medido el 2026-09-25 sobre `6f1dc4a`. No hay nada implementado.
+se ganaría**, medido el 2026-09-25 sobre `6f1dc4a`, cuando no había nada
+implementado.
 
 Todo lo medido sale de los `musicdata.inc` que `just cartuchos` dejó armados
 ese día: **`test-main`, 31 temas, 768.863 B de stream**. El unido son esos
@@ -111,7 +120,13 @@ de abajo mantiene esas escrituras idénticas.
 Ordenado por bytes contra riesgo. Los tamaños son sobre los 768.863 B de
 `test-main`.
 
-## 1. Un formato por nota, que el 65816 expande a las mismas escrituras
+## 1. Un formato por nota, que el 65816 expande a las mismas escrituras: hecho
+
+Hecho el 2026-09-26: ver el paso 4 de `la-calidad-de-la-musica.md`. No es
+exactamente el del prototipo: la altura no va en un diccionario aparte sino
+junto con el instrumento, en un *sonido* por nota, porque la batería cambia de
+instrumento en casi cada golpe; y el volumen va de a dos lados, porque desde
+el paso 3 hay paneo. Lo de abajo es el estudio de antes, tal cual.
 
 **De 768.863 a 258.639 B (−66%). Con un diccionario de alturas por tema, a
 219.794 (−71%): 549 KB menos.** Riesgo musical: ninguno, **y está medido**:

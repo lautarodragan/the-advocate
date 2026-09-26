@@ -107,7 +107,7 @@ sin_6:
     rts
 .endproc
 
-; Un par al DSP: X el registro, A el valor. Es lo que hace `write_dsp`.
+; Un par al DSP: X el registro, A el valor, y la espera del acuse del SPC700.
 .proc dsp_par
 .a8
 .i16
