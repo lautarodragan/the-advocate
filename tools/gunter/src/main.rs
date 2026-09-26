@@ -535,9 +535,9 @@ fn soundfont(args: &Sf2) -> Result<u8> {
     };
 
     let selector = parse_selector(text)?;
-    let (zone, sample) = match &selector {
+    let (zone, envelope, sample) = match &selector {
         Selector::Program { program, bank, key } => match font.zone_for(*program, *key, *bank) {
-            Some(found) => (Some(found.0), found.1),
+            Some(found) => (Some(found.zone.clone()), Some(found.envelope()), found.sample),
             None => {
                 eprintln!(
                     "{}: nothing covers {text}",
@@ -547,7 +547,7 @@ fn soundfont(args: &Sf2) -> Result<u8> {
             }
         },
         Selector::Named(name) => match font.find_sample(name) {
-            Some(s) => (None, s.clone()),
+            Some(s) => (None, None, s.clone()),
             None => {
                 eprintln!("{}: no sample named {name:?}", args.file.display());
                 return Ok(NO);
@@ -590,6 +590,14 @@ fn soundfont(args: &Sf2) -> Result<u8> {
             .flag("loops", looped)
             .maybe("loop_start", loop_start)
             .maybe("loop_end", loop_end)
+            .maybe("env_delay_timecents", envelope.map(|e| e.delay))
+            .maybe("env_attack_timecents", envelope.map(|e| e.attack))
+            .maybe("env_hold_timecents", envelope.map(|e| e.hold))
+            .maybe("env_decay_timecents", envelope.map(|e| e.decay))
+            .maybe("env_sustain_centibels", envelope.map(|e| e.sustain))
+            .maybe("env_release_timecents", envelope.map(|e| e.release))
+            .maybe("env_key_to_hold", envelope.map(|e| e.key_to_hold))
+            .maybe("env_key_to_decay", envelope.map(|e| e.key_to_decay))
             .print();
     } else {
         if let Some(path) = &args.output {
@@ -601,8 +609,36 @@ fn soundfont(args: &Sf2) -> Result<u8> {
             (Some(a), Some(b)) => say!("  loops {a}..{b} ({} frames)", b - a),
             _ => say!("  does not loop"),
         }
+        if let Some(e) = envelope {
+            say!(
+                "  volume envelope: delay {}, attack {}, hold {}, decay {}, \
+                 sustain -{:.1} dB, release {}",
+                seconds(e.delay),
+                seconds(e.attack),
+                seconds(e.hold),
+                seconds(e.decay),
+                e.sustain as f64 / 10.0,
+                seconds(e.release)
+            );
+            if e.key_to_hold != 0 || e.key_to_decay != 0 {
+                say!(
+                    "  per key from 60: hold {:+} and decay {:+} timecents",
+                    e.key_to_hold,
+                    e.key_to_decay
+                );
+            }
+        }
     }
     Ok(0)
+}
+
+/// A time in timecents, for people: -12000 is the specification's "none".
+fn seconds(timecents: i32) -> String {
+    if timecents <= -12000 {
+        "0 s".into()
+    } else {
+        format!("{:.3} s", 2f64.powf(timecents as f64 / 1200.0))
+    }
 }
 
 fn main() -> ExitCode {

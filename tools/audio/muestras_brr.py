@@ -199,6 +199,44 @@ class Muestra:
                                                     self.tasa)
 
 
+_envolventes = {}
+# Los campos de la envolvente de volumen que devuelve `gunter sf2 --json`,
+# generadores 33 a 40 ya resueltos —la zona del instrumento más la del preset,
+# con los defaults y los topes de la especificación—. En las unidades del
+# SoundFont: timecents, y centibels el sostenido.
+CAMPOS_ENVOLVENTE = ("env_delay_timecents", "env_attack_timecents",
+                     "env_hold_timecents", "env_decay_timecents",
+                     "env_sustain_centibels", "env_release_timecents",
+                     "env_key_to_hold", "env_key_to_decay")
+
+
+def envolvente(selector, soundfont):
+    """La envolvente de volumen de la zona que el selector elige, como dict
+    con `CAMPOS_ENVOLVENTE`, o None si el banco no tiene nada ahí.
+
+    Es una llamada por zona y no se cachea en disco: sin `-o` el binario no
+    escribe nada y contesta en menos de un milisegundo.
+    """
+    clave = (selector, soundfont)
+    if clave not in _envolventes:
+        try:
+            campos = _json(_correr(["sf2", soundfont, "--extract", selector,
+                                    "--json"]))
+        except Error as e:
+            if "salió con 1" not in str(e):
+                raise
+            campos = None
+        if campos is not None:
+            if any(c not in campos for c in CAMPOS_ENVOLVENTE):
+                raise SystemExit("el `gunter` del PATH (%s) no devuelve la "
+                                 "envolvente del SoundFont: es anterior al "
+                                 "2026-09-25. Se reinstala con `just "
+                                 "herramientas`." % binario())
+            campos = {c: campos[c] for c in CAMPOS_ENVOLVENTE}
+        _envolventes[clave] = campos
+    return _envolventes[clave]
+
+
 def extraer(selector, soundfont):
     """Un instrumento del SoundFont, o None si el banco no lo tiene.
 

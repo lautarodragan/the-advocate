@@ -357,7 +357,10 @@ def volumen_de_efecto(volumen, balance):
     """Izquierda y derecha del DSP, de 0 a 127, desde el volumen y el paneo
     de RM2k: el paneo en 50 es el centro, y a cada lado baja el otro."""
     tope = sdsp.MASTER if hasattr(sdsp, "MASTER") else 0x7F
-    v = max(0, min(100, volumen)) * 0x60 // 100
+    # Los $60 se eligieron con el volumen general en $60, que también se les
+    # aplica a los efectos —con MSU-1 o sin él—. Con el aire de `sdsp` el
+    # general subió, y el techo del efecto baja lo mismo para que suene igual.
+    v = max(0, min(100, volumen)) * int(round(0x60 * 0x60 / sdsp.MASTER)) // 100
     izquierda = v * min(50, 100 - balance) // 50
     derecha = v * min(50, balance) // 50
     return max(0, min(0x7F, izquierda)), max(0, min(0x7F, derecha))
@@ -458,6 +461,27 @@ class Banco:
         self.melodicas = {v.program: i for i, v in enumerate(melodicas)}
         self.golpes = {d.program: len(melodicas) + i
                        for i, d in enumerate(percusion)}
+        self._envolventes = {}
+
+    def envolvente(self, program, key):
+        """(ADSR1, ADSR2, GAIN del release) de una nota melódica: la
+        envolvente de la zona del SoundFont que cubre la tecla, traducida por
+        `sdsp.envelope`.
+
+        La zona puede no ser la de la muestra —cada programa lleva una sola,
+        la del do central—, y es a propósito: es la envolvente que el
+        SoundFont le daría a esa tecla, y en el piano el decaimiento cambia
+        tecla por tecla. Si ninguna zona cubre la tecla, la del do central.
+        """
+        clave = (program, key)
+        if clave not in self._envolventes:
+            sf2 = (muestras_brr.envolvente("program:%d@%d" % (program, key),
+                                           snes_samples.SOUNDFONT)
+                   or muestras_brr.envolvente(
+                       "program:%d@%d" % (program, snes_samples.REFERENCE_KEY),
+                       snes_samples.SOUNDFONT))
+            self._envolventes[clave] = sdsp.envelope(sf2, key)
+        return self._envolventes[clave]
 
     @property
     def bytes(self):
@@ -550,7 +574,7 @@ def build_events(notes, voices, programs, drum_voices, banco):
             instrument = bank[source]
             step = sdsp.pitch_for(note.pitch, instrument.root, instrument.rate)
             level = sdsp.volume(note.velocity)
-            adsr1, adsr2 = sdsp.adsr(sdsp.for_program(program))
+            adsr1, adsr2, gain = banco.envolvente(program, note.pitch)
             start.setup += [(base + sdsp.V_VOL_L, level),
                             (base + sdsp.V_VOL_R, level),
                             (base + sdsp.V_PITCH_L, step & 0xFF),
@@ -561,16 +585,15 @@ def build_events(notes, voices, programs, drum_voices, banco):
 
         start.kon |= 1 << voice
         if not drums:
-            sounded.append((note, base, program))
+            sounded.append((note, base, gain))
 
-    for note, base, program in sounded:
+    for note, base, gain in sounded:
         # Robada en el mismo cuadro en que termina tampoco se suelta: la
         # ladrona escribe su ADSR1 detrás del release y lo deshace, así que
         # serían seis bytes que no hacen nada.
         if robbed.get(id(note), note.end + 1) <= note.end:
             continue
-        frames[note.end].release.append(
-            (base, sdsp.fade(sdsp.for_program(program))))
+        frames[note.end].release.append((base, gain))
 
     return frames
 

@@ -1,10 +1,11 @@
-"""El stream de música que arma `snes_music`: a qué voz va cada nota y cuándo
-se suelta.
+"""El stream de música que arma `snes_music`: a qué voz va cada nota, cuándo
+se suelta y con qué envolvente.
 
-No corren ninguna ROM ni leen el SoundFont: las notas y el banco se arman a
-mano, del tamaño justo para que pase lo que se quiere mirar, y lo que se mira
-es el stream empaquetado —lo mismo que la ROM le va a mandar al DSP—, leído
-de vuelta con `_leer`.
+No corren ninguna ROM: las notas y el banco se arman a mano, del tamaño justo
+para que pase lo que se quiere mirar, y lo que se mira es el stream
+empaquetado —lo mismo que la ROM le va a mandar al DSP—, leído de vuelta con
+`_leer`. Las de las envolventes leen el SoundFont de verdad, por `gunter` del
+PATH: lo que cobran es justamente que los números salgan de ahí.
 """
 
 import os
@@ -15,7 +16,7 @@ sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
 from audio import midi, sdsp, snes_music                   # noqa: E402
 
-PIANO, BOMBO, SIN_MUESTRA = 0, 36, 35
+PIANO, BAJO_SINTETICO, BOMBO, SIN_MUESTRA = 0, 38, 36, 35
 
 
 class _Muestra:
@@ -32,6 +33,21 @@ class _Banco:
         self.melodicas = {PIANO: 0}
         self.golpes = {BOMBO: 1}
 
+    def envolvente(self, program, key):
+        return 0x8F, 0xE0, sdsp.GAIN_EXP_DECREASE | 12
+
+
+class _BancoDelSoundFont(_Banco):
+    """El mismo banco, con las envolventes de `Banco`: las del SoundFont."""
+
+    envolvente = snes_music.Banco.envolvente
+
+    def __init__(self):
+        super().__init__()
+        self.voces.append(_Muestra(BAJO_SINTETICO))
+        self.melodicas[BAJO_SINTETICO] = 2
+        self._envolventes = {}
+
 
 def _nota(start, end, channel=0, pitch=60):
     nota = midi.Note(start, channel, pitch, 100)
@@ -39,9 +55,10 @@ def _nota(start, end, channel=0, pitch=60):
     return nota
 
 
-def _armar(notas, voces):
+def _armar(notas, voces, programas=None, banco=None):
     drums = set(voces.get(midi.DRUM_CHANNEL, []))
-    frames = snes_music.build_events(notas, voces, {0: PIANO}, drums, _Banco())
+    frames = snes_music.build_events(notas, voces, programas or {0: PIANO},
+                                     drums, banco or _Banco())
     return snes_music.pack(frames, max(n.end for n in notas) + 10,
                            snes_music.init_writes())
 
@@ -98,3 +115,62 @@ def test_una_nota_sin_muestra_no_ocupa_una_voz():
              _nota(10, 40, midi.DRUM_CHANNEL, BOMBO)]
     kon, _release = _leer(_armar(notas, {midi.DRUM_CHANNEL: [6, 7]}))
     assert kon.get(6) == [0] and kon.get(7) == [10], kon
+
+
+def _registros(stream, voz):
+    """Lo que cada registro de la voz fue recibiendo, en orden."""
+    escrito, i = {}, 0
+    while stream[i] != snes_music.OP_END:
+        if stream[i] == snes_music.OP_WAIT:
+            i += 2
+            continue
+        registro, valor = stream[i + 1], stream[i + 2]
+        i += 3
+        if registro >> 4 == voz and registro & 0x0F < 8:
+            escrito.setdefault(registro & 0x0F, []).append(valor)
+    return escrito
+
+
+def test_el_bajo_sintetico_se_suelta_en_lo_que_dice_el_soundfont():
+    """El bajo sintético (38) del SoundFont se suelta en 30 ms. Con las
+    familias de `sdsp` —las de antes del 2026-09-25— arrastraba 2,4 s de cola
+    con GAIN exponencial; ahora el release es GAIN lineal, porque la
+    exponencial más rápida no llega a cero en menos de 25 ms."""
+    stream = _armar([_nota(0, 30, pitch=36)], {0: [0]},
+                    {0: BAJO_SINTETICO}, _BancoDelSoundFont())
+    gain = _registros(stream, 0)[sdsp.V_GAIN][-1]
+    assert gain & 0xE0 == sdsp.GAIN_LINEAR_DECREASE, "GAIN $%02X" % gain
+    segundos = 64 * sdsp.PERIODO[gain & 0x1F] / float(sdsp.SAMPLE_RATE)
+    assert segundos < 0.1, "el release dura %.3f s" % segundos
+
+
+def test_el_piano_decae_distinto_en_cada_tecla_y_hasta_callarse():
+    """El piano (0) del SoundFont no tiene sostenido —1440 centibels: decae
+    hasta el silencio— y su decaimiento se acorta con la tecla. Así que el
+    nivel de sostenido del DSP va arriba de todo (SL = 7, la fase de
+    decaimiento termina en el acto) y la tasa de sostenido cambia entre un do
+    grave y uno agudo. Las familias le daban el mismo ADSR a todas las teclas."""
+    stream = _armar([_nota(0, 30, pitch=36), _nota(40, 70, pitch=84)],
+                    {0: [0]}, {0: PIANO}, _BancoDelSoundFont())
+    adsr2 = _registros(stream, 0)[sdsp.V_ADSR2]
+    assert len(adsr2) == 2, "ADSR2 recibió %s" % adsr2
+    grave, agudo = adsr2
+    assert grave >> 5 == 7 and agudo >> 5 == 7, "ADSR2 %s" % adsr2
+    # Tasa más alta es más rápida: la nota aguda se apaga antes.
+    assert agudo & 0x1F > grave & 0x1F, "ADSR2 %s" % adsr2
+
+
+def test_un_release_largo_llega_a_cero_donde_el_soundfont_anda_por_40_db():
+    """La caída exponencial del DSP no es exponencial por debajo de 1/8: si
+    se la hiciera coincidir en pendiente con la del SoundFont, se apagaría
+    mucho antes que él. Un release de un segundo —100 dB en un segundo— va
+    hasta cero en ~0,4 s."""
+    sf2 = {"env_delay_timecents": -12000, "env_attack_timecents": -12000,
+           "env_hold_timecents": -12000, "env_decay_timecents": 0,
+           "env_sustain_centibels": 0, "env_release_timecents": 0,
+           "env_key_to_hold": 0, "env_key_to_decay": 0}
+    _adsr1, _adsr2, gain = sdsp.envelope(sf2, 60)
+    assert gain & 0xE0 == sdsp.GAIN_EXP_DECREASE, "GAIN $%02X" % gain
+    hasta_cero = (sdsp.PASOS_HASTA_CERO * sdsp.PERIODO[gain & 0x1F]
+                  / float(sdsp.SAMPLE_RATE))
+    assert 0.3 < hasta_cero < 0.55, "llega a cero en %.3f s" % hasta_cero
