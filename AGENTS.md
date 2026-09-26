@@ -42,14 +42,20 @@ y 332 de 489— en dos archivos, los tres viejos, y el real era 350. Uno de éso
 lo había escrito yo una hora antes.
 
 **Un porqué se queda en el README sólo si es una decisión de arquitectura que
-no tiene una línea de código donde vivir**: por qué modo 3 fijo, por qué LoROM,
-por qué los translúcidos van horneados. **Un porqué que protege una línea
-concreta va como comentario en esa línea.** El razonamiento es de taro y es
-difícil de discutir: nadie que esté editando una rutina va a buscar la razón en
-un README de cinco mil líneas, así que ahí no protege a nadie.
+no tiene una línea de código donde vivir**: por qué modo 3 fijo, por qué
+LoROM. **Un porqué que protege una línea concreta va como comentario en esa
+línea.** El razonamiento es de taro y es difícil de discutir: nadie que esté
+editando una rutina va a buscar la razón en un README de cinco mil líneas, así
+que ahí no protege a nadie.
 
 Y si el error no es de los que se vuelven a cometer, no va a ningún lado: el
 `git log` ya lo tiene.
+
+**La documentación no nombra el ambiente donde corremos esto**: ni el
+contenedor, ni `box`, ni `/extras`, ni `/shared`, ni rutas de esta máquina.
+Dice qué variable o qué flag lo apunta —`ABL_GAME_DIR`, `ABL_RTP_DIR`—, y el
+ambiente queda en este archivo, que es el único que lo describe. Es de taro,
+el 2026-09-26; las tareas y los defaults del código no cuentan.
 
 **Se asume que todo el código escrito es intencional**, sabiendo que puede no
 serlo. No se documenta cada caso intencional, porque los no intencionales son
