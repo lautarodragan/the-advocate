@@ -17,11 +17,11 @@ sostiene que el cartucho no entre en la clave —medido el 2026-09-21, con las
 capas y con las animaciones: todos los cartuchos emitían los mismos archivos
 byte por byte—.
 
-Lo versionado es lo que decide `release`, el ROM jugable. Lo que los cartuchos de
-prueba llevan de más —mapas que el juego no tiene, y una animación que sólo
-muestra un caso de la tanda— no se versiona: ahí el cartucho decide solo y esto
-no le pide nada; cuáles son los imprime `just parches-check`. De `release`, en
-cambio, exige que todo lo que convierte esté versionado.
+Lo versionado es lo que decide `release`, el ROM jugable. Lo que lleva sólo por
+la tanda —los mapas de prueba, y las animaciones y los battlers que sólo piden
+ellos o los casos— no se versiona: ahí el cartucho decide solo y esto no le
+pide nada; cuáles son los imprime `just parches-check`. Todo lo demás que
+convierte `release` tiene que estar versionado.
 """
 
 import os
@@ -38,12 +38,12 @@ def _armados():
     """Los cartuchos que dejó `just cartuchos`, con sus parches adentro.
 
     `release` también, y es el que más importa: es el único del que
-    `parches.revisar` exige que todo lo que convierte esté versionado. Vive
-    fuera de `DESTINO`, así que listar ese directorio no lo encontraba.
+    `parches.revisar` exige que todo lo que convierte esté versionado. Salen
+    de `CARTUCHOS` y no de listar `DESTINO`: ahí puede quedar el directorio
+    de un cartucho que ya no existe —`main`, hasta el 2026-09-25— con
+    decisiones de otro día.
     """
-    candidatos = ([os.path.join(cartuchos.DESTINO, nombre)
-                   for nombre in sorted(os.listdir(cartuchos.DESTINO))]
-                  + [cartuchos.directorio(cartuchos.RELEASE)])
+    candidatos = [cartuchos.directorio(n) for n in sorted(cartuchos.CARTUCHOS)]
     return [c for c in candidatos
             if os.path.isdir(os.path.join(c, parches.EN_BUILD))]
 
@@ -78,3 +78,50 @@ def test_el_tamano_de_cada_animacion_versionada_sale_de_su_caja_y_de_nada_mas():
             % (numero, doc["tamano"], doc["original"],
                animacion.tamano(*doc["original"])))
         assert max(doc["tamano"]) <= animacion.CAJA
+
+
+def test_armar_otra_vez_no_deja_los_parches_de_la_corrida_anterior(tmp_path):
+    """Un cartucho que deja de llevar un mapa, una animación o un battler no
+    puede seguir teniendo su parche al lado de la ROM: `revisar` mira lo que
+    hay en el directorio, y un `.toml` viejo cuenta como convertido. Pasó al
+    sacar los mapas de prueba de `release`: el `0052.toml` de la corrida
+    anterior hacía caer la prueba de arriba."""
+    viejos = []
+    for clase in parches.CLASES:
+        carpeta = tmp_path / clase.directorio
+        carpeta.mkdir(parents=True)
+        viejos.append(carpeta / "9999.toml")
+        viejos[-1].write_text("de la corrida anterior\n")
+    parches.escribir(str(tmp_path), [])
+    parches.escribir_animaciones(str(tmp_path), [])
+    parches.escribir_battlers(str(tmp_path), [])
+    quedan = [str(v) for v in viejos if v.exists()]
+    assert not quedan, "quedaron parches de una corrida anterior: %s" % quedan
+
+
+def test_lo_que_sale_solo_por_la_tanda_no_pide_parche(tmp_path):
+    """La ROM que se juega lleva también los mapas y las páginas de la tanda,
+    y eso no se versiona: un mapa de prueba, y una animación o un battler que
+    sólo piden los mapas de prueba o los casos. Lo que pide también un mapa
+    del juego, o lo que no dice quién lo pidió, sí."""
+    clases = dict((c.clave, c) for c in parches.CLASES)
+    prueba = parches.mapas_de_prueba()
+    uno = min(prueba)
+    del_juego = min(cartuchos.MAPAS_DEL_JUEGO)
+    assert not prueba & set(cartuchos.MAPAS_DEL_JUEGO)
+    (tmp_path / "parches").mkdir()
+    parches.escribir_usos(str(tmp_path), {
+        "animacion": {91: {"caso"}, 92: {uno, "caso"}, 93: {uno, del_juego}},
+        "battler": {"solo-prueba": {uno}, "de-los-dos": {"caso", del_juego}}})
+
+    def de_prueba(clase, cual):
+        return parches.de_prueba(str(tmp_path), clases[clase], cual, prueba)
+    assert de_prueba("mapa", uno)
+    assert not de_prueba("mapa", del_juego)
+    assert de_prueba("animacion", 91) and de_prueba("animacion", 92)
+    assert not de_prueba("animacion", 93)
+    assert not de_prueba("animacion", 94), "sin origen conocido es del juego"
+    assert de_prueba("battler", "solo-prueba")
+    assert not de_prueba("battler", "de-los-dos")
+    assert not parches.de_prueba(str(tmp_path / "sin-usos"),
+                                 clases["animacion"], 91, prueba)

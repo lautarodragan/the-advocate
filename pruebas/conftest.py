@@ -96,20 +96,15 @@ def partida():
     """Una fábrica: `partida()`, o `partida(switch=[16])`.
 
     Devuelve la partida arrancada en el caso que se pida —`en-5` si no se
-    pide ninguno—. `switch` se escribe en la RAM antes del primer cuadro de
-    juego; para ir a otro mapa, `.ir_al_mapa(...)`. Con `titulo` la partida
-    es la de `release`, la ROM que se juega, que es la que lleva la pantalla
-    de título; ahí no hay casos, porque una ROM que se entrega no lleva
-    páginas de prueba.
+    pide ninguno—, pasando la pantalla de título por "Begin the Story". `switch`
+    se escribe en la RAM antes del primer cuadro de juego; para ir a otro mapa,
+    `.ir_al_mapa(...)`. Con `titulo` y sin caso, la partida es **la de
+    verdad**: `release` desde el título, con la página 0, que no hace nada.
     """
     def hacer(switch=(), caso=None, titulo=None, en=None):
-        if titulo is not None:
-            en = en or cartuchos.RELEASE
-        if en == cartuchos.RELEASE:
-            assert caso is None, (
-                "`release` no lleva páginas de prueba, así que no tiene el "
-                "caso %r" % caso)
-            return tanda.partida(None, en=en, switches=switch, titulo=titulo)
+        if titulo is not None and caso is None:
+            return tanda.partida(None, en=en or cartuchos.RELEASE,
+                                 switches=switch, titulo=titulo)
         return tanda.partida(caso or ARRANQUE, en=en, switches=switch,
                              titulo=titulo)
 

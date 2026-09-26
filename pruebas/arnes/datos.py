@@ -80,7 +80,7 @@ def pagina_de(map_id, evento_id, numero):
 # todas las que vienen detrás.
 
 @functools.lru_cache(maxsize=None)
-def comandos_de_los_casos(cartucho=cartuchos.PRUEBAS):
+def comandos_de_los_casos(cartucho=cartuchos.RELEASE):
     """Los comandos de todos los casos del cartucho, seguidos: lo que barre
     `comandos_de_casos` en el conversor."""
     from rpgmaker import lcf
@@ -93,7 +93,7 @@ def comandos_de_los_casos(cartucho=cartuchos.PRUEBAS):
 
 
 @functools.lru_cache(maxsize=None)
-def ranuras_de_variable(cartucho=cartuchos.PRUEBAS):
+def ranuras_de_variable(cartucho=cartuchos.RELEASE):
     """{número de variable: ranura} del cartucho: las del juego, las de sus
     casos y, si lleva más de uno, la que elige el caso —ver
     `eventos.VARIABLE_DE_CASO`—. Es lo que le pasa a `indexar_variables` el
@@ -106,7 +106,7 @@ def ranuras_de_variable(cartucho=cartuchos.PRUEBAS):
 
 
 @functools.lru_cache(maxsize=None)
-def ranuras_de_habilidad(cartucho=cartuchos.PRUEBAS):
+def ranuras_de_habilidad(cartucho=cartuchos.RELEASE):
     """{(actor, habilidad): bit} del cartucho: los pares del juego con los que
     nombran sus casos, que es lo que le pasa el conversor."""
     from port import eventos

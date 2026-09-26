@@ -15,13 +15,16 @@ la saca a Lashe City (mapa 8), o sea que para cuando se guarda ya se cambió de
 mapa dos veces, que es exactamente la condición que hacía fallar a la página
 de prueba.
 
-Los dos casos son el mismo camino con y sin pantalla de título, y esa pareja es
-el punto: si el save point guardara en un caso y no en el otro, el defecto
-sería del título. El de con título arranca en el 4 —es `release`, la ROM que se
-juega— y el de sin título llega al 4 con el caso `en-4` desde el cartucho de
-pruebas, porque no hay ninguna ROM sin título que arranque ahí. Para este caso
-da lo mismo: lo que se mira es el `OpenSaveMenu` del mapa
-8, que está a dos mapas de distancia, y no la rampa del fundido con que se
+Los dos primeros casos son el mismo camino por dos entradas: la partida de
+verdad, que arranca en el 4 desde el título, y el caso `en-4`, que llega al 4
+con un `Teleport` y la página de prueba ya corrida. Hasta el 2026-09-25 la
+pareja era **sin y con pantalla de título** —el `en-4` corría en `test-main`,
+que no tenía—, y era el punto: si el save point guardara en uno y no en el
+otro, el defecto sería del título. Al juntar `release` y `test-main` no quedó
+ninguna ROM sin título que llegue al 8 —`test-special` no lleva ni el 7 ni el
+8—, así que ese control se perdió, y lo que queda del par es la entrada por el
+caso contra la entrada por el arranque. Lo que se mira es el `OpenSaveMenu`
+del mapa 8, a dos mapas de distancia, y no la rampa del fundido con que se
 entra al 4.
 
 **Nada de lo que espera al menú abierto puede contarse en ticks**, y ésa fue la
@@ -72,17 +75,14 @@ def guardar(r, ranura=0):
     return r.p
 
 
-def test_el_save_point_guarda_sin_titulo(partida, mundo):
-    """El control: el mismo camino en la ROM **sin** pantalla de título.
+def test_el_save_point_guarda_llegando_por_un_caso(partida, mundo):
+    """El mismo camino, llegando al 4 con el caso `en-4` y no por el arranque.
 
-    Es lo que hace que el caso de abajo signifique algo: si los dos guardan, la
-    pantalla de título no es la variable.
-
-    Corre en el cartucho de pruebas, que es el que quedó sin título, y llega al
-    4 con el caso `en-4`.
+    Era el control **sin** pantalla de título, y dejó de serlo al juntar los
+    cartuchos: ver el encabezado.
     """
     r = caminar_hasta_el_save_point(
-        partida(caso="en-4", en="test-main", switch=[UN_ANO_DESPUES]), mundo)
+        partida(caso="en-4", switch=[UN_ANO_DESPUES]), mundo)
     p = guardar(r)
     assert p.hay_partida(), (
         "se eligió la ranura y la partida no quedó en la SRAM. %s" % r.estado())

@@ -52,7 +52,7 @@ def _pelea(tmp_path, nombre, nucleo, msu):
     o None— al lado de una copia de la ROM. Devuelve (la imagen a 15 bits, de
     dónde salió el fondo, qué fondo, la captura y el fondo limpio de la
     WRAM)."""
-    uno = tanda.cartucho(cartuchos.PRUEBAS)
+    uno = tanda.cartucho(cartuchos.RELEASE)
     k = uno.casos.index(ARRANQUE)
     directorio = os.path.join(tmp_path, nombre)
     os.makedirs(directorio)
@@ -62,7 +62,7 @@ def _pelea(tmp_path, nombre, nucleo, msu):
         with open(os.path.splitext(sfc)[0] + ".msu", "wb") as archivo:
             archivo.write(msu)
     una = Partida(sfc, uno.simbolos, uno.mapas, nucleo=nucleo, caso=k,
-                  salta=uno.saltan[k], msu=msu is not None)
+                  salta=uno.saltan[k], msu=msu is not None, titulo=uno.titulo)
     una.ir_al_mapa(*SECTOR_27)
     s = uno.simbolos
     una.consola.escribir_ram(en_la_wram(s["ENC_SEM"]),
@@ -102,8 +102,8 @@ def _fondo_8bpp(liviano):
 
 
 def _msu_del_cartucho():
-    tanda.cartucho(cartuchos.PRUEBAS)       # se niega si está viejo
-    with open(cartuchos.msu_de(cartuchos.PRUEBAS), "rb") as archivo:
+    tanda.cartucho(cartuchos.RELEASE)       # se niega si está viejo
+    with open(cartuchos.msu_de(cartuchos.RELEASE), "rb") as archivo:
         return archivo.read()
 
 

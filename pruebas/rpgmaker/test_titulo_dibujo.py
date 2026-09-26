@@ -12,7 +12,8 @@ pantalla de título: la pantalla cambia el arranque —sin ella la partida
 guardada se carga sola, con ella espera a que el menú lo decida— y ése es
 justamente el camino que hay que probar. Así que estas pruebas arrancan donde
 arranca el jugador, y **guardan como él**: con el menú de pausa, en el mapa 5,
-porque `release` no lleva páginas de prueba.
+y no con una página de prueba —desde el 2026-09-25 `release` las lleva, pero
+guardar desde una es otro camino que el del jugador—.
 """
 
 import pytest

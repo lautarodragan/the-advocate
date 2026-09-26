@@ -1,4 +1,5 @@
-"""Los cartuchos del juego: `release`, la ROM que se juega, y los de la tanda.
+"""Los cartuchos del juego: `release`, la ROM que se juega y la que corre casi
+toda la tanda, y `test-special`, con lo que no entra en ella.
 Ninguna prueba arma: corren contra lo que deja esto —ver `tanda.rom`—.
 
     python3 tools/ensamblado/cartuchos.py            arma lo que haga falta
@@ -7,8 +8,9 @@ Ninguna prueba arma: corren contra lo que deja esto —ver `tanda.rom`—.
     python3 tools/ensamblado/cartuchos.py --lista    qué caso va en qué cartucho
 
 Un caso nuevo es un archivo en `pruebas/casos/` y nada más: entra solo en
-`test-main` y se corre con `tanda.partida("<nombre>")`. Si no corre en el mapa
-de arranque, empieza con un `Teleport`.
+`release` y se corre con `tanda.partida("<nombre>")`. Empieza con un
+`Teleport` al mapa donde tiene que correr: el de arranque es el 4, el
+enrutador del juego, cuya cinemática no espera a nadie.
 """
 
 import argparse
@@ -33,48 +35,47 @@ FUENTE = os.path.join(RAIZ, "rom", "src")
 DESTINO = os.environ.get("CARTUCHOS",
                          os.path.join(RAIZ, "rom", "build", "tests"))
 
-MAPA_DE_ARRANQUE = 6
-
 # Cada mapa que se suma al proyecto se suma a todos los cartuchos. El 66 no:
 # la ventana no le entra en la VRAM.
-MAPAS = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20,
-         21, 23, 26, 28, 29, 30, 32, 33, 34, 36, 52, 70, 73, 74, 119, 121, 133,
-         255, 261, 269, 348)
-
-# Los que los casos ponen con la orden 34 o `ChangeSpriteAssociation`.
-GRAFICOS = (("Future1", "0"), ("nobodyhere", "0"))
-
-PRUEBAS = "test-main"
-
-
-def _con_mapas(arranque, *mas):
-    return (["--map-id", str(arranque), "--mapas"]
-            + [str(m) for m in MAPAS if m != arranque] + list(mas))
-
-
-_DE_PRUEBAS = _con_mapas(MAPA_DE_ARRANQUE, "--sin-titulo", "--sin-timer", *[
-    f for charset, indice in GRAFICOS
-    for f in ("--grafico-de-prueba", charset, indice)])
-
-# La ROM que se juega, y la que usan las pruebas que juegan. Sin casos: no se
-# entrega una ROM con páginas de prueba. El grupo es el 10 y no el 11 de las
-# pruebas porque la apertura del mapa 1 no corre con Kersh ya en el grupo.
 #
-# Los mapas son lo de Lashe City que entra. Afuera quedan la persecución en
-# auto, por `ControlVars` de clase 6 —ver `wishlist/la-carrera-en-release.md`—,
+# Los del juego son lo de Lashe City que entra. Afuera quedan la persecución
+# en auto, por `ControlVars` de clase 6 —ver `wishlist/la-carrera-en-release.md`—,
 # y los sectores con auto: la elección del 36 es una sola página que compila
 # con sus cuatro destinos o con ninguno, y los cuatro son de la etapa de Lashe
 # City. El 38 ya entra en la VRAM —`LAYOUT_VENTANA_AMBOS`—; hasta el
 # 2026-09-25 no entraba.
+MAPAS_DEL_JUEGO = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18,
+                   19, 20, 21, 23, 26, 28, 29, 30, 32, 33, 34, 36)
+
+# Y los que sólo existen por la tanda: situaciones que ningún mapa del juego
+# que entra ejercita. `parches.revisar` los lee de acá para no pedirles parche
+# versionado.
+MAPAS_DE_PRUEBA = (52, 70, 73, 74, 119, 121, 133, 255, 261, 269, 348)
+
+MAPAS = MAPAS_DEL_JUEGO + MAPAS_DE_PRUEBA
+
+# Los que los casos ponen con la orden 34 o `ChangeSpriteAssociation`.
+GRAFICOS = (("Future1", "0"), ("nobodyhere", "0"))
+
+# La ROM que se juega, y la que corre la tanda: con título, cronómetro, todos
+# los mapas y todos los casos. Hasta el 2026-09-25 eran dos, `release` y
+# `test-main`, y se juntaron —ver `workflow/tasks/*/juntar-release-y-test-main.md`—:
+# lo que se entrega es lo que se prueba. El grupo es el 10 y no el 11 de las
+# pruebas porque la apertura del mapa 1 no corre con Kersh ya en el grupo; el
+# 11 lo pone el caso `grupo-11`.
+#
+# **Los mapas y las páginas de prueba van en la ROM que se juega**, a
+# propósito, inalcanzables: los mapas porque ningún `Teleport` del juego lleva
+# a ellos, y las páginas por `PRIMERO`.
 RELEASE = "release"
-_DE_RELEASE = ["--grupo", "10", "--map-id", "4", "--mapas",
-               "1", "2", "3", "5", "6", "7", "8", "9", "10", "11", "12", "13",
-               "14", "16", "17", "18", "19", "20", "21", "23", "26", "28",
-               "29", "30", "32", "33", "34", "36"]
+_DE_RELEASE = (["--grupo", "10", "--map-id", "4", "--mapas"]
+               + [str(m) for m in MAPAS if m != 4]
+               + [f for charset, indice in GRAFICOS
+                  for f in ("--grafico-de-prueba", charset, indice)])
 
 CARTUCHOS = {
-    PRUEBAS: (_DE_PRUEBAS, None),
-    # Lo que en `test-main` cambiaría las imágenes de los demás: los sprites
+    RELEASE: (_DE_RELEASE, None),
+    # Lo que en `release` cambiaría las imágenes de los demás: los sprites
     # de los actores 12 y 13, los flags y el relleno de textos. `empujon`
     # tiene el tamaño medido que deja el texto de `grupo-11-en-255` sobre el
     # borde de banco —ver `test_texto`—, y va último para no correrle la
@@ -86,7 +87,6 @@ CARTUCHOS = {
               ["parado-tapado", "grupo-11-12-13",
                "grupo-11-en-255", "batalla", "batalla-item", "batalla-droide",
                "pelea-82-grupo-11-12", "empujon"]),
-    RELEASE: (_DE_RELEASE, []),
 }
 
 FUERA = {"grupo-11-12-13", "batalla", "batalla-item", "batalla-droide",
@@ -94,7 +94,15 @@ FUERA = {"grupo-11-12-13", "batalla", "batalla-item", "batalla-droide",
          # Acá correría el bloque de textos de todos los casos.
          "empujon"}
 
-PRIMERO = "grupo-11"
+# La página 0 **no pide nada** y corre siempre, en el mapa de arranque, al
+# empezar: es la que corre en la partida de verdad. La k pide que
+# `VARIABLE_DE_CASO` valga al menos k, y el juego no toca esa variable, así que
+# con `nada` —ningún comando: la página sólo prende el switch que la apaga— los
+# casos quedan apagados en la ROM que se juega. El arnés elige los demás
+# escribiendo la variable. Con cualquier otro caso acá, el juego lo correría
+# al empezar: hasta el 2026-09-25 era `grupo-11`, que mete a Kersh en el grupo
+# y rompe la apertura.
+PRIMERO = "nada"
 
 
 def huella():
@@ -141,9 +149,21 @@ def casos_de(nombre):
     return list(casos)
 
 
+def sin_titulo(nombre):
+    """Si el cartucho arranca sin pantalla de título, directo en el mapa."""
+    return "--sin-titulo" in CARTUCHOS[nombre][0]
+
+
 def donde_esta(caso):
-    """Los cartuchos que llevan el caso, `test-main` primero."""
-    return [n for n in CARTUCHOS if caso in casos_de(n)]
+    """Los cartuchos que llevan el caso: primero el que lleva todos, después
+    los demás por nombre.
+
+    **No sale del orden de `CARTUCHOS`**, a propósito: un caso que está en
+    dos —`parado-tapado`— corre en el primero, y con el diccionario en otro
+    orden corría en el chico y movía su golden sin que nadie tocara el caso.
+    """
+    return sorted((n for n in CARTUCHOS if caso in casos_de(n)),
+                  key=lambda n: (CARTUCHOS[n][1] is not None, n))
 
 
 def _contenido(casos):
@@ -258,7 +278,7 @@ def main():
                         help="qué caso va en qué cartucho, sin armar nada")
     parser.add_argument("nombres", nargs="*", metavar="CARTUCHO",
                         help="sólo éstos; sin nombres, todos. Es lo que usa "
-                             "`just build test-main`")
+                             "`just build release`")
     args = parser.parse_args()
     for nombre in args.nombres:
         if nombre not in CARTUCHOS:

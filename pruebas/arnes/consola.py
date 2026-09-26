@@ -412,10 +412,14 @@ class Partida:
         dónde queda parada. Escribirle la RAM a mano probaría otra cosa.
 
         Con pantalla de título hay que volver a elegir, y `opcion` dice qué:
-        sin ella se repite la de la vez anterior.
+        sin ella es "Resume the Story" en la ranura `ranura`, que es lo que
+        hace un cartucho sin título al arrancar —cargar la partida solo—. Así
+        una prueba de "viaja en la partida" dice lo mismo en los dos.
         """
         self._resetear()
-        elegir = self.titulo if opcion is None else opcion
+        elegir = opcion
+        if elegir is None and self.titulo is not None:
+            elegir = SEGUIR
         if elegir is not None:
             self.pasar_el_titulo(elegir, ranura)
         # Empezar de nuevo desde el título arranca con la WRAM limpia, y la

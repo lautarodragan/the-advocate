@@ -203,25 +203,25 @@ parches: (build "release")
 
 # Y la verificación, que es lo que corre la tanda: falla diciendo **qué
 # decisión cambió** —"la animación 82 se dibujaba a 64x50 y ahora se dibuja a
-# 64x49"—, no que el archivo difiere. Mira todos los cartuchos que haya
-# armados, porque lo versionado tiene que salir igual en todos.
-parches-check *builds="rom/build/tests rom/build/release":
+# 64x49"—, no que el archivo difiere. Sin argumentos mira todos los cartuchos
+# de `cartuchos.py`, porque lo versionado tiene que salir igual en todos.
+parches-check *builds:
   python3 tools/port/parches.py {{builds}} --check
 
 # Arma un cartucho por nombre, si no está al día:
 #
-#     release        la ROM que taro juega, en `rom/build/release/abl.sfc`
-#     test-main      los de la tanda, en `rom/build/tests/main`
-#     test-special   y `rom/build/tests/special`
+#     release        la ROM que taro juega y la que corre casi toda la tanda,
+#                    en `rom/build/release/abl.sfc`
+#     test-special   lo que no entra en ella, en `rom/build/tests/special`
 #
 # `just pruebas` los arma todos antes de correr. Qué lleva cada uno, y por
 # qué, en `tools/ensamblado/cartuchos.py`: los flags de `release` también viven
-# ahí, para que la ROM que se juega y la que prueba la tanda sean la misma.
+# ahí, porque la ROM que se juega es la que prueba la tanda.
 #
 # **`release` lleva siempre sus pistas de MSU-1** al lado de `abl.sfc`: el
 # `abl.msu` que lo enciende y un `abl-N.pcm` por tema de `PISTAS_MSU`. Sin la
 # extensión la ROM suena como siempre, por el SPC700. El `.msu` lo escribe el
-# conversor, y lo llevan los tres cartuchos: son los fondos de batalla que la
+# conversor, y lo llevan los dos cartuchos: son los fondos de batalla que la
 # ROM lee por el MSU-1 si está —ver tools/port/msu_datos.py—. Las
 # renderiza `tools/audio/msu.py` con fluidsynth, y sólo las que cambiaron: una
 # pista depende del MIDI, del soundfont, del sintetizador y de cómo se
@@ -237,7 +237,7 @@ parches-check *builds="rom/build/tests rom/build/release":
 # nombre base que la ROM: renombrar el `.sfc` obliga a renombrar los otros, o
 # el MSU-1 no se enciende.
 #
-# Arma una ROM por nombre: release, test-main o test-special.
+# Arma una ROM por nombre: release o test-special.
 build cual:
   python3 tools/ensamblado/cartuchos.py {{cual}}
 

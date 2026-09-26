@@ -186,22 +186,26 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 ## Casos
 
 **Cómo se agrega un caso**: un archivo en `pruebas/casos/`, y la prueba lo
-pide por el nombre. Entra solo en `test-main`. Si corre en otro
-mapa que el 6, empieza con un `Teleport` a su mapa y a su celda; para el
-grupo de la tanda en un mapa sin nada más están los `grupo-11-en-<mapa>`, y
-para el del juego los `en-<mapa>`, con la celda donde el héroe caía cuando
-ese mapa era el de arranque de su cartucho.
+pide por el nombre. Entra solo en `release`, **apagado**: la partida de
+verdad corre la página 0, que es el caso `nada`, y el arnés elige los demás
+—ver `PRIMERO` en `tools/ensamblado/cartuchos.py`—. Empieza con un `Teleport`
+a su mapa y a su celda: el mapa de arranque es el 4, cuya cinemática corre
+sola. Para el grupo de la tanda en un mapa sin nada más están los
+`grupo-11-en-<mapa>`, y para el del juego los `en-<mapa>`, con la celda donde
+el héroe caía cuando ese mapa era el de arranque de su cartucho.
 
 ## ROMs
 
-Son tres, y las pruebas corren sobre los tres. Los arma `just cartuchos`,
+Son dos, y las pruebas corren sobre los dos. Los arma `just cartuchos`,
 que `just pruebas` corre antes; `just build <cual>` arma uno solo:
 
-* `test-main`, con todos los casos de `pruebas/casos/`: las pruebas normales
-* `test-special`, lo que no entra en `test-main` o cuida una disposición del
+* `release`, la ROM que se juega, con título y cronómetro, que lleva además
+  los mapas de prueba y todos los casos de `pruebas/casos/`: las pruebas que
+  juegan —el recorrido, el título, las escenas de la apertura— y las normales.
+  El arnés pasa el título solo, por "Begin the Story". Hasta el 2026-09-25
+  las normales corrían en otro, `test-main`, sin título ni cronómetro.
+* `test-special`, lo que no entra en `release` o cuida una disposición del
   cartucho
-* `release`, la ROM que se juega: las pruebas que juegan —el recorrido, el
-  título, las escenas de la apertura— corren sobre ella
 
 Qué lleva cada uno, y por qué, en `tools/ensamblado/cartuchos.py`.
 

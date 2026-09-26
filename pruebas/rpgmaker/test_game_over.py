@@ -29,6 +29,7 @@ cuelgue, una pila que se desborde— pasaría por verde.
 
 from port import eventos
 
+from consola import EMPEZAR
 from batalla import con_encuentros, cuadros_hasta_reiniciar, sin_hp
 from datos import pagina_de
 
@@ -52,8 +53,23 @@ VOLVER_TOPE = 600
 
 def pasar_el_arranque(una):
     """Del otro lado de un reinicio de la ROM, los cuadros del arranque: los
-    mismos que corre `Partida` al encender, `BOOT_CUADROS` y tres."""
-    una.consola.correr(una.simbolos["BOOT_CUADROS"] + 3)
+    mismos que corre `Partida` al encender, `BOOT_CUADROS` y tres, con la
+    pantalla de título en el medio si el cartucho la tiene."""
+    pasar_el_titulo(una)
+    una.consola.correr(3)
+
+
+def pasar_el_titulo(una):
+    """`BOOT_CUADROS` y, con pantalla de título, "Begin the Story".
+
+    **El Game Over vuelve al título**, que es lo que hace RM2k
+    —`Scene_Gameover` termina en `Scene_Title`—, y ahí el juego no corre
+    hasta que alguien elige. En un cartucho sin título el arranque va directo
+    al mapa y esto es sólo esperar el arranque.
+    """
+    una.consola.correr(una.simbolos["BOOT_CUADROS"])
+    if una.titulo is not None:
+        una.pasar_el_titulo(EMPEZAR)
 
 
 def cuadros_hasta_volver(una, tope=VOLVER_TOPE):
@@ -64,7 +80,13 @@ def cuadros_hasta_volver(una, tope=VOLVER_TOPE):
     terminó: `mapa_actual` ya vale lo suyo mucho antes —`cargar_mapa` corre
     antes de la subida al SPC700— así que preguntarle a él da verde con la ROM
     clavada. Es exactamente lo que pasaba acá hasta el 2026-09-13.
+
+    Con pantalla de título se la pasa primero —ver `pasar_el_titulo`—: si el
+    arranque se colgara antes, los toques caen en nada y `vueltas` no sube
+    igual.
     """
+    if una.titulo is not None:
+        pasar_el_titulo(una)
     for n in range(tope):
         antes = una.palabra("vueltas")
         una.consola.correr(1)
@@ -267,7 +289,6 @@ def test_game_over_vuelve_al_arranque(partida):
     assert cuadros_hasta_volver(una) is not None, (
         "después del GameOver el arranque no volvió a correr en %d cuadros"
         % VOLVER_TOPE)
-    pasar_el_arranque(una)
     assert una.palabra("mapa_actual") == 0
 
 
