@@ -60,7 +60,7 @@ def test_al_apretar_guarda_el_numero_de_la_tecla_de_accion(partida):
     una = partida(caso="tecla-esperar-a")
     una.correr(ESPERA + 10)
     assert leer(una) == 0, "se adelantó: la variable ya tenía %d" % leer(una)
-    una.tocar("a")
+    una.tocar_ticks("a")
     una.correr(5)
     esperado = eventos.tecla_de(eventos.TECLA_DECISION, {"a"})
     assert esperado == eventos.TECLA_VALOR_DECISION == 5
@@ -99,7 +99,7 @@ def test_la_cruceta_guarda_el_numero_de_cada_direccion(partida):
         una.correr(ESPERA + 10)
         assert leer(una) == 0, (
             "se adelantó con %s: la variable ya tenía %d" % (boton, leer(una)))
-        una.tocar(boton)
+        una.tocar_ticks(boton)
         una.correr(5)
         esperado = eventos.tecla_de(eventos.TECLA_DIRS, {direccion})
         assert esperado == eventos.TECLA_VALOR_DIR[direccion]
@@ -117,7 +117,7 @@ def test_cancelar_guarda_seis(partida):
     `ev_activo` de `pedir_menu`, que es el
     `Game_Map::GetInterpreter().IsRunning()` de allá— y en este cuadro la
     página **termina**: el comando era su último. Por eso el toque es un tick y
-    no `tocar`, que son dos: con la pantalla de pausa abierta `vueltas` no
+    no `tocar_ticks`, que son dos: con la pantalla de pausa abierta `vueltas` no
     avanza y el segundo tick no llega nunca.
     """
     una = partida(caso="tecla-esperar-todo")

@@ -99,7 +99,7 @@ def paginas(una, pelea, tope=10):
             "el renglón del mensaje de la pelea tendría que estar vacío: %r" \
             % abajo
         vistas.append([r for r in arriba if r] if any(arriba) else [])
-        pelea.tocar()
+        pelea.tocar_cuadros()
         for _ in range(10):
             if not pelea.abierta():
                 break

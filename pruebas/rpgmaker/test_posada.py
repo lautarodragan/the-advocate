@@ -48,7 +48,7 @@ def _pasar_un_cuadro(una):
     """
     for _ in range(TICKS_POR_CUADRO):
         if una.byte("msg_abierto"):
-            una.tocar("a")
+            una.tocar_ticks("a")
             return
         una.correr(1)
     raise AssertionError("el mensaje no llegó a abrirse")
@@ -56,7 +56,7 @@ def _pasar_un_cuadro(una):
 
 def hasta_la_eleccion(una):
     """Le habla al bum y vuelve con la elección de la posada en pantalla."""
-    una.tocar("a")
+    una.tocar_ticks("a")
     for _ in range(CUADROS_DEL_SALUDO):
         _pasar_un_cuadro(una)
     for _ in range(TICKS_POR_CUADRO):
@@ -69,9 +69,9 @@ def hasta_la_eleccion(una):
 def elegir(una, opcion):
     """La opción `opcion` de la elección abierta: 0 es "Yes" y 1 es "No"."""
     for _ in range(opcion):
-        una.tocar("down")
+        una.tocar_ticks("down")
         una.correr(1)
-    una.tocar("a")
+    una.tocar_ticks("a")
     una.correr(30)
 
 
