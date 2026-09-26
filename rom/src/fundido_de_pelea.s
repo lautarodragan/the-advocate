@@ -79,6 +79,11 @@ subir:
 .proc pelea_fundir_entrando
 .a8
 .i16
+    ; Todavía no prendió nada. Se borra acá y no se confía en que lo haya
+    ; dejado en cero la pelea anterior: la primera encuentra la RAM como la
+    ; dejó el encendido, que en una consola —y en bsnes— es basura.
+    lda #0
+    sta f:PELEA_PRENDIDA
     ; El color fijo se suma en todas las capas y en el fondo. Los sprites de
     ; las paletas 0 a 3 no reciben color math —es del hardware—, así que el
     ; héroe destella menos que el mapa.

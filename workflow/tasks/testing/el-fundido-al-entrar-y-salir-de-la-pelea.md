@@ -54,7 +54,10 @@ los dos lados (droide del mapa 2, `release`).
 | entrar: de la pelea pedida al control | 90 cuadros, 83 con el mapa congelado | 158: destellos 20, fundido 23, carga 83 en negro, escena 9 en negro, mosaico 23 |
 | salir: de la A final al mapa corriendo | 104, 83 con la pelea congelada | 150: mosaico 23, carga 83 en negro, mapa 22 en negro, fundido 22 |
 
-La carga tarda lo mismo; lo que se suma son las rampas.
+La carga tarda lo mismo; lo que se suma son las rampas. Con MSU-1 —ya
+mergeado lo de no subir las muestras de los temas con pista— la carga de
+entrada baja a 20 cuadros y la de salida a 49, las dos en negro: entrar dura
+94 cuadros y salir 116.
 
 # Para mirar jugando
 
