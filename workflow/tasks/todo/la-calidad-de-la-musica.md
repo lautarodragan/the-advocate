@@ -14,7 +14,8 @@ El orden de implementación no es el de sus prioridades por el espacio: el
 reparto suma +74% de stream en el formato de hoy (~436 KB, todo el margen del
 cartucho unido). Así que: batería → notas que se sueltan antes de tiempo →
 envolventes → velocidad y CC → **el formato por nota, diseñado para todo lo de
-arriba y para el reparto** → reparto y rampa → muestras por mapa.
+arriba y para el reparto** → reparto y rampa → muestras por mapa. **Hechos
+el 0, el 1 y el 2**, el 2026-09-25: ver cada uno abajo.
 
 
 taro, el 2026-09-25: *"`escape_newyork` se escucha particularmente mal, y tal
@@ -202,37 +203,106 @@ paso 2 no es sólo por la batería. `golden_axe-turtlevillage2` es todo
 percusión: sin el arreglo su pico era 0, silencio entero. `dcbest` no tiene
 batería y da igual en las dos.
 
-## 1. Las notas que se sueltan antes de tiempo
+## 1. Las notas que se sueltan antes de tiempo: hecho
 
-Ya es `notas-que-se-sueltan-antes-de-tiempo.md`. Se oye poco —son 329 notas,
-casi todas del bajo de 6 cuadros—, pero **achica el stream un 11%** en el
-cartucho, porque ya no se escriben releases que no hacen nada. Python, unas
-líneas. Va en su propio commit, antes o después del formato nuevo, no junto.
+Hecho el 2026-09-25 (commit "Música: una nota robada no suelta a la que le
+robó la voz"). El release se agenda al final de `build_events`, sólo para las
+notas que llegan a su fin siendo dueñas de la voz, y no va cuando la voz se
+reusa en el mismo cuadro en que la nota termina; y una nota sin muestra ya
+no ocupa voz.
 
-## 2. Envolventes del SoundFont, con aire
+**Lo que dejó de pasar**, contado con la lógica vieja sobre las mismas
+entradas: **564 notas y 14.486 cuadros** se soltaban antes de su fin en los
+22 temas —341 de `escape_newyork` (el prototipo contó 329 notas robadas; acá
+se cuentan las que se soltaban), 168 de `cd4`, 31 de
+`Fantasia_Of_The_Wind`, 19 de `3D-Galax` y 5 entre `hzstream`, `TF3_1_awe`
+y `hzbreach`—, y **11.024 notas sin muestra** ocupaban voz en los nueve
+temas que no aportan al banco. **El stream de los 22 bajó de 626.319 a
+555.247 B (−11,3%)**, igual que en el prototipo. La saturación casi no
+cambió. Lo cobra `pruebas/herramientas/test_musica_stream.py`.
 
-Amplía `ataque-y-decaimiento-desde-el-soundfont.md` en dos cosas que la
-grabación mostró:
+## 2. Envolventes del SoundFont, con aire: hecho, con más aire que el pensado
 
-* **La velocidad del release sí sale del SF2.** El mecanismo sigue siendo el
-  de hoy —apagar el ADSR y pedir GAIN—; lo que cambia es con qué velocidad.
-  Con la de hoy el bajo arrastra 2,4 s de cola donde el SF2 pide 30 ms. Los
-  releases de menos de 100 ms van con GAIN **lineal**: el exponencial más
-  rápido tarda 25 ms en llegar a cero y no alcanza.
-* **La caída exponencial del DSP no es exponencial hasta el final**: por
-  debajo de 1/8 resta de a uno y llega a cero en unos 790 pasos. Hacerla
-  coincidir en pendiente con el SF2 la apaga antes de tiempo —el piano se
-  callaba a los 1,4 s en vez de seguir a -26 dB—; el prototipo la hace llegar
-  a cero donde el SF2 anda por -40 dB.
+Hecho el 2026-09-25 (commit "Música: las envolventes salen del SoundFont, y
+la mezcla tiene aire"):
 
-Hay que leer los generadores 33 a 40 del SF2 (retardo, ataque, hold,
-decaimiento, sostenido, release y el escalado por tecla). El prototipo trae
-un lector de Python descartable; lo de verdad es que **`gunter sf2 --extract
---json` los devuelva**, que es del formato y no del juego.
+* **`gunter sf2 --extract --json` devuelve la envolvente de la zona**,
+  generadores 33 a 40, ya resuelta —la del instrumento más la del preset, con
+  los defaults y topes de la especificación— y en las unidades del SF2. **Hay
+  que correr `just herramientas`**: el conversor se niega, con ese mensaje,
+  con un `gunter` anterior.
+* `sdsp.envelope` la traduce a ADSR1, ADSR2 y el GAIN del release, con las
+  dos cosas que mostró la grabación —release lineal debajo de 100 ms, y la
+  caída exponencial a cero donde el SF2 anda por -40 dB—. Da exactamente lo
+  mismo que el prototipo en 3.456 combinaciones de programa y tecla —los
+  programas que el SF2 tiene, una tecla de cada tres entre la 20 y la 98—.
+  Las ocho familias de `sdsp.py` se fueron.
+* **El aire**: con 0,8 y MASTER en `$78`, lo que proponía el prototipo, los
+  16 temas seguían recortando —hzbreach 107.218 muestras, la batalla
+  59.982—: el prototipo lo había medido en `escape_newyork`, que es de los
+  que menos recortan. Quedó en **0,5**: techo de 48 por voz y 42 la
+  percusión, MASTER en `$7F`, que es el tope del registro. Los efectos de
+  sonido bajan su techo lo mismo que subió MASTER y suenan igual que antes.
 
-**Costo**: +1,8% de stream en el formato de hoy (el piano cambia de ADSR2 por
-tecla); nada de ARAM ni de ciclos. El aire va en el mismo cambio, porque sin
-él el 04 satura.
+**Cómo se midió** —el mismo método que el del punto 0—: el `release` con el
+`lda #TEMA_TITULO` de `titulo.s` parcheado a cada tema, snes9x sin MSU-1, el
+stream entero una vez, contando las muestras del audio del core (L+R) en el
+tope, que es `32767·MASTER/128` —24.575 con `$60`, 30.719 con `$78`, 32.511
+con `$7F`—. LUFS integrados con `ebur128` de ffmpeg sobre la misma
+grabación. Los scripts, descartables, en el scratchpad de la sesión
+(`audio-pasos-1-2/sat.py`).
+
+| Tema | Stream hoy | Paso 1 | Paso 2 | Recortes hoy | Paso 1 | Aire 0,8 | Paso 2 (0,5) | Pico hoy → paso 2 | LUFS hoy → paso 2 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| hzstream | 13.042 | 11.990 | 11.999 | 57.672 | 58.114 | 34.718 | 36 | -2.5 → -0.1 | -7.6 → -9.6 |
+| escape_newyork | 34.329 | 32.569 | 33.193 | 140 | 108 | 190 | 0 | -2.5 → -2.6 | -15.6 → -17.3 |
+| TF3_1_awe | 23.444 | 21.546 | 21.546 | 110.894 | 113.112 | 78.030 | 468 | -2.5 → -0.1 | -7.1 → -9.0 |
+| T_VGFighterMAX_Masako | 156.304 | 147.088 | 148.312 | 309.040 | 311.370 | 59.982 | 70 | -2.5 → -0.1 | -6.6 → -10.7 |
+| evilrhys | 36.338 | 35.126 | 35.876 | 6.920 | 6.864 | 4.314 | 0 | -2.5 → -0.5 | -11.0 → -13.6 |
+| lufsorr | 16.161 | 10.533 | 11.529 | 2.336 | 2.346 | 2.202 | 0 | -2.5 → -0.4 | -11.2 → -12.6 |
+| cd4 | 50.885 | 43.087 | 45.886 | 1.036 | 914 | 208 | 0 | -2.5 → -3.4 | -14.4 → -17.4 |
+| C3classi | 33.498 | 26.532 | 27.537 | 112 | 100 | 38 | 0 | -2.5 → -3.7 | -14.8 → -15.9 |
+| rshinld | 12.272 | 7.274 | 7.406 | 10.344 | 10.566 | 9.372 | 4 | -2.5 → -0.1 | -10.6 → -12.1 |
+| cd2 | 30.461 | 29.225 | 29.261 | 894 | 892 | 348 | 0 | -2.5 → -2.7 | -12.5 → -15.0 |
+| hzbreach | 30.758 | 29.620 | 29.626 | 146.578 | 148.166 | 107.218 | 858 | -2.5 → -0.1 | -6.8 → -8.6 |
+| wb3mlair | 9.117 | 7.335 | 7.497 | 0 | 0 | 0 | 0 | -4.8 → -6.2 | -22.2 → -22.2 |
+| Astpgmarch | 6.521 | 6.350 | 6.527 | 858 | 834 | 850 | 0 | -2.5 → -1.9 | -10.7 → -14.0 |
+| Gaden | 7.271 | 5.357 | 5.639 | 0 | 0 | 0 | 0 | -7.5 → -12.7 | -19.0 → -23.0 |
+| 3D-Galax | 60.346 | 49.146 | 49.080 | 3.404 | 3.490 | 1.022 | 0 | -2.5 → -2.3 | -14.7 → -16.9 |
+| wb3shop | 9.916 | 9.046 | 9.046 | 382 | 368 | 422 | 0 | -2.5 → -3.0 | -16.9 → -19.2 |
+| KSSMKEND | 12.942 | 10.980 | 10.980 | 0 | 0 | 0 | 0 | -6.1 → -9.0 | -22.2 → -23.7 |
+| vswar | 21.289 | 20.536 | 20.536 | 0 | 0 | 0 | 0 | -3.7 → -5.3 | -15.1 → -16.9 |
+| Lunar_Pyramid | 37.190 | 32.792 | 32.792 | 4.574 | 4.304 | 498 | 0 | -2.5 → -3.0 | -13.4 → -15.5 |
+| dcbest | 5.017 | 5.017 | 5.017 | 0 | 0 | 0 | 0 | -7.7 → -10.5 | -20.8 → -21.1 |
+| golden_axe-turtlevillage2 | 831 | 831 | 831 | 0 | 0 | 0 | 0 | -7.4 → -11.1 | -17.0 → -20.7 |
+| Fantasia_Of_The_Wind | 18.387 | 13.267 | 14.902 | 542 | 592 | 2.018 | 0 | -2.5 → -0.6 | -12.1 → -13.1 |
+| **Los 22** | 626.319 | 555.247 | 565.018 | 655.726 | 662.140 | 301.430 | 1.436 | | |
+
+
+**Lo que cuesta el aire**: donde antes no recortaba, el nivel baja
+20·log10(0,5·127/96) = −3,6 dB —`escape_newyork` de -15,6 a -17,3 LUFS,
+con las envolventes nuevas en el medio—. Los que recortaban bajan más, pero
+lo que perdieron era distorsión: la batalla, de -6,6 a -10,7 LUFS. Recortan
+cinco, a lo sumo 858 muestras de 6,3 millones (hzbreach).
+
+**Lo que no se pudo con un número global**: cero recortes en todos sin
+bajar el nivel. Midiendo el pico verdadero de cada tema con el techo en un
+cuarto —24 y 21, sin recortes en ninguno— y escalando, para que no recorte
+ninguno el techo global tiene que ser 1,56 veces ese cuarto (hzbreach),
+contra los 2 de hoy: otro −2,2 dB para todos. Un techo por tema dejaría a
+los tranquilos donde están, pero el pico no se deja estimar desde el stream:
+contra la suma de los volúmenes de las voces, la relación varía de 85 a 135
+entre los temas densos, así que la regla necesita un margen que se come lo
+que gana. Lo que sí funcionaría es una tabla de techos medida, que habría que
+volver a medir con cada cambio de la mezcla —la curva de velocidad del 3, el
+reparto del 5—. No se hizo: es una decisión para después del 5.
+
+**Stream**: +9.771 B sobre el paso 1 (+1,8%), lo previsto: el piano cambia
+de ADSR2 por tecla. Lo cobra `test_musica_stream.py`, con el SF2 de verdad:
+el release del bajo sintético y el decaimiento del piano por tecla.
+
+**Para escuchar**: `/shared/audio/2026-09-25-pasos-1-y-2/`, con su
+`LEEME.txt`.
 
 ## 3. Curva de velocidad y controladores
 
