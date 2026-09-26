@@ -36,7 +36,9 @@ los flags del cartucho antes del primero. El arnés elige cuál corre con
 
 import argparse
 import collections
+import contextlib
 import json
+import multiprocessing
 import os
 import shutil
 import sys
@@ -1743,8 +1745,11 @@ def capas_convertidas(renderer, game_map):
     en_disco = None
     if insumos is not None:
         en_disco = cache_disco.clave(_version_capas(), *insumos)
+        if en_disco in _capas_en_memoria:
+            return _capas_en_memoria[en_disco]
         hecho = cache_disco.leer("capas", en_disco)
         if hecho is not None:
+            _capas_en_memoria[en_disco] = hecho
             return hecho
     base, above_img, variantes = renderer.capas_animadas(game_map)
     if base is None:
@@ -1752,7 +1757,62 @@ def capas_convertidas(renderer, game_map):
     hecho = _convert_layers(base, above_img, variantes)
     if en_disco is not None:
         cache_disco.guardar("capas", en_disco, hecho)
+        _capas_en_memoria[en_disco] = hecho
     return hecho
+
+
+# Las capas ya convertidas en esta corrida, con la clave del caché en disco.
+# Las llena `precalcular_capas` y funciona también con `SIN_CACHE=1`: no es un
+# caché entre corridas sino el mismo cálculo hecho antes y en paralelo.
+_capas_en_memoria = {}
+
+
+def precalcular_capas(renderer, map_ids, args):
+    """Las capas de todos los mapas, convertidas en paralelo antes de que
+    `convertir` las pida.
+
+    Es lo más caro de un build en frío —o de uno caliente después de tocar
+    este archivo, que invalida las capas guardadas— y cada mapa es
+    independiente, así que va un proceso por mapa. Los procesos se
+    bifurcan con todo el estado ya armado, preparan el mapa como `convertir`
+    y devuelven lo que calcularon con su clave; `convertir` después pregunta
+    por la misma clave. **Un mapa preparado distinto acá que allá no da una
+    ROM distinta**: da otra clave, y `convertir` la calcula como siempre.
+    """
+    if len(map_ids) < 2:
+        return
+    global _para_precalcular
+    _para_precalcular = (renderer, args)
+    procesos = min(len(map_ids), os.cpu_count() or 1)
+    with multiprocessing.get_context("fork").Pool(procesos) as pool:
+        for hechas in pool.map(_capas_de_un_mapa, map_ids, chunksize=1):
+            _capas_en_memoria.update(hechas)
+    _para_precalcular = None
+
+
+_para_precalcular = None
+
+
+def _capas_de_un_mapa(map_id):
+    """Lo que `precalcular_capas` hace en cada proceso: los mismos pasos que
+    `convertir` hasta sus dos llamadas a `capas_convertidas`."""
+    renderer, args = _para_precalcular
+    try:
+        # Callado: lo que tenga para decir lo dice `convertir`, en orden.
+        with open(os.devnull, "w") as nulo, contextlib.redirect_stdout(nulo):
+            game_map = renderer.cargar_mapa(
+                os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
+            separar_del_heroe(renderer, game_map, args,
+                              comandos_de_casos(args, map_id))
+            capas_convertidas(renderer, game_map)
+            horneados = eventos_horneables(renderer, game_map)
+            if horneados:
+                hornear_en_el_mapa(game_map, horneados)
+                capas_convertidas(renderer, game_map)
+    except BaseException:
+        # Si falla, que falle en `convertir`, que sabe decir por qué.
+        pass
+    return _capas_en_memoria
 
 
 def _convert_layers(base, above_img, variantes=None):
@@ -6457,6 +6517,7 @@ def main():
         [lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % m))
          for m in todos], de_archivo)
 
+    precalcular_capas(renderer, todos, args)
     mapas = [convertir(renderer, map_id, args) for map_id in todos]
     # Antes acá se reconvertían los mapas cuya capa de encima arrancaba más
     # arriba que la paleta de la ventana, para apretarles el fondo debajo de
