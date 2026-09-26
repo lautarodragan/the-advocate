@@ -64,3 +64,11 @@ fundir_nada:
 
 .endproc
 
+; `OP_SOUND`: el índice en `sonido_tabla`. Queda pendiente y arranca al
+; final de `music_tick`, detrás de lo que la música escriba en el cuadro.
+.proc op_sound
+    jsr sonido_de_codigo
+    jmp correr_codigo::otro
+
+.endproc
+

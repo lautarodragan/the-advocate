@@ -8,14 +8,6 @@
 ; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
 ; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
 
-; `OP_SOUND`: el índice en `sonido_tabla`. Queda pendiente y arranca al
-; final de `music_tick`, detrás de lo que la música escriba en el cuadro.
-.proc op_sound
-    jsr sonido_de_codigo
-    jmp correr_codigo::otro
-
-.endproc
-
 ; Los tres del cartel. `OP_PICTURE` lo pone ya con su tono —`Game_Pictures::
 ; Show` deja `time_left` en cero—, `OP_PICTURE_MOVE` arranca la rampa hacia
 ; otro tono y `OP_PICTURE_ERASE` lo saca. Ninguno corta el cuadro: si la página
