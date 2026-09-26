@@ -32,7 +32,7 @@ hay_orden:
     ; El índice a X pasando por A de dieciséis bits y limpiando el alto: `tax`
     ; transfiere los dos bytes del acumulador aunque A esté en ocho, y el alto
     ; trae lo que dejó la operación anterior. Es la trampa que ya está anotada
-    ; en el README, y acá hacía que la ruta leyera basura y se cortara al primer
+    ; arriba de main.s, y acá hacía que la ruta leyera basura y se cortara al primer
     ; paso: el héroe caminaba una celda de tres y no había ningún error.
     rep #$20
 .a16

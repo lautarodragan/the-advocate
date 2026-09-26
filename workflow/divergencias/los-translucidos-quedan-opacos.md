@@ -2,8 +2,8 @@
 
 El "Trans" de RM2k dibuja el evento al 160 de 255 sobre lo que haya detrás. Acá
 esa mezcla se calcula al convertir y queda **horneada** en el gráfico, que es
-exacto en la foto y opaco en movimiento. Por qué se puede está en el README,
-"Los eventos translúcidos van horneados".
+exacto en la foto y opaco en movimiento. Por qué se puede está en
+`decisiones/los-translucidos-van-horneados.md`.
 
 Lo que se pierde:
 

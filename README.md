@@ -18,9 +18,6 @@ el mapa de arriba de `AGENTS.md`, y cada una con README explica lo suyo.
 * [La arquitectura](#la-arquitectura)
     * [El fondo va en modo 3, siempre](#el-fondo-va-en-modo-3-siempre)
     * [Las tablas van en el banco 0](#las-tablas-van-en-el-banco-0)
-    * [Los eventos translúcidos van horneados](#los-eventos-translúcidos-van-horneados)
-    * [Cómo está armado el audio](#cómo-está-armado-el-audio)
-    * [Trampas del hardware](#trampas-del-hardware)
 * [Lo que falta](#lo-que-falta)
 * [Referencias](#referencias)
 
@@ -64,8 +61,9 @@ empaquetado en Arch, están en `AGENTS.md`. Nada de esto pide un contenedor.
 
 La ROM que se juega sale en `rom/build/release/abl.sfc`, con su `abl.msu` y las
 pistas de MSU-1 al lado. Qué pasa entre el juego y la ROM está en
-`docs/port/pipeline.md`; qué ROMs hay y qué prueba cubre qué, en
-`pruebas/README.md`; qué hace cada carpeta de `tools/`, en `tools/README.md`.
+`docs/port/pipeline.md`, y el audio en `docs/port/audio.md`; qué ROMs hay y
+qué prueba cubre qué, en `pruebas/README.md`; qué hace cada carpeta de
+`tools/`, en `tools/README.md`.
 
 ## La arquitectura
 
@@ -116,79 +114,6 @@ rutinas que saben eso; todo lo demás las usa y se olvida del tema.
 Y una tabla mudada, o una que se recorra con `[ptr], y`, **tiene que
 declararse con `.bloque`** para no quedar partida entre dos bancos: ver
 `bloque` en `tools/port/snes_convert.py`.
-
-### Los eventos translúcidos van horneados
-
-El "Trans" de una página —`translucent`— en RM2k dibuja el evento con opacidad
-160 de 255. La consola tiene transparencia de verdad, el color math, pero la
-aplica a todos los sprites de las paletas 4 a 7 a la vez, y un mapa con
-translúcidos tendría que dejarles esas cuatro paletas solas. Probado, además,
-tiene dos costos que taro no aceptó: ver
-`workflow/decisiones/el-color-math-no-se-usa.md`. Tramarlos —dejar caer parte
-de sus pixeles, que es lo que hacían los juegos de la época— tampoco alcanza en
-este juego: **los fuegos del mapa 9 están sobre negro casi puro**, así que la
-trama no simula transparencia, agujerea la llama.
-
-Así que la mezcla **se calcula en el conversor y queda horneada en el
-gráfico**. Lo que lo permite es que las páginas translúcidas del juego son
-todas estáticas —`move_type` 0 y sin ruta propia—: si ni el objeto ni el fondo
-se mueven, la mezcla contra la capa de abajo de su celda da siempre lo mismo y
-se puede calcular una vez, exacta, sin trama y sin gastar color math ni
-paletas. Cómo, en `decorar_translucido` (`tools/rpgmaker/rm2k.py`); lo que se
-pierde, en `workflow/divergencias/los-translucidos-quedan-opacos.md`.
-
-### Cómo está armado el audio
-
-El audio lo maneja el **SPC700**, un procesador aparte con sus propios 64 KB
-de ARAM. El 65816 no puede tocar el DSP: sólo hablarle al SPC700 por cuatro
-puertos. Al encender, el SPC700 corre una ROM interna con un protocolo de
-carga, el IPL; con él se suben un driver mínimo y el directorio de muestras, y
-de ahí en más el driver atiende comandos: pares (registro, valor) para el DSP,
-y ternas de bytes para subir a la ARAM el paquete de muestras de cada mapa
-mientras la música suena. Ver `DRIVER` en `tools/audio/snes_music.py`.
-
-**Toda la lógica vive en Python**: el conversor decide qué nota va a qué voz,
-con qué muestra y con qué envolvente, y deja por tema un stream **por nota**.
-En la consola, el 65816 lo expande a escrituras al DSP cuadro a cuadro
-—`music_frame`, en `rom/src/musica.s`— y se las pasa al driver; el formato
-está en "el formato por nota" de `snes_music.py`. Las muestras salen del
-SoundFont con el que se compuso el juego, y qué va a la ARAM en cada mapa lo
-dice `workflow/decisiones/un-solo-banco-de-muestras.md`.
-
-### Trampas del hardware
-
-Las del 65816 y las del PPU viven en el código, pegadas a la instrucción o al
-registro que muerden, y la que más veces mordió está en `AGENTS.md`. Lo que
-queda acá son las que no tienen una línea donde vivir, porque valen para
-`rom/src/` entero.
-
-**Un `jsr` te devuelve `X` e `Y` como se le da la gana.** No hay convención de
-llamada acá: cada rutina usa los índices para lo suyo. Cuando un registro es un
-cursor que tiene que sobrevivir a una llamada —el del bytecode del intérprete lo
-es— hay que guardarlo con `phy` en el que llama, y el que llama es el único que
-sabe que hace falta.
-
-**El ancho de A y de X/Y es estado, y el ensamblador lo cree.** Las directivas
-`.a8` y `.a16` no describen: mandan. Toda transferencia entre registros de
-ancho distinto —`tax` con X de 16 bits, `ldx` con un índice de un solo byte— se
-lleva el byte de al lado. Y toda etiqueta a la que se salte desde otro ancho
-tiene que declarar el suyo, porque `ca65` lleva el ancho en orden de lectura y
-**no lo comprueba**:
-
-    bne baja
-    rep #$20
-    .a16
-    lda tira_paso_col
-    bra entra
-    baja:            <- se llega acá en ocho bits
-    cmp #DIR_DOWN    <- pero el ensamblador cree que en dieciséis
-
-El `cmp` se emite con un inmediato de **dos** bytes, la CPU en ocho lee uno
-solo, y el segundo —el `$00` del byte alto— se ejecuta como `BRK`: la ROM se va
-por la ventana y dibuja cualquier cosa. No lo ve el diff, no lo ve la
-comparación pixel a pixel, y bisecar con `rts` tampoco sirve, porque
-desbalancea la pila y uno termina midiendo eso. Si una ROM se va por la ventana
-sin razón aparente, mirar primero ahí.
 
 ## Lo que falta
 

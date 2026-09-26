@@ -42,7 +42,7 @@ buscar:
 estaba:
     ; `temp` se mira con A y no con `ldy temp`: con .i16 eso leería dos bytes y
     ; el de al lado no es nuestro. Es la trampa del ancho de los índices, que ya
-    ; está anotada en el README, y acá dio exactamente el síntoma que promete:
+    ; está anotada arriba de main.s, y acá dio exactamente el síntoma que promete:
     ; ningún cambio de grupo tenía efecto y no había ningún error.
     pha
     lda temp

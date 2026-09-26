@@ -1,8 +1,8 @@
 # Qué
 
 **Los translúcidos no se dibujan con el color math de la consola**, aunque
-está implementado y verificado en el tag `color-math`. Van horneados: ver "Los
-eventos translúcidos van horneados" en `README.md`.
+está implementado y verificado en el tag `color-math`. Van horneados: ver
+`los-translucidos-van-horneados.md`.
 
 # Por qué
 
