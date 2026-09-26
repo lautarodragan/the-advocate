@@ -1231,6 +1231,105 @@ script aparte con catorce saltos de la herencia (a ningún tema le faltó nada;
 a seis les faltaron efectos, que completa el `PlayBGM`); el conversor sólo
 comprueba que la suma entre.
 
+### Sin el techo del mapa 3, el 2026-09-26
+
+taro, sobre los que quedaron peor: *"No me parece aceptable que instrumentos
+pierdan calidad por un solo mapa, pero tampoco quiero perder calidad en los
+efectos de sonido."* Así que los efectos no se tocaron —sus 92 muestras y
+las 120 filas de `sonido_tabla` salen byte por byte iguales, con el SRCN
+corrido; lo comparó un script contra el `musicdata.inc` de `d7056b6`— y se
+atacó por dos lados, en el commit "Audio: copias de una muestra para el
+paquete que la limita, y los temas de salida aparte".
+
+**Qué suena de verdad en el mapa 3.** Una sola página (evento 5, página 2)
+prende `evilrhys`, toca toda la secuencia de efectos, funde el tema, y
+recién después de "Core...?" prende `lufsorr` y salta al mapa 4. O sea que
+los dos temas del paquete suenan en el 3, pero **nunca con los efectos a la
+vez que `lufsorr`**: el oboe y la flauta son sólo de `lufsorr`, y la batería
+limitada es la de `evilrhys`, que sí suena con la secuencia. `lufsorr` se
+oye en el 3 un instante; su público es el 4 y los mapas de después.
+
+**1. Temas de salida** (`Temas.de_salida` en `tools/port/eventos.py`): un
+`PlayBGM` seguido de un `Teleport` a otro mapa, sin efectos, otro tema ni
+ramas en el medio, no tiene que caber con los efectos del mapa. Va en una
+tercera lista del paquete; se sube al entrar **si hay lugar**, y si no lo
+sube su `PlayBGM` él solo, soltando lo demás y dejando el paquete anotado
+como incompleto (`extra_de_salida` en `rom/src/paquete_de_audio.s`). El
+conversor encuentra cinco: `lufsorr` en el 3, `hzstream` en el 4 —que se
+llevaba con él las herencias `4+Astpgmarch` y compañía, que limitaban medio
+cartucho—, `hzbreach` en el 14, `wb3mlair` en el 16 y `vswar` en el 26.
+
+**2. Copias** (`snes_music.copias`): una clave limitada por un grupo donde
+no están todos los temas que la usan pasa a ser otra muestra para los de
+adentro; los de afuera dejan de pagarlo. La peor primero, hasta llenar el
+directorio: son 47 copias y el directorio queda en 255 entradas, el tope
+del SRCN. La opción B entera —la condición para todas las muestras— pediría
+unas 370.
+
+**Números**, `release` antes (`d7056b6`) y después, kHz, fuera del mapa 3
+(la tabla por tema la imprime el conversor: una línea por copia, con los
+temas que la usan):
+
+| | antes del paso 6 | antes | después |
+|---|---:|---:|---:|
+| oboe (`lufsorr`, `prepara`) | 21,9 | 6,8 | 20,4 (su tasa nativa) |
+| oboe (`Astpgmarch`) | 21,9 | 6,8 | 13,6 |
+| flauta (`lufsorr`) | 21,8 | 8,8 | 21,9 |
+| bombo `KICK264` | 19,4 | 10,2 | 16,2 |
+| bombo `SOLKK60A`, cajas | 4,7-8,1 | 10,3 | 16,0 (13,9 en `Astpgmarch`) |
+| charles | 14,9 | 10,3 | 16,0 |
+| polysynth de `escape_newyork` | 8,4 | 12,6 | 21,1 |
+| cuerdas 48 (`escape_newyork`, batalla) | 4,1 | 10,4 | 16,4 |
+
+En el mapa 3, `evilrhys` sube de 10,3 a 12,5 en toda su batería (le deja
+lugar `lufsorr`). La mediana de los 338 pares (tema, muestra) pasa de 14,5 a
+16,2 kHz y ya ninguno queda bajo 12 (antes 113).
+
+**Lo que no se alcanzó**: el bombo `KICK264` queda en 16,2 contra los 19,4
+de antes del paso 6 —lo limita el mapa 9 con `rshinld` sonando, y el
+directorio se llenó antes de llegar a esa copia—, y el oboe de `Astpgmarch`
+en 13,6, que lo limita su propio mapa 18 con `hzstream` sonando.
+
+**Lo que se paga**:
+
+* **86 pares bajan**, casi todos de ~22 a 16-20 kHz (el crash y un tom de la
+  batalla 21,7 → 16,0, el koto de `rshinld` 27,7 → 13,9): lo que se libera
+  del mapa 3 compite en los otros paquetes, y el reparto le da a todo la
+  misma fracción. Es la batería a 16 contra platillos a 22 de antes.
+* **Cartucho**, suma de segmentos de `ld65`: de 2.986.461 a 3.089.032 B
+  (71,2% → 73,6%). **Banco 0** en `release`: de 1.027 a 902 B libres.
+* **Cuadros**, calculados a 1,4 por KB (lo medido en el paso 6), no
+  medidos: prender `lufsorr` en el 3 congela unos 13 cuadros (9 KB), después
+  de "Core...?" y antes del salto. `vswar` en el 26, si no entra al lado de
+  su paquete, hasta unos 70 (51 KB) al tocar el evento. El 4, el 14 y el 16
+  tienen lugar: su tema de salida se sube al entrar, como antes. La carga
+  del mapa 3 es la misma (el paquete sigue lleno).
+
+**Lo que no cubre `just pruebas`**: los saltos del juego con el tema de
+salida sonando en el mapa de destino; lo cubierto es el camino de la ROM en
+el mapa 3 (`test_el_tema_de_salida_sube_solo`, caso `tema-de-salida`).
+
+**Para escuchar**: `/shared/audio/2026-09-26-sin-el-techo-del-mapa-3/`,
+con su `LEEME.txt`: `lufsorr`, la batalla, `escape_newyork`, `Astpgmarch` y
+`evilrhys`, antes y después, sin MSU-1, a la misma sonoridad.
+
+**Descartado**:
+
+* **Que los efectos del 3 no estén todos a la vez**: la secuencia los toca
+  seguidos, bajo el mismo tema; subir uno en el momento es congelar la
+  cinemática.
+* **Deduplicar efectos**: el trueno del 1 (entero, 22 kHz) y el del 3 (6 kHz,
+  recortado) son muestras distintas; no hay dos iguales.
+* **Deduplicar muestras de música iguales**: a la tasa nativa sólo hay
+  cuatro claves repetidas (piano 1 y 2, cuerdas 48 y 49, los tres coros), y
+  los golpes que salen iguales lo son sólo a ciertas tasas. Son cuatro
+  entradas del directorio: quedó para después.
+* **Darles a los efectos su propio lugar en el directorio**: liberaría unas
+  70 entradas —ningún paquete tiene más de 20 efectos— y alcanzaría para el
+  bombo, pero las listas de la ROM son de un byte y `FAR_ARAM_DE` y
+  `FAR_QUIERE` se pasarían de su lugar en la RAM lejana: es rehacer
+  `paquete_de_audio.s`. Es lo próximo si hace falta más.
+
 ### Qué queda de la calidad de la música
 
 Con el 6 hecho, **los pasos del plan están todos**: la batería, las notas que
@@ -1241,14 +1340,9 @@ que queda son detalles, en el orden en que los haría:
 1. **Taparlo**: el fundido de la pelea
    (`todo/el-fundido-al-entrar-y-salir-de-la-pelea.md`), que es lo único del
    paso 6 que se ve seguido.
-2. **Los efectos del mapa 3**, que fijan la tasa de lo que más se oye en todo
-   el cartucho: el bombo, la caja y el charles a 10 kHz, el oboe a 7, la
-   flauta a 9. Son veinte, casi todos de la secuencia del final del mapa, y el
-   trueno a 6 kHz está dos veces (en el 3, y entero en el 1). Recortarlos o
-   deduplicarlos le devuelve la tasa a todos los temas; es también
-   `todo/efectos-de-sonido-sin-recortes.md`. Si no alcanza, darles a los
-   efectos su propio lugar en el directorio para que entre **B** (una copia
-   por tema) sólo para los programas que limita un paquete ajeno.
+2. ~~**Los efectos del mapa 3**~~: hecho sin tocarlos, en "Sin el techo del
+   mapa 3". Si hace falta más —el bombo a los 19 de antes—, darles a los
+   efectos su propio lugar en el directorio para que entren más copias.
 3. **Escucharlo contra la referencia** en los temas que no se grabaron nunca:
    los 19 que no aportaban suenan por primera vez enteros, y es donde puede
    haber sorpresas —un programa en un registro que la zona más usada no
