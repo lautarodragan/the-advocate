@@ -5790,12 +5790,15 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # su código adentro de `tropa_codigo`, que las deduplica. Ver
         # `eventos.PaginasDeTropa` y `ba_pag_probar` en rom/src/batalla_tropa.s.
         #
-        # **Van al banco 1, `FAR`, y no a RODATA**, y es por lugar: con estas
-        # tablas el cartucho `juego` se pasaba de los 4 MB —medido el
-        # 2026-09-21, el acomodo de bancos quería un `BANK7E`, que es la WRAM—,
-        # y el banco 1 tenía libre más del doble de lo que esto ocupa. Allá no
-        # hay `.bloque`: el segmento es un banco solo, y lo que no entre lo
-        # corta `ld65`.
+        # **Las tablas chicas van al banco 1, `FAR`; los dos bloques grandes
+        # —el código y los mensajes—, a RODATA.** Hasta el 2026-09-27 iban los
+        # cuatro al banco 1, porque con ellos en RODATA el cartucho `juego` se
+        # pasaba de los 4 MB (medido el 2026-09-21); ese cartucho ya no existe,
+        # `release` anda por el 71%, y en el banco 1 los dos bloques eran casi
+        # once KB de los que el código a mano de la pelea no tenía ni
+        # cuatrocientos bytes. Los dos se leen con un puntero largo cuyo banco
+        # sale de `^tropa_codigo` y `^mensajes_tropa`, así que alcanza con que
+        # cada uno entre entero en un banco, que es lo que pide `bloque`.
         pt = paginas_tropa or eventos.PaginasDeTropa()
         entradas, pag_ini, pag_n = [], [], []
         for numero in usadas:
@@ -5824,11 +5827,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             usa = any(e[0] & bit for e in entradas)
             words_asm(nombre, [e[k] & 0xFFFF for e in entradas] if usa
                       else [])
-        handle.write(bloque("tropa_codigo", bytes(pt.cuerpos) or b"\x00",
-                            acomodar=False) + "\n")
-        handle.write(bloque("mensajes_tropa", pt.mensajes.bytes(),
-                            acomodar=False) + "\n")
         handle.write('.segment "RODATA"\n')
+        handle.write(bloque("tropa_codigo", bytes(pt.cuerpos) or b"\x00")
+                     + "\n")
+        handle.write(bloque("mensajes_tropa", pt.mensajes.bytes())
+                     + "\n")
         # Y los encuentros al azar, que también hablan de tropas por su número
         # de RM2k. Van acá afuera del banco 0 —se leen con `lda f:tabla, x`—
         # porque allá quedaban ochenta y cinco bytes y esto son unos doscientos.
