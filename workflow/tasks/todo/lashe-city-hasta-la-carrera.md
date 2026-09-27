@@ -404,8 +404,21 @@ declaración de ese momento.
   si en el original lo hacen: **fiel al original**.
 * **(2026-09-26)** El tutorial del droide (164): **se conserva**.
 * **(2026-09-26)** El 38 ya entra en la VRAM (`done/el-tilemap-del-fondo-lo-elige-el-reparto.md`): no hace falta partirlo.
-* Pendiente: el soborno del guardia (switch 29) —taro preguntó cómo se juega—,
-  el cartel "REC" del 45 y los mapas 64, 83 y 84.
+* **(2026-09-26)** El cartel "REC" del 45: **queda como deuda** por ahora.
+* **(2026-09-26)** El soborno del guardia (switch 29) **se puede jugar**: el
+  `DetourOfficer` (evento 19 del mapa 8, (62,32)) ofrece el soborno en su
+  página 2 (switches 24 y 28: el 24 lo prende el evento 4 del mapa 7 al
+  empezar, el 28 lo prende la primera charla con el oficial) y pide **500
+  créditos** (`ConditionalBranch` de oro >= 500). Se juntan vendiendo el
+  Idol al Pawn Guy (evento 24 del mapa 10): 600, 700 o 1000 según cuánto se
+  regatee (si se regatea una vez más, no compra), más los 100 que da el
+  evento 4 del mapa 7. Es el camino alternativo al Hover Tram (donde el ladrón
+  roba todo: `ChangeGold -9999` en el mapa 13). Ojo: el Idol también abre el
+  mapa 14 (página 2 de la puerta del HQ, con el switch 53).
+* Pendiente: los mapas 64, 83 y 84. Quedaron afuera porque el 64 (`Leaving
+  Lashe City Scene`) se alcanza desde el 53, **después de la carrera**, y el 83
+  y el 84 (`Dalia at the Factory`, `OutsideFactory`) son **de otro capítulo**,
+  a los que se llega desde el 82. taro no recordaba el porqué; se lo expliqué.
 
 * **Primero el espacio, después los mapas.** El orden: el tinte (si tiene
   sentido arreglarlo), juntar `release` y `test-main`, y en paralelo mirar por
