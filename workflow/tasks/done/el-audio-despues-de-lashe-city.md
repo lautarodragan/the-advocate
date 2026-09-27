@@ -172,3 +172,9 @@ aparte contra 93af39f; que los efectos del 49 estén al llegar con
 `golden_axe` y que en la escena del HQ `vswar` suene entero con Bow2, una
 sonda descartable sobre el recorrido del cierre de Arden; los 71 cuadros,
 otra.
+
+# Escuchado
+
+taro, el 2026-09-27, con los wav de antes/main/después: todo bien, nada que
+cambiar. Acepta el intercambio de Deflector1 (golpe 36 a 14,1 kHz, el 40 a
+21,9) y el programa 34 de TF3_1_awe a 14,0.
