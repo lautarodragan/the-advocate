@@ -201,29 +201,40 @@ si_no_cumple:
 .a8
     iny
     iny                         ; Y -> el destino
+    ; `var_leer` no toca Y, así que el cursor no se guarda.
     lda temp + 1
     beq si_var_contra_constante
     lda temp + 2
-    phy
     jsr var_leer
 .a16
-    ply
     sta temp + 2
     sep #$20
 .a8
 si_var_contra_constante:
     pla                         ; la comparación
+    bne si_var_otra
+    ; "Igual", que es la de casi todas —las 40 páginas de cada vuelta de la
+    ; carrera la hacen por cuadro— va sin `comparar_var`: una resta de
+    ; dieciséis bits alcanza.
+    lda temp
+    jsr var_leer                ; A = la variable, de dieciséis
+.a16
+    cmp temp + 2
+    sep #$20
+.a8
+    beq si_var_sigue            ; `sep` no toca Z
+    bra si_var_no
+si_var_otra:
     sta temp + 1
     lda temp
-    phy
     jsr var_leer                ; A = la variable, de dieciséis
 .a16
     jsr comparar_var
 .a8
-    ply
-    cmp #0                      ; lo que dijo `comparar_var`, que `ply` pisó
-                                ; con el cursor: ver `tema_asegurar`
+    cmp #0                      ; la respuesta, en A: las banderas son de
+                                ; la última cuenta de `comparar_var`
     bne si_var_sigue
+si_var_no:
     rep #$20
 .a16
     lda [cod_ptr], y            ; no se cumple: al destino

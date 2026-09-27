@@ -211,3 +211,106 @@ def test_la_ruta_propia_apunta_al_bloque_que_recibe():
     assert nombrados == {"evcodigo_3"}, (
         "la tabla del mapa 7, cuyo código es el bloque evcodigo_3, nombra %s"
         % sorted(nombrados))
+
+
+# "¿Está el héroe en la celda de las variables 34 y 35?", como lo escriben las
+# páginas paralelas de RM2k: la y y la x del héroe a la 36 y la 37, y dos
+# ramas anidadas que las comparan con la 34 y la 35. Es la forma de los
+# cuarenta autos de cada vuelta de la carrera, con el héroe de blanco.
+def _celda(*cuerpo):
+    comandos = [
+        lcf.EventCommand(eventos.CONTROL_VARS, 0, "",
+                         [0, 36, 36, eventos.VAR_PONER, eventos.VAR_PERSONAJE,
+                          eventos.RUTA_HEROE, eventos.PERSONAJE_Y]),
+        lcf.EventCommand(eventos.CONTROL_VARS, 0, "",
+                         [0, 37, 37, eventos.VAR_PONER, eventos.VAR_PERSONAJE,
+                          eventos.RUTA_HEROE, eventos.PERSONAJE_X]),
+        lcf.EventCommand(eventos.COND_RAMA, 0, "",
+                         [eventos.COND_VARIABLE, 36, 1, 34, eventos.CMP_IGUAL,
+                          1]),
+        lcf.EventCommand(eventos.COND_RAMA, 1, "",
+                         [eventos.COND_VARIABLE, 37, 1, 35, eventos.CMP_IGUAL,
+                          1]),
+    ]
+    return comandos + [lcf.EventCommand(c, i, "", list(p))
+                       for c, i, p in cuerpo]
+
+
+PRENDER_172 = (eventos.CONTROL_SWITCHES, 2, (0, 172, 172, 0))
+
+
+def _compilar_celda(comandos):
+    eventos.indexar_variables(GAME_DIR)
+    game_map = lcf.Map(os.path.join(GAME_DIR, "Map0049.lmu"))
+    codigo = eventos.compilar_pagina(
+        eventos._Comandos(comandos), {49: 0}.get, eventos.Mensajes(),
+        eventos.Eventos(game_map).para(0))
+    assert codigo is not None, "la página no compila"
+    return codigo
+
+
+def _palabra(codigo, i):
+    return codigo[i] | codigo[i + 1] << 8
+
+
+def test_las_cuatro_de_la_celda_van_en_un_opcode():
+    """Las dos escrituras y las dos ramas salen en un solo `OP_CELL_TEST`,
+    con lo mismo que llevarían sueltas: el blanco, las cuatro variables como
+    desplazamientos —la ranura por dos—, cuál coordenada va a cada una y los
+    dos destinos, que sin `else` son los dos el final de su rama."""
+    codigo = _compilar_celda(_celda(
+        PRENDER_172,
+        (eventos.COND_FIN, 1, ()),
+        (eventos.COND_FIN, 0, ())))
+    ops = [c[i] for i, c in eventos.recorrer_codigo(codigo)]
+    assert ops == [eventos.OP_CELL_TEST, eventos.OP_SWITCH, eventos.OP_DONE]
+    r = eventos.ranura_de_variable
+    assert codigo[1] == 0, "el blanco es el héroe"
+    assert _palabra(codigo, 2) & ~eventos.CELDA_REFRESCO \
+        == r(36) * 2 | eventos.CELDA_Y
+    assert _palabra(codigo, 4) & ~eventos.CELDA_REFRESCO == r(37) * 2
+    assert (_palabra(codigo, 6), _palabra(codigo, 8)) == (r(36) * 2, r(34) * 2)
+    assert (_palabra(codigo, 12), _palabra(codigo, 14)) \
+        == (r(37) * 2, r(35) * 2)
+    fin = len(codigo) - 1                     # el OP_DONE
+    assert _palabra(codigo, eventos.CELDA_DESTINO_A) == fin
+    assert _palabra(codigo, eventos.CELDA_DESTINO_B) == fin
+
+
+def test_el_else_de_la_rama_de_adentro_sale_de_su_destino():
+    """Con un `else` en la rama de adentro, su destino es el cuerpo del
+    `else` —después del `OP_GOTO` que saca a la de arriba—, y el de la de
+    afuera sigue siendo su final. Es el mismo parche que el de una rama
+    suelta, sobre el segundo destino del opcode."""
+    codigo = _compilar_celda(_celda(
+        PRENDER_172,
+        (eventos.COND_SINO, 1, ()),
+        (eventos.CONTROL_SWITCHES, 2, (0, 173, 173, 0)),
+        (eventos.COND_FIN, 1, ()),
+        (eventos.COND_FIN, 0, ())))
+    ops = [(i, c[i]) for i, c in eventos.recorrer_codigo(codigo)]
+    assert [o for _, o in ops] == [
+        eventos.OP_CELL_TEST, eventos.OP_SWITCH, eventos.OP_GOTO,
+        eventos.OP_SWITCH, eventos.OP_DONE]
+    goto, sino, fin = ops[2][0], ops[3][0], ops[4][0]
+    assert _palabra(codigo, eventos.CELDA_DESTINO_B) == sino
+    assert _palabra(codigo, goto + 1) == fin
+    assert _palabra(codigo, eventos.CELDA_DESTINO_A) == fin
+
+
+def test_sin_la_forma_exacta_no_se_funde():
+    """Una comparación que no es por igualdad, o una rama que no es lo
+    primero adentro de la otra, va como antes: cuatro opcodes sueltos."""
+    distinta = _celda(PRENDER_172, (eventos.COND_FIN, 1, ()),
+                      (eventos.COND_FIN, 0, ()))
+    distinta[3].parameters[4] = eventos.CMP_MAYOR_IGUAL
+    ops = [c[i] for i, c in eventos.recorrer_codigo(_compilar_celda(distinta))]
+    assert eventos.OP_CELL_TEST not in ops
+    assert ops[:4] == [eventos.OP_VAR, eventos.OP_VAR, eventos.OP_IF_VAR,
+                       eventos.OP_IF_VAR]
+
+    afuera = _celda(PRENDER_172, (eventos.COND_FIN, 1, ()),
+                    (eventos.COND_FIN, 0, ()))
+    afuera[3].indent = 0                      # la segunda, al lado de la otra
+    ops = [c[i] for i, c in eventos.recorrer_codigo(_compilar_celda(afuera))]
+    assert eventos.OP_CELL_TEST not in ops

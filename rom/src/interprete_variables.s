@@ -26,16 +26,18 @@
     lda [cod_ptr], y            ; la clase del operando
     iny
     phy                         ; Y -> a; se repone al final
+    ; La clase 6 primero: es la que corren por cuadro las páginas paralelas
+    ; que comparan celdas —las de la carrera, las luces del mapa 11—.
+    cmp #VAR_PERSONAJE
+    bne :+
+    jmp var_de_personaje
+:
     cmp #VAR_VARIABLE
     beq var_de_variable
     cmp #VAR_AZAR
     beq var_al_azar
     cmp #VAR_OTRO
     beq var_de_otro
-    cmp #VAR_PERSONAJE
-    bne :+
-    jmp var_de_personaje
-:
     rep #$20
 .a16
     lda [cod_ptr], y            ; una constante
@@ -224,6 +226,13 @@ var_personaje_listo:
 .a8
     jmp var_aplicar
 
+.endproc
+
+; Dos `ControlVars` de clase 6 y dos `ConditionalBranch` por igualdad de
+; variables, fundidos en uno: ver `celda_probar`, que vive en el banco 1.
+.proc op_cell_test
+    jsl f:celda_probar + RAPIDO   ; ver MEMSEL
+    jmp correr_codigo::otro
 .endproc
 
 .proc op_switch

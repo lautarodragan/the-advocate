@@ -14,9 +14,9 @@ FAR_PAR_LISTA  = $2400      ; PARALELO_MAX entradas de PAR_LISTA_BYTES
 ; Las variables de RM2k, una palabra con signo por ranura. Cuántas son lo dice
 ; el conversor —`VARIABLES_N`—, que le da ranura sólo a las que nombran las
 ; páginas de los mapas de la ROM; el bytecode habla de ranuras. Se leen y
-; escriben por la ventana, `var_leer` y `var_escribir`, y viajan en la
-; partida: `partida_tabla` las copia desde acá, que el DMA alcanza igual que
-; el banco 0 porque WMADD es una dirección de diecisiete bits.
+; escriben con `var_leer` y `var_escribir`, y viajan en la partida:
+; `partida_tabla` las copia desde acá, que el DMA alcanza igual que el banco 0
+; porque WMADD es una dirección de diecisiete bits.
 FAR_VARIABLES  = $2600
 ; Y el inventario, después de las variables —que son hasta 256, el conversor
 ; lo garantiza—: un byte por ítem del LDB, indexado por el número de RM2k —el

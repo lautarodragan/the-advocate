@@ -4423,6 +4423,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "VAR_PERSONAJE = %d\n"
         "PERSONAJE_X   = %d\n"
         "PERSONAJE_Y   = %d\n"
+        "; Los bits de arriba de cada escritura de OP_CELL_TEST. Ver CELDA_Y en\n"
+        "; eventos.py.\n"
+        "CELDA_Y       = $%04X\n"
+        "CELDA_REFRESCO = $%04X\n"
         "AZAR_SEMILLA  = $%04X\n"
         "; Y la del azar de los encuentros, que es otra a propósito: caminar no\n"
         "; le corre el azar al mapa. Ver ENC_SEMILLA en eventos.py.\n"
@@ -4691,6 +4695,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.VAR_SUMAR, eventos.VAR_VARIABLE, eventos.VAR_AZAR,
            eventos.VAR_OTRO,
            eventos.VAR_PERSONAJE, eventos.PERSONAJE_X, eventos.PERSONAJE_Y,
+           eventos.CELDA_Y, eventos.CELDA_REFRESCO,
            eventos.AZAR_SEMILLA, eventos.ENC_SEMILLA,
            eventos.TIMER_PONER_VAR,
            eventos.COND_ORO, eventos.COND_ITEM,

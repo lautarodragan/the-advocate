@@ -2,40 +2,30 @@
 
 ; --- las variables ---------------------------------------------------------
 ;
-; Viven en la RAM lejana, así que no se indexan: se apunta WMADD a la ranura y
-; se lee o escribe la palabra por el puerto. Son pocas operaciones por página y
-; el precio no se nota. `var_leer` devuelve en A de dieciséis bits **y deja M
-; en dieciséis**; `var_escribir` toma el valor de `temp + 2`.
-
-; A: la ranura. Deja WMADD apuntando a su palabra.
-.proc var_apuntar
-.a8
-.i16
-    rep #$20
-.a16
-    and #VAR_RANURA             ; el byte de la ranura, sin lo que traiga B
-    asl a                       ; dos bytes por variable
-    clc
-    adc #FAR_VARIABLES
-    sta WMADDL
-    sep #$20
-.a8
-    stz WMADDH
-    rts
-.endproc
+; Viven en la RAM lejana, y se leen y escriben con direccionamiento largo
+; indexado —`lda f:FAR_LARGO + FAR_VARIABLES, x`—, que no depende del banco de
+; datos. `var_leer` devuelve en A de dieciséis bits **y deja M en dieciséis**;
+; `var_escribir` toma el valor de `temp + 2`. Ninguna de las dos toca X, Y ni
+; `temp`: los que llaman cuentan con eso —ver `op_place_var`—, y por eso el
+; `phx`/`plx`.
+;
+; Hasta el 2026-09-27 se llegaba por la ventana de WMADD, apuntando y leyendo
+; de a un byte por el puerto: eso costaba el doble, y cada página paralela de
+; la carrera hace cuatro de éstas por cuadro. Ver
+; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
 
 ; A: la ranura. Vuelve con su valor en A de dieciséis bits, y M en dieciséis.
 .proc var_leer
 .a8
 .i16
-    jsr var_apuntar
-    lda WMDATA                  ; el byte bajo
-    pha
-    lda WMDATA                  ; y el alto
-    xba
-    pla                         ; C = alto:bajo
+    phx
     rep #$20
 .a16
+    and #VAR_RANURA             ; el byte de la ranura, sin lo que traiga B
+    asl a                       ; dos bytes por variable
+    tax
+    lda f:FAR_LARGO + FAR_VARIABLES, x
+    plx
     rts
 .endproc
 
@@ -57,19 +47,26 @@
 .a8
 .i16
     xba                         ; las banderas
-    and #VAR_REFRESCO
-    beq sin_refresco
-    lda #1
-    sta refresco
+    bpl sin_refresco            ; VAR_REFRESCO es el bit 7: ver el .assert
+    lda #1                      ; las banderas ya no hacen falta: el `and` de
+    sta refresco                ; abajo tira lo que quede en B
 sin_refresco:
-    xba                         ; y la ranura de vuelta; `var_apuntar` tira B
-    jsr var_apuntar
+    xba                         ; y la ranura de vuelta
+    phx
+    rep #$20
+.a16
+    and #VAR_RANURA
+    asl a
+    tax
     lda temp + 2
-    sta WMDATA
-    lda temp + 3
-    sta WMDATA
+    sta f:FAR_LARGO + FAR_VARIABLES, x
+    sep #$20
+.a8
+    plx
     rts
 .endproc
+
+.assert VAR_REFRESCO = $80, error, "var_escribir mira VAR_REFRESCO con el bit N"
 
 ; Enciende o apaga el switch de temp según A.
 ;
