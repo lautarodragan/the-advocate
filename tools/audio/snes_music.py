@@ -313,6 +313,12 @@ SE_ENTEROS_PAGADOS |= {
 # después.
 SE_ENTEROS.update({"Annihilation2": 8000})
 
+# Y Earth4 en el 21, del 2026-09-27: lo pide una ruta de ahí, y dura
+# 1,36 s, así que sólo ahí va entero y a la tasa de su WAV, con un alias —el
+# del 3 sigue como estaba—. Entra en lo que la música deja libre en el
+# paquete del 21 sin bajarle a nadie; sólo alarga la carga.
+SE_ENTEROS.update({"Earth4@entero": 22050})
+
 # Los alias por mapa: (nombre en RM2k, id del mapa) -> la muestra que suena
 # ahí. Los pone `_compilar`, en tools/port/eventos.py. Cada uno es un efecto
 # más, pero no una entrada más del directorio: comparte lugar con los de los
@@ -320,6 +326,7 @@ SE_ENTEROS.update({"Annihilation2": 8000})
 # paquete pasa a ser el más cargado.
 SE_DEL_MAPA = {
     ("Thunder9", 1): "Thunder9@entero",
+    ("Earth4", 21): "Earth4@entero",
 }
 
 # Los efectos que piden las rutas forzadas —la orden 35, ver `RUTA_SONIDO` en
@@ -336,17 +343,32 @@ SE_DEL_MAPA = {
 #   Shot2) no entran en su paquete **ni con las muestras al mínimo**: el
 #   conversor se corta. Switch1 suena, porque las páginas también lo piden.
 # * el 7: Blow2 le baja un instrumento de `Deflector1` de 22,9 a 16,4 kHz.
-# * el 13, Flash1, y el 21, Earth4: solos no le cuestan nada a nadie, pero
-#   cada efecto nuevo en el cartucho le saca una entrada del directorio a la
-#   primera tanda de `copias`, y con dos nuevos bajan dos golpes 7 kHz
-#   (`escape_newyork` y `bubstix`). El nuevo que entra es Wind7, el del
-#   puente de la carrera. Earth4 además dura 1,36 s: entraría recortado y con
-#   bucle, o entero con un alias, que es otro efecto nuevo.
 # * el 14: el `SceneDriver` pide cuatro, y con ellos `hzbreach` deja de ser
 #   tema de salida (ver `Temas.de_salida`) y el paquete no entra.
 # * el 121, que es de prueba: Earth8 le baja 25 pares.
-SE_DE_RUTA_SIN_PAQUETE = {3: None, 7: None, 13: {"Flash1"}, 14: None,
-                          21: {"Earth4"}, 121: None}
+SE_DE_RUTA_SIN_PAQUETE = {3: None, 7: None, 14: None, 121: None}
+
+# **Los temas aparte**: {id del mapa: nombres}. Un tema aparte no va con los
+# otros temas del paquete de su mapa: lo sube su `PlayBGM`, **él solo con los
+# efectos del paquete**, y lo demás se suelta hasta el próximo `PlayBGM` —ver
+# `extra_aparte` en rom/src/paquete_de_audio.s—. Tampoco se lo hereda a los
+# mapas a los que se sale de ahí: ver `temas_heredados` en snes_convert.py.
+# Es un tema de salida que no se va, y por eso lo dice esta lista y no una
+# regla: que nunca suene al mismo tiempo que los otros temas del mapa, ni al
+# salir, lo sabe quien leyó las páginas.
+#
+# `vswar` en el 38 y el 47, del 2026-09-27: es el de las escenas del HQ y de
+# los guardias, y solo ocupa 61 KB a la tasa que tenía antes de Lashe City,
+# así que con `golden_axe-turtlevillage2` al lado —el otro tema de esos dos
+# mapas— y `cd4`, que llega sonando del 10, el paquete pedía 82 KB y bajaban
+# 47 pares (tema, instrumento), los de afuera por las copias que ya no se
+# podían hacer. En los dos la escena lo cambia a `golden_axe` antes de irse:
+# en el 47 en la misma página, y en el 38 se entra al basural por un
+# `Teleport` y se sale por otro que antes prende `golden_axe` (los eventos 20,
+# 21 y 26). Lo que cuesta es la carga: subir vswar al empezar la escena, un
+# cuadro y medio por KB. Los cofres del basural (Bow2) suenan igual, porque los
+# efectos del paquete se quedan.
+TEMAS_APARTE = {38: {"vswar"}, 47: {"vswar"}}
 
 
 class Efecto:
@@ -804,6 +826,14 @@ SE_LUGARES_MAX = 48
 # Una copia no se hace por una muestra que ya suena casi a su tasa: una
 # entrada del directorio vale más que eso.
 COPIA_HASTA = 0.9
+# Cuántas entradas ocupaban los efectos cuando cada uno tenía la suya, el
+# 2026-09-26: los 92 de `release`. Es hasta dónde llega la primera tanda de
+# `copias` —las que taro escuchó—, y no los efectos de hoy: contarlos hacía
+# que cada efecto nuevo le sacara una copia a la primera tanda aunque no
+# ocupara ninguna entrada, porque comparte lugar con los de otros paquetes.
+# Así quedaron afuera Flash1 en el 13 y Earth4 en el 21, del 2026-09-27: con
+# los dos, un golpe de `bubstix` bajaba de 19,3 a 13,9 kHz.
+SE_DE_SIEMPRE = 92
 
 
 def copias(claves_de, grupos, efectos, de_siempre, reales=None,
@@ -824,7 +854,7 @@ def copias(claves_de, grupos, efectos, de_siempre, reales=None,
 
     Se hacen en dos tandas. `efectos` es cuántas entradas del directorio
     ocupan hoy los efectos, y `de_siempre` cuántas ocupaban cuando cada uno
-    tenía la suya —todos los del cartucho—.
+    tenía la suya —ver `SE_DE_SIEMPRE`—.
 
     **Las de siempre**, de a una y **la peor primero**: la muestra de
     fracción más baja de su tamaño nativo que tenga algún tema fuera del
@@ -1979,10 +2009,17 @@ def _enteros_entran(banco, paquetes, herencia, efectos, presupuestado,
         ocupan = sum(len(efectos[e].data) for e in suyas)
         banco.enteros_de_mas[str(nombre)] = ocupan - sum(presupuestado[e]
                                                          for e in suyas)
-        musica = banco.ocupa(claves_de[nombre])
-        if musica + ocupan > banco.libre:
-            no_entran.append("%s en el paquete %s (%d B de más)" % (
-                ", ".join(enteros), nombre, musica + ocupan - banco.libre))
+        # El paquete, y cada uno de sus temas aparte, que sube con los
+        # mismos efectos: ver `TEMAS_APARTE`.
+        for suyos in [None] + [[t] for t in (paquete[4] if len(paquete) > 4
+                                             else ())]:
+            musica = banco.ocupa(claves_de[nombre] if suyos is None
+                                 else set(banco.asignacion[suyos[0]].values()))
+            if musica + ocupan > banco.libre:
+                no_entran.append("%s en el paquete %s%s (%d B de más)" % (
+                    ", ".join(enteros), nombre,
+                    "" if suyos is None else ">" + nombres[suyos[0]],
+                    musica + ocupan - banco.libre))
     if no_entran:
         raise SystemExit(
             "los efectos enteros no entran sin bajarle la tasa a un "
@@ -2019,11 +2056,12 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     por paquete: ver `Banco` y `repartir`.
 
     `paquetes` son los de la ROM, por nombre: (nombre, índices de sus temas,
-    nombres de sus efectos[, índices de sus temas de salida]). Cada uno
-    tiene que entrar solo en la ARAM, con sus efectos, y lo que ocupan sus
-    efectos se resta antes de repartir; cada tema de salida —ver
-    `Temas.de_salida` en tools/port/eventos.py— tiene que entrar solo. Si
-    no viene, cada tema es un paquete sin efectos.
+    nombres de sus efectos[, índices de sus temas de salida[, índices de sus
+    temas aparte]]). Cada uno tiene que entrar solo en la ARAM, con sus
+    efectos, y lo que ocupan sus efectos se resta antes de repartir; cada
+    tema de salida —ver `Temas.de_salida` en tools/port/eventos.py— tiene
+    que entrar solo, y cada tema aparte —ver `TEMAS_APARTE`— solo con los
+    efectos del paquete. Si no viene, cada tema es un paquete sin efectos.
 
     `herencia` son pares (nombre de un paquete, índice de un tema que puede
     venir sonando al cargarlo). `paquete_cargar_ya` no mueve las muestras
@@ -2074,12 +2112,17 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
         temas_de[nombre] = list(suyos)
         suyas = set(suyas) & set(efectos_hechos)
         ocupan = sum(presupuestado[e] for e in suyas)
+        ocupan_real = sum(len(efectos_hechos[e].data) for e in suyas)
         grupos.append(Grupo(str(nombre), tuple(suyos), ocupan))
-        reales.append(Grupo(str(nombre), tuple(suyos), sum(
-            len(efectos_hechos[e].data) for e in suyas)))
+        reales.append(Grupo(str(nombre), tuple(suyos), ocupan_real))
         for t in salida:
             grupos.append(Grupo("%s>%s" % (nombre, nombres[t]), (t,), 0))
             reales.append(grupos[-1])
+        # Y cada tema aparte con los efectos del paquete, que se quedan
+        # cuando su `PlayBGM` lo sube: ver `TEMAS_APARTE`.
+        for t in (paquete[4] if len(paquete) > 4 else ()):
+            grupos.append(Grupo("%s>%s" % (nombre, nombres[t]), (t,), ocupan))
+            reales.append(Grupo(grupos[-1].nombre, (t,), ocupan_real))
     for nombre, heredado in herencia:
         grupos.append(Grupo("%s+%s" % (nombre, nombres[heredado]),
                             tuple(temas_de[nombre]) + (heredado,), 0))
@@ -2087,7 +2130,8 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     lugar = lugares_de_efectos([set(p[2]) for p in paquetes],
                                [e.name for e in lista])
     lugares = max(lugar.values()) + 1 if lugar else 0
-    asignacion = copias(claves_de, grupos, lugares, len(lista), reales)
+    asignacion = copias(claves_de, grupos, lugares,
+                        min(len(lista), SE_DE_SIEMPRE), reales)
     todas = {k for a in asignacion for k in a.values()}
     libre = libre_para(len(todas), lugares)
     banco = Banco(todas, restricciones_de(asignacion, reales, libre))
@@ -2450,12 +2494,14 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
     tema_muestras = listas("tema_muestras", [
         [m] for m in en_paralelo(lambda i: muestras_del_tema(temas[i]),
                                  range(len(temas)))] or [[[]]])
-    # Cada paquete, tres listas: sus temas, las muestras de sus efectos y sus
-    # temas de salida —ver `extra_de_salida` en rom/src/paquete_de_audio.s—.
-    paquetes = [tuple(p) + ((),) * (3 - len(p)) for p in paquetes] or \
-        [([], [], [])]
-    bloque_paquetes = listas("paquetes", [[list(t), list(m), list(s)]
-                                           for t, m, s in paquetes])
+    # Cada paquete, cuatro listas: sus temas, las muestras de sus efectos,
+    # sus temas de salida y sus temas aparte —ver `extra_de_salida` y
+    # `extra_aparte` en rom/src/paquete_de_audio.s—.
+    paquetes = [tuple(p) + ((),) * (4 - len(p)) for p in paquetes] or \
+        [([], [], [], [])]
+    bloque_paquetes = listas("paquetes", [[list(t), list(m), list(s),
+                                            list(a)]
+                                           for t, m, s, a in paquetes])
 
     with open(path, "w") as handle:
         handle.write(

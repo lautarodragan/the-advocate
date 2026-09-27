@@ -705,7 +705,17 @@ sin_extra:
     bcc con_paquete
     jmp marcadas
 con_paquete:
+    ; Un tema aparte que pide su `PlayBGM` va con los efectos del paquete y
+    ; sin los otros temas: ver `extra_aparte`.
     jsr lista_del_paquete
+    jsr extra_aparte
+    bcc temas_q
+saltear_q:
+    lda f:paquetes, x
+    cmp #$FF
+    beq efectos_q
+    inx
+    bra saltear_q
 temas_q:
     lda f:paquetes, x
     cmp #$FF
@@ -731,6 +741,9 @@ otro_q:
     bra otro_q
 salida_q:
     ; Y los temas de salida, que se quieren igual: si ya estaban, quedan.
+    ; Con un tema aparte, no.
+    jsr extra_aparte
+    bcs marcadas
     inx
 otro_s:
     lda f:paquetes, x
@@ -799,6 +812,14 @@ sin_extra2:
     jmp colocadas
 con_paquete2:
     jsr lista_del_paquete
+    jsr extra_aparte
+    bcc temas
+saltear:
+    lda f:paquetes, x
+    cmp #$FF
+    beq efectos
+    inx
+    bra saltear
 temas:
     lda f:paquetes, x
     cmp #$FF
@@ -824,7 +845,10 @@ de_salida:
     ; Los temas de salida, detrás de todo y **si hay lugar**: que no entren
     ; no deja el paquete incompleto —no hace falta su `PlayBGM` para
     ; completarlo, ni rearmar todo desde cero—, porque su `PlayBGM` los sube
-    ; solos. Por eso PAQ_INCOMPLETO se guarda y se repone alrededor.
+    ; solos. Por eso PAQ_INCOMPLETO se guarda y se repone alrededor. Con un
+    ; tema aparte no se sube ninguno.
+    jsr extra_aparte
+    bcs colocadas
     inx
     lda f:PAQ_INCOMPLETO
     pha
@@ -886,9 +910,13 @@ quieta:
 subir:
     jsr subir_colocadas
     ; Con un tema de salida subido solo, lo demás del paquete se soltó: si la
-    ; página no se va del mapa, el próximo `PlayBGM` lo completa.
+    ; página no se va del mapa, el próximo `PlayBGM` lo completa. Lo mismo
+    ; con un tema aparte, que sube sin los otros temas.
     jsr extra_de_salida
+    bcs incompleto
+    jsr extra_aparte
     bcc listo
+incompleto:
     lda #1
     sta f:PAQ_INCOMPLETO
 listo:
@@ -906,32 +934,67 @@ listo:
 .proc extra_de_salida
 .a8
 .i16
+    phy
+    ldy #2
+    jsr extra_en_lista
+    ply                         ; la C sobrevive al `ply`
+    rts
+.endproc
+
+; C en 1 si PAQ_EXTRA es uno de los temas aparte del paquete de PAQ_MAPA: la
+; cuarta lista de `paquetes`. Son los de `TEMAS_APARTE` en
+; tools/audio/snes_music.py, y el caso del juego es `vswar` en el 38 y el 47:
+; suena en una escena, nunca al mismo tiempo que los otros temas del mapa, y
+; con ellos no entraba a la tasa que tiene solo. Cuando su `PlayBGM` lo pide
+; y no está, se sube **él con los efectos del paquete** —que pueden sonar
+; mientras tanto: los cofres del basural del 38—, y los otros temas se
+; sueltan hasta el próximo `PlayBGM`, como con uno de salida. El conversor
+; cuenta con eso: un tema aparte tiene que entrar con esos efectos.
+.proc extra_aparte
+.a8
+.i16
+    phy
+    ldy #3
+    jsr extra_en_lista
+    ply
+    rts
+.endproc
+
+; C en 1 si PAQ_EXTRA está en la lista Y del paquete de PAQ_MAPA: 2 los temas
+; de salida, 3 los aparte. Guarda X, que es el índice de los lazos de
+; `paquete_cargar_ya`: `extra_aparte` se pregunta a mitad de ellos. La C
+; sobrevive al `plx`.
+.proc extra_en_lista
+.a8
+.i16
+    phx
     lda f:PAQ_EXTRA
     cmp #$FF
     beq no
     jsr lista_del_paquete
-temas:
+saltar:
+    dey
+    bmi mirar
+otra:
     lda f:paquetes, x
     inx
     cmp #$FF
-    bne temas
-efectos:
-    lda f:paquetes, x
-    inx
-    cmp #$FF
-    bne efectos
-salida:
+    bne otra
+    bra saltar
+mirar:
     lda f:paquetes, x
     cmp #$FF
     beq no
     cmp f:PAQ_EXTRA
     beq si
     inx
-    bra salida
+    bra mirar
 si:
+    plx
     sec
     rts
 no:
+    plx
     clc
     rts
 .endproc

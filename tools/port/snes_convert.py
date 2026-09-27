@@ -7411,7 +7411,7 @@ def main():
     # si no entran todos. Ver `paquete_cargar` en rom/src/paquete_de_audio.s.
     # Se arman **antes** que el banco, por nombre, porque el presupuesto de
     # cada muestra sale de ellos: ver `snes_music.Banco`.
-    paquetes = []
+    paquetes, apartes = [], []
     for i, _mapa in enumerate(mapas):
         pide = temas.por_mapa.get(i, {"temas": [], "sonidos": []})
         suyos = list(pide["temas"])
@@ -7434,6 +7434,13 @@ def main():
                   if t in suyos and t != tema_de_mapa[i]
                   and not (i == args.inicial and t == arranque)]
         suyos = [t for t in suyos if t not in salida]
+        # Y los aparte, que tampoco van con los otros temas: los sube su
+        # `PlayBGM` con los efectos del paquete. Ver `TEMAS_APARTE`.
+        aparte = [t for t in suyos if pedidos[t] in snes_music.TEMAS_APARTE.get(
+                      _mapa["id"], ()) and t != tema_de_mapa[i]
+                  and not (i == args.inicial and t == arranque)]
+        suyos = [t for t in suyos if t not in aparte]
+        apartes.append(aparte)
         paquetes.append((suyos, list(pide["sonidos"]), salida))
     # Y el paquete de la pelea, detrás de los mapas: el tema de batalla y sus
     # efectos, que la ROM sube al abrir la pelea y descarga al cerrarla. Va
@@ -7442,11 +7449,12 @@ def main():
     pide = temas.por_mapa.get(eventos.PAQUETE_BATALLA)
     if pide:
         paquetes.append((list(pide["temas"]), list(pide["sonidos"]), []))
+        apartes.append([])
     nombres_de_paquete = ([str(m["id"]) for m in mapas]
                           + (["pelea"] if pide else []))
-    por_nombre = [(nombre, suyos, suyas, salida)
-                  for nombre, (suyos, suyas, salida)
-                  in zip(nombres_de_paquete, paquetes)]
+    por_nombre = [(nombre, suyos, suyas, salida, aparte)
+                  for nombre, (suyos, suyas, salida), aparte
+                  in zip(nombres_de_paquete, paquetes, apartes)]
     # Y el de la pantalla de título, que no está en la tabla: `tema_asegurar`
     # sube su tema con el paquete del mapa de arranque detrás.
     if tema_titulo != 0xFF:
@@ -7454,7 +7462,8 @@ def main():
         por_nombre.append(("titulo", [tema_titulo] + suyos, suyas))
     herencia = temas_heredados(temas, tema_de_mapa, args.inicial,
                                tema_titulo, nombres_de_paquete,
-                               [suyos for suyos, _e, _s in paquetes])
+                               [suyos for suyos, _e, _s in paquetes],
+                               apartes)
     driver, muestras, hechos, banco = snes_music.build_varios(
         pedidos, args.game_dir, pedidos_se, por_nombre, herencia,
         aire_de_medida=args.aire_de_medida)
@@ -7507,7 +7516,8 @@ def main():
           "los %d cuadros de BOOT_CUADROS" % (del_paquete, cuadros, tope))
     snes_music.emit(musica, hechos, driver, muestras, arranque, tema_titulo,
                     snes_music.tabla_de_sonidos(temas.sonidos, banco),
-                    paquetes, tema_de_mapa, directorio, efecto_lugar)
+                    [p + (aparte,) for p, aparte in zip(paquetes, apartes)],
+                    tema_de_mapa, directorio, efecto_lugar)
     # El `.msu`: los fondos de calidad y los efectos de calidad, para leerlos
     # por el MSU-1 cuando está. Se escribe siempre, aunque el cartucho no
     # lleve ni fondos ni efectos, porque es también el archivo que enciende el
@@ -7517,12 +7527,15 @@ def main():
         por_nombre[:len(paquetes)], paquetes, hechos, muestras, banco,
         temas.sonidos, args.game_dir)
     for i, (suyos, suyas, salida) in enumerate(paquetes[:len(mapas)]):
-        if suyos or suyas or salida:
-            print("  paquete de audio del mapa %d: %d tema(s), %d efecto(s)%s"
+        if suyos or suyas or salida or apartes[i]:
+            print("  paquete de audio del mapa %d: %d tema(s), %d efecto(s)%s%s"
                   % (mapas[i]["id"], len(suyos), len(suyas),
                      ", y de salida %s" % ", ".join(hechos[t]["nombre"]
                                                     for t in salida)
-                     if salida else ""))
+                     if salida else "",
+                     ", y aparte %s" % ", ".join(hechos[t]["nombre"]
+                                                 for t in apartes[i])
+                     if apartes[i] else ""))
     if pedidos_se:
         print("  efectos de sonido: %d, %d B en el cartucho"
               % (len(efectos), sum(len(e.data) for _s, e in efectos.values())))
@@ -7584,11 +7597,13 @@ def main():
                             for k in banco.claves) else ""))
         # Y cuánto le sobra a cada paquete, con sus efectos: los enteros con
         # lo que ocupan de verdad, no con lo que la música les presupuestó.
+        # Las restricciones del banco ya los traen así —son las de `reales`,
+        # ver `snes_music.copias`—: restarles otra vez lo de más daba
+        # paquetes que no entraban y entraban.
         for r in banco.restricciones:
             print("    paquete %-28s %5d B de muestras, sobran %5d"
                   % (r.nombre[:28], banco.ocupa(r.claves),
-                     r.libre - banco.ocupa(r.claves)
-                     - banco.enteros_de_mas.get(r.nombre, 0)))
+                     r.libre - banco.ocupa(r.claves)))
 
 
 def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
@@ -7723,8 +7738,21 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
                       for t in sorted(set(suyas.values()), reverse=True))))
 
 
+# Los saltos de páginas compiladas que no se pueden dar: {id del mapa: ids de
+# los destinos}. `temas_heredados` no mira condiciones, y un salto que nunca
+# pasa le hace reservar lugar a un tema que nunca llega, a costa de los que sí.
+#
+# El 45 es el video de seguridad: el 19 copiado entero, con sus eventos. Su
+# página automática corre la escena del director apenas se entra y se va al
+# 40; el evento 4, que salta al 20, es el del 19 que vino con la copia, y
+# cuando el jugador podría tocarlo ya prendió el switch que lo apaga. Contado,
+# `Kfmus5` —que llega sonando al 45 por los vidcasts— heredaba en el 20 y le
+# bajaba cuatro golpes a `Lunar_Pyramid` y `wb3shop`, de 22 a 14 kHz.
+SALTOS_QUE_NO_SE_DAN = {45: {20}}
+
+
 def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,
-                    del_paquete=None):
+                    del_paquete=None, apartes=None):
     """[(nombre del paquete, índice de un tema que puede venir sonando al
     cargarlo)], para `snes_music.build_varios`.
 
@@ -7748,19 +7776,57 @@ def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,
     no está ahí tiene que entrar al lado. Sin él, los que prenden sus
     páginas. Lo que sale de un mapa sigue siendo cualquiera de los que
     prenden, los de salida incluidos: son justamente los que se van con él.
+
+    **Salvo en un mapa cuyos `PlayBGM` son todos de salida**: ahí la regla
+    de arriba no vale, porque cada uno va pegado a su salto y los otros
+    saltos del mapa no llevan ninguno. Cada salto lleva lo que dice
+    `Temas.salto`: el tema de salida que lo precede, o lo que entró al mapa.
+    Es el 41 y el 40 del juego: `Kfmus5` entra al 41 desde la página del 37
+    y sigue por el 40, el 42, el 43, el 44 y el 45, mientras que
+    `golden_axe-turtlevillage2` y `tsmedit` suenan sólo para irse. Del
+    2026-09-27; hasta entonces esos mapas heredaban sólo sus temas de
+    salida. El de arranque sigue con la regla de arriba: ver `lleva`.
+
+    `apartes` son los temas aparte de cada paquete —ver
+    `snes_music.TEMAS_APARTE`—: no se van del mapa, así que no cuentan en lo
+    que sale.
     """
     n = len(tema_de_mapa)
     pide = [temas.por_mapa.get(i, {}) for i in range(n)]
+    apartes = apartes or [()] * n
+    indice = {nombre: i for i, nombre in enumerate(nombres_de_paquete[:n])}
+    no_se_dan = {(indice[str(a)], indice[str(b)])
+                 for a, destinos in SALTOS_QUE_NO_SE_DAN.items()
+                 for b in destinos
+                 if str(a) in indice and str(b) in indice}
+    saltos = getattr(temas, "saltos", {})
     entra = [set() for _ in range(n)]
     if titulo != 0xFF:
         entra[inicial].add(titulo)
+
+    def lleva(i, destino):
+        if tema_de_mapa[i] != 0xFF:
+            return {tema_de_mapa[i]}
+        suyos = set(pide[i].get("temas", ())) - set(apartes[i])
+        # El de arranque no: es el enrutador, que salta a medio juego según
+        # variables, y sin mirar condiciones lo que entra ahí saldría para
+        # cualquier lado.
+        if suyos and suyos <= set(temas.de_salida(i)) and i != inicial:
+            # Un destino que ningún salto anotado nombra —el de una página
+            # que no compiló entera— lleva lo que entró.
+            con = saltos.get(i, {}).get(destino, {None})
+            return ({t for t in con if t is not None}
+                    | (entra[i] if None in con else set()))
+        return suyos or entra[i]
+
     cambio = True
     while cambio:
         cambio = False
         for i in range(n):
-            sale = ({tema_de_mapa[i]} if tema_de_mapa[i] != 0xFF
-                    else set(pide[i].get("temas", ())) or entra[i])
             for destino in pide[i].get("destinos", ()):
+                if (i, destino) in no_se_dan:
+                    continue
+                sale = lleva(i, destino)
                 if (destino != i and tema_de_mapa[destino] == 0xFF
                         and not sale <= entra[destino]):
                     entra[destino] |= sale

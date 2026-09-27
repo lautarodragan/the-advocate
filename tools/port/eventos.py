@@ -739,6 +739,8 @@ class Temas:
         self.por_mapa = {}
         # Y qué `PlayBGM` de cada mapa son **de salida**: ver `salida`.
         self.salidas = {}
+        # Y con qué tema salta cada `Teleport` de cada mapa: ver `salto`.
+        self.saltos = {}
         # Cuántas veces se pidió un efecto, para que la página vea si un
         # comando hizo sonar alguno: ver `_seguir_la_salida`.
         self.pedidos = 0
@@ -759,6 +761,18 @@ class Temas:
 
     def destino(self, mapa):
         self._anotar("destinos", mapa)
+
+    def salto(self, destino, tema):
+        """Anota un salto del mapa que se compila a `destino`: con `tema` si
+        va justo detrás de un `PlayBGM` de ese tema, sin ramas ni efectos en
+        el medio —el que se lleva seguro—, o con None si se lleva lo que esté
+        sonando. Lo anota la página cuando compila, y `_destino_recordado`
+        el de un `RecallToLocation`, siempre con None. Ver `temas_heredados`
+        en snes_convert.py."""
+        if self.mapa is None:
+            return
+        self.saltos.setdefault(self.mapa, {}).setdefault(destino, set()).add(
+            tema)
 
     def salida(self, tema, sale):
         """Anota un `PlayBGM` del tema en el mapa que se compila: `sale` si
@@ -3530,8 +3544,8 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
         celda_pieza = {}
         eleg = []            # las elecciones abiertas
         bat = []             # y las batallas abiertas, igual que ellas
-        bgm = [None, []]     # el `PlayBGM` pendiente y lo anotado: ver
-                             # `_seguir_la_salida`
+        bgm = [None, [], []]  # el `PlayBGM` pendiente, lo anotado y los
+                              # saltos: ver `_seguir_la_salida`
         constantes = {}      # lo último que la página puso en cada variable,
                              # si fue una constante: ver `_destino_recordado`
         for cmd, extra in agrupar(comandos):
@@ -3759,6 +3773,8 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
             bgm[1].append((bgm[0], False))
         for tema, sale in bgm[1]:
             temas.salida(tema, sale)
+        for destino, tema in bgm[2]:
+            temas.salto(destino, tema)
         codigo = b"".join(piezas)
         # El `OP_DONE` es de la página y no del pedazo: un cuerpo en línea que
         # lo llevara terminaría la página del que llamó en vez de devolverle el
@@ -3816,6 +3832,8 @@ def _destino_recordado(cmd, constantes, temas, indice_de_mapa):
         indice = indice_de_mapa(destino)
         if indice is not None:
             temas.destino(indice)
+            if indice != temas.mapa:
+                temas.salto(indice, None)
     return destino
 
 
@@ -3841,8 +3859,15 @@ def _seguir_la_salida(cmd, salida, temas, indice_de_mapa, sono):
     lo anotado se le pasa a `temas` recién si la página compila.
 
     Un salto al mismo mapa también lo corta: recarga el paquete con el tema
-    sonando, que es el caso de la herencia y no el de irse."""
-    pendiente, anotado = salida
+    sonando, que es el caso de la herencia y no el de irse.
+
+    Y anota en `salida[2]` cada salto a otro mapa con el tema que se lleva
+    si es de salida, o None: ver `Temas.salto`."""
+    pendiente, anotado = salida[:2]
+    if cmd.code == TELEPORT and temas.mapa is not None:
+        destino = indice_de_mapa(cmd.parameters[0])
+        if destino is not None and destino != temas.mapa:
+            salida[2].append((destino, pendiente))
     if cmd.code == PLAY_BGM and cmd.string:
         if pendiente is not None:
             anotado.append((pendiente, False))

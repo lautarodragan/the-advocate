@@ -162,6 +162,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 **La música**
 
 * `rpgmaker/test_musica_paquete.py`: las muestras del tema, en la ARAM
+* `herramientas/test_temas_heredados.py`: qué tema puede venir sonando al
+  cargar el paquete de cada mapa, que es lo que el reparto le reserva
 * `rpgmaker/test_tema_del_mapa.py`: el tema de cada mapa
 * `rpgmaker/test_bateria_suena.py`: lo que la música les escribe a las voces
   de la batería

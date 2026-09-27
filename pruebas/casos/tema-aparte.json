@@ -1,0 +1,10 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [38, 2, 10]},
+    {"code": "Wait", "parameters": [3]},
+    {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "golden_axe-turtlevillage2"},
+    {"code": "Wait", "parameters": [3]},
+    {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "vswar"},
+    {"code": "Wait", "parameters": [3]}
+  ]
+}
