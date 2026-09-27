@@ -240,7 +240,7 @@ SE_VOZ2 = 6
 # Los que van enteros, sin tope ni bucle, a la tasa que dice cada uno:
 # terminan cuando termina la muestra, que es lo que hacen en RM2k. Con el
 # tope, el trueno repetía sus 0,35–0,75 s hasta cumplir los cuadros y taro lo
-# oyó tartamudear: `decisiones/el-trueno-va-entero-a-22-khz.md`.
+# oyó tartamudear: `decisiones/el-trueno-va-entero-y-paga-la-lluvia.md`.
 #
 # **Lo que un efecto entero ocupa de más no le cuesta nada a la música**: el
 # banco se reparte contando cada efecto como si no estuviera acá, y lo de más
@@ -261,13 +261,15 @@ SE_VOZ2 = 6
 # El trueno de la apertura es un alias: lo que va después de la `@` es un
 # nombre aparte para la misma WAV, que `_compilar` pone sólo en el mapa 1
 # (ver `SE_DEL_MAPA`), porque el 3, el 20 y el 32 también piden el trueno y
-# en el 3 a 22 kHz no entra.
+# llevan el de siempre.
 #
-# Y **sí** lo paga la música, si hace falta: taro lo eligió entero a 22 kHz
-# escuchándolo, antes de esta regla. Lo mismo los de abajo, en
-# `SE_ENTEROS_PAGADOS`.
+# Y **sí** lo paga la música, si hace falta, como los de abajo en
+# `SE_ENTEROS_PAGADOS`. Va a 8,8 kHz y no a los 22 de su WAV para que la
+# lluvia entera entre en el paquete del mapa 1 sin bajarle la tasa a ningún
+# instrumento: taro, el 2026-09-26. Subirlo vuelve a costarle a
+# `escape_newyork`.
 SE_ENTEROS = {
-    "Thunder9@entero": 22050,
+    "Thunder9@entero": 8800,
     "Sword3": 22050, "Monster2": 22050, "Recovery4": 22050, "Flame5": 22050,
     "Explosion5": 22050, "Dark5": 22050, "Cold2": 22050, "Thunder6": 22050,
     "Thunder4": 22050, "Decision2": 22050, "Earth8": 22050, "Fall2": 22050,
@@ -286,8 +288,9 @@ SE_ENTEROS_PAGADOS = {"Thunder9@entero"}
 # uno está en algún paquete que limita muestras—. Los de tres cuartos de
 # segundo o menos ya sonaban enteros y no están acá.
 #
-# Enteros sí le cuestan a la música de su paquete —la lluvia al mapa 1, los
-# tres largos de la pelea al tema de batalla, los del mapa 3 a `evilrhys`—:
+# Enteros sí le cuestan a la música de su paquete —los tres largos de la
+# pelea al tema de batalla, los del mapa 3 a `evilrhys`; la lluvia no, porque
+# la paga el trueno de la apertura, que bajó de tasa—:
 # cuánto y a quién está en `tasks/*/efectos-de-sonido-sin-recortes.md`.
 SE_ENTEROS.update({
     "Rain1": 6000, "Bite": 6000, "Item2": 6000, "Monster1": 6000,

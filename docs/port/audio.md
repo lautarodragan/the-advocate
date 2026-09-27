@@ -46,7 +46,7 @@ muestra y con qué envolvente, y la consola sólo reproduce.
   deja libre en cada paquete, así que no le bajan la tasa a ningún
   instrumento. Los de `SE_ENTEROS_PAGADOS` —el trueno de la apertura y los
   que taro eligió enteros aunque costaran— sí los paga la música de su
-  paquete: `workflow/decisiones/el-trueno-va-entero-a-22-khz.md`. Uno que en
+  paquete: `workflow/decisiones/el-trueno-va-entero-y-paga-la-lluvia.md`. Uno que en
   un mapa suena con otra muestra es un alias: `SE_DEL_MAPA`.
 * **El `FadeOutBGM` baja el tema y nada más**: el volumen de cada voz de la
   música, o el de la pista del MSU-1, y nunca el general del DSP, que es
