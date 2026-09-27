@@ -8,13 +8,14 @@ un reparto que sirva para todos los mapas: cuál toca lo decide el conversor
 —junto con los valores ya armados de `OBSEL` y `BG12NBA`, y desde el 2026-09-25
 la dirección del tilemap del fondo— y viaja en el `.inc`. La ROM no elige nada.
 
-Son cuatro, y `vram_layout` devuelve **el primero que entre**, así que agregar
+Son cinco, y `vram_layout` devuelve **el primero que entre**, así que agregar
 uno al final no le cambia el reparto a ningún mapa que ya lo tenía:
 
     ventana        sprites 448 | ventana_map | fondo 448 | mapa $5800 | encima 128 | ventana 256
     ventana+fondo  sprites 256 | fondo 480  | ventana_map | mapa $5800 | encima 128 | ventana 256
     ventana+sprite sprites 512 | fondo 384  | ventana_map | mapa $5800 | encima 128 | ventana 256
     ventana+ambos  sprites 384 | mapa $1800 | fondo 480  | ventana_map | encima 128 | ventana 256
+    ventana+techo  sprites 256 | fondo 544  | ventana_map | mapa $5800 | encima 128 | ventana 256
 
 Los detalles, con las direcciones, están en `LAYOUT_VENTANA*` de
 `tools/port/snes_convert.py`, y `_controlar_repartos` comprueba que cada uno
@@ -48,6 +49,11 @@ ranuras, que pisa $2000..$4000 y cuenta con que `load_map` lo reponga: con el
 tilemap en $5800, 347 sprites dejan 448 de fondo; moviéndolo, 480. Para eso se
 mudó.
 
-Dos de los repartos de hoy están por debajo del techo —"+fondo" podría dar 544 y
-"+sprite" 416—. Subirlos cambiaría el reparto de los mapas que ya los usan, y
-hasta ahora ninguno lo pidió.
+Dos de los repartos están por debajo del techo —"+fondo" podría dar 544 y
+"+sprite" 416—. Subirlos cambiaría el reparto de los mapas que ya los usan.
+
+El de "+fondo" lo pidió **el mundo**, el mapa 66: 527 tiles de fondo y 222 de
+sprite. En vez de subir "+fondo" se agregó "+techo" al final, que es "+fondo"
+con los 544: los mapas que ya estaban siguen donde estaban. Y 544 tiles de 8bpp
+son 34 KB, más que el buffer de carga de LZ2, así que ese fondo viaja en dos
+flujos: ver `lz2_fondo` en `rom/src/descomprimir.s`.

@@ -334,7 +334,7 @@ Tangle Forest (310 a 313) queda afuera de las dos mientras no haya lugar.
 
 # Hitos
 
-**1. El 66 entra.** El quinto reparto al final de `LAYOUTS` y el fondo de más
+**1. El 66 entra.** (Hecho: `testing/mundo-1-el-66-entra.md`.) El quinto reparto al final de `LAYOUTS` y el fondo de más
 de 32 KB en dos flujos de LZ2. El 66 en `release`; el fork del 64 se borra y
 el fin de la demo pasa a un fork del 66 que corte al pisar Sorbe (ev10), así
 el mundo se puede caminar y pelear. Las demás entradas del 66 no hacen nada

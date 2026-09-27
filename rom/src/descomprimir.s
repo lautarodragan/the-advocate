@@ -269,6 +269,85 @@ listo:
     rtl
 .endproc
 
+; Los tiles del fondo del mapa, a la VRAM: se descomprimen en `LZ2_BUFFER` y
+; se suben por DMA de a un flujo. Un fondo de más de `LZ2_TOPE_FONDO` bytes —el
+; del mapa 66, con el reparto de 544 tiles— viene en dos flujos pegados, y el
+; segundo se descomprime **después** de subir el primero, en el mismo lugar:
+; descomprimido entero no entra en el buffer, y lo que se pasaba caía en la
+; mitad alta de la grilla. El conversor parte en tramos de `LZ2_TOPE_FONDO`
+; exactos —ver `partes_comprimidas`—, así que cuántos tiles trae cada flujo
+; sale de cuántos tiles tiene el mapa y no hace falta anotarlo.
+;
+; Entra con VMAIN y VMADD puestos; el DMA sigue la dirección de la VRAM de un
+; flujo al otro. Deja el banco de tiles subido y pisa A, X e Y.
+FONDO_TILES_POR_FLUJO = LZ2_TOPE_FONDO / 64     ; 64 bytes por tile de 8 bits
+.proc lz2_fondo
+.a8
+.i16
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda f:mapa_tabla + M_MAP_TILES, x
+    pha                         ; los tiles que faltan subir
+    sep #$20
+.a8
+    ldy #M_PTR_MAP_TILES
+    jsr lz2_del_campo
+    pha                         ; 1,s: el banco del flujo; 2,s: los que faltan
+flujo:
+    lda #^LZ2_BUFFER
+    sta f:LZ2_BANCO
+    lda 1, s
+    ldy #.loword(LZ2_BUFFER)
+    jsl f:lz2_descomprimir + RAPIDO     ; deja X en el flujo que sigue
+    rep #$20
+.a16
+    ; Los que van a faltar después de éste: cero si éste es el último.
+    lda 2, s
+    sec
+    sbc #FONDO_TILES_POR_FLUJO
+    bcs :+
+    lda #0
+:   pha                         ; 1,s: los que van a faltar; 3,s: el banco
+    lda 4, s
+    sec
+    sbc 1, s                    ; los de este flujo
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; 64 bytes por tile de 8 bits
+    sta f:DAS0L
+    pla
+    sta 2, s
+    lda #.loword(LZ2_BUFFER)
+    sta f:A1T0L
+    sep #$20
+.a8
+    lda #^LZ2_BUFFER
+    sta f:A1B0
+    lda #$01
+    sta f:DMAP0                 ; dos registros, de a palabras
+    lda #$18
+    sta f:BBAD0                 ; destino: VMDATAL
+    lda #$01
+    sta f:MDMAEN
+    rep #$20
+.a16
+    lda 2, s                    ; `sep` no toca Z: el `bne` mira esto
+    sep #$20
+.a8
+    bne flujo
+    pla
+    rep #$20
+.a16
+    pla
+    sep #$20
+.a8
+    rtl
+.endproc
+
 ; Los dibujos de la animación del ChipSet del mapa, en `ANIM_DIBUJOS`, de
 ; donde los sube `anim_subir` cada vez que cambia el reloj. Tienen que quedar
 ; ahí mientras se esté en el mapa, así que van en un lugar propio y no en

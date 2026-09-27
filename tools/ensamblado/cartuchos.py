@@ -70,8 +70,13 @@ EXCLUIDOS = {
 }
 
 # El tutorial del droide no cuelga de Lashe City sino de `Tutorials`, pero salta
-# ahí la página del 48 que mete a AG7-17 en el grupo.
-AGREGADOS = (164,)
+# ahí la página del 48 que mete a AG7-17 en el grupo. Y el mundo, el 66, al que
+# lleva la despedida del 64: es el primero de otro capítulo, y subir `MENOR_A`
+# a 67 metería al 65, que es una carpeta. Va agregado hasta que la regla pase
+# al capítulo entero —ver `workflow/tasks/*/el-mundo-y-lo-que-sigue.md`, "La
+# regla de los mapas"—; la demo termina adentro de él, al pisar Sorbe, en su
+# fork.
+AGREGADOS = (164, 66)
 
 
 def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
@@ -94,9 +99,9 @@ def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
 # del 36 es una sola página que compila con sus cuatro destinos o con ninguno.
 # Una exclusión no los puede separar.
 #
-# La demo termina al final de la escena de despedida, en el fork del 64: el
-# `Teleport` que la cierra va al mundo, el 66, que no entra —"no puede llevar
-# ventana de mensaje"—. Por eso `MENOR_A` no pasa de 65 hasta que entre.
+# La demo termina en el mundo, el 66, al pisar Sorbe: el fork del 66 cambia ese
+# `Teleport` por el cartel del fin. Los demás lugares del mundo no hacen nada,
+# porque sus destinos no están y sus páginas no compilan.
 MAPAS_DEL_JUEGO = mapas_de_la_regla()
 
 # Y los que sólo existen por la tanda: situaciones que ningún mapa del juego

@@ -2293,12 +2293,37 @@ LAYOUT_VENTANA_AMBOS = {"sprites": (0x0000, 384), "mapa": (0x1800, 1),
                         "tiles": (0x2000, 480), "ventana_map": (0x5C00, 1),
                         "encima": (0x6000, 128), "ventana": (0x6800, 256)}
 
+# Y el quinto, el techo de "+fondo": lo pidió el mundo, el mapa 66, que gasta
+# **527 tiles de fondo y 222 de sprite** y no entraba en ninguno de los cuatro
+# —el que más fondo da con 222 sprites son los 480 de "+fondo" y "+ambos"—.
+# Con 256 sprites el hardware da 544 (ver docs/port/vram.md, "Dónde está el
+# techo"), y "+fondo" se queda 64 por debajo sólo porque subirlo le cambiaría
+# el reparto a los mapas que ya lo usan. Es "+fondo" con la ventana_map y el
+# tilemap corridos detrás del fondo:
+#
+#   sprites     $0000   8 KB  256 tiles de 4bpp   base de OBJ en 0
+#   tiles       $1000  34 KB  544 tiles de 8bpp   <- la base de BG1
+#   ventana_map $5400   2 KB  el tilemap de 32x32 de la ventana
+#   tilemap     $5800   4 KB
+#   encima      $6000   8 KB  128 tiles           <- la base de BG2
+#   ventana     $6800   8 KB  256 tiles           <- los índices 128..383
+#   tilemap     $7800   4 KB
+#
+# 544 tiles de 8bpp son 34 KB, más que el buffer de LZ2: por eso el fondo va
+# en dos flujos —ver `partes_comprimidas`—.
+#
+# **Va último a propósito**, por lo mismo que los dos anteriores.
+LAYOUT_VENTANA_FONDO_TECHO = {"sprites": (0x0000, 256), "tiles": (0x1000, 544),
+                              "ventana_map": (0x5400, 1), "mapa": (0x5800, 1),
+                              "encima": (0x6000, 128), "ventana": (0x6800, 256)}
+
 # En el orden en que `vram_layout` los prueba. **Se agrega al final**, nunca en
 # el medio: así un reparto nuevo no le cambia el suyo a ningún mapa.
 LAYOUTS = (("VENTANA", LAYOUT_VENTANA),
            ("VENTANA_FONDO", LAYOUT_VENTANA_FONDO),
            ("VENTANA_SPRITE", LAYOUT_VENTANA_SPRITE),
-           ("VENTANA_AMBOS", LAYOUT_VENTANA_AMBOS))
+           ("VENTANA_AMBOS", LAYOUT_VENTANA_AMBOS),
+           ("VENTANA_FONDO_TECHO", LAYOUT_VENTANA_FONDO_TECHO))
 # Cuántas ranuras de partida guardada tiene el cartucho. El mismo número está
 # en `rom/src/partida.s` como `SRAM_RANURAS`, y la ROM lo comprueba: si no dieran iguales,
 # la pantalla mostraría un número de ranuras y la SRAM tendría otro.
@@ -2314,12 +2339,13 @@ RANURAS = 4
 # menú —$4400 y $5000— caían en los sprites de un reparto sin ventana que ya no
 # existe: los NPCs volvían del menú con las poses rotas y el héroe también si
 # no era el del bloque 0. Las de acá están en la intersección del banco de BG1
-# de los cuatro repartos, que es $2000..$4000:
+# de los cinco repartos, que es $2000..$4000:
 #
 #   LAYOUT_VENTANA        $2000..$5800
 #   LAYOUT_VENTANA_FONDO  $1000..$4C00
 #   LAYOUT_VENTANA_SPRITE $2000..$5000
 #   LAYOUT_VENTANA_AMBOS  $2000..$5C00
+#   LAYOUT_VENTANA_FONDO_TECHO $1000..$5400
 #
 # La base de tiles de un BG va de a 4096 palabras y el tilemap de a 1024: los
 # tiles en $2000, que con las caras del grupo son unos 300 y pueden llegar a
@@ -2361,7 +2387,7 @@ MAX_BLOCKS = 1024
 def vram_layout(tiles, sprites=0):
     """Qué reparto de VRAM le toca a un mapa, según lo que gasta.
 
-    Los dos números se miran en los cuatro repartos, y se devuelve el primero
+    Los dos números se miran en todos los repartos, y se devuelve el primero
     que entre.
     """
     # Los dos números se miran en los dos repartos. Antes se miraba el fondo en
@@ -2377,7 +2403,7 @@ def vram_layout(tiles, sprites=0):
 
 
 def _controlar_ranuras(ranura_tiles):
-    """Que la pantalla de ranuras caiga en el banco de BG1 de los cuatro repartos.
+    """Que la pantalla de ranuras caiga en el banco de BG1 de todos los repartos.
 
     Es lo que hace que `volver_al_mapa` pueda reponer el mapa con `load_map` y
     nada más; ver el comentario de RANURA_MAP.
@@ -4064,11 +4090,15 @@ def terreno_del_mapa(mapa):
 CLASES_COMPRIMIDAS = ("map_tiles", "above_tiles", "sprite_tiles", "anim_tiles",
                       "map_celdas")
 
-# Lo más grande que puede medir cada bloque descomprimido, por dónde cae en la
+# Lo más grande que puede medir cada flujo descomprimido, por dónde cae en la
 # WRAM: ver la reserva de LZ2 en rom/src/ram_lejana.s, que es de donde salen, y
 # `.assert` de descomprimir.s, que los cobra contra los de acá. Los tiles del
 # fondo se descomprimen antes que los dibujos de la animación y pueden pisar
 # su lugar; la capa de encima y los sprites van después y no.
+#
+# El del fondo es **por flujo**, no por bloque: un fondo de más de 32 KB —el
+# del mapa 66, con el reparto de 544 tiles— va en dos, y la ROM descomprime y
+# sube el primero antes de descomprimir el segundo encima: ver `lz2_fondo`.
 LZ2_TOPE_FONDO = 0x8000
 LZ2_TOPE_ENCIMA_Y_SPRITES = 0x6000
 LZ2_TOPE_ANIM = 0x2000
@@ -4100,21 +4130,12 @@ def cuadros_de_descomprimir(mapa, comprimidos):
 def comprimir_los_bloques(mapas):
     """{bytes crudos: flujo LZ2} de todo lo que el cartucho lleva comprimido,
     con un solo proceso de `lz2`. De paso cobra los topes de la WRAM."""
-    topes = {"map_tiles": LZ2_TOPE_FONDO,
-             "above_tiles": LZ2_TOPE_ENCIMA_Y_SPRITES,
-             "sprite_tiles": LZ2_TOPE_ENCIMA_Y_SPRITES,
-             "anim_tiles": LZ2_TOPE_ANIM,
-             "map_celdas": LZ2_TOPE_GRILLA}
     partes = []
     for mapa in mapas:
         for clase, datos in crudos_del_mapa(mapa).items():
             if clase not in CLASES_COMPRIMIDAS:
                 continue
-            if clase in topes and len(datos) > topes[clase]:
-                raise SystemExit(
-                    "mapa %d: %s mide %d bytes y en la WRAM entran %d: ver la "
-                    "reserva de LZ2 en rom/src/ram_lejana.s"
-                    % (mapa["id"], clase, len(datos), topes[clase]))
+            controlar_flujos(mapa["id"], clase, datos)
             partes += partes_comprimidas(clase, datos)
     partes = list(dict.fromkeys(partes))
     return dict(zip(partes, comprimir.comprimir_varios(partes)))
@@ -4126,11 +4147,50 @@ def comprimir_los_bloques(mapas):
 GRILLA_MITAD = 0x8000
 
 
+# Y los tiles del fondo, en flujos de a lo que entra en el buffer de carga: la
+# ROM descomprime uno, lo sube por DMA y recién ahí descomprime el siguiente
+# en el mismo lugar —ver `lz2_fondo`—. Un fondo que entra en uno va en uno, y
+# eso deja a los mapas de siempre con el flujo de siempre.
+FONDO_FLUJOS_MAX = 2            # los que lee `lz2_fondo`
+
+
 def partes_comprimidas(clase, datos):
     """Los trozos de un bloque que se comprimen cada uno en su flujo."""
     if clase == "map_celdas":
         return [datos[:GRILLA_MITAD], datos[GRILLA_MITAD:]]
+    if clase == "map_tiles" and len(datos) > LZ2_TOPE_FONDO:
+        return [datos[k:k + LZ2_TOPE_FONDO]
+                for k in range(0, len(datos), LZ2_TOPE_FONDO)]
     return [datos]
+
+
+# Cuánto entra en la WRAM de cada flujo, y cuántos flujos lee la ROM por
+# bloque. La grilla va siempre en dos, uno por mitad; los demás en uno, salvo
+# el fondo.
+TOPES_POR_FLUJO = {"map_tiles": (LZ2_TOPE_FONDO, FONDO_FLUJOS_MAX),
+                   "above_tiles": (LZ2_TOPE_ENCIMA_Y_SPRITES, 1),
+                   "sprite_tiles": (LZ2_TOPE_ENCIMA_Y_SPRITES, 1),
+                   "anim_tiles": (LZ2_TOPE_ANIM, 1),
+                   "map_celdas": (GRILLA_MITAD, 2)}
+
+
+def controlar_flujos(map_id, clase, datos):
+    """Que cada flujo del bloque entre en su lugar de la WRAM, y que no haya
+    más flujos que los que la ROM lee. Un flujo que se pasa no rompe nada al
+    armar: la ROM lo descomprime igual y pisa lo que haya detrás —con el fondo
+    del 66, la mitad alta de la grilla—, y se ve o no según el mapa."""
+    tope, cuantos = TOPES_POR_FLUJO[clase]
+    partes = partes_comprimidas(clase, datos)
+    for parte in partes:
+        if len(parte) > tope:
+            raise SystemExit(
+                "mapa %d: un flujo de %s mide %d bytes y en la WRAM entran %d: "
+                "ver la reserva de LZ2 en rom/src/ram_lejana.s"
+                % (map_id, clase, len(parte), tope))
+    if len(partes) > cuantos:
+        raise SystemExit(
+            "mapa %d: %s mide %d bytes, que son %d flujos, y la ROM lee %d"
+            % (map_id, clase, len(datos), len(partes), cuantos))
 
 
 def crudos_del_mapa(mapa):
@@ -4601,7 +4661,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; título— así que se sube entera al entrar. **Va en toda ROM**, con\n"
         "; título o sin él: el save point la abre desde adentro del juego, y\n"
         "; por eso sus direcciones de VRAM son suyas y no las del menú: caen\n"
-        "; en el banco de tiles de BG1 de los cuatro repartos, que es lo que\n"
+        "; en el banco de tiles de BG1 de todos los repartos, que es lo que\n"
         "; `volver_al_mapa` repone con `load_map`. Ver RANURA_MAP en el\n"
         "; conversor.\n"
         "RANURA_VRAM       = $%04X\n"

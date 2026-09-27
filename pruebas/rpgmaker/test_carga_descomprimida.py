@@ -273,3 +273,40 @@ def test_la_grilla_vuelve_entera_de_una_pelea(nucleo):
     assert p.mapa() == 52, "la pelea no volvió al mapa 52: volvió al %d" % p.mapa()
     mal = _mirar_la_grilla(p, indice)
     assert not mal, "la grilla después de la pelea: %s" % mal
+
+
+# --- el fondo de dos flujos ----------------------------------------------------
+#
+# Un fondo de más de `LZ2_TOPE_FONDO` bytes va en dos flujos, y `lz2_fondo`
+# sube el primero antes de descomprimir el segundo en el mismo lugar. Antes de
+# eso el fondo del 66 se descomprimía entero y lo que no entraba en el buffer
+# de carga caía en `GRILLA_ALTA`: en el 66, que usa sólo la mitad baja, andaba
+# de casualidad. La prueba de arriba mira que llegue entero a la VRAM; ésta,
+# con un testigo escrito en `GRILLA_ALTA`, que no se salga del buffer.
+
+
+def test_un_fondo_de_dos_flujos_no_se_sale_del_buffer():
+    p = partida(None, en=cartuchos.RELEASE)
+    with open(p.sfc, "rb") as f:
+        p.rom = f.read()
+    s = p.simbolos
+    grandes = [m for k, m in enumerate(p.mapas)
+               if len(_crudo(p, k, "map_tiles")) > s["LZ2_TOPE_FONDO"]]
+    assert grandes, (
+        "ningún mapa de `release` tiene el fondo en dos flujos: esta prueba "
+        "no mira el camino de dos de `lz2_fondo`")
+    map_id = grandes[0]
+    indice = p.mapas.index(map_id)
+    mitad = s["GRILLA_FIN"] - s["GRILLA"]
+    assert len(_crudo(p, indice, "map_celdas")) <= mitad, (
+        "la grilla del mapa %d usa la mitad alta, y ahí el testigo lo pisaría "
+        "ella: hace falta otro mapa" % map_id)
+    alta = en_la_wram(s["GRILLA_ALTA"])
+    testigo = bytes(range(256)) * 16
+    p.consola.escribir_ram(alta, list(testigo))
+    _cargar(p, map_id)
+    assert bytes(p.consola.ram(alta, len(testigo))) == testigo, (
+        "cargar el mapa %d pisó `GRILLA_ALTA`: el fondo se salió del buffer "
+        "de carga" % map_id)
+    mal = _mirar_la_vram(p, indice)
+    assert not mal, "el mapa %d: %s" % (map_id, "; ".join(mal))

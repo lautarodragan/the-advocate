@@ -122,13 +122,14 @@ tiles de un ChipSet propio, y con eso el mapa se bajó del techo de paletas de
 sprite donde estaba clavado. El porqué, con todo lo medido, está en
 `workflow/tasks/done/hornear-la-decoracion-en-un-chipset.md`.
 
-Y el **mapa 64**, `Leaving Lashe City Scene`, donde termina la demo: la
-escena de despedida con el compañero, después de la carrera, que en el
-original cierra con un `Teleport` al mundo —el 66— y unos mensajes que corren
-allá. El 66 no entra en la VRAM, así que ese `Teleport` y lo que viene detrás
-pasaron a ser un mensaje de fin de demo y un `ReturntoTitleScreen`. Lo decidió
-taro el 2026-09-27 al meter la carrera en `release`. Sus capas son las del
-original, byte por byte. **Se borra el día que entre el mundo.**
+Y el **mapa 66**, `Lashe Area`, el mundo, donde termina la demo: al pisar la
+entrada de Sorbe Village (el evento 10), que en el original es un `Teleport`
+al 69, sale un mensaje de fin de demo y un `ReturntoTitleScreen`. El resto
+del mundo se camina y se pelea; sus otras entradas no hacen nada, porque sus
+destinos no están en el cartucho y sus páginas no compilan. Es del hito 1 de
+`workflow/tasks/*/el-mundo-y-lo-que-sigue.md`, el 2026-09-27. Sus capas son las del
+original, byte por byte. **Se muda el día que entre Sorbe**: el fin de la
+demo pasa a la próxima entrada que no esté.
 
 Y el **mapa 49**, la primera vuelta de la carrera, por el cartel de los
 controles: en el original es una imagen, `EscapeInst`, sobre la pantalla
@@ -139,8 +140,10 @@ cambia el `ShowPicture` por dos `ShowMessage` con el mismo texto, y saca el
 tecla. Lo decidió taro el 2026-09-27. Capas del original. **Se borra el día
 que la ROM lleve más de una imagen.**
 
-Hasta ese día el fin de la demo estuvo en un fork del **36**, en la pregunta de
-irse de Lashe City, que llevaba a la carrera cuando la carrera no entraba.
+Antes de eso el fin de la demo estuvo en un fork del **64**, la despedida
+después de la carrera, que cambiaba el `Teleport` al mundo cuando el mundo no
+entraba en la VRAM; y antes, en uno del **36**, en la pregunta de irse de Lashe
+City, que llevaba a la carrera cuando la carrera no entraba.
 
 Lo que el horneado del 18 **no** conserva: el público era de la capa del héroe
 y se ordenaba con él por Y, y ahora es fondo. Vale porque en ese mapa no se
