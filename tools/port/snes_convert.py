@@ -3891,7 +3891,7 @@ def tabla_de_paginas(mapa, numero, evcodigo):
                         | (32 if pagina["evento"] in cambian
                                  or pagina["evento"] in aparecen else 0)
                         | (128 if pagina["evento"] in con_auto else 0))
-            destino = "evcodigo_%d + %d" % (numero, pagina["ruta_offset"])
+            destino = "%s + %d" % (evcodigo, pagina["ruta_offset"])
             out.append("    .byte %-4d ; +13 las banderas de su ruta propia"
                        % banderas)
             out.append("    .byte %-4d ; +14 su frecuencia" % propia["frecuencia"])
