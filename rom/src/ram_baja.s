@@ -74,10 +74,15 @@ FUNDIDO_PUERTA = 1      ; el del arnés: `cargar_mapa`, con su tope de saltos
 FUNDIDO_SALTO  = 2      ; un Teleport a otro mapa
 FUNDIDO_MISMO  = 3      ; un Teleport al mismo: sólo mover al héroe
 
-; La ruta forzada del héroe, hasta RUTA_MAX órdenes. Vivía en la página cero y
-; se mudó acá cuando el compositor de texto necesitó lugar: `paso_de_ruta` la
-; lee una vez por cuadro, así que el ciclo de más por acceso no se nota.
-ruta:        .res 32
+; La ruta forzada del héroe: el puntero a su primera orden, adentro del
+; bytecode, igual que la de un evento. Hasta el 2026-09-27 se copiaba acá, a
+; un búfer de 32 bytes, y lo que no entraba se perdía callado: la del puente de
+; la carrera son 50 órdenes y el auto se paraba en el medio, y con los sonidos
+; adentro de las rutas —que llevan dos bytes de operando— el corte podía caer
+; en el medio de uno. El bytecode vive en la ROM y no se va a ningún lado.
+; No va en la página directa, que es donde `lda [ptr], y` lo necesita, porque
+; ahí no queda lugar: `orden_del_heroe` lo copia a `ruta_ptr` para leer.
+ruta_heroe:  .res 3
 ; La frecuencia de la ruta puesta sobre el héroe, y la que trae el OP_ROUTE que
 ; se está leyendo. Es el contador de parada de RM2k: ver `ruta_tras_paso`.
 ruta_frec:    .res 1

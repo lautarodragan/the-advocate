@@ -1,5 +1,33 @@
 .segment "CODE"
 
+; La orden siguiente de la ruta del héroe, en A, y el cursor ya pasado. Se
+; lleva Y y pisa `ruta_ptr`, que es de la vuelta de los eventos y no está viva
+; mientras camina el héroe: `lda [ptr], y` sólo lee de la página directa, y
+; `ruta_heroe` no entra ahí.
+;
+; El índice pasa a Y por A de dieciséis bits y limpiando el alto: `tay`
+; transfiere los dos bytes del acumulador aunque A esté en ocho. Es la trampa
+; que está anotada arriba de main.s, y acá ya hizo que la ruta leyera basura y
+; se cortara al primer paso.
+.proc orden_del_heroe
+.a8
+.i16
+    rep #$20
+.a16
+    lda ruta_heroe
+    sta ruta_ptr
+    lda ruta_i
+    and #$00FF
+    tay
+    sep #$20
+.a8
+    lda ruta_heroe + 2
+    sta ruta_ptr + 2
+    lda [ruta_ptr], y
+    inc ruta_i
+    rts
+.endproc
+
 ; Un comando de la ruta forzada. Girar no consume cuadro y se sigue con el
 ; siguiente; esperar sí; y moverse arranca un paso de una celda, que después
 ; camina `advance_step` como cualquier otro. Un movimiento bloqueado se saltea:
@@ -28,20 +56,7 @@ otra_orden:
     bcc hay_orden
     jmp listo                   ; se terminó la ruta; `bcs` ya no llega
 hay_orden:
-    ; El índice a X pasando por A de dieciséis bits y limpiando el alto: `tax`
-    ; transfiere los dos bytes del acumulador aunque A esté en ocho, y el alto
-    ; trae lo que dejó la operación anterior. Es la trampa que ya está anotada
-    ; arriba de main.s, y acá hacía que la ruta leyera basura y se cortara al
-    ; primer paso: el héroe caminaba una celda de tres y no había ningún error.
-    rep #$20
-.a16
-    lda ruta_i
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda ruta, x
-    inc ruta_i
+    jsr orden_del_heroe
 
     cmp #23                     ; wait: éste y los RUTA_ESPERA - 1 que siguen,
     bne no_es_wait              ; más los del giro si la frecuencia es baja
@@ -169,15 +184,7 @@ giro_espera:
 grafico_heroe:
     lda #$FF
     sta hero_pose_vram          ; la pose que hay en VRAM ya no es la suya
-    rep #$20
-.a16
-    lda ruta_i
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda ruta, x
-    inc ruta_i                  ; el operando ya está consumido
+    jsr orden_del_heroe         ; el operando, que queda consumido
     jsr hero_poses_de_grafico
     bcc heroe_sin_grafico
     jmp otra_orden

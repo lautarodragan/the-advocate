@@ -104,15 +104,7 @@ buscar:
     lda ruta_i
     cmp ruta_n
     bcs sin_fin
-    rep #$20
-.a16
-    lda ruta_i
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda ruta, x
-    inc ruta_i
+    jsr orden_del_heroe
     cmp #25
     beq con_fin
     jsr acumular_salto
