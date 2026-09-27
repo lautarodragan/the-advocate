@@ -2390,10 +2390,6 @@ RANURA_VRAM = 0x2000
 RANURA_TEXTO_ANCHO = 32
 RANURA_TEXTO_NIVEL = 16         # el nombre entra en trece, y sobran tres
 RANURA_TEXTO_MAX = RANURA_TEXTO_NIVEL + titulo_mod.NIVEL_CIFRAS
-# En cuántos pedazos se parten los tiles del respaldo de un fondo de batalla.
-# Nació cuando eran 32 KB, que son un banco entero y no entran al lado de
-# nada; desde el respaldo liviano son 16 KB, dos trozos.
-ESCENA_TROZO = 8192
 RANURA_MAP = 0x3C00
 
 # El tilemap de la capa de encima sí es fijo: el del fondo lo elige el reparto
@@ -3587,11 +3583,11 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
       `fondo_terreno`. Y un `EnemyEncounter` con el fondo "del lugar" hace lo
       mismo que un encuentro al azar: `FONDO_DEL_LUGAR`.
 
-    Un fondo entra **en la ROM**, liviano, si está en `escena.FONDOS` y alguna
-    pelea del cartucho lo pide; si alguna pide uno que no, entra también
-    `escena.REEMPLAZO`, y `respaldo_de` dice cuál de la ROM usa cada fondo
-    del juego. **En el `.msu` van todos**: `calidad` son sus bytes, por
-    número.
+    Un fondo entra **en la ROM**, liviano, si alguna pelea del cartucho lo
+    pide; si alguna puede caer en uno que no está —una tropa del lugar en un
+    mapa sin encuentros—, entra también `escena.REEMPLAZO`, y `respaldo_de`
+    dice cuál de la ROM usa cada fondo del juego. **En el `.msu` van todos**:
+    `calidad` son sus bytes, por número.
 
     Un battler entra si lo usa alguna tropa del cartucho, **una vez** aunque lo
     usen cuatro, y es la imagen con su tono: la GiantRat y la HairyVermin son
@@ -3634,16 +3630,30 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
                               else FONDO_LISO
                               for t in range(max(terrenos, default=0) + 1)]
 
-    # Los de la ROM: los de `FONDOS` que se piden, en el orden en que se
-    # piden, y el reemplazo si alguna pelea pide otro. El del lugar puede
-    # caer en cualquier terreno, así que pide el reemplazo siempre.
+    # Los de la ROM: todos los que se piden, en el orden en que se piden —ver
+    # "Qué fondos hay" en escena.py—. Un mapa con encuentros que pide el del
+    # lugar pide los de todos los terrenos de sus bloques, que son los que el
+    # héroe puede pisar, con las sustituciones incluidas. Un mapa sin
+    # encuentros que igual lo pide —porque alguna tropa pelea con el del
+    # lugar, y no se sabe dónde— no: si su terreno no está, va el reemplazo.
+    def de_los_terrenos(mapa):
+        return [datos["terreno_fondo"][t]
+                if t < len(datos["terreno_fondo"]) else FONDO_LISO
+                for t in sorted(set(mapa["terreno"]))]
     pedidos = list(datos["tropa_fondo"].values()) + datos["mapa_fondo"]
-    en_rom = [numero_de[f.lower()] for f in E.FONDOS if f.lower() in numero_de]
+    posibles = []
+    for mapa, registro, k in zip(mapas, por_mapa, datos["mapa_fondo"]):
+        if k != FONDO_DEL_LUGAR:
+            continue
+        if registro != 0xFF:
+            pedidos += de_los_terrenos(mapa)
+        else:
+            posibles += de_los_terrenos(mapa)
     suyos = []
     for k in pedidos:
-        if k in en_rom and k not in suyos:
+        if k < FONDO_DEL_LUGAR and k not in suyos:
             suyos.append(k)
-    if any(k != FONDO_LISO and k not in suyos for k in pedidos):
+    if any(k < FONDO_DEL_LUGAR and k not in suyos for k in posibles):
         reemplazo = numero_de[E.REEMPLAZO.lower()]
         if reemplazo not in suyos:
             suyos.append(reemplazo)
@@ -3741,16 +3751,43 @@ def fondo_bytes(info):
 
 
 def respaldo_bytes(info):
-    """El respaldo liviano de un fondo, como lo lleva la ROM: `(tiles,
-    colores)`, sus 512 tiles de 4bpp y sus `RESPALDO_COLORES` colores. Los
-    tiles guardan el índice **dentro de su paleta**: la ROM les pone los planos
-    de `CGRAM_BASE` al copiarlos, ver `respaldo_alto`."""
+    """El respaldo liviano de un fondo, como lo lleva la ROM: `(bytes,
+    colores)`, sus 4 KB de 128x64 en 4bpp y sus `RESPALDO_COLORES` colores.
+    Guardan el índice **dentro de su paleta**: la ROM les pone los planos de
+    `CGRAM_BASE` aparte, ver `respaldo_alto`.
+
+    **Los bytes no van en el orden de los tiles**, sino en el que los agranda
+    `esc_doblar` sin hacer cuentas. Cada tile chico se vuelve cuatro grandes,
+    y la ROM los llena de a dos vecinos de la misma fila —el par que sale de
+    la misma fila de ocho pixeles chicos—, par por par en el orden de la
+    escena. De cada par, fila grande por fila grande de a dos (las dos salen
+    de la misma fila chica) y los planos 0/1 antes que los 2/3.
+
+    Y dentro de eso, **cada byte lleva medio byte de dos planos**: de la fila
+    chica que da los planos `p` y `p+1`, el primero lleva el nibble alto de
+    los dos —los cuatro pixeles de la izquierda, que van al tile grande de la
+    izquierda— y el segundo los dos nibbles bajos. Así cada byte, duplicado
+    bit a bit con `respaldo_doble`, es ya la palabra de dos planos de una fila
+    de un tile grande, y la ROM la escribe entera sin separar los planos.
+    """
     E = escena_mod
     liviano = info["respaldo"]
+    chicos = [pack_tile([[v - E.CGRAM_BASE for v in fila] for fila in celda],
+                        planes=E.RESPALDO_PLANOS)
+              for celda in E.tiles(liviano["chico"])]
+    columnas = E.RESPALDO_ANCHO // E.CELDA
     tiles_ = bytearray()
-    for celda in E.tiles(liviano["indices"]):
-        tiles_ += pack_tile([[v - E.CGRAM_BASE for v in fila] for fila in celda],
-                            planes=E.RESPALDO_PLANOS)
+    for fila_grande in range(E.TILES_Y):
+        mitad = fila_grande % E.RESPALDO_ESCALA     # arriba o abajo del chico
+        for columna in range(columnas):
+            chico = chicos[(fila_grande // E.RESPALDO_ESCALA) * columnas
+                           + columna]
+            for par in (0, 16):                     # planos 0/1 y 2/3
+                for k in range(4):                  # las filas grandes 2k, 2k+1
+                    fila = mitad * 4 + k            # la fila chica
+                    p0, p1 = chico[par + 2 * fila], chico[par + 2 * fila + 1]
+                    tiles_.append((p0 & 0xF0) | (p1 >> 4))
+                    tiles_.append(((p0 & 0x0F) << 4) | (p1 & 0x0F))
     colores = list(liviano["paleta"])
     colores += [(0, 0, 0)] * (E.RESPALDO_COLORES - len(colores))
     cgram = bytearray()
@@ -3766,6 +3803,17 @@ def respaldo_alto():
     E = escena_mod
     lleno = [[E.CGRAM_BASE] * E.CELDA for _ in range(E.CELDA)]
     return pack_tile(lleno, planes=8)[E.RESPALDO_PLANOS * 8:]
+
+
+def respaldo_doble():
+    """La tabla con la que `esc_doblar` agranda el respaldo: por cada byte de
+    `respaldo_bytes`, una palabra con sus dos nibbles duplicados bit a bit,
+    el alto en el byte bajo. Cada nibble son cuatro pixeles de un plano, y
+    duplicado son los ocho de una fila de ese plano en un tile grande."""
+    def doble(nibble):
+        return sum(0b11 << (2 * b) for b in range(4) if nibble >> b & 1)
+    return b"".join((doble(s >> 4) | doble(s & 0xF) << 8).to_bytes(2, "little")
+                    for s in range(256))
 
 
 def escenas_asm(datos, tropas, db):
@@ -3784,8 +3832,9 @@ def escenas_asm(datos, tropas, db):
       `fondo_terreno`       por terreno, el número de su fondo o `FONDO_LISO`.
       `fondo_respaldo`      por número de fondo, cuál de la ROM lo reemplaza
                             sin MSU-1: el suyo, o el de `escena.REEMPLAZO`.
-      `fondo_trozo`         por fondo de la ROM y trozo, el puntero de 24 bits
-                            a 8 KB de tiles de 4bpp del respaldo liviano.
+      `fondo_dir`           por fondo de la ROM, el puntero de 24 bits a los
+                            4 KB de su respaldo liviano, en el orden de
+                            `respaldo_bytes`.
       `fondo_cgram`         sus 16 colores, que van a la CGRAM desde la 32.
 
     Dónde está cada fondo en el `.msu` lo emite `escribir_msu`, por número.
@@ -3801,7 +3850,6 @@ def escenas_asm(datos, tropas, db):
     lazo. Emitirlo serían 2 KB de cartucho para escribir 0, 1, 2...
     """
     E = escena_mod
-    trozos = E.TILES * E.RESPALDO_PLANOS * 8 // ESCENA_TROZO
     fondos, battlers = datos["fondos"], datos["battlers"]
     out = [
         "\n; --- la escena de la batalla: los fondos y los battlers ---",
@@ -3825,13 +3873,13 @@ def escenas_asm(datos, tropas, db):
         "ESCENA_CGRAM    = %d" % E.CGRAM_BASE,
         "ESCENA_VRAM     = $%04X" % E.VRAM_TILES,
         "ESCENA_MAPA     = $%04X" % E.VRAM_MAPA,
-        "ESCENA_TROZO    = %d" % ESCENA_TROZO,
-        "ESCENA_TROZOS   = %d" % trozos,
         "; El respaldo liviano de la ROM: 4bpp y una sola paleta. Ver",
         "; tools/port/escena.py.",
         "RESPALDO_COLORES = %d" % E.RESPALDO_COLORES,
         "RESPALDO_TILE   = %d" % (E.RESPALDO_PLANOS * 8),
-        "RESPALDO_POR_TROZO = %d" % (ESCENA_TROZO // (E.RESPALDO_PLANOS * 8)),
+        "RESPALDO_BYTES  = %d" % (E.RESPALDO_ANCHO * E.RESPALDO_ALTO
+                                  * E.RESPALDO_PLANOS // 8),
+        "RESPALDO_ESCALA = %d" % E.RESPALDO_ESCALA,
         "ESCENA_BAT_PALETA = %d" % E.BATTLER_PALETA,
         "; El tile con el que se tapa lo que queda abajo de la escena. Cae",
         "; **fuera** del bloque de tiles: 512 tiles de 8bpp son las 16.384",
@@ -3849,11 +3897,9 @@ def escenas_asm(datos, tropas, db):
                       bytes(datos.get("terreno_fondo") or [FONDO_LISO])))
     out.append(bloque("fondo_respaldo",
                       bytes(datos.get("respaldo_de") or [0])))
-    punteros = [".bloque %d" % (4 * max(1, len(fondos) * trozos)),
-                "fondo_trozo:"]
+    punteros = [".bloque %d" % (4 * max(1, len(fondos))), "fondo_dir:"]
     for k in range(len(fondos)):
-        for t in range(trozos):
-            punteros.append("    .dword fondo_%d_%d" % (k, t))
+        punteros.append("    .dword fondo_%d" % k)
     if not fondos:
         punteros.append("    .dword 0")
     out.append("\n".join(punteros))
@@ -3861,6 +3907,7 @@ def escenas_asm(datos, tropas, db):
     cgram = b"".join(colores for _tiles, colores in bytes_de)
     out.append(bloque("fondo_cgram", cgram or b"\x00\x00"))
     out.append(bloque("respaldo_alto", respaldo_alto()))
+    out.append(bloque("respaldo_doble", respaldo_doble()))
     # Dónde está cada fondo de calidad en el `.msu` y la firma que la ROM
     # espera encontrar al principio no van acá: el `.msu` lleva también los
     # efectos de sonido, que salen del audio, y ése se arma después. Ver
@@ -3869,11 +3916,10 @@ def escenas_asm(datos, tropas, db):
     # queda abajo de la escena, y de paso el origen fijo del DMA que llena de
     # cero el fondo liso.
     out.append(bloque("escena_cero", bytes(64)))
+    # Cada respaldo en un bloque, que no cruza de banco porque la ROM lo lee
+    # con `[puntero]` y le suma al puntero sólo los dieciséis bits de abajo.
     for k, (tiles_, _colores) in enumerate(bytes_de):
-        for t in range(trozos):
-            out.append(bloque("fondo_%d_%d" % (k, t),
-                              bytes(tiles_[t * ESCENA_TROZO:
-                                           (t + 1) * ESCENA_TROZO])))
+        out.append(bloque("fondo_%d" % k, tiles_))
     # Los battlers: sus tablas y después sus bytes, cada uno en un bloque que
     # no cruza de banco porque la ROM lo lee con `[puntero], y`.
     out.append(bloque("battler_n", bytes(
@@ -7437,10 +7483,11 @@ def main():
         rom_tiles, rom_colores = respaldo_bytes(info)
         msu_tiles, msu_colores = escenas["calidad"][info["numero"]]
         print("  fondo de batalla %d %r: %dx%d, %d tiles desde la entrada %d "
-              "de la CGRAM; en la ROM 4bpp y %d colores (%d B), en el .msu "
-              "8bpp y %d colores (%d B)"
+              "de la CGRAM; en la ROM %dx%d en 4bpp y %d colores (%d B), en "
+              "el .msu 8bpp y %d colores (%d B)"
               % (info["numero"], info["nombre"], escena_mod.ANCHO,
                  escena_mod.ALTO, escena_mod.TILES, escena_mod.CGRAM_BASE,
+                 escena_mod.RESPALDO_ANCHO, escena_mod.RESPALDO_ALTO,
                  len(info["respaldo"]["paleta"]),
                  len(rom_tiles) + len(rom_colores), escena_mod.COLORES,
                  len(msu_tiles) + len(msu_colores)))

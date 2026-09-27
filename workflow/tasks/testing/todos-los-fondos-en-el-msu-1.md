@@ -153,5 +153,7 @@ El banco 0 no cambió: todo el código nuevo es del banco 1 (unos 95 B, en
 * **Decidir** si los tres fondos siguen en la ROM (lo recomendado) o si
   todos pasan a reemplazo más MSU-1, que ahorra 32 KB y pone al droide en la
   cueva sin MSU-1.
+  Decidido el mismo día, al revés: todos los de `release` en la ROM, a
+  128x64. Ver `todos-los-fondos-en-la-rom.md`.
 * El `.msu` pasó de unos cientos de KB a unos 3,3 MB (los 45 fondos son 1,4
   MB): copiarlo entero al lado del `abl.sfc`.

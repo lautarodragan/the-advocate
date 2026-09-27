@@ -89,11 +89,19 @@ su lugar en esa lista ordenada por nombre, y el número no depende de qué
 mapas lleve el cartucho: es lo que le da a cada fondo un lugar fijo en el
 `.msu`, que los lleva **todos**, en calidad (tools/port/msu_datos.py).
 
-**La ROM lleva pocos**, en el respaldo liviano: los de `FONDOS` que alguna
-pelea del cartucho pide. Una pelea cuyo fondo no está en la ROM usa, sin
-MSU-1, **el de reemplazo**, `REEMPLAZO`, que es uno de `FONDOS`: lo pidió taro
-el 2026-09-27, porque las peleas del mundo salían en negro y "negro
-confunde". Con MSU-1, cada pelea lee el suyo del `.msu`, esté o no en la ROM.
+**La ROM lleva, en el respaldo liviano, todos los que las peleas del
+cartucho pueden pedir**: los que nombra una tropa, los de los mapas con
+encuentros al azar y, si el mapa no nombra ninguno, los de los terrenos que
+pisan sus celdas. Lo pidió taro el 2026-09-27, con la calidad tan baja como
+hiciera falta para que entren: ver "El respaldo liviano". Hasta ese día
+llevaba tres, y las demás peleas usaban el de reemplazo.
+
+**El de reemplazo**, `REEMPLAZO`, queda para lo que la ROM no puede saber al
+convertir: una tropa que pelea con el fondo "del lugar" en un mapa sin
+encuentros al azar, donde el fondo sale del terreno bajo el héroe y cualquier
+terreno del mapa es posible. En `release` eso lo hacen sólo páginas de
+prueba. No negro, porque "negro confunde", de taro. Con MSU-1, cada pelea lee
+el suyo del `.msu`, esté o no en la ROM.
 
 El fondo liso —ceros, que es negro— queda para la pelea que no tiene fondo:
 un `EnemyEncounter` con el nombre vacío, o un terreno sin fondo. Es lo mismo
@@ -102,25 +110,35 @@ que hace RM2k, y es el mismo código con el fondo en cero.
 ## El respaldo liviano
 
 Y desde el mismo día **no son los mismos**: el `.msu` lleva el fondo de
-calidad —8bpp, 96 colores, 32 KB— y la ROM uno de **16 colores en 4bpp, 16
-KB**, que es lo que ve quien juega sin MSU-1. Lo pidió taro para poder ver a
-ojo de qué lado salió el fondo, y de paso ahorra la mitad de cada uno.
+calidad —8bpp, 96 colores, 32 KB— y la ROM uno de **16 colores a la mitad de
+resolución, 128x64 en 4bpp: 4 KB**, que la ROM agranda al doble. Es lo que ve
+quien juega sin MSU-1, y se distingue a ojo del de calidad, que es lo que
+taro pidió para saber de qué lado salió.
+
+Hasta el 2026-09-27 era de 256x128, 16 KB, y la ROM llevaba tres. Ese día
+taro pidió que entraran todos los que piden los mapas de `release` "con la
+calidad tan baja como haga falta", y se midió cada forma —las cifras y las
+imágenes, en `workflow/tasks/*/todos-los-fondos-en-la-rom.md`—: a 256x128,
+ni en LZ2 entran sin comerse los bancos que necesita el camino principal
+del mundo; con cuatro colores en 2bpp se pierden los tonos; y deduplicar
+tiles no ahorra casi nada, porque una foto no repite. A 128x64 cada fondo
+pesa la cuarta parte, y los dieciséis colores se quedan.
 
 La capa sigue siendo **una sola de 8bpp**: lo que cambia es sólo cómo viaja el
 respaldo. Sus dieciséis colores van en la paleta de `CGRAM_BASE` —las entradas
 32 a 47—, así que en 8bpp sus índices son `CGRAM_BASE + i` y los planos 4 a 7
-de todos sus pixeles son los mismos: los de `CGRAM_BASE`. Y un tile de 4bpp es
-exactamente la primera mitad de uno de 8bpp —ver `pack_tile` en
-snes_convert.py—, así que la ROM lo agranda al copiarlo a la WRAM: los 32
-bytes del tile y detrás 32 fijos, dos DMA por tile. De ahí para adelante todo
-es igual —componer, borrar a un muerto, subir a la VRAM—, porque en la WRAM
-queda un fondo de 8bpp como el del `.msu`. Ver `esc_llenar` en
-rom/src/batalla_escena.s.
+de todos sus pixeles son los mismos: los de `CGRAM_BASE`. La ROM llena
+primero los dos búferes de la WRAM con esos planos fijos, por DMA, y después
+agranda el chico con la CPU: cada pixel dos veces a lo ancho y cada fila dos
+veces a lo alto. De ahí para adelante todo es igual —componer, borrar a un
+muerto, subir a la VRAM—, porque en la WRAM queda un fondo de 8bpp como el
+del `.msu`. Ver `esc_llenar` y `esc_doblar` en rom/src/batalla_escena.s, y
+`respaldo_bytes` en snes_convert.py para el orden en que viajan los bytes,
+que es el que le ahorra cuentas a la ROM.
 
 La otra salida era que el `.msu` llevara también 4bpp, "más calidad dentro
 del mismo formato"; pero dieciséis colores son el techo de 4bpp, así que la
-calidad no tendría adónde crecer. Y bajar la resolución —128x64 ampliado—
-pedía agrandar en la ROM pixel por pixel, que en planar es rearmar cada byte.
+calidad no tendría adónde crecer.
 
 Los dieciséis salen de `asignador.merge_least_visible`, el de los battlers, y
 no de `titulo.reducir`, que es el que arma los 96: reducir se queda con los
@@ -150,6 +168,11 @@ CGRAM_BASE = 32
 RESPALDO_COLORES = 16
 RESPALDO_PLANOS = 4
 assert CGRAM_BASE % RESPALDO_COLORES == 0
+# Y va a la mitad de resolución: la ROM duplica cada pixel a lo ancho y a lo
+# alto. `esc_doblar` está escrita para el doble y nada más.
+RESPALDO_ESCALA = 2
+RESPALDO_ANCHO = ANCHO // RESPALDO_ESCALA
+RESPALDO_ALTO = ALTO // RESPALDO_ESCALA
 # Las paletas de los battlers: de la 8 a la 15, o sea las entradas 128 a 255.
 # Una por battler distinto de la tropa, y una tropa tiene a lo sumo ocho
 # enemigos, así que siempre alcanzan.
@@ -166,19 +189,13 @@ TILES = TILES_X * TILES_Y                       # 512, la grilla entera
 VRAM_MAPA = 0x3800
 VRAM_TILES = 0x4000
 
-# Los fondos que el cartucho lleva, **por nombre del juego**. Nacieron con el
-# PoC del 2026-09-21 —el de la pelea del droide y el de los Back Alleys— y el
-# mismo día taro sumó el de los Rat Tracks, que es donde siguen los encuentros
-# al azar. Cualquier otro va, sin MSU-1, sobre `REEMPLAZO`.
-FONDOS = ("SJBackdropABL04", "ABLBackdropSJ03", "ABLBackdropSJ08")
-# El fondo de las peleas cuyo fondo no está en la ROM. Es el de los Rat
-# Tracks, una cueva de roca gris, porque es el único de los tres que no dice
-# dónde se está: el del droide es una sala con un monitor y la Tierra en una
-# pantalla, y el de los Back Alleys una calle con carteles. Una pelea en el
-# bosque sobre roca se ve rara; sobre una nave, equivocada. Tiene que ser uno
-# de `FONDOS`, así no cuesta cartucho en `release`, que ya lo lleva.
+# El fondo de las peleas cuyo fondo no está en la ROM: ver "Qué fondos hay".
+# Es el de los Rat Tracks, una cueva de roca gris, porque no dice dónde se
+# está: el del droide es una sala con un monitor y la Tierra en una pantalla,
+# y el de los Back Alleys una calle con carteles. Una pelea en el bosque sobre
+# roca se ve rara; sobre una nave, equivocada. Lo piden los encuentros de los
+# Rat Tracks, así que en `release` no cuesta nada.
 REEMPLAZO = "ABLBackdropSJ08"
-assert REEMPLAZO in FONDOS
 
 # Cuántos planos guarda el cartucho por fila de un battler: la máscara y los
 # cuatro de su dibujo. Los otros cuatro los pone la ROM según la paleta.
@@ -355,19 +372,26 @@ def fondo(nombre, game_dir):
 
 
 def fondo_liviano(nombre, game_dir):
-    """El respaldo del fondo: el que va en la ROM, con `RESPALDO_COLORES`.
+    """El respaldo del fondo: el que va en la ROM, con `RESPALDO_COLORES` y a
+    la mitad de resolución.
 
-    Lo mismo que `fondo` —la misma imagen, al mismo tamaño— con dieciséis
-    colores y fundidos por `asignador.merge_least_visible`: ver "El respaldo
-    liviano". La paleta va de más usado a menos, y a igual cuenta por color,
-    para que salga siempre igual.
+    La misma imagen que `fondo`, achicada a `RESPALDO_ANCHO` x
+    `RESPALDO_ALTO` y con dieciséis colores fundidos por
+    `asignador.merge_least_visible`: ver "El respaldo liviano". La paleta va
+    de más usado a menos, y a igual cuenta por color, para que salga siempre
+    igual.
+
+      `chico`    los índices de CGRAM del respaldo, a 128x64: lo que viaja.
+      `indices`  los mismos, duplicados a 256x128 como los deja la ROM en la
+                 WRAM: es lo que comparan las pruebas.
     """
     from PIL import Image
     from port import asignador
     imagen = _abrir(game_dir, "Backdrop", nombre, rtp=True)
     if imagen is None:
         return None
-    imagen = imagen.convert("RGB").resize((ANCHO, ALTO), Image.LANCZOS)
+    imagen = imagen.convert("RGB").resize((RESPALDO_ANCHO, RESPALDO_ALTO),
+                                          Image.LANCZOS)
     pixeles = [(r >> 3, g >> 3, b >> 3)
                for r, g, b in imagen.get_flattened_data()]
     cuenta = collections.Counter(pixeles)
@@ -377,17 +401,21 @@ def fondo_liviano(nombre, game_dir):
         finales[mapeo[color]] += n
     paleta = sorted(finales, key=lambda c: (-finales[c], c))
     donde = {color: i + CGRAM_BASE for i, color in enumerate(paleta)}
-    indices = [[donde[mapeo[pixeles[y * ANCHO + x]]] for x in range(ANCHO)]
-               for y in range(ALTO)]
-    return {"nombre": nombre, "indices": indices, "paleta": paleta}
+    chico = [[donde[mapeo[pixeles[y * RESPALDO_ANCHO + x]]]
+              for x in range(RESPALDO_ANCHO)] for y in range(RESPALDO_ALTO)]
+    indices = [[chico[y // RESPALDO_ESCALA][x // RESPALDO_ESCALA]
+                for x in range(ANCHO)] for y in range(ALTO)]
+    return {"nombre": nombre, "chico": chico, "indices": indices,
+            "paleta": paleta}
 
 
 def tiles(indices):
-    """Los 512 tiles de 8x8 de una grilla de 256x128, en el orden en que los
-    lee el tilemap: fila por fila, sin deduplicar. Ver "El presupuesto"."""
+    """Los tiles de 8x8 de una grilla —los 512 de una de 256x128—, en el
+    orden en que los lee el tilemap: fila por fila, sin deduplicar. Ver "El
+    presupuesto"."""
     salida = []
-    for ty in range(TILES_Y):
-        for tx in range(TILES_X):
+    for ty in range(len(indices) // CELDA):
+        for tx in range(len(indices[0]) // CELDA):
             salida.append([[indices[ty * CELDA + y][tx * CELDA + x]
                             for x in range(CELDA)] for y in range(CELDA)])
     return salida
