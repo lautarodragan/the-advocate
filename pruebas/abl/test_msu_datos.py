@@ -57,6 +57,10 @@ FONDO_SECTOR_27 = "ABLBackdropSJ03"
 # la pelea usa el del terreno de la celda, y ninguno de los del mundo está en
 # la ROM. Lo que corre la automática del evento 1 al llegar, con margen.
 EL_MUNDO = (66, 71, 29)
+# El viaje de Dalia (la automática 14 del 66) arranca con `DummyHero`, el
+# actor 10, en el grupo, que es el de `en-5`: con él corriendo no se abre
+# ninguna pelea. El 278, "ya llegó a Tasgarde", le pone la página vacía.
+DALIA_LLEGO = 278
 LLEGAR_TICKS = 30
 
 
@@ -77,6 +81,8 @@ def _pelea(tmp_path, nombre, nucleo, msu, lugar=SECTOR_27, antes=0,
             archivo.write(msu)
     una = Partida(sfc, uno.simbolos, uno.mapas, nucleo=nucleo, caso=k,
                   salta=uno.saltan[k], msu=msu is not None, titulo=uno.titulo)
+    if lugar[0] == EL_MUNDO[0]:
+        una.prender(DALIA_LLEGO)
     una.ir_al_mapa(*lugar)
     if antes:
         una.correr(antes)
