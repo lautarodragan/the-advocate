@@ -9,75 +9,125 @@ type: feature
 El hito 4 de `lashe-city-hasta-la-carrera.md` —el contexto está ahí—. Tiene dos
 mitades que no se pisan:
 
-- **los enemigos de la planta** (tropas 108 a 114): se puede hacer en cualquier
-  momento, con casos de pelea en `test-main`;
-- **AG7-17** (actor 18): después del hito 3, que es el que lo mete al grupo.
+- **los enemigos de la planta** (tropas 108 a 114);
+- **AG7-17** (actor 18), que el hito 3 mete al grupo sin habilidades.
 
-# Los enemigos
+Lo que taro contestó el 2026-09-26 y manda acá: AG7 **no puede perder
+habilidades** —o sea, las de a muchos entran— y las armas cobran SP porque
+en el original lo cobran: **fiel al original**.
 
-Cinco de las siete tropas de la planta traen un enemigo con **`ShortCircuit`**
-(habilidad 188: tipo normal, alcance un enemigo, poder 28, 12 SP, animación
-62): Scrapped Droid, Trash Hauler, Tangle Wire y Junkbot. La pelea sólo hace el
-ataque básico (`batalla.acciones_de_los_enemigos`, y su gemelo en
-`rom/src/batalla.s`, el `CreateEnemyActions` con la acción `kind` 0). Lo que
-pide:
+# Status
 
-- elegir la acción como `Game_Enemy` —las acciones del enemigo tienen
-  `rating` y condiciones—, y en el mismo orden de azar de los dos lados, que es
-  el contrato con `batalla.py` (ver `done/battle.md`);
-- aplicar la habilidad con `Algo::CalcSkillEffect`, que ya está para las del
-  grupo;
-- la animación 62 en la pelea (la escena compuesta ya dibuja animaciones).
+2026-09-27: hecho en la rama del agente, sobre `main` en a3140f1.
 
-`test_batalla.py` predice los HP exactos: se mueve igual.
+# Lo hecho
 
-# AG7-17
+**El espacio, primero y aparte.** Al banco 1 le quedaban ~350 B y el código
+de la pelea vive ahí. El código y los mensajes de las páginas de tropa —casi
+once KB— pasaron a RODATA en su propio commit, con la tanda en verde y sin
+tocar ninguna golden: se leen con un puntero largo cuyo banco sale de
+`^tropa_codigo`, así que alcanza con que cada bloque entre en un banco.
 
-Del LDB: nivel 6, arma 269 (`ArmCannon-!R`), armadura 282, `skills` vacío y
-`skill_name` "Components". Sus habilidades **no se aprenden por nivel**: se las
-da el evento común 37, `UpdateAG7 Skills`, que es **paralelo con el switch
-150** y hace `ChangeSkills` según el arma que tiene puesta (268 en adelante →
-236 en adelante). La ROM no corre eventos comunes paralelos ni automáticos
-(`eventos.COMUNES` sólo sirve a `CallEvent`).
+**Los enemigos eligen qué hacer** (`batalla.accion_del_enemigo`,
+`ba_accion_enemiga`): la lista de acciones del LDB con su `rating`, y los
+pesos de `SelectEnemyAiActionRpgRtCompat` —`max(0, rating - máximo + 10)`—.
+Con eso **el único de la planta que tira `ShortCircuit` es el Tangle Wire**
+(tropa 113), que la tiene en 50 como el ataque; el Scrapped Droid (10), el
+Trash Hauler y el Junkbot (30) quedan diez puntos o más abajo y pesan cero,
+en RM2k también. Una acción de peso sola no tira dado, para no mover el azar
+de las peleas que ya estaban. Lo que no se modela —condiciones, las otras
+acciones básicas, estados— en
+`divergencias/lo-que-la-ia-de-los-enemigos-no-modela.md`.
 
-Los caminos, a decidir midiendo:
+**Los cinco alcances** (`batalla.blancos_de_la_habilidad`, `ba_hab_usar`):
+`enemies` y `party` repiten el efecto sobre cada vivo del lado, con sus tiros
+por blanco; `self` cae sobre el que la usa. Sólo `enemy` y `ally` piden
+blanco. Con eso AG7 no pierde ninguna de sus diecisiete —las que tocan
+estados (BioWarfare, HeadButt, RemoveStatus) hacen lo que se puede sin
+estados— y de paso entran las de a muchos de todos los actores, Arden
+incluido.
 
-- **eventos comunes paralelos de verdad**: un intérprete más, que corre
-  mientras su switch esté prendido. Es lo general —el 1 (`TalanLateForWork`,
-  switch 67) ya lo pide en `release` y hoy no corre— pero cuesta RAM lejana y
-  un lugar en el lazo por cuadro;
-- **compilar el evento 37 como lo que es**: una función del equipo de AG7,
-  corrida al salir del menú de equipo y al entrar al grupo. Es lo que el
-  tutorial dice que hace ("these abilities become available once you equip a
-  particular component and exit the menu"), pero es un caso a medida.
+**El SP de las armas** (`batalla.sp_del_arma`, `ba_atacar`): el `sp_cost` del
+arma de la ranura 0 se cobra antes del acierto, sin gris con los SP en cero.
+Las armaduras que traen `sp_cost` (NetLauncher, SpikedHelmet) no cobran:
+`ForEachEquipment<true, false>` sólo mira armas.
 
-Y lo que la pelea de hoy deja afuera de sus 17 habilidades (pregunta 6 del
-plan), con `habilidad_usable_en_batalla`:
+**El evento común 37: lo a medida.** `eventos.COMUNES_DEL_EQUIPO` reconoce
+los comunes paralelos, con switch, que no tienen más que `ChangeSkills` y
+ramas por el equipo. Su cuerpo se pega detrás del `ControlSwitches` que
+prende su switch y la ROM lo corre al cerrar el menú
+(`comunes_del_equipo`). Por qué no lo general, con los números:
+`divergencias/los-comunes-del-equipo-corren-al-cerrar-el-menu.md`. En corto:
 
-    de a muchos       236 TillTheyGlow, 240 SwingingCut, 244 BioWarfare,
-                      245 BombsAway, 251 MultiMissiles
-    todo el grupo     253 RemoveStatus
-    tocan estados     244, 247 HeadButt, 253 (los estados no existen)
+    general   ~0,13 cuadros de CPU por vuelta del cuerpo, en cada cuadro de
+              todos los mapas desde que AG7 entra —medido con casos
+              descartables: 0/10/20/30 corridas seguidas, 63/64/66/67 cuadros—,
+              y prende además el 2 (DisableSaving, sin switch), el 3 y el 8
+    a medida  8 B de banco 0, 117 de banco 1, 0 de RAM, 0 ciclos por cuadro;
+              no cubre un `ChangeEquipment` de página sobre el 18 (el juego
+              no tiene ninguno)
 
-**El SP de las armas**: en RM2k2000 atacar con un arma cobra su `sp_cost`
-(ArmCannon 1, ArmLauncher 2, PortableNuke 5), y el tutorial lo explica. La
-pelea no lo cobra; hacerlo es chico y va de los dos lados.
+**La animación 62 no se dibuja**, ni la de ninguna habilidad: es un
+subsistema nuevo adentro de la pelea (objetos, OAM, una paleta, los cuadros
+por DMA), y queda con lo mirado en `wishlist/animaciones-en-la-pelea.md`.
 
-# Números a repartir
+# Números usados
 
-Si se hacen los eventos comunes paralelos: su RAM lejana. Si alguna habilidad
-nueva necesita un opcode, uno.
+- Opcode: ninguno.
+- RAM lejana: `$7E7960`-`$7E797F`, en `rom/src/ram_lejana.s`: `BA_ARMA_SP`
+  (4 bytes) y `BA_HAB_I` (1).
+- Tuplas de `test_*_golden.py`: ninguna.
+
+# Lo medido
+
+Con `.res N, $00` y la tabla de símbolos, después del hito:
+
+    release       banco 0: 211 libres (219 antes)   banco 1: ~10,2 KB
+    test-special  banco 0: 981                      banco 1: ~11,3 KB
+
+BSS y ZEROPAGE sin cambio.
+
+**Una página de prueba de más de ~12 KB se cuelga**: la de 40 corridas del
+37 (12,3 KB) no llegaba al final y la de 30 (9,2 KB) sí. No es de este hito
+—ninguna página del juego se acerca— y queda anotado por si alguien arma una.
 
 # Pruebas
 
-- Casos de pelea con una tropa de la planta: el enemigo usa `ShortCircuit` y
-  el HP que deja es el que predice `batalla.py`.
-- AG7 en el grupo con su arma: tiene la habilidad que corresponde, y la pierde
-  si se cambia el arma y se sale del menú.
-- El SP que cuesta un ataque de AG7.
+`pruebas/rpgmaker/test_ag7_y_la_planta.py`, con dos páginas nuevas,
+`ag7-componentes` y `pelea-113` (Talan y AG7 en el piso 1):
+
+* al prenderse el 150 AG7 sabe ConcentratedSpray y nada más;
+* cambiar el arma no cambia nada con el menú abierto, y al cerrarlo sabe
+  ArmMissile y no ConcentratedSpray —en rojo sin la llamada desde el menú—;
+* con el switch apagado, cerrar el menú no toca nada;
+* la pelea contra la tropa 113, turno por turno contra el modelo: los HP de
+  los cuatro, los SP de AG7 (su arma) y los del Tangle Wire (`ShortCircuit`),
+  exigiendo que los dos hayan bajado;
+* la lista de "Components" en la pelea;
+* BombsAway, con el GrenadeLauncher: sin blanco, a los dos enemigos.
+
+`test_cores.py` suma `test_la_pelea_de_la_planta`: dos turnos de la 113 en
+snes9x y bsnes.
 
 # Qué tiene que mirar taro jugando
 
-Pelear en la planta con AG7: su menú de "Components", las habilidades que
-aparecen según la pieza, el SP que baja al atacar, y los enemigos que hacen
-`ShortCircuit`.
+Lo que se puede ver jugando es menos de lo que se hizo: **en lo que llega
+hasta la carrera AG7 no consigue ninguna otra pieza** —ninguna tienda ni
+ningún evento de esos mapas da una, y los enemigos de la planta no sueltan
+nada—, así que tiene la ArmCannon y nada más. Lo que hay:
+
+* **"Components" en la pelea**, con ConcentratedSpray.
+* **Sacarle la ArmCannon** en el menú de equipo y salir: en la pelea que
+  sigue "Components" está en gris. Volver a ponérsela y salir: vuelve.
+* **El SP del arma.** La pelea no muestra SP y el menú de pausa tampoco, así
+  que se ve por el gris: con 60 SP, nueve ConcentratedSpray dejan 6, que
+  todavía alcanzan; un ataque más (1 SP) y la habilidad queda en gris. Sin
+  el costo del arma seguiría disponible. Los SP pasan de una pelea a otra.
+* **El Tangle Wire** —el cable, en la tropa con la rata— tirando
+  `ShortCircuit` más o menos la mitad de las veces; los otros de la planta
+  sólo pegan, como en RM2k.
+* **De rebote, el jefe de los Rat Tracks** (el KingRat) ahora a veces muerde
+  con `RoyalRatBite` en vez de pegar.
+
+Las de a muchos (BombsAway, TillTheyGlow) y las piezas que cambian la
+habilidad sólo se pueden ver hoy en las pruebas.
