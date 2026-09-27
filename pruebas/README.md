@@ -73,6 +73,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   con atravesar, y al final de una ruta forzada
 * `rpgmaker/test_salto_velocidad.py`: lo que dura el salto del héroe según
   su velocidad
+* `rpgmaker/test_sonido_en_ruta.py`: el efecto de sonido adentro de una ruta
+  forzada, sobre el héroe, sobre un evento y adentro de un salto
 * `rpgmaker/test_puerta_misma.py`: una puerta al mismo mapa
 * `rpgmaker/test_lugar_recordado.py`: `MemorizeLocation`, `RecallToLocation`
   —el piso que se rompe, ida y vuelta, un mapa ausente— y el tema recordado

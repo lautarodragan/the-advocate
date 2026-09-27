@@ -7360,9 +7360,15 @@ def main():
     # Los efectos, en el orden en que los piden las páginas compiladas: los
     # mapas se compilan en el orden de la ROM, así que los del mapa donde
     # arranca van primero —en la demo, la lluvia y el trueno de la apertura—.
+    # Sólo los que están en algún paquete: uno que no está en ninguno no
+    # suena en ningún lado —su fila de `sonido_tabla` queda en $FF— y
+    # armarlo le costaría a la música, porque `snes_music.copias` cuenta los
+    # efectos del cartucho. Pasa con los de ruta de `SE_DE_RUTA_SIN_PAQUETE`.
+    empaquetados = {n for pide in temas.por_mapa.values()
+                    for n in pide["sonidos"]}
     pedidos_se = []
     for nombre, _v, _t, _b in temas.sonidos:
-        if nombre not in pedidos_se:
+        if nombre not in pedidos_se and nombre in empaquetados:
             pedidos_se.append(nombre)
     # El paquete de audio de cada mapa, en el orden de la tabla de mapas: los
     # temas que sus páginas pueden prender —más, en el de arranque, el que

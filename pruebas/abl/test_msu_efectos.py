@@ -16,6 +16,9 @@ Los dos casos son de acá:
   3, con `evilrhys` sonando. Es el momento de la escena de `evilrhys` que
   tiene tres efectos a la vez.
 
+Y uno de `pruebas/rpgmaker/test_sonido_en_ruta.py`, `sonido-en-ruta`: `Close1`
+pedido adentro de una ruta forzada del héroe, en el mapa 10.
+
 Corren en snes9x, como `test_msu.py`.
 """
 
@@ -158,6 +161,33 @@ def test_con_msu_el_efecto_suena_entero_y_a_su_tasa(tmp_path):
     assert not numpy.array_equal(cambiadas[:n], muestras[:n]), (
         "con las muestras del .msu cambiadas Success2 suena igual: la ROM no "
         "lo está subiendo de ahí, y lo de arriba no prueba nada")
+
+
+def test_con_msu_el_efecto_de_una_ruta_suena_entero(tmp_path):
+    """El efecto de una ruta forzada va por el mismo camino que el de un
+    `PlaySound` —`sonido_tocar`—, así que con el `.msu` del cartucho suena
+    igual: `Close1` en el mapa 10, a la altura de 22.050 Hz, con la
+    envolvente del WAV."""
+    una = _partida(tmp_path, "ruta", "sonido-en-ruta", _msu_del_cartucho())
+    muestras, tasa, nuevo = _el_efecto(una)
+    assert _lejano(una, "MSU_SE")[0] == 1, (
+        "con MSU-1 y el .msu del cartucho, la ROM no lo aceptó para los "
+        "efectos")
+    altura = int.from_bytes(nuevo[1:3], "little")
+    esperada = snes_music.altura_de_efecto(
+        snes_music.Efecto("Close1", b"", 22050, None, 0), 100)
+    assert altura == esperada, (
+        "Close1 arrancó con la altura %d y la de 22.050 Hz es %d" % (
+            altura, esperada))
+    crudo, fuente = snes_music.leer_wav("Close1")
+    del_wav = _envolvente(numpy.array(crudo, float), fuente)
+    grabada = _envolvente(muestras, tasa)
+    n = min(len(grabada), len(del_wav)) - 5
+    parecido = max(numpy.corrcoef(grabada[k:k + n], del_wav[:n])[0, 1]
+                   for k in range(5))
+    assert parecido > 0.92, (
+        "la envolvente de Close1 con MSU-1 no sigue la del WAV (%.3f)"
+        % parecido)
 
 
 def test_con_un_msu_de_otro_build_los_efectos_salen_de_la_rom(tmp_path):
