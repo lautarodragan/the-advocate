@@ -190,7 +190,10 @@ def test_la_partida_cargada_arranca_con_su_musica(con_musica):
     una.poner_byte("tema_actual", (sonaba + 1) % una.simbolos["TEMA_TOTAL"])
     una.poner_byte("music_apagada", 1)
     una.pasar_el_titulo(SEGUIR)
-    una.consola.correr(3)
+    # Un tick y no unos cuadros: mientras se carga el mapa el título está
+    # callado —`music_apagada` en 1, ver `titulo_lazo`— y la música de la
+    # partida recién se repone en `music_boot`, con el mapa ya cargado.
+    una.correr(1)
 
     assert not una.byte("music_apagada"), (
         "la partida cargada arrancó callada y se había guardado con música")
