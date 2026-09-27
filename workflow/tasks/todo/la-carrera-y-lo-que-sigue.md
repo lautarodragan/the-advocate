@@ -248,6 +248,10 @@ medición de `optimizar-los-eventos-paralelos-al-compilar.md`. Se da por hecho
 con `cuadros_perdidos` en cero —o casi— en el 49, el 52 y el 54 manejando.
 Independiente del 3 y del 4.
 
+   **Hecho el 2026-09-27**, con el opcode fundido y lo que dijo la medición:
+   ver `testing/carrera-2-a-sesenta-cuadros.md`, que tiene el límite de cada
+   camino.
+
 **3. Lo que se ve y se oye.** El cartel de los controles (4) y los sonidos del
 salto (5), según lo que conteste taro.
 

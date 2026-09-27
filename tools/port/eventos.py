@@ -3365,6 +3365,100 @@ def con_destino(pieza, destino):
     return pieza[:-2] + bytes([destino & 0xFF, destino >> 8])
 
 
+def _parchear(piezas, abierta, destino):
+    """Pone `destino` en la pieza abierta de la pila de ramas. Una entrada es
+    el índice de la pieza, con el destino en sus dos últimos bytes, o (índice,
+    desplazamiento) para una pieza con más de un destino: `OP_CELL_TEST`."""
+    if not isinstance(abierta, tuple):
+        piezas[abierta] = con_destino(piezas[abierta], destino)
+        return
+    i, donde = abierta
+    pieza = piezas[i]
+    piezas[i] = (pieza[:donde] + bytes([destino & 0xFF, destino >> 8])
+                 + pieza[donde + 2:])
+
+
+# Dónde van los dos destinos adentro de `OP_CELL_TEST`: ver events.toml.
+CELDA_DESTINO_A = 10
+CELDA_DESTINO_B = 16
+# Los dos bits de arriba de cada escritura de `OP_CELL_TEST`, sobre el
+# desplazamiento de la variable: la y en vez de la x, y el refresco. Ver
+# `celda_probar` en rom/src/interprete_celdas.s.
+CELDA_Y = 0x4000
+CELDA_REFRESCO = 0x8000
+
+
+def celdas_fundibles(comandos):
+    """Dónde empieza cada patrón de "¿está en la celda?" que `OP_CELL_TEST`
+    hace en un solo opcode: dos `ControlVars` que ponen la x y la y de un
+    mismo personaje en dos variables, y dos `ConditionalBranch` anidados —el
+    segundo es lo primero adentro del primero— que comparan una variable con
+    otra por igualdad.
+
+    Es el patrón de las páginas paralelas que miran si dos personajes se tocan:
+    las cuarenta de cada vuelta de la carrera, las luces del mapa 11 y unas
+    doscientas más del juego. Fundido corre en una sola vuelta del intérprete
+    en vez de cuatro, y es lo que deja la carrera a 60 cuadros: ver
+    `celda_probar` en rom/src/interprete_celdas.s.
+
+    Acá se mira sólo la forma; si los operandos compilan lo dice
+    `_pieza_de_celdas`, que es la que emite.
+    """
+    def poner_celda(c):
+        p = c.parameters
+        return (c.code == CONTROL_VARS and len(p) >= 7 and p[0] == 0
+                and p[3] == VAR_PONER and p[4] == VAR_PERSONAJE)
+
+    def igual_a_variable(c):
+        p = c.parameters
+        return (c.code == COND_RAMA and len(p) >= 5 and p[0] == COND_VARIABLE
+                and p[2] == 1 and p[4] == CMP_IGUAL)
+
+    inicios = []
+    i = 0
+    while i + 3 < len(comandos):
+        a, b, c, d = comandos[i:i + 4]
+        if (poner_celda(a) and poner_celda(b)
+                and a.parameters[5] == b.parameters[5]
+                and igual_a_variable(c) and igual_a_variable(d)
+                and a.indent == b.indent == c.indent
+                and d.indent == c.indent + 1):
+            inicios.append(i)
+            i += 4
+        else:
+            i += 1
+    return inicios
+
+
+def _pieza_de_celdas(escrituras, ramas):
+    """`OP_CELL_TEST` con los dos destinos en blanco, armado con lo que
+    emitirían los cuatro opcodes sueltos —así las validaciones y el refresco
+    son los mismos—, o None si no se puede fundir."""
+    v1, v2 = escrituras
+    r1, r2 = ramas
+    for v in (v1, v2):
+        if (v[0] != OP_VAR or v[3] != VAR_PERSONAJE or v[5] != 0
+                or v[7] != 0 or v[6] not in (PERSONAJE_X, PERSONAJE_Y)
+                or v[2] & ~VAR_REFRESCO != VAR_PONER):
+            return None
+    if v1[4] != v2[4]:
+        return None
+    for r in (r1, r2):
+        if (r[0] != OP_IF_VAR or r[2] != VAR_VARIABLE or r[3] != CMP_IGUAL
+                or r[5] != 0):
+            return None
+    def escritura(v):
+        return (v[1] * 2 | (CELDA_Y if v[6] == PERSONAJE_Y else 0)
+                | (CELDA_REFRESCO if v[2] & VAR_REFRESCO else 0))
+
+    palabras = [escritura(v1), escritura(v2),
+                r1[1] * 2, r1[4] * 2, 0, r2[1] * 2, r2[4] * 2, 0]
+    pieza = bytes([OP_CELL_TEST, v1[4]]) + b"".join(
+        bytes([w & 0xFF, w >> 8]) for w in palabras)
+    assert len(pieza) == OPCODE_SIZE[OP_CELL_TEST]
+    return pieza
+
+
 def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                     temas=None, graficos=None, imagenes=None, tropas=None,
                     base=0, hondo=0):
@@ -3425,6 +3519,15 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                       if c.code == ENEMY_ENCOUNTER
                       and (i + 1 >= len(comandos)
                            or comandos[i + 1].code not in BATALLA_HANDLERS)}
+        # Las cuatro de "¿está en la celda?", que van en un solo opcode: ver
+        # `celdas_fundibles`. El papel de cada comando —0 y 1 las escrituras,
+        # 2 y 3 las ramas— por su id, y la pieza fundida de cada patrón por el
+        # id de su primer comando, cuando se emite.
+        celda_papel = {}
+        for i in celdas_fundibles(comandos):
+            for n in range(4):
+                celda_papel[id(comandos[i + n])] = (n, id(comandos[i]))
+        celda_pieza = {}
         eleg = []            # las elecciones abiertas
         bat = []             # y las batallas abiertas, igual que ellas
         bgm = [None, []]     # el `PlayBGM` pendiente y lo anotado: ver
@@ -3433,7 +3536,35 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                              # si fue una constante: ver `_destino_recordado`
         for cmd, extra in agrupar(comandos):
             pedidos = temas.pedidos if temas is not None else 0
-            if cmd.code == ENEMY_ENCOUNTER:
+            papel = celda_papel.get(id(cmd))
+            if papel is not None and papel[0] == 0:
+                # Se arma acá y no antes porque el refresco depende de
+                # `eventos_mapa`, que cambia después de un `Teleport`.
+                i = comandos.index(cmd)
+                sueltos = comandos[i:i + 4]
+                fundida = _pieza_de_celdas(
+                    [_compilar(c, indice_de_mapa, mensajes, (), eventos_mapa,
+                               temas, graficos, imagenes)
+                     for c in sueltos[:2]],
+                    [bytes_de_rama(c) for c in sueltos[2:]])
+                if fundida is None:
+                    for c in sueltos:
+                        del celda_papel[id(c)]
+                    papel = None
+                else:
+                    celda_pieza[id(cmd)] = len(piezas)
+            if papel is not None:
+                n, primero = papel
+                pieza = b""
+                if n == 0:
+                    pieza = fundida
+                if n < 2:
+                    _anotar_constante(cmd, constantes)
+                else:
+                    pila.append((celda_pieza[primero],
+                                 CELDA_DESTINO_A if n == 2
+                                 else CELDA_DESTINO_B))
+            elif cmd.code == ENEMY_ENCOUNTER:
                 tropa = tropa_de_encuentro(cmd)
                 if tropas is not None:
                     tropas.pedir(tropa, fondo_de_encuentro(cmd))
@@ -3568,13 +3699,13 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                 # El destino del `if` es **después** de este salto, que es
                 # donde arranca la rama de abajo; el del salto se resuelve en
                 # el `end`, con la pieza que queda abierta en su lugar.
-                piezas[abierta] = con_destino(piezas[abierta], largo + 3)
+                _parchear(piezas, abierta, largo + 3)
                 pila.append(len(piezas))
             elif cmd.code == COND_FIN:
                 if not pila:
                     raise NoSePuede("un `end` sin su `if`")
                 abierta = pila.pop()
-                piezas[abierta] = con_destino(piezas[abierta], largo)
+                _parchear(piezas, abierta, largo)
                 pieza = b""
             elif cmd.code == SHOW_INN:
                 pieza = _compilar_posada(cmd, largo, mensajes)

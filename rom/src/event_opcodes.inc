@@ -53,10 +53,11 @@ OP_GAME_OVER     = $2D
 OP_TRANSITION    = $2E
 OP_LOCATION      = $2F
 OP_MEMORIZED_BGM = $30
+OP_CELL_TEST     = $31
 
 ; How many opcodes there are: every number below this one is declared,
 ; so an opcode at or above it is not one, and must not index the table.
-EVENT_OPCODE_COUNT = $31
+EVENT_OPCODE_COUNT = $32
 
 ; One `.addr` per opcode, in the order of their numbers, to expand where a
 ; `jmp (table, x)` reads it with X = opcode * 2. Each opcode's handler is
@@ -111,4 +112,5 @@ EVENT_OPCODE_COUNT = $31
     .addr op_transition        ; $2E
     .addr op_location          ; $2F
     .addr op_memorized_bgm     ; $30
+    .addr op_cell_test         ; $31
 .endmacro

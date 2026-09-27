@@ -447,3 +447,24 @@ code = 0x30
 args = [
   { name = "play", type = "byte" },
 ]
+
+# Two `OP_VAR` that copy a character's cell into two variables, followed by
+# two nested `OP_IF_VAR` that compare two variables for equality: the same
+# four instructions, in one. Variables go as their byte offset (slot times
+# two), so the interpreter indexes with them as they come; the two writes
+# also carry which coordinate and the refresh bit in their top bits.
+# `else_a` and `else_b` are where each condition goes when it fails.
+[[opcode]]
+name = "OP_CELL_TEST"
+code = 0x31
+args = [
+  { name = "target", type = "byte" },
+  { name = "first", type = "word" },
+  { name = "second", type = "word" },
+  { name = "left_a", type = "word" },
+  { name = "right_a", type = "word" },
+  { name = "else_a", type = "word" },
+  { name = "left_b", type = "word" },
+  { name = "right_b", type = "word" },
+  { name = "else_b", type = "word" },
+]

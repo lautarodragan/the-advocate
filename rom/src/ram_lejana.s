@@ -14,9 +14,9 @@ FAR_PAR_LISTA  = $2400      ; PARALELO_MAX entradas de PAR_LISTA_BYTES
 ; Las variables de RM2k, una palabra con signo por ranura. Cuántas son lo dice
 ; el conversor —`VARIABLES_N`—, que le da ranura sólo a las que nombran las
 ; páginas de los mapas de la ROM; el bytecode habla de ranuras. Se leen y
-; escriben por la ventana, `var_leer` y `var_escribir`, y viajan en la
-; partida: `partida_tabla` las copia desde acá, que el DMA alcanza igual que
-; el banco 0 porque WMADD es una dirección de diecisiete bits.
+; escriben con `var_leer` y `var_escribir`, y viajan en la partida:
+; `partida_tabla` las copia desde acá, que el DMA alcanza igual que el banco 0
+; porque WMADD es una dirección de diecisiete bits.
 FAR_VARIABLES  = $2600
 ; Y el inventario, después de las variables —que son hasta 256, el conversor
 ; lo garantiza—: un byte por ítem del LDB, indexado por el número de RM2k —el
@@ -413,11 +413,16 @@ BA_EACC_NADA   = $FE
 BA_EACC_NO_EFECTIVA = $80       ; el bit de `eacc_peso`
 
 ; Cursor (2), espera (2), si está corriendo (1) y de qué página (2). **Ocho y
-; no siete**: el séptimo byte no se usa y a cambio el índice sale con tres
-; `asl` en vez de un `x * 8 - x`, que son seis bytes de banco 0 y unos ciclos
-; en cada paralelo y en cada cuadro. EV_MAX por ocho son 960 bytes, así que
-; sigue entrando abajo de `FAR_PAR_LISTA`.
+; no siete**: el índice sale con tres `asl` en vez de un `x * 8 - x`, que son
+; seis bytes de banco 0 y unos ciclos en cada paralelo y en cada cuadro. EV_MAX
+; por ocho son 960 bytes, así que sigue entrando abajo de `FAR_PAR_LISTA`.
 PAR_BYTES = 8
+; Y el octavo, que sobraba, es la ranura de ruta del evento más uno, o cero si
+; no tiene: la pone `ranura_anotar` cuando se la dan, y la borra
+; `limpiar_paralelos` al cargar el mapa, pegado a `load_npcs`, que es donde se
+; liberan todas. Dentro de un mapa una ranura no se suelta nunca. Es lo que le
+; ahorra a cada paralelo buscar la suya en cada cuadro: ver `un_paralelo`.
+PAR_RANURA = 7
 
 ; Y lo que la lista de paralelos guarda de cada uno: el evento (1), el puntero
 ; a su bytecode (3) y de qué página salió (2). Los tres últimos son lo que
@@ -751,6 +756,13 @@ BA_HAB_I   = $7E7964            ; por qué combatiente va una habilidad de a
                                 ; muchos: `ba_hab_usar` llama a `ba_hab_uno`
                                 ; por cada uno, y ése se lleva los `BA_S*`
 .assert BA_HAB_I < $7E7980, error, "el hito 4 se sale de su lugar en la RAM lejana"
+
+; --- una fila de NPC, aparte -------------------------------------------------
+;
+; $7E7980 a $7E799F, reservado el 2026-09-27 para el hito 2 de la carrera.
+; `acomodar_lejos` guarda acá la fila que cambia de lugar mientras corre las
+; demás; dura lo que dura esa rutina.
+NPC_FILA_APARTE = $7E7980           ; NPC_STRIDE bytes
 
 ; --- la grilla del mapa, en la WRAM -----------------------------------------
 ;

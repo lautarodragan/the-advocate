@@ -140,8 +140,7 @@ listo:
     sta slot_dir                ; la dirección del paso en curso
     lda ruta_ev + 10, x
     sta slot_paso
-    lda ruta_ev + 0, x
-    jsr npc_de_evento
+    jsl f:npc_de_ranura + RAPIDO  ; `npc_de_evento`, recordada en la ranura
     sty npc_fila
     cpy #$FFFF
     bne hay_fila
@@ -279,157 +278,12 @@ acomodar:
     jmp acomodar_npc            ; y la fila, a donde le toque ahora
 .endproc
 
-; Si la fila `cmp_a` va **antes** que la `cmp_b` en el orden de dibujado.
-; Devuelve A distinto de cero si sí.
-;
-; El orden es el de RM2k: mayor Y —que va adentro de la clave, junto con la
-; capa—, después mayor X, y después mayor id. Los tres desempates hacen falta
-; porque un evento que camina cambia de fila todo el tiempo y empata con
-; cualquiera; con NPCs quietos casi nunca se notaba.
-.proc npc_va_antes
-.a8
-.i16
-    rep #$20
-.a16
-    ldy cmp_a
-    lda npc_buf + 4, y
-    ldy cmp_b
-    cmp npc_buf + 4, y
-    beq por_x
-    sep #$20
-.a8
-    bcc no
-    bra si
-por_x:
-.a16                            ; se llega en dieciséis, desde el `beq` de arriba
-    ldy cmp_a
-    lda npc_buf + 0, y
-    ldy cmp_b
-    cmp npc_buf + 0, y
-    beq por_evento
-    sep #$20
-.a8
-    bcc no
-    bra si
-por_evento:
-.a16                            ; ídem: el `sep` de abajo lo achica
-    sep #$20
-.a8
-    ldy cmp_a
-    lda npc_buf + 8, y
-    ldy cmp_b
-    cmp npc_buf + 8, y
-    bcc no
-    beq no                      ; iguales: no hay nada que reacomodar
-si:
-    lda #1
-    rts
-no:
-    lda #0
-    rts
-.endproc
-
-; Intercambia las dos filas que apuntan `cmp_a` y `cmp_b`, de a palabras.
-.proc npc_swap
-.a8
-.i16
-    ldx #$0000
-otra:
-    rep #$20
-.a16
-    txa
-    clc
-    adc cmp_a
-    tay
-    lda npc_buf, y
-    sta temp
-    txa
-    clc
-    adc cmp_b
-    tay
-    lda npc_buf, y
-    pha
-    lda temp
-    sta npc_buf, y
-    txa
-    clc
-    adc cmp_a
-    tay
-    pla
-    sta npc_buf, y
-    txa
-    clc
-    adc #2
-    tax
-    cpx #NPC_STRIDE
-    sep #$20
-.a8
-    bcc otra
-    rts
-.endproc
-
-; Deja la fila `npc_fila` donde le toca ahora, con la tabla ya ordenada.
-;
-; Sólo se mueve la que cambió, y a lo sumo unos pocos lugares: la Y cambia de a
-; dos pixeles por cuadro. Ordenar la tabla entera todos los cuadros costaría lo
-; mismo aunque no se moviera nadie.
+; Deja la fila `npc_fila` donde le toca ahora, con la tabla ya ordenada: ver
+; `acomodar_lejos`, en el banco 1.
 .proc acomodar_npc
 .a8
 .i16
-subir:
-    lda npc_fila
-    ora npc_fila + 1
-    beq bajar                   ; ya es la primera
-    rep #$20
-.a16
-    lda npc_fila
-    sta cmp_a
-    sec
-    sbc #NPC_STRIDE
-    sta cmp_b
-    sep #$20
-.a8
-    jsr npc_va_antes
-    beq bajar
-    jsr npc_swap
-    rep #$20
-.a16
-    lda cmp_b
-    sta npc_fila
-    sep #$20
-.a8
-    bra subir
-
-bajar:
-    rep #$20
-.a16
-    lda npc_fila
-    clc
-    adc #NPC_STRIDE
-    cmp npc_total
-    sep #$20
-.a8
-    bcs listo                   ; ya es la última
-    rep #$20
-.a16
-    lda npc_fila
-    sta cmp_b
-    clc
-    adc #NPC_STRIDE
-    sta cmp_a
-    sep #$20
-.a8
-    jsr npc_va_antes
-    beq listo
-    jsr npc_swap
-    rep #$20
-.a16
-    lda cmp_a
-    sta npc_fila
-    sep #$20
-.a8
-    bra bajar
-listo:
+    jsl f:acomodar_lejos + RAPIDO   ; ver MEMSEL
     rts
 .endproc
 
