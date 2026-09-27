@@ -71,6 +71,7 @@ DUMMY_HERO = 10
 TALAN = 14
 ARDEN = 15
 SALDRA = 17
+AG7 = 18
 
 # Las opciones de la elección, desde cero, con adónde lleva cada una con el
 # auto rojo y dónde está el auto rojo de ese sector: el héroe llega a la celda
@@ -126,10 +127,11 @@ def llegar_al_36(r):
         % r.estado())
 
 
-def ir_al_sector(r, opcion, companero):
+def ir_al_sector(r, opcion, companero, ag7=False):
     """Elige el sector en el 36 abierto y espera el control allá. Comprueba
     el mapa, la celda del `Teleport` y el grupo que arma la página al llegar,
-    que es lo que corre **en el sector** y no en el 36."""
+    que es lo que corre **en el sector** y no en el 36: Talan, el compañero,
+    y AG7-17 detrás si está el 150."""
     mapa, llegada, _auto = SECTORES[opcion]
     r.empezar("el 36: elegir el sector %d" % (32 + opcion))
     r.elegir(opcion)
@@ -138,7 +140,8 @@ def ir_al_sector(r, opcion, companero):
     assert r.celda() == llegada, (
         "el `Teleport` al mapa %d deja al héroe en %s. %s"
         % (mapa, llegada, r.estado()))
-    grupo = [TALAN] + ([companero] if companero else [])
+    grupo = ([TALAN] + ([companero] if companero else [])
+             + ([AG7] if ag7 else []))
     assert grupo_de(r.p) == grupo, (
         "al llegar al sector la página saca a DummyHero y mete a Talan y al "
         "compañero: el grupo tendría que ser %s y es %s. %s"
@@ -156,6 +159,45 @@ def subir_al_auto(r, opcion):
     assert grupo_de(r.p) == [DUMMY_HERO], (
         "el auto deja a DummyHero solo, y el grupo es %s. %s"
         % (grupo_de(r.p), r.estado()))
+
+
+def irse_termina_la_demo(r):
+    """Con la pregunta de irse abierta en el 36 —o por abrirse—, "We've got to
+    get out of here": el 182, el cartel del fin de la demo y la vuelta al
+    título. Lo usan también los cierres de las tres ramas, en
+    `test_recorrido_lashe_cierre_golden.py`."""
+    r.empezar("el 36: irse")
+    r.elegir(IRSE)
+    # El cartel y el reinicio. Por cuadros de hardware y no por ticks: la
+    # pantalla de título no hace correr `vueltas`, así que esperar un tick ahí
+    # se colgaría. El reinicio se ve en los switches, que `reset` borra.
+    p = r.p
+    vio_el_cartel = False
+    for _ in range(3000):
+        if not p.switch(VOLVIO_AL_AUTO):
+            break
+        if p.switch(SE_VAN) and p.byte("msg_abierto") and not vio_el_cartel:
+            # El mensaje de Talan va antes de prender el 182, así que éste es
+            # el cartel. Se lo deja componer para la foto: `msg_estado` en 1
+            # es "componiendo".
+            vio_el_cartel = True
+            for _ in range(120):
+                if p.byte("msg_estado") != 1:
+                    break
+                p.consola.correr(1)
+            r.foto("el-fin-de-la-demo", asentar=False)
+        p.consola.apretar("a")
+        p.consola.correr(2)
+        p.consola.apretar()
+        p.consola.correr(6)
+    else:
+        raise AssertionError("después de \"We've got to get out of here\" la "
+                             "partida no volvió al título. %s" % r.estado())
+    assert vio_el_cartel, (
+        "el 182 se prende antes del cartel del fin, y no hubo mensaje con él "
+        "prendido. %s" % r.estado())
+    p.consola.correr(p.simbolos["BOOT_CUADROS"] + 60)
+    r.foto("el-titulo-despues-del-fin", asentar=False)
 
 
 def test_la_eleccion_del_36_lleva_a_los_cuatro_sectores(recorrido):
@@ -208,7 +250,12 @@ def test_el_hq_de_los_vipers_por_el_cano_con_arden(recorrido):
     r.p.poner_grupo(TALAN, ARDEN)
     r.p.ir_al_mapa(38, *SECTORES[SECTOR_34][1])
     r.esperar_el_control()
+    el_hq_por_el_cano(r)
 
+
+def el_hq_por_el_cano(r):
+    """Del 38 con el control, Talan y Arden, hasta la calle de vuelta del HQ
+    con el 169. Lo usa también el cierre de la rama de Arden."""
     r.empezar("el caño")
     r.caminar_a(EL_CANO, tope=4000, hasta=lambda p: p.corriendo_una_pagina())
     r.esperar("el atajo de Arden", lambda p: p.switch(TOMO_EL_ATAJO),
@@ -259,7 +306,13 @@ def test_los_guardias_del_sector_33_con_saldra(recorrido):
     r.p.poner_grupo(TALAN, SALDRA)
     r.p.ir_al_mapa(47, *SECTORES[SECTOR_33][1])
     r.esperar_el_control()
+    la_tienda_y_los_guardias(r, [TALAN, SALDRA])
 
+
+def la_tienda_y_los_guardias(r, grupo):
+    """Del 47 con el control y Saldra, la tienda del 56 y de vuelta, y los
+    guardias hasta el 181. Lo usa también el cierre de la rama de Saldra, que
+    puede llevar a AG7 además: `grupo` es el que tiene que quedar."""
     r.empezar("la tienda del Sector 33")
     r.caminar_a(LA_PUERTA_DE_LA_TIENDA, tope=4000,
                 hasta=lambda p: p.mapa() == 56)
@@ -281,7 +334,7 @@ def test_los_guardias_del_sector_33_con_saldra(recorrido):
     assert r.celda() == DESPUES_DE_LA_HUIDA, (
         "la huida de Saldra termina con un `Teleport` a %s. %s"
         % (DESPUES_DE_LA_HUIDA, r.estado()))
-    assert grupo_de(r.p) == [TALAN, SALDRA], r.estado()
+    assert grupo_de(r.p) == grupo, r.estado()
     r.foto("despues-de-los-guardias")
 
 
@@ -306,38 +359,7 @@ def test_irse_de_la_ciudad_termina_la_demo(recorrido):
     assert not r.p.switch(SE_VAN), r.estado()
     subir_al_auto(r, SECTOR_35)
 
-    r.empezar("el 36: irse")
-    r.elegir(IRSE)
-    # El cartel y el reinicio. Por cuadros de hardware y no por ticks: la
-    # pantalla de título no hace correr `vueltas`, así que esperar un tick ahí
-    # se colgaría. El reinicio se ve en los switches, que `reset` borra.
-    p = r.p
-    vio_el_cartel = False
-    for _ in range(3000):
-        if not p.switch(VOLVIO_AL_AUTO):
-            break
-        if p.switch(SE_VAN) and p.byte("msg_abierto") and not vio_el_cartel:
-            # El mensaje de Talan va antes de prender el 182, así que éste es
-            # el cartel. Se lo deja componer para la foto: `msg_estado` en 1
-            # es "componiendo".
-            vio_el_cartel = True
-            for _ in range(120):
-                if p.byte("msg_estado") != 1:
-                    break
-                p.consola.correr(1)
-            r.foto("el-fin-de-la-demo", asentar=False)
-        p.consola.apretar("a")
-        p.consola.correr(2)
-        p.consola.apretar()
-        p.consola.correr(6)
-    else:
-        raise AssertionError("después de \"We've got to get out of here\" la "
-                             "partida no volvió al título. %s" % r.estado())
-    assert vio_el_cartel, (
-        "el 182 se prende antes del cartel del fin, y no hubo mensaje con él "
-        "prendido. %s" % r.estado())
-    p.consola.correr(p.simbolos["BOOT_CUADROS"] + 60)
-    r.foto("el-titulo-despues-del-fin", asentar=False)
+    irse_termina_la_demo(r)
 
 
 # La puerta de arriba de la casa de empeño del 37: el evento 11, `PawnDoorTop`,
