@@ -395,6 +395,14 @@ declaración de ese momento.
 
 # Riesgos y preguntas para taro
 
+**Después de los hitos (taro, 2026-09-27)**: cuando terminen los hitos de
+este plan, si entra, **sumar la carrera** (49–54, y el 55 si hace falta) **y el
+64**. Si después sigue habiendo espacio, **el 83 y el 84** también, para que la
+regla de qué mapas entran deje de ser una lista: si los ids tienen orden,
+pasa a ser "los mapas con id menor a X" más un `--exclude-maps` que se
+mantenga siempre chico (la lista invertida). Avanzar sin esperar su
+confirmación entre hito e hito.
+
 **Lo que taro ya contestó (2026-09-25):**
 
 * **(2026-09-26)** El cierre del 36 ("get out"): **un "fin de demo" con un
