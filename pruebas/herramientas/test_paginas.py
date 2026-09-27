@@ -123,17 +123,18 @@ def test_el_tram_officer_compila_con_las_variables():
 
 def _escritura_de_la_123(comandos, desde):
     """Compila `comandos` como una página del mapa `desde` y devuelve el byte
-    de ranura del `OP_VAR` que escribe la variable 123."""
+    de la operación del `OP_VAR` que escribe la variable 123, que es el que
+    lleva el bit del refresco."""
     eventos.indexar_variables(GAME_DIR)
     game_map = lcf.Map(os.path.join(GAME_DIR, "Map%04d.lmu" % desde))
     codigo = eventos.compilar_pagina(
         eventos._Comandos(comandos), {desde: 0, 133: 1}.get,
         eventos.Mensajes(), eventos.Eventos(game_map).para(0))
     assert codigo is not None, "la página no compila"
-    ranuras = [c[i + 1] for i, c in eventos.recorrer_codigo(codigo)
-               if c[i] == eventos.OP_VAR]
-    assert len(ranuras) == 1
-    return ranuras[0]
+    operaciones = [c[i + 2] for i, c in eventos.recorrer_codigo(codigo)
+                   if c[i] == eventos.OP_VAR]
+    assert len(operaciones) == 1
+    return operaciones[0]
 
 
 def _comandos(*crudos):
@@ -154,9 +155,9 @@ def test_la_escritura_despues_de_saltar_a_otro_mapa_pide_refresco():
     que en la medición del 9e no aparecía después de un `Teleport` desde el
     mapa 6 aunque la variable ya valía 8: el 6 no mira la 123.
     """
-    ranura = _escritura_de_la_123(_comandos(
+    operacion = _escritura_de_la_123(_comandos(
         (eventos.TELEPORT, (133, 4, 7)), PONER_123_EN_8), desde=6)
-    assert ranura & eventos.VAR_REFRESCO, \
+    assert operacion & eventos.VAR_REFRESCO, \
         "después de saltar al 133 la escritura a la 123 no pide refresco"
 
 

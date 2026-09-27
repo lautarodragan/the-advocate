@@ -46,8 +46,10 @@
     sta pad_a_ant
     stz temp + 2
     stz temp + 3
+    lda temp + 1                ; las banderas, que traen el bit del refresco
+    xba
     lda temp
-    jsr var_escribir            ; con su refresco, si la ranura lo pide
+    jsr var_escribir            ; con su refresco, si las banderas lo piden
     sty ev_cur
     rts
 tecla_mirar:
@@ -83,9 +85,11 @@ tecla_rebobinar:
     sty ev_cur
     rts
 tecla_guardar:
+    lda temp + 1
+    xba
     lda temp
     jsr var_escribir            ; `SetNeedRefreshForVarChange`, como ControlVars:
-    jmp correr_codigo::otro     ; lo decide la ranura. Ver `var_escribir`
+    jmp correr_codigo::otro     ; lo deciden las banderas. Ver `var_escribir`
 
 .endproc
 

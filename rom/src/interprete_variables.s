@@ -21,7 +21,7 @@
     sta temp                    ; la ranura
     iny
     lda [cod_ptr], y
-    sta temp + 1                ; la operación
+    sta temp + 1                ; la operación, con VAR_REFRESCO arriba
     iny
     lda [cod_ptr], y            ; la clase del operando
     iny
@@ -120,6 +120,7 @@ var_aplicar:
     ; `temp + 2` es el operando; según la operación, se pone tal cual o se
     ; suma o resta a lo que la variable tenía.
     lda temp + 1
+    and #<~VAR_REFRESCO
     beq var_pone
     lda temp
     jsr var_leer                ; A = lo que tenía, de dieciséis
@@ -128,6 +129,7 @@ var_aplicar:
     sep #$20
 .a8
     lda temp + 1
+    and #<~VAR_REFRESCO
     cmp #VAR_SUMAR
     beq var_suma
     rep #$20
@@ -149,8 +151,10 @@ var_suma:
     sep #$20
 .a8
 var_pone:
+    lda temp + 1                ; la operación, que trae el bit del refresco
+    xba
     lda temp
-    jsr var_escribir            ; y el refresco, si la ranura lo pide: las
+    jsr var_escribir            ; y el refresco, si la operación lo pide: las
                                 ; páginas que miran esta variable pueden
     ply                         ; cambiar. Ver `var_escribir`
     iny                         ; a y b, cuatro bytes
