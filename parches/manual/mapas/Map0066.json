@@ -669,10 +669,8 @@
             "variable_value": 0
           },
           "event_commands": [
-            {"code": 10110, "indent": 0, "parameters": [], "string": "END OF THE DEMO"},
-            {"code": 20110, "indent": 0, "parameters": [], "string": "The rest of the world is not in the"},
-            {"code": 20110, "indent": 0, "parameters": [], "string": "cartridge yet. Thanks for playing!"},
-            {"code": 12510, "indent": 0, "parameters": [], "string": ""}
+            {"code": 10810, "indent": 0, "parameters": [69, 20, 38], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 236, 236, 1], "string": ""}
           ],
           "id": 1,
           "layer": 0,
@@ -825,8 +823,10 @@
             "variable_value": 0
           },
           "event_commands": [
-            {"code": 10810, "indent": 0, "parameters": [74, 19, 48], "string": ""},
-            {"code": 10210, "indent": 0, "parameters": [0, 236, 236, 1], "string": ""}
+            {"code": 10110, "indent": 0, "parameters": [], "string": "END OF THE DEMO"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "The rest of the world is not in the"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "cartridge yet. Thanks for playing!"},
+            {"code": 12510, "indent": 0, "parameters": [], "string": ""}
           ],
           "id": 1,
           "layer": 0,

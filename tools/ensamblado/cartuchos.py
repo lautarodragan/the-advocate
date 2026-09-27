@@ -72,11 +72,21 @@ EXCLUIDOS = {
 # El tutorial del droide no cuelga de Lashe City sino de `Tutorials`, pero salta
 # ahí la página del 48 que mete a AG7-17 en el grupo. Y el mundo, el 66, al que
 # lleva la despedida del 64: es el primero de otro capítulo, y subir `MENOR_A`
-# a 67 metería al 65, que es una carpeta. Va agregado hasta que la regla pase
-# al capítulo entero —ver `workflow/tasks/*/el-mundo-y-lo-que-sigue.md`, "La
-# regla de los mapas"—; la demo termina adentro de él, al pisar Sorbe, en su
-# fork.
-AGREGADOS = (164, 66)
+# a 67 metería al 65, que es una carpeta.
+#
+# Detrás del mundo, el camino principal hasta el viaje de Dalia: Sorbe Village
+# (69) y lo que cuelga de ella —la montaña (76), el spa, la posada, la armería
+# y el alcalde (77 a 80), y la casa del doctor Vago (81), donde se cura el
+# tobillo—, y lo que sigue a la curación: la oficina del director (82), Dalia
+# en la fábrica (83) y afuera de ella (84), de donde sale al mundo. Van
+# agregados de a uno y no subiendo `MENOR_A`, porque entre el 66 y el 84 están
+# Yun Town (67, 70 a 73) y Drust Camp (68), que son opcionales y no entran
+# todavía, y Tasgarde (74), que ya está como mapa de prueba. `MENOR_A = 105`
+# recién cuando entre el capítulo entero —ver
+# `workflow/tasks/*/el-mundo-y-lo-que-sigue.md`, "La regla de los mapas"—.
+# La demo termina en el mundo, al pisar la entrada de Tasgarde, en el fork del
+# 66.
+AGREGADOS = (164, 66, 69, 76, 77, 78, 79, 80, 81, 82, 83, 84)
 
 
 def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
@@ -99,9 +109,9 @@ def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
 # del 36 es una sola página que compila con sus cuatro destinos o con ninguno.
 # Una exclusión no los puede separar.
 #
-# La demo termina en el mundo, el 66, al pisar Sorbe: el fork del 66 cambia ese
-# `Teleport` por el cartel del fin. Los demás lugares del mundo no hacen nada,
-# porque sus destinos no están y sus páginas no compilan.
+# La demo termina en el mundo, el 66, al pisar Tasgarde: el fork del 66 cambia
+# ese `Teleport` por el cartel del fin. Los demás lugares del mundo que no son
+# Sorbe no hacen nada, porque sus destinos no están y sus páginas no compilan.
 MAPAS_DEL_JUEGO = mapas_de_la_regla()
 
 # Y los que sólo existen por la tanda: situaciones que ningún mapa del juego
