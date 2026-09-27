@@ -13,7 +13,7 @@
 .i16
     rep #$20
 .a16
-    and #VAR_RANURA             ; sin el bit de VAR_REFRESCO, que viaja pegado
+    and #VAR_RANURA             ; el byte de la ranura, sin lo que traiga B
     asl a                       ; dos bytes por variable
     clc
     adc #FAR_VARIABLES
@@ -39,30 +39,35 @@
     rts
 .endproc
 
-; A: la ranura, con `VAR_REFRESCO` en el bit de arriba si esta escritura pide
-; el refresco de páginas; `temp + 2`: el valor.
+; A: la ranura; B: el byte de banderas del opcode, con `VAR_REFRESCO` en el
+; bit de arriba si esta escritura pide el refresco de páginas; `temp + 2`: el
+; valor.
 ;
-; El refresco se marca **acá y no en cada opcode** porque por acá pasan las
-; tres escrituras que hay —`op_var` y las dos ramas de `op_key`— y así el
-; bit se mira una sola vez. Es `Game_Map::SetNeedRefreshForVarChange`, que
-; tampoco marca por cualquier escritura: le pregunta al `map_cache` si alguna
-; condición de página del mapa mira esa variable. Acá esa pregunta la contestó
-; el conversor; ver VAR_REFRESCO en eventos.py.
+; El refresco se marca **acá y no en cada opcode** porque por acá pasan todas
+; las escrituras —`op_var`, las dos ramas de `op_key`, `op_terrain` y
+; `op_location`— y así el bit se mira una sola vez. Es
+; `Game_Map::SetNeedRefreshForVarChange`, que tampoco marca por cualquier
+; escritura: le pregunta al `map_cache` si alguna condición de página del mapa
+; mira esa variable. Acá esa pregunta la contestó el conversor; ver
+; VAR_REFRESCO en eventos.py.
+;
+; Hasta el 2026-09-27 el bit venía en la ranura, y eso topaba las variables en
+; 128: ver VAR_RANURA_MAX en eventos.py.
 .proc var_escribir
 .a8
 .i16
-    pha                         ; la ranura con su bit, que var_apuntar tira
+    xba                         ; las banderas
+    and #VAR_REFRESCO
+    beq sin_refresco
+    lda #1
+    sta refresco
+sin_refresco:
+    xba                         ; y la ranura de vuelta; `var_apuntar` tira B
     jsr var_apuntar
     lda temp + 2
     sta WMDATA
     lda temp + 3
     sta WMDATA
-    pla
-    and #VAR_REFRESCO           ; explícito y no el N que deja `pla`: ver la
-    beq sin_refresco            ; trampa de las banderas en AGENTS.md
-    lda #1
-    sta refresco
-sin_refresco:
     rts
 .endproc
 

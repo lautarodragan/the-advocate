@@ -31,6 +31,14 @@ from port.event_opcodes import OPCODE_SIZE, opcode_size  # noqa: F401
 END = 10
 CONTROL_SWITCHES = 10210
 TELEPORT = 10810
+# El lugar del héroe a tres variables, y el salto a lo que digan: los pisos que
+# se rompen de la planta de reciclaje, y la vuelta de los tutoriales. Ver
+# OP_LOCATION.
+MEMORIZE_LOCATION = 10820
+RECALL_TO_LOCATION = 10830
+# El tema que suena, anotado, y vuelto a poner. Ver OP_MEMORIZED_BGM.
+MEMORIZE_BGM = 11530
+PLAY_MEMORIZED_BGM = 11540
 TINT_SCREEN = 11030
 WAIT = 11410
 CHANGE_SAVE_ACCESS = 11930
@@ -1580,8 +1588,9 @@ COND_VARIABLE = 1
 # compila, que es más honesto que truncar.
 #
 # OP_VAR: ranura (byte), operación (byte), clase (byte), a (word), b (word)
-# El bit de arriba de la **ranura**, en OP_VAR y en OP_KEY: si esta escritura
-# pide el refresco de páginas.
+# El bit de arriba del **byte de banderas** de cada opcode que escribe una
+# variable —la operación en OP_VAR, las banderas en OP_KEY, el modo en
+# OP_TERRAIN y en OP_LOCATION—: si esta escritura pide el refresco de páginas.
 #
 # Es `Game_Map::SetNeedRefreshForVarChange`, que **no** marca el refresco por
 # cualquier escritura: se lo pregunta al `map_cache`, que tiene la lista de las
@@ -1597,10 +1606,15 @@ COND_VARIABLE = 1
 # 106 páginas y **no entra en un cuadro**. Ninguna de esas cuatro variables la
 # mira ninguna condición de página, ni ahí ni en ningún otro mapa del juego.
 #
-# La ranura cabe en siete bits: el juego usa 81 variables y `var_apuntar`
-# enmascara con $7F. Si alguna vez hicieran falta más de 128, esto se muda.
+# **Hasta el 2026-09-27 el bit iba en la ranura**, que así cabía en siete
+# bits: 128 variables. El juego nombra 127, y `MemorizeLocation` y
+# `RecallToLocation` suman nueve más —127 a 129 del tutorial del droide y de
+# `DisplayNameMenu`, 158 a 160 y 169 a 171 de los menús de la apertura—, así
+# que el bit se mudó al byte de banderas, que en los tres opcodes tenía el de
+# arriba libre, y la ranura quedó de ocho: 256, que es lo que reserva la RAM
+# lejana entre `FAR_VARIABLES` y `FAR_ITEMS`.
 VAR_REFRESCO = 0x80
-VAR_RANURA_MAX = 0x7F
+VAR_RANURA_MAX = 0xFF
 #
 # OP_IF_VAR: ranura (byte), clase (byte), comparación (byte), valor (word),
 #     destino (word): como OP_IF, el destino va último para el parcheo
@@ -1949,6 +1963,20 @@ TECLA_VALOR_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
 #
 # OP_PLACE_VAR: blanco (byte, como en OP_PLACE), ranura de la x
 #     (byte), ranura de la y (byte)
+#
+# OP_LOCATION: modo (byte), y las ranuras del mapa, la x y la y (byte cada
+#     una). `MemorizeLocation` y `RecallToLocation` son el mismo opcode
+#     porque son el mismo lugar leído o escrito: el bit 0 del modo dice cuál
+#     —`LUGAR_SALTAR`—, y al recordar los bits 7, 6 y 5 son el VAR_REFRESCO de
+#     cada una de las tres escrituras. **El mapa en la variable es el id de
+#     RM2k**, que es lo que cualquier otra página lee y escribe; la ROM lo
+#     traduce con `mapa_rm2k`. Destraban 55 páginas del hito 3 de Lashe City
+#     —los pisos de la planta, 28 del 60 y 26 del 62, y el tutorial del
+#     droide— y son lo que más páginas frena en el juego entero.
+#
+# OP_MEMORIZED_BGM: 0 recordar el tema que suena, 1 volver a ponerlo.
+LUGAR_SALTAR = 0x01
+LUGAR_REFRESCOS = (0x80, 0x40, 0x20)    # el mapa, la x y la y
 
 
 def tecla_de(banderas, apretadas):
@@ -2416,6 +2444,9 @@ def variables_de_comandos(comandos):
             ids.add(p[3])
             if p[0] == 1:
                 ids.update((p[1], p[2]))
+        elif cmd.code in (MEMORIZE_LOCATION, RECALL_TO_LOCATION) \
+                and len(p) >= 3:
+            ids.update(p[:3])
     return ids
 
 
@@ -2615,10 +2646,8 @@ def ranura_de_variable(numero):
         raise NoSePuede("la variable %d no tiene ranura en esta ROM" % numero)
     ranura = VARIABLE_SLOT[numero]
     if ranura > VAR_RANURA_MAX:
-        # El bit de arriba de la ranura es `VAR_REFRESCO`. Con más de 128
-        # variables una ranura lo pisaría y todas las escrituras pedirían
-        # refresco: se rompe acá, que es donde se ve.
-        raise NoSePuede("la ranura %d no entra en siete bits: ver VAR_REFRESCO"
+        # La ranura es un byte, y la RAM lejana tiene lugar para 256.
+        raise NoSePuede("la ranura %d no entra en un byte: ver VAR_RANURA_MAX"
                         % ranura)
     return ranura
 
@@ -3333,6 +3362,8 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
         bat = []             # y las batallas abiertas, igual que ellas
         bgm = [None, []]     # el `PlayBGM` pendiente y lo anotado: ver
                              # `_seguir_la_salida`
+        constantes = {}      # lo último que la página puso en cada variable,
+                             # si fue una constante: ver `_destino_recordado`
         for cmd, extra in agrupar(comandos):
             pedidos = temas.pedidos if temas is not None else 0
             if cmd.code == ENEMY_ENCOUNTER:
@@ -3498,6 +3529,13 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                 if cmd.code == TELEPORT and eventos_mapa is not None \
                         and cmd.parameters[0] != eventos_mapa.map_id:
                     eventos_mapa = eventos_mapa.afuera()
+                if cmd.code == RECALL_TO_LOCATION:
+                    destino = _destino_recordado(cmd, constantes, temas,
+                                                 indice_de_mapa)
+                    if eventos_mapa is not None \
+                            and destino != eventos_mapa.map_id:
+                        eventos_mapa = eventos_mapa.afuera()
+                _anotar_constante(cmd, constantes)
             if temas is not None:
                 _seguir_la_salida(cmd, bgm, temas, indice_de_mapa,
                                   temas.pedidos != pedidos)
@@ -3526,6 +3564,45 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
         return None
 
 
+def _anotar_constante(cmd, constantes):
+    """Lleva en `constantes` lo último que la página puso en cada variable
+    cuando fue una constante, y olvida la variable si la escribió de otra
+    manera. No mira las ramas: es para `_destino_recordado`, que sólo lo usa
+    para anotar un destino del audio."""
+    p = cmd.parameters
+    if cmd.code == CONTROL_VARS and len(p) >= 7:
+        desde, hasta = (p[1], p[1]) if p[0] == 0 else (p[1], p[2])
+        for numero in range(desde, hasta + 1):
+            constantes.pop(numero, None)
+        if p[0] == 0 and p[3] == VAR_PONER and p[4] == VAR_CONSTANTE:
+            constantes[p[1]] = p[5]
+    elif cmd.code in (MEMORIZE_LOCATION, KEY_INPUT_PROC, STORE_TERRAIN_ID) \
+            and p:
+        for numero in (p[:3] if cmd.code == MEMORIZE_LOCATION
+                       else p[3:4] if cmd.code == STORE_TERRAIN_ID else p[:1]):
+            constantes.pop(numero, None)
+
+
+def _destino_recordado(cmd, constantes, temas, indice_de_mapa):
+    """El id de RM2k del mapa al que salta un `RecallToLocation`, si la
+    página lo puso con una constante antes —los pisos que se rompen cargan el
+    61 o el 60 en la variable, y enseguida saltan—, o None.
+
+    Lo que se sabe se anota como destino del mapa en `temas`, igual que un
+    `Teleport`: es de donde sale qué tema puede venir sonando al llegar. Lo
+    que no se sabe —la vuelta de un tutorial, que salta a lo que recordó otra
+    página— no se anota, y es lo único que el audio no ve: el tema que llegue
+    así tiene que estar en el paquete del destino por otro camino. En el
+    juego es el tutorial del droide volviendo al 48 con el tema con el que
+    salió de ahí."""
+    destino = constantes.get(cmd.parameters[0]) if cmd.parameters else None
+    if destino is not None and temas is not None:
+        indice = indice_de_mapa(destino)
+        if indice is not None:
+            temas.destino(indice)
+    return destino
+
+
 # Lo que corta un `PlayBGM` de salida antes del salto: ramas, elecciones,
 # peleas, llamadas y lazos —con ellos, lo que sigue ya no es una sola línea—.
 # Los efectos también, pero ésos se ven en `Temas.pedidos`, que cuenta
@@ -3533,7 +3610,9 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
 CORTAN_LA_SALIDA = frozenset((
     COND_RAMA, COND_SINO, COND_FIN, SHOW_CHOICE, SHOW_CHOICE_OPTION,
     SHOW_CHOICE_END, ENEMY_ENCOUNTER, END_BATTLE, CALL_EVENT, SHOW_INN,
-    INN_STAY, INN_NO_STAY, INN_END) + BATALLA_HANDLERS
+    INN_STAY, INN_NO_STAY, INN_END,
+    # Un salto que no siempre se sabe adónde va: se toma como que no se va.
+    RECALL_TO_LOCATION, PLAY_MEMORIZED_BGM) + BATALLA_HANDLERS
     # Label, JumpToLabel, Loop, BreakLoop, EndLoop y EndEventProcessing.
     + (12110, 12120, 12210, 12220, 22210, 12310))
 
@@ -3979,8 +4058,8 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # que espera las tres— y, junto con la ranura de la variable 5, la del
         # motor del minijuego de las piedras del mapa 11, que es el `(8, 1, 1,
         # 0, 0)`: sin esto no se puede tirar ninguna piedra.
-        ranura = ranura_de_variable(p[0]) | escritura_pide_refresco(
-            p[0], eventos_mapa)
+        ranura = ranura_de_variable(p[0])
+        banderas |= escritura_pide_refresco(p[0], eventos_mapa)
         return bytes([OP_KEY, ranura, banderas | TECLA_ARRANCA,
                       OP_KEY, ranura, banderas])
 
@@ -4125,6 +4204,28 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         return bytes([OP_TELEPORT, destino & 0xFF, destino >> 8,
                       p[1] & 0xFF, p[1] >> 8, p[2] & 0xFF, p[2] >> 8])
 
+    if cmd.code == MEMORIZE_LOCATION:
+        if len(p) < 3:
+            raise NoSePuede("MemorizeLocation sin sus tres variables")
+        modo = 0
+        for bit, numero in zip(LUGAR_REFRESCOS, p[:3]):
+            if escritura_pide_refresco(numero, eventos_mapa):
+                modo |= bit
+        return bytes([OP_LOCATION, modo]
+                     + [ranura_de_variable(n) for n in p[:3]])
+
+    if cmd.code == RECALL_TO_LOCATION:
+        if len(p) < 3:
+            raise NoSePuede("RecallToLocation sin sus tres variables")
+        return bytes([OP_LOCATION, LUGAR_SALTAR]
+                     + [ranura_de_variable(n) for n in p[:3]])
+
+    if cmd.code in (MEMORIZE_BGM, PLAY_MEMORIZED_BGM):
+        # Sin registro de temas se acepta y no se hace, como `PlayBGM`.
+        if temas is None:
+            return b""
+        return bytes([OP_MEMORIZED_BGM, int(cmd.code == PLAY_MEMORIZED_BGM)])
+
     if cmd.code == CHANGE_PARTY_MEMBERS:
         if len(p) < 3 or p[1] != GRUPO_ID_FIJO:
             raise NoSePuede()   # el id sale de una variable, y no las leemos
@@ -4184,8 +4285,8 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             raise NoSePuede("un ControlVars sin operandos")
         if p[0] != 0:
             raise NoSePuede("ControlVars sobre un rango o indirecto")
-        ranura = ranura_de_variable(p[1]) | escritura_pide_refresco(
-            p[1], eventos_mapa)
+        ranura = ranura_de_variable(p[1])
+        refresco = escritura_pide_refresco(p[1], eventos_mapa)
         if p[3] not in (VAR_PONER, VAR_SUMAR, VAR_RESTAR):
             raise NoSePuede("operación %d de ControlVars" % p[3])
         clase, a, b = p[4], p[5], p[6]
@@ -4221,8 +4322,8 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
                     raise NoSePuede()   # un vehículo, o un evento que no existe
         else:
             raise NoSePuede("operando de clase %d en ControlVars" % clase)
-        return bytes([OP_VAR, ranura, p[3], clase, a & 0xFF, (a >> 8) & 0xFF,
-                      b & 0xFF, b >> 8])
+        return bytes([OP_VAR, ranura, p[3] | refresco, clase, a & 0xFF,
+                      (a >> 8) & 0xFF, b & 0xFF, b >> 8])
     if cmd.code == TIMER_OPERATION:
         # El cronómetro. Se hace la operación entera —poner, arrancar y parar—
         # y los segundos pueden salir de una variable: es la cuarta operación,
@@ -4404,15 +4505,15 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # lo que las variables valían al compilar.
         if len(p) < 4 or p[0] not in (0, 1):
             raise NoSePuede("StoreTerrainID con un modo que no es 0 ni 1")
-        destino = ranura_de_variable(p[3]) \
-            | escritura_pide_refresco(p[3], eventos_mapa)
+        destino = ranura_de_variable(p[3])
         if p[0]:
             x, y = ranura_de_variable(p[1]), ranura_de_variable(p[2])
         else:
             if not (0 <= p[1] <= 0xFFFF and 0 <= p[2] <= 0xFFFF):
                 raise NoSePuede("StoreTerrainID fuera de los 16 bits")
             x, y = p[1], p[2]
-        return bytes([OP_TERRAIN, p[0], x & 0xFF, x >> 8, y & 0xFF, y >> 8,
+        modo = p[0] | escritura_pide_refresco(p[3], eventos_mapa)
+        return bytes([OP_TERRAIN, modo, x & 0xFF, x >> 8, y & 0xFF, y >> 8,
                       destino])
 
     if cmd.code == SHAKE_SCREEN:

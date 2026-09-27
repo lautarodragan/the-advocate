@@ -23,10 +23,11 @@
     sta salto_y
     sep #$20
 .a8
-    lda #1
-    sta salto_hay
     iny                         ; los dos bytes de la Y, que se leyeron sin
     iny                         ; avanzar el cursor
+saltar:
+    lda #1
+    sta salto_hay
     ; Y corta el cuadro, que es exactamente lo que hace
     ; `Game_Interpreter_Map::CommandTeleport` en easyrpg-player: reserva el
     ; salto, hace `index++` y devuelve false. El mapa se carga entre este cuadro
@@ -38,3 +39,16 @@
     rts
 .endproc
 
+
+; `MemorizeLocation` y `RecallToLocation`: como `op_heal`, sólo la entrada. El
+; cuerpo es `lugar_recordado`, fuera del banco 0, y vuelve con el acarreo
+; prendido si hay que saltar, con el destino ya puesto en `salto_*`: el salto
+; termina acá, como el de `op_teleport`.
+.proc op_location
+    jsl f:lugar_recordado
+    bcs saltar
+    jmp correr_codigo::otro
+saltar:
+    jmp op_teleport::saltar
+
+.endproc

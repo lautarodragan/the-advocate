@@ -107,8 +107,8 @@ sub_listo:
 .proc op_terrain
 .a8
 .i16
-    lda [cod_ptr], y            ; el modo: 0 la celda escrita, 1 por variable
-    iny
+    lda [cod_ptr], y            ; el modo: 0 la celda escrita, 1 por variable,
+    iny                         ; con VAR_REFRESCO arriba
     sta temp
     rep #$20
 .a16
@@ -122,11 +122,12 @@ sub_listo:
     iny
     sep #$20
 .a8
-    lda [cod_ptr], y            ; la ranura donde se guarda, con VAR_REFRESCO
+    lda [cod_ptr], y            ; la ranura donde se guarda
     iny
     sta temp + 1
     phy
     lda temp
+    and #<~VAR_REFRESCO
     beq terreno_celda
     ; Por variable: lo que vino en el opcode son dos ranuras, y se leen ahora
     ; —es el `ValueOrVariable` de `CommandStoreTerrainID`—.
@@ -185,8 +186,10 @@ terreno_afuera:
 terreno_puesto:
     sta temp + 2                ; de acá lo saca `var_escribir`
     stz temp + 3
-    lda temp + 1
-    jsr var_escribir            ; con su refresco, si la ranura lo pide
+    lda temp                    ; el modo, que trae el bit del refresco:
+    xba                         ; `ptr_de_celda` y `celda_sustituida` no
+    lda temp + 1                ; tocan `temp`
+    jsr var_escribir            ; con su refresco, si el modo lo pide
     ply
     jmp correr_codigo::otro
 

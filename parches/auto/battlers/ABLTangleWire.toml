@@ -1,0 +1,38 @@
+# La decisión artística del battler ABLTangleWire: **qué colores se pierden** al
+# llevarlo a quince, que es lo que la escena de la pelea le deja a cada
+# uno. Lo escribe el conversor y lo regenera `just parches`, que es lo
+# que hay que correr cuando un cambio lo mueve; `just parches --check`
+# —y la tanda— fallan si quedó viejo. Ver tools/port/parches.py.
+
+battler = "ABLTangleWire"
+imagen = "ABLTangleWire"
+tono = 0
+
+# De qué venía, ya achicado al 80%: el tamaño en pixeles de la escena y
+# cuántos colores distintos de 15 bits traía. No se decide, se mide.
+tamano = [46, 113]
+colores = 196
+
+# Lo que quedó, en el orden de la paleta: el índice 1 es el primero.
+paleta = [
+  [12, 0, 0],
+  [13, 13, 6],
+  [3, 0, 0],
+  [0, 0, 0],
+  [13, 9, 4],
+  [13, 5, 2],
+  [3, 4, 3],
+  [8, 10, 5],
+  [13, 2, 1],
+  [13, 15, 15],
+  [15, 7, 7],
+  [12, 12, 13],
+  [31, 25, 6],
+  [31, 31, 12],
+  [20, 22, 10],
+]
+
+# Cuántas fusiones hicieron falta para llegar ahí, con
+# `asignador.merge_least_visible`: cada una manda al color que menos
+# se nota a su vecino más cercano.
+fusiones = 181

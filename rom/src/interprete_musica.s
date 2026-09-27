@@ -15,6 +15,7 @@
 .proc op_bgm
     lda [cod_ptr], y
     iny
+tocar:
     cmp #TEMA_TOTAL
     bcs otro_tema
     phy
@@ -22,6 +23,18 @@
     ply
 otro_tema:
     jmp correr_codigo::otro
+
+.endproc
+
+; `MemorizeBGM` y `PlayMemorizedBGM`: sólo la entrada. El cuerpo es
+; `tema_recordado`, fuera del banco 0, y vuelve con el acarreo prendido y el
+; tema en A si hay que tocarlo, que es lo mismo que haría un `PlayBGM`.
+.proc op_memorized_bgm
+    jsl f:tema_recordado
+    bcs tocar
+    jmp correr_codigo::otro
+tocar:
+    jmp op_bgm::tocar
 
 .endproc
 

@@ -430,3 +430,20 @@ args = [
   { name = "which", type = "byte" },
   { name = "kind", type = "byte" },
 ]
+
+[[opcode]]
+name = "OP_LOCATION"
+code = 0x2F
+args = [
+  { name = "mode", type = "byte" },
+  { name = "map_slot", type = "byte" },
+  { name = "x_slot", type = "byte" },
+  { name = "y_slot", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_MEMORIZED_BGM"
+code = 0x30
+args = [
+  { name = "play", type = "byte" },
+]

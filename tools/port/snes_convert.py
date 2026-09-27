@@ -3162,6 +3162,16 @@ def tabla_de_mapas(mapas, etiquetas):
         assert usado <= MAPA_STRIDE, usado
         if usado < MAPA_STRIDE:
             out.append("    .byte " + ",".join(["$00"] * (MAPA_STRIDE - usado)))
+    # Y el id de RM2k de cada mapa, por índice: `MemorizeLocation` lo escribe
+    # en una variable y `RecallToLocation` lo busca, porque en las variables
+    # el mapa es el de RM2k —cualquier otra página las lee—. Va aparte y no
+    # como escalar del registro porque el registro está en sus 128 justos.
+    # Ver `op_location`.
+    out += ["",
+            "; El id de RM2k de cada mapa, en el orden de `mapa_tabla`.",
+            ".bloque %d" % (2 * len(mapas)),
+            "mapa_rm2k:",
+            "    .word " + ", ".join(str(m["id"]) for m in mapas)]
     return "\n".join(out)
 
 
@@ -4337,11 +4347,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "CABECERA_LINEAS     = $%02X\n"
         "CABECERA_AUTOCIERRE = $%02X\n"
         "CUADROS_DE_PAUSA    = %d\n"
-        "; El bit de arriba de la ranura de OP_VAR y de OP_KEY: si la\n"
-        "; escritura pide el refresco de páginas. Lo resuelve el conversor\n"
-        "; mirando qué variables miran las condiciones de página de este\n"
-        "; mapa; `var_apuntar` enmascara con VAR_RANURA. Ver VAR_REFRESCO en\n"
-        "; eventos.py: sin esto media Lashe City corría a 30 cuadros.\n"
+        "; El bit de arriba del byte de banderas de los opcodes que escriben\n"
+        "; una variable: si la escritura pide el refresco de páginas. Lo\n"
+        "; resuelve el conversor mirando qué variables miran las condiciones\n"
+        "; de página de este mapa; `var_apuntar` enmascara la ranura con\n"
+        "; VAR_RANURA. Ver VAR_REFRESCO en eventos.py: sin esto media Lashe\n"
+        "; City corría a 30 cuadros.\n"
         "VAR_REFRESCO = $%02X\n"
         "VAR_RANURA   = $%02X\n"
         "ANIM_ENTRADA = %d\n"

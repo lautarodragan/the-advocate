@@ -74,6 +74,10 @@ def test_las_ranuras_son_las_del_juego_entero():
     suman cuarenta variables que ningún mapa nombra —la 81 y la 106 de Talan
     cuentan cuántas veces absorbió cada técnica—. Ver `variables_de`.
 
+    Y desde el 2026-09-27 son 132: `MemorizeLocation` y `RecallToLocation`
+    nombran nueve que nadie más nombra —127 a 129, 158 a 160 y 169 a 171—, y
+    con eso la ranura dejó de caber en siete bits: ver VAR_RANURA_MAX.
+
     Las cuatro de arriba de la 204 son nuestras y no del juego: las usa el
     evento paralelo que reemplazó a las 52 baldosas de luz del mapa 11 —ver
     `parches/manual/README.md`—. Están elegidas **por encima de la más alta que
@@ -84,7 +88,8 @@ def test_las_ranuras_son_las_del_juego_entero():
     assert list(ranuras.values()) == list(range(len(ranuras)))
     assert 5 in ranuras and 151 in ranuras
     del_juego = [v for v in ranuras if v <= 204]
-    assert len(del_juego) == 123, del_juego
+    assert len(del_juego) == 132, del_juego
+    assert {127, 128, 129, 158, 159, 160, 169, 170, 171} <= set(del_juego)
     assert max(del_juego) == 201
     assert all(ranuras[v] == r for r, v in enumerate(sorted(del_juego)))
     # Las de la página de prueba se suman al final, sin correr a las demás.
@@ -123,17 +128,18 @@ def test_el_tram_officer_compila_con_las_variables():
 
 def _escritura_de_la_123(comandos, desde):
     """Compila `comandos` como una página del mapa `desde` y devuelve el byte
-    de ranura del `OP_VAR` que escribe la variable 123."""
+    de la operación del `OP_VAR` que escribe la variable 123, que es el que
+    lleva el bit del refresco."""
     eventos.indexar_variables(GAME_DIR)
     game_map = lcf.Map(os.path.join(GAME_DIR, "Map%04d.lmu" % desde))
     codigo = eventos.compilar_pagina(
         eventos._Comandos(comandos), {desde: 0, 133: 1}.get,
         eventos.Mensajes(), eventos.Eventos(game_map).para(0))
     assert codigo is not None, "la página no compila"
-    ranuras = [c[i + 1] for i, c in eventos.recorrer_codigo(codigo)
-               if c[i] == eventos.OP_VAR]
-    assert len(ranuras) == 1
-    return ranuras[0]
+    operaciones = [c[i + 2] for i, c in eventos.recorrer_codigo(codigo)
+                   if c[i] == eventos.OP_VAR]
+    assert len(operaciones) == 1
+    return operaciones[0]
 
 
 def _comandos(*crudos):
@@ -154,9 +160,9 @@ def test_la_escritura_despues_de_saltar_a_otro_mapa_pide_refresco():
     que en la medición del 9e no aparecía después de un `Teleport` desde el
     mapa 6 aunque la variable ya valía 8: el 6 no mira la 123.
     """
-    ranura = _escritura_de_la_123(_comandos(
+    operacion = _escritura_de_la_123(_comandos(
         (eventos.TELEPORT, (133, 4, 7)), PONER_123_EN_8), desde=6)
-    assert ranura & eventos.VAR_REFRESCO, \
+    assert operacion & eventos.VAR_REFRESCO, \
         "después de saltar al 133 la escritura a la 123 no pide refresco"
 
 
