@@ -279,7 +279,7 @@ ev_pos_buf: .res EV_MAX * EV_STRIDE
 ; cuántas, +5 en cuál va, +6 si se movió en este cuadro, +7 lo que le falta al
 ; paso, +8 hacia dónde mira, +9 la espera, +10 y +11 la animación, +12 las
 ; banderas, +13 lo que le falta al salto y +14/+15 de dónde salió, +16 la
-; frecuencia. El paso es potencia de dos por costumbre; sobra lugar.
+; frecuencia, +19 su fila de `npc_buf` más uno, recordada por `npc_de_ranura`. El paso es potencia de dos por costumbre; sobra lugar.
 RUTA_EV_STRIDE = 32
 RUTA_EV_LIBRE = $FF
 RUTA_EV_SIN_MIRAR = $FF     ; en +8: la ruta todavía no lo giró
@@ -441,10 +441,15 @@ pg_tile:     .res 1     ; +20..+23: lo que dibuja la página, ver leer_pagina
 pg_attr:     .res 1
 pg_pose:     .res 1
 pg_pasa:     .res 1
-; La celda que `pasa_con_evento` mira, y lo que encontró.
+; La celda que `pasa_con_evento` mira.
 pasa_x:      .res 2
 pasa_y:      .res 2
-pasa_hallada: .res 1
+; Si alguna fila de NPC de este mapa puede imponer sus bits de paso (+15
+; distinto de $FF). Lo pone `pasa_mirar` al cargar el mapa y el refresco
+; cuando una página con gráfico de tile los trae; no se apaga hasta el mapa
+; siguiente, así que puede decir que sí de más, nunca que no de más. Con cero,
+; `pasa_con_evento` no recorre la tabla.
+pasa_hay:    .res 1
 pg_frec:     .res 1
 pg_vel:      .res 1
 pg_ruta:     .res 3

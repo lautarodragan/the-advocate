@@ -418,23 +418,24 @@ no8:
 .proc pasa_con_evento
 .a16
 .i16
+    ; De la última fila para atrás y en dieciséis bits: gana la última que
+    ; imponga, así que la primera que aparezca así es la respuesta. Corre dos
+    ; veces por cada paso que empieza, y de adelante para atrás y con un
+    ; `rep`/`sep` por fila eran nueve líneas por vez en la carrera, con
+    ; cuarenta autos: ver workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
     sta temp + 2
-    sep #$20
-.a8
-    lda #$FF
-    sta pasa_hallada
-    ldy #$0000
+    lda pasa_hay
+    and #$00FF
+    beq ninguno                 ; ninguna fila de este mapa impone nada
+    ldy npc_total
+    bra siguiente
 otra:
-    cpy npc_total
-    beq listo
-    lda npc_buf + 14, y
+    lda npc_buf + 14, y         ; si está, y arriba lo que impone
+    cmp #$FF00
+    bcs siguiente               ; $FF: no impone nada
+    bit #$00FF
     beq siguiente               ; escondido: no está
-    lda npc_buf + 15, y
-    cmp #$FF
-    beq siguiente               ; no impone nada
     lda npc_buf + 8, y          ; su evento, y con él su celda
-    rep #$20
-.a16
     and #$00FF
     asl a
     asl a                       ; por EV_STRIDE
@@ -442,34 +443,22 @@ otra:
     tax
     lda ev_pos_buf, x
     cmp pasa_x
-    bne siguiente16
+    bne siguiente
     lda ev_pos_buf + 2, x
     cmp pasa_y
-    bne siguiente16
-    sep #$20
-.a8
-    lda npc_buf + 15, y
-    sta pasa_hallada            ; gana el último: el de id más alto
+    bne siguiente
+    lda npc_buf + 14, y
+    xba
+    and #$00FF                  ; los bits de paso que impone
+    rts
 siguiente:
-    rep #$20
-.a16
-siguiente16:
     tya
-    clc
-    adc #NPC_STRIDE
+    sec
+    sbc #NPC_STRIDE
     tay
-    sep #$20
-.a8
-    bra otra
-listo:
-    lda pasa_hallada
-    cmp #$FF
-    beq del_terreno
-    sta temp + 2                ; el byte alto quedó en cero de `pass_del_ptr`
-del_terreno:
-    rep #$20
-.a16
-    lda temp + 2
+    bpl otra
+ninguno:
+    lda temp + 2                ; ninguno: los del terreno
     rts
 .endproc
 
@@ -551,41 +540,82 @@ positivo:
     rts
 .endproc
 
-; El puntero a la celda (celda_x, celda_y) de la grilla. Se camina hasta ahí
-; sumando: una fila de bloques por cada fila que baja y después las columnas de
-; una vez.
+; El puntero a la celda (celda_x, celda_y) de la grilla.
 ;
 ; Está separado de `init_hero_ptr` porque ahora hay más de uno que camina: las
 ; rutas forzadas de los eventos consultan celdas que no son la del héroe, y
 ; tener la cuenta escrita dos veces es cómo se separan.
+;
+; El desplazamiento es `celda_y * tira_paso_col + celda_x * 2`, con el
+; multiplicador de la CPU —ocho por ocho bits, así que en tres productos: el
+; de los dos bytes bajos y los dos cruzados, que caen corridos un byte; el de
+; los dos altos cae fuera de los dieciséis— y no sumando una fila por cada
+; fila que baja, que es lo que hacía hasta el 2026-09-27: en la fila 26 eran
+; cuatro líneas por paso de cada evento que anda, y en la carrera arrancan
+; cinco pasos en el mismo cuadro. Ninguna interrupción usa el multiplicador:
+; ver el fundido de `irq_musica`.
+;
+; La grilla cabe en 64 KB y vive en la mitad alta de los dos bancos —ver
+; `ptr_mas`—, así que el desplazamiento entra en dieciséis bits y su bit 15
+; dice el banco: sin él, la mitad alta del $7E (se le prende el bit), y con
+; él la del $7F (ya lo tiene).
 .proc ptr_de_celda
 .a8
 .i16
+    lda celda_y
+    sta WRMPYA
+    lda tira_paso_col
+    sta WRMPYB                  ; ocho ciclos: los paga lo que sigue
     rep #$20
 .a16
-    lda #.loword(GRILLA)        ; en la WRAM: ver `lz2_grilla`
+    lda celda_x
+    asl a                       ; cada celda ocupa dos bytes
+    sta celdas_ptr
+    lda RDMPYL                  ; y bajo por paso bajo
+    clc
+    adc celdas_ptr
     sta celdas_ptr
     sep #$20
 .a8
+    lda tira_paso_col + 1
+    beq sin_paso_alto
+    sta WRMPYB                  ; y bajo por paso alto: WRMPYA sigue siendo y
+    nop
+    nop
+    nop
+    nop
+    lda RDMPYL
+    clc
+    adc celdas_ptr + 1
+    sta celdas_ptr + 1
+sin_paso_alto:
+    lda celda_y + 1
+    beq sin_y_alta
+    sta WRMPYA
+    lda tira_paso_col
+    sta WRMPYB                  ; y alto por paso bajo
+    nop
+    nop
+    nop
+    nop
+    lda RDMPYL
+    clc
+    adc celdas_ptr + 1
+    sta celdas_ptr + 1
+sin_y_alta:
+    lda celdas_ptr + 1
+    bmi alta
+    ora #>$8000
+    sta celdas_ptr + 1
     lda #^GRILLA
     sta celdas_ptr + 2
-    rep #$20
-.a16
-    ldx celda_y
-    beq sin_filas
-filas:
-    lda tira_paso_col
-    jsr ptr_mas
-    dex
-    bne filas
-sin_filas:
-    lda celda_x
-    asl a                       ; cada celda ocupa dos bytes
-    jsr ptr_mas
-    sep #$20
-.a8
+    rts
+alta:
+    lda #^GRILLA_ALTA
+    sta celdas_ptr + 2
     rts
 .endproc
+.assert .loword(GRILLA) = $8000 && .loword(GRILLA_ALTA) = $8000 && ^GRILLA_ALTA = ^GRILLA + 1, error, "ptr_de_celda arma el puntero con la grilla en las dos mitades altas"
 
 ; Dónde arranca el héroe dentro de la grilla.
 .proc init_hero_ptr

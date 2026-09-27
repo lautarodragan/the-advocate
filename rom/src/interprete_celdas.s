@@ -92,6 +92,14 @@ CELDA_VARIABLE = $01FF
 .proc celda_probar
 .a8
 .i16
+    jsr celda_probar_cerca
+    rtl
+.endproc
+
+; Lo mismo, para quien está en el banco 1: vuelve con `rts`.
+.proc celda_probar_cerca
+.a8
+.i16
     rep #$20
 .a16
     lda [cod_ptr], y            ; el blanco: 0 el héroe, o el evento más uno
@@ -121,6 +129,104 @@ escribir:
 listo:
     sep #$20
 .a8
+    rts
+.endproc
+
+; --- los paralelos que no pasan de su `OP_CELL_TEST` -------------------------
+;
+; `paralelos_tick` corre la lista de paralelos de a uno, y cada uno paga
+; buscar su estado, guardarlo y volver: casi una línea por página. Pero la
+; mayoría de los de la carrera —cuarenta por vuelta— empiezan con
+; `OP_CELL_TEST`, no están a mitad de nada, fallan la condición y terminan
+; ahí. Ésos se corren acá de corrido, desde `par_i`, hasta el primero que no
+; sea así; lo que hace cada uno es exactamente el atajo de `un_paralelo`: su
+; condición, y como lo que sigue es el `OP_DONE`, nada más.
+;
+; Para, sin haber tocado nada de ése, en el primero que:
+;   * no empiece con `OP_CELL_TEST`;
+;   * tenga el estado de otra página, una espera o la página a medio correr;
+;   * ande —tenga ranura de ruta—: su paso lo da `un_paralelo`;
+; y antes de empezar si hay un mensaje o una elección en pantalla, porque
+; entonces importa de quién es (ver `un_paralelo`). Vuelve con el acarreo en
+; 0 y `par_i` en ése, o en `par_n` si llegó al final.
+;
+; Si la condición de uno se cumple —o lo que sigue no es el `OP_DONE`— ya
+; corrió su primera instrucción, con lo que escribe: vuelve con el acarreo en
+; 1, Y en la siguiente y `cod_ptr`, `pag_ofs`, `par_dir` y `par_ev` puestos,
+; para que `un_paralelo_seguir` siga con su intérprete.
+.proc paralelos_celda
+.a8
+.i16
+    lda f:msg_abierto
+    ora f:msg_estado
+    ora eleg_activo
+    bne no
+otro:
+    lda par_i
+    cmp par_n
+    bcs no
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a                       ; por PAR_LISTA_BYTES
+    tax
+    lda f:FAR_LARGO + FAR_PAR_LISTA + 1, x
+    sta cod_ptr
+    sep #$20
+.a8
+    lda f:FAR_LARGO + FAR_PAR_LISTA + 3, x
+    sta cod_ptr + 2
+    lda [cod_ptr]               ; el primer opcode
+    cmp #OP_CELL_TEST
+    bne no
+    rep #$20
+.a16
+    lda f:FAR_LARGO + FAR_PAR_LISTA + 4, x
+    sta pag_ofs
+    lda f:FAR_LARGO + FAR_PAR_LISTA + 0, x
+    and #$00FF
+    asl a
+    asl a
+    asl a                       ; por PAR_BYTES
+    sta par_dir
+    tax
+    lda f:FAR_LARGO + FAR_PAR_ESTADO + 5, x
+    cmp pag_ofs
+    bne no16                    ; el estado es de otra página
+    lda f:FAR_LARGO + FAR_PAR_ESTADO + 2, x
+    bne no16                    ; esperando
+    sep #$20
+.a8
+    lda f:FAR_LARGO + FAR_PAR_ESTADO + 4, x
+    bne no                      ; a medio correr
+    lda f:FAR_LARGO + FAR_PAR_ESTADO + PAR_RANURA, x
+    bne no                      ; anda
+    ldy #1
+    jsr celda_probar_cerca
+    lda [cod_ptr], y
+    bne sigue                   ; no terminó en su `OP_DONE`
+    inc par_i
+    bra otro
+sigue:
+    rep #$20
+.a16
+    lda par_dir
+    lsr a
+    lsr a
+    lsr a
+    sep #$20
+.a8
+    sta par_ev
+    sec
+    rtl
+.a16
+no16:
+    sep #$20
+.a8
+no:
+    clc
     rtl
 .endproc
 

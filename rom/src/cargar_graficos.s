@@ -188,33 +188,12 @@
 .endproc
 
 ; --- OAM -------------------------------------------------------------------
-; Todos los objetos arrancan escondidos. Un objeto de 32 de alto en la fila 224
-; ocupa de la 224 a la 255, o sea entero fuera de las 224 que se ven, y sin
-; darle la vuelta al contador.
+; Todos los objetos arrancan escondidos: ver `oam_esconder`, que vive en el
+; banco 1.
 .proc clear_oam
 .a8
 .i16
-    ldx #$0000
-borrar:
-    lda #$E0
-    sta oam + 1, x              ; la Y de cada objeto
-    inx
-    inx
-    inx
-    inx
-    cpx #512
-    bne borrar
-
-    ; La tabla chica: dos bits por objeto, el alto dice si es grande. Sólo el
-    ; objeto 0 lo es; el resto quedan chicos y escondidos igual.
-    ldx #$0000
-chica:
-    stz oam_high, x
-    inx
-    cpx #32
-    bne chica
-    lda #$02
-    sta oam_high                ; objeto 0: tamaño grande
+    jsl f:oam_esconder + RAPIDO ; ver MEMSEL
     rts
 .endproc
 
@@ -493,6 +472,7 @@ copiar:
     iny
     bra copiar
 listo:
+    jsl f:pasa_mirar + RAPIDO   ; ver `pasa_hay`
     rts
 .endproc
 

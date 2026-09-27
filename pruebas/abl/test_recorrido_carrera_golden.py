@@ -37,7 +37,8 @@ se llega ahí lo juegan los recorridos de Lashe City, que terminan entrando al
 49 —ver `irse_lleva_a_la_carrera` en `test_recorrido_lashe_golden.py`—.
 
 Las capturas van a `pruebas/snapshots/playthrough/carrera-*/` y **no están
-bendecidas**: son para que taro las mire. Lo que cobra esta prueba es la RAM.
+bendecidas**: son para que taro las mire. Lo que cobra esta prueba es la RAM,
+y **cuántos cuadros pierde manejando** —el hito 2—: ver `CUADROS_DE_MAS`.
 """
 
 import datos
@@ -73,6 +74,21 @@ CARRILES = range(23, 29)
 ADELANTE = 7
 
 VARIABLE_DE_CHOQUES = 38
+
+# Cuántos cuadros de hardware de más se le aceptan a cada vuelta, por cada
+# cien ticks manejando: el hito 2 de la carrera, "a 60 cuadros". Hasta el
+# 2026-09-27 cada tick costaba dos cuadros —cuarenta páginas paralelas, las de
+# los autos, más el trabajo del cuadro—, o sea cien de más por cada cien, y
+# la carrera corría a media velocidad. Lo que queda son los cuadros en que
+# varios autos que andan arrancan su paso a la vez: ver
+# workflow/tasks/*/carrera-2-a-sesenta-cuadros.md, que dice cómo se midió.
+#
+# Cuenta sólo los ticks manejando de verdad: con el 170, sin mensaje ni
+# fundido, en el mismo mapa al empezar y al terminar, y con el auto ya fuera
+# de la largada. Antes de eso la vuelta pone su tema, y subir las muestras se
+# lleva sus cuadros sin que haya nada que manejar.
+CUADROS_DE_MAS = 5
+LA_LARGADA_X = 4
 
 
 def los_choques(p):
@@ -132,11 +148,15 @@ def largar(r):
     r.foto("la-largada", asentar=False)
 
 
-def manejar(r, mundo, hasta, tope=6000, sin_volante=False, choques=None):
+def manejar(r, mundo, hasta, tope=6000, sin_volante=False, choques=None,
+            cuadros=None):
     """Maneja hasta que `hasta(partida)`, con el piloto o —`sin_volante`— sin
     tocar nada. En el 50 pasa los mensajes con A y cuenta el choque en
     `choques`, si se le pasa una lista. Una elección abierta corta: es la del
-    compañero, y la contesta quien llamó."""
+    compañero, y la contesta quien llamó.
+
+    En `cuadros`, si se le pasa, anota por mapa [ticks, cuadros de hardware]
+    de los ticks manejando: ver `CUADROS_DE_MAS`."""
     p = r.p
     cache = {}
     gastado = 0
@@ -157,7 +177,16 @@ def manejar(r, mundo, hasta, tope=6000, sin_volante=False, choques=None):
             if m not in cache:
                 cache[m] = autos(mundo, m)
             tecla = None if sin_volante else piloto(p, cache[m])
+            manejando = (p.switch(CORRIENDO) and not p.byte("fundido")
+                         and not p.byte("msg_estado")
+                         and p.heroe()[0] >= LA_LARGADA_X)
+            hardware = p.hardware
             p.correr(1, sosteniendo=(tecla,) if tecla else ())
+            if (cuadros is not None and manejando and p.mapa() == m
+                    and p.switch(CORRIENDO) and not p.byte("fundido")):
+                cuenta = cuadros.setdefault(m, [0, 0])
+                cuenta[0] += p.cuadro - antes
+                cuenta[1] += p.hardware - hardware
         else:
             p.correr(4, apretar_a=(p.cuadro + 3,)
                      if p.byte("msg_abierto") else ())
@@ -165,13 +194,13 @@ def manejar(r, mundo, hasta, tope=6000, sin_volante=False, choques=None):
     return r
 
 
-def la_meta(r, mundo, vuelta, siguiente):
+def la_meta(r, mundo, vuelta, siguiente, cuadros=None):
     """Una vuelta entera, de la largada del mapa `vuelta` a `siguiente`. Si
     choca, el 50 la devuelve a la misma vuelta y se sigue manejando."""
     r.empezar("la vuelta del mapa %d" % vuelta)
     choques = []
     manejar(r, mundo, lambda p: p.mapa() == siguiente, tope=8000,
-            choques=choques)
+            choques=choques, cuadros=cuadros)
     r.asentar()
     return choques
 
@@ -220,9 +249,17 @@ def test_la_carrera_entera(recorrido, mundo):
     r = recorrido("carrera-entera", switch=[CON_ARDEN])
     largar(r)
     choques = []
+    cuadros = {}
     for vuelta, siguiente in zip(LAS_VUELTAS, LAS_VUELTAS[1:] + (EL_PUENTE_MAPA,)):
-        choques += la_meta(r, mundo, vuelta, siguiente)
+        choques += la_meta(r, mundo, vuelta, siguiente, cuadros)
         r.foto("llega-al-%d" % siguiente)
+    for vuelta in LAS_VUELTAS:
+        ticks, hardware = cuadros[vuelta]
+        assert (hardware - ticks) * 100 <= CUADROS_DE_MAS * ticks, (
+            "manejando, la vuelta del mapa %d gastó %d cuadros de hardware en "
+            "%d ticks: %d de más, y el tope es %d cada cien. Ver "
+            "`CUADROS_DE_MAS`." % (vuelta, hardware, ticks, hardware - ticks,
+                                   CUADROS_DE_MAS))
     assert r.p.switch(VUELTA_2) and r.p.switch(VUELTA_3) \
         and r.p.switch(EL_PUENTE), r.estado()
     assert len(choques) < 5, (

@@ -50,6 +50,7 @@
 puesta:
     lda temp
     sta ruta_ev + 0, x
+    jsl f:ranura_anotar + RAPIDO
     stz ruta_ev + 6, x
     stz ruta_ev + 7, x          ; sin paso en curso
     stz ruta_ev + 22, x

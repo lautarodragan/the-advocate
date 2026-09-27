@@ -460,6 +460,7 @@ nueva:
 :
     lda rp_ev
     sta ruta_ev + 0, x
+    jsl f:ranura_anotar + RAPIDO
     stz ruta_ev + 6, x
     stz ruta_ev + 7, x
     lda #RUTA_EV_SIN_MIRAR
@@ -944,32 +945,53 @@ hay:
 
     stz par_i
 lazo:
+    ; Primero los que se resuelven sin intérprete: `paralelos_celda`, en el
+    ; banco 1, corre de corrido los que empiezan con `OP_CELL_TEST` y no pasan
+    ; de ahí, y para en el primero que no es así. Con el acarreo en 1 paró en
+    ; uno cuya condición se cumplió: sigue desde Y, con su intérprete.
+    jsl f:paralelos_celda + RAPIDO  ; ver MEMSEL
+    bcc lento
+    jsr un_paralelo_seguir
+    bra siguiente
+lento:
     lda par_i
-    jsr par_lista_apuntar
-    lda WMDATA                  ; de qué evento es esta ranura
-    sta par_ev
-    lda WMDATA                  ; y su página, ya resuelta por el refresco:
-    sta cod_ptr                 ; derecho al cursor del intérprete, que es lo
-    lda WMDATA                  ; único que `un_paralelo` iba a hacer con ella
-    sta cod_ptr + 1
-    lda WMDATA
-    sta cod_ptr + 2
-    lda WMDATA
-    sta pag_ofs
-    lda WMDATA
-    sta pag_ofs + 1
+    cmp par_n
+    bcs listos
+    ; La entrada de la lista, con direccionamiento largo indexado y no por la
+    ; ventana de WMADD: apuntar el puerto costaba más que leer, y esto corre
+    ; por cada paralelo en cada cuadro —cuarenta y uno en cada vuelta de la
+    ; carrera—.
     rep #$20
 .a16
-    lda par_ev
+    lda par_i
     and #$00FF
+    asl a
+    asl a
+    asl a                       ; por PAR_LISTA_BYTES
     tax
+    lda f:FAR_LARGO + FAR_PAR_LISTA + 1, x
+    sta cod_ptr                 ; su página, ya resuelta por el refresco:
+    lda f:FAR_LARGO + FAR_PAR_LISTA + 4, x
+    sta pag_ofs                 ; derecho al cursor del intérprete, que es lo
+    lda f:FAR_LARGO + FAR_PAR_LISTA + 0, x
+    and #$00FF                  ; único que `un_paralelo` iba a hacer con ella
+    asl a
+    asl a
+    asl a                       ; por PAR_BYTES: dónde cae su estado
+    sta par_dir
     sep #$20
 .a8
+    lda f:FAR_LARGO + FAR_PAR_LISTA + 0, x
+    sta par_ev                  ; de qué evento es
+    lda f:FAR_LARGO + FAR_PAR_LISTA + 3, x
+    sta cod_ptr + 2
     jsr un_paralelo
+siguiente:
     inc par_i
     lda par_i
     cmp par_n
     bcc lazo
+listos:
 
     ; Fuera del lazo no hay paralelo, y eso es lo que `op_message` mira para
     ; saber si el mensaje que abre es de un paralelo o del primer plano.
@@ -995,8 +1017,8 @@ lazo:
     rts
 .endproc
 
-; Un cuadro del evento cuyo índice trae X, con `elegida` y `pag_ofs` ya puestos
-; por el lazo desde la lista de paralelos.
+; Un cuadro del evento `par_ev`, con `cod_ptr`, `pag_ofs` y `par_dir` —dónde
+; cae su estado— ya puestos por el lazo desde la lista de paralelos.
 ;
 ; Acá **no** se vuelve a elegir la página ni a leerla del cartucho. Era lo que
 ; costaba el cuadro en el HQ de los Lazer Teeth —once paralelos, y el décimo se
@@ -1026,111 +1048,109 @@ lazo:
     bne no_es_mio
     jmp dar_el_paso             ; `beq` no llega: el cuerpo está en el medio
 no_es_mio:
-    ; Dónde cae su estado: el evento por ocho.
+    ; Su estado, en `FAR_PAR_ESTADO` + `par_dir`, con direccionamiento largo
+    ; indexado: igual que la lista, y por lo mismo. Sólo se lee y se escribe
+    ; lo que hace falta: con una espera en curso cambia la espera y nada más.
     rep #$20
 .a16
-    txa
-    asl a
-    asl a
-    asl a                       ; por PAR_BYTES
-    clc
-    adc #FAR_PAR_ESTADO
-    sta par_dir
-    sta WMADDL
-    sep #$20
-.a8
-    stz WMADDH
-    lda WMDATA
-    sta ev_cur
-    lda WMDATA
-    sta ev_cur + 1
-    lda WMDATA
-    sta ev_esperando
-    lda WMDATA
-    sta ev_esperando + 1
-    lda WMDATA
-    sta ev_activo
-    lda WMDATA
-    sta temp + 2                ; de qué página era este estado
-    lda WMDATA
-    sta temp + 3
-
-    rep #$20
-.a16
-    lda temp + 2
-    cmp pag_ofs
-    beq misma_pagina
-    ; Otra página: otro intérprete, y su número queda anotado. Se escribe
-    ; **antes** de correr porque `correr_codigo` se lleva puesto a `temp`.
-    stz ev_cur
-    stz ev_esperando
-    lda par_dir
-    clc
-    adc #5
-    sta WMADDL
-    sep #$20
-.a8
-    stz WMADDH
-    stz ev_activo
-    rep #$20
-.a16
-    lda pag_ofs
-    sta temp + 2
-    sep #$20
-.a8
-    lda temp + 2
-    sta WMDATA
-    lda temp + 3
-    sta WMDATA
-    rep #$20
-.a16
-misma_pagina:
+    ldx par_dir
+    lda f:FAR_LARGO + FAR_PAR_ESTADO + 5, x
+    cmp pag_ofs                 ; de qué página era este estado
+    bne otra_pagina
     ; La espera, igual que la del primer plano.
-    lda ev_esperando
-    beq sin_espera
-    dec a
-    sta ev_esperando
+    lda f:FAR_LARGO + FAR_PAR_ESTADO + 2, x
+    bne esperando
     sep #$20
 .a8
-    jmp guardar                 ; este cuadro se le va esperando
+    lda f:FAR_LARGO + FAR_PAR_ESTADO + 4, x
+    beq empezar                 ; no venía corriendo
+    sta ev_activo               ; venía: sigue por donde quedó
+    rep #$20
 .a16
-sin_espera:
-    txa
-    sta ev_corriendo            ; de quién es la página, para un MoveEvent suyo
+    stz ev_esperando
+    lda f:FAR_LARGO + FAR_PAR_ESTADO + 0, x
+    sta ev_cur
     sep #$20
 .a8
-    lda ev_activo
-    bne corriendo
+    bra corriendo
+.a16
+esperando:
+    dec a
+    sta f:FAR_LARGO + FAR_PAR_ESTADO + 2, x
+    sep #$20
+.a8
+    ; Y si está corriendo, que es lo que mira su paso: una ruta propia no
+    ; lee órdenes nuevas con la página en curso (`cuadro_de_ruta_ev`).
+    lda f:FAR_LARGO + FAR_PAR_ESTADO + 4, x
+    sta ev_activo
+    jmp dar_el_paso             ; este cuadro se le va esperando
+.a16
+otra_pagina:
+    ; Otra página: otro intérprete, y su número queda anotado. RM2k lo rehace
+    ; en `Game_Event::Setup`, así que arranca de cero. La espera y si corría
+    ; se escriben ya, en cero, y no al guardar: el atajo de abajo no guarda.
+    lda pag_ofs
+    sta f:FAR_LARGO + FAR_PAR_ESTADO + 5, x
+    lda #0
+    sta f:FAR_LARGO + FAR_PAR_ESTADO + 2, x
+    sep #$20
+.a8
+    sta f:FAR_LARGO + FAR_PAR_ESTADO + 4, x
+empezar:
     ; No venía corriendo: la página vuelve a empezar. Es el `Push` que RPG_RT
     ; hace antes de cada `Update`, y por eso no se reinicia al terminar sino al
     ; cuadro siguiente.
+    ;
+    ; **El atajo de `OP_CELL_TEST`.** Una página que empieza con él —las de
+    ; los autos de la carrera, las luces del mapa 11— casi siempre falla la
+    ; condición y termina ahí mismo: su condición se evalúa acá, sin pasar por
+    ; `correr_codigo`, y si lo que sigue es el `OP_DONE` la página terminó y
+    ; su estado ya está como tiene que quedar —sin espera y sin correr—, así
+    ; que no se guarda. Es exactamente la primera vuelta del intérprete y la
+    ; segunda; si lo que sigue es otra cosa, el intérprete sigue desde ahí.
+    ; Son casi dos líneas de las 262 del cuadro por página: ver
+    ; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
+    lda [cod_ptr]               ; el primer opcode
+    cmp #OP_CELL_TEST
+    bne desde_cero
+    ldy #1
+    jsl f:celda_probar + RAPIDO   ; ver MEMSEL
+    lda [cod_ptr], y
+    bne seguir                  ; no es el OP_DONE
+    stz ev_activo               ; lo que haría `op_done`
+    jmp dar_el_paso
+desde_cero:
+    ldy #0
+::un_paralelo_seguir:
+seguir:
     rep #$20
 .a16
-    stz ev_cur
+    sty ev_cur
+    stz ev_esperando
     sep #$20
 .a8
     lda #1
     sta ev_activo
 corriendo:
-    jsr correr_codigo
-guardar:
     rep #$20
 .a16
-    lda par_dir
-    sta WMADDL
+    lda par_ev
+    and #$00FF
+    sta ev_corriendo            ; de quién es la página, para un MoveEvent suyo
     sep #$20
 .a8
-    stz WMADDH
+    jsr correr_codigo
+    rep #$20
+.a16
+    ldx par_dir
     lda ev_cur
-    sta WMDATA
-    lda ev_cur + 1
-    sta WMDATA
+    sta f:FAR_LARGO + FAR_PAR_ESTADO + 0, x
     lda ev_esperando
-    sta WMDATA
-    lda ev_esperando + 1
-    sta WMDATA
+    sta f:FAR_LARGO + FAR_PAR_ESTADO + 2, x
+    sep #$20
+.a8
     lda ev_activo
-    sta WMDATA
+    sta f:FAR_LARGO + FAR_PAR_ESTADO + 4, x
 
 dar_el_paso:
     ; Y el paso de **este** evento, acá mismo y no al final de la vuelta.
@@ -1143,10 +1163,26 @@ dar_el_paso:
     ; ahí es el `Car2`— y con los pasos todos al final el pisotón gana y el
     ; `Car2` no camina nunca. taro lo vio, y en EasyRPG y en el RPG Maker
     ; original los cuatro autos andan.
-    lda par_ev
-    jsr ranura_del_evento
-    cpx #$FFFF
+    ;
+    ; La ranura sale de la marca que deja `ranura_anotar`, y no de buscarla
+    ; con `ranura_del_evento`: la búsqueda recorría todas las ranuras usadas
+    ; por cada paralelo en cada cuadro, y en la carrera, con cinco autos que
+    ; andan y cuarenta paralelos, eran treinta líneas de las 262 del cuadro.
+    ldx par_dir
+    lda f:FAR_LARGO + FAR_PAR_ESTADO + PAR_RANURA, x
     beq sin_ranura
+    dec a
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; por RUTA_EV_STRIDE
+    tax
+    sep #$20
+.a8
     phx
     jsr cuadro_de_ruta_ev
     plx
@@ -1239,6 +1275,10 @@ sin_tocar_el_tile:
     sta npc_buf + 14, y
     lda pg_pasa
     sta npc_buf + 15, y
+    cmp #$FF
+    beq :+
+    sta pasa_hay                ; impone: `pasa_con_evento` tiene que mirar
+:
     ; La clave: la capa de la página, con la Y de la fila.
     rep #$20
 .a16
@@ -1634,26 +1674,45 @@ es_heroe:
 libre_cerca:
     jmp libre                   ; `libre` queda lejos para un salto corto
 recorrer:
-    ldx #$0000
-    ldy #$0000
-otro:
-    cpx ev_total
-    beq eventos_listos
+    ; De atrás para adelante y en dieciséis bits, con Y en la celda de cada
+    ; evento: la respuesta es un sí o un no, así que el orden no la cambia, y
+    ; así la vuelta es la mitad de larga. Corre en cada paso que empieza
+    ; —tres de éstas y de `pasa_con_evento` por paso—, y en la carrera, con
+    ; cuarenta autos, eran nueve líneas cada una: ver
+    ; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
     rep #$20
 .a16
+    lda ev_total
+    asl a
+    asl a                       ; por EV_STRIDE
+    tay
+    bra siguiente
+otro:
     lda ev_pos_buf, y
     cmp dest_x
-    bne siguiente
+    beq misma_x
+siguiente:
+    dey
+    dey
+    dey
+    dey                         ; EV_STRIDE
+    bpl otro
+    sep #$20
+.a8
+    bra eventos_listos
+.a16
+misma_x:
     lda ev_pos_buf + 2, y
     cmp dest_y
     bne siguiente
+    tya
+    lsr a
+    lsr a                       ; el índice cabe en un byte: EV_MAX es 128
     sep #$20
 .a8
-    txa                         ; el índice cabe en un byte: EV_MAX es 128
     cmp movil
     beq siguiente8              ; consigo mismo no
     sta otro_ev
-    phx
     phy
     jsr atraviesa_el_evento
     bne no_choca
@@ -1662,24 +1721,15 @@ otro:
     cmp movil_capa
     bne no_choca
     ply
-    plx
     lda #1
     rts
 no_choca:
     ply
-    plx
 siguiente8:
     rep #$20
-siguiente:
 .a16
-    tya
-    clc
-    adc #EV_STRIDE
-    tay
-    sep #$20
+    bra siguiente
 .a8
-    inx
-    bra otro
 eventos_listos:
     ; Y el héroe, cuando quien se mueve es un evento de su capa.
     lda movil

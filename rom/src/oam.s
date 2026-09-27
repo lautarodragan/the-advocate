@@ -42,19 +42,16 @@
                                 ; 120 de `Priority_PictureOld`
 
 recorrer:
-    rep #$20
-.a16
-    lda npc_ofs
-    cmp npc_total
-    sep #$20
-.a8
+    ; Cada fila, con X en ella. `place_hero` y `place_npc` pisan X, así que se
+    ; recarga de `npc_ofs` en cada vuelta.
+    ldx npc_ofs
+    cpx npc_total
     beq ultimos
 
     lda hero_drawn
     bne toca_npc
     ; ¿Va el héroe antes que este NPC? Sí si su clave es mayor o igual, porque
     ; la tabla va de mayor a menor.
-    ldx npc_ofs
     rep #$20
 .a16
     lda hero_key
@@ -66,9 +63,30 @@ recorrer:
     bra recorrer
 
 toca_npc:
-    ldx npc_ofs
     lda npc_buf + 14, x
     beq escondido               ; su página activa no dibuja nada
+    ; Lo que `emit_object` iba a descartar se descarta **acá**, con la misma
+    ; comparación y antes de armar el resto de la fila. Descarta lo mismo que
+    ; antes, objeto por objeto, así que la OAM sale idéntica; lo que cambia es
+    ; cuánto cuesta un NPC que no se ve. Un mapa como el 11 tiene cincuenta
+    ; filas dibujadas y treinta en pantalla, y las veinte de afuera pagaban la
+    ; Y, el salto y los dos bytes del tile para que `emit_object` las tirara.
+    ; La X va acá, en el lazo, y no en `place_npc`: la mitad sale por ella, y
+    ; así no paga ni el `jsr`. En la carrera son cuarenta autos y se ven diez.
+    rep #$20
+.a16
+    lda npc_buf + 0, x          ; su posición en el mapa
+    sec
+    sbc pantalla_x
+    sec
+    sbc #SPRITE_OFF_X
+    sta obj_x
+    clc
+    adc #32
+    cmp #(256 + 32)
+    sep #$20
+.a8
+    bcs escondido               ; `sep` no toca el acarreo
     jsr place_npc
 escondido:
     rep #$20
@@ -695,27 +713,11 @@ no:
 .proc place_npc
 .a8
 .i16
+    ; La X ya la puso —y la descartó si no se ve— el lazo de `build_oam`: ver
+    ; ahí. Queda la otra mitad del descarte, la Y.
     ldx npc_ofs
     rep #$20
 .a16
-    lda npc_buf + 0, x        ; su posición en el mapa
-    sec
-    sbc pantalla_x
-    sec
-    sbc #SPRITE_OFF_X
-    sta obj_x
-    ; Lo que `emit_object` iba a descartar se descarta **acá**, con la misma
-    ; comparación y antes de armar el resto de la fila. Descarta lo mismo que
-    ; antes, objeto por objeto, así que la OAM sale idéntica; lo que cambia es
-    ; cuánto cuesta un NPC que no se ve. Un mapa como el 11 tiene cincuenta
-    ; filas dibujadas y treinta en pantalla, y las veinte de afuera pagaban la
-    ; Y, el salto y los dos bytes del tile para que `emit_object` las tirara.
-    ; Va partido en dos —primero la X, después la Y— porque la mitad sale por
-    ; la primera y ésa no necesita leer nada más de la fila.
-    clc
-    adc #32
-    cmp #(256 + 32)
-    bcs fuera
     lda npc_buf + 2, x
     sec
     sbc camara_y
