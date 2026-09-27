@@ -62,10 +62,13 @@ inventario y las dos primeras páginas contra el modelo y los renglones de
 
 ## Qué tiene que mirar taro
 
-Ninguna pelea del juego que entra en `release` suelta ítems salvo las de
-las tropas 219 a 236 (las de los mapas de prueba); en Lashe City lo que se ve
-es **el oro**: después de cualquier pelea con enemigos que den oro, la
-primera página dice " You found NCr credits!" y el oro del menú sube eso.
+En Lashe City ningún enemigo suelta ítems —las tropas de `release` que
+sueltan son las de los encuentros de los mapas de prueba, que no se
+alcanzan jugando—, así que lo que se ve es **el oro**: después de cualquier
+pelea con enemigos que den oro, la primera página dice " You found NCr
+credits!" y el oro del menú sube eso. El droide del mapa 2 da cero y no lo
+dice, que es lo de RM2k (`if (money > 0)`). Los ítems en la página sólo se
+ven con el caso `pelea-222`.
 
 * Que la página del oro se lea bien y que la A la pase como antes.
 * Que el oro del menú después de pelear sea el de antes más lo que dijo la
