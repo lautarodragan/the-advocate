@@ -7300,7 +7300,10 @@ def main():
         json.dump({"temas": [
             {"nombre": t["nombre"],
              "largo": t["escrituras"][-1][0] + 1 if t["escrituras"] else 0,
-             "huella": t.get("huella", "")} for t in hechos]},
+             "huella": t.get("huella", ""),
+             # De acá la lee `tools/audio/msu.py`, que arma sólo las pistas
+             # de los temas del cartucho.
+             "pista": t["pista"]} for t in hechos]},
             handle, indent=1)
     efectos = getattr(banco, "efectos", {})
     paquetes = [(suyos, [efectos[n][0] for n in suyas if n in efectos], salida)
@@ -7441,7 +7444,7 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
     def musica_de(temas):
         suyas = set()
         for t in temas:
-            if hechos[t]["nombre"] not in snes_music.PISTAS_MSU:
+            if hechos[t]["pista"] is None:
                 if t not in pesa:
                     pesa[t] = snes_music.muestras_del_tema(hechos[t])
                 suyas |= set(pesa[t])

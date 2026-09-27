@@ -50,7 +50,7 @@ estado —el tema recordado— en la RAM lejana.
 9 del plan). Recomendado conservarlo: `RecallToLocation` hace falta igual.
 
 **`fm2bar_gs`**, el tema de Stash: sin muestras en el banco (suena con el 83% de
-las notas); le toca un número de `PISTAS_MSU`.
+las notas). La pista de MSU-1 la tiene sola: ver `pista_msu`.
 
 **El evento común 37, `UpdateAG7 Skills`**: es paralelo con el switch 150, y la
 ROM no corre eventos comunes paralelos. Sin él AG7 entra sin habilidades. Qué

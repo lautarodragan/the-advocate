@@ -12,12 +12,15 @@ es pedirle el MSU-1 a la de `release/`: si con él el audio no cambiara, que
 sin él sea igual a la referencia no probaría nada.
 """
 
+import glob
+import json
 import os
 import shutil
 from array import array
 
 from audio import snes_music
 from emulador import retro
+from render.render_map import GAME_DIR, find_resource
 
 import tanda
 from consola import (EMPEZAR, NUCLEO, TITULO_AIRE, Partida, en_la_rom,
@@ -29,6 +32,13 @@ from ensamblado import cartuchos
 CUADROS = 600
 
 
+def pistas_de(base):
+    """{número: ruta} de los `<base>-N.pcm` que hay al lado de la ROM."""
+    return {int(ruta[len(base) + 1:-len(".pcm")]): ruta
+            for ruta in glob.glob(glob.escape(base) + "-*.pcm")
+            if ruta[len(base) + 1:-len(".pcm")].isdigit()}
+
+
 def _con_msu(sfc):
     consola = retro.Consola(sfc, NUCLEO, msu=True)
     consola.correr(CUADROS)
@@ -38,7 +48,7 @@ def _con_msu(sfc):
 def test_las_pistas_de_release_no_llegan_al_core(tmp_path):
     sfc = tanda.cartucho(cartuchos.RELEASE).sfc
     base = os.path.splitext(sfc)[0]
-    assert os.path.exists(base + ".msu") and os.path.exists(base + "-1.pcm"), (
+    assert os.path.exists(base + ".msu") and pistas_de(base), (
         "a %s le faltan sus pistas de MSU-1, así que esta prueba no compara "
         "nada: las deja `just build release`" % os.path.dirname(sfc))
 
@@ -56,6 +66,55 @@ def test_las_pistas_de_release_no_llegan_al_core(tmp_path):
         "tanda está escuchando las pistas y no el SPC700. `retro.Consola` "
         "tiene que darle al core un directorio sin ellas"
         % os.path.dirname(sfc))
+
+
+# --- todo tema tiene su pista -----------------------------------------------
+#
+# Lo pidió taro el 2026-09-26: con MSU-1, **todos** los temas suenan desde su
+# pista. El número lo da `snes_music.pista_msu` y las pistas las arma
+# `tools/audio/msu.py` al lado de `release`; esto mira las tres cosas juntas
+# —el `musica.json` del conversor, la `tema_msu` de la ROM y los `.pcm`—,
+# porque cada una por separado puede estar bien y no coincidir con las otras.
+
+
+def test_todo_tema_tiene_su_pista():
+    uno = tanda.cartucho(cartuchos.RELEASE)
+    base = os.path.splitext(uno.sfc)[0]
+    with open(os.path.join(os.path.dirname(uno.sfc), "musica.json"),
+              encoding="utf-8") as archivo:
+        temas = json.load(archivo)["temas"]
+    with open(uno.sfc, "rb") as archivo:
+        rom = archivo.read()
+    tabla = en_la_rom(uno.simbolos["tema_msu"])
+    hay = pistas_de(base)
+    sin, mal, faltan = [], [], []
+    for i, tema in enumerate(temas):
+        # "(OFF)", o un nombre que no está en Music/: no hay de dónde sacar
+        # la pista, y el tema no suena ni por el SPC700.
+        if not find_resource([GAME_DIR], "Music", tema["nombre"],
+                             snes_music.MUSICA_DE_PISTA):
+            continue
+        numero = tema.get("pista")
+        if not numero:
+            sin.append(tema["nombre"])
+        elif rom[tabla + i] != numero:
+            mal.append("%s (%d en la ROM, %d en musica.json)"
+                       % (tema["nombre"], rom[tabla + i], numero))
+        elif numero not in hay:
+            faltan.append("%s-%d.pcm (%s)" % (base, numero, tema["nombre"]))
+    assert not sin, "estos temas entraron en el cartucho sin pista: %s" % sin
+    assert not mal, "la `tema_msu` de la ROM no es la del conversor: %s" % mal
+    assert not faltan, (
+        "faltan las pistas %s: las arma `just build release`, ver "
+        "tools/audio/msu.py" % ", ".join(faltan))
+    for numero, ruta in sorted(hay.items()):
+        with open(ruta, "rb") as archivo:
+            assert archivo.read(4) == b"MSU1", "%s no es una pista" % ruta
+    # Y al revés: una que no es de ningún tema la copiaría `just entregar`.
+    sobran = sorted(set(hay) - {t.get("pista") for t in temas})
+    assert not sobran, (
+        "las pistas %s no son de ningún tema del cartucho: `msu.armar` tenía "
+        "que borrarlas" % sobran)
 
 
 # --- con MSU-1, el paquete no sube las muestras de los temas con pista -------
@@ -98,7 +157,7 @@ def _con_pistas(tmp_path, sin_pista=(), sin_tema_msu=(), caso=ARRANQUE,
     # `indice_del_tema` lee los nombres de al lado del `.sfc`.
     os.symlink(os.path.join(os.path.dirname(uno.sfc), "musicdata.inc"),
                os.path.join(directorio, "musicdata.inc"))
-    for numero in set(snes_music.PISTAS_MSU.values()) - faltan:
+    for numero in set(pistas_de(base)) - faltan:
         os.symlink("%s-%d.pcm" % (base, numero), "%s-%d.pcm" % (otra, numero))
     k = 0 if caso is None else uno.casos.index(caso)
     return Partida(sfc, uno.simbolos, uno.mapas, caso=k,
