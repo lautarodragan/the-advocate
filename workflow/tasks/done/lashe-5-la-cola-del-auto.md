@@ -99,3 +99,10 @@ con Saldra, los guardias del 33; sin compañero, Stash, la planta y AG7. Antes
 de cumplir la condición, volver al auto no tiene que preguntar nada; después,
 "Stay" una vez (se vuelve a preguntar la próxima) y "get out": el cartel del
 fin de la demo y el título.
+
+# Probado
+
+taro, el 2026-09-27, en la SNES con el FX Pak: anduvo todo, incluido el camino
+de vender el Idol, sobornar al guardia y llevar a AG7; la carrera sin lag ni
+bugs (el compañero al volante, también). Queda aparte el héroe negro después
+de cambiar de gráfico en el mismo mapa (HQ de Lazer Teeth, Boss Wick).

@@ -181,3 +181,10 @@ La escena de Wick entera y las dos ramas del favor; el mosaico al saltar
 dentro de los vidcasts (con el héroe nítido encima); la entrada a los vidcasts
 con fundido donde el original hace zoom; el video de seguridad sin el "REC"; y
 cómo suenan `Kfmus5` y `tsmedit` con y sin MSU-1.
+
+# Probado
+
+taro, el 2026-09-27, en la SNES con el FX Pak: anduvo todo, incluido el camino
+de vender el Idol, sobornar al guardia y llevar a AG7; la carrera sin lag ni
+bugs (el compañero al volante, también). Queda aparte el héroe negro después
+de cambiar de gráfico en el mismo mapa (HQ de Lazer Teeth, Boss Wick).

@@ -156,3 +156,10 @@ guardias del Sector 33, la tienda del 56 y el pad de Talan. Los NPCs con
 paleta prestada del 37 —las dos puertas de tile y la gente que aparece con el
 161— se ven con colores de otro. El cartel del fin de la demo. Y cómo suena
 `vswar` (la escena del HQ y los guardias) sin MSU-1, que es el que más bajó.
+
+# Probado
+
+taro, el 2026-09-27, en la SNES con el FX Pak: anduvo todo, incluido el camino
+de vender el Idol, sobornar al guardia y llevar a AG7; la carrera sin lag ni
+bugs (el compañero al volante, también). Queda aparte el héroe negro después
+de cambiar de gráfico en el mismo mapa (HQ de Lazer Teeth, Boss Wick).

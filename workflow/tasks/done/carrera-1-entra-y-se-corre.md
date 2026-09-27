@@ -149,3 +149,10 @@ número.
 * El puente (el salto va sin sus sonidos: hito 3), el premio y la despedida,
   con cada compañero —los textos del 53 y del 64 cambian con cada uno—, hasta
   el cartel del fin y el título.
+
+# Probado
+
+taro, el 2026-09-27, en la SNES con el FX Pak: anduvo todo, incluido el camino
+de vender el Idol, sobornar al guardia y llevar a AG7; la carrera sin lag ni
+bugs (el compañero al volante, también). Queda aparte el héroe negro después
+de cambiar de gráfico en el mismo mapa (HQ de Lazer Teeth, Boss Wick).

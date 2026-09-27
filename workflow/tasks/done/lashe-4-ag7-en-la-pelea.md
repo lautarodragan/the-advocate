@@ -135,3 +135,10 @@ nada—, así que tiene la ArmCannon y nada más. Lo que hay:
 
 Las de a muchos (BombsAway, TillTheyGlow) y las piezas que cambian la
 habilidad sólo se pueden ver hoy en las pruebas.
+
+# Probado
+
+taro, el 2026-09-27, en la SNES con el FX Pak: anduvo todo, incluido el camino
+de vender el Idol, sobornar al guardia y llevar a AG7; la carrera sin lag ni
+bugs (el compañero al volante, también). Queda aparte el héroe negro después
+de cambiar de gráfico en el mismo mapa (HQ de Lazer Teeth, Boss Wick).

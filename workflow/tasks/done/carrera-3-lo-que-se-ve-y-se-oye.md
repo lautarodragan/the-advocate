@@ -149,3 +149,10 @@ merge con `main`.
   de un borde): que suene entero y no tartamudee.
 * Donde se pueda llegar, los mapas que ganaron efectos: 33 (Blow1 y Blow6),
   21, 28, 60 a 62, 13.
+
+# Probado
+
+taro, el 2026-09-27, en la SNES con el FX Pak: anduvo todo, incluido el camino
+de vender el Idol, sobornar al guardia y llevar a AG7; la carrera sin lag ni
+bugs (el compañero al volante, también). Queda aparte el héroe negro después
+de cambiar de gráfico en el mismo mapa (HQ de Lazer Teeth, Boss Wick).

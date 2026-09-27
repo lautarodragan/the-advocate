@@ -130,3 +130,10 @@ chip, el túnel, el tutorial —el droide en la pantalla negra y el tema que
 sigue sin cortarse— y AG7 en el grupo desde el menú de pausa. Pelear en la
 planta con AG7: sin habilidades, y los enemigos sin la suya. Y que una partida
 de un build anterior no carga.
+
+# Probado
+
+taro, el 2026-09-27, en la SNES con el FX Pak: anduvo todo, incluido el camino
+de vender el Idol, sobornar al guardia y llevar a AG7; la carrera sin lag ni
+bugs (el compañero al volante, también). Queda aparte el héroe negro después
+de cambiar de gráfico en el mismo mapa (HQ de Lazer Teeth, Boss Wick).
