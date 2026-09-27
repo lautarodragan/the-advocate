@@ -2,14 +2,14 @@
 .a8
 .i16
 
-; --- el intérprete: las variables ------------------------------------------
+; --- el intérprete: los switches y las variables ---------------------------
 ;
 ; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
 ; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
 ; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
 ;
-; Los switches están en interprete_permisos_saltos_y_switches.s y el
-; cronómetro en interprete_cronometro.s.
+; El cronómetro está en interprete_cronometro.s, y las condiciones sobre una
+; variable en interprete_condiciones.s.
 
 ; `ControlVars`, de a una variable: ranura, operación, clase del operando, y
 ; a y b de dieciséis bits. Ver OP_VAR en eventos.py. Dieciséis bits con signo,
@@ -222,63 +222,21 @@ var_personaje_listo:
 
 .endproc
 
-; `ConditionalBranch` por variable: ranura, clase del valor, comparación, el
-; valor de dieciséis bits y el destino si no se cumple. La comparación es con
-; signo: después de restar, "menor" es N distinto de V.
-.proc op_if_var
-.a8
-.i16
-    lda [cod_ptr], y
-    sta temp                    ; la ranura
-    iny
-    lda [cod_ptr], y
-    sta temp + 1                ; la clase: constante u otra variable
-    iny
-    lda [cod_ptr], y            ; la comparación
-    pha
-    iny
+.proc op_switch
     rep #$20
 .a16
-    lda [cod_ptr], y            ; el valor, o la ranura
-    sta temp + 2
+    lda [cod_ptr], y            ; el número, de 16 bits
+    sta temp
     sep #$20
 .a8
     iny
-    iny                         ; Y -> el destino
-    lda temp + 1
-    beq si_var_contra_constante
-    lda temp + 2
+    iny
+    lda [cod_ptr], y            ; y si va encendido o apagado
+    iny
     phy
-    jsr var_leer
-.a16
+    jsr poner_switch
     ply
-    sta temp + 2
-    sep #$20
-.a8
-si_var_contra_constante:
-    pla                         ; la comparación
-    sta temp + 1
-    lda temp
-    phy
-    jsr var_leer                ; A = la variable, de dieciséis
-.a16
-    jsr comparar_var
-.a8
-    ply
-    cmp #0                      ; lo que dijo `comparar_var`, que `ply` pisó
-                                ; con el cursor: ver `tema_asegurar`
-    bne si_var_sigue
-    rep #$20
-.a16
-    lda [cod_ptr], y            ; no se cumple: al destino
-    tay
-    sep #$20
-.a8
-    jmp correr_codigo::otro
-si_var_sigue:
-    iny
-    iny
-    jmp correr_codigo::otro
+    jmp correr_codigo::otro     ; `bra` no llega: el lazo quedó lejos
 
 .endproc
 
