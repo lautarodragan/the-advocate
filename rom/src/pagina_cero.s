@@ -153,14 +153,22 @@ saltos_restantes: .res 1 ; cuántas cadenas de teletransporte quedan permitidas
 ; o sea los que ocurren sin que el jugador recupere el control: dos mapas que se
 ; apuntan entre sí se colgarían para siempre. No cuenta los de una partida, que
 ; son todos los que quieran ser. Ver dónde se repone, en `eventos_tick`.
-SALTOS_MAX = 8
+;
+; Fue 8 hasta el 2026-09-27, y la guarida de Boss Wick lo desmintió: de la
+; puerta del vecino en el 37 hasta volver ahí son doce saltos entre mapas sin
+; que el jugador toque el pad —el 41, el 40, los vidcasts, el video, el 40 otra
+; vez, el 43, el 42, el favor, el 41 y el 37—, y con 8 la ROM entraba en pánico
+; a mitad del segundo paso por el 43. 32 deja margen para otra escena así y
+; sigue cortando un par de mapas que se apuntan entre sí, sólo que medio
+; minuto más tarde.
+SALTOS_MAX = 32
 ; Y qué pasa cuando se acaba. **No se descarta el salto**: se para todo y se
 ; avisa. Descartarlo en silencio fue lo que escondió el bug de arriba durante
 ; semanas —la partida seguía andando, sólo que en el mapa equivocado— y es
 ; exactamente la falla que el CLAUDE.md llama "un camino que ninguna prueba
-; ejecuta". Un tope que se alcanza es siempre un error nuestro: la única manera
-; legítima de encadenar nueve teletransportes sin devolver el control es que dos
-; mapas se apunten entre sí, y eso en RM2k cuelga el juego.
+; ejecuta". Un tope que se alcanza es un error nuestro o del juego: o el tope
+; quedó corto para una escena de verdad —como pasó con la de Wick—, o dos
+; mapas se apuntan entre sí, y eso en RM2k cuelga el juego.
 ;
 ; `panico` es el código de lo que pasó, cero mientras no pase nada. Lo lee la
 ; prueba de estado; en la consola lo que se ve es la pantalla parpadeando, que
