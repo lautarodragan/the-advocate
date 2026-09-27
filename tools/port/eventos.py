@@ -3752,16 +3752,22 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # vacío es "(OFF)": no toca nada.
         if temas is None or not cmd.string or len(p) < 3:
             return b""
-        # Y el trueno del mapa 1, entero: es otra muestra, con su propio
-        # nombre, para que el mapa 3 —que también lo pide— siga con la de
-        # siempre. Ver `SE_ENTEROS` en snes_music.py.
+        # Y los que en un mapa suenan con otra muestra —el trueno entero del
+        # mapa 1, los del mapa 3 a menos tasa—: otro nombre para la misma
+        # WAV, para que los demás mapas sigan con la suya. Ver `SE_DEL_MAPA`
+        # en snes_music.py.
+        from audio.snes_music import SE_DEL_MAPA
         nombre = cmd.string
-        if nombre == "Thunder9" and temas.mapa is not None:
-            try:
-                if temas.mapa == indice_de_mapa(1):
-                    nombre = "Thunder9@entero"
-            except Exception:
-                pass
+        if temas.mapa is not None:
+            for (base, mapa), alias in SE_DEL_MAPA.items():
+                if nombre != base:
+                    continue
+                try:
+                    if temas.mapa == indice_de_mapa(mapa):
+                        nombre = alias
+                        break
+                except Exception:
+                    pass
         k = temas.sonido(nombre, p[0], p[1], p[2])
         return bytes([OP_SOUND, k & 0xFF, k >> 8])
 

@@ -268,7 +268,7 @@ filas de 1 + 2 y 1 + 3. En el cartucho unido, el 1 con diccionario son unos
   importa: es resolución que se le podría devolver a otra muestra.
 * **Efectos: 92, 211.509 B.** 50 están en el tope, 2.529 B —0,75 s a 6 kHz,
   `SE_MAX_SEGUNDOS` y `SE_TASA`—, y el trueno entero de la apertura son 23.760
-  (`el-trueno-va-entero-a-22-khz.md`). Todos entran en el paquete de algún
+  (`el-trueno-va-entero-y-paga-la-lluvia.md`). Todos entran en el paquete de algún
   mapa, así que no hay ninguno muerto. `efectos-de-sonido-sin-recortes.md`
   quiere levantar esos topes, y eso lo va a hacer **crecer**.
 * **Nada obvio que comprimir**: BRR ya es 9 bytes por cada 16 muestras, y zlib
