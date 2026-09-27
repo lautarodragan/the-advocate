@@ -374,6 +374,24 @@ Lo que hay que repartir si van en paralelo: el reparto de VRAM nuevo va
 conviene el mismo agente o uno detrás del otro; un opcode para
 `ChangeEncounterSteps` en `tools/protocol/events.toml`, el del 2.
 
+# Lo que taro contestó (2026-09-27)
+
+1. **La demo termina donde llegue cada hito**, con el final del capítulo (66
+   ev18) como meta.
+2. **Lo opcional va detrás del hito de espacio**, Tangle último.
+3. **El cartel "Meanwhile in Lashe City"**: un fork del 81 con un
+   `ShowMessage`, como el de la carrera.
+4. **El contador de Fortitude**: deuda, en
+   `todo/el-contador-de-fortitude-no-se-ve.md`.
+5. **La regla de mapas**: le da igual cualquiera de las dos; queda por id,
+   como se decidió en la carrera.
+6. **Los fondos de batalla**: todos van al `.msu`, estén o no en el
+   cartucho, y las peleas cuyo fondo no entra en la ROM comparten uno de los
+   que ya hay, en baja calidad, en vez de salir en negro. Es su propia tarea:
+   `todo/todos-los-fondos-en-el-msu-1.md`.
+7. **El cartucho**: exprimir primero. taro: "a este ritmo, ni 6 MB ni 8 MB
+   nos van a permitir cubrir todo el juego".
+
 # Preguntas para taro
 
 1. **Dónde termina la demo**: (a) al final del capítulo, en el `ShowChoice` del
