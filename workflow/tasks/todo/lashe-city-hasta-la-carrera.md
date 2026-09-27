@@ -384,6 +384,13 @@ del 37 al 41 y del 48 al 57, y los paquetes de audio que trajo el 38 —ver ahí
 del 40 al 45 en `release`, `ChangeScreenTransitions` con el mosaico, y el tope
 de teletransportes encadenados subido de 8 a 32, que la escena de Wick pasaba.
 
+**El 3 está hecho** (2026-09-27, `testing/lashe-3-la-planta-y-el-droide.md`):
+57, 59 a 63 y 164 en `release`, `RecallToLocation`/`MemorizeLocation` y el
+tema recordado, y AG7-17 entra al grupo. De paso la ranura de variable pasó a
+ocho bits (las del juego ya no entraban en siete). Lo que deja para el 4: AG7
+entra **sin habilidades** (el evento común 37 no corre) y los enemigos de la
+planta pelean sólo con el ataque.
+
     0  el arnés elige la opción N          chico, en paralelo con el 1
     1  los cuatro sectores con auto        bloquea a todos los demás
     2  Boss Wick y los vidcasts            en paralelo con el 3, después del 1
