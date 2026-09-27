@@ -145,8 +145,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_tropa.py`: las páginas de tropa
 * `rpgmaker/test_experiencia_dibujo.py`: la experiencia y el nivel, en la RAM
   y en el menú
-* `rpgmaker/test_victoria.py`: lo que la victoria cuenta —la experiencia y
-  una página por cada actor que subió—, leído del tilemap
+* `rpgmaker/test_victoria.py`: lo que la victoria da y cuenta —la
+  experiencia, el oro, los ítems que soltaron los enemigos y una página por
+  cada actor que subió—, leído del tilemap
 * `rpgmaker/test_game_over.py`: perder una pelea sin manejador
 
 **El título y guardar**

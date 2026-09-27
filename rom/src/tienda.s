@@ -880,38 +880,7 @@ suma:
     rts
 vender:
     ; --- vender: el oro sube, topado en ORO_MAX, y los ítems bajan ---
-    rep #$20
-.a16
-    lda oro
-    clc
-    adc comp_or01
-    sta oro
-    sep #$20
-.a8
-    lda oro + 2
-    adc comp_or01 + 2
-    sta oro + 2
-    cmp #^ORO_MAX
-    bcc resta
-    bne tope
-    rep #$20
-.a16
-    lda oro
-    cmp #.loword(ORO_MAX)
-    sep #$20
-.a8
-    bcc resta
-    beq resta
-tope:
-    rep #$20
-.a16
-    lda #.loword(ORO_MAX)
-    sta oro
-    sep #$20
-.a8
-    lda #^ORO_MAX
-    sta oro + 2
-resta:
+    jsr oro_sumar
     lda comp_color
     rep #$20
 .a16
@@ -927,6 +896,47 @@ quita:
     plx
     dex
     bne quita
+    rts
+.endproc
+
+; `oro` más los 24 bits de `comp_or01`, topado en ORO_MAX: la mitad de
+; `Game_Party::GainGold` que suma. La usan la venta de la tienda y la victoria
+; —`ba_vic_empezar`—; `op_gold` tiene la suya porque vive en el banco 0.
+.proc oro_sumar
+.a8
+.i16
+    rep #$20
+.a16
+    lda oro
+    clc
+    adc comp_or01
+    sta oro
+    sep #$20
+.a8
+    lda oro + 2
+    adc comp_or01 + 2
+    sta oro + 2
+    cmp #^ORO_MAX
+    bcc listo
+    bne tope
+    rep #$20
+.a16
+    lda oro
+    cmp #.loword(ORO_MAX)
+    sep #$20
+.a8
+    bcc listo
+    beq listo
+tope:
+    rep #$20
+.a16
+    lda #.loword(ORO_MAX)
+    sta oro
+    sep #$20
+.a8
+    lda #^ORO_MAX
+    sta oro + 2
+listo:
     rts
 .endproc
 

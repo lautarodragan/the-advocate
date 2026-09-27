@@ -666,6 +666,18 @@ BA_VIC_MAS    = BA_VIC + 7      ; si quedaron habilidades para otra página
 BA_VIC_FIN    = BA_VIC + 8
 .assert BA_VIC_FIN <= $7820, error, "lo de la victoria se sale de su lugar"
 
+; --- lo que soltaron los enemigos --------------------------------------------
+;
+; $7E79E0 a $7E79FF, reservado el 2026-09-27: los ítems que ganó la victoria,
+; para que su página los cuente. Como `BA_VIC`, con dirección de dieciséis
+; bits, y los escribe `ba_vic_botin` al ganar antes de que nadie los lea.
+BA_BOTIN      = $79E0
+BA_BOTIN_N    = BA_BOTIN + 0    ; cuántos
+BA_BOTIN_K    = BA_BOTIN + 1    ; el `k` de cada uno, en el orden de la tropa:
+                                ; su nombre es el texto `3k`
+BA_BOTIN_FIN  = BA_BOTIN_K + BA_ENEMIGOS_MAX
+.assert BA_BOTIN_FIN <= $7A00, error, "lo que soltaron los enemigos se sale de su lugar"
+
 ; --- las pistas de MSU-1 que faltaron ----------------------------------------
 ;
 ; $7E7820 a $7E782F, reservado el 2026-09-26: un bit por tema, prendido cuando

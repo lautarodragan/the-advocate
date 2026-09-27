@@ -1,7 +1,9 @@
-"""Lo que la victoria cuenta: "N EXP" y una página por cada actor que subió.
+"""Lo que la victoria da y cuenta: "N EXP", el oro, los ítems y una página por
+cada actor que subió.
 
-`ProcessSceneActionVictory` de `Scene_Battle_Rpg2k`: la primera página es el
-término de la victoria y la experiencia ganada, y después cada actor que subió
+`ProcessSceneActionVictory` de `Scene_Battle_Rpg2k`: el primer mensaje es el
+término de la victoria, la experiencia, el oro y un renglón por ítem que
+soltaron los enemigos, de a cuatro renglones por página; después cada actor que subió
 de nivel tiene la suya, con "<nombre> LEVEL <n> achieved!" y una línea por
 habilidad aprendida. Acá van en los cuatro renglones del grupo —ver
 `batalla_victoria.s`—.
@@ -14,6 +16,7 @@ renglones esperados salen de `pantallas.renglon_de_*`, que es el armado de
 niveles y las habilidades salen de `experiencia.sumar` y del LDB, no de acá.
 """
 
+from port import batalla as modelo
 from port import experiencia
 from port import pantallas
 from port import titulo
@@ -202,3 +205,131 @@ def test_las_habilidades_que_no_entran_siguen_en_otra_pagina(partida):
     assert pelea.hp_del_combatiente(0) > 0, "Arden tiene que quedar en pie"
     assert paginas(una, pelea) == [
         primera_pagina(term, ganada), esperada[:4], esperada[4:]]
+
+
+# --- el oro y los ítems -------------------------------------------------------
+#
+# Tres Crazed Marauder, que dan 95 de oro cada uno y sueltan una Healing
+# Draught-HP con chance 35: tres tiros de botín, uno por enemigo. **La semilla
+# la elige el modelo**: se escribe en `BA_SEM` al abrir la pelea, y es la
+# primera con la que `batalla.Batalla` gana sin que caiga nadie y alguno suelta
+# su ítem y otro no. Así la prueba pasa por los dos lados del tiro y no depende
+# de que la semilla de fábrica caiga en uno. Los tres enemigos arrancan con 1
+# HP, en la ROM y en el modelo, para que la pelea dure lo que dura un golpe.
+
+TROPA_MERODEADORES = 222
+MERODEADOR = 144
+HEALING_DRAUGHT = 257
+
+
+def modelo_de_los_merodeadores(base, semilla):
+    esperado = modelo.Batalla(
+        [modelo.actor_de(base, a) for a in GRUPO],
+        [modelo.enemigo_de(base, e, n)
+         for n, e in enumerate(base.troops[TROPA_MERODEADORES].members)],
+        semilla)
+    for enemigo in esperado.enemigos:
+        enemigo.hp = 1
+    return esperado
+
+
+def jugar_el_modelo(esperado, tope=10):
+    for _ in range(tope):
+        vivos = len(esperado.vivos(esperado.actores))
+        if esperado.jugar_turno([(modelo.ORDEN_ATACAR, 0)] * vivos) is not None:
+            return esperado
+    return esperado
+
+
+def semilla_con_botin_a_medias(base):
+    """La primera semilla con la que el grupo gana entero y los tres tiros no
+    salen todos iguales."""
+    for semilla in range(1, 4000):
+        esperado = jugar_el_modelo(modelo_de_los_merodeadores(base, semilla))
+        if (esperado.resultado == modelo.VICTORIA
+                and len(esperado.vivos(esperado.actores)) == len(GRUPO)
+                and 0 < len(esperado.botin) < 3):
+            return semilla, esperado
+    raise AssertionError("ninguna semilla deja el botín a medias")
+
+
+def test_la_tropa_del_botin_es_la_que_se_espera():
+    """Lo que las pruebas de abajo suponen del LDB."""
+    base = datos.base()
+    assert base.troops[TROPA_MERODEADORES].members == [MERODEADOR] * 3
+    e = base.enemies[MERODEADOR]
+    assert (e.gold, e.drop_id, e.drop_prob) == (95, HEALING_DRAUGHT, 35)
+    assert modelo.oro_de_la_tropa(base, TROPA_MERODEADORES) == 285
+
+
+def a_los_merodeadores(partida, semilla, tope=600):
+    """La página del caso hasta que abre la pelea, y en el primer pedido de
+    órdenes la semilla y el 1 HP de cada enemigo."""
+    una = partida(caso="pelea-222")
+    for _ in range(tope):
+        una.consola.correr(1)
+        if una.menu_abierto():
+            break
+    else:
+        raise AssertionError("la página no abrió la pelea")
+    pelea = Pelea(una).esperar("ORDEN")
+    una.consola.escribir_ram(una.simbolos["BA_SEM"],
+                             [semilla & 0xFF, semilla >> 8])
+    g = una.simbolos["BA_GRUPO_MAX"]
+    for k in range(3):
+        una.consola.escribir_ram(
+            una.simbolos["BA_UNO"] + (g + k) * una.simbolos["BA_BYTES"],
+            [1, 0])
+    return una, pelea
+
+
+def test_la_victoria_da_el_oro_y_los_items_y_los_cuenta(partida):
+    """`ProcessSceneActionVictory`: el oro de los tres va al grupo, cada ítem
+    que salió suma uno, y la primera página del mensaje —la victoria, la
+    experiencia y el oro— sigue en otra con un renglón por ítem, en el orden
+    de la tropa. El número de ítems y cuáles lo dice el modelo, que tira el
+    botín con el mismo azar después del último golpe."""
+    base = datos.base()
+    term = pantallas.terminos_batalla(base)
+    semilla, esperado = semilla_con_botin_a_medias(base)
+    una, pelea = a_los_merodeadores(partida, semilla)
+    oro_antes = una.oro()
+    items_antes = una.item(HEALING_DRAUGHT)
+    for _ in range(10):
+        if pelea.modo() == "FIN":
+            break
+        vivos = sum(1 for k in range(len(GRUPO))
+                    if pelea.hp_del_combatiente(k) > 0)
+        pelea.turno(vivos)
+    assert pelea.modo() == "FIN"
+    assert pelea.byte("BA_RESULT") == modelo.VICTORIA
+    assert una.oro() == oro_antes + 285
+    assert una.item(HEALING_DRAUGHT) == items_antes + len(esperado.botin), \
+        "el modelo soltó %d ítems con la semilla %d" % (len(esperado.botin),
+                                                        semilla)
+    ganada = experiencia.exp_de_la_tropa(base, TROPA_MERODEADORES)
+    vistas = paginas(una, pelea)
+    assert vistas[:2] == [
+        primera_pagina(term, ganada) + [pantallas.renglon_de_oro(term, 285)],
+        [pantallas.renglon_de_item(term, base.items[i].name)
+         for i in esperado.botin],
+    ]
+
+
+def test_el_item_que_sale_no_pasa_del_tope(partida):
+    """`Game_Party::AddItem` topa en 99: con 99 en el inventario el ítem se
+    cuenta en la página igual, y el inventario queda en 99."""
+    base = datos.base()
+    semilla, esperado = semilla_con_botin_a_medias(base)
+    una, pelea = a_los_merodeadores(partida, semilla)
+    tope = una.simbolos["ITEM_MAX"]
+    una.consola.escribir_ram(una.simbolos["FAR_ITEMS"] + HEALING_DRAUGHT,
+                             [tope])
+    for _ in range(10):
+        if pelea.modo() == "FIN":
+            break
+        pelea.turno(len(GRUPO))
+    assert pelea.modo() == "FIN"
+    assert esperado.botin
+    assert una.item(HEALING_DRAUGHT) == tope
+    assert pelea.byte("BA_BOTIN_N") == len(esperado.botin)
