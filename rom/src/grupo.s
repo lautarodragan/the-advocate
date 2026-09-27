@@ -186,7 +186,9 @@ no_esta:
     stz hero_poses + 2
     stz hero_cgram + 2
     lda grupo_n
-    beq sin_lider               ; grupo vacío: no se dibuja nada
+    bne con_grupo               ; `beq sin_lider` ya no llega
+    rts                         ; grupo vacío: no se dibuja nada
+con_grupo:
 
     ldx mapa_ofs
     rep #$20
@@ -268,6 +270,21 @@ sin_cambio_de_sprite:
     lda act_ptr + 2
     adc #0
     sta hero_poses + 2
+    ; Un actor sin gráfico —DummyHero— trae sus quince colores en cero y la
+    ; paleta 0, que no es suya: es la del primer gráfico que repartió el
+    ; conversor, y en las cinemáticas donde él lidera suele ser la de Talan
+    ; parado como evento. Subirlos lo dejaba negro hasta el mapa siguiente.
+    ; Se lo reconoce por el mismo centinela que mira `place_hero`, la pose en
+    ; $FFFF, y con `hero_cgram` apagado `aplicar_tinte` no sube nada.
+    rep #$20
+.a16
+    lda [act_ptr], y            ; la primera de sus doce poses
+    cmp #$FFFF
+    sep #$20                    ; `sep` no toca Z: el `bne` mira el `cmp`
+.a8
+    bne con_grafico
+    stz hero_cgram + 2
+con_grafico:
     rts
 
 sin_lider16:
