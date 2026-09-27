@@ -144,15 +144,11 @@ def la_escena_de_stash(r):
            tope=20000)
 
 
-def test_stash_la_planta_y_ag7_en_el_grupo(recorrido):
-    """Sin compañero y con el ídolo robado en el tram: la escena, la planta
-    cayendo por tres pisos, el chip, el túnel, y AG7-17 en el grupo con su
-    tutorial y la vuelta a lo recordado."""
-    r = recorrido("lashe-planta", switch=[AUTO_ROJO, ROBO_EL_IDOL])
-    r.p.poner_grupo(TALAN)
-    r.p.ir_al_mapa(48, 6, 55)
-    r.esperar_el_control()
-
+def de_stash_a_ag7(r):
+    """Del 48 con el control y Talan solo, hasta AG7-17 en el grupo de vuelta
+    del tutorial, en (3,39) del 48: la escena, la planta cayendo por tres
+    pisos, el chip, el túnel, y la página 5 de Stash. Lo usa también el cierre
+    de la rama sin compañero, en `test_recorrido_lashe_cierre_golden.py`."""
     la_escena_de_stash(r)
     r.foto("afuera-de-la-planta")
 
@@ -229,6 +225,17 @@ def test_stash_la_planta_y_ag7_en_el_grupo(recorrido):
         r.p, "golden_axe-turtlevillage2"), (
         "el tutorial vuelve a poner el tema con el que llegó. %s" % r.estado())
     r.foto("ag7-en-el-grupo")
+
+
+def test_stash_la_planta_y_ag7_en_el_grupo(recorrido):
+    """Sin compañero y con el ídolo robado en el tram: la escena, la planta
+    cayendo por tres pisos, el chip, el túnel, y AG7-17 en el grupo con su
+    tutorial y la vuelta a lo recordado."""
+    r = recorrido("lashe-planta", switch=[AUTO_ROJO, ROBO_EL_IDOL])
+    r.p.poner_grupo(TALAN)
+    r.p.ir_al_mapa(48, 6, 55)
+    r.esperar_el_control()
+    de_stash_a_ag7(r)
 
 
 def test_la_escena_de_stash_con_el_soborno(recorrido):
