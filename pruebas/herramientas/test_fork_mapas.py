@@ -207,6 +207,10 @@ def test_fork_los_teleports_que_entran_siguen_cayendo_en_celdas_pisables():
 
     Mover una pared en el fork no falla en ningún lado: falla el día que
     alguien entra al mapa y aparece adentro de ella.
+
+    Lo que se le pide al fork es no cerrar una celda que el original dejaba
+    pisar, y no más: el 36 —la pantalla negra del auto— recibe a `DummyHero`
+    en celdas que ya en el juego original no se pisan, y ahí nadie camina.
     """
     forkeados = fork.mapas()
     if not forkeados:
@@ -216,9 +220,15 @@ def test_fork_los_teleports_que_entran_siguen_cayendo_en_celdas_pisables():
         game_map = lcf.Map("Map%04d.lmu" % map_id)
         flags = build_passability(base.chipsets[game_map.chipset_id])
         pasa = rm2k.passability_map(game_map, flags)
+        datos, (abajo, arriba) = _original(map_id)
+        antes = [rm2k.pasa_de_celda(
+            build_passability(base.chipsets[datos["chipset_id"]]),
+            abajo[i], arriba[i]) for i in range(len(abajo))]
         destinos = _teleports_al(map_id)
         assert destinos, "nadie entra al mapa %d: revisar el barrido" % map_id
         for x, y in sorted(destinos):
+            if antes[y * game_map.width + x] & rm2k.PASS_ALL != PISABLE:
+                continue
             celda = pasa[y * game_map.width + x] & rm2k.PASS_ALL
             assert celda == PISABLE, (
                 "el mapa %d recibe un teleport en (%d,%d) y ahí la celda da "

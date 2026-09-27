@@ -40,14 +40,16 @@ DESTINO = os.environ.get("CARTUCHOS",
 # Cada mapa que se suma al proyecto se suma a todos los cartuchos. El 66 no:
 # la ventana no le entra en la VRAM.
 #
-# Los del juego son lo de Lashe City que entra. Afuera quedan la persecución
-# en auto, por `ControlVars` de clase 6 —ver `wishlist/la-carrera-en-release.md`—,
-# y los sectores con auto: la elección del 36 es una sola página que compila
-# con sus cuatro destinos o con ninguno, y los cuatro son de la etapa de Lashe
-# City. El 38 ya entra en la VRAM —`LAYOUT_VENTANA_AMBOS`—; hasta el
-# 2026-09-25 no entraba.
+# Los del juego son lo de Lashe City que entra. Afuera queda la persecución
+# en auto, por `ControlVars` de clase 6 —ver `wishlist/la-carrera-en-release.md`—:
+# el 36 que lleva a ella está forkeado para terminar la demo ahí.
+#
+# Los sectores con auto —37, 38, 47 y 48— entran los cuatro juntos: la
+# elección del 36 es una sola página que compila con sus cuatro destinos o con
+# ninguno. El 38 entra en la VRAM desde `LAYOUT_VENTANA_AMBOS`.
 MAPAS_DEL_JUEGO = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18,
-                   19, 20, 21, 23, 26, 28, 29, 30, 32, 33, 34, 36)
+                   19, 20, 21, 23, 26, 28, 29, 30, 32, 33, 34, 36,
+                   37, 38, 39, 47, 48, 56)
 
 # Y los que sólo existen por la tanda: situaciones que ningún mapa del juego
 # que entra ejercita. `parches.revisar` los lee de acá para no pedirles parche

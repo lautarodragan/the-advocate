@@ -375,6 +375,11 @@ armadura 282. Lo que pide:
 
 Cada uno es jugable y se verifica por separado. El orden es el de la lista.
 
+**El 1 está hecho** (2026-09-27, `testing/lashe-1-los-cuatro-sectores-con-auto.md`):
+los seis mapas en `release`, el 37 sin plantar al conversor y el 36 forkeado
+con el fin de la demo. Lo que deja para los siguientes: las puertas muertas
+del 37 al 41 y del 48 al 57, y los paquetes de audio que trajo el 38 —ver ahí—.
+
     0  el arnés elige la opción N          chico, en paralelo con el 1
     1  los cuatro sectores con auto        bloquea a todos los demás
     2  Boss Wick y los vidcasts            en paralelo con el 3, después del 1

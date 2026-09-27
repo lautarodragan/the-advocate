@@ -11,12 +11,10 @@ prendido la ROM te mandaba igual al 8, que es el destino equivocado. Es el
 defecto que arregla haberlas pasado por el intérprete, y es lo que esta prueba
 cobra.
 
-**El 38 no entra en ningún cartucho** —sus tiles de fondo y de sprite más la
-ventana no entran en los 64 KB de VRAM, y por eso tampoco está en `release`—, así
-que un `Teleport` hacia él no compila y con él se cae la página entera. Lo que
-se puede verificar desde acá, entonces, no es que lleve al 38: es que **no
-lleva al 8**, que es la mitad que sí depende de este cambio. La otra mitad la
-cobrará el día que el 38 entre en un cartucho.
+Hasta el 2026-09-26 el 38 no estaba en el cartucho, así que un `Teleport`
+hacia él no compilaba y con él se caía la página entera: lo único que se podía
+cobrar era que **no llevara al 8**. Desde que los sectores con auto entraron en
+`release`, se cobra la otra mitad: que lleve al 38, a la celda de su página.
 """
 
 MAPA = 10
@@ -24,6 +22,7 @@ SWITCH = 231
 PUERTA = (42, 15)               # EV0018
 DESDE = (42, 16)                # la celda de abajo, desde donde se la pisa
 EQUIVOCADO = 8                  # a donde lleva su primera página
+DESTINO = (38, (48, 54))        # y a donde lleva la segunda, con el 231
 
 
 def pisar_la_puerta(una):
@@ -40,7 +39,7 @@ def pisar_la_puerta(una):
     return una
 
 
-def test_con_el_switch_231_la_puerta_no_lleva_al_8(partida):
+def test_con_el_switch_231_la_puerta_lleva_al_38(partida):
     una = partida(switch=[SWITCH])
     una.ir_al_mapa(MAPA, *DESDE)
     assert una.switch(SWITCH), "el switch no quedó prendido"
@@ -49,13 +48,10 @@ def test_con_el_switch_231_la_puerta_no_lleva_al_8(partida):
         "con el switch %d puesto la puerta del mapa %d tiene que llevar al 38, "
         "y llevó al %d: se está usando su primera página y no la activa"
         % (SWITCH, MAPA, EQUIVOCADO))
-    assert una.mapa() == MAPA, (
-        "el 38 no está en el cartucho, así que la página de la puerta no "
-        "compila y la partida se tiene que quedar en el %d; quedó en el %d"
-        % (MAPA, una.mapa()))
-    assert una.heroe() == PUERTA, (
-        "el héroe no llegó a pisar la puerta —quedó en %s— así que la prueba "
-        "pasaría igual sin puerta" % (una.heroe(),))
+    assert (una.mapa(), una.heroe()) == DESTINO, (
+        "con el switch %d la puerta del mapa %d lleva a %s, y la partida quedó "
+        "en el mapa %d, celda %s" % (SWITCH, MAPA, DESTINO, una.mapa(),
+                                    una.heroe()))
 
 
 def test_sin_el_switch_la_misma_puerta_sigue_llevando_al_8(partida):
