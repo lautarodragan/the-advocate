@@ -251,6 +251,9 @@ Independiente del 3 y del 4.
 **3. Lo que se ve y se oye.** El cartel de los controles (4) y los sonidos del
 salto (5), según lo que conteste taro.
 
+   **Hecho el 2026-09-27**, con la opción (a) de la pregunta 4: ver
+   `testing/carrera-3-lo-que-se-ve-y-se-oye.md`.
+
 **4. La regla de los mapas por id.** `release` pasa a ser "los mapas con id
 menor a X, sin los de `--exclude-maps`, más los agregados" —hoy el 164— y los
 de prueba como hasta ahora. Primero los dos errores latentes del conversor
