@@ -44,6 +44,8 @@ import shutil
 import sys
 import zlib
 
+import numpy
+
 # Corrido como script —que es como lo corren las recetas—, Python pone en el
 # `sys.path` la carpeta de este archivo y no `tools/`, que es de donde se
 # importan los paquetes. Se la reemplaza en vez de sumar `tools/` al lado: con
@@ -78,7 +80,7 @@ from port import experiencia as X
 from port import escena as escena_mod
 from port import msu_datos
 from audio import snes_music
-from port.asignador import CELL, cut_tiles, tile_colors
+from port.asignador import CELL, tile_colors
 from rpgmaker.rm2k import collect_npcs, hero_start, passability_map
 from render.render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, TILE,
                                build_passability, find_resource, load_image)
@@ -190,17 +192,70 @@ OBJ_PRIORITY_ABOVE = 0x20                # prioridad 2: por encima
 BACKDROP = (0, 0, 0)
 
 
-def quantize(image):
-    """La imagen como filas de colores de 15 bits, que es lo que el PPU muestra.
+def tiles_cuantizados(image):
+    """La imagen partida en celdas de 8x8 de colores de 15 bits, que es lo que
+    el PPU muestra: una grilla de filas de celdas, cada celda una tupla de
+    ocho filas de ocho colores. Un pixel transparente queda como None y va a
+    parar al índice 0 de la paleta, que el PPU no dibuja.
 
-    Un pixel transparente queda como None y va a parar al índice 0 de la
-    paleta, que el PPU no dibuja.
+    Con numpy: los colores y las celdas salen de arreglos, y cada celda
+    distinta se arma como tupla **una sola vez** —el mismo objeto en cada
+    lugar del mapa donde se repite—. Los mapas grandes son millones de
+    pixeles y unos pocos miles de celdas distintas, y armarlo pixel por pixel
+    en Python era lo más caro de convertir sus capas. `_colores_de` se apoya
+    en que las celdas repetidas son el mismo objeto.
     """
-    pixels = list(image.convert("RGBA").get_flattened_data())
-    quantized = [None if a == 0 else (r >> 3, g >> 3, b >> 3)
-                 for r, g, b, a in pixels]
-    return [quantized[y * image.width:(y + 1) * image.width]
-            for y in range(image.height)]
+    pixeles = numpy.asarray(image.convert("RGBA"))
+    alto, ancho = len(pixeles) // CELL, len(pixeles[0]) // CELL
+    pixeles = pixeles[:alto * CELL, :ancho * CELL].astype(numpy.int32)
+    codigos = numpy.where(pixeles[:, :, 3] == 0, -1,
+                          ((pixeles[:, :, 0] >> 3) << 10)
+                          | ((pixeles[:, :, 1] >> 3) << 5)
+                          | (pixeles[:, :, 2] >> 3)).astype(numpy.int32)
+    celdas = numpy.ascontiguousarray(
+        codigos.reshape(alto, CELL, ancho, CELL).transpose(0, 2, 1, 3)
+    ).reshape(alto * ancho, CELL * CELL)
+    unicas, cual = numpy.unique(
+        celdas.view(numpy.dtype((numpy.void, celdas.itemsize * CELL * CELL))),
+        return_inverse=True)
+    unicas = unicas.view(numpy.int32).reshape(-1, CELL * CELL)
+    colores = {-1: None}
+    for c in numpy.unique(unicas).tolist():
+        if c >= 0:
+            colores[c] = (c >> 10, (c >> 5) & 31, c & 31)
+    armadas = [tuple(tuple(colores[c] for c in fila[y * CELL:(y + 1) * CELL])
+                     for y in range(CELL))
+               for fila in unicas.tolist()]
+    return [[armadas[k] for k in fila]
+            for fila in cual.reshape(alto, ancho).tolist()]
+
+
+def _colores_de(grillas):
+    """Cuántos pixeles de cada color hay en estas grillas, sin los
+    transparentes: un `Counter` con los colores **en el orden en que
+    aparecen**, recorriendo celda por celda y fila por fila, que es el orden
+    que tenía contándolos pixel por pixel.
+
+    Cuenta cada celda distinta una vez y la multiplica por cuántas veces
+    está, y "distinta" es por identidad: las de `tiles_cuantizados` que se
+    repiten son el mismo objeto. Con otras grillas da lo mismo, más lento.
+    """
+    veces = {}
+    for grilla in grillas:
+        for fila in grilla:
+            for celda in fila:
+                visto = veces.get(id(celda))
+                if visto is None:
+                    veces[id(celda)] = [celda, 1]
+                else:
+                    visto[1] += 1
+    counts = collections.Counter()
+    for celda, n in veces.values():
+        for linea in celda:
+            for p in linea:
+                if p is not None:
+                    counts[p] += n
+    return counts
 
 
 def pack_tile(indices, planes=8):
@@ -220,6 +275,19 @@ def pack_tile(indices, planes=8):
                 if (value >> plane) & 1:
                     data[(plane // 2) * 16 + y * 2 + (plane % 2)] |= bit
     return bytes(data)
+
+
+def pack_tiles(tiles, planes=8):
+    """`pack_tile` de varios tiles a la vez: `tiles` es un arreglo de numpy
+    de (n, 8, 8) índices, y sale la lista de los n tiles empaquetados."""
+    bits = (tiles[..., None] >> numpy.arange(planes, dtype=numpy.uint8)) & 1
+    # (n, y, x, plano) -> un byte por fila y plano, el pixel de la izquierda
+    # en el bit alto; y de ahí al orden del PPU: pares de planos, y adentro
+    # de cada par fila por fila.
+    filas = numpy.packbits(bits, axis=2, bitorder="big")[:, :, 0, :]
+    ppu = filas.reshape(-1, CELL, planes // 2, 2).transpose(0, 2, 1, 3)
+    datos = numpy.ascontiguousarray(ppu).reshape(len(tiles), planes * 8)
+    return [bytes(fila) for fila in datos]
 
 
 def cgram_word(color):
@@ -385,18 +453,36 @@ def sprite_colors(image, index, poses=None):
     """
     base_x = (index % 4) * SPRITE_W * 3
     base_y = (index // 4) * SPRITE_H * 4
+    # Con numpy y no pixel por pixel: el bloque del personaje a un arreglo,
+    # las poses por slicing, y cada color de 15 bits como un solo entero
+    # para contarlos con `unique`. Se leen millones de pixeles por ROM.
+    bloque = numpy.asarray(image.crop((base_x, base_y,
+                                       base_x + SPRITE_W * 3,
+                                       base_y + SPRITE_H * 4)))
+    vistos = numpy.concatenate([
+        bloque[(pose // 3) * SPRITE_H:(pose // 3 + 1) * SPRITE_H,
+               (pose % 3) * SPRITE_W:(pose % 3 + 1) * SPRITE_W].reshape(-1, 4)
+        for pose in (sorted(TODAS_LAS_POSES) if poses is None
+                     else sorted(poses))])
+    return _contar_colores(vistos)
+
+
+def _contar_colores(pixeles):
+    """Un Counter de los colores de 15 bits de los pixeles RGBA opacos.
+
+    **Las claves van en el orden en que aparecen**, que es el que tenía el
+    `Counter` armado pixel por pixel: quien lo recorre —`merge_least_visible`
+    desempata por ese orden— tiene que ver lo mismo.
+    """
+    opacos = pixeles[pixeles[:, 3] != 0, :3] >> 3
+    codigos = ((opacos[:, 0].astype(numpy.int32) << 10)
+               | (opacos[:, 1].astype(numpy.int32) << 5) | opacos[:, 2])
+    unicos, primero, cuantos = numpy.unique(codigos, return_index=True,
+                                            return_counts=True)
     counts = collections.Counter()
-    # `load()` y no `getpixel`: lee lo mismo, pero `getpixel` paga un
-    # `load()` por pixel, y acá se leen millones por ROM.
-    pixeles = image.load()
-    for pose in (sorted(TODAS_LAS_POSES) if poses is None else sorted(poses)):
-        ox = base_x + (pose % 3) * SPRITE_W
-        oy = base_y + (pose // 3) * SPRITE_H
-        for y in range(SPRITE_H):
-            for x in range(SPRITE_W):
-                red, green, blue, alpha = pixeles[ox + x, oy + y]
-                if alpha:
-                    counts[(red >> 3, green >> 3, blue >> 3)] += 1
+    for k in numpy.argsort(primero, kind="stable").tolist():
+        c = int(unicos[k])
+        counts[(c >> 10, (c >> 5) & 31, c & 31)] = int(cuantos[k])
     return counts
 
 
@@ -469,25 +555,27 @@ def pose_tiles(image, index, pose, lookup, mapping):
     por eso una pose se sube con cuatro DMA de 128 bytes.
     """
     ox, oy = pose_origin(index, pose)
-    pixeles = image.load()          # ver `sprite_colors`
-    out = []
-    for ty in range(4):
-        for tx in range(4):
-            cell = []
-            for y in range(CELL):
-                row = []
-                for x in range(CELL):
-                    sx = tx * CELL + x - (OBJ_W - SPRITE_W) // 2
-                    sy = ty * CELL + y
-                    if 0 <= sx < SPRITE_W and 0 <= sy < SPRITE_H:
-                        r, g, b, a = pixeles[ox + sx, oy + sy]
-                        row.append(lookup[mapping[(r >> 3, g >> 3,
-                                                   b >> 3)]] if a else 0)
-                    else:
-                        row.append(0)
-                cell.append(tuple(row))
-            out.append(pack_tile(tuple(cell), planes=4))
-    return out
+    # Con numpy, como `sprite_colors`: la pose a un arreglo, cada color
+    # distinto traducido una sola vez, y los planos de bits de los dieciséis
+    # tiles juntos.
+    pixeles = numpy.asarray(image.crop((ox, oy, ox + SPRITE_W,
+                                        oy + SPRITE_H)))
+    rgb = pixeles[:, :, :3] >> 3
+    codigos = ((rgb[:, :, 0].astype(numpy.int32) << 10)
+               | (rgb[:, :, 1].astype(numpy.int32) << 5) | rgb[:, :, 2])
+    opaco = pixeles[:, :, 3] != 0
+    unicos, cual = numpy.unique(codigos[opaco], return_inverse=True)
+    indices = numpy.array(
+        [lookup[mapping[(c >> 10, (c >> 5) & 31, c & 31)]]
+         for c in unicos.tolist()], dtype=numpy.uint8)
+    pose_entera = numpy.zeros((OBJ_H, OBJ_W), dtype=numpy.uint8)
+    margen = (OBJ_W - SPRITE_W) // 2
+    centro = numpy.zeros((SPRITE_H, SPRITE_W), dtype=numpy.uint8)
+    centro[opaco] = indices[cual]
+    pose_entera[:SPRITE_H, margen:margen + SPRITE_W] = centro
+    tiles = pose_entera.reshape(4, CELL, 4, CELL).swapaxes(1, 2).reshape(
+        16, CELL, CELL)
+    return pack_tiles(tiles, planes=4)
 
 
 def cambia_de_grafico(evento):
@@ -1648,10 +1736,7 @@ def build_palette(grid, bg_colors, otras=()):
     escribir con esta paleta— y salen fusionadas con el mismo `mapping`, que
     es lo que las deja comparables entre sí.
     """
-    counts = collections.Counter(p for g in (grid,) + tuple(otras)
-                                 for row in g for tile in row
-                                 for line in tile for p in line
-                                 if p is not None)
+    counts = _colores_de((grid,) + tuple(otras))
     if len(counts) <= bg_colors:
         return sorted(counts), grid, list(otras), []
 
@@ -1838,11 +1923,11 @@ def _convert_layers(base, above_img, variantes=None):
 
     Devuelve (lo de convert(), lo de convert_above()).
     """
-    base_grid = cut_tiles(quantize(base))
-    above_grid = cut_tiles(quantize(above_img))
+    base_grid = tiles_cuantizados(base)
+    above_grid = tiles_cuantizados(above_img)
     # Los otros dibujos de la animación del ChipSet, cortados igual que el
     # fondo. Ver `convert`.
-    grillas = {familia: [cut_tiles(quantize(img)) for img in imagenes]
+    grillas = {familia: [tiles_cuantizados(img) for img in imagenes]
                for familia, imagenes in (variantes or {}).items()}
 
     # Lo que el fondo usa, y por lo tanto las paletas de 16 que necesita. El
@@ -1851,10 +1936,8 @@ def _convert_layers(base, above_img, variantes=None):
     # Cuentan **todos los dibujos**: el agua del mapa 5 trae tres colores que no
     # están en el dibujo que se ve al entrar, y si el reparto se decidiera sin
     # ellos no habría dónde ponerlos cuando el agua se mueva.
-    usados = len({p for g in [base_grid] + [g for gs in grillas.values()
-                                            for g in gs]
-                  for row in g for tile in row
-                  for line in tile for p in line if p is not None})
+    usados = len(_colores_de([base_grid] + [g for gs in grillas.values()
+                                            for g in gs]))
     pide = -(-(usados + CGRAM_RESERVADAS) // COLORS_PER_PALETTE)
     libres = max(1, min(MAX_ABOVE_PALETTES, BG_PALETTES - pide))
 
@@ -1880,8 +1963,7 @@ def _convert_layers(base, above_img, variantes=None):
     # Se decide acá y `convert` la recibe, igual que la capa de encima.
     presupuesto = bg_budget(tope)
     otras = [g for familia, _ in FAMILIAS for g in grillas.get(familia, ())]
-    antes = len({p for row in base_grid for tile in row
-                 for line in tile for p in line if p is not None})
+    antes = len(_colores_de([base_grid]))
     palette, base_grid, otras, merged = build_palette(base_grid, presupuesto,
                                                       otras)
     fondo = convert(base_grid, palette, grillas, otras,

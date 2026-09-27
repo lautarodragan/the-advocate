@@ -222,7 +222,6 @@ def armar(rom, game_dir=GAME_DIR, soundfont=snes_samples.SOUNDFONT,
     Devuelve cuántas pistas rehízo y cuántas ya estaban. `charlar` en falso
     calla las que ya estaban: `cartuchos.py` la llama en cada `just pruebas`.
     """
-    hechas = estaban = 0
     base = os.path.splitext(rom)[0]
     # El archivo que enciende el MSU-1. Lo escribe el conversor con sus datos,
     # así que acá se crea sólo si falta —una ROM suelta, armada a mano—, y
@@ -230,49 +229,68 @@ def armar(rom, game_dir=GAME_DIR, soundfont=snes_samples.SOUNDFONT,
     # modo "ab" no lo trunca si ya está.
     abierto = open(base + ".msu", "ab")
     abierto.close()
-    for nombre, numero in sorted(snes_music.PISTAS_MSU.items(),
-                                 key=lambda par: par[1]):
-        salida = "%s-%d.pcm" % (base, numero)
-        audio = reemplazo(reemplazos, nombre)
-        if audio:
-            clave = clave_del_reemplazo(audio)
-        else:
-            midi = find_resource([game_dir], "Music", nombre, (".mid",))
-            if not midi:
-                sys.exit("no encuentro el MIDI de %s" % nombre)
-            clave = clave_de_la_pista(midi, soundfont, ganancia)
-        # La pista que ya está, si la escribió este mismo código con estas
-        # mismas fuentes. Lo guardado es el sha256 del `.pcm`, así que una
-        # corrida cortada a la mitad —el `.pcm` se escribe de una sola vez, y
-        # pesa decenas de megas— no se da por buena: no coincide y se rehace.
-        guardado = cache_disco.leer("msu", clave)
-        # El `is not None` no sobra: sin caché `leer` da `None`, y un `.pcm`
-        # que no está da `None` también, así que compararlos sin más daría
-        # "ya estaba" justo cuando no hay nada.
-        if guardado is not None and guardado == huella_del_archivo(salida):
-            if charlar:
-                print("pista %d: %-22s ya estaba -> %s"
-                      % (numero, nombre, salida))
-            estaban += 1
-            continue
-        temporal = salida + ".wav"
-        if audio:
-            decodificar(audio, temporal)
-        else:
-            render(midi, temporal, soundfont, ganancia)
-        # Se escribe al lado y se reemplaza, en vez de pisar el `.pcm` en su
-        # lugar: truncarlo le cambiaría el contenido a quien lo tenga abierto
-        # —un emulador tocándolo— o enlazado con otro nombre.
-        muestras, escala = pista(temporal, salida + ".nuevo")
-        os.replace(salida + ".nuevo", salida)
-        os.remove(temporal)
-        cache_disco.guardar("msu", clave, huella_del_archivo(salida))
-        print("pista %d: %-22s %6.1f s, %d MB, normalizada x%.2f -> %s%s"
-              % (numero, nombre, muestras / 44100.0,
-                 os.path.getsize(salida) // (1 << 20), escala, salida,
-                 "  (de %s)" % audio if audio else ""))
-        hechas += 1
+    # Las pistas a la vez, en hilos: cada una escribe su archivo, lo pesado
+    # corre en fluidsynth o ffmpeg y en numpy, y una por una eran lo que más
+    # tardaba un build en frío. Lo que se imprime sigue en orden.
+    import concurrent.futures
+    pistas = sorted(snes_music.PISTAS_MSU.items(), key=lambda par: par[1])
+    with concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 1) as hilos:
+        hechos = [hilos.submit(_una_pista, base, nombre, numero, game_dir,
+                               soundfont, ganancia, reemplazos)
+                  for nombre, numero in pistas]
+        hechas = estaban = 0
+        for (nombre, numero), hecho in zip(pistas, hechos):
+            linea = hecho.result()
+            if linea is None:
+                estaban += 1
+                if charlar:
+                    print("pista %d: %-22s ya estaba -> %s-%d.pcm"
+                          % (numero, nombre, base, numero))
+            else:
+                hechas += 1
+                print(linea)
     return hechas, estaban
+
+
+def _una_pista(base, nombre, numero, game_dir, soundfont, ganancia,
+               reemplazos):
+    """Una pista de `armar`. Devuelve la línea que la cuenta, o None si ya
+    estaba."""
+    salida = "%s-%d.pcm" % (base, numero)
+    audio = reemplazo(reemplazos, nombre)
+    if audio:
+        clave = clave_del_reemplazo(audio)
+    else:
+        midi = find_resource([game_dir], "Music", nombre, (".mid",))
+        if not midi:
+            sys.exit("no encuentro el MIDI de %s" % nombre)
+        clave = clave_de_la_pista(midi, soundfont, ganancia)
+    # La pista que ya está, si la escribió este mismo código con estas
+    # mismas fuentes. Lo guardado es el sha256 del `.pcm`, así que una
+    # corrida cortada a la mitad —el `.pcm` se escribe de una sola vez, y
+    # pesa decenas de megas— no se da por buena: no coincide y se rehace.
+    guardado = cache_disco.leer("msu", clave)
+    # El `is not None` no sobra: sin caché `leer` da `None`, y un `.pcm`
+    # que no está da `None` también, así que compararlos sin más daría
+    # "ya estaba" justo cuando no hay nada.
+    if guardado is not None and guardado == huella_del_archivo(salida):
+        return None
+    temporal = salida + ".wav"
+    if audio:
+        decodificar(audio, temporal)
+    else:
+        render(midi, temporal, soundfont, ganancia)
+    # Se escribe al lado y se reemplaza, en vez de pisar el `.pcm` en su
+    # lugar: truncarlo le cambiaría el contenido a quien lo tenga abierto
+    # —un emulador tocándolo— o enlazado con otro nombre.
+    muestras, escala = pista(temporal, salida + ".nuevo")
+    os.replace(salida + ".nuevo", salida)
+    os.remove(temporal)
+    cache_disco.guardar("msu", clave, huella_del_archivo(salida))
+    return ("pista %d: %-22s %6.1f s, %d MB, normalizada x%.2f -> %s%s"
+            % (numero, nombre, muestras / 44100.0,
+               os.path.getsize(salida) // (1 << 20), escala, salida,
+               "  (de %s)" % audio if audio else ""))
 
 
 def main():

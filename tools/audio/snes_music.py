@@ -21,6 +21,7 @@ from audio import muestras_brr
 from audio import sdsp
 from audio import snes_samples
 from audio import spc700
+from comun.paralelo import en_paralelo
 from render.render_map import GAME_DIR, find_resource
 
 TICKS_PER_SECOND = musica.TICKS_PER_SECOND
@@ -351,10 +352,15 @@ def build_efectos(pedidos, game_dir=GAME_DIR, budget=SE_ARAM):
     lista de nombres ya ordenada de más a menos pedido. Devuelve {nombre:
     Efecto} con los que entraron."""
     hechos, usado = {}, 0
+    # Cada efecto se arma solo —leer el WAV, remuestrearlo, codificarlo— y
+    # eso es puro: todos a la vez, y después el reparto en el orden pedido.
+    unicos = list(dict.fromkeys(pedidos))
+    armados = dict(zip(unicos, en_paralelo(
+        lambda n: build_efecto(n, game_dir), unicos)))
     for nombre in pedidos:
         if nombre in hechos:
             continue
-        efecto = build_efecto(nombre, game_dir)
+        efecto = armados[nombre]
         if efecto is None:
             continue
         costo = len(efecto.data) + 4          # la muestra y su entrada
@@ -632,6 +638,15 @@ def zonas_mas_usadas(leidos):
     """
     tiempo = collections.defaultdict(collections.Counter)
     adentro = collections.defaultdict(collections.Counter)
+    # Las zonas que el lazo de abajo va a pedir, pedidas antes todas juntas:
+    # ver `muestras_brr.precargar`.
+    muestras_brr.precargar(
+        ("program:%d@%d" % (leido["programas"].get(nota.channel, 0),
+                            nota.pitch)
+         for leido in leidos if leido for nota in leido["notas"]
+         if nota.channel != midi.DRUM_CHANNEL
+         and nota.channel in leido["voces"]),
+        snes_samples.SOUNDFONT)
     for leido in leidos:
         if not leido:
             continue
@@ -1815,7 +1830,8 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     driver = spc700.assemble(DRIVER, DRIVER_ADDR)
     if techos is None:
         techos = leer_techos()
-    leidos = [leer_tema(n, game_dir) for n in nombres]
+    # Leer los MIDI es puro y son uno por tema: en paralelo, como armarlos.
+    leidos = en_paralelo(lambda n: leer_tema(n, game_dir), nombres)
     teclas = zonas_mas_usadas(leidos)
     claves_de = [claves_del_tema(t, teclas) for t in leidos]
     # Los efectos van **todos**: cuáles caben lo decide la ROM mapa por mapa,
@@ -1862,32 +1878,41 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     _enteros_entran(banco, paquetes, herencia, efectos_hechos, presupuestado,
                     nombres)
 
-    temas = []
-    for nombre, leido, suya in zip(nombres, leidos, asignacion):
-        if leido is None:
-            temas.append({"nombre": nombre, "stream": bytes([OP_END]),
-                          "sonidos": [], "escrituras": [],
-                          "segundos": 0.0, "resumen": {}})
-            continue
-        reparto = []
-        aire = aire_de_medida or techos.get(nombre, sdsp.AIRE)
-        del_tema = banco.del_tema(suya)
-        frames = build_events(leido["notas"], leido["voces"],
-                              leido["programas"], del_tema,
-                              leido["controles"], reparto, aire)
-        referencia = escrituras(frames, leido["largo"], init_writes())
-        stream, sonidos = pack(frames, leido["largo"], init_writes())
-        verificar_formato(nombre, stream, sonidos, referencia)
-        temas.append({"nombre": nombre, "stream": stream, "sonidos": sonidos,
-                      "escrituras": referencia, "aire": aire,
-                      "huella": huella_de_la_mezcla(referencia, banco),
-                      "segundos": leido["largo"] / TICKS_PER_SECOND,
-                      "resumen": resumen_del_tema(leido, del_tema, reparto)})
+    # Cada tema es independiente una vez repartido el banco, y armarlos era
+    # la mitad de esta función: van en paralelo, y vuelven en el orden de
+    # siempre.
+    contexto = (nombres, leidos, asignacion, banco, techos, aire_de_medida)
+    temas = en_paralelo(lambda i: _armar_tema(contexto, i),
+                        range(len(nombres)))
     # Los efectos van detrás del banco en el mismo directorio: su `V_SRCN` es
     # el lugar que les toca después de las muestras de la música.
     banco.efectos = {e.name: (len(banco.voces) + i, e)
                      for i, e in enumerate(lista)}
     return (driver, list(banco.voces) + lista, temas, banco)
+
+
+def _armar_tema(contexto, i):
+    """Un tema de `build_varios`: lo que hace en paralelo."""
+    nombres, leidos, asignacion, banco, techos, aire_de_medida = contexto
+    nombre, leido, suya = nombres[i], leidos[i], asignacion[i]
+    if leido is None:
+        return {"nombre": nombre, "stream": bytes([OP_END]),
+                "sonidos": [], "escrituras": [],
+                "segundos": 0.0, "resumen": {}}
+    reparto = []
+    aire = aire_de_medida or techos.get(nombre, sdsp.AIRE)
+    del_tema = banco.del_tema(suya)
+    frames = build_events(leido["notas"], leido["voces"],
+                          leido["programas"], del_tema,
+                          leido["controles"], reparto, aire)
+    referencia = escrituras(frames, leido["largo"], init_writes())
+    stream, sonidos = pack(frames, leido["largo"], init_writes())
+    verificar_formato(nombre, stream, sonidos, referencia)
+    return {"nombre": nombre, "stream": stream, "sonidos": sonidos,
+            "escrituras": referencia, "aire": aire,
+            "huella": huella_de_la_mezcla(referencia, banco),
+            "segundos": leido["largo"] / TICKS_PER_SECOND,
+            "resumen": resumen_del_tema(leido, del_tema, reparto)}
 
 
 def resumen_del_tema(leido, banco, reparto=()):
@@ -2157,8 +2182,10 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
                 cuerpo += bytes(parte) + b"\xFF"
         datos_ = b"".join(o.to_bytes(2, "little") for o in ofs) + bytes(cuerpo)
         return block(label, datos_ or b"\xFF", bloque=True)
-    tema_muestras = listas("tema_muestras",
-                           [[muestras_del_tema(t)] for t in temas] or [[[]]])
+    # Decodificar los streams para saberlo es puro y cuesta: en paralelo.
+    tema_muestras = listas("tema_muestras", [
+        [m] for m in en_paralelo(lambda i: muestras_del_tema(temas[i]),
+                                 range(len(temas)))] or [[[]]])
     # Cada paquete, tres listas: sus temas, las muestras de sus efectos y sus
     # temas de salida —ver `extra_de_salida` en rom/src/paquete_de_audio.s—.
     paquetes = [tuple(p) + ((),) * (3 - len(p)) for p in paquetes] or \

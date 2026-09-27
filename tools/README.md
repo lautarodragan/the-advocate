@@ -13,7 +13,8 @@ una de su misma fila ni de más arriba.
                  códigos de comando de RM2k (event_codes) y sus reglas
                  (rm2k). Ninguna regla del formato vive acá: data/ viene
                  resuelto. Tiene su propio README
-    comun/       el caché en disco del conversor (cache_disco)
+    comun/       el caché en disco del conversor (cache_disco) y el reparto de
+                 lo puro en procesos bifurcados (paralelo)
     ensamblado/  el mapa de memoria (bancos), el que arma la ROM (ensamblar) y
                  qué ROMs hay y con qué flags (cartuchos, que usa `just build`)
     emulador/    el core de libretro desde Python (retro), y el parche de
