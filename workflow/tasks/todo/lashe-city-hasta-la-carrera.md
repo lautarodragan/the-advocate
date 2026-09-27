@@ -415,10 +415,10 @@ declaración de ese momento.
   evento 4 del mapa 7. Es el camino alternativo al Hover Tram (donde el ladrón
   roba todo: `ChangeGold -9999` en el mapa 13). Ojo: el Idol también abre el
   mapa 14 (página 2 de la puerta del HQ, con el switch 53).
-* Pendiente: los mapas 64, 83 y 84. Quedaron afuera porque el 64 (`Leaving
+* **(2026-09-26)** Los mapas 64, 83 y 84 **quedan afuera** (confirmado por taro). Quedaron afuera porque el 64 (`Leaving
   Lashe City Scene`) se alcanza desde el 53, **después de la carrera**, y el 83
   y el 84 (`Dalia at the Factory`, `OutsideFactory`) son **de otro capítulo**,
-  a los que se llega desde el 82. taro no recordaba el porqué; se lo expliqué.
+  a los que se llega desde el 82.
 
 * **Primero el espacio, después los mapas.** El orden: el tinte (si tiene
   sentido arreglarlo), juntar `release` y `test-main`, y en paralelo mirar por
