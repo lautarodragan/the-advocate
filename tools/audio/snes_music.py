@@ -313,6 +313,32 @@ SE_DEL_MAPA = {
     ("Thunder9", 1): "Thunder9@entero",
 }
 
+# Los efectos que piden las rutas forzadas —la orden 35, ver `RUTA_SONIDO` en
+# tools/port/eventos.py— que **no entran** en el paquete de audio de su mapa:
+# {id del mapa: None para todos, o los nombres}. Un efecto de ruta suena igual
+# si alguna página del mapa lo pide con `PlaySound`, porque entonces ya está
+# en el paquete; los que sólo pide una ruta, no suenan.
+#
+# Es la regla de taro para los efectos —ningún instrumento pierde tasa por
+# ellos— aplicada mapa por mapa, medida el 2026-09-27 contra el reparto de
+# `release` (la tasa de cada par tema-instrumento, antes y después):
+#
+# * el 3: los nueve de la escena de `evilrhys` (Decision1, Blow1 a Blow6,
+#   Shot2) no entran en su paquete **ni con las muestras al mínimo**: el
+#   conversor se corta. Switch1 suena, porque las páginas también lo piden.
+# * el 7: Blow2 le baja un instrumento de `Deflector1` de 22,9 a 16,4 kHz.
+# * el 13, Flash1, y el 21, Earth4: solos no le cuestan nada a nadie, pero
+#   cada efecto nuevo en el cartucho le saca una entrada del directorio a la
+#   primera tanda de `copias`, y con dos nuevos bajan dos golpes 7 kHz
+#   (`escape_newyork` y `bubstix`). El nuevo que entra es Wind7, el del
+#   puente de la carrera. Earth4 además dura 1,36 s: entraría recortado y con
+#   bucle, o entero con un alias, que es otro efecto nuevo.
+# * el 14: el `SceneDriver` pide cuatro, y con ellos `hzbreach` deja de ser
+#   tema de salida (ver `Temas.de_salida`) y el paquete no entra.
+# * el 121, que es de prueba: Earth8 le baja 25 pares.
+SE_DE_RUTA_SIN_PAQUETE = {3: None, 7: None, 13: {"Flash1"}, 14: None,
+                          21: {"Earth4"}, 121: None}
+
 
 class Efecto:
     """Un efecto listo para el SPC700: `data` en BRR, a `rate`, que vuelve al

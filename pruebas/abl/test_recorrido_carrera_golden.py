@@ -40,7 +40,12 @@ Las capturas van a `pruebas/snapshots/playthrough/carrera-*/` y **no están
 bendecidas**: son para que taro las mire. Lo que cobra esta prueba es la RAM.
 """
 
+import json
+import os
+import wave
+
 import datos
+from consola import en_la_rom, en_la_wram
 from batalla import grupo_de
 from recorrido import TELEPORT, Trabado
 
@@ -73,6 +78,64 @@ CARRILES = range(23, 29)
 ADELANTE = 7
 
 VARIABLE_DE_CHOQUES = 38
+
+# Los efectos de la ruta del auto en el puente del 51: seis veces el viento, a
+# medio tempo, y el golpe al final. Suenan desde el 2026-09-27: ver
+# `RUTA_SONIDO` en tools/port/eventos.py.
+VIENTO = ("Wind7", 100, 50, 50)
+GOLPE = ("Annihilation2", 100, 80, 50)
+VIENTOS = 6
+
+
+def muestra_de(p, sonido):
+    """La muestra con que suena `sonido` —(nombre, volumen, tempo, paneo)—:
+    la primera columna de su fila de `sonido_tabla`. El índice sale de
+    `efectos.json`, que el conversor deja al lado del cartucho."""
+    with open(os.path.join(os.path.dirname(p.sfc), "efectos.json")) as a:
+        sonidos = [tuple(s) for s in json.load(a)["sonidos"]]
+    with open(p.sfc, "rb") as a:
+        rom = a.read()
+    return rom[en_la_rom(p.simbolos["sonido_tabla"]) + 7 * sonidos.index(sonido)]
+
+
+class Oido:
+    """Anota cada efecto que arranca —(muestra, cuadros)— mirando las dos
+    voces de efectos en la RAM lejana, y junta el audio para guardarlo: un
+    efecto arranca cuando los cuadros que le quedan a su voz suben. Ver
+    rom/src/efectos_de_sonido.s."""
+
+    def __init__(self, p):
+        self.p = p
+        self.desde = len(p.consola.audio)
+        self.arranques = []
+        self.antes = self._voces()
+
+    def _voces(self):
+        voces = []
+        for cuadros, nuevo in (("SE_CUADROS", "SE_NUEVO"),
+                               ("SE2_CUADROS", "SE2_NUEVO")):
+            c = self.p.consola.ram(en_la_wram(self.p.simbolos[cuadros]), 2)
+            n = self.p.consola.ram(en_la_wram(self.p.simbolos[nuevo]), 1)
+            voces.append((c[0] | (c[1] << 8), n[0]))
+        return voces
+
+    def __call__(self, p):
+        ahora = self._voces()
+        for (c0, _m0), (c1, m1) in zip(self.antes, ahora):
+            if c1 > c0:
+                self.arranques.append((m1, c1))
+        self.antes = ahora
+
+    def guardar(self, ruta):
+        """El audio desde que empezó a oír, en un wav estéreo: para
+        escucharlo, no lo mira ninguna prueba."""
+        if not self.p or not os.path.isdir(os.path.dirname(ruta)):
+            return
+        with wave.open(ruta, "wb") as w:
+            w.setnchannels(2)
+            w.setsampwidth(2)
+            w.setframerate(int(self.p.consola.tasa()))
+            w.writeframes(bytes(self.p.consola.audio[self.desde:]))
 
 
 def los_choques(p):
@@ -168,11 +231,13 @@ def largar(r):
     r.foto("la-largada", asentar=False)
 
 
-def manejar(r, mundo, hasta, tope=6000, sin_volante=False, choques=None):
+def manejar(r, mundo, hasta, tope=6000, sin_volante=False, choques=None,
+            mirando=None):
     """Maneja hasta que `hasta(partida)`, con el piloto o —`sin_volante`— sin
     tocar nada. En el 50 pasa los mensajes con A y cuenta el choque en
     `choques`, si se le pasa una lista. Una elección abierta corta: es la del
-    compañero, y la contesta quien llamó."""
+    compañero, y la contesta quien llamó. `mirando(partida)` corre después de
+    cada paso."""
     p = r.p
     cache = {}
     gastado = 0
@@ -198,6 +263,8 @@ def manejar(r, mundo, hasta, tope=6000, sin_volante=False, choques=None):
             p.correr(4, apretar_a=(p.cuadro + 3,)
                      if p.byte("msg_abierto") else ())
         gastado += p.cuadro - antes
+        if mirando is not None:
+            mirando(p)
     return r
 
 
@@ -266,7 +333,16 @@ def test_la_carrera_entera(recorrido, mundo):
         "y esta prueba no lo contesta. %s" % (len(choques), r.estado()))
 
     r.empezar("el puente")
-    manejar(r, mundo, lambda p: p.mapa() == EL_PREMIO, tope=3000)
+    oido = Oido(r.p)
+    manejar(r, mundo, lambda p: p.mapa() == EL_PREMIO, tope=3000,
+            mirando=oido)
+    oido.guardar(os.path.join(r.fotos_dir, "el-puente.wav"))
+    viento, golpe = (muestra_de(r.p, s) for s in (VIENTO, GOLPE))
+    muestras = [m for m, _c in oido.arranques]
+    assert muestras.count(viento) == VIENTOS and golpe in muestras, (
+        "la ruta del auto en el puente pide seis veces Wind7 (la muestra %d) "
+        "y después Annihilation2 (la %d), y arrancaron %s. %s"
+        % (viento, golpe, oido.arranques, r.estado()))
     assert r.p.switch(CHOCO), (
         "la columna 75 del 51 prende el 172, que apaga el volante. %s"
         % r.estado())
