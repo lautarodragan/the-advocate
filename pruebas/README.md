@@ -184,6 +184,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `abl/test_recorrido_lashe_golden.py`: Lashe City con auto —los cuatro
   sectores desde el 36, el pad, el HQ con Arden, los guardias con Saldra— y el
   fin de la demo
+* `abl/test_recorrido_lashe_wick_golden.py`: la guarida de Boss Wick desde
+  la puerta del vecino en el 37 —los vidcasts, el video de seguridad, las
+  transiciones— y las dos ramas del favor, aceptar y rechazar
 * `abl/test_escenas_golden.py`: las escenas y cinemáticas
 * `abl/test_recuerdo.py`: el recuerdo de CORE y MANTA
 * `abl/test_un_ano_antes.py`: el cartel de "1 year earlier"

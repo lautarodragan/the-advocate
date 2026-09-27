@@ -696,6 +696,24 @@ FAR_EFECTO_EN = $7E78D0
 ; $7E7840 a $7E784F, reservado el 2026-09-26. Ver `fundido_de_pelea.s`.
 PELEA_PRENDIDA = $7E7840        ; 1 si la pelea llegó a prender su pantalla
 
+; --- la transición del teletransporte ---------------------------------------
+;
+; $7E7920 a $7E793F, reservado el 2026-09-27: la transición con que el
+; teletransporte borra la pantalla y con la que la vuelve a mostrar, que
+; `ChangeScreenTransitions` cambia —`op_transition`— y `fundido_mosaico` lee:
+; TRANSICION_MOSAICO, o cualquier otra cosa para el fundido.
+;
+; Los pone en el fundido `transicion_de_arranque`, en el reset: bsnes arranca la
+; WRAM con basura, y sin eso el primer teletransporte podía salir en mosaico.
+; **No viaja en la partida**, y en RM2k sí. Es a propósito: el único lugar del
+; juego que la cambia es la guarida de Boss Wick, y lo que va de la que la pone
+; en mosaico (la página 1 del 42) a la que la devuelve al fundido (la 4 del 40)
+; son páginas automáticas encadenadas, sin un momento en que el jugador pueda
+; abrir el menú y guardar. Guardarla sería cambiar el formato de la partida
+; para un valor que en toda partida guardada vale lo mismo.
+TRANSICION_BORRAR  = $7E7920
+TRANSICION_MOSTRAR = $7E7921
+
 ; --- la grilla del mapa, en la WRAM -----------------------------------------
 ;
 ; **$7E8000 a $7EFFFF es de la grilla**, y sigue en $7F8000 si pasa de 32 KB:

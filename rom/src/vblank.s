@@ -265,6 +265,7 @@ sin_ventana:
     ; excepción es el blanking forzado de una carga, que `fundido_tick` escribe
     ; a mano: ahí la pantalla ya está en negro y el cambio no se ve.
 prender:
+    jsl f:fundido_mosaico       ; el del teletransporte, si lo pide
     lda brillo
     sta INIDISP
     rts

@@ -91,6 +91,7 @@ TEXTO_BUF_BYTES = VENTANA_TEXTO_COLS * 2 * 32
 .include "interprete_camara_y_tinte.s"
 .include "interprete_teletransporte.s"
 .include "fundido_de_pelea.s"
+.include "transicion_del_teletransporte.s"
 .include "variables.s"
 .include "tinte.s"
 .include "grupo.s"

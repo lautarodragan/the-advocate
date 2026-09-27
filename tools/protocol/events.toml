@@ -422,3 +422,11 @@ args = [
 name = "OP_GAME_OVER"
 code = 0x2D
 args = []
+
+[[opcode]]
+name = "OP_TRANSITION"
+code = 0x2E
+args = [
+  { name = "which", type = "byte" },
+  { name = "kind", type = "byte" },
+]
