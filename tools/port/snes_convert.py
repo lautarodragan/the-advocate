@@ -5821,12 +5821,24 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                 raise SystemExit("la tropa %d da %d de experiencia y la ROM "
                                  "la suma en dieciséis bits" % (n, exp))
         words_asm("tropa_exp", exp_tropa, declarar=True)
+        # Y el oro, igual: `batalla.oro_de_la_tropa`. La victoria lo cuenta
+        # con `ba_vic_numero`, que llega a cinco cifras.
+        oro_tropa = [B.oro_de_la_tropa(db, n) for n in usadas]
+        for n, oro in zip(usadas, oro_tropa):
+            if oro > 0xFFFF:
+                raise SystemExit("la tropa %d da %d de oro y la ROM lo suma "
+                                 "en dieciséis bits" % (n, oro))
+        words_asm("tropa_oro", oro_tropa, declarar=True)
         # Lo que la victoria escribe tiene que entrar en su renglón: la ROM lo
         # arma con un número o un nombre en el medio y no lo parte.
         P.cobrar_la_victoria(
             term_batalla, max(exp_tropa, default=0),
             [db.actors[a].name for a in ranuras["actores"] if a in db.actors],
-            [db.skills[h].name for h in sorted(ensenadas)])
+            [db.skills[h].name for h in sorted(ensenadas)],
+            max(oro_tropa, default=0),
+            [db_items[i].name for i in sorted({db.enemies[e].drop_id
+                                               for e in enemigos_rom}
+                                              - {0})])
         bytes_asm("tropa_ini", inicios, declarar=True)
         bytes_asm("tropa_n", [len(db.troops[n].members[:B.ENEMIGOS_MAX])
                               for n in usadas], declarar=True)
@@ -5933,6 +5945,19 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             declarar=True)
         words_asm("enemigo_txt", [texto_enemigo[e] for e in enemigos_rom],
                   declarar=True)
+        # Lo que deja al morir: el ítem del LDB, o 0 si no deja nada, y la
+        # chance en por ciento. Ver `ba_vic_botin` y `batalla.tirar_el_botin`.
+        # Todo ítem que se puede soltar está en `items`: ver
+        # `items_del_botin`, que lo agrega.
+        for e in enemigos_rom:
+            if db.enemies[e].drop_id and db.enemies[e].drop_id not in k_de:
+                raise SystemExit("el enemigo %d suelta el ítem %d y el "
+                                 "cartucho no lo lleva"
+                                 % (e, db.enemies[e].drop_id))
+        words_asm("enemigo_botin", [db.enemies[e].drop_id
+                                    for e in enemigos_rom], declarar=True)
+        bytes_asm("enemigo_botin_pct", [db.enemies[e].drop_prob
+                                        for e in enemigos_rom], declarar=True)
         # Lo que cada enemigo puede hacer en su turno: su lista de
         # `batalla.acciones_de_enemigo`, seguida en `eacc_*` —dónde arranca y
         # cuántas son—. Por acción, la habilidad como `k` de las tablas `hab_*`
@@ -7260,6 +7285,10 @@ def main():
              paginas_tropa.paginas, len(paginas_tropa.donde),
              len(paginas_tropa.cuerpos), len(paginas_tropa.mensajes.datos),
              len(paginas_tropa.mensajes.textos)))
+    # Los ítems que sueltan los enemigos de esas tropas también pueden llegar
+    # al inventario: ver `items_del_botin`.
+    ranuras_datos["items"] = sorted(
+        set(items_rom) | items_del_botin(renderer.database, tropas.ids))
     comprimidos = comprimir_los_bloques(mapas)
     informe = emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
                    ventana_datos, titulo_datos, ranuras_datos,
@@ -8059,6 +8088,16 @@ def items_posibles(map_ids, actores=(), db=None, extra=()):
                 barrer(page.commands)
     barrer(extra)
     return sorted(i for i in items if 0 < i < eventos.ITEMS_N)
+
+
+def items_del_botin(db, tropas):
+    """Los ítems que puede soltar algún enemigo de estas tropas al perder una
+    pelea —su `drop_id`—, para que el cartucho lleve su nombre: la victoria
+    lo cuenta y la lista del menú lo muestra. Los que `items_posibles` no
+    encuentra en ninguna página. Todos los miembros, como `enemigos_rom`."""
+    return {db.enemies[e].drop_id for n in tropas if n in db.troops
+            for e in db.troops[n].members
+            if 0 < db.enemies[e].drop_id < eventos.ITEMS_N}
 
 
 def miembros_posibles(map_ids, grupo, extra=()):

@@ -551,7 +551,7 @@ class Item:
 
 ENEMY_CAMPOS = ("name", "battler_name", "battler_hue", "max_hp", "max_sp", "attack",
                 "defense", "spirit", "agility", "exp", "gold", "critical_hit",
-                "miss")
+                "miss", "drop_id", "drop_prob")
 
 
 class Enemy:
