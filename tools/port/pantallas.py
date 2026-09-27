@@ -479,6 +479,11 @@ BA_TERMINOS = (
     ("nivel", "level"),                  # "LEVEL"
     ("subio", "level_up"),               # " achieved!"
     ("aprendio", "skill_learned"),       # " acquired!"
+    # Y los del oro y los ítems que se ganan, desde el 2026-09-27.
+    ("oro_a", "gold_recieved_a"),        # " You found"
+    ("moneda", "gold"),                  # "Cr"
+    ("oro_b", "gold_recieved_b"),        # " credits!"
+    ("obtenido", "item_recieved"),       # " obtained!"
 )
 
 # Lo que la victoria cuenta va, como en RM2k, en la ventana de mensaje que tapa
@@ -531,12 +536,32 @@ def renglon_de_habilidad(term, habilidad):
     return habilidad + term["aprendio"]
 
 
-def cobrar_la_victoria(term, exp_max, actores, habilidades):
+def renglon_de_oro(term, oro):
+    """`GetGoldReceivedMessage` de RM2k sin placeholders: `gold_recieved_a`,
+    un espacio, el número pegado a `gold` y `gold_recieved_b`. En el ABL,
+    " You found 285Cr credits!": la moneda y "credits" van los dos, que es lo
+    que arma RM2k con estos términos."""
+    return "%s %d%s%s" % (term["oro_a"], oro, term["moneda"], term["oro_b"])
+
+
+def renglon_de_item(term, nombre):
+    """`GetItemReceivedMessage` de RM2k: el nombre pegado a `item_recieved`,
+    sin espacio en el medio —ése es de RM2k3—. El nombre es el que la ROM
+    lleva, cortado a `ITEM_NOMBRE_ANCHO`."""
+    from port import titulo
+    return titulo.texto_de_item(nombre, titulo.ITEM_NOMBRE_ANCHO) \
+        + term["obtenido"]
+
+
+def cobrar_la_victoria(term, exp_max, actores, habilidades, oro_max=0,
+                       items=()):
     """Corta el armado si algún renglón de la victoria no entra en
     `BA_PAG_MSG_ANCHO`: la ROM los arma pegando pedazos y no los parte, así
     que uno largo se pasaría al renglón de abajo. Los niveles se miden con dos
     cifras, que es el tope de RM2k."""
     renglones = ([renglon_de_experiencia(term, exp_max)]
+                 + [renglon_de_oro(term, oro_max)]
+                 + [renglon_de_item(term, n) for n in items]
                  + [renglon_de_nivel(term, n, 99) for n in actores]
                  + [renglon_de_habilidad(term, h) for h in habilidades])
     largos = [r for r in renglones if len(r) > BA_PAG_MSG_ANCHO]

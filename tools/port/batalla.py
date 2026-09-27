@@ -576,9 +576,20 @@ def enemigo_de(db, enemy_id, lugar):
     """
     e = db.enemies[enemy_id]
     critico = (100 // (e.critical_hit_chance or 30)) if e.critical_hit else 0
-    return Combatiente(e.name, e.max_hp, e.attack, e.defense, e.agility,
-                       e.hit, critico, False, lugar, e.spirit, e.max_sp,
-                       acciones=acciones_de_enemigo(db, enemy_id))
+    quien = Combatiente(e.name, e.max_hp, e.attack, e.defense, e.agility,
+                        e.hit, critico, False, lugar, e.spirit, e.max_sp,
+                        acciones=acciones_de_enemigo(db, enemy_id))
+    # Lo que deja al morir: el ítem y su chance en por ciento. Ver `botin`.
+    quien.botin_item = e.drop_id
+    quien.botin_chance = e.drop_prob
+    return quien
+
+
+def oro_de_la_tropa(db, tropa):
+    """`Game_EnemyParty::GetMoney`: el `gold` de cada enemigo **muerto**, que
+    en una victoria son todos —como en `experiencia.exp_de_la_tropa`—, hasta
+    `ENEMIGOS_MAX`. No tira azar."""
+    return sum(db.enemies[e].gold for e in db.troops[tropa].members[:ENEMIGOS_MAX])
 
 
 def acierto_por_agilidad(base, agi_fuente, agi_blanco):
@@ -636,7 +647,9 @@ class Batalla:
        un orden estable;
     4. se ejecutan en ese orden, salteando a los que hayan muerto en el
        camino. Cada ataque tira **tres veces**: acierto, crítico y varianza, y
-       el del crítico se tira aunque la probabilidad sea cero.
+       el del crítico se tira aunque la probabilidad sea cero;
+    5. al ganar, **un tiro por enemigo con ítem**, en el orden de la tropa:
+       ver `tirar_el_botin`.
 
     Que el punto 2 vaya antes que el 3 no es un detalle: es el orden de
     `SelectNextActor`, que llama a `CreateEnemyActions()` y después a
@@ -656,6 +669,8 @@ class Batalla:
         # `Scene_Battle` lo prende de verdad. Acá se junta el número, que es lo
         # que la prueba compara contra el bit de la ROM.
         self.switches = []
+        # Los ítems que soltaron los enemigos al perder: ver `tirar_el_botin`.
+        self.botin = []
 
     # --- la huida ---------------------------------------------------------
     def _promedio(self, quienes):
@@ -898,6 +913,22 @@ class Batalla:
         self.registro.append((self.turno, fuente.nombre, blanco.nombre,
                               True, critico, -efecto, blanco.hp))
 
+    # --- la victoria ------------------------------------------------------
+    def tirar_el_botin(self):
+        """`Game_EnemyParty::GenerateDrops`: por cada enemigo, en el orden de
+        la tropa, **un tiro si tiene ítem** —`ChanceOf(drop_prob, 100)`, que
+        es `GetRandomNumber(1, 100) <= rate` y con nuestro azar da lo mismo
+        que `porciento`— y ninguno si no. El de chance 100 se tira igual. Lo
+        llama `jugar_turno` al ganar, que es cuando lo hace
+        `ProcessSceneActionVictory`; devuelve los ítems ganados en orden, uno
+        por enemigo que soltó el suyo."""
+        ganados = []
+        for enemigo in self.enemigos:
+            item = getattr(enemigo, "botin_item", 0)
+            if item > 0 and self.azar.porciento(enemigo.botin_chance):
+                ganados.append(item)
+        return ganados
+
     def jugar_turno(self, ordenes):
         """Un turno entero. `ordenes` es, por actor vivo y en el orden del
         grupo, `(ORDEN_ATACAR, lugar_del_enemigo)` o `(ORDEN_DEFENDER, 0)`.
@@ -980,6 +1011,7 @@ class Batalla:
                                   pego, critico, dano, blanco.hp))
         if not self.vivos(self.enemigos):
             self.resultado = VICTORIA
+            self.botin = self.tirar_el_botin()
         elif not self.vivos(self.actores):
             self.resultado = DERROTA
         return self.resultado

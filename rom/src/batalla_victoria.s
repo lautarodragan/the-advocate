@@ -18,14 +18,19 @@ BA_VIC_RENGLONES = BA_GRUPO_MAX
 ; son los cuatro renglones del grupo, igual que el mensaje de una página de
 ; tropa (`ba_pag_mensaje`), y el renglón de abajo queda vacío.
 ;
-; RM2k también cuenta el oro y los ítems que se ganan; este port todavía no
-; los da, así que tampoco los cuenta.
+; Desde el 2026-09-27 la primera página cuenta también el oro —"<gold_recieved_a>
+; <n><gold><gold_recieved_b>"— y un renglón por ítem que soltaron los enemigos
+; —"<ítem><item_recieved>"—, como `PushGoldReceivedMessage` y
+; `PushItemRecievedMessages`. Son renglones del mismo mensaje que la victoria y
+; la experiencia, así que lo que no entra en los cuatro sigue en otra página,
+; igual que las habilidades de un actor.
 
 ; Al ganar, antes de mostrar nada: anota el nivel de cada uno, reparte la
-; experiencia —que sube de nivel y enseña, ver `exp_sumar`— y deja lista la
-; primera página. Es el orden de `ProcessSceneActionVictory`, que arma el
-; mensaje y le da la experiencia a cada uno en el mismo sub-estado. Se lleva
-; `BA_S0`, `BA_T*`, A, X e Y.
+; experiencia —que sube de nivel y enseña, ver `exp_sumar`—, da el oro y tira
+; el botín, y deja lista la primera página. Es el orden de
+; `ProcessSceneActionVictory`, que arma el mensaje y le da todo al grupo en el
+; mismo sub-estado; de los tres, sólo el botín tira azar. Se lleva `BA_S0` a
+; `BA_S2`, `BA_T*`, A, X e Y.
 .proc ba_vic_empezar
 .a8
 .i16
@@ -44,11 +49,97 @@ ranura:
     bra ranura
 anotadas:
     jsr ba_exp_repartir
+    jsr ba_vic_oro
+    jsr ba_vic_botin
     lda #$FF
     sta BA_VIC_ACTOR
     stz BA_VIC_SALTEAR
     stz BA_VIC_MAS
     rts
+.endproc
+
+; El oro de la tropa, al grupo: `Game_Party::GainGold`, topado en ORO_MAX.
+; No mira si la tropa da cero: sumar cero no cambia nada.
+.proc ba_vic_oro
+.a8
+.i16
+    lda BA_TROPA_K
+    cmp #$FF
+    beq listo                   ; una tropa que el cartucho no lleva
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:tropa_oro, x
+    sta comp_or01
+    sep #$20
+.a8
+    stz comp_or01 + 2
+    jsr oro_sumar
+listo:
+    rts
+.endproc
+
+; Lo que sueltan los enemigos: `Game_EnemyParty::GenerateDrops`. Por cada uno,
+; en el orden de la tropa, si tiene ítem **tira** `ba_pct` con su chance —el de
+; cien también, que es lo que hace `Rand::ChanceOf`—, y si sale el ítem va al
+; inventario, topado en ITEM_MAX como `Game_Party::AddItem`, y su `k` a
+; `BA_BOTIN_K` para que la página lo cuente. El orden de los tiros es el de
+; `batalla.tirar_el_botin`. Todos los de la tropa están muertos, que es lo que
+; pide `IsDead`. Se lleva `BA_S0` a `BA_S2`, `BA_T*`, A, X e Y.
+.proc ba_vic_botin
+.a8
+.i16
+    stz BA_BOTIN_N
+    stz BA_S0                   ; el lugar en la tropa
+otro:
+    lda BA_S0
+    cmp BA_NENE
+    bcc hay
+    rts
+hay:
+    ; El enemigo, como lugar en las tablas: el mismo camino que `ba_armar`.
+    lda BA_TROPA_K
+    jsr ba_ax
+    lda f:tropa_ini, x
+    clc
+    adc BA_S0
+    jsr ba_ax
+    lda f:tropa_miembro, x
+    sta BA_S2
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:enemigo_botin, x
+    sta BA_S1                   ; el ítem del LDB, o 0
+    sep #$20
+.a8
+    beq siguiente               ; no deja nada: no tira
+    lda BA_S2
+    jsr ba_ax
+    lda f:enemigo_botin_pct, x
+    jsr ba_pct
+    beq siguiente
+    ldx BA_S1
+    lda FAR_ITEMS, x
+    cmp #ITEM_MAX
+    bcs lleno
+    inc a
+    sta FAR_ITEMS, x
+lleno:
+    lda f:item_k, x             ; el conversor cobra que lo lleve
+    pha
+    lda BA_BOTIN_N
+    jsr ba_ax
+    pla
+    sta BA_BOTIN_K, x
+    inc BA_BOTIN_N
+siguiente:
+    inc BA_S0
+    bra otro
 .endproc
 
 ; El nivel de ahora del actor de la ranura A8 del grupo, o 0 si la ranura
@@ -184,38 +275,115 @@ si:
     beq primera
     jmp de_un_actor
 primera:
+    ; Los renglones del mensaje de la victoria, de a cuatro por página: ver
+    ; `ba_vic_linea`, que cuenta los que ya salieron.
+    stz BA_VIC_MAS
+    lda BA_VIC_SALTEAR
+    sta BA_VIC_SIG
+    stz BA_S3
+    stz BA_S4
     ; El término de la victoria, en los renglones en que lo partió el
     ; conversor —ver `pantallas.renglones_de_la_victoria`—.
+    jsr ba_vic_linea
+    bcc sin_v1
     ldx #BA_TXT_VICTORIA
     jsr ba_termino
+sin_v1:
     lda #BA_VIC_TERMINO_N       ; no con `.if`: la constante llega después
     cmp #2
     bcc un_renglon
-    jsr ba_vic_renglon
+    jsr ba_vic_linea
+    bcc un_renglon
     ldx #BA_TXT_VICTORIA2
     jsr ba_termino
 un_renglon:
-    ; Y la experiencia, si la hay: `if (exp > 0)` de easyrpg.
+    ; Y la experiencia, si la hay: `if (exp > 0)` de easyrpg. El oro va igual,
+    ; `if (money > 0)`.
     lda BA_TROPA_K
     cmp #$FF
-    beq sin_exp
+    bne con_tropa
+    rts
+con_tropa:
     rep #$20
 .a16
     and #$00FF
     asl a
+    sta BA_S1                   ; el lugar de la tropa en las de palabras
     tax
     lda f:tropa_exp, x
+    sep #$20
+.a8
     beq sin_exp
+    jsr ba_vic_linea
+    bcc sin_exp
+    rep #$20
+.a16
+    ldx BA_S1
+    lda f:tropa_exp, x
     sta BA_T0
     sep #$20
 .a8
-    jsr ba_vic_renglon
     jsr ba_vic_numero
     ldx #BA_TXT_EXP_RECIBIDA
     jsr ba_termino
 sin_exp:
+    rep #$20
+.a16
+    ldx BA_S1
+    lda f:tropa_oro, x
     sep #$20
 .a8
+    beq sin_oro
+    jsr ba_vic_linea
+    bcc sin_oro
+    ldx #BA_TXT_ORO_A
+    jsr ba_termino
+    lda #$20
+    jsl f:ba_t_glifo
+    rep #$20
+.a16
+    ldx BA_S1
+    lda f:tropa_oro, x
+    sta BA_T0
+    sep #$20
+.a8
+    jsr ba_vic_numero
+    ldx #BA_TXT_MONEDA
+    jsr ba_termino
+    ldx #BA_TXT_ORO_B
+    jsr ba_termino
+sin_oro:
+    ; Y un renglón por ítem, en el orden en que salieron.
+    stz BA_S0
+item:
+    lda BA_S0
+    cmp BA_BOTIN_N
+    bcs listos
+    jsr ba_vic_linea
+    bcc otro_item
+    lda BA_S0
+    jsr ba_ax
+    lda BA_BOTIN_K, x
+    rep #$20
+.a16
+    and #$00FF
+    sta BA_T0
+    asl a
+    clc
+    adc BA_T0                   ; por tres: `3k` es el nombre del ítem
+    tax
+    sep #$20
+.a8
+    lda #255
+    sta comp_dup + 3
+    stz temp + 1
+    jsl f:ba_t_texto
+    ldx #BA_TXT_OBTENIDO
+    jsr ba_termino
+otro_item:
+    inc BA_S0
+    bra item
+listos:
     rts
 
 de_un_actor:
@@ -342,6 +510,38 @@ siguiente:
 otro:
     jmp nivel
 listo:
+    rts
+.endproc
+
+; El renglón que sigue de la primera página, si le toca a ésta: C en 1 y la
+; posición puesta, o C en 0 si salió en una página anterior —los primeros
+; `BA_VIC_SALTEAR`— o no entra, y entonces queda `BA_VIC_MAS`. Lleva la cuenta
+; en `BA_S4`, los vistos, y `BA_S3`, los escritos, que `ba_vic_mensaje` pone en
+; cero. Es la misma cuenta que las habilidades de un actor, más abajo.
+.proc ba_vic_linea
+.a8
+.i16
+    inc BA_S4
+    lda BA_S4
+    cmp BA_VIC_SALTEAR
+    beq no                      ; salió en una página anterior
+    bcc no
+    lda BA_S3
+    cmp #BA_VIC_RENGLONES
+    bcc entra
+    lda #1                      ; no entra: sigue en otra página
+    sta BA_VIC_MAS
+no:
+    clc
+    rts
+entra:
+    inc BA_VIC_SIG
+    lda BA_S3
+    beq arriba                  ; el primero de la página ya está puesto
+    jsr ba_vic_renglon
+arriba:
+    inc BA_S3
+    sec
     rts
 .endproc
 
