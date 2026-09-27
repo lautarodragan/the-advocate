@@ -44,6 +44,10 @@ Cada fondo son dos entradas, en este orden: sus 512 tiles de 8bpp —32.768
 bytes, tal cual van a la WRAM— y sus 96 colores de 15 bits —192 bytes, tal
 cual van a la CGRAM desde la entrada 32—. Los arma `fondo_bytes` en
 snes_convert.py.
+
+Detrás de los fondos van los efectos de sonido de calidad, una entrada por
+efecto de cada paquete de audio, en BRR: los ordena `escribir_msu` en
+snes_convert.py, y el porqué está en tools/audio/efectos_msu.py.
 """
 
 import hashlib

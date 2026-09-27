@@ -171,6 +171,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   título bajen el tema y no los efectos, escuchando el audio del core
 * `abl/test_msu.py`: las pistas de MSU-1, y lo que pasa con ellas al salir
   del título y en un fundido
+* `abl/test_msu_efectos.py`: los efectos con MSU-1: los de calidad del
+  `.msu`, enteros y a su tasa, la caída a los del cartucho con otro `.msu`, y
+  tres a la vez con las voces que la música no usa
 
 **Lo propio de ABL**
 

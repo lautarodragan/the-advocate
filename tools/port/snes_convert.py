@@ -7513,8 +7513,13 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
             "\n; El `.msu`: ver `escribir_msu` en tools/port/snes_convert.py.\n"
             "; El primer SRCN que es de un efecto de sonido.\n"
             "SE_PRIMERA = %d\n"
+            "; Cuántas entradas del .msu son de fondos —dos por fondo, las\n"
+            "; primeras— y cuántas de efectos, detrás: para las pruebas.\n"
+            "MSU_FONDOS_N = %d\n"
+            "MSU_EFECTOS_N = %d\n"
             '.segment "RODATA"\n%s\n'
-            % (len(banco.voces) if banco is not None else 0,
+            % (len(banco.voces) if banco is not None else 0, len(fondos),
+               sum(len(lista) for lista in del_paquete),
                "\n".join(bloque(etiqueta, datos or bytes(2)) for etiqueta, datos
                          in (("msu_datos_firma", firma),
                              ("msu_fondo_pos", fondo_pos),
@@ -7522,6 +7527,15 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
                              ("se_msu_filas", filas),
                              ("se_msu_altura_paq", desde_alturas),
                              ("se_msu_altura", alturas)))))
+    # Y lo mismo, legible, al lado: qué sonido es cada fila de `sonido_tabla`
+    # y a qué tasa va cada efecto de cada paquete en el `.msu`. No lo lee la
+    # ROM; es para las herramientas que tocan un efecto desde afuera y para
+    # mirar qué decidió el reparto.
+    with open(os.path.join(os.path.dirname(musica), "efectos.json"),
+              "w") as handle:
+        json.dump({"sonidos": [list(s) for s in sonidos],
+                   "srcn": {e: srcn for e, (srcn, _v) in efectos.items()},
+                   "tasas": tasas}, handle, indent=1)
     for (nombre, *_r) in por_nombre:
         suyas = tasas.get(str(nombre), {})
         if suyas:

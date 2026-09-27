@@ -9,10 +9,9 @@ Hoy los efectos tienen dos voces (la 6 y la 7). Al verificar el mapa 3 se vio
 un momento de la escena de `evilrhys` con tres efectos a la vez: uno no
 suena.
 
-1. **Con MSU-1, todas las voces para efectos.** Cuando el tema suena por la
-   pista, el SPC700 no toca música y las ocho voces están libres. Que los
-   efectos puedan usarlas (las muestras de música ya no se suben con MSU-1:
-   `done/con-msu-1-no-se-suben-las-muestras-del-tema.md`, o `testing/`).
+1. **Con MSU-1, todas las voces para efectos.** Hecho el 2026-09-26, en
+   `efectos-de-calidad-con-msu-1.md`: mientras el SPC700 no toca música, los
+   efectos tienen también las voces 0 a 5. Lo que queda acá es sin MSU-1.
 2. **Sin MSU-1, evaluarlo**: una tercera voz se le saca a la música, y el
    reparto de voces (`la-calidad-de-la-musica.md`, paso 5) pierde polifonía.
    Medir cuántas veces pasa en el juego que suenen tres efectos a la vez y

@@ -1,30 +1,30 @@
 """Los efectos de sonido de calidad, que la ROM lee del `.msu` con MSU-1.
 
 Con MSU-1 y el tema sonando por su pista, el SPC700 no toca música: la ARAM
-queda para los efectos. Pero la ROM no puede llevar una versión de calidad de
-cada efecto para cada paquete —los 92 efectos de `release` enteros a 22 kHz
-son 1,1 MB, y el paquete del mapa 3 solo pediría 291 KB contra los 62 de la
-ARAM—, así que las lleva el `.msu`, que no tiene tope, y la ROM las sube a la
-ARAM por el puerto de datos del MSU-1 al cargar cada paquete. Sin MSU-1, o con
-un `.msu` que no es el de este cartucho, usa los suyos: los de siempre, que
-reparte `snes_music`. El mecanismo es el de los fondos de batalla —ver
-docs/port/msu-datos.md— y el diseño con sus números, la tarea
-`efectos-de-calidad-con-msu-1.md`.
+queda para los efectos. Pero la ROM no puede llevar una versión de calidad
+de cada efecto para cada paquete —medido el 2026-09-26, los 92 efectos de
+`release` enteros a 22 kHz eran 1,1 MB, y el paquete del mapa 3 solo pedía
+291 KB contra los 62 de la ARAM—, así que las lleva el `.msu`, que no tiene
+tope, y la ROM las sube a la ARAM por el puerto de datos del MSU-1 al cargar
+cada paquete. Sin MSU-1, o con un `.msu` que no es el de este cartucho, usa
+los suyos: los de siempre, que reparte `snes_music`. El mecanismo es el de
+los fondos de batalla —ver docs/port/msu-datos.md— y el diseño con sus
+números, la tarea `efectos-de-calidad-con-msu-1.md`.
 
-**Cada paquete tiene su versión de cada efecto**, a la tasa que le entra. Una
-sola por efecto —la que le entra a su peor paquete— dejaba a 4,7 kHz los
+**Cada paquete tiene su versión de cada efecto**, a la tasa que le entra.
+Una sola por efecto —la que le entra a su peor paquete— dejaba a 4,7 kHz los
 efectos que el mapa 3 comparte con otros diez paquetes que tienen lugar de
-sobra: 48 de los 159 pares (paquete, efecto) de `release` perdían. Lo que
-cuesta es que la ROM vuelve a subir los efectos en cada paquete aunque ya
-estuvieran en la ARAM, porque no tiene dónde anotar qué versión quedó; ver
-`paquete_cargar_ya` en rom/src/paquete_de_audio.s.
+sobra: el mismo día, 48 de los 159 pares (paquete, efecto) de `release`
+perdían. Lo que cuesta es que la ROM vuelve a subir los efectos en cada
+paquete aunque ya estuvieran en la ARAM, porque no tiene dónde anotar qué
+versión quedó: ver `se_msu_preparar` en rom/src/efectos_con_msu.s.
 
 **Enteros siempre, y a la tasa más alta que entre**: la misma para todos los
 efectos del paquete —`TASAS`, de la de los WAV para abajo— salvo que la del
-cartucho sea mayor. Un efecto que el cartucho ya lleva entero no queda
-peor que sin MSU-1: su tasa es el piso. Uno que el cartucho lleva recortado
-puede quedar a menos tasa que allá, pero entero: es lo que pidió taro
-primero, la longitud.
+cartucho sea mayor. Un efecto que el cartucho ya lleva entero no queda peor
+que sin MSU-1: su tasa es el piso. Uno que el cartucho lleva recortado puede
+quedar a menos tasa que allá, pero entero: es lo que pidió taro primero, la
+longitud.
 """
 
 import collections

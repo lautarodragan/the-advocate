@@ -4,7 +4,8 @@ El MSU-1 tiene dos partes: las pistas de audio (`<rom>-N.pcm`, ver
 `tools/audio/msu.py`) y un **puerto de datos** que lee el `<rom>.msu` como un
 flujo. Hasta el 2026-09-25 el `.msu` iba vacío y sólo servía para encender el
 MSU-1. Desde ese día lleva **los fondos de batalla**, como piloto: el objetivo
-es probar el mecanismo. La ROM sigue llevando los suyos, pero **livianos**:
+es probar el mecanismo. Y desde el 2026-09-26, detrás, **los efectos de
+sonido de calidad** de cada paquete de audio: ver "Los efectos" abajo. La ROM sigue llevando los suyos, pero **livianos**:
 4bpp y 16 colores, contra los 8bpp y 96 del `.msu` —ver "El respaldo
 liviano" en `tools/port/escena.py`—. Así se ve a ojo de qué lado salió el
 fondo, y la ROM ahorra la mitad de cada uno.
@@ -93,6 +94,26 @@ de calidad y lo que sigue saldría del liviano, que no comparten ni colores ni
 tiles: `escena_subir` lo nota y rehace el fondo entero desde la ROM. Ningún
 emulador tarda tanto como para cortar la espera, así que ese camino **no lo
 corre ninguna prueba**.
+
+## Los efectos
+
+Detrás de los fondos van los efectos de sonido de cada paquete de audio,
+enteros y a la tasa que le entra a ese paquete con la ARAM libre de música
+—el reparto es `tools/audio/efectos_msu.py`—: por paquete, en el orden de la
+tabla, y adentro de cada uno en orden de SRCN, que es como los sube
+`subir_colocadas`. Así la ROM **busca una vez por paquete** y lee de corrido;
+un efecto que está en dos paquetes va dos veces. Lo escribe `escribir_msu`
+en snes_convert.py, que también emite lo que la ROM necesita: `se_msu_paq` y
+`se_msu_filas` —dónde está cada efecto de cada paquete y cuánto mide— y
+`se_msu_altura_paq` y `se_msu_altura` —la altura de cada sonido con la
+versión de cada paquete—, y al lado un `efectos.json` legible.
+
+La firma es la misma de los fondos y se mira una vez por encendido, en la
+primera carga de paquete (`se_msu_preparar`, en `rom/src/efectos_con_msu.s`).
+Sin firma, los efectos salen de la ROM como siempre. Una búsqueda que no llega
+a tiempo deja ese efecto sin subir: no suena, porque la versión de la ROM
+tiene otra altura. Lo cubre `pruebas/abl/test_msu_efectos.py`, menos esa
+espera, por lo mismo que la de los fondos.
 
 ## Cómo se prueba
 

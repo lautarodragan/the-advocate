@@ -7,7 +7,8 @@
 ; (`VOCES_DE_EFECTOS` en snes_music.py). Ver `build_efectos` allá. En
 ; RM2k los efectos se suman —EasyRPG tiene 31 canales—, y con una sola voz la
 ; lluvia de la apertura le cortaba el trueno a la mitad: medido, 73 de sus 144
-; cuadros, y una vez 7.
+; cuadros, y una vez 7. Con MSU-1 y el SPC700 sin música, además las voces 0 a
+; 5: ver efectos_con_msu.s.
 ;
 ; El estado de cada voz vive en la RAM lejana, porque la página directa y la
 ; BSS están llenas. El de la segunda está SE2_DESPL más arriba, con la misma
