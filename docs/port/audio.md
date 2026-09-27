@@ -39,6 +39,14 @@ muestra y con qué envolvente, y la consola sólo reproduce.
   `paquete_cargar` (`rom/src/paquete_de_audio.s`) mientras la música suena;
   si el tema que viene sonando y el paquete nuevo no entran juntos, gana el
   tema: `workflow/decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`.
+* **El directorio del SPC700** tiene una entrada por muestra de la música
+  —su número en el cartucho, que es el SRCN del stream— y detrás unos
+  **lugares que comparten los efectos**: dos efectos que nunca van en el
+  mismo paquete van al mismo lugar, así que alcanzan tantos como efectos
+  tiene el paquete más cargado, y lo que queda del directorio es para las
+  copias. `lugares_de_efectos` en `snes_music.py`; la ROM anota qué efecto
+  subió a cada lugar en `FAR_EFECTO_EN` (`anotar_efecto`, en
+  `rom/src/paquete_de_audio.s`).
 * **Los efectos de sonido** —`PlaySound`— le roban dos voces a la música
   mientras duran, las que el reparto llena primero con la percusión:
   `rom/src/efectos_de_sonido.s` y `build_efectos` en `snes_music.py`. Los
