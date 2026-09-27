@@ -332,6 +332,8 @@ no_esta:
 .a16
     lda f:muestra_tabla + 3, x
     sta f:PAQ_LARGO
+    jsl se_msu_largo            ; o lo que mide la del `.msu`: efectos_con_msu.s
+.a16
     ; El primer hueco donde entre: se recorren los ocupados en orden, con
     ; PAQ_A en el principio del hueco que se mira.
     lda #ARAM_DATOS
@@ -439,8 +441,11 @@ otra:
 .a8
     lda f:PAQ_S
     jsr fila_de_muestra
+    jsl se_msu_subir            ; un efecto del `.msu`: ver efectos_con_msu.s
+    bcs subida
     jsr subir_muestra
     jsr escribir_directorio
+subida:
     plx
 sigue:
     inx
@@ -593,7 +598,8 @@ listo:
     lda #1
     sta f:SE_DEVOLVER           ; la música recupera las voces
     sta f:SE2_DEVOLVER
-    lda #(SE_BIT | SE2_BIT)
+    jsl se_extras_callar        ; y las de las voces 0 a 5, en el mismo KOF
+    ora #(SE_BIT | SE2_BIT)
     ldx #SE_KOF
     jsr dsp_par
     plp
@@ -640,6 +646,8 @@ listo_apu:
     sta f:PAQ_INCOMPLETO
     sta f:PAQ_COMPACTAR
     jsr se_callar
+    jsl se_msu_preparar         ; con los efectos del `.msu`, se vuelven a
+                                ; subir todos: ver efectos_con_msu.s
     ldx #0
 limpiar:
     lda #0

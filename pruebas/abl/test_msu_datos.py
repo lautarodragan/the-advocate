@@ -196,7 +196,13 @@ def test_msu_la_rom_sabe_donde_esta_cada_fondo():
         assert msu[:msu_datos.FIRMA] == rom[en_la_rom(s["msu_datos_firma"]):][
             :msu_datos.FIRMA], "%s: la firma de la ROM no es la del .msu" % nombre
         pos = en_la_rom(s["msu_fondo_pos"])
-        for k in range(len(indice) // 2):
+        # Los fondos van primero, dos entradas cada uno, y detrás los efectos
+        # de sonido de calidad: ver `escribir_msu` en snes_convert.py.
+        assert len(indice) == 2 * s["MSU_FONDOS_N"] + s["MSU_EFECTOS_N"], (
+            "%s: el .msu tiene %d entradas y la ROM cuenta con %d fondos y %d "
+            "efectos" % (nombre, len(indice), s["MSU_FONDOS_N"],
+                         s["MSU_EFECTOS_N"]))
+        for k in range(s["MSU_FONDOS_N"]):
             (dt, lt), (dc, lc) = indice[2 * k], indice[2 * k + 1]
             assert rom[pos + 8 * k:pos + 8 * k + 8] == (
                 dt.to_bytes(4, "little") + dc.to_bytes(4, "little")), (

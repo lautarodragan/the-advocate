@@ -1,0 +1,12 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [3, 41, 56]},
+    {"code": "Wait", "parameters": [3]},
+    {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "evilrhys"},
+    {"code": "Wait", "parameters": [10]},
+    {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Glass"},
+    {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Flash3"},
+    {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Earth4"},
+    {"code": "Wait", "parameters": [30]}
+  ]
+}

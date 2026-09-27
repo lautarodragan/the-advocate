@@ -79,6 +79,8 @@ from port import batalla as batalla_mod
 from port import experiencia as X
 from port import escena as escena_mod
 from port import msu_datos
+from audio import efectos_msu
+from comun.paralelo import en_paralelo
 from audio import snes_music
 from port.asignador import CELL, tile_colors
 from rpgmaker.rm2k import collect_npcs, hero_start, passability_map
@@ -3631,7 +3633,6 @@ def escenas_asm(datos, tropas, db):
                             tiles de 4bpp del respaldo liviano.
       `fondo_cgram`         sus 16 colores, que van a la CGRAM desde la 32.
       `respaldo_alto`       los planos 4 a 7 que la ROM le pega a cada tile.
-      `msu_fondo_pos`       dónde está el de calidad en el `.msu`.
       `battler_*`           por battler: cuántos bytes mide una fila de un
                             plano, cuántas filas, cuánto mide un plano, dónde
                             están sus bytes y sus quince colores.
@@ -3694,16 +3695,10 @@ def escenas_asm(datos, tropas, db):
     cgram = b"".join(colores for _tiles, colores in bytes_de)
     out.append(bloque("fondo_cgram", cgram or b"\x00\x00"))
     out.append(bloque("respaldo_alto", respaldo_alto()))
-    # Y dónde está cada fondo de calidad en el `.msu`, con la firma que la ROM
-    # espera encontrar al principio: si no está, lee los livianos de arriba. Ver
-    # tools/port/msu_datos.py y `escena_msu` en rom/src/batalla_escena.s.
-    firma, posiciones = datos.get("msu", (bytes(msu_datos.FIRMA), []))
-    out.append(bloque("msu_datos_firma", firma))
-    pos = [".bloque %d" % (8 * max(1, len(posiciones))), "msu_fondo_pos:"]
-    pos += ["    .dword $%08X, $%08X" % par for par in posiciones]
-    if not posiciones:
-        pos.append("    .dword 0, 0")
-    out.append("\n".join(pos))
+    # Dónde está cada fondo de calidad en el `.msu` y la firma que la ROM
+    # espera encontrar al principio no van acá: el `.msu` lleva también los
+    # efectos de sonido, que salen del audio, y ése se arma después. Ver
+    # `msu_asm`.
     # Sesenta y cuatro ceros: el tile transparente con el que se tapa lo que
     # queda abajo de la escena, y de paso el origen fijo del DMA que llena de
     # cero el fondo liso.
@@ -7101,21 +7096,8 @@ def main():
     # tools/port/escena.py, que es donde está el porqué y el presupuesto.
     escenas = escena_de_la_rom(renderer.database, tropas, mapas, renderer.tree,
                                encuentros, args.game_dir)
-    # El `.msu`: los fondos de calidad, para leerlos por el MSU-1 cuando está
-    # —la ROM lleva los livianos, ver "El respaldo liviano" en escena.py—. Se
-    # escribe siempre, aunque el cartucho no lleve fondos, porque es también
-    # el archivo que enciende el MSU-1 para las pistas. Al lado y reemplazando,
-    # como las pistas: un emulador puede tenerlo abierto.
-    archivo, firma, posiciones = msu_datos.fondos(
-        [fondo_bytes(info) for info in escenas["fondos"]])
-    escenas["msu"] = (firma, posiciones)
-    msu = args.msu or os.path.join(os.path.dirname(os.path.abspath(
-        args.output)), "datos.msu")
-    with open(msu + ".nuevo", "wb") as handle:
-        handle.write(archivo)
-    os.replace(msu + ".nuevo", msu)
-    print("  .msu: %d fondo(s) en %d B, firma %s -> %s"
-          % (len(posiciones), len(archivo), firma.hex(), msu))
+    # El `.msu` se escribe después del audio, porque lleva también los efectos
+    # de sonido de calidad: ver `msu_asm`.
     for info in escenas["fondos"]:
         rom_tiles, rom_colores = respaldo_bytes(info)
         msu_tiles, msu_colores = fondo_bytes(info)
@@ -7350,6 +7332,14 @@ def main():
     snes_music.emit(musica, hechos, driver, muestras, arranque, tema_titulo,
                     snes_music.tabla_de_sonidos(temas.sonidos, banco),
                     paquetes, tema_de_mapa)
+    # El `.msu`: los fondos de calidad y los efectos de calidad, para leerlos
+    # por el MSU-1 cuando está. Se escribe siempre, aunque el cartucho no
+    # lleve ni fondos ni efectos, porque es también el archivo que enciende el
+    # MSU-1 para las pistas.
+    escribir_msu(args.msu or os.path.join(os.path.dirname(os.path.abspath(
+        args.output)), "datos.msu"), musica, escenas["fondos"],
+        por_nombre[:len(paquetes)], paquetes, hechos, muestras, banco,
+        temas.sonidos, args.game_dir)
     for i, (suyos, suyas, salida) in enumerate(paquetes[:len(mapas)]):
         if suyos or suyas or salida:
             print("  paquete de audio del mapa %d: %d tema(s), %d efecto(s)%s"
@@ -7423,6 +7413,137 @@ def main():
                   % (r.nombre[:28], banco.ocupa(r.claves),
                      r.libre - banco.ocupa(r.claves)
                      - banco.enteros_de_mas.get(r.nombre, 0)))
+
+
+def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
+                 banco, sonidos, game_dir):
+    """Escribe el `.msu` en `ruta` y le agrega a `musica` —el `musicdata.inc`—
+    lo que la ROM necesita para leerlo: la firma, dónde está cada fondo y,
+    por paquete, dónde está cada efecto y con qué altura suena cada sonido.
+
+    Van primero los fondos —cada uno sus tiles y sus colores, ver
+    `msu_datos.fondos`— y detrás los efectos de calidad de cada paquete, en
+    el orden de la tabla de paquetes y cada paquete con los suyos en orden de
+    SRCN: es el orden en que `subir_colocadas` los sube, así que la ROM los lee
+    de corrido, con una sola búsqueda por paquete. Un efecto que está en dos
+    paquetes va dos veces aunque sea a la misma tasa: una búsqueda le cuesta
+    a Mednafen uno o dos cuadros, y el archivo no tiene tope.
+
+    `por_nombre` son los paquetes de la ROM como los ve `build_varios` —con
+    los nombres de sus efectos— y `paquetes` los mismos como los emite `emit`
+    —con sus SRCN—, en el mismo orden. Ver tools/audio/efectos_msu.py.
+    """
+    efectos = getattr(banco, "efectos", {})
+    # Lo que la música ocupa con MSU-1 en cada paquete: sólo los temas sin
+    # pista, que `tema_por_msu` no saltea.
+    pesa = {}
+
+    def musica_de(temas):
+        suyas = set()
+        for t in temas:
+            if hechos[t]["nombre"] not in snes_music.PISTAS_MSU:
+                if t not in pesa:
+                    pesa[t] = snes_music.muestras_del_tema(hechos[t])
+                suyas |= set(pesa[t])
+        return sum(len(muestras[i].data) for i in suyas)
+    pedidos = [(str(p[0]), list(p[2]), musica_de(p[1]))
+               for p in por_nombre]
+    tasas = efectos_msu.tasas(pedidos, efectos, banco.libre, game_dir)
+    unicas = sorted({(e, t) for suyas in tasas.values()
+                     for e, t in suyas.items()})
+    hechas = dict(zip(unicas, en_paralelo(
+        lambda par: efectos_msu.armar(par[0], par[1], game_dir), unicas)))
+
+    entradas = [parte for info in fondos for parte in fondo_bytes(info)]
+    # Qué entrada es cada efecto de cada paquete, en orden de SRCN.
+    del_paquete = []
+    for (nombre, _t, _e, *_s), (_temas, srcns, _salida) in zip(por_nombre,
+                                                               paquetes):
+        suyas = tasas.get(str(nombre), {})
+        de_srcn = {efectos[e][0]: e for e in suyas}
+        lista = []
+        for srcn in sorted(set(srcns)):
+            e = de_srcn[srcn]
+            lista.append((srcn, len(entradas), hechas[e, suyas[e]]))
+            entradas.append(hechas[e, suyas[e]].data)
+        del_paquete.append(lista)
+    archivo, donde = msu_datos.armar(entradas)
+    firma = archivo[:msu_datos.FIRMA]
+    with open(ruta + ".nuevo", "wb") as handle:
+        handle.write(archivo)
+    os.replace(ruta + ".nuevo", ruta)
+    print("  .msu: %d fondo(s) y %d efecto(s) en %d B, firma %s -> %s"
+          % (len(fondos), sum(len(l) for l in del_paquete), len(archivo),
+             firma.hex(), ruta))
+
+    # Por paquete, una fila por efecto de su lista —la de `paquetes`, en el
+    # orden en que la ROM la recorre—: dónde está en el `.msu`, cuánto mide y
+    # dónde vuelve, que es siempre al principio porque van enteros.
+    filas, desde_filas = bytearray(), bytearray()
+    alturas, desde_alturas = bytearray(), bytearray()
+    for (nombre, *_r), (_temas, srcns, _salida), lista in zip(
+            por_nombre, paquetes, del_paquete):
+        desde_filas += (len(filas)).to_bytes(2, "little")
+        de_srcn = {srcn: (donde[k], v) for srcn, k, v in lista}
+        for srcn in srcns:
+            pos, version = de_srcn[srcn]
+            filas += (pos.to_bytes(4, "little")
+                      + len(version.data).to_bytes(2, "little")
+                      + bytes(2))
+        # Y la altura de cada sonido de `sonido_tabla` con la versión de este
+        # paquete, o 0 si su efecto no es de acá: con eso la ROM no hace
+        # cuentas, ni en la interrupción.
+        desde_alturas += (len(alturas)).to_bytes(2, "little")
+        suyas = tasas.get(str(nombre), {})
+        for efecto, _volumen, tempo, _balance in sonidos:
+            altura = 0
+            if efecto in suyas:
+                altura = snes_music.altura_de_efecto(
+                    hechas[efecto, suyas[efecto]], tempo)
+            alturas += altura.to_bytes(2, "little")
+    for tabla in (filas, alturas):
+        if len(tabla) > 0x8000:
+            raise SystemExit("las tablas de los efectos del .msu pasan de un "
+                             "banco: %d B" % len(tabla))
+    posiciones = [(donde[2 * k], donde[2 * k + 1]) for k in range(len(fondos))]
+    fondo_pos = b"".join(a.to_bytes(4, "little") + b.to_bytes(4, "little")
+                         for a, b in posiciones) or bytes(8)
+    with open(musica, "a") as handle:
+        handle.write(
+            "\n; El `.msu`: ver `escribir_msu` en tools/port/snes_convert.py.\n"
+            "; El primer SRCN que es de un efecto de sonido.\n"
+            "SE_PRIMERA = %d\n"
+            "; Cuántas entradas del .msu son de fondos —dos por fondo, las\n"
+            "; primeras— y cuántas de efectos, detrás: para las pruebas.\n"
+            "MSU_FONDOS_N = %d\n"
+            "MSU_EFECTOS_N = %d\n"
+            '.segment "RODATA"\n%s\n'
+            % (len(banco.voces) if banco is not None else 0, len(fondos),
+               sum(len(lista) for lista in del_paquete),
+               "\n".join(bloque(etiqueta, datos or bytes(2)) for etiqueta, datos
+                         in (("msu_datos_firma", firma),
+                             ("msu_fondo_pos", fondo_pos),
+                             ("se_msu_paq", desde_filas),
+                             ("se_msu_filas", filas),
+                             ("se_msu_altura_paq", desde_alturas),
+                             ("se_msu_altura", alturas)))))
+    # Y lo mismo, legible, al lado: qué sonido es cada fila de `sonido_tabla`
+    # y a qué tasa va cada efecto de cada paquete en el `.msu`. No lo lee la
+    # ROM; es para las herramientas que tocan un efecto desde afuera y para
+    # mirar qué decidió el reparto.
+    with open(os.path.join(os.path.dirname(musica), "efectos.json"),
+              "w") as handle:
+        json.dump({"sonidos": [list(s) for s in sonidos],
+                   "srcn": {e: srcn for e, (srcn, _v) in efectos.items()},
+                   "tasas": tasas}, handle, indent=1)
+    for (nombre, *_r) in por_nombre:
+        suyas = tasas.get(str(nombre), {})
+        if suyas:
+            print("  efectos de calidad del paquete %s: %s"
+                  % (nombre, ", ".join(
+                      "%d Hz: %d" % (t, sum(1 for v in suyas.values()
+                                            if v == t))
+                      for t in sorted(set(suyas.values()), reverse=True))))
 
 
 def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,

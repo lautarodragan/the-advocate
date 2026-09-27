@@ -56,6 +56,12 @@ muestra y con qué envolvente, y la consola sólo reproduce.
   `tools/audio/msu.py`. Con MSU-1, el paquete no sube las muestras de los
   temas con pista, salvo que la pista haya faltado en la tarjeta:
   `tema_por_msu`, en `rom/src/paquete_de_audio.s`.
+* **Los efectos con MSU-1**: mientras el SPC700 no toca música, los efectos
+  tienen también las voces 0 a 5; y si el `.msu` es el de este cartucho, los
+  de cada paquete se suben de ahí, enteros y a la tasa que les entra ahora
+  que la música no ocupa la ARAM —una versión por paquete—. Sin MSU-1, o con
+  otro `.msu`, lo de siempre. El reparto, en `tools/audio/efectos_msu.py`; la
+  ROM, en `rom/src/efectos_con_msu.s`.
 
 Qué prueba cubre qué: `pruebas/rpgmaker/test_musica_*.py` corren la ROM
 —las escrituras, el reparto, el paquete, los techos— y

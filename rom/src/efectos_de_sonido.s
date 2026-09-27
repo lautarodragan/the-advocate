@@ -7,7 +7,8 @@
 ; (`VOCES_DE_EFECTOS` en snes_music.py). Ver `build_efectos` allá. En
 ; RM2k los efectos se suman —EasyRPG tiene 31 canales—, y con una sola voz la
 ; lluvia de la apertura le cortaba el trueno a la mitad: medido, 73 de sus 144
-; cuadros, y una vez 7.
+; cuadros, y una vez 7. Con MSU-1 y el SPC700 sin música, además las voces 0 a
+; 5: ver efectos_con_msu.s.
 ;
 ; El estado de cada voz vive en la RAM lejana, porque la página directa y la
 ; BSS están llenas. El de la segunda está SE2_DESPL más arriba, con la misma
@@ -93,9 +94,22 @@ sin_7:
     lda #SE2_BIT
 sin_6:
     ora 1, s
+    ora f:EX_OCUP               ; y las de las voces 0 a 5: ver efectos_con_msu.s
     sta 1, s
     pla                         ; Z según la máscara entera
     rts
+.endproc
+
+; `dsp_par` y `se_kof_musica` para `efectos_con_msu.s`, que vive en el banco 1
+; y no puede llegar con `jsr`.
+.proc dsp_par_l
+    jsr dsp_par
+    rtl
+.endproc
+
+.proc se_kof_musica_l
+    jsr se_kof_musica
+    rtl
 .endproc
 
 ; A: lo que la música dejó en KOF, sin los bits de las voces ocupadas.
@@ -175,6 +189,16 @@ voz_6:
     beq enviar
     rts
 no_voz:
+    ; Las voces 0 a 5, si tienen un efecto —sólo con MSU-1, ver
+    ; efectos_con_msu.s—: lo escrito queda en MUS_SOMBRA y no se manda, y
+    ; cuando el efecto termina se le devuelve desde ahí. Sin efectos en ellas,
+    ; un `lda` y un salto: la tabla lleva cero en todo lo que no es de ésas.
+    lda f:EX_OCUP
+    beq no_extra
+    and f:ex_bit_de_registro, x
+    beq no_extra
+    rts                         ; la voz es del efecto
+no_extra:
     txa
     cmp #SE_KOF
     bne no_kof
@@ -294,6 +318,7 @@ listo:
 .i16
     SE_ANTES_VOZ SE_BAJAR, SE_DEVOLVER, SE_SOMBRA, SE_REG
     SE_ANTES_VOZ SE2_BAJAR, SE2_DEVOLVER, SE2_SOMBRA, SE2_REG
+    jsl se_extras_antes         ; y las voces 0 a 5: ver efectos_con_msu.s
     rts
 .endproc
 
@@ -384,6 +409,9 @@ fin:
     SE_DESPUES_VOZ SE2_CUADROS, SE2_PENDIENTE, SE2_DEVOLVER, SE2_BAJAR, SE2_NUEVO, SE2_BIT, SE2_REG
     ora 1, s
     sta 1, s
+    jsl se_extras_despues       ; las de las voces 0 a 5, en el mismo disparo
+    ora 1, s
+    sta 1, s
     pla
     beq listo
     ldx #SE_KON
@@ -404,6 +432,7 @@ otro:
     inx
     cpx #SE_BYTES
     bcc otro
+    jsl se_extras_limpiar       ; y lo de efectos_con_msu.s
     rts
 .endproc
 
@@ -440,14 +469,15 @@ otro:
 hay:
 .a16
     phb
-    pha
+    pha                         ; el índice, en la pila hasta `listo`: lo
+                                ; necesita efectos_con_msu.s
     sep #$20
 .a8
     phk
     plb                         ; la tabla vive en el banco del código
     rep #$20
 .a16
-    pla
+    lda 1, s
     sta temp
     asl a
     asl a
@@ -505,12 +535,27 @@ no_misma_7:
     jsr se2_ocupada
     bne elegida
 no_misma_6:
+    ; Con MSU-1 y el SPC700 sin música, las voces 0 a 5: la que ya toca esta
+    ; muestra, y después, si la 7 y la 6 no están libres, una de ésas. Ver
+    ; efectos_con_msu.s. Sin MSU-1 no toman nada.
+    rep #$20
+.a16
+    lda 2, s                    ; el índice, detrás de P
+    jsl se_extra_misma
+.a8
+    bcs puesto
     ldy #0
     jsr se_ocupada
     beq elegida
     ldy #SE2_DESPL
     jsr se2_ocupada
     beq elegida
+    rep #$20
+.a16
+    lda 2, s
+    jsl se_extra_libre
+.a8
+    bcs puesto
     ldy #0
     lda f:SE2_PENDIENTE
     bne elegida
@@ -555,8 +600,22 @@ copiar:
 .a8
     lda #1
     sta f:SE_PENDIENTE, x
+    ; Con los efectos del `.msu`, la altura es la de su versión en el
+    ; paquete que está en la ARAM.
+    rep #$20
+.a16
+    lda 2, s
+    jsl se_msu_altura_poner
+.a8
+puesto:
     plp
 listo:
+    rep #$20
+.a16
+    pla                         ; el índice: con A y no con Y, que el camino
+                                ; sin efecto devolvía como vino
+    sep #$20
+.a8
     plb
     rts
 .endproc

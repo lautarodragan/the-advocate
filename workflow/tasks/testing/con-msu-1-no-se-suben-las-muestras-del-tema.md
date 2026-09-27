@@ -30,6 +30,10 @@ pista y los efectos entran enteros en la ARAM sin competir con la música.
 
 ## Y la otra mitad: los efectos de calidad desde el `.msu`
 
+Hecho el 2026-09-26, pedido por taro: ver `efectos-de-calidad-con-msu-1.md`.
+Lo que sigue es cómo estaba planteado. Sin MSU-1 no se tocó: los efectos del
+cartucho son los de siempre, no más livianos.
+
 También de taro, el mismo día: **los efectos livianos en la ROM y los de
 calidad en el `.msu`**, con el mecanismo de los fondos de batalla
 (`docs/port/msu-datos.md`: la ROM lee el `.msu` por el puerto de datos si hay

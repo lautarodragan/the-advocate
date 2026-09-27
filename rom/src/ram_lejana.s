@@ -660,6 +660,25 @@ LZ2_BUFFER     = $7F0000
 ANIM_DIBUJOS   = $7F6000
 ANIM_DIBUJOS_FIN = $7F8000
 
+; --- los efectos de sonido con MSU-1 -----------------------------------------
+;
+; $7E78B0 a $7E78CF, reservado el 2026-09-26. Ver `efectos_con_msu.s`: las
+; voces 0 a 5 cuando el SPC700 no toca música, y los efectos de calidad del
+; `.msu`. Lo pone en cero `se_limpiar`, en el reset; no viaja en la partida.
+EX_CUADROS  = $7E78B0           ; seis palabras: cuántos cuadros le quedan al
+                                ; efecto de cada voz, de la 0 a la 5
+EX_IDX      = $7E78BC           ; seis palabras: su fila de `sonido_tabla`
+EX_PEND     = $7E78C8           ; un bit por voz: el efecto no arrancó todavía
+EX_OCUP     = $7E78C9           ; un bit por voz: es de un efecto —pendiente,
+                                ; sonando o devolviéndose— y no de la música
+EX_DEVOLVER = $7E78CA           ; un bit por voz: terminó, y en el cuadro que
+                                ; viene se le devuelve a la música
+MSU_SE      = $7E78CB           ; 0 sin mirar, 1 el `.msu` es el de este
+                                ; cartucho, 2 no lo es o no hay MSU-1
+MSU_SE_SIG  = $7E78CC           ; tres bytes: dónde quedó el flujo del `.msu`
+EX_FIN      = $7E78CF
+.assert EX_FIN <= $7E78D0, error, "los efectos con MSU-1 se salen de su lugar"
+
 ; --- la transición de la pelea ----------------------------------------------
 ;
 ; $7E7840 a $7E784F, reservado el 2026-09-26. Ver `fundido_de_pelea.s`.
