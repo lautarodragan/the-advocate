@@ -5183,9 +5183,16 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # `ChangeSkills` le enseña al actor lo que la tabla de aprendizaje no
         # tiene, y desde el 2026-09-21 eso se ve en la pelea. Son las de sus
         # pares de `eventos.HABILIDAD_RANURA` que la pelea sabe ofrecer.
-        habilidades_rom = sorted({h for (a, h) in eventos.HABILIDAD_RANURA
-                                  if a in ranuras["actores"]
-                                  and B.habilidad_usable(db.skills[h])})
+        #
+        # Y las que usa algún enemigo de las tropas del cartucho, desde el
+        # 2026-09-27: `ShortCircuit`, de los de la planta de reciclaje. Ver
+        # `batalla.acciones_de_enemigo`.
+        acciones_rom = {e: B.acciones_de_enemigo(db, e) for e in enemigos_rom}
+        habilidades_rom = sorted(
+            {h for (a, h) in eventos.HABILIDAD_RANURA
+             if a in ranuras["actores"] and B.habilidad_usable(db.skills[h])}
+            | {skill.id for lista in acciones_rom.values()
+               for _r, skill, _ef in lista if skill is not None})
         texto_hab = {h: texto_nuevo(titulo_mod.texto_de_item(
             db.skills[h].name, P.BA_HAB_NOMBRE_ANCHO))
             for h in habilidades_rom}
@@ -5517,6 +5524,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         words_asm("item_puntos", [p & 0xFFFF for n in items
                                   for p in db_items[n].puntos],
                   declarar=True)
+        # Y lo que cuesta atacar con cada uno: el `sp_cost` de las armas, cero
+        # para lo demás —`batalla.sp_del_arma`—. La pelea lo lee una vez por
+        # actor al armarse.
+        bytes_asm("item_sp", [db_items[n].sp_cost
+                              if db_items[n].type == lcf.ITEM_TIPO_ARMA
+                              else 0 for n in items], declarar=True)
         # `item_actores` va también fuera del banco 0 —se lee con
         # `lda f:item_actores, x`—: son 496 bytes, los más gordos que le
         # quedaban a `TABLAS`, y el banco 0 se pasó. No es una previsión: el
@@ -5685,6 +5698,33 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             | (64 if db.skills[h].apunta_a_enemigos else 0)
             | (128 if db.skills[h].ignore_defense else 0)
             for h in habilidades_rom], "$%02X", declarar=True)
+        # Y el alcance tal cual, `rpg::Skill::Scope`: 0 un enemigo, 1 todos,
+        # 2 uno mismo, 3 un aliado, 4 todo el grupo. Desde el 2026-09-27 la
+        # pelea sabe los cinco: ver `batalla.blancos_de_la_habilidad`.
+        bytes_asm("hab_alcance", [db.skills[h].scope for h in habilidades_rom],
+                  declarar=True)
+        # Los eventos comunes paralelos que sólo miran el equipo, compilados:
+        # la ROM los corre al cerrar el menú si su switch está prendido. Por
+        # cada uno, dónde está su switch en el bitmap —byte y máscara— y su
+        # código. Ver `eventos.COMUNES_DEL_EQUIPO`.
+        del_equipo = sorted(eventos.COMUNES_DEL_EQUIPO.items())
+        handle.write("COMEQ_N = %d\n" % len(del_equipo))
+        words_asm("comeq_byte", [sw >> 3 for sw, _n in del_equipo],
+                  declarar=True)
+        bytes_asm("comeq_mascara", ["$%02X" % (1 << (sw & 7))
+                                    for sw, _n in del_equipo], "%s",
+                  declarar=True)
+        words_asm("comeq_cod", [".loword(comun_equipo_%d)" % n
+                                for _sw, n in del_equipo], "%s",
+                  declarar=True)
+        # El banco va de a palabra —su byte alto no se lee— para que la ROM
+        # lo indexe con el mismo X que `comeq_cod`.
+        words_asm("comeq_banco", ["^comun_equipo_%d" % n
+                                  for _sw, n in del_equipo], "%s",
+                  declarar=True)
+        for _sw, n in del_equipo:
+            handle.write(bloque("comun_equipo_%d" % n,
+                                eventos.compilar_comun_del_equipo(n)) + "\n")
         # Y qué sabe cada actor, que desde el 2026-09-21 es estado: un bit por
         # par (actor, habilidad) en `FAR_HAB`, con las ranuras de
         # `eventos.HABILIDAD_RANURA`. Lo contestan la rama 4 de
@@ -5740,7 +5780,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             texto_hab_entero[h] if a in ranuras["actores"]
             and B.nivel_en_que_aprende(db, a, h) > 0 and h in texto_hab_entero
             else 0xFFFF for (a, h), _r in pares], "$%04X", declarar=True)
-        if len(habilidades_rom) > 255:
+        # 254 y no 256: `eacc_hab` usa $FF para el ataque y `ba_accion_enemiga`
+        # contesta $FE cuando no le queda ninguna.
+        if len(habilidades_rom) > 254:
             raise SystemExit("las habilidades del cartucho son %d y `hab_par_k` "
                              "es de un byte" % len(habilidades_rom))
         # Y cómo se llama la orden de habilidades de cada actor en el menú.
@@ -5790,12 +5832,15 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # su código adentro de `tropa_codigo`, que las deduplica. Ver
         # `eventos.PaginasDeTropa` y `ba_pag_probar` en rom/src/batalla_tropa.s.
         #
-        # **Van al banco 1, `FAR`, y no a RODATA**, y es por lugar: con estas
-        # tablas el cartucho `juego` se pasaba de los 4 MB —medido el
-        # 2026-09-21, el acomodo de bancos quería un `BANK7E`, que es la WRAM—,
-        # y el banco 1 tenía libre más del doble de lo que esto ocupa. Allá no
-        # hay `.bloque`: el segmento es un banco solo, y lo que no entre lo
-        # corta `ld65`.
+        # **Las tablas chicas van al banco 1, `FAR`; los dos bloques grandes
+        # —el código y los mensajes—, a RODATA.** Hasta el 2026-09-27 iban los
+        # cuatro al banco 1, porque con ellos en RODATA el cartucho `juego` se
+        # pasaba de los 4 MB (medido el 2026-09-21); ese cartucho ya no existe,
+        # `release` anda por el 71%, y en el banco 1 los dos bloques eran casi
+        # once KB de los que el código a mano de la pelea no tenía ni
+        # cuatrocientos bytes. Los dos se leen con un puntero largo cuyo banco
+        # sale de `^tropa_codigo` y `^mensajes_tropa`, así que alcanza con que
+        # cada uno entre entero en un banco, que es lo que pide `bloque`.
         pt = paginas_tropa or eventos.PaginasDeTropa()
         entradas, pag_ini, pag_n = [], [], []
         for numero in usadas:
@@ -5824,11 +5869,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             usa = any(e[0] & bit for e in entradas)
             words_asm(nombre, [e[k] & 0xFFFF for e in entradas] if usa
                       else [])
-        handle.write(bloque("tropa_codigo", bytes(pt.cuerpos) or b"\x00",
-                            acomodar=False) + "\n")
-        handle.write(bloque("mensajes_tropa", pt.mensajes.bytes(),
-                            acomodar=False) + "\n")
         handle.write('.segment "RODATA"\n')
+        handle.write(bloque("tropa_codigo", bytes(pt.cuerpos) or b"\x00")
+                     + "\n")
+        handle.write(bloque("mensajes_tropa", pt.mensajes.bytes())
+                     + "\n")
         # Y los encuentros al azar, que también hablan de tropas por su número
         # de RM2k. Van acá afuera del banco 0 —se leen con `lda f:tabla, x`—
         # porque allá quedaban ochenta y cinco bytes y esto son unos doscientos.
@@ -5867,6 +5912,37 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             (100 // (db.enemies[e].critical_hit_chance or 30))
             if db.enemies[e].critical_hit else 0 for e in enemigos_rom])
         words_asm("enemigo_txt", [texto_enemigo[e] for e in enemigos_rom])
+        # Lo que cada enemigo puede hacer en su turno: su lista de
+        # `batalla.acciones_de_enemigo`, seguida en `eacc_*` —dónde arranca y
+        # cuántas son—. Por acción, la habilidad como `k` de las tablas `hab_*`
+        # o $FF para el ataque, y su `rating` con el bit 7 prendido si no es
+        # `efectiva`: cuenta para el máximo y después pesa cero. Ver
+        # `ba_accion_enemiga` en rom/src/batalla.s.
+        eacc_ini, eacc_hab, eacc_peso = [], [], []
+        for e in enemigos_rom:
+            if len(acciones_rom[e]) > B.ACCIONES_MAX:
+                raise SystemExit("el enemigo %d trae %d acciones y la ROM "
+                                 "pesa %d: ver `batalla.ACCIONES_MAX`"
+                                 % (e, len(acciones_rom[e]), B.ACCIONES_MAX))
+            eacc_ini.append(len(eacc_hab))
+            for rating, skill, efectiva in acciones_rom[e]:
+                if not 0 < rating < 0x80:
+                    raise SystemExit("el enemigo %d trae una acción de rating "
+                                     "%d y la ROM lo lleva en siete bits"
+                                     % (e, rating))
+                eacc_hab.append(0xFF if skill is None
+                                else lugar_hab[skill.id])
+                eacc_peso.append(rating | (0 if efectiva else 0x80))
+        if len(eacc_hab) > 255:
+            raise SystemExit("las acciones de los enemigos del cartucho son %d "
+                             "y `enemigo_acc_ini` es de un byte"
+                             % len(eacc_hab))
+        handle.write("ACCIONES_MAX = %d\n" % B.ACCIONES_MAX)
+        bytes_asm("enemigo_acc_ini", eacc_ini, declarar=True)
+        bytes_asm("enemigo_acc_n", [len(acciones_rom[e]) for e in enemigos_rom],
+                  declarar=True)
+        bytes_asm("eacc_hab", eacc_hab, declarar=True)
+        bytes_asm("eacc_peso", eacc_peso, declarar=True)
         # Y la escena de la pelea: los fondos y los battlers por separado.
         # `usadas` es el mismo orden que `tropa_id`, que es lo que
         # `escena_tropa_fondo` indexa, y el de `tropa_miembro`.

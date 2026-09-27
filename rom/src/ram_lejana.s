@@ -397,6 +397,20 @@ BA_PARAM_MAX = 999
 ; único tipo que este port distingue del normal: las siete que el grupo de la
 ; intro sabe son o `normal` o `switch`.
 BA_HAB_TIPO_SWITCH = 3
+; Los cinco alcances de `rpg::Skill::Scope`, que es lo que trae `hab_alcance`.
+; Sólo `enemy` y `ally` piden blanco al elegirlas; el de las otras tres lo
+; decide el alcance: ver `batalla.blancos_de_la_habilidad`.
+BA_ALCANCE_ENEMIGO  = 0
+BA_ALCANCE_ENEMIGOS = 1
+BA_ALCANCE_UNO      = 2
+BA_ALCANCE_ALIADO   = 3
+BA_ALCANCE_GRUPO    = 4
+; Una acción de enemigo que no es una habilidad: el ataque básico, en
+; `eacc_hab`, y lo que contesta `ba_accion_enemiga` cuando no le queda
+; ninguna. Ver `batalla.accion_del_enemigo`.
+BA_EACC_ATACAR = $FF
+BA_EACC_NADA   = $FE
+BA_EACC_NO_EFECTIVA = $80       ; el bit de `eacc_peso`
 
 ; Cursor (2), espera (2), si está corriendo (1) y de qué página (2). **Ocho y
 ; no siete**: el séptimo byte no se usa y a cambio el índice sale con tres
@@ -725,6 +739,18 @@ TRANSICION_MOSTRAR = $7E7921
 ; —los cuatro tutoriales del juego, 58 y 162 a 164—, sin menú en el medio, así
 ; que no hay dónde guardar entre uno y otro.
 TEMA_RECORDADO = $7E7940
+
+; --- el SP de las armas, y el blanco de las habilidades de a muchos ----------
+;
+; $7E7960 a $7E797F, reservado el 2026-09-27 para el hito 4 de Lashe City. Lo
+; arma `ba_armar` al empezar cada pelea, así que no viaja en la partida ni
+; hace falta ponerlo en el reset.
+BA_ARMA_SP = $7E7960            ; BA_GRUPO_MAX bytes: lo que le cuesta atacar
+                                ; a cada lugar del grupo, `batalla.sp_del_arma`
+BA_HAB_I   = $7E7964            ; por qué combatiente va una habilidad de a
+                                ; muchos: `ba_hab_usar` llama a `ba_hab_uno`
+                                ; por cada uno, y ése se lleva los `BA_S*`
+.assert BA_HAB_I < $7E7980, error, "el hito 4 se sale de su lugar en la RAM lejana"
 
 ; --- la grilla del mapa, en la WRAM -----------------------------------------
 ;

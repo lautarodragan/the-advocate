@@ -158,6 +158,95 @@ poner:
     rts
 .endproc
 
+; Los eventos comunes paralelos que sólo miran el equipo —`COMUNES_DEL_EQUIPO`
+; en eventos.py; en el juego, el 37, `UpdateAG7 Skills`—, corridos cada uno de
+; una vez si su switch está prendido. Lo llama `menu_pantalla` al cerrarse,
+; que es donde el equipo cambia: en RM2k corren en cada cuadro, pero sólo leen
+; su switch y el equipo, así que entre un cierre del menú y otro darían lo
+; mismo. El otro momento en que cambian, prenderse el switch, no pasa por acá:
+; el conversor pega el cuerpo detrás del `ControlSwitches`.
+;
+; Corren por `correr_codigo`, como un paralelo más, con el contexto del
+; intérprete guardado y repuesto como en `paralelos_tick`; su cuerpo no
+; espera ni abre mensajes, así que termina en la misma llamada. Tiene que
+; entrar con el banco de datos en el 0, que es donde `switches` y el
+; intérprete tienen lo suyo.
+.proc comunes_del_equipo
+.a8
+.i16
+    ldx #0
+otro:
+    cpx #COMEQ_N
+    bcc hay
+    rtl
+hay:
+    phx
+    lda f:comeq_mascara, x
+    sta temp
+    rep #$20
+.a16
+    txa
+    asl a
+    tax                         ; por dos: las tablas de palabra
+    lda f:comeq_byte, x
+    tay
+    sep #$20
+.a8
+    lda switches, y
+    and temp
+    beq apagado
+    rep #$20
+.a16
+    lda ev_cur
+    pha
+    lda ev_esperando
+    pha
+    lda ev_corriendo
+    pha
+    lda cod_ptr
+    pha
+    lda f:comeq_cod, x
+    sta cod_ptr
+    stz ev_cur
+    sep #$20
+.a8
+    lda cod_ptr + 2
+    pha
+    lda ev_activo
+    pha
+    lda par_ev
+    pha
+    lda f:comeq_banco, x
+    sta cod_ptr + 2
+    lda #1
+    sta ev_activo
+    lda #$FF
+    sta par_ev                  ; ni paralelo de un mapa ni página de pelea
+    jsl f:correr_codigo_largo
+    pla
+    sta par_ev
+    pla
+    sta ev_activo
+    pla
+    sta cod_ptr + 2
+    rep #$20
+.a16
+    pla
+    sta cod_ptr
+    pla
+    sta ev_corriendo
+    pla
+    sta ev_esperando
+    pla
+    sta ev_cur
+    sep #$20
+.a8
+apagado:
+    plx
+    inx
+    bra otro
+.endproc
+
 ; Los bits de las habilidades a lo que el LDB dice que cada actor sabe a su
 ; nivel inicial: la tabla `hab_inicial` del conversor copiada a `FAR_HAB`. Corre
 ; en el reset, antes de cargar la partida, que la pisa. Son pocos bytes y va de

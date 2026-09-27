@@ -500,6 +500,9 @@ class Skill:
     def __init__(self, datos):
         for nombre in SKILL_CAMPOS:
             setattr(self, nombre, campo(datos, nombre))
+        # Su número, que la lista de acciones de un enemigo necesita para
+        # nombrarla: ver `batalla.acciones_de_enemigo`.
+        self.id = campo(datos, "id")
 
     @property
     def apunta_a_enemigos(self):
@@ -516,7 +519,7 @@ ITEM_TIPO_COMUN, ITEM_TIPO_ARMA, ITEM_TIPO_ESCUDO, ITEM_TIPO_ARMADURA, \
 ITEM_CAMPOS = ("name", "description", "type", "uses", "switch_id",
                "occasion_field2", "price", "two_handed", "recover_hp_rate",
                "recover_hp", "occasion_field1", "ko_only",
-               "recover_sp_rate", "recover_sp")
+               "recover_sp_rate", "recover_sp", "sp_cost")
 # Lo que suma al equipárselo: ataque, defensa, espíritu, agilidad.
 ITEM_PUNTOS = ("atk_points1", "def_points1", "spi_points1", "agi_points1")
 
@@ -570,11 +573,30 @@ class Enemy:
         for nombre in ENEMY_CAMPOS:
             setattr(self, nombre, campo(datos, nombre))
         self.critical_hit_chance = campo(datos, "critical_hit_chance") or 30
+        # Lo que puede hacer en su turno, en el orden del LDB: ver
+        # `batalla.acciones_de_enemigo`.
+        self.actions = [EnemyAction(a) for _, a in
+                        sorted(por_id(lista(datos, "actions")).items())]
 
     @property
     def hit(self):
         """`Game_Enemy::GetHitChance`."""
         return 70 if self.miss else 90
+
+
+ENEMY_ACTION_CAMPOS = ("kind", "basic", "skill_id", "rating",
+                      "condition_type", "condition_param1",
+                      "condition_param2", "switch_on", "switch_off")
+
+
+class EnemyAction:
+    """Una acción de la lista de un enemigo: `lcf::rpg::EnemyAction`. `kind`
+    0 es básica —`basic` 0 es atacar—, 1 una habilidad y 2 transformarse; el
+    `rating` es el peso que `EnemyAi` le da al elegir."""
+
+    def __init__(self, datos):
+        for nombre in ENEMY_ACTION_CAMPOS:
+            setattr(self, nombre, campo(datos, nombre))
 
 
 class Troop:
@@ -692,6 +714,13 @@ class Database:
         # sus comandos, que es lo único que se les pide.
         self.common_events = {
             i: comandos(f, reajustar=True)
+            for i, f in crudas["commonevents"].items()}
+        # Y cuándo corre cada uno por su cuenta: `(trigger, switch_flag,
+        # switch_id)`, con el `trigger` de `rpg::CommonEvent` —3 automático,
+        # 4 paralelo, 5 sólo por `CallEvent`—. Ver `eventos.COMUNES_DEL_EQUIPO`.
+        self.common_event_triggers = {
+            i: (campo(f, "trigger"), campo(f, "switch_flag"),
+                campo(f, "switch_id"))
             for i, f in crudas["commonevents"].items()}
 
         # El grupo con el que empieza la partida. En RM2k el gráfico del héroe

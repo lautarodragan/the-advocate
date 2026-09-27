@@ -434,11 +434,20 @@ h_mira_a:
     ; `Scene_Battle::AssignSkill` la anota sobre el que la usa y sigue. Sin
     ; esto, Detect Aura —`scope` 0, un enemigo— pedía elegir uno, y si ése se
     ; moría antes del turno la habilidad se perdía, que en RM2k no pasa.
+    ;
+    ; Tampoco las de a muchos ni las de uno mismo, cuyo blanco lo decide el
+    ; alcance: sólo `enemy` y `ally` lo piden —`batalla.pide_blanco`—.
     lda BA_S0
     jsr ba_ax
     lda f:hab_tipo, x
     cmp #BA_HAB_TIPO_SWITCH
-    bne h_con_blanco
+    beq h_sin_blanco
+    lda f:hab_alcance, x
+    cmp #BA_ALCANCE_ENEMIGO
+    beq h_con_blanco
+    cmp #BA_ALCANCE_ALIADO
+    beq h_con_blanco
+h_sin_blanco:
     lda BA_ACTOR
     sta BA_T0
     lda #BA_HABILIDAD

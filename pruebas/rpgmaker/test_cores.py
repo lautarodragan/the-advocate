@@ -54,6 +54,10 @@ del frontend.
                   siempre: la transición elegida vive en la RAM lejana
                   —`TRANSICION_BORRAR` y `TRANSICION_MOSTRAR`—, y si el reset no
                   la pusiera, bsnes podía pixelar un salto que no lo pidió.
+    planta        tres turnos de la pelea de la tropa 113, a fuerza de A: la
+                  elección de los enemigos, que pesa sus acciones en
+                  `BA_HAB_LISTA`, y el SP del arma en `BA_ARMA_SP`, que
+                  `ba_armar` escribe al empezar cada pelea y el reset no toca.
 
 ## El tercer core, mesen-s, queda afuera, y no por lo que parecía
 
@@ -249,3 +253,31 @@ def test_escena_de_la_pelea():
             "el enemigo del medio no se borró: la prueba no mide lo que dice"
         imagenes.append(una.imagen())
     iguales("escena", *imagenes)
+
+
+def test_la_pelea_de_la_planta():
+    """La pelea de `pelea-113` —Talan y AG7 contra el Tangle Wire y una
+    rata— con los dos defendiéndose dos turnos, en los dos cores, y la foto
+    al volver a pedir órdenes. Lo que muestra la pantalla son los HP, y los
+    HP dependen de qué eligió cada enemigo y de si le alcanzaban los SP: en el
+    segundo turno el Tangle Wire tira `ShortCircuit` (ver
+    `test_ag7_y_la_planta.py`). Si la ROM leyera un peso o un costo sin
+    haberlo escrito, las dos fotos se separan."""
+    from batalla import Pelea
+    imagenes = []
+    for nucleo in (SNES9X, BSNES):
+        una = partida("pelea-113", nucleo=nucleo)
+        for _ in range(600):
+            una.consola.correr(1)
+            if una.byte("menu_abierto"):
+                break
+        else:
+            raise AssertionError("la página no abrió la pelea")
+        pelea = Pelea(una)
+        for _turno in range(2):
+            pelea.ordenar(("defender",))
+            pelea.ordenar(("defender",))
+            pelea.correr_turno()
+        pelea.esperar("ORDEN")
+        imagenes.append(una.imagen())
+    iguales("planta", *imagenes)
