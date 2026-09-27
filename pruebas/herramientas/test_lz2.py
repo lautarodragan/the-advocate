@@ -17,7 +17,8 @@ import tanda
 from ensamblado import cartuchos
 from lz2 import descomprimir
 from port import comprimir
-from port.snes_convert import CLASES_COMPRIMIDAS, partes_comprimidas
+from port.snes_convert import (CLASES_COMPRIMIDAS, LZ2_TOPE_FONDO,
+                               controlar_flujos, partes_comprimidas)
 
 
 def _crudos(nombre):
@@ -35,7 +36,8 @@ def test_cada_bloque_vuelve_igual_por_la_referencia(nombre):
         "crudos/ trae %s y las clases que se comprimen son %s"
         % (sorted(clases), sorted(CLASES_COMPRIMIDAS)))
     # La ida y vuelta se hace sobre lo mismo que va al cartucho: las grillas
-    # van en dos flujos. Ver `partes_comprimidas`.
+    # van en dos flujos, y los fondos de más de un buffer también. Ver
+    # `partes_comprimidas`.
     trozos = []
     for archivo, datos in crudos.items():
         partes = partes_comprimidas(archivo.split(".")[1], datos)
@@ -67,3 +69,26 @@ def test_la_referencia_lee_los_cinco_comandos_y_los_encabezados_largos():
     esperado = (bytes([1, 2, 3]) + bytes([9] * 4) + bytes([7, 8, 7, 8, 7])
                 + bytes([0xFE, 0xFF, 0x00]) + bytes([2, 3]) + bytes([5] * 33))
     assert descomprimir(flujo) == (esperado, len(flujo))
+
+
+def test_un_fondo_de_mas_de_un_buffer_va_en_dos_flujos_y_de_tres_no_arma():
+    """El fondo se parte en tramos de `LZ2_TOPE_FONDO` exactos, que es lo que
+    `lz2_fondo` supone para saber cuántos tiles trae cada flujo; uno que entra
+    en el buffer va entero, como antes. Y la ROM lee dos: con tres, el
+    conversor se niega en vez de dejar un fondo a medias."""
+    tope = LZ2_TOPE_FONDO
+    assert partes_comprimidas("map_tiles", bytes(tope)) == [bytes(tope)]
+    dos = bytes(range(256)) * ((tope + 960) // 256) + bytes(192)
+    partes = partes_comprimidas("map_tiles", dos)
+    assert [len(t) for t in partes] == [tope, len(dos) - tope]
+    assert b"".join(partes) == dos
+    controlar_flujos(66, "map_tiles", dos)
+    with pytest.raises(SystemExit, match="3 flujos"):
+        controlar_flujos(66, "map_tiles", bytes(2 * tope + 64))
+
+
+def test_un_flujo_que_no_entra_en_su_lugar_de_la_wram_no_arma():
+    """La capa de encima y los sprites van en un solo flujo, y más grande que
+    su lugar pisaría los dibujos de la animación."""
+    with pytest.raises(SystemExit, match="un flujo de sprite_tiles"):
+        controlar_flujos(1, "sprite_tiles", bytes(0x6000 + 32))
