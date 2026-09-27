@@ -137,6 +137,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   las armas, las habilidades de a muchos, y las de AG7 según sus piezas
 * `rpgmaker/test_batalla_golden.py`: la pantalla, pelear hasta el final, el
   encuentro al azar
+* `rpgmaker/test_pasos_de_encuentro.py`: `ChangeEncounterSteps`, la chance y
+  las filas del mapa, y la vuelta a las del mapa al cargar otro
 * `rpgmaker/test_batalla_escena_dibujo.py`: el fondo y los battlers compuestos
 * `rpgmaker/test_fundido_de_pelea.py`: la transición de entrada y de salida
   tapa la carga del paquete de audio
@@ -267,8 +269,9 @@ que `just pruebas` corre antes; `just build <cual>` arma uno solo:
 
 Qué lleva cada uno, y por qué, en `tools/ensamblado/cartuchos.py`.
 
-`ChangeEncounterSteps` no está implementado, así que los encuentros de
-prueba siguen siendo un flag de `test-special`.
+Los encuentros de prueba son un flag de `test-special` y no un
+`ChangeEncounterSteps`: el encuentro de la tanda cuenta con ocho pasos en
+todos los mapas de ese cartucho, y su golden con el paso en que sale.
 
 ## Una `Partida` viva por vez
 
