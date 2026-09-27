@@ -383,10 +383,17 @@ RUTA_SWITCH_ON, RUTA_SWITCH_OFF = 32, 33
 # comandos que sin esto no compilaba. No cuestan cuadros: en `UpdateMoveRoute`
 # van por la rama que no toca el contador de parada.
 RUTA_TRANSPARENCIA = (40, 41)
-# El sonido va adentro de la ruta y se acepta sin hacerlo —PlaySound sí suena
-# desde el 2026-09-11, pero la ruta no tiene cómo pedirlo—: no se ve. Se tira al
-# compilar, así que el bytecode sigue siendo un byte por orden y no cuesta ni
-# un cuadro, que es lo que hace RM2k —no toca el contador de parada—.
+# El sonido adentro de la ruta: suena cuando la ruta llega a ese paso, desde el
+# 2026-09-27. En un MoveEvent va con dos bytes detrás, el índice del efecto en
+# `Temas.sonidos` —el mismo que lleva OP_SOUND—, así que el efecto entra en el
+# paquete de audio del mapa como el de un `PlaySound`. No cuesta un cuadro:
+# `UpdateMoveRoute` no le toca el contador de parada.
+#
+# Se sigue tirando en dos lugares. **Adentro de un salto**, porque ahí RM2k no
+# lo toca: `BeginMoveRouteJump` recorre hasta el `end_jump` sumando los pasos y
+# no ejecuta nada más. Y **en la ruta propia de una página**, que es una lista
+# pelada de códigos sin lugar para el operando —ver `ruta_propia`—: una sola
+# del juego lo pide, la del evento 40 del mapa 2.
 RUTA_SONIDO = 35
 
 
@@ -774,12 +781,18 @@ class Temas:
         rom/src/paquete_de_audio.s—. Es del 2026-09-26."""
         return [t for t, sale in self.salidas.get(mapa, {}).items() if sale]
 
-    def sonido(self, nombre, volumen, tempo, balance):
-        self.pedidos += 1
+    def sonido(self, nombre, volumen, tempo, balance, al_paquete=True):
+        """El índice del efecto. Sin `al_paquete` no se anota en el paquete
+        del mapa: suena sólo si otra cosa lo mete ahí. Ver
+        `SE_DE_RUTA_SIN_PAQUETE` en snes_music.py. Tampoco cuenta en
+        `pedidos`: uno que no está en el paquete no suena, así que no le impide
+        a un tema ser de salida."""
         clave = (nombre, volumen, tempo, balance)
         if clave not in self.sonidos:
             self.sonidos.append(clave)
-        self._anotar("sonidos", nombre)
+        if al_paquete:
+            self.pedidos += 1
+            self._anotar("sonidos", nombre)
         return self.sonidos.index(clave)
 
 class Graficos:
@@ -4048,6 +4061,37 @@ def _compilar_imagen(cmd, imagenes):
     return salida
 
 
+def indice_de_sonido(temas, indice_de_mapa, nombre, volumen, tempo, balance,
+                     de_ruta=False):
+    """El índice en `Temas.sonidos` de un efecto que se pide en el mapa que se
+    compila: el de `PlaySound` y, con `de_ruta`, el de la orden 35 de una
+    ruta.
+
+    Los que en un mapa suenan con otra muestra —el trueno entero del mapa 1—
+    llevan otro nombre para la misma WAV, para que los demás mapas sigan con
+    la suya. Ver `SE_DEL_MAPA` en snes_music.py. Y los de ruta de los mapas de
+    `SE_DE_RUTA_SIN_PAQUETE` no entran en el paquete: ver ahí."""
+    from audio.snes_music import SE_DEL_MAPA, SE_DE_RUTA_SIN_PAQUETE
+
+    def es(mapa):
+        try:
+            return temas.mapa == indice_de_mapa(mapa)
+        except Exception:
+            return False
+
+    al_paquete = True
+    if temas.mapa is not None:
+        for (base, mapa), alias in SE_DEL_MAPA.items():
+            if nombre == base and es(mapa):
+                nombre = alias
+                break
+        if de_ruta:
+            al_paquete = not any(
+                es(m) and (cuales is None or nombre in cuales)
+                for m, cuales in SE_DE_RUTA_SIN_PAQUETE.items())
+    return temas.sonido(nombre, volumen, tempo, balance, al_paquete)
+
+
 def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
               eventos_mapa=None, temas=None, graficos=None, imagenes=None):
     p = cmd.parameters
@@ -4060,23 +4104,8 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # vacío es "(OFF)": no toca nada.
         if temas is None or not cmd.string or len(p) < 3:
             return b""
-        # Y los que en un mapa suenan con otra muestra —el trueno entero del
-        # mapa 1, los del mapa 3 a menos tasa—: otro nombre para la misma
-        # WAV, para que los demás mapas sigan con la suya. Ver `SE_DEL_MAPA`
-        # en snes_music.py.
-        from audio.snes_music import SE_DEL_MAPA
-        nombre = cmd.string
-        if temas.mapa is not None:
-            for (base, mapa), alias in SE_DEL_MAPA.items():
-                if nombre != base:
-                    continue
-                try:
-                    if temas.mapa == indice_de_mapa(mapa):
-                        nombre = alias
-                        break
-                except Exception:
-                    pass
-        k = temas.sonido(nombre, p[0], p[1], p[2])
+        k = indice_de_sonido(temas, indice_de_mapa, cmd.string, p[0], p[1],
+                             p[2])
         return bytes([OP_SOUND, k & 0xFF, k >> 8])
 
     if cmd.code == WEATHER_EFFECTS:
@@ -4552,11 +4581,18 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             elif orden == RUTA_HACIA_HEROE and en_salto:
                 raise NoSePuede()
 
-            if orden == RUTA_SONIDO or orden in RUTA_TRANSPARENCIA:
-                # Se acepta y se tira: no se ve y no
-                # cuesta cuadros —RM2k no le toca el contador de parada—. Así
-                # el bytecode sigue siendo un byte por orden. La
-                # transparencia, ver RUTA_TRANSPARENCIA.
+            if orden == RUTA_SONIDO:
+                # Ver RUTA_SONIDO. Sin registro de temas, o "(OFF)", se tira
+                # como antes.
+                if en_salto or temas is None or extras[0] in ("", "(OFF)"):
+                    continue
+                k = indice_de_sonido(temas, indice_de_mapa, *extras,
+                                     de_ruta=True)
+                ruta += [orden, k & 0xFF, k >> 8]
+                continue
+            if orden in RUTA_TRANSPARENCIA:
+                # Se acepta y se tira: no se ve y no cuesta cuadros. Ver
+                # RUTA_TRANSPARENCIA.
                 continue
             # Girar, esperar y moverse. Los `move_*` entraron el 2026-09-03, y
             # se miran *durante* la caminata y no sólo al final: lo prueba
@@ -5148,8 +5184,9 @@ def ruta_propia(page):
     """La ruta propia de la página —`move_type` 6, la ruta que camina sola—,
     o None si no tiene o no se puede.
 
-    Van las mismas órdenes que en un MoveEvent, con el sonido y la
-    transparencia tirados. Las diagonales entran: una ruta propia es siempre
+    Van las mismas órdenes que en un MoveEvent, con la transparencia tirada
+    y también el sonido, que en un MoveEvent suena: acá no hay dónde poner su
+    operando —ver RUTA_SONIDO—. Las diagonales entran: una ruta propia es siempre
     de un evento, que es sobre quien la ROM las camina. Lo que queda afuera:
     moverse hacia o desde el héroe, cambiar el gráfico —ninguna la usa— y los
     switches; y el giro en el lugar

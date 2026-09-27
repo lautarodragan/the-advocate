@@ -130,6 +130,15 @@ pasaron a ser un mensaje de fin de demo y un `ReturntoTitleScreen`. Lo decidió
 taro el 2026-09-27 al meter la carrera en `release`. Sus capas son las del
 original, byte por byte. **Se borra el día que entre el mundo.**
 
+Y el **mapa 49**, la primera vuelta de la carrera, por el cartel de los
+controles: en el original es una imagen, `EscapeInst`, sobre la pantalla
+negra, y la ROM lleva un solo cartel por imagen, que es el de "One year
+previously" (ver `workflow/tasks/wishlist/sistema-de-imagenes.md`). El fork
+cambia el `ShowPicture` por dos `ShowMessage` con el mismo texto, y saca el
+`KeyInputProc` que esperaba una tecla, porque cerrar el mensaje ya es esa
+tecla. Lo decidió taro el 2026-09-27. Capas del original. **Se borra el día
+que la ROM lleve más de una imagen.**
+
 Hasta ese día el fin de la demo estuvo en un fork del **36**, en la pregunta de
 irse de Lashe City, que llevaba a la carrera cuando la carrera no entraba.
 

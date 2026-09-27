@@ -2,13 +2,13 @@
 
 Es el hito 1 de `workflow/tasks/*/la-carrera-y-lo-que-sigue.md`. El recorrido:
 
-    49  primera vuelta. La intro —mensajes, la pantalla negra y un
-        `KeyInputProc` que espera cualquier tecla— prende el 171; el 171 mete
-        al auto en el grupo y prende el 170, y con el 170 corren el volante
-        (`RaceController2`, paralela: empuja al héroe a la derecha y lo cambia
-        de carril con arriba y abajo) y los autos (paralelas: cada uno compara
-        su celda con la del héroe y, si coinciden, salta al 50). La meta,
-        x = 255, salta al 52
+    49  primera vuelta. La intro —mensajes, la pantalla negra y el cartel
+        de los controles, que en la ROM son dos mensajes— prende el 171; el
+        171 mete al auto en el grupo y prende el 170, y con el 170 corren el
+        volante (`RaceController2`, paralela: empuja al héroe a la derecha y
+        lo cambia de carril con arriba y abajo) y los autos (paralelas: cada
+        uno compara su celda con la del héroe y, si coinciden, salta al 50).
+        La meta, x = 255, salta al 52
     50  el choque: cuenta los choques en la variable 38 y vuelve a la vuelta
         que estaba; con cinco o más el compañero se ofrece a manejar, y con
         "Yes" salta al puente
@@ -41,7 +41,12 @@ bendecidas**: son para que taro las mire. Lo que cobra esta prueba es la RAM,
 y **cuántos cuadros pierde manejando** —el hito 2—: ver `CUADROS_DE_MAS`.
 """
 
+import json
+import os
+import wave
+
 import datos
+from consola import en_la_rom, en_la_wram
 from batalla import grupo_de
 from recorrido import TELEPORT, Trabado
 
@@ -90,6 +95,64 @@ VARIABLE_DE_CHOQUES = 38
 CUADROS_DE_MAS = 5
 LA_LARGADA_X = 4
 
+# Los efectos de la ruta del auto en el puente del 51: seis veces el viento, a
+# medio tempo, y el golpe al final. Suenan desde el 2026-09-27: ver
+# `RUTA_SONIDO` en tools/port/eventos.py.
+VIENTO = ("Wind7", 100, 50, 50)
+GOLPE = ("Annihilation2", 100, 80, 50)
+VIENTOS = 6
+
+
+def muestra_de(p, sonido):
+    """La muestra con que suena `sonido` —(nombre, volumen, tempo, paneo)—:
+    la primera columna de su fila de `sonido_tabla`. El índice sale de
+    `efectos.json`, que el conversor deja al lado del cartucho."""
+    with open(os.path.join(os.path.dirname(p.sfc), "efectos.json")) as a:
+        sonidos = [tuple(s) for s in json.load(a)["sonidos"]]
+    with open(p.sfc, "rb") as a:
+        rom = a.read()
+    return rom[en_la_rom(p.simbolos["sonido_tabla"]) + 7 * sonidos.index(sonido)]
+
+
+class Oido:
+    """Anota cada efecto que arranca —(muestra, cuadros)— mirando las dos
+    voces de efectos en la RAM lejana, y junta el audio para guardarlo: un
+    efecto arranca cuando los cuadros que le quedan a su voz suben. Ver
+    rom/src/efectos_de_sonido.s."""
+
+    def __init__(self, p):
+        self.p = p
+        self.desde = len(p.consola.audio)
+        self.arranques = []
+        self.antes = self._voces()
+
+    def _voces(self):
+        voces = []
+        for cuadros, nuevo in (("SE_CUADROS", "SE_NUEVO"),
+                               ("SE2_CUADROS", "SE2_NUEVO")):
+            c = self.p.consola.ram(en_la_wram(self.p.simbolos[cuadros]), 2)
+            n = self.p.consola.ram(en_la_wram(self.p.simbolos[nuevo]), 1)
+            voces.append((c[0] | (c[1] << 8), n[0]))
+        return voces
+
+    def __call__(self, p):
+        ahora = self._voces()
+        for (c0, _m0), (c1, m1) in zip(self.antes, ahora):
+            if c1 > c0:
+                self.arranques.append((m1, c1))
+        self.antes = ahora
+
+    def guardar(self, ruta):
+        """El audio desde que empezó a oír, en un wav estéreo: para
+        escucharlo, no lo mira ninguna prueba."""
+        if not self.p or not os.path.isdir(os.path.dirname(ruta)):
+            return
+        with wave.open(ruta, "wb") as w:
+            w.setnchannels(2)
+            w.setsampwidth(2)
+            w.setframerate(int(self.p.consola.tasa()))
+            w.writeframes(bytes(self.p.consola.audio[self.desde:]))
+
 
 def los_choques(p):
     """La variable 38, que cuenta el 50 y pone en cero la intro del 49."""
@@ -133,13 +196,49 @@ def piloto(p, los_autos):
     return "up" if meta < hy else "down"
 
 
+def pasar_mensajes(r, cuantos, fotos=None, tope=3000):
+    """Pasa `cuantos` mensajes con A, dejando que cada uno termine de
+    componerse antes del toque, y fotografía los que nombra `fotos`: {número
+    de mensaje desde 1: nombre}. De a un cuadro y no con la paciencia de
+    `esperar`, porque ésa toca A a ciegas y el mensaje que se quiere mirar se
+    cierra en el mismo cuadro en que se abre."""
+    p = r.p
+    fotos = fotos or {}
+    visto = 0
+    for _ in range(tope):
+        if visto >= cuantos:
+            return
+        if p.byte("msg_abierto") and p.byte("msg_estado") != 1:
+            visto += 1
+            if visto in fotos:
+                r.foto(fotos[visto], asentar=False)
+            p.consola.apretar("a")
+            p.consola.correr(2)
+            p.consola.apretar()
+            # Hasta que se cierra: el cuadro siguiente puede tardar en abrir.
+            for _ in range(60):
+                if not p.byte("msg_abierto"):
+                    break
+                p.consola.correr(1)
+        else:
+            p.consola.correr(1)
+    raise Trabado("se pasaron %d de %d mensajes. %s"
+                  % (visto, cuantos, r.estado()))
+
+
 def largar(r):
-    """La intro del 49 hasta el 170: los mensajes, la espera de una tecla y
-    el auto en el grupo. La paciencia de `esperar` toca A, que es la tecla que
-    la espera acepta."""
+    """La intro del 49 hasta el 170: los tres mensajes de Talan, el cartel de
+    los controles en dos cuadros sobre la pantalla negra, y el auto en el
+    grupo.
+
+    El cartel es del fork del 49 (`parches/manual/mapas/Map0049.json`): en el
+    original es la imagen `EscapeInst` y un `KeyInputProc` que espera
+    cualquier tecla, y en la ROM son dos `ShowMessage` con el mismo texto, que
+    se cierran con A."""
     r.empezar("la intro de la carrera")
     r.p.ir_al_mapa(*LA_LARGADA)
     assert r.p.mapa() == 49, r.estado()
+    pasar_mensajes(r, 5, fotos={4: "el-cartel-1", 5: "el-cartel-2"})
     r.esperar("el switch 170", lambda p: p.switch(CORRIENDO), tope=3000)
     assert r.p.switch(ARRANCO), r.estado()
     assert grupo_de(r.p) == [AUTO_ROJO], (
@@ -149,11 +248,12 @@ def largar(r):
 
 
 def manejar(r, mundo, hasta, tope=6000, sin_volante=False, choques=None,
-            cuadros=None):
+            cuadros=None, mirando=None):
     """Maneja hasta que `hasta(partida)`, con el piloto o —`sin_volante`— sin
     tocar nada. En el 50 pasa los mensajes con A y cuenta el choque en
     `choques`, si se le pasa una lista. Una elección abierta corta: es la del
-    compañero, y la contesta quien llamó.
+    compañero, y la contesta quien llamó. `mirando(partida)` corre después de
+    cada paso.
 
     En `cuadros`, si se le pasa, anota por mapa [ticks, cuadros de hardware]
     de los ticks manejando: ver `CUADROS_DE_MAS`."""
@@ -191,6 +291,8 @@ def manejar(r, mundo, hasta, tope=6000, sin_volante=False, choques=None,
             p.correr(4, apretar_a=(p.cuadro + 3,)
                      if p.byte("msg_abierto") else ())
         gastado += p.cuadro - antes
+        if mirando is not None:
+            mirando(p)
     return r
 
 
@@ -267,7 +369,16 @@ def test_la_carrera_entera(recorrido, mundo):
         "y esta prueba no lo contesta. %s" % (len(choques), r.estado()))
 
     r.empezar("el puente")
-    manejar(r, mundo, lambda p: p.mapa() == EL_PREMIO, tope=3000)
+    oido = Oido(r.p)
+    manejar(r, mundo, lambda p: p.mapa() == EL_PREMIO, tope=3000,
+            mirando=oido)
+    oido.guardar(os.path.join(r.fotos_dir, "el-puente.wav"))
+    viento, golpe = (muestra_de(r.p, s) for s in (VIENTO, GOLPE))
+    muestras = [m for m, _c in oido.arranques]
+    assert muestras.count(viento) == VIENTOS and golpe in muestras, (
+        "la ruta del auto en el puente pide seis veces Wind7 (la muestra %d) "
+        "y después Annihilation2 (la %d), y arrancaron %s. %s"
+        % (viento, golpe, oido.arranques, r.estado()))
     assert r.p.switch(CHOCO), (
         "la columna 75 del 51 prende el 172, que apaga el volante. %s"
         % r.estado())

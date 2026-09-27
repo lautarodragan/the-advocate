@@ -223,8 +223,8 @@ ev_activo:   .res 1     ; si hay una página a medio correr
 ev_esperando: .res 2    ; cuántos cuadros faltan de la espera en curso
 ; La ruta forzada del héroe. En RM2k `ForceMoveRoute` es asincrónico: la página
 ; sigue corriendo y quien camina es el personaje, así que esto no vive en el
-; intérprete sino acá, y lo come `move_hero` en vez del pad.
-RUTA_MAX = 32
+; intérprete sino acá, y lo come `move_hero` en vez del pad. Las órdenes
+; están en el bytecode: ver `ruta_heroe`.
 ruta_n:      .res 1
 ruta_i:      .res 1
 ; Si el paso que el héroe tiene en curso lo arrancó la ruta forzada y no el pad.

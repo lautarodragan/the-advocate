@@ -19,10 +19,9 @@
 ; face_up/right/down/left son 12, 13, 14 y 15, y nuestras direcciones son
 ; 0, 1, 2 y 3 en el mismo orden, así que restar doce alcanza.
 ;
-; Los dos caminos se parecen pero no son el mismo, y la diferencia vale la pena:
-; la del héroe se **copia** a RAM, y la de un evento se guarda como puntero al
-; bytecode. Copiarla existe desde antes y tiene un tope, RUTA_MAX; el puntero no
-; lo tiene, porque el código del mapa vive en la ROM y no se va a ningún lado.
+; Las dos se guardan como puntero al bytecode, que vive en la ROM y no se va a
+; ningún lado. La del héroe se copiaba a RAM, con un tope de 32 bytes, hasta el
+; 2026-09-27: ver `ruta_heroe`.
 .proc op_route
     lda [cod_ptr], y            ; sobre quién
     sta ruta_blanco
@@ -43,35 +42,33 @@
     ; corre ya— y nada más: el paso o el salto en curso se terminan, como
     ; allá. Acá se cortaba también el salto, y RM2k no lo corta.
     lda ruta_cuantas
-    sta temp
+    sta ruta_n
     stz ruta_i
     stz ruta_espera
     lda ruta_frec_op
     sta ruta_frec
-    ldx #$0000
-copiar_orden:
-    lda temp
-    beq fin_copia
-    dec temp
-    cpx #RUTA_MAX
-    bcs saltear                 ; no entra: se consume pero no se guarda
-    lda [cod_ptr], y
-    sta ruta, x
-    inx
-saltear:
-    iny
-    bra copiar_orden
-fin_copia:
-    txa                         ; X no pasa de RUTA_MAX, así que el byte alcanza
-    sta ruta_n
-    jmp correr_codigo::otro     ; `bra` no llega: el lazo quedó lejos
+    ; El puntero, como el de un evento en `ruta_para_evento`: la suma no se
+    ; lleva nada al byte de banco porque el bloque de código entra entero en
+    ; uno.
+    rep #$20
+.a16
+    tya
+    clc
+    adc cod_ptr
+    sta ruta_heroe
+    sep #$20
+.a8
+    lda cod_ptr + 2
+    sta ruta_heroe + 2
+    bra saltear_ruta
 
-    ; --- un evento: no se copia nada. Se anota dónde empieza la ruta dentro del
-    ; bytecode y en qué orden va, y el cursor de la página saltea las órdenes.
+    ; --- un evento: se anota dónde empieza la ruta dentro del bytecode y en
+    ; qué orden va, y el cursor de la página saltea las órdenes.
 op_route_event:
     phy
     jsr ruta_para_evento
     ply
+saltear_ruta:
     rep #$20
 .a16
     tya

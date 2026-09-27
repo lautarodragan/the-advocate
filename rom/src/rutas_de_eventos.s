@@ -451,8 +451,12 @@ no_es_salto:
     bne no_es_grafico           ; y la 34 el gráfico, que lleva operando
     jmp cambiar_grafico         ; queda lejos para un salto corto
 no_es_grafico:
+    cmp #35
+    bne no_es_sonido
+    jmp sonido_ev               ; la 35, con su operando
+no_es_sonido:
     cmp #36
-    bcc seguir
+    bcc seguir                  ; 32 y 33, los switches, no llegan
     cmp #38
     bcs anim
     ; 36 prende atravesar y 37 lo apaga.
@@ -596,6 +600,27 @@ con_grafico:
     lda #1
     sta npc_buf + 14, y         ; y se ve, por si venía escondido
 listo_graf:
+    jmp otra_orden
+
+; `play_sound_effect`: la 35, con el índice del efecto detrás, en dos bytes.
+; Igual que sobre el héroe —ver `sonido_heroe`—: `sonido_tocar`, el camino de
+; `OP_SOUND`, y sin costar un cuadro. X es la ranura, y `sonido_tocar` la pisa.
+sonido_ev:
+    lda ruta_ev + 5, x          ; el cursor ya está en el operando
+    inc a
+    inc a
+    sta ruta_ev + 5, x          ; y lo pasa
+    dec a
+    dec a
+    rep #$20
+.a16
+    and #$00FF
+    tay
+    lda [ruta_ptr], y
+    phx
+    jsr sonido_tocar            ; vuelve con A de ocho
+.a8
+    plx
     jmp otra_orden
 face:
     sec

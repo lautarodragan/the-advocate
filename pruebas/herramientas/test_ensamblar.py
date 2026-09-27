@@ -123,3 +123,13 @@ def test_donde_corre_un_caso_no_depende_del_orden_de_los_cartuchos(monkeypatch):
     assert antes == despues
     assert any(len(donde) > 1 for donde in antes.values()), (
         "ningún caso está en dos cartuchos: esta prueba no mira nada")
+
+
+def test_la_exclusion_y_los_agregados_de_release_hacen_algo():
+    """Cada excluido es un mapa que la regla metería, y cada agregado uno que
+    no: si no, el número está de adorno en la lista y nadie se entera. Pasa
+    si `MENOR_A` baja por debajo de un excluido, o si se excluye un área del
+    árbol, que la regla ya deja afuera sola."""
+    sin_excluir = cartuchos.mapas_de_la_regla(excluidos={}, agregados=())
+    assert set(cartuchos.EXCLUIDOS) <= set(sin_excluir)
+    assert not set(cartuchos.AGREGADOS) & set(sin_excluir)

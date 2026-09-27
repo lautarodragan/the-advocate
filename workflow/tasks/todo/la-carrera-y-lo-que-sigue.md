@@ -251,6 +251,9 @@ Independiente del 3 y del 4.
 **3. Lo que se ve y se oye.** El cartel de los controles (4) y los sonidos del
 salto (5), según lo que conteste taro.
 
+   **Hecho el 2026-09-27**, con la opción (a) de la pregunta 4: ver
+   `testing/carrera-3-lo-que-se-ve-y-se-oye.md`.
+
 **4. La regla de los mapas por id.** `release` pasa a ser "los mapas con id
 menor a X, sin los de `--exclude-maps`, más los agregados" —hoy el 164— y los
 de prueba como hasta ahora. Primero los dos errores latentes del conversor
@@ -259,6 +262,10 @@ su commit y con la ROM byte por byte igual donde no cambia nada. Después el
 cambio de regla, que **no debe mover la ROM**: con X = 65 y la exclusión de
 arriba, la lista resultante tiene que ser la misma que la de este hito 1, y
 eso se compara. Puede ir antes, en paralelo o después del 2.
+
+   **Hecho el 2026-09-27**: los errores en `9d6c0d3`, la regla en
+   `done/la-regla-de-mapas-por-id.md`. La exclusión no es un flag del
+   conversor sino un valor de `cartuchos.py`; el porqué está ahí.
 
 **5. (Condicional) X = 85.** Sólo si taro lo quiere antes de que entre el
 mundo: los 18 mapas inalcanzables, con 66, 67 y 69 en la exclusión.

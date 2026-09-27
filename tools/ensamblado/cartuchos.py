@@ -37,37 +37,67 @@ FUENTE = os.path.join(RAIZ, "rom", "src")
 DESTINO = os.environ.get("CARTUCHOS",
                          os.path.join(RAIZ, "rom", "build", "tests"))
 
-# Cada mapa que se suma al proyecto se suma a todos los cartuchos. El 66 no:
-# la ventana no le entra en la VRAM.
+# Los mapas del juego que lleva `release`: **los de id menor a `MENOR_A`,
+# menos `EXCLUIDOS`, más `AGREGADOS`**. Hoy es Lashe City entera, hasta que se
+# sale de la ciudad. Hasta el 2026-09-27 era una lista escrita a mano; la regla
+# y sus valores son de `workflow/tasks/*/la-carrera-y-lo-que-sigue.md`, y taro
+# pidió que la exclusión se mantenga chica.
 #
-# Los del juego son Lashe City entera, hasta que se sale de la ciudad: todos
-# los mapas de id menor a 65 menos cinco, más el 164. Los cinco son el 58 —el
-# tutorial del aura, que es de otro capítulo— y cuatro que nadie alcanza: las
-# carpetas 15, 22 y 55 y el respaldo 46. Es la regla de
-# `workflow/tasks/*/la-carrera-y-lo-que-sigue.md`, que todavía es una lista
-# escrita a mano: el hito 4 de esa tarea la hace regla, y tiene que dar esto.
+# "Mapa" es un nodo de tipo 1 del árbol de RM2k. Los ids que faltan entre los
+# de la regla sin estar excluidos —el 24, el 25, el 27, el 31 y el 35— son
+# áreas: nodos sin `.lmu` que le marcan los encuentros a un rectángulo del
+# padre.
 #
-# La persecución en auto son el 49 al 54: las tres vueltas (49, 52 y 54), el
-# choque (50), el puente (51) y el premio (53), que lleva al 64, la escena de
-# despedida. La demo termina al final de esa escena, en el fork del 64: el
-# `Teleport` que la cierra va al mundo, el 66, que no entra.
+# **Son valores de acá y no flags del conversor**, a propósito: al conversor le
+# sigue llegando la lista entera en `--mapas`. Éste es el único que lo llama;
+# `test_horneados` y `test_parches` necesitan la lista sin correrlo; y como el
+# sello lleva los flags y no `data/`, un árbol que cambie qué mapas entran deja
+# viejo al cartucho sólo si la lista viaja expandida.
+MENOR_A = 65
+
+# Cada uno con su razón, que es lo que hay que revisar antes de sumarle otro.
+EXCLUIDOS = {
+    # Aura Tutorial: de otro capítulo, cuelga de `Tutorials` (161). Es el que
+    # cuesta: trae su tema y dos animaciones.
+    58: "el tutorial del aura, de otro capítulo",
+    # Carpetas del árbol —Lashe City, The Rat Tracks y la de la carrera—:
+    # mapas negros a los que nadie salta.
+    15: "carpeta",
+    22: "carpeta",
+    55: "carpeta",
+    # Security Footage 2: un respaldo del 45 al que nada lleva.
+    46: "inalcanzable",
+}
+
+# El tutorial del droide no cuelga de Lashe City sino de `Tutorials`, pero salta
+# ahí la página del 48 que mete a AG7-17 en el grupo.
+AGREGADOS = (164,)
+
+
+def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
+                      agregados=AGREGADOS):
+    """Los mapas del juego en el orden en que van a `--mapas`: los de la regla
+    de menor a mayor, y después los agregados. **El orden es el de la tabla de
+    la ROM**, así que cambiarlo la mueve: ver `orden_de_mapas` en
+    snes_convert.py.
+
+    El árbol es el del volcado de `data/`, que es el que lee el conversor: por
+    eso la ruta cae adentro de `data/` y no del juego —ver `lcf.volcado`—."""
+    from rpgmaker import lcf
+    arbol = lcf.TreeMap(os.path.join(lcf.DATOS, "RPG_RT.lmt"))
+    de_la_regla = [m for m in range(1, menor_a)
+                   if arbol.map_types.get(m) == 1 and m not in excluidos]
+    return tuple(de_la_regla + [m for m in agregados if m not in de_la_regla])
+
+
+# Los sectores con auto —37, 38, 47 y 48— entran los cuatro juntos: la elección
+# del 36 es una sola página que compila con sus cuatro destinos o con ninguno.
+# Una exclusión no los puede separar.
 #
-# Los sectores con auto —37, 38, 47 y 48— entran los cuatro juntos: la
-# elección del 36 es una sola página que compila con sus cuatro destinos o con
-# ninguno. El 38 entra en la VRAM desde `LAYOUT_VENTANA_AMBOS`.
-#
-# Del 40 al 45, la guarida de Boss Wick y los vidcasts: se llega por la puerta
-# del vecino, en el 37, y se sale por el 41 de vuelta al 37.
-#
-# El camino del droide sale del 48: Stash (57), la planta de reciclaje (59 y
-# sus pisos, 60 a 62), el túnel de vuelta (63) y el tutorial del droide (164),
-# que no cuelga de Lashe City sino de `Tutorials` pero al que salta la página
-# que mete a AG7-17 en el grupo.
-MAPAS_DEL_JUEGO = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18,
-                   19, 20, 21, 23, 26, 28, 29, 30, 32, 33, 34, 36,
-                   37, 38, 39, 40, 41, 42, 43, 44, 45, 47, 48,
-                   49, 50, 51, 52, 53, 54, 56, 57, 59,
-                   60, 61, 62, 63, 64, 164)
+# La demo termina al final de la escena de despedida, en el fork del 64: el
+# `Teleport` que la cierra va al mundo, el 66, que no entra —"no puede llevar
+# ventana de mensaje"—. Por eso `MENOR_A` no pasa de 65 hasta que entre.
+MAPAS_DEL_JUEGO = mapas_de_la_regla()
 
 # Y los que sólo existen por la tanda: situaciones que ningún mapa del juego
 # que entra ejercita. `parches.revisar` los lee de acá para no pedirles parche
