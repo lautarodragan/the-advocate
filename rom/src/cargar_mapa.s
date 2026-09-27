@@ -244,7 +244,7 @@ puesto:
 ;
 ; Qué pisó, en palabras de VRAM: los tiles en RANURA_VRAM y el tilemap en
 ; RANURA_MAP, que están elegidos para caer adentro del banco de tiles de BG1
-; **en los cuatro repartos** de `vram_layout` —el conversor lo comprueba—. Los
+; **en todos los repartos** de `vram_layout` —el conversor lo comprueba—. Los
 ; sprites, la capa de encima, la ventana y los dos tilemaps del mapa quedan
 ; afuera. No era así con las direcciones del menú del título: en el reparto
 ; ancho los sprites arrancan en $4000 y el tilemap en $4400 les caía encima,
@@ -297,7 +297,7 @@ puesto:
 ;
 ; `volver_al_mapa` alcanza para la tienda, el menú y las ranuras porque las tres
 ; escriben nada más que `RANURA_VRAM` y `RANURA_MAP`, elegidos para caer adentro
-; del banco de tiles de BG1 en los cuatro repartos. La escena de la batalla no:
+; del banco de tiles de BG1 en todos los repartos. La escena de la batalla no:
 ; `escena_subir` sube **32 KB**, o sea las palabras $4000 a $8000, más su
 ; tilemap en $3800 y 64 bytes en la palabra 0. En los repartos de
 ; `vram_layout` eso se lleva puesto, además del banco de BG1:

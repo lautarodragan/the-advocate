@@ -39,27 +39,7 @@
     sta VMADDL
     sep #$20
 .a8
-    ldy #M_PTR_MAP_TILES
-    jsl f:lz2_campo + RAPIDO    ; comprimidos: ver descomprimir.s
-    ldx mapa_ofs
-    rep #$20
-.a16
-    lda f:mapa_tabla + M_MAP_TILES, x
-    asl a
-    asl a
-    asl a
-    asl a
-    asl a
-    asl a                       ; 64 bytes por tile de 8 bits
-    sta DAS0L
-    sep #$20
-.a8
-    lda #$01
-    sta DMAP0                   ; dos registros, de a palabras
-    lda #$18
-    sta BBAD0                   ; destino: VMDATAL
-    lda #$01
-    sta MDMAEN
+    jsl f:lz2_fondo + RAPIDO    ; comprimidos, de a flujos: ver descomprimir.s
 
     ; --- la animación del ChipSet ---
     ; El mapa trae en la VRAM el dibujo 0 de cada corrida y el reloj puede estar
