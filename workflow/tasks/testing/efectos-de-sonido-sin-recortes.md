@@ -27,6 +27,15 @@ un instrumento, medido y grabado para que taro decida escuchando**, abajo en
 "Lo que decide taro". Lo que queda para él: escuchar
 `/shared/audio/2026-09-26-efectos/` (tiene su `LEEME.txt`) y elegir.
 
+Más tarde el mismo día taro eligió —todos enteros, a la media como mínimo—, y
+con los números de eso a la vista cambió: **enteros sí, pero la media sólo
+donde sea gratis para la música**. Está en la rama
+`worktree-agent-afa6d748ca7a9d5ab`, sin mergear: ver "Los candidatos,
+enteros" abajo. **Enteros a 6 kHz igual le cuestan a la música**; de las
+propuestas de ahí taro eligió la del trueno, que deja la lluvia entera gratis.
+Lo que les sigue costando la pelea y el mapa 3 espera a liberar entradas del
+directorio, en otra tarea.
+
 # Lo que estaba viejo el 2026-09-26
 
 La tarea se escribió el 24, y desde entonces:
@@ -35,7 +44,7 @@ La tarea se escribió el 24, y desde entonces:
   `rom/src/efectos_de_sonido.s`).
 * **6 kHz, 0,75 s y el bucle de 0,4 s: seguía cierto** para todos menos el
   trueno de la apertura, que va entero a 22 kHz
-  (`decisiones/el-trueno-va-entero-a-22-khz.md`). El trueno **ya estaba en
+  (`decisiones/el-trueno-va-entero-y-paga-la-lluvia.md`). El trueno **ya estaba en
   `main`**, no sólo en la rama del experimento como decía esa decisión.
 * **El presupuesto de la ARAM** ya no es "cada efecto lo que entre": es por
   paquete y cada paquete llena la ARAM, así que no había lugar sobrante que
@@ -183,6 +192,112 @@ efectos del mapa **ya** no entran al lado y esperan al `PlayBGM`. Hay lugar
 para agrandarlos —Cold7 a 22 kHz en el 32, Wind8 a 11 en el 28, Kill2 y Kill4
 en el 20—, y lo que se paga es que esperen más: más efectos mudos entre la
 llegada y el `PlayBGM`, y ese `PlayBGM` congelado más tiempo. No se hizo.
+
+# Los candidatos, enteros (2026-09-26, en la rama, sin mergear)
+
+taro, escuchando: *"tengo cero dudas de que tienen que tener su longitud
+completa (todos)"*. Primero pidió la media (11 kHz) como mínimo; con los
+números de eso —el tema de batalla y `evilrhys` a un cuarto, 196 pares
+bajando— dijo que afectar tanto a la música no le agrada, y quedó así:
+**todos enteros, a la media sólo donde sea gratis, y si no a los 6 kHz de
+siempre**.
+
+**No hubo ninguno gratis a la media**: cada candidato está en algún paquete
+que limita muestras (el 1, el 2, el 3, el 19 o la pelea), y en ésos
+cualquier byte de más le baja la tasa a alguien. Así que:
+
+* **Enteros a 6 kHz** los que eran más largos que 0,75 s: Rain1, Bite,
+  Item2, Monster1, Thunder9 (el del 3, el 20 y el 32), Darkness, Explosion4,
+  Glass y Holy5 (`SE_ENTEROS_PAGADOS` en `tools/audio/snes_music.py`).
+* **Igual que en `main`** los que ya sonaban enteros: Attack2, Damage1,
+  Evasion1, Escape, Switch1, Bow2 y Blow2.
+* **Sin alias**: con todos a una sola tasa no hacen falta, y cada uno cuesta
+  una copia. `SE_DEL_MAPA` queda con el trueno del mapa 1, que ya estaba.
+
+La primera versión —a la media, con alias en el mapa 3— está en 68c6818, y
+sus grabaciones en `/shared/audio/2026-09-26-efectos-completos/`.
+
+## La longitud completa sola ya le cuesta a la música
+
+**Y no se puede evitar a 6 kHz**: los paquetes que limitan están llenos hasta
+el margen, y un efecto entero a 6 kHz pesa unos 3.400 bytes por segundo,
+contra los 2.529 del tope de 0,75 s con bucle. Para que la longitud completa
+fuera gratis, Rain1 tendría que ir a menos de 1 kHz.
+
+Cada uno solo, contra `main` (rearmando el reparto con ese efecto entero y
+nada más cambiado):
+
+| Efecto | Paquetes | De más | Lo que paga la música, solo |
+|---|---|---:|---|
+| **Rain1** (5 s) | 1 | 14,3 KB | `escape_newyork`: polysynth 21,1 → 8,4, taiko 22 → 10,4, piano 17,9 → 10,5, y siete más de ~16 a ~10. **Con el trueno a 8,8 kHz, nada**: ver abajo |
+| Monster1 (3 s) | pelea | 7,6 KB | `T_VGFighterMAX_Masako`: bronce 21,7 → 16,3, guitarras 19,9 → 14,7 |
+| Bite (1 s) | pelea, 8 | 0,8 KB | bronce 21,7 → 16,3 (por una copia), el resto ~1 kHz |
+| Item2 (1,1 s) | pelea | 1,3 KB | bronce 21,7 → 16,3, toms 19,9 → 18,5 |
+| **Los tres de la pelea** | pelea | 9,7 KB | guitarras 19,9 → 13,6, toms → 14,1, bronce → 16,3; veinte instrumentos |
+| Thunder9 (1,9 s) | 3, 20, 32 | 3,9 KB | `evilrhys`: arpa 12,2 → 9,5, cuerdas 12,5 → 10,0 |
+| Darkness (1,4 s) | 2, 3, 32 | 2,1 KB | `TF3_1_awe`: polysynth 16,9 → 12,6; `evilrhys` → 11,1 |
+| Explosion4 (1,5 s) | 3, 19 | 2,4 KB | 54 pares por copias que se reacomodan: bajo de `hzbreach` y `vswar` 22,9 → 16,7, tuba de `Gaden` 17,2 → 14,7 |
+| Glass (1,9 s) | 3, 11, 19 | 4,0 KB | 55 pares, los mismos, y `evilrhys` → 9,5 |
+| **Los cuatro del mapa 3** | 3 | 12,4 KB | **`evilrhys` de 12,5 a 4,6**, y de rebote platillos de `Deflector1` y `Lunar_Pyramid` 22 → 13,9 |
+| Holy5 (0,8 s) | 2, 8 más | 0,3 KB | una muestra de `TF3_1_awe` 16,4 → 15,7 |
+
+**Todos juntos, como está en la rama** —con el trueno a 8,8 kHz—: bajan 175
+pares, y **ninguno por el paquete del mapa 1**. Lo que queda es de la pelea,
+el mapa 3, el 2 y el 19, y de rebote:
+
+| Tema | Lo que más pierde | Lo limita | Instrumentos que bajan |
+|---|---|---|---:|
+| `evilrhys` | casi todo, 12,5 → ~4,5 | 3 | 13 |
+| `T_VGFighterMAX_Masako` | guitarras 19,9 → 13,6, toms → 14,1, bronce 21,7 → 16,3 | pelea | 20 |
+| `TF3_1_awe` | polysynth 16,9 → 12,6 | 2 | 12 |
+| `escape_newyork`, `vswar` | polysynth 21,1 → 12,6 (muestra compartida con `TF3_1_awe`) | 2 | 7 y 9 |
+| `hzbreach` | bajo 22,9 → 14,6 | 2 | 4 |
+| `3D-Galax`, `Gaden` | bajo 16,7 → 13,3, tuba 17,2 → 14,7 | 19 | 13 y 6 |
+| `cd2`, `Lunar_Pyramid`, `Deflector1`, `11h035` | ocarina 24,1 → 16,1, platillos 22 → 13,9 | 18+hzstream (copias que se reacomodan) | 4 a 11 |
+| los otros 18 | ~16–20 → ~13–14, sobre todo muestras que limita la pelea | pelea | 1 a 9 |
+
+Los que más pierden tienen pista de MSU-1, así que con MSU-1 no se oye.
+
+## El trueno paga la lluvia (hecho)
+
+**El trueno del mapa 1 va entero a 8,8 kHz en vez de 22**, y con eso la
+lluvia entera es gratis: Rain1 entera a 6 kHz más `Thunder9@entero` a 8.800
+Hz ocupan 63 bytes más que hoy, dentro del margen. Comprobado con el
+conversor: con esos dos solos, el banco, las copias y la tasa y el tamaño de
+cada muestra salen **iguales que en `main`**. Es de taro, el 2026-09-26: ya
+había escuchado el trueno a menos calidad y le pareció bastante aceptable.
+Ver `decisiones/el-trueno-va-entero-y-paga-la-lluvia.md`.
+
+## Propuestas que quedan, medidas (sin implementar)
+
+* **Menos de 6 kHz para los largos del mapa 3 y la pelea.** A 4 kHz enteros,
+  los cuatro del mapa 3 cuestan 4,9 KB en vez de 12,4 (`evilrhys` a ~9,4 en
+  vez de 4,6), y los tres de la pelea 3,9 en vez de 9,7 (bronce y guitarras a
+  ~16,3 en vez de ~14). No es gratis ni así.
+* **Lo de fondo**: liberar entradas del directorio para que las copias
+  separen a los temas del paquete que los limita (casi todo el rebote), o
+  los efectos largos por streaming, o versiones de calidad con MSU-1 (lo
+  está haciendo otro agente).
+
+## Carga y esperas
+
+Los paquetes que limitan no crecen: lo que ganan los efectos lo pierde la
+música. Medido saltando desde el título en el orden 1, 2, 3, 8, 11, 19, 20,
+23, 26, 32, 261, 17, 255, 13 (cuadros desde el pedido de salto hasta el fin
+del fundido), contra `main`: el 20 +13, el 32 +10, el 19 +9, el 11 +5; el 1
+−10 y el 2 −11 (el trueno a 8,8 kHz pesa 14 KB menos, y la música del 2
+bajó); los demás igual o uno menos. Cargar una partida en el mapa 1 entra en el
+tope de `test_entrar_al_juego_devuelve_las_muestras_del_tema_del_mapa`, que
+volvió a como estaba.
+
+**Esperan al `PlayBGM` de más**: los efectos del 11 con `hzstream` o
+`C3classi` sonando, que antes entraban, por Glass entero (faltan 1,9 y 3,6
+KB; entero no puede pesar menos), y los del 20 con `3D-Galax` y los del 32
+con `Lunar_Pyramid`, más que antes. El 28 con `wb3shop` mejora.
+
+**Lo que no cubre `just pruebas`**: que los efectos suenen enteros; lo grabó
+un script aparte, efecto por efecto, saliendo de la ROM, en
+`/shared/audio/2026-09-26-efectos-enteros/`.
 
 # Para escuchar
 
