@@ -47,9 +47,12 @@ DESTINO = os.environ.get("CARTUCHOS",
 # Los sectores con auto —37, 38, 47 y 48— entran los cuatro juntos: la
 # elección del 36 es una sola página que compila con sus cuatro destinos o con
 # ninguno. El 38 entra en la VRAM desde `LAYOUT_VENTANA_AMBOS`.
+#
+# Del 40 al 45, la guarida de Boss Wick y los vidcasts: se llega por la puerta
+# del vecino, en el 37, y se sale por el 41 de vuelta al 37.
 MAPAS_DEL_JUEGO = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18,
                    19, 20, 21, 23, 26, 28, 29, 30, 32, 33, 34, 36,
-                   37, 38, 39, 47, 48, 56)
+                   37, 38, 39, 40, 41, 42, 43, 44, 45, 47, 48, 56)
 
 # Y los que sólo existen por la tanda: situaciones que ningún mapa del juego
 # que entra ejercita. `parches.revisar` los lee de acá para no pedirles parche

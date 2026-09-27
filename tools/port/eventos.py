@@ -1071,6 +1071,31 @@ FUNDIDO_RAMPA = 24
 FUNDIDO_NEGRO = FUNDIDO_CUADROS - FUNDIDO_RAMPA
 BRILLO_MAX = 15
 
+# `ChangeScreenTransitions` (10690) cambia esa transición de ahí en más:
+# `[cuál, transición]`, con cuál 0 el borrar y 1 el mostrar del
+# teletransporte —del 2 al 5 son los de la pelea— y la transición un índice de
+# la tabla `fades` de `Game_System::GetTransition`. El juego la usa en la
+# guarida de Boss Wick: zoom (16) para ir a los vidcasts, mosaico (17) adentro,
+# y fundido (0) al volver. Es estado que cruza el teletransporte, y en RM2k
+# viaja en la partida; acá no —ver `TRANSICION_BORRAR` en rom/src/ram_lejana.s—.
+#
+# La ROM hace dos: **el mosaico**, con el registro MOSAIC del PPU atado a la
+# rampa del brillo —como el de la pelea, `fundido_de_pelea.s`, y por lo mismo:
+# la carga del mapa tiene que caer adentro del negro—, y **el fundido**, que es
+# lo que va para las que la consola no hace (el zoom es modo 7, y el mapa está
+# en modo 3): lo decidió taro el 2026-09-26. Ver
+# workflow/divergencias/las-transiciones-del-teletransporte.md.
+#
+# El corte (19) y "ninguna" (20) no compilan: la consola los hace, y como
+# fundido serían otra cosa. Ninguno está en un mapa de la ROM hoy. Las de la
+# pelea tampoco: la ROM usa siempre las de la base.
+CHANGE_SCREEN_TRANSITIONS = 10690
+TRANSICION_BORRAR, TRANSICION_MOSTRAR = 0, 1
+RM2K_TRANSICION_MOSAICO = 17
+RM2K_TRANSICIONES_QUE_NO = {19: "el corte", 20: "ninguna"}
+# Lo que el bytecode lleva: lo que la ROM hace, y no el número de RM2k.
+TRANSICION_FUNDIDO, TRANSICION_MOSAICO = 0, 1
+
 
 def paso_de_fundido(milisegundos):
     """Cuánto baja por cuadro el volumen del tema, en 1/65536.
@@ -3986,6 +4011,22 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
                 CHANGE_MENU_ACCESS: ACCESO_MENU,
                 CHANGE_ESCAPE_ACCESS: ACCESO_ESCAPAR}[cmd.code]
         return bytes([OP_ACCESS, ACCESO_BIT[cual], 1 if p[0] else 0])
+
+    if cmd.code == CHANGE_SCREEN_TRANSITIONS:
+        # Ver CHANGE_SCREEN_TRANSITIONS y OP_TRANSITION.
+        if len(p) < 2:
+            raise NoSePuede("ChangeScreenTransitions sin operandos")
+        cual, rm2k = p[0], p[1]
+        if cual not in (TRANSICION_BORRAR, TRANSICION_MOSTRAR):
+            raise NoSePuede("ChangeScreenTransitions de la pelea: la ROM usa "
+                            "siempre las de la base")
+        if rm2k in RM2K_TRANSICIONES_QUE_NO:
+            raise NoSePuede("ChangeScreenTransitions a %s, que la consola "
+                            "hace y como fundido sería otra cosa"
+                            % RM2K_TRANSICIONES_QUE_NO[rm2k])
+        tipo = (TRANSICION_MOSAICO if rm2k == RM2K_TRANSICION_MOSAICO
+                else TRANSICION_FUNDIDO)
+        return bytes([OP_TRANSITION, cual, tipo])
 
     if cmd.code == CHANGE_ITEMS:
         # [sumar o quitar, ítem por constante o variable, ítem, cantidad por

@@ -529,3 +529,33 @@ def test_espera(cuadro):
     p = partida("espera")
     p.correr(cuadro)
     golden("espera-%d" % cuadro, p.imagen())
+
+
+# `ChangeScreenTransitions` antes de un `Teleport` del mapa 2 al 5: nombre —el
+# de su caso—, y dos ticks a mitad del fundido, uno borrando y otro mostrando,
+# los dos con el brillo cerca de la mitad. El salto arranca en el tick 31 y
+# la carga cae en el 55.
+TRANSICIONES = (
+    # El mosaico: los bloques crecen hasta negro y vuelven a achicarse sobre
+    # el mapa nuevo. El héroe no se pixela: el mosaico del PPU es de los
+    # fondos y nada más.
+    ("transicion-mosaico", (44, 88)),
+    # El zoom, que la consola no hace en modo 3 y va como el fundido de
+    # siempre: lo decidió taro. Estas dos tienen que ser el fundido liso.
+    ("transicion-zoom", (44, 88)),
+)
+
+
+@pytest.mark.parametrize("nombre,cuadros", TRANSICIONES,
+                         ids=[caso[0] for caso in TRANSICIONES])
+def test_transicion(nombre, cuadros):
+    """`transicion`: la que eligió `ChangeScreenTransitions`, en un salto.
+
+    Los ticks no pueden caer en los veinte primeros de un mensaje —no hay
+    ninguno— ni en el negro del medio, que es igual para cualquier
+    transición: tienen que estar en las rampas, que es donde se diferencian.
+    """
+    for cuadro in cuadros:
+        p = partida(nombre)
+        p.correr(cuadro)
+        golden("%s-%d" % (nombre, cuadro), p.imagen())
