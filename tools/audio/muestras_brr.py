@@ -232,6 +232,24 @@ def _contrato(selector, soundfont):
 _contratos = {}
 
 
+def precargar(selectores, soundfont):
+    """Pide a la vez los contratos de esos selectores que no estén pedidos.
+
+    Es la misma llamada de `_contrato`, una por zona, pero en hilos: cada una
+    es un proceso de menos de un milisegundo y el conversor pide una por
+    programa y tecla que suena, así que en serie lo que se pagaba era esperar
+    a que arranque el binario.
+    """
+    import concurrent.futures
+    faltan = [s for s in dict.fromkeys(selectores)
+              if (s, soundfont) not in _contratos]
+    if len(faltan) < 2:
+        return
+    with concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 1) as hilos:
+        for _hecho in hilos.map(lambda s: _contrato(s, soundfont), faltan):
+            pass
+
+
 def zona(selector, soundfont):
     """(nombre de la muestra, su nota raíz) de la zona que el selector elige,
     o None. Es lo que distingue una zona de otra sin extraerla."""
