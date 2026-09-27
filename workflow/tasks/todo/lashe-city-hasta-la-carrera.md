@@ -400,6 +400,14 @@ declaración de ese momento.
 
 # Riesgos y preguntas para taro
 
+**Después de los hitos (taro, 2026-09-27)**: cuando terminen los hitos de
+este plan, si entra, **sumar la carrera** (49–54, y el 55 si hace falta) **y el
+64**. Si después sigue habiendo espacio, **el 83 y el 84** también, para que la
+regla de qué mapas entran deje de ser una lista: si los ids tienen orden,
+pasa a ser "los mapas con id menor a X" más un `--exclude-maps` que se
+mantenga siempre chico (la lista invertida). Avanzar sin esperar su
+confirmación entre hito e hito.
+
 **Lo que taro ya contestó (2026-09-25):**
 
 * **(2026-09-26)** El cierre del 36 ("get out"): **un "fin de demo" con un
@@ -420,10 +428,10 @@ declaración de ese momento.
   evento 4 del mapa 7. Es el camino alternativo al Hover Tram (donde el ladrón
   roba todo: `ChangeGold -9999` en el mapa 13). Ojo: el Idol también abre el
   mapa 14 (página 2 de la puerta del HQ, con el switch 53).
-* Pendiente: los mapas 64, 83 y 84. Quedaron afuera porque el 64 (`Leaving
+* **(2026-09-26)** Los mapas 64, 83 y 84 **quedan afuera** (confirmado por taro). Quedaron afuera porque el 64 (`Leaving
   Lashe City Scene`) se alcanza desde el 53, **después de la carrera**, y el 83
   y el 84 (`Dalia at the Factory`, `OutsideFactory`) son **de otro capítulo**,
-  a los que se llega desde el 82. taro no recordaba el porqué; se lo expliqué.
+  a los que se llega desde el 82.
 
 * **Primero el espacio, después los mapas.** El orden: el tinte (si tiene
   sentido arreglarlo), juntar `release` y `test-main`, y en paralelo mirar por
