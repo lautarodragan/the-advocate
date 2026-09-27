@@ -9,10 +9,15 @@
 ; tabla `paquetes` que arma el conversor. Los que no entran no suenan. Con
 ; MSU-1, los temas que tienen pista no: ver `tema_por_msu`.
 ;
-; Las muestras tienen número fijo en todo el cartucho —el SRCN que el stream
-; de la música ya escribe— y el directorio del SPC700 tiene una entrada por
-; cada una. La que no está en la ARAM apunta al silencio. `FAR_ARAM_DE` dice
-; dónde está cada una, o 0.
+; Las muestras de la música tienen número fijo en todo el cartucho —el SRCN
+; que el stream ya escribe— y el directorio del SPC700 tiene una entrada por
+; cada una. **Los efectos no**: comparten los SE_LUGARES del final del
+; directorio, desde SE_PRIMERA, porque dos que nunca están en el mismo paquete
+; pueden ir al mismo lugar —ver `lugares_de_efectos` en snes_music.py—. Las
+; listas de los paquetes los traen por número, `efecto_lugar` dice el lugar de
+; cada uno y `FAR_EFECTO_EN` cuál quedó anotado en cada lugar. La entrada que
+; no está en la ARAM apunta al silencio. `FAR_ARAM_DE` dice dónde está cada
+; una, o 0, y se indexa por entrada del directorio.
 ;
 ; **Las del tema que está sonando no se mueven**: la música sigue durante el
 ; fundido del salto, y pisarle una muestra que está tocando sería ruido. Todo
@@ -54,6 +59,15 @@ otra:
     inx
     cpx #(2 * MUESTRAS_N)
     bcc otra
+    ldx #0
+    lda #$FF
+    bra ninguno_mas
+ninguno:
+    sta f:FAR_EFECTO_EN, x      ; ningún efecto anotado
+    inx
+ninguno_mas:
+    cpx #SE_LUGARES
+    bcc ninguno
     rts
 .endproc
 
@@ -286,13 +300,25 @@ listo:
     jmp aram_byte
 .endproc
 
-; X7 de la muestra A: A * 7, en PAQ_X7 y en X.
+; X7 de la entrada A del directorio: su fila de `muestra_tabla` por 7, en
+; PAQ_X7 y en X. La de una muestra de la música es la entrada misma; la de un
+; lugar de los efectos, la del efecto anotado ahí —`FAR_EFECTO_EN`—, que va
+; detrás de la música: SE_PRIMERA más su número. Esa fila puede pasar de 255,
+; así que la cuenta es de dieciséis bits.
 .proc fila_de_muestra
 .a8
 .i16
     rep #$20
 .a16
     and #$00FF
+    cmp #SE_PRIMERA
+    bcc de_musica
+    tax
+    lda f:FAR_EFECTO_EN - SE_PRIMERA, x
+    and #$00FF
+    clc
+    adc #SE_PRIMERA
+de_musica:
     sta temp
     asl a
     asl a
@@ -697,6 +723,7 @@ otro_q:
     cmp #$FF
     beq salida_q
     phx
+    jsr anotar_efecto           ; del número de efecto a su lugar
     ldy #1
     jsr marcar_muestra
     plx
@@ -788,6 +815,7 @@ otro_efecto:
     cmp #$FF
     beq de_salida
     phx
+    jsr anotar_efecto           ; ya anotado: sólo da el lugar
     jsr colocar_muestra
     plx
     inx
@@ -921,6 +949,54 @@ no:
     tax
     sep #$20
 .a8
+    rts
+.endproc
+
+; El efecto de número A, anotado en su lugar del directorio: vuelve con el
+; lugar en A, que es lo que usan `marcar_muestra` y `colocar_muestra`. Si ahí
+; estaba anotado otro efecto, ése se olvida —su FAR_ARAM_DE a 0—, así que su
+; ARAM queda libre y el nuevo se sube: con `se_callar` ya no suena nada. Se
+; llama con cada efecto del paquete al marcar y otra vez al colocar, y la
+; segunda no cambia nada. No toca Y.
+.proc anotar_efecto
+.a8
+.i16
+    pha
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:efecto_lugar, x
+    rep #$20
+.a16
+    and #$00FF
+    tax                         ; el lugar, desde cero
+    sep #$20
+.a8
+    pla
+    cmp f:FAR_EFECTO_EN, x
+    beq anotado
+    sta f:FAR_EFECTO_EN, x
+    rep #$20
+.a16
+    txa
+    clc
+    adc #SE_PRIMERA
+    asl a
+    tax
+    lda #0
+    sta f:FAR_ARAM_DE, x        ; el que estaba se va
+    txa
+    lsr a                       ; X era la entrada por dos
+    sep #$20
+.a8
+    rts
+anotado:
+    txa
+    clc
+    adc #SE_PRIMERA
     rts
 .endproc
 

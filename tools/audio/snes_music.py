@@ -305,8 +305,10 @@ SE_ENTEROS_PAGADOS |= {
 }
 
 # Los alias por mapa: (nombre en RM2k, id del mapa) -> la muestra que suena
-# ahí. Los pone `_compilar`, en tools/port/eventos.py. Cada uno es una
-# entrada más del directorio, que está lleno: le cuesta una copia a `copias`.
+# ahí. Los pone `_compilar`, en tools/port/eventos.py. Cada uno es un efecto
+# más, pero no una entrada más del directorio: comparte lugar con los de los
+# otros paquetes —ver `lugares_de_efectos`—, así que sólo cuesta una si su
+# paquete pasa a ser el más cargado.
 SE_DEL_MAPA = {
     ("Thunder9", 1): "Thunder9@entero",
 }
@@ -758,15 +760,19 @@ def restricciones_de(asignacion, grupos, libre):
 
 
 # El SRCN es de un byte y las listas de muestras de la ROM se cierran con $FF,
-# así que el directorio llega a 255 entradas: la música y los efectos juntos.
+# así que el directorio llega a 255 entradas: las muestras de la música y los
+# lugares de los efectos —ver `lugares_de_efectos`— juntos.
 DIRECTORIO_MAX = 255
+# Cuántos lugares del directorio pueden ser de los efectos: la ROM anota qué
+# efecto hay en cada uno en `FAR_EFECTO_EN`, que tiene ese tamaño.
+SE_LUGARES_MAX = 48
 # Una copia no se hace por una muestra que ya suena casi a su tasa: una
 # entrada del directorio vale más que eso.
 COPIA_HASTA = 0.9
 
 
-def copias(claves_de, grupos, efectos, tope=DIRECTORIO_MAX,
-           hasta=COPIA_HASTA):
+def copias(claves_de, grupos, efectos, de_siempre, reales=None,
+           tope=DIRECTORIO_MAX, hasta=COPIA_HASTA):
     """[{clave: muestra}], uno por tema: con qué muestra toca cada tema cada
     una de sus claves. Casi siempre la clave misma —una muestra por programa
     y por golpe en todo el cartucho—, salvo **las copias**.
@@ -775,44 +781,79 @@ def copias(claves_de, grupos, efectos, tope=DIRECTORIO_MAX,
     tasa la fija el peor, y lo paga también el tema que nunca suena ahí:
     hasta el 2026-09-26, los 43 KB de efectos del mapa 3 dejaban la batería
     de **todos** los temas a 10 kHz y el oboe a 7. Una copia es la misma
-    clave como otra muestra, sólo para los temas del grupo que la limita:
-    ellos quedan igual, y los de afuera dejan de pagar un paquete donde no
-    están. Es la opción B del paso 6 de
-    `workflow/tasks/testing/la-calidad-de-la-musica.md`, acotada: B entera
-    —una copia por tema— serían unas 370 entradas del directorio contra 255.
+    clave como otra muestra, sólo para los temas de un grupo: ellos quedan
+    igual, y los de afuera dejan de pagar un paquete donde no están. Es la
+    opción B del paso 6 de `workflow/tasks/testing/la-calidad-de-la-musica.md`,
+    acotada: B entera —una copia por tema— serían unas 370 entradas del
+    directorio contra 255.
 
-    Se hacen de a una, **la peor primero**: la muestra de fracción más baja
-    de su tamaño nativo que tenga algún tema fuera del grupo que la limita.
-    Después se vuelve a repartir, porque la copia cambia lo que ocupa cada
-    grupo, y se sigue hasta llenar el directorio o hasta que no quede una
-    por debajo de `hasta`. `efectos` es cuántas entradas del directorio
-    ocupan los efectos.
+    Se hacen en dos tandas. `efectos` es cuántas entradas del directorio
+    ocupan hoy los efectos, y `de_siempre` cuántas ocupaban cuando cada uno
+    tenía la suya —todos los del cartucho—.
+
+    **Las de siempre**, de a una y **la peor primero**: la muestra de
+    fracción más baja de su tamaño nativo que tenga algún tema fuera del
+    grupo que la limita, copiada para los de adentro. Después se vuelve a
+    repartir, porque la copia cambia lo que ocupa cada grupo, y se sigue
+    hasta llenar el directorio como era —con `de_siempre` entradas para los
+    efectos— o hasta que no quede una por debajo de `hasta`. Son las que taro
+    escuchó y aprobó el 2026-09-26, con lo que cada una le bajaba a otros:
+    lo que se libera de un paquete compite en los demás.
+
+    **Las de las entradas que liberaron los efectos**, del mismo día: sólo
+    las que **no le bajan la tasa a ningún par** (tema, clave) respecto de
+    cómo quedaron las de siempre, y de ésas, la que más kHz suma entre todos.
+    La primera tanda, al subir una muestra la hace competir con las demás de
+    sus grupos, y hacerlas de a una la peor primero con las entradas libres
+    le bajaba 56 pares a otros para subir 126: ver
+    `workflow/tasks/*/el-directorio-de-los-efectos.md`. Acá se prueban todas
+    las copias posibles —cada clave para los temas de cada grupo donde está—
+    contra el piso, y se sigue hasta que ninguna suma o se llena el
+    directorio. Esta tanda reparte con el directorio lleno, aunque no se
+    llene: así ninguna copia le cuesta a nadie sus cuatro bytes, y el
+    directorio que quede más corto sólo puede dejar más lugar. Y reparte con
+    `reales`, los mismos grupos con lo que sus efectos ocupan de verdad: los
+    `SE_ENTEROS` que no paga la música van en lo que ella deja libre, y una
+    copia que sube a su tasa llenaría justo eso.
     """
+    reales = grupos if reales is None else reales
     asignacion = [{k: k for k in ks} for ks in claves_de]
-    nativas = {}
+    nativas, tasas = {}, {}
 
     def nativa(clave):
         if clave not in nativas:
-            nativas[clave] = len(_muestra(clave, NATIVA).data)
+            voz = _muestra(clave, NATIVA)
+            nativas[clave], tasas[clave] = len(voz.data), voz.rate / 1000.0
         return nativas[clave]
 
+    def usan(clave):
+        return [t for t, a in enumerate(asignacion) if clave in a.values()]
+
+    def copiar(asig, clave, copia, adentro):
+        nueva = [dict(a) for a in asig]
+        for t in adentro:
+            for base, suya in nueva[t].items():
+                if suya == clave:
+                    nueva[t][base] = copia
+        return nueva
+
+    temas_de = {g.nombre: set(g.temas) for g in grupos}
     while True:
         claves = {k for a in asignacion for k in a.values()}
-        if len(claves) + efectos >= tope:
+        if len(claves) + de_siempre >= tope:
             break
         rs = restricciones_de(asignacion, grupos,
-                              libre_para(len(claves), efectos))
-        presupuesto, limita = repartir(claves, rs)
-        temas_de = {g.nombre: set(g.temas) for g in grupos}
+                              libre_para(len(claves), de_siempre))
+        presupuesto, limita = repartir(
+            claves, rs, nativas={k: nativa(k) for k in claves})
         peor = None
         for clave, nombre in sorted(limita.items()):
             fraccion = presupuesto[clave] / float(nativa(clave))
             if fraccion >= hasta:
                 continue
-            usan = [t for t, a in enumerate(asignacion)
-                    if clave in a.values()]
-            adentro = [t for t in usan if t in temas_de[nombre]]
-            afuera = len(usan) - len(adentro)
+            suyos = usan(clave)
+            adentro = [t for t in suyos if t in temas_de[nombre]]
+            afuera = len(suyos) - len(adentro)
             if not adentro or not afuera:
                 continue
             candidato = (round(fraccion, 3), -afuera, clave, nombre, adentro)
@@ -821,15 +862,102 @@ def copias(claves_de, grupos, efectos, tope=DIRECTORIO_MAX,
         if peor is None:
             break
         _f, _a, clave, nombre, adentro = peor
-        copia = clave + ("@" + nombre,)
-        for t in adentro:
-            for base, suya in asignacion[t].items():
-                if suya == clave:
-                    asignacion[t][base] = copia
+        asignacion = copiar(asignacion, clave, clave + ("@" + nombre,),
+                            adentro)
+
+    libre = libre_para(tope - efectos, efectos)
+
+    def khz(asig):
+        claves = {k for a in asig for k in a.values()}
+        presupuesto, _l = repartir(
+            claves, restricciones_de(asig, reales, libre),
+            nativas={k: nativa(k) for k in claves})
+        return claves, presupuesto, [
+            {b: presupuesto[s] / float(nativa(s)) * tasas[s]
+             for b, s in a.items()} for a in asig]
+
+    claves, presupuesto, piso = khz(asignacion)
+    actual = piso
+    # Probarlas todas en cada vuelta son miles de repartos: se prueban en el
+    # orden de lo que sumaban la última vez que se probaron —las nuevas
+    # primero—, y se toma la primera que, probada de nuevo, suma al menos lo
+    # que sumaba cualquiera de las que siguen. Que no baje a nadie se mira
+    # siempre en el momento.
+    cota = {}
+    while len(claves) + efectos < tope:
+        candidatas = []
+        for clave in sorted(claves):
+            if presupuesto[clave] >= hasta * nativa(clave):
+                continue
+            suyos = usan(clave)
+            for g in grupos:
+                adentro = tuple(t for t in suyos if t in temas_de[g.nombre])
+                copia = clave + ("@" + g.nombre,)
+                if (not adentro or len(adentro) == len(suyos)
+                        or copia in claves
+                        or any(c[0] == clave and c[2] == adentro
+                               for c in candidatas)):
+                    continue
+                candidatas.append((clave, copia, adentro))
+        candidatas.sort(key=lambda c: -cota.get(c, float("inf")))
+        mejor = None
+        for i, candidata in enumerate(candidatas):
+            if mejor is not None and mejor[0] >= cota.get(candidata,
+                                                          float("inf")):
+                break
+            clave, copia, adentro = candidata
+            nueva = copiar(asignacion, clave, copia, adentro)
+            claves_n, presupuesto_n, suben = khz(nueva)
+            gana = sum(suben[t][b] - actual[t][b]
+                       for t in range(len(suben)) for b in suben[t])
+            if any(suben[t][b] < piso[t][b] - 1e-6
+                   for t in range(len(suben)) for b in suben[t]):
+                gana = 0.0
+            cota[candidata] = gana
+            if gana > 0.01 and (mejor is None or gana > mejor[0]):
+                mejor = (gana, nueva, claves_n, presupuesto_n, suben)
+        if mejor is None:
+            break
+        _g, asignacion, claves, presupuesto, actual = mejor
     return asignacion
 
 
-def repartir(claves, restricciones, margen=None):
+def lugares_de_efectos(paquetes, nombres):
+    """{efecto: lugar}: en cuál de las entradas del directorio que son de los
+    efectos va cada uno. `paquetes` son los efectos de cada paquete y
+    `nombres` todos, en el orden del cartucho.
+
+    Hasta el 2026-09-26 cada efecto tenía su entrada, y con 92 en el
+    cartucho y la música al lado el directorio estaba lleno: `copias` no
+    tenía dónde hacer más. Pero a la ARAM va un paquete por vez, y ninguno
+    trae más de una veintena de efectos, así que dos efectos que nunca están
+    en el mismo paquete pueden compartir entrada. Es colorear un grafo —dos
+    efectos se tocan si comparten paquete—, y con DSATUR alcanzan tantos
+    lugares como efectos tiene el paquete más cargado.
+
+    La ROM no puede saber de la entrada qué efecto hay: lo anota al subirlo
+    (`FAR_EFECTO_EN`, en rom/src/paquete_de_audio.s).
+    """
+    toca = {n: set() for n in nombres}
+    for suyos in paquetes:
+        suyos = [n for n in suyos if n in toca]
+        for n in suyos:
+            toca[n] |= set(suyos) - {n}
+    orden = {n: i for i, n in enumerate(nombres)}
+    lugar = {}
+    while len(lugar) < len(toca):
+        # El más trabado primero —el que tiene más lugares distintos ya
+        # tomados alrededor—, y entre ésos el de más vecinos; si empatan, el
+        # que va antes en el cartucho, para que salga siempre igual.
+        n = max((n for n in toca if n not in lugar),
+                key=lambda n: (len({lugar[v] for v in toca[n] if v in lugar}),
+                               len(toca[n]), -orden[n]))
+        tomados = {lugar[v] for v in toca[n] if v in lugar}
+        lugar[n] = min(set(range(len(tomados) + 1)) - tomados)
+    return lugar
+
+
+def repartir(claves, restricciones, margen=None, nativas=None):
     """({clave: presupuesto}, {clave: restricción que la limitó}): cuánto le
     toca a cada muestra para que cada restricción entre en lo suyo menos
     `margen`.
@@ -842,28 +970,42 @@ def repartir(claves, restricciones, margen=None):
     ninguna restricción que se llene va entera.
     """
     margen = ARAM_MARGEN if margen is None else margen
-    nativas = {k: len(_muestra(k, NATIVA).data) for k in claves}
+    if nativas is None:
+        nativas = {k: len(_muestra(k, NATIVA).data) for k in claves}
     fraccion, limita = {}, {}
     libres = set(claves)
     activas = [r for r in restricciones if r.claves & libres]
-    while libres and activas:
+    # Lo de cada restricción se lleva al día a medida que se congelan
+    # muestras, en vez de volver a sumarlo en cada vuelta: `copias` reparte
+    # miles de veces por conversión, y así cada reparto cuesta una fracción.
+    suyas = [set(r.claves) & libres for r in activas]
+    suma = [sum(nativas[k] for k in s) for s in suyas]
+    fijo = [0.0] * len(activas)
+    donde = collections.defaultdict(list)
+    for i, s in enumerate(suyas):
+        for k in s:
+            donde[k].append(i)
+    vivas = list(range(len(activas)))
+    while libres and vivas:
         peor, cual = None, None
-        for r in activas:
-            suyas = [k for k in r.claves if k in libres]
-            if not suyas:
+        for i in vivas:
+            if not suyas[i]:
                 continue
-            fijo = sum(fraccion[k] * nativas[k] for k in r.claves
-                       if k in fraccion)
-            f = (r.libre - margen - fijo) / sum(nativas[k] for k in suyas)
+            f = (activas[i].libre - margen - fijo[i]) / suma[i]
             if peor is None or f < peor:
-                peor, cual = f, r
+                peor, cual = f, i
         if peor is None or peor >= 1:
             break
-        for k in cual.claves & libres:
-            fraccion[k] = max(0.0, peor)
-            limita[k] = cual.nombre
-        libres -= cual.claves
-        activas.remove(cual)
+        nivel = max(0.0, peor)
+        for k in list(suyas[cual]):
+            fraccion[k] = nivel
+            limita[k] = activas[cual].nombre
+            libres.discard(k)
+            for j in donde[k]:
+                fijo[j] += nivel * nativas[k]
+                suma[j] -= nativas[k]
+                suyas[j].discard(k)
+        vivas.remove(cual)
     return ({k: max(PISO, int(fraccion.get(k, 1.0) * nativas[k]))
              for k in claves}, limita)
 
@@ -1888,23 +2030,32 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     # salida solo —lo sube su `PlayBGM`, callando lo demás: ver
     # `extra_de_salida` en rom/src/paquete_de_audio.s—; y cada paquete con
     # el tema que puede venir sonando, sin sus efectos.
-    grupos, temas_de = [], {}
+    # Y los mismos con lo que ocupan de verdad los efectos, que es con lo
+    # que reparten las copias que no le bajan a nadie: ver `copias`.
+    grupos, reales, temas_de = [], [], {}
     for paquete in paquetes:
         nombre, suyos, suyas = paquete[:3]
         salida = paquete[3] if len(paquete) > 3 else ()
         temas_de[nombre] = list(suyos)
-        ocupan = sum(presupuestado[e] for e in set(suyas)
-                     if e in efectos_hechos)
+        suyas = set(suyas) & set(efectos_hechos)
+        ocupan = sum(presupuestado[e] for e in suyas)
         grupos.append(Grupo(str(nombre), tuple(suyos), ocupan))
+        reales.append(Grupo(str(nombre), tuple(suyos), sum(
+            len(efectos_hechos[e].data) for e in suyas)))
         for t in salida:
             grupos.append(Grupo("%s>%s" % (nombre, nombres[t]), (t,), 0))
+            reales.append(grupos[-1])
     for nombre, heredado in herencia:
         grupos.append(Grupo("%s+%s" % (nombre, nombres[heredado]),
                             tuple(temas_de[nombre]) + (heredado,), 0))
-    asignacion = copias(claves_de, grupos, len(lista))
+        reales.append(grupos[-1])
+    lugar = lugares_de_efectos([set(p[2]) for p in paquetes],
+                               [e.name for e in lista])
+    lugares = max(lugar.values()) + 1 if lugar else 0
+    asignacion = copias(claves_de, grupos, lugares, len(lista), reales)
     todas = {k for a in asignacion for k in a.values()}
-    libre = libre_para(len(todas), len(lista))
-    banco = Banco(todas, restricciones_de(asignacion, grupos, libre))
+    libre = libre_para(len(todas), lugares)
+    banco = Banco(todas, restricciones_de(asignacion, reales, libre))
     banco.libre = libre
     banco.asignacion = asignacion
     _enteros_entran(banco, paquetes, herencia, efectos_hechos, presupuestado,
@@ -1919,10 +2070,15 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     # Y la pista de MSU-1 de cada uno: ver `pista_msu`.
     for tema in temas:
         tema["pista"] = pista_msu(tema["nombre"], game_dir)
-    # Los efectos van detrás del banco en el mismo directorio: su `V_SRCN` es
-    # el lugar que les toca después de las muestras de la música.
-    banco.efectos = {e.name: (len(banco.voces) + i, e)
-                     for i, e in enumerate(lista)}
+    # Los efectos van detrás del banco en el mismo directorio, en sus
+    # `lugares` entradas: su `V_SRCN` es el lugar que le tocó a cada uno
+    # después de las muestras de la música. Y cada uno tiene además su número
+    # de efecto, que es el que llevan las listas de los paquetes, y su fila
+    # de `muestra_tabla` detrás de las de la música: ver `lugares_de_efectos`.
+    banco.lugares = lugares
+    banco.efectos = {e.name: (len(banco.voces) + lugar[e.name], e)
+                     for e in lista}
+    banco.efecto_id = {e.name: i for i, e in enumerate(lista)}
     return (driver, list(banco.voces) + lista, temas, banco)
 
 
@@ -2021,18 +2177,21 @@ def notas_que_suenan(leido, banco):
 
 def tabla_de_sonidos(sonidos, banco):
     """Una fila por entrada de `Temas.sonidos`: la muestra —$FF si no entró—,
-    la altura, el volumen de cada lado y cuántos cuadros dura."""
+    la altura, el volumen de cada lado, cuántos cuadros dura y el número del
+    efecto, que es lo que dice cuál de los que comparten la muestra es: ver
+    `lugares_de_efectos`."""
     filas = []
     efectos = getattr(banco, "efectos", {}) if banco is not None else {}
     for nombre, volumen, tempo, balance in sonidos:
         hecho = efectos.get(nombre)
         if hecho is None:
-            filas.append((0xFF, 0, 0, 0, 0))
+            filas.append((0xFF, 0, 0, 0, 0, 0xFF))
             continue
         srcn, efecto = hecho
         izquierda, derecha = volumen_de_efecto(volumen, balance)
         filas.append((srcn, altura_de_efecto(efecto, tempo), izquierda,
-                      derecha, cuadros_de_efecto(efecto, tempo)))
+                      derecha, cuadros_de_efecto(efecto, tempo),
+                      banco.efecto_id[nombre]))
     return filas
 
 
@@ -2071,23 +2230,27 @@ RAM_LEJANA = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))), "rom", "src", "ram_lejana.s")
 
 
-def cuadros_del_arranque(driver, voces, temas, paquete, descomprimir=0.0):
+def cuadros_del_arranque(driver, voces, temas, paquete, descomprimir=0.0,
+                         directorio=None):
     """Cuánto tarda el arranque, por lo alto: el mapa, el driver y el
     directorio por el IPL, y las muestras del paquete del mapa de arranque
     —(índices de temas, índices de muestras de efectos, temas de salida), el
     de `emit`—. Los de salida cuentan: se suben si hay lugar, y con la ARAM
     vacía lo hay. `descomprimir` son los cuadros que se lleva descomprimir los
     bloques LZ2 del mapa de arranque, que `CUADROS_DEL_MAPA` no cuenta: ver
-    `cuadros_de_descomprimir` en snes_convert.py.
+    `cuadros_de_descomprimir` en snes_convert.py. `directorio` es (muestras
+    de la música, lugares de los efectos), el de `emit`: los efectos van por
+    número, con su fila detrás de las de la música.
     Devuelve (cuadros, bytes del paquete)."""
     suyos, efectos = paquete[:2]
     salida = paquete[2] if len(paquete) > 2 else ()
-    indices = set(efectos)
+    musica_n, lugares = directorio or (len(voces), 0)
+    indices = {musica_n + e for e in efectos}
     for t in list(suyos) + list(salida):
         if temas[t]["sonidos"]:
             indices |= set(muestras_del_tema(temas[t]))
     del_paquete = sum(len(voces[i].data) for i in indices)
-    ipl = len(driver) + 4 * max(1, len(voces)) + len(SILENCIO)
+    ipl = len(driver) + 4 * max(1, musica_n + lugares) + len(SILENCIO)
     return (CUADROS_DEL_MAPA + descomprimir
             + ipl * CUADROS_POR_KB_IPL / 1024.0
             + del_paquete * CUADROS_POR_KB_PAQUETE / 1024.0, del_paquete)
@@ -2102,7 +2265,8 @@ def boot_cuadros(ruta=RAM_LEJANA):
 
 
 def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
-         sonidos=(), paquetes=(), tema_de_mapa=()):
+         sonidos=(), paquetes=(), tema_de_mapa=(), directorio=None,
+         efecto_lugar=()):
     """El .inc que arma el ensamblador junto con main.s.
 
     `temas` son los de `build_varios`, en el orden de `Temas`: el bytecode ya
@@ -2118,6 +2282,12 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
 
     `tema_de_mapa` es el tema que prende cada mapa al entrar, en el mismo
     orden, o $FF si entrar no cambia lo que suena. Ver `mapa_tema_callar`.
+
+    `directorio` es (muestras de la música, lugares de los efectos): las
+    entradas del directorio son ésas y no una por voz, porque los efectos
+    comparten lugares —ver `lugares_de_efectos`—; `voces` trae detrás de la
+    música todos los efectos, uno por número, y `efecto_lugar` es el
+    `V_SRCN` de cada uno. Las listas de efectos de `paquetes` van por número.
     """
     def block(label, data, bloque=False):
         # Sin `.bloque` salvo en las muestras: eso es relleno para que un DMA
@@ -2184,17 +2354,35 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
                                 bloque=True))
     # Y los efectos de sonido: siete bytes por entrada de `Temas.sonidos`.
     # Fuera del banco 0: `op_sound` los lee con `lda f:sonido_tabla, x`.
-    filas = list(sonidos) or [(0xFF, 0, 0, 0, 0)]
+    filas = list(sonidos) or [(0xFF, 0, 0, 0, 0, 0xFF)]
     tabla_se = "sonido_tabla:\n" + "\n".join(
         "    .byte $%02X, <%d, >%d, %d, %d, <%d, >%d" % (
             srcn, altura, altura, izquierda, derecha, cuadros, cuadros)
-        for srcn, altura, izquierda, derecha, cuadros in filas)
+        for srcn, altura, izquierda, derecha, cuadros, _e in filas)
+    # Y qué efecto es cada fila, aparte para no tocar las siete columnas que
+    # recorren `sonido_tocar` y efectos_con_msu.s: la muestra de la fila es un
+    # lugar que comparten varios efectos, y `sonido_tocar` pregunta con esto
+    # si el que está en la ARAM es el suyo. Y el lugar de cada efecto, que es
+    # lo que usa el paquete para subirlo.
+    tabla_se += "\nsonido_efecto:\n    .byte " + ", ".join(
+        "$%02X" % fila[5] for fila in filas)
+    tabla_se += "\nefecto_lugar:\n    .byte " + ", ".join(
+        "$%02X" % l for l in (list(efecto_lugar) or [0xFF]))
 
     # El directorio del SPC700, con todas en el silencio, y el silencio
     # detrás. Es lo único que sube `spc_upload` además del driver.
-    n = max(1, len(voces))
-    if n > 255:
-        raise SystemExit("hay %d muestras y el SRCN es de un byte" % n)
+    musica_n, lugares = directorio or (len(voces), 0)
+    n = max(1, musica_n + lugares)
+    if n > DIRECTORIO_MAX:
+        raise SystemExit("el directorio tiene %d entradas y el SRCN es de un "
+                         "byte" % n)
+    if len(voces) - musica_n > 0xFF:
+        raise SystemExit("hay %d efectos y su número es de un byte"
+                         % (len(voces) - musica_n))
+    if lugares > SE_LUGARES_MAX:
+        raise SystemExit("los efectos piden %d lugares del directorio y la ROM "
+                         "anota %d: ver FAR_EFECTO_EN" % (lugares,
+                                                          SE_LUGARES_MAX))
     silencio = SAMPLES_ADDR + 4 * n
     datos = silencio + len(SILENCIO)
     samples = (silencio.to_bytes(2, "little") * 2) * n + SILENCIO
@@ -2258,7 +2446,15 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
             "; Las muestras van al SPC700 de a paquetes: ver `paquete_cargar`.\n"
             "; El directorio está en SPC_SAMPLES_ADDR, el silencio detrás, y\n"
             "; las muestras se acomodan entre ARAM_DATOS y ARAM_FIN.\n"
+            "; MUESTRAS_N son las entradas del directorio: las de la música,\n"
+            "; y desde SE_PRIMERA los SE_LUGARES que comparten los efectos.\n"
+            "; Cada efecto tiene su número —EFECTOS_N en total, que es lo que\n"
+            "; llevan las listas de los paquetes— y su fila de `muestra_tabla`\n"
+            "; en SE_PRIMERA más ese número. Ver `lugares_de_efectos`.\n"
             "MUESTRAS_N       = %d\n"
+            "SE_PRIMERA       = %d\n"
+            "SE_LUGARES       = %d\n"
+            "EFECTOS_N        = %d\n"
             "ARAM_SILENCIO    = $%04X\n"
             "ARAM_DATOS       = $%04X\n"
             "ARAM_FIN         = $%04X\n"
@@ -2283,7 +2479,8 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
                sdsp.MASTER, sdsp.MVOL_L, sdsp.MVOL_R,
                DRIVER_ADDR, len(driver),
                SAMPLES_ADDR, len(samples),
-               n, silencio, datos, ARAM_FIN, len(paquetes),
+               n, musica_n, lugares, len(voces) - musica_n,
+               silencio, datos, ARAM_FIN, len(paquetes),
                SE_VOZ, 1 << SE_VOZ, SE_VOZ * 16, 1 << SE_VOZ2, SE_VOZ2 * 16,
                len(list(sonidos)),
                tabla, tabla_se, tabla_mapa_tema,

@@ -7305,9 +7305,15 @@ def main():
              # de los temas del cartucho.
              "pista": t["pista"]} for t in hechos]},
             handle, indent=1)
+    # Los efectos de cada paquete van por número y no por SRCN: varios
+    # comparten el lugar del directorio. Ver `snes_music.lugares_de_efectos`.
     efectos = getattr(banco, "efectos", {})
-    paquetes = [(suyos, [efectos[n][0] for n in suyas if n in efectos], salida)
+    efecto_id = getattr(banco, "efecto_id", {})
+    paquetes = [(suyos, [efecto_id[n] for n in suyas if n in efectos], salida)
                 for suyos, suyas, salida in paquetes]
+    directorio = (len(banco.voces), getattr(banco, "lugares", 0))
+    efecto_lugar = [srcn - directorio[0] for srcn, _e in sorted(
+        efectos.values(), key=lambda v: efecto_id[v[1].name])]
     if pide:
         assert len(paquetes) == len(mapas) + 1, (
             "el paquete de la pelea tiene que quedar en el índice que emitió "
@@ -7321,7 +7327,8 @@ def main():
     # `BOOT_CUADROS` en rom/src/ram_lejana.s.
     cuadros, del_paquete = snes_music.cuadros_del_arranque(
         driver, muestras, hechos, paquetes[args.inicial],
-        cuadros_de_descomprimir(mapas[args.inicial], comprimidos))
+        cuadros_de_descomprimir(mapas[args.inicial], comprimidos),
+        directorio)
     tope = snes_music.boot_cuadros()
     if cuadros > tope:
         raise SystemExit(
@@ -7334,7 +7341,7 @@ def main():
           "los %d cuadros de BOOT_CUADROS" % (del_paquete, cuadros, tope))
     snes_music.emit(musica, hechos, driver, muestras, arranque, tema_titulo,
                     snes_music.tabla_de_sonidos(temas.sonidos, banco),
-                    paquetes, tema_de_mapa)
+                    paquetes, tema_de_mapa, directorio, efecto_lugar)
     # El `.msu`: los fondos de calidad y los efectos de calidad, para leerlos
     # por el MSU-1 cuando está. Se escribe siempre, aunque el cartucho no
     # lleve ni fondos ni efectos, porque es también el archivo que enciende el
@@ -7427,16 +7434,19 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
     Van primero los fondos —cada uno sus tiles y sus colores, ver
     `msu_datos.fondos`— y detrás los efectos de calidad de cada paquete, en
     el orden de la tabla de paquetes y cada paquete con los suyos en orden de
-    SRCN: es el orden en que `subir_colocadas` los sube, así que la ROM los lee
+    lugar en el directorio —su SRCN—: es el orden en que `subir_colocadas`
+    los sube, así que la ROM los lee
     de corrido, con una sola búsqueda por paquete. Un efecto que está en dos
     paquetes va dos veces aunque sea a la misma tasa: una búsqueda le cuesta
     a Mednafen uno o dos cuadros, y el archivo no tiene tope.
 
     `por_nombre` son los paquetes de la ROM como los ve `build_varios` —con
     los nombres de sus efectos— y `paquetes` los mismos como los emite `emit`
-    —con sus SRCN—, en el mismo orden. Ver tools/audio/efectos_msu.py.
+    —con sus números de efecto—, en el mismo orden. Ver
+    tools/audio/efectos_msu.py.
     """
     efectos = getattr(banco, "efectos", {})
+    de_numero = {i: n for n, i in getattr(banco, "efecto_id", {}).items()}
     # Lo que la música ocupa con MSU-1 en cada paquete: sólo los temas sin
     # pista, que `tema_por_msu` no saltea.
     pesa = {}
@@ -7458,16 +7468,16 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
         lambda par: efectos_msu.armar(par[0], par[1], game_dir), unicas)))
 
     entradas = [parte for info in fondos for parte in fondo_bytes(info)]
-    # Qué entrada es cada efecto de cada paquete, en orden de SRCN.
+    # Qué entrada es cada efecto de cada paquete, en orden de SRCN: dos del
+    # mismo paquete nunca comparten lugar.
     del_paquete = []
-    for (nombre, _t, _e, *_s), (_temas, srcns, _salida) in zip(por_nombre,
-                                                               paquetes):
+    for (nombre, _t, _e, *_s), (_temas, numeros, _salida) in zip(por_nombre,
+                                                                 paquetes):
         suyas = tasas.get(str(nombre), {})
-        de_srcn = {efectos[e][0]: e for e in suyas}
         lista = []
-        for srcn in sorted(set(srcns)):
-            e = de_srcn[srcn]
-            lista.append((srcn, len(entradas), hechas[e, suyas[e]]))
+        for e in sorted({de_numero[i] for i in numeros},
+                        key=lambda e: efectos[e][0]):
+            lista.append((e, len(entradas), hechas[e, suyas[e]]))
             entradas.append(hechas[e, suyas[e]].data)
         del_paquete.append(lista)
     archivo, donde = msu_datos.armar(entradas)
@@ -7484,12 +7494,12 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
     # dónde vuelve, que es siempre al principio porque van enteros.
     filas, desde_filas = bytearray(), bytearray()
     alturas, desde_alturas = bytearray(), bytearray()
-    for (nombre, *_r), (_temas, srcns, _salida), lista in zip(
+    for (nombre, *_r), (_temas, numeros, _salida), lista in zip(
             por_nombre, paquetes, del_paquete):
         desde_filas += (len(filas)).to_bytes(2, "little")
-        de_srcn = {srcn: (donde[k], v) for srcn, k, v in lista}
-        for srcn in srcns:
-            pos, version = de_srcn[srcn]
+        de_efecto = {e: (donde[k], v) for e, k, v in lista}
+        for i in numeros:
+            pos, version = de_efecto[de_numero[i]]
             filas += (pos.to_bytes(4, "little")
                       + len(version.data).to_bytes(2, "little")
                       + bytes(2))
@@ -7514,14 +7524,12 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
     with open(musica, "a") as handle:
         handle.write(
             "\n; El `.msu`: ver `escribir_msu` en tools/port/snes_convert.py.\n"
-            "; El primer SRCN que es de un efecto de sonido.\n"
-            "SE_PRIMERA = %d\n"
             "; Cuántas entradas del .msu son de fondos —dos por fondo, las\n"
             "; primeras— y cuántas de efectos, detrás: para las pruebas.\n"
             "MSU_FONDOS_N = %d\n"
             "MSU_EFECTOS_N = %d\n"
             '.segment "RODATA"\n%s\n'
-            % (len(banco.voces) if banco is not None else 0, len(fondos),
+            % (len(fondos),
                sum(len(lista) for lista in del_paquete),
                "\n".join(bloque(etiqueta, datos or bytes(2)) for etiqueta, datos
                          in (("msu_datos_firma", firma),

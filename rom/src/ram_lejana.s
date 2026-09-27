@@ -679,6 +679,18 @@ MSU_SE_SIG  = $7E78CC           ; tres bytes: dónde quedó el flujo del `.msu`
 EX_FIN      = $7E78CF
 .assert EX_FIN <= $7E78D0, error, "los efectos con MSU-1 se salen de su lugar"
 
+; --- qué efecto hay en cada lugar del directorio -----------------------------
+;
+; $7E78D0 a $7E78FF, reservado el 2026-09-26: un byte por cada uno de los
+; SE_LUGARES del directorio del SPC700 que comparten los efectos, con el número
+; del efecto que se anotó ahí, o $FF. Varios efectos van al mismo lugar —los que
+; nunca están en el mismo paquete: ver `lugares_de_efectos` en
+; tools/audio/snes_music.py— y el directorio no dice cuál está. Ver
+; `anotar_efecto` en paquete_de_audio.s. Lo pone en $FF `aram_limpiar`; no
+; viaja en la partida.
+FAR_EFECTO_EN = $7E78D0
+.assert FAR_EFECTO_EN + SE_LUGARES <= $7E7900, error, "los lugares de los efectos no entran en FAR_EFECTO_EN: ver SE_LUGARES_MAX en snes_music.py"
+
 ; --- la transición de la pelea ----------------------------------------------
 ;
 ; $7E7840 a $7E784F, reservado el 2026-09-26. Ver `fundido_de_pelea.s`.

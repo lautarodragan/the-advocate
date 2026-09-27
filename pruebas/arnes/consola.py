@@ -48,6 +48,13 @@ RETRASO_DE_PANTALLA = 1
 # Los bytes de WRAM de la consola.
 WRAM = 0x20000
 
+# Cómo cuentan `muestras_en_la_aram` y `muestras_del_paquete` a un efecto de
+# sonido: este número más el del efecto. Una entrada del directorio no alcanza
+# para nombrarlo, porque varios efectos comparten lugar —ver
+# `lugares_de_efectos` en snes_music.py—, y ninguna entrada llega a 256, así
+# que no se confunde con una muestra de la música.
+EFECTO = 0x100
+
 # La marca de una ranura con partida. **No sale de la tabla de símbolos porque
 # la ROM no la tiene como símbolo**: `ranura_llena` la compara con cuatro
 # `cmp #$41`... inmediatos, y `guardar_partida` la escribe igual. Lo que sí
@@ -871,12 +878,20 @@ class Partida:
         `colocar_muestra`. Un número que **no** está acá es una muestra cuya
         entrada del directorio del SPC700 apunta al silencio, o sea una nota
         que no suena.
+
+        Las entradas desde `SE_PRIMERA` son lugares que comparten los
+        efectos, así que la entrada sola no dice cuál está: de ésas sale el
+        efecto anotado en `FAR_EFECTO_EN`, como `EFECTO + su número`, que es
+        como los cuenta `muestras_del_paquete`.
         """
-        n = self.simbolos["MUESTRAS_N"]
-        crudo = self.consola.ram(en_la_wram(self.simbolos["FAR_ARAM_DE"]),
-                                 2 * n)
-        return {i for i in range(n)
-                if crudo[2 * i] | (crudo[2 * i + 1] << 8)}
+        s = self.simbolos
+        n = s["MUESTRAS_N"]
+        crudo = self.consola.ram(en_la_wram(s["FAR_ARAM_DE"]), 2 * n)
+        anotados = self.consola.ram(en_la_wram(s["FAR_EFECTO_EN"]),
+                                    max(1, s["SE_LUGARES"]))
+        return {i if i < s["SE_PRIMERA"]
+                else EFECTO + anotados[i - s["SE_PRIMERA"]]
+                for i in range(n) if crudo[2 * i] | (crudo[2 * i + 1] << 8)}
 
     def muestras_del_tema(self, indice):
         """Qué muestras necesita el tema, leídas de `tema_muestras` **en el
@@ -912,8 +927,10 @@ class Partida:
         `paquetes` en el cartucho, que es lo que recorre `paquete_cargar_ya`:
         un índice de desplazamientos de dos bytes y detrás, por paquete, tres
         listas cerradas con $FF. La tercera, los temas de salida, la da
-        `temas_de_salida`: ésos no tienen por qué estar."""
-        return self._listas_del_paquete(indice)[:2]
+        `temas_de_salida`: ésos no tienen por qué estar. Los efectos van
+        como `EFECTO + su número`: ver `muestras_en_la_aram`."""
+        temas, efectos, _salida = self._listas_del_paquete(indice)
+        return temas, [EFECTO + e for e in efectos]
 
     def temas_de_salida(self, indice):
         """Los temas de salida del paquete `indice`: los que el mapa prende
