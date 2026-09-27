@@ -31,6 +31,7 @@ from port import msu_datos
 import tanda
 from consola import Partida, en_la_rom, en_la_wram
 from ensamblado import cartuchos
+from test_msu import pistas_de
 
 # Por debajo de esto un pico es ruido de redondeo, no un efecto que suena.
 AUDIBLE = 1000
@@ -48,7 +49,7 @@ def _partida(tmp_path, nombre, caso, msu):
     otra = os.path.splitext(sfc)[0]
     with open(otra + ".msu", "wb") as archivo:
         archivo.write(msu)
-    for numero in set(snes_music.PISTAS_MSU.values()):
+    for numero in pistas_de(base):
         os.symlink("%s-%d.pcm" % (base, numero), "%s-%d.pcm" % (otra, numero))
     k = uno.casos.index(caso)
     return Partida(sfc, uno.simbolos, uno.mapas, caso=k, salta=uno.saltan[k],

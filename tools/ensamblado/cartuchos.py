@@ -308,10 +308,15 @@ def main():
     # en su directorio, y lo pesado corre en subprocesos —el conversor,
     # `ca65`, fluidsynth—. Lo que comparten es el caché en disco, que escribe
     # aparte y renombra. Lo que se imprime sigue en el orden de siempre.
+    #
+    # Las pistas, **detrás de `release`** y no a la par: son las de sus
+    # temas, que el conversor deja en su `musica.json`. Mientras tanto se
+    # arman los demás cartuchos.
     with concurrent.futures.ThreadPoolExecutor(len(nombres) + 1) as hilos:
         armados = {nombre: hilos.submit(armar, nombre, fuentes)
                    for nombre in nombres}
-        hechas = hilos.submit(pistas) if RELEASE in nombres else None
+        hechas = (hilos.submit(pistas, armados[RELEASE])
+                  if RELEASE in nombres else None)
         for nombre in nombres:
             print("%s: %s" % (nombre, "armado" if armados[nombre].result()
                               else "al día"))
@@ -319,16 +324,19 @@ def main():
                 print(hechas.result())
 
 
-def pistas():
+def pistas(armado=None):
     """Las pistas de MSU-1 al lado de la ROM que se juega: `release` las lleva
     siempre, así que no hay otra manera de tener la ROM con pistas.
 
-    Van fuera del sello y se miran aunque la ROM esté al día: no dependen del
-    cartucho sino del MIDI, del soundfont y del sintetizador, y `msu.armar` ya
-    sabe cuáles están —ver `clave_de_la_pista`—. Que estén al lado no cambia
+    Van fuera del sello y se miran aunque la ROM esté al día: cuáles son lo
+    dice el cartucho —su `musica.json`—, pero cómo suena cada una depende del
+    MIDI, del soundfont y del sintetizador, y `msu.armar` ya sabe cuáles están
+    —ver `clave_de_la_pista`—. Que estén al lado no cambia
     la tanda: el arnés le esconde las pistas al core, ver `retro.Consola`.
     Devuelve la línea que lo cuenta, que `main` imprime en su lugar.
     """
+    if armado is not None:
+        armado.result()         # el `musica.json` que dice cuáles son
     from audio import msu       # fluidsynth y ffmpeg, sólo para `release`
     hechas, estaban = msu.armar(rom_de(RELEASE), charlar=False)
     return ("%s: pistas de MSU-1, %d hechas y %d que ya estaban"

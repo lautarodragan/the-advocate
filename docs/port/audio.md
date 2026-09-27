@@ -51,9 +51,10 @@ muestra y con qué envolvente, y la consola sólo reproduce.
 * **El `FadeOutBGM` baja el tema y nada más**: el volumen de cada voz de la
   música, o el de la pista del MSU-1, y nunca el general del DSP, que es
   también el de los efectos. `bgm_fundido_tick`, en `rom/src/musica.s`.
-* **El MSU-1**: los temas de `PISTAS_MSU` suenan desde un PCM al lado de la
-  ROM, y la ROM calla el SPC700 mientras tanto. Las pistas las arma
-  `tools/audio/msu.py`. Con MSU-1, el paquete no sube las muestras de los
+* **El MSU-1**: todo tema suena desde un PCM al lado de la ROM, y la ROM
+  calla el SPC700 mientras tanto. El número de cada pista es el lugar del
+  tema en `Music/` del juego —`pista_msu` en `snes_music.py`—, así que no
+  depende del cartucho; las arma `tools/audio/msu.py`. Con MSU-1, el paquete no sube las muestras de los
   temas con pista, salvo que la pista haya faltado en la tarjeta:
   `tema_por_msu`, en `rom/src/paquete_de_audio.s`.
 * **Los efectos con MSU-1**: mientras el SPC700 no toca música, los efectos

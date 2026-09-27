@@ -2,8 +2,9 @@
 
 El MSU-1 no es hardware de la Super Nintendo: es una extensión que soportan el
 FX Pak Pro y los emuladores, con la música en archivos PCM al lado de la ROM.
-Cuando un tema tiene pista —`PISTAS_MSU` en snes_music.py— la ROM calla el
-SPC700 y la toca; sin MSU-1 la firma no está y todo suena como siempre. Ver
+Todo tema tiene pista —el número lo da `pista_msu`, en snes_music.py—, y con
+MSU-1 la ROM calla el SPC700 y la toca; sin MSU-1 la firma no está y todo
+suena como siempre. Ver
 `workflow/tasks/done/audio-msu-1.md`, y para los fondos de batalla que viajan
 en el `.msu`, `docs/port/msu-datos.md`.
 
@@ -17,7 +18,15 @@ estar vacío.
 El audio sale de renderizar el MIDI con fluidsynth y **el mismo soundfont con
 el que el juego sonaba en la PC**, que es el que ya usa `snes_samples.py` para
 sacar las muestras del SPC700: la idea no es cambiar el arreglo sino dejar de
-sintetizarlo con ocho voces y muestras recortadas.
+sintetizarlo con ocho voces y muestras recortadas. Un tema que en el juego es
+un WAV —el SPC700 no lo toca: sale mudo— tiene pista igual, decodificado con
+ffmpeg como un reemplazo.
+
+**Se arman las pistas de los temas del cartucho, y nada más**: las que dice
+el `musica.json` que el conversor deja al lado de la ROM, con el número de
+cada tema. Los del juego entero son más de doscientos, y la mayoría no suena
+en ningún mapa convertido. Un `<rom>-N.pcm` que ya no es de ningún tema se
+borra: `just entregar` copia a la tarjeta todos los que encuentre.
 
     python3 tools/audio/msu.py rom/build/release/abl.sfc
 
@@ -34,8 +43,8 @@ el tema sigue sonando por el SPC700 desde el MIDI. Los reemplazos viven en
 `/extras` y no en el repo por la misma razón que el arte del juego: la música
 no es nuestra para redistribuir.
 
-**Una pista que ya está no se vuelve a renderizar.** Cuesta un minuto entero
-para las 22 y no depende del cartucho: depende del MIDI, del soundfont, del
+**Una pista que ya está no se vuelve a renderizar.** Cuesta un minuto y medio
+para las del cartucho y no depende de él: depende del MIDI, del soundfont, del
 sintetizador y de cómo se normaliza, y todo eso entra en la clave —ver
 `clave_de_la_pista`—. Lo guardado en `rom/build/cache/msu/` es el sha256 del
 `.pcm`, no el `.pcm`: las pistas pesan cientos de megas y ya están en el
@@ -43,7 +52,9 @@ disco, al lado de la ROM; guardarlas sería tener dos copias de lo mismo.
 Con `SIN_CACHE=1` se rehacen todas, que es como se comprueba que salen iguales.
 """
 import argparse
+import glob
 import hashlib
+import json
 import os
 import shutil
 import struct
@@ -141,7 +152,8 @@ def reemplazo(directorio, nombre):
 
 
 def clave_del_reemplazo(audio, pico=PICO):
-    """Como `clave_de_la_pista`, para una pista que sale de un archivo."""
+    """Como `clave_de_la_pista`, para una pista que sale de un archivo de
+    audio: un reemplazo, o un tema que en el juego es un WAV."""
     with open(audio, "rb") as f:
         crudo = f.read()
     return cache_disco.clave(cache_disco.version_de("audio/msu.py"),
@@ -215,9 +227,26 @@ def pista(wav, salida, loop=0, pico=PICO):
     return con.getnframes(), escala
 
 
+def pistas_del_cartucho(rom):
+    """[(nombre, número)] de los temas del cartucho que tienen pista, en orden
+    de número: del `musica.json` que el conversor deja al lado de la ROM."""
+    ruta = os.path.join(os.path.dirname(os.path.abspath(rom)), "musica.json")
+    try:
+        with open(ruta, encoding="utf-8") as archivo:
+            temas = json.load(archivo)["temas"]
+    except OSError:
+        sys.exit("no está %s: las pistas son las de los temas del cartucho, "
+                 "así que primero hay que armarlo" % ruta)
+    # Por número y no por nombre: dos temas que difieren sólo en mayúsculas
+    # son el mismo archivo, y dos hilos escribiendo la misma pista se pisan.
+    por_numero = {t["pista"]: t["nombre"] for t in temas if t.get("pista")}
+    return [(por_numero[n], n) for n in sorted(por_numero)]
+
+
 def armar(rom, game_dir=GAME_DIR, soundfont=snes_samples.SOUNDFONT,
           ganancia=GANANCIA, reemplazos=REEMPLAZOS, charlar=True):
-    """Deja al lado de `rom` el `.msu` y una pista por tema de `PISTAS_MSU`.
+    """Deja al lado de `rom` el `.msu` y una pista por tema del cartucho, y
+    borra las que ya no son de ningún tema.
 
     Devuelve cuántas pistas rehízo y cuántas ya estaban. `charlar` en falso
     calla las que ya estaban: `cartuchos.py` la llama en cada `just pruebas`.
@@ -229,11 +258,17 @@ def armar(rom, game_dir=GAME_DIR, soundfont=snes_samples.SOUNDFONT,
     # modo "ab" no lo trunca si ya está.
     abierto = open(base + ".msu", "ab")
     abierto.close()
+    pistas = pistas_del_cartucho(rom)
+    numeros = {numero for _nombre, numero in pistas}
+    for vieja in glob.glob(glob.escape(base) + "-*.pcm"):
+        numero = vieja[len(base) + 1:-len(".pcm")]
+        if numero.isdigit() and int(numero) not in numeros:
+            os.remove(vieja)
+            print("pista %s: ya no es de ningún tema, borrada" % numero)
     # Las pistas a la vez, en hilos: cada una escribe su archivo, lo pesado
     # corre en fluidsynth o ffmpeg y en numpy, y una por una eran lo que más
     # tardaba un build en frío. Lo que se imprime sigue en orden.
     import concurrent.futures
-    pistas = sorted(snes_music.PISTAS_MSU.items(), key=lambda par: par[1])
     with concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 1) as hilos:
         hechos = [hilos.submit(_una_pista, base, nombre, numero, game_dir,
                                soundfont, ganancia, reemplazos)
@@ -258,12 +293,19 @@ def _una_pista(base, nombre, numero, game_dir, soundfont, ganancia,
     estaba."""
     salida = "%s-%d.pcm" % (base, numero)
     audio = reemplazo(reemplazos, nombre)
+    midi = None
+    if not audio:
+        fuente = find_resource([game_dir], "Music", nombre,
+                               snes_music.MUSICA_DE_PISTA)
+        if not fuente:
+            sys.exit("no encuentro la música de %s" % nombre)
+        if fuente.lower().endswith(".mid"):
+            midi = fuente
+        else:
+            audio = fuente
     if audio:
         clave = clave_del_reemplazo(audio)
     else:
-        midi = find_resource([game_dir], "Music", nombre, (".mid",))
-        if not midi:
-            sys.exit("no encuentro el MIDI de %s" % nombre)
         clave = clave_de_la_pista(midi, soundfont, ganancia)
     # La pista que ya está, si la escribió este mismo código con estas
     # mismas fuentes. Lo guardado es el sha256 del `.pcm`, así que una

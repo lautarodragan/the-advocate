@@ -51,67 +51,69 @@ ARAM_MARGEN = 1024
 from audio.music_opcodes import *   # noqa: E402,F401,F403
 
 
-# Los temas que además tienen pista de MSU-1, y con qué número. El MSU-1 no es
-# hardware de la consola sino una extensión que soportan el FX Pak Pro y los
-# emuladores: la música sale de un archivo PCM al lado de la ROM
-# —`<rom>-<pista>.pcm`, habilitado por un `<rom>.msu`— en vez de sintetizarse
-# en el SPC700. Cuando el tema tiene pista, la ROM calla el SPC700 y la toca;
-# los efectos siguen sonando en el SPC700, así que la ARAM les queda entera.
+# La pista de MSU-1 de cada tema. El MSU-1 no es hardware de la consola sino
+# una extensión que soportan el FX Pak Pro y los emuladores: la música sale de
+# un archivo PCM al lado de la ROM —`<rom>-<pista>.pcm`, habilitado por un
+# `<rom>.msu`— en vez de sintetizarse en el SPC700. Cuando el tema tiene
+# pista, la ROM calla el SPC700 y la toca; los efectos siguen sonando en el
+# SPC700, así que la ARAM les queda entera. Las pistas las arma
+# `tools/audio/msu.py` desde los mismos MIDI, con el soundfont con que sonaba
+# el juego original en la PC.
 #
-# Es el experimento que pidió taro el 2026-09-11, porque la música
-# sintetizada suena fea. Las pistas las arma `tools/audio/msu.py` desde los mismos
-# MIDI, con el soundfont con que sonaba el juego original en la PC.
+# **Todo tema tiene pista**: lo pidió taro el 2026-09-26, y hasta ese día era
+# una lista a mano de 22 —los que suenan hasta salir de Lashe City—. Un tema
+# sin pista es uno que no tiene de dónde salir: "(OFF)", o un nombre que no
+# está en `Music/`. Lo cobra `test_todo_tema_tiene_su_pista`.
 #
-# **Son los 21 temas que suenan hasta salir de Lashe City**, que es el alcance
-# que pidió taro el 2026-09-14: *"tal vez no sea factible usar PCM para todo,
-# pero sí o sí quiero todos los temas que suenan hasta salir de Lashe City"*.
-# Los del juego entero son 43 —91 minutos, 923 MB— y ésos entran el día que
-# haya una ROM que los toque.
+# **El número sale del juego, no del cartucho**: es el lugar del tema en la
+# lista ordenada de `Music/` —sin mayúsculas, contando desde 1—. El índice
+# del tema en el cartucho habría sido lo obvio, pero lo decide el orden en que
+# los `PlayBGM` aparecen al compilar (`Temas.indice`), así que un mapa nuevo
+# corre la numeración de los que vienen detrás, y renumerar son cientos de
+# megas que rehacer y que volver a copiar a la tarjeta. `Music/` es del juego
+# original y no cambia, así que el número de un tema es siempre el mismo, en
+# cualquier cartucho y con cualquier lista de mapas: un tema nuevo es un
+# archivo nuevo y nada más. Los números salen salteados —el cartucho no usa
+# todos los temas del juego— y al MSU-1 le da igual.
 #
-# **Los números del 1 al 8 no se tocan nunca**: son los que ya están en la
-# tarjeta de taro, y cambiarlos obligaría a renombrar archivos. Por eso los
-# catorce que se agregaron el 2026-09-14 van del 9 en adelante y en un orden
-# que no dice nada: el orden acá no significa nada para la ROM, que lee
-# `tema_msu` por índice de tema.
-#
-# El del **título** (8) y el de **batalla** (9) no son de ningún mapa: salen de
-# `title_music` y `battle_music` del LDB. El de batalla suena en todas las
-# peleas y es el más caro del cartucho —226 s y 156.520 B de stream, el doble
-# que el siguiente—; que tenga pista es lo que más se oye por tema emitido.
+# Y el tamaño: 16 bits estéreo a 44,1 kHz son 10,6 MB por minuto, así que la
+# pista de cada tema pesa lo que dura. Recortarlas por loop no da: de los 21
+# de Lashe City, el **único** que repite exacto a la mitad es `C3classi`
+# —medido comparando las notas de las dos mitades—.
 #
 # **Lo que NO arregla darle pista al de batalla**, medido el 2026-09-14 porque
 # parecía que sí: sacarlo del banco compartido libera 4 muestras y 565 B, sube
-# la tasa mediana de 11521 a 12496 Hz y **no devuelve ni un tema** de los nueve
-# recortados. Su peso es de stream, que vive en el cartucho, no de ARAM.
-#
-# Y el tamaño: 16 bits estéreo a 44,1 kHz son 10,6 MB por minuto, así que los
-# 21 son unos 423 MB por ROM. Recortarlos por loop tampoco da: de los 21, el
-# **único** que repite exacto a la mitad es `C3classi` —medido comparando las
-# notas de las dos mitades— y son 8,6 MB de 423.
-PISTAS_MSU = {
-    "escape_newyork": 1,
-    "hzstream": 2,
-    "TF3_1_awe": 3,
-    "evilrhys": 4,
-    "lufsorr": 5,
-    "cd4": 6,
-    "C3classi": 7,
-    "Fantasia_Of_The_Wind": 8,
-    "T_VGFighterMAX_Masako": 9,
-    "rshinld": 10,
-    "cd2": 11,
-    "hzbreach": 12,
-    "wb3mlair": 13,
-    "Astpgmarch": 14,
-    "Gaden": 15,
-    "3D-Galax": 16,
-    "wb3shop": 17,
-    "KSSMKEND": 18,
-    "vswar": 19,
-    "Lunar_Pyramid": 20,
-    "dcbest": 21,
-    "golden_axe-turtlevillage2": 22,
-}
+# la tasa mediana de 11521 a 12496 Hz y **no devuelve ni un tema** de los
+# nueve recortados. Su peso es de stream, que vive en el cartucho, no de ARAM.
+MUSICA_DE_PISTA = (".mid", ".wav")
+
+
+_numeros_de_pista = {}
+
+
+def numeros_de_pista(game_dir=GAME_DIR):
+    """{nombre del tema en minúsculas: número de pista}, para todo `Music/`."""
+    if game_dir not in _numeros_de_pista:
+        carpeta = [os.path.join(game_dir, e) for e in os.listdir(game_dir)
+                   if e.lower() == "music"]
+        nombres = set()
+        for archivo in os.listdir(carpeta[0]) if carpeta else []:
+            base, ext = os.path.splitext(archivo)
+            if ext.lower() in MUSICA_DE_PISTA:
+                nombres.add(base.lower())
+        # El número va en un byte de `tema_msu`, y $FF es "sin pista".
+        if len(nombres) > 0xFE:
+            raise SystemExit("Music/ tiene %d temas y la pista va en un byte"
+                             % len(nombres))
+        _numeros_de_pista[game_dir] = {n: i + 1
+                                       for i, n in enumerate(sorted(nombres))}
+    return _numeros_de_pista[game_dir]
+
+
+def pista_msu(nombre, game_dir=GAME_DIR):
+    """El número de pista de MSU-1 del tema, o None si no tiene de dónde
+    salir: ver `numeros_de_pista`."""
+    return numeros_de_pista(game_dir).get(nombre.lower()) if nombre else None
 
 
 # --- el driver del SPC700 ---------------------------------------------------
@@ -1914,6 +1916,9 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     contexto = (nombres, leidos, asignacion, banco, techos, aire_de_medida)
     temas = en_paralelo(lambda i: _armar_tema(contexto, i),
                         range(len(nombres)))
+    # Y la pista de MSU-1 de cada uno: ver `pista_msu`.
+    for tema in temas:
+        tema["pista"] = pista_msu(tema["nombre"], game_dir)
     # Los efectos van detrás del banco en el mismo directorio: su `V_SRCN` es
     # el lugar que les toca después de las muestras de la música.
     banco.efectos = {e.name: (len(banco.voces) + i, e)
@@ -2152,9 +2157,9 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
         "$%02X" % r for r, _ in init) + ", $FF"
     tabla += "\ndsp_init_val:\n    .byte " + ", ".join(
         "$%02X" % v for _, v in init) + ", $00"
-    # Y qué pista de MSU-1 le toca a cada uno, o $FF: ver PISTAS_MSU.
+    # Y qué pista de MSU-1 le toca a cada uno, o $FF: ver `pista_msu`.
     tabla += "\ntema_msu:\n    .byte " + ", ".join(
-        "$%02X" % PISTAS_MSU.get(t["nombre"], 0xFF)
+        "$%02X" % (t.get("pista") or 0xFF)
         for t in (temas or [{"nombre": ""}]))
     # Y el tema propio de cada mapa. Fuera del banco 0: se lee una vez por
     # teletransporte, con `lda f:mapa_tema, x`.

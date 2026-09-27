@@ -239,7 +239,8 @@ techos *args:
 # ahí, porque la ROM que se juega es la que prueba la tanda.
 #
 # **`release` lleva siempre sus pistas de MSU-1** al lado de `abl.sfc`: el
-# `abl.msu` que lo enciende y un `abl-N.pcm` por tema de `PISTAS_MSU`. Sin la
+# `abl.msu` que lo enciende y un `abl-N.pcm` por tema del cartucho —el número
+# lo da `pista_msu`, en tools/audio/snes_music.py—. Sin la
 # extensión la ROM suena como siempre, por el SPC700. El `.msu` lo escribe el
 # conversor, y lo llevan los dos cartuchos: son los fondos de batalla que la
 # ROM lee por el MSU-1 si está —ver tools/port/msu_datos.py—. Las

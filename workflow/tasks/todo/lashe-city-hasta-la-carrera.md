@@ -324,7 +324,8 @@ la RAM lejana.
 **ARAM**: el banco compartido no cambia (57.309 de 64.512 bytes). Los tres temas
 nuevos **no aportan muestras** y suenan con las de otros: `Kfmus5` (la guarida
 de Wick) con el 8% de sus notas, `tsmedit` (el cirujano) con el 53%, y
-`fm2bar_gs` (Stash) con el 83%. Ninguno tiene pista de MSU-1 (`PISTAS_MSU` en
+`fm2bar_gs` (Stash) con el 83%. Ninguno tenía pista de MSU-1; desde el
+2026-09-26 todo tema del cartucho tiene la suya (`pista_msu` en
 `tools/audio/snes_music.py`).
 *Desde el 2026-09-26 esto cambió*: con el presupuesto por paquete todos los
 temas aportan todas sus muestras, así que los tres entrarían enteros; lo que
@@ -385,8 +386,7 @@ Cada uno es jugable y se verifica por separado. El orden es el de la lista.
 **Lo que hay que repartir al lanzarlos en paralelo** (ver "Sub-agentes" en
 `AGENTS.md`): los números de opcode en `tools/protocol/events.toml` —el 2 pide
 uno (transición), el 3 entre uno y cuatro (lugar recordado, tema recordado)—;
-los números de pista de `PISTAS_MSU` —dos para el 2 (`Kfmus5`, `tsmedit`), uno
-para el 3 (`fm2bar_gs`)—; las direcciones de RAM lejana —el tema recordado (3),
+las direcciones de RAM lejana —el tema recordado (3),
 la transición elegida (2), el intérprete de eventos comunes (4)—; y la lista de
 `_DE_RELEASE` en `cartuchos.py`, que tocan todos y conviene mergear mirando.
 

@@ -53,9 +53,9 @@ Y la deuda de `wishlist/las-otras-transiciones-de-rm2k.md` se achica: el
 mosaico deja de estar ahí.
 
 **Dos temas nuevos sin muestras en el banco**: `Kfmus5` (la guarida, suena
-con el 8% de las notas por el SPC700) y `tsmedit` (el cirujano, 53%). Les toca
-un número de `PISTAS_MSU` a cada uno —repartido al lanzar—, y se mira cómo
-suenan sin MSU-1.
+con el 8% de las notas por el SPC700) y `tsmedit` (el cirujano, 53%). La
+pista de MSU-1 la tienen solos —desde el 2026-09-26 todo tema tiene la suya,
+con el número que da `pista_msu`—, y se mira cómo suenan sin MSU-1.
 
 **El "REC" del 45** (`ShowPicture 'ABLrec'`, un paralelo que lo hace
 parpadear): la ROM lleva un cartel solo y es el de "One year previously", así
