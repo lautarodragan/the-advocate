@@ -222,6 +222,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `abl/test_piedras.py`, `abl/test_luces.py`: los minijuegos del mapa 11
 * `abl/test_puerta_del_10.py`: las puertas del mapa 10 y el switch 231
 * `abl/test_hover_tram.py`: el Hover Tram horneado
+* `abl/test_lider_sin_grafico.py`: con DummyHero de líder, cada mapa del
+  juego carga las paletas de sprite del cartucho —antes la 0 quedaba en negro,
+  y era Talan en el barril del 14 y en la guarida de Wick—
 
 **El conversor y los generados**, sin ROM
 
