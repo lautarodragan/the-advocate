@@ -12,9 +12,12 @@ los de afuera dejan de pagarlo.
 **Un banco y no una copia por tema** es por la numeración y por el
 directorio. El SRCN que escribe el stream es el número de la muestra en el
 cartucho, así que dos temas que tocan piano apuntan a la misma, y el SRCN
-es de un byte que numera también los 92 efectos. Una copia por tema (la
-opción B del paso 6 de `tasks/testing/la-calidad-de-la-musica.md`) serían
-unas 370 entradas contra 255.
+es de un byte. Una copia por tema (la opción B del paso 6 de
+`tasks/testing/la-calidad-de-la-musica.md`) serían unas 370 entradas contra
+255. Hasta el 2026-09-26 el SRCN numeraba también cada efecto del cartucho;
+desde ese día los efectos comparten los lugares del final del directorio,
+porque a la ARAM va un paquete por vez: ver
+`tasks/*/el-directorio-de-los-efectos.md`.
 
 **El presupuesto es por paquete y no por banco** desde el 2026-09-26 (la
 opción A del mismo paso, elegida por taro). A la ARAM nunca va el banco sino
@@ -30,7 +33,9 @@ calidad en los efectos de sonido."* Con una muestra por programa, los 43 KB
 de efectos del mapa 3 dejaban la batería de todos los temas a 10 kHz y el
 oboe a 7. Una copia es la misma clave como otra muestra, sólo para los temas
 del grupo que la limita; se hacen la peor primero hasta llenar el
-directorio. Y los temas que un mapa prende sólo para irse —`lufsorr` en el 3,
+directorio como era cuando cada efecto tenía su entrada, y con las entradas
+que los efectos liberaron, sólo las que no le bajan la tasa a nadie (ver
+`copias` en `tools/audio/snes_music.py`). Y los temas que un mapa prende sólo para irse —`lufsorr` en el 3,
 que suena cuando ya no quedan efectos— no cuentan en el paquete del mapa:
 ver `Temas.de_salida` en `tools/port/eventos.py`.
 

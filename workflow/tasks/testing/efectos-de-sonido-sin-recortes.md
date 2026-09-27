@@ -36,6 +36,12 @@ propuestas de ahí taro eligió la del trueno, que deja la lluvia entera gratis.
 Lo que les sigue costando la pelea y el mapa 3 espera a liberar entradas del
 directorio, en otra tarea.
 
+Hecho el mismo día, en `el-directorio-de-los-efectos.md`: de los 175 pares
+que bajaban quedan 117, y ninguno baja respecto de antes. **A los temas de
+los paquetes que se pagan los efectos no les devuelve nada** —el de batalla,
+`evilrhys`, `TF3_1_awe`, `3D-Galax` y `Gaden`—: los limita su propio
+paquete, y ninguna copia los saca de ahí. Lo que vuelve es el rebote.
+
 # Lo que estaba viejo el 2026-09-26
 
 La tarea se escribió el 24, y desde entonces:

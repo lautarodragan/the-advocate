@@ -511,6 +511,31 @@ hay_efecto:
     bne esta
     jmp listo
 esta:
+    ; Y que sea **el suyo**: el lugar lo comparten efectos de paquetes
+    ; distintos —ver `lugares_de_efectos` en snes_music.py—, y el que está
+    ; es el que quedó anotado en `FAR_EFECTO_EN`. Sin esto, un efecto de otro
+    ; mapa —el de un evento común— sonaría con la muestra del vecino.
+    lda f:sonido_tabla, x
+    sec
+    sbc #SE_PRIMERA
+    bcc es_suyo                 ; no es un lugar de los efectos
+    phx
+    rep #$20
+.a16
+    and #$00FF
+    tax                         ; el lugar, desde cero
+    lda 3, s                    ; el índice, detrás de X
+    sta temp
+    sep #$20
+.a8
+    lda f:FAR_EFECTO_EN, x
+    ldx temp
+    eor f:sonido_efecto, x      ; cero si es el suyo
+    plx
+    cmp #0                      ; la Z de `plx` es la de X, no la del `eor`
+    beq es_suyo
+    jmp listo
+es_suyo:
     ; Sin interrupciones mientras se copia: `irq_musica` lee el pendiente, y
     ; uno a medio escribir arrancaría con la muestra de uno y la altura de
     ; otro. La interrupción no se pierde, se atrasa hasta el `plp`.

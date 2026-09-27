@@ -553,7 +553,7 @@ listo:
     rtl
 .endproc
 
-; La fila de `se_msu_filas` del efecto de muestra A en el paquete de
+; La fila de `se_msu_filas` del efecto de número A en el paquete de
 ; PAQ_MAPA, en X, y C en 1; C en 0 si el paquete no lo lleva. Cada paquete
 ; tiene una fila por efecto de su lista en `paquetes`, en el mismo orden. No
 ; toca Y.
@@ -561,7 +561,7 @@ listo:
 .a8
 .i16
     phy
-    pha                         ; [srcn]
+    pha                         ; [número de efecto]
     rep #$20
 .a16
     lda f:PAQ_MAPA
@@ -629,6 +629,7 @@ no:
     lda f:PAQ_S
     cmp #SE_PRIMERA
     bcc no
+    jsr efecto_del_lugar
     jsr se_msu_fila
     bcc no
     rep #$20
@@ -661,6 +662,7 @@ no:
     lda f:PAQ_S
     cmp #SE_PRIMERA
     bcc no
+    jsr efecto_del_lugar
     jsr se_msu_fila
     bcs hay
 no:
@@ -830,6 +832,21 @@ un_byte:
     dec temp
     bne un_byte
 listo:
+    rts
+.endproc
+
+; El número del efecto anotado en la entrada A del directorio, que es un lugar
+; de los efectos —SE_PRIMERA o más—, en A: ver `FAR_EFECTO_EN`. Se lleva X.
+.proc efecto_del_lugar
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:FAR_EFECTO_EN - SE_PRIMERA, x
     rts
 .endproc
 

@@ -21,7 +21,7 @@ pueden prender. O sea que es el único tema de la ROM que depende de que
 `tema_asegurar` lo cargue en caliente, y por eso es el que delata el camino.
 """
 
-from consola import EMPEZAR, SEGUIR, en_la_wram
+from consola import EMPEZAR, SEGUIR, en_la_rom, en_la_wram
 
 
 def test_el_tema_del_titulo_tiene_sus_muestras_en_la_aram(partida):
@@ -420,3 +420,100 @@ def test_el_tema_de_salida_sube_solo(partida):
     assert una.consola.ram(en_la_wram(s["PAQ_INCOMPLETO"]), 1)[0], (
         "el tema de salida se subió solo y el paquete no quedó anotado como "
         "incompleto")
+
+
+def test_los_efectos_comparten_lugares_y_a_las_copias_les_sobran_entradas():
+    """El directorio del SPC700 no le corta las copias a la música.
+
+    El SRCN es de un byte, así que el directorio llega a 255 entradas. Hasta
+    el 2026-09-26 cada efecto del cartucho tenía la suya —92 en `release`—, y
+    `snes_music.copias` paraba por llenarlo: las muestras que un paquete
+    limitaba seguían limitando a los temas de afuera. Desde ese día los
+    efectos comparten los `SE_LUGARES` del final —dos efectos que nunca van
+    en el mismo paquete pueden ir al mismo lugar, ver
+    `snes_music.lugares_de_efectos`—, y las copias terminan porque ninguna
+    suma, no por falta de entradas.
+
+    Se lee todo del cartucho: que el directorio no esté lleno, que ningún
+    paquete tenga dos efectos en el mismo lugar —se pisarían en la ARAM— y
+    que los lugares no sean más que los efectos del paquete más cargado.
+    """
+    from audio import snes_music
+    import tanda
+
+    release = tanda.cartucho()
+    s = release.simbolos
+    with open(release.sfc, "rb") as archivo:
+        rom = archivo.read()
+    assert s["MUESTRAS_N"] < snes_music.DIRECTORIO_MAX, (
+        "el directorio tiene %d entradas, el tope: `copias` paró por falta "
+        "de lugar y no porque ninguna sumara" % s["MUESTRAS_N"])
+    assert s["MUESTRAS_N"] == s["SE_PRIMERA"] + s["SE_LUGARES"]
+    lugar = rom[en_la_rom(s["efecto_lugar"]):
+                en_la_rom(s["efecto_lugar"]) + s["EFECTOS_N"]]
+
+    base = en_la_rom(s["paquetes"])
+    mas_cargado, pisados = 0, []
+    for p in range(s["PAQUETES_N"]):
+        salto = base + 2 * p
+        cursor = base + (rom[salto] | rom[salto + 1] << 8)
+        while rom[cursor] != 0xFF:          # los temas
+            cursor += 1
+        cursor += 1
+        efectos = []
+        while rom[cursor] != 0xFF:
+            efectos.append(rom[cursor])
+            cursor += 1
+        efectos = sorted(set(efectos))
+        mas_cargado = max(mas_cargado, len(efectos))
+        lugares = [lugar[e] for e in efectos]
+        if len(set(lugares)) < len(lugares):
+            pisados.append("paquete %d: efectos %s en los lugares %s"
+                           % (p, efectos, lugares))
+    assert not pisados, (
+        "efectos del mismo paquete en el mismo lugar del directorio: %s"
+        % "; ".join(pisados))
+    assert s["SE_LUGARES"] == mas_cargado, (
+        "los efectos ocupan %d lugares del directorio y el paquete más "
+        "cargado trae %d" % (s["SE_LUGARES"], mas_cargado))
+
+
+def test_un_efecto_no_suena_con_la_muestra_de_otro(partida):
+    """Un lugar del directorio lo comparten efectos de paquetes distintos, y
+    `sonido_tocar` no toca un efecto si el anotado en su lugar es otro.
+
+    Es el caso de un efecto que se pide en un mapa cuyo paquete no lo trae
+    —el de un evento común, que no es de ningún mapa—: su lugar tiene la
+    muestra de un vecino, y sin la pregunta sonaría ésa. En el juego no hay
+    una página que lo haga, así que se lo fuerza: `Success2` en el mapa 10,
+    con `FAR_EFECTO_EN` cambiado a otro efecto justo al llegar. El control,
+    sin cambiarlo, tiene que sonar.
+    """
+    def suena(cambiar):
+        una = partida(caso="efecto-de-calidad")
+        s = una.simbolos
+        cambiado = False
+        for _ in range(200):
+            una.correr(1)
+            if una.mapa() != 10:
+                continue
+            if cambiar and not cambiado:
+                lugares = max(1, s["SE_LUGARES"])
+                direccion = en_la_wram(s["FAR_EFECTO_EN"])
+                anotados = una.consola.ram(direccion, lugares)
+                una.consola.escribir_ram(
+                    direccion,
+                    [(e + 1) % s["EFECTOS_N"] if e != 0xFF else e
+                     for e in anotados])
+                cambiado = True
+            for voz in ("SE_CUADROS", "SE2_CUADROS"):
+                if any(una.consola.ram(en_la_wram(s[voz]), 2)):
+                    return True
+        return False
+
+    assert suena(False), (
+        "Success2 no sonó en el mapa 10 sin tocar nada: el caso no mira nada")
+    assert not suena(True), (
+        "con otro efecto anotado en su lugar, Success2 sonó igual: "
+        "`sonido_tocar` no mira `FAR_EFECTO_EN` y tocaría la muestra del "
+        "vecino")

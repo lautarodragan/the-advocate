@@ -278,15 +278,39 @@ cargar_el_mapa:
     sta INIDISP
     stz TM                      ; y sin el menú encima mientras se rehace todo
     jsr ppu_init                ; los registros del PPU, como los dejó el reset
+    ; **El tema del título se calla antes de cargar el mapa**, y no después
+    ; con `music_boot`: `paquete_cargar` deja quietas las muestras del tema
+    ; que dice estar sonando, y acá ése no suena. Con una partida cargada,
+    ; `tema_actual` ya es el de la partida, y las muestras suyas que el
+    ; paquete del título había subido quedaban fijas donde estaban,
+    ; partiendo la ARAM: el paquete del mapa no entraba, y el `PlayBGM` del
+    ; mapa lo volvía a subir entero —cargar en el mapa 1 tardaba el doble—.
+    ; `music_apagada` se repone justo antes de `music_boot`, que lo lee: es el
+    ; de la partida.
+    lda music_apagada
+    pha
+    php
+    sei                         ; el SPC700 atiende de a uno: ver `irq_musica`
+    lda #1
+    sta music_apagada
+    lda #$FF
+    ldx #SE_KOF
+    jsr dsp_musica              ; como abajo: sin tocar las voces de efectos
+    plp
     rep #$20
 .a16
-    pla
+    lda 2, s                    ; el índice del mapa, detrás de music_apagada
     jsr cargar_mapa
     sep #$20
 .a8
+    pla                         ; el music_apagada de la partida
+    plx                         ; el índice, que ya no hace falta
+    pha
     jsr clear_oam
     jsr build_oam
     jsr flush_video
+    pla
+    sta music_apagada
 
     ; La música. Sin esto el tema del título se queda sonando adentro del
     ; juego, que es lo que taro vio el 2026-09-10: `Fantasia_Of_The_Wind` en el
