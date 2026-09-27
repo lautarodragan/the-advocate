@@ -186,8 +186,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `abl/test_recorrido_vipers_otras_ramas_golden.py`: lo que ese tramo deja
   afuera —la rama del "No", la reja y el mapa 14—, eligiendo con el cursor
 * `abl/test_recorrido_lashe_golden.py`: Lashe City con auto —los cuatro
-  sectores desde el 36, el pad, el HQ con Arden, los guardias con Saldra— y el
-  fin de la demo
+  sectores desde el 36, el pad, el HQ con Arden, los guardias con Saldra— y la
+  salida a la carrera
 * `abl/test_recorrido_lashe_wick_golden.py`: la guarida de Boss Wick desde
   la puerta del vecino en el 37 —los vidcasts, el video de seguridad, las
   transiciones— y las dos ramas del favor, aceptar y rechazar
@@ -197,7 +197,10 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   con Arden
 * `abl/test_recorrido_lashe_cierre_golden.py`: el cierre del 36 por las tres
   ramas —Arden, Saldra y sin compañero—, cada una desde la charla del auto:
-  sin su condición no pregunta, con ella "Stay" y después el fin de la demo
+  sin su condición no pregunta, con ella "Stay" y después la carrera
+* `abl/test_recorrido_carrera_golden.py`: la persecución en auto de la intro
+  del 49 al fin de la demo en el 64, manejando con un piloto que esquiva
+  mirando la RAM; y cinco choques sin volante, con el compañero manejando
 * `abl/test_escenas_golden.py`: las escenas y cinemáticas
 * `abl/test_recuerdo.py`: el recuerdo de CORE y MANTA
 * `abl/test_un_ano_antes.py`: el cartel de "1 year earlier"

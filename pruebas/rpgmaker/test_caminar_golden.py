@@ -1,6 +1,6 @@
 """Caminar y mirar el mapa: los casos de la tanda que sólo necesitan el pad.
 
-El héroe parado y caminando en las cuatro direcciones, en trece mapas; el mapa
+El héroe parado y caminando en las cuatro direcciones, en doce mapas; el mapa
 que no es el primero de la tabla; el héroe plantado en una celda; el mismo con
 prioridad 2 de objeto; el teletransporte del mapa 4; una página automática con
 el grupo que pide; una puerta; y el héroe a mitad de camino.
@@ -17,12 +17,19 @@ from tanda import celdas_del_plan, golden, partida, plan, ticks_de_avance
 
 DIRECCIONES = ("none", "right", "left", "up", "down")
 
-# Los trece mapas de `heroe`, de mayor a menor. El orden viene de cuando la
-# tanda se repartía en procesos: era lo que evitaba que el último trabajador
-# arrancara el 52 —dos mil ticks por dirección— cuando los demás ya habían
-# terminado. Hoy xdist reparte con `worksteal` —ver `procesos` en el
-# justfile— y el orden no compra nada; se deja igual porque cambiarlo tampoco.
-MAPAS_DE_HEROE = (52, 11, 20, 8, 17, 21, 32, 6, 1, 73, 18, 119, 348)
+# Los doce mapas de `heroe`, de mayor a menor. El orden viene de cuando la
+# tanda se repartía en procesos, y lo que evitaba era que el último
+# trabajador arrancara el mapa más largo cuando los demás ya habían terminado.
+# Hoy xdist reparte con `worksteal` —ver `procesos` en el justfile— y el orden
+# no compra nada; se deja igual porque cambiarlo tampoco.
+#
+# Hasta el 2026-09-27 eran trece, con el 52 adelante. El 52 es la segunda
+# vuelta de la carrera, y desde que la carrera entró en `release` el volante
+# empuja al héroe a la derecha en todos los cuadros: "caminar hasta chocar
+# contra la pared" dejó de terminar. Se sacó sin reemplazo —los grandes que
+# quedan, el 8, el 11 y el 20, ya están en la lista—, y la carrera la juega
+# `pruebas/abl/test_recorrido_carrera_golden.py`.
+MAPAS_DE_HEROE = (11, 20, 8, 17, 21, 32, 6, 1, 73, 18, 119, 348)
 
 
 def grupo_11_en(mapa):

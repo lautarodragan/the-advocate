@@ -459,7 +459,7 @@ class Recorrido:
             self.p.correr(1)
         return self
 
-    def foto(self, nombre, asentar=True):
+    def foto(self, nombre, asentar=True, imagen=None):
         """Una captura, numerada por orden de aparición, contra su golden.
 
         Esto es lo que una prueba de RAM **no** puede ver: que la pantalla sea
@@ -480,8 +480,12 @@ class Recorrido:
         logramos 100% de match, con que logremos 90% va a alcanzar, porque las
         imágenes rotas están MUY rotas". Las que vimos rotas iban del 34% al
         71% de pixeles distintos.
+
+        `imagen` es para la pantalla que ya pasó: una captura tomada antes,
+        cuando recién después se supo que era la del hito. La usa el fin de la
+        demo, que se reconoce porque el toque siguiente vuelve al título.
         """
-        if asentar:
+        if asentar and imagen is None:
             self.asentar()
         if not self.fotos_dir:
             return self
@@ -490,7 +494,7 @@ class Recorrido:
         os.makedirs(self.fotos_dir, exist_ok=True)
         archivo = "%02d-%s.png" % (len(self.fotos) + 1, nombre)
         ruta = os.path.join(self.fotos_dir, archivo)
-        imagen = self.p.imagen()
+        imagen = imagen or self.p.imagen()
         imagen.save(ruta)
         self.fotos.append((nombre, ruta, self.estado()))
         self._contra_golden(nombre, archivo, imagen)

@@ -4041,7 +4041,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # —ver `BATALLA_PERDER`—, y la imagen no se dibuja. Por eso
         # `ReturntoTitleScreen`, que es lo mismo sin la imagen, cae en el mismo
         # opcode: el arranque de `release` es la pantalla de título. Lo pide
-        # el fin de la demo del mapa 36 (`parches/manual/`).
+        # el fin de la demo del mapa 64 (`parches/manual/`).
         return bytes([OP_GAME_OVER])
     if cmd.code == CHANGE_CONDITION:
         if len(p) < 3 or p[2] != 1:
