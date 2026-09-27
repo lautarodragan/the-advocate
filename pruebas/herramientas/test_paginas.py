@@ -74,6 +74,10 @@ def test_las_ranuras_son_las_del_juego_entero():
     suman cuarenta variables que ningún mapa nombra —la 81 y la 106 de Talan
     cuentan cuántas veces absorbió cada técnica—. Ver `variables_de`.
 
+    Y desde el 2026-09-27 son 132: `MemorizeLocation` y `RecallToLocation`
+    nombran nueve que nadie más nombra —127 a 129, 158 a 160 y 169 a 171—, y
+    con eso la ranura dejó de caber en siete bits: ver VAR_RANURA_MAX.
+
     Las cuatro de arriba de la 204 son nuestras y no del juego: las usa el
     evento paralelo que reemplazó a las 52 baldosas de luz del mapa 11 —ver
     `parches/manual/README.md`—. Están elegidas **por encima de la más alta que
@@ -84,7 +88,8 @@ def test_las_ranuras_son_las_del_juego_entero():
     assert list(ranuras.values()) == list(range(len(ranuras)))
     assert 5 in ranuras and 151 in ranuras
     del_juego = [v for v in ranuras if v <= 204]
-    assert len(del_juego) == 123, del_juego
+    assert len(del_juego) == 132, del_juego
+    assert {127, 128, 129, 158, 159, 160, 169, 170, 171} <= set(del_juego)
     assert max(del_juego) == 201
     assert all(ranuras[v] == r for r, v in enumerate(sorted(del_juego)))
     # Las de la página de prueba se suman al final, sin correr a las demás.

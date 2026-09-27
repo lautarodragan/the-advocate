@@ -3162,6 +3162,16 @@ def tabla_de_mapas(mapas, etiquetas):
         assert usado <= MAPA_STRIDE, usado
         if usado < MAPA_STRIDE:
             out.append("    .byte " + ",".join(["$00"] * (MAPA_STRIDE - usado)))
+    # Y el id de RM2k de cada mapa, por índice: `MemorizeLocation` lo escribe
+    # en una variable y `RecallToLocation` lo busca, porque en las variables
+    # el mapa es el de RM2k —cualquier otra página las lee—. Va aparte y no
+    # como escalar del registro porque el registro está en sus 128 justos.
+    # Ver `op_location`.
+    out += ["",
+            "; El id de RM2k de cada mapa, en el orden de `mapa_tabla`.",
+            ".bloque %d" % (2 * len(mapas)),
+            "mapa_rm2k:",
+            "    .word " + ", ".join(str(m["id"]) for m in mapas)]
     return "\n".join(out)
 
 

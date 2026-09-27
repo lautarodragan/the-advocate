@@ -1,0 +1,38 @@
+# La decisión artística del battler ABLScrappedRobo: **qué colores se pierden** al
+# llevarlo a quince, que es lo que la escena de la pelea le deja a cada
+# uno. Lo escribe el conversor y lo regenera `just parches`, que es lo
+# que hay que correr cuando un cambio lo mueve; `just parches --check`
+# —y la tanda— fallan si quedó viejo. Ver tools/port/parches.py.
+
+battler = "ABLScrappedRobo"
+imagen = "ABLScrappedRobo"
+tono = 0
+
+# De qué venía, ya achicado al 80%: el tamaño en pixeles de la escena y
+# cuántos colores distintos de 15 bits traía. No se decide, se mide.
+tamano = [46, 113]
+colores = 728
+
+# Lo que quedó, en el orden de la paleta: el índice 1 es el primero.
+paleta = [
+  [6, 6, 6],
+  [1, 1, 1],
+  [12, 12, 12],
+  [11, 11, 6],
+  [3, 3, 25],
+  [13, 13, 9],
+  [6, 0, 31],
+  [0, 6, 19],
+  [4, 4, 4],
+  [8, 8, 6],
+  [1, 5, 6],
+  [4, 7, 15],
+  [0, 4, 13],
+  [0, 0, 10],
+  [12, 0, 0],
+]
+
+# Cuántas fusiones hicieron falta para llegar ahí, con
+# `asignador.merge_least_visible`: cada una manda al color que menos
+# se nota a su vecino más cercano.
+fusiones = 713

@@ -77,6 +77,8 @@ borrar_switches:
     sta tinte_b
     sta tinte_s
     stz salto_hay
+    lda #$FF                    ; ningún tema recordado, como una partida
+    sta f:TEMA_RECORDADO        ; nueva: ver `op_memorized_bgm`
     stz anim_pend               ; la RAM arranca con basura y esto dispara DMAs
     stz panico                  ; la RAM arranca con basura, y 85 no es un código
     stz oro

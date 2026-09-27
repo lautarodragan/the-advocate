@@ -47,9 +47,14 @@ DESTINO = os.environ.get("CARTUCHOS",
 # Los sectores con auto —37, 38, 47 y 48— entran los cuatro juntos: la
 # elección del 36 es una sola página que compila con sus cuatro destinos o con
 # ninguno. El 38 entra en la VRAM desde `LAYOUT_VENTANA_AMBOS`.
+#
+# El camino del droide sale del 48: Stash (57), la planta de reciclaje (59 y
+# sus pisos, 60 a 62), el túnel de vuelta (63) y el tutorial del droide (164),
+# que no cuelga de Lashe City sino de `Tutorials` pero al que salta la página
+# que mete a AG7-17 en el grupo.
 MAPAS_DEL_JUEGO = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18,
                    19, 20, 21, 23, 26, 28, 29, 30, 32, 33, 34, 36,
-                   37, 38, 39, 47, 48, 56)
+                   37, 38, 39, 47, 48, 56, 57, 59, 60, 61, 62, 63, 164)
 
 # Y los que sólo existen por la tanda: situaciones que ningún mapa del juego
 # que entra ejercita. `parches.revisar` los lee de acá para no pedirles parche

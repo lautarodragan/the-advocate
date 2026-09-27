@@ -696,6 +696,18 @@ FAR_EFECTO_EN = $7E78D0
 ; $7E7840 a $7E784F, reservado el 2026-09-26. Ver `fundido_de_pelea.s`.
 PELEA_PRENDIDA = $7E7840        ; 1 si la pelea llegó a prender su pantalla
 
+; --- el tema recordado --------------------------------------------------------
+;
+; $7E7940 a $7E795F, reservado el 2026-09-27. `MemorizeBGM` anota acá qué tema
+; sonaba —su índice en `Temas`, o $FF si ninguno— y `PlayMemorizedBGM` lo
+; vuelve a poner: ver `op_memorized_bgm`. El reset lo deja en $FF.
+;
+; **No viaja en la partida**, y en RM2k sí (`memorized_bgm`, en la parte del
+; sistema). Los dos comandos van siempre juntos en la misma página automática
+; —los cuatro tutoriales del juego, 58 y 162 a 164—, sin menú en el medio, así
+; que no hay dónde guardar entre uno y otro.
+TEMA_RECORDADO = $7E7940
+
 ; --- la grilla del mapa, en la WRAM -----------------------------------------
 ;
 ; **$7E8000 a $7EFFFF es de la grilla**, y sigue en $7F8000 si pasa de 32 KB:

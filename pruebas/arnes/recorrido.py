@@ -620,12 +620,17 @@ class Recorrido:
 
     # --- caminar -----------------------------------------------------------
 
-    def caminar_a(self, destino, tope=4000, hasta=None):
+    def caminar_a(self, destino, tope=4000, hasta=None, evitar=()):
         """Camina hasta la celda `destino` del mapa donde está.
 
         `hasta(partida)` corta antes si se cumple: es lo que hace que pisar una
         puerta a mitad de camino sea el final feliz del tramo y no un error de
         "me fui del mapa".
+
+        `evitar` son celdas de más que no se pisan, además de las puertas: las
+        que el `Mundo` no ve como salidas porque su destino no está escrito en
+        el evento —los pisos que se rompen de la planta de reciclaje saltan con
+        `RecallToLocation`—.
 
         Mientras camina atiende lo que se le cruce: si una página arranca —un
         evento de contacto, un cartel—, suelta el pad y le toca A hasta que
@@ -641,7 +646,7 @@ class Recorrido:
         # camino corto sale por el borde de la derecha.
         evitar = {celda for celda, trigger, _ in
                   self.mundo.salidas(map_id, self.p.switch)
-                  if trigger in (TRIGGER_CONTACTO, TRIGGER_CHOQUE)}
+                  if trigger in (TRIGGER_CONTACTO, TRIGGER_CHOQUE)} | set(evitar)
         evitar.discard(destino)
         # Cuántas veces seguidas no se pudo dar el mismo paso. Un solo intento
         # fallido **no** es una celda bloqueada: recién teletransportado, el

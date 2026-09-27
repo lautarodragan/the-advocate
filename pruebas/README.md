@@ -74,6 +74,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_salto_velocidad.py`: lo que dura el salto del héroe según
   su velocidad
 * `rpgmaker/test_puerta_misma.py`: una puerta al mismo mapa
+* `rpgmaker/test_lugar_recordado.py`: `MemorizeLocation`, `RecallToLocation`
+  —el piso que se rompe, ida y vuelta, un mapa ausente— y el tema recordado
 * `rpgmaker/test_carga_descomprimida.py`: la VRAM, la grilla y los dibujos
   de la animación después de cargar cada mapa y de volver de una pelea,
   contra lo que el conversor dejó sin comprimir
@@ -184,6 +186,10 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `abl/test_recorrido_lashe_golden.py`: Lashe City con auto —los cuatro
   sectores desde el 36, el pad, el HQ con Arden, los guardias con Saldra— y el
   fin de la demo
+* `abl/test_recorrido_lashe_planta_golden.py`: el camino del droide desde el
+  48 —Stash, los pisos que se rompen de la planta, el chip, el túnel— y AG7-17
+  entrando al grupo con su tutorial; la escena del soborno y la puerta cerrada
+  con Arden
 * `abl/test_escenas_golden.py`: las escenas y cinemáticas
 * `abl/test_recuerdo.py`: el recuerdo de CORE y MANTA
 * `abl/test_un_ano_antes.py`: el cartel de "1 year earlier"

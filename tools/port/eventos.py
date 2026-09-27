@@ -31,6 +31,14 @@ from port.event_opcodes import OPCODE_SIZE, opcode_size  # noqa: F401
 END = 10
 CONTROL_SWITCHES = 10210
 TELEPORT = 10810
+# El lugar del héroe a tres variables, y el salto a lo que digan: los pisos que
+# se rompen de la planta de reciclaje, y la vuelta de los tutoriales. Ver
+# OP_LOCATION.
+MEMORIZE_LOCATION = 10820
+RECALL_TO_LOCATION = 10830
+# El tema que suena, anotado, y vuelto a poner. Ver OP_MEMORIZED_BGM.
+MEMORIZE_BGM = 11530
+PLAY_MEMORIZED_BGM = 11540
 TINT_SCREEN = 11030
 WAIT = 11410
 CHANGE_SAVE_ACCESS = 11930
@@ -1930,6 +1938,20 @@ TECLA_VALOR_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
 #
 # OP_PLACE_VAR: blanco (byte, como en OP_PLACE), ranura de la x
 #     (byte), ranura de la y (byte)
+#
+# OP_LOCATION: modo (byte), y las ranuras del mapa, la x y la y (byte cada
+#     una). `MemorizeLocation` y `RecallToLocation` son el mismo opcode
+#     porque son el mismo lugar leído o escrito: el bit 0 del modo dice cuál
+#     —`LUGAR_SALTAR`—, y al recordar los bits 7, 6 y 5 son el VAR_REFRESCO de
+#     cada una de las tres escrituras. **El mapa en la variable es el id de
+#     RM2k**, que es lo que cualquier otra página lee y escribe; la ROM lo
+#     traduce con `mapa_rm2k`. Destraban 55 páginas del hito 3 de Lashe City
+#     —los pisos de la planta, 28 del 60 y 26 del 62, y el tutorial del
+#     droide— y son lo que más páginas frena en el juego entero.
+#
+# OP_MEMORIZED_BGM: 0 recordar el tema que suena, 1 volver a ponerlo.
+LUGAR_SALTAR = 0x01
+LUGAR_REFRESCOS = (0x80, 0x40, 0x20)    # el mapa, la x y la y
 
 
 def tecla_de(banderas, apretadas):
@@ -2397,6 +2419,9 @@ def variables_de_comandos(comandos):
             ids.add(p[3])
             if p[0] == 1:
                 ids.update((p[1], p[2]))
+        elif cmd.code in (MEMORIZE_LOCATION, RECALL_TO_LOCATION) \
+                and len(p) >= 3:
+            ids.update(p[:3])
     return ids
 
 
@@ -3312,6 +3337,8 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
         bat = []             # y las batallas abiertas, igual que ellas
         bgm = [None, []]     # el `PlayBGM` pendiente y lo anotado: ver
                              # `_seguir_la_salida`
+        constantes = {}      # lo último que la página puso en cada variable,
+                             # si fue una constante: ver `_destino_recordado`
         for cmd, extra in agrupar(comandos):
             pedidos = temas.pedidos if temas is not None else 0
             if cmd.code == ENEMY_ENCOUNTER:
@@ -3477,6 +3504,13 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                 if cmd.code == TELEPORT and eventos_mapa is not None \
                         and cmd.parameters[0] != eventos_mapa.map_id:
                     eventos_mapa = eventos_mapa.afuera()
+                if cmd.code == RECALL_TO_LOCATION:
+                    destino = _destino_recordado(cmd, constantes, temas,
+                                                 indice_de_mapa)
+                    if eventos_mapa is not None \
+                            and destino != eventos_mapa.map_id:
+                        eventos_mapa = eventos_mapa.afuera()
+                _anotar_constante(cmd, constantes)
             if temas is not None:
                 _seguir_la_salida(cmd, bgm, temas, indice_de_mapa,
                                   temas.pedidos != pedidos)
@@ -3505,6 +3539,45 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
         return None
 
 
+def _anotar_constante(cmd, constantes):
+    """Lleva en `constantes` lo último que la página puso en cada variable
+    cuando fue una constante, y olvida la variable si la escribió de otra
+    manera. No mira las ramas: es para `_destino_recordado`, que sólo lo usa
+    para anotar un destino del audio."""
+    p = cmd.parameters
+    if cmd.code == CONTROL_VARS and len(p) >= 7:
+        desde, hasta = (p[1], p[1]) if p[0] == 0 else (p[1], p[2])
+        for numero in range(desde, hasta + 1):
+            constantes.pop(numero, None)
+        if p[0] == 0 and p[3] == VAR_PONER and p[4] == VAR_CONSTANTE:
+            constantes[p[1]] = p[5]
+    elif cmd.code in (MEMORIZE_LOCATION, KEY_INPUT_PROC, STORE_TERRAIN_ID) \
+            and p:
+        for numero in (p[:3] if cmd.code == MEMORIZE_LOCATION
+                       else p[3:4] if cmd.code == STORE_TERRAIN_ID else p[:1]):
+            constantes.pop(numero, None)
+
+
+def _destino_recordado(cmd, constantes, temas, indice_de_mapa):
+    """El id de RM2k del mapa al que salta un `RecallToLocation`, si la
+    página lo puso con una constante antes —los pisos que se rompen cargan el
+    61 o el 60 en la variable, y enseguida saltan—, o None.
+
+    Lo que se sabe se anota como destino del mapa en `temas`, igual que un
+    `Teleport`: es de donde sale qué tema puede venir sonando al llegar. Lo
+    que no se sabe —la vuelta de un tutorial, que salta a lo que recordó otra
+    página— no se anota, y es lo único que el audio no ve: el tema que llegue
+    así tiene que estar en el paquete del destino por otro camino. En el
+    juego es el tutorial del droide volviendo al 48 con el tema con el que
+    salió de ahí."""
+    destino = constantes.get(cmd.parameters[0]) if cmd.parameters else None
+    if destino is not None and temas is not None:
+        indice = indice_de_mapa(destino)
+        if indice is not None:
+            temas.destino(indice)
+    return destino
+
+
 # Lo que corta un `PlayBGM` de salida antes del salto: ramas, elecciones,
 # peleas, llamadas y lazos —con ellos, lo que sigue ya no es una sola línea—.
 # Los efectos también, pero ésos se ven en `Temas.pedidos`, que cuenta
@@ -3512,7 +3585,9 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
 CORTAN_LA_SALIDA = frozenset((
     COND_RAMA, COND_SINO, COND_FIN, SHOW_CHOICE, SHOW_CHOICE_OPTION,
     SHOW_CHOICE_END, ENEMY_ENCOUNTER, END_BATTLE, CALL_EVENT, SHOW_INN,
-    INN_STAY, INN_NO_STAY, INN_END) + BATALLA_HANDLERS
+    INN_STAY, INN_NO_STAY, INN_END,
+    # Un salto que no siempre se sabe adónde va: se toma como que no se va.
+    RECALL_TO_LOCATION, PLAY_MEMORIZED_BGM) + BATALLA_HANDLERS
     # Label, JumpToLabel, Loop, BreakLoop, EndLoop y EndEventProcessing.
     + (12110, 12120, 12210, 12220, 22210, 12310))
 
@@ -4087,6 +4162,28 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             temas.destino(destino)
         return bytes([OP_TELEPORT, destino & 0xFF, destino >> 8,
                       p[1] & 0xFF, p[1] >> 8, p[2] & 0xFF, p[2] >> 8])
+
+    if cmd.code == MEMORIZE_LOCATION:
+        if len(p) < 3:
+            raise NoSePuede("MemorizeLocation sin sus tres variables")
+        modo = 0
+        for bit, numero in zip(LUGAR_REFRESCOS, p[:3]):
+            if escritura_pide_refresco(numero, eventos_mapa):
+                modo |= bit
+        return bytes([OP_LOCATION, modo]
+                     + [ranura_de_variable(n) for n in p[:3]])
+
+    if cmd.code == RECALL_TO_LOCATION:
+        if len(p) < 3:
+            raise NoSePuede("RecallToLocation sin sus tres variables")
+        return bytes([OP_LOCATION, LUGAR_SALTAR]
+                     + [ranura_de_variable(n) for n in p[:3]])
+
+    if cmd.code in (MEMORIZE_BGM, PLAY_MEMORIZED_BGM):
+        # Sin registro de temas se acepta y no se hace, como `PlayBGM`.
+        if temas is None:
+            return b""
+        return bytes([OP_MEMORIZED_BGM, int(cmd.code == PLAY_MEMORIZED_BGM)])
 
     if cmd.code == CHANGE_PARTY_MEMBERS:
         if len(p) < 3 or p[1] != GRUPO_ID_FIJO:

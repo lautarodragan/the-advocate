@@ -1,0 +1,12 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [3, 41, 56]},
+    {"code": "Wait", "parameters": [3]},
+    {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "evilrhys"},
+    {"code": "Wait", "parameters": [3]},
+    {"code": "MemorizeBGM", "parameters": []},
+    {"code": "Wait", "parameters": [30]},
+    {"code": "PlayMemorizedBGM", "parameters": []},
+    {"code": "Wait", "parameters": [10]}
+  ]
+}

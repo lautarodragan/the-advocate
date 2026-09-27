@@ -422,3 +422,20 @@ args = [
 name = "OP_GAME_OVER"
 code = 0x2D
 args = []
+
+[[opcode]]
+name = "OP_LOCATION"
+code = 0x2E
+args = [
+  { name = "mode", type = "byte" },
+  { name = "map_slot", type = "byte" },
+  { name = "x_slot", type = "byte" },
+  { name = "y_slot", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_MEMORIZED_BGM"
+code = 0x2F
+args = [
+  { name = "play", type = "byte" },
+]
