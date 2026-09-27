@@ -304,6 +304,15 @@ SE_ENTEROS_PAGADOS |= {
     "Explosion4", "Glass", "Holy5",
 }
 
+# Y Annihilation2, del 2026-09-27: el golpe de la carrera cuando el volante
+# quiere salirse de los carriles, y el del final del puente. Está en los
+# paquetes de las tres vueltas y del puente, y sonaba recortado y con bucle. A 8 kHz es lo más alto que entra sin bajarle a
+# ningún instrumento y sin que los efectos del 49 dejen de entrar al lado de
+# `golden_axe-turtlevillage2`, que puede venir sonando desde Lashe City: a 11
+# kHz ya esperan al `PlayBGM`. Medido con el reparto de `release` antes y
+# después.
+SE_ENTEROS.update({"Annihilation2": 8000})
+
 # Los alias por mapa: (nombre en RM2k, id del mapa) -> la muestra que suena
 # ahí. Los pone `_compilar`, en tools/port/eventos.py. Cada uno es un efecto
 # más, pero no una entrada más del directorio: comparte lugar con los de los
