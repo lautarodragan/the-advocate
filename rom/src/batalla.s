@@ -244,6 +244,46 @@ no:
     rts
 .endproc
 
+; El `sp_cost` del arma que tiene puesta el actor de `BA_S0`, en A8, o cero:
+; `batalla.sp_del_arma`. El arma es la ranura 0 de `FAR_EQUIPO`, que se lee
+; derecho porque la pelea corre con el banco de datos en $7E, y el costo sale
+; de `item_sp`, que es cero para lo que no es un arma. Se lleva X y `BA_T0`.
+.proc ba_sp_del_arma
+.a8
+.i16
+    rep #$20
+.a16
+    lda BA_S0
+    and #$00FF
+    asl a
+    sta BA_T0
+    asl a
+    asl a
+    clc
+    adc BA_T0                   ; el actor por diez: cinco ranuras de dos
+    tax
+    lda FAR_EQUIPO, x
+    beq nada
+    cmp #ITEMS_N
+    bcs nada
+    tax
+    sep #$20
+.a8
+    lda f:item_k, x
+    cmp #$FF
+    beq nada8                   ; un ítem que el cartucho no lleva
+    jsr ba_ax
+    lda f:item_sp, x
+    rts
+.a16
+nada:
+    sep #$20
+.a8
+nada8:
+    lda #0
+    rts
+.endproc
+
 .proc ba_armar
 .a8
 .i16
@@ -407,6 +447,14 @@ con_actor:
     sta BA_UNO + BA_MAGI, x
     sep #$20
 .a8
+    ; Y lo que le cuesta atacar, que en el equipo no cambia mientras dura la
+    ; pelea: `batalla.sp_del_arma`.
+    jsr ba_sp_del_arma
+    pha
+    lda BA_S1
+    jsr ba_ax
+    pla
+    sta f:BA_ARMA_SP, x
     inc BA_NACT
 siguiente_actor:
     inc BA_S1
@@ -535,10 +583,10 @@ hay_ranura_ene:
     sta BA_UNO + BA_NUMERO, x
     lda #BAF_HAY
     sta BA_UNO + BA_FLAGS, x
-    ; Lo de las habilidades: los SP, el espíritu y las cuatro bases. Un enemigo
-    ; de este port no usa ninguna —`CreateEnemyActions` sólo le da el ataque
-    ; básico— pero **las recibe**: Mental Hack le baja la defensa y el
-    ; espíritu, y para eso hacen falta la base y el modificador.
+    ; Lo de las habilidades: los SP, el espíritu y las cuatro bases. Las usa
+    ; —desde el 2026-09-27, ver `ba_accion_enemiga`— y **las recibe**: Mental
+    ; Hack le baja la defensa y el espíritu, y para eso hacen falta la base y
+    ; el modificador.
     rep #$20
 .a16
     lda BA_S0
@@ -589,6 +637,30 @@ tropa_lista:
 .proc ba_atacar
 .a8
 .i16
+    ; `Normal::vStart`: el SP del arma, antes que nada y sin tirar, aunque
+    ; después falle. Con los SP en cero se ataca igual —RM2k no pone en gris
+    ; el `Attack`— y quedan en cero. Un enemigo no lleva arma.
+    lda BA_MQUIEN
+    cmp #BA_GRUPO_MAX
+    bcs sin_arma
+    jsr ba_ax
+    lda f:BA_ARMA_SP, x
+    sta BA_T2
+    stz BA_T2 + 1
+    lda BA_MQUIEN
+    jsr ba_x
+    rep #$20
+.a16
+    lda BA_UNO + BA_SP, x
+    sec
+    sbc BA_T2
+    bpl sp_cobrado
+    lda #0
+sp_cobrado:
+    sta BA_UNO + BA_SP, x
+    sep #$20
+.a8
+sin_arma:
     lda BA_MQUIEN
     jsr ba_x
     rep #$20
@@ -773,14 +845,21 @@ hp_listo:
 
 ; --- el turno -------------------------------------------------------------
 
-; Las acciones de los enemigos: cada uno vivo ataca a un actor vivo al azar.
-; Es `CreateEnemyActions`, con la única acción que los enemigos de las dos
-; peleas de la intro tienen —"básica: atacar"—. **Un tiro por enemigo**, y va
-; antes del orden de ejecución, que es como lo llama `SelectNextActor`.
+; Las acciones de los enemigos: `CreateEnemyActions`. Cada uno vivo elige qué
+; hacer —`ba_accion_enemiga`— y después contra quién, que es el orden de
+; `MakeAttack` y `MakeSkillAction` y el contrato con
+; `batalla.acciones_de_los_enemigos`:
 ;
-; Si no queda ningún actor vivo se corta y los enemigos que faltaban se quedan
-; sin acción, que es el `break` de `batalla.acciones_de_los_enemigos`: sin eso
-; los dos lados tirarían distinta cantidad de veces.
+; * atacar, o una habilidad de alcance `enemy`: un actor vivo al azar, **un
+;   tiro**;
+; * una de alcance `ally`: un enemigo vivo al azar, **un tiro**;
+; * `self`, `enemies` y `party`: sin tiro. Se anota al que la usa, y el
+;   alcance decide sobre quiénes cae: ver `ba_hab_usar`.
+;
+; Va antes del orden de ejecución, que es como lo llama `SelectNextActor`. Si
+; no queda ningún actor vivo se corta y los enemigos que faltaban se quedan
+; sin acción, que es el `break` del modelo: sin eso los dos lados tirarían
+; distinta cantidad de veces.
 .proc ba_acciones_enemigas
 .a8
 .i16
@@ -789,32 +868,42 @@ hp_listo:
 otro:
     lda BA_S0
     cmp #BA_COMB_MAX
-    bcs listo
+    bcc sigue
+    rts
+sigue:
     lda BA_S0
     jsr ba_vivo
-    beq siguiente
+    bne vive
+    jmp siguiente
+vive:
     ; Los actores vivos, en una lista, para elegir uno.
     lda #0
-    sta BA_S1                   ; cuántos hay
-    sta BA_S2
-busca:
-    lda BA_S2
-    cmp #BA_GRUPO_MAX
-    bcs buscados
-    lda BA_S2
-    jsr ba_vivo
-    beq no_vive
+    jsr ba_vivos_del_lado
     lda BA_S1
+    bne hay_actores
+    rts                         ; no queda nadie a quien pegarle
+hay_actores:
+    lda BA_S0
+    jsr ba_accion_enemiga
+    sta BA_T1                   ; la acción: un `k`, o atacar, o nada
+    cmp #BA_EACC_NADA
+    bne con_accion
+    jmp siguiente
+con_accion:
+    cmp #BA_EACC_ATACAR
+    beq a_un_actor
     jsr ba_ax
-    lda BA_S2
-    sta BA_CAND, x
-    inc BA_S1
-no_vive:
-    inc BA_S2
-    bra busca
-buscados:
-    lda BA_S1
-    beq listo                   ; no queda nadie a quien pegarle
+    lda f:hab_alcance, x
+    cmp #BA_ALCANCE_ENEMIGO
+    beq a_un_actor
+    cmp #BA_ALCANCE_ALIADO
+    beq a_uno_suyo
+    lda BA_S0                   ; `self`, `enemies`, `party`: el que la usa
+    bra anotar
+a_uno_suyo:
+    lda #BA_GRUPO_MAX
+    jsr ba_vivos_del_lado
+a_un_actor:
     rep #$20
 .a16
     lda BA_S1
@@ -825,11 +914,23 @@ buscados:
     sep #$20
 .a8
     lda BA_CAND, x
+anotar:
     sta BA_T0                   ; el blanco elegido
+    lda BA_S0
+    jsr ba_ax
+    lda BA_T1
+    sta BA_ACC_HAB, x           ; el `k`, que `ba_hab_usar` lee de acá
     lda BA_S0
     asl a
     jsr ba_ax                   ; dos bytes de acción por combatiente
+    lda BA_T1
+    cmp #BA_EACC_ATACAR
+    beq es_ataque
+    lda #BA_HABILIDAD
+    bra orden_lista
+es_ataque:
     lda #BA_ATACAR
+orden_lista:
     sta BA_ACC, x
     lda BA_T0
     sta BA_ACC + 1, x
@@ -840,8 +941,194 @@ buscados:
     inc BA_NACC
 siguiente:
     inc BA_S0
-    bra otro
+    jmp otro
+.endproc
+
+; Los vivos de un lado —A8 = 0 el grupo, `BA_GRUPO_MAX` la tropa— en
+; `BA_CAND`, y cuántos en `BA_S1`. Se lleva `BA_S2`, A y X.
+.proc ba_vivos_del_lado
+.a8
+.i16
+    sta BA_S2
+    clc
+    adc #BA_GRUPO_MAX           ; el grupo son cuatro lugares
+    cmp #BA_GRUPO_MAX + 1
+    bcc tope_listo
+    lda #BA_COMB_MAX            ; y la tropa, ocho
+tope_listo:
+    sta BA_S2 + 1
+    stz BA_S1
+busca:
+    lda BA_S2
+    cmp BA_S2 + 1
+    bcs listo
+    jsr ba_vivo
+    beq no_vive
+    lda BA_S1
+    jsr ba_ax
+    lda BA_S2
+    sta BA_CAND, x
+    inc BA_S1
+no_vive:
+    inc BA_S2
+    bra busca
 listo:
+    rts
+.endproc
+
+; Qué hace el enemigo A8: `batalla.accion_del_enemigo`, que es
+; `SelectEnemyAiActionRpgRtCompat` con su lista de `eacc_*`. Contesta en A8 el
+; `k` de la habilidad, `BA_EACC_ATACAR` o `BA_EACC_NADA`.
+;
+; 1. Posibles son el ataque y las habilidades que le alcanzan los SP.
+; 2. Cada posible pesa `max(0, rating - máximo + 10)`, y cero la que no es
+;    efectiva —el bit 7 de `eacc_peso`—, que igual cuenta para el máximo.
+; 3. **Con una sola de peso no se tira**; con más, `rand(0, suma - 1)` y se
+;    elige por pesos en el orden de la lista.
+;
+; Los pesos van en `BA_HAB_LISTA`, que es de la pantalla de elegir una
+; habilidad y se rehace cada vez que se abre: acá las órdenes ya están dadas.
+; Se lleva `BA_S3` a `BA_S6`, `BA_T0`, `BA_T2`, A y X; `BA_S0` y `BA_S1` no.
+.assert ACCIONES_MAX <= BA_HAB_MAX, error, "las acciones de un enemigo no entran en BA_HAB_LISTA"
+.proc ba_accion_enemiga
+.a8
+.i16
+    ; --- cuál enemigo de las tablas es: `tropa_miembro` de su lugar ---
+    sta BA_S3
+    jsr ba_x
+    lda BA_UNO + BA_NUMERO, x
+    sta BA_T0                   ; su lugar en la tropa
+    rep #$20
+.a16
+    lda BA_UNO + BA_SP, x
+    sta BA_S4                   ; los SP que le quedan
+    sep #$20
+.a8
+    lda BA_TROPA_K
+    jsr ba_ax
+    lda f:tropa_ini, x
+    clc
+    adc BA_T0
+    jsr ba_ax
+    lda f:tropa_miembro, x
+    jsr ba_ax
+    lda f:enemigo_acc_n, x
+    sta BA_S5                   ; cuántas acciones
+    lda f:enemigo_acc_ini, x
+    sta BA_S5 + 1               ; dónde arrancan
+    ; --- 1: las posibles, con su peso crudo, y el máximo ---
+    stz BA_S6                   ; el máximo
+    stz BA_T2                   ; por cuál va
+posibles:
+    lda BA_T2
+    cmp BA_S5
+    bcs vistas
+    clc
+    adc BA_S5 + 1
+    jsr ba_ax
+    lda f:eacc_peso, x
+    sta BA_T0
+    lda f:eacc_hab, x
+    cmp #BA_EACC_ATACAR
+    beq posible
+    jsr ba_hab_costo            ; ¿le alcanzan los SP?
+    sta BA_T0 + 1
+    rep #$20
+.a16
+    lda BA_T0 + 1
+    and #$00FF
+    cmp BA_S4
+    sep #$20
+.a8
+    beq posible
+    bcc posible
+    stz BA_T0                   ; no le alcanzan: pesa cero
+    bra anotar_peso
+posible:
+    lda BA_T0
+    and #$7F
+    cmp BA_S6
+    bcc anotar_peso
+    sta BA_S6
+anotar_peso:
+    lda BA_T2
+    jsr ba_ax
+    lda BA_T0
+    sta BA_HAB_LISTA, x
+    inc BA_T2
+    bra posibles
+vistas:
+    ; --- 2: los pesos de verdad, la suma, cuántas y la última ---
+    stz BA_S4                   ; la suma
+    stz BA_S4 + 1               ; cuántas pesan
+    stz BA_T2
+pesos:
+    lda BA_T2
+    cmp BA_S5
+    bcs pesadas
+    jsr ba_ax
+    lda BA_HAB_LISTA, x
+    beq sin_peso                ; imposible
+    bmi sin_peso8               ; no es efectiva
+    clc
+    adc #10
+    sec
+    sbc BA_S6                   ; rating + 10 - máximo, que no baja de 10 - 127
+    bmi sin_peso8
+    beq sin_peso8
+    sta BA_HAB_LISTA, x
+    clc
+    adc BA_S4
+    sta BA_S4
+    inc BA_S4 + 1
+    lda BA_T2
+    sta BA_S3 + 1               ; la última que pesa
+    bra siguiente_peso
+sin_peso8:
+    lda #0
+    sta BA_HAB_LISTA, x
+sin_peso:
+siguiente_peso:
+    inc BA_T2
+    bra pesos
+pesadas:
+    lda BA_S4 + 1
+    bne alguna
+    lda #BA_EACC_NADA
+    rts
+alguna:
+    cmp #1
+    beq elegida                 ; una sola: no se tira
+    ; --- 3: por pesos ---
+    rep #$20
+.a16
+    lda BA_S4
+    and #$00FF
+    dec a
+    jsr ba_hasta
+    sep #$20
+.a8
+    sta BA_T0                   ; `which`, menor que la suma
+    stz BA_T2
+por_peso:
+    lda BA_T2
+    jsr ba_ax
+    lda BA_T0
+    sec
+    sbc BA_HAB_LISTA, x
+    bcc cae_aca                 ; `which` quedó negativo
+    sta BA_T0
+    inc BA_T2
+    bra por_peso
+cae_aca:
+    lda BA_T2
+    sta BA_S3 + 1
+elegida:
+    lda BA_S3 + 1
+    clc
+    adc BA_S5 + 1
+    jsr ba_ax
+    lda f:eacc_hab, x
     rts
 .endproc
 

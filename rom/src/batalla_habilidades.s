@@ -472,6 +472,72 @@ sp_ok:
 .a8
     jmp ba_switch
 no_es_switch:
+    ; --- sobre quiénes: `batalla.blancos_de_la_habilidad` ---
+    ;
+    ; `enemy` y `ally` sobre el que se eligió, `self` sobre el que la usa, y
+    ; `enemies` y `party` sobre cada vivo del lado contrario o del propio, en
+    ; el orden de la pantalla y **cada uno con sus tiros**. Al mensaje le
+    ; queda el último.
+    lda BA_MHAB
+    jsr ba_ax
+    lda f:hab_alcance, x
+    cmp #BA_ALCANCE_UNO
+    bne no_es_uno
+    lda BA_MQUIEN
+    sta BA_MBLA
+    jmp ba_hab_uno
+no_es_uno:
+    cmp #BA_ALCANCE_ENEMIGOS
+    beq de_a_muchos
+    cmp #BA_ALCANCE_GRUPO
+    beq de_a_muchos
+    jmp ba_hab_uno
+de_a_muchos:
+    ; El lado: el contrario con `enemies`, el propio con `party`. Que la
+    ; fuente sea del grupo es `BA_MQUIEN < BA_GRUPO_MAX`.
+    ldy #0                      ; 0 el grupo, 1 la tropa
+    lda BA_MQUIEN
+    cmp #BA_GRUPO_MAX
+    bcc del_grupo
+    iny
+del_grupo:
+    lda f:hab_alcance, x
+    cmp #BA_ALCANCE_ENEMIGOS
+    bne lado_listo
+    tya
+    eor #1
+    tay
+lado_listo:
+    lda #0
+    cpy #0
+    beq primero_listo
+    lda #BA_GRUPO_MAX
+primero_listo:
+    sta f:BA_HAB_I
+otro_blanco:
+    lda f:BA_HAB_I
+    jsr ba_vivo
+    beq no_cae
+    lda f:BA_HAB_I
+    sta BA_MBLA
+    jsr ba_hab_uno
+no_cae:
+    lda f:BA_HAB_I
+    inc a
+    sta f:BA_HAB_I
+    cmp #BA_GRUPO_MAX
+    beq listos                  ; el grupo termina donde empieza la tropa
+    cmp #BA_COMB_MAX
+    bcc otro_blanco
+listos:
+    rts
+.endproc
+
+; `vExecute` sobre el blanco `BA_MBLA`: el efecto, la varianza y los tiros
+; del acierto. Lo llama `ba_hab_usar`, una vez o una por blanco.
+.proc ba_hab_uno
+.a8
+.i16
     jsr ba_hab_efecto
     ; la varianza, con el `variance` de la habilidad
     lda BA_MHAB

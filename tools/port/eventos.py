@@ -2452,9 +2452,56 @@ def variables_de_comandos(comandos):
 
 COMUNES = {}            # evento común de RM2k -> sus comandos
 
+# **Los eventos comunes paralelos que sólo miran el equipo**: switch -> el
+# evento común. Es el camino a medida del hito 4 de Lashe City, y en el juego
+# hay uno solo: el 37, `UpdateAG7 Skills`, paralelo con el switch 150, que le
+# saca a AG7-17 sus diecisiete habilidades y le da la de cada pieza que tiene
+# puesta.
+#
+# La ROM no corre eventos comunes paralelos. Hacerlos de verdad —un
+# intérprete más, que corra el cuerpo **en cada cuadro** mientras el switch
+# esté prendido— es lo general, y se midió el 2026-09-27 contra esto (ver
+# `workflow/tasks/*/lashe-4-ag7-en-la-pelea.md`): lo que lo descartó no fue el
+# costo sino que prendería, además, al 2 (`DisableSaving`, paralelo **sin
+# switch**, que apaga el guardado cada vez que el 236 está apagado), al 3 y al
+# 8, y eso cambia `release` mucho más allá de este hito.
+#
+# Un paralelo que sólo lee su switch y el equipo, y sólo escribe habilidades,
+# da el mismo resultado en todos los cuadros hasta que cambia alguna de esas
+# dos cosas, y de nadie más que de él depende lo que escribe. Así que alcanza
+# con correrlo **cuando cambian**: al prenderse el switch —el conversor pega
+# el cuerpo detrás del `ControlSwitches` que lo prende, como un `CallEvent`— y
+# al cerrar el menú, que es donde se cambia el equipo —la ROM lo corre desde
+# `menu_pantalla`, ver `comunes_del_equipo` en rom/src/equipo_desde_eventos.s—.
+# Es lo que dice el tutorial del droide: "these abilities become available
+# once you equip a particular component and exit the menu".
+#
+# Lo que queda afuera: un `ChangeEquipment` de una página sobre el actor que
+# el evento mira no lo vuelve a correr. En el juego no hay ninguno sobre el 18.
+COMUNES_DEL_EQUIPO = {}
+# El `trigger` de `rpg::CommonEvent` que corre en paralelo.
+COMUN_PARALELO = 4
+# El fin de un bloque de comandos: el renglón vacío que cierra cada rama.
+FIN_DE_BLOQUE = 10
+
+
+def es_comun_del_equipo(trigger, comandos):
+    """Si un evento común es de los de `COMUNES_DEL_EQUIPO`: paralelo, con
+    switch, y sin más que `ChangeSkills` y ramas por el equipo de un actor
+    —con su `else`, su cierre y los fines de bloque—."""
+    tipo, con_switch, _switch = trigger
+    permitidos = (CHANGE_SKILLS, COND_RAMA, COND_SINO, COND_FIN,
+                  FIN_DE_BLOQUE)
+    return (tipo == COMUN_PARALELO and con_switch and comandos
+            and all(c.code in permitidos for c in comandos)
+            and all(c.parameters[:1] == [COND_ACTOR]
+                    and c.parameters[2:3] == [COND_ACTOR_EQUIPO]
+                    for c in comandos if c.code == COND_RAMA))
+
 
 def indexar_comunes(game_dir):
-    """Deja en `COMUNES` los comandos de cada evento común.
+    """Deja en `COMUNES` los comandos de cada evento común, y en
+    `COMUNES_DEL_EQUIPO` los que son de ésos.
 
     Lo llaman el conversor y las pruebas que compilan páginas antes de compilar
     nada, igual que `indexar_variables`: `CallEvent` los compila en el lugar,
@@ -2463,7 +2510,24 @@ def indexar_comunes(game_dir):
     db = base_de_datos(game_dir)
     COMUNES.clear()
     COMUNES.update(db.common_events)
+    COMUNES_DEL_EQUIPO.clear()
+    for numero, trigger in sorted(db.common_event_triggers.items()):
+        if es_comun_del_equipo(trigger, db.common_events.get(numero)):
+            COMUNES_DEL_EQUIPO[trigger[2]] = numero
     return COMUNES
+
+
+def compilar_comun_del_equipo(numero):
+    """El cuerpo de un evento común de `COMUNES_DEL_EQUIPO` como página
+    suelta, con su `OP_DONE`: lo que la ROM corre al cerrar el menú. No
+    necesita mapa ni textos —no los usa—, y si no compila es un error del
+    conversor: `es_comun_del_equipo` sólo deja pasar lo que compila siempre.
+    """
+    codigo = compilar_pagina(_Comandos(COMUNES[numero]), lambda _m: None)
+    if codigo is None:
+        raise SystemExit("el evento común %d es de los del equipo y no "
+                         "compila" % numero)
+    return codigo
 
 
 # Lo que las dos preguntas de actor de `ConditionalBranch` necesitan saber del
@@ -3536,6 +3600,14 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                             and destino != eventos_mapa.map_id:
                         eventos_mapa = eventos_mapa.afuera()
                 _anotar_constante(cmd, constantes)
+                # El switch de un evento común del equipo, prendido: su cuerpo
+                # va acá mismo, como si le siguiera un `CallEvent`. En RM2k
+                # correría en el cuadro que viene; ver `COMUNES_DEL_EQUIPO`.
+                for numero in _comunes_que_prende(cmd):
+                    pieza += compilar_pagina(
+                        _Comandos(COMUNES[numero]), indice_de_mapa, mensajes,
+                        eventos_mapa, temas, graficos, imagenes, tropas,
+                        base=largo + len(pieza), hondo=hondo + 1) or b""
             if temas is not None:
                 _seguir_la_salida(cmd, bgm, temas, indice_de_mapa,
                                   temas.pedidos != pedidos)
@@ -3562,6 +3634,16 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
         if mensajes is not None:
             mensajes.volver(marca)
         return None
+
+
+def _comunes_que_prende(cmd):
+    """Los eventos de `COMUNES_DEL_EQUIPO` cuyo switch prende este comando."""
+    p = cmd.parameters
+    if cmd.code != CONTROL_SWITCHES or len(p) < 4 or p[3] != SWITCH_ON \
+            or p[0] not in (SWITCH_UNICO, SWITCH_RANGO):
+        return []
+    return [numero for switch, numero in sorted(COMUNES_DEL_EQUIPO.items())
+            if p[1] <= switch <= p[2]]
 
 
 def _anotar_constante(cmd, constantes):

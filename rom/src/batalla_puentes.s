@@ -134,6 +134,12 @@ ba_t_armar:
     plb
     rtl
 
+; `correr_codigo` para quien vive afuera del banco 0 y ya puso el contexto:
+; `comunes_del_equipo`, en equipo_desde_eventos.s.
+correr_codigo_largo:
+    jsr correr_codigo
+    rtl
+
 ; Un tramo de la página de tropa que la pelea tiene a medio correr: hasta que
 ; pide un mensaje o termina. Es `Game_Interpreter_Battle`, y **es el mismo
 ; intérprete de los mapas**, `correr_codigo`: lo que cambia es de dónde sale el

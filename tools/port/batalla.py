@@ -21,7 +21,10 @@ easyrpg-player, que está clonado en `/extras/ref`, y cada uno dice de dónde:
                                 VarianceAdjustEffect
     src/game_battlealgorithm.cpp  Skill::vStart, Skill::vExecute
     src/game_battler.cpp        CanChangeAtkModifier y sus hermanas, AdjustParam
-    src/game_actor.cpp          LearnSkill, LearnLevelSkills
+    src/game_actor.cpp          LearnSkill, LearnLevelSkills,
+                                CalculateWeaponSpCost
+    src/enemyai.cpp             SelectEnemyAiActionRpgRtCompat, MakeSkillAction,
+                                IsSkillEffectiveOn
 
 Tres cosas **no** son de RM2k, y las tres son a propósito:
 
@@ -171,26 +174,121 @@ def habilidad_usable(skill):
 
     * el tipo tiene que ser `normal` o `switch`. `teleport` y `escape` no
       existen acá, y `subskill` es de RM2k3;
-    * el alcance tiene que ser **de a uno**: `enemy` o `ally`, salvo en una de
-      switch, que no pide blanco. Los de a muchos
-      —`enemies`, `party`, `self`— pedirían repetir el efecto sobre cada
-      blanco, y con eso el orden del azar de los dos lados;
     * y el costo tiene que entrar en dos cifras, que es lo que la lista
       escribe. Ninguna del juego llega a 100.
 
-    De las siete que el grupo de la intro sabe **no se cae ninguna**. En un
-    cartucho con más actores sí: `Gamble for Credits`, la única de Arden, tiene
-    alcance `enemies` y queda afuera, y por eso Arden aparece sin ninguna.
+    **Los cinco alcances entran desde el 2026-09-27** —el hito 4 de Lashe
+    City: taro pidió que AG7 no perdiera ninguna de sus habilidades—. Los de a
+    muchos, `enemies` y `party`, repiten el efecto sobre cada blanco vivo del
+    lado, en el orden de la pantalla, y `self` es el que la usa: ver
+    `Batalla.blancos_de_la_habilidad`. Hasta ese día quedaban afuera, y con
+    ellos `Gamble for Credits`, la única de Arden.
     """
     from rpgmaker import lcf
-    if skill.type == lcf.SKILL_TIPO_SWITCH:
-        # Una de switch no pide blanco —ver `jugar_turno`—, así que su alcance
-        # no importa. Son 6 de las 52 del juego las que no son de a uno.
-        return skill.sp_cost <= 99
-    return (skill.type == lcf.SKILL_TIPO_NORMAL
-            and skill.scope in (lcf.SKILL_SCOPE_ENEMIGO,
-                                lcf.SKILL_SCOPE_ALIADO)
+    return (skill.type in (lcf.SKILL_TIPO_NORMAL, lcf.SKILL_TIPO_SWITCH)
             and skill.sp_cost <= 99)
+
+
+def pide_blanco(skill):
+    """Si al elegirla el menú pide a quién: sólo las de a uno —`enemy` y
+    `ally`— y que no sean de switch, que `Scene_Battle::AssignSkill` anota
+    sobre el que la usa. Las de a muchos y `self` tampoco: su blanco lo
+    decide el alcance."""
+    from rpgmaker import lcf
+    return (skill.type != lcf.SKILL_TIPO_SWITCH
+            and skill.scope in (lcf.SKILL_SCOPE_ENEMIGO,
+                                lcf.SKILL_SCOPE_ALIADO))
+
+
+def habilidad_efectiva_sola(skill):
+    """`EnemyAi::IsSkillEffectiveOn` para un blanco vivo, sin estados.
+
+    Una que apunta a enemigos siempre lo es; una que apunta al propio bando,
+    sólo si toca algo que exista acá: HP, SP o alguno de los cuatro
+    parámetros. Las que sólo curan o ponen estados —`RemoveStatus`, de AG7—
+    no hacen nada sobre nadie, porque no hay estados, y la IA del enemigo las
+    descarta.
+
+    No depende del blanco porque un vivo sin estados es igual a cualquier
+    otro: por eso lo contesta el conversor y la ROM no lo mira.
+    """
+    return (skill.apunta_a_enemigos
+            or any((skill.affect_hp, skill.affect_sp, skill.affect_attack,
+                    skill.affect_defense, skill.affect_spirit,
+                    skill.affect_agility)))
+
+
+# Lo que un enemigo puede hacer: `lcf::rpg::EnemyAction`, de a uno por renglón
+# de su lista del LDB, como `(rating, habilidad, efectiva)`. La habilidad es
+# el `lcf.Skill` o None para el ataque básico; `efectiva` es
+# `habilidad_efectiva_sola`, que la IA mira **después** de sacar el máximo.
+ACCION_KIND_BASICA, ACCION_KIND_HABILIDAD = 0, 1
+ACCION_BASICA_ATACAR = 0
+ACCION_CONDICION_SIEMPRE = 0
+# Cuántas acciones puede traer un enemigo: la ROM las pesa en `BA_HAB_LISTA`,
+# que mide eso. El conversor corta si alguno trae más.
+ACCIONES_MAX = 16
+# El rating de la acción que se pone cuando al enemigo no le queda ninguna:
+# con una sola da igual cuál, porque no se tira nada.
+ACCION_RATING_SOLA = 50
+
+
+def acciones_de_enemigo(db, enemy_id):
+    """Las acciones del enemigo que este port sabe hacer, en el orden del LDB.
+
+    Es la lista que `EnemyAi::SelectEnemyAiActionRpgRtCompat` recorre,
+    **recortada a lo que existe acá** —y lo que se recorta, se declara—:
+
+    * el ataque básico (`kind` 0, `basic` 0) y las habilidades que la pelea
+      sabe hacer (`kind` 1, ver `habilidad_usable`), **menos las de switch**:
+      la IA les tira un blanco por su alcance y la pelea las anota sobre el
+      que las usa, así que dos caminos distintos para una sola del juego no
+      valen la pena;
+    * con la condición "siempre". Las demás —turno, HP, SP, cantidad de
+      enemigos, nivel y cansancio del grupo— no se miran: la acción sale de la
+      lista, igual que si su condición no se cumpliera;
+    * sin los switches que prende o apaga al elegirse (`switch_on`,
+      `switch_off`): ninguna del juego que el cartucho lleva los usa, y la
+      acción que los trae sale de la lista.
+
+    Lo demás —defenderse, cargar, huir, transformarse, el ataque doble— sale
+    de la lista. Si no queda ninguna, queda el ataque básico solo, que es lo
+    que la pelea hacía con todos hasta el 2026-09-27.
+    """
+    from rpgmaker import lcf
+    lista = []
+    for accion in db.enemies[enemy_id].actions:
+        if accion.condition_type != ACCION_CONDICION_SIEMPRE \
+                or accion.switch_on or accion.switch_off:
+            continue
+        if accion.kind == ACCION_KIND_BASICA \
+                and accion.basic == ACCION_BASICA_ATACAR:
+            lista.append((accion.rating, None, True))
+            continue
+        if accion.kind != ACCION_KIND_HABILIDAD:
+            continue
+        skill = db.skills.get(accion.skill_id)
+        if skill is None or skill.type != lcf.SKILL_TIPO_NORMAL \
+                or not habilidad_usable(skill):
+            continue
+        lista.append((accion.rating, skill, habilidad_efectiva_sola(skill)))
+    return lista or [(ACCION_RATING_SOLA, None, True)]
+
+
+def sp_del_arma(db, equipo):
+    """Lo que cuesta atacar con lo que tiene puesto: `CalculateWeaponSpCost`.
+
+    Es el `sp_cost` de las armas —`ForEachEquipment<true, false>`, o sea sin
+    las armaduras aunque traigan uno: el escudo NetLauncher de AG7 dice 4 y
+    no lo cobra— y `Normal::vStart` lo descuenta antes del acierto, topado en
+    cero. La única ranura con arma es la 0: la segunda arma, en la del
+    escudo, es de RM2k3. `half_sp_cost` es un estado, y no hay.
+    """
+    from rpgmaker import lcf
+    arma = db.items.get(equipo[0]) if equipo and equipo[0] else None
+    if arma is None or arma.type != lcf.ITEM_TIPO_ARMA:
+        return 0
+    return arma.sp_cost
 
 
 def habilidades_de(db, numero, nivel=None):
@@ -369,7 +467,7 @@ class Combatiente:
 
     def __init__(self, nombre, hp_max, ataque, defensa, agilidad, acierto,
                  critico=0, es_actor=True, numero=0, espiritu=0, sp_max=0,
-                 habilidades=()):
+                 habilidades=(), acciones=None, sp_arma=0):
         self.nombre = nombre
         self.hp_max = hp_max
         self.hp = hp_max
@@ -388,12 +486,18 @@ class Combatiente:
         self.critico = critico          # en por ciento, ya entero
         self.es_actor = es_actor
         self.numero = numero            # el actor del LDB, o el lugar en la tropa
-        # Los SP y lo que sabe hacer con ellos. Un enemigo de este port no usa
-        # habilidades —`CreateEnemyActions` sólo le da el ataque básico— así
-        # que su lista va vacía.
+        # Los SP y lo que sabe hacer con ellos. Las habilidades son las del
+        # menú de un actor; las de un enemigo están en `acciones`, que es su
+        # lista del LDB —ver `acciones_de_enemigo`— y la de un actor no se
+        # usa. Sin lista, ataca: es lo que hacía todo enemigo hasta el
+        # 2026-09-27.
         self.sp_max = sp_max
         self.sp = sp_max
         self.habilidades = list(habilidades)
+        self.acciones = (list(acciones) if acciones is not None
+                         else [(ACCION_RATING_SOLA, None, True)])
+        # Lo que le cuesta atacar: `sp_del_arma`. Cero para un enemigo.
+        self.sp_arma = sp_arma
         self.defendiendo = False
         self.orden = 0
 
@@ -449,7 +553,8 @@ def actor_de(db, numero, equipo=None, nivel=None):
     quien = Combatiente(actor.name, titulo.parametro_de(actor, "maxhp", nivel),
                         ataque, defensa, agilidad, 90, critico, True, numero,
                         espiritu, titulo.parametro_de(actor, "maxsp", nivel),
-                        habilidades_de(db, numero, nivel))
+                        habilidades_de(db, numero, nivel),
+                        sp_arma=sp_del_arma(db, equipo))
     return quien
 
 
@@ -472,7 +577,8 @@ def enemigo_de(db, enemy_id, lugar):
     e = db.enemies[enemy_id]
     critico = (100 // (e.critical_hit_chance or 30)) if e.critical_hit else 0
     return Combatiente(e.name, e.max_hp, e.attack, e.defense, e.agility,
-                       e.hit, critico, False, lugar, e.spirit, e.max_sp)
+                       e.hit, critico, False, lugar, e.spirit, e.max_sp,
+                       acciones=acciones_de_enemigo(db, enemy_id))
 
 
 def acierto_por_agilidad(base, agi_fuente, agi_blanco):
@@ -522,8 +628,9 @@ class Batalla:
     contrato con la ROM—:
 
     1. el jugador elige la orden de cada actor vivo (no tira azar);
-    2. cada enemigo vivo elige atacar a un actor vivo al azar
-       —`CreateEnemyActions`—: **un tiro por enemigo**;
+    2. cada enemigo vivo elige qué hacer y contra quién —`CreateEnemyActions`,
+       ver `accion_del_enemigo`—: **un tiro para la acción si tiene más de
+       una posible, y uno para el blanco si la acción lo pide**;
     3. `CreateExecutionOrder`: **un tiro por combatiente que actúa**, para su
        `agi + rand(0, agi / 4 + 3)`, y después se ordena de mayor a menor con
        un orden estable;
@@ -585,17 +692,87 @@ class Batalla:
     def vivos(self, quienes):
         return [c for c in quienes if c.vivo]
 
+    def accion_del_enemigo(self, enemigo):
+        """Qué hace este enemigo: `SelectEnemyAiActionRpgRtCompat`, con la
+        lista de `acciones_de_enemigo`. Devuelve `(rating, habilidad,
+        efectiva)` o None si no le queda ninguna posible.
+
+        1. Son posibles las que `IsActionValid` deja: el ataque siempre, una
+           habilidad si le alcanzan los SP (`IsSkillUsable`);
+        2. cada posible pesa `max(0, rating - máximo + 10)`: **con diez puntos
+           menos que la mejor, una acción no sale nunca**. Por eso de los
+           cuatro enemigos de la planta que traen `ShortCircuit` sólo la usa
+           el Tangle Wire, que la tiene en 50 como el ataque; el Scrapped
+           Droid (10), el Trash Hauler y el Junkbot (30) nunca;
+        3. y después pesa cero la que no es `efectiva` —el máximo ya se sacó
+           contándola, que es lo que hace easyrpg—;
+        4. se tira `rand(0, suma - 1)` y se elige por pesos, en el orden de la
+           lista.
+
+        **Con una sola acción de peso no se tira**, y eso no es de RM2k: es
+        la misma distribución y deja el azar de las peleas que ya estaban
+        —enemigos que sólo atacan— exactamente como era antes de que los
+        enemigos eligieran. RPG_RT tira de otro generador de todos modos.
+        """
+        pesos = [(r, s, ef) for r, s, ef in enemigo.acciones
+                 if s is None or enemigo.sp >= costo_de(s)]
+        if not pesos:
+            return None
+        maximo = max(r for r, _s, _ef in pesos)
+        pesos = [(max(0, r - maximo + 10) if ef else 0, (r, s, ef))
+                 for r, s, ef in pesos]
+        pesos = [(p, a) for p, a in pesos if p > 0]
+        if not pesos:
+            return None
+        if len(pesos) == 1:
+            return pesos[0][1]
+        cual = self.azar.hasta(sum(p for p, _a in pesos) - 1)
+        for peso, accion in pesos:
+            cual -= peso
+            if cual < 0:
+                return accion
+        raise AssertionError("no puede pasar: `cual` es menor que la suma")
+
     def acciones_de_los_enemigos(self):
-        """`CreateEnemyActions`: cada enemigo vivo ataca a un actor vivo al
-        azar. Sólo la acción "básica: atacar" —`kind` 0, `basic` 0—, que es la
-        única que tienen los enemigos de las dos peleas de la intro."""
+        """`CreateEnemyActions`: cada enemigo vivo elige su acción
+        —`accion_del_enemigo`— y después su blanco, que es el orden de
+        `MakeAttack` y `MakeSkillAction`:
+
+        * atacar, o una habilidad de alcance `enemy`: un actor vivo al azar,
+          `GetRandomActiveBattler`, **un tiro**;
+        * una de alcance `ally`: un enemigo vivo al azar —`GetRandomSkillTarget`
+          entre los que la habilidad afecta, que sin estados son todos—, **un
+          tiro**;
+        * `self`, `enemies` y `party`: sin tiro, porque el blanco lo dice el
+          alcance. Se anota el que la usa.
+
+        Si no queda ningún actor vivo se corta y los enemigos que faltaban se
+        quedan sin acción: sin eso los dos lados tirarían distinta cantidad
+        de veces."""
+        from rpgmaker import lcf
         acciones = []
         for enemigo in self.vivos(self.enemigos):
             blancos = self.vivos(self.actores)
             if not blancos:
                 break
-            blanco = blancos[self.azar.hasta(len(blancos) - 1)]
-            acciones.append((enemigo, ORDEN_ATACAR, blanco))
+            accion = self.accion_del_enemigo(enemigo)
+            if accion is None:
+                continue
+            _rating, skill, _ef = accion
+            if skill is None:
+                blanco = blancos[self.azar.hasta(len(blancos) - 1)]
+                acciones.append((enemigo, ORDEN_ATACAR, blanco))
+                continue
+            if skill.scope == lcf.SKILL_SCOPE_ENEMIGO:
+                blanco = blancos[self.azar.hasta(len(blancos) - 1)]
+            elif skill.scope == lcf.SKILL_SCOPE_ALIADO:
+                # Entre los que la habilidad afecta, que son todos los vivos:
+                # una que no es `efectiva` pesó cero y no llega acá.
+                suyos = self.vivos(self.enemigos)
+                blanco = suyos[self.azar.hasta(len(suyos) - 1)]
+            else:
+                blanco = enemigo
+            acciones.append((enemigo, ORDEN_HABILIDAD, (skill, blanco)))
         return acciones
 
     def orden_de_ejecucion(self, acciones):
@@ -610,7 +787,12 @@ class Batalla:
 
     def atacar(self, fuente, blanco):
         """Un ataque normal, con sus tres tiros. Devuelve (pegó, crítico,
-        daño)."""
+        daño).
+
+        Antes de todo, y sin tirar, cobra el SP del arma: `Normal::vStart`
+        —ver `sp_del_arma`—. Se cobra aunque el golpe falle, y con los SP en
+        cero se ataca igual: RM2k no pone en gris el `Attack`."""
+        fuente.sp = max(0, fuente.sp - fuente.sp_arma)
         acierto = acierto_por_agilidad(fuente.acierto, fuente.agilidad,
                                        blanco.agilidad)
         pego = self.azar.porciento(acierto)
@@ -641,9 +823,12 @@ class Batalla:
         5. un tiro contra el acierto **por cada cosa que la habilidad afecta**,
            en el orden HP, SP, ataque, defensa, espíritu, agilidad.
 
-        Lo que no está, y ninguna de las siete que el grupo de la intro sabe lo
-        pide: los estados, los atributos, el absorber, revivir y el `affect_sp`
-        —el tiro está igual, por el orden del azar, pero nadie lo usa—.
+        Del 3 al 5 van **una vez por blanco**: ver `blancos_de_la_habilidad`.
+
+        Lo que no está: los estados, los atributos, el absorber y revivir. De
+        las de AG7, tres tocan estados —BioWarfare, HeadButt y RemoveStatus—:
+        la primera y la última no hacen nada más que cobrar sus SP y tirar el
+        crítico, y HeadButt pega sin dejar el estado.
         """
         from rpgmaker import lcf
         fuente.sp = max(0, fuente.sp - costo_de(skill))
@@ -652,6 +837,32 @@ class Batalla:
             self.registro.append((self.turno, fuente.nombre, fuente.nombre,
                                   True, False, 0, fuente.hp))
             return
+        for uno in self.blancos_de_la_habilidad(fuente, skill, blanco):
+            self._habilidad_sobre(fuente, skill, uno)
+
+    def blancos_de_la_habilidad(self, fuente, skill, blanco):
+        """Sobre quiénes cae, en el orden en que `vExecute` los recorre:
+        `AlgorithmBase::Start` con el `party_target` del alcance, que es
+        `GetBattlers` en el orden de la pantalla salteando a los que
+        `IsTargetValid` descarta —los muertos—.
+
+        `enemy` y `ally` caen sobre el que se eligió; `self`, sobre el que la
+        usa; `enemies` y `party`, sobre cada vivo del lado contrario o del
+        propio, **cada uno con sus tiros**: el crítico, la varianza y los del
+        acierto se repiten por blanco."""
+        from rpgmaker import lcf
+        propios, contrarios = ((self.actores, self.enemigos) if fuente.es_actor
+                               else (self.enemigos, self.actores))
+        if skill.scope == lcf.SKILL_SCOPE_UNO_MISMO:
+            return [fuente]
+        if skill.scope == lcf.SKILL_SCOPE_ENEMIGOS:
+            return self.vivos(contrarios)
+        if skill.scope == lcf.SKILL_SCOPE_GRUPO:
+            return self.vivos(propios)
+        return [blanco]
+
+    def _habilidad_sobre(self, fuente, skill, blanco):
+        """`vExecute` sobre un blanco: ver `usar_habilidad`."""
         # `CalcSkillToHit`: el `hit` de la habilidad, que las siete traen en
         # 100. El camino del `failure_message == 3` no se toma —ninguna lo
         # tiene— y está declarado como lo que falta.
@@ -712,9 +923,9 @@ class Batalla:
                         else self.actores)
                 # Una de switch no pide blanco: `Scene_Battle::AssignSkill` la
                 # anota sobre el que la usa, apunte a donde apunte su `scope`.
-                from rpgmaker import lcf
-                destino = (actor if skill.type == lcf.SKILL_TIPO_SWITCH
-                           else lado[quien])
+                # Lo mismo las de a muchos y las de uno mismo, cuyo blanco lo
+                # dice el alcance: ver `blancos_de_la_habilidad`.
+                destino = lado[quien] if pide_blanco(skill) else actor
                 acciones.append((actor, orden, (skill, destino)))
                 continue
             acciones.append((actor, orden,

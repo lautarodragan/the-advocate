@@ -131,6 +131,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 
 * `rpgmaker/test_batalla.py`: HP, daño, turnos, el fin y lo que vuelve a la
   partida
+* `rpgmaker/test_ag7_y_la_planta.py`: lo que eligen los enemigos, el SP de
+  las armas, las habilidades de a muchos, y las de AG7 según sus piezas
 * `rpgmaker/test_batalla_golden.py`: la pantalla, pelear hasta el final, el
   encuentro al azar
 * `rpgmaker/test_batalla_escena_dibujo.py`: el fondo y los battlers compuestos

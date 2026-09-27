@@ -706,6 +706,10 @@ cerrar:
     stz menu_abierto
     lda boot_cuadros
     sta nmi_visto
+    ; El equipo pudo cambiar: los eventos comunes que sólo lo miran corren
+    ; ahora, con el banco de datos todavía en el 0. Ver `COMUNES_DEL_EQUIPO`
+    ; en eventos.py.
+    jsl f:comunes_del_equipo
     plb
     jsr volver_al_mapa
     rts
