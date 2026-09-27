@@ -260,8 +260,8 @@ SE_VOZ2 = 6
 #
 # El trueno de la apertura es un alias: lo que va después de la `@` es un
 # nombre aparte para la misma WAV, que `_compilar` pone sólo en el mapa 1
-# (ver `SE_DEL_MAPA`), porque el 3 también pide el trueno y ahí a 22 kHz no
-# entra.
+# (ver `SE_DEL_MAPA`), porque el 3, el 20 y el 32 también piden el trueno y
+# en el 3 a 22 kHz no entra.
 #
 # Y **sí** lo paga la música, si hace falta: taro lo eligió entero a 22 kHz
 # escuchándolo, antes de esta regla. Lo mismo los de abajo, en
@@ -278,52 +278,32 @@ SE_ENTEROS = {
 }
 SE_ENTEROS_PAGADOS = {"Thunder9@entero"}
 
-# **Los que sí paga la música**, del 2026-09-26: taro, escuchando los que no
-# entraban en lo libre, *"tengo cero dudas de que tienen que tener su
-# longitud completa (todos)"*, y la tasa, de la baja a la media como mínimo.
-# Van enteros aunque le bajen la tasa a los instrumentos de su paquete: cuánto
-# y a cuáles está en `tasks/*/efectos-de-sonido-sin-recortes.md`.
+# **Los que sí paga la música**, del 2026-09-26. taro, escuchando los que no
+# entraban en lo libre: *"tengo cero dudas de que tienen que tener su
+# longitud completa (todos)"*. Y después, con los números de subirlos a 11
+# kHz a la vista, que afectar tanto a la música no le agrada: van **enteros a
+# la tasa de siempre**, y a más sólo donde fuera gratis —no hubo ninguno: cada
+# uno está en algún paquete que limita muestras—. Los de tres cuartos de
+# segundo o menos ya sonaban enteros y no están acá.
 #
-# La media es 11.025 Hz, o 16.000 donde así se grabó para que taro eligiera
-# (los golpes de la pelea). **Donde la media no entra, 6.000**, que sigue
-# siendo entero:
-#
-# * la lluvia de la apertura: entera a 11 kHz son 31 KB, al lado de los 24 del
-#   trueno, y la música del mapa 1 no entra ni con cada muestra en `PISO`;
-# * los del mapa 3, que suman 43 KB de efectos: los cinco enteros a 11 kHz
-#   pasan de la ARAM sin música. Ahí van con un alias (`SE_DEL_MAPA`), así
-#   que en los demás paquetes siguen a la media. Cada alias es una entrada
-#   del directorio, que está lleno: le cuesta la última copia a `copias`.
-#
-# Bow2 y Holy5 están además en el 26 y el 261, llenos con los de
-# `SE_ENTEROS`: para que les entren a la media, ahí bajan Monster2, Thunder4 y
-# Buzzer1 de 22 a 16 kHz, que ya no tienen que ver con la música.
+# Enteros sí le cuestan a la música de su paquete —la lluvia al mapa 1, los
+# tres largos de la pelea al tema de batalla, los del mapa 3 a `evilrhys`—:
+# cuánto y a quién está en `tasks/*/efectos-de-sonido-sin-recortes.md`.
 SE_ENTEROS.update({
-    "Monster2": 16000, "Thunder4": 16000, "Buzzer1": 16000,
-    "Rain1": 6000,
-    "Attack2": 16000, "Damage1": 16000, "Evasion1": 16000, "Escape": 16000,
-    "Bite": 11025, "Item2": 11025, "Monster1": 11025,
-    "Thunder9": 11025, "Darkness": 11025, "Explosion4": 11025,
-    "Glass": 11025, "Switch1": 11025,
-    "Bow2": 11025, "Holy5": 11025, "Blow2": 11025,
-    "Thunder9@3": 6000, "Darkness@3": 6000, "Explosion4@3": 6000,
-    "Glass@3": 6000,
+    "Rain1": 6000, "Bite": 6000, "Item2": 6000, "Monster1": 6000,
+    "Thunder9": 6000, "Darkness": 6000, "Explosion4": 6000, "Glass": 6000,
+    "Holy5": 6000,
 })
 SE_ENTEROS_PAGADOS |= {
-    "Rain1", "Attack2", "Damage1", "Evasion1", "Escape", "Bite", "Item2",
-    "Monster1", "Thunder9", "Darkness", "Explosion4", "Glass", "Switch1",
-    "Bow2", "Holy5", "Blow2",
-    "Thunder9@3", "Darkness@3", "Explosion4@3", "Glass@3",
+    "Rain1", "Bite", "Item2", "Monster1", "Thunder9", "Darkness",
+    "Explosion4", "Glass", "Holy5",
 }
 
 # Los alias por mapa: (nombre en RM2k, id del mapa) -> la muestra que suena
-# ahí. Los pone `_compilar`, en tools/port/eventos.py.
+# ahí. Los pone `_compilar`, en tools/port/eventos.py. Cada uno es una
+# entrada más del directorio, que está lleno: le cuesta una copia a `copias`.
 SE_DEL_MAPA = {
     ("Thunder9", 1): "Thunder9@entero",
-    ("Thunder9", 3): "Thunder9@3",
-    ("Darkness", 3): "Darkness@3",
-    ("Explosion4", 3): "Explosion4@3",
-    ("Glass", 3): "Glass@3",
 }
 
 
