@@ -344,7 +344,7 @@ recién llegado, `celdas_mal_dibujadas` en cero, una pelea en el 66 que vuelve
 al mapa (es la que pisaría la mitad alta de la grilla si el LZ2 no se parte),
 y `test_carga_descomprimida` con un fondo de dos flujos.
 
-**2. Sorbe y la curación.** El reparto con la capa de encima de 256 (el 69), el
+**2. Sorbe y la curación.** (Hecho: `testing/mundo-2-sorbe.md`.) El reparto con la capa de encima de 256 (el 69), el
 `Comment` salteado, y `ChangeEncounterSteps` hecho. 69 y 76 a 84 en
 `release`; el fin de la demo pasa a la entrada de Tasgarde (66 ev13), que es
 adonde lleva el viaje de Dalia. 81,4%, banco 0 192 menos lo de

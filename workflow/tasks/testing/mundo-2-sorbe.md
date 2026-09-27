@@ -67,10 +67,27 @@ antes. Sale de `3aac634`, con el hito 1 (`testing/mundo-1-el-66-entra.md`).
   easyrpg); el evento queda esperando a que termine la página del viaje. La
   ROM hace lo mismo.
 * **La carrera** termina ahora al entrar a Sorbe Village (el 69).
+* **Al mergear `main`** (los fondos en el MSU-1) quedó en rojo
+  `test_msu_una_pelea_del_mundo_lee_su_terreno_o_el_reemplazo`: llega al 66
+  con `DummyHero` y eso ahora arranca el viaje de Dalia. Prende el 278 y pasa
+  con sus goldens intactas. Y `just techos` por los dos temas nuevos.
+* **`just cartuchos` y `just pruebas` en verde** sobre el árbol mergeado.
 
 # Espacio
 
-(al final, con el método de `AGENTS.md`)
+Medido con el método de `AGENTS.md` sobre lo que dejó `just cartuchos`, en el
+árbol mergeado con los fondos en el MSU-1:
+
+    release        81,8 %   banco 0 189 B   banco 1 ~7,9 KB   BSS 138   ZEROPAGE 4
+                   último banco de datos $71: quedan doce, del $72 al $7D
+                   textos: 117.016 B de 131.072, sobran 14.056
+    test-special   19,2 %   banco 0 1.033 B banco 1 ~9,8 KB   BSS 138   ZEROPAGE 4
+
+Contra el hito 1 (75,6 %, banco 0 261 B, banco 1 8.185 B): el banco 0 perdió
+72 bytes en `release` —las tablas de los diez mapas, más `estampar_ventana` y
+`op_encounter_steps`— y ganó 40 en `test-special`, que no suma mapas. El
+bloque de textos que el plan daba por lleno con el capítulo entero sobra con
+estos mapas.
 
 # Deuda
 
@@ -87,4 +104,17 @@ antes. Sale de `3aac634`, con el hito 1 (`testing/mundo-1-el-66-entra.md`).
 
 # Qué tiene que probar taro
 
-(al final)
+* Terminar la carrera y la despedida (con el "no" a Wick, que es el tobillo),
+  caminar a Sorbe y entrar.
+* En Sorbe: hablar con la vieja del pozo, y el guardia del camino a la montaña
+  deja pasar. Que los árboles y techos que tapan al héroe (la capa de encima,
+  en el reparto nuevo) se vean bien, y los mensajes también.
+* La montaña: los encuentros al azar, y Vago arriba. **Con el grupo de una
+  partida jugada** —la prueba la gana con los HP en 999—: ¿se le gana?
+* La curación, la historia y el cartel "Meanwhile, in Lashe City" sobre la
+  pantalla negra; la oficina; Dalia en la fábrica y la salida de abajo; el
+  transporte.
+* El viaje en auto por el mundo: sin peleas, y al llegar a Tasgarde el cartel
+  del fin sale solo y vuelve al título.
+* La tienda (79), la posada (78), el spa (77) y el alcalde (80) de Sorbe: no
+  los mira ninguna prueba.
