@@ -1918,17 +1918,7 @@ CHANGE_PBG = 11720
 # porque el intérprete no tiene dónde guardarlo: el que espera **rebobina su
 # propio cursor** y se vuelve a ejecutar cuadro a cuadro, así que no puede
 # distinguir la primera vuelta de las otras.
-# Interruptor de **medición**, apagado por defecto: acepta el `KeyInputProc`
-# sin espera, que es el volante de la persecución en auto. Existe para que el
-# número de lo que falta se vuelva a sacar con un comando —ver el `raise` de
-# `KEY_INPUT_PROC`, que tiene las dos mediciones— y para armar la ROM que taro
-# puede jugar mientras la otra mitad del arreglo no esté.
-#
-# **Una ROM armada con esto no va a la tanda**: es exactamente el camino que
-# todavía diverge de RM2k, y una golden sacada con él lo defendería. No ponerlo
-# en ninguna receta de la tanda.
-PERMITIR_TECLA_SIN_ESPERA = bool(os.environ.get("TECLA_SIN_ESPERA"))
-TECLA_ESPERA   = 0x01
+TECLA_ESPERA   = 0x01    # el bit 0 a propósito: `tecla_valor` lo lee con un `lsr`
 TECLA_DIRS     = 0x02
 TECLA_DECISION = 0x04
 TECLA_CANCELAR = 0x08
@@ -4051,7 +4041,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # —ver `BATALLA_PERDER`—, y la imagen no se dibuja. Por eso
         # `ReturntoTitleScreen`, que es lo mismo sin la imagen, cae en el mismo
         # opcode: el arranque de `release` es la pantalla de título. Lo pide
-        # el fin de la demo del mapa 36 (`parches/manual/`).
+        # el fin de la demo del mapa 64 (`parches/manual/`).
         return bytes([OP_GAME_OVER])
     if cmd.code == CHANGE_CONDITION:
         if len(p) < 3 or p[2] != 1:
@@ -4073,56 +4063,24 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # Sin ninguna tecla pedida, la forma que espera no sale nunca.
             raise NoSePuede("KeyInputProc sin ninguna tecla")
         if not p[1]:
-            # **La forma que no espera —leer el pad y seguir— está hecha de los
-            # dos lados y no se acepta**, y el número está medido: vale +5
-            # páginas del juego entero y 3 de la persecución en auto.
+            # La forma que no espera: lee lo que está apretado y la página
+            # sigue en el mismo cuadro. En el juego son cuatro páginas, el
+            # volante de la persecución en auto —`RaceController2` de los
+            # mapas 49, 51, 52 y 54—, que además le fuerza la ruta al héroe en
+            # todos los cuadros.
             #
-            # Lo que la traba no es este comando sino con qué viene: las 4
-            # páginas que la usan son el volante del auto —`RaceController2` de
-            # los mapas 49, 51, 52 y 54— y cada una, además de leer el pad,
-            # **le fuerza la ruta al héroe en todos los cuadros**. Ahí aparece
-            # una divergencia que es anterior a todo esto y que ninguna página
-            # compilada había ejercitado nunca: en la ROM una ruta forzada
-            # manda sobre el pad —el `lda ruta_i / cmp ruta_n` de `move_hero`—
-            # y en la referencia la caminata del arnés no la mira: camina por
-            # celdas enteras y sólo se frena con un mensaje abierto.
-            #
-            # Medido: con esta forma aceptada, el caso `heroe` del mapa 52 da **55,42%
-            # de pixeles distintos** caminando a la izquierda, desde el cuadro
-            # 60; las otras cuatro direcciones dan cero, y es exactamente la
-            # única que pelea contra el empujón hacia la derecha que la página
-            # le da al héroe todos los cuadros.
-            #
-            # **Medido de nuevo el 2026-09-13, con la mitad del arreglo puesta.**
-            # Desde ese día `hero_position` respeta la ruta forzada —mientras
-            # haya ruta puesta el pad no mueve, que es lo que hace `move_hero`—
-            # y con eso ese mismo caso pasa de 55,42% a **0,59%**, 248 pixeles:
-            # el auto, a unos pocos pixeles de donde lo deja la ROM. Las otras
-            # cuatro direcciones siguen en cero.
-            #
-            # Lo que falta para el cero, y por eso esto sigue sin aceptarse:
-            # cuando **no** hay ruta puesta el arnés camina una celda entera de
-            # un saque —cuatro cuadros— y la página paralela le puede volver a
-            # poner la ruta en el medio, cosa que la ROM sí ve. O sea que hace
-            # falta la otra mitad: que la caminata avance **cuadro a cuadro**.
-            # Era el pedazo más delicado de la referencia.
-            #
-            # Y hay un segundo problema, que apareció con la medición y no es
-            # de precisión: con la carrera corriendo, `heroe 52` **no
-            # termina**. El volante le vuelve a poner la ruta al héroe para
-            # siempre, así que "apretar hasta chocar contra la pared" deja de
-            # tener final y el lazo corta en su tope de 10000 vueltas —27566
-            # cuadros de emulador para una sola dirección—. Antes de aceptar
-            # este comando hay que decidir qué mira ese caso, porque el mapa 52
-            # es de la carrera y está en
-            # `pruebas/rpgmaker/test_caminar_golden.py`.
-            #
-            # Para reproducir las dos mediciones sin tocar código:
-            # `TECLA_SIN_ESPERA=1` sobre el caso `heroe` del mapa 52.
-            if not PERMITIR_TECLA_SIN_ESPERA:
-                raise NoSePuede("KeyInputProc sin espera: la ruta forzada del "
-                                "héroe no manda sobre el pad en la referencia")
-            return bytes([OP_KEY, ranura_de_variable(p[0]), banderas])
+            # Estuvo sin aceptarse hasta el 2026-09-27, primero por la
+            # referencia en Python —que no sabía que una ruta forzada manda
+            # sobre el pad— y después, cuando la referencia se fue, porque
+            # nadie la había vuelto a mirar. Al aceptarla aparecieron dos
+            # cosas de la ROM que ninguna página compilada ejercitaba: que
+            # `op_key` miraba flancos también en esta forma —ver
+            # `tecla_valor`— y que un `Teleport` desde un paralelo no se
+            # atendía con el primer plano quieto —ver el lazo principal—. Lo
+            # cobra `test_recorrido_carrera_golden.py`.
+            return bytes([OP_KEY, ranura_de_variable(p[0]),
+                          banderas | escritura_pide_refresco(p[0],
+                                                             eventos_mapa)])
         # **La espera se hace con las tres cosas: la cruceta, la tecla de
         # acción y cancelar**, desde el 2026-09-13. Hasta ese día valía sólo la
         # de acción, y la razón escrita era del **arnés** y no de la ROM: la

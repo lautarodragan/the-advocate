@@ -1,4 +1,4 @@
-"""Lashe City con auto: los cuatro sectores desde el 36, y el fin de la demo.
+"""Lashe City con auto: los cuatro sectores desde el 36, y la salida a la carrera.
 
 Es el hito 1 de `workflow/tasks/*/lashe-city-hasta-la-carrera.md`. El mapa 36,
 `LasheCityVehicle`, es una pantalla negra con el auto y una sola cosa que
@@ -8,8 +8,8 @@ salta a su sector y **la página sigue corriendo allá**: saca a `DummyHero`
 —el 10— y mete a Talan y al compañero. En cada sector, subirse al auto apaga
 el 148, prende el 149, deja a `DummyHero` solo y vuelve al 36, donde manda la
 página 2: la misma elección, y —con lo que pide la rama del compañero— la
-pregunta de irse de la ciudad, que en el original lleva a la carrera y acá
-termina la demo (el 36 está forkeado: `parches/manual/mapas/Map0036.json`).
+pregunta de irse de la ciudad, que lleva a la carrera: el mapa 49, que juega
+`test_recorrido_carrera_golden.py`.
 
     la elección   36 -> 48 (6,55), 47 (8,36), 38 (49,66) y 37 (19,32), con el
                   auto rojo; con el azul, una columna a la derecha
@@ -22,9 +22,9 @@ termina la demo (el 36 está forkeado: `parches/manual/mapas/Map0036.json`).
     el 33         47, los guardias de la Agency (evento 15): con Saldra, la
                   escena entera con su `PanScreen`, y el 181; la tienda del 56
                   por el evento 10 y de vuelta
-    el fin        36 con el 161 y el 169: "Stay" sigue en la ciudad, y la vez
-                  siguiente "We've got to get out of here" muestra el cartel
-                  del fin de la demo y vuelve al título
+    la salida     36 con el 161 y el 169: "Stay" sigue en la ciudad, y la vez
+                  siguiente "We've got to get out of here" prende el 182 y
+                  salta al 49 (1,26), la largada de la carrera
 
 **La partida arranca por donde la arranca el juego**: la página 5 del evento 1
 del mapa 4, que es la charla en el auto de después de escaparse del 33 y corre
@@ -113,6 +113,10 @@ AFUERA_DE_LA_TIENDA = (3, 35)
 # "Stay in the city a little longer" / "We've got to get out of here".
 QUEDARSE, IRSE = 0, 1
 
+# A dónde lleva irse: el `Teleport [49, 1, 26]` de la página 2 del 36.
+LA_CARRERA = 49
+LA_LARGADA = (1, 26)
+
 
 def llegar_al_36(r):
     """De la charla del auto del mapa 4, por la cinemática del 34, hasta el 36
@@ -161,43 +165,26 @@ def subir_al_auto(r, opcion):
         % (grupo_de(r.p), r.estado()))
 
 
-def irse_termina_la_demo(r):
+def irse_lleva_a_la_carrera(r):
     """Con la pregunta de irse abierta en el 36 —o por abrirse—, "We've got to
-    get out of here": el 182, el cartel del fin de la demo y la vuelta al
-    título. Lo usan también los cierres de las tres ramas, en
-    `test_recorrido_lashe_cierre_golden.py`."""
+    get out of here": el 182 y el `Teleport [49, 1, 26]` a la largada de la
+    carrera, donde arranca su intro. Lo usan también los cierres de las tres
+    ramas, en `test_recorrido_lashe_cierre_golden.py`; la carrera la juega
+    `test_recorrido_carrera_golden.py`.
+
+    Hasta el 2026-09-27 esto era el fin de la demo: la carrera no entraba y
+    el 36 estaba forkeado para mostrar un cartel y volver al título."""
     r.empezar("el 36: irse")
     r.elegir(IRSE)
-    # El cartel y el reinicio. Por cuadros de hardware y no por ticks: la
-    # pantalla de título no hace correr `vueltas`, así que esperar un tick ahí
-    # se colgaría. El reinicio se ve en los switches, que `reset` borra.
-    p = r.p
-    vio_el_cartel = False
-    for _ in range(3000):
-        if not p.switch(VOLVIO_AL_AUTO):
-            break
-        if p.switch(SE_VAN) and p.byte("msg_abierto") and not vio_el_cartel:
-            # El mensaje de Talan va antes de prender el 182, así que éste es
-            # el cartel. Se lo deja componer para la foto: `msg_estado` en 1
-            # es "componiendo".
-            vio_el_cartel = True
-            for _ in range(120):
-                if p.byte("msg_estado") != 1:
-                    break
-                p.consola.correr(1)
-            r.foto("el-fin-de-la-demo", asentar=False)
-        p.consola.apretar("a")
-        p.consola.correr(2)
-        p.consola.apretar()
-        p.consola.correr(6)
-    else:
-        raise AssertionError("después de \"We've got to get out of here\" la "
-                             "partida no volvió al título. %s" % r.estado())
-    assert vio_el_cartel, (
-        "el 182 se prende antes del cartel del fin, y no hubo mensaje con él "
-        "prendido. %s" % r.estado())
-    p.consola.correr(p.simbolos["BOOT_CUADROS"] + 60)
-    r.foto("el-titulo-despues-del-fin", asentar=False)
+    r.esperar("el mapa 49", lambda p: p.mapa() == LA_CARRERA, tope=2000)
+    assert r.p.switch(SE_VAN), (
+        "\"We've got to get out of here\" prende el 182 antes de saltar. %s"
+        % r.estado())
+    assert r.celda() == LA_LARGADA, (
+        "el `Teleport` del 36 deja al auto en %s. %s" % (LA_LARGADA,
+                                                         r.estado()))
+    r.asentar()
+    r.foto("la-carrera")
 
 
 def test_la_eleccion_del_36_lleva_a_los_cuatro_sectores(recorrido):
@@ -338,11 +325,10 @@ def la_tienda_y_los_guardias(r, grupo):
     r.foto("despues-de-los-guardias")
 
 
-def test_irse_de_la_ciudad_termina_la_demo(recorrido):
+def test_irse_de_la_ciudad_lleva_a_la_carrera(recorrido):
     """Con la rama de Arden cumplida —el 161 y el 169—, la página 2 del 36
     pregunta si irse. "Stay" sigue en la ciudad; la vez siguiente, con el 238
-    ya prendido, "We've got to get out of here" muestra el cartel del fin de
-    la demo y el `ReturntoTitleScreen` del fork vuelve al título."""
+    ya prendido, "We've got to get out of here" salta a la carrera."""
     r = recorrido("lashe-fin", switch=[TIENE_EL_AUTO, AUTO_ROJO, CON_ARDEN,
                                        VIO_EL_VIDCAST, EL_SUSURRO_DE_ARDEN])
     llegar_al_36(r)
@@ -359,7 +345,7 @@ def test_irse_de_la_ciudad_termina_la_demo(recorrido):
     assert not r.p.switch(SE_VAN), r.estado()
     subir_al_auto(r, SECTOR_35)
 
-    irse_termina_la_demo(r)
+    irse_lleva_a_la_carrera(r)
 
 
 # La puerta de arriba de la casa de empeño del 37: el evento 11, `PawnDoorTop`,

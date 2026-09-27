@@ -240,6 +240,9 @@ demo" pasa a ser "irse lleva a la carrera") y un recorrido de la carrera
 entera, que el arnés puede manejar sosteniendo teclas. Banco 0: 6 bytes de los
 mapas más los dos arreglos, del orden de veinte.
 
+   **Hecho el 2026-09-27**, con las preguntas 1, 3, 5 y 6 contestadas con la
+   recomendación: ver `testing/carrera-1-entra-y-se-corre.md`.
+
 **2. La carrera a 60 cuadros.** El opcode fundido (3), o lo que diga la
 medición de `optimizar-los-eventos-paralelos-al-compilar.md`. Se da por hecho
 con `cuadros_perdidos` en cero —o casi— en el 49, el 52 y el 54 manejando.

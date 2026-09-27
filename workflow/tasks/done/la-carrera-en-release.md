@@ -11,6 +11,9 @@ encare. (Hasta el 2026-09-25 decía "y en `test-main`": se juntaron.)
 
 # Status
 
+**Entró el 2026-09-27**, con el hito 1 de `la-carrera-y-lo-que-sigue.md`: ver
+`testing/carrera-1-entra-y-se-corre.md`. Lo de abajo es lo que se sabía antes.
+
 Hasta el 2026-09-24 tenía su propia ROM, `just build carrera` —antes
 `demo-carrera`—, armada aparte. taro la sacó ese día: fue un experimento para
 probar ese caso, y no tiene sentido adelantarse tanto. Se retoma cuando entre

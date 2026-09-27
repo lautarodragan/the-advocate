@@ -40,9 +40,17 @@ DESTINO = os.environ.get("CARTUCHOS",
 # Cada mapa que se suma al proyecto se suma a todos los cartuchos. El 66 no:
 # la ventana no le entra en la VRAM.
 #
-# Los del juego son lo de Lashe City que entra. Afuera queda la persecución
-# en auto, por `ControlVars` de clase 6 —ver `wishlist/la-carrera-en-release.md`—:
-# el 36 que lleva a ella está forkeado para terminar la demo ahí.
+# Los del juego son Lashe City entera, hasta que se sale de la ciudad: todos
+# los mapas de id menor a 65 menos cinco, más el 164. Los cinco son el 58 —el
+# tutorial del aura, que es de otro capítulo— y cuatro que nadie alcanza: las
+# carpetas 15, 22 y 55 y el respaldo 46. Es la regla de
+# `workflow/tasks/*/la-carrera-y-lo-que-sigue.md`, que todavía es una lista
+# escrita a mano: el hito 4 de esa tarea la hace regla, y tiene que dar esto.
+#
+# La persecución en auto son el 49 al 54: las tres vueltas (49, 52 y 54), el
+# choque (50), el puente (51) y el premio (53), que lleva al 64, la escena de
+# despedida. La demo termina al final de esa escena, en el fork del 64: el
+# `Teleport` que la cierra va al mundo, el 66, que no entra.
 #
 # Los sectores con auto —37, 38, 47 y 48— entran los cuatro juntos: la
 # elección del 36 es una sola página que compila con sus cuatro destinos o con
@@ -57,13 +65,14 @@ DESTINO = os.environ.get("CARTUCHOS",
 # que mete a AG7-17 en el grupo.
 MAPAS_DEL_JUEGO = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18,
                    19, 20, 21, 23, 26, 28, 29, 30, 32, 33, 34, 36,
-                   37, 38, 39, 40, 41, 42, 43, 44, 45, 47, 48, 56, 57, 59,
-                   60, 61, 62, 63, 164)
+                   37, 38, 39, 40, 41, 42, 43, 44, 45, 47, 48,
+                   49, 50, 51, 52, 53, 54, 56, 57, 59,
+                   60, 61, 62, 63, 64, 164)
 
 # Y los que sólo existen por la tanda: situaciones que ningún mapa del juego
 # que entra ejercita. `parches.revisar` los lee de acá para no pedirles parche
 # versionado.
-MAPAS_DE_PRUEBA = (52, 70, 73, 74, 119, 121, 133, 255, 261, 269, 348)
+MAPAS_DE_PRUEBA = (70, 73, 74, 119, 121, 133, 255, 261, 269, 348)
 
 MAPAS = MAPAS_DEL_JUEGO + MAPAS_DE_PRUEBA
 

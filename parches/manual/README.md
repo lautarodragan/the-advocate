@@ -122,15 +122,16 @@ tiles de un ChipSet propio, y con eso el mapa se bajó del techo de paletas de
 sprite donde estaba clavado. El porqué, con todo lo medido, está en
 `workflow/tasks/done/hornear-la-decoracion-en-un-chipset.md`.
 
-Y el **mapa 36**, `LasheCityVehicle`, donde termina la demo: la pregunta de
-irse de Lashe City —"We've got to get out of here"— llevaba con un `Teleport`
-a la carrera, el mapa 49, que no está en el cartucho. En sus cuatro lugares ese
-`Teleport` pasó a ser un mensaje de fin de demo y un `ReturntoTitleScreen`. Lo
-decidió taro el 2026-09-26, en vez de meter la carrera o de hacer que el
-conversor compile todo `Teleport` a un mapa ausente como fin de demo, que
-cambiaba qué hacían muchas páginas del juego. Sin el fork, la segunda vuelta al
-auto dejaba al jugador trabado en negro: la página no compilaba. **Se borra el
-día que entre la carrera.** Sus capas son las del original, byte por byte.
+Y el **mapa 64**, `Leaving Lashe City Scene`, donde termina la demo: la
+escena de despedida con el compañero, después de la carrera, que en el
+original cierra con un `Teleport` al mundo —el 66— y unos mensajes que corren
+allá. El 66 no entra en la VRAM, así que ese `Teleport` y lo que viene detrás
+pasaron a ser un mensaje de fin de demo y un `ReturntoTitleScreen`. Lo decidió
+taro el 2026-09-27 al meter la carrera en `release`. Sus capas son las del
+original, byte por byte. **Se borra el día que entre el mundo.**
+
+Hasta ese día el fin de la demo estuvo en un fork del **36**, en la pregunta de
+irse de Lashe City, que llevaba a la carrera cuando la carrera no entraba.
 
 Lo que el horneado del 18 **no** conserva: el público era de la capa del héroe
 y se ordenaba con él por Y, y ahora es fondo. Vale porque en ese mapa no se

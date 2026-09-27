@@ -1,4 +1,4 @@
-"""Lashe City: el cierre del 36 por las tres ramas, hasta el fin de la demo.
+"""Lashe City: el cierre del 36 por las tres ramas, hasta la carrera.
 
 Es el hito 5 de `workflow/tasks/*/lashe-city-hasta-la-carrera.md`, el único
 lugar donde se juntan los tres caminos. La página 2 del evento 3 del 36 —la
@@ -11,9 +11,8 @@ la rama del compañero:
 
 Con eso prende el 238 —el compañero nota el auto de la Agency— y pregunta.
 "Stay" sigue en la ciudad, y la vuelta siguiente la rama de arriba de la misma
-página lo vuelve a preguntar; "We've got to get out of here" prende el 182 y,
-en el fork del 36 (`parches/manual/mapas/Map0036.json`), muestra el cartel del
-fin de la demo y vuelve al título.
+página lo vuelve a preguntar; "We've got to get out of here" prende el 182 y
+salta a la carrera, el mapa 49.
 
 Cada recorrido arranca por donde arranca el juego —la charla del auto del mapa
 4, con el 132— con el tramo de Wick ya hecho (el 161: lo juega
@@ -27,7 +26,7 @@ que con ella es opcional). Con eso, cada uno:
        pregunta: el 238 sigue apagado y se abre la elección de sectores;
     2. juega lo suyo en su sector y vuelve al auto;
     3. "Stay" (el 238 prendido, el 182 no), otra vuelta a un sector y al auto;
-    4. "We've got to get out of here": el 182, el cartel y el título.
+    4. "We've got to get out of here": el 182 y la largada de la carrera.
 
 Las capturas van a `pruebas/snapshots/playthrough/lashe-cierre-*/` y **no
 están bendecidas**: son para que taro las mire. Lo que cobra esta prueba es la
@@ -40,7 +39,7 @@ from test_recorrido_lashe_golden import (
     AG7, ARDEN, AUTO_ROJO, CON_ARDEN, CON_SALDRA, EL_SUSURRO_DE_ARDEN,
     LOS_SIGUE_LA_AGENCY, QUEDARSE, SALDRA, SE_VAN, SECTOR_32, SECTOR_33,
     SECTOR_34, SECTOR_35, SECTORES, TALAN, TIENE_EL_AUTO, VIO_A_LOS_GUARDIAS,
-    VIO_EL_VIDCAST, el_hq_por_el_cano, ir_al_sector, irse_termina_la_demo,
+    VIO_EL_VIDCAST, el_hq_por_el_cano, ir_al_sector, irse_lleva_a_la_carrera,
     la_tienda_y_los_guardias, llegar_al_36, subir_al_auto)
 from test_recorrido_lashe_planta_golden import ROBO_EL_IDOL, de_stash_a_ag7
 
@@ -88,7 +87,7 @@ def quedarse_e_irse(r, opcion, companero, ag7=False):
     assert not r.p.switch(SE_VAN), (
         "\"Stay\" no prende el 182. %s" % r.estado())
     subir_al_auto(r, opcion)
-    irse_termina_la_demo(r)
+    irse_lleva_a_la_carrera(r)
 
 
 def test_el_cierre_con_arden(recorrido):
