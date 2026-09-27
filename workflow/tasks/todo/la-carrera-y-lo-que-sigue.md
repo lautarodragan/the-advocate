@@ -263,6 +263,10 @@ cambio de regla, que **no debe mover la ROM**: con X = 65 y la exclusión de
 arriba, la lista resultante tiene que ser la misma que la de este hito 1, y
 eso se compara. Puede ir antes, en paralelo o después del 2.
 
+   **Hecho el 2026-09-27**: los errores en `9d6c0d3`, la regla en
+   `done/la-regla-de-mapas-por-id.md`. La exclusión no es un flag del
+   conversor sino un valor de `cartuchos.py`; el porqué está ahí.
+
 **5. (Condicional) X = 85.** Sólo si taro lo quiere antes de que entre el
 mundo: los 18 mapas inalcanzables, con 66, 67 y 69 en la exclusión.
 
