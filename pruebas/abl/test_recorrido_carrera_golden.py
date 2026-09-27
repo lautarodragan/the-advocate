@@ -2,13 +2,13 @@
 
 Es el hito 1 de `workflow/tasks/*/la-carrera-y-lo-que-sigue.md`. El recorrido:
 
-    49  primera vuelta. La intro —mensajes, la pantalla negra y un
-        `KeyInputProc` que espera cualquier tecla— prende el 171; el 171 mete
-        al auto en el grupo y prende el 170, y con el 170 corren el volante
-        (`RaceController2`, paralela: empuja al héroe a la derecha y lo cambia
-        de carril con arriba y abajo) y los autos (paralelas: cada uno compara
-        su celda con la del héroe y, si coinciden, salta al 50). La meta,
-        x = 255, salta al 52
+    49  primera vuelta. La intro —mensajes, la pantalla negra y el cartel
+        de los controles, que en la ROM son dos mensajes— prende el 171; el
+        171 mete al auto en el grupo y prende el 170, y con el 170 corren el
+        volante (`RaceController2`, paralela: empuja al héroe a la derecha y
+        lo cambia de carril con arriba y abajo) y los autos (paralelas: cada
+        uno compara su celda con la del héroe y, si coinciden, salta al 50).
+        La meta, x = 255, salta al 52
     50  el choque: cuenta los choques en la variable 38 y vuelve a la vuelta
         que estaba; con cinco o más el compañero se ofrece a manejar, y con
         "Yes" salta al puente
@@ -117,13 +117,49 @@ def piloto(p, los_autos):
     return "up" if meta < hy else "down"
 
 
+def pasar_mensajes(r, cuantos, fotos=None, tope=3000):
+    """Pasa `cuantos` mensajes con A, dejando que cada uno termine de
+    componerse antes del toque, y fotografía los que nombra `fotos`: {número
+    de mensaje desde 1: nombre}. De a un cuadro y no con la paciencia de
+    `esperar`, porque ésa toca A a ciegas y el mensaje que se quiere mirar se
+    cierra en el mismo cuadro en que se abre."""
+    p = r.p
+    fotos = fotos or {}
+    visto = 0
+    for _ in range(tope):
+        if visto >= cuantos:
+            return
+        if p.byte("msg_abierto") and p.byte("msg_estado") != 1:
+            visto += 1
+            if visto in fotos:
+                r.foto(fotos[visto], asentar=False)
+            p.consola.apretar("a")
+            p.consola.correr(2)
+            p.consola.apretar()
+            # Hasta que se cierra: el cuadro siguiente puede tardar en abrir.
+            for _ in range(60):
+                if not p.byte("msg_abierto"):
+                    break
+                p.consola.correr(1)
+        else:
+            p.consola.correr(1)
+    raise Trabado("se pasaron %d de %d mensajes. %s"
+                  % (visto, cuantos, r.estado()))
+
+
 def largar(r):
-    """La intro del 49 hasta el 170: los mensajes, la espera de una tecla y
-    el auto en el grupo. La paciencia de `esperar` toca A, que es la tecla que
-    la espera acepta."""
+    """La intro del 49 hasta el 170: los tres mensajes de Talan, el cartel de
+    los controles en dos cuadros sobre la pantalla negra, y el auto en el
+    grupo.
+
+    El cartel es del fork del 49 (`parches/manual/mapas/Map0049.json`): en el
+    original es la imagen `EscapeInst` y un `KeyInputProc` que espera
+    cualquier tecla, y en la ROM son dos `ShowMessage` con el mismo texto, que
+    se cierran con A."""
     r.empezar("la intro de la carrera")
     r.p.ir_al_mapa(*LA_LARGADA)
     assert r.p.mapa() == 49, r.estado()
+    pasar_mensajes(r, 5, fotos={4: "el-cartel-1", 5: "el-cartel-2"})
     r.esperar("el switch 170", lambda p: p.switch(CORRIENDO), tope=3000)
     assert r.p.switch(ARRANCO), r.estado()
     assert grupo_de(r.p) == [AUTO_ROJO], (
