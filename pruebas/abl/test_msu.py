@@ -18,13 +18,15 @@ import os
 import shutil
 from array import array
 
+import pytest
+
 from audio import snes_music
 from emulador import retro
 from render.render_map import GAME_DIR, find_resource
 
 import tanda
-from consola import (EMPEZAR, NUCLEO, TITULO_AIRE, Partida, en_la_rom,
-                     en_la_wram, indice_del_tema)
+from consola import (EMPEZAR, NUCLEO, SEGUIR, TITULO_AIRE, Partida,
+                     en_la_rom, en_la_wram, indice_del_tema)
 from ensamblado import cartuchos
 
 # Del encendido: a esta altura el tema del título ya suena, y con el MSU-1 lo
@@ -334,3 +336,74 @@ def test_con_msu_el_fundido_para_la_pista_y_los_efectos_siguen(tmp_path):
     assert pico >= AUDIBLE, (
         "con MSU-1, el efecto de después del fundido picó %d: el fundido de "
         "la pista calló también los efectos" % pico)
+
+
+# --- con MSU-1, la partida guardada con pista no arranca muda ----------------
+#
+# Con una pista sonando, `music_apagada` vale 1: el SPC700 está callado a
+# propósito. La partida guarda ese byte como "no suena nada", y al cargarla
+# `music_boot_ya` tomaba el camino callado. Lo que viaja tiene que ser la
+# respuesta a "¿está sonando?", que no depende de por dónde: ver
+# `guardar_partida`.
+#
+# Se guarda en el mapa 26, que prende `KSSMKEND` —con pista— al llegar, y se
+# carga en las cuatro combinaciones de con y sin MSU-1. La partida viaja de una
+# consola a la otra por la SRAM, como un `.srm` que se lleva del FX Pak a un
+# emulador sin las pistas: el core es uno solo por proceso, así que la segunda
+# consola reemplaza a la primera.
+
+# Cuadros de hardware después de elegir la ranura: los que tarda en cargar el
+# mapa y llamar a `music_boot`, con aire.
+AL_CARGAR = 120
+
+
+def _la_misma_rom(una, msu):
+    """Otra consola con la ROM de `una`, con o sin sus pistas."""
+    uno = tanda.cartucho(cartuchos.RELEASE)
+    k = uno.casos.index(ARRANQUE)
+    return Partida(una.sfc, una.simbolos, una.mapas, caso=k,
+                   salta=uno.saltan[k], msu=msu, titulo=uno.titulo)
+
+
+@pytest.mark.parametrize("guarda,carga", [(True, True), (True, False),
+                                          (False, True)],
+                         ids=["msu-a-msu", "msu-a-spc700", "spc700-a-msu"])
+def test_la_partida_guardada_vuelve_con_su_tema(tmp_path, guarda, carga):
+    una = _con_pistas(tmp_path)
+    if not guarda:
+        una = _la_misma_rom(una, msu=False)
+    _llegar(una, 26)
+    tema = indice_del_tema(una, "KSSMKEND")
+    assert una.palabra("tema_actual") == tema, "en el 26 no prendió KSSMKEND"
+    assert bool(_lejano(una, "MSU_SUENA")[0]) == guarda, (
+        "KSSMKEND tenía que sonar %s al guardar: el caso no es el que dice"
+        % ("por la pista" if guarda else "por el SPC700"))
+    una.guardar_por_el_menu()
+    assert una.hay_partida(), "la partida no llegó a guardarse"
+    srm = una.sram()
+
+    if carga != guarda:
+        una = _la_misma_rom(una, msu=carga)
+        una.poner_sram(0, srm)
+    una.reiniciar(SEGUIR)
+    una.consola.correr(AL_CARGAR)
+    assert una.mapa() == 26, "la partida no cargó en el mapa 26"
+    assert una.palabra("tema_actual") == tema, (
+        "la partida cargó con el tema %d y no con KSSMKEND"
+        % una.palabra("tema_actual"))
+    pista = bool(_lejano(una, "MSU_SUENA")[0])
+    spc700 = not una.byte("music_apagada")
+    if carga:
+        assert pista, (
+            "la partida guardada %s cargó con MSU-1 y KSSMKEND no suena por "
+            "la pista (music_apagada en %d)"
+            % ("con la pista sonando" if guarda else "sin MSU-1",
+               una.byte("music_apagada")))
+    else:
+        assert spc700 and not pista, (
+            "la partida guardada con la pista sonando cargó sin MSU-1 y "
+            "KSSMKEND no suena por el SPC700: arrancó muda")
+        faltan = sorted(set(una.muestras_del_tema(tema))
+                        - una.muestras_en_la_aram())
+        assert not faltan, (
+            "KSSMKEND suena por el SPC700 sin las muestras %s" % faltan)

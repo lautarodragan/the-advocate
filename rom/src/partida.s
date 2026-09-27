@@ -229,8 +229,29 @@ suma:
 .proc guardar_partida
 .a8
 .i16
+    ; **El `music_apagada` que se guarda es "¿está sonando?", y no el de la
+    ; RAM.** Con una pista del MSU-1 sonando el SPC700 está callado a
+    ; propósito y `music_apagada` vale 1, así que guardado tal cual la
+    ; partida cargaba muda: `music_boot_ya` lo lee como "se guardó sin
+    ; música". Se pone en cero mientras dura la copia —la misma pregunta
+    ; que `mapa_tema_callar`— y así la partida no dice por dónde sonaba: al
+    ; cargarla, `music_start` elige la pista o el SPC700 según haya MSU-1.
+    ; Con las interrupciones cerradas, porque `irq_musica` correría el
+    ; stream del SPC700 al verlo en cero. Lo cobra
+    ; `test_la_partida_guardada_vuelve_con_su_tema`.
+    php
+    sei
+    lda music_apagada
+    pha
+    lda f:MSU_SUENA
+    beq copiar
+    stz music_apagada
+copiar:
     lda #$80                    ; de la ventana de la WRAM a la SRAM
     jsr partida_copiar
+    pla
+    sta music_apagada
+    plp
     ; Lo que se copió tiene que ser lo que `PARTIDA_BYTES` dice. Si no, la suma
     ; miraría otro tramo y la ranura quedaría inválida para siempre sin decir
     ; por qué.
