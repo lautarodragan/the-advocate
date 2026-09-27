@@ -18,6 +18,7 @@ segmento por banco, `BANKnn`, que es lo que espera un `.cfg` de `ld65` con un
 los datos generados**, `PRIMER_BANCO`. El resto lo sabe el `.cfg`.
 """
 
+import re
 
 BANCO = 0x8000
 
@@ -102,10 +103,22 @@ def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
     de los `.include`: el reparto depende de todo lo que haya antes. Lo que un
     archivo mande a otro segmento —las tablas del banco 0— no cuenta.
 
+    **Toda etiqueta de más de un byte tiene que estar cubierta por un
+    `.bloque`**, o llevar `.cruza` delante si la recorre código que salta de
+    banco a mano. Lo que se lee con `lda f:tabla, x` o con `[ptr], y` no salta:
+    partida, la segunda mitad se lee del `$0000` del banco siguiente, que en
+    LoROM no es ROM. Y partirla no falla en ningún lado si el corte cae entre
+    dos operandos, así que la regla se cobra acá, en cada armado, y no el día
+    que el corte cae encima de una: ver `sin_declarar`.
+
     Devuelve cuántos `.bloque` se resolvieron y cuántos empezaron banco.
     """
     banco, usado = primer_banco, 0
     resueltos, empezaron = 0, 0
+    # Las etiquetas que el acomodo podría partir: [nombre, cuánto mide, cuánto
+    # de eso cubre un `.bloque`, si lleva `.cruza`]. La última es la que está
+    # juntando sus bytes.
+    etiquetas, cubre, cruza = [], 0, False
     for ruta in rutas:
         with open(ruta) as handle:
             lineas = handle.read().splitlines()
@@ -116,12 +129,14 @@ def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
             banco, usado = banco + 1, 0
             salida.append('.segment "%s"%s' % (segmento_de(banco), porque))
 
+        abierta = None      # la etiqueta que junta los bytes que siguen
         for linea in lineas:
             directiva = linea.split(";")[0].strip()
             if directiva.startswith(".segment"):
                 actual = directiva.split(None, 1)[1].strip().strip('"')
                 salida.append('.segment "%s"' % segmento_de(banco)
                               if actual == segmento else linea)
+                abierta = None
                 continue
             if actual != segmento:
                 salida.append(linea)
@@ -134,10 +149,22 @@ def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
             if directiva.startswith(".bloque "):
                 pide = int(directiva.split()[1])
                 resueltos += 1
+                cubre = pide
                 if pide > BANCO - usado:
                     empezaron += 1
                     cambiar("  ; lo que sigue mide %d y no entraba" % pide)
                 continue
+            if directiva == ".cruza":
+                cruza = True
+                continue
+            if _ETIQUETA.match(directiva):
+                abierta = [directiva.split(":")[0], 0, cubre, cruza]
+                etiquetas.append(abierta)
+                cruza = False
+            tamano = _tamano(linea)
+            cubre = max(0, cubre - tamano)
+            if abierta:
+                abierta[1] += tamano
             if directiva.startswith(".align "):
                 # Ésta se queda: alinear no es acomodar bancos, y `ca65` la
                 # sabe hacer. Acá sólo hay que contarla.
@@ -145,7 +172,6 @@ def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
                 usado += (unidad - usado % unidad) % unidad
                 salida.append(linea)
                 continue
-            tamano = _tamano(linea)
             if usado + tamano <= BANCO:
                 usado += tamano
                 salida.append(linea)
@@ -157,17 +183,38 @@ def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
             salida.append(segunda)
             usado = queda
         colados = [l for l in salida if l.split(";")[0].strip()
-                   .startswith(".bloque")]
+                   .startswith((".bloque", ".cruza"))]
         if colados:
             # Un `.bloque` que llegue al ensamblador es un error de `ca65`
-            # lejos de acá, que no dice qué bloque ni por qué.
+            # lejos de acá, que no dice qué bloque ni por qué. `.cruza`, igual.
             raise ValueError(
                 "%s dejó %d `.bloque` sin resolver, el primero %r: está fuera "
                 "de %s, y ahí el acomodo no se puede calcular"
                 % (ruta, len(colados), colados[0].strip(), segmento))
         with open(ruta, "w") as handle:
             handle.write("\n".join(salida) + "\n")
+    sueltas = sin_declarar(etiquetas)
+    if sueltas:
+        raise ValueError(
+            "%d etiqueta(s) de %s sin `.bloque` que las cubra, y el acomodo "
+            "las puede partir entre dos bancos: %s. Si la ROM la recorre "
+            "saltando de banco a mano, va `.cruza` delante"
+            % (len(sueltas), segmento, ", ".join(sueltas)))
     return resueltos, empezaron
+
+
+_ETIQUETA = re.compile(r"^[A-Za-z_]\w*:")
+
+
+def sin_declarar(etiquetas):
+    """Las que se pueden partir sin que nadie lo haya pedido.
+
+    Una de un solo byte no se parte nunca, y por eso se deja pasar: las
+    tablas vacías el conversor las emite con un byte de relleno, y la que
+    crezca se cobra el día que crece.
+    """
+    return [nombre for nombre, mide, cubierto, cruza in etiquetas
+            if mide > 1 and cubierto < mide and not cruza]
 
 
 # --- el mapa de memoria, para `ld65` -----------------------------------------

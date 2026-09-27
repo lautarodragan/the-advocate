@@ -114,7 +114,10 @@ rutinas que saben eso; todo lo demás las usa y se olvida del tema.
 
 Y una tabla mudada, o una que se recorra con `[ptr], y`, **tiene que
 declararse con `.bloque`** para no quedar partida entre dos bancos: ver
-`bloque` en `tools/port/snes_convert.py`.
+`bloque` en `tools/port/snes_convert.py`. El acomodo se niega a armar con una
+etiqueta de RODATA sin declarar, y lo que cruza a propósito —el stream de la
+música, lo que se sube al SPC700— lleva `.cruza`: ver `resolver` en
+`tools/ensamblado/bancos.py`.
 
 ## Lo que falta
 
