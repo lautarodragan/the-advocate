@@ -193,6 +193,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   48 —Stash, los pisos que se rompen de la planta, el chip, el túnel— y AG7-17
   entrando al grupo con su tutorial; la escena del soborno y la puerta cerrada
   con Arden
+* `abl/test_recorrido_lashe_cierre_golden.py`: el cierre del 36 por las tres
+  ramas —Arden, Saldra y sin compañero—, cada una desde la charla del auto:
+  sin su condición no pregunta, con ella "Stay" y después el fin de la demo
 * `abl/test_escenas_golden.py`: las escenas y cinemáticas
 * `abl/test_recuerdo.py`: el recuerdo de CORE y MANTA
 * `abl/test_un_ano_antes.py`: el cartel de "1 year earlier"
