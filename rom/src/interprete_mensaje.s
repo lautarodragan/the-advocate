@@ -2,7 +2,7 @@
 .a8
 .i16
 
-; --- el intérprete: el mensaje ---------------------------------------------
+; --- el intérprete: el mensaje y la elección -------------------------------
 ;
 ; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
 ; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo

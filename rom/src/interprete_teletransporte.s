@@ -7,9 +7,6 @@
 ; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
 ; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
 ; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
-;
-; Detrás va `pelea_arrancar`, que no es un manejador: es la pelea de punta a
-; punta que llaman `op_battle` y los encuentros al azar.
 
 .proc op_teleport
     rep #$20

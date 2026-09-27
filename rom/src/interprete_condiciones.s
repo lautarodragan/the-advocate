@@ -2,7 +2,7 @@
 .a8
 .i16
 
-; --- el intérprete: las condiciones ----------------------------------------
+; --- el intérprete: las condiciones y el salto -----------------------------
 ;
 ; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
 ; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo

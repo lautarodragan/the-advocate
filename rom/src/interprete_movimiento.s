@@ -7,8 +7,6 @@
 ; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
 ; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
 ; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
-;
-; Esperar y parar las rutas está en interprete_esperar_rutas.s.
 
 ; Una ruta forzada de MoveEvent. El primer operando dice sobre quién: 0 es el
 ; héroe, y cualquier otro número es el índice del evento en la tabla del mapa

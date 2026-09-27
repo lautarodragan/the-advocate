@@ -8,9 +8,8 @@
 ; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
 ; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
 ;
-; La pelea se arranca con `pelea_arrancar`, que está al final de
-; interprete_teletransporte_y_pelea.s: estaba detrás del último manejador,
-; y traerla acá es mover código, que cambia la ROM.
+; Al final va `pelea_arrancar`, que no es un manejador: es la pelea de punta a
+; punta que llaman `op_battle` y los encuentros al azar.
 
 ; `OpenShop`: tipo, juego, cuántos y la lista, de a dos bytes cada ítem. La
 ; tienda se abre acá adentro y, al salir, el mapa vuelve y la página sigue.
