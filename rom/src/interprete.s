@@ -4,13 +4,11 @@
 ;
 ; `correr_codigo` lee un opcode por vuelta y salta a su manejador. Cada
 ; manejador es su propio `.proc op_*` y está en uno de los `interprete_*.s`
-; que main.s incluye detrás de éste, en el mismo orden que tenían cuando todo
-; era un solo `.proc` (hasta el 2026-09-25). Los archivos son tramos
-; **contiguos** agrupados por tema, no por familia: las familias estaban
-; intercaladas —la tienda y la pelea, guardar, Game Over y el teletransporte
-; caen en cuatro lugares distintos— y juntarlas es mover código, que cambia la
-; ROM. Por eso hay temas en más de un archivo; cuando uno sigue en otro, el
-; encabezado lo dice.
+; que main.s incluye detrás de éste, uno por familia. Como el despacho es por
+; tabla, dónde está cada uno no le importa al código, con una condición: tiene
+; que quedar en el banco de `correr_codigo`, porque `jmp (tabla, x)` salta
+; adentro del banco del programa. Mientras todos estén en `CODE` se cumple, y
+; lo cuida `test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k`.
 ;
 ; Un opcode nuevo toca dos lugares: su número en tools/protocol/events.toml
 ; —de donde sale, al regenerar con `just protocolo`, su entrada en la tabla del

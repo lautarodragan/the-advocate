@@ -2,7 +2,7 @@
 .a8
 .i16
 
-; --- el intérprete: la música ----------------------------------------------
+; --- el intérprete: la música y los efectos de sonido ----------------------
 ;
 ; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
 ; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
@@ -60,6 +60,14 @@ fundir:
 fundir_nada:
     iny
     iny
+    jmp correr_codigo::otro
+
+.endproc
+
+; `OP_SOUND`: el índice en `sonido_tabla`. Queda pendiente y arranca al
+; final de `music_tick`, detrás de lo que la música escriba en el cuadro.
+.proc op_sound
+    jsr sonido_de_codigo
     jmp correr_codigo::otro
 
 .endproc

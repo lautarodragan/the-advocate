@@ -2,7 +2,7 @@
 .a8
 .i16
 
-; --- el intérprete: las condiciones ----------------------------------------
+; --- el intérprete: las condiciones y el salto -----------------------------
 ;
 ; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
 ; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
@@ -178,6 +178,66 @@ si_no_cumple:
 
 .endproc
 
+; `ConditionalBranch` por variable: ranura, clase del valor, comparación, el
+; valor de dieciséis bits y el destino si no se cumple. La comparación es con
+; signo: después de restar, "menor" es N distinto de V.
+.proc op_if_var
+.a8
+.i16
+    lda [cod_ptr], y
+    sta temp                    ; la ranura
+    iny
+    lda [cod_ptr], y
+    sta temp + 1                ; la clase: constante u otra variable
+    iny
+    lda [cod_ptr], y            ; la comparación
+    pha
+    iny
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; el valor, o la ranura
+    sta temp + 2
+    sep #$20
+.a8
+    iny
+    iny                         ; Y -> el destino
+    lda temp + 1
+    beq si_var_contra_constante
+    lda temp + 2
+    phy
+    jsr var_leer
+.a16
+    ply
+    sta temp + 2
+    sep #$20
+.a8
+si_var_contra_constante:
+    pla                         ; la comparación
+    sta temp + 1
+    lda temp
+    phy
+    jsr var_leer                ; A = la variable, de dieciséis
+.a16
+    jsr comparar_var
+.a8
+    ply
+    cmp #0                      ; lo que dijo `comparar_var`, que `ply` pisó
+                                ; con el cursor: ver `tema_asegurar`
+    bne si_var_sigue
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; no se cumple: al destino
+    tay
+    sep #$20
+.a8
+    jmp correr_codigo::otro
+si_var_sigue:
+    iny
+    iny
+    jmp correr_codigo::otro
+
+.endproc
+
 ; `ConditionalBranch` caso 5 con dos operandos: "sabe esta habilidad" —el
 ; sub 4— y "tiene puesto este objeto" —el 5—. Van en un opcode aparte y no en
 ; `OP_IF` porque llevan **dos** operandos, el actor y el ítem o la habilidad;
@@ -266,6 +326,19 @@ sia_no:
 sia_si:
     iny
     iny                         ; Y -> el opcode siguiente
+    jmp correr_codigo::otro
+
+.endproc
+
+; El salto sin condición que el conversor pone donde estaba el `else`, para que
+; la rama de arriba se saltee la de abajo.
+.proc op_goto
+    rep #$20
+.a16
+    lda [cod_ptr], y
+    tay
+    sep #$20
+.a8
     jmp correr_codigo::otro
 
 .endproc
