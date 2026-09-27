@@ -148,4 +148,5 @@ TEXTO_BUF_BYTES = VENTANA_TEXTO_COLS * 2 * 32
 .include "descomprimir.s"
 .include "pantalla_de_equipo.s"
 .include "tienda.s"
+.include "efectos_con_msu.s"
 .include "cabecera.s"
