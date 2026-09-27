@@ -925,11 +925,12 @@ class Partida:
         """(los temas, las muestras de sus efectos) del paquete de audio
         `indice` —el de un mapa, en el orden de la tabla de mapas—, leídos de
         `paquetes` en el cartucho, que es lo que recorre `paquete_cargar_ya`:
-        un índice de desplazamientos de dos bytes y detrás, por paquete, tres
-        listas cerradas con $FF. La tercera, los temas de salida, la da
-        `temas_de_salida`: ésos no tienen por qué estar. Los efectos van
+        un índice de desplazamientos de dos bytes y detrás, por paquete,
+        cuatro listas cerradas con $FF. La tercera, los temas de salida, la
+        da `temas_de_salida`, y la cuarta `temas_aparte`: ésos no tienen por
+        qué estar. Los efectos van
         como `EFECTO + su número`: ver `muestras_en_la_aram`."""
-        temas, efectos, _salida = self._listas_del_paquete(indice)
+        temas, efectos = self._listas_del_paquete(indice)[:2]
         return temas, [EFECTO + e for e in efectos]
 
     def temas_de_salida(self, indice):
@@ -938,6 +939,12 @@ class Partida:
         rom/src/paquete_de_audio.s."""
         return self._listas_del_paquete(indice)[2]
 
+    def temas_aparte(self, indice):
+        """Los temas aparte del paquete `indice`: los que su `PlayBGM` sube
+        solos con los efectos del paquete. Ver `extra_aparte` en
+        rom/src/paquete_de_audio.s."""
+        return self._listas_del_paquete(indice)[3]
+
     def _listas_del_paquete(self, indice):
         with open(self.sfc, "rb") as archivo:
             rom = archivo.read()
@@ -945,7 +952,7 @@ class Partida:
         salto = base + 2 * indice
         lista = base + (rom[salto] | (rom[salto + 1] << 8))
         partes = []
-        for _ in range(3):
+        for _ in range(4):
             parte = []
             while rom[lista] != 0xFF:
                 parte.append(rom[lista])

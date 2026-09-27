@@ -422,6 +422,59 @@ def test_el_tema_de_salida_sube_solo(partida):
         "incompleto")
 
 
+def test_el_tema_aparte_sube_con_los_efectos_del_paquete(partida):
+    """El `PlayBGM` de un tema aparte sube **el tema con los efectos del
+    paquete**, sin los otros temas, y el paquete queda incompleto.
+
+    El caso es el basural del 38: `golden_axe-turtlevillage2`, que es del
+    paquete, y después `vswar`, que es aparte ahí —ver `TEMAS_APARTE` en
+    tools/audio/snes_music.py— y no entra al lado de `golden_axe`: si
+    entrara, el caso no ejercitaría nada, y se pide antes. Con `vswar`
+    sonando tienen que estar sus muestras y las de los efectos del paquete
+    —los cofres del basural suenan durante la escena—, y el paquete queda
+    incompleto para que el próximo `PlayBGM` lo complete. Con la ROM
+    tratándolo como uno de salida, los efectos faltan.
+    """
+    una = partida(caso="tema-aparte")
+    mapa = una.mapas.index(38)
+    aparte = una.temas_aparte(mapa)
+    assert aparte, "el mapa 38 no tiene temas aparte: el caso no mira nada"
+    vswar = aparte[0]
+    temas, efectos = una.muestras_del_paquete(mapa)
+    assert vswar not in temas, "vswar está también entre los temas del 38"
+    del_paquete = set()
+    for tema in temas:
+        del_paquete |= set(una.muestras_del_tema(tema))
+    suyas = set(una.muestras_del_tema(vswar))
+    antes = None
+    for _ in range(900):
+        una.correr(1)
+        if una.mapa() != 38 or una.byte("music_apagada"):
+            continue
+        if una.palabra("tema_actual") != vswar:
+            antes = una.muestras_en_la_aram()
+            continue
+        break
+    else:
+        raise AssertionError("el caso no llegó a prender el tema aparte")
+    assert antes is not None, "el tema del paquete no llegó a sonar"
+    assert suyas - antes, (
+        "el tema aparte ya estaba entero en la ARAM al lado del paquete: el "
+        "caso no ejercita la subida")
+    ahora = una.muestras_en_la_aram()
+    assert not suyas - ahora, (
+        "el tema aparte suena sin las muestras %s" % sorted(suyas - ahora))
+    assert not set(efectos) - ahora, (
+        "con el tema aparte sonando faltan los efectos del paquete %s"
+        % sorted(set(efectos) - ahora))
+    assert del_paquete - suyas - ahora, (
+        "los otros temas del paquete siguen enteros al lado del aparte: no "
+        "se subió solo")
+    assert una.consola.ram(en_la_wram(una.simbolos["PAQ_INCOMPLETO"]), 1)[0], (
+        "el tema aparte se subió sin los otros temas y el paquete no quedó "
+        "anotado como incompleto")
+
+
 def test_los_efectos_comparten_lugares_y_a_las_copias_les_sobran_entradas():
     """El directorio del SPC700 no le corta las copias a la música.
 
