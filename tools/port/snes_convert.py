@@ -4490,6 +4490,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "FUNDIDO_NEGRO   = %d\n"
         "FUNDIDO_CARGA   = %d\n"
         "BRILLO_MAX      = %d\n"
+        "; La transición del teletransporte que la ROM hace con el mosaico;\n"
+        "; cualquier otra es el fundido. Ver `ChangeScreenTransitions` en\n"
+        "; tools/port/eventos.py.\n"
+        "TRANSICION_MOSAICO = %d\n"
         "; Los pesos de luminancia del Y'CbCr, que son con los que RM2k\n"
         "; satura. Suman 65536 exactos, así que sobre canales de cinco bits\n"
         "; dan una luminancia de cinco bits sin reescalar nada.\n"
@@ -4708,6 +4712,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.FUNDIDO_CUADROS, eventos.FUNDIDO_TOTAL,
            eventos.FUNDIDO_RAMPA, eventos.FUNDIDO_NEGRO,
            eventos.FUNDIDO_RAMPA, eventos.BRILLO_MAX,
+           eventos.TRANSICION_MOSAICO,
            eventos.LUZ_R, eventos.LUZ_G, eventos.LUZ_B, SWITCH_BYTES,
            eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
            ACTOR_COLORES, OBJ_COLORS,
@@ -7764,8 +7769,9 @@ def lideres_posibles(renderer, map_ids, grupo):
     actores = list(grupo[:1])
     for cambios in _cambios_de_grupo(map_ids):
         estado = eventos.Estado(grupo)
-        for quien, operacion in cambios:
-            estado.cambiar_grupo(quien, operacion)
+        for tanda in cambios:
+            for quien, operacion in tanda:
+                estado.cambiar_grupo(quien, operacion)
             lider = estado.lider()
             if lider is not None and lider not in actores:
                 actores.append(lider)
@@ -7822,13 +7828,28 @@ def _cambios_del_mapa(map_id, map_ids):
                     eventos.Graficos(), eventos.Imagenes(
                         args_game_dir[0])) is None:
                 continue
+            # **De a tandas de comandos seguidos**, y el líder se mira al
+            # final de cada una: los `ChangePartyMembers` pegados corren en el
+            # mismo cuadro —ninguno espera— así que el héroe no se dibuja con
+            # el líder de a mitad de tanda. Mirándolo después de cada comando,
+            # el 41 —que saca a todos antes de volver a meter a Talan, y lo
+            # hace en dos páginas seguidas— dejaba de líderes posibles a
+            # Arden, Saldra y AG7, con sus poses y sus colores en todos los
+            # mapas del cartucho, y movía las paletas de mapas que no tienen
+            # nada que ver.
+            tanda = None
             for cmd in page.commands:
                 if cmd.code != eventos.CHANGE_PARTY_MEMBERS:
+                    tanda = None
                     continue
                 p = cmd.parameters
                 if len(p) < 3 or p[1] != eventos.GRUPO_ID_FIJO:
+                    tanda = None
                     continue
-                cambios.append((p[0], p[2]))
+                if tanda is None:
+                    tanda = []
+                    cambios.append(tanda)
+                tanda.append((p[0], p[2]))
     return cambios
 
 

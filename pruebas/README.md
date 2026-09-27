@@ -186,6 +186,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `abl/test_recorrido_lashe_golden.py`: Lashe City con auto —los cuatro
   sectores desde el 36, el pad, el HQ con Arden, los guardias con Saldra— y el
   fin de la demo
+* `abl/test_recorrido_lashe_wick_golden.py`: la guarida de Boss Wick desde
+  la puerta del vecino en el 37 —los vidcasts, el video de seguridad, las
+  transiciones— y las dos ramas del favor, aceptar y rechazar
 * `abl/test_recorrido_lashe_planta_golden.py`: el camino del droide desde el
   48 —Stash, los pisos que se rompen de la planta, el chip, el túnel— y AG7-17
   entrando al grupo con su tutorial; la escena del soborno y la puerta cerrada

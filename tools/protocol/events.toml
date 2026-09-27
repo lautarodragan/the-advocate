@@ -424,8 +424,16 @@ code = 0x2D
 args = []
 
 [[opcode]]
-name = "OP_LOCATION"
+name = "OP_TRANSITION"
 code = 0x2E
+args = [
+  { name = "which", type = "byte" },
+  { name = "kind", type = "byte" },
+]
+
+[[opcode]]
+name = "OP_LOCATION"
+code = 0x2F
 args = [
   { name = "mode", type = "byte" },
   { name = "map_slot", type = "byte" },
@@ -435,7 +443,7 @@ args = [
 
 [[opcode]]
 name = "OP_MEMORIZED_BGM"
-code = 0x2F
+code = 0x30
 args = [
   { name = "play", type = "byte" },
 ]

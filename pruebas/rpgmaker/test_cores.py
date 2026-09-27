@@ -50,6 +50,10 @@ del frontend.
                   docstring.
     autofire      X sostenido cierra cinco mensajes seguidos: el camino de
                   `read_pad` con su contador, que ninguno de los otros aprieta.
+    transicion    un salto a mitad del fundido, en mosaico y en el de
+                  siempre: la transición elegida vive en la RAM lejana
+                  —`TRANSICION_BORRAR` y `TRANSICION_MOSTRAR`—, y si el reset no
+                  la pusiera, bsnes podía pixelar un salto que no lo pidió.
 
 ## El tercer core, mesen-s, queda afuera, y no por lo que parecía
 
@@ -168,6 +172,15 @@ def test_autofire():
     que arranca con basura."""
     iguales("autofire-120",
             *dos_cores("autofire", 120, sosteniendo=("x",)))
+
+
+@pytest.mark.parametrize("caso,cuadro", (("transicion-mosaico", 44),
+                                         ("transicion-zoom", 88)))
+def test_transicion(caso, cuadro):
+    """Un salto a mitad de su transición, en los dos cores: el mosaico
+    borrando, y el zoom —que es el fundido— mostrando. Ver `test_transicion`
+    en test_comandos_golden.py."""
+    iguales("%s-%d" % (caso, cuadro), *dos_cores(caso, cuadro))
 
 
 def test_los_dos_cores_expanden_a_8_bits_sin_pisarse():

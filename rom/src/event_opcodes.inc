@@ -50,12 +50,13 @@ OP_TERRAIN       = $2A
 OP_EQUIPMENT     = $2B
 OP_SKILL         = $2C
 OP_GAME_OVER     = $2D
-OP_LOCATION      = $2E
-OP_MEMORIZED_BGM = $2F
+OP_TRANSITION    = $2E
+OP_LOCATION      = $2F
+OP_MEMORIZED_BGM = $30
 
 ; How many opcodes there are: every number below this one is declared,
 ; so an opcode at or above it is not one, and must not index the table.
-EVENT_OPCODE_COUNT = $30
+EVENT_OPCODE_COUNT = $31
 
 ; One `.addr` per opcode, in the order of their numbers, to expand where a
 ; `jmp (table, x)` reads it with X = opcode * 2. Each opcode's handler is
@@ -107,6 +108,7 @@ EVENT_OPCODE_COUNT = $30
     .addr op_equipment         ; $2B
     .addr op_skill             ; $2C
     .addr op_game_over         ; $2D
-    .addr op_location          ; $2E
-    .addr op_memorized_bgm     ; $2F
+    .addr op_transition        ; $2E
+    .addr op_location          ; $2F
+    .addr op_memorized_bgm     ; $30
 .endmacro

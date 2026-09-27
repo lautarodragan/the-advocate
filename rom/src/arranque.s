@@ -220,6 +220,7 @@ grupo_listo:
     lda #BRILLO_MAX
     sta brillo
     stz bgm_fundido             ; y lo mismo con el del tema
+    jsl f:transicion_de_arranque    ; y el teletransporte, con fundido
     jsl f:encuentro_arranque    ; la semilla del azar de los encuentros
 
     ; Si el cartucho tiene una partida guardada, se carga acá: los switches que

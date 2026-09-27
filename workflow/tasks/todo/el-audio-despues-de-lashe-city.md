@@ -18,3 +18,5 @@ terminen los mapas de Lashe City** (cada hito suma paquetes y lo vuelve a
 mover), con el mismo método que `testing/el-directorio-de-los-efectos.md`:
 medir par por par con `Banco` contra el `main` de antes de los mapas nuevos,
 y buscar que ningún instrumento de los temas que ya estaban quede peor.
+
+**Del hito 2 (2026-09-27):** el conversor no sabe que `Kfmus5` sigue sonando del 41 al 45 (`temas_heredados` corta en el 41), así que esos paquetes no le reservan lugar. No se escuchó sin MSU-1: mirarlo en la misma pasada.
