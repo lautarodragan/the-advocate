@@ -94,8 +94,8 @@ otro:
 ; El valor que `KeyInputProc` le guarda a la variable, en A, o 0 si todavía no
 ; hay tecla. `temp + 1` trae las banderas.
 ;
-; **Las tres cosas, y las tres por flanco**: cancelar, la tecla de acción y la
-; cruceta. El orden es el de `CheckInput` —de mayor valor a menor, que es lo
+; **Las tres cosas**: cancelar, la tecla de acción y la cruceta. Por flanco en
+; la forma que espera y por lo apretado en la que no —ver más abajo—. El orden es el de `CheckInput` —de mayor valor a menor, que es lo
 ; que dice "RPG processes keys from highest variable value to lowest"— y es el
 ; mismo que corre `eventos.tecla_de` del lado del modelo; los números salen del
 ; conversor y no están escritos acá dos veces.
@@ -115,10 +115,23 @@ otro:
 .proc tecla_valor
 .a8
 .i16
+    ; La forma que no espera mira lo **apretado** y no el flanco: es el `wait
+    ; ? IsTriggered : IsPressed` de `KeyInputState::CheckInput`, easyrpg
+    ; `game_interpreter.cpp:3222`. Es el volante de la carrera, que se sostiene:
+    ; por flanco, el auto cambiaba de carril una sola vez por apretada.
+    ;
+    ; El acarreo lleva la bandera de espera **hasta la tecla de acción**, sin
+    ; guardarla: ningún `lda`, `and`, `eor` ni `sta` del medio lo toca. Guardada
+    ; en `temp + 2` costaba cuatro bytes más de banco 0.
+    .assert TECLA_ESPERA = $01, error, "tecla_valor la saca con un lsr"
+    lda temp + 1
+    lsr a                       ; TECLA_ESPERA es el bit 0: al acarreo
     lda pad
+    bcc joy_listo               ; sin espera: lo apretado, tal cual
     eor pad_ant
     and pad
-    sta temp + 3                ; los flancos de JOY1H: B y las cuatro flechas
+joy_listo:
+    sta temp + 3                ; JOY1H: B y las cuatro flechas
     lda temp + 1
     and #TECLA_CANCELAR
     beq sin_cancelar
@@ -132,8 +145,10 @@ sin_cancelar:
     and #TECLA_DECISION
     beq sin_decision
     lda pad_a
+    bcc a_lista                 ; el acarreo de arriba, todavía entero
     eor pad_a_ant
     and pad_a
+a_lista:
     beq sin_decision
     lda #TECLA_VALOR_DECISION
     rts

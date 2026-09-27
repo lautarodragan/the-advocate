@@ -825,6 +825,12 @@ nada:
     rts
 .endproc
 
+; La mitad de `eventos_tick` que atiende un salto pendiente, para el lazo
+; principal: el `Teleport` de un paralelo con el primer plano quieto. Con
+; nombre global porque `arranque.s` va antes en el ensamblado, y `ca65` no
+; resuelve `eventos_tick::hubo_salto` hacia adelante.
+eventos_atender_salto = eventos_tick::hubo_salto
+
 ; --- los intérpretes paralelos ----------------------------------------------
 ; `Game_Map::UpdateMapEvents`: cada evento con una página paralela tiene **su
 ; propio intérprete** y corre todos los cuadros, aparte del de primer plano, con

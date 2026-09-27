@@ -407,7 +407,18 @@ loop:
     ; hasta el 2026-09-20, y eso le costaba un cuadro a todo contacto: el
     ; barrido de la cola ya había pasado cuando `advance_step` la llenaba.
     jsr eventos_tick
-    jsr tinte_de_evento         ; el tinte que haya pedido el intérprete, pegado
+    ; Y el `Teleport` que haya pedido un paralelo, si el primer plano no lo
+    ; atendió: `eventos_tick` mira `salto_hay` sólo después de correr una
+    ; página suya, y con el primer plano quieto sale antes. En RM2k el salto
+    ; pendiente se atiende después de `Game_Map::Update`, corra lo que corra
+    ; (`Scene_Map::UpdateStage2`). Son las 126 salidas de la carrera —cada
+    ; auto, cada meta y el puente—, y hasta que entró ninguna página de
+    ; `release` saltaba desde un paralelo.
+    lda salto_hay
+    beq sin_salto_pendiente
+    jsr eventos_atender_salto
+sin_salto_pendiente:
+    jsr tinte_de_evento        ; el tinte que haya pedido el intérprete, pegado
                                 ; a él: si no, lo aplicaría un cuadro tarde
     jsr animacion_tick          ; la animación de batalla, antes que los
                                 ; destellos que dispara
