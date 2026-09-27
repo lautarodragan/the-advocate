@@ -468,3 +468,22 @@ args = [
   { name = "right_b", type = "word" },
   { name = "else_b", type = "word" },
 ]
+
+# `ChangeEncounterSteps`: the new `1 / steps` in 1/65536 (0 turns random
+# encounters off) and the step at which each row of the encounter table is
+# crossed, rows 1 to 7, computed from the same steps. `pad` fills the eight
+# bytes of a threshold record, so the interpreter copies it in four words.
+[[opcode]]
+name = "OP_ENCOUNTER_STEPS"
+code = 0x32
+args = [
+  { name = "base", type = "word" },
+  { name = "row_1", type = "byte" },
+  { name = "row_2", type = "byte" },
+  { name = "row_3", type = "byte" },
+  { name = "row_4", type = "byte" },
+  { name = "row_5", type = "byte" },
+  { name = "row_6", type = "byte" },
+  { name = "row_7", type = "byte" },
+  { name = "pad", type = "byte" },
+]

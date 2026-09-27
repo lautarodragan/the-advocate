@@ -137,6 +137,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   las armas, las habilidades de a muchos, y las de AG7 según sus piezas
 * `rpgmaker/test_batalla_golden.py`: la pantalla, pelear hasta el final, el
   encuentro al azar
+* `rpgmaker/test_pasos_de_encuentro.py`: `ChangeEncounterSteps`, la chance y
+  las filas del mapa, y la vuelta a las del mapa al cargar otro
 * `rpgmaker/test_batalla_escena_dibujo.py`: el fondo y los battlers compuestos
 * `rpgmaker/test_fundido_de_pelea.py`: la transición de entrada y de salida
   tapa la carga del paquete de audio
@@ -204,11 +206,16 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   ramas —Arden, Saldra y sin compañero—, cada una desde la charla del auto:
   sin su condición no pregunta, con ella "Stay" y después la carrera
 * `abl/test_recorrido_carrera_golden.py`: la persecución en auto de la intro
-  del 49 a la despedida del 64 y el mundo, hasta el fin de la demo en Sorbe,
+  del 49 a la despedida del 64 y el mundo, hasta la entrada de Sorbe,
   manejando con un piloto que esquiva mirando la RAM; y cinco choques sin
   volante, con el compañero manejando
 * `abl/test_mundo.py`: el mapa del mundo recién llegado, y una pelea ahí que
   vuelve al mapa bien dibujado
+* `abl/test_recorrido_sorbe_golden.py`: del mundo a Sorbe, la pelea con Vago
+  en la montaña, la curación, la oficina del director, Dalia en la fábrica y
+  su viaje en auto hasta el fin de la demo, en la entrada de Tasgarde
+* `abl/test_sorbe.py`: Sorbe, la montaña y la casa de Vago recién llegados, y
+  la ventana en el reparto de la capa de encima de 256
 * `abl/test_escenas_golden.py`: las escenas y cinemáticas
 * `abl/test_recuerdo.py`: el recuerdo de CORE y MANTA
 * `abl/test_un_ano_antes.py`: el cartel de "1 year earlier"
@@ -267,8 +274,9 @@ que `just pruebas` corre antes; `just build <cual>` arma uno solo:
 
 Qué lleva cada uno, y por qué, en `tools/ensamblado/cartuchos.py`.
 
-`ChangeEncounterSteps` no está implementado, así que los encuentros de
-prueba siguen siendo un flag de `test-special`.
+Los encuentros de prueba son un flag de `test-special` y no un
+`ChangeEncounterSteps`: el encuentro de la tanda cuenta con ocho pasos en
+todos los mapas de ese cartucho, y su golden con el paso en que sale.
 
 ## Una `Partida` viva por vez
 

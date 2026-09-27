@@ -195,3 +195,10 @@ terreno_puesto:
 
 .endproc
 
+; `ChangeEncounterSteps`: sólo la entrada. El cuerpo es `encuentro_pasos`,
+; fuera del banco 0, que lee sus operandos y avanza el cursor él mismo.
+.proc op_encounter_steps
+    jsl f:encuentro_pasos
+    jmp correr_codigo::otro
+
+.endproc

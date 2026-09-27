@@ -52,6 +52,7 @@
 .a8
 .i16
     phx
+    phy
     phb
     lda #$7E
     pha
@@ -64,6 +65,24 @@
     rep #$20
 .a16
     and #$00FF
+    pha
+    ; Los umbrales del registro, a la RAM: los siete bytes y el de relleno.
+    asl a
+    asl a
+    asl a
+    tax
+    ldy #0
+copiar:
+.a16
+    lda f:enc_umbral_n, x
+    sta ENC_UMB, y
+    inx
+    inx
+    iny
+    iny
+    cpy #ENC_STRIDE
+    bcc copiar
+    pla
     asl a
     tax
     lda f:enc_base, x
@@ -83,7 +102,66 @@ con_base:
     stz ENC_IDX
     stz ENC_PIDE
     plb
+    ply
     plx
+    rtl
+.endproc
+
+; `ChangeEncounterSteps`, el cuerpo de OP_ENCOUNTER_STEPS: el `1 / pasos` nuevo
+; y los siete umbrales que salen de los mismos pasos, que el conversor ya
+; calculó —ver `eventos.enc_base` y `eventos.enc_umbrales_de_paso`—. Cero es
+; apagarlos, que es lo que pide el viaje de Dalia a Tasgarde. No toca lo
+; caminado: `SetEncounterSteps` de easyrpg tampoco.
+;
+; En un mapa sin tropas ni áreas no hace nada, que es lo que hace
+; `eventos.Encuentros.poner_pasos`: sin zonas no hay encuentro que prender.
+; Tampoco dura más que el mapa, como en RM2k: `encuentro_mapa` vuelve a poner
+; los del mapa en cada carga.
+;
+; Se entra con `jsl` desde el intérprete, con Y en el operando y el banco de
+; datos del bytecode; se vuelve con Y después de los diez bytes.
+.proc encuentro_pasos
+.a8
+.i16
+    phb
+    lda #$7E
+    pha
+    plb
+    lda ENC_REG
+    cmp #ENC_SIN
+    beq saltear
+    rep #$20
+.a16
+    lda [cod_ptr], y
+    sta ENC_BASE
+    iny
+    iny
+    ldx #0
+umbral:
+.a16
+    lda [cod_ptr], y            ; de a dos: los siete y el relleno
+    sta ENC_UMB, x
+    iny
+    iny
+    inx
+    inx
+    cpx #ENC_STRIDE
+    bcc umbral
+    sep #$20
+.a8
+    plb
+    rtl
+saltear:
+.a8
+    rep #$20
+.a16
+    tya
+    clc
+    adc #(2 + ENC_STRIDE)
+    tay
+    sep #$20
+.a8
+    plb
     rtl
 .endproc
 
@@ -134,19 +212,11 @@ hay:
 sigue_arriba:
 .a8
     ; La fila de la tabla, que **no baja nunca**: es el `last_encounter_idx` de
-    ; allá. X apunta al umbral de la fila que sigue, `reg * 8 + idx`.
+    ; allá. X apunta al umbral de la fila que sigue, en `ENC_UMB`.
     rep #$20
 .a16
-    lda ENC_REG
-    and #$00FF
-    asl a
-    asl a
-    asl a
-    sta temp
     lda ENC_IDX
     and #$00FF
-    clc
-    adc temp
     tax
     sep #$20
 .a8
@@ -156,7 +226,7 @@ sube:
     cmp #(ENC_FILAS - 1)
     bcs con_fila                ; la última fila no sube más
     lda ENC_N
-    cmp f:enc_umbral_n, x       ; ¿llegó al umbral de la que sigue?
+    cmp ENC_UMB, x              ; ¿llegó al umbral de la que sigue?
     bcc con_fila
     inx
     lda ENC_IDX

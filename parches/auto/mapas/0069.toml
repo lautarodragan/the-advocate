@@ -1,0 +1,87 @@
+# Las decisiones artísticas del mapa 69: qué se pierde al pasarlo a la
+# SNES. Lo escribe el conversor y lo regenera `just parches`, que es lo
+# que hay que correr cuando un cambio lo mueve; `just parches --check`
+# —y la tanda— fallan si quedó viejo. Ver tools/port/parches.py.
+
+mapa = 69
+nombre = "Sorbe Village"
+
+[capas.fondo]
+# Cuántos colores distintos traía el dibujo y cuántas entradas
+# de CGRAM le dejó la capa de encima.
+colores = 117
+presupuesto = 103
+# Cada fusión manda el color `de` al color `a`, en RGB de 15 bits,
+# y `pixeles` es cuántos movía cuando se decidió. Van **en orden**:
+# aplicarlas de arriba a abajo reconstruye el mapeo entero.
+fusiones = [
+  { de = [13, 13, 13], a = [14, 13, 11], pixeles = 9 },
+  { de = [9, 10, 8], a = [10, 10, 8], pixeles = 30 },
+  { de = [16, 13, 9], a = [17, 13, 10], pixeles = 36 },
+  { de = [8, 8, 8], a = [8, 8, 7], pixeles = 135 },
+  { de = [7, 13, 10], a = [9, 12, 7], pixeles = 6 },
+  { de = [23, 14, 14], a = [20, 15, 13], pixeles = 6 },
+  { de = [10, 6, 2], a = [10, 6, 1], pixeles = 189 },
+  { de = [9, 9, 9], a = [10, 10, 8], pixeles = 21 },
+  { de = [8, 5, 2], a = [8, 5, 0], pixeles = 60 },
+  { de = [12, 15, 13], a = [15, 15, 13], pixeles = 12 },
+  { de = [15, 18, 11], a = [17, 17, 14], pixeles = 12 },
+  { de = [31, 31, 28], a = [31, 31, 31], pixeles = 36 },
+  { de = [27, 19, 14], a = [29, 19, 15], pixeles = 30 },
+  { de = [24, 22, 12], a = [26, 21, 14], pixeles = 18 },
+  { de = [5, 4, 1], a = [5, 4, 0], pixeles = 420 },
+  { de = [9, 7, 6], a = [8, 7, 5], pixeles = 117 },
+  { de = [14, 18, 0], a = [15, 17, 1], pixeles = 48 },
+]
+
+[capas.encima]
+# Cada fusión manda el color `de` al color `a`, en RGB de 15 bits,
+# y `pixeles` es cuántos movía cuando se decidió. Van **en orden**:
+# aplicarlas de arriba a abajo reconstruye el mapeo entero.
+fusiones = [
+  { de = [15, 17, 1], a = [14, 18, 0], pixeles = 2 },
+  { de = [13, 5, 2], a = [13, 7, 2], pixeles = 1 },
+  { de = [8, 5, 2], a = [7, 5, 2], pixeles = 10 },
+  { de = [3, 2, 3], a = [3, 3, 2], pixeles = 5 },
+  { de = [13, 4, 8], a = [11, 6, 7], pixeles = 1 },
+  { de = [11, 6, 7], a = [10, 5, 6], pixeles = 6 },
+  { de = [13, 8, 8], a = [12, 9, 5], pixeles = 5 },
+  { de = [15, 18, 11], a = [19, 16, 10], pixeles = 2 },
+  { de = [10, 4, 3], a = [9, 5, 2], pixeles = 16 },
+  { de = [11, 10, 11], a = [12, 10, 7], pixeles = 10 },
+  { de = [14, 18, 0], a = [16, 18, 0], pixeles = 24 },
+  { de = [27, 22, 18], a = [29, 24, 20], pixeles = 8 },
+  { de = [19, 11, 8], a = [19, 12, 6], pixeles = 32 },
+  { de = [24, 17, 8], a = [23, 17, 12], pixeles = 17 },
+  { de = [14, 8, 4], a = [13, 7, 2], pixeles = 30 },
+  { de = [9, 12, 7], a = [9, 11, 2], pixeles = 12 },
+  { de = [8, 6, 4], a = [7, 6, 5], pixeles = 100 },
+  { de = [20, 9, 3], a = [19, 12, 6], pixeles = 7 },
+  { de = [8, 6, 0], a = [8, 5, 0], pixeles = 91 },
+  { de = [13, 9, 2], a = [12, 9, 5], pixeles = 58 },
+  { de = [19, 10, 12], a = [16, 11, 12], pixeles = 26 },
+  { de = [19, 15, 3], a = [18, 15, 8], pixeles = 30 },
+  { de = [19, 12, 6], a = [19, 13, 8], pixeles = 108 },
+  { de = [24, 22, 12], a = [22, 22, 22], pixeles = 10 },
+  { de = [19, 16, 10], a = [21, 16, 9], pixeles = 118 },
+  { de = [7, 6, 5], a = [6, 5, 6], pixeles = 270 },
+  { de = [29, 24, 20], a = [22, 22, 22], pixeles = 16 },
+  { de = [10, 6, 1], a = [9, 5, 2], pixeles = 321 },
+  { de = [12, 10, 7], a = [11, 9, 6], pixeles = 334 },
+  { de = [20, 18, 15], a = [23, 17, 12], pixeles = 84 },
+  { de = [9, 11, 2], a = [11, 13, 0], pixeles = 90 },
+  { de = [13, 14, 5], a = [12, 15, 0], pixeles = 102 },
+  { de = [10, 5, 6], a = [9, 5, 2], pixeles = 231 },
+  { de = [16, 11, 12], a = [15, 10, 7], pixeles = 146 },
+  { de = [8, 8, 7], a = [11, 9, 6], pixeles = 180 },
+  { de = [23, 17, 12], a = [21, 16, 9], pixeles = 221 },
+  { de = [11, 8, 1], a = [13, 7, 2], pixeles = 360 },
+  { de = [11, 9, 6], a = [12, 9, 5], pixeles = 1829 },
+  { de = [5, 4, 0], a = [3, 3, 2], pixeles = 366 },
+  { de = [0, 0, 0], a = [3, 3, 2], pixeles = 99 },
+  { de = [18, 21, 0], a = [16, 18, 0], pixeles = 132 },
+  { de = [7, 5, 2], a = [8, 5, 0], pixeles = 1353 },
+  { de = [21, 16, 9], a = [18, 15, 8], pixeles = 478 },
+  { de = [16, 11, 5], a = [15, 10, 7], pixeles = 1315 },
+  { de = [8, 5, 0], a = [9, 5, 2], pixeles = 2711 },
+]

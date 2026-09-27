@@ -1,0 +1,1946 @@
+{
+  "chipset_id": 18,
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {"code": 10810, "indent": 0, "parameters": [69, 10, 19], "string": ""}
+          ],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
+        }
+      ],
+      "x": 9,
+      "y": 14
+    },
+    {
+      "id": 2,
+      "name": "Vago",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 239,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 2,
+          "character_name": "People5",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 265,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 2,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 266,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 3,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 164,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 4,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 3,
+      "y": 6
+    },
+    {
+      "id": 3,
+      "name": "Saldra",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 3,
+          "character_index": 6,
+          "character_name": "Chara3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 56,
+            "switch_b_id": 265,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 3,
+          "character_index": 6,
+          "character_name": "Chara3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 56,
+            "switch_b_id": 270,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 2,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 310,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 3,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 14,
+      "y": 6
+    },
+    {
+      "id": 4,
+      "name": "Arden",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 3,
+          "character_index": 0,
+          "character_name": "Chara2",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 54,
+            "switch_b_id": 265,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 3,
+          "character_index": 0,
+          "character_name": "Chara2",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 54,
+            "switch_b_id": 270,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 2,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 310,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 3,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 14,
+      "y": 8
+    },
+    {
+      "id": 5,
+      "name": "AG7-17",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 4,
+          "character_name": "AG717",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 150,
+            "switch_b_id": 265,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 4,
+          "character_name": "AG717",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": true,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 150,
+            "switch_b_id": 270,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 2,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 0,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 310,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 3,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 12,
+      "y": 5
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 265,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I think he's coming around."
+            },
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 100, 100, 5, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Oooooh... my head..."},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 0, 3, 3, 3, 3, 3, 3],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [25], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Doctor, are you feeling better? I've"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "brought you back to your house. You've"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "been unconscious."},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [2, 8, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's coming back to me, slowly. I was"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "climbing Sorbe Mountain looking"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "for ingredients..."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I stumbled across a patch of bloodroot!"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "And then you must have found me under"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "its effects!"},
+            {"code": 12010, "indent": 0, "parameters": [0, 150, 0, 0, 0, 1], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "AG7-17"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "8ry3uf73r3uy6256told you12947637"
+            },
+            {"code": 20110, "indent": 1, "parameters": [], "string": "&#@%gr6367ft3g7238574384"},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 1, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Shut it, AG7."},
+            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 15], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Bloodroot?"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It's a plant that sends out airborne"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "seeds to reproduce. These seeds"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "cause an effect in humans akin to"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "an uncontrollable rage - centuries"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "ago, berserkers used to harness this"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "effect in battle."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Bloodroot is very dangerous, but"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "fortunately it is fairly uncommon."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I apologize for attacking you."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "No harm done.  It seems that these are"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "dangerous times, at least for me."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "In any event, I'd like to make it up"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "to you, somehow."},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 14], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [5], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Actually, there is something you might"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "be able to help me with..."
+            },
+            {"code": 12410, "indent": 0, "parameters": [], "string": "HEALING TALAN'S ANKLE"},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 11510, "indent": 0, "parameters": [0, 80, 100, 50], "string": "tsmedit"},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 53, 2],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [1], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 15], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [2, 8, 0, 0, 34, 7, 70, 117, 116, 117, 114, 101, 49, 0],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [1], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [2, 8, 0, 0, 14], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [0, 2, 1, 0], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 100, 100, 5, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You've sprained your ankle pretty"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "badly - what did you do, jump off"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "a building?"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Actually... yeah."},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 0, 0, 3, 12],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Unbelievable."},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [81, 15, 11], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 53, 2],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [1], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 100, 100, 5, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [81, 4, 6], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 53, 2],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [1], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 15], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 100, 100, 5, 1], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Well... this is odd. Do you have any allergies?"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Not that I know of. Why?"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You have a pretty bad rash on your"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "shoulder. I'll apply a dermal patch,"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "that should help."},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 100, 100, 5, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 100, 100, 5, 1], "string": ""},
+            {"code": 10620, "indent": 0, "parameters": [14], "string": "Fugitive"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You're free to go! Your ankle might"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "twinge a little bit, but you should be"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "able to walk quickly now."
+            },
+            {"code": 11330, "indent": 0, "parameters": [2, 8, 0, 0, 13], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Thank you very much, Dr. Vago."
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "I really appreciate it."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Don't mention it! It's the least I could"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "do, especially considering the unfortunate"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "way I greeted you atop the mountain!"
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 28], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 5, 1], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 34, 7, 70, 117, 116, 117, 114, 101, 49, 0],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [1], "string": ""},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [2, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 53, 2],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [1], "string": ""},
+            {"code": 10860, "indent": 0, "parameters": [2, 0, 8, 7], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [2, 8, 0, 0, 13], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [81, 10, 7], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 15], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 267, 267, 0], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [100, 100, 100, 100, 5, 1], "string": ""},
+            {"code": 11510, "indent": 0, "parameters": [0, 100, 100, 50], "string": "iknow"},
+            {"code": 10210, "indent": 0, "parameters": [0, 270, 270, 0], "string": ""},
+            {"code": 10210, "indent": 0, "parameters": [0, 266, 266, 0], "string": ""}
+          ],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 266,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 2,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 270,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "So, you work for the Agency?"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Uh... sort of. Actually, I work for Delcentric,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "but these days the Agency basically pulls"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the strings, so, yeah. Anyway."
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I see. Well, the Agency is certainly very"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "good at pulling strings. It's made them a"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "fair share of enemies, I imagine."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "That's right! Too bad I had to get caught in"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "the middle - I mean..."},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 14], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Why don't you tell me all about it, Talan?"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I wouldn't want to... bore you with the"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "details..."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Believe me - I think I should know"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "why you're running from the Agency."
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [10001, 8, 0, 0, 24, 25, 23, 15],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [8], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I never said anything about running!"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You're not very good at concealing your"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "motives, Talan. It's a good thing you ran into"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "me, rather than someone more..."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "...accepting... of the Agency's role in world"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "power these days.  Start from the top, and"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "maybe I'll be able to help you."
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I trust you. I'll tell you the story... but"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "consider yourself warned: I have unusual"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "powers at my disposal..."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "No doubt."},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "It all began in my rundown apartment"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "in Sector 35.  I had overslept, and I"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "needed to hurry to work..."
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 252, 252, 0], "string": ""},
+            {"code": 11030, "indent": 0, "parameters": [0, 0, 0, 100, 25, 1], "string": ""},
+            {"code": 10120, "indent": 0, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 11520, "indent": 0, "parameters": [2000], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [20], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "Meanwhile, in Lashe City"},
+            {"code": 10120, "indent": 0, "parameters": [1, 1, 0, 0], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 14], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 15], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 17], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [1, 0, 18], "string": ""},
+            {"code": 10330, "indent": 0, "parameters": [0, 0, 10], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [82, 8, 8], "string": ""},
+            {
+              "code": 11030,
+              "indent": 0,
+              "parameters": [100, 100, 100, 100, 10, 1],
+              "string": ""
+            },
+            {"code": 10210, "indent": 0, "parameters": [0, 273, 273, 0], "string": ""}
+          ],
+          "id": 3,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 273,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 4,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 309,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {"code": 12010, "indent": 0, "parameters": [4, 81, 0, 0, 0, 1], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10320, "indent": 1, "parameters": [0, 0, 81, 0, 1], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 11740, "indent": 0, "parameters": [25], "string": ""},
+            {
+              "code": 11030,
+              "indent": 0,
+              "parameters": [100, 100, 100, 100, 10, 1],
+              "string": ""
+            },
+            {"code": 10690, "indent": 0, "parameters": [0, 0], "string": ""},
+            {"code": 10690, "indent": 0, "parameters": [1, 0], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "... and that's when we met you. So now"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "you know the whole story."
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Frankly, it's amazing that you've made it"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "this far, Talan. The Agency is not to be"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "trifled with."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Tell me about it."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'm sorry that I can't be a tremendous"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "help to you - I wish I could say I have all"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the answers for you... but I don't."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "But I think I can point you in the right"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "direction."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "What do you mean?"},
+            {"code": 11330, "indent": 0, "parameters": [7, 8, 0, 0, 2, 13], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You said that before he was assassinated,"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the Director told you to \"seek Paradise...\""
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "That's right. I figured it was just an"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "expression."},
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [7, 8, 0, 0, 3, 3, 3, 23, 1, 1, 1, 23],
+              "string": ""
+            },
+            {"code": 11410, "indent": 0, "parameters": [15], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I think it's more than that. You see, there"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "is a village far away, nestled among the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "mountains to the west, called \"Paradise.\""
+            },
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 14], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "There is?"},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I lived there, for awhile - but, for various"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "reasons, I had to leave. That was a long"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "time ago, but I'm sure it's still there."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Paradise is a small community dedicated"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "to survival without the use of machines."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "You can imagine that this doesn't sit too"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "well with the Agency; after all, the Agency"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "represents the onward march of science"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "and technology - to them, Paradise is a"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "nuisance, and they try to keep its existence"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "quiet."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The Agency doesn't like to publicize"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the fact that there's a thriving rural"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "community that disavows its ideals."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Paradise is an independent community -"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "if you can get there, you could claim"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "political asylum."},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Are you sure? The Agency could just come"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "in with their Guards and take me out!"
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I seem to remember an old law on the books"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "saying that Paradise was to be a haven. If"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the Agency did that, they'd have a major"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "incident on their hands. I think you'd be"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "safe. But first you'll need to get there."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Good luck, Talan. You're going to need it."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Remember, Paradise is far away, among"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "the southwestern mountains. Your journey"
+            },
+            {"code": 20110, "indent": 0, "parameters": [], "string": "is far from complete."},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 2, 3], "string": ""},
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Thank you for everything, Doctor."
+            },
+            {"code": 11410, "indent": 0, "parameters": [10], "string": ""},
+            {"code": 11330, "indent": 0, "parameters": [10001, 8, 0, 0, 14], "string": ""},
+            {"code": 10810, "indent": 0, "parameters": [69, 10, 19], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [0, 54, 0, 0, 0, 1], "string": ""},
+            {"code": 10330, "indent": 1, "parameters": [0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "ARDEN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Let's go find Paradise, Talan. I know we"
+            },
+            {"code": 20110, "indent": 1, "parameters": [], "string": "can make it."},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "I hope you're right, Arden. I really do."
+            },
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [0, 56, 0, 0, 0, 1], "string": ""},
+            {"code": 10330, "indent": 1, "parameters": [0, 0, 17], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "SALDRA"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Well, what are we waiting for, man?"
+            },
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Paradise awaits!"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Yeah. I've got a bad feeling about this"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "whole thing, though. I hope Vago's right."
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "SALDRA"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "We've made it this far, right? Nothing"
+            },
+            {"code": 20110, "indent": 1, "parameters": [], "string": "can stop us!"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Yeah. Nothing."},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 12010, "indent": 0, "parameters": [0, 150, 0, 0, 0, 1], "string": ""},
+            {"code": 10330, "indent": 1, "parameters": [0, 0, 18], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "You ready, AG7?"},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "AG7-17"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "&*Aeeufe6e6e6&&&^%$%dd"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Invalid Data Acquired76@6dbbf"
+            },
+            {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "I'll take that as... a \"yes,\" I suppose."
+            },
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22010, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10, "indent": 1, "parameters": [], "string": ""},
+            {"code": 22011, "indent": 0, "parameters": [], "string": ""},
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {"code": 20110, "indent": 0, "parameters": [], "string": "Let's go."},
+            {"code": 10210, "indent": 0, "parameters": [0, 310, 310, 0], "string": ""}
+          ],
+          "id": 5,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 3
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 310,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 6,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 7,
+      "name": "VagoSitting",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 1,
+          "character_index": 2,
+          "character_name": "People5",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 266,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "If you happen to find any ingredients in"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "your travels, bring them back here and"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'd be only too happy to reward you."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'll keep that in mind. Thanks, Dr. Vago!"
+            }
+          ],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 1,
+          "character_index": 2,
+          "character_name": "People5",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 272,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "If you happen to find any ingredients in"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "your travels, bring them back here and"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'd be only too happy to reward you."
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "TALAN"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "I'll keep that in mind. Thanks, Dr. Vago!"
+            }
+          ],
+          "id": 2,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        },
+        {
+          "animation_type": 0,
+          "character_direction": 1,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 310,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [],
+          "id": 3,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 8,
+      "y": 7
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 2,
+          "character_name": "People5",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": true,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 310,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Talan, hello! You haven't gotten to Paradise"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "yet? Remember, it's far to the southwest."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "The quickest way would probably be to"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "cross the river by the bridge north of"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Sorbe, and follow the highway south and"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "west through Tangle Forest until you"
+            },
+            {"code": 10110, "indent": 0, "parameters": [], "string": "DR. VAGO"},
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "hit the mountains. Good luck, Talan."
+            }
+          ],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {"move_commands": [], "repeat": true, "skippable": false},
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 6,
+      "y": 5
+    }
+  ],
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "id": 81,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 79,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 20
+}

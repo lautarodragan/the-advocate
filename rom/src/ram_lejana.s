@@ -128,6 +128,16 @@ ENC_SIN   = $FF
 ; uno de relleno, para que el índice sea un corrimiento y no una multiplicación.
 ENC_FILAS  = 8
 ENC_STRIDE = 8
+; Los umbrales del mapa actual, copiados de `enc_umbral_n` al entrar: el paso en
+; que se cruza cada fila, de la 1 a la 7. Viven en la RAM y no se leen de la
+; tabla porque `ChangeEncounterSteps` los cambia junto con `ENC_BASE`: la chance
+; y las filas salen del mismo `encounter_steps`.
+;
+; $7E79C0 a $7E79C7, de lo que se le repartió al hito 2 del mundo el
+; 2026-09-27 —$79C0 a $79DF—. Como el resto de los encuentros, con dirección de
+; dieciséis bits: se lee con el banco de datos en $7E.
+ENC_UMB   = $79C0
+.assert ENC_UMB + ENC_STRIDE <= $79E0, error, "los umbrales se salen de su lugar"
 
 ; --- la experiencia y el nivel: su estado en la RAM lejana --------------------
 ;

@@ -2,10 +2,11 @@
 
 ; --- la ventana de mensaje -------------------------------------------------
 ; Sus tiles y su paleta se suben una sola vez, con la pantalla apagada, igual
-; que los de la capa de encima. Viven en el banco que sigue al de encima, y BG2
-; los alcanza con la misma base: del índice 0 al 255 cae el de encima y del 256
-; al 511 la ventana. Por eso el conversor ya emitió las celdas con ese
-; corrimiento sumado.
+; que los de la capa de encima. Viven detrás de los de encima, y BG2 los
+; alcanza con la misma base: según el reparto, la capa de encima tiene 128 o
+; 256 tiles y la ventana arranca en ese índice. Por eso el conversor emite dos
+; planos de celdas, uno con cada corrimiento sumado, y `estampar_ventana`
+; elige.
 ;
 ; Su paleta es la **0**, o sea las entradas que están debajo del fondo, y la
 ; sube `cargar_mapa_sin_eventos` junto con el color de fondo de la pantalla.
@@ -63,17 +64,39 @@
     lda #$80
     sta VMAIN
     ldx mapa_ofs
+    ; Qué plano: el que tiene horneado el índice donde arranca la ventana, que
+    ; es la distancia entre ella y la base de BG2 —el nibble alto de
+    ; BG12NBA—. Los repartos la ponen 128 tiles detrás o, el de la capa de
+    ; encima de 256, 256: 256 tiles de 4bpp son $1000 palabras, $10 en el
+    ; byte alto. Ver `VENTANA_BASES` en el conversor.
+    lda f:mapa_tabla + M_BG12NBA_VALUE, x
+    and #$F0
+    sta temp
+    lda f:mapa_tabla + M_VRAM_VENTANA + 1, x
+    sec
+    sbc temp
+    cmp #$10                    ; el acarreo sobrevive al `rep` y al `lda`
     rep #$20
 .a16
     lda f:mapa_tabla + M_VRAM_VENTANA_MAP, x
     sta VMADDL
-    lda #.loword(ventana_celdas)
-    sta A1T0L
     lda #(VENTANA_FILAS * VENTANA_COLS * 2)
     sta DAS0L
+    bcs plano_256
+    lda #.loword(ventana_celdas)
+    sta A1T0L
     sep #$20
 .a8
     lda #^ventana_celdas
+    bra con_plano
+plano_256:
+.a16
+    lda #.loword(ventana_celdas_256)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^ventana_celdas_256
+con_plano:
     sta A1B0
     lda #$01
     sta DMAP0

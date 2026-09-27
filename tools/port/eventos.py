@@ -660,36 +660,13 @@ CHANGE_HERO_TITLE = 10620
 
 # `ChangeEncounterSteps` (11740): cada cuántos pasos hay un encuentro al azar.
 # Diecinueve apariciones en nueve mapas, y trece de ellas lo ponen en **cero**,
-# que en RM2k es apagarlos.
-#
-# Se acepta sin hacerlo porque **no hay encuentros al azar**: el juego los ata
-# al mapa y a las *áreas* —nodos del árbol sin `.lmu`, con un rectángulo y su
-# propia lista de tropas— y este port no lee ni una cosa ni la otra. O sea que
-# acá no hay una deuda parcial: el número que el comando guarda no lo lee
-# nadie, y el día que los encuentros existan este renglón tiene que salir de
-# esta lista **junto con** ellos, no antes.
-#
-# Cuánto destraba, medido: **+14 páginas**. Y **no se acepta**, que es la parte
-# que hay que leer entera, porque el número solo diría lo contrario:
-#
-# * Las trece que lo ponen en cero están **apagando algo que todavía no pasa**.
-#   Lo que se ganaría es lo que esas páginas hacen además.
-# * Está en nueve mapas —el 66, el 81, el 121, del 152 al 156 y el 165— y
-#   ninguno está cerca de los primeros diez minutos. **Esta razón caducó el
-#   2026-09-25**: el objetivo pasó a ser el juego entero, así que la próxima
-#   vez que se mire esta lista hay que ver si lo demás alcanza para el no.
-# * Y se midió lo que cuesta: aceptándolo, la automática
-#   `DaliaGoingToTasgarde` del mapa 66 pasa a compilar, y esa página desarma el
-#   grupo y le fuerza al héroe una ruta de sesenta pasos. El mapa 66 era el
-#   de una ROM de prueba, y con la cinemática despierta se caían dos casos de
-#   `test_condicional.py`. **Ese freno se fue el 2026-09-17**: la ventana pasó
-#   a ser obligatoria, el 66 no la puede llevar, y las pruebas se mudaron a
-#   otros mapas. Lo que queda es el primer punto.
-#
-# O sea: `ChangeEncounterSteps` entra en `ACEPTADOS_SIN_HACER` el día que los
-# encuentros al azar existan, **junto con** ellos y no antes: el juego los ata al mapa y a las
-# *áreas*, que son nodos del árbol sin `.lmu`, con un rectángulo y su propia
-# lista de tropas, y este port no lee ni una cosa ni la otra.
+# que en RM2k es apagarlos. Hasta el 2026-09-27 se dejaba afuera porque "no
+# hay encuentros al azar"; los hay desde el 2026-09-13 —ver
+# `rom/src/encuentros.s`— y lo pidió el viaje de Dalia a Tasgarde, la
+# automática `DaliaGoingToTasgarde` del mapa 66, que los apaga antes de
+# forzarle la ruta al héroe. Compila a OP_ENCOUNTER_STEPS: ver
+# `encuentro_pasos`.
+CHANGE_ENCOUNTER_STEPS = 11740
 
 ACEPTADOS_SIN_HACER = {
     # CallEvent **ya no está acá**: desde el 2026-09-12 se compila en línea,
@@ -4466,6 +4443,23 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
 
     if cmd.code in ACEPTADOS_SIN_HACER:
         return b""     # se acepta con la deuda declarada arriba
+
+    if cmd.code == CHANGE_ENCOUNTER_STEPS:
+        # El `1 / pasos` y los siete umbrales de las filas, calculados acá
+        # como para el registro del mapa —`encuentros_de_la_rom`—, así que un
+        # cambio de pasos cambia la chance y las filas juntas, igual que
+        # `Encuentros.poner_pasos`. Dura hasta la próxima carga de mapa: la ROM
+        # vuelve a poner los del mapa, que es lo que hace RM2k.
+        if not p:
+            raise NoSePuede("ChangeEncounterSteps sin operandos")
+        pasos = max(p[0], 0)
+        umbrales = enc_umbrales_de_paso(pasos)
+        if max(umbrales) > 0xFF:
+            raise NoSePuede("ChangeEncounterSteps de %d pasos: los umbrales "
+                            "no entran en un byte" % pasos)
+        base = enc_base(pasos)
+        return bytes([OP_ENCOUNTER_STEPS, base & 0xFF, base >> 8]
+                     + umbrales + [0xFF])
 
     if cmd.code in (COMMENT, COMMENT_2):
         # No es deuda: en RM2k tampoco hace nada. Lo pidió la despedida del
