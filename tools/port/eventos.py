@@ -2504,6 +2504,7 @@ HABILIDAD_RANURAS_MAX = 256 * 8
 CHANGE_SKILLS = 10440
 CHANGE_EQUIPMENT = 10450
 GAME_OVER = 12420
+RETURN_TO_TITLE = 12510
 
 
 def pares_de_habilidad_de_comandos(comandos):
@@ -3858,10 +3859,13 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         if _ACTORES_INDEXADOS and actor and actor not in ACTOR_EQUIPO:
             raise NoSePuede("el actor %d no está en el LDB" % actor)
         return bytes([OP_EQUIPMENT, actor, p[3]])
-    if cmd.code == GAME_OVER:
+    if cmd.code in (GAME_OVER, RETURN_TO_TITLE):
         # `CommandGameOver`: la pantalla de Game Over y, al apretar, el título.
         # Acá es volver al arranque, igual que perder una pelea sin manejador
-        # —ver `BATALLA_PERDER`—, y la imagen no se dibuja.
+        # —ver `BATALLA_PERDER`—, y la imagen no se dibuja. Por eso
+        # `ReturntoTitleScreen`, que es lo mismo sin la imagen, cae en el mismo
+        # opcode: el arranque de `release` es la pantalla de título. Lo pide
+        # el fin de la demo del mapa 36 (`parches/manual/`).
         return bytes([OP_GAME_OVER])
     if cmd.code == CHANGE_CONDITION:
         if len(p) < 3 or p[2] != 1:

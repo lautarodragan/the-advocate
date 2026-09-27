@@ -938,6 +938,22 @@ def _mismo_reparto_de_cgram(sin, con):
             and antes["fusionados"] == ahora["fusionados"])
 
 
+def _hornear_si_no_mueve_la_cgram(renderer, game_map, map_id, sin_horneado,
+                                  horneados):
+    """Hornea `horneados` y devuelve (capas, horneados): las horneadas si el
+    reparto de CGRAM no se movió, y si no las de `sin_horneado`, sin ninguno.
+    Ver `_mismo_reparto_de_cgram`."""
+    hornear_en_el_mapa(game_map, horneados)
+    con_horneado = capas_convertidas(renderer, game_map)
+    if _mismo_reparto_de_cgram(sin_horneado, con_horneado):
+        return con_horneado, horneados
+    print("  mapa %d: hornear %d evento(s) le movía el reparto de "
+          "CGRAM, así que van dibujados" % (map_id, len(horneados)))
+    for celda, _tile in horneados.values():
+        game_map.upper_layer[celda] = rm2k.UPPER_BASE
+    return sin_horneado, {}
+
+
 def hornear_en_el_mapa(game_map, horneables):
     """Mete el tile de cada evento horneado en la capa alta del mapa.
 
@@ -8080,23 +8096,11 @@ def convertir(renderer, map_id, args):
     # nada que ver con el horneado. En ese caso el mapa va sin hornear, que es
     # lo de siempre. La segunda conversión no se paga dos veces en un build
     # caliente: las dos quedan en el caché en disco, con su clave.
+    sin_horneado = capas
     horneados = eventos_horneables(renderer, game_map)
     if horneados:
-        hornear_en_el_mapa(game_map, horneados)
-        con_horneado = capas_convertidas(renderer, game_map)
-        if _mismo_reparto_de_cgram(capas, con_horneado):
-            capas = con_horneado
-        else:
-            print("  mapa %d: hornear %d evento(s) le movía el reparto de "
-                  "CGRAM, así que van dibujados" % (map_id, len(horneados)))
-            for celda, _tile in horneados.values():
-                game_map.upper_layer[celda] = rm2k.UPPER_BASE
-            horneados = {}
-    (tile_data, cram, tilemap, summary), above_data = capas
-    if horneados:
-        print("  mapa %d: %d evento(s) opaco(s) horneados en el mapa: %s"
-              % (map_id, len(horneados),
-                 ", ".join(str(e + 1) for e in sorted(horneados))))
+        capas, horneados = _hornear_si_no_mueve_la_cgram(
+            renderer, game_map, map_id, sin_horneado, horneados)
 
     # Los personajes: el héroe con sus 12 poses porque camina, y cada NPC con la
     # que declara su página. Si un NPC usa el mismo personaje que el héroe,
@@ -8184,17 +8188,31 @@ def convertir(renderer, map_id, args):
     # Un evento horneado que se dibujaba con una paleta ajena no se puede
     # esconder: el sprite y el tile del fondo mostrarían colores distintos —el
     # prestado y los de verdad— y taparlo con el segundo cambia lo que se ve.
-    # Ninguno de los mapas del juego lo pide hoy; si aparece, hay que sacarlo de
-    # la regla y no aprobar la golden.
+    # Así que ése se deshornea y vuelve a ser sprite, con los colores
+    # prestados: se ve como se vería sin el horneado. Se pregunta acá y no en
+    # `eventos_horneables` porque las prestadas salen del reparto, que corre
+    # después de dibujar las capas. El primero fue `PawnDoorTop`, el evento 11
+    # del mapa 37: hasta el 2026-09-26 esto era un `sys.exit`.
     horneado_prestado = sorted(
         evento for evento in horneados
         for npc in npcs
         if npc["evento"] == evento and (npc["charset"], npc["index"]) in prestadas)
     if horneado_prestado:
-        sys.exit("mapa %d: el evento %s se hornea en el mapa y además se "
-                 "dibujaba con una paleta ajena, así que horneado se vería con "
-                 "otros colores. Ver `eventos_horneables`."
-                 % (map_id, ", ".join(str(e + 1) for e in horneado_prestado)))
+        print("  mapa %d: el evento %s se dibuja con una paleta ajena, así que "
+              "no se hornea" % (map_id, ", ".join(str(e + 1)
+                                                  for e in horneado_prestado)))
+        for evento in horneado_prestado:
+            celda, _tile = horneados.pop(evento)
+            game_map.upper_layer[celda] = rm2k.UPPER_BASE
+        capas = sin_horneado
+        if horneados:
+            capas, horneados = _hornear_si_no_mueve_la_cgram(
+                renderer, game_map, map_id, sin_horneado, horneados)
+    (tile_data, cram, tilemap, summary), above_data = capas
+    if horneados:
+        print("  mapa %d: %d evento(s) opaco(s) horneados en el mapa: %s"
+              % (map_id, len(horneados),
+                 ", ".join(str(e + 1) for e in sorted(horneados))))
     for evento, tile in descartados:
         aviso_de_descarte(
             "mapa %d: el evento %d, dibujado con el tile %s, no entra en "
