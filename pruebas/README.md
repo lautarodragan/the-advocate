@@ -204,8 +204,11 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   ramas —Arden, Saldra y sin compañero—, cada una desde la charla del auto:
   sin su condición no pregunta, con ella "Stay" y después la carrera
 * `abl/test_recorrido_carrera_golden.py`: la persecución en auto de la intro
-  del 49 al fin de la demo en el 64, manejando con un piloto que esquiva
-  mirando la RAM; y cinco choques sin volante, con el compañero manejando
+  del 49 a la despedida del 64 y el mundo, hasta el fin de la demo en Sorbe,
+  manejando con un piloto que esquiva mirando la RAM; y cinco choques sin
+  volante, con el compañero manejando
+* `abl/test_mundo.py`: el mapa del mundo recién llegado, y una pelea ahí que
+  vuelve al mapa bien dibujado
 * `abl/test_escenas_golden.py`: las escenas y cinemáticas
 * `abl/test_recuerdo.py`: el recuerdo de CORE y MANTA
 * `abl/test_un_ano_antes.py`: el cartel de "1 year earlier"

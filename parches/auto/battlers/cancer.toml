@@ -1,0 +1,38 @@
+# La decisión artística del battler cancer: **qué colores se pierden** al
+# llevarlo a quince, que es lo que la escena de la pelea le deja a cada
+# uno. Lo escribe el conversor y lo regenera `just parches`, que es lo
+# que hay que correr cuando un cambio lo mueve; `just parches --check`
+# —y la tanda— fallan si quedó viejo. Ver tools/port/parches.py.
+
+battler = "cancer"
+imagen = "cancer"
+tono = 0
+
+# De qué venía, ya achicado al 80%: el tamaño en pixeles de la escena y
+# cuántos colores distintos de 15 bits traía. No se decide, se mide.
+tamano = [50, 38]
+colores = 491
+
+# Lo que quedó, en el orden de la paleta: el índice 1 es el primero.
+paleta = [
+  [1, 1, 1],
+  [0, 3, 6],
+  [1, 8, 14],
+  [20, 23, 29],
+  [11, 13, 18],
+  [4, 5, 8],
+  [14, 20, 24],
+  [27, 29, 29],
+  [7, 9, 15],
+  [2, 13, 20],
+  [24, 26, 29],
+  [31, 31, 31],
+  [10, 18, 21],
+  [12, 10, 6],
+  [28, 17, 2],
+]
+
+# Cuántas fusiones hicieron falta para llegar ahí, con
+# `asignador.merge_least_visible`: cada una manda al color que menos
+# se nota a su vecino más cercano.
+fusiones = 476

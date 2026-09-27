@@ -1,4 +1,4 @@
-"""La persecución en auto, de la intro del 49 al fin de la demo en el 64.
+"""La persecución en auto, de la intro del 49 al fin de la demo en el mundo.
 
 Es el hito 1 de `workflow/tasks/*/la-carrera-y-lo-que-sigue.md`. El recorrido:
 
@@ -16,9 +16,14 @@ Es el hito 1 de `workflow/tasks/*/la-carrera-y-lo-que-sigue.md`. El recorrido:
     54  tercera vuelta. Meta -> 51
     51  el puente: la columna 75 salta al 53
     53  el premio, según las vueltas y los choques -> 64
-    64  la despedida con el compañero, y el fin de la demo (el 64 está
-        forkeado: `parches/manual/mapas/Map0064.json`, porque el original salta
-        al mundo, el 66, que no entra)
+    64  la despedida con el compañero: `Teleport` al mundo, y la página sigue
+        corriendo allá con los mensajes de Talan
+    66  el mundo. Se camina hasta Sorbe Village, y el fin de la demo es pisar
+        su entrada, el evento 10 (el 66 está forkeado:
+        `parches/manual/mapas/Map0066.json`, porque el original salta al 69,
+        que no entra). Los encuentros al azar del mundo se apagan al llegar:
+        lo que se cobra acá es el camino, y la pelea en el mundo la mira
+        `test_mundo.py`
 
 **Todas las salidas de la carrera son un `Teleport` desde una página
 paralela**, con el primer plano quieto, y el volante es el `KeyInputProc` que
@@ -69,6 +74,10 @@ AUTO_ROJO = 19
 
 LAS_VUELTAS = (49, 52, 54)
 EL_CHOQUE, EL_PUENTE_MAPA, EL_PREMIO, LA_DESPEDIDA = 50, 51, 53, 64
+EL_MUNDO = 66
+# El `Teleport [66, 71, 29]` de la despedida, y la entrada a Sorbe Village.
+LLEGA_AL_MUNDO = (71, 29)
+SORBE = (75, 10)
 
 # Los carriles: `RaceController2` sube con la y en 24 o más y baja con la y
 # en 27 o menos.
@@ -308,13 +317,31 @@ def la_meta(r, mundo, vuelta, siguiente, cuadros=None):
 
 
 def fin_de_la_demo(r):
-    """La escena del 64 hasta el cartel del fin de la demo y la vuelta al
-    título. Por cuadros de hardware y no por ticks: la pantalla de título no
-    hace correr `vueltas`. El reinicio se ve en los switches, que `reset`
-    borra; el cartel es el último mensaje antes de eso, así que se guarda la
-    pantalla de cada mensaje compuesto y se fotografía la del último."""
-    r.empezar("la despedida del 64 y el fin de la demo")
+    """La escena del 64, que sigue en el mundo; la caminata hasta Sorbe, y el
+    cartel del fin de la demo y la vuelta al título.
+
+    El cartel se espera por cuadros de hardware y no por ticks: la pantalla de
+    título no hace correr `vueltas`. El reinicio se ve en los switches, que
+    `reset` borra; el cartel es el último mensaje antes de eso, así que se
+    guarda la pantalla de cada mensaje compuesto y se fotografía la del
+    último."""
+    r.empezar("la despedida del 64 y la llegada al mundo")
+    r.esperar("el mundo", lambda p: p.mapa() == EL_MUNDO, tope=4000)
+    r.esperar_el_control()
+    assert r.celda() == LLEGA_AL_MUNDO, (
+        "la despedida deja al héroe en %s del 66. %s"
+        % (LLEGA_AL_MUNDO, r.estado()))
+    r.foto("llega-al-mundo")
+
+    r.empezar("caminando a Sorbe")
     p = r.p
+    # El mapa los vuelve a prender en cada carga, y de acá a Sorbe no hay otra.
+    p.consola.escribir_ram(en_la_wram(p.simbolos["ENC_BASE"]), [0, 0])
+    r.caminar_a(SORBE, tope=4000, hasta=lambda p: p.corriendo_una_pagina())
+    assert r.celda() == SORBE, (
+        "caminando a Sorbe arrancó una página en otra celda. %s" % r.estado())
+
+    r.empezar("el fin de la demo en Sorbe")
     ultimo = None
     for _ in range(4000):
         if not p.switch(ARRANCO):
@@ -334,18 +361,18 @@ def fin_de_la_demo(r):
         p.consola.apretar()
         p.consola.correr(6)
     else:
-        raise AssertionError("la escena del 64 no volvió al título. %s"
+        raise AssertionError("pisar Sorbe no volvió al título. %s"
                              % r.estado())
     assert ultimo is not None, (
-        "entre el 64 y el título no hubo ningún mensaje. %s" % r.estado())
+        "entre Sorbe y el título no hubo ningún mensaje. %s" % r.estado())
     r.foto("el-fin-de-la-demo", imagen=ultimo)
     p.consola.correr(p.simbolos["BOOT_CUADROS"] + 60)
     r.foto("el-titulo-despues-del-fin", asentar=False)
 
 
 def test_la_carrera_entera(recorrido, mundo):
-    """Con Arden, las tres vueltas manejando, el puente, el premio y la
-    despedida, hasta el título. El piloto puede chocar alguna vez —el 50
+    """Con Arden, las tres vueltas manejando, el puente, el premio, la
+    despedida y el mundo hasta Sorbe, y de ahí al título. El piloto puede chocar alguna vez —el 50
     devuelve a la misma vuelta—, pero no cinco: con cinco el compañero se
     ofrece a manejar, y eso es la otra prueba."""
     r = recorrido("carrera-entera", switch=[CON_ARDEN])
@@ -404,7 +431,7 @@ def test_cinco_choques_y_maneja_saldra(recorrido, mundo):
     """Sin tocar el volante el auto va derecho por el carril 26 y choca
     siempre con el mismo, el de (101, 26): cada choque pasa por el 50 y
     vuelve a largar en el 49. Al quinto, Saldra se ofrece a manejar; con "Yes"
-    salta al puente, y de ahí al premio y a la despedida."""
+    salta al puente, y de ahí al premio, a la despedida y al mundo."""
     r = recorrido("carrera-cinco-choques", switch=[CON_SALDRA])
     largar(r)
     choques = []

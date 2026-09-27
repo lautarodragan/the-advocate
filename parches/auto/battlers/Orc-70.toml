@@ -1,0 +1,38 @@
+# La decisión artística del battler Orc-70: **qué colores se pierden** al
+# llevarlo a quince, que es lo que la escena de la pelea le deja a cada
+# uno. Lo escribe el conversor y lo regenera `just parches`, que es lo
+# que hay que correr cuando un cambio lo mueve; `just parches --check`
+# —y la tanda— fallan si quedó viejo. Ver tools/port/parches.py.
+
+battler = "Orc-70"
+imagen = "Orc"
+tono = 70
+
+# De qué venía, ya achicado al 80%: el tamaño en pixeles de la escena y
+# cuántos colores distintos de 15 bits traía. No se decide, se mide.
+tamano = [38, 51]
+colores = 364
+
+# Lo que quedó, en el orden de la paleta: el índice 1 es el primero.
+paleta = [
+  [8, 12, 3],
+  [12, 18, 6],
+  [2, 2, 2],
+  [13, 8, 8],
+  [19, 25, 14],
+  [16, 23, 10],
+  [14, 20, 8],
+  [8, 4, 4],
+  [10, 16, 5],
+  [22, 28, 18],
+  [21, 20, 20],
+  [6, 9, 2],
+  [26, 30, 24],
+  [15, 14, 14],
+  [27, 26, 26],
+]
+
+# Cuántas fusiones hicieron falta para llegar ahí, con
+# `asignador.merge_least_visible`: cada una manda al color que menos
+# se nota a su vecino más cercano.
+fusiones = 349

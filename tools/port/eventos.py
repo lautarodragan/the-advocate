@@ -2642,6 +2642,12 @@ CHANGE_SKILLS = 10440
 CHANGE_EQUIPMENT = 10450
 GAME_OVER = 12420
 RETURN_TO_TITLE = 12510
+# `Comment` y sus renglones de más: notas del autor en el editor, que RM2k
+# saltea al correr la página. `CommandComment` de EasyRPG sólo hace algo con
+# los parches DynRPG y Destiny —comentarios que empiezan con `@` o `$`—, y
+# ninguno de los 23 del juego empieza así.
+COMMENT = 12410
+COMMENT_2 = 22410
 
 
 def pares_de_habilidad_de_comandos(comandos):
@@ -4226,7 +4232,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # —ver `BATALLA_PERDER`—, y la imagen no se dibuja. Por eso
         # `ReturntoTitleScreen`, que es lo mismo sin la imagen, cae en el mismo
         # opcode: el arranque de `release` es la pantalla de título. Lo pide
-        # el fin de la demo del mapa 64 (`parches/manual/`).
+        # el fin de la demo, en el fork del mapa 66 (`parches/manual/`).
         return bytes([OP_GAME_OVER])
     if cmd.code == CHANGE_CONDITION:
         if len(p) < 3 or p[2] != 1:
@@ -4403,6 +4409,12 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
 
     if cmd.code in ACEPTADOS_SIN_HACER:
         return b""     # se acepta con la deuda declarada arriba
+
+    if cmd.code in (COMMENT, COMMENT_2):
+        # No es deuda: en RM2k tampoco hace nada. Lo pidió la despedida del
+        # 64, cuyo único comando que no compilaba era la nota "LYS" que el
+        # autor dejó detrás del `Teleport` al mundo.
+        return b""
 
     if cmd.code == CONTROL_SWITCHES:
         if len(p) < 4 or p[0] not in (SWITCH_UNICO, SWITCH_RANGO):
