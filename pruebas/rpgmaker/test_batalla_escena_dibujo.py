@@ -103,8 +103,10 @@ def _colores(una):
         return (w & 31, (w >> 5) & 31, (w >> 10) & 31)
 
     colores = {}
-    fondo = _byte(una, "ESC_FONDO")
+    fondo = _byte(una, "ESC_RESPALDO")
     # Los del respaldo liviano, que es el que la tanda ve: corre sin MSU-1.
+    # ESC_FONDO es el número del fondo en el juego, que indexa el `.msu`; el
+    # de la ROM es ESC_RESPALDO.
     base = en_la_rom(s["fondo_cgram"]) + fondo * escena.RESPALDO_COLORES * 2
     for i in range(escena.RESPALDO_COLORES):
         colores[escena.CGRAM_BASE + i] = color(base + 2 * i)
@@ -266,3 +268,36 @@ def test_escena_el_droide_muerto_peleando_desaparece(partida):
         "el droide murió y la escena no volvió a ser el fondo"
     assert _pantalla_distinta(una, limpio, RENGLON * 2) == 0, \
         "el droide murió y en la pantalla se sigue viendo"
+
+
+def test_escena_una_pelea_del_lugar_usa_el_fondo_del_mapa(partida):
+    """`EnemyEncounter` con el fondo "del lugar" —el parámetro `[2]` en 0—:
+    `Game_Map::SetupBattle`, el del mapa donde se pelea, igual que un
+    encuentro al azar. El caso `pelea-113` pelea así en el 60, que nombra
+    `SJBackdropABL01`, y la ROM no lo lleva: sin MSU-1 se dibuja el de
+    reemplazo, y `ESC_FONDO` queda con el número del del mapa, que es el que
+    se leería del `.msu`.
+
+    Si alguna página del juego que el cartucho compila antes pidiera la tropa
+    113 con un fondo con nombre, la tropa se quedaría con ése —gana el
+    primero, ver `Tropas.pedir`— y esta prueba lo diría."""
+    from port import eventos
+    from rpgmaker import lcf
+    import os
+    tree = lcf.TreeMap(os.path.join(GAME_DIR, "RPG_RT.lmt"))
+    juego = escena.fondos_del_juego(
+        eventos.fondos_nombrados(GAME_DIR), tree,
+        eventos.base_de_datos(GAME_DIR).terrain_backdrops, GAME_DIR)
+    del_mapa = tree.map_background(60)
+    assert del_mapa and del_mapa not in escena.FONDOS, (
+        "el 60 nombra %r, y la prueba necesita uno que la ROM no lleve"
+        % del_mapa)
+    una = partida(caso="pelea-113")
+    _esperar(una, tope=600)
+    una.consola.correr(3)
+    assert _byte(una, "ESC_FONDO") == juego.index(del_mapa), (
+        "la pelea del lugar en el 60 eligió el fondo %d y el del mapa es %r, "
+        "el %d" % (_byte(una, "ESC_FONDO"), del_mapa, juego.index(del_mapa)))
+    reemplazo = escena.fondo_liviano(escena.REEMPLAZO, GAME_DIR)
+    assert _distintos(_bufer(una, "ESC_LIMPIO"), reemplazo["indices"]) == 0, (
+        "sin MSU-1 la pelea del lugar no tiene el fondo de reemplazo")

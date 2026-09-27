@@ -2012,8 +2012,18 @@ BATALLA_HANDLERS = (VICTORY_HANDLER, ESCAPE_HANDLER, DEFEAT_HANDLER)
 # en los otros, que es lo de siempre: antes emitir nada que emitir algo que la
 # ROM haga distinto.
 # De dónde sale el fondo, el parámetro [2] de `CommandEnemyEncounter`: 0 el
-# del terreno, 1 el que nombra el comando, 2 ninguno.
+# del lugar —el del mapa, o el del terreno que pisa el héroe: es
+# `Game_Map::SetupBattle`—, 1 el que nombra el comando y 2 el de un terreno
+# dado, que es de RM2k3.
+BATALLA_FONDO_DEL_LUGAR = 0
 BATALLA_FONDO_DEL_COMANDO = 1
+# El fondo de una tropa que pelea con el del lugar: no se sabe al compilar,
+# porque depende de dónde esté el héroe. Ver `fondo_de_encuentro`.
+FONDO_DEL_LUGAR = ("del lugar",)
+# El comando de las páginas de tropa que cambia el fondo a mitad de pelea. El
+# juego no lo usa, y el port no lo compila; se barre por los nombres que da,
+# para que `fondos_nombrados` sea el de todo el juego.
+CHANGE_BATTLE_BG = 13210
 # El parámetro de huida: 0 no se puede, 1 corta la pelea. Sólo se pregunta por
 # el 1.
 BATALLA_ESCAPE_CORTA = 1
@@ -2919,7 +2929,7 @@ class Tropas:
         if numero not in self.ids:
             self.ids.append(numero)
         if fondo and numero not in self.fondos:
-            self.fondos[numero] = fondo
+            self.fondos[numero] = fondo     # un nombre, o FONDO_DEL_LUGAR
         return numero
 
 
@@ -3310,8 +3320,7 @@ def tropa_de_encuentro(cmd):
       hace es lo de antes, que era no compilar la página: costaba 15, entre
       ellas el jefe de los Rat Tracks.
 
-    El fondo no se mira: la pantalla de batalla va sobre un color plano, que es
-    lo que taro pidió para esta vuelta. Ver workflow/tasks/done/battle.md.
+    El fondo no se mira acá: lo saca `fondo_de_encuentro`.
     """
     p = cmd.parameters
     if len(p) < 6:
@@ -3326,14 +3335,62 @@ def tropa_de_encuentro(cmd):
 
 
 def fondo_de_encuentro(cmd):
-    """El fondo de batalla que nombra el `EnemyEncounter`, o "".
+    """El fondo de batalla de un `EnemyEncounter`: el nombre que trae,
+    `FONDO_DEL_LUGAR`, o "" si ninguno.
 
     El parámetro `[2]` de `CommandEnemyEncounter` dice de dónde sale el fondo:
-    1 es "el que dice este comando", que es lo que hacen las 51 peleas del
-    juego, y 0 sería el del terreno. El nombre viaja en el string del comando.
+    1 es "el que dice este comando", que es lo que hacen 49 de las 51 peleas
+    del juego, con el nombre en el string —vacío es sin fondo—; 0 es el del
+    lugar, `Game_Map::SetupBattle`, que es lo que hacen las otras dos (en el
+    105 y en el 141), y lo resuelve la ROM al empezar la pelea. El 2 es de
+    RM2k3.
     """
     p = cmd.parameters
-    return cmd.string if len(p) > 2 and p[2] == BATALLA_FONDO_DEL_COMANDO else ""
+    if len(p) > 2 and p[2] == BATALLA_FONDO_DEL_COMANDO:
+        return cmd.string
+    if len(p) > 2 and p[2] == BATALLA_FONDO_DEL_LUGAR:
+        return FONDO_DEL_LUGAR
+    return ""
+
+
+def fondos_de_comandos(comandos):
+    """Los fondos de batalla que nombran estos comandos: el barrido de
+    `fondos_nombrados`."""
+    nombres = set()
+    for cmd in comandos:
+        if cmd.code == ENEMY_ENCOUNTER:
+            fondo = fondo_de_encuentro(cmd)
+            if fondo and fondo is not FONDO_DEL_LUGAR:
+                nombres.add(fondo)
+        elif cmd.code == CHANGE_BATTLE_BG and cmd.string:
+            nombres.add(cmd.string)
+    return nombres
+
+
+def _fondos_del_mapa(game_map):
+    """El barrido de `fondos_nombrados` sobre un mapa."""
+    nombres = set()
+    for evento in game_map.events:
+        for page in evento.pages:
+            nombres |= fondos_de_comandos(page.commands)
+    return nombres
+
+
+def fondos_nombrados(game_dir):
+    """Los fondos de batalla que nombra algún comando del juego: los
+    `EnemyEncounter` y los `ChangeBattleBG` de todos los mapas, de los
+    eventos comunes y de las páginas de las tropas, compilen o no. Los del
+    árbol de mapas y los de los terrenos los suma `escena.fondos_del_juego`.
+    """
+    db = base_de_datos(game_dir)
+    nombres = barrer_los_mapas(game_dir, mapas_del_juego(game_dir),
+                               _fondos_del_mapa)
+    for comandos in db.common_events.values():
+        nombres |= fondos_de_comandos(comandos)
+    for tropa in db.troops.values():
+        for pagina in tropa.pages:
+            nombres |= fondos_de_comandos(pagina.commands)
+    return nombres
 
 
 def actor_de_blanco(p, que):

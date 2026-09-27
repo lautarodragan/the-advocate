@@ -7,23 +7,44 @@ bit 7 de $2000 y lee de $2001 byte por byte, avanzando solo; por DMA con el
 origen fijo en $2001 se lee a la velocidad de cualquier DMA. El mecanismo de
 este lado y del de la ROM está en docs/port/msu-datos.md.
 
-Es un piloto, y lo que lleva son **los fondos de batalla de calidad**: 8bpp y
-96 colores. **Sin MSU-1 el juego tiene que andar igual** —Mednafen no lo
-tiene—, así que la ROM lleva de cada uno un respaldo liviano, 4bpp y 16
-colores, y el `.msu` lo reemplaza cuando está y es el de este cartucho. Son
+Lo que lleva primero son **los fondos de batalla de calidad**, 8bpp y 96
+colores, y **todos los del juego**, estén o no en los mapas del cartucho: ver
+"Qué fondos hay" en tools/port/escena.py. **Sin MSU-1 el juego tiene que
+andar igual** —Mednafen no lo tiene—, así que la ROM lleva un respaldo
+liviano, 4bpp y 16 colores, de los pocos que entran, y uno de reemplazo para
+los demás; el `.msu` los reemplaza cuando está y es el de este cartucho. Son
 distintos a propósito: ver "El respaldo liviano" en tools/port/escena.py.
 
 ## El formato
 
 Todo en little-endian:
 
-    $00  8  la firma: los primeros 8 bytes del sha256 de todo lo que sigue
-    $08  4  "ABLD"
-    $0C  2  la versión del formato, hoy 1
-    $0E  2  cuántas entradas hay, N
-    $10  8N por entrada: dónde empieza en el archivo y cuánto mide, 4 y 4
-    ...     los datos de las entradas, uno detrás del otro y en el orden del
-            índice
+    $00     8  la firma: los primeros 8 bytes del sha256 de todo lo que
+               sigue
+    $08     4  "ABLD"
+    $0C     2  la versión del formato, hoy 2
+    $0E     2  cuántas entradas hay, N
+    $10     8N por entrada: dónde empieza en el archivo y cuánto mide, 4 y 4
+    ...        ceros, hasta FONDOS_DESDE
+    $10000     los fondos, uno cada FONDO_LUGAR bytes y en orden de número:
+               el fondo k en `fondo_en(k)`
+    ...        detrás del último, las demás entradas, una detrás de la otra
+               y en el orden del índice
+
+**La región de los fondos es fija.** Hasta la versión 1 las entradas iban
+todas seguidas detrás del índice, así que el lugar de un fondo dependía de
+cuántas entradas hubiera —y los efectos son de cada cartucho— y de qué fondos
+llevara el cartucho. Desde el 2026-09-27 el `.msu` lleva todos los fondos del
+juego, cada uno con su número, y el fondo k está en el mismo byte en el
+`.msu` de cualquier cartucho: `FONDOS_DESDE + k * FONDO_LUGAR` sus tiles, y
+`COLORES_EN` más adelante sus colores. El índice sigue estando, y dice lo
+mismo, para las herramientas. Si el índice llegara a pasar de
+`FONDOS_DESDE` —más de ocho mil entradas— `armar` se niega.
+
+Cada lugar mide 32.768 bytes de tiles, 192 de colores y relleno hasta el
+próximo múltiplo de 512: así los tiles de cada fondo empiezan en un sector de
+la tarjeta SD, que es de donde los lee el FX Pak. No está medido que eso lo
+haga más rápido; cuesta 320 bytes por fondo.
 
 **La firma es del contenido, no del build.** La ROM lleva la que espera —el
 conversor la emite en el `.inc`— y la compara con los 8 primeros bytes del
@@ -43,7 +64,8 @@ sumar entradas, sin cambiar el formato.
 Cada fondo son dos entradas, en este orden: sus 512 tiles de 8bpp —32.768
 bytes, tal cual van a la WRAM— y sus 96 colores de 15 bits —192 bytes, tal
 cual van a la CGRAM desde la entrada 32—. Los arma `fondo_bytes` en
-snes_convert.py.
+snes_convert.py, y la ROM sabe dónde está cada uno por `msu_fondo_pos`, que
+emite `escribir_msu`.
 
 Detrás de los fondos van los efectos de sonido de calidad, una entrada por
 efecto de cada paquete de audio, en BRR: los ordena `escribir_msu` en
@@ -54,28 +76,63 @@ import hashlib
 import struct
 
 MAGIA = b"ABLD"
-VERSION = 1
+VERSION = 2
 FIRMA = 8
 CABECERA = 16
 ENTRADA = 8
 
+# La región de los fondos: ver "El formato".
+FONDOS_DESDE = 0x10000
+COLORES_EN = 0x8000                 # 512 tiles de 8bpp
+FONDO_LUGAR = 0x8200                # y los 192 bytes de colores, al sector
+SECTOR = 512
+assert FONDO_LUGAR % SECTOR == 0 and FONDO_LUGAR >= COLORES_EN + 96 * 2
 
-def armar(entradas):
+
+def fondo_en(k):
+    """Dónde están los tiles del fondo número `k`; sus colores, `COLORES_EN`
+    más adelante."""
+    return FONDOS_DESDE + k * FONDO_LUGAR
+
+
+def armar(entradas, fondos=0):
     """El `.msu` con estas entradas, y dónde quedó cada una.
 
-    `entradas` son los bytes de cada una, en orden. Devuelve `(archivo,
+    `entradas` son los bytes de cada una, en orden. Las primeras `2 *
+    fondos` son los fondos —tiles y colores de cada uno— y van en su lugar
+    fijo, `fondo_en`; las demás detrás de la región de los fondos, una tras
+    otra. Sin fondos, todas seguidas detrás del índice. Devuelve `(archivo,
     posiciones)`, con `posiciones[k]` el desplazamiento de la entrada `k`
     desde el principio del archivo.
     """
     posiciones = []
     donde = CABECERA + ENTRADA * len(entradas)
-    indice = bytearray()
-    for datos in entradas:
+    if fondos:
+        if donde > FONDOS_DESDE:
+            raise ValueError("el índice del .msu mide %d B y pisa la región de "
+                             "los fondos, en $%X" % (donde, FONDOS_DESDE))
+        for k in range(fondos):
+            tiles, colores = entradas[2 * k], entradas[2 * k + 1]
+            if len(tiles) > COLORES_EN or \
+                    COLORES_EN + len(colores) > FONDO_LUGAR:
+                raise ValueError("el fondo %d no entra en su lugar del .msu"
+                                 % k)
+            posiciones += [fondo_en(k), fondo_en(k) + COLORES_EN]
+        # Lo que sigue va detrás de la región entera, no del último byte
+        # escrito: así tampoco depende de cuánto mida el último fondo.
+        donde = fondo_en(fondos)
+    for datos in entradas[2 * fondos:]:
         posiciones.append(donde)
-        indice += struct.pack("<II", donde, len(datos))
         donde += len(datos)
-    cuerpo = (MAGIA + struct.pack("<HH", VERSION, len(entradas)) + indice
-              + b"".join(entradas))
+    indice = b"".join(struct.pack("<II", p, len(d))
+                      for p, d in zip(posiciones, entradas))
+    cuerpo = bytearray(MAGIA + struct.pack("<HH", VERSION, len(entradas))
+                       + indice)
+    for p, datos in zip(posiciones, entradas):
+        # Relleno con ceros hasta donde va: la firma lo cubre como a todo.
+        cuerpo += bytes(p - FIRMA - len(cuerpo))
+        cuerpo += datos
+    cuerpo = bytes(cuerpo)
     return firma_de(cuerpo) + cuerpo, posiciones
 
 
@@ -101,16 +158,3 @@ def indice(archivo):
 def leer(archivo):
     """Las entradas de un `.msu`, o `ValueError` si no es uno válido."""
     return [archivo[donde:donde + largo] for donde, largo in indice(archivo)]
-
-
-def fondos(tiles_y_colores):
-    """El `.msu` de los fondos de batalla: por fondo, sus tiles y sus colores.
-
-    Devuelve `(archivo, firma, posiciones)`, con `posiciones[k]` el par
-    `(tiles, colores)` del fondo `k`: es lo que la ROM lee de `msu_fondo_pos`.
-    """
-    entradas = [parte for par in tiles_y_colores for parte in par]
-    archivo, donde = armar(entradas)
-    return (archivo, archivo[:FIRMA],
-            [(donde[2 * k], donde[2 * k + 1])
-             for k in range(len(tiles_y_colores))])

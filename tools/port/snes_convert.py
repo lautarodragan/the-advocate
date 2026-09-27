@@ -3561,52 +3561,102 @@ def experiencia_asm(db, actores, actores_n):
     return "\n".join(out) + "\n"
 
 
+# Lo que va en las tablas de fondo en vez de un número de fondo: el liso —sin
+# fondo, que es ceros— y "el del lugar", que la ROM resuelve al empezar la
+# pelea con el mapa y el terreno. Ver `escena_de_la_rom`.
+FONDO_LISO = 0xFF
+FONDO_DEL_LUGAR = 0xFE
+
+
 def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
     """Qué fondos y qué battlers lleva el cartucho, y quién usa cada uno.
 
     Es la otra mitad de tools/port/escena.py: allá está cómo se convierte un
-    fondo o un battler, acá **cuáles**. Un fondo entra si está en
-    `escena.FONDOS` y alguna pelea del cartucho lo pide, que es de dos maneras:
+    fondo o un battler, acá **cuáles**. Los fondos se nombran por su número
+    en el juego —ver "Qué fondos hay" allá—, y una pelea pide el suyo de tres
+    maneras:
 
     * **un `EnemyEncounter` que lo nombra**, y entonces es de la tropa —así
       funcionaba la escena horneada—. Si dos lo pidieran distinto para la
       misma tropa gana el primero, como en `Tropas.pedir`;
     * **un encuentro al azar en un mapa que lo hereda**, que es
       `TreeMap.map_background`: las áreas de los Back Alleys no traen fondo y
-      lo sacan de su mapa.
+      lo sacan de su mapa;
+    * **el del terreno que pisa el héroe**, si el mapa no nombra ninguno: el
+      mundo, el 66. Ése lo resuelve la ROM al empezar la pelea, con
+      `fondo_terreno`. Y un `EnemyEncounter` con el fondo "del lugar" hace lo
+      mismo que un encuentro al azar: `FONDO_DEL_LUGAR`.
+
+    Un fondo entra **en la ROM**, liviano, si está en `escena.FONDOS` y alguna
+    pelea del cartucho lo pide; si alguna pide uno que no, entra también
+    `escena.REEMPLAZO`, y `respaldo_de` dice cuál de la ROM usa cada fondo
+    del juego. **En el `.msu` van todos**: `calidad` son sus bytes, por
+    número.
 
     Un battler entra si lo usa alguna tropa del cartucho, **una vez** aunque lo
     usen cuatro, y es la imagen con su tono: la GiantRat y la HairyVermin son
     el mismo `BLmouse` y dos battlers.
     """
     E = escena_mod
-    datos = {"fondos": [], "battlers": [], "battler_de": {},
-             "tropa_fondo": {}, "mapa_fondo": []}
-    fondo_de = {}
+    juego = E.fondos_del_juego(eventos.fondos_nombrados(game_dir), tree,
+                               db.terrain_backdrops, game_dir)
+    numero_de = {nombre.lower(): k for k, nombre in enumerate(juego)}
+    if len(juego) >= FONDO_DEL_LUGAR:
+        raise SystemExit("el juego tiene %d fondos de batalla y el número de "
+                         "uno es un byte, con $%02X y $FF reservados"
+                         % (len(juego), FONDO_DEL_LUGAR))
+    datos = {"juego": juego, "fondos": [], "battlers": [], "battler_de": {},
+             "tropa_fondo": {}, "mapa_fondo": [], "respaldo_de": [],
+             "terreno_fondo": [], "calidad": []}
 
-    def pedir_fondo(nombre):
-        if nombre not in E.FONDOS:
-            return 0xFF
-        if nombre not in fondo_de:
-            info = E.fondo(nombre, game_dir)
-            if info is None:
-                print("  el fondo %r no está en el juego" % nombre)
-                fondo_de[nombre] = 0xFF
-            else:
-                # El de la ROM es el liviano; `info` es el de calidad, que va
-                # al `.msu`. Ver "El respaldo liviano" en tools/port/escena.py.
-                info["respaldo"] = E.fondo_liviano(nombre, game_dir)
-                fondo_de[nombre] = len(datos["fondos"])
-                datos["fondos"].append(info)
-        return fondo_de[nombre]
+    def numero(nombre):
+        if nombre is None or nombre is eventos.FONDO_DEL_LUGAR:
+            return FONDO_DEL_LUGAR
+        return numero_de.get(nombre.lower(), FONDO_LISO) if nombre \
+            else FONDO_LISO
 
-    for numero in tropas.ids:
-        fondo = tropas.fondos.get(numero)
-        datos["tropa_fondo"][numero] = pedir_fondo(fondo) if fondo else 0xFF
+    for n in tropas.ids:
+        fondo = tropas.fondos.get(n)
+        datos["tropa_fondo"][n] = numero(fondo) if fondo else FONDO_LISO
+    # El del mapa, para los encuentros al azar y para las tropas que pelean
+    # con el del lugar. Sólo en los mapas donde alguna pelea lo puede mirar:
+    # sin eso, cualquier cartucho pediría el reemplazo.
     por_mapa = (encuentros or {}).get("por_mapa") or [0xFF] * len(mapas)
+    del_lugar = FONDO_DEL_LUGAR in datos["tropa_fondo"].values()
     for mapa, registro in zip(mapas, por_mapa):
-        nombre = tree.map_background(mapa["id"]) if registro != 0xFF else ""
-        datos["mapa_fondo"].append(pedir_fondo(nombre) if nombre else 0xFF)
+        if registro != 0xFF or del_lugar:
+            datos["mapa_fondo"].append(
+                numero(tree.map_background(mapa["id"])))
+        else:
+            datos["mapa_fondo"].append(FONDO_LISO)
+    terrenos = db.terrain_backdrops
+    datos["terreno_fondo"] = [numero(terrenos.get(t, "")) if terrenos.get(t)
+                              else FONDO_LISO
+                              for t in range(max(terrenos, default=0) + 1)]
+
+    # Los de la ROM: los de `FONDOS` que se piden, en el orden en que se
+    # piden, y el reemplazo si alguna pelea pide otro. El del lugar puede
+    # caer en cualquier terreno, así que pide el reemplazo siempre.
+    pedidos = list(datos["tropa_fondo"].values()) + datos["mapa_fondo"]
+    en_rom = [numero_de[f.lower()] for f in E.FONDOS if f.lower() in numero_de]
+    suyos = []
+    for k in pedidos:
+        if k in en_rom and k not in suyos:
+            suyos.append(k)
+    if any(k != FONDO_LISO and k not in suyos for k in pedidos):
+        reemplazo = numero_de[E.REEMPLAZO.lower()]
+        if reemplazo not in suyos:
+            suyos.append(reemplazo)
+    for k in suyos:
+        info = E.fondo_liviano(juego[k], game_dir)
+        datos["fondos"].append({"nombre": juego[k], "numero": k,
+                                "respaldo": info})
+    lugar = {k: i for i, k in enumerate(suyos)}
+    reemplazo = lugar.get(numero_de[E.REEMPLAZO.lower()], 0)
+    datos["respaldo_de"] = [lugar.get(k, reemplazo) for k in range(len(juego))]
+    # Los de calidad, para el `.msu`: todos, estén o no en la ROM.
+    datos["calidad"] = en_paralelo(
+        lambda nombre: fondo_bytes(E.fondo(nombre, game_dir)), juego)
     battler_k = {}
     for numero in tropas.ids:
         if numero not in db.troops:
@@ -3726,11 +3776,19 @@ def escenas_asm(datos, tropas, db):
     emite:
 
       `escena_tropa_fondo`  por índice de tropa —el orden de `tropa_id`—, el
-                            fondo que nombra su `EnemyEncounter`, o $FF.
-      `escena_mapa_fondo`   por índice de mapa, el de sus encuentros al azar.
-      `fondo_trozo`         por fondo y trozo, el puntero de 24 bits a 8 KB de
-                            tiles de 4bpp del respaldo liviano.
+                            número del fondo que nombra su `EnemyEncounter`,
+                            `FONDO_DEL_LUGAR` o `FONDO_LISO`.
+      `escena_mapa_fondo`   por índice de mapa, el de sus encuentros al azar:
+                            un número, `FONDO_DEL_LUGAR` —el del terreno— o
+                            `FONDO_LISO`.
+      `fondo_terreno`       por terreno, el número de su fondo o `FONDO_LISO`.
+      `fondo_respaldo`      por número de fondo, cuál de la ROM lo reemplaza
+                            sin MSU-1: el suyo, o el de `escena.REEMPLAZO`.
+      `fondo_trozo`         por fondo de la ROM y trozo, el puntero de 24 bits
+                            a 8 KB de tiles de 4bpp del respaldo liviano.
       `fondo_cgram`         sus 16 colores, que van a la CGRAM desde la 32.
+
+    Dónde está cada fondo en el `.msu` lo emite `escribir_msu`, por número.
       `respaldo_alto`       los planos 4 a 7 que la ROM le pega a cada tile.
       `battler_*`           por battler: cuántos bytes mide una fila de un
                             plano, cuántas filas, cuánto mide un plano, dónde
@@ -3751,7 +3809,12 @@ def escenas_asm(datos, tropas, db):
         "; Van por separado y la ROM los compone en una capa de 8bpp de",
         "; 256x128, que son los siete renglones de texto de arriba. El porqué",
         "; está en tools/port/escena.py; acá sólo viajan los bytes.",
+        "; Los fondos del juego, que el .msu lleva todos, y los de la ROM.",
+        "FONDOS_JUEGO    = %d" % len(datos.get("juego", ())),
         "ESCENA_FONDOS   = %d" % len(fondos),
+        "FONDO_LISO      = $%02X" % FONDO_LISO,
+        "FONDO_DEL_LUGAR = $%02X" % FONDO_DEL_LUGAR,
+        "FONDO_TERRENOS  = %d" % len(datos.get("terreno_fondo") or [0]),
         "ESCENA_BATTLERS = %d" % len(battlers),
         "ESCENA_ANCHO    = %d" % E.ANCHO,
         "ESCENA_ALTO     = %d" % E.ALTO,
@@ -3782,6 +3845,10 @@ def escenas_asm(datos, tropas, db):
         datos["tropa_fondo"].get(n, 0xFF) for n in usadas) or b"\xFF"))
     out.append(bloque("escena_mapa_fondo",
                       bytes(datos["mapa_fondo"]) or b"\xFF"))
+    out.append(bloque("fondo_terreno",
+                      bytes(datos.get("terreno_fondo") or [FONDO_LISO])))
+    out.append(bloque("fondo_respaldo",
+                      bytes(datos.get("respaldo_de") or [0])))
     punteros = [".bloque %d" % (4 * max(1, len(fondos) * trozos)),
                 "fondo_trozo:"]
     for k in range(len(fondos)):
@@ -7368,15 +7435,24 @@ def main():
     # de sonido de calidad: ver `msu_asm`.
     for info in escenas["fondos"]:
         rom_tiles, rom_colores = respaldo_bytes(info)
-        msu_tiles, msu_colores = fondo_bytes(info)
-        print("  fondo de batalla %r: %dx%d, %d tiles desde la entrada %d de "
-              "la CGRAM; en la ROM 4bpp y %d colores (%d B), en el .msu 8bpp "
-              "y %d colores (%d B)"
-              % (info["nombre"], escena_mod.ANCHO, escena_mod.ALTO,
-                 escena_mod.TILES, escena_mod.CGRAM_BASE,
+        msu_tiles, msu_colores = escenas["calidad"][info["numero"]]
+        print("  fondo de batalla %d %r: %dx%d, %d tiles desde la entrada %d "
+              "de la CGRAM; en la ROM 4bpp y %d colores (%d B), en el .msu "
+              "8bpp y %d colores (%d B)"
+              % (info["numero"], info["nombre"], escena_mod.ANCHO,
+                 escena_mod.ALTO, escena_mod.TILES, escena_mod.CGRAM_BASE,
                  len(info["respaldo"]["paleta"]),
-                 len(rom_tiles) + len(rom_colores), len(info["paleta"]),
+                 len(rom_tiles) + len(rom_colores), escena_mod.COLORES,
                  len(msu_tiles) + len(msu_colores)))
+    # Y los que no están en la ROM, con cuál se reemplazan sin MSU-1.
+    en_rom = {info["numero"] for info in escenas["fondos"]}
+    fuera = [k for k in range(len(escenas["juego"])) if k not in en_rom]
+    if fuera and escenas["fondos"]:
+        print("  fondos de batalla sólo en el .msu, que sin MSU-1 van sobre "
+              "%r: %s" % (escenas["fondos"][escenas["respaldo_de"][fuera[0]]]
+                          ["nombre"], ", ".join(
+                              "%d %s" % (k, escenas["juego"][k])
+                              for k in fuera)))
     for info in escenas["battlers"]:
         d = escena_mod.informe_battler(info)
         print("  battler %r: %dx%d, %d B, %d colores de %d"
@@ -7635,7 +7711,7 @@ def main():
     # lleve ni fondos ni efectos, porque es también el archivo que enciende el
     # MSU-1 para las pistas.
     escribir_msu(args.msu or os.path.join(os.path.dirname(os.path.abspath(
-        args.output)), "datos.msu"), musica, escenas["fondos"],
+        args.output)), "datos.msu"), musica, escenas["calidad"],
         por_nombre[:len(paquetes)], paquetes, hechos, muestras, banco,
         temas.sonidos, args.game_dir)
     for i, (suyos, suyas, salida) in enumerate(paquetes[:len(mapas)]):
@@ -7724,8 +7800,9 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
     lo que la ROM necesita para leerlo: la firma, dónde está cada fondo y,
     por paquete, dónde está cada efecto y con qué altura suena cada sonido.
 
-    Van primero los fondos —cada uno sus tiles y sus colores, ver
-    `msu_datos.fondos`— y detrás los efectos de calidad de cada paquete, en
+    Van primero los fondos —`fondos` son los `(tiles, colores)` de **todos
+    los del juego**, por número, cada uno en su lugar fijo: ver
+    `msu_datos.fondo_en`— y detrás los efectos de calidad de cada paquete, en
     el orden de la tabla de paquetes y cada paquete con los suyos en orden de
     lugar en el directorio —su SRCN—: es el orden en que `subir_colocadas`
     los sube, así que la ROM los lee
@@ -7760,7 +7837,7 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
     hechas = dict(zip(unicas, en_paralelo(
         lambda par: efectos_msu.armar(par[0], par[1], game_dir), unicas)))
 
-    entradas = [parte for info in fondos for parte in fondo_bytes(info)]
+    entradas = [parte for par in fondos for parte in par]
     # Qué entrada es cada efecto de cada paquete, en orden de SRCN: dos del
     # mismo paquete nunca comparten lugar.
     del_paquete = []
@@ -7773,7 +7850,7 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
             lista.append((e, len(entradas), hechas[e, suyas[e]]))
             entradas.append(hechas[e, suyas[e]].data)
         del_paquete.append(lista)
-    archivo, donde = msu_datos.armar(entradas)
+    archivo, donde = msu_datos.armar(entradas, fondos=len(fondos))
     firma = archivo[:msu_datos.FIRMA]
     with open(ruta + ".nuevo", "wb") as handle:
         handle.write(archivo)

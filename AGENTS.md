@@ -444,6 +444,13 @@ Lo que hay que hacer siempre:
   commitear** en lo que entra en la ROM: el build se nombra por un commit y
   tiene que ser ése. Ver "Debugging with Mesen2" en `docs/snes/emulators.md`.
 
+  **Lo demás que taro tiene que mirar o escuchar va a dos carpetas y no a la
+  raíz de `/shared`**: capturas y goldens a `/shared/capturas/<fecha>-<tema>/`,
+  audio a `/shared/audio/<fecha>-<tema>/`. Es de taro, el 2026-09-27, después
+  de limpiar una docena de carpetas sueltas (`capturas-lashe-3`,
+  `goldens-textos`…) y 2 GB de audio viejo. Lo que ya está en git o se rearma
+  desde un commit se puede borrar cuando taro lo dio por mirado.
+
   **Las pistas de MSU-1 no van en el build: van a `/shared/msu/`**, un solo
   directorio que se actualiza sólo cuando cambian —su `LEEME.txt` dice con
   qué huella se comparan—. Pesan medio giga, y copiarlas en cada build las

@@ -80,16 +80,24 @@ sale porque abajo tiene otros ochenta pixeles de pantalla.
   al salir. Los tiles del texto viven en $2000, su tilemap en $3C00, el de la
   escena en $3800 y los tiles de la escena en $4000.
 
-## Qué fondos lleva el cartucho
+## Qué fondos hay, y cuáles lleva el cartucho
 
-Por ahora, **tres**. `FONDOS` dice cuáles; una pelea que pida otro
-va sobre fondo liso, con los mismos battlers compuestos encima. Es el mismo
-código con el fondo en cero, y no un parche: es también lo que pasa sin fondo
-—un `EnemyEncounter` que no nombra ninguno, o un mapa que hereda el del
-terreno— y lo que va a pasar sin MSU-1 el día que los fondos vengan de ahí.
+**Los fondos del juego** son todos los que una pelea puede pedir: los que
+nombran los `EnemyEncounter` y los `ChangeBattleBG`, los del árbol de mapas y
+los de los terrenos —ver `fondos_del_juego`—. Cada uno tiene un **número**,
+su lugar en esa lista ordenada por nombre, y el número no depende de qué
+mapas lleve el cartucho: es lo que le da a cada fondo un lugar fijo en el
+`.msu`, que los lleva **todos**, en calidad (tools/port/msu_datos.py).
 
-Desde el 2026-09-25 los fondos van también en el `.msu`, y con MSU-1 la ROM
-los lee de ahí: es el piloto del puerto de datos, ver tools/port/msu_datos.py.
+**La ROM lleva pocos**, en el respaldo liviano: los de `FONDOS` que alguna
+pelea del cartucho pide. Una pelea cuyo fondo no está en la ROM usa, sin
+MSU-1, **el de reemplazo**, `REEMPLAZO`, que es uno de `FONDOS`: lo pidió taro
+el 2026-09-27, porque las peleas del mundo salían en negro y "negro
+confunde". Con MSU-1, cada pelea lee el suyo del `.msu`, esté o no en la ROM.
+
+El fondo liso —ceros, que es negro— queda para la pelea que no tiene fondo:
+un `EnemyEncounter` con el nombre vacío, o un terreno sin fondo. Es lo mismo
+que hace RM2k, y es el mismo código con el fondo en cero.
 
 ## El respaldo liviano
 
@@ -161,8 +169,16 @@ VRAM_TILES = 0x4000
 # Los fondos que el cartucho lleva, **por nombre del juego**. Nacieron con el
 # PoC del 2026-09-21 —el de la pelea del droide y el de los Back Alleys— y el
 # mismo día taro sumó el de los Rat Tracks, que es donde siguen los encuentros
-# al azar. Cualquier otro va sobre fondo liso.
+# al azar. Cualquier otro va, sin MSU-1, sobre `REEMPLAZO`.
 FONDOS = ("SJBackdropABL04", "ABLBackdropSJ03", "ABLBackdropSJ08")
+# El fondo de las peleas cuyo fondo no está en la ROM. Es el de los Rat
+# Tracks, una cueva de roca gris, porque es el único de los tres que no dice
+# dónde se está: el del droide es una sala con un monitor y la Tierra en una
+# pantalla, y el de los Back Alleys una calle con carteles. Una pelea en el
+# bosque sobre roca se ve rara; sobre una nave, equivocada. Tiene que ser uno
+# de `FONDOS`, así no cuesta cartucho en `release`, que ya lo lleva.
+REEMPLAZO = "ABLBackdropSJ08"
+assert REEMPLAZO in FONDOS
 
 # Cuántos planos guarda el cartucho por fila de un battler: la máscara y los
 # cuatro de su dibujo. Los otros cuatro los pone la ROM según la paleta.
@@ -176,12 +192,19 @@ def escalar(valor):
     return max(1, (valor * ESCALA_NUM + ESCALA_DEN // 2) // ESCALA_DEN)
 
 
-def _abrir(game_dir, carpeta, nombre):
+def _abrir(game_dir, carpeta, nombre, rtp=False):
     """Un PNG del juego con el color 0 como transparente, que es la regla de
     RM2k. Sale de `render_map.load_image` para no tener dos maneras de leer lo
-    mismo."""
+    mismo.
+
+    Con `rtp`, si el juego no lo trae se busca en el RTP, como RM2k. Lo piden
+    sólo los fondos: trece de los del juego son del RTP —`Cave1`, `Castle`,
+    los de los terrenos—, y hasta el 2026-09-27 no hacía falta porque los tres
+    de la ROM son del juego. Los battlers siguen sin buscar ahí, para no
+    cambiar cuáles entran sin mirarlo."""
     from render import render_map
-    camino = render_map.find_resource([game_dir], carpeta, nombre,
+    lugares = [game_dir] + ([render_map.RTP_DIR] if rtp else [])
+    camino = render_map.find_resource(lugares, carpeta, nombre,
                                       (".png", ".bmp", ".xyz"))
     if camino is None:
         return None
@@ -278,6 +301,37 @@ def girar_tono(imagen, grados):
 
 # --- el fondo -----------------------------------------------------------------
 
+def fondos_del_juego(nombrados, tree, terrenos, game_dir):
+    """Los fondos del juego, en el orden que les da su número: ver "Qué fondos
+    hay".
+
+    `nombrados` son los que nombran los comandos (`eventos.fondos_nombrados`),
+    `tree` el árbol de mapas y `terrenos` el fondo de cada terreno
+    (`Database.terrain_backdrops`). Se ordenan por nombre sin mirar
+    mayúsculas, que es como RM2k los busca, y un nombre que no está ni en el
+    juego ni en el RTP no entra: en RM2k esa pelea va sin fondo. Devuelve los
+    nombres como los escribe el juego la primera vez, en ese orden.
+    """
+    from render import render_map
+    todos = set(nombrados)
+    todos |= {nombre for tipo, nombre in tree.background.values()
+              if tipo == 2 and nombre}
+    todos |= {nombre for nombre in terrenos.values() if nombre}
+    por_clave = {}
+    for nombre in sorted(todos):
+        por_clave.setdefault(nombre.lower(), nombre)
+    salida = []
+    for clave in sorted(por_clave):
+        nombre = por_clave[clave]
+        if render_map.find_resource([game_dir, render_map.RTP_DIR],
+                                    "Backdrop", nombre,
+                                    (".png", ".bmp", ".xyz")) is None:
+            print("  el fondo %r no está ni en el juego ni en el RTP" % nombre)
+            continue
+        salida.append(nombre)
+    return salida
+
+
 def fondo(nombre, game_dir):
     """Un fondo de batalla listo para la ROM, o None si no está.
 
@@ -287,7 +341,7 @@ def fondo(nombre, game_dir):
     """
     from PIL import Image
     from port import titulo
-    imagen = _abrir(game_dir, "Backdrop", nombre)
+    imagen = _abrir(game_dir, "Backdrop", nombre, rtp=True)
     if imagen is None:
         return None
     imagen = imagen.convert("RGB").resize((ANCHO, ALTO), Image.LANCZOS)
@@ -310,7 +364,7 @@ def fondo_liviano(nombre, game_dir):
     """
     from PIL import Image
     from port import asignador
-    imagen = _abrir(game_dir, "Backdrop", nombre)
+    imagen = _abrir(game_dir, "Backdrop", nombre, rtp=True)
     if imagen is None:
         return None
     imagen = imagen.convert("RGB").resize((ANCHO, ALTO), Image.LANCZOS)
