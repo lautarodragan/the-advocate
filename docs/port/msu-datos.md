@@ -3,12 +3,16 @@
 El MSU-1 tiene dos partes: las pistas de audio (`<rom>-N.pcm`, ver
 `tools/audio/msu.py`) y un **puerto de datos** que lee el `<rom>.msu` como un
 flujo. Hasta el 2026-09-25 el `.msu` iba vacío y sólo servía para encender el
-MSU-1. Desde ese día lleva **los fondos de batalla**, como piloto: el objetivo
-es probar el mecanismo. Y desde el 2026-09-26, detrás, **los efectos de
-sonido de calidad** de cada paquete de audio: ver "Los efectos" abajo. La ROM sigue llevando los suyos, pero **livianos**:
-4bpp y 16 colores, contra los 8bpp y 96 del `.msu` —ver "El respaldo
-liviano" en `tools/port/escena.py`—. Así se ve a ojo de qué lado salió el
-fondo, y la ROM ahorra la mitad de cada uno.
+MSU-1. Desde ese día lleva **los fondos de batalla**, que empezaron como
+piloto, y desde el 2026-09-27 **todos los del juego**, estén o no en los mapas
+del cartucho: ver "Los fondos" abajo. Y desde el 2026-09-26, detrás, **los
+efectos de sonido de calidad** de cada paquete de audio: ver "Los efectos"
+abajo.
+
+La ROM lleva pocos fondos, y **livianos**: 4bpp y 16 colores, contra los 8bpp
+y 96 del `.msu` —ver "El respaldo liviano" en `tools/port/escena.py`—. Así se
+ve a ojo de qué lado salió el fondo, y la ROM ahorra la mitad de cada uno.
+Una pelea cuyo fondo la ROM no lleva usa, sin MSU-1, uno de reemplazo.
 
 ## La regla
 
@@ -38,6 +42,23 @@ tiles de 8bpp y sus 96 colores, tal cual van a la WRAM y a la CGRAM. La ROM
 tiene en `fondo_trozo` y `fondo_cgram` otra cosa: el respaldo liviano, que
 `esc_llenar` agranda a 8bpp al copiarlo.
 
+La disposición, desde la versión 2 (2026-09-27):
+
+    $000000  la cabecera y el índice, rellenos con ceros hasta $10000
+    $010000  los fondos del juego, por número: el fondo k ocupa $8200
+             bytes desde $10000 + k × $8200 —sus tiles, y $8000 más
+             adelante sus colores; el resto es relleno hasta el sector
+             de 512 bytes—
+    detrás   los efectos, desde el final del último lugar de fondo
+
+**La región de los fondos es fija**: el fondo k está en el mismo byte en el
+`.msu` de cualquier cartucho, porque el número de un fondo sale del juego y
+no de los mapas que se lleven (ver "Los fondos"). En la versión 1 iban
+seguidos detrás del índice, y el índice crece con los efectos de cada
+cartucho: el lugar de un fondo se corría con cualquier cambio de audio.
+Cuántos fondos son y cuánto pesa el `.msu` lo imprime el conversor, en
+`conversor.log` ("`.msu:` N fondo(s) y M efecto(s) en B bytes").
+
 Lo escribe el conversor —es el que tiene los bytes y decide el orden—, al lado
 de cada `.sfc` y con su nombre: `cartuchos.py` le pasa `--msu`. Lo llevan los
 dos cartuchos, y la prueba del camino con MSU-1 corre sobre `release`, que es
@@ -46,7 +67,9 @@ la ROM que se juega.
 ## Cómo sabe la ROM que el `.msu` es el suyo
 
 El conversor emite en el `.inc` la firma que escribió (`msu_datos_firma`) y
-dónde quedó cada fondo (`msu_fondo_pos`). Al empezar una pelea con fondo,
+dónde quedó cada fondo (`msu_fondo_pos`, por número de fondo: es la cuenta de
+arriba, en una tabla para que la ROM no multiplique). Al empezar una pelea
+con fondo,
 `msu_datos_validos` —en `rom/src/msu1.s`— busca la posición 0 y compara los 8
 bytes; si coinciden, `esc_llenar` y los colores de `escena_subir` —en
 `rom/src/batalla_escena.s`— leen del `.msu`, y `ESC_MSU` queda en 1.
@@ -62,6 +85,37 @@ Las posiciones salen del `.inc` y no del índice del archivo: aceptada la
 firma son el mismo dato, y leer el índice sería una búsqueda más por pelea.
 El índice queda para las herramientas (`msu_datos.leer`) y para sumar
 entradas sin cambiar el formato.
+
+## Los fondos
+
+**Los fondos del juego** son todos los que una pelea puede pedir: los que
+nombran los `EnemyEncounter` y los `ChangeBattleBG` de todo el juego, los del
+árbol de mapas y los de los terrenos. Se ordenan por nombre sin mirar
+mayúsculas, que es como RM2k los busca, y el lugar de cada uno en esa lista es
+su **número**: `escena.fondos_del_juego`. Un nombre que no está ni en el juego
+ni en el RTP (`ABL_RTP_DIR`) no entra; esa pelea va sin fondo, como en RM2k.
+
+Qué fondo pide una pelea es lo de RM2k —`Game_Map::SetupBattle` y
+`Spriteset_Battle` de easyrpg-player—: el que nombra el `EnemyEncounter`; o,
+si es un encuentro al azar o el comando pide "el del lugar", el del mapa
+subiendo por el árbol; y si el mapa no nombra ninguno, **el del terreno de la
+celda que pisa el héroe**. Ése lo resuelve la ROM al empezar la pelea
+(`esc_terreno`, en `rom/src/batalla_escena.s`), con `fondo_terreno`. Así
+salen las peleas del mundo.
+
+**La ROM lleva pocos**: los de `escena.FONDOS` que alguna pelea del cartucho
+pide. Sin MSU-1, una pelea cuyo fondo la ROM no lleva usa **el de
+reemplazo**, `escena.REEMPLAZO` —por qué ése, en su comentario—, que va en la
+ROM en cuanto alguna pelea lo necesita: `fondo_respaldo` dice, por número de
+fondo, cuál de la ROM se dibuja. Lo pidió taro el 2026-09-27, porque las
+peleas del mundo salían en negro, y negro confunde. Con MSU-1 cada pelea
+lee el suyo del `.msu`. La ROM lleva dos números por pelea: `ESC_FONDO`, el
+del juego, que es el que se busca en el `.msu`, y `ESC_RESPALDO`, el de la
+ROM.
+
+Lo que cuesta cada fondo que la ROM lleva lo imprime el conversor ("fondo de
+batalla … en la ROM … B"): 16.384 bytes de tiles y 32 de colores, que es
+propiedad del formato, más 8 de punteros.
 
 ## Cuánto tarda
 
@@ -121,7 +175,11 @@ La tanda corre sin MSU-1, así que sus goldens de batalla son el respaldo
 liviano. `pruebas/abl/test_msu_datos.py` corre los dos caminos en snes9x y
 en bsnes y compara **cada uno contra su golden** —`msu-datos-rom` y
 `msu-datos-msu`— y el fondo limpio de la WRAM contra los bytes que arma el
-conversor: el de calidad tal cual y el liviano agrandado a 8bpp.
+conversor: el de calidad tal cual y el liviano agrandado a 8bpp. Lo mismo con
+una pelea del mundo, cuyo fondo es el de un terreno que la ROM no lleva
+—`msu-mundo-rom`, el reemplazo, y `msu-mundo-msu`, el del terreno—, y que
+cada fondo esté en su lugar fijo con los mismos bytes en el `.msu` de todos
+los cartuchos.
 
 **La espera no la cubre la tanda**, porque los tres cores de libretro que
 hay acá buscan en el acto, y el arnés no puede simular la demora: ve la

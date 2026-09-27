@@ -17,6 +17,12 @@ el de calidad tal cual, y el liviano agrandado a 8bpp como lo agranda la ROM.
 mismo `.msu` con los tiles del fondo cambiados y la firma de la cabecera
 intacta —la ROM no puede hashear 98 KB— tiene que dibujar otra cosa.
 
+**Y el `.msu` lleva todos los fondos del juego**, cada uno en su lugar fijo
+—ver "El formato" en tools/port/msu_datos.py—, mientras la ROM lleva pocos y
+usa uno de reemplazo para los demás. Lo prueba una pelea del mundo, el 66,
+cuyo fondo es el del terreno que pisa el héroe y no está en la ROM: con el
+`.msu` sale el suyo, y sin él el de reemplazo, no negro.
+
 Corre en snes9x y en bsnes, que implementan el puerto igual (`readIO` de
 `$2001` en `sfc/coprocessor/msu1/msu1.cpp` de bsnes, `S9xMSU1ReadPort` en
 `msu1.c` de snes9x) y aceptan DMA desde `$2001`. mesen-s también lo hace
@@ -29,8 +35,9 @@ import shutil
 
 import pytest
 
-from port import escena, msu_datos, snes_convert
+from port import escena, eventos, msu_datos, snes_convert
 from render.render_map import GAME_DIR
+from rpgmaker import lcf, rm2k
 
 import tanda
 from consola import Partida, en_la_rom, en_la_wram
@@ -46,12 +53,19 @@ SEMILLA_TROPA_100 = 22
 ARRANQUE = "en-5"
 FONDO_SECTOR_27 = "ABLBackdropSJ03"
 
+# La llegada al mundo, la de `test_mundo.py`: el 66 no nombra fondo, así que
+# la pelea usa el del terreno de la celda, y ninguno de los del mundo está en
+# la ROM. Lo que corre la automática del evento 1 al llegar, con margen.
+EL_MUNDO = (66, 71, 29)
+LLEGAR_TICKS = 30
 
-def _pelea(tmp_path, nombre, nucleo, msu):
-    """La pelea de Sector 27 recién abierta, con `msu` —los bytes de un `.msu`,
-    o None— al lado de una copia de la ROM. Devuelve (la imagen a 15 bits, de
-    dónde salió el fondo, qué fondo, la captura y el fondo limpio de la
-    WRAM)."""
+
+def _pelea(tmp_path, nombre, nucleo, msu, lugar=SECTOR_27, antes=0,
+           semilla=SEMILLA_TROPA_100):
+    """La pelea de `lugar` —la de Sector 27, si no— recién abierta, con `msu`
+    —los bytes de un `.msu`, o None— al lado de una copia de la ROM, y `antes`
+    ticks de espera al llegar. Devuelve (la imagen a 15 bits, de dónde salió
+    el fondo, qué fondo, la captura y el fondo limpio de la WRAM)."""
     uno = tanda.cartucho(cartuchos.RELEASE)
     k = uno.casos.index(ARRANQUE)
     directorio = os.path.join(tmp_path, nombre)
@@ -63,17 +77,19 @@ def _pelea(tmp_path, nombre, nucleo, msu):
             archivo.write(msu)
     una = Partida(sfc, uno.simbolos, uno.mapas, nucleo=nucleo, caso=k,
                   salta=uno.saltan[k], msu=msu is not None, titulo=uno.titulo)
-    una.ir_al_mapa(*SECTOR_27)
+    una.ir_al_mapa(*lugar)
+    if antes:
+        una.correr(antes)
     s = uno.simbolos
     una.consola.escribir_ram(en_la_wram(s["ENC_SEM"]),
-                             [SEMILLA_TROPA_100 & 0xFF, SEMILLA_TROPA_100 >> 8])
+                             [semilla & 0xFF, semilla >> 8])
     una.consola.escribir_ram(en_la_wram(s["ENC_PIDE"]), [1])
     for _ in range(400):
         if una.byte("menu_abierto"):
             break
         una.consola.correr(1)
     else:
-        raise AssertionError("la pelea de Sector 27 no se abrió")
+        raise AssertionError("la pelea en %s no se abrió" % (lugar,))
     una.consola.correr(3)
 
     def byte(nombre):
@@ -87,13 +103,14 @@ def _pelea(tmp_path, nombre, nucleo, msu):
             imagen, bytes(limpio))
 
 
-def _fondo_8bpp(liviano):
-    """Los 32 KB que la ROM deja en la WRAM para el fondo de Sector 27: el de
-    calidad tal cual, o el liviano con los planos 4 a 7 pegados a cada tile."""
-    info = escena.fondo(FONDO_SECTOR_27, GAME_DIR)
+def _fondo_8bpp(liviano, nombre=FONDO_SECTOR_27):
+    """Los 32 KB que la ROM deja en la WRAM para un fondo —el de Sector 27, si
+    no—: el de calidad tal cual, o el liviano con los planos 4 a 7 pegados a
+    cada tile."""
+    info = escena.fondo(nombre, GAME_DIR)
     if not liviano:
         return snes_convert.fondo_bytes(info)[0]
-    info["respaldo"] = escena.fondo_liviano(FONDO_SECTOR_27, GAME_DIR)
+    info["respaldo"] = escena.fondo_liviano(nombre, GAME_DIR)
     tiles, _colores = snes_convert.respaldo_bytes(info)
     alto = snes_convert.respaldo_alto()
     ancho = escena.RESPALDO_PLANOS * 8
@@ -179,12 +196,72 @@ def test_msu_de_otro_build_cae_al_cartucho(tmp_path, nucleo):
             "con el .msu %s la pelea no se ve como sin MSU-1" % nombre)
 
 
+def _fondos_del_juego():
+    db = eventos.base_de_datos(GAME_DIR)
+    tree = lcf.TreeMap(GAME_DIR + "/RPG_RT.lmt")
+    return escena.fondos_del_juego(eventos.fondos_nombrados(GAME_DIR), tree,
+                                   db.terrain_backdrops, GAME_DIR)
+
+
+def _fondo_del_terreno(mapa, x, y):
+    """El nombre del fondo del terreno de una celda, desde el juego: el tile
+    de la capa de abajo, su terreno en el ChipSet y el fondo del terreno. Es lo
+    que `Spriteset_Battle` usa cuando el mapa no nombra fondo."""
+    db = eventos.base_de_datos(GAME_DIR)
+    game_map = lcf.Map("%s/Map%04d.lmu" % (GAME_DIR, mapa))
+    terreno = rm2k.terreno_de(db.chipsets[game_map.chipset_id],
+                              game_map.lower_layer[y * game_map.width + x])
+    return db.terrain_backdrops[terreno]
+
+
+@pytest.mark.parametrize("nucleo", [SNES9X, BSNES], ids=["snes9x", "bsnes"])
+def test_msu_una_pelea_del_mundo_lee_su_terreno_o_el_reemplazo(tmp_path,
+                                                               nucleo):
+    """El 66 no nombra fondo: la pelea usa el del terreno donde está el héroe,
+    que no está en la ROM. Con el `.msu`, el de calidad de ese terreno; sin él,
+    el liviano de `escena.REEMPLAZO` y no negro. Cada camino contra su golden
+    —`msu-mundo-rom` y `msu-mundo-msu`— y el fondo limpio de la WRAM contra
+    los bytes del conversor."""
+    juego = _fondos_del_juego()
+    suyo = _fondo_del_terreno(*EL_MUNDO)
+    assert suyo and suyo not in escena.FONDOS, (
+        "la celda de la llegada al mundo pisa %r, y la prueba necesita un "
+        "fondo que no esté en la ROM" % suyo)
+    msu = _msu_del_cartucho()
+
+    sin, de_donde, fondo, imagen, limpio = _pelea(
+        tmp_path, "sin", nucleo, None, lugar=EL_MUNDO, antes=LLEGAR_TICKS)
+    assert fondo == juego.index(suyo), (
+        "la pelea del mundo eligió el fondo %d y el terreno de la celda es "
+        "%r, el %d: la ROM no está leyendo el terreno bajo el héroe"
+        % (fondo, suyo, juego.index(suyo)))
+    assert de_donde == 0
+    assert limpio == _fondo_8bpp(liviano=True, nombre=escena.REEMPLAZO), (
+        "sin MSU-1 la pelea del mundo no tiene el fondo de reemplazo")
+    assert any(limpio), "sin MSU-1 la pelea del mundo salió en negro"
+    tanda.golden("msu-mundo-rom", imagen)
+
+    con, de_donde, fondo, imagen, limpio = _pelea(
+        tmp_path, "con", nucleo, msu, lugar=EL_MUNDO, antes=LLEGAR_TICKS)
+    assert fondo == juego.index(suyo)
+    assert de_donde == 1, "con el .msu la pelea del mundo leyó de la ROM"
+    assert limpio == _fondo_8bpp(liviano=False, nombre=suyo), (
+        "con el .msu la pelea del mundo no tiene el fondo de %r de calidad"
+        % suyo)
+    tanda.golden("msu-mundo-msu", imagen)
+    assert con != sin
+
+
 def test_msu_la_rom_sabe_donde_esta_cada_fondo():
     """La firma que la ROM espera es la del `.msu` de su cartucho, y
     `msu_fondo_pos` apunta a las entradas de su índice, que miden lo que la
-    ROM lee de ahí: 512 tiles de 8bpp y 96 colores. Sin emulador: lee el
-    archivo, la ROM y su tabla de símbolos. Qué hay adentro lo cubre
-    `test_msu_cada_camino_dibuja_su_fondo`."""
+    ROM lee de ahí: 512 tiles de 8bpp y 96 colores. Y el `.msu` lleva **todos
+    los fondos del juego**, cada uno en su lugar fijo: el mismo en todos los
+    cartuchos, con los mismos bytes, lleve cada uno los mapas que lleve. Sin
+    emulador: lee el archivo, la ROM y su tabla de símbolos. Qué hay adentro
+    lo cubre `test_msu_cada_camino_dibuja_su_fondo`."""
+    juego = _fondos_del_juego()
+    regiones = {}
     for nombre in cartuchos.CARTUCHOS:
         uno = tanda.cartucho(nombre)
         with open(uno.sfc, "rb") as archivo:
@@ -195,6 +272,10 @@ def test_msu_la_rom_sabe_donde_esta_cada_fondo():
         s = uno.simbolos
         assert msu[:msu_datos.FIRMA] == rom[en_la_rom(s["msu_datos_firma"]):][
             :msu_datos.FIRMA], "%s: la firma de la ROM no es la del .msu" % nombre
+        assert s["MSU_FONDOS_N"] == s["FONDOS_JUEGO"] == len(juego), (
+            "%s: el .msu lleva %d fondos, la ROM cuenta con %d y el juego "
+            "tiene %d" % (nombre, s["MSU_FONDOS_N"], s["FONDOS_JUEGO"],
+                          len(juego)))
         pos = en_la_rom(s["msu_fondo_pos"])
         # Los fondos van primero, dos entradas cada uno, y detrás los efectos
         # de sonido de calidad: ver `escribir_msu` en snes_convert.py.
@@ -204,9 +285,17 @@ def test_msu_la_rom_sabe_donde_esta_cada_fondo():
                          s["MSU_EFECTOS_N"]))
         for k in range(s["MSU_FONDOS_N"]):
             (dt, lt), (dc, lc) = indice[2 * k], indice[2 * k + 1]
+            assert (dt, dc) == (msu_datos.fondo_en(k),
+                                msu_datos.fondo_en(k) + msu_datos.COLORES_EN), (
+                "%s: el fondo %d no está en su lugar fijo" % (nombre, k))
             assert rom[pos + 8 * k:pos + 8 * k + 8] == (
                 dt.to_bytes(4, "little") + dc.to_bytes(4, "little")), (
                 "%s: msu_fondo_pos del fondo %d no apunta a sus entradas"
                 % (nombre, k))
             assert (lt, lc) == (escena.TILES * 64, escena.COLORES * 2), (
                 "%s: el fondo %d del .msu mide %d y %d" % (nombre, k, lt, lc))
+        regiones[nombre] = msu[msu_datos.FONDOS_DESDE:
+                               msu_datos.fondo_en(len(juego))]
+    assert len(set(regiones.values())) == 1, (
+        "la región de los fondos del .msu no es la misma en todos los "
+        "cartuchos: %s" % sorted(regiones))

@@ -710,6 +710,10 @@ class Database:
         # Los enemigos y las tropas: lo que una batalla necesita.
         self.enemies = {i: Enemy(f) for i, f in crudas["enemies"].items()}
         self.troops = {i: Troop(f) for i, f in crudas["troops"].items()}
+        # El fondo de batalla de cada terreno: el de una pelea en un mapa que
+        # no nombra el suyo. Ver `TreeMap.map_background`.
+        self.terrain_backdrops = {i: campo(f, "background_name") or ""
+                                  for i, f in crudas["terrains"].items()}
         # Los eventos comunes, que antes se leían del chunk crudo: acá ya son
         # sus comandos, que es lo único que se les pide.
         self.common_events = {
@@ -869,22 +873,25 @@ class TreeMap:
         self.start_y = campo(start, "party_y")
 
     def map_background(self, map_id):
-        """El fondo de batalla de un encuentro en este mapa, o "".
+        """El fondo de batalla de un encuentro en este mapa: su nombre, o None
+        si es el del terreno que pisa el héroe.
 
         Es `Game_Map::SetupBattle` de easyrpg-player: se sube por el árbol
-        mientras el nodo diga "el del padre", y sólo el 2 trae nombre. El 1 es
-        el fondo del terreno que se pisa, que este port no tiene, así que da lo
-        mismo que nada. Lo que se mira es **el mapa y no el área**: las áreas
-        de ABL son todas "el del padre", y easyrpg arranca de `GetMapInfo()`.
+        mientras el nodo diga "el del padre", y sólo el 2 trae nombre. Todo lo
+        demás —el 1, o llegar a la raíz sin ningún 2— deja el nombre vacío, y
+        `Spriteset_Battle` usa entonces el fondo del terreno de la celda
+        (`Database.terrain_backdrops`). Lo que se mira es **el mapa y no el
+        área**: las áreas de ABL son todas "el del padre", y easyrpg arranca de
+        `GetMapInfo()`.
         """
         seen = set()
         while map_id and map_id not in seen:
             seen.add(map_id)
             tipo, nombre = self.background.get(map_id, (0, ""))
             if tipo != 0:
-                return nombre if tipo == 2 else ""
+                return (nombre or None) if tipo == 2 else None
             map_id = self.map_parents.get(map_id, 0)
-        return ""
+        return None
 
     def map_music(self, map_id):
         """El tema de un mapa, siguiendo la herencia hacia el padre.

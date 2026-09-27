@@ -15,7 +15,10 @@
 ; **$7E6600 a $7E67FF es de esto**: el tramo se reservó de antemano el
 ; 2026-09-21, al repartir entre trabajos que tocaban la RAM lejana.
 ESC_ORIGEN   = $6600    ; 1: la pelea la arrancó un encuentro al azar
-ESC_FONDO    = $6601    ; el fondo de esta pelea, o $FF: el liso
+; El número del fondo de esta pelea entre los del juego, o FONDO_LISO. Es el
+; que se lee del `.msu`; el de la ROM es ESC_RESPALDO. Ver "Qué fondos hay" en
+; tools/port/escena.py.
+ESC_FONDO    = $6601
 ESC_VIS      = $6602    ; un bit por enemigo: todavía está dibujado
 ESC_PAL_N    = $6603    ; cuántas paletas de battler se repartieron
 ESC_PAL_BAT  = $6604    ; 8 bytes: qué battler lleva cada una
@@ -48,6 +51,9 @@ ESC_INI      = $6649
 ; 1 si el fondo de esta pelea sale del MSU-1 y no del cartucho: ver
 ; `esc_llenar`. Lo leen también las pruebas, para saber qué camino corrió.
 ESC_MSU      = $664A
+; Cuál de los fondos de la ROM se dibuja sin MSU-1: el de ESC_FONDO si el
+; cartucho lo lleva, el de reemplazo si no. Sólo vale con ESC_FONDO puesto.
+ESC_RESPALDO = $664B
 ; Lo que había en la página directa que se toma prestada: ver `esc_dp_tomar`.
 ESC_DP_GUARDA = $6680
 ESC_DP_BYTES = 48
@@ -553,10 +559,15 @@ afuera:
 .a8
 
     ; --- qué fondo: el del mapa si fue un encuentro, el de la tropa si no ---
-    lda #$FF
+    ;
+    ; Y el del mapa puede ser el del terreno que pisa el héroe, como una
+    ; tropa puede pelear con el del lugar: es `Game_Map::SetupBattle`. Ver
+    ; `escena_de_la_rom` en tools/port/snes_convert.py.
+    lda #FONDO_LISO
     sta ESC_FONDO
     lda ESC_ORIGEN
     beq de_la_tropa
+del_lugar:
     rep #$20
 .a16
     lda mapa_actual
@@ -564,6 +575,18 @@ afuera:
     sep #$20
 .a8
     lda f:escena_mapa_fondo, x
+    cmp #FONDO_DEL_LUGAR
+    bne fondo_elegido
+    jsr esc_terreno             ; el terreno bajo el héroe, en A
+    cmp #FONDO_TERRENOS
+    bcs sin_fondo
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:fondo_terreno, x
     bra fondo_elegido
 de_la_tropa:
     lda BA_TROPA_K
@@ -576,10 +599,20 @@ de_la_tropa:
     sep #$20
 .a8
     lda f:escena_tropa_fondo, x
+    cmp #FONDO_DEL_LUGAR
+    beq del_lugar
 fondo_elegido:
-    cmp #ESCENA_FONDOS
-    bcs sin_fondo               ; $FF, o un cartucho sin fondos
+    cmp #FONDOS_JUEGO
+    bcs sin_fondo               ; FONDO_LISO, o un cartucho sin fondos
     sta ESC_FONDO
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:fondo_respaldo, x     ; el suyo si la ROM lo lleva, o el reemplazo
+    sta ESC_RESPALDO
 sin_fondo:
     lda #0
     sta ESC_ORIGEN              ; lo prende sólo `encuentro_probar`
@@ -839,6 +872,47 @@ sin_escena:
     rts
 .endproc
 
+; El terreno de la celda donde está el héroe, en A: lo que contestaría
+; `StoreTerrainID` —ver `op_terrain`, que es de donde sale esto—, para el
+; fondo de una pelea en un mapa que no nombra el suyo. Corre al empezar la
+; pelea, antes de que `esc_llenar` pise la mitad alta del $7F, que puede ser
+; de la grilla. `celda_sustituida` está en el banco 0, así que su búsqueda va
+; copiada acá.
+.proc esc_terreno
+.a8
+.i16
+    ldx mapa_ofs
+    lda f:mapa_tabla + M_TERRENO_PLANO, x
+    bne listo                   ; un solo terreno en todo el mapa
+    rep #$20
+.a16
+    lda [hero_ptr]              ; qué bloque es la celda del héroe
+    ldy sub_n
+    beq sustituida
+buscar:
+    dey
+    dey
+    cmp sub_clave, y
+    beq hallada
+    cpy #$0000
+    bne buscar
+    bra sustituida
+hallada:
+    lda sub_valor, y
+sustituida:
+    sta ESC_T0
+    lda f:mapa_tabla + M_PTR_BLOQUE_TERRENO, x
+    sta celdas_ptr
+    sep #$20
+.a8
+    lda f:mapa_tabla + M_PTR_BLOQUE_TERRENO + 2, x
+    sta celdas_ptr + 2
+    ldy ESC_T0
+    lda [celdas_ptr], y
+listo:
+    rts
+.endproc
+
 ; El fondo de `ESC_FONDO`, de donde diga `ESC_MSU`: sus colores y los dos
 ; búferes. Si una búsqueda del `.msu` no llega a tiempo, deja ESC_MSU en 0 y
 ; sigue desde la ROM: ver quién la llama.
@@ -895,7 +969,7 @@ no_la_encontro:
 de_la_rom:
     rep #$20
 .a16
-    lda ESC_FONDO
+    lda ESC_RESPALDO
     and #$00FF
     asl a
     asl a
@@ -1032,7 +1106,7 @@ de_la_rom:
     sta f:BBAD7
     lda #^respaldo_alto
     sta f:A1B7
-    lda ESC_FONDO
+    lda ESC_RESPALDO
     rep #$20
 .a16
     and #$00FF
