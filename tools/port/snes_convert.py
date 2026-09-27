@@ -2317,13 +2317,42 @@ LAYOUT_VENTANA_FONDO_TECHO = {"sprites": (0x0000, 256), "tiles": (0x1000, 544),
                               "ventana_map": (0x5400, 1), "mapa": (0x5800, 1),
                               "encima": (0x6000, 128), "ventana": (0x6800, 256)}
 
+# Y el sexto, el único que **muda la base de BG2**: lo pidió Sorbe Village, el
+# mapa 69, que gasta **329 tiles de fondo, 157 de encima y 283 de sprite**. Los
+# otros cinco le dan a la capa de encima 128 tiles, porque la ventana arranca
+# en el índice 128 de BG2 y el tilemap de encima está clavado en $7800. Con la
+# base de BG2 en $5000 la capa de encima tiene 256, y la ventana va detrás:
+#
+#   sprites     $0000  12 KB  384 tiles de 4bpp   base de OBJ en 0
+#   mapa        $1800   4 KB  el tilemap de BG1, como en "+ambos"
+#   tiles       $2000  24 KB  384 tiles de 8bpp   <- la base de BG1
+#   encima      $5000   8 KB  256 tiles           <- la base de BG2
+#   ventana     $6000   8 KB  256 tiles           <- los índices 256..511
+#   ventana_map $7000   2 KB  el tilemap de 32x32 de la ventana
+#   (libre)     $7400   2 KB
+#   tilemap     $7800   4 KB  el de la capa de encima, que no se mueve
+#
+# Lo que cuesta es que la ventana arranca en el índice 256 y no en el 128, y
+# sus celdas llevan ese índice horneado: por eso hay **dos planos** de la
+# ventana, uno por cada base que usan los repartos —ver `ventana_bases`—, y
+# `estampar_ventana` elige el suyo mirando dónde quedó la ventana respecto de
+# la base de BG2.
+#
+# **Va último a propósito**, por lo mismo que los anteriores: `vram_layout`
+# mira ahora también la capa de encima, y como todos los mapas que ya
+# convertían entraban en 128, ninguno cambia de reparto.
+LAYOUT_VENTANA_ENCIMA = {"sprites": (0x0000, 384), "mapa": (0x1800, 1),
+                         "tiles": (0x2000, 384), "encima": (0x5000, 256),
+                         "ventana": (0x6000, 256), "ventana_map": (0x7000, 1)}
+
 # En el orden en que `vram_layout` los prueba. **Se agrega al final**, nunca en
 # el medio: así un reparto nuevo no le cambia el suyo a ningún mapa.
 LAYOUTS = (("VENTANA", LAYOUT_VENTANA),
            ("VENTANA_FONDO", LAYOUT_VENTANA_FONDO),
            ("VENTANA_SPRITE", LAYOUT_VENTANA_SPRITE),
            ("VENTANA_AMBOS", LAYOUT_VENTANA_AMBOS),
-           ("VENTANA_FONDO_TECHO", LAYOUT_VENTANA_FONDO_TECHO))
+           ("VENTANA_FONDO_TECHO", LAYOUT_VENTANA_FONDO_TECHO),
+           ("VENTANA_ENCIMA", LAYOUT_VENTANA_ENCIMA))
 # Cuántas ranuras de partida guardada tiene el cartucho. El mismo número está
 # en `rom/src/partida.s` como `SRAM_RANURAS`, y la ROM lo comprueba: si no dieran iguales,
 # la pantalla mostraría un número de ranuras y la SRAM tendría otro.
@@ -2376,30 +2405,43 @@ VRAM_ABOVE_MAP = 0x7800
 # con la capa de encima en 128 tiles, la ventana arranca en el índice 128 y no
 # en el 256, y escribirlo a mano fue lo primero que se rompió al mover el
 # reparto.
-VENTANA_TILE_BASE = ((LAYOUT_VENTANA["ventana"][0] - LAYOUT_VENTANA["encima"][0])
-                     // 16)
+def ventana_base(layout):
+    """El índice de BG2 del primer tile de la ventana en ese reparto."""
+    return (layout["ventana"][0] - layout["encima"][0]) // 16
+
+
+# Las bases que usan los repartos, en el orden de sus planos en el `.inc`: el
+# de la primera es `ventana_celdas` —el de siempre— y el de la segunda,
+# `ventana_celdas_256`. La ROM elige entre los dos con la distancia entre la
+# ventana y la base de BG2, así que **no puede haber una tercera** sin tocar
+# `estampar_ventana`; lo cobra `_controlar_repartos`.
+VENTANA_TILE_BASE = ventana_base(LAYOUT_VENTANA)
+VENTANA_BASES = (VENTANA_TILE_BASE, 256)
 
 # La tabla de bloques se lee con `lda tabla, x`, o sea que vive en el banco 0
 # junto con el código.
 MAX_BLOCKS = 1024
 
 
-def vram_layout(tiles, sprites=0):
+def vram_layout(tiles, sprites=0, encima=0):
     """Qué reparto de VRAM le toca a un mapa, según lo que gasta.
 
-    Los dos números se miran en todos los repartos, y se devuelve el primero
-    que entre.
+    Los tres números se miran en todos los repartos, y se devuelve el primero
+    que entre. La capa de encima se mira desde el sexto reparto, el que le da
+    256: con los cinco de antes entraba siempre, porque un mapa que se pasaba
+    de 128 no convertía.
     """
     # Los dos números se miran en los dos repartos. Antes se miraba el fondo en
     # uno y los sprites en el otro, y eso dejaba pasar un mapa de 620 tiles de
     # fondo a un banco de 512: ver el comentario de LAYOUT_VENTANA_FONDO.
     for _nombre, layout in LAYOUTS:
-        if tiles <= layout["tiles"][1] and sprites <= layout["sprites"][1]:
+        if (tiles <= layout["tiles"][1] and sprites <= layout["sprites"][1]
+                and encima <= layout["encima"][1]):
             return layout
     raise SystemExit(
-        "este mapa no puede llevar ventana de mensaje: gasta %d tiles de fondo "
-        "y %d de sprite, y no hay reparto que le deje 8 KB de tiles más 2 KB de "
-        "tilemap a la ventana" % (tiles, sprites))
+        "este mapa no puede llevar ventana de mensaje: gasta %d tiles de fondo, "
+        "%d de sprite y %d de encima, y no hay reparto que le deje 8 KB de "
+        "tiles más 2 KB de tilemap a la ventana" % (tiles, sprites, encima))
 
 
 def _controlar_ranuras(ranura_tiles):
@@ -2456,10 +2498,15 @@ def _controlar_repartos():
         if layout["mapa"][0] == 0:
             raise SystemExit("LAYOUT_%s: el tilemap en $0000, y `col_addr` en "
                              "cero quiere decir que no hay columna" % nombre)
-        if layout["ventana"][0] - layout["encima"][0] != VENTANA_TILE_BASE * 16:
-            raise SystemExit("LAYOUT_%s: la ventana no arranca en el tile %d de "
-                             "BG2, que es lo que dice VENTANA_TILE_BASE"
-                             % (nombre, VENTANA_TILE_BASE))
+        if ventana_base(layout) not in VENTANA_BASES:
+            raise SystemExit("LAYOUT_%s: la ventana arranca en el tile %d de "
+                             "BG2, y hay planos para %s: ver VENTANA_BASES"
+                             % (nombre, ventana_base(layout), VENTANA_BASES))
+        # Y la ventana tiene que caer adentro de lo que BG2 alcanza desde su
+        # base: el índice del tilemap es de diez bits.
+        if ventana_base(layout) + layout["ventana"][1] > 1024:
+            raise SystemExit("LAYOUT_%s: la ventana se pasa del índice 1023 "
+                             "de BG2" % nombre)
         tramos.sort(key=lambda t: t[1])
         for (a, _, fin), (b, desde, _) in zip(tramos, tramos[1:]):
             if fin > desde:
@@ -4944,16 +4991,21 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                 b"".join(w.to_bytes(2, "little")
                                          for w in ventana["cram"]
                                          [:CGRAM_RESERVADAS])) + "\n")
-            plano = bytearray()
-            for fila in ventana["celdas"]:
-                for celda in fila:
-                    # El índice de tile va corrido a la segunda mitad del banco
-                    # de BG2, y con la prioridad de la capa de encima para que
-                    # tape al héroe y a los NPCs.
-                    plano += (entry(VENTANA_TILE_BASE + celda, False, False,
-                                    PRIORITY_ABOVE)
-                              | (paleta << 10)).to_bytes(2, "little")
-            handle.write(bloque("ventana_celdas", bytes(plano)) + "\n")
+            # Un plano por cada base de la ventana que usan los repartos: el
+            # índice de tile va corrido detrás de la capa de encima, y la
+            # capa de encima mide 128 o 256 según el reparto. Ver
+            # `VENTANA_BASES` y `estampar_ventana`.
+            for base, etiqueta in zip(VENTANA_BASES, ("ventana_celdas",
+                                                      "ventana_celdas_256")):
+                plano = bytearray()
+                for fila in ventana["celdas"]:
+                    for celda in fila:
+                        # Con la prioridad de la capa de encima para que tape
+                        # al héroe y a los NPCs.
+                        plano += (entry(base + celda, False, False,
+                                        PRIORITY_ABOVE)
+                                  | (paleta << 10)).to_bytes(2, "little")
+                handle.write(bloque(etiqueta, bytes(plano)) + "\n")
             # El área de texto sin texto: los 240 tiles que la ROM copia al
             # buffer antes de dibujar encima. Van en el orden en que la ROM los
             # necesita, o sea el de las celdas.
@@ -8730,7 +8782,8 @@ def convertir(renderer, map_id, args):
             # ella podría avisar y seguir, como con las paletas.
             cuantos = len(probando) // 32
             try:
-                layout = vram_layout(len(tile_data) // BYTES_PER_TILE, cuantos)
+                layout = vram_layout(len(tile_data) // BYTES_PER_TILE, cuantos,
+                                     len(above_data[0]) // 32)
             except SystemExit:
                 layout = None
             if layout is None or cuantos > layout["sprites"][1]:
@@ -8875,7 +8928,8 @@ def convertir(renderer, map_id, args):
         "terreno_fuera": rm2k.terreno_de(chipset, 0),
         "layout": vram_layout(
             len(tile_data) // BYTES_PER_TILE,
-            len(sprite[0]) // 32 if sprite else 0),
+            len(sprite[0]) // 32 if sprite else 0,
+            len(above_data[0]) // 32),
         "resumen": summary,
         "anim": anim_bytes(summary["animacion"]),
         "imagenes_fondo": summary["imagenes"],
