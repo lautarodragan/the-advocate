@@ -18,7 +18,10 @@ en el original lo cobran: **fiel al original**.
 
 # Status
 
-2026-09-27: hecho en la rama del agente, sobre `main` en a3140f1.
+2026-09-27, en `testing/`: hecho en la rama del agente, sobre `main` en
+a3140f1 y con `main` mergeado encima del hito 5 (6c4949d); `just cartuchos`
+y la tanda entera en verde sobre el árbol mergeado. Lo que queda es de taro:
+jugarlo (ver abajo). Las goldens no cambiaron.
 
 # Lo hecho
 
@@ -80,7 +83,8 @@ por DMA), y queda con lo mirado en `wishlist/animaciones-en-la-pelea.md`.
 
 # Lo medido
 
-Con `.res N, $00` y la tabla de símbolos, después del hito:
+Con `.res N, $00` y la tabla de símbolos, después del hito y con el 5
+mergeado:
 
     release       banco 0: 211 libres (219 antes)   banco 1: ~10,2 KB
     test-special  banco 0: 981                      banco 1: ~11,3 KB
