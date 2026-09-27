@@ -2290,13 +2290,16 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
     `V_SRCN` de cada uno. Las listas de efectos de `paquetes` van por número.
     """
     def block(label, data, bloque=False):
-        # Sin `.bloque` salvo en las muestras: eso es relleno para que un DMA
-        # no cruce de banco, y nada de acá se sube por DMA. El driver va byte a
-        # byte por los puertos —`spc_block` hace el salto de banco a mano— y el
-        # stream lo recorre `advance`, que hace el mismo salto. Las muestras sí
-        # lo llevan, y no por el DMA: `subir_a_aram` las recorre con un puntero
-        # de 24 bits que no salta de banco, a cambio de ser más corta.
-        out = ([".bloque %d" % len(data)] if bloque else []) + ["%s:" % label]
+        # Sin `.bloque` salvo en las muestras, y con `.cruza` en su lugar: el
+        # driver va byte a byte por los puertos —`spc_block` hace el salto de
+        # banco a mano— y el stream lo recorre `advance`, que hace el mismo
+        # salto, así que pueden quedar partidos. Las muestras sí lo llevan:
+        # `subir_a_aram` las recorre con un puntero de 24 bits que no salta de
+        # banco, a cambio de ser más corta. Ver `resolver` en
+        # tools/ensamblado/bancos.py, que no deja pasar una sin ninguna de las
+        # dos.
+        out = ([".bloque %d" % len(data)] if bloque else [".cruza"]) \
+            + ["%s:" % label]
         for i in range(0, len(data), 16):
             out.append("    .byte " + ",".join("$%02X" % b for b in data[i:i + 16]))
         return "\n".join(out)
@@ -2333,8 +2336,9 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
         for t in (temas or [{"nombre": ""}]))
     # Y el tema propio de cada mapa. Fuera del banco 0: se lee una vez por
     # teletransporte, con `lda f:mapa_tema, x`.
-    tabla_mapa_tema = "mapa_tema:\n    .byte " + ", ".join(
-        "$%02X" % t for t in (list(tema_de_mapa) or [0xFF]))
+    del_mapa = list(tema_de_mapa) or [0xFF]
+    tabla_mapa_tema = ".bloque %d\nmapa_tema:\n    .byte " % len(del_mapa) \
+        + ", ".join("$%02X" % t for t in del_mapa)
     # Y los sonidos de la música —los de `pack`: seis bytes, la altura,
     # SRCN, ADSR1, ADSR2 y el GAIN del release—, los de todos los temas en una
     # tabla y dónde empiezan los de cada uno. En un solo banco, porque
@@ -2348,14 +2352,15 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
     if len(cuerpo) > 0x8000:
         raise SystemExit("los sonidos de la música pasan de un banco: %d B"
                          % len(cuerpo))
-    tabla_mapa_tema += ("\ntema_sonidos:\n    .word "
+    tabla_mapa_tema += ("\n.bloque %d\ntema_sonidos:\n    .word "
+                        % (2 * len(bases or [0]))
                         + ", ".join("%d" % b for b in bases or [0]) + "\n"
                         + block("musica_sonidos", bytes(cuerpo) or bytes(6),
                                 bloque=True))
     # Y los efectos de sonido: siete bytes por entrada de `Temas.sonidos`.
     # Fuera del banco 0: `op_sound` los lee con `lda f:sonido_tabla, x`.
     filas = list(sonidos) or [(0xFF, 0, 0, 0, 0, 0xFF)]
-    tabla_se = "sonido_tabla:\n" + "\n".join(
+    tabla_se = ".bloque %d\nsonido_tabla:\n" % (7 * len(filas)) + "\n".join(
         "    .byte $%02X, <%d, >%d, %d, %d, <%d, >%d" % (
             srcn, altura, altura, izquierda, derecha, cuadros, cuadros)
         for srcn, altura, izquierda, derecha, cuadros, _e in filas)
@@ -2364,10 +2369,11 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
     # lugar que comparten varios efectos, y `sonido_tocar` pregunta con esto
     # si el que está en la ARAM es el suyo. Y el lugar de cada efecto, que es
     # lo que usa el paquete para subirlo.
-    tabla_se += "\nsonido_efecto:\n    .byte " + ", ".join(
-        "$%02X" % fila[5] for fila in filas)
-    tabla_se += "\nefecto_lugar:\n    .byte " + ", ".join(
-        "$%02X" % l for l in (list(efecto_lugar) or [0xFF]))
+    tabla_se += "\n.bloque %d\nsonido_efecto:\n    .byte " % len(filas) \
+        + ", ".join("$%02X" % fila[5] for fila in filas)
+    lugares_se = list(efecto_lugar) or [0xFF]
+    tabla_se += "\n.bloque %d\nefecto_lugar:\n    .byte " % len(lugares_se) \
+        + ", ".join("$%02X" % l for l in lugares_se)
 
     # El directorio del SPC700, con todas en el silencio, y el silencio
     # detrás. Es lo único que sube `spc_upload` además del driver.

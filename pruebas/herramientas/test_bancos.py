@@ -144,6 +144,41 @@ def test_un_bloque_fuera_de_rodata_no_pasa_callado(tmp_path):
         bancos.resolver([str(ruta)])
 
 
+def test_una_tabla_sin_bloque_no_pasa_callada(tmp_path):
+    """Una tabla que la ROM lee con `lda f:tabla, x` no puede cruzar de banco:
+    el índice lleva la cuenta al `$0000` del banco siguiente, que en LoROM no
+    es ROM. Sin `.bloque`, el acomodo la parte donde caiga el final del banco,
+    y si cae entre dos palabras no hay nada que se queje: la ROM lee basura
+    para las últimas entradas. Así estuvieron `actor_hpmax`, `actor_spmax` y
+    una treintena más hasta el 2026-09-27, y lo destapó una variante de
+    `release` con más mapas, donde el corte cayó en el medio de una palabra.
+
+    Por eso el acomodo se niega **siempre**, no sólo el día que el corte cae
+    encima: el error es latente, y depende de cuánto haya antes en RODATA.
+    """
+    with pytest.raises(ValueError, match="tabla_suelta"):
+        resolver('.segment "RODATA"\n.bloque 4\ncubierta:\n'
+                 "    .word $1111,$2222\n"
+                 "tabla_suelta:\n    .word $3333,$4444\n", tmp_path)
+
+
+def test_un_bloque_cubre_las_tablas_que_entran_en_él(tmp_path):
+    """Un `.bloque` que mide varias tablas las cubre a todas, y una etiqueta
+    de un solo byte no se puede partir."""
+    resolver('.segment "RODATA"\n.bloque 8\nuna:\n    .word 1,2\n'
+             "otra:\n    .word 3,4\nsuelta:\n    .byte 5\n", tmp_path)
+
+
+def test_lo_que_cruza_a_proposito_se_declara(tmp_path):
+    """El stream de la música, el driver y las muestras del SPC700 sí cruzan:
+    los recorre código que salta de banco a mano. `.cruza` lo dice."""
+    (salida,), _ = resolver(
+        '.segment "RODATA"\n' + bytes_(16) * (bancos.BANCO // 16 - 1)
+        + ".cruza\nstream:\n" + bytes_(16) + bytes_(16), tmp_path)
+    antes, despues = salida.split(B3)
+    assert "stream:" in antes and ".cruza" not in salida
+
+
 def test_el_codigo_a_mano_entra_en_el_banco_1():
     """`FAR` va entero en el banco 1, y lo generado arranca pegado al 2.
 

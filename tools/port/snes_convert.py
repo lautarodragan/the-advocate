@@ -3891,7 +3891,7 @@ def tabla_de_paginas(mapa, numero, evcodigo):
                         | (32 if pagina["evento"] in cambian
                                  or pagina["evento"] in aparecen else 0)
                         | (128 if pagina["evento"] in con_auto else 0))
-            destino = "evcodigo_%d + %d" % (numero, pagina["ruta_offset"])
+            destino = "%s + %d" % (evcodigo, pagina["ruta_offset"])
             out.append("    .byte %-4d ; +13 las banderas de su ruta propia"
                        % banderas)
             out.append("    .byte %-4d ; +14 su frecuencia" % propia["frecuencia"])
@@ -5452,7 +5452,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # por 34 bytes el 2026-09-13. Son 124: la tabla más grande de las que
         # se leen con X y no están en ningún lazo por cuadro.
         handle.write('.segment "RODATA"\n')
-        words_asm("item_switch", [db_items[n].switch_id for n in items])
+        words_asm("item_switch", [db_items[n].switch_id for n in items],
+                  declarar=True)
         handle.write('.segment "TABLAS"\n')
         # Lo que cada ítem hace en una pelea: si entra en la lista que se
         # ofrece y cuánto cura. La regla de cuáles entran es
@@ -5625,13 +5626,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         words_asm("actor_hpmax", [
             (titulo_mod.parametro_de(db.actors[a], "maxhp")
              if a in db.actors else 0) & 0xFFFF
-            for a in range(actores_n)])
+            for a in range(actores_n)], declarar=True)
         # Y los SP, que son estado desde el 2026-09-13 por lo mismo que los HP:
         # las habilidades los gastan. Ver `hp_inicial_poner` en rom/src/banco1.s.
         words_asm("actor_spmax", [
             (titulo_mod.parametro_de(db.actors[a], "maxsp")
              if a in db.actors else 0) & 0xFFFF
-            for a in range(actores_n)])
+            for a in range(actores_n)], declarar=True)
         handle.write(experiencia_asm(db, ranuras["actores"], actores_n))
         # --- las habilidades ---
         #
@@ -5805,7 +5806,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             raise SystemExit("las tropas del cartucho no entran en las tablas "
                              "de un byte: %d tropas, %d miembros"
                              % (len(usadas), len(miembros)))
-        words_asm("tropa_id", usadas)
+        words_asm("tropa_id", usadas, declarar=True)
         # La experiencia que da ganarle a cada una, ya sumada: ver
         # `experiencia.exp_de_la_tropa`. Va fuera del banco 0, como todo lo de
         # acá, porque la lee una vez por pelea.
@@ -5821,10 +5822,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             term_batalla, max(exp_tropa, default=0),
             [db.actors[a].name for a in ranuras["actores"] if a in db.actors],
             [db.skills[h].name for h in sorted(ensenadas)])
-        bytes_asm("tropa_ini", inicios)
+        bytes_asm("tropa_ini", inicios, declarar=True)
         bytes_asm("tropa_n", [len(db.troops[n].members[:B.ENEMIGOS_MAX])
-                              for n in usadas])
-        bytes_asm("tropa_miembro", miembros)
+                              for n in usadas], declarar=True)
+        bytes_asm("tropa_miembro", miembros, declarar=True)
         # Y las páginas de evento de cada tropa, en el orden del LDB —que es el
         # orden en que `ScheduleNextPage` las prueba—, sin las que no
         # compilaron: saltearlas no le cambia el orden a las demás. Por tropa,
@@ -5881,37 +5882,52 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         enc = encuentros or {"por_mapa": [0xFF] * len(mapas), "registros": [],
                              "zonas": [], "tropas": []}
         bytes_asm("enc_mapa", enc["por_mapa"], declarar=True)
-        words_asm("enc_base", [r["base"] for r in enc["registros"]])
+        words_asm("enc_base", [r["base"] for r in enc["registros"]],
+                  declarar=True)
         umbrales = []
         for r in enc["registros"]:
             # Siete umbrales y uno de relleno: con ocho el índice del registro
             # es un corrimiento y no una multiplicación. Ver ENC_STRIDE.
             umbrales += list(r["umbrales"]) + [0xFF]
-        bytes_asm("enc_umbral_n", umbrales)
-        bytes_asm("enc_zona_ini", [r["zona_ini"] for r in enc["registros"]])
-        bytes_asm("enc_zona_n", [r["zona_n"] for r in enc["registros"]])
+        bytes_asm("enc_umbral_n", umbrales, declarar=True)
+        bytes_asm("enc_zona_ini", [r["zona_ini"] for r in enc["registros"]],
+                  declarar=True)
+        bytes_asm("enc_zona_n", [r["zona_n"] for r in enc["registros"]],
+                  declarar=True)
         for k, etiqueta in enumerate(("enc_izq", "enc_arr", "enc_der",
                                       "enc_aba")):
-            words_asm(etiqueta, [z["rect"][k] for z in enc["zonas"]])
-        bytes_asm("enc_tropa_ini", [z["tropa_ini"] for z in enc["zonas"]])
-        bytes_asm("enc_tropa_n", [z["tropa_n"] for z in enc["zonas"]])
-        words_asm("enc_tropa", enc["tropas"])
-        words_asm("enemigo_hp", [db.enemies[e].max_hp for e in enemigos_rom])
-        words_asm("enemigo_atk", [db.enemies[e].attack for e in enemigos_rom])
-        words_asm("enemigo_def", [db.enemies[e].defense for e in enemigos_rom])
-        words_asm("enemigo_agi", [db.enemies[e].agility for e in enemigos_rom])
+            words_asm(etiqueta, [z["rect"][k] for z in enc["zonas"]],
+                      declarar=True)
+        bytes_asm("enc_tropa_ini", [z["tropa_ini"] for z in enc["zonas"]],
+                  declarar=True)
+        bytes_asm("enc_tropa_n", [z["tropa_n"] for z in enc["zonas"]],
+                  declarar=True)
+        words_asm("enc_tropa", enc["tropas"], declarar=True)
+        words_asm("enemigo_hp", [db.enemies[e].max_hp for e in enemigos_rom],
+                  declarar=True)
+        words_asm("enemigo_atk", [db.enemies[e].attack for e in enemigos_rom],
+                  declarar=True)
+        words_asm("enemigo_def", [db.enemies[e].defense for e in enemigos_rom],
+                  declarar=True)
+        words_asm("enemigo_agi", [db.enemies[e].agility for e in enemigos_rom],
+                  declarar=True)
         # El espíritu y los SP: los pide `CalcSkillEffect`, que le resta al
         # efecto `magical_rate * spi_del_blanco / 80`. Hasta el 2026-09-13 no
         # los leía nadie porque ninguna cuenta de la pelea los usaba.
-        words_asm("enemigo_spi", [db.enemies[e].spirit for e in enemigos_rom])
-        words_asm("enemigo_sp", [db.enemies[e].max_sp for e in enemigos_rom])
-        bytes_asm("enemigo_hit", [db.enemies[e].hit for e in enemigos_rom])
+        words_asm("enemigo_spi", [db.enemies[e].spirit for e in enemigos_rom],
+                  declarar=True)
+        words_asm("enemigo_sp", [db.enemies[e].max_sp for e in enemigos_rom],
+                  declarar=True)
+        bytes_asm("enemigo_hit", [db.enemies[e].hit for e in enemigos_rom],
+                  declarar=True)
         # El crítico, ya en por ciento entero: `CalcCriticalHitChance` lo
         # calcula como `1 / critical_hit_chance` por cien y lo trunca.
         bytes_asm("enemigo_crit", [
             (100 // (db.enemies[e].critical_hit_chance or 30))
-            if db.enemies[e].critical_hit else 0 for e in enemigos_rom])
-        words_asm("enemigo_txt", [texto_enemigo[e] for e in enemigos_rom])
+            if db.enemies[e].critical_hit else 0 for e in enemigos_rom],
+            declarar=True)
+        words_asm("enemigo_txt", [texto_enemigo[e] for e in enemigos_rom],
+                  declarar=True)
         # Lo que cada enemigo puede hacer en su turno: su lista de
         # `batalla.acciones_de_enemigo`, seguida en `eacc_*` —dónde arranca y
         # cuántas son—. Por acción, la habilidad como `k` de las tablas `hab_*`
@@ -6081,18 +6097,19 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write('.segment "RODATA"\n')
         words_asm("ba_orden_fila", [
             pos((P.BA_MSG_FILA1, P.BA_MSG_FILA2)[f], 0)
-            for _n, f, _c in P.BA_ORDENES])
-        words_asm("ba_orden_dx", [c * 2 for _n, _f, c in P.BA_ORDENES])
+            for _n, f, _c in P.BA_ORDENES], declarar=True)
+        words_asm("ba_orden_dx", [c * 2 for _n, _f, c in P.BA_ORDENES],
+                  declarar=True)
         # **De dos bytes.** Un índice de texto no entra en uno: con los 29
         # mapas de `abl` los de la batalla arrancan en el 273, y la
         # tabla de un byte que había acá hasta el 2026-09-14 los emitía igual
         # —`.byte 273`— para que el ensamblador los truncara sin decir nada.
         words_asm("ba_orden_txt", [
             texto_batalla + [n for n, _c in P.BA_TERMINOS].index(nombre)
-            for nombre, _f, _c in P.BA_ORDENES])
+            for nombre, _f, _c in P.BA_ORDENES], declarar=True)
         bytes_asm("ba_orden_gris", [
             1 if k in P.BA_ORDEN_SIN_HACER else 0
-            for k in range(len(P.BA_ORDENES))])
+            for k in range(len(P.BA_ORDENES))], declarar=True)
         handle.write('.segment "TABLAS"\n')
 
         glifos = ranuras["items_glifos"]
@@ -6394,6 +6411,7 @@ def tabla_de_senos():
            "; cuadro de sacudida— por lo mismo que `item_k`: son 256 bytes y",
            "; el banco del código se llenó.",
            '.segment "RODATA"',
+           ".bloque 256",
            "seno_sacudida:"]
     valores = eventos.SENO_SACUDIDA
     for i in range(0, 256, 16):

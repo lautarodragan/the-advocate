@@ -6,8 +6,10 @@ no cambian un pixel por sí solas pero deciden qué página está activa.
 """
 
 import os
+import re
 
 from port import eventos
+from port import snes_convert
 from rpgmaker import lcf
 from rpgmaker import rm2k
 from render.render_map import GAME_DIR
@@ -177,3 +179,35 @@ def test_sin_saltar_la_escritura_mira_las_variables_del_mapa():
     assert not _escritura_de_la_123(_comandos(
         (eventos.TELEPORT, (6, 22, 12)), PONER_123_EN_8), desde=6) \
         & eventos.VAR_REFRESCO
+
+
+def test_la_ruta_propia_apunta_al_bloque_que_recibe():
+    """Una página con ruta propia lleva dos punteros adentro del código de
+    eventos del mapa —+8 su código, +16 las órdenes de su ruta— y los dos
+    tienen que salir de la etiqueta que `tabla_de_paginas` recibe, no del
+    número del mapa. La etiqueta la pone `Materiales`, que numera por clase y
+    comparte los bloques iguales: con un bloque de código compartido antes
+    que el de este mapa, `evcodigo_<mapa>` es el de **otro** mapa, o no
+    existe y `ca65` se cae con "Symbol 'evcodigo_82' is undefined".
+
+    El +16 rearmaba el nombre hasta el 2026-09-27: la deduplicación del
+    2026-09-07 arregló el +8 y no lo vio, porque ningún cartucho tenía un
+    bloque de código compartido antes de un mapa con rutas propias. Lo
+    destapó un `release` con los mapas hasta el 85. No corre ninguna ROM: la
+    tabla es texto, y lo que importa es a qué símbolo nombra.
+    """
+    pagina = {
+        "evento": 0, "pagina": 1, "trigger": eventos.TRIGGER_PARALELO,
+        "switch_a": 0, "switch_b": 0, "actor": 0, "capa": 1, "item": 0,
+        "codigo": b"\x00", "offset": 0, "ruta_offset": 1,
+        "frecuencia": 3, "velocidad": 4,
+        "ruta_propia": {"repite": True, "saltable": False, "dir_fija": False,
+                        "anim_continua": False, "frecuencia": 3,
+                        "velocidad": 4, "ordenes": [0]},
+    }
+    tabla = snes_convert.tabla_de_paginas({"paginas": [pagina]}, 7,
+                                          "evcodigo_3")
+    nombrados = set(re.findall(r"evcodigo_\d+", tabla))
+    assert nombrados == {"evcodigo_3"}, (
+        "la tabla del mapa 7, cuyo código es el bloque evcodigo_3, nombra %s"
+        % sorted(nombrados))
