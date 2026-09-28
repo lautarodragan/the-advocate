@@ -2496,6 +2496,34 @@ def _controlar_marco_de_items(fuente, marco):
                                                           tope))
 
 
+def _controlar_objetivo(tiles):
+    """Que los tiles y el tilemap de las ventanas de la elección de actor
+    entren entre la base de su BG1 y su tilemap, y que todo caiga en el
+    banco de BG1 de todos los repartos, que es lo que `load_map` repone al
+    cerrar el menú —como `_controlar_ranuras`—, y fuera de lo que el menú
+    ya usa: sus tiles y su tilemap terminan en `RANURA_MAP` + 1024."""
+    T = titulo_mod
+    fin_tiles = T.OBJETIVO_VRAM + tiles * 32
+    fin_map = T.OBJETIVO_MAPA + 32 * 32
+    if fin_tiles > T.OBJETIVO_MAPA:
+        raise SystemExit(
+            "las ventanas de la elección de actor son %d tiles de 8bpp y "
+            "llegan a $%04X, y su tilemap está en $%04X"
+            % (tiles, fin_tiles, T.OBJETIVO_MAPA))
+    if T.OBJETIVO_VRAM < RANURA_MAP + 32 * 32:
+        raise SystemExit("las ventanas de la elección de actor pisan el "
+                         "tilemap del menú")
+    for nombre, layout in LAYOUTS:
+        base, cuantos = layout["tiles"]
+        tope = base + cuantos * (BYTES_PER_TILE // 2)
+        if T.OBJETIVO_VRAM < base or fin_map > tope:
+            raise SystemExit(
+                "las ventanas de la elección de actor van en $%04X..$%04X y "
+                "el banco de BG1 de LAYOUT_%s es $%04X..$%04X: al cerrar el "
+                "menú `load_map` no las repondría"
+                % (T.OBJETIVO_VRAM, fin_map, nombre, base, tope))
+
+
 def _controlar_repartos():
     """Que cada reparto respete al hardware y a lo que la ROM supone de él.
 
@@ -5290,11 +5318,18 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             datos += pack_tile(celda, planes=4)
         handle.write(bloque("ranura_tiles", bytes(datos)) + "\n")
 
+        # El banco de las ranuras y del menú va **con el bit de prioridad
+        # puesto**, como los glifos de ítems: la elección de actor prende
+        # BG1 con sus ventanas, y en modo 3 BG1 de prioridad 0 queda arriba
+        # de BG2 de prioridad 0 —la barra roja taparía la fila—. En las
+        # demás pantallas de este banco BG1 está apagado y el bit no cambia
+        # un pixel; los sprites de la experiencia lo descartan.
         def celdas_asm(bloques):
             plano = bytearray()
             for celdas in bloques:
                 for indice in celdas:
-                    plano += entry(indice, False, False).to_bytes(2, "little")
+                    plano += entry(indice, False, False,
+                                   priority=1).to_bytes(2, "little")
             return bytes(plano)
 
         # Cada bloque de celdas va con etiqueta propia y se nombra por una
@@ -5641,7 +5676,6 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "MENU_ACTOR_FILAS  = %d\n"
             "MENU_FILAS_GRUPO  = %d\n"
             "MENU_ACTORES_N    = %d\n"
-            "OBJETIVO_CURSOR_DESPL = %d\n"
             "MENU_HP_CIFRAS    = %d\n"
             "MENU_HP_DESPL     = %d\n"
             "MENU_CARA_CELDAS  = %d\n"
@@ -5656,8 +5690,6 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                celda_vram(T.MENU_ORO_Y // T.CELL, T.MENU_MONEDA_COL),
                T.MENU_ACTOR_COLS, T.MENU_ACTOR_FILAS, T.MENU_FILAS_GRUPO,
                actores_n,
-               T.OBJETIVO_CURSOR_FILA * 32
-               + T.OBJETIVO_CURSOR_COL - T.MENU_ACTOR_COL,
                # Y a cuántas celdas de la primera del bloque del actor cae la
                # de las centenas de sus HP, que es lo que `menu_hp_escribir`
                # le suma a `menu_fila_vram`.
@@ -5686,7 +5718,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # Las dos celdas del cursor, arriba y abajo: la ROM las escribe de a
         # una palabra.
         handle.write("menu_cursor_celdas:\n    .word %s\n" % ", ".join(
-            "$%04X" % entry(c, False, False) for c in menu["cursor"]))
+            "$%04X" % entry(c, False, False, priority=1)
+            for c in menu["cursor"]))
         # Y lo que la pantalla compone en caliente, que va **fuera del banco
         # 0**: se lee con `lda f:`, y son casi mil bytes que al banco del
         # código le harían falta. Los glifos están indexados por carácter
@@ -5698,7 +5731,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                   entry(0, False, False))
         handle.write(".bloque %d\nranura_glifo_celdas:\n    .word %s\n"
                      % (titulo_mod.ITEM_CARACTERES * 4, ", ".join(
-                         ", ".join("$%04X" % entry(c, False, False)
+                         ", ".join("$%04X" % entry(c, False, False,
+                                                   priority=1)
                                    for c in menu["glifos"][letra])
                          if letra in menu["glifos"] else vacio
                          for letra in map(
@@ -5712,6 +5746,41 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             2 * len(menu["exp_termino"]), ", ".join(
                 "$%04X" % entry(c, False, False)
                 for c in menu["exp_termino"])))
+        # La elección de actor: sus ventanas en BG1 —ver `OBJETIVO_VENTANAS`
+        # en titulo.py—, con ítem y sin ítem, y el cursor como las filas de
+        # celdas de cada fila del grupo con la barra encima, 448 bytes cada
+        # una. Y el nombre de cada ítem en dos renglones, en ASCII: sólo el de
+        # las medicinas, que son las que abren esta pantalla; los demás van
+        # en blanco para que la tabla se indexe por `k`.
+        obj_tiles, obj_colores, obj_mapas = ranuras["objetivo"]
+        handle.write(bloque("objetivo_tiles", b"".join(
+            pack_tile(celda, planes=8) for celda in obj_tiles)) + "\n")
+        for sufijo, (mapa, barras) in zip(("", "_sin"), obj_mapas):
+            handle.write(bloque("objetivo_mapa" + sufijo, b"".join(
+                palabra.to_bytes(2, "little") for palabra in mapa)) + "\n")
+            handle.write(bloque("objetivo_barras" + sufijo, b"".join(
+                palabra.to_bytes(2, "little") for barra in barras
+                for palabra in barra)) + "\n")
+        handle.write(bloque("objetivo_cgram", b"".join(
+            cgram_word(c).to_bytes(2, "little") for c in obj_colores)) + "\n")
+        handle.write(bloque("objetivo_nombres", b"".join(
+            "".join(T.nombre_en_renglones(ranuras["items_db"][n].name)
+                    if ranuras["items_db"][n].type == lcf.ITEM_TIPO_MEDICINA
+                    else [" " * T.OBJETIVO_NOMBRE_ANCHO] * 2)
+            .encode("ascii", "replace") for n in ranuras["items"])) + "\n")
+        handle.write(
+            "OBJETIVO_VRAM     = $%04X\n"
+            "OBJETIVO_MAPA     = $%04X\n"
+            "OBJETIVO_TILES    = %d\n"
+            "OBJETIVO_CGRAM    = %d\n"
+            "OBJETIVO_COLORES  = %d\n"
+            "OBJETIVO_NOMBRE_ANCHO = %d\n"
+            "OBJETIVO_NOMBRE_VRAM = %d\n"
+            "OBJETIVO_CUANTOS_VRAM = %d\n"
+            % (T.OBJETIVO_VRAM, T.OBJETIVO_MAPA, len(obj_tiles),
+               T.OBJETIVO_CGRAM, len(obj_colores), T.OBJETIVO_NOMBRE_ANCHO,
+               celda_vram(T.OBJETIVO_NOMBRE_FILA, T.OBJETIVO_NOMBRE_COL),
+               celda_vram(T.OBJETIVO_CUANTOS_FILA, T.OBJETIVO_CUANTOS_COL)))
         handle.write(
             "MENU_EXP_X        = %d\n"
             "MENU_EXP_NUM_X    = %d\n"
@@ -7586,10 +7655,21 @@ def main():
     # su descripción: ver "la pantalla de ítems" en titulo.py.
     items_rom = items_posibles(todos, miembros, renderer.database,
                                de_archivo)
+    # Con las letras de las medicinas, que la elección de actor escribe con
+    # los glifos del banco: ver `OBJETIVO_VENTANAS`.
+    letras_medicinas = "".join(
+        renderer.database.items[n].name for n in items_rom
+        if renderer.database.items[n].type == lcf.ITEM_TIPO_MEDICINA)
     (ranura_tiles, ranura_paletas, ranura_cabs, ranura_filas, ranura_caras,
      ranura_menu) = titulo_mod.pantalla_ranuras(
         skin, renderer.database, RANURAS, renderer.database.font_id,
-        miembros, args.game_dir)
+        miembros, args.game_dir, letras_medicinas)
+    objetivo = titulo_mod.marcos(
+        skin, 0, titulo_mod.capas_objetivo(skin, renderer.database,
+                                           renderer.database.font_id),
+        titulo_mod.OBJETIVO_CGRAM,
+        titulo_mod.OBJETIVO_CGRAM + titulo_mod.OBJETIVO_COLORES_MAX)
+    _controlar_objetivo(len(objetivo[0]))
     items_tiles, items_paletas, items_glifos = titulo_mod.pantalla_items(
         skin, renderer.database.font_id)
     # Las ventanas de ítems y de equipo comparten tiles y colores: ver
@@ -7612,7 +7692,8 @@ def main():
                      "items_tiles": items_tiles,
                      "items_paletas": items_paletas,
                      "items_glifos": items_glifos,
-                     "items_marco": items_marco, "fin": fin}
+                     "items_marco": items_marco, "fin": fin,
+                     "objetivo": objetivo}
     _controlar_ranuras(len(ranura_tiles))
     _controlar_repartos()
     print("  pantalla de ranuras: %d, %d tiles de 4bpp (%d B) + %d paletas, "
