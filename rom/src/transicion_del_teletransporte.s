@@ -6,7 +6,7 @@
 ;
 ; RM2k borra y vuelve a mostrar la pantalla en cada teletransporte con la
 ; transición que diga el sistema, y `ChangeScreenTransitions` la cambia de ahí
-; en más. La ROM hace dos, y el conversor ya decidió cuál va —ver
+; en más. La ROM hace tres, y el conversor ya decidió cuál va —ver
 ; `CHANGE_SCREEN_TRANSITIONS` en tools/port/eventos.py—:
 ;
 ;   el fundido   el de siempre, `fundido_tick`: el brillo maestro sobre
@@ -17,6 +17,9 @@
 ;                hace la pelea —ver `fundido_de_pelea.s`, que explica por qué
 ;                el mosaico también oscurece, y en RM2k no: la carga tiene que
 ;                caer adentro del negro—
+;   el corte     sólo para borrar: el fundido arrancado en su último cuadro
+;                de ida, así que el primer cuadro ya es negro y carga el mapa,
+;                y la vuelta es la de siempre. Lo pone `fundido_desde`
 ;
 ; El mosaico del PPU es de los fondos y nada más: **los sprites no se
 ; pixelan**, y en RM2k sí, porque allá se pixela la pantalla entera. Con el
@@ -56,10 +59,38 @@ mostrar:
     rtl
 .endproc
 
+; El byte de `vueltas` desde el que cuenta el fundido que arranca, a
+; `fundido_base`. Desde `empezar_fundido`.
+;
+; Con el corte para borrar arranca `FUNDIDO_CUADROS - 1` ticks atrás: el
+; primer `fundido_tick` cae en el último cuadro de la ida, que ya está pasado
+; `FUNDIDO_CARGA` —así que carga el mapa ahí mismo— y en el negro del medio.
+; Es `TransitionCutOut`, que en RM2k dura un cuadro, seguido del mostrar de
+; siempre. `fundido_tick` no se entera de nada.
+.assert FUNDIDO_CARGA < FUNDIDO_CUADROS, error, "el corte tiene que caer pasada la carga"
+.proc fundido_desde
+.a8
+.i16
+    lda f:TRANSICION_BORRAR
+    cmp #TRANSICION_CORTE
+    beq corte
+    lda vueltas
+    bra poner
+corte:
+    lda vueltas
+    sec
+    sbc #(FUNDIDO_CUADROS - 1)
+poner:
+    sta f:fundido_base
+    rtl
+.endproc
+
 ; Las dos en el fundido, desde el reset: la RAM lejana arranca con basura en
 ; bsnes, y el primer teletransporte saldría en mosaico si cayera justo.
-; Cualquier valor que no sea TRANSICION_MOSAICO es el fundido.
+; Cualquier valor que no sea TRANSICION_MOSAICO ni TRANSICION_CORTE es el
+; fundido.
 .assert TRANSICION_MOSAICO <> 0, error, "el cero tiene que ser el fundido"
+.assert TRANSICION_CORTE <> 0, error, "el cero tiene que ser el fundido"
 .proc transicion_de_arranque
 .a8
 .i16

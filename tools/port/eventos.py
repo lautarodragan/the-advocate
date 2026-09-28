@@ -1098,15 +1098,26 @@ BRILLO_MAX = 15
 # en modo 3): lo decidió taro el 2026-09-26. Ver
 # workflow/divergencias/las-transiciones-del-teletransporte.md.
 #
-# El corte (19) y "ninguna" (20) no compilan: la consola los hace, y como
-# fundido serían otra cosa. Ninguno está en un mapa de la ROM hoy. Las de la
-# pelea tampoco: la ROM usa siempre las de la base.
+# Y **el corte** (19) para borrar: la pantalla a negro en un cuadro
+# —`TransitionCutOut`, que `Transition::GetDefaultFrames` hace durar 1— y el
+# mapa nuevo cargado ahí; la vuelta es la que diga el mostrar. Lo piden la
+# historia de Eisen (95 ev55) y, para "ninguna" (20), la 93 ev4: "ninguna"
+# compila **al corte**, y es una divergencia. En RM2k borrar con "ninguna" no
+# toca la pantalla, así que el fundido de vuelta funde del mapa viejo al nuevo;
+# la consola no tiene con qué mezclar dos cuadros, y la carga del mapa pide
+# blanking forzado: lo más cerca es el negro de un cuadro. Ver
+# workflow/divergencias/las-transiciones-del-teletransporte.md.
+#
+# El corte y "ninguna" para **mostrar** no compilan: ningún mapa de la ROM los
+# usa, y sin quien los ejecute serían un camino que ninguna prueba recorre.
+# Las de la pelea tampoco: la ROM usa siempre las de la base.
 CHANGE_SCREEN_TRANSITIONS = 10690
 TRANSICION_BORRAR, TRANSICION_MOSTRAR = 0, 1
 RM2K_TRANSICION_MOSAICO = 17
+RM2K_TRANSICIONES_CORTE = (19, 20)       # el corte y "ninguna"
 RM2K_TRANSICIONES_QUE_NO = {19: "el corte", 20: "ninguna"}
 # Lo que el bytecode lleva: lo que la ROM hace, y no el número de RM2k.
-TRANSICION_FUNDIDO, TRANSICION_MOSAICO = 0, 1
+TRANSICION_FUNDIDO, TRANSICION_MOSAICO, TRANSICION_CORTE = 0, 1, 2
 
 
 def paso_de_fundido(milisegundos):
@@ -4409,9 +4420,11 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         if cual not in (TRANSICION_BORRAR, TRANSICION_MOSTRAR):
             raise NoSePuede("ChangeScreenTransitions de la pelea: la ROM usa "
                             "siempre las de la base")
+        if cual == TRANSICION_BORRAR and rm2k in RM2K_TRANSICIONES_CORTE:
+            return bytes([OP_TRANSITION, cual, TRANSICION_CORTE])
         if rm2k in RM2K_TRANSICIONES_QUE_NO:
-            raise NoSePuede("ChangeScreenTransitions a %s, que la consola "
-                            "hace y como fundido sería otra cosa"
+            raise NoSePuede("ChangeScreenTransitions a %s para mostrar, que "
+                            "ningún mapa de la ROM usa"
                             % RM2K_TRANSICIONES_QUE_NO[rm2k])
         tipo = (TRANSICION_MOSAICO if rm2k == RM2K_TRANSICION_MOSAICO
                 else TRANSICION_FUNDIDO)
