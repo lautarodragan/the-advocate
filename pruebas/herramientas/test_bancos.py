@@ -1,10 +1,12 @@
 """El acomodo de bancos, que hace el conversor y ya no el ensamblador.
 
-Lo que estas pruebas cuidan no es que el relleno sea lindo sino que sea **el
-mismo** que decidía `.bloque`: un bloque que cruza de banco se sube por DMA
+Lo que estas pruebas cuidan no es que el relleno sea lindo sino que respete
+lo que declara el conversor: un bloque que cruza de banco se sube por DMA
 leyendo la WRAM de la mitad para adelante, y eso no falla al ensamblar, falla
-dibujando basura. La red grande es que la ROM salga byte por byte igual; ésta
-es la chica, y sirve para que un error se vea acá y no en un md5.
+dibujando basura. Desde el 2026-09-27 el acomodo es first-fit decreasing y la
+ROM ya no sale byte por byte igual a la del acomodo secuencial, así que la
+red grande son las goldens y la tanda; ésta es la chica, y sirve para que un
+error se vea acá y no en una captura.
 """
 
 import re
@@ -36,16 +38,48 @@ def test_rodata_pasa_a_ser_el_banco_donde_arrancan_los_datos(tmp_path):
     (salida,), cuenta = resolver(
         '.segment "RODATA"\n.bloque 16\n' + bytes_(1), tmp_path)
     assert B2 in salida and "RODATA" not in salida and ".bloque" not in salida
-    assert cuenta == (1, 0)
-
-
-def test_un_bloque_que_no_entra_empieza_el_banco_siguiente(tmp_path):
-    """El caso que da sentido a todo: 32 bytes libres y un bloque de más."""
-    (salida,), cuenta = resolver(
-        '.segment "RODATA"\n' + bytes_(16)
-        + ".bloque %d\netiqueta:\n" % (bancos.BANCO - 8), tmp_path)
-    assert salida.index(B3) < salida.index("etiqueta:")
     assert cuenta == (1, 1)
+
+
+def test_un_bloque_que_no_entra_va_a_otro_banco(tmp_path):
+    """El caso que da sentido a todo: un bloque no queda nunca partido. El
+    grande va primero, y los 16 bytes ya no entran en los 8 que deja."""
+    (salida,), cuenta = resolver(
+        '.segment "RODATA"\n.bloque 16\nchico:\n' + bytes_(16)
+        + ".bloque %d\netiqueta:\n" % (bancos.BANCO - 8)
+        + bytes_(8) * ((bancos.BANCO - 8) // 8), tmp_path)
+    b2, b3 = salida.split(B3)
+    assert "etiqueta:" in b2 and "chico:" in b3
+    assert cuenta == (2, 2)
+
+
+def test_first_fit_decreasing_llena_los_huecos(tmp_path):
+    """Lo que ganó el acomodo: en orden, dos bloques de más de medio banco y
+    dos de menos piden tres bancos, porque el segundo grande salta y el último
+    chico ya no entra detrás del primero. De mayor a menor, dos."""
+    mitad = bancos.BANCO // 2
+    texto = '.segment "RODATA"\n'
+    for nombre, n in (("a", mitad + 16), ("b", mitad + 16),
+                      ("c", mitad - 16), ("d", mitad - 16)):
+        texto += ".bloque %d\n%s:\n" % (n, nombre) + bytes_(16) * (n // 16)
+    (salida,), cuenta = resolver(texto, tmp_path)
+    assert cuenta == (4, 2)
+    b2, b3 = salida.split(B3)
+    assert "a:" in b2 and "c:" in b2 and "b:" in b3 and "d:" in b3
+
+
+def test_uno_de_mas_de_un_banco_arranca_banco_y_presta_lo_que_sobra(tmp_path):
+    """El bloque de textos: arranca en el `$8000` de un banco y sigue en el
+    siguiente, como lo decidía el acomodo secuencial —lo recorre código que
+    salta de banco a mano—, y lo que sobra en su último banco lo usa otro."""
+    texto = ('.segment "RODATA"\n.bloque 64\nchico:\n' + bytes_(16) * 4
+             + ".bloque %d\ntextos:\n" % (bancos.BANCO + 32)
+             + bytes_(16) * (bancos.BANCO // 16 + 2))
+    (salida,), cuenta = resolver(texto, tmp_path)
+    assert cuenta == (2, 2)
+    b2, b3 = salida.split(B3)
+    assert b2.split("\n")[1] == "textos:", "tiene que arrancar el banco"
+    assert "chico:" in b3 and b3.index("chico:") > b3.index("$00")
 
 
 def test_el_borde_justo_entra(tmp_path):
@@ -90,11 +124,29 @@ def test_lo_que_no_es_rodata_no_cuenta(tmp_path):
     assert '.segment "TABLAS"' in salida
 
 
-def test_el_segundo_archivo_sigue_donde_terminó_el_primero(tmp_path):
-    (_, segundo), _ = resolver(
-        '.segment "RODATA"\n' + bytes_(16), tmp_path,
-        segundo='.segment "RODATA"\n.bloque %d\n' % (bancos.BANCO - 8))
-    assert B3 in segundo
+def test_los_bancos_van_al_final_del_ultimo_archivo(tmp_path):
+    """Para mover las piezas hay que sacarlas de su lugar: `ca65` llena un
+    segmento en el orden del texto. Las constantes se quedan donde estaban."""
+    (primero, segundo), _ = resolver(
+        '.segment "RODATA"\nCONSTANTE = 7\n.bloque 16\nuna:\n' + bytes_(16),
+        tmp_path,
+        segundo='.segment "RODATA"\n.bloque %d\notra:\n    .res %d\n'
+        % ((bancos.BANCO - 8,) * 2))
+    assert "BANK" not in primero and "una:" not in primero
+    assert "CONSTANTE = 7" in primero
+    assert B2 in segundo and B3 in segundo and "una:" in segundo
+
+
+def test_lo_que_no_entra_en_el_cartucho_lo_dice(tmp_path):
+    """Sin esto se queja `ld65`, con un error interno que no dice que falta
+    lugar."""
+    entran = bancos.BANCOS - bancos.BANCOS_RESERVADOS - bancos.PRIMER_BANCO
+    texto = '.segment "RODATA"\n' + "".join(
+        ".bloque %d\nb%d:\n    .res %d\n" % (bancos.BANCO, k, bancos.BANCO)
+        for k in range(entran + 1))
+    with pytest.raises(ValueError, match="piden %d bancos y entran %d"
+                       % (entran + 1, entran)):
+        resolver(texto, tmp_path)
 
 
 @pytest.mark.parametrize("linea,bytes_", [
@@ -122,12 +174,11 @@ def test_alinear_no_se_toca_pero_se_cuenta(tmp_path):
     """
     (salida,), _ = resolver(
         '.segment "RODATA"\n'
-        "    .byte $00\n"
-        ".align 2\n"
-        + ".bloque %d\n" % (bancos.BANCO - 1), tmp_path)
+        ".bloque %d\ngrande:\n    .res %d\n" % ((bancos.BANCO - 1,) * 2)
+        + ".align 2\n.bloque 1\nalineada:\n    .byte $00\n", tmp_path)
     assert ".align 2" in salida
-    # Con la alineación contada van dos bytes, y lo que sigue ya no entra.
-    assert B3 in salida
+    # Queda un byte, y con la alineación contada la de un byte ya no entra.
+    assert salida.index(B3) < salida.index("alineada:")
 
 
 def test_un_bloque_fuera_de_rodata_no_pasa_callado(tmp_path):
@@ -177,6 +228,22 @@ def test_lo_que_cruza_a_proposito_se_declara(tmp_path):
         + ".cruza\nstream:\n" + bytes_(16) + bytes_(16), tmp_path)
     antes, despues = salida.split(B3)
     assert "stream:" in antes and ".cruza" not in salida
+    # Y la continuación va primera en el banco siguiente, que es donde la
+    # buscan `spc_block` y `advance`: en su `$8000`.
+    assert despues.split("\n")[1].startswith("    .byte")
+
+
+def test_lo_que_cruza_y_entra_entero_llena_un_hueco(tmp_path):
+    """Un stream chico no hace falta partirlo: si entra en lo que sobra de un
+    banco, va ahí entero, y la cadena de lo que cruza no crece."""
+    (salida,), cuenta = resolver(
+        '.segment "RODATA"\n.bloque %d\ngrande:\n    .res %d\n'
+        % ((bancos.BANCO - 64,) * 2)
+        + ".bloque %d\notro:\n    .res %d\n" % ((bancos.BANCO - 16,) * 2)
+        + ".cruza\nstream:\n" + bytes_(16) * 3, tmp_path)
+    assert cuenta == (3, 2)
+    b2, b3 = salida.split(B3)
+    assert "otro:" in b2 and "grande:" in b3 and "stream:" in b3
 
 
 def test_el_codigo_a_mano_entra_en_el_banco_1():

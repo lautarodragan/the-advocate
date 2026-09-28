@@ -266,6 +266,7 @@ listo:
 ; **A trae el desplazamiento del cuadro dentro de `mensajes`, en 16 bits**, y
 ; hay que sumárselo a un puntero largo cruzando bancos: ver el lazo de abajo y
 ; `msg_ptr_sig`, que es la misma cuenta para avanzar de a un byte.
+.assert MENSAJES_TOPE = 4 * $10000, error, "msg_empezar multiplica el desplazamiento por cuatro: es MENSAJES_PASO en eventos.py"
 .proc msg_empezar
 .a16
 .i16
@@ -280,16 +281,25 @@ listo:
     ; renglón salían de cualquier cosa. El lazo suma un banco por vuelta porque
     ; un bloque de 64 KB cruza hasta dos veces.
     ;
-    ; Y el desplazamiento cuenta de a dos bytes —`MENSAJES_PASO` en
-    ; eventos.py—, así que el bloque llega a 128 KB: el bit que se cae del
-    ; `asl` son 64 KB más, o sea dos bancos de LoROM.
+    ; Y el desplazamiento cuenta de a cuatro bytes —`MENSAJES_PASO` en
+    ; eventos.py—, así que el bloque llega a 256 KB: los dos bits que se caen
+    ; de los `asl` van a `temp`, y cada uno de lo que junta son 64 KB, o sea
+    ; dos bancos de LoROM. Con `rol` y no con un salto por bit a propósito:
+    ; así el bit de arriba —más de 128 KB, que ningún cartucho de la tanda
+    ; alcanza— corre las mismas instrucciones que el de abajo, que sí.
     phx
-    ldx #^mensajes
+    stz temp
     asl a
-    bcc mitad_baja
-    inx
-    inx
-mitad_baja:
+    rol temp
+    asl a
+    rol temp
+    pha
+    lda temp
+    asl a                       ; dos bancos por cada 64 KB
+    clc
+    adc #^mensajes
+    tax
+    pla
     clc
     adc #.loword(mensajes)
 otro_banco:

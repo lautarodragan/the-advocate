@@ -90,31 +90,73 @@ def _partir(linea, entran):
     return primera, segunda, (len(operandos) - cuantos) * ancho
 
 
+class _Unidad:
+    """Lo que el acomodo mueve de una pieza: un `.bloque`, un `.cruza` o lo
+    que empieza sin ninguno de los dos, con todas sus líneas hasta el
+    siguiente. `medida` es lo que ocupa a efectos de entrar —lo que declara
+    el `.bloque` si es más que lo emitido—, y `orden` el lugar en el texto,
+    que desempata para que el acomodo salga siempre igual."""
+
+    def __init__(self, orden, cruza=False, pide=0):
+        self.orden, self.cruza, self.pide = orden, cruza, pide
+        self.lineas, self.tamano, self.alinear = [], 0, 1
+
+    @property
+    def medida(self):
+        return max(self.pide, self.tamano)
+
+
 def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
     """Reparte en bancos lo que esos archivos mandan a `segmento`.
 
-    Cada `.segment "RODATA"` pasa a ser el segmento del banco que corre, y cada
-    `.bloque N` que no entra en lo que queda se convierte en el cambio al banco
-    siguiente. Una línea de datos que no entra entera —la grilla de celdas mide
-    más que un banco, y se recorre con un puntero, no por DMA— se parte entre
-    los dos, así que sus bytes quedan contiguos en el archivo.
+    **Es first-fit decreasing**, desde el 2026-09-27: cada pieza va al primer
+    banco donde entra, de la más grande a la más chica. Hasta ese día era
+    secuencial —cada pieza detrás de la anterior, y la que no entraba saltaba
+    al banco siguiente dejando el hueco sin usar—, y los huecos llegaban a
+    diez bancos en `release`. Las piezas no las elige este módulo: las
+    declara el conversor, y hay tres clases.
 
-    `rutas` va **en el orden en que el ensamblador las va a leer**, que es el
-    de los `.include`: el reparto depende de todo lo que haya antes. Lo que un
-    archivo mande a otro segmento —las tablas del banco 0— no cuenta.
+    * **Un `.bloque N` de hasta un banco** entra entero en uno: casi todos se
+      suben por DMA, y un DMA que cruza de banco lee la WRAM. Es la pieza que
+      se acomoda, y lleva todo lo que sigue hasta la próxima directiva —las
+      tablas que el `.bloque` mide juntas, y las etiquetas de un byte detrás—.
+    * **Uno de más de un banco** —el bloque de textos— arranca un banco y
+      sigue en los siguientes, partido entre operandos, como lo decidía el
+      acomodo secuencial: lo recorre código que salta de banco a mano. Lo
+      que sobra en su último banco lo usan las demás.
+    * **Un `.cruza`** —el driver del SPC700, sus muestras, los streams de
+      la música— se puede partir en cualquier lado **entre dos bancos
+      seguidos**: `spc_block` y `advance` saltan del `$FFFF` al `$8000` del
+      banco siguiente, no a cualquiera. Primero se prueba meterlo entero en
+      un hueco; los que no entran van al final, uno detrás del otro, como
+      una cadena que empieza en lo que quede del último banco y sigue en
+      bancos nuevos. Es lo único que llena un banco sin dejar hueco.
+
+    **Para mover las piezas hay que sacarlas de su lugar**, porque en `ca65`
+    un segmento se llena en el orden del texto: lo que queda de `segmento` en
+    cada archivo se borra, y todos los bancos se escriben al final del último
+    de `rutas`, en orden. Se puede porque `musicdata.inc` y `mapdata.inc` van
+    antes que todo el código en `main.s`, y nada de lo que se mueve depende
+    del lugar: no hay restas entre etiquetas de piezas distintas, ni `*`, ni
+    constantes que las usen. Las constantes (`X = …`) se quedan donde
+    estaban. Si algún día la ROM leyera una pieza suponiendo que es vecina de
+    otra, eso tendría que ir en un solo `.bloque`: separadas, el acomodo las
+    reparte por donde entren.
+
+    `rutas` va en el orden en que el ensamblador las lee, que es el de los
+    `.include`. Lo que un archivo mande a otro segmento —las tablas del banco
+    0— no cuenta.
 
     **Toda etiqueta de más de un byte tiene que estar cubierta por un
     `.bloque`**, o llevar `.cruza` delante si la recorre código que salta de
     banco a mano. Lo que se lee con `lda f:tabla, x` o con `[ptr], y` no salta:
     partida, la segunda mitad se lee del `$0000` del banco siguiente, que en
-    LoROM no es ROM. Y partirla no falla en ningún lado si el corte cae entre
-    dos operandos, así que la regla se cobra acá, en cada armado, y no el día
-    que el corte cae encima de una: ver `sin_declarar`.
+    LoROM no es ROM. La regla se cobra acá, en cada armado, y no el día que el
+    corte cae encima de una: ver `sin_declarar`.
 
-    Devuelve cuántos `.bloque` se resolvieron y cuántos empezaron banco.
+    Devuelve cuántas piezas acomodó y en cuántos bancos.
     """
-    banco, usado = primer_banco, 0
-    resueltos, empezaron = 0, 0
+    unidades, quedan = [], []
     # Las etiquetas que el acomodo podría partir: [nombre, cuánto mide, cuánto
     # de eso cubre un `.bloque`, si lleva `.cruza`]. La última es la que está
     # juntando sus bytes.
@@ -122,41 +164,52 @@ def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
     for ruta in rutas:
         with open(ruta) as handle:
             lineas = handle.read().splitlines()
-        salida, actual = [], None
-
-        def cambiar(porque=""):
-            nonlocal banco, usado
-            banco, usado = banco + 1, 0
-            salida.append('.segment "%s"%s' % (segmento_de(banco), porque))
-
-        abierta = None      # la etiqueta que junta los bytes que siguen
+        suyas, actual, unidad, abierta = [], None, None, None
         for linea in lineas:
             directiva = linea.split(";")[0].strip()
             if directiva.startswith(".segment"):
                 actual = directiva.split(None, 1)[1].strip().strip('"')
-                salida.append('.segment "%s"' % segmento_de(banco)
-                              if actual == segmento else linea)
-                abierta = None
+                unidad, abierta = None, None
+                if actual != segmento:
+                    suyas.append(linea)
                 continue
-            if actual != segmento:
-                salida.append(linea)
+            if actual != segmento or _CONSTANTE.match(directiva):
+                suyas.append(linea)
                 continue
-            # Un banco lleno se deja antes de escribir nada más, etiquetas
-            # incluidas: una etiqueta al final de un banco apuntaría a la
-            # dirección que sigue a `$FFFF`, que no es la ROM.
-            if usado == BANCO and directiva:
-                cambiar()
+            # Un `.align` pegado a un `.bloque` o a un `.cruza` es de la misma
+            # pieza: la alineación es de lo que sigue.
+            recien = unidad is not None and unidad.alinear > 1 \
+                and len(unidad.lineas) == 1
             if directiva.startswith(".bloque "):
-                pide = int(directiva.split()[1])
-                resueltos += 1
-                cubre = pide
-                if pide > BANCO - usado:
-                    empezaron += 1
-                    cambiar("  ; lo que sigue mide %d y no entraba" % pide)
+                cubre = int(directiva.split()[1])
+                if not recien:
+                    unidad = _Unidad(len(unidades))
+                    unidades.append(unidad)
+                unidad.pide = cubre
                 continue
             if directiva == ".cruza":
                 cruza = True
+                if not recien:
+                    unidad = _Unidad(len(unidades))
+                    unidades.append(unidad)
+                unidad.cruza = True
                 continue
+            if directiva.startswith(".align "):
+                # Ésta se queda: alinear no es acomodar bancos, y `ca65` la
+                # sabe hacer. Acá sólo hay que contarla, y como el segmento
+                # es el banco, el relleno depende de lo que haya antes en él.
+                if unidad is None or unidad.lineas:
+                    unidad = _Unidad(len(unidades))
+                    unidades.append(unidad)
+                unidad.alinear = int(directiva.split()[1])
+                unidad.lineas.append(linea)
+                continue
+            if unidad is None:
+                if not directiva:
+                    suyas.append(linea)
+                    continue
+                unidad = _Unidad(len(unidades))
+                unidades.append(unidad)
             if _ETIQUETA.match(directiva):
                 abierta = [directiva.split(":")[0], 0, cubre, cruza]
                 etiquetas.append(abierta)
@@ -165,24 +218,9 @@ def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
             cubre = max(0, cubre - tamano)
             if abierta:
                 abierta[1] += tamano
-            if directiva.startswith(".align "):
-                # Ésta se queda: alinear no es acomodar bancos, y `ca65` la
-                # sabe hacer. Acá sólo hay que contarla.
-                unidad = int(directiva.split()[1])
-                usado += (unidad - usado % unidad) % unidad
-                salida.append(linea)
-                continue
-            if usado + tamano <= BANCO:
-                usado += tamano
-                salida.append(linea)
-                continue
-            primera, segunda, queda = _partir(linea, BANCO - usado)
-            if primera:
-                salida.append(primera)
-            cambiar()
-            salida.append(segunda)
-            usado = queda
-        colados = [l for l in salida if l.split(";")[0].strip()
+            unidad.lineas.append(linea)
+            unidad.tamano += tamano
+        colados = [l for l in suyas if l.split(";")[0].strip()
                    .startswith((".bloque", ".cruza"))]
         if colados:
             # Un `.bloque` que llegue al ensamblador es un error de `ca65`
@@ -191,8 +229,7 @@ def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
                 "%s dejó %d `.bloque` sin resolver, el primero %r: está fuera "
                 "de %s, y ahí el acomodo no se puede calcular"
                 % (ruta, len(colados), colados[0].strip(), segmento))
-        with open(ruta, "w") as handle:
-            handle.write("\n".join(salida) + "\n")
+        quedan.append(suyas)
     sueltas = sin_declarar(etiquetas)
     if sueltas:
         raise ValueError(
@@ -200,7 +237,98 @@ def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
             "las puede partir entre dos bancos: %s. Si la ROM la recorre "
             "saltando de banco a mano, va `.cruza` delante"
             % (len(sueltas), segmento, ", ".join(sueltas)))
-    return resueltos, empezaron
+
+    bancos = _acomodar(unidades)
+    entran = BANCOS - BANCOS_RESERVADOS - primer_banco
+    if len(bancos) > entran:
+        # Sin esto el que se queja es `ld65`, con un "Internal error: Invalid
+        # file offset for memory area HEAD", que no dice que falta lugar.
+        raise ValueError("los datos piden %d bancos y entran %d: del $%02X al "
+                         "$%02X" % (len(bancos), entran, primer_banco,
+                                    primer_banco + entran - 1))
+    for k, (_usado, lineas) in enumerate(bancos):
+        quedan[-1].append('.segment "%s"' % segmento_de(primer_banco + k))
+        quedan[-1].extend(lineas)
+    for ruta, suyas in zip(rutas, quedan):
+        with open(ruta, "w") as handle:
+            handle.write("\n".join(suyas) + "\n")
+    return len(unidades), len(bancos)
+
+
+def _relleno(usado, alinear):
+    return (alinear - usado % alinear) % alinear
+
+
+def _acomodar(unidades):
+    """Los bancos, como [usado, líneas], con las piezas adentro. Ver
+    `resolver`, que dice qué es cada clase."""
+    bancos = []
+    grandes = [u for u in unidades if not u.cruza and u.medida > BANCO]
+    enteras = [u for u in unidades if not u.cruza and u.medida <= BANCO]
+    cruzan = [u for u in unidades if u.cruza]
+
+    def cabe(banco, u):
+        # Una etiqueta sola también ocupa: en el final de un banco apuntaría a
+        # la dirección que sigue a `$FFFF`, que no es la ROM.
+        return (banco[0] + _relleno(banco[0], u.alinear) + max(1, u.medida)
+                <= BANCO)
+
+    def poner(u):
+        for banco in bancos:
+            if cabe(banco, u):
+                banco[0] += _relleno(banco[0], u.alinear) + u.tamano
+                banco[1].extend(u.lineas)
+                return True
+        return False
+
+    # Las grandes primero, cada una desde un banco nuevo: lo que les sobra en
+    # el último lo aprovechan las demás.
+    for u in grandes:
+        bancos.append([0, []])
+        _volcar(bancos, u.lineas)
+    por_tamano = lambda u: (-u.medida, u.orden)
+    for u in sorted(enteras, key=por_tamano):
+        if not poner(u):
+            bancos.append([0, []])
+            poner(u)
+    cadena = [u for u in sorted(cruzan, key=por_tamano)
+              if u.medida > BANCO or not poner(u)]
+    if cadena and not bancos:
+        bancos.append([0, []])
+    for u in sorted(cadena, key=lambda u: u.orden):
+        _volcar(bancos, u.lineas)
+    return bancos
+
+
+def _volcar(bancos, lineas):
+    """Escribe `lineas` a partir del final del último banco, partiendo entre
+    operandos y siguiendo en bancos nuevos: es el acomodo secuencial de antes,
+    para lo que puede o tiene que cruzar."""
+    for linea in lineas:
+        banco = bancos[-1]
+        directiva = linea.split(";")[0].strip()
+        # Un banco lleno se deja antes de escribir nada más, etiquetas
+        # incluidas: una etiqueta al final de un banco apuntaría a la
+        # dirección que sigue a `$FFFF`, que no es la ROM.
+        if banco[0] == BANCO and directiva:
+            bancos.append([0, []])
+            banco = bancos[-1]
+        if directiva.startswith(".align "):
+            banco[0] += _relleno(banco[0], int(directiva.split()[1]))
+            banco[1].append(linea)
+            continue
+        tamano = _tamano(linea)
+        while banco[0] + tamano > BANCO:
+            primera, linea, tamano = _partir(linea, BANCO - banco[0])
+            if primera:
+                banco[1].append(primera)
+            bancos.append([0, []])
+            banco = bancos[-1]
+        banco[0] += tamano
+        banco[1].append(linea)
+
+
+_CONSTANTE = re.compile(r"^[A-Za-z_]\w*\s*=")
 
 
 _ETIQUETA = re.compile(r"^[A-Za-z_]\w*:")
