@@ -2,7 +2,7 @@
 name: "Los eventos de tropa de release"
 description: "Las páginas de tropa que las peleas de release piden: el Rat King que llama a sus ratas, el despegue en la pelea de los agentes, y las condiciones de turno y de HP"
 type: feature
-assignee: Ceibo
+assignee: taro
 ---
 
 # Qué
@@ -23,8 +23,10 @@ Los 32 sistemas de personaje siguen en la grande.
 
 # Status
 
-2026-09-28, en `doing/`. Sale de `main` en e878f34 (y 40f4011, el cambio de
-`wip/` a `doing/`).
+2026-09-28, en `testing/`: hecho por Ceibo en su rama, sobre `main` en
+40f4011, en dos commits —d2d820a (la automática que compila a nada) y
+208c828 (lo demás)—; `just cartuchos` y `just pruebas` en verde. Lo que queda
+es de taro: jugarlo (ver abajo) y decidir el trueno.
 
 # El inventario
 
