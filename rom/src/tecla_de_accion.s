@@ -239,10 +239,33 @@ no:
     rts
 .endproc
 
-; La tecla de acción, desde el lazo principal.
+; La tecla de acción, desde el lazo principal. Devuelve A distinto de cero si
+; encoló algo.
 .proc probar_accion
 .a8
 .i16
+    ; Con una ruta forzada del héroe viva no se habla: es el
+    ; `IsMoveRouteOverwritten()` de `game_player.cpp:297`, que vuelve antes de
+    ; mirar el botón. El `IsStopping()` que mira quien llama —`step_left`— no
+    ; alcanza, porque entre dos pasos de una ruta, en un `wait` y en el aire
+    ; `step_left` está en cero. Son las tres cosas del héroe de `hay_rutas`
+    ; sin la del paso, que ya se miró allá. Va acá y no al lado de ése porque
+    ; allá los `beq nada` de arriba ya no alcanzaban.
+    ;
+    ; Faltaba, y se veía cuando la página termina antes que su ruta: la del
+    ; `EV0043` del mapa 8 es un `MoveEvent` solo, así que el héroe bajaba el
+    ; caño ya sin página, y un A entre dos pasos, en (52,20) mirando abajo, le
+    ; hablaba al `EV0052` de enfrente —capa del héroe, puesto para que se lo
+    ; encare desde la izquierda— y lo volvía a subir. Con el autofire de un
+    ; emulador, que aprieta cada dos cuadros, caía siempre. Lo cobra
+    ; `test_accion_con_ruta.py`.
+    lda ruta_salto
+    bne con_ruta                ; en el aire
+    lda ruta_espera
+    bne con_ruta                ; en un `wait` de la ruta
+    lda ruta_i
+    cmp ruta_n
+    bcc con_ruta                ; le quedan órdenes
     ; Las dos celdas, en el orden de `Game_Player::CheckActionEvent`: primero la
     ; propia —`CheckEventTriggerHere`, que pide una capa distinta de la del
     ; héroe— y después la de adelante —`CheckEventTriggerThere`, que pide la
@@ -309,5 +332,8 @@ no_izquierda:
 .a8
 mirar:
     jmp accion_en_celda
+con_ruta:
+    lda #0
+    rts
 .endproc
 
