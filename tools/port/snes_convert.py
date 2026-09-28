@@ -6168,9 +6168,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "EQ_RANURA_ANCHO   = %d\n"
             "EQ_LISTA_POS0     = %d\n"
             "EQ_LISTA_FILAS    = %d\n"
-            "EQ_CURSOR         = %d\n"
             "EQ_LISTA_NOMBRE   = %d\n"
-            "PANT_NOMBRE       = %d\n"
             "PANT_DOS_PUNTOS   = %d\n"
             "PANT_DESC_POS     = %d\n"
             % (actores_n, P.RANURAS_EQUIPO, texto_param[0], texto_ranura[0],
@@ -6181,9 +6179,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                P.EQ_PARAM_FLECHA * 2, pos(P.EQ_RANURA_FILA0, 0),
                P.EQ_RANURA_TERM_COL * 2, P.EQ_RANURA_NOMBRE_COL * 2,
                P.EQ_RANURA_NOMBRE_ANCHO, pos(P.EQ_LISTA_FILA0, 0),
-               P.EQ_LISTA_FILAS, P.EQ_CURSOR_COL * 2,
+               P.EQ_LISTA_FILAS,
                P.EQ_LISTA_NOMBRE_COL * 2,
-               T.ITEM_NOMBRE_COL * 2, T.ITEM_DOS_PUNTOS_COL * 2,
+               T.ITEM_DOS_PUNTOS_COL * 2,
                pos(T.ITEM_DESC_Y // T.CELL, T.ITEM_DESC_COL)))
         # --- la batalla ---
         # Los HP máximos de cada actor a su nivel, por número de actor. Van

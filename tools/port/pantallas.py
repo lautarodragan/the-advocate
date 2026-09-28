@@ -109,8 +109,6 @@ EQ_LISTA_FILAS = 5              # 17 + 5 * 2 = 27: el marco de abajo
 # La lista, con los nombres en esa columna y no en la de ítems —que es la de
 # la tienda—; los dos puntos y la cuenta, en las de ítems.
 EQ_LISTA_NOMBRE_COL = EQ_TEXTO_COL
-# El ">" de la tienda, que todavía no tiene ventanas: el equipo ya no lo usa.
-EQ_CURSOR_COL = 1
 # Las barras, cuatro pixeles más anchas que el texto de cada lado, como en
 # ítems: la de las ranuras sobre el término y lo puesto, que es lo que marca
 # RM2k, y la de la lista sobre el nombre y la cuenta. Con el texto en la misma
