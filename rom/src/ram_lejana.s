@@ -741,17 +741,24 @@ PELEA_PRENDIDA = $7E7840        ; 1 si la pelea llegó a prender su pantalla
 ;
 ; $7E7920 a $7E793F, reservado el 2026-09-27: la transición con que el
 ; teletransporte borra la pantalla y con la que la vuelve a mostrar, que
-; `ChangeScreenTransitions` cambia —`op_transition`— y `fundido_mosaico` lee:
-; TRANSICION_MOSAICO, o cualquier otra cosa para el fundido.
+; `ChangeScreenTransitions` cambia —`op_transition`— y leen `fundido_mosaico`
+; y `fundido_desde`: TRANSICION_MOSAICO, TRANSICION_CORTE (sólo para borrar),
+; o cualquier otra cosa para el fundido.
 ;
 ; Los pone en el fundido `transicion_de_arranque`, en el reset: bsnes arranca la
 ; WRAM con basura, y sin eso el primer teletransporte podía salir en mosaico.
-; **No viaja en la partida**, y en RM2k sí. Es a propósito: el único lugar del
-; juego que la cambia es la guarida de Boss Wick, y lo que va de la que la pone
-; en mosaico (la página 1 del 42) a la que la devuelve al fundido (la 4 del 40)
-; son páginas automáticas encadenadas, sin un momento en que el jugador pueda
-; abrir el menú y guardar. Guardarla sería cambiar el formato de la partida
-; para un valor que en toda partida guardada vale lo mismo.
+; **No viaja en la partida**, y en RM2k sí. Es a propósito: los dos lugares del
+; juego que la cambian son cadenas de páginas automáticas que la devuelven al
+; fundido al terminar —la guarida de Boss Wick, del mosaico de la página 1 del
+; 42 al fundido de la 4 del 40, y la historia de Eisen, de "ninguna" en el 93
+; al fundido de la 5 del 6 del 81—, y guardarla sería cambiar el formato de la
+; partida para un valor que en casi toda partida guardada vale lo mismo.
+;
+; El "casi" es el minijuego del 95, que está adentro de la historia de Eisen y
+; tiene un save point: una partida guardada ahí vuelve con el fundido en vez
+; del corte, y lo único que lo nota es el salto con que el 95 devuelve a Eisen
+; al principio cuando se le acaba la fortaleza. El que sale del minijuego pide
+; el corte él mismo antes de saltar.
 TRANSICION_BORRAR  = $7E7920
 TRANSICION_MOSTRAR = $7E7921
 

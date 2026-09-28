@@ -357,8 +357,10 @@ puesto:
     ; contaba cuadros, quedaba corrido. Desde el 2026-09-08 el arnés cuenta
     ; ticks —ver `vueltas`— así que el reloj vuelve a ser el mismo de los dos
     ; lados y el que absorbe el atraso es el reloj de pared.
-    lda vueltas
-    sta fundido_base
+    ;
+    ; El arranque lo pone `fundido_desde`, en el banco 1, porque con el corte
+    ; no es `vueltas`: ver `transicion_del_teletransporte.s`.
+    jsl f:fundido_desde
     rts
 .endproc
 

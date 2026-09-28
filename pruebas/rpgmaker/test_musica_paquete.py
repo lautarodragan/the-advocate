@@ -475,21 +475,30 @@ def test_el_tema_aparte_sube_con_los_efectos_del_paquete(partida):
         "anotado como incompleto")
 
 
-def test_los_efectos_comparten_lugares_y_a_las_copias_les_sobran_entradas():
-    """El directorio del SPC700 no le corta las copias a la música.
+def test_los_efectos_comparten_lugares_del_directorio():
+    """Los efectos no le quitan entradas del directorio del SPC700 a la
+    música.
 
     El SRCN es de un byte, así que el directorio llega a 255 entradas. Hasta
-    el 2026-09-26 cada efecto del cartucho tenía la suya —92 en `release`—, y
-    `snes_music.copias` paraba por llenarlo: las muestras que un paquete
-    limitaba seguían limitando a los temas de afuera. Desde ese día los
-    efectos comparten los `SE_LUGARES` del final —dos efectos que nunca van
-    en el mismo paquete pueden ir al mismo lugar, ver
-    `snes_music.lugares_de_efectos`—, y las copias terminan porque ninguna
-    suma, no por falta de entradas.
+    el 2026-09-26 cada efecto del cartucho tenía la suya —92 en `release`,
+    `SE_DE_SIEMPRE`—, y `snes_music.copias` paraba por llenarlo: las muestras
+    que un paquete limitaba seguían limitando a los temas de afuera. Desde ese
+    día los efectos comparten los `SE_LUGARES` del final —dos efectos que
+    nunca van en el mismo paquete pueden ir al mismo lugar, ver
+    `snes_music.lugares_de_efectos`—, y lo que liberan es para las copias.
 
-    Se lee todo del cartucho: que el directorio no esté lleno, que ningún
-    paquete tenga dos efectos en el mismo lugar —se pisarían en la ARAM— y
-    que los lugares no sean más que los efectos del paquete más cargado.
+    Hasta el 2026-09-27 esta prueba pedía además que el directorio no se
+    llenara, o sea que las copias terminaran porque ninguna sumaba. Con el
+    camino principal del mundo en `release` (el hito 4 de
+    `workflow/tasks/*/el-mundo-y-lo-que-sigue.md`) se llena: hay más temas, y
+    la segunda tanda de copias —las que no le bajan la tasa a nadie— para por
+    falta de entradas, que su docstring acepta. Es un límite de lo que se
+    puede mejorar la música, no una muestra que falte.
+
+    Se lee todo del cartucho: que los efectos ocupen menos entradas que las
+    de siempre, que ningún paquete tenga dos efectos en el mismo lugar —se
+    pisarían en la ARAM— y que los lugares no sean más que los efectos del
+    paquete más cargado.
     """
     from audio import snes_music
     import tanda
@@ -498,9 +507,10 @@ def test_los_efectos_comparten_lugares_y_a_las_copias_les_sobran_entradas():
     s = release.simbolos
     with open(release.sfc, "rb") as archivo:
         rom = archivo.read()
-    assert s["MUESTRAS_N"] < snes_music.DIRECTORIO_MAX, (
-        "el directorio tiene %d entradas, el tope: `copias` paró por falta "
-        "de lugar y no porque ninguna sumara" % s["MUESTRAS_N"])
+    assert s["MUESTRAS_N"] <= snes_music.DIRECTORIO_MAX, s["MUESTRAS_N"]
+    assert s["SE_LUGARES"] < snes_music.SE_DE_SIEMPRE, (
+        "los efectos ocupan %d entradas del directorio, tantas como cuando "
+        "cada uno tenía la suya: no comparten" % s["SE_LUGARES"])
     assert s["MUESTRAS_N"] == s["SE_PRIMERA"] + s["SE_LUGARES"]
     lugar = rom[en_la_rom(s["efecto_lugar"]):
                 en_la_rom(s["efecto_lugar"]) + s["EFECTOS_N"]]

@@ -559,3 +559,49 @@ def test_transicion(nombre, cuadros):
         p = partida(nombre)
         p.correr(cuadro)
         golden("%s-%d" % (nombre, cuadro), p.imagen())
+
+
+def _el_borrar(nombre, desde=25, hasta=60):
+    """Del salto de un caso de transición: cuántos ticks tarda el brillo en
+    llegar a cero desde que arranca el fundido, y en cuántos ya está cargado
+    el mapa nuevo."""
+    p = partida(nombre)
+    p.correr(desde)
+    arranco = llego = cargo = None
+    for tick in range(desde, hasta):
+        if arranco is None and p.byte("fundido"):
+            arranco = tick
+        if arranco is not None:
+            if llego is None and p.byte("brillo") == 0:
+                llego = tick - arranco
+            if cargo is None and not p.byte("fundido_que"):
+                cargo = tick - arranco
+        if cargo is not None and llego is not None:
+            break
+        p.correr(1)
+    assert arranco is not None, "%s: el salto no arrancó ningún fundido" \
+        % nombre
+    return llego, cargo
+
+
+@pytest.mark.parametrize("nombre", ("transicion-corte", "transicion-ninguna"))
+def test_borrar_con_el_corte(nombre):
+    """`transicion-corte` y `transicion-ninguna`: `ChangeScreenTransitions`
+    al corte (19) y a "ninguna" (20) para borrar, que la ROM hace igual —ver
+    `RM2K_TRANSICIONES_CORTE` en tools/port/eventos.py—: el primer tick del
+    fundido ya es negro y ya cargó el mapa. Lo piden el 93 y el 95. "El
+    primero" es el tick siguiente al que ve prendido `fundido`: el salto lo
+    pide al final de una vuelta y `fundido_tick` corre en la que sigue.
+
+    No hay golden: lo que se ve es negro, y el mostrar es el fundido de
+    siempre. Lo filoso es el contraste con el fundido del mismo salto, que
+    tarda la rampa entera en llegar a negro."""
+    llego, cargo = _el_borrar(nombre)
+    assert llego == 1 and cargo == 1, (
+        "%s: con el corte el brillo tiene que estar en cero y el mapa cargado "
+        "en el primer tick del fundido; llegó a cero en el %s y cargó en el %s"
+        % (nombre, llego, cargo))
+    fundido, _ = _el_borrar("transicion-zoom")
+    assert fundido is not None and fundido > 10, (
+        "el fundido del mismo salto tendría que tardar la rampa en llegar a "
+        "negro, y tardó %s: esta prueba no mira nada" % fundido)

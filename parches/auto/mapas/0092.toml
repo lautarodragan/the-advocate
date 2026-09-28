@@ -1,0 +1,23 @@
+# Las decisiones artísticas del mapa 92: qué se pierde al pasarlo a la
+# SNES. Lo escribe el conversor y lo regenera `just parches`, que es lo
+# que hay que correr cuando un cambio lo mueve; `just parches --check`
+# —y la tanda— fallan si quedó viejo. Ver tools/port/parches.py.
+
+mapa = 92
+nombre = "Surl Launching Missiles"
+
+[capas.fondo]
+# Cuántos colores distintos traía el dibujo y cuántas entradas
+# de CGRAM le dejó la capa de encima.
+colores = 33
+presupuesto = 103
+# Cada fusión manda el color `de` al color `a`, en RGB de 15 bits,
+# y `pixeles` es cuántos movía cuando se decidió. Van **en orden**:
+# aplicarlas de arriba a abajo reconstruye el mapeo entero.
+fusiones = []
+
+[capas.encima]
+# Cada fusión manda el color `de` al color `a`, en RGB de 15 bits,
+# y `pixeles` es cuántos movía cuando se decidió. Van **en orden**:
+# aplicarlas de arriba a abajo reconstruye el mapeo entero.
+fusiones = []

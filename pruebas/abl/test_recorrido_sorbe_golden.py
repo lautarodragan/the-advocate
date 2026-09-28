@@ -23,9 +23,8 @@ rengo:
     66  la automática 14, `DaliaGoingToTasgarde`, con `DummyHero` en el
         grupo: apaga los encuentros (`ChangeEncounterSteps` 0), cambia el
         grupo por el auto y le fuerza la ruta hasta Tasgarde; al terminar el
-        grupo es Dalia. Pisar la entrada de Tasgarde, el evento 13, es el fin
-        de la demo (el 66 está forkeado: `parches/manual/mapas/Map0066.json`,
-        porque el original salta al 74)
+        grupo es Dalia, y la ruta termina sobre la entrada de Tasgarde, el
+        evento 13 -> 74 (19, 48), donde sigue `test_recorrido_capitulo_golden.py`
 
 **Los encuentros al azar del mundo y de la montaña se apagan** al llegar a
 cada uno, escribiendo `ENC_BASE`: lo que se cobra acá es el camino, y la pelea
@@ -55,6 +54,7 @@ TALAN, ARDEN, DUMMY, DALIA, EL_AUTO = 14, 15, 10, 21, 22
 
 EL_MUNDO, SORBE, LA_MONTANA, LA_CASA_DE_VAGO = 66, 69, 76, 81
 LA_OFICINA, LA_FABRICA, AFUERA_DE_LA_FABRICA = 82, 83, 84
+TASGARDE = 74
 
 LLEGA_AL_MUNDO = (71, 29)
 ENTRADA_A_SORBE = (75, 10)
@@ -223,23 +223,23 @@ def test_sorbe_la_curacion_y_el_viaje_de_dalia(recorrido):
     # que es de contacto: RPG_RT cancela la ruta al dar el último paso y ahí
     # mira qué hay bajo el héroe —`Game_Character::UpdateMovement` y
     # `Game_Player::UpdateMovement` de easyrpg—, y el evento queda esperando a
-    # que termine la página del viaje. O sea que el fin de la demo sale solo,
+    # que termine la página del viaje. O sea que Dalia entra a Tasgarde sola,
     # sin que el jugador camine.
-    r.empezar("el viaje de Dalia y el fin de la demo")
+    r.empezar("el viaje de Dalia hasta Tasgarde")
     vio = []
-    jugar(r, "el viaje de Dalia hasta el título",
-          lambda p: vio and not p.switch(DALIA_LLEGO),
-          fotos={"el-fin-de-la-demo":
-                     lambda p: p.switch(DALIA_LLEGO) and not vio.append(
-                         (grupo_de(p), p.heroe()))},
+    jugar(r, "el viaje de Dalia hasta Tasgarde",
+          lambda p: p.mapa() == TASGARDE and not p.byte("fundido"),
           momentos={"el-auto-de-dalia":
                         lambda p: grupo_de(p) == [EL_AUTO]
-                        and p.heroe()[1] <= 10})
-    assert vio, "el viaje de Dalia terminó sin ningún mensaje. %s" \
-        % r.estado()
-    (grupo, celda), = vio[:1]
-    assert grupo == [DALIA] and celda == ENTRADA_A_TASGARDE, (
-        "el cartel del fin sale con Dalia sola en la entrada de Tasgarde %s, "
-        "y salió con el grupo %s en %s" % (ENTRADA_A_TASGARDE, grupo, celda))
-    p.consola.correr(p.simbolos["BOOT_CUADROS"] + 60)
-    r.foto("el-titulo-despues-del-fin", asentar=False)
+                        and p.heroe()[1] <= 10,
+                    # No saca ninguna foto: anota con qué grupo se está
+                    # parado en la entrada, cuadro por cuadro.
+                    "en-la-entrada":
+                        lambda p: p.heroe() == ENTRADA_A_TASGARDE
+                        and p.mapa() == EL_MUNDO and vio.append(
+                            grupo_de(p))})
+    assert p.switch(DALIA_LLEGO) and vio and vio[-1] == [DALIA], (
+        "el viaje de Dalia termina con Dalia sola en la entrada de Tasgarde "
+        "%s, y se fue con %s. %s" % (ENTRADA_A_TASGARDE, vio[-1:], r.estado()))
+    r.esperar_el_control()
+    r.foto("tasgarde")

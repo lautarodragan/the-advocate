@@ -1098,15 +1098,26 @@ BRILLO_MAX = 15
 # en modo 3): lo decidió taro el 2026-09-26. Ver
 # workflow/divergencias/las-transiciones-del-teletransporte.md.
 #
-# El corte (19) y "ninguna" (20) no compilan: la consola los hace, y como
-# fundido serían otra cosa. Ninguno está en un mapa de la ROM hoy. Las de la
-# pelea tampoco: la ROM usa siempre las de la base.
+# Y **el corte** (19) para borrar: la pantalla a negro en un cuadro
+# —`TransitionCutOut`, que `Transition::GetDefaultFrames` hace durar 1— y el
+# mapa nuevo cargado ahí; la vuelta es la que diga el mostrar. Lo piden la
+# historia de Eisen (95 ev55) y, para "ninguna" (20), la 93 ev4: "ninguna"
+# compila **al corte**, y es una divergencia. En RM2k borrar con "ninguna" no
+# toca la pantalla, así que el fundido de vuelta funde del mapa viejo al nuevo;
+# la consola no tiene con qué mezclar dos cuadros, y la carga del mapa pide
+# blanking forzado: lo más cerca es el negro de un cuadro. Ver
+# workflow/divergencias/las-transiciones-del-teletransporte.md.
+#
+# El corte y "ninguna" para **mostrar** no compilan: ningún mapa de la ROM los
+# usa, y sin quien los ejecute serían un camino que ninguna prueba recorre.
+# Las de la pelea tampoco: la ROM usa siempre las de la base.
 CHANGE_SCREEN_TRANSITIONS = 10690
 TRANSICION_BORRAR, TRANSICION_MOSTRAR = 0, 1
 RM2K_TRANSICION_MOSAICO = 17
+RM2K_TRANSICIONES_CORTE = (19, 20)       # el corte y "ninguna"
 RM2K_TRANSICIONES_QUE_NO = {19: "el corte", 20: "ninguna"}
 # Lo que el bytecode lleva: lo que la ROM hace, y no el número de RM2k.
-TRANSICION_FUNDIDO, TRANSICION_MOSAICO = 0, 1
+TRANSICION_FUNDIDO, TRANSICION_MOSAICO, TRANSICION_CORTE = 0, 1, 2
 
 
 def paso_de_fundido(milisegundos):
@@ -3769,6 +3780,10 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                 pieza = b""
             elif cmd.code == SHOW_INN:
                 pieza = _compilar_posada(cmd, largo, mensajes)
+            elif cmd.code == CONTROL_SWITCHES \
+                    and len(cmd.parameters) >= 4 \
+                    and cmd.parameters[3] == SWITCH_TOGGLE:
+                pieza = _compilar_alternar(cmd, largo)
             elif cmd.code in (INN_STAY, INN_NO_STAY, INN_END):
                 # Las tres ramas de la posada. Ninguna de las 18 páginas del
                 # juego las usa —medido—, y hacerlas pide lo que `_compilar_
@@ -3993,6 +4008,41 @@ def _compilar_llamada(cmd, largo, hondo, indice_de_mapa, mensajes,
     return compilar_pagina(_Comandos(destino), indice_de_mapa, mensajes, ctx,
                            temas, graficos, imagenes, tropas,
                            base=largo, hondo=hondo + 1) or b""
+
+
+def _compilar_alternar(cmd, largo):
+    """`ControlSwitches` que alterna: sin opcode propio, una rama por switch
+    con lo que el intérprete ya hace —como la posada, se arma acá porque los
+    destinos son absolutos dentro de la página y el que lleva `largo` es el lazo
+    de `compilar_pagina`—. Por cada switch, con los desplazamientos relativos a
+    su pedazo:
+
+         0  OP_IF       prendido, y si no, al 14
+         7  OP_SWITCH   apagarlo
+        11  OP_GOTO     al 18
+        14  OP_SWITCH   prenderlo
+        18  el siguiente
+
+    Son 18 bytes por switch contra los 4 de un opcode que invirtiera el bit,
+    y el juego alterna uno solo, el 286, doce veces en la historia de Eisen
+    (89 ev4 y 93 ev4 p2): no justifica código en la ROM."""
+    p = cmd.parameters
+    if p[0] not in (SWITCH_UNICO, SWITCH_RANGO):
+        raise NoSePuede("alternar switches por variable")
+    desde, hasta = p[1], p[2]
+    if hasta < desde or hasta - desde >= MAX_RANGO:
+        raise NoSePuede("alternar un rango de %d a %d" % (desde, hasta))
+    out = b""
+    for numero in range(desde, hasta + 1):
+        aca = largo + len(out)
+        prender, fin = aca + 14, aca + 18
+        bajo, alto = numero & 0xFF, numero >> 8
+        out += bytes([OP_IF, COND_SWITCH, bajo, alto, 0,
+                      prender & 0xFF, prender >> 8,
+                      OP_SWITCH, bajo, alto, 0,
+                      OP_GOTO, fin & 0xFF, fin >> 8,
+                      OP_SWITCH, bajo, alto, 1])
+    return out
 
 
 def _compilar_posada(cmd, largo, mensajes):
@@ -4370,9 +4420,11 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         if cual not in (TRANSICION_BORRAR, TRANSICION_MOSTRAR):
             raise NoSePuede("ChangeScreenTransitions de la pelea: la ROM usa "
                             "siempre las de la base")
+        if cual == TRANSICION_BORRAR and rm2k in RM2K_TRANSICIONES_CORTE:
+            return bytes([OP_TRANSITION, cual, TRANSICION_CORTE])
         if rm2k in RM2K_TRANSICIONES_QUE_NO:
-            raise NoSePuede("ChangeScreenTransitions a %s, que la consola "
-                            "hace y como fundido sería otra cosa"
+            raise NoSePuede("ChangeScreenTransitions a %s para mostrar, que "
+                            "ningún mapa de la ROM usa"
                             % RM2K_TRANSICIONES_QUE_NO[rm2k])
         tipo = (TRANSICION_MOSAICO if rm2k == RM2K_TRANSICION_MOSAICO
                 else TRANSICION_FUNDIDO)
@@ -4477,7 +4529,10 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         if len(p) < 4 or p[0] not in (SWITCH_UNICO, SWITCH_RANGO):
             raise NoSePuede()       # por variable: hace falta variables
         if p[3] == SWITCH_TOGGLE:
-            raise NoSePuede()       # invertir pide leer, y todavía no leemos
+            # Lo arma `_compilar_alternar` desde el lazo de `compilar_pagina`,
+            # que es el que sabe `largo`; acá sólo llegaría desde otro camino
+            # —el de las celdas fundidas—, que ningún alternar del juego toma.
+            raise NoSePuede("alternar un switch fuera del lazo de la página")
         desde, hasta = p[1], p[2]
         if hasta < desde or hasta - desde >= MAX_RANGO:
             raise NoSePuede()

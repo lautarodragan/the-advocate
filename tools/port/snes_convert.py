@@ -4714,10 +4714,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "FUNDIDO_NEGRO   = %d\n"
         "FUNDIDO_CARGA   = %d\n"
         "BRILLO_MAX      = %d\n"
-        "; La transición del teletransporte que la ROM hace con el mosaico;\n"
-        "; cualquier otra es el fundido. Ver `ChangeScreenTransitions` en\n"
-        "; tools/port/eventos.py.\n"
+        "; Las transiciones del teletransporte que la ROM hace con el mosaico\n"
+        "; y con el corte; cualquier otra es el fundido. Ver\n"
+        "; `ChangeScreenTransitions` en tools/port/eventos.py.\n"
         "TRANSICION_MOSAICO = %d\n"
+        "TRANSICION_CORTE   = %d\n"
         "; Los pesos de luminancia del Y'CbCr, que son con los que RM2k\n"
         "; satura. Suman 65536 exactos, así que sobre canales de cinco bits\n"
         "; dan una luminancia de cinco bits sin reescalar nada.\n"
@@ -4937,7 +4938,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.FUNDIDO_CUADROS, eventos.FUNDIDO_TOTAL,
            eventos.FUNDIDO_RAMPA, eventos.FUNDIDO_NEGRO,
            eventos.FUNDIDO_RAMPA, eventos.BRILLO_MAX,
-           eventos.TRANSICION_MOSAICO,
+           eventos.TRANSICION_MOSAICO, eventos.TRANSICION_CORTE,
            eventos.LUZ_R, eventos.LUZ_G, eventos.LUZ_B, SWITCH_BYTES,
            eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
            ACTOR_COLORES, OBJ_COLORS,
