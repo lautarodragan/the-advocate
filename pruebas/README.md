@@ -83,6 +83,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   contra lo que el conversor dejó sin comprimir
 * `rpgmaker/test_camara.py`: la ventana del tilemap contra la cámara
 * `rpgmaker/test_accion_propia.py`: la tecla de acción sobre la celda del héroe
+* `rpgmaker/test_accion_con_ruta.py`: la tecla de acción no habla mientras
+  al héroe le queda ruta forzada, con el caño de Lashe City
 * `rpgmaker/test_terreno.py`: `StoreTerrainID`
 * `rpgmaker/test_cores.py`: snes9x contra bsnes, para la memoria sin
   inicializar —ver `AGENTS.md`, "La regla que sostiene todo"—

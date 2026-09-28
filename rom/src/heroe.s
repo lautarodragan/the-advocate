@@ -45,9 +45,20 @@ sin_salto:
     ; Una ruta forzada manda sobre el pad: mientras quede, el jugador no mueve
     ; al héroe. Es lo que hace RM2k, y es lo que permite que una cinemática lo
     ; camine sola.
+    ;
+    ; Un `wait` pendiente también es ruta, aunque ya no queden órdenes: una
+    ; ruta que **termina** en `wait` —hay 21 en el juego, la primera en el
+    ; mapa 1— deja `ruta_i` igual a `ruta_n` con `ruta_espera` cargada, y sin
+    ; esto no la bajaba nadie: `paso_de_ruta` es el único que la descuenta. En
+    ; RM2k el `wait` es una orden más y la ruta sigue siendo del héroe hasta
+    ; que se cumple. Quedaba pegada para siempre, y `hay_rutas` y la tecla de
+    ; acción, que la miran, contestaban "hay ruta" hasta la próxima.
+    lda ruta_espera
+    bne con_ruta
     lda ruta_i
     cmp ruta_n
     bcs sin_ruta
+con_ruta:
     jsr paso_de_ruta
     rts
 sin_ruta:

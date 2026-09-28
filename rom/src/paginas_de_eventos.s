@@ -705,6 +705,7 @@ sin_mensaje:
     bne nada                    ; ya lo tenía apretado: no es un flanco
     lda step_left
     bne nada                    ; a mitad de un paso no se habla
+    ; La ruta forzada del héroe se mira adentro: ver `probar_accion`.
     jsr probar_accion
     beq nada
     ; Marcó un evento: se arranca en este mismo cuadro.
