@@ -9,6 +9,9 @@
 ; `item_textos`. Escribir una letra son dos palabras del tilemap. La
 ; geometría es de `titulo.py` y `render_items` es la referencia.
 ;
+; Las ventanas y el cursor —la barra del System— van en BG1, y son de
+; `banco_de_la_pantalla.s`: el texto de BG2 no sabe nada de ellas.
+;
 ; La lista se arma al entrar: los ítems que hay y que esta ROM conoce, en
 ; orden de número como `Game_Party`, guardados como su lugar `k` en las
 ; tablas del conversor, en `FAR_ITEM_LISTA`. Cuántos son, el primero que se ve
@@ -213,32 +216,6 @@ en_blanco:
     rts
 .endproc
 
-; El cursor en la fila A de la pantalla: `temp + 3` en 1 lo pinta y en 0 lo
-; borra, que es escribir un espacio.
-.proc item_cursor_escribir
-.a8
-.i16
-    rep #$20
-.a16
-    and #$00FF
-    asl a
-    tax
-    lda item_fila_vram, x
-    clc
-    adc #ITEM_CURSOR_COL
-    tay
-    sep #$20
-.a8
-    stz temp + 1
-    lda temp + 3                ; con A: `ldx temp + 3` se llevaría dos bytes
-    beq borra
-    lda #$3E                    ; '>'
-    jmp glifo_par
-borra:
-    lda #$20                    ; ' '
-    jmp glifo_par
-.endproc
-
 ; La descripción del ítem que marca el cursor, compuesta en `texto_buf` y no
 ; en la VRAM: son cuatro filas de celdas enteras —256 bytes— que
 ; `items_desc_subir` sube de un DMA. Escribirlas de a una palabra no entraba
@@ -376,7 +353,7 @@ fin:
     lda #1
     sta temp + 3
     lda eleg_cancel
-    jsr item_cursor_escribir
+    jsl f:items_barra
 sin_cursor:
     ; --- el color: gris si A no lo usa ---
     lda eleg_flancos
@@ -507,11 +484,11 @@ termina:
     sta INIDISP
     stz HDMAEN
     stz TM
-    jsl f:items_banco_subir
+    jsl f:items_pantalla_subir
     jsr items_desc_pintar
     jsr items_desc_subir
     jsr items_filas_pintar
-    jsr ranura_ppu_prender
+    jsl f:items_ppu_prender
     lda #1
     sta menu_abierto
 espera:
@@ -602,11 +579,11 @@ cursor_listo:
 vista_lista:
     lda #$80
     sta INIDISP
-    jsl f:items_banco_subir
+    jsl f:items_pantalla_subir
     jsr items_desc_pintar
     jsr items_desc_subir
     jsr items_filas_pintar
-    jsr ranura_ppu_prender
+    jsl f:items_ppu_prender
     jmp espera
 de_switch:
     ; Un ítem de switch: `ConsumeItemUse` si tiene usos, el switch prendido y
@@ -658,7 +635,7 @@ mover:
     lda titulo_sel
     sec
     sbc eleg_sel
-    jsr item_cursor_escribir
+    jsl f:items_barra
     pla
     sta titulo_sel
     cmp eleg_sel
@@ -672,7 +649,7 @@ mover:
     lda titulo_sel
     sec
     sbc eleg_sel
-    jsr item_cursor_escribir
+    jsl f:items_barra
     jmp items_desc_pintar
 sube_la_vista:
     lda titulo_sel
@@ -686,7 +663,7 @@ baja_la_vista:
 repintar:
     lda #$80
     sta INIDISP
-    jsl f:items_banco_subir       ; el tilemap en blanco, y de paso el resto
+    jsl f:items_pantalla_subir  ; el tilemap en blanco, y de paso el resto
     jsr items_desc_pintar
     jsr items_desc_subir
     jsr items_filas_pintar

@@ -746,8 +746,12 @@ ITEM_DESC_Y = 8
 ITEM_DESC_COL = 1
 ITEM_DESC_ANCHO = 30            # letras por renglón, una por celda
 ITEM_DESC_RENGLONES = 2
-ITEM_LISTA_Y = 48
-ITEM_FILAS = 11                 # 48 + 11 * 16 = 224
+# La lista arranca una celda más abajo y tiene una fila menos que hasta el
+# 2026-09-28, cuando llegaron las ventanas —ver `ITEM_VENTANAS`—: con once
+# filas desde el 48 la última tocaba el marco de abajo, y la de arriba quedaba
+# pegada al de la ventana. Así las dos ventanas dejan el mismo aire que RM2k.
+ITEM_LISTA_Y = 56
+ITEM_FILAS = 10                 # 56 + 10 * 16 = 216, y el marco en 222
 ITEM_CURSOR_COL = 1
 ITEM_NOMBRE_COL = 3             # x = 24, como las órdenes del menú
 ITEM_NOMBRE_ANCHO = 20          # el nombre más largo del juego
@@ -766,6 +770,120 @@ ITEM_SUBE_CARACTERES = "0123456789 "
 # escribe el tilemap de su escena en la palabra $3800 de la VRAM, que es el
 # tile 384 contando desde `RANURA_VRAM`. Lo que pase de ahí lo pisaría.
 ITEMS_TILES_MAX = (0x3800 - 0x2000) // 16
+
+# Las ventanas de la pantalla, como `Scene_Item`: la de la ayuda arriba y la
+# de la lista abajo, cada una con el fondo estirado y el marco del System —
+# `ventana.ventana`, la misma que la del mensaje—. RM2k las pega una contra
+# la otra, así que el separador son los dos marcos juntos: cuatro pixeles.
+# La de la ayuda es más alta que la de RM2k —32— porque acá la descripción va
+# en dos renglones.
+#
+# Van en **BG1**, que en esta pantalla estaba apagado, y el texto sigue en
+# BG2 como antes: así el texto no tiene que saber nada de las ventanas, y la
+# descripción, que se sube de a filas enteras, no borra el marco. Los glifos
+# ya llevan el bit de prioridad —ver `item_glifo_celdas` en el conversor—, así
+# que el texto queda arriba de la franja del fondo que lo cruza, como en RM2k.
+# En 8bpp un pixel es directamente su entrada de CGRAM: los colores del marco
+# van desde `ITEM_MARCO_CGRAM`, después de las tres paletas del texto, y el
+# negro es el 0, el transparente, que deja ver el color de fondo, que es
+# negro.
+ITEM_AYUDA_ALTO = 48
+ITEM_VENTANAS = ((0, 0, ANCHO, ITEM_AYUDA_ALTO),
+                 (0, ITEM_AYUDA_ALTO, ANCHO, ALTO - ITEM_AYUDA_ALTO))
+ITEM_MARCO_CGRAM = 3 * MENU_CGRAM
+# Los tiles del marco van en el banco de la fuente, detrás de ella: la base de
+# BG1 es la misma que la de BG2, y un tile de 8bpp mide lo que dos de 4bpp.
+# Todo tiene que caber antes del tilemap de BG1, que va en $3800 —donde la
+# pelea pone el de su escena, así que ahí no hay nada de esta pantalla—.
+ITEM_MARCO_MAPA = 0x3800
+# El cursor de la lista es el del System —la barra roja de RM2k— y no el ">":
+# cuatro pixeles más ancho que el texto de cada lado, que es lo que deja RM2k.
+ITEM_BARRA_X = ITEM_NOMBRE_COL * CELL - 4
+ITEM_BARRA_ANCHO = (ITEM_CIFRAS_COL + 2 - ITEM_NOMBRE_COL) * CELL + 8
+
+
+def ventanas_items(sys_img, barra=None):
+    """Las ventanas de la pantalla de ítems, en RGBA y del tamaño de la
+    pantalla: lo que dibuja BG1. Con `barra`, el cursor en esa fila de la
+    lista."""
+    from PIL import Image
+    from port import ventana as ventana_mod
+    fuera = Image.new("RGBA", (ANCHO, ALTO), (0, 0, 0, 0))
+    for x, y, ancho, alto in ITEM_VENTANAS:
+        una = ventana_mod.ventana(sys_img, ancho, alto)
+        fuera.paste(una, (x, y), una)
+    if barra is not None:
+        una = ventana_mod.cursor(sys_img, ITEM_BARRA_ANCHO, 2 * CELL)
+        fuera.paste(una, (ITEM_BARRA_X, ITEM_LISTA_Y + 2 * CELL * barra), una)
+    return fuera
+
+
+def marco_items(sys_img, primer_tile):
+    """Las ventanas de `ventanas_items` como las sube la ROM: tiles de 8bpp,
+    el tilemap de 32x28, el cursor y los colores.
+
+    `primer_tile` es el número de tile de 8bpp del primero, contado desde la
+    base de BG1. Devuelve `(tiles, mapa, barras, colores)`: `tiles[i][y][x]`
+    es la entrada de CGRAM de ese pixel; `mapa` las palabras del tilemap fila
+    por fila; `barras[k]` las dos filas de celdas de la fila `k` de la lista
+    con el cursor encima, que es lo que la ROM copia sobre `mapa` para
+    pintarlo; y `colores` los de 15 bits desde `ITEM_MARCO_CGRAM`.
+
+    Los tiles se deduplican también espejados, con los bits de volteo del
+    tilemap: el marco es simétrico, y sin eso las ventanas y el cursor no
+    entraban en lo que queda de VRAM —ver `_controlar_marco_de_items`—.
+    """
+    imagenes = [ventanas_items(sys_img)] + [
+        ventanas_items(sys_img, k) for k in range(ITEM_FILAS)]
+    cuenta = collections.Counter()
+    for imagen in imagenes:
+        pixeles = numpy.asarray(imagen).reshape(-1, 4)
+        rgb = pixeles[pixeles[:, 3] != 0, :3].astype(numpy.int32) >> 3
+        for r, g, b in rgb.tolist():
+            if (r, g, b) != NEGRO:
+                cuenta[(r, g, b)] += 1
+    colores = sorted(cuenta, key=lambda c: (-cuenta[c], c))
+    if ITEM_MARCO_CGRAM + len(colores) > 256:
+        raise SystemExit("las ventanas de los ítems usan %d colores"
+                         % len(colores))
+    indice = {c: ITEM_MARCO_CGRAM + i for i, c in enumerate(colores)}
+    vacio = tuple(tuple([0] * CELL) for _ in range(CELL))
+    tiles, donde = [vacio], {vacio: 0}
+
+    def palabras(imagen, filas):
+        px = imagen.load()
+        salida = []
+        for fila in filas:
+            for col in range(COLS):
+                celda = []
+                for y in range(CELL):
+                    renglon = []
+                    for x in range(CELL):
+                        r, g, b, a = px[col * CELL + x, fila * CELL + y]
+                        color = (r >> 3, g >> 3, b >> 3)
+                        renglon.append(indice[color]
+                                       if a and color != NEGRO else 0)
+                    celda.append(tuple(renglon))
+                celda = tuple(celda)
+                h = tuple(tuple(reversed(r)) for r in celda)
+                for volteo, forma in ((0, celda), (0x4000, h),
+                                      (0x8000, tuple(reversed(celda))),
+                                      (0xC000, tuple(reversed(h)))):
+                    if forma in donde:
+                        salida.append((primer_tile + donde[forma]) | volteo)
+                        break
+                else:
+                    donde[celda] = len(tiles)
+                    tiles.append(celda)
+                    salida.append(primer_tile + donde[celda])
+        return salida
+
+    mapa = palabras(imagenes[0], range(FILAS))
+    barras = []
+    for k, imagen in enumerate(imagenes[1:]):
+        fila0 = ITEM_LISTA_Y // CELL + 2 * k
+        barras.append(palabras(imagen, (fila0, fila0 + 1)))
+    return tiles, mapa, barras, colores
 
 
 def item_usable(item):
@@ -1313,13 +1431,16 @@ def render_items(sys_img, db, inventario, elegida=0, arriba=0, font_id=None,
                    else [i for i, n in inventario.items() if n > 0])
     tiles, paletas, glifos = pantalla_items(sys_img, font_id)
     fuera = Image.new("RGB", (ANCHO, ALTO), (0, 0, 0))
+    lista = lista_de_items(items, inventario)
+    # El cursor es parte de las ventanas: ver `ITEM_BARRA_X`.
+    ventanas = ventanas_items(sys_img, elegida - arriba if lista else None)
+    fuera.paste(ventanas, (0, 0), ventanas)
     pegar = _pintor(fuera, tiles, paletas)
 
     def escribir(texto, fila0, col0, gris=0):
         for n, c in enumerate(texto):
             pegar(glifos[gris][c], fila0, col0 + n, 1)
 
-    lista = lista_de_items(items, inventario)
     if lista:
         for n, renglon in enumerate(partir_descripcion(
                 db.items[lista[elegida]].description)):
@@ -1331,8 +1452,6 @@ def render_items(sys_img, db, inventario, elegida=0, arriba=0, font_id=None,
         item = db.items[lista[k]]
         fila0 = ITEM_LISTA_Y // CELL + 2 * fila
         gris = 0 if item_usable(item) else 1
-        if k == elegida:
-            escribir(">", fila0, ITEM_CURSOR_COL)
         escribir(texto_de_item(item.name, ITEM_NOMBRE_ANCHO), fila0,
                  ITEM_NOMBRE_COL, gris)
         escribir(":%2d" % min(inventario[lista[k]], 99), fila0,

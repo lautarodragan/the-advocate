@@ -42,12 +42,15 @@ def test_menu_vuelve(cuadro):
 @pytest.mark.parametrize("nombre,cuantos,toques", (
     ("items", 64, ("b:40", "a:52")),
     ("items-2", 74, ("b:40", "a:52", "down:64", "down:68")),
+    ("items-gris", 70, ("b:40", "a:52", "down:64")),
 ))
 def test_items(nombre, cuantos, toques):
     """`items`: la lista de ítems del menú de pausa.
 
     Tres ítems distintos y uno de ellos repetido trece veces, que es lo que
-    ejercita la columna de la cuenta además de la de los nombres.
+    ejercita la columna de la cuenta además de la de los nombres. Las
+    ventanas y el cursor son los del System: en `items-gris` el cursor está
+    sobre el Club, que va en gris, con su descripción arriba.
     """
     consola = consola_cruda("items")
     correr_hardware(consola, cuantos, toques_hardware=toques)
