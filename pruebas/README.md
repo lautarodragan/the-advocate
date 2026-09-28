@@ -121,14 +121,16 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 
 **El menú de pausa**
 
-* `rpgmaker/test_menu_golden.py`: el menú, los ítems y el equipo, abiertos y
-  de vuelta al mapa
+* `rpgmaker/test_menu_golden.py`: el menú, los ítems, el equipo y End Game,
+  abiertos y de vuelta al mapa
 * `rpgmaker/test_menu_dibujo.py`: abrir, el cursor, los HP, el permiso de
   escapar
 * `rpgmaker/test_menu_items_dibujo.py`: la pantalla de ítems
 * `rpgmaker/test_menu_equipo_dibujo.py`: la pantalla de equipo
 * `rpgmaker/test_menu_curar_dibujo.py`: usar una medicina
 * `rpgmaker/test_menu_hp_de_la_pelea_dibujo.py`: los HP que deja la pelea
+* `rpgmaker/test_fin_del_juego.py`: End Game —la pantalla, "No", B y
+  "Yes" hasta el título—
 * `rpgmaker/test_tienda_dibujo.py`: la tienda
 
 **La pelea**

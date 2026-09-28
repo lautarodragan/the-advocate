@@ -75,6 +75,7 @@ from port import asignador
 from port import parches as parches_mod
 from port import titulo as titulo_mod
 from port import pantalla_completa
+from port import fin_del_juego as fin_mod
 from port import pantallas as pantallas_mod
 from port import batalla as batalla_mod
 from port import experiencia as X
@@ -5391,6 +5392,27 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write(bloque("items_marco_cgram", b"".join(
             cgram_word(c).to_bytes(2, "little")
             for c in marco_colores)) + "\n")
+        # La pantalla de End Game, entera: ver tools/port/fin_del_juego.py.
+        # Las dos paletas van seguidas, la de "Yes" primero: la ROM elige
+        # una multiplicando.
+        fin_tiles, fin_filas, fin_fila0, fin_paletas = ranuras["fin"]
+        handle.write(bloque("fin_tiles", b"".join(
+            pack_tile(celda, planes=4) for celda in fin_tiles)) + "\n")
+        handle.write(bloque("fin_mapa", b"".join(
+            palabra.to_bytes(2, "little") for palabra in fin_filas)) + "\n")
+        handle.write(bloque("fin_cgram", paletas_cgram(fin_paletas)) + "\n")
+        handle.write(bloque("fin_rampa", bytes(fin_mod.rampa())) + "\n")
+        handle.write(
+            "FIN_TILES   = %d\n"
+            "FIN_FILA0   = %d\n"
+            "FIN_FILAS   = %d\n"
+            "FIN_ENTRA   = %d\n"
+            "FIN_NO      = %d\n"
+            "FIN_CUADROS = %d\n"
+            "FIN_PASO_TEMA = %d\n"
+            % (len(fin_tiles), fin_fila0, len(fin_filas) // titulo_mod.COLS,
+               fin_mod.ENTRA, fin_mod.NO, fin_mod.CUADROS_FUNDIDO,
+               eventos.paso_de_fundido(fin_mod.MS_FUNDIDO_TEMA)))
         item_textos, item_textos_ofs = bytearray(), []
 
         def texto_nuevo(texto):
@@ -5601,6 +5623,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write(
             "MENU_OPCIONES     = %d\n"
             "MENU_GUARDAR      = %d\n"
+            "MENU_FIN          = %d\n"
             "MENU_BLQ_OPCION   = %d\n"
             "MENU_BLQ_MONEDA   = %d\n"
             "MENU_BLQ_FILA     = %d\n"
@@ -5620,7 +5643,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "MENU_NIVEL_DESPL  = %d\n"
             "MENU_MAX_CIFRAS   = %d\n"
             "MENU_MAX_DESPL    = %d\n"
-            % (T.MENU_OPCIONES, T.MENU_GUARDAR, bloque_menu_opcion,
+            % (T.MENU_OPCIONES, T.MENU_GUARDAR, T.MENU_FIN, bloque_menu_opcion,
                bloque_menu_moneda, bloque_menu_fila,
                T.MENU_OPC_COLS, T.MENU_MONEDA_COLS,
                celda_vram(T.MENU_ORO_Y // T.CELL, T.MENU_MONEDA_COL),
@@ -7550,6 +7573,10 @@ def main():
     items_marco = titulo_mod.marco_items(
         skin, items_marco_primero(len(items_tiles)))
     _controlar_marco_de_items(len(items_tiles), len(items_marco[0]))
+    # Los tiles de la pantalla de End Game van donde los de las ranuras, así
+    # que lo que se controla es lo mismo.
+    fin = fin_mod.convertir(skin, renderer.database, renderer.database.font_id)
+    _controlar_ranuras(len(fin[0]))
     ranuras_datos = {"tiles": ranura_tiles, "paletas": ranura_paletas,
                      "cabeceras": ranura_cabs, "filas": ranura_filas,
                      "caras": ranura_caras,
@@ -7560,7 +7587,7 @@ def main():
                      "items_tiles": items_tiles,
                      "items_paletas": items_paletas,
                      "items_glifos": items_glifos,
-                     "items_marco": items_marco}
+                     "items_marco": items_marco, "fin": fin}
     _controlar_ranuras(len(ranura_tiles))
     _controlar_repartos()
     print("  pantalla de ranuras: %d, %d tiles de 4bpp (%d B) + %d paletas, "

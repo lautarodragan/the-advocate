@@ -31,6 +31,19 @@ def test_menu_grupo():
     golden("menu-grupo", consola.imagen())
 
 
+@pytest.mark.parametrize("nombre,cuantos,toques", (
+    ("fin", 64, ("b:40", "up:52", "a:56")),
+    ("fin-no", 70, ("b:40", "up:52", "a:56", "down:64")),
+))
+def test_fin(nombre, cuantos, toques):
+    """`fin`: End Game, la última orden del menú —arriba desde la primera da
+    la vuelta—, con el cursor en "Yes", como entra, y en "No". Lo que hace
+    cada una lo mira `test_fin_del_juego.py`."""
+    consola = consola_cruda("grupo-11-en-73")
+    correr_hardware(consola, cuantos, toques_hardware=toques)
+    golden(nombre, consola.imagen())
+
+
 @pytest.mark.parametrize("cuadro", (50, 120))
 def test_menu_vuelve(cuadro):
     """`menu`: el mapa de vuelta al cerrar el menú de pausa."""

@@ -9,9 +9,10 @@
 ; no corre mientras se ve —como en la pantalla de ranuras— así que el menú no
 ; cuesta ningún tick.
 ;
-; Hoy hacen algo usar ítems —la pantalla de ítems, en `items.s`— y guardar, que
-; abre la pantalla de ranuras y vuelve al menú. Las otras tres se dibujan en
-; gris y A no hace nada con ellas.
+; Hoy hacen algo usar ítems —la pantalla de ítems, en `items.s`—, el equipo,
+; guardar, que abre la pantalla de ranuras y vuelve al menú, y End Game, que
+; abre la suya —`fin_del_juego.s`—. Técnicas se dibuja en gris y A no hace
+; nada con ella.
 
 ; El byte de permisos, en A. Sólo A, y las banderas del `lda`: el bit 7 queda
 ; en N.
@@ -698,6 +699,16 @@ volver_de_items:
     stz titulo_sel
     jmp armar
 no_items:
+    cmp #MENU_FIN
+    bne guardar
+    ; End Game: su pantalla, en `fin_del_juego.s`. "Yes" no vuelve —termina
+    ; en el reset—; "No" y B vuelven al menú con el cursor en la orden, como
+    ; `Scene::Pop`.
+    jsl f:fin_pantalla
+    lda #MENU_FIN
+    sta titulo_sel
+    jmp armar
+guardar:
     ; Guardar: la pantalla de ranuras y, elija
     ; o cancele, de vuelta al menú con el cursor en "Save", como `Scene_Save`
     ; cuando vuelve a `Scene_Menu`.
