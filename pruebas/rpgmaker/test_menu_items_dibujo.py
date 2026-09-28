@@ -18,7 +18,7 @@ from menu import abrir
 # que da la página de prueba `items-pantalla`, y `MUCHOS` lo que da
 # `items-pantalla-muchos`: los dos tienen que decir lo mismo que su archivo.
 INVENTARIO = {1: 13, 17: 1, 81: 1}
-# Catorce distintos, para que la lista no entre en las once filas.
+# Catorce distintos, para que la lista no entre en sus `ITEM_FILAS` filas.
 MUCHOS = {n: 1 for n in range(1, 15)}
 
 
@@ -103,14 +103,16 @@ def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
 
 
 def test_la_lista_se_corre_cuando_el_cursor_se_sale(partida):
-    """Catorce ítems en once filas: bajando hasta el último la lista se corre
-    tres, y subiendo hasta el primero vuelve."""
+    """Catorce ítems en `ITEM_FILAS` filas: bajando hasta el último la lista
+    se corre lo que sobra, y subiendo hasta el primero vuelve."""
     una = entrar(partida(caso="items-pantalla-muchos"))
     for _ in range(13):
         una.tocar_cuadros("down")
-    comparar(una, MUCHOS, 13, arriba=3, nombre="items-abajo")
+    comparar(una, MUCHOS, 13, arriba=14 - titulo.ITEM_FILAS,
+             nombre="items-abajo")
     una.tocar_cuadros("down")           # no hay más: se queda
-    comparar(una, MUCHOS, 13, arriba=3, nombre="items-abajo")
+    comparar(una, MUCHOS, 13, arriba=14 - titulo.ITEM_FILAS,
+             nombre="items-abajo")
     for _ in range(13):
         una.tocar_cuadros("up")
     comparar(una, MUCHOS, 0, arriba=0, nombre="items-arriba")

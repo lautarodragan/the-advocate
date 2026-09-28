@@ -114,6 +114,32 @@ def ventana(sys_img, ancho=ANCHO, alto=ALTO):
     return marco
 
 
+def cursor(sys_img, ancho, alto=16):
+    """El cursor de una lista, el primero de los dos cuadros del System: el
+    `RefreshCursor` de Window en easyrpg, esquinas de 8x8 y el resto repetido
+    entre ellas. Lo transparente del System queda transparente."""
+    x0 = 64
+    salida = Image.new("RGBA", (ancho, alto), (0, 0, 0, 0))
+    if ancho > 16 and alto > 16:
+        _pegar(salida, _repetido(sys_img.crop((x0 + 8, 8, x0 + 24, 24)),
+                                 ancho - 16, alto - 16), 8, 8)
+    _pegar(salida, _repetido(sys_img.crop((x0 + 8, 0, x0 + 24, 8)),
+                             ancho - 16, 8), 8, 0)
+    _pegar(salida, _repetido(sys_img.crop((x0 + 8, 24, x0 + 24, 32)),
+                             ancho - 16, 8), 8, alto - 8)
+    if alto > 16:
+        _pegar(salida, _repetido(sys_img.crop((x0, 8, x0 + 8, 24)),
+                                 8, alto - 16), 0, 8)
+        _pegar(salida, _repetido(sys_img.crop((x0 + 24, 8, x0 + 32, 24)),
+                                 8, alto - 16), ancho - 8, 8)
+    _pegar(salida, sys_img.crop((x0, 0, x0 + 8, 8)), 0, 0)
+    _pegar(salida, sys_img.crop((x0 + 24, 0, x0 + 32, 8)), ancho - 8, 0)
+    _pegar(salida, sys_img.crop((x0, 24, x0 + 8, 32)), 0, alto - 8)
+    _pegar(salida, sys_img.crop((x0 + 24, 24, x0 + 32, 32)), ancho - 8,
+           alto - 8)
+    return salida
+
+
 # De dónde sale el color de cada pixel del glifo, según `Font::Render` de
 # easyrpg-player. No es un color plano: el glifo se usa como máscara sobre el
 # bloque de 16x16 del System, así que la letra sale con degradé.

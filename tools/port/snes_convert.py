@@ -2466,6 +2466,35 @@ def _controlar_ranuras(ranura_tiles):
                     % (que, desde, hasta, nombre, base, tope))
 
 
+def items_marco_primero(fuente):
+    """El primer tile de 8bpp de las ventanas de la pantalla de ítems, contado
+    desde `RANURA_VRAM`, que es la base de BG1 y la de BG2: el primero libre
+    detrás de los `fuente` tiles de la fuente, que son de 4bpp y miden la
+    mitad."""
+    return (fuente + 1) // 2
+
+
+def _controlar_marco_de_items(fuente, marco):
+    """Que la fuente y las ventanas de la pantalla de ítems, una detrás de la
+    otra, no lleguen al tilemap de BG1, y que todo quede en el banco de BG1 de
+    los repartos, como el resto de la pantalla —ver `_controlar_ranuras`—."""
+    fin = RANURA_VRAM + (items_marco_primero(fuente) + marco) * 32
+    if fin > titulo_mod.ITEM_MARCO_MAPA:
+        raise SystemExit(
+            "la fuente de la pantalla de ítems (%d tiles de 4bpp) y sus "
+            "ventanas (%d de 8bpp) llegan a $%04X y el tilemap de las ventanas "
+            "está en $%04X" % (fuente, marco, fin, titulo_mod.ITEM_MARCO_MAPA))
+    fin_map = titulo_mod.ITEM_MARCO_MAPA + 32 * 32
+    for nombre, layout in LAYOUTS:
+        base, cuantos = layout["tiles"]
+        tope = base + cuantos * (BYTES_PER_TILE // 2)
+        if RANURA_VRAM < base or fin_map > tope:
+            raise SystemExit(
+                "las ventanas de la pantalla de ítems llegan a $%04X y el banco "
+                "de BG1 de LAYOUT_%s es $%04X..$%04X" % (fin_map, nombre, base,
+                                                          tope))
+
+
 def _controlar_repartos():
     """Que cada reparto respete al hardware y a lo que la ROM supone de él.
 
@@ -5346,6 +5375,22 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             ranuras["items_paletas"][:titulo_mod.ITEM_SUBE])) + "\n")
         handle.write(bloque("item_cgram_sube", paletas_cgram(
             ranuras["items_paletas"][titulo_mod.ITEM_SUBE:])) + "\n")
+        # Las ventanas de la pantalla de ítems, en BG1: ver `ITEM_VENTANAS`.
+        # El tilemap va sin las filas de abajo que la pantalla no muestra, y
+        # el cursor como las dos filas de celdas de cada fila de la lista, que
+        # la ROM copia encima: 128 bytes por fila.
+        marco_tiles, marco_mapa, marco_barras, marco_colores = \
+            ranuras["items_marco"]
+        handle.write(bloque("items_marco_tiles", b"".join(
+            pack_tile(celda, planes=8) for celda in marco_tiles)) + "\n")
+        handle.write(bloque("items_marco_mapa", b"".join(
+            palabra.to_bytes(2, "little") for palabra in marco_mapa)) + "\n")
+        handle.write(bloque("items_marco_barras", b"".join(
+            palabra.to_bytes(2, "little") for barra in marco_barras
+            for palabra in barra)) + "\n")
+        handle.write(bloque("items_marco_cgram", b"".join(
+            cgram_word(c).to_bytes(2, "little")
+            for c in marco_colores)) + "\n")
         item_textos, item_textos_ofs = bytearray(), []
 
         def texto_nuevo(texto):
@@ -5697,13 +5742,24 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "ITEM_DESC_COL     = %d\n"
             "ITEM_PRIMER_CARACTER = %d\n"
             "ITEM_GLIFOS_GRIS  = %d\n"
+            "ITEM_MARCO_VRAM   = $%04X\n"
+            "ITEM_MARCO_TILES  = %d\n"
+            "ITEM_MARCO_MAPA   = $%04X\n"
+            "ITEM_MARCO_CGRAM  = %d\n"
+            "ITEM_MARCO_COLORES = %d\n"
+            "ITEM_MARCO_FILAS  = %d\n"
+            "ITEM_MARCO_LISTA  = %d\n"
             % (len(items), len(ranuras["items_tiles"]),
                titulo_mod.ITEM_SUBE * titulo_mod.MENU_CGRAM,
                T.ITEM_FILAS, T.ITEM_CURSOR_COL, T.ITEM_NOMBRE_COL,
                T.ITEM_DOS_PUNTOS_COL, T.ITEM_CIFRAS_COL,
                celda_vram(T.ITEM_DESC_Y // T.CELL, T.ITEM_DESC_COL),
                T.ITEM_DESC_COL,
-               T.ITEM_PRIMER_CARACTER, T.ITEM_CARACTERES * 4))
+               T.ITEM_PRIMER_CARACTER, T.ITEM_CARACTERES * 4,
+               RANURA_VRAM
+               + items_marco_primero(len(ranuras["items_tiles"])) * 32,
+               len(marco_tiles), T.ITEM_MARCO_MAPA, T.ITEM_MARCO_CGRAM,
+               len(marco_colores), T.FILAS, T.ITEM_LISTA_Y // T.CELL))
 
         def bytes_asm(etiqueta, valores, formato="%d", declarar=False):
             if declarar:
@@ -7491,6 +7547,9 @@ def main():
         miembros, args.game_dir)
     items_tiles, items_paletas, items_glifos = titulo_mod.pantalla_items(
         skin, renderer.database.font_id)
+    items_marco = titulo_mod.marco_items(
+        skin, items_marco_primero(len(items_tiles)))
+    _controlar_marco_de_items(len(items_tiles), len(items_marco[0]))
     ranuras_datos = {"tiles": ranura_tiles, "paletas": ranura_paletas,
                      "cabeceras": ranura_cabs, "filas": ranura_filas,
                      "caras": ranura_caras,
@@ -7500,7 +7559,8 @@ def main():
                      "items_db": renderer.database.items,
                      "items_tiles": items_tiles,
                      "items_paletas": items_paletas,
-                     "items_glifos": items_glifos}
+                     "items_glifos": items_glifos,
+                     "items_marco": items_marco}
     _controlar_ranuras(len(ranura_tiles))
     _controlar_repartos()
     print("  pantalla de ranuras: %d, %d tiles de 4bpp (%d B) + %d paletas, "
