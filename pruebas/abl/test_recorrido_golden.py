@@ -29,7 +29,12 @@ jugador.
   porqué, en `Recorrido.foto`.
 """
 
+from ensamblado import cartuchos
 from recorrido import UN_ANO_DESPUES
+
+# La primera puerta del mapa de debug, la del comienzo normal: su `Teleport`
+# es el del arranque del LDB. Ver `test_mapa_de_debug.py`.
+COMIENZO_NORMAL = (4, 14)
 
 # Adónde entra el juego al mapa 16, y de dónde sale el número: el `Teleport` de
 # los eventos 65 y 66 del mapa 8 y de los 28 y 29 del mapa 9, que son las cuatro
@@ -46,8 +51,19 @@ def test_la_apertura_termina_con_kersh_en_el_linkage_block(recorrido):
     no cambia en toda la escena**, así que el hito no puede ser el mapa: es el
     switch 3, que la propia escena prende al terminar, y que el jugador toma el
     control.
+
+    **Con el mapa de debug, "Begin the Story" arranca en él**, y la jugada
+    hace lo que haría el jugador: camina hasta la puerta del comienzo normal
+    y la cruza. Así esta prueba también la cubre. Las demás que juegan desde
+    el título arrancan en la partida sin el mapa: ver `tanda.partida`.
     """
-    r = recorrido("apertura")
+    if cartuchos.CON_MAPA_DE_DEBUG:
+        r = recorrido("apertura", caso=cartuchos.ENTRADA_AL_MAPA_DE_DEBUG)
+        r.empezar("la puerta del comienzo normal del mapa de debug")
+        r.caminar_a(COMIENZO_NORMAL, hasta=lambda p: p.mapa() == 1)
+        r.esperar("el mapa 1", lambda p: p.mapa() == 1, tope=2000)
+    else:
+        r = recorrido("apertura")
     r.empezar("la cinemática de apertura del mapa 1")
     r.esperar("que la apertura termine y Kersh tome el control",
               lambda p: p.switch(3) and not p.corriendo_una_pagina(),

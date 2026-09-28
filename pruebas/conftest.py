@@ -99,7 +99,8 @@ def partida():
     pide ninguno—, pasando la pantalla de título por "Begin the Story". `switch`
     se escribe en la RAM antes del primer cuadro de juego; para ir a otro mapa,
     `.ir_al_mapa(...)`. Con `titulo` y sin caso, la partida es **la de
-    verdad**: `release` desde el título, con la página 0, que no hace nada.
+    verdad**: `release` desde el título, con la página que no hace nada
+    —la 0 sin el mapa de debug; ver `tanda.partida`—.
     """
     def hacer(switch=(), caso=None, titulo=None, en=None):
         if titulo is not None and caso is None:
@@ -140,8 +141,14 @@ def recorrido(partida, mundo):
     pantalla de título, con sus capturas en `FOTOS/<nombre>`."""
     from recorrido import Recorrido
 
-    def hacer(nombre, switch=()):
-        # "Begin the Story": una jugada empieza por ahí como cualquiera.
+    def hacer(nombre, switch=(), caso=None):
+        # "Begin the Story": una jugada empieza por ahí como cualquiera. Sin
+        # `caso`, en la partida de verdad sin el mapa de debug —ver
+        # `tanda.partida`—; con él, en esa página: la apertura entra por el
+        # mapa de debug y cruza la puerta del comienzo normal.
+        if caso is not None:
+            return Recorrido(tanda.partida(caso, switches=switch), mundo,
+                             fotos=os.path.join(FOTOS, nombre))
         return Recorrido(partida(switch=switch, titulo=EMPEZAR),
                          mundo, fotos=os.path.join(FOTOS, nombre))
     return hacer

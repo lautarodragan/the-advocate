@@ -100,7 +100,27 @@ EXCLUIDOS = {
 # ahí la página del 48 que mete a AG7-17 en el grupo. Y el puente del norte
 # (259) y lo que hay debajo (255), que es donde se prende el 849 que deja
 # cruzarlo: el final del camino principal antes del túnel.
+#
+# Y el mapa de debug, que el juego no tiene: ver `CON_MAPA_DE_DEBUG`.
 AGREGADOS = (164, 259, 255)
+
+# **El mapa de debug**: un cuarto con una puerta a cada punto clave del juego
+# —cada una deja el estado de alguien que jugó hasta ahí— y un NPC por
+# compañero que lo suma o lo saca del grupo. Lo pidió taro el 2026-09-27, y
+# "Begin the Story" arranca ahí. Es un mapa nuevo de `parches/manual/nuevos/`
+# —ver `fork.nuevos`—, con un id que el juego no usa, y lo que hace cada
+# puerta está en los comentarios de sus páginas.
+#
+# **Para una entrega limpia, `CON_MAPA_DE_DEBUG = False`**: el mapa sale del
+# cartucho y la página 0 vuelve a ser `nada`, o sea que "Begin the Story"
+# arranca en el mapa 4 como el juego. La tanda no depende de este valor: las
+# pruebas que juegan desde el título eligen `LA_PARTIDA_DE_VERDAD`, que es la
+# página 0 de la entrega limpia —ver `tanda.partida`—, y las del mapa de debug
+# se saltean sin él.
+CON_MAPA_DE_DEBUG = True
+MAPA_DE_DEBUG = 900
+if CON_MAPA_DE_DEBUG:
+    AGREGADOS += (MAPA_DE_DEBUG,)
 
 
 def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
@@ -184,7 +204,28 @@ FUERA = {"grupo-11-12-13", "batalla", "batalla-item", "batalla-droide",
 # escribiendo la variable. Con cualquier otro caso acá, el juego lo correría
 # al empezar: hasta el 2026-09-25 era `grupo-11`, que mete a Kersh en el grupo
 # y rompe la apertura.
-PRIMERO = "nada"
+#
+# **Con el mapa de debug, la página 0 es la que lleva ahí** —un `Teleport` y
+# Talan en el grupo, para que el héroe se vea—, y `nada` pasa a ser una página
+# más, la que el arnés elige para jugar el juego como arranca sin él.
+LA_PARTIDA_DE_VERDAD = "nada"
+ENTRADA_AL_MAPA_DE_DEBUG = "mapa-de-debug"
+
+
+def primero(con_mapa_de_debug=CON_MAPA_DE_DEBUG):
+    """El caso de la página 0: lo que corre "Begin the Story"."""
+    return (ENTRADA_AL_MAPA_DE_DEBUG if con_mapa_de_debug
+            else LA_PARTIDA_DE_VERDAD)
+
+
+def fuera(con_mapa_de_debug=CON_MAPA_DE_DEBUG):
+    """Los casos que `release` no lleva. Sin el mapa, tampoco su entrada: su
+    `Teleport` lleva a un mapa que no está, y el conversor se planta."""
+    return FUERA | (set() if con_mapa_de_debug
+                    else {ENTRADA_AL_MAPA_DE_DEBUG})
+
+
+PRIMERO = primero()
 
 
 def huella():
@@ -228,12 +269,15 @@ def todos_los_casos():
                   for r in glob.glob(os.path.join(CASOS, "*.json")))
 
 
-def casos_de(nombre):
-    """Los casos del cartucho, en el orden de sus páginas."""
+def casos_de(nombre, con_mapa_de_debug=CON_MAPA_DE_DEBUG):
+    """Los casos del cartucho, en el orden de sus páginas. `con_mapa_de_debug`
+    es un parámetro sólo para que una prueba mire la entrega limpia sin
+    armarla."""
     casos = CARTUCHOS[nombre][1]
     if casos is None:
-        return [PRIMERO] + [n for n in todos_los_casos()
-                            if n not in FUERA and n != PRIMERO]
+        cero = primero(con_mapa_de_debug)
+        return [cero] + [n for n in todos_los_casos()
+                         if n not in fuera(con_mapa_de_debug) and n != cero]
     return list(casos)
 
 
