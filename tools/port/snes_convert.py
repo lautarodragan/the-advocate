@@ -5133,6 +5133,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             for fase, datos in enumerate(pre):
                 handle.write(bloque("fuente_pre%d" % fase, datos) + "\n")
             handle.write(bloque("mensajes", ventana["mensajes"]) + "\n")
+            # Cuánto mide y cuánto puede medir: la ROM no los usa, los lee
+            # `just espacio` de la tabla de símbolos. El tope es lo que
+            # alcanza el operando de `OP_MESSAGE`, de 16 bits y de a
+            # `MENSAJES_PASO` bytes.
+            handle.write("MENSAJES_BYTES = %d\nMENSAJES_TOPE = %d\n"
+                         % (len(ventana["mensajes"]),
+                            0x10000 * eventos.MENSAJES_PASO))
         # --- el cartel del ShowPicture ---
         #
         # Sus quince colores tal cual salieron de `imagen.convertir`, en el
@@ -7779,11 +7786,10 @@ def main():
              or "ninguna, sale muda"))
 
     # **Y recién acá se decide el acomodo de bancos**, con los dos archivos ya
-    # escritos: depende de todo lo que haya antes en RODATA, y el orden es el
-    # de los `.include` de main.s —la música primero—. Ver `tools/ensamblado/bancos.py`.
-    resueltos, rellenaron = bancos.resolver([musica, args.output])
-    print("acomodo de bancos: %d bloque(s), %d empiezan banco"
-          % (resueltos, rellenaron))
+    # escritos: reparte todo lo que los dos mandan a RODATA, y los bancos
+    # quedan al final del último. Ver `tools/ensamblado/bancos.py`.
+    piezas, usados = bancos.resolver([musica, args.output])
+    print("acomodo de bancos: %d pieza(s) en %d banco(s)" % (piezas, usados))
     # Y el mapa de memoria para `ld65`, al lado: sale de acá y no de un
     # archivo a mano para que en qué banco arrancan los datos esté escrito
     # una sola vez, en `bancos.PRIMER_BANCO`.
@@ -7910,7 +7916,7 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
     # orden en que la ROM la recorre—: dónde está en el `.msu`, cuánto mide y
     # dónde vuelve, que es siempre al principio porque van enteros.
     filas, desde_filas = bytearray(), bytearray()
-    alturas, desde_alturas = bytearray(), bytearray()
+    alturas, desde_alturas, ya_listas = bytearray(), bytearray(), {}
     for (nombre, *_r), (_temas, numeros, _salida), lista in zip(
             por_nombre, paquetes, del_paquete):
         desde_filas += (len(filas)).to_bytes(2, "little")
@@ -7921,16 +7927,28 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
                       + len(version.data).to_bytes(2, "little")
                       + bytes(2))
         # Y la altura de cada sonido de `sonido_tabla` con la versión de este
-        # paquete, o 0 si su efecto no es de acá: con eso la ROM no hace
-        # cuentas, ni en la interrupción.
-        desde_alturas += (len(alturas)).to_bytes(2, "little")
+        # paquete: con eso la ROM no hace cuentas, ni en la interrupción.
+        # **Sólo los sonidos cuyo efecto es de acá**, como pares (índice,
+        # altura) ordenados por índice y cerrados con $FFFF, que `altura_msu`
+        # recorre: hasta el 2026-09-27 era una fila por paquete con todos los
+        # sonidos, casi toda ceros, y con el capítulo del mundo entero pasaba
+        # de un banco. Dos paquetes con la misma lista la comparten.
         suyas = tasas.get(str(nombre), {})
-        for efecto, _volumen, tempo, _balance in sonidos:
+        lista = bytearray()
+        for k, (efecto, _volumen, tempo, _balance) in enumerate(sonidos):
             altura = 0
             if efecto in suyas:
                 altura = snes_music.altura_de_efecto(
                     hechas[efecto, suyas[efecto]], tempo)
-            alturas += altura.to_bytes(2, "little")
+            # Cero es "no es de acá" para la ROM, así que no se guarda.
+            if altura:
+                lista += k.to_bytes(2, "little") + altura.to_bytes(2, "little")
+        lista += b"\xFF\xFF"
+        lista = bytes(lista)
+        if lista not in ya_listas:
+            ya_listas[lista] = len(alturas)
+            alturas += lista
+        desde_alturas += ya_listas[lista].to_bytes(2, "little")
     for tabla in (filas, alturas):
         if len(tabla) > 0x8000:
             raise SystemExit("las tablas de los efectos del .msu pasan de un "

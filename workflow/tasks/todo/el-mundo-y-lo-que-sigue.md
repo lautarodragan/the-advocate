@@ -350,7 +350,7 @@ y `test_carga_descomprimida` con un fondo de dos flujos.
 adonde lleva el viaje de Dalia. 81,4%, banco 0 192 menos lo de
 `ChangeEncounterSteps`.
 
-**3. El espacio.** El acomodo con first-fit decreasing en `bancos.py`, con la
+**3. El espacio.** (Hecho: `testing/mundo-3-el-espacio.md`; al camino principal le quedan diez bancos, y entran él y una o dos de las zonas opcionales, no las tres.) El acomodo con first-fit decreasing en `bancos.py`, con la
 ROM armando igual y las goldens sin moverse; la tabla de alturas del `.msu` por
 paquete; el bloque de textos de a 4 bytes; y `medir.py` —o lo que lo
 reemplace— diciendo bancos libres y no un porcentaje. Puede ir en paralelo con

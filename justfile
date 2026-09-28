@@ -196,6 +196,22 @@ _xdist:
 cartuchos *args:
   python3 tools/ensamblado/cartuchos.py {{args}}
 
+# **Cuánto espacio le queda a cada cartucho**: bancos de datos libres y los
+# huecos entre ellos, banco 0, banco 1, BSS, ZEROPAGE y el bloque de textos.
+# Lo imprime y no lo escribe en ningún lado, a propósito: ver "Un número se
+# escribe sólo si…" en AGENTS.md. Lee el `.dbg` y el `memoria.cfg` que deja
+# el armado, así que arma antes lo que esté viejo.
+#
+#     just espacio                      todos los cartuchos
+#     just espacio release              uno
+#     just espacio otro/dir/abl.sfc     una ROM armada aparte, sin armar nada
+#
+# Imprime el espacio libre de cada cartucho.
+espacio *args:
+  #!/usr/bin/env sh
+  for a in {{args}}; do [ -f "$a" ] && exec python3 tools/ensamblado/espacio.py {{args}}; done
+  python3 tools/ensamblado/cartuchos.py {{args}} >/dev/null && python3 tools/ensamblado/espacio.py {{args}}
+
 # **Las decisiones artísticas del conversor, versionadas**: qué color se
 # fusionó con cuál en cada mapa porque la CGRAM no daba para los dos, y a qué
 # tamaño se dibuja cada animación de batalla para entrar en la caja. Los

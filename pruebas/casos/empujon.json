@@ -620,20 +620,9 @@
     {"code": "ShowMessage_2", "string": "EMPUJON 0155 RENGLON 2 ................"},
     {"code": "ShowMessage_2", "string": "EMPUJON 0155 RENGLON 3 ................"},
     {"code": "ShowMessage_2", "string": "EMPUJON 0155 RENGLON 4 ................"},
-    {"code": "ShowMessage", "string": "EMPUJON 0156 RENGLON 1 ................"},
-    {"code": "ShowMessage_2", "string": "EMPUJON 0156 RENGLON 2 ................"},
-    {"code": "ShowMessage_2", "string": "EMPUJON 0156 RENGLON 3 ................"},
-    {"code": "ShowMessage_2", "string": "EMPUJON 0156 RENGLON 4 ................"},
-    {"code": "ShowMessage", "string": "EMPUJON 0157 RENGLON 1 ................"},
-    {"code": "ShowMessage_2", "string": "EMPUJON 0157 RENGLON 2 ................"},
-    {"code": "ShowMessage_2", "string": "EMPUJON 0157 RENGLON 3 ................"},
-    {"code": "ShowMessage_2", "string": "EMPUJON 0157 RENGLON 4 ................"},
-    {"code": "ShowMessage", "string": "EMPUJON 0158 RENGLON 1 ................"},
-    {"code": "ShowMessage_2", "string": "EMPUJON 0158 RENGLON 2 ................"},
-    {"code": "ShowMessage_2", "string": "EMPUJON 0158 RENGLON 3 ................"},
-    {"code": "ShowMessage_2", "string": "EMPUJON 0158 RENGLON 4 ................"},
-    {"code": "ShowMessage", "string": "EMPUJON 0160 R1 .................."},
-    {"code": "ShowMessage_2", "string": "EMPUJON 0160 R2 ................."},
-    {"code": "ShowMessage_2", "string": "EMPUJON 0160 R3 ................."}
+    {"code": "ShowMessage", "string": "EMPUJON 0160 R1 ......................."},
+    {"code": "ShowMessage_2", "string": "EMPUJON 0160 R2 ......................."},
+    {"code": "ShowMessage_2", "string": "EMPUJON 0160 R3 ......................."},
+    {"code": "ShowMessage_2", "string": "EMPUJON 0160 R4 .."}
   ]
 }

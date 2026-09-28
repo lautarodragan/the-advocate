@@ -22,6 +22,7 @@ pedido adentro de una ruta forzada del héroe, en el mapa 10.
 Corren en snes9x, como `test_msu.py`.
 """
 
+import json
 import os
 import shutil
 from array import array
@@ -295,3 +296,47 @@ def _tema(una, nombre):
                 return linea[len("; Temas: "):].strip().split(", ").index(
                     nombre)
     raise AssertionError("el musicdata.inc no dice sus temas")
+
+
+def test_con_msu_un_sonido_que_no_es_del_paquete_va_con_su_altura_de_la_rom(
+        tmp_path):
+    """La otra salida de `altura_msu`: el sonido no está en la lista del
+    paquete, y la altura queda la de `sonido_tabla`. Es `efecto-de-calidad`
+    con `PAQ_MAPA` cambiado, al llegar al 10, por un paquete cuya lista no
+    tiene a Success2 y sí algún sonido de índice mayor —para que la búsqueda
+    corte por pasar de largo y no sólo en el $FFFF—: la ROM no guarda qué
+    versión subió, así que la lista es lo único que mira."""
+    rom = tanda.cartucho(cartuchos.RELEASE)
+    with open(rom.sfc, "rb") as archivo:
+        cartucho = archivo.read()
+    with open(os.path.join(os.path.dirname(rom.sfc), "efectos.json")) as a:
+        sonidos = json.load(a)["sonidos"]
+    k = sonidos.index(["Success2", 100, 100, 50])
+
+    def palabra(donde):
+        return int.from_bytes(cartucho[donde:donde + 2], "little")
+    paq = en_la_rom(rom.simbolos["se_msu_altura_paq"])
+    alturas = en_la_rom(rom.simbolos["se_msu_altura"])
+    elegido = None
+    for p in range(rom.simbolos["PAQUETES_N"]):
+        donde, indices = alturas + palabra(paq + 2 * p), []
+        while palabra(donde) != 0xFFFF:
+            indices.append(palabra(donde))
+            donde += 4
+        if k not in indices and any(i > k for i in indices):
+            elegido = p
+            if any(i < k for i in indices):
+                break
+    assert elegido is not None, "ningún paquete sirve para la prueba"
+
+    una = _partida(tmp_path, "ajeno", "efecto-de-calidad", _msu_del_cartucho())
+    una.consola.escribir_ram(en_la_wram(rom.simbolos["PAQ_MAPA"]),
+                             elegido.to_bytes(2, "little"))
+    _muestras, _tasa, nuevo = _el_efecto(una)
+    assert _lejano(una, "MSU_SE")[0] == 1
+    fila = en_la_rom(rom.simbolos["sonido_tabla"]) + 7 * k
+    assert nuevo[1:3] == cartucho[fila + 1:fila + 3], (
+        "Success2 con el paquete %d, que no lo lleva, arrancó con la altura "
+        "%d y la de sonido_tabla es %d" % (
+            elegido, int.from_bytes(nuevo[1:3], "little"),
+            palabra(fila + 1)))

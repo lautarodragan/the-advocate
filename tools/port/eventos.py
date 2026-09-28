@@ -1025,7 +1025,7 @@ def asociaciones_de(game_maps, extra=()):
 # Dieciséis bits alcanzan porque el bloque tiene que entrar en un banco de
 # 32 KB: lo lee `lda [msg_ptr], y` con un puntero que se incrementa de a un
 # byte y **no** arrastra al byte de banco, así que `bloque()` lo emite con
-# `.bloque`, que rellena para que no cruce. Si algún día no entra, lo que hay
+# `.bloque`, que lo deja entero en un banco. Si algún día no entra, lo que hay
 # que agrandar es el puntero, no el operando.
 
 # TimerOperation. Los parámetros son (operación, de dónde salen los segundos,
@@ -1306,8 +1306,8 @@ class Mensajes:
 
     def __init__(self, paso=1):
         # De a cuántos bytes cuenta el desplazamiento que va en el bytecode.
-        # El bloque del juego va de a dos —ver MENSAJES_PASO— y cada cuadro
-        # arranca en un byte par; los demás, como el de las tropas, de a uno.
+        # El bloque del juego va de a cuatro —ver MENSAJES_PASO— y cada cuadro
+        # arranca en un múltiplo de cuatro; los demás, como el de las tropas, de a uno.
         # Adentro todo es en bytes: el paso se aplica al entrar y al salir.
         self.paso = paso
         self.datos = bytearray()
@@ -1407,13 +1407,19 @@ class Mensajes:
 CABECERA_LINEAS = 0x07
 CABECERA_AUTOCIERRE = 0x08
 
-# El desplazamiento de `OP_MESSAGE` en el bloque del juego cuenta de a dos
-# bytes, así que el bloque puede medir 128 KB con un operando de 16 bits.
-# Hizo falta cuando los textos se rearmaron para la ventana (`port/textos.py`):
-# partir cuadros suma cabeceras y largos, y el cartucho `pruebas` se pasó de
-# 64 KB por once bytes. Cuesta medio byte de relleno por cuadro, en promedio.
-# `msg_empezar` lo multiplica por dos: son los dos lados de la misma cuenta.
-MENSAJES_PASO = 2
+# El desplazamiento de `OP_MESSAGE` en el bloque del juego cuenta de a cuatro
+# bytes, así que el bloque puede medir 256 KB con un operando de 16 bits.
+# Fue de a dos desde que los textos se rearmaron para la ventana
+# (`port/textos.py`) hasta el 2026-09-27, cuando el camino principal del
+# capítulo del mundo se pasó de los 128 KB; el juego entero son unos 161 KB.
+# Cuesta un byte y medio de relleno por cuadro, en promedio, contra medio de
+# a dos: se midieron el paso 3 (la mitad de relleno, 192 KB, y una
+# multiplicación por tres en la ROM) y un operando de 24 bits (sin relleno
+# pero un byte más por cada `OP_MESSAGE`, que son más que los cuadros), y
+# ninguno ahorra lo que complica: ver `workflow/tasks/*/mundo-3-el-espacio.md`.
+# `msg_empezar` lo multiplica por cuatro, y un `.assert` de allá cobra que
+# los dos lados de la cuenta sean el mismo: `MENSAJES_TOPE`.
+MENSAJES_PASO = 4
 
 
 def mensaje_bytes(lineas, pausas=0, autocierre=False):

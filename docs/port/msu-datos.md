@@ -168,7 +168,9 @@ un efecto que está en dos paquetes va dos veces. Lo escribe `escribir_msu`
 en snes_convert.py, que también emite lo que la ROM necesita: `se_msu_paq` y
 `se_msu_filas` —dónde está cada efecto de cada paquete y cuánto mide— y
 `se_msu_altura_paq` y `se_msu_altura` —la altura de cada sonido con la
-versión de cada paquete—, y al lado un `efectos.json` legible.
+versión de cada paquete, sólo de los sonidos cuyo efecto es de ahí, y dos
+paquetes con la misma lista la comparten—, y al lado un `efectos.json`
+legible.
 
 La firma es la misma de los fondos y se mira una vez por encendido, en la
 primera carga de paquete (`se_msu_preparar`, en `rom/src/efectos_con_msu.s`).
