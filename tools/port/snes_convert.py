@@ -6073,6 +6073,14 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                                for e in enemigos_rom}
                                               - {0})])
         bytes_asm("tropa_ini", inicios, declarar=True)
+        # Qué miembros de cada tropa empiezan **ocultos** —el `invisible` de
+        # la tropa—, un bit por lugar: los aparece una página con
+        # `ShowHiddenMonster`. Es el Rat King, que llama a sus ratas. Ver
+        # `BAF_OCULTO`.
+        bytes_asm("tropa_ocultos", [
+            sum(1 << k for k, oculto in enumerate(
+                db.troops[n].ocultos[:B.ENEMIGOS_MAX]) if oculto)
+            for n in usadas], "$%02X", declarar=True)
         bytes_asm("tropa_n", [len(db.troops[n].members[:B.ENEMIGOS_MAX])
                               for n in usadas], declarar=True)
         bytes_asm("tropa_miembro", miembros, declarar=True)
@@ -6105,21 +6113,22 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write('.segment "FAR"\n')
         words_asm("tropa_pag_ini", pag_ini)
         bytes_asm("tropa_pag_n", pag_n)
-        bytes_asm("tpag_flags", [e[0] for e in entradas], "$%02X")
-        words_asm("tpag_sw_a", [e[1] for e in entradas])
-        words_asm("tpag_cod", [".loword(tropa_codigo + %d)" % e[5]
-                               for e in entradas], "%s")
+        bytes_asm("tpag_flags", [d.flags for d, _ofs in entradas], "$%02X")
+        words_asm("tpag_sw_a", [d.switch_a for d, _ofs in entradas])
+        words_asm("tpag_cod", [".loword(tropa_codigo + %d)" % ofs
+                               for _d, ofs in entradas], "%s")
         # Las tres del `switch_b` y la variable sólo si alguna página las usa:
         # los 32 sistemas de los personajes miran sólo el `switch_a`, y sin
         # ninguna la ROM no las lee nunca —el bit de `tpag_flags` está en
-        # cero—, así que alcanza con la etiqueta.
-        for nombre, k, bit in (
-                ("tpag_sw_b", 2, eventos.TROPA_DISPARO_SWITCH_B),
-                ("tpag_var", 3, eventos.TROPA_DISPARO_VARIABLE),
-                ("tpag_valor", 4, eventos.TROPA_DISPARO_VARIABLE)):
-            usa = any(e[0] & bit for e in entradas)
-            words_asm(nombre, [e[k] & 0xFFFF for e in entradas] if usa
-                      else [])
+        # cero—, así que alcanza con la etiqueta. Lo del turno y los HP no
+        # tiene tabla: va delante del código, ver `eventos.cabecera_de_tropa`.
+        for nombre, campo, bit in (
+                ("tpag_sw_b", "switch_b", eventos.TROPA_DISPARO_SWITCH_B),
+                ("tpag_var", "ranura", eventos.TROPA_DISPARO_VARIABLE),
+                ("tpag_valor", "valor", eventos.TROPA_DISPARO_VARIABLE)):
+            usa = any(d.flags & bit for d, _ofs in entradas)
+            words_asm(nombre, [getattr(d, campo) & 0xFFFF
+                               for d, _ofs in entradas] if usa else [])
         handle.write('.segment "RODATA"\n')
         handle.write(bloque("tropa_codigo", bytes(pt.cuerpos) or b"\x00")
                      + "\n")
@@ -6177,6 +6186,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             if db.enemies[e].critical_hit else 0 for e in enemigos_rom],
             declarar=True)
         words_asm("enemigo_txt", [texto_enemigo[e] for e in enemigos_rom],
+                  declarar=True)
+        # La experiencia y el oro de cada uno, que la victoria le resta a los
+        # de la tropa por cada enemigo que siguió oculto: ver `ba_sin_ocultos`.
+        words_asm("enemigo_exp", [db.enemies[e].exp for e in enemigos_rom],
+                  declarar=True)
+        words_asm("enemigo_oro", [db.enemies[e].gold for e in enemigos_rom],
                   declarar=True)
         # Lo que deja al morir: el ítem del LDB, o 0 si no deja nada, y la
         # chance en por ciento. Ver `ba_vic_botin` y `batalla.tirar_el_botin`.
@@ -6277,6 +6292,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "TPAG_SWITCH_A     = $%02X\n"
             "TPAG_SWITCH_B     = $%02X\n"
             "TPAG_VARIABLE     = $%02X\n"
+            "TPAG_TURNO        = $%02X\n"
+            "TPAG_ENEMIGO      = $%02X\n"
+            "TPAG_ACTOR        = $%02X\n"
+            "TPAG_CON_CABECERA = $%02X\n"
+            "TPAG_CABECERA     = %d\n"
             % (len(usadas), B.BATALLA_SEMILLA, texto_batalla,
                pos(P.BA_ENEMIGO_FILA0, 0), pos(P.BA_GRUPO_FILA0, 0),
                pos(P.BA_MSG_FILA1, 0), pos(P.BA_MSG_FILA2, 0), 2 * 64,
@@ -6286,7 +6306,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                pos(P.BA_PAG_MSG_FILA0, 0), P.BA_PAG_MSG_COL * 2,
                P.BA_PAG_MSG_ANCHO, eventos.TROPA_PAGINAS_MAX,
                eventos.TROPA_DISPARO_SWITCH_A, eventos.TROPA_DISPARO_SWITCH_B,
-               eventos.TROPA_DISPARO_VARIABLE))
+               eventos.TROPA_DISPARO_VARIABLE, eventos.TROPA_DISPARO_TURNO,
+               eventos.TROPA_DISPARO_ENEMIGO, eventos.TROPA_DISPARO_ACTOR,
+               eventos.TROPA_CON_CABECERA, eventos.TROPA_CABECERA_BYTES))
         # El audio: el tema de la pelea, el de la victoria y los cinco efectos,
         # con el índice que sacaron de `Temas`. $FF y $FFFF quieren decir "el
         # LDB lo tiene apagado", que es el caso de `battle_se` en este juego.
@@ -7517,11 +7539,13 @@ def main():
     # con **todas** las tropas ya pedidas: las de los mapas, las de los
     # encuentros al azar y las de las páginas de prueba. Ver
     # `eventos.PaginasDeTropa`, que es también por qué sus mensajes van a un
-    # bloque aparte.
+    # bloque aparte. Con `temas`, porque un `PlaySound` de página suena en el
+    # paquete de la pelea, que todavía no se armó: se arma más abajo.
     paginas_tropa = eventos.PaginasDeTropa()
     for numero in tropas.ids:
         if numero in renderer.database.troops:
-            paginas_tropa.compilar(numero, renderer.database.troops[numero])
+            paginas_tropa.compilar(numero, renderer.database.troops[numero],
+                                   temas)
     print("  páginas de tropa: %d de %d en %d cuerpo(s) distinto(s), %d B de "
           "código y %d B en %d mensaje(s)"
           % (paginas_tropa.paginas - paginas_tropa.afuera,

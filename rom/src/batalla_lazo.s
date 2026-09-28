@@ -342,8 +342,14 @@ del_enemigo:
 .proc ba_empezar_turno
 .a8
 .i16
-    ; `NextTurn`: con las órdenes del grupo dadas, las páginas pueden volver a
-    ; correr —`ResetPagesExecuted`—.
+    ; `NextTurn`: con las órdenes del grupo dadas, el turno sube —`IncTurns`,
+    ; que es lo que mira la condición de turno de una página— y las páginas
+    ; pueden volver a correr —`ResetPagesExecuted`—.
+    rep #$20
+.a16
+    inc BA_TURNO
+    sep #$20
+.a8
     jsr ba_pag_turno
     lda #0
     sta BA_S0
@@ -351,7 +357,8 @@ limpia:
     lda BA_S0
     jsr ba_x
     lda BA_UNO + BA_FLAGS, x
-    and #(BAF_HAY | BAF_ACTOR)   ; sin BAF_DEF: la defensa dura un turno
+    and #(BAF_HAY | BAF_ACTOR | BAF_OCULTO) ; sin BAF_DEF: la defensa dura un
+                                ; turno
     sta BA_UNO + BA_FLAGS, x
     inc BA_S0
     lda BA_S0
@@ -385,6 +392,8 @@ limpia:
     asl a
     tax
     lda f:tropa_exp, x
+    ldy #0                      ; la experiencia: ver `ba_sin_ocultos`
+    jsr ba_sin_ocultos
     sta BA_T1
     sep #$20
 .a8

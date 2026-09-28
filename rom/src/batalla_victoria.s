@@ -72,6 +72,8 @@ anotadas:
     asl a
     tax
     lda f:tropa_oro, x
+    ldy #2                      ; el oro: ver `ba_sin_ocultos`
+    jsr ba_sin_ocultos
     sta comp_or01
     sep #$20
 .a8
@@ -81,13 +83,72 @@ listo:
     rts
 .endproc
 
+; La suma de la tropa en A16 sin lo de los enemigos que siguen ocultos: una
+; victoria con alguno que nunca apareció —el Rat King que cae antes de llamar
+; a sus ratas— no da su experiencia ni su oro, porque `GetExp` y `GetMoney`
+; suman **los muertos** y un oculto no murió. Y = 0 la experiencia, 2 el oro.
+; Vuelve con A16. Se lleva `BA_T0`, `BA_T2`, X e Y.
+.proc ba_sin_ocultos
+.a16
+.i16
+    sta BA_T2
+    sep #$20
+.a8
+    stz BA_T0                   ; el lugar en la tropa
+otro:
+    lda BA_T0
+    cmp BA_NENE
+    bcs listo
+    clc
+    adc #BA_GRUPO_MAX
+    jsr ba_x
+    lda BA_UNO + BA_FLAGS, x
+    and #BAF_OCULTO
+    beq siguiente
+    lda BA_TROPA_K
+    jsr ba_ax
+    lda f:tropa_ini, x
+    clc
+    adc BA_T0
+    jsr ba_ax
+    lda f:tropa_miembro, x      ; el enemigo, como lugar en las tablas
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    cpy #0
+    bne es_oro
+    lda BA_T2
+    sec
+    sbc f:enemigo_exp, x
+    bra restado
+es_oro:
+    lda BA_T2
+    sec
+    sbc f:enemigo_oro, x
+restado:
+    sta BA_T2
+    sep #$20
+.a8
+siguiente:
+    inc BA_T0
+    bra otro
+listo:
+    rep #$20
+.a16
+    lda BA_T2
+    rts
+.endproc
+
 ; Lo que sueltan los enemigos: `Game_EnemyParty::GenerateDrops`. Por cada uno,
 ; en el orden de la tropa, si tiene ítem **tira** `ba_pct` con su chance —el de
 ; cien también, que es lo que hace `Rand::ChanceOf`—, y si sale el ítem va al
 ; inventario, topado en ITEM_MAX como `Game_Party::AddItem`, y su `k` a
 ; `BA_BOTIN_K` para que la página lo cuente. El orden de los tiros es el de
-; `batalla.tirar_el_botin`. Todos los de la tropa están muertos, que es lo que
-; pide `IsDead`. Se lleva `BA_S0` a `BA_S2`, `BA_T*`, A, X e Y.
+; `batalla.tirar_el_botin`. Todos los de la tropa están muertos —que es lo que
+; pide `IsDead`— menos los que siguen ocultos. Se lleva `BA_S0` a `BA_S2`,
+; `BA_T*`, A, X e Y.
 .proc ba_vic_botin
 .a8
 .i16
@@ -99,6 +160,17 @@ otro:
     bcc hay
     rts
 hay:
+    ; Uno que sigue oculto no murió, y `GenerateDrops` sólo tira por los
+    ; muertos: no tira.
+    lda BA_S0
+    clc
+    adc #BA_GRUPO_MAX
+    jsr ba_x
+    lda BA_UNO + BA_FLAGS, x
+    and #BAF_OCULTO
+    beq a_la_vista
+    jmp siguiente
+a_la_vista:
     ; El enemigo, como lugar en las tablas: el mismo camino que `ba_armar`.
     lda BA_TROPA_K
     jsr ba_ax
@@ -311,7 +383,9 @@ con_tropa:
     sta BA_S1                   ; el lugar de la tropa en las de palabras
     tax
     lda f:tropa_exp, x
-    sep #$20
+    ldy #0                      ; sin los que siguieron ocultos
+    jsr ba_sin_ocultos
+    sep #$20                    ; `sep` no toca Z
 .a8
     beq sin_exp
     jsr ba_vic_linea
@@ -320,6 +394,8 @@ con_tropa:
 .a16
     ldx BA_S1
     lda f:tropa_exp, x
+    ldy #0
+    jsr ba_sin_ocultos
     sta BA_T0
     sep #$20
 .a8
@@ -331,6 +407,8 @@ sin_exp:
 .a16
     ldx BA_S1
     lda f:tropa_oro, x
+    ldy #2
+    jsr ba_sin_ocultos
     sep #$20
 .a8
     beq sin_oro
@@ -344,6 +422,8 @@ sin_exp:
 .a16
     ldx BA_S1
     lda f:tropa_oro, x
+    ldy #2
+    jsr ba_sin_ocultos
     sta BA_T0
     sep #$20
 .a8

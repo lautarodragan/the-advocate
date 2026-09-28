@@ -581,7 +581,25 @@ hay_ranura_ene:
     sta BA_UNO + BA_CRIT, x
     lda BA_S1
     sta BA_UNO + BA_NUMERO, x
+    ; Oculto o no, por el bit de su lugar en `tropa_ocultos`: el `invisible`
+    ; de la tropa, que `Game_Enemy` copia en `SetHidden` al armarse.
+    phx
+    lda BA_TROPA_K
+    jsr ba_ax
+    lda f:tropa_ocultos, x
+    sta BA_T0
+    lda BA_S1
+    jsr ba_ax
+    lda f:esc_bits, x
+    and BA_T0
+    plx
+    cmp #0                      ; `plx` pisó la Z: la trampa de AGENTS.md
+    beq a_la_vista
+    lda #BAF_OCULTO
+    bra con_flags
+a_la_vista:
     lda #BAF_HAY
+con_flags:
     sta BA_UNO + BA_FLAGS, x
     ; Lo de las habilidades: los SP, el espíritu y las cuatro bases. Las usa
     ; —desde el 2026-09-27, ver `ba_accion_enemiga`— y **las recibe**: Mental
@@ -1270,6 +1288,15 @@ ordenado:
 .a8
 .i16
     sta BA_S4
+    ; Un enemigo oculto no tiene renglón hasta que aparece: en RM2k no está
+    ; en la pantalla, y acá su renglón es lo que dice que está.
+    jsr ba_x
+    lda BA_UNO + BA_FLAGS, x
+    and #BAF_OCULTO
+    beq a_la_vista
+    rts
+a_la_vista:
+    lda BA_S4
     jsr ba_vivo
     beq muerto
     lda #0

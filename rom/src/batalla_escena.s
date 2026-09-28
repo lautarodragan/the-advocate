@@ -685,7 +685,15 @@ pal_nueva:
 pal_lista:
     txa
     sta ESC_E_PAL, y
-    ; Y el bit de dibujado, que es lo que `escena_tick` mira.
+    ; Y el bit de dibujado, que es lo que `escena_tick` mira. Uno oculto no
+    ; se dibuja: lleva su paleta, y lo pone `escena_tick` cuando aparece.
+    lda ESC_E
+    clc
+    adc #BA_GRUPO_MAX
+    jsr ba_x
+    lda BA_UNO + BA_FLAGS, x
+    and #BAF_OCULTO
+    bne siguiente
     jsr esc_bit
     ora ESC_VIS
     sta ESC_VIS
@@ -747,8 +755,11 @@ poner:
     cmp BA_NENE
     bcs puestos
     jsr esc_por_orden
+    jsr esc_bit                 ; sólo los que se ven: un oculto, no
+    and ESC_VIS
+    beq :+
     jsr escena_poner
-    inc ESC_K
+:   inc ESC_K
     bra poner
 puestos:
     jsr esc_dp_devolver
@@ -1245,12 +1256,13 @@ palabra:
     rtl
 .endproc
 
-; --- borrar a un enemigo muerto ---
+; --- borrar a un enemigo muerto, y poner al que aparece ---
 ;
 ; Una vez por cuadro, desde el lazo de la pelea y **adentro del vblank**, justo
 ; después de `ba_t_subir`. Si quedaron filas de un enemigo recién borrado sin
 ; subir, sube las que entran y vuelve. Si no, busca uno muerto que todavía se
-; vea y lo borra: las celdas que tapaba vuelven a ser las del fondo limpio, se
+; vea y lo borra —o uno que apareció y no se ve, y lo pone, por el mismo
+; camino—: las celdas que tapaba vuelven a ser las del fondo limpio, se
 ; le vuelven a poner encima los que siguen vivos —recortados a esas celdas y
 ; en el orden de dibujo, para que no cambie quién tapa a quién— y queda
 ; encolado para los vblanks que siguen. Uno por cuadro: dos que mueren en el
@@ -1285,7 +1297,7 @@ otro:
     jsr esc_bit
     sta ESC_T0
     and ESC_VIS
-    beq siguiente
+    beq no_dibujado
     ; ¿Y muerto?
     lda ESC_E
     clc
@@ -1300,12 +1312,37 @@ otro:
 siguiente:
     inc ESC_E
     bra otro
+no_dibujado:
+    ; ¿Y está en la pelea? Es uno que estaba oculto y `ShowHiddenMonster`
+    ; sacó: se pone igual que se borra uno, con sus celdas rehechas desde el
+    ; fondo limpio y los que se ven encima en el orden de dibujo, y él entre
+    ; ellos. Uno sin battler no tiene nada que poner.
+    rep #$20
+.a16
+    lda ESC_E
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda ESC_E_BAT, x
+    cmp #$FF
+    beq siguiente
+    lda ESC_E
+    clc
+    adc #BA_GRUPO_MAX
+    jsr ba_vivo
+    beq siguiente
+    lda ESC_T0
+    ora ESC_VIS
+    sta ESC_VIS
+    bra repintar
 
 borrar:
     lda ESC_T0
     eor #$FF
     and ESC_VIS
     sta ESC_VIS
+repintar:
     ; El rectángulo, en tiles: las columnas que toca y las filas enteras.
     rep #$20
 .a16

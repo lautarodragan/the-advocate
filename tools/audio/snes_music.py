@@ -348,6 +348,19 @@ SE_DEL_MAPA = {
 # * el 121, que es de prueba: Earth8 le baja 25 pares.
 SE_DE_RUTA_SIN_PAQUETE = {3: None, 7: None, 14: None, 121: None}
 
+# Los efectos de las páginas de tropa —su `PlaySound`— que **sí** entran en el
+# paquete de audio de la pelea. Los demás no entran, por la misma regla de
+# taro: ningún instrumento pierde tasa por un efecto. El paquete de la pelea
+# es el tema de batalla y los efectos del sistema, y ya limita muestras:
+# medido el 2026-09-28 contra el `release` de antes, el `Thunder9` del
+# despegue de la pelea de los agentes (tropas 102 y 104) le baja a
+# `T_VGFighterMAX_Masako` seis instrumentos de 13,6-14,1 a 11,5-11,7 kHz y el
+# BRASS64 de 16,3 a 10,8. Con MSU-1 el tema suena por su pista y eso no se
+# oye, pero el efecto tampoco: los efectos de calidad del `.msu` son los del
+# paquete. Sumarlo acá lo hace sonar con los dos. Es una decisión de oído, como
+# `SE_ENTEROS_PAGADOS`: ver `workflow/tasks/*/eventos-de-tropa-de-release.md`.
+SE_DE_TROPA_AL_PAQUETE = set()
+
 # **Los temas aparte**: {id del mapa: nombres}. Un tema aparte no va con los
 # otros temas del paquete de su mapa: lo sube su `PlayBGM`, **él solo con los
 # efectos del paquete**, y lo demás se suelta hasta el próximo `PlayBGM` —ver

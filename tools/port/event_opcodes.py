@@ -56,6 +56,7 @@ OP_LOCATION      = 0x2F
 OP_MEMORIZED_BGM = 0x30
 OP_CELL_TEST     = 0x31
 OP_ENCOUNTER_STEPS = 0x32
+OP_SHOW_ENEMY    = 0x33
 
 
 # How many bytes each fixed-size instruction takes, opcode included.
@@ -107,6 +108,7 @@ OPCODE_SIZE = {
     OP_MEMORIZED_BGM: 2,
     OP_CELL_TEST: 18,
     OP_ENCOUNTER_STEPS: 11,
+    OP_SHOW_ENEMY: 2,
 }
 
 # The variable-size ones, as (base, where the count is, how big one
@@ -172,6 +174,7 @@ LAYOUT = {
     OP_MEMORIZED_BGM: (("play", 1, False),),
     OP_CELL_TEST: (("target", 1, False), ("first", 2, False), ("second", 2, False), ("left_a", 2, False), ("right_a", 2, False), ("else_a", 2, False), ("left_b", 2, False), ("right_b", 2, False), ("else_b", 2, False)),
     OP_ENCOUNTER_STEPS: (("base", 2, False), ("row_1", 1, False), ("row_2", 1, False), ("row_3", 1, False), ("row_4", 1, False), ("row_5", 1, False), ("row_6", 1, False), ("row_7", 1, False), ("pad", 1, False)),
+    OP_SHOW_ENEMY: (("member", 1, False),),
 }
 
 
