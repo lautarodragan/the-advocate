@@ -11,7 +11,9 @@ mismo: una grilla de (carácter, gris) que se pinta con las mismas celdas.
 Lo que hace cada pantalla —qué se equipa, qué suma, qué se compra— también
 vive acá, y la ROM lo copia. La geometría es nuestra: RM2k tiene estas
 pantallas en 320x240 con ventanas y la fuente a 6 pixeles; acá van en
-256x224, sobre negro y a una letra por celda. Es cosmético y está declarado.
+256x224 y a una letra por celda. Es cosmético y está declarado. El equipo
+lleva las ventanas del System en BG1, como la pantalla de ítems —ver
+`ventanas_equipo`—; la tienda todavía va sobre negro.
 """
 
 from port import titulo
@@ -21,10 +23,12 @@ FILAS, COLS = 28, 32
 
 
 class Texto:
-    """La pantalla como grilla de celdas, como la arma la ROM."""
+    """La pantalla como grilla de celdas, como la arma la ROM. `ventanas`, si
+    está, es lo que dibuja BG1 debajo del texto: ver `ventanas_equipo`."""
 
     def __init__(self):
         self.celdas = {}
+        self.ventanas = None
 
     def escribir(self, fila, col, texto, gris=0):
         for n, c in enumerate(texto):
@@ -39,6 +43,9 @@ class Texto:
         from PIL import Image
         tiles, paletas, glifos = titulo.pantalla_items(sys_img, font_id)
         fuera = Image.new("RGB", (titulo.ANCHO, titulo.ALTO), (0, 0, 0))
+        if self.ventanas is not None:
+            ventanas = self.ventanas(sys_img)
+            fuera.paste(ventanas, (0, 0), ventanas)
         pegar = titulo._pintor(fuera, tiles, paletas)
         for (fila, col), (c, gris) in self.celdas.items():
             pegar(glifos[gris][c], fila, col, 1)
@@ -59,20 +66,94 @@ def descripcion(pantalla, texto):
 # con los parámetros que quedarían. RM2k muestra la ranura y la lista a la vez;
 # acá la lista **reemplaza** a las ranuras mientras se elige. Al final de la
 # lista hay una línea vacía, que es sacarse lo que tiene: es lo de RM2k.
+#
+# Las ventanas son las del System, en BG1 detrás del texto, como en la
+# pantalla de ítems —ver `titulo.ITEM_VENTANAS`—, y el cursor es su barra roja.
+# RM2k tiene cuatro: la ayuda arriba, el actor con sus parámetros a la
+# izquierda y las ranuras a la derecha, y la lista abajo en dos columnas. Acá
+# el actor y las ranuras no entran lado a lado: con letras de 8 pixeles los
+# parámetros con el valor que quedaría son quince celdas y una ranura con lo
+# que tiene son veintinueve, y la pantalla tiene treinta y dos. Así que van
+# **tres, una debajo de la otra**: la ayuda, igual que la de ítems; la del
+# actor, con los parámetros en una columna como RM2k y el nombre a la derecha;
+# y la de abajo, que muestra las ranuras o la lista. La lista va en una
+# columna, por lo mismo que la de ítems.
 RANURAS_EQUIPO = 5              # arma, escudo, armadura, casco, accesorio
 EQ_ARMA, EQ_ESCUDO = 0, 1
-EQ_ACTOR_FILA = 6
-EQ_PARAMS = ((8, 1), (8, 17), (10, 1), (10, 17))
-EQ_PARAM_VALOR = 8              # el valor, tres cifras desde acá
-EQ_PARAM_FLECHA = 11            # ">" y el valor nuevo, en la elección
-EQ_RANURA_FILA0 = 12
-EQ_RANURA_TERM_COL = 3
-EQ_RANURA_NOMBRE_COL = 14
-EQ_RANURA_NOMBRE_ANCHO = 18
-EQ_LISTA_FILA0 = 12
-EQ_LISTA_FILAS = 8              # 12 + 8 * 2 = 28
+EQ_ESTADO_Y = titulo.ITEM_AYUDA_ALTO
+EQ_ABAJO_Y = 128                # cuatro parámetros de 16, y el aire de RM2k
+EQ_VENTANAS = ((0, 0, titulo.ANCHO, titulo.ITEM_AYUDA_ALTO),
+               (0, EQ_ESTADO_Y, titulo.ANCHO, EQ_ABAJO_Y - EQ_ESTADO_Y),
+               (0, EQ_ABAJO_Y, titulo.ANCHO, titulo.ALTO - EQ_ABAJO_Y))
+EQ_ACTOR_FILA = EQ_ESTADO_Y // titulo.CELL + 1
+EQ_ACTOR_COL = 19              # dos celdas de aire, y doce letras hasta la 30
+EQ_PARAMS = tuple((EQ_ACTOR_FILA + 2 * n, 1) for n in range(4))
+EQ_PARAM_VALOR = 9              # el valor, tres cifras desde acá, con aire
+EQ_PARAM_FLECHA = 12            # ">" y el valor nuevo, en la elección
+EQ_RANURA_FILA0 = EQ_ABAJO_Y // titulo.CELL + 1
+# Las tres ventanas arrancan su texto en la misma columna, la de los
+# parámetros: los términos de las ranuras debajo de los de los parámetros, y
+# los nombres de la lista debajo de ellos. Lo pidió taro el 2026-09-28, al ver
+# las ranuras corridas una celda —la columna 2 salía de hacer coincidir la
+# punta de la barra con la de ítems, no de nada que se viera—.
+EQ_TEXTO_COL = EQ_PARAMS[0][1]
+# El término y lo puesto van pegados, sin una celda en el medio: así los pone
+# RM2k —"Right HandModified Blaster-R"— y así entra el nombre más largo antes
+# de donde termina la barra, que es donde termina la de ítems.
+EQ_RANURA_TERM_COL = EQ_TEXTO_COL
+EQ_RANURA_TERM_ANCHO = 10       # "Right Hand"
+EQ_RANURA_NOMBRE_COL = EQ_RANURA_TERM_COL + EQ_RANURA_TERM_ANCHO
+EQ_RANURA_NOMBRE_ANCHO = 19     # hasta la columna 29, como la cuenta de ítems
+EQ_LISTA_FILA0 = EQ_RANURA_FILA0
+EQ_LISTA_FILAS = 5              # 17 + 5 * 2 = 27: el marco de abajo
+# La lista, con los nombres en esa columna y no en la de ítems —que es la de
+# la tienda—; los dos puntos y la cuenta, en las de ítems.
+EQ_LISTA_NOMBRE_COL = EQ_TEXTO_COL
+# El ">" de la tienda, que todavía no tiene ventanas: el equipo ya no lo usa.
 EQ_CURSOR_COL = 1
+# Las barras, cuatro pixeles más anchas que el texto de cada lado, como en
+# ítems: la de las ranuras sobre el término y lo puesto, que es lo que marca
+# RM2k, y la de la lista sobre el nombre y la cuenta. Con el texto en la misma
+# columna son la misma barra, y termina donde la de ítems.
+EQ_BARRA_RANURA = (EQ_TEXTO_COL * titulo.CELL - 4,
+                   (titulo.ITEM_CIFRAS_COL + 2 - EQ_TEXTO_COL) * titulo.CELL
+                   + 8)
+EQ_BARRA_LISTA = EQ_BARRA_RANURA
 PARAM_MAX = 999
+
+
+def ventanas_equipo(sys_img, barra=None):
+    """Las ventanas de la pantalla de equipo, en RGBA y del tamaño de la
+    pantalla: lo que dibuja BG1. `barra` es el cursor: el número de ranura, o
+    `RANURAS_EQUIPO` más la fila de la lista que se ve."""
+    from PIL import Image
+    from port import ventana as ventana_mod
+    fuera = Image.new("RGBA", (titulo.ANCHO, titulo.ALTO), (0, 0, 0, 0))
+    for x, y, ancho, alto in EQ_VENTANAS:
+        una = ventana_mod.ventana(sys_img, ancho, alto)
+        fuera.paste(una, (x, y), una)
+    if barra is not None:
+        x, ancho = (EQ_BARRA_RANURA if barra < RANURAS_EQUIPO
+                    else EQ_BARRA_LISTA)
+        una = ventana_mod.cursor(sys_img, ancho, 2 * titulo.CELL)
+        fuera.paste(una, (x, fila_de_barra(barra) * titulo.CELL), una)
+    return fuera
+
+
+def fila_de_barra(barra):
+    """La primera fila de celdas del cursor `barra` de `ventanas_equipo`."""
+    if barra < RANURAS_EQUIPO:
+        return EQ_RANURA_FILA0 + 2 * barra
+    return EQ_LISTA_FILA0 + 2 * (barra - RANURAS_EQUIPO)
+
+
+def capas_equipo(sys_img):
+    """Lo que `titulo.marcos` necesita de esta pantalla: las ventanas sin
+    cursor y con cada cursor —las ranuras y después las filas de la lista—,
+    en el orden en que la ROM los indexa: ver `eq_barra`."""
+    return (ventanas_equipo(sys_img),
+            [(ventanas_equipo(sys_img, k), fila_de_barra(k))
+             for k in range(RANURAS_EQUIPO + EQ_LISTA_FILAS)])
 
 
 def color_del_valor_nuevo(ahora, luego):
@@ -138,8 +219,10 @@ def pantalla_equipo(db, actor, equipo, inventario, ranura, eligiendo=False,
     """El equipo del actor: con `eligiendo`, la lista de la ranura con el
     cursor en `elegido` y el primero que se ve en `arriba`."""
     t = Texto()
-    t.escribir(EQ_ACTOR_FILA, 1, db.actors[actor].name)
+    t.escribir(EQ_ACTOR_FILA, EQ_ACTOR_COL, db.actors[actor].name)
     lista = candidatos(db, actor, ranura, inventario, items_rom)
+    barra = RANURAS_EQUIPO + elegido - arriba if eligiendo else ranura
+    t.ventanas = lambda sys_img: ventanas_equipo(sys_img, barra)
     ahora = parametros(db, actor, equipo)
     luego = None
     if eligiendo:
@@ -152,20 +235,19 @@ def pantalla_equipo(db, actor, equipo, inventario, ranura, eligiendo=False,
     elif equipo[ranura]:
         descripcion(t, db.items[equipo[ranura]].description)
     for n, (fila, col) in enumerate(EQ_PARAMS):
-        t.escribir(fila, col, db.term_params[n][:EQ_PARAM_VALOR - 1])
+        t.escribir(fila, col, db.term_params[n][:EQ_PARAM_VALOR - 1],
+                   titulo.ITEM_ROJO)
         t.numero(fila, col + EQ_PARAM_VALOR, ahora[n], 3)
         if luego is not None:
-            t.escribir(fila, col + EQ_PARAM_FLECHA, ">")
+            t.escribir(fila, col + EQ_PARAM_FLECHA, ">", titulo.ITEM_ROJO)
             t.numero(fila, col + EQ_PARAM_FLECHA + 1, luego[n], 3,
                      color_del_valor_nuevo(ahora[n], luego[n]))
     if not eligiendo:
         for r in range(RANURAS_EQUIPO):
             fila = EQ_RANURA_FILA0 + 2 * r
-            if r == ranura:
-                t.escribir(fila, EQ_CURSOR_COL, ">")
             t.escribir(fila, EQ_RANURA_TERM_COL,
-                       db.term_equipo[r][:EQ_RANURA_NOMBRE_COL
-                                         - EQ_RANURA_TERM_COL - 1])
+                       db.term_equipo[r][:EQ_RANURA_TERM_ANCHO],
+                       titulo.ITEM_ROJO)
             if equipo[r]:
                 t.escribir(fila, EQ_RANURA_NOMBRE_COL, titulo.texto_de_item(
                     db.items[equipo[r]].name, EQ_RANURA_NOMBRE_ANCHO))
@@ -175,10 +257,8 @@ def pantalla_equipo(db, actor, equipo, inventario, ranura, eligiendo=False,
         if k >= len(lista):
             break
         fila = EQ_LISTA_FILA0 + 2 * f
-        if k == elegido:
-            t.escribir(fila, EQ_CURSOR_COL, ">")
         if lista[k]:
-            t.escribir(fila, titulo.ITEM_NOMBRE_COL, titulo.texto_de_item(
+            t.escribir(fila, EQ_LISTA_NOMBRE_COL, titulo.texto_de_item(
                 db.items[lista[k]].name, titulo.ITEM_NOMBRE_ANCHO))
             t.escribir(fila, titulo.ITEM_DOS_PUNTOS_COL,
                        ":%2d" % min(inventario[lista[k]], 99))

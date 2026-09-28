@@ -2468,7 +2468,7 @@ def _controlar_ranuras(ranura_tiles):
 
 
 def items_marco_primero(fuente):
-    """El primer tile de 8bpp de las ventanas de la pantalla de ítems, contado
+    """El primer tile de 8bpp de las ventanas de ítems y de equipo, contado
     desde `RANURA_VRAM`, que es la base de BG1 y la de BG2: el primero libre
     detrás de los `fuente` tiles de la fuente, que son de 4bpp y miden la
     mitad."""
@@ -2476,14 +2476,14 @@ def items_marco_primero(fuente):
 
 
 def _controlar_marco_de_items(fuente, marco):
-    """Que la fuente y las ventanas de la pantalla de ítems, una detrás de la
-    otra, no lleguen al tilemap de BG1, y que todo quede en el banco de BG1 de
+    """Que la fuente y las ventanas de las pantallas de ítems y de equipo, una
+    detrás de la otra, no lleguen al tilemap de BG1, y que todo quede en el banco de BG1 de
     los repartos, como el resto de la pantalla —ver `_controlar_ranuras`—."""
     fin = RANURA_VRAM + (items_marco_primero(fuente) + marco) * 32
     if fin > titulo_mod.ITEM_MARCO_MAPA:
         raise SystemExit(
-            "la fuente de la pantalla de ítems (%d tiles de 4bpp) y sus "
-            "ventanas (%d de 8bpp) llegan a $%04X y el tilemap de las ventanas "
+            "la fuente de la pantalla de ítems (%d tiles de 4bpp) y las "
+            "ventanas de ítems y equipo (%d de 8bpp) llegan a $%04X y el tilemap de las ventanas "
             "está en $%04X" % (fuente, marco, fin, titulo_mod.ITEM_MARCO_MAPA))
     fin_map = titulo_mod.ITEM_MARCO_MAPA + 32 * 32
     for nombre, layout in LAYOUTS:
@@ -2491,7 +2491,7 @@ def _controlar_marco_de_items(fuente, marco):
         tope = base + cuantos * (BYTES_PER_TILE // 2)
         if RANURA_VRAM < base or fin_map > tope:
             raise SystemExit(
-                "las ventanas de la pantalla de ítems llegan a $%04X y el banco "
+                "las ventanas de ítems y equipo llegan a $%04X y el banco "
                 "de BG1 de LAYOUT_%s es $%04X..$%04X" % (fin_map, nombre, base,
                                                           tope))
 
@@ -5369,18 +5369,21 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                                        - len(paleta)))
 
         # Las dos primeras, que suben con el banco en todas las pantallas que
-        # lo usan; la de "sube" va aparte y la sube sólo la de equipo, porque
-        # en la pelea las entradas de la tercera paleta son las del fondo
-        # —`escena.CGRAM_BASE`— y subirla ahí no le serviría a nadie.
+        # lo usan; la de "sube" y la roja van aparte y las sube sólo la de
+        # equipo, porque en la pelea las entradas de la tercera paleta en
+        # adelante son las del fondo —`escena.CGRAM_BASE`— y subirlas ahí no
+        # le serviría a nadie.
         handle.write(bloque("items_cgram", paletas_cgram(
             ranuras["items_paletas"][:titulo_mod.ITEM_SUBE])) + "\n")
         handle.write(bloque("item_cgram_sube", paletas_cgram(
             ranuras["items_paletas"][titulo_mod.ITEM_SUBE:])) + "\n")
-        # Las ventanas de la pantalla de ítems, en BG1: ver `ITEM_VENTANAS`.
-        # El tilemap va sin las filas de abajo que la pantalla no muestra, y
-        # el cursor como las dos filas de celdas de cada fila de la lista, que
-        # la ROM copia encima: 128 bytes por fila.
-        marco_tiles, marco_mapa, marco_barras, marco_colores = \
+        # Las ventanas de las pantallas de ítems y de equipo, en BG1: ver
+        # `ITEM_VENTANAS` y `pantallas.EQ_VENTANAS`. Los tiles y los colores
+        # son los mismos para las dos. Cada tilemap va sin las filas de abajo
+        # que la pantalla no muestra, y cada cursor como las dos filas de
+        # celdas que ocupa, que la ROM copia encima: 128 bytes.
+        marco_tiles, marco_colores, ((marco_mapa, marco_barras),
+                                     (eq_mapa, eq_barras)) = \
             ranuras["items_marco"]
         handle.write(bloque("items_marco_tiles", b"".join(
             pack_tile(celda, planes=8) for celda in marco_tiles)) + "\n")
@@ -5388,6 +5391,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             palabra.to_bytes(2, "little") for palabra in marco_mapa)) + "\n")
         handle.write(bloque("items_marco_barras", b"".join(
             palabra.to_bytes(2, "little") for barra in marco_barras
+            for palabra in barra)) + "\n")
+        handle.write(bloque("eq_marco_mapa", b"".join(
+            palabra.to_bytes(2, "little") for palabra in eq_mapa)) + "\n")
+        handle.write(bloque("eq_marco_barras", b"".join(
+            palabra.to_bytes(2, "little") for barra in eq_barras
             for palabra in barra)) + "\n")
         handle.write(bloque("items_marco_cgram", b"".join(
             cgram_word(c).to_bytes(2, "little")
@@ -5454,8 +5462,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         db = ranuras["db"]
         texto_param = [texto_nuevo(t[:P.EQ_PARAM_VALOR - 1])
                        for t in db.term_params]
-        texto_ranura = [texto_nuevo(t[:P.EQ_RANURA_NOMBRE_COL
-                                      - P.EQ_RANURA_TERM_COL - 1])
+        texto_ranura = [texto_nuevo(t[:P.EQ_RANURA_TERM_ANCHO])
                         for t in db.term_equipo]
         texto_actor = {a: texto_nuevo(db.actors[a].name)
                        for a in ranuras["actores"]}
@@ -5958,12 +5965,21 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                pos(P.TI_LISTA_FILA0, 0), P.TI_LISTA_FILAS,
                P.TI_PRECIO_COL * 2, P.TI_CUANTOS_COL * 2,
                pos(P.TI_TOTAL_FILA, P.TI_ORO_COL)))
+        # `eq_barra` cuenta las filas de las ranuras y las de la lista desde
+        # la misma: son la misma ventana.
+        if P.EQ_LISTA_FILA0 != P.EQ_RANURA_FILA0:
+            raise SystemExit("la lista del equipo arranca en la fila %d y las "
+                             "ranuras en la %d" % (P.EQ_LISTA_FILA0,
+                                                   P.EQ_RANURA_FILA0))
         handle.write(
             "ACTORES_N         = %d\n"
             "RANURAS_EQUIPO    = %d\n"
             "EQ_TEXTO_PARAM    = %d\n"
             "EQ_TEXTO_RANURA   = %d\n"
             "EQ_ACTOR_POS      = %d\n"
+            "EQ_BARRA_FILA0    = %d\n"
+            "EQ_MARCO_TEXTO    = %d\n"
+            "EQ_MARCO_TEXTO_N  = %d\n"
             "EQ_PARAM_VALOR    = %d\n"
             "EQ_PARAM_FLECHA   = %d\n"
             "EQ_RANURA_POS0    = %d\n"
@@ -5973,15 +5989,20 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "EQ_LISTA_POS0     = %d\n"
             "EQ_LISTA_FILAS    = %d\n"
             "EQ_CURSOR         = %d\n"
+            "EQ_LISTA_NOMBRE   = %d\n"
             "PANT_NOMBRE       = %d\n"
             "PANT_DOS_PUNTOS   = %d\n"
             "PANT_DESC_POS     = %d\n"
             % (actores_n, P.RANURAS_EQUIPO, texto_param[0], texto_ranura[0],
-               pos(P.EQ_ACTOR_FILA, 1), P.EQ_PARAM_VALOR * 2,
+               pos(P.EQ_ACTOR_FILA, P.EQ_ACTOR_COL), P.EQ_RANURA_FILA0,
+               P.EQ_RANURA_FILA0,
+               max(P.RANURAS_EQUIPO, P.EQ_LISTA_FILAS) * 2,
+               P.EQ_PARAM_VALOR * 2,
                P.EQ_PARAM_FLECHA * 2, pos(P.EQ_RANURA_FILA0, 0),
                P.EQ_RANURA_TERM_COL * 2, P.EQ_RANURA_NOMBRE_COL * 2,
                P.EQ_RANURA_NOMBRE_ANCHO, pos(P.EQ_LISTA_FILA0, 0),
                P.EQ_LISTA_FILAS, P.EQ_CURSOR_COL * 2,
+               P.EQ_LISTA_NOMBRE_COL * 2,
                T.ITEM_NOMBRE_COL * 2, T.ITEM_DOS_PUNTOS_COL * 2,
                pos(T.ITEM_DESC_Y // T.CELL, T.ITEM_DESC_COL)))
         # --- la batalla ---
@@ -6538,10 +6559,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # las celdas vacías tampoco, porque sus pixeles son transparentes.
         # La variante de "sube" trae sólo las cifras; las demás letras caen en
         # las blancas, que nadie pide en ese color pero así la tabla se indexa
-        # igual que las otras dos.
+        # igual que las otras.
         words_asm("item_glifo_celdas", [
             entry(celda, False, False, priority=1)
-            for gris in (T.ITEM_BLANCO, T.ITEM_GRIS, T.ITEM_SUBE)
+            for gris in (T.ITEM_BLANCO, T.ITEM_GRIS, T.ITEM_SUBE,
+                         T.ITEM_ROJO)
             for n in range(T.ITEM_CARACTERES)
             for celda in glifos[gris].get(
                 chr(T.ITEM_PRIMER_CARACTER + n),
@@ -7570,8 +7592,11 @@ def main():
         miembros, args.game_dir)
     items_tiles, items_paletas, items_glifos = titulo_mod.pantalla_items(
         skin, renderer.database.font_id)
-    items_marco = titulo_mod.marco_items(
-        skin, items_marco_primero(len(items_tiles)))
+    # Las ventanas de ítems y de equipo comparten tiles y colores: ver
+    # `titulo.marcos`.
+    items_marco = titulo_mod.marcos(
+        skin, items_marco_primero(len(items_tiles)),
+        [titulo_mod.capas_items(skin), pantallas_mod.capas_equipo(skin)])
     _controlar_marco_de_items(len(items_tiles), len(items_marco[0]))
     # Los tiles de la pantalla de End Game van donde los de las ranuras, así
     # que lo que se controla es lo mismo.

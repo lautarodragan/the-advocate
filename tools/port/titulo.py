@@ -763,12 +763,19 @@ ITEM_DOS_PUNTOS_COL = 27
 ITEM_CIFRAS_COL = 28            # dos cifras, 28 y 29
 ITEM_PRIMER_CARACTER = 32       # los que tiene la fuente: del espacio
 ITEM_CARACTERES = 95            # a la tilde, que es lo que usan los ítems
-# Las variantes de la fuente: el índice es lo que la ROM lleva en `temp + 1`.
-# La 2 es el color 2 del sistema, el de "sube" de `Window_EquipStatus`, y la
-# usa sólo la pantalla de equipo para el valor nuevo de un parámetro, así que
-# trae **sólo las cifras**: la fuente entera en un color más eran unos 150
-# tiles, y el banco de la pelea no los tiene —ver `ITEMS_TILES_MAX`—.
-ITEM_BLANCO, ITEM_GRIS, ITEM_SUBE = range(3)
+# Las variantes de la fuente: el índice es lo que la ROM lleva en `temp + 1`,
+# y también su paleta. La 2 es el color 2 del sistema, el de "sube" de
+# `Window_EquipStatus`, y la usa sólo la pantalla de equipo para el valor
+# nuevo de un parámetro, así que trae **sólo las cifras**: la fuente entera en
+# un color más eran unos 150 tiles, y el banco de la pelea no los tiene —ver
+# `ITEMS_TILES_MAX`—. La 3 es el color 1, el rojo de los términos de
+# `Window_EquipStatus` y `Window_EquipLeft`, y ésa sí va **entera**: medido el
+# 2026-09-28, la fuente en ese color son diez tiles más y no ciento y pico,
+# porque los tiles se deduplican por índice y el degradé del rojo cae en los
+# mismos índices que el del blanco. Sólo las letras de los términos eran
+# treinta y cinco: con menos letras el orden de la paleta —por frecuencia— sale
+# otro y ya no coincide.
+ITEM_BLANCO, ITEM_GRIS, ITEM_SUBE, ITEM_ROJO = range(4)
 ITEM_SUBE_CARACTERES = "0123456789 "
 # Hasta dónde puede crecer el banco de la fuente: la pelea lo sube y después
 # escribe el tilemap de su escena en la palabra $3800 de la VRAM, que es el
@@ -788,13 +795,13 @@ ITEMS_TILES_MAX = (0x3800 - 0x2000) // 16
 # ya llevan el bit de prioridad —ver `item_glifo_celdas` en el conversor—, así
 # que el texto queda arriba de la franja del fondo que lo cruza, como en RM2k.
 # En 8bpp un pixel es directamente su entrada de CGRAM: los colores del marco
-# van desde `ITEM_MARCO_CGRAM`, después de las tres paletas del texto, y el
+# van desde `ITEM_MARCO_CGRAM`, después de las cuatro paletas del texto, y el
 # negro es el 0, el transparente, que deja ver el color de fondo, que es
 # negro.
 ITEM_AYUDA_ALTO = 48
 ITEM_VENTANAS = ((0, 0, ANCHO, ITEM_AYUDA_ALTO),
                  (0, ITEM_AYUDA_ALTO, ANCHO, ALTO - ITEM_AYUDA_ALTO))
-ITEM_MARCO_CGRAM = 3 * MENU_CGRAM
+ITEM_MARCO_CGRAM = 4 * MENU_CGRAM
 # Los tiles del marco van en el banco de la fuente, detrás de ella: la base de
 # BG1 es la misma que la de BG2, y un tile de 8bpp mide lo que dos de 4bpp.
 # Todo tiene que caber antes del tilemap de BG1, que va en $3800 —donde la
@@ -822,23 +829,40 @@ def ventanas_items(sys_img, barra=None):
     return fuera
 
 
-def marco_items(sys_img, primer_tile):
-    """Las ventanas de `ventanas_items` como las sube la ROM: tiles de 8bpp,
-    el tilemap de 32x28, el cursor y los colores.
+def capas_items(sys_img):
+    """Lo que `marcos` necesita de la pantalla de ítems: las ventanas sin
+    cursor, y con el cursor en cada fila de la lista junto con la primera
+    fila de celdas que ocupa."""
+    return (ventanas_items(sys_img),
+            [(ventanas_items(sys_img, k), ITEM_LISTA_Y // CELL + 2 * k)
+             for k in range(ITEM_FILAS)])
+
+
+def marcos(sys_img, primer_tile, pantallas):
+    """Las ventanas de varias pantallas como las sube la ROM: tiles de 8bpp,
+    un tilemap de 32x28 por pantalla, sus cursores y los colores.
+
+    `pantallas` es una lista de `(ventanas, barras)`, como las da
+    `capas_items`: la imagen del tamaño de la pantalla sin cursor, y la de
+    cada lugar del cursor con la primera fila de celdas que ocupa. Los tiles y
+    los colores son **uno solo para todas**: las pantallas no están abiertas a
+    la vez y suben sus tiles al mismo lugar de la VRAM, así que cada una sube
+    el juego entero y el tilemap de cada una lo indexa igual.
 
     `primer_tile` es el número de tile de 8bpp del primero, contado desde la
-    base de BG1. Devuelve `(tiles, mapa, barras, colores)`: `tiles[i][y][x]`
-    es la entrada de CGRAM de ese pixel; `mapa` las palabras del tilemap fila
-    por fila; `barras[k]` las dos filas de celdas de la fila `k` de la lista
-    con el cursor encima, que es lo que la ROM copia sobre `mapa` para
-    pintarlo; y `colores` los de 15 bits desde `ITEM_MARCO_CGRAM`.
+    base de BG1. Devuelve `(tiles, colores, mapas)`: `tiles[i][y][x]` es la
+    entrada de CGRAM de ese pixel; `colores` los de 15 bits desde
+    `ITEM_MARCO_CGRAM`; y `mapas[p]` es `(mapa, barras)` de la pantalla `p`,
+    con `mapa` las palabras del tilemap fila por fila y `barras[k]` las dos
+    filas de celdas del cursor `k` con el cursor encima, que es lo que la ROM
+    copia sobre `mapa` para pintarlo.
 
     Los tiles se deduplican también espejados, con los bits de volteo del
     tilemap: el marco es simétrico, y sin eso las ventanas y el cursor no
     entraban en lo que queda de VRAM —ver `_controlar_marco_de_items`—.
     """
-    imagenes = [ventanas_items(sys_img)] + [
-        ventanas_items(sys_img, k) for k in range(ITEM_FILAS)]
+    imagenes = [imagen for fondo, barras in pantallas
+                for imagen in [fondo] + [b for b, _ in barras]]
     cuenta = collections.Counter()
     for imagen in imagenes:
         pixeles = numpy.asarray(imagen).reshape(-1, 4)
@@ -848,8 +872,8 @@ def marco_items(sys_img, primer_tile):
                 cuenta[(r, g, b)] += 1
     colores = sorted(cuenta, key=lambda c: (-cuenta[c], c))
     if ITEM_MARCO_CGRAM + len(colores) > 256:
-        raise SystemExit("las ventanas de los ítems usan %d colores"
-                         % len(colores))
+        raise SystemExit("las ventanas de los ítems y del equipo usan %d "
+                         "colores" % len(colores))
     indice = {c: ITEM_MARCO_CGRAM + i for i, c in enumerate(colores)}
     vacio = tuple(tuple([0] * CELL) for _ in range(CELL))
     tiles, donde = [vacio], {vacio: 0}
@@ -882,12 +906,12 @@ def marco_items(sys_img, primer_tile):
                     salida.append(primer_tile + donde[celda])
         return salida
 
-    mapa = palabras(imagenes[0], range(FILAS))
-    barras = []
-    for k, imagen in enumerate(imagenes[1:]):
-        fila0 = ITEM_LISTA_Y // CELL + 2 * k
-        barras.append(palabras(imagen, (fila0, fila0 + 1)))
-    return tiles, mapa, barras, colores
+    mapas = []
+    for fondo, barras in pantallas:
+        mapas.append((palabras(fondo, range(FILAS)),
+                      [palabras(imagen, (fila0, fila0 + 1))
+                       for imagen, fila0 in barras]))
+    return tiles, colores, mapas
 
 
 def item_usable(item):
@@ -938,19 +962,19 @@ def lista_de_items(items, inventario):
 
 def pantalla_items(sys_img, font_id=None):
     """El banco de la pantalla de ítems: cada carácter de la fuente en dos
-    celdas, una arriba de la otra, en blanco y en gris, y las cifras además en
-    el color de "sube" —ver `ITEM_SUBE`—.
+    celdas, una arriba de la otra, en blanco, en gris y en rojo, y las cifras
+    además en el color de "sube" —ver `ITEM_SUBE`—.
 
     Devuelve `(tiles, paletas, glifos)`: `paletas[v]` y `glifos[v][caracter]`
     —las dos palabras del tilemap— por variante: 0 el texto, 1 el gris, 2 el
-    de "sube", que sólo tiene `ITEM_SUBE_CARACTERES`. El espacio son dos
-    celdas en blanco: es el que borra el cursor.
+    de "sube", que sólo tiene `ITEM_SUBE_CARACTERES`, y 3 el rojo. El espacio
+    son dos celdas en blanco: es el que borra el cursor.
     """
     from PIL import Image
     from port import ventana as ventana_mod
-    colores = {ITEM_BLANCO: 0, ITEM_GRIS: 3, ITEM_SUBE: 2}
+    colores = {ITEM_BLANCO: 0, ITEM_GRIS: 3, ITEM_SUBE: 2, ITEM_ROJO: 1}
     capas = []
-    for gris in (ITEM_BLANCO, ITEM_GRIS, ITEM_SUBE):
+    for gris in (ITEM_BLANCO, ITEM_GRIS, ITEM_SUBE, ITEM_ROJO):
         for n in range(ITEM_CARACTERES):
             c = chr(ITEM_PRIMER_CARACTER + n)
             if gris == ITEM_SUBE and c not in ITEM_SUBE_CARACTERES:
