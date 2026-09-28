@@ -5291,6 +5291,18 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                 codigo = compilar_pagina(page, indice_de_mapa, mensajes,
                                          del_mapa.para(event.id), temas,
                                          graficos, imagenes, tropas)
+                # **Y lo mismo con una que compila a nada**: todo lo suyo eran
+                # llamadas que se saltearon —ver `_compilar_llamada`—. En RM2k
+                # no está vacía, y lo que llama es lo que la apaga; acá sería
+                # la página vacía de arriba, con el mapa congelado. Es el
+                # `AfterBattleMint` de los mapas con encuentros: con el switch
+                # 498, que prende la página de turno 0 de cada tropa, llama al
+                # común 35, `ResetAfterBattles`, que no compila y es el que
+                # apaga el 498. Sin esto, la primera pelea de esos mapas
+                # dejaba al héroe sin poder dar un paso.
+                if codigo == bytes([OP_DONE]) and page.trigger in (
+                        TRIGGER_AUTOMATICO, TRIGGER_PARALELO):
+                    codigo = None
             grupo.append({
                 "evento": numero_evento,
                 "pagina": numero_pagina,
