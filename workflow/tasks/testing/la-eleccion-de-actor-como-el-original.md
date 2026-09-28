@@ -59,16 +59,22 @@ tenía con qué escribir el nombre del ítem.
   fuente: a ocho, sus once letras llenaban la ventana y no quedaba lugar para
   la cantidad, y en BG2 no hay paleta libre para el rojo. La cantidad va con
   los glifos, en dos cifras, y se repinta después de usar el ítem.
-- **La barra** sobre las tres líneas del actor, de x = 148 al borde, como en
-  RM2k. Moverla es copiar las siete filas de celdas de BG1 de la fila, del
-  tilemap con la barra o del de sin barra: 448 bytes por DMA.
+- **La barra** sobre las tres líneas del actor, de x = 148 al borde, con el
+  sprite afuera, como en RM2k. Moverla es copiar el rectángulo de BG1 donde
+  cambia algo —6 filas por 14 columnas de celdas—, del juego de barras o del
+  tilemap: un DMA de 28 bytes por fila de celdas.
+- **Un solo tilemap y lo justo de barra y de nombres** (`d9645920`): el de
+  elegir a quién equipar es el mismo con las 10 x 13 celdas de la izquierda
+  borradas al subirlo, la barra se guarda sólo en su rectángulo, y los
+  nombres sólo para las medicinas, con una tabla de un byte por ítem que dice
+  cuál es. `objetivo_compacto` comprueba al convertir que las dos primeras
+  cosas valgan.
 - **El banco del menú lleva el bit de prioridad**, como los glifos de ítems:
   en modo 3, BG1 de prioridad 0 queda arriba de BG2 de prioridad 0 y la barra
   habría tapado la fila. En las otras pantallas del banco BG1 está apagado y
   no cambia un pixel: ninguna golden del menú ni de las ranuras cambió.
 - **Para elegir a quién equipar**, la misma pantalla sin las dos ventanas de
-  la izquierda: no hay ítem. En RM2k ese cursor está en el menú mismo; acá ya
-  era esta pantalla, y sigue siéndolo.
+  la izquierda: no hay ítem.
 - El código nuevo va en el banco 1 (`eleccion_de_actor.s`); el banco 0
   **ganó** bytes, porque el ">" se escribía desde ahí.
 
@@ -86,9 +92,10 @@ tenía con qué escribir el nombre del ítem.
   declarado en el menú.
 - **`entire_party`**: la ROM no lo lee, y marca una fila sola. En el juego lo
   tiene una medicina, el Pocket Shelter (8).
-- La tabla de nombres va por `k` de todos los ítems, con los que no son
-  medicinas en blanco: 22 bytes por ítem, que en `release` son unos 3 KB de
-  datos que se podrían ahorrar indexando sólo las medicinas.
+- **A quién equipar, desde el menú principal**: en RM2k se elige en el menú
+  mismo, con las órdenes a la izquierda y el cursor sobre el grupo. Acá es
+  esta pantalla, con la mitad izquierda en negro (`equipo-a-quien`), como ya
+  era antes con el ">". Queda para una tarea aparte.
 
 ## Pruebas
 
@@ -108,7 +115,8 @@ tenía con qué escribir el nombre del ítem.
   elección calcula los flancos con `pad` contra `pad_ant`, así que repite
   sin tocar nada. Antes del merge `dcbest` recortaba en
   `test_musica_techos.py`; con el merge la ROM se movió otra vez y dejó de
-  recortar, así que no hizo falta `just techos`.
+  recortar, así que no hizo falta `just techos` y **no hay commit de techos**,
+  aunque el mensaje de `714dcef2` lo anuncia.
 - `just espacio`, antes (`main` en `1475d9da`) y después de este cambio sin
   mergear: en `release` el banco 0 pasó de 196 a 254 B libres, el banco 1 de
   4.380 a 3.841, y los huecos de datos de 21.584 a 7.456 B (unos 14 KB: los
@@ -116,6 +124,11 @@ tenía con qué escribir el nombre del ítem.
   `test-special`, de 1.089 a 1.147, de 6.884 a 6.345, y de 30.545 a 18.777.
   Con `main` mergeado, `release` queda con 224 B en el banco 0 y 3.793 en el
   banco 1. Ningún cartucho usa un banco de datos más.
+- Lo que sumaba, medido bloque por bloque contra `main`: 14.704 B, de los
+  que 7.168 eran dos tilemaps y dos juegos de barras. Después de
+  `d9645920`, en `release` los huecos pasan de 6.880 a 13.910 B y el banco 1
+  de 3.793 a 3.739; en `test-special`, de 18.201 a 23.213 y de 6.297 a
+  6.243. Las goldens salieron idénticas.
 
 ## Qué tiene que mirar taro
 
