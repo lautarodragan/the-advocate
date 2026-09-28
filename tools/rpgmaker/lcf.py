@@ -364,7 +364,9 @@ class Map:
         raiz = volcado(path)
         # El fork es sólo de **este** juego: un juego ajeno se lee pasándole su
         # propio volcado, y ahí `parches/manual/` no pinta nada.
-        forkeado = fork.mapa(self.map_id) if raiz == DATOS else None
+        # Y lo mismo un mapa que el juego no tiene: ver `fork.nuevos`.
+        forkeado = ((fork.mapa(self.map_id) or fork.nuevo(self.map_id))
+                    if raiz == DATOS else None)
         if forkeado:
             ruta_json, ruta_tiles = forkeado
             datos = leer(ruta_json)
@@ -824,6 +826,11 @@ class TreeMap:
     def __init__(self, path):
         datos = leer(volcado(path), "maps.json")
         infos = por_id(lista(datos, "maps"))
+        # Los mapas que el juego no tiene traen su nodo: ver `fork.nuevos`.
+        # Sólo sobre el volcado de este juego, igual que los forks de `Map`.
+        if volcado(path) == DATOS:
+            for map_id, (_json, _tiles, nodo) in fork.nuevos().items():
+                infos[map_id] = nodo
 
         self.map_names = {i: campo(f, "name")
                           for i, f in infos.items()}

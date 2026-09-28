@@ -222,6 +222,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `abl/test_piedras.py`, `abl/test_luces.py`: los minijuegos del mapa 11
 * `abl/test_puerta_del_10.py`: las puertas del mapa 10 y el switch 231
 * `abl/test_hover_tram.py`: el Hover Tram horneado
+* `abl/test_mapa_de_debug.py`: el mapa de debug —la llegada por "Begin the
+  Story", cada puerta con su estado y los NPC que cambian el grupo—
 * `abl/test_lider_sin_grafico.py`: con DummyHero de líder, cada mapa del
   juego carga las paletas de sprite del cartucho —antes la 0 quedaba en negro,
   y era Talan en el barril del 14 y en la guarida de Wick—
@@ -255,8 +257,10 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 
 **Cómo se agrega un caso**: un archivo en `pruebas/casos/`, y la prueba lo
 pide por el nombre. Entra solo en `release`, **apagado**: la partida de
-verdad corre la página 0, que es el caso `nada`, y el arnés elige los demás
-—ver `PRIMERO` en `tools/ensamblado/cartuchos.py`—. Empieza con un `Teleport`
+verdad corre la página 0, que es el caso `mapa-de-debug` —o `nada`, sin el
+mapa de debug—, y el arnés elige los demás —ver `PRIMERO` en
+`tools/ensamblado/cartuchos.py`—. `tanda.partida(None)` elige `nada`, que es
+el juego como arranca sin el mapa. Empieza con un `Teleport`
 a su mapa y a su celda: el mapa de arranque es el 4, cuya cinemática corre
 sola. Para el grupo de la tanda en un mapa sin nada más están los
 `grupo-11-en-<mapa>`, y para el del juego los `en-<mapa>`, con la celda donde
