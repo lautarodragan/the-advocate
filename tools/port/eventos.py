@@ -1025,7 +1025,7 @@ def asociaciones_de(game_maps, extra=()):
 # Dieciséis bits alcanzan porque el bloque tiene que entrar en un banco de
 # 32 KB: lo lee `lda [msg_ptr], y` con un puntero que se incrementa de a un
 # byte y **no** arrastra al byte de banco, así que `bloque()` lo emite con
-# `.bloque`, que rellena para que no cruce. Si algún día no entra, lo que hay
+# `.bloque`, que lo deja entero en un banco. Si algún día no entra, lo que hay
 # que agrandar es el puntero, no el operando.
 
 # TimerOperation. Los parámetros son (operación, de dónde salen los segundos,

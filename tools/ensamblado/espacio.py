@@ -110,7 +110,9 @@ def _b(n):
 
 def mostrar(nombre, sfc):
     m = medir(sfc)
-    print("%s  (%s)" % (nombre, os.path.relpath(sfc, RAIZ)))
+    # Una ROM armada aparte se nombra por su ruta; un cartucho, por su nombre.
+    print(nombre if os.path.isfile(nombre)
+          else "%s  (%s)" % (nombre, os.path.relpath(sfc, RAIZ)))
     print("  bancos de datos  %d de %d usados, $%02X-$%02X; %d libres detrás"
           % (m["ultimo"] - m["primero"] + 1, m["bancos"], m["primero"],
              m["ultimo"], m["libres"]))
