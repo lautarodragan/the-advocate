@@ -53,9 +53,10 @@ lo suma a los del juego.
 Hoy es uno: el **900**, el mapa de debug, donde arranca "Begin the Story"
 mientras `CON_MAPA_DE_DEBUG` esté prendido en `tools/ensamblado/cartuchos.py`.
 Un cuarto con el chipset del mapa 10, seis puertas con su cartel y un NPC por
-compañero. Lo que pone cada puerta está en los `Comment` de su página, al lado
-de cada comando: es lo que hay que leer antes de tocarla. El porqué, en
-`workflow/tasks/*/el-mapa-de-debug.md`.
+compañero, que elige la rama que aplican las puertas. Lo que pone cada puerta
+está en los `Comment` de su página, al lado de cada comando: es lo que hay que
+leer antes de tocarla. El porqué, en `workflow/tasks/*/el-mapa-de-debug.md` y
+`el-mapa-de-debug-2.md`.
 
 ## Los ChipSets se suman, no reemplazan
 

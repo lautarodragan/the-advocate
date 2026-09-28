@@ -76,7 +76,13 @@
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "entrada, y los que sumaron los NPCs) y el switch 150 de AG7-17."
+              "string": "entrada, y el compañero que sumó un NPC) y los switches de rama que"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "prende ese NPC: el 54 (Arden), el 56 (Saldra) y el 150 (AG7-17)."
             },
             {
               "code": 10330,
@@ -125,6 +131,28 @@
                 0,
                 0,
                 10
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                54,
+                54,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                56,
+                56,
+                1
               ],
               "string": ""
             },
@@ -310,6 +338,42 @@
               "string": "3, y el despertador del 7 la deja en 4."
             },
             {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "Todavía no hay rama: Arden y Saldra se eligen en Lashe City (mapas 12 y"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "9) y AG7-17 con auto. Así que sale el compañero que haya sumado un NPC y"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "se apagan los switches de rama. El grupo queda en DummyHero, como antes"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "del cartel: la página 3 del 4 lo cambia por Talan, y así Talan es el"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "primero —con un compañero adelante, sacar a Talan y meter a DummyHero lo"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "dejaba a él de líder, sin gráfico en el cartucho, y el héroe no se veía."
+            },
+            {
               "code": 10210,
               "indent": 0,
               "parameters": [
@@ -365,6 +429,39 @@
               "string": ""
             },
             {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                54,
+                54,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                56,
+                56,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                150,
+                150,
+                1
+              ],
+              "string": ""
+            },
+            {
               "code": 11930,
               "indent": 0,
               "parameters": [
@@ -379,6 +476,36 @@
                 1,
                 0,
                 14
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                17
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                18
               ],
               "string": ""
             },
@@ -492,6 +619,12 @@
               "indent": 0,
               "parameters": [],
               "string": "\"One year previously\" card."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "No companion yet."
             }
           ],
           "id": 1,
@@ -544,55 +677,145 @@
               "code": 12410,
               "indent": 0,
               "parameters": [],
-              "string": "Los callejones del Sector 30 (mapa 20) al salir de la oficina del"
+              "string": "Los callejones del Sector 30 (mapa 20) donde termina la cinemática del"
             },
             {
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "director: el Teleport del evento 15 del 19, con el tema que dejó"
+              "string": "director: la ruta del evento 15 del 19, que sigue después del Teleport a"
             },
             {
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "puesto la escena. Rama de los Neon Vipers, la de Arden: el 54 de la"
+              "string": "(93,0) —baja cinco, tres a la izquierda, salta cinco, baja tres, salta"
             },
             {
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "página 3 del hotplate del 12. Llegó a tiempo (77, no 68), no tomó el"
+              "string": "tres y un paso abajo— deja a Talan en (90,17), arriba del puente al"
             },
             {
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "Hover-Tram (sin 71/72/186) ni sobornó (sin 29). Habló con todos (27,"
+              "string": "save point y a la posada del Bum, mirando abajo. Caer en (93,0) sin la"
             },
             {
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "30, 31, 32, 48, los obreros 79-84 y 129) y cobró el cheque del 17"
+              "string": "ruta lo dejaba trabado: esa celda no es pisable. El tema, el que puso la"
             },
             {
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "(78, +300). Oro: 100 del despertador del 7 y 300 del cheque. Ítems: el"
+              "string": "escena. Velocidad 5: el despertador la deja en 4 y la ruta sube una."
             },
             {
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "81 del enrutador y los dos cofres del 17. Velocidad 5: el despertador"
+              "string": "Lo común: llegó a tiempo (77, no 68), no se afeitó (25), habló con todos"
             },
             {
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "la deja en 4 y la salida del 19 la sube."
+              "string": "(27, 30-32, los obreros 79-84 y 129) y cobró el cheque del 17 (78, +300)."
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "Ítems: el 81 del enrutador y los dos cofres del 17."
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "La rama, la del compañero que sumó el NPC:"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "* Arden (54): la misión de los Neon Vipers. El hotplate del 12 lo atrapa"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "  (58), en la celda del 11 oye al espía (48), les lleva el ídolo (54) y"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "  la escena del 14 (73) lo lleva al trabajo. Oro 400: 100 del"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "  despertador y el cheque."
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "* Saldra (56): rechaza la misión en el hotplate (58, 38), y en el 9 le"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "  cuenta del espía a los Lazer Teeth, que lo dejan pasar (55, 56). Oro"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "  400."
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "* Sin compañero, o AG7-17 —el droide se suma con auto—: el Hover-Tram"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "  (69), donde Stash le da la tarjeta (91) y le roba los 100 del"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "  despertador (72). Oro 300. No sobornó al guardia (29)."
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "Se apagan los de las otras ramas. El compañero no entra todavía: en el"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "juego se suma en las Rat Tracks (página 2 o 3 del evento 6 del 26, y la"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "escena del 27 del 20), así que sale, y el 150 se apaga."
             },
             {
               "code": 10210,
@@ -643,6 +866,17 @@
               "indent": 0,
               "parameters": [
                 0,
+                806,
+                806,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
                 24,
                 24,
                 0
@@ -676,41 +910,8 @@
               "indent": 0,
               "parameters": [
                 0,
-                48,
-                48,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                54,
-                54,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                58,
-                58,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                73,
-                73,
+                77,
+                77,
                 0
               ],
               "string": ""
@@ -720,7 +921,7 @@
               "indent": 0,
               "parameters": [
                 1,
-                77,
+                78,
                 90,
                 0
               ],
@@ -764,9 +965,9 @@
               "indent": 0,
               "parameters": [
                 0,
-                806,
-                806,
-                0
+                150,
+                150,
+                1
               ],
               "string": ""
             },
@@ -815,12 +1016,445 @@
               "string": ""
             },
             {
-              "code": 10310,
+              "code": 12010,
               "indent": 0,
+              "parameters": [
+                0,
+                54,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                38,
+                38,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                55,
+                55,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                56,
+                56,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                69,
+                69,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                72,
+                72,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                48,
+                48,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                54,
+                54,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                58,
+                58,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                73,
+                73,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10310,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
                 400
+              ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 12010,
+              "indent": 1,
+              "parameters": [
+                0,
+                56,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                48,
+                48,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                54,
+                54,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                69,
+                69,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                72,
+                72,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                73,
+                73,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                38,
+                38,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                55,
+                55,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                56,
+                56,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                58,
+                58,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10310,
+              "indent": 2,
+              "parameters": [
+                0,
+                0,
+                400
+              ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 2,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                38,
+                38,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                48,
+                48,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                54,
+                54,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                55,
+                55,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                56,
+                56,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                58,
+                58,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                73,
+                73,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                69,
+                69,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                72,
+                72,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 2,
+              "parameters": [
+                0,
+                0,
+                91,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10310,
+              "indent": 2,
+              "parameters": [
+                0,
+                0,
+                300
+              ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 2,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                17
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                18
               ],
               "string": ""
             },
@@ -886,8 +1520,8 @@
               "indent": 0,
               "parameters": [
                 20,
-                93,
-                0
+                90,
+                17
               ],
               "string": ""
             }
@@ -948,13 +1582,19 @@
               "code": 20110,
               "indent": 0,
               "parameters": [],
-              "string": "After the Director is"
+              "string": "After the Director is shot, on"
             },
             {
               "code": 20110,
               "indent": 0,
               "parameters": [],
-              "string": "shot. Neon Vipers path."
+              "string": "your companion's path. They join"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "later, in the Rat Tracks."
             }
           ],
           "id": 1,
@@ -1025,7 +1665,7 @@
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "rey rata (137), Arden al grupo en el 26 con el sándwich (97), el"
+              "string": "rey rata (137), el compañero al grupo en el 26 con el sándwich (97), el"
             },
             {
               "code": 22410,
@@ -1043,19 +1683,73 @@
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "del taller del 30. Sin reparaciones. El grupo queda en DummyHero, como"
+              "string": "del taller del 30. Sin reparaciones. Velocidad 4: la escapada del 33 la"
             },
             {
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "lo deja el 33: la página del 36 mete a Talan y a Arden al elegir."
+              "string": "baja."
             },
             {
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "Velocidad 4: la escapada del 33 la baja."
+              "string": "La rama, como en los callejones, más lo del auto:"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "* Arden (54) y Saldra (56): nada más hasta acá; el 56 lo apaga el 15 del"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "  28 y lo vuelve a prender el 5 del 32. Oro 845."
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "* AG7-17 (150): el droide ya en el grupo, como si hubiera hecho la"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "  planta: el cartel de Stash (183), el chip (203, y Stash se lo queda),"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "  el túnel (205) y la puerta de Stash cerrada otra vez (185). No abre"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "  los cofres de la planta. Rama sin pandilla, la del Hover-Tram: oro 745."
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "* Sin compañero: la del Hover-Tram, sin el droide todavía. Oro 745."
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "El grupo queda en DummyHero, como lo deja el 33: la página del 36 mete a"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "Talan, al compañero y a AG7-17 si está el 150, en ese orden."
             },
             {
               "code": 10210,
@@ -1106,6 +1800,17 @@
               "indent": 0,
               "parameters": [
                 0,
+                806,
+                806,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
                 24,
                 24,
                 0
@@ -1139,41 +1844,8 @@
               "indent": 0,
               "parameters": [
                 0,
-                48,
-                48,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                54,
-                54,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                58,
-                58,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                73,
-                73,
+                77,
+                77,
                 0
               ],
               "string": ""
@@ -1183,8 +1855,41 @@
               "indent": 0,
               "parameters": [
                 1,
-                77,
+                78,
                 90,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                92,
+                92,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                129,
+                129,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                206,
+                206,
                 0
               ],
               "string": ""
@@ -1271,42 +1976,20 @@
               "indent": 0,
               "parameters": [
                 0,
-                148,
-                148,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                206,
-                206,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                806,
-                806,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
                 94,
                 94,
                 1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                148,
+                148,
+                0
               ],
               "string": ""
             },
@@ -1571,13 +2254,773 @@
               "string": ""
             },
             {
-              "code": 10310,
+              "code": 12010,
               "indent": 0,
+              "parameters": [
+                0,
+                54,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                38,
+                38,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                55,
+                55,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                56,
+                56,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                69,
+                69,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                72,
+                72,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                48,
+                48,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                54,
+                54,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                58,
+                58,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                73,
+                73,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                150,
+                150,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                183,
+                183,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                203,
+                203,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                205,
+                205,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10310,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
                 845
               ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 12010,
+              "indent": 1,
+              "parameters": [
+                0,
+                56,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                48,
+                48,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                54,
+                54,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                69,
+                69,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                72,
+                72,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                73,
+                73,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                38,
+                38,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                55,
+                55,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                56,
+                56,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                58,
+                58,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                150,
+                150,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                183,
+                183,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                203,
+                203,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                205,
+                205,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10310,
+              "indent": 2,
+              "parameters": [
+                0,
+                0,
+                845
+              ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 2,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 12010,
+              "indent": 2,
+              "parameters": [
+                0,
+                150,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                38,
+                38,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                48,
+                48,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                54,
+                54,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                55,
+                55,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                56,
+                56,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                58,
+                58,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                73,
+                73,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                69,
+                69,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                72,
+                72,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 3,
+              "parameters": [
+                0,
+                0,
+                91,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                150,
+                150,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                183,
+                183,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                203,
+                203,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                205,
+                205,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                185,
+                185,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 3,
+              "parameters": [
+                1,
+                0,
+                126,
+                0,
+                99
+              ],
+              "string": ""
+            },
+            {
+              "code": 10310,
+              "indent": 3,
+              "parameters": [
+                0,
+                0,
+                745
+              ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 3,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 2,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                38,
+                38,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                48,
+                48,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                54,
+                54,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                55,
+                55,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                56,
+                56,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                58,
+                58,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                73,
+                73,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                69,
+                69,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                72,
+                72,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 3,
+              "parameters": [
+                0,
+                0,
+                91,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                150,
+                150,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                183,
+                183,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                203,
+                203,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                205,
+                205,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10310,
+              "indent": 3,
+              "parameters": [
+                0,
+                0,
+                745
+              ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 3,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 2,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 2,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 0,
+              "parameters": [],
               "string": ""
             },
             {
@@ -1589,6 +3032,36 @@
                 0,
                 0,
                 133
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                17
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                18
               ],
               "string": ""
             },
@@ -1704,13 +3177,13 @@
               "code": 20110,
               "indent": 0,
               "parameters": [],
-              "string": "Pick a sector: 35 is"
+              "string": "Pick a sector: 35 is Talan's Pad."
             },
             {
               "code": 20110,
               "indent": 0,
               "parameters": [],
-              "string": "Talan's Pad. Arden's path."
+              "string": "On your companion's path."
             }
           ],
           "id": 1,
@@ -1769,29 +3242,262 @@
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "36, con el 182. La rama de Arden cerrada: el vidcast (151, 156, 158-161),"
+              "string": "36, con el 182. Lo común: el vidcast (151, 156, 160, 161) y el auto de"
             },
             {
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "el HQ vacío de los Vipers (167-169), y el auto de la Agency (238)."
+              "string": "la Agency (238). Rechazó el favor de Wick (162), como el recorrido de"
             },
             {
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "Rechazó el favor de Wick (162), como el recorrido de Sorbe. Los tres"
+              "string": "Sorbe. Velocidad 3: el 41 la baja al rechazar. El 44 apaga 90 a 92."
             },
             {
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "cofres del basural del 38. Velocidad 3: el 41 la baja al rechazar."
+              "string": "La rama cerrada, con la condición que pide la página 2 del 36:"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "* Arden (54): el caño del 38 (167), el HQ vacío de los Vipers (168), el"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "  susurro (169), el vidcast de los Vipers (159) y los tres cofres del"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "  HQ, que sólo se alcanzan por el caño (544-546: ítems 124 y 157, +250)."
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "  Oro 1095."
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "* Saldra (56): los guardias de la Agency en el 47 (181) y el vidcast de"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "  los Lazer Teeth (158). Oro 845."
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "* AG7-17 (150): el droide, como en la puerta del auto. Oro 745."
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "* Sin compañero no se llega: sin el droide la página 2 del 36 no ofrece"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "  irse. La puerta lo dice y no pone nada."
             },
             {
               "code": 10210,
               "indent": 0,
+              "parameters": [
+                0,
+                709,
+                709,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 12010,
+              "indent": 0,
+              "parameters": [
+                0,
+                54,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                709,
+                709,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 12010,
+              "indent": 0,
+              "parameters": [
+                0,
+                56,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                709,
+                709,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 12010,
+              "indent": 0,
+              "parameters": [
+                0,
+                150,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                709,
+                709,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 12010,
+              "indent": 0,
+              "parameters": [
+                0,
+                709,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                709,
+                709,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
               "parameters": [
                 0,
                 3,
@@ -1802,7 +3508,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 5,
@@ -1813,7 +3519,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 7,
@@ -1824,7 +3530,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 21,
@@ -1835,7 +3541,18 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
+              "parameters": [
+                0,
+                806,
+                806,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
               "parameters": [
                 0,
                 24,
@@ -1846,7 +3563,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 27,
@@ -1857,7 +3574,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 30,
@@ -1868,54 +3585,21 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
-                48,
-                48,
+                77,
+                77,
                 0
               ],
               "string": ""
             },
             {
               "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                54,
-                54,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                58,
-                58,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                73,
-                73,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
-                77,
+                78,
                 90,
                 0
               ],
@@ -1923,7 +3607,40 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
+              "parameters": [
+                0,
+                92,
+                92,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                129,
+                129,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                206,
+                206,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
               "parameters": [
                 1,
                 92,
@@ -1934,7 +3651,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 95,
@@ -1945,7 +3662,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 116,
@@ -1956,7 +3673,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 120,
@@ -1967,7 +3684,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 123,
@@ -1978,7 +3695,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 132,
@@ -1989,7 +3706,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 137,
@@ -2000,7 +3717,18 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
+              "parameters": [
+                0,
+                94,
+                94,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
               "parameters": [
                 0,
                 149,
@@ -2011,7 +3739,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 151,
@@ -2022,7 +3750,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 154,
@@ -2033,7 +3761,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 156,
@@ -2044,10 +3772,32 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
-                1,
-                158,
+                0,
+                160,
+                160,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                161,
+                161,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                162,
                 162,
                 0
               ],
@@ -2055,18 +3805,18 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
-                1,
+                0,
                 166,
-                169,
+                166,
                 0
               ],
               "string": ""
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 182,
@@ -2077,18 +3827,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                206,
-                206,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 238,
@@ -2099,51 +3838,29 @@
             },
             {
               "code": 10210,
-              "indent": 0,
-              "parameters": [
-                1,
-                544,
-                546,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
-                806,
-                806,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                94,
-                94,
+                148,
+                148,
                 1
               ],
               "string": ""
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
-                0,
-                148,
-                148,
+                1,
+                90,
+                92,
                 1
               ],
               "string": ""
             },
             {
               "code": 11930,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0
               ],
@@ -2151,7 +3868,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2163,7 +3880,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2175,7 +3892,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2187,7 +3904,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2199,7 +3916,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2211,7 +3928,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2223,7 +3940,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2235,7 +3952,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2247,7 +3964,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2259,7 +3976,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2271,7 +3988,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2283,7 +4000,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2295,7 +4012,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2307,7 +4024,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2319,7 +4036,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2331,7 +4048,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2343,7 +4060,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2355,7 +4072,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2367,7 +4084,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2379,7 +4096,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2391,7 +4108,252 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
+              "parameters": [
+                0,
+                0,
+                327,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 12010,
+              "indent": 1,
+              "parameters": [
+                0,
+                54,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                38,
+                38,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                55,
+                55,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                56,
+                56,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                69,
+                69,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                72,
+                72,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                48,
+                48,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                54,
+                54,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                58,
+                58,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                73,
+                73,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                150,
+                150,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                158,
+                158,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                181,
+                181,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                183,
+                183,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                203,
+                203,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                205,
+                205,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                159,
+                159,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                167,
+                167,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                168,
+                168,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                169,
+                169,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                1,
+                544,
+                546,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 2,
               "parameters": [
                 0,
                 0,
@@ -2403,7 +4365,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 2,
               "parameters": [
                 0,
                 0,
@@ -2414,20 +4376,8 @@
               "string": ""
             },
             {
-              "code": 10320,
-              "indent": 0,
-              "parameters": [
-                0,
-                0,
-                327,
-                0,
-                1
-              ],
-              "string": ""
-            },
-            {
               "code": 10310,
-              "indent": 0,
+              "indent": 2,
               "parameters": [
                 0,
                 0,
@@ -2436,8 +4386,601 @@
               "string": ""
             },
             {
+              "code": 10,
+              "indent": 2,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 12010,
+              "indent": 2,
+              "parameters": [
+                0,
+                56,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                48,
+                48,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                54,
+                54,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                69,
+                69,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                72,
+                72,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                73,
+                73,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                38,
+                38,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                55,
+                55,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                56,
+                56,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                58,
+                58,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                150,
+                150,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                159,
+                159,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                167,
+                167,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                168,
+                168,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                169,
+                169,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                183,
+                183,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                203,
+                203,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                205,
+                205,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                158,
+                158,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                181,
+                181,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                1,
+                544,
+                546,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10310,
+              "indent": 3,
+              "parameters": [
+                0,
+                0,
+                845
+              ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 3,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 2,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 12010,
+              "indent": 3,
+              "parameters": [
+                0,
+                150,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                38,
+                38,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                48,
+                48,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                54,
+                54,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                55,
+                55,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                56,
+                56,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                58,
+                58,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                73,
+                73,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                69,
+                69,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                72,
+                72,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 4,
+              "parameters": [
+                0,
+                0,
+                91,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                158,
+                158,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                159,
+                159,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                167,
+                167,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                168,
+                168,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                169,
+                169,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                181,
+                181,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                150,
+                150,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                183,
+                183,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                203,
+                203,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                205,
+                205,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                185,
+                185,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 4,
+              "parameters": [
+                1,
+                0,
+                126,
+                0,
+                99
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                1,
+                544,
+                546,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10310,
+              "indent": 4,
+              "parameters": [
+                0,
+                0,
+                745
+              ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 4,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 3,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 4,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 3,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 3,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 2,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 2,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
               "code": 10440,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 14,
@@ -2449,7 +4992,37 @@
             },
             {
               "code": 10330,
-              "indent": 0,
+              "indent": 1,
+              "parameters": [
+                1,
+                0,
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
+              "parameters": [
+                1,
+                0,
+                17
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
+              "parameters": [
+                1,
+                0,
+                18
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
               "parameters": [
                 1,
                 0,
@@ -2459,7 +5032,7 @@
             },
             {
               "code": 10330,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -2469,7 +5042,7 @@
             },
             {
               "code": 11330,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 10001,
                 8,
@@ -2487,18 +5060,66 @@
             },
             {
               "code": 11340,
-              "indent": 0,
+              "indent": 1,
               "parameters": [],
               "string": ""
             },
             {
               "code": 10810,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 49,
                 1,
                 26
               ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 1,
+              "parameters": [],
+              "string": "THE RACE"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Talk to Arden, Saldra or AG7-17"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "first: without a companion the"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "game never gets here."
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 0,
+              "parameters": [],
               "string": ""
             }
           ],
@@ -2558,13 +5179,19 @@
               "code": 20110,
               "indent": 0,
               "parameters": [],
-              "string": "Escaping Lashe City."
+              "string": "Escaping Lashe City, on your"
             },
             {
               "code": 20110,
               "indent": 0,
               "parameters": [],
-              "string": "Arden; refused Wick's offer."
+              "string": "companion's path. Refused Wick's"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "offer. Needs a companion."
             }
           ],
           "id": 1,
@@ -2629,23 +5256,214 @@
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "da el oro y los ítems, prende el 180 y salta a la despedida del 64,"
+              "string": "da el oro y los ítems de la rama, prende el 180 y salta a la despedida"
             },
             {
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "que arma el grupo y salta al 66. El grupo, el auto rojo (19), como lo"
+              "string": "del 64, que arma el grupo según la rama y salta al 66. Todo lo de la"
             },
             {
               "code": 22410,
               "indent": 0,
               "parameters": [],
-              "string": "deja la carrera. Velocidad 6: la carrera la sube tres."
+              "string": "puerta de la carrera, por rama, más la carrera. El grupo, el auto rojo"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "(19), como lo deja la carrera. Velocidad 6: la carrera la sube tres."
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "Sin compañero no se llega, como a la carrera."
             },
             {
               "code": 10210,
               "indent": 0,
+              "parameters": [
+                0,
+                709,
+                709,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 12010,
+              "indent": 0,
+              "parameters": [
+                0,
+                54,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                709,
+                709,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 12010,
+              "indent": 0,
+              "parameters": [
+                0,
+                56,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                709,
+                709,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 12010,
+              "indent": 0,
+              "parameters": [
+                0,
+                150,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                709,
+                709,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 12010,
+              "indent": 0,
+              "parameters": [
+                0,
+                709,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                709,
+                709,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
               "parameters": [
                 0,
                 3,
@@ -2656,7 +5474,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 5,
@@ -2667,7 +5485,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 7,
@@ -2678,7 +5496,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 21,
@@ -2689,7 +5507,18 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
+              "parameters": [
+                0,
+                806,
+                806,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
               "parameters": [
                 0,
                 24,
@@ -2700,7 +5529,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 27,
@@ -2711,7 +5540,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 30,
@@ -2722,54 +5551,21 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
-                48,
-                48,
+                77,
+                77,
                 0
               ],
               "string": ""
             },
             {
               "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                54,
-                54,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                58,
-                58,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                73,
-                73,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
-                77,
+                78,
                 90,
                 0
               ],
@@ -2777,7 +5573,40 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
+              "parameters": [
+                0,
+                92,
+                92,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                129,
+                129,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                206,
+                206,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
               "parameters": [
                 1,
                 92,
@@ -2788,7 +5617,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 95,
@@ -2799,7 +5628,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 116,
@@ -2810,7 +5639,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 120,
@@ -2821,7 +5650,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 123,
@@ -2832,7 +5661,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 132,
@@ -2843,7 +5672,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 137,
@@ -2854,7 +5683,18 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
+              "parameters": [
+                0,
+                94,
+                94,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
               "parameters": [
                 0,
                 149,
@@ -2865,7 +5705,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 151,
@@ -2876,7 +5716,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 154,
@@ -2887,7 +5727,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 156,
@@ -2898,10 +5738,32 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
-                1,
-                158,
+                0,
+                160,
+                160,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                161,
+                161,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                162,
                 162,
                 0
               ],
@@ -2909,18 +5771,62 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
-                1,
+                0,
                 166,
-                169,
+                166,
                 0
               ],
               "string": ""
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
+              "parameters": [
+                0,
+                182,
+                182,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                238,
+                238,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                148,
+                148,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                1,
+                90,
+                92,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
               "parameters": [
                 0,
                 171,
@@ -2931,7 +5837,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 174,
@@ -2942,84 +5848,7 @@
             },
             {
               "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                182,
-                182,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                206,
-                206,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                238,
-                238,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                1,
-                544,
-                546,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                806,
-                806,
-                0
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                94,
-                94,
-                1
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
-              "parameters": [
-                0,
-                148,
-                148,
-                1
-              ],
-              "string": ""
-            },
-            {
-              "code": 10210,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 172,
@@ -3030,7 +5859,7 @@
             },
             {
               "code": 10220,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 38,
@@ -3044,7 +5873,7 @@
             },
             {
               "code": 11930,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0
               ],
@@ -3052,7 +5881,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3064,7 +5893,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3076,7 +5905,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3088,7 +5917,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3100,7 +5929,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3112,7 +5941,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3124,7 +5953,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3136,7 +5965,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3148,7 +5977,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3160,7 +5989,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3172,7 +6001,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3184,7 +6013,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3196,7 +6025,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3208,7 +6037,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3220,7 +6049,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3232,7 +6061,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3244,7 +6073,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3256,7 +6085,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3268,7 +6097,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3280,7 +6109,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3292,7 +6121,252 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 1,
+              "parameters": [
+                0,
+                0,
+                327,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 12010,
+              "indent": 1,
+              "parameters": [
+                0,
+                54,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                38,
+                38,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                55,
+                55,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                56,
+                56,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                69,
+                69,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                72,
+                72,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                48,
+                48,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                54,
+                54,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                58,
+                58,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                73,
+                73,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                150,
+                150,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                158,
+                158,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                181,
+                181,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                183,
+                183,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                203,
+                203,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                205,
+                205,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                159,
+                159,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                167,
+                167,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                168,
+                168,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                0,
+                169,
+                169,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 2,
+              "parameters": [
+                1,
+                544,
+                546,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 2,
               "parameters": [
                 0,
                 0,
@@ -3304,7 +6378,7 @@
             },
             {
               "code": 10320,
-              "indent": 0,
+              "indent": 2,
               "parameters": [
                 0,
                 0,
@@ -3315,20 +6389,8 @@
               "string": ""
             },
             {
-              "code": 10320,
-              "indent": 0,
-              "parameters": [
-                0,
-                0,
-                327,
-                0,
-                1
-              ],
-              "string": ""
-            },
-            {
               "code": 10310,
-              "indent": 0,
+              "indent": 2,
               "parameters": [
                 0,
                 0,
@@ -3337,8 +6399,601 @@
               "string": ""
             },
             {
+              "code": 10,
+              "indent": 2,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 12010,
+              "indent": 2,
+              "parameters": [
+                0,
+                56,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                48,
+                48,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                54,
+                54,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                69,
+                69,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                72,
+                72,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                73,
+                73,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                38,
+                38,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                55,
+                55,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                56,
+                56,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                58,
+                58,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                150,
+                150,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                159,
+                159,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                167,
+                167,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                168,
+                168,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                169,
+                169,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                183,
+                183,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                203,
+                203,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                205,
+                205,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                158,
+                158,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                0,
+                181,
+                181,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 3,
+              "parameters": [
+                1,
+                544,
+                546,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10310,
+              "indent": 3,
+              "parameters": [
+                0,
+                0,
+                845
+              ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 3,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 2,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 12010,
+              "indent": 3,
+              "parameters": [
+                0,
+                150,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                38,
+                38,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                48,
+                48,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                54,
+                54,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                55,
+                55,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                56,
+                56,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                58,
+                58,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                73,
+                73,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                69,
+                69,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                72,
+                72,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 4,
+              "parameters": [
+                0,
+                0,
+                91,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                158,
+                158,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                159,
+                159,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                167,
+                167,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                168,
+                168,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                169,
+                169,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                181,
+                181,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                150,
+                150,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                183,
+                183,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                203,
+                203,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                205,
+                205,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                0,
+                185,
+                185,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 4,
+              "parameters": [
+                1,
+                0,
+                126,
+                0,
+                99
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 4,
+              "parameters": [
+                1,
+                544,
+                546,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10310,
+              "indent": 4,
+              "parameters": [
+                0,
+                0,
+                745
+              ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 4,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 3,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 4,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 3,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 3,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 2,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 2,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
               "code": 10440,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 14,
@@ -3350,17 +7005,37 @@
             },
             {
               "code": 10330,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 1,
                 0,
-                10
+                15
               ],
               "string": ""
             },
             {
               "code": 10330,
-              "indent": 0,
+              "indent": 1,
+              "parameters": [
+                1,
+                0,
+                17
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
+              "parameters": [
+                1,
+                0,
+                18
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
               "parameters": [
                 1,
                 0,
@@ -3370,7 +7045,17 @@
             },
             {
               "code": 10330,
-              "indent": 0,
+              "indent": 1,
+              "parameters": [
+                1,
+                0,
+                10
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
               "parameters": [
                 0,
                 0,
@@ -3380,7 +7065,7 @@
             },
             {
               "code": 11330,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 10001,
                 8,
@@ -3401,18 +7086,66 @@
             },
             {
               "code": 11340,
-              "indent": 0,
+              "indent": 1,
               "parameters": [],
               "string": ""
             },
             {
               "code": 10810,
-              "indent": 0,
+              "indent": 1,
               "parameters": [
                 53,
                 11,
                 10
               ],
+              "string": ""
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 1,
+              "parameters": [],
+              "string": "THE WORLD"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Talk to Arden, Saldra or AG7-17"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "first: without a companion the"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "game never gets here."
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 0,
+              "parameters": [],
               "string": ""
             }
           ],
@@ -3472,13 +7205,19 @@
               "code": 20110,
               "indent": 0,
               "parameters": [],
-              "string": "After the race, with the"
+              "string": "After the race, three laps won,"
             },
             {
               "code": 20110,
               "indent": 0,
               "parameters": [],
-              "string": "three laps won."
+              "string": "on your companion's path."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Needs a companion."
             }
           ],
           "id": 1,
@@ -3551,6 +7290,17 @@
               "string": ""
             },
             {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                54,
+                54,
+                1
+              ],
+              "string": ""
+            },
+            {
               "code": 10110,
               "indent": 1,
               "parameters": [],
@@ -3560,7 +7310,13 @@
               "code": 20110,
               "indent": 1,
               "parameters": [],
-              "string": "Arden leaves the party."
+              "string": "Arden leaves the party. Doors take"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "the path with no companion."
             },
             {
               "code": 10,
@@ -3578,9 +7334,62 @@
               "code": 10330,
               "indent": 1,
               "parameters": [
+                1,
+                0,
+                17
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
+              "parameters": [
+                1,
+                0,
+                18
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                56,
+                56,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                150,
+                150,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
+              "parameters": [
                 0,
                 0,
                 15
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                54,
+                54,
+                0
               ],
               "string": ""
             },
@@ -3594,7 +7403,19 @@
               "code": 20110,
               "indent": 1,
               "parameters": [],
-              "string": "Arden joins the party."
+              "string": "Arden joins the party, and any"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "other companion leaves. Doors take"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "the Neon Vipers' path."
             },
             {
               "code": 10,
@@ -3679,6 +7500,17 @@
               "string": ""
             },
             {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                56,
+                56,
+                1
+              ],
+              "string": ""
+            },
+            {
               "code": 10110,
               "indent": 1,
               "parameters": [],
@@ -3688,7 +7520,13 @@
               "code": 20110,
               "indent": 1,
               "parameters": [],
-              "string": "Saldra leaves the party."
+              "string": "Saldra leaves the party. Doors take"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "the path with no companion."
             },
             {
               "code": 10,
@@ -3706,9 +7544,62 @@
               "code": 10330,
               "indent": 1,
               "parameters": [
+                1,
+                0,
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
+              "parameters": [
+                1,
+                0,
+                18
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                54,
+                54,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                150,
+                150,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
+              "parameters": [
                 0,
                 0,
                 17
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                56,
+                56,
+                0
               ],
               "string": ""
             },
@@ -3722,7 +7613,19 @@
               "code": 20110,
               "indent": 1,
               "parameters": [],
-              "string": "Saldra joins the party."
+              "string": "Saldra joins the party, and any"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "other companion leaves. Doors take"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "the Lazer Teeth's path."
             },
             {
               "code": 10,
@@ -3827,7 +7730,13 @@
               "code": 20110,
               "indent": 1,
               "parameters": [],
-              "string": "AG7-17 leaves the party."
+              "string": "AG7-17 leaves the party. Doors take"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "the path with no companion."
             },
             {
               "code": 10,
@@ -3839,6 +7748,48 @@
               "code": 22010,
               "indent": 0,
               "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
+              "parameters": [
+                1,
+                0,
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
+              "parameters": [
+                1,
+                0,
+                17
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                54,
+                54,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                56,
+                56,
+                1
+              ],
               "string": ""
             },
             {
@@ -3872,7 +7823,19 @@
               "code": 20110,
               "indent": 1,
               "parameters": [],
-              "string": "AG7-17 joins the party."
+              "string": "AG7-17 joins the party, and any"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "other companion leaves. Doors take"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "the droid's path."
             },
             {
               "code": 10,
