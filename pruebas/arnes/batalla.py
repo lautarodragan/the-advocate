@@ -208,11 +208,10 @@ class Pelea:
         raise AssertionError("el mapa no volvió a correr después de la pelea")
 
 
-def modelo_de(base, actores=GRUPO, tropa=TROPA_DROIDE):
+def modelo_de(base, actores=GRUPO, tropa=TROPA_DROIDE, **extra):
     return modelo.Batalla(
         [modelo.actor_de(base, a) for a in actores],
-        [modelo.enemigo_de(base, e, n)
-         for n, e in enumerate(base.troops[tropa].members)])
+        modelo.enemigos_de_la_tropa(base, tropa), **extra)
 
 
 def en_el_droide(partida, con_musica=None):

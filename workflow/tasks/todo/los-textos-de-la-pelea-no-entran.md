@@ -21,3 +21,8 @@ Salen de `done/el-sistema-de-batalla-de-talan.md`.
 Pungent Elixir-LIFE  used." pasa de 32 columnas y el punto cae en la columna
 0 del renglón de abajo, delante de "Core has revived!". Pasa con cualquier
 ítem de nombre largo, y el nombre del LDB trae un espacio al final.
+
+**Dos más, desde que corren las páginas por turno y por HP (2026-09-28)**: el
+despegue de la pelea de los agentes sale "The Captain has taken off in th", y
+el segundo llamado del Rat King pierde la "s" de "sounds". Ver
+`tasks/*/eventos-de-tropa-de-release.md`.

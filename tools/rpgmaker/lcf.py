@@ -617,6 +617,9 @@ class Troop:
         self.posiciones = [(campo(m, "x"),
                             campo(m, "y"))
                            for _, m in miembros]
+        # Los que empiezan ocultos, en el mismo orden: `invisible`, que
+        # `Game_Enemy` copia con `SetHidden` y saca `ShowHiddenMonster`.
+        self.ocultos = [bool(campo(m, "invisible")) for _, m in miembros]
         self.pages = [TroopPage(p) for _, p in
                       sorted(por_id(lista(datos, "pages")).items())]
 

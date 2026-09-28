@@ -44,3 +44,16 @@ Hoy van en el banco 1, que en los cartuchos grandes quedó con unos 8,8 KB libre
 Pide comprimir, el acomodo de bloques, o traerlas por MSU-1.
 
 Referencia: `Game_Battle::UpdateEvents` y `Game_Interpreter_Battle` de EasyRPG.
+
+**Lo que ya hizo `tasks/*/eventos-de-tropa-de-release.md`** (2026-09-28), que
+es lo que se nota en las peleas de `release`: las condiciones de turno, de HP
+del enemigo y de HP del actor —las tres, con sus números en una cabecera
+delante del código de la página y no en tablas del banco 1—, los enemigos
+ocultos con `ShowHiddenMonster`, y `PlaySound` y `ShakeScreen` en la página.
+Lo que queda es de los sistemas: `ChangePartyMembers` sigue siendo lejos lo
+que más traba, y después `ChangeHP` y `ChangeMonsterHP` sobre los HP de la
+pelea, `ChangeCondition`, `ChangeMonsterCondition`, `ChangeEquipment` para
+equipar, `PlayBGM` y `FlashScreen`. **Y el audio**: el `PlaySound` de una
+página se pide pero su efecto no entra en el paquete de la pelea salvo que
+esté en `SE_DE_TROPA_AL_PAQUETE`, porque el paquete ya limita muestras; los
+sistemas tienen efectos propios y van a chocar con eso.

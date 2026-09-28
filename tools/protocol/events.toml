@@ -487,3 +487,13 @@ args = [
   { name = "row_7", type = "byte" },
   { name = "pad", type = "byte" },
 ]
+
+# `ShowHiddenMonster`, the battle-only command: the troop member at that
+# index (0-based, in the order of the troop) stops being hidden. It only runs
+# in a troop page, inside a battle.
+[[opcode]]
+name = "OP_SHOW_ENEMY"
+code = 0x33
+args = [
+  { name = "member", type = "byte" },
+]

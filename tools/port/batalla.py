@@ -41,12 +41,15 @@ Tres cosas **no** son de RM2k, y las tres son a propósito:
   mismo que restarle el techo de `x`, así que la cuenta entera da exactamente
   lo mismo que la flotante. Ver `acierto_por_agilidad`.
 
-* **Lo que no está.** Estados, atributos, filas y el ataque doble. Y las
-  páginas de evento de la tropa, que la ROM corre desde el 2026-09-21, **no
-  están en este modelo**: lo que hacen lo cobra `pruebas/rpgmaker/test_tropa.py`
+* **Lo que no está.** Estados, atributos, filas y el ataque doble. Y de las
+  páginas de evento de la tropa, que la ROM corre desde el 2026-09-21, el
+  modelo sabe **cuándo corren y a quién sacan a la pelea** —`PaginaDeTropa`—
+  y nada más: lo demás que hacen lo cobra `pruebas/rpgmaker/test_tropa.py`
   leyendo la página del LDB, y ninguna de las que compilan tira azar de la
-  pelea. Acá lo que importa es que las fórmulas que sí están son las de verdad
-  y no una aproximación.
+  pelea. Lo que sí cambia el azar es quién pelea, y por eso está: un enemigo
+  que aparece a mitad de pelea elige acción desde el turno que sigue. Acá lo
+  que importa es que las fórmulas que sí están son las de verdad y no una
+  aproximación.
 """
 
 from port import eventos
@@ -500,10 +503,21 @@ class Combatiente:
         self.sp_arma = sp_arma
         self.defendiendo = False
         self.orden = 0
+        # Un enemigo oculto —`invisible` en la tropa— está pero no pelea:
+        # `Exists()` es `!IsHidden() && !IsDead()`. Lo saca a la pelea el
+        # `ShowHiddenMonster` de una página: ver `PaginaDeTropa`.
+        self.oculto = False
+        # Lo que da al morir: `Game_EnemyParty::GetExp` y `GetMoney`.
+        self.exp = 0
+        self.oro = 0
 
     @property
     def vivo(self):
-        return self.hp > 0
+        """`Exists()`: le quedan HP y no está oculto. Todo lo que elige blanco,
+        reparte acciones o decide la victoria mira esto, así que un oculto no
+        cuenta para nada hasta que aparece —que es lo que hace la ROM al
+        dejarlo sin `BAF_HAY`—."""
+        return self.hp > 0 and not self.oculto
 
     # Los cuatro parámetros como los ve una cuenta: `AdjustParam` de
     # game_battler.cpp, o sea `clamp(base + modificador, 1, 999)`. Sin estados
@@ -567,8 +581,9 @@ def actor_critico_cada(db, numero):
     return getattr(db.actors[numero], "critical_hit_chance", 30) or 30
 
 
-def enemigo_de(db, enemy_id, lugar):
-    """El combatiente de un enemigo del LDB.
+def enemigo_de(db, enemy_id, lugar, oculto=False):
+    """El combatiente de un enemigo del LDB; `oculto` es el `invisible` de su
+    lugar en la tropa.
 
     El acierto es `Game_Enemy::GetHitChance`: 70 el que tiene `miss` puesto y
     90 el que no. El crítico, `GetCriticalHitChance` por cien y truncado, que
@@ -582,13 +597,119 @@ def enemigo_de(db, enemy_id, lugar):
     # Lo que deja al morir: el ítem y su chance en por ciento. Ver `botin`.
     quien.botin_item = e.drop_id
     quien.botin_chance = e.drop_prob
+    quien.oculto = oculto
+    quien.exp = e.exp
+    quien.oro = e.gold
     return quien
+
+
+def enemigos_de_la_tropa(db, tropa):
+    """Los combatientes de una tropa, en su orden y con sus ocultos, hasta
+    `ENEMIGOS_MAX` como la pelea."""
+    t = db.troops[tropa]
+    return [enemigo_de(db, e, n, oculto)
+            for n, (e, oculto) in enumerate(
+                list(zip(t.members, t.ocultos))[:ENEMIGOS_MAX])]
+
+
+def _turnos(turno, base, multiplo):
+    """`Game_Battle::CheckTurns(turns, base, multiple)`."""
+    if multiplo == 0:
+        return turno >= base and turno == base
+    return turno >= base and (turno - base) % multiplo == 0
+
+
+class PaginaDeTropa:
+    """Una página de evento de la tropa, **con lo que el modelo necesita**:
+    cuándo se cumple —`AreConditionsMet`, los seis disparadores de RM2k— y a
+    quién saca a la pelea. De sus comandos corre sólo `ShowHiddenMonster`, los
+    `ControlSwitches` de un switch y las ramas de pelea por switch, que es lo
+    que hace falta para saber si un `ShowHiddenMonster` adentro de una rama
+    corre —el del Rat King va adentro de una, que la propia página cierra—.
+    Lo demás —mensajes, habilidades, variables, sonidos— no cambia quién pelea
+    ni tira azar de la pelea, y no se modela.
+
+    Los switches son los de la batalla, `Batalla.estado`, que empieza con los
+    que se le pasen: la ROM los lee del mapa.
+    """
+
+    def __init__(self, pagina):
+        self.activos = list(pagina.activos)
+        self.c = pagina.condicion
+        self.comandos = list(pagina.commands)
+
+    def cumple(self, batalla):
+        if not self.activos:
+            return False
+        c = self.c
+        if "switch_a" in self.activos and not batalla.estado.get(
+                c["switch_a_id"]):
+            return False
+        if "switch_b" in self.activos and not batalla.estado.get(
+                c["switch_b_id"]):
+            return False
+        if "variable" in self.activos:
+            raise NotImplementedError("una página por variable: el modelo no "
+                                      "lleva variables")
+        if "turn" in self.activos and not _turnos(
+                batalla.turno, c["turn_b"], c["turn_a"]):
+            return False
+        if "enemy_hp" in self.activos:
+            if c["enemy_id"] >= len(batalla.enemigos):
+                return False
+            e = batalla.enemigos[c["enemy_id"]]
+            if not (c["enemy_hp_min"] <= 100 * e.hp // e.hp_max
+                    <= c["enemy_hp_max"]):
+                return False
+        if "actor_hp" in self.activos:
+            # Sólo si está en el grupo, como la ROM: ver `ba_pag_cumple`.
+            suyos = [a for a in batalla.actores if a.numero == c["actor_id"]]
+            if not suyos:
+                return False
+            a = suyos[0]
+            if not (c["actor_hp_min"] <= 100 * a.hp // a.hp_max
+                    <= c["actor_hp_max"]):
+                return False
+        return True
+
+    def correr(self, batalla):
+        """Los comandos, con las ramas por switch resueltas: una rama que no
+        se toma saltea todo lo que tiene más adentro que ella."""
+        saltear_desde = None        # la sangría de la rama que no se tomó
+        for cmd in self.comandos:
+            if saltear_desde is not None:
+                if cmd.indent > saltear_desde:
+                    continue
+                if cmd.code == 23310 and cmd.indent == saltear_desde:
+                    saltear_desde = None    # el `else` de la que no se tomó
+                    continue
+                saltear_desde = None
+            p = cmd.parameters
+            if cmd.code == 13310:
+                if p[0] != 0:
+                    raise NotImplementedError("una rama de pelea que no es "
+                                              "por switch")
+                prendido = bool(batalla.estado.get(p[1]))
+                if prendido != (p[2] == 0):
+                    saltear_desde = cmd.indent
+            elif cmd.code == 23310:
+                # El `else` de una rama que sí se tomó: se saltea.
+                saltear_desde = cmd.indent
+            elif cmd.code == eventos.CONTROL_SWITCHES:
+                if p[0] != 0 or p[1] != p[2] or p[3] not in (0, 1):
+                    raise NotImplementedError("un ControlSwitches que el "
+                                              "modelo no sabe")
+                batalla.estado[p[1]] = p[3] == 0
+            elif cmd.code == eventos.SHOW_HIDDEN_MONSTER:
+                if p[0] < len(batalla.enemigos):
+                    batalla.enemigos[p[0]].oculto = False
 
 
 def oro_de_la_tropa(db, tropa):
     """`Game_EnemyParty::GetMoney`: el `gold` de cada enemigo **muerto**, que
-    en una victoria son todos —como en `experiencia.exp_de_la_tropa`—, hasta
-    `ENEMIGOS_MAX`. No tira azar."""
+    en una victoria son todos menos los que siguieron ocultos —como en
+    `experiencia.exp_de_la_tropa`—, hasta `ENEMIGOS_MAX`. Es la suma de la
+    tropa entera; lo de los ocultos lo resta la ROM al ganar. No tira azar."""
     return sum(db.enemies[e].gold for e in db.troops[tropa].members[:ENEMIGOS_MAX])
 
 
@@ -656,11 +777,17 @@ class Batalla:
     `CreateExecutionOrder()`.
     """
 
-    def __init__(self, actores, enemigos, semilla=BATALLA_SEMILLA):
+    def __init__(self, actores, enemigos, semilla=BATALLA_SEMILLA,
+                 paginas=(), switches=None):
         self.actores = list(actores)
         self.enemigos = list(enemigos)
         self.azar = Azar(semilla)
         self.turno = 0
+        # Las páginas de la tropa —ver `PaginaDeTropa`—, las que ya corrieron
+        # en este turno —`executed`— y los switches que miran.
+        self.paginas = list(paginas)
+        self.hechas = set()
+        self.estado = dict(switches or {})
         self.resultado = None
         self.huida_chance = self._chance_de_huir()
         self.registro = []          # lo que pasó, para que una prueba lo cuente
@@ -702,6 +829,26 @@ class Batalla:
             return True
         self.huida_chance = min(100, self.huida_chance + 10)
         return False
+
+    # --- las páginas de la tropa ----------------------------------------------
+    def revisar_paginas(self):
+        """`CheckBattleEndAndScheduleEvents` hasta que no quede ninguna: con
+        un lado entero afuera no corre nada; si no, la primera página que se
+        cumpla y no haya corrido en este turno, y después otra vez desde la
+        primera. La ROM lo hace en `ba_pag_probar`."""
+        while self.vivos(self.enemigos) and self.vivos(self.actores):
+            for i, pagina in enumerate(self.paginas):
+                if i not in self.hechas and pagina.cumple(self):
+                    self.hechas.add(i)
+                    pagina.correr(self)
+                    break
+            else:
+                return
+
+    def empezar(self):
+        """Antes de las primeras órdenes, en el turno 0: el `eCheckEvents` de
+        `ProcessSceneActionFightAutoEscape`."""
+        self.revisar_paginas()
 
     # --- el turno ---------------------------------------------------------
     def vivos(self, quienes):
@@ -914,6 +1061,16 @@ class Batalla:
                               True, critico, -efecto, blanco.hp))
 
     # --- la victoria ------------------------------------------------------
+    def experiencia(self):
+        """`Game_EnemyParty::GetExp` al ganar: la de los muertos, que son
+        todos menos los que siguieron ocultos. La ROM le resta éstos a la de
+        la tropa: `ba_sin_ocultos`."""
+        return sum(e.exp for e in self.enemigos if not e.oculto)
+
+    def oro(self):
+        """`GetMoney`, igual que `experiencia`."""
+        return sum(e.oro for e in self.enemigos if not e.oculto)
+
     def tirar_el_botin(self):
         """`Game_EnemyParty::GenerateDrops`: por cada enemigo, en el orden de
         la tropa, **un tiro si tiene ítem** —`ChanceOf(drop_prob, 100)`, que
@@ -924,6 +1081,8 @@ class Batalla:
         por enemigo que soltó el suyo."""
         ganados = []
         for enemigo in self.enemigos:
+            if enemigo.oculto:
+                continue        # no murió: `IsDead` es falso
             item = getattr(enemigo, "botin_item", 0)
             if item > 0 and self.azar.porciento(enemigo.botin_chance):
                 ganados.append(item)
@@ -934,8 +1093,15 @@ class Batalla:
         grupo, `(ORDEN_ATACAR, lugar_del_enemigo)` o `(ORDEN_DEFENDER, 0)`.
 
         Devuelve el resultado si la pelea terminó, o None.
+
+        Las páginas de la tropa corren **antes de cada acción y después de la
+        última** —`ePreAction`—, y las anotadas se borran al empezar, que es
+        `NextTurn`. Las de antes de las órdenes del turno que viene son las
+        mismas que las de después de la última, así que no hace falta otra
+        vuelta: ver `empezar` para las del turno 0.
         """
         self.turno += 1
+        self.hechas = set()
         for quien in self.actores + self.enemigos:
             quien.defendiendo = False
         acciones = []
@@ -964,6 +1130,7 @@ class Batalla:
                              else None))
         acciones += self.acciones_de_los_enemigos()
         for i in self.orden_de_ejecucion(acciones):
+            self.revisar_paginas()
             quien, orden, blanco = acciones[i]
             if not quien.vivo:
                 continue
@@ -1009,6 +1176,7 @@ class Batalla:
             pego, critico, dano = self.atacar(quien, blanco)
             self.registro.append((self.turno, quien.nombre, blanco.nombre,
                                   pego, critico, dano, blanco.hp))
+        self.revisar_paginas()
         if not self.vivos(self.enemigos):
             self.resultado = VICTORIA
             self.botin = self.tirar_el_botin()

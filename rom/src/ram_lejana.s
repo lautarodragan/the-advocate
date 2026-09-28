@@ -181,6 +181,29 @@ BA_PAG_VUELTA = FAR_PAG + 10    ; por dónde sigue la pelea cuando no quedan:
 BA_PAG_I      = FAR_PAG + 11    ; por cuál va el barrido
 BA_PAG_G      = FAR_PAG + 12    ; palabra: esa misma, en las tablas `tpag_*`
 BA_PAG_HECHA  = FAR_PAG + 16    ; TROPA_PAG_MAX bytes: ya corrió este turno
+; Y lo que sumaron las condiciones de turno y de HP y los comandos que las
+; acompañan, el 2026-09-28: $7E7A10 a $7E7A3F, que es lo que se le repartió a
+; esto. Con dirección de dieciséis bits, como el resto de la pelea.
+BA_TURNO      = $7A10           ; palabra: el turno, `Game_Party::GetTurns`
+BA_PAG_ESPERA = $7A12           ; palabra: cuadros que le quedan a la espera
+                                ; de la página que corre
+BA_PCT_MIN    = $7A14           ; el tramo de HP en por ciento que se mira
+BA_PCT_MAX    = $7A15
+BA_P24        = $7A16           ; tres bytes: lo que deja `ba_mul24`
+BA_P_HP       = $7A19           ; tres bytes: cien veces los HP que se miran
+BA_PAG_FL     = $7A1C           ; los disparadores de la página que se prueba
+; Y su cabecera, copiada de delante de su código: `eventos.cabecera_de_tropa`,
+; en el mismo orden.
+BA_COND       = $7A20
+BA_COND_BASE  = 0               ; palabra: la base del turno, `turn_b`
+BA_COND_MULT  = 2               ; palabra: y su múltiplo, `turn_a`
+BA_COND_ENE   = 4               ; el lugar del enemigo en la tropa
+BA_COND_EMIN  = 5               ; y su tramo de HP, en por ciento
+BA_COND_EMAX  = 6
+BA_COND_ACT   = 7               ; el actor, por número del LDB
+BA_COND_AMIN  = 8
+BA_COND_AMAX  = 9
+.assert BA_COND + TPAG_CABECERA <= $7A40, error, "lo de las páginas se sale de su lugar"
 
 ; --- una medicina fuera de la pelea: su escritorio en la RAM lejana ----------
 ;
@@ -348,6 +371,12 @@ BA_SPI    = 38              ; el espíritu efectivo, que `CalcSkillEffect` pide
 BAF_DEF   = $01             ; se está defendiendo
 BAF_ACTOR = $02             ; es del grupo
 BAF_HAY   = $04             ; la ranura está ocupada
+; Un enemigo oculto —`invisible` en la tropa— ocupa su lugar pero **no tiene
+; `BAF_HAY`**: así todo lo que mira quién está —`ba_vivo`, y con él el blanco,
+; las acciones, la victoria y la escena— lo saltea sin saber nada de ocultos,
+; que es lo que hace `Exists()` en easyrpg. `ShowHiddenMonster` le cambia un
+; bit por el otro: ver `ba_mostrar_oculto`.
+BAF_OCULTO = $08
 
 ; Los tres resultados y las tres órdenes, en el orden de `tools/port/batalla.py`.
 BA_VICTORIA = 0

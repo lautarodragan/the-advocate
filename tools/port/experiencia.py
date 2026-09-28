@@ -100,8 +100,10 @@ def sumar(actor, nivel, exp, cantidad):
 
 def exp_de_la_tropa(db, tropa):
     """`Game_EnemyParty::GetExp`: la de cada enemigo **muerto**. Una victoria
-    los tiene a todos muertos —no hay enemigos escondidos en este port—, así
-    que es la suma de la tropa entera, hasta `ENEMIGOS_MAX` como la pelea."""
+    los tiene a todos muertos menos los que siguieron ocultos, así que ésta es
+    la suma de la tropa entera, hasta `ENEMIGOS_MAX` como la pelea, y la ROM
+    le resta la de los ocultos al ganar: ver `ba_sin_ocultos` y
+    `batalla.Batalla.experiencia`."""
     from port import batalla
     return sum(db.enemies[e].exp
                for e in db.troops[tropa].members[:batalla.ENEMIGOS_MAX])

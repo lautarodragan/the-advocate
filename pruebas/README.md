@@ -147,6 +147,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `abl/test_msu_datos.py`: el fondo leído del `.msu` por el MSU-1, y el
   respaldo del cartucho cuando el `.msu` no es el suyo
 * `rpgmaker/test_tropa.py`: las páginas de tropa
+* `rpgmaker/test_eventos_de_tropa.py`: las páginas por turno y por HP, los
+  enemigos ocultos que aparecen —el Rat King— y el despegue de los agentes
 * `rpgmaker/test_experiencia_dibujo.py`: la experiencia y el nivel, en la RAM
   y en el menú
 * `rpgmaker/test_victoria.py`: lo que la victoria da y cuenta —la

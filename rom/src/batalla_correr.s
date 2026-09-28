@@ -56,12 +56,16 @@ hay_grupo:
     lda #BA_M_ORDEN
     sta BA_MODO
     ; Antes de la primera orden, las páginas que ya se cumplen: es el
-    ; `eCheckEvents` de `ProcessSceneActionFightAutoEscape`. Corren desde el
-    ; cuadro que viene, con la pantalla ya prendida.
+    ; `eCheckEvents` de `ProcessSceneActionFightAutoEscape`. El primer tramo
+    ; corre **acá mismo** y no en el cuadro que viene: todas las tropas del
+    ; juego traen una página de turno 0 que sólo prende un switch, y así la
+    ; pelea abre ya pidiendo órdenes, como abría antes de que esas páginas
+    ; corrieran. Una que muestra un mensaje abre con el mensaje puesto.
     jsr ba_pag_probar
     beq sin_pagina_al_empezar
     lda #1
     sta BA_PAG_VUELTA
+    jsr ba_pag_paso
 sin_pagina_al_empezar:
     jsr ba_componer
     jsl f:ba_t_subir
@@ -82,6 +86,7 @@ espera:
     jsl f:ba_t_vblank
     jsl f:ba_t_pad                ; el control antes del DMA, como en la tienda
     jsl f:ba_t_subir
+    jsr ba_sacudir              ; la sacudida, antes de que se acabe el vblank
     jsr escena_tick             ; todavía en el vblank: un enemigo que murió
     lda pad
     eor pad_ant
@@ -717,3 +722,23 @@ nada:
     rts
 .endproc
 
+; La sacudida de pantalla en la pelea: un cuadro de `sacudida_tick` y su
+; posición en el scroll de la escena. Es de `Game_Screen` y no del mapa, así
+; que en RM2k sigue en la pelea, y la arranca el `ShakeScreen` de una página de
+; tropa —el despegue de la pelea de los agentes—. Mueve el fondo y los
+; battlers, que es lo que `Spriteset_Battle` corre con `GetShakeOffsetX`; las
+; ventanas quedan quietas, y acá el texto, que es BG2, también.
+.proc ba_sacudir
+.a8
+.i16
+    jsl f:ba_t_sacudida
+    lda BA_ESCENA
+    cmp #$FF
+    beq listo
+    lda sacudida_pos
+    sta f:BG1HOFS               ; `stz` y `sta` absolutos caerían en la WRAM
+    lda sacudida_pos + 1
+    sta f:BG1HOFS
+listo:
+    rts
+.endproc

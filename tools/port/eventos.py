@@ -16,6 +16,7 @@ liblcf. Nunca de memoria: la primera versión del filtro de puertas los puso a
 ojo y tres estaban mal.
 """
 
+import collections
 import math
 import os
 
@@ -2971,33 +2972,74 @@ class Tropas:
 RAMA_DE_PELEA = {13310: COND_RAMA, 23310: COND_SINO, 23311: COND_FIN}
 RAMA_DE_PELEA_CLASES = (COND_SWITCH, COND_VARIABLE)
 
+# `ShowHiddenMonster`, que sólo existe en la pelea: el miembro de la tropa de
+# ese lugar —desde 0, en el orden de la tropa— deja de estar oculto. Ver
+# OP_SHOW_ENEMY y `ba_mostrar_oculto`.
+SHOW_HIDDEN_MONSTER = 13150
+
 # Lo que una página de tropa puede hacer en este port. **Es una lista de los que
 # sí, no de los que no**, a propósito: casi todo lo que compila en un mapa
 # supone el mapa —un teletransporte, una ruta, un tinte, una elección, que abre
 # la ventana del mapa— y adentro de la pelea haría otra cosa sin avisar.
 #
+# `PlaySound` suena en el paquete de audio de la pelea si su efecto entra ahí
+# —ver `PaginasDeTropa.compilar`—, y `ShakeScreen` mueve la escena: ver
+# `ba_sacudir`. Su espera, un OP_DELAY, la cuenta `ba_pag_paso`.
+#
 # Los que quedan afuera y el juego usa, por si alguien los quiere sumar:
 # `ChangeHP` y `FullHeal` —en la pelea los HP viven en `BA_UNO` y `FAR_HP`
-# se pisa al cerrarla—, `ChangePartyMembers`, `ChangeEquipment`, `PlaySound`,
-# `Wait`, `TintScreen` y los seis que sólo existen en la pelea.
+# se pisa al cerrarla—, `ChangePartyMembers`, `ChangeEquipment`, `Wait`,
+# `TintScreen` y cinco de los seis que sólo existen en la pelea.
 TROPA_COMANDOS = ({END, SHOW_MESSAGE, SHOW_MESSAGE_2, CONTROL_SWITCHES,
                    CONTROL_VARS, CHANGE_SKILLS, CHANGE_GOLD, CHANGE_ITEMS,
+                   PLAY_SOUND, SHAKE_SCREEN, SHOW_HIDDEN_MONSTER,
                    COND_RAMA, COND_SINO, COND_FIN} | IGNORABLES)
 
-# Qué disparadores sabe mirar la ROM, con su bit en `tpag_flags`. Los demás
-# —el turno, los HP de un actor o de un enemigo— dejan la página afuera: el
-# 2026-09-21 son 173 de las 4588 páginas del juego, y ninguna de los 32
-# sistemas de los personajes, que dependen sólo de `switch_a`.
+# Qué disparadores sabe mirar la ROM, con su bit en `tpag_flags`: los seis de
+# RM2k. Los tres de 2003 —el turno de un actor o de un enemigo, el cansancio y
+# la orden de un actor— no existen en un juego de 2000, y una página que los
+# pidiera se queda afuera.
 TROPA_DISPARO_SWITCH_A = 0x01
 TROPA_DISPARO_SWITCH_B = 0x02
 TROPA_DISPARO_VARIABLE = 0x04
+TROPA_DISPARO_TURNO = 0x08
+TROPA_DISPARO_ENEMIGO = 0x10
+TROPA_DISPARO_ACTOR = 0x20
 TROPA_DISPAROS = {"switch_a": TROPA_DISPARO_SWITCH_A,
                   "switch_b": TROPA_DISPARO_SWITCH_B,
-                  "variable": TROPA_DISPARO_VARIABLE}
+                  "variable": TROPA_DISPARO_VARIABLE,
+                  "turn": TROPA_DISPARO_TURNO,
+                  "enemy_hp": TROPA_DISPARO_ENEMIGO,
+                  "actor_hp": TROPA_DISPARO_ACTOR}
 # Cuántas páginas de una tropa anota la pelea como "ya corrió este turno", un
 # byte cada una en `BA_PAG_HECHA`. Es un tope de la RAM lejana y no del juego:
 # el conversor se corta si alguna tropa pasa.
 TROPA_PAGINAS_MAX = 32
+
+# Los disparadores que llevan **cabecera**: los números del turno y de los HP
+# no van en tablas por página del banco 1 —que ya no tiene lugar para diez
+# bytes por cada una de las quinientas— sino delante del código de la página,
+# en `tropa_codigo`, que está en RODATA. Ver `cabecera_de_tropa` y
+# `ba_pag_cabecera`.
+TROPA_CON_CABECERA = (TROPA_DISPARO_TURNO | TROPA_DISPARO_ENEMIGO
+                      | TROPA_DISPARO_ACTOR)
+TROPA_CABECERA_BYTES = 10
+
+
+def cabecera_de_tropa(disparo):
+    """Los diez bytes que van delante del código de una página que mira el
+    turno o los HP: la base y el múltiplo del turno, de a palabra, y el lugar
+    del enemigo, el actor y sus tramos, de a byte. Vacía si no mira nada de
+    eso. El orden es el de `BA_COND` en rom/src/ram_lejana.s."""
+    if not disparo.flags & TROPA_CON_CABECERA:
+        return b""
+    d = disparo
+    salida = bytes([d.turno_base & 0xFF, d.turno_base >> 8,
+                    d.turno_mult & 0xFF, d.turno_mult >> 8,
+                    d.enemigo, d.enemigo_min, d.enemigo_max,
+                    d.actor, d.actor_min, d.actor_max])
+    assert len(salida) == TROPA_CABECERA_BYTES
+    return salida
 
 
 def comandos_de_tropa(comandos):
@@ -3023,13 +3065,30 @@ def comandos_de_tropa(comandos):
     return salida
 
 
+# El disparador de una página de tropa, con lo que la ROM lee de cada uno. Los
+# campos de lo que la página no mira van en cero.
+Disparo = collections.namedtuple("Disparo", (
+    "flags", "switch_a", "switch_b", "ranura", "valor",
+    "turno_base", "turno_mult", "enemigo", "enemigo_min", "enemigo_max",
+    "actor", "actor_min", "actor_max"))
+
+
 def disparo_de_tropa(pagina):
-    """`(flags, switch_a, switch_b, ranura, valor)` de la condición de una
-    página de tropa, o None si mira algo que la ROM no sabe mirar.
+    """El `Disparo` de una página de tropa, o None si mira algo que la ROM no
+    sabe mirar.
 
     Una página **sin ningún disparador no corre nunca** —`AreConditionsMet`
     devuelve false de entrada— y también da None: no tiene sentido llevarla.
-    La de variable es `>=`, siempre: RM2k no le da operador."""
+    La de variable es `>=`, siempre: RM2k no le da operador.
+
+    **El turno va con la base y el múltiplo en ese orden**, y no en el de los
+    nombres: easyrpg llama `CheckTurns(turno, turn_b, turn_a)` y su firma es
+    `(turnos, base, múltiplo)`, o sea que `turn_b` es la base. Con el otro
+    orden la página del despegue de los agentes —`turn_a` 0, `turn_b` 1—
+    correría en todos los turnos en vez de en el primero.
+
+    Los HP son en por ciento, de 0 a 100: los de un enemigo por su lugar en la
+    tropa, los de un actor por su número del LDB."""
     if not pagina.activos:
         return None
     if any(a not in TROPA_DISPAROS for a in pagina.activos):
@@ -3052,7 +3111,27 @@ def disparo_de_tropa(pagina):
             ranura = ranura_de_variable(c["variable_id"])
         except NoSePuede:
             return None
-    return flags, switch_a, switch_b, ranura, valor
+    base, mult = 0, 0
+    if "turn" in pagina.activos:
+        base, mult = c["turn_b"], c["turn_a"]
+        if not (0 <= base <= 0xFFFF and 0 <= mult < 0x8000):
+            return None     # `ba_div` pide el divisor menor que 32768
+    enemigo, e_min, e_max = 0, 0, 0
+    if "enemy_hp" in pagina.activos:
+        enemigo, e_min, e_max = (c["enemy_id"], c["enemy_hp_min"],
+                                 c["enemy_hp_max"])
+        if not (0 <= enemigo < 256 and 0 <= e_min <= 100
+                and 0 <= e_max <= 100):
+            return None
+    actor, a_min, a_max = 0, 0, 0
+    if "actor_hp" in pagina.activos:
+        actor, a_min, a_max = (c["actor_id"], c["actor_hp_min"],
+                               c["actor_hp_max"])
+        if not (0 <= actor < 256 and 0 <= a_min <= 100
+                and 0 <= a_max <= 100):
+            return None
+    return Disparo(flags, switch_a, switch_b, ranura, valor, base, mult,
+                   enemigo, e_min, e_max, actor, a_min, a_max)
 
 
 class PaginasDeTropa:
@@ -3074,33 +3153,51 @@ class PaginasDeTropa:
         self.mensajes = Mensajes()
         self.cuerpos = bytearray()
         self.donde = {}             # bytecode -> desplazamiento en `cuerpos`
-        self.por_tropa = {}         # tropa -> [(flags, a, b, ranura, valor, ofs)]
+        self.por_tropa = {}         # tropa -> [(Disparo, ofs)]
         self.paginas = 0            # cuántas se miraron
         self.afuera = 0             # y cuántas no entraron
 
-    def compilar(self, numero, tropa):
+    def compilar(self, numero, tropa, temas=None):
+        """Las páginas de una tropa. Con `temas`, un `PlaySound` se compila
+        con su efecto, que cuenta para **el paquete de audio de la pelea** —el
+        que está cargado cuando la página corre, ver `PAQUETE_BATALLA`— y no
+        para el del mapa; y entra en él sólo si está en
+        `SE_DE_TROPA_AL_PAQUETE` (snes_music.py): si no, se pide y no suena,
+        como uno de ruta que no entra. Sin `temas` se acepta y no se hace."""
         suyas = []
-        for pagina in tropa.pages:
-            self.paginas += 1
-            disparo = disparo_de_tropa(pagina)
-            codigo = None
-            if disparo is not None:
-                try:
-                    comandos = comandos_de_tropa(pagina.commands)
-                except NoSePuede:
-                    comandos = None
-                if comandos is not None:
-                    codigo = compilar_pagina(_Comandos(comandos),
-                                             lambda _mapa: None,
-                                             self.mensajes)
-            if codigo is None:
-                self.afuera += 1
-                continue
-            codigo = bytes(codigo)
-            if codigo not in self.donde:
-                self.donde[codigo] = len(self.cuerpos)
-                self.cuerpos += codigo
-            suyas.append(disparo + (self.donde[codigo],))
+        anterior = temas.mapa if temas is not None else None
+        if temas is not None:
+            temas.mapa = PAQUETE_BATALLA
+        try:
+            for pagina in tropa.pages:
+                self.paginas += 1
+                disparo = disparo_de_tropa(pagina)
+                codigo = None
+                if disparo is not None:
+                    try:
+                        comandos = comandos_de_tropa(pagina.commands)
+                    except NoSePuede:
+                        comandos = None
+                    if comandos is not None:
+                        codigo = compilar_pagina(_Comandos(comandos),
+                                                 lambda _mapa: None,
+                                                 self.mensajes, temas=temas)
+                if codigo is None:
+                    self.afuera += 1
+                    continue
+                # La cabecera va pegada adelante y es parte de la clave: dos
+                # páginas con el mismo código y otro turno son dos cuerpos.
+                # El desplazamiento que se anota es el del código, así que la
+                # ROM la encuentra `TROPA_CABECERA_BYTES` antes.
+                cabecera = cabecera_de_tropa(disparo)
+                clave = cabecera + bytes(codigo)
+                if clave not in self.donde:
+                    self.donde[clave] = len(self.cuerpos) + len(cabecera)
+                    self.cuerpos += clave
+                suyas.append((disparo, self.donde[clave]))
+        finally:
+            if temas is not None:
+                temas.mapa = anterior
         self.por_tropa[numero] = suyas
         return suyas
 
@@ -4192,7 +4289,8 @@ def indice_de_sonido(temas, indice_de_mapa, nombre, volumen, tempo, balance,
     llevan otro nombre para la misma WAV, para que los demás mapas sigan con
     la suya. Ver `SE_DEL_MAPA` en snes_music.py. Y los de ruta de los mapas de
     `SE_DE_RUTA_SIN_PAQUETE` no entran en el paquete: ver ahí."""
-    from audio.snes_music import SE_DEL_MAPA, SE_DE_RUTA_SIN_PAQUETE
+    from audio.snes_music import (SE_DEL_MAPA, SE_DE_RUTA_SIN_PAQUETE,
+                                  SE_DE_TROPA_AL_PAQUETE)
 
     def es(mapa):
         try:
@@ -4210,6 +4308,9 @@ def indice_de_sonido(temas, indice_de_mapa, nombre, volumen, tempo, balance,
             al_paquete = not any(
                 es(m) and (cuales is None or nombre in cuales)
                 for m, cuales in SE_DE_RUTA_SIN_PAQUETE.items())
+    if temas.mapa == PAQUETE_BATALLA:
+        # El de una página de tropa: ver `SE_DE_TROPA_AL_PAQUETE`.
+        al_paquete = nombre in SE_DE_TROPA_AL_PAQUETE
     return temas.sonido(nombre, volumen, tempo, balance, al_paquete)
 
 
@@ -4872,6 +4973,14 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         return bytes([OP_TERRAIN, modo, x & 0xFF, x >> 8, y & 0xFF, y >> 8,
                       destino])
 
+    if cmd.code == SHOW_HIDDEN_MONSTER:
+        # Sólo llega desde una página de tropa: ver `TROPA_COMANDOS`. Un lugar
+        # que la tropa no tiene no hace nada en easyrpg —`GetEnemy` da nulo—,
+        # y la ROM lo mira contra `BA_NENE`.
+        if len(p) < 1 or not 0 <= p[0] < 256:
+            raise NoSePuede("ShowHiddenMonster sin lugar")
+        return bytes([OP_SHOW_ENEMY, p[0]])
+
     if cmd.code == SHAKE_SCREEN:
         # `CommandShakeScreen`, en su forma de RM2k: fuerza, velocidad,
         # décimas y si espera. Las 29 del juego son de esa forma. Con cero
@@ -5291,6 +5400,18 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                 codigo = compilar_pagina(page, indice_de_mapa, mensajes,
                                          del_mapa.para(event.id), temas,
                                          graficos, imagenes, tropas)
+                # **Y lo mismo con una que compila a nada**: todo lo suyo eran
+                # llamadas que se saltearon —ver `_compilar_llamada`—. En RM2k
+                # no está vacía, y lo que llama es lo que la apaga; acá sería
+                # la página vacía de arriba, con el mapa congelado. Es el
+                # `AfterBattleMint` de los mapas con encuentros: con el switch
+                # 498, que prende la página de turno 0 de cada tropa, llama al
+                # común 35, `ResetAfterBattles`, que no compila y es el que
+                # apaga el 498. Sin esto, la primera pelea de esos mapas
+                # dejaba al héroe sin poder dar un paso.
+                if codigo == bytes([OP_DONE]) and page.trigger in (
+                        TRIGGER_AUTOMATICO, TRIGGER_PARALELO):
+                    codigo = None
             grupo.append({
                 "evento": numero_evento,
                 "pagina": numero_pagina,

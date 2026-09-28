@@ -145,6 +145,20 @@ sigue_la_pagina:
 
 .endproc
 
+; `ShowHiddenMonster`, que sólo existe en una página de tropa: el miembro de
+; ese lugar deja de estar oculto. Lo hace `ba_mostrar_oculto`, en el banco de
+; la pelea, que es donde vive su estado.
+.proc op_show_enemy
+.a8
+.i16
+    lda [cod_ptr], y
+    iny
+    phy
+    jsl f:ba_mostrar_oculto
+    ply
+    jmp correr_codigo::otro
+.endproc
+
 ; Una pelea de punta a punta, con la tropa ya puesta en `BA_TROPA`: guardar el
 ; tema del mapa, cargar el audio de la pelea, pelearla y volver al mapa.
 ;

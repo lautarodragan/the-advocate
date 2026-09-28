@@ -116,6 +116,15 @@ ba_t_bgm:
     jsr batalla_bgm
     plb
     rtl
+; Un cuadro de la sacudida de pantalla, que en RM2k es de `Game_Screen` y
+; sigue corriendo en la pelea: un `ShakeScreen` de página de tropa la arranca.
+ba_t_sacudida:
+    phb
+    phk
+    plb
+    jsr sacudida_tick
+    plb
+    rtl
 
 ; Y los dos de la tienda y el equipo, que también viven afuera: la lista de
 ; ítems del inventario y armarla. `ti_lista_venta` y `eq_de_lista` las llaman.
