@@ -654,14 +654,18 @@ MENU_OPC_COL = 3                # el texto de la orden, x = 24
 MENU_OPC_COLS = 9               # hasta x = 96, donde empieza el grupo
 MENU_CURSOR_COL = 1             # el ">", x = 8
 # Qué órdenes hacen algo. Las otras se dibujan en el color de "no se puede",
-# que es el 3 del sistema, como RM2k dibuja "Save" cuando está prohibido:
-# técnicas y equipo son pasos que siguen, y terminar el juego pide volver al
-# título sin reiniciar el SPC700. Usar ítems abre la pantalla de ítems desde
-# el 2026-09-11. La 3, guardar, depende de `ChangeSaveAccess`.
+# que es el 3 del sistema, como RM2k dibuja "Save" cuando está prohibido: hoy
+# es sólo técnicas. Usar ítems abre la pantalla de ítems desde el 2026-09-11.
+# La 3, guardar, depende de `ChangeSaveAccess`. La 4, End Game, abre la
+# pantalla de fin_del_juego.py desde el 2026-09-28: hasta ahí iba en gris
+# porque "terminar el juego pide volver al título sin reiniciar el SPC700", y
+# eso dejó de hacer falta cuando el Game Over empezó a volver al título con un
+# reinicio.
 MENU_ITEMS = 0
 MENU_EQUIPO = 2
 MENU_GUARDAR = 3
-MENU_HECHAS = (MENU_ITEMS, MENU_EQUIPO, MENU_GUARDAR)
+MENU_FIN = 4
+MENU_HECHAS = (MENU_ITEMS, MENU_EQUIPO, MENU_GUARDAR, MENU_FIN)
 # El oro, abajo a la izquierda: hasta seis cifras **de a una celda cada una**
 # —no a los 6 pixeles de la fuente, para que la ROM las escriba de a una sin
 # rearmar tiles— y el término de la moneda detrás, en el color 1.

@@ -155,4 +155,5 @@ TEXTO_BUF_BYTES = VENTANA_TEXTO_COLS * 2 * 32
 .include "interprete_celdas.s"
 .include "npcs_lejos.s"
 .include "experiencia_en_el_menu.s"
+.include "fin_del_juego.s"
 .include "cabecera.s"
