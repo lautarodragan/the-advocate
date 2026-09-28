@@ -2,7 +2,7 @@
 name: "La tienda como el original"
 description: "Las ventanas del System y la barra roja de cursor, como ya tienen ítems y equipo, llevadas a la tienda"
 type: feature
-assignee: Aguaribay
+assignee: taro
 ---
 
 Nació el 2026-09-28, cuando taro aprobó la pantalla de equipo, para dejar
@@ -140,6 +140,9 @@ los términos en blanco.
 - `items_ppu_prender` sigue de largo en `pantalla_ppu_prender`, que recibe
   `BG12NBA` en A: la tienda le pasa la base propia de BG1.
 - El código nuevo va en el banco 1 (`tienda.s`); el banco 0 no cambió.
+- `EQ_CURSOR` y `PANT_NOMBRE` se fueron en su propio commit: el ">" y la
+  columna de los nombres de ítems en esta pantalla quedaban sólo por la
+  tienda. Las ROMs salieron byte por byte iguales.
 
 ## Qué no entra
 
@@ -188,6 +191,15 @@ los términos en blanco.
   cambiaron.
 - Antes, ahora y el original, lado a lado, en
   `/shared/capturas/2026-09-28-tienda/`, con las goldens del último commit.
+- Verificado con `just cartuchos` y `just pruebas` sobre esta rama, con
+  `main` mergeado —no se había movido—: todo en verde. Ningún tema de música
+  pasó a recortar, así que no hay commit de techos.
+- **Lo que `just pruebas` no corre**: la tienda en bsnes. Se corrió a mano,
+  con las tres pruebas de la tienda apuntadas a bsnes, y las veintidós
+  pantallas salieron iguales a la referencia; es lo que dice que el DMA de
+  cada cuadro entra en el vblank. Tampoco corre una tienda de sólo comprar o
+  de sólo vender (`OpenShop` tipo 1 o 2), que entra derecho a la lista: su
+  camino no cambió, pero la capa sale de la misma tabla.
 - `just espacio`, antes (`main` en `24dc8b6e`) y después: en `release` los
   huecos de datos pasaron de 13.910 a 9.432 B, el banco 1 de 3.739 a 3.333
   y el banco 0 quedó en 224; en `test-special`, de 23.213 a 18.735, de 6.243

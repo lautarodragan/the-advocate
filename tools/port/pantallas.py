@@ -106,8 +106,8 @@ EQ_RANURA_NOMBRE_COL = EQ_RANURA_TERM_COL + EQ_RANURA_TERM_ANCHO
 EQ_RANURA_NOMBRE_ANCHO = 19     # hasta la columna 29, como la cuenta de ítems
 EQ_LISTA_FILA0 = EQ_RANURA_FILA0
 EQ_LISTA_FILAS = 5              # 17 + 5 * 2 = 27: el marco de abajo
-# La lista, con los nombres en esa columna y no en la de ítems —que es la de
-# la tienda—; los dos puntos y la cuenta, en las de ítems.
+# La lista, con los nombres en esa columna y no en la de ítems; los dos
+# puntos y la cuenta, en las de ítems.
 EQ_LISTA_NOMBRE_COL = EQ_TEXTO_COL
 # Las barras, cuatro pixeles más anchas que el texto de cada lado, como en
 # ítems: la de las ranuras sobre el término y lo puesto, que es lo que marca
