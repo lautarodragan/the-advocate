@@ -2,11 +2,12 @@
 name: "La tienda como el original"
 description: "Las ventanas del System y la barra roja de cursor, como ya tienen ítems y equipo, llevadas a la tienda"
 type: feature
+assignee: Aguaribay
 ---
 
 Nació el 2026-09-28, cuando taro aprobó la pantalla de equipo, para dejar
 escrito lo de la VRAM que está más abajo. Es lo que sigue después de ítems y
-equipo, pero **taro todavía no lo pidió**. Hoy la tienda sigue sobre negro y con el ">" (`EQ_CURSOR`
+equipo. taro la pidió el 2026-09-28: "vamos con la tienda". Hoy la tienda sigue sobre negro y con el ">" (`EQ_CURSOR`
 sigue existiendo por ella). La pantalla es `rom/src/tienda.s`, y la
 referencia es `pantallas.pantalla_tienda`.
 
