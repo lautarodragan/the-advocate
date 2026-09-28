@@ -359,19 +359,13 @@ apretado cambia, y dos veces quedó
 escrito acá y se quedó viejo: **no se escribe, se mide**, y hay que medirlos
 todos: `abl` y los que arma `cartuchos`.
 
-Medirlo no pide tocar ningún fuente: se ensambla un objeto aparte con un
-`.res N` en el segmento que se quiere medir y se lo linkea junto al `.o` que
-la receta ya dejó al lado de la ROM, y `ld65` avisa "Segment ‘TABLAS’
-overflows memory area ‘ROM’ by 136 bytes", o sea que con `N = 200` sobraban
-64. Ojo con dos cosas que hacen que la medición dé "no se pasó" siempre: en un
-segmento `ro` el `.res` tiene que llevar valor de relleno —`.res N, $00`— o no
-ocupa nada, y `ld65` escribe el mensaje con comillas tipográficas, no `'`.
-
-Los tres segmentos que se llenan son **`TABLAS`** —el banco 0, que comparte
-sus 32.704 bytes con `CODE`—, **`BSS`** y **`ZEROPAGE`**. El banco 1 es
-`FAR`, y ahí el `.res` mide siempre 0 porque un `.align $8000` lo cierra hasta
-el final del banco: lo que queda libre se lee mirando hasta dónde llega su
-último símbolo en la tabla de símbolos.
+**Se mide con `just espacio`**, que imprime para cada cartucho los bancos de
+datos libres y los huecos, el banco 0, el banco 1, `BSS`, `ZEROPAGE` y el
+bloque de textos; con la ruta de una ROM armada aparte, mide ésa. Lo que
+cuenta es **cuántos bancos quedan**, no un porcentaje: los bancos `$7E` y
+`$7F` no son ROM. Hasta el 2026-09-27 se medía a mano, linkeando un `.res N`
+contra el `.o` de la receta; eso sigue sirviendo para lo único que la receta
+no puede, que es una ROM que no linkea: ahí `ld65` dice por cuánto se pasa.
 
 **`rom/build/cache/` es un caché en disco del conversor** —muestras BRR,
 muestras ya preparadas y capas convertidas— y su clave lleva el hash de los

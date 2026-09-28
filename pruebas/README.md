@@ -233,6 +233,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `herramientas/test_reservas_de_la_wram.py`: que nadie más caiga en la mitad
   alta de la WRAM, que es de la grilla y de la pelea
 * `herramientas/test_bancos.py`: el acomodo de bancos
+* `herramientas/test_espacio.py`: `just espacio`, contra el `.res` linkeado a
+  mano que reemplazó
 * `herramientas/test_ensamblar.py`: `ensamblar.py`
 * `herramientas/test_protocolo.py`: el bytecode: las declaraciones y los
   generados

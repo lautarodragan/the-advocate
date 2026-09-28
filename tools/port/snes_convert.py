@@ -5133,6 +5133,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             for fase, datos in enumerate(pre):
                 handle.write(bloque("fuente_pre%d" % fase, datos) + "\n")
             handle.write(bloque("mensajes", ventana["mensajes"]) + "\n")
+            # Cuánto mide y cuánto puede medir: la ROM no los usa, los lee
+            # `just espacio` de la tabla de símbolos. El tope es lo que
+            # alcanza el operando de `OP_MESSAGE`, de 16 bits y de a
+            # `MENSAJES_PASO` bytes.
+            handle.write("MENSAJES_BYTES = %d\nMENSAJES_TOPE = %d\n"
+                         % (len(ventana["mensajes"]),
+                            0x10000 * eventos.MENSAJES_PASO))
         # --- el cartel del ShowPicture ---
         #
         # Sus quince colores tal cual salieron de `imagen.convertir`, en el
