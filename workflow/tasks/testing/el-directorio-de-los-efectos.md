@@ -192,6 +192,9 @@ separaría le baja algo a otro tema: la regla la rechaza.
   del cartucho, que el directorio no esté lleno —las copias pararon porque
   ninguna sumaba—, que ningún paquete tenga dos efectos en un lugar y que los
   lugares sean los del paquete más cargado. Con main falla: 255 entradas.
+  Desde el hito 4 del mundo (`mundo-4-el-capitulo.md`) se llama
+  `test_los_efectos_comparten_lugares_del_directorio` y ya no pide que el
+  directorio no esté lleno: con los temas del capítulo se llena.
 * `test_un_efecto_no_suena_con_la_muestra_de_otro`: `Success2` en el mapa 10
   con otro efecto anotado en su lugar no suena, y sin tocar nada sí. Con la
   pregunta de `sonido_tocar` sacada, falla.
