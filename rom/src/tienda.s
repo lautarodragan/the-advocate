@@ -5,7 +5,9 @@
 ; `Scene_Shop`, abierta por `OP_SHOP` desde el intérprete, como guardar: la
 ; pantalla bloquea adentro de la página, no cuesta ningún tick, y al salir el
 ; mapa vuelve y la página sigue. Es una pantalla de texto —ver "las pantallas
-; de texto"— y `pantallas.pantalla_tienda` es la referencia de cada modo. Lo
+; de texto"— y `pantallas.pantalla_tienda` es la referencia de cada modo. Las
+; ventanas del System y la barra van en BG1, con su propia base: ver
+; `ti_pantalla_subir` y `ti_ventanas`, y `pantallas.TI_VENTANAS`. Lo
 ; que vende va como `k` en `FAR_TIENDA`; la lista de vender, en
 ; `FAR_ITEM_LISTA`.
 ;
@@ -251,8 +253,9 @@ listo:
     rts
 .endproc
 
-; El mensaje A del juego de la tienda, en los dos renglones de arriba.
-.proc ti_mensaje
+; A: el número de mensaje del juego de la tienda. X = el texto de su primer
+; renglón; el segundo es el que sigue.
+.proc ti_texto_de
 .a8
 .i16
     sta temp + 3
@@ -272,39 +275,92 @@ listo:
     asl a                       ; dos renglones cada uno
     clc
     adc #TI_TEXTO
-    pha
-    lda #PANT_DESC_POS
-    sta eleg_tabla
-    plx
-    phx
+    tax
     sep #$20
 .a8
+    rts
+.endproc
+
+; A != 0 si el saludo de la principal —o el resaludo— ocupa dos renglones:
+; las órdenes van debajo, así que arrancan uno más abajo. Es el largo del
+; segundo renglón.
+.proc ti_dos_renglones
+.a8
+.i16
+    lda comp_fase + 1
+    jsr ti_texto_de
+    inx
+    lda f:item_txt_n, x
+    rts
+.endproc
+
+; El mensaje A del juego de la tienda, en la ventana de abajo: en la
+; principal los dos renglones, arriba de las órdenes; en los demás modos,
+; uno solo, que es lo que entra en su ventana —los mensajes de esos modos
+; miden un renglón, y el conversor lo controla—.
+.proc ti_mensaje
+.a8
+.i16
+    jsr ti_texto_de
+    rep #$20
+.a16
+    lda #TI_MSG_POS
+    sta eleg_tabla
+    sep #$20
+.a8
+    lda comp_col
+    bne uno
+    rep #$20
+.a16
+    lda #TI_PRINCIPAL_MSG_POS
+    sta eleg_tabla
+    sep #$20
+.a8
+    phx
     stz temp + 1
     jsl f:ba_t_texto
     rep #$20
 .a16
-    lda #(PANT_DESC_POS + 128)
+    lda #(TI_PRINCIPAL_MSG_POS + 128)
     sta eleg_tabla
     plx
     inx
     sep #$20
 .a8
+uno:
     stz temp + 1
     jsl f:ba_t_texto
     rts
 .endproc
 
-; La moneda en `eleg_tabla`.
+; La moneda en `eleg_tabla`, en rojo como en RM2k.
 .proc ti_moneda
 .a8
 .i16
-    stz temp + 1
+    lda #TI_ROJO
+    sta temp + 1
     ldx #TI_TEXTO_MONEDA
     jsl f:ba_t_texto
     rts
 .endproc
 
-; La pantalla entera, en el búfer: `pantallas.pantalla_tienda`.
+; Cuántas filas tiene la lista del modo: la de comprar tiene debajo la
+; cuenta y el oro, y la de vender no.
+.proc ti_filas
+.a8
+.i16
+    lda comp_col
+    cmp #TI_VENDER
+    beq venta
+    lda #TI_LISTA_FILAS_COMPRA
+    rts
+venta:
+    lda #TI_LISTA_FILAS_VENTA
+    rts
+.endproc
+
+; La pantalla entera, en el búfer: `pantallas.pantalla_tienda`. Las ventanas
+; y la barra no: van en BG1, y las pone `ti_ventanas` en cada cuadro.
 .proc ti_componer
 .a8
 .i16
@@ -330,7 +386,14 @@ con_mensaje:
     bne no_principal
     jmp principal
 no_principal:
-    ; --- el oro, y cuántos tiene y lleva puestos del que marca el cursor ---
+    ; --- la ayuda: la descripción del que marca el cursor ---
+    lda comp_mask
+    beq sin_ayuda
+    jsr ti_item
+    jsr eq_desc
+sin_ayuda:
+    ; --- el oro, y cuántos tiene y lleva puestos del que marca el cursor:
+    ; en todos los modos de la capa de comprar, que son todos menos vender ---
     lda comp_col
     cmp #TI_VENDER
     bne cerca_12209
@@ -360,14 +423,14 @@ cerca_12209:
     jsr ti_moneda
     lda comp_mask
     beq sin_oro
-    jsr ti_item
     rep #$20
 .a16
     lda #TI_TENGO_POS
     sta eleg_tabla
     sep #$20
 .a8
-    stz temp + 1
+    lda #TI_ROJO
+    sta temp + 1
     ldx #TI_TEXTO_TENGO
     jsl f:ba_t_texto
     jsr ti_item
@@ -383,6 +446,7 @@ cerca_12209:
 .a8
     lda #2
     sta comp_dup + 2
+    stz temp + 1
     jsl f:ba_t_numero
     rep #$20
 .a16
@@ -390,6 +454,8 @@ cerca_12209:
     sta eleg_tabla
     sep #$20
 .a8
+    lda #TI_ROJO
+    sta temp + 1
     ldx #TI_TEXTO_LLEVO
     jsl f:ba_t_texto
     jsr ti_item
@@ -402,6 +468,7 @@ cerca_12209:
 .a8
     lda #2
     sta comp_dup + 2
+    stz temp + 1
     jsl f:ba_t_numero
 sin_oro:
     lda comp_col
@@ -409,14 +476,21 @@ sin_oro:
     beq cuantos
     cmp #TI_CUANTOS_VENTA
     beq cuantos
+    ; Los dos "listo" dejan la ventana del medio vacía, como RM2k.
+    cmp #TI_COMPRADO
+    beq vacia
+    cmp #TI_VENDIDO
+    beq vacia
     jmp lista
+vacia:
+    rts
 
     ; --- la cantidad: el ítem, "x" y cuántos, y el total ---
 cuantos:
     jsr ti_item
     rep #$20
 .a16
-    lda #(TI_LISTA_POS0 + PANT_NOMBRE)
+    lda #TI_CUANTOS_POS
     sta eleg_tabla
     sep #$20
 .a8
@@ -424,13 +498,19 @@ cuantos:
     jsr eq_nombre
     rep #$20
 .a16
-    lda #(TI_LISTA_POS0 + TI_CUANTOS)
+    lda #TI_CUANTOS_X_POS
     sta eleg_tabla
     sep #$20
 .a8
     stz temp + 1
     lda #$78                    ; 'x'
     jsl f:ba_t_glifo
+    rep #$20
+.a16
+    lda #TI_CUANTOS_NUM_POS
+    sta eleg_tabla
+    sep #$20
+.a8
     lda comp_color
     sta comp_dup
     stz comp_dup + 1
@@ -456,32 +536,14 @@ cuantos:
 .a8
     jmp ti_moneda
 
-    ; --- la principal: las órdenes ---
+    ; --- la principal: las órdenes, debajo del saludo ---
 principal:
     lda #0
 orden:
     pha
-    cmp comp_base
-    bne sin_cursor
     jsr orden_pos
     rep #$20
 .a16
-    clc
-    adc #EQ_CURSOR
-    sta eleg_tabla
-    sep #$20
-.a8
-    stz temp + 1
-    lda #$3E
-    jsl f:ba_t_glifo
-sin_cursor:
-    pla
-    pha
-    jsr orden_pos
-    rep #$20
-.a16
-    clc
-    adc #PANT_NOMBRE
     sta eleg_tabla
     sep #$20
 .a8
@@ -522,7 +584,6 @@ cerca_12382:
     pha
     clc
     adc comp_base + 1
-    pha
     jsr ti_k_de
     rep #$20
 .a16
@@ -557,38 +618,11 @@ gris:
 color_listo:
     sta temp + 1
     plx
-    pla                         ; el lugar en la lista
-    cmp comp_base
-    bne sin_cursor_lista
-    lda comp_col
-    cmp #TI_COMPRAR
-    beq con_cursor
-    cmp #TI_VENDER
-    bne sin_cursor_lista
-con_cursor:
     rep #$20
 .a16
     lda comp_glifo + 1
     clc
-    adc #EQ_CURSOR
-    sta eleg_tabla
-    sep #$20
-.a8
-    lda temp + 1
-    pha
-    stz temp + 1
-    phx                         ; `pant_glifo` se lleva X, que es el `k`
-    lda #$3E
-    jsl f:ba_t_glifo
-    plx
-    pla
-    sta temp + 1
-sin_cursor_lista:
-    rep #$20
-.a16
-    lda comp_glifo + 1
-    clc
-    adc #PANT_NOMBRE
+    adc #TI_NOMBRE
     sta eleg_tabla
     sep #$20
 .a8
@@ -656,9 +690,13 @@ cuenta:
     sta comp_dup + 2
     jsl f:ba_t_numero
 lista_siguiente:
+    ; La fila que sigue, si la lista del modo la tiene: `ti_filas` no toca
+    ; la pila.
+    jsr ti_filas
+    sta temp + 3
     pla
     inc a
-    cmp #TI_LISTA_FILAS
+    cmp temp + 3
     bcs lista_fin
     jmp lista_fila
 lista_fin:
@@ -667,8 +705,18 @@ lista_listo:
     pla
     rts
 
-; A: la orden de la principal. A16 = la posición de su fila.
+; A: la orden de la principal. A16 = la posición de su fila: debajo del
+; saludo, uno más abajo si el saludo tiene dos renglones.
 orden_pos:
+    pha
+    jsr ti_dos_renglones
+    beq un_renglon
+    pla
+    inc a
+    bra con_renglon
+un_renglon:
+    pla
+con_renglon:
     rep #$20
 .a16
     and #$00FF
@@ -709,26 +757,7 @@ tres:
 
 ; A: el número de mensaje. Su primer renglón, en `eleg_tabla`, en blanco.
 ti_renglon1:
-    sta temp + 3
-    lda comp_fase
-    asl a
-    asl a
-    asl a
-    clc
-    adc comp_fase
-    adc comp_fase
-    adc comp_fase
-    clc
-    adc temp + 3
-    rep #$20
-.a16
-    and #$00FF
-    asl a
-    clc
-    adc #TI_TEXTO
-    tax
-    sep #$20
-.a8
+    jsr ti_texto_de
     stz temp + 1
     jsl f:ba_t_texto
     rts
@@ -999,16 +1028,250 @@ listo:
     sta comp_base + 1
     rts
 no_arriba:
+    jsr ti_filas                ; la de comprar y la de vender no miden igual
+    sta temp + 3
+    lda comp_base
     sec
     sbc comp_base + 1
-    cmp #TI_LISTA_FILAS
+    cmp temp + 3
     bcc listo
     lda comp_base
     sec
-    sbc #(TI_LISTA_FILAS - 1)
+    sbc temp + 3
+    inc a                       ; el cursor, en la última fila que se ve
     sta comp_base + 1
 listo:
     rts
+.endproc
+
+; Las ventanas de la tienda, con la pantalla apagada y detrás del banco de la
+; pantalla: la paleta roja de los términos —va con la de "sube", como en el
+; equipo—, los colores y los tiles de las ventanas, y las filas de la ayuda,
+; que son las mismas en las tres capas. El resto lo pone `ti_ventanas`.
+.proc ti_pantalla_subir
+.a8
+.i16
+    lda #ITEMS_CGRAM_N
+    sta CGADD
+    rep #$20
+.a16
+    lda #.loword(item_cgram_sube)
+    sta A1T0L
+    lda #(2 * 16 * 2)
+    sta DAS0L
+    sep #$20
+.a8
+    lda #^item_cgram_sube
+    sta A1B0
+    stz DMAP0
+    lda #$22
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    lda #ITEM_MARCO_CGRAM
+    sta CGADD
+    rep #$20
+.a16
+    lda #.loword(ti_marco_cgram)
+    sta A1T0L
+    lda #(TI_MARCO_COLORES * 2)
+    sta DAS0L
+    sep #$20
+.a8
+    lda #^ti_marco_cgram
+    sta A1B0
+    lda #$01
+    sta MDMAEN
+    lda #$80
+    sta VMAIN
+    rep #$20
+.a16
+    lda #TI_MARCO_VRAM
+    sta VMADDL
+    lda #.loword(ti_marco_tiles)
+    sta A1T0L
+    lda #(TI_MARCO_TILES * 64)
+    sta DAS0L
+    sep #$20
+.a8
+    lda #^ti_marco_tiles
+    sta A1B0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    rep #$20
+.a16
+    lda #TI_MARCO_MAPA
+    sta VMADDL
+    lda #.loword(ti_marco_filas)
+    sta A1T0L
+    lda #(TI_MARCO_ARRIBA * 64)
+    sta DAS0L
+    sep #$20
+.a8
+    lda #^ti_marco_filas
+    sta A1B0
+    lda #$01
+    sta MDMAEN
+    rts
+.endproc
+
+; Las ventanas de BG1 debajo de la ayuda, y la barra: en el vblank de cada
+; cuadro, detrás del texto, como `eq_barra`. Se suben las filas de la capa
+; del modo —`ti_tramos`, de `ti_marco_filas`— y encima el rectángulo de la
+; barra, de `ti_marco_parches`. Sin acordarse de nada: cada cuadro repone
+; todo, así que ni la barra ni la capa anterior pueden quedar pintadas. Son
+; 1408 bytes, más los de la barra, que con los 1792 del texto entran en el
+; vblank —ver `pantallas.tienda_compacta`—.
+.proc ti_ventanas
+.a8
+.i16
+    lda #$80
+    sta VMAIN
+    lda #^ti_marco_filas
+    sta A1B0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    jsr capa
+    rep #$20
+.a16
+    asl a
+    tax
+    lda f:ti_capa_tramos, x
+    tax
+tramo:
+    lda f:ti_tramos + 4, x
+    beq barra
+    sta DAS0L
+    lda f:ti_tramos, x
+    sta VMADDL
+    lda f:ti_tramos + 2, x
+    clc
+    adc #.loword(ti_marco_filas)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #$01
+    sta MDMAEN
+    rep #$20
+.a16
+    txa
+    clc
+    adc #6
+    tax
+    bra tramo
+barra:
+    sep #$20
+.a8
+    ; El lugar de la barra en su capa: la orden, la fila de la lista que se
+    ; ve, o la cantidad. Los dos "listo" no tienen.
+    lda comp_col
+    beq en_principal
+    cmp #TI_COMPRAR
+    beq en_lista
+    cmp #TI_VENDER
+    beq en_lista
+    cmp #TI_CUANTOS_COMPRA
+    beq en_cuantos
+    cmp #TI_CUANTOS_VENTA
+    beq en_cuantos
+    rts
+en_cuantos:
+    lda #TI_LISTA_FILAS_COMPRA  ; la de la cantidad, detrás de las de la lista
+    bra con_barra
+en_lista:
+    lda comp_mask
+    beq sin_barra               ; la lista vacía no tiene cursor
+    lda comp_base
+    sec
+    sbc comp_base + 1
+    bra con_barra
+en_principal:
+    ; Con un saludo de dos renglones las órdenes bajan uno: ver `orden_pos`.
+    jsr ti_dos_renglones
+    beq un_renglon              ; y A quedó en cero
+    lda #1
+un_renglon:
+    clc
+    adc comp_base
+con_barra:
+    sta temp + 2
+    jsr capa
+    rep #$20
+.a16
+    tax
+    sep #$20
+.a8
+    lda f:ti_barra_base, x
+    clc
+    adc temp + 2
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a                       ; ocho bytes por barra
+    tax
+    lda f:ti_barras, x
+    sta temp                    ; la palabra de la VRAM de la fila
+    lda f:ti_barras + 2, x
+    clc
+    adc #.loword(ti_marco_parches)
+    sta temp + 2                ; y de dónde sale
+    lda f:ti_barras + 6, x
+    tay                         ; cuántas filas
+    sep #$20
+.a8
+    lda #^ti_marco_parches
+    sta A1B0
+    rep #$20
+.a16
+fila:
+    lda temp
+    sta VMADDL
+    clc
+    adc #32
+    sta temp
+    lda temp + 2
+    sta A1T0L
+    lda f:ti_barras + 4, x
+    sta DAS0L
+    clc
+    adc temp + 2
+    sta temp + 2
+    sep #$20
+.a8
+    lda #$01
+    sta MDMAEN
+    rep #$20
+.a16
+    dey
+    bne fila
+    sep #$20
+.a8
+sin_barra:
+    rts
+
+; A16 = la capa del modo, `pantallas.TI_CAPA_DE_MODO`. Vuelve con A de 16.
+capa:
+    lda comp_col
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:ti_capa_de_modo, x
+    rep #$20
+.a16
+    and #$00FF
+    rts
+.a8
 .endproc
 
 ; La tienda: `ti_tipo`, `ti_juego` y `FAR_TIENDA` con `ti_nt` ítems, puestos
@@ -1037,15 +1300,19 @@ empieza:
     stz HDMAEN
     stz TM
     jsl f:items_banco_subir
+    jsr ti_pantalla_subir
     jsr ti_componer
     jsl f:ba_t_subir
-    jsl f:ba_t_ppu
+    jsr ti_ventanas
+    lda #(RANURA_VRAM / 4096 * 16 + TI_MARCO_VRAM / 4096)
+    jsl f:pantalla_ppu_prender  ; BG2 y BG1, las ventanas con su base
     lda #1
     sta menu_abierto
 espera:
     jsl f:ba_t_vblank
     jsl f:ba_t_pad                ; el control antes del DMA: ver el equipo
     jsl f:ba_t_subir
+    jsr ti_ventanas
     lda pad
     eor pad_ant
     and pad

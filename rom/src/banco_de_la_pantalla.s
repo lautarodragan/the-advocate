@@ -212,12 +212,19 @@
 .proc items_ppu_prender
 .a8
 .i16
+    lda #(RANURA_VRAM / 4096 * 16 + RANURA_VRAM / 4096)
+    ; Las dos capas desde la misma base, y sigue de largo en la que viene.
+.endproc
+
+; Lo mismo, con BG12NBA en A: la tienda le da a BG1 una base propia.
+.proc pantalla_ppu_prender
+.a8
+.i16
+    sta BG12NBA
     lda #(RANURA_MAP / 1024 * 4)
     sta BG2SC
     lda #(ITEM_MARCO_MAPA / 1024 * 4)
     sta BG1SC
-    lda #(RANURA_VRAM / 4096 * 16 + RANURA_VRAM / 4096)
-    sta BG12NBA                 ; las dos capas desde la misma base
     stz BG2HOFS
     stz BG2HOFS
     stz BG1HOFS

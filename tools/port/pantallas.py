@@ -12,8 +12,8 @@ Lo que hace cada pantalla —qué se equipa, qué suma, qué se compra— tambi�
 vive acá, y la ROM lo copia. La geometría es nuestra: RM2k tiene estas
 pantallas en 320x240 con ventanas y la fuente a 6 pixeles; acá van en
 256x224 y a una letra por celda. Es cosmético y está declarado. El equipo
-lleva las ventanas del System en BG1, como la pantalla de ítems —ver
-`ventanas_equipo`—; la tienda todavía va sobre negro.
+y la tienda llevan las ventanas del System en BG1, como la pantalla de ítems
+—ver `ventanas_equipo` y `ventanas_tienda`—.
 """
 
 from port import titulo
@@ -267,28 +267,245 @@ def pantalla_equipo(db, actor, equipo, inventario, ranura, eligiendo=False,
 
 # --- la tienda ----------------------------------------------------------------
 #
-# `Scene_Shop`. Arriba el mensaje del tendero, del juego de términos que pide
-# `OpenShop`; en la principal, las órdenes. Comprar muestra lo que vende con su
+# `Scene_Shop`. En la principal, el saludo del tendero, del juego de términos
+# que pide `OpenShop`, y las órdenes. Comprar muestra lo que vende con su
 # precio —en gris lo que no alcanza el oro o ya se tiene 99— y el oro, cuántos
 # se tienen y cuántos lleva puestos el grupo; vender, el inventario a mitad de
 # precio —en gris lo que vale 0—. Elegido uno, la cantidad: derecha e
 # izquierda de a uno, arriba y abajo de a diez, entre 1 y lo que se puede.
 # Después de cada compra o venta el mensaje dice "listo" un segundo.
+#
+# Las ventanas son las del System, en BG1 detrás del texto, como en ítems y
+# en equipo, y el cursor es su barra roja. RM2k, capturado con el RPG_RT de
+# 2015 el 2026-09-28, arma la pantalla así, en 320x240: la ayuda arriba (32
+# de alto), con la descripción de lo que marca el cursor; abajo el mensaje
+# (80), con las órdenes debajo del saludo en la principal; y en el medio
+# (128), la lista a la izquierda (184 de ancho) y a la derecha, una encima de
+# la otra, el grupo con sus sprites, "Owned Items" y "Equipped Items" en rojo
+# con sus cuentas, y el oro con la moneda en rojo. Vender es la lista a lo
+# ancho, sin la columna de la derecha. En la principal el medio es una ventana
+# vacía, y al elegir la cantidad o mientras dice "listo", la de la lista queda
+# vacía o con el ítem, la cantidad y el total.
+#
+# Acá, en 256x224 y con letras de 8 pixeles, la lista y la columna de la
+# derecha **no entran lado a lado**: un nombre de veinte letras con su precio
+# son veintiséis celdas, y "Equipped Items" con su cuenta diecisiete, y la
+# pantalla tiene treinta y dos. Así que la columna de la derecha baja, entre
+# la lista y el mensaje: "Owned Items" y "Equipped Items" en una ventana, y el
+# oro en otra a su derecha, que es donde RM2k lo tiene. La lista queda de
+# cinco filas y no de siete. El grupo no está: ver la tarea.
+#
+# Son tres distribuciones —`TI_CAPAS`—, que comparten la ayuda de arriba:
+#
+#   la principal    la ayuda vacía, el medio vacío, y abajo el mensaje de
+#                   dos renglones con las órdenes debajo
+#   la de comprar   la ayuda, la lista de cinco o la cantidad, la cuenta y el
+#                   oro, y el mensaje de un renglón; la usan también la
+#                   cantidad de vender y los dos "listo"
+#   la de vender    la ayuda, la lista de ocho, y el mensaje de un renglón
+#
+# La ayuda mide 48 y no 32, con dos renglones, como en ítems.
 TI_PRINCIPAL, TI_COMPRAR, TI_CUANTOS_COMPRA, TI_COMPRADO, TI_VENDER, \
     TI_CUANTOS_VENTA, TI_VENDIDO = range(7)
 TI_SEGUNDO = 60                 # cuadros que dura el "listo": DEFAULT_FPS
-TI_ORDEN_FILA0 = 6
-TI_ORO_FILA = 6
-TI_ORO_COL = 28                 # la última cifra del oro
-TI_TENGO_FILA = 8
-TI_LLEVO_FILA = 10
-TI_ESTADO_COL = 14
-TI_ESTADO_NUM = 29              # dos cifras
-TI_LISTA_FILA0 = 12
-TI_LISTA_FILAS = 8
+TI_CAPA_PRINCIPAL, TI_CAPA_COMPRA, TI_CAPA_VENTA = range(3)
+TI_CAPA_DE_MODO = (TI_CAPA_PRINCIPAL, TI_CAPA_COMPRA, TI_CAPA_COMPRA,
+                   TI_CAPA_COMPRA, TI_CAPA_VENTA, TI_CAPA_COMPRA,
+                   TI_CAPA_COMPRA)
+TI_MEDIO_Y = titulo.ITEM_AYUDA_ALTO             # 48
+# La principal: el mensaje abajo con dos renglones —el resaludo de los juegos
+# 1 y 2 mide 31 y 32 letras y en un renglón entran 30— y las tres órdenes.
+# Las órdenes van **pegadas al mensaje**, como en RM2k: con un saludo de un
+# renglón arrancan uno más arriba, y la ventana tiene lugar para el caso de
+# dos.
+TI_PRINCIPAL_MSG_Y = 128
+TI_PRINCIPAL_MSG_FILA = TI_PRINCIPAL_MSG_Y // titulo.CELL + 1     # 17
+TI_ORDEN_COL = 3                # 16 pixeles más adentro que el mensaje: RM2k
+TI_ORDEN_POSICIONES = 4         # la primera, con un saludo de un renglón
+# La de comprar: la cuenta y el oro debajo de la lista, lado a lado, y el
+# mensaje de un renglón.
+TI_ESTADO_Y = 144
+TI_MSG_Y = 192
+TI_ORO_X = 152                  # "Equipped Items" y dos cifras, y el marco
+TI_MSG_FILA = TI_MSG_Y // titulo.CELL + 1                          # 25
+TI_TENGO_FILA = TI_ESTADO_Y // titulo.CELL + 1                     # 19
+TI_LLEVO_FILA = TI_TENGO_FILA + 2
+TI_ESTADO_COL = 1
+TI_ESTADO_NUM = TI_ORO_X // titulo.CELL - 3     # dos cifras, hasta el marco
+TI_ORO_FILA = TI_TENGO_FILA + 1                 # en el medio de su ventana
+TI_ORO_COL = 28                 # la última cifra del oro; la moneda detrás
+TI_LISTA_FILA0 = TI_MEDIO_Y // titulo.CELL + 1                     # 7
+TI_LISTA_COL = 1
+TI_LISTA_FILAS_COMPRA = 5       # 7 + 5 * 2 = 17: el marco de abajo
+TI_LISTA_FILAS_VENTA = 8        # 7 + 8 * 2 = 23
 TI_PRECIO_COL = 29              # la última cifra del precio
-TI_CUANTOS_COL = 25             # "x" y dos cifras
-TI_TOTAL_FILA = 14
+# La cantidad: el ítem, "x" y las dos cifras, que llevan la barra, y el total
+# debajo, como RM2k, que los pone a un tercio de la ventana.
+TI_CUANTOS_FILA = TI_LISTA_FILA0 + 2                               # 9
+TI_CUANTOS_X_COL = 24
+TI_CUANTOS_COL = 26             # dos cifras
+TI_TOTAL_FILA = TI_CUANTOS_FILA + 4
+TI_VENTANAS = {
+    TI_CAPA_PRINCIPAL: ((0, TI_MEDIO_Y, titulo.ANCHO,
+                         TI_PRINCIPAL_MSG_Y - TI_MEDIO_Y),
+                        (0, TI_PRINCIPAL_MSG_Y, titulo.ANCHO,
+                         titulo.ALTO - TI_PRINCIPAL_MSG_Y)),
+    TI_CAPA_COMPRA: ((0, TI_MEDIO_Y, titulo.ANCHO, TI_ESTADO_Y - TI_MEDIO_Y),
+                     (0, TI_ESTADO_Y, TI_ORO_X, TI_MSG_Y - TI_ESTADO_Y),
+                     (TI_ORO_X, TI_ESTADO_Y, titulo.ANCHO - TI_ORO_X,
+                      TI_MSG_Y - TI_ESTADO_Y),
+                     (0, TI_MSG_Y, titulo.ANCHO, titulo.ALTO - TI_MSG_Y)),
+    TI_CAPA_VENTA: ((0, TI_MEDIO_Y, titulo.ANCHO, TI_MSG_Y - TI_MEDIO_Y),
+                    (0, TI_MSG_Y, titulo.ANCHO, titulo.ALTO - TI_MSG_Y)),
+}
+# Las barras. Las de las listas son la del equipo —cuatro pixeles antes del
+# nombre y hasta cuatro después del precio o la cuenta—. La de las órdenes
+# arranca donde el mensaje y termina donde las otras: en RM2k cruza la
+# ventana. La de la cantidad, sobre las dos cifras, con dos pixeles de aire
+# como las demás.
+TI_BARRA_LISTA = (TI_LISTA_COL * titulo.CELL - 4,
+                  (TI_PRECIO_COL + 1 - TI_LISTA_COL) * titulo.CELL + 8)
+TI_BARRA_ORDEN = (12, TI_BARRA_LISTA[0] + TI_BARRA_LISTA[1] - 12)
+TI_BARRA_CUANTOS = (TI_CUANTOS_COL * titulo.CELL - 4, 2 * titulo.CELL + 8)
+# Dónde van en la VRAM. Los tiles, con **su propia base de BG1**: en la de
+# la fuente no queda lugar —ítems y equipo llegan justo a $3800—, y
+# `$4000..$4C00` está siempre en el banco de BG1 que `load_map` repone al
+# cerrar; la elección de actor usa lo mismo, pero nunca está abierta a la vez.
+# El tilemap, donde el de ítems y equipo. Lo controla `_controlar_tienda`,
+# en el conversor.
+TI_VRAM = 0x4000
+TI_MAPA = titulo.ITEM_MARCO_MAPA
+
+
+def barras_tienda(capa):
+    """Los lugares del cursor de la capa, en el orden en que la ROM los
+    cuenta: `(x, ancho, fila)`, con `fila` la primera de las dos filas de
+    celdas que cubre."""
+    if capa == TI_CAPA_PRINCIPAL:
+        return [TI_BARRA_ORDEN + (TI_PRINCIPAL_MSG_FILA + 2 + 2 * n,)
+                for n in range(TI_ORDEN_POSICIONES)]
+    filas = (TI_LISTA_FILAS_COMPRA if capa == TI_CAPA_COMPRA
+             else TI_LISTA_FILAS_VENTA)
+    barras = [TI_BARRA_LISTA + (TI_LISTA_FILA0 + 2 * f,)
+              for f in range(filas)]
+    if capa == TI_CAPA_COMPRA:
+        barras.append(TI_BARRA_CUANTOS + (TI_CUANTOS_FILA,))
+    return barras
+
+
+def ventanas_tienda(sys_img, capa, barra=None):
+    """Las ventanas de la tienda en la capa `capa`, en RGBA y del tamaño de la
+    pantalla: lo que dibuja BG1. `barra` es el lugar del cursor en
+    `barras_tienda(capa)`."""
+    from PIL import Image
+    from port import ventana as ventana_mod
+    fuera = Image.new("RGBA", (titulo.ANCHO, titulo.ALTO), (0, 0, 0, 0))
+    for x, y, ancho, alto in ((0, 0, titulo.ANCHO, TI_MEDIO_Y),) \
+            + TI_VENTANAS[capa]:
+        una = ventana_mod.ventana(sys_img, ancho, alto)
+        fuera.paste(una, (x, y), una)
+    if barra is not None:
+        x, ancho, fila = barras_tienda(capa)[barra]
+        una = ventana_mod.cursor(sys_img, ancho, 2 * titulo.CELL)
+        fuera.paste(una, (x, fila * titulo.CELL), una)
+    return fuera
+
+
+def capas_tienda(sys_img):
+    """Lo que `titulo.marcos` necesita de la tienda: cada capa sin cursor, y
+    con cada cursor desde su primera fila de celdas."""
+    return [(ventanas_tienda(sys_img, capa),
+             [(ventanas_tienda(sys_img, capa, k), fila)
+              for k, (_, _, fila) in enumerate(barras_tienda(capa))])
+            for capa in (TI_CAPA_PRINCIPAL, TI_CAPA_COMPRA, TI_CAPA_VENTA)]
+
+
+def barra_de_tienda(modo, elegido, arriba, dos_renglones):
+    """El lugar de la barra en `barras_tienda` de la capa del modo, o None:
+    los dos "listo" no tienen cursor."""
+    if modo == TI_PRINCIPAL:
+        return elegido + (1 if dos_renglones else 0)
+    if modo in (TI_COMPRAR, TI_VENDER):
+        return elegido - arriba
+    if modo in (TI_CUANTOS_COMPRA, TI_CUANTOS_VENTA):
+        return TI_LISTA_FILAS_COMPRA
+    return None
+
+
+def tienda_compacta(mapas):
+    """Lo que la ROM guarda de `marcos(capas_tienda(...))`, que es mucho menos
+    que lo que `marcos` devuelve.
+
+    * **Las tres capas comparten las filas de la ayuda**, que se suben una
+      vez al abrir: se comprueba que sean iguales.
+    * **El resto de cada capa, como tramos de filas**, y un tramo que ya está
+      guardado —de otra capa, o de antes en la misma— no se guarda de nuevo.
+    * **Cada barra, sólo donde cambia**: el rectángulo de celdas que difiere
+      de su capa sin cursor, y un rectángulo igual a otro no se repite.
+
+    Devuelve `(filas, arriba, capas, parches, barras)`: `filas` las filas del
+    tilemap guardadas, de a 32 palabras, con las `arriba` de la ayuda
+    primero; `capas[c]` los tramos de la capa `c` desde la fila `arriba`,
+    como `(fila, origen, cuantas)` con `origen` el índice en `filas`;
+    `parches` las palabras de las barras, seguidas; y `barras[c][k]` el
+    rectángulo de la barra `k` de la capa `c` como `(fila, col, filas, cols,
+    origen)`, con `origen` el índice de su primera palabra en `parches`.
+    """
+    COLS, FILAS_ = titulo.COLS, titulo.FILAS
+    arriba = TI_MEDIO_Y // titulo.CELL
+
+    def fila(mapa, n):
+        return tuple(mapa[n * COLS:(n + 1) * COLS])
+
+    fondos = [mapa for mapa, _ in mapas]
+    if any(fila(f, n) != fila(fondos[0], n)
+           for f in fondos for n in range(arriba)):
+        raise SystemExit("las capas de la tienda no comparten la ayuda")
+    filas = [fila(fondos[0], n) for n in range(arriba)]
+    capas = []
+    for mapa in fondos:
+        tramos, n = [], arriba
+        while n < FILAS_:
+            largo, origen = 0, None
+            for o in range(len(filas)):
+                k = 0
+                while (n + k < FILAS_ and o + k < len(filas)
+                       and filas[o + k] == fila(mapa, n + k)):
+                    k += 1
+                if k > largo:
+                    largo, origen = k, o
+            if not largo:
+                filas.append(fila(mapa, n))
+                largo, origen = 1, len(filas) - 1
+            if tramos and tramos[-1][0] + tramos[-1][2] == n \
+                    and tramos[-1][1] + tramos[-1][2] == origen:
+                d, o, k = tramos.pop()
+                tramos.append((d, o, k + largo))
+            else:
+                tramos.append((n, origen, largo))
+            n += largo
+        capas.append(tramos)
+    parches, vistos, barras = [], {}, []
+    for capa, (mapa, cursores) in enumerate(mapas):
+        de_capa = []
+        for (_, _, fila0), cursor in zip(barras_tienda(capa), cursores):
+            distintas = [(f, c) for f in range(2) for c in range(COLS)
+                         if cursor[f * COLS + c] != mapa[(fila0 + f) * COLS
+                                                         + c]]
+            f0 = min(f for f, _ in distintas)
+            nf = max(f for f, _ in distintas) + 1 - f0
+            c0 = min(c for _, c in distintas)
+            nc = max(c for _, c in distintas) + 1 - c0
+            trozo = tuple(cursor[(f0 + f) * COLS + c0 + c]
+                          for f in range(nf) for c in range(nc))
+            if trozo not in vistos:
+                vistos[trozo] = len(parches)
+                parches.extend(trozo)
+            de_capa.append((fila0 + f0, c0, nf, nc, vistos[trozo]))
+        barras.append(de_capa)
+    return filas, arriba, capas, parches, barras
+
+
 # Los términos de un juego de mensajes. En el LDB hay tres juegos, y el nombre
 # de cada término termina en cuál es: `shop_greeting1`, `shop_greeting2`.
 # Hasta el 2026-09-20 acá había un número de chunk —trece seguidos desde
@@ -339,7 +556,8 @@ def pantalla_tienda(db, tipo, juego, vende, oro, inventario, equipos, modo,
                     items_rom=None):
     """La tienda en `modo`. `vende` son los ítems de `OpenShop`, `equipos`
     el equipo de cada uno del grupo, `elegido` el cursor —de la principal o
-    de la lista— y `cuantos` la cantidad que se está eligiendo."""
+    de la lista—, `arriba` el primero que se ve de la lista y `cuantos` la
+    cantidad que se está eligiendo."""
     t = Texto()
     term = terminos_tienda(db, juego)
     items_rom = set(items_rom if items_rom is not None else
@@ -348,34 +566,48 @@ def pantalla_tienda(db, tipo, juego, vende, oro, inventario, equipos, modo,
                TI_COMPRAR: "que_compra", TI_CUANTOS_COMPRA: "cuantos_compra",
                TI_COMPRADO: "comprado", TI_VENDER: "que_vende",
                TI_CUANTOS_VENTA: "cuantos_vende", TI_VENDIDO: "vendido"}[modo]
-    descripcion(t, term[mensaje])
+    capa = TI_CAPA_DE_MODO[modo]
+    renglones = titulo.partir_descripcion(term[mensaje])
+    rojo = titulo.ITEM_ROJO
     if modo == TI_PRINCIPAL:
+        for n, renglon in enumerate(renglones):
+            t.escribir(TI_PRINCIPAL_MSG_FILA + 2 * n, titulo.ITEM_DESC_COL,
+                       renglon)
+        dos = bool(renglones[1])
+        fila0 = TI_PRINCIPAL_MSG_FILA + (4 if dos else 2)
         for n, orden in enumerate(ordenes_tienda(tipo)):
-            fila = TI_ORDEN_FILA0 + 2 * n
-            if n == elegido:
-                t.escribir(fila, EQ_CURSOR_COL, ">")
             # Del primer renglón, como la ROM, que los guarda partidos: el
             # juego 0 los trae con un espacio adelante —" Buy"— y partir los
             # renglones lo come.
-            t.escribir(fila, titulo.ITEM_NOMBRE_COL,
+            t.escribir(fila0 + 2 * n, TI_ORDEN_COL,
                        titulo.partir_descripcion(term[orden])[0])
+        barra = barra_de_tienda(modo, elegido, arriba, dos)
+        t.ventanas = lambda sys_img: ventanas_tienda(sys_img, capa, barra)
         return t
+    # Los otros mensajes miden 26 letras a lo sumo: un renglón. Lo controla
+    # el conversor.
+    t.escribir(TI_MSG_FILA, titulo.ITEM_DESC_COL, renglones[0])
     comprando = modo in (TI_COMPRAR, TI_CUANTOS_COMPRA, TI_COMPRADO)
     lista = ([i for i in vende if i in items_rom] if comprando
              else lista_venta(items_rom, inventario))
-    if modo != TI_VENDER:
-        # El oro, y cuántos tiene y lleva puestos del que marca el cursor.
+    barra = barra_de_tienda(modo, elegido, arriba, False) if lista else None
+    t.ventanas = lambda sys_img: ventanas_tienda(sys_img, capa, barra)
+    if lista:
+        descripcion(t, db.items[lista[elegido]].description)
+    if capa == TI_CAPA_COMPRA:
+        # El oro, y cuántos tiene y lleva puestos el grupo del que marca el
+        # cursor.
         cifras = str(min(oro, 999999))
         t.escribir(TI_ORO_FILA, TI_ORO_COL + 1 - len(cifras), cifras)
-        t.escribir(TI_ORO_FILA, TI_ORO_COL + 1, db.term_gold, 0)
+        t.escribir(TI_ORO_FILA, TI_ORO_COL + 1, db.term_gold, rojo)
         if lista:
             numero = lista[elegido]
             t.escribir(TI_TENGO_FILA, TI_ESTADO_COL,
-                       lcf_termino(db, TI_TERMINO_TENGO))
+                       lcf_termino(db, TI_TERMINO_TENGO), rojo)
             t.numero(TI_TENGO_FILA, TI_ESTADO_NUM,
                      inventario.get(numero, 0), 2)
             t.escribir(TI_LLEVO_FILA, TI_ESTADO_COL,
-                       lcf_termino(db, TI_TERMINO_LLEVO))
+                       lcf_termino(db, TI_TERMINO_LLEVO), rojo)
             t.numero(TI_LLEVO_FILA, TI_ESTADO_NUM, llevados(equipos, numero),
                      2)
     if modo in (TI_CUANTOS_COMPRA, TI_CUANTOS_VENTA):
@@ -383,16 +615,18 @@ def pantalla_tienda(db, tipo, juego, vende, oro, inventario, equipos, modo,
         precio = db.items[numero].price
         if modo == TI_CUANTOS_VENTA:
             precio //= 2
-        fila = TI_LISTA_FILA0
-        t.escribir(fila, titulo.ITEM_NOMBRE_COL, titulo.texto_de_item(
+        t.escribir(TI_CUANTOS_FILA, TI_LISTA_COL, titulo.texto_de_item(
             db.items[numero].name, titulo.ITEM_NOMBRE_ANCHO))
-        t.escribir(fila, TI_CUANTOS_COL, "x")
-        t.numero(fila, TI_CUANTOS_COL + 1, cuantos, 2)
+        t.escribir(TI_CUANTOS_FILA, TI_CUANTOS_X_COL, "x")
+        t.numero(TI_CUANTOS_FILA, TI_CUANTOS_COL, cuantos, 2)
         total = str(precio * cuantos)
         t.escribir(TI_TOTAL_FILA, TI_ORO_COL + 1 - len(total), total)
-        t.escribir(TI_TOTAL_FILA, TI_ORO_COL + 1, db.term_gold)
+        t.escribir(TI_TOTAL_FILA, TI_ORO_COL + 1, db.term_gold, rojo)
         return t
-    for f in range(TI_LISTA_FILAS):
+    if modo in (TI_COMPRADO, TI_VENDIDO):
+        return t                # la ventana del medio, vacía: RM2k
+    filas = TI_LISTA_FILAS_COMPRA if comprando else TI_LISTA_FILAS_VENTA
+    for f in range(filas):
         k = arriba + f
         if k >= len(lista):
             break
@@ -403,9 +637,7 @@ def pantalla_tienda(db, tipo, juego, vende, oro, inventario, equipos, modo,
             gris = 0 if puede_comprar(db, numero, oro, inventario) else 1
         else:
             gris = 0 if item.price > 0 else 1
-        if k == elegido and modo in (TI_COMPRAR, TI_VENDER):
-            t.escribir(fila, EQ_CURSOR_COL, ">")
-        t.escribir(fila, titulo.ITEM_NOMBRE_COL, titulo.texto_de_item(
+        t.escribir(fila, TI_LISTA_COL, titulo.texto_de_item(
             item.name, titulo.ITEM_NOMBRE_ANCHO), gris)
         if comprando:
             precio = str(item.price)
@@ -423,7 +655,7 @@ def pantalla_tienda(db, tipo, juego, vende, oro, inventario, equipos, modo,
 # relacionados con la imagen de fondo ... así nos podemos enfocar en la
 # mecánica de la batalla por turnos"*. Así que no hay fondo, no hay battlers
 # dibujados y no hay ventanas: la misma grilla de 32 por 28 celdas que usan el
-# equipo y la tienda, sobre negro.
+# equipo y la tienda, sobre negro —ellos, hasta que llegaron sus ventanas—.
 #
 # Lo que **sí** es de RM2k son las palabras —todas del LDB, ninguna inventada—
 # y las cuentas, que viven en `batalla.py`.
