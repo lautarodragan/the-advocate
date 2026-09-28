@@ -57,13 +57,15 @@ def usar_sobre_la_segunda(una, fila_del_item):
     una.tocar_cuadros("a", 20)
 
 
-def diferencia_con_la_eleccion(una, elegida, hp):
-    """Cuántos pixeles, a 15 bits, difiere la pantalla de `render_objetivo`."""
+def diferencia_con_la_eleccion(una, elegida, hp, sandwiches):
+    """Cuántos pixeles, a 15 bits, difiere la pantalla de `render_objetivo`,
+    con el sándwich y los que quedan de él al lado de "Owned Items"."""
     from port import titulo
     from render.render_map import GAME_DIR
     db, skin = datos.base(), datos.skin()
     esperada = titulo.render_objetivo(skin, db, 4, (TALAN, ARDEN), elegida,
-                                      db.font_id, None, GAME_DIR, hp)
+                                      db.font_id, None, GAME_DIR, hp,
+                                      SANDWICH, sandwiches)
     return diferencia(una, esperada, "curar-eleccion")
 
 
@@ -84,7 +86,7 @@ def test_el_sandwich_cura_desde_el_menu_y_se_gasta(partida):
         "quedan %d sándwiches después de usar uno de dos"
         % una.item(SANDWICH))
     assert una.menu_abierto()
-    assert diferencia_con_la_eleccion(una, 1, {ARDEN: 40}) == 0, (
+    assert diferencia_con_la_eleccion(una, 1, {ARDEN: 40}, 1) == 0, (
         "la elección, después de curar, no muestra los HP nuevos de Arden; "
         "está en pruebas/snapshots/pantallas/curar-eleccion*.png")
 
@@ -219,11 +221,25 @@ def test_la_eleccion_se_ve_igual_al_volver_a_entrar(partida):
     """
     una = en_los_items(partida, 10)
     una.tocar_cuadros("a", TITULO_AIRE)
-    assert diferencia_con_la_eleccion(una, 0, {ARDEN: 10}) == 0, (
+    assert diferencia_con_la_eleccion(una, 0, {ARDEN: 10}, 2) == 0, (
         "la elección, entrando derecho desde la lista, difiere de la "
         "referencia; está en pruebas/snapshots/pantallas/curar-eleccion*.png")
     una.tocar_cuadros("b", TITULO_AIRE)
     una.tocar_cuadros("a", TITULO_AIRE)
-    assert diferencia_con_la_eleccion(una, 0, {ARDEN: 10}) == 0, (
+    assert diferencia_con_la_eleccion(una, 0, {ARDEN: 10}, 2) == 0, (
         "la elección, al volver a entrar sin cerrar el menú, difiere de la "
         "referencia; está en pruebas/snapshots/pantallas/curar-eleccion*.png")
+
+
+# --- la elección como la de RM2k ----------------------------------------------
+
+def test_la_eleccion_con_el_sandwich_sobre_la_segunda(partida):
+    """La golden de la elección de actor: el Cold Sandwich, con su nombre y
+    cuántos quedan a la izquierda, y la barra sobre la segunda fila del
+    grupo. Es el caso que taro dio el 2026-09-28 para compararla con la de
+    RM2k (`Scene_ActorTarget`)."""
+    from tanda import golden
+    una = en_los_items(partida, 10)
+    una.tocar_cuadros("a", TITULO_AIRE)  # la elección de actor
+    una.tocar_cuadros("down")           # la segunda fila
+    golden("eleccion-sandwich", una.imagen())

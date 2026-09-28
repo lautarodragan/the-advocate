@@ -535,13 +535,15 @@ def texto_de_exp(db, actor, nivel=None, exp=None):
     return "%*d/%*d" % (MENU_EXP_CIFRAS, exp, MENU_EXP_CIFRAS, siguiente)
 
 
-def glifos_de(db, actores):
+def glifos_de(db, actores, otras=""):
     """Qué letras necesita el banco: las de lo que se compone, más las diez
-    cifras, que van siempre porque el oro y los HP de ahora las usan.
+    cifras, que van siempre porque el oro y los HP de ahora las usan, y las
+    de `otras` —los nombres de las medicinas, que escribe la elección de
+    actor: ver `OBJETIVO_VENTANAS`—.
 
     Sale de los textos mismos y no de un alfabeto escrito a mano: un cartucho
     con tres actores no paga las letras de los otros."""
-    letras = set("0123456789 ")
+    letras = set("0123456789 ") | set(otras)
     letras |= set("/-")         # los de la experiencia, que los tiene siempre
     for actor in actores:
         letras |= set(texto_de_nombre(db, actor) + texto_de_nivel(db, actor)
@@ -838,21 +840,22 @@ def capas_items(sys_img):
              for k in range(ITEM_FILAS)])
 
 
-def marcos(sys_img, primer_tile, pantallas):
+def marcos(sys_img, primer_tile, pantallas, cgram=None, tope=256):
     """Las ventanas de varias pantallas como las sube la ROM: tiles de 8bpp,
     un tilemap de 32x28 por pantalla, sus cursores y los colores.
 
     `pantallas` es una lista de `(ventanas, barras)`, como las da
     `capas_items`: la imagen del tamaño de la pantalla sin cursor, y la de
-    cada lugar del cursor con la primera fila de celdas que ocupa. Los tiles y
+    cada lugar del cursor con la primera fila de celdas que ocupa y, si no
+    son dos, cuántas. Los tiles y
     los colores son **uno solo para todas**: las pantallas no están abiertas a
     la vez y suben sus tiles al mismo lugar de la VRAM, así que cada una sube
     el juego entero y el tilemap de cada una lo indexa igual.
 
     `primer_tile` es el número de tile de 8bpp del primero, contado desde la
     base de BG1. Devuelve `(tiles, colores, mapas)`: `tiles[i][y][x]` es la
-    entrada de CGRAM de ese pixel; `colores` los de 15 bits desde
-    `ITEM_MARCO_CGRAM`; y `mapas[p]` es `(mapa, barras)` de la pantalla `p`,
+    entrada de CGRAM de ese pixel; `colores` los de 15 bits desde `cgram`
+    —`ITEM_MARCO_CGRAM` si no se dice—, que no pueden pasar de `tope`; y `mapas[p]` es `(mapa, barras)` de la pantalla `p`,
     con `mapa` las palabras del tilemap fila por fila y `barras[k]` las dos
     filas de celdas del cursor `k` con el cursor encima, que es lo que la ROM
     copia sobre `mapa` para pintarlo.
@@ -861,8 +864,9 @@ def marcos(sys_img, primer_tile, pantallas):
     tilemap: el marco es simétrico, y sin eso las ventanas y el cursor no
     entraban en lo que queda de VRAM —ver `_controlar_marco_de_items`—.
     """
+    cgram = ITEM_MARCO_CGRAM if cgram is None else cgram
     imagenes = [imagen for fondo, barras in pantallas
-                for imagen in [fondo] + [b for b, _ in barras]]
+                for imagen in [fondo] + [b[0] for b in barras]]
     cuenta = collections.Counter()
     for imagen in imagenes:
         pixeles = numpy.asarray(imagen).reshape(-1, 4)
@@ -871,10 +875,10 @@ def marcos(sys_img, primer_tile, pantallas):
             if (r, g, b) != NEGRO:
                 cuenta[(r, g, b)] += 1
     colores = sorted(cuenta, key=lambda c: (-cuenta[c], c))
-    if ITEM_MARCO_CGRAM + len(colores) > 256:
-        raise SystemExit("las ventanas de los ítems y del equipo usan %d "
-                         "colores" % len(colores))
-    indice = {c: ITEM_MARCO_CGRAM + i for i, c in enumerate(colores)}
+    if cgram + len(colores) > tope:
+        raise SystemExit("las ventanas usan %d colores y desde %d entran %d"
+                         % (len(colores), cgram, tope - cgram))
+    indice = {c: cgram + i for i, c in enumerate(colores)}
     vacio = tuple(tuple([0] * CELL) for _ in range(CELL))
     tiles, donde = [vacio], {vacio: 0}
 
@@ -909,8 +913,9 @@ def marcos(sys_img, primer_tile, pantallas):
     mapas = []
     for fondo, barras in pantallas:
         mapas.append((palabras(fondo, range(FILAS)),
-                      [palabras(imagen, (fila0, fila0 + 1))
-                       for imagen, fila0 in barras]))
+                      [palabras(b[0], range(b[1], b[1] + (b[2] if len(b) > 2
+                                                         else 2)))
+                       for b in barras]))
     return tiles, colores, mapas
 
 
@@ -1079,7 +1084,7 @@ def cifras_del_oro(oro):
 
 
 def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
-                     game_dir=None):
+                     game_dir=None, letras=""):
     """Los tiles de la pantalla de ranuras, sus paletas y sus bloques de celdas.
 
     Devuelve `(tiles, paletas, cabeceras, filas, caras, menu)`:
@@ -1152,7 +1157,7 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
     una = capa()
     escribir(una, MENU_CURSOR_COL * CELL, MENU_OPC_Y + 2, ">")
     capas.append(("menu_cursor", None, una))
-    for letra in glifos_de(db, actores):
+    for letra in glifos_de(db, actores, letras):
         una = capa()
         escribir(una, GLIFO_COL * CELL + GLIFO_DX,
                  GLIFO_FILA * CELL + GLIFO_DY, letra)
@@ -1411,37 +1416,209 @@ def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
     return fuera
 
 
-# La elección de actor, `Scene_ActorTarget`: el panel del grupo del menú con un
-# cursor al costado de la fila marcada, a la altura del nivel. La columna de la
-# izquierda, que en RM2k dice el ítem y cuántos hay, queda vacía: el banco de
-# la pantalla es el de las caras y no tiene la fuente. Cosmético y declarado.
+# La elección de actor, `Scene_ActorTarget`: el panel del grupo del menú, y
+# como en RM2k, tres ventanas del System en BG1 —como las de ítems y equipo,
+# ver `ITEM_VENTANAS`— y la barra roja sobre la fila marcada. RM2k pone a la
+# izquierda la ayuda con el nombre del ítem y debajo "Owned Items" en rojo con
+# la cantidad, y a la derecha el grupo. Acá la columna de la izquierda llega
+# hasta x = 104: las caras del banco miden 48 pero lo que se ve de ellas
+# arranca doce pixeles adentro, en x = 108, así que la ventana del grupo
+# puede empezar a la izquierda de la fila del menú (x = 96) sin taparlas. En
+# 104 entran once letras de 8 pixeles, y el nombre va en dos renglones: once
+# es lo que pide "Sandwich-HP".
+#
+# El nombre se escribe con los glifos del banco del menú —a una letra por
+# celda, como el nombre del actor—, así que el banco lleva también las letras
+# de las medicinas. "Owned Items" no: va **horneado en BG1**, en rojo y a los
+# seis pixeles de la fuente, porque a ocho sus once letras llenan la ventana y
+# no queda lugar para la cantidad, y porque el rojo no tiene paleta libre en
+# BG2. La cantidad sí, con los glifos, a la derecha.
+#
+# Para elegir a quién equipar la pantalla es la misma sin las dos ventanas de
+# la izquierda: no hay ítem.
 #
 # A usa la medicina sobre la fila marcada y la pantalla se queda, con los HP de
-# esa fila al día: ver `medicina_usar` en rom/src/medicina.s. Esto dibuja los HP que se le
-# pasen en `hp`, así que después de curar alcanza con pasarle los nuevos.
-OBJETIVO_CURSOR_COL = MENU_ACTOR_COL - 1
-OBJETIVO_CURSOR_FILA = 2        # adentro de la fila del actor
+# esa fila y la cantidad al día: ver `medicina_usar` en rom/src/medicina.s.
+# Esto dibuja los HP que se le pasen en `hp`, así que después de curar alcanza
+# con pasarle los nuevos.
+OBJETIVO_IZQ = 104
+OBJETIVO_NOMBRE_ALTO = 48
+OBJETIVO_CUANTOS_ALTO = 32
+OBJETIVO_GRUPO = (OBJETIVO_IZQ, 0, ANCHO - OBJETIVO_IZQ, ALTO)
+OBJETIVO_VENTANAS = ((0, 0, OBJETIVO_IZQ, OBJETIVO_NOMBRE_ALTO),
+                     (0, OBJETIVO_NOMBRE_ALTO, OBJETIVO_IZQ,
+                      OBJETIVO_CUANTOS_ALTO),
+                     OBJETIVO_GRUPO)
+OBJETIVO_NOMBRE_COL = 1
+OBJETIVO_NOMBRE_FILA = 1        # y = 8, y el segundo renglón en y = 24
+OBJETIVO_NOMBRE_ANCHO = (OBJETIVO_IZQ - 8) // CELL - OBJETIVO_NOMBRE_COL  # 11
+OBJETIVO_CUANTOS_FILA = (OBJETIVO_NOMBRE_ALTO + 8) // CELL                # 7
+OBJETIVO_CUANTOS_COL = OBJETIVO_NOMBRE_COL + OBJETIVO_NOMBRE_ANCHO - 2    # 10
+# La barra va sobre las tres líneas de texto de la fila, como en RM2k, y no
+# sobre la cara: cuatro pixeles antes del texto y hasta cuatro del borde, y
+# desde dos pixeles adentro de la fila, para no tocar el marco de arriba.
+# Termina en 48, en el borde de una celda, y no en 50, que es donde termina
+# la tercera línea: con la punta de abajo a mitad de celda eran 64 tiles, lo
+# que entra justo antes del tilemap, y así son 60. Lo que queda afuera es la
+# sombra de las letras de los HP.
+OBJETIVO_BARRA = (MENU_TEXTO_X - 4, 2, ANCHO - MENU_TEXTO_X, 3 * LINEA - 2)
+# Los colores de BG1 van en 128..143: son los de la paleta 0 de los sprites,
+# que en esta pantalla están apagados, y que `menu_exp_cerrar` repone al
+# cerrar el menú. En 0..127 no hay lugar: son las paletas del banco del menú.
+OBJETIVO_CGRAM = 128
+OBJETIVO_COLORES_MAX = 16
+# Los tiles y el tilemap de BG1, detrás del tilemap del menú ($3C00..$4000):
+# BG1 tiene su propia base en $4000, así que no tocan el banco de BG2. Lo que
+# importa es que todo quede en el banco de BG1 de los repartos, que es lo que
+# `load_map` repone al volver: ver `_controlar_objetivo` en el conversor.
+OBJETIVO_VRAM = 0x4000
+OBJETIVO_MAPA = 0x4800
+
+
+def nombre_en_renglones(nombre, ancho=OBJETIVO_NOMBRE_ANCHO, renglones=2):
+    """El nombre partido en renglones de `ancho`, por palabras; una palabra
+    que no entra se corta donde llega. Rellenados con espacios, que son los
+    que borran lo que hubiera."""
+    salida, linea = [], ""
+    for palabra in nombre.strip().split():
+        while len(palabra) > ancho:
+            if linea:
+                salida.append(linea)
+                linea = ""
+            salida.append(palabra[:ancho])
+            palabra = palabra[ancho:]
+        if not linea:
+            linea = palabra
+        elif len(linea) + 1 + len(palabra) <= ancho:
+            linea += " " + palabra
+        else:
+            salida.append(linea)
+            linea = palabra
+    if linea:
+        salida.append(linea)
+    return [r.ljust(ancho) for r in (salida + [""] * renglones)[:renglones]]
+
+
+def ventanas_objetivo(sys_img, db, con_item=True, barra=None, font_id=None):
+    """Las ventanas de la elección de actor, en RGBA y del tamaño de la
+    pantalla: lo que dibuja BG1. Con `con_item`, las dos de la izquierda con
+    "Owned Items"; con `barra`, el cursor en esa fila del grupo."""
+    from PIL import Image
+    from port import ventana as ventana_mod
+    fuera = Image.new("RGBA", (ANCHO, ALTO), (0, 0, 0, 0))
+    for x, y, ancho, alto in (OBJETIVO_VENTANAS if con_item
+                              else (OBJETIVO_GRUPO,)):
+        una = ventana_mod.ventana(sys_img, ancho, alto)
+        fuera.paste(una, (x, y), una)
+    if con_item:
+        ventana_mod.dibujar_linea(
+            fuera, sys_img, OBJETIVO_NOMBRE_COL * CELL + GLIFO_DX,
+            OBJETIVO_CUANTOS_FILA * CELL + GLIFO_DY,
+            lcf_termino_poseidos(db), color=1, font_id=font_id)
+    if barra is not None:
+        x, y, ancho, alto = OBJETIVO_BARRA
+        una = ventana_mod.cursor(sys_img, ancho, alto)
+        fuera.paste(una, (x, barra * MENU_ACTOR_FILAS * CELL + y), una)
+    return fuera
+
+
+def lcf_termino_poseidos(db):
+    """"Owned Items": `possessed_items` de los términos del LDB."""
+    from rpgmaker import lcf
+    return lcf.to_string(db.terminos["possessed_items"])
+
+
+def capas_objetivo(sys_img, db, font_id=None):
+    """Lo que `marcos` necesita de la elección de actor: con ítem y sin ítem,
+    cada una sin cursor y con el cursor en cada fila del grupo, desde la
+    primera fila de celdas de la fila del actor."""
+    return [(ventanas_objetivo(sys_img, db, con_item, None, font_id),
+             [(ventanas_objetivo(sys_img, db, con_item, k, font_id),
+               k * MENU_ACTOR_FILAS, MENU_ACTOR_FILAS)
+              for k in range(MENU_FILAS_GRUPO)])
+            for con_item in (True, False)]
+
+
+def objetivo_compacto(mapas):
+    """Lo que la ROM guarda de los tilemaps de `marcos(capas_objetivo(...))`,
+    que es mucho menos que lo que `marcos` devuelve.
+
+    * **Un solo tilemap**, el con ítem: el de sin ítem es el mismo con las
+      celdas de las dos ventanas de la izquierda en cero —las columnas de
+      `OBJETIVO_IZQ` para la izquierda, hasta el fondo de la de "Owned
+      Items"—, y la ROM las borra al subirlo.
+    * **La barra, sólo donde cambia**: el rectángulo que cubre lo que difiere
+      entre cada fila del grupo con barra y sin ella, igual para las cuatro
+      filas, y que tiene que ser igual con ítem y sin ítem.
+
+    Devuelve `(mapa, barras, fila0, filas, col0, cols, borrar_filas,
+    borrar_cols)`: `barras[k]` son las `filas` por `cols` palabras de la fila
+    `k` del grupo, desde la fila `fila0` de la fila del actor y la columna
+    `col0`. Si algo de eso no vale, es un error y no un tilemap distinto: la
+    ROM supone las dos cosas.
+    """
+    (con, barras_con), (sin, barras_sin) = mapas
+    borrar_cols = OBJETIVO_IZQ // CELL
+    borrar_filas = (OBJETIVO_NOMBRE_ALTO + OBJETIVO_CUANTOS_ALTO) // CELL
+    esperado = [0 if (i // COLS < borrar_filas and i % COLS < borrar_cols)
+                else p for i, p in enumerate(con)]
+    if esperado != sin:
+        raise SystemExit("el tilemap sin ítem de la elección de actor no es "
+                         "el con ítem con las ventanas de la izquierda "
+                         "borradas")
+    distintas = set()
+    for k, barra in enumerate(barras_con):
+        base = con[k * MENU_ACTOR_FILAS * COLS:
+                   (k + 1) * MENU_ACTOR_FILAS * COLS]
+        distintas |= {(i // COLS, i % COLS)
+                      for i, (a, b) in enumerate(zip(base, barra)) if a != b}
+    fila0 = min(f for f, _ in distintas)
+    filas = max(f for f, _ in distintas) + 1 - fila0
+    col0 = min(c for _, c in distintas)
+    cols = max(c for _, c in distintas) + 1 - col0
+    if col0 < borrar_cols:
+        raise SystemExit("la barra de la elección de actor llega a la "
+                         "columna %d, que es de las ventanas del ítem" % col0)
+
+    def recorte(barra):
+        return [barra[(fila0 + f) * COLS + col0 + c]
+                for f in range(filas) for c in range(cols)]
+
+    barras = [recorte(b) for b in barras_con]
+    if barras != [recorte(b) for b in barras_sin]:
+        raise SystemExit("la barra de la elección de actor no es la misma con "
+                         "ítem y sin ítem")
+    return con, barras, fila0, filas, col0, cols, borrar_filas, borrar_cols
 
 
 def render_objetivo(sys_img, db, ranuras, grupo, elegida=0, font_id=None,
-                    actores=None, game_dir=None, hp=None):
+                    actores=None, game_dir=None, hp=None, item=None,
+                    cantidad=0):
     """La elección de actor como la tiene que mostrar la consola.
 
     Comparte el panel del grupo con el menú, así que también le escribe los
     HP: los pinta `menu_grupo_pintar`, que es la misma rutina de los dos
-    lados.
+    lados. `item` es la medicina que se usa, con `cantidad` las que quedan;
+    sin ella es la elección de a quién equipar.
     """
     from PIL import Image
     actores = sorted(set(actores if actores is not None else grupo))
+    nombre = db.items[item].name if item else ""
     tiles, paletas, _, _, caras, menu = pantalla_ranuras(
-        sys_img, db, ranuras, font_id, actores, game_dir)
+        sys_img, db, ranuras, font_id, actores, game_dir, nombre)
     fuera = Image.new("RGB", (ANCHO, ALTO), (0, 0, 0))
+    ventanas = ventanas_objetivo(sys_img, db, bool(item), elegida, font_id)
+    fuera.paste(ventanas, (0, 0), ventanas)
     pegar = _pintor(fuera, tiles, paletas)
     for fila, actor in enumerate(list(grupo)[:MENU_FILAS_GRUPO]):
         if actor in actores:
             _pegar_fila_de_actor(pegar, menu, caras, db, fila, actor, hp)
-    pegar(menu["cursor"], elegida * MENU_ACTOR_FILAS + OBJETIVO_CURSOR_FILA,
-          OBJETIVO_CURSOR_COL, 1)
+    if item:
+        for n, renglon in enumerate(nombre_en_renglones(nombre)):
+            _pegar_texto(pegar, menu, renglon, OBJETIVO_NOMBRE_FILA + 2 * n,
+                         OBJETIVO_NOMBRE_COL)
+        _pegar_texto(pegar, menu, "%2d" % min(cantidad, 99),
+                     OBJETIVO_CUANTOS_FILA, OBJETIVO_CUANTOS_COL)
     return fuera
 
 

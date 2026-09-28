@@ -85,6 +85,9 @@ def test_items_vuelve(cuadro):
     # la pantalla del equipo con el cursor adentro de la lista.
     ("equipo-lista", 124, ("b:40", "down:52", "down:56", "a:60", "a:72",
                            "a:92", "down:112")),
+    # Antes de la pantalla, la elección de a quién equipar: la de la
+    # medicina, sin las ventanas del ítem.
+    ("equipo-a-quien", 70, ("b:40", "down:52", "down:56", "a:60")),
     # La barra sobre una ranura que no es la primera: la cabeza.
     ("equipo-ranura", 104, ("b:40", "down:52", "down:56", "a:60", "a:72",
                             "down:88", "down:92", "down:96")),

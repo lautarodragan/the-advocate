@@ -91,7 +91,8 @@ def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
     db, skin = datos.base(), datos.skin()
     for elegida in (0, 1):
         esperada = titulo.render_objetivo(skin, db, 4, (14, 11), elegida,
-                                          db.font_id, None, GAME_DIR)
+                                          db.font_id, None, GAME_DIR,
+                                          item=1, cantidad=INVENTARIO[1])
         comparar_pantalla(una, esperada,
                           que="la elección de actor con el cursor en %d"
                           % elegida)

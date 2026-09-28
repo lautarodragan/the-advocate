@@ -762,8 +762,8 @@ mover:
 
 ; --- la elección de actor ----------------------------------------------------
 ;
-; `Scene_ActorTarget`, sobre el banco del menú: el panel del grupo y un cursor
-; al costado de la fila marcada. `eleg_cancel` dice para qué: en 1, para elegir
+; `Scene_ActorTarget`, sobre el banco del menú: el panel del grupo, y las
+; ventanas y la barra del System en BG1, que son de `eleccion_de_actor.s`. `eleg_cancel` dice para qué: en 1, para elegir
 ; a quién equipar, y A vuelve con la fila; en 0, para la medicina de `k` en
 ; `eleg_flancos`, y A la usa sobre la fila —`medicina_usar`— y **se queda**,
 ; con los HP de esa fila repintados, que es lo que hace `UpdateItem`. B vuelve
@@ -774,52 +774,6 @@ mover:
 ; así cuando las peleas los bajaron. Es el "el sándwich no cura desde el menú"
 ; de taro.
 
-; El cursor en la fila A del grupo: `temp + 3` en 1 lo pinta y en 0 lo borra.
-.proc objetivo_cursor_escribir
-.a8
-.i16
-    rep #$20
-.a16
-    and #$00FF
-    asl a
-    tax
-    lda menu_fila_vram, x
-    clc
-    adc #OBJETIVO_CURSOR_DESPL
-    tay
-    sep #$20
-.a8
-    lda #$80
-    sta VMAIN
-    sty VMADDL
-    lda temp + 3
-    rep #$20
-.a16
-    beq borra
-    lda menu_cursor_celdas
-    sta VMDATAL
-    tya
-    clc
-    adc #32
-    sta VMADDL
-    lda menu_cursor_celdas + 2
-    sta VMDATAL
-    sep #$20
-.a8
-    rts
-.a16
-borra:
-    stz VMDATAL
-    tya
-    clc
-    adc #32
-    sta VMADDL
-    stz VMDATAL
-    sep #$20
-.a8
-    rts
-.endproc
-
 .proc objetivo_pantalla
 .a8
 .i16
@@ -829,12 +783,13 @@ borra:
     stz TM
     jsr ranura_banco_subir
     jsr menu_grupo_pintar
+    jsl f:objetivo_subir
     stz titulo_sel
     lda #1
     sta temp + 3
     lda #0
-    jsr objetivo_cursor_escribir
-    jsr ranura_ppu_prender
+    jsl f:objetivo_barra
+    jsl f:objetivo_ppu_prender
 espera:
     jsr wait_vblank
     jsr read_pad
@@ -887,6 +842,7 @@ medicina:
     lda titulo_sel
     sta temp + 2
     jsl f:menu_hp_escribir
+    jsl f:objetivo_cuantos      ; y cuántas quedan
     jmp espera
 
 actor_de_la_fila:
@@ -904,12 +860,13 @@ mover:
     pha
     stz temp + 3
     lda titulo_sel
-    jsr objetivo_cursor_escribir
+    jsl f:objetivo_barra
     pla
     sta titulo_sel
     lda #1
     sta temp + 3
     lda titulo_sel
-    jmp objetivo_cursor_escribir
+    jsl f:objetivo_barra
+    rts
 .endproc
 
