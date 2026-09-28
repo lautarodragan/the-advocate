@@ -4502,8 +4502,12 @@ def encuentros_de_la_rom(mapas, tree, pasos_de_prueba, tropas):
 def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
          ventana=None, titulo=None, ranuras=None, cartel=None,
          animaciones=None, tropas=(), audio_batalla=None, escenas=None,
-         encuentros=None, paginas_tropa=None, comprimidos=None):
+         encuentros=None, paginas_tropa=None, comprimidos=None,
+         hp_de_enemigos=False):
     """El .inc que se ensambla junto con main.s.
+
+    `hp_de_enemigos` es `--hp-de-enemigos`: si la pelea dibuja los HP de los
+    enemigos, que RM2k no muestra.
 
     `comprimidos` es lo de `comprimir_los_bloques`; si falta se comprime acá.
 
@@ -6311,6 +6315,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "BA_NOMBRE_ANCHO   = %d\n"
             "BA_HP_DX          = %d\n"
             "BA_HP_NUM_DX      = %d\n"
+            "BA_HP_ENEMIGOS    = %d\n"
             "BA_BARRA_DX       = %d\n"
             "BA_HPMAX_DX       = %d\n"
             "BA_MSG_DX         = %d\n"
@@ -6330,7 +6335,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                pos(P.BA_ENEMIGO_FILA0, 0), pos(P.BA_GRUPO_FILA0, 0),
                pos(P.BA_MSG_FILA1, 0), pos(P.BA_MSG_FILA2, 0), 2 * 64,
                P.BA_CURSOR_COL * 2, P.BA_NOMBRE_COL * 2, P.BA_NOMBRE_ANCHO,
-               P.BA_HP_COL * 2, P.BA_HP_NUM * 2, P.BA_BARRA_COL * 2,
+               P.BA_HP_COL * 2, P.BA_HP_NUM * 2, int(hp_de_enemigos),
+               P.BA_BARRA_COL * 2,
                P.BA_HP_MAX_NUM * 2, 1 * 2,
                pos(P.BA_PAG_MSG_FILA0, 0), P.BA_PAG_MSG_COL * 2,
                P.BA_PAG_MSG_ANCHO, eventos.TROPA_PAGINAS_MAX,
@@ -6917,6 +6923,11 @@ def parser_de_flags():
                              "`tools/audio/techos.py` arma la ROM en que mide "
                              "el pico de cada tema. Ver `leer_techos` en "
                              "tools/audio/snes_music.py")
+    parser.add_argument("--hp-de-enemigos", action="store_true",
+                        help="la pelea muestra los HP de los enemigos, que "
+                             "RM2k no muestra nunca: para depurar. Lo pide "
+                             "`CON_HP_DE_ENEMIGOS` en "
+                             "tools/ensamblado/cartuchos.py")
     parser.add_argument("--sin-timer", action="store_true",
                         help="los dígitos del cronómetro —once glifos de la "
                              "imagen de System al final del banco de sprites, "
@@ -7595,7 +7606,8 @@ def main():
     informe = emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
                    ventana_datos, titulo_datos, ranuras_datos,
                    args.imagenes.info, animaciones, tropas.ids, audio_batalla,
-                   escenas, encuentros, paginas_tropa, comprimidos)
+                   escenas, encuentros, paginas_tropa, comprimidos,
+                   hp_de_enemigos=args.hp_de_enemigos)
     # Qué entradas de su paleta usan los dígitos del cronómetro, un bit por
     # entrada y una palabra por mapa, en el orden de `mapa_tabla`.
     # `subir_timer_pal` vuelve a subir sin teñir **ésas** y no la paleta

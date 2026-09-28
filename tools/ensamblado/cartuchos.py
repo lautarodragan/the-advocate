@@ -122,6 +122,16 @@ MAPA_DE_DEBUG = 900
 if CON_MAPA_DE_DEBUG:
     AGREGADOS += (MAPA_DE_DEBUG,)
 
+# **Los HP de los enemigos en la pelea**: RM2k no los muestra nunca, y el ABL
+# no tiene cómo verlos —ni habilidad, ni ítem, ni mensaje—; lo midió Tero, en
+# `workflow/tasks/*/el-menu-como-rm2k.md`. Así que por omisión el renglón de un
+# enemigo es sólo su nombre, y esto los vuelve a dibujar para depurar: pasa
+# `--hp-de-enemigos` al conversor en los dos cartuchos. Lo pidió taro el
+# 2026-09-28. Las pruebas no dependen de este valor: los HP que miran los leen
+# de la RAM.
+CON_HP_DE_ENEMIGOS = False
+_DE_TODOS = ["--hp-de-enemigos"] if CON_HP_DE_ENEMIGOS else []
+
 
 def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
                       agregados=AGREGADOS):
@@ -173,7 +183,8 @@ RELEASE = "release"
 _DE_RELEASE = (["--grupo", "10", "--map-id", "4", "--mapas"]
                + [str(m) for m in MAPAS if m != 4]
                + [f for charset, indice in GRAFICOS
-                  for f in ("--grafico-de-prueba", charset, indice)])
+                  for f in ("--grafico-de-prueba", charset, indice)]
+               + _DE_TODOS)
 
 CARTUCHOS = {
     RELEASE: (_DE_RELEASE, None),
@@ -185,7 +196,7 @@ CARTUCHOS = {
     "test-special": (["--map-id", "6", "--mapas", "74", "1", "2", "5", "21", "255",
                "--sin-titulo", "--sin-timer",
                "--heroe-encima", "--encuentros-de-prueba", "8",
-               "--relleno-de-textos", "200"],
+               "--relleno-de-textos", "200"] + _DE_TODOS,
               ["parado-tapado", "grupo-11-12-13",
                "grupo-11-en-255", "batalla", "batalla-item", "batalla-droide",
                "pelea-82-grupo-11-12", "empujon"]),

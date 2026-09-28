@@ -348,11 +348,8 @@ def pantalla_tienda(db, tipo, juego, vende, oro, inventario, equipos, modo,
 # Lo que **sí** es de RM2k son las palabras —todas del LDB, ninguna inventada—
 # y las cuentas, que viven en `batalla.py`.
 #
-# Dos cosas de esta pantalla no están en RM2k y son decisiones:
+# Una cosa de esta pantalla no está en RM2k y es una decisión:
 #
-# * **se ven los HP de los enemigos.** RM2k no los muestra. Acá sí, porque lo
-#   que esta vuelta tiene que dejar ver es justamente la mecánica: sin eso, un
-#   golpe que pega y uno que falla se ven igual.
 # * **huir es una orden del actor** y no del grupo. En RM2k "Escape" está en el
 #   menú de arriba, antes de elegir qué hace cada uno; meterlo en la lista de
 #   cada actor ahorra un modo entero de la máquina. Declarado.
@@ -363,6 +360,9 @@ BA_MSG_FILA2 = 26
 BA_CURSOR_COL = 0
 BA_NOMBRE_COL = 2
 BA_NOMBRE_ANCHO = 14
+# **Los HP de un enemigo no se ven**, como en RM2k: su renglón es sólo el
+# nombre. Con `CON_HP_DE_ENEMIGOS` (tools/ensamblado/cartuchos.py) vuelven, en
+# estas mismas columnas, para depurar.
 BA_HP_COL = 18
 BA_HP_NUM = 21                  # tres cifras
 BA_BARRA_COL = 24
