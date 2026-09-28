@@ -9,6 +9,6 @@ concreta, su razón vive en el comentario de esa línea y acá no se repite.
 
 Lo que **no** va acá: lo que nos gustaría hacer y nadie está haciendo, que es
 `tasks/wishlist/`; dónde la ROM no hace lo que RM2k hace, que es
-`divergencias/`; y lo que está a medias hoy, que es `tasks/wip/`. Si una decisión deja de valer
+`divergencias/`; y lo que está a medias hoy, que es `tasks/doing/`. Si una decisión deja de valer
 porque otra posterior la reemplazó, **no se edita en silencio**: se cambia
 diciendo cuál la reemplazó, o se borra y lo cuenta el mensaje del commit.

@@ -13,7 +13,7 @@ Estos son:
 - `decisiones/` decisiones tomadas que no son "obvias" o no se pueden inferir del código y tareas
 - `tasks/` son las tareas que aún quedan pendientes de tomar, o que están en progreso
 - `tasks/todo/` tareas no empezadas
-- `tasks/wip/` tareas en progreso
+- `tasks/doing/` tareas en progreso: quien la toma la pasa acá antes que nada
 - `tasks/testing/` hechas y a la espera de que taro las pruebe jugando
 - `tasks/done/` tareas terminadas
 - `tasks/wishlist/` es lo que nos gustaría hacer y nadie está haciendo
@@ -27,7 +27,7 @@ Estos son:
     assignee: taro
     ---
 
-`type` va siempre. `assignee` va sólo cuando la tarea **no** la puede tomar
-cualquiera: `taro` para las suyas y para las que esperan algo de él —jugar,
-mirar unas goldens—. Sin `assignee`, la toma quien llegue, que suele ser un
-agente. Las de `done/` son de antes de estos campos y no los llevan.
+`type` va siempre. `assignee` dice quién la tiene: `taro` para las suyas y para
+las que esperan algo de él —jugar, mirar unas goldens—, y el nombre del agente
+para las de `doing/`. Ver "Tomar una tarea" en `AGENTS.md`. En `todo/`, sin
+`assignee`, la toma quien llegue. Las de `done/` son de antes de estos campos y no los llevan.

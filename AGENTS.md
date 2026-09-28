@@ -4,7 +4,7 @@ Esto es lo que **no** se deduce leyendo el código. Todo lo demás está en
 fuentes mejores, y hay que ir a ellas antes que a este archivo:
 
     workflow/        dónde quedamos, y su README explica cada carpeta
-    tasks/todo/      lo decidido y sin empezar; `wip/` lo que se está
+    tasks/todo/      lo decidido y sin empezar; `doing/` lo que se está
                      haciendo, `testing/` lo hecho que taro tiene que jugar,
                      `done/` lo terminado
     decisiones/      las decisiones tomadas que siguen valiendo, una por
@@ -21,9 +21,17 @@ fuentes mejores, y hay que ir a ellas antes que a este archivo:
                      la idea de que los JSON sean la fuente de verdad
     git log          los mensajes son largos a propósito: son el registro
 
-Al empezar, mirar `workflow/tasks/wip/` y `testing/`, que es dónde quedamos. La
+Al empezar, mirar `workflow/tasks/doing/` y `testing/`, que es dónde quedamos. La
 tarea se escribe **mientras se trabaja, no al final**, y al terminar se mueve de
 carpeta.
+
+**Tomar una tarea es pasarla a `doing/` con su `assignee`, antes que nada.** Con
+sub-agentes lo hace el que los lanza, en `main` y antes de lanzarlos, así el
+worktree ya sale con la tarea tomada y dos agentes no agarran la misma. El
+`assignee` es el nombre del agente: el que los lanza les pone uno —una palabra,
+no el código de la herramienta— y se lo dice en el encargo. Una tarea que el
+agente abre por su cuenta nace en `doing/` con su nombre. Es de taro, el
+2026-09-28; hasta ese día la carpeta se llamaba `wip/` y casi no se usaba.
 
 ## Dónde va cada cosa que uno quiere dejar escrita
 
