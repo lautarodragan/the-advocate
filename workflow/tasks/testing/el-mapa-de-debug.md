@@ -20,7 +20,8 @@ assignee: taro
 Y después, sobre las pruebas: **una sola ROM** para la tanda y para lo que él
 juega; el flag que lo apaga es para una entrega limpia, no para la tanda.
 
-Sale de `2ca861a5`.
+Sale de `2ca861a5`, con `main` mergeado en `3c16a178` (el acomodo de bancos
+nuevo y los textos de a cuatro bytes).
 
 # Cómo nace un mapa que el juego no tiene
 
@@ -175,14 +176,19 @@ Y `test_recorrido_golden.py`, la apertura, entra por la puerta 1.
 
 # Espacio
 
-Medido contra la entrega limpia (= `main`): TABLAS, BSS, ZEROPAGE y el
-banco 1 no se mueven; los bancos de datos, +7,9 KB (la cuenta de los `seg`
-del `.dbg`). Los números del cartucho no se escriben: se miden.
+`just espacio`, contra la entrega limpia armada aparte (= `main` en
+`3c16a178`, byte por byte): banco 0, banco 1, `BSS` y `ZEROPAGE` no se
+mueven; el mapa suma **un banco de datos** (unos 8 KB, pero cruza el borde y
+deja un hueco grande en el último) y 592 B de textos, los carteles.
 
-Verificado con `just pruebas` (que corre `just cartuchos` antes) sobre el
-árbol entero, en verde; y la entrega limpia contra `main` byte por byte, como
-dice arriba. Las goldens y las capturas de las llegadas, para mirar, en la
-carpeta de capturas del 2026-09-27 del mapa de debug.
+# El techo de `dcbest`
+
+Con el mapa, `test_el_tema_no_recorta_en_su_pico[dcbest]` recortaba 2
+muestras: sus streams y muestras son los mismos (el `musicdata.inc` sale
+igual salvo `PAQUETES_N`), pero el pico se mueve con cuándo cae cada
+escritura en el cuadro, que cambia con cualquier cambio de la ROM —lo dice
+la prueba—. En `main` pasa. Se corrió `just techos`, y la tabla va en su
+propio commit.
 
 # Qué tiene que probar taro
 
