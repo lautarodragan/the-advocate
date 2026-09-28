@@ -95,6 +95,30 @@ camino principal**, no lo opcional; lo que pide está en el plan (el
 y ZEROPAGE 4; textos 142.138 de 262.144 B. Antes del merge, sin el mapa de
 debug, eran 114 bancos, que es lo que el hito 3 midió para este camino.
 
+# La música de antes, sin MSU-1
+
+Medido par por par con `Banco`, como en `done/el-audio-despues-de-lashe-city.md`
+(los argumentos de `build_varios` capturados de cada árbol y el reparto
+rearmado; baja = más de 0,5 kHz), contra `main` 455f9fc1: **bajan 43 pares
+(tema, instrumento) de 15 temas que ya estaban, y suben 51.** Los peores, golpes
+de batería y algún instrumento de ~22 a ~14,4 kHz (Lunar_Pyramid, wb3shop,
+escape_newyork, Deflector1, bubstix…). La lista entera está en el `LEEME.txt`
+de las grabaciones.
+
+No es el directorio lleno: la causa son los cinco temas nuevos, que comparten
+muestras con los de antes y cambian qué copias hace `snes_music.copias`
+(sacándolos de la captura, bajan 0; con sólo jackalstg2, 36; con sólo Story
+Music, 26). Sin dejar que la segunda tanda copie para los temas nuevos queda
+lugar en el directorio y bajan igual 42. Probado sin recuperarlos:
+`TEMAS_APARTE` no aplica (cada tema nuevo ya va solo en su paquete); la
+primera tanda más corta o más larga (`SE_DE_SIEMPRE` de 70 a 130: lo mejor
+son 29, y cambia la tanda que taro aprobó); `COPIA_HASTA` 0,85 y 0,95; sin la
+herencia de jackalstg2 ni el paquete del 259. **No se cambió nada**: por la
+regla de taro, los quince temas están grabados antes y después, sin MSU-1, en
+el directorio de audio del 2026-09-27 para el mundo 4, con un `LEEME.txt` que
+dice qué escuchar. Recuperarlos pediría tocar cómo `copias` elige, que es su
+propia tarea.
+
 # Deuda
 
 * **Los panoramas no se dibujan**: el puente (259), debajo (255), el 95, el
@@ -121,6 +145,9 @@ debug, eran 114 bancos, que es lo que el hito 3 midió para este camino.
 * Los save points del 74 y del 95.
 
 # Qué tiene que probar taro
+
+* **Escuchar los wav de antes y después** de los quince temas cuya música
+  baja sin MSU-1 (ver "La música de antes"), y decir si se acepta.
 
 * Desde el viaje de Dalia: Tasgarde, el guardia, el laboratorio, Eisen y el
   interruptor, y la historia de Eisen entera (86 a 94): que los mensajes y
