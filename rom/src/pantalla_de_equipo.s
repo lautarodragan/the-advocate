@@ -24,6 +24,8 @@
 ; ahí —reemplaza a las ranuras mientras dura— con los parámetros que
 ; quedarían. La línea vacía del final es sacarse lo de la ranura. B vuelve.
 ; `pantallas.pantalla_equipo` es la referencia, y `pantallas.equipar` la regla.
+; Las ventanas y la barra del cursor van en BG1, que el texto de BG2 no toca:
+; ver `eq_pantalla_subir` y `eq_barra`.
 ;   eq_actor     es comp_char      ; el número de actor
 ;   eq_ranura    es comp_col       ; la ranura marcada, 0 a 4
 ;   eq_eligiendo es comp_col + 1   ; si se muestra la lista
@@ -583,8 +585,10 @@ param:
     tax
     sep #$20
 .a8
-    stz temp + 1
+    lda #3                      ; el término en rojo: `ITEM_ROJO`
+    sta temp + 1
     jsl f:ba_t_texto
+    stz temp + 1
     lda comp_col + 1
     pha
     stz comp_col + 1            ; ahora: lo puesto
@@ -618,6 +622,8 @@ param:
     sta eleg_tabla
     sep #$20
 .a8
+    lda #3                      ; en rojo, como `Window_EquipStatus`
+    sta temp + 1
     lda #$3E                    ; '>'
     jsl f:ba_t_glifo
     jsl f:eq_parametro            ; después: con lo que marca el cursor
@@ -664,22 +670,7 @@ params_listos:
     ; --- las ranuras ---
     lda #0
 ranura:
-    pha
-    cmp comp_col
-    bne sin_cursor
-    jsr fila_pos
-    rep #$20
-.a16
-    clc
-    adc #EQ_CURSOR
-    sta eleg_tabla
-    sep #$20
-.a8
-    lda #$3E
-    jsl f:ba_t_glifo
-sin_cursor:
-    pla
-    pha
+    pha                         ; el cursor es la barra: ver `eq_barra`
     jsr fila_pos
     rep #$20
 .a16
@@ -698,6 +689,8 @@ sin_cursor:
     tax
     sep #$20
 .a8
+    lda #3                      ; el término en rojo, y el nombre de lo
+    sta temp + 1                ; puesto en blanco: `eq_nombre` lo repone
     jsl f:ba_t_texto
     pla
     pha
@@ -729,25 +722,6 @@ lista_fila:
     adc comp_fase + 1
     cmp comp_base
     bcs lista_listo
-    pla
-    pha
-    jsr fila_pos_lista
-    rep #$20
-.a16
-    clc
-    adc #EQ_CURSOR
-    sta eleg_tabla
-    sep #$20
-.a8
-    pla
-    pha
-    clc
-    adc comp_fase + 1
-    cmp comp_fase
-    bne sin_cursor_lista
-    lda #$3E
-    jsl f:ba_t_glifo
-sin_cursor_lista:
     pla
     pha
     clc
@@ -914,6 +888,75 @@ vacia:
     rts
 .endproc
 
+; Las ventanas de BG1 debajo de la barra, y la barra: en el vblank de cada
+; cuadro, detrás del texto. Se suben las filas de la ventana de abajo sin
+; cursor —`EQ_MARCO_TEXTO_N` filas de celdas— y encima las dos del cursor con
+; la barra, de `eq_marco_barras`: primero las de las cinco ranuras y después
+; las de las filas de la lista. Sin acordarse de dónde estaba: cada cuadro
+; repone todo, así que la barra no puede quedar pintada en dos lados. Son 768
+; bytes, unas cinco líneas del vblank además de las diez del texto.
+.proc eq_barra
+.a8
+.i16
+    lda #$80
+    sta VMAIN
+    rep #$20
+.a16
+    lda #(ITEM_MARCO_MAPA + EQ_MARCO_TEXTO * 32)
+    sta VMADDL
+    lda #.loword(eq_marco_mapa + EQ_MARCO_TEXTO * 64)
+    sta A1T0L
+    lda #(EQ_MARCO_TEXTO_N * 64)
+    sta DAS0L
+    sep #$20
+.a8
+    lda #^(eq_marco_mapa)
+    sta A1B0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    ; Cuál: la ranura, o la fila de la lista que se ve.
+    lda comp_col + 1
+    beq en_ranuras
+    lda comp_fase
+    sec
+    sbc comp_fase + 1
+    ldx #(RANURAS_EQUIPO * 128) ; las de la lista, detrás de las ranuras
+    bra fila
+en_ranuras:
+    lda comp_col
+    ldx #0
+fila:
+    rep #$20
+.a16
+    and #$00FF
+    xba
+    lsr a                       ; 128 bytes por fila
+    pha
+    lsr a                       ; que son 64 palabras
+    clc
+    adc #(ITEM_MARCO_MAPA + EQ_BARRA_FILA0 * 32)
+    sta VMADDL
+    txa
+    clc
+    adc 1, s
+    adc #.loword(eq_marco_barras) ; el carry quedó en cero: es una tabla
+    sta A1T0L                   ; de un solo banco
+    pla
+    lda #128
+    sta DAS0L
+    sep #$20
+.a8
+    lda #^(eq_marco_barras)
+    sta A1B0
+    lda #$01
+    sta MDMAEN
+    rts
+.endproc
+
 ; La pantalla de equipo del actor A, hasta que el jugador vuelve con B.
 .proc equipo_pantalla
 .a8
@@ -925,30 +968,11 @@ vacia:
     sta INIDISP
     stz HDMAEN
     stz TM
-    jsl f:items_banco_subir
-    ; Y la paleta del color de "sube", que el banco no sube porque sólo la usa
-    ; esta pantalla: va justo detrás de las suyas, que es la paleta 2 que
-    ; tienen puesta las celdas de esa variante.
-    lda #ITEMS_CGRAM_N
-    sta CGADD
-    rep #$20
-.a16
-    lda #.loword(item_cgram_sube)
-    sta A1T0L
-    lda #(16 * 2)
-    sta DAS0L
-    sep #$20
-.a8
-    lda #^item_cgram_sube
-    sta A1B0
-    stz DMAP0
-    lda #$22
-    sta BBAD0
-    lda #$01
-    sta MDMAEN
+    jsl f:eq_pantalla_subir
     jsr eq_componer
     jsl f:ba_t_subir
-    jsl f:ba_t_ppu
+    jsr eq_barra
+    jsl f:items_ppu_prender     ; BG2 y BG1, las ventanas
 espera:
     jsl f:ba_t_vblank
     ; El control primero y el DMA después. Al revés, los 1792 bytes duran
@@ -958,6 +982,7 @@ espera:
     ; veces. Con el control leído, el DMA entra igual en el vblank.
     jsl f:ba_t_pad
     jsl f:ba_t_subir
+    jsr eq_barra
     lda pad
     eor pad_ant
     and pad

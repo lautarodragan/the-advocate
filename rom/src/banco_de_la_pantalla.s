@@ -83,20 +83,107 @@
 .endproc
 
 
-; --- las ventanas de la pantalla de ítems -------------------------------------
+; --- las ventanas de las pantallas de ítems y de equipo ------------------------
 ;
-; La pantalla de ítems es la única de las que usan este banco que lleva
-; ventanas: el marco y el fondo del System, en BG1, detrás del texto de BG2 —ver
-; `ITEM_VENTANAS` en titulo.py—. BG1 lee sus tiles desde la misma base que BG2,
-; y los de las ventanas van detrás de la fuente.
+; Las dos únicas de las que usan este banco que llevan ventanas: el marco y el
+; fondo del System, en BG1, detrás del texto de BG2 —ver `ITEM_VENTANAS` en
+; titulo.py y `EQ_VENTANAS` en pantallas.py—. BG1 lee sus tiles desde la misma
+; base que BG2, y los de las ventanas van detrás de la fuente. Los tiles y los
+; colores son **los mismos para las dos** —ver `titulo.marcos`—; lo que cambia
+; es el tilemap.
 
-; El banco de la pantalla y las ventanas, con la pantalla apagada: se entra con
-; `jsl`, como a `items_banco_subir`.
+; El banco de la pantalla y las ventanas de los ítems, con la pantalla
+; apagada: se entra con `jsl`, como a `items_banco_subir`.
 .proc items_pantalla_subir
 .a8
 .i16
     jsl f:items_banco_subir
-    ; Los tiles, que son de 8bpp.
+    jsr marco_subir
+    ; El tilemap: las filas que se ven, sin cursor.
+    rep #$20
+.a16
+    lda #ITEM_MARCO_MAPA
+    sta VMADDL
+    lda #(ITEM_MARCO_FILAS * 64)
+    sta DAS0L
+    lda #.loword(items_marco_mapa)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(items_marco_mapa)
+    sta A1B0
+    lda #$01
+    sta MDMAEN
+    rtl
+.endproc
+
+; Lo mismo para la pantalla de equipo, y además las dos paletas que sólo usa
+; ella: la del color de "sube" y la roja de los términos, que van justo detrás
+; de las del banco —son las paletas 2 y 3 que tienen puestas las celdas de
+; esas variantes—. Sin cursor: lo pinta `eq_barra` en cada cuadro.
+.proc eq_pantalla_subir
+.a8
+.i16
+    jsl f:items_banco_subir
+    jsr marco_subir
+    rep #$20
+.a16
+    lda #ITEM_MARCO_MAPA
+    sta VMADDL
+    lda #(ITEM_MARCO_FILAS * 64)
+    sta DAS0L
+    lda #.loword(eq_marco_mapa)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(eq_marco_mapa)
+    sta A1B0
+    lda #$01
+    sta MDMAEN
+    lda #ITEMS_CGRAM_N
+    sta CGADD
+    rep #$20
+.a16
+    lda #.loword(item_cgram_sube)
+    sta A1T0L
+    lda #(2 * 16 * 2)
+    sta DAS0L
+    sep #$20
+.a8
+    lda #^item_cgram_sube
+    sta A1B0
+    stz DMAP0
+    lda #$22
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    rtl
+.endproc
+
+; Los tiles de las ventanas, que son de 8bpp, y sus colores, después de las
+; cuatro paletas del texto. Deja el canal 0 listo para subir un tilemap: VMAIN,
+; DMAP0 y BBAD0.
+.proc marco_subir
+.a8
+.i16
+    ; Los colores primero, así el canal queda armado para la VRAM.
+    lda #ITEM_MARCO_CGRAM
+    sta CGADD
+    rep #$20
+.a16
+    lda #(ITEM_MARCO_COLORES * 2)
+    sta DAS0L
+    lda #.loword(items_marco_cgram)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(items_marco_cgram)
+    sta A1B0
+    stz DMAP0
+    lda #$22
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
     lda #$80
     sta VMAIN
     rep #$20
@@ -117,40 +204,7 @@
     sta BBAD0
     lda #$01
     sta MDMAEN
-    ; El tilemap: las filas que se ven, sin cursor.
-    rep #$20
-.a16
-    lda #ITEM_MARCO_MAPA
-    sta VMADDL
-    lda #(ITEM_MARCO_FILAS * 64)
-    sta DAS0L
-    lda #.loword(items_marco_mapa)
-    sta A1T0L
-    sep #$20
-.a8
-    lda #^(items_marco_mapa)
-    sta A1B0
-    lda #$01
-    sta MDMAEN
-    ; Los colores, después de las tres paletas del texto.
-    lda #ITEM_MARCO_CGRAM
-    sta CGADD
-    rep #$20
-.a16
-    lda #(ITEM_MARCO_COLORES * 2)
-    sta DAS0L
-    lda #.loword(items_marco_cgram)
-    sta A1T0L
-    sep #$20
-.a8
-    lda #^(items_marco_cgram)
-    sta A1B0
-    stz DMAP0
-    lda #$22
-    sta BBAD0
-    lda #$01
-    sta MDMAEN
-    rtl
+    rts
 .endproc
 
 ; BG2 con el texto y BG1 con las ventanas, y la pantalla prendida. Es
