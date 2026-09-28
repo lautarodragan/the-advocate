@@ -68,6 +68,24 @@ def test_equipo(nombre, cuantos, toques):
     golden(nombre, consola.imagen())
 
 
+@pytest.mark.parametrize("nombre,cuantos,toques", (
+    # La armadura: el Leather Jacket en vez del Trenchcoat baja la defensa y
+    # sube la agilidad —el Trenchcoat resta 3—, y el ataque y la mente quedan
+    # igual. Son los tres colores de `GetNewParameterColor` a la vez.
+    ("equipo-sube-baja", 116, ("b:40", "down:52", "down:56", "a:60", "a:72",
+                               "down:88", "down:92", "a:100")),
+    # El casco, con la ranura vacía: sólo sube la defensa.
+    ("equipo-sube", 120, ("b:40", "down:52", "down:56", "a:60", "a:72",
+                          "down:88", "down:92", "down:96", "a:104")),
+))
+def test_equipo_colores(nombre, cuantos, toques):
+    """`equipo-colores`: el valor que quedaría, en el color que dice si sube,
+    baja o queda igual."""
+    consola = consola_cruda("equipo-colores")
+    correr_hardware(consola, cuantos, toques_hardware=toques)
+    golden(nombre, consola.imagen())
+
+
 @pytest.mark.parametrize("cuadro", (60, 120))
 def test_equipo_vuelve(cuadro):
     """`equipo`: el mapa de vuelta, con tres B para salir de los tres

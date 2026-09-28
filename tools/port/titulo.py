@@ -712,6 +712,17 @@ ITEM_DOS_PUNTOS_COL = 27
 ITEM_CIFRAS_COL = 28            # dos cifras, 28 y 29
 ITEM_PRIMER_CARACTER = 32       # los que tiene la fuente: del espacio
 ITEM_CARACTERES = 95            # a la tilde, que es lo que usan los ítems
+# Las variantes de la fuente: el índice es lo que la ROM lleva en `temp + 1`.
+# La 2 es el color 2 del sistema, el de "sube" de `Window_EquipStatus`, y la
+# usa sólo la pantalla de equipo para el valor nuevo de un parámetro, así que
+# trae **sólo las cifras**: la fuente entera en un color más eran unos 150
+# tiles, y el banco de la pelea no los tiene —ver `ITEMS_TILES_MAX`—.
+ITEM_BLANCO, ITEM_GRIS, ITEM_SUBE = range(3)
+ITEM_SUBE_CARACTERES = "0123456789 "
+# Hasta dónde puede crecer el banco de la fuente: la pelea lo sube y después
+# escribe el tilemap de su escena en la palabra $3800 de la VRAM, que es el
+# tile 384 contando desde `RANURA_VRAM`. Lo que pase de ahí lo pisaría.
+ITEMS_TILES_MAX = (0x3800 - 0x2000) // 16
 
 
 def item_usable(item):
@@ -762,27 +773,32 @@ def lista_de_items(items, inventario):
 
 def pantalla_items(sys_img, font_id=None):
     """El banco de la pantalla de ítems: cada carácter de la fuente en dos
-    celdas, una arriba de la otra, en blanco y en gris.
+    celdas, una arriba de la otra, en blanco y en gris, y las cifras además en
+    el color de "sube" —ver `ITEM_SUBE`—.
 
-    Devuelve `(tiles, paletas, glifos)`: `paletas[0]` es la del texto y
-    `paletas[1]` la del gris, y `glifos[gris][caracter]` las dos palabras del
-    tilemap. El espacio son dos celdas en blanco: es el que borra el cursor.
+    Devuelve `(tiles, paletas, glifos)`: `paletas[v]` y `glifos[v][caracter]`
+    —las dos palabras del tilemap— por variante: 0 el texto, 1 el gris, 2 el
+    de "sube", que sólo tiene `ITEM_SUBE_CARACTERES`. El espacio son dos
+    celdas en blanco: es el que borra el cursor.
     """
     from PIL import Image
     from port import ventana as ventana_mod
+    colores = {ITEM_BLANCO: 0, ITEM_GRIS: 3, ITEM_SUBE: 2}
     capas = []
-    for gris in (0, 1):
+    for gris in (ITEM_BLANCO, ITEM_GRIS, ITEM_SUBE):
         for n in range(ITEM_CARACTERES):
+            c = chr(ITEM_PRIMER_CARACTER + n)
+            if gris == ITEM_SUBE and c not in ITEM_SUBE_CARACTERES:
+                continue
             una = Image.new("RGBA", (ANCHO, ALTO), (0, 0, 0, 0))
-            ventana_mod.dibujar_linea(una, sys_img, 1, 2,
-                                      chr(ITEM_PRIMER_CARACTER + n),
-                                      color=3 if gris else 0, font_id=font_id)
+            ventana_mod.dibujar_linea(una, sys_img, 1, 2, c,
+                                      color=colores[gris], font_id=font_id)
             capas.append((gris, n, una))
     # Los colores de cada juego, con numpy: es una imagen del tamaño de la
     # pantalla por carácter y por color, con la letra en una esquina, y
     # recorrerlas pixel por pixel era casi todo lo que costaba esta pantalla.
     # El orden en que se cuentan no importa: la paleta sale ordenada.
-    vistos = [collections.Counter(), collections.Counter()]
+    vistos = [collections.Counter() for _ in colores]
     for gris, _, una in capas:
         pixeles = numpy.asarray(una).reshape(-1, 4)
         rgb = pixeles[pixeles[:, 3] != 0, :3].astype(numpy.int32) >> 3
@@ -801,14 +817,14 @@ def pantalla_items(sys_img, font_id=None):
         indices.append({color: i for i, color in enumerate(paleta)})
     vacio = tuple(tuple([0] * CELL) for _ in range(CELL))
     tiles, donde = [vacio], {vacio: 0}
-    glifos = [{}, {}]
+    glifos = [{} for _ in colores]
     for gris, n, una in capas:
         glifos[gris][chr(ITEM_PRIMER_CARACTER + n)] = _bloque_de_celdas(
             una, 0, 2, tiles, donde, indices[gris], 0, 1, gris)
-    if len(tiles) > RANURA_TILES_MAX:
+    if len(tiles) > ITEMS_TILES_MAX:
         raise SystemExit("la fuente de la pantalla de ítems junta %d tiles y "
                          "en su banco entran %d" % (len(tiles),
-                                                    RANURA_TILES_MAX))
+                                                    ITEMS_TILES_MAX))
     return tiles, paletas, glifos
 
 

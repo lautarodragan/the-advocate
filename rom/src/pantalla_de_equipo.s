@@ -591,6 +591,12 @@ param:
     jsl f:eq_parametro
     pla
     sta comp_col + 1
+    rep #$20
+.a16
+    lda comp_dup                ; `ba_t_numero` lo consume, y el valor nuevo
+    pha                         ; se colorea comparándolo con éste
+    sep #$20
+.a8
     jsr param_pos
     rep #$20
 .a16
@@ -615,14 +621,44 @@ param:
     lda #$3E                    ; '>'
     jsl f:ba_t_glifo
     jsl f:eq_parametro            ; después: con lo que marca el cursor
+    ; Y su color, el de `Window_EquipStatus::GetNewParameterColor`: igual en
+    ; blanco, más en el de "sube" y menos en gris. Es `pantallas.
+    ; color_del_valor_nuevo`.
+    rep #$20
+.a16
+    pla                         ; el de ahora
+    cmp comp_dup
+    sep #$20                    ; `sep` no toca las banderas del `cmp`
+.a8
+    beq igual
+    bcc sube
+    lda #1                      ; baja: el gris
+    bra con_color
+sube:
+    lda #2
+    bra con_color
+igual:
+    lda #0
+con_color:
+    sta temp + 1
     lda #3
     sta comp_dup + 2
     jsl f:ba_t_numero
+    stz temp + 1                ; lo que sigue va en blanco
+    bra param_listo
 sin_flecha:
+    rep #$20
+.a16
+    pla                         ; el de ahora, que no hizo falta
+    sep #$20
+.a8
+param_listo:
     inc comp_or01 + 2
     lda comp_or01 + 2
     cmp #4
-    bcc param
+    bcs params_listos
+    jmp param
+params_listos:
     lda comp_col + 1
     bne lista
     ; --- las ranuras ---
@@ -890,6 +926,26 @@ vacia:
     stz HDMAEN
     stz TM
     jsl f:items_banco_subir
+    ; Y la paleta del color de "sube", que el banco no sube porque sólo la usa
+    ; esta pantalla: va justo detrás de las suyas, que es la paleta 2 que
+    ; tienen puesta las celdas de esa variante.
+    lda #ITEMS_CGRAM_N
+    sta CGADD
+    rep #$20
+.a16
+    lda #.loword(item_cgram_sube)
+    sta A1T0L
+    lda #(16 * 2)
+    sta DAS0L
+    sep #$20
+.a8
+    lda #^item_cgram_sube
+    sta A1B0
+    stz DMAP0
+    lda #$22
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
     jsr eq_componer
     jsl f:ba_t_subir
     jsl f:ba_t_ppu
