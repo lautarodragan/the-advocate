@@ -15,6 +15,29 @@ sistema, un fundido, y espera una tecla antes de volver al título.
 
 El juego trae su imagen en `GameOver/` (ver `ABL_GAME_DIR`).
 
+2026-09-28, en `testing/`: hecho por Carpincho en su rama, sobre `main` en
+17685f7d; `just cartuchos` y `just pruebas` sobre la rama. Lo que queda es
+de taro: ver "Qué tiene que probar taro", abajo.
+
+# Qué tiene que probar taro
+
+* **Escuchar** `/shared/audio/2026-09-28-game-over/` (con su `LEEME.txt`):
+  el tema nuevo, y los nueve temas a los que les baja algo sin MSU-1 —el
+  bombo de siete, y un instrumento de bubstix, bmlv2-sbl y golden_axe—. Si
+  no se acepta, hay que buscarle lugar a los dos programas de `GameOver3` en
+  el directorio; no está resuelto.
+* **Mirar** `/shared/capturas/2026-09-28-game-over/`: la golden nueva al
+  lado del original.
+* **Jugar** sin MSU-1 y con MSU-1 (la pista 231 es nueva: hay que copiarla a
+  la tarjeta): perder una pelea sin manejador —el cofre trampa de los Rat
+  Tracks B1, o el jefe del 26—, que la pantalla aparezca sin pasar por el
+  mapa, que suene `GameOver3`, que A o START la cierren y que el título
+  ande después ("Resume the Story" con la partida guardada). Y el fin de la
+  demo del mapa 66, que es un `ReturntoTitleScreen`: tiene que ir derecho
+  al título, sin la pantalla.
+* En el FX Pak: ninguna búsqueda de MSU-1 nueva, pero el paquete de audio de
+  la pantalla sube con la pantalla en negro; mirar que no tarde.
+
 # Qué hace el original
 
 Mirado en easyrpg-player (`Scene_Gameover`) y en el original con Wine, el

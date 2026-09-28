@@ -26,7 +26,11 @@ RESERVAS = (
     ((0x7E8000, 0x7F0000), {"GRILLA"}),
     ((0x7F0000, 0x800000), {"GRILLA_FIN", "GRILLA_ALTA", "LZ2_BUFFER",
                             "ANIM_DIBUJOS", "ANIM_DIBUJOS_FIN",
-                            "ESC_LIMPIO", "ESC_ESCENA"}),
+                            "ESC_LIMPIO", "ESC_ESCENA",
+                            # La pantalla de Game Over: pisa el banco entero,
+                            # grilla incluida, porque de ahí no se vuelve al
+                            # mapa sino al arranque. Ver rom/src/game_over.s.
+                            "PANTALLA_BUFFER"}),
 )
 
 

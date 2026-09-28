@@ -44,7 +44,9 @@ GO_SETINI = $2133
 ; Adónde descomprime `pantalla_subir`: la WRAM del $7F desde el principio. Vale
 ; sólo mientras se sube —la pelea y la animación del ChipSet usan ese banco, y
 ; los dos se rearman después—, igual que `LZ2_BUFFER`. Entran los 64 KB que un
-; flujo LZ2 puede dar.
+; flujo LZ2 puede dar, y pisa la mitad alta de la grilla: al Game Over le sigue
+; el arranque, que la vuelve a descomprimir. La pantalla de título, si lo usa,
+; tiene que cuidar lo mismo: `test_reservas_de_la_wram.py` lo deja pasar.
 PANTALLA_BUFFER = $7F0000
 ; El tilemap de la pantalla, en palabras de VRAM. Los tiles van desde $0000 y
 ; la imagen más cargada son 896 tiles de 8bpp, o sea hasta $7000: arriba de
