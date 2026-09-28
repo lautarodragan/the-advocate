@@ -92,3 +92,7 @@ arriba; `git blame` no mostró otra razón.
 - "Yes" con música sonando: la pantalla y el tema se funden y aparece el
   título con su tema; "Begin the Story" empieza de cero y "Resume the Story"
   carga la partida. Con y sin MSU-1.
+
+# Probado
+
+taro, el 2026-09-28: anda perfectamente, con y sin MSU-1.
