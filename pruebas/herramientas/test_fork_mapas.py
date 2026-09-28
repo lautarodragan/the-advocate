@@ -102,6 +102,64 @@ def test_fork_de_un_mapa_que_no_existe_no_arma(fork_de_mentira):
         fork.mapas()
 
 
+# Los mapas nuevos, `parches/manual/nuevos/`: la regla de los forks dada
+# vuelta. Ver `fork.nuevos`.
+
+@pytest.fixture
+def nuevos_de_mentira(tmp_path, monkeypatch):
+    nuevos = tmp_path / "nuevos"
+    nuevos.mkdir()
+    monkeypatch.setattr(fork, "NUEVOS", str(nuevos))
+    return nuevos
+
+
+def _un_mapa_nuevo(directorio, map_id, id_del_nodo=None):
+    """Un mapa de `data/` copiado como si fuera nuevo, con el nodo del 11."""
+    datos = json.load(open(_un_mapa_de_verdad() + ".json", encoding="utf-8"))
+    datos["id"] = map_id
+    arbol = json.load(open(os.path.join(RAIZ, "data", "maps.json"),
+                           encoding="utf-8"))["maps"]
+    datos["arbol"] = dict(next(n for n in arbol if n["id"] == 11),
+                          id=map_id if id_del_nodo is None else id_del_nodo)
+    base = directorio / ("Map%04d" % map_id)
+    with open(str(base) + ".json", "w", encoding="utf-8") as handle:
+        json.dump(datos, handle)
+    shutil.copy(_un_mapa_de_verdad() + ".tiles", str(base) + ".tiles")
+
+
+def test_un_mapa_nuevo_no_pisa_uno_del_juego(nuevos_de_mentira):
+    """Con el id de un mapa que `data/` tiene lo taparía sin avisar: eso es un
+    fork, y va en la otra carpeta."""
+    _un_mapa_nuevo(nuevos_de_mentira, 11)
+    with pytest.raises(fork.ForkRoto) as roto:
+        fork.nuevos()
+    assert "ya existe" in str(roto.value)
+
+
+def test_un_mapa_nuevo_trae_su_nodo_con_su_id(nuevos_de_mentira):
+    """El nodo del árbol es lo que le da nombre, padre y música: con otro id
+    se los daría a otro mapa."""
+    _un_mapa_nuevo(nuevos_de_mentira, 9998, id_del_nodo=9997)
+    with pytest.raises(fork.ForkRoto):
+        fork.nuevos()
+
+
+def test_un_mapa_nuevo_a_medias_no_arma(nuevos_de_mentira):
+    _un_mapa_nuevo(nuevos_de_mentira, 9998)
+    os.remove(str(nuevos_de_mentira / "Map9998.tiles"))
+    with pytest.raises(fork.ForkRoto) as roto:
+        fork.nuevos()
+    assert "a medias" in str(roto.value)
+
+
+def test_un_mapa_nuevo_se_lee_como_cualquiera(nuevos_de_mentira):
+    """`lcf.Map` lo lee y `lcf.TreeMap` le suma el nodo."""
+    _un_mapa_nuevo(nuevos_de_mentira, 9998)
+    assert lcf.Map("Map9998.lmu").width == lcf.Map("Map0011.lmu").width
+    assert lcf.TreeMap("RPG_RT.lmt").map_names[9998] \
+        == lcf.TreeMap("RPG_RT.lmt").map_names[11]
+
+
 def test_fork_el_id_de_adentro_es_el_del_nombre():
     """Sobre los forks de verdad: es lo que `fork.mapas()` exige al leerlos."""
     for map_id, (ruta_json, _) in fork.mapas().items():

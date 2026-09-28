@@ -1,0 +1,7 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [900, 13, 9]},
+    {"code": "ChangePartyMembers", "parameters": [0, 0, 14]},
+    {"code": "ChangePartyMembers", "parameters": [1, 0, 10]}
+  ]
+}

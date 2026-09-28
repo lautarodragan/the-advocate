@@ -1,0 +1,3937 @@
+{
+  "arbol": {
+    "area_rect": {
+      "b": 0,
+      "l": 0,
+      "r": 0,
+      "t": 0
+    },
+    "background_name": "",
+    "background_type": 0,
+    "encounter_steps": 0,
+    "encounters": [],
+    "escape": 1,
+    "expanded_node": false,
+    "id": 900,
+    "indentation": 1,
+    "music": {
+      "balance": 50,
+      "fadein": 0,
+      "name": "(OFF)",
+      "tempo": 100,
+      "volume": 100
+    },
+    "music_type": 1,
+    "name": "Debug Room",
+    "parent_map": 0,
+    "save": 1,
+    "scrollbar_x": 0,
+    "scrollbar_y": 0,
+    "teleport": 1,
+    "type": 1
+  },
+  "chipset_id": 10,
+  "events": [
+    {
+      "id": 1,
+      "name": "Door1",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 12410,
+              "indent": 0,
+              "parameters": [],
+              "string": "El comienzo normal: el Teleport del arranque del LDB (mapa 4, 10,12)."
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "Deshace lo único que este mapa cambia: el grupo (Talan, que puso la"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "entrada, y los que sumaron los NPCs) y el switch 150 de AG7-17."
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                14
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                17
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                18
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                10
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                150,
+                150,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10810,
+              "indent": 0,
+              "parameters": [
+                4,
+                10,
+                12
+              ],
+              "string": ""
+            }
+          ],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
+        }
+      ],
+      "x": 4,
+      "y": 14
+    },
+    {
+      "id": 2,
+      "name": "Sign1",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "NORMAL START"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Begin the Story, as it"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "starts without this room."
+            }
+          ],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 3,
+      "y": 11
+    },
+    {
+      "id": 3,
+      "name": "Door2",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 12410,
+              "indent": 0,
+              "parameters": [],
+              "string": "Talan's Pad después del prólogo, por el enrutador del mapa 4 como el"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "juego: con el 21 prendido corre su página 3 —el cartel, los ítems, el"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "grupo— y salta al 7. Switches: los que prenden los mapas 1, 2, 3, 5 y 6"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "en el camino obligado (el 806 lo prende la página 1 del 4). Afuera, los"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "de desvíos: el 6 (LBDidn'tGoThisWay) y el 4 (TestingSwitch, de las"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "páginas de prueba del autor). El guardado, apagado como lo deja la"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "página 1 del 4. La velocidad, 5: la sube la página 2 del evento 5 del"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "3, y el despertador del 7 la deja en 4."
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                3,
+                3,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                5,
+                5,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                7,
+                15,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                21,
+                22,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                806,
+                806,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 11930,
+              "indent": 0,
+              "parameters": [
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                14
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                10
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                10001,
+                8,
+                0,
+                0,
+                29,
+                29,
+                29,
+                29,
+                29,
+                28,
+                28,
+                28,
+                28
+              ],
+              "string": ""
+            },
+            {
+              "code": 11340,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10810,
+              "indent": 0,
+              "parameters": [
+                4,
+                11,
+                9
+              ],
+              "string": ""
+            }
+          ],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
+        }
+      ],
+      "x": 7,
+      "y": 14
+    },
+    {
+      "id": 4,
+      "name": "Sign2",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "TALAN'S PAD"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "After the prologue: the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "\"One year previously\" card."
+            }
+          ],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 6,
+      "y": 11
+    },
+    {
+      "id": 5,
+      "name": "Door3",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 12410,
+              "indent": 0,
+              "parameters": [],
+              "string": "Los callejones del Sector 30 (mapa 20) al salir de la oficina del"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "director: el Teleport del evento 15 del 19, con el tema que dejó"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "puesto la escena. Rama de los Neon Vipers, la de Arden: el 54 de la"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "página 3 del hotplate del 12. Llegó a tiempo (77, no 68), no tomó el"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "Hover-Tram (sin 71/72/186) ni sobornó (sin 29). Habló con todos (27,"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "30, 31, 32, 48, los obreros 79-84 y 129) y cobró el cheque del 17"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "(78, +300). Oro: 100 del despertador del 7 y 300 del cheque. Ítems: el"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "81 del enrutador y los dos cofres del 17. Velocidad 5: el despertador"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "la deja en 4 y la salida del 19 la sube."
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                3,
+                3,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                5,
+                5,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                7,
+                15,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                21,
+                22,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                24,
+                24,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                27,
+                27,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                30,
+                32,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                48,
+                48,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                54,
+                54,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                58,
+                58,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                73,
+                73,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                77,
+                90,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                92,
+                92,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                129,
+                129,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                206,
+                206,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                806,
+                806,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 11930,
+              "indent": 0,
+              "parameters": [
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                81,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                88,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                97,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10310,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                400
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                10
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                14
+              ],
+              "string": ""
+            },
+            {
+              "code": 11510,
+              "indent": 0,
+              "parameters": [
+                0,
+                100,
+                100,
+                50
+              ],
+              "string": "3D-Galax"
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                10001,
+                8,
+                0,
+                0,
+                29,
+                29,
+                29,
+                29,
+                29,
+                28,
+                28,
+                28,
+                28
+              ],
+              "string": ""
+            },
+            {
+              "code": 11340,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10810,
+              "indent": 0,
+              "parameters": [
+                20,
+                93,
+                0
+              ],
+              "string": ""
+            }
+          ],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
+        }
+      ],
+      "x": 10,
+      "y": 14
+    },
+    {
+      "id": 6,
+      "name": "Sign3",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "SECTOR 30 BACK ALLEYS"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "After the Director is"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "shot. Neon Vipers path."
+            }
+          ],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 9,
+      "y": 11
+    },
+    {
+      "id": 7,
+      "name": "Door4",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 12410,
+              "indent": 0,
+              "parameters": [],
+              "string": "Lashe City con auto: el 36, donde deja la cinemática del 34 (que"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "prende el 133 y el 148). Salta la charla del auto del mapa 4 y esa"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "cinemática. Suma los callejones, las Rat Tracks y el Sector 27: el"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "rey rata (137), Arden al grupo en el 26 con el sándwich (97), el"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "almacén (133, y Talan aprende Detect Aura) y el auto rojo (130, 132)."
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "Todos los cofres de 20, 21, 26 (el del jefe con la llave) y 32, y lo"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "del taller del 30. Sin reparaciones. El grupo queda en DummyHero, como"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "lo deja el 33: la página del 36 mete a Talan y a Arden al elegir."
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "Velocidad 4: la escapada del 33 la baja."
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                3,
+                3,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                5,
+                5,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                7,
+                15,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                21,
+                22,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                24,
+                24,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                27,
+                27,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                30,
+                32,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                48,
+                48,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                54,
+                54,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                58,
+                58,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                73,
+                73,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                77,
+                90,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                92,
+                93,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                95,
+                113,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                116,
+                118,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                120,
+                121,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                123,
+                130,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                132,
+                133,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                137,
+                137,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                148,
+                148,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                206,
+                206,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                806,
+                806,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                94,
+                94,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 11930,
+              "indent": 0,
+              "parameters": [
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                81,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                88,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                97,
+                0,
+                8
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                98,
+                0,
+                2
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                99,
+                0,
+                2
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                100,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                101,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                102,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                103,
+                0,
+                3
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                104,
+                0,
+                2
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                106,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                107,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                108,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                109,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                112,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                115,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                118,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                119,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                120,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                123,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                327,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10310,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                845
+              ],
+              "string": ""
+            },
+            {
+              "code": 10440,
+              "indent": 0,
+              "parameters": [
+                1,
+                14,
+                0,
+                0,
+                133
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                14
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                10
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                10001,
+                8,
+                0,
+                0,
+                29,
+                29,
+                29,
+                29,
+                29,
+                28,
+                28,
+                28
+              ],
+              "string": ""
+            },
+            {
+              "code": 11340,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10810,
+              "indent": 0,
+              "parameters": [
+                36,
+                10,
+                8
+              ],
+              "string": ""
+            }
+          ],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
+        }
+      ],
+      "x": 13,
+      "y": 14
+    },
+    {
+      "id": 8,
+      "name": "Sign4",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "LASHE CITY WITH THE CAR"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Pick a sector: 35 is"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Talan's Pad. Arden's path."
+            }
+          ],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 12,
+      "y": 11
+    },
+    {
+      "id": 9,
+      "name": "Door5",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 12410,
+              "indent": 0,
+              "parameters": [],
+              "string": "La largada de la carrera: el Teleport [49, 1, 26] de la página 2 del"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "36, con el 182. La rama de Arden cerrada: el vidcast (151, 156, 158-161),"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "el HQ vacío de los Vipers (167-169), y el auto de la Agency (238)."
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "Rechazó el favor de Wick (162), como el recorrido de Sorbe. Los tres"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "cofres del basural del 38. Velocidad 3: el 41 la baja al rechazar."
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                3,
+                3,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                5,
+                5,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                7,
+                15,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                21,
+                22,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                24,
+                24,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                27,
+                27,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                30,
+                32,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                48,
+                48,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                54,
+                54,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                58,
+                58,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                73,
+                73,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                77,
+                90,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                92,
+                93,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                95,
+                113,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                116,
+                118,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                120,
+                121,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                123,
+                130,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                132,
+                133,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                137,
+                137,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                149,
+                149,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                151,
+                151,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                154,
+                154,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                156,
+                156,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                158,
+                162,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                166,
+                169,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                182,
+                182,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                206,
+                206,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                238,
+                238,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                544,
+                546,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                806,
+                806,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                94,
+                94,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                148,
+                148,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 11930,
+              "indent": 0,
+              "parameters": [
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                81,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                88,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                97,
+                0,
+                8
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                98,
+                0,
+                2
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                99,
+                0,
+                2
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                100,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                101,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                102,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                103,
+                0,
+                3
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                104,
+                0,
+                2
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                106,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                107,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                108,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                109,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                112,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                115,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                118,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                119,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                120,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                123,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                124,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                157,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                327,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10310,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                1095
+              ],
+              "string": ""
+            },
+            {
+              "code": 10440,
+              "indent": 0,
+              "parameters": [
+                1,
+                14,
+                0,
+                0,
+                133
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                14
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                10
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                10001,
+                8,
+                0,
+                0,
+                29,
+                29,
+                29,
+                29,
+                29,
+                28,
+                28
+              ],
+              "string": ""
+            },
+            {
+              "code": 11340,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10810,
+              "indent": 0,
+              "parameters": [
+                49,
+                1,
+                26
+              ],
+              "string": ""
+            }
+          ],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
+        }
+      ],
+      "x": 16,
+      "y": 14
+    },
+    {
+      "id": 10,
+      "name": "Sign5",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "THE RACE"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Escaping Lashe City."
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "Arden; refused Wick's offer."
+            }
+          ],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 15,
+      "y": 11
+    },
+    {
+      "id": 11,
+      "name": "Door6",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 12410,
+              "indent": 0,
+              "parameters": [],
+              "string": "El mundo después de la carrera, por el premio del 53 como el juego:"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "con las tres vueltas (174, 178, 179) y sin choques (variable 38 en 0)"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "da el oro y los ítems, prende el 180 y salta a la despedida del 64,"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "que arma el grupo y salta al 66. El grupo, el auto rojo (19), como lo"
+            },
+            {
+              "code": 22410,
+              "indent": 0,
+              "parameters": [],
+              "string": "deja la carrera. Velocidad 6: la carrera la sube tres."
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                3,
+                3,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                5,
+                5,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                7,
+                15,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                21,
+                22,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                24,
+                24,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                27,
+                27,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                30,
+                32,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                48,
+                48,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                54,
+                54,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                58,
+                58,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                73,
+                73,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                77,
+                90,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                92,
+                93,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                95,
+                113,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                116,
+                118,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                120,
+                121,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                123,
+                130,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                132,
+                133,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                137,
+                137,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                149,
+                149,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                151,
+                151,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                154,
+                154,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                156,
+                156,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                158,
+                162,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                166,
+                169,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                171,
+                171,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                174,
+                179,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                182,
+                182,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                206,
+                206,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                238,
+                238,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                1,
+                544,
+                546,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                806,
+                806,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                94,
+                94,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                148,
+                148,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 0,
+              "parameters": [
+                0,
+                172,
+                172,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10220,
+              "indent": 0,
+              "parameters": [
+                0,
+                38,
+                38,
+                0,
+                0,
+                0,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 11930,
+              "indent": 0,
+              "parameters": [
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                81,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                88,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                97,
+                0,
+                8
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                98,
+                0,
+                2
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                99,
+                0,
+                2
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                100,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                101,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                102,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                103,
+                0,
+                3
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                104,
+                0,
+                2
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                106,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                107,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                108,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                109,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                112,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                115,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                118,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                119,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                120,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                123,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                124,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                157,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10320,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                327,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10310,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                1095
+              ],
+              "string": ""
+            },
+            {
+              "code": 10440,
+              "indent": 0,
+              "parameters": [
+                1,
+                14,
+                0,
+                0,
+                133
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                10
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                1,
+                0,
+                14
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 0,
+              "parameters": [
+                0,
+                0,
+                19
+              ],
+              "string": ""
+            },
+            {
+              "code": 11330,
+              "indent": 0,
+              "parameters": [
+                10001,
+                8,
+                0,
+                0,
+                29,
+                29,
+                29,
+                29,
+                29,
+                28,
+                28,
+                28,
+                28,
+                28
+              ],
+              "string": ""
+            },
+            {
+              "code": 11340,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10810,
+              "indent": 0,
+              "parameters": [
+                53,
+                11,
+                10
+              ],
+              "string": ""
+            }
+          ],
+          "id": 1,
+          "layer": 0,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 1
+        }
+      ],
+      "x": 19,
+      "y": 14
+    },
+    {
+      "id": 12,
+      "name": "Sign6",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 10110,
+              "indent": 0,
+              "parameters": [],
+              "string": "THE WORLD"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "After the race, with the"
+            },
+            {
+              "code": 20110,
+              "indent": 0,
+              "parameters": [],
+              "string": "three laps won."
+            }
+          ],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 18,
+      "y": 11
+    },
+    {
+      "id": 13,
+      "name": "Arden",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 0,
+          "character_name": "Chara2",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 12010,
+              "indent": 0,
+              "parameters": [
+                5,
+                15,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
+              "parameters": [
+                1,
+                0,
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 1,
+              "parameters": [],
+              "string": "ARDEN"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Arden leaves the party."
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
+              "parameters": [
+                0,
+                0,
+                15
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 1,
+              "parameters": [],
+              "string": "ARDEN"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Arden joins the party."
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            }
+          ],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 8,
+      "y": 6
+    },
+    {
+      "id": 14,
+      "name": "Saldra",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 6,
+          "character_name": "Chara3",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 12010,
+              "indent": 0,
+              "parameters": [
+                5,
+                17,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
+              "parameters": [
+                1,
+                0,
+                17
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 1,
+              "parameters": [],
+              "string": "SALDRA"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Saldra leaves the party."
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
+              "parameters": [
+                0,
+                0,
+                17
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 1,
+              "parameters": [],
+              "string": "SALDRA"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "Saldra joins the party."
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            }
+          ],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 13,
+      "y": 6
+    },
+    {
+      "id": 15,
+      "name": "AG7-17",
+      "pages": [
+        {
+          "animation_type": 0,
+          "character_direction": 2,
+          "character_index": 4,
+          "character_name": "AG717",
+          "character_pattern": 1,
+          "condition": {
+            "actor_id": 1,
+            "flags": {
+              "actor": false,
+              "item": false,
+              "switch_a": false,
+              "switch_b": false,
+              "timer": false,
+              "variable": false
+            },
+            "item_id": 1,
+            "switch_a_id": 1,
+            "switch_b_id": 1,
+            "timer_sec": 0,
+            "variable_id": 1,
+            "variable_value": 0
+          },
+          "event_commands": [
+            {
+              "code": 12010,
+              "indent": 0,
+              "parameters": [
+                5,
+                18,
+                0,
+                0,
+                0,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
+              "parameters": [
+                1,
+                0,
+                18
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                150,
+                150,
+                1
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 1,
+              "parameters": [],
+              "string": "AG7-17"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "AG7-17 leaves the party."
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22010,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 10330,
+              "indent": 1,
+              "parameters": [
+                0,
+                0,
+                18
+              ],
+              "string": ""
+            },
+            {
+              "code": 10210,
+              "indent": 1,
+              "parameters": [
+                0,
+                150,
+                150,
+                0
+              ],
+              "string": ""
+            },
+            {
+              "code": 10110,
+              "indent": 1,
+              "parameters": [],
+              "string": "AG7-17"
+            },
+            {
+              "code": 20110,
+              "indent": 1,
+              "parameters": [],
+              "string": "AG7-17 joins the party."
+            },
+            {
+              "code": 10,
+              "indent": 1,
+              "parameters": [],
+              "string": ""
+            },
+            {
+              "code": 22011,
+              "indent": 0,
+              "parameters": [],
+              "string": ""
+            }
+          ],
+          "id": 1,
+          "layer": 1,
+          "move_frequency": 3,
+          "move_route": {
+            "move_commands": [],
+            "repeat": true,
+            "skippable": false
+          },
+          "move_speed": 3,
+          "move_type": 0,
+          "overlap_forbidden": false,
+          "translucent": false,
+          "trigger": 0
+        }
+      ],
+      "x": 18,
+      "y": 6
+    }
+  ],
+  "generator_extra_b": true,
+  "generator_extra_c": true,
+  "generator_flag": false,
+  "generator_floor_b": true,
+  "generator_floor_c": true,
+  "generator_height": 1,
+  "generator_mode": 0,
+  "generator_surround": true,
+  "generator_tile_ids": [],
+  "generator_tiles": 0,
+  "generator_upper_wall": true,
+  "generator_width": 4,
+  "generator_x": [],
+  "generator_y": [],
+  "height": 15,
+  "id": 900,
+  "parallax_auto_loop_x": false,
+  "parallax_auto_loop_y": false,
+  "parallax_flag": false,
+  "parallax_loop_x": false,
+  "parallax_loop_y": false,
+  "parallax_name": "",
+  "parallax_sx": 0,
+  "parallax_sy": 0,
+  "save_count": 0,
+  "scroll_type": 0,
+  "top_level": false,
+  "width": 26
+}

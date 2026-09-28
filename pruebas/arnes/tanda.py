@@ -127,9 +127,21 @@ def partida(caso, nucleo=None, en=None, switches=(), titulo=None, pila=False):
     uno sin título. Medido al juntar `release` con `test-main`: pasar por el
     título no mueve ninguna golden.
     """
-    if caso is None:
-        # Sin caso: la ROM como arranca, que es la página 0 —`nada` en
-        # `release`: la partida de verdad—.
+    if caso is None and (en or cartuchos.RELEASE) == cartuchos.RELEASE:
+        # Sin caso, en `release`: la partida de verdad **sin el mapa de
+        # debug**, `LA_PARTIDA_DE_VERDAD`, que es la página 0 de la entrega
+        # limpia. Con el mapa, la página 0 lleva a él —ver `PRIMERO` en
+        # cartuchos.py— y esto la elige por su número, como a cualquier caso:
+        # así las pruebas que juegan desde el título siguen mirando el
+        # arranque del juego, con la misma ROM que se entrega. Pasar por la
+        # puerta del comienzo normal no daría lo mismo: llegar al 4 con un
+        # `Teleport` corre la rampa del fundido y el tinte —ver
+        # `CINEMATICAS` en test_escenas_golden.py—. La puerta la cruza el
+        # recorrido de la apertura.
+        uno, k = rom(cartuchos.LA_PARTIDA_DE_VERDAD, en)
+        salta = uno.saltan[k]
+    elif caso is None:
+        # Sin caso, en otro cartucho: la ROM como arranca, la página 0.
         uno, k, salta = cartucho(en), 0, False
     else:
         uno, k = rom(caso, en)

@@ -15,6 +15,8 @@ escribe ahí y nunca acá, así que se computa cuando haga falta.
     mapas/MapNNNN.tiles    y sus dos capas, que viven afuera del JSON
     chipsets/NNNN.json     un ChipSet que se **suma** a la base, con la receta
                            de su imagen
+    nuevos/MapNNNN.json    un mapa que el juego **no tiene**, con su nodo del
+    nuevos/MapNNNN.tiles   árbol adentro, y sus dos capas
 
 Lo que lo hace cumplir es `tools/rpgmaker/fork.py`, y lo miran las pruebas
 `pruebas/herramientas/test_fork_mapas.py`.
@@ -34,6 +36,26 @@ falla, pisa el mapa equivocado y manda al jugador adentro de una pared.
 
 **Un fork de mapa reemplaza a uno que existe.** Un nombre mal escrito no hace
 nada, en silencio, y eso es peor que un error.
+
+## Un mapa nuevo es la regla dada vuelta
+
+Un fork reemplaza un mapa que existe; un mapa de `nuevos/` **no puede** tener
+el id de uno que exista, porque lo taparía sin avisar. Por eso van en otra
+carpeta: juntos, un fork con el nombre mal escrito pasaría por mapa nuevo.
+Lo demás es igual —todo o nada, el id de adentro es el del nombre— y lo hace
+cumplir `fork.nuevos`.
+
+Y trae lo que un mapa del juego tiene afuera: **su nodo del árbol**, el de
+`data/maps.json`, en el campo `arbol` del JSON y en la misma vista resuelta.
+De ahí salen su nombre, su padre, su música y sus encuentros; `lcf.TreeMap`
+lo suma a los del juego.
+
+Hoy es uno: el **900**, el mapa de debug, donde arranca "Begin the Story"
+mientras `CON_MAPA_DE_DEBUG` esté prendido en `tools/ensamblado/cartuchos.py`.
+Un cuarto con el chipset del mapa 10, seis puertas con su cartel y un NPC por
+compañero. Lo que pone cada puerta está en los `Comment` de su página, al lado
+de cada comando: es lo que hay que leer antes de tocarla. El porqué, en
+`workflow/tasks/*/el-mapa-de-debug.md`.
 
 ## Los ChipSets se suman, no reemplazan
 
