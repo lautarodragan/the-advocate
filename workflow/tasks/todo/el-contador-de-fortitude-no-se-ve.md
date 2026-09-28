@@ -12,3 +12,13 @@ Los caminos que estaban sobre la mesa: mostrar la variable 48 con los dígitos
 del cronómetro, que ya están en la ROM; un mensaje cuando baja. Antes de elegir
 hay que mirar si el minijuego se puede perder: si no, el contador es sólo
 información.
+
+**Se puede perder**, mirado en el hito 4 (`testing/mundo-4-el-capitulo.md`):
+cada salto y cada escalera del 95 restan 5 a la variable 48, que arranca en
+99, y con la variable en cero la paralela 56 dice "So... tired... can't go
+on...", devuelve a Eisen a la entrada, apaga las tres palancas y la repone en
+99. La ruta de
+`test_recorrido_capitulo_golden.py`, que va derecho a las tres palancas y a la
+escotilla, termina con 4: sin ver el contador, cualquier rodeo obliga a
+empezar de nuevo sin que el jugador lo vea venir. Así que el contador no es
+sólo información.

@@ -213,9 +213,15 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   vuelve al mapa bien dibujado
 * `abl/test_recorrido_sorbe_golden.py`: del mundo a Sorbe, la pelea con Vago
   en la montaña, la curación, la oficina del director, Dalia en la fábrica y
-  su viaje en auto hasta el fin de la demo, en la entrada de Tasgarde
+  su viaje en auto hasta la entrada de Tasgarde
 * `abl/test_sorbe.py`: Sorbe, la montaña y la casa de Vago recién llegados, y
   la ventana en el reparto de la capa de encima de 256
+* `abl/test_recorrido_capitulo_golden.py`: de la entrada de Tasgarde al fin
+  de la demo, en la entrada de Tangle Forest: el laboratorio, la historia de
+  Eisen con su minijuego jugado entero, la vuelta a Sorbe, el puente y la
+  pelea de debajo del puente
+* `abl/test_capitulo.py`: Tasgarde, su laboratorio, el minijuego de Eisen, el
+  puente y lo de debajo recién llegados
 * `abl/test_escenas_golden.py`: las escenas y cinemáticas
 * `abl/test_recuerdo.py`: el recuerdo de CORE y MANTA
 * `abl/test_un_ano_antes.py`: el cartel de "1 year earlier"

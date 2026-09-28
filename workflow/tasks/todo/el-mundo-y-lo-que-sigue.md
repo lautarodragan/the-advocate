@@ -206,7 +206,8 @@ Tangle sólo cambia unos árboles del 66 (`dependencias.py`).
 lleva al túnel a Paradise, un capítulo nuevo. Ahí va el fork del fin de la
 demo, y el del 64 se borra.
 
-Lo opcional cuelga del 66 y se puede dejar para después sin romper nada:
+Lo opcional cuelga del 66 y se puede dejar para después sin romper nada
+(salvo Tangle Forest, que está en el camino al túnel: ver el hito 4):
 **Yun Town** (67, 70 a 73), **Drust Camp** (68, 103 las minas, 199 a 201) y
 **Tangle Forest** (310 a 313, que usa el cronómetro). 75, 198 y 104 no se
 alcanzan por `Teleport` desde el capítulo.
@@ -356,7 +357,12 @@ paquete; el bloque de textos de a 4 bytes; y `medir.py` —o lo que lo
 reemplace— diciendo bancos libres y no un porcentaje. Puede ir en paralelo con
 el 1 y el 2; **tiene que estar antes del 4**, que deja tres bancos.
 
-**4. Tasgarde, Eisen y el puente: el capítulo.** El alternar switches en el
+**4. Tasgarde, Eisen y el puente: el capítulo.** (Hecho:
+`testing/mundo-4-el-capitulo.md`. **La demo termina en la entrada de Tangle
+Forest (66 ev19), no en el 18**: el túnel a Paradise está del otro lado del
+bosque, y del puente al túnel no se llega caminando por el mundo —se cruza por
+310, 311, 313 y 312, que sale al oeste—. O sea que Tangle Forest no es
+opcional: es el hito siguiente del camino principal.) El alternar switches en el
 compilador, las dos transiciones instantáneas, y el cartel y el contador
 según lo que conteste taro (preguntas 3 y 4). 74, 85 a 102, 259 y 255; el fin
 de la demo al fork del 66 ev18, "Continue onward". La regla de mapas según la

@@ -38,10 +38,12 @@ DESTINO = os.environ.get("CARTUCHOS",
                          os.path.join(RAIZ, "rom", "build", "tests"))
 
 # Los mapas del juego que lleva `release`: **los de id menor a `MENOR_A`,
-# menos `EXCLUIDOS`, más `AGREGADOS`**. Hoy es Lashe City entera, hasta que se
-# sale de la ciudad. Hasta el 2026-09-27 era una lista escrita a mano; la regla
-# y sus valores son de `workflow/tasks/*/la-carrera-y-lo-que-sigue.md`, y taro
-# pidió que la exclusión se mantenga chica.
+# menos `EXCLUIDOS`, más `AGREGADOS`**. Hoy es Lashe City entera y el camino
+# principal del capítulo del mundo, hasta el túnel a Paradise. Hasta el
+# 2026-09-27 era una lista escrita a mano; la regla y sus valores son de
+# `workflow/tasks/*/la-carrera-y-lo-que-sigue.md` y de
+# `workflow/tasks/*/el-mundo-y-lo-que-sigue.md` ("La regla de los mapas"), y
+# taro pidió que la exclusión se mantenga chica.
 #
 # "Mapa" es un nodo de tipo 1 del árbol de RM2k. Los ids que faltan entre los
 # de la regla sin estar excluidos —el 24, el 25, el 27, el 31 y el 35— son
@@ -53,40 +55,52 @@ DESTINO = os.environ.get("CARTUCHOS",
 # `test_horneados` y `test_parches` necesitan la lista sin correrlo; y como el
 # sello lleva los flags y no `data/`, un árbol que cambie qué mapas entran deja
 # viejo al cartucho sólo si la lista viaja expandida.
-MENOR_A = 65
+#
+# El 105, Mountain Path, es el primero del capítulo siguiente, adonde lleva el
+# 66 ev18. La demo termina antes: al entrar a Tangle Forest (el 66 ev19, que
+# el fork del 66 cambia por el cartel del fin), porque el camino del puente
+# al túnel **cruza el bosque** —310, 311, 313 y 312, que sale al oeste del
+# 66— y el bosque todavía no entra.
+MENOR_A = 105
 
 # Cada uno con su razón, que es lo que hay que revisar antes de sumarle otro.
 EXCLUIDOS = {
     # Aura Tutorial: de otro capítulo, cuelga de `Tutorials` (161). Es el que
     # cuesta: trae su tema y dos animaciones.
     58: "el tutorial del aura, de otro capítulo",
-    # Carpetas del árbol —Lashe City, The Rat Tracks y la de la carrera—:
-    # mapas negros a los que nadie salta.
+    # Overlook Memory: de otro capítulo, cuelga del 219.
+    104: "de otro capítulo",
+    # Carpetas del árbol —Lashe City, The Rat Tracks, la de la carrera y
+    # Northern World—: mapas negros a los que nadie salta.
     15: "carpeta",
     22: "carpeta",
     55: "carpeta",
-    # Security Footage 2: un respaldo del 45 al que nada lleva.
+    65: "carpeta",
+    # Security Footage 2 y los tres `Backup`: respaldos de otros mapas a los
+    # que nada lleva. Battle Rink Ladder cuelga del 199 y ningún `Teleport`
+    # lleva a él.
     46: "inalcanzable",
+    75: "inalcanzable",
+    96: "inalcanzable",
+    97: "inalcanzable",
+    98: "inalcanzable",
+    # Lo opcional del mundo, que no entra todavía: Yun Town (67, y su armería
+    # y su posada) y Drust Camp (68 y sus minas). El 70 y el 73, que también
+    # son de Yun Town, entran igual: ya estaban en la ROM como mapas de
+    # prueba, y sin el 67 nada lleva a ellos. Ver "Lo que sigue" en
+    # `el-mundo-y-lo-que-sigue.md`, el hito 5.
+    67: "opcional: Yun Town",
+    71: "opcional: Yun Town",
+    72: "opcional: Yun Town",
+    68: "opcional: Drust Camp",
+    103: "opcional: Drust Camp",
 }
 
 # El tutorial del droide no cuelga de Lashe City sino de `Tutorials`, pero salta
-# ahí la página del 48 que mete a AG7-17 en el grupo. Y el mundo, el 66, al que
-# lleva la despedida del 64: es el primero de otro capítulo, y subir `MENOR_A`
-# a 67 metería al 65, que es una carpeta.
-#
-# Detrás del mundo, el camino principal hasta el viaje de Dalia: Sorbe Village
-# (69) y lo que cuelga de ella —la montaña (76), el spa, la posada, la armería
-# y el alcalde (77 a 80), y la casa del doctor Vago (81), donde se cura el
-# tobillo—, y lo que sigue a la curación: la oficina del director (82), Dalia
-# en la fábrica (83) y afuera de ella (84), de donde sale al mundo. Van
-# agregados de a uno y no subiendo `MENOR_A`, porque entre el 66 y el 84 están
-# Yun Town (67, 70 a 73) y Drust Camp (68), que son opcionales y no entran
-# todavía, y Tasgarde (74), que ya está como mapa de prueba. `MENOR_A = 105`
-# recién cuando entre el capítulo entero —ver
-# `workflow/tasks/*/el-mundo-y-lo-que-sigue.md`, "La regla de los mapas"—.
-# La demo termina en el mundo, al pisar la entrada de Tasgarde, en el fork del
-# 66.
-AGREGADOS = (164, 66, 69, 76, 77, 78, 79, 80, 81, 82, 83, 84)
+# ahí la página del 48 que mete a AG7-17 en el grupo. Y el puente del norte
+# (259) y lo que hay debajo (255), que es donde se prende el 849 que deja
+# cruzarlo: el final del camino principal antes del túnel.
+AGREGADOS = (164, 259, 255)
 
 
 def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
@@ -109,15 +123,16 @@ def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
 # del 36 es una sola página que compila con sus cuatro destinos o con ninguno.
 # Una exclusión no los puede separar.
 #
-# La demo termina en el mundo, el 66, al pisar Tasgarde: el fork del 66 cambia
-# ese `Teleport` por el cartel del fin. Los demás lugares del mundo que no son
-# Sorbe no hacen nada, porque sus destinos no están y sus páginas no compilan.
+# La demo termina en el mundo, el 66, al entrar a Tangle Forest: el fork del
+# 66 cambia ese `Teleport` por el cartel del fin. Los lugares del mundo cuyo
+# destino no está —Yun Town, Drust Camp, el bosque en llamas— no hacen nada,
+# porque sus páginas no compilan.
 MAPAS_DEL_JUEGO = mapas_de_la_regla()
 
 # Y los que sólo existen por la tanda: situaciones que ningún mapa del juego
 # que entra ejercita. `parches.revisar` los lee de acá para no pedirles parche
 # versionado.
-MAPAS_DE_PRUEBA = (70, 73, 74, 119, 121, 133, 255, 261, 269, 348)
+MAPAS_DE_PRUEBA = (119, 121, 133, 261, 269, 348)
 
 MAPAS = MAPAS_DEL_JUEGO + MAPAS_DE_PRUEBA
 
