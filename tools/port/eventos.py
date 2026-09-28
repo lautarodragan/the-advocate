@@ -3426,13 +3426,13 @@ def tropa_de_encuentro(cmd):
       sin nada que lo ejercite;
     * **perder**, con manejador o sin él: `defeat_mode` 0 es la pantalla de
       Game Over de RM2k, y desde el 2026-09-13 se emite como `BATALLA_PERDER`
-      en el destino de la derrota. La ROM la resuelve volviendo al arranque
+      en el destino de la derrota. La ROM lo anota antes de pelear y, si se
+      pierde, muestra la pantalla de Game Over y de ahí vuelve al arranque
       —o sea a la pantalla de título, con la partida guardada esperando en la
-      SRAM— que es lo que `Scene_Gameover` hace después de mostrar su imagen.
-      **La imagen no se dibuja**, y eso es deuda declarada en
-      `workflow/divergencias/game-over-sin-imagen-ni-tema.md`; lo que no se
-      hace es lo de antes, que era no compilar la página: costaba 15, entre
-      ellas el jefe de los Rat Tracks.
+      SRAM—: ver rom/src/game_over.s y lo que todavía no hace en
+      `workflow/divergencias/lo-que-la-pantalla-de-game-over-no-modela.md`.
+      Lo que no se hace es lo de antes del 2026-09-13, que era no compilar la
+      página: costaba 15, entre ellas el jefe de los Rat Tracks.
 
     El fondo no se mira acá: lo saca `fondo_de_encuentro`.
     """
@@ -4417,14 +4417,18 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         if _ACTORES_INDEXADOS and actor and actor not in ACTOR_EQUIPO:
             raise NoSePuede("el actor %d no está en el LDB" % actor)
         return bytes([OP_EQUIPMENT, actor, p[3]])
-    if cmd.code in (GAME_OVER, RETURN_TO_TITLE):
+    if cmd.code == GAME_OVER:
         # `CommandGameOver`: la pantalla de Game Over y, al apretar, el título.
-        # Acá es volver al arranque, igual que perder una pelea sin manejador
-        # —ver `BATALLA_PERDER`—, y la imagen no se dibuja. Por eso
-        # `ReturntoTitleScreen`, que es lo mismo sin la imagen, cae en el mismo
-        # opcode: el arranque de `release` es la pantalla de título. Lo pide
-        # el fin de la demo, en el fork del mapa 66 (`parches/manual/`).
+        # Es la misma que perder una pelea sin manejador —ver
+        # `BATALLA_PERDER`—: rom/src/game_over.s.
         return bytes([OP_GAME_OVER])
+    if cmd.code == RETURN_TO_TITLE:
+        # `ReturntoTitleScreen`: lo mismo sin la pantalla, o sea volver al
+        # arranque, que en `release` es la pantalla de título. Lo pide el fin
+        # de la demo, en el fork del mapa 66 (`parches/manual/`). Hasta el
+        # 2026-09-28 compartía el opcode con `GameOver`, cuando ninguno de
+        # los dos dibujaba nada.
+        return bytes([OP_RETURN_TO_TITLE])
     if cmd.code == CHANGE_CONDITION:
         if len(p) < 3 or p[2] != 1:
             raise NoSePuede("ChangeCondition que pone un estado")

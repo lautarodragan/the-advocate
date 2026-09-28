@@ -277,6 +277,37 @@ def cuadros_hasta_reiniciar(una, tope=900):
     return None
 
 
+def en_el_game_over(una):
+    """Si la pantalla de Game Over está a la vista, esperando la tecla: es
+    `GO_ESPERA`, que la ROM prende al terminar el fundido de entrada. Ver
+    rom/src/game_over.s."""
+    return una.consola.ram(en_la_wram(una.simbolos["GO_ESPERA"]), 1)[0] != 0
+
+
+def cuadros_hasta_el_game_over(una, tope=900):
+    """Cuántos cuadros de hardware pasan hasta que la pantalla de Game Over
+    espera la tecla, o `None`. Desde el 2026-09-28 perder no reinicia la ROM
+    hasta que se aprieta: mirar `vueltas` sola ya no alcanza."""
+    for n in range(tope):
+        if en_el_game_over(una):
+            return n
+        una.consola.correr(1)
+    return None
+
+
+def pasar_el_game_over(una, tope=900):
+    """Espera la pantalla de Game Over y la cierra con A: devuelve cuántos
+    cuadros tardó en reiniciarse después, o `None` si no se reinició. Si la
+    pantalla no llegó, es un error, no un `None`."""
+    assert cuadros_hasta_el_game_over(una, tope) is not None, (
+        "la pantalla de Game Over no llegó a esperar la tecla en %d cuadros"
+        % tope)
+    una.consola.apretar("a")
+    una.consola.correr(2)
+    una.consola.apretar()
+    return cuadros_hasta_reiniciar(una, tope)
+
+
 def con_encuentros(partida):
     """El mapa de `test-special` con encuentros al azar y el grupo de la
     intro, que los gana en un turno."""

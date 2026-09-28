@@ -116,6 +116,15 @@ ba_t_bgm:
     jsr batalla_bgm
     plb
     rtl
+; Y el paquete de audio de X, que es `batalla_audio_cargar`: lo usa la pantalla
+; de Game Over, que sube el suyo. Ver rom/src/game_over.s.
+ba_t_audio:
+    phb
+    phk
+    plb
+    jsr batalla_audio_cargar
+    plb
+    rtl
 ; Un cuadro de la sacudida de pantalla, que en RM2k es de `Game_Screen` y
 ; sigue corriendo en la pelea: un `ShakeScreen` de página de tropa la arranca.
 ba_t_sacudida:

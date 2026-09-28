@@ -1,38 +1,50 @@
 # Qué
 
-Un `EnemyEncounter` con `defeat_mode` 0, o un `GameOver`, manda en RM2k a
-`Scene_Gameover`: la imagen de Game Over del proyecto, su tema, y al apretar una
-tecla la pantalla de título.
+Un `EnemyEncounter` con `defeat_mode` 0 que se pierde, un encuentro al azar
+perdido, o un `GameOver`, mandan en RM2k a `Scene_Gameover`: la imagen de Game
+Over del proyecto, su tema, y al apretar una tecla la pantalla de título.
 
-La ROM hace la última parte y no las dos primeras: vuelve al arranque con un
-`jml reset` —ver `BATALLA_PERDER` en `tools/port/eventos.py` y
-`op_battle_destination` en `rom/src/interprete_tienda_y_pelea.s`—, o sea a la
-pantalla de título si el cartucho la lleva, con la partida guardada esperando
-en la SRAM.
+Desde el 2026-09-28 la ROM lo hace —ver `rom/src/game_over.s`—: la imagen que
+nombra el `System` del LDB, buscada en `GameOver/` del juego y después en la
+del RTP (`ABL_RTP_DIR`), el tema de Game Over del sistema, 80 cuadros de
+fundido de entrada y 80 de salida, y la pantalla de título. Hasta ese día
+volvía al arranque con un `jml reset`, sin imagen ni tema: era este archivo,
+con otro nombre.
 
-* **La imagen no se dibuja**: una de 320x240 pediría prestarle una capa al
-  cartel, ver `tasks/wishlist/sistema-de-imagenes.md`.
-* **El tema de Game Over no suena**: sería un tema más en la lista de todos los
-  cartuchos con pelea, y lo que se gana es el silencio de un segundo antes del
-  arranque.
+Lo que queda distinto:
+
+* **El tema de Game Over no suena en el mensaje de la derrota.**
+  `Scene_Battle_Rpg2k::ProcessSceneActionDefeat` lo prende antes de mostrar
+  "defeat", **tenga o no la pelea manejador de derrota**; la ROM sigue con el
+  tema de la pelea hasta la pantalla. Prenderlo ahí pediría su tema en el
+  paquete de la pelea, que ya está lleno —ver `PAQUETE_BATALLA` en
+  tools/port/eventos.py—.
+* **La imagen se escala a 256x224**, igual que la de título: el aspecto no es
+  el del original. Ver `titulo.py`.
+* **START también la cierra**, además de A, como en la pantalla de título:
+  en una consola la pantalla se pasa con START.
+* **El mapa se funde en 32 cuadros y no en 35**: dos por nivel de brillo, que
+  son dieciséis.
 
 # Medido
 
-Son **15 páginas del juego** con `defeat_mode` 0, entre ellas las tres del jefe
-de los Rat Tracks; todas son peleas normales, ninguna se tiene que perder para
-que la escena siga. Lo cubre `pruebas/rpgmaker/test_game_over.py`.
+La imagen: `System.gameover_name` en el ABL es `GameOver`, y el juego trae en
+`GameOver/` un solo archivo, `ablgameover.png`, **que no nombra nadie**. Así
+que RM2k muestra el `GameOver.png` del RTP: comprobado en el original con
+Wine el 2026-09-28, con un mapa de arranque que llama a `GameOver` —la
+captura del original se ve igual que la golden `game-over`, salvo el
+escalado—.
 
-El reinicio cuesta los casi dos segundos del arranque, porque vuelve a subir el
-driver y las muestras al SPC700, y no es prolijidad: el `jml reset` no resetea
-al SPC700, así que sin volver a arrancarlo del todo el juego se colgaba.
+El tema, `GameOver3`, también es del RTP: desde ese día la música se busca en
+el juego y después en el RTP, como en RM2k, y las pistas de MSU-1 de los temas
+del RTP que nombra el `System` van numeradas detrás de las del juego: ver
+`numeros_de_pista` en tools/audio/snes_music.py.
 
-# Cómo se ve hoy
-
-Perder lleva al título. Se pierde el progreso desde el último guardado, que es
-lo mismo que en RM2k con "Continue"; lo que no hay es seguir desde el título
-con "New Game" sabiendo que perdiste.
+Lo cubren `pruebas/rpgmaker/test_game_over.py` —los tres caminos, la golden,
+la tecla y el título— y `test_game_over` en `test_cores.py`.
 
 # Cuándo deja de alcanzar
 
-Un juego donde perder sea parte de la trama: una pelea que se tiene que perder
-para que la escena siga.
+Un juego donde perder sea parte de la trama con el tema de Game Over sonando
+en la derrota y la historia siguiendo por el manejador: ahí el mensaje de la
+derrota suena con el tema de la pelea.

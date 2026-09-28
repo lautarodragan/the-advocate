@@ -497,3 +497,10 @@ code = 0x33
 args = [
   { name = "member", type = "byte" },
 ]
+
+# `ReturntoTitleScreen`: back to the title, with no Game Over screen. Like
+# `OP_GAME_OVER`, it waits while a message is open.
+[[opcode]]
+name = "OP_RETURN_TO_TITLE"
+code = 0x34
+args = []

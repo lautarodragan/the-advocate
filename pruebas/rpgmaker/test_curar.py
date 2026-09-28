@@ -20,8 +20,8 @@ ningún evento que toque el grupo, y el control necesita las dos cosas.
 """
 
 from datos import maximos
-from batalla import (DESPUES_DE_PERDER, cuadros_hasta_reiniciar, grupo_de,
-                     sin_hp)
+from batalla import (DESPUES_DE_PERDER, cuadros_hasta_el_game_over,
+                     cuadros_hasta_reiniciar, grupo_de, sin_hp)
 
 
 def perdida_y_curada(partida):
@@ -64,7 +64,9 @@ def test_full_heal_del_grupo_no_cura_a_los_de_afuera(partida):
 
 def test_el_encuentro_de_despues_no_reinicia(partida):
     """El control del bug entero: con el grupo curado, un encuentro al azar se
-    abre y se pelea en vez de darse por perdido y volver al título.
+    abre y se pelea en vez de darse por perdido y volver al título —desde el
+    2026-09-28, pasando por la pantalla de Game Over, que no reinicia hasta
+    que se aprieta: por eso se miran las dos cosas—.
 
     `ENC_PIDE` es lo que `encuentro_paso` prende cuando sale uno; se lo prende
     a mano para no depender de caminar ni de un tiro de dado. Visto en rojo
@@ -72,9 +74,10 @@ def test_el_encuentro_de_despues_no_reinicia(partida):
     """
     una = perdida_y_curada(partida)
     una.consola.escribir_ram(una.simbolos["ENC_PIDE"], [1])
-    assert cuadros_hasta_reiniciar(una, tope=300) is None, (
+    assert cuadros_hasta_el_game_over(una, tope=300) is None, (
         "el grupo perdió una pelea, el manejador llamó a FullHeal, y el "
-        "encuentro siguiente igual volvió al título: los HP no se curaron")
+        "encuentro siguiente igual fue Game Over: los HP no se curaron")
+    assert cuadros_hasta_reiniciar(una, tope=60) is None
     assert una.byte("menu_abierto"), (
         "el encuentro no abrió la pelea: sin eso, que no se reinicie no dice "
         "nada")

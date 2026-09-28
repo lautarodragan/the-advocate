@@ -58,6 +58,11 @@ del frontend.
                   elección de los enemigos, que pesa sus acciones en
                   `BA_HAB_LISTA`, y el SP del arma en `BA_ARMA_SP`, que
                   `ba_armar` escribe al empezar cada pelea y el reset no toca.
+    game-over     la pantalla de Game Over después de perder una pelea: el
+                  destino de la derrota que anota `game_over_anotar`, el
+                  flujo que se descomprime en el banco $7F —el mismo que
+                  bsnes enciende con basura— y los registros del PPU que la
+                  pelea dejó puestos.
 
 ## El tercer core, mesen-s, queda afuera, y no por lo que parecía
 
@@ -281,3 +286,18 @@ def test_la_pelea_de_la_planta():
         pelea.esperar("ORDEN")
         imagenes.append(una.imagen())
     iguales("planta", *imagenes)
+
+
+def test_game_over():
+    """La pantalla de Game Over, esperando la tecla, en los dos cores: perder
+    la pelea de `pelea-82-game-over` sin haber peleado. Ver
+    `test_game_over.py`."""
+    from batalla import cuadros_hasta_el_game_over, sin_hp
+    imagenes = []
+    for nucleo in (SNES9X, BSNES):
+        una = sin_hp(partida("pelea-82-game-over", nucleo=nucleo))
+        assert cuadros_hasta_el_game_over(una, 600) is not None, (
+            "la pantalla de Game Over no llegó en %s" % nucleo)
+        una.consola.correr(2)
+        imagenes.append(una.imagen())
+    iguales("game-over", *imagenes)

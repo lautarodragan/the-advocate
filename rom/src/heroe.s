@@ -80,19 +80,14 @@ menu_sin_pagina:
     jsl f:encuentro_probar
     cmp #0                      ; el `plx` de allá dejó sus propias banderas
     beq sin_encuentro
-    jsr pelea_arrancar
     ; Y perderla es Game Over, igual que una pelea de página sin manejador de
     ; derrota: un encuentro al azar **nunca** los trae, porque no hay página
     ; que los emita. Sin esto la derrota devolvía el control al mapa con todo
     ; el grupo en cero HP, y de ahí en más cada pelea se perdía sola antes de
-    ; abrirse —`batalla_correr` contesta derrota con nadie en pie—. Ver
-    ; `op_battle_destination`, que hace lo mismo con `BATALLA_PERDER`.
-    lda f:BAT_LARGO + BA_RESULT
-    cmp #BA_DERROTA
-    bne sin_derrota
-    jml f:reset
-sin_derrota:
-    rts
+    ; abrirse —`batalla_correr` contesta derrota con nadie en pie—. Lo cobra
+    ; `pelea_arrancar`: ver rom/src/game_over.s.
+    jsl f:game_over_siempre
+    jmp pelea_arrancar
 sin_encuentro:
     jsr acceso_leer
     bpl menu_sin_pedido         ; el bit 7 es el pedido

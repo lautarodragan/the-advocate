@@ -94,6 +94,7 @@ op_shop_done:
 .a8
     lda #0
     sta f:BAT_LARGO + ESC_ORIGEN ; el fondo, el de la tropa y no el del mapa
+    jsl f:game_over_anotar      ; si perder es Game Over: ver game_over.s
     phy                         ; el cursor: los destinos se leen al volver
     jsr pelea_arrancar
     ply
@@ -119,25 +120,10 @@ op_shop_done:
     tay
     lda [cod_ptr], y            ; el destino, absoluto dentro de la página
     tay
-    ; `BATALLA_PERDER`, o sea $FFFF: la pelea no traía manejador de derrota
-    ; porque en RM2k perderla es `Scene_Gameover`. Es un destino imposible —los
-    ; tres son absolutos adentro de la página y ninguna llega a 64 KB— así que
-    ; no hace falta un opcode nuevo ni un byte más en las otras peleas. El `iny`
-    ; es el `cmp #$FFFF` barato: con A de 16 bits compararlo costaría tres
-    ; bytes y en el banco 0 no sobran.
-    ;
-    ; **Game Over es volver al arranque**, que es la pantalla de título si esta
-    ; ROM la lleva, con la partida guardada esperando en la SRAM: es lo que
-    ; `Scene_Gameover` hace cuando el jugador aprieta, menos la imagen, que este
-    ; port no dibuja —ver
-    ; workflow/divergencias/game-over-sin-imagen-ni-tema.md—. Se va con `jml` y
-    ; no devolviendo el control porque no hay a dónde volver: la página no tiene
-    ; rama de derrota y `reset` repone la pila él mismo.
-    iny
-    bne sigue_la_pagina
-    jml f:reset
-sigue_la_pagina:
-    dey
+    ; `BATALLA_PERDER`, o sea $FFFF —la pelea no traía manejador de derrota,
+    ; porque en RM2k perderla es `Scene_Gameover`— no llega nunca acá: lo
+    ; anota `game_over_anotar` antes de pelear, y `pelea_arrancar` se va a la
+    ; pantalla de Game Over sin volver. Ver rom/src/game_over.s.
     sep #$20
 .a8
     jmp correr_codigo::otro
@@ -236,6 +222,9 @@ anotado:
     phk
     plb                         ; el banco 0, por lo mismo que al entrar
     jsl f:pelea_fundir_saliendo ; la pelea hasta negro, que tapa la carga
+    ; Y si se perdió y perder es Game Over, de acá no se vuelve: la pantalla
+    ; aparece desde el negro de la pelea, sin pasar por el mapa, como en RM2k.
+    jsl f:game_over_si_perdio
     ldx mapa_actual             ; y el audio del mapa vuelve al SPC700
     jsr batalla_audio_cargar
     lda f:BAT_LARGO + BA_TEMA_ANT
