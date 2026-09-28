@@ -830,6 +830,16 @@ BA_HAB_I   = $7E7964            ; por qué combatiente va una habilidad de a
 ; demás; dura lo que dura esa rutina.
 NPC_FILA_APARTE = $7E7980           ; NPC_STRIDE bytes
 
+; --- la pantalla de Game Over --------------------------------------------------
+;
+; $7E7A30 a $7E7A3F, reservado el 2026-09-28. Ver rom/src/game_over.s.
+GO_PIERDE  = $7E7A30            ; palabra: el destino de la derrota de la pelea
+                                ; que se está peleando; $FFFF es Game Over
+GO_ESPERA  = $7E7A32            ; 1 mientras la pantalla espera la tecla: es lo
+                                ; que mira el arnés, que no tiene otro reloj
+GO_NIVEL   = $7E7A33            ; el brillo del fundido
+GO_CUADROS = $7E7A34            ; cuántos cuadros dura cada nivel del fundido
+
 ; --- la grilla del mapa, en la WRAM -----------------------------------------
 ;
 ; **$7E8000 a $7EFFFF es de la grilla**, y sigue en $7F8000 si pasa de 32 KB:

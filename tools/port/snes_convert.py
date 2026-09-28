@@ -74,6 +74,7 @@ from port import imagen
 from port import asignador
 from port import parches as parches_mod
 from port import titulo as titulo_mod
+from port import pantalla_completa
 from port import pantallas as pantallas_mod
 from port import batalla as batalla_mod
 from port import experiencia as X
@@ -4503,7 +4504,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
          ventana=None, titulo=None, ranuras=None, cartel=None,
          animaciones=None, tropas=(), audio_batalla=None, escenas=None,
          encuentros=None, paginas_tropa=None, comprimidos=None,
-         hp_de_enemigos=False):
+         hp_de_enemigos=False, game_over=None):
     """El .inc que se ensambla junto con main.s.
 
     `hp_de_enemigos` es `--hp-de-enemigos`: si la pelea dibuja los HP de los
@@ -4512,6 +4513,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
     `comprimidos` es lo de `comprimir_los_bloques`; si falta se comprime acá.
 
     `titulo` es la pantalla de título —la imagen y su menú— y puede faltar;
+    `game_over`, la de Game Over, también: es lo de
+    `pantalla_completa.comprimida`.
     `ranuras` es la pantalla de ranuras y **va siempre**: la abre el save point
     desde adentro del juego, tenga la ROM título o no. Ver `pantalla_ranuras`
     en titulo.py.
@@ -5226,6 +5229,35 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                               if fila < titulo_mod.FILAS else 0)
                     plano += entry(indice, False, False).to_bytes(2, "little")
             handle.write(bloque("titulo_celdas", bytes(plano)) + "\n")
+
+        # --- la pantalla de Game Over ---
+        #
+        # Un flujo LZ2 con los tiles, el tilemap y los colores, y su fila en
+        # `pantallas_tabla`, que es lo que lee `pantalla_subir`: ver
+        # tools/port/pantalla_completa.py. Sin imagen, GAME_OVER_TILES en 0
+        # y la ROM vuelve al título sin pantalla, como hasta el 2026-09-28.
+        handle.write("\n; --- la pantalla de Game Over ---\n")
+        if game_over is None:
+            handle.write("GAME_OVER_TILES = 0\n"
+                         + bloque("pantallas_tabla", b"\x00") + "\n")
+        else:
+            handle.write(
+                "GAME_OVER_TILES = %d\n"
+                "; La fila de cada pantalla en `pantallas_tabla`: dónde está su\n"
+                "; flujo, cuántos bytes de tiles y de colores trae, y desde qué\n"
+                "; color de CGRAM van. Ver `pantalla_subir`.\n"
+                "PANTALLA_GAME_OVER = 0\n"
+                "PANTALLA_FILA = 8\n"
+                % game_over["tiles"])
+            handle.write(".bloque %d\npantallas_tabla:\n"
+                         "    .word .loword(game_over_lz2)\n"
+                         "    .byte ^game_over_lz2\n"
+                         "    .word %d, %d\n"
+                         "    .byte %d\n\n"
+                         % (8, game_over["tiles"] * 64,
+                            game_over["colores"] * 2,
+                            game_over["primer_color"]))
+            handle.write(bloque("game_over_lz2", game_over["flujo"]) + "\n")
 
         # La pantalla de ranuras, que **va en toda ROM** y no sólo en las que
         # llevan título: la abre el save point desde adentro del juego. Hasta
@@ -7515,6 +7547,21 @@ def main():
         print("    menú (%s): %d tiles de 4bpp (%d B) + %d colores, %d tilemap(s)"
               % (", ".join(repr(t) for t in textos), len(menu_tiles),
                  len(menu_tiles) * 32, len(menu_paleta), len(menu_mapas)))
+    # La pantalla de Game Over: la imagen que nombra el `System` del LDB, en
+    # `GameOver/` del juego o del RTP —como la busca RM2k—, comprimida. Va en
+    # toda ROM que la encuentre: cualquier cartucho puede perder una pelea o
+    # correr un `GameOver`. Ver tools/port/pantalla_completa.py.
+    game_over_datos = None
+    ruta = find_resource([args.game_dir, RTP_DIR], "GameOver",
+                         renderer.database.gameover_name)
+    if renderer.database.gameover_name and ruta:
+        from PIL import Image
+        game_over_datos = pantalla_completa.comprimida(Image.open(ruta))
+        print("  pantalla de Game Over %r: %d tiles de 8bpp + %d colores, "
+              "%d B en un flujo LZ2 de %d B"
+              % (os.path.basename(ruta), game_over_datos["tiles"],
+                 game_over_datos["colores"], game_over_datos["crudo"],
+                 len(game_over_datos["flujo"])))
     # Las animaciones de batalla que el bytecode ya emitido muestra: sus
     # cuadros prerenderizados van al cartucho y la ROM los sube por DMA.
     animaciones = animaciones_de_la_rom(mapas, renderer)
@@ -7607,7 +7654,8 @@ def main():
                    ventana_datos, titulo_datos, ranuras_datos,
                    args.imagenes.info, animaciones, tropas.ids, audio_batalla,
                    escenas, encuentros, paginas_tropa, comprimidos,
-                   hp_de_enemigos=args.hp_de_enemigos)
+                   hp_de_enemigos=args.hp_de_enemigos,
+                   game_over=game_over_datos)
     # Qué entradas de su paleta usan los dígitos del cronómetro, un bit por
     # entrada y una palabra por mapa, en el orden de `mapa_tabla`.
     # `subir_timer_pal` vuelve a subir sin teñir **ésas** y no la paleta
@@ -7701,10 +7749,12 @@ def main():
     # snes_music.py.
     musica = os.path.join(os.path.dirname(os.path.abspath(args.output)),
                           "musicdata.inc")
-    pedidos, arranque, tema_titulo, tema_de_mapa = temas_de_la_rom(
-        mapas[args.inicial]["id"], temas, args.game_dir,
-        renderer.database.title_music if not args.sin_titulo else None,
-        [m["id"] for m in mapas])
+    pedidos, arranque, tema_titulo, tema_de_mapa, tema_game_over = (
+        temas_de_la_rom(
+            mapas[args.inicial]["id"], temas, args.game_dir,
+            renderer.database.title_music if not args.sin_titulo else None,
+            [m["id"] for m in mapas],
+            renderer.database.gameover_music if game_over_datos else None))
     # Los efectos, en el orden en que los piden las páginas compiladas: los
     # mapas se compilan en el orden de la ROM, así que los del mapa donde
     # arranca van primero —en la demo, la lluvia y el trueno de la apertura—.
@@ -7766,6 +7816,19 @@ def main():
         apartes.append([])
     nombres_de_paquete = ([str(m["id"]) for m in mapas]
                           + (["pelea"] if pide else []))
+    # Y el de la pantalla de Game Over, último: su tema solo y ningún efecto.
+    # La ROM lo sube con la pantalla en negro, antes del fundido de entrada
+    # —ver `game_over_negro` en rom/src/game_over.s—, y con un paquete propio
+    # sube sólo eso: llegar con `tema_asegurar` rearmaría el paquete del mapa
+    # entero detrás, que es un segundo de negro más. Para el reparto es un
+    # paquete de un tema, que no le baja la tasa a nadie: sus muestras entran
+    # solas en la ARAM.
+    paquete_game_over = 0xFFFF
+    if tema_game_over != 0xFF:
+        paquete_game_over = len(paquetes)
+        paquetes.append(([tema_game_over], [], []))
+        apartes.append([])
+        nombres_de_paquete.append("gameover")
     por_nombre = [(nombre, suyos, suyas, salida, aparte)
                   for nombre, (suyos, suyas, salida), aparte
                   in zip(nombres_de_paquete, paquetes, apartes)]
@@ -7804,7 +7867,7 @@ def main():
     efecto_lugar = [srcn - directorio[0] for srcn, _e in sorted(
         efectos.values(), key=lambda v: efecto_id[v[1].name])]
     if pide:
-        assert len(paquetes) == len(mapas) + 1, (
+        assert nombres_de_paquete[len(mapas)] == "pelea", (
             "el paquete de la pelea tiene que quedar en el índice que emitió "
             "`emit` como PAQUETE_BATALLA")
         print("  paquete de audio de la pelea: %d tema(s), %d efecto(s)"
@@ -7831,7 +7894,8 @@ def main():
     snes_music.emit(musica, hechos, driver, muestras, arranque, tema_titulo,
                     snes_music.tabla_de_sonidos(temas.sonidos, banco),
                     [p + (aparte,) for p, aparte in zip(paquetes, apartes)],
-                    tema_de_mapa, directorio, efecto_lugar)
+                    tema_de_mapa, directorio, efecto_lugar,
+                    game_over=(tema_game_over, paquete_game_over))
     # El `.msu`: los fondos de calidad y los efectos de calidad, para leerlos
     # por el MSU-1 cuando está. Se escribe siempre, aunque el cartucho no
     # lleve ni fondos ni efectos, porque es también el archivo que enciende el
@@ -8164,7 +8228,8 @@ def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,
             if t not in del_paquete[i] and t != tema_de_mapa[i]]
 
 
-def temas_de_la_rom(map_id, temas, game_dir, titulo=None, map_ids=()):
+def temas_de_la_rom(map_id, temas, game_dir, titulo=None, map_ids=(),
+                    game_over=None):
     """Qué temas pide el cartucho, cuál suena al arrancar y cuál prende cada
     mapa al entrar.
 
@@ -8193,6 +8258,10 @@ def temas_de_la_rom(map_id, temas, game_dir, titulo=None, map_ids=()):
     # de comandos: es un dato del juego, no una elección nuestra.
     if titulo:
         temas.indice(titulo)
+    # Y el de la pantalla de Game Over, por lo mismo: `gameover_music`, que
+    # en el ABL es `GameOver3` y sale del RTP. Ver `PAQUETE_GAME_OVER`.
+    if game_over:
+        temas.indice(game_over)
     de_cada_mapa = []
     for nombre in snes_music.temas_de_los_mapas(map_ids, game_dir):
         indice = temas.indice(nombre) if nombre else 0xFF
@@ -8202,7 +8271,8 @@ def temas_de_la_rom(map_id, temas, game_dir, titulo=None, map_ids=()):
         de_cada_mapa.append(indice)
     nombres = list(temas.nombres)
     return (nombres, (nombres.index(propio) if propio else 0xFF),
-            (nombres.index(titulo) if titulo else 0xFF), de_cada_mapa)
+            (nombres.index(titulo) if titulo else 0xFF), de_cada_mapa,
+            (nombres.index(game_over) if game_over else 0xFF))
 
 
 def inicio_del_mapa(renderer, map_id, passable, width, height, ocupadas=()):

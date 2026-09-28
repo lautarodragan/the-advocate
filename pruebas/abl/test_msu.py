@@ -22,7 +22,7 @@ import pytest
 
 from audio import snes_music
 from emulador import retro
-from render.render_map import GAME_DIR, find_resource
+from render.render_map import GAME_DIR
 
 import tanda
 from consola import (EMPEZAR, NUCLEO, SEGUIR, TITULO_AIRE, Partida,
@@ -91,10 +91,9 @@ def test_todo_tema_tiene_su_pista():
     hay = pistas_de(base)
     sin, mal, faltan = [], [], []
     for i, tema in enumerate(temas):
-        # "(OFF)", o un nombre que no está en Music/: no hay de dónde sacar
-        # la pista, y el tema no suena ni por el SPC700.
-        if not find_resource([GAME_DIR], "Music", tema["nombre"],
-                             snes_music.MUSICA_DE_PISTA):
+        # "(OFF)", o un nombre que no está ni en Music/ ni en el del RTP: no
+        # hay de dónde sacar la pista, y el tema no suena ni por el SPC700.
+        if not snes_music.ruta_del_tema(tema["nombre"], GAME_DIR):
             continue
         numero = tema.get("pista")
         if not numero:

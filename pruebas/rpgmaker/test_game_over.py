@@ -1,4 +1,4 @@
-"""Perder una pelea sin manejador de derrota vuelve al arranque.
+"""Perder una pelea sin manejador de derrota es la pantalla de Game Over.
 
 En RM2k un `EnemyEncounter` con `defeat_mode` 0 no trae bloque de manejadores:
 perder no es una rama de la página sino `Scene_Gameover`, o sea la imagen de
@@ -7,14 +7,15 @@ y entre ellas las tres del `EV0006` del mapa 26, que es el jefe de los Rat
 Tracks.
 
 Compilan con el destino de la derrota puesto en `eventos.BATALLA_PERDER`
-—$FFFF, un destino imposible adentro de una página— y la ROM lo resuelve en
-`op_battle` con un `jml reset`. **La imagen no se dibuja**; ver
-`workflow/divergencias/game-over-sin-imagen-ni-tema.md`.
+—$FFFF, un destino imposible adentro de una página—; la ROM lo anota antes de
+pelear y, si se pierde, muestra la pantalla y al apretar A se va con un `jml
+reset`. Ver rom/src/game_over.s.
 
-Esto va acá y no en la tanda de pixeles porque lo que importa es que la ROM
-se reinicie y vuelva a correr, y eso es estado, no un cuadro. Sin esta prueba,
-el `jml reset` sería exactamente lo que AGENTS.md llama "un camino que ninguna
-prueba ejecuta".
+Lo que se ve se mira contra una golden, `game-over`, que es la misma para los
+tres caminos —la pelea de página, el encuentro al azar y el comando—; lo
+demás es estado: que la ROM espere la tecla, se reinicie y vuelva a correr.
+Sin estas pruebas, el `jml reset` sería exactamente lo que AGENTS.md llama "un
+camino que ninguna prueba ejecuta".
 
 **Cómo se pierde sin pelear**: con todo el grupo en cero HP, `batalla_correr`
 contesta derrota antes de abrir la pantalla —el `ba_actor_siguiente` que
@@ -30,8 +31,11 @@ cuelgue, una pila que se desborde— pasaría por verde.
 from port import eventos
 
 from consola import EMPEZAR
-from batalla import con_encuentros, cuadros_hasta_reiniciar, sin_hp
+from batalla import (con_encuentros, cuadros_hasta_el_game_over,
+                     cuadros_hasta_reiniciar, en_el_game_over,
+                     pasar_el_game_over, sin_hp)
 from datos import pagina_de
+from tanda import golden
 
 # Las páginas de prueba `pelea-82` y `pelea-82-game-over` pelean contra la
 # tropa del droide del mapa 2, que es la que ya viaja en los cartuchos de
@@ -49,6 +53,24 @@ RAT_TRACKS_B1, COFRE_TRAMPA = 21, 20
 # para volver al lazo. El arranque son BOOT_CUADROS y encima la subida al
 # SPC700, que no se cuenta en cuadros: el doble es paciencia de sobra.
 VOLVER_TOPE = 600
+# Los cuadros de hardware que se le dan a la pantalla de Game Over para llegar
+# a esperar la tecla: el fundido de la pelea o del mapa, subir su tema y su
+# imagen, y los 80 del fundido de entrada. Desde la pelea es lo más largo, y
+# con esto sobra más del doble.
+GAME_OVER_TOPE = 600
+# Y los que se le dan al título después del reinicio para estar quieto, como
+# en `test_titulo_golden.py`.
+TITULO_QUIETO = 170
+
+
+def la_pantalla(una):
+    """La pantalla de Game Over esperando la tecla, contra su golden. Es la
+    misma para los tres caminos que llegan a ella."""
+    assert cuadros_hasta_el_game_over(una, GAME_OVER_TOPE) is not None, (
+        "la pantalla de Game Over no llegó a esperar la tecla en %d cuadros"
+        % GAME_OVER_TOPE)
+    una.consola.correr(2)
+    golden("game-over", una.imagen())
 
 
 def pasar_el_arranque(una):
@@ -139,26 +161,46 @@ def test_la_derrota_del_jefe_apunta_al_game_over():
 
 # --- y lo que la consola hace con eso --------------------------------------
 
+def test_perder_sin_manejador_muestra_el_game_over(partida):
+    """`game-over`: la pantalla, y hasta que no se aprieta no pasa nada."""
+    una = partida(caso="pelea-82-game-over")
+    sin_hp(una)
+    la_pantalla(una)
+    # Y su tema, por el SPC700 —la tanda corre sin MSU-1—, con las muestras
+    # arriba: el paquete de la pantalla, que se sube desde el de la pelea.
+    tema = una.simbolos["TEMA_GAME_OVER"]
+    assert una.byte("tema_actual") == tema and not una.byte("music_apagada"), (
+        "la pantalla de Game Over no prendió su tema")
+    faltan = set(una.muestras_del_tema(tema)) - una.muestras_en_la_aram()
+    assert not faltan, (
+        "el tema de Game Over suena sin las muestras %s en la ARAM"
+        % sorted(faltan))
+    assert cuadros_hasta_reiniciar(una, tope=300) is None, (
+        "la pantalla de Game Over se fue sola, sin que nadie apretara")
+    assert en_el_game_over(una)
+
+
 def test_perder_sin_manejador_vuelve_al_arranque(partida):
     una = partida(caso="pelea-82-game-over")
     sin_hp(una)
-    cuando = cuadros_hasta_reiniciar(una)
+    cuando = pasar_el_game_over(una, GAME_OVER_TOPE)
     assert cuando is not None, (
-        "la ROM perdió la pelea y siguió como si nada: el destino "
-        "BATALLA_PERDER tendría que haberla mandado a `reset`")
+        "la ROM mostró el Game Over, se apretó A, y no se reinició: el "
+        "fundido de salida no llega a `reset`")
     # Y lo que hay del otro lado del reinicio es el arranque de siempre: la
     # cuenta de cuadros vuelve a empezar y el mapa es el primero de la tabla.
     pasar_el_arranque(una)
     assert una.palabra("mapa_actual") == 0
 
 
-def test_perder_con_manejador_no_reinicia(partida):
+def test_perder_con_manejador_no_es_game_over(partida):
     """El control. Misma pelea perdida, con la derrota apuntando a la página."""
     una = partida(caso="pelea-82")
     sin_hp(una)
-    assert cuadros_hasta_reiniciar(una, tope=300) is None, (
-        "la ROM se reinició con una pelea que sí tiene a dónde volver: "
-        "entonces el reinicio del otro caso no lo causa BATALLA_PERDER")
+    assert cuadros_hasta_el_game_over(una, tope=300) is None, (
+        "la ROM mostró el Game Over con una pelea que sí tiene a dónde "
+        "volver: entonces el del otro caso no lo causa BATALLA_PERDER")
+    assert cuadros_hasta_reiniciar(una, tope=60) is None
 
 
 def test_el_cofre_trampa_compila():
@@ -192,7 +234,7 @@ def test_el_game_over_vuelve_al_juego(partida):
     """
     una = partida(caso="pelea-82-game-over")
     sin_hp(una)
-    assert cuadros_hasta_reiniciar(una) is not None, (
+    assert pasar_el_game_over(una, GAME_OVER_TOPE) is not None, (
         "la ROM no se reinició: sin Game Over esto no prueba nada")
     assert cuadros_hasta_volver(una) is not None, (
         "la ROM se reinició y no volvió a correr en %d cuadros: el arranque "
@@ -202,11 +244,11 @@ def test_el_game_over_vuelve_al_juego(partida):
 
 # --- y el otro camino a una pelea: el encuentro al azar ---------------------
 #
-# En una página, `op_battle` mira `BA_RESULT` y salta al destino, y
-# `BATALLA_PERDER` lo manda a `reset`. El encuentro al azar arranca la pelea
+# En una página, `op_battle` anota el destino de la derrota y `BATALLA_PERDER`
+# la manda a la pantalla de Game Over. El encuentro al azar arranca la pelea
 # **sin bytecode** —`pelea_arrancar` desde `move_hero`—, así que no hay
-# `op_battle` que mire el resultado: si nadie más lo mira, perder devuelve el
-# control al mapa.
+# `op_battle` que anote nada: si nadie más lo hace, perder devuelve el control
+# al mapa.
 #
 # Lo que eso deja puesto es lo que taro reportó jugando: el grupo vuelve al
 # mapa con todos en cero HP, `modo_fin` los guarda así en `FAR_HP`, y de ahí en
@@ -231,7 +273,8 @@ DIRECCIONES = ("up", "down", "left", "right")
 
 
 def caminar(una, cuadros, tope_sin_reinicio=False):
-    """Camina con el pad en cuadros de hardware y dice en cuál se reinició.
+    """Camina con el pad en cuadros de hardware y dice en cuál llegó al Game
+    Over —o se reinició, que sin la pantalla era lo mismo—.
 
     No se puede caminar por ticks: la pelea corre su propio lazo y `vueltas`
     no avanza mientras dura, así que `_un_tick` se quedaría esperando. Se
@@ -243,7 +286,7 @@ def caminar(una, cuadros, tope_sin_reinicio=False):
         una.consola.apretar(DIRECCIONES[(n // 40) % 4])
         una.consola.correr(1)
         ahora = una.palabra("vueltas")
-        if ahora + 5 < alto:
+        if ahora + 5 < alto or en_el_game_over(una):
             una.consola.apretar()
             return n
         alto = max(alto, ahora)
@@ -252,7 +295,8 @@ def caminar(una, cuadros, tope_sin_reinicio=False):
 
 
 def test_perder_un_encuentro_al_azar_es_game_over(partida):
-    """Con el grupo caído, el primer encuentro tiene que volver al arranque."""
+    """Con el grupo caído, el primer encuentro tiene que ser la pantalla de
+    Game Over, y de ahí el arranque."""
     una = con_encuentros(partida)
     sin_hp(una)
     cuando = caminar(una, 900)
@@ -260,6 +304,8 @@ def test_perder_un_encuentro_al_azar_es_game_over(partida):
         "se perdió un encuentro al azar y la ROM siguió en el mapa: la "
         "derrota de una pelea que nadie arrancó desde una página también "
         "tiene que ser Game Over")
+    la_pantalla(una)
+    assert pasar_el_game_over(una, GAME_OVER_TOPE) is not None
     pasar_el_arranque(una)
     assert una.palabra("mapa_actual") == 0
 
@@ -277,15 +323,25 @@ def test_ganar_encuentros_al_azar_no_reinicia(partida):
 
 # --- y el `GameOver` de una página -----------------------------------------
 #
-# Compila a OP_GAME_OVER, que es el mismo `jml reset` que
-# el destino `BATALLA_PERDER`. La página de prueba `game-over` espera 18 ticks
-# y lo llama; el control es `pelea-82`, que tampoco reinicia —ver
-# `test_perder_con_manejador_no_reinicia`— y el de `nada`, abajo.
+# Compila a OP_GAME_OVER, que lleva a la misma pantalla que el destino
+# `BATALLA_PERDER`, fundiendo antes el mapa. La página de prueba `game-over`
+# espera 18 ticks y lo llama; el control es `pelea-82`, que tampoco llega —ver
+# `test_perder_con_manejador_no_es_game_over`— y el de `curar-sumar`, abajo.
 
-def test_game_over_vuelve_al_arranque(partida):
+def test_game_over_muestra_la_pantalla(partida):
+    """`game-over`, desde el comando: la misma golden que perdiendo."""
+    la_pantalla(partida(caso="game-over"))
+
+
+def test_game_over_vuelve_al_titulo(partida):
+    """Y al apretar, la pantalla de título, igual que al encender: la golden
+    `titulo`. `release` la lleva, así que del otro lado del reinicio el juego
+    no corre hasta que alguien elige."""
     una = partida(caso="game-over")
-    assert cuadros_hasta_reiniciar(una) is not None, (
-        "la página llamó a GameOver y la ROM siguió en el mapa")
+    assert pasar_el_game_over(una, GAME_OVER_TOPE) is not None, (
+        "la página llamó a GameOver, se apretó A, y la ROM no se reinició")
+    una.consola.correr(TITULO_QUIETO)
+    golden("titulo", una.imagen())
     assert cuadros_hasta_volver(una) is not None, (
         "después del GameOver el arranque no volvió a correr en %d cuadros"
         % VOLVER_TOPE)
@@ -295,4 +351,27 @@ def test_game_over_vuelve_al_arranque(partida):
 def test_sin_game_over_no_reinicia(partida):
     """El control: el mismo mapa y la misma espera, sin el comando."""
     una = partida(caso="curar-sumar")
-    assert cuadros_hasta_reiniciar(una, tope=300) is None
+    assert cuadros_hasta_el_game_over(una, tope=300) is None
+    assert cuadros_hasta_reiniciar(una, tope=60) is None
+
+
+# --- `ReturntoTitleScreen` ---------------------------------------------------
+#
+# Hasta el 2026-09-28 compartía opcode con `GameOver`, cuando ninguno de los
+# dos dibujaba nada. Ahora es `OP_RETURN_TO_TITLE`, y tiene que seguir yendo
+# derecho al título: sin la pantalla de Game Over.
+
+def test_volver_al_titulo_no_pasa_por_el_game_over(partida):
+    una = partida(caso="volver-al-titulo")
+    visto = False
+    for _ in range(300):
+        visto = visto or en_el_game_over(una)
+        antes = una.palabra("vueltas")
+        una.consola.correr(1)
+        if una.palabra("vueltas") < antes:
+            break
+    else:
+        raise AssertionError("la página llamó a ReturntoTitleScreen y la ROM "
+                             "siguió en el mapa")
+    assert not visto, "ReturntoTitleScreen pasó por la pantalla de Game Over"
+    assert cuadros_hasta_volver(una) is not None

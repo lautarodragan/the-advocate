@@ -97,20 +97,21 @@ def _quince(imagen):
     return [(r >> 3, g >> 3, b >> 3) for r, g, b in chica.get_flattened_data()]
 
 
-def convertir(imagen):
-    """La imagen de título como (tiles, paleta, tilemap).
+def convertir(imagen, primer_color=MENU_CGRAM, tope=COLORES):
+    """Una imagen de pantalla completa como (tiles, paleta, tilemap).
 
     `tiles` son los tiles únicos de 8 bits por pixel; `paleta` sus colores, que
-    van en CGRAM **a partir de `MENU_CGRAM`** porque las de abajo son del menú;
-    `tilemap` las 32x28 entradas, en el tilemap de 32x32 que el PPU espera.
+    van en CGRAM **a partir de `primer_color`** —en el título, `MENU_CGRAM`,
+    porque las de abajo son del menú—; `tilemap` las 32x28 entradas, en el
+    tilemap de 32x32 que el PPU espera. `tope` es cuántos colores le quedan.
 
     Los índices que los tiles llevan ya vienen corridos, así que quien los emita
     no tiene que acordarse de sumar nada: el corrimiento se escribe una sola vez
     y acá.
     """
     pixeles = _quince(imagen)
-    paleta, mapa = reducir(pixeles)
-    indice = {color: i + MENU_CGRAM for i, color in enumerate(paleta)}
+    paleta, mapa = reducir(pixeles, tope)
+    indice = {color: i + primer_color for i, color in enumerate(paleta)}
     # La imagen como índices de paleta, fila por fila.
     filas = []
     for y in range(ALTO):

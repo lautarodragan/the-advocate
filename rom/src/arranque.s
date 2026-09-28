@@ -246,6 +246,7 @@ grupo_listo:
     lda #0                      ; la RAM arranca con basura
     sta f:CARTEL_ACTIVA
     sta f:CARTEL_LISTO
+    sta f:GO_ESPERA             ; la mira el arnés: ver game_over.s
     ; El testigo de la pantalla de ranuras también: con $55 el arnés la vería
     ; abierta desde el reset. Es lo que pasó el 2026-09-10 con los dos
     ; contadores que "daban 85": leían la basura del emulador.

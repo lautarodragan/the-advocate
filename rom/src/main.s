@@ -138,6 +138,7 @@ TEXTO_BUF_BYTES = VENTANA_TEXTO_COLS * 2 * 32
 .include "batalla.s"
 .include "batalla_items.s"
 .include "batalla_habilidades.s"
+.include "game_over.s"
 .include "batalla_lazo.s"
 .include "batalla_tropa.s"
 .include "batalla_victoria.s"
