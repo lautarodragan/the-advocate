@@ -4799,12 +4799,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; no la lleva y que los bloques de abajo son un byte de relleno; el\n"
         "; código de rom/src/ se apaga solo con eso. Vive sola en la VRAM —no\n"
         "; comparte con ningún mapa, porque mientras se ve no hay mapa\n"
-        "; cargado— así que sus dos direcciones son fijas y no salen del\n"
-        "; reparto de `vram_layout`.\n"
+        "; cargado— así que sus direcciones son fijas y no salen del reparto\n"
+        "; de `vram_layout`. La imagen la sube `pantalla_subir`, desde su fila\n"
+        "; en `pantallas_tabla`: los tiles desde $0000 y el tilemap en\n"
+        "; PANTALLA_MAPA.\n"
         "TITULO_TILES   = %d\n"
-        "TITULO_VRAM    = $0000\n"
-        "TITULO_MAP     = $4000\n"
-        "TITULO_COLORES = %d\n"
         "; El menú, en BG2 a cuatro bits por pixel: su banco de tiles, cuántas\n"
         "; opciones tiene y cuál está elegida al entrar. El cursor no se dibuja\n"
         "; aparte: hay un tilemap por opción y moverlo es subir el otro.\n"
@@ -4816,9 +4815,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; el menú; los tilemaps van de a 1024 y entran en el hueco de al lado.\n"
         ";\n"
         ";   $0000 .. $3E00   los 496 tiles de la imagen, a 8bpp\n"
-        ";   $4000 .. $4400   su tilemap de 32x32\n"
-        ";   $4400 .. $4800   el del menú\n"
+        ";   $4400 .. $4800   el tilemap del menú\n"
         ";   $5000 ..         los tiles del menú, a 4bpp\n"
+        ";   $7C00 .. $8000   el de la imagen, PANTALLA_MAPA de game_over.s\n"
         "TITULO_MENU_CGRAM = %d\n"
         "TITULO_MENU_TILES = %d\n"
         "TITULO_MENU_VRAM  = $5000\n"
@@ -4966,8 +4965,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            FAMILIAS[0][1],
            len(rm2k.AGUA_CICLO), rm2k.ANIMADO_CUADROS, rm2k.ANIMADO_PASOS,
            BYTES_PER_TILE,
-           0 if titulo is None else len(titulo["tiles"]),
-           0 if titulo is None else len(titulo["paleta"]),
+           0 if titulo is None else titulo["pantalla"]["tiles"],
            titulo_mod.MENU_CGRAM,
            0 if titulo is None else len(titulo["menu_tiles"]),
            0 if titulo is None else len(titulo["menu_tilemaps"]),
@@ -5183,28 +5181,15 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # Los tiles se deduplican como los del mapa. La imagen tiene mucho negro
         # —la mitad de abajo, que es donde va el menú— así que de las 1024
         # celdas quedan menos de 500.
+        #
+        # La imagen va comprimida, junto con los colores del menú, en su fila
+        # de `pantallas_tabla`: ver "las pantallas completas", abajo. Acá
+        # queda el menú, que no es de la imagen.
         handle.write("\n; --- la pantalla de título ---\n")
         if titulo is None:
-            handle.write(bloque("titulo_tiles", b"\x00") + "\n")
-            handle.write(bloque("titulo_cgram", b"\x00") + "\n")
-            handle.write(bloque("titulo_celdas", b"\x00") + "\n")
             handle.write(bloque("titulo_menu_tiles", b"\x00") + "\n")
             handle.write(bloque("titulo_menu_celdas", b"\x00") + "\n")
         else:
-            datos = bytearray()
-            for celda in titulo["tiles"]:
-                datos += pack_tile(celda, planes=8)
-            handle.write(bloque("titulo_tiles", bytes(datos)) + "\n")
-            # CGRAM entera de una vez: primero la paleta del menú, que ocupa
-            # las de abajo porque un BG de 4 bits sólo alcanza ésas, y después
-            # los colores de la imagen. Los índices de los tiles ya vienen
-            # corridos desde `titulo.convertir`.
-            colores = list(titulo["menu_paleta"])
-            colores += [(0, 0, 0)] * (titulo_mod.MENU_CGRAM - len(colores))
-            colores += list(titulo["paleta"])
-            handle.write(bloque("titulo_cgram",
-                                b"".join(cgram_word(c).to_bytes(2, "little")
-                                         for c in colores)) + "\n")
             # El menú: un banco de tiles de 4 bits y un tilemap por opción
             # seleccionada. Mover el cursor es subir el otro tilemap, y por eso
             # van seguidos y del mismo tamaño: la ROM los indexa multiplicando.
@@ -5218,46 +5203,45 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                     plano += entry(indice, False, False,
                                    PRIORITY_ABOVE).to_bytes(2, "little")
             handle.write(bloque("titulo_menu_celdas", bytes(plano)) + "\n")
-            # El tilemap es de 32x32 y la imagen ocupa 32x28: las cuatro filas
-            # que sobran quedan en el tile 0, que es negro entero. Sin
-            # rellenarlas el PPU mostraría ahí lo que hubiera quedado en la
-            # VRAM, y abajo de todo es justo donde va el menú.
-            plano = bytearray()
-            for fila in range(32):
-                for col in range(32):
-                    indice = (titulo["tilemap"][fila * 32 + col]
-                              if fila < titulo_mod.FILAS else 0)
-                    plano += entry(indice, False, False).to_bytes(2, "little")
-            handle.write(bloque("titulo_celdas", bytes(plano)) + "\n")
 
-        # --- la pantalla de Game Over ---
+        # --- las pantallas completas: la de Game Over y la de título ---
         #
-        # Un flujo LZ2 con los tiles, el tilemap y los colores, y su fila en
-        # `pantallas_tabla`, que es lo que lee `pantalla_subir`: ver
-        # tools/port/pantalla_completa.py. Sin imagen, GAME_OVER_TILES en 0
-        # y la ROM vuelve al título sin pantalla, como hasta el 2026-09-28.
-        handle.write("\n; --- la pantalla de Game Over ---\n")
-        if game_over is None:
-            handle.write("GAME_OVER_TILES = 0\n"
-                         + bloque("pantallas_tabla", b"\x00") + "\n")
+        # Cada una es un flujo LZ2 con los tiles, el tilemap y los colores, y
+        # su fila en `pantallas_tabla`, que es lo que lee `pantalla_subir`: ver
+        # tools/port/pantalla_completa.py. Sin imagen de Game Over,
+        # GAME_OVER_TILES en 0 y la ROM vuelve al título sin pantalla, como
+        # hasta el 2026-09-28; sin pantalla de título, TITULO_TILES en 0 y
+        # ninguna fila. Sin ninguna de las dos PANTALLA_FILA no se define, y
+        # `pantalla_subir` no se arma.
+        handle.write("\n; --- las pantallas completas ---\n")
+        handle.write("GAME_OVER_TILES = %d\n"
+                     % (0 if game_over is None else game_over["tiles"]))
+        filas = []
+        if game_over is not None:
+            filas.append(("GAME_OVER", "game_over_lz2", game_over))
+        if titulo is not None:
+            filas.append(("TITULO", "titulo_lz2", titulo["pantalla"]))
+        if not filas:
+            handle.write(bloque("pantallas_tabla", b"\x00") + "\n")
         else:
             handle.write(
-                "GAME_OVER_TILES = %d\n"
                 "; La fila de cada pantalla en `pantallas_tabla`: dónde está su\n"
                 "; flujo, cuántos bytes de tiles y de colores trae, y desde qué\n"
                 "; color de CGRAM van. Ver `pantalla_subir`.\n"
-                "PANTALLA_GAME_OVER = 0\n"
-                "PANTALLA_FILA = 8\n"
-                % game_over["tiles"])
-            handle.write(".bloque %d\npantallas_tabla:\n"
-                         "    .word .loword(game_over_lz2)\n"
-                         "    .byte ^game_over_lz2\n"
-                         "    .word %d, %d\n"
-                         "    .byte %d\n\n"
-                         % (8, game_over["tiles"] * 64,
-                            game_over["colores"] * 2,
-                            game_over["primer_color"]))
-            handle.write(bloque("game_over_lz2", game_over["flujo"]) + "\n")
+                "PANTALLA_FILA = 8\n")
+            for numero, (nombre, _, _) in enumerate(filas):
+                handle.write("PANTALLA_%s = %d\n" % (nombre, numero))
+            handle.write(".bloque %d\npantallas_tabla:\n" % (8 * len(filas)))
+            for _, etiqueta, datos in filas:
+                handle.write("    .word .loword(%s)\n"
+                             "    .byte ^%s\n"
+                             "    .word %d, %d\n"
+                             "    .byte %d\n"
+                             % (etiqueta, etiqueta, datos["tiles"] * 64,
+                                datos["colores"] * 2, datos["primer_color"]))
+            handle.write("\n")
+            for _, etiqueta, datos in filas:
+                handle.write(bloque(etiqueta, datos["flujo"]) + "\n")
 
         # La pantalla de ranuras, que **va en toda ROM** y no sólo en las que
         # llevan título: la abre el save point desde adentro del juego. Hasta
@@ -7534,16 +7518,26 @@ def main():
         nombre = renderer.database.title_name
         imagen = Image.open(os.path.join(args.game_dir, "Title",
                                          nombre + ".png"))
-        tiles, paleta, tilemap = titulo_mod.convertir(imagen)
         textos = titulo_mod.opciones(renderer.database)
         menu_tiles, menu_paleta, menu_mapas = titulo_mod.menu(
             skin, textos, renderer.database.font_id)
-        titulo_datos = {"tiles": tiles, "paleta": paleta, "tilemap": tilemap,
+        # La imagen, comprimida como la de Game Over, y con los colores del
+        # menú debajo de los suyos en el mismo flujo: CGRAM entera de una vez,
+        # la paleta del menú abajo porque un BG de 4 bits sólo alcanza ésas.
+        # Los índices de los tiles ya vienen corridos desde
+        # `titulo.convertir`.
+        debajo = list(menu_paleta)
+        debajo += [(0, 0, 0)] * (titulo_mod.MENU_CGRAM - len(debajo))
+        pantalla = pantalla_completa.comprimida(
+            imagen, titulo_mod.MENU_CGRAM, titulo_mod.COLORES, debajo)
+        titulo_datos = {"pantalla": pantalla,
                         "menu_tiles": menu_tiles, "menu_paleta": menu_paleta,
                         "menu_tilemaps": menu_mapas}
-        print("  pantalla de título %r: %d tiles de 8bpp (%d B) + %d colores, "
-              "%d B de tilemap" % (nombre, len(tiles), len(tiles) * 64,
-                                   len(paleta), 32 * 32 * 2))
+        print("  pantalla de título %r: %d tiles de 8bpp + %d colores, "
+              "%d B en un flujo LZ2 de %d B"
+              % (nombre, pantalla["tiles"],
+                 pantalla["colores"] - len(debajo), pantalla["crudo"],
+                 len(pantalla["flujo"])))
         print("    menú (%s): %d tiles de 4bpp (%d B) + %d colores, %d tilemap(s)"
               % (", ".join(repr(t) for t in textos), len(menu_tiles),
                  len(menu_tiles) * 32, len(menu_paleta), len(menu_mapas)))

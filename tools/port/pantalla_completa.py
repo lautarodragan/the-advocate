@@ -1,8 +1,7 @@
 """Una imagen que ocupa la pantalla entera, comprimida en un flujo LZ2.
 
-Es el camino de la pantalla de Game Over, y está hecho para que lo tome la de
-título el día que se comprima: la imagen se convierte como la del título
-—`titulo.convertir`: escalada a 256x224, a 8 bits por pixel en BG1, que en
+Es el camino de las pantallas de Game Over y de título: la imagen se convierte
+con `titulo.convertir` —escalada a 256x224, a 8 bits por pixel en BG1, que en
 modo 3 direcciona CGRAM entera— y lo que va al cartucho es **un solo flujo**
 con las tres cosas que la ROM sube, una detrás de otra:
 
@@ -22,8 +21,9 @@ respaldo de los fondos, son 2.901 comprimida. El ahorro de la liviana son
 unos 9 KB del cartucho, y costaría un segundo camino en la ROM —agrandar al
 doble, leer del `.msu`, la espera de la búsqueda— que ningún core de la tanda
 ejercita entero. Comprimida, la imagen de calidad va en todas las consolas.
-Los números de la del título están en
-`workflow/tasks/*/la-pantalla-de-game-over.md`.
+La del título se decidió igual, el 2026-09-28: los números están en
+`workflow/tasks/*/la-pantalla-de-game-over.md` y en
+`workflow/tasks/*/la-pantalla-de-titulo-comprimida.md`.
 """
 
 from port import comprimir
@@ -34,7 +34,7 @@ from port import titulo
 TILEMAP_BYTES = 32 * 32 * 2
 
 
-def comprimida(imagen, primer_color=0, tope=256):
+def comprimida(imagen, primer_color=0, tope=256, debajo=()):
     """La imagen como un dict: `flujo` es el LZ2 con las tres partes, y
     `tiles`, `colores` y `primer_color` son lo que la ROM necesita para
     partirlo.
@@ -42,7 +42,15 @@ def comprimida(imagen, primer_color=0, tope=256):
     `primer_color` y `tope` son los de `titulo.convertir`: por omisión la
     imagen se queda con CGRAM entera, desde el 0. El índice 0 es además el
     color del fondo del PPU, y `titulo.reducir` le deja ahí el negro.
+
+    `debajo` son colores que no son de la imagen y van en CGRAM justo antes
+    de los suyos —en el título, los del menú—: viajan en el mismo flujo y se
+    suben con el mismo DMA, así que el `primer_color` de la fila baja lo que
+    ellos ocupen. Es para no gastar otro DMA en el banco 0.
     """
+    if len(debajo) > primer_color:
+        raise ValueError("%d colores debajo de la imagen y la imagen empieza "
+                         "en el %d" % (len(debajo), primer_color))
     from port.snes_convert import cgram_word, pack_tile, entry
     tiles, paleta, tilemap = titulo.convertir(imagen, primer_color, tope)
     datos = bytearray()
@@ -52,8 +60,9 @@ def comprimida(imagen, primer_color=0, tope=256):
     for indice in range(32 * 32):
         numero = tilemap[indice] if indice < len(tilemap) else 0
         plano += entry(numero, False, False).to_bytes(2, "little")
-    colores = b"".join(cgram_word(c).to_bytes(2, "little") for c in paleta)
-    crudo = bytes(datos) + bytes(plano) + colores
+    colores = list(debajo) + list(paleta)
+    crudo = (bytes(datos) + bytes(plano)
+             + b"".join(cgram_word(c).to_bytes(2, "little") for c in colores))
     return {"flujo": comprimir.comprimir(crudo), "crudo": len(crudo),
-            "tiles": len(tiles), "colores": len(paleta),
-            "primer_color": primer_color}
+            "tiles": len(tiles), "colores": len(colores),
+            "primer_color": primer_color - len(debajo)}

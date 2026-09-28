@@ -10,9 +10,10 @@
 ; pixel y direcciona CGRAM entera. Un mapa reparte sus colores en paletas de
 ; dieciséis porque los sprites necesitan las suyas; acá no hay sprites.
 ;
-; Los 496 tiles entran en $4000 —la base de tiles de BG1 va de a 4096 palabras,
-; y 15872 palabras desde ahí terminan en 32256 de las 32768 que hay— y el
-; tilemap en $0000. Al salir, `cargar_mapa` repone las dos bases y pisa todo.
+; La imagen viene comprimida, y la sube `pantalla_subir`, la misma rutina que
+; la de Game Over: los tiles desde $0000 y su tilemap en PANTALLA_MAPA. El
+; reparto de la VRAM está en mapdata.inc, junto a TITULO_MENU_VRAM. Al salir,
+; `cargar_mapa` repone las bases y pisa todo.
 ;
 ; **Corre con su propio lazo y no con el principal.** El lazo principal mueve al
 ; héroe, corre el intérprete y arma el OAM, y acá no hay nada de eso: lo único
@@ -52,54 +53,32 @@ mudo:
 .proc titulo_subir
 .a8
 .i16
-    lda #$80
-    sta INIDISP                 ; blanking forzado: la VRAM sólo se toca así
-    stz HDMAEN                  ; y sin la ventana de mensaje encima
+    stz HDMAEN                  ; sin la ventana de mensaje encima
 
-    ; --- los tiles ---
-    lda #$80
-    sta VMAIN                   ; avanzar una palabra tras el byte alto
-    rep #$20
-.a16
-    lda #TITULO_VRAM
-    sta VMADDL
-    lda #(TITULO_TILES * BYTES_POR_TILE)
-    sta DAS0L
-    lda #<(titulo_tiles)
-    ora #(>(titulo_tiles) * 256)
-    sta A1T0L
-    sep #$20
-.a8
-    lda #^(titulo_tiles)
-    sta A1B0
-    lda #$01
-    sta DMAP0                   ; dos registros, de a palabras
-    lda #$18
-    sta BBAD0                   ; destino: VMDATAL
-    lda #$01
-    sta MDMAEN
-
-    ; --- el tilemap ---
-    rep #$20
-.a16
-    lda #TITULO_MAP
-    sta VMADDL
-    lda #(32 * 32 * 2)
-    sta DAS0L
-    lda #<(titulo_celdas)
-    ora #(>(titulo_celdas) * 256)
-    sta A1T0L
-    sep #$20
-.a8
-    lda #^(titulo_celdas)
-    sta A1B0
-    lda #$01
-    sta MDMAEN
+    ; --- la imagen, con CGRAM entera ---
+    ; La sube `pantalla_subir`, que es la de Game Over: los tiles desde $0000,
+    ; el tilemap en PANTALLA_MAPA y los colores —los del menú abajo y los de
+    ; la imagen arriba, en el mismo flujo: ver tools/port/pantalla_completa.py—.
+    ; Deja la pantalla apagada, BG1 en modo 3 y TM, la ventana y el color math
+    ; en cero.
+    ;
+    ; **No la descomprime**: eso lo hizo el arranque, mientras esperaba sus
+    ; BOOT_CUADROS, y `PANTALLA_BUFFER` la tiene desde ahí. Descomprimirla acá
+    ; son nueve cuadros más de negro antes del título, y otros nueve al volver
+    ; de la pantalla de ranuras —medido el 2026-09-28—. Vale porque nada de lo
+    ; que corre en el título escribe el banco $7F: ni su lazo, ni la música, ni
+    ; la pantalla de ranuras. El buffer pisa la grilla y los dibujos de la
+    ; animación del ChipSet del mapa de arranque, y se puede porque de acá se
+    ; sale siempre por `cargar_mapa`, que los rearma.
+.ifdef ::PANTALLA_TITULO        ; sin pantalla de título no hay fila
+    ldx #(PANTALLA_TITULO * PANTALLA_FILA)
+    jsl f:pantalla_subir
+.endif
 
     ; --- los tiles del menú ---
     ; Van en BG2, que en modo 3 tiene cuatro bits por pixel, así que cuestan la
     ; mitad. El tile 0 es transparente y le toca a casi toda la pantalla: es lo
-    ; que deja ver la imagen debajo.
+    ; que deja ver la imagen debajo. `VMAIN` es el que dejó `pantalla_subir`.
     rep #$20
 .a16
     lda #TITULO_MENU_VRAM
@@ -114,58 +93,26 @@ mudo:
     lda #^(titulo_menu_tiles)
     sta A1B0
     lda #$01
-    sta MDMAEN
-
-    ; --- los colores ---
-    ; CGRAM entera y desde el índice 0: acá no hay ni ventana de mensaje ni
-    ; color de fondo que respetar, que es lo que en un mapa se lleva las de
-    ; abajo.
-    stz CGADD
-    rep #$20
-.a16
-    ; CGRAM entera: las TITULO_MENU_CGRAM de abajo son del menú y las
-    ; TITULO_COLORES de arriba, de la imagen. Subir sólo las de la imagen
-    ; dejaba las últimas dieciséis sin escribir, y ahí viven los colores menos
-    ; usados —el degradé de los créditos—: 145 pixeles de diferencia, todos en
-    ; el mismo par de renglones.
-    lda #((TITULO_COLORES + TITULO_MENU_CGRAM) * 2)
-    sta DAS0L
-    lda #<(titulo_cgram)
-    ora #(>(titulo_cgram) * 256)
-    sta A1T0L
-    sep #$20
-.a8
-    lda #^(titulo_cgram)
-    sta A1B0
-    stz DMAP0                   ; un registro, escribiendo de a un byte
-    lda #$22
-    sta BBAD0                   ; destino: CGDATA
+    sta DMAP0                   ; dos registros, de a palabras
+    lda #$18
+    sta BBAD0                   ; destino: VMDATAL
     lda #$01
     sta MDMAEN
 
-    ; --- y el PPU apuntando a todo eso ---
-    lda #(TITULO_MAP / 1024 * 4)
-    sta BG1SC                   ; tilemap de 32x32: los dos bits bajos en cero
+    ; --- y el PPU apuntando al menú ---
     lda #(TITULO_MENU_MAP / 1024 * 4)
-    sta BG2SC                   ; y el del menú, del mismo tamaño
+    sta BG2SC                   ; tilemap de 32x32: los dos bits bajos en cero
     ; Las dos bases de tiles, que van de a 4096 palabras: BG1 en el nibble bajo
-    ; y BG2 en el alto. La imagen arranca en $4000 porque 15872 palabras desde
-    ; ahí terminan en 32256 de las 32768 que hay; el menú, en $1000, entra en el
-    ; hueco que queda debajo junto con los dos tilemaps.
-    lda #((TITULO_MENU_VRAM / 4096 * 16) | (TITULO_VRAM / 4096))
+    ; —en cero, donde `pantalla_subir` puso la imagen— y BG2 en el alto.
+    lda #(TITULO_MENU_VRAM / 4096 * 16)
     sta BG12NBA
-    stz BG1HOFS
-    stz BG1HOFS
     stz BG2HOFS
     stz BG2HOFS
-    lda #$FF
-    sta BG2VOFS
-    sta BG2VOFS
     ; El PPU muestra la línea vofs+1 en el primer scanline, igual que en el
-    ; mapa: con 0 la imagen sale corrida una línea hacia arriba.
+    ; mapa: con 0 el menú sale corrido una línea hacia arriba.
     lda #$FF
-    sta BG1VOFS
-    sta BG1VOFS
+    sta BG2VOFS
+    sta BG2VOFS
     lda #$03
     sta TM                      ; la imagen y el menú; sprites no hay
 
@@ -176,6 +123,11 @@ mudo:
     sta INIDISP                 ; y la pantalla encendida, al máximo
     rts
 .endproc
+; Lo que `pantalla_subir` pone en la VRAM no puede pisar lo del menú: los tiles
+; de la imagen, a 32 palabras cada uno, van debajo del tilemap del menú, y los
+; tiles del menú, a 16, terminan antes del tilemap de la imagen.
+.assert TITULO_TILES * 32 <= TITULO_MENU_MAP, error, "los tiles del título pisan el tilemap del menú"
+.assert TITULO_MENU_VRAM + TITULO_MENU_TILES * 16 <= PANTALLA_MAPA, error, "los tiles del menú del título pisan el tilemap de la imagen"
 
 ; El lazo del menú. Arriba y abajo mueven el cursor por **flanco** y dando la
 ; vuelta, igual que `eleccion_tick` con el ShowChoice: es el
