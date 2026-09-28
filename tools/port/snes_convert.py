@@ -7786,11 +7786,10 @@ def main():
              or "ninguna, sale muda"))
 
     # **Y recién acá se decide el acomodo de bancos**, con los dos archivos ya
-    # escritos: depende de todo lo que haya antes en RODATA, y el orden es el
-    # de los `.include` de main.s —la música primero—. Ver `tools/ensamblado/bancos.py`.
-    resueltos, rellenaron = bancos.resolver([musica, args.output])
-    print("acomodo de bancos: %d bloque(s), %d empiezan banco"
-          % (resueltos, rellenaron))
+    # escritos: reparte todo lo que los dos mandan a RODATA, y los bancos
+    # quedan al final del último. Ver `tools/ensamblado/bancos.py`.
+    piezas, usados = bancos.resolver([musica, args.output])
+    print("acomodo de bancos: %d pieza(s) en %d banco(s)" % (piezas, usados))
     # Y el mapa de memoria para `ld65`, al lado: sale de acá y no de un
     # archivo a mano para que en qué banco arrancan los datos esté escrito
     # una sola vez, en `bancos.PRIMER_BANCO`.
