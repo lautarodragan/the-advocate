@@ -69,8 +69,27 @@ cuatro cuadros desde el `EV0043`: lo segundo que arranca tiene que ser el
 de índice 51 con el héroe en (52, 20)"—; con él, verde. La misma aserción
 cobra que la A de después de la ruta no se pierda.
 
+## El `wait` que quedaba pegado
+
+El arreglo sacó a la luz otro, que lo tapaba: con él puesto, el recorrido del
+capítulo se trababa en el guardia de la puerta de Tasgarde (mapa 74) con
+`ruta_espera` en 19 y la ruta terminada. Las páginas de los eventos 6, 7 y 16
+de ese mapa mandan al héroe `[face, wait]`: una ruta que **termina** en
+`wait` —21 en el juego, en 15 mapas— dejaba `ruta_espera` cargada para
+siempre, porque `move_hero` sólo llamaba a `paso_de_ruta`, el único que la
+descuenta, con órdenes por leer. `git blame`: la compuerta es de `483c043f` y
+el `wait` llegó un día después en `a95ac7f7`, sin contemplar el caso. Ahora
+`move_hero` entra también con una espera pendiente. Lo que cambia en el
+juego: después de una de esas rutas el héroe queda quieto los veinte cuadros
+del `wait` antes de que el pad lo mueva, como en RM2k. No se movió ninguna
+golden.
+
 ## Lo que tiene que probar taro
 
 Con el autofire del emulador sostenido sobre el caño: bajando ya no tiene que
 volver a subir a mitad de camino ni aparecer arriba del edificio, en (56,19).
 Que suba y baje entero, de punta a punta, sí es lo esperado.
+
+Y en Tasgarde, al hablar con el guardia de la puerta y los otros dos que
+hacen girar al héroe: que después del giro el control vuelva normal, un
+tercio de segundo más tarde que antes.
