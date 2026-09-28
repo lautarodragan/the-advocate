@@ -45,12 +45,13 @@ GO_SETINI = $2133
 ; sólo mientras se sube —la pelea y la animación del ChipSet usan ese banco, y
 ; los dos se rearman después—, igual que `LZ2_BUFFER`. Entran los 64 KB que un
 ; flujo LZ2 puede dar, y pisa la mitad alta de la grilla: al Game Over le sigue
-; el arranque, que la vuelve a descomprimir. La pantalla de título, si lo usa,
-; tiene que cuidar lo mismo: `test_reservas_de_la_wram.py` lo deja pasar.
+; el arranque, y a la pantalla de título `cargar_mapa`, y los dos la vuelven a
+; descomprimir. `test_reservas_de_la_wram.py` lo deja pasar.
 PANTALLA_BUFFER = $7F0000
 ; El tilemap de la pantalla, en palabras de VRAM. Los tiles van desde $0000 y
 ; la imagen más cargada son 896 tiles de 8bpp, o sea hasta $7000: arriba de
-; eso no llegan nunca.
+; eso no llegan nunca. El título pone su menú en el medio: ver el `.assert`
+; de `titulo_subir`.
 PANTALLA_MAPA = $7C00
 
 ; `op_battle` antes de pelear: el destino de la derrota, que está seis bytes
@@ -157,7 +158,9 @@ negro:
     lda #TEMA_GAME_OVER
     jsl f:ba_t_bgm
     ldx #(PANTALLA_GAME_OVER * PANTALLA_FILA)
-    jsl f:pantalla_subir
+    jsl f:pantalla_descomprimir
+    jsl f:pantalla_subir        ; la misma fila: `pantalla_descomprimir` no
+                                ; toca X
 
     ; El fundido de entrada.
     lda #GO_CUADROS_PANTALLA
@@ -237,26 +240,29 @@ cuadro:
     rts
 .endproc
 
-; Una pantalla completa de `pantallas_tabla` —X es su fila, en bytes— a la VRAM
-; y a CGRAM, y el PPU puesto para mostrarla en BG1 de modo 3, sola. La deja con
-; la pantalla apagada: el brillo es de quien llama.
+; Una pantalla completa de `pantallas_tabla` —X es su fila, en bytes—, en dos
+; pasos: `pantalla_descomprimir` la deja en `PANTALLA_BUFFER`, y
+; `pantalla_subir` la lleva de ahí a la VRAM y a CGRAM.
 ;
 ; La fila es: el flujo LZ2 (tres bytes), cuántos bytes de tiles y cuántos de
 ; colores (una palabra cada uno) y desde qué color de CGRAM (un byte). El
 ; flujo trae las tres partes seguidas: los tiles, el tilemap de 32x32 y los
 ; colores. Ver tools/port/pantalla_completa.py.
 ;
-; Está hecha para la de título también, el día que se comprima: por eso no
-; sabe cuál está subiendo.
-.proc pantalla_subir
+; La usan la de Game Over y la de título: por eso no sabe cuál está subiendo.
+; Son dos pasos por la de título, que se descomprime en el arranque, mientras
+; se esperan los BOOT_CUADROS, y se sube recién al mostrarse: ver
+; `titulo_subir`.
+;
+; Descomprimir no toca la VRAM, así que puede ser con la pantalla prendida.
+; Deja X como estaba.
+.proc pantalla_descomprimir
 .a8
 .i16
 .ifdef ::PANTALLA_FILA
     phb
     phk
     plb
-    lda #$80
-    sta INIDISP
     phx                         ; la fila
     lda #^PANTALLA_BUFFER
     sta f:LZ2_BANCO
@@ -272,6 +278,23 @@ cuadro:
     ldy #.loword(PANTALLA_BUFFER)
     jsl f:lz2_descomprimir + RAPIDO
     plx
+    plb
+.endif
+    rtl
+.endproc
+
+; La pantalla que `pantalla_descomprimir` dejó en `PANTALLA_BUFFER`, con X en
+; la misma fila, a la VRAM y a CGRAM, y el PPU puesto para mostrarla en BG1 de
+; modo 3, sola. La deja con la pantalla apagada: el brillo es de quien llama.
+.proc pantalla_subir
+.a8
+.i16
+.ifdef ::PANTALLA_FILA
+    phb
+    phk
+    plb
+    lda #$80
+    sta INIDISP
 
     ; --- los tiles ---
     lda #$80
@@ -343,13 +366,20 @@ cuadro:
     sta BG1VOFS
     lda #$01
     sta TM                      ; la imagen sola: ni sprites ni la otra capa
+    ; Todo como lo deja `ppu_reset` —ver `ppu_altos` en banco1.s—, y no en
+    ; cero: TMW y CGWSEL los pone sólo el reset, y el mapa los espera así. Al
+    ; Game Over le sigue el reset, pero al título le sigue el mapa: con TMW en
+    ; cero la ventana de mensaje dejaba de tapar a los objetos.
     stz GO_TS
-    stz TMW
+    lda #$10
+    sta TMW                     ; la máscara, sólo para los objetos, que acá
+                                ; no se ven
     stz GO_TSW
     stz GO_W12SEL
     stz GO_W34SEL
     stz WOBJSEL
-    stz CGWSEL                  ; sin color math: ni tinte ni destello
+    lda #$30
+    sta CGWSEL                  ; sin color math: ni tinte ni destello
     stz CGADSUB
     stz MOSAIC
     stz GO_SETINI

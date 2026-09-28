@@ -322,6 +322,16 @@ cargar:
     jsr paquete_cargar
     jsr music_boot
 
+    ; La imagen del título, descomprimida a la WRAM **antes** de la espera, que
+    ; es donde sobran cuadros: descomprimirla al mostrarla eran nueve cuadros
+    ; más de negro antes del título. La sube `titulo_subir`. Una ROM con título
+    ; puede pasarse de BOOT_CUADROS por esto, y no importa: lo que cuenta
+    ; cuadros desde el reset es el lazo, y ahí se llega después del título.
+.ifdef PANTALLA_TITULO
+    ldx #(PANTALLA_TITULO * PANTALLA_FILA)
+    jsl f:pantalla_descomprimir
+.endif
+
     ; Y se espera a que el arranque dure lo que dura siempre: BOOT_CUADROS.
 espera_boot:
     lda boot_cuadros
