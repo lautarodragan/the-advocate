@@ -85,29 +85,56 @@ from audio.music_opcodes import *   # noqa: E402,F401,F403
 # parecía que sí: sacarlo del banco compartido libera 4 muestras y 565 B, sube
 # la tasa mediana de 11521 a 12496 Hz y **no devuelve ni un tema** de los
 # nueve recortados. Su peso es de stream, que vive en el cartucho, no de ARAM.
+#
+# **Y detrás, los del RTP que nombra el `System` del LDB** y el juego no trae:
+# en el ABL, el de Game Over —`GameOver3`— y los de los vehículos. Van después
+# de todos los de `Music/`, ordenados, así que no corren a ninguno de los del
+# juego; y son sólo ésos porque el RTP entero no entra en el byte —230 del
+# juego y 111 del RTP—. Un `PlayBGM` que nombre uno del RTP —`Farewell2`, en
+# los mapas 117, 127 y 150— no tiene pista hasta que se lo sume acá, y lo
+# cobra la misma prueba.
 MUSICA_DE_PISTA = (".mid", ".wav")
 
 
 _numeros_de_pista = {}
 
 
+def _nombres_de_musica(directorio):
+    carpeta = [os.path.join(directorio, e) for e in os.listdir(directorio)
+               if e.lower() == "music"] if os.path.isdir(directorio) else []
+    nombres = set()
+    for archivo in os.listdir(carpeta[0]) if carpeta else []:
+        base, ext = os.path.splitext(archivo)
+        if ext.lower() in MUSICA_DE_PISTA:
+            nombres.add(base.lower())
+    return nombres
+
+
 def numeros_de_pista(game_dir=GAME_DIR):
-    """{nombre del tema en minúsculas: número de pista}, para todo `Music/`."""
+    """{nombre del tema en minúsculas: número de pista}, para todo `Music/` y
+    los del RTP que nombra el `System`."""
     if game_dir not in _numeros_de_pista:
-        carpeta = [os.path.join(game_dir, e) for e in os.listdir(game_dir)
-                   if e.lower() == "music"]
-        nombres = set()
-        for archivo in os.listdir(carpeta[0]) if carpeta else []:
-            base, ext = os.path.splitext(archivo)
-            if ext.lower() in MUSICA_DE_PISTA:
-                nombres.add(base.lower())
+        from render.render_map import RTP_DIR
+        nombres = _nombres_de_musica(game_dir)
+        del_rtp = _nombres_de_musica(RTP_DIR)
+        ldb = os.path.join(game_dir, "RPG_RT.ldb")
+        sistema = sorted(({n.lower() for n in lcf.temas_del_sistema(ldb)}
+                          - nombres) & del_rtp)
+        orden = sorted(nombres) + sistema
         # El número va en un byte de `tema_msu`, y $FF es "sin pista".
-        if len(nombres) > 0xFE:
+        if len(orden) > 0xFE:
             raise SystemExit("Music/ tiene %d temas y la pista va en un byte"
-                             % len(nombres))
-        _numeros_de_pista[game_dir] = {n: i + 1
-                                       for i, n in enumerate(sorted(nombres))}
+                             % len(orden))
+        _numeros_de_pista[game_dir] = {n: i + 1 for i, n in enumerate(orden)}
     return _numeros_de_pista[game_dir]
+
+
+def ruta_del_tema(nombre, game_dir=GAME_DIR, extensiones=MUSICA_DE_PISTA):
+    """El archivo del tema: el del juego y, si no está, el del RTP, que es
+    como lo busca RM2k. `None` si no está en ninguno de los dos."""
+    from render.render_map import RTP_DIR
+    return (find_resource([game_dir, RTP_DIR], "Music", nombre, extensiones)
+            if nombre else None)
 
 
 def pista_msu(nombre, game_dir=GAME_DIR):
@@ -1930,8 +1957,7 @@ def leer_tema(name, game_dir=GAME_DIR):
     índice— pero su stream es un `OP_END` solo y la ROM sale muda cuando lo
     prenden.
     """
-    path = (find_resource([game_dir], "Music", name, (".mid", ".wav"))
-            if name else None)
+    path = ruta_del_tema(name, game_dir)
     if not path or not path.lower().endswith(".mid"):
         return None
     notes, tempos, division, programs, controls = midi.read(path)
@@ -2364,7 +2390,7 @@ def boot_cuadros(ruta=RAM_LEJANA):
 
 def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
          sonidos=(), paquetes=(), tema_de_mapa=(), directorio=None,
-         efecto_lugar=()):
+         efecto_lugar=(), game_over=(0xFF, 0xFFFF)):
     """El .inc que arma el ensamblador junto con main.s.
 
     `temas` son los de `build_varios`, en el orden de `Temas`: el bytecode ya
@@ -2537,6 +2563,11 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
             "; Y el de la pantalla de título, que sale de `title_music` del\n"
             "; LDB. $FF quiere decir que esta ROM no lleva pantalla de título.\n"
             "TEMA_TITULO      = $%02X\n"
+            "; Y el de la pantalla de Game Over —`gameover_music`— con su\n"
+            "; paquete, que va detrás de todos: el tema solo. $FF y $FFFF si\n"
+            "; esta ROM no lleva la pantalla. Ver rom/src/game_over.s.\n"
+            "TEMA_GAME_OVER   = $%02X\n"
+            "PAQUETE_GAME_OVER = $%04X\n"
             "; El volumen general con que suena el tema y los dos registros\n"
             "; del DSP donde va. Los emite `sdsp.py`, que es de donde salen:\n"
             "; el stream ya los escribe al arrancar, y un `FadeOutBGM` los\n"
@@ -2581,7 +2612,7 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
             '.bloque %d\nmuestra_tabla:\n%s\n%s\n%s\n%s\n%s\n'
             % (", ".join(t["nombre"] or "sin música" for t in temas)
                or "ninguno",
-               len(temas), arranque, titulo,
+               len(temas), arranque, titulo, game_over[0], game_over[1],
                sdsp.MASTER, sdsp.MVOL_L, sdsp.MVOL_R,
                DRIVER_ADDR, len(driver),
                SAMPLES_ADDR, len(samples),

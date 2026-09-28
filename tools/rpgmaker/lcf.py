@@ -677,6 +677,18 @@ TERM_SUELTOS = {
 }
 
 
+def temas_del_sistema(path):
+    """Los nombres de los temas del `System` del LDB en `path`: el del título,
+    el de la pelea, el de Game Over, los de los vehículos...
+
+    Sin cargar la base entera, que es lo que necesita `snes_music`: numerar
+    las pistas de MSU-1 no tiene por qué leer los actores.
+    """
+    sistema = leer(volcado(path), "db", "system.json")
+    return sorted({texto(valor["name"]) for nombre, valor in sistema.items()
+                   if nombre.endswith("_music") and isinstance(valor, dict)})
+
+
 def sonido(datos):
     """Un `Music` o un `Sound` como la tupla que espera el port."""
     return (campo(datos, "name"), campo(datos, "volume"),
@@ -750,6 +762,12 @@ class Database:
         # —'LineTitle'— es de una versión anterior y el juego no lo usa.
         self.title_name = campo(sistema, "title_name")
         self.title_music = campo(sub(sistema, "title_music"), "name")
+        # Y la de Game Over y su tema. El ABL dice 'GameOver' y 'GameOver3',
+        # y **ninguno de los dos está en el juego**: salen del RTP, como en
+        # RM2k. El `ablgameover.png` que el juego trae en GameOver/ no lo
+        # nombra nadie, y el original con Wine muestra el del RTP.
+        self.gameover_name = campo(sistema, "gameover_name")
+        self.gameover_music = campo(sub(sistema, "gameover_music"), "name")
         # El audio de la pelea. Sale de acá y no de un literal nuestro por lo
         # mismo que los términos: es un dato del juego. En el ABL el tema de
         # batalla y el de victoria son **el mismo** —T_VGFighterMAX_Masako—, y

@@ -73,7 +73,7 @@ if __name__ == "__main__":
 from audio import snes_music                                # noqa: E402
 from audio import snes_samples                              # noqa: E402
 from comun import cache_disco                               # noqa: E402
-from render.render_map import GAME_DIR, find_resource       # noqa: E402
+from render.render_map import GAME_DIR                      # noqa: E402
 
 # La ganancia de fluidsynth. Con 1.0 los temas con muchas voces saturan, así
 # que se renderiza bajo y después se normaliza: el pico de la pista queda en
@@ -295,8 +295,7 @@ def _una_pista(base, nombre, numero, game_dir, soundfont, ganancia,
     audio = reemplazo(reemplazos, nombre)
     midi = None
     if not audio:
-        fuente = find_resource([game_dir], "Music", nombre,
-                               snes_music.MUSICA_DE_PISTA)
+        fuente = snes_music.ruta_del_tema(nombre, game_dir)
         if not fuente:
             sys.exit("no encuentro la música de %s" % nombre)
         if fuente.lower().endswith(".mid"):
