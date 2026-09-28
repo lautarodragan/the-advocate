@@ -739,7 +739,7 @@ lista_fila:
     rep #$20
 .a16
     clc
-    adc #PANT_NOMBRE
+    adc #EQ_LISTA_NOMBRE
     sta eleg_tabla
     sep #$20
 .a8

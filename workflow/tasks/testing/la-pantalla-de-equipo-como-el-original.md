@@ -46,12 +46,20 @@ estaban (Tero, `el-menu-como-rm2k.md`).
   con los cuatro parámetros en una columna como RM2k y el nombre a la
   derecha; y la de abajo, de 96, con las cinco ranuras o —eligiendo— la
   lista. El texto sigue en BG2 sin saber nada de ellas.
+- **Las tres ventanas arrancan el texto en la misma columna**, la 1: los
+  términos de las ranuras debajo de los de los parámetros, y los nombres de
+  la lista debajo de ellos (`EQ_TEXTO_COL`). Lo pidió taro al ver las
+  goldens: la primera versión tenía las ranuras en la 2 —salía de hacer
+  coincidir la punta de la barra con la de ítems, no de nada que se viera— y
+  la lista en la 3, la de ítems. La cuenta y los dos puntos de la lista
+  siguen en las columnas de ítems; lo puesto en una ranura puede tener
+  diecinueve letras.
 - **La barra**: sobre la ranura, a lo ancho de la fila como en el original,
-  y sobre el candidato, la misma que la de ítems. Cada cuadro, detrás de los
-  1792 bytes del texto, se suben las diez filas de celdas de la ventana de
-  abajo sin cursor y encima las dos del cursor (`eq_barra`): 768 bytes, sin
-  acordarse de dónde estaba. Las puntas de las dos barras caen en el mismo
-  lugar de su tile que la de ítems, a propósito: son los mismos tiles.
+  y sobre el candidato; con el texto en la misma columna son la misma barra,
+  de x=4 a x=244: tres pixeles de negro entre ella y el marco. Cada cuadro,
+  detrás de los 1792 bytes del texto, se suben las diez filas de celdas de
+  la ventana de abajo sin cursor y encima las dos del cursor (`eq_barra`):
+  768 bytes, sin acordarse de dónde estaba.
 - **Los términos y la flecha en rojo**: una cuarta variante de la fuente,
   `ITEM_ROJO`, la paleta 3. **Entera**: medido, la fuente en rojo son **diez
   tiles** más (326 a 336, bajo el tope de 384 que impone la pelea), porque
@@ -62,9 +70,12 @@ estaban (Tero, `el-menu-como-rm2k.md`).
 - **Tiles y colores compartidos con ítems** (`titulo.marcos`): las dos
   pantallas no se abren a la vez y suben al mismo lugar, así que suben el
   mismo juego y cada una su tilemap. Los 17 tiles de ítems no alcanzaban:
-  equipo suma cinco propios y el juego conjunto es de **22**, y con la fuente de 336 terminan en $37C0,
-  a dos tiles de 8bpp del tilemap en $3800. `_controlar_marco_de_items`
-  controla el conjunto. Los colores de las ventanas bajaron de la entrada 48
+  equipo suma siete propios —la punta de la barra en la columna 0 comparte
+  tile con el marco— y el juego conjunto es de **24**, que con la fuente de
+  336 terminan **justo** en $3800, donde empieza el tilemap: no queda ni un
+  tile de 8bpp. `_controlar_marco_de_items` controla el conjunto, así que lo
+  que venga después —las ventanas de la tienda, por ejemplo— va a tener que
+  compartir o buscar otro lugar. Los colores de las ventanas bajaron de la entrada 48
   a la 64 de la CGRAM, detrás de la paleta roja.
 - Los parámetros con más aire: el valor en la columna 9 del bloque y la
   flecha en la 12, que en la ventana del actor sobra lugar.
@@ -103,6 +114,10 @@ estaban (Tero, `el-menu-como-rm2k.md`).
 - `rama-equipo*` no cambian: son capturas del mapa.
 - Antes, ahora y el original, lado a lado, en
   `/shared/capturas/2026-09-28-equipo/`.
+- Alinear las columnas movió la ROM, y con ella cuándo cae cada escritura
+  al DSP dentro del cuadro: `dcbest`, que estaba cerca del tope, pasó a
+  recortar dos muestras (`test_musica_techos.py`). Se corrió `just techos`,
+  que es lo que la prueba pide, y la tabla va en su propio commit.
 - Verificado con `just cartuchos` y `just pruebas` sobre esta rama: todo en
   verde. `just espacio`: en `release` el banco 0 pasó de 190 a 196 B libres
   y el banco 1 de 4.499 a 4.380; en `test-special`, de 1.083 a 1.089 y de

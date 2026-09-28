@@ -91,27 +91,34 @@ EQ_PARAMS = tuple((EQ_ACTOR_FILA + 2 * n, 1) for n in range(4))
 EQ_PARAM_VALOR = 9              # el valor, tres cifras desde acá, con aire
 EQ_PARAM_FLECHA = 12            # ">" y el valor nuevo, en la elección
 EQ_RANURA_FILA0 = EQ_ABAJO_Y // titulo.CELL + 1
+# Las tres ventanas arrancan su texto en la misma columna, la de los
+# parámetros: los términos de las ranuras debajo de los de los parámetros, y
+# los nombres de la lista debajo de ellos. Lo pidió taro el 2026-09-28, al ver
+# las ranuras corridas una celda —la columna 2 salía de hacer coincidir la
+# punta de la barra con la de ítems, no de nada que se viera—.
+EQ_TEXTO_COL = EQ_PARAMS[0][1]
 # El término y lo puesto van pegados, sin una celda en el medio: así los pone
 # RM2k —"Right HandModified Blaster-R"— y así entra el nombre más largo antes
 # de donde termina la barra, que es donde termina la de ítems.
-EQ_RANURA_TERM_COL = 2
+EQ_RANURA_TERM_COL = EQ_TEXTO_COL
 EQ_RANURA_TERM_ANCHO = 10       # "Right Hand"
 EQ_RANURA_NOMBRE_COL = EQ_RANURA_TERM_COL + EQ_RANURA_TERM_ANCHO
-EQ_RANURA_NOMBRE_ANCHO = 18     # hasta la columna 29, como la cuenta de ítems
+EQ_RANURA_NOMBRE_ANCHO = 19     # hasta la columna 29, como la cuenta de ítems
 EQ_LISTA_FILA0 = EQ_RANURA_FILA0
 EQ_LISTA_FILAS = 5              # 17 + 5 * 2 = 27: el marco de abajo
+# La lista, con los nombres en esa columna y no en la de ítems —que es la de
+# la tienda—; los dos puntos y la cuenta, en las de ítems.
+EQ_LISTA_NOMBRE_COL = EQ_TEXTO_COL
 # El ">" de la tienda, que todavía no tiene ventanas: el equipo ya no lo usa.
 EQ_CURSOR_COL = 1
 # Las barras, cuatro pixeles más anchas que el texto de cada lado, como en
 # ítems: la de las ranuras sobre el término y lo puesto, que es lo que marca
-# RM2k, y la de la lista, la misma que la de ítems. Las dos terminan en la
-# misma columna, y la de las ranuras empieza en el mismo lugar de su tile que
-# la de ítems: así las puntas son los mismos tiles, y en la VRAM no sobra
-# para más —ver `_controlar_marco_de_items`—.
-EQ_BARRA_RANURA = (EQ_RANURA_TERM_COL * titulo.CELL - 4,
-                   (EQ_RANURA_NOMBRE_COL + EQ_RANURA_NOMBRE_ANCHO
-                    - EQ_RANURA_TERM_COL) * titulo.CELL + 8)
-EQ_BARRA_LISTA = (titulo.ITEM_BARRA_X, titulo.ITEM_BARRA_ANCHO)
+# RM2k, y la de la lista sobre el nombre y la cuenta. Con el texto en la misma
+# columna son la misma barra, y termina donde la de ítems.
+EQ_BARRA_RANURA = (EQ_TEXTO_COL * titulo.CELL - 4,
+                   (titulo.ITEM_CIFRAS_COL + 2 - EQ_TEXTO_COL) * titulo.CELL
+                   + 8)
+EQ_BARRA_LISTA = EQ_BARRA_RANURA
 PARAM_MAX = 999
 
 
@@ -251,7 +258,7 @@ def pantalla_equipo(db, actor, equipo, inventario, ranura, eligiendo=False,
             break
         fila = EQ_LISTA_FILA0 + 2 * f
         if lista[k]:
-            t.escribir(fila, titulo.ITEM_NOMBRE_COL, titulo.texto_de_item(
+            t.escribir(fila, EQ_LISTA_NOMBRE_COL, titulo.texto_de_item(
                 db.items[lista[k]].name, titulo.ITEM_NOMBRE_ANCHO))
             t.escribir(fila, titulo.ITEM_DOS_PUNTOS_COL,
                        ":%2d" % min(inventario[lista[k]], 99))
