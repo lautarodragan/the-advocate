@@ -187,6 +187,9 @@ rama, los NPC no sacan al otro—.
 La golden `mapa-de-debug-llegada` no cambió: los carteles y los NPC son
 texto.
 
+Con `main` mergeado en `43dc5303`: `just cartuchos` y `just pruebas`, todo en
+verde.
+
 # Qué tiene que probar taro
 
 * Cada NPC: el cartel dice la rama, y sumar uno saca al otro.
