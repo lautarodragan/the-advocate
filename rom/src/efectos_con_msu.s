@@ -234,20 +234,40 @@ tomar:
 ; La altura del sonido de índice A —dieciséis bits— con la versión del `.msu`
 ; del paquete que está en la ARAM, o 0 si su efecto no es de ese paquete. Z
 ; según la altura. Se lleva X.
+;
+; La lista del paquete son pares (índice, altura) ordenados por índice y
+; cerrados con $FFFF, sólo con los sonidos cuyo efecto es de ahí: ver
+; `escribir_msu` en tools/port/snes_convert.py. Se recorre entera como mucho
+; —unas decenas de pares—, y como están ordenadas, se corta al pasar de largo;
+; el $FFFF corta también, porque ningún índice llega.
 .proc altura_msu
 .a16
 .i16
-    asl a
-    pha
+    pha                         ; el índice que se busca
     lda f:PAQ_MAPA
     asl a
     tax
     lda f:se_msu_altura_paq, x
-    clc
-    adc 1, s
     tax
+buscar:
+    lda f:se_msu_altura, x      ; el índice del par
+    cmp 1, s
+    beq esta
+    bcs no_esta                 ; ya pasó de largo: no es de este paquete
+    inx
+    inx
+    inx
+    inx
+    bra buscar
+esta:
     pla
-    lda f:se_msu_altura, x
+    ; El `lda` va después del `pla`, que deja Z del índice: el llamador mira
+    ; Z de la altura.
+    lda f:se_msu_altura + 2, x
+    rts
+no_esta:
+    pla
+    lda #0
     rts
 .endproc
 
