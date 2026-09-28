@@ -5747,27 +5747,34 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                 "$%04X" % entry(c, False, False)
                 for c in menu["exp_termino"])))
         # La elección de actor: sus ventanas en BG1 —ver `OBJETIVO_VENTANAS`
-        # en titulo.py—, con ítem y sin ítem, y el cursor como las filas de
-        # celdas de cada fila del grupo con la barra encima, 448 bytes cada
-        # una. Y el nombre de cada ítem en dos renglones, en ASCII: sólo el de
-        # las medicinas, que son las que abren esta pantalla; los demás van
-        # en blanco para que la tabla se indexe por `k`.
+        # en titulo.py—. Un solo tilemap, el con ítem, y la barra sólo en el
+        # rectángulo que cambia: ver `titulo.objetivo_compacto`. Y el nombre
+        # de cada medicina en dos renglones, en ASCII, con una tabla de un
+        # byte por `k` que dice cuál es —$FF si no es medicina—: sólo las
+        # medicinas abren esta pantalla.
         obj_tiles, obj_colores, obj_mapas = ranuras["objetivo"]
+        (obj_mapa, obj_barras, obj_fila0, obj_filas, obj_col0, obj_cols,
+         obj_borrar_filas, obj_borrar_cols) = T.objetivo_compacto(obj_mapas)
         handle.write(bloque("objetivo_tiles", b"".join(
             pack_tile(celda, planes=8) for celda in obj_tiles)) + "\n")
-        for sufijo, (mapa, barras) in zip(("", "_sin"), obj_mapas):
-            handle.write(bloque("objetivo_mapa" + sufijo, b"".join(
-                palabra.to_bytes(2, "little") for palabra in mapa)) + "\n")
-            handle.write(bloque("objetivo_barras" + sufijo, b"".join(
-                palabra.to_bytes(2, "little") for barra in barras
-                for palabra in barra)) + "\n")
+        handle.write(bloque("objetivo_mapa", b"".join(
+            palabra.to_bytes(2, "little") for palabra in obj_mapa)) + "\n")
+        handle.write(bloque("objetivo_barras", b"".join(
+            palabra.to_bytes(2, "little") for barra in obj_barras
+            for palabra in barra)) + "\n")
         handle.write(bloque("objetivo_cgram", b"".join(
             cgram_word(c).to_bytes(2, "little") for c in obj_colores)) + "\n")
+        medicinas = [n for n in ranuras["items"]
+                     if ranuras["items_db"][n].type == lcf.ITEM_TIPO_MEDICINA]
+        if len(medicinas) > 255:
+            raise SystemExit("%d medicinas no entran en `objetivo_nombre_de`"
+                             % len(medicinas))
+        handle.write(bloque("objetivo_nombre_de", bytes(
+            medicinas.index(n) if n in medicinas else 0xFF
+            for n in ranuras["items"])) + "\n")
         handle.write(bloque("objetivo_nombres", b"".join(
-            "".join(T.nombre_en_renglones(ranuras["items_db"][n].name)
-                    if ranuras["items_db"][n].type == lcf.ITEM_TIPO_MEDICINA
-                    else [" " * T.OBJETIVO_NOMBRE_ANCHO] * 2)
-            .encode("ascii", "replace") for n in ranuras["items"])) + "\n")
+            "".join(T.nombre_en_renglones(ranuras["items_db"][n].name))
+            .encode("ascii", "replace") for n in medicinas)) + "\n")
         handle.write(
             "OBJETIVO_VRAM     = $%04X\n"
             "OBJETIVO_MAPA     = $%04X\n"
@@ -5777,10 +5784,18 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "OBJETIVO_NOMBRE_ANCHO = %d\n"
             "OBJETIVO_NOMBRE_VRAM = %d\n"
             "OBJETIVO_CUANTOS_VRAM = %d\n"
+            "OBJETIVO_BARRA_FILA0 = %d\n"
+            "OBJETIVO_BARRA_FILAS = %d\n"
+            "OBJETIVO_BARRA_COL0 = %d\n"
+            "OBJETIVO_BARRA_COLS = %d\n"
+            "OBJETIVO_BORRAR_FILAS = %d\n"
+            "OBJETIVO_BORRAR_COLS = %d\n"
             % (T.OBJETIVO_VRAM, T.OBJETIVO_MAPA, len(obj_tiles),
                T.OBJETIVO_CGRAM, len(obj_colores), T.OBJETIVO_NOMBRE_ANCHO,
                celda_vram(T.OBJETIVO_NOMBRE_FILA, T.OBJETIVO_NOMBRE_COL),
-               celda_vram(T.OBJETIVO_CUANTOS_FILA, T.OBJETIVO_CUANTOS_COL)))
+               celda_vram(T.OBJETIVO_CUANTOS_FILA, T.OBJETIVO_CUANTOS_COL),
+               obj_fila0, obj_filas, obj_col0, obj_cols, obj_borrar_filas,
+               obj_borrar_cols))
         handle.write(
             "MENU_EXP_X        = %d\n"
             "MENU_EXP_NUM_X    = %d\n"

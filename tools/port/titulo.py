@@ -1539,6 +1539,58 @@ def capas_objetivo(sys_img, db, font_id=None):
             for con_item in (True, False)]
 
 
+def objetivo_compacto(mapas):
+    """Lo que la ROM guarda de los tilemaps de `marcos(capas_objetivo(...))`,
+    que es mucho menos que lo que `marcos` devuelve.
+
+    * **Un solo tilemap**, el con ítem: el de sin ítem es el mismo con las
+      celdas de las dos ventanas de la izquierda en cero —las columnas de
+      `OBJETIVO_IZQ` para la izquierda, hasta el fondo de la de "Owned
+      Items"—, y la ROM las borra al subirlo.
+    * **La barra, sólo donde cambia**: el rectángulo que cubre lo que difiere
+      entre cada fila del grupo con barra y sin ella, igual para las cuatro
+      filas, y que tiene que ser igual con ítem y sin ítem.
+
+    Devuelve `(mapa, barras, fila0, filas, col0, cols, borrar_filas,
+    borrar_cols)`: `barras[k]` son las `filas` por `cols` palabras de la fila
+    `k` del grupo, desde la fila `fila0` de la fila del actor y la columna
+    `col0`. Si algo de eso no vale, es un error y no un tilemap distinto: la
+    ROM supone las dos cosas.
+    """
+    (con, barras_con), (sin, barras_sin) = mapas
+    borrar_cols = OBJETIVO_IZQ // CELL
+    borrar_filas = (OBJETIVO_NOMBRE_ALTO + OBJETIVO_CUANTOS_ALTO) // CELL
+    esperado = [0 if (i // COLS < borrar_filas and i % COLS < borrar_cols)
+                else p for i, p in enumerate(con)]
+    if esperado != sin:
+        raise SystemExit("el tilemap sin ítem de la elección de actor no es "
+                         "el con ítem con las ventanas de la izquierda "
+                         "borradas")
+    distintas = set()
+    for k, barra in enumerate(barras_con):
+        base = con[k * MENU_ACTOR_FILAS * COLS:
+                   (k + 1) * MENU_ACTOR_FILAS * COLS]
+        distintas |= {(i // COLS, i % COLS)
+                      for i, (a, b) in enumerate(zip(base, barra)) if a != b}
+    fila0 = min(f for f, _ in distintas)
+    filas = max(f for f, _ in distintas) + 1 - fila0
+    col0 = min(c for _, c in distintas)
+    cols = max(c for _, c in distintas) + 1 - col0
+    if col0 < borrar_cols:
+        raise SystemExit("la barra de la elección de actor llega a la "
+                         "columna %d, que es de las ventanas del ítem" % col0)
+
+    def recorte(barra):
+        return [barra[(fila0 + f) * COLS + col0 + c]
+                for f in range(filas) for c in range(cols)]
+
+    barras = [recorte(b) for b in barras_con]
+    if barras != [recorte(b) for b in barras_sin]:
+        raise SystemExit("la barra de la elección de actor no es la misma con "
+                         "ítem y sin ítem")
+    return con, barras, fila0, filas, col0, cols, borrar_filas, borrar_cols
+
+
 def render_objetivo(sys_img, db, ranuras, grupo, elegida=0, font_id=None,
                     actores=None, game_dir=None, hp=None, item=None,
                     cantidad=0):
