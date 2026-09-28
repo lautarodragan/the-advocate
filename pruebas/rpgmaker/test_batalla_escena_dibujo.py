@@ -185,7 +185,7 @@ def test_escena_un_encuentro_al_azar_hereda_el_fondo_del_mapa(partida):
     RM2k. Se compara el fondo limpio que quedó en la
     WRAM contra el de `ABLBackdropSJ03` convertido de este lado: el respaldo
     liviano, porque la tanda corre sin MSU-1. Que en la WRAM esté entero en
-    8bpp prueba también que la ROM lo agrandó bien desde 4bpp.
+    8bpp prueba también que la ROM lo agrandó bien desde 4bpp y al doble.
     """
     una = en_sector_27(partida)
     assert _byte(una, "ESC_FONDO") != 0xFF, "la pelea al azar quedó sin fondo"
@@ -270,17 +270,7 @@ def test_escena_el_droide_muerto_peleando_desaparece(partida):
         "el droide murió y en la pantalla se sigue viendo"
 
 
-def test_escena_una_pelea_del_lugar_usa_el_fondo_del_mapa(partida):
-    """`EnemyEncounter` con el fondo "del lugar" —el parámetro `[2]` en 0—:
-    `Game_Map::SetupBattle`, el del mapa donde se pelea, igual que un
-    encuentro al azar. El caso `pelea-113` pelea así en el 60, que nombra
-    `SJBackdropABL01`, y la ROM no lo lleva: sin MSU-1 se dibuja el de
-    reemplazo, y `ESC_FONDO` queda con el número del del mapa, que es el que
-    se leería del `.msu`.
-
-    Si alguna página del juego que el cartucho compila antes pidiera la tropa
-    113 con un fondo con nombre, la tropa se quedaría con ése —gana el
-    primero, ver `Tropas.pedir`— y esta prueba lo diría."""
+def _fondos_del_juego():
     from port import eventos
     from rpgmaker import lcf
     import os
@@ -288,16 +278,67 @@ def test_escena_una_pelea_del_lugar_usa_el_fondo_del_mapa(partida):
     juego = escena.fondos_del_juego(
         eventos.fondos_nombrados(GAME_DIR), tree,
         eventos.base_de_datos(GAME_DIR).terrain_backdrops, GAME_DIR)
+    return tree, juego
+
+
+def test_escena_una_pelea_del_lugar_usa_el_fondo_del_mapa(partida):
+    """`EnemyEncounter` con el fondo "del lugar" —el parámetro `[2]` en 0—:
+    `Game_Map::SetupBattle`, el del mapa donde se pelea, igual que un
+    encuentro al azar. El caso `pelea-113` pelea así en el 60, que nombra
+    `SJBackdropABL01`: `ESC_FONDO` queda con su número, que es el que se
+    leería del `.msu`, y sin MSU-1 se dibuja su respaldo, porque los
+    encuentros al azar del 60 lo piden y la ROM lo lleva.
+
+    Si alguna página del juego que el cartucho compila antes pidiera la tropa
+    113 con un fondo con nombre, la tropa se quedaría con ése —gana el
+    primero, ver `Tropas.pedir`— y esta prueba lo diría."""
+    tree, juego = _fondos_del_juego()
     del_mapa = tree.map_background(60)
-    assert del_mapa and del_mapa not in escena.FONDOS, (
-        "el 60 nombra %r, y la prueba necesita uno que la ROM no lleve"
-        % del_mapa)
+    assert del_mapa, "el 60 ya no nombra fondo, y la prueba necesita uno"
     una = partida(caso="pelea-113")
     _esperar(una, tope=600)
     una.consola.correr(3)
     assert _byte(una, "ESC_FONDO") == juego.index(del_mapa), (
         "la pelea del lugar en el 60 eligió el fondo %d y el del mapa es %r, "
         "el %d" % (_byte(una, "ESC_FONDO"), del_mapa, juego.index(del_mapa)))
+    suyo = escena.fondo_liviano(del_mapa, GAME_DIR)
+    assert _distintos(_bufer(una, "ESC_LIMPIO"), suyo["indices"]) == 0, (
+        "sin MSU-1 la pelea del lugar en el 60 no tiene el respaldo de %r"
+        % del_mapa)
+
+
+# Una pelea del lugar en el 7, que no tiene encuentros al azar y no nombra
+# fondo: el del terreno, y el 7 es todo de uno solo —la rama de
+# `M_TERRENO_PLANO` en `esc_terreno`—, que la ROM no lleva porque ninguna
+# pelea del cartucho lo pide de antemano.
+PELEA_EN_7 = "pelea-113-en-7"
+
+
+def test_escena_una_pelea_cuyo_fondo_no_esta_usa_el_reemplazo(partida):
+    """Lo único que en `release` cae en el reemplazo: una tropa del lugar en
+    un mapa sin encuentros, donde el fondo sale del terreno bajo el héroe y
+    el conversor no puede saber cuál será. `ESC_FONDO` es el del terreno —el
+    que se leería del `.msu`— y sin MSU-1 se dibuja el de
+    `escena.REEMPLAZO`, no negro. Ver "Qué fondos hay" en escena.py."""
+    from port import eventos
+    from rpgmaker import lcf, rm2k
+    _tree, juego = _fondos_del_juego()
+    db = eventos.base_de_datos(GAME_DIR)
+    game_map = lcf.Map("%s/Map%04d.lmu" % (GAME_DIR, 7))
+    terrenos = {rm2k.terreno_de(db.chipsets[game_map.chipset_id], t)
+                for t in game_map.lower_layer}
+    assert len(terrenos) == 1, (
+        "el 7 dejó de ser de un solo terreno: %r" % sorted(terrenos))
+    suyo = db.terrain_backdrops[terrenos.pop()]
+    una = partida(caso=PELEA_EN_7)
+    _esperar(una, tope=600)
+    una.consola.correr(3)
+    assert _byte(una, "ESC_FONDO") == juego.index(suyo), (
+        "la pelea del lugar en el 7 eligió el fondo %d y el terreno del mapa "
+        "pide %r, el %d" % (_byte(una, "ESC_FONDO"), suyo, juego.index(suyo)))
+    respaldo = _byte(una, "ESC_RESPALDO")
     reemplazo = escena.fondo_liviano(escena.REEMPLAZO, GAME_DIR)
     assert _distintos(_bufer(una, "ESC_LIMPIO"), reemplazo["indices"]) == 0, (
-        "sin MSU-1 la pelea del lugar no tiene el fondo de reemplazo")
+        "sin MSU-1 la pelea del lugar en el 7 no tiene el fondo de reemplazo "
+        "(ESC_RESPALDO en %d): o %r entró en la ROM y la prueba necesita otro "
+        "mapa, o el reemplazo no anda" % (respaldo, suyo))

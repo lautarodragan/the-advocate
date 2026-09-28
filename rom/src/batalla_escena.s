@@ -105,6 +105,9 @@ ED_FILAS = $28
 ED_YY  = $2A    ; la fila de pixeles de la escena
 ED_PASO = $2C   ; cuánto mide una fila de un plano
 ED_N   = $2E    ; cuántas columnas tiene el battler
+; Y los de `esc_doblar`, que corre antes de poner a nadie.
+ED_FUENTE = $00 ; el puntero de 24 bits al respaldo, que avanza
+ED_PALABRAS = $04 ; cuántas palabras de dos planos faltan del par de tiles
 
 .proc esc_dp_tomar
 .a8
@@ -916,6 +919,11 @@ listo:
 ; El fondo de `ESC_FONDO`, de donde diga `ESC_MSU`: sus colores y los dos
 ; búferes. Si una búsqueda del `.msu` no llega a tiempo, deja ESC_MSU en 0 y
 ; sigue desde la ROM: ver quién la llama.
+;
+; Desde la ROM, `esc_llenar` deja en los dos búferes sólo los planos fijos, y
+; el respaldo lo agranda `esc_doblar` en los dos a la vez. Si el primero salió
+; del `.msu` y el segundo no, `esc_doblar` le pisa al primero la mitad de
+; abajo de cada tile; da igual, porque `escena_subir` rehace todo desde la ROM.
 .proc esc_fondo
 .a8
 .i16
@@ -923,7 +931,15 @@ listo:
     lda #0
     jsr esc_llenar
     lda #$80
-    jmp esc_llenar
+    jsr esc_llenar
+    lda ESC_MSU
+    bne listo
+    lda ESC_FONDO
+    cmp #$FF
+    beq listo                   ; el liso ya está: son ceros
+    jsl f:esc_doblar + RAPIDO   ; desde el espejo rápido: ver MEMSEL
+listo:
+    rts
 .endproc
 
 ; Los colores del fondo, desde la entrada ESCENA_CGRAM: los 96 del de calidad
@@ -1032,7 +1048,9 @@ de_la_rom:
 .a8
 .i16
     sta f:WMADDM
+    sta ESC_T0 + 1              ; y de nuevo, para el camino de la ROM
     lda #0
+    sta ESC_T0
     sta f:WMADDL
     lda #1
     sta f:WMADDH
@@ -1092,69 +1110,139 @@ no_la_encontro:
     lda #0
     sta ESC_MSU
 de_la_rom:
-    ; El respaldo liviano, agrandado de 4bpp a 8bpp mientras se copia: por
-    ; tile, los 32 bytes de sus planos 0 a 3 por el canal 0 y los 32 fijos
-    ; de `respaldo_alto` por el 7, en ese orden porque MDMAEN corre los
-    ; canales de menor a mayor. WMADD sigue solo de uno al otro. El canal 0
-    ; sigue solo por el trozo —A1T0 avanza con la transferencia y nadie más
-    ; usa DMA mientras tanto: ni la NMI ni `irq_musica`—, y el 7 se rebobina
-    ; en cada tile. Ver "El respaldo liviano" en tools/port/escena.py.
+    ; Desde la ROM, acá van sólo los planos 4 a 7, que son los mismos en
+    ; todos los pixeles del respaldo: los 32 bytes de `respaldo_alto` en la
+    ; mitad de arriba de cada tile, rebobinando el origen y moviendo WMADD en
+    ; cada uno. La mitad de abajo la llena después `esc_doblar`. Ver "El
+    ; respaldo liviano" en tools/port/escena.py.
     lda #0
-    sta f:DMAP0                 ; de a un byte, el origen avanzando
-    sta f:DMAP7
+    sta f:DMAP7                 ; de a un byte, el origen avanzando
     lda #$80                    ; WMDATA
     sta f:BBAD7
     lda #^respaldo_alto
     sta f:A1B7
-    lda ESC_RESPALDO
     rep #$20
 .a16
-    and #$00FF
-    asl a
-    asl a
-    asl a                       ; por ESCENA_TROZOS * 4: la fila de punteros
-    .assert ESCENA_TROZOS = 2, error, "la fila de fondo_trozo cambió de largo"
+    lda ESC_T0
+    clc
+    adc #RESPALDO_TILE          ; la mitad de arriba del primer tile
     tax
-    sep #$20
-.a8
-    lda #0
-    sta ESC_I
-trozo:
-    rep #$20
-.a16
-    lda f:fondo_trozo, x
-    sta f:A1T0L
-    sep #$20
-.a8
-    lda f:fondo_trozo + 2, x
-    sta f:A1B0
-    phx
-    ldx #RESPALDO_POR_TROZO
+    ldy #ESCENA_TILES
 tile:
-    rep #$20
-.a16
-    lda #RESPALDO_TILE
-    sta f:DAS0L
+    txa
+    sta f:WMADDL                ; y WMADDM; WMADDH sigue en el $7F
     lda #(64 - RESPALDO_TILE)
     sta f:DAS7L
     lda #.loword(respaldo_alto)
     sta f:A1T7L
     sep #$20
 .a8
-    lda #$81                    ; los canales 0 y 7
+    lda #$80                    ; el canal 7
     sta f:MDMAEN
-    dex
+    rep #$20
+.a16
+    txa
+    clc
+    adc #64
+    tax
+    dey
     bne tile
-    plx
-    inx
-    inx
-    inx
-    inx
-    inc ESC_I
-    lda ESC_I
-    cmp #ESCENA_TROZOS
-    bcc trozo
+    sep #$20
+.a8
     rts
+.endproc
+
+; El respaldo de `ESC_RESPALDO`, agrandado al doble en los dos búferes: la
+; mitad de abajo de cada tile, que son sus planos 0 a 3. Los de arriba ya los
+; puso `esc_llenar`.
+;
+; Es CPU y no DMA porque cada pixel chico son dos a lo ancho, y en planar eso
+; es partir cada byte en dos: lo hace `respaldo_doble`, una tabla de 256
+; palabras. `respaldo_bytes`, en tools/port/snes_convert.py, deja los bytes en
+; el orden en que se leen acá, así que la ROM sólo avanza: por cada par de
+; tiles vecinos de la escena —el izquierdo y el derecho que salen de la misma
+; fila de un tile chico—, ocho palabras de dos planos, cada una escrita en dos
+; filas —la fila chica, duplicada a lo alto— y en los dos búferes.
+;
+; Se entra con `jsl` por el espejo rápido, y corre con el banco de datos en el
+; $7F, así que los búferes van con `a:`.
+.proc esc_doblar
+.a8
+.i16
+    jsr esc_dp_tomar
+    lda ESC_RESPALDO
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a                       ; por 4: la fila de `fondo_dir`
+    tax
+    lda f:fondo_dir, x
+    sta ED_FUENTE
+    sep #$20
+.a8
+    lda f:fondo_dir + 2, x
+    ora #^RAPIDO                ; el respaldo, por el espejo rápido
+    sta ED_FUENTE + 2
+    phb
+    lda #^ESC_LIMPIO
+    pha
+    plb
+    .assert ^ESC_ESCENA = ^ESC_LIMPIO, error, "los búferes de la escena cambiaron de banco"
+    .assert RESPALDO_ESCALA = 2, error, "esc_doblar agranda al doble y nada más"
+    rep #$20
+.a16
+    ldy #0                      ; el tile izquierdo del par, en los búferes
+par:
+    lda #8
+    sta ED_PALABRAS
+palabra:
+    ; El byte de adelante da la fila del tile izquierdo; el de atrás, la del
+    ; derecho. Cada uno, por la tabla, es la palabra de dos planos entera.
+    lda [ED_FUENTE]
+    and #$00FF
+    asl a
+    tax
+    lda f:respaldo_doble + RAPIDO, x
+    sta a:.loword(ESC_LIMPIO), y
+    sta a:.loword(ESC_LIMPIO) + 2, y
+    sta a:.loword(ESC_ESCENA), y
+    sta a:.loword(ESC_ESCENA) + 2, y
+    lda [ED_FUENTE]
+    xba
+    and #$00FF
+    asl a
+    tax
+    lda f:respaldo_doble + RAPIDO, x
+    sta a:.loword(ESC_LIMPIO) + 64, y
+    sta a:.loword(ESC_LIMPIO) + 66, y
+    sta a:.loword(ESC_ESCENA) + 64, y
+    sta a:.loword(ESC_ESCENA) + 66, y
+    ; El respaldo no cruza de banco —es un `.bloque`—, así que alcanza con los
+    ; dieciséis bits de abajo.
+    inc ED_FUENTE
+    inc ED_FUENTE
+    ; Las dos filas que siguen: cuatro bytes más adelante. Las de los planos
+    ; 2/3 empiezan a los 16, que es justo donde termina la cuarta de los 0/1.
+    iny
+    iny
+    iny
+    iny
+    dec ED_PALABRAS
+    bne palabra
+    ; El par siguiente: los 128 bytes de los dos tiles, menos los 32 que ya
+    ; se avanzó.
+    tya
+    clc
+    adc #(128 - 32)
+    tay
+    cpy #(ESCENA_TILES * 64)
+    bcc par
+    sep #$20
+.a8
+    plb
+    jsr esc_dp_devolver
+    rtl
 .endproc
 
 ; --- borrar a un enemigo muerto ---

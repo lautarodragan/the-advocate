@@ -1,7 +1,7 @@
 """El puerto de datos del MSU-1: los fondos de batalla leídos del `.msu`.
 
-El cartucho lleva en la ROM el respaldo liviano de cada fondo —4bpp, 16
-colores— y el conversor escribe en el `.msu` el de calidad —8bpp, 96—: ver
+El cartucho lleva en la ROM el respaldo liviano de cada fondo —128x64 en
+4bpp, 16 colores, que la ROM agranda al doble— y el conversor escribe en el `.msu` el de calidad —8bpp, 96—: ver
 "El respaldo liviano" en tools/port/escena.py. Con MSU-1 y el `.msu` de este
 cartucho la ROM lee el de calidad; sin MSU-1, o con otro `.msu`, el suyo. La
 tanda entera corre sin MSU-1 —el arnés le esconde el `.msu` al core, ver
@@ -18,10 +18,11 @@ mismo `.msu` con los tiles del fondo cambiados y la firma de la cabecera
 intacta —la ROM no puede hashear 98 KB— tiene que dibujar otra cosa.
 
 **Y el `.msu` lleva todos los fondos del juego**, cada uno en su lugar fijo
-—ver "El formato" en tools/port/msu_datos.py—, mientras la ROM lleva pocos y
-usa uno de reemplazo para los demás. Lo prueba una pelea del mundo, el 66,
-cuyo fondo es el del terreno que pisa el héroe y no está en la ROM: con el
-`.msu` sale el suyo, y sin él el de reemplazo, no negro.
+—ver "El formato" en tools/port/msu_datos.py—, y la ROM los que piden las
+peleas del cartucho. Lo prueba una pelea del mundo, el 66, cuyo fondo es el
+del terreno que pisa el héroe: con el `.msu` sale el de calidad, y sin él su
+respaldo. El reemplazo, para un fondo que la ROM no lleva, lo prueba
+`test_escena_una_pelea_cuyo_fondo_no_esta_usa_el_reemplazo`.
 
 Corre en snes9x y en bsnes, que implementan el puerto igual (`readIO` de
 `$2001` en `sfc/coprocessor/msu1/msu1.cpp` de bsnes, `S9xMSU1ReadPort` en
@@ -54,8 +55,8 @@ ARRANQUE = "en-5"
 FONDO_SECTOR_27 = "ABLBackdropSJ03"
 
 # La llegada al mundo, la de `test_mundo.py`: el 66 no nombra fondo, así que
-# la pelea usa el del terreno de la celda, y ninguno de los del mundo está en
-# la ROM. Lo que corre la automática del evento 1 al llegar, con margen.
+# la pelea usa el del terreno de la celda. Lo que corre la automática del
+# evento 1 al llegar, con margen.
 EL_MUNDO = (66, 71, 29)
 # El viaje de Dalia (la automática 14 del 66) arranca con `DummyHero`, el
 # actor 10, en el grupo, que es el de `en-5`: con él corriendo no se abre
@@ -111,17 +112,15 @@ def _pelea(tmp_path, nombre, nucleo, msu, lugar=SECTOR_27, antes=0,
 
 def _fondo_8bpp(liviano, nombre=FONDO_SECTOR_27):
     """Los 32 KB que la ROM deja en la WRAM para un fondo —el de Sector 27, si
-    no—: el de calidad tal cual, o el liviano con los planos 4 a 7 pegados a
-    cada tile."""
-    info = escena.fondo(nombre, GAME_DIR)
+    no—: el de calidad tal cual, o el liviano agrandado al doble. El liviano
+    se arma de sus índices ya duplicados y en 8bpp, sin pasar por
+    `respaldo_bytes`: así lo que se compara es lo que hace la ROM contra la
+    imagen, y no contra el mismo orden de bytes del que ella lee."""
     if not liviano:
-        return snes_convert.fondo_bytes(info)[0]
-    info["respaldo"] = escena.fondo_liviano(nombre, GAME_DIR)
-    tiles, _colores = snes_convert.respaldo_bytes(info)
-    alto = snes_convert.respaldo_alto()
-    ancho = escena.RESPALDO_PLANOS * 8
-    return b"".join(tiles[k:k + ancho] + alto
-                    for k in range(0, len(tiles), ancho))
+        return snes_convert.fondo_bytes(escena.fondo(nombre, GAME_DIR))[0]
+    grande = escena.fondo_liviano(nombre, GAME_DIR)["indices"]
+    return b"".join(snes_convert.pack_tile(celda, planes=8)
+                    for celda in escena.tiles(grande))
 
 
 def _msu_del_cartucho():
@@ -151,7 +150,7 @@ def test_msu_cada_camino_dibuja_su_fondo(tmp_path, nucleo):
     assert de_donde == 0, "sin MSU-1, la ROM dice que leyó el fondo del .msu"
     assert limpio == _fondo_8bpp(liviano=True), (
         "sin MSU-1 el fondo de la WRAM no es el respaldo liviano agrandado a "
-        "8bpp: la copia de dos canales de `esc_llenar` no anda")
+        "8bpp y al doble: `esc_llenar` o `esc_doblar` no andan")
     tanda.golden("msu-datos-rom", imagen)
 
     con, de_donde, _fondo, imagen, limpio = _pelea(tmp_path, "con", nucleo,
@@ -221,18 +220,16 @@ def _fondo_del_terreno(mapa, x, y):
 
 
 @pytest.mark.parametrize("nucleo", [SNES9X, BSNES], ids=["snes9x", "bsnes"])
-def test_msu_una_pelea_del_mundo_lee_su_terreno_o_el_reemplazo(tmp_path,
-                                                               nucleo):
-    """El 66 no nombra fondo: la pelea usa el del terreno donde está el héroe,
-    que no está en la ROM. Con el `.msu`, el de calidad de ese terreno; sin él,
-    el liviano de `escena.REEMPLAZO` y no negro. Cada camino contra su golden
+def test_msu_una_pelea_del_mundo_lee_su_terreno(tmp_path, nucleo):
+    """El 66 no nombra fondo: la pelea usa el del terreno donde está el héroe.
+    Con el `.msu`, el de calidad de ese terreno; sin él, su respaldo, que la
+    ROM lleva porque el 66 tiene encuentros al azar y el conversor mete los
+    fondos de todos sus terrenos. Cada camino contra su golden
     —`msu-mundo-rom` y `msu-mundo-msu`— y el fondo limpio de la WRAM contra
-    los bytes del conversor."""
+    la imagen convertida de este lado."""
     juego = _fondos_del_juego()
     suyo = _fondo_del_terreno(*EL_MUNDO)
-    assert suyo and suyo not in escena.FONDOS, (
-        "la celda de la llegada al mundo pisa %r, y la prueba necesita un "
-        "fondo que no esté en la ROM" % suyo)
+    assert suyo, "la celda de la llegada al mundo pisa un terreno sin fondo"
     msu = _msu_del_cartucho()
 
     sin, de_donde, fondo, imagen, limpio = _pelea(
@@ -242,8 +239,8 @@ def test_msu_una_pelea_del_mundo_lee_su_terreno_o_el_reemplazo(tmp_path,
         "%r, el %d: la ROM no está leyendo el terreno bajo el héroe"
         % (fondo, suyo, juego.index(suyo)))
     assert de_donde == 0
-    assert limpio == _fondo_8bpp(liviano=True, nombre=escena.REEMPLAZO), (
-        "sin MSU-1 la pelea del mundo no tiene el fondo de reemplazo")
+    assert limpio == _fondo_8bpp(liviano=True, nombre=suyo), (
+        "sin MSU-1 la pelea del mundo no tiene el respaldo de %r" % suyo)
     assert any(limpio), "sin MSU-1 la pelea del mundo salió en negro"
     tanda.golden("msu-mundo-rom", imagen)
 

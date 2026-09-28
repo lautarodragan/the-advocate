@@ -9,10 +9,12 @@ del cartucho: ver "Los fondos" abajo. Y desde el 2026-09-26, detrás, **los
 efectos de sonido de calidad** de cada paquete de audio: ver "Los efectos"
 abajo.
 
-La ROM lleva pocos fondos, y **livianos**: 4bpp y 16 colores, contra los 8bpp
-y 96 del `.msu` —ver "El respaldo liviano" en `tools/port/escena.py`—. Así se
-ve a ojo de qué lado salió el fondo, y la ROM ahorra la mitad de cada uno.
-Una pelea cuyo fondo la ROM no lleva usa, sin MSU-1, uno de reemplazo.
+La ROM lleva los fondos que piden las peleas del cartucho, y **livianos**:
+128x64 en 4bpp y 16 colores, que la ROM agranda al doble, contra los 256x128
+en 8bpp y 96 colores del `.msu` —ver "El respaldo liviano" en
+`tools/port/escena.py`—. Así se ve a ojo de qué lado salió el fondo, y cada
+uno cuesta en la ROM un octavo de lo que pesa en el `.msu`. Una pelea cuyo
+fondo la ROM no lleva usa, sin MSU-1, uno de reemplazo.
 
 ## La regla
 
@@ -39,8 +41,8 @@ Lo arma `tools/port/msu_datos.py`, y su docstring es la referencia: una firma
 de 8 bytes (del sha256 de lo que sigue), `"ABLD"`, la versión, un índice de
 `(posición, largo)` por entrada, y las entradas. Cada fondo son dos: sus 512
 tiles de 8bpp y sus 96 colores, tal cual van a la WRAM y a la CGRAM. La ROM
-tiene en `fondo_trozo` y `fondo_cgram` otra cosa: el respaldo liviano, que
-`esc_llenar` agranda a 8bpp al copiarlo.
+tiene en `fondo_dir` y `fondo_cgram` otra cosa: el respaldo liviano, que
+`esc_llenar` y `esc_doblar` agrandan a 8bpp y al doble.
 
 La disposición, desde la versión 2 (2026-09-27):
 
@@ -103,19 +105,23 @@ celda que pisa el héroe**. Ése lo resuelve la ROM al empezar la pelea
 (`esc_terreno`, en `rom/src/batalla_escena.s`), con `fondo_terreno`. Así
 salen las peleas del mundo.
 
-**La ROM lleva pocos**: los de `escena.FONDOS` que alguna pelea del cartucho
-pide. Sin MSU-1, una pelea cuyo fondo la ROM no lleva usa **el de
-reemplazo**, `escena.REEMPLAZO` —por qué ése, en su comentario—, que va en la
-ROM en cuanto alguna pelea lo necesita: `fondo_respaldo` dice, por número de
-fondo, cuál de la ROM se dibuja. Lo pidió taro el 2026-09-27, porque las
-peleas del mundo salían en negro, y negro confunde. Con MSU-1 cada pelea
-lee el suyo del `.msu`. La ROM lleva dos números por pelea: `ESC_FONDO`, el
+**La ROM lleva todos los que las peleas del cartucho pueden pedir**: los que
+nombran las tropas, los de los mapas con encuentros al azar y los de los
+terrenos de esos mapas cuando no nombran ninguno —ver "Qué fondos hay" en
+`tools/port/escena.py`—. Sin MSU-1, una pelea cuyo fondo la ROM no lleva usa
+**el de reemplazo**, `escena.REEMPLAZO` —por qué ése, en su comentario—:
+`fondo_respaldo` dice, por número de fondo, cuál de la ROM se dibuja. Lo
+pidió taro el 2026-09-27, porque las peleas del mundo salían en negro, y
+negro confunde; el mismo día pidió que la ROM llevara todos los de
+`release`, y desde ahí el reemplazo queda para una tropa que pelea "del
+lugar" en un mapa sin encuentros, donde el conversor no puede saber qué
+terreno va a pisar el héroe. Con MSU-1 cada pelea lee el suyo del `.msu`. La ROM lleva dos números por pelea: `ESC_FONDO`, el
 del juego, que es el que se busca en el `.msu`, y `ESC_RESPALDO`, el de la
 ROM.
 
 Lo que cuesta cada fondo que la ROM lleva lo imprime el conversor ("fondo de
-batalla … en la ROM … B"): 16.384 bytes de tiles y 32 de colores, que es
-propiedad del formato, más 8 de punteros.
+batalla … en la ROM … B"): 4.096 bytes de tiles y 32 de colores, que es
+propiedad del formato, más 4 de puntero.
 
 ## Cuánto tarda
 
@@ -123,8 +129,10 @@ Se mide con `ESC_CUADROS`, que `escena_subir` deja en la RAM al abrir la
 pelea: `pruebas/abl/test_msu_datos.py` arma los dos caminos, y leerlo ahí es
 una línea. En snes9x y en bsnes el `.msu` tarda **menos** que la ROM
 —medido en la pelea del droide—: los dos son DMA a la misma velocidad y ahí
-buscar es instantáneo, pero el respaldo se copia de a un tile, con dos DMA de
-32 bytes cada uno y los registros rearmados en el medio.
+buscar es instantáneo, pero el respaldo lleva un DMA por tile para los planos
+fijos y después se agranda con la CPU, pixel por pixel doble: unos cuatro
+cuadros más que cuando era de 256x128 —medido con `ESC_CUADROS` en la pelea
+del mundo, el 2026-09-27—.
 
 **Mednafen es el único emulador en el que buscar tarda**
 (`-force_module snes_faust`; qué hace cada uno, en
@@ -175,11 +183,13 @@ La tanda corre sin MSU-1, así que sus goldens de batalla son el respaldo
 liviano. `pruebas/abl/test_msu_datos.py` corre los dos caminos en snes9x y
 en bsnes y compara **cada uno contra su golden** —`msu-datos-rom` y
 `msu-datos-msu`— y el fondo limpio de la WRAM contra los bytes que arma el
-conversor: el de calidad tal cual y el liviano agrandado a 8bpp. Lo mismo con
-una pelea del mundo, cuyo fondo es el de un terreno que la ROM no lleva
-—`msu-mundo-rom`, el reemplazo, y `msu-mundo-msu`, el del terreno—, y que
-cada fondo esté en su lugar fijo con los mismos bytes en el `.msu` de todos
-los cartuchos.
+conversor: el de calidad tal cual y el liviano agrandado a 8bpp y al doble.
+Lo mismo con una pelea del mundo, cuyo fondo es el del terreno que pisa el
+héroe —`msu-mundo-rom`, su respaldo, y `msu-mundo-msu`, el de calidad—, y
+que cada fondo esté en su lugar fijo con los mismos bytes en el `.msu` de
+todos los cartuchos. El reemplazo lo cubre
+`test_escena_una_pelea_cuyo_fondo_no_esta_usa_el_reemplazo`, en
+`pruebas/rpgmaker/test_batalla_escena_dibujo.py`.
 
 **La espera no la cubre la tanda**, porque los tres cores de libretro que
 hay acá buscan en el acto, y el arnés no puede simular la demora: ve la
