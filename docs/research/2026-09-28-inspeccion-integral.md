@@ -198,6 +198,293 @@ afirmar cobertura efectiva ni salud del producto completo.**
 5. No hay una puerta automática externa al ambiente del mantenedor. Un commit
    puede llegar a compartirse sin que otro sistema confirme la tanda.
 
+## Inspección detallada de las pruebas actuales
+
+### Inventario y forma
+
+Un recorrido por AST de `pruebas/**/test_*.py` encontró, en esta foto, 113
+archivos y 569 funciones cuyo nombre empieza con `test_`; 86 funciones están
+parametrizadas y hay 1.418 `assert` sintácticos. Estos números no miden calidad
+ni cantidad de casos efectivos —una parametrización produce varios casos y un
+helper puede hacer una comprobación sin `assert`—, pero sirven para entender la
+forma del conjunto. Se obtuvieron con:
+
+```sh
+python3 - <<'PY'
+import ast, pathlib
+archivos = list(pathlib.Path("pruebas").rglob("test_*.py"))
+arboles = [ast.parse(p.read_text()) for p in archivos]
+tests = [n for a in arboles for n in ast.walk(a)
+         if isinstance(n, ast.FunctionDef) and n.name.startswith("test_")]
+print(len(archivos), len(tests),
+      sum(isinstance(n, ast.Assert) for a in arboles for n in ast.walk(a)))
+PY
+```
+
+La distribución es razonable: `rpgmaker/` prueba semántica del motor,
+`abl/` prueba recorridos y contenido, `herramientas/` prueba el pipeline sin
+emular y `arnes/` concentra la interacción. No hay una proliferación de mocks:
+la mayoría de las comprobaciones atraviesa datos reales, una ROM real o
+formatos reales. Es una buena elección para un port cuyo riesgo principal está
+en las fronteras.
+
+### Defectos y puntos ciegos concretos
+
+#### Una captura nueva del recorrido puede no comparar nada
+
+`Recorrido.foto` guarda la captura y llama a `_contra_golden`, pero si no existe
+la golden correspondiente, `_contra_golden` vuelve sin fallar. Hay una defensa
+contra el corrimiento de numeración —falla si encuentra el mismo nombre con
+otro número—, pero no hay un manifiesto que distinga «captura pendiente de
+bendecir» de «golden borrada o nunca agregada». En ambos casos la prueba queda
+verde.
+
+Esto fue una decisión explícita para permitir agregar hitos antes de bendecir
+sus imágenes, no un accidente. Aun así, es el punto ciego más importante del
+arnés: una prueba de recorrido puede aparentar cobertura visual y estar mirando
+sólo su estado. La solución no es obligar a regenerar goldens, sino hacer
+explícito el estado:
+
+* una lista versionada de capturas pendientes, que sólo se permita en tareas en
+  `testing/`; o
+* una opción `--permitir-goldens-faltantes` para el flujo de creación, con la
+  tanda normal fallando si falta cualquiera.
+
+También hace falta una comprobación inversa de goldens huérfanas. El índice
+actual verifica archivos `test_*.py` contra el README, pero no casos contra
+tests ni goldens contra nombres consumidos.
+
+#### Dos pruebas se saltean según artefactos presentes
+
+Los únicos `pytest.skip` directos encontrados están en
+`test_fork_mapas.py`: uno si no hay mapas forkeados y otro si un PNG generado
+no existe. El segundo está adentro del recorrido de chipsets; el primer archivo
+ausente saltea la función completa, incluso si había otros artefactos que sí se
+podían revisar. En el ambiente esperado probablemente estén todos, pero el
+resultado «verde con skips» no demuestra lo mismo que «verde completo».
+
+Conviene separar las dos intenciones:
+
+* si el artefacto es requisito de la receta normal, su ausencia debe fallar con
+  el comando que lo produce;
+* si la prueba es realmente opcional, debe llevar un marker estable y la tanda
+  oficial debe fallar ante skips inesperados o publicar su cuenta de manera
+  visible.
+
+No conviene reemplazar esos skips por `xfail`: la ausencia no es un defecto
+conocido del producto, sino que cambia qué se llegó a comprobar.
+
+#### La comparación entre cores tiene detección probabilística
+
+La prueba de snes9x contra bsnes está bien diseñada para memoria sin
+inicializar, pero una sola corrida no garantiza encontrarla: el propio archivo
+documenta que la basura debe caer en un valor dañino. El conjunto elige casos
+de alto valor —movimiento, mensajes, transiciones, escenas y peleas—, aunque no
+hay repetición ni semilla registrada como parte de la interfaz de la prueba.
+
+La tanda rápida puede conservar una pasada. Un job periódico debería repetir
+este subconjunto, registrar cuántas corridas hizo y conservar la primera semilla
+o estado que divergió. «Repitió N veces» debe salir del comando o del reporte,
+no quedar como un número permanente en documentación viva.
+
+#### Las pruebas de dibujo comparten parte del oráculo con el productor
+
+Varias pruebas `*_dibujo.py` calculan la imagen esperada con módulos de
+`tools/port/` (`titulo`, `pantallas`, `escena`, `batalla`). Esto es útil: compara
+la ejecución 65816 contra una implementación Python y localiza diferencias
+mejor que una golden. Pero no es una referencia independiente cuando ese mismo
+módulo también decide o prepara los datos que entran a la ROM. Una regla
+equivocada compartida puede dar verde en ambos lados.
+
+El repositorio ya mitiga esto con goldens y juego manual. La recomendación no
+es duplicar todo el renderer, que recrearía el problema de dos implementaciones
+que hay que mover juntas. Cada prueba de dibujo debe declarar cuál de estas
+cosas es su oráculo:
+
+1. **formato/hardware:** esperado pequeño escrito a mano o derivado de una
+   especificación;
+2. **datos del juego:** esperado calculado desde el LDB/LMU pero sin llamar la
+   función productiva que se quiere probar;
+3. **consistencia entre implementaciones:** modelo Python contra ROM, siempre
+   complementado por una golden o una observación manual inicial.
+
+`test_batalla_escena_dibujo.py` es un buen ejemplo parcial: reescribe el orden
+de dibujo en vez de pedir `escena.orden_de_dibujo`, y explica por qué. Ese
+criterio debería aplicarse sólo a las reglas bajo prueba, sin copiar por reflejo
+helpers estables de decodificación.
+
+### Fallas de arquitectura del arnés
+
+#### Los tests no son paquetes y ya hubo una colisión real
+
+`pytest.ini` inserta `pruebas/arnes` y `tools` en `sys.path`, mientras los
+directorios de pruebas no tienen `__init__.py`. `conftest.py` documenta un fallo
+ya ocurrido: dos conftest se cargaron con el mismo nombre y uno tapó al otro.
+Además, varios tests importan helpers directamente desde otros módulos
+`test_*`, por ejemplo eventos de tropa desde `test_tropa` y `test_victoria`, y
+los recorridos encadenan constantes y funciones entre archivos de prueba.
+
+Esto crea dependencias invisibles entre unidades de colección: renombrar un
+test, seleccionar sólo una carpeta o introducir dos nombres iguales puede
+romper imports sin que haya cambiado el comportamiento probado. La corrección
+es mover **sólo los helpers realmente compartidos** a módulos de `arnes/` por
+dominio (`batalla`, `menu`, `recorrido`, MSU) e importar esos módulos con un
+nombre inequívoco. Convertir cada test en una clase o crear un helper por cada
+función de tres líneas sería abstracción innecesaria.
+
+#### `Partida` concentra demasiados dominios
+
+`pruebas/arnes/consola.py` tiene 1.127 líneas y `Partida` conoce arranque,
+título, ranuras, SRAM, reloj, input, actores, inventario, mapas, audio, páginas
+y medidas de rendimiento. Esta concentración hace cómodo escribir una prueba,
+pero también vuelve el arnés una segunda API monolítica del juego: un cambio de
+representación puede obligar a tocar tests de dominios no relacionados.
+
+No hace falta esconder `Partida` detrás de interfaces genéricas. Sí conviene
+extraer lectores sin estado y fachadas estrechas que ya aparecen como grupos
+naturales:
+
+* `EstadoPartida`: switches, variables, actores, inventario y mapa;
+* `AudioROM`: directorios de muestras, temas, streams y escrituras esperadas;
+* `Guardado`: SRAM, firma y ranuras;
+* dejar en `Partida` reloj, consola, input y navegación de alto nivel.
+
+Esas fachadas deben compartir `Consola` y `Simbolos`, no crear consolas propias.
+El objetivo es reducir razones de cambio, no aumentar capas durante la ejecución.
+
+#### Hay tres relojes, pero la espera no tiene una interfaz común
+
+Las pruebas distinguen correctamente ticks del juego, cuadros de hardware y
+turnos de pelea. Sin embargo, muchos archivos vuelven a implementar bucles
+`for range(tope)`, consulta de condición, avance de un cuadro y
+`AssertionError`. Los topes llegan a ser grandes en los recorridos, y el mensaje
+final depende de cada copia. Hay helpers buenos (`Recorrido.esperar`,
+`Pelea.esperar`), pero no alcanzan a pruebas de hardware y transiciones.
+
+La abstracción que falta no es un `wait_until` que oculte el reloj. Deben ser
+dos primitivas explícitas:
+
+```python
+esperar_ticks(partida, condicion, tope, descripcion)
+esperar_cuadros(consola, condicion, tope, descripcion, antes_de_cada=None)
+```
+
+La pelea puede envolver la segunda para agregar su modo. Así cada llamada dice
+qué tiempo consume, conserva mensajes específicos y evita que una prueba use
+por error `Partida.correr` cuando el tick está congelado. Los recorridos, por su
+complejidad y autofire, deben conservar su helper especializado.
+
+#### Falta una clasificación ejecutable por costo y requisitos
+
+Las recetas separan por dominio (`rpgmaker`, `abl`, `herramientas`), pero pytest
+casi no usa markers para distinguir pruebas rápidas, ROM, dos cores, audio,
+assets externos o recorrido largo. Incluso `pruebas-herramientas` depende de
+`cartuchos` porque una prueba de bancos lee un build. Esto hace que la unidad de
+feedback sea más grande de lo necesario y dificulta expresar una CI pública
+sin assets.
+
+Conviene agregar pocos markers de capacidad, no una taxonomía extensa:
+
+* `rom`: necesita cartucho armado y core;
+* `dos_cores`: necesita snes9x y bsnes parcheado;
+* `corpus`: necesita juego/RTP;
+* `lenta`: útil para selección local, nunca como sinónimo de opcional.
+
+Los markers deben verificarse: una prueba que abre una ROM o consulta
+`GAME_DIR` sin declararlo debería fallar en un chequeo de arquitectura. Luego
+puede existir una tanda hermética de herramientas que no arme cartuchos y otra
+integral que no excluya nada.
+
+### Duplicación: cuál sacar y cuál conservar
+
+El análisis por AST sólo encontró un cuerpo de helper exactamente duplicado:
+`_msu_del_cartucho` en `test_msu.py` y `test_msu_datos.py`. Esto indica que no
+hay copia masiva literal. Los nombres repetidos (`entrar`, `palabra`, `esperar`)
+en general representan dominios o receptores distintos y no justifican por sí
+solos una abstracción.
+
+Sí hay duplicación conceptual en tres lugares:
+
+1. **Entrada y manejo de pelea.** Varios tests implementan «correr cuadros
+   hasta que abra», además de `Pelea.abrir` y helpers de `arnes/batalla.py`.
+   Conviene ofrecer una entrada que acepte si se inicia hablando, por página o
+   por encuentro, y mantener fuera la preparación específica de cada caso.
+2. **Lectura de bytes y palabras.** Hay versiones en `Partida`, `Pelea` y
+   pruebas sueltas. La diferencia entre dirección de bus, offset de WRAM y
+   símbolo es importante; deben unificarse por tipo de dirección, no en una
+   función que adivine qué recibió.
+3. **Pantallas de menú.** Ítems, equipo, tienda y End Game repiten «entrar,
+   mover cursor, comparar». `arnes/menu.py` ya es el lugar correcto para los
+   movimientos comunes; la imagen esperada y las aserciones del dominio deben
+   quedar en cada test.
+
+No conviene deduplicar recorridos narrativos sólo porque repiten el camino hasta
+un mapa. Sus helpers compartidos (`de_stash_a_ag7`, constantes de ramas) son
+útiles para tiempo de ejecución, pero hacen que una modificación al prólogo
+pueda alterar muchas pruebas. Cada helper de recorrido debe terminar en un
+estado comprobado y documentar qué precondiciones deja; si sólo ahorra líneas y
+no establece un contrato, es mejor repetir los pasos relevantes.
+
+### Abstracciones innecesarias o riesgosas
+
+No se encontraron jerarquías de clases, factories genéricas o mocks complejos
+que sobren. El riesgo de sobreabstracción está hacia adelante:
+
+* no crear una DSL única para eventos, menús, pelea y recorrido; sus relojes y
+  condiciones de terminación son distintos;
+* no encapsular las direcciones de memoria hasta hacer invisible si se lee ROM,
+  WRAM o ARAM: esa diferencia es parte de lo probado;
+* no parametrizar pruebas narrativas sólo para reducir funciones si eso vuelve
+  opaco qué rama falló;
+* no mover constantes esperadas al código productivo: una sola definición es
+  deseable para el protocolo, pero incorrecta para un oráculo independiente.
+
+La abstracción más cuestionable hoy no está en pytest sino en reutilizar tests
+como API: `video.py` descubre funciones de `test_recorrido_golden.py` y las
+ejecuta con `python -O` para quitar sus asserts. Está explicado y permite no
+duplicar jugadas, pero acopla una herramienta de entrega a nombres de tests y al
+efecto global de `-O`. A medio plazo, las jugadas deberían ser funciones sin
+asserts en un módulo de escenarios; los tests las llaman y verifican, y el video
+las llama y graba. Eso conserva un solo recorrido sin convertir el archivo de
+pruebas en biblioteca pública.
+
+### Qué está especialmente bien y no debe “limpiarse”
+
+* Una consola nueva por prueba evita contaminación y hace seguro xdist.
+* `Cartucho` rechaza builds viejos en vez de producir resultados irrelevantes.
+* Los símbolos salen del ensamblador: no hay direcciones de RAM copiadas a
+  mano.
+* La prueba autouse de capturas idénticas detecta casos que aparentan avanzar y
+  no ejercitan nada; sus excepciones están justificadas una por una.
+* Las pruebas que dependen de datos del juego primero fijan sus precondiciones
+  (tropa, miembros, páginas, acciones), por lo que un cambio del corpus falla
+  cerca de la causa.
+* La separación entre comparación exacta de tanda y tolerancia del recorrido
+  refleja determinismo distinto; unificar sus umbrales perdería información.
+* Los casos que leen WRAM y los que miran pixeles son redundancia deliberada y
+  valiosa, no duplicación accidental.
+
+### Orden recomendado para mejorar la suite
+
+1. Hacer que toda captura del recorrido tenga golden o una excepción explícita
+   y temporal; comprobar también goldens huérfanas.
+2. Convertir skips por artefacto ausente en fallos diagnósticos o markers
+   verificados, y hacer visibles los skips de la tanda oficial.
+3. Mover helpers importados desde `test_*` a `arnes/`, empezando por batalla y
+   los recorridos compartidos; no mover helpers usados por un solo archivo.
+4. Agregar esperas explícitas por ticks y por cuadros, y migrar sólo los bucles
+   que repiten exactamente ese protocolo.
+5. Separar de `Partida` lectores de audio y guardado, sin cambiar la API de las
+   pruebas en el mismo commit mecánico.
+6. Agregar markers mínimos y una tanda sin ROM realmente hermética.
+7. Extraer las jugadas que usa `video.py` a escenarios reutilizables.
+8. Añadir un job repetido de dos cores y, después, mutation testing focalizado
+   en compilación de eventos, condiciones de páginas y aritmética de batalla.
+
+No priorizaría una métrica de cobertura por líneas para el ensamblador: diría
+poco sobre caminos de hardware. Mutation testing selectivo o instrumentación de
+opcodes ejecutados responderían mejor qué ramas nunca se ejercitan.
+
 ## Reproducibilidad y operación
 
 ### Estado actual

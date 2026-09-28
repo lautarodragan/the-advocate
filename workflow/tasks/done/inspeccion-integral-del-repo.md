@@ -22,3 +22,14 @@ Pillow, cc65 y los cores de libretro; sí pasaron la sintaxis de Python, las
 pruebas de los cinco proyectos Rust y `git diff --check`. `cargo fmt --check`
 marca diferencias en los cinco proyectos con el formateador de este ambiente;
 no se mezcló ese cambio mecánico con el estudio.
+
+Reabierta el 2026-09-28 a pedido de taro para profundizar específicamente el
+análisis de las pruebas actuales: errores, fallas de arquitectura, duplicación
+y abstracciones que sobran o faltan.
+
+Ampliada el mismo día. La inspección detallada encontró como riesgos principales
+las capturas de recorrido sin golden que no fallan, los skips dependientes de
+artefactos, los helpers importados desde módulos `test_*`, la concentración de
+dominios en `Partida`, la repetición de esperas sin distinguir reloj y la falta
+de una selección ejecutable por requisitos. También separa la duplicación que
+conviene sacar de la redundancia deliberada que protege el port.
