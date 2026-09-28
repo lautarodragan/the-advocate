@@ -296,10 +296,10 @@ def test_el_despegue_sale_en_el_turno_uno_con_su_sacudida(partida):
 
 def test_el_despegue_pide_su_efecto(partida):
     """El `PlaySound` del despegue se compila: el primer opcode de la página
-    es el OP_SOUND del `Thunder9` a 60 de volumen y 50 de tempo. **No
-    suena**: el efecto no entra en el paquete de la pelea —ver
-    `SE_DE_TROPA_AL_PAQUETE` en snes_music.py—, y lo que se cobra acá es que
-    la página lo pida, para que meterlo sea una línea."""
+    es el OP_SOUND del `Thunder9` a 60 de volumen y 50 de tempo. Que suene
+    depende de que esté en el paquete de la pelea —ver
+    `SE_DE_TROPA_AL_PAQUETE` en snes_music.py—; lo que se cobra acá es que
+    la página lo pida."""
     base = datos.base()
     una = partida(caso="pelea-102")
     s = una.simbolos

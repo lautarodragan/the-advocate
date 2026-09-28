@@ -89,3 +89,9 @@ la pelea, un alias como `Thunder9@entero`), rehacer `just techos`, y
 # Números usados
 
 Ninguno: ni el opcode 0x34 ni la RAM lejana `$7E7A30`-`$7E7A3F`.
+
+# Lo que decidió taro
+
+El 2026-09-28, después de escuchar las ocho grabaciones: el trueno entra a
+6000 Hz (`SE_DE_TROPA_AL_PAQUETE`), con lo que les baja al tema de batalla
+y a los efectos de calidad de la pelea.

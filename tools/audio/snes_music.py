@@ -359,7 +359,13 @@ SE_DE_RUTA_SIN_PAQUETE = {3: None, 7: None, 14: None, 121: None}
 # oye, pero el efecto tampoco: los efectos de calidad del `.msu` son los del
 # paquete. Sumarlo acá lo hace sonar con los dos. Es una decisión de oído, como
 # `SE_ENTEROS_PAGADOS`: ver `workflow/tasks/*/eventos-de-tropa-de-release.md`.
-SE_DE_TROPA_AL_PAQUETE = set()
+#
+# El `Thunder9` entra, a los 6000 Hz de `SE_ENTEROS`: taro escuchó el tema de
+# batalla con y sin él, y a 6000 y a 3000 Hz, y eligió 6000 el 2026-09-28
+# (`tasks/*/el-hp-de-los-enemigos-y-el-trueno.md`). Además de lo de arriba
+# bajan ocho muestras de la batería, y con MSU-1 los efectos de calidad de la
+# pelea pasan de 14000 a 12000 Hz.
+SE_DE_TROPA_AL_PAQUETE = {"Thunder9"}
 
 # **Los temas aparte**: {id del mapa: nombres}. Un tema aparte no va con los
 # otros temas del paquete de su mapa: lo sube su `PlayBGM`, **él solo con los
