@@ -1281,7 +1281,8 @@ ordenado:
     rts
 .endproc
 
-; El renglón de un combatiente: su nombre y sus HP, en gris si está muerto.
+; El renglón de un combatiente: su nombre y sus HP —los de un enemigo, sólo
+; con `BA_HP_ENEMIGOS`—, en gris si está muerto.
 ; A8 = el combatiente, `BA_T1` = dónde arranca su renglón, y el bit 0 de
 ; `BA_CONMAX` dice si además van los HP máximos —o sea si es del grupo—.
 .proc ba_renglon
@@ -1325,6 +1326,18 @@ variante:
     sep #$20
 .a8
     jsl f:ba_t_texto
+.if ::BA_HP_ENEMIGOS = 0
+    ; Un enemigo no muestra sus HP, como en RM2k: el renglón es sólo su
+    ; nombre. Con `CON_HP_DE_ENEMIGOS` (tools/ensamblado/cartuchos.py) se ven,
+    ; para depurar. El `::` no sobra: adentro de un `.proc`, `ca65` no le da
+    ; valor constante a un nombre suelto, que podría definirse más abajo en
+    ; el mismo `.proc`.
+    lda BA_CONMAX
+    and #$01
+    bne con_hp
+    rts
+con_hp:
+.endif
     ; "HP"
     rep #$20
 .a16
