@@ -609,3 +609,8 @@ pal_buf:  .res 512
 ; con X suelto, porque con X apretado desde el encendido el primer cuadro
 ; leería basura en bsnes.
 autofire: .res 1
+
+; Cuántos cuadros lleva sostenida alguna flecha, y cuáles se hicieron repetir
+; en este: ver `flechas_repetir`. Al final por lo mismo que `autofire`.
+flechas_cuadros:   .res 1
+flechas_repetidas: .res 1

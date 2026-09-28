@@ -106,6 +106,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_tecla.py`: `KeyInputProc`
 * `rpgmaker/test_autofire.py`: X sostenido es el autofire de A, que RM2k no
   tiene
+* `rpgmaker/test_repeticion.py`: una flecha sostenida se repite,
+  `Input::IsRepeated`, en el menú y en las ranuras
 * `rpgmaker/test_variables.py`: variables
 * `rpgmaker/test_oro.py`: `ChangeGold` y su rama
 * `rpgmaker/test_items.py`: el inventario desde un evento

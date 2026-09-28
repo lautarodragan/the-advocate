@@ -482,7 +482,9 @@ class Partida:
 
             toques            en ticks, sin corrimiento. Es el que camina un
                               menú: los menús miran **flancos**, así que
-                              sostener abajo mueve el cursor una sola vez.
+                              sostener abajo mueve el cursor una sola vez
+                              —hasta los 23 cuadros, cuando empieza la
+                              repetición de `flechas_repetir`—.
             tocar             en ticks, un tick antes por `RETRASO_DE_PANTALLA`,
                               igual que `apretar_a`. Existe porque la forma de
                               `KeyInputProc` que espera la cruceta necesita un
