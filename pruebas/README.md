@@ -229,7 +229,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `abl/test_puerta_del_10.py`: las puertas del mapa 10 y el switch 231
 * `abl/test_hover_tram.py`: el Hover Tram horneado
 * `abl/test_mapa_de_debug.py`: el mapa de debug —la llegada por "Begin the
-  Story", cada puerta con su estado y los NPC que cambian el grupo—
+  Story", cada puerta con el estado de la rama del compañero elegido y Talan
+  de líder, y los NPC, que suman uno a la vez—
 * `abl/test_lider_sin_grafico.py`: con DummyHero de líder, cada mapa del
   juego carga las paletas de sprite del cartucho —antes la 0 quedaba en negro,
   y era Talan en el barril del 14 y en la guarida de Wick—

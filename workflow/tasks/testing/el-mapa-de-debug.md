@@ -81,6 +81,11 @@ Dos caminos, y quedó una mezcla:
 
 # Las puertas
 
+*Desde `el-mapa-de-debug-2.md` la rama no es fija: la elige el compañero que
+se sume con un NPC, uno a la vez, y los Back Alleys dejan a Talan donde
+termina la cinemática. Lo de abajo es cómo se armó la rama de Arden, que
+sigue valiendo para esa rama.*
+
 Rama elegida para todo lo que se ramifica: **la de Arden** (Neon Vipers),
 llegando a tiempo al trabajo, **rechazando a Wick** —la misma que usa
 `test_recorrido_sorbe_golden.py`—. El jugador es prolijo: abre los cofres del
@@ -135,6 +140,9 @@ que una puerta más sería un estado más para mantener por veinte pasos. La
 carrera sí: sin ella, llegar a la largada son los cuatro sectores con auto.
 
 # Los compañeros
+
+*Cambió en `el-mapa-de-debug-2.md`: los NPC prenden su rama y sacan al otro
+compañero.*
 
 Un NPC por cada uno —Arden (15), Saldra (17), AG7-17 (18)— con el gráfico del
 juego. Hablarle lo suma al grupo si no está y lo saca si está
