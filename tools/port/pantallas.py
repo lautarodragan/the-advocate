@@ -75,6 +75,18 @@ EQ_CURSOR_COL = 1
 PARAM_MAX = 999
 
 
+def color_del_valor_nuevo(ahora, luego):
+    """`Window_EquipStatus::GetNewParameterColor`: el valor que quedaría va en
+    el color 0 si no cambia, en el 2 si sube y en el 3 si baja. En el skin del
+    ABL el 2 es un durazno y el 3 el gris de "no se puede"; así lo muestra el
+    original, capturado con el RPG_RT de 2015 el 2026-09-28. Devuelve la
+    variante de la fuente —`titulo.ITEM_*`—, que es lo que la ROM compara en
+    `eq_componer`."""
+    if luego == ahora:
+        return titulo.ITEM_BLANCO
+    return titulo.ITEM_SUBE if luego > ahora else titulo.ITEM_GRIS
+
+
 def tipo_de_ranura(ranura):
     """El tipo de ítem que va en la ranura: 1 arma ... 5 accesorio."""
     return ranura + 1
@@ -144,7 +156,8 @@ def pantalla_equipo(db, actor, equipo, inventario, ranura, eligiendo=False,
         t.numero(fila, col + EQ_PARAM_VALOR, ahora[n], 3)
         if luego is not None:
             t.escribir(fila, col + EQ_PARAM_FLECHA, ">")
-            t.numero(fila, col + EQ_PARAM_FLECHA + 1, luego[n], 3)
+            t.numero(fila, col + EQ_PARAM_FLECHA + 1, luego[n], 3,
+                     color_del_valor_nuevo(ahora[n], luego[n]))
     if not eligiendo:
         for r in range(RANURAS_EQUIPO):
             fila = EQ_RANURA_FILA0 + 2 * r

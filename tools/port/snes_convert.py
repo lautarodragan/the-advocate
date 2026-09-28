@@ -5312,11 +5312,20 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         for celda in ranuras["items_tiles"]:
             datos += pack_tile(celda, planes=4)
         handle.write(bloque("items_tiles", bytes(datos)) + "\n")
-        handle.write(bloque("items_cgram", b"".join(
-            cgram_word(c).to_bytes(2, "little")
-            for paleta in ranuras["items_paletas"]
-            for c in list(paleta) + [(0, 0, 0)] * (titulo_mod.MENU_CGRAM
-                                                   - len(paleta)))) + "\n")
+        def paletas_cgram(paletas):
+            return b"".join(
+                cgram_word(c).to_bytes(2, "little") for paleta in paletas
+                for c in list(paleta) + [(0, 0, 0)] * (titulo_mod.MENU_CGRAM
+                                                       - len(paleta)))
+
+        # Las dos primeras, que suben con el banco en todas las pantallas que
+        # lo usan; la de "sube" va aparte y la sube sólo la de equipo, porque
+        # en la pelea las entradas de la tercera paleta son las del fondo
+        # —`escena.CGRAM_BASE`— y subirla ahí no le serviría a nadie.
+        handle.write(bloque("items_cgram", paletas_cgram(
+            ranuras["items_paletas"][:titulo_mod.ITEM_SUBE])) + "\n")
+        handle.write(bloque("item_cgram_sube", paletas_cgram(
+            ranuras["items_paletas"][titulo_mod.ITEM_SUBE:])) + "\n")
         item_textos, item_textos_ofs = bytearray(), []
 
         def texto_nuevo(texto):
@@ -5601,6 +5610,25 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                              chr, range(titulo_mod.ITEM_PRIMER_CARACTER,
                                         titulo_mod.ITEM_PRIMER_CARACTER
                                         + titulo_mod.ITEM_CARACTERES)))))
+        # La línea de la experiencia, que la ROM dibuja con sprites: ver
+        # `MENU_EXP_X` en titulo.py. El término son cuatro tiles —dos de
+        # ancho, arriba y abajo— y las cifras salen de `ranura_glifo_celdas`.
+        handle.write(".bloque %d\nmenu_exp_termino:\n    .word %s\n" % (
+            2 * len(menu["exp_termino"]), ", ".join(
+                "$%04X" % entry(c, False, False)
+                for c in menu["exp_termino"])))
+        handle.write(
+            "MENU_EXP_X        = %d\n"
+            "MENU_EXP_NUM_X    = %d\n"
+            "MENU_EXP_Y        = %d\n"
+            "MENU_EXP_PASO     = %d\n"
+            "MENU_EXP_CIFRAS   = %d\n"
+            "MENU_EXP_LETRAS   = %d\n"
+            "MENU_ACTOR_ALTO   = %d\n"
+            % (T.MENU_EXP_X,
+               T.MENU_EXP_X + T.MENU_EXP_NUM_DX - T.GLIFO_DX,
+               T.MENU_EXP_Y - T.GLIFO_DY, T.fuente.ANCHO, T.MENU_EXP_CIFRAS,
+               T.MENU_EXP_LETRAS, T.MENU_ACTOR_FILAS * T.CELL))
         # El texto de cada actor, en ASCII: el nombre —con espacios detrás,
         # que son los que borran lo que hubiera—, las dos cifras del nivel y
         # el máximo de HP detrás de su barra. **Las tres juntas, en una fila
@@ -5650,7 +5678,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "ITEM_PRIMER_CARACTER = %d\n"
             "ITEM_GLIFOS_GRIS  = %d\n"
             % (len(items), len(ranuras["items_tiles"]),
-               len(ranuras["items_paletas"]) * titulo_mod.MENU_CGRAM,
+               titulo_mod.ITEM_SUBE * titulo_mod.MENU_CGRAM,
                T.ITEM_FILAS, T.ITEM_CURSOR_COL, T.ITEM_NOMBRE_COL,
                T.ITEM_DOS_PUNTOS_COL, T.ITEM_CIFRAS_COL,
                celda_vram(T.ITEM_DESC_Y // T.CELL, T.ITEM_DESC_COL),
@@ -5745,7 +5773,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             celda_vram(T.ITEM_LISTA_Y // T.CELL + 2 * f, 0)
             for f in range(T.ITEM_FILAS)])
         # Las dos celdas de cada carácter, arriba y abajo: primero los 95 en
-        # blanco y después en gris. El carácter `c` en la variante `g` está en
+        # blanco, después en gris y después en el color de "sube". El carácter
+        # `c` en la variante `g` está en
         # `g * ITEM_GLIFOS_GRIS + (c - ITEM_PRIMER_CARACTER) * 4`.
         # --- el equipo ---
         # Por ítem conocido: su tipo, lo que suma —ataque, defensa, espíritu,
@@ -6384,10 +6413,16 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # las letras. En las otras pantallas que usan estos glifos —ítems,
         # equipo, tienda— BG1 está apagado y el bit no cambia un pixel, y en
         # las celdas vacías tampoco, porque sus pixeles son transparentes.
+        # La variante de "sube" trae sólo las cifras; las demás letras caen en
+        # las blancas, que nadie pide en ese color pero así la tabla se indexa
+        # igual que las otras dos.
         words_asm("item_glifo_celdas", [
-            entry(celda, False, False, priority=1) for gris in (0, 1)
+            entry(celda, False, False, priority=1)
+            for gris in (T.ITEM_BLANCO, T.ITEM_GRIS, T.ITEM_SUBE)
             for n in range(T.ITEM_CARACTERES)
-            for celda in glifos[gris][chr(T.ITEM_PRIMER_CARACTER + n)]],
+            for celda in glifos[gris].get(
+                chr(T.ITEM_PRIMER_CARACTER + n),
+                glifos[T.ITEM_BLANCO][chr(T.ITEM_PRIMER_CARACTER + n)])],
             "$%04X", declarar=True)
         handle.write('.segment "TABLAS"\n')
         handle.write("\n")

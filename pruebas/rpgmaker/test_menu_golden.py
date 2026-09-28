@@ -22,6 +22,15 @@ def test_menu(nombre, cuantos, toques):
     golden(nombre, consola.imagen())
 
 
+def test_menu_grupo():
+    """`menu-grupo`: tres filas, con la experiencia de cada una —la línea que
+    va en sprites— en cinco, cuatro y dos cifras: Kersh en el 20, Core en el
+    15 y Talan en el 1, que arranca con cero."""
+    consola = consola_cruda("menu-grupo")
+    correr_hardware(consola, 52, toques_hardware=("b:40",))
+    golden("menu-grupo", consola.imagen())
+
+
 @pytest.mark.parametrize("cuadro", (50, 120))
 def test_menu_vuelve(cuadro):
     """`menu`: el mapa de vuelta al cerrar el menú de pausa."""
@@ -64,6 +73,24 @@ def test_items_vuelve(cuadro):
 def test_equipo(nombre, cuantos, toques):
     """`equipo`: la pantalla del equipo de un actor."""
     consola = consola_cruda("equipo")
+    correr_hardware(consola, cuantos, toques_hardware=toques)
+    golden(nombre, consola.imagen())
+
+
+@pytest.mark.parametrize("nombre,cuantos,toques", (
+    # La armadura: el Leather Jacket en vez del Trenchcoat baja la defensa y
+    # sube la agilidad —el Trenchcoat resta 3—, y el ataque y la mente quedan
+    # igual. Son los tres colores de `GetNewParameterColor` a la vez.
+    ("equipo-sube-baja", 116, ("b:40", "down:52", "down:56", "a:60", "a:72",
+                               "down:88", "down:92", "a:100")),
+    # El casco, con la ranura vacía: sólo sube la defensa.
+    ("equipo-sube", 120, ("b:40", "down:52", "down:56", "a:60", "a:72",
+                          "down:88", "down:92", "down:96", "a:104")),
+))
+def test_equipo_colores(nombre, cuantos, toques):
+    """`equipo-colores`: el valor que quedaría, en el color que dice si sube,
+    baja o queda igual."""
+    consola = consola_cruda("equipo-colores")
     correr_hardware(consola, cuantos, toques_hardware=toques)
     golden(nombre, consola.imagen())
 

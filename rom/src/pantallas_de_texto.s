@@ -61,7 +61,8 @@ otra:
     rts
 .endproc
 
-; Una letra: A el carácter, `temp + 1` la variante —0 blanco, 1 gris—. Va en
+; Una letra: A el carácter, `temp + 1` la variante —0 blanco, 1 gris, 2 el
+; color de "sube", que sólo tiene cifras: ver `ITEM_SUBE` en titulo.py—. Va en
 ; `eleg_tabla`, que avanza una celda. Se lleva X e Y.
 .proc pant_glifo
 .a8
@@ -77,6 +78,12 @@ otra:
     lda temp + 1
     and #$00FF
     beq blanco
+    cmp #2
+    bcc gris
+    txa                         ; la 2: una tabla más allá que la gris, y el
+    adc #(ITEM_GLIFOS_GRIS - 1) ; `cmp` dejó el carry puesto
+    tax
+gris:
     txa
     clc
     adc #ITEM_GLIFOS_GRIS
