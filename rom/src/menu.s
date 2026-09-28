@@ -131,6 +131,11 @@ otro:
     bcc joy_listo               ; sin espera: lo apretado, tal cual
     eor pad_ant
     and pad
+    ; Sin las flechas que `flechas_repetir` hizo repetir este cuadro: acá
+    ; RM2k mira `IsTriggered`, no `IsRepeated`. El `ora` y el `eor` son un
+    ; `and` con el complemento, y ninguno de los dos toca el acarreo.
+    ora flechas_repetidas
+    eor flechas_repetidas
 joy_listo:
     sta temp + 3                ; JOY1H: B y las cuatro flechas
     lda temp + 1

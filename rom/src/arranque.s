@@ -171,6 +171,8 @@ grupo_listo:
     stz pad_a
     stz pad_a_ant
     stz autofire
+    stz flechas_cuadros         ; con una flecha sostenida desde el encendido
+    stz flechas_repetidas
     lda #MOVIL_HEROE
     sta movil
     lda #CAPA_HEROE

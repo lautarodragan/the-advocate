@@ -551,7 +551,14 @@ espera:
     beq no_arriba
     lda titulo_sel
     bne sube
-    lda #SRAM_RANURAS_N         ; desde la primera, arriba da la vuelta
+    ; Desde la primera, arriba da la vuelta, pero sólo con un toque: la
+    ; repetición se frena en la punta. Es `Scene_File::Update` de easyrpg,
+    ; que a diferencia de `Window_Selectable` pide `IsTriggered` para dar la
+    ; vuelta; ver `flechas_repetir`.
+    lda flechas_repetidas
+    and #PAD_UP
+    bne espera
+    lda #SRAM_RANURAS_N
 sube:
     dec a
     jsr mover_cursor
@@ -564,6 +571,9 @@ no_arriba:
     inc a
     cmp #SRAM_RANURAS_N
     bcc baja
+    lda flechas_repetidas       ; lo mismo abajo: repitiendo no da la vuelta
+    and #PAD_DOWN
+    bne espera
     lda #0
 baja:
     jsr mover_cursor
