@@ -5610,6 +5610,25 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                              chr, range(titulo_mod.ITEM_PRIMER_CARACTER,
                                         titulo_mod.ITEM_PRIMER_CARACTER
                                         + titulo_mod.ITEM_CARACTERES)))))
+        # La línea de la experiencia, que la ROM dibuja con sprites: ver
+        # `MENU_EXP_X` en titulo.py. El término son cuatro tiles —dos de
+        # ancho, arriba y abajo— y las cifras salen de `ranura_glifo_celdas`.
+        handle.write(".bloque %d\nmenu_exp_termino:\n    .word %s\n" % (
+            2 * len(menu["exp_termino"]), ", ".join(
+                "$%04X" % entry(c, False, False)
+                for c in menu["exp_termino"])))
+        handle.write(
+            "MENU_EXP_X        = %d\n"
+            "MENU_EXP_NUM_X    = %d\n"
+            "MENU_EXP_Y        = %d\n"
+            "MENU_EXP_PASO     = %d\n"
+            "MENU_EXP_CIFRAS   = %d\n"
+            "MENU_EXP_LETRAS   = %d\n"
+            "MENU_ACTOR_ALTO   = %d\n"
+            % (T.MENU_EXP_X,
+               T.MENU_EXP_X + T.MENU_EXP_NUM_DX - T.GLIFO_DX,
+               T.MENU_EXP_Y - T.GLIFO_DY, T.fuente.ANCHO, T.MENU_EXP_CIFRAS,
+               T.MENU_EXP_LETRAS, T.MENU_ACTOR_FILAS * T.CELL))
         # El texto de cada actor, en ASCII: el nombre —con espacios detrás,
         # que son los que borran lo que hubiera—, las dos cifras del nivel y
         # el máximo de HP detrás de su barra. **Las tres juntas, en una fila

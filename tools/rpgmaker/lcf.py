@@ -670,6 +670,7 @@ TERM_SUELTOS = {
     "term_save_message": "save_game_message", "term_file": "file",
     "term_level": "level", "term_lvl_short": "lvl_short", "term_gold": "gold",
     "term_normal_status": "normal_status", "term_hp_short": "hp_short",
+    "term_exp_short": "exp_short",
 }
 
 

@@ -317,19 +317,44 @@ def test_el_menu_muestra_el_nivel_y_el_maximo_de_ahora(partida):
     base, skin, game_dir = referencias()
     assert set(NIVELES_DEL_MENU) == set(GRUPO_MENU)
     una = con_grupo(partida())
+    exps = {}
     for actor, nivel in NIVELES_DEL_MENU.items():
-        poner_exp(una, actor,
-                  experiencia.lista_de(base.actors[actor])[nivel - 1], nivel)
+        exps[actor] = experiencia.lista_de(base.actors[actor])[nivel - 1]
+        poner_exp(una, actor, exps[actor], nivel)
     abrir(una)
     ahora = titulo.render_menu(skin, base, una.simbolos["SRAM_RANURAS"],
                                GRUPO_MENU, ORO, 0, True, base.font_id, None,
-                               game_dir, niveles=NIVELES_DEL_MENU)
+                               game_dir, niveles=NIVELES_DEL_MENU, exps=exps)
     antes = titulo.render_menu(skin, base, una.simbolos["SRAM_RANURAS"],
                                GRUPO_MENU, ORO, 0, True, base.font_id, None,
                                game_dir)
     assert diferencia(una, ahora) == 0
     assert diferencia(una, antes) > 20, \
         "con los niveles de arranque el menú tendría que verse distinto"
+
+
+def test_el_menu_muestra_guiones_en_el_nivel_tope(partida):
+    """`DrawActorExp` en el nivel máximo: `GetNextExp` da -1 y el RPG_RT
+    escribe guiones en las dos mitades. Es el otro camino de
+    `menu_exp_pintar`, que ningún nivel de arranque recorre: se pone a un
+    actor en el tope y al otro un nivel antes, que todavía muestra números."""
+    from port import titulo
+    from menu import GRUPO as GRUPO_MENU, ORO, abrir, con_grupo
+    base, skin, game_dir = referencias()
+    una = con_grupo(partida())
+    niveles, exps = {}, {}
+    for n, actor in enumerate(GRUPO_MENU):
+        tope = experiencia.nivel_max(base.actors[actor])
+        niveles[actor] = tope - n
+        exps[actor] = experiencia.lista_de(base.actors[actor])[tope - n - 1]
+        poner_exp(una, actor, exps[actor], niveles[actor])
+    abrir(una)
+    ahora = titulo.render_menu(skin, base, una.simbolos["SRAM_RANURAS"],
+                               GRUPO_MENU, ORO, 0, True, base.font_id, None,
+                               game_dir, niveles=niveles, exps=exps)
+    assert "-" in titulo.texto_de_exp(base, GRUPO_MENU[0], niveles[
+        GRUPO_MENU[0]], exps[GRUPO_MENU[0]])
+    assert diferencia(una, ahora) == 0
 
 
 def test_la_ranura_muestra_el_nivel_que_tenia_esa_partida(partida):

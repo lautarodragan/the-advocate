@@ -688,6 +688,14 @@ BA_BOTIN_K    = BA_BOTIN + 1    ; el `k` de cada uno, en el orden de la tropa:
 BA_BOTIN_FIN  = BA_BOTIN_K + BA_ENEMIGOS_MAX
 .assert BA_BOTIN_FIN <= $7A00, error, "lo que soltaron los enemigos se sale de su lugar"
 
+; --- la experiencia en el menú ----------------------------------------------
+;
+; $7E7A40 a $7E7A4F, reservado el 2026-09-28: las trece letras de la línea de
+; la experiencia de una fila del grupo, que `menu_exp_pintar` arma antes de
+; volverlas sprites. Vive lo que dura esa rutina.
+MENU_EXP_TEXTO = $7E7A40
+MENU_EXP_TEXTO_FIN = $7E7A50
+
 ; --- las pistas de MSU-1 que faltaron ----------------------------------------
 ;
 ; $7E7820 a $7E782F, reservado el 2026-09-26: un bit por tema, prendido cuando

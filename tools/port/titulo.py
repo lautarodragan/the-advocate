@@ -518,6 +518,22 @@ def texto_de_maximo(db, actor, nivel=None):
     return ("/%d" % maximo).ljust(MENU_MAX_CIFRAS)[:MENU_MAX_CIFRAS]
 
 
+def texto_de_exp(db, actor, nivel=None, exp=None):
+    """La experiencia como la escribe `DrawActorExp`: `"%6d/%6d"`, la de ahora
+    y la que pide el nivel que sigue —`GetNextExp`—, o guiones en el tope.
+    Sin `nivel` ni `exp`, los de arranque, como `texto_de_nivel`."""
+    from port import experiencia as X
+    a = db.actors[actor]
+    if nivel is None:
+        nivel = X.nivel_inicial(a)
+    if exp is None:
+        exp = X.exp_inicial(a)
+    siguiente = X.siguiente(a, nivel)
+    if siguiente == -1:
+        return "-" * MENU_EXP_CIFRAS + "/" + "-" * MENU_EXP_CIFRAS
+    return "%*d/%*d" % (MENU_EXP_CIFRAS, exp, MENU_EXP_CIFRAS, siguiente)
+
+
 def glifos_de(db, actores):
     """Qué letras necesita el banco: las de lo que se compone, más las diez
     cifras, que van siempre porque el oro y los HP de ahora las usan.
@@ -525,6 +541,7 @@ def glifos_de(db, actores):
     Sale de los textos mismos y no de un alfabeto escrito a mano: un cartucho
     con tres actores no paga las letras de los otros."""
     letras = set("0123456789 ")
+    letras |= set("/-")         # los de la experiencia, que los tiene siempre
     for actor in actores:
         letras |= set(texto_de_nombre(db, actor) + texto_de_nivel(db, actor)
                       + texto_de_maximo(db, actor))
@@ -681,6 +698,31 @@ MENU_NIVEL_COL = (MENU_TEXTO_X + 2 * fuente.ANCHO) // CELL      # 20
 MENU_NIVEL_FILA = LINEA // CELL                         # 2
 MENU_MAX_COL = MENU_MAX_X // CELL                       # 24
 MENU_MAX_CIFRAS = 4             # la barra y hasta tres cifras: "/168"
+# La experiencia, que es la tercera línea de `Window_MenuStatus`: el término
+# —"Ex" en el ABL— en el color 1, y a doce pixeles la de ahora y la del nivel
+# que sigue, en seis cifras cada una con la barra en el medio, `"%6d/%6d"`
+# como `DrawActorExp`. Con el nivel en el tope las dos son guiones, que es lo
+# que el comentario de easyrpg dice que hace el RPG_RT.
+#
+# **Va en sprites, no en el tilemap**, y es la única línea de esta pantalla
+# que no está en la grilla. No entraba en ningún otro lado: RM2k pone los HP a
+# la derecha del nivel y la experiencia debajo, en dos columnas que en 256
+# pixeles no caben, y una cuarta línea de celdas no cabe en los 56 pixeles de
+# la fila. En sprites va donde haga falta: doce pixeles debajo de los HP, que
+# es el paso de la fuente, y a los seis pixeles de la fuente y no a los ocho
+# de las celdas —a ocho, las trece letras se salían de la pantalla—. Los
+# tiles son los glifos del banco mismo: los sprites leen la VRAM desde
+# `RANURA_VRAM`, así que el tile de un glifo es el mismo número.
+#
+# Doce y no dieciséis pixeles debajo de los HP deja un pixel de aire arriba y
+# dos abajo, y en la cuarta fila la sombra de las cifras cae justo en la
+# última línea de la pantalla.
+MENU_EXP_X = MENU_TEXTO_X
+MENU_EXP_Y = 2 + 2 * LINEA + 11         # donde arranca la letra, en la fila
+MENU_EXP_NUM_DX = 12
+MENU_EXP_CIFRAS = 6
+MENU_EXP_LETRAS = 2 * MENU_EXP_CIFRAS + 1
+MENU_EXP_TERM_CELDAS = 2        # "Ex": doce pixeles, en dos celdas de ancho
 
 
 # --- la pantalla de ítems -----------------------------------------------------
@@ -976,6 +1018,15 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
     una = capa()
     _escribir_menu_fila(una, sys_img, db, font_id)
     capas.append(("menu_fila", None, una))
+    # El término de la experiencia, suelto como un glifo: lo dibujan sprites.
+    # Hasta dos letras, que son los doce pixeles que `DrawActorExp` le deja
+    # antes de las cifras.
+    una = capa()
+    ventana_mod.dibujar_linea(una, sys_img, GLIFO_COL * CELL,
+                              GLIFO_FILA * CELL + GLIFO_DY,
+                              (db.term_exp_short or "")[:2], color=1,
+                              font_id=font_id)
+    capas.append(("menu_exp_termino", None, una))
 
     # Las órdenes deshabilitadas van en **su propia paleta**, la 1: el color 3
     # del sistema es un degradé que, sumado a los del texto, da 18 colores, y
@@ -1028,6 +1079,10 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
             menu["fila"] = _bloque_de_celdas(
                 una, 0, MENU_ACTOR_FILAS, tiles, donde, indice,
                 MENU_ACTOR_COL, MENU_ACTOR_COLS)
+        elif clase == "menu_exp_termino":
+            menu["exp_termino"] = _bloque_de_celdas(
+                una, GLIFO_FILA, 2, tiles, donde, indice, GLIFO_COL,
+                MENU_EXP_TERM_CELDAS)
         elif clase == "cabecera":
             cabeceras[clave] = _bloque_de_celdas(
                 una, CABECERA_Y // CELL, CABECERA_FILAS, tiles, donde, indice)
@@ -1101,6 +1156,38 @@ def _pintor(fuera, tiles, paletas):
     return pegar
 
 
+def _pegar_sprite(fuera, tiles, paletas, palabra, x, y):
+    """Un tile de 8x8 en cualquier pixel, como un sprite: lo transparente deja
+    ver lo que había. La paleta es la de la palabra, que la ROM copia a la de
+    los sprites."""
+    px = fuera.load()
+    celda = tiles[palabra & 0x3FF]
+    paleta = paletas[(palabra >> 10) & 7]
+    for dy in range(CELL):
+        for dx in range(CELL):
+            valor = celda[dy][dx]
+            if valor and 0 <= x + dx < ANCHO and 0 <= y + dy < ALTO:
+                px[x + dx, y + dy] = tuple(v << 3 for v in paleta[valor])
+
+
+def _pegar_exp(fuera, tiles, paletas, menu, fila, texto):
+    """La línea de la experiencia de una fila del grupo, en sprites: el
+    término y las trece letras de `texto`, a seis pixeles. Es lo que hace
+    `menu_exp_pintar` en la ROM; los espacios no llevan sprite."""
+    y = fila * MENU_ACTOR_FILAS * CELL + MENU_EXP_Y - GLIFO_DY
+    for n, palabra in enumerate(menu["exp_termino"]):
+        _pegar_sprite(fuera, tiles, paletas, palabra,
+                      MENU_EXP_X + (n % MENU_EXP_TERM_CELDAS) * CELL,
+                      y + (n // MENU_EXP_TERM_CELDAS) * CELL)
+    for n, letra in enumerate(texto):
+        if letra == " ":
+            continue
+        x = MENU_EXP_X + MENU_EXP_NUM_DX + n * fuente.ANCHO - GLIFO_DX
+        arriba, abajo = menu["glifos"][letra]
+        _pegar_sprite(fuera, tiles, paletas, arriba, x, y)
+        _pegar_sprite(fuera, tiles, paletas, abajo, x, y + CELL)
+
+
 def _pegar_texto(pegar, menu, texto, fila, col):
     """Un texto compuesto de a una letra por celda, como lo escribe la ROM."""
     for n, letra in enumerate(texto):
@@ -1128,7 +1215,7 @@ def _pegar_fila_de_actor(pegar, menu, caras, db, fila, actor, hp=None,
 
 def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
                 guardar_permitido=True, font_id=None, actores=None,
-                game_dir=None, hp=None, niveles=None):
+                game_dir=None, hp=None, niveles=None, exps=None):
     """El menú de pausa como lo tiene que mostrar la consola.
 
     `grupo` son los actores en orden, `oro` el oro, `elegida` la orden con el
@@ -1141,7 +1228,8 @@ def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
     supone que están llenos, que es con lo que arranca. Va aparte del bloque
     del actor porque el bloque se hornea y esto cambia con cada pelea.
     `niveles`, de actor a nivel, es lo mismo para el nivel y el máximo: sin
-    ella, los de arranque.
+    ella, los de arranque. `exps`, de actor a experiencia, lo mismo para la
+    línea de la experiencia, que mira además el nivel.
     """
     from PIL import Image
     actores = sorted(set(actores if actores is not None else grupo))
@@ -1166,6 +1254,13 @@ def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
         if actor in actores:
             _pegar_fila_de_actor(pegar, menu, caras, db, fila, actor, hp,
                                  niveles)
+    # La experiencia va encima de todo, como los sprites sobre el fondo, y
+    # sólo en el menú: `Window_ActorTarget` no la muestra.
+    for fila, actor in enumerate(list(grupo)[:MENU_FILAS_GRUPO]):
+        if actor in actores:
+            _pegar_exp(fuera, tiles, paletas, menu, fila, texto_de_exp(
+                db, actor, (niveles or {}).get(actor),
+                (exps or {}).get(actor)))
     return fuera
 
 

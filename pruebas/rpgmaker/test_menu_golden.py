@@ -22,6 +22,15 @@ def test_menu(nombre, cuantos, toques):
     golden(nombre, consola.imagen())
 
 
+def test_menu_grupo():
+    """`menu-grupo`: tres filas, con la experiencia de cada una —la línea que
+    va en sprites— en cinco, cuatro y dos cifras: Kersh en el 20, Core en el
+    15 y Talan en el 1, que arranca con cero."""
+    consola = consola_cruda("menu-grupo")
+    correr_hardware(consola, 52, toques_hardware=("b:40",))
+    golden("menu-grupo", consola.imagen())
+
+
 @pytest.mark.parametrize("cuadro", (50, 120))
 def test_menu_vuelve(cuadro):
     """`menu`: el mapa de vuelta al cerrar el menú de pausa."""

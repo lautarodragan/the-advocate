@@ -86,6 +86,7 @@ CGADSUB  = $2131        ; sumar o restar, y a qué capas
 COLDATA  = $2132        ; el color fijo: tres bits de canal y la intensidad
 OBSEL    = $2101        ; tamaño de los sprites y dónde viven sus tiles
 OAMADDL  = $2102        ; índice dentro de OAM, en palabras
+OAMDATA  = $2104        ; el byte que sigue de OAM, que avanza solo
 OBJSEL_TM = $212C
 JOY1H    = $4219        ; control 1: arriba, abajo, izquierda, derecha y más
 JOY1L    = $4218        ; y el otro byte, donde viven A, X, L y R

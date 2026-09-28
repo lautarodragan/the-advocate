@@ -91,14 +91,19 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     """
     from port import titulo
     from render.render_map import GAME_DIR
+    from test_experiencia_dibujo import exp_y_nivel
     una = pelear(partida(caso="pelea-82-grupo-11-12"))
     quedo = hp_de(una)
+    # La experiencia también la cambió la pelea, y el menú la muestra.
+    ganado = {a: exp_y_nivel(una, a) for a in GRUPO}
+    exps = {a: exp for a, (exp, _) in ganado.items()}
+    niveles = {a: nivel for a, (_, nivel) in ganado.items()}
     abrir(una)
     db, skin = datos.base(), datos.skin()
     oro = una.oro()
     esperada = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
                                   GRUPO, oro, 0, True, db.font_id, None,
-                                  GAME_DIR, quedo)
+                                  GAME_DIR, quedo, niveles, exps)
     comparar_pantalla(una, esperada, "menu-tras-pelea",
                       "el menú después de la pelea")
     # Y que la comparación de arriba mida algo: con los HP llenos la referencia
@@ -106,7 +111,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     # máximo pasaría el caso el día que la referencia se equivocara igual.
     llena = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
                                GRUPO, oro, 0, True, db.font_id, None,
-                               GAME_DIR, MAXIMOS)
+                               GAME_DIR, MAXIMOS, niveles, exps)
     assert pixeles_distintos(llena, esperada) > 20, (
         "la referencia dibuja lo mismo con Core en 79 que con Core en 127")
 

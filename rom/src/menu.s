@@ -439,7 +439,7 @@ otra_opcion:
     jsr ranura_rect_subir
 
     jsr menu_grupo_pintar
-    jsr ranura_ppu_prender
+    jsl f:menu_exp_pintar       ; la experiencia, que va en sprites, y prende
     lda #1
     sta menu_abierto
     rts
@@ -726,6 +726,7 @@ cerrar:
     ; en eventos.py.
     jsl f:comunes_del_equipo
     plb
+    jsl f:menu_exp_cerrar       ; lo que los sprites del menú le cambiaron
     jsr volver_al_mapa
     rts
 
