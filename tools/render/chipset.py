@@ -13,7 +13,8 @@ deducir el algoritmo, y no hay razón para no creerle.
 
 from PIL import Image
 
-TILE = 16
+from rpgmaker.rm2k import TILE, caja_de_comun, caja_de_terreno
+
 HALF = TILE // 2
 ATLAS_COLS = 32
 ATLAS_ROWS = 45
@@ -26,30 +27,6 @@ ANIMATED = 0x0BB8   # 3000
 TERRAIN = 0x0FA0    # 4000
 LOWER = 0x1388      # 5000
 UPPER = 0x2710      # 10000
-
-
-def caja_de_terreno(n):
-    """Dónde vive, en la imagen del ChipSet, el bloque del autotile de terreno
-    `n` —0 a 11, el que el mapa nombra con los ids 4000 + n * 50—.
-
-    Son 48x64 píxeles con las piezas que `_terrain_tile` combina. Está acá y no
-    en quien lo use porque los offsets son de lmu2png y no tienen por qué
-    escribirse dos veces: `_terrain_tile` calcula su esquina con esta misma
-    cuenta.
-    """
-    terrain = n + 4
-    sx = (terrain % 2) * 48 + (terrain // 8) * 96
-    sy = ((terrain // 2) % 4) * 64
-    return (sx, sy, sx + 48, sy + 64)
-
-
-def caja_de_comun(i):
-    """Dónde vive el tile común `i` —0 a 287, las tres páginas de 96 de la
-    mitad derecha—. Los 144 primeros son la capa baja (ids 5000 + i) y los 144
-    de atrás la alta (ids 10000 + i - 144)."""
-    x = 192 + (i % 6) * TILE + (i // 96) * 96
-    y = ((i // 6) % TILE) * TILE
-    return (x, y, x + TILE, y + TILE)
 
 
 def blit(dst, dx, dy, src, sx, sy, w, h):

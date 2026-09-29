@@ -12,7 +12,7 @@ from port import eventos
 from port import snes_convert
 from rpgmaker import lcf
 from rpgmaker import rm2k
-from render.render_map import GAME_DIR
+from rpgmaker.recursos import GAME_DIR
 
 
 def paginas_de(map_id, evento_id):

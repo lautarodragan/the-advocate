@@ -1,8 +1,9 @@
 r"""Los cuadros de texto rearmados para el ancho de la SNES.
 
 RM2k no tiene auto-wrap: cada salto de un `ShowMessage` lo puso el autor a mano,
-pensando en una ventana de 320 px. La de acá es más angosta —`ventana.COLUMNAS`
-caracteres por renglón—, y hasta esto lo que no entraba se truncaba.
+pensando en una ventana de 320 px. La de acá es más angosta
+—`constantes.COLUMNAS` caracteres por renglón—, y hasta esto lo que no entraba
+se truncaba.
 
 `reajustar` recibe los renglones de **un** cuadro, tal como están en `data/`, y
 devuelve uno o más cuadros que entran. Es una función pura: el mismo cuadro da
@@ -38,7 +39,7 @@ las palabras se vuelven a juntar con uno. En uno que entra, no se pierde nada.
 import re
 
 from port import eventos
-from port import ventana
+from port import constantes
 
 # Un fin de oración, con las comillas o el paréntesis que lo cierren: cortar
 # ahí es gratis. `...` entra por el punto.
@@ -109,7 +110,7 @@ def es_hablante(linea):
     return not texto.endswith((".", "!", "?", ","))
 
 
-def entra(lineas, columnas=ventana.COLUMNAS, renglones=ventana.LINEAS):
+def entra(lineas, columnas=constantes.COLUMNAS, renglones=constantes.LINEAS):
     """Si el cuadro se ve entero, sin contar su cola de escapes."""
     sin_cola, _pausas, _autocierre = eventos.cola_de_escapes(lineas)
     return (len(sin_cola) <= renglones
@@ -287,7 +288,8 @@ def _tramos(palabras, cortes, columnas, cuerpo):
     return tramos
 
 
-def reajustar(lineas, columnas=ventana.COLUMNAS, renglones=ventana.LINEAS):
+def reajustar(lineas, columnas=constantes.COLUMNAS,
+              renglones=constantes.LINEAS):
     """Los cuadros que reemplazan a éste, cada uno una lista de renglones.
 
     Devuelve `[lineas]` sin tocar si el cuadro ya entra, o si trae un escape
@@ -331,8 +333,8 @@ def _reajustar(lineas, columnas, renglones):
     return cuadros
 
 
-def reajustar_comandos(comandos, columnas=ventana.COLUMNAS,
-                       renglones=ventana.LINEAS):
+def reajustar_comandos(comandos, columnas=constantes.COLUMNAS,
+                       renglones=constantes.LINEAS):
     """Una lista de comandos de `data/` —diccionarios, como están en el JSON—
     con cada cuadro de texto rearmado.
 

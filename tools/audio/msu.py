@@ -76,7 +76,7 @@ if __name__ == "__main__":
 from audio import snes_music                                # noqa: E402
 from audio import snes_samples                              # noqa: E402
 from comun import cache_disco                               # noqa: E402
-from render.render_map import GAME_DIR                      # noqa: E402
+from rpgmaker.recursos import GAME_DIR                      # noqa: E402
 
 # La ganancia de fluidsynth. Con 1.0 los temas con muchas voces saturan, así
 # que se renderiza bajo y después se normaliza: el pico de la pista queda en

@@ -141,7 +141,7 @@ del mismo formato"; pero dieciséis colores son el techo de 4bpp, así que la
 calidad no tendría adónde crecer.
 
 Los dieciséis salen de `asignador.merge_least_visible`, el de los battlers, y
-no de `titulo.reducir`, que es el que arma los 96: reducir se queda con los
+no de `paleta.reducir`, que es el que arma los 96: reducir se queda con los
 más usados, y en un fondo los dieciséis más usados son todos del piso y de
 las paredes —el cartel verde y el agua violeta se volvían gris—. Fundir por
 lo que menos se nota deja los acentos. Los 96 no se cambiaron de reductor
@@ -220,9 +220,10 @@ def _abrir(game_dir, carpeta, nombre, rtp=False):
     de la ROM son del juego. Los battlers siguen sin buscar ahí, para no
     cambiar cuáles entran sin mirarlo."""
     from render import render_map
-    lugares = [game_dir] + ([render_map.RTP_DIR] if rtp else [])
-    camino = render_map.find_resource(lugares, carpeta, nombre,
-                                      (".png", ".bmp", ".xyz"))
+    from rpgmaker import recursos
+    lugares = [game_dir] + ([recursos.RTP_DIR] if rtp else [])
+    camino = recursos.find_resource(lugares, carpeta, nombre,
+                                    (".png", ".bmp", ".xyz"))
     if camino is None:
         return None
     return render_map.load_image(camino)
@@ -329,7 +330,7 @@ def fondos_del_juego(nombrados, tree, terrenos, game_dir):
     juego ni en el RTP no entra: en RM2k esa pelea va sin fondo. Devuelve los
     nombres como los escribe el juego la primera vez, en ese orden.
     """
-    from render import render_map
+    from rpgmaker import recursos
     todos = set(nombrados)
     todos |= {nombre for tipo, nombre in tree.background.values()
               if tipo == 2 and nombre}
@@ -340,9 +341,9 @@ def fondos_del_juego(nombrados, tree, terrenos, game_dir):
     salida = []
     for clave in sorted(por_clave):
         nombre = por_clave[clave]
-        if render_map.find_resource([game_dir, render_map.RTP_DIR],
-                                    "Backdrop", nombre,
-                                    (".png", ".bmp", ".xyz")) is None:
+        if recursos.find_resource([game_dir, recursos.RTP_DIR],
+                                  "Backdrop", nombre,
+                                  (".png", ".bmp", ".xyz")) is None:
             print("  el fondo %r no está ni en el juego ni en el RTP" % nombre)
             continue
         salida.append(nombre)
@@ -357,14 +358,14 @@ def fondo(nombre, game_dir):
       `paleta`   sus `COLORES` colores de 15 bits, desde `CGRAM_BASE`.
     """
     from PIL import Image
-    from port import titulo
+    from port.paleta import reducir
     imagen = _abrir(game_dir, "Backdrop", nombre, rtp=True)
     if imagen is None:
         return None
     imagen = imagen.convert("RGB").resize((ANCHO, ALTO), Image.LANCZOS)
     pixeles = [(r >> 3, g >> 3, b >> 3)
                for r, g, b in imagen.get_flattened_data()]
-    paleta, mapa = titulo.reducir(pixeles, COLORES)
+    paleta, mapa = reducir(pixeles, COLORES)
     donde = {color: i + CGRAM_BASE for i, color in enumerate(paleta)}
     indices = [[donde[mapa[pixeles[y * ANCHO + x]]] for x in range(ANCHO)]
                for y in range(ALTO)]

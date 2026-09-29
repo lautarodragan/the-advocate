@@ -13,7 +13,7 @@ import pytest
 from port import event_opcodes
 from port import eventos
 from rpgmaker import lcf
-from render.render_map import GAME_DIR
+from rpgmaker.recursos import GAME_DIR
 from ensamblado import cartuchos
 import tanda
 

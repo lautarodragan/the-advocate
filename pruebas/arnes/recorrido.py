@@ -28,7 +28,8 @@ import collections
 import os
 
 from consola import TITULO_AIRE
-from render.render_map import GAME_DIR, Renderer
+from render.render_map import Renderer
+from rpgmaker.recursos import GAME_DIR
 from rpgmaker.rm2k import (PASS_DOWN, PASS_LEFT, PASS_RIGHT,
                            PASS_UP, TELEPORT, grafico_de_pagina,
                            pasabilidad_del_tile, passability_map)

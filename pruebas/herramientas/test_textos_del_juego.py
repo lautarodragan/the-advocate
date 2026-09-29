@@ -14,7 +14,7 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 
 from port import eventos                                # noqa: E402
 from port import textos                                 # noqa: E402
-from port import ventana                                # noqa: E402
+from port import constantes                             # noqa: E402
 
 
 def _palabras(cuadros, con_hablante):
@@ -73,5 +73,5 @@ def test_el_conversor_rearma_los_textos_al_leer_los_mapas():
               for pagina in evento.pages for c in pagina.commands
               if c.code in (eventos.SHOW_MESSAGE, eventos.SHOW_MESSAGE_2)
               and len(eventos.cola_de_escapes([c.string])[0][0])
-              > ventana.COLUMNAS]
+              > constantes.COLUMNAS]
     assert not largos, largos

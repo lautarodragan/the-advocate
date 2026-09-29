@@ -18,7 +18,7 @@ enemigos, uno por enemigo.
 
 from port import escena
 from port import batalla as modelo
-from render.render_map import GAME_DIR
+from rpgmaker.recursos import GAME_DIR
 
 from consola import en_la_rom, en_la_wram
 from batalla import Pelea, en_el_droide, modelo_de

@@ -21,6 +21,8 @@ bits, y el truncado del `(int)` de C++ es el `int()` de Python. No hay
 aproximación que declarar.
 """
 
+from port.constantes import ENEMIGOS_MAX
+
 # `MaxExpValue()` y `MaxLevel()` de RM2k: `easyrpg_max_exp` y
 # `easyrpg_max_level` vienen en -1 en un LDB de RM2k, y con eso valen éstos.
 EXP_MAX = 999999
@@ -104,6 +106,5 @@ def exp_de_la_tropa(db, tropa):
     la suma de la tropa entera, hasta `ENEMIGOS_MAX` como la pelea, y la ROM
     le resta la de los ocultos al ganar: ver `ba_sin_ocultos` y
     `batalla.Batalla.experiencia`."""
-    from port import batalla
     return sum(db.enemies[e].exp
-               for e in db.troops[tropa].members[:batalla.ENEMIGOS_MAX])
+               for e in db.troops[tropa].members[:ENEMIGOS_MAX])

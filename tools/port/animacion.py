@@ -86,11 +86,12 @@ _CACHE = {}
 def hoja_de(renderer, anim):
     """La hoja de `Battle` de esta animación, o None si no tiene o no está."""
     from render import render_map
+    from rpgmaker import recursos
     nombre = anim.get("imagen") or ""
     if not nombre:
         return None
     carpeta = "Battle2" if anim.get("grande") else "Battle"
-    path = render_map.find_resource(renderer.search_dirs, carpeta, nombre)
+    path = recursos.find_resource(renderer.search_dirs, carpeta, nombre)
     return render_map.load_image(path) if path else None
 
 
@@ -185,11 +186,11 @@ def _pintar_cuadro(anim, hoja, i, caja):
 def _tenir(trozo, tono):
     """El tono de una celda, con la misma cuenta que el tinte de pantalla.
 
-    `eventos.tenir` trabaja sobre los quince bits de la consola, que es donde
+    `color.tenir` trabaja sobre los quince bits de la consola, que es donde
     la comparación mira: teñir los ocho del PNG y recortar después daría otro
     número que el del tinte de pantalla sobre el mismo color.
     """
-    from port import eventos
+    from port.color import tenir
     from PIL import Image
     salida = Image.new("RGBA", trozo.size)
     memo = {}
@@ -197,7 +198,7 @@ def _tenir(trozo, tono):
     for r, g, b, a in trozo.convert("RGBA").get_flattened_data():
         clave = (r >> 3, g >> 3, b >> 3)
         if clave not in memo:
-            p = eventos.tenir(clave[0] | (clave[1] << 5) | (clave[2] << 10),
+            p = tenir(clave[0] | (clave[1] << 5) | (clave[2] << 10),
                               tono)
             memo[clave] = ((p & 0x1F) << 3, ((p >> 5) & 0x1F) << 3,
                            ((p >> 10) & 0x1F) << 3)
@@ -224,7 +225,7 @@ def convertir(anim, hoja):
     if caja is None or hoja is None:
         return None
     from PIL import Image
-    from port import titulo
+    from port.paleta import reducir
     x0, y0, ancho, alto = caja
     ta, tal = tamano(ancho, alto)
     ox, oy = (CAJA - ta) // 2, (CAJA - tal) // 2
@@ -235,7 +236,7 @@ def convertir(anim, hoja):
         entero = Image.new("RGBA", (CAJA, CAJA), (0, 0, 0, 0))
         entero.paste(chico, (ox, oy))
         cuadros.append(entero)
-    # Los colores de todos los cuadros juntos, a quince. `titulo.reducir` no
+    # Los colores de todos los cuadros juntos, a quince. `paleta.reducir` no
     # promedia, así que no inventa un color que haya que volver a cuantizar.
     pixeles = []
     for entero in cuadros:
@@ -244,7 +245,7 @@ def convertir(anim, hoja):
                 pixeles.append((r >> 3, g >> 3, b >> 3))
     if not pixeles:
         return None
-    paleta, mapa = titulo.reducir(pixeles, COLORES)
+    paleta, mapa = reducir(pixeles, COLORES)
     donde = {color: i + 1 for i, color in enumerate(paleta)}
     indices = []
     for entero in cuadros:

@@ -3,7 +3,7 @@
 Es lo que taro hizo jugando y lo que ninguna prueba hacía: *"el hp se reduce en
 batalla, pero en el menú siempre se muestra en 40"*. Las dos mitades estaban
 cubiertas por separado —`test_batalla.py` exige el HP exacto turno por turno y
-`test_menu_dibujo.py` compara el menú contra `titulo.render_menu`— y justo la
+`test_menu_dibujo.py` compara el menú contra `menus.render_menu`— y justo la
 costura entre las dos no la miraba nadie, porque la referencia del menú
 dibujaba el máximo horneado y la ROM también: **los dos lados se equivocaban
 igual**.
@@ -89,8 +89,8 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     de `menu_grupo_pintar`—: 111 pixeles de diferencia, los de las cifras que
     nadie escribía.
     """
-    from port import titulo
-    from render.render_map import GAME_DIR
+    from port import menus
+    from rpgmaker.recursos import GAME_DIR
     from test_experiencia_dibujo import exp_y_nivel
     una = pelear(partida(caso="pelea-82-grupo-11-12"))
     quedo = hp_de(una)
@@ -101,7 +101,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     abrir(una)
     db, skin = datos.base(), datos.skin()
     oro = una.oro()
-    esperada = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
+    esperada = menus.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
                                   GRUPO, oro, 0, True, db.font_id, None,
                                   GAME_DIR, quedo, niveles, exps)
     comparar_pantalla(una, esperada, "menu-tras-pelea",
@@ -109,7 +109,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     # Y que la comparación de arriba mida algo: con los HP llenos la referencia
     # dibuja **otra** imagen. Sin esto, una ROM que volviera a hornear el
     # máximo pasaría el caso el día que la referencia se equivocara igual.
-    llena = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
+    llena = menus.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
                                GRUPO, oro, 0, True, db.font_id, None,
                                GAME_DIR, MAXIMOS, niveles, exps)
     assert pixeles_distintos(llena, esperada) > 20, (
