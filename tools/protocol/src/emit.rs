@@ -119,6 +119,41 @@ pub fn python(d: &Declaration, source: &str) -> String {
     out.join("\n")
 }
 
+/// The constants as a Rust module: one `pub const` per opcode, and each
+/// fixed-size one's size, for a side written in Rust. It is the Python
+/// module's content without its layout table, which nothing in Rust reads.
+pub fn rust(d: &Declaration, source: &str) -> String {
+    let mut out = header(&d.name, source, "//");
+    out.push(String::new());
+    for o in &d.opcodes {
+        out.push(format!("pub const {}: u8 = 0x{:02X};", o.name, o.code));
+    }
+    out.push(String::new());
+    out.push("/// How many bytes each fixed-size instruction takes, opcode included.".into());
+    out.push("/// Derived from the declared arguments; never written down.".into());
+    out.push("pub const OPCODE_SIZE: &[(u8, usize)] = &[".into());
+    for o in d.opcodes.iter().filter(|o| o.repeated.is_none()) {
+        out.push(format!("    ({}, {}),", o.name, o.fixed_size()));
+    }
+    out.push("];".into());
+    out.push(String::new());
+    out.push("/// The variable-size ones, as (opcode, base, where the count is, how big".into());
+    out.push("/// one entry is): the size is base + count * entry.".into());
+    out.push("pub const VARIABLE_SIZE: &[(u8, usize, usize, usize)] = &[".into());
+    for o in d.opcodes.iter().filter(|o| o.repeated.is_some()) {
+        out.push(format!(
+            "    ({}, {}, {}, {}),",
+            o.name,
+            o.fixed_size(),
+            o.count_offset(),
+            o.entry_size()
+        ));
+    }
+    out.push("];".into());
+    out.push(String::new());
+    out.join("\n")
+}
+
 /// The equates, and with `jump_table` a macro that lays down one `.addr` per
 /// opcode in the order of their numbers, for an indirect `jmp (table, x)`.
 ///
@@ -241,11 +276,22 @@ mod tests {
             python(&sample(), "t.toml"),
             asm(&sample(), "t.toml", false).unwrap(),
             asm(&sample(), "t.toml", true).unwrap(),
+            rust(&sample(), "t.toml"),
         ] {
             for (n, line) in text.lines().enumerate() {
                 assert_eq!(line, line.trim_end(), "line {} of {text}", n + 1);
             }
         }
+    }
+
+    #[test]
+    fn the_rust_output_is_constants_and_sizes() {
+        let out = rust(&sample(), "test.toml");
+        assert!(out.starts_with("// The test opcodes"), "{out}");
+        assert!(out.contains("pub const OP_ONE: u8 = 0x01;"), "{out}");
+        assert!(out.contains("    (OP_ONE, 3),"), "{out}");
+        assert!(out.contains("    (OP_MANY, 2, 1, 2),"), "{out}");
+        assert!(out.ends_with('\n'), "no trailing newline");
     }
 
     #[test]

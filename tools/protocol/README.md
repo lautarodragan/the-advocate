@@ -10,6 +10,10 @@ side's constants are generated from it:
 
     protocol events.toml --python <module>.py --asm <equates>.inc
     protocol events.toml --python <module>.py --asm <equates>.inc --check
+    protocol music.toml --rust <module>.rs
+
+`--rust` is for a side written in Rust: the same constants and sizes as the
+Python module, as `pub const`s.
 
 There is one declaration per bytecode. **Where the generated files go is the
 caller's business**, not this directory's — that is what keeps this independent

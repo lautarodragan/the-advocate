@@ -27,7 +27,7 @@ const MISUSE: u8 = 2;
 #[command(
     name = "protocol",
     about = "Generate a bytecode's constants for both of its sides",
-    after_help = "Both outputs are optional: pass the ones you need.\n\
+    after_help = "Every output is optional: pass the ones you need.\n\
                   Exit codes: 1 something is out of date, 2 bad usage.",
     version
 )]
@@ -38,6 +38,10 @@ struct Args {
     /// Write a Python module here
     #[arg(long, value_name = "PATH")]
     python: Option<PathBuf>,
+
+    /// Write a Rust module of constants here
+    #[arg(long, value_name = "PATH")]
+    rust: Option<PathBuf>,
 
     /// Write 65816 assembler equates here
     #[arg(long, value_name = "PATH")]
@@ -55,8 +59,8 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<u8, String> {
-    if args.python.is_none() && args.asm.is_none() {
-        return Err("nothing to write: pass --python, --asm, or both".into());
+    if args.python.is_none() && args.asm.is_none() && args.rust.is_none() {
+        return Err("nothing to write: pass --python, --asm, --rust, or several".into());
     }
 
     let declaration = declaration::load(&args.declaration).map_err(|e| e.to_string())?;
@@ -72,6 +76,9 @@ fn run(args: &Args) -> Result<u8, String> {
     let mut wanted: Vec<(&PathBuf, String)> = Vec::new();
     if let Some(p) = &args.python {
         wanted.push((p, emit::python(&declaration, &source)));
+    }
+    if let Some(p) = &args.rust {
+        wanted.push((p, emit::rust(&declaration, &source)));
     }
     if let Some(p) = &args.asm {
         let text = emit::asm(&declaration, &source, args.jump_table)
