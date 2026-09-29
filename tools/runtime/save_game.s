@@ -57,7 +57,7 @@ SRAM_CHECKSUM = $0104       ; the sum of the saved game's bytes
 ; They are two words and neither is written by hand: the length comes from the
 ; same constants as `save_table`, and the signature is computed by the
 ; converter from which variable, actor and skill goes in each slot
-; —`firma_de_la_partida`—, which is what the length does not see.
+; —`save_signature`—, which is what the length does not see.
 SRAM_BYTES = $0106          ; SAVE_BYTES
 SRAM_SIGNATURE = $0108      ; GAME_SIGNATURE
 SRAM_DATA = $010A

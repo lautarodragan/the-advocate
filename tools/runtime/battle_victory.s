@@ -11,7 +11,7 @@ BA_VIC_LINES = BA_PARTY_MAX
 ; what they learned. Each page waits for A, like a map message. All the words
 ; come from the LDB —`victory`, `exp_received`, `level`, `level_up`,
 ; `skill_learned`— and the assembly is the one in `game_message_terms.cpp` for
-; English RM2k, without placeholders: see `pantallas.renglon_de_nivel` and its
+; English RM2k, without placeholders: see `screens.level_line` and its
 ; sisters, which are what the converter uses to enforce that they fit.
 ;
 ; In RM2k it is the usual message window, at the bottom, **covering the
@@ -146,7 +146,7 @@ ready:
 ; hundred percent one too, which is what `Rand::ChanceOf` does—, and if it
 ; comes up the item goes to the inventory, capped at ITEM_MAX like
 ; `Game_Party::AddItem`, and its `k` to `BA_DROP_K` so the page can tell it.
-; The order of the rolls is that of `batalla.tirar_el_botin`. Everyone in the
+; The order of the rolls is that of `battle.roll_drops`. Everyone in the
 ; troop is dead —which is what `IsDead` asks for— except those still hidden.
 ; Clobbers `BA_S0` to `BA_S2`, `BA_T*`, A, X and Y.
 .proc ba_vic_drop
@@ -353,7 +353,7 @@ first:
     stz BA_S3
     stz BA_S4
     ; The victory term, on the lines the converter split it into —see
-    ; `pantallas.renglones_de_la_victoria`—.
+    ; `screens.victory_lines`—.
     jsr ba_vic_line
     bcc no_v1
     ldx #BA_TXT_VICTORY

@@ -281,7 +281,7 @@ no_saturate:
     bra each_color
 
     ; The same color, without saturation and without leaving sixteen bits. The
-    ; `lda tabla_x, x` also read the byte next to it —the three tables are
+    ; `lda table_x, x` also read the byte next to it —the three tables are
     ; contiguous and `pure` comes after—; the `and` throws it away.
 each_color_neutral:
 .a16

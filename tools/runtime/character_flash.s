@@ -328,8 +328,8 @@ copy:
 ; **And it goes before the tint, not after.** easyrpg does it the other way
 ; round —`ToneBlit` and then `BlendBlit`— but there the tone belongs to the
 ; sprite and here the tint belongs to the whole screen. With a neutral tint it
-; makes no difference; with a tint, the ROM does `tinte(destello(c))` and RM2k
-; `flash(tono(c))`. It is another declared debt of the same kind as the
+; makes no difference; with a tint, the ROM does `tint(flash(c))` and RM2k
+; `flash(tone(c))`. It is another declared debt of the same kind as the
 ; five-bit one, and the only place it shows is in a page that tints and
 ; flashes at the same time.
 ;

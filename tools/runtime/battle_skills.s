@@ -4,7 +4,7 @@
 ;
 ; `Game_BattleAlgorithm::Skill::vStart` and `vExecute`. **The order in which
 ; it consumes randomness is the contract with
-; `batalla.Batalla.usar_habilidad`**: a switch skill finishes before any roll;
+; `battle.Battle.use_skill`**: a switch skill finishes before any roll;
 ; then comes the critical, which is always rolled even if the chance is zero;
 ; then the variance; and then one roll against the hit rate for each thing the
 ; skill affects, in the order HP, SP, attack, defense, spirit and agility.
@@ -476,7 +476,7 @@ sp_ok:
 .a8
     jmp ba_switch
 not_switch:
-    ; --- on whom: `batalla.blancos_de_la_habilidad` ---
+    ; --- on whom: `battle.skill_targets` ---
     ;
     ; `enemy` and `ally` on the chosen one, `self` on the user, and `enemies`
     ; and `party` on each living one on the opposing side or its own, in
@@ -692,10 +692,10 @@ no_agi:
 ;
 ; `Game_BattleAlgorithm::Skill` with what this port knows how to do. What each
 ; actor knows at the start, how much it costs and how much it does **is not
-; decided here**: it comes from `batalla.habilidades_de`, `batalla.costo_de`
-; and `batalla.efecto_habilidad`, which is the model with which
+; decided here**: it comes from `battle.skills_of`, `battle.cost_of`
+; and `battle.skill_effect`, which is the model with which
 ; `rom/pruebas/rpgmaker/test_batalla.py` predicts the exact number, and the
-; converter emits it in `hab_par_*` and `hab_*`. What it knows **now** is
+; converter emits it in `skill_pair_*` and `skill_*`. What it knows **now** is
 ; `FAR_SKILL`, which `ChangeSkills` changes.
 
 ; A8 = the LDB actor number of combatant `BA_ACTOR`. It is what indexes

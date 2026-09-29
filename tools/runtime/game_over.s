@@ -91,7 +91,7 @@ SCREEN_MAP = $7C00
 .endproc
 
 ; `battle_start`, with the battle already faded to black: if it was lost and
-; the defeat destination is `BATALLA_PERDER`, it does not return. Otherwise it
+; the defeat destination is `BATTLE_LOSE`, it does not return. Otherwise it
 ; carries on as usual.
 .proc game_over_if_lost
 .a8

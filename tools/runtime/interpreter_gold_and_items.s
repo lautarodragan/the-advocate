@@ -6,7 +6,7 @@
 ;
 ; Opcode handlers: the `run_code` dispatch, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one returns to the loop
-; with `jmp run_code::otro` or ends the frame with `rts`.
+; with `jmp run_code::other` or ends the frame with `rts`.
 
 ; `ChangeGold`: adds or subtracts and clamps to [0, GOLD_MAX], which is what
 ; `Game_Party::GainGold` does. The amount takes three bytes because RM2k's cap

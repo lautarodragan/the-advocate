@@ -19,7 +19,7 @@ ANIM_T     = $7E30E6
 ; the channel.
 ;
 ; The tone is **three** bytes and not four: a picture's saturation is always
-; the neutral one —`imagen_aceptable` accepts no other— so there is nothing to
+; the neutral one —`picture_fits` accepts no other— so there is nothing to
 ; interpolate there and `picture_palette` sets `tint_s` to `TINT_NEUTRAL`.
 ; **$30E8 to $30EB belong to the MSU-1** —`MSU_HAS`, `MSU_PLAYING` and
 ; `MSU_FACTOR`—, so this starts at $30EC and goes up to $30FA; the next block
@@ -174,7 +174,7 @@ ANIMB_PREV   = $7E3616          ; three bytes: the last frame built in
 
 ; This map's layout, when loading it. The byte is 0 —"nothing is drawn here"—
 ; or bit 7 set with the 64-tile block and the palette, three bits each.
-; See `animaciones_asm` in snes_convert.py.
+; See `animations_asm` in snes_convert.py.
 .proc anim_drawing_map
 .a8
 .i16

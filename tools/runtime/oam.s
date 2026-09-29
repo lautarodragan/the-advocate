@@ -527,7 +527,7 @@ with_end:
     inc jump_stuck              ; there was an `end_jump` and the cell is taken
     rts
 se_can:
-    ; The target cell, which `event_cell` left in celda_x/celda_y.
+    ; The target cell, which `event_cell` left in cell_x/cell_y.
     phx
     jsr move_cell_to_event
     plx

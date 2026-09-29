@@ -77,7 +77,7 @@ ready:
 ; The cartridge has carried several songs since 2026-09-06 and **they all share
 ; the sample bank**, which is uploaded only once at boot: changing song is
 ; changing stream and nothing else, so it does not cost even a frame. Hence
-; there is nothing to upload here. See `Banco` in tools/audio/snes_music.py.
+; there is nothing to upload here. See `Bank` in tools/audio/snes_music.py.
 ;
 ; Which index is playing stays in `song_current`, which is what `music_frame`
 ; needs to start over when the stream ends: without it the loop always went
@@ -605,7 +605,7 @@ continues:
 
 boot:
     ; The DSP setup: the same table the MSU-1 path uses, and after it KON and
-    ; KOF at zero. See `escrituras_del_arranque`.
+    ; KOF at zero. See `boot_writes`.
     ldy #0
 other_init:
     lda dsp_init_reg, y

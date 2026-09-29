@@ -96,7 +96,7 @@ ready:
     rts
 .endproc
 
-; A: an index into the map's graphics table —the one `ruta_grafico` builds and
+; A: an index into the map's graphics table —the one `route_graphic` builds and
 ; `load_route_graphics` copies to `route_gfx_buf`—. Leaves `hero_poses`,
 ; `hero_pal` and `hero_cgram` pointing at that graphic and returns with C=1;
 ; if the graphic is not in this map's sprite bank it returns with C=0 and

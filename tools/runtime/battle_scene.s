@@ -16,8 +16,8 @@
 ; on 2026-09-21, when splitting work among tasks that touched far RAM.
 SCN_ORIGIN   = $6600    ; 1: a random encounter started the battle
 ; The number of this battle's background among the game's, or BACKDROP_PLAIN.
-; It is the one read from the `.msu`; the ROM's is SCN_FALLBACK. See "Qué
-; fondos hay" in tools/port/scene.py.
+; It is the one read from the `.msu`; the ROM's is SCN_FALLBACK. See "Which
+; backdrops there are" in tools/port/scene.py.
 SCN_BACKDROP = $6601
 SCN_VIS      = $6602    ; one bit per enemy: still drawn
 SCN_PAL_N    = $6603    ; how many battler palettes were handed out
@@ -331,7 +331,7 @@ scn_bits:
     rts
 .endproc
 
-; Enemy `SCN_E` onto the scene in `SCN_SCENE`, clipped to `ESC_CLIP_*`.
+; Enemy `SCN_E` onto the scene in `SCN_SCENE`, clipped to `SCN_CLIP_*`.
 ; With the direct page already borrowed. If it has no battler, or if the
 ; clip leaves it out, it does nothing.
 .proc scene_set
@@ -570,7 +570,7 @@ outside:
     ;
     ; And the map's can be that of the terrain the hero stands on, just as a
     ; troop can fight with the place's: it is `Game_Map::SetupBattle`. See
-    ; `escena_de_la_rom` in tools/port/snes_convert.py.
+    ; `rom_scene` in tools/port/snes_convert.py.
     lda #BACKDROP_PLAIN
     sta SCN_BACKDROP
     lda SCN_ORIGIN
@@ -1180,7 +1180,7 @@ tile:
 ;
 ; It is CPU and not DMA because each small pixel is two across, and in
 ; planar that means splitting every byte in two: `fallback_double` does it, a
-; table of 256 words. `respaldo_bytes`, in tools/port/snes_convert.py,
+; table of 256 words. `fallback_bytes`, in tools/port/snes_convert.py,
 ; leaves the bytes in the order they are read here, so the ROM only moves
 ; forward: for each pair of neighboring scene tiles —the left and right ones
 ; that come from the same row of a small tile—, eight two-plane words, each

@@ -174,7 +174,7 @@ run_code_long:
 ;
 ; `pair_ev` at `PAIR_BATTLE` is what tells `op_message` that the message belongs
 ; to the battle. The opcodes that run here are only those in
-; `TROPA_COMANDOS`, in events.py: no other one knows there is no map.
+; `TROOP_COMMANDS`, in events.py: no other one knows there is no map.
 ba_t_page:
     phb
     phk

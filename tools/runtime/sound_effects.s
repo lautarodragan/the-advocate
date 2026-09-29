@@ -4,7 +4,7 @@
 ;
 ; `PlaySound`, on two voices stolen from the music while they last: SE_VOICE
 ; and SE2_VOZ, the ones the music's voice allocation fills first with
-; percussion (`VOCES_DE_EFECTOS` in snes_music.py). See `build_efectos`
+; percussion (`EFFECT_VOICES` in snes_music.py). See `build_sound_effects`
 ; there. In RM2k sound effects add up —EasyRPG has 31 channels—, and with a
 ; single voice the opening's rain cut the thunder in half: measured, 73 of
 ; its 144 frames, and once 7. With MSU-1 and the SPC700 without music, voices
@@ -521,7 +521,7 @@ has_effect:
     jmp ready
 is:
     ; And that it is **its own**: the place is shared by effects from
-    ; different packages —see `lugares_de_efectos` in snes_music.py—, and
+    ; different packages —see `effect_places` in snes_music.py—, and
     ; the one there is the one recorded in `FAR_EFFECT_IN`. Without this, an
     ; effect from another map —a common event's— would play with the
     ; neighbor's sample.

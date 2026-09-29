@@ -121,7 +121,7 @@ reused:
 ; the frequency A carries. It is RM2k's stop counter —`SetMaxStopCountForStep`
 ; and `ForTurn`— and with 8 both give zero, which is why "turning is free and
 ; the steps go back to back" was exact without knowing it. The converter emits
-; the tables from `eventos.espera_tras_paso` and `espera_tras_giro`. They use Y
+; the tables from `events.wait_after_step` and `wait_after_turn`. They use Y
 ; and not X, because X is the slot of whoever asks.
 .proc after_step
 .a8
@@ -654,7 +654,7 @@ right:
     sta route_ev + 8, x         ; move_* faces where it goes
 no_turn:
     phx
-    jsr event_cell              ; leaves its position in celda_x/celda_y
+    jsr event_cell              ; leaves its position in cell_x/cell_y
     jsr prepare_walker          ; and who it is, to collide with the others
     lda route_ev + 12, x
     and #$01
@@ -738,7 +738,7 @@ ready:
     rts
 .endproc
 
-; The position of slot X's event, into celda_x/celda_y.
+; The position of slot X's event, into cell_x/cell_y.
 .proc event_cell
 .a8
 .i16

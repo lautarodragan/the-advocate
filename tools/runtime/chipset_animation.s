@@ -38,7 +38,7 @@ cycle_three:
 
 ; How far the hero advances per frame according to its speed, in **half
 ; units** of RM2k: RM2k counts 256 per cell and advances `1 << (1 + speed)`,
-; that is 4, 8, 16, 32, 64 and 128 —`PASO_POR_VELOCIDAD` in events.py—, and
+; that is 4, 8, 16, 32, 64 and 128 —`STEP_PER_SPEED` in events.py—, and
 ; here `step_left` is a byte, so it counts by twos: 128 per cell and half of
 ; each step. The pixels left are `step_left >> 3`: integer division drops the
 ; sixteenths, and at the speeds with half a pixel per frame that is the same as
@@ -61,7 +61,7 @@ anim_per_speed:
     lsr a
     lsr a
     lsr a
-.assert MAP_STRIDE = 128, error, "the three divisions above are MAPA_STRIDE/ANIM_STRIDE"
+.assert MAP_STRIDE = 128, error, "the three divisions above are MAP_STRIDE/ANIM_STRIDE"
 .assert ANIM_STRIDE = 16, error, "same"
     sta temp
     tya
@@ -239,7 +239,7 @@ other:
 
 ; What to upload in the coming vblank, decided in the body of the loop.
 ;
-; It goes **after** the `inc vueltas`, so the tick it looks at is that of the
+; It goes **after** the `inc ticks`, so the tick it looks at is that of the
 ; next tick, which is the one that will show the drawing. That it is that one
 ; and not the previous one is measured, not reasoned: see `anim_flush`.
 .proc anim_tick

@@ -24,11 +24,11 @@
 ; they have on; A on a slot shows the list of what can be put on there —it
 ; replaces the slots while it lasts— with the parameters that would result.
 ; The empty line at the end is taking off what is in the slot. B goes back.
-; `pantallas.pantalla_equipo` is the reference, and `pantallas.equipar` the
+; `screens.equipment_screen` is the reference, and `screens.equip` the
 ; rule. The windows and the cursor bar go on BG1, which BG2's text does not
 ; touch: see `eq_screen_upload` and `eq_bar`.
 ;   eq_actor     is comp_char      ; the actor number
-;   eq_ranura    is comp_col       ; the highlighted slot, 0 to 4
+;   eq_slot      is comp_col       ; the highlighted slot, 0 to 4
 ;   eq_eligiendo is comp_col + 1   ; whether the list is shown
 ;   eq_elegido   is comp_phase      ; the cursor's place in the list
 ;   eq_arriba    is comp_phase + 1  ; and the first one visible
@@ -185,7 +185,7 @@ no:
 
 ; The item slot A would have: the one it has, or —while choosing— the one
 ; under the cursor if it is the chosen slot, and none in the other if the
-; weapon is two-handed. It is `pantallas.equipar` without touching anything.
+; weapon is two-handed. It is `screens.equip` without touching anything.
 ; Returns in `eq_id`.
 .proc eq_effective
 .a8
@@ -247,7 +247,7 @@ none:
 .endproc
 
 ; Parameter `eq_param` —0 attack, 1 defense, 2 spirit, 3 agility— with the
-; equipment `eq_effective` says, in `pant_valor`, capped to [1, 999].
+; equipment `eq_effective` says, in `scr_value`, capped to [1, 999].
 .proc eq_parameter
 .a8
 .i16
@@ -316,9 +316,9 @@ ready:
     rtl
 .endproc
 
-; The list of what the actor can put on in `eq_ranura`, as `k` in
+; The list of what the actor can put on in `eq_slot`, as `k` in
 ; `FAR_ITEM_LIST`, and at the end an $FF which is the empty line. How many in
-; `eq_n`. It is `pantallas.candidatos`.
+; `eq_n`. It is `screens.candidates`.
 .proc eq_list_build
 .a8
 .i16
@@ -529,7 +529,7 @@ nothing:
     rts
 .endproc
 
-; The whole screen, in the buffer: `pantallas.pantalla_equipo`.
+; The whole screen, in the buffer: `screens.equipment_screen`.
 .proc eq_compose
 .a8
 .i16
@@ -589,7 +589,7 @@ param:
     tax
     sep #$20
 .a8
-    lda #3                      ; the term in red: `ITEM_ROJO`
+    lda #3                      ; the term in red: `ITEM_RED`
     sta temp + 1
     jsl f:ba_t_text
     stz temp + 1
@@ -816,7 +816,7 @@ row_pos_list:
 .a8
 .endproc
 
-; A on the list: `pantallas.equipar` with what the cursor is on.
+; A on the list: `screens.equip` with what the cursor is on.
 .proc eq_equip
 .a8
 .i16

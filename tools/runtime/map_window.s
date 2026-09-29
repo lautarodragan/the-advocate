@@ -670,7 +670,7 @@ strips:
     lsr a
     sta win_block
 
-    ; celdas = the map's grid + win_block rows. It is added one at a time
+    ; cells = the map's grid + win_block rows. It is added one at a time
     ; instead of multiplying: it happens only once and the 65816 does not
     ; multiply. The grid is in WRAM, where `lz2_grid` decompressed it when
     ; the map loaded.

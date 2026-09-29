@@ -179,7 +179,7 @@ continues:
     tax
     sep #$20
 .a8
-    lda f:sine_shake, x         ; outside bank 0: see `tabla_de_senos`
+    lda f:sine_shake, x         ; outside bank 0: see `sine_table`
     sta shake_sine
     bpl positive
     eor #$FF

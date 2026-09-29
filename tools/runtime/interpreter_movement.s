@@ -6,7 +6,7 @@
 ;
 ; Opcode handlers: the dispatch in `run_code`, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp run_code::otro` or ends the frame with `rts`.
+; with `jmp run_code::other` or ends the frame with `rts`.
 
 ; A forced move route from MoveEvent. The first operand says on whom: 0 is the
 ; hero, and any other number is the event's index in the map's table plus

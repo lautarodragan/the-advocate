@@ -70,7 +70,7 @@
     ; starts, which is the distance between it and BG2's base —the high
     ; nibble of BG12NBA—. The layouts put it 128 tiles behind or, the one with
     ; a 256-tile layer above, 256: 256 tiles of 4bpp are $1000 words, $10 in
-    ; the high byte. See `VENTANA_BASES` in the converter.
+    ; the high byte. See `WINDOW_BASES` in the converter.
     lda f:map_table + M_BG12NBA_VALUE, x
     and #$F0
     sta temp
@@ -283,7 +283,7 @@ ready:
     ; lengths came out of anything. The loop adds one bank per pass because a
     ; 64 KB block crosses up to twice.
     ;
-    ; And the offset counts in steps of four bytes —`MENSAJES_PASO` in
+    ; And the offset counts in steps of four bytes —`MESSAGES_STEP` in
     ; events.py—, so the block reaches 256 KB: the two bits that fall out of
     ; the `asl`s go to `temp`, and each unit of what it gathers is 64 KB, that
     ; is two LoROM banks. With `rol` and not with a branch per bit on purpose:
@@ -578,7 +578,7 @@ more:
 .endproc
 
 ; One character, from its already composed data: `font_pre0` to
-; `font_pre3`, one table per phase, built by `fuente_prerender` in the
+; `font_pre3`, one table per phase, built by `font_prerender` in the
 ; converter. For each of the FONT_PRE_ROWS rows and each of the two cells
 ; it can touch come three words —what is kept from the buffer, and what is
 ; set in planes 0-1 and in 2-3—, so painting is read, mask and write. A cell

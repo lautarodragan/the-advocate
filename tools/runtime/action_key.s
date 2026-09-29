@@ -255,7 +255,7 @@ no:
     ; `wait` and in the air, `step_left` is zero. These are the three hero
     ; things from `any_routes` without the step one, which was already checked
     ; there. It goes here and not next to that one because there the `beq
-    ; nada` above no longer reached.
+    ; nothing` above no longer reached.
     ;
     ; It was missing, and it showed when the page ends before its route: the
     ; one in `EV0043` of map 8 is a lone `MoveEvent`, so the hero went down the

@@ -6,7 +6,7 @@
 ;
 ; Opcode handlers: the dispatch in `run_code`, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp run_code::otro` or ends the frame with `rts`.
+; with `jmp run_code::other` or ends the frame with `rts`.
 
 ; `ReturntoTitleScreen` and `GameOver`: the first goes back to boot —the
 ; title screen, if the ROM has one— and the second goes through the Game Over

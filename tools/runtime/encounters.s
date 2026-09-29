@@ -3,7 +3,7 @@
 ; --- random encounters, outside bank 0 ---------------------------------------
 ;
 ; What RM2k does, from `Game_Player::UpdateEncounterSteps`, `GetEncountersAt`
-; and `PrepareEncounter`, and written the same way in `eventos.Encuentros`,
+; and `PrepareEncounter`, and written the same way in `events.Encounters`,
 ; which is what it is compared against:
 ;
 ;   * each hero step **with the pad** —a forced move route exits early, via
@@ -18,8 +18,8 @@
 ; **All the arithmetic is integer**, which is what the console can do: the
 ; converter precomputes `1 / encounter_steps` in 1/65536 —`enc_base`— and at
 ; which step each row of the table is crossed —`enc_threshold_n`—, so there is
-; not a single division here. See `eventos.enc_base` and
-; `eventos.enc_umbrales_de_paso`, which are the same arithmetic on the other
+; not a single division here. See `events.enc_base` and
+; `events.enc_step_thresholds`, which are the same arithmetic on the other
 ; side.
 ;
 ; It lives here and not in bank 0 because there were eighty-five bytes left
@@ -111,13 +111,13 @@ with_base:
 
 ; `ChangeEncounterSteps`, the body of OP_ENCOUNTER_STEPS: the new `1 / steps`
 ; and the seven thresholds that come from the same steps, which the converter
-; already computed —see `eventos.enc_base` and
-; `eventos.enc_umbrales_de_paso`—. Zero turns them off, which is what Dalia's
+; already computed —see `events.enc_base` and
+; `events.enc_step_thresholds`—. Zero turns them off, which is what Dalia's
 ; trip to Tasgarde asks for. It does not touch the distance walked: easyrpg's
 ; `SetEncounterSteps` does not either.
 ;
 ; On a map with no troops or areas it does nothing, which is what
-; `eventos.Encuentros.poner_pasos` does: with no zones there is no encounter
+; `events.Encounters.set_steps` does: with no zones there is no encounter
 ; to turn on. Nor does it outlast the map, as in RM2k: `encounter_map` puts
 ; the map's back on each load.
 ;
@@ -510,7 +510,7 @@ outside:
 ; The encounters' xorshift step: the same as `random_next` and `ba_random`,
 ; on `ENC_RNG`, which has **its own seed**. Walking does not advance the
 ; map's randomness: a random `ControlVars` has to give the same result with
-; and without encounters. It is `eventos.Encuentros._azar`.
+; and without encounters. It is `events.Encounters._roll`.
 .proc enc_random
 .a16
 .i16

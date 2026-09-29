@@ -38,7 +38,7 @@ brightness:  .res 1
 
 ; `FadeOutBGM`: if one is running, how much volume is left —from 65535 down to
 ; zero— and how much it drops per frame. The converter emits the step; see
-; `eventos.paso_de_fundido`.
+; `events.fade_step`.
 bgm_fade: .res 1
 bgm_level:   .res 2
 bgm_step:    .res 2
@@ -266,18 +266,18 @@ ev_pos_buf: .res EV_MAX * EV_STRIDE
 ; moves four— and that way the table does not depend on how many events the
 ; map has.
 ;
-;   +0  evento     the event's index, or $FF if the slot is free
+;   +0  event      the event's index, or $FF if the slot is free
 ;   +1  ptr        24-bit pointer to the first command, in the bytecode
 ;   +4  n          how many commands it has
 ;   +5  i          which one it is on
-;   +6  movio      whether this frame was part of a step, which is what
+;   +6  moved      whether this frame was part of a step, which is what
 ;                  advances the walk cycle
-;   +7  cuadros    how many frames the current step has left
-;   +8  mirando    which way it faces, or $FF if the move route has not
+;   +7  frames     how many frames the current step has left
+;   +8  facing     which way it faces, or $FF if the move route has not
 ;                  turned it yet: then the direction its page carries holds
-;   +9  espera     the frames left in a `wait`
-;   +12 banderas   bit 0 goes through walls, bit 1 animation stopped
-;   +13 salto      what is left of the current jump, 0 if there is none
+;   +9  wait       the frames left in a `wait`
+;   +12 flags      bit 0 goes through walls, bit 1 animation stopped
+;   +13 jump       what is left of the current jump, 0 if there is none
 ;   +14 jump_dx   and where it started from, in cells and signed
 ;   +15 jump_dy
 ;   +10 paso       which point of the walk cycle it is on
@@ -541,7 +541,7 @@ layer_ev:    .res 2
 found_layer: .res 1
 jump_command:  .res 1  ; the index of the `begin_jump` being built
 jump_stuck: .res 1     ; 1 if the jump did not start because the cell is occupied
-; What `armar_salto` gathers while it walks the commands of a jump: how far it
+; What `build_*_jump` gathers while it walks the commands of a jump: how far it
 ; moves in cells —signed— and which way it ends up facing.
 jump_dx:   .res 1
 jump_dy:   .res 1

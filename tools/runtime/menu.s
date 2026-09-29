@@ -99,7 +99,7 @@ other:
 ; the form that waits and by held state in the one that does not —see
 ; below—. The order is that of `CheckInput` —from highest value to lowest,
 ; which is what "RPG processes keys from highest variable value to lowest"
-; says— and it is the same one `eventos.tecla_de` runs on the model's side;
+; says— and it is the same one `events.key_value` runs on the model's side;
 ; the numbers come from the converter and are not written here twice.
 ;
 ; Until 2026-09-13 this only looked at the action button, and what kept it
@@ -741,7 +741,7 @@ close:
     lda boot_frames
     sta nmi_seen
     ; The equipment may have changed: the common events that only look at it
-    ; run now, with the data bank still at 0. See `COMUNES_DEL_EQUIPO` in
+    ; run now, with the data bank still at 0. See `PARTY_COMMON_EVENTS` in
     ; events.py.
     jsl f:equipment_commons
     plb

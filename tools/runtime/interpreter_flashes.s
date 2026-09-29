@@ -6,7 +6,7 @@
 ;
 ; Opcode handlers: the `run_code` dispatch, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one returns to the loop
-; with `jmp run_code::otro` or ends the frame with `rts`.
+; with `jmp run_code::other` or ends the frame with `rts`.
 
 ; `ShakeScreen`: `ShakeOnce`, which does not reset the position so that two
 ; shakes in a row chain smoothly, or `ShakeEnd` with zero frames. It does not

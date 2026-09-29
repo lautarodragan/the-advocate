@@ -686,7 +686,7 @@ no_message:
     ; calling it was a **door**: a `Teleport` command loads the map through
     ; `enter_map_no_events`, which does not touch it. So eight teleports
     ; spent the budget for the whole game and from the ninth on the
-    ; `beq nada` below dropped them **silently**. The whole opening is
+    ; `beq nothing` below dropped them **silently**. The whole opening is
     ; chained teleports and has almost no doors: by the time map 4's
     ; dispatcher wanted to send the player to Talan's pad there were none
     ; left, the jump was lost, and since its page is autostart and its switch
@@ -795,7 +795,7 @@ was_jump:
     ; X and not A precisely for that: X is already sixteen, so copying and
     ; comparing does not cost the `rep`/`sep` it would through the
     ; accumulator. And it is not a matter of elegance: with the four extra
-    ; bytes, the `beq nada` in `events_tick` went past the 128 a relative
+    ; bytes, the `beq nothing` in `events_tick` went past the 128 a relative
     ; branch reaches.
     ldx jump_map
     stx fade_map
@@ -1554,7 +1554,7 @@ ready:
 
 ; The layer of the active page of the event whose index comes in A, or $FF if
 ; it has none. It is the same pass as `queue_by_action`: the last page
-; whose conditions are met wins. Keeps X and Y; clobbers `pag_*` and `pg_*`,
+; whose conditions are met wins. Keeps X and Y; clobbers `page_*` and `pg_*`,
 ; which nobody has half used when this runs —it is called from a step, not
 ; from inside a page search—.
 .proc active_layer

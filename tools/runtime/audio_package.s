@@ -14,7 +14,7 @@
 ; the stream already writes— and the SPC700's directory has one entry for
 ; each. **Sound effects do not**: they share the SE_PLACES at the end of the
 ; directory, from SE_FIRST on, because two that are never in the same
-; package can go in the same place —see `lugares_de_efectos` in
+; package can go in the same place —see `effect_places` in
 ; snes_music.py—. The package lists carry them by number, `effect_place` says
 ; each one's place and `FAR_EFFECT_IN` which one was noted down in each place.
 ; An entry that is not in ARAM points to silence. `FAR_ARAM_OF` says where
@@ -937,7 +937,7 @@ ready:
 
 ; C at 1 if PKG_EXTRA is one of the exit songs of PKG_MAP's package: the
 ; third list in `packages`. They are the ones the map starts only to leave
-; —see `Temas.de_salida` in tools/port/events.py—, and the game's case is
+; —see `Temas.exit_songs` in tools/port/events.py—, and the game's case is
 ; `lufsorr` on map 3: it plays after the sequence of sound effects, so it has
 ; no reason to fit alongside them, and the converter gives it the rate of a
 ; song on its own. When its `PlayBGM` asks for it and it is not there, it is

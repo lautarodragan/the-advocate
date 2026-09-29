@@ -123,7 +123,7 @@ ready:
 .i16
     stz jump_height
     stz jump_height + 1
-    jsr event_cell              ; leaves its cell in celda_x/celda_y, and uses X
+    jsr event_cell              ; leaves its cell in cell_x/cell_y, and uses X
     lda route_ev + 7, x
     sta slot_frames             ; whether there is a step in progress
     rep #$20

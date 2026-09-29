@@ -275,7 +275,7 @@ ready:
 ; streams back to back, and the second is decompressed **after** uploading the
 ; first, in the same place: decompressed whole it does not fit in the buffer,
 ; and whatever overflowed landed in the upper half of the grid. The converter
-; splits into stretches of exactly `LZ2_CAP_BACKDROP` —see `partes_comprimidas`—,
+; splits into stretches of exactly `LZ2_CAP_BACKDROP` —see `compressed_parts`—,
 ; so how many tiles each stream carries follows from how many tiles the map has
 ; and there is no need to record it.
 ;

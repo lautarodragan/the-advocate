@@ -4,7 +4,7 @@
 
 ; The average agility of one side: A8 at 0 the party and at 1 the troop. If
 ; nobody is left alive everyone counts, which is the `or list(quienes)` of
-; `batalla.Batalla._promedio`. The result goes in `BA_T1`, capped at
+; `battle.Battle._average`. The result goes in `BA_T1`, capped at
 ; `BA_AGI_CAP`: through memory and not the accumulator, for the same reason
 ; as `ba_param`.
 .proc ba_average
@@ -97,7 +97,7 @@ ready:
 ;     chance = clamp(150 - base, 0, 100)
 ;
 ; The rounding is `(2a + b) / (2b)`, which is `RoundTo` with integers and no
-; floats: see `batalla.Batalla._chance_de_huir`.
+; floats: see `battle.Battle._escape_chance`.
 .proc ba_flee_chance
 .a8
 .i16
@@ -218,7 +218,7 @@ none:
 ; Records command A8 for actor `BA_ACTOR`, with the target in `BA_T0`, and
 ; pushes it onto the execution list. The order it is pushed in **matters**:
 ; the tie-break of the turn order is stable, so the party goes first and then
-; the troop, as in `batalla.Batalla.jugar_turno`.
+; the troop, as in `battle.Battle.play_turn`.
 .proc ba_record
 .a8
 .i16

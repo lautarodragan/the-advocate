@@ -6,7 +6,7 @@
 ;
 ; Opcode handlers: the dispatch of `run_code`, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp run_code::otro` or cuts the frame short with `rts`.
+; with `jmp run_code::other` or cuts the frame short with `rts`.
 ;
 ; At the end goes `battle_start`, which is not a handler: it is the battle
 ; from start to finish, called by `op_battle` and by random encounters.
@@ -100,7 +100,7 @@ op_shop_done:
     ply
     ; Y points at the troop; the three destinations come after it, one word
     ; each, in the order victory, escape, defeat, which is that of
-    ; `BATALLA_HANDLERS`.
+    ; `BATTLE_HANDLERS`.
     lda f:BAT_LENGTH + BA_RESULT
     jmp op_battle_destination
 
@@ -121,7 +121,7 @@ op_shop_done:
     tay
     lda [code_ptr], y           ; the destination, absolute within the page
     tay
-    ; `BATALLA_PERDER`, that is $FFFF —the battle had no defeat handler,
+    ; `BATTLE_LOSE`, that is $FFFF —the battle had no defeat handler,
     ; because in RM2k losing it is `Scene_Gameover`— never gets here:
     ; `game_over_record` records it before fighting, and `battle_start` goes
     ; to the Game Over screen without coming back. See

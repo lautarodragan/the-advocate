@@ -6,7 +6,7 @@
 ;
 ; Opcode handlers: the `run_code` dispatch, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one returns to the loop
-; with `jmp run_code::otro` or ends the frame with `rts`.
+; with `jmp run_code::other` or ends the frame with `rts`.
 
 ; `OpenSaveMenu`: the slot screen in save mode, and the save goes to whichever
 ; slot the player picks. No operands. See `OP_SAVE` in tools/port/events.py.

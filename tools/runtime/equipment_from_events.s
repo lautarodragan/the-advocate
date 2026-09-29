@@ -162,7 +162,7 @@ put:
 .endproc
 
 ; The parallel common events that only look at the equipment
-; —`COMUNES_DEL_EQUIPO` in events.py; in the game, number 37, `UpdateAG7
+; —`PARTY_COMMON_EVENTS` in events.py; in the game, number 37, `UpdateAG7
 ; Skills`—, each run once if its switch is on. `menu_screen` calls it on
 ; closing, which is where the equipment changes: in RM2k they run every frame,
 ; but they only read their switch and the equipment, so between one menu close

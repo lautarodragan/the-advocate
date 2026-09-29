@@ -101,7 +101,7 @@ ACTOR_GFX_NONE = $FF
 
 ; And which skills each actor knows, since 2026-09-21: one bit per (actor,
 ; skill) pair, with the slot the converter gave each pair —see
-; `HABILIDAD_RANURA` in events.py—. It starts with what the LDB says for the
+; `SKILL_SLOT` in events.py—. It starts with what the LDB says for the
 ; initial level, which `initial_skills_set` copies on reset, `ChangeSkills`
 ; sets and clears it, and it travels in the save. How many bytes it takes is
 ; said by `SKILL_BYTES`, and the converter stops if they go past 256.
@@ -148,7 +148,7 @@ ENC_THR   = $79C0
 ; --- experience and level: their state in far RAM ----------------------------
 ;
 ; Four bytes per actor who can fight, in the order of the converter's
-; `experiencia_ranuras` —`actor_exp_k` says which one each actor number gets,
+; `experience_slots` —`actor_exp_k` says which one each actor number gets,
 ; or $FF—: the 24-bit experience, which in RM2k reaches 999999, and the level.
 ; Having the level right next to the experience is what makes the save carry
 ; a single line for both. It starts from `exp_initial` on reset and travels
@@ -162,7 +162,7 @@ EXP_LEVEL   = 3             ; the level, the fourth byte
 ; siblings compose the level and the maximum the menu writes: they are
 ; numbers from the save and no longer strips from the cartridge. The slots
 ; reach 128 before stepping on them, and the converter stops much earlier:
-; see `experiencia_asm`.
+; see `experience_asm`.
 EXP_TEXT    = $7E63F8
 ; RM2k's `MaxExpValue()`, in its two halves.
 EXP_CAP_HI = $0F
@@ -177,7 +177,7 @@ EXP_CAP_LO = $423F
 ; front of it.
 FAR_PAGE      = $6400
 BA_PAGE_N     = FAR_PAGE + 0    ; how many pages this battle's troop brings
-BA_PAGE_INIT  = FAR_PAGE + 1    ; word: the first, in the `tpag_*` tables
+BA_PAGE_INIT  = FAR_PAGE + 1    ; word: the first, in the `tpage_*` tables
 BA_PAGE_CODE  = FAR_PAGE + 3    ; word: where the running one starts, in the
                                 ; bank of `troop_code`
 BA_PAGE_CUR   = FAR_PAGE + 5    ; word: its cursor, its own `ev_cur`
@@ -187,7 +187,7 @@ BA_PAGE_MSG   = FAR_PAGE + 8    ; word: the message it asked for and is on
 BA_PAGE_TICK = FAR_PAGE + 10    ; where the battle goes on when none are left:
                                 ; 0 the next action, 1 ask for the commands
 BA_PAGE_I     = FAR_PAGE + 11   ; which one the sweep is on
-BA_PAGE_G     = FAR_PAGE + 12   ; word: that same one, in the `tpag_*` tables
+BA_PAGE_G     = FAR_PAGE + 12   ; word: that same one, in the `tpage_*` tables
 BA_PAGE_DONE  = FAR_PAGE + 16   ; TROOP_PAGE_MAX bytes: already ran this turn
 ; And what the turn and HP conditions and the commands that come with them
 ; added, on 2026-09-28: $7E7A10 to $7E7A3F, which is what was allotted to
@@ -200,7 +200,7 @@ BA_PCT_MAX    = $7A15
 BA_P24        = $7A16           ; three bytes: what `ba_mul24` leaves
 BA_P_HP       = $7A19           ; three bytes: a hundred times the HP checked
 BA_PAGE_FL    = $7A1C           ; the triggers of the page being tested
-; And its header, copied from in front of its code: `eventos.cabecera_de_tropa`,
+; And its header, copied from in front of its code: `events.troop_header`,
 ; in the same order.
 BA_COND       = $7A20
 BA_COND_BASE  = 0               ; word: the turn base, `turn_b`
@@ -399,7 +399,7 @@ BA_DEFEND = 1
 BA_FLEE     = 2
 BA_ITEM     = 3
 BA_SKILL = 4
-; The screen modes, like `pantallas.BA_ELIGE_ORDEN` and company. **The order
+; The screen modes, like `screens.BA_ELIGE_ORDEN` and company. **The order
 ; matters**: more than one place asks `cmp #BA_M_MESSAGE / bcs` to say
 ; "message or end", so the ones that choose something all go first.
 BA_M_COMMAND = 0
@@ -453,7 +453,7 @@ BA_PARAM_MAX = 999
 BA_SKILL_TYPE_SWITCH = 3
 ; The five scopes of `rpg::Skill::Scope`, which is what `skill_scope` carries.
 ; Only `enemy` and `ally` ask for a target when chosen; for the other three
-; the scope decides it: see `batalla.blancos_de_la_habilidad`.
+; the scope decides it: see `battle.skill_targets`.
 BA_SCOPE_ENEMY      = 0
 BA_SCOPE_ENEMIES = 1
 BA_SCOPE_ONE        = 2
@@ -461,7 +461,7 @@ BA_SCOPE_ALLY       = 3
 BA_SCOPE_PARTY      = 4
 ; An enemy action that is not a skill: the basic attack, in `eacc_skill`, and
 ; what `ba_enemy_action` answers when it has none left. See
-; `batalla.accion_del_enemigo`.
+; `battle.enemy_action`.
 BA_EACC_ATTACK = $FF
 BA_EACC_NOTHING = $FE
 BA_EACC_NO_EFFECTIVE = $80      ; the `eacc_weight` bit
@@ -677,7 +677,7 @@ FADE_BEFORE = $7E7862            ; word
 ;
 ; The 2 KB of the frame the vblank uploads to the box. The cartridge does not
 ; store them whole —only the tiles that are not all zero, see
-; `cuadro_sin_vacios` in snes_convert.py— and `anim_frame_build` rebuilds
+; `frame_without_gaps` in snes_convert.py— and `anim_frame_build` rebuilds
 ; them here, outside the vblank. The DMA in `anim_drawing_dma` comes from
 ; here and not from the cartridge.
 ;
@@ -786,7 +786,7 @@ EX_END      = $7E78CF
 ; SE_PLACES of the SPC700 directory that the sound effects share, with the
 ; number of the sound effect recorded there, or $FF. Several sound effects go
 ; to the same place —the ones that are never in the same package: see
-; `lugares_de_efectos` in tools/audio/snes_music.py— and the directory does
+; `effect_places` in tools/audio/snes_music.py— and the directory does
 ; not say which one is there. See `record_effect` in audio_package.s.
 ; `aram_clear` sets it to $FF; it does not travel in the save.
 FAR_EFFECT_IN = $7E78D0
@@ -826,7 +826,7 @@ TRANSITION_SHOW = $7E7921
 ; --- the memorized song -------------------------------------------------------
 ;
 ; $7E7940 to $7E795F, reserved on 2026-09-27. `MemorizeBGM` records here
-; which song was playing —its index in `Temas`, or $FF if none— and
+; which song was playing —its index in `Songs`, or $FF if none— and
 ; `PlayMemorizedBGM` plays it again: see `op_memorized_bgm`. Reset leaves it
 ; at $FF.
 ;
@@ -842,7 +842,7 @@ REMEMBERED_SONG = $7E7940
 ; `ba_build` builds it at the start of each battle, so it does not travel in
 ; the save and there is no need to set it on reset.
 BA_WEAPON_SP = $7E7960          ; BA_PARTY_MAX bytes: what attacking costs
-                                ; each party place, `batalla.sp_del_arma`
+                                ; each party place, `battle.weapon_sp_of`
 BA_SKILL_I = $7E7964            ; which combatant a multi-target skill is on:
                                 ; `ba_skill_use` calls `ba_skill_one` for each
                                 ; one, and that one clobbers the `BA_S*`
@@ -892,7 +892,7 @@ GRID_HIGH = $7F8000
 ; as fixed for it.
 ;
 ; It is sized for the startup map's package, and **the converter stops if it
-; does not fit**: the estimate, on the high side, is `cuadros_del_arranque` in
+; does not fit**: the estimate, on the high side, is `boot_frames_estimate` in
 ; tools/audio/snes_music.py. Measured on 2026-09-26: `release`'s work ends on
 ; frame 30 and the estimate gives 34. It was 112 until that day, meant for
 ; uploading a full ARAM through the IPL; see

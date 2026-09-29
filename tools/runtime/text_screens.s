@@ -13,9 +13,9 @@
 ; which are recomputed with each character, and with the menu open there is
 ; no message; and `pick_table`, which is the position being written to.
 SCR_BYTES = 32 * 28 * 2
-;   pant_valor   is comp_dup       ; the number being written, two bytes
-;   pant_ancho   is comp_dup + 2   ; in how many digits
-;   pant_tope    is comp_dup + 3   ; how many letters of a text, at most
+;   scr_value    is comp_dup       ; the number being written, two bytes
+;   scr_width    is comp_dup + 2   ; in how many digits
+;   scr_cap      is comp_dup + 3   ; how many letters of a text, at most
 
 ; The buffer, blank.
 .proc scr_clear
@@ -62,7 +62,7 @@ other:
 .endproc
 
 ; One letter: A the character, `temp + 1` the variant —0 white, 1 gray, 2 the
-; "goes up" color, which only has digits, and 3 red: see `ITEM_SUBE` in
+; "goes up" color, which only has digits, and 3 red: see `ITEM_UP` in
 ; menus.py—. It goes at `pick_table`, which advances one cell. Clobbers X
 ; and Y.
 .proc scr_glyph
@@ -102,7 +102,7 @@ target:
 .endproc
 
 ; A text: X its number —see `item_txt_*`—, at `pick_table` and with the
-; variant in `temp + 1`, and no more than `pant_tope` letters.
+; variant in `temp + 1`, and no more than `scr_cap` letters.
 .proc scr_text
 .a8
 .i16
@@ -139,7 +139,7 @@ ready:
     rts
 .endproc
 
-; A number from `pant_valor`, 0 to 999, in `pant_ancho` digits —2 or 3— with
+; A number from `scr_value`, 0 to 999, in `scr_width` digits —2 or 3— with
 ; leading spaces, at `pick_table` and with the variant in `temp + 1`.
 .proc scr_number
 .a8

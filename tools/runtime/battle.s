@@ -1,6 +1,6 @@
 .segment "FAR"
 
-; The battle's xorshift, the same as `eventos.azar_siguiente` and
+; The battle's xorshift, the same as `events.next_random` and
 ; `rain_random`, but on `BA_SEED`, which has **its own seed**: fighting does
 ; not advance the map's randomness, so a random `ControlVars` gives the same
 ; with a battle in between and without one.
@@ -71,7 +71,7 @@ no_enters:
 
 ; A16 = n; returns with A16 = a number from 0 to n, inclusive. It is easyrpg's
 ; `Rand::GetRandomNumber(0, n)` with our randomness: see
-; `batalla.Azar.hasta`.
+; `battle.Rng.hasta`.
 .proc ba_until
 .a16
 .i16
@@ -250,7 +250,7 @@ no:
 .endproc
 
 ; The `sp_cost` of the weapon the actor in `BA_S0` has equipped, in A8, or
-; zero: `batalla.sp_del_arma`. The weapon is slot 0 of `FAR_EQUIPMENT`, which is
+; zero: `battle.weapon_sp_of`. The weapon is slot 0 of `FAR_EQUIPMENT`, which is
 ; read directly because the battle runs with the data bank at $7E, and the cost
 ; comes from `item_sp`, which is zero for anything that is not a weapon.
 ; Clobbers X and `BA_T0`.
@@ -454,7 +454,7 @@ with_actor:
     sep #$20
 .a8
     ; And what attacking costs it, which does not change in the equipment
-    ; while the battle lasts: `batalla.sp_del_arma`.
+    ; while the battle lasts: `battle.weapon_sp_of`.
     jsr ba_weapon_sp
     pha
     lda BA_S1
@@ -729,7 +729,7 @@ agi_has:
     asl a
     sta temp + 2                ; the divisor: twice the agility
     ; Rounding up, which is what easyrpg's truncation on `100 - x` does:
-    ; see `batalla.acierto_por_agilidad`.
+    ; see `battle.hit_rate_by_agility`.
     lda BA_S3
     clc
     adc temp + 2
@@ -877,7 +877,7 @@ hp_ready:
 ; The enemies' actions: `CreateEnemyActions`. Each living one chooses what to
 ; do —`ba_enemy_action`— and then against whom, which is the order of
 ; `MakeAttack` and `MakeSkillAction` and the contract with
-; `batalla.acciones_de_los_enemigos`:
+; `battle.enemy_actions`:
 ;
 ; * attacking, or a skill with `enemy` scope: a random living actor, **one
 ;   roll**;
@@ -1005,7 +1005,7 @@ ready:
     rts
 .endproc
 
-; What enemy A8 does: `batalla.accion_del_enemigo`, which is
+; What enemy A8 does: `battle.enemy_action`, which is
 ; `SelectEnemyAiActionRpgRtCompat` with its list of `eacc_*`. Answers in A8
 ; the skill's `k`, `BA_EACC_ATTACK` or `BA_EACC_NOTHING`.
 ;

@@ -6,12 +6,12 @@
 ;
 ; Opcode handlers: the dispatch in `run_code`, in interpreter.s, jumps
 ; to each one with Y on its first operand, and each one returns to the loop
-; with `jmp run_code::otro` or ends the frame with `rts`.
+; with `jmp run_code::other` or ends the frame with `rts`.
 
-; `PlayBGM`. The operand is the song's index in `Temas`, and the cartridge
+; `PlayBGM`. The operand is the song's index in `Songs`, and the cartridge
 ; carries the ones that fit in ARAM: the first `SONG_TOTAL`. A higher index is
 ; a song that did not fit and does not play, which is what happened to all but
-; one of them until 2026-09-06. See `temas_de_la_rom` in the converter.
+; one of them until 2026-09-06. See `rom_songs` in the converter.
 .proc op_bgm
     lda [code_ptr], y
     iny

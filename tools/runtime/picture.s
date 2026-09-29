@@ -126,7 +126,7 @@ equal:
 ;
 ; It reuses `channel_table` and `build_palette`, which is what the screen tint
 ; already did: the only difference is where the three values come from and
-; that the picture's saturation is always neutral —`imagen_aceptable` accepts no
+; that the picture's saturation is always neutral —`picture_fits` accepts no
 ; other—, so `tint_s` is set to neutral while this runs and then given back.
 ; The three work tables are left with the picture's tint; `restore_tables` puts
 ; them back as the screen tint's, copying `pure`, which is much cheaper than

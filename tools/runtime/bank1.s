@@ -68,7 +68,7 @@ row_buf_table:
     .word 960, 962, 964, 966, 968, 970, 972, 974
 
 ; How far each direction moves, in cells: up, right, down, left, and the four
-; diagonals. Signed, which is how `armar_salto` adds them.
+; diagonals. Signed, which is how `build_*_jump` adds them.
 step_dx_table:
     .byte 0, 1, 0, $FF, 1, 1, $FF, $FF
 step_dy_table:
@@ -193,7 +193,7 @@ font_pre_bk:
 
 ; Which JOY1H bit each `KeyInputProc` direction looks at and which number it
 ; stores in the variable, in the order of `CheckInput` —from highest value to
-; lowest—. The same order `eventos.tecla_de` walks on the model's side; the
+; lowest—. The same order `events.key_value` walks on the model's side; the
 ; numbers are emitted by the converter, so they are not written twice.
 key_dir_bit:
     .byte PAD_UP, PAD_RIGHT, PAD_LEFT, PAD_DOWN, 0

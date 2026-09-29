@@ -6,7 +6,7 @@
 ;
 ; Opcode handlers: the dispatch in `run_code`, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp run_code::otro` or ends the frame with `rts`.
+; with `jmp run_code::other` or ends the frame with `rts`.
 
 ; `ConditionalBranch` with a switch condition. The operands are the number
 ; (two bytes), the polarity —copied as is from RM2k, where 0 means "it has to
@@ -17,7 +17,7 @@
 .proc op_if
     ; The first byte says **what is being asked**, with RM2k's number as is: 0
     ; a switch, 3 the gold, 5 whether an actor is in the party. See
-    ; `bytes_de_rama`.
+    ; `branch_bytes`.
     ;
     ; Each branch leaves in A whether the condition holds —zero or nonzero—
     ; and Y pointing at the polarity byte; from there on there is a single
@@ -323,7 +323,7 @@ sia_eq_other:
     ; `Game_Actor::IsSkillLearned`: the bit of the (actor, skill) pair in
     ; `FAR_SKILL`. The converter already put the pair's slot where the other
     ; questions carry the item, so `temp + 2` brings it and the actor is not
-    ; needed. See `HABILIDAD_RANURA` in events.py.
+    ; needed. See `SKILL_SLOT` in events.py.
 sia_skill:
     jsl f:skill_known
     bne sia_yes

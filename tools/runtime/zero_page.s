@@ -25,7 +25,7 @@ pick_table:  .res 2     ; where the choice's table starts, inside the page:
                         ; for each option, the frame and the destination
 pick_edges: .res 1      ; the buttons just pressed this frame. It does not
                         ; use `temp` because `events_tick` has it busy.
-; The title screen menu. These are two bytes of its own and not the `eleg_`
+; The title screen menu. These are two bytes of its own and not the `pick_`
 ; ones even though the cursor movement is the same: the interpreter's choice
 ; lives inside an event page and this one runs before there is a map, so
 ; sharing them would tie together two things that never touch.

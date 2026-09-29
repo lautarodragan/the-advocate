@@ -6,7 +6,7 @@
 ;
 ; Opcode handlers: the dispatch in `run_code`, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp run_code::otro` or ends the frame with `rts`.
+; with `jmp run_code::other` or ends the frame with `rts`.
 
 ; The three for the sign. `OP_PICTURE` shows it already with its tone
 ; —`Game_Pictures::Show` leaves `time_left` at zero—, `OP_PICTURE_MOVE` starts

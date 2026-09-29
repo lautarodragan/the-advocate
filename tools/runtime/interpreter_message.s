@@ -6,7 +6,7 @@
 ;
 ; Opcode handlers: the dispatch in `run_code`, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp run_code::otro` or ends the frame with `rts`.
+; with `jmp run_code::other` or ends the frame with `rts`.
 
 ; Opens the message window and ends the frame. The cursor is already on the
 ; next command —the loop's `iny`— but `events_tick` does not call here again

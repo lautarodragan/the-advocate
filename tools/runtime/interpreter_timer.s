@@ -6,7 +6,7 @@
 ;
 ; Opcode handlers: the dispatch of `run_code`, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp run_code::otro` or ends the frame with `rts`.
+; with `jmp run_code::other` or ends the frame with `rts`.
 
 ; The timer: set, start or stop. The five operand bytes are fixed even though
 ; each operation uses two, so the cursor advances the same in all three.

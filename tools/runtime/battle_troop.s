@@ -131,7 +131,7 @@ no:
 
 ; Whether the troop's page `BA_PAGE_I` is met: `AreConditionsMet`, with the six
 ; triggers the ROM knows how to check —RM2k's; the three from 2003 do not
-; exist in this game—. Leaves in `BA_PAGE_G` its place in the `tpag_*` tables
+; exist in this game—. Leaves in `BA_PAGE_G` its place in the `tpage_*` tables
 ; and returns with Z=0 if it is met. Clobbers `BA_T*`, `temp`, A, X and Y.
 .proc ba_page_met
 .a8
@@ -263,7 +263,7 @@ no_enemy:
     ; party**: `Game_Actors::GetActor` answers for anyone, but the HP of one
     ; who is not fighting live in `FAR_HP` without its maximum at hand, and
     ; the game's two pages that check this are Talan's in the Lazer Teeth
-    ; battle, where he is. See `batalla.PaginaDeTropa`, which does the same.
+    ; battle, where he is. See `battle.TroopPage`, which does the same.
     lda BA_COND + BA_COND_AMIN
     sta BA_PCT_MIN
     lda BA_COND + BA_COND_AMAX
@@ -301,7 +301,7 @@ no:
 ; puts in front of its code, `TPAGE_HEADER` bytes before where `tpage_code`
 ; points— into `BA_COND`. It is read with the data bank at that of
 ; `troop_code`, which fits whole in one bank, and written with `f:`.
-; Clobbers A, X and Y. See `eventos.cabecera_de_tropa`.
+; Clobbers A, X and Y. See `events.troop_header`.
 .proc ba_page_header
 .a8
 .i16
@@ -531,7 +531,7 @@ other_stretch:
     lda BA_PAGE_ACT
     bne to_screen               ; it did not finish and asked for nothing:
                                 ; that does not happen with the commands in
-                                ; `TROPA_COMANDOS`, but if it did, the next
+                                ; `TROOP_COMMANDS`, but if it did, the next
                                 ; frame carries on
     jsr ba_page_test
     bne other_stretch           ; the next one, in this same frame
@@ -545,7 +545,7 @@ to_screen:
     jmp ba_compose
 .endproc
 
-; The page's message, in the party's lines: see `BA_PAG_MSG_FILA0` in
+; The page's message, in the party's lines: see `BA_PAGE_MSG_ROW0` in
 ; screens.py. It reads it from `messages_troop` in the usual format —the
 ; header with the lines and each line with its length, one byte per letter
 ; with the ASCII minus 32— and writes it with the screen's glyphs, cut at

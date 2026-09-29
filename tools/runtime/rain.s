@@ -111,7 +111,7 @@ off:
 .endproc
 
 ; The rain's randomness, in `comp_mask`: the same xorshift as
-; `eventos.azar_siguiente`. Returns with the new number in A, sixteen bits.
+; `events.next_random`. Returns with the new number in A, sixteen bits.
 .proc rain_random
 .a8
 .i16

@@ -5,22 +5,22 @@
 ; `Scene_Shop`, opened by `OP_SHOP` from the interpreter, like saving: the
 ; screen blocks inside the page, it costs no tick, and on exit the map comes
 ; back and the page goes on. It is a text screen —see "the text
-; screens"— and `pantallas.pantalla_tienda` is the reference for each mode. The
+; screens"— and `screens.shop_screen` is the reference for each mode. The
 ; System's windows and the bar go on BG1, with their own base: see
-; `ti_screen_upload` and `ti_windows`, and `pantallas.TI_VENTANAS`. What
+; `ti_screen_upload` and `ti_windows`, and `screens.TI_WINDOWS`. What
 ; it sells goes as `k` in `FAR_SHOP`; the selling list, in
 ; `FAR_ITEM_LIST`.
 ;
 ; The scratch space, borrowed from the message compositor:
 ;   ti_modo      is comp_col       ; TI_MAIN ... TI_SOLD
-;   ti_tipo      is comp_col + 1   ; 0 buys and sells, 1 buys, 2 sells
-;   ti_juego     is comp_phase      ; the message set, 0 to 2
+;   ti_type      is comp_col + 1   ; 0 buys and sells, 1 buys, 2 sells
+;   ti_set       is comp_phase      ; the message set, 0 to 2
 ;   ti_resaludo  is comp_phase + 1  ; whether it already went back to the main one
 ;   ti_elegido   is comp_base      ; the cursor
 ;   ti_arriba    is comp_base + 1  ; the first visible one of the list
 ;   ti_n         is comp_mask      ; how many there are in the mode's list
 ;   ti_nt        is comp_mask + 1  ; how many the shop sells
-;   ti_cuantos   is comp_color     ; the quantity being chosen
+;   ti_count     is comp_color     ; the quantity being chosen
 ;   ti_max       is comp_row      ; and up to how many
 ;   ti_timer     is comp_glyph     ; the frames of the "done"
 ;   ti_pos       is comp_glyph + 1 ; two bytes: where the digit goes
@@ -199,7 +199,7 @@ divide_it:
 .endproc
 
 ; How many of item `eq_id` the party has equipped: `GetEquippedItemCount`.
-; Returns in `pant_valor`.
+; Returns in `scr_value`.
 .proc ti_held
 .a8
 .i16
@@ -359,7 +359,7 @@ sale:
     rts
 .endproc
 
-; The whole screen, in the buffer: `pantallas.pantalla_tienda`. The windows and
+; The whole screen, in the buffer: `screens.shop_screen`. The windows and
 ; the bar are not: they go on BG1, and `ti_windows` puts them there every frame.
 .proc ti_compose
 .a8
@@ -767,7 +767,7 @@ message:
     .byte 0, 5, 6, 7, 8, 9, 10
 .endproc
 
-; `ti_num` times `ti_cuantos`, by adding: it is 99 passes at most.
+; `ti_num` times `ti_count`, by adding: it is 99 passes at most.
 .proc ti_times_count
 .a8
 .i16
@@ -868,7 +868,7 @@ ready:
     rts
 .endproc
 
-; Buy or sell `ti_cuantos` of the highlighted one: the gold and the inventory,
+; Buy or sell `ti_count` of the highlighted one: the gold and the inventory,
 ; like `UpdateNumberInput`.
 .proc ti_close_deal
 .a8
@@ -1125,7 +1125,7 @@ ready:
 ; `ti_border_patches`. Without remembering anything: every frame restores
 ; everything, so neither the bar nor the previous layer can be left painted. It
 ; is 1408 bytes, plus the bar's, which together with the text's 1792 fit in the
-; vblank —see `pantallas.tienda_compacta`—.
+; vblank —see `screens.compact_shop`—.
 .proc ti_windows
 .a8
 .i16
@@ -1257,7 +1257,7 @@ row:
 no_bar:
     rts
 
-; A16 = the mode's layer, `pantallas.TI_CAPA_DE_MODO`. Returns with 16-bit A.
+; A16 = the mode's layer, `screens.TI_LAYER_OF_MODE`. Returns with 16-bit A.
 layer:
     lda comp_col
     rep #$20
@@ -1274,7 +1274,7 @@ layer:
 .a8
 .endproc
 
-; The shop: `ti_tipo`, `ti_juego` and `FAR_SHOP` with `ti_nt` items, set by
+; The shop: `ti_type`, `ti_set` and `FAR_SHOP` with `ti_nt` items, set by
 ; `op_shop`. Returns when the player leaves.
 .proc shop_screen
 .a8

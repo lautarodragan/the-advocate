@@ -50,7 +50,7 @@ other:
     tax
     ; The tick being drawn is `ticks + 1` as seen from here, which is the
     ; same number the ChipSet animation looks at —it reads it after the `inc
-    ; vueltas`—. Measured: without the `inc`, the save point on map 8 stays
+    ; ticks`—. Measured: without the `inc`, the save point on map 8 stays
     ; one column behind and that is 76 pixels. Without the frozen ticks, like
     ; it: see `frozen_ticks`.
     lda ticks

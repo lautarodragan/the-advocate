@@ -10,7 +10,7 @@ muestra y con qué envolvente, y la consola sólo reproduce.
     MIDI + SoundFont  --snes_music.py-->  musicdata.inc: el banco, un stream por
                                           tema, los paquetes de cada mapa
     stream por nota   --music_frame-->    escrituras al DSP, cuadro a cuadro
-    escrituras        --dsp_musica-->     el driver del SPC700
+    escrituras        --dsp_music-->      el driver del SPC700
 
 * **El arranque**: `spc_upload` (`tools/runtime/spc700.s`) sube por el IPL el
   driver y el directorio de muestras, nada más. Qué atiende el driver —pares

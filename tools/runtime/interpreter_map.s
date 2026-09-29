@@ -6,14 +6,14 @@
 ;
 ; Opcode handlers: the dispatch in `run_code`, in interpreter.s, jumps
 ; to each one with Y on its first operand, and each one returns to the loop
-; with `jmp run_code::otro` or ends the frame with `rts`.
+; with `jmp run_code::other` or ends the frame with `rts`.
 
 ; `TileSubstitution`: from now on, where the grid says such-and-such block,
 ; another one is drawn. The instruction carries **several** pairs because RM2k
 ; substitutes by tile number and here the unit is the 16x16 block, which
 ; carries both layers together: an RM2k tile can be in as many blocks as it
 ; has combinations with the other layer. Which ones was worked out by the
-; converter, see `Sustituciones` in snes_convert.py.
+; converter, see `Substitutions` in snes_convert.py.
 ;
 ; The table is applied like easyrpg's `DoSubstitute`, which walks the whole
 ; translation and changes **the values** that are the old block, not the keys:
@@ -102,7 +102,7 @@ sub_ready:
 ; what `GetTerrainTag` does by going through `map_info.lower_tiles`.
 ;
 ; A map with a single terrain —all 328 in this game— carries no table:
-; `TERRENO_PLANO` answers. Outside the map `TERRENO_FUERA` answers, which is
+; `TERRAIN_PLANE` answers. Outside the map `TERRAIN_OUTSIDE` answers, which is
 ; the terrain of the **first tile of the ChipSet** and not that of any cell.
 .proc op_terrain
 .a8

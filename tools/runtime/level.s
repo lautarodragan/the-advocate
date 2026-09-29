@@ -5,8 +5,8 @@
 ; Until 2026-09-21 both were cartridge strips, composed at conversion time with
 ; the starting level: they never changed, so nothing more was needed. Since
 ; leveling up exists, they are composed here in `EXP_TEXT` with the same
-; thing they used to say —`titulo.texto_de_nivel` and
-; `titulo.texto_de_maximo`— and the menu writes them with
+; thing they used to say —`menus.level_text` and
+; `menus.max_text`— and the menu writes them with
 ; `slot_text_write` as before: all that changes is where `msg_ptr`
 ; points. With the starting level they give exactly the same letters as the
 ; strips, which is what keeps the menu goldens still.
@@ -186,7 +186,7 @@ has:
 .endproc
 
 ; The maximum HP for actor A's current level, as "/%d" padded to
-; `MENU_MAX_DIGITS` with spaces: `titulo.texto_de_maximo`.
+; `MENU_MAX_DIGITS` with spaces: `menus.max_text`.
 .proc text_max
 .a8
 .i16
@@ -256,7 +256,7 @@ full:
 ;
 ; The digits are the same glyphs as the gold —`slot_glyph_cells`, one per
 ; cell— and they line up without touching anything because both lines are
-; drawn two pixels from the top edge of their cell. `titulo._pegar_hp` is the
+; drawn two pixels from the top edge of their cell. `menus._paste_hp` is the
 ; reference, with the same columns.
 ;
 ; It lives outside bank 0 for the same reason as `hp_initial_set`: there are
@@ -585,7 +585,7 @@ ready:
 ; revives it. With an amount it is `ChangeHP`; see `heal_actor`.
 ;
 ; Entered from `op_heal` with Y on the operand: the actor, or 0 for the whole
-; party —the `GetActors` of `game_interpreter.cpp:1539`, see `actor_de_blanco`
+; party —the `GetActors` of `game_interpreter.cpp:1539`, see `target_actor`
 ; in events.py— and the amount, 16 bits. Returns with Y after it. It lives
 ; **outside bank 0** for the same reason as `hp_initial_set`, and that is
 ; why everything it touches goes with `f:` or is in the direct page. Clobbers

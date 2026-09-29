@@ -36,7 +36,7 @@ APU_CMD_IPL = 4
 ; The console multiplies and divides in hardware, which is all the screen
 ; tint needs: it scales each channel by a value from 0 to 200 with 100 as
 ; neutral, that is, multiply and divide by a hundred. Both are exact and on
-; integers, so the same computation in Python —`color.tenir`— always gives
+; integers, so the same computation in Python —`color.apply_tint`— always gives
 ; the same result.
 ;
 ; The product takes 8 cycles to be ready and the quotient 16. There is no need

@@ -8,7 +8,7 @@
 .segment "HEADER"
     ; This is what the FX Pak menu shows and what any ROM database reads. The
     ; game declares it in its project file, and the converter emits it already
-    ; padded to 21 characters: see `identidad_de_la_rom`.
+    ; padded to 21 characters: see `rom_identity`.
     .byte ROM_TITLE
     .byte $30                      ; LoROM, FastROM: see MEMSEL
     .byte $02                      ; ROM and battery-backed RAM: the saved game

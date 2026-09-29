@@ -75,7 +75,7 @@ not_move:
     bcc face                    ; 12..15 are the face_*
     ; Turning without moving is not compiled, and facing the hero —21— and
     ; going toward him —9— are not compiled **on the hero**: see
-    ; `RUTA_ORDENES` in events.py. They do not get here. 9 would also fall
+    ; `ROUTE_COMMANDS` in events.py. They do not get here. 9 would also fall
     ; into `move` above, which with a direction that is not 0..3 sends the
     ; hero left by elimination, which is the same trap as the diagonals.
     cmp #24
@@ -220,7 +220,7 @@ sound_hero:
 
 move:
     ; Diagonals do not get here: the converter rejects the page that gives one
-    ; to the hero —see MOVE_EVENT in `eventos.traducir`— because the ROM only
+    ; to the hero —see MOVE_EVENT in `events.traducir`— because the ROM only
     ; walks them on events, and none of the game's 26 move routes that use
     ; them is the hero's. Without that cut, the elimination below would send
     ; the hero to the left.

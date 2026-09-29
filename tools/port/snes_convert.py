@@ -6628,7 +6628,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         for e in rom_enemies:
             if len(rom_actions[e]) > B.ACTIONS_MAX:
                 raise SystemExit("enemy %d brings %d actions and the ROM "
-                                 "weighs %d: see `batalla.ACCIONES_MAX`"
+                                 "weighs %d: see `battle.ACTIONS_MAX`"
                                  % (e, len(rom_actions[e]), B.ACTIONS_MAX))
             eacc_start.append(len(eacc_skill))
             for rating, skill, effective in rom_actions[e]:

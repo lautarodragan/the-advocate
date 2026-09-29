@@ -45,7 +45,7 @@ no:
 .endproc
 
 ; Uploads a block of cells to the tilemap. X carries the block's index in
-; `ranura_bloque_lo/hi/bk`, Y the VRAM address in words and `temp` how many
+; `slot_block_lo/hi/bk`, Y the VRAM address in words and `temp` how many
 ; cells there are.
 ;
 ; With the screen off on entry and inside the vblank when moving the cursor:
@@ -143,7 +143,7 @@ no_party:
 .endproc
 
 ; Uploads a rectangle of cells to the tilemap, row by row. X carries the
-; block's index in `ranura_bloque_lo/hi/bk`, Y the VRAM address of its first
+; block's index in `slot_block_lo/hi/bk`, Y the VRAM address of its first
 ; cell, `temp` how many bytes each row has and `temp + 2` how many rows there
 ; are.
 ;
@@ -205,7 +205,7 @@ row:
 ; actor made it grow with every one who could be in the party.
 
 ; `msg_ptr` pointing at one of the strips of the actor in A, offset by the X
-; bytes of `SLOT_TEXT_NAME`, `_NIVEL` or `_MAX`. Clobbers A and X, and
+; bytes of `SLOT_TEXT_NAME`, `_LEVEL` or `_MAX`. Clobbers A and X, and
 ; **Y stays as it was**: the caller brings it with the cell it is going to
 ; write to.
 ;

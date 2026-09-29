@@ -12,7 +12,7 @@
 ; BG1 has **its own base**, `TARGET_VRAM`, behind the menu's tilemap: there
 ; is no room left in BG2's, because the menu's bank reaches almost up to its
 ; tilemap. Everything falls in what `load_map` restores when the menu closes
-; —`_controlar_objetivo` checks it—, and the colors go in 128..143, which are
+; —`_check_target` checks it—, and the colors go in 128..143, which are
 ; the menu sprites' and are restored by `menu_exp_close`.
 ;
 ; `pick_cancel` says which one: at 0, for the medicine in `pick_edges`, with
@@ -47,7 +47,7 @@
     sta MDMAEN
     ; The tilemap, which is a single one: the one with an item. Without an
     ; item, the cells of the two left windows are erased —see
-    ; `objetivo_compacto`—.
+    ; `compact_target`—.
     rep #$20
 .a16
     lda #TARGET_MAP
@@ -273,7 +273,7 @@ glyph:
 ; The bar on party row A: `temp + 3` at 1 paints it and at 0 erases it. Both
 ; are a copy of the BG1 rectangle where the bar changes something
 ; —`TARGET_BAR_ROWS` by `TARGET_BAR_COLS` cells, see
-; `objetivo_compacto`—: from `target_bars`, which has it with the bar, or
+; `compact_target`—: from `target_bars`, which has it with the bar, or
 ; from the tilemap. One DMA per row of cells, which fit in the vblank with the
 ; erasing one and the painting one. With an item or without it is the same:
 ; the rectangle does not touch the left windows. It clobbers `temp` through

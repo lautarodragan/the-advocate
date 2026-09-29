@@ -4,7 +4,7 @@
 ;
 ; The cartridge stores each frame **without its empty tiles**: a list of
 ; tiles, each with its number in the box in front —a byte from 0 to 63 and its
-; 32 bytes— and $FF at the end. See `cuadro_sin_vacios` in snes_convert.py.
+; 32 bytes— and $FF at the end. See `frame_without_gaps` in snes_convert.py.
 ; Here the 2 KB are rebuilt in `ANIMB_BUF`, which is where vblank uploads them
 ; whole from: what ends up in VRAM is the same as when the cartridge carried
 ; them complete.

@@ -6,7 +6,7 @@
 ;
 ; Opcode handlers: the dispatch of `run_code`, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp run_code::otro` or cuts the frame short with `rts`.
+; with `jmp run_code::other` or cuts the frame short with `rts`.
 
 ; `KeyInputProc`: which button the player pressed, stored in a variable. See
 ; OP_KEY in events.py, which is where the reason lives for why the waiting
