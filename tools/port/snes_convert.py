@@ -66,11 +66,11 @@ from rpgmaker import rm2k
 
 # Translucent events carry their own graphic: see `rm2k.decorar_translucido`
 # —baked against the background, dithered, or opaque—.
-lcf.DECORAR_TRANSLUCIDO = rm2k.decorar_translucido
+lcf.DECORATE_TRANSLUCENT = rm2k.decorar_translucido
 # And the text boxes, rebuilt for the SNES window: see
-# `lcf.REAJUSTAR_TEXTOS` and `port/textos.py`.
+# `lcf.REFIT_TEXTS` and `port/textos.py`.
 from port import textos
-lcf.REAJUSTAR_TEXTOS = textos.reajustar_comandos
+lcf.REFIT_TEXTS = textos.reajustar_comandos
 from port import animacion as animacion_mod
 from port import imagen
 from port import asignador
@@ -3594,7 +3594,7 @@ def experiencia_asm(db, actores, actores_n):
         exp_nivel_max  `GetMaxLevel()`, one byte.
         exp_curva      where its row starts in `exp_tabla`, a word.
         nivel_fila     six words: where each parameter curve starts in
-                       `nivel_params`, in the order of `lcf.CURVAS`.
+                       `nivel_params`, in the order of `lcf.CURVES`.
 
     `exp_tabla` is `MakeExpList` of each distinct curve —four bytes per level,
     `NIVEL_MAX` levels— and `nivel_params` the six curves of each slot,
@@ -3616,7 +3616,7 @@ def experiencia_asm(db, actores, actores_n):
         inicial += [exp & 0xFF, (exp >> 8) & 0xFF, exp >> 16,
                     X.nivel_inicial(actor) if actor else 1]
         maximo.append(X.nivel_max(actor) if actor else 1)
-        for curva in lcf.CURVAS:
+        for curva in lcf.CURVES:
             filas.append(2 * len(params))
             valores = list(actor.params.get(curva) or []) if actor else []
             valores = (valores + [0] * X.NIVEL_MAX)[:X.NIVEL_MAX]
@@ -4043,7 +4043,7 @@ def escenas_asm(datos, tropas, db):
     for numero in usadas:
         tropa = db.troops[numero]
         suyos = list(zip(tropa.members,
-                         tropa.posiciones))[:constantes.ENEMIGOS_MAX]
+                         tropa.positions))[:constantes.ENEMIGOS_MAX]
         infos = []
         for enemigo, centro in suyos:
             k = datos["battler_de"].get(enemigo, 0xFF)
@@ -5635,7 +5635,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         texto_param = [texto_nuevo(t[:P.EQ_PARAM_VALOR - 1])
                        for t in db.term_params]
         texto_ranura = [texto_nuevo(t[:P.EQ_RANURA_TERM_ANCHO])
-                        for t in db.term_equipo]
+                        for t in db.term_equipment]
         texto_actor = {a: texto_nuevo(db.actors[a].name)
                        for a in ranuras["actores"]}
         # The shop's: the eleven messages of each of the three sets, two lines
@@ -5916,7 +5916,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write(bloque("objetivo_cgram", b"".join(
             cgram_word(c).to_bytes(2, "little") for c in obj_colores)) + "\n")
         medicinas = [n for n in ranuras["items"]
-                     if ranuras["items_db"][n].type == lcf.ITEM_TIPO_MEDICINA]
+                     if ranuras["items_db"][n].type == lcf.ITEM_TYPE_MEDICINE]
         if len(medicinas) > 255:
             raise SystemExit("%d medicines don't fit in `objetivo_nombre_de`"
                              % len(medicinas))
@@ -6134,13 +6134,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         bytes_asm("item_tipo", [db_items[n].type for n in items])
         handle.write('.segment "RODATA"\n')     # same: see `item_txt_lo`
         words_asm("item_puntos", [p & 0xFFFF for n in items
-                                  for p in db_items[n].puntos],
+                                  for p in db_items[n].points],
                   declarar=True)
         # And what attacking with each one costs: the weapons' `sp_cost`, zero
         # for the rest —`batalla.sp_del_arma`—. The battle reads it once per
         # actor when it is set up.
         bytes_asm("item_sp", [db_items[n].sp_cost
-                              if db_items[n].type == lcf.ITEM_TIPO_ARMA
+                              if db_items[n].type == lcf.ITEM_TYPE_WEAPON
                               else 0 for n in items], declarar=True)
         # `item_actores` also goes outside bank 0 —it is read with
         # `lda f:item_actores, x`—: it is 496 bytes, the fattest ones `TABLAS`
@@ -6152,7 +6152,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         bytes_asm("item_actores", [
             sum(1 << b for b in range(8)
                 if 8 * byte + b + 1 < actores_n
-                and db_items[n].equipable_por(8 * byte + b + 1))
+                and db_items[n].equippable_by(8 * byte + b + 1))
             for n in items for byte in range(8)], declarar=True)
         # `actor_params` goes outside bank 0 —it is read with
         # `lda f:actor_params, x`, only once per equipment screen— for the same
@@ -6340,7 +6340,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             | (8 if db.skills[h].affect_defense else 0)
             | (16 if db.skills[h].affect_spirit else 0)
             | (32 if db.skills[h].affect_agility else 0)
-            | (64 if db.skills[h].apunta_a_enemigos else 0)
+            | (64 if db.skills[h].targets_enemies else 0)
             | (128 if db.skills[h].ignore_defense else 0)
             for h in habilidades_rom], "$%02X", declarar=True)
         # And the scope as is, `rpg::Skill::Scope`: 0 one enemy, 1 all, 2
@@ -6486,7 +6486,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # `BAF_OCULTO`.
         bytes_asm("tropa_ocultos", [
             sum(1 << k for k, oculto in enumerate(
-                db.troops[n].ocultos[:constantes.ENEMIGOS_MAX]) if oculto)
+                db.troops[n].hidden[:constantes.ENEMIGOS_MAX]) if oculto)
             for n in usadas], "$%02X", declarar=True)
         bytes_asm("tropa_n",
                   [len(db.troops[n].members[:constantes.ENEMIGOS_MAX])
@@ -7430,7 +7430,7 @@ def main():
     # --charset stays to force it by hand when needed.
     grupo = args.grupo if args.grupo else renderer.database.party
     if args.charset is None:
-        args.charset, indice = renderer.database.lider(grupo)
+        args.charset, indice = renderer.database.leader(grupo)
         if args.charset_index is None:
             args.charset_index = indice
     if args.charset_index is None:
@@ -7885,7 +7885,7 @@ def main():
     # the bank's glyphs: see `OBJETIVO_VENTANAS`.
     letras_medicinas = "".join(
         renderer.database.items[n].name for n in items_rom
-        if renderer.database.items[n].type == lcf.ITEM_TIPO_MEDICINA)
+        if renderer.database.items[n].type == lcf.ITEM_TYPE_MEDICINE)
     (ranura_tiles, ranura_paletas, ranura_cabs, ranura_filas, ranura_caras,
      ranura_menu) = menus_mod.pantalla_ranuras(
         skin, renderer.database, RANURAS, renderer.database.font_id,
@@ -9065,7 +9065,7 @@ def casos_de_prueba(parser, args, tramos):
         casos.append(caso)
     for caso in casos:
         with open(caso.comandos_de_prueba, encoding="utf-8") as archivo:
-            caso.comandos = lcf.comandos_escritos(json.load(archivo))
+            caso.comandos = lcf.handwritten_commands(json.load(archivo))
     return casos
 
 
@@ -9315,7 +9315,7 @@ def convertir(renderer, map_id, args):
                              a.charset_index):
             continue            # not a single opaque pixel: it isn't drawn
         actores_con_grafico.append(actor)
-    primero = renderer.database.lider(args.lideres)   # (CharSet, index)
+    primero = renderer.database.leader(args.lideres)   # (CharSet, index)
     animados = []
     for actor in actores_con_grafico:
         a = renderer.database.actors[actor]

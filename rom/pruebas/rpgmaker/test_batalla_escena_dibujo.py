@@ -72,7 +72,7 @@ def _esperada(una, base, tropa, vivos):
     """
     limpio = _bufer(una, "ESC_LIMPIO")
     miembros = base.troops[tropa].members
-    posiciones = base.troops[tropa].posiciones
+    posiciones = base.troops[tropa].positions
     claves, puestos = [], []
     for k, (enemigo, centro) in enumerate(zip(miembros, posiciones)):
         e = base.enemies[enemigo]

@@ -11,11 +11,11 @@ Codes not in the table are exported as a bare number.
 import json
 import os
 
-TABLA = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+TABLE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                      "event_codes.json")
 
-with open(TABLA, encoding="utf-8") as _handle:
-    EVENT_CODES = {int(codigo): nombre
-                   for codigo, nombre in json.load(_handle).items()}
+with open(TABLE, encoding="utf-8") as _handle:
+    EVENT_CODES = {int(code): name
+                   for code, name in json.load(_handle).items()}
 
 del _handle

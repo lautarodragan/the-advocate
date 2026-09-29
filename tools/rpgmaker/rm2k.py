@@ -270,7 +270,7 @@ OPACIDAD_TRANSLUCIDO = 160
 # For the rest of the program it is, again, another CharSet: the name carries
 # this suffix with the map and the cell where the event stands, which is all
 # that is needed to rebuild the background. The reader sticks it on —see
-# `lcf.DECORAR_TRANSLUCIDO`, which the converter turns on— and
+# `lcf.DECORATE_TRANSLUCENT`, which the converter turns on— and
 # `render_map.Charsets` builds the image.
 HORNEADO_SUFIJO = "~horneado"
 

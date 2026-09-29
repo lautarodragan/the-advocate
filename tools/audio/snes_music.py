@@ -128,7 +128,7 @@ def numeros_de_pista(game_dir=None):
         nombres = _nombres_de_musica(game_dir)
         del_rtp = _nombres_de_musica(RTP_DIR)
         ldb = os.path.join(game_dir, "RPG_RT.ldb")
-        sistema = sorted(({n.lower() for n in lcf.temas_del_sistema(ldb)}
+        sistema = sorted(({n.lower() for n in lcf.system_songs(ldb)}
                           - nombres) & del_rtp)
         orden = sorted(nombres) + sistema
         # The number goes in a byte of `tema_msu`, and $FF is "no track".

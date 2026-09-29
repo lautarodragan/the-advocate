@@ -2175,8 +2175,8 @@ def base_de_datos(game_dir):
     """
     from rpgmaker import fork, lcf
     ruta = os.path.join(game_dir, "RPG_RT.ldb")
-    huella = [ruta, lcf.REAJUSTAR_TEXTOS, lcf.DECORAR_TRANSLUCIDO]
-    for carpeta in (os.path.join(lcf.volcado(ruta), "db"), fork.chipsets_folder()):
+    huella = [ruta, lcf.REFIT_TEXTS, lcf.DECORATE_TRANSLUCENT]
+    for carpeta in (os.path.join(lcf.dump_dir(ruta), "db"), fork.chipsets_folder()):
         if os.path.isdir(carpeta):
             for nombre in sorted(os.listdir(carpeta)):
                 estado = os.stat(os.path.join(carpeta, nombre))
@@ -2460,8 +2460,8 @@ def variables_de(game_dir, map_ids=None, extra=()):
         db = base_de_datos(game_dir)
         for tropa in db.troops.values():
             for pagina in tropa.pages:
-                if "variable" in pagina.activos:
-                    ids.add(pagina.condicion["variable_id"])
+                if "variable" in pagina.active:
+                    ids.add(pagina.condition["variable_id"])
         for comandos in comandos_de_las_tropas(db):
             ids |= variables_de_comandos(comandos)
     return {variable: ranura for ranura, variable in enumerate(sorted(ids))}
@@ -2688,12 +2688,12 @@ def indexar_terminos(game_dir):
     """
     from rpgmaker import lcf
     db = base_de_datos(game_dir)
-    terminos = db.secciones["terms"]
+    terminos = db.sections["terms"]
     TERMINOS_POSADA.clear()
-    TERMINOS_POSADA["gold"] = lcf.campo(terminos, "gold")
+    TERMINOS_POSADA["gold"] = lcf.field(terminos, "gold")
     for tipo, letra in ((0, "a"), (1, "b")):
         TERMINOS_POSADA[tipo] = tuple(
-            lcf.campo(terminos, "inn_%s_%s" % (letra, nombre))
+            lcf.field(terminos, "inn_%s_%s" % (letra, nombre))
             for nombre in _TERMINOS_DE_POSADA)
     return dict(TERMINOS_POSADA)
 
@@ -3184,21 +3184,21 @@ def disparo_de_tropa(pagina):
 
     HP is in percent, from 0 to 100: an enemy's by its place in the troop,
     an actor's by its LDB number."""
-    if not pagina.activos:
+    if not pagina.active:
         return None
-    if any(a not in TROPA_DISPAROS for a in pagina.activos):
+    if any(a not in TROPA_DISPAROS for a in pagina.active):
         return None
-    c = pagina.condicion
+    c = pagina.condition
     flags = 0
-    for a in pagina.activos:
+    for a in pagina.active:
         flags |= TROPA_DISPAROS[a]
-    switch_a = c["switch_a_id"] if "switch_a" in pagina.activos else 0
-    switch_b = c["switch_b_id"] if "switch_b" in pagina.activos else 0
+    switch_a = c["switch_a_id"] if "switch_a" in pagina.active else 0
+    switch_b = c["switch_b_id"] if "switch_b" in pagina.active else 0
     for s in (switch_a, switch_b):
         if not 0 <= s < SWITCH_MAX:
             return None
     ranura, valor = 0, 0
-    if "variable" in pagina.activos:
+    if "variable" in pagina.active:
         valor = c["variable_value"]
         if not -0x8000 <= valor <= 0x7FFF:
             return None
@@ -3207,19 +3207,19 @@ def disparo_de_tropa(pagina):
         except NoSePuede:
             return None
     base, mult = 0, 0
-    if "turn" in pagina.activos:
+    if "turn" in pagina.active:
         base, mult = c["turn_b"], c["turn_a"]
         if not (0 <= base <= 0xFFFF and 0 <= mult < 0x8000):
             return None     # `ba_div` requires the divisor below 32768
     enemigo, e_min, e_max = 0, 0, 0
-    if "enemy_hp" in pagina.activos:
+    if "enemy_hp" in pagina.active:
         enemigo, e_min, e_max = (c["enemy_id"], c["enemy_hp_min"],
                                  c["enemy_hp_max"])
         if not (0 <= enemigo < 256 and 0 <= e_min <= 100
                 and 0 <= e_max <= 100):
             return None
     actor, a_min, a_max = 0, 0, 0
-    if "actor_hp" in pagina.activos:
+    if "actor_hp" in pagina.active:
         actor, a_min, a_max = (c["actor_id"], c["actor_hp_min"],
                                c["actor_hp_max"])
         if not (0 <= actor < 256 and 0 <= a_min <= 100

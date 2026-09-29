@@ -14,7 +14,7 @@ tables and the RM2k rules the port has to imitate. It is the lowest layer of
 
 `lcf.py` reads `rom/data/`, which since 2026-09-20 is the **resolved view**
 Ditto emits: every field written, with its default already applied, and the
-enums as numbers. So `campo` is three lines and a missing field is a
+enums as numbers. So `field` is three lines and a missing field is a
 `KeyError` —which is what we want: it means `rom/data/` is stale, not that
 it is zero—.
 
@@ -27,14 +27,14 @@ on Ditto's side, because the exact dump is still emitted and reading it
 needs it; what no longer happens is the port consuming it.
 
 The only thing that is still a judgment call here is **guessing a text's
-encoding** —see `lcf.texto`—, which is the opposite of a rule of the format:
+encoding** —see `lcf.text`—, which is the opposite of a rule of the format:
 the format does not say which character set a string is in.
 
 And one more thing, which does not come from `rom/data/`: the 183 cases in
 `rom/pruebas/casos/*.json` are written by us, in the shorthand that can be
 written by hand —the command by its name and only the fields that say
-something—. They are read by `lcf.comandos_escritos`, which is not
-`lcf.comandos`: the only outside data it uses is `event_codes.json`.
+something—. They are read by `lcf.handwritten_commands`, which is not
+`lcf.commands`: the only outside data it uses is `event_codes.json`.
 
 ## The event command codes
 

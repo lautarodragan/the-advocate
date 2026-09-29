@@ -615,14 +615,14 @@ def item_usable(item):
     with `occasion_field2`, and the medicines, which open the actor choice.
     Books, materials and specials not yet: they go in gray."""
     from rpgmaker import lcf
-    return ((item.type == lcf.ITEM_TIPO_SWITCH and item.occasion_field2)
-            or item.type == lcf.ITEM_TIPO_MEDICINA)
+    return ((item.type == lcf.ITEM_TYPE_SWITCH and item.occasion_field2)
+            or item.type == lcf.ITEM_TYPE_MEDICINE)
 
 
 def item_pide_actor(item):
     """Whether using it opens `Scene_ActorTarget`: the medicines."""
     from rpgmaker import lcf
-    return item.type == lcf.ITEM_TIPO_MEDICINA
+    return item.type == lcf.ITEM_TYPE_MEDICINE
 
 
 def texto_de_item(texto, ancho):
@@ -1220,7 +1220,7 @@ def ventanas_objetivo(sys_img, db, con_item=True, barra=None, font_id=None):
 def lcf_termino_poseidos(db):
     """"Owned Items": `possessed_items` from the LDB terms."""
     from rpgmaker import lcf
-    return lcf.to_string(db.terminos["possessed_items"])
+    return lcf.to_string(db.terms["possessed_items"])
 
 
 def capas_objetivo(sys_img, db, font_id=None):

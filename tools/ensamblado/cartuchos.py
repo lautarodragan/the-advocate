@@ -99,7 +99,7 @@ def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
 
     The tree is the one in the `rom/data/` dump, which is what the converter
     reads: that is why the path falls inside `rom/data/` and not inside the
-    game —see `lcf.volcado`—."""
+    game —see `lcf.dump_dir`—."""
     from rpgmaker import lcf
     arbol = lcf.TreeMap(os.path.join(project.data(), "RPG_RT.lmt"))
     de_la_regla = [m for m in range(1, menor_a)

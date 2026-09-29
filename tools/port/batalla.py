@@ -195,7 +195,7 @@ def habilidad_usable(skill):
     with them `Gamble for Credits`, Arden's only one.
     """
     from rpgmaker import lcf
-    return (skill.type in (lcf.SKILL_TIPO_NORMAL, lcf.SKILL_TIPO_SWITCH)
+    return (skill.type in (lcf.SKILL_TYPE_NORMAL, lcf.SKILL_TYPE_SWITCH)
             and skill.sp_cost <= 99)
 
 
@@ -206,9 +206,9 @@ def pide_blanco(skill):
     multi-target ones nor `self` either: their target is decided by the
     scope."""
     from rpgmaker import lcf
-    return (skill.type != lcf.SKILL_TIPO_SWITCH
-            and skill.scope in (lcf.SKILL_SCOPE_ENEMIGO,
-                                lcf.SKILL_SCOPE_ALIADO))
+    return (skill.type != lcf.SKILL_TYPE_SWITCH
+            and skill.scope in (lcf.SKILL_SCOPE_ENEMY,
+                                lcf.SKILL_SCOPE_ALLY))
 
 
 def habilidad_efectiva_sola(skill):
@@ -224,7 +224,7 @@ def habilidad_efectiva_sola(skill):
     the same as any other: that is why the converter answers it and the ROM
     does not look at it.
     """
-    return (skill.apunta_a_enemigos
+    return (skill.targets_enemies
             or any((skill.affect_hp, skill.affect_sp, skill.affect_attack,
                     skill.affect_defense, skill.affect_spirit,
                     skill.affect_agility)))
@@ -281,7 +281,7 @@ def acciones_de_enemigo(db, enemy_id):
         if accion.kind != ACCION_KIND_HABILIDAD:
             continue
         skill = db.skills.get(accion.skill_id)
-        if skill is None or skill.type != lcf.SKILL_TIPO_NORMAL \
+        if skill is None or skill.type != lcf.SKILL_TYPE_NORMAL \
                 or not habilidad_usable(skill):
             continue
         lista.append((accion.rating, skill, habilidad_efectiva_sola(skill)))
@@ -301,7 +301,7 @@ def sp_del_arma(db, equipo):
     """
     from rpgmaker import lcf
     arma = db.items.get(equipo[0]) if equipo and equipo[0] else None
-    if arma is None or arma.type != lcf.ITEM_TIPO_ARMA:
+    if arma is None or arma.type != lcf.ITEM_TYPE_WEAPON:
         return 0
     return arma.sp_cost
 
@@ -394,7 +394,7 @@ def efecto_habilidad(fuente, blanco, skill, critico=False):
     efecto = skill.power
     efecto += skill.physical_rate * fuente.ataque // 20
     efecto += skill.magical_rate * fuente.espiritu // 40
-    if skill.apunta_a_enemigos and not skill.ignore_defense:
+    if skill.targets_enemies and not skill.ignore_defense:
         efecto -= skill.physical_rate * blanco.defensa // 40
         efecto -= skill.magical_rate * blanco.espiritu // 80
     efecto = max(0, efecto)
@@ -608,7 +608,7 @@ def enemigos_de_la_tropa(db, tropa):
     t = db.troops[tropa]
     return [enemigo_de(db, e, n, oculto)
             for n, (e, oculto) in enumerate(
-                list(zip(t.members, t.ocultos))[:ENEMIGOS_MAX])]
+                list(zip(t.members, t.hidden))[:ENEMIGOS_MAX])]
 
 
 def _turnos(turno, base, multiplo):
@@ -633,8 +633,8 @@ class PaginaDeTropa:
     """
 
     def __init__(self, pagina):
-        self.activos = list(pagina.activos)
-        self.c = pagina.condicion
+        self.activos = list(pagina.active)
+        self.c = pagina.condition
         self.comandos = list(pagina.commands)
 
     def cumple(self, batalla):
@@ -930,9 +930,9 @@ class Batalla:
                 blanco = blancos[self.azar.hasta(len(blancos) - 1)]
                 acciones.append((enemigo, ORDEN_ATACAR, blanco))
                 continue
-            if skill.scope == lcf.SKILL_SCOPE_ENEMIGO:
+            if skill.scope == lcf.SKILL_SCOPE_ENEMY:
                 blanco = blancos[self.azar.hasta(len(blancos) - 1)]
-            elif skill.scope == lcf.SKILL_SCOPE_ALIADO:
+            elif skill.scope == lcf.SKILL_SCOPE_ALLY:
                 # Among the ones the skill affects, which are all the living
                 # ones: one that is not `efectiva` weighed zero and does not
                 # get here.
@@ -1003,7 +1003,7 @@ class Batalla:
         """
         from rpgmaker import lcf
         fuente.sp = max(0, fuente.sp - costo_de(skill))
-        if skill.type == lcf.SKILL_TIPO_SWITCH:
+        if skill.type == lcf.SKILL_TYPE_SWITCH:
             self.switches.append(skill.switch_id)
             self.registro.append((self.turno, fuente.nombre, fuente.nombre,
                                   True, False, 0, fuente.hp))
@@ -1024,11 +1024,11 @@ class Batalla:
         from rpgmaker import lcf
         propios, contrarios = ((self.actores, self.enemigos) if fuente.es_actor
                                else (self.enemigos, self.actores))
-        if skill.scope == lcf.SKILL_SCOPE_UNO_MISMO:
+        if skill.scope == lcf.SKILL_SCOPE_SELF:
             return [fuente]
-        if skill.scope == lcf.SKILL_SCOPE_ENEMIGOS:
+        if skill.scope == lcf.SKILL_SCOPE_ENEMIES:
             return self.vivos(contrarios)
-        if skill.scope == lcf.SKILL_SCOPE_GRUPO:
+        if skill.scope == lcf.SKILL_SCOPE_PARTY:
             return self.vivos(propios)
         return [blanco]
 
@@ -1042,7 +1042,7 @@ class Batalla:
         efecto = efecto_habilidad(fuente, blanco, skill, critico)
         efecto = varianza_ajustar(efecto, skill.variance, self.azar)
         efecto = max(-DANO_MAX, min(DANO_MAX, efecto))
-        positivo = not skill.apunta_a_enemigos
+        positivo = not skill.targets_enemies
         if not positivo:
             efecto = -efecto
         if skill.affect_hp and self.azar.porciento(acierto):
@@ -1125,7 +1125,7 @@ class Batalla:
                 # And here `(skill, lugar)`: the LDB skill and the target's
                 # place, in the list of the side its `scope` points to.
                 skill, quien = blanco
-                lado = (self.enemigos if skill.apunta_a_enemigos
+                lado = (self.enemigos if skill.targets_enemies
                         else self.actores)
                 # A switch one asks for no target: `Scene_Battle::AssignSkill`
                 # records it on the one using it, wherever its `scope`

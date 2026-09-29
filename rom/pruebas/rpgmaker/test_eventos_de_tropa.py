@@ -118,9 +118,9 @@ def test_las_tropas_son_las_que_se_espera():
     base = datos.base()
     rey = base.troops[TROPA_RAT_KING]
     assert rey.members == [KING_RAT, GIANT_RAT, GIANT_RAT]
-    assert rey.ocultos == [False, True, True]
-    llaman = [p for p in rey.pages if p.activos == ["enemy_hp"]]
-    assert [(p.condicion["enemy_id"], p.condicion["enemy_hp_max"])
+    assert rey.hidden == [False, True, True]
+    llaman = [p for p in rey.pages if p.active == ["enemy_hp"]]
+    assert [(p.condition["enemy_id"], p.condition["enemy_hp_max"])
             for p in llaman] == [(0, 60), (0, 30)]
     # Y la del despegue, en el turno 1: `turn_b` es la base.
     despegue = [p for p in base.troops[TROPA_AGENTES].pages
@@ -156,7 +156,7 @@ def test_el_rat_king_empieza_solo_y_llama_a_sus_ratas(partida):
     juntas."""
     base = datos.base()
     rey = base.troops[TROPA_RAT_KING]
-    llaman = [lo_que_dicen(p)[0] for p in rey.pages if p.activos == ["enemy_hp"]]
+    llaman = [lo_que_dicen(p)[0] for p in rey.pages if p.active == ["enemy_hp"]]
     una = partida(caso="pelea-97")
     pelea = a_la_pelea(una)
     esperado = modelo_de(base, (AG7,), TROPA_RAT_KING,

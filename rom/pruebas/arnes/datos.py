@@ -88,7 +88,7 @@ def comandos_de_los_casos(cartucho=cartuchos.RELEASE):
     for nombre in cartuchos.casos_de(cartucho):
         with open(os.path.join(cartuchos.CASOS, nombre + ".json"),
                   encoding="utf-8") as archivo:
-            comandos += lcf.comandos_escritos(json.load(archivo))
+            comandos += lcf.handwritten_commands(json.load(archivo))
     return tuple(comandos)
 
 

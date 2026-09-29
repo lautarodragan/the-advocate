@@ -43,8 +43,8 @@ def variable(una, numero):
 def pagina_del_switch(base, switch):
     """La página de la tropa que dispara ese switch, y sólo él."""
     suyas = [p for p in base.troops[TROPA].pages
-             if p.activos == ["switch_a"]
-             and p.condicion["switch_a_id"] == switch]
+             if p.active == ["switch_a"]
+             and p.condition["switch_a_id"] == switch]
     assert len(suyas) == 1, "la tropa %d tiene %d páginas del switch %d" % (
         TROPA, len(suyas), switch)
     return suyas[0]

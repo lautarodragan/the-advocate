@@ -395,7 +395,7 @@ listo:
 ; Parameter Y of an actor **at its current level**: `GetBaseMaxHp` and its
 ; siblings, without the equipment —`eq_parametro` adds that— and without the
 ; `*_mod` from `ChangeParameters`, which the game does not use. Y is the order
-; of `lcf.CURVAS`: 0 HP, 1 SP, 2 attack, 3 defense, 4 spirit and 5 agility.
+; of `lcf.CURVES`: 0 HP, 1 SP, 2 attack, 3 defense, 4 spirit and 5 agility.
 ;
 ; Enters with the actor in A and returns the value in X. **Clobbers A and Y**,
 ; and does not touch the direct page: its callers —the equipment screen, the

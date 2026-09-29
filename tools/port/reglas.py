@@ -74,7 +74,7 @@ def parametros(db, actor, equipo, nivel=None):
             for k in ("attack", "defense", "spirit", "agility")]
     for item in equipo:
         if item:
-            base = [b + p for b, p in zip(base, db.items[item].puntos)]
+            base = [b + p for b, p in zip(base, db.items[item].points)]
     return [max(1, min(PARAM_MAX, b)) for b in base]
 
 
@@ -121,4 +121,4 @@ BA_TERMINOS = (
 
 def terminos_batalla(db):
     from rpgmaker import lcf
-    return {n: lcf.to_string(db.terminos[t]) for n, t in BA_TERMINOS}
+    return {n: lcf.to_string(db.terms[t]) for n, t in BA_TERMINOS}

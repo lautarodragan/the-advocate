@@ -92,7 +92,7 @@ Each folder is a Python package, and is imported by its name, with `tools/`
 
 A bare `import lcf` fails, on purpose: if it worked too, the same module
 could be loaded twice under two names, and what one changes on the other
-—`snes_convert` changes `DECORAR_TRANSLUCIDO` on `lcf`— would not get
+—`snes_convert` changes `DECORATE_TRANSLUCENT` on `lcf`— would not get
 through.
 
 ## The ones that run

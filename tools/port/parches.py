@@ -124,7 +124,7 @@ What **is not here yet**, and is left for later: the character palettes
 —which do depend on the cartridge, because who pays the timer's entry is
 decided by `npcs_dibujables` looking at the whole map—, the voices dropped
 from a MIDI, the trimmed samples, the fifteen colors each animation is
-reduced to, and `DECORAR_TRANSLUCIDO`.
+reduced to, and `DECORATE_TRANSLUCENT`.
 """
 
 import argparse

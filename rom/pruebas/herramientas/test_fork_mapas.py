@@ -302,7 +302,7 @@ def _original(map_id):
     """
     base = os.path.join(project.data(), "maps", "Map%04d" % map_id)
     datos = json.load(open(base + ".json", encoding="utf-8"))
-    capas = lcf.capas(base + ".tiles", datos, datos["width"], datos["height"])
+    capas = lcf.layers(base + ".tiles", datos, datos["width"], datos["height"])
     return datos, capas
 
 

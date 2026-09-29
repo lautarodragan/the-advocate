@@ -66,7 +66,7 @@ def test_el_conversor_rearma_los_textos_al_leer_los_mapas():
     ninguna prueba ejecuta."""
     from port import snes_convert                       # noqa: F401
     from rpgmaker import lcf
-    assert lcf.REAJUSTAR_TEXTOS is textos.reajustar_comandos
+    assert lcf.REFIT_TEXTS is textos.reajustar_comandos
     mapa = lcf.Map(os.path.join(project.data(), "maps", "Map0002.json"))
     largos = [c.string for evento in mapa.events
               for pagina in evento.pages for c in pagina.commands

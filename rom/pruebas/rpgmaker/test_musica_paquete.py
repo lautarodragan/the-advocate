@@ -339,7 +339,7 @@ def test_un_tema_que_suena_para_irse_va_aparte_del_paquete():
     from port import eventos
 
     def pagina(*comandos):
-        return eventos._Comandos(lcf.comandos_escritos(
+        return eventos._Comandos(lcf.handwritten_commands(
             {"event_commands": list(comandos)}))
 
     def tema(nombre):
