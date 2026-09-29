@@ -2388,7 +2388,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
         # does the same jump, so they can end up split. The samples do carry
         # it: `subir_a_aram` walks them with a 24-bit pointer that does not
         # jump banks, in exchange for being shorter. See `resolve` in
-        # tools/assembly/banks.py, which does not let one through with
+        # tools/cartridge/src/banks.rs, which does not let one through with
         # neither of the two.
         out = ([".block %d" % len(data)] if as_block else [".crossbank"]) \
             + ["%s:" % label]

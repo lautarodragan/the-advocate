@@ -30,7 +30,7 @@ from common import project                                    # noqa: E402
 from port import animation                                    # noqa: E402
 from port import patches                                      # noqa: E402
 
-from assembly import cartridges                             # noqa: E402
+import cartuchos
 
 
 def _armados():
@@ -38,21 +38,21 @@ def _armados():
 
     `release` también, y es el que más importa: es el único del que
     `patches.check` exige que todo lo que convierte esté versionado. Salen
-    de `CARTRIDGES` y no de listar los de prueba: ahí puede quedar el directorio
+    de la lista de cartuchos y no de listar los de prueba: ahí puede quedar el directorio
     de un cartucho que ya no existe —`main`, hasta el 2026-09-25— con
     decisiones de otro día.
     """
-    candidatos = [cartridges.directory(n) for n in sorted(cartridges.CARTRIDGES)]
+    candidatos = [cartuchos.directorio(n) for n in sorted(cartuchos.nombres())]
     return [c for c in candidatos
             if os.path.isdir(os.path.join(c, patches.MAPS_IN_BUILD))]
 
 
 def test_los_parches_versionados_son_los_que_decide_el_conversor():
     armados = _armados()
-    assert cartridges.directory(cartridges.RELEASE) in armados, (
+    assert cartuchos.directorio(cartuchos.RELEASE) in armados, (
         "`release` no dejó parches en %s: se arma con `just cartuchos`, y sin "
         "él nada mira que lo que el juego convierte esté versionado"
-        % cartridges.directory(cartridges.RELEASE))
+        % cartuchos.directorio(cartuchos.RELEASE))
     quejas, _propios = patches.check(project.auto_patches(), armados)
     assert not quejas, "\n\n".join(quejas)
 
@@ -106,8 +106,8 @@ def test_lo_que_sale_solo_por_la_tanda_no_pide_parche(tmp_path):
     clases = dict((c.key, c) for c in patches.KINDS)
     prueba = patches.test_maps()
     uno = min(prueba)
-    del_juego = min(cartridges.GAME_MAPS)
-    assert not prueba & set(cartridges.GAME_MAPS)
+    del_juego = min(cartuchos.mapas_del_juego())
+    assert not prueba & set(cartuchos.mapas_del_juego())
     (tmp_path / "parches").mkdir()
     patches.write_uses(str(tmp_path), {
         "animacion": {91: {"caso"}, 92: {uno, "caso"}, 93: {uno, del_juego}},

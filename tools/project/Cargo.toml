@@ -1,0 +1,22 @@
+[package]
+name = "rm2k-project"
+version = "0.1.0"
+edition = "2021"
+description = "Finds an rm2k-snes project, reads its settings, and knows where the machine's things are"
+
+[lib]
+name = "rm2k_project"
+path = "src/lib.rs"
+
+[dependencies]
+clap = "4"
+sha2 = "0.10"
+# `preserve_order`: a table's keys come back in the order the file writes
+# them. The cartridges are built and printed in that order.
+toml = { version = "1", features = ["preserve_order"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

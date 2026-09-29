@@ -168,6 +168,6 @@ def auto_patches():
 
 
 def cases():
-    """`[paths] cases`: the suite's cases, one JSON per case. `cartridges.py`
-    reads them and puts them into the test pages."""
+    """`[paths] cases`: the suite's cases, one JSON per case.
+    `rm2k-snes-cartridges` reads them and puts them into the test pages."""
     return _path("cases")

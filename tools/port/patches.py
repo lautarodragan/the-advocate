@@ -129,7 +129,9 @@ reduced to, and `DECORATE_TRANSLUCENT`.
 
 import argparse
 import collections
+import json
 import os
+import subprocess
 import sys
 import tomllib
 
@@ -439,10 +441,10 @@ def write_uses(dest, uses):
 
 def test_maps():
     """The maps that only exist for the suite. The project file declares
-    them, `[maps] test`, and `cartridges.py` reads them; they are not written
-    again here."""
-    from assembly import cartridges
-    return set(cartridges.TEST_MAPS)
+    them, `[maps] test`, and `rm2k-snes-cartridges` puts them into the
+    cartridges; they are not written again here."""
+    from common import settings
+    return set(settings.value("maps", "test", kind=list))
 
 
 def only_for_tests(build, kind, which, tests):
@@ -695,14 +697,19 @@ def main(argv=None):
         help="the directories of the built cartridges. Without --check it has "
              "to be the playable ROM's and nothing else: what is versioned is "
              "what `abl` decides. With --check and none given, those of all "
-             "the cartridges in `cartridges.py`")
+             "the cartridges `rm2k-snes-cartridges --list` gives")
     parser.add_argument("--check", action="store_true",
                         help="do not write: fail if what is versioned is stale")
     args = parser.parse_args(argv)
     environment.from_arguments(args, "test_cartridges")
     if not args.builds and args.check:
-        from assembly import cartridges
-        args.builds = [cartridges.directory(n) for n in cartridges.CARTRIDGES]
+        # Where each cartridge is built is said by the one that builds them.
+        listed = subprocess.run(
+            ["rm2k-snes-cartridges", "--project", project.directory(),
+             *environment.as_flags("test_cartridges"), "--list", "--json"],
+            check=True, capture_output=True, text=True).stdout
+        args.builds = [c["directory"]
+                       for c in json.loads(listed)["cartridges"]]
     builds = []
     for build in args.builds:
         if _has_patches(build):
