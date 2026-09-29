@@ -15,6 +15,7 @@ path = "src/main.rs"
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 ditto = { path = "../ditto" }
+rm2k-rules = { path = "../rules" }
 png = "0.17"
 serde_json = "1"
 
