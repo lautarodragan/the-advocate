@@ -2,7 +2,7 @@
 name: "Traducir las herramientas, fase 2: el audio y el ensamblado"
 description: "Los nombres de código de tools/audio y tools/ensamblado al inglés, y las recetas de tools/justfile"
 type: refactor
-assignee: Pindó
+assignee: taro
 ---
 
 Fase 2 de la traducción de `tools/` al inglés, segunda área: `tools/audio/`,
@@ -76,3 +76,34 @@ ejecutable corrido por su nombre desde /tmp con `--project`.
   de `rom/justfile`.
 - `tools/runtime/interprete.s` cita `just protocolo` en un comentario: queda,
   por lo mismo que los otros `.s`.
+- Las citas que el script no alcanzó, en su commit, después de un grep de
+  cada nombre viejo.
+
+## Para el que mergea
+
+- Los symlinks del global apuntan a rutas que ya no existen —`techos.py`,
+  `ensamblado/*.py`—: después del merge, desde el checkout principal,
+  `just -f tools/justfile install-scripts`. No compila nada.
+- Un worktree que ya tenía su `bin/` lo rearma con `just -f tools/justfile
+  install-local rom/.herramientas-locales`: el nombre viejo de la receta ya
+  no existe.
+- Los dos `memoria.cfg` de `rom/build/` cambian su primera línea —la ruta de
+  `banks.py`—; lo demás sale byte por byte igual a 2bd3cf64.
+
+## Términos nuevos para el glosario
+
+- aire de medida → measuring headroom.
+- lugar (del directorio de muestras) → place: `effect_places`,
+  `SE_PLACES_MAX`. No "slot", que es la ranura.
+- copia (de una muestra) → copy: `copies`.
+- restricción → constraint.
+- viejo (un cartucho) → stale, de "al día / viejo".
+- `BANCO`, el tamaño de un banco → `BANK_SIZE`, para no confundirlo con
+  `BANKS`.
+- pieza del acomodo (`_Unidad`) → piece (`_Piece`).
+
+## Qué queda para taro
+
+Nada que jugar: ningún byte de la ROM cambió. Mirar el diff de
+`AGENTS.md` —sólo recetas y rutas, más el punto de qué reinstala el que
+mergea— y decidir si el glosario suma los términos de arriba.
