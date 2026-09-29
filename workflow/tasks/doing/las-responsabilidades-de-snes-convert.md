@@ -2,6 +2,7 @@
 name: "Las responsabilidades de snes_convert.py"
 description: "Un archivo de ~8.200 líneas y ~140 funciones: repasar qué hace y partirlo por responsabilidad"
 type: refactor
+assignee: Ñacurutú
 ---
 
 `tools/port/snes_convert.py` es enorme (cuántas líneas y funciones: `wc -l` y
@@ -28,3 +29,11 @@ El inventario por secciones, con rangos de líneas y qué es motor y qué es
 herramienta de RM2k, está en
 `docs/research/el-mapa-de-las-herramientas-de-python.md` (§2), con una foto
 del 2026-09-28.
+
+## Tomada el 2026-09-29
+
+Para el paso 4 del camino a Rust (`docs/research/las-herramientas-hoy.md`):
+el conversor se migra por partes, y antes hay que partirlo. La optimización
+de tiempo que la frenaba ya pasó. El archivo se sigue llamando
+`tools/port/snes_convert.py`, pero ahora está en inglés y usa `rm2k-render`
+y `rm2k-snes-audio` por el PATH.
