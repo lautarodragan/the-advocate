@@ -2,7 +2,7 @@
 name: "Traducir las herramientas al inglés, fase 1: el resto de port"
 description: "Comentarios, docstrings, mensajes y prosa al inglés, sin tocar nombres de código: tools/port/, todo menos snes_convert.py"
 type: refactor
-assignee: Cina
+assignee: taro
 ---
 
 De taro, el 2026-09-29: "traducir las herramientas a inglés". Es la regla de
@@ -59,3 +59,27 @@ Cada grupo de archivos va en su commit, y se verifica con tres cosas:
   en castellano ("El respaldo liviano", "Qué fondos hay"); ahora se llaman
   "The light fallback" y "Which backdrops there are, and which ones the
   cartridge carries". `docs/` no es de esta fase.
+* Citas que otros archivos hacen de títulos que cambiaron de nombre, fuera
+  de este alcance: `tools/runtime/ranuras.s` cita "lo que depende del
+  actor" —ahora "what depends on the actor", en `menus.py`—, y
+  `snes_convert.py`, que es de otra parte de la traducción, cita "Qué
+  fondos hay" (escena.py), GIRO —ahora TURN— y "las variables de RM2k"
+  —ahora "RM2k's variables"— (eventos.py), y "lo que depende del actor".
+
+## Verificado
+
+Sobre el árbol con `main` mergeado (`5e652dc2`, con lo de Coronillo y
+Palmar adentro):
+
+* `SIN_CACHE=1 just cartuchos`: los `.sfc`, `.msu`, `.pcm` y `.sym` de
+  `rom/build/` con el mismo sha256 que antes de empezar. Lo único distinto
+  es `memoria.cfg`, cuyo encabezado tradujo Coronillo. Los `.inc` salen
+  idénticos: ningún módulo de esta parte escribe comentarios en ellos.
+* `just pruebas`: 874 pasan.
+* `just -f tools/justfile pruebas`: 132 pasan y 2 se saltean.
+
+## Qué mirar
+
+Nada que se juegue: la ROM es la misma byte por byte. Lo que hay para
+leer es el `git diff`, sobre todo `eventos.py`, y la decisión de los
+comentarios de los `.toml` de `rom/parches/auto/`.
