@@ -48,8 +48,6 @@ has to exist: `test_index.py` enforces it.
   and `\^` escapes
 * `test_inherited_songs.py`: which song may be playing when each map's
   package is loaded, which is what the layout reserves for it
-* `test_music_stream.py`: the stream the converter builds: which voice each
-  note goes to, when it is released and with which envelope
 * `test_project.py`: that where each thing is —the root, the repo's
   folders— is known only to `common/project.py`, that no tool reads the
   environment on its own, and that none knows about A Blurred Line: no
