@@ -47,6 +47,15 @@ tiene el plan de seis pasos y las preguntas con sus opciones.
     sueltos.
   - Lo que un juego quiera apartarse de RM2k sigue yendo por flags, que
     pasan al archivo de proyecto.
+- **El motor se llama runtime y se muda a `tools/runtime/`; `rom/` pasa a
+  ser la raíz de A Blurred Line**, con `data/`, `parches/`, `pruebas/` y
+  `build/`. Lo decidió taro el 2026-09-29: se distingue el runtime genérico
+  del proyecto. ABL no necesita los `.s`, y el runtime no necesita los
+  `.inc` de gráficos ni de audio. La raíz queda con `rom/`, `tools/`,
+  `docs/` y `workflow/`. **El orden:** primero un `tools/justfile` con las
+  recetas de las herramientas, después el paso 2 del plan (un solo lugar que
+  sabe dónde está cada cosa), y recién ahí la mudanza, en un commit mecánico
+  con las ROMs byte por byte iguales.
 - **ABL sólo conoce ejecutables del PATH, no `tools/`.** Es la idea de taro
   para el primer paso: el `justfile` no sabe que existe Python, y los `.py`
   que se ejecutan pasan a ser ejecutables de verdad, con hashbang y
