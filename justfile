@@ -48,7 +48,7 @@ ditto-vuelta-entera:
   cd tools/ditto && DITTO_CORPUS="${ABL_GAME_DIR:-/extras/abl-rm}" cargo test --release -- --include-ignored --nocapture
 
 # **Regenera `data/`**: el juego entero como árbol de archivos, que es lo que
-# lee `tools/rpgmaker/lcf.py` y de ahí el conversor. Es derivado —se puede volver a
+# lee el conversor, con `lcf`. Es derivado —se puede volver a
 # sacar en cualquier momento— y va a git igual, porque es la única forma de
 # *leer* el juego y de que un cambio se vea en un diff.
 #

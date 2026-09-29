@@ -110,9 +110,10 @@ NO_SE_MIRA = {"__pycache__", "snapshots"}
 # Esta prueba nombra `tools/` porque es la regla, no porque lo use.
 ESTA = os.path.relpath(os.path.abspath(__file__), RAIZ)
 
-# Una receta del `justfile`: el nombre en la columna 0, y dos puntos que no
-# son los de una asignación (`:=`).
-RECETA = re.compile(r"^@?([A-Za-z_][\w-]*)[^:=\n]*:(?!=)")
+# Una receta del `justfile`: el nombre en la columna 0, y los primeros dos
+# puntos de la línea no son los de una asignación (`:=`). Los parámetros
+# pueden llevar `=`, por sus valores por omisión: `datos DIR="data":`.
+RECETA = re.compile(r"^@?([A-Za-z_][\w-]*)[^:\n]*:(?!=)")
 
 
 def _archivos(*directorios):
