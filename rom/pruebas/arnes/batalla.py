@@ -410,10 +410,10 @@ def glifos(una):
         rom = archivo.read()
     base = en_la_rom(una.simbolos["item_glifo_celdas"])
     de = {}
-    for n in range(menus.ITEM_CARACTERES):
+    for n in range(menus.ITEM_CHARS):
         b = rom[base + 4 * n:base + 4 * n + 4]
         de.setdefault((b[0] | (b[1] << 8), b[2] | (b[3] << 8)),
-                      chr(menus.ITEM_PRIMER_CARACTER + n))
+                      chr(menus.ITEM_FIRST_CHAR + n))
     return de
 
 

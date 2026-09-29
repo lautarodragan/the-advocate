@@ -2,7 +2,7 @@
 
 They are pure text screens, so they carry no blocks drawn in advance like
 the slots or the menu: they use the item screen's font —each character in
-two cells, in white and in gray, see `menus.pantalla_items`— and are
+two cells, in white and in gray, see `menus.items_screen`— and are
 composed **whole**. The ROM builds the complete tilemap, 32 by 28 cells, in
 `texto_buf` and uploads it with one DMA per frame: it is 1792 bytes and fits
 in vblank, so there is no need to be careful about what is written when.
@@ -45,12 +45,12 @@ class Texto:
 
     def render(self, sys_img, font_id=None):
         from PIL import Image
-        tiles, paletas, glifos = menus.pantalla_items(sys_img, font_id)
+        tiles, paletas, glifos = menus.items_screen(sys_img, font_id)
         fuera = Image.new("RGB", (WIDTH, HEIGHT), (0, 0, 0))
         if self.ventanas is not None:
             ventanas = self.ventanas(sys_img)
             fuera.paste(ventanas, (0, 0), ventanas)
-        pegar = menus._pintor(fuera, tiles, paletas)
+        pegar = menus._painter(fuera, tiles, paletas)
         for (fila, col), (c, gris) in self.celdas.items():
             pegar(glifos[gris][c], fila, col, 1)
         return fuera
@@ -58,7 +58,7 @@ class Texto:
 
 def descripcion(pantalla, texto):
     """The top two lines, as on the item screen."""
-    for n, renglon in enumerate(menus.partir_descripcion(texto)):
+    for n, renglon in enumerate(menus.split_description(texto)):
         pantalla.escribir(menus.ITEM_DESC_Y // CELL + 2 * n,
                           menus.ITEM_DESC_COL, renglon)
 
@@ -72,7 +72,7 @@ def descripcion(pantalla, texto):
 # of the list there is an empty line, which is unequipping: it is RM2k's.
 #
 # The windows are the System's, on BG1 behind the text, as on the item screen
-# —see `menus.ITEM_VENTANAS`—, and the cursor is its red bar. RM2k has four:
+# —see `menus.ITEM_WINDOWS`—, and the cursor is its red bar. RM2k has four:
 # the help on top, the actor with its parameters on the left and the slots on
 # the right, and the list below in two columns. Here the actor and the slots
 # do not fit side by side: with 8-pixel letters the parameters with the value
@@ -83,9 +83,9 @@ def descripcion(pantalla, texto):
 # bottom one, which shows the slots or the list. The list goes in one column,
 # for the same reason as the item screen's.
 EQ_ARMA, EQ_ESCUDO = 0, 1
-EQ_ESTADO_Y = menus.ITEM_AYUDA_ALTO
+EQ_ESTADO_Y = menus.ITEM_HELP_HEIGHT
 EQ_ABAJO_Y = 128                # four parameters of 16, and RM2k's spacing
-EQ_VENTANAS = ((0, 0, WIDTH, menus.ITEM_AYUDA_ALTO),
+EQ_VENTANAS = ((0, 0, WIDTH, menus.ITEM_HELP_HEIGHT),
                (0, EQ_ESTADO_Y, WIDTH, EQ_ABAJO_Y - EQ_ESTADO_Y),
                (0, EQ_ABAJO_Y, WIDTH, HEIGHT - EQ_ABAJO_Y))
 EQ_ACTOR_FILA = EQ_ESTADO_Y // CELL + 1
@@ -119,7 +119,7 @@ EQ_LISTA_NOMBRE_COL = EQ_TEXTO_COL
 # same column they are the same bar, and it ends where the item screen's
 # does.
 EQ_BARRA_RANURA = (EQ_TEXTO_COL * CELL - 4,
-                   (menus.ITEM_CIFRAS_COL + 2 - EQ_TEXTO_COL) * CELL
+                   (menus.ITEM_DIGITS_COL + 2 - EQ_TEXTO_COL) * CELL
                    + 8)
 EQ_BARRA_LISTA = EQ_BARRA_RANURA
 
@@ -150,7 +150,7 @@ def fila_de_barra(barra):
 
 
 def capas_equipo(sys_img):
-    """What `menus.marcos` needs from this screen: the windows without a
+    """What `menus.borders` needs from this screen: the windows without a
     cursor and with each cursor —the slots and then the list rows—, in the
     order the ROM indexes them: see `eq_barra`."""
     return (ventanas_equipo(sys_img),
@@ -166,8 +166,8 @@ def color_del_valor_nuevo(ahora, luego):
     2026-09-28. Returns the font variant —`menus.ITEM_*`—, which is what the
     ROM compares in `eq_componer`."""
     if luego == ahora:
-        return menus.ITEM_BLANCO
-    return menus.ITEM_SUBE if luego > ahora else menus.ITEM_GRIS
+        return menus.ITEM_WHITE
+    return menus.ITEM_UP if luego > ahora else menus.ITEM_GRAY
 
 
 def tipo_de_ranura(ranura):
@@ -227,10 +227,10 @@ def pantalla_equipo(db, actor, equipo, inventario, ranura, eligiendo=False,
         descripcion(t, db.items[equipo[ranura]].description)
     for n, (fila, col) in enumerate(EQ_PARAMS):
         t.escribir(fila, col, db.term_params[n][:EQ_PARAM_VALOR - 1],
-                   menus.ITEM_ROJO)
+                   menus.ITEM_RED)
         t.numero(fila, col + EQ_PARAM_VALOR, ahora[n], 3)
         if luego is not None:
-            t.escribir(fila, col + EQ_PARAM_FLECHA, ">", menus.ITEM_ROJO)
+            t.escribir(fila, col + EQ_PARAM_FLECHA, ">", menus.ITEM_RED)
             t.numero(fila, col + EQ_PARAM_FLECHA + 1, luego[n], 3,
                      color_del_valor_nuevo(ahora[n], luego[n]))
     if not eligiendo:
@@ -238,9 +238,9 @@ def pantalla_equipo(db, actor, equipo, inventario, ranura, eligiendo=False,
             fila = EQ_RANURA_FILA0 + 2 * r
             t.escribir(fila, EQ_RANURA_TERM_COL,
                        db.term_equipment[r][:EQ_RANURA_TERM_ANCHO],
-                       menus.ITEM_ROJO)
+                       menus.ITEM_RED)
             if equipo[r]:
-                t.escribir(fila, EQ_RANURA_NOMBRE_COL, menus.texto_de_item(
+                t.escribir(fila, EQ_RANURA_NOMBRE_COL, menus.item_text(
                     db.items[equipo[r]].name, EQ_RANURA_NOMBRE_ANCHO))
         return t
     for f in range(EQ_LISTA_FILAS):
@@ -249,9 +249,9 @@ def pantalla_equipo(db, actor, equipo, inventario, ranura, eligiendo=False,
             break
         fila = EQ_LISTA_FILA0 + 2 * f
         if lista[k]:
-            t.escribir(fila, EQ_LISTA_NOMBRE_COL, menus.texto_de_item(
-                db.items[lista[k]].name, menus.ITEM_NOMBRE_ANCHO))
-            t.escribir(fila, menus.ITEM_DOS_PUNTOS_COL,
+            t.escribir(fila, EQ_LISTA_NOMBRE_COL, menus.item_text(
+                db.items[lista[k]].name, menus.ITEM_NAME_WIDTH))
+            t.escribir(fila, menus.ITEM_COLON_COL,
                        ":%2d" % min(inventario[lista[k]], 99))
     return t
 
@@ -305,7 +305,7 @@ TI_CAPA_PRINCIPAL, TI_CAPA_COMPRA, TI_CAPA_VENTA = range(3)
 TI_CAPA_DE_MODO = (TI_CAPA_PRINCIPAL, TI_CAPA_COMPRA, TI_CAPA_COMPRA,
                    TI_CAPA_COMPRA, TI_CAPA_VENTA, TI_CAPA_COMPRA,
                    TI_CAPA_COMPRA)
-TI_MEDIO_Y = menus.ITEM_AYUDA_ALTO             # 48
+TI_MEDIO_Y = menus.ITEM_HELP_HEIGHT             # 48
 # The main one: the message at the bottom with two lines —the regreeting of
 # sets 1 and 2 is 31 and 32 letters and a line fits 30— and the three
 # commands. The commands go **right after the message**, as in RM2k: with a
@@ -367,7 +367,7 @@ TI_BARRA_CUANTOS = (TI_CUANTOS_COL * CELL - 4, 2 * CELL + 8)
 # time. The tilemap, where the items' and equipment's is. `_controlar_tienda`
 # checks it, in the converter.
 TI_VRAM = 0x4000
-TI_MAPA = menus.ITEM_MARCO_MAPA
+TI_MAPA = menus.ITEM_BORDER_MAP
 
 
 def barras_tienda(capa):
@@ -405,7 +405,7 @@ def ventanas_tienda(sys_img, capa, barra=None):
 
 
 def capas_tienda(sys_img):
-    """What `menus.marcos` needs from the shop: each layer without a cursor,
+    """What `menus.borders` needs from the shop: each layer without a cursor,
     and with each cursor from its first cell row."""
     return [(ventanas_tienda(sys_img, capa),
              [(ventanas_tienda(sys_img, capa, k), fila)
@@ -563,8 +563,8 @@ def pantalla_tienda(db, tipo, juego, vende, oro, inventario, equipos, modo,
                TI_COMPRADO: "comprado", TI_VENDER: "que_vende",
                TI_CUANTOS_VENTA: "cuantos_vende", TI_VENDIDO: "vendido"}[modo]
     capa = TI_CAPA_DE_MODO[modo]
-    renglones = menus.partir_descripcion(term[mensaje])
-    rojo = menus.ITEM_ROJO
+    renglones = menus.split_description(term[mensaje])
+    rojo = menus.ITEM_RED
     if modo == TI_PRINCIPAL:
         for n, renglon in enumerate(renglones):
             t.escribir(TI_PRINCIPAL_MSG_FILA + 2 * n, menus.ITEM_DESC_COL,
@@ -576,7 +576,7 @@ def pantalla_tienda(db, tipo, juego, vende, oro, inventario, equipos, modo,
             # 0 has them with a leading space —" Buy"— and splitting the
             # lines eats it.
             t.escribir(fila0 + 2 * n, TI_ORDEN_COL,
-                       menus.partir_descripcion(term[orden])[0])
+                       menus.split_description(term[orden])[0])
         barra = barra_de_tienda(modo, elegido, arriba, dos)
         t.ventanas = lambda sys_img: ventanas_tienda(sys_img, capa, barra)
         return t
@@ -611,8 +611,8 @@ def pantalla_tienda(db, tipo, juego, vende, oro, inventario, equipos, modo,
         precio = db.items[numero].price
         if modo == TI_CUANTOS_VENTA:
             precio //= 2
-        t.escribir(TI_CUANTOS_FILA, TI_LISTA_COL, menus.texto_de_item(
-            db.items[numero].name, menus.ITEM_NOMBRE_ANCHO))
+        t.escribir(TI_CUANTOS_FILA, TI_LISTA_COL, menus.item_text(
+            db.items[numero].name, menus.ITEM_NAME_WIDTH))
         t.escribir(TI_CUANTOS_FILA, TI_CUANTOS_X_COL, "x")
         t.numero(TI_CUANTOS_FILA, TI_CUANTOS_COL, cuantos, 2)
         total = str(precio * cuantos)
@@ -633,13 +633,13 @@ def pantalla_tienda(db, tipo, juego, vende, oro, inventario, equipos, modo,
             gris = 0 if puede_comprar(db, numero, oro, inventario) else 1
         else:
             gris = 0 if item.price > 0 else 1
-        t.escribir(fila, TI_LISTA_COL, menus.texto_de_item(
-            item.name, menus.ITEM_NOMBRE_ANCHO), gris)
+        t.escribir(fila, TI_LISTA_COL, menus.item_text(
+            item.name, menus.ITEM_NAME_WIDTH), gris)
         if comprando:
             precio = str(item.price)
             t.escribir(fila, TI_PRECIO_COL + 1 - len(precio), precio, gris)
         else:
-            t.escribir(fila, menus.ITEM_DOS_PUNTOS_COL,
+            t.escribir(fila, menus.ITEM_COLON_COL,
                        ":%2d" % min(inventario[numero], 99), gris)
     return t
 
@@ -829,9 +829,9 @@ def renglon_de_oro(term, oro):
 def renglon_de_item(term, nombre):
     """RM2k's `GetItemReceivedMessage`: the name stuck to `item_recieved`,
     with no space in between —that one is RM2k3's—. The name is the one the
-    ROM carries, cut to `ITEM_NOMBRE_ANCHO`."""
+    ROM carries, cut to `ITEM_NAME_WIDTH`."""
     from port import menus
-    return menus.texto_de_item(nombre, menus.ITEM_NOMBRE_ANCHO) \
+    return menus.item_text(nombre, menus.ITEM_NAME_WIDTH) \
         + term["obtenido"]
 
 
@@ -872,7 +872,7 @@ def texto_de_orden(termino):
     text **already trimmed**: that way the ROM does not have to know how to
     trim.
     """
-    return menus.texto_de_item(termino.strip(), BA_ORDEN_ANCHO)
+    return menus.item_text(termino.strip(), BA_ORDEN_ANCHO)
 
 
 def lcf_termino(db, nombre):

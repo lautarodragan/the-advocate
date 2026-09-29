@@ -268,7 +268,7 @@ def test_subir_de_nivel_ensena_las_habilidades_de_cada_nivel_que_pasa(partida):
 #
 # El nivel y los HP máximos del menú los compone la ROM de la partida, y se
 # comparan pixel por
-# pixel contra `menus.render_menu` y `menus.render_ranuras` con el mismo
+# pixel contra `menus.render_menu` y `menus.render_slots` con el mismo
 # nivel. Los niveles son distintos entre sí y de los de arranque, y hay uno
 # de una cifra y otro de dos, que es donde "%2d" y "/%d" se equivocan.
 NIVELES_DEL_MENU = {14: 9, 11: 30}
@@ -292,7 +292,7 @@ def test_el_menu_muestra_el_nivel_y_el_maximo_de_ahora(partida):
     abrir(una)
     ahora = menus.render_menu(skin, base, una.simbolos["SRAM_RANURAS"],
                                GRUPO_MENU, ORO, 0, True, base.font_id, None,
-                               game_dir, niveles=NIVELES_DEL_MENU, exps=exps)
+                               game_dir, levels=NIVELES_DEL_MENU, exps=exps)
     antes = menus.render_menu(skin, base, una.simbolos["SRAM_RANURAS"],
                                GRUPO_MENU, ORO, 0, True, base.font_id, None,
                                game_dir)
@@ -319,8 +319,8 @@ def test_el_menu_muestra_guiones_en_el_nivel_tope(partida):
     abrir(una)
     ahora = menus.render_menu(skin, base, una.simbolos["SRAM_RANURAS"],
                                GRUPO_MENU, ORO, 0, True, base.font_id, None,
-                               game_dir, niveles=niveles, exps=exps)
-    assert "-" in menus.texto_de_exp(base, GRUPO_MENU[0], niveles[
+                               game_dir, levels=niveles, exps=exps)
+    assert "-" in menus.exp_text(base, GRUPO_MENU[0], niveles[
         GRUPO_MENU[0]], exps[GRUPO_MENU[0]])
     assert diferencia(una, ahora) == 0
 
@@ -347,9 +347,9 @@ def test_la_ranura_muestra_el_nivel_que_tenia_esa_partida(partida):
     ranuras = una.simbolos["SRAM_RANURAS"]
     llenas = [True] + [False] * (ranuras - 1)
     grupos = {0: GRUPO_MENU}
-    ahora = menus.render_ranuras(skin, base, ranuras, llenas, 0, 1,
+    ahora = menus.render_slots(skin, base, ranuras, llenas, 0, 1,
                                   base.font_id, grupos, game_dir, {0: 9})
     assert diferencia(una, ahora) == 0
-    otra = menus.render_ranuras(skin, base, ranuras, llenas, 0, 1,
+    otra = menus.render_slots(skin, base, ranuras, llenas, 0, 1,
                                  base.font_id, grupos, game_dir, {0: 5})
     assert diferencia(una, otra) > 0

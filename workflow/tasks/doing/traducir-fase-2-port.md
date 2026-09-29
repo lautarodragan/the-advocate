@@ -58,6 +58,10 @@ ejecutables `rm2k-snes-*` andando desde `/tmp`.
    ningún renombre por import ve y cobraron las tandas: el alias local `B =
    batalla_mod` de snes_convert, un `**extra` del arnés que le pasa
    `paginas=` a `Battle`, y un `getattr(enemigo, "botin_item")`.
+9. `menus`: sus nombres al inglés (`pantalla_ranuras` → `slots_screen`,
+   `render_objetivo` → `render_target`, las constantes `ITEM_*`, `MENU_*`,
+   `OBJETIVO_*` → `TARGET_*`…), también por el alias local `T = menus_mod`
+   de snes_convert.
 
 Lo que el conversor escribe al `.inc` cita rutas de `tools/port/` en sus
 comentarios (`; See tools/port/imagen.py.`): esas quedan con el nombre

@@ -58,12 +58,12 @@ def usar_sobre_la_segunda(una, fila_del_item):
 
 
 def diferencia_con_la_eleccion(una, elegida, hp, sandwiches):
-    """Cuántos pixeles, a 15 bits, difiere la pantalla de `render_objetivo`,
+    """Cuántos pixeles, a 15 bits, difiere la pantalla de `render_target`,
     con el sándwich y los que quedan de él al lado de "Owned Items"."""
     from port import menus
     from rpgmaker.resources import GAME_DIR
     db, skin = datos.base(), datos.skin()
-    esperada = menus.render_objetivo(skin, db, 4, (TALAN, ARDEN), elegida,
+    esperada = menus.render_target(skin, db, 4, (TALAN, ARDEN), elegida,
                                       db.font_id, None, GAME_DIR, hp,
                                       SANDWICH, sandwiches)
     return diferencia(una, esperada, "curar-eleccion")
@@ -204,7 +204,7 @@ def test_el_ultimo_elixir_sale_de_la_lista_al_volver(partida):
 
 def test_la_eleccion_se_ve_igual_al_volver_a_entrar(partida):
     """La elección entrando derecho desde la lista, y otra vez después de
-    volver con B, contra `render_objetivo`: las dos tienen que ser la misma.
+    volver con B, contra `render_target`: las dos tienen que ser la misma.
 
     Lo que la rompía era la última fila de la lista, que acá son las botas, en
     gris: `ranura_rect_subir` leía de `temp` los bytes por fila **en dieciséis
