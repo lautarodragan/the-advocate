@@ -53,7 +53,7 @@ def test_los_parches_versionados_son_los_que_decide_el_conversor():
         "`release` no dejó parches en %s: se arma con `just cartuchos`, y sin "
         "él nada mira que lo que el juego convierte esté versionado"
         % cartuchos.directorio(cartuchos.RELEASE))
-    quejas, _propios = parches.revisar(proyecto.raiz(), armados)
+    quejas, _propios = parches.revisar(proyecto.parches_auto(), armados)
     assert not quejas, "\n\n".join(quejas)
 
 
@@ -67,10 +67,10 @@ def test_el_tamano_de_cada_animacion_versionada_sale_de_su_caja_y_de_nada_mas():
     mismos mapas podrían decidir distinto y esta cuenta dejaría de dar.
     """
     clase = dict((c.clave, c) for c in parches.CLASES)["animacion"]
-    numeros = parches.versionados(proyecto.raiz(), clase)
+    numeros = parches.versionados(proyecto.parches_auto(), clase)
     assert numeros, "no hay ninguna animación versionada en %s" % clase.directorio
     for numero in numeros:
-        doc = parches.leer_animacion(proyecto.raiz(), numero)
+        doc = parches.leer_animacion(proyecto.parches_auto(), numero)
         assert doc["animacion"] == numero
         assert tuple(doc["tamano"]) == animacion.tamano(*doc["original"]), (
             "la animación %d dice que se dibuja a %s y su caja de %s da %s"

@@ -39,7 +39,6 @@ from comun import proyecto
 from rpgmaker import fork
 from rpgmaker.event_codes import EVENT_CODES
 
-DATOS = proyecto.data()
 MANIFIESTO = "ditto.json"
 
 
@@ -54,7 +53,7 @@ def volcado(path):
     directorio = os.path.dirname(os.path.abspath(path))
     if os.path.isfile(os.path.join(directorio, MANIFIESTO)):
         return directorio
-    return DATOS
+    return proyecto.data()
 
 
 def leer(*partes):
@@ -366,7 +365,7 @@ class Map:
         # propio volcado, y ahí `rom/parches/manual/` no pinta nada.
         # Y lo mismo un mapa que el juego no tiene: ver `fork.nuevos`.
         forkeado = ((fork.mapa(self.map_id) or fork.nuevo(self.map_id))
-                    if raiz == DATOS else None)
+                    if raiz == proyecto.data() else None)
         if forkeado:
             ruta_json, ruta_tiles = forkeado
             datos = leer(ruta_json)
@@ -710,7 +709,7 @@ class Database:
         # Los ChipSets que agrega `rom/parches/manual/`. Se **suman**: un id que ya
         # esté en la base es un error, porque un fork que pisa una entrada
         # envejece sin avisar el día que `just datos` la cambie. Ver `fork.py`.
-        if raiz == os.path.join(DATOS, "db"):
+        if raiz == os.path.join(proyecto.data(), "db"):
             for numero, datos in fork.chipsets().items():
                 if numero in crudas["chipsets"]:
                     raise ValueError(
@@ -850,7 +849,7 @@ class TreeMap:
         infos = por_id(lista(datos, "maps"))
         # Los mapas que el juego no tiene traen su nodo: ver `fork.nuevos`.
         # Sólo sobre el volcado de este juego, igual que los forks de `Map`.
-        if volcado(path) == DATOS:
+        if volcado(path) == proyecto.data():
             for map_id, (_json, _tiles, nodo) in fork.nuevos().items():
                 infos[map_id] = nodo
 

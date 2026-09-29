@@ -41,14 +41,27 @@ import os
 
 from comun import proyecto
 
-FORK = proyecto.parches_manual()
-MAPAS = os.path.join(FORK, "mapas")
-CHIPSETS = os.path.join(FORK, "chipsets")
-# Los mapas que el juego no tiene: ver `nuevos`.
-NUEVOS = os.path.join(FORK, "nuevos")
-# Los del juego, contra los que se valida que un fork pise uno y un mapa nuevo
-# no.
-DEL_JUEGO = os.path.join(proyecto.data(), "maps")
+# Dónde está cada parte. Son funciones y no constantes porque salen del
+# proyecto, que se encuentra al usarlo y no al importar este módulo; las
+# pruebas las pisan con un directorio temporal.
+
+def carpeta_mapas():
+    return os.path.join(proyecto.parches_manual(), "mapas")
+
+
+def carpeta_chipsets():
+    return os.path.join(proyecto.parches_manual(), "chipsets")
+
+
+def carpeta_nuevos():
+    """Los mapas que el juego no tiene: ver `nuevos`."""
+    return os.path.join(proyecto.parches_manual(), "nuevos")
+
+
+def carpeta_del_juego():
+    """Los mapas del juego, contra los que se valida que un fork pise uno y un
+    mapa nuevo no."""
+    return os.path.join(proyecto.data(), "maps")
 
 
 class ForkRoto(Exception):
@@ -85,25 +98,29 @@ _validados = {}
 
 def _huella():
     """Lo que tiene que cambiar para que el fork validado deje de valer."""
-    if not os.path.isdir(MAPAS):
+    carpeta = carpeta_mapas()
+    del_juego = carpeta_del_juego()
+    if not os.path.isdir(carpeta):
         return None
-    partes = [MAPAS, DEL_JUEGO]
-    for entrada in sorted(os.listdir(MAPAS)):
+    partes = [carpeta, del_juego]
+    for entrada in sorted(os.listdir(carpeta)):
         try:
-            estado = os.stat(os.path.join(MAPAS, entrada))
+            estado = os.stat(os.path.join(carpeta, entrada))
             partes.append((entrada, estado.st_mtime_ns, estado.st_size))
         except OSError:
             partes.append((entrada, None, None))
         base = os.path.splitext(entrada)[0]
-        partes.append(os.path.isfile(os.path.join(DEL_JUEGO, base + ".json")))
+        partes.append(os.path.isfile(os.path.join(del_juego, base + ".json")))
     return tuple(partes)
 
 
 def _validar():
+    carpeta = carpeta_mapas()
+    del_juego = carpeta_del_juego()
     encontrados = {}
-    if not os.path.isdir(MAPAS):
+    if not os.path.isdir(carpeta):
         return encontrados
-    for entrada in sorted(os.listdir(MAPAS)):
+    for entrada in sorted(os.listdir(carpeta)):
         base, extension = os.path.splitext(entrada)
         if extension not in (".json", ".tiles"):
             raise ForkRoto("%s: en rom/parches/manual/mapas/ sólo van .json y "
@@ -113,8 +130,8 @@ def _validar():
         map_id = int(base[3:])
         if map_id in encontrados:
             continue
-        pareja = (os.path.join(MAPAS, base + ".json"),
-                  os.path.join(MAPAS, base + ".tiles"))
+        pareja = (os.path.join(carpeta, base + ".json"),
+                  os.path.join(carpeta, base + ".tiles"))
         falta = [p for p in pareja if not os.path.isfile(p)]
         if falta:
             raise ForkRoto(
@@ -122,7 +139,7 @@ def _validar():
                 "afuera del JSON, así que media pieza deja el build con las "
                 "capas de un mapa y los eventos de otro"
                 % (map_id, ", ".join(os.path.basename(p) for p in falta)))
-        original = os.path.join(DEL_JUEGO, base + ".json")
+        original = os.path.join(del_juego, base + ".json")
         if not os.path.isfile(original):
             raise ForkRoto(
                 "el fork nombra al mapa %d y en rom/data/ no hay ninguno: un fork "
@@ -172,22 +189,26 @@ _nuevos_validados = {}
 
 
 def _huella_de_nuevos():
-    if not os.path.isdir(NUEVOS):
-        return (NUEVOS, None)
-    partes = [NUEVOS, DEL_JUEGO]
-    for entrada in sorted(os.listdir(NUEVOS)):
-        estado = os.stat(os.path.join(NUEVOS, entrada))
+    carpeta = carpeta_nuevos()
+    del_juego = carpeta_del_juego()
+    if not os.path.isdir(carpeta):
+        return (carpeta, None)
+    partes = [carpeta, del_juego]
+    for entrada in sorted(os.listdir(carpeta)):
+        estado = os.stat(os.path.join(carpeta, entrada))
         base = os.path.splitext(entrada)[0]
         partes.append((entrada, estado.st_mtime_ns, estado.st_size,
-                       os.path.isfile(os.path.join(DEL_JUEGO, base + ".json"))))
+                       os.path.isfile(os.path.join(del_juego, base + ".json"))))
     return tuple(partes)
 
 
 def _validar_nuevos():
+    carpeta = carpeta_nuevos()
+    del_juego = carpeta_del_juego()
     encontrados = {}
-    if not os.path.isdir(NUEVOS):
+    if not os.path.isdir(carpeta):
         return encontrados
-    for entrada in sorted(os.listdir(NUEVOS)):
+    for entrada in sorted(os.listdir(carpeta)):
         base, extension = os.path.splitext(entrada)
         if extension not in (".json", ".tiles"):
             raise ForkRoto("%s: en rom/parches/manual/nuevos/ sólo van .json y "
@@ -197,14 +218,14 @@ def _validar_nuevos():
         map_id = int(base[3:])
         if map_id in encontrados:
             continue
-        pareja = (os.path.join(NUEVOS, base + ".json"),
-                  os.path.join(NUEVOS, base + ".tiles"))
+        pareja = (os.path.join(carpeta, base + ".json"),
+                  os.path.join(carpeta, base + ".tiles"))
         falta = [p for p in pareja if not os.path.isfile(p)]
         if falta:
             raise ForkRoto("el mapa nuevo %d está a medias: falta %s"
                            % (map_id, ", ".join(os.path.basename(p)
                                                 for p in falta)))
-        if os.path.isfile(os.path.join(DEL_JUEGO, base + ".json")):
+        if os.path.isfile(os.path.join(del_juego, base + ".json")):
             raise ForkRoto(
                 "el mapa nuevo %d ya existe en rom/data/: un mapa nuevo no pisa "
                 "uno del juego; si es para cambiarlo, es un fork y va en "
@@ -228,15 +249,16 @@ def nuevo(map_id):
 
 def chipsets():
     """{id: entrada} de los ChipSets que el fork agrega a la base."""
+    carpeta = carpeta_chipsets()
     nuevos = {}
-    if not os.path.isdir(CHIPSETS):
+    if not os.path.isdir(carpeta):
         return nuevos
-    for entrada in sorted(os.listdir(CHIPSETS)):
+    for entrada in sorted(os.listdir(carpeta)):
         base, extension = os.path.splitext(entrada)
         if extension != ".json" or not base.isdigit():
             raise ForkRoto("%s: en rom/parches/manual/chipsets/ van NNNN.json"
                            % entrada)
-        with open(os.path.join(CHIPSETS, entrada), encoding="utf-8") as handle:
+        with open(os.path.join(carpeta, entrada), encoding="utf-8") as handle:
             datos = json.load(handle)
         if datos["chipset"]["id"] != int(base):
             raise ForkRoto(

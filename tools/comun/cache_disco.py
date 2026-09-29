@@ -36,8 +36,13 @@ import tempfile
 
 from comun import proyecto
 
-DONDE = proyecto.cache()
 APAGADO = os.environ.get("SIN_CACHE") == "1"
+
+
+def donde():
+    """El directorio del caché. Se pide al usarlo y no al importar: sale del
+    proyecto, que se encuentra al usarlo."""
+    return proyecto.cache()
 
 
 def version_de(*archivos):
@@ -66,7 +71,7 @@ def leer(categoria, clave):
     """Lo guardado bajo esa clave, o None."""
     if APAGADO:
         return None
-    ruta = os.path.join(DONDE, categoria, clave)
+    ruta = os.path.join(donde(), categoria, clave)
     try:
         with open(ruta, "rb") as f:
             return pickle.load(f)
@@ -79,7 +84,7 @@ def guardar(categoria, clave, valor):
     corrida cortada a la mitad no deja un archivo a medias que otra lea."""
     if APAGADO:
         return
-    carpeta = os.path.join(DONDE, categoria)
+    carpeta = os.path.join(donde(), categoria)
     try:
         os.makedirs(carpeta, exist_ok=True)
         fd, temporal = tempfile.mkstemp(dir=carpeta, prefix=".tmp-")

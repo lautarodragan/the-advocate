@@ -21,6 +21,7 @@ import os
 
 import pytest
 
+import lugares                                  # noqa: F401 — antes que nada
 import tanda
 from comun import proyecto
 from consola import EMPEZAR

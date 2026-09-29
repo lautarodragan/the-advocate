@@ -134,8 +134,10 @@ def mostrar(nombre, sfc):
 
 
 def main():
+    proyecto.desde_la_linea_de_comandos()
     from ensamblado import cartuchos
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    proyecto.argumento(parser)
     parser.add_argument("cuales", nargs="*", metavar="CARTUCHO",
                         help="un cartucho de cartuchos.py o la ruta de una "
                              "ROM armada; sin nada, todos los cartuchos")

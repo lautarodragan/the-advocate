@@ -37,6 +37,11 @@ from ensamblado import ensamblar                        # noqa: E402
 from port import tiles_bin                              # noqa: E402
 from port import comprimir                              # noqa: E402
 
+# `--proyecto` se lee antes que nada: este módulo lee el archivo de proyecto
+# al importarse, y el `parse_args` de `main` llega tarde.
+if __name__ == "__main__":
+    proyecto.desde_la_linea_de_comandos()
+
 RAIZ = proyecto.raiz()
 CASOS = proyecto.casos()
 FUENTE = proyecto.runtime()
@@ -69,7 +74,7 @@ def el_mapa_de_debug():
     nuevos = sorted(fork.nuevos())
     if len(nuevos) != 1:
         sys.exit("el mapa de debug es el único mapa nuevo de %s, y hay %d: %s"
-                 % (fork.NUEVOS, len(nuevos), nuevos))
+                 % (fork.carpeta_nuevos(), len(nuevos), nuevos))
     return nuevos[0]
 
 
@@ -95,7 +100,7 @@ def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
     El árbol es el del volcado de `rom/data/`, que es el que lee el conversor: por
     eso la ruta cae adentro de `rom/data/` y no del juego —ver `lcf.volcado`—."""
     from rpgmaker import lcf
-    arbol = lcf.TreeMap(os.path.join(lcf.DATOS, "RPG_RT.lmt"))
+    arbol = lcf.TreeMap(os.path.join(proyecto.data(), "RPG_RT.lmt"))
     de_la_regla = [m for m in range(1, menor_a)
                    if arbol.map_types.get(m) == 1 and m not in excluidos]
     return tuple(de_la_regla + [m for m in agregados if m not in de_la_regla])
@@ -357,8 +362,11 @@ def convertir(nombre, destino, sfc, extra=()):
         de_casos += (["--caso"] if k else []) + [
             "--comandos-de-prueba",
             os.path.relpath(os.path.join(CASOS, caso + ".json"), RAIZ)]
+    # Con `--proyecto`, porque corre parado en la raíz del repo —ver
+    # `ensamblar.RAIZ`— y desde ahí no encontraría el archivo buscándolo.
     orden = ([sys.executable, os.path.join(proyecto.herramientas(), "port",
                                            "snes_convert.py"),
+              "--proyecto", proyecto.directorio(),
               "-o", os.path.join(destino, "mapdata.inc"),
               "--msu", os.path.splitext(sfc)[0] + ".msu"]
              + flags + list(extra) + de_casos)
@@ -374,6 +382,7 @@ def convertir(nombre, destino, sfc, extra=()):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    proyecto.argumento(parser)
     parser.add_argument("--lista", action="store_true",
                         help="qué caso va en qué cartucho, sin armar nada")
     parser.add_argument("nombres", nargs="*", metavar="CARTUCHO",

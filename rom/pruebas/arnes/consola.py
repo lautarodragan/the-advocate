@@ -24,6 +24,7 @@ mano se desfasaría en silencio y leería la dirección de al lado.
 import os
 import re
 
+import lugares                                  # noqa: F401 — antes que nada
 from comun import perillas
 from comun import proyecto
 from emulador import retro

@@ -28,6 +28,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from comun import perillas                              # noqa: E402
 from comun import proyecto                              # noqa: E402
 
+# `--proyecto` se lee antes que nada: este módulo lee el archivo de proyecto
+# al importarse, y el `parse_args` de `main` llega tarde.
+if __name__ == "__main__":
+    proyecto.desde_la_linea_de_comandos()
+
 RAIZ = proyecto.raiz()
 RELEASE = os.path.join(proyecto.build(), "release")
 SHARED = proyecto.compartido()
@@ -159,6 +164,7 @@ def renglones(texto):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("que_mirar", help="qué cambió y qué mirar: va al LEEME")
+    proyecto.argumento(parser)
     parser.add_argument("--actualizar-msu", action="store_true",
                         help="copiar las pistas a /shared/msu/ si cambiaron")
     args = parser.parse_args()

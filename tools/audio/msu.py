@@ -339,10 +339,12 @@ def _una_pista(base, nombre, numero, game_dir, soundfont, ganancia,
 
 
 def main():
+    proyecto.desde_la_linea_de_comandos()
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("rom", help="la ROM: las pistas van al lado, con su "
                                     "nombre y el número de pista")
+    proyecto.argumento(parser)
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("--soundfont", default=snes_samples.SOUNDFONT)
     parser.add_argument("--ganancia", type=float, default=GANANCIA)

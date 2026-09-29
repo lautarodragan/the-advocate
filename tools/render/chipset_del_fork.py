@@ -30,9 +30,10 @@ from rpgmaker.fork import ForkRoto, chipsets
 from rpgmaker.rm2k import (OFFSET_X, SPRITE_HEIGHT, SPRITE_WIDTH, TILE,
                            caja_de_comun, caja_de_terreno)
 
-# Dónde caen las imágenes armadas. Es un directorio de build como cualquier
-# otro: se puede borrar, y se rehace solo.
-GENERADO = os.path.join(proyecto.build(), "parches-manual")
+def generado():
+    """Dónde caen las imágenes armadas. Es un directorio de build como
+    cualquier otro: se puede borrar, y se rehace solo."""
+    return os.path.join(proyecto.build(), "parches-manual")
 
 
 def _paleta(imagen):
@@ -324,7 +325,7 @@ def imagen_del_chipset(datos, buscar):
     if paleta is not None:
         paleta.aplicar(imagen)
 
-    destino = os.path.join(GENERADO, "ChipSet",
+    destino = os.path.join(generado(), "ChipSet",
                            datos["chipset"]["chipset_name"] + ".png")
     os.makedirs(os.path.dirname(destino), exist_ok=True)
     provisorio = "%s.%d.png" % (destino, os.getpid())
@@ -338,4 +339,4 @@ def imagenes(buscar):
     directorio donde quedaron, para meterlo en la búsqueda de recursos."""
     for datos in chipsets().values():
         imagen_del_chipset(datos, buscar)
-    return GENERADO
+    return generado()

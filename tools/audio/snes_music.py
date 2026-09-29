@@ -1900,12 +1900,16 @@ def leer_tema(name, game_dir=GAME_DIR):
 # decisiones de `rom/parches/auto/`. Un tema que no está en la tabla va con
 # `sdsp.AIRE`. Cada cambio de la mezcla —las muestras, las envolventes, el
 # reparto— la deja vieja, y eso lo cobra `test_musica_techos.py`.
-TECHOS = os.path.join(proyecto.parches_auto(), "musica", "techos.toml")
+def ruta_de_techos():
+    """Dónde está la tabla: una función y no una constante, porque sale del
+    proyecto, que se encuentra al usarlo y no al importar."""
+    return os.path.join(proyecto.parches_auto(), "musica", "techos.toml")
 
 
-def leer_techos(ruta=TECHOS):
+def leer_techos(ruta=None):
     """{tema: aire} de la tabla versionada; vacío si no existe."""
     import tomllib
+    ruta = ruta or ruta_de_techos()
     try:
         with open(ruta, "rb") as archivo:
             tabla = tomllib.load(archivo)

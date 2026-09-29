@@ -51,20 +51,27 @@ def test_un_texto_que_va_a_la_rom_se_mide(tmp_path):
 
 
 def test_las_herramientas_se_importan_sin_un_juego(tmp_path):
-    """El conversor y lo que usa leen las perillas cuando las usan, no al
-    importarse: si no, importar `port.snes_convert` —lo que hacen las pruebas
-    de acá— pediría el archivo de proyecto de un juego. Se corre aparte, con
-    el archivo apuntando a uno que no existe, porque en este proceso los
-    módulos ya pueden estar importados."""
+    """El conversor y lo que usa leen las perillas y las rutas del proyecto
+    cuando las usan, no al importarse: si no, importar `port.snes_convert`
+    —lo que hacen las pruebas de acá— pediría el archivo de proyecto de un
+    juego. Se corre aparte, parado en un directorio vacío —donde buscar el
+    archivo hacia arriba no encuentra ninguno—, porque en este proceso los
+    módulos ya pueden estar importados. Y al final se pide el proyecto, para
+    ver que de verdad no había uno que encontrar."""
+    import os
     import subprocess
     import sys
     codigo = (
-        "from comun import proyecto\n"
-        "proyecto.archivo_de_proyecto = lambda: %r\n"
         "import port.snes_convert, port.eventos, port.escena, port.msu_datos\n"
-        "import audio.snes_music, rpgmaker.rm2k\n"
-        % str(tmp_path / "no-existe.toml"))
-    hecho = subprocess.run([sys.executable, "-c", codigo],
-                           cwd=perillas.proyecto.herramientas(),
-                           capture_output=True, text=True)
-    assert hecho.returncode == 0, hecho.stderr[-2000:]
+        "import port.parches, audio.snes_music, audio.msu, rpgmaker.rm2k\n"
+        "import render.render_map, render.chipset_del_fork\n"
+        "from comun import proyecto\n"
+        "proyecto.directorio()\n")
+    vacio = tmp_path / "vacio"
+    vacio.mkdir()
+    entorno = dict(os.environ, PYTHONPATH=perillas.proyecto.herramientas())
+    hecho = subprocess.run([sys.executable, "-c", codigo], cwd=vacio,
+                           env=entorno, capture_output=True, text=True)
+    assert hecho.returncode == 1, hecho.stderr[-2000:]
+    assert hecho.stderr.startswith("no encontré un rm2k-snes.toml en %s"
+                                   % vacio), hecho.stderr[-2000:]

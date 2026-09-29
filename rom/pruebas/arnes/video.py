@@ -41,6 +41,7 @@ for ruta in (os.path.join(os.pardir, "tools"), "pruebas",
              os.path.join("pruebas", "arnes"), os.path.join("pruebas", "abl")):
     sys.path.insert(0, os.path.join(RAIZ, ruta))
 
+import lugares                                         # noqa: E402,F401
 from emulador import retro                              # noqa: E402
 import consola                                          # noqa: E402
 from recorrido import Mundo, Recorrido                  # noqa: E402

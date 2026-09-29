@@ -7186,6 +7186,7 @@ def parser_de_flags():
                              "tabla. Obligatorio y sin valor por omisión: "
                              "es del juego, y lo declara su archivo de "
                              "proyecto")
+    proyecto.argumento(parser)
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("-o", "--output",
                         default=os.path.join(proyecto.build(), "inc", "mapdata.inc"))
@@ -7280,6 +7281,7 @@ def parser_de_flags():
 
 
 def main():
+    proyecto.desde_la_linea_de_comandos()
     parser = parser_de_flags()
     argv, tramos = partir_en_casos(sys.argv[1:])
     args = parser.parse_args(argv)
