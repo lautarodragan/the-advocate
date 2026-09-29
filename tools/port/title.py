@@ -28,18 +28,18 @@ from port.constants import HEIGHT, WIDTH, CELL, COLS, MENU_CGRAM
 from port.palette import BLACK, convert
 
 
-def informe(imagen):
+def report(image):
     """The numbers that justify the layout, for the recipe to print."""
-    tiles, paleta, tilemap = convert(imagen)
+    tiles, palette, tilemap = convert(image)
     return {
         "tiles": len(tiles),
-        "colores": len(paleta),
+        "colores": len(palette),
         "bytes_tiles": len(tiles) * 64,
         "bytes_tilemap": 32 * 32 * 2,
     }
 
 
-def render(imagen, sys_img=None, textos=None, elegida=0, font_id=None):
+def render(image, sys_img=None, texts=None, chosen=0, font_id=None):
     """The title screen as the console has to show it.
 
     It is `convert` undone: the tiles put back in their place according to
@@ -56,36 +56,36 @@ def render(imagen, sys_img=None, textos=None, elegida=0, font_id=None):
     the eyes, once, and it does not change again.
     """
     from PIL import Image
-    tiles, paleta, tilemap = convert(imagen)
-    fuera = Image.new("RGB", (WIDTH, HEIGHT))
-    px = fuera.load()
-    for i, indice in enumerate(tilemap):
+    tiles, palette, tilemap = convert(image)
+    outside = Image.new("RGB", (WIDTH, HEIGHT))
+    px = outside.load()
+    for i, index in enumerate(tilemap):
         tx, ty = (i % COLS) * CELL, (i // COLS) * CELL
-        celda = tiles[indice]
+        cell = tiles[index]
         for y in range(CELL):
             for x in range(CELL):
-                color = paleta[celda[y][x] - MENU_CGRAM]
+                color = palette[cell[y][x] - MENU_CGRAM]
                 px[tx + x, ty + y] = tuple(v << 3 for v in color)
     if sys_img is None:
-        return fuera
+        return outside
     # The menu goes on top, and **by the same path as the ROM**: the 4bpp
     # tiles that `menu` emits, not the text layer they came from. Drawing the
     # text here with the font and there with the tiles would leave out
     # exactly the step that can go wrong —quantizing the skin's gradient to
     # fifteen colors— and the comparison would not see it.
-    tiles_menu, paleta_menu, mapas = menu(sys_img, textos, font_id)
-    for i, indice in enumerate(mapas[elegida]):
+    tiles_menu, menu_palette, mappings = menu(sys_img, texts, font_id)
+    for i, index in enumerate(mappings[chosen]):
         tx, ty = (i % COLS) * CELL, (i // COLS) * CELL
         if ty >= HEIGHT:
             break
-        celda = tiles_menu[indice]
+        cell = tiles_menu[index]
         for y in range(CELL):
             for x in range(CELL):
-                valor = celda[y][x]
-                if valor:       # index 0 is not drawn: the image shows through
+                value = cell[y][x]
+                if value:       # index 0 is not drawn: the image shows through
                     px[tx + x, ty + y] = tuple(
-                        v << 3 for v in paleta_menu[valor])
-    return fuera
+                        v << 3 for v in menu_palette[value])
+    return outside
 
 
 # --- the menu ----------------------------------------------------------------
@@ -106,13 +106,13 @@ def render(imagen, sys_img=None, textos=None, elegida=0, font_id=None):
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 MENU_Y = 152                    # where the first option starts, in pixels
-MENU_ALTO = 24                  # and how far apart the next one is
+MENU_STEP = 24                  # and how far apart the next one is
 MENU_X = 72
 CURSOR = "> "
-SIN_CURSOR = "  "
+NO_CURSOR = "  "
 
 
-def opciones(db):
+def options(db):
     """The menu texts, as the game says them and not as we would.
 
     In ABL they are 'Begin the Story' and 'Resume the Story'; the stock
@@ -122,25 +122,25 @@ def opciones(db):
     return [db.term_new_game, db.term_load_game]
 
 
-def _capa_de_texto(sys_img, textos, elegida, font_id=None):
+def _text_layer(sys_img, texts, chosen, font_id=None):
     """A transparent screen with the options drawn, and the cursor in place.
 
-    It is drawn with `ventana.dibujar_linea`, the same one that composes the
+    It is drawn with `window.draw_line`, the same one that composes the
     messages: same font, same color gradient, same shadow shifted by one.
     That the title menu and a game message look the same is not an aesthetic
     detail: it is what means there is no second font to maintain.
     """
     from PIL import Image
-    from port import ventana as ventana_mod
-    capa = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
-    for n, texto in enumerate(textos):
-        marca = CURSOR if n == elegida else SIN_CURSOR
-        ventana_mod.dibujar_linea(capa, sys_img, MENU_X, MENU_Y + n * MENU_ALTO,
-                                  marca + texto, font_id=font_id)
-    return capa
+    from port import window as ventana_mod
+    layer = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
+    for n, text in enumerate(texts):
+        mark = CURSOR if n == chosen else NO_CURSOR
+        ventana_mod.draw_line(layer, sys_img, MENU_X, MENU_Y + n * MENU_STEP,
+                              mark + text, font_id=font_id)
+    return layer
 
 
-def menu(sys_img, textos, font_id=None):
+def menu(sys_img, texts, font_id=None):
     """The menu's 4bpp tiles, its palette, and one tilemap per option.
 
     The tiles are gathered from **all** the variants before deduplicating:
@@ -151,48 +151,48 @@ def menu(sys_img, textos, font_id=None):
     almost the whole screen: that is why the bank ends up small even though
     the tilemap has 1024 entries.
     """
-    capas = [_capa_de_texto(sys_img, textos, n, font_id)
-             for n in range(len(textos))]
+    layers = [_text_layer(sys_img, texts, n, font_id)
+              for n in range(len(texts))]
 
     # The colors of all the layers together, at 15 bits. The transparent one
     # does not count: it is index 0 and is not drawn.
-    vistos = collections.Counter()
-    for capa in capas:
-        for r, g, b, a in capa.get_flattened_data():
+    seen = collections.Counter()
+    for layer in layers:
+        for r, g, b, a in layer.get_flattened_data():
             if a:
-                vistos[(r >> 3, g >> 3, b >> 3)] += 1
-    if len(vistos) > 15:
+                seen[(r >> 3, g >> 3, b >> 3)] += 1
+    if len(seen) > 15:
         raise SystemExit(
             "the title menu uses %d colors and 4bpp fits 15. The skin's "
             "gradient is the suspect: look at `color_de_texto` in ventana.py"
-            % len(vistos))
-    paleta = [BLACK] + sorted(vistos, key=lambda c: (-vistos[c], c))
-    indice = {color: i for i, color in enumerate(paleta)}
+            % len(seen))
+    palette = [BLACK] + sorted(seen, key=lambda c: (-seen[c], c))
+    index = {color: i for i, color in enumerate(palette)}
 
-    tiles, donde, tilemaps = [], {}, []
-    vacio = tuple(tuple([0] * CELL) for _ in range(CELL))
-    donde[vacio] = 0
-    tiles.append(vacio)
-    for capa in capas:
-        px = capa.load()
-        mapa = []
+    tiles, where, tilemaps = [], {}, []
+    empty = tuple(tuple([0] * CELL) for _ in range(CELL))
+    where[empty] = 0
+    tiles.append(empty)
+    for layer in layers:
+        px = layer.load()
+        mapping = []
         for ty in range(32):
             for tx in range(COLS):
-                celda = []
+                cell = []
                 for y in range(CELL):
-                    fila = []
+                    row = []
                     for x in range(CELL):
                         sx, sy = tx * CELL + x, ty * CELL + y
                         if sy >= HEIGHT:
-                            fila.append(0)
+                            row.append(0)
                             continue
                         r, g, b, a = px[sx, sy]
-                        fila.append(indice[(r >> 3, g >> 3, b >> 3)] if a else 0)
-                    celda.append(tuple(fila))
-                celda = tuple(celda)
-                if celda not in donde:
-                    donde[celda] = len(tiles)
-                    tiles.append(celda)
-                mapa.append(donde[celda])
-        tilemaps.append(mapa)
-    return tiles, paleta, tilemaps
+                        row.append(index[(r >> 3, g >> 3, b >> 3)] if a else 0)
+                    cell.append(tuple(row))
+                cell = tuple(cell)
+                if cell not in where:
+                    where[cell] = len(tiles)
+                    tiles.append(cell)
+                mapping.append(where[cell])
+        tilemaps.append(mapping)
+    return tiles, palette, tilemaps

@@ -1,6 +1,6 @@
 """End Game, la última orden del menú de pausa: `Scene_End`.
 
-Que la pantalla se vea como `fin_del_juego.render` pixel por pixel, con el
+Que la pantalla se vea como `end_game.render` pixel por pixel, con el
 cursor en cada orden; que "No" y B vuelvan al menú como estaba, con el cursor
 en End Game; y que "Yes" funda el tema y la pantalla y termine en la
 pantalla de título, igual que al encender —la golden `titulo`—, con el juego
@@ -10,7 +10,7 @@ Lo que se ve sin comparar contra Python lo cobran las goldens `fin` y
 `fin-no` de `test_menu_golden.py`.
 """
 
-from port import fin_del_juego
+from port import end_game
 
 from consola import TITULO_AIRE
 import datos
@@ -36,7 +36,7 @@ def entrar(una):
 
 def comparar(una, elegida, nombre):
     db, skin = datos.base(), datos.skin()
-    esperada = fin_del_juego.render(skin, db, elegida, db.font_id)
+    esperada = end_game.render(skin, db, elegida, db.font_id)
     comparar_pantalla(una, esperada, nombre,
                       "End Game con el cursor en %d" % elegida)
 
@@ -45,11 +45,11 @@ def test_la_pantalla_se_ve_como_la_referencia(partida):
     """Entra con el cursor en "Yes", como el RPG_RT, y abajo lo pasa a "No"
     —que es subir la otra paleta—; abajo otra vez da la vuelta."""
     una = entrar(con_grupo(partida()))
-    comparar(una, fin_del_juego.SI, "fin")
+    comparar(una, end_game.YES, "fin")
     una.tocar_cuadros("down")
-    comparar(una, fin_del_juego.NO, "fin-no")
+    comparar(una, end_game.NO, "fin-no")
     una.tocar_cuadros("down")
-    comparar(una, fin_del_juego.SI, "fin-vuelta")
+    comparar(una, end_game.YES, "fin-vuelta")
 
 
 def test_no_vuelve_al_menu_como_estaba(partida):

@@ -312,7 +312,7 @@ def celdas(cuadro):
 
     The four objects fit in one row of blocks —64 tiles— and object `o`
     starts at `o * 4`; inside it, tile (tx, ty) is `ty` grid rows further
-    on. It is the same arithmetic as `imagen.celdas`, which is where it came
+    on. It is the same arithmetic as `picture.cells`, which is where it came
     from.
 
     On screen the objects go two by two: `o` at `(o % 2 * 32, o // 2 * 32)`

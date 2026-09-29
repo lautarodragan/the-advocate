@@ -170,10 +170,10 @@ def _escribir_termino_nivel(destino, sys_img, x, y, db, font_id):
     —with Kersh as leader it says 20 and with Core 15—. The term is baked,
     since it is the same for everyone.
     """
-    from port import ventana as ventana_mod
-    ventana_mod.dibujar_linea(destino, sys_img, x, y,
-                              (db.term_lvl_short or "")[:2].ljust(2), color=1,
-                              font_id=font_id)
+    from port import window as ventana_mod
+    ventana_mod.draw_line(destino, sys_img, x, y,
+                          (db.term_lvl_short or "")[:2].ljust(2), color=1,
+                          font_id=font_id)
 
 
 def texto_de_nombre(db, actor, cols=None):
@@ -476,7 +476,7 @@ ITEMS_TILES_MAX = (0x3800 - 0x2000) // 16
 
 # The screen's windows, like `Scene_Item`: the help one on top and the list
 # one below, each with the stretched background and the System's frame
-# —`ventana.ventana`, the same as the message's—. RM2k puts them right
+# —`window.window`, the same as the message's—. RM2k puts them right
 # against each other, so the separator is the two frames together: four
 # pixels. The help one is taller than RM2k's —32— because here the
 # description goes on two lines.
@@ -509,10 +509,10 @@ def ventanas_items(sys_img, barra=None):
     """The item screen's windows, in RGBA and the size of the screen: what
     BG1 draws. With `barra`, the cursor on that row of the list."""
     from PIL import Image
-    from port import ventana as ventana_mod
+    from port import window as ventana_mod
     fuera = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     for x, y, ancho, alto in ITEM_VENTANAS:
-        una = ventana_mod.ventana(sys_img, ancho, alto)
+        una = ventana_mod.window(sys_img, ancho, alto)
         fuera.paste(una, (x, y), una)
     if barra is not None:
         una = ventana_mod.cursor(sys_img, ITEM_BARRA_ANCHO, 2 * CELL)
@@ -667,7 +667,7 @@ def pantalla_items(sys_img, font_id=None):
     erases.
     """
     from PIL import Image
-    from port import ventana as ventana_mod
+    from port import window as ventana_mod
     colores = {ITEM_BLANCO: 0, ITEM_GRIS: 3, ITEM_SUBE: 2, ITEM_ROJO: 1}
     capas = []
     for gris in (ITEM_BLANCO, ITEM_GRIS, ITEM_SUBE, ITEM_ROJO):
@@ -676,8 +676,8 @@ def pantalla_items(sys_img, font_id=None):
             if gris == ITEM_SUBE and c not in ITEM_SUBE_CARACTERES:
                 continue
             una = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
-            ventana_mod.dibujar_linea(una, sys_img, 1, 2, c,
-                                      color=colores[gris], font_id=font_id)
+            ventana_mod.draw_line(una, sys_img, 1, 2, c,
+                                  color=colores[gris], font_id=font_id)
             capas.append((gris, n, una))
     # The colors of each set, with numpy: it is one screen-sized image per
     # character and per color, with the letter in a corner, and walking them
@@ -728,11 +728,11 @@ def _escribir_menu_fila(destino, sys_img, db, font_id):
     playing —"HP goes down in battle, but the menu always shows 40"—; the 40
     is the maximum of Talan, who leads the intro.
     """
-    from port import ventana as ventana_mod
+    from port import window as ventana_mod
 
     def escribir(x, y, texto, color=0):
-        return ventana_mod.dibujar_linea(destino, sys_img, x, y, texto,
-                                         color=color, font_id=font_id)
+        return ventana_mod.draw_line(destino, sys_img, x, y, texto,
+                                     color=color, font_id=font_id)
 
     _escribir_termino_nivel(destino, sys_img, MENU_TEXTO_X, 2 + LINEA, db,
                             font_id)
@@ -803,15 +803,15 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
     there is a single tile bank.
     """
     from PIL import Image
-    from port import ventana as ventana_mod
+    from port import window as ventana_mod
 
     def capa():
         return Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
 
     def escribir(destino, x, y, texto):
         if texto:
-            ventana_mod.dibujar_linea(destino, sys_img, x, y, texto,
-                                      font_id=font_id)
+            ventana_mod.draw_line(destino, sys_img, x, y, texto,
+                                  font_id=font_id)
 
     # First all the text layers, so the colors can be gathered at once.
     capas = []
@@ -837,11 +837,11 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
                 capas.append(("fila", (numero, llena, cursor), una))
     # The pause menu's, in the same bank. Each on the topmost row it gets: the
     # blocks work on any other because they are aligned.
-    from port import ventana as ventana_mod
+    from port import window as ventana_mod
     for orden, texto in enumerate(db.term_menu):
         for deshabilitada in (0, 1):
             una = capa()
-            ventana_mod.dibujar_linea(
+            ventana_mod.draw_line(
                 una, sys_img, MENU_OPC_COL * CELL,
                 MENU_OPC_Y + orden * MENU_OPC_SALTO + 2, texto,
                 color=3 if deshabilitada else 0, font_id=font_id)
@@ -855,9 +855,9 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
                  GLIFO_FILA * CELL + GLIFO_DY, letra)
         capas.append(("menu_glifo", letra, una))
     una = capa()
-    ventana_mod.dibujar_linea(una, sys_img, MENU_MONEDA_COL * CELL,
-                              MENU_ORO_Y + 2, db.term_gold, color=1,
-                              font_id=font_id)
+    ventana_mod.draw_line(una, sys_img, MENU_MONEDA_COL * CELL,
+                          MENU_ORO_Y + 2, db.term_gold, color=1,
+                          font_id=font_id)
     capas.append(("menu_moneda", None, una))
     una = capa()
     _escribir_menu_fila(una, sys_img, db, font_id)
@@ -866,10 +866,10 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
     # letters, which are the twelve pixels `DrawActorExp` leaves it before
     # the digits.
     una = capa()
-    ventana_mod.dibujar_linea(una, sys_img, GLIFO_COL * CELL,
-                              GLIFO_FILA * CELL + GLIFO_DY,
-                              (db.term_exp_short or "")[:2], color=1,
-                              font_id=font_id)
+    ventana_mod.draw_line(una, sys_img, GLIFO_COL * CELL,
+                          GLIFO_FILA * CELL + GLIFO_DY,
+                          (db.term_exp_short or "")[:2], color=1,
+                          font_id=font_id)
     capas.append(("menu_exp_termino", None, una))
 
     # The disabled commands go in **their own palette**, number 1: system
@@ -1199,14 +1199,14 @@ def ventanas_objetivo(sys_img, db, con_item=True, barra=None, font_id=None):
     BG1 draws. With `con_item`, the two on the left with "Owned Items"; with
     `barra`, the cursor on that party row."""
     from PIL import Image
-    from port import ventana as ventana_mod
+    from port import window as ventana_mod
     fuera = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     for x, y, ancho, alto in (OBJETIVO_VENTANAS if con_item
                               else (OBJETIVO_GRUPO,)):
-        una = ventana_mod.ventana(sys_img, ancho, alto)
+        una = ventana_mod.window(sys_img, ancho, alto)
         fuera.paste(una, (x, y), una)
     if con_item:
-        ventana_mod.dibujar_linea(
+        ventana_mod.draw_line(
             fuera, sys_img, OBJETIVO_NOMBRE_COL * CELL + GLIFO_DX,
             OBJETIVO_CUANTOS_FILA * CELL + GLIFO_DY,
             lcf_termino_poseidos(db), color=1, font_id=font_id)

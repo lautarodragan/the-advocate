@@ -26,3 +26,10 @@ ejecutables `rm2k-snes-*` andando desde `/tmp`.
    `color`.
 2. `asignador` → `allocator`, `msu_datos` → `msu_data`, `paleta` →
    `palette`, `experiencia` → `experience`, y los nombres de `tiles_bin`.
+3. `ventana` → `window`, `imagen` → `picture` (el cartel de `ShowPicture`),
+   `pantalla_completa` → `fullscreen`, `titulo` → `title`, `fin_del_juego` →
+   `end_game`.
+
+Lo que el conversor escribe al `.inc` cita rutas de `tools/port/` en sus
+comentarios (`; See tools/port/imagen.py.`): esas quedan con el nombre
+viejo, porque cambiarlas cambia el `.inc`. Van con la última área.

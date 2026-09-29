@@ -84,7 +84,7 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 | El fundido de los teletransportes, con el mapa cargando adentro del negro | `empezar_fundido`, `fundido_tick` | `rampa_de_fundido`, y las constantes `FUNDIDO_*` |
 | El tope de teletransportes encadenados | `SALTOS_MAX` y sus usos | lo cobra `rom/pruebas/rpgmaker/test_saltos.py` |
 | La pantalla se prende en el vblank y en ningún otro lado | `flush_video` | — |
-| La ventana de mensaje, clavada abajo por HDMA | `armar_hdma`, `msg_empezar`, `msg_ptr_sig` | `tools/port/ventana.py`, `Mensajes` |
+| La ventana de mensaje, clavada abajo por HDMA | `armar_hdma`, `msg_empezar`, `msg_ptr_sig` | `tools/port/window.py`, `Mensajes` |
 | El texto compuesto en caliente, con los glifos ya pre-renderizados | `mensaje_tick`, `componer_char`, `cebar_linea` | `fuente_prerender` en `tools/port/snes_convert.py` |
 | El arranque dura siempre lo mismo | `BOOT_CUADROS` | lo corre `Partida` en `rom/pruebas/arnes/consola.py` |
 | Los cuadros perdidos se cuentan | `contar_perdidos` | los lee `Partida.cuadros_perdidos` de la WRAM |

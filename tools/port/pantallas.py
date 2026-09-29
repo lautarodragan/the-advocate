@@ -129,10 +129,10 @@ def ventanas_equipo(sys_img, barra=None):
     what BG1 draws. `barra` is the cursor: the slot number, or
     `EQUIPMENT_SLOTS` plus the visible row of the list."""
     from PIL import Image
-    from port import ventana as ventana_mod
+    from port import window as ventana_mod
     fuera = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     for x, y, ancho, alto in EQ_VENTANAS:
-        una = ventana_mod.ventana(sys_img, ancho, alto)
+        una = ventana_mod.window(sys_img, ancho, alto)
         fuera.paste(una, (x, y), una)
     if barra is not None:
         x, ancho = (EQ_BARRA_RANURA if barra < EQUIPMENT_SLOTS
@@ -391,11 +391,11 @@ def ventanas_tienda(sys_img, capa, barra=None):
     screen: what BG1 draws. `barra` is the cursor's position in
     `barras_tienda(capa)`."""
     from PIL import Image
-    from port import ventana as ventana_mod
+    from port import window as ventana_mod
     fuera = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     for x, y, ancho, alto in ((0, 0, WIDTH, TI_MEDIO_Y),) \
             + TI_VENTANAS[capa]:
-        una = ventana_mod.ventana(sys_img, ancho, alto)
+        una = ventana_mod.window(sys_img, ancho, alto)
         fuera.paste(una, (x, y), una)
     if barra is not None:
         x, ancho, fila = barras_tienda(capa)[barra]

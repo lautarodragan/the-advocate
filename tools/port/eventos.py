@@ -20,7 +20,7 @@ import collections
 import math
 import os
 
-from port import imagen as imagen_mod
+from port import picture as imagen_mod
 from port import rules
 from port.constants import COLUMNS, LINES, EQUIPMENT_SLOTS
 from rpgmaker import rm2k
@@ -2264,7 +2264,7 @@ class Imagenes:
     def __init__(self, game_dir):
         self.game_dir = game_dir
         self.nombre = None      # the picture that took the slot
-        self.info = None        # what `imagen.convertir` got from it
+        self.info = None        # what `picture.convert` got from it
         self.numero = None      # the RM2k picture number that shows it
         self.donde = None       # where its ShowPicture centered it
 
@@ -2300,8 +2300,8 @@ class Imagenes:
                         if im is None:
                             continue
                         p = cmd.parameters
-                        info = imagen_mod.convertir(im, p[2], p[3])
-                        if not imagen_mod.cabe(info):
+                        info = imagen_mod.convert(im, p[2], p[3])
+                        if not imagen_mod.fits(info):
                             continue
                         self.nombre, self.info = cmd.string, info
                         self.numero, self.donde = p[0], (p[2], p[3])

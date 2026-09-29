@@ -55,7 +55,7 @@ cambia qué hacer cuando se pone rojo:
   golden falla, salvo que esté en `golden/playthrough/pendientes.txt`. Si el
   render cambió a propósito, **cambiar la golden es un acto deliberado**: va
   a git, se mira, y el commit dice por qué. Si no, es una regresión. Ver `golden/tanda/LEEME.md`.
-* **`_dibujo`**: contra lo que dibuja `tools/port/` —`titulo.render_*`,
+* **`_dibujo`**: contra lo que dibuja `tools/port/` —`title.render_*`,
   `pantallas.*`, `escena.*`—, casi siempre por `arnes/dibujo.py`. La captura y
   la esperada quedan en `pruebas/snapshots/pantallas/`, y el que está mal
   puede ser cualquiera de los dos: la ROM o el dibujo de Python.

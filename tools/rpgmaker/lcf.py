@@ -446,7 +446,7 @@ class Actor:
         self.sp_max = self.params.get("maxsp", [])
         # **The level it starts at**, which in ABL is not 1: Kersh starts at
         # 20 and Core and Manta at 15. Until 2026-09-13 this port had
-        # everyone at 1 —a constant `titulo.NIVEL`— and from that came the
+        # everyone at 1 —a constant `title.NIVEL`— and from that came the
         # HP, the parameters and the conclusion that nobody knew any skill.
         self.initial_level = field(data, "initial_level") or 1
         # How high it goes and with which experience curve: the three

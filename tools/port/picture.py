@@ -43,39 +43,39 @@ from port.color import apply_tint
 from port.palette import reduce
 
 # RM2k's screen and the console's.
-ANCHO_RM, ALTO_RM = 320, 240
-ANCHO, ALTO = 256, 224
+RM_WIDTH, RM_HEIGHT = 320, 240
+WIDTH, HEIGHT = 256, 224
 
 # This port's large object, which `OBSEL_VALUE` fixes at 32x32.
 OBJ = 32
 # The 8x8 tiles it measures on a side, and how many there are in a row of the
 # OAM name grid.
-OBJ_LADO = OBJ // 8
-GRILLA = 16
+OBJ_SIDE = OBJ // 8
+GRID = 16
 # The fifteen of a sprite palette: index 0 is not drawn.
-COLORES = 15
+COLORS = 15
 # How many objects wide are accepted. Eight are 256 pixels, that is the whole
 # screen, and 128 sprite tiles; more than that is not a picture.
-OBJETOS_MAX = 8
-NEGRO = (0, 0, 0)
+OBJECTS_MAX = 8
+BLACK = (0, 0, 0)
 
 
-def escalar_x(v):
+def scale_x(v):
     """A horizontal coordinate of RM2k's screen, on the console's.
 
     Integer division rounding down **with negatives too**, which is what
     `//` does in Python: the picture starts at -16 and both ends have to get
     the same -13.
     """
-    return v * ANCHO // ANCHO_RM
+    return v * WIDTH // RM_WIDTH
 
 
-def escalar_y(v):
-    return v * ALTO // ALTO_RM
+def scale_y(v):
+    return v * HEIGHT // RM_HEIGHT
 
 
-def caja(ancho, alto, cx, cy):
-    """Where on the console screen an image of `ancho` x `alto` centered at
+def box(width, height, cx, cy):
+    """Where on the console screen an image of `width` x `height` centered at
     (cx, cy) of RM2k's lands: (x, y, ancho, alto).
 
     Both corners go through the same math and the size comes from
@@ -83,27 +83,27 @@ def caja(ancho, alto, cx, cy):
     where the corners give 29, and one pixel of difference between the two
     ends is a comparison that fails.
     """
-    x0, y0 = cx - ancho // 2, cy - alto // 2
-    ex0, ey0 = escalar_x(x0), escalar_y(y0)
-    return ex0, ey0, escalar_x(x0 + ancho) - ex0, escalar_y(y0 + alto) - ey0
+    x0, y0 = cx - width // 2, cy - height // 2
+    ex0, ey0 = scale_x(x0), scale_y(y0)
+    return ex0, ey0, scale_x(x0 + width) - ex0, scale_y(y0 + height) - ey0
 
 
-def _quince(imagen, ancho, alto):
+def _to_15_bits(image, width, height):
     """The image scaled and with its colors at 15 bits, row by row.
 
     LANCZOS like `palette._to_15_bits`, and for the same reason: it is the one
     that smears the edges of text the least.
     """
     from PIL import Image
-    chica = imagen.convert("RGB").resize((ancho, alto), Image.LANCZOS)
-    datos = [(r >> 3, g >> 3, b >> 3) for r, g, b in chica.get_flattened_data()]
-    return [datos[y * ancho:(y + 1) * ancho] for y in range(alto)]
+    small = image.convert("RGB").resize((width, height), Image.LANCZOS)
+    data = [(r >> 3, g >> 3, b >> 3) for r, g, b in small.get_flattened_data()]
+    return [data[y * width:(y + 1) * width] for y in range(height)]
 
 
-def convertir(imagen, cx, cy):
+def convert(image, cx, cy):
     """The picture ready for both ends.
 
-    Returns a dictionary with where it lands —`x`, `y`, `ancho`, `alto`—,
+    Returns a dictionary with where it lands —`x`, `y`, `width`, `height`—,
     how many 32x32 objects it takes, its palette of fifteen 15-bit colors and
     the image as indices into that palette **shifted by one**, which is how a
     sprite palette numbers them: 0 is the transparent one and is not drawn.
@@ -114,28 +114,28 @@ def convertir(imagen, cx, cy):
     the PIL version. From 226 colors to fifteen the glow's gradient becomes
     stepped; it shows and it is declared.
     """
-    x, y, ancho, alto = caja(imagen.width, imagen.height, cx, cy)
-    filas = _quince(imagen, ancho, alto)
-    pixeles = [c for fila in filas for c in fila]
-    paleta, mapa = reduce(pixeles, COLORES)
-    donde = {color: i + 1 for i, color in enumerate(paleta)}
-    indices = [[donde[mapa[c]] for c in fila] for fila in filas]
+    x, y, width, height = box(image.width, image.height, cx, cy)
+    rows = _to_15_bits(image, width, height)
+    pixels = [c for row in rows for c in row]
+    palette, mapping = reduce(pixels, COLORS)
+    where = {color: i + 1 for i, color in enumerate(palette)}
+    indices = [[where[mapping[c]] for c in row] for row in rows]
     return {
-        "x": x, "y": y, "ancho": ancho, "alto": alto,
-        "objetos": -(-ancho // OBJ),
-        "paleta": paleta,
+        "x": x, "y": y, "ancho": width, "alto": height,
+        "objetos": -(-width // OBJ),
+        "paleta": palette,
         "indices": indices,
     }
 
 
-def cabe(info):
+def fits(info):
     """Whether the picture fits the model: one object tall and up to
-    `OBJETOS_MAX` wide. `eventos.Imagenes` asks this when choosing the
+    `OBJECTS_MAX` wide. `eventos.Imagenes` asks this when choosing the
     picture."""
-    return 0 < info["alto"] <= OBJ and 0 < info["objetos"] <= OBJETOS_MAX
+    return 0 < info["alto"] <= OBJ and 0 < info["objetos"] <= OBJECTS_MAX
 
 
-def celdas(info):
+def cells(info):
     """The picture cut into 8x8 tiles, in the order OAM numbers them.
 
     A 32x32 object reads four tiles from four consecutive rows of the name
@@ -149,27 +149,27 @@ def celdas(info):
     transparent: whatever is underneath shows there, which is what should
     happen.
     """
-    salida = {}
+    out = {}
     indices = info["indices"]
     for o in range(info["objetos"]):
-        arranca = (o // 4) * (4 * GRILLA) + (o % 4) * OBJ_LADO
-        for ty in range(OBJ_LADO):
-            for tx in range(OBJ_LADO):
-                celda = []
+        start = (o // 4) * (4 * GRID) + (o % 4) * OBJ_SIDE
+        for ty in range(OBJ_SIDE):
+            for tx in range(OBJ_SIDE):
+                cell = []
                 for py in range(8):
-                    fila = []
+                    row = []
                     for px in range(8):
                         cy = ty * 8 + py
                         cx = o * OBJ + tx * 8 + px
-                        fila.append(indices[cy][cx]
-                                    if cy < info["alto"] and cx < info["ancho"]
-                                    else 0)
-                    celda.append(tuple(fila))
-                salida[arranca + ty * GRILLA + tx] = tuple(celda)
-    return salida
+                        row.append(indices[cy][cx]
+                                   if cy < info["alto"] and cx < info["ancho"]
+                                   else 0)
+                    cell.append(tuple(row))
+                out[start + ty * GRID + tx] = tuple(cell)
+    return out
 
 
-def tiles_reservados(info):
+def reserved_tiles(info):
     """How many 8x8 tiles of the sprite bank the picture takes.
 
     Whole rows of blocks, not the 96 it uses: the arithmetic above needs them
@@ -177,12 +177,12 @@ def tiles_reservados(info):
     same reason. With six objects that is two rows, 128 tiles, of which 96
     are used.
     """
-    return -(-info["objetos"] // 4) * (4 * GRILLA)
+    return -(-info["objetos"] // 4) * (4 * GRID)
 
 
-def render(info, tono):
+def render(info, hue):
     """The picture as it looks on screen, with its tone applied: an RGBA
-    image of `ancho` x `alto` to paste at (x, y).
+    image of `width` x `height` to paste at (x, y).
 
     The tone is RM2k's —(r, g, b, sat), 100 neutral— and goes through
     `color.apply_tint`, which is the same math as the screen tint: there and here
@@ -191,22 +191,22 @@ def render(info, tono):
     the same thing.
     """
     from PIL import Image
-    paleta = [apply_tint(c[0] | (c[1] << 5) | (c[2] << 10), tono)
-              for c in info["paleta"]]
-    colores = [(0, 0, 0, 0)] + [(((p & 0x1F) << 3), (((p >> 5) & 0x1F) << 3),
-                                 (((p >> 10) & 0x1F) << 3), 255)
-                                for p in paleta]
-    salida = Image.new("RGBA", (info["ancho"], info["alto"]))
-    salida.putdata([colores[i] for fila in info["indices"] for i in fila])
-    return salida
+    palette = [apply_tint(c[0] | (c[1] << 5) | (c[2] << 10), hue)
+               for c in info["paleta"]]
+    colors = [(0, 0, 0, 0)] + [(((p & 0x1F) << 3), (((p >> 5) & 0x1F) << 3),
+                                (((p >> 10) & 0x1F) << 3), 255)
+                               for p in palette]
+    out = Image.new("RGBA", (info["ancho"], info["alto"]))
+    out.putdata([colors[i] for row in info["indices"] for i in row])
+    return out
 
 
-def informe(info):
+def report(info):
     """The numbers that justify the layout, for the recipe to print."""
     return {
         "donde": (info["x"], info["y"]),
         "tamano": (info["ancho"], info["alto"]),
         "objetos": info["objetos"],
-        "tiles": tiles_reservados(info),
+        "tiles": reserved_tiles(info),
         "colores": len(info["paleta"]),
     }

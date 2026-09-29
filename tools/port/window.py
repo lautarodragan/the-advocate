@@ -33,13 +33,13 @@ from render import render_map
 # and the window takes 320x80 at the bottom; here the screen is 256x224, so
 # the window is 256x80 and the text loses 64 px of width. What does not fit
 # is truncated: it is the phase 1 decision.
-ANCHO, ALTO = 256, 80
-BORDE = 8                       # `border_x` and `border_y` of Window
-ALTO_LINEA = 16                 # `contents_y += 16` of Window_Message
-TEXTO_Y = 2                     # the `contents_y = 2` of the first line
+WIDTH, HEIGHT = 256, 80
+BORDER = 8                       # `border_x` and `border_y` of Window
+LINE_HEIGHT = 16                 # `contents_y += 16` of Window_Message
+TEXT_Y = 2                     # the `contents_y = 2` of the first line
 
 
-def skin(game_dir, nombre):
+def skin(game_dir, name):
     """The game's System, in RGBA and with the color key already resolved.
 
     It goes through `render_map.load_image` and not `Image.open` on purpose:
@@ -53,82 +53,82 @@ def skin(game_dir, nombre):
     transparent. The EasyRPG capture found it, not the eye.
     """
     for base in (os.path.join(game_dir, "System"), game_dir):
-        ruta = os.path.join(base, nombre + ".png")
-        if os.path.exists(ruta):
-            return render_map.load_image(ruta)
-    raise FileNotFoundError("System %r is not in %s" % (nombre, game_dir))
+        path = os.path.join(base, name + ".png")
+        if os.path.exists(path):
+            return render_map.load_image(path)
+    raise FileNotFoundError("System %r is not in %s" % (name, game_dir))
 
 
-def color_de_texto(sys_img, numero):
-    """The 16x16 block of text color number `numero`."""
-    x, y = numero % 10 * 16, numero // 10 * 16 + 48
+def text_color(sys_img, number):
+    """The 16x16 block of text color number `number`."""
+    x, y = number % 10 * 16, number // 10 * 16 + 48
     return sys_img.crop((x, y, x + 16, y + 16))
 
 
-def color_de_sombra(sys_img):
+def shadow_color(sys_img):
     return sys_img.crop((16, 32, 32, 48))
 
 
-def _repetido(origen, ancho, alto):
+def _tiled(source, width, height):
     """`TiledBlit`: repeat a crop until it fills ancho x alto."""
-    salida = Image.new("RGBA", (ancho, alto), (0, 0, 0, 0))
-    for y in range(0, alto, origen.height):
-        for x in range(0, ancho, origen.width):
-            salida.paste(origen, (x, y))
-    return salida.crop((0, 0, ancho, alto))
+    out = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    for y in range(0, height, source.height):
+        for x in range(0, width, source.width):
+            out.paste(source, (x, y))
+    return out.crop((0, 0, width, height))
 
 
-def _pegar(destino, trozo, x, y):
+def _paste(dest, piece, x, y):
     """Paste honoring the color key, like `chipset.blit`."""
-    destino.paste(trozo, (x, y), trozo)
+    dest.paste(piece, (x, y), piece)
 
 
-def ventana(sys_img, ancho=ANCHO, alto=ALTO):
+def window(sys_img, width=WIDTH, height=HEIGHT):
     """The empty window: the stretched background and the frame on top."""
     # The background is stretched, not tiled: it is the `stretch` RM2k has on
     # by default.
-    fondo = sys_img.crop((0, 0, 32, 32)).resize((ancho, alto), Image.NEAREST)
-    marco = fondo.copy()
+    background = sys_img.crop((0, 0, 32, 32)).resize((width, height), Image.NEAREST)
+    frame_img = background.copy()
     # The top and bottom edges, repeated between the corners.
-    _pegar(marco, _repetido(sys_img.crop((40, 0, 56, 8)), ancho - 16, 8), 8, 0)
-    _pegar(marco, _repetido(sys_img.crop((40, 24, 56, 32)), ancho - 16, 8),
-           8, alto - 8)
+    _paste(frame_img, _tiled(sys_img.crop((40, 0, 56, 8)), width - 16, 8), 8, 0)
+    _paste(frame_img, _tiled(sys_img.crop((40, 24, 56, 32)), width - 16, 8),
+           8, height - 8)
     # The side ones.
-    _pegar(marco, _repetido(sys_img.crop((32, 8, 40, 24)), 8, alto - 16), 0, 8)
-    _pegar(marco, _repetido(sys_img.crop((56, 8, 64, 24)), 8, alto - 16),
-           ancho - 8, 8)
+    _paste(frame_img, _tiled(sys_img.crop((32, 8, 40, 24)), 8, height - 16), 0, 8)
+    _paste(frame_img, _tiled(sys_img.crop((56, 8, 64, 24)), 8, height - 16),
+           width - 8, 8)
     # And the four corners, which go last because they overwrite the edges.
-    _pegar(marco, sys_img.crop((32, 0, 40, 8)), 0, 0)
-    _pegar(marco, sys_img.crop((56, 0, 64, 8)), ancho - 8, 0)
-    _pegar(marco, sys_img.crop((32, 24, 40, 32)), 0, alto - 8)
-    _pegar(marco, sys_img.crop((56, 24, 64, 32)), ancho - 8, alto - 8)
-    return marco
+    _paste(frame_img, sys_img.crop((32, 0, 40, 8)), 0, 0)
+    _paste(frame_img, sys_img.crop((56, 0, 64, 8)), width - 8, 0)
+    _paste(frame_img, sys_img.crop((32, 24, 40, 32)), 0, height - 8)
+    _paste(frame_img, sys_img.crop((56, 24, 64, 32)), width - 8, height - 8)
+    return frame_img
 
 
-def cursor(sys_img, ancho, alto=16):
+def cursor(sys_img, width, height=16):
     """The cursor of a list, the first of the System's two frames: Window's
     `RefreshCursor` in easyrpg, 8x8 corners and the rest repeated between
     them. What is transparent in the System stays transparent."""
     x0 = 64
-    salida = Image.new("RGBA", (ancho, alto), (0, 0, 0, 0))
-    if ancho > 16 and alto > 16:
-        _pegar(salida, _repetido(sys_img.crop((x0 + 8, 8, x0 + 24, 24)),
-                                 ancho - 16, alto - 16), 8, 8)
-    _pegar(salida, _repetido(sys_img.crop((x0 + 8, 0, x0 + 24, 8)),
-                             ancho - 16, 8), 8, 0)
-    _pegar(salida, _repetido(sys_img.crop((x0 + 8, 24, x0 + 24, 32)),
-                             ancho - 16, 8), 8, alto - 8)
-    if alto > 16:
-        _pegar(salida, _repetido(sys_img.crop((x0, 8, x0 + 8, 24)),
-                                 8, alto - 16), 0, 8)
-        _pegar(salida, _repetido(sys_img.crop((x0 + 24, 8, x0 + 32, 24)),
-                                 8, alto - 16), ancho - 8, 8)
-    _pegar(salida, sys_img.crop((x0, 0, x0 + 8, 8)), 0, 0)
-    _pegar(salida, sys_img.crop((x0 + 24, 0, x0 + 32, 8)), ancho - 8, 0)
-    _pegar(salida, sys_img.crop((x0, 24, x0 + 8, 32)), 0, alto - 8)
-    _pegar(salida, sys_img.crop((x0 + 24, 24, x0 + 32, 32)), ancho - 8,
-           alto - 8)
-    return salida
+    out = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    if width > 16 and height > 16:
+        _paste(out, _tiled(sys_img.crop((x0 + 8, 8, x0 + 24, 24)),
+                           width - 16, height - 16), 8, 8)
+    _paste(out, _tiled(sys_img.crop((x0 + 8, 0, x0 + 24, 8)),
+                       width - 16, 8), 8, 0)
+    _paste(out, _tiled(sys_img.crop((x0 + 8, 24, x0 + 24, 32)),
+                       width - 16, 8), 8, height - 8)
+    if height > 16:
+        _paste(out, _tiled(sys_img.crop((x0, 8, x0 + 8, 24)),
+                           8, height - 16), 0, 8)
+        _paste(out, _tiled(sys_img.crop((x0 + 24, 8, x0 + 32, 24)),
+                           8, height - 16), width - 8, 8)
+    _paste(out, sys_img.crop((x0, 0, x0 + 8, 8)), 0, 0)
+    _paste(out, sys_img.crop((x0 + 24, 0, x0 + 32, 8)), width - 8, 0)
+    _paste(out, sys_img.crop((x0, 24, x0 + 8, 32)), 0, height - 8)
+    _paste(out, sys_img.crop((x0 + 24, 24, x0 + 32, 32)), width - 8,
+           height - 8)
+    return out
 
 
 # Where the color of each glyph pixel comes from, according to easyrpg-player's
@@ -140,46 +140,46 @@ def cursor(sys_img, ancho, alto=16):
 #
 # The `16 - 12` is what rests the 12-row glyph against the foot of the 16 block.
 # None of these numbers is guessed: they come from font.cpp.
-TEXTO_OFS = (2, 4)
-SOMBRA_ORIGEN = (16, 32)
+TEXT_OFFSET = (2, 4)
+SHADOW_ORIGIN = (16, 32)
 
 
-def dibujar_linea(destino, sys_img, x, y, texto, color=0,
-                  font_id=None):
-    """A line of text on `destino`, with its shadow, like RM2k.
+def draw_line(dest, sys_img, x, y, text, color=0,
+              font_id=None):
+    """A line of text on `dest`, with its shadow, like RM2k.
 
-    Returns the x it ended at. Whatever goes past the width of `destino` is
+    Returns the x it ended at. Whatever goes past the width of `dest` is
     clipped on its own: in phase 1 lines that do not fit are truncated.
     """
     from port import font
     if font_id is None:
         font_id = font.MINCHO
-    bloque = color_de_texto(sys_img, color)
-    sombra = color_de_sombra(sys_img)
-    ox, oy = TEXTO_OFS
-    for ch in texto:
+    block = text_color(sys_img, color)
+    shadow = shadow_color(sys_img)
+    ox, oy = TEXT_OFFSET
+    for ch in text:
         for px, py in font.pixels(ch, font_id):
             # The shadow goes first and shifted by one, so the text covers it
             # where they overlap. It is easyrpg's order and it shows on the
             # diagonals.
-            for dx, dy, fuente_color, fx, fy in (
-                    (1, 1, sombra, px, py), (0, 0, bloque, ox + px, oy + py)):
+            for dx, dy, font_color, fx, fy in (
+                    (1, 1, shadow, px, py), (0, 0, block, ox + px, oy + py)):
                 dx, dy = x + px + dx, y + py + dy
-                color = fuente_color.getpixel((fx, fy))
-                if (0 <= dx < destino.width and 0 <= dy < destino.height
+                color = font_color.getpixel((fx, fy))
+                if (0 <= dx < dest.width and 0 <= dy < dest.height
                         and color[3]):
-                    destino.putpixel((dx, dy), color)
+                    dest.putpixel((dx, dy), color)
         x += font.WIDTH
     return x
 
 
-def pagina(sys_img, lineas, ancho=ANCHO, alto=ALTO, font_id=None):
+def page(sys_img, lines, width=WIDTH, height=HEIGHT, font_id=None):
     """The window with up to four lines of text inside."""
-    vista = ventana(sys_img, ancho, alto)
-    for n, texto in enumerate(lineas[:LINES]):
+    view = window(sys_img, width, height)
+    for n, text in enumerate(lines[:LINES]):
         # The truncation goes here and not in the caller so both sides use
         # the same number: the ROM applies it when emitting the message.
-        dibujar_linea(vista, sys_img, BORDE,
-                      BORDE + TEXTO_Y + n * ALTO_LINEA, texto[:COLUMNS],
-                      font_id=font_id)
-    return vista
+        draw_line(view, sys_img, BORDER,
+                  BORDER + TEXT_Y + n * LINE_HEIGHT, text[:COLUMNS],
+                  font_id=font_id)
+    return view

@@ -72,13 +72,13 @@ lcf.DECORATE_TRANSLUCENT = rm2k.decorate_translucent
 from port import textos
 lcf.REFIT_TEXTS = textos.reajustar_comandos
 from port import animacion as animacion_mod
-from port import imagen
+from port import picture
 from port import allocator
 from port import parches as parches_mod
-from port import titulo as titulo_mod
+from port import title as titulo_mod
 from port import menus as menus_mod
-from port import pantalla_completa
-from port import fin_del_juego as fin_mod
+from port import fullscreen
+from port import end_game as fin_mod
 from port import pantallas as pantallas_mod
 from port import batalla as batalla_mod
 from port import experience as X
@@ -180,7 +180,7 @@ PRIORITY_ABOVE = 1                       # for the BG2 cells
 # 255 are the upper layer's and 256 to 511 the window's.
 
 # The window size in cells. It is fixed: 256x80 stuck to the bottom of the
-# screen, the same numbers as `tools/port/ventana.py`.
+# screen, the same numbers as `tools/port/window.py`.
 VENTANA_COLS_INC, VENTANA_FILAS_INC = 32, 10
 
 # The glyph, which is what the ROM composes. The same numbers as
@@ -1523,10 +1523,10 @@ def cartel_de_imagen(info, tiles, palettes, base_previa=None):
         base = -(-(base_previa + 2 * 16) // 64) * 64
     else:
         base = -(-(len(tiles) // 32) // 64) * 64
-    cuantos = imagen.tiles_reservados(info)
+    cuantos = picture.reserved_tiles(info)
     if (base + cuantos) * 32 > len(tiles):
         tiles += bytes((base + cuantos) * 32 - len(tiles))
-    for numero, celda in imagen.celdas(info).items():
+    for numero, celda in picture.cells(info).items():
         tiles[(base + numero) * 32:(base + numero + 1) * 32] = pack_tile(
             celda, planes=4)
     return bytes(tiles), base, cual
@@ -2052,7 +2052,7 @@ def convert(grid, palette, variantes, otras, resumen):
     transparentes = [e == 0 for e in range(256)]
     ancho, alto = len(grid[0]) * CELL, len(grid) * CELL
 
-    def imagen(g):
+    def picture(g):
         pixeles = [0] * (ancho * alto)
         for cy, row in enumerate(g):
             for cx, tile in enumerate(row):
@@ -2064,12 +2064,12 @@ def convert(grid, palette, variantes, otras, resumen):
         return tiles_bin.indexed_png(ancho, alto, pixeles, colores,
                                      transparentes)
 
-    imagenes = [("fondo", imagen(grid))]
+    imagenes = [("fondo", picture(grid))]
     familias, animaciones = [], []
     for familia, _ in FAMILIAS:
         if len(dibujos[familia]) < 2:
             continue
-        pngs = [imagen(g) for g in dibujos[familia][1:]]
+        pngs = [picture(g) for g in dibujos[familia][1:]]
         imagenes += [("%s-%d" % (familia, d + 1), png)
                      for d, png in enumerate(pngs)]
         familias.append(familia)
@@ -2618,15 +2618,15 @@ VENTANA_TEXTO_COLS = 30
 def _columnas():
     """How many characters fit on a line. It lives in `ventana.py` with the
     rest of the geometry, and the reason for the number is there."""
-    from port import ventana as ventana_mod
+    from port import window as ventana_mod
     return constants.COLUMNS
 
 
-def _quince(imagen):
+def _quince(picture):
     """The pixels of an RGBA image as 15-bit colors, over black."""
     from PIL import Image
     llana = Image.alpha_composite(
-        Image.new("RGBA", imagen.size, (0, 0, 0, 255)), imagen).convert("RGB")
+        Image.new("RGBA", picture.size, (0, 0, 0, 255)), picture).convert("RGB")
     return [tuple(v >> 3 for v in p) for p in llana.get_flattened_data()]
 
 
@@ -2653,11 +2653,11 @@ def convert_ventana(sys_img, font_id=None):
         sombra    the index of the shadow
     """
     from port import font as fuente_mod
-    from port import ventana as ventana_mod
+    from port import window as ventana_mod
 
     if font_id is None:
         font_id = fuente_mod.MINCHO
-    vacia = ventana_mod.ventana(sys_img)
+    vacia = ventana_mod.window(sys_img)
     pixeles = _quince(vacia)
     ancho, alto = vacia.width, vacia.height
 
@@ -2665,9 +2665,9 @@ def convert_ventana(sys_img, font_id=None):
     # ones `Font::Render` uses as a mask. Each row of the glyph takes a single
     # one —it is measured: the gradient is horizontally uniform— so they are
     # twelve colors, not a block, and the shadow is a single one.
-    bloque = ventana_mod.color_de_texto(sys_img, 0)
-    sombra_img = ventana_mod.color_de_sombra(sys_img)
-    ox, oy = ventana_mod.TEXTO_OFS
+    bloque = ventana_mod.text_color(sys_img, 0)
+    sombra_img = ventana_mod.shadow_color(sys_img)
+    ox, oy = ventana_mod.TEXT_OFFSET
     color_fila = []
     for py in range(fuente_mod.HEIGHT):
         fila = {tuple(v >> 3 for v in bloque.getpixel((ox + px, oy + py))[:3])
@@ -4644,7 +4644,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
 
     `titulo` is the title screen —the image and its menu— and may be missing;
     `game_over`, the Game Over one, too: it is what
-    `pantalla_completa.comprimida` returns.
+    `fullscreen.compressed` returns.
     `ranuras` is the slots screen and **always goes**: the save point opens it
     from inside the game, whether the ROM has a title or not. See
     `pantalla_ranuras` in menus.py.
@@ -5047,7 +5047,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            cartel_base, cartel_pal,
            cartel["x"] if cartel else 0, cartel["y"] if cartel else 0,
            cartel["objetos"] if cartel else 0,
-           imagen.OBJ_LADO, 4 * imagen.GRILLA,
+           picture.OBJ_SIDE, 4 * picture.GRID,
            max(eventos.LLUVIA_GOTAS),
            eventos.LLUVIA_GOTAS[0], eventos.LLUVIA_GOTAS[1],
            eventos.LLUVIA_GOTAS[2], eventos.LLUVIA_VIDA,
@@ -5290,7 +5290,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                             0x10000 * eventos.MENSAJES_PASO))
         # --- the ShowPicture picture ---
         #
-        # Its fifteen colors as they came out of `imagen.convertir`, in the
+        # Its fifteen colors as they came out of `picture.convert`, in the
         # order the tiles index them. They go in a global block and not in the
         # map table because the picture is a single one per ROM; what does belong
         # to the map is which tile and which palette it ended up in, which
@@ -5352,7 +5352,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         #
         # Each one is an LZ2 stream with the tiles, the tilemap and the
         # colors, and its row in `pantallas_tabla`, which is what
-        # `pantalla_subir` reads: see tools/port/pantalla_completa.py. Without
+        # `pantalla_subir` reads: see tools/port/fullscreen.py. Without
         # a Game Over image, GAME_OVER_TILES at 0 and the ROM goes back to the
         # title without a screen, as until 2026-09-28; without a title screen,
         # TITULO_TILES at 0 and no row. Without either of them PANTALLA_FILA
@@ -5572,7 +5572,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "TI_MARCO_ARRIBA   = %d\n"
             % (PM.TI_VRAM, PM.TI_MAPA, len(ti_tiles), len(ti_colores),
                ti_arriba))
-        # The End Game screen, whole: see tools/port/fin_del_juego.py. The two
+        # The End Game screen, whole: see tools/port/end_game.py. The two
         # palettes go one after the other, the "Yes" one first: the ROM picks
         # one by multiplying.
         fin_tiles, fin_filas, fin_fila0, fin_paletas = ranuras["fin"]
@@ -5581,7 +5581,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write(bloque("fin_mapa", b"".join(
             palabra.to_bytes(2, "little") for palabra in fin_filas)) + "\n")
         handle.write(bloque("fin_cgram", paletas_cgram(fin_paletas)) + "\n")
-        handle.write(bloque("fin_rampa", bytes(fin_mod.rampa())) + "\n")
+        handle.write(bloque("fin_rampa", bytes(fin_mod.ramp())) + "\n")
         handle.write(
             "FIN_TILES   = %d\n"
             "FIN_FILA0   = %d\n"
@@ -5591,8 +5591,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "FIN_CUADROS = %d\n"
             "FIN_PASO_TEMA = %d\n"
             % (len(fin_tiles), fin_fila0, len(fin_filas) // constants.COLS,
-               fin_mod.ENTRA, fin_mod.NO, fin_mod.CUADROS_FUNDIDO,
-               eventos.paso_de_fundido(fin_mod.MS_FUNDIDO_TEMA)))
+               fin_mod.DEFAULT_CHOICE, fin_mod.NO, fin_mod.FADE_FRAMES,
+               eventos.paso_de_fundido(fin_mod.SONG_FADE_MS)))
         item_textos, item_textos_ofs = bytearray(), []
 
         def texto_nuevo(texto):
@@ -7855,7 +7855,7 @@ def main():
 
     if not 0 <= args.inicial < len(mapas):
         sys.exit("--inicial %d but there are %d maps" % (args.inicial, len(mapas)))
-    from port import ventana as ventana_mod
+    from port import window as ventana_mod
     skin = ventana_mod.skin(args.game_dir, renderer.database.system_name)
     font_id = renderer.database.font_id
     ventana_datos = convert_ventana(skin, font_id)
@@ -7913,7 +7913,7 @@ def main():
     _controlar_tienda(len(tienda_marco[0]))
     # The End Game screen's tiles go where the slots' do, so what is checked
     # is the same.
-    fin = fin_mod.convertir(skin, renderer.database, renderer.database.font_id)
+    fin = fin_mod.convert(skin, renderer.database, renderer.database.font_id)
     _controlar_ranuras(len(fin[0]))
     ranuras_datos = {"tiles": ranura_tiles, "paletas": ranura_paletas,
                      "cabeceras": ranura_cabs, "filas": ranura_filas,
@@ -7943,9 +7943,9 @@ def main():
     if not args.sin_titulo:
         from PIL import Image
         nombre = renderer.database.title_name
-        imagen = Image.open(os.path.join(args.game_dir, "Title",
-                                         nombre + ".png"))
-        textos = titulo_mod.opciones(renderer.database)
+        picture = Image.open(os.path.join(args.game_dir, "Title",
+                                          nombre + ".png"))
+        textos = titulo_mod.options(renderer.database)
         menu_tiles, menu_paleta, menu_mapas = titulo_mod.menu(
             skin, textos, renderer.database.font_id)
         # The image, compressed like the Game Over one, and with the menu's
@@ -7955,8 +7955,8 @@ def main():
         # `palette.convert`.
         debajo = list(menu_paleta)
         debajo += [(0, 0, 0)] * (constants.MENU_CGRAM - len(debajo))
-        pantalla = pantalla_completa.comprimida(
-            imagen, constants.MENU_CGRAM, constants.COLORS, debajo)
+        pantalla = fullscreen.compressed(
+            picture, constants.MENU_CGRAM, constants.COLORS, debajo)
         titulo_datos = {"pantalla": pantalla,
                         "menu_tiles": menu_tiles, "menu_paleta": menu_paleta,
                         "menu_tilemaps": menu_mapas}
@@ -7971,13 +7971,13 @@ def main():
     # The Game Over screen: the image the LDB's `System` names, in the game's
     # or the RTP's `GameOver/` —as RM2k looks for it—, compressed. It goes in
     # every ROM that finds it: any cartridge can lose a battle or run a
-    # `GameOver`. See tools/port/pantalla_completa.py.
+    # `GameOver`. See tools/port/fullscreen.py.
     game_over_datos = None
     ruta = find_resource([args.game_dir, resources.RTP_DIR], "GameOver",
                          renderer.database.gameover_name)
     if renderer.database.gameover_name and ruta:
         from PIL import Image
-        game_over_datos = pantalla_completa.comprimida(Image.open(ruta))
+        game_over_datos = fullscreen.compressed(Image.open(ruta))
         print("  Game Over screen %r: %d 8bpp tiles + %d colors, "
               "%d B in an LZ2 stream of %d B"
               % (os.path.basename(ruta), game_over_datos["tiles"],
@@ -9249,7 +9249,7 @@ def convertir(renderer, map_id, args):
     # quantized.
     timer_colores = ()
     if map_id in args.timer_en:
-        from port import ventana as ventana_mod
+        from port import window as ventana_mod
         timer_colores = sorted(colores_del_timer(ventana_mod.skin(
             args.game_dir, renderer.database.system_name)))
     solos = {c for c, n in getattr(args, "mapas_por_personaje", {}).items()
@@ -9461,7 +9461,7 @@ def convertir(renderer, map_id, args):
     # and share a palette with whoever has room, which there almost always is.
     timer_base, timer_pal = 0, None
     if map_id in args.timer_en:
-        from port import ventana as ventana_mod
+        from port import window as ventana_mod
         sys_img = ventana_mod.skin(args.game_dir, renderer.database.system_name)
         tiles, timer_base, timer_pal = digitos_del_timer(
             sys_img, tiles, palettes, reparto[3],
@@ -9494,7 +9494,7 @@ def convertir(renderer, map_id, args):
             print("  map %d: the picture %r, %d objects in %d tiles from "
                   "%d, palette %d" % (map_id, registro.nombre,
                                       info["objetos"],
-                                      imagen.tiles_reservados(info),
+                                      picture.reserved_tiles(info),
                                       imagen_base, imagen_pal))
     # And the battle animation box, if some page of this map can show one that
     # is drawn. It goes last because it takes the end of the bank and the
