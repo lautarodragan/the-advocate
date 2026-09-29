@@ -22,6 +22,7 @@ import pytest
 from render import render_map
 from rpgmaker import resources
 from port import snes_convert
+from port import sprites
 
 from datos import DEMO
 
@@ -43,7 +44,7 @@ def descartados(paletas):
     ren = render_map.Renderer(JUEGO)
     lideres = snes_convert.possible_leaders(ren, DEMO, GRUPO)
     game_map = ren.load_map(os.path.join(JUEGO, "Map%04d.lmu" % MAPA))
-    _npcs, fuera, _reparto = snes_convert.drawable_npcs(
+    _npcs, fuera, _reparto = sprites.drawable_npcs(
         ren, game_map, lideres, paletas, [])
     return {evento for evento, _tile in fuera}
 
@@ -60,7 +61,7 @@ def test_no_se_descarta_ningun_grafico(partida=None):
     Se mira con **seis** paletas y no con ocho para que el mapa se quede corto
     de verdad: con ocho entra casi todo y la prueba no diría nada.
     """
-    assert descartados(snes_convert.OBJ_PALETTES - 2) == set(), \
+    assert descartados(sprites.OBJ_PALETTES - 2) == set(), \
         "el mapa 2 descarta gráficos en vez de prestarles una paleta"
 
 
@@ -69,8 +70,8 @@ def test_la_puerta_que_core_rompe_tiene_paleta(partida=None):
     ren = render_map.Renderer(JUEGO)
     lideres = snes_convert.possible_leaders(ren, DEMO, GRUPO)
     game_map = ren.load_map(os.path.join(JUEGO, "Map%04d.lmu" % MAPA))
-    npcs, _fuera, reparto = snes_convert.drawable_npcs(
-        ren, game_map, lideres, snes_convert.OBJ_PALETTES - 2, [])
+    npcs, _fuera, reparto = sprites.drawable_npcs(
+        ren, game_map, lideres, sprites.OBJ_PALETTES - 2, [])
     paleta_de = reparto[1]
     suyos = [n for n in npcs if n["event"] == PUERTA]
     assert suyos, "el evento 30 del mapa 2 no tiene fila de NPC"
@@ -79,7 +80,7 @@ def test_la_puerta_que_core_rompe_tiene_paleta(partida=None):
         "el medio de la puerta que Core rompe se quedó sin paleta"
 
 
-def paletas_de(cuantos_colores, cuantas=snes_convert.OBJ_PALETTES):
+def paletas_de(cuantos_colores, cuantas=sprites.OBJ_PALETTES):
     """Paletas inventadas, con colores que el cronómetro no usa."""
     return [[(1, i, k) for k in range(cuantos_colores)] for i in range(cuantas)]
 
@@ -92,9 +93,9 @@ def test_los_digitos_entran_en_una_paleta_que_ya_existe():
     palettes = paletas_de(13)
     _tiles, _base, cual = snes_convert.timer_digits(
         sys_img, bytes(32 * 64), palettes)
-    assert len(palettes) == snes_convert.OBJ_PALETTES, \
+    assert len(palettes) == sprites.OBJ_PALETTES, \
         "el cronómetro se agregó una paleta teniendo dónde entrar"
-    assert cual < snes_convert.OBJ_PALETTES
+    assert cual < sprites.OBJ_PALETTES
     assert len(palettes[cual]) <= 15, "la paleta que eligió se pasó de 15"
 
 
