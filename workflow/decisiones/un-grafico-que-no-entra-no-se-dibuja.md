@@ -1,3 +1,11 @@
+> **Reemplazada en parte**, anotado el 2026-09-29 (Guayabo, al clasificar
+> las decisiones por repo): desde el 2026-09-08 (`ac8f356b`) `cabe`, en
+> `tools/port/snes_convert.py`, les **presta** paleta a estos gráficos, igual
+> que a los eventos (`se-dibujan-todos-los-eventos.md`). Un gráfico sólo queda
+> sin dibujar si todas las paletas son de un líder, que es lo que dice
+> `la-orden-34-sobre-el-heroe.md`. Lo que sigue valiendo es lo de abajo sobre
+> los tres mapas: **no se les abre una paleta nueva**.
+
 # Qué
 
 **Un gráfico que no entra en las ocho paletas de sprite no se dibuja.** Lo
