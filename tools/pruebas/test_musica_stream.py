@@ -21,7 +21,7 @@ import struct
 import pytest
 
 from audio import midi, sdsp, snes_music                   # noqa: E402
-from common import ambiente
+from common import environment
 
 PIANO, BAJO_SINTETICO, BOMBO, SIN_MUESTRA = 0, 38, 36, 35
 
@@ -150,7 +150,7 @@ def soundfont():
     ruta = os.environ.get("SOUNDFONT")
     if not ruta:
         pytest.skip("a real SoundFont is needed: SOUNDFONT=<the .sf2>")
-    ambiente.fijar(soundfont=ruta)
+    environment.configure(soundfont=ruta)
 
 
 @pytest.mark.usefixtures("soundfont")

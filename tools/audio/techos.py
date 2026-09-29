@@ -45,7 +45,7 @@ from multiprocessing import Pool
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import sdsp, snes_music                      # noqa: E402
-from common import ambiente                              # noqa: E402
+from common import environment                              # noqa: E402
 from common import settings                              # noqa: E402
 from common import project                              # noqa: E402
 
@@ -268,12 +268,12 @@ def main():
     from ensamblado import cartuchos
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     project.add_argument(parser)
-    ambiente.argumentos(parser, *cartuchos.AL_CONVERSOR)
+    environment.add_arguments(parser, *cartuchos.AL_CONVERSOR)
     parser.add_argument("--medir", action="store_true",
                         help="only measure the built `release`: clipping, "
                              "peak and LUFS of each song")
     args = parser.parse_args()
-    ambiente.desde_argumentos(args, *cartuchos.AL_CONVERSOR)
+    environment.from_arguments(args, *cartuchos.AL_CONVERSOR)
     release = cartuchos.directorio(cartuchos.RELEASE)
     if args.medir:
         imprimir(medir(release, lufs=True))

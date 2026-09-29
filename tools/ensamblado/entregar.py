@@ -25,7 +25,7 @@ import textwrap
 # como symlink, y lo que importa es dónde está el archivo de verdad.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
-from common import ambiente                              # noqa: E402
+from common import environment                              # noqa: E402
 from common import settings                              # noqa: E402
 from common import project                              # noqa: E402
 
@@ -38,13 +38,13 @@ RAIZ = project.root()
 RELEASE = os.path.join(project.build(), "release")
 
 def _builds():
-    """Donde van los builds: `--compartido` y adentro `builds/`."""
-    return os.path.join(ambiente.compartido(), "builds")
+    """Donde van los builds: `--shared` y adentro `builds/`."""
+    return os.path.join(environment.shared(), "builds")
 
 
 def _msu():
-    """Donde van las pistas de MSU-1: `--compartido` y adentro `msu/`."""
-    return os.path.join(ambiente.compartido(), "msu")
+    """Donde van las pistas de MSU-1: `--shared` y adentro `msu/`."""
+    return os.path.join(environment.shared(), "msu")
 
 
 # Cómo se llaman los archivos de la ROM: `abl.sfc`, `abl.msu`, `abl-N.pcm`.
@@ -173,16 +173,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("que_mirar", help="qué cambió y qué mirar: va al LEEME")
     project.add_argument(parser)
-    ambiente.argumentos(parser, "compartido")
+    environment.add_arguments(parser, "shared")
     parser.add_argument("--actualizar-msu", action="store_true",
                         help="copiar las pistas a /shared/msu/ si cambiaron")
     args = parser.parse_args()
-    ambiente.desde_argumentos(args, "compartido")
+    environment.from_arguments(args, "shared")
 
-    if not os.path.isdir(ambiente.compartido()):
+    if not os.path.isdir(environment.shared()):
         fallar("no existe %s: esto corre adentro del contenedor, donde /shared "
                "es la carpeta que taro ve desde el host."
-               % ambiente.compartido())
+               % environment.shared())
 
     sucio = git("status", "--porcelain", "--", *LO_QUE_ENTRA)
     if sucio:

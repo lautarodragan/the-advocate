@@ -34,7 +34,7 @@ import hashlib
 import math
 
 from audio import muestras_brr
-from common import ambiente
+from common import environment
 from common import cache_disco
 
 # The Windows software synthesizer, which is what this game was composed and
@@ -48,12 +48,12 @@ from common import cache_disco
 # sample from the one that produced the original sound.
 #
 # `SOUNDFONT` is set by the executable from `--soundfont`, and read when used:
-# see `__getattr__` and `common/ambiente.py`.
+# see `__getattr__` and `common/environment.py`.
 
 
 def __getattr__(nombre):
     if nombre == "SOUNDFONT":
-        return ambiente.soundfont()
+        return environment.soundfont()
     raise AttributeError("module %r has no attribute %r" % (__name__, nombre))
 
 

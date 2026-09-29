@@ -41,7 +41,7 @@ import sys
 # the PATH as a symlink, and what matters is where the real file is.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
-from common import ambiente                              # noqa: E402
+from common import environment                              # noqa: E402
 from common import project                              # noqa: E402
 from ensamblado import bancos                           # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
@@ -141,12 +141,12 @@ def main():
     from ensamblado import cartuchos
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     project.add_argument(parser)
-    ambiente.argumentos(parser, "test_cartridges")
+    environment.add_arguments(parser, "test_cartridges")
     parser.add_argument("cuales", nargs="*", metavar="CARTRIDGE",
                         help="a cartridge from cartuchos.py or the path of a "
                              "built ROM; with nothing, every cartridge")
     args = parser.parse_args()
-    ambiente.desde_argumentos(args, "test_cartridges")
+    environment.from_arguments(args, "test_cartridges")
     primero = True
     for cual in args.cuales or list(cartuchos.CARTUCHOS):
         if cual in cartuchos.CARTUCHOS:

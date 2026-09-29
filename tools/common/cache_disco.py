@@ -35,7 +35,7 @@ import os
 import pickle
 import tempfile
 
-from common import ambiente
+from common import environment
 from common import project
 
 APAGADO = os.environ.get("SIN_CACHE") == "1"
@@ -44,7 +44,7 @@ APAGADO = os.environ.get("SIN_CACHE") == "1"
 def donde():
     """The cache directory. It is asked for when used and not at import: it
     comes from the project, which is found when used, or from `--cache`."""
-    return ambiente.cache()
+    return environment.cache()
 
 
 def version_de(*archivos):

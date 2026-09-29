@@ -96,7 +96,7 @@ from port.asignador import CELL, tile_colors
 from port.formato_snes import cgram_word, entry, pack_tile
 from rpgmaker.rm2k import TILE, collect_npcs, hero_start, passability_map
 from render.render_map import Renderer, build_passability, load_image
-from common import ambiente
+from common import environment
 from rpgmaker import recursos
 from rpgmaker.recursos import find_resource
 
@@ -7299,8 +7299,9 @@ def parser_de_flags():
                              "declares it")
     project.add_argument(parser)
     # No default, and no `required` for the same reason as `--map-id`:
-    # `ambiente` enforces them when they are read.
-    ambiente.argumentos(parser, "game_dir", "rtp_dir", "soundfont", "cache")
+    # `environment` enforces them when they are read.
+    environment.add_arguments(parser, "game_dir", "rtp_dir", "soundfont",
+                              "cache")
     parser.add_argument("-o", "--output",
                         default=os.path.join(project.build(), "inc", "mapdata.inc"))
     parser.add_argument("--msu",
@@ -7398,9 +7399,9 @@ def main():
     args = parser.parse_args(argv)
     if args.map_id is None:
         parser.error("--map-id is missing, the boot map")
-    ambiente.desde_argumentos(args, "game_dir", "rtp_dir", "soundfont",
-                              "cache")
-    args.game_dir = ambiente.juego()
+    environment.from_arguments(args, "game_dir", "rtp_dir", "soundfont",
+                               "cache")
+    args.game_dir = environment.game()
     args.casos = casos_de_prueba(parser, args, tramos)
     orden = orden_de_mapas(args)
     if not 0 <= args.inicial < len(orden):

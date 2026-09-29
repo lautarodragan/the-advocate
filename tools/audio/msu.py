@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
 from audio import snes_music                                # noqa: E402
 from audio import snes_samples                              # noqa: E402
-from common import ambiente                                  # noqa: E402
+from common import environment                                  # noqa: E402
 from common import cache_disco                               # noqa: E402
 from common import project                                  # noqa: E402
 from rpgmaker import recursos                               # noqa: E402
@@ -94,7 +94,7 @@ _fluidsynth = None
 _ffmpeg = None
 
 # Which extensions the replacements are looked for with, in this order.
-# Where is set by `--reemplazos`: see `common/ambiente.py`.
+# Where is set by `--replacements`: see `common/environment.py`.
 EXTENSIONES = (".mp3", ".ogg", ".flac", ".wav")
 
 
@@ -266,7 +266,7 @@ def armar(rom, game_dir=None, soundfont=None, ganancia=GANANCIA,
     """
     game_dir = game_dir or recursos.GAME_DIR
     soundfont = soundfont or snes_samples.SOUNDFONT
-    reemplazos = reemplazos or ambiente.reemplazos_msu()
+    reemplazos = reemplazos or environment.msu_replacements()
     base = os.path.splitext(rom)[0]
     # The file that turns MSU-1 on. The converter writes it with its data, so
     # here it is created only if missing —a loose ROM, built by hand—, and
@@ -352,7 +352,7 @@ def _una_pista(base, nombre, numero, game_dir, soundfont, ganancia,
 
 # What it uses from the machine: the RTP, because a song can come from there;
 # and the cache, where it remembers which tracks are already there.
-DEL_AMBIENTE = ("game_dir", "rtp_dir", "soundfont", "reemplazos", "cache")
+DEL_AMBIENTE = ("game_dir", "rtp_dir", "soundfont", "replacements", "cache")
 
 
 def main():
@@ -362,10 +362,10 @@ def main():
     parser.add_argument("rom", help="the ROM: the tracks go next to it, with "
                                     "its name and the track number")
     project.add_argument(parser)
-    ambiente.argumentos(parser, *DEL_AMBIENTE)
+    environment.add_arguments(parser, *DEL_AMBIENTE)
     parser.add_argument("--ganancia", type=float, default=GANANCIA)
     args = parser.parse_args()
-    ambiente.desde_argumentos(args, *DEL_AMBIENTE)
+    environment.from_arguments(args, *DEL_AMBIENTE)
     armar(args.rom, ganancia=args.ganancia)
 
 

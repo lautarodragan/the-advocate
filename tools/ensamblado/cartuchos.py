@@ -31,7 +31,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import muestras_brr                          # noqa: E402
-from common import ambiente                              # noqa: E402
+from common import environment                              # noqa: E402
 from common import settings                              # noqa: E402
 from common import project                              # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
@@ -291,7 +291,7 @@ def directorio(nombre):
     """What the tests write does not go here but to `rom/pruebas/snapshots/`."""
     if nombre == RELEASE:
         return os.path.join(project.build(), RELEASE)
-    return os.path.join(ambiente.cartuchos_de_prueba(),
+    return os.path.join(environment.test_cartridges(),
                         nombre.replace("test-", "", 1))
 
 
@@ -380,7 +380,7 @@ def convertir(nombre, destino, sfc, extra=()):
     orden = ([sys.executable, os.path.join(project.tools(), "port",
                                            "snes_convert.py"),
               "--project", project.directory(),
-              *ambiente.como_flags(*AL_CONVERSOR),
+              *environment.as_flags(*AL_CONVERSOR),
               "-o", os.path.join(destino, "mapdata.inc"),
               "--msu", os.path.splitext(sfc)[0] + ".msu"]
              + flags + list(extra) + de_casos)
@@ -398,20 +398,20 @@ def convertir(nombre, destino, sfc, extra=()):
 # process and receives it by flags; and what this one adds: where the test
 # cartridges go, and the replacements for the MSU-1 tracks.
 AL_CONVERSOR = ("game_dir", "rtp_dir", "soundfont", "cache")
-DEL_AMBIENTE = AL_CONVERSOR + ("test_cartridges", "reemplazos")
+DEL_AMBIENTE = AL_CONVERSOR + ("test_cartridges", "replacements")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     project.add_argument(parser)
-    ambiente.argumentos(parser, *DEL_AMBIENTE)
+    environment.add_arguments(parser, *DEL_AMBIENTE)
     parser.add_argument("--lista", action="store_true",
                         help="which case goes in which cartridge, without building anything")
     parser.add_argument("nombres", nargs="*", metavar="CARTRIDGE",
                         help="only these; without names, all of them. It is what "
                              "`just build release` uses")
     args = parser.parse_args()
-    ambiente.desde_argumentos(args, *DEL_AMBIENTE)
+    environment.from_arguments(args, *DEL_AMBIENTE)
     for nombre in args.nombres:
         if nombre not in CARTUCHOS:
             sys.exit("there is no cartridge %r: the ones there are %s"

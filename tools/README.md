@@ -177,10 +177,10 @@ goldens, what they leave to look at— does not go there: they know it by
 their location.
 
 **What belongs to the machine arrives by flags**: `--game-dir`, `--rtp-dir`,
-`--soundfont`, `--reemplazos` (the MSU-1 tracks that come from an audio file
+`--soundfont`, `--replacements` (the MSU-1 tracks that come from an audio file
 and not from the MIDI), `--cache`, `--test-cartridges` and, in
-`abl-entregar`, `--compartido`. Each executable adds the ones it uses and
-sets them in `common/ambiente.py`, where the rest read them from;
+`abl-entregar`, `--shared`. Each executable adds the ones it uses and
+sets them in `common/environment.py`, where the rest read them from;
 `recursos.GAME_DIR` and `snes_samples.SOUNDFONT` are resolved there when
 read. **None has a default value**, except the cache and the test
 cartridges, which have their place in the project's `build`: a machine's

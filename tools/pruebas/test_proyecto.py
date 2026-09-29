@@ -21,7 +21,7 @@ fails if any of them:
   `pruebas/` inside `tools/` is another folder;
 * **reads one of the environment variables that say where something is**, or
   writes the default value of one: since 2026-09-29 that arrives by flags
-  —see `common/ambiente.py`—, and the machine's values belong to whoever
+  —see `common/environment.py`—, and the machine's values belong to whoever
   calls the tools.
 
 And separately, `test_ninguna_herramienta_sabe_de_abl`, because it is another
@@ -152,8 +152,8 @@ def violaciones(ruta, fuente=None):
                                  "project.py" % (nodo.lineno, primero))
         variable = _es_lectura_de_ambiente(nodo)
         if variable in DE_AMBIENTE:
-            malas.append("%d: reads %s: it arrives by flag, see common/ambiente.py"
-                         % (nodo.lineno, variable))
+            malas.append("%d: reads %s: it arrives by flag, see "
+                         "common/environment.py" % (nodo.lineno, variable))
         texto = _texto(nodo)
         if texto and texto.startswith(("/extras", "/shared")):
             malas.append("%d: a machine default value: it belongs to whoever "

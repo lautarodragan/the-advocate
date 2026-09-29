@@ -138,7 +138,7 @@ import tomllib
 if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-from common import ambiente                                  # noqa: E402
+from common import environment                                  # noqa: E402
 from common import project                                  # noqa: E402
 
 # Where the versioned ones live, relative to what the converter decided and
@@ -687,7 +687,7 @@ def main(argv=None):
     auto = project.auto_patches()
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     project.add_argument(parser)
-    ambiente.argumentos(parser, "test_cartridges")
+    environment.add_arguments(parser, "test_cartridges")
     parser.add_argument(
         "builds", nargs="*",
         help="the directories of the built cartridges. Without --check it has "
@@ -697,7 +697,7 @@ def main(argv=None):
     parser.add_argument("--check", action="store_true",
                         help="do not write: fail if what is versioned is stale")
     args = parser.parse_args(argv)
-    ambiente.desde_argumentos(args, "test_cartridges")
+    environment.from_arguments(args, "test_cartridges")
     if not args.builds and args.check:
         from ensamblado import cartuchos
         args.builds = [cartuchos.directorio(n) for n in cartuchos.CARTUCHOS]
