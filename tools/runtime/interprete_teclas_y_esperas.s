@@ -2,43 +2,43 @@
 .a8
 .i16
 
-; --- el intérprete: la tecla y la espera -----------------------------------
+; --- the interpreter: the button and the wait -------------------------------
 ;
-; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
-; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
-; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+; Opcode handlers: the dispatch of `correr_codigo`, in interprete.s, jumps to
+; each one with Y on its first operand, and each one goes back to the loop
+; with `jmp correr_codigo::otro` or cuts the frame short with `rts`.
 
-; `KeyInputProc`: qué tecla apretó el jugador, guardada en una variable. Ver
-; OP_KEY en eventos.py, que es donde está el porqué de que la forma que
-; espera se emita dos veces.
+; `KeyInputProc`: which button the player pressed, stored in a variable. See
+; OP_KEY in eventos.py, which is where the reason lives for why the waiting
+; form is emitted twice.
 ;
-; La que **espera** y no encuentra nada rebobina su propio cursor a este mismo
-; opcode y devuelve el control: el cuadro que viene se la vuelve a ejecutar. Es
-; lo que evita tener que guardar "estoy esperando" en algún lado —el
-; intérprete de un evento paralelo son siete bytes y no le sobra ninguno—.
+; The one that **waits** and finds nothing rewinds its own cursor to this same
+; opcode and hands control back: the next frame runs it again. That is what
+; avoids having to store "I am waiting" somewhere —the interpreter of a
+; parallel event is seven bytes and none of them is spare—.
 .proc op_key
 .a8
 .i16
-    lda [cod_ptr], y            ; la ranura de la variable
+    lda [cod_ptr], y            ; the variable's slot
     iny
     sta temp
-    lda [cod_ptr], y            ; las banderas
+    lda [cod_ptr], y            ; the flags
     iny
     sta temp + 1
     and #TECLA_ARRANCA
     beq tecla_mirar
-    ; La primera de las dos: la variable en cero y el control de vuelta sin
-    ; mirar nada. Es el `Input::ResetTriggerKeys()` de RPG_RT: el flanco se
-    ; calcula contra el pad del cuadro anterior, así que dejar pasar un cuadro
-    ; es perderlo **para este intérprete**.
+    ; The first of the two: the variable to zero and control handed back
+    ; without looking at anything. It is RPG_RT's `Input::ResetTriggerKeys()`:
+    ; the edge is computed against the previous frame's pad, so letting a
+    ; frame go by is losing it **for this interpreter**.
     ;
-    ; Para el resto del cuadro no alcanzaba, y por eso se pisan los dos
-    ; "anteriores" con el pad de ahora: easyrpg dice que el reset también
-    ; impide "player actions for this frame such as summoning the menu or
-    ; triggering events" (`game_interpreter.cpp:3403-3408`). Un paralelo corre
-    ; antes que el héroe, así que sin esto la A con la que el motor de las
-    ; piedras del mapa 11 prepara una le hablaba además a la reja que el héroe
-    ; tenía enfrente. Lo cobra `test_con_a_y_una_direccion_la_piedra_sale_
+    ; For the rest of the frame that was not enough, and that is why both
+    ; "previous" values are overwritten with the current pad: easyrpg says the
+    ; reset also prevents "player actions for this frame such as summoning the
+    ; menu or triggering events" (`game_interpreter.cpp:3403-3408`). A
+    ; parallel runs before the hero, so without this the A with which the
+    ; boulder engine of map 11 primes one also talked to the gate the hero was
+    ; facing. It is covered by `test_con_a_y_una_direccion_la_piedra_sale_
     ; volando`.
     lda pad
     sta pad_ant
@@ -46,40 +46,41 @@
     sta pad_a_ant
     stz temp + 2
     stz temp + 3
-    lda temp + 1                ; las banderas, que traen el bit del refresco
+    lda temp + 1                ; the flags, which carry the refresh bit
     xba
     lda temp
-    jsr var_escribir            ; con su refresco, si las banderas lo piden
+    jsr var_escribir            ; with its refresh, if the flags ask for it
     sty ev_cur
     rts
 tecla_mirar:
-    ; La que espera no mira el pad mientras haya un mensaje o una elección en
-    ; pantalla, **de quien sea**: es el `if (Game_Message::IsMessageActive())
-    ; break;` de `Game_Interpreter::Update`, easyrpg `game_interpreter.cpp:
-    ; 470-473`. Importa en los paralelos, que siguen corriendo con el mensaje
-    ; de otro abierto: sin esto, el A que cierra el mensaje de la PC rota del
-    ; mapa 11 lo leía también el motor de las piedras, y se perdía una. Lo
-    ; cobra `test_la_a_que_cierra_el_mensaje_no_saca_una_piedra`.
+    ; The waiting one does not look at the pad while there is a message or a
+    ; choice on screen, **anyone's**: it is the `if
+    ; (Game_Message::IsMessageActive()) break;` of `Game_Interpreter::Update`,
+    ; easyrpg `game_interpreter.cpp: 470-473`. It matters for parallels, which
+    ; keep running while someone else's message is open: without this, the A
+    ; that closes the message of the broken PC on map 11 was also read by the
+    ; boulder engine, and a boulder was lost. It is covered by
+    ; `test_la_a_que_cierra_el_mensaje_no_saca_una_piedra`.
     lda temp + 1
     and #TECLA_ESPERA
     beq tecla_leer
     lda msg_abierto
-    ora msg_estado              ; también mientras se compone
+    ora msg_estado              ; also while it is being composed
     ora eleg_activo
     bne tecla_rebobinar
 tecla_leer:
     phy
     jsr tecla_valor
     ply
-    sta temp + 2                ; el valor, que es de donde lo saca var_escribir
+    sta temp + 2                ; the value, which is where var_escribir takes it from
     stz temp + 3
     lda temp + 1
     and #TECLA_ESPERA
-    beq tecla_guardar           ; sin espera se guarda lo que haya, cero incluido
+    beq tecla_guardar           ; without a wait, whatever is there is stored, zero included
     lda temp + 2
     bne tecla_guardar
 tecla_rebobinar:
-    dey                         ; todavía nada: el cursor vuelve a este opcode
+    dey                         ; nothing yet: the cursor goes back to this opcode
     dey
     dey
     sty ev_cur
@@ -88,20 +89,20 @@ tecla_guardar:
     lda temp + 1
     xba
     lda temp
-    jsr var_escribir            ; `SetNeedRefreshForVarChange`, como ControlVars:
-    jmp correr_codigo::otro     ; lo deciden las banderas. Ver `var_escribir`
+    jsr var_escribir            ; `SetNeedRefreshForVarChange`, like ControlVars:
+    jmp correr_codigo::otro     ; the flags decide it. See `var_escribir`
 
 .endproc
 
 .proc op_delay
-    ; Y acá se devuelve el control. Antes se salteaba, y el comentario decía
-    ; que no había cuadros que dejar pasar porque esto corría con la pantalla
-    ; apagada mientras se cargaba el mapa. Eso dejó de ser cierto: el intérprete
-    ; corre desde el lazo principal, con la pantalla encendida, y una espera de
-    ; RM2k es tiempo que el jugador ve pasar.
+    ; And here control is handed back. It used to be skipped, and the comment
+    ; said there were no frames to let go by because this ran with the screen
+    ; off while the map was loading. That stopped being true: the interpreter
+    ; runs from the main loop, with the screen on, and an RM2k wait is time the
+    ; player watches go by.
     rep #$20
 .a16
-    lda [cod_ptr], y            ; cuántos cuadros, de dieciséis bits
+    lda [cod_ptr], y            ; how many frames, sixteen bits
     sta ev_esperando
     sep #$20
 .a8
@@ -111,4 +112,3 @@ tecla_guardar:
     rts
 
 .endproc
-
