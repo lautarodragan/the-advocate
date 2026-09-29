@@ -20,7 +20,7 @@ from port import batalla as modelo
 from port import experiencia
 from port import pantallas
 from port import reglas
-from port import titulo
+from port import menus
 
 from batalla import GRUPO, Pelea, en_el_droide
 from consola import en_la_rom, en_la_wram
@@ -39,10 +39,10 @@ def glifos(una):
         rom = archivo.read()
     base = en_la_rom(una.simbolos["item_glifo_celdas"])
     de = {}
-    for n in range(titulo.ITEM_CARACTERES):
+    for n in range(menus.ITEM_CARACTERES):
         b = rom[base + 4 * n:base + 4 * n + 4]
         de.setdefault((b[0] | (b[1] << 8), b[2] | (b[3] << 8)),
-                      chr(titulo.ITEM_PRIMER_CARACTER + n))
+                      chr(menus.ITEM_PRIMER_CARACTER + n))
     return de
 
 

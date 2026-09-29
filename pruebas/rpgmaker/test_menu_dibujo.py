@@ -1,5 +1,5 @@
 """El menú de pausa: que se abra con B como en RM2k, que se vea como
-`titulo.render_menu` pixel por pixel, y que guardar ande desde ahí.
+`menus.render_menu` pixel por pixel, y que guardar ande desde ahí.
 
 El mapa después de cerrarlo lo cobra `menu` en `test_menu_golden.py`; acá se
 mira lo que una captura suelta no puede: el menú con un grupo y oro
@@ -15,10 +15,10 @@ from menu import GRUPO, ORO, abrir, con_grupo
 
 
 def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
-    from port import titulo
+    from port import menus
     from rpgmaker.recursos import GAME_DIR
     db, skin = datos.base(), datos.skin()
-    esperada = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
+    esperada = menus.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
                                   GRUPO, ORO, elegida, guardar, db.font_id,
                                   None, GAME_DIR, hp)
     comparar_pantalla(una, esperada, nombre,
@@ -183,12 +183,12 @@ def test_los_hp_del_menu_cambian_de_verdad():
     falla de toda comparación de dos lados: ver AGENTS.md, "La regla que
     sostiene todo".
     """
-    from port import titulo
+    from port import menus
     from rpgmaker.recursos import GAME_DIR
     db, skin = datos.base(), datos.skin()
-    llena = titulo.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
+    llena = menus.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
                                None, GAME_DIR)
-    herida = titulo.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
+    herida = menus.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
                                 None, GAME_DIR, HP_DE_PELEA)
     distintos = pixeles_distintos(llena, herida)
     assert distintos > 50, (

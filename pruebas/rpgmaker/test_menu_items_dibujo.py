@@ -1,5 +1,5 @@
 """La pantalla de ítems del menú de pausa: que se vea como
-`titulo.render_items` pixel por pixel, que la lista se corra cuando el cursor
+`menus.render_items` pixel por pixel, que la lista se corra cuando el cursor
 se sale, y que usar un ítem de switch lo prenda y vuelva al mapa.
 
 El inventario lo da la página de prueba con `ChangeItems` de verdad, así que
@@ -7,7 +7,7 @@ la ROM lo tiene por el mismo camino que el juego. El mapa después de usar la
 consola lo mira `items` en `test_menu_golden.py`.
 """
 
-from port import titulo
+from port import menus
 
 from consola import TITULO_AIRE
 import datos
@@ -37,7 +37,7 @@ def entrar(una):
 
 def comparar(una, inventario, elegida, arriba=0, nombre="items"):
     db, skin = datos.base(), datos.skin()
-    esperada = titulo.render_items(skin, db, inventario, elegida, arriba,
+    esperada = menus.render_items(skin, db, inventario, elegida, arriba,
                                    db.font_id)
     comparar_pantalla(una, esperada, nombre,
                       "la pantalla de ítems con el cursor en %d" % elegida)
@@ -90,7 +90,7 @@ def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
     una.tocar_cuadros("a", TITULO_AIRE)  # la poción
     db, skin = datos.base(), datos.skin()
     for elegida in (0, 1):
-        esperada = titulo.render_objetivo(skin, db, 4, (14, 11), elegida,
+        esperada = menus.render_objetivo(skin, db, 4, (14, 11), elegida,
                                           db.font_id, None, GAME_DIR,
                                           item=1, cantidad=INVENTARIO[1])
         comparar_pantalla(una, esperada,
@@ -109,10 +109,10 @@ def test_la_lista_se_corre_cuando_el_cursor_se_sale(partida):
     una = entrar(partida(caso="items-pantalla-muchos"))
     for _ in range(13):
         una.tocar_cuadros("down")
-    comparar(una, MUCHOS, 13, arriba=14 - titulo.ITEM_FILAS,
+    comparar(una, MUCHOS, 13, arriba=14 - menus.ITEM_FILAS,
              nombre="items-abajo")
     una.tocar_cuadros("down")           # no hay más: se queda
-    comparar(una, MUCHOS, 13, arriba=14 - titulo.ITEM_FILAS,
+    comparar(una, MUCHOS, 13, arriba=14 - menus.ITEM_FILAS,
              nombre="items-abajo")
     for _ in range(13):
         una.tocar_cuadros("up")

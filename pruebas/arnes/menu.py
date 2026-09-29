@@ -9,7 +9,7 @@ avanza, así que `Partida.correr` esperaría un tick que no llega. Los toques so
 """
 
 # El grupo y el oro con que se abre el menú en las pruebas que lo comparan
-# contra `titulo.render_menu`: tienen que ser los mismos de los dos lados.
+# contra `menus.render_menu`: tienen que ser los mismos de los dos lados.
 GRUPO = (14, 11)
 ORO = 1234
 

@@ -33,7 +33,7 @@ def entry(tile, horizontal, vertical, priority=0):
 
     Los tres bits de paleta no se ponen acá: en 8 bits por pixel el índice ya
     alcanza CGRAM entero y el PPU los ignora. Las celdas de la pantalla de
-    ranuras, que es BG2 a 4bpp, ya vienen de `titulo.py` con la paleta puesta
+    ranuras, que es BG2 a 4bpp, ya vienen de `menus.py` con la paleta puesta
     en `tile`, y esto la deja pasar.
     """
     return (tile | (priority << 13) | (horizontal << 14) | (vertical << 15))

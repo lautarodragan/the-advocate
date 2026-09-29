@@ -8,7 +8,7 @@ eso no está en `tools/voodoo/`, que sólo convierte lo que ya entra y nunca toc
 pixel: ver "`tools/voodoo/` no decide colores" en `AGENTS.md`.
 
 Quien lo usa todavía vive repartido en `snes_convert.py` —`repartir_encima`,
-`build_palette`, `npcs_dibujables`— y en `titulo.py`. El día que el asignador
+`build_palette`, `npcs_dibujables`— y en `menus.py`. El día que el asignador
 pase a Rust, esto es lo que se lleva primero.
 
 Hasta el 2026-09-17 se llamaba `pixeles.py` y hacía también la parte que no
