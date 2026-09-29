@@ -9,7 +9,7 @@ import collections
 from port import events
 from port import animation as animation_mod
 from port import picture
-from port.allocator import CELL
+from port.adeleine import CELL
 from port.snes_format import pack_tile
 from port.sprites import OBJ_COLORS, OBJ_PALETTES, drawable_npcs
 

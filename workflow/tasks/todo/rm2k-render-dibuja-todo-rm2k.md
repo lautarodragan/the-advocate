@@ -21,4 +21,4 @@ Hoy lo dibuja el Python del conversor:
 
 Va por partes, un subcomando por tipo de asset, cada una con las ROMs byte
 por byte iguales, igual que las capas de los mapas. Lo que sea decidir
-colores o cortar en 8x8 se queda del lado del asignador y de `voodoo`.
+colores o cortar en 8x8 se queda del lado de Adeleine y de `voodoo`.

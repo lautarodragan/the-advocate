@@ -7,7 +7,7 @@ The input is the two layers already drawn —by `rm2k-render`, through
 tilemap.
 
 Splitting colors into palettes, and merging the least used ones when they
-don't fit, lives in `allocator.py`, and reusing mirrored tiles in Voodoo.
+don't fit, lives in `adeleine.py`, and reusing mirrored tiles in Voodoo.
 What is left here is what depends on the hardware:
 
   * **Color is 15 bits, five per channel.** Of the 72 colors in the render of
@@ -34,8 +34,8 @@ import numpy
 
 from port import tiles_bin
 from rpgmaker import rm2k
-from port import allocator
-from port.allocator import CELL, tile_colors
+from port import adeleine
+from port.adeleine import CELL, tile_colors
 from port.snes_format import BYTES_PER_TILE, COLORS_PER_PALETTE
 from render import render_map
 
@@ -204,7 +204,7 @@ def split_above(grid, limit):
     """
     sets = {tile_colors(t) for row in grid for t in row}
     sets = {s for s in sets if s}
-    groups = allocator.try_pack(sets, limit) if sets else []
+    groups = adeleine.try_pack(sets, limit) if sets else []
     merged = []
     if sets and groups is None:
         # Splitting doesn't fit. There are two reasons and they used to be
@@ -214,12 +214,12 @@ def split_above(grid, limit):
         #
         # Both are fixed by the same thing: merging the least used color with
         # its nearest neighbor and retrying.
-        grid, groups, merged, _ = allocator.reduce_colors(grid, limit)
+        grid, groups, merged, _ = adeleine.reduce_colors(grid, limit)
     return grid, [sorted(g) for g in groups], merged
 
 
 def above_image(grid, palettes, above_first):
-    """The upper layer as the allocator leaves it: an indexed PNG.
+    """The upper layer as Adeleine leaves it: an indexed PNG.
 
     Its indices are **CGRAM entries**: color `k` of palette `i` of this layer
     is entry `(above_first + i) * 16 + k + 1`, and transparent is 0. That way
@@ -269,7 +269,7 @@ def convert_above(grid, palettes, above_first, merged=0):
     converts it.
 
     Returns (tiles, CGRAM words, tilemap, first palette, merged, the
-    allocator's image).
+    Adeleine's image).
     """
     png = above_image(grid, palettes, above_first)
     tiles, cgram, tilemap, _ = tiles_bin.convert(
@@ -293,7 +293,7 @@ def build_palette(grid, bg_colors, others=()):
 
     At 8 bits per pixel the only limit is how many CGRAM entries are left free
     below the upper layer. Map0007 uses 60, so nothing is merged; the merge
-    path exists for more loaded maps and is `allocator.reduce_colors`.
+    path exists for more loaded maps and is `adeleine.reduce_colors`.
 
     `others` are the grids of the other drawings of the ChipSet animation. They
     count for the palette like the usual drawing —the water of map 5 brings
@@ -305,7 +305,7 @@ def build_palette(grid, bg_colors, others=()):
     if len(counts) <= bg_colors:
         return sorted(counts), grid, list(others), []
 
-    mapping, merged = allocator.merge_least_visible(counts, bg_colors)
+    mapping, merged = adeleine.merge_least_visible(counts, bg_colors)
 
     def merge(g):
         return [[tuple(tuple(mapping.get(p) for p in line) for line in tile)
@@ -334,7 +334,7 @@ def _layers_version():
       `rpgmaker/resources.py` goes with them because it is where `render_map`
       gets how it finds the ChipSet, and `common/project.py` because it is
       where the directories it searches in come from;
-    * `port/allocator.py` decides which colors are lost, `rpgmaker/rm2k.py`
+    * `port/adeleine.py` decides which colors are lost, `rpgmaker/rm2k.py`
       has the constants of the split and of the animated families,
       `port/snes_format.py` the sizes of a tile and of a palette, and this
       file does the rest. `port/snes_convert.py` is still in the list
@@ -362,7 +362,7 @@ def _layers_version():
         _LAYERS_VERSION = (disk_cache.version_of("port/snes_convert.py",
                                                  "port/map_layers.py",
                                                  "port/snes_format.py",
-                                                 "port/allocator.py",
+                                                 "port/adeleine.py",
                                                  "rpgmaker/rm2k.py",
                                                  "render/render_map.py",
                                                  "rpgmaker/resources.py",
@@ -572,7 +572,7 @@ def convert(grid, palette, variants, others, summary):
         drawings[family] = [grid] + rest[:how_many]
         rest = rest[how_many:]
 
-    # What the allocator decided, as indexed images: color `k` of the palette
+    # What Adeleine decided, as indexed images: color `k` of the palette
     # is entry `CGRAM_RESERVED + k`, and transparent is 0. One per drawing,
     # all with the same CGRAM: `tiles` stops if two give a different color to
     # an entry that any of them draws.

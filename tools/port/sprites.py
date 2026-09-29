@@ -14,9 +14,9 @@ import numpy
 
 from port import events
 from rpgmaker import rm2k
-from port import allocator
+from port import adeleine
 from common import settings
-from port.allocator import CELL
+from port.adeleine import CELL
 from rpgmaker.rm2k import collect_npcs
 
 
@@ -186,13 +186,13 @@ def character_palette(image, index, cap=None, poses=None):
     if len(counts) <= cap:
         mapping = {c: c for c in counts}
     else:
-        mapping, _ = allocator.merge_least_visible(counts, cap)
+        mapping, _ = adeleine.merge_least_visible(counts, cap)
     palette = sorted(set(mapping.values()))
     if poses is not None and palette:
         for color in sprite_colors(image, index):
             if color not in mapping:
                 mapping[color] = min(
-                    palette, key=lambda p, c=color: (allocator.luma_distance(p, c), p))
+                    palette, key=lambda p, c=color: (adeleine.luma_distance(p, c), p))
     lookup = {color: i + 1 for i, color in enumerate(palette)}
     return palette, lookup, mapping
 
@@ -648,7 +648,7 @@ def drawable_npcs(renderer, game_map, leaders, cap, route_graphics=(),
                 continue
             missing = len([c for c in timer_colors if c not in palettes[n]])
             new_cap = OBJ_COLORS - missing
-            m, _ = allocator.merge_least_visible(counts, new_cap)
+            m, _ = adeleine.merge_least_visible(counts, new_cap)
             moved = sum(v for c, v in counts.items() if m[c] != c)
             cost = (foreign, moved / float(sum(counts.values())), key)
             if best is None or cost < best[0]:
@@ -730,7 +730,7 @@ def build_characters(images, characters, slots, split):
                 lookup[color] = union.index(color) + 1
             else:
                 near = min(union,
-                           key=lambda p, c=color: allocator.luma_distance(p, c))
+                           key=lambda p, c=color: adeleine.luma_distance(p, c))
                 lookup[color] = union.index(near) + 1
         colors[(charset, index)] = (lookup, mapping)
 

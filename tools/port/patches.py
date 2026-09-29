@@ -20,7 +20,7 @@ What is written is **the desired state and not a report**, because phase 2
 deciding again. That is why each merge is written as "this color goes to
 this other one" and in the order they were applied: replaying the list
 rebuilds the whole mapping, which is exactly what
-`allocator.merge_least_visible` returns. And that is why an animation writes
+`adeleine.merge_least_visible` returns. And that is why an animation writes
 the rectangle it is drawn at and not how much it was shrunk: the percentage
 is for reading and the rectangle is for applying.
 
@@ -48,7 +48,7 @@ layers of a map, with one section per layer, and
 ``rom/parches/auto/animaciones/<n>.toml`` for the battle animations. **The
 map id is the game's and not the cartridge's**: it does not move when the
 ROM's list of maps changes, nor when the converter's internal order changes,
-nor when the allocator's algorithm changes. Colors are written by their
+nor when Adeleine's algorithm changes. Colors are written by their
 value —15-bit RGB, which is the console's real depth— and not by their index
 in any palette, for the same reason: the index shifts with anything and the
 value identifies the color forever.
@@ -370,7 +370,7 @@ def battler_text(info):
         "]",
         "",
         "# How many merges it took to get there, with",
-        "# `allocator.merge_least_visible`: each one sends the least noticeable",
+        "# `adeleine.merge_least_visible`: each one sends the least noticeable",
         "# color to its nearest neighbor.",
         "fusiones = %d" % len(info["fusiones"]),
     ]

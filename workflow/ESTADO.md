@@ -20,7 +20,7 @@ cada una con su `LEEME.txt` diciendo qué mirar y con qué limitaciones se choc�
 Cada uno de los cuatro tiene su prueba de que no cambió nada: las ROMs salen
 byte por byte iguales a las de antes de cada corte. `tools/snes/voodoo/` está
 enchufado desde el paso 8c, el 2026-09-17: convierte la capa de encima desde la
-imagen del asignador (`tools/port/tiles_bin.py`).
+imagen de Adeleine (`tools/port/tiles_bin.py`).
 
 ### Defectos de los originales, anotados y no arreglados
 
@@ -192,7 +192,7 @@ descripción de dónde diferimos de RM2k y no trabajo a medias.
   saltar al espejo, y sería un error silencioso en el peor lugar: un stream de
   música o una tira de mapa leyendo basura a mitad de camino. Así que el archivo
   mide 4 MB justos, que es lo que la cabecera declara y lo que el FX Pak espera,
-  y `BANCOS_PROHIBIDOS` hace que el asignador se detenga 64 KB antes.
+  y `BANCOS_PROHIBIDOS` hace que Adeleine se detenga 64 KB antes.
 
   La SRAM no se entera de nada: en LoROM vive en la **mitad baja** de los
   bancos $70 a $7D, y el cartucho usa la alta.

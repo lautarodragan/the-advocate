@@ -75,7 +75,12 @@ tiene el plan de seis pasos y las preguntas con sus opciones.
   su `picture.rs`. No se parte en un proyecto por asset: eso pediría otro
   crate para la base, y serían varios chicos donde alcanza uno. Su límite es
   la capa: nada de paletas de 16 colores ni de tiles de 8x8, que son del
-  asignador y de `voodoo`.
+  Adeleine y de `voodoo`.
+- **El asignador se llama Adeleine.** De taro, el 2026-09-29, al charlar si
+  tenía sentido separarlo de Voodoo (lo tiene: es la regla de AGENTS.md de
+  que Voodoo no decide colores). Hoy es `tools/port/adeleine.py` y deja lo
+  que decidió en `rom/build/<cartucho>/adeleine/`; cuando pase a Rust es un
+  crate propio en `tools/snes/`, al lado de Voodoo y no adentro.
 - **ABL sólo conoce ejecutables del PATH, no `tools/`.** Es la idea de taro
   para el primer paso: el `justfile` no sabe que existe Python, y los `.py`
   que se ejecutan pasan a ser ejecutables de verdad, con hashbang y

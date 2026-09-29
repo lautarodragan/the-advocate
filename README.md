@@ -89,7 +89,7 @@ El precio es que el modo 3 tiene **dos capas de fondo y nada más**: BG1 es el
 mapa y BG2 la capa de encima junto con la ventana de mensaje. Lo que en RM2k
 pediría una tercera —el panorama, la lluvia como capa— no tiene dónde ir, y los
 sprites siguen en 4 bits: 15 colores y el transparente, que se eligen en
-`tools/port/allocator.py`. Cómo se reparten la VRAM y la CGRAM mapa por mapa,
+`tools/port/adeleine.py`. Cómo se reparten la VRAM y la CGRAM mapa por mapa,
 en `docs/port/vram.md` y `docs/port/cgram.md`.
 
 ### Las tablas van en el banco 0

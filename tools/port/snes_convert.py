@@ -843,17 +843,17 @@ def main():
                 events.CASE_VARIABLE))
     print("%d map(s) -> %s, boots at %d (map %d)"
           % (len(maps), args.output, args.start_index, maps[args.start_index]["id"]))
-    # What the allocator decided, as images: to look at which colors were lost
+    # What Adeleine decided, as images: to look at which colors were lost
     # and which palette each cell ended up in without building or running the
     # ROM. They are indexed and their indices are CGRAM entries, so an editor
     # in indexed mode opens them just as `tiles` is going to see them.
-    allocator = os.path.join(os.path.dirname(os.path.abspath(args.output)),
-                             "asignador")
-    os.makedirs(allocator, exist_ok=True)
+    adeleine_dir = os.path.join(os.path.dirname(os.path.abspath(args.output)),
+                             "adeleine")
+    os.makedirs(adeleine_dir, exist_ok=True)
     for map_info in maps:
         pictures = list(map_info["imagenes_fondo"]) + [("encima", map_info["above"][5])]
         for name, png in pictures:
-            with open(os.path.join(allocator, "%04d-%s.png"
+            with open(os.path.join(adeleine_dir, "%04d-%s.png"
                                    % (map_info["id"], name)), "wb") as handle:
                 handle.write(png)
     # And **what it decided to lose**, written down: which color was merged

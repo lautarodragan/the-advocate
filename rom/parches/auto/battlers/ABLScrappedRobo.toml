@@ -34,6 +34,6 @@ paleta = [
 ]
 
 # How many merges it took to get there, with
-# `allocator.merge_least_visible`: each one sends the least noticeable
+# `adeleine.merge_least_visible`: each one sends the least noticeable
 # color to its nearest neighbor.
 fusiones = 713

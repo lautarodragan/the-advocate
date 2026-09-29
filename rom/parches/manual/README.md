@@ -118,7 +118,7 @@ dónde cae su pixel (0,0) adentro de la primera celda, porque una imagen del
 juego no tiene por qué estar alineada a la grilla de 16.
 
 Los colores se redondean a **15 bits** antes de entrar. No pierde nada que el
-cartucho pueda dibujar —el asignador cuantiza con `>>3` igual— y es lo que hace
+cartucho pueda dibujar —Adeleine cuantiza con `>>3` igual— y es lo que hace
 entrar el dibujo en los 256 índices del PNG: el Hover Tram son 206 colores a 24
 bits y 148 a 15. Que el PNG del ChipSet quede con colores que el arte original
 no tiene no importa, porque **esa imagen no se versiona, se arma**.

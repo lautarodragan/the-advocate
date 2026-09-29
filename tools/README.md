@@ -45,7 +45,7 @@ one in its own row or above.
                  docstring of snes_convert says what each one is), and
                  events, event_opcodes, battle, experience, screens, menus,
                  title, picture, window, font, scene, animation, texts,
-                 allocator, tiles_bin, compress, fullscreen, end_game,
+                 adeleine, tiles_bin, compress, fullscreen, end_game,
                  msu_data, patches; and beneath all of them, because they
                  import nothing from the port, rules (from Game_Actor and
                  the LDB), constants, color (the screen tint), palette (an

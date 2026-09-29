@@ -177,7 +177,7 @@ class _Palette:
 def _to_15_bits(color):
     """The color rounded to the 15 bits the console really shows.
 
-    It loses nothing the cartridge could draw —the allocator quantizes with
+    It loses nothing the cartridge could draw —Adeleine quantizes with
     `>>3` anyway— and **it is what makes the drawing fit**: the Hover Tram's
     206 colors are 148 at 15 bits, against the 174 indices the pruned ChipSet
     leaves free. Without this it does not fit.

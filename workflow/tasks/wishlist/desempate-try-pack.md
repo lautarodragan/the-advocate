@@ -11,11 +11,11 @@ entrada, y no por el orden de iteración de una tabla de hash de CPython.
 
 # Status
 
-Anotado y sin empezar. **Es una decisión del asignador**, `tools/port/asignador.py`,
+Anotado y sin empezar. **Es una decisión de Adeleine**, `tools/port/Adeleine.py`,
 desde el paso 8: `tools/snes/voodoo/` ya no empaqueta, y **no frena enchufar a
 Voodoo**, que está enchufado desde el paso 8c —hasta el 2026-09-22 esta tarea
 decía lo contrario—. Se arregla cambiando el desempate en Python, o cuando el
-asignador pase a Rust, donde el orden de hash de CPython no existe.
+Adeleine pase a Rust, donde el orden de hash de CPython no existe.
 
 # Por qué
 

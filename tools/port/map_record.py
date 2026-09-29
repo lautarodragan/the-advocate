@@ -8,7 +8,7 @@ Everything here reads what `convert_map` already left in the map's
 
 from port import events
 from rpgmaker import rm2k
-from port.allocator import CELL
+from port.adeleine import CELL
 from port.snes_format import BYTES_PER_TILE, COLORS_PER_PALETTE, cgram_word
 from port.asm import pointer
 from port.map_layers import BACKDROP, FAMILIES
