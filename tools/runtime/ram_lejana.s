@@ -258,7 +258,7 @@ BAT_LENGTH = $7E0000
 BA_TROOP   = FAR_BATTLE + 0      ; the troop, as an RM2k number
 BA_RESULT  = FAR_BATTLE + 2      ; 0 victory, 1 escape, 2 defeat
 BA_SEED     = FAR_BATTLE + 3      ; the battle's xorshift, with its own seed
-BA_NACT    = FAR_BATTLE + 5      ; how many actors
+BA_NACTORS    = FAR_BATTLE + 5      ; how many actors
 BA_KID    = FAR_BATTLE + 6      ; how many enemies
 BA_MODE    = FAR_BATTLE + 7
 BA_ACTOR   = FAR_BATTLE + 8      ; who is being asked for a command
@@ -267,11 +267,11 @@ BA_TARGET  = FAR_BATTLE + 10     ; which enemy the cursor marks
 BA_ESCAPE   = FAR_BATTLE + 11     ; the chance to escape, which rises on failing
 BA_I       = FAR_BATTLE + 12     ; which one of the execution the turn is on
 BA_WAIT  = FAR_BATTLE + 13     ; frames the message has left
-BA_MTIPO   = FAR_BATTLE + 14     ; what the message says
-BA_MQUIEN  = FAR_BATTLE + 15
-BA_MBLA    = FAR_BATTLE + 16
-BA_MDANO   = FAR_BATTLE + 17     ; word
-BA_NACC    = FAR_BATTLE + 19     ; how many actions the turn has
+BA_MTYPE   = FAR_BATTLE + 14     ; what the message says
+BA_MWHO  = FAR_BATTLE + 15
+BA_MTGT    = FAR_BATTLE + 16
+BA_MDMG   = FAR_BATTLE + 17     ; word
+BA_NACTIONS    = FAR_BATTLE + 19     ; how many actions the turn has
 BA_T0      = FAR_BATTLE + 20     ; scratch words, which anyone clobbers
 BA_T1      = FAR_BATTLE + 22
 BA_T2      = FAR_BATTLE + 24
@@ -286,7 +286,7 @@ BA_S6      = FAR_BATTLE + 38
 ; belongs to the party. It has its own byte and not a borrowed `BA_T2 + 2`,
 ; which is what it was and it landed right on top of `BA_S0`: the enemy loop
 ; restarted by itself and the screen never got to appear.
-BA_CONMAX  = FAR_BATTLE + 40
+BA_WITHMAX  = FAR_BATTLE + 40
 ; The battle's audio, in the bytes that were left loose before `BA_ACC`.
 ; `BA_SONG_PREV` is the song that was playing on the map —$FF if nothing was—,
 ; which is RM2k's `before_battle_music`: when the battle ends it comes back.
@@ -311,12 +311,12 @@ BA_TROOP_K  = FAR_BATTLE + 45
 BA_ITEM_N    = FAR_BATTLE + 576   ; how many are in the list
 BA_ITEM_SEL  = FAR_BATTLE + 577   ; which one the cursor marks
 BA_ITEM_ARR  = FAR_BATTLE + 578   ; the first one visible
-BA_ITEM_BLA  = FAR_BATTLE + 579   ; which actor it is given to; since 2026-09-13
+BA_ITEM_TGT  = FAR_BATTLE + 579   ; which actor it is given to; since 2026-09-13
                                    ; also the target of a healing skill,
                                    ; which picks with the same mode
 BA_MITEM     = FAR_BATTLE + 580   ; the `k` of the current message's item
 BA_ACTOR2    = FAR_BATTLE + 581   ; an actor counter `BA_S0` cannot be
-BA_MCURA     = FAR_BATTLE + 582   ; word: how much it healed
+BA_MHEAL     = FAR_BATTLE + 582   ; word: how much it healed
 BA_ACC_ITEM  = FAR_BATTLE + 584   ; the `k` each actor chose, one per byte
 BA_ITEM_LIST = FAR_BATTLE + 592  ; the list, one `k` per byte
 BA_ITEM_MAX = 64
@@ -325,11 +325,11 @@ BA_ITEM_MAX = 64
 ; After `BA_ITEM_LIST`, which ends at +656.
 BA_SKILL_N     = FAR_BATTLE + 656   ; how many the one giving commands knows
 BA_SKILL_SEL   = FAR_BATTLE + 657   ; which one the cursor marks
-BA_MHAB      = FAR_BATTLE + 658   ; the `k` of the current message's one
+BA_MSKILL      = FAR_BATTLE + 658   ; the `k` of the current message's one
 BA_ACC_SKILL   = FAR_BATTLE + 660   ; the `k` each actor chose, one per byte
 BA_SKILL_LIST = FAR_BATTLE + 672   ; their list, one `k` per byte
 BA_SKILL_MAX   = 16                  ; BA_SKILL_ROWS times BA_SKILL_COLUMNS, with room to spare
-BA_MEFECTO   = FAR_BATTLE + 688   ; signed word: how much the last one did
+BA_MEFFECT   = FAR_BATTLE + 688   ; signed word: how much the last one did
 BA_ACC     = FAR_BATTLE + 48     ; two bytes per combatant: command and target
 BA_EXEC    = FAR_BATTLE + 72     ; the execution order, one combatant per byte
 BA_CAND    = FAR_BATTLE + 88     ; the living on one side, to pick a target
@@ -339,7 +339,7 @@ BA_ONE     = FAR_BATTLE + 96     ; the combatants, BA_BYTES each
 ; allotted to this on 2026-09-26 —other agents were choosing RAM at the same
 ; time—. Like everything in the battle, with a sixteen-bit address and the
 ; data bank at $7E.
-BA_MREVIVIO = $7850
+BA_MREVIVED = $7850
 
 ; The combatants: the first four are the party and the next eight the troop.
 ; That the place is fixed and not a compacted list is what keeps a dead one

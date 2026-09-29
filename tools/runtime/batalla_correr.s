@@ -21,7 +21,7 @@
     lda #BA_VICTORY
     sta BA_RESULT
     lda #0
-    sta BA_NACC
+    sta BA_NACTIONS
     sta BA_COMMAND
     sta BA_ACTOR
     sta BA_I
@@ -196,7 +196,7 @@ o_flees:
     lda #BA_ESCAPE_R
     sta BA_RESULT
     lda #BA_MSG_FLED
-    sta BA_MTIPO
+    sta BA_MTYPE
     jsr ba_show
     rep #$20
 .a16
@@ -293,7 +293,7 @@ i_faces_a:
     sta BA_ACTOR2
 seek_alive:
     lda BA_ACTOR2
-    cmp BA_NACT
+    cmp BA_NACTORS
     bcs wait4
     jsr ba_item_usable_on
     bne has_target_act
@@ -301,7 +301,7 @@ seek_alive:
     bra seek_alive
 has_target_act:
     lda BA_ACTOR2
-    sta BA_ITEM_BLA
+    sta BA_ITEM_TGT
     lda #BA_M_ACTOR
     sta BA_MODE
     jmp recompose
@@ -342,7 +342,7 @@ a_faces_a:
     lda BA_COMMAND
     cmp #BA_COMMAND_SKILL
     bne a_is_item
-    lda BA_ITEM_BLA
+    lda BA_ITEM_TGT
     sta BA_T0
     lda #BA_SKILL
     jsr ba_record
@@ -359,7 +359,7 @@ a_is_item:
     pla
     sta BA_ACC_ITEM, x
     jsr ba_item_consume
-    lda BA_ITEM_BLA
+    lda BA_ITEM_TGT
     sta BA_T0
     lda #BA_ITEM
     jsr ba_record
@@ -479,7 +479,7 @@ h_a_ally:
     sta BA_ACTOR2
 h_seek_alive:
     lda BA_ACTOR2
-    cmp BA_NACT
+    cmp BA_NACTORS
     bcs wait7                 ; cannot happen: whoever gives the command is
                                 ; alive
     lda BA_ACTOR2
@@ -491,7 +491,7 @@ wait7:
     jmp wait
 h_has_target:
     lda BA_ACTOR2
-    sta BA_ITEM_BLA
+    sta BA_ITEM_TGT
     lda #BA_M_ACTOR
     sta BA_MODE
     jmp recompose
@@ -578,7 +578,7 @@ close:
     sta BA_S0
 saves:
     lda BA_S0
-    cmp BA_NACT
+    cmp BA_NACTORS
     bcs saved
     lda BA_S0
     jsr ba_x
@@ -650,7 +650,7 @@ ready_see:
 ; stays where it is. It is the sibling of `ba_target_up`, over the party
 ; instead of over the troop.
 ba_target_act_up:
-    lda BA_ITEM_BLA
+    lda BA_ITEM_TGT
 faces_up_act:
     beq nothing_act
     dec a
@@ -660,10 +660,10 @@ faces_up_act:
     lda BA_ACTOR2
     bra faces_up_act
 ba_target_act_down:
-    lda BA_ITEM_BLA
+    lda BA_ITEM_TGT
 faces_down_act:
     inc a
-    cmp BA_NACT
+    cmp BA_NACTORS
     bcs nothing_act
     sta BA_ACTOR2
     jsr ba_target_act_serves
@@ -672,7 +672,7 @@ faces_down_act:
     bra faces_down_act
 sets_act:
     lda BA_ACTOR2
-    sta BA_ITEM_BLA
+    sta BA_ITEM_TGT
 nothing_act:
     rts
 

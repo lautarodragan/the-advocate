@@ -219,7 +219,7 @@ next:
 .proc ba_vic_level
 .a8
 .i16
-    cmp BA_NACT
+    cmp BA_NACTORS
     bcs nothing
     jsr ba_x
     lda BA_ONE + BA_FLAGS, x
@@ -288,7 +288,7 @@ other_actor:
     lda BA_VIC_ACTOR
 seek:
     inc a                       ; from $FF, the first page, it goes to slot 0
-    cmp BA_NACT
+    cmp BA_NACTORS
     bcs none
     sta BA_VIC_ACTOR
     jsr ba_vic_level_up
@@ -309,7 +309,7 @@ none:
 .proc ba_vic_on_screen
 .a8
 .i16
-    lda BA_MTIPO
+    lda BA_MTYPE
     cmp #BA_MSG_VICTORY
     bne no
     lda BA_MODE

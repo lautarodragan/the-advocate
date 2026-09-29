@@ -67,7 +67,7 @@ no_variance:
     rts
 .endproc
 
-; A parameter modifier moves by `BA_MEFECTO` and the effective parameter is
+; A parameter modifier moves by `BA_MEFFECT` and the effective parameter is
 ; recomputed: `CanChangeAtkModifier` and its siblings, plus `AdjustParam`.
 ;
 ;   BA_S4 = the target's offset inside `BA_ONE`
@@ -83,7 +83,7 @@ no_variance:
     tax
     lda BA_ONE, x
     clc
-    adc BA_MEFECTO
+    adc BA_MEFFECT
     sta temp                    ; the modifier being asked for
     lda BA_S4
     clc
@@ -183,13 +183,13 @@ mask_list:
     rts
 .endproc
 
-; The effect of skill `BA_MHAB` from `BA_MQUIEN` on `BA_MBLA`, **without the
-; variance**: `Algo::CalcSkillEffect`. Leaves the result in `BA_MEFECTO`,
+; The effect of skill `BA_MSKILL` from `BA_MWHO` on `BA_MTGT`, **without the
+; variance**: `Algo::CalcSkillEffect`. Leaves the result in `BA_MEFFECT`,
 ; already clamped below at zero.
 .proc ba_skill_effect
 .a8
 .i16
-    lda BA_MQUIEN
+    lda BA_MWHO
     jsr ba_x
     rep #$20
 .a16
@@ -197,14 +197,14 @@ mask_list:
     sta BA_S0                   ; the source's offset
     sep #$20
 .a8
-    lda BA_MBLA
+    lda BA_MTGT
     jsr ba_x
     rep #$20
 .a16
     txa
     sta BA_S1                   ; and the target's
     ; the skill's `k`, times two for the word tables
-    lda BA_MHAB
+    lda BA_MSKILL
     and #$00FF
     asl a
     tax
@@ -213,7 +213,7 @@ mask_list:
     sep #$20
 .a8
     ; + physical_rate * atk / 20
-    lda BA_MHAB
+    lda BA_MSKILL
     jsr ba_ax
     lda f:skill_phys, x
     sta BA_T2
@@ -234,7 +234,7 @@ mask_list:
 .a8
 no_physical:
     ; + magical_rate * spi / 40
-    lda BA_MHAB
+    lda BA_MSKILL
     jsr ba_ax
     lda f:skill_mag, x
     sta BA_T2
@@ -257,7 +257,7 @@ no_magic:
     ; Against an enemy and without `ignore_defense`, its defense and spirit
     ; are subtracted. `SkillTargetsEnemies` is bit 6 of `skill_affects` and bit 7
     ; is `ignore_defense`.
-    lda BA_MHAB
+    lda BA_MSKILL
     jsr ba_ax
     lda f:skill_affects, x
     sta BA_S3
@@ -266,7 +266,7 @@ no_magic:
     lda BA_S3
     and #$80
     bne no_remain
-    lda BA_MHAB
+    lda BA_MSKILL
     jsr ba_ax
     lda f:skill_phys, x
     sta BA_T2
@@ -288,7 +288,7 @@ no_magic:
     sep #$20
 .a8
 no_remain_phys:
-    lda BA_MHAB
+    lda BA_MSKILL
     jsr ba_ax
     lda f:skill_mag, x
     sta BA_T2
@@ -316,7 +316,7 @@ no_remain:
     bpl no_negative
     lda #0                      ; `max(0, effect)`
 no_negative:
-    sta BA_MEFECTO
+    sta BA_MEFFECT
     sep #$20
 .a8
     ; The critical, which for an LDB skill **always comes out no**: the chance
@@ -328,31 +328,31 @@ no_negative:
     beq no_critical
     rep #$20
 .a16
-    lda BA_MEFECTO
+    lda BA_MEFFECT
     sta temp
     asl a
     clc
     adc temp                    ; times three
-    sta BA_MEFECTO
+    sta BA_MEFFECT
     sep #$20
 .a8
 no_critical:
     rts
 .endproc
 
-; The target's HP move by `BA_MEFECTO`. Healing does not kill —the
+; The target's HP move by `BA_MEFFECT`. Healing does not kill —the
 ; `max(-(cur_hp - 1), hp_effect)` of `vExecute`— and damage is halved for one
 ; who is defending, with C++ division, which **truncates toward zero**.
 .proc ba_skill_hp
 .a8
 .i16
-    lda BA_MBLA
+    lda BA_MTGT
     jsr ba_x
     rep #$20
 .a16
     txa
     sta BA_S4
-    lda BA_MEFECTO
+    lda BA_MEFFECT
     bmi does_damage
     sta BA_T0
     bra applies
@@ -365,7 +365,7 @@ does_damage:
     beq no_defense
     rep #$20
 .a16
-    lda BA_MEFECTO
+    lda BA_MEFFECT
     eor #$FFFF
     inc a
     lsr a
@@ -378,7 +378,7 @@ no_defense:
 .i16
     rep #$20
 .a16
-    lda BA_MEFECTO
+    lda BA_MEFFECT
     sta BA_T0
 applies:
 .a16
@@ -407,13 +407,13 @@ fits:
 .proc ba_skill_sp
 .a8
 .i16
-    lda BA_MBLA
+    lda BA_MTGT
     jsr ba_x
     rep #$20
 .a16
     lda BA_ONE + BA_SP, x
     clc
-    adc BA_MEFECTO
+    adc BA_MEFFECT
     bmi sp_in_zero
     cmp BA_ONE + BA_SPMAX, x
     bcc sp_fits
@@ -428,14 +428,14 @@ sp_fits:
     rts
 .endproc
 
-; The skill `BA_MQUIEN` chose, on `BA_MBLA`. Leaves the message ready.
+; The skill `BA_MWHO` chose, on `BA_MTGT`. Leaves the message ready.
 .proc ba_skill_use
 .a8
 .i16
-    lda BA_MQUIEN
+    lda BA_MWHO
     jsr ba_ax
     lda BA_ACC_SKILL, x
-    sta BA_MHAB
+    sta BA_MSKILL
     ; --- `vStart`: the cost, before anything and without rolling ---
     jsr ba_skill_cost
     sta BA_T2
@@ -443,7 +443,7 @@ sp_fits:
                                 ; `skill_sp` is 8: without this the high byte
                                 ; is whatever the last one through here left,
                                 ; and SP ended up at zero
-    lda BA_MQUIEN
+    lda BA_MWHO
     jsr ba_x
     rep #$20
 .a16
@@ -457,21 +457,21 @@ sp_ok:
     sep #$20
 .a8
     ; --- a switch skill turns on its switch and does nothing else ---
-    lda BA_MHAB
+    lda BA_MSKILL
     jsr ba_ax
     lda f:skill_type, x
     cmp #BA_SKILL_TYPE_SWITCH
     bne not_switch
     rep #$20
 .a16
-    lda BA_MHAB
+    lda BA_MSKILL
     and #$00FF
     asl a
     tax
     lda f:skill_switch, x
     sta BA_T0
     lda #0
-    sta BA_MEFECTO
+    sta BA_MEFFECT
     sep #$20
 .a8
     jmp ba_switch
@@ -482,13 +482,13 @@ not_switch:
     ; and `party` on each living one on the opposing side or its own, in
     ; screen order and **each with its own rolls**. The message gets the last
     ; one.
-    lda BA_MHAB
+    lda BA_MSKILL
     jsr ba_ax
     lda f:skill_scope, x
     cmp #BA_SCOPE_ONE
     bne not_one
-    lda BA_MQUIEN
-    sta BA_MBLA
+    lda BA_MWHO
+    sta BA_MTGT
     jmp ba_skill_one
 not_one:
     cmp #BA_SCOPE_ENEMIES
@@ -498,9 +498,9 @@ not_one:
     jmp ba_skill_one
 from_a_many:
     ; The side: the opposing one with `enemies`, its own with `party`. That
-    ; the source is in the party is `BA_MQUIEN < BA_PARTY_MAX`.
+    ; the source is in the party is `BA_MWHO < BA_PARTY_MAX`.
     ldy #0                      ; 0 the party, 1 the troop
-    lda BA_MQUIEN
+    lda BA_MWHO
     cmp #BA_PARTY_MAX
     bcc from_party
     iny
@@ -523,7 +523,7 @@ other_target:
     jsr ba_alive
     beq no_falls
     lda f:BA_SKILL_I
-    sta BA_MBLA
+    sta BA_MTGT
     jsr ba_skill_one
 no_falls:
     lda f:BA_SKILL_I
@@ -537,32 +537,32 @@ all_ready:
     rts
 .endproc
 
-; `vExecute` on target `BA_MBLA`: the effect, the variance and the hit rolls.
+; `vExecute` on target `BA_MTGT`: the effect, the variance and the hit rolls.
 ; Called by `ba_skill_use`, once or once per target.
 .proc ba_skill_one
 .a8
 .i16
     jsr ba_skill_effect
     ; the variance, with the skill's `variance`
-    lda BA_MHAB
+    lda BA_MSKILL
     jsr ba_ax
     lda f:skill_var, x
     sta BA_S5
     rep #$20
 .a16
-    lda BA_MEFECTO
+    lda BA_MEFFECT
     jsr ba_variance
     ; the damage cap, which is the same as an attack's
     cmp #(BA_DAMAGE_MAX + 1)
     bcc effect_fits
     lda #BA_DAMAGE_MAX
 effect_fits:
-    sta BA_MEFECTO
+    sta BA_MEFFECT
     sep #$20
 .a8
     ; If it targets enemies the effect is negative: `SetIsPositive` is
     ; `SkillTargetsAllies`, and `vExecute` flips the sign when it is not.
-    lda BA_MHAB
+    lda BA_MSKILL
     jsr ba_ax
     lda f:skill_affects, x
     sta BA_S3                   ; what it touches, which is not read again
@@ -570,15 +570,15 @@ effect_fits:
     beq is_positive
     rep #$20
 .a16
-    lda BA_MEFECTO
+    lda BA_MEFFECT
     eor #$FFFF
     inc a
-    sta BA_MEFECTO
+    sta BA_MEFFECT
     sep #$20
 .a8
 is_positive:
     ; the hit rate, which all seven carry at 100
-    lda BA_MHAB
+    lda BA_MSKILL
     jsr ba_ax
     lda f:skill_hit, x
     sta BA_S0                   ; the hit rate, which survives the `jsr`s
@@ -605,7 +605,7 @@ no_hp:
     jsr ba_skill_sp
 no_sp:
     ; --- the four parameters, in `vExecute`'s order ---
-    lda BA_MBLA
+    lda BA_MTGT
     jsr ba_x
     rep #$20
 .a16
@@ -881,7 +881,7 @@ enemy:
     bne no_cursor_enemy
     jsr ba_cursor
 no_cursor_enemy:
-    stz BA_CONMAX               ; an enemy does not show its maximum
+    stz BA_WITHMAX               ; an enemy does not show its maximum
     lda BA_S0
     clc
     adc #BA_PARTY_MAX
@@ -914,7 +914,7 @@ with_party:
     sta BA_S0
 actor:
     lda BA_S0
-    cmp BA_NACT
+    cmp BA_NACTORS
     bcs actors_all_ready
     rep #$20
 .a16
@@ -928,7 +928,7 @@ actor:
     cmp #BA_M_ACTOR
     bne cursor_in_sorts
     lda BA_S0
-    cmp BA_ITEM_BLA             ; choosing whom to heal
+    cmp BA_ITEM_TGT             ; choosing whom to heal
     bne no_cursor_act
     bra sets_cursor_act
 cursor_in_sorts:
@@ -939,7 +939,7 @@ sets_cursor_act:
     jsr ba_cursor
 no_cursor_act:
     lda #1
-    sta BA_CONMAX
+    sta BA_WITHMAX
     lda BA_S0
     jsr ba_line
     inc BA_S0

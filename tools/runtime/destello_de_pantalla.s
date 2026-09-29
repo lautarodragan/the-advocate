@@ -129,10 +129,10 @@ off:
 .a8
 .i16
     lda flash_level + 1      ; the integer part of the level, 0 to 31
-    sta dest_level
+    sta flash_tab_level
     rep #$20
 .a16
-    lda #.loword(dest_tab_r)
+    lda #.loword(flash_tab_r)
     sta temp
     sep #$20
 .a8
@@ -140,7 +140,7 @@ off:
     jsr one_flash_table
     rep #$20
 .a16
-    lda #.loword(dest_tab_g)
+    lda #.loword(flash_tab_g)
     sta temp
     sep #$20
 .a8
@@ -148,7 +148,7 @@ off:
     jsr one_flash_table
     rep #$20
 .a16
-    lda #.loword(dest_tab_b)
+    lda #.loword(flash_tab_b)
     sta temp
     sep #$20
 .a8
@@ -179,9 +179,9 @@ off:
 .proc one_flash_table
 .a8
 .i16
-    sta dest_toward
-    stz dest_toward + 1
-    lda dest_level
+    sta flash_tab_toward
+    stz flash_tab_toward + 1
+    lda flash_tab_level
     rep #$20
 .a16
     and #$001F
@@ -192,11 +192,11 @@ off:
     asl a
     sta temp + 2                ; the level's row
     clc
-    adc dest_toward
+    adc flash_tab_toward
     tax                         ; X: the row, at channel 0's distance
-    lda dest_toward
+    lda flash_tab_toward
     inc a
-    sta dest_end                ; the first channel above the target
+    sta flash_tab_end                ; the first channel above the target
     sep #$20
 .a8
     ldy #0
@@ -207,7 +207,7 @@ uploads:
     sta (temp), y
     dex
     iny
-    cpy dest_end
+    cpy flash_tab_end
     bne uploads
     cpy #32
     beq ready
@@ -297,17 +297,17 @@ ready:
     lda tint_count
     asl a
     beq nothing
-    sta dest_end
+    sta flash_tab_end
     txa
     clc
-    adc dest_end
-    sta dest_end
+    adc flash_tab_end
+    sta flash_tab_end
 color:
     lda cgram_shadow, x
     sta temp                    ; the color, and in temp + 2 what is being built
     and #$001F
     tay
-    lda dest_tab_r, y           ; and the next byte, which gets masked
+    lda flash_tab_r, y           ; and the next byte, which gets masked
     and #$00FF
     sta temp + 2
     lda temp
@@ -318,7 +318,7 @@ color:
     lsr a
     lsr a
     tay
-    lda dest_tab_g, y
+    lda flash_tab_g, y
     and #$00FF
     asl a
     asl a
@@ -333,7 +333,7 @@ color:
     lsr a
     lsr a
     tay
-    lda dest_tab_b, y
+    lda flash_tab_b, y
     and #$00FF
     xba                         ; times 256, and two more make the ten bits
     asl a
@@ -342,7 +342,7 @@ color:
     sta pal_buf, x
     inx
     inx
-    cpx dest_end
+    cpx flash_tab_end
     bne color
 nothing:
     sep #$20

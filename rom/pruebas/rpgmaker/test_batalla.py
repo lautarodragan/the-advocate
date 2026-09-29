@@ -149,7 +149,7 @@ def test_la_pelea_del_droide_se_abre_con_la_tropa_del_juego(partida):
     pelea = Pelea(una).abrir()
     base = datos.base()
     esperado = modelo_de(base)
-    assert pelea.byte("BA_NACT") == 3
+    assert pelea.byte("BA_NACTORS") == 3
     assert pelea.byte("BA_KID") == 1
     for k, quien in enumerate(esperado.actors + [None] + esperado.enemies):
         if quien is None:
@@ -682,12 +682,12 @@ def mirar_los_golpes(una, pelea, esperados):
     for _ in range(30):
         if pelea.modo() != "MESSAGE":
             break
-        if pelea.byte("BA_MTIPO") != una.simbolos["BA_MSG_ATTACK"]:
+        if pelea.byte("BA_MTYPE") != una.simbolos["BA_MSG_ATTACK"]:
             pelea.tocar_cuadros()
             continue
-        dano = pelea.palabra(una.simbolos["BA_MDANO"])
-        blanco = pelea.byte("BA_MBLA")
-        quien = pelea.byte("BA_MQUIEN")
+        dano = pelea.palabra(una.simbolos["BA_MDMG"])
+        blanco = pelea.byte("BA_MTGT")
+        quien = pelea.byte("BA_MWHO")
         if dano == 0xFFFF:
             cual = "errar"
         elif blanco < una.simbolos["BA_PARTY_MAX"]:
@@ -728,7 +728,7 @@ def test_el_golpe_suena_con_el_efecto_que_le_toca(partida):
     pendiente en `BA_SE2`: RM2k los hace sonar juntos, y acá el segundo
     espera su turno.
 
-    Lo que se compara no es circular: `BA_MDANO` y `BA_MBLA` son la mecánica,
+    Lo que se compara no es circular: `BA_MDMG` y `BA_MTGT` son la mecánica,
     que el resto de este archivo ya cobra contra `battle.py` número por
     número; lo que se mide acá es la elección del efecto, que es lo nuevo.
     """
@@ -911,12 +911,12 @@ def test_el_elixir_levanta_a_un_caido_en_la_pelea(partida):
     pelea.tocar_cuadros()
     assert pelea.modo() == "ACTOR", (
         "A sobre el elixir tiene que pedir a quién, con un caído en el grupo")
-    assert pelea.byte("BA_ITEM_BLA") == 1, (
+    assert pelea.byte("BA_ITEM_TGT") == 1, (
         "el cursor tenía que arrancar en Core, el único al que el elixir le "
-        "sirve, y arrancó en %d" % pelea.byte("BA_ITEM_BLA"))
+        "sirve, y arrancó en %d" % pelea.byte("BA_ITEM_TGT"))
     pelea.tocar_cuadros("down")
     pelea.tocar_cuadros("up")
-    assert pelea.byte("BA_ITEM_BLA") == 1, (
+    assert pelea.byte("BA_ITEM_TGT") == 1, (
         "el cursor no se para en uno en pie con un elixir")
     pelea.tocar_cuadros()
     assert una.item(ELIXIR) == 0, "el elixir se gasta al elegirlo"
@@ -993,7 +993,7 @@ def test_el_segundo_elixir_sobre_el_mismo_caido_no_hace_nada(partida):
         pelea.tocar_cuadros()
         pelea.tocar_cuadros()
         assert pelea.modo() == "ACTOR"
-        assert pelea.byte("BA_ITEM_BLA") == 1, (
+        assert pelea.byte("BA_ITEM_TGT") == 1, (
             "el cursor de %d tenía que arrancar en Core, caído" % quien)
         pelea.tocar_cuadros()
     assert una.item(ELIXIR) == 0, "los dos elixires se gastan al elegirlos"

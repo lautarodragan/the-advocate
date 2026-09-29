@@ -126,7 +126,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
 #
 # Lo que taro vio es de los datos del juego: las tropas de Rat Tracks B1 son
 # GiantRat (20 HP), MutantMouse (25) y HairyVermin (40), y la pantalla de la
-# pelea muestra el HP de cada enemigo —el máximo no, `BA_CONMAX` en cero—. O
+# pelea muestra el HP de cada enemigo —el máximo no, `BA_WITHMAX` en cero—. O
 # sea que un GiantRat dice "20" porque tiene 20, y no porque le haya quedado
 # eso de la pelea anterior.
 

@@ -159,7 +159,7 @@ def test_el_sistema_de_batalla_de_talan(partida):
         una.consola.run(1)
     else:
         raise AssertionError("la página no abrió la pelea")
-    assert pelea.byte("BA_NACT") == 1
+    assert pelea.byte("BA_NACTORS") == 1
 
     # --- Detect Aura ---
     assert (sabe(una, TALAN, DETECT_AURA)

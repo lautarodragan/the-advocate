@@ -36,7 +36,7 @@ tick:
 from_party:
     lda #0
     sta BA_S0
-    lda BA_NACT
+    lda BA_NACTORS
     sta BA_S3
 sum:
     lda BA_S0
@@ -175,7 +175,7 @@ exited:
 .i16
 seek:
     lda BA_ACTOR
-    cmp BA_NACT
+    cmp BA_NACTORS
     bcs none
     lda BA_ACTOR
     jsr ba_alive
@@ -230,16 +230,16 @@ none:
     sta BA_ACC, x
     lda BA_T0
     sta BA_ACC + 1, x
-    lda BA_NACC
+    lda BA_NACTIONS
     jsr ba_ax
     lda BA_ACTOR
     sta BA_EXEC, x
-    inc BA_NACC
+    inc BA_NACTIONS
     inc BA_ACTOR
     rts
 .endproc
 
-; The message in `BA_MTIPO` on screen, for `BA_MSG_FRAMES` frames or until
+; The message in `BA_MTYPE` on screen, for `BA_MSG_FRAMES` frames or until
 ; someone presses A.
 .proc ba_show
 .a8
@@ -278,16 +278,16 @@ none:
 .proc ba_hit_sound
 .a8
 .i16
-    lda BA_MBLA
+    lda BA_MTGT
     jsr ba_x                    ; X: the target's offset
     rep #$20
 .a16
-    lda BA_MDANO
+    lda BA_MDMG
     cmp #$FFFF
     beq missed
     sep #$20
 .a8
-    lda BA_MBLA
+    lda BA_MTGT
     cmp #BA_PARTY_MAX
     bcc to_actor
     rep #$20
@@ -314,7 +314,7 @@ recorded:
     sta BA_SE2
     sep #$20
 .a8
-    lda BA_MQUIEN
+    lda BA_MWHO
     cmp #BA_PARTY_MAX
     bcs from_enemy
     ; Someone in the party hits: RM2k gives it no attack sound effect, so the
@@ -401,7 +401,7 @@ clears:
     stz BA_S0
 other:
     lda BA_S0
-    cmp BA_NACT
+    cmp BA_NACTORS
     bcs ready
     jsr ba_x
     lda BA_ONE + BA_FLAGS, x
@@ -433,7 +433,7 @@ ready:
     lda #BA_VICTORY
     sta BA_RESULT
     lda #BA_MSG_VICTORY
-    sta BA_MTIPO
+    sta BA_MTYPE
     ; `Scene_Battle_Rpg2k`'s `BGM_Victory`. In ABL it is **the same song as
     ; the battle's** —both LDB fields say T_VGFighterMAX_Masako— so in
     ; practice it starts over; that they are two constants and not one is
@@ -454,7 +454,7 @@ continue:
     lda #BA_DEFEAT
     sta BA_RESULT
     lda #BA_MSG_DEFEAT
-    sta BA_MTIPO
+    sta BA_MTYPE
 ends:
     jsr ba_show
     lda #BA_M_END
@@ -462,7 +462,7 @@ ends:
     rts
 other_turn:
     lda #0
-    sta BA_NACC
+    sta BA_NACTIONS
     sta BA_COMMAND
     lda #BA_M_COMMAND
     sta BA_MODE
@@ -500,25 +500,25 @@ no_page:
     jmp ba_page_step
 other:
     lda BA_I
-    cmp BA_NACC
+    cmp BA_NACTIONS
     bcc has
     jmp ba_end_of_turn
 has:
     lda BA_I
     jsr ba_ax
     lda BA_EXEC, x
-    sta BA_MQUIEN
+    sta BA_MWHO
     inc BA_I
-    lda BA_MQUIEN
+    lda BA_MWHO
     jsr ba_alive
     beq other
-    lda BA_MQUIEN
+    lda BA_MWHO
     asl a
     jsr ba_ax
     lda BA_ACC, x
     sta BA_S1                   ; the command
     lda BA_ACC + 1, x
-    sta BA_MBLA                 ; and the target
+    sta BA_MTGT                 ; and the target
     lda BA_S1
     cmp #BA_DEFEND
     beq a_defends
@@ -536,10 +536,10 @@ a_no_fled:
 attacks:
     ; Attack. If the target died before its turn came, it is retargeted to the
     ; first living one on that side, as `Game_BattleAlgorithm` does.
-    lda BA_MBLA
+    lda BA_MTGT
     jsr ba_alive
     bne sticks
-    lda BA_MBLA
+    lda BA_MTGT
     cmp #BA_PARTY_MAX
     bcs seek_enemy
     lda #0
@@ -547,7 +547,7 @@ attacks:
     jsr ba_next_actor
     cmp #$FF
     beq other
-    sta BA_MBLA
+    sta BA_MTGT
     bra sticks
 seek_enemy:
     jsr ba_enemy_alive
@@ -555,11 +555,11 @@ seek_enemy:
     beq other
     clc
     adc #BA_PARTY_MAX
-    sta BA_MBLA
+    sta BA_MTGT
 sticks:
     jsr ba_attack
     lda #BA_MSG_ATTACK
-    sta BA_MTIPO
+    sta BA_MTYPE
     jsr ba_show              ; which clears the pending one, so it goes first
     jmp ba_hit_sound
 uses_one_skill:
@@ -567,12 +567,12 @@ uses_one_skill:
     ; `IsTargetValid` discards it and the action is lost. With one that
     ; targets the party that is what happens if the one about to be healed was
     ; killed first.
-    lda BA_MBLA
+    lda BA_MTGT
     jsr ba_alive
     beq other_skill
     jsr ba_skill_use
     lda #BA_MSG_SKILL
-    sta BA_MTIPO
+    sta BA_MTYPE
     jsr ba_show
     rep #$20
 .a16
@@ -587,7 +587,7 @@ uses_item:
     ; dead target **is not retargeted**, which is the opposite of an attack.
     jsr ba_item_use
     lda #BA_MSG_ITEM
-    sta BA_MTIPO
+    sta BA_MTYPE
     jsr ba_show
     rep #$20
 .a16
@@ -596,17 +596,17 @@ uses_item:
 .a8
     rts
 defends:
-    lda BA_MQUIEN
+    lda BA_MWHO
     jsr ba_x
     lda BA_ONE + BA_FLAGS, x
     ora #BAF_DEF
     sta BA_ONE + BA_FLAGS, x
     lda #BA_MSG_DEFENDS
-    sta BA_MTIPO
+    sta BA_MTYPE
     jmp ba_show
 no_fled:
     lda #BA_MSG_NO_FLED
-    sta BA_MTIPO
+    sta BA_MTYPE
     jmp ba_show
 .endproc
 

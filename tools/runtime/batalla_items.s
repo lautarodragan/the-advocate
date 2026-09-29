@@ -91,7 +91,7 @@ ready:
     rts
 .endproc
 
-; How much the `k` in A heals the combatant `BA_MBLA`. It enters with an
+; How much the `k` in A heals the combatant `BA_MTGT`. It enters with an
 ; 8-bit A and leaves with a 16-bit A.
 ;
 ;     hp = recover_hp_rate * GetMaxHp() / 100 + recover_hp
@@ -103,7 +103,7 @@ ready:
 .a8
 .i16
     sta BA_S3                   ; the `k`
-    lda BA_MBLA
+    lda BA_MTGT
     jsr ba_x
     rep #$20
 .a16
@@ -162,7 +162,7 @@ capped:
 .a8
 .i16
     sta BA_S0
-    cmp BA_NACT
+    cmp BA_NACTORS
     bcs no
     jsr ba_x
     lda BA_ONE + BA_FLAGS, x
@@ -195,7 +195,7 @@ if:
     rts
 .endproc
 
-; The item actor `BA_MQUIEN` chose, on `BA_MBLA`: heals or revives, records
+; The item actor `BA_MWHO` chose, on `BA_MTGT`: heals or revives, records
 ; how much, and leaves the message ready. It rolls no dice: an item does not
 ; miss and nobody dodges it, and **the target is not re-aimed**, which is the
 ; opposite of an attack: if it changed between being chosen and its turn
@@ -213,19 +213,19 @@ if:
 ;   heal capped against the whole maximum. It is the same thing
 ;   `medicine_use` does from the menu.
 ;
-; `BA_MREVIVIO` tells the message which of the two lines below goes.
+; `BA_MREVIVED` tells the message which of the two lines below goes.
 .proc ba_item_use
 .a8
 .i16
-    stz BA_MREVIVIO
-    lda BA_MQUIEN
+    stz BA_MREVIVED
+    lda BA_MWHO
     jsr ba_ax
     lda BA_ACC_ITEM, x
     sta BA_MITEM
     jsr ba_ax
     lda f:item_medicine, x
     sta BA_S2                   ; its flags
-    lda BA_MBLA
+    lda BA_MTGT
     jsr ba_x
     rep #$20
 .a16
@@ -239,11 +239,11 @@ if:
     lda BA_MITEM
     jsr ba_item_heal
 .a16
-    sta BA_MCURA
+    sta BA_MHEAL
     ldx BA_S4                   ; the target's offset, from `ba_item_heal`
     lda BA_ONE + BA_HP, x
     clc
-    adc BA_MCURA
+    adc BA_MHEAL
     sta BA_ONE + BA_HP, x
     sep #$20
 .a8
@@ -260,19 +260,19 @@ fallen:
     bne raises
     lda #1                      ; the `SetHp(1)`, even if the item heals nothing
 raises:
-    sta BA_MCURA
+    sta BA_MHEAL
     ldx BA_S4
     sta BA_ONE + BA_HP, x
     sep #$20
 .a8
     lda #1
-    sta BA_MREVIVIO
+    sta BA_MREVIVED
     rts
 nothing:
 .a8
     rep #$20
 .a16
-    stz BA_MCURA
+    stz BA_MHEAL
     sep #$20
 .a8
     rts

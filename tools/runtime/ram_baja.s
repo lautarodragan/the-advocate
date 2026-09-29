@@ -511,12 +511,12 @@ shadow_origin:  .res 2
 flash_rgb:   .res 3
 flash_level: .res 2  ; at scale 256: the high byte is what gets drawn
 flash_remain: .res 1
-dest_tab_r:  .res 32    ; the three tables, 32 bytes each
-dest_tab_g:  .res 32
-dest_tab_b:  .res 32
-dest_level:  .res 1
-dest_toward:  .res 2    ; sixteen-bit: it is added to an index
-dest_end:    .res 2
+flash_tab_r:  .res 32    ; the three tables, 32 bytes each
+flash_tab_g:  .res 32
+flash_tab_b:  .res 32
+flash_tab_level:  .res 1
+flash_tab_toward:  .res 2    ; sixteen-bit: it is added to an index
+flash_tab_end:    .res 2
 ; How many poses `vram_drain` can upload this vblank: VQ_PER_FRAME, unless
 ; the tint has already taken part of the budget.
 vq_cap:      .res 1

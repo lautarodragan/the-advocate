@@ -304,7 +304,7 @@ other_slot:
     inc a
     cmp #BA_COMB_MAX
     bcc other_slot
-    stz BA_NACT
+    stz BA_NACTORS
     stz BA_KID
 
     ; --- the party ---
@@ -461,7 +461,7 @@ with_actor:
     jsr ba_ax
     pla
     sta f:BA_WEAPON_SP, x
-    inc BA_NACT
+    inc BA_NACTORS
 next_actor:
     inc BA_S1
     jmp other_actor
@@ -658,8 +658,8 @@ troop_list:
 ; side throws the other side's randomness out of step and it does not show
 ; until a hit comes out different.
 ;
-; The source in `BA_MQUIEN` and the target in `BA_MBLA`. Leaves the damage in
-; `BA_MDANO`, with $FFFF if the hit missed, and lowers the target's HP.
+; The source in `BA_MWHO` and the target in `BA_MTGT`. Leaves the damage in
+; `BA_MDMG`, with $FFFF if the hit missed, and lowers the target's HP.
 .proc ba_attack
 .a8
 .i16
@@ -667,14 +667,14 @@ troop_list:
     ; rolling, even if it then misses. With SP at zero it attacks anyway —RM2k
     ; does not grey out `Attack`— and they stay at zero. An enemy carries no
     ; weapon.
-    lda BA_MQUIEN
+    lda BA_MWHO
     cmp #BA_PARTY_MAX
     bcs no_weapon
     jsr ba_ax
     lda f:BA_WEAPON_SP, x
     sta BA_T2
     stz BA_T2 + 1
-    lda BA_MQUIEN
+    lda BA_MWHO
     jsr ba_x
     rep #$20
 .a16
@@ -688,7 +688,7 @@ sp_charged:
     sep #$20
 .a8
 no_weapon:
-    lda BA_MQUIEN
+    lda BA_MWHO
     jsr ba_x
     rep #$20
 .a16
@@ -696,7 +696,7 @@ no_weapon:
     sta BA_S0                   ; the source's offset
     sep #$20
 .a8
-    lda BA_MBLA
+    lda BA_MTGT
     jsr ba_x
     rep #$20
 .a16
@@ -762,7 +762,7 @@ crit_strip:
     rep #$20
 .a16
     lda #$FFFF
-    sta BA_MDANO
+    sta BA_MDMG
     sep #$20
 .a8
     rts
@@ -858,11 +858,11 @@ no_defense:
     bcc damage_ready
     lda #BA_DAMAGE_MAX
 damage_ready:
-    sta BA_MDANO
+    sta BA_MDMG
     ldx BA_S1
     lda BA_ONE + BA_HP, x
     sec
-    sbc BA_MDANO
+    sbc BA_MDMG
     bpl hp_ready
     lda #0
 hp_ready:
@@ -963,11 +963,11 @@ command_list:
     sta BA_ACC, x
     lda BA_T0
     sta BA_ACC + 1, x
-    lda BA_NACC
+    lda BA_NACTIONS
     jsr ba_ax
     lda BA_S0
     sta BA_EXEC, x
-    inc BA_NACC
+    inc BA_NACTIONS
 next:
     inc BA_S0
     jmp other
@@ -1176,7 +1176,7 @@ chosen:
     sta BA_S0
 strip:
     lda BA_S0
-    cmp BA_NACC
+    cmp BA_NACTIONS
     bcs rolled
     lda BA_S0
     jsr ba_ax
@@ -1210,7 +1210,7 @@ rolled:
     sta BA_S0
 outside:
     lda BA_S0
-    cmp BA_NACC
+    cmp BA_NACTIONS
     bcs sorted
     lda BA_S0
     jsr ba_ax
@@ -1301,7 +1301,7 @@ sorted:
 ; A combatant's line: its name and its HP —an enemy's, only with
 ; `BA_HP_ENEMIES`—, in grey if it is dead.
 ; A8 = the combatant, `BA_T1` = where its line starts, and bit 0 of
-; `BA_CONMAX` says whether the max HP go too —that is, whether it belongs to
+; `BA_WITHMAX` says whether the max HP go too —that is, whether it belongs to
 ; the party—.
 .proc ba_line
 .a8
@@ -1350,7 +1350,7 @@ variant:
     ; The `::` is not redundant: inside a `.proc`, `ca65` does not give a
     ; constant value to a bare name, which could be defined further down in
     ; the same `.proc`.
-    lda BA_CONMAX
+    lda BA_WITHMAX
     and #$01
     bne with_hp
     rts
@@ -1382,7 +1382,7 @@ hp_fits:
     lda #3
     sta comp_dup + 2
     jsl f:ba_t_number
-    lda BA_CONMAX
+    lda BA_WITHMAX
     and #$01
     bne with_max
     rts
@@ -1488,7 +1488,7 @@ width_ready:
     rts
 .endproc
 
-; The message's two lines, according to `BA_MTIPO`. Victory does not go
+; The message's two lines, according to `BA_MTYPE`. Victory does not go
 ; through here: it goes in the party's lines, see `ba_vic_message`. All the
 ; words come from the LDB —`attacking`, `enemy_damaged`, `defeat`...— and are
 ; put together as in `game_message_terms.cpp`: the name stuck to the term, and
@@ -1506,7 +1506,7 @@ width_ready:
     jsr ba_go
     sep #$20
 .a8
-    lda BA_MTIPO
+    lda BA_MTYPE
     cmp #BA_MSG_ATTACK
     beq attack
     cmp #BA_MSG_DEFENDS
@@ -1534,13 +1534,13 @@ only:
     jsr ba_finished
     rts
 defends:
-    lda BA_MQUIEN
+    lda BA_MWHO
     jsr ba_name
     ldx #BA_TXT_DEFENDS
     jsr ba_finished
     rts
 attack:
-    lda BA_MQUIEN
+    lda BA_MWHO
     jsr ba_name
     ldx #BA_TXT_ATTACKS
     jsr ba_finished
@@ -1553,11 +1553,11 @@ attack:
     jsr ba_go
     sep #$20
 .a8
-    lda BA_MBLA
+    lda BA_MTGT
     jsr ba_name
     rep #$20
 .a16
-    lda BA_MDANO
+    lda BA_MDMG
     cmp #$FFFF
     sep #$20
 .a8
@@ -1569,12 +1569,12 @@ stuck:
     jsl f:ba_t_glyph
     rep #$20
 .a16
-    lda BA_MDANO
+    lda BA_MDMG
     sta BA_T0
     sep #$20
 .a8
     jsr ba_number_exact
-    lda BA_MBLA
+    lda BA_MTGT
     cmp #BA_PARTY_MAX
     bcs is_enemy
     ldx #BA_TXT_DAMAGE_ACTOR
@@ -1588,7 +1588,7 @@ item:
     ; `<who> <item> used.`, which is
     ; `source.GetName() + " " + item.name + terms.use_item` from
     ; `GetItemStartMessage2k`.
-    lda BA_MQUIEN
+    lda BA_MWHO
     jsr ba_name
     lda #$20
     jsl f:ba_t_glyph
@@ -1618,9 +1618,9 @@ item:
     jsr ba_go
     sep #$20
 .a8
-    lda BA_MBLA
+    lda BA_MTGT
     jsr ba_name
-    lda BA_MREVIVIO
+    lda BA_MREVIVED
     beq recovered
     ; Revived: `<target> has revived!`, the dead state's `message_recovery`,
     ; stuck to the name. RM2k does not show the HP one when it revives
@@ -1639,7 +1639,7 @@ recovered:
     jsl f:ba_t_glyph
     rep #$20
 .a16
-    lda BA_MCURA
+    lda BA_MHEAL
     sta BA_T0
     sep #$20
 .a8
@@ -1651,14 +1651,14 @@ skill:
     ; `<who><using_message1>` on top and `<using_message2>` below, which is
     ; `GetSkillFirstStartMessage2k` and its sibling. Both lines come from the
     ; LDB, like everything this screen writes.
-    lda BA_MQUIEN
+    lda BA_MWHO
     jsr ba_name
     lda #255
     sta comp_dup + 3
     stz temp + 1
     rep #$20
 .a16
-    lda BA_MHAB
+    lda BA_MSKILL
     and #$00FF
     asl a
     tax
@@ -1673,7 +1673,7 @@ skill:
     sta BA_T1
     lda #BA_MSG_DX
     jsr ba_go
-    lda BA_MHAB
+    lda BA_MSKILL
     and #$00FF
     asl a
     tax
@@ -1684,7 +1684,7 @@ skill:
     jsr ba_finished
     rts
 failed:
-    lda BA_MBLA
+    lda BA_MTGT
     cmp #BA_PARTY_MAX
     bcs fails_enemy
     ldx #BA_TXT_NO_DAMAGE_ACTOR

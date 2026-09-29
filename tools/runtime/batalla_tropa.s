@@ -80,7 +80,7 @@ other:
     sta BA_PAGE_I
 anyone:
     lda BA_PAGE_I
-    cmp BA_NACT
+    cmp BA_NACTORS
     bcs no                      ; nobody in the party standing
     jsr ba_alive
     bne has_party
@@ -272,7 +272,7 @@ no_enemy:
     sta BA_T0 + 1               ; the party slot being checked
 seek_actor:
     lda BA_T0 + 1
-    cmp BA_NACT
+    cmp BA_NACTORS
     bcs no
     jsr ba_x
     lda BA_ONE + BA_FLAGS, x

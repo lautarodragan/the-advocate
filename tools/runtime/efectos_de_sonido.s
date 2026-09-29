@@ -596,7 +596,7 @@ no_same_6:
     lda f:SE2_PENDING
     bne chosen
     lda f:SE_PENDING
-    bne la_6
+    bne pick_6
     rep #$20
 .a16
     lda f:SE_FRAMES
@@ -605,7 +605,7 @@ no_same_6:
 .a8
     bcc chosen
     beq chosen
-la_6:
+pick_6:
     ldy #SE2_OFS
 chosen:
     rep #$20
