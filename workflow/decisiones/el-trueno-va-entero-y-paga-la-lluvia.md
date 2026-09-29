@@ -25,7 +25,7 @@ bastante aceptable.
 
 Con una sola voz, la lluvia le cortaba el trueno, porque se vuelve a disparar
 cada pocos segundos: ver "los efectos de sonido" en
-`rom/src/efectos_de_sonido.s`.
+`tools/runtime/efectos_de_sonido.s`.
 
 # Cómo quedó
 

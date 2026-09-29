@@ -5,7 +5,7 @@ pregunta —el término `exit_game_message`— y "Yes"/"No" en dos ventanas sobr
 negro. "Yes" funde el tema y la pantalla y va al título; "No" o cancelar
 vuelven al menú.
 
-Desde el 2026-09-28 la ROM lo hace —ver `rom/src/fin_del_juego.s` y
+Desde el 2026-09-28 la ROM lo hace —ver `tools/runtime/fin_del_juego.s` y
 `tools/port/fin_del_juego.py`—, con las ventanas, el texto y la barra del
 System en los mismos pixeles que el original, corridos al centro de 256x224.
 Hasta ese día la orden iba en gris y no hacía nada.
@@ -37,7 +37,7 @@ Con el RPG_RT de 2015 corriendo con Wine, sobre una copia del juego cuyo mapa
 entrar, B y "No" de vuelta al menú con el cursor en End Game. El dibujo de
 `fin_del_juego.dibujar` a 320x240 cae en esas mismas cajas.
 
-Lo cubren `pruebas/rpgmaker/test_fin_del_juego.py` —la pantalla contra
+Lo cubren `rom/pruebas/rpgmaker/test_fin_del_juego.py` —la pantalla contra
 `fin_del_juego.render` con el cursor en cada orden, "No", B, y "Yes" hasta la
 golden `titulo`— y las goldens `fin` y `fin-no` de `test_menu_golden.py`.
 

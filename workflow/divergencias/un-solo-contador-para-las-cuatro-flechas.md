@@ -2,7 +2,7 @@
 
 RM2k lleva un `press_time` por botón —easyrpg, `src/input.cpp`—, así que
 cada flecha tiene su propia espera de repetición. La ROM lleva **uno solo para
-las cuatro**, `flechas_cuadros` en `flechas_repetir` (`rom/src/control.s`):
+las cuatro**, `flechas_cuadros` en `flechas_repetir` (`tools/runtime/control.s`):
 apretar una flecha nueva lo pone en cero aunque otra siga sostenida.
 
 Lo que se ve distinto: sosteniendo abajo, con la repetición ya andando, tocar

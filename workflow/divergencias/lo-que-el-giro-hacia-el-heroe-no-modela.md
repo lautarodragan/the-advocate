@@ -3,7 +3,7 @@
 Desde el 2026-09-11 el evento que el héroe dispara **gira hacia él**, como el
 `SetFacing(GetDirectionToCharacter(GetPlayer()))` de
 `Game_Event::ScheduleForegroundExecution`. Las reglas están en GIRO, en
-`tools/port/eventos.py`, y en `giro_disparar` de `rom/src/giro_hacia_el_heroe.s`. Lo que queda
+`tools/port/eventos.py`, y en `giro_disparar` de `tools/runtime/giro_hacia_el_heroe.s`. Lo que queda
 afuera:
 
 * **Los que caminan solos no giran.** Su ruta propia está siempre andando, y

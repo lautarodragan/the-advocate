@@ -26,5 +26,5 @@ de los agentes; los números están al lado de la lista.
 
 # Cómo reproducirlo
 
-`pruebas/rpgmaker/test_eventos_de_tropa.py`, con los casos `pelea-86` y
+`rom/pruebas/rpgmaker/test_eventos_de_tropa.py`, con los casos `pelea-86` y
 `pelea-102`.
