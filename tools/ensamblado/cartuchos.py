@@ -272,7 +272,11 @@ def archivos_de_la_huella(fuente=FUENTE):
               + ensamblar.binarios()
               + [tiles_bin.binario(), muestras_brr.binario(),
                  comprimir.binario()])
-    partes += sorted(glob.glob(os.path.join(RAIZ, "tools", "*", "*.py")))
+    # Menos las pruebas de las herramientas, que no arman nada: con ellas
+    # adentro, editar una prueba dejaba viejos a todos los cartuchos.
+    pruebas = os.path.join(RAIZ, "tools", "pruebas", "")
+    partes += sorted(r for r in glob.glob(os.path.join(RAIZ, "tools", "*", "*.py"))
+                     if not r.startswith(pruebas))
     partes += sorted(glob.glob(os.path.join(RAIZ, "parches", "manual", "*",
                                             "*")))
     return partes

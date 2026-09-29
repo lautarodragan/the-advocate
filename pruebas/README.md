@@ -15,7 +15,10 @@ Cuántas son y cuántas pasan lo dice la corrida; `pytest pruebas
     pruebas/rpgmaker/      lo que el motor tiene que hacer igual que RM2k
     pruebas/abl/           lo propio del juego: el recorrido, las piedras,
                            el recuerdo, el cartel, las escenas y cinemáticas
-    pruebas/herramientas/  las que no corren ninguna ROM
+    pruebas/herramientas/  las que no corren ninguna ROM, pero leen el
+                           juego, `data/`, `parches/` o un cartucho armado.
+                           Las que no leen nada de eso son de las
+                           herramientas, y tienen su índice aparte
     pruebas/arnes/         consola, tanda, recorrido y video; y lo que
                            comparten varias pruebas: menu, batalla, datos,
                            dibujo y piedras. Ninguna prueba importa de otra
@@ -172,13 +175,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 **La música**
 
 * `rpgmaker/test_musica_paquete.py`: las muestras del tema, en la ARAM
-* `herramientas/test_temas_heredados.py`: qué tema puede venir sonando al
-  cargar el paquete de cada mapa, que es lo que el reparto le reserva
 * `rpgmaker/test_tema_del_mapa.py`: el tema de cada mapa
 * `rpgmaker/test_bateria_suena.py`: lo que la música les escribe a las voces
   de la batería
-* `herramientas/test_musica_stream.py`: el stream que arma el conversor: a
-  qué voz va cada nota y cuándo se suelta
 * `rpgmaker/test_musica_reparto.py`: las ocho voces repartidas nota a nota,
   sobre `escape_newyork` —el acorde entero y los canales que antes no
   sonaban— y sobre el de batalla, cuya melodía no pierde notas
@@ -249,21 +248,21 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   mapa, ida y vuelta por el compresor y por la referencia
 * `herramientas/test_reservas_de_la_wram.py`: que nadie más caiga en la mitad
   alta de la WRAM, que es de la grilla y de la pelea
-* `herramientas/test_bancos.py`: el acomodo de bancos
+* `herramientas/test_bancos.py`: que el código a mano entre en el banco 1
 * `herramientas/test_espacio.py`: `just espacio`, contra el `.res` linkeado a
   mano que reemplazó
-* `herramientas/test_ensamblar.py`: `ensamblar.py`
-* `herramientas/test_protocolo.py`: el bytecode: las declaraciones y los
-  generados
+* `herramientas/test_cartuchos.py`: la huella y el `.dbg` de los cartuchos,
+  y a cuál va cada caso
+* `herramientas/test_protocolo_contra_el_juego.py`: el bytecode contra el
+  juego: la tabla del despacho en cada cartucho, y los largos en todas las
+  páginas
 * `herramientas/test_paginas.py`: las tablas de páginas del lado de Python
 * `herramientas/test_parches.py`: los parches versionados contra el
   conversor, sobre `release` armado
 * `herramientas/test_fork_mapas.py`: el fork de `parches/manual/`
 * `herramientas/test_horneados.py`: los eventos horneados en el mapa
-* `herramientas/test_repartos.py`: los repartos de VRAM, su orden y el del 38
-* `herramientas/test_sustituciones.py`: el tope de `TileSubstitution`
-* `herramientas/test_textos.py`, `herramientas/test_escapes.py`: los cuadros
-  de texto rearmados y los escapes `\|` y `\^`
+* `herramientas/test_textos_del_juego.py`: los cuadros de texto de `data/`
+  rearmados
 * `herramientas/test_encuentros.py`: los encuentros al azar
 * `herramientas/test_lideres.py`: quién puede ser líder
 * `herramientas/test_destello_paleta.py`: la paleta de sprite de los líderes
