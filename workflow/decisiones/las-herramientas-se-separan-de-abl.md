@@ -56,6 +56,15 @@ tiene el plan de seis pasos y las preguntas con sus opciones.
   recetas de las herramientas, después el paso 2 del plan (un solo lugar que
   sabe dónde está cada cosa), y recién ahí la mudanza, en un commit mecánico
   con las ROMs byte por byte iguales.
+- **Instalar es de las herramientas; verificar es de ABL.** Charlado con
+  taro el 2026-09-29. `herramientas` y `herramientas-locales` van en
+  `tools/justfile`: instalar desde el fuente pide saber dónde está cada cosa
+  en `tools/`, que es lo que ABL no puede saber. Es el `make install` de un
+  proyecto, o el `npm link`. Lo que ABL necesita es **saber que tiene lo que
+  le hace falta, en la versión que declara**: una receta suya, por ejemplo
+  `verificar-herramientas`, cuando exista el archivo de proyecto con la
+  versión. La guarda que frena a un worktree sin su `bin/` es el primer
+  pedazo.
 - **ABL sólo conoce ejecutables del PATH, no `tools/`.** Es la idea de taro
   para el primer paso: el `justfile` no sabe que existe Python, y los `.py`
   que se ejecutan pasan a ser ejecutables de verdad, con hashbang y
