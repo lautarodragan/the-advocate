@@ -4,7 +4,7 @@
 # only makes the dependencies they share compile once, into one `target/`,
 # and resolve to one version, in one `Cargo.lock`.
 #
-# `ditto/xtask` is Ditto's schema generator: a member because a workspace
+# `rm2k/ditto/xtask` is Ditto's schema generator: a member because a workspace
 # cannot nest another one, and Ditto had its own for it.
 [workspace]
 members = [
