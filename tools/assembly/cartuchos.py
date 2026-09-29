@@ -34,7 +34,7 @@ from audio import brr_samples                          # noqa: E402
 from common import environment                              # noqa: E402
 from common import settings                              # noqa: E402
 from common import project                              # noqa: E402
-from assembly import ensamblar                        # noqa: E402
+from assembly import assemble                        # noqa: E402
 from port import tiles_bin                              # noqa: E402
 from port import comprimir                              # noqa: E402
 
@@ -219,7 +219,7 @@ def archivos_de_la_huella(fuente=FUENTE):
     # stale.
     partes = (sorted(r for r in glob.glob(os.path.join(fuente, "**"),
                                           recursive=True) if os.path.isfile(r))
-              + ensamblar.binarios()
+              + assemble.binaries()
               + [tiles_bin.binario(), brr_samples.binary(),
                  comprimir.binario()])
     # Except the tools' tests, which build nothing: with them inside, editing
@@ -375,7 +375,7 @@ def convertir(nombre, destino, sfc, extra=()):
             "--comandos-de-prueba",
             os.path.relpath(os.path.join(CASOS, caso + ".json"), RAIZ)]
     # With `--project`, because it runs standing in the repo root —see
-    # `ensamblar.RAIZ`— and from there it would not find the file by
+    # `assemble.ROOT`— and from there it would not find the file by
     # searching.
     orden = ([sys.executable, os.path.join(project.tools(), "port",
                                            "snes_convert.py"),
@@ -390,8 +390,8 @@ def convertir(nombre, destino, sfc, extra=()):
     if hecho.returncode:
         sys.stderr.write(hecho.stdout[-3000:] + hecho.stderr)
         sys.exit("%s: the converter failed; everything is in %s" % (nombre, log))
-    ensamblar.ensamblar(os.path.join(FUENTE, "main.s"),
-                        destino, sfc, sfc + ".sym")
+    assemble.assemble(os.path.join(FUENTE, "main.s"),
+                      destino, sfc, sfc + ".sym")
 
 
 # What the converter needs from the machine, since it runs in another

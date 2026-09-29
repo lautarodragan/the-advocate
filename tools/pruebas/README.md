@@ -37,7 +37,7 @@ has to exist: `test_index.py` enforces it.
 * `test_protocol.py`: the bytecode: the declarations, the generated files
   up to date, that both ends say the same numbers and that the runtime does
   not use an undeclared opcode
-* `test_assemble.py`: `assembly/ensamblar.py`: the checksum, the header,
+* `test_assemble.py`: `assembly/assemble.py`: the checksum, the header,
   the `.dbg` symbols and which sources are included
 * `test_banks.py`: the bank packing the converter does, and the `.cfg`
   memory map

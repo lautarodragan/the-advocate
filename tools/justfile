@@ -182,7 +182,7 @@ _instalar raiz *proyectos:
   done
   mkdir -p "{{raiz}}/bin"
   ln -sfn "{{justfile_directory()}}/assembly/cartuchos.py" "{{raiz}}/bin/rm2k-snes-cartridges"
-  ln -sfn "{{justfile_directory()}}/assembly/ensamblar.py" "{{raiz}}/bin/rm2k-snes-assemble"
+  ln -sfn "{{justfile_directory()}}/assembly/assemble.py" "{{raiz}}/bin/rm2k-snes-assemble"
   ln -sfn "{{justfile_directory()}}/assembly/espacio.py" "{{raiz}}/bin/rm2k-snes-space"
   ln -sfn "{{justfile_directory()}}/port/snes_convert.py" "{{raiz}}/bin/rm2k-snes-convert"
   ln -sfn "{{justfile_directory()}}/port/parches.py" "{{raiz}}/bin/rm2k-snes-patches"

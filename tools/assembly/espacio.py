@@ -44,7 +44,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from common import environment                              # noqa: E402
 from common import project                              # noqa: E402
 from assembly import banks                           # noqa: E402
-from assembly import ensamblar                        # noqa: E402
+from assembly import assemble                        # noqa: E402
 
 CAMPO = re.compile(r'(\w+)=("[^"]*"|[^,\s]+)')
 
@@ -93,7 +93,7 @@ def medir(sfc):
     ultimo = max(ocupados) if ocupados else banks.FIRST_BANK - 1
     huecos = [banks.BANK_SIZE - usado.get(banks.segment_of(b), 0)
               for b in datos if b <= ultimo]
-    simbolos = ensamblar.simbolos(dbg)
+    simbolos = assemble.symbols(dbg)
     return {
         "bancos": len(datos),
         "primero": datos[0],

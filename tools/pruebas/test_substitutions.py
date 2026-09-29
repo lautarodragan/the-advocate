@@ -14,20 +14,20 @@ import re
 
 from port import snes_convert                            # noqa: E402
 from common import project  # noqa: E402
-from assembly import ensamblar  # noqa: E402
+from assembly import assemble  # noqa: E402
 
 MAIN = os.path.join(project.runtime(), "main.s")
 
 
 def from_main(nombre):
-    fuente = ensamblar.texto_de_la_fuente(MAIN)
+    fuente = assemble.source_text(MAIN)
     hallado = re.search(r"^%s\s*=\s*(\d+)\s*$" % nombre, fuente, re.M)
     assert hallado, "tools/runtime/ no longer declares %s" % nombre
     return int(hallado.group(1))
 
 
 def reservation(nombre):
-    fuente = ensamblar.texto_de_la_fuente(MAIN)
+    fuente = assemble.source_text(MAIN)
     hallado = re.search(r"^%s:\s*\.res\s+([^;\n]+)" % nombre, fuente, re.M)
     assert hallado, "tools/runtime/ no longer reserves %s" % nombre
     return hallado.group(1).strip()

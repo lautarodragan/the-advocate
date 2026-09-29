@@ -68,7 +68,7 @@ _extracted = {}
 
 
 def binary():
-    """The path of the `gunter` on the PATH, like `ensamblar.binarios()`.
+    """The path of the `gunter` on the PATH, like `assemble.binaries()`.
 
     Raises `SystemExit` if it is not there: a missing system tool is not a
     program error, and a twenty-line traceback buries the only line that says

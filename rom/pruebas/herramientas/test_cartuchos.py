@@ -12,7 +12,7 @@ import re
 
 import pytest
 
-from assembly import cartuchos, ensamblar
+from assembly import cartuchos, assemble
 import tanda
 
 
@@ -26,7 +26,7 @@ def test_todo_lo_que_arma_la_rom_esta_en_la_huella(tmp_path):
         huella = {os.path.realpath(r)
                   for r in cartuchos.archivos_de_la_huella(fuente)}
         principal = os.path.join(fuente, "main.s")
-        return [r for r in ensamblar.fuentes(principal)
+        return [r for r in assemble.sources(principal)
                 if os.path.realpath(r) not in huella]
 
     assert cubiertas(cartuchos.FUENTE) == []

@@ -7,7 +7,7 @@ corriendo. Son
 dos redes distintas y se complementan: la de pixeles dice "la pantalla es
 exactamente ésta", ésta dice "y además llegaste adonde tenías que llegar".
 
-Lo que hace posible preguntar es que `tools/assembly/ensamblar.py` deja al lado de la ROM
+Lo que hace posible preguntar es que `tools/assembly/assemble.py` deja al lado de la ROM
 la tabla de símbolos que sale de `runtime/` de verdad, con las direcciones de la
 RAM **y** las constantes del ensamblador:
 
@@ -74,7 +74,7 @@ class SimboloDesconocido(KeyError):
 
 
 class Simbolos:
-    """La tabla que deja `tools/assembly/ensamblar.py`, leída por nombre."""
+    """La tabla que deja `tools/assembly/assemble.py`, leída por nombre."""
 
     def __init__(self, ruta):
         self.ruta = ruta

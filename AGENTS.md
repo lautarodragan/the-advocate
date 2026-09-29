@@ -380,7 +380,7 @@ avisar: la ROM saldría con los datos de otro. Hasta el 2026-09-16 la receta
 `convert` escribía justo ahí —en `rom/src/`, donde vivía el runtime hasta el
 2026-09-29; era "estado global", y así se terminó mirando el
 mapa 6 creyendo que era la demo del hito 12—; hoy cada cartucho escribe el suyo
-en su directorio de `rom/build/`, y `tools/assembly/ensamblar.py` se niega a armar si
+en su directorio de `rom/build/`, y `tools/assembly/assemble.py` se niega a armar si
 encuentra uno en `tools/runtime/`. **Las
 ROMs salen de una receta, no de un `ca65` suelto.**
 

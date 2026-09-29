@@ -24,7 +24,7 @@ import pytest  # noqa: E402
 from port import event_opcodes  # noqa: E402
 from port import eventos  # noqa: E402
 from rpgmaker import lcf  # noqa: E402
-from assembly import ensamblar  # noqa: E402
+from assembly import assemble  # noqa: E402
 from audio import music_opcodes  # noqa: E402
 from common import project  # noqa: E402
 
@@ -99,7 +99,7 @@ def test_no_opcode_in_the_rom_is_undeclared():
     ROM they are a single symbol space, and in fact that is why `OP_FIN` had
     to be called `OP_DONE` —`OP_END` already belonged to the music stream—.
     """
-    fuente = ensamblar.texto_de_la_fuente(MAIN)
+    fuente = assemble.source_text(MAIN)
     # Only the uses as an operand: bare names in comments do not count.
     usados = set(re.findall(r"#(OP_[A-Z0-9_]+)\b", fuente))
     assert usados, "not a single use of an opcode was found in tools/runtime/"

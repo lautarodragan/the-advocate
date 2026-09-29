@@ -104,7 +104,7 @@ projects. The `justfile` calls them by name and does not know where they
 are:
 
     rm2k-snes-cartridges        assembly/cartuchos.py
-    rm2k-snes-assemble          assembly/ensamblar.py
+    rm2k-snes-assemble          assembly/assemble.py
     rm2k-snes-space             assembly/espacio.py
     rm2k-snes-convert           port/snes_convert.py
     rm2k-snes-patches           port/parches.py
