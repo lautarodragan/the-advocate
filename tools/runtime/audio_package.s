@@ -15,7 +15,7 @@
 ; each. **Sound effects do not**: they share the SE_PLACES at the end of the
 ; directory, from SE_FIRST on, because two that are never in the same
 ; package can go in the same place —see `effect_places` in
-; snes_music.py—. The package lists carry them by number, `effect_place` says
+; rm2k-snes-audio—. The package lists carry them by number, `effect_place` says
 ; each one's place and `FAR_EFFECT_IN` which one was noted down in each place.
 ; An entry that is not in ARAM points to silence. `FAR_ARAM_OF` says where
 ; each one is, or 0, and is indexed by directory entry.

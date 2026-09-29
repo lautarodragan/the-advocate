@@ -29,6 +29,7 @@ from common import settings
 from common import project
 from emulator import retro
 import cartuchos
+import musica
 
 RAIZ = project.root()
 # Lo que las pruebas dejan para mirar. Lo toman de acá los pedazos del arnés
@@ -57,7 +58,7 @@ WRAM = 0x20000
 # Cómo cuentan `muestras_en_la_aram` y `muestras_del_paquete` a un efecto de
 # sonido: este número más el del efecto. Una entrada del directorio no alcanza
 # para nombrarlo, porque varios efectos comparten lugar —ver
-# `effect_places` en snes_music.py—, y ninguna entrada llega a 256, así
+# `effect_places` en `rm2k-snes-audio`—, y ninguna entrada llega a 256, así
 # que no se confunde con una muestra de la música.
 EFECTO = 0x100
 
@@ -907,7 +908,7 @@ class Partida:
         cartucho**.
 
         Es la misma tabla que mira `song_ensure`, y se lee de la ROM en vez
-        de recalcularla con `snes_music.song_samples`: recalcularla
+        de recalcularla con el compilador de música: recalcularla
         sería una segunda manera de contestar la pregunta, y las dos se pueden
         equivocar igual. Un índice de desplazamientos de dos bytes por tema
         —`SONG_TOTAL` de ellos— y detrás una lista por tema cerrada con $FF.
@@ -987,13 +988,25 @@ class Partida:
 
     def escrituras_del_tema(self, indice):
         """Lo que el stream del tema le escribe al DSP, (cuadro, registro,
-        valor), una vuelta: sus bytes en el cartucho, decodificados con
-        `snes_music.decode`, que es el modelo de `music_frame`."""
-        from audio import snes_music
+        valor), una vuelta: sus bytes en el cartucho, decodificados por
+        `rm2k-snes-audio decode`, que es el modelo de `music_frame`."""
+        return self._stream_decodificado(indice)[0]
+
+    def largo_del_stream(self, indice):
+        """Cuántos bytes ocupa el stream del tema en el cartucho, su
+        `OP_END` incluido."""
+        return self._stream_decodificado(indice)[1]
+
+    def _stream_decodificado(self, indice):
         direccion, sonidos = self.stream_del_tema(indice)
         with open(self.sfc, "rb") as archivo:
             rom = archivo.read()
-        return snes_music.decode(DelCartucho(rom, direccion), sonidos)
+        # Desde el principio del stream hasta el final del archivo: en LoROM
+        # el byte que sigue a $xxFFFF está en $(xx+1)8000, que en el archivo
+        # es el siguiente —es el salto de banco de `advance` en
+        # runtime/music.s, visto desde el archivo—, y lo que sigue al
+        # `OP_END` no se lee.
+        return musica.decodificar(rom[en_la_rom(direccion):], sonidos)
 
     def acceso(self):
         """El byte de permisos: bit 0 guardar prohibido, bit 1 el menú
@@ -1098,19 +1111,6 @@ def indice_del_tema(una, nombre):
         "el cartucho no lleva %s: el conversor no le pidió el tema al mapa"
         % nombre)
     return nombres.index(nombre)
-
-
-class DelCartucho:
-    """Los bytes del cartucho desde `direccion`, como una secuencia. En LoROM
-    el byte que sigue a $xxFFFF está en $(xx+1)8000, que en el archivo es el
-    siguiente, así que alcanza con el desplazamiento: es el salto de banco de
-    `advance` en runtime/music.s, visto desde el archivo."""
-
-    def __init__(self, rom, direccion):
-        self.rom, self.base = rom, en_la_rom(direccion)
-
-    def __getitem__(self, i):
-        return self.rom[self.base + i]
 
 
 def en_la_rom(direccion):

@@ -162,7 +162,7 @@ corre ninguna prueba**.
 
 Detrás de los fondos van los efectos de sonido de cada paquete de audio,
 enteros y a la tasa que le entra a ese paquete con la ARAM libre de música
-—el reparto es `tools/audio/msu_effects.py`—: por paquete, en el orden de la
+—el reparto es de `rm2k-snes-audio`, en su `msu.rs`—: por paquete, en el orden de la
 tabla, y adentro de cada uno en orden de SRCN, que es como los sube
 `upload_placed`. Así la ROM **busca una vez por paquete** y lee de corrido;
 un efecto que está en dos paquetes va dos veces. Lo escribe `write_msu`

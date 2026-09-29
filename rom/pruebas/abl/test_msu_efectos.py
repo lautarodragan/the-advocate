@@ -3,7 +3,7 @@
 Con MSU-1 y el SPC700 sin música, un efecto que no entra en la 7 ni en la 6
 toma una de las voces 0 a 5; y si el `.msu` es el de este cartucho, los
 efectos de cada paquete se suben de ahí, enteros y a la tasa que les entra.
-Ver runtime/msu_effects.s y tools/audio/msu_effects.py. La tanda corre
+Ver runtime/msu_effects.s y `rm2k-snes-audio`. La tanda corre
 sin MSU-1 —el arnés le esconde el `.msu` al core—, así que eso lo cubren las
 pruebas de siempre; esto cubre el otro camino.
 
@@ -29,10 +29,10 @@ from array import array
 
 import numpy
 
-from audio import brr_samples, snes_music
 from port import msu_data
 
 import tanda
+import musica
 from consola import Partida, en_la_rom, en_la_wram
 import cartuchos
 from msu import pistas_de
@@ -79,7 +79,7 @@ def _efectos_cambiados(msu, firma):
     entradas = [bytearray(e) for e in msu_data.read(msu)]
     for entrada in entradas[fondos:]:
         for i in range(len(entrada)):
-            if i % brr_samples.BLOCK_BYTES:
+            if i % musica.constantes()["block_bytes"]:
                 entrada[i] ^= 0xFF
     if firma:
         return msu_data.build([bytes(e) for e in entradas])[0]
@@ -131,14 +131,13 @@ def test_con_msu_el_efecto_suena_entero_y_a_su_tasa(tmp_path):
         "en el mapa 10 no tenía que sonar ninguna pista: el audio del efecto "
         "no se puede mirar solo")
     altura = int.from_bytes(nuevo[1:3], "little")
-    esperada = snes_music.effect_pitch(
-        snes_music.SoundEffect("Success2", b"", 22050, None, 0), 100)
+    esperada = musica.altura_de_efecto(22050, 100)
     assert altura == esperada, (
         "Success2 arrancó con la altura %d y la de 22.050 Hz es %d: la ROM no "
         "tomó la del .msu, o el paquete del 10 dejó de entrar a la tasa del "
         "WAV" % (altura, esperada))
 
-    crudo, fuente = snes_music.read_wav("Success2")
+    crudo, fuente = musica.wav("Success2")
     del_wav = _envolvente(numpy.array(crudo, float), fuente)
     grabada = _envolvente(muestras, tasa)
     n = min(len(grabada), len(del_wav)) - 5
@@ -175,12 +174,11 @@ def test_con_msu_el_efecto_de_una_ruta_suena_entero(tmp_path):
         "con MSU-1 y el .msu del cartucho, la ROM no lo aceptó para los "
         "efectos")
     altura = int.from_bytes(nuevo[1:3], "little")
-    esperada = snes_music.effect_pitch(
-        snes_music.SoundEffect("Close1", b"", 22050, None, 0), 100)
+    esperada = musica.altura_de_efecto(22050, 100)
     assert altura == esperada, (
         "Close1 arrancó con la altura %d y la de 22.050 Hz es %d" % (
             altura, esperada))
-    crudo, fuente = snes_music.read_wav("Close1")
+    crudo, fuente = musica.wav("Close1")
     del_wav = _envolvente(numpy.array(crudo, float), fuente)
     grabada = _envolvente(muestras, tasa)
     n = min(len(grabada), len(del_wav)) - 5

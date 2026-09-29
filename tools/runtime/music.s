@@ -4,9 +4,9 @@
 ; The stream is per note: notes, releases, volume or pitch changes of a voice
 ; that is playing, and waits; `music_frame` expands it into DSP writes. The
 ; opcodes are declared by `tools/protocol/music.toml` and the equate comes out
-; generated: until 2026-09-15 they were written by hand here **and** in
-; tools/audio/snes_music.py, which is what writes the stream, with nothing tying
-; the two copies together.
+; generated: until 2026-09-15 they were written by hand here **and** in the
+; compiler that writes the stream —today tools/rm2k-snes-audio/—, with nothing
+; tying the two copies together.
 
 ; One music frame per video frame, plus an extra one every five if the console
 ; is PAL: six every five is exactly 60 per 50.
@@ -77,7 +77,7 @@ ready:
 ; The cartridge has carried several songs since 2026-09-06 and **they all share
 ; the sample bank**, which is uploaded only once at boot: changing song is
 ; changing stream and nothing else, so it does not cost even a frame. Hence
-; there is nothing to upload here. See `Bank` in tools/audio/snes_music.py.
+; there is nothing to upload here. See `Bank` in tools/rm2k-snes-audio/src/bank.rs.
 ;
 ; Which index is playing stays in `song_current`, which is what `music_frame`
 ; needs to start over when the stream ends: without it the loop always went
@@ -454,10 +454,11 @@ done:
 ready:
 .endmacro
 
-; One frame of music. The stream is per note —see "el formato por nota" in
-; tools/audio/snes_music.py and the header of tools/protocol/music.toml— and
-; here it is expanded into the DSP writes that `dsp_music` sends: exactly
-; those of `escrituras`, frame by frame, and
+; One frame of music. The stream is per note —see "the per-note format" in
+; tools/rm2k-snes-audio/src/stream.rs and the header of
+; tools/protocol/music.toml— and here it is expanded into the DSP writes that
+; `dsp_music` sends: exactly those of `writes` in stream.rs, frame by frame,
+; and
 ; rom/pruebas/rpgmaker/test_musica_escrituras.py checks it. It reads until it
 ; hits a wait, which closes the frame: it keys on the voices that got a note,
 ; and the next frame opens by clearing that key-on. On reaching the end it

@@ -22,10 +22,8 @@ without xdist. ABL's suite does not run them, and they need nothing from
 ABL: that is why they do not ask `rm2k-snes-cartridges` anything either.
 
 What they do use from outside: `test_protocol.py` runs `protocol` from the
-PATH, and `test_music_stream.py` reads the samples' SoundFont with
-`gunter`, from the PATH, from wherever `ABL_SOUNDFONT` says. The SoundFont
-does not belong to the game but is material for the converter, even though
-the variable still carries ABL's name. `test_protocol.py` and
+PATH. The music stream's tests, which read a SoundFont, are in Rust, in
+`rm2k-snes-audio/`: `just audio-test`. `test_protocol.py` and
 `test_substitutions.py` also read the runtime, in `tools/runtime/`, which
 travels with the tools: the files it is made of are the ones
 `rm2k-snes-assemble --sources` lists, from the PATH, glued together by the
@@ -48,8 +46,6 @@ has to exist: `test_index.py` enforces it.
   and `\^` escapes
 * `test_inherited_songs.py`: which song may be playing when each map's
   package is loaded, which is what the layout reserves for it
-* `test_music_stream.py`: the stream the converter builds: which voice each
-  note goes to, when it is released and with which envelope
 * `test_project.py`: that where each thing is —the root, the repo's
   folders— is known only to `common/project.py`, that no tool reads the
   environment on its own, and that none knows about A Blurred Line: no

@@ -29,11 +29,11 @@ one in its own row or above.
                  draw; the CharSets on top of them, and the image of the
                  fork's ChipSets (chipset_recipe); uses rpgmaker
 
-    audio/       from MIDI to the SPC700: snes_music, midi, music, sdsp,
-                 spc700, brr_samples, snes_samples, music_opcodes; the
-                 MSU-1 tracks (msu) and sound effects (msu_effects); and
-                 each song's volume ceiling (ceilings); uses rpgmaker and
-                 common
+    audio/       what of the music is still Python: the MSU-1 tracks
+                 (msu), each song's volume ceiling (ceilings), and the
+                 music stream's opcodes (music_opcodes, generated). The
+                 music itself —from MIDI to the SPC700— is
+                 `rm2k-snes-audio`'s, below; uses rpgmaker and common
 
     port/        the converter to SNES —snes_convert— and everything only it
                  uses: events, event_opcodes, battle, experience,
@@ -60,6 +60,9 @@ in English and without a single mention of this game (see AGENTS.md):
     cartridge/   `rm2k-snes-cartridges`, `rm2k-snes-assemble` and
                  `rm2k-snes-space`: which cartridges there are and building
                  them, the bank packing, ca65 + ld65, and the space left
+    rm2k-snes-audio/  a game's music for the SPC700: the shared sample bank,
+                 a stream per song, an audio package per map; the converter
+                 runs it, and it uses `gunter` as a library
 
 They are installed with `just -f tools/justfile install` and used from
 the PATH: no `.py` here builds them or looks for them in `target/`. The same
@@ -190,7 +193,7 @@ their location.
 and not from the MIDI), `--cache`, `--test-cartridges` and, in
 `abl-entregar`, `--shared`. Each executable adds the ones it uses and
 sets them in `common/environment.py`, where the rest read them from;
-`resources.GAME_DIR` and `snes_samples.SOUNDFONT` are resolved there when
+`resources.GAME_DIR` and `resources.RTP_DIR` are resolved there when
 read. **None has a default value**, except the cache and the test
 cartridges, which have their place in the project's `build`: a machine's
 value belongs to the caller. In A Blurred Line, `rom/justfile` translates its

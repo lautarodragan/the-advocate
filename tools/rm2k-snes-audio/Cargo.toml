@@ -1,0 +1,27 @@
+[package]
+name = "rm2k-snes-audio"
+version = "0.1.0"
+edition = "2021"
+description = "Compiles an rm2k-snes game's music for the SPC700: the shared sample bank, one stream per song, one audio package per map"
+
+[lib]
+name = "rm2k_snes_audio"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rm2k-snes-audio"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+gunter = { path = "../gunter" }
+rm2k-project = { path = "../project" }
+serde_json = { version = "1", features = ["preserve_order"] }
+sha2 = "0.10"
+toml = "1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

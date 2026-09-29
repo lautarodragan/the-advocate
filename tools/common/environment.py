@@ -15,10 +15,10 @@ hang off the project —the cache and the test cartridges, inside its
 `build`—: a machine default would be one machine's.
 
 It is a single place that gets configured, and not a parameter in every
-function, on purpose: `resources.GAME_DIR`, `resources.RTP_DIR` and
-`snes_samples.SOUNDFONT` are read inside some forty functions of the
-converter and the music, and passing them as parameters touched all those
-signatures. Those names still exist, but they are resolved here when read
+function, on purpose: `resources.GAME_DIR` and `resources.RTP_DIR` are
+read inside some forty functions of the converter, and passing them as
+parameters touched all those signatures. Those names still exist, but they
+are resolved here when read
 —see each module's `__getattr__`—, so they fail clearly if read without
 being set.
 """
@@ -113,7 +113,9 @@ def rtp():
 
 
 def soundfont():
-    """The bank the samples come from: see `audio/snes_samples.py`."""
+    """The bank the SPC700 samples and the MSU-1 tracks come from: the
+    converter passes it on to `rm2k-snes-audio`, and `audio/msu.py` renders
+    with it."""
     return _require("soundfont")
 
 

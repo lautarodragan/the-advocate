@@ -689,8 +689,9 @@ def system_songs(path):
     """The names of the songs in the LDB's `System` at `path`: the title's,
     the battle's, Game Over's, the vehicles'...
 
-    Without loading the whole database, which is what `snes_music` needs:
-    numbering the MSU-1 tracks has no reason to read the actors.
+    Without loading the whole database, which is what the music needs:
+    numbering the MSU-1 tracks has no reason to read the actors. The
+    converter passes them to `rm2k-snes-audio`.
     """
     system = read_json(dump_dir(path), "db", "system.json")
     return sorted({text(value["name"]) for name, value in system.items()

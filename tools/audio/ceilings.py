@@ -7,8 +7,8 @@
     rm2k-snes-volume-ceilings --measure  only measures the `release` that
                                          is built, and writes nothing
 
-The reason for the table is in `read_ceilings` (tools/audio/snes_music.py).
-This is how it comes out:
+The reason for the table is in `ceilings`, in `rm2k-snes-audio`'s
+`game.rs`, which is what reads it. This is how it comes out:
 
 1. **A copy of `release` with every song at half the headroom**
    (`MEASURING_HEADROOM`), in `rom/build/techos/`. With that none clips, so
@@ -16,7 +16,7 @@ This is how it comes out:
    linear in the ceiling, each song's with the full headroom is double.
 2. **Each whole song on the title screen**, in snes9x without MSU-1, and its
    peak. Each one's headroom is the highest that keeps that peak `MARGIN`
-   below the cap, without going past `sdsp.HEADROOM`: the ones that do not
+   below the cap, without going past the usual `HEADROOM`: the ones that do not
    clip stay as they were.
 3. **The table is written, `release` is rebuilt and measured again**. Each
    voice's volume is rounded to an integer, so the arithmetic is
@@ -45,7 +45,6 @@ from multiprocessing import Pool
 # PATH as a symlink, and what matters is where the real file is.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
-from audio import sdsp, snes_music                      # noqa: E402
 from common import environment                              # noqa: E402
 from common import settings                              # noqa: E402
 from common import project                              # noqa: E402
@@ -56,9 +55,27 @@ from common import project                              # noqa: E402
 if __name__ == "__main__":
     project.from_command_line()
 
+# The music compiler, which is what builds each song with a headroom and the
+# master volume: its numbers are asked of it, so they are not written in two
+# places.
+AUDIO = "rm2k-snes-audio"
+
+
+def _engine():
+    """`headroom` and `master`, from `rm2k-snes-audio constants`."""
+    done = subprocess.run([AUDIO, "constants"], capture_output=True,
+                          text=True)
+    if done.returncode:
+        sys.exit("%s constants failed: %s" % (AUDIO, done.stderr.strip()))
+    return json.loads(done.stdout)
+
+
+# The usual headroom: what a song that does not clip keeps.
+HEADROOM = _engine()["headroom"]
+
 # Half the usual headroom: measured on 2026-09-26, with 0.25 none of the 32
 # songs of `release` clips, and the loudest one stays 3.9 dB below the cap.
-MEASURING_HEADROOM = sdsp.HEADROOM / 2
+MEASURING_HEADROOM = HEADROOM / 2
 
 # What the measured ROM is called: the game's, in its project file.
 ROM_NAME = settings.value("rom", "name", kind=str)
@@ -71,7 +88,7 @@ MARGIN = 10 ** (-0.5 / 20)
 # Where the cap lies in what comes out of the console: the DSP saturates the
 # sum of the voices at 16 bits and then multiplies it by the master volume,
 # MVOL/128.
-CAP = 32767 * sdsp.MASTER >> 7
+CAP = 32767 * _engine()["master"] >> 7
 
 # How many frames before the end of boot —`BOOT_FRAMES`, read from the ROM—
 # recording starts: the title screen starts its song afterwards, so it is
@@ -215,13 +232,20 @@ def built_songs(directory):
         return json.load(handle)["temas"]
 
 
+def ceilings_path():
+    """Where the table is: with what was decided automatically, in the
+    project's patches. A function and not a constant, because the project is
+    found when used and not at import."""
+    return os.path.join(project.auto_patches(), "musica", "techos.toml")
+
+
 def db(peak):
     return 20 * math.log10(max(peak, 1) / float(CAP))
 
 
 def write(ceilings, measured, fingerprints, path=None):
     """The table, with its reason on top."""
-    path = path or snes_music.ceilings_path()
+    path = path or ceilings_path()
     lines = [
         "# The volume ceiling of each song of `release`: the headroom",
         "# `build_all` builds its stream with, instead of `sdsp.HEADROOM`.",
@@ -313,9 +337,9 @@ def main():
                  % (MEASURING_HEADROOM, ", ".join(clipping)))
     ceilings = {}
     for name, row in at_half.items():
-        full = row["pico"] * sdsp.HEADROOM / MEASURING_HEADROOM
-        ceilings[name] = min(sdsp.HEADROOM, math.floor(
-            1000 * sdsp.HEADROOM * CAP * MARGIN / max(full, 1)) / 1000.0)
+        full = row["pico"] * HEADROOM / MEASURING_HEADROOM
+        ceilings[name] = min(HEADROOM, math.floor(
+            1000 * HEADROOM * CAP * MARGIN / max(full, 1)) / 1000.0)
 
     for attempt in range(4):
         write(ceilings, {n: dict(f, lufs=0.0) for n, f in at_half.items()},
@@ -342,7 +366,7 @@ def main():
     # `rm2k-snes-cartridges`).
     write(ceilings, measured, fingerprints)
     report(measured, ceilings)
-    print("-> %s" % os.path.relpath(snes_music.ceilings_path()))
+    print("-> %s" % os.path.relpath(ceilings_path()))
 
 
 if __name__ == "__main__":

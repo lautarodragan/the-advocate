@@ -3,7 +3,7 @@
 
 MSU-1 is not Super Nintendo hardware: it is an extension supported by the FX
 Pak Pro and by emulators, with the music in PCM files next to the ROM. Every
-song has a track —the number comes from `msu_track`, in snes_music.py—, and
+song has a track —the number comes from `rm2k-snes-audio`—, and
 with MSU-1 the ROM silences the SPC700 and plays the track; without MSU-1 the
 signature is not there and everything sounds as always. See
 `workflow/tasks/done/audio-msu-1.md`, and for the battle backgrounds that
@@ -18,7 +18,7 @@ tracks it can be empty.
 
 The audio comes from rendering the MIDI with fluidsynth and **the same
 soundfont the game sounded with on the PC**, which is the one
-`snes_samples.py` already uses to get the SPC700 samples: the idea is not to
+`rm2k-snes-audio` already uses to get the SPC700 samples: the idea is not to
 change the arrangement but to stop synthesizing it with eight voices and
 trimmed samples. A song that in the game is a WAV —the SPC700 does not play
 it: it comes out silent— gets a track anyway, decoded with ffmpeg like a
@@ -75,8 +75,6 @@ import numpy
 if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-from audio import snes_music                                # noqa: E402
-from audio import snes_samples                              # noqa: E402
 from common import environment                                  # noqa: E402
 from common import disk_cache                               # noqa: E402
 from common import project                                  # noqa: E402
@@ -103,7 +101,8 @@ def fluidsynth_fingerprint():
     version.
 
     The binary goes in because it is what produces the bytes —the same reason
-    `brr_samples.version()` carries `gunter`'s— and the `--version` text goes
+    the cartridges' fingerprint carries every binary that builds them— and the
+    `--version` text goes
     in because the bulk of the synthesis lives in `libfluidsynth`, which the
     binary does not contain: updating the library without the executable
     changing has to expire the tracks all the same.
@@ -178,6 +177,38 @@ def decode(audio, out_path):
                    check=True)
 
 
+_fingerprints = {}
+
+
+def soundfont_fingerprint(path):
+    """The SoundFont's content, not its path: `--soundfont` can point to
+    another bank, and a bank can change without changing its name, and the
+    key has to expire with either. It is read once per process because the
+    file weighs megabytes."""
+    if path not in _fingerprints:
+        h = hashlib.sha256()
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                h.update(chunk)
+        _fingerprints[path] = h.hexdigest()
+    return _fingerprints[path]
+
+
+def song_path(name, game_dir):
+    """The song's file —the game's and, if it is not there, the RTP's—, or
+    None: `rm2k-snes-audio find-song` answers it, which is where the
+    compiler looks for it too."""
+    done = subprocess.run(
+        ["rm2k-snes-audio", "find-song", name, "--game-dir", game_dir,
+         "--rtp-dir", resources.RTP_DIR, "--project", project.directory()],
+        capture_output=True, text=True)
+    if done.returncode == 1:
+        return None
+    if done.returncode:
+        sys.exit("rm2k-snes-audio find-song failed: %s" % done.stderr.strip())
+    return done.stdout.strip()
+
+
 def track_key(midi, soundfont, gain, peak=PEAK):
     """Everything that changes the track's bytes, as a key.
 
@@ -192,7 +223,7 @@ def track_key(midi, soundfont, gain, peak=PEAK):
         raw = f.read()
     return disk_cache.key(disk_cache.version_of("audio/msu.py"),
                           fluidsynth_fingerprint(),
-                          snes_samples.soundfont_fingerprint(soundfont),
+                          soundfont_fingerprint(soundfont),
                           "%.17g %.17g" % (gain, peak),
                           raw)
 
@@ -265,7 +296,7 @@ def build(rom, game_dir=None, soundfont=None, gain=GAIN,
     runs this on every `just pruebas`, with `--quiet`.
     """
     game_dir = game_dir or resources.GAME_DIR
-    soundfont = soundfont or snes_samples.SOUNDFONT
+    soundfont = soundfont or environment.soundfont()
     replacements = replacements or environment.msu_replacements()
     base = os.path.splitext(rom)[0]
     # The file that turns MSU-1 on. The converter writes it with its data, so
@@ -311,7 +342,7 @@ def _one_track(base, name, number, game_dir, soundfont, gain,
     audio = replacement(replacements, name)
     midi = None
     if not audio:
-        source = snes_music.song_path(name, game_dir)
+        source = song_path(name, game_dir)
         if not source:
             sys.exit("cannot find the music for %s" % name)
         if source.lower().endswith(".mid"):

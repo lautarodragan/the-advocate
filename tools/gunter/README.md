@@ -11,6 +11,11 @@ Two jobs that always turn up together, as one binary:
 * **`gunter sf2`** — read a SoundFont and take a sample out of it, which is how
   you get PCM worth encoding in the first place.
 
+The same two are a library, for a program that builds many samples and would
+rather not start a process for each: `gunter::codec` encodes and decodes,
+`gunter::sf2` reads the font, and `gunter::extract` is what `sf2 --extract`
+does —the selector, the zone, the contract below and the audio—.
+
 Nothing here knows what the samples are for. Where files go, what a sample is
 called, how loud it should be and at what rate to store it are the caller's
 decisions; this only does the two conversions, and says exactly what it did.

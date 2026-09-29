@@ -2,7 +2,7 @@
 
 There are two bytecodes in this port: the event one, which
 `tools/port/events.py` emits and the ROM interprets, and the music stream,
-which `tools/audio/snes_music.py` writes and `irq_music` reads. They are
+which `rm2k-snes-audio` writes and `irq_music` reads. They are
 declared by `tools/protocol/`, which belongs to neither side, and from there
 the files in `GENERADOS` are generated. The generator is a Rust binary
 installed with `just -f tools/justfile install` and used from the PATH,
@@ -46,8 +46,11 @@ GENERADOS = [
 ]
 # What each one needs on top, as in the `protocol` recipe of tools/justfile:
 # without this `--check` compares against an `.inc` without the dispatch table
-# and reports it as stale.
-BANDERAS = {"events": ["--jump-table"]}
+# and reports it as stale. The music stream has a third end, in Rust: the
+# compiler that writes it.
+BANDERAS = {"events": ["--jump-table"],
+            "music": ["--rust", os.path.join(project.tools(), "rm2k-snes-audio",
+                                             "src", "music_opcodes.rs")]}
 
 
 def declared(modulo):

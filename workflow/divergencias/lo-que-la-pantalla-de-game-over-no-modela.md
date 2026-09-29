@@ -38,7 +38,7 @@ escalado—.
 El tema, `GameOver3`, también es del RTP: desde ese día la música se busca en
 el juego y después en el RTP, como en RM2k, y las pistas de MSU-1 de los temas
 del RTP que nombra el `System` van numeradas detrás de las del juego: ver
-`numeros_de_pista` en tools/audio/snes_music.py.
+`track_numbers` en tools/rm2k-snes-audio/src/game.rs.
 
 Lo cubren `rom/pruebas/rpgmaker/test_game_over.py` —los tres caminos, la golden,
 la tecla y el título— y `test_game_over` en `test_cores.py`.

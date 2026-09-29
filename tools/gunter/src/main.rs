@@ -9,13 +9,12 @@
 //! Where files go is the caller's business: nothing here has a default path or
 //! a directory it knows about.
 
-mod codec;
-mod fail;
-mod sf2;
-mod wav;
-
 use clap::{Args as ClapArgs, Parser, Subcommand};
-use fail::{Bad, Result};
+use gunter::extract::{self, parse_selector};
+#[cfg(test)]
+use gunter::extract::{Selector, REFERENCE_KEY};
+use gunter::fail::{Bad, Result};
+use gunter::{codec, sf2, wav};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -419,52 +418,6 @@ fn info(args: &Info) -> Result<u8> {
 
 // --- soundfont --------------------------------------------------------------
 
-/// What `--extract` was asked for.
-#[derive(Debug)]
-enum Selector {
-    Program { program: u16, bank: u16, key: u8 },
-    Named(String),
-}
-
-/// The key a melodic program's zone is chosen with when nobody says: middle C.
-const REFERENCE_KEY: u8 = 60;
-
-fn parse_selector(text: &str) -> Result<Selector> {
-    let bad = || {
-        Bad(format!(
-            "{text:?} is not a selector: expected program:N, program:N@KEY, \
-             drum:N or sample:NAME"
-        ))
-    };
-    let (kind, rest) = text.split_once(':').ok_or_else(bad)?;
-    match kind {
-        "program" => {
-            let (number, key) = match rest.split_once('@') {
-                Some((n, k)) => (n, Some(k)),
-                None => (rest, None),
-            };
-            let program: u16 = number.parse().map_err(|_| {
-                Bad(format!("program {number:?} is not a number 0-127"))
-            })?;
-            let key: u8 = match key {
-                None => REFERENCE_KEY,
-                Some(k) => k
-                    .parse()
-                    .map_err(|_| Bad(format!("key {k:?} is not a number 0-127")))?,
-            };
-            Ok(Selector::Program { program, bank: 0, key })
-        }
-        "drum" => {
-            let key: u8 = rest
-                .parse()
-                .map_err(|_| Bad(format!("drum key {rest:?} is not a number 0-127")))?;
-            Ok(Selector::Program { program: 0, bank: sf2::DRUM_BANK, key })
-        }
-        "sample" => Ok(Selector::Named(rest.to_string())),
-        _ => Err(bad()),
-    }
-}
-
 fn soundfont(args: &Sf2) -> Result<u8> {
     let mut font = sf2::SoundFont::open(&args.file)?;
 
@@ -535,44 +488,21 @@ fn soundfont(args: &Sf2) -> Result<u8> {
     };
 
     let selector = parse_selector(text)?;
-    let (zone, envelope, sample) = match &selector {
-        Selector::Program { program, bank, key } => match font.zone_for(*program, *key, *bank) {
-            Some(found) => (Some(found.zone.clone()), Some(found.envelope()), found.sample),
-            None => {
-                eprintln!(
-                    "{}: nothing covers {text}",
-                    args.file.display()
-                );
-                return Ok(NO);
+    let Some(found) = extract::contract(&font, &selector) else {
+        match &selector {
+            extract::Selector::Named(name) => {
+                eprintln!("{}: no sample named {name:?}", args.file.display())
             }
-        },
-        Selector::Named(name) => match font.find_sample(name) {
-            Some(s) => (None, None, s.clone()),
-            None => {
-                eprintln!("{}: no sample named {name:?}", args.file.display());
-                return Ok(NO);
-            }
-        },
+            _ => eprintln!("{}: nothing covers {text}", args.file.display()),
+        }
+        return Ok(NO);
     };
-
-    // The loop is reported relative to the extracted audio, because that is
-    // the only place it means anything once the sample is out of the file.
-    let looped = zone.as_ref().map_or(
-        sample.loop_end > sample.loop_start,
-        |z| z.looped() && sample.loop_end > sample.loop_start,
-    );
-    let loop_start = looped.then(|| sample.loop_start.saturating_sub(sample.start));
-    let loop_end = looped.then(|| sample.loop_end.saturating_sub(sample.start));
-
-    let root = match zone.as_ref().and_then(|z| z.get(sf2::GEN_ROOT_KEY)) {
-        Some(k) if (0..=127).contains(&k) => k as u8,
-        _ => sample.root_key,
-    };
-    // A SoundFont corrects tuning from three different places, and a player
-    // that reads only one of them plays the sample out of tune.
-    let cents = sample.correction as i32
-        + zone.as_ref().map_or(0, |z| z.get_or(sf2::GEN_FINE_TUNE, 0))
-        + 100 * zone.as_ref().map_or(0, |z| z.get_or(sf2::GEN_COARSE_TUNE, 0));
+    let sample = &found.sample;
+    let envelope = found.envelope;
+    let (loop_start, loop_end) = (found.loop_start, found.loop_end);
+    let looped = found.loops();
+    let root = found.root_key;
+    let cents = found.tuning_cents;
 
     let audio = font.pcm(sample.start, sample.end)?;
     if let Some(path) = &args.output {
