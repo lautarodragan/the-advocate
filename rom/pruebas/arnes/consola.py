@@ -1002,8 +1002,10 @@ class Partida:
         with open(self.sfc, "rb") as archivo:
             rom = archivo.read()
         # Desde el principio del stream hasta el final del archivo: en LoROM
-        # el byte que sigue a $xxFFFF es el siguiente del archivo —ver
-        # `DelCartucho`—, y lo que sigue al `OP_END` no se lee.
+        # el byte que sigue a $xxFFFF está en $(xx+1)8000, que en el archivo
+        # es el siguiente —es el salto de banco de `advance` en
+        # runtime/music.s, visto desde el archivo—, y lo que sigue al
+        # `OP_END` no se lee.
         return musica.decodificar(rom[en_la_rom(direccion):], sonidos)
 
     def acceso(self):
@@ -1109,19 +1111,6 @@ def indice_del_tema(una, nombre):
         "el cartucho no lleva %s: el conversor no le pidió el tema al mapa"
         % nombre)
     return nombres.index(nombre)
-
-
-class DelCartucho:
-    """Los bytes del cartucho desde `direccion`, como una secuencia. En LoROM
-    el byte que sigue a $xxFFFF está en $(xx+1)8000, que en el archivo es el
-    siguiente, así que alcanza con el desplazamiento: es el salto de banco de
-    `advance` en runtime/music.s, visto desde el archivo."""
-
-    def __init__(self, rom, direccion):
-        self.rom, self.base = rom, en_la_rom(direccion)
-
-    def __getitem__(self, i):
-        return self.rom[self.base + i]
 
 
 def en_la_rom(direccion):
