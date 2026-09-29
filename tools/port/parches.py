@@ -667,7 +667,7 @@ def _revisar_clase(clase, auto, builds, jugable):
             if cambios and (cual, tuple(cambios)) not in dichas:
                 dichas.add((cual, tuple(cambios)))
                 quejas.append(
-                    "%s is out of date (cartridge «%s» says so), and what "
+                    "%s is stale (cartridge «%s» says so), and what "
                     "changed in %s %s is this:\n    %s\n"
                     "  If the change is the one intended, `just parches` and "
                     "commit; if not, something moved what is seen."
@@ -695,8 +695,7 @@ def main(argv=None):
              "what `abl` decides. With --check and none given, those of all "
              "the cartridges in `cartuchos.py`")
     parser.add_argument("--check", action="store_true",
-                        help="do not write: fail if what is versioned is out "
-                             "of date")
+                        help="do not write: fail if what is versioned is stale")
     args = parser.parse_args(argv)
     ambiente.desde_argumentos(args, "test_cartridges")
     if not args.builds and args.check:

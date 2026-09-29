@@ -12,7 +12,7 @@ colors, and **all of the game's**, whether or not they are in the
 cartridge's maps: see "Which backdrops there are" in tools/port/escena.py.
 **Without MSU-1 the game has to work the same** —Mednafen does not have
 it—, so the ROM carries a light fallback, 4bpp and 16 colors, of the few
-that fit, and a substitute for the rest; the `.msu` replaces them when it is
+that fit, and a replacement for the rest; the `.msu` replaces them when it is
 there and it belongs to this cartridge. They are different on purpose: see
 "The light fallback" in tools/port/escena.py.
 

@@ -100,9 +100,9 @@ battles can ask for**: those a troop names, those of the maps with random
 encounters and, if the map names none, those of the terrains its cells
 stand on. taro asked for it on 2026-09-27, with the quality as low as needed
 for them to fit: see "The light fallback". Until that day it carried three,
-and the other battles used the substitute.
+and the other battles used the replacement.
 
-**The substitute**, `reemplazo()`, is left for what the ROM cannot know at
+**The replacement**, `reemplazo()`, is left for what the ROM cannot know at
 conversion time: a troop that fights with the "local" backdrop on a map
 without random encounters, where the backdrop comes from the terrain under
 the hero and any terrain of the map is possible. In `release` only test
