@@ -24,7 +24,6 @@ import pytest  # noqa: E402
 from port import event_opcodes  # noqa: E402
 from port import events  # noqa: E402
 from rpgmaker import lcf  # noqa: E402
-from assembly import assemble  # noqa: E402
 from audio import music_opcodes  # noqa: E402
 from common import project  # noqa: E402
 
@@ -45,7 +44,6 @@ GENERADOS = [
      _relative(os.path.join(project.tools(), "audio",
                             "music_opcodes.py"))),
 ]
-MAIN = os.path.join(project.runtime(), "main.s")
 # What each one needs on top, as in the `protocol` recipe of tools/justfile:
 # without this `--check` compares against an `.inc` without the dispatch table
 # and reports it as stale.
@@ -90,7 +88,7 @@ def test_the_inc_and_the_py_say_the_same_numbers(nombre, modulo, inc, py):
     assert del_inc == declared(modulo)
 
 
-def test_no_opcode_in_the_rom_is_undeclared():
+def test_no_opcode_in_the_rom_is_undeclared(runtime_source):
     """A `cmp #OP_X` against something nobody declares does not assemble...
 
     ...today. But the day someone puts equates back by hand, or in a file the
@@ -99,7 +97,7 @@ def test_no_opcode_in_the_rom_is_undeclared():
     ROM they are a single symbol space, and in fact that is why `OP_FIN` had
     to be called `OP_DONE` —`OP_END` already belonged to the music stream—.
     """
-    fuente = assemble.source_text(MAIN)
+    fuente = runtime_source
     # Only the uses as an operand: bare names in comments do not count.
     usados = set(re.findall(r"#(OP_[A-Z0-9_]+)\b", fuente))
     assert usados, "not a single use of an opcode was found in tools/runtime/"

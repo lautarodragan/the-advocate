@@ -31,6 +31,7 @@ fingerprint of its mix, which is how the test knows the table is stale. See
 """
 
 import argparse
+import json
 import math
 import os
 import re
@@ -269,17 +270,32 @@ def report(measured, ceilings=None):
             ", %.1f LUFS" % row["lufs"] if "lufs" in row else ""))
 
 
+# What the converter needs from the machine, which `rm2k-snes-cartridges`
+# passes on to it.
+TO_CONVERTER = ("game_dir", "rtp_dir", "soundfont", "cache")
+
+
+def cartridges(*args, capture=False):
+    """Runs `rm2k-snes-cartridges`, the one that builds `release`, with this
+    project and this machine's values."""
+    return subprocess.run(
+        ["rm2k-snes-cartridges", "--project", project.directory(),
+         *environment.as_flags(*TO_CONVERTER), *args],
+        check=True, text=True, capture_output=capture).stdout
+
+
 def main():
-    from assembly import cartridges
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     project.add_argument(parser)
-    environment.add_arguments(parser, *cartridges.TO_CONVERTER)
+    environment.add_arguments(parser, *TO_CONVERTER)
     parser.add_argument("--measure", action="store_true",
                         help="only measure the built `release`: clipping, "
                              "peak and LUFS of each song")
     args = parser.parse_args()
-    environment.from_arguments(args, *cartridges.TO_CONVERTER)
-    release = cartridges.directory(cartridges.RELEASE)
+    environment.from_arguments(args, *TO_CONVERTER)
+    listed = json.loads(cartridges("--list", "--json", capture=True))
+    release = next(c["directory"] for c in listed["cartridges"]
+                   if c["name"] == listed["release"])
     if args.measure:
         report(measure(release, lufs=True))
         return
@@ -288,9 +304,8 @@ def main():
     measure_dir = os.path.join(project.build(), "techos")
     print("a copy of release with the headroom at %s, in %s"
           % (MEASURING_HEADROOM, measure_dir))
-    cartridges.convert(cartridges.RELEASE, measure_dir,
-                       os.path.join(measure_dir, ROM_NAME + ".sfc"),
-                       ["--measure-headroom", str(MEASURING_HEADROOM)])
+    cartridges(listed["release"], "--convert-into", measure_dir,
+               "--", "--measure-headroom", str(MEASURING_HEADROOM))
     at_half = measure(measure_dir)
     clipping = [n for n, f in at_half.items() if f["recortes"]]
     if clipping:
@@ -306,7 +321,9 @@ def main():
         write(ceilings, {n: dict(f, lufs=0.0) for n, f in at_half.items()},
               {n: "" for n in ceilings})
         print("release with the table, round %d" % (attempt + 1))
-        cartridges.build(cartridges.RELEASE, cartridges.fingerprint())
+        # Without the MSU-1 tracks: what is measured is the SPC700, and
+        # the tracks do not depend on the headroom.
+        cartridges(listed["release"], "--without-tracks")
         measured = measure(release, lufs=True)
         clipping = {n: f for n, f in measured.items() if f["recortes"]}
         if not clipping:
@@ -321,7 +338,8 @@ def main():
                     for t in built_songs(release) if t["largo"]}
     # What is rewritten now —the peaks, the fingerprints— does not change the
     # headrooms, so the cartridge just measured is still up to date: its
-    # stamp looks only at the table's headrooms (see `cartridges.fingerprint`).
+    # stamp looks only at the table's headrooms (see the fingerprint in
+    # `rm2k-snes-cartridges`).
     write(ceilings, measured, fingerprints)
     report(measured, ceilings)
     print("-> %s" % os.path.relpath(snes_music.ceilings_path()))

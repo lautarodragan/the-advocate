@@ -2,9 +2,11 @@
 su `.dbg` le sirva a Mesen2, y que la lista de mapas y de casos de cada uno
 diga lo que parece.
 
-Lo que el ensamblado hace sin un cartucho —el checksum, la cabecera, los
-símbolos, qué fuentes se incluyen— son pruebas de las herramientas, y viven
-con ellas.
+Lo que el armado hace sin un cartucho —el checksum, la cabecera, los
+símbolos, qué fuentes se incluyen, que un caso corra en el cartucho que
+lleva todos sea cual sea el orden del archivo— son pruebas de las
+herramientas, y viven con ellas. Acá se mira lo mismo sobre lo que este
+juego declara.
 """
 
 import os
@@ -12,30 +14,22 @@ import re
 
 import pytest
 
-from assembly import cartridges, assemble
+import cartuchos
 import tanda
 
 
-def test_todo_lo_que_arma_la_rom_esta_en_la_huella(tmp_path):
+def test_todo_lo_que_arma_la_rom_esta_en_la_huella():
     """Si no, editar un archivo incluido deja el cartucho "al día" y las
-    pruebas corren contra una ROM vieja sin avisar. Sobre el árbol de verdad, y
-    sobre uno armado a mano con un solo `.include`, que no depende de cuáles
-    tenga el árbol."""
-
-    def cubiertas(fuente):
-        huella = {os.path.realpath(r)
-                  for r in cartridges.fingerprint_files(fuente)}
-        principal = os.path.join(fuente, "main.s")
-        return [r for r in assemble.sources(principal)
-                if os.path.realpath(r) not in huella]
-
-    assert cubiertas(cartridges.RUNTIME) == []
-    (tmp_path / "main.s").write_text('.include "shop.s"\n')
-    (tmp_path / "shop.s").write_text("")
-    assert cubiertas(str(tmp_path)) == []
+    pruebas corren contra una ROM vieja sin avisar."""
+    huella = {os.path.realpath(r)
+              for r in cartuchos.lista()["fingerprint_files"]}
+    principal = os.path.join(cartuchos.runtime(), "main.s")
+    fuera = [r for r in cartuchos.fuentes(principal)
+             if os.path.realpath(r) not in huella]
+    assert fuera == []
 
 
-@pytest.mark.parametrize("nombre", sorted(cartridges.CARTRIDGES))
+@pytest.mark.parametrize("nombre", sorted(cartuchos.nombres()))
 def test_el_dbg_nombra_los_fuentes_relativos_a_la_raiz(nombre):
     """Mesen2 busca cada `file` del `.dbg` al lado del `.dbg` y subiendo de
     carpeta: con una ruta absoluta del contenedor no lo encuentra en el clon
@@ -48,30 +42,30 @@ def test_el_dbg_nombra_los_fuentes_relativos_a_la_raiz(nombre):
     absolutos = [n for n in nombres if os.path.isabs(n)]
     assert absolutos == []
     faltan = [n for n in nombres
-              if not os.path.isfile(os.path.join(cartridges.ROOT, n))]
+              if not os.path.isfile(os.path.join(cartuchos.raiz(), n))]
     assert faltan == []
 
 
-def test_donde_corre_un_caso_no_depende_del_orden_de_los_cartuchos(monkeypatch):
-    """Un caso que está en dos cartuchos corre en el que lleva todos, lo diga
-    como lo diga el diccionario. Con `test-special` primero, `parado-tapado`
-    corrió en el chico y movió su golden."""
-    antes = {caso: cartridges.where_is(caso)
-             for caso in cartridges.all_cases()}
-    monkeypatch.setattr(cartridges, "CARTRIDGES",
-                        dict(reversed(list(cartridges.CARTRIDGES.items()))))
-    despues = {caso: cartridges.where_is(caso)
-               for caso in cartridges.all_cases()}
-    assert antes == despues
-    assert any(len(donde) > 1 for donde in antes.values()), (
-        "ningún caso está en dos cartuchos: esta prueba no mira nada")
+def test_un_caso_que_esta_en_dos_corre_en_el_que_lleva_todos():
+    """Con `test-special` primero, `parado-tapado` corrió en el chico y movió
+    su golden. Que no dependa del orden lo cobran las pruebas de
+    `rm2k-snes-cartridges`; esto mira que este juego tenga un caso así, que
+    es lo que hace que la regla importe."""
+    todos = {c["name"] for c in cartuchos.lista()["cartridges"]
+             if c["all_cases"]}
+    en_dos = {caso: donde for caso in cartuchos.todos_los_casos()
+              for donde in [cartuchos.donde_esta(caso)] if len(donde) > 1}
+    assert en_dos, "ningún caso está en dos cartuchos: esta prueba no mira nada"
+    for caso, donde in en_dos.items():
+        assert donde[0] in todos, (caso, donde)
 
 
 def test_la_exclusion_y_los_agregados_de_release_hacen_algo():
     """Cada excluido es un mapa que la regla metería, y cada agregado uno que
     no: si no, el número está de adorno en la lista y nadie se entera. Pasa
-    si `MAPS_BELOW` baja por debajo de un excluido, o si se excluye un área del
+    si `below` baja por debajo de un excluido, o si se excluye un área del
     árbol, que la regla ya deja afuera sola."""
-    sin_excluir = cartridges.rule_maps(excluded={}, added=())
-    assert set(cartridges.EXCLUDED_MAPS) <= set(sin_excluir)
-    assert not set(cartridges.ADDED_MAPS) & set(sin_excluir)
+    mapas = cartuchos.lista()["maps"]
+    sin_excluir = set(mapas["by_the_rule_alone"])
+    assert set(mapas["excluded"]) <= sin_excluir
+    assert not set(mapas["added"]) & sin_excluir

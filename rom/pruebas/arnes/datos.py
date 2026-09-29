@@ -8,7 +8,7 @@ al armar el cartucho.
 Todo sale de `resources.GAME_DIR`, que es `ABL_GAME_DIR` si está puesta.
 
 **La base se lee una vez por proceso y se comparte**, y eso vale mientras
-nadie la modifique: ni las pruebas ni lo que llaman de `tools/port/` le
+nadie la modifique: ni las pruebas ni lo que llaman del conversor le
 escriben —`screens.equip` y el modelo de la pelea copian lo que toman—.
 Antes cada prueba la leía de nuevo, así que una que le escribiera a la
 compartida sería un cambio de comportamiento, no de arnés.
@@ -18,7 +18,7 @@ import functools
 import json
 import os
 
-from assembly import cartridges
+import cartuchos
 from rpgmaker.resources import GAME_DIR
 
 
@@ -80,33 +80,33 @@ def pagina_de(map_id, evento_id, numero):
 # todas las que vienen detrás.
 
 @functools.lru_cache(maxsize=None)
-def comandos_de_los_casos(cartucho=cartridges.RELEASE):
+def comandos_de_los_casos(cartucho=cartuchos.RELEASE):
     """Los comandos de todos los casos del cartucho, seguidos: lo que barre
     `case_commands` en el conversor."""
     from rpgmaker import lcf
     comandos = []
-    for nombre in cartridges.cases_of(cartucho):
-        with open(os.path.join(cartridges.CASES, nombre + ".json"),
+    for nombre in cartuchos.casos_de(cartucho):
+        with open(os.path.join(cartuchos.carpeta_de_casos(), nombre + ".json"),
                   encoding="utf-8") as archivo:
             comandos += lcf.handwritten_commands(json.load(archivo))
     return tuple(comandos)
 
 
 @functools.lru_cache(maxsize=None)
-def ranuras_de_variable(cartucho=cartridges.RELEASE):
+def ranuras_de_variable(cartucho=cartuchos.RELEASE):
     """{número de variable: ranura} del cartucho: las del juego, las de sus
     casos y, si lleva más de uno, la que elige el caso —ver
     `events.CASE_VARIABLE`—. Es lo que le pasa a `index_variables` el
     conversor."""
     from port import events
     extra = events.command_variables(comandos_de_los_casos(cartucho))
-    if len(cartridges.cases_of(cartucho)) > 1:
+    if len(cartuchos.casos_de(cartucho)) > 1:
         extra.add(events.CASE_VARIABLE)
     return events.variables_named(GAME_DIR, None, extra)
 
 
 @functools.lru_cache(maxsize=None)
-def ranuras_de_habilidad(cartucho=cartridges.RELEASE):
+def ranuras_de_habilidad(cartucho=cartuchos.RELEASE):
     """{(actor, habilidad): bit} del cartucho: los pares del juego con los que
     nombran sus casos, que es lo que le pasa el conversor."""
     from port import events

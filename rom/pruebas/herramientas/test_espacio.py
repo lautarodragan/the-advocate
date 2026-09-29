@@ -13,8 +13,7 @@ import subprocess
 
 import pytest
 
-from assembly import cartridges
-from assembly import space
+import cartuchos
 
 
 def _libre_con_res(sfc, segmento, tmp_path, n):
@@ -45,24 +44,24 @@ def _libre_con_res(sfc, segmento, tmp_path, n):
     ("ZEROPAGE", "zeropage", 1000),
 ])
 def test_lo_libre_es_lo_que_dice_ld65(segmento, clave, n, tmp_path):
-    sfc = cartridges.rom_of(cartridges.RELEASE)
-    assert space.measure(sfc)[clave] == _libre_con_res(sfc, segmento,
-                                                        tmp_path, n)
+    sfc = cartuchos.rom_de(cartuchos.RELEASE)
+    assert cartuchos.espacio(cartuchos.RELEASE)[clave] == _libre_con_res(
+        sfc, segmento, tmp_path, n)
 
 
 def test_el_banco_1_es_lo_que_rellena_el_align():
     """`FAR` termina en código y no en ceros, así que lo libre es lo que queda
     detrás de su último byte distinto de cero: la medición de antes, que no
     sirve si el código terminara en un `.byte 0`, pero sí para controlar."""
-    sfc = cartridges.rom_of(cartridges.RELEASE)
+    sfc = cartuchos.rom_de(cartuchos.RELEASE)
     with open(sfc, "rb") as archivo:
         banco1 = archivo.read()[0x8000:0x10000]
-    assert space.measure(sfc)["bank1"] == len(banco1) - len(banco1.rstrip(b"\0"))
+    assert cartuchos.espacio(cartuchos.RELEASE)["bank1"] == (
+        len(banco1) - len(banco1.rstrip(b"\0")))
 
 
 def test_los_textos_son_el_bloque_entero():
     """`MESSAGES_BYTES` y `MESSAGES_CAP` los emite el conversor al lado de
     `mensajes`: sin ellos la receta diría que la ROM no sabe cuánto miden."""
-    sfc = cartridges.rom_of(cartridges.RELEASE)
-    medido = space.measure(sfc)
+    medido = cartuchos.espacio(cartuchos.RELEASE)
     assert 0 < medido["texts"] <= medido["texts_cap"]

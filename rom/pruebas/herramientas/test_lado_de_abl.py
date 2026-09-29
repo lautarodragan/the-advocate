@@ -62,21 +62,18 @@ RECETAS_QUE_NOMBRAN_TOOLS = {
 # las herramientas. Las demás lo nombran en la prosa, para decir dónde está
 # lo que prueban, y se van al reescribirla. El 2026-09-29 salieron cinco: las
 # pruebas que no necesitan el juego se mudaron con las herramientas, y los
-# pedazos que se quedaron ya no nombran `tools/`.
+# pedazos que se quedaron ya no nombran `tools/`. Ese mismo día salieron seis
+# más, cuando el armado pasó a Rust y el arnés dejó de importarlo: le pregunta
+# a los ejecutables —ver `arnes/cartuchos.py`—.
 PRUEBAS_QUE_TODAVIA_NOMBRAN_TOOLS = {
     "pytest.ini",
     "pruebas/README.md",
-    "pruebas/conftest.py",
-    "pruebas/abl/test_msu.py",
     "pruebas/abl/test_msu_datos.py",
     "pruebas/abl/test_msu_efectos.py",
     "pruebas/abl/test_recorrido_capitulo_golden.py",
     "pruebas/abl/test_recorrido_carrera_golden.py",
-    "pruebas/arnes/consola.py",
-    "pruebas/arnes/datos.py",
     "pruebas/arnes/dibujo.py",
     "pruebas/arnes/lz2.py",
-    "pruebas/arnes/tanda.py",
     "pruebas/arnes/video.py",
     "pruebas/herramientas/test_lz2.py",
     "pruebas/rpgmaker/test_batalla.py",
@@ -86,7 +83,6 @@ PRUEBAS_QUE_TODAVIA_NOMBRAN_TOOLS = {
     "pruebas/rpgmaker/test_musica_escrituras.py",
     "pruebas/rpgmaker/test_musica_paquete.py",
     "pruebas/rpgmaker/test_musica_techos.py",
-    "pruebas/rpgmaker/test_pila.py",
 }
 
 # Lo que no es fuente: salida de las pruebas y cachés de Python.

@@ -56,7 +56,6 @@ import numpy
 if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-from assembly import banks
 from port import tiles_bin
 from port import compress
 from rpgmaker import event_codes
@@ -8350,17 +8349,10 @@ def main():
           % (music, ", ".join(t["nombre"] for t in done_ones)
              or "none, it comes out silent"))
 
-    # **And only here is the bank packing decided**, with both files already
-    # written: it spreads everything both send to RODATA, and the banks end up
-    # at the end of the last one. See `tools/assembly/banks.py`.
-    pieces, used = banks.resolve([music, args.output])
-    print("bank packing: %d piece(s) in %d bank(s)" % (pieces, used))
-    # And the memory map for `ld65`, next to it: it comes from here and not
-    # from a hand-written file so that which bank the data starts at is
-    # written only once, in `banks.FIRST_BANK`.
-    with open(os.path.join(os.path.dirname(os.path.abspath(args.output)),
-                           "memoria.cfg"), "w") as handle:
-        handle.write(banks.cfg())
+    # The bank packing is not decided here: both files send everything to
+    # RODATA, with a `.block` or a `.crossbank` in front of each piece, and
+    # `rm2k-snes-assemble` spreads it into banks and writes the memory map
+    # before running `ca65`.
     for i, song in enumerate(done_ones):
         # The percentage of notes that reach the stream goes here and not
         # hidden: it is what is heard as "it's missing voices", and until
