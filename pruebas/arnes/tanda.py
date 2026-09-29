@@ -33,16 +33,16 @@ Tres cosas que este archivo hace y conviene tener a la vista:
 
 import os
 
-from consola import (EMPEZAR, NUCLEO, RAIZ, RETRASO_DE_PANTALLA, Partida,
+from consola import (EMPEZAR, NUCLEO, RETRASO_DE_PANTALLA, Partida,
                      Simbolos, en_la_rom, mapas_de, marcar_la_pila, toques_de)
 
 from emulador import retro
 
+from comun import proyecto
 from ensamblado import cartuchos
 
 # Dónde viven las capturas congeladas y los planes.
-GOLDEN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "golden",
-                      "tanda")
+GOLDEN = os.path.join(proyecto.goldens(), "tanda")
 
 
 class Cartucho:
@@ -338,7 +338,7 @@ def golden(nombre, imagen):
     quedado de una corrida anterior: así ese directorio tiene sólo lo que está
     en rojo ahora, y no lo que estuvo alguna vez.
     """
-    rojo = os.path.join(RAIZ, "pruebas", "snapshots", "tanda")
+    rojo = os.path.join(proyecto.snapshots(), "tanda")
     donde = os.path.join(rojo, "%s.png" % nombre)
     ruta = os.path.join(GOLDEN, "%s.png" % nombre)
     if not os.path.exists(ruta):

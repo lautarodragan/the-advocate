@@ -87,7 +87,7 @@ import os
 
 import pytest
 
-from consola import RAIZ
+from consola import SNAPSHOTS
 from tanda import partida, quince_bits, ticks_de_avance
 
 # Los dos cores, por ruta. bsnes es el preciso y el que enciende con basura;
@@ -116,7 +116,7 @@ def iguales(nombre, una, otra):
     if aqui == alla:
         return
     distintos = sum(1 for a, b in zip(aqui, alla) if a != b)
-    donde = os.path.join(RAIZ, "pruebas", "snapshots", "cores")
+    donde = os.path.join(SNAPSHOTS, "cores")
     os.makedirs(donde, exist_ok=True)
     una.save(os.path.join(donde, "%s-snes9x.png" % nombre))
     otra.save(os.path.join(donde, "%s-bsnes.png" % nombre))

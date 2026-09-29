@@ -10,8 +10,7 @@ import glob
 import json
 import os
 
-RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+from comun import proyecto                               # noqa: E402
 from port import eventos                                # noqa: E402
 from port import textos                                 # noqa: E402
 from port import constantes                             # noqa: E402
@@ -23,7 +22,7 @@ def _palabras(cuadros, con_hablante):
 
 
 def _cuadros_del_juego():
-    rutas = sorted(glob.glob(os.path.join(RAIZ, "data", "maps", "Map*.json")))
+    rutas = sorted(glob.glob(os.path.join(proyecto.data(), "maps", "Map*.json")))
     for ruta in rutas:
         with open(ruta, encoding="utf-8") as handle:
             datos = json.load(handle)
@@ -68,7 +67,7 @@ def test_el_conversor_rearma_los_textos_al_leer_los_mapas():
     from port import snes_convert                       # noqa: F401
     from rpgmaker import lcf
     assert lcf.REAJUSTAR_TEXTOS is textos.reajustar_comandos
-    mapa = lcf.Map(os.path.join(RAIZ, "data", "maps", "Map0002.json"))
+    mapa = lcf.Map(os.path.join(proyecto.data(), "maps", "Map0002.json"))
     largos = [c.string for evento in mapa.events
               for pagina in evento.pages for c in pagina.commands
               if c.code in (eventos.SHOW_MESSAGE, eventos.SHOW_MESSAGE_2)

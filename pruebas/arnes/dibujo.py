@@ -8,12 +8,12 @@ a 15 bits, que es lo que la consola puede mostrar.
 
 import os
 
-from consola import RAIZ
+from consola import RAIZ, SNAPSHOTS
 from tanda import quince_bits
 
 # Cuando difieren, la captura y la esperada quedan acá para mirarlas, como las
 # de la tanda en snapshots/tanda.
-PANTALLAS = os.path.join(RAIZ, "pruebas", "snapshots", "pantallas")
+PANTALLAS = os.path.join(SNAPSHOTS, "pantallas")
 
 
 def pantalla_distinta(nombre, captura, esperada, distintos):
