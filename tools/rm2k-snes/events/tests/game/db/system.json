@@ -1,0 +1,81 @@
+{
+ "party": [
+  1
+ ],
+ "system_name": "System",
+ "font_id": 0,
+ "title_name": "Title",
+ "title_music": {
+  "name": "Title",
+  "volume": 100,
+  "tempo": 100,
+  "balance": 50
+ },
+ "gameover_name": "",
+ "gameover_music": {
+  "name": "",
+  "volume": 100,
+  "tempo": 100,
+  "balance": 50
+ },
+ "battle_music": {
+  "name": "Battle1",
+  "volume": 100,
+  "tempo": 100,
+  "balance": 50
+ },
+ "battle_end_music": {
+  "name": "Victory",
+  "volume": 100,
+  "tempo": 100,
+  "balance": 50
+ },
+ "battle_se": {
+  "name": "(OFF)",
+  "volume": 100,
+  "tempo": 100,
+  "balance": 50
+ },
+ "escape_se": {
+  "name": "Run",
+  "volume": 100,
+  "tempo": 100,
+  "balance": 50
+ },
+ "enemy_attack_se": {
+  "name": "Hit",
+  "volume": 80,
+  "tempo": 100,
+  "balance": 50
+ },
+ "enemy_damaged_se": {
+  "name": "Hurt",
+  "volume": 100,
+  "tempo": 100,
+  "balance": 50
+ },
+ "actor_damaged_se": {
+  "name": "Hurt",
+  "volume": 90,
+  "tempo": 100,
+  "balance": 50
+ },
+ "dodge_se": {
+  "name": "Miss",
+  "volume": 100,
+  "tempo": 100,
+  "balance": 50
+ },
+ "enemy_death_se": {
+  "name": "(OFF)",
+  "volume": 100,
+  "tempo": 100,
+  "balance": 50
+ },
+ "item_se": {
+  "name": "Item",
+  "volume": 100,
+  "tempo": 100,
+  "balance": 50
+ }
+}

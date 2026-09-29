@@ -1,0 +1,158 @@
+[
+ {
+  "id": 1,
+  "name": "A1",
+  "character_name": "Hero",
+  "character_index": 1,
+  "face_name": "",
+  "face_index": 0,
+  "parameters": {
+   "maxhp": [
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "maxsp": [
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "attack": [
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "defense": [
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "spirit": [
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "agility": [
+    10,
+    10,
+    10,
+    10,
+    10
+   ]
+  },
+  "initial_level": 3,
+  "final_level": 50,
+  "exp_base": 30,
+  "exp_inflation": 30,
+  "exp_correction": 0,
+  "skills": [
+   {
+    "id": 1,
+    "level": 1,
+    "skill_id": 2
+   },
+   {
+    "id": 2,
+    "level": 5,
+    "skill_id": 3
+   },
+   {
+    "id": 3,
+    "level": 1,
+    "skill_id": 0
+   }
+  ],
+  "rename_skill": false,
+  "skill_name": "",
+  "initial_equipment": {
+   "weapon_id": 3,
+   "shield_id": 0,
+   "armor_id": 0,
+   "helmet_id": 0,
+   "accessory_id": 0
+  }
+ },
+ {
+  "id": 2,
+  "name": "A2",
+  "character_name": "Hero",
+  "character_index": 2,
+  "face_name": "",
+  "face_index": 0,
+  "parameters": {
+   "maxhp": [
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "maxsp": [
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "attack": [
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "defense": [
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "spirit": [
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "agility": [
+    10,
+    10,
+    10,
+    10,
+    10
+   ]
+  },
+  "initial_level": 3,
+  "final_level": 50,
+  "exp_base": 30,
+  "exp_inflation": 30,
+  "exp_correction": 0,
+  "skills": [
+   {
+    "id": 1,
+    "level": 1,
+    "skill_id": 1
+   }
+  ],
+  "rename_skill": false,
+  "skill_name": "",
+  "initial_equipment": {
+   "weapon_id": 0,
+   "shield_id": 0,
+   "armor_id": 0,
+   "helmet_id": 0,
+   "accessory_id": 0
+  }
+ }
+]

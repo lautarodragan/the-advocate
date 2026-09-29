@@ -191,6 +191,15 @@ audio-test:
 battle-test:
   cd rm2k-snes/battle && cargo test
 
+# rm2k-snes-events: the event compiler —RM2k's pages to the bytecode the ROM
+# runs—, which the converter calls twice; see `port/compiler.py`.
+#
+# Its tests compile a small game kept in `tests/game/`, and compare against
+# the hashes of what the Python compiler it replaced answered for the same
+# requests on 2026-09-29: they need no game.
+events-test:
+  cd rm2k-snes/events && cargo test
+
 # --- Installation ----------------------------------------------------------
 # The Rust projects, in `snes/`, `rm2k/` and `rm2k-snes/`, are separate
 # projects, and the port consumes them **from the PATH**, the way it

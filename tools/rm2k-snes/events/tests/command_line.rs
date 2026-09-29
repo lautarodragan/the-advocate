@@ -1,0 +1,73 @@
+//! The binary as a caller sees it: what it writes, and with which exit
+//! code when it says no or the call is wrong.
+
+use serde_json::Value;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Output};
+
+fn here() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests")
+}
+
+fn scratch(name: &str) -> PathBuf {
+    let dir = std::env::temp_dir().join(format!("rm2k-snes-events-cli-{name}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    dir
+}
+
+fn run(command: &str, data: &Path, request: &Path, out: &Path) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_rm2k-snes-events"))
+        .arg(command)
+        .args(["--data", data.to_str().unwrap()])
+        .args(["--request", request.to_str().unwrap()])
+        .args(["--out", out.to_str().unwrap()])
+        .output()
+        .unwrap()
+}
+
+#[test]
+fn both_calls_write_their_answer() {
+    let dir = scratch("answer");
+    for (command, request) in [("scan", "scan.json"), ("compile", "compile.json")] {
+        let out = dir.join(command);
+        let done = run(command, &here().join("game"), &here().join(request), &out);
+        assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
+        let answer: Value = serde_json::from_str(&std::fs::read_to_string(out.join("events.json")).unwrap()).unwrap();
+        assert_eq!(answer["maps"].as_array().unwrap().len(), 3);
+    }
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn a_request_that_is_not_there_is_a_wrong_call() {
+    let dir = scratch("usage");
+    let done = run("scan", &here().join("game"), &dir.join("nowhere.json"), &dir.join("out"));
+    assert_eq!(done.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&done.stderr).starts_with("rm2k-snes-events: "));
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn a_text_the_font_does_not_have_is_a_no() {
+    let dir = scratch("font");
+    let mut request: Value =
+        serde_json::from_str(&std::fs::read_to_string(here().join("compile.json")).unwrap()).unwrap();
+    request["test_commands"] = serde_json::json!([
+        {"code": 10110, "indent": 0, "string": "¡Olé!", "parameters": []}
+    ]);
+    let path = dir.join("request.json");
+    std::fs::write(&path, request.to_string()).unwrap();
+    let done = run("compile", &here().join("game"), &path, &dir.join("out"));
+    assert_eq!(done.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&done.stderr).contains("not in the font"));
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn a_dump_that_is_not_one_is_a_no() {
+    let dir = scratch("dump");
+    let done = run("scan", &dir, &here().join("scan.json"), &dir.join("out"));
+    assert_eq!(done.status.code(), Some(1));
+    std::fs::remove_dir_all(&dir).unwrap();
+}
