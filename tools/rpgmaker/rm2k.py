@@ -19,7 +19,7 @@ CELL = 8
 # --- the ChipSet's geometry --------------------------------------------------
 #
 # Where each thing lives in a ChipSet's image, which is 480x256. The offsets
-# are those of EasyRPG Tools' lmu2png, same as those of `render/chipset.py`,
+# are those of EasyRPG Tools' lmu2png, same as those of `rm2k-render`,
 # which is what expands the ChipSet with them.
 
 TILE = 16
@@ -29,11 +29,11 @@ def terrain_box(n):
     """Where, in the ChipSet's image, the block of terrain autotile `n` lives
     —0 to 11, the one the map names with ids 4000 + n * 50—.
 
-    It is 48x64 pixels with the pieces `ChipsetAtlas._terrain_tile`
-    combines. It is here and not in whoever uses it because the offsets are
-    lmu2png's and have no reason to be written twice:
-    `ChipsetAtlas._terrain_tile` computes its corner with this same
-    calculation.
+    It is 48x64 pixels with the pieces `rm2k-render` combines into each
+    terrain tile, computing its corner with this same calculation
+    (`terrain_origin`, in its `src/chipset.rs`). It is here for the Python
+    that copies whole blocks —the fork's ChipSets—; the Rust side has its
+    own copy because it is a separate project.
     """
     terrain = n + 4
     sx = (terrain % 2) * 48 + (terrain // 8) * 96

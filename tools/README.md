@@ -26,9 +26,9 @@ one in its own row or above.
     emulator/    the libretro core from Python (retro), and the bsnes-libretro
                  patch that exposes the WRAM
 
-    render/      a map and a chipset as images, with the CharSets on top,
-                 and the image of the fork's ChipSets (chipset_recipe); uses
-                 rpgmaker
+    render/      a map's layers as images, which it asks `rm2k-render` to
+                 draw; the CharSets on top of them, and the image of the
+                 fork's ChipSets (chipset_recipe); uses rpgmaker
 
     audio/       from MIDI to the SPC700: snes_music, midi, music, sdsp,
                  spc700, brr_samples, snes_samples, music_opcodes; the

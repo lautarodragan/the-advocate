@@ -1815,7 +1815,8 @@ def converted_layers(renderer, game_map):
     warm build. With the key from the inputs, a warm build draws none.
 
     What is lost is exactly that virtue, and that is why `layer_inputs`
-    lives next to `render_layers` and says what it reads: now the list is
+    lives next to `animated_layers`, which builds what `rm2k-render` reads,
+    and says what that is: now the list is
     maintained by hand, and if it falls short the cache answers stale without
     anything failing.
 
@@ -2914,7 +2915,7 @@ class Substitutions:
             # **The lower half is only usable if the upper tile of that block
             # isn't baked into it.** An upper-layer tile **without** the
             # "Above" bit isn't drawn on BG2 but over the background —that is
-            # what `draw_tiles` decides, and that is why there are upper tiles
+            # what `rm2k-render` decides, and that is why there are upper tiles
             # whose BG2 half comes out empty—, so the lower half of that block
             # is the composition of the two and not the lower tile alone.
             # Copying it to build another combination would draw the
@@ -2939,7 +2940,7 @@ class Substitutions:
         """Whether that upper-layer tile is baked into the background instead
         of going to BG2.
 
-        It is `draw_tiles`'s computation: an upper tile goes above the hero
+        It is the computation `rm2k-render` draws with: an upper tile goes above the hero
         —that is, to BG2— only with the `Above` bit set, and without it it is
         drawn stuck to the background. The empty tile draws nothing and bakes
         nothing.
