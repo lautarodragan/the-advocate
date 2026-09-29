@@ -1,0 +1,41 @@
+# The Rust projects of the suite, as one Cargo workspace. They are still
+# separate projects —each one is installed on its own with `cargo install
+# --path <crate>`, and each one could be published on its own—; the workspace
+# only makes the dependencies they share compile once, into one `target/`,
+# and resolve to one version, in one `Cargo.lock`.
+#
+# `ditto/xtask` is Ditto's schema generator: a member because a workspace
+# cannot nest another one, and Ditto had its own for it.
+[workspace]
+members = [
+    "cartridge",
+    "ditto",
+    "ditto/xtask",
+    "gunter",
+    "lz2",
+    "project",
+    "protocol",
+    "rm2k-render",
+    "rm2k-snes-audio",
+    "voodoo",
+]
+# A virtual manifest has no edition to take the resolver from, and would fall
+# back to the old one. "2" is what every member, on edition 2021, used alone.
+resolver = "2"
+
+# The profiles live here because Cargo ignores a member's and warns about it.
+# Every project used these four.
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+# Ditto and protocol optimized for size. Their `panic = "abort"` did not come
+# along: Cargo does not allow `panic` per package, and unwinding changes how
+# big the binaries are, not what they do.
+[profile.release.package.ditto]
+opt-level = "z"
+
+[profile.release.package.protocol]
+opt-level = "z"

@@ -28,9 +28,3 @@ rm2k-project = { path = "../project" }
 serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.10"
 toml = "1"
-
-[profile.release]
-opt-level = 3
-lto = true
-codegen-units = 1
-strip = true

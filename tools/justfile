@@ -23,6 +23,12 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # The Rust projects, in the order they are installed. `project` is a
 # library: it has nothing to install, and it goes into `cartridge`'s
 # binaries, which are compiled with it.
+#
+# They are one Cargo workspace —`Cargo.toml`, here—, with one `Cargo.lock`
+# and one `target/`, but each is still tested and installed on its own: the
+# `*-test` recipes run `cargo test` standing in the project, which tests
+# only that one, and `cargo install --locked --path` takes the workspace's
+# lock.
 rust_projects := "protocol gunter ditto voodoo lz2 rm2k-render project cartridge rm2k-snes-audio"
 
 # The event opcodes: their number and their layout. The declaration lives in
@@ -54,6 +60,14 @@ protocol *args:
 # file, `-k`— works the same as in a plain `pytest`.
 test *args:
   pytest {{args}}
+
+# Every Rust project's tests at once, the whole workspace, in the debug
+# profile: the release one is `lto` and a single codegen unit, and compiling
+# every test binary that way costs more than the tests save. The ones that
+# need a game or a SoundFont are skipped the same way as in each project's
+# recipe, unless `DITTO_CORPUS` or `SOUNDFONT` are set.
+rust-test *args:
+  cargo test --workspace {{args}}
 
 # The generator's tests: the errors it must give for a broken declaration,
 # and the exact shape of the text it emits. They need neither the game nor
