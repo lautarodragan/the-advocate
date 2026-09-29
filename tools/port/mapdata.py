@@ -11,7 +11,7 @@ import os
 import sys
 import zlib
 
-from port import events
+from port import compiler, events
 from rpgmaker import lcf
 from rpgmaker import rm2k
 from port import picture
@@ -1961,7 +1961,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # four hundred bytes. Both are read with a long pointer whose bank
         # comes from `^troop_code` and `^messages_troop`, so it is enough
         # for each to fit whole in one bank, which is what `block` asks for.
-        pt = troop_pages or events.TroopPages()
+        pt = troop_pages or compiler.no_troop_pages()
         entries, page_start, page_n = [], [], []
         for number in used:
             theirs = pt.per_troop.get(number, [])

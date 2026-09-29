@@ -133,29 +133,6 @@ def test_maps(args):
     return {map_order(args)[args.start_index]}
 
 
-def case_page(case, map_info, songs, graphics, messages, indices, pictures):
-    """The bytecode of a case's test page.
-
-    It is compiled like any page of the game, with the context of the map
-    where it runs —see `case_map`—; the only thing the converter puts in
-    front of it is the `ControlSwitches` that turns it off, which is a
-    convention of the harness and not of the case —see
-    `events.TEST_SWITCH`—. The troops aren't noted here but at the end,
-    in `main`: the test's goes last.
-    """
-    turn_off = lcf.EventCommand(
-        events.CONTROL_SWITCHES, 0, "",
-        [events.SWITCH_SINGLE, events.TEST_SWITCH,
-         events.TEST_SWITCH, events.SWITCH_ON])
-    code = events.compile_page(
-        events._Commands([turn_off] + list(case.commands)), indices.get,
-        messages, events.MapEvents(map_info["game_map"]).for_event(0), songs,
-        graphics, pictures)
-    if code is None:
-        sys.exit("%s: the test page doesn't compile"
-                 % case.test_commands)
-    return code
-
 def asks_test_page(args):
     """Whether there is a test page before the first `--case`."""
     return bool(args.test_commands)

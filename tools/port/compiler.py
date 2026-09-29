@@ -358,6 +358,12 @@ def troop_pages(answer):
         left_out=data["left_out"])
 
 
+def no_troop_pages():
+    """The troop pages of a cartridge without any."""
+    return Registry(messages=messages("00", 0), bodies=bytearray(),
+                    where=range(0), per_troop={}, pages=0, left_out=0)
+
+
 def party_common_events(answer):
     """{common event: its code}: what the ROM runs when the menu closes."""
     return {number: bytes.fromhex(code)
