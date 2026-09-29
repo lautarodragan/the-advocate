@@ -21,7 +21,7 @@ local_tools := justfile_directory() / ".local-tools"
 export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bin" + ":" + env_var("PATH") } else { env_var("PATH") }
 
 # The Rust projects, in the order they are installed.
-rust_projects := "protocol gunter ditto voodoo lz2"
+rust_projects := "protocol gunter ditto voodoo lz2 rm2k-render"
 
 # The event opcodes: their number and their layout. The declaration lives in
 # `protocol/events.toml` and belongs neither to the compiler nor to the
@@ -112,11 +112,22 @@ voodoo-test:
 lz2-test:
   cd lz2 && cargo test --release
 
+# rm2k-render: a map's tile layers, and the other drawings of its ChipSet
+# animation, as PNGs —see `render/render_map.py`, which is what calls it—.
+# The directory is named after the binary because `render/` is the Python
+# that stays: the CharSets and `load_image`.
+#
+# Its tests draw a ChipSet and a map generated inside the test, and compare
+# against the hashes of what the Python that drew them until 2026-09-29 gave
+# for the same input: they need neither the game nor the RTP.
+render-test:
+  cd rm2k-render && cargo test --release
+
 # --- Installation ----------------------------------------------------------
-# `protocol/`, `gunter/`, `ditto/`, `voodoo/` and `lz2/` are separate
-# projects, and the port consumes them **from the PATH**, the way it consumes
-# a libretro core: no script or test of the game calls `cargo`. They are
-# installed once and stay.
+# `protocol/`, `gunter/`, `ditto/`, `voodoo/`, `lz2/` and `rm2k-render/` are
+# separate projects, and the port consumes them **from the PATH**, the way it
+# consumes a libretro core: no script or test of the game calls `cargo`. They
+# are installed once and stay.
 #
 # And the Python scripts that get executed, into the same `bin/`, so the
 # game's `justfile` calls them by name like the Rust ones. They go **as

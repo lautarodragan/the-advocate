@@ -95,6 +95,7 @@ from audio import snes_music
 from port.allocator import CELL, tile_colors
 from port.snes_format import cgram_word, entry, pack_tile
 from rpgmaker.rm2k import TILE, collect_npcs, hero_start, passability_map
+from render import render_map
 from render.render_map import Renderer, build_passability, load_image
 from common import environment
 from rpgmaker import resources
@@ -755,12 +756,9 @@ MOVING_COMMANDS = (events.MOVE_EVENT, events.CHANGE_EVENT_LOCATION,
                    events.TRADE_EVENT_LOCATIONS, events.FLASH_SPRITE)
 
 
-def _tile_alphas(atlas, index):
+def _tile_alphas(chipset, index):
     """The alpha of the 16x16 pixels of upper-layer tile `index`."""
-    from PIL import Image
-    tile = Image.new("RGBA", (TILE, TILE), (0, 0, 0, 0))
-    atlas.render_tile(tile, 0, 0, rm2k.UPPER_BASE + index)
-    return tile.getchannel("A").tobytes()
+    return render_map.upper_tile(chipset, index).getchannel("A").tobytes()
 
 
 def bakeable_events(renderer, game_map):
@@ -798,17 +796,17 @@ def bakeable_events(renderer, game_map):
     layer and `animated_layers` renders all of them from there. What is lost is
     the animation the opaque tile already covered.
     """
-    atlas = renderer.atlas_by_name(getattr(game_map, "chipset_filename",
-                                           None))
+    chipset = renderer.chipset_by_name(getattr(game_map, "chipset_filename",
+                                               None))
     flags = getattr(game_map, "passability_table", None)
-    if atlas is None or flags is None:
+    if chipset is None or flags is None:
         return {}
     # That tile 0 of the upper layer —the one an empty cell carries— draws
     # nothing is checked, not assumed: it is what makes putting the event's
     # tile there cover nothing. The ChipSets of this game satisfy it; one that
     # doesn't leaves the map without baked events instead of changing what is
     # seen.
-    if any(_tile_alphas(atlas, 0)):
+    if any(_tile_alphas(chipset, 0)):
         return {}
     # The events that some page moves, flashes or sends walking. It goes by
     # the RM2k id, which is what the commands carry, and it is translated by
@@ -882,7 +880,8 @@ def bakeable_events(renderer, game_map):
                 game_map.upper_layer[cell]):
             continue
         if index not in opaque:
-            opaque[index] = all(a == 255 for a in _tile_alphas(atlas, index))
+            opaque[index] = all(a == 255
+                                for a in _tile_alphas(chipset, index))
         if not opaque[index]:
             continue
         bakeable[number] = (cell, tile)
@@ -1753,14 +1752,16 @@ _LAYERS_VERSION = None
 def _layers_version():
     """Which version of the code produced whatever is stored under `layers`.
 
-    It is the seven pieces that take part in drawing or converting, plus the
-    two programs that aren't sources of this tree:
+    It is the six pieces that take part in drawing or converting, plus the
+    three programs that aren't sources of this tree:
 
-    * `render/render_map.py` and `render/chipset.py` **draw** the layers and
-      expand the ChipSet. Until 2026-09-20 they weren't needed, because the
+    * **the `rm2k-render` binary** draws the layers and expands the
+      ChipSet, and `render/render_map.py` is what hands it the map and reads
+      back what it drew. Until 2026-09-20 they weren't needed, because the
       key was the already drawn pixels: changing the drawing changed the key
       by itself. Since the key comes from the inputs, the only way for a change
-      in the drawing to invalidate what is stored is this one.
+      in the drawing to invalidate what is stored is this one: recompiling
+      the binary without touching any `.py` has to invalidate it.
       `rpgmaker/resources.py` goes with them because it is where `render_map`
       gets how it finds the ChipSet, and `common/project.py` because it is
       where the directories it searches in come from;
@@ -1770,9 +1771,11 @@ def _layers_version():
     * **the Voodoo binary**, which is the one that emits the tiles:
       recompiling it without touching any `.py` has to invalidate what is
       stored;
-    * **the Pillow version**, which is what decodes the ChipSet's PNG and
-      composes the tiles. It wasn't needed before either, for the same reason:
-      the pixels that came out of Pillow *were* the key.
+    * **the Pillow version**, which reads back the layers `rm2k-render`
+      wrote and is what the conversion works on. Until 2026-09-29 it also
+      decoded the ChipSet and composed the tiles; reading a PNG is not
+      supposed to change between versions, but nothing proves it, and it
+      costs nothing to keep.
 
     What does **not** go in, on purpose: `rpgmaker/lcf.py`. What it reads from
     the dump —the two layers, the size, the ChipSet's passability— goes in by
@@ -1788,8 +1791,8 @@ def _layers_version():
                                                  "rpgmaker/rm2k.py",
                                                  "render/render_map.py",
                                                  "rpgmaker/resources.py",
-                                                 "common/project.py",
-                                                 "render/chipset.py")
+                                                 "common/project.py")
+                           + render_map.version()
                            + tiles_bin.version()
                            + " Pillow " + PIL.__version__)
     return _LAYERS_VERSION
@@ -1812,7 +1815,8 @@ def converted_layers(renderer, game_map):
     warm build. With the key from the inputs, a warm build draws none.
 
     What is lost is exactly that virtue, and that is why `layer_inputs`
-    lives next to `render_layers` and says what it reads: now the list is
+    lives next to `animated_layers`, which builds what `rm2k-render` reads,
+    and says what that is: now the list is
     maintained by hand, and if it falls short the cache answers stale without
     anything failing.
 
@@ -2911,7 +2915,7 @@ class Substitutions:
             # **The lower half is only usable if the upper tile of that block
             # isn't baked into it.** An upper-layer tile **without** the
             # "Above" bit isn't drawn on BG2 but over the background —that is
-            # what `draw_tiles` decides, and that is why there are upper tiles
+            # what `rm2k-render` decides, and that is why there are upper tiles
             # whose BG2 half comes out empty—, so the lower half of that block
             # is the composition of the two and not the lower tile alone.
             # Copying it to build another combination would draw the
@@ -2936,7 +2940,7 @@ class Substitutions:
         """Whether that upper-layer tile is baked into the background instead
         of going to BG2.
 
-        It is `draw_tiles`'s computation: an upper tile goes above the hero
+        It is the computation `rm2k-render` draws with: an upper tile goes above the hero
         —that is, to BG2— only with the `Above` bit set, and without it it is
         drawn stuck to the background. The empty tile draws nothing and bakes
         nothing.

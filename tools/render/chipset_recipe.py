@@ -44,8 +44,8 @@ def _palette(image):
 
 # The water and the animated tiles share this rectangle of the ChipSet; the
 # rest of the left half is the twelve terrain autotiles, and the right half,
-# the common tiles. See `render/chipset.py`, which is where the offsets come
-# from.
+# the common tiles. See `rm2k-render`'s `src/chipset.rs`, which is where the
+# offsets come from.
 WATER_BOX = (0, 0, 96, 128)
 
 

@@ -57,12 +57,12 @@ def test_lo_que_se_hornea_tapa_la_celda_entera():
         game_map, horneados = horneados_de(renderer, map_id)
         if not horneados:
             continue
-        atlas = renderer.atlas_by_name(game_map.chipset_filename)
-        assert not any(snes_convert._tile_alphas(atlas, 0)), \
+        chipset = renderer.chipset_by_name(game_map.chipset_filename)
+        assert not any(snes_convert._tile_alphas(chipset, 0)), \
             "mapa %d: el tile 0 de la capa alta dibuja algo, así que la celda " \
             "vacía donde se hornea no estaba vacía" % map_id
         for evento, (_celda, tile) in horneados.items():
-            alfas = snes_convert._tile_alphas(atlas, tile - rm2k.UPPER_BASE)
+            alfas = snes_convert._tile_alphas(chipset, tile - rm2k.UPPER_BASE)
             assert all(a == 255 for a in alfas), \
                 "mapa %d: el evento %d se hornea con un tile que tiene " \
                 "pixeles transparentes" % (map_id, evento + 1)
