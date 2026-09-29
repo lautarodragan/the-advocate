@@ -23,13 +23,22 @@ tiene el plan de seis pasos y las preguntas con sus opciones.
   ese mismo binario, y no de un "medir-juego" aparte que duplique la regla.
   Es "Parse, Don't Validate" aplicado a algo más complejo.
 - **La historia de git se conserva si es gratis.** Si cuesta, se discute.
+- **Cómo consume ABL a las herramientas**: primero, todo en el mismo repo
+  con dos raíces (el paso 5 del plan). Después, lo estable como ejecutables
+  en el PATH. **Submódulos de git, nunca**: a taro no le gustan. Además, hoy
+  no hay una buena forma de asociar un mismo ambiente de trabajo a dos repos.
+  Queda por resolver cómo consigue ABL la versión del motor en ensamblador si
+  no es por submódulo.
+- **ABL sólo conoce ejecutables del PATH, no `tools/`.** Es la idea de taro
+  para el primer paso: el `justfile` no sabe que existe Python, y los `.py`
+  que se ejecutan pasan a ser ejecutables de verdad, con hashbang y
+  `chmod +x`. Una prueba simple con grep hace fallar la tanda si algo del
+  lado de ABL nombra la ruta de `tools/`.
 - **Los comentarios del motor que nombran a ABL se quedan por ahora**, por
   cuidado. Tampoco se toca todavía lo que se emite al `.inc` ni los `help=`.
 
 Lo que quedó abierto:
 
-- **Cómo consume ABL a las herramientas** (pregunta 2): submódulo, PATH o
-  un monorepo por un tiempo. No se contestó.
 - **`cartuchos.py`** (pregunta 6): taro no ve una responsabilidad clara en
   ese archivo. Mezcla datos de ABL, que podrían ir a un `.toml`, con la
   clave del caché y cosas de pruebas. Le parece que no debería existir:
