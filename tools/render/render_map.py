@@ -5,11 +5,22 @@ water animation and of the animated tiles, and the CharSets placed on top of
 them. It is what the converter cuts into tiles: see
 `Renderer.animated_layers`. No panorama and no events: the converter takes
 care of the events.
+
+**The layers are drawn by `rm2k-render`**, a Rust binary on the PATH, like
+`voodoo` or `lz2`: this file hands it the map as the converter has it —with
+the fork applied and whatever was baked into it— and reads back the PNGs it
+writes. What stays here is what is not a map's layers: the CharSets, the one
+upper tile an event is drawn with, and `load_image`, which the rest of
+`port/` uses.
 """
 
 import array
 import hashlib
+import json
 import os
+import shutil
+import subprocess
+import tempfile
 
 from PIL import Image
 
@@ -21,6 +32,51 @@ from rpgmaker.resources import find_resource
 from rpgmaker.rm2k import TILE
 from render import chipset_recipe
 from render.chipset import ANIMATED, ChipsetAtlas, TERRAIN, UPPER
+
+MISSING = """`rm2k-render` is missing, the one that draws a map's layers.
+
+It is a Rust binary that lives in `tools/rm2k-render/` and is installed as
+a system tool:
+
+    just -f tools/justfile install rm2k-render"""
+
+
+def binary():
+    """The path of the `rm2k-render` on the PATH. Exits with the message if
+    it is not there."""
+    path = shutil.which("rm2k-render")
+    if path is None:
+        raise SystemExit(MISSING)
+    return path
+
+
+def version():
+    """The installed binary's hash, for the key of whatever caches what it
+    drew: recompiling it without touching any `.py` has to invalidate it."""
+    with open(binary(), "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+# The families of `rm2k.ANIMATED_FAMILIES`, by the name `rm2k-render` gives
+# their files: drawing `d` of the water is `water-<d>.png`.
+_FAMILY_FILES = {"agua": "water", "animado": "animated"}
+
+
+def upper_tile(chipset, index):
+    """Upper-layer tile `index` of a ChipSet, 16x16 over transparency.
+
+    It is the tile an event without a CharSet is drawn with. It is copied
+    through its alpha **twice**, the way it reached the tile when the whole
+    ChipSet was expanded here into an atlas and drawn from it: with a ChipSet
+    whose alpha is only 0 or 255 it is a plain copy, but with half
+    transparencies each pass rounds, and the pixels have to be those.
+    """
+    region = chipset.crop(rm2k.common_box(rm2k.TILES_PER_LAYER + index))
+    cell = Image.new("RGBA", (TILE, TILE), (0, 0, 0, 0))
+    cell.paste(region, (0, 0), region)
+    tile = Image.new("RGBA", (TILE, TILE), (0, 0, 0, 0))
+    tile.paste(cell, (0, 0), cell)
+    return tile
 
 
 def load_image(path):
@@ -102,11 +158,11 @@ DITHERS = {
 class Charsets:
     """Cache of CharSets, which repeat a lot among a map's events."""
 
-    def __init__(self, search_dirs, atlas_by_name=None,
+    def __init__(self, search_dirs, chipset_by_name=None,
                  lower_layer_image=None):
         self.search_dirs = search_dirs
         self.images = {}
-        self.atlas_by_name = atlas_by_name
+        self.chipset_by_name = chipset_by_name
         self.lower_layer_image = lower_layer_image
 
     def get(self, name):
@@ -194,11 +250,11 @@ class Charsets:
         CharSet, only as a sprite, so that it moves and
         changes place like any other."""
         _, chipset, index = name.split(":", 2)
-        atlas = self.atlas_by_name(chipset) if self.atlas_by_name else None
-        if atlas is None:
+        image = (self.chipset_by_name(chipset) if self.chipset_by_name
+                 else None)
+        if image is None:
             return None
-        tile = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
-        atlas.render_tile(tile, 0, 0, UPPER + int(index))
+        tile = upper_tile(image, int(index))
         image = Image.new("RGBA", (288, 256), (0, 0, 0, 0))
         for pose in range(12):
             image.paste(tile, ((pose % 3) * 24 + 4, (pose // 3) * 32 + 16))
@@ -222,9 +278,9 @@ class Renderer:
         self.search_dirs.insert(0, chipset_recipe.build_images(
             lambda folder, name: find_resource(self.search_dirs, folder,
                                                name)))
-        self.charsets = Charsets(self.search_dirs, self.atlas_by_name,
+        self.charsets = Charsets(self.search_dirs, self.chipset_by_name,
                                  self.lower_layer_image)
-        self.atlases = {}
+        self.chipsets = {}
         self.lower_layers = {}
         self.fingerprints = {}
         self.missing_chipsets = set()
@@ -239,20 +295,18 @@ class Renderer:
         if map_id not in self.lower_layers:
             game_map = self.load_map(
                 os.path.join(self.game_dir, "Map%04d.lmu" % map_id))
-            self.lower_layers[map_id] = self.render_layers(game_map)[0]
+            self.lower_layers[map_id] = self.animated_layers(game_map)[0]
         return self.lower_layers[map_id]
 
-    def atlas(self, chipset):
-        """ChipSets repeat between maps and expanding them is not free."""
-        return self.atlas_by_name(chipset.filename)
-
-    def atlas_by_name(self, filename):
-        if filename not in self.atlases:
+    def chipset_by_name(self, filename):
+        """The ChipSet's image with its color key, or `None` if it is
+        missing. Remembered by name: maps share ChipSets."""
+        if filename not in self.chipsets:
             path = find_resource(self.search_dirs, "ChipSet", filename)
             if not path:
                 self.missing_chipsets.add(filename)
-            self.atlases[filename] = ChipsetAtlas(load_image(path)) if path else None
-        return self.atlases[filename]
+            self.chipsets[filename] = load_image(path) if path else None
+        return self.chipsets[filename]
 
     def layer_inputs(self, game_map):
         """Everything that goes into a map's drawn layers, without drawing them.
@@ -264,10 +318,10 @@ class Renderer:
         path, which is the one that knows how to fail.
 
         It lives here and not in the converter because this file is the one
-        that knows what `render_layers` reads: the map's two layers, its
-        size, and from the ChipSet the passability —which decides which tile
-        goes on which layer— and the image. Nothing else from the `.lmu`
-        reaches the drawing. If some day `render_layers` looks at something
+        that knows what `animated_layers` hands `rm2k-render`: the map's two
+        layers, its size, and from the ChipSet the passability —which decides
+        which tile goes on which layer— and the image. Nothing else from the
+        `.lmu` reaches the drawing. If some day the request carries something
         not on this list, the cache goes stale without warning, and the only
         place where that can be seen is right next to it here.
 
@@ -317,61 +371,69 @@ class Renderer:
         game_map.passability_table = build_passability(chipset)
         return game_map
 
-    def render_layers(self, game_map, steps=(0, 0)):
-        """The map in two separate layers, as RM2k orders them.
-
-        The lower one is opaque and goes behind the hero; the upper one
-        carries only the tiles marked "above the hero" and is transparent
-        everywhere else.
-        """
-        chipset = self.database.chipsets[game_map.chipset_id]
-        atlas = self.atlas(chipset)
-        if atlas is None:
-            return None, None
-
-        flags = build_passability(chipset)
-        size = (game_map.width * TILE, game_map.height * TILE)
-
-        base = Image.new("RGBA", size, (0, 0, 0, 255))
-        draw_tiles(base, atlas, game_map, flags, pass_upper=False, steps=steps)
-        above = Image.new("RGBA", size, (0, 0, 0, 0))
-        draw_tiles(above, atlas, game_map, flags, pass_upper=True, steps=steps)
-        return base, above
-
     def animated_layers(self, game_map):
         """The map's layers and the other drawings of the ChipSet's animation.
 
-        Returns `(base, above, variants)`, with `variants` in the shape
+        Returns `(base, above, variants)`: `base` is what goes behind the
+        hero, opaque; `above` carries only the tiles marked "above the hero"
+        and is transparent everywhere else; and `variants` is in the shape
         `snes_convert._convert_layers` asks for: per family, the drawings
         that are **not** 0, which is `base`.
 
-        It is the only place where it is decided which drawings there are,
-        and both ends use it —the converter and the reference—: if each built
-        them on its own, the ROM and the reference could be animating
-        different things.
+        `rm2k-render` draws them, from the map **as it is here** —with the
+        fork applied and what was baked into its upper layer—, which is why
+        it gets a request and not a map number. And it decides which drawings
+        there are: only what the map can end up moving, so a map without
+        water or animated tiles pays nothing. That all the drawings of a
+        family come out the same —map 3's water does, because the ChipSet has
+        it drawn three times the same— does not need detecting here:
+        `convert` will not find any cell that changes and the run comes out
+        empty.
 
-        Only what the map can end up moving is rendered: a map without water
-        or animated tiles pays nothing. That all the drawings of a family
-        come out the same —map 3's water does, because the ChipSet has it
-        drawn three times the same— does not need detecting here: `convert`
-        will not find any cell that changes and the run comes out empty.
+        The ChipSet is found here and passed as a file, and not looked up by
+        name over there: it has to be the same file `chipset_fingerprint`
+        hashed for the cache key.
         """
-        base, above = self.render_layers(game_map)
-        if base is None:
+        chipset = self.database.chipsets[game_map.chipset_id]
+        path = find_resource(self.search_dirs, "ChipSet", chipset.filename)
+        if path is None:
+            self.missing_chipsets.add(chipset.filename)
             return None, None, {}
-        has = {"agua": False, "animado": False}
-        for tile in list(game_map.lower_layer) + list(game_map.upper_layer):
-            if tile < ANIMATED:
-                has["agua"] = True
-            elif tile < TERRAIN:
-                has["animado"] = True
-        variants = {}
-        for family, drawings in rm2k.ANIMATED_FAMILIES:
-            if not has[family]:
-                continue
-            variants[family] = [
-                self.render_layers(
-                    game_map,
-                    (d, 0) if family == "agua" else (0, d))[0]
-                for d in range(1, drawings)]
+        request = {
+            "width": game_map.width,
+            "height": game_map.height,
+            "lower_layer": list(game_map.lower_layer),
+            "upper_layer": list(game_map.upper_layer),
+            "chipset": {
+                "chipset_name": chipset.filename,
+                "passable_data_lower": list(chipset.passable_lower),
+                "passable_data_upper": list(chipset.passable_upper),
+            },
+        }
+        with tempfile.TemporaryDirectory(prefix="rm2k-render-") as out:
+            request_path = os.path.join(out, "map.json")
+            with open(request_path, "w", encoding="utf-8") as f:
+                json.dump(request, f)
+            done = subprocess.run(
+                [binary(), "layers", "--request", request_path,
+                 "--chipset-file", path, "--out", out],
+                capture_output=True, text=True)
+            if done.returncode != 0:
+                raise SystemExit("rm2k-render could not draw map %d:\n%s"
+                                 % (game_map.map_id, done.stderr.strip()))
+
+            def read(name):
+                # `convert` and not a plain `open`: it reads the file now,
+                # before the directory goes away, and returns an image of
+                # its own and not a handle on the file.
+                with Image.open(os.path.join(out, name)) as image:
+                    return image.convert("RGBA")
+
+            base, above = read("lower.png"), read("upper.png")
+            variants = {}
+            for family, drawings in rm2k.ANIMATED_FAMILIES:
+                prefix = _FAMILY_FILES[family]
+                if os.path.exists(os.path.join(out, prefix + "-1.png")):
+                    variants[family] = [read("%s-%d.png" % (prefix, d))
+                                        for d in range(1, drawings)]
         return base, above, variants
