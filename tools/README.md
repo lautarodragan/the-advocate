@@ -26,9 +26,9 @@ one in its own row or above.
     emulator/    the libretro core from Python (retro), and the bsnes-libretro
                  patch that exposes the WRAM
 
-    render/      a map and a chipset as images, with the CharSets on top,
-                 and the image of the fork's ChipSets (chipset_recipe); uses
-                 rpgmaker
+    render/      a map's layers as images, which it asks `rm2k-render` to
+                 draw; the CharSets on top of them, and the image of the
+                 fork's ChipSets (chipset_recipe); uses rpgmaker
 
     audio/       from MIDI to the SPC700: snes_music, midi, music, sdsp,
                  spc700, brr_samples, snes_samples, music_opcodes; the
@@ -55,6 +55,7 @@ in English and without a single mention of this game (see AGENTS.md):
     gunter/      Gunter: BRR codec and SoundFont reader
     voodoo/      Voodoo: from an image to tiles, palettes and tilemap
     lz2/         Nintendo's LC_LZ2, with an optimal parser
+    rm2k-render/ an RPG Maker 2000 map's tile layers, as pictures
 
 They are installed with `just -f tools/justfile install` and used from
 the PATH: no `.py` here builds them or looks for them in `target/`. The same

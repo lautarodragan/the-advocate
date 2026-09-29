@@ -219,7 +219,9 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     // The tools the fingerprint hashes, as stand-ins on a PATH of their own.
     let bin = dir.join("bin");
     fs::create_dir_all(&bin).unwrap();
-    for tool in ["ca65", "ld65", "voodoo", "gunter", "lz2", "rm2k-snes-assemble"] {
+    for tool in [
+        "ca65", "ld65", "voodoo", "gunter", "lz2", "rm2k-render", "rm2k-snes-assemble",
+    ] {
         let path = bin.join(tool);
         fs::write(&path, tool).unwrap();
         use std::os::unix::fs::PermissionsExt;
@@ -233,6 +235,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
         assert!(files.contains(&source), "{} is not in the fingerprint", source.display());
     }
     assert!(files.contains(&bin.join("rm2k-snes-assemble")));
+    assert!(files.contains(&bin.join("rm2k-render")));
     assert!(files.contains(&dir.join("rm2k-snes.toml")));
     assert!(files.contains(&dir.join("patches/manual/nuevos/Map0900.json")));
     // The real runtime too: the fingerprint of the cartridges reads it.

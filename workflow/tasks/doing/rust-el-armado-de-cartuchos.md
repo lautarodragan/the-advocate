@@ -66,7 +66,8 @@ crate guarda en tiempo de compilación dónde estaba su fuente
 responde por el checkout desde el que se instaló.
 
 **La huella** sigue cubriendo lo que cubría —todo `tools/runtime/`, `ca65`,
-`ld65`, los binarios que corre el conversor (`voodoo`, `gunter`, `lz2`), los
+`ld65`, los binarios que corre el conversor (`voodoo`, `gunter`, `lz2` y,
+desde el merge con Hurón, `rm2k-render`), los
 `.py` de `tools/*/` menos `tests/`, `parches/manual/*/*`, el archivo de
 proyecto y los techos de volumen por su valor— y **suma el binario de
 `rm2k-snes-assemble`**, porque ahora el reparto vive ahí: un cambio en el
