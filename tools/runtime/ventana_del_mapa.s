@@ -51,7 +51,7 @@ ready:
     sec
     adc cells_ptr
     cmp #$8000
-    bcs guarda                  ; still inside the bank's upper half
+    bcs saves                  ; still inside the bank's upper half
     clc
     adc #$8000
     sta cells_ptr
@@ -63,7 +63,7 @@ ready:
     rep #$20
 .a16
     rts
-guarda:
+saves:
     sta cells_ptr
     rts
 .endproc
@@ -114,15 +114,15 @@ guarda:
 .i16
     ldy sub_n
     beq ready
-buscar:
+seek:
     dey
     dey
     cmp sub_key, y
-    beq hallado
+    beq found
     cpy #$0000
-    bne buscar
+    bne seek
     rts
-hallado:
+found:
     lda sub_value, y
 ready:
     rts
@@ -140,9 +140,9 @@ ready:
 .i16
     stz col_addr
     cpx map_cw
-    bcc dentro
+    bcc inside
     rts                         ; past the edge: nothing to draw
-dentro:
+inside:
 
     ; Where it lands in VRAM. The window is two 32x32 screens side by side, and
     ; the right one lives 1024 words further on, not next to it.
@@ -155,12 +155,12 @@ dentro:
     sta col_addr
     lda temp
     and #$0020
-    beq izquierda
+    beq left
     lda col_addr
     clc
     adc #1024
     sta col_addr
-izquierda:
+left:
 
     ; The block is 16x16: the block column is half the cell column and the
     ; leftover bit says which of its two halves it is.
@@ -181,11 +181,11 @@ izquierda:
     ; the block it lands in.
     lda win_row
     and #$0001
-    beq desde_arriba
+    beq from_up
     lda strip_ofs
     ora #$0004                  ; starts at the block's bottom half
     sta strip_ofs
-desde_arriba:
+from_up:
     lda win_row
     and #(WINDOW_ROWS - 1)
     asl a
@@ -197,9 +197,9 @@ desde_arriba:
     sec
     sbc win_row
     cmp #WINDOW_ROWS
-    bcc corta
+    bcc short
     lda #WINDOW_ROWS
-corta:
+short:
     sta strip_left
 
     ; The block index goes in Y and the slot in X, and not the other way
@@ -231,10 +231,10 @@ row:
     eor #$0004                  ; the other half of the block
     sta strip_ofs
     and #$0004
-    bne misma                   ; still in the same block
+    bne same                   ; still in the same block
     lda strip_step_col
     jsr ptr_more                 ; to the next block row
-misma:
+same:
     dec strip_left
     bne row
     rts
@@ -248,9 +248,9 @@ misma:
 .i16
     stz row_addr
     cpx map_ch
-    bcc dentro
+    bcc inside
     rts                         ; past the bottom edge
-dentro:
+inside:
     txa
     and #(WINDOW_ROWS - 1)
     asl a
@@ -278,14 +278,14 @@ dentro:
     lda temp
     sec
     sbc win_block
-    beq en_la_fila
+    beq in_row
     tax
-baja:
+low:
     lda strip_step_col
     jsr ptr_more
     dex
-    bne baja
-en_la_fila:
+    bne low
+in_row:
     ; The row starts MARGIN_COLS columns before the window, which is the same
     ; range `fill_window` and `stream_map` load: [win_col - MARGIN_COLS,
     ; win_col + 60). If it started at win_col, the row's last four columns
@@ -302,9 +302,9 @@ en_la_fila:
     tax                         ; the first column's slot, in bytes
     lda #WINDOW_COLS
     sta strip_total
-vacias_izq:
+empty_left:
     lda row_col
-    bpl con_mapa
+    bpl with_map
     stz strip_row, x
     stz strip_row2, x
     inx
@@ -314,15 +314,15 @@ vacias_izq:
     tax
     inc row_col
     dec strip_total
-    bra vacias_izq
-con_mapa:
+    bra empty_left
+with_map:
     lda row_col
     and #$0001
-    beq desde_izquierda
+    beq from_left
     lda strip_ofs
     ora #$0002
     sta strip_ofs
-desde_izquierda:
+from_left:
     lda row_col
     lsr a
     asl a                       ; the leftmost block column, in bytes
@@ -331,13 +331,13 @@ desde_izquierda:
     sec
     sbc row_col
     cmp strip_total
-    bcc corta
+    bcc short
     lda strip_total
-corta:
+short:
     sta strip_left
     lda strip_left
-    beq vacias_der              ; the whole row falls outside the map
-columna:
+    beq empty_right              ; the whole row falls outside the map
+column:
     lda [cells_ptr]
     jsr cell_replaced
     asl a
@@ -362,14 +362,14 @@ columna:
     eor #$0002                  ; the other half of the block, now across
     sta strip_ofs
     and #$0002
-    bne mismo
+    bne same
     lda #2
     jsr ptr_more                 ; to the next block over
-mismo:
+same:
     dec strip_total
     dec strip_left
-    bne columna
-vacias_der:
+    bne column
+empty_right:
     lda strip_total
     beq ready
     stz strip_row, x
@@ -380,7 +380,7 @@ vacias_der:
     and #(WINDOW_COLS * 2 - 1)
     tax
     dec strip_total
-    bra vacias_der
+    bra empty_right
 ready:
     rts
 .endproc
@@ -427,10 +427,10 @@ ready:
     ; only if the camera did not take any this frame —both addresses at zero
     ; means none is built—. See `sub_refresh`.
     lda sub_refresh
-    beq sin_refresco
+    beq no_refresh
     lda col_addr
     ora col_addr_b
-    bne sin_refresco
+    bne no_refresh
     dec sub_refresh
     lda win_col
     sec
@@ -439,7 +439,7 @@ ready:
     adc sub_refresh
     tax
     jsr build_column
-sin_refresco:
+no_refresh:
     sep #$20
 .a8
     rts
@@ -461,14 +461,14 @@ sin_refresco:
     ; The `jsr` goes **after** the `bcs` and on both branches: placed before,
     ; the branch would look at a carry that went through a call. It is cheap
     ; not to have to prove that `save_row` does not touch it.
-    bcs bajando
+    bcs lowering
     jsr save_row            ; the previous strip, if any, to the spare
     lda win_row
     dec a
     sta win_row
     tax                         ; going up: the screen's top row comes in
-    bra con_fila
-bajando:
+    bra with_row
+lowering:
     jsr save_row
     lda win_row
     inc a
@@ -476,29 +476,29 @@ bajando:
     clc
     adc #(VIEW_ROWS - 1)
     tax                         ; going down: the bottom one comes in
-con_fila:
+with_row:
     ; The block anchor follows the window's top row.
     phx
     lda win_row
     lsr a
     cmp win_block
-    beq mismo_bloque
+    beq same_block
     pha
-    bcs baja_bloque
+    bcs low_block
     jsr ptr_from_cells
     lda strip_step_col
     jsr ptr_minus
     jsr ptr_to_cells
-    bra guarda_bloque
-baja_bloque:
+    bra saves_block
+low_block:
     jsr ptr_from_cells
     lda strip_step_col
     jsr ptr_more
     jsr ptr_to_cells
-guarda_bloque:
+saves_block:
     pla
     sta win_block
-mismo_bloque:
+same_block:
     plx
     jsr build_row               ; X is the row coming in
 ready:
@@ -515,7 +515,7 @@ ready:
     lsr a
     cmp win_col
     beq ready
-    bcs derecha                 ; the `jsr` after the branch: see `one_row`
+    bcs right                 ; the `jsr` after the branch: see `one_row`
     jsr save_column
     lda win_col
     dec a
@@ -523,8 +523,8 @@ ready:
     sec
     sbc #MARGIN_COLS            ; going up: the left margin's comes in
     tax
-    bra armar
-derecha:
+    bra build
+right:
     jsr save_column
     lda win_col
     inc a
@@ -532,7 +532,7 @@ derecha:
     clc
     adc #(VIEW_COLS - 1 + MARGIN_COLS)
     tax
-armar:
+build:
     jsr build_column
 ready:
     rts
@@ -616,11 +616,11 @@ ready:
     ldx #VRAM_ABOVE_MAP
     jsr zero_to_tilemap
     ldx #$0000
-tiras:
+strips:
     stz strip_col, x             ; all four are contiguous: see their .res
     inx
     cpx #(WINDOW_ROWS * 2 * 2 + WINDOW_COLS * 2 * 2)
-    bne tiras
+    bne strips
     rts
 .endproc
 
@@ -683,13 +683,13 @@ tiras:
     rep #$20
 .a16
     ldx win_block
-    beq sin_filas
-suma:
+    beq no_rows
+sum:
     lda strip_step_col
     jsr ptr_more
     dex
-    bne suma
-sin_filas:
+    bne sum
+no_rows:
     jsr ptr_to_cells
 
     lda win_col
@@ -697,7 +697,7 @@ sin_filas:
     sbc #MARGIN_COLS            ; with the left margin; `build_column` skips
     sta temp + 2                ; the negative columns
     ldy #WINDOW_COLS
-columna:
+column:
     phy
     ldx temp + 2
     jsr build_column
@@ -709,7 +709,7 @@ columna:
     inc temp + 2
     ply
     dey
-    bne columna
+    bne column
     sep #$20
 .a8
     rts

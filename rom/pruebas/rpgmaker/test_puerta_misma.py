@@ -14,7 +14,7 @@ las franjas amarillas de arriba.
 
 Los dos cuartos que uno percibe como mapas distintos son el mismo mapa 2,
 separados lo suficiente como para que jugando no se note; se cruzan con
-teletransportes internos. El de ida sale de un `Teleport` y andaba: `hubo_salto`
+teletransportes internos. El de ida sale de un `Teleport` y andaba: `was_jump`
 comparaba con `map_current`. El de vuelta es una **puerta** —el evento 20, una
 página de contacto cuyo único comando es el teletransporte— y ése recargaba
 siempre. Al volver, las franjas reaparecían.

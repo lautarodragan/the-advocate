@@ -46,88 +46,88 @@
     ; The jump in progress is not looked at here but in `move_hero`: see
     ; `jump_advance_hero`.
     lda route_wait
-    beq sin_espera
+    beq no_wait
     dec route_wait
     rts
-sin_espera:
-otra_orden:
+no_wait:
+other_command:
     lda route_i
     cmp route_n
-    bcc hay_orden
+    bcc has_command
     jmp ready                   ; the move route is over; `bcs` no longer reaches
-hay_orden:
+has_command:
     jsr hero_command
 
     cmp #23                     ; wait: this one and the ROUTE_WAIT - 1 after it,
-    bne no_es_wait              ; plus the turn's if the frequency is low
+    bne not_wait              ; plus the turn's if the frequency is low
     lda route_freq
     jsr after_turn
     clc
     adc #(ROUTE_WAIT - 1)
     sta route_wait
     jmp ready
-no_es_wait:
+not_wait:
     cmp #12
-    bcs no_es_mover
-    jmp mover                   ; 0..3 are the move_*
-no_es_mover:
+    bcs not_move
+    jmp move                   ; 0..3 are the move_*
+not_move:
     cmp #16
     bcc face                    ; 12..15 are the face_*
     ; Turning without moving is not compiled, and facing the hero —21— and
     ; going toward him —9— are not compiled **on the hero**: see
     ; `RUTA_ORDENES` in eventos.py. They do not get here. 9 would also fall
-    ; into `mover` above, which with a direction that is not 0..3 sends the
+    ; into `move` above, which with a direction that is not 0..3 sends the
     ; hero left by elimination, which is the same trap as the diagonals.
     cmp #24
-    bne no_es_salto
+    bne not_jump
     jsr build_hero_jump
     lda route_jump
-    bne salto_arranco
-    jmp otra_orden              ; it could not land there: skipped
-salto_arranco:
+    bne jump_started
+    jmp other_command              ; it could not land there: skipped
+jump_started:
     jmp ready
-no_es_salto:
+not_jump:
     cmp #25
-    bne no_es_fin
-    jmp otra_orden              ; the `begin_jump` already consumed the pair
-no_es_fin:
+    bne not_end
+    jmp other_command              ; the `begin_jump` already consumed the pair
+not_end:
     cmp #28
-    bcc otra_orden              ; 26 and 27 do not reach the hero
+    bcc other_command              ; 26 and 27 do not reach the hero
     cmp #30
-    bcs no_es_velocidad
-    jmp velocidad               ; 28 and 29: the speed, which stays
-no_es_velocidad:
+    bcs not_speed
+    jmp speed               ; 28 and 29: the speed, which stays
+not_speed:
     cmp #32
-    bcc frecuencia              ; 30 and 31: the move route's frequency
+    bcc frequency              ; 30 and 31: the move route's frequency
     cmp #34
-    bne no_es_grafico_heroe
-    jmp grafico_heroe           ; 34, the only one with an operand; it is far
-no_es_grafico_heroe:
+    bne not_graphic_hero
+    jmp graphic_hero           ; 34, the only one with an operand; it is far
+not_graphic_hero:
     cmp #35
-    bne no_es_sonido_heroe
-    jmp sonido_heroe            ; 35, with its operand; it is far
-no_es_sonido_heroe:
+    bne not_sound_hero
+    jmp sound_hero            ; 35, with its operand; it is far
+not_sound_hero:
     cmp #36
-    bcc otra_orden              ; 32 and 33, the switches, do not get here: the
+    bcc other_command              ; 32 and 33, the switches, do not get here: the
                                 ; converter rejects them
     cmp #38
-    bcc atravesar               ; 36 and 37
+    bcc cross               ; 36 and 37
     cmp #40
-    bcs otra_orden
+    bcs other_command
     ; 38 stops the animation and 39 resumes it, so the subtraction goes the
     ; other way around.
     sec
     sbc #38
     eor #$01
     sta route_anim_for
-    jmp otra_orden
-atravesar:
+    jmp other_command
+cross:
     ; 36 turns it on and 37 off, so the low bit inverted is the value.
     and #$01
     eor #$01
     sta route_crosses
-    jmp otra_orden
-frecuencia:
+    jmp other_command
+frequency:
     ; 30 raises the move route's frequency and 31 lowers it, capped at 8 and
     ; at 1: it is `increase/decrease_movement_frequence`. The frames standing
     ; still after each command come from it, so it is read from `route_freq`
@@ -138,28 +138,28 @@ frecuencia:
     ; since it rejects the whole move route. Here it is capped at 1 anyway,
     ; like RM2k, in case that guard ever fails.
     and #$01
-    bne frec_menos
+    bne freq_minus
     lda route_freq
     cmp #ROUTE_FREQUENCY
-    bcs frec_listo
+    bcs freq_ready
     inc route_freq
-    bra frec_listo
-frec_menos:
+    bra freq_ready
+freq_minus:
     lda route_freq
     cmp #2
-    bcc frec_listo
+    bcc freq_ready
     dec route_freq
-frec_listo:
-    jmp otra_orden
+freq_ready:
+    jmp other_command
 face:
     sec
     sbc #12
     sta hero_dir                ; face_*: with frequency 8 it is instant and the
     lda route_freq               ; next one follows; with another, it stands
     jsr after_turn               ; still for the turn's frames
-    bne giro_espera
-    jmp otra_orden
-giro_espera:
+    bne turn_wait
+    jmp other_command
+turn_wait:
     dec a
     sta route_wait
     jmp ready
@@ -187,27 +187,27 @@ giro_espera:
 ;   The page of map 8's `EV0047`, which is the one that asked for all this,
 ;   changes to `Crown7` right before teleporting and back to `Future1` right
 ;   after, so in the game it is not noticeable.
-grafico_heroe:
+graphic_hero:
     lda #$FF
     sta hero_pose_vram          ; the pose in VRAM is no longer its own
     jsr hero_command         ; the operand, which is left consumed
     jsr hero_poses_of_graphic
-    bcc heroe_sin_grafico
-    jmp otra_orden
-heroe_sin_grafico:
+    bcc hero_no_graphic
+    jmp other_command
+hero_no_graphic:
     ; A CharSet without a single opaque pixel —`nobodyhere`— or one that did
     ; not fit in the eight sprite palettes: the hero stops being drawn, which
     ; is what `place_hero` does with the pose pointer at zero and the same that
     ; happens to an event with its row hidden.
     stz hero_poses + 2
     stz hero_cgram + 2
-    jmp otra_orden
+    jmp other_command
 
 ; `play_sound_effect`: 35, with the sound effect's index after it, in two bytes.
 ; It is the same index as `OP_SOUND` and goes the same way, `sound_play`, so
 ; it sounds the same as a `PlaySound`'s, with MSU-1 or without. It does not
 ; cost a frame: the next command runs in this one.
-sonido_heroe:
+sound_hero:
     jsr hero_command         ; the low byte: leaves Y there and `route_ptr` set
     inc route_i                  ; and the cursor, past the high one
     rep #$20
@@ -215,10 +215,10 @@ sonido_heroe:
     lda [route_ptr], y
     jsr sound_play            ; with 16-bit A; returns with 8-bit A
 .a8
-    jmp otra_orden
+    jmp other_command
 
 
-mover:
+move:
     ; Diagonals do not get here: the converter rejects the page that gives one
     ; to the hero —see MOVE_EVENT in `eventos.traducir`— because the ROM only
     ; walks them on events, and none of the game's 26 move routes that use
@@ -230,35 +230,35 @@ mover:
     ; and it is turned on only around this step: `can_leave` and `can_enter`
     ; are also used by the pad walking, which does not look at it.
     lda route_crosses
-    beq sin_atravesar
+    beq no_cross
     lda #1
-sin_atravesar:
+no_cross:
     sta crossing
     stz crossing + 1
     lda hero_dir
     cmp #DIR_UP
-    bne no_es_arriba
+    bne not_up
     jsr try_up
-    jmp ver_si_arranco
-no_es_arriba:
+    jmp see_yes_started
+not_up:
     cmp #DIR_RIGHT
-    bne no_es_derecha
+    bne not_right
     jsr try_right
-    jmp ver_si_arranco
-no_es_derecha:
+    jmp see_yes_started
+not_right:
     cmp #DIR_DOWN
-    bne no_es_abajo
+    bne not_down
     jsr try_down
-    jmp ver_si_arranco
-no_es_abajo:
+    jmp see_yes_started
+not_down:
     jsr try_left
-ver_si_arranco:
+see_yes_started:
     stz crossing
     stz crossing + 1
     lda step_left
-    bne arranco                 ; blocked: skipped and the next one is tried
-    jmp otra_orden
-arranco:
+    bne started                 ; blocked: skipped and the next one is tried
+    jmp other_command
+started:
     ; The step started, and it is noted that the move route started it:
     ; `any_routes` needs this to know the last step of a move route still
     ; counts.
@@ -266,26 +266,26 @@ arranco:
     sta route_step
 ready:
     rts
-velocidad:
+speed:
     ; `increase_movement_speed` and `decrease_movement_speed`, capped at 6 and
     ; 1 like `MoveRouteSpeedUp`. On the hero the ROM used to ignore them; now
     ; they change the pace, and change it for good: RM2k restores the
     ; frequency when the move route ends and not the speed.
     cmp #29
-    beq vel_menos
+    beq speed_minus
     jsr hero_speed_read
     cmp #6
-    bcs vel_guardar
+    bcs speed_save
     inc a
-    bra vel_guardar
-vel_menos:
+    bra speed_save
+speed_minus:
     jsr hero_speed_read
     cmp #2
-    bcc vel_guardar
+    bcc speed_save
     dec a
-vel_guardar:
+speed_save:
     jsr hero_speed_write
-    jmp otra_orden
+    jmp other_command
 .endproc
 
 ; Whether any forced move route is left unfinished, the hero's included.
@@ -312,36 +312,36 @@ vel_guardar:
 .a8
 .i16
     lda route_wait
-    bne si                      ; the hero is in the middle of a `wait`
+    bne if                      ; the hero is in the middle of a `wait`
     lda route_jump
-    bne si                      ; or is in the air
+    bne if                      ; or is in the air
     lda route_i
     cmp route_n
-    bcc si                      ; the hero has commands left
+    bcc if                      ; the hero has commands left
     lda route_step
-    beq de_eventos
+    beq from_events
     lda step_left
-    bne si                      ; and the step it is taking is the move route's
+    bne if                      ; and the step it is taking is the move route's
 
-de_eventos:
+from_events:
     ldx #$0000
-otra:
+other:
     lda route_ev, x
     cmp #ROUTE_EV_FREE
-    beq siguiente
+    beq next
     lda route_ev + 18, x
     and #$01
-    bne siguiente               ; the page's own move route is not waited for
+    bne next               ; the page's own move route is not waited for
     lda route_ev + 7, x          ; a step in progress
-    bne si
+    bne if
     lda route_ev + 9, x          ; or a wait
-    bne si
+    bne if
     lda route_ev + 13, x         ; or a jump
-    bne si
+    bne if
     lda route_ev + 5, x
     cmp route_ev + 4, x
-    bcc si                      ; it has commands left
-siguiente:
+    bcc if                      ; it has commands left
+next:
     rep #$20
 .a16
     txa
@@ -351,10 +351,10 @@ siguiente:
     cmp #ROUTE_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
-    bcc otra
+    bcc other
     lda #0
     rts
-si:
+if:
     lda #1
     rts
 .endproc

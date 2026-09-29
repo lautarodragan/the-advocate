@@ -110,7 +110,7 @@
 .a16
     lda entry_x
     cmp #$FFFF
-    bne desde_puerta
+    bne from_door
     lda f:map_table + M_HERO_START_X, x
     sta hero_x
     lsr a
@@ -125,9 +125,9 @@
     lsr a
     lsr a
     sta tile_y
-    bra puesto
+    bra set
 
-desde_puerta:
+from_door:
     sta tile_x
     asl a
     asl a
@@ -144,7 +144,7 @@ desde_puerta:
     lda #$FFFF
     sta entry_x               ; consumed: the next load goes back to the record
 
-puesto:
+set:
     sep #$20
 .a8
     lda f:map_table + M_BG12NBA_VALUE, x
@@ -385,33 +385,33 @@ puesto:
 .a8
 .i16
     lda fade
-    beq no_hay
+    beq none
     lda ticks                 ; the low byte is enough: the fade lasts 70
     sec
     sbc fade_base
     cmp #FADE_TOTAL
-    bcs terminar
+    bcs finish
     cmp #FADE_LOAD
-    bcc rampa                   ; still going dark
+    bcc ramp                   ; still going dark
     pha
     jsr load_requested        ; only once: it turns itself off
     pla
-rampa:
+ramp:
     ; This frame's brightness. Going down, the ramp is read backwards.
     cmp #FADE_RAMP
-    bcs subiendo
+    bcs uploading
     eor #$FF
     clc
     adc #FADE_RAMP          ; FADE_RAMP - 1 - t
-    bra en_la_rampa
-subiendo:
+    bra in_ramp
+uploading:
     sec
     sbc #(FADE_FRAMES + FADE_BLACK)
-    bcs en_la_rampa             ; past the load: the ramp back up
+    bcs in_ramp             ; past the load: the ramp back up
     lda #0                      ; the black in the middle
     sta brightness
-    bra sigue
-en_la_rampa:
+    bra continues
+in_ramp:
     rep #$20
 .a16
     and #$00FF
@@ -420,14 +420,14 @@ en_la_rampa:
 .a8
     lda fade_ramp, x
     sta brightness
-sigue:
+continues:
     lda #1                      ; the game stays frozen
     rts
-terminar:
+finish:
     stz fade
     lda #BRIGHTNESS_MAX
     sta brightness
-no_hay:
+none:
     lda #0
     rts
 .endproc
@@ -468,23 +468,23 @@ MAP_SONG = $7E6100
     bcs nothing                    ; $FF, or one the cartridge does not carry
     pha
     lda bgm_fade
-    bne cambia                  ; it was fading out: it starts over
+    bne changes                  ; it was fading out: it starts over
     lda f:MSU_PLAYING
-    bne suena
+    bne plays
     lda music_off
-    bne cambia
-suena:
+    bne changes
+plays:
     lda song_current + 1
-    bne cambia
+    bne changes
     pla
     cmp song_current
-    bne cambia_ya
+    bne changes_already
 nothing:
     lda #$FF
     rts
-cambia:
+changes:
     pla
-cambia_ya:
+changes_already:
     pha
     jsr msu_stop
     lda #$FF
@@ -510,10 +510,10 @@ cambia_ya:
     stz brightness                  ; and let the next vblank leave it black
     pla
     cmp #FADE_SAME
-    bne carga
+    bne load
     jsr move_hero_to
-    bra hecho
-carga:
+    bra made
+load:
     ; The new map's song is decided **before** loading it, because if it
     ; changes the playing one has to be silenced before `package_load`
     ; builds the package: that one leaves in place the samples of the song it
@@ -524,7 +524,7 @@ carga:
     sta f:MAP_SONG
     pla
     cmp #FADE_DOOR
-    bne salto
+    bne jump
     rep #$20
 .a16
     lda fade_map            ; the index goes in sixteen bits
@@ -538,8 +538,8 @@ carga:
     ; starting halfway through a step is not what the test asked for.
     stz step_left
     stz moving
-    bra prender
-salto:
+    bra on
+jump:
     rep #$20
 .a16
     lda fade_map            ; the index goes in sixteen bits
@@ -557,16 +557,16 @@ salto:
     ; map's events never ran. Nothing saw it because the only test that
     ; teleported looked at the tint, which is set by the origin map.
     ; Today `enter_map_no_events` does it, inside its refresh.
-prender:
+on:
     ; And the map's song, with the package already uploaded: its samples came in
     ; it. It goes before any page of the new map runs, so a `PlayBGM` from an
     ; automatic event wins over it, which is RM2k's order: `Game_Map::PlayBgm`
     ; runs when the map is set up, before its events.
     lda f:MAP_SONG
     cmp #$FF
-    beq hecho
+    beq made
     jsr music_start
-hecho:
+made:
     stz fade_kind
     ; And OAM, which otherwise keeps the one of the map that was left. The
     ; loop does not rebuild it while the fade lasts —`build_oam` is one of the

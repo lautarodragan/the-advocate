@@ -24,12 +24,12 @@ SCR_BYTES = 32 * 28 * 2
     rep #$20
 .a16
     ldx #0
-otra:
+other:
     stz text_buf, x
     inx
     inx
     cpx #SCR_BYTES
-    bcc otra
+    bcc other
     sep #$20
 .a8
     rts
@@ -78,16 +78,16 @@ otra:
     tax
     lda temp + 1
     and #$00FF
-    beq blanco
+    beq target
     tay                         ; one table further per variant
-otra_tabla:
+other_table:
     txa
     clc
     adc #ITEM_GLYPHS_GRAY
     tax
     dey
-    bne otra_tabla
-blanco:
+    bne other_table
+target:
     ldy pick_table
     lda f:item_glyph_cells, x
     sta text_buf, y
@@ -114,12 +114,12 @@ blanco:
     sta msg_ptr + 2
     lda f:item_txt_n, x
     cmp comp_dup + 3
-    bcc cabe
+    bcc fits
     lda comp_dup + 3
-cabe:
+fits:
     sta temp                    ; how many letters
     stz temp + 2                ; which one it is on
-letra:
+letter:
     lda temp + 2
     cmp temp
     bcs ready
@@ -132,7 +132,7 @@ letra:
     lda [msg_ptr], y
     jsr scr_glyph
     inc temp + 2
-    bra letra
+    bra letter
 ready:
     lda #255
     sta comp_dup + 3               ; the cap is for one text only
@@ -147,54 +147,54 @@ ready:
     stz temp + 3                ; a digit has already been written
     lda comp_dup + 2
     cmp #3
-    bcc decenas
+    bcc tens
     rep #$20
 .a16
     ldx #0
-cien:
+hundred:
     lda comp_dup
     cmp #100
-    bcc cien_listo
+    bcc hundred_ready
     sbc #100
     sta comp_dup
     inx
-    bra cien
-cien_listo:
+    bra hundred
+hundred_ready:
     sep #$20
 .a8
-    jsr cifra
-decenas:
+    jsr digit
+tens:
     rep #$20
 .a16
     ldx #0
-diez:
+ten:
     lda comp_dup
     cmp #10
-    bcc diez_listo
+    bcc ten_ready
     sbc #10
     sta comp_dup
     inx
-    bra diez
-diez_listo:
+    bra ten
+ten_ready:
     sep #$20
 .a8
-    jsr cifra
+    jsr digit
     lda comp_dup              ; the units, always
     clc
     adc #$30
     jmp scr_glyph
 
 ; X: the digit. A zero before everything else goes out as a space.
-cifra:
+digit:
     txa
-    bne escribir
+    bne write
     lda temp + 3
-    bne escribir_cero
+    bne write_zero
     lda #$20
     jmp scr_glyph
-escribir_cero:
+write_zero:
     lda #0
-escribir:
+write:
     clc
     adc #$30
     pha

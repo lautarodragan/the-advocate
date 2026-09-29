@@ -34,7 +34,7 @@
     stz MED_REVIVED + 1
     ; Is there any left? With the choice open the last one can be spent and
     ; A still pressed.
-    jsr k_en_x
+    jsr k_in_x
     lda f:item_medicine, x
     sta MED_FLAGS
     rep #$20
@@ -48,12 +48,12 @@
     sep #$20
 .a8
     lda FAR_ITEMS, x
-    bne queda
-    jmp no_sirve
-queda:
+    bne remains
+    jmp no_serves
+remains:
     ; `Game_Actor::IsItemUsable`: the actor's bit in `item_actors`, eight
     ; bytes per item, actor 1 in bit 0 of the first.
-    jsr k_en_x
+    jsr k_in_x
     rep #$20
 .a16
     txa
@@ -78,16 +78,16 @@ queda:
 .a8
     lda f:item_actors, x
     cpy #0
-    beq bit_listo
-correr:
+    beq bit_ready
+run:
     lsr a
     dey
-    bne correr
-bit_listo:
+    bne run
+bit_ready:
     and #1
-    bne puede
-    jmp no_sirve
-puede:
+    bne can
+    jmp no_serves
+can:
     ; The maximums for their current level, like `FullHeal`.
     lda MED_ACTOR
     ldy #0
@@ -99,12 +99,12 @@ puede:
     stx MED_SP_MAX
     ; `hp_change = recover_hp_rate * GetMaxHp() / 100 + recover_hp`, and the
     ; same with SP. Capped at $FFFF, which means "more than what is missing".
-    jsr k_en_x
+    jsr k_in_x
     lda f:item_heal_rate, x
     ldx MED_HP_MAX
-    jsr por_ciento
+    jsr per_hundred
     sta MED_HP
-    jsr k_en_x
+    jsr k_in_x
     rep #$20
 .a16
     txa
@@ -113,18 +113,18 @@ puede:
     lda f:item_heal_hp, x
     clc
     adc MED_HP
-    bcc hp_listo
+    bcc hp_ready
     lda #$FFFF
-hp_listo:
+hp_ready:
     sta MED_HP
     sep #$20
 .a8
-    jsr k_en_x
+    jsr k_in_x
     lda f:item_heal_sp_rate, x
     ldx MED_SP_MAX
-    jsr por_ciento
+    jsr per_hundred
     sta MED_SP
-    jsr k_en_x
+    jsr k_in_x
     rep #$20
 .a16
     txa
@@ -133,9 +133,9 @@ hp_listo:
     lda f:item_heal_sp, x
     clc
     adc MED_SP
-    bcc sp_listo
+    bcc sp_ready
     lda #$FFFF
-sp_listo:
+sp_ready:
     sta MED_SP
     ; Dead or not. From here on X is the actor times two, for HP and SP.
     lda MED_ACTOR
@@ -145,13 +145,13 @@ sp_listo:
     lda FAR_HP, x
     sep #$20
 .a8
-    bne vivo
+    bne alive
     ; Dead: it is only of use if it removes the death state, and removing it is 1 HP.
     lda MED_FLAGS
     and #2
-    bne levantar
-    jmp no_sirve
-levantar:
+    bne raise
+    jmp no_serves
+raise:
     rep #$20
 .a16
     lda #1
@@ -160,34 +160,34 @@ levantar:
     sep #$20
 .a8
     sta MED_USED
-    bra curar_hp
-vivo:
+    bra heal_hp
+alive:
     lda MED_FLAGS
     and #1
-    beq curar_hp
-    jmp no_sirve                ; `ko_only` on one standing
-curar_hp:
+    beq heal_hp
+    jmp no_serves                ; `ko_only` on one standing
+heal_hp:
     ; `if (hp_change > 0 && !HasFullHp()) ChangeHp(hp_change - revived)`.
     ; `ChangeHp` caps at the maximum with the `SetHp` inside it, and never
     ; goes below 1 because nothing subtracts here.
     rep #$20
 .a16
     lda MED_HP
-    beq curar_sp
+    beq heal_sp
     lda FAR_HP, x
     cmp MED_HP_MAX
-    bcs curar_sp                ; full
+    bcs heal_sp                ; full
     lda MED_HP
     sec
     sbc MED_REVIVED
     clc
     adc FAR_HP, x
-    bcs hp_topado
+    bcs hp_capped
     cmp MED_HP_MAX
-    bcc hp_poner
-hp_topado:
+    bcc hp_set
+hp_capped:
     lda MED_HP_MAX
-hp_poner:
+hp_set:
     sta FAR_HP, x
     sep #$20
 .a8
@@ -195,27 +195,27 @@ hp_poner:
     sta MED_USED
     rep #$20
 .a16
-curar_sp:
+heal_sp:
     ; `if (sp_change > 0 && !HasFullSp()) ChangeSp(sp_change)`.
     lda MED_SP
-    beq gastar
+    beq consume
     lda FAR_SP, x
     cmp MED_SP_MAX
-    bcs gastar
+    bcs consume
     clc
     adc MED_SP
-    bcs sp_topado
+    bcs sp_capped
     cmp MED_SP_MAX
-    bcc sp_poner
-sp_topado:
+    bcc sp_set
+sp_capped:
     lda MED_SP_MAX
-sp_poner:
+sp_set:
     sta FAR_SP, x
     sep #$20
 .a8
     lda #1
     sta MED_USED
-gastar:
+consume:
     ; `ConsumeItemUse`, if it was of use and the item has uses. One at a
     ; time: RM2k counts the uses of a multi-use item, and this port does not,
     ; but this game's medicines are all single-use.
@@ -231,7 +231,7 @@ gastar:
     dec a
     sta FAR_ITEMS, x
     bra ready
-no_sirve:
+no_serves:
     stz MED_USED
 ready:
     plb
@@ -239,7 +239,7 @@ ready:
     rtl
 
 ; The item's `k`, from `pick_edges` to X. Only A and X.
-k_en_x:
+k_in_x:
     rep #$20
 .a16
     lda pick_edges
@@ -253,7 +253,7 @@ k_en_x:
 ; easyrpg's integer division. The product is built in 24 bits —an SP maximum
 ; reaches 999, and times 100 it does not fit in sixteen— and divided by
 ; subtraction, one bit at a time. It clobbers X and Y.
-por_ciento:
+per_hundred:
 .a8
     sta f:WRMPYA
     stx MED_P
@@ -290,19 +290,19 @@ por_ciento:
     sta MED_P + 2
     stz MED_R
     ldy #32
-dividir:
+divide_it:
     asl MED_P
     rol MED_P + 2
     rol MED_R
     lda MED_R
     sec
     sbc #100
-    bcc no_entra
+    bcc no_enters
     sta MED_R
     inc MED_P                   ; the quotient bit that just came in
-no_entra:
+no_enters:
     dey
-    bne dividir
+    bne divide_it
     lda MED_P
     rts
 .endproc

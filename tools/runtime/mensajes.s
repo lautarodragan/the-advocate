@@ -84,21 +84,21 @@
     sta VMADDL
     lda #(TEXT_WINDOW_ROWS * TEXT_WINDOW_COLS * 2)
     sta DAS0L
-    bcs plano_256
+    bcs plane_256
     lda #.loword(window_cells)
     sta A1T0L
     sep #$20
 .a8
     lda #^window_cells
-    bra con_plano
-plano_256:
+    bra with_plane
+plane_256:
 .a16
     lda #.loword(window_cells_256)
     sta A1T0L
     sep #$20
 .a8
     lda #^window_cells_256
-con_plano:
+with_plane:
     sta A1B0
     lda #$01
     sta DMAP0
@@ -304,13 +304,13 @@ ready:
     pla
     clc
     adc #.loword(messages)
-otro_banco:
-    bcc en_el_banco
+other_bank:
+    bcc in_bank
     inx
     clc
     adc #$8000
-    bra otro_banco
-en_el_banco:
+    bra other_bank
+in_bank:
     sta msg_ptr
     sep #$20
 .a8
@@ -339,7 +339,7 @@ en_el_banco:
     lsr
     lsr
     lsr                         ; how many pauses it carries
-    beq sin_pausa
+    beq no_pause
     ; And how long they last: `PAUSE_FRAMES` each, which is 61 and not 60.
     ; The product is 16 bits because fifteen pauses are 915 frames, so the
     ; hardware does it, as with the tint.
@@ -356,7 +356,7 @@ en_el_banco:
     sta f:FAR_MSG_PAUSE
     sep #$20
 .a8
-sin_pausa:
+no_pause:
     rep #$20
 .a16
     jsr msg_ptr_next
@@ -376,15 +376,15 @@ sin_pausa:
 .i16
     lda msg_state
     cmp #1
-    beq trabajando
+    beq working
     rts
-trabajando:
+working:
     lda msg_upload
-    beq sin_subir
+    beq no_upload
     rts                         ; the previous line has not been uploaded yet
-sin_subir:
+no_upload:
     lda msg_primed
-    bne componiendo
+    bne composing
 
     ; New line: the background is copied into it and its length is read. The
     ; lines the message does not carry are primed and uploaded anyway: VRAM
@@ -396,7 +396,7 @@ sin_subir:
     sta temp
     lda msg_line
     cmp temp
-    bcs vacio
+    bcs void
     ldy #0
     lda [msg_ptr], y
     sta msg_length
@@ -405,17 +405,17 @@ sin_subir:
     jsr msg_ptr_next
     sep #$20
 .a8
-vacio:
+void:
     stz msg_col
     lda #1
     sta msg_primed
 
-componiendo:
+composing:
     ldx #MSG_CHARS
-otro:
+other:
     lda msg_col
     cmp msg_length
-    bcs fin_linea
+    bcs end_line
     ldy #0
     lda [msg_ptr], y
     rep #$20
@@ -443,16 +443,16 @@ otro:
     ; garbage a few frames later and on another map.
     lda comp_col
     cmp #MESSAGE_COLS
-    bcs sin_dibujar
+    bcs no_draw
     phx
     jsr compose_char
     plx
-sin_dibujar:
+no_draw:
     dex
-    bne otro
+    bne other
     rts
 
-fin_linea:
+end_line:
     ; The line is ready: it goes up in the next vblank and we move on to the
     ; next one. The next one's background is not primed in this same frame on
     ; purpose: the buffer still holds what has to be uploaded.
@@ -462,10 +462,10 @@ fin_linea:
     inc msg_line
     lda msg_line
     cmp #WINDOW_TEXT_LINES
-    bcc mas
+    bcc more
     lda #2
     sta msg_state              ; done: `flush_video` turns on the HDMA
-mas:
+more:
     rts
 .endproc
 
@@ -659,7 +659,7 @@ row:
     tax                         ; X = the buffer byte where the row starts
     lda [comp_glyph], y
     cmp #$FFFF
-    beq sin_primera
+    beq no_first
     sta comp_and
     iny
     iny
@@ -675,16 +675,16 @@ row:
     sta text_buf + 16, x
     iny
     iny
-    bra segunda
-sin_primera:
+    bra second
+no_first:
     tya
     clc
     adc #6
     tay
-segunda:
+second:
     lda [comp_glyph], y
     cmp #$FFFF
-    beq sin_segunda
+    beq no_second
     sta comp_and
     iny
     iny
@@ -700,13 +700,13 @@ segunda:
     sta text_buf + 48, x
     iny
     iny
-    bra otra_fila
-sin_segunda:
+    bra other_row
+no_second:
     tya
     clc
     adc #6
     tay
-otra_fila:
+other_row:
     sep #$20
 .a8
     lda comp_row

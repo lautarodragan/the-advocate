@@ -66,9 +66,9 @@ FAR_MSG_AUTO  = $7E30FD
 .a8
 .i16
     lda f:ANIM_N
-    bne hay
+    bne has
     rts
-hay:
+has:
     ; `code_ptr` borrowed: the opcode routines read their operands from there,
     ; and whatever page is running needs it back.
     lda code_ptr + 2
@@ -83,7 +83,7 @@ hay:
 .a8
     lda f:ANIM_PTR + 2
     sta code_ptr + 2
-otra:
+other:
     ldy #0
     lda [code_ptr], y            ; its tick
     cmp f:ANIM_T
@@ -92,17 +92,17 @@ otra:
     lda [code_ptr], y            ; its type
     iny                         ; and the data, from the third byte
     cmp #ANIM_SOUND
-    bne no_sonido
+    bne no_sound
     jsr sound_from_code
-    bra hecha
-no_sonido:
+    bra made
+no_sound:
     cmp #ANIM_FLASH
-    bne no_destello
+    bne no_flash
     jsr flash_from_code
-    bra hecha
-no_destello:
+    bra made
+no_flash:
     jsr flash_start           ; the target's
-hecha:
+made:
     rep #$20
 .a16
     lda code_ptr
@@ -114,7 +114,7 @@ hecha:
     lda f:ANIM_N
     dec a
     sta f:ANIM_N
-    bne otra
+    bne other
 ready:
     rep #$20
 .a16
@@ -191,9 +191,9 @@ ANIMB_PREV   = $7E3616          ; three bytes: the last frame built in
     sep #$20
 .a8
     lda f:anim_battle_split, x
-    bne hay
+    bne has
     rts
-hay:
+has:
     sta f:ANIMB_HAS
     and #$07                    ; the palette
     sta temp
@@ -331,7 +331,7 @@ no:
     tax
     lda f:ANIMB_SHADOW
     tay
-copia:
+copy:
     sep #$20
 .a8
     lda f:anim_battle_cgram, x
@@ -342,7 +342,7 @@ copia:
     iny
     txa
     and #$001F
-    bne copia
+    bne copy
     sep #$20
 .a8
     lda #1
@@ -359,24 +359,24 @@ copia:
 .a8
 .i16
     lda f:ANIMB_ACTIVE
-    bne hay
+    bne has
     rts
-hay:
+has:
     rep #$20
 .a16
     lda f:ANIMB_T
     lsr a
     cmp f:ANIMB_N
-    bcc sigue
+    bcc continues
     sep #$20
 .a8
     lda #0
     sta f:ANIMB_ACTIVE
     rts
-sigue:
+continues:
 .a16
     cmp f:ANIMB_FRAME
-    beq igual
+    beq equal
     sta f:ANIMB_FRAME
     sep #$20
 .a8
@@ -388,7 +388,7 @@ sigue:
     jsl f:anim_frame_build + FAST   ; from the fast mirror: see MEMSEL
     rep #$20
 .a16
-igual:
+equal:
     lda f:ANIMB_T
     inc a
     sta f:ANIMB_T
@@ -431,11 +431,11 @@ igual:
     lda vq_cap
     sec
     sbc #(ANIM_B_BYTES / 512)
-    bcc una
-    bne queda
-una:
+    bcc one
+    bne remains
+one:
     lda #1                      ; there is always room left for one pose
-queda:
+remains:
     sta vq_cap
     rts
 .endproc
@@ -453,17 +453,17 @@ queda:
 .a8
 .i16
     lda f:ANIMB_ACTIVE
-    bne hay
+    bne has
     rts
-hay:
+has:
     lda f:ANIMB_TARGET
     cmp #ANIM_B_SCREEN
-    beq pantalla
+    beq screen
     ; On the target: the center of its cell and its feet, which is
     ; `GetScreenX()` and `GetScreenY(false)`, minus the camera. The table's
     ; anchor already has `Animation::Position`'s shift baked in.
     cmp #0
-    bne evento
+    bne event
     rep #$20
 .a16
     lda hero_x
@@ -472,17 +472,17 @@ hay:
     sta temp + 2
     sep #$20
 .a8
-    bra con_celda
-evento:
+    bra with_cell
+event:
     dec a                       ; the target is the event index plus one
     jsr event_npc
     cpy #$FFFF
     beq nothing                    ; without a row there is nowhere to draw it
     lda npc_buf + 14, y
-    bne con_fila
+    bne with_row
 nothing:
     rts                         ; no row, or hidden: not drawn
-con_fila:
+with_row:
     rep #$20
 .a16
     lda npc_buf + 0, y
@@ -491,7 +491,7 @@ con_fila:
     sta temp + 2
     sep #$20
 .a8
-con_celda:
+with_cell:
     rep #$20
 .a16
     lda temp
@@ -506,8 +506,8 @@ con_celda:
     sec
     sbc camera_y
     sta obj_y
-    bra restar_ancla
-pantalla:
+    bra subtract_anchor
+screen:
 .a8
     rep #$20
 .a16
@@ -515,7 +515,7 @@ pantalla:
     sta obj_x
     lda #ANIM_B_CENTER_Y
     sta obj_y
-restar_ancla:
+subtract_anchor:
     ; The table's anchor, which already has `Animation::Position`'s shift
     ; baked in. The two bytes are read one at a time: the word at +1 carries
     ; X low and Y high.
@@ -543,30 +543,30 @@ restar_ancla:
     sta obj_attr
     lda #0
     sta f:ANIMB_I
-cada:
+each:
     rep #$20
 .a16
     lda f:ANIMB_I
     and #$0001
-    beq sin_x
+    beq no_x
     lda temp
     clc
     adc #ANIM_B_OBJ
-    bra con_x
-sin_x:
+    bra with_x
+no_x:
     lda temp
-con_x:
+with_x:
     sta obj_x
     lda f:ANIMB_I
     and #$0002
-    beq sin_y
+    beq no_y
     lda temp + 2
     clc
     adc #ANIM_B_OBJ
-    bra con_y
-sin_y:
+    bra with_y
+no_y:
     lda temp + 2
-con_y:
+with_y:
     sta obj_y
     lda f:ANIMB_I
     and #$00FF
@@ -582,7 +582,7 @@ con_y:
     inc a
     sta f:ANIMB_I
     cmp #ANIM_B_OBJECTS
-    bne cada
+    bne each
     rts
 .endproc
 

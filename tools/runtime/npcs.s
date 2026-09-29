@@ -11,9 +11,9 @@
     ; The row's tile is fixed —it is its slot— and what changes are the slot's
     ; tiles, which are queued here and go up in the next vblank with the OAM.
     cmp npc_buf + 12, y
-    bne cambia
+    bne changes
     rts
-cambia:
+changes:
     sta npc_buf + 12, y
     sta temp                    ; the pose
 
@@ -93,7 +93,7 @@ ready:
 .a8
 .i16
     ldy #$0000
-otra:
+other:
     cpy npc_total               ; comes in bytes, not rows
     beq ready
     lda #$FF
@@ -106,7 +106,7 @@ otra:
     tay
     sep #$20
 .a8
-    bra otra
+    bra other
 ready:
     rts
 .endproc
@@ -145,9 +145,9 @@ ready:
     jsl f:slot_npc + FAST  ; `event_npc`, remembered in the slot
     sty npc_row
     cpy #$FFFF
-    bne hay_fila
+    bne has_row
     rts                         ; the event has no graphic: nothing to move
-hay_fila:
+has_row:
 
     ; Where it is, in pixels: the cell times sixteen, minus what the step in
     ; progress has left at WALK_SPEED per frame.
@@ -170,15 +170,15 @@ hay_fila:
     sep #$20
 .a8
     lda slot_frames
-    beq sin_paso_npc            ; no step in progress, it is already on its cell
-    bra con_paso_npc
-sin_paso_npc:
+    beq no_step_npc            ; no step in progress, it is already on its cell
+    bra with_step_npc
+no_step_npc:
     ; Is it jumping? Then the cell is the destination and the drawing lags
     ; behind, with the arc on top. The sort key comes from the position
     ; **without** the arc: it is `GetScreenY(false)`, so whoever is in the air
     ; does not move ahead.
     lda route_ev + 13, x
-    beq puesto
+    beq set
     sta jump_remain
     lda route_ev + 14, x
     sta jump_dx
@@ -188,8 +188,8 @@ sin_paso_npc:
     jsr jump_npc_position
     jsr jump_height_of
     plx
-    bra puesto
-con_paso_npc:
+    bra set
+with_step_npc:
 
     ; The direction of the step, which is separate from which way it faces:
     ; with its facing locked —the droids on map 2— it goes up facing down. By
@@ -205,22 +205,22 @@ con_paso_npc:
     sep #$20
 .a8
     lda f:step_dx_table, x
-    beq sin_dx_npc
-    bmi mas_px                  ; $FF, that is, to the left
+    beq no_dx_npc
+    bmi more_px                  ; $FF, that is, to the left
     jsr sub_a_from_px
-    bra sin_dx_npc
-mas_px:
+    bra no_dx_npc
+more_px:
     jsr add_a_to_px
-sin_dx_npc:
+no_dx_npc:
     lda f:step_dy_table, x
-    beq puesto
-    bmi mas_py                  ; it came from below: it still has to go up
+    beq set
+    bmi more_py                  ; it came from below: it still has to go up
     jsr sub_a_from_py
-    bra puesto
-mas_py:
+    bra set
+more_py:
     jsr add_a_to_py
 
-puesto:
+set:
     ; Into the row: the position, and the key with the layer it already had.
     ldy npc_row
     rep #$20
@@ -250,20 +250,20 @@ puesto:
     ; four out of three columns.
     lda slot_facing
     cmp #ROUTE_EV_NO_FACE
-    bne tiene_dir
+    bne has_dir
     lda npc_buf + 10, y         ; has not turned yet: faces where its page says
-tiene_dir:
+has_dir:
     ; And if it is the one facing the hero, where the turn says: its slot is
     ; free, because with a route running it does not turn. See
     ; `turn_fire`.
     pha
     lda f:TURN_EV
     cmp npc_buf + 8, y
-    bne sin_giro
+    bne no_turn
     pla
     lda f:TURN_DIR
     pha
-sin_giro:
+no_turn:
     pla
     sta temp
     asl a
@@ -272,13 +272,13 @@ sin_giro:
     sta temp
     lda slot_step
     cmp #$03
-    bne sin_ajuste
+    bne no_adjust
     lda #$01
-sin_ajuste:
+no_adjust:
     clc
     adc temp                    ; the pose, 0 to 11
     jsr upload_npc_pose
-acomodar:
+fit:
     jmp fit_npc            ; and the row, to wherever it belongs now
 .endproc
 

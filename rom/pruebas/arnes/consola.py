@@ -658,7 +658,7 @@ class Partida:
     # número de actor. Es lo que guarda la SRAM, lo que dibuja el menú y lo que
     # tocan `FullHeal` y la posada. Los de adentro de una pelea son otros —uno
     # por puesto de combatiente, `Pelea.hp_del_combatiente`— y llegan acá
-    # recién cuando `modo_fin` los copia al terminar.
+    # recién cuando `mode_end` los copia al terminar.
 
     def hp(self, actor):
         return self._palabra_del_actor("FAR_HP", actor)

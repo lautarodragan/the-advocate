@@ -38,7 +38,7 @@
 ; bank 0 has no room to spare.
 .proc op_transition
     jsl f:transition_set
-    jmp run_code::otro
+    jmp run_code::other
 .endproc
 
 .segment "FAR"
@@ -54,10 +54,10 @@
     lsr a                       ; into the carry
     lda [code_ptr], y            ; the transition
     iny
-    bcs mostrar
+    bcs show
     sta f:TRANSITION_ERASE
     rtl
-mostrar:
+show:
     sta f:TRANSITION_SHOW
     rtl
 .endproc
@@ -76,10 +76,10 @@ mostrar:
 .i16
     lda f:TRANSITION_ERASE
     cmp #TRANSITION_CUTOFF
-    beq corte
+    beq cutoff
     lda ticks
     bra put
-corte:
+cutoff:
     lda ticks
     sec
     sbc #(FADE_FRAMES - 1)
@@ -115,16 +115,16 @@ put:
 .a8
 .i16
     lda f:fade
-    beq apagado
+    beq off
     lda f:fade_kind
-    beq mostrando
+    beq showing
     lda f:TRANSITION_ERASE
-    bra mirar
-mostrando:
+    bra look
+showing:
     lda f:TRANSITION_SHOW
-mirar:
+look:
     cmp #TRANSITION_MOSAIC
-    bne apagado
+    bne off
     lda f:brightness
     eor #$0F                    ; the size, the reverse of the brightness
     asl a
@@ -132,10 +132,10 @@ mirar:
     asl a
     asl a
     ora #$03                    ; BG1 and BG2: the map and the layer above
-    bra escribir
-apagado:
+    bra write
+off:
     lda #0
-escribir:
+write:
     sta f:MOSAIC
     rtl
 .endproc

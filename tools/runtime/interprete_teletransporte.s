@@ -25,7 +25,7 @@
 .a8
     iny                         ; the two bytes of the Y, which were read
     iny                         ; without advancing the cursor
-saltar:
+jump:
     lda #1
     sta jump_has
     ; And it ends the frame, which is exactly what
@@ -46,9 +46,9 @@ saltar:
 ; `salto_*`: the transfer finishes here, like the one in `op_teleport`.
 .proc op_location
     jsl f:remembered_place
-    bcs saltar
-    jmp run_code::otro
-saltar:
-    jmp op_teleport::saltar
+    bcs jump
+    jmp run_code::other
+jump:
+    jmp op_teleport::jump
 
 .endproc

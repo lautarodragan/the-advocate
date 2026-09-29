@@ -51,23 +51,23 @@ MSU_FACTOR  = $7E30EA
     lda #0
     sta f:MSU_PLAYING
     ldx #$0000
-limpiar:
+clear:
     sta f:MSU_MISSING, x          ; no track has been missing yet
     inx
     cpx #MSU_MISSING_BYTES
-    bcc limpiar
+    bcc clear
     ldx #$0000
-mirar:
+look:
     lda MSU_SIGNATURE, x
     cmp msu_signature, x
-    bne no_hay
+    bne none
     inx
     cpx #6
-    bcc mirar
+    bcc look
     lda #1
     sta f:MSU_HAS
     rts
-no_hay:
+none:
     lda #0
     sta f:MSU_HAS
     rts
@@ -113,13 +113,13 @@ MSU_WAIT = $FFFF
 .a8
 .i16
     ldx #$0000
-otra:
+other:
     lda MSU_STATE
     and #$40                    ; it is loading it
     beq ready
     inx
     cpx #MSU_WAIT
-    bcc otra
+    bcc other
     sec
     rts
 ready:
@@ -136,7 +136,7 @@ ready:
     pha
     lda f:MSU_HAS               ; one byte at a time: with `ldx` it read the
                                 ; next byte too
-    beq sin_msu1
+    beq no_msu1
     pla
     cmp #SONG_TOTAL
     bcs no
@@ -199,16 +199,16 @@ fails:
     sep #$20
 .a8
     lda #1
-correr:
+run:
     dey
-    bmi corrido
+    bmi ran
     asl a
-    bra correr
-corrido:
+    bra run
+ran:
     ora f:MSU_MISSING, x
     sta f:MSU_MISSING, x
     bra no
-sin_msu1:
+no_msu1:
     pla
 no:
     lda #0
@@ -272,12 +272,12 @@ MSU_DATA   = $2001             ; read: the next byte
     sep #$20
 .a8
     ldx #$0000
-otra:
+other:
     lda f:MSU_STATE
     bpl ready                   ; bit 7: still seeking
     inx
     cpx #MSU_WAIT
-    bcc otra
+    bcc other
     sec
     rts
 ready:
@@ -305,13 +305,13 @@ ready:
 .a8
     bcs no
     ldx #0
-compara:
+compares:
     lda f:MSU_DATA
     cmp f:msu_data_signature, x
     bne no
     inx
     cpx #8
-    bcc compara
+    bcc compares
     lda #1
     rts
 no:

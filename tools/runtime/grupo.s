@@ -5,17 +5,17 @@
 .a8
 .i16
     ldx #$0000
-busca:
+seek:
     cpx party_n                 ; party_n is 16 bits on purpose: with .i16
-    beq no_esta                 ; this comparison reads two bytes anyway
+    beq no_is                 ; this comparison reads two bytes anyway
     cmp party, x
-    beq esta
+    beq is
     inx
-    bra busca
-esta:
+    bra seek
+is:
     lda #1                      ; Z=0
     rts
-no_esta:
+no_is:
     lda #0                      ; Z=1
     rts
 .endproc
@@ -31,46 +31,46 @@ no_esta:
 .a8
 .i16
     ldx #$0000
-buscar:
+seek:
     cpx party_n
-    beq no_estaba
+    beq no_was
     cmp party, x
-    beq estaba
+    beq was
     inx
-    bra buscar
+    bra seek
 
-estaba:
+was:
     ; `temp` is checked with A and not with `ldy temp`: with .i16 that would
     ; read two bytes and the next one is not ours. It is the index-width trap,
     ; already noted at the top of main.s, and here it gave exactly the symptom
     ; it promises: no party change had any effect and there was no error.
     pha
     lda temp
-    beq era_agregar             ; adding one who is already there: nothing to do
+    beq was_add             ; adding one who is already there: nothing to do
     pla
     ; Removing it: the ones behind move up one place.
-correr:
+run:
     inx
     cpx party_n
-    beq acortar
+    beq shorten
     lda party, x
     sta party - 1, x
-    bra correr
-acortar:
+    bra run
+shorten:
     rep #$20
 .a16
     dec party_n
     sep #$20
 .a8
     bra ready
-era_agregar:
+was_add:
     pla
     bra ready
 
-no_estaba:
+no_was:
     pha
     lda temp
-    bne era_sacar               ; removing one who is not there: nothing to do
+    bne was_take               ; removing one who is not there: nothing to do
     pla
     cpx #PARTY_MAX
     beq ready                   ; full: RM2k does not add it either
@@ -81,7 +81,7 @@ no_estaba:
     sep #$20
 .a8
     bra ready
-era_sacar:
+was_take:
     pla
 
 ready:
@@ -116,7 +116,7 @@ ready:
 ; sprites.
 ;
 ; It is used by the two things that change the hero's graphic: move command
-; 34 of a move route —`grafico_heroe`— and the `ChangeSpriteAssociation` on
+; 34 of a move route —`graphic_hero`— and the `ChangeSpriteAssociation` on
 ; the actor who leads —`pick_hero_graphic`—. What each one does with C=0 is
 ; different and that is why it stays outside: command 34 hides the hero and
 ; the actor change leaves it with the LDB graphic.
@@ -132,7 +132,7 @@ ready:
 .a8
     lda route_gfx_buf, x        ; its entry in `npc_poses`, or $FF
     cmp #$FF
-    beq no_esta
+    beq no_is
     sta temp
     lda route_gfx_buf + 1, x
     asl a
@@ -161,7 +161,7 @@ ready:
     stz hero_cgram + 2          ; see above: nobody uploads colors on top
     sec
     rts
-no_esta:
+no_is:
     clc
     rts
 .endproc
@@ -189,15 +189,15 @@ no_esta:
     stz hero_poses + 2
     stz hero_cgram + 2
     lda party_n
-    bne con_grupo               ; `beq sin_lider` no longer reaches
+    bne with_party               ; `beq no_leader` no longer reaches
     rts                         ; empty party: nothing is drawn
-con_grupo:
+with_party:
 
     ldx map_ofs
     rep #$20
 .a16
     lda f:map_table + M_ACTOR_COUNT, x
-    beq sin_lider16
+    beq no_leader16
     sta temp + 2
     lda f:map_table + M_PTR_ACTOR_TABLE, x
     sta act_ptr
@@ -209,10 +209,10 @@ con_grupo:
     ldy #$0000
     lda party                   ; the leader
     sta temp
-cada_actor:
+each_actor:
     lda [act_ptr], y
     cmp temp
-    beq lo_encontre
+    beq lo_found
     rep #$20
 .a16
     tya
@@ -222,10 +222,10 @@ cada_actor:
     dec temp + 2
     sep #$20
 .a8
-    bne cada_actor
-    bra sin_lider
+    bne each_actor
+    bra no_leader
 
-lo_encontre:
+lo_found:
     ; Before the LDB, whatever `ChangeSpriteAssociation` was done to this
     ; actor: it is RM2k's `actor->SetSprite`, and it lives in the actor, so it
     ; **survives the teleport**. If its graphic is not in this map's sprite
@@ -235,12 +235,12 @@ lo_encontre:
     lda temp                    ; the leader
     jsr actor_gfx_read
     cmp #ACTOR_GFX_NONE
-    beq sin_cambio_de_sprite
+    beq no_change_sprite
     jsr hero_poses_of_graphic
-    bcc sin_cambio_de_sprite
+    bcc no_change_sprite
     ply
     rts
-sin_cambio_de_sprite:
+no_change_sprite:
     ply
     iny
     lda [act_ptr], y            ; its palette, already shifted into place in vhoopppN
@@ -286,17 +286,17 @@ sin_cambio_de_sprite:
     cmp #$FFFF
     sep #$20                    ; `sep` does not touch Z: the `bne` looks at the `cmp`
 .a8
-    bne con_grafico
+    bne with_graphic
     stz hero_cgram + 2
-con_grafico:
+with_graphic:
     rts
 
-sin_lider16:
+no_leader16:
 .a16
     ; reached in sixteen; the `sep` below narrows it
     sep #$20
 .a8
-sin_lider:
+no_leader:
     rts
 .endproc
 

@@ -5,8 +5,8 @@
     sei
     clc
     xce                         ; into the 65816's native mode
-    jml f:rapido + FAST       ; to the fast mirror: see MEMSEL
-rapido:
+    jml f:fast + FAST       ; to the fast mirror: see MEMSEL
+fast:
     rep #$30                    ; 16-bit A, X and Y
 .a16
 .i16
@@ -66,11 +66,11 @@ rapido:
     ; The switches all start off, like a new RM2k game, and the screen
     ; untinted.
     ldx #$0000
-borrar_switches:
+erase_switches:
     stz switches, x
     inx
     cpx #SWITCH_BYTES
-    bne borrar_switches
+    bne erase_switches
     lda #TINT_NEUTRAL
     sta tint_r
     sta tint_g
@@ -91,14 +91,14 @@ borrar_switches:
     ; sprite shows; that in this game actor 10 is invisible is game data, not
     ; a bug.
     ldx #$0000
-copiar_grupo:
+copy_party:
     cpx #PARTY_INITIAL_N
-    beq grupo_listo
+    beq party_ready
     lda party_initial, x
     sta party, x
     inx
-    bra copiar_grupo
-grupo_listo:
+    bra copy_party
+party_ready:
     rep #$20
 .a16
     lda #PARTY_INITIAL_N
@@ -264,22 +264,22 @@ grupo_listo:
     ; still happens, that is, if there is a save it loads by itself.
     lda #<TITLE_TILES
     ora #>TITLE_TILES
-    bne nueva
+    bne fresh
     lda #0                      ; no menu to choose, always the first
     jsr set_slot
     jsr load_game
-    beq nueva
+    beq fresh
     jsr save_entry
     rep #$20
 .a16
     lda map_current             ; the index goes in sixteen bits
-    bra cargar
+    bra load
 .a8
-nueva:
+fresh:
     rep #$20
 .a16
     lda #MAP_INITIAL
-cargar:
+load:
     jsr enter_map
     sep #$20
 .a8
@@ -344,10 +344,10 @@ cargar:
 .endif
 
     ; And we wait for boot to last what it always lasts: BOOT_FRAMES.
-espera_boot:
+wait_boot:
     lda boot_frames
     cmp #BOOT_FRAMES
-    bcc espera_boot
+    bcc wait_boot
     ; The NMI keeps counting after boot: it is the only way to know whether a
     ; loop iteration overran the frame. See `count_lost`.
     lda boot_frames
@@ -385,7 +385,7 @@ loop:
     ; A teleport's fade freezes the whole game while it lasts, like RM2k: the
     ; only thing that keeps running is the music. See `fade_tick`.
     jsr fade_tick
-    bne congelado
+    bne frozen
     ; From here down the frame follows the order of `Game_Map::Update`
     ; —easyrpg's `game_map.cpp:1256-1318`—, and what rules is **where the
     ; player falls**: there `UpdateMapEvents` goes before
@@ -439,9 +439,9 @@ loop:
     ; each finish line and the bridge—, and until it went in no `release`
     ; page jumped from a parallel.
     lda jump_has
-    beq sin_salto_pendiente
+    beq no_jump_pending
     jsr events_handle_jump
-sin_salto_pendiente:
+no_jump_pending:
     jsr event_tint        ; the tint the interpreter may have requested, right
                                 ; after it: otherwise it would apply a frame late
     jsr battle_anim_tick          ; the battle animation, before the
@@ -466,8 +466,8 @@ sin_salto_pendiente:
     jsr message_tick            ; and a few characters of the message being
                                 ; composed, if there is one
     jsr build_oam               ; and the next one is built, now outside vblank
-    bra contada
-congelado:
+    bra counted
+frozen:
     ; A fade iteration: the tick runs —the fade and the harness count it—
     ; but the world does not, and neither do the map animations. See
     ; `frozen_ticks`.
@@ -478,7 +478,7 @@ congelado:
     sta f:frozen_ticks
     sep #$20
 .a8
-contada:
+counted:
     rep #$20
 .a16
     inc ticks
@@ -506,14 +506,14 @@ contada:
     sec
     sbc nmi_seen
     dec a                       ; the vblank that was this iteration's due
-    beq al_dia
+    beq to_day
     clc
     adc lost_frames
-    bcc cabe
+    bcc fits
     lda #255
-cabe:
+fits:
     sta lost_frames
-al_dia:
+to_day:
     lda boot_frames
     sta nmi_seen
     rts
@@ -533,20 +533,20 @@ al_dia:
 .i16
     sta panic
     sei                         ; not even the vblank: nothing else is going to happen
-lazo:
+loop:
     ldx #$2000
-espera_prendido:
+wait_on:
     dex
-    bne espera_prendido
+    bne wait_on
     lda #$0F
     sta INIDISP
     ldx #$2000
-espera_apagado:
+wait_off:
     dex
-    bne espera_apagado
+    bne wait_off
     lda #$80
     sta INIDISP
-    bra lazo
+    bra loop
 .endproc
 
 ; --- waiting for vblank -----------------------------------------------------
@@ -615,20 +615,20 @@ in:
     ; The PPU registers to known values, in two stretches: the scroll ones sit
     ; in the middle and need different handling.
     ldx #$0000
-bajos:
+low:
     lda f:ppu_low, x
     sta $2101, x
     inx
     cpx #(ppu_low_end - ppu_low)
-    bne bajos
+    bne low
 
     ldx #$0000
-altos:
+high:
     lda f:ppu_high, x
     sta $2115, x
     inx
     cpx #(ppu_high_end - ppu_high)
-    bne altos
+    bne high
 
     ; The eight scroll registers: each one is written twice, low byte and
     ; high byte, or the latch is left half done.

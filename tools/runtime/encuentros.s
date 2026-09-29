@@ -62,7 +62,7 @@
     lda f:enc_map, x
     sta ENC_REG
     cmp #ENC_NONE
-    beq sin_encuentros
+    beq no_encounters
     rep #$20
 .a16
     and #$00FF
@@ -73,7 +73,7 @@
     asl a
     tax
     ldy #0
-copiar:
+copy:
 .a16
     lda f:enc_threshold_n, x
     sta ENC_THR, y
@@ -82,18 +82,18 @@ copiar:
     iny
     iny
     cpy #ENC_STRIDE
-    bcc copiar
+    bcc copy
     pla
     asl a
     tax
     lda f:enc_base, x
-    bra con_base
-sin_encuentros:
+    bra with_base
+no_encounters:
 .a8
     rep #$20
 .a16
     lda #0
-con_base:
+with_base:
 .a16
     sta ENC_BASE
     sep #$20
@@ -132,7 +132,7 @@ con_base:
     plb
     lda ENC_REG
     cmp #ENC_NONE
-    beq saltear
+    beq skip
     rep #$20
 .a16
     lda [code_ptr], y
@@ -140,7 +140,7 @@ con_base:
     iny
     iny
     ldx #0
-umbral:
+threshold:
 .a16
     lda [code_ptr], y            ; two at a time: the seven and the padding
     sta ENC_THR, x
@@ -149,12 +149,12 @@ umbral:
     inx
     inx
     cpx #ENC_STRIDE
-    bcc umbral
+    bcc threshold
     sep #$20
 .a8
     plb
     rtl
-saltear:
+skip:
 .a8
     rep #$20
 .a16
@@ -197,22 +197,22 @@ saltear:
     rep #$20
 .a16
     lda ENC_BASE
-    bne hay
+    bne has
     ; Off: `encounter_steps` at zero, or a map with no troops or areas.
     sep #$20
 .a8
     stz ENC_N
     stz ENC_IDX
     bra end
-hay:
+has:
 .a16
     sep #$20
 .a8
     lda ENC_N
     inc a
-    beq sigue_arriba            ; 255 steps without an encounter: it does not wrap around
+    beq continues_up            ; 255 steps without an encounter: it does not wrap around
     sta ENC_N
-sigue_arriba:
+continues_up:
 .a8
     ; The table row, which **never goes down**: it is the `last_encounter_idx`
     ; over there. X points at the next row's threshold, in `ENC_THR`.
@@ -223,20 +223,20 @@ sigue_arriba:
     tax
     sep #$20
 .a8
-sube:
+uploads:
 .a8
     lda ENC_IDX
     cmp #(ENC_ROWS - 1)
-    bcs con_fila                ; the last row goes no higher
+    bcs with_row                ; the last row goes no higher
     lda ENC_N
     cmp ENC_THR, x              ; did it reach the next one's threshold?
-    bcc con_fila
+    bcc with_row
     inx
     lda ENC_IDX
     inc a
     sta ENC_IDX
-    bra sube
-con_fila:
+    bra uploads
+with_row:
 .a8
     ; The random threshold: `base` shifted by the row's `pmod`. Rows 0 to 3
     ; are 1/16, 1/8, 1/4 and 1/2; rows 4 to 7 are 2, 4, 8 and 16.
@@ -247,37 +247,37 @@ con_fila:
     tax
     lda ENC_BASE
     cpx #4
-    bcs a_la_izquierda
-derecha:
+    bcs to_left
+right:
 .a16
     lsr a
     inx
     cpx #4
-    bcc derecha
-    bra con_umbral
-a_la_izquierda:
+    bcc right
+    bra with_threshold
+to_left:
 .a16
     dex
     dex
     dex
-izquierda:
+left:
 .a16
     asl a
-    bcs siempre                 ; went past 1: it is a certainty, like `PercentChance`
+    bcs always                 ; went past 1: it is a certainty, like `PercentChance`
     dex
-    bne izquierda
-con_umbral:
+    bne left
+with_threshold:
 .a16
     sta temp
     jsr enc_random
     cmp temp
-    bcc salio
+    bcc exited
     sep #$20
 .a8
     bra end
-siempre:
+always:
 .a16
-salio:
+exited:
 .a16
     sep #$20
 .a8
@@ -309,15 +309,15 @@ end:
     plb
     lda ENC_ASKS
     bne pending
-    jmp no_hay
+    jmp none
 pending:
 .a8
     stz ENC_ASKS
     lda ENC_REG
     cmp #ENC_NONE
-    bne con_registro
-    jmp no_hay
-con_registro:
+    bne with_register
+    jmp none
+with_register:
 .a8
     ; The map's range of zones: its own and one per area.
     jsr enc_zones
@@ -330,9 +330,9 @@ count_up:
 .a16
     lda temp
     cmp temp + 2
-    bcs contadas
+    bcs counted
     jsr enc_covers
-    bcc sin_tapar
+    bcc no_cover
     sep #$20
 .a8
     lda f:enc_troop_n, x
@@ -342,18 +342,18 @@ count_up:
     clc
     adc comp_and
     sta comp_and
-sin_tapar:
+no_cover:
 .a16
     inc temp
     bra count_up
-contadas:
+counted:
 .a16
     lda comp_and
-    bne hay_tropas
+    bne has_troops
     sep #$20
 .a8
-    bra no_hay
-hay_tropas:
+    bra none
+has_troops:
 .a16
     ; One at random, `Rand::GetRandomNumber(0, n - 1)`: the remainder of
     ; dividing the random number by how many there are. The division is the
@@ -365,20 +365,20 @@ hay_tropas:
     lda #0
     sta comp_or23 + 2
     ldy #16
-divide:
+divides:
 .a16
     asl comp_or23
     rol comp_or23 + 2
     lda comp_or23 + 2
     cmp comp_and + 2
-    bcc sin_restar
+    bcc no_subtract
     sec
     sbc comp_and + 2
     sta comp_or23 + 2
-sin_restar:
+no_subtract:
 .a16
     dey
-    bne divide
+    bne divides
     lda comp_or23 + 2
     sta comp_and                ; how many to skip
     ; Second pass: the one whose turn it is.
@@ -387,13 +387,13 @@ sin_restar:
     jsr enc_zones
     rep #$20
 .a16
-elegir:
+pick:
 .a16
     lda temp
     cmp temp + 2
-    bcs no_hay16                ; cannot happen: the total came from these zones
+    bcs no_has16                ; cannot happen: the total came from these zones
     jsr enc_covers
-    bcc sigue_eligiendo
+    bcc continues_picking
     sep #$20
 .a8
     lda f:enc_troop_n, x
@@ -403,15 +403,15 @@ elegir:
     sta comp_or23
     lda comp_and
     cmp comp_or23
-    bcc es_de_esta
+    bcc is_is
     sec
     sbc comp_or23
     sta comp_and
-sigue_eligiendo:
+continues_picking:
 .a16
     inc temp
-    bra elegir
-es_de_esta:
+    bra pick
+is_is:
 .a16
     sep #$20
 .a8
@@ -430,11 +430,11 @@ es_de_esta:
     lda #1
     sta SCN_ORIGIN              ; the battle background, the map's
     bra end
-no_hay16:
+no_has16:
 .a16
     sep #$20
 .a8
-no_hay:
+none:
 .a8
     lda #0
 end:
@@ -489,18 +489,18 @@ end:
     tax
     lda tile_x
     cmp f:enc_left, x
-    bcc afuera
+    bcc outside
     cmp f:enc_right, x
-    bcs afuera
+    bcs outside
     lda tile_y
     cmp f:enc_arr, x
-    bcc afuera
+    bcc outside
     cmp f:enc_down, x
-    bcs afuera
+    bcs outside
     ldx temp
     sec
     rts
-afuera:
+outside:
 .a16
     ldx temp
     clc

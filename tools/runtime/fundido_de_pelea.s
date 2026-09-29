@@ -57,7 +57,7 @@
 .i16
     jsr build_oam
     ldx #0
-subir:
+upload:
     lda fade_ramp, x
     sta brightness
     phx
@@ -66,7 +66,7 @@ subir:
     plx
     inx
     cpx #FADE_RAMP
-    bcc subir
+    bcc upload
     rts                         ; and `brightness` is left at full, as it was
 .endproc
 
@@ -95,17 +95,17 @@ subir:
     lda #$3F
     sta f:CGADSUB
     ldy #2                      ; two flashes, with the same curve
-otro_destello:
+other_flash:
     ldx #0
-destello:
+flash:
     jsl f:ba_t_vblank           ; `wait_vblank`: touches neither X nor Y
     lda f:battle_flash, x
     sta f:COLDATA
     inx
     cpx #10
-    bcc destello
+    bcc flash
     dey
-    bne otro_destello
+    bne other_flash
     ; And the map down to black. The first frame turns off the flash, in the
     ; same vblank; the ramp starts one step below full so as not to spend a
     ; frame on the brightness that was already there.
@@ -173,7 +173,7 @@ ready:
     lda #1
     sta f:BATTLE_ON
     ldx #0
-subir:
+upload:
     jsl f:ba_t_vblank           ; `wait_vblank`, which does not touch X
     lda f:fade_ramp, x
     sta f:INIDISP
@@ -186,7 +186,7 @@ subir:
     sta f:MOSAIC
     inx
     cpx #FADE_RAMP
-    bcc subir
+    bcc upload
     lda #0
     sta f:MOSAIC                ; the last one was already size 1: same thing, off
     rts

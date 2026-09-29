@@ -17,9 +17,9 @@
     ; it has been in it. With the animation stopped or jumping, the middle frame.
     lda route_ev + 12, x
     and #$02
-    bne quieta
+    bne still
     lda route_ev + 13, x
-    bne quieta
+    bne still
     ; The limits, by speed.
     lda route_ev + 17, x
     dec a
@@ -37,29 +37,29 @@
     ; while still only until it reaches the middle frame.
     lda route_ev + 18, x
     and #$10
-    bne suma
+    bne sum
     lda route_ev + 6, x
-    bne suma
+    bne sum
     lda route_ev + 10, x
     and #$01
-    beq suma                    ; on frame 0 or 2 it goes on to the middle one
+    beq sum                    ; on frame 0 or 2 it goes on to the middle one
     lda route_ev + 11, x
     inc a
     cmp temp
-    bcc suma                    ; count < stopped - 1
-    bra ver_cambio
-suma:
+    bcc sum                    ; count < stopped - 1
+    bra see_change
+sum:
     inc route_ev + 11, x
-ver_cambio:
+see_change:
     lda route_ev + 11, x
     cmp temp + 1
-    bcs cambia                  ; reached the continuous one
+    bcs changes                  ; reached the continuous one
     lda route_ev + 6, x
     beq ready
     lda route_ev + 11, x
     cmp temp
     bcc ready                   ; walking, to the stopped one
-cambia:
+changes:
     lda route_ev + 10, x
     inc a
     and #$03                    ; the cycle is four steps
@@ -67,7 +67,7 @@ cambia:
     stz route_ev + 11, x
 ready:
     rts
-quieta:
+still:
     lda #1
     sta route_ev + 10, x
     stz route_ev + 11, x
@@ -82,9 +82,9 @@ quieta:
 .i16
     sta temp
     ldy #$0000
-buscar:
+seek:
     cpy npc_total
-    beq no_hay
+    beq none
     lda npc_buf + 8, y
     cmp temp
     beq ready
@@ -96,8 +96,8 @@ buscar:
     tay
     sep #$20
 .a8
-    bra buscar
-no_hay:
+    bra seek
+none:
     ldy #$FFFF
 ready:
     rts
@@ -115,10 +115,10 @@ ready:
 .a8
 .i16
     ldx #$0000
-buscar:
+seek:
     lda route_ev, x
     cmp temp
-    beq con_ranura
+    beq with_slot
     rep #$20
 .a16
     txa
@@ -128,7 +128,7 @@ buscar:
     cmp #ROUTE_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
-    bcc buscar
+    bcc seek
 
     ; No slot. If it has no graphic either there is nothing to move.
     lda temp
@@ -169,7 +169,7 @@ buscar:
     sta npc_buf + 11, y         ; no jump: nothing to lift
     jmp fit_npc            ; and the row, to wherever it belongs now
 
-con_ranura:
+with_slot:
     lda #0
     sta route_ev + 7, x          ; no step in progress
     sta route_ev + 22, x

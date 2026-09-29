@@ -79,9 +79,9 @@ MENU_EXP_SPRITES = 128
 row:
     lda comp_char
     cmp party_n
-    bcs filas_listas
+    bcs rows_lists
     cmp #MENU_ROWS_PARTY
-    bcs filas_listas
+    bcs rows_lists
     jsr one_row
     lda comp_phase
     clc
@@ -89,25 +89,25 @@ row:
     sta comp_phase
     inc comp_char
     bra row
-filas_listas:
+rows_lists:
     ; The leftover ones, below the screen, and the small table at zero: an
     ; eight-bit x and the small size for all of them.
     lda comp_base
     cmp #MENU_EXP_SPRITES
-    bcs ocultos_listos
+    bcs hidden_all_ready
     stz OAMDATA
     lda #MENU_EXP_HIDDEN
     sta OAMDATA
     stz OAMDATA
     stz OAMDATA
     inc comp_base
-    bra filas_listas
-ocultos_listos:
+    bra rows_lists
+hidden_all_ready:
     ldx #(MENU_EXP_SPRITES / 4)
-tabla_chica:
+table_small:
     stz OAMDATA
     dex
-    bne tabla_chica
+    bne table_small
 
     jsl f:ba_t_ppu              ; the screen, on with BG2 alone
     lda #$12                    ; and the sprites on top
@@ -126,9 +126,9 @@ one_row:
 .a8
     lda party, x
     cmp #MENU_ACTORS_N
-    bcc conocido
+    bcc known
     rts                         ; one this ROM does not know
-conocido:
+known:
     rep #$20
 .a16
     and #$00FF
@@ -137,9 +137,9 @@ conocido:
 .a8
     lda f:actor_exp_k, x
     cmp #$FF
-    bne con_exp
+    bne with_exp
     rts                         ; one who does not fight: has no experience
-con_exp:
+with_exp:
     rep #$20
 .a16
     and #$00FF
@@ -162,8 +162,8 @@ con_exp:
     lda f:exp_level_max, x
     plx
     cmp comp_dup
-    beq tope
-    bcc tope
+    beq cap
+    bcc cap
     ; The current one.
     rep #$20
 .a16
@@ -174,7 +174,7 @@ con_exp:
     lda f:FAR_LENGTH + FAR_EXP + 2, x
     sta comp_or01 + 2
     ldy #0
-    jsr seis_cifras
+    jsr six_digits
     lda #'/'
     tyx
     sta f:MENU_EXP_TEXT, x
@@ -199,36 +199,36 @@ con_exp:
 .a8
     lda f:exp_table + 2, x
     sta comp_or01 + 2
-    jsr seis_cifras
+    jsr six_digits
     bra sprites
-tope:
+cap:
     rep #$20
 .a16
     pla                         ; k, which is not needed
     sep #$20
 .a8
     ldx #0
-guion:
+dash:
     lda #'-'
     cpx #MENU_EXP_DIGITS
-    bne no_barra
+    bne no_bar
     lda #'/'
-no_barra:
+no_bar:
     sta f:MENU_EXP_TEXT, x
     inx
     cpx #MENU_EXP_LETTERS
-    bcc guion
+    bcc dash
 
 sprites:
     ; --- the term: four tiles, two on top and two below ---
     ldx #0
-termino:
+finished:
     lda #MENU_EXP_X
     cpx #1
-    beq term_der
+    beq term_right
     cpx #3
     bne term_x
-term_der:
+term_right:
     lda #(MENU_EXP_X + 8)
 term_x:
     sta comp_mask
@@ -251,16 +251,16 @@ term_y:
     plx
     inx
     cpx #MENU_EXP_TERM_TILES
-    bcc termino
+    bcc finished
 
     ; --- the thirteen letters, six pixels apart; a space gets no sprite ---
     lda #MENU_EXP_NUM_X
     sta comp_mask
     ldx #0
-letra:
+letter:
     lda f:MENU_EXP_TEXT, x
     cmp #' '
-    beq siguiente
+    beq next
     phx
     rep #$20
 .a16
@@ -289,14 +289,14 @@ letra:
     jsr put                   ; and the bottom one
 .a8
     plx
-siguiente:
+next:
     lda comp_mask
     clc
     adc #MENU_EXP_STEP
     sta comp_mask
     inx
     cpx #MENU_EXP_LETTERS
-    bcc letra
+    bcc letter
     rts
 
 ; One sprite: A16 the glyph's tilemap word —tile and palette—, at
@@ -323,23 +323,23 @@ put:
 ; `comp_or01`: a 24-bit number, less than a million. Writes its six digits
 ; into `MENU_EXP_TEXT` from Y, right-aligned with spaces, and leaves Y past
 ; them. It clobbers X.
-seis_cifras:
+six_digits:
     stz comp_col + 1
     ldx #0
-potencia:
+power:
     stz comp_col
-resta:
+remain:
     rep #$20
 .a16
     lda comp_or01
     sec
-    sbc f:potencias, x
+    sbc f:powers, x
     sta comp_and
     sep #$20                    ; `sep` does not touch the subtraction's carry
 .a8
     lda comp_or01 + 2
-    sbc f:potencias + 2, x
-    bcc no_alcanza
+    sbc f:powers + 2, x
+    bcc no_reaches
     sta comp_or01 + 2
     rep #$20
 .a16
@@ -348,22 +348,22 @@ resta:
     sep #$20
 .a8
     inc comp_col
-    bra resta
-no_alcanza:
+    bra remain
+no_reaches:
     lda comp_col
     ora comp_col + 1
-    bne cifra
+    bne digit
     cpx #(5 * 3)
-    beq cifra                   ; the units always go, even if 0
+    beq digit                   ; the units always go, even if 0
     lda #' '
-    bra escribir
-cifra:
+    bra write
+digit:
     lda #1
     sta comp_col + 1
     lda comp_col
     clc
     adc #'0'
-escribir:
+write:
     phx
     tyx
     sta f:MENU_EXP_TEXT, x
@@ -373,10 +373,10 @@ escribir:
     inx
     inx
     cpx #(6 * 3)
-    bcc potencia
+    bcc power
     rts
 
-potencias:
+powers:
     .faraddr 100000, 10000, 1000, 100, 10, 1
 .endproc
 

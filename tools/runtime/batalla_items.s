@@ -24,14 +24,14 @@
     lda #0
     sta BA_ITEM_N
     sta BA_S0                   ; the `k` being looked at
-otro:
+other:
     lda BA_S0
     cmp #ITEMS_ROM
     bcs ready
     lda BA_S0
     jsr ba_ax
     lda f:item_battle, x
-    beq siguiente
+    beq next
     lda BA_S0
     rep #$20
 .a16
@@ -43,7 +43,7 @@ otro:
     sep #$20
 .a8
     lda FAR_ITEMS, x            ; how many there are in the inventory
-    beq siguiente
+    beq next
     lda BA_ITEM_N
     jsr ba_ax
     lda BA_S0
@@ -52,9 +52,9 @@ otro:
     lda BA_ITEM_N
     cmp #BA_ITEM_MAX
     bcs ready
-siguiente:
+next:
     inc BA_S0
-    bra otro
+    bra other
 ready:
     rts
 .endproc
@@ -139,9 +139,9 @@ ready:
     sec
     sbc BA_ONE + BA_HP, x
     cmp BA_S5
-    bcc topado
+    bcc capped
     lda BA_S5
-topado:
+capped:
 .a16
     rts
 .endproc
@@ -173,24 +173,24 @@ topado:
     lda BA_ONE + BA_HP, x
     sep #$20
 .a8
-    beq caido
+    beq fallen
     lda BA_ITEM_SEL
     jsr ba_item_from_list
     jsr ba_ax
     lda f:item_medicine, x
     and #MED_KO_ONLY
-    beq si
+    beq if
 no:
     lda #0
     rts
-caido:
+fallen:
     lda BA_ITEM_SEL
     jsr ba_item_from_list
     jsr ba_ax
     lda f:item_medicine, x
     and #MED_RAISES
     beq no
-si:
+if:
     lda #1
     rts
 .endproc
@@ -232,7 +232,7 @@ si:
     lda BA_ONE + BA_HP, x
     sep #$20
 .a8
-    beq caido
+    beq fallen
     lda BA_S2
     and #MED_KO_ONLY
     bne nothing
@@ -248,7 +248,7 @@ si:
     sep #$20
 .a8
     rts
-caido:
+fallen:
 .a8
     lda BA_S2
     and #MED_RAISES
@@ -257,9 +257,9 @@ caido:
     jsr ba_item_heal            ; with zero HP, the cap is the whole maximum
 .a16
     cmp #0
-    bne levanta
+    bne raises
     lda #1                      ; the `SetHp(1)`, even if the item heals nothing
-levanta:
+raises:
     sta BA_MCURA
     ldx BA_S4
     sta BA_ONE + BA_HP, x

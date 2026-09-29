@@ -108,19 +108,19 @@ CELL_VARIABLE = $01FF
     asl a
     asl a                       ; times EV_STRIDE
     tax
-    beq heroe
+    beq hero
     ; The live cell, the same as class 6 of `op_var`.
     lda f:ev_pos_buf - EV_STRIDE + 0, x
     sta temp
     lda f:ev_pos_buf - EV_STRIDE + 2, x
     sta temp + 2
-    bra escribir
-heroe:
+    bra write
+hero:
     lda tile_x
     sta temp
     lda tile_y
     sta temp + 2
-escribir:
+write:
     ; All inline and without `jsr`: it runs forty times per frame.
     CELL_WRITE
     CELL_WRITE
@@ -161,7 +161,7 @@ ready:
     ora f:msg_state
     ora pick_active
     bne no
-otro:
+other:
     lda pair_i
     cmp pair_n
     bcs no
@@ -206,10 +206,10 @@ otro:
     ldy #1
     jsr cell_test_near
     lda [code_ptr], y
-    bne sigue                   ; did not end at its `OP_DONE`
+    bne continues                   ; did not end at its `OP_DONE`
     inc pair_i
-    bra otro
-sigue:
+    bra other
+continues:
     rep #$20
 .a16
     lda pair_dir

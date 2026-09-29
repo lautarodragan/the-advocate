@@ -25,12 +25,12 @@
 .a16
 .i16
     sta BA_T0
-    bmi sin_tirar
-    beq sin_tirar
+    bmi no_roll
+    beq no_roll
     sep #$20
 .a8
     lda BA_S5
-    beq sin_varianza
+    beq no_variance
     sta BA_T2
     rep #$20
 .a16
@@ -40,9 +40,9 @@
     lda #10
     sta temp + 2
     jsr ba_div
-    bne ajuste_listo
+    bne adjust_ready
     lda #1                      ; `max(1, ...)`
-ajuste_listo:
+adjust_ready:
     sta BA_T1
     jsr ba_until                ; A16 is still the adjustment
     clc
@@ -55,10 +55,10 @@ ajuste_listo:
     sec
     sbc BA_T1
     sta BA_T0
-sin_tirar:
+no_roll:
     lda BA_T0
     rts
-sin_varianza:
+no_variance:
 .a8
 .i16
     rep #$20
@@ -102,10 +102,10 @@ sin_varianza:
     lda temp
     sec
     sbc BA_T0
-    bmi arriba_ok
+    bmi up_ok
     lda BA_T0
     sta temp
-arriba_ok:
+up_ok:
     lda BA_T0
     lsr a
     eor #$FFFF
@@ -114,10 +114,10 @@ arriba_ok:
     lda temp
     sec
     sbc BA_T2
-    bpl abajo_ok
+    bpl down_ok
     lda BA_T2
     sta temp
-abajo_ok:
+down_ok:
     lda BA_S4
     clc
     adc BA_S5
@@ -126,17 +126,17 @@ abajo_ok:
     sta BA_ONE, x               ; the new modifier
     clc
     adc BA_T0                   ; base + modifier
-    bmi al_uno
+    bmi to_one
     cmp #1
-    bcs no_es_cero
-al_uno:
+    bcs not_zero
+to_one:
     lda #1
-    bra efectivo_listo
-no_es_cero:
+    bra effective_ready
+not_zero:
     cmp #(BA_PARAM_MAX + 1)
-    bcc efectivo_listo
+    bcc effective_ready
     lda #BA_PARAM_MAX
-efectivo_listo:
+effective_ready:
     sta BA_T2
     lda BA_S4
     clc
@@ -169,13 +169,13 @@ efectivo_listo:
     sep #$20
 .a8
     lda #1
-corre:
+runs:
     cpy #0
-    beq mascara_lista
+    beq mask_list
     asl a
     dey
-    bra corre
-mascara_lista:
+    bra runs
+mask_list:
     ora switches, x
     sta switches, x
     lda #1
@@ -217,7 +217,7 @@ mascara_lista:
     jsr ba_ax
     lda f:skill_phys, x
     sta BA_T2
-    beq sin_fisico
+    beq no_physical
     ldx BA_S0
     rep #$20
 .a16
@@ -232,13 +232,13 @@ mascara_lista:
     sta BA_S2
     sep #$20
 .a8
-sin_fisico:
+no_physical:
     ; + magical_rate * spi / 40
     lda BA_MHAB
     jsr ba_ax
     lda f:skill_mag, x
     sta BA_T2
-    beq sin_magico
+    beq no_magic
     ldx BA_S0
     rep #$20
 .a16
@@ -253,7 +253,7 @@ sin_fisico:
     sta BA_S2
     sep #$20
 .a8
-sin_magico:
+no_magic:
     ; Against an enemy and without `ignore_defense`, its defense and spirit
     ; are subtracted. `SkillTargetsEnemies` is bit 6 of `skill_affects` and bit 7
     ; is `ignore_defense`.
@@ -262,15 +262,15 @@ sin_magico:
     lda f:skill_affects, x
     sta BA_S3
     and #$40
-    beq sin_resta
+    beq no_remain
     lda BA_S3
     and #$80
-    bne sin_resta
+    bne no_remain
     lda BA_MHAB
     jsr ba_ax
     lda f:skill_phys, x
     sta BA_T2
-    beq sin_resta_fis
+    beq no_remain_phys
     ldx BA_S1
     rep #$20
 .a16
@@ -287,12 +287,12 @@ sin_magico:
     sta BA_S2
     sep #$20
 .a8
-sin_resta_fis:
+no_remain_phys:
     lda BA_MHAB
     jsr ba_ax
     lda f:skill_mag, x
     sta BA_T2
-    beq sin_resta
+    beq no_remain
     ldx BA_S1
     rep #$20
 .a16
@@ -309,13 +309,13 @@ sin_resta_fis:
     sta BA_S2
     sep #$20
 .a8
-sin_resta:
+no_remain:
     rep #$20
 .a16
     lda BA_S2
-    bpl no_negativo
+    bpl no_negative
     lda #0                      ; `max(0, effect)`
-no_negativo:
+no_negative:
     sta BA_MEFECTO
     sep #$20
 .a8
@@ -325,7 +325,7 @@ no_negativo:
     ; sides would drift out of phase.
     lda #0
     jsr ba_pct
-    beq sin_critico
+    beq no_critical
     rep #$20
 .a16
     lda BA_MEFECTO
@@ -336,7 +336,7 @@ no_negativo:
     sta BA_MEFECTO
     sep #$20
 .a8
-sin_critico:
+no_critical:
     rts
 .endproc
 
@@ -353,16 +353,16 @@ sin_critico:
     txa
     sta BA_S4
     lda BA_MEFECTO
-    bmi hace_dano
+    bmi does_damage
     sta BA_T0
-    bra aplica
-hace_dano:
+    bra applies
+does_damage:
     sep #$20
 .a8
     ldx BA_S4
     lda BA_ONE + BA_FLAGS, x
     and #BAF_DEF
-    beq sin_defensa
+    beq no_defense
     rep #$20
 .a16
     lda BA_MEFECTO
@@ -372,29 +372,29 @@ hace_dano:
     eor #$FFFF
     inc a                       ; half, truncated toward zero
     sta BA_T0
-    bra aplica
-sin_defensa:
+    bra applies
+no_defense:
 .a8
 .i16
     rep #$20
 .a16
     lda BA_MEFECTO
     sta BA_T0
-aplica:
+applies:
 .a16
 .i16
     ldx BA_S4
     lda BA_ONE + BA_HP, x
     clc
     adc BA_T0
-    bmi en_cero
+    bmi in_zero
     cmp BA_ONE + BA_HPMAX, x
-    bcc cabe
+    bcc fits
     lda BA_ONE + BA_HPMAX, x
-    bra cabe
-en_cero:
+    bra fits
+in_zero:
     lda #0
-cabe:
+fits:
     sta BA_ONE + BA_HP, x
     sep #$20
 .a8
@@ -414,14 +414,14 @@ cabe:
     lda BA_ONE + BA_SP, x
     clc
     adc BA_MEFECTO
-    bmi sp_en_cero
+    bmi sp_in_zero
     cmp BA_ONE + BA_SPMAX, x
-    bcc sp_cabe
+    bcc sp_fits
     lda BA_ONE + BA_SPMAX, x
-    bra sp_cabe
-sp_en_cero:
+    bra sp_fits
+sp_in_zero:
     lda #0
-sp_cabe:
+sp_fits:
     sta BA_ONE + BA_SP, x
     sep #$20
 .a8
@@ -461,7 +461,7 @@ sp_ok:
     jsr ba_ax
     lda f:skill_type, x
     cmp #BA_SKILL_TYPE_SWITCH
-    bne no_es_switch
+    bne not_switch
     rep #$20
 .a16
     lda BA_MHAB
@@ -475,7 +475,7 @@ sp_ok:
     sep #$20
 .a8
     jmp ba_switch
-no_es_switch:
+not_switch:
     ; --- on whom: `batalla.blancos_de_la_habilidad` ---
     ;
     ; `enemy` and `ally` on the chosen one, `self` on the user, and `enemies`
@@ -486,54 +486,54 @@ no_es_switch:
     jsr ba_ax
     lda f:skill_scope, x
     cmp #BA_SCOPE_ONE
-    bne no_es_uno
+    bne not_one
     lda BA_MQUIEN
     sta BA_MBLA
     jmp ba_skill_one
-no_es_uno:
+not_one:
     cmp #BA_SCOPE_ENEMIES
-    beq de_a_muchos
+    beq from_a_many
     cmp #BA_SCOPE_PARTY
-    beq de_a_muchos
+    beq from_a_many
     jmp ba_skill_one
-de_a_muchos:
+from_a_many:
     ; The side: the opposing one with `enemies`, its own with `party`. That
     ; the source is in the party is `BA_MQUIEN < BA_PARTY_MAX`.
     ldy #0                      ; 0 the party, 1 the troop
     lda BA_MQUIEN
     cmp #BA_PARTY_MAX
-    bcc del_grupo
+    bcc from_party
     iny
-del_grupo:
+from_party:
     lda f:skill_scope, x
     cmp #BA_SCOPE_ENEMIES
-    bne lado_listo
+    bne side_ready
     tya
     eor #1
     tay
-lado_listo:
+side_ready:
     lda #0
     cpy #0
-    beq primero_listo
+    beq first_ready
     lda #BA_PARTY_MAX
-primero_listo:
+first_ready:
     sta f:BA_SKILL_I
-otro_blanco:
+other_target:
     lda f:BA_SKILL_I
     jsr ba_alive
-    beq no_cae
+    beq no_falls
     lda f:BA_SKILL_I
     sta BA_MBLA
     jsr ba_skill_one
-no_cae:
+no_falls:
     lda f:BA_SKILL_I
     inc a
     sta f:BA_SKILL_I
     cmp #BA_PARTY_MAX
-    beq listos                  ; the party ends where the troop begins
+    beq all_ready                  ; the party ends where the troop begins
     cmp #BA_COMB_MAX
-    bcc otro_blanco
-listos:
+    bcc other_target
+all_ready:
     rts
 .endproc
 
@@ -554,9 +554,9 @@ listos:
     jsr ba_variance
     ; the damage cap, which is the same as an attack's
     cmp #(BA_DAMAGE_MAX + 1)
-    bcc efecto_cabe
+    bcc effect_fits
     lda #BA_DAMAGE_MAX
-efecto_cabe:
+effect_fits:
     sta BA_MEFECTO
     sep #$20
 .a8
@@ -567,7 +567,7 @@ efecto_cabe:
     lda f:skill_affects, x
     sta BA_S3                   ; what it touches, which is not read again
     and #$40
-    beq es_positivo
+    beq is_positive
     rep #$20
 .a16
     lda BA_MEFECTO
@@ -576,7 +576,7 @@ efecto_cabe:
     sta BA_MEFECTO
     sep #$20
 .a8
-es_positivo:
+is_positive:
     ; the hit rate, which all seven carry at 100
     lda BA_MHAB
     jsr ba_ax
@@ -585,12 +585,12 @@ es_positivo:
     ; --- the HP ---
     lda BA_S3
     and #$01
-    beq sin_hp
+    beq no_hp
     lda BA_S0
     jsr ba_pct
-    beq sin_hp
+    beq no_hp
     jsr ba_skill_hp
-sin_hp:
+no_hp:
     ; --- the SP ---
     ;
     ; None of the seven the intro party knows touches them, **but the roll
@@ -598,12 +598,12 @@ sin_hp:
     ; randomness out of phase.
     lda BA_S3
     and #$02
-    beq sin_sp
+    beq no_sp
     lda BA_S0
     jsr ba_pct
-    beq sin_sp
+    beq no_sp
     jsr ba_skill_sp
-sin_sp:
+no_sp:
     ; --- the four parameters, in `vExecute`'s order ---
     lda BA_MBLA
     jsr ba_x
@@ -615,10 +615,10 @@ sin_sp:
 .a8
     lda BA_S3
     and #$04
-    beq sin_atk
+    beq no_atk
     lda BA_S0
     jsr ba_pct
-    beq sin_atk
+    beq no_atk
     rep #$20
 .a16
     lda #BA_MATK
@@ -630,13 +630,13 @@ sin_sp:
     sep #$20
 .a8
     jsr ba_mod
-sin_atk:
+no_atk:
     lda BA_S3
     and #$08
-    beq sin_def
+    beq no_def
     lda BA_S0
     jsr ba_pct
-    beq sin_def
+    beq no_def
     rep #$20
 .a16
     lda #BA_MDEF
@@ -648,13 +648,13 @@ sin_atk:
     sep #$20
 .a8
     jsr ba_mod
-sin_def:
+no_def:
     lda BA_S3
     and #$10
-    beq sin_spi
+    beq no_spi
     lda BA_S0
     jsr ba_pct
-    beq sin_spi
+    beq no_spi
     rep #$20
 .a16
     lda #BA_MSPI
@@ -666,13 +666,13 @@ sin_def:
     sep #$20
 .a8
     jsr ba_mod
-sin_spi:
+no_spi:
     lda BA_S3
     and #$20
-    beq sin_agi
+    beq no_agi
     lda BA_S0
     jsr ba_pct
-    beq sin_agi
+    beq no_agi
     rep #$20
 .a16
     lda #BA_MAGI
@@ -684,7 +684,7 @@ sin_spi:
     sep #$20
 .a8
     jsr ba_mod
-sin_agi:
+no_agi:
     rts
 .endproc
 
@@ -735,7 +735,7 @@ sin_agi:
     sta BA_S2                   ; the slot of the pair being looked at
     sep #$20
 .a8
-otro:
+other:
     lda BA_SKILL_N
     cmp #BA_SKILL_MAX
     bcs ready
@@ -759,25 +759,25 @@ otro:
 .a8
     lda f:FAR_LENGTH + FAR_SKILL, x
     and BA_T0
-    beq siguiente               ; it does not know it
+    beq next               ; it does not know it
     ldx BA_S2
     lda f:skill_pair_k, x
     cmp #$FF
-    beq siguiente               ; it knows it and the battle does not offer it
+    beq next               ; it knows it and the battle does not offer it
     pha
     lda BA_SKILL_N
     jsr ba_ax
     pla
     sta BA_SKILL_LIST, x
     inc BA_SKILL_N
-siguiente:
+next:
     rep #$20
 .a16
     inc BA_S2
     sep #$20
 .a8
     dec BA_S1
-    bne otro
+    bne other
 ready:
     rts
 .endproc
@@ -817,9 +817,9 @@ ready:
     cmp BA_ONE + BA_SP, x
     sep #$20
 .a8
-    beq si                      ; exactly as many as it has is enough
+    beq if                      ; exactly as many as it has is enough
     bcs no
-si:
+if:
     lda #1
     rts
 no:
@@ -844,29 +844,29 @@ no:
     ; is being chosen.
     lda BA_MODE
     cmp #BA_M_SKILL
-    beq a_la_lista_hab
+    beq to_list_skill
     cmp #BA_M_ACTOR
-    bne no_es_hab
+    bne not_skill
     lda BA_COMMAND
     cmp #BA_COMMAND_SKILL
-    bne no_es_hab
-a_la_lista_hab:
-    jmp la_lista_hab
-no_es_hab:
+    bne not_skill
+to_list_skill:
+    jmp list_skill
+not_skill:
     lda BA_MODE
     cmp #BA_M_ITEM
-    beq a_la_lista
+    beq to_list
     cmp #BA_M_ACTOR
-    bne sin_lista
-a_la_lista:
-    jmp la_lista
-sin_lista:
+    bne no_list
+to_list:
+    jmp list
+no_list:
     lda #0
     sta BA_S0
-enemigo:
+enemy:
     lda BA_S0
     cmp BA_KID
-    bcs enemigos_listos
+    bcs enemies_all_ready
     rep #$20
 .a16
     lda #BA_ENEMY_POS0
@@ -875,47 +875,47 @@ enemigo:
 .a8
     lda BA_MODE
     cmp #BA_M_TARGET
-    bne sin_cursor_ene
+    bne no_cursor_enemy
     lda BA_S0
     cmp BA_TARGET
-    bne sin_cursor_ene
+    bne no_cursor_enemy
     jsr ba_cursor
-sin_cursor_ene:
+no_cursor_enemy:
     stz BA_CONMAX               ; an enemy does not show its maximum
     lda BA_S0
     clc
     adc #BA_PARTY_MAX
     jsr ba_line
     inc BA_S0
-    bra enemigo
-enemigos_listos:
+    bra enemy
+enemies_all_ready:
     ; --- the party ---
     ;
     ; Unless there is a message from a troop page, which goes on its lines: in
     ; RM2k the battle's message window covers the party's. See
     ; `ba_page_message`. And the same with what the victory reports.
     jsr ba_vic_on_screen
-    beq sin_victoria
+    beq no_victory
     jmp ba_vic_message
-sin_victoria:
+no_victory:
     lda BA_MODE
     cmp #BA_M_PAGE
-    bne con_grupo
+    bne with_party
     rep #$20
 .a16
     lda BA_PAGE_MSG
     cmp #$FFFF
     sep #$20
 .a8
-    beq con_grupo
+    beq with_party
     jmp ba_page_message
-con_grupo:
+with_party:
     lda #0
     sta BA_S0
 actor:
     lda BA_S0
     cmp BA_NACT
-    bcs actores_listos
+    bcs actors_all_ready
     rep #$20
 .a16
     lda #BA_PARTY_POS0
@@ -924,48 +924,48 @@ actor:
 .a8
     lda BA_MODE
     cmp #BA_M_MESSAGE
-    bcs sin_cursor_act
+    bcs no_cursor_act
     cmp #BA_M_ACTOR
-    bne cursor_en_el_que_ordena
+    bne cursor_in_sorts
     lda BA_S0
     cmp BA_ITEM_BLA             ; choosing whom to heal
-    bne sin_cursor_act
-    bra pone_cursor_act
-cursor_en_el_que_ordena:
+    bne no_cursor_act
+    bra sets_cursor_act
+cursor_in_sorts:
     lda BA_S0
     cmp BA_ACTOR
-    bne sin_cursor_act
-pone_cursor_act:
+    bne no_cursor_act
+sets_cursor_act:
     jsr ba_cursor
-sin_cursor_act:
+no_cursor_act:
     lda #1
     sta BA_CONMAX
     lda BA_S0
     jsr ba_line
     inc BA_S0
     bra actor
-actores_listos:
+actors_all_ready:
     ; --- the last line ---
     ;
     ; Which stays empty while a page is running: the previous action's message
     ; has already been read, and the page's goes on top.
     lda BA_MODE
     cmp #BA_M_PAGE
-    bne no_es_pagina
+    bne not_page
     rts
-no_es_pagina:
+not_page:
     cmp #BA_M_MESSAGE
-    bcc ordenes
+    bcc commands
     jmp ba_message
-ordenes:
+commands:
     lda #0
     sta BA_S0
-orden:
+command:
     lda BA_S0
     cmp #BA_COMMANDS_N
-    bcc hay_orden
-    jmp ordenes_listas
-hay_orden:
+    bcc has_command
+    jmp commands_lists
+has_command:
     ; Which line this one falls on: since 2026-09-13 there are five and they
     ; go on two.
     lda BA_S0
@@ -984,25 +984,25 @@ hay_orden:
     ; pause menu does with its own.
     lda BA_MODE
     cmp #BA_M_COMMAND
-    bne en_gris
+    bne in_gray
     lda BA_S0
     jsr ba_ax
     lda f:ba_command_gray, x
-    bne en_gris
+    bne in_gray
     ; And the skill command of an actor who knows none —Talan, who is level
     ; 1— also goes in gray, like the pause menu with what leads nowhere.
     lda BA_S0
     cmp #BA_COMMAND_SKILL
-    bne sin_gris_orden
+    bne no_gray_command
     jsr ba_skill_list            ; what it knows now: see `FAR_SKILL`
     lda BA_SKILL_N
-    beq en_gris
-sin_gris_orden:
+    beq in_gray
+no_gray_command:
     lda #0
-    bra pone_variante
-en_gris:
+    bra sets_variant
+in_gray:
     lda #1
-pone_variante:
+sets_variant:
     sta BA_S1
     rep #$20
 .a16
@@ -1016,10 +1016,10 @@ pone_variante:
 .a8
     lda BA_MODE
     cmp #BA_M_COMMAND
-    bne sin_cursor_orden
+    bne no_cursor_command
     lda BA_S0
     cmp BA_COMMAND
-    bne sin_cursor_orden
+    bne no_cursor_command
     stz temp + 1
     rep #$20
 .a16
@@ -1031,7 +1031,7 @@ pone_variante:
 .a8
     lda #$3E                    ; the cursor
     jsl f:ba_t_glyph
-sin_cursor_orden:
+no_cursor_command:
     rep #$20
 .a16
     lda BA_T2
@@ -1049,7 +1049,7 @@ sin_cursor_orden:
     ; `ba_command_txt`, which is fixed.
     lda BA_S0
     cmp #BA_COMMAND_SKILL
-    beq texto_de_la_habilidad
+    beq text_skill
     ; **Two bytes wide**, like `actor_skill_txt` and `enemy_txt`: a text index
     ; does not fit in one. With the 29 maps of `abl` the battle texts start at
     ; 273, so the one-byte table that was here until 2026-09-14 truncated them
@@ -1064,8 +1064,8 @@ sin_cursor_orden:
     tax
     lda f:ba_command_txt, x
     tax
-    bra texto_puesto
-texto_de_la_habilidad:
+    bra text_set
+text_skill:
 .a8
 .i16
     jsr ba_actor_ldb
@@ -1076,31 +1076,31 @@ texto_de_la_habilidad:
     tax
     lda f:actor_skill_txt, x
     tax
-texto_puesto:
+text_set:
 .a16
     sep #$20
 .a8
     jsl f:ba_t_text
     inc BA_S0
-    jmp orden
-ordenes_listas:
+    jmp command
+commands_lists:
     rts
 
     ; --- the item list, where the enemies go ---
-la_lista:
+list:
     lda #0
     sta BA_S0
-fila_item:
+row_item:
     lda BA_S0
     cmp #BA_ENEMIES_MAX
-    bcs no_hay_mas
+    bcs none_more
     clc
     adc BA_ITEM_ARR
     cmp BA_ITEM_N
-    bcc hay_item
-no_hay_mas:
-    jmp items_listos
-hay_item:
+    bcc has_item
+none_more:
+    jmp items_all_ready
+has_item:
     sta BA_S6                   ; the place in the list
     rep #$20
 .a16
@@ -1112,17 +1112,17 @@ hay_item:
     ; target the list stays gray and the cursor moves to the party.
     lda BA_MODE
     cmp #BA_M_ITEM
-    bne gris_item
+    bne gray_item
     lda BA_S6
     cmp BA_ITEM_SEL
-    bne sin_cursor_item
+    bne no_cursor_item
     jsr ba_cursor
-sin_cursor_item:
+no_cursor_item:
     lda #0
-    bra variante_item
-gris_item:
+    bra variant_item
+gray_item:
     lda #1
-variante_item:
+variant_item:
     sta temp + 1
     ; the name
     rep #$20
@@ -1156,12 +1156,12 @@ variante_item:
 .a8
     lda BA_MODE
     cmp #BA_M_ITEM
-    beq cuenta_blanca
+    beq count_white
     lda #1
-    bra cuenta_variante
-cuenta_blanca:
+    bra count_variant
+count_white:
     lda #0
-cuenta_variante:
+count_variant:
     sta temp + 1
     lda #$3A                    ; the colon
     jsl f:ba_t_glyph
@@ -1186,9 +1186,9 @@ cuenta_variante:
     sta comp_dup + 2
     jsl f:ba_t_number
     inc BA_S0
-    jmp fila_item
-items_listos:
-    jmp enemigos_listos
+    jmp row_item
+items_all_ready:
+    jmp enemies_all_ready
 
     ; --- the skill list, where the enemies go ---
     ;
@@ -1196,15 +1196,15 @@ items_listos:
     ; 2026-09-12—: the description of the one under the cursor at the very
     ; top, and below two columns with the name on the left and the SP cost on
     ; the right, with a dash in front. It reads **by rows**, which is what the capture shows.
-la_lista_hab:
+list_skill:
     jsr ba_skill_list
     lda BA_SKILL_N
-    bne hay_alguna
-    jmp hab_listas
-hay_alguna:
+    bne has_any
+    jmp skill_lists
+has_any:
     lda BA_MODE
     cmp #BA_M_SKILL
-    bne hab_en_gris             ; choosing the target: no description
+    bne skill_in_gray             ; choosing the target: no description
     ; the description of the one under the cursor
     rep #$20
 .a16
@@ -1227,19 +1227,19 @@ hay_alguna:
     sep #$20
 .a8
     jsl f:ba_t_text
-hab_en_gris:
+skill_in_gray:
     lda #0
     sta BA_S3                   ; the place in the list
-fila_hab:
+row_skill:
     lda BA_S3
     cmp BA_SKILL_N
-    bcc hay_hab
-    jmp hab_listas
-hay_hab:
+    bcc has_skill
+    jmp skill_lists
+has_skill:
     cmp #(BA_SKILL_ROWS * BA_SKILL_COLUMNS)
-    bcc hay_lugar_hab
-    jmp hab_listas
-hay_lugar_hab:
+    bcc has_place_skill
+    jmp skill_lists
+has_place_skill:
     ; Row and column: with two columns they are an `lsr` and bit 0. If they
     ; were ever something else, this is what has to change; the converter
     ; emits `BA_SKILL_COLUMNS` so that it is visible from here that they are
@@ -1256,12 +1256,12 @@ hay_lugar_hab:
     jsr ba_row
     lda BA_S4
     and #$00FF
-    beq columna_cero
+    beq column_zero
     lda #BA_SKILL_COLUMN_DX
-    bra columna_puesta
-columna_cero:
+    bra column_set
+column_zero:
     lda #0
-columna_puesta:
+column_set:
     sta BA_S5                   ; the column's offset
     sep #$20
 .a8
@@ -1272,24 +1272,24 @@ columna_puesta:
     sta BA_S6
     lda BA_MODE
     cmp #BA_M_SKILL
-    bne gris_hab                ; choosing the target, the whole list in gray
+    bne gray_skill                ; choosing the target, the whole list in gray
     lda BA_S6
     jsr ba_skill_reaches
-    bne se_puede
-gris_hab:
+    bne se_can
+gray_skill:
     lda #1
-    bra variante_hab
-se_puede:
+    bra variant_skill
+se_can:
     lda #0
-variante_hab:
+variant_skill:
     sta BA_S2
     ; the cursor, only while the skill is being chosen
     lda BA_MODE
     cmp #BA_M_SKILL
-    bne sin_cursor_hab
+    bne no_cursor_skill
     lda BA_S3
     cmp BA_SKILL_SEL
-    bne sin_cursor_hab
+    bne no_cursor_skill
     stz temp + 1
     rep #$20
 .a16
@@ -1299,7 +1299,7 @@ variante_hab:
 .a8
     lda #$3E
     jsl f:ba_t_glyph
-sin_cursor_hab:
+no_cursor_skill:
     ; the name
     lda BA_S2
     sta temp + 1
@@ -1359,7 +1359,7 @@ sin_cursor_hab:
     sta temp + 1
     jsl f:ba_t_number
     inc BA_S3
-    jmp fila_hab
-hab_listas:
-    jmp enemigos_listos
+    jmp row_skill
+skill_lists:
+    jmp enemies_all_ready
 .endproc

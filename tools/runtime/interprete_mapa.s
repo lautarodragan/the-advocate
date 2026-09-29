@@ -29,11 +29,11 @@
     lda [code_ptr], y            ; how many pairs the instruction carries
     iny
     sta sub_remain
-otro_par:
+other_pair:
     sep #$20
 .a8
     lda sub_remain
-    beq sub_listo
+    beq sub_ready
     dec a
     sta sub_remain
     rep #$20
@@ -48,29 +48,29 @@ otro_par:
     iny
     stz sub_has
     ldx #$0000
-recorrer_sub:
+walk_sub:
     cpx sub_n
-    beq agregar_sub
+    beq add_sub
     lda sub_key, x
     cmp sub_of
-    bne no_es_clave
+    bne not_key
     inc sub_has
-no_es_clave:
+not_key:
     lda sub_value, x
     cmp sub_of
-    bne sigue_sub
+    bne continues_sub
     lda sub_a
     sta sub_value, x
-sigue_sub:
+continues_sub:
     inx
     inx
-    bra recorrer_sub
-agregar_sub:
+    bra walk_sub
+add_sub:
     lda sub_has
-    bne otro_par                ; the key was already there, and the loop set its value
+    bne other_pair                ; the key was already there, and the loop set its value
     lda sub_n
     cmp #(SUB_MAX * 2)
-    bcs otro_par                ; it does not fit. The converter refuses to emit
+    bcs other_pair                ; it does not fit. The converter refuses to emit
     tax                         ; a map that could get here: see SUB_MAX
     lda sub_of
     sta sub_key, x
@@ -80,15 +80,15 @@ agregar_sub:
     inc a
     inc a
     sta sub_n
-    bra otro_par
-sub_listo:
+    bra other_pair
+sub_ready:
     rep #$20
 .a16
     lda #WINDOW_COLS            ; and the window is redrawn one column per
     sta sub_refresh            ; frame: see `sub_refresh`
     sep #$20
 .a8
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -128,7 +128,7 @@ sub_listo:
     phy
     lda temp
     and #<~VAR_REFRESH
-    beq terreno_celda
+    beq terrain_cell
     ; By variable: what came in the opcode is two slots, and they are read now
     ; —it is the `ValueOrVariable` of `CommandStoreTerrainID`—.
     lda cell_x
@@ -143,22 +143,22 @@ sub_listo:
     sta cell_y
     sep #$20
 .a8
-terreno_celda:
+terrain_cell:
     rep #$20
 .a16
     lda cell_x                 ; `IsValid`: outside the map it answers the
-    bmi terreno_afuera          ; first tile's, not the neighboring cell's
+    bmi terrain_outside          ; first tile's, not the neighboring cell's
     cmp map_width
-    bcs terreno_afuera
+    bcs terrain_outside
     lda cell_y
-    bmi terreno_afuera
+    bmi terrain_outside
     cmp map_height
-    bcs terreno_afuera
+    bcs terrain_outside
     sep #$20
 .a8
     ldx map_ofs
     lda f:map_table + M_TERRAIN_PLANE, x
-    bne terreno_puesto          ; a single terrain in the whole map
+    bne terrain_set          ; a single terrain in the whole map
     jsr cell_ptr
     rep #$20
 .a16
@@ -177,13 +177,13 @@ terreno_celda:
     sta cells_ptr + 2
     ldy temp + 2
     lda [cells_ptr], y
-    bra terreno_puesto
-terreno_afuera:
+    bra terrain_set
+terrain_outside:
     sep #$20
 .a8
     ldx map_ofs
     lda f:map_table + M_TERRAIN_OUTSIDE, x
-terreno_puesto:
+terrain_set:
     sta temp + 2                ; `var_write` takes it from here
     stz temp + 3
     lda temp                    ; the mode, which carries the refresh bit:
@@ -191,7 +191,7 @@ terreno_puesto:
     lda temp + 1                ; not touch `temp`
     jsr var_write            ; with its refresh, if the mode asks for it
     ply
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -199,6 +199,6 @@ terreno_puesto:
 ; outside bank 0, which reads its operands and advances the cursor itself.
 .proc op_encounter_steps
     jsl f:encounter_steps
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc

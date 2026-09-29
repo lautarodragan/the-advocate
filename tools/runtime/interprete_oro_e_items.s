@@ -32,7 +32,7 @@
     phy
 
     lda temp
-    bne oro_resta
+    bne gold_remain
     ; Add: 24 bits, and if it goes past GOLD_MAX it stays at GOLD_MAX.
     rep #$20
 .a16
@@ -45,8 +45,8 @@
     lda gold + 2
     adc temp + 1
     sta gold + 2
-    bra oro_recorta
-oro_resta:
+    bra gold_clips
+gold_remain:
     rep #$20
 .a16
     lda gold
@@ -58,7 +58,7 @@ oro_resta:
     lda gold + 2
     sbc temp + 1
     sta gold + 2
-    bcs oro_recorta
+    bcs gold_clips
     ; It went below zero: it stays at zero.
     rep #$20
 .a16
@@ -66,22 +66,22 @@ oro_resta:
     sep #$20
 .a8
     stz gold + 2
-    bra oro_listo
-oro_recorta:
+    bra gold_ready
+gold_clips:
     ; Did it go past GOLD_MAX? Compared as 24 bits, high byte first.
     lda gold + 2
     cmp #^GOLD_MAX
-    bcc oro_listo
-    bne oro_tope
+    bcc gold_ready
+    bne gold_cap
     rep #$20
 .a16
     lda gold
     cmp #.loword(GOLD_MAX)
     sep #$20
 .a8
-    bcc oro_listo
-    beq oro_listo
-oro_tope:
+    bcc gold_ready
+    beq gold_ready
+gold_cap:
     rep #$20
 .a16
     lda #.loword(GOLD_MAX)
@@ -90,9 +90,9 @@ oro_tope:
 .a8
     lda #^GOLD_MAX
     sta gold + 2
-oro_listo:
+gold_ready:
     ply
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -122,19 +122,19 @@ oro_listo:
     clc
     adc temp
     bit temp
-    bmi item_resto
+    bmi item_rest
     ; It added: if it went past ITEM_MAX —or wrapped around— it stays at the cap.
-    bcs item_tope
+    bcs item_cap
     cmp #(ITEM_MAX + 1)
-    bcc item_guardar
-item_tope:
+    bcc item_save
+item_cap:
     lda #ITEM_MAX
-    bra item_guardar
-item_resto:
+    bra item_save
+item_rest:
     ; It subtracted: with no carry it went below zero, and it stays at zero.
-    bcs item_guardar
+    bcs item_save
     lda #0
-item_guardar:
+item_save:
     pha
     rep #$20
 .a16
@@ -146,7 +146,7 @@ item_guardar:
     sta WMDATA
     lda #1
     sta refresh
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 

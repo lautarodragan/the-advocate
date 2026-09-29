@@ -34,16 +34,16 @@
     rep #$20
 .a16
     lda flash_level
-    bne hay
+    bne has
     sep #$20
 .a8
     rts
 .a16
-hay:
+has:
     sep #$20
 .a8
     lda flash_remain
-    beq apagar
+    beq off
     rep #$20
 .a16
     lda flash_level
@@ -68,27 +68,27 @@ hay:
     sep #$20
 .a8
     lda flash_remain
-    beq apagar
+    beq off
     and #$01
-    beq fase_par
+    beq phase_pair
     jsr flash_tables
     jsr flash_backdrop
     lda tint_ready
     beq ready                   ; the usual case: the sprites go next frame
     jsr flash_sprites
-    bra subir
-fase_par:
+    bra upload
+phase_pair:
     lda tint_ready
     beq sprites
     jsr flash_backdrop         ; the new tint overwrote the background already run
 sprites:
     jsr flash_sprites
-subir:
+upload:
     lda #1
     sta flash_ready
 ready:
     rts
-apagar:
+off:
     ; It is over: the level falls to zero and the unflashed shadow goes back
     ; to CGRAM.
     stz flash_level
@@ -200,7 +200,7 @@ apagar:
     sep #$20
 .a8
     ldy #0
-sube:
+uploads:
     tya                         ; the channel, which is Y
     clc
     adc f:prod31_table, x
@@ -208,7 +208,7 @@ sube:
     dex
     iny
     cpy dest_end
-    bne sube
+    bne uploads
     cpy #32
     beq ready
     rep #$20
@@ -218,7 +218,7 @@ sube:
     tax                         ; and on the other side the distance starts at one
     sep #$20
 .a8
-baja:
+low:
     tya
     sec
     sbc f:prod31_table, x
@@ -226,7 +226,7 @@ baja:
     inx
     iny
     cpy #32
-    bne baja
+    bne low
 ready:
     rts
 .endproc
@@ -254,7 +254,7 @@ ready:
     ; of that. taro saw it on 2026-09-08 in the lightning of the opening —the
     ; yellow and black fences, and the edges of autotile 17 in ChipSet3—,
     ; which is the **first** `FlashScreen` this port ran. No test covered it:
-    ; the `destello` test page flashes a sprite —`FlashSprite`—, never the
+    ; the `flash` test page flashes a sprite —`FlashSprite`—, never the
     ; screen, so nobody ran this path.
     lda #CGRAM_BASE
     jsr flash_range

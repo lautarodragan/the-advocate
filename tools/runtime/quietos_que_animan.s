@@ -30,17 +30,17 @@
     ldy #(ANIM_FAMILIES - 1)
     jsr anim_where
     lda f:anim_table + 7, x
-    bne hay
+    bne has
     rts
-hay:
+has:
     ldy #$0000
-otra:
+other:
     cpy npc_total
     beq ready
     lda npc_buf + 14, y
-    beq siguiente               ; hidden: not drawn
+    beq next               ; hidden: not drawn
     lda npc_buf + 13, y
-    bpl siguiente               ; bit 7 is "still and animating"
+    bpl next               ; bit 7 is "still and animating"
     and #$7F
     dec a                       ; the speed, 0 to 5
     phy
@@ -93,7 +93,7 @@ otra:
     sty npc_row
     jsr upload_npc_pose
     ldy npc_row
-siguiente:
+next:
     rep #$20
 .a16
     tya
@@ -102,7 +102,7 @@ siguiente:
     tay
     sep #$20
 .a8
-    bra otra
+    bra other
 ready:
     rts
 .endproc

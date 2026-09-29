@@ -59,13 +59,13 @@ PICK_POSE  = TURN_EV + 10
 .i16
     lda f:PICK_K
     cmp #$FF
-    bne gira
+    bne turns
     rts                         ; the page does not turn
-gira:
+turns:
     lda ev_sought
     jsr event_slot
     cpx #$FFFF
-    beq sin_ruta
+    beq no_route
     ; `IsFacingLocked`: command 26 of its move route locked its facing and only
     ; 27 releases it, so it does not turn even with the hero talking to it. The
     ; route may have ended long ago —the bit stays in the slot— and that is why
@@ -74,27 +74,27 @@ gira:
     ; 96).
     lda route_ev + 18, x
     and #$08
-    bne fija
+    bne fixed
     jsr route_busy
-    beq sin_ruta                ; the slot was left over from a finished route
-fija:
+    beq no_route                ; the slot was left over from a finished route
+fixed:
     rts                         ; a route running: it decides where it faces
-sin_ruta:
+no_route:
     lda ev_sought
     jsr event_npc
     cpy #$FFFF
-    bne con_fila
+    bne with_row
     rts
-con_fila:
+with_row:
     lda npc_buf + 9, y
     cmp #NPC_STILL
-    bne puede
+    bne can
     ldx map_ofs
     lda f:map_table + M_TURN_TILE4, x
     cmp #$FF
-    bne puede
+    bne can
     rts                         ; a still one with no turn slot
-puede:
+can:
     phy
     jsr turn_undo           ; if another one was left, it goes back to its own
     ply
@@ -124,22 +124,22 @@ sy_pos:
     cmp temp
     bcs vertical                ; |sy| >= |sx|
     pla
-    bmi a_la_derecha            ; the event to the left of the hero
+    bmi to_right            ; the event to the left of the hero
     lda #DIR_LEFT
-    bra dir_lista
-a_la_derecha:
+    bra dir_list
+to_right:
     lda #DIR_RIGHT
-    bra dir_lista
+    bra dir_list
 vertical:
     pla
     lda temp + 2
-    beq abajo
-    bmi abajo                   ; the event above the hero
+    beq down
+    bmi down                   ; the event above the hero
     lda #DIR_UP
-    bra dir_lista
-abajo:
+    bra dir_list
+down:
     lda #DIR_DOWN
-dir_lista:
+dir_list:
     sep #$20
 .a8
     sta f:TURN_DIR
@@ -165,12 +165,12 @@ dir_lista:
 .a8
 .i16
     lda f:TURN_POSE_PREV
-columna:
+column:
     cmp #3
-    bcc con_columna
+    bcc with_column
     sbc #3                      ; carry was left at 1
-    bra columna
-con_columna:
+    bra column
+with_column:
     sta temp
     lda f:TURN_DIR
     asl a
@@ -181,13 +181,13 @@ con_columna:
     sta temp                    ; the new pose
     lda npc_buf + 9, y
     cmp #NPC_STILL
-    beq quieto
+    beq still
     lda npc_buf + 13, y
     bmi ready                   ; animates in place: `animate_still` uploads it
     sty npc_row
     lda temp
     jmp upload_npc_pose
-quieto:
+still:
     ; To the turn slot: its tile, with bit 8 in the attributes.
     lda temp
     sta npc_buf + 12, y
@@ -269,17 +269,17 @@ ready:
 .i16
     lda route_ev + 18, x
     and #$01
-    bne si
+    bne if
     lda route_ev + 5, x
     cmp route_ev + 4, x
-    bcc si
+    bcc if
     lda route_ev + 7, x
     ora route_ev + 9, x
     ora route_ev + 13, x
-    bne si
+    bne if
     lda #0
     rts
-si:
+if:
     lda #1
     rts
 .endproc
@@ -299,7 +299,7 @@ si:
     beq nothing
     lda npc_buf + 9, y
     cmp #NPC_STILL
-    bne propia
+    bne own
     lda f:TURN_TILE_PREV
     sta npc_buf + 6, y
     lda f:TURN_ATTR_PREV
@@ -307,7 +307,7 @@ si:
     lda f:TURN_POSE_PREV
     sta npc_buf + 12, y
     rts
-propia:
+own:
     lda npc_buf + 13, y
     bmi nothing                    ; animates in place: goes back by itself, next frame
     sty npc_row
@@ -347,18 +347,18 @@ nothing:
 .a8
     jsr seek_event_page
     lda chosen_any
-    beq deshacer                ; it was left without a page
+    beq undo                ; it was left without a page
     lda f:PICK_K
     cmp #$FF
-    beq deshacer
+    beq undo
     cmp f:TURN_K
-    bne deshacer
+    bne undo
     lda f:PICK_POSE
     cmp f:TURN_PPOSE
-    bne deshacer
+    bne undo
 nothing:
     rts
-deshacer:
+undo:
     jmp turn_undo
 .endproc
 
@@ -390,12 +390,12 @@ nothing:
 .i16
     lda f:TURN_EV
     cmp #$FF
-    beq propia
+    beq own
     cmp npc_buf + 8, y
-    bne propia
+    bne own
     lda f:TURN_DIR
     rts
-propia:
+own:
     lda npc_buf + 10, y
     rts
 .endproc

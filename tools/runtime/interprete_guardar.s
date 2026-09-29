@@ -36,13 +36,13 @@
     lda #1                      ; save mode
     jsr slots_screen
     cmp #$FF
-    beq cancelado
+    beq cancelled
     jsr set_slot
     jsr save_game
-cancelado:
+cancelled:
     jsr back_to_map
     ply
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -71,19 +71,19 @@ cancelado:
     jsr access_read
     xba                         ; B = the permissions, while we look
     lda temp + 1
-    beq acceso_prohibir
+    beq access_forbid
     lda temp
     eor #$FF
     sta temp
     xba
     and temp
-    bra acceso_listo
-acceso_prohibir:
+    bra access_ready
+access_forbid:
     xba
     ora temp
-acceso_listo:
+access_ready:
     jsr access_write
     ply
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc

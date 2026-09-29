@@ -16,40 +16,40 @@
 ; shake.
 .proc op_picture
     ldx #$0000
-img_poner:
+img_set:
     lda [code_ptr], y
     cpx #3
-    bcs img_poner_sat           ; the fourth operand is the saturation, which
+    bcs img_set_sat           ; the fourth operand is the saturation, which
     sta f:PICTURE_TONE, x        ; is not stored: the picture's is always neutral
     sta f:PICTURE_FROM, x
     sta f:PICTURE_TO, x
-img_poner_sat:
+img_set_sat:
     iny
     inx
     cpx #4
-    bne img_poner
+    bne img_set
     lda #1
     sta f:PICTURE_ACTIVE
     lda #0
     sta f:PICTURE_STEP
     sta f:PICTURE_STEPS
     jsr picture_palette
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
 .proc op_picture_move
     ldx #$0000
-img_mover:
+img_move:
     lda [code_ptr], y
     cpx #3
-    bcs img_mover_sat           ; the saturation, again
+    bcs img_move_sat           ; the saturation, again
     sta f:PICTURE_TO, x
-img_mover_sat:
+img_move_sat:
     iny
     inx
     cpx #4
-    bne img_mover
+    bne img_move
     lda [code_ptr], y
     sta f:PICTURE_STEPS
     iny
@@ -57,40 +57,40 @@ img_mover_sat:
     ; that is not drawn: the operands are consumed anyway —the stream has to
     ; stay on the same byte on both sides— and nothing else happens.
     lda f:PICTURE_ACTIVE
-    beq img_mover_fin
+    beq img_move_end
     lda f:PICTURE_STEPS
-    bne img_mover_rampa
+    bne img_move_ramp
     ldx #$0000
-img_mover_ya:
+img_move_already:
     lda f:PICTURE_TO, x
     sta f:PICTURE_TONE, x
     sta f:PICTURE_FROM, x
     inx
     cpx #3
-    bne img_mover_ya
+    bne img_move_already
     lda #0
     sta f:PICTURE_STEP
     jsr picture_palette
-    jmp run_code::otro
-img_mover_rampa:
+    jmp run_code::other
+img_move_ramp:
     ldx #$0000
-img_mover_desde:
+img_move_from:
     lda f:PICTURE_TONE, x
     sta f:PICTURE_FROM, x
     inx
     cpx #3
-    bne img_mover_desde
+    bne img_move_from
     lda #0
     sta f:PICTURE_STEP
-img_mover_fin:
-    jmp run_code::otro
+img_move_end:
+    jmp run_code::other
 
 .endproc
 
 .proc op_picture_erase
     lda #0
     sta f:PICTURE_ACTIVE
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -140,7 +140,7 @@ img_mover_fin:
     tay
     sep #$20
 .a8
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -157,7 +157,7 @@ img_mover_fin:
     phy
     jsr weather_set
     ply
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 

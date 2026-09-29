@@ -30,7 +30,7 @@
 .a8
 .i16
     ldy ev_cur                  ; where the previous frame left off
-otro:
+other:
     lda [code_ptr], y
     iny
     ; A number that is not an opcode ends the page, just like OP_DONE and just

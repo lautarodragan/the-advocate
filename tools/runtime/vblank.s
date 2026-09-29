@@ -14,18 +14,18 @@
 .i16
     jsr push_oam
     lda flash_ready
-    beq sin_destello
+    beq no_flash2
     jsr upload_flash          ; the flash, or the tint, go before the
     lda #2                      ; poses and eat into their budget in this
     sta vq_cap                 ; same vblank
-    bra sin_tinte
-sin_destello:
+    bra no_tint
+no_flash2:
     lda tint_ready
-    beq sin_tinte
+    beq no_tint
     jsr upload_tint
     lda #2
     sta vq_cap
-sin_tinte:
+no_tint:
     ; And a window line waiting also eats into their budget: it is 1920 bytes
     ; in a single DMA, almost four poses. With the usual five the vblank ends
     ; in the middle and the rest of the line is written with the screen on,
@@ -35,10 +35,10 @@ sin_tinte:
     ; up with the parallel events, which added nine characters that move and
     ; therefore nine poses to upload.
     lda msg_upload
-    beq sin_renglon
+    beq no_line
     lda #1
     sta vq_cap
-sin_renglon:
+no_line:
     ; And a map strip waiting —the row or column the camera uncovered— too:
     ; `push_strips` runs after the poses and until 2026-09-10 it did not
     ; subtract anything, so in a vblank with all five poses its DMAs landed
@@ -52,12 +52,12 @@ sin_renglon:
     ora row_addr + 1
     ora col_addr
     ora col_addr + 1
-    beq sin_tira
+    beq no_strip
     lda vq_cap
-    beq sin_tira
+    beq no_strip
     dec a
     sta vq_cap
-sin_tira:
+no_strip:
     ; And a step of the ChipSet animation, which also comes out of this vblank:
     ; up to 26 background tiles, that is 1664 bytes, which is more than three
     ; poses. It is subtracted from the budget instead of setting it, so it adds
@@ -70,11 +70,11 @@ sin_tira:
     ; come out of this vblank's budget, and three lines further down `vq_cap`
     ; is already reset for the next one. See `anim_drawing_dma`.
     lda f:ANIMB_UPLOAD
-    beq sin_anim_cuadro
+    beq no_anim_frame
     lda #0
     sta f:ANIMB_UPLOAD
     jsr anim_drawing_dma
-sin_anim_cuadro:
+no_anim_frame:
     jsr vram_drain             ; the poses this OAM already takes as uploaded
     lda #VQ_PER_FRAME
     sta vq_cap                 ; the coming vblank starts with everything
@@ -82,9 +82,9 @@ sin_anim_cuadro:
     ; The flash palettes left pending from the previous frame, **all of
     ; them**: one per slot. See FAR_FLASH_PAL.
     ldx #$0000
-otro_flash:
+other_flash:
     lda flash_ev + 7, x
-    beq sin_flash
+    beq no_flash
     stz flash_ev + 7, x
     sta CGADD
     rep #$20
@@ -107,7 +107,7 @@ otro_flash:
     sta BBAD0
     lda #$01
     sta MDMAEN
-sin_flash:
+no_flash:
     rep #$20
 .a16
     txa
@@ -117,14 +117,14 @@ sin_flash:
     cmp #FLASH_MAX * FLASH_STRIDE
     sep #$20
 .a8
-    bcc otro_flash
+    bcc other_flash
 
     ; And the picture's palette, if the ramp rebuilt it this frame. It is
     ; thirty-two bytes and goes separately from the map's three: the picture's
     ; entry falls above `SPRITE_CGRAM`, that is, outside what `upload_palettes`
     ; uploads.
     lda f:PICTURE_READY
-    beq sin_imagen
+    beq no_picture
     lda #0
     sta f:PICTURE_READY
     lda #(128 + 16 * PICTURE_PAL)
@@ -144,13 +144,13 @@ sin_flash:
     sta BBAD0
     lda #$01
     sta MDMAEN
-sin_imagen:
+no_picture:
 
     ; And the battle animation's palette, if one just started. It is the same
     ; thirty-two bytes as the picture's and for the same reason: its entry falls
     ; above `SPRITE_CGRAM` and `upload_palettes` does not touch it.
     lda f:ANIMB_PAL
-    beq sin_anim_pal
+    beq no_anim_pal
     lda #0
     sta f:ANIMB_PAL
     lda f:ANIMB_CGADD
@@ -172,7 +172,7 @@ sin_imagen:
     sta BBAD0
     lda #$01
     sta MDMAEN
-sin_anim_pal:
+no_anim_pal:
 
     ; The two scroll registers are write-twice: first the low byte and then
     ; the high one.
@@ -210,19 +210,19 @@ sin_anim_pal:
     ; First the compositor: the line it left ready, and the whole window when
     ; none are left.
     lda msg_upload
-    beq sin_subir
+    beq no_upload
     jsr upload_line
-sin_subir:
+no_upload:
     lda msg_state
     cmp #2
-    bne no_termino
+    bne no_finished
     stz msg_state
     lda #1
     sta msg_open
-no_termino:
+no_finished:
 
     lda msg_open
-    beq sin_ventana
+    beq no_window
     lda screen_x
     sta hdma_ofs + 1
     sta hdma_ofs + 6
@@ -237,8 +237,8 @@ no_termino:
     sta hdma_ofs + 9
     lda #HDMA_WINDOW
     sta HDMAEN
-    bra prender
-sin_ventana:
+    bra on
+no_window:
     stz HDMAEN
     ; Without HDMA the object mask stays as the last line left it, which is
     ; on: it is turned off by hand, like BG2SC down here.
@@ -264,7 +264,7 @@ sin_ventana:
     ; next vblank, just as whoever moves a sprite writes OAM and waits. The only
     ; exception is a load's forced blank, which `fade_tick` writes by hand:
     ; there the screen is already black and the change does not show.
-prender:
+on:
     jsl f:fade_mosaic       ; the teleport's, if it asks for it
     lda brightness
     sta INIDISP
@@ -298,40 +298,40 @@ prender:
     ; ones it left saved if the camera uncovered two on one axis. Each one is
     ; uploaded on its own, and an address at zero means there is none.
     ldx col_addr_b
-    beq sin_columna_b
+    beq no_column_b
     stx strip_vram
     ldx #.loword(FAR_STRIP_COL)
     stx strip_of
     lda #^FAR_STRIP_COL
     sta strip_bank
     jsr push_one_column
-sin_columna_b:
+no_column_b:
     ldx col_addr
-    beq sin_columna
+    beq no_column
     stx strip_vram
     ldx #.loword(strip_col)
     stx strip_of
     stz strip_bank
     jsr push_one_column
-sin_columna:
+no_column:
 
     ldx row_addr_b
-    beq sin_fila_b
+    beq no_row_b
     stx strip_vram
     ldx #.loword(FAR_STRIP_ROW)
     stx strip_of
     lda #^FAR_STRIP_ROW
     sta strip_bank
     jsr push_one_row
-sin_fila_b:
+no_row_b:
     ldx row_addr
-    beq sin_fila
+    beq no_row
     stx strip_vram
     ldx #.loword(strip_row)
     stx strip_of
     stz strip_bank
     jsr push_one_row
-sin_fila:
+no_row:
     ; All four consumed, also discarding the ones that were not uploaded for
     ; being at zero: what was not built this pass is not built on the next.
     rep #$20

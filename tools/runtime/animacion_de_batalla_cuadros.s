@@ -35,11 +35,11 @@
 .a16
     lda #0
     ldx #ANIM_B_BYTES - 2
-borra:
+erase:
     sta f:ANIMB_BUF, x
     dex
     dex
-    bpl borra
+    bpl erase
     sep #$20
 .a8
     sta f:ANIMB_PREV + 2        ; A is zero: no frame built
@@ -54,7 +54,7 @@ borra:
 .i16
     phb
     lda f:ANIMB_PREV + 2
-    beq sin_anterior
+    beq no_previous
     ora #^FAST                ; its fast mirror: see MEMSEL
     pha
     plb                         ; the previous frame's bank
@@ -65,9 +65,9 @@ borra:
     sep #$20
 .a8
     ; Its tiles, to zero.
-borrar:
+erase:
     lda a:0, y
-    bmi sin_anterior            ; $FF: done. Tiles go from 0 to 63
+    bmi no_previous            ; $FF: done. Tiles go from 0 to 63
     rep #$20
 .a16
     and #$00FF
@@ -87,9 +87,9 @@ borrar:
 .endrepeat
     sep #$20
 .a8
-    jmp borrar
+    jmp erase
 
-sin_anterior:
+no_previous:
     ; The new one's pointer: the animation's first plus the one that is due,
     ; four bytes per pointer. It is the same arithmetic vblank did when it
     ; uploaded the frame straight from the cartridge.
@@ -113,12 +113,12 @@ sin_anterior:
     ora #^FAST
     pha
     plb                         ; the new frame's bank
-copiar:
+copy:
     lda a:0, y
-    bpl un_tile
+    bpl tile
     plb                         ; $FF: done
     rtl
-un_tile:
+tile:
     rep #$20
 .a16
     and #$00FF
@@ -138,5 +138,5 @@ un_tile:
     tay
     sep #$20
 .a8
-    jmp copiar
+    jmp copy
 .endproc

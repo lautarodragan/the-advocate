@@ -10,7 +10,7 @@ igual**.
 
 Lo que se mide acá es la cadena completa:
 
-    la pelea baja los HP  ->  `modo_fin` los guarda en `FAR_HP`
+    la pelea baja los HP  ->  `mode_end` los guarda en `FAR_HP`
     -> el menú los lee    ->  y dibuja los de ahora, no los del bloque
 
 La pelea es la del droide del mapa 2 contra Kersh y Core, que es determinista:
@@ -74,7 +74,7 @@ def hp_de(una):
 
 
 def test_la_pelea_baja_los_hp_y_los_deja_en_la_partida(partida):
-    """La primera mitad: `modo_fin` guarda lo que quedó en `FAR_HP`."""
+    """La primera mitad: `mode_end` guarda lo que quedó en `FAR_HP`."""
     una = pelear(partida(caso="pelea-82-grupo-11-12"))
     assert hp_de(una) == DESPUES, (
         "la pelea del droide contra Kersh y Core dejó %s y venía dejando %s: "

@@ -121,7 +121,7 @@ ED_WORDS = $04 ; how many two-plane words of the tile pair are left
     and #$FF00
     tax
     ldy #0
-guarda:
+saves:
     lda a:$0000, x              ; low RAM: in bank $7E it is the same
     sta SCN_DP_SAVE, y
     inx
@@ -129,7 +129,7 @@ guarda:
     iny
     iny
     cpy #SCN_DP_BYTES
-    bcc guarda
+    bcc saves
     lda #.loword(pal_buf + $FF)
     and #$FF00
     tcd
@@ -149,7 +149,7 @@ guarda:
     and #$FF00
     tax
     ldy #0
-repone:
+restores:
     lda SCN_DP_SAVE, y
     sta a:$0000, x
     inx
@@ -157,7 +157,7 @@ repone:
     iny
     iny
     cpy #SCN_DP_BYTES
-    bcc repone
+    bcc restores
     sep #$20
 .a8
     rts
@@ -346,9 +346,9 @@ scn_bits:
 .a8
     lda SCN_E_BAT, x
     cmp #$FF
-    bne hay
+    bne has
     rts
-hay:
+has:
     ; --- the battler: its measurements and its five pointers ---
     rep #$20
 .a16
@@ -448,9 +448,9 @@ hay:
     sec
     sbc ED_FX
     bcs :+
-    jmp afuera
+    jmp outside
 :   bne :+
-    jmp afuera
+    jmp outside
 :   sta ED_COLS                 ; how many
     ; The battler column it starts at, which is the one that gives Y.
     lda ED_FX
@@ -481,9 +481,9 @@ hay:
     sec
     sbc SCN_T0
     bcs :+
-    jmp afuera
+    jmp outside
 :   bne :+
-    jmp afuera
+    jmp outside
 :   sta ED_ROWS
     ; The battler rows that are skipped, times the length of each.
     lda SCN_T0
@@ -493,14 +493,14 @@ hay:
     lda SCN_T0
     sta ED_YY
     lda ED_FY
-salta_fila:
+jumps_row:
     cpy #0
-    beq filas_listas
+    beq rows_lists
     clc
     adc ED_STEP
     dey
-    bra salta_fila
-filas_listas:
+    bra jumps_row
+rows_lists:
     sta ED_FY
     ; And in the scene: (row / 8) * 2048 + column * 64 + (row % 8) * 2.
     lda ED_FX
@@ -536,7 +536,7 @@ filas_listas:
     sep #$20
 .a8
     rts
-afuera:
+outside:
 .a16
     sep #$20
 .a8
@@ -574,8 +574,8 @@ afuera:
     lda #BACKDROP_PLAIN
     sta SCN_BACKDROP
     lda SCN_ORIGIN
-    beq de_la_tropa
-del_lugar:
+    beq from_troop
+from_place:
     rep #$20
 .a16
     lda map_current
@@ -584,10 +584,10 @@ del_lugar:
 .a8
     lda f:scene_map_backdrop, x
     cmp #PLACE_BACKDROP
-    bne fondo_elegido
+    bne backdrop_chosen
     jsr scn_terrain             ; the terrain under the hero, in A
     cmp #BACKDROP_TERRAINS
-    bcs sin_fondo
+    bcs no_backdrop
     rep #$20
 .a16
     and #$00FF
@@ -595,11 +595,11 @@ del_lugar:
     sep #$20
 .a8
     lda f:backdrop_terrain, x
-    bra fondo_elegido
-de_la_tropa:
+    bra backdrop_chosen
+from_troop:
     lda BA_TROOP_K
     cmp #$FF
-    beq sin_fondo
+    beq no_backdrop
     rep #$20
 .a16
     and #$00FF
@@ -608,10 +608,10 @@ de_la_tropa:
 .a8
     lda f:scene_troop_backdrop, x
     cmp #PLACE_BACKDROP
-    beq del_lugar
-fondo_elegido:
+    beq from_place
+backdrop_chosen:
     cmp #BACKDROPS_GAME
-    bcs sin_fondo               ; BACKDROP_PLAIN, or a cartridge with no backgrounds
+    bcs no_backdrop               ; BACKDROP_PLAIN, or a cartridge with no backgrounds
     sta SCN_BACKDROP
     rep #$20
 .a16
@@ -621,7 +621,7 @@ fondo_elegido:
 .a8
     lda f:backdrop_fallback, x     ; its own if the ROM carries it, or the replacement
     sta SCN_FALLBACK
-sin_fondo:
+no_backdrop:
     lda #0
     sta SCN_ORIGIN              ; only `encounter_test` sets it
 
@@ -630,9 +630,9 @@ sin_fondo:
     sta SCN_E
     lda BA_TROOP_K
     cmp #$FF
-    bne con_tropa
-    jmp repartidos
-con_tropa:
+    bne with_troop
+    jmp allocated
+with_troop:
     rep #$20
 .a16
     and #$00FF
@@ -642,11 +642,11 @@ con_tropa:
     lda f:troop_init, x
     sta SCN_I                   ; the first member
     sta SCN_INIT                 ; and again, for `scn_by_command`
-otro_enemigo:
+other_enemy:
     lda SCN_E
     cmp BA_KID
     bcc :+
-    jmp repartidos
+    jmp allocated
 :   rep #$20
 .a16
     lda SCN_E
@@ -665,7 +665,7 @@ otro_enemigo:
     lda f:member_battler, x
     sta SCN_E_BAT, y
     cmp #$FF
-    beq siguiente
+    beq next
     ; Does that battler already have a palette? The limit, as a word for `cpx`.
     pha
     rep #$20
@@ -677,17 +677,17 @@ otro_enemigo:
 .a8
     pla
     ldx #0
-busca_pal:
+seek_pal:
     cpx SCN_T0
-    beq pal_nueva
+    beq pal_new
     cmp SCN_PAL_BAT, x
-    beq pal_lista
+    beq pal_list
     inx
-    bra busca_pal
-pal_nueva:
+    bra seek_pal
+pal_new:
     sta SCN_PAL_BAT, x
     inc SCN_PAL_N
-pal_lista:
+pal_list:
     txa
     sta SCN_E_PAL, y
     ; And the drawn bit, which is what `scene_tick` looks at. A hidden one
@@ -699,21 +699,21 @@ pal_lista:
     jsr ba_x
     lda BA_ONE + BA_FLAGS, x
     and #BAF_HIDDEN
-    bne siguiente
+    bne next
     jsr scn_bit
     ora SCN_VIS
     sta SCN_VIS
-siguiente:
+next:
     inc SCN_E
-    jmp otro_enemigo
-repartidos:
+    jmp other_enemy
+allocated:
     lda SCN_BACKDROP
     cmp #$FF
-    bne hay_escena
+    bne has_scene
     lda SCN_VIS
-    bne hay_escena
-    jmp sin_escena              ; neither background nor battlers: on black, as before
-hay_escena:
+    bne has_scene
+    jmp no_scene              ; neither background nor battlers: on black, as before
+has_scene:
     lda #0
     sta BA_SCENE
 
@@ -721,10 +721,10 @@ hay_escena:
     sta SCN_MSU
     lda SCN_BACKDROP
     cmp #$FF
-    beq sin_msu                 ; the plain one is not read from anywhere
+    beq no_msu                 ; the plain one is not read from anywhere
     jsr msu_data_valid
     sta SCN_MSU
-sin_msu:
+no_msu:
 
     ; --- the background: its colors and both buffers ---
     lda SCN_MSU
@@ -736,11 +736,11 @@ sin_msu:
     ; Everything again from the ROM, which does not fail.
     pla
     cmp #0                      ; `pla` leaves Z from what it pulled, not from SCN_MSU
-    beq fondo_listo
+    beq backdrop_ready
     lda SCN_MSU
-    bne fondo_listo
+    bne backdrop_ready
     jsr scn_backdrop
-fondo_listo:
+backdrop_ready:
 
     ; --- the battlers, in drawing order: the later one covers ---
     rep #$20
@@ -760,7 +760,7 @@ fondo_listo:
 put:
     lda SCN_K
     cmp BA_KID
-    bcs puestos
+    bcs set3
     jsr scn_by_command
     jsr scn_bit                 ; only the visible ones: not a hidden one
     and SCN_VIS
@@ -768,7 +768,7 @@ put:
     jsr scene_set
 :   inc SCN_K
     bra put
-puestos:
+set3:
     jsr scn_dp_return
 
     ; --- the composed scene, to VRAM ---
@@ -824,29 +824,29 @@ puestos:
     lda #0
     sta SCN_T0                  ; the tile that goes in the cell
     ldx #0
-celda:
+cell:
     cpx #SCENE_TILES
-    bcc celda_escena
+    bcc cell_scene
     lda #SCENE_TARGET
-    bra celda_pone
-celda_escena:
+    bra cell_sets
+cell_scene:
 .a16
     lda SCN_T0
-celda_pone:
+cell_sets:
 .a16
     sta f:VMDATAL
     inc SCN_T0
     inx
     cpx #(32 * 32)
-    bcc celda
+    bcc cell
     sep #$20
 .a8
 
     ; --- and a sixteen-color palette per battler, from 8 on ---
-colores_battlers:
+colors_battlers:
     lda #0
     sta SCN_I
-otra_paleta:
+other_palette:
     lda SCN_I
     cmp SCN_PAL_N
     bcs ready
@@ -879,14 +879,14 @@ otra_paleta:
     lda #^battler_cgram
     jsr scn_dma_cgram
     inc SCN_I
-    bra otra_paleta
+    bra other_palette
 ready:
     lda f:boot_frames
     sec
     sbc SCN_FRAMES
     sta SCN_FRAMES
     rts
-sin_escena:
+no_scene:
 .a8
     lda #$FF
     sta BA_SCENE
@@ -909,18 +909,18 @@ sin_escena:
 .a16
     lda [hero_ptr]              ; which block the hero's cell is
     ldy sub_n
-    beq sustituida
-buscar:
+    beq replaced
+seek:
     dey
     dey
     cmp sub_key, y
-    beq hallada
+    beq found
     cpy #$0000
-    bne buscar
-    bra sustituida
-hallada:
+    bne seek
+    bra replaced
+found:
     lda sub_value, y
-sustituida:
+replaced:
     sta SCN_T0
     lda f:map_table + M_PTR_BLOCK_TERRAIN, x
     sta cells_ptr
@@ -969,13 +969,13 @@ ready:
 .i16
     lda SCN_BACKDROP
     cmp #$FF
-    bne hay
+    bne has
     rts
-hay:
+has:
     lda #SCENE_CGRAM
     sta f:CGADD
     lda SCN_MSU
-    beq de_la_rom
+    beq from_rom
     ; From the `.msu`: its color entry is the background's second one.
     rep #$20
 .a16
@@ -990,7 +990,7 @@ hay:
     lda f:msu_backdrop_pos + 4, x
     jsr msu_data_seek
 .a8
-    bcs no_la_encontro
+    bcs no_found
     rep #$20
 .a16
     lda #(SCENE_COLORS * 2)
@@ -999,10 +999,10 @@ hay:
 .a8
     lda #$22                    ; CGDATA
     jmp scn_dma_msu
-no_la_encontro:
+no_found:
     lda #0
     sta SCN_MSU
-de_la_rom:
+from_rom:
     rep #$20
 .a16
     lda SCN_FALLBACK
@@ -1079,7 +1079,7 @@ de_la_rom:
     sta f:BBAD0
     lda SCN_BACKDROP
     cmp #$FF
-    bne con_fondo
+    bne with_backdrop
     ; The plain background: the same zero 32,768 times, with the source fixed.
     rep #$20
 .a16
@@ -1096,9 +1096,9 @@ de_la_rom:
     lda #$01
     sta f:MDMAEN
     rts
-con_fondo:
+with_backdrop:
     lda SCN_MSU
-    beq de_la_rom
+    beq from_rom
     ; From the `.msu`, the 32 KB at once: the start of the tiles is sought
     ; every time, because the stream already advanced to the end with the
     ; previous buffer. Copying from one buffer to the other cannot be done
@@ -1117,7 +1117,7 @@ con_fondo:
     lda f:msu_backdrop_pos, x
     jsr msu_data_seek
 .a8
-    bcs no_la_encontro
+    bcs no_found
     rep #$20
 .a16
     lda #(SCENE_TILES * 64)
@@ -1126,12 +1126,12 @@ con_fondo:
 .a8
     lda #$80                    ; WMDATA
     jmp scn_dma_msu
-no_la_encontro:
+no_found:
     ; The MSU-1 did not finish seeking in time: this buffer comes from the
     ; ROM, and `scene_upload` redoes the rest from there.
     lda #0
     sta SCN_MSU
-de_la_rom:
+from_rom:
     ; From the ROM, only planes 4 to 7 go here, which are the same on every
     ; pixel of the fallback: the 32 bytes of `fallback_height` in the top half
     ; of every tile, rewinding the source and moving WMADD on each one.
@@ -1216,7 +1216,7 @@ tile:
     rep #$20
 .a16
     ldy #0                      ; the pair's left tile, in the buffers
-par:
+pair:
     lda #8
     sta ED_WORDS
 word:
@@ -1260,7 +1260,7 @@ word:
     adc #(128 - 32)
     tay
     cpy #(SCENE_TILES * 64)
-    bcc par
+    bcc pair
     sep #$20
 .a8
     plb
@@ -1287,20 +1287,20 @@ word:
 .i16
     lda BA_SCENE
     cmp #$FF
-    bne hay
+    bne has
     rts
-hay:
+has:
     rep #$20
 .a16
     lda SCN_SUB_N
-    beq buscar
-    jmp subir
-buscar:
+    beq seek
+    jmp upload
+seek:
     sep #$20
 .a8
     lda #0
     sta SCN_E
-otro:
+other:
     lda SCN_E
     cmp BA_KID
     bcc :+
@@ -1309,7 +1309,7 @@ otro:
     jsr scn_bit
     sta SCN_T0
     and SCN_VIS
-    beq no_dibujado
+    beq no_drawn
     ; And dead?
     lda SCN_E
     clc
@@ -1320,11 +1320,11 @@ otro:
     lda BA_ONE + BA_HP, x
     sep #$20
 .a8
-    beq borrar
-siguiente:
+    beq erase
+next:
     inc SCN_E
-    bra otro
-no_dibujado:
+    bra other
+no_drawn:
     ; And is it in the battle? It is one that was hidden and
     ; `ShowHiddenMonster` brought out: it is placed the same way one is
     ; erased, with its cells redone from the clean background and the
@@ -1339,23 +1339,23 @@ no_dibujado:
 .a8
     lda SCN_E_BAT, x
     cmp #$FF
-    beq siguiente
+    beq next
     lda SCN_E
     clc
     adc #BA_PARTY_MAX
     jsr ba_alive
-    beq siguiente
+    beq next
     lda SCN_T0
     ora SCN_VIS
     sta SCN_VIS
-    bra repintar
+    bra repaint
 
-borrar:
+erase:
     lda SCN_T0
     eor #$FF
     and SCN_VIS
     sta SCN_VIS
-repintar:
+repaint:
     ; The rectangle, in tiles: the columns it touches and the whole rows.
     rep #$20
 .a16
@@ -1433,7 +1433,7 @@ repintar:
     sta SCN_T0
     lda SCN_SUB_N
     sta SCN_I                   ; and SCN_I + 1: used as a word here
-copia:
+copy:
     lda SCN_T0
     xba                         ; row * 256...
     lsr a
@@ -1458,7 +1458,7 @@ copia:
     plb
     inc SCN_T0
     dec SCN_I
-    bne copia
+    bne copy
 
     ; --- and the ones still alive on top, clipped to those cells ---
     sep #$20
@@ -1468,25 +1468,25 @@ copia:
     jsr scn_dp_take
     lda #0
     sta SCN_K
-reponer:
+restore:
     lda SCN_K
     cmp BA_KID
-    bcs repuestos
+    bcs restored
     jsr scn_by_command
     jsr scn_bit
     and SCN_VIS
     beq :+
     jsr scene_set
 :   inc SCN_K
-    bra reponer
-repuestos:
+    bra restore
+restored:
     jsr scn_dp_return
     pla
     sta SCN_E
     rts
 
     ; --- upload what fits in this vblank ---
-subir:
+upload:
 .a16
     lda #0
     sta SCN_T0                  ; how many bytes so far

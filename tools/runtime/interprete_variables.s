@@ -30,62 +30,62 @@
     ; every frame —the ones for the race, the lights on map 11—.
     cmp #VAR_CHARACTER
     bne :+
-    jmp var_de_personaje
+    jmp character_var
 :
     cmp #VAR_VARIABLE
-    beq var_de_variable
+    beq variable_var
     cmp #VAR_RANDOM
-    beq var_al_azar
+    beq var_random
     cmp #VAR_OTHER
-    beq var_de_otro
+    beq other_var
     rep #$20
 .a16
     lda [code_ptr], y            ; a constant
     sta temp + 2
     sep #$20
 .a8
-    bra var_aplicar
-var_de_variable:
+    bra var_apply
+variable_var:
     lda [code_ptr], y            ; the slot it comes from
     jsr var_read
 .a16
     sta temp + 2
     sep #$20
 .a8
-    bra var_aplicar
-var_de_otro:
+    bra var_apply
+other_var:
     lda [code_ptr], y
-    bne var_del_timer
+    bne timer_var
     ; The gold, capped at 32767: the variable is sixteen bits signed.
     lda gold + 2
-    bne var_oro_tope
+    bne var_gold_cap
     rep #$20
 .a16
     lda gold
-    bmi var_oro_tope_16
+    bmi var_gold_cap_16
     sta temp + 2
     sep #$20
 .a8
-    bra var_aplicar
+    bra var_apply
 .a16
-var_oro_tope_16:
+var_gold_cap_16:
     sep #$20
 .a8
-var_oro_tope:
+var_gold_cap:
     lda #$FF
     sta temp + 2
     lda #$7F
     sta temp + 3
-    bra var_aplicar
-var_del_timer:
+    bra var_apply
+timer_var:
     rep #$20
 .a16
     lda timer_sec               ; the seconds the timer has left
     sta temp + 2
     sep #$20
 .a8
-    bra var_aplicar
-var_al_azar:
+    bra var_apply
+var_random:
     ; a + x mod (b - a + 1), with x the next step of the xorshift and the
     ; modulo done with the hardware's eight-bit divider: the converter does
     ; not let through a range wider than 255.
@@ -118,12 +118,12 @@ var_al_azar:
     sta temp + 2
     sep #$20
 .a8
-var_aplicar:
+var_apply:
     ; `temp + 2` is the operand; depending on the operation, it is set as is
     ; or added to or subtracted from what the variable had.
     lda temp + 1
     and #<~VAR_REFRESH
-    beq var_pone
+    beq var_sets
     lda temp
     jsr var_read                ; A = what it had, sixteen bits
 .a16
@@ -133,7 +133,7 @@ var_aplicar:
     lda temp + 1
     and #<~VAR_REFRESH
     cmp #VAR_ADD
-    beq var_suma
+    beq var_sum
     rep #$20
 .a16
     pla
@@ -142,8 +142,8 @@ var_aplicar:
     sta temp + 2
     sep #$20
 .a8
-    bra var_pone
-var_suma:
+    bra var_sets
+var_sum:
     rep #$20
 .a16
     pla
@@ -152,7 +152,7 @@ var_suma:
     sta temp + 2
     sep #$20
 .a8
-var_pone:
+var_sets:
     lda temp + 1                ; the operation, which carries the refresh bit
     xba
     lda temp
@@ -163,9 +163,9 @@ var_pone:
     iny
     iny
     iny
-    jmp run_code::otro
+    jmp run_code::other
 
-var_de_personaje:
+character_var:
     ; Class 6: a character's coordinates, in cells. `a` is the target —0 the
     ; hero, the event index plus one, the same byte as OP_ROUTE— and `b` says
     ; which one: CHARACTER_X or CHARACTER_Y.
@@ -192,39 +192,39 @@ var_de_personaje:
     iny
     lda [code_ptr], y            ; b: which coordinate
     cpx #$0000
-    beq var_personaje_heroe
+    beq var_character_hero
     ; An event: its cell is in `ev_pos_buf`, indexed by the index in the
     ; map's table, which is the target minus one; hence the - EV_STRIDE.
     cmp #CHARACTER_X
-    beq var_personaje_ev_x
+    beq var_character_ev_x
     rep #$20
 .a16
     lda ev_pos_buf - EV_STRIDE + 2, x
-    bra var_personaje_listo
+    bra var_character_ready
 .a8
-var_personaje_ev_x:
+var_character_ev_x:
     rep #$20
 .a16
     lda ev_pos_buf - EV_STRIDE + 0, x
-    bra var_personaje_listo
+    bra var_character_ready
 .a8
-var_personaje_heroe:
+var_character_hero:
     cmp #CHARACTER_X
-    beq var_personaje_heroe_x
+    beq var_character_hero_x
     rep #$20
 .a16
     lda tile_y
-    bra var_personaje_listo
+    bra var_character_ready
 .a8
-var_personaje_heroe_x:
+var_character_hero_x:
     rep #$20
 .a16
     lda tile_x
-var_personaje_listo:
+var_character_ready:
     sta temp + 2
     sep #$20
 .a8
-    jmp var_aplicar
+    jmp var_apply
 
 .endproc
 
@@ -232,7 +232,7 @@ var_personaje_listo:
 ; fused into one: see `cell_test`, which lives in bank 1.
 .proc op_cell_test
     jsl f:cell_test + FAST   ; see MEMSEL
-    jmp run_code::otro
+    jmp run_code::other
 .endproc
 
 .proc op_switch
@@ -249,7 +249,7 @@ var_personaje_listo:
     phy
     jsr set_switch
     ply
-    jmp run_code::otro     ; `bra` does not reach: the loop is far away
+    jmp run_code::other     ; `bra` does not reach: the loop is far away
 
 .endproc
 

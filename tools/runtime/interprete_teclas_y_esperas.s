@@ -26,7 +26,7 @@
     iny
     sta temp + 1
     and #KEY_STARTS
-    beq tecla_mirar
+    beq key_look
     ; The first of the two: the variable to zero and control handed back
     ; without looking at anything. It is RPG_RT's `Input::ResetTriggerKeys()`:
     ; the edge is computed against the previous frame's pad, so letting a
@@ -52,7 +52,7 @@
     jsr var_write            ; with its refresh, if the flags ask for it
     sty ev_cur
     rts
-tecla_mirar:
+key_look:
     ; The waiting one does not look at the pad while there is a message or a
     ; choice on screen, **anyone's**: it is the `if
     ; (Game_Message::IsMessageActive()) break;` of `Game_Interpreter::Update`,
@@ -63,12 +63,12 @@ tecla_mirar:
     ; `test_la_a_que_cierra_el_mensaje_no_saca_una_piedra`.
     lda temp + 1
     and #KEY_WAIT
-    beq tecla_leer
+    beq key_read
     lda msg_open
     ora msg_state              ; also while it is being composed
     ora pick_active
-    bne tecla_rebobinar
-tecla_leer:
+    bne key_rewind
+key_read:
     phy
     jsr key_value
     ply
@@ -76,21 +76,21 @@ tecla_leer:
     stz temp + 3
     lda temp + 1
     and #KEY_WAIT
-    beq tecla_guardar           ; without a wait, whatever is there is stored, zero included
+    beq key_save           ; without a wait, whatever is there is stored, zero included
     lda temp + 2
-    bne tecla_guardar
-tecla_rebobinar:
+    bne key_save
+key_rewind:
     dey                         ; nothing yet: the cursor goes back to this opcode
     dey
     dey
     sty ev_cur
     rts
-tecla_guardar:
+key_save:
     lda temp + 1
     xba
     lda temp
     jsr var_write            ; `SetNeedRefreshForVarChange`, like ControlVars:
-    jmp run_code::otro     ; the flags decide it. See `var_write`
+    jmp run_code::other     ; the flags decide it. See `var_write`
 
 .endproc
 

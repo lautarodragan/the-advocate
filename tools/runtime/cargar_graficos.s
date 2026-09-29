@@ -215,10 +215,10 @@
 .i16
     lda vq_n
     cmp #VQ_MAX
-    bcc hay_lugar
+    bcc has_place
     lda #0
     rts
-hay_lugar:
+has_place:
     sta temp + 2
     asl a
     asl a
@@ -252,9 +252,9 @@ hay_lugar:
 .a8
 .i16
     lda vq_n
-    bne hay
+    bne has
     rts
-hay:
+has:
     lda #$80
     sta VMAIN                   ; increment one word after the high byte
     lda #$01
@@ -263,7 +263,7 @@ hay:
     sta BBAD0                   ; destination: VMDATAL
     stz vq_done
     ldx #$0000                  ; the entry, in bytes
-otra:
+other:
     lda vq_done
     cmp vq_n
     beq end
@@ -317,7 +317,7 @@ row:
     tax
     sep #$20
 .a8
-    bra otra
+    bra other
 end:
     ; What did not fit, to the start of the queue. X points to the first
     ; entry left.
@@ -333,13 +333,13 @@ end:
     adc temp + 2                ; the bytes left: entries times five
     sta temp + 2
     ldy #$0000
-mover:
+move:
     lda vq, x
     sta vq, y
     inx
     iny
     dec temp + 2
-    bne mover
+    bne move
 ready:
     rts
 .endproc
@@ -446,13 +446,13 @@ ready:
     sep #$20
 .a8
     ldy #$0000
-copiar:
+copy:
     cpy temp
     beq ready
     lda [npc_ptr], y
     sta npc_buf, y
     iny
-    bra copiar
+    bra copy
 ready:
     jsl f:pass_look + FAST   ; ver `pass_has`
     rts
@@ -485,13 +485,13 @@ ready:
     sep #$20
 .a8
     ldy #$0000
-copiar:
+copy:
     cpy temp
     beq ready
     lda [npc_ptr], y
     sta route_gfx_buf, y
     iny
-    bra copiar
+    bra copy
 ready:
     rts
 .endproc
@@ -531,18 +531,18 @@ ready:
     sep #$20
 .a8
     ldy #$0000
-copiar:
+copy:
     cpy temp
-    beq tablas
+    beq tables
     lda [npc_ptr], y
     sta ev_pos_buf, y
     iny
-    bra copiar
+    bra copy
 
-tablas:
+tables:
     stz route_ev_cap            ; no slot used yet on this map
     ldx #$0000
-libre:
+free:
     lda #ROUTE_EV_FREE
     sta route_ev, x
     rep #$20
@@ -554,11 +554,11 @@ libre:
     cmp #ROUTE_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
-    bcc libre
+    bcc free
 
     ; And the flashes, which also belong to the events of the map being left.
     ldx #$0000
-sin_flash:
+no_flash:
     lda #FLASH_FREE
     sta flash_ev, x
     stz flash_ev + 7, x         ; no pending palette: RAM starts with
@@ -572,7 +572,7 @@ sin_flash:
     cmp #FLASH_MAX * FLASH_STRIDE
     sep #$20
 .a8
-    bcc sin_flash
+    bcc no_flash
     stz route_step
     rts
 .endproc

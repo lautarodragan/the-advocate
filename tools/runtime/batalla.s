@@ -53,18 +53,18 @@
 .i16
     stz comp_and
     ldy #16
-lazo:
+loop:
     asl temp
     rol comp_and
     lda comp_and
     sec
     sbc temp + 2
-    bcc no_entra
+    bcc no_enters
     sta comp_and
     inc temp                    ; the quotient bit that just came in
-no_entra:
+no_enters:
     dey
-    bne lazo
+    bne loop
     lda temp
     rts
 .endproc
@@ -277,7 +277,7 @@ no:
 .a8
     lda f:item_k, x
     cmp #$FF
-    beq nada8                   ; an item the cartridge does not carry
+    beq nothing8                   ; an item the cartridge does not carry
     jsr ba_ax
     lda f:item_sp, x
     rts
@@ -285,7 +285,7 @@ no:
 nothing:
     sep #$20
 .a8
-nada8:
+nothing8:
     lda #0
     rts
 .endproc
@@ -295,7 +295,7 @@ nada8:
 .i16
     ; All slots empty: the screen and the sweeps look at `BAF_HAS`.
     lda #0
-otra_ranura:
+other_slot:
     pha
     jsr ba_x
     lda #0
@@ -303,14 +303,14 @@ otra_ranura:
     pla
     inc a
     cmp #BA_COMB_MAX
-    bcc otra_ranura
+    bcc other_slot
     stz BA_NACT
     stz BA_KID
 
     ; --- the party ---
     lda #0
     sta BA_S1                 ; the place in the party
-otro_actor:
+other_actor:
     rep #$20
 .a16
     lda BA_S1
@@ -318,14 +318,14 @@ otro_actor:
     cmp party_n
     sep #$20
 .a8
-    bcc hay_lugar
-    jmp grupo_listo
-hay_lugar:
+    bcc has_place
+    jmp party_ready
+has_place:
     lda BA_S1
     cmp #BA_PARTY_MAX
-    bcc hay_ranura
-    jmp grupo_listo
-hay_ranura:
+    bcc has_slot
+    jmp party_ready
+has_slot:
     rep #$20
 .a16
     lda BA_S1
@@ -334,9 +334,9 @@ hay_ranura:
     sep #$20
 .a8
     lda party, x
-    bne con_actor
-    jmp siguiente_actor         ; a party slot with nobody in it
-con_actor:
+    bne with_actor
+    jmp next_actor         ; a party slot with nobody in it
+with_actor:
     sta BA_S0                 ; the actor from the LDB
     ldy #0
     jsl f:level_param
@@ -462,10 +462,10 @@ con_actor:
     pla
     sta f:BA_WEAPON_SP, x
     inc BA_NACT
-siguiente_actor:
+next_actor:
     inc BA_S1
-    jmp otro_actor
-grupo_listo:
+    jmp other_actor
+party_ready:
 
     ; --- the troop ---
     ; The bytecode carries the RM2k number, so it has to be looked up. A troop
@@ -476,10 +476,10 @@ grupo_listo:
     sta BA_TROOP_K
     lda #0
     sta BA_S1
-busca:
+seek:
     lda BA_S1
     cmp #TROOPS_N
-    bcs sin_tropa
+    bcs no_troop
     rep #$20
 .a16
     lda BA_S1
@@ -490,12 +490,12 @@ busca:
     cmp BA_TROOP
     sep #$20
 .a8
-    beq la_tengo
+    beq have
     inc BA_S1
-    bra busca
-sin_tropa:
+    bra seek
+no_troop:
     rts
-la_tengo:
+have:
     lda BA_S1
     sta BA_TROOP_K              ; for `scene_troop_backdrop`
     rep #$20
@@ -511,16 +511,16 @@ la_tengo:
     sta BA_S3                 ; where its list starts
     lda #0
     sta BA_S1                 ; the place in the troop
-otro_enemigo:
+other_enemy:
     lda BA_S1
     cmp BA_S2
-    bcc hay_miembro
-    jmp tropa_lista
-hay_miembro:
+    bcc has_member
+    jmp troop_list
+has_member:
     cmp #BA_ENEMIES_MAX
-    bcc hay_ranura_ene
-    jmp tropa_lista
-hay_ranura_ene:
+    bcc has_slot_enemy
+    jmp troop_list
+has_slot_enemy:
     rep #$20
 .a16
     lda BA_S1
@@ -601,12 +601,12 @@ hay_ranura_ene:
     and BA_T0
     plx
     cmp #0                      ; `plx` overwrote Z: the AGENTS.md trap
-    beq a_la_vista
+    beq to_view
     lda #BAF_HIDDEN
-    bra con_flags
-a_la_vista:
+    bra with_flags
+to_view:
     lda #BAF_HAS
-con_flags:
+with_flags:
     sta BA_ONE + BA_FLAGS, x
     ; The skill data: the SP, the spirit and the four bases. It uses them
     ; —since 2026-09-27, see `ba_enemy_action`— and **receives them**:
@@ -645,8 +645,8 @@ con_flags:
 .a8
     inc BA_KID
     inc BA_S1
-    jmp otro_enemigo
-tropa_lista:
+    jmp other_enemy
+troop_list:
     rts
 .endproc
 
@@ -669,7 +669,7 @@ tropa_lista:
     ; weapon.
     lda BA_MQUIEN
     cmp #BA_PARTY_MAX
-    bcs sin_arma
+    bcs no_weapon
     jsr ba_ax
     lda f:BA_WEAPON_SP, x
     sta BA_T2
@@ -681,13 +681,13 @@ tropa_lista:
     lda BA_ONE + BA_SP, x
     sec
     sbc BA_T2
-    bpl sp_cobrado
+    bpl sp_charged
     lda #0
-sp_cobrado:
+sp_charged:
     sta BA_ONE + BA_SP, x
     sep #$20
 .a8
-sin_arma:
+no_weapon:
     lda BA_MQUIEN
     jsr ba_x
     rep #$20
@@ -714,10 +714,10 @@ sin_arma:
     rep #$20
 .a16
     lda BA_ONE + BA_AGI, x
-    bne agi_hay
+    bne agi_has
     lda #1                      ; `max(1, GetAgi())` from
                                 ; CalcToHitAgiAdjustment
-agi_hay:
+agi_has:
     sta BA_S2                   ; the source's agility
     ldx BA_S1
     lda BA_ONE + BA_AGI, x
@@ -740,25 +740,25 @@ agi_hay:
     lda #100
     sec
     sbc BA_S3
-    bpl acierto_listo
+    bpl hit_ready
     lda #0
-acierto_listo:
+hit_ready:
     sep #$20
 .a8
     jsr ba_pct
     sta BA_S4                   ; 1 if it hit
-    beq crit_cero
+    beq crit_zero
     lda BA_S0
     jsr ba_ax
     lda BA_ONE + BA_CRIT, x
-    bra crit_tira
-crit_cero:
+    bra crit_strip
+crit_zero:
     lda #0
-crit_tira:
+crit_strip:
     jsr ba_pct
     sta BA_S5                   ; 1 if it was critical
     lda BA_S4
-    bne pega
+    bne sticks
     rep #$20
 .a16
     lda #$FFFF
@@ -768,7 +768,7 @@ crit_tira:
     rts
 
     ; --- the damage: max(0, atk / 2 - def / 4) ---
-pega:
+sticks:
     rep #$20
 .a16
     ldx BA_S0
@@ -780,11 +780,11 @@ pega:
     lsr a
     lsr a
     cmp BA_S2
-    bcc hay_dano
+    bcc has_damage
     lda #0
     sta BA_S2
-    bra sin_varianza
-hay_dano:
+    bra no_variance
+has_damage:
     sta BA_S3
     lda BA_S2
     sec
@@ -793,7 +793,7 @@ hay_dano:
     sep #$20
 .a8
     lda BA_S5
-    beq sin_critico
+    beq no_critical
     rep #$20
 .a16
     ; A critical triples it: `dmg *= 3`.
@@ -804,7 +804,7 @@ hay_dano:
     sta BA_S2
     sep #$20
 .a8
-sin_critico:
+no_critical:
     rep #$20
 .a16
     ; The variance of `VarianceAdjustEffect` with var = 4:
@@ -816,9 +816,9 @@ sin_critico:
     lda #10
     sta temp + 2
     jsr ba_div
-    bne ajuste_listo
+    bne adjust_ready
     lda #1
-ajuste_listo:
+adjust_ready:
     sta BA_S3
     jsr ba_until                ; A16 is still the adjustment
     clc
@@ -830,19 +830,19 @@ ajuste_listo:
     lda BA_S2
     sec
     sbc BA_S3
-    bpl varianza_listo
+    bpl variance_ready
     lda #0                      ; cannot happen: 0.8 times the damage is
                                 ; positive
-varianza_listo:
+variance_ready:
     sta BA_S2
-sin_varianza:
+no_variance:
     sep #$20
 .a8
     ; Whoever is defending takes half: `AdjustDamageForDefend`.
     ldx BA_S1
     lda BA_ONE + BA_FLAGS, x
     and #BAF_DEF
-    beq sin_defensa
+    beq no_defense
     rep #$20
 .a16
     lda BA_S2
@@ -850,22 +850,22 @@ sin_varianza:
     sta BA_S2
     sep #$20
 .a8
-sin_defensa:
+no_defense:
     rep #$20
 .a16
     lda BA_S2
     cmp #(BA_DAMAGE_MAX + 1)
-    bcc dano_listo
+    bcc damage_ready
     lda #BA_DAMAGE_MAX
-dano_listo:
+damage_ready:
     sta BA_MDANO
     ldx BA_S1
     lda BA_ONE + BA_HP, x
     sec
     sbc BA_MDANO
-    bpl hp_listo
+    bpl hp_ready
     lda #0
-hp_listo:
+hp_ready:
     sta BA_ONE + BA_HP, x
     sep #$20
 .a8
@@ -894,45 +894,45 @@ hp_listo:
 .i16
     lda #BA_PARTY_MAX
     sta BA_S0
-otro:
+other:
     lda BA_S0
     cmp #BA_COMB_MAX
-    bcc sigue
+    bcc continues
     rts
-sigue:
+continues:
     lda BA_S0
     jsr ba_alive
-    bne vive
-    jmp siguiente
-vive:
+    bne lives
+    jmp next
+lives:
     ; The living actors, in a list, to pick one.
     lda #0
     jsr ba_alive_on_side
     lda BA_S1
-    bne hay_actores
+    bne has_actors
     rts                         ; nobody left to hit
-hay_actores:
+has_actors:
     lda BA_S0
     jsr ba_enemy_action
     sta BA_T1                   ; the action: a `k`, or attack, or nothing
     cmp #BA_EACC_NOTHING
-    bne con_accion
-    jmp siguiente
-con_accion:
+    bne with_action
+    jmp next
+with_action:
     cmp #BA_EACC_ATTACK
-    beq a_un_actor
+    beq to_actor
     jsr ba_ax
     lda f:skill_scope, x
     cmp #BA_SCOPE_ENEMY
-    beq a_un_actor
+    beq to_actor
     cmp #BA_SCOPE_ALLY
-    beq a_uno_suyo
+    beq to_own
     lda BA_S0                   ; `self`, `enemies`, `party`: its user
-    bra anotar
-a_uno_suyo:
+    bra record
+to_own:
     lda #BA_PARTY_MAX
     jsr ba_alive_on_side
-a_un_actor:
+to_actor:
     rep #$20
 .a16
     lda BA_S1
@@ -943,7 +943,7 @@ a_un_actor:
     sep #$20
 .a8
     lda BA_CAND, x
-anotar:
+record:
     sta BA_T0                   ; the chosen target
     lda BA_S0
     jsr ba_ax
@@ -954,12 +954,12 @@ anotar:
     jsr ba_ax                   ; two bytes of action per combatant
     lda BA_T1
     cmp #BA_EACC_ATTACK
-    beq es_ataque
+    beq is_attack
     lda #BA_SKILL
-    bra orden_lista
-es_ataque:
+    bra command_list
+is_attack:
     lda #BA_ATTACK
-orden_lista:
+command_list:
     sta BA_ACC, x
     lda BA_T0
     sta BA_ACC + 1, x
@@ -968,9 +968,9 @@ orden_lista:
     lda BA_S0
     sta BA_EXEC, x
     inc BA_NACC
-siguiente:
+next:
     inc BA_S0
-    jmp otro
+    jmp other
 .endproc
 
 ; The living ones of a side —A8 = 0 the party, `BA_PARTY_MAX` the troop— in
@@ -982,25 +982,25 @@ siguiente:
     clc
     adc #BA_PARTY_MAX           ; the party is four places
     cmp #BA_PARTY_MAX + 1
-    bcc tope_listo
+    bcc cap_ready
     lda #BA_COMB_MAX            ; and the troop, eight
-tope_listo:
+cap_ready:
     sta BA_S2 + 1
     stz BA_S1
-busca:
+seek:
     lda BA_S2
     cmp BA_S2 + 1
     bcs ready
     jsr ba_alive
-    beq no_vive
+    beq no_lives
     lda BA_S1
     jsr ba_ax
     lda BA_S2
     sta BA_CAND, x
     inc BA_S1
-no_vive:
+no_lives:
     inc BA_S2
-    bra busca
+    bra seek
 ready:
     rts
 .endproc
@@ -1050,10 +1050,10 @@ ready:
     ; --- 1: the possible ones, with their raw weight, and the maximum ---
     stz BA_S6                   ; the maximum
     stz BA_T2                   ; which one it is at
-posibles:
+possibles:
     lda BA_T2
     cmp BA_S5
-    bcs vistas
+    bcs views
     clc
     adc BA_S5 + 1
     jsr ba_ax
@@ -1061,7 +1061,7 @@ posibles:
     sta BA_T0
     lda f:eacc_skill, x
     cmp #BA_EACC_ATTACK
-    beq posible
+    beq possible
     jsr ba_skill_cost            ; can its SP pay for it?
     sta BA_T0 + 1
     rep #$20
@@ -1071,43 +1071,43 @@ posibles:
     cmp BA_S4
     sep #$20
 .a8
-    beq posible
-    bcc posible
+    beq possible
+    bcc possible
     stz BA_T0                   ; they cannot: it weighs zero
-    bra anotar_peso
-posible:
+    bra record_weight
+possible:
     lda BA_T0
     and #$7F
     cmp BA_S6
-    bcc anotar_peso
+    bcc record_weight
     sta BA_S6
-anotar_peso:
+record_weight:
     lda BA_T2
     jsr ba_ax
     lda BA_T0
     sta BA_SKILL_LIST, x
     inc BA_T2
-    bra posibles
-vistas:
+    bra possibles
+views:
     ; --- 2: the real weights, the sum, how many and the last one ---
     stz BA_S4                   ; the sum
     stz BA_S4 + 1               ; how many have weight
     stz BA_T2
-pesos:
+weights:
     lda BA_T2
     cmp BA_S5
-    bcs pesadas
+    bcs weighted
     jsr ba_ax
     lda BA_SKILL_LIST, x
-    beq sin_peso                ; impossible
-    bmi sin_peso8               ; not effective
+    beq no_weight                ; impossible
+    bmi no_weight8               ; not effective
     clc
     adc #10
     sec
     sbc BA_S6                   ; rating + 10 - maximum, which does not go
                                 ; below 10 - 127
-    bmi sin_peso8
-    beq sin_peso8
+    bmi no_weight8
+    beq no_weight8
     sta BA_SKILL_LIST, x
     clc
     adc BA_S4
@@ -1115,20 +1115,20 @@ pesos:
     inc BA_S4 + 1
     lda BA_T2
     sta BA_S3 + 1               ; the last one with weight
-    bra siguiente_peso
-sin_peso8:
+    bra next_weight
+no_weight8:
     lda #0
     sta BA_SKILL_LIST, x
-sin_peso:
-siguiente_peso:
+no_weight:
+next_weight:
     inc BA_T2
-    bra pesos
-pesadas:
+    bra weights
+weighted:
     lda BA_S4 + 1
-    bne alguna
+    bne any
     lda #BA_EACC_NOTHING
     rts
-alguna:
+any:
     cmp #1
     beq chosen                 ; only one: no roll
     ; --- 3: by weight ---
@@ -1142,17 +1142,17 @@ alguna:
 .a8
     sta BA_T0                   ; `which`, less than the sum
     stz BA_T2
-por_peso:
+per_weight:
     lda BA_T2
     jsr ba_ax
     lda BA_T0
     sec
     sbc BA_SKILL_LIST, x
-    bcc cae_aca                 ; `which` went negative
+    bcc falls_here                 ; `which` went negative
     sta BA_T0
     inc BA_T2
-    bra por_peso
-cae_aca:
+    bra per_weight
+falls_here:
     lda BA_T2
     sta BA_S3 + 1
 chosen:
@@ -1174,10 +1174,10 @@ chosen:
 .i16
     lda #0
     sta BA_S0
-tira:
+strip:
     lda BA_S0
     cmp BA_NACC
-    bcs tirados
+    bcs rolled
     lda BA_S0
     jsr ba_ax
     lda BA_EXEC, x
@@ -1201,17 +1201,17 @@ tira:
     sep #$20
 .a8
     inc BA_S0
-    bra tira
-tirados:
+    bra strip
+rolled:
     ; And the ordering, by insertion: there are twelve at most, and it stays
     ; **stable** if one only moves past the one above it when that one is
     ; strictly less.
     lda #1
     sta BA_S0
-afuera:
+outside:
     lda BA_S0
     cmp BA_NACC
-    bcs ordenado
+    bcs sorted
     lda BA_S0
     jsr ba_ax
     lda BA_EXEC, x
@@ -1225,7 +1225,7 @@ afuera:
 .a8
     lda BA_S0
     sta BA_S1
-adentro:
+inside:
     lda BA_S1
     beq put
     dec a
@@ -1247,15 +1247,15 @@ adentro:
     inx
     sta BA_EXEC, x
     dec BA_S1
-    bra adentro
+    bra inside
 put:
     lda BA_S1
     jsr ba_ax
     lda BA_S2
     sta BA_EXEC, x
     inc BA_S0
-    bra afuera
-ordenado:
+    bra outside
+sorted:
     rts
 .endproc
 
@@ -1312,17 +1312,17 @@ ordenado:
     jsr ba_x
     lda BA_ONE + BA_FLAGS, x
     and #BAF_HIDDEN
-    beq a_la_vista
+    beq to_view
     rts
-a_la_vista:
+to_view:
     lda BA_S4
     jsr ba_alive
-    beq muerto
+    beq dead
     lda #0
-    bra variante
-muerto:
+    bra variant
+dead:
     lda #1
-variante:
+variant:
     sta temp + 1
     lda BA_S4
     jsr ba_x
@@ -1352,9 +1352,9 @@ variante:
     ; the same `.proc`.
     lda BA_CONMAX
     and #$01
-    bne con_hp
+    bne with_hp
     rts
-con_hp:
+with_hp:
 .endif
     ; "HP"
     rep #$20
@@ -1373,9 +1373,9 @@ con_hp:
     ldx BA_S5
     lda BA_ONE + BA_HP, x
     cmp #1000
-    bcc hp_cabe
+    bcc hp_fits
     lda #999
-hp_cabe:
+hp_fits:
     sta comp_dup
     sep #$20
 .a8
@@ -1384,9 +1384,9 @@ hp_cabe:
     jsl f:ba_t_number
     lda BA_CONMAX
     and #$01
-    bne con_maximo
+    bne with_max
     rts
-con_maximo:
+with_max:
     rep #$20
 .a16
     lda #BA_BAR_DX
@@ -1402,9 +1402,9 @@ con_maximo:
     ldx BA_S5
     lda BA_ONE + BA_HPMAX, x
     cmp #1000
-    bcc max_cabe
+    bcc max_fits
     lda #999
-max_cabe:
+max_fits:
     sta comp_dup
     sep #$20
 .a8
@@ -1443,12 +1443,12 @@ max_cabe:
     sta comp_dup
     ldx #1
     cmp #10
-    bcc ancho_listo
+    bcc width_ready
     ldx #2
     cmp #100
-    bcc ancho_listo
+    bcc width_ready
     ldx #3
-ancho_listo:
+width_ready:
     sep #$20
 .a8
     txa                         ; the width: with M at 8 only the low byte
@@ -1508,38 +1508,38 @@ ancho_listo:
 .a8
     lda BA_MTIPO
     cmp #BA_MSG_ATTACK
-    beq ataque
+    beq attack
     cmp #BA_MSG_DEFENDS
-    beq defiende
+    beq defends
     cmp #BA_MSG_NO_FLED
-    beq no_huyo
+    beq no_fled
     cmp #BA_MSG_FLED
-    beq huyo
+    beq fled
     cmp #BA_MSG_ITEM
-    beq usa_item
+    beq uses_item
     cmp #BA_MSG_SKILL
-    beq usa_hab
+    beq uses_skill
     ldx #BA_TXT_DEFEAT
-    jmp solo
-usa_hab:
-    jmp habilidad
-usa_item:
+    jmp only
+uses_skill:
+    jmp skill
+uses_item:
     jmp item
-huyo:
+fled:
     ldx #BA_TXT_FLED
-    jmp solo
-no_huyo:
+    jmp only
+no_fled:
     ldx #BA_TXT_NO_FLED
-solo:
+only:
     jsr ba_finished
     rts
-defiende:
+defends:
     lda BA_MQUIEN
     jsr ba_name
     ldx #BA_TXT_DEFENDS
     jsr ba_finished
     rts
-ataque:
+attack:
     lda BA_MQUIEN
     jsr ba_name
     ldx #BA_TXT_ATTACKS
@@ -1561,9 +1561,9 @@ ataque:
     cmp #$FFFF
     sep #$20
 .a8
-    bne pego
-    jmp fallo
-pego:
+    bne stuck
+    jmp failed
+stuck:
     ; `<name> <damage> health lost.`
     lda #$20                    ; the space between the name and the number
     jsl f:ba_t_glyph
@@ -1576,12 +1576,12 @@ pego:
     jsr ba_number_exact
     lda BA_MBLA
     cmp #BA_PARTY_MAX
-    bcs es_enemigo
+    bcs is_enemy
     ldx #BA_TXT_DAMAGE_ACTOR
-    bra dice
-es_enemigo:
+    bra says
+is_enemy:
     ldx #BA_TXT_DAMAGE_ENEMY
-dice:
+says:
     jsr ba_finished
     rts
 item:
@@ -1621,7 +1621,7 @@ item:
     lda BA_MBLA
     jsr ba_name
     lda BA_MREVIVIO
-    beq recupero
+    beq recovered
     ; Revived: `<target> has revived!`, the dead state's `message_recovery`,
     ; stuck to the name. RM2k does not show the HP one when it revives
     ; —`IsRevived` in the `ePreHp` of `ProcessBattleActionParamEffects`— but
@@ -1630,7 +1630,7 @@ item:
     ldx #BA_TXT_REVIVED
     jsr ba_finished
     rts
-recupero:
+recovered:
     lda #$20
     jsl f:ba_t_glyph
     ldx #BA_TXT_HP
@@ -1647,7 +1647,7 @@ recupero:
     ldx #BA_TXT_RECOVERED
     jsr ba_finished
     rts
-habilidad:
+skill:
     ; `<who><using_message1>` on top and `<using_message2>` below, which is
     ; `GetSkillFirstStartMessage2k` and its sibling. Both lines come from the
     ; LDB, like everything this screen writes.
@@ -1683,15 +1683,15 @@ habilidad:
 .a8
     jsr ba_finished
     rts
-fallo:
+failed:
     lda BA_MBLA
     cmp #BA_PARTY_MAX
-    bcs falla_enemigo
+    bcs fails_enemy
     ldx #BA_TXT_NO_DAMAGE_ACTOR
-    bra falla_dice
-falla_enemigo:
+    bra fails_says
+fails_enemy:
     ldx #BA_TXT_NO_DAMAGE_ENEMY
-falla_dice:
+fails_says:
     jsr ba_finished
     rts
 .endproc

@@ -27,9 +27,9 @@
     ; bits, so the question is both bytes.
     lda #<TITLE_TILES
     ora #>TITLE_TILES
-    bne hay
+    bne has
     rts
-hay:
+has:
     jsr title_upload
     ; The title song. $FF means this ROM does not carry it —or that it did not
     ; fit in the ARAM—, and then the screen is shown silent.
@@ -43,9 +43,9 @@ hay:
     ; restart it. taro heard it on the console.
     lda #SONG_TITLE
     cmp #$FF
-    beq mudo
+    beq mute
     jsr music_start
-mudo:
+mute:
     jmp title_loop
 .endproc
 
@@ -140,7 +140,7 @@ mudo:
 .proc title_loop
 .a8
 .i16
-espera:
+wait:
     jsr wait_vblank
     jsr read_pad
 
@@ -149,71 +149,71 @@ espera:
     and pad                     ; what was pressed this frame
     sta title_edges
     and #PAD_UP
-    beq no_arriba
+    beq no_up
     lda title_sel
-    bne sube_una
+    bne uploads_one
     lda #TITLE_MENU_N          ; from the first one, up wraps around
-sube_una:
+uploads_one:
     dec a
     sta title_sel
     jsl f:title_upload_menu
-    bra espera
-no_arriba:
+    bra wait
+no_up:
     lda title_edges
     and #PAD_DOWN
-    beq no_abajo
+    beq no_down
     lda title_sel
     inc a
     cmp #TITLE_MENU_N
-    bcc baja_una
+    bcc low_one
     lda #0                      ; and from the last one, so does down
-baja_una:
+low_one:
     sta title_sel
     jsl f:title_upload_menu
-    bra espera
-no_abajo:
+    bra wait
+no_down:
     ; Selecting is A or START. RM2k does not look at START —there the menu
     ; belongs to the mouse and the keyboard— but on a console the title screen
     ; is passed with START and not having it feels broken.
     lda pad_a
-    beq mira_start
+    beq faces_start
     lda pad_a_prev
-    beq elige                   ; edge, not state
-mira_start:
+    beq picks                   ; edge, not state
+faces_start:
     lda title_edges
     and #PAD_START
-    beq espera
-elige:
+    beq wait
+picks:
     ; The second option is 'Resume the Story': the save is loaded and, if
     ; there is one, the map and the cell come from it. If there is none, it
     ; starts the same as the first, which is what RM2k does when there is
     ; nothing to load.
     lda title_sel
-    beq salir
+    beq leave
     ; 'Resume the Story': the slot screen, in load mode. If the player cancels
     ; with B it goes back to the title, and since that screen overwrote VRAM
     ; and CGRAM the title has to be uploaded again in full.
     lda #0
     jsr slots_screen
     cmp #$FF
-    bne la_elegida
+    bne the_chosen
     jsr title_upload
     jmp title_loop
-la_elegida:
+the_chosen:
     jsr set_slot
     jsr load_game
-    beq salir                   ; the slot was empty or the checksum does not match
+    beq leave                   ; the slot was empty or the checksum does not match
     jsr save_entry
     rep #$20
 .a16
     lda map_current             ; the index goes in sixteen bits
-    bra cargar_el_mapa
+    bra title_load_map
 .a8
-salir:
+leave:
     rep #$20
 .a16
     lda #MAP_INITIAL
-cargar_el_mapa:
+title_load_map:
     ; VRAM was left with the title image, so the map has to be loaded again in
     ; full. But VRAM is not the only thing this screen moved: the **PPU
     ; registers** too, and `enter_map` does not restore those.
@@ -277,7 +277,7 @@ cargar_el_mapa:
     ; none—, so both keep sounding the same.
     jsr music_boot
     lda music_off
-    beq listo_musica
+    beq ready_music
     ; `SONG_BOOT` at $FF means the map starts silent and a `PlayBGM` turns
     ; the music on, which is the usual case in this game. `music_boot` writes
     ; nothing to the DSP because at boot nothing is playing; **here something
@@ -292,7 +292,7 @@ cargar_el_mapa:
     ldx #SE_KOF
     jsr dsp_music
     plp
-listo_musica:
+ready_music:
     lda #$0F
     sta INIDISP
     rts

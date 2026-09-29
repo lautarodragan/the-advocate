@@ -167,7 +167,7 @@ VARIABLES = (
     #
     # `var-heroe-x` lee la x del héroe, que está en (22,12): muestra 22 y no
     # 12. Verificado en rojo con el `cmp #CHARACTER_X` de
-    # `var_personaje_heroe` cambiado por CHARACTER_Y: 48 pixeles en el cuadro
+    # `var_character_hero` cambiado por CHARACTER_Y: 48 pixeles en el cuadro
     # 30.
     ("var-heroe-x", (2, 30)),
     # `var-evento-y` lee la y de Kersh —el evento 3, blanco 4— **después** de
@@ -290,7 +290,7 @@ def test_rama_item(nombre):
     Los dos casos son la misma página con y sin el `ChangeItems` que le da el
     Idol al grupo, así que **la diferencia entre ellos es la respuesta de la
     rama**: 40012 pixeles, el 69,78%. Verificado en rojo con el
-    `beq si_item_no` de la ROM cambiado por `bra`, o sea contestando siempre
+    `beq if_item_no` de la ROM cambiado por `bra`, o sea contestando siempre
     que no lo tiene: el caso con el ítem da esos mismos 40012.
     """
     for cuadro in (2, 30):
@@ -313,7 +313,7 @@ def test_rama_actor(nombre):
     rama**: 40012 pixeles, el 69,78%. Kersh es el actor 11: lleva puesto el
     ítem 82 y no el 84, y a su nivel del LDB sabe la habilidad 131 y no la 152.
 
-    Verificado en rojo de las dos maneras, con el `beq sia_si` de cada camino
+    Verificado en rojo de las dos maneras, con el `beq sia_yes` de cada camino
     cambiado por un `bra`: contestando siempre que sí, `rama-equipo-no` y
     `rama-hab-no` dan 40012 pixeles; contestando siempre que no, los dan
     `rama-equipo` y `rama-hab`.

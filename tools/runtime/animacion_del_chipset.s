@@ -111,9 +111,9 @@ divisor:
     stz temp + 3
     lda RDMPYL                  ; the remainder: zero is the tick of the change
     ora RDMPYL + 1
-    bne no_cambia
+    bne no_changes
     inc temp + 3
-no_cambia:
+no_changes:
     lda RDDIVL
     and #(WATER_CYCLE_N - 1)
 .assert WATER_CYCLE_N = 4, error, "the cycle is trimmed with a two-bit and"
@@ -141,10 +141,10 @@ ready:
     pha                         ; the drawing, which the arithmetic below
                                 ; overwrites
     lda f:anim_table + 6, x
-    bne hay
+    bne has
     pla
     rts                         ; this family does not animate on this map
-hay:
+has:
     rep #$20
 .a16
     lda f:anim_table + 0, x
@@ -165,16 +165,16 @@ hay:
 .a16
     and #$00FF
     tay
-saltar:
+jump:
     cpy #$0000
-    beq puesto
+    beq set
     lda temp + 2
     clc
     adc temp
     sta temp + 2
     dey
-    bra saltar
-puesto:
+    bra jump
+set:
     ; The drawings are in WRAM, where `lz2_anim` left them when loading the
     ; map: the cartridge carries them compressed.
     lda #.loword(ANIM_DRAWINGS)
@@ -213,7 +213,7 @@ puesto:
     stz anim_pend               ; whatever was pending gets uploaded here
     jsr anim_mode
     ldy #$0000
-otra:
+other:
     phy
     rep #$20
 .a16
@@ -233,7 +233,7 @@ otra:
     ply
     iny
     cpy #ANIM_FAMILIES
-    bne otra
+    bne other
     rts
 .endproc
 
@@ -247,7 +247,7 @@ otra:
 .i16
     stz anim_pend
     ldy #$0000
-otra:
+other:
     phy
     rep #$20
 .a16
@@ -267,27 +267,27 @@ otra:
     ; already uploaded does not show, so the bug survives the pixel
     ; comparison; what shows is the pose budget going down every frame.
     lda temp + 3
-    beq siguiente
+    beq next
     ply
     phy
     jsr anim_where
     lda f:anim_table + 6, x
-    beq siguiente               ; this family does not animate on this map
+    beq next               ; this family does not animate on this map
     lda temp + 2
     cpy #$0000
-    beq baja
+    beq low
     asl a
     asl a
     asl a                       ; three bits per family
 .assert ANIM_FAMILIES = 2, error, "the two nibbles of anim_pend fit in a byte"
-baja:
+low:
     ora anim_pend
     sta anim_pend
-siguiente:
+next:
     ply
     iny
     cpy #ANIM_FAMILIES
-    bne otra
+    bne other
     rts
 .endproc
 
@@ -306,12 +306,12 @@ siguiente:
 .a8
 .i16
     lda anim_pend
-    bne hay
+    bne has
     rts                         ; the usual case: an lda and a beq
-hay:
+has:
     jsr anim_mode
     ldy #$0000
-otra:
+other:
     ; This family's three bits, read from `anim_pend` on each pass and not
     ; from a copy in `temp`: `anim_upload` stores a word there and used to wipe
     ; out the copy. When both families changed on the same tick —every 24,
@@ -319,13 +319,13 @@ otra:
     ; until the next change. It showed in 8 pixels of map 2.
     lda anim_pend
     cpy #$0000
-    beq baja
+    beq low
     lsr a
     lsr a
     lsr a
-baja:
+low:
     and #$07
-    beq siguiente
+    beq next
     dec a                       ; the drawing `anim_tick` asked for
     phy
     pha
@@ -345,17 +345,17 @@ baja:
     lda vq_cap
     sec
     sbc temp + 2
-    bcc una
-    bne queda
-una:
+    bcc one
+    bne remains
+one:
     lda #1                      ; there is always room for one pose
-queda:
+remains:
     sta vq_cap
     ply
-siguiente:
+next:
     iny
     cpy #ANIM_FAMILIES
-    bne otra
+    bne other
     stz anim_pend
     rts
 .endproc

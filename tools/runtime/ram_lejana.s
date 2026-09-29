@@ -410,7 +410,7 @@ BA_M_SKILL    = 4
 BA_M_MESSAGE = 5
 BA_M_END    = 6
 ; Running a troop page, with or without its message on screen: see
-; `modo_pagina`. It goes after the message ones because it chooses nothing.
+; `mode_page`. It goes after the message ones because it chooses nothing.
 BA_M_PAGE = 7
 ; What the message says.
 BA_MSG_ATTACK = 0

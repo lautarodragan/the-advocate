@@ -96,9 +96,9 @@ no:
     pla
     pha
     cmp title_sel
-    bne sin_cursor
+    bne no_cursor
     inc temp + 2                ; and the cursor, 1
-sin_cursor:
+no_cursor:
     ; The block's index: the two headers first, and then four variants per
     ; slot.
     pla
@@ -136,9 +136,9 @@ sin_cursor:
     pla
     lda temp + 2
     cmp #2
-    bcc sin_grupo
+    bcc no_party
     jmp slot_party_paint
-sin_grupo:
+no_party:
     rts
 .endproc
 
@@ -261,10 +261,10 @@ row:
     sty VMADDL
     sep #$20
 .a8
-    jsr renglon
+    jsr line
     rep #$20
 .a16
-    lda 1, s                    ; the same cell, since `renglon` clobbered Y
+    lda 1, s                    ; the same cell, since `line` clobbered Y
     clc
     adc #32                     ; and the lower ones, one row down
     sta VMADDL
@@ -272,13 +272,13 @@ row:
     sta temp + 2
     sep #$20
 .a8
-    jsr renglon
+    jsr line
     ply
     rts
 
-renglon:
+line:
     ldy #0
-letra:
+letter:
     lda [msg_ptr], y
     rep #$20
 .a16
@@ -297,7 +297,7 @@ letra:
     iny
     tya                         ; one letter at a time: there are fewer than 256
     cmp temp
-    bcc letra
+    bcc letter
     rts
 .endproc
 
@@ -332,18 +332,18 @@ letra:
     lda SRAM_DATA + SAVE_PARTY_N, x
     plb
     cmp #SLOT_FACES_MAX
-    bcc caben
+    bcc fit
     lda #SLOT_FACES_MAX
-caben:
+fit:
     sta temp + 3
     stz title_edges
-otro_miembro:
+other_member:
     lda title_edges
     cmp temp + 3
-    bcs las_caras_listas
-    jsr actor_del_miembro
+    bcs faces_lists
+    jsr member_actor
     cmp #SLOT_ACTORS_N
-    bcs siguiente               ; an actor this ROM does not know
+    bcs next               ; an actor this ROM does not know
     rep #$20
 .a16
     and #$00FF
@@ -352,7 +352,7 @@ otro_miembro:
 .a8
     lda slot_face_block, x
     cmp #$FF
-    beq siguiente               ; no face
+    beq next               ; no face
     pha                         ; the block, while the destination is built
     ; The table goes four per slot: the slot times four plus the place.
     lda slot
@@ -380,17 +380,17 @@ otro_miembro:
     sep #$20
 .a8
     jsr slot_rect_upload
-siguiente:
+next:
     inc title_edges
-    bra otro_miembro
-las_caras_listas:
+    bra other_member
+faces_lists:
     ; The name of the leader, who is the first, and its level: both composed
     ; with glyphs on top of the row. `temp + 3` is no longer needed, so
     ; `slot_text_write` can use `temp`.
     lda temp + 3
     beq ready                   ; an empty party has no leader
     stz title_edges
-    jsr actor_del_miembro
+    jsr member_actor
     cmp #SLOT_ACTORS_N
     bcs ready                   ; an actor this ROM does not know
     pha                         ; the actor, for both strips
@@ -433,7 +433,7 @@ ready:
 ; the direct page: reading `title_edges` as sixteen bits would take
 ; `menu_open` along. The high byte is the slot times four, which fits:
 ; there are four slots.
-actor_del_miembro:
+member_actor:
     lda title_edges
     xba
     lda slot
@@ -509,13 +509,13 @@ actor_del_miembro:
     ; `Scene_File::Start`, which there is the one with the newest date and
     ; here, with no dates, the one in use. With no save loaded, the first.
     pla
-    beq primera
+    beq first
     lda slot
     cmp #$FF
-    bne arranca_ahi
-primera:
+    bne starts_there
+first:
     lda #0
-arranca_ahi:
+starts_there:
     sta title_sel
 
     ; `slot` onto the stack. Painting a row overwrites it —`slot_full`
@@ -529,19 +529,19 @@ arranca_ahi:
 
     ; --- and the four rows ---
     lda #0
-pintar_todas:
+paint_all:
     pha
     jsr slot_paint
     pla
     inc a
     cmp #SRAM_SLOTS_N
-    bcc pintar_todas
+    bcc paint_all
 
     jsr slot_ppu_on
     lda #1
     sta menu_open
 
-espera:
+wait:
     jsr wait_vblank
     jsr read_pad
 
@@ -550,49 +550,49 @@ espera:
     and pad
     sta title_edges
     and #PAD_UP
-    beq no_arriba
+    beq no_up
     lda title_sel
-    bne sube
+    bne uploads
     ; From the first, up wraps around, but only on a single press: the repeat
     ; stops at the end. It is easyrpg's `Scene_File::Update`, which unlike
     ; `Window_Selectable` asks for `IsTriggered` to wrap around; see
     ; `arrows_repeat`.
     lda arrows_repeated
     and #PAD_UP
-    bne espera
+    bne wait
     lda #SRAM_SLOTS_N
-sube:
+uploads:
     dec a
-    jsr mover_cursor
-    bra espera
-no_arriba:
+    jsr move_cursor
+    bra wait
+no_up:
     lda title_edges
     and #PAD_DOWN
-    beq no_abajo
+    beq no_down
     lda title_sel
     inc a
     cmp #SRAM_SLOTS_N
-    bcc baja
+    bcc low
     lda arrows_repeated       ; the same going down: repeating does not wrap
     and #PAD_DOWN
-    bne espera
+    bne wait
     lda #0
-baja:
-    jsr mover_cursor
-    bra espera
-no_abajo:
+low:
+    jsr move_cursor
+    bra wait
+no_down:
     lda title_edges
     and #PAD_B
-    beq mira_a
-    jsr cerrar
+    beq faces_a
+    jsr close
     lda #$FF                    ; cancel
     rts
-mira_a:
+faces_a:
     lda pad_a
-    beq espera
+    beq wait
     lda pad_a_prev
-    bne espera                  ; it was already held: not an edge
-    jsr cerrar
+    bne wait                  ; it was already held: not an edge
+    jsr close
     lda title_sel
     rts
 
@@ -604,7 +604,7 @@ mira_a:
 ;
 ; The stack holds, top to bottom: this `jsr`'s return address, `slot` and
 ; the bank. The return address is pulled first to get at the other two.
-cerrar:
+close:
     plx                         ; the return address, set aside
     pla
     sta slot
@@ -626,7 +626,7 @@ cerrar:
 ; The cursor to the slot in A: **the two rows that change** are repainted and
 ; no others. Inside the vblank, which is where we are on leaving
 ; `wait_vblank`.
-mover_cursor:
+move_cursor:
     sta temp + 3                ; the new one
     lda title_sel
     pha                         ; and the old one, onto the stack

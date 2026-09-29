@@ -59,7 +59,7 @@ wait_ready:
     ; map's music, and most maps have none.
     ldy #SPC_SAMPLES_SIZE
     cpy #$0000
-    beq sin_muestras
+    beq no_samples
     ldx #.loword(spc_samples)
     stx source
     lda #^spc_samples
@@ -67,7 +67,7 @@ wait_ready:
     ldx #SPC_SAMPLES_ADDR
     ldy #SPC_SAMPLES_SIZE
     jsr spc_block
-sin_muestras:
+no_samples:
 
     ; --- close and jump to the driver ---
     ldx #SPC_DRIVER_ADDR

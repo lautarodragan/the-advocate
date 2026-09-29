@@ -64,11 +64,11 @@ ex_register_bit:
 .i16
     ldx #0
     lda #0
-otro:
+other:
     sta f:EX_FRAMES, x
     inx
     cpx #(EX_END - EX_FRAMES)
-    bcc otro
+    bcc other
     rtl
 .endproc
 
@@ -155,11 +155,11 @@ no:
     lda f:sound_table, x
     pha                         ; [srcn][index][row]
     ldy #0
-otra:
+other:
     tyx
     lda f:ex_bit, x
     and f:EX_BUSY
-    beq sigue
+    beq continues
     rep #$20
 .a16
     tya
@@ -169,11 +169,11 @@ otra:
 .a8
     jsr ex_srcn
     cmp 1, s
-    beq tomar
-sigue:
+    beq take
+continues:
     iny
     cpy #EX_VOICES
-    bcc otra
+    bcc other
     pla
 no:
     rep #$20
@@ -184,7 +184,7 @@ no:
 .a8
     clc
     rtl
-tomar:
+take:
     pla
     rep #$20
 .a16
@@ -207,14 +207,14 @@ tomar:
     jsr ex_allowed
     bcc no
     ldy #0
-otra:
+other:
     tyx
     lda f:ex_bit, x
     and f:EX_BUSY
-    beq tomar
+    beq take
     iny
     cpy #EX_VOICES
-    bcc otra
+    bcc other
 no:
     rep #$20
 .a16
@@ -224,7 +224,7 @@ no:
 .a8
     clc
     rtl
-tomar:
+take:
     rep #$20
 .a16
     pla
@@ -253,23 +253,23 @@ tomar:
     tax
     lda f:se_msu_pitch_pkg, x
     tax
-buscar:
+seek:
     lda f:se_msu_pitch, x      ; the pair's index
     cmp 1, s
-    beq esta
-    bcs no_esta                 ; already went past: it is not from this package
+    beq is
+    bcs no_is                 ; already went past: it is not from this package
     inx
     inx
     inx
     inx
-    bra buscar
-esta:
+    bra seek
+is:
     pla
     ; The `lda` goes after the `pla`, which leaves Z from the index: the caller
     ; looks at Z of the pitch.
     lda f:se_msu_pitch + 2, x
     rts
-no_esta:
+no_is:
     pla
     lda #0
     rts
@@ -316,9 +316,9 @@ ready:
 .a8
 .i16
     lda f:EX_RETURN
-    bne hay
+    bne has
     rtl
-hay:
+has:
     eor #$FF
     and f:EX_BUSY
     sta f:EX_BUSY
@@ -326,11 +326,11 @@ hay:
     ldx #SE_KOF
     jsl dsp_pair_l
     ldy #0
-voz:
+voice:
     tyx
     lda f:ex_bit, x
     and f:EX_RETURN
-    beq sigue
+    beq continues
     tya
     asl a
     asl a
@@ -349,10 +349,10 @@ register:
     txa
     and #$07
     bne register
-sigue:
+continues:
     iny
     cpy #EX_VOICES
-    bcc voz
+    bcc voice
     lda #0
     sta f:EX_RETURN
     rtl
@@ -371,12 +371,12 @@ sigue:
 .a8
 .i16
     lda f:EX_BUSY
-    bne hay
+    bne has
     rtl                         ; A at zero: nothing to key on
-hay:
+has:
     lda f:EX_PEND
     pha                         ; [the ones starting]
-    beq contar_todas
+    beq count_all
     lda #0
     sta f:EX_PEND
     jsl se_kof_music_l
@@ -387,15 +387,15 @@ start:
     tyx
     lda f:ex_bit, x
     and 1, s
-    beq no_arranca
+    beq no_starts
     jsr ex_start
-no_arranca:
+no_starts:
     iny
     cpy #EX_VOICES
     bcc start
     lda #1
     sta f:SE_LOWER              ; the next frame the key-on is lowered
-contar_todas:
+count_all:
     lda #0
     pha                         ; [the ones ending][the ones starting]
     ldy #0
@@ -403,7 +403,7 @@ count_up:
     tyx
     lda f:ex_bit, x
     and 2, s
-    bne sigue                   ; just started: counted from the next one
+    bne continues                   ; just started: counted from the next one
     rep #$20
 .a16
     tya
@@ -420,17 +420,17 @@ count_up:
     lda f:ex_bit, x
     ora 1, s
     sta 1, s
-    bra sigue
+    bra continues
 .a16
 nothing:
     sep #$20
 .a8
-sigue:
+continues:
     iny
     cpy #EX_VOICES
     bcc count_up
     pla                         ; the ones ending
-    beq ninguno
+    beq none
     pha
     ora f:EX_RETURN
     sta f:EX_RETURN
@@ -439,7 +439,7 @@ sigue:
     ldx #SE_KOF
     jsl dsp_pair_l
     pla
-ninguno:
+none:
     pla                         ; the ones starting: the key-on
     rtl
 .endproc
@@ -469,16 +469,16 @@ ninguno:
     cmp #1
     rep #$20
 .a16
-    bne de_la_tabla
+    bne from_table
     lda 1, s
     phx
     jsr msu_pitch
     plx
     cmp #0                      ; `plx` leaves Z from X, not from the pitch
-    bne tengo
-de_la_tabla:
+    bne have
+from_table:
     lda f:sound_table + 1, x
-tengo:
+have:
     sta 1, s                    ; [pitch][voice]
     lda f:sound_table + 5, x
     pha                         ; [frames][pitch][voice]
@@ -550,25 +550,25 @@ tengo:
 .a8
 .i16
     lda f:MSU_SE
-    bne mirado
+    bne looked
     jsr msu_data_valid
     cmp #1
-    beq valido
+    beq valid
     lda #2
-valido:
+valid:
     sta f:MSU_SE
-mirado:
+looked:
     cmp #1
     bne ready
     ldx #(2 * SE_FIRST)
     lda #0
-olvidar:
+forget:
     cpx #(2 * SAMPLES_N)
-    bcs olvidados
+    bcs forgotten
     sta f:FAR_ARAM_OF, x
     inx
-    bra olvidar
-olvidados:
+    bra forget
+forgotten:
     lda #$FF                    ; the stream, nowhere: the first one seeks
     sta f:MSU_SE_NEXT
     sta f:MSU_SE_NEXT + 1
@@ -594,18 +594,18 @@ ready:
     tax
     sep #$20
 .a8
-temas:
+songs:
     lda f:packages, x
     inx
     cmp #$FF
-    bne temas
+    bne songs
     ldy #0                      ; the row, eight at a time
-efectos:
+effects:
     lda f:packages, x
     cmp #$FF
     beq no
     cmp 1, s
-    beq si
+    beq if
     inx
     rep #$20
 .a16
@@ -615,8 +615,8 @@ efectos:
     tay
     sep #$20
 .a8
-    bra efectos
-si:
+    bra effects
+if:
     rep #$20
 .a16
     lda f:PKG_MAP
@@ -689,21 +689,21 @@ no:
     bcc no
     jsr place_effect
     jsr se_msu_row
-    bcs hay
+    bcs has
 no:
     clc
     rtl
-hay:
+has:
     lda f:se_msu_rows, x
     cmp f:MSU_SE_NEXT
-    bne buscar
+    bne seek
     lda f:se_msu_rows + 1, x
     cmp f:MSU_SE_NEXT + 1
-    bne buscar
+    bne seek
     lda f:se_msu_rows + 2, x
     cmp f:MSU_SE_NEXT + 2
-    beq en_su_lugar
-buscar:
+    beq in_su_place
+seek:
     phx
     rep #$20
 .a16
@@ -713,7 +713,7 @@ buscar:
     jsr msu_data_seek        ; returns with 8-bit A
 .a8
     plx
-    bcc en_su_lugar
+    bcc in_su_place
     lda #$FF
     sta f:MSU_SE_NEXT
     sta f:MSU_SE_NEXT + 1
@@ -730,7 +730,7 @@ buscar:
 .a8
     sec
     rtl
-en_su_lugar:
+in_su_place:
     rep #$20
 .a16
     lda f:se_msu_rows + 4, x
@@ -760,7 +760,7 @@ en_su_lugar:
 .a8
 .i16
     ldy #0                      ; what has been uploaded
-tanda:
+suite:
     rep #$20
 .a16
     tya
@@ -772,20 +772,20 @@ tanda:
     sec
     sbc temp                    ; what is left
     cmp #3
-    bcs hay_ternas
-    jmp resto
-hay_ternas:
+    bcs has_triplets
+    jmp rest
+has_triplets:
     ldx #85                     ; the driver's index is one byte
     cmp #255
-    bcs cuantas
+    bcs how_many
     ldx #0
-dividir:
+divide_it:
     cmp #3
-    bcc cuantas
+    bcc how_many
     sbc #3                      ; C set by the `cmp`
     inx
-    bra dividir
-cuantas:
+    bra divide_it
+how_many:
     sep #$20
 .a8
     jsr msu_point
@@ -798,16 +798,16 @@ cuantas:
     inc token
     lda token
     sta f:APUIO3
-acuse_bloque:
+ack_block:
     cmp f:APUIO3
-    bne acuse_bloque
+    bne ack_block
     lda f:MSU_DATA
     sta temp
     lda f:MSU_DATA
     sta temp + 1
     lda f:MSU_DATA
     sta temp + 3
-terna:
+triplet:
     lda temp
     sta f:APUIO0
     lda temp + 1
@@ -821,7 +821,7 @@ terna:
     iny
     iny
     dex
-    beq ultima
+    beq last
     lda f:MSU_DATA
     sta temp
     lda f:MSU_DATA
@@ -829,21 +829,21 @@ terna:
     lda f:MSU_DATA
     sta temp + 3
     lda token
-acuse:
+ack:
     cmp f:APUIO3
-    bne acuse
-    bra terna
-ultima:
+    bne ack
+    bra triplet
+last:
     lda token
-acuse_ultima:
+ack_last:
     cmp f:APUIO3
-    bne acuse_ultima
+    bne ack_last
     lda #0
     sta f:APUIO2
     plp
-    jmp tanda
+    jmp suite
 .a16
-resto:
+rest:
     sep #$20
 .a8
     ; What is left, 0, 1 or 2, one byte at a time: the pointer is already
@@ -853,11 +853,11 @@ resto:
                                 ; bytes per block: it is almost always zero
     beq ready
     jsr msu_point
-un_byte:
+byte:
     lda f:MSU_DATA
     jsr msu_byte
     dec temp
-    bne un_byte
+    bne byte
 ready:
     rts
 .endproc
@@ -949,9 +949,9 @@ ready:
     inc token
     lda token
     sta f:APUIO3
-espera:
+wait:
     cmp f:APUIO3
-    bne espera
+    bne wait
     rts
 .endproc
 

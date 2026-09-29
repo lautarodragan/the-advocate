@@ -55,21 +55,21 @@ INT_END     = $7E3500           ; and where it ends
     lda #$FF
     sta f:PKG_EXTRA
     ldx #0
-otra:
+other:
     lda #0
     sta f:FAR_ARAM_OF, x
     inx
     cpx #(2 * SAMPLES_N)
-    bcc otra
+    bcc other
     ldx #0
     lda #$FF
-    bra ninguno_mas
-ninguno:
+    bra none_more
+none:
     sta f:FAR_EFFECT_IN, x      ; no sound effect noted down
     inx
-ninguno_mas:
+none_more:
     cpx #SE_PLACES
-    bcc ninguno
+    bcc none
     rts
 .endproc
 
@@ -81,9 +81,9 @@ ninguno_mas:
     inc token
     lda token
     sta APUIO3
-espera:
+wait:
     cmp APUIO3
-    bne espera
+    bne wait
     rts
 .endproc
 
@@ -141,7 +141,7 @@ espera:
     lda f:sample_table + 2, x
     sta comp_glyph + 2
     ldy #0
-tanda:
+suite:
     ; The pointer, to where the next triplet goes: the block does not advance
     ; it.
     rep #$20
@@ -162,9 +162,9 @@ tanda:
 .a16
     lda temp + 2
     cmp #3
-    bcs hay_ternas
-    jmp resto
-hay_ternas:
+    bcs has_triplets
+    jmp rest
+has_triplets:
     sta WRDIVL
     sep #$20
 .a8
@@ -181,9 +181,9 @@ hay_ternas:
     lda RDDIVL                  ; how many triplets are left, if they fit in a byte
     ldx RDDIVL
     cpx #85
-    bcc cuantas
+    bcc how_many
     lda #85                     ; the driver's index is one byte
-cuantas:
+how_many:
     rep #$20
 .a16
     and #$00FF                  ; the count, in X
@@ -198,9 +198,9 @@ cuantas:
     inc token
     lda token
     sta APUIO3
-acuse_bloque:
+ack_block:
     cmp APUIO3
-    bne acuse_bloque
+    bne ack_block
     ; The first triplet, read beforehand; the others are read while the
     ; SPC700 stores the previous one, which is what takes longest. Never one
     ; too many: past the end of the block there may be registers that change
@@ -214,7 +214,7 @@ acuse_bloque:
     lda [comp_glyph], y
     sta temp + 3
     iny
-terna:
+triplet:
     lda temp
     sta APUIO0
     lda temp + 1
@@ -225,7 +225,7 @@ terna:
     lda token
     sta APUIO3
     dex
-    beq ultima
+    beq last
     lda [comp_glyph], y
     sta temp
     iny
@@ -236,20 +236,20 @@ terna:
     sta temp + 3
     iny
     lda token
-acuse:
+ack:
     cmp APUIO3
-    bne acuse
-    bra terna
-ultima:
+    bne ack
+    bra triplet
+last:
     lda token
-acuse_ultima:
+ack_last:
     cmp APUIO3
-    bne acuse_ultima
+    bne ack_last
     stz APUIO2
     plp
-    jmp tanda
+    jmp suite
 .a16
-resto:
+rest:
     sep #$20
 .a8
     ; What is left, 0, 1 or 2, one byte at a time: the pointer is already
@@ -257,12 +257,12 @@ resto:
     lda temp + 2
     beq ready
     sta temp
-un_byte:
+byte:
     lda [comp_glyph], y
     iny
     jsr aram_byte
     dec temp
-    bne un_byte
+    bne byte
 ready:
     rts
 .endproc
@@ -316,13 +316,13 @@ ready:
 .a16
     and #$00FF
     cmp #SE_FIRST
-    bcc de_musica
+    bcc from_music
     tax
     lda f:FAR_EFFECT_IN - SE_FIRST, x
     and #$00FF
     clc
     adc #SE_FIRST
-de_musica:
+from_music:
     sta temp
     asl a
     asl a
@@ -354,9 +354,9 @@ de_musica:
     lda f:FAR_ARAM_OF, x
     sep #$20
 .a8
-    beq no_esta
+    beq no_is
     rts                         ; already there
-no_esta:
+no_is:
     lda f:PKG_S
     jsr sample_row
     rep #$30
@@ -370,55 +370,55 @@ no_esta:
     lda #ARAM_DATA
     sta f:PKG_A
     ldx #0
-hueco:
+gap:
     txa
     cmp f:INT_N
-    bcs al_final
+    bcs to_final
     lda f:INT_INIT, x
     sec
     sbc f:PKG_A                 ; how much there is before this occupied one
-    bcc sigue                   ; it starts before: no gap
+    bcc continues                   ; it starts before: no gap
     cmp f:PKG_LENGTH
-    bcs aca                     ; it fits
-sigue:
+    bcs here                     ; it fits
+continues:
     lda f:INT_END, x
     cmp f:PKG_A
-    bcc no_avanza
+    bcc no_advances
     sta f:PKG_A                 ; the next gap starts after it
-no_avanza:
+no_advances:
     inx
     inx
-    bra hueco
-al_final:
+    bra gap
+to_final:
     lda #ARAM_END
     sec
     sbc f:PKG_A
-    bcc no_entra
+    bcc no_enters
     cmp f:PKG_LENGTH
-    bcs aca
-no_entra:
+    bcs here
+no_enters:
     sep #$20
 .a8
     lda #1
     sta f:PKG_PARTIAL        ; so the next `PlayBGM` completes it
     rts                         ; does not fit: does not play
 .a16
-aca:
+here:
     ; It fits at PKG_A, before occupied X: room is made in the list.
     stx temp
     lda f:INT_N
     tax
-correr:
+run:
     cpx temp
-    beq corrido
+    beq ran
     dex
     dex
     lda f:INT_INIT, x
     sta f:INT_INIT + 2, x
     lda f:INT_END, x
     sta f:INT_END + 2, x
-    bra correr
-corrido:
+    bra run
+ran:
     lda f:PKG_A
     sta f:INT_INIT, x
     clc
@@ -454,10 +454,10 @@ corrido:
 .a8
 .i16
     ldx #0
-otra:
+other:
     lda f:FAR_WANTS, x
     cmp #3
-    bne sigue
+    bne continues
     phx
     txa
     sta f:PKG_S
@@ -473,15 +473,15 @@ otra:
     lda f:PKG_S
     jsr sample_row
     jsl se_msu_upload            ; a sound effect from the `.msu`: see efectos_con_msu.s
-    bcs subida
+    bcs upload
     jsr upload_sample
     jsr write_directory
-subida:
+upload:
     plx
-sigue:
+continues:
     inx
     cpx #SAMPLES_N
-    bcc otra
+    bcc other
     rts
 .endproc
 
@@ -506,7 +506,7 @@ sigue:
 .a8
 .i16
     jsr song_list
-otra:
+other:
     lda f:song_samples, x
     cmp #$FF
     beq ready
@@ -514,7 +514,7 @@ otra:
     jsr place_sample
     plx
     inx
-    bra otra
+    bra other
 ready:
     rts
 .endproc
@@ -569,12 +569,12 @@ ready:
     sep #$20
 .a8
     lda f:MSU_MISSING, x
-correr:
+run:
     dey
-    bmi corrido
+    bmi ran
     lsr a
-    bra correr
-corrido:
+    bra run
+ran:
     and #1
     bne no_xy                   ; the track was missing: it plays through the SPC700
     ply
@@ -674,9 +674,9 @@ ready:
 .a8
 .i16
     lda f:APU_READY
-    bne listo_apu
+    bne ready_apu
     rts                         ; at reset, before the driver runs
-listo_apu:
+ready_apu:
     lda #0
     sta f:PKG_PARTIAL
     sta f:PKG_COMPACT
@@ -684,88 +684,88 @@ listo_apu:
     jsl se_msu_prepare         ; with the `.msu` sound effects, all are
                                 ; uploaded again: see efectos_con_msu.s
     ldx #0
-limpiar:
+clear:
     lda #0
     sta f:FAR_WANTS, x
     inx
     cpx #SAMPLES_N
-    bcc limpiar
+    bcc clear
     ; The ones of the song playing do not move: 2.
     lda music_off
-    bne sin_fijas
+    bne no_fixed
     lda song_current
     cmp #SONG_TOTAL
-    bcs sin_fijas
+    bcs no_fixed
     ldy #2
     jsr mark_song
-sin_fijas:
+no_fixed:
     ; The ones the package wants: 1, if they were not already 2. The extra's
     ; **even if it has a track**: if it is asked for, it is because it will
     ; play through the SPC700. The ones of the package's songs, not if they
     ; will play through the MSU-1: see `song_per_msu`.
     lda f:PKG_EXTRA
     cmp #$FF
-    beq sin_extra
+    beq no_extra
     ldy #1
     jsr mark_song
-sin_extra:
+no_extra:
     ; An exit song that its `PlayBGM` asks for goes alone: nothing else of the
     ; package stays. See `exit_extra`.
     jsr exit_extra
-    bcc con_paquete
-    jmp marcadas
-con_paquete:
+    bcc with_package
+    jmp marked
+with_package:
     ; A separate song that its `PlayBGM` asks for goes with the package's
     ; sound effects and without the other songs: see `extra_separate`.
     jsr package_list
     jsr extra_separate
-    bcc temas_q
-saltear_q:
+    bcc songs_q
+skip_q:
     lda f:packages, x
     cmp #$FF
-    beq efectos_q
+    beq effects_q
     inx
-    bra saltear_q
-temas_q:
+    bra skip_q
+songs_q:
     lda f:packages, x
     cmp #$FF
-    beq efectos_q
+    beq effects_q
     phx
     ldy #1
     jsr mark_package_song
     plx
     inx
-    bra temas_q
-efectos_q:
+    bra songs_q
+effects_q:
     inx
-otro_q:
+other_q:
     lda f:packages, x
     cmp #$FF
-    beq salida_q
+    beq exit_q
     phx
     jsr record_effect           ; from the sound effect's number to its place
     ldy #1
     jsr mark_sample
     plx
     inx
-    bra otro_q
-salida_q:
+    bra other_q
+exit_q:
     ; And the exit songs, which are wanted anyway: if they were already there,
     ; they stay. With a separate song, not.
     jsr extra_separate
-    bcs marcadas
+    bcs marked
     inx
-otro_s:
+other_s:
     lda f:packages, x
     cmp #$FF
-    beq marcadas
+    beq marked
     phx
     ldy #1
     jsr mark_package_song
     plx
     inx
-    bra otro_s
-marcadas:
+    bra other_s
+marked:
     ; The ones nobody wants are forgotten, and with the ones left the list of
     ; what is occupied is built, in order: it is where `place_sample` looks
     ; for the gaps.
@@ -776,7 +776,7 @@ marcadas:
     sep #$20
 .a8
     ldx #0
-olvidar:
+forget:
     lda f:FAR_WANTS, x
     phx
     rep #$20
@@ -787,12 +787,12 @@ olvidar:
     tax
     pla
     and #$00FF
-    bne quiere
+    bne wants
     sta f:FAR_ARAM_OF, x        ; nobody wants it: out
-    bra proxima
-quiere:
+    bra next
+wants:
     lda f:FAR_ARAM_OF, x
-    beq proxima                 ; wanted but not there: the next step uploads it
+    beq next                 ; wanted but not there: the next step uploads it
     sta f:PKG_A
     txa
     lsr a
@@ -804,78 +804,78 @@ quiere:
     lda f:sample_table + 3, x
     sta f:PKG_LENGTH
     jsr sorted_interval
-proxima:
+next:
     sep #$20
 .a8
     plx
     inx
     cpx #SAMPLES_N
-    bcc olvidar
+    bcc forget
     ; And the missing ones are placed, in order of priority: the extra song,
     ; the map's songs and its sound effects.
     lda f:PKG_EXTRA
     cmp #$FF
-    beq sin_extra2
+    beq no_extra2
     jsr place_song
-sin_extra2:
+no_extra2:
     jsr exit_extra
-    bcc con_paquete2
-    jmp colocadas
-con_paquete2:
+    bcc with_package2
+    jmp placed
+with_package2:
     jsr package_list
     jsr extra_separate
-    bcc temas
-saltear:
+    bcc songs
+skip:
     lda f:packages, x
     cmp #$FF
-    beq efectos
+    beq effects
     inx
-    bra saltear
-temas:
+    bra skip
+songs:
     lda f:packages, x
     cmp #$FF
-    beq efectos
+    beq effects
     phx
     jsr place_package_song
     plx
     inx
-    bra temas
-efectos:
+    bra songs
+effects:
     inx
-otro_efecto:
+other_effect:
     lda f:packages, x
     cmp #$FF
-    beq de_salida
+    beq from_exit
     phx
     jsr record_effect           ; already noted down: it only gives the place
     jsr place_sample
     plx
     inx
-    bra otro_efecto
-de_salida:
+    bra other_effect
+from_exit:
     ; The exit songs, after everything and **if there is room**: not fitting
     ; does not leave the package incomplete —their `PlayBGM` is not needed to
     ; complete it, nor to rebuild everything from scratch—, because their
     ; `PlayBGM` uploads them on their own. That is why PKG_PARTIAL is saved
     ; and restored around this. With a separate song none is uploaded.
     jsr extra_separate
-    bcs colocadas
+    bcs placed
     inx
     lda f:PKG_PARTIAL
     pha
-otro_de_salida:
+exit_other:
     lda f:packages, x
     cmp #$FF
-    beq salida_puesta
+    beq exit_set
     phx
     jsr place_package_song
     plx
     inx
-    bra otro_de_salida
-salida_puesta:
+    bra exit_other
+exit_set:
     pla
     sta f:PKG_PARTIAL
-colocadas:
+placed:
     ; **If something did not fit, everything is placed again from scratch**,
     ; except the samples of the song playing, and only then uploaded. The
     ; ones the package wants and were already there stay where they were,
@@ -887,20 +887,20 @@ colocadas:
     ; first and the upload is done at the end: redoing the whole upload would
     ; cost twice the frames.
     lda f:PKG_PARTIAL
-    beq subir
+    beq upload
     lda f:PKG_COMPACT
-    bne subir                   ; already redone: it is the song playing
+    bne upload                   ; already redone: it is the song playing
     lda #1
     sta f:PKG_COMPACT
     lda #0
     sta f:PKG_PARTIAL
     ldx #0
-compactar:
+compact:
     lda f:FAR_WANTS, x
     cmp #2
-    beq quieta                  ; the ones of the song playing do not move
+    beq still                  ; the ones of the song playing do not move
     cmp #0
-    beq quieta                  ; and the ones nobody wants were already forgotten
+    beq still                  ; and the ones nobody wants were already forgotten
     lda #1
     sta f:FAR_WANTS, x
     phx
@@ -914,21 +914,21 @@ compactar:
     sep #$20
 .a8
     plx
-quieta:
+still:
     inx
     cpx #SAMPLES_N
-    bcc compactar
-    jmp marcadas
-subir:
+    bcc compact
+    jmp marked
+upload:
     jsr upload_placed
     ; With an exit song uploaded alone, the rest of the package was let go:
     ; if the page does not leave the map, the next `PlayBGM` completes it. The
     ; same with a separate song, which goes up without the other songs.
     jsr exit_extra
-    bcs incompleto
+    bcs partial
     jsr extra_separate
     bcc ready
-incompleto:
+partial:
     lda #1
     sta f:PKG_PARTIAL
 ready:
@@ -986,24 +986,24 @@ ready:
     cmp #$FF
     beq no
     jsr package_list
-saltar:
+jump:
     dey
-    bmi mirar
-otra:
+    bmi look
+other:
     lda f:packages, x
     inx
     cmp #$FF
-    bne otra
-    bra saltar
-mirar:
+    bne other
+    bra jump
+look:
     lda f:packages, x
     cmp #$FF
     beq no
     cmp f:PKG_EXTRA
-    beq si
+    beq if
     inx
-    bra mirar
-si:
+    bra look
+if:
     plx
     sec
     rts
@@ -1055,7 +1055,7 @@ no:
 .a8
     pla
     cmp f:FAR_EFFECT_IN, x
-    beq anotado
+    beq recorded
     sta f:FAR_EFFECT_IN, x
     rep #$20
 .a16
@@ -1071,7 +1071,7 @@ no:
     sep #$20
 .a8
     rts
-anotado:
+recorded:
     txa
     clc
     adc #SE_FIRST
@@ -1103,7 +1103,7 @@ ready:
     phy
     jsr song_list
     ply
-otra:
+other:
     lda f:song_samples, x
     cmp #$FF
     beq ready
@@ -1111,7 +1111,7 @@ otra:
     jsr mark_sample
     plx
     inx
-    bra otra
+    bra other
 ready:
     rts
 .endproc
@@ -1122,31 +1122,31 @@ ready:
 .a16
 .i16
     ldx #0
-buscar:
+seek:
     txa
     cmp f:INT_N
-    bcs lugar
+    bcs place
     lda f:INT_INIT, x
     cmp f:PKG_A
-    bcs lugar                   ; this one starts later: it goes in front
+    bcs place                   ; this one starts later: it goes in front
     inx
     inx
-    bra buscar
-lugar:
+    bra seek
+place:
     stx temp
     lda f:INT_N
     tax
-correr:
+run:
     cpx temp
-    beq corrido
+    beq ran
     dex
     dex
     lda f:INT_INIT, x
     sta f:INT_INIT + 2, x
     lda f:INT_END, x
     sta f:INT_END + 2, x
-    bra correr
-corrido:
+    bra run
+ran:
     lda f:PKG_A
     sta f:INT_INIT, x
     clc
@@ -1186,10 +1186,10 @@ corrido:
     cmp #SONG_TOTAL
     bcs ready
     lda f:PKG_PARTIAL
-    bne falta                   ; even if the song is missing nothing
+    bne missing                   ; even if the song is missing nothing
     lda temp + 1                ; the song: `song_list` reads it from A
     jsr song_list
-mirar:
+look:
     lda f:song_samples, x
     cmp #$FF
     beq ready                   ; they are all there
@@ -1211,10 +1211,10 @@ mirar:
                                 ; same care `op_sound` takes with `xba`.
     sep #$20
 .a8
-    beq falta
+    beq missing
     inx
-    bra mirar
-falta:
+    bra look
+missing:
     php
     sei
     lda #1

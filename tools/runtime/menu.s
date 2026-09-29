@@ -85,10 +85,10 @@
 .a8
     stz WMADDH
     lda #ACTOR_GFX_NONE
-otro:
+other:
     sta WMDATA
     dex
-    bne otro
+    bne other
     rts
 .endproc
 
@@ -130,7 +130,7 @@ otro:
     lda temp + 1
     lsr a                       ; KEY_WAIT is bit 0: into the carry
     lda pad
-    bcc joy_listo               ; no wait: what is held, as is
+    bcc joy_ready               ; no wait: what is held, as is
     eor pad_prev
     and pad
     ; Without the arrows that `arrows_repeat` made repeat this frame: here
@@ -138,47 +138,47 @@ otro:
     ; are an `and` with the complement, and neither touches the carry.
     ora arrows_repeated
     eor arrows_repeated
-joy_listo:
+joy_ready:
     sta temp + 3                ; JOY1H: B and the four arrows
     lda temp + 1
     and #KEY_CANCEL
-    beq sin_cancelar
+    beq no_cancel
     lda temp + 3
     and #PAD_B
-    beq sin_cancelar
+    beq no_cancel
     lda #KEY_VALUE_CANCEL
     rts
-sin_cancelar:
+no_cancel:
     lda temp + 1
     and #KEY_DECISION
-    beq sin_decision
+    beq no_decision
     lda pad_a
-    bcc a_lista                 ; the carry from above, still intact
+    bcc a_list                 ; the carry from above, still intact
     eor pad_a_prev
     and pad_a
-a_lista:
-    beq sin_decision
+a_list:
+    beq no_decision
     lda #KEY_VALUE_DECISION
     rts
-sin_decision:
+no_decision:
     lda temp + 1
     and #KEY_DIRS
-    beq ninguna
+    beq none
     ; The four, in the order of `CheckInput`, by table: written by hand they
     ; are four `bit`/`bne` plus four `lda`/`rts`, and bank 0 does not have
     ; them. The table ends in zero, which is no button.
     ldx #$0000
-dir_otra:
+dir_other:
     lda f:key_dir_bit, x
-    beq ninguna
+    beq none
     and temp + 3
-    bne dir_hay
+    bne dir_has
     inx
-    bra dir_otra
-dir_hay:
+    bra dir_other
+dir_has:
     lda f:key_dir_val, x
     rts
-ninguna:
+none:
     lda #0
     rts
 .endproc
@@ -279,7 +279,7 @@ ready:
     lda temp + 3
     rep #$20
 .a16
-    beq borra
+    beq erase
     lda menu_cursor_cells
     sta VMDATAL
     tya
@@ -292,7 +292,7 @@ ready:
 .a8
     rts
 .a16
-borra:
+erase:
     stz VMDATAL
     tya
     clc
@@ -322,10 +322,10 @@ borra:
     lda #$80
     sta VMAIN
     ldy #(MENU_CURRENCY_VRAM - 1)
-cifra:
+digit:
     stz temp + 3                ; the remainder carried along
     ldx #2
-dividir:
+divide_it:
     lda temp, x
     sta WRDIVL
     lda temp + 3
@@ -345,7 +345,7 @@ dividir:
     lda RDMPYL                  ; the remainder
     sta temp + 3
     dex
-    bpl dividir
+    bpl divide_it
     rep #$20
 .a16
     sty VMADDL
@@ -364,17 +364,17 @@ dividir:
     sta VMDATAL
     dey
     lda temp                    ; anything left?
-    bne otra
+    bne other
     sep #$20
 .a8
     lda temp + 2
-    bne cifra
+    bne digit
     rts
 .a16
-otra:
+other:
     sep #$20
 .a8
-    bra cifra
+    bra digit
 .endproc
 
 ; The whole screen, with the screen off: the bank, the five options, the
@@ -390,7 +390,7 @@ otra:
 
     ; --- the options, each in its variant ---
     lda #0
-otra_opcion:
+other_option:
     pha
     jsr menu_enabled
     eor #1
@@ -424,7 +424,7 @@ otra_opcion:
     pla
     inc a
     cmp #MENU_OPTIONS
-    bcc otra_opcion
+    bcc other_option
 
     ; --- the cursor ---
     lda #1
@@ -471,25 +471,25 @@ otra_opcion:
 .a8
 .i16
     lda #0
-otro_miembro:
+other_member:
     cmp party_n
-    bcs grupo_listo
+    bcs party_ready
     cmp #MENU_ROWS_PARTY
-    bcc entra
-grupo_listo:
+    bcc enters
+party_ready:
     rts
-entra:
+enters:
     pha                         ; the row, until the end of the pass
-    jsr actor_de
+    jsr actor
     cmp #MENU_ACTORS_N
-    bcc conocido
-    jmp siguiente               ; one this ROM does not know
-conocido:
+    bcc known
+    jmp next               ; one this ROM does not know
+known:
 
     ; --- the row's fixed block ---
     pla
     pha
-    jsr fila_vram
+    jsr row_vram
     lda #(MENU_ACTOR_COLS * 2)
     sta temp
     lda #MENU_ACTOR_ROWS
@@ -500,10 +500,10 @@ conocido:
     ; --- the face, in the row's top left corner ---
     pla
     pha
-    jsr fila_vram
+    jsr row_vram
     pla
     pha
-    jsr actor_de
+    jsr actor
     rep #$20
 .a16
     and #$00FF
@@ -512,7 +512,7 @@ conocido:
 .a8
     lda slot_face_block, x
     cmp #$FF
-    beq sin_cara
+    beq no_face
     rep #$20
 .a16
     and #$00FF
@@ -524,12 +524,12 @@ conocido:
     lda #MENU_FACE_CELLS
     sta temp + 2
     jsr slot_rect_upload
-sin_cara:
+no_face:
 
     ; --- the name ---
     pla
     pha
-    jsr fila_vram
+    jsr row_vram
     rep #$20
 .a16
     tya
@@ -540,7 +540,7 @@ sin_cara:
 .a8
     pla
     pha
-    jsr actor_de
+    jsr actor
     ldx #SLOT_TEXT_NAME
     jsr slot_text_of
     lda #MENU_NAME_COLS
@@ -549,7 +549,7 @@ sin_cara:
     ; --- the level ---
     pla
     pha
-    jsr fila_vram
+    jsr row_vram
     rep #$20
 .a16
     tya
@@ -560,7 +560,7 @@ sin_cara:
 .a8
     pla
     pha
-    jsr actor_de
+    jsr actor
     jsl f:text_level           ; the current one: it goes up by fighting
     lda #SLOT_LEVEL_DIGITS
     jsr slot_text_write
@@ -568,7 +568,7 @@ sin_cara:
     ; --- the maximum, after the slash ---
     pla
     pha
-    jsr fila_vram
+    jsr row_vram
     rep #$20
 .a16
     tya
@@ -579,7 +579,7 @@ sin_cara:
 .a8
     pla
     pha
-    jsr actor_de
+    jsr actor
     jsl f:text_max          ; the one for its current level, like the level
     lda #MENU_MAX_DIGITS
     jsr slot_text_write
@@ -588,17 +588,17 @@ sin_cara:
     pla
     pha
     sta temp + 2                ; the row
-    jsr actor_de
+    jsr actor
     sta temp                    ; the actor
     jsl f:menu_hp_write
-siguiente:
+next:
     pla
     inc a
-    jmp otro_miembro
+    jmp other_member
 
 ; The actor of the row given in A, and the cell where that row starts in the
 ; tilemap. Both are asked again at each step; see the comment above.
-actor_de:
+actor:
     rep #$20
 .a16
     and #$00FF
@@ -608,7 +608,7 @@ actor_de:
     lda party, x
     rts
 
-fila_vram:
+row_vram:
     rep #$20
 .a16
     and #$00FF
@@ -632,9 +632,9 @@ fila_vram:
     sep #$20
     rep #$10
     stz title_sel              ; RM2k opens with the cursor on the first
-armar:
+build:
     jsr menu_upload
-espera:
+wait:
     jsr wait_vblank
     jsr read_pad
     lda pad
@@ -642,46 +642,46 @@ espera:
     and pad
     sta title_edges
     and #PAD_UP
-    beq no_arriba
+    beq no_up
     lda title_sel
-    bne sube
+    bne uploads
     lda #MENU_OPTIONS          ; from the first, up wraps around
-sube:
+uploads:
     dec a
-    jsr mover
-    bra espera
-no_arriba:
+    jsr move
+    bra wait
+no_up:
     lda title_edges
     and #PAD_DOWN
-    beq no_abajo
+    beq no_down
     lda title_sel
     inc a
     cmp #MENU_OPTIONS
-    bcc baja
+    bcc low
     lda #0
-baja:
-    jsr mover
-    bra espera
-no_abajo:
+low:
+    jsr move
+    bra wait
+no_down:
     lda title_edges
     and #PAD_B
-    bne cerrar
+    bne close
     lda pad_a
-    beq espera
+    beq wait
     lda pad_a_prev
-    bne espera                  ; it was already held: not an edge
+    bne wait                  ; it was already held: not an edge
     lda title_sel
     jsr menu_enabled
-    beq espera                  ; in gray: RM2k plays a sound and does nothing
+    beq wait                  ; in gray: RM2k plays a sound and does nothing
     lda title_sel
     cmp #2
-    bne no_equipo
+    bne no_equipment
     ; Equipment: whom, and their screen. Both return to the menu.
     lda #1
     sta pick_cancel             ; for choosing
     jsr target_screen
     cmp #$FF
-    beq volver_de_equipo
+    beq equipment_return
     rep #$20
 .a16
     and #$00FF
@@ -690,46 +690,46 @@ no_abajo:
 .a8
     lda party, x
     jsl f:equipment_screen
-volver_de_equipo:
+equipment_return:
     lda #2
     sta title_sel
-    jmp armar
-no_equipo:
+    jmp build
+no_equipment:
     lda title_sel
     bne no_items
     ; Items: B returns to the menu, and using one goes straight back to the
     ; map.
     jsr items_screen
-    beq volver_de_items
-    jmp cerrar
-volver_de_items:
+    beq items_return
+    jmp close
+items_return:
     stz title_sel
-    jmp armar
+    jmp build
 no_items:
     cmp #MENU_END
-    bne guardar
+    bne save
     ; End Game: its screen, in `fin_del_juego.s`. "Yes" does not return —it
     ; ends in the reset—; "No" and B return to the menu with the cursor on the
     ; option, like `Scene::Pop`.
     jsl f:ending_screen
     lda #MENU_END
     sta title_sel
-    jmp armar
-guardar:
+    jmp build
+save:
     ; Save: the slot screen and, whether a slot is chosen or it is canceled,
     ; back to the menu with the cursor on "Save", like `Scene_Save` when it
     ; returns to `Scene_Menu`.
     lda #1
     jsr slots_screen
     cmp #$FF
-    beq guardar_listo
+    beq save_ready
     jsr set_slot
     jsr save_game
-guardar_listo:
+save_ready:
     lda #MENU_SAVE
     sta title_sel
-    jmp armar
-cerrar:
+    jmp build
+close:
     ; The B that closes and the earlier A are consumed: without this
     ; `request_menu` would see the edge in this same pass and the menu would
     ; open again.
@@ -751,7 +751,7 @@ cerrar:
 
 ; The cursor to the option given in A: erased from where it was and painted
 ; there.
-mover:
+move:
     pha
     stz temp + 3
     lda title_sel
@@ -795,7 +795,7 @@ mover:
     lda #0
     jsl f:target_bar
     jsl f:target_ppu_on
-espera:
+wait:
     jsr wait_vblank
     jsr read_pad
     lda pad
@@ -803,54 +803,54 @@ espera:
     and pad
     sta title_edges
     and #PAD_UP
-    beq no_arriba
+    beq no_up
     lda title_sel
-    beq espera
+    beq wait
     dec a
-    jsr mover
-    bra espera
-no_arriba:
+    jsr move
+    bra wait
+no_up:
     lda title_edges
     and #PAD_DOWN
-    beq no_abajo
+    beq no_down
     lda title_sel
     inc a
     cmp party_n
-    bcs espera
+    bcs wait
     cmp #MENU_ROWS_PARTY
-    bcs espera
-    jsr mover
-    bra espera
-no_abajo:
+    bcs wait
+    jsr move
+    bra wait
+no_down:
     lda title_edges
     and #PAD_B
-    beq mira_a
+    beq faces_a
     lda #$FF                    ; B: nothing chosen
     rts
-mira_a:
+faces_a:
     lda pad_a
-    beq espera
+    beq wait
     lda pad_a_prev
-    bne espera                  ; it was already held: not an edge
+    bne wait                  ; it was already held: not an edge
     lda pick_cancel
-    beq medicina
+    beq medicine
     lda title_sel              ; choosing: the chosen row
     rts
-medicina:
-    jsr actor_de_la_fila
+medicine:
+    jsr actor_row
     jsl f:medicine_use
-    beq espera                  ; it did not work: RM2k plays a sound and does nothing
+    beq wait                  ; it did not work: RM2k plays a sound and does nothing
     ; The row's HP, in the next vblank: the use took away the current value.
     jsr wait_vblank
-    jsr actor_de_la_fila
+    jsr actor_row
     sta temp
     lda title_sel
     sta temp + 2
     jsl f:menu_hp_write
     jsl f:target_count      ; and how many are left
-    jmp espera
+    jmp wait
 
-actor_de_la_fila:
+actor_row:
     rep #$20
 .a16
     lda title_sel
@@ -861,7 +861,7 @@ actor_de_la_fila:
     lda party, x
     rts
 
-mover:
+move:
     pha
     stz temp + 3
     lda title_sel

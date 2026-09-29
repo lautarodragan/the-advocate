@@ -54,11 +54,11 @@ ready:
 .a8
 .i16
     ldx #0
-otra:
+other:
     stz BA_PAGE_DONE, x
     inx
     cpx #TROOP_PAGE_MAX
-    bne otra
+    bne other
     rts
 .endproc
 
@@ -78,30 +78,30 @@ otra:
     beq no
     lda #0
     sta BA_PAGE_I
-alguien:
+anyone:
     lda BA_PAGE_I
     cmp BA_NACT
     bcs no                      ; nobody in the party standing
     jsr ba_alive
-    bne hay_grupo
+    bne has_party
     inc BA_PAGE_I
-    bra alguien
-hay_grupo:
+    bra anyone
+has_party:
     lda #0
     sta BA_PAGE_I
-otra:
+other:
     lda BA_PAGE_I
     cmp BA_PAGE_N
     bcs no
     jsr ba_ax
     lda BA_PAGE_DONE, x
-    bne siguiente
+    bne next
     jsr ba_page_met
-    bne esta
-siguiente:
+    bne is
+next:
     inc BA_PAGE_I
-    bra otra
-esta:
+    bra other
+is:
     lda BA_PAGE_I
     jsr ba_ax
     lda #1
@@ -149,7 +149,7 @@ no:
     lda f:tpage_flags, x
     sta BA_PAGE_FL               ; the triggers, which survive the `jsr`s
     and #TPAGE_SWITCH_A
-    beq sin_a
+    beq no_a
     rep #$20
 .a16
     lda BA_PAGE_G
@@ -158,12 +158,12 @@ no:
     lda f:tpage_sw_a, x
     jsr ba_page_switch
 .a8
-    bne sin_a
+    bne no_a
     jmp no
-sin_a:
+no_a:
     lda BA_PAGE_FL
     and #TPAGE_SWITCH_B
-    beq sin_b
+    beq no_b
     rep #$20
 .a16
     lda BA_PAGE_G
@@ -172,12 +172,12 @@ sin_a:
     lda f:tpage_sw_b, x
     jsr ba_page_switch
 .a8
-    bne sin_b
+    bne no_b
     jmp no
-sin_b:
+no_b:
     lda BA_PAGE_FL
     and #TPAGE_VARIABLE
-    beq sin_var
+    beq no_var
     ; The variable, signed `>=`: `Get(variable_id) >= variable_value`.
     rep #$20
 .a16
@@ -192,23 +192,23 @@ sin_b:
     lda FAR_VARIABLES, x
     sec
     sbc BA_T0
-    bvc sin_desborde
+    bvc no_overflow
     eor #$8000                  ; with overflow, the sign is the opposite
-sin_desborde:
+no_overflow:
     sep #$20                    ; `sep` does not touch N
 .a8
-    bpl sin_var
+    bpl no_var
     jmp no
-sin_var:
+no_var:
     lda BA_PAGE_FL
     and #TPAGE_WITH_HEADER
-    bne con_cabecera
-    jmp si
-con_cabecera:
+    bne with_header
+    jmp if
+with_header:
     jsr ba_page_header
     lda BA_PAGE_FL
     and #TPAGE_TURN
-    beq sin_turno
+    beq no_turn
     ; The turn: `Game_Battle::CheckTurns(turn, turn_b, turn_a)`, with the base
     ; and the multiple **in that order**, which is the opposite of what
     ; liblcf's names suggest. Without a multiple, exactly at the base; with
@@ -219,28 +219,28 @@ con_cabecera:
     lda BA_TURN
     sec
     sbc BA_COND + BA_COND_BASE
-    bcc no_turno                ; it has not reached the base yet
+    bcc not_turn                ; it has not reached the base yet
     sta temp
     lda BA_COND + BA_COND_MULT
-    bne con_multiplo
+    bne with_multiple
     lda temp
-    bne no_turno
-    bra turno_si
-con_multiplo:
+    bne not_turn
+    bra turn_yes
+with_multiple:
     sta temp + 2
     jsr ba_div                  ; the remainder, in `comp_and`
     lda comp_and
-    bne no_turno
-turno_si:
+    bne not_turn
+turn_yes:
     sep #$20
 .a8
-    bra sin_turno
-no_turno:
+    bra no_turn
+not_turn:
     jmp no
-sin_turno:
+no_turn:
     lda BA_PAGE_FL
     and #TPAGE_ENEMY
-    beq sin_enemigo
+    beq no_enemy
     ; An enemy's HP, by its place in the troop. `GetEnemy` does not check
     ; whether it is hidden or dead: only whether the place exists.
     lda BA_COND + BA_COND_EMIN
@@ -255,10 +255,10 @@ sin_turno:
     jsr ba_x
     jsr ba_page_hp
     beq no
-sin_enemigo:
+no_enemy:
     lda BA_PAGE_FL
     and #TPAGE_ACTOR
-    beq si
+    beq if
     ; An actor's HP, by its number in the LDB. **Only if it is in the
     ; party**: `Game_Actors::GetActor` answers for anyone, but the HP of one
     ; who is not fighting live in `FAR_HP` without its maximum at hand, and
@@ -270,24 +270,24 @@ sin_enemigo:
     sta BA_PCT_MAX
     lda #0
     sta BA_T0 + 1               ; the party slot being checked
-busca_actor:
+seek_actor:
     lda BA_T0 + 1
     cmp BA_NACT
     bcs no
     jsr ba_x
     lda BA_ONE + BA_FLAGS, x
     and #BAF_HAS
-    beq otro_actor
+    beq other_actor
     lda BA_ONE + BA_NUMBER, x
     cmp BA_COND + BA_COND_ACT
-    beq actor_hallado
-otro_actor:
+    beq actor_found
+other_actor:
     inc BA_T0 + 1
-    bra busca_actor
-actor_hallado:
+    bra seek_actor
+actor_found:
     jsr ba_page_hp
     beq no
-si:
+if:
     lda #1
     rts
 no:
@@ -321,13 +321,13 @@ no:
     pha
     plb
     ldx #0
-otro:
+other:
     lda a:$0000, y
     sta f:BAT_LENGTH + BA_COND, x
     iny
     inx
     cpx #TPAGE_HEADER
-    bne otro
+    bne other
     plb
     rts
 .endproc
@@ -497,15 +497,15 @@ ready:
     rep #$20
 .a16
     lda BA_PAGE_WAIT
-    beq sin_espera
+    beq no_wait
     dec a
     sta BA_PAGE_WAIT
     sep #$20
 .a8
     rts
-sin_espera:
+no_wait:
     sep #$20
-otro_tramo:
+other_stretch:
 .a8
     rep #$20
 .a16
@@ -527,21 +527,21 @@ otro_tramo:
     cmp #$FFFF
     sep #$20
 .a8
-    bne a_la_pantalla
+    bne to_screen
     lda BA_PAGE_ACT
-    bne a_la_pantalla           ; it did not finish and asked for nothing:
+    bne to_screen           ; it did not finish and asked for nothing:
                                 ; that does not happen with the commands in
                                 ; `TROPA_COMANDOS`, but if it did, the next
                                 ; frame carries on
     jsr ba_page_test
-    bne otro_tramo              ; the next one, in this same frame
+    bne other_stretch              ; the next one, in this same frame
     lda BA_PAGE_TICK
-    bne a_las_ordenes
+    bne to_commands
     jmp ba_execute
-a_las_ordenes:
+to_commands:
     lda #BA_M_COMMAND
     sta BA_MODE
-a_la_pantalla:
+to_screen:
     jmp ba_compose
 .endproc
 
@@ -571,7 +571,7 @@ a_la_pantalla:
     and #HEADER_LINES
     sta BA_PAGE_I                ; the lines left
     ldy #1
-renglon:
+line:
     lda BA_PAGE_I
     beq ready
     rep #$20
@@ -584,13 +584,13 @@ renglon:
     iny
     sta BA_T0                   ; the letters it has left
     stz BA_T2                   ; and the ones already written
-letra:
+letter:
     lda BA_T0
-    beq fin_renglon
+    beq end_line
     dec BA_T0
     lda BA_T2
     cmp #BA_PAGE_MSG_WIDTH
-    bcs no_entra                ; consumed and not drawn
+    bcs no_enters                ; consumed and not drawn
     inc BA_T2
     lda [msg_ptr], y
     clc
@@ -598,10 +598,10 @@ letra:
     phy
     jsl f:ba_t_glyph
     ply
-no_entra:
+no_enters:
     iny
-    bra letra
-fin_renglon:
+    bra letter
+end_line:
     rep #$20
 .a16
     lda BA_T1
@@ -611,7 +611,7 @@ fin_renglon:
     sep #$20
 .a8
     dec BA_PAGE_I
-    bra renglon
+    bra line
 ready:
     rts
 .endproc

@@ -46,10 +46,10 @@
 .a8
 .i16
     xba                         ; the flags
-    bpl sin_refresco            ; VAR_REFRESH is bit 7: see the .assert
+    bpl no_refresh            ; VAR_REFRESH is bit 7: see the .assert
     lda #1                      ; the flags are no longer needed: the `and`
     sta refresh                ; below drops whatever is left in B
-sin_refresco:
+no_refresh:
     xba                         ; and the slot back
     phx
     rep #$20
@@ -93,14 +93,14 @@ sin_refresco:
     sep #$20
 .a8
     pla
-    beq apagar
+    beq off
     lda switches, y
     ora f:mask, x
     sta switches, y
     lda #1
     sta refresh                ; the pages that ask for it may change
     rts
-apagar:
+off:
     lda f:mask, x
     eor #$FF
     and switches, y
@@ -134,10 +134,10 @@ apagar:
     sta WMDATA
     lda #>RANDOM_SEED
     sta WMDATA
-otra:
+other:
     stz WMDATA
     dex
-    bne otra
+    bne other
     rts
 .endproc
 
@@ -238,51 +238,51 @@ otra:
     pla                         ; A = the flags: N $80, V $40, Z $02
     pha
     and #$C0
-    beq no_menor                ; N and V clear: not less
+    beq no_less                ; N and V clear: not less
     cmp #$C0
-    beq no_menor                ; both set: not either
+    beq no_less                ; both set: not either
     lda #1
-    bra menor_listo
-no_menor:
+    bra less_ready
+no_less:
     lda #0
-menor_listo:
+less_ready:
     sta temp + 2                ; less
     pla
     and #$02
-    beq no_igual
+    beq no_equal
     lda #1
-no_igual:
+no_equal:
     sta temp + 3                ; equal
     lda temp + 1                ; the comparison
-    beq igual
+    beq equal
     cmp #1
-    beq mayor_igual
+    beq greater_equal
     cmp #2
-    beq menor_igual
+    beq less_equal
     cmp #3
-    beq mayor
+    beq greater
     cmp #4
-    beq menor
+    beq less
     lda temp + 3                ; !=
     eor #1
     rts
-igual:
+equal:
     lda temp + 3
     rts
-mayor_igual:
+greater_equal:
     lda temp + 2
     eor #1
     rts
-menor_igual:
+less_equal:
     lda temp + 2
     ora temp + 3
     rts
-mayor:
+greater:
     lda temp + 2
     ora temp + 3
     eor #1
     rts
-menor:
+less:
     lda temp + 2
     rts
 .endproc
@@ -401,45 +401,45 @@ menor:
 .a8
 .i16
     lda msg_open
-    bne abierta
+    bne open
     lda #0                      ; still being composed: nobody chooses
     rts
-abierta:
+open:
     lda pad
     eor pad_prev
     and pad                     ; what was pressed **on this frame**
     sta pick_edges
     and #PAD_UP
-    beq no_arriba
+    beq no_up
     lda pick_sel
-    bne sube_una
+    bne uploads_one
     lda pick_n                  ; from the first one, up wraps around
-sube_una:
+uploads_one:
     dec a
     sta pick_sel
     jsr pick_open
     lda #0
     rts
-no_arriba:
+no_up:
     lda pick_edges
     and #PAD_DOWN
-    beq no_abajo
+    beq no_down
     lda pick_sel
     inc a
     cmp pick_n
-    bcc baja_una
+    bcc low_one
     lda #0                      ; and from the last one, down does too
-baja_una:
+low_one:
     sta pick_sel
     jsr pick_open
     lda #0
     rts
-no_abajo:
+no_down:
     lda pick_edges
     and #PAD_B
-    beq mira_a
+    beq faces_a
     lda pick_cancel
-    beq mira_a                  ; this choice cannot be cancelled
+    beq faces_a                  ; this choice cannot be cancelled
     dec a                       ; `choice_result = cancel_type - 1`
     sta pick_sel
     ; And the B is consumed here: in RM2k the window processes the button
@@ -449,13 +449,13 @@ no_abajo:
     lda pad_prev
     ora #PAD_B
     sta pad_prev
-    bra elige
-mira_a:
+    bra picks
+faces_a:
     lda pad_a
     beq nothing
     lda pad_a_prev
     bne nothing                    ; it was already held: not an edge
-elige:
+picks:
     lda pick_sel
     asl
     asl

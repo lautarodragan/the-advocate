@@ -11,17 +11,17 @@
 .a8
 .i16
     cmp #DIR_UP
-    bne prueba_abajo
+    bne test_down
     rep #$20
 .a16
     lda cell_y
     sep #$20
 .a8
     beq no                      ; already on the top row
-    bra si
-prueba_abajo:
+    bra if
+test_down:
     cmp #DIR_DOWN
-    bne prueba_izquierda
+    bne test_left
     rep #$20
 .a16
     lda cell_y
@@ -30,18 +30,18 @@ prueba_abajo:
     sep #$20
 .a8
     bcs no
-    bra si
-prueba_izquierda:
+    bra if
+test_left:
     cmp #DIR_LEFT
-    bne prueba_derecha
+    bne test_right
     rep #$20
 .a16
     lda cell_x
     sep #$20
 .a8
     beq no
-    bra si
-prueba_derecha:
+    bra if
+test_right:
     rep #$20
 .a16
     lda cell_x
@@ -50,7 +50,7 @@ prueba_derecha:
     sep #$20
 .a8
     bcs no
-si:
+if:
     lda #1
     rts
 no:
@@ -83,10 +83,10 @@ no:
     ; is the `if (self.GetThrough()) return true;` of
     ; `Game_Map::CheckOrMakeWayEx`, which comes after the `IsValid`.
     lda crossing
-    beq con_colision
+    beq with_collision
     lda #1
     rts
-con_colision:
+with_collision:
 
     ; The face being left.
     jsr cell_ptr
@@ -109,42 +109,42 @@ con_colision:
     ; And the target's face, which is the neighboring cell.
     lda cell_dir
     cmp #DIR_UP
-    bne baja
+    bne low
     rep #$20
 .a16
     lda strip_step_col
     jsr ptr_minus
-    bra entra
+    bra enters
     ; The three labels that follow are reached with the accumulator **in
     ; eight bits**, even though the last thing the assembler read was an
     ; `.a16`: the `bra` above skips the width change. Without this `.a8` the
     ; `cmp` is emitted with a two-byte immediate, the CPU reads only one, and
     ; the second —a $00— runs as BRK.
-baja:
+low:
 .a8
     cmp #DIR_DOWN
-    bne izquierda
+    bne left
     rep #$20
 .a16
     lda strip_step_col
     jsr ptr_more
-    bra entra
-izquierda:
+    bra enters
+left:
 .a8
     cmp #DIR_LEFT
-    bne derecha
+    bne right
     rep #$20
 .a16
     lda #2
     jsr ptr_minus
-    bra entra
-derecha:
+    bra enters
+right:
 .a8
     rep #$20
 .a16
     lda #2
     jsr ptr_more
-entra:
+enters:
 .a16
     lda cell_x                 ; and the cell being entered
     sta pass_x
@@ -230,13 +230,13 @@ no:
 
     lda diag_v                  ; the vertical L: up and then sideways
     jsr cell_allowed
-    beq otra_ele
+    beq other_lshape
     lda diag_v
     jsr cell_to_elbow
     lda diag_h
     jsr cell_allowed
-    bne si
-otra_ele:
+    bne if
+other_lshape:
     jsr cell_to_origin         ; the horizontal L: sideways and then up
     lda diag_h
     jsr cell_allowed
@@ -245,12 +245,12 @@ otra_ele:
     jsr cell_to_elbow
     lda diag_v
     jsr cell_allowed
-    bne si
+    bne if
 no:
     jsr cell_to_origin
     lda #0
     rts
-si:
+if:
     jsr cell_to_origin
     lda #1
     rts
@@ -272,35 +272,35 @@ si:
     sep #$20
 .a8
     lda f:step_dx_table, x
-    beq sin_x
+    beq no_x
     rep #$20
 .a16
     and #$00FF
     cmp #$0080
-    bcc mas_x
+    bcc more_x
     ora #$FF00
-mas_x:
+more_x:
     clc
     adc cell_x
     sta cell_x
     sep #$20
 .a8
-sin_x:
+no_x:
     lda f:step_dy_table, x
-    beq sin_y
+    beq no_y
     rep #$20
 .a16
     and #$00FF
     cmp #$0080
-    bcc mas_y
+    bcc more_y
     ora #$FF00
-mas_y:
+more_y:
     clc
     adc cell_y
     sta cell_y
     sep #$20
 .a8
-sin_y:
+no_y:
     rts
 .endproc
 
@@ -336,18 +336,18 @@ sin_y:
 .i16
     lda route_ev + 8, x
     cmp #ROUTE_EV_NO_FACE
-    bne con_pose
+    bne with_pose
     phx
     lda route_ev + 0, x
     jsr event_npc
     plx
     cpy #$FFFF
-    beq sin_fila
+    beq no_row
     lda npc_buf + 10, y
-    bra con_pose
-sin_fila:
+    bra with_pose
+no_row:
     lda #DIR_DOWN               ; no graphic: nobody's pose can be seen
-con_pose:
+with_pose:
     sta diag_facing
     lda route_dir
     sec
@@ -364,16 +364,16 @@ con_pose:
     lda f:diag_horiz, x
     plx
     cmp diag_facing
-    beq queda
+    beq remains
     lda diag_v
     cmp diag_facing
-    beq queda
+    beq remains
     lda diag_facing               ; neither of the two: 180°
     clc
     adc #2
     and #$03
     rts
-queda:
+remains:
     lda diag_facing
     rts
 .endproc
@@ -386,9 +386,9 @@ queda:
 .a16
     and #$00FF
     cmp #$0080
-    bcc positivo
+    bcc positive
     ora #$FF00
-positivo:
+positive:
     clc
     adc dest_x
     sta dest_x
@@ -404,9 +404,9 @@ positivo:
 .a16
     and #$00FF
     cmp #$0080
-    bcc positivo
+    bcc positive
     ora #$FF00
-positivo:
+positive:
     clc
     adc dest_y
     sta dest_y

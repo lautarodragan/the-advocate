@@ -35,7 +35,7 @@ def test_el_tema_del_titulo_tiene_sus_muestras_en_la_aram(partida):
     No hace falta apagar el MSU-1 para probar esto, aunque `release` lleve sus
     pistas: la consola de las pruebas no se las deja ver al core —ver
     `retro.Console` y `test_msu.py`—, así que `msu_detect` no encuentra la
-    firma y `music_start` cae siempre por `sin_pista`, que es el camino que se
+    firma y `music_start` cae siempre por `no_track`, que es el camino que se
     quiere medir.
     """
     una = partida(titulo=EMPEZAR).quedarse_en_el_titulo()

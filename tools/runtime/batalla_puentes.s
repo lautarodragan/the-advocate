@@ -278,9 +278,9 @@ ready:
 .a8
 .i16
     cmp #$FF
-    beq callar
+    beq mute
     jmp music_start
-callar:
+mute:
     php
     sei
     lda #1

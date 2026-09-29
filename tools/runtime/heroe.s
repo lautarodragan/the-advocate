@@ -24,11 +24,11 @@ PASS_UP    = $08
     ; If there is a step in progress, it is finished: it cannot stop halfway
     ; through a cell.
     lda step_left
-    beq quieto
+    beq still
     jsr advance_step
     rts
 
-quieto:
+still:
     stz moving
     ; With no step in progress there is no move route step to record. It is
     ; cleared here and not when the route ends because what matters is the
@@ -42,10 +42,10 @@ quieto:
     ; `route_i < route_n`, a jump that was the route's last command was brought
     ; down by nobody. See `jump_advance_hero`.
     lda route_jump
-    beq sin_salto
+    beq no_jump
     jsr jump_advance_hero
     rts
-sin_salto:
+no_jump:
     ; A forced move route rules over the pad: while any of it is left, the
     ; player does not move the hero. It is what RM2k does, and it is what
     ; lets a cutscene walk him on its own.
@@ -59,33 +59,33 @@ sin_salto:
     ; `any_routes` and the action button, which look at it, answered "there is
     ; a route" until the next one.
     lda route_wait
-    bne con_ruta
+    bne with_route
     lda route_i
     cmp route_n
-    bcs sin_ruta
-con_ruta:
+    bcs no_route
+with_route:
     jsr step_route
     rts
-sin_ruta:
+no_route:
     ; The menu request, in the order of `UpdateNextMovementAction`: with a
     ; page running it is thrown away; with a message open it waits; and
     ; otherwise the menu opens and the hero does not walk this frame. It goes
     ; before looking at `waiting_n` because RM2k looks at
     ; `IsAnyEventStarting` afterwards.
     lda ev_active
-    beq menu_sin_pagina
+    beq menu_no_page
     jsr menu_forget
     rts
-menu_sin_pagina:
+menu_no_page:
     lda msg_open
-    bne no_derecha
+    bne no_right
     ; The encounter left pending is collected here: with no page running, no
     ; message open and no forced move route, which is the order of
     ; `Game_Player::UpdateNextMovementAction` —the encounter goes **before**
     ; the menu request—. `encounter_test` leaves the troop in `BA_TROOP`.
     jsl f:encounter_test
     cmp #0                      ; the `plx` over there left its own flags
-    beq sin_encuentro
+    beq no_encounter
     ; And losing it is Game Over, just like a page battle with no defeat
     ; handler: a random encounter **never** brings them, because there is no
     ; page to emit them. Without this, defeat handed control back to the map
@@ -95,14 +95,14 @@ menu_sin_pagina:
     ; tools/runtime/game_over.s.
     jsl f:game_over_always
     jmp battle_start
-sin_encuentro:
+no_encounter:
     jsr access_read
-    bpl menu_sin_pedido         ; bit 7 is the request
+    bpl menu_no_requested         ; bit 7 is the request
     and #$7F
     jsr access_write
     jsr menu_screen
     rts
-menu_sin_pedido:
+menu_no_requested:
     ; And a message on screen rules over the pad, just like the forced move
     ; route. It is what easyrpg's `Game_Player::UpdateNextMovementAction`
     ; does, returning without looking at the input if
@@ -111,7 +111,7 @@ menu_sin_pedido:
     ; open —`UpdateMoveRoute` runs before the guard— and a step already begun
     ; is finished, because in RM2k you do not stop halfway through a cell.
     lda msg_open
-    bne no_derecha
+    bne no_right
     ; And a page running also rules over the pad. It is the
     ; `if (Game_Map::IsAnyEventStarting()) return;` of
     ; `Game_Player::UpdateNextMovementAction`: while the interpreter has
@@ -121,36 +121,36 @@ menu_sin_pedido:
     ; while the message was being composed: the message takes a few frames to
     ; open and `msg_open` only gets set at the end.
     lda ev_active
-    bne no_derecha
+    bne no_right
     lda waiting_n
-    bne no_derecha
+    bne no_right
     lda pad
     and #PAD_UP
-    beq no_arriba
+    beq no_up
     lda #DIR_UP
     sta hero_dir
     jsr try_up
     bra after_step
-no_arriba:
+no_up:
     lda pad
     and #PAD_DOWN
-    beq no_abajo
+    beq no_down
     lda #DIR_DOWN
     sta hero_dir
     jsr try_down
     bra after_step
-no_abajo:
+no_down:
     lda pad
     and #PAD_LEFT
-    beq no_izquierda
+    beq no_left
     lda #DIR_LEFT
     sta hero_dir
     jsr try_left
     bra after_step
-no_izquierda:
+no_left:
     lda pad
     and #PAD_RIGHT
-    beq no_derecha
+    beq no_right
     lda #DIR_RIGHT
     sta hero_dir
     jsr try_right
@@ -161,9 +161,9 @@ after_step:
     ; `advance_step` because **the steps of a forced move route do not
     ; count**: there it returns earlier, through `IsMoveRouteOverwritten`.
     lda step_left
-    beq no_derecha
+    beq no_right
     jsl f:encounter_step
-no_derecha:
+no_right:
     rts
 .endproc
 
@@ -442,15 +442,15 @@ no8:
     sta temp + 2
     lda pass_has
     and #$00FF
-    beq ninguno                 ; no row on this map imposes anything
+    beq none                 ; no row on this map imposes anything
     ldy npc_total
-    bra siguiente
-otra:
+    bra next
+other:
     lda npc_buf + 14, y         ; whether it is there, and above that what it imposes
     cmp #$FF00
-    bcs siguiente               ; $FF: imposes nothing
+    bcs next               ; $FF: imposes nothing
     bit #$00FF
-    beq siguiente               ; hidden: not there
+    beq next               ; hidden: not there
     lda npc_buf + 8, y          ; its event, and with it its cell
     and #$00FF
     asl a
@@ -459,21 +459,21 @@ otra:
     tax
     lda ev_pos_buf, x
     cmp pass_x
-    bne siguiente
+    bne next
     lda ev_pos_buf + 2, x
     cmp pass_y
-    bne siguiente
+    bne next
     lda npc_buf + 14, y
     xba
     and #$00FF                  ; the passage bits it imposes
     rts
-siguiente:
+next:
     tya
     sec
     sbc #NPC_STRIDE
     tay
-    bpl otra
-ninguno:
+    bpl other
+none:
     lda temp + 2                ; none: the terrain's
     rts
 .endproc
@@ -485,9 +485,9 @@ ninguno:
 .a16
     and #$00FF
     cmp #$0080
-    bcc positivo
+    bcc positive
     ora #$FF00
-positivo:
+positive:
     clc
     adc pass_x
     sta pass_x
@@ -502,9 +502,9 @@ positivo:
 .a16
     and #$00FF
     cmp #$0080
-    bcc positivo
+    bcc positive
     ora #$FF00
-positivo:
+positive:
     clc
     adc pass_y
     sta pass_y
@@ -594,7 +594,7 @@ positivo:
     sep #$20
 .a8
     lda strip_step_col + 1
-    beq sin_paso_alto
+    beq no_step_height
     sta WRMPYB                  ; y low times stride high: WRMPYA is still y
     nop
     nop
@@ -604,9 +604,9 @@ positivo:
     clc
     adc cells_ptr + 1
     sta cells_ptr + 1
-sin_paso_alto:
+no_step_height:
     lda cell_y + 1
-    beq sin_y_alta
+    beq no_y_high
     sta WRMPYA
     lda strip_step_col
     sta WRMPYB                  ; y high times stride low
@@ -618,15 +618,15 @@ sin_paso_alto:
     clc
     adc cells_ptr + 1
     sta cells_ptr + 1
-sin_y_alta:
+no_y_high:
     lda cells_ptr + 1
-    bmi alta
+    bmi high
     ora #>$8000
     sta cells_ptr + 1
     lda #^GRID
     sta cells_ptr + 2
     rts
-alta:
+high:
     lda #^GRID_HIGH
     sta cells_ptr + 2
     rts
@@ -686,9 +686,9 @@ alta:
     lda step_left
     sec
     sbc half_step_per_speed, x
-    bcs no_negativo
+    bcs no_negative
     lda #0
-no_negativo:
+no_negative:
     sta step_left
     lsr a
     lsr a
@@ -703,15 +703,15 @@ no_negativo:
     asl a
     asl a
     ldx step_dx
-    beq x_listo
-    bmi x_desde_la_derecha
+    beq x_ready
+    bmi x_from_right
     sec
     sbc temp
-    bra x_listo
-x_desde_la_derecha:
+    bra x_ready
+x_from_right:
     clc
     adc temp
-x_listo:
+x_ready:
     sta hero_x
     lda tile_y
     asl a
@@ -719,20 +719,20 @@ x_listo:
     asl a
     asl a
     ldx step_dy
-    beq y_listo
-    bmi y_desde_abajo
+    beq y_ready
+    bmi y_from_down
     sec
     sbc temp
-    bra y_listo
-y_desde_abajo:
+    bra y_ready
+y_from_down:
     clc
     adc temp
-y_listo:
+y_ready:
     sta hero_y
     sep #$20
 .a8
     lda step_left
-    bne sigue                   ; the step has not finished yet
+    bne continues                   ; the step has not finished yet
     ; While the hero has forced move route left, nothing is stepped on:
     ; neither door nor touch event. It is the `!IsMoveRouteOverwritten()` of
     ; `Game_Player::UpdateMovement`, and the last step does count because in
@@ -745,7 +745,7 @@ y_listo:
     ; the tint off: it is three cells up and the event is on the third.
     lda route_i
     cmp route_n
-    bcs sin_ruta                ; no commands left: door and touch
+    bcs no_route                ; no commands left: door and touch
     ; Some are left: the step is a middle one, and the frequency says how
     ; many frames to stand still before reading the next. It holds even if
     ; the pad started the step: in RM2k `UpdateMovement` sets the counter to
@@ -754,14 +754,14 @@ y_listo:
     lda route_freq
     jsr after_step
     sta route_wait
-    bra sigue
-sin_ruta:
+    bra continues
+no_route:
     ; Just stopped on the cell: is there a touch event? A door is one of
     ; those —a touch page whose only command is the `Teleport`— so it has no
     ; path of its own: it goes through the interpreter, like any other
     ; teleport.
     jsr try_touch
-sigue:
+continues:
     rts
 .endproc
 
@@ -777,16 +777,16 @@ sigue:
     ; `IsAnimPaused()`, which leaves the middle frame and the counter at
     ; zero.
     lda route_anim_for
-    bne quieto
+    bne still
     lda moving
-    bne caminando
-quieto:
+    bne walking
+still:
     lda #1                      ; standing: the middle frame
     sta anim_step
     stz anim_timer
     rts
 
-caminando:
+walking:
     ; The count goes up and is compared with the limit **for the current
     ; speed**, like `GetAnimCount() >= stationary_limit`: if a move route
     ; changes the speed halfway through a frame, the next frame already comes
@@ -795,9 +795,9 @@ caminando:
     inc anim_timer
     jsr hero_anim_frames
     cmp anim_timer
-    beq cambia
+    beq changes
     bcs ready                   ; the count has not reached the limit yet
-cambia:
+changes:
     stz anim_timer
     lda anim_step
     inc a

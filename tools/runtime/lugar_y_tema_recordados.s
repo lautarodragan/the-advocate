@@ -41,7 +41,7 @@
     iny
     sta temp + 1
     lsr a
-    bcs saltar
+    bcs jump
     ; Memorize: the map, from the table of ids, and the hero's live cell, like
     ; class 6 of ControlVars.
     rep #$20
@@ -50,11 +50,11 @@
     asl a
     tax
     lda f:map_rm2k, x
-    jsr escribir
+    jsr write
     lda tile_x
-    jsr escribir
+    jsr write
     lda tile_y
-    jsr escribir
+    jsr write
     sep #$20
 .a8
     clc
@@ -63,7 +63,7 @@
 .a16
 ; A: the value, in sixteen bits. Writes it to the operand's slot and flags the
 ; refresh if the top bit of `temp + 1` asks for it, then shifts it.
-escribir:
+write:
     pha
     lda [code_ptr], y            ; the slot, and the neighboring byte
     iny
@@ -77,27 +77,27 @@ escribir:
     lda temp + 1
     asl temp + 1                ; the next write's bit moves to the top
     and #VAR_REFRESH
-    beq sin_refresco
+    beq no_refresh
     lda #1
     sta refresh
-sin_refresco:
+no_refresh:
     rep #$20
 .a16
     rts
 
 .a8
-saltar:
+jump:
     rep #$20
 .a16
-    jsr leer                    ; the RM2k id of the map
+    jsr read                    ; the RM2k id of the map
     ldx #0
-buscar:
+seek:
     cmp f:map_rm2k, x
-    beq hallado
+    beq found
     inx
     inx
     cpx #MAP_COUNT * 2
-    bcc buscar
+    bcc seek
     iny                         ; not in the cartridge: the other two
     iny                         ; slots, and carry on
     sep #$20
@@ -105,13 +105,13 @@ buscar:
     clc
     rtl
 .a16
-hallado:
+found:
     txa
     lsr a
     sta jump_map
-    jsr leer
+    jsr read
     sta jump_x
-    jsr leer
+    jsr read
     sta jump_y
     sep #$20
 .a8
@@ -120,7 +120,7 @@ hallado:
 
 .a16
 ; The variable in the operand's slot, in a 16-bit A.
-leer:
+read:
     lda [code_ptr], y
     iny
     and #$00FF
@@ -151,12 +151,12 @@ leer:
     cmp #0                      ; explicit: so it is written down what is being tested
     bne put
     lda song_current + 1
-    beq recordar
+    beq remember
     lda #$FF                    ; none is playing
-    bra anotar
-recordar:
+    bra record
+remember:
     lda song_current
-anotar:
+record:
     sta f:REMEMBERED_SONG
     clc
     rtl
@@ -167,23 +167,23 @@ put:
     ; Is it the one playing? The same question as `map_song_mute`.
     pha
     lda bgm_fade
-    bne distinto                ; it was fading out: start over
+    bne different                ; it was fading out: start over
     lda f:MSU_PLAYING
-    bne suena
+    bne plays
     lda music_off
-    bne distinto
-suena:
+    bne different
+plays:
     lda song_current + 1
-    bne distinto
+    bne different
     pla
     cmp song_current
-    bne tocar
+    bne touch
 nothing:
     clc
     rtl
-distinto:
+different:
     pla
-tocar:
+touch:
     sec
     rtl
 

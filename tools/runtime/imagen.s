@@ -55,17 +55,17 @@ ready:
     lda #0
     sta f:PICTURE_CHANGE
     ldx #$0000
-canal:
+channel:
     lda f:PICTURE_TO, x
     cmp f:PICTURE_FROM, x
-    bcc baja
+    bcc low
     sec
     sbc f:PICTURE_FROM, x
     jsr picture_part
     clc
     adc f:PICTURE_FROM, x
-    bra guardar
-baja:
+    bra save
+low:
     lda f:PICTURE_FROM, x
     sec
     sbc f:PICTURE_TO, x
@@ -73,16 +73,16 @@ baja:
     eor #$FF                    ; `desde - parte` without a variable in between:
     sec                         ; ones' complement plus the carry is the minus
     adc f:PICTURE_FROM, x
-guardar:
+save:
     cmp f:PICTURE_TONE, x
-    beq igual
+    beq equal
     sta f:PICTURE_TONE, x
     lda #1
     sta f:PICTURE_CHANGE
-igual:
+equal:
     inx
     cpx #3
-    bne canal
+    bne channel
     lda f:PICTURE_CHANGE
     rts
 .endproc
@@ -169,12 +169,12 @@ igual:
     ; setting it would send the map's three palettes up on every frame of the
     ; ramp, and that eats the vblank's pose budget.
     ldx #$0000
-copia:
+copy:
     lda pal_buf, x
     sta cgram_shadow + 2 * (128 + 16 * PICTURE_PAL), x
     inx
     cpx #32
-    bne copia
+    bne copy
     pla
     sta tint_s
     lda #1
@@ -197,14 +197,14 @@ copia:
 .a8
 .i16
     lda f:PICTURE_ACTIVE
-    bne hay
+    bne has
     rts
-hay:
+has:
     lda #$02
     sta obj_big              ; the picture's objects are 32x32
     lda #0
     sta f:PICTURE_I
-cada:
+each:
     rep #$20
 .a16
     lda f:PICTURE_I
@@ -253,8 +253,8 @@ cada:
     inc a
     sta f:PICTURE_I
     cmp #PICTURE_OBJECTS
-    beq salir
-    jmp cada
-salir:
+    beq leave
+    jmp each
+leave:
     rts
 .endproc

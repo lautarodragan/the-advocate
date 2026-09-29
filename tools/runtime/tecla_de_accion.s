@@ -17,22 +17,22 @@
 .i16
     ldy #$0000
     ldx #$0000
-buscar:
+seek:
     cpx ev_total
-    beq no_hay
+    beq none
     rep #$20
 .a16
     lda ev_pos_buf, y
     cmp cell_x
-    bne siguiente
+    bne next
     lda ev_pos_buf + 2, y
     cmp cell_y
-    bne siguiente
+    bne next
     sep #$20
 .a8
     txa                         ; the index fits in a byte: EV_MAX is 128
     rts
-siguiente:
+next:
 .a16                            ; reached in sixteen bits, from the `bne` above
     tya
     clc
@@ -41,8 +41,8 @@ siguiente:
     sep #$20
 .a8
     inx
-    bra buscar
-no_hay:
+    bra seek
+none:
     lda #$FF
     rts
 .endproc
@@ -65,7 +65,7 @@ no_hay:
     rep #$20
 .a16
     lda f:map_table + M_PAGE_COUNT, x
-    beq sin_paginas
+    beq no_pages
     sta pages_left
     lda f:map_table + M_PTR_PAGES, x
     sta page_ptr
@@ -76,7 +76,7 @@ no_hay:
     sta page_ptr + 2
     stz chosen_any
 
-recorrer:
+walk:
     jsr read_page
     rep #$20
 .a16
@@ -84,9 +84,9 @@ recorrer:
     cmp ev_sought
     sep #$20
 .a8
-    bne siguiente               ; not the event we are looking at
+    bne next               ; not the event we are looking at
     jsr conditions_ok
-    beq siguiente
+    beq next
     lda pg_trigger
     sta chosen_trigger
     lda pg_layer
@@ -116,7 +116,7 @@ recorrer:
     lda [page_ptr], y
     sta f:PICK_POSE
 
-siguiente:
+next:
     rep #$20
 .a16
     lda page_ofs
@@ -126,10 +126,10 @@ siguiente:
     dec pages_left
     sep #$20
 .a8
-    bne recorrer
+    bne walk
 
     rts
-sin_paginas:
+no_pages:
 .a16                            ; reached in sixteen bits; the `sep` narrows it
     sep #$20
 .a8
@@ -159,17 +159,17 @@ sin_paginas:
     ; compile time.
     lda trigger_sought
     cmp #TRIGGER_ACTION
-    bne sin_capa
+    bne no_layer
     lda chosen_layer
     cmp #HERO_LAYER
-    beq era_del_heroe
+    beq hero_was
     lda own_action
     beq no                      ; another layer, but we are looking ahead
-    bra sin_capa
-era_del_heroe:
+    bra no_layer
+hero_was:
     lda own_action
     bne no                      ; the hero's layer, but we are looking at our own cell
-sin_capa:
+no_layer:
     lda chosen
     ora chosen + 1
     ora chosen + 2
@@ -265,12 +265,12 @@ no:
     ; presses every two frames, it always happened. Caught by
     ; `test_accion_con_ruta.py`.
     lda route_jump
-    bne con_ruta                ; in the air
+    bne with_route                ; in the air
     lda route_wait
-    bne con_ruta                ; in a route `wait`
+    bne with_route                ; in a route `wait`
     lda route_i
     cmp route_n
-    bcc con_ruta                ; it has move commands left
+    bcc with_route                ; it has move commands left
     ; The two cells, in the order of `Game_Player::CheckActionEvent`: first the
     ; hero's own —`CheckEventTriggerHere`, which asks for a layer different
     ; from the hero's— and then the one in front —`CheckEventTriggerThere`,
@@ -291,9 +291,9 @@ no:
     sep #$20
 .a8
     jsr action_in_cell
-    beq mirar_adelante
+    beq look_ahead
     rts                         ; queued the one under the hero
-mirar_adelante:
+look_ahead:
     stz own_action
     rep #$20
 .a16
@@ -305,40 +305,40 @@ mirar_adelante:
 .a8
     lda hero_dir
     cmp #DIR_UP
-    bne no_arriba
+    bne no_up
     rep #$20
 .a16
     dec cell_y
     sep #$20
 .a8
-    bra mirar
-no_arriba:
+    bra look
+no_up:
     cmp #DIR_DOWN
-    bne no_abajo
+    bne no_down
     rep #$20
 .a16
     inc cell_y
     sep #$20
 .a8
-    bra mirar
-no_abajo:
+    bra look
+no_down:
     cmp #DIR_LEFT
-    bne no_izquierda
+    bne no_left
     rep #$20
 .a16
     dec cell_x
     sep #$20
 .a8
-    bra mirar
-no_izquierda:
+    bra look
+no_left:
     rep #$20
 .a16
     inc cell_x
     sep #$20
 .a8
-mirar:
+look:
     jmp action_in_cell
-con_ruta:
+with_route:
     lda #0
     rts
 .endproc

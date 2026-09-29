@@ -16,32 +16,32 @@
     rep #$20
 .a16
     ldx #0                      ; the axis: 0 is x, 2 is y
-otro_eje:
+other_axis:
     lda pan_dest_x, x
     sec
     sbc pan_x, x
-    beq en_su_lugar             ; already there
-    bpl hacia_adelante
+    beq in_su_place             ; already there
+    bpl toward_ahead
     ; Remaining distance is backwards: subtract the step, or what is left if
     ; that is less.
     eor #$FFFF
     inc a                       ; the absolute value of what is left
     cmp pan_step
-    bcc corto
+    bcc short
     lda pan_step
-corto:
+short:
     eor #$FFFF
     inc a                       ; and back to signed
-    bra sumar
-hacia_adelante:
+    bra add
+toward_ahead:
     cmp pan_step
-    bcc sumar
+    bcc add
     lda pan_step
-sumar:
+add:
     clc
     adc pan_x, x
     sta pan_x, x
-en_su_lugar:
+in_su_place:
     ; To pixels: four arithmetic shifts, which keep the sign.
     lda pan_x, x
     cmp #$8000
@@ -56,7 +56,7 @@ en_su_lugar:
     inx
     inx
     cpx #4
-    bcc otro_eje
+    bcc other_axis
     sep #$20
 .a8
     rts
@@ -77,22 +77,22 @@ en_su_lugar:
     lda pan_dest_x
     sec
     sbc pan_x
-    bpl falta_x
+    bpl missing_x
     eor #$FFFF
     inc a
-falta_x:
+missing_x:
     sta temp
     lda pan_dest_y
     sec
     sbc pan_y
-    bpl falta_y
+    bpl missing_y
     eor #$FFFF
     inc a
-falta_y:
+missing_y:
     cmp temp
-    bcs mayor
+    bcs greater
     lda temp
-mayor:
+greater:
     ; Rounding up is adding the step minus one before dividing.
     clc
     adc pan_step
@@ -144,17 +144,17 @@ mayor:
     rep #$20
 .a16
     lda shake_remain
-    beq nada16
+    beq nothing16
     dec a
     sta shake_remain
-    bne sigue
+    bne continues
     stz shake_pos            ; the last frame: the screen goes back
-nada16:
+nothing16:
     sep #$20
 .a8
     rts
 .a16
-sigue:
+continues:
     ; t = (remaining * 4 * (speed + 2)) % 256: the low byte of remaining * 4
     ; is enough, because whatever is above 256 goes away anyway.
     asl a
@@ -181,10 +181,10 @@ sigue:
 .a8
     lda f:sine_shake, x      ; outside bank 0: see `tabla_de_senos`
     sta shake_sine
-    bpl positivo
+    bpl positive
     eor #$FF
     inc a                       ; |sine|
-positivo:
+positive:
     sta WRMPYA
     lda shake_amp
     sta WRMPYB                  ; |sine| * amplitude
@@ -215,7 +215,7 @@ positivo:
     sep #$20
 .a8
     lda shake_sine
-    bmi con_signo               ; negative sine: new stays positive
+    bmi with_sign               ; negative sine: new stays positive
     rep #$20
 .a16
     lda shake_new
@@ -224,7 +224,7 @@ positivo:
     sta shake_new               ; positive sine: new is negative
     sep #$20
 .a8
-con_signo:
+with_sign:
     ; cut = speed * amplitude / 8 + 1
     lda shake_speed
     sta WRMPYA
@@ -255,19 +255,19 @@ con_signo:
     lda shake_new
     sec
     sbc shake_lo
-    bmi usar_lo
+    bmi use_lo
     lda shake_hi
     sec
     sbc shake_new
-    bmi usar_hi
+    bmi use_hi
     lda shake_new
-    bra guardar
-usar_lo:
+    bra save
+use_lo:
     lda shake_lo
-    bra guardar
-usar_hi:
+    bra save
+use_hi:
     lda shake_hi
-guardar:
+save:
     sta shake_pos
     sep #$20
 .a8
@@ -293,13 +293,13 @@ guardar:
     ; the gate of map 12 and happens the same in the original RPG_RT. See
     ; `workflow/decisiones/la-camara-corrida-de-la-reja-es-del-juego.md`.
     adc pan_px
-    bpl limite_x
+    bpl limit_x
     lda #0                      ; the hero is near the left edge
-limite_x:
+limit_x:
     cmp cam_max_x
-    bcc guarda_x
+    bcc saves_x
     lda cam_max_x
-guarda_x:
+saves_x:
     sta camera_x
 
     lda hero_y
@@ -309,13 +309,13 @@ guarda_x:
     sbc #112                    ; half a screen high
     clc
     adc pan_py
-    bpl limite_y
+    bpl limit_y
     lda #0
-limite_y:
+limit_y:
     cmp cam_max_y
-    bcc guarda_y
+    bcc saves_y
     lda cam_max_y
-guarda_y:
+saves_y:
     sta camera_y
 
     ; The PPU shows line vofs+1 on the first scanline, so what gets written

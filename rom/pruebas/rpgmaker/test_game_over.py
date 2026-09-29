@@ -209,7 +209,7 @@ def test_el_game_over_vuelve_al_juego(partida):
 # al mapa.
 #
 # Lo que eso deja puesto es lo que taro reportó jugando: el grupo vuelve al
-# mapa con todos en cero HP, `modo_fin` los guarda así en `FAR_HP`, y de ahí en
+# mapa con todos en cero HP, `mode_end` los guarda así en `FAR_HP`, y de ahí en
 # más **cada pelea se pierde sola antes de abrirse**, porque `battle_run`
 # contesta derrota con nadie en pie. O sea que los tres síntomas —no hay Game
 # Over, el grupo queda en cero, y toda pelea siguiente se pierde— son este solo

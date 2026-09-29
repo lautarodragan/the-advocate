@@ -15,7 +15,7 @@
     ; the second counts everyone.
     lda #1
     sta BA_S5                   ; only the living?
-vuelta:
+tick:
     rep #$20
 .a16
     lda #0
@@ -25,29 +25,29 @@ vuelta:
     lda #0
     sta BA_S4                   ; how many
     lda BA_S6
-    beq desde_el_grupo
+    beq from_party
     lda #BA_PARTY_MAX
     sta BA_S0
     lda BA_KID
     clc
     adc #BA_PARTY_MAX
     sta BA_S3
-    bra suma
-desde_el_grupo:
+    bra sum
+from_party:
     lda #0
     sta BA_S0
     lda BA_NACT
     sta BA_S3
-suma:
+sum:
     lda BA_S0
     cmp BA_S3
-    bcs sumados
+    bcs added
     lda BA_S5
-    beq cuenta
+    beq count
     lda BA_S0
     jsr ba_alive
-    beq siguiente
-cuenta:
+    beq next
+count:
     lda BA_S0
     jsr ba_x
     rep #$20
@@ -59,24 +59,24 @@ cuenta:
     sep #$20
 .a8
     inc BA_S4
-siguiente:
+next:
     inc BA_S0
-    bra suma
-sumados:
+    bra sum
+added:
     lda BA_S4
-    bne dividir
+    bne divide_it
     lda BA_S5
-    beq dividir                 ; neither living nor dead: there is nobody
+    beq divide_it                 ; neither living nor dead: there is nobody
     stz BA_S5
-    bra vuelta
-dividir:
+    bra tick
+divide_it:
     rep #$20
 .a16
     lda BA_S4
     and #$00FF
-    bne hay
+    bne has
     lda #1
-hay:
+has:
     sta temp + 2
     lda BA_T0
     sta temp
@@ -106,9 +106,9 @@ ready:
     rep #$20
 .a16
     lda BA_T1
-    bne grupo_hay
+    bne party_has
     lda #1
-grupo_hay:
+party_has:
     sta BA_S1                   ; the party's average
     sep #$20
 .a8
@@ -133,13 +133,13 @@ grupo_hay:
     lda #150
     sec
     sbc BA_S3
-    bpl no_negativa
+    bpl no_negative
     lda #0
-no_negativa:
+no_negative:
     cmp #101
-    bcc chance_lista
+    bcc chance_list
     lda #100
-chance_lista:
+chance_list:
     sep #$20
 .a8
     sta BA_ESCAPE
@@ -153,18 +153,18 @@ chance_lista:
 .i16
     lda BA_ESCAPE
     jsr ba_pct
-    bne salio
+    bne exited
     lda BA_ESCAPE
     clc
     adc #10
     cmp #101
-    bcc guarda
+    bcc saves
     lda #100
-guarda:
+saves:
     sta BA_ESCAPE
     lda #0
     rts
-salio:
+exited:
     lda #1
     rts
 .endproc
@@ -173,19 +173,19 @@ salio:
 .proc ba_next_actor
 .a8
 .i16
-busca:
+seek:
     lda BA_ACTOR
     cmp BA_NACT
-    bcs ninguno
+    bcs none
     lda BA_ACTOR
     jsr ba_alive
-    bne hay
+    bne has
     inc BA_ACTOR
-    bra busca
-hay:
+    bra seek
+has:
     lda BA_ACTOR
     rts
-ninguno:
+none:
     lda #$FF
     rts
 .endproc
@@ -196,21 +196,21 @@ ninguno:
 .i16
     lda #0
     sta BA_S0
-busca:
+seek:
     lda BA_S0
     cmp BA_KID
-    bcs ninguno
+    bcs none
     lda BA_S0
     clc
     adc #BA_PARTY_MAX
     jsr ba_alive
-    bne hay
+    bne has
     inc BA_S0
-    bra busca
-hay:
+    bra seek
+has:
     lda BA_S0
     rts
-ninguno:
+none:
     lda #$FF
     rts
 .endproc
@@ -284,39 +284,39 @@ ninguno:
 .a16
     lda BA_MDANO
     cmp #$FFFF
-    beq erro
+    beq missed
     sep #$20
 .a8
     lda BA_MBLA
     cmp #BA_PARTY_MAX
-    bcc al_actor
+    bcc to_actor
     rep #$20
 .a16
     lda BA_ONE + BA_HP, x
-    beq murio
+    beq died
     lda #BA_SE_DAMAGE_ENEMY
-    bra anotado
-murio:
+    bra recorded
+died:
 .a16
     lda #BA_SE_DEATH
-    bra anotado
-erro:
+    bra recorded
+missed:
 .a16
     lda #BA_SE_MISS
-    bra anotado
-al_actor:
+    bra recorded
+to_actor:
 .a8
     rep #$20
 .a16
     lda #BA_SE_DAMAGE_ACTOR
-anotado:
+recorded:
 .a16
     sta BA_SE2
     sep #$20
 .a8
     lda BA_MQUIEN
     cmp #BA_PARTY_MAX
-    bcs del_enemigo
+    bcs from_enemy
     ; Someone in the party hits: RM2k gives it no attack sound effect, so the
     ; result's has nothing to wait for and goes out at once.
     rep #$20
@@ -327,7 +327,7 @@ anotado:
     jsl f:ba_t_sound
 .a8
     rts
-del_enemigo:
+from_enemy:
 .a8
     rep #$20
 .a16
@@ -353,7 +353,7 @@ del_enemigo:
     jsr ba_page_turn
     lda #0
     sta BA_S0
-limpia:
+clears:
     lda BA_S0
     jsr ba_x
     lda BA_ONE + BA_FLAGS, x
@@ -363,7 +363,7 @@ limpia:
     inc BA_S0
     lda BA_S0
     cmp #BA_COMB_MAX
-    bcc limpia
+    bcc clears
     jsr ba_enemy_actions
     jsr ba_exec_order
     lda #0
@@ -399,25 +399,25 @@ limpia:
     sep #$20
 .a8
     stz BA_S0
-otro:
+other:
     lda BA_S0
     cmp BA_NACT
     bcs ready
     jsr ba_x
     lda BA_ONE + BA_FLAGS, x
     and #BAF_HAS
-    beq siguiente
+    beq next
     rep #$20
 .a16
     lda BA_ONE + BA_HP, x
     sep #$20
 .a8
-    beq siguiente               ; dead: `Exists()` leaves it out
+    beq next               ; dead: `Exists()` leaves it out
     lda BA_ONE + BA_NUMBER, x
     jsr exp_add
-siguiente:
+next:
     inc BA_S0
-    bra otro
+    bra other
 ready:
     rts
 .endproc
@@ -429,7 +429,7 @@ ready:
 .i16
     jsr ba_enemy_alive
     cmp #$FF
-    bne siguen
+    bne continue
     lda #BA_VICTORY
     sta BA_RESULT
     lda #BA_MSG_VICTORY
@@ -445,22 +445,22 @@ ready:
     lda #BA_M_END
     sta BA_MODE
     rts
-siguen:
+continue:
     lda #0
     sta BA_ACTOR
     jsr ba_next_actor
     cmp #$FF
-    bne otro_turno
+    bne other_turn
     lda #BA_DEFEAT
     sta BA_RESULT
     lda #BA_MSG_DEFEAT
     sta BA_MTIPO
-termina:
+ends:
     jsr ba_show
     lda #BA_M_END
     sta BA_MODE
     rts
-otro_turno:
+other_turn:
     lda #0
     sta BA_NACC
     sta BA_COMMAND
@@ -471,11 +471,11 @@ otro_turno:
     ; come back —the recorded ones are cleared only when the next one
     ; starts—, so this only finds what became true after the last action.
     jsr ba_page_test
-    beq sin_pagina
+    beq no_page
     lda #1
     sta BA_PAGE_TICK
     jmp ba_page_step
-sin_pagina:
+no_page:
     jsr ba_compose
     rts
 .endproc
@@ -491,19 +491,19 @@ sin_pagina:
     ; acts. When they finish, `ba_page_step` comes back here, and what already
     ; ran this turn does not run again.
     ;
-    ; It goes before `otra` and not inside it: skipping one who died changes
+    ; It goes before `other` and not inside it: skipping one who died changes
     ; nothing a page looks at, which is also why easyrpg takes the dead off
     ; the list before checking and not after.
     jsr ba_page_test
-    beq otra
+    beq other
     stz BA_PAGE_TICK
     jmp ba_page_step
-otra:
+other:
     lda BA_I
     cmp BA_NACC
-    bcc hay
+    bcc has
     jmp ba_end_of_turn
-hay:
+has:
     lda BA_I
     jsr ba_ax
     lda BA_EXEC, x
@@ -511,7 +511,7 @@ hay:
     inc BA_I
     lda BA_MQUIEN
     jsr ba_alive
-    beq otra
+    beq other
     lda BA_MQUIEN
     asl a
     jsr ba_ax
@@ -521,55 +521,55 @@ hay:
     sta BA_MBLA                 ; and the target
     lda BA_S1
     cmp #BA_DEFEND
-    beq a_defiende
+    beq a_defends
     cmp #BA_FLEE
-    beq a_no_huyo
+    beq a_no_fled
     cmp #BA_ITEM
-    beq usa_un_item
+    beq uses_item
     cmp #BA_SKILL
-    beq usa_una_habilidad
-    bra ataca
-a_defiende:
-    jmp defiende
-a_no_huyo:
-    jmp no_huyo
-ataca:
+    beq uses_one_skill
+    bra attacks
+a_defends:
+    jmp defends
+a_no_fled:
+    jmp no_fled
+attacks:
     ; Attack. If the target died before its turn came, it is retargeted to the
     ; first living one on that side, as `Game_BattleAlgorithm` does.
     lda BA_MBLA
     jsr ba_alive
-    bne pega
+    bne sticks
     lda BA_MBLA
     cmp #BA_PARTY_MAX
-    bcs busca_enemigo
+    bcs seek_enemy
     lda #0
     sta BA_ACTOR
     jsr ba_next_actor
     cmp #$FF
-    beq otra
+    beq other
     sta BA_MBLA
-    bra pega
-busca_enemigo:
+    bra sticks
+seek_enemy:
     jsr ba_enemy_alive
     cmp #$FF
-    beq otra
+    beq other
     clc
     adc #BA_PARTY_MAX
     sta BA_MBLA
-pega:
+sticks:
     jsr ba_attack
     lda #BA_MSG_ATTACK
     sta BA_MTIPO
     jsr ba_show              ; which clears the pending one, so it goes first
     jmp ba_hit_sound
-usa_una_habilidad:
+uses_one_skill:
     ; A dead target **is not retargeted**, as with an item: `Skill`'s
     ; `IsTargetValid` discards it and the action is lost. With one that
     ; targets the party that is what happens if the one about to be healed was
     ; killed first.
     lda BA_MBLA
     jsr ba_alive
-    beq otra_hab
+    beq other_skill
     jsr ba_skill_use
     lda #BA_MSG_SKILL
     sta BA_MTIPO
@@ -580,9 +580,9 @@ usa_una_habilidad:
     jsl f:ba_t_sound
 .a8
     rts
-otra_hab:
-    jmp otra
-usa_un_item:
+other_skill:
+    jmp other
+uses_item:
     ; An item does not miss and nobody dodges it, so it rolls no dice; and a
     ; dead target **is not retargeted**, which is the opposite of an attack.
     jsr ba_item_use
@@ -595,7 +595,7 @@ usa_un_item:
     jsl f:ba_t_sound
 .a8
     rts
-defiende:
+defends:
     lda BA_MQUIEN
     jsr ba_x
     lda BA_ONE + BA_FLAGS, x
@@ -604,7 +604,7 @@ defiende:
     lda #BA_MSG_DEFENDS
     sta BA_MTIPO
     jmp ba_show
-no_huyo:
+no_fled:
     lda #BA_MSG_NO_FLED
     sta BA_MTIPO
     jmp ba_show

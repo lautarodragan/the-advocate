@@ -17,15 +17,15 @@
     lda [code_ptr], y            ; the operation
     iny
     cmp #PAN_RETURN
-    bne pan_correr
+    bne pan_run
     rep #$20
 .a16
     stz pan_dest_x              ; going back is going to zero
     stz pan_dest_y
     sep #$20
 .a8
-    bra pan_saltear_desp
-pan_correr:
+    bra pan_skip_after
+pan_run:
     rep #$20
 .a16
     lda [code_ptr], y            ; the x offset, signed
@@ -42,13 +42,13 @@ pan_correr:
 .a8
     iny                         ; the two bytes of y
     iny
-    bra pan_leer_paso
-pan_saltear_desp:
+    bra pan_read_step
+pan_skip_after:
     iny                         ; the four bytes of the offset
     iny
     iny
     iny
-pan_leer_paso:
+pan_read_step:
     lda [code_ptr], y            ; the per-frame step
     iny
     rep #$20
@@ -59,7 +59,7 @@ pan_leer_paso:
 .a8
     lda [code_ptr], y            ; whether the page waits
     iny
-    beq pan_sin_espera
+    beq pan_no_wait
     jsr pan_frames
     rep #$20
 .a16
@@ -74,11 +74,11 @@ pan_leer_paso:
     ; door EV0009 on map 8 —a "go back" with wait and then the Teleport—
     ; reached map 9 one tick late: the car in Lashe City 33,36 was 4 px
     ; behind, measured on 2026-09-10. `snes-pan 6 "3 0 0 4 1"` catches it.
-    beq pan_sin_espera
+    beq pan_no_wait
     sty ev_cur
     rts
-pan_sin_espera:
-    jmp run_code::otro
+pan_no_wait:
+    jmp run_code::other
 
 .endproc
 
@@ -105,7 +105,7 @@ pan_sin_espera:
     ; caught—.
     lda #1
     sta tint_pending
-    jmp run_code::otro     ; `bra` does not reach: the loop is far away
+    jmp run_code::other     ; `bra` does not reach: the loop is far away
 
 .endproc
 

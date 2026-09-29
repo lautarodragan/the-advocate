@@ -48,35 +48,35 @@
     sta cmp_a                   ; its event
     ; Does it go up? As long as it goes before the one above.
     txy
-subir:
+upload:
     cpy #$0000
-    beq tope_arriba
+    beq cap_up
     lda temp
     cmp npc_buf + 4 - NPC_STRIDE, y
-    bne s_por_clave
+    bne s_per_key
     lda temp + 2
     cmp npc_buf + 0 - NPC_STRIDE, y
-    bne s_por_clave
+    bne s_per_key
     lda npc_buf + 8 - NPC_STRIDE, y
     and #$00FF
     cmp cmp_a
-    bcs tope_arriba             ; the one above has the greater or equal id
-    bra s_pasa
-s_por_clave:
-    bcc tope_arriba             ; the one above goes first
-s_pasa:
+    bcs cap_up             ; the one above has the greater or equal id
+    bra s_pass
+s_per_key:
+    bcc cap_up             ; the one above goes first
+s_pass:
     tya
     sec
     sbc #NPC_STRIDE
     tay
-    bra subir
-tope_arriba:
+    bra upload
+cap_up:
     cpy npc_row
-    beq no_sube
+    beq no_uploads
     ; It goes up to Y: the row, set aside; the ones from Y to its own, one
     ; place down; and the row at Y.
     sty cmp_a                   ; where it goes (its event is no longer needed)
-    jsr apartar
+    jsr set_aside
     phb
     lda npc_row
     sec
@@ -93,42 +93,42 @@ tope_arriba:
     mvp #^FAR_LENGTH, #^FAR_LENGTH
     plb
     ldx cmp_a
-    jsr volver
+    jsr go_back
     sep #$20
 .a8
     rtl
 .a16
-no_sube:
+no_uploads:
     ; Does it go down? As long as the one below goes before it.
 lower:
     tya
     clc
     adc #NPC_STRIDE
     cmp npc_total
-    bcs tope_abajo
+    bcs cap_down
     tax
     lda npc_buf + 4, x
     cmp temp
-    bne b_por_clave
+    bne b_per_key
     lda npc_buf + 0, x
     cmp temp + 2
-    bne b_por_clave
+    bne b_per_key
     lda npc_buf + 8, x
     and #$00FF
     cmp cmp_a
-    beq tope_abajo              ; the same id: it does not pass
-    bcc tope_abajo              ; the one below has the smaller id
-    bra b_pasa
-b_por_clave:
-    bcc tope_abajo              ; the one below goes after
-b_pasa:
+    beq cap_down              ; the same id: it does not pass
+    bcc cap_down              ; the one below has the smaller id
+    bra b_pass
+b_per_key:
+    bcc cap_down              ; the one below goes after
+b_pass:
     txy
     bra lower
-tope_abajo:
+cap_down:
     cpy npc_row
     beq ready
     sty cmp_a
-    jsr apartar
+    jsr set_aside
     phb
     tya
     sec
@@ -145,7 +145,7 @@ tope_abajo:
     mvn #^FAR_LENGTH, #^FAR_LENGTH
     plb
     ldx cmp_a
-    jsr volver
+    jsr go_back
 ready:
     sep #$20
 .a8
@@ -153,14 +153,14 @@ ready:
 
 ; Row `npc_row`, set aside in `NPC_ROW_SEPARATE`; and back at X.
 .a16
-apartar:
+set_aside:
     ldx npc_row
     .repeat ::NPC_STRIDE / 2, k
     lda npc_buf + k * 2, x
     sta f:NPC_ROW_SEPARATE + k * 2
     .endrepeat
     rts
-volver:
+go_back:
     .repeat ::NPC_STRIDE / 2, k
     lda f:NPC_ROW_SEPARATE + k * 2
     sta npc_buf + k * 2, x
@@ -179,7 +179,7 @@ volver:
 .i16
     stz pass_has
     ldy #$0000
-otra:
+other:
     cpy npc_total
     beq ready
     lda npc_buf + 15, y
@@ -194,7 +194,7 @@ otra:
     tay
     sep #$20
 .a8
-    bra otra
+    bra other
 ready:
     rtl
 .endproc
@@ -213,7 +213,7 @@ ready:
 .a8
 .i16
     ldx #$0000
-grande:
+big:
     lda #$E0
     .repeat 16, k
     sta oam + 1 + k * 4, x      ; each object's Y
@@ -226,7 +226,7 @@ grande:
     sep #$20
 .a8
     cpx #512
-    bne grande
+    bne big
     ; The small table: two bits per object, the high one says whether it is
     ; large. Only object 0 is; the rest stay small and hidden all the same.
     rep #$20
@@ -295,7 +295,7 @@ grande:
 .a8
 .i16
     lda route_ev + 19, x
-    beq buscar
+    beq seek
     dec a
     rep #$20
 .a16
@@ -308,20 +308,20 @@ grande:
     sep #$20
 .a8
     cpy npc_total
-    bcs buscar                  ; outside the table: a leftover
+    bcs seek                  ; outside the table: a leftover
     lda npc_buf + 8, y
     cmp route_ev + 0, x
     beq ready
-buscar:
+seek:
     lda route_ev + 0, x
     sta temp
     ldy #$0000
-otra:
+other:
     cpy npc_total
-    beq no_hay
+    beq none
     lda npc_buf + 8, y
     cmp temp
-    beq hallada
+    beq found
     rep #$20
 .a16
     tya
@@ -330,8 +330,8 @@ otra:
     tay
     sep #$20
 .a8
-    bra otra
-hallada:
+    bra other
+found:
     rep #$20
 .a16
     tya
@@ -345,7 +345,7 @@ hallada:
     sta route_ev + 19, x
 ready:
     rtl
-no_hay:
+none:
     ldy #$FFFF
     rtl
 .endproc

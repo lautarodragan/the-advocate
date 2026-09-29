@@ -26,12 +26,12 @@
     lda [code_ptr], y
     iny                         ; Y -> the operand
     cmp #COND_GOLD
-    beq si_oro
+    beq if_gold
     cmp #COND_ACTOR
-    beq si_actor
+    beq if_actor
     cmp #COND_ITEM
     bne :+
-    jmp si_item                 ; the body is past the gold: `beq` does not reach
+    jmp if_item                 ; the body is past the gold: `beq` does not reach
 :
 
     ; --- the switch ---
@@ -40,12 +40,12 @@
     phy                         ; the cursor: `switch_on` clobbers X and Y
     lda [code_ptr], y            ; the number, 16 bits
     jsr switch_on        ; Z=1 off, Z=0 on
-    beq si_apagado
+    beq if_off
     lda #$0001
-    bra si_tengo
-si_apagado:
+    bra if_have
+if_off:
     lda #$0000
-si_tengo:
+if_have:
     ply                         ; the cursor back; `ply` does not touch A
     sep #$20
 .a8
@@ -54,39 +54,39 @@ si_tengo:
     ; without any extra branch. It goes through `temp` because the assembler
     ; has no `eor [dp], y`. The item uses the same ending, with the same
     ; polarity.
-si_polaridad:
+if_polarity:
     iny
     iny                         ; Y -> the polarity
     sta temp
     lda [code_ptr], y
     eor temp
-    bra si_decide
+    bra if_decides
 
     ; --- the actor: `IsActorInParty` ---
     ; It carries no polarity: the lower branch is the `else`, so the converter
     ; emits zero there and it is not looked at here.
-si_actor:
+if_actor:
     lda [code_ptr], y            ; the id, which fits in a byte
     phy
     jsr in_party             ; A=1 if present, A=0 if not
     ply
     iny
     iny                         ; Y -> the polarity, which is zero
-    ; **Z is set here, right next to the branch.** `si_decide` decides with a
+    ; **Z is set here, right next to the branch.** `if_decides` decides with a
     ; `beq`, and `ply` and the two `iny` left it the Z of the cursor, which is
     ; never zero: "is in the party" always said yes, and on the Warehouse roof
     ; Arden showed up without having been added. On 2026-09-12 the `cmp #0`
     ; went after the `ply` and before the `iny`s, which was fixing half of it:
     ; see `test_rama_grupo`.
     cmp #0
-    bra si_decide
+    bra if_decides
 
     ; --- the gold ---
     ; `CommandConditionalBranch` case 3: with the polarity at zero it is
     ; `gold >= operand` and with anything else `gold <= operand`. **They are
     ; not the negation of each other**: on equality both hold, so they are
     ; computed separately instead of flipping a bit.
-si_oro:
+if_gold:
     rep #$20
 .a16
     lda [code_ptr], y            ; against how much, 16 bits
@@ -96,7 +96,7 @@ si_oro:
     iny
     iny                         ; Y -> the polarity
     lda gold + 2
-    bne si_oro_grande           ; the gold is past 65535: greater than any
+    bne if_gold_big           ; the gold is past 65535: greater than any
                                 ; operand, which fits in a word
     rep #$20
 .a16
@@ -105,9 +105,9 @@ si_oro:
     sep #$20
 .a8
     lda #$01
-    bcs si_oro_ge
+    bcs if_gold_ge
     lda #$00
-si_oro_ge:
+if_gold_ge:
     sta temp
     rep #$20
 .a16
@@ -116,23 +116,23 @@ si_oro_ge:
     sep #$20
 .a8
     lda #$01
-    bcs si_oro_le
+    bcs if_gold_le
     lda #$00
-si_oro_le:
+if_gold_le:
     sta temp + 1
-    bra si_oro_elige
-si_oro_grande:
+    bra if_gold_picks
+if_gold_big:
     lda #$01
     sta temp                    ; the >= holds
     stz temp + 1                ; and the <= does not
-si_oro_elige:
+if_gold_picks:
     lda [code_ptr], y            ; the polarity
-    beq si_oro_usa_ge
+    beq if_gold_uses_ge
     lda temp + 1
-    bra si_decide
-si_oro_usa_ge:
+    bra if_decides
+if_gold_uses_ge:
     lda temp
-    bra si_decide
+    bra if_decides
 
     ; --- the item: `CommandConditionalBranch` case 4 ---
     ; `GetItemCount(id) > 0`, the same question as the page condition on an
@@ -142,7 +142,7 @@ si_oro_usa_ge:
     ;
     ; The polarity is the switch's —0 is "has to have it"— so it decides with
     ; the same `eor` and without an extra branch.
-si_item:
+if_item:
     rep #$20
 .a16
     lda [code_ptr], y            ; the item number, 16 bits
@@ -153,21 +153,21 @@ si_item:
 .a8
     stz WMADDH
     lda WMDATA                  ; how many there are in the inventory
-    beq si_item_no
+    beq if_item_no
     lda #$01
-    bra si_item_listo
-si_item_no:
+    bra if_item_ready
+if_item_no:
     lda #$00
-si_item_listo:
-    jmp si_polaridad
+if_item_ready:
+    jmp if_polarity
 
-si_decide:
-    beq si_no_cumple
+if_decides:
+    beq if_no_met
     iny
     iny
     iny                         ; Y -> the next opcode
-    jmp run_code::otro
-si_no_cumple:
+    jmp run_code::other
+if_no_met:
     iny                         ; Y -> the target
     rep #$20
 .a16
@@ -175,7 +175,7 @@ si_no_cumple:
     tay
     sep #$20
 .a8
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -204,16 +204,16 @@ si_no_cumple:
     iny                         ; Y -> the target
     ; `var_read` does not touch Y, so the cursor is not saved.
     lda temp + 1
-    beq si_var_contra_constante
+    beq if_var_against_constant
     lda temp + 2
     jsr var_read
 .a16
     sta temp + 2
     sep #$20
 .a8
-si_var_contra_constante:
+if_var_against_constant:
     pla                         ; the comparison
-    bne si_var_otra
+    bne if_var_other
     ; "Equal", which is the one almost all of them use —the 40 pages of each
     ; lap of the race do it every frame— goes without `compare_var`: a
     ; sixteen-bit subtraction is enough.
@@ -223,9 +223,9 @@ si_var_contra_constante:
     cmp temp + 2
     sep #$20
 .a8
-    beq si_var_sigue            ; `sep` does not touch Z
-    bra si_var_no
-si_var_otra:
+    beq if_var_continues            ; `sep` does not touch Z
+    bra if_var_no
+if_var_other:
     sta temp + 1
     lda temp
     jsr var_read                ; A = the variable, sixteen bits
@@ -234,19 +234,19 @@ si_var_otra:
 .a8
     cmp #0                      ; the answer, in A: the flags are from
                                 ; `compare_var`'s last computation
-    bne si_var_sigue
-si_var_no:
+    bne if_var_continues
+if_var_no:
     rep #$20
 .a16
     lda [code_ptr], y            ; it does not hold: to the target
     tay
     sep #$20
 .a8
-    jmp run_code::otro
-si_var_sigue:
+    jmp run_code::other
+if_var_continues:
     iny
     iny
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -258,7 +258,7 @@ si_var_sigue:
 ; Neither has a polarity: RM2k does not give them one, same as "is in the
 ; party", so the lower branch is the `else`.
 ;
-; On entry, Y points at the sub. Both paths end at `sia_si` or at `sia_no`
+; On entry, Y points at the sub. Both paths end at `sia_yes` or at `sia_no`
 ; with Y already pointing at the target.
 .proc op_if_actor
     lda [code_ptr], y
@@ -277,7 +277,7 @@ si_var_sigue:
     iny                         ; Y -> the target
     lda temp
     cmp #COND_ACTOR_SKILL
-    beq sia_habilidad
+    beq sia_skill
 
     ; --- the equipped equipment ---
     ; easyrpg's five `Get*Id()` compared against the item: it is enough for it
@@ -303,7 +303,7 @@ si_var_sigue:
 .a8
     stz WMADDH
     ldx #SLOTS_EQUIPMENT
-sia_eq_otra:
+sia_eq_other:
     lda WMDATA
     sta temp                    ; the low byte of this slot's item
     lda WMDATA
@@ -314,9 +314,9 @@ sia_eq_otra:
     cmp temp + 2
     sep #$20
 .a8
-    beq sia_si                  ; `sep` does not touch Z: the comparison is still live
+    beq sia_yes                  ; `sep` does not touch Z: the comparison is still live
     dex
-    bne sia_eq_otra
+    bne sia_eq_other
     bra sia_no
 
     ; --- the skill ---
@@ -324,9 +324,9 @@ sia_eq_otra:
     ; `FAR_SKILL`. The converter already put the pair's slot where the other
     ; questions carry the item, so `temp + 2` brings it and the actor is not
     ; needed. See `HABILIDAD_RANURA` in eventos.py.
-sia_habilidad:
+sia_skill:
     jsl f:skill_known
-    bne sia_si
+    bne sia_yes
 sia_no:
     rep #$20
 .a16
@@ -334,11 +334,11 @@ sia_no:
     tay
     sep #$20
 .a8
-    jmp run_code::otro
-sia_si:
+    jmp run_code::other
+sia_yes:
     iny
     iny                         ; Y -> the next opcode
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -351,7 +351,7 @@ sia_si:
     tay
     sep #$20
 .a8
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 

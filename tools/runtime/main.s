@@ -25,7 +25,7 @@
 ; * **The width of A and of X/Y is state, and `ca65` believes it without
 ;   checking.** `.a8` and `.a16` do not describe: they dictate how each
 ;   immediate is emitted. A label that is jumped to from another width has to
-;   declare its own —see `baja` in `celdas.s`—, or the immediate comes out as
+;   declare its own —see `low` in `celdas.s`—, or the immediate comes out as
 ;   two bytes, the CPU in 8-bit mode reads one, and the leftover `$00` runs as
 ;   a `BRK`. The ROM goes off the rails, and neither the diff nor the
 ;   pixel-by-pixel comparison sees it, and bisecting with `rts` does not work

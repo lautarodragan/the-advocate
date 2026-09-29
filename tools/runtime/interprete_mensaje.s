@@ -28,17 +28,17 @@
     ; that is why `pair_ev` decides.
     lda pair_ev
     cmp #$FF
-    beq abrir                   ; foreground
+    beq open                   ; foreground
     cmp #PAIR_BATTLE
-    beq en_la_pelea
+    beq in_battle
     lda msg_open
     ora msg_state
     ora pick_active
-    beq abrir
+    beq open
     dey                         ; the cursor goes back to this same opcode
     sty ev_cur
     rts
-en_la_pelea:
+in_battle:
     ; A troop page: the message does not go to the map's window —the screen
     ; is the battle's, and `text_buf` is the battle's— but is left noted for
     ; the battle, which draws it on its lines and waits for A. The page stays
@@ -54,7 +54,7 @@ en_la_pelea:
 .a8
     sty ev_cur
     rts
-abrir:
+open:
     lda pair_ev
     sta msg_owner              ; $FF if the foreground opens it
     ; The message does not appear this frame: its text has to be composed,

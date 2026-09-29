@@ -15,11 +15,11 @@
     sta temp
     iny
     cmp #TIMER_SET
-    bne no_pone
+    bne no_sets
     rep #$20
 .a16
     lda [code_ptr], y            ; the seconds, sixteen bits
-timer_poner_16:
+timer_set_16:
     sta timer_sec
     sep #$20
 .a8
@@ -30,10 +30,10 @@ timer_poner_16:
     lda #MORE_TIMER
     sta timer_sub
     jsr timer_digits
-    bra timer_fin
-no_pone:
+    bra timer_end
+no_sets:
     cmp #TIMER_SET_VAR
-    bne no_pone_var
+    bne no_sets_var
     ; The seconds from a variable, which is what the Tram Officer on map 9
     ; does: "what the timer has left, minus sixty". A negative variable sets
     ; zero, like `Game_Party::SetTimer`.
@@ -44,13 +44,13 @@ no_pone:
     ply
     cmp #0                      ; the variable's sign, which `ply` overwrote
                                 ; with the cursor: see `song_ensure`
-    bpl timer_poner_16
+    bpl timer_set_16
     lda #0
-    bra timer_poner_16
+    bra timer_set_16
 .a8
-no_pone_var:
+no_sets_var:
     cmp #TIMER_START
-    bne timer_para
+    bne timer_for
     lda #1
     sta timer_active
     iny
@@ -59,20 +59,20 @@ no_pone_var:
     dey
     dey
     cmp timer_visible
-    beq timer_fin               ; it already showed, or already didn't:
+    beq timer_end               ; it already showed, or already didn't:
                                 ; nothing to repaint
     sta timer_visible
     jsr timer_repaint          ; its palette entries change owner
-    bra timer_fin
-timer_para:
+    bra timer_end
+timer_for:
     ; `StopTimer` turns off both things, not just the count.
     lda timer_visible
     stz timer_active
     stz timer_visible           ; `stz` does not touch Z: the branch looks at
                                 ; the `lda`
-    beq timer_fin
+    beq timer_end
     jsr timer_repaint
-timer_fin:
+timer_end:
     rep #$20
 .a16
     tya
@@ -81,6 +81,6 @@ timer_fin:
     tay                         ; was consumed by the operation's `iny`
     sep #$20
 .a8
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc

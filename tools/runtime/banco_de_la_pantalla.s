@@ -265,7 +265,7 @@
     sta VMAIN
     stx VMADDL
     lda temp + 3
-    beq borra
+    beq erase
     lda #^(items_border_bars)
     sta A1B0
     rep #$20
@@ -273,9 +273,9 @@
     tya
     clc
     adc #.loword(items_border_bars)
-    bra fuente
+    bra font
 .a8
-borra:
+erase:
     lda #^(items_border_map)
     sta A1B0
     rep #$20
@@ -283,7 +283,7 @@ borra:
     tya
     clc
     adc #.loword(items_border_map + ITEM_BORDER_LIST * 64)
-fuente:
+font:
     sta A1T0L
     lda #128
     sta DAS0L

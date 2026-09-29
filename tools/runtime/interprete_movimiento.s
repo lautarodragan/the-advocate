@@ -60,7 +60,7 @@
 .a8
     lda code_ptr + 2
     sta hero_route + 2
-    bra saltear_ruta
+    bra skip_route
 
     ; --- an event: note where the route starts inside the bytecode and which
     ; command it is on, and the page's cursor skips over the commands.
@@ -68,7 +68,7 @@ op_route_event:
     phy
     jsr route_for_event
     ply
-saltear_ruta:
+skip_route:
     rep #$20
 .a16
     tya
@@ -77,7 +77,7 @@ saltear_ruta:
     tay
     sep #$20
 .a8
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -110,10 +110,10 @@ saltear_ruta:
     sep #$20
 .a8
     phy
-lugar_plantar:                  ; with Y already on the stack: see `op_place_var`
+place_plant:                  ; with Y already on the stack: see `op_place_var`
     jsr plant_event
     ply
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -168,7 +168,7 @@ lugar_plantar:                  ; with Y already on the stack: see `op_place_var
     sta ev_pos_buf + 0, x
     sep #$20
 .a8
-    bra op_place::lugar_plantar
+    bra op_place::place_plant
 
 .endproc
 
@@ -218,7 +218,7 @@ lugar_plantar:                  ; with Y already on the stack: see `op_place_var
     sta temp
     jsr plant_event
     ply
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -235,7 +235,7 @@ lugar_plantar:                  ; with Y already on the stack: see `op_place_var
     sty ev_cur
     rts
 op_wait_routes_next:
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -263,22 +263,22 @@ op_wait_routes_next:
     stz route_wait
     phy                         ; Y is the bytecode cursor
     ldx #$0000
-parar_otra:
+stop_other:
     lda route_ev, x
     cmp #ROUTE_EV_FREE
-    beq parar_siguiente
+    beq stop_next
     lda route_ev + 18, x
     and #$01
-    bne parar_siguiente         ; the page's one is not forced
+    bne stop_next         ; the page's one is not forced
     lda route_ev + 27, x         ; does it have its own route to go back to?
-    beq parar_sin_pagina
+    beq stop_no_page
     jsr resume_page
-    bra parar_siguiente
-parar_sin_pagina:
+    bra stop_next
+stop_no_page:
     stz route_ev + 4, x
     stz route_ev + 5, x
     stz route_ev + 9, x
-parar_siguiente:
+stop_next:
     rep #$20
 .a16
     txa
@@ -288,9 +288,9 @@ parar_siguiente:
     cmp #ROUTE_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
-    bcc parar_otra
+    bcc stop_other
     ply
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 

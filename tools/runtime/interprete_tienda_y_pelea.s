@@ -76,7 +76,7 @@ op_shop_done:
     jsr back_to_map
     ply
     plb
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -128,7 +128,7 @@ op_shop_done:
     ; tools/runtime/game_over.s.
     sep #$20
 .a8
-    jmp run_code::otro
+    jmp run_code::other
 
 
 .endproc
@@ -144,7 +144,7 @@ op_shop_done:
     phy
     jsl f:ba_show_hidden
     ply
-    jmp run_code::otro
+    jmp run_code::other
 .endproc
 
 ; A battle from start to finish, with the troop already set in `BA_TROOP`:
@@ -175,15 +175,15 @@ op_shop_done:
     ; music instead of restoring it. It is the same question as
     ; `map_song_mute`, and it is answered the same way.
     lda f:MSU_PLAYING
-    bne sonaba_antes
+    bne was_playing_before
     lda music_off
-    bne callado_antes
-sonaba_antes:
+    bne muted_before
+was_playing_before:
     lda song_current
-    bra anotado
-callado_antes:
+    bra recorded
+muted_before:
     lda #$FF
-anotado:
+recorded:
     sta f:BAT_LENGTH + BA_SONG_PREV
     ; The battle's audio package: its song and its sound effects. It goes apart
     ; from the map's package and not inside it, and that is measured: the battle

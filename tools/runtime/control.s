@@ -25,14 +25,14 @@ AUTOFIRE_FRAMES = 4
 .proc read_pad
 .a8
 .i16
-arranca:
+starts:
     lda HVBJOY
     and #$01
-    beq arranca                 ; not started yet
-termina:
+    beq starts                 ; not started yet
+ends:
     lda HVBJOY
     and #$01
-    bne termina                 ; still reading
+    bne ends                 ; still reading
     lda pad
     sta pad_prev                 ; the previous one, for the edges below
     lda JOY1H
@@ -46,7 +46,7 @@ termina:
     sta pad_a_prev
     lda JOY1L
     bit #PAD_X
-    bne con_x
+    bne with_x
     stz autofire                ; so the next X starts by pressing A
     and #PAD_A
     sta pad_a
@@ -62,16 +62,16 @@ termina:
     ; many: the next tick goes through the path above, which writes only the
     ; real A, so at most it clears a pressed `pad_a`, and that is not a rising
     ; edge.
-con_x:
+with_x:
     and #PAD_A
     sta pad_a
     lda autofire
     inc autofire
     and #AUTOFIRE_FRAMES       ; tick 0 falls in the pressed phase: X presses now
-    bne apagado
+    bne off
     lda #PAD_A
     tsb pad_a
-apagado:
+off:
     rts
 .endproc
 
@@ -124,10 +124,10 @@ ARROWS = PAD_UP | PAD_DOWN | PAD_LEFT | PAD_RIGHT
     eor pad_prev
     and pad
     and #ARROWS
-    bne de_cero                 ; an arrow just pressed: its edge is enough
+    bne from_zero                 ; an arrow just pressed: its edge is enough
     lda pad
     and #ARROWS
-    beq de_cero                 ; none held
+    beq from_zero                 ; none held
     inc arrows_frames
     lda arrows_frames
     cmp #REPEAT_WAIT
@@ -141,7 +141,7 @@ ARROWS = PAD_UP | PAD_DOWN | PAD_LEFT | PAD_RIGHT
     sta arrows_repeated
     trb pad_prev                 ; to the screens, just pressed
     rtl
-de_cero:
+from_zero:
     stz arrows_frames
 ready:
     rtl

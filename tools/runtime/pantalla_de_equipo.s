@@ -13,7 +13,7 @@
 ; scratch space and bank 0's tables with absolute addressing and so keep working
 ; without touching anything. What did change is the other way around: a datum
 ; **from here** read with absolute addressing would land in bank 0. There is
-; only one, `mensaje_de`, and it goes with `f:`; it cost an afternoon of a shop
+; only one, `message`, and it goes with `f:`; it cost an afternoon of a shop
 ; with no greeting.
 ;
 ; It costs no frames: both block inside the page, `ticks` does not advance
@@ -101,15 +101,15 @@
     rep #$20
 .a16
     lda comp_or23
-    beq ninguno
+    beq none
     cmp #ITEMS_N
-    bcs ninguno
+    bcs none
     tax
     sep #$20
 .a8
     lda f:item_k, x
     cmp #$FF
-    beq ninguno8
+    beq none8
     rep #$20
 .a16
     and #$00FF
@@ -119,10 +119,10 @@
     lda #1                      ; Z=0
     rts
 .a16
-ninguno:
+none:
     sep #$20
 .a8
-ninguno8:
+none8:
     lda #0                      ; Z=1
     rts
 .endproc
@@ -153,17 +153,17 @@ ninguno8:
     sta comp_and
     jsr eq_inv_point
     pla
-    beq resta
+    beq remain
     lda comp_and
     cmp #ITEM_MAX
     bcs ready
     inc a
-    bra escribir
-resta:
+    bra write
+remain:
     lda comp_and
     beq ready
     dec a
-escribir:
+write:
     sta WMDATA
 ready:
     rts
@@ -192,10 +192,10 @@ no:
 .i16
     sta comp_or01 + 3
     lda comp_col + 1
-    beq tiene
+    beq has
     lda comp_or01 + 3
     cmp comp_col
-    bne otra
+    bne other
     rep #$20
 .a16
     lda comp_mask
@@ -203,7 +203,7 @@ no:
     sep #$20
 .a8
     rts
-otra:
+other:
     ; A two-handed weapon removes the shield; a shield removes the two-handed
     ; weapon.
     rep #$20
@@ -214,33 +214,33 @@ otra:
 .a8
     lda comp_or01 + 3
     cmp #1
-    bne no_escudo
+    bne no_shield
     lda comp_col
-    bne tiene                   ; the weapon is not being chosen
+    bne has                   ; the weapon is not being chosen
     jsr eq_two_handed
-    bne ninguno
-    bra tiene
-no_escudo:
+    bne none
+    bra has
+no_shield:
     lda comp_or01 + 3
-    bne tiene                   ; neither shield nor weapon: the usual one
+    bne has                   ; neither shield nor weapon: the usual one
     lda comp_col
     cmp #1
-    bne tiene                   ; the shield is not being chosen
+    bne has                   ; the shield is not being chosen
     rep #$20
 .a16
     lda comp_mask
     sep #$20
 .a8
-    beq tiene                   ; taking off the shield does not touch the weapon
+    beq has                   ; taking off the shield does not touch the weapon
     lda #0
     jsr eq_read
     jsr eq_two_handed
-    bne ninguno
+    bne none
     rts                         ; `eq_id` is already the weapon
-tiene:
+has:
     lda comp_or01 + 3
     jmp eq_read
-ninguno:
+none:
     stz comp_or23
     stz comp_or23 + 1
     rts
@@ -273,7 +273,7 @@ slot:
     pha
     jsr eq_effective
     jsr eq_k
-    beq sin_puntos
+    beq no_points
     rep #$20
 .a16
     txa
@@ -293,7 +293,7 @@ slot:
     sta comp_or01
     sep #$20
 .a8
-sin_puntos:
+no_points:
     pla
     inc a
     cmp #5
@@ -301,13 +301,13 @@ sin_puntos:
     rep #$20
 .a16
     lda comp_or01
-    bmi uno                     ; signed: equipment can subtract
-    beq uno
+    bmi one                     ; signed: equipment can subtract
+    beq one
     cmp #1000
     bcc ready
     lda #999
     bra ready
-uno:
+one:
     lda #1
 ready:
     sta comp_dup
@@ -324,7 +324,7 @@ ready:
 .i16
     stz comp_base
     ldx #1
-otro:
+other:
     rep #$20
 .a16
     txa
@@ -335,10 +335,10 @@ otro:
 .a8
     stz WMADDH
     lda WMDATA
-    beq siguiente
+    beq next
     lda f:item_k, x
     cmp #$FF
-    beq siguiente
+    beq next
     phx
     rep #$20
 .a16
@@ -349,7 +349,7 @@ otro:
     lda comp_col
     inc a
     cmp item_type, x
-    bne no_va
+    bne no_goes
     ; Can the actor use it? One bit per actor, eight bytes per item.
     rep #$20
 .a16
@@ -393,14 +393,14 @@ otro:
     lda f:item_actors, x
     plx
     ldy comp_and + 2
-    beq bit_listo
-correr:
+    beq bit_ready
+run:
     lsr a
     dey
-    bne correr
-bit_listo:
+    bne run
+bit_ready:
     and #1
-    beq no_va
+    beq no_goes
     txa                         ; the k, which fits in a byte
     pha
     rep #$20
@@ -416,15 +416,15 @@ bit_listo:
     pla
     sta WMDATA
     inc comp_base
-no_va:
+no_goes:
     plx
-siguiente:
+next:
     inx
     cpx #ITEMS_N
-    bcs lista_lista
-    jmp otro                    ; a `bcc`'s 127 bytes fell short once
+    bcs list_list
+    jmp other                    ; a `bcc`'s 127 bytes fell short once
                                 ; `item_actors` was read long
-lista_lista:
+list_list:
     rep #$20
 .a16
     lda comp_base
@@ -551,12 +551,12 @@ nothing:
     cmp #$FFFF                  ; an actor with no name in this ROM
     sep #$20                    ; `sep` does not touch Z
 .a8
-    beq sin_nombre
+    beq no_name
     jsl f:ba_t_text
-sin_nombre:
+no_name:
     ; --- the description ---
     lda comp_col + 1
-    beq la_puesta
+    beq the_set
     lda comp_phase
     jsr eq_from_list
     rep #$20
@@ -566,7 +566,7 @@ sin_nombre:
     sep #$20
 .a8
     bra desc
-la_puesta:
+the_set:
     lda comp_col
     jsr eq_read
 desc:
@@ -617,7 +617,7 @@ param:
     sta comp_dup + 2
     jsl f:ba_t_number
     lda comp_col + 1
-    beq sin_flecha
+    beq no_arrow
     jsr param_pos
     rep #$20
 .a16
@@ -640,42 +640,42 @@ param:
     cmp comp_dup
     sep #$20                    ; `sep` does not touch the `cmp`'s flags
 .a8
-    beq igual
-    bcc sube
+    beq equal
+    bcc uploads
     lda #1                      ; goes down: gray
-    bra con_color
-sube:
+    bra with_color
+uploads:
     lda #2
-    bra con_color
-igual:
+    bra with_color
+equal:
     lda #0
-con_color:
+with_color:
     sta temp + 1
     lda #3
     sta comp_dup + 2
     jsl f:ba_t_number
     stz temp + 1                ; what follows goes in white
-    bra param_listo
-sin_flecha:
+    bra param_ready
+no_arrow:
     rep #$20
 .a16
     pla                         ; the current one, which was not needed
     sep #$20
 .a8
-param_listo:
+param_ready:
     inc comp_or01 + 2
     lda comp_or01 + 2
     cmp #4
-    bcs params_listos
+    bcs params_all_ready
     jmp param
-params_listos:
+params_all_ready:
     lda comp_col + 1
-    bne lista
+    bne list
     ; --- the slots ---
     lda #0
 slot:
     pha                         ; the cursor is the bar: see `eq_bar`
-    jsr fila_pos
+    jsr row_pos
     rep #$20
 .a16
     clc
@@ -698,7 +698,7 @@ slot:
     jsl f:ba_t_text
     pla
     pha
-    jsr fila_pos
+    jsr row_pos
     rep #$20
 .a16
     clc
@@ -718,14 +718,14 @@ slot:
     rts
 
     ; --- the list ---
-lista:
+list:
     lda #0
-lista_fila:
+list_row:
     pha
     clc
     adc comp_phase + 1
     cmp comp_base
-    bcs lista_listo
+    bcs list_ready
     pla
     pha
     clc
@@ -736,10 +736,10 @@ lista_fila:
     lda comp_or23
     sep #$20
 .a8
-    beq lista_siguiente         ; the empty line
+    beq list_next         ; the empty line
     pla
     pha
-    jsr fila_pos_lista
+    jsr row_pos_list
     rep #$20
 .a16
     clc
@@ -751,7 +751,7 @@ lista_fila:
     jsr eq_name
     pla
     pha
-    jsr fila_pos_lista
+    jsr row_pos_list
     rep #$20
 .a16
     clc
@@ -769,13 +769,13 @@ lista_fila:
     lda #2
     sta comp_dup + 2
     jsl f:ba_t_number
-lista_siguiente:
+list_next:
     pla
     inc a
     cmp #EQ_LIST_ROWS
-    bcc lista_fila
+    bcc list_row
     rts
-lista_listo:
+list_ready:
     pla
     rts
 
@@ -792,7 +792,7 @@ param_pos:
 .a8
 
 ; A: the slot. A16 = the position of its row.
-fila_pos:
+row_pos:
     rep #$20
 .a16
     and #$00FF
@@ -804,7 +804,7 @@ fila_pos:
 .a8
 
 ; A: the list row. A16 = the position of its row.
-fila_pos_lista:
+row_pos_list:
     rep #$20
 .a16
     and #$00FF
@@ -829,7 +829,7 @@ fila_pos_lista:
     sep #$20
 .a8
     lda comp_col
-    jsr sacar
+    jsr take
     rep #$20
 .a16
     lda comp_mask
@@ -854,12 +854,12 @@ fila_pos_lista:
     jsr eq_write
     ; Two hands.
     lda comp_col
-    bne no_arma
+    bne no_weapon
     jsr eq_two_handed            ; `eq_id` is the new weapon
     beq ready
     lda #1
-    jmp sacar
-no_arma:
+    jmp take
+no_weapon:
     cmp #1
     bne ready
     lda #0
@@ -867,12 +867,12 @@ no_arma:
     jsr eq_two_handed
     beq ready
     lda #0
-    jmp sacar
+    jmp take
 ready:
     rts
 
 ; A: the slot. What it has goes back to the inventory and it is left empty.
-sacar:
+take:
     pha
     jsr eq_read
     rep #$20
@@ -924,13 +924,13 @@ empty:
     sta MDMAEN
     ; Which one: the slot, or the visible list row.
     lda comp_col + 1
-    beq en_ranuras
+    beq in_slots
     lda comp_phase
     sec
     sbc comp_phase + 1
     ldx #(SLOTS_EQUIPMENT * 128) ; the list's, after the slots'
     bra row
-en_ranuras:
+in_slots:
     lda comp_col
     ldx #0
 row:
@@ -977,7 +977,7 @@ row:
     jsl f:ba_t_upload
     jsr eq_bar
     jsl f:items_ppu_on     ; BG2 and BG1, the windows
-espera:
+wait:
     jsl f:ba_t_vblank
     ; The pad first and the DMA after. The other way around, the 1792 bytes
     ; take some ten lines and `read_pad` arrived with the pad's auto-read
@@ -992,84 +992,84 @@ espera:
     and pad
     sta title_edges
     lda comp_col + 1
-    beq en_ranuras
-    jmp en_lista
-en_ranuras:
+    beq in_slots
+    jmp in_list
+in_slots:
     lda title_edges
     and #PAD_UP
-    beq r_no_arriba
+    beq r_no_up
     lda comp_col
-    beq espera
+    beq wait
     dec comp_col
-    jmp recomponer
-r_no_arriba:
+    jmp recompose
+r_no_up:
     lda title_edges
     and #PAD_DOWN
-    beq r_no_abajo
+    beq r_no_down
     lda comp_col
     cmp #4
-    bcs espera
+    bcs wait
     inc comp_col
-    jmp recomponer
-r_no_abajo:
+    jmp recompose
+r_no_down:
     lda title_edges
     and #PAD_B
-    beq r_mira_a
+    beq r_faces_a
     rtl
-r_mira_a:
+r_faces_a:
     lda pad_a
-    beq espera
+    beq wait
     lda pad_a_prev
-    bne espera
+    bne wait
     jsr eq_list_build
     stz comp_phase
     stz comp_phase + 1
     lda #1
     sta comp_col + 1
-    jmp recomponer
-en_lista:
+    jmp recompose
+in_list:
     lda title_edges
     and #PAD_UP
-    beq l_no_arriba
+    beq l_no_up
     lda comp_phase
-    beq espera2
+    beq wait2
     dec comp_phase
     lda comp_phase
     cmp comp_phase + 1
-    bcs recomponer
+    bcs recompose
     sta comp_phase + 1
-    bra recomponer
-l_no_arriba:
+    bra recompose
+l_no_up:
     lda title_edges
     and #PAD_DOWN
-    beq l_no_abajo
+    beq l_no_down
     lda comp_phase
     inc a
     cmp comp_base
-    bcs espera2
+    bcs wait2
     sta comp_phase
     sec
     sbc comp_phase + 1
     cmp #EQ_LIST_ROWS
-    bcc recomponer
+    bcc recompose
     inc comp_phase + 1
-    bra recomponer
-l_no_abajo:
+    bra recompose
+l_no_down:
     lda title_edges
     and #PAD_B
-    beq l_mira_a
+    beq l_faces_a
     stz comp_col + 1
-    bra recomponer
-l_mira_a:
+    bra recompose
+l_faces_a:
     lda pad_a
-    beq espera2
+    beq wait2
     lda pad_a_prev
-    bne espera2
+    bne wait2
     jsr eq_equip
     stz comp_col + 1
-recomponer:
+recompose:
     jsr eq_compose
-espera2:
-    jmp espera
+wait2:
+    jmp wait
 .endproc
 

@@ -32,7 +32,7 @@ port0: .res 1
 
 ; What `flush_video` writes to INIDISP at the end of the vblank: the master
 ; brightness from 0 to BRIGHTNESS_MAX. Nobody else writes it, and the why is in
-; `prender`. It goes in the BSS and not in the direct page because it is
+; `on`. It goes in the BSS and not in the direct page because it is
 ; touched once per frame, in no tight loop —and the zero page is full—.
 brightness:      .res 1
 
@@ -615,7 +615,7 @@ pal_buf:  .res 512
 ; four more bytes of code in absolute addressing; and absolute is safe because
 ; `read_pad` already reads `JOY1L` that way, so all its callers have a data
 ; bank that sees low RAM. It goes at the end so as not to shift anyone's
-; address. `arranque` sets it to zero even though `read_pad` overwrites it on
+; address. `boot` sets it to zero even though `read_pad` overwrites it on
 ; every pass with X released, because with X held since power-on the first
 ; frame would read garbage in bsnes.
 autofire: .res 1

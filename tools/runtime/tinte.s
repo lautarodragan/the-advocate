@@ -50,7 +50,7 @@
     inc tint_mirror
 start:
     ldy #$0000
-cada:
+each:
     tya
     sta WRMPYA
     lda temp
@@ -77,31 +77,31 @@ cada:
     nop
     lda RDDIVL
     cmp #32
-    bcc cabe
+    bcc fits
     lda #31                     ; the channel has five bits and no more
-cabe:
+fits:
     sta (temp + 2), y
     iny
     cpy #32
-    bne cada
+    bne each
 
     lda tint_mirror
-    bne espejar
+    bne mirror
     rts
 
     ; The mirror goes in two passes, with a copy in between, because
     ; `(dp), y` addresses with Y and here two indices are needed at once: `j`
     ; and `31 - j`.
-espejar:
+mirror:
     ldy #$0000
-copiar:
+copy:
     lda (temp + 2), y
     sta tint_tmp, y
     iny
     cpy #32
-    bne copiar
+    bne copy
     ldy #$0000
-volver:
+go_back:
     rep #$20
 .a16
     tya
@@ -115,7 +115,7 @@ volver:
     sta (temp + 2), y
     iny
     cpy #32
-    bne volver
+    bne go_back
     rts
 .endproc
 
@@ -142,13 +142,13 @@ volver:
     ldx #$0000
     cpx tint_end
     beq ready                   ; a palette with no colors
-copia:
+copy:
     lda pal_buf, x
     sta cgram_shadow, y
     inx
     iny
     cpx tint_end
-    bne copia
+    bne copy
 ready:
     lda #1
     sta tint_ready
@@ -174,9 +174,9 @@ ready:
     ; with no colors leaves without doing anything: the DMA below would
     ; measure zero bytes, which on the hardware is 64 KB, and would fill CGRAM
     ; with garbage.
-    bne hay_colores
+    bne has_colors
     rts
-hay_colores:
+has_colors:
     ldy #$0000
     ; With neutral saturation —which is almost always— the color needs neither
     ; the three channels together nor to leave sixteen bits, and there the
@@ -189,17 +189,17 @@ hay_colores:
     ; with the `count_lost` probe.
     lda tint_s
     cmp #TINT_NEUTRAL
-    bne cada_color
+    bne each_color
     rep #$20
 .a16
-    jmp cada_color_neutro
+    jmp each_color_neutral
 
-cada_color:
+each_color:
 .a8
     cpy tint_end
-    bne sigue_color
+    bne continues_color
     rts
-sigue_color:
+continues_color:
     rep #$20
 .a16
     lda [tint_ptr], y
@@ -241,9 +241,9 @@ sigue_color:
     ; part of all this.
     lda tint_s
     cmp #TINT_NEUTRAL
-    beq sin_saturar
+    beq no_saturate
     jsr saturate_color
-sin_saturar:
+no_saturate:
     ldx sat_r
     lda table_r, x
     sta temp + 2
@@ -278,15 +278,15 @@ sin_saturar:
     iny
     sep #$20
 .a8
-    bra cada_color
+    bra each_color
 
     ; The same color, without saturation and without leaving sixteen bits. The
     ; `lda tabla_x, x` also read the byte next to it —the three tables are
     ; contiguous and `pure` comes after—; the `and` throws it away.
-cada_color_neutro:
+each_color_neutral:
 .a16
     cpy tint_end
-    beq subir_neutro
+    beq upload_neutral
     lda [tint_ptr], y
     sta temp
     and #$001F                  ; the red
@@ -325,11 +325,11 @@ cada_color_neutro:
     sta pal_buf, y
     iny
     iny
-    bra cada_color_neutro
-subir_neutro:
+    bra each_color_neutral
+upload_neutral:
     sep #$20
 .a8
-subir:
+upload:
     rts
 .endproc
 
@@ -458,7 +458,7 @@ subir:
     sta sat_ch
     lda tint_s
     cmp #(TINT_NEUTRAL + 1)
-    bcs sobre
+    bcs over
 
     ; Up to 100 it is an interpolation between the gray and the color, with
     ; both terms positive: it is the form the 65816 can do unsigned.
@@ -503,24 +503,24 @@ subir:
     ; signed subtraction. easyrpg does it with an arithmetic shift, which
     ; rounds down also with negatives; here it truncates. The difference is
     ; one value out of 31 and only when oversaturating.
-sobre:
+over:
     lda tint_s
     sec
     sbc #TINT_NEUTRAL
     sta WRMPYA
     lda sat_ch
     cmp sat_light
-    bcc baja
+    bcc low
     inc sat_upload_mark
     sec
     sbc sat_light
-    bra multiplicar
-baja:
+    bra multiply
+low:
     stz sat_upload_mark
     lda sat_light
     sec
     sbc sat_ch
-multiplicar:
+multiply:
     sta WRMPYB
     nop
     nop
@@ -545,20 +545,20 @@ multiplicar:
     lda RDDIVL
     sta temp + 2
     lda sat_upload_mark
-    beq restar
+    beq subtract
     lda sat_ch
     clc
     adc temp + 2
     cmp #32
-    bcc listo_sobre
+    bcc ready_over
     lda #31
-listo_sobre:
+ready_over:
     rts
-restar:
+subtract:
     lda sat_ch
     sec
     sbc temp + 2
-    bcs listo_sobre
+    bcs ready_over
     lda #0
     rts
 .endproc
@@ -579,9 +579,9 @@ restar:
     nop
     lda RDDIVL
     cmp #32
-    bcc cabe
+    bcc fits
     lda #31
-cabe:
+fits:
     rts
 .endproc
 
@@ -626,7 +626,7 @@ cabe:
     ; uploading them afterwards would leave the hero untinted, which is the
     ; inverse of the timer's error.
     lda hero_cgram + 2
-    beq sin_lider_pal           ; no leader with a graphic: nothing to upload
+    beq no_leader_pal           ; no leader with a graphic: nothing to upload
     rep #$20
 .a16
     lda hero_cgram
@@ -645,7 +645,7 @@ cabe:
     adc #129                    ; the sprite half, plus index 0 which is not
     sta tint_cgadd               ; drawn
     jsr tint_palette
-sin_lider_pal:
+no_leader_pal:
 
     ; The timer goes **untinted**, on top of what was just uploaded. In RM2k
     ; the tint is a property of the map's drawables —`Priority_Screen` is 90
@@ -832,12 +832,12 @@ visible:
     lsr a                       ; from 128 bytes per map to two
     tax
     lda f:timer_mask, x
-    bne hay
+    bne has
     sep #$20
 .a8
     rts                         ; this map does not carry the digits
 .a16
-hay:
+has:
     sta tint_count               ; the bits left: not `temp`, which in the
                                 ; vblank may be busy
     ; The palette in ROM, and the CGRAM entry 0 it gets.
@@ -865,13 +865,13 @@ hay:
     adc #128
     sta tint_cgadd
     ldy #$0000
-cada:
+each:
     rep #$20
 .a16
     lsr tint_count
     sep #$20
 .a8
-    bcc siguiente
+    bcc next
     lda tint_cgadd
     sta CGADD
     lda [tint_ptr], y
@@ -880,13 +880,13 @@ cada:
     lda [tint_ptr], y
     sta CGDATA
     dey
-siguiente:
+next:
     inc tint_cgadd
     iny
     iny
     lda tint_count
     ora tint_count + 1
-    bne cada                    ; with no more bits, the rest is already tinted
+    bne each                    ; with no more bits, the rest is already tinted
     rts
 .endproc
 
@@ -903,18 +903,18 @@ siguiente:
 .i16
     lda tint_r
     cmp #TINT_NEUTRAL
-    bne pedir
+    bne request
     lda tint_g
     cmp #TINT_NEUTRAL
-    bne pedir
+    bne request
     lda tint_b
     cmp #TINT_NEUTRAL
-    bne pedir
+    bne request
     lda tint_s
     cmp #TINT_NEUTRAL
-    bne pedir
+    bne request
     rts
-pedir:
+request:
     lda #1
     sta tint_ready
     rts

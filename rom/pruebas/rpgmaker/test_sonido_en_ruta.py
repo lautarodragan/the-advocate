@@ -4,8 +4,8 @@ En RM2k suena cuando la ruta llega a ese paso (`Game_Character::
 UpdateMoveRoute`, `play_sound_effect`), sin costar un cuadro: la orden que
 sigue corre en el mismo. Hasta el 2026-09-27 el conversor lo tiraba. Ahora va
 con el índice del efecto detrás —el mismo de `OP_SOUND`— y la ROM lo toca con
-`sound_play`, sobre el héroe (`sonido_heroe`) y sobre un evento
-(`sonido_ev`): son dos caminos y cada uno tiene su caso.
+`sound_play`, sobre el héroe (`sound_hero`) y sobre un evento
+(`sound_ev`): son dos caminos y cada uno tiene su caso.
 
 Los casos son del mapa 10 con `Close1`, que ya está en su paquete de audio
 por las páginas del mapa: así el caso no le agrega un efecto al paquete ni le
@@ -92,7 +92,7 @@ def test_sobre_el_heroe_suena_en_su_paso(partida):
 
 
 def test_sobre_un_evento_suena(partida):
-    """Suena una vez, con la muestra de `Close1`: es `sonido_ev`, el camino
+    """Suena una vez, con la muestra de `Close1`: es `sound_ev`, el camino
     de los eventos, que lee el operando del bytecode con la ranura en X."""
     una = partida(caso="sonido-en-ruta-evento")
     esperada = fila(una)

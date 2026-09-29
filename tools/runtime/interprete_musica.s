@@ -15,14 +15,14 @@
 .proc op_bgm
     lda [code_ptr], y
     iny
-tocar:
+touch:
     cmp #SONG_TOTAL
-    bcs otro_tema
+    bcs other_song
     phy
     jsr music_start
     ply
-otro_tema:
-    jmp run_code::otro
+other_song:
+    jmp run_code::other
 
 .endproc
 
@@ -31,10 +31,10 @@ otro_tema:
 ; in A if it has to be played, which is the same thing a `PlayBGM` would do.
 .proc op_memorized_bgm
     jsl f:remembered_song
-    bcs tocar
-    jmp run_code::otro
-tocar:
-    jmp op_bgm::tocar
+    bcs touch
+    jmp run_code::other
+touch:
+    jmp op_bgm::touch
 
 .endproc
 
@@ -52,10 +52,10 @@ tocar:
 ; kept playing forever.
 .proc op_fade_bgm
     lda f:MSU_PLAYING
-    bne fundir
+    bne fade_step
     lda music_off
-    bne fundir_nada
-fundir:
+    bne fade_nothing
+fade_step:
     php
     sei                         ; `irq_music` reads it: all at once or nothing
     lda [code_ptr], y
@@ -70,11 +70,11 @@ fundir:
     lda #1
     sta bgm_fade
     plp
-    jmp run_code::otro
-fundir_nada:
+    jmp run_code::other
+fade_nothing:
     iny
     iny
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -82,6 +82,6 @@ fundir_nada:
 ; end of `music_tick`, after whatever the music writes in the frame.
 .proc op_sound
     jsr sound_from_code
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc

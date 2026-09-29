@@ -17,7 +17,7 @@
 .a8
 .i16
     ldx #$0000
-buscar:
+seek:
     lda flash_ev, x
     cmp #FLASH_FREE
     beq set2
@@ -30,7 +30,7 @@ buscar:
     cmp #FLASH_MAX * FLASH_STRIDE
     sep #$20
 .a8
-    bcc buscar
+    bcc seek
     rts                         ; no slot: this flash is lost
 
 set2:
@@ -62,19 +62,19 @@ set2:
 .a8
 .i16
     cmp #$00
-    bne de_evento
+    bne from_event
     lda hero_pal
     lsr a                       ; hero_pal comes shifted one place
     and #$07
     rts
-de_evento:
+from_event:
     dec a
     jsr event_npc
     cpy #$FFFF
-    bne hay
+    bne has
     lda #$FF
     rts
-hay:
+has:
     lda npc_buf + 7, y
     lsr a
     and #$07
@@ -86,14 +86,14 @@ hay:
 .a8
 .i16
     ldx #$0000
-otra:
+other:
     lda flash_ev, x
     cmp #FLASH_FREE
-    beq siguiente
+    beq next
     phx
     jsr one_flash
     plx
-siguiente:
+next:
     rep #$20
 .a16
     txa
@@ -103,7 +103,7 @@ siguiente:
     cmp #FLASH_MAX * FLASH_STRIDE
     sep #$20
 .a8
-    bcc otra
+    bcc other
     rts
 .endproc
 
@@ -118,13 +118,13 @@ siguiente:
     inc a
     sta flash_ev + 6, x
     cmp flash_ev + 5, x
-    bcc todavia
-    beq todavia                 ; the last frame goes with zero strength
+    bcc still
+    beq still                 ; the last frame goes with zero strength
     lda #FLASH_FREE
     sta flash_ev + 0, x
     rts
 
-todavia:
+still:
     ; The strength: power * (frames - k) / frames, which is the closed form of
     ; the computation easyrpg does frame by frame.
     lda flash_ev + 5, x
@@ -253,13 +253,13 @@ ready:
     sep #$20
 .a8
     ldy #$0000
-copiar:
+copy:
     lda pal_buf, y
     sta f:FAR_FLASH_PAL, x
     inx
     iny
     cpy #32
-    bne copiar
+    bne copy
     ldx flash_slot_ofs
     lda tint_cgadd
     sta flash_ev + 7, x         ; and it is left waiting for the vblank
@@ -298,7 +298,7 @@ copiar:
 .a8
 .i16
     ldx #$0000
-copiar:
+copy:
     lda pure + 0, x
     sta table_r, x
     lda pure + 32, x
@@ -307,7 +307,7 @@ copiar:
     sta table_b, x
     inx
     cpx #32
-    bne copiar
+    bne copy
     rts
 .endproc
 
@@ -329,7 +329,7 @@ copiar:
 ; round —`ToneBlit` and then `BlendBlit`— but there the tone belongs to the
 ; sprite and here the tint belongs to the whole screen. With a neutral tint it
 ; makes no difference; with a tint, the ROM does `tinte(destello(c))` and RM2k
-; `destello(tono(c))`. It is another declared debt of the same kind as the
+; `flash(tono(c))`. It is another declared debt of the same kind as the
 ; five-bit one, and the only place it shows is in a page that tints and
 ; flashes at the same time.
 ;
@@ -395,7 +395,7 @@ copiar:
     ; in B while A reads `pure`.
     lda RDMPYL
     inc a
-cada:
+each:
     xba
     ; And the tint, which is already resolved: looking up the blended channel
     ; in the tint-only table **is** the hard light, and it takes a product and
@@ -410,7 +410,7 @@ cada:
     inx
 :   iny
     cpy pure_ofs
-    bne cada
+    bne each
     rts
 .endproc
 .assert table_g = table_r + 32 && table_b = table_r + 64, error, "flash_channel_table indexes all three from table_r"

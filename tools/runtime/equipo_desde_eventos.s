@@ -22,7 +22,7 @@
     sta temp + 3
     phy
     lda temp + 2
-    bne uno
+    bne one
     ; Up to `party_n`: see `heal`, which took the same care.
     ldx #0
 slot:
@@ -34,7 +34,7 @@ slot:
     plx
     inx
     bra slot
-uno:
+one:
     jsr equipment_remove_actor
 ready:
     ply
@@ -78,10 +78,10 @@ ready:
 .a8
     lda f:FAR_LENGTH + FAR_ITEMS, x
     cmp #ITEM_MAX
-    bcs listo8
+    bcs ready8
     inc a
     sta f:FAR_LENGTH + FAR_ITEMS, x
-listo8:
+ready8:
     rts
 .a16
 ready:
@@ -110,11 +110,11 @@ ready:
     lda [code_ptr], y            ; 1 learns, 0 forgets
     iny
     cmp #0
-    beq olvidar
+    beq forget
     lda f:FAR_LENGTH + FAR_SKILL, x
     ora temp
     bra put
-olvidar:
+forget:
     lda temp
     eor #$FF
     and f:FAR_LENGTH + FAR_SKILL, x
@@ -179,11 +179,11 @@ put:
 .a8
 .i16
     ldx #0
-otro:
+other:
     cpx #COMEQ_N
-    bcc hay
+    bcc has
     rtl
-hay:
+has:
     phx
     lda f:comeq_mask, x
     sta temp
@@ -198,7 +198,7 @@ hay:
 .a8
     lda switches, y
     and temp
-    beq apagado
+    beq off
     rep #$20
 .a16
     lda ev_cur
@@ -246,10 +246,10 @@ hay:
     sta ev_cur
     sep #$20
 .a8
-apagado:
+off:
     plx
     inx
-    bra otro
+    bra other
 .endproc
 
 ; The skill bits set to what the LDB says each actor knows at their initial
@@ -260,11 +260,11 @@ apagado:
 .a8
 .i16
     ldx #0
-otro:
+other:
     lda f:skill_initial, x
     sta f:FAR_LENGTH + FAR_SKILL, x
     inx
     cpx #SKILL_BYTES
-    bne otro
+    bne other
     rtl
 .endproc

@@ -23,14 +23,14 @@
 .a16
     lda [code_ptr], y            ; frames
     sta shake_remain
-    bne con_cuadros
+    bne with_frames
     stz shake_pos            ; ShakeEnd: the screen goes back to its place
-con_cuadros:
+with_frames:
     iny
     iny
     sep #$20
 .a8
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -39,7 +39,7 @@ con_cuadros:
 ; it.
 .proc op_flash_screen
     jsr flash_from_code
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -58,7 +58,7 @@ con_cuadros:
     tay
     sep #$20
 .a8
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 

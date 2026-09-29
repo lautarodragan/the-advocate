@@ -32,10 +32,10 @@ RAIN_L   = $7E0000 + FAR_RAIN
 .a8
     stz WMADDH
     ldx #5
-otro:
+other:
     stz WMDATA
     dex
-    bne otro
+    bne other
     rts
 .endproc
 
@@ -56,12 +56,12 @@ otro:
     stz WMADDH
     lda WMDATA
     cmp temp
-    bne cambia
+    bne changes
     lda WMDATA
     cmp temp + 1
-    bne cambia
+    bne changes
     rts
-cambia:
+changes:
     rep #$20
 .a16
     lda #FAR_WEATHER
@@ -74,22 +74,22 @@ cambia:
     sta WMDATA
     lda temp
     cmp #WEATHER_RAIN
-    bne ninguna
+    bne none
     lda temp + 1
-    beq debil
+    beq weak
     cmp #1
-    beq media
+    beq half
     lda #RAIN_DROPS_2
-    bra cuantas
-media:
+    bra how_many
+half:
     lda #RAIN_DROPS_1
-    bra cuantas
-debil:
+    bra how_many
+weak:
     lda #RAIN_DROPS_0
-    bra cuantas
-ninguna:
+    bra how_many
+none:
     lda #0
-cuantas:
+how_many:
     sta WMDATA
     lda #<RAIN_SEED
     sta WMDATA
@@ -103,10 +103,10 @@ cuantas:
     sep #$20
 .a8
     ldx #(RAIN_DROPS_MAX * 3)
-apagar:
+off:
     stz WMDATA
     dex
-    bne apagar
+    bne off
     rts
 .endproc
 
@@ -154,9 +154,9 @@ apagar:
 .a8
 .i16
     lda f:WEATHER_L + 2
-    bne hay
+    bne has
     rts
-hay:
+has:
     sta comp_col                ; how many
     rep #$20
 .a16
@@ -165,9 +165,9 @@ hay:
     sep #$20
 .a8
     ldx #0
-gota:
+drop:
     lda f:RAIN_L + 2, x       ; its life
-    beq apagada
+    beq off
     ; Alive: down four, one to the left, and one less life left.
     dec a
     sta f:RAIN_L + 2, x
@@ -178,15 +178,15 @@ gota:
     clc
     adc #4
     sta f:RAIN_L + 1, x
-    bra siguiente
-apagada:
+    bra next
+off:
     ; It is born with a RAIN_BORN in 256 chance, at a random place.
     ; `rain_random` returns with a 16-bit A and does not touch X.
     jsr rain_random
     sep #$20
 .a8
     cmp #RAIN_BORN
-    bcs siguiente
+    bcs next
     lda #RAIN_LIFE
     sta f:RAIN_L + 2, x
     jsr rain_random
@@ -197,12 +197,12 @@ apagada:
     sep #$20
 .a8
     sta f:RAIN_L + 1, x
-siguiente:
+next:
     inx
     inx
     inx
     dec comp_col
-    bne gota
+    bne drop
     rep #$20
 .a16
     lda comp_mask
@@ -228,13 +228,13 @@ siguiente:
     ldx map_ofs
     lda f:map_table + M_RAIN_BASE, x
     ora f:map_table + M_RAIN_BASE + 1, x
-    bne con_gotas
+    bne with_drops
     rts
-con_gotas:
+with_drops:
     lda f:WEATHER_L + 2
-    bne hay
+    bne has
     rts
-hay:
+has:
     sta comp_col                ; how many
     rep #$20
 .a16
@@ -250,24 +250,24 @@ hay:
     sta comp_color
     stz comp_dup + 3
     ldx #0
-gota:
+drop:
     lda f:RAIN_L + 2, x
-    bne viva
-    jmp siguiente
-viva:
+    bne alive
+    jmp next
+alive:
     ; The shade: 0 with nine or more life, 1 with five or more, 2 otherwise.
     cmp #9
-    bcs tono0
+    bcs tone0
     cmp #5
-    bcs tono1
+    bcs tone1
     lda #2
-    bra tono
-tono0:
+    bra tone
+tone0:
     lda #0
-    bra tono
-tono1:
+    bra tone
+tone1:
     lda #1
-tono:
+tone:
     sta comp_dup + 2
     ; On screen: minus the map's scroll, in eight bits.
     lda f:RAIN_L, x
@@ -279,24 +279,24 @@ tono:
     sbc camera_y
     sta comp_dup + 1
     stz comp_row               ; the half: 0 top, 1 bottom
-mitad:
+half:
     lda comp_dup + 1
     cmp #224
-    bcc se_ve
+    bcc se_sees
     cmp #248
-    bcs se_ve                   ; peeks in from the top
-    jmp otra_mitad
-se_ve:
+    bcs se_sees                   ; peeks in from the top
+    jmp other_half
+se_sees:
     rep #$20
 .a16
     lda oam_slot
     cmp #128
-    bcc queda_lugar
+    bcc remains_place
     sep #$20
 .a8
     rts
 .a16
-queda_lugar:
+remains_place:
     asl a
     asl a
     tay
@@ -330,17 +330,17 @@ queda_lugar:
     lda oam_slot
     and #$03
     cmp #$03
-    bne sin_byte
+    bne no_byte
     phx
     jsr store_high
     plx
-sin_byte:
+no_byte:
     rep #$20
 .a16
     inc oam_slot
     sep #$20
 .a8
-otra_mitad:
+other_half:
     lda comp_dup + 1
     clc
     adc #8
@@ -348,15 +348,15 @@ otra_mitad:
     inc comp_row
     lda comp_row
     cmp #2
-    bcs siguiente
-    jmp mitad
-siguiente:
+    bcs next
+    jmp half
+next:
     inx
     inx
     inx
     dec comp_col
     beq ready
-    jmp gota
+    jmp drop
 ready:
     rts
 .endproc

@@ -42,7 +42,7 @@
     lda temp
     jsr event_slot
     cpx #$FFFF
-    bne reusada
+    bne reused
     jsr free_slot
     cpx #$FFFF
     bne set2
@@ -78,18 +78,18 @@ set2:
     lda temp                    ; afterwards: `event_npc` overwrites it
     jsr event_npc           ; Y = its row, or $FFFF; A is lost
     cpy #$FFFF
-    beq sin_fila
+    beq no_row
     lda npc_buf + 13, y
-    bra con_velocidad
-sin_fila:
+    bra with_speed
+no_row:
     lda #3
-con_velocidad:
+with_speed:
     ply
     sta route_ev + 17, x
     lda temp
     jsr active_layer             ; its layer, once and not on every step
     sta route_ev + 31, x
-reusada:
+reused:
     lda route_ev + 18, x
     and #$FE                    ; the forced one overrides the page's, if there was one
     ora #$04                    ; and what is blocked is skipped
@@ -181,10 +181,10 @@ reusada:
     sep #$20
 .a8
     lda temp + 1                ; the sign of sx
-    bmi derecha
+    bmi right
     lda #DIR_LEFT
     rts
-derecha:
+right:
     lda #DIR_RIGHT
     rts
 vertical:
@@ -192,13 +192,13 @@ vertical:
     sep #$20
 .a8
     lda temp + 3                ; the sign of sy
-    bmi abajo
+    bmi down
     lda temp + 2
     ora temp + 3
-    beq abajo                   ; the same cell: down
+    beq down                   ; the same cell: down
     lda #DIR_UP
     rts
-abajo:
+down:
     lda #DIR_DOWN
     rts
 .endproc
@@ -209,21 +209,21 @@ abajo:
 .i16
     stz routes_moved
     ldx #$0000
-otra:
+other:
     lda route_ev, x
     cmp #ROUTE_EV_FREE
-    beq siguiente
+    beq next
     ; The one that already took its step tied to its parallel interpreter does not
     ; take it again: the mark is consumed here, so it lasts one frame. See
     ; `one_parallel`.
     lda route_ev + 18, x
     and #$40
-    beq no_movido
+    beq no_moved
     lda route_ev + 18, x
     and #$BF
     sta route_ev + 18, x
-    bra siguiente
-no_movido:
+    bra next
+no_moved:
     phx
     jsr ev_route_frame
     plx
@@ -235,7 +235,7 @@ no_movido:
     plx
     lda #1
     sta routes_moved
-siguiente:
+next:
     rep #$20
 .a16
     txa
@@ -245,7 +245,7 @@ siguiente:
     cmp #ROUTE_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
-    bcc otra
+    bcc other
     ; From here on the one that moves is the hero again.
     lda #HERO_WALKER
     sta walker
@@ -269,7 +269,7 @@ siguiente:
     and #$DF                    ; `repeat`'s reload, one per frame
     sta route_ev + 18, x
     lda route_ev + 7, x
-    beq sin_paso
+    beq no_step
     ; The step advances by what the speed says, out of 256 per cell; +7 only says
     ; there is one in progress.
     jsr step_slot
@@ -278,61 +278,61 @@ siguiente:
     lda route_ev + 22, x
     sec
     sbc temp
-    bcs no_negativo
+    bcs no_negative
     lda #0
-no_negativo:
+no_negative:
     sta route_ev + 22, x
     sep #$20
 .a8
-    bne moviendo
+    bne still_moving
     stz route_ev + 7, x          ; the step ended on this frame
     lda route_ev + 5, x
     cmp route_ev + 4, x
-    bcc con_ordenes
+    bcc with_commands
     lda route_ev + 18, x         ; no commands: only the repeating page one
     and #$03                    ; keeps waiting
     cmp #$03
-    bne moviendo
-con_ordenes:
+    bne still_moving
+with_commands:
     lda route_ev + 16, x
     jsr after_step
     sta route_ev + 9, x
-moviendo:
+still_moving:
     lda #1
     sta route_ev + 6, x
     rts
-sin_paso:
+no_step:
     lda route_ev + 13, x
-    beq sin_salto
+    beq no_jump
     jsr slot_jump
     sta temp
     lda route_ev + 13, x
     sec
     sbc temp
-    bcs guardar_salto
+    bcs save_jump
     lda #0
-guardar_salto:
+save_jump:
     sta route_ev + 13, x
     rts
-sin_salto:
+no_jump:
     ; And a `wait` in progress takes the whole frame, same as the hero's.
     lda route_ev + 9, x
-    beq sin_espera
+    beq no_wait
     dec a
     sta route_ev + 9, x
     rts
-sin_espera:
+no_wait:
     ; The page's own move route does not read new commands while the interpreter
     ; has a page running: it is `UpdateNextMovementAction`'s `IsRunning()`. The
     ; step in progress already finished above and the waits keep counting.
     lda route_ev + 18, x
     and #$01
-    beq no_congelada
+    beq no_frozen
     lda ev_active
-    bne congelada
+    bne frozen
     lda waiting_n
-    bne congelada
-no_congelada:
+    bne frozen
+no_frozen:
     ; The move route's pointer to the direct page, which is where it can be read
     ; from with `[ptr], y`.
     rep #$20
@@ -344,10 +344,10 @@ no_congelada:
     lda route_ev + 3, x
     sta route_ptr + 2
 
-otra_orden:
+other_command:
     lda route_ev + 5, x          ; which one it is on
     cmp route_ev + 4, x          ; how many it has
-    bcc hay_orden
+    bcc has_command
     ; The commands ran out. The repeating page one goes back to the start on the
     ; same frame, and only once per frame —`UpdateMoveRoute`'s `current_index ==
     ; start_index`—; and a forced one that ends on an event with its own move route
@@ -355,22 +355,22 @@ otra_orden:
     lda route_ev + 18, x
     and #$23
     cmp #$03
-    bne no_repite
+    bne no_repeats
     stz route_ev + 5, x
     lda route_ev + 18, x
     ora #$20
     sta route_ev + 18, x
-    jmp otra_orden
-no_repite:
+    jmp other_command
+no_repeats:
     lda route_ev + 18, x
     and #$01
-    bne congelada               ; the page one, finished: done
+    bne frozen               ; the page one, finished: done
     lda route_ev + 27, x
-    beq congelada               ; no page to go back to
+    beq frozen               ; no page to go back to
     jsr resume_page
-congelada:
+frozen:
     jmp ready
-hay_orden:
+has_command:
     rep #$20
 .a16
     and #$00FF
@@ -381,163 +381,163 @@ hay_orden:
     inc route_ev + 5, x
 
     cmp #23                     ; wait: this one and the ROUTE_WAIT - 1 after it,
-    bne no_es_wait              ; plus the turn's if the frequency is low
+    bne not_wait              ; plus the turn's if the frequency is low
     lda route_ev + 16, x
     jsr after_turn
     clc
     adc #(ROUTE_WAIT - 1)
     sta route_ev + 9, x
     jmp ready
-no_es_wait:
+not_wait:
     cmp #12
-    bcs no_mueve
+    bcs no_moves
     cmp #9
     bne :+
     ; `move_towards_hero`. It is not a separate command but the two already there
     ; put together: `UpdateMoveRoute` does `TurnTowardCharacter(hero)` and then
     ; `Move(GetDirection())`, that is, 21 and a `move_*` on the same frame. That
-    ; is why the direction comes from here and it falls into `mover` without
+    ; is why the direction comes from here and it falls into `move` without
     ; touching anything else: the turn, the step and what it costs are the usual.
     ; `toward_hero` does not overwrite X, which is the slot.
     jsr event_cell
     jsr toward_hero
-:   jmp mover                   ; 0..3 are the move_*, and 9 already brings its own
-no_mueve:
+:   jmp move                   ; 0..3 are the move_*, and 9 already brings its own
+no_moves:
     cmp #16
     bcs :+
     jmp face                    ; 12..15 are the face_*; it is far
 :
     cmp #21
-    bne no_encara
-    ; face_hero: the event's cell against the hero's, and on to `mirar` with the
+    bne no_faces
+    ; face_hero: the event's cell against the hero's, and on to `look` with the
     ; direction in A.
     jsr event_cell
     jsr toward_hero
-    jmp mirar
-no_encara:
+    jmp look
+no_faces:
     ; Turning without moving is not compiled: it does not get here.
     cmp #24
-    bne no_es_salto
+    bne not_jump
     jsr prepare_walker          ; who jumps, to collide with the others
     lda route_ev + 5, x
     dec a
     sta jump_command             ; where the 24 is, in case it has to go back
     jsr build_ev_jump
     lda route_ev + 13, x
-    bne salto_arranco
+    bne jump_started
     ; It could not land there. With the move route skippable the jump is skipped;
     ; without that RM2k moves the cursor back to the `begin_jump` and cuts the frame
     ; —`current_index = saved_index`—, and the jump is retried frame by frame until
     ; the cell frees up. Without `end_jump` there is nothing to go back to: it is
     ; always skipped.
     lda jump_stuck
-    beq saltear
+    beq skip
     lda route_ev + 18, x
     and #$04
-    bne saltear
+    bne skip
     lda jump_command
     sta route_ev + 5, x
     jmp ready
-saltear:
-    jmp otra_orden
-salto_arranco:
+skip:
+    jmp other_command
+jump_started:
     jmp ready
-no_es_salto:
+not_jump:
     cmp #25
-    beq seguir
+    beq follow
     cmp #26
-    bcc seguir                  ; the others do nothing
+    bcc follow                  ; the others do nothing
     cmp #32
-    bcc fijar_o_velocidad       ; 26 and 27 the facing, 28 and 29 the speed,
+    bcc fix_o_speed       ; 26 and 27 the facing, 28 and 29 the speed,
     cmp #34                     ; 30 and 31 the frequency
-    bne no_es_grafico           ; and 34 the graphic, which carries an operand
-    jmp cambiar_grafico         ; it is too far for a short branch
-no_es_grafico:
+    bne not_graphic           ; and 34 the graphic, which carries an operand
+    jmp change_graphic         ; it is too far for a short branch
+not_graphic:
     cmp #35
-    bne no_es_sonido
-    jmp sonido_ev               ; 35, with its operand
-no_es_sonido:
+    bne not_sound
+    jmp sound_ev               ; 35, with its operand
+not_sound:
     cmp #36
-    bcc seguir                  ; 32 and 33, the switches, do not get here
+    bcc follow                  ; 32 and 33, the switches, do not get here
     cmp #38
     bcs anim
     ; 36 turns going through walls on and 37 turns it off.
     and #$01
     eor #$01
-    beq apagar_atraviesa
+    beq off_crosses
     lda route_ev + 12, x
     ora #$01
-    bra guardar_banderas
-apagar_atraviesa:
+    bra save_flags
+off_crosses:
     lda route_ev + 12, x
     and #$FE
-    bra guardar_banderas
+    bra save_flags
 anim:
     cmp #40
-    bcs seguir
+    bcs follow
     ; 38 stops the animation and 39 resumes it.
     cmp #38
-    bne seguir_anim
+    bne follow_anim
     lda route_ev + 12, x
     ora #$02
-    bra guardar_banderas
-seguir_anim:
+    bra save_flags
+follow_anim:
     lda route_ev + 12, x
     and #$FD
-guardar_banderas:
+save_flags:
     sta route_ev + 12, x
-seguir:
-    jmp otra_orden
-fijar_o_velocidad:
+follow:
+    jmp other_command
+fix_o_speed:
     cmp #30
-    bcs ev_frecuencia
+    bcs ev_frequency
     cmp #28
-    bcs velocidad
+    bcs speed
     ; 26 locks the facing, 27 releases it: `lock_facing`.
     and #$01
-    beq fijar
+    beq fix
     lda route_ev + 18, x
     and #$F7
-    bra guardar_18
-fijar:
+    bra save_18
+fix:
     lda route_ev + 18, x
     ora #$08
-    bra guardar_18
-velocidad:
+    bra save_18
+speed:
     ; 28 raises the speed and 29 lowers it, between 1 and 6.
     and #$01
-    bne mas_lenta
+    bne more_slow
     lda route_ev + 17, x
     cmp #6
-    bcs seguir
+    bcs follow
     inc route_ev + 17, x
-    bra seguir
-mas_lenta:
+    bra follow
+more_slow:
     lda route_ev + 17, x
     cmp #2
-    bcc seguir
+    bcc follow
     dec route_ev + 17, x
-    bra seguir
-ev_frecuencia:
-    ; 30 raises the frequency and 31 lowers it, between 1 and 8. See `frecuencia`
+    bra follow
+ev_frequency:
+    ; 30 raises the frequency and 31 lowers it, between 1 and 8. See `frequency`
     ; in `step_route`, which is the same for the hero: the frames standing still
     ; after each command come from here, and the converter rejects 1.
     and #$01
-    bne menos_frec
+    bne minus_freq
     lda route_ev + 16, x
     cmp #ROUTE_FREQUENCY
-    bcs seguir
+    bcs follow
     inc route_ev + 16, x
-    bra seguir
-menos_frec:
+    bra follow
+minus_freq:
     lda route_ev + 16, x
     cmp #2
-    bcc seguir
+    bcc follow
     dec route_ev + 16, x
-    bra seguir
-guardar_18:
+    bra follow
+save_18:
     sta route_ev + 18, x
-    bra seguir
+    bra follow
 
 ; `change_graphic`: the only command with an operand. After the 34 comes the
 ; graphic's index in the map's table —two bytes per graphic, see
@@ -548,7 +548,7 @@ guardar_18:
 ; does not touch the stop counter, so the next command runs on this same frame.
 ; It does not touch the pose either: the walk cycle stays where it was, which is
 ; what `SetSpriteGraphic` does.
-cambiar_grafico:
+change_graphic:
     lda route_ev + 5, x          ; the cursor already advanced when reading the command
     rep #$20
 .a16
@@ -575,19 +575,19 @@ cambiar_grafico:
     jsr event_npc           ; its row, which is what has to change
     plx
     cpy #$FFFF
-    beq listo_graf              ; an event without a graphic has no row
+    beq ready_gfx              ; an event without a graphic has no row
     lda #$FF
     sta npc_buf + 15, y         ; a CharSet imposes nothing on the cell
     lda gfx_k
     cmp #$FF
-    bne con_grafico
+    bne with_graphic
     ; A CharSet without a single opaque pixel: the event disappears. It is the same
     ; thing `hide_npc` does, and it is 185 of the game's 437 commands 34
     ; —`nobodyhere`—, so it is not the rare case but the most common one.
     lda #0
     sta npc_buf + 14, y
-    bra listo_graf
-con_grafico:
+    bra ready_gfx
+with_graphic:
     sta npc_buf + 9, y          ; which character its poses come from
     lda npc_buf + 7, y
     and #$F1                    ; the palette lives in bits 1 to 3 of vhoopppN
@@ -601,13 +601,13 @@ con_grafico:
     sta npc_buf + 12, y         ; the pose in VRAM is no longer its own
     lda #1
     sta npc_buf + 14, y         ; and it is visible, in case it was hidden
-listo_graf:
-    jmp otra_orden
+ready_gfx:
+    jmp other_command
 
 ; `play_sound_effect`: 35, with the sound effect's index after it, in two bytes.
-; Same as on the hero —see `sonido_heroe`—: `sound_play`, `OP_SOUND`'s path,
+; Same as on the hero —see `sound_hero`—: `sound_play`, `OP_SOUND`'s path,
 ; and without costing a frame. X is the slot, and `sound_play` overwrites it.
-sonido_ev:
+sound_ev:
     lda route_ev + 5, x          ; the cursor is already on the operand
     inc a
     inc a
@@ -623,36 +623,36 @@ sonido_ev:
     jsr sound_play            ; returns with 8-bit A
 .a8
     plx
-    jmp otra_orden
+    jmp other_command
 face:
     sec
     sbc #12
-mirar:
+look:
     sta route_ev + 8, x          ; face_*: with frequency 8 it is instant and the
     lda route_ev + 16, x         ; next one follows; with another, it stands
     jsr after_turn               ; still for the turn's frames
-    bne giro_espera
-    jmp otra_orden
-giro_espera:
+    bne turn_wait
+    jmp other_command
+turn_wait:
     dec a
     sta route_ev + 9, x
     jmp ready
 
 
-mover:
+move:
     sta route_dir
     stz route_dir + 1
     lda route_ev + 18, x
     and #$08
-    bne sin_girar               ; always faces the same way: `lock_facing` or the
+    bne no_turn               ; always faces the same way: `lock_facing` or the
                                 ; page's animation type
     lda route_dir
     cmp #4
-    bcc derecho                 ; the usual four face where they go
+    bcc right                 ; the usual four face where they go
     jsr face_diagonal        ; a diagonal has no pose of its own: see there
-derecho:
+right:
     sta route_ev + 8, x          ; move_* faces where it goes
-sin_girar:
+no_turn:
     phx
     jsr event_cell        ; leaves its position in celda_x/celda_y
     jsr prepare_walker          ; and who it is, to collide with the others
@@ -662,12 +662,12 @@ sin_girar:
     stz crossing + 1
     lda route_dir
     cmp #4
-    bcc recto
+    bcc straight
     jsr cell_allowed_diag        ; the two L's: nobody looks at the diagonal cell
-    bra probado
-recto:
+    bra tested
+straight:
     jsr cell_allowed
-probado:
+tested:
     plx
     stz crossing
     stz crossing + 1
@@ -675,18 +675,18 @@ probado:
     ; looked at again: with the `beq` right after the `plx`, slot 0 —which is X = 0—
     ; always said "blocked" and no move route ever moved.
     cmp #0
-    bne no_bloqueado
+    bne no_blocked
     ; Blocked. With `skippable` —the forced ones, and the page ones that ask for
     ; it— it is skipped and the next one is tried; without it, the command is
     ; retried on the coming frame, and so on until the step goes through.
     lda route_ev + 18, x
     and #$04
-    beq reintenta
-    jmp otra_orden
-reintenta:
+    beq retries
+    jmp other_command
+retries:
     dec route_ev + 5, x
     jmp ready
-no_bloqueado:
+no_blocked:
     phx
     lda route_dir
     jsr move_event_cell
@@ -802,7 +802,7 @@ ready:
     ; one side. X is left overwritten; the caller already saved it.
     ldx route_dir
     lda f:step_dx_table, x
-    beq sin_dx
+    beq no_dx
     jsr with_sign_16
 .a16
     clc                         ; returns with the accumulator in sixteen
@@ -810,9 +810,9 @@ ready:
     sta ev_pos_buf + 0, y
     sep #$20
 .a8
-sin_dx:
+no_dx:
     lda f:step_dy_table, x
-    beq sin_dy
+    beq no_dy
     jsr with_sign_16
 .a16
     clc
@@ -820,7 +820,7 @@ sin_dx:
     sta ev_pos_buf + 2, y
     sep #$20
 .a8
-sin_dy:
+no_dy:
     rts
 .endproc
 

@@ -106,7 +106,7 @@
     lda #$0F
     sta INIDISP
 
-espera:
+wait:
     jsl f:ba_t_vblank
     jsl f:ba_t_pad
     ; Up and down switch commands, and with two it does not matter which: there
@@ -115,37 +115,37 @@ espera:
     eor pad_prev
     and pad
     bit #PAD_B
-    bne volver
+    bne go_back
     and #(PAD_UP | PAD_DOWN)
-    beq mira_a
+    beq faces_a
     lda title_sel
     eor #1
     sta title_sel
     jsr ending_palette              ; still in the vblank
-    bra espera
-mira_a:
+    bra wait
+faces_a:
     lda pad_a
-    beq espera
+    beq wait
     lda pad_a_prev
-    bne espera                  ; it was already held: not an edge
+    bne wait                  ; it was already held: not an edge
     lda title_sel
     cmp #END_NO
-    bne salir
-volver:
+    bne leave
+go_back:
     lda #$80
     sta INIDISP
     plb
     rtl
 
-salir:
+leave:
     ; "Yes": the song fades like a 400 ms `FadeOutBGM` —`Scene_End`'s
     ; `BgmFade`—, with the same guard as `op_fade_bgm`: with the song off
     ; there is nothing to fade, and with an MSU-1 track there is.
     lda f:MSU_PLAYING
-    bne fundir
+    bne fade_step
     lda music_off
-    bne pantalla
-fundir:
+    bne screen
+fade_step:
     php
     sei                         ; `irq_music` reads it: all at once or nothing
     rep #$20
@@ -159,10 +159,10 @@ fundir:
     lda #1
     sta bgm_fade
     plp
-pantalla:
+screen:
     ; And the screen, to black along the converter's ramp.
     ldx #0
-baja:
+low:
     phx
     jsl f:ba_t_vblank
     plx
@@ -170,7 +170,7 @@ baja:
     sta INIDISP
     inx
     cpx #END_FRAMES
-    bne baja
+    bne low
     lda #$80
     sta INIDISP
     ; The song finishes fading with the screen black: the screen fade is
@@ -178,15 +178,15 @@ baja:
     ; there was no song, it already is. The cap is just in case: the song only
     ; has a few frames left, and END_FRAMES is more than enough.
     ldx #END_FRAMES
-tema:
+song:
     lda bgm_fade
-    beq callado
+    beq muted
     phx
     jsl f:ba_t_vblank
     plx
     dex
-    bne tema
-callado:
+    bne song
+muted:
     ; The music, silenced before the boot, as when leaving Game Over: the
     ; reset uploads the driver to the SPC700 again, but an MSU-1 track would
     ; keep playing through the whole boot.

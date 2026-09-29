@@ -9,20 +9,20 @@
 .a8
 .i16
     lda timer_active
-    bne corre
+    bne runs
     rts
-corre:
+runs:
     lda timer_sub
-    beq otro_segundo
+    beq other_second
     dec timer_sub
     rts
-otro_segundo:
+other_second:
     lda #(TIMER_FRAMES - 1)
     sta timer_sub
     rep #$20
 .a16
     lda timer_sec
-    beq apagar_16               ; it was already at zero: nothing to decrement
+    beq off_16               ; it was already at zero: nothing to decrement
     dec a
     sta timer_sec
     sep #$20
@@ -30,19 +30,19 @@ otro_segundo:
     jsr timer_digits
     lda timer_sec
     ora timer_sec + 1
-    beq apagar
+    beq off
     rts
 .a16
-apagar_16:
+off_16:
     sep #$20
 .a8
-apagar:
+off:
     stz timer_active
     lda timer_visible
     stz timer_visible           ; `stz` does not touch Z: the branch looks at the `lda`
-    beq ya_no_se_veia
+    beq already_no_se_saw
     jsr timer_repaint          ; its entries get tinted again
-ya_no_se_veia:
+already_no_se_saw:
     rts
 .endproc
 
@@ -60,14 +60,14 @@ ya_no_se_veia:
 .a16
     lda timer_sec
     ldx #0
-menos_60:
+minus_60:
     cmp #60
-    bcc listo_60
+    bcc ready_60
     sec
     sbc #60
     inx
-    bra menos_60
-listo_60:
+    bra minus_60
+ready_60:
     sta temp                    ; the leftover seconds
     txa
     sta temp + 2                ; and the minutes
@@ -76,28 +76,28 @@ listo_60:
 
     lda temp + 2                ; the minutes, in two digits
     ldx #0
-menos_10a:
+minus_10a:
     cmp #10
-    bcc listo_10a
+    bcc ready_10a
     sec
     sbc #10
     inx
-    bra menos_10a
-listo_10a:
+    bra minus_10a
+ready_10a:
     sta timer_dig + 1
     txa                         ; with 8-bit A it is the low byte of X
     sta timer_dig + 0
 
     lda temp                    ; and the seconds
     ldx #0
-menos_10b:
+minus_10b:
     cmp #10
-    bcc listo_10b
+    bcc ready_10b
     sec
     sbc #10
     inx
-    bra menos_10b
-listo_10b:
+    bra minus_10b
+ready_10b:
     sta timer_dig + 3
     txa
     sta timer_dig + 2
@@ -116,38 +116,38 @@ listo_10b:
 .a8
 .i16
     lda timer_visible
-    bne hay
+    bne has
     rts
-hay:
+has:
     ldx map_ofs
     lda f:map_table + M_TIMER_BASE, x
     ora f:map_table + M_TIMER_BASE + 1, x
-    bne dibujar
+    bne draw
     rts                         ; this ROM does not carry the glyphs
-dibujar:
+draw:
     stz obj_big              ; the digits are 8x8
     stz timer_i
-cada_glifo:
+each_glyph:
     lda timer_i
     cmp #5
-    bcc hay_glifo
+    bcc has_glyph
     jmp end
-hay_glifo:
+has_glyph:
     cmp #2
-    bne es_digito
+    bne is_digit
     ; The colon, and only when it is due.
     lda timer_sub
     cmp #(TIMER_FRAMES / 2)
-    bcc siguiente
+    bcc next
     lda #TIMER_TWO_POINTS
-    bra con_glifo
-es_digito:
+    bra with_glyph
+is_digit:
     ; The index into `timer_dig`: the position, minus one if it comes after
     ; the colon, which has no digit of its own.
     cmp #2
-    bcc sin_ajuste
+    bcc no_adjust
     dec a
-sin_ajuste:
+no_adjust:
     rep #$20
 .a16
     and #$00FF
@@ -155,10 +155,10 @@ sin_ajuste:
     sep #$20
 .a8
     lda timer_dig, x
-con_glifo:
+with_glyph:
     sta timer_glyph
     stz timer_half
-cada_mitad:
+each_half:
     ; Where it lands on screen. The X does not carry the characters' offset:
     ; the digits are 8x8 and their corner is their corner.
     rep #$20
@@ -216,10 +216,10 @@ cada_mitad:
     inc timer_half
     lda timer_half
     cmp #2
-    bcc cada_mitad
-siguiente:
+    bcc each_half
+next:
     inc timer_i
-    jmp cada_glifo
+    jmp each_glyph
 end:
     lda #$02                    ; and whatever follows is 32x32 again
     sta obj_big

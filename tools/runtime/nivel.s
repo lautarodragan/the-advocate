@@ -22,13 +22,13 @@
 .a16
 .i16
     ldx #0
-centenas:
+hundreds:
     cmp #100
-    bcc hay_centenas
+    bcc has_hundreds
     sbc #100                    ; C comes from the comparison
     inx
-    bra centenas
-hay_centenas:
+    bra hundreds
+has_hundreds:
     pha
     txa
     sep #$20
@@ -38,13 +38,13 @@ hay_centenas:
 .a16
     pla
     ldx #0
-decenas:
+tens:
     cmp #10
-    bcc unidades
+    bcc units
     sbc #10
     inx
-    bra decenas
-unidades:
+    bra tens
+units:
     sep #$20
 .a8
     sta f:EXP_TEXT + 7
@@ -108,12 +108,12 @@ unidades:
     sep #$20
 .a8
     lda f:EXP_TEXT + 6
-    beq sin_decena
+    beq no_tens
     ora #'0'
-    bra decena
-sin_decena:
+    bra tens
+no_tens:
     lda #' '
-decena:
+tens:
     sta f:EXP_TEXT
     lda f:EXP_TEXT + 7
     ora #'0'
@@ -128,11 +128,11 @@ decena:
     pha
     jsr actor_level_of
     cmp #$FF
-    bne tiene
+    bne has
     pla
     ldx #SLOT_TEXT_LEVEL
     jmp cartridge_strip
-tiene:
+has:
     jsr level_to_text
     pla
     jmp point_text
@@ -156,11 +156,11 @@ EXP_LEVEL_IN_SRAM = SRAM_BANK * $10000 + SRAM_DATA + SAVE_BYTES - EXP_K * 4 + EX
 .a8
     lda f:actor_exp_k, x
     cmp #$FF
-    bne tiene
+    bne has
     pla
     ldx #SLOT_TEXT_LEVEL
     jmp cartridge_strip
-tiene:
+has:
     rep #$20
 .a16
     and #$00FF
@@ -193,11 +193,11 @@ tiene:
     pha
     jsr actor_level_of
     cmp #$FF
-    bne tiene
+    bne has
     pla
     ldx #SLOT_TEXT_MAX
     jmp cartridge_strip
-tiene:
+has:
     pla
     phy
     ldy #0
@@ -213,32 +213,32 @@ tiene:
     sta f:EXP_TEXT, x
     inx
     lda f:EXP_TEXT + 5
-    beq sin_centena
+    beq no_hundreds
     ora #'0'
     sta f:EXP_TEXT, x
     inx
     lda f:EXP_TEXT + 6
-    bra con_decena              ; with hundreds the tens digit goes in even if zero
-sin_centena:
+    bra with_tens              ; with hundreds the tens digit goes in even if zero
+no_hundreds:
     lda f:EXP_TEXT + 6
-    beq sin_decena
-con_decena:
+    beq no_tens
+with_tens:
     ora #'0'
     sta f:EXP_TEXT, x
     inx
-sin_decena:
+no_tens:
     lda f:EXP_TEXT + 7
     ora #'0'
     sta f:EXP_TEXT, x
     inx
 padding:
     cpx #MENU_MAX_DIGITS
-    bcs completo
+    bcs full
     lda #' '
     sta f:EXP_TEXT, x
     inx
     bra padding
-completo:
+full:
     ply
     jmp point_text
 .endproc
@@ -298,7 +298,7 @@ completo:
     sta VMAIN
     lda #MENU_HP_DIGITS
     sta temp + 3
-cifra:
+digit:
     rep #$20
 .a16
     lda temp
@@ -340,10 +340,10 @@ cifra:
     beq ready
     lda temp
     ora temp + 1
-    bne cifra
+    bne digit
     ; What is left on the left, blank: cell 0, which in the actor's block is
     ; the one already under the digits.
-blanco:
+target:
     rep #$20
 .a16
     sty VMADDL
@@ -357,7 +357,7 @@ blanco:
 .a8
     dey
     dec temp + 3
-    bne blanco
+    bne target
 ready:
     plb
     rtl
@@ -417,7 +417,7 @@ ready:
 .a8
     lda f:actor_exp_k, x
     cmp #$FF
-    beq sin_ranura
+    beq no_slot
     rep #$20
 .a16
     and #$00FF
@@ -452,22 +452,22 @@ ready:
     sep #$20
 .a8
     rtl
-sin_ranura:
+no_slot:
     rep #$20
 .a16
     txa
     asl a
     tax                         ; the actor times two
     cpy #2
-    bcs de_los_cuatro
+    bcs from_four
     cpy #1
-    beq los_sp
+    beq sp
     lda f:actor_hpmax, x
     bra ready
-los_sp:
+sp:
     lda f:actor_spmax, x
     bra ready
-de_los_cuatro:
+from_four:
     txa
     asl a
     asl a                       ; the actor times eight: four words each
@@ -610,7 +610,7 @@ ready:
     iny
     phy
     lda temp + 2
-    bne uno
+    bne one
     ; Up to `party_n` and not all four slots: the extra ones are not cleared
     ; when someone is removed, and in the test suite one showed up with 85
     ; —healing it meant writing into actor 21's SP—.
@@ -627,7 +627,7 @@ slot:
 ready:
     ply
     rtl
-uno:
+one:
     jsr heal_actor
     ply
     rtl
@@ -662,21 +662,21 @@ uno:
     asl a
     tax
     lda temp
-    bne sumar
+    bne add
     lda 3, s
     sta f:FAR_LENGTH + FAR_HP, x
     lda 1, s
     sta f:FAR_LENGTH + FAR_SP, x
     bra ready
-sumar:
+add:
     lda f:FAR_LENGTH + FAR_HP, x
     beq ready                   ; fallen: `ChangeHp` does not revive it
     clc
     adc temp
-    bcs topar                   ; it wrapped around: the amount reaches $FFFF
+    bcs cap                   ; it wrapped around: the amount reaches $FFFF
     cmp 3, s
     bcc put
-topar:
+cap:
     lda 3, s
 put:
     sta f:FAR_LENGTH + FAR_HP, x
@@ -708,9 +708,9 @@ ready:
 .a8
     lda f:actor_exp_k, x
     cmp #$FF
-    bne tiene
+    bne has
     rts
-tiene:
+has:
     phx                         ; the actor, for what it learns on leveling up
     rep #$20
 .a16
@@ -730,16 +730,16 @@ tiene:
     adc #0
     sta FAR_EXP + 2, x
     cmp #EXP_CAP_HI
-    bcc sin_tope
-    bne topar
+    bcc no_cap
+    bne cap
     rep #$20
 .a16
     lda FAR_EXP, x
     cmp #(EXP_CAP_LO + 1)
     sep #$20
 .a8
-    bcc sin_tope
-topar:
+    bcc no_cap
+cap:
     rep #$20
 .a16
     lda #EXP_CAP_LO
@@ -748,13 +748,13 @@ topar:
 .a8
     lda #EXP_CAP_HI
     sta FAR_EXP + 2, x
-sin_tope:
+no_cap:
     ; And it levels up while it is enough: the `ChangeExp` loop, which looks at
     ; `GetNextExp(level)` —row `level` of `exp_table`, what it takes to reach
     ; the next one— up to `GetMaxLevel()`. A battle can raise more than one
     ; level at once, and that is RM2k's. HP and SP are not touched: leveling
     ; up does not heal, it only raises the maximum.
-subir:
+upload:
     ldx BA_T2
     lda f:exp_level_max, x
     ldx BA_T0
@@ -785,7 +785,7 @@ subir:
     sep #$20
 .a8
     cmp FAR_EXP + 2, x          ; the high byte first
-    bne alto_distinto
+    bne height_different
     rep #$20
 .a16
     lda FAR_EXP, x
@@ -794,17 +794,17 @@ subir:
 .a8
     ply                         ; `ply` does not touch C
     bcc ready
-    bra sube
-alto_distinto:
+    bra uploads
+height_different:
     ply
     bcs ready                   ; C: the high byte required is more than there is
-sube:
+uploads:
     inc FAR_EXP + EXP_LEVEL, x
     lda FAR_EXP + EXP_LEVEL, x
     ply                         ; the actor, without taking it off the stack
     phy
     jsr learn_from_level
-    bra subir
+    bra upload
 ready:
     plx
     rts
@@ -833,14 +833,14 @@ ready:
     and #$00FF
     beq end
     tay                         ; how many pairs it has left
-otro:
+other:
     lda 1, s
     tax
     sep #$20
 .a8
     lda f:skill_pair_level, x
     cmp 3, s
-    bne siguiente
+    bne next
     rep #$20
 .a16
     txa
@@ -862,14 +862,14 @@ otro:
     pla
     ora f:FAR_LENGTH + FAR_SKILL, x
     sta f:FAR_LENGTH + FAR_SKILL, x
-siguiente:
+next:
     rep #$20
 .a16
     lda 1, s
     inc a
     sta 1, s
     dey
-    bne otro
+    bne other
 end:
     pla
     sep #$20

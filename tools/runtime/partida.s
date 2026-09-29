@@ -145,7 +145,7 @@ SAVE_PARTY_N = SAVE_PARTY + 4
 .a16
     sep #$20
 .a8
-otra:
+other:
     rep #$20
 .a16
     lda f:save_table + 2, x
@@ -171,7 +171,7 @@ otra:
     tax
     sep #$20
 .a8
-    bra otra
+    bra other
 ready:
 .a16
     sep #$20
@@ -209,7 +209,7 @@ ready:
     sep #$20
 .a8
     ldy #$0000                  ; X already comes with the start of its slot
-suma:
+sum:
     lda SRAM_DATA, x           ; the base does not fit in a byte: absolute,
                                 ; and the data bank is the SRAM
     rep #$20
@@ -223,7 +223,7 @@ suma:
     inx
     iny                         ; X walks the SRAM and Y counts: the slot does
     cpy #SAVE_BYTES          ; not start at zero and the two are not the same
-    bne suma
+    bne sum
     rts
 .endproc
 
@@ -247,9 +247,9 @@ suma:
     lda music_off
     pha
     lda f:MSU_PLAYING
-    beq copiar
+    beq copy
     stz music_off
-copiar:
+copy:
     lda #$80                    ; from the WRAM window to the SRAM
     jsr save_copy
     pla
@@ -271,9 +271,9 @@ copiar:
     cmp temp                    ; where the copy should have ended
     sep #$20
 .a8
-    beq cuadra
+    beq square
     jmp enter_panic
-cuadra:
+square:
     ; The magic and the sum are what say the slot is valid. The data bank moves
     ; to the SRAM: it is the only way to address it without a pointer on the
     ; direct page, which is full.
@@ -323,7 +323,7 @@ cuadra:
     pha
     plb
     jsr slot_of_this_format
-    beq no_hay
+    beq none
     phx
     jsr save_checksum            ; clobbers X
     plx
@@ -333,13 +333,13 @@ cuadra:
     cmp SRAM_CHECKSUM, x
     sep #$20
 .a8
-    bne no_hay
+    bne none
     plb
     lda #$00                    ; from the SRAM to the WRAM window
     jsr save_copy
     lda #$01
     rts
-no_hay:
+none:
     plb
     lda #$FF
     sta slot                  ; the sentinel: no saved game loaded

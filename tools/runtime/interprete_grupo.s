@@ -19,7 +19,7 @@
     phy
     jsr change_party
     ply
-    jmp run_code::otro     ; `bra` does not reach: the loop ended up far away
+    jmp run_code::other     ; `bra` does not reach: the loop ended up far away
 
 .endproc
 
@@ -50,12 +50,12 @@
     jsr actor_gfx_write
     lda temp
     cmp party                   ; is it the leader?
-    bne graf_no_lidera
+    bne gfx_no_leads
     jsr pick_hero_graphic
     jsr apply_tint
-graf_no_lidera:
+gfx_no_leads:
     ply
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -64,7 +64,7 @@ graf_no_lidera:
 ; itself, with Y in hand.
 .proc op_heal
     jsl f:heal
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
@@ -72,13 +72,13 @@ graf_no_lidera:
 ; bodies are `equipment_remove` and `skill_change`, outside bank 0.
 .proc op_equipment
     jsl f:equipment_remove
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 
 .proc op_skill
     jsl f:skill_change
-    jmp run_code::otro
+    jmp run_code::other
 
 .endproc
 

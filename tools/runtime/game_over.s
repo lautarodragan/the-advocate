@@ -98,16 +98,16 @@ SCREEN_MAP = $7C00
 .i16
     lda f:BAT_LENGTH + BA_RESULT
     cmp #BA_DEFEAT
-    bne sigue
+    bne continues
     rep #$20
 .a16
     lda f:GO_LOSES
     inc a                       ; $FFFF gives zero, and `sep` does not touch Z
     sep #$20
 .a8
-    bne sigue
+    bne continues
     jmp game_over_black
-sigue:
+continues:
     rtl
 .endproc
 
@@ -125,15 +125,15 @@ sigue:
     sta f:GO_FRAMES
     lda brightness
     sta f:GO_LEVEL
-baja:
+low:
     jsr go_wait
     lda f:GO_LEVEL
-    beq negro
+    beq black
     dec a
     sta f:GO_LEVEL
     sta INIDISP
-    bra baja
-negro:
+    bra low
+black:
     jmp game_over_black
 .endif
 .endproc
@@ -170,50 +170,50 @@ negro:
     sta f:GO_FRAMES
     lda #0
     sta f:GO_LEVEL
-sube:
+uploads:
     lda f:GO_LEVEL
     sta INIDISP
     jsr go_wait
     lda f:GO_LEVEL
     cmp #$0F
-    beq arriba
+    beq up
     inc a
     sta f:GO_LEVEL
-    bra sube
-arriba:
+    bra uploads
+up:
     ; And the button, which in RM2k is `Input::DECISION`: A, on the edge.
     ; START too, as on the title screen: see `title_loop`. What was pressed
     ; during the fade does not count, because `go_wait` read the
     ; controller on every frame and the edge has already passed.
     lda #1
     sta f:GO_WAIT
-espera:
+wait:
     jsl f:ba_t_vblank
     jsl f:ba_t_pad
     lda pad_a
-    beq mira_start
+    beq faces_start
     lda pad_a_prev
-    beq cierra
-mira_start:
+    beq closes
+faces_start:
     lda pad
     eor pad_prev
     and pad
     and #PAD_START
-    beq espera
-cierra:
+    beq wait
+closes:
     lda #0
     sta f:GO_WAIT
     ; The fade out, with the song still playing: in RM2k only the title
     ; changes it.
-baja:
+low:
     jsr go_wait
     lda f:GO_LEVEL
-    beq negro
+    beq black
     dec a
     sta f:GO_LEVEL
     sta INIDISP
-    bra baja
-negro:
+    bra low
+black:
     lda #$80
     sta INIDISP
     ; The music, silenced before the boot: the reset uploads the driver to the
@@ -233,13 +233,13 @@ negro:
 .a8
 .i16
     lda f:GO_FRAMES
-cuadro:
+frame:
     pha
     jsl f:ba_t_vblank
     jsl f:ba_t_pad
     pla
     dec a
-    bne cuadro
+    bne frame
     rts
 .endproc
 

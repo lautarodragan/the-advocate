@@ -38,7 +38,7 @@ BA_VIC_LINES = BA_PARTY_MAX
 slot:
     lda BA_S0
     cmp #BA_PARTY_MAX
-    bcs anotadas
+    bcs recorded
     jsr ba_vic_level
     pha
     lda BA_S0
@@ -47,7 +47,7 @@ slot:
     sta BA_VIC_BEFORE, x
     inc BA_S0
     bra slot
-anotadas:
+recorded:
     jsr ba_exp_allocate
     jsr ba_vic_gold
     jsr ba_vic_drop
@@ -95,7 +95,7 @@ ready:
     sep #$20
 .a8
     stz BA_T0                   ; the place in the troop
-otro:
+other:
     lda BA_T0
     cmp BA_KID
     bcs ready
@@ -104,7 +104,7 @@ otro:
     jsr ba_x
     lda BA_ONE + BA_FLAGS, x
     and #BAF_HIDDEN
-    beq siguiente
+    beq next
     lda BA_TROOP_K
     jsr ba_ax
     lda f:troop_init, x
@@ -118,22 +118,22 @@ otro:
     asl a
     tax
     cpy #0
-    bne es_oro
+    bne is_gold
     lda BA_T2
     sec
     sbc f:enemy_exp, x
-    bra restado
-es_oro:
+    bra subtracted
+is_gold:
     lda BA_T2
     sec
     sbc f:enemy_gold, x
-restado:
+subtracted:
     sta BA_T2
     sep #$20
 .a8
-siguiente:
+next:
     inc BA_T0
-    bra otro
+    bra other
 ready:
     rep #$20
 .a16
@@ -154,12 +154,12 @@ ready:
 .i16
     stz BA_DROP_N
     stz BA_S0                   ; the place in the troop
-otro:
+other:
     lda BA_S0
     cmp BA_KID
-    bcc hay
+    bcc has
     rts
-hay:
+has:
     ; One that is still hidden did not die, and `GenerateDrops` only rolls for
     ; the dead: no roll.
     lda BA_S0
@@ -168,9 +168,9 @@ hay:
     jsr ba_x
     lda BA_ONE + BA_FLAGS, x
     and #BAF_HIDDEN
-    beq a_la_vista
-    jmp siguiente
-a_la_vista:
+    beq to_view
+    jmp next
+to_view:
     ; The enemy, as a place in the tables: the same path as `ba_build`.
     lda BA_TROOP_K
     jsr ba_ax
@@ -189,19 +189,19 @@ a_la_vista:
     sta BA_S1                   ; the LDB item, or 0
     sep #$20
 .a8
-    beq siguiente               ; leaves nothing: no roll
+    beq next               ; leaves nothing: no roll
     lda BA_S2
     jsr ba_ax
     lda f:enemy_drop_pct, x
     jsr ba_pct
-    beq siguiente
+    beq next
     ldx BA_S1
     lda FAR_ITEMS, x
     cmp #ITEM_MAX
-    bcs lleno
+    bcs full
     inc a
     sta FAR_ITEMS, x
-lleno:
+full:
     lda f:item_k, x             ; the converter enforces that it is carried
     pha
     lda BA_DROP_N
@@ -209,9 +209,9 @@ lleno:
     pla
     sta BA_DROP_K, x
     inc BA_DROP_N
-siguiente:
+next:
     inc BA_S0
-    bra otro
+    bra other
 .endproc
 
 ; The current level of the actor in party slot A8, or 0 if the slot is empty
@@ -274,32 +274,32 @@ no:
 .i16
     lda BA_RESULT
     cmp #BA_VICTORY
-    bne ninguna
+    bne none
     lda BA_VIC_MORE
-    beq otro_actor
+    beq other_actor
     ; The skills that did not fit go on in another page of the same actor,
     ; which is what RM2k's window does with a message of more than four lines.
     lda BA_VIC_NEXT
     sta BA_VIC_SKIP
     lda #1
     rts
-otro_actor:
+other_actor:
     stz BA_VIC_SKIP
     lda BA_VIC_ACTOR
-busca:
+seek:
     inc a                       ; from $FF, the first page, it goes to slot 0
     cmp BA_NACT
-    bcs ninguna
+    bcs none
     sta BA_VIC_ACTOR
     jsr ba_vic_level_up
     cmp #0                      ; `jsr` does not keep the flags from the `lda` inside
-    bne hay
+    bne has
     lda BA_VIC_ACTOR
-    bra busca
-hay:
+    bra seek
+has:
     lda #1
     rts
-ninguna:
+none:
     lda #0
     rts
 .endproc
@@ -314,13 +314,13 @@ ninguna:
     bne no
     lda BA_MODE
     cmp #BA_M_MESSAGE
-    beq si
+    beq if
     cmp #BA_M_END
-    beq si
+    beq if
 no:
     lda #0
     rts
-si:
+if:
     lda #1
     rts
 .endproc
@@ -342,9 +342,9 @@ si:
 .a8
     lda BA_VIC_ACTOR
     cmp #$FF
-    beq primera
-    jmp de_un_actor
-primera:
+    beq first
+    jmp from_actor
+first:
     ; The lines of the victory message, four per page: see `ba_vic_line`,
     ; which counts the ones already shown.
     stz BA_VIC_MORE
@@ -355,25 +355,25 @@ primera:
     ; The victory term, on the lines the converter split it into —see
     ; `pantallas.renglones_de_la_victoria`—.
     jsr ba_vic_line
-    bcc sin_v1
+    bcc no_v1
     ldx #BA_TXT_VICTORY
     jsr ba_finished
-sin_v1:
+no_v1:
     lda #BA_VIC_FINISHED_N       ; not with `.if`: the constant comes later
     cmp #2
-    bcc un_renglon
+    bcc line
     jsr ba_vic_line
-    bcc un_renglon
+    bcc line
     ldx #BA_TXT_VICTORY2
     jsr ba_finished
-un_renglon:
+line:
     ; And the experience, if any: easyrpg's `if (exp > 0)`. The gold goes the
     ; same way, `if (money > 0)`.
     lda BA_TROOP_K
     cmp #$FF
-    bne con_tropa
+    bne with_troop
     rts
-con_tropa:
+with_troop:
     rep #$20
 .a16
     and #$00FF
@@ -385,9 +385,9 @@ con_tropa:
     jsr ba_no_hidden
     sep #$20                    ; `sep` does not touch Z
 .a8
-    beq sin_exp
+    beq no_exp
     jsr ba_vic_line
-    bcc sin_exp
+    bcc no_exp
     rep #$20
 .a16
     ldx BA_S1
@@ -400,7 +400,7 @@ con_tropa:
     jsr ba_vic_number
     ldx #BA_TXT_EXP_RECEIVED
     jsr ba_finished
-sin_exp:
+no_exp:
     rep #$20
 .a16
     ldx BA_S1
@@ -409,9 +409,9 @@ sin_exp:
     jsr ba_no_hidden
     sep #$20
 .a8
-    beq sin_oro
+    beq no_gold
     jsr ba_vic_line
-    bcc sin_oro
+    bcc no_gold
     ldx #BA_TXT_GOLD_A
     jsr ba_finished
     lda #$20
@@ -430,15 +430,15 @@ sin_exp:
     jsr ba_finished
     ldx #BA_TXT_GOLD_B
     jsr ba_finished
-sin_oro:
+no_gold:
     ; And one line per item, in the order they came up.
     stz BA_S0
 item:
     lda BA_S0
     cmp BA_DROP_N
-    bcs listos
+    bcs all_ready
     jsr ba_vic_line
-    bcc otro_item
+    bcc other_item
     lda BA_S0
     jsr ba_ax
     lda BA_DROP_K, x
@@ -458,18 +458,18 @@ item:
     jsl f:ba_t_text
     ldx #BA_TXT_OBTAINED
     jsr ba_finished
-otro_item:
+other_item:
     inc BA_S0
     bra item
-listos:
+all_ready:
     rts
 
-de_un_actor:
+from_actor:
     ; "<name> LEVEL <n> achieved!", only on its first page.
     lda #1
     sta BA_S3                   ; lines written, the top one already counted
     lda BA_VIC_SKIP
-    bne sin_nivel
+    bne no_level
     lda BA_VIC_ACTOR
     jsr ba_name
     lda #$20
@@ -489,10 +489,10 @@ de_un_actor:
     jsr ba_vic_number
     ldx #BA_TXT_LEVEL_UP
     jsr ba_finished
-    bra habilidades
-sin_nivel:
+    bra skills
+no_level:
     stz BA_S3                   ; the continuation starts on the top one
-habilidades:
+skills:
     ; And "<skill> acquired!" for each one taught by the levels it went
     ; through, level by level like `LearnLevelSkills(old_level + 1,
     ; new_level)`. `BA_VIC_SKIP` is the ones already shown on earlier pages.
@@ -517,12 +517,12 @@ habilidades:
     jsr ba_x
     lda BA_ONE + BA_NUMBER, x
     sta BA_S0 + 1               ; the LDB actor
-nivel:
+level:
     lda BA_S0
     cmp BA_S2
-    bcc otro_nivel
+    bcc other_level
     rts                         ; the current one has been looked at already
-otro_nivel:
+other_level:
     inc BA_S0
     ; The actor's pairs: `skill_pair_init` and `skill_pair_n`, like `learn_from_level`.
     lda BA_S0 + 1
@@ -539,31 +539,31 @@ otro_nivel:
     jsr ba_ax
     lda f:skill_pair_n, x
     sta BA_S2 + 1               ; how many it has left
-    beq nivel
-par:
+    beq level
+pair:
     ldx BA_S1
     lda f:skill_pair_level, x
     cmp BA_S0
-    bne siguiente
+    bne next
     inc BA_S4
     lda BA_S4
     cmp BA_VIC_SKIP
-    beq siguiente               ; shown on an earlier page
-    bcc siguiente
+    beq next               ; shown on an earlier page
+    bcc next
     lda BA_S3
     cmp #BA_VIC_LINES
-    bcc entra
+    bcc enters
     lda #1                      ; does not fit: goes on in another page
     sta BA_VIC_MORE
     bra ready
-entra:
+enters:
     inc BA_S3
     inc BA_VIC_NEXT
     lda BA_S3
     cmp #1
-    beq arriba                  ; the first one of a continuation
+    beq up                  ; the first one of a continuation
     jsr ba_vic_text_line
-arriba:
+up:
     rep #$20
 .a16
     lda BA_S1
@@ -576,17 +576,17 @@ arriba:
     jsr ba_finished
     ldx #BA_TXT_LEARNED
     jsr ba_finished
-siguiente:
+next:
     rep #$20
 .a16
     inc BA_S1
     sep #$20
 .a8
     dec BA_S2 + 1
-    beq otro
-    jmp par
-otro:
-    jmp nivel
+    beq other
+    jmp pair
+other:
+    jmp level
 ready:
     rts
 .endproc
@@ -607,18 +607,18 @@ ready:
     bcc no
     lda BA_S3
     cmp #BA_VIC_LINES
-    bcc entra
+    bcc enters
     lda #1                      ; does not fit: goes on in another page
     sta BA_VIC_MORE
 no:
     clc
     rts
-entra:
+enters:
     inc BA_VIC_NEXT
     lda BA_S3
-    beq arriba                  ; the page's first one is already set
+    beq up                  ; the page's first one is already set
     jsr ba_vic_text_line
-arriba:
+up:
     inc BA_S3
     sec
     rts
@@ -648,24 +648,24 @@ arriba:
 .i16
     stz BA_T2                   ; whether a digit has been written already
     ldx #0                      ; which power of ten
-potencia:
+power:
     ldy #0                      ; the digit
     rep #$20
 .a16
-resta:
+remain:
     lda BA_T0
-    cmp f:potencias, x          ; with `f:`: the data bank is $7E
-    bcc cifra
-    sbc f:potencias, x          ; C comes from the comparison
+    cmp f:powers, x          ; with `f:`: the data bank is $7E
+    bcc digit
+    sbc f:powers, x          ; C comes from the comparison
     sta BA_T0
     iny
-    bra resta
-cifra:
+    bra remain
+digit:
     sep #$20
 .a8
     tya
     ora BA_T2
-    beq cero_adelante
+    beq zero_ahead
     sta BA_T2
     tya
     clc
@@ -673,16 +673,16 @@ cifra:
     phx
     jsl f:ba_t_glyph
     plx
-cero_adelante:
+zero_ahead:
     inx
     inx
     cpx #8
-    bcc potencia
+    bcc power
     lda BA_T0                   ; the units, always
     clc
     adc #$30
     jsl f:ba_t_glyph
     rts
-potencias:
+powers:
     .word 10000, 1000, 100, 10
 .endproc

@@ -88,14 +88,14 @@ SE_KOF     = $5C
 .a8
 .i16
     jsr se_busy
-    beq sin_7                   ; A was left at zero
+    beq no_7                   ; A was left at zero
     lda #SE_BIT
-sin_7:
+no_7:
     pha
     jsr se2_busy
-    beq sin_6
+    beq no_6
     lda #SE2_BIT
-sin_6:
+no_6:
     ora 1, s
     ora f:EX_BUSY               ; and those of voices 0 to 5: see efectos_con_msu.s
     sta 1, s
@@ -138,9 +138,9 @@ sin_6:
     inc token
     lda token
     sta APUIO3
-espera:
+wait:
     cmp APUIO3
-    bne espera
+    bne wait
     rts
 .endproc
 
@@ -155,21 +155,21 @@ espera:
 .i16
     xba                         ; B = the value
     lda f:MUS_LOG_YES
-    beq sin_bitacora
+    beq no_log
     jsr log
-sin_bitacora:
+no_log:
     txa
     and #$F0
     cmp #SE_REG
-    beq voz_7
+    beq voice_7
     cmp #SE2_REG
-    beq voz_6
-    bra no_voz
-voz_7:
+    beq voice_6
+    bra no_voice
+voice_7:
     txa
     and #$0F
     cmp #8
-    bcs no_voz                  ; ENVX and OUTX are never written
+    bcs no_voice                  ; ENVX and OUTX are never written
     ; The shadow is indexed with the whole register, which is already in X,
     ; and the value does not leave B. Until 2026-09-26 the index was built in
     ; A with a `sep #$10` / `tax`, which wiped the high part of Y; and before
@@ -179,22 +179,22 @@ voz_7:
     ; catches it.
     xba
     sta f:SE_SHADOW - SE_REG, x ; to the shadow
-    xba                         ; B = the value, for `enviar`
+    xba                         ; B = the value, for `send`
     jsr se_busy
-    beq enviar
+    beq send
     rts                         ; the voice belongs to the effect
-voz_6:
+voice_6:
     txa
     and #$0F
     cmp #8
-    bcs no_voz
-    xba                         ; as in voz_7
+    bcs no_voice
+    xba                         ; as in voice_7
     sta f:SE2_SHADOW - SE2_REG, x
     xba
     jsr se2_busy
-    beq enviar
+    beq send
     rts
-no_voz:
+no_voice:
     ; Voices 0 to 5, if they have an effect —only with MSU-1, see
     ; efectos_con_msu.s—: what is written stays in MUS_SHADOW and is not
     ; sent, and when the effect ends it is given back from there. With no
@@ -216,17 +216,17 @@ no_extra:
     bra mask
 no_kof:
     cmp #SE_KON
-    bne enviar
+    bne send
 mask:
     jsr se_mask
-    beq enviar
+    beq send
     eor #$FF
     pha                         ; the inverted mask
     xba
     and 1, s                    ; the value without those bits
     xba
     pla
-enviar:
+send:
     xba                         ; A = the value, and X still holds the register
     jmp dsp_pair
 .endproc
@@ -433,12 +433,12 @@ ready:
 .i16
     ldx #0
     lda #0
-otro:
+other:
     sta f:SE_FRAMES, x
     sta f:SE2_FRAMES, x
     inx
     cpx #SE_BYTES
-    bcc otro
+    bcc other
     jsl se_extras_clear       ; and the efectos_con_msu.s part
     rts
 .endproc
@@ -471,11 +471,11 @@ otro:
 .a16
 .i16
     cmp #$FFFF
-    bne hay
+    bne has
     sep #$20
 .a8
     rts
-hay:
+has:
 .a16
     phb
     pha                         ; the index, on the stack until `ready`:
@@ -498,9 +498,9 @@ hay:
 .a8
     lda f:sound_table, x
     cmp #$FF
-    bne hay_efecto
+    bne has_effect
     jmp ready         ; there is no effect
-hay_efecto:
+has_effect:
     ; And only if its sample is in ARAM: the map's package may not have
     ; uploaded it. See `package_load`.
     phx
@@ -514,12 +514,12 @@ hay_efecto:
 .a8
     plx
     cmp #0
-    bne esta
+    bne is
     xba
     cmp #0
-    bne esta
+    bne is
     jmp ready
-esta:
+is:
     ; And that it is **its own**: the place is shared by effects from
     ; different packages —see `lugares_de_efectos` in snes_music.py—, and
     ; the one there is the one recorded in `FAR_EFFECT_IN`. Without this, an
@@ -528,7 +528,7 @@ esta:
     lda f:sound_table, x
     sec
     sbc #SE_FIRST
-    bcc es_suyo                 ; not one of the effects' places
+    bcc is_own                 ; not one of the effects' places
     phx
     rep #$20
 .a16
@@ -543,9 +543,9 @@ esta:
     eor f:sound_effect, x      ; zero if it is its own
     plx
     cmp #0                      ; `plx`'s Z is X's, not the `eor`'s
-    beq es_suyo
+    beq is_own
     jmp ready
-es_suyo:
+is_own:
     ; No interrupts while copying: `irq_music` reads the pending one, and
     ; one half written would start with one's sample and another's pitch.
     ; The interrupt is not lost, it is delayed until the `plp`.
@@ -560,17 +560,17 @@ es_suyo:
     ldy #0
     lda f:SE_NEW
     cmp f:sound_table, x
-    bne no_misma_7
+    bne no_same_7
     jsr se_busy
     bne chosen
-no_misma_7:
+no_same_7:
     ldy #SE2_OFS
     lda f:SE2_NEW
     cmp f:sound_table, x
-    bne no_misma_6
+    bne no_same_6
     jsr se2_busy
     bne chosen
-no_misma_6:
+no_same_6:
     ; With MSU-1 and the SPC700 without music, voices 0 to 5: the one already
     ; playing this sample, and then, if 7 and 6 are not free, one of those.
     ; See efectos_con_msu.s. Without MSU-1 they take nothing.
@@ -579,7 +579,7 @@ no_misma_6:
     lda 2, s                    ; the index, behind P
     jsl se_extra_same
 .a8
-    bcs puesto
+    bcs set
     ldy #0
     jsr se_busy
     beq chosen
@@ -591,7 +591,7 @@ no_misma_6:
     lda 2, s
     jsl se_extra_free
 .a8
-    bcs puesto
+    bcs set
     ldy #0
     lda f:SE2_PENDING
     bne chosen
@@ -616,7 +616,7 @@ chosen:
     sta temp                    ; where the copy ends
     sep #$20
 .a8
-copiar:
+copy:
     lda f:sound_table, x
     phx
     tyx
@@ -625,7 +625,7 @@ copiar:
     inx
     iny
     cpy temp
-    bcc copiar
+    bcc copy
     rep #$20
 .a16
     tya
@@ -643,7 +643,7 @@ copiar:
     lda 2, s
     jsl se_msu_pitch_set
 .a8
-puesto:
+set:
     plp
 ready:
     rep #$20

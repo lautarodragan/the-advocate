@@ -5012,7 +5012,7 @@ def _compile(cmd, map_index, messages=None, extra=(),
                 # **On the hero too**, since 2026-09-12. Its graphic comes
                 # from the actor table, but the actor's twelve poses are
                 # written with the same shape as an `npc_poses` entry, so the
-                # ROM changes the pointer and that is it: see `grafico_heroe`
+                # ROM changes the pointer and that is it: see `graphic_hero`
                 # in tools/runtime/ruta_del_heroe.s. They are +29 pages of the
                 # game, and among them the three of map 8's `EV0047`, which
                 # could not be interacted with.

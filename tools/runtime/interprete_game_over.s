@@ -34,19 +34,19 @@
     xba
     lda pair_ev
     cmp #$FF
-    beq game_over_ya            ; foreground
+    beq game_over_already            ; foreground
     lda msg_open
     ora msg_state
     ora pick_active
-    beq game_over_ya
+    beq game_over_already
     dey                         ; the cursor goes back to this same opcode
     sty ev_cur
     rts
-game_over_ya:
+game_over_already:
     xba                         ; and Z, from whichever it was: 0 is back to the title
-    beq al_titulo
+    beq to_title
     jml f:game_over_from_map
-al_titulo:
+to_title:
     jml f:reset
 
 .endproc

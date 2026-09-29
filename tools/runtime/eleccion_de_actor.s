@@ -63,24 +63,24 @@
     lda #$01
     sta MDMAEN
     lda pick_cancel
-    beq colores
+    beq colors
     rep #$20
 .a16
     lda #TARGET_MAP
-borrar_fila:
+erase_row:
     sta VMADDL
     ldx #TARGET_ERASE_COLS
-borrar_celda:
+erase_cell:
     stz VMDATAL                 ; both halves of the word: 16-bit A
     dex
-    bne borrar_celda
+    bne erase_cell
     clc
     adc #32
     cmp #(TARGET_MAP + TARGET_ERASE_ROWS * 32)
-    bcc borrar_fila
+    bcc erase_row
     sep #$20
 .a8
-colores:
+colors:
     ; The colors.
     lda #TARGET_CGRAM
     sta CGADD
@@ -100,9 +100,9 @@ colores:
     lda #$01
     sta MDMAEN
     lda pick_cancel
-    beq nombre
+    beq name
     rtl
-nombre:
+name:
     ; The two lines of the name: `target_names` has
     ; 2 * TARGET_NAME_WIDTH letters per medicine, and `target_name`
     ; says which one belongs to `k`.
@@ -127,7 +127,7 @@ nombre:
     .assert TARGET_NAME_WIDTH = 11, error, "the name is indexed by k * 22"
     tax
     ldy #TARGET_NAME_VRAM
-    jsr renglon
+    jsr line
     rep #$20
 .a16
     txa
@@ -135,19 +135,19 @@ nombre:
     adc #TARGET_NAME_WIDTH
     tax
     ldy #(TARGET_NAME_VRAM + 64)
-    jsr renglon
+    jsr line
     jmp target_count
 
 ; One line: X its first letter in `target_names`, Y the cell. The top
 ; cells of all the letters and then the bottom ones, like
 ; `slot_text_write`. Leaves X as it was and returns with an 8-bit A.
-renglon:
+line:
     sep #$20
 .a8
     sty VMADDL
     stz temp + 2                ; the top cells
     stz temp + 3
-    jsr pasada
+    jsr pass
     rep #$20
 .a16
     tya
@@ -158,11 +158,11 @@ renglon:
 .a8
     lda #2
     sta temp + 2
-pasada:
+pass:
     phx
     lda #TARGET_NAME_WIDTH
     sta temp
-letra:
+letter:
     lda f:target_names, x
     phx
     rep #$20
@@ -182,7 +182,7 @@ letra:
     plx
     inx
     dec temp
-    bne letra
+    bne letter
     plx
     rts
 .endproc
@@ -194,9 +194,9 @@ letra:
 .a8
 .i16
     lda pick_cancel
-    beq medicina
+    beq medicine
     rtl
-medicina:
+medicine:
     rep #$20
 .a16
     lda pick_edges
@@ -212,13 +212,13 @@ medicina:
     stz WMADDH
     lda WMDATA
     ldx #0
-diez:
+ten:
     cmp #10
-    bcc unidades
+    bcc units
     sbc #10
     inx
-    bra diez
-unidades:
+    bra ten
+units:
     sta temp + 1                ; the units
     txa
     sta temp                    ; and the tens
@@ -231,7 +231,7 @@ unidades:
     sep #$20
 .a8
     stz temp + 2                ; the top cells
-    jsr dos
+    jsr two
     rep #$20
 .a16
     lda #(TARGET_COUNT_VRAM + 32)
@@ -240,20 +240,20 @@ unidades:
 .a8
     lda #2                      ; and the bottom ones
     sta temp + 2
-    jsr dos
+    jsr two
     rtl
 
-dos:
+two:
     lda temp
-    beq blanco
+    beq target
     clc
     adc #('0' - ITEM_FIRST_CHAR)
-blanco:                         ; the space is the first glyph
-    jsr glifo
+target:                         ; the space is the first glyph
+    jsr glyph
     lda temp + 1
     clc
     adc #('0' - ITEM_FIRST_CHAR)
-glifo:
+glyph:
     rep #$20
 .a16
     and #$00FF
@@ -287,7 +287,7 @@ BAR_BYTES = TARGET_BAR_ROWS * TARGET_BAR_COLS * 2
     and #$00FF
     asl a
     tax
-    lda f:fila_vram, x          ; the rectangle's first cell
+    lda f:row_vram, x          ; the rectangle's first cell
     sta temp                    ; `temp` and `temp + 1`
     sep #$20
 .a8
@@ -298,18 +298,18 @@ BAR_BYTES = TARGET_BAR_ROWS * TARGET_BAR_COLS * 2
     lda #$18
     sta BBAD0
     lda temp + 3
-    beq borra
+    beq erase
     lda #^(target_bars)
     sta A1B0
     rep #$20
 .a16
-    lda f:barra_ofs, x
+    lda f:bar_ofs, x
     clc
     adc #.loword(target_bars)
     ldy #(TARGET_BAR_COLS * 2) ; the rectangle is contiguous
-    bra filas
+    bra rows
 .a8
-borra:
+erase:
     lda #^(target_map)
     sta A1B0
     rep #$20
@@ -321,7 +321,7 @@ borra:
     clc
     adc #.loword(target_map)
     ldy #64                     ; a whole tilemap row
-filas:
+rows:
     sty temp + 2                ; how much the source advances per row
     ldx #TARGET_BAR_ROWS
 row:
@@ -349,11 +349,11 @@ row:
 .a8
     rtl
 
-PRIMERA = TARGET_MAP + TARGET_BAR_ROW0 * 32 + TARGET_BAR_COL0
-FILA = MENU_ACTOR_ROWS * 32
-fila_vram:
-    .word PRIMERA, PRIMERA + FILA, PRIMERA + 2 * FILA, PRIMERA + 3 * FILA
-barra_ofs:
+FIRST = TARGET_MAP + TARGET_BAR_ROW0 * 32 + TARGET_BAR_COL0
+ROW = MENU_ACTOR_ROWS * 32
+row_vram:
+    .word FIRST, FIRST + ROW, FIRST + 2 * ROW, FIRST + 3 * ROW
+bar_ofs:
     .word 0, BAR_BYTES, 2 * BAR_BYTES, 3 * BAR_BYTES
     .assert MENU_ROWS_PARTY = 4, error, "one word per party row"
 .endproc

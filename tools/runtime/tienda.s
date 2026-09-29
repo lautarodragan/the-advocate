@@ -41,7 +41,7 @@ TI_SOLD = 6
     pha
     lda comp_col
     cmp #TI_SELL
-    bcs de_venta
+    bcs from_sale
     pla
     rep #$20
 .a16
@@ -54,7 +54,7 @@ TI_SOLD = 6
     stz WMADDH
     lda WMDATA
     rts
-de_venta:
+from_sale:
     pla
     jsl f:ba_t_list
     rts
@@ -115,7 +115,7 @@ ready:
     plx
     ; gold >= price, 24 bits
     lda gold + 2
-    bne alcanza
+    bne reaches
     rep #$20
 .a16
     lda gold
@@ -123,7 +123,7 @@ ready:
     sep #$20
 .a8
     bcc no
-alcanza:
+reaches:
     rep #$20
 .a16
     txa
@@ -150,10 +150,10 @@ no:
 .proc scr_number24
 .a8
 .i16
-cifra:
+digit:
     stz temp + 3                ; the remainder carried along
     ldx #2
-dividir:
+divide_it:
     lda comp_or01, x
     sta WRDIVL
     lda temp + 3
@@ -173,7 +173,7 @@ dividir:
     lda RDMPYL
     sta temp + 3
     dex
-    bpl dividir
+    bpl divide_it
     rep #$20
 .a16
     lda comp_glyph + 1
@@ -192,9 +192,9 @@ dividir:
     lda comp_or01
     sep #$20
 .a8
-    bne cifra
+    bne digit
     lda comp_or01 + 2
-    bne cifra
+    bne digit
     rts
 .endproc
 
@@ -211,7 +211,7 @@ dividir:
     sep #$20
 .a8
     lda #0
-miembro:
+member:
     cmp party_n
     bcs ready
     pha
@@ -231,9 +231,9 @@ slot:
 .a16
     lda comp_or23
     cmp comp_or01
-    bne otra
+    bne other
     inc comp_dup
-otra:
+other:
     sep #$20
 .a8
     pla
@@ -242,7 +242,7 @@ otra:
     bcc slot
     pla
     inc a
-    bra miembro
+    bra member
 ready:
     rep #$20
 .a16
@@ -309,7 +309,7 @@ ready:
     sep #$20
 .a8
     lda comp_col
-    bne uno
+    bne one
     rep #$20
 .a16
     lda #TI_MAIN_MSG_POS
@@ -327,7 +327,7 @@ ready:
     inx
     sep #$20
 .a8
-uno:
+one:
     stz temp + 1
     jsl f:ba_t_text
     rts
@@ -351,10 +351,10 @@ uno:
 .i16
     lda comp_col
     cmp #TI_SELL
-    beq venta
+    beq sale
     lda #TI_LIST_ROWS_BUY
     rts
-venta:
+sale:
     lda #TI_LIST_ROWS_SALE
     rts
 .endproc
@@ -375,30 +375,30 @@ venta:
     tax
     sep #$20
 .a8
-    ; With `f:` because `mensaje_de` is from here, that is, from bank 1, and the
+    ; With `f:` because `message` is from here, that is, from bank 1, and the
     ; data bank is still 0: without the long form, the absolute would read bank 0.
-    lda f:mensaje_de, x
-    bne con_mensaje
+    lda f:message, x
+    bne with_message
     lda comp_phase + 1             ; the main mode: greeting or re-greeting
-con_mensaje:
+with_message:
     jsr ti_message
     lda comp_col
-    bne no_principal
-    jmp principal
-no_principal:
+    bne no_main
+    jmp main
+no_main:
     ; --- the help: the description of the one the cursor highlights ---
     lda comp_mask
-    beq sin_ayuda
+    beq no_help
     jsr ti_item
     jsr eq_desc
-sin_ayuda:
+no_help:
     ; --- the gold, and how many of the highlighted one it has and has equipped:
     ; in all modes of the buying layer, which is all but selling ---
     lda comp_col
     cmp #TI_SELL
-    bne cerca_12209
-    jmp sin_oro
-cerca_12209:
+    bne near_12209
+    jmp no_gold
+near_12209:
     rep #$20
 .a16
     lda gold
@@ -422,7 +422,7 @@ cerca_12209:
 .a8
     jsr ti_currency
     lda comp_mask
-    beq sin_oro
+    beq no_gold
     rep #$20
 .a16
     lda #TI_HAVE_POS
@@ -470,23 +470,23 @@ cerca_12209:
     sta comp_dup + 2
     stz temp + 1
     jsl f:ba_t_number
-sin_oro:
+no_gold:
     lda comp_col
     cmp #TI_COUNT_BUY
-    beq cuantos
+    beq how_many
     cmp #TI_COUNT_SALE
-    beq cuantos
+    beq how_many
     ; The two "done" leave the middle window empty, like RM2k.
     cmp #TI_BOUGHT
     beq empty
     cmp #TI_SOLD
     beq empty
-    jmp lista
+    jmp list
 empty:
     rts
 
     ; --- the quantity: the item, "x" and how many, and the total ---
-cuantos:
+how_many:
     jsr ti_item
     rep #$20
 .a16
@@ -537,11 +537,11 @@ cuantos:
     jmp ti_currency
 
     ; --- the main mode: the commands, below the greeting ---
-principal:
+main:
     lda #0
-orden:
+command:
     pha
-    jsr orden_pos
+    jsr command_pos
     rep #$20
 .a16
     sta pick_table
@@ -549,31 +549,31 @@ orden:
 .a8
     pla
     pha
-    jsr orden_mensaje           ; which term: buy, sell or leave
-    jsr ti_renglon1
+    jsr command_message           ; which term: buy, sell or leave
+    jsr ti_line1
     pla
     inc a
     cmp comp_mask
-    bcc orden
+    bcc command
     rts
 
     ; --- the list: buy or sell ---
-lista:
+list:
     lda #0
-lista_fila:
+list_row:
     pha
     clc
     adc comp_base + 1
-    bcc cerca_12378
-    jmp lista_listo
-cerca_12378:
+    bcc near_12378
+    jmp list_ready
+near_12378:
     cmp comp_mask
-    bcc cerca_12382
-    jmp lista_listo
-cerca_12382:
+    bcc near_12382
+    jmp list_ready
+near_12382:
     pla
     pha
-    jsr fila_pos
+    jsr row_pos
     rep #$20
 .a16
     sta pick_table
@@ -599,10 +599,10 @@ cerca_12382:
     ; the color: buying, if there is enough; selling, if it is worth something
     lda comp_col
     cmp #TI_SELL
-    bcs color_venta
+    bcs color_sale
     jsr ti_can
     bra color
-color_venta:
+color_sale:
     jsr ti_price
     rep #$20
 .a16
@@ -610,12 +610,12 @@ color_venta:
     sep #$20
 .a8
 color:
-    beq gris
+    beq gray
     lda #0
-    bra color_listo
-gris:
+    bra color_ready
+gray:
     lda #1
-color_listo:
+color_ready:
     sta temp + 1
     plx
     rep #$20
@@ -651,7 +651,7 @@ color_listo:
     plx
     lda comp_col
     cmp #TI_SELL
-    bcs cuenta
+    bcs count
     ; buying: the price, right-aligned
     rep #$20
 .a16
@@ -669,8 +669,8 @@ color_listo:
     sep #$20
 .a8
     jsr scr_number24
-    bra lista_siguiente
-cuenta:
+    bra list_next
+count:
     ; selling: how many it has
     rep #$20
 .a16
@@ -689,7 +689,7 @@ cuenta:
     lda #2
     sta comp_dup + 2
     jsl f:ba_t_number
-lista_siguiente:
+list_next:
     ; The next row, if the mode's list has it: `ti_rows` does not touch the
     ; stack.
     jsr ti_rows
@@ -697,26 +697,26 @@ lista_siguiente:
     pla
     inc a
     cmp temp + 3
-    bcs lista_fin
-    jmp lista_fila
-lista_fin:
+    bcs list_end
+    jmp list_row
+list_end:
     rts
-lista_listo:
+list_ready:
     pla
     rts
 
 ; A: the main mode's command. A16 = the position of its row: below the
 ; greeting, one lower if the greeting has two lines.
-orden_pos:
+command_pos:
     pha
     jsr ti_two_lines
-    beq un_renglon
+    beq line
     pla
     inc a
-    bra con_renglon
-un_renglon:
+    bra with_line
+line:
     pla
-con_renglon:
+with_line:
     rep #$20
 .a16
     and #$00FF
@@ -728,7 +728,7 @@ con_renglon:
 .a8
 
 ; A: the row of the list. A16 = the position of its row.
-fila_pos:
+row_pos:
     rep #$20
 .a16
     and #$00FF
@@ -741,29 +741,29 @@ fila_pos:
 
 ; A: the command. A = the message number: 2 buy, 3 sell, 4 leave; with a
 ; single command, the one the type says.
-orden_mensaje:
+command_message:
     pha
     lda comp_col + 1
-    beq tres
+    beq three
     pla
     lda comp_col + 1                 ; 1 buys: 2; 2 sells: 3
     inc a
     rts
-tres:
+three:
     pla
     clc
     adc #2
     rts
 
 ; A: the message number. Its first line, in `pick_table`, in white.
-ti_renglon1:
+ti_line1:
     jsr ti_text_of
     stz temp + 1
     jsl f:ba_t_text
     rts
 
 ; Each mode's message: 0 is "the greeting or the re-greeting".
-mensaje_de:
+message:
     .byte 0, 5, 6, 7, 8, 9, 10
 .endproc
 
@@ -789,7 +789,7 @@ mensaje_de:
     tax
     sep #$20
 .a8
-otra:
+other:
     rep #$20
 .a16
     lda comp_or01
@@ -802,7 +802,7 @@ otra:
     adc comp_and + 2
     sta comp_or01 + 2
     dex
-    bne otra
+    bne other
 ready:
     rts
 .endproc
@@ -820,11 +820,11 @@ ready:
     sta temp + 3                ; how many it has
     lda comp_col
     cmp #TI_SELL
-    bcc comprando
+    bcc buying
     lda temp + 3
     sta comp_row
     rts
-comprando:
+buying:
     lda #ITEM_MAX
     sec
     sbc temp + 3
@@ -839,7 +839,7 @@ comprando:
     lda gold + 2
     sta comp_and + 2
     stz comp_row
-otro:
+other:
     lda comp_row
     cmp temp + 3
     bcs ready
@@ -863,7 +863,7 @@ otro:
     sep #$20
 .a8
     inc comp_row
-    bra otro
+    bra other
 ready:
     rts
 .endproc
@@ -878,7 +878,7 @@ ready:
     jsr ti_times_count
     lda comp_col
     cmp #TI_COUNT_SALE
-    beq vender
+    beq sell
     ; --- buy: the gold goes down and the items go up ---
     rep #$20
 .a16
@@ -898,16 +898,16 @@ ready:
     tax
     sep #$20
 .a8
-suma:
+sum:
     phx
     jsr ti_item
     lda #1
     jsr eq_inv_move
     plx
     dex
-    bne suma
+    bne sum
     rts
-vender:
+sell:
     ; --- sell: the gold goes up, capped at GOLD_MAX, and the items go down ---
     jsr gold_add
     lda comp_color
@@ -917,14 +917,14 @@ vender:
     tax
     sep #$20
 .a8
-quita:
+removes:
     phx
     jsr ti_item
     lda #0
     jsr eq_inv_move
     plx
     dex
-    bne quita
+    bne removes
     rts
 .endproc
 
@@ -947,7 +947,7 @@ quita:
     sta gold + 2
     cmp #^GOLD_MAX
     bcc ready
-    bne tope
+    bne cap
     rep #$20
 .a16
     lda gold
@@ -956,7 +956,7 @@ quita:
 .a8
     bcc ready
     beq ready
-tope:
+cap:
     rep #$20
 .a16
     lda #.loword(GOLD_MAX)
@@ -994,23 +994,23 @@ ready:
 .i16
     sta comp_col
     cmp #TI_MAIN
-    bne no_principal
+    bne no_main
     lda comp_col + 1
-    beq tres
+    beq three
     lda #1
-    bra n_listo
-tres:
+    bra n_ready
+three:
     lda #3
-n_listo:
+n_ready:
     sta comp_mask
     rts
-no_principal:
+no_main:
     cmp #TI_BUY
-    bne no_comprar
+    bne no_buy
     lda comp_mask + 1
     sta comp_mask
     rts
-no_comprar:
+no_buy:
     cmp #TI_SELL
     bne ready
     jmp ti_sell_list
@@ -1024,10 +1024,10 @@ ready:
 .i16
     sta comp_base
     cmp comp_base + 1
-    bcs no_arriba
+    bcs no_up
     sta comp_base + 1
     rts
-no_arriba:
+no_up:
     jsr ti_rows                ; the buying one and the selling one do not measure the same
     sta temp + 3
     lda comp_base
@@ -1137,16 +1137,16 @@ ready:
     sta DMAP0
     lda #$18
     sta BBAD0
-    jsr capa
+    jsr layer
     rep #$20
 .a16
     asl a
     tax
     lda f:ti_layer_stretches, x
     tax
-tramo:
+stretch:
     lda f:ti_stretches + 4, x
-    beq barra
+    beq bar
     sta DAS0L
     lda f:ti_stretches, x
     sta VMADDL
@@ -1164,44 +1164,44 @@ tramo:
     clc
     adc #6
     tax
-    bra tramo
-barra:
+    bra stretch
+bar:
     sep #$20
 .a8
     ; The bar's place in its layer: the command, the visible list row, or the
     ; quantity. The two "done" have none.
     lda comp_col
-    beq en_principal
+    beq in_main
     cmp #TI_BUY
-    beq en_lista
+    beq in_list
     cmp #TI_SELL
-    beq en_lista
+    beq in_list
     cmp #TI_COUNT_BUY
-    beq en_cuantos
+    beq in_count
     cmp #TI_COUNT_SALE
-    beq en_cuantos
+    beq in_count
     rts
-en_cuantos:
+in_count:
     lda #TI_LIST_ROWS_BUY  ; the quantity one, after the list's
-    bra con_barra
-en_lista:
+    bra with_bar
+in_list:
     lda comp_mask
-    beq sin_barra               ; the empty list has no cursor
+    beq no_bar               ; the empty list has no cursor
     lda comp_base
     sec
     sbc comp_base + 1
-    bra con_barra
-en_principal:
-    ; With a two-line greeting the commands go down one: see `orden_pos`.
+    bra with_bar
+in_main:
+    ; With a two-line greeting the commands go down one: see `command_pos`.
     jsr ti_two_lines
-    beq un_renglon              ; and A was left at zero
+    beq line              ; and A was left at zero
     lda #1
-un_renglon:
+line:
     clc
     adc comp_base
-con_barra:
+with_bar:
     sta temp + 2
-    jsr capa
+    jsr layer
     rep #$20
 .a16
     tax
@@ -1254,11 +1254,11 @@ row:
     bne row
     sep #$20
 .a8
-sin_barra:
+no_bar:
     rts
 
 ; A16 = the mode's layer, `pantallas.TI_CAPA_DE_MODO`. Returns with 16-bit A.
-capa:
+layer:
     lda comp_col
     rep #$20
 .a16
@@ -1283,17 +1283,17 @@ capa:
     stz comp_base
     stz comp_base + 1
     lda comp_col + 1
-    beq a_principal
+    beq a_main
     cmp #1
-    beq a_comprar
+    beq a_buy
     lda #TI_SELL
-    bra empieza
-a_comprar:
+    bra begins
+a_buy:
     lda #TI_BUY
-    bra empieza
-a_principal:
+    bra begins
+a_main:
     lda #TI_MAIN
-empieza:
+begins:
     jsr ti_mode_set
     lda #$80
     sta INIDISP
@@ -1308,7 +1308,7 @@ empieza:
     jsl f:screen_ppu_on  ; BG2 and BG1, the windows with their base
     lda #1
     sta menu_open
-espera:
+wait:
     jsl f:ba_t_vblank
     jsl f:ba_t_pad                ; the controller before the DMA: see the equipment screen
     jsl f:ba_t_upload
@@ -1319,123 +1319,123 @@ espera:
     sta title_edges
     ; By mode. Without `jmp (tabla, x)` in the assembler, a chain.
     lda comp_col
-    bne no_es_principal
-    jmp principal
-no_es_principal:
+    bne not_main
+    jmp main
+not_main:
     cmp #TI_COUNT_BUY
     bne :+
-    jmp cuantos
+    jmp how_many
 :   cmp #TI_COUNT_SALE
     bne :+
-    jmp cuantos
+    jmp how_many
 :   cmp #TI_BOUGHT
     bne :+
-    jmp listo_trato
+    jmp ready_deal
 :   cmp #TI_SOLD
     bne :+
-    jmp listo_trato
-:   jmp comprar                 ; buying and selling share the code
+    jmp ready_deal
+:   jmp buy                 ; buying and selling share the code
 
     ; --- the main mode ---
-principal:
+main:
     lda title_edges
     and #PAD_UP
-    beq p_no_arriba
+    beq p_no_up
     lda comp_base
-    beq espera
+    beq wait
     dec comp_base
-    jmp recomponer
-p_no_arriba:
+    jmp recompose
+p_no_up:
     lda title_edges
     and #PAD_DOWN
-    beq p_no_abajo
+    beq p_no_down
     lda comp_base
     inc a
     cmp comp_mask
-    bcs espera
+    bcs wait
     sta comp_base
-    jmp recomponer
-p_no_abajo:
+    jmp recompose
+p_no_down:
     lda title_edges
     and #PAD_B
-    beq p_mira_a
-    jmp salir
-p_mira_a:
-    jsr flanco_a
-    beq espera
+    beq p_faces_a
+    jmp leave
+p_faces_a:
+    jsr edge_a
+    beq wait
     lda comp_base
     cmp #2
-    bne p_no_salir
-    jmp salir
-p_no_salir:
+    bne p_no_exit
+    jmp leave
+p_no_exit:
     cmp #1
-    beq p_vender
+    beq p_sell
     lda #TI_BUY
-    bra p_entrar
-p_vender:
+    bra p_enter
+p_sell:
     lda #TI_SELL
-p_entrar:
+p_enter:
     stz comp_base
     stz comp_base + 1
     jsr ti_mode_set
-    jmp recomponer
+    jmp recompose
 
     ; --- the lists ---
-comprar:
-vender:
+buy:
+sell:
     lda title_edges
     and #PAD_UP
-    beq l_no_arriba
+    beq l_no_up
     lda comp_base
-    beq espera2
+    beq wait2
     dec a
     jsr ti_move
-    jmp recomponer
-l_no_arriba:
+    jmp recompose
+l_no_up:
     lda title_edges
     and #PAD_DOWN
-    beq l_no_abajo
+    beq l_no_down
     lda comp_base
     inc a
     cmp comp_mask
-    bcs espera2
+    bcs wait2
     jsr ti_move
-    jmp recomponer
-l_no_abajo:
+    jmp recompose
+l_no_down:
     lda title_edges
     and #PAD_B
-    beq l_mira_a
+    beq l_faces_a
     ; B: to the main mode, with the re-greeting; without a main mode, out.
     lda comp_col + 1
-    beq a_la_principal
-    jmp salir
-a_la_principal:
+    beq to_main
+    jmp leave
+to_main:
     lda comp_col
     cmp #TI_SELL
     lda #0
-    bcc cursor_listo
+    bcc cursor_ready
     lda #1                      ; the cursor on the command it is returning from
-cursor_listo:
+cursor_ready:
     sta comp_base
     lda #1
     sta comp_phase + 1
     lda #TI_MAIN
     jsr ti_mode_set
-    jmp recomponer
-l_mira_a:
-    jsr flanco_a
-    beq espera2
+    jmp recompose
+l_faces_a:
+    jsr edge_a
+    beq wait2
     lda comp_mask
-    beq espera2
+    beq wait2
     lda comp_col
     cmp #TI_SELL
-    bcs l_vender
+    bcs l_sell
     jsr ti_item                 ; X = k
     jsr ti_can
-    beq espera2                 ; grayed out: it plays a sound and does nothing
+    beq wait2                 ; grayed out: it plays a sound and does nothing
     lda #TI_COUNT_BUY
-    bra l_cuantos
-l_vender:
+    bra l_count
+l_sell:
     jsr ti_item
     jsr ti_price
     rep #$20
@@ -1443,76 +1443,76 @@ l_vender:
     lda comp_or01
     sep #$20
 .a8
-    beq espera2                 ; it is worth nothing
+    beq wait2                 ; it is worth nothing
     lda #TI_COUNT_SALE
-l_cuantos:
+l_count:
     pha
     jsr ti_max
     pla
     sta comp_col
     lda #1
     sta comp_color
-    jmp recomponer
-espera2:
-    jmp espera
+    jmp recompose
+wait2:
+    jmp wait
 
     ; --- the quantity ---
-cuantos:
+how_many:
     lda title_edges
     and #PAD_RIGHT
-    beq c_no_derecha
+    beq c_no_right
     lda #1
-    bra c_sumar
-c_no_derecha:
+    bra c_add
+c_no_right:
     lda title_edges
     and #PAD_LEFT
-    beq c_no_izquierda
+    beq c_no_left
     lda #$FF
-    bra c_sumar
-c_no_izquierda:
+    bra c_add
+c_no_left:
     lda title_edges
     and #PAD_UP
-    beq c_no_arriba
+    beq c_no_up
     lda #10
-    bra c_sumar
-c_no_arriba:
+    bra c_add
+c_no_up:
     lda title_edges
     and #PAD_DOWN
-    beq c_no_abajo
+    beq c_no_down
     lda #$F6                    ; -10
-c_sumar:
+c_add:
     ; Signed, and capped to [1, ti_max].
     clc
     adc comp_color
-    bmi c_uno                   ; went below zero: it is 99 at most
-    beq c_uno
+    bmi c_one                   ; went below zero: it is 99 at most
+    beq c_one
     cmp comp_row
-    bcc c_poner
-    beq c_poner
+    bcc c_set
+    beq c_set
     lda comp_row
-    bra c_poner
-c_uno:
+    bra c_set
+c_one:
     lda #1
-c_poner:
+c_set:
     sta comp_color
-    jmp recomponer
-c_no_abajo:
+    jmp recompose
+c_no_down:
     lda title_edges
     and #PAD_B
-    beq c_mira_a
+    beq c_faces_a
     lda comp_col
     cmp #TI_COUNT_SALE
-    beq c_a_vender
+    beq c_a_sell
     lda #TI_BUY
     sta comp_col
-    jmp recomponer
-c_a_vender:
+    jmp recompose
+c_a_sell:
     lda #TI_SELL
     sta comp_col
-    jmp recomponer
-c_mira_a:
-    jsr flanco_a
-    beq espera2
+    jmp recompose
+c_faces_a:
+    jsr edge_a
+    beq wait2
     jsr ti_close_deal
     lda #TI_SECOND
     sta comp_glyph
@@ -1520,35 +1520,35 @@ c_mira_a:
     inc a                       ; CUANTOS_COMPRA -> COMPRADO, and the selling the same
     sta comp_col
     cmp #TI_SOLD
-    bne recomponer
+    bne recompose
     jsr ti_sell_list          ; what was sold may no longer be there
-    jmp recomponer
+    jmp recompose
 
     ; --- the "done", one second ---
-listo_trato:
+ready_deal:
     dec comp_glyph
-    bne espera2
+    bne wait2
     lda comp_col
     dec a
     dec a                       ; COMPRADO -> COMPRAR, VENDIDO -> VENDER
     sta comp_col
-recomponer:
+recompose:
     jsr ti_compose
-    jmp espera
+    jmp wait
 
-salir:
+leave:
     rtl
 
 ; Z=0 if A was just pressed.
-flanco_a:
+edge_a:
     lda pad_a
     beq no_a
     lda pad_a_prev
-    beq si_a
+    beq if_a
 no_a:
     lda #0
     rts
-si_a:
+if_a:
     lda #1
     rts
 .endproc

@@ -75,9 +75,9 @@
 .a8
     lda f:LZ2_BANK
     cmp #^GRID_HIGH
-    bne en_el_7e
+    bne in_7e
     jmp lz2_body_7f
-en_el_7e:
+in_7e:
     jmp lz2_body_7e
 .endproc
 
@@ -295,7 +295,7 @@ BACKDROP_TILES_PER_STREAM = LZ2_CAP_BACKDROP / 64     ; 64 bytes per 8-bit tile
     ldy #M_PTR_MAP_TILES
     jsr lz2_from_field
     pha                         ; 1,s: the stream's bank; 2,s: the ones left
-flujo:
+stream:
     lda #^LZ2_BUFFER
     sta f:LZ2_BANK
     lda 1, s
@@ -339,7 +339,7 @@ flujo:
     lda 2, s                    ; `sep` does not touch Z: the `bne` looks at this
     sep #$20
 .a8
-    bne flujo
+    bne stream
     pla
     rep #$20
 .a16
