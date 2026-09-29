@@ -25,12 +25,12 @@ From there comes the only step that is not mechanical: from 369 colors to
 import collections
 
 from port.constants import HEIGHT, WIDTH, CELL, COLS, MENU_CGRAM
-from port.paleta import NEGRO, convertir
+from port.palette import BLACK, convert
 
 
 def informe(imagen):
     """The numbers that justify the layout, for the recipe to print."""
-    tiles, paleta, tilemap = convertir(imagen)
+    tiles, paleta, tilemap = convert(imagen)
     return {
         "tiles": len(tiles),
         "colores": len(paleta),
@@ -42,7 +42,7 @@ def informe(imagen):
 def render(imagen, sys_img=None, textos=None, elegida=0, font_id=None):
     """The title screen as the console has to show it.
 
-    It is `convertir` undone: the tiles put back in their place according to
+    It is `convert` undone: the tiles put back in their place according to
     the tilemap, with the palette colors taken from 15 bits to 24. Coming
     from the same data the ROM uploads does not make it an empty
     comparison: what is checked is the other stretch of the path —the DMA to
@@ -51,12 +51,12 @@ def render(imagen, sys_img=None, textos=None, elegida=0, font_id=None):
     noticing.
 
     What this comparison **cannot** see is the image being converted wrong:
-    if `convertir` picked the 256 colors badly, both sides would be wrong
+    if `convert` picked the 256 colors badly, both sides would be wrong
     the same way and the result would still be zero. That is checked with
     the eyes, once, and it does not change again.
     """
     from PIL import Image
-    tiles, paleta, tilemap = convertir(imagen)
+    tiles, paleta, tilemap = convert(imagen)
     fuera = Image.new("RGB", (WIDTH, HEIGHT))
     px = fuera.load()
     for i, indice in enumerate(tilemap):
@@ -166,7 +166,7 @@ def menu(sys_img, textos, font_id=None):
             "the title menu uses %d colors and 4bpp fits 15. The skin's "
             "gradient is the suspect: look at `color_de_texto` in ventana.py"
             % len(vistos))
-    paleta = [NEGRO] + sorted(vistos, key=lambda c: (-vistos[c], c))
+    paleta = [BLACK] + sorted(vistos, key=lambda c: (-vistos[c], c))
     indice = {color: i for i, color in enumerate(paleta)}
 
     tiles, donde, tilemaps = [], {}, []

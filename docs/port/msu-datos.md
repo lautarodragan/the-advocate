@@ -37,7 +37,7 @@ implementan, en `docs/snes/emulators.md`.
 
 ## El formato
 
-Lo arma `tools/port/msu_datos.py`, y su docstring es la referencia: una firma
+Lo arma `tools/port/msu_data.py`, y su docstring es la referencia: una firma
 de 8 bytes (del sha256 de lo que sigue), `"ABLD"`, la versión, un índice de
 `(posición, largo)` por entrada, y las entradas. Cada fondo son dos: sus 512
 tiles de 8bpp y sus 96 colores, tal cual van a la WRAM y a la CGRAM. La ROM
@@ -85,7 +85,7 @@ pelea.
 
 Las posiciones salen del `.inc` y no del índice del archivo: aceptada la
 firma son el mismo dato, y leer el índice sería una búsqueda más por pelea.
-El índice queda para las herramientas (`msu_datos.leer`) y para sumar
+El índice queda para las herramientas (`msu_data.read`) y para sumar
 entradas sin cambiar el formato.
 
 ## Los fondos

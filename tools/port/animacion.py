@@ -232,7 +232,7 @@ def convertir(anim, hoja):
     if caja is None or hoja is None:
         return None
     from PIL import Image
-    from port.paleta import reducir
+    from port.palette import reduce
     x0, y0, ancho, alto = caja
     ta, tal = tamano(ancho, alto)
     ox, oy = (CAJA - ta) // 2, (CAJA - tal) // 2
@@ -244,7 +244,7 @@ def convertir(anim, hoja):
         entero.paste(chico, (ox, oy))
         cuadros.append(entero)
     # The colors of all the frames together, down to fifteen.
-    # `paleta.reducir` does not average, so it does not invent a color that
+    # `palette.reduce` does not average, so it does not invent a color that
     # would have to be quantized again.
     pixeles = []
     for entero in cuadros:
@@ -253,7 +253,7 @@ def convertir(anim, hoja):
                 pixeles.append((r >> 3, g >> 3, b >> 3))
     if not pixeles:
         return None
-    paleta, mapa = reducir(pixeles, COLORES)
+    paleta, mapa = reduce(pixeles, COLORES)
     donde = {color: i + 1 for i, color in enumerate(paleta)}
     indices = []
     for entero in cuadros:

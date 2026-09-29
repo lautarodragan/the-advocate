@@ -1,6 +1,6 @@
 """La experiencia y el nivel: lo que la pelea deja al terminar.
 
-Como `test_batalla.py`, no se conforma con "subió": `tools/port/experiencia.py`
+Como `test_batalla.py`, no se conforma con "subió": `tools/port/experience.py`
 es `Game_Actor::CalculateExp`, `ChangeExp` y `ChangeLevel` de easyrpg, y la
 prueba exige que la consola quede con **el mismo número** de experiencia y el
 mismo nivel. La curva la calcula el conversor en punto flotante y viaja en el
@@ -9,7 +9,7 @@ suba cuando tiene que subir.
 """
 
 from port import batalla as modelo
-from port import experiencia
+from port import experience
 
 from batalla import (ARDEN, GRUPO, TROPA_DROIDE, Pelea, en_el_droide,
                      exp_y_nivel, poner_exp, ranura_exp)
@@ -60,8 +60,8 @@ def test_cada_actor_arranca_con_la_experiencia_de_su_nivel(partida):
     una = partida()
     base = datos.base()
     for actor in GRUPO:
-        esperado = (experiencia.exp_inicial(base.actors[actor]),
-                    experiencia.nivel_inicial(base.actors[actor]))
+        esperado = (experience.initial_exp(base.actors[actor]),
+                    experience.initial_level(base.actors[actor]))
         assert esperado[0] > 0
         assert exp_y_nivel(una, actor) == esperado, \
             "el actor %d arranca con %r y tendría que ser %r" % (
@@ -80,7 +80,7 @@ def test_ganar_da_la_experiencia_de_la_tropa_a_los_vivos(partida):
     base = datos.base()
     antes = {a: exp_y_nivel(una, a) for a in GRUPO}
     esperado = ganar_al_droide(una, caidos=(GRUPO[1],))
-    ganada = experiencia.exp_de_la_tropa(base, TROPA_DROIDE)
+    ganada = experience.troop_exp(base, TROPA_DROIDE)
     assert ganada > 0
     vivos = {c.numero for c in esperado.actores if c.vivo}
     assert vivos and vivos != set(GRUPO), \
@@ -88,8 +88,8 @@ def test_ganar_da_la_experiencia_de_la_tropa_a_los_vivos(partida):
     for actor in GRUPO:
         nivel, exp = antes[actor][1], antes[actor][0]
         if actor in vivos:
-            nivel, exp = experiencia.sumar(base.actors[actor], nivel, exp,
-                                           ganada)
+            nivel, exp = experience.add_exp(base.actors[actor], nivel, exp,
+                                            ganada)
         assert exp_y_nivel(una, actor) == (exp, nivel), \
             "el actor %d quedó con %r y tendría que ser %r" % (
                 actor, exp_y_nivel(una, actor), (exp, nivel))
@@ -105,10 +105,10 @@ def test_la_experiencia_se_topa_en_la_de_rm2k(partida):
     una = en_el_droide(partida)
     base = datos.base()
     actor = GRUPO[0]
-    nivel = experiencia.nivel_max(base.actors[actor])
-    poner_exp(una, actor, experiencia.EXP_MAX - 10, nivel)
+    nivel = experience.max_level(base.actors[actor])
+    poner_exp(una, actor, experience.EXP_MAX - 10, nivel)
     ganar_al_droide(una)
-    assert exp_y_nivel(una, actor) == (experiencia.EXP_MAX, nivel)
+    assert exp_y_nivel(una, actor) == (experience.EXP_MAX, nivel)
 
 
 def test_la_experiencia_viaja_en_la_partida(partida):
@@ -134,7 +134,7 @@ def test_ganar_sube_de_nivel_y_puede_subir_varios(partida):
     el 3, y el droide da 90: tiene que quedar en el 4, **dos niveles de una
     vez**, porque 173 pasa también los 172 del 4. Kersh entra a 50 de su
     siguiente nivel, que es la subida de a uno. Los dos números salen de
-    `experiencia.sumar` y no de acá.
+    `experience.add_exp` y no de acá.
 
     De paso, Manta pelea en el nivel 2 y el modelo también: si la ROM armara
     la pelea con los parámetros del nivel de arranque, los turnos no
@@ -143,18 +143,18 @@ def test_ganar_sube_de_nivel_y_puede_subir_varios(partida):
     una = en_el_droide(partida)
     base = datos.base()
     kersh, manta = GRUPO[0], GRUPO[2]
-    lista = experiencia.lista_de(base.actors[kersh])
-    nivel_k = experiencia.nivel_inicial(base.actors[kersh])
+    lista = experience.exp_list(base.actors[kersh])
+    nivel_k = experience.initial_level(base.actors[kersh])
     poner_exp(una, kersh, lista[nivel_k] - 50, nivel_k)
     poner_exp(una, manta, 83, 2)
     esperado = ganar_al_droide(una, niveles={manta: 2})
-    ganada = experiencia.exp_de_la_tropa(base, TROPA_DROIDE)
+    ganada = experience.troop_exp(base, TROPA_DROIDE)
     assert {kersh, manta} <= {c.numero for c in esperado.actores if c.vivo}
-    assert experiencia.sumar(base.actors[manta], 2, 83, ganada)[0] == 4, \
+    assert experience.add_exp(base.actors[manta], 2, 83, ganada)[0] == 4, \
         "el caso quiere dos niveles de una vez para Manta"
     for actor, nivel, exp in ((kersh, nivel_k, lista[nivel_k] - 50),
                               (manta, 2, 83)):
-        nivel, exp = experiencia.sumar(base.actors[actor], nivel, exp, ganada)
+        nivel, exp = experience.add_exp(base.actors[actor], nivel, exp, ganada)
         assert exp_y_nivel(una, actor) == (exp, nivel), \
             "el actor %d quedó con %r y tendría que ser %r" % (
                 actor, exp_y_nivel(una, actor), (exp, nivel))
@@ -166,11 +166,11 @@ def test_en_el_tope_no_sube_mas(partida):
     una = en_el_droide(partida)
     base = datos.base()
     actor = GRUPO[0]
-    tope = experiencia.nivel_max(base.actors[actor])
-    lista = experiencia.lista_de(base.actors[actor])
+    tope = experience.max_level(base.actors[actor])
+    lista = experience.exp_list(base.actors[actor])
     poner_exp(una, actor, lista[tope - 1] + 5, tope)
     ganar_al_droide(una, niveles={actor: tope})
-    ganada = experiencia.exp_de_la_tropa(base, TROPA_DROIDE)
+    ganada = experience.troop_exp(base, TROPA_DROIDE)
     assert exp_y_nivel(una, actor) == (lista[tope - 1] + 5 + ganada, tope)
 
 
@@ -187,7 +187,7 @@ def test_la_pelea_usa_los_parametros_del_nivel_de_ahora(partida):
     una = en_el_droide(partida)
     base = datos.base()
     kersh = GRUPO[0]
-    poner_exp(una, kersh, experiencia.lista_de(base.actors[kersh])[29], 30)
+    poner_exp(una, kersh, experience.exp_list(base.actors[kersh])[29], 30)
     pelea = Pelea(una).abrir()
     s = una.simbolos
     d = s["BA_UNO"]
@@ -212,7 +212,7 @@ def test_full_heal_llena_hasta_el_maximo_del_nivel_de_ahora(partida):
     base = datos.base()
     sin_hp(una)
     actor = next(a for a in grupo_de(una) if ranura_exp(una, a) is not None)
-    poner_exp(una, actor, experiencia.lista_de(base.actors[actor])[29], 30)
+    poner_exp(una, actor, experience.exp_list(base.actors[actor])[29], 30)
     una.correr(DESPUES_DE_PERDER)
     en_30 = modelo.actor_de(base, actor, nivel=30)
     assert (una.hp(actor),
@@ -239,10 +239,10 @@ def test_subir_de_nivel_ensena_las_habilidades_de_cada_nivel_que_pasa(partida):
     from batalla import sabe
     base = datos.base()
     arden = base.actors[ARDEN]
-    assert experiencia.nivel_inicial(arden) == 3
+    assert experience.initial_level(arden) == 3
     ensena = {nivel: s for nivel, s in arden.skills}
     assert {4, 5, 6, 7} <= set(ensena)
-    lista = experiencia.lista_de(arden)
+    lista = experience.exp_list(arden)
     una = en_el_droide(partida)
     grupo = (ARDEN, GRUPO[0])
     una.poner_grupo(*grupo)
@@ -252,8 +252,8 @@ def test_subir_de_nivel_ensena_las_habilidades_de_cada_nivel_que_pasa(partida):
             "Arden no tendría que saber todavía la %d" % ensena[nivel]
     esperado = ganar_al_droide(una, grupo=grupo, niveles={ARDEN: 3})
     assert ARDEN in {c.numero for c in esperado.actores if c.vivo}
-    ganada = experiencia.exp_de_la_tropa(base, TROPA_DROIDE)
-    assert experiencia.sumar(arden, 3, lista[5] - 50, ganada) \
+    ganada = experience.troop_exp(base, TROPA_DROIDE)
+    assert experience.add_exp(arden, 3, lista[5] - 50, ganada) \
         == (6, lista[5] - 50 + ganada)
     assert exp_y_nivel(una, ARDEN) == (lista[5] - 50 + ganada, 6)
     for nivel in (4, 5, 6):
@@ -287,7 +287,7 @@ def test_el_menu_muestra_el_nivel_y_el_maximo_de_ahora(partida):
     una = con_grupo(partida())
     exps = {}
     for actor, nivel in NIVELES_DEL_MENU.items():
-        exps[actor] = experiencia.lista_de(base.actors[actor])[nivel - 1]
+        exps[actor] = experience.exp_list(base.actors[actor])[nivel - 1]
         poner_exp(una, actor, exps[actor], nivel)
     abrir(una)
     ahora = menus.render_menu(skin, base, una.simbolos["SRAM_RANURAS"],
@@ -312,9 +312,9 @@ def test_el_menu_muestra_guiones_en_el_nivel_tope(partida):
     una = con_grupo(partida())
     niveles, exps = {}, {}
     for n, actor in enumerate(GRUPO_MENU):
-        tope = experiencia.nivel_max(base.actors[actor])
+        tope = experience.max_level(base.actors[actor])
         niveles[actor] = tope - n
-        exps[actor] = experiencia.lista_de(base.actors[actor])[tope - n - 1]
+        exps[actor] = experience.exp_list(base.actors[actor])[tope - n - 1]
         poner_exp(una, actor, exps[actor], niveles[actor])
     abrir(una)
     ahora = menus.render_menu(skin, base, una.simbolos["SRAM_RANURAS"],
@@ -335,14 +335,14 @@ def test_la_ranura_muestra_el_nivel_que_tenia_esa_partida(partida):
     base, skin, game_dir = referencias()
     lider = GRUPO_MENU[0]
     una = con_grupo(partida())
-    poner_exp(una, lider, experiencia.lista_de(base.actors[lider])[8], 9)
+    poner_exp(una, lider, experience.exp_list(base.actors[lider])[8], 9)
     abrir(una)
     for _ in range(3):                  # hasta Save
         una.tocar_cuadros("down")
     una.tocar_cuadros("a", TITULO_AIRE)  # la pantalla de ranuras
     una.tocar_cuadros("a", TITULO_AIRE)  # guarda en la primera
     assert una.hay_partida(), "la partida no se guardó"
-    poner_exp(una, lider, experiencia.lista_de(base.actors[lider])[4], 5)
+    poner_exp(una, lider, experience.exp_list(base.actors[lider])[4], 5)
     una.tocar_cuadros("a", TITULO_AIRE)  # y la vuelve a abrir
     ranuras = una.simbolos["SRAM_RANURAS"]
     llenas = [True] + [False] * (ranuras - 1)

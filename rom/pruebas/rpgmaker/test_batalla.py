@@ -887,7 +887,7 @@ def test_el_elixir_levanta_a_un_caido_en_la_pelea(partida):
     segundo, y al ganar Core cobra la experiencia de la tropa entera, que es lo
     que `ba_exp_repartir` le da a los que quedaron en pie.
     """
-    from port import experiencia
+    from port import experience
     from batalla import exp_y_nivel
     una = partida(caso="elixir-en-la-pelea")
     una.poner_grupo(*GRUPO)
@@ -956,9 +956,9 @@ def test_el_elixir_levanta_a_un_caido_en_la_pelea(partida):
     assert esperado.actores[1].vivo, (
         "el caso necesita a Core en pie al ganar: si no, no mide la experiencia")
     pelea.cerrar()
-    ganada = experiencia.exp_de_la_tropa(base, TROPA_DROIDE)
-    nivel, exp = experiencia.sumar(base.actors[GRUPO[1]], antes[1], antes[0],
-                                   ganada)
+    ganada = experience.troop_exp(base, TROPA_DROIDE)
+    nivel, exp = experience.add_exp(base.actors[GRUPO[1]], antes[1], antes[0],
+                                    ganada)
     assert exp_y_nivel(una, GRUPO[1]) == (exp, nivel), (
         "Core, levantado, quedó con %r y tendría que cobrar la experiencia: %r"
         % (exp_y_nivel(una, GRUPO[1]), (exp, nivel)))

@@ -136,7 +136,7 @@ necesitan nada.
 `tools/voodoo/` convierte una imagen **que ya entra**: recibe PNG indexados cuyos
 índices son entradas de CGRAM, y si la imagen rompe el formato, dice dónde y no
 la arregla. Qué colores se pierden y cómo se agrupan en paletas lo decide el
-asignador, `tools/port/asignador.py`, que corre **antes** y deja lo que decidió como
+asignador, `tools/port/allocator.py`, que corre **antes** y deja lo que decidió como
 imágenes en `rom/build/<cartucho>/asignador/`. La prueba para saber de qué lado
 va algo es si cambia un pixel de lo que se ve.
 

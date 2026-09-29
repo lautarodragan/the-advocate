@@ -553,7 +553,7 @@ def actor_de(db, numero, equipo=None, nivel=None):
     The level is the LDB's `initial_level` and not 1: see `rules.level_of`.
     Until 2026-09-13 it was 1 and Kersh fought with 40 HP and attack 17
     instead of 168 and 80. With `nivel`, whatever it reached: see
-    `port.experiencia`.
+    `port.experience`.
     """
     actor = db.actors[numero]
     if equipo is None:
@@ -707,7 +707,7 @@ class PaginaDeTropa:
 def oro_de_la_tropa(db, tropa):
     """`Game_EnemyParty::GetMoney`: the `gold` of each **dead** enemy, which
     in a victory is all of them except those that stayed hidden —as in
-    `experiencia.exp_de_la_tropa`—, up to `ENEMIES_MAX`. It is the sum of
+    `experience.troop_exp`—, up to `ENEMIES_MAX`. It is the sum of
     the whole troop; the ROM subtracts the hidden ones' when winning. It
     rolls nothing."""
     return sum(db.enemies[e].gold for e in db.troops[tropa].members[:ENEMIES_MAX])

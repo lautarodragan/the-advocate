@@ -24,3 +24,5 @@ ejecutables `rm2k-snes-*` andando desde `/tmp`.
 1. `constantes` → `constants`, `formato_snes` → `snes_format`, `comprimir` →
    `compress`, `fuente` → `font`, `reglas` → `rules`, y los nombres de
    `color`.
+2. `asignador` → `allocator`, `msu_datos` → `msu_data`, `paleta` →
+   `palette`, `experiencia` → `experience`, y los nombres de `tiles_bin`.

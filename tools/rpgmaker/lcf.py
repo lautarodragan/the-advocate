@@ -450,7 +450,7 @@ class Actor:
         # HP, the parameters and the conclusion that nobody knew any skill.
         self.initial_level = field(data, "initial_level") or 1
         # How high it goes and with which experience curve: the three
-        # numbers of `Game_Actor::CalculateExp`. See `port.experiencia`.
+        # numbers of `Game_Actor::CalculateExp`. See `port.experience`.
         self.final_level = field(data, "final_level")
         self.exp_base = field(data, "exp_base")
         self.exp_inflation = field(data, "exp_inflation")

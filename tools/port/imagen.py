@@ -40,7 +40,7 @@ the next is the **tone**, which is what draws the fade.
 import collections
 
 from port.color import apply_tint
-from port.paleta import reducir
+from port.palette import reduce
 
 # RM2k's screen and the console's.
 ANCHO_RM, ALTO_RM = 320, 240
@@ -91,7 +91,7 @@ def caja(ancho, alto, cx, cy):
 def _quince(imagen, ancho, alto):
     """The image scaled and with its colors at 15 bits, row by row.
 
-    LANCZOS like `paleta._quince`, and for the same reason: it is the one
+    LANCZOS like `palette._to_15_bits`, and for the same reason: it is the one
     that smears the edges of text the least.
     """
     from PIL import Image
@@ -108,7 +108,7 @@ def convertir(imagen, cx, cy):
     the image as indices into that palette **shifted by one**, which is how a
     sprite palette numbers them: 0 is the transparent one and is not drawn.
 
-    The colors come from `paleta.reducir`, the same as the title screen's,
+    The colors come from `palette.reduce`, the same as the title screen's,
     and for the same reason: it does not average, so it does not invent
     colors that would have to be quantized again, and it does not depend on
     the PIL version. From 226 colors to fifteen the glow's gradient becomes
@@ -117,7 +117,7 @@ def convertir(imagen, cx, cy):
     x, y, ancho, alto = caja(imagen.width, imagen.height, cx, cy)
     filas = _quince(imagen, ancho, alto)
     pixeles = [c for fila in filas for c in fila]
-    paleta, mapa = reducir(pixeles, COLORES)
+    paleta, mapa = reduce(pixeles, COLORES)
     donde = {color: i + 1 for i, color in enumerate(paleta)}
     indices = [[donde[mapa[c]] for c in fila] for fila in filas]
     return {

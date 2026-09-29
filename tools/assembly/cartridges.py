@@ -218,7 +218,7 @@ def fingerprint_files(runtime=RUNTIME):
     parts = (sorted(r for r in glob.glob(os.path.join(runtime, "**"),
                                          recursive=True) if os.path.isfile(r))
              + assemble.binaries()
-             + [tiles_bin.binario(), brr_samples.binary(),
+             + [tiles_bin.binary(), brr_samples.binary(),
                 compress.binary()])
     # Except the tools' tests, which build nothing: with them inside, editing
     # a test made every cartridge stale.
@@ -302,7 +302,7 @@ def rom_of(name):
 
 def msu_of(name):
     """The cartridge's `.msu`: the converter writes it, with the battle
-    backgrounds the MSU-1 serves to the ROM —see tools/port/msu_datos.py—,
+    backgrounds the MSU-1 serves to the ROM —see tools/port/msu_data.py—,
     and it is also what turns on the MSU-1 for the tracks. Next to the `.sfc`
     and with its name, which is where the emulator and the FX Pak look for
     it."""

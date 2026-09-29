@@ -93,7 +93,7 @@ those of the terrains —see `fondos_del_juego`—. Each one has a **number**,
 its place in that list sorted by name, and the number does not depend on
 which maps the cartridge carries: it is what gives each backdrop a fixed
 place in the `.msu`, which carries **all** of them, in quality
-(tools/port/msu_datos.py).
+(tools/port/msu_data.py).
 
 **The ROM carries, in the light fallback, all the ones the cartridge's
 battles can ask for**: those a troop names, those of the maps with random
@@ -149,8 +149,8 @@ The other way out was for the `.msu` to carry 4bpp too, "more quality within
 the same format"; but sixteen colors are the ceiling of 4bpp, so the quality
 would have nowhere to grow.
 
-The sixteen come from `asignador.merge_least_visible`, the battlers' one,
-and not from `paleta.reducir`, which is the one that builds the 96: reducir
+The sixteen come from `allocator.merge_least_visible`, the battlers' one,
+and not from `palette.reduce`, which is the one that builds the 96: reducir
 keeps the most used, and in a backdrop the sixteen most used are all from
 the floor and the walls —the green sign and the violet water turned gray—.
 Merging by what shows the least keeps the accents. The 96 did not change
@@ -369,14 +369,14 @@ def fondo(nombre, game_dir):
       `paleta`   its `COLORES` 15-bit colors, from `CGRAM_BASE`.
     """
     from PIL import Image
-    from port.paleta import reducir
+    from port.palette import reduce
     imagen = _abrir(game_dir, "Backdrop", nombre, rtp=True)
     if imagen is None:
         return None
     imagen = imagen.convert("RGB").resize((ANCHO, ALTO), Image.LANCZOS)
     pixeles = [(r >> 3, g >> 3, b >> 3)
                for r, g, b in imagen.get_flattened_data()]
-    paleta, mapa = reducir(pixeles, COLORES)
+    paleta, mapa = reduce(pixeles, COLORES)
     donde = {color: i + CGRAM_BASE for i, color in enumerate(paleta)}
     indices = [[donde[mapa[pixeles[y * ANCHO + x]]] for x in range(ANCHO)]
                for y in range(ALTO)]
@@ -388,7 +388,7 @@ def fondo_liviano(nombre, game_dir):
     `RESPALDO_COLORES` and at half resolution.
 
     The same image as `fondo`, shrunk to `RESPALDO_ANCHO` x `RESPALDO_ALTO`
-    and with sixteen colors merged by `asignador.merge_least_visible`: see
+    and with sixteen colors merged by `allocator.merge_least_visible`: see
     "The light fallback". The palette goes from most used to least, and on
     equal counts by color, so it always comes out the same.
 
@@ -397,7 +397,7 @@ def fondo_liviano(nombre, game_dir):
                  WRAM: it is what the tests compare.
     """
     from PIL import Image
-    from port import asignador
+    from port import allocator
     imagen = _abrir(game_dir, "Backdrop", nombre, rtp=True)
     if imagen is None:
         return None
@@ -406,7 +406,7 @@ def fondo_liviano(nombre, game_dir):
     pixeles = [(r >> 3, g >> 3, b >> 3)
                for r, g, b in imagen.get_flattened_data()]
     cuenta = collections.Counter(pixeles)
-    mapeo, _fusiones = asignador.merge_least_visible(cuenta, RESPALDO_COLORES)
+    mapeo, _fusiones = allocator.merge_least_visible(cuenta, RESPALDO_COLORES)
     finales = collections.Counter()
     for color, n in cuenta.items():
         finales[mapeo[color]] += n
@@ -451,10 +451,10 @@ def battler(nombre, tono, game_dir):
       `colores`        how many distinct ones the drawing had, already
                        shrunk.
       `fusiones`       what was merged with what to get to fifteen, as
-                       `asignador.merge_least_visible` returns them.
+                       `allocator.merge_least_visible` returns them.
     """
     from PIL import Image
-    from port import asignador
+    from port import allocator
     imagen = _abrir(game_dir, "Monster", nombre)
     if imagen is None:
         return None
@@ -469,7 +469,7 @@ def battler(nombre, tono, game_dir):
     opacos = [(r >> 3, g >> 3, b >> 3) if a >= 128 else None
               for r, g, b, a in datos]
     cuenta = collections.Counter(c for c in opacos if c is not None)
-    mapeo, fusiones = asignador.merge_least_visible(cuenta, BATTLER_COLORES)
+    mapeo, fusiones = allocator.merge_least_visible(cuenta, BATTLER_COLORES)
     finales = collections.Counter()
     for color, n in cuenta.items():
         finales[mapeo[color]] += n

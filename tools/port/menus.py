@@ -6,11 +6,11 @@ import collections
 
 import numpy
 
-from port import asignador
-from port import experiencia
+from port import allocator
+from port import experience
 from port import font
 from port.constants import HEIGHT, WIDTH, CELL, COLS, ROWS, MENU_CGRAM
-from port.paleta import NEGRO
+from port.palette import BLACK
 from port.rules import level_of, param_of
 
 
@@ -213,10 +213,10 @@ def texto_de_exp(db, actor, nivel=None, exp=None):
     `texto_de_nivel`."""
     a = db.actors[actor]
     if nivel is None:
-        nivel = experiencia.nivel_inicial(a)
+        nivel = experience.initial_level(a)
     if exp is None:
-        exp = experiencia.exp_inicial(a)
-    siguiente = experiencia.siguiente(a, nivel)
+        exp = experience.initial_exp(a)
+    siguiente = experience.next_exp(a, nivel)
     if siguiente == -1:
         return "-" * MENU_EXP_CIFRAS + "/" + "-" * MENU_EXP_CIFRAS
     return "%*d/%*d" % (MENU_EXP_CIFRAS, exp, MENU_EXP_CIFRAS, siguiente)
@@ -267,7 +267,7 @@ def _paleta_de_cara(cara):
     screen's black background it makes no difference and does not spend an
     entry.
 
-    The reduction is `asignador.merge_least_visible` and **not** `reducir`,
+    The reduction is `allocator.merge_least_visible` and **not** `reducir`,
     which is what the title image uses. `reducir` keeps the fifteen most
     used colors and sends the rest to the nearest, and at 48x48 pixels that
     flattens everything: a face has a handful of skin tones covering almost
@@ -280,18 +280,18 @@ def _paleta_de_cara(cara):
     369, and the ones merged barely appear— and it costs the quadratic, so
     `reducir` stays there.
     """
-    pixeles_de_cara = [(r >> 3, g >> 3, b >> 3) if a else NEGRO
+    pixeles_de_cara = [(r >> 3, g >> 3, b >> 3) if a else BLACK
                        for r, g, b, a in cara.get_flattened_data()]
-    usados = collections.Counter(p for p in pixeles_de_cara if p != NEGRO)
+    usados = collections.Counter(p for p in pixeles_de_cara if p != BLACK)
     if len(usados) > 15:
-        mapa = asignador.merge_least_visible(usados, 15)[0]
+        mapa = allocator.merge_least_visible(usados, 15)[0]
         paleta = sorted(set(mapa.values()))
         destino = mapa
     else:
         paleta = sorted(usados, key=lambda c: (-usados[c], c))
         destino = {c: c for c in usados}
-    colores = [NEGRO] + list(paleta)
-    indice = {NEGRO: 0}
+    colores = [BLACK] + list(paleta)
+    indice = {BLACK: 0}
     for color, a_donde in destino.items():
         indice[color] = colores.index(a_donde)
     return colores, indice
@@ -322,7 +322,7 @@ def _cara_prestada(colores, indice_cara, paletas):
         else:
             donde[color] = destino.index(
                 min(destino, key=lambda p, c=color: (
-                    asignador.luma_distance(p, c), p)))
+                    allocator.luma_distance(p, c), p)))
     return cual, {c: donde[colores[k]] for c, k in indice_cara.items()}
 
 
@@ -561,7 +561,7 @@ def marcos(sys_img, primer_tile, pantallas, cgram=None, tope=256):
         pixeles = numpy.asarray(imagen).reshape(-1, 4)
         rgb = pixeles[pixeles[:, 3] != 0, :3].astype(numpy.int32) >> 3
         for r, g, b in rgb.tolist():
-            if (r, g, b) != NEGRO:
+            if (r, g, b) != BLACK:
                 cuenta[(r, g, b)] += 1
     colores = sorted(cuenta, key=lambda c: (-cuenta[c], c))
     if cgram + len(colores) > tope:
@@ -584,7 +584,7 @@ def marcos(sys_img, primer_tile, pantallas, cgram=None, tope=256):
                         r, g, b, a = px[col * CELL + x, fila * CELL + y]
                         color = (r >> 3, g >> 3, b >> 3)
                         renglon.append(indice[color]
-                                       if a and color != NEGRO else 0)
+                                       if a and color != BLACK else 0)
                     celda.append(tuple(renglon))
                 celda = tuple(celda)
                 h = tuple(tuple(reversed(r)) for r in celda)
@@ -697,7 +697,7 @@ def pantalla_items(sys_img, font_id=None):
         if len(cuenta) > 15:
             raise SystemExit("the item screen's font uses %d colors and 4bpp "
                              "fits 15" % len(cuenta))
-        paleta = [NEGRO] + sorted(cuenta, key=lambda c: (-cuenta[c], c))
+        paleta = [BLACK] + sorted(cuenta, key=lambda c: (-cuenta[c], c))
         paletas.append(paleta)
         indices.append({color: i for i, color in enumerate(paleta)})
     vacio = tuple(tuple([0] * CELL) for _ in range(CELL))
@@ -889,9 +889,9 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
         if cuantos > 15:
             raise SystemExit("%s uses %d colors and 4bpp fits 15"
                              % (que, cuantos))
-    paleta = [NEGRO] + sorted(vistos, key=lambda c: (-vistos[c], c))
+    paleta = [BLACK] + sorted(vistos, key=lambda c: (-vistos[c], c))
     indice = {color: i for i, color in enumerate(paleta)}
-    paleta_gris = [NEGRO] + sorted(vistos_gris,
+    paleta_gris = [BLACK] + sorted(vistos_gris,
                                    key=lambda c: (-vistos_gris[c], c))
     indice_gris = {color: i for i, color in enumerate(paleta_gris)}
 

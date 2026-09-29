@@ -55,7 +55,7 @@ def param_of(actor, which, level=None):
     not happen in this game— gives zero, which is what the old code did.
 
     Without `level` it is the starting one; with it, whatever it reached by
-    fighting: see `port.experiencia`.
+    fighting: see `port.experience`.
     """
     values = actor.params.get(which) or []
     if level is None:

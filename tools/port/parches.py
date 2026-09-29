@@ -20,7 +20,7 @@ What is written is **the desired state and not a report**, because phase 2
 deciding again. That is why each merge is written as "this color goes to
 this other one" and in the order they were applied: replaying the list
 rebuilds the whole mapping, which is exactly what
-`asignador.merge_least_visible` returns. And that is why an animation writes
+`allocator.merge_least_visible` returns. And that is why an animation writes
 the rectangle it is drawn at and not how much it was shrunk: the percentage
 is for reading and the rectangle is for applying.
 

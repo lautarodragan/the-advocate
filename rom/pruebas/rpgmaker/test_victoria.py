@@ -13,11 +13,11 @@ la pantalla, `texto_buf`, y se traduce cada celda con la tabla de glifos del
 cartucho. Así la prueba dice qué renglón está mal y con qué letras, y los
 renglones esperados salen de `pantallas.renglon_de_*`, que es el armado de
 `game_message_terms.cpp` y lo mismo con que el conversor cobra que entren. Los
-niveles y las habilidades salen de `experiencia.sumar` y del LDB, no de acá.
+niveles y las habilidades salen de `experience.add_exp` y del LDB, no de acá.
 """
 
 from port import batalla as modelo
-from port import experiencia
+from port import experience
 from port import pantallas
 from port import rules
 
@@ -64,11 +64,11 @@ def test_la_victoria_dice_la_experiencia_y_se_cierra(partida):
     una = en_el_droide(partida)
     base = datos.base()
     term = rules.battle_terms(base)
-    ganada = experiencia.exp_de_la_tropa(base, TROPA_DROIDE)
+    ganada = experience.troop_exp(base, TROPA_DROIDE)
     for actor in GRUPO:
-        nivel = experiencia.nivel_inicial(base.actors[actor])
-        exp = experiencia.exp_inicial(base.actors[actor])
-        assert experiencia.sumar(base.actors[actor], nivel, exp, ganada)[0] \
+        nivel = experience.initial_level(base.actors[actor])
+        exp = experience.initial_exp(base.actors[actor])
+        assert experience.add_exp(base.actors[actor], nivel, exp, ganada)[0] \
             == nivel, "el caso quiere que nadie suba: el %d sube" % actor
     pelea = ganar_hasta_el_fin(una, GRUPO)
     assert paginas(una, pelea) == [primera_pagina(term, ganada)]
@@ -86,22 +86,22 @@ def test_el_que_sube_tiene_su_pagina_y_el_que_no_no(partida):
     una = en_el_droide(partida)
     base = datos.base()
     term = rules.battle_terms(base)
-    ganada = experiencia.exp_de_la_tropa(base, TROPA_DROIDE)
+    ganada = experience.troop_exp(base, TROPA_DROIDE)
     grupo = (ARDEN, KERSH, MANTA)
     una.poner_grupo(*grupo)
-    lista = experiencia.lista_de(base.actors[ARDEN])
+    lista = experience.exp_list(base.actors[ARDEN])
     exp_arden = lista[5] - 50
     poner_exp(una, ARDEN, exp_arden, 3)
-    nivel_m = experiencia.nivel_inicial(base.actors[MANTA])
-    exp_m = experiencia.lista_de(base.actors[MANTA])[nivel_m] - 10
+    nivel_m = experience.initial_level(base.actors[MANTA])
+    exp_m = experience.exp_list(base.actors[MANTA])[nivel_m] - 10
     poner_exp(una, MANTA, exp_m, nivel_m)
-    assert experiencia.sumar(base.actors[ARDEN], 3, exp_arden, ganada)[0] == 6
-    assert experiencia.sumar(base.actors[MANTA], nivel_m, exp_m,
-                             ganada)[0] == nivel_m + 1
-    nivel_k = experiencia.nivel_inicial(base.actors[KERSH])
-    assert experiencia.sumar(base.actors[KERSH], nivel_k,
-                             experiencia.exp_inicial(base.actors[KERSH]),
-                             ganada)[0] == nivel_k
+    assert experience.add_exp(base.actors[ARDEN], 3, exp_arden, ganada)[0] == 6
+    assert experience.add_exp(base.actors[MANTA], nivel_m, exp_m,
+                              ganada)[0] == nivel_m + 1
+    nivel_k = experience.initial_level(base.actors[KERSH])
+    assert experience.add_exp(base.actors[KERSH], nivel_k,
+                              experience.initial_exp(base.actors[KERSH]),
+                              ganada)[0] == nivel_k
     pelea = ganar_hasta_el_fin(una, grupo)
     vivos = {grupo[k] for k in range(len(grupo))
              if pelea.hp_del_combatiente(k) > 0}
@@ -121,12 +121,12 @@ def test_las_habilidades_que_no_entran_siguen_en_otra_pagina(partida):
     una = en_el_droide(partida)
     base = datos.base()
     term = rules.battle_terms(base)
-    ganada = experiencia.exp_de_la_tropa(base, TROPA_DROIDE)
+    ganada = experience.troop_exp(base, TROPA_DROIDE)
     grupo = (ARDEN, KERSH)
     una.poner_grupo(*grupo)
-    exp_arden = experiencia.lista_de(base.actors[ARDEN])[8] - 50
+    exp_arden = experience.exp_list(base.actors[ARDEN])[8] - 50
     poner_exp(una, ARDEN, exp_arden, 3)
-    assert experiencia.sumar(base.actors[ARDEN], 3, exp_arden, ganada)[0] == 9
+    assert experience.add_exp(base.actors[ARDEN], 3, exp_arden, ganada)[0] == 9
     esperada = pagina_de_nivel(term, base, ARDEN, 3, 9)
     assert len(esperada) == 7, "el caso quiere seis habilidades: %r" % esperada
     pelea = ganar_hasta_el_fin(una, grupo)
@@ -235,7 +235,7 @@ def test_la_victoria_da_el_oro_y_los_items_y_los_cuenta(partida):
     assert una.item(HEALING_DRAUGHT) == items_antes + len(esperado.botin), \
         "el modelo soltó %d ítems con la semilla %d" % (len(esperado.botin),
                                                         semilla)
-    ganada = experiencia.exp_de_la_tropa(base, TROPA_MERODEADORES)
+    ganada = experience.troop_exp(base, TROPA_MERODEADORES)
     vistas = paginas(una, pelea)
     assert vistas[:2] == [
         primera_pagina(term, ganada) + [pantallas.renglon_de_oro(term, 285)],

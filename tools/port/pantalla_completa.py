@@ -1,7 +1,7 @@
 """An image that fills the whole screen, compressed into one LZ2 stream.
 
 It is the path of the Game Over and title screens: the image is converted
-with `paleta.convertir` —scaled to 256x224, at 8 bits per pixel on BG1,
+with `palette.convert` —scaled to 256x224, at 8 bits per pixel on BG1,
 which in mode 3 addresses all of CGRAM— and what goes into the cartridge is
 **a single stream** with the three things the ROM uploads, one after the
 other:
@@ -29,7 +29,7 @@ decided the same way, on 2026-09-28: the numbers are in
 
 from port import compress
 from port.snes_format import cgram_word, entry, pack_tile
-from port.paleta import convertir
+from port.palette import convert
 
 # The tilemap the ROM uploads: 32x32 entries of two bytes, even though the
 # screen shows 28 rows. It is the size the PPU reads, and the same as the
@@ -42,9 +42,9 @@ def comprimida(imagen, primer_color=0, tope=256, debajo=()):
     `tiles`, `colores` and `primer_color` are what the ROM needs to split
     it.
 
-    `primer_color` and `tope` are those of `paleta.convertir`: by default the
+    `primer_color` and `tope` are those of `palette.convert`: by default the
     image takes all of CGRAM, from 0. Index 0 is also the PPU's backdrop
-    color, and `paleta.reducir` leaves black there.
+    color, and `palette.reduce` leaves black there.
 
     `debajo` are colors that are not the image's and go in CGRAM right before
     its own —on the title, the menu's—: they travel in the same stream and
@@ -54,7 +54,7 @@ def comprimida(imagen, primer_color=0, tope=256, debajo=()):
     if len(debajo) > primer_color:
         raise ValueError("%d colors below the image, and the image starts "
                          "at %d" % (len(debajo), primer_color))
-    tiles, paleta, tilemap = convertir(imagen, primer_color, tope)
+    tiles, paleta, tilemap = convert(imagen, primer_color, tope)
     datos = bytearray()
     for celda in tiles:
         datos += pack_tile(celda, planes=8)

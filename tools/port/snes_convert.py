@@ -73,7 +73,7 @@ from port import textos
 lcf.REFIT_TEXTS = textos.reajustar_comandos
 from port import animacion as animacion_mod
 from port import imagen
-from port import asignador
+from port import allocator
 from port import parches as parches_mod
 from port import titulo as titulo_mod
 from port import menus as menus_mod
@@ -81,18 +81,18 @@ from port import pantalla_completa
 from port import fin_del_juego as fin_mod
 from port import pantallas as pantallas_mod
 from port import batalla as batalla_mod
-from port import experiencia as X
+from port import experience as X
 from port import escena as escena_mod
 from port import color as color_mod
 from port import constants
 from port import rules
-from port import msu_datos
+from port import msu_data
 from audio import msu_effects
 from common import settings
 from common import project
 from common.parallel import in_parallel
 from audio import snes_music
-from port.asignador import CELL, tile_colors
+from port.allocator import CELL, tile_colors
 from port.snes_format import cgram_word, entry, pack_tile
 from rpgmaker.rm2k import TILE, collect_npcs, hero_start, passability_map
 from render.render_map import Renderer, build_passability, load_image
@@ -303,7 +303,7 @@ def repartir_encima(grid, limite):
     """
     sets = {tile_colors(t) for row in grid for t in row}
     sets = {s for s in sets if s}
-    groups = asignador.try_pack(sets, limite) if sets else []
+    groups = allocator.try_pack(sets, limite) if sets else []
     merged = []
     if sets and groups is None:
         # Splitting doesn't fit. There are two reasons and they used to be
@@ -313,7 +313,7 @@ def repartir_encima(grid, limite):
         #
         # Both are fixed by the same thing: merging the least used color with
         # its nearest neighbor and retrying.
-        grid, groups, merged, _ = asignador.reduce_colors(grid, limite)
+        grid, groups, merged, _ = allocator.reduce_colors(grid, limite)
     return grid, [sorted(g) for g in groups], merged
 
 
@@ -350,7 +350,7 @@ def imagen_encima(grid, palettes, above_first):
         colores[base] = BACKDROP
         for k in range(COLORS_PER_PALETTE - 1):
             colores[base + k + 1] = palette[k] if k < len(palette) else (0, 0, 0)
-    return tiles_bin.png_indexado(
+    return tiles_bin.indexed_png(
         ancho, filas * CELL, pixeles, colores,
         [e % COLORS_PER_PALETTE == 0 for e in range(256)])
 
@@ -371,8 +371,8 @@ def convert_above(grid, palettes, above_first, merged=0):
     allocator's image).
     """
     png = imagen_encima(grid, palettes, above_first)
-    tiles, cgram, tilemap, _ = tiles_bin.convertir(
-        png, 4, len(grid[0]), prioridad=PRIORITY_ABOVE)
+    tiles, cgram, tilemap, _ = tiles_bin.convert(
+        png, 4, len(grid[0]), priority=PRIORITY_ABOVE)
     # The palettes of this layer, and nothing else: the rest of the image's
     # CGRAM belongs to other layers.
     cram = cgram[2 * above_first * COLORS_PER_PALETTE:
@@ -523,13 +523,13 @@ def paleta_del_personaje(image, index, tope=None, poses=None):
     if len(counts) <= tope:
         mapping = {c: c for c in counts}
     else:
-        mapping, _ = asignador.merge_least_visible(counts, tope)
+        mapping, _ = allocator.merge_least_visible(counts, tope)
     palette = sorted(set(mapping.values()))
     if poses is not None and palette:
         for color in sprite_colors(image, index):
             if color not in mapping:
                 mapping[color] = min(
-                    palette, key=lambda p, c=color: (asignador.luma_distance(p, c), p))
+                    palette, key=lambda p, c=color: (allocator.luma_distance(p, c), p))
     lookup = {color: i + 1 for i, color in enumerate(palette)}
     return palette, lookup, mapping
 
@@ -1204,7 +1204,7 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
                 continue
             faltan = len([c for c in timer_colores if c not in paletas[n]])
             nuevo_tope = OBJ_COLORS - faltan
-            m, _ = asignador.merge_least_visible(cuenta, nuevo_tope)
+            m, _ = allocator.merge_least_visible(cuenta, nuevo_tope)
             movidos = sum(v for c, v in cuenta.items() if m[c] != c)
             costo = (ajeno, movidos / float(sum(cuenta.values())), clave)
             if mejor is None or costo < mejor[0]:
@@ -1286,7 +1286,7 @@ def build_characters(images, personajes, ranuras, reparto):
                 lookup[color] = union.index(color) + 1
             else:
                 cerca = min(union,
-                            key=lambda p, c=color: asignador.luma_distance(p, c))
+                            key=lambda p, c=color: allocator.luma_distance(p, c))
                 lookup[color] = union.index(cerca) + 1
         colores[(charset, index)] = (lookup, mapping)
 
@@ -1725,7 +1725,7 @@ def build_palette(grid, bg_colors, otras=()):
 
     At 8 bits per pixel the only limit is how many CGRAM entries are left free
     below the upper layer. Map0007 uses 60, so nothing is merged; the merge
-    path exists for more loaded maps and is `asignador.reduce_colors`.
+    path exists for more loaded maps and is `allocator.reduce_colors`.
 
     `otras` are the grids of the other drawings of the ChipSet animation. They
     count for the palette like the usual drawing —the water of map 5 brings
@@ -1737,7 +1737,7 @@ def build_palette(grid, bg_colors, otras=()):
     if len(counts) <= bg_colors:
         return sorted(counts), grid, list(otras), []
 
-    mapping, merged = asignador.merge_least_visible(counts, bg_colors)
+    mapping, merged = allocator.merge_least_visible(counts, bg_colors)
 
     def fusionar(g):
         return [[tuple(tuple(mapping.get(p) for p in line) for line in tile)
@@ -1764,7 +1764,7 @@ def _version_capas():
       `rpgmaker/resources.py` goes with them because it is where `render_map`
       gets how it finds the ChipSet, and `common/project.py` because it is
       where the directories it searches in come from;
-    * `port/asignador.py` decides which colors are lost, `rpgmaker/rm2k.py`
+    * `port/allocator.py` decides which colors are lost, `rpgmaker/rm2k.py`
       has the constants of the split and of the animated families, and this
       file does the rest;
     * **the Voodoo binary**, which is the one that emits the tiles:
@@ -1784,7 +1784,7 @@ def _version_capas():
         import PIL
         from common import disk_cache
         _VERSION_CAPAS = (disk_cache.version_of("port/snes_convert.py",
-                                                "port/asignador.py",
+                                                "port/allocator.py",
                                                 "rpgmaker/rm2k.py",
                                                 "render/render_map.py",
                                                 "rpgmaker/resources.py",
@@ -2061,8 +2061,8 @@ def convert(grid, palette, variantes, otras, resumen):
                     for x, color in enumerate(line):
                         if color is not None:
                             pixeles[fila + x] = posicion[color]
-        return tiles_bin.png_indexado(ancho, alto, pixeles, colores,
-                                      transparentes)
+        return tiles_bin.indexed_png(ancho, alto, pixeles, colores,
+                                     transparentes)
 
     imagenes = [("fondo", imagen(grid))]
     familias, animaciones = [], []
@@ -2079,8 +2079,8 @@ def convert(grid, palette, variantes, otras, resumen):
     # one contiguous run per family, after the still ones: Voodoo does that,
     # since it is the one that numbers them. See "Animations" in
     # tools/voodoo/README.md.
-    tile_data, cgram, tilemap, corridas = tiles_bin.convertir(
-        imagenes[0][1], 8, len(grid[0]), animaciones=animaciones,
+    tile_data, cgram, tilemap, corridas = tiles_bin.convert(
+        imagenes[0][1], 8, len(grid[0]), animations=animaciones,
         max_tiles=MAX_TILES)
     siguiente = len(tile_data) // BYTES_PER_TILE
 
@@ -3584,7 +3584,7 @@ def experiencia_ranuras(db, actores):
 
 
 def experiencia_asm(db, actores, actores_n):
-    """The experience and level tables: see `port.experiencia`.
+    """The experience and level tables: see `port.experience`.
 
     It leaves the segment in RODATA, which is where its caller finds it.
 
@@ -3608,26 +3608,26 @@ def experiencia_asm(db, actores, actores_n):
     curvas, curva_de, inicial, maximo, filas, params = [], [], [], [], [], []
     for a in ranuras_exp:
         actor = db.actors[a] if a is not None else None
-        lista = (X.lista_de(actor) if actor else [0])
-        lista = lista + [0] * (X.NIVEL_MAX - len(lista))
+        lista = (X.exp_list(actor) if actor else [0])
+        lista = lista + [0] * (X.LEVEL_MAX - len(lista))
         if lista not in curvas:
             curvas.append(lista)
-        curva_de.append(4 * X.NIVEL_MAX * curvas.index(lista))
-        exp = X.exp_inicial(actor) if actor else 0
+        curva_de.append(4 * X.LEVEL_MAX * curvas.index(lista))
+        exp = X.initial_exp(actor) if actor else 0
         inicial += [exp & 0xFF, (exp >> 8) & 0xFF, exp >> 16,
-                    X.nivel_inicial(actor) if actor else 1]
-        maximo.append(X.nivel_max(actor) if actor else 1)
+                    X.initial_level(actor) if actor else 1]
+        maximo.append(X.max_level(actor) if actor else 1)
         for curva in lcf.CURVES:
             filas.append(2 * len(params))
             valores = list(actor.params.get(curva) or []) if actor else []
-            valores = (valores + [0] * X.NIVEL_MAX)[:X.NIVEL_MAX]
+            valores = (valores + [0] * X.LEVEL_MAX)[:X.LEVEL_MAX]
             params += [v & 0xFFFF for v in valores]
     if 4 * len(ranuras_exp) > 0x200:
         raise SystemExit("%d actors with experience don't fit in the 512 "
                          "bytes of FAR_EXP" % len(ranuras_exp))
     out = ['.segment "RODATA"',
            "EXP_K = %d" % len(ranuras_exp),
-           "EXP_NIVEL_MAX = %d" % X.NIVEL_MAX]
+           "EXP_NIVEL_MAX = %d" % X.LEVEL_MAX]
 
     def tabla(etiqueta, directiva, valores, ancho):
         out.append(".bloque %d" % max(ancho, ancho * len(valores)))
@@ -5730,7 +5730,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         ensenadas = {h for (a, h) in eventos.HABILIDAD_RANURA
                      if a in ranuras["actores"] and a in db.actors
                      and B.nivel_en_que_aprende(db, a, h)
-                     > X.nivel_inicial(db.actors[a])}
+                     > X.initial_level(db.actors[a])}
         texto_hab_entero = {
             h: texto_nuevo(menus_mod.texto_de_item(db.skills[h].name, 255))
             for h in sorted(ensenadas)}
@@ -6454,9 +6454,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                              % (len(usadas), len(miembros)))
         words_asm("tropa_id", usadas, declarar=True)
         # The experience beating each one gives, already added up: see
-        # `experiencia.exp_de_la_tropa`. It goes outside bank 0, like
+        # `experience.troop_exp`. It goes outside bank 0, like
         # everything here, because it is read once per battle.
-        exp_tropa = [X.exp_de_la_tropa(db, n) for n in usadas]
+        exp_tropa = [X.troop_exp(db, n) for n in usadas]
         for n, exp in zip(usadas, exp_tropa):
             if exp > 0xFFFF:
                 raise SystemExit("troop %d gives %d experience and the ROM "
@@ -7952,7 +7952,7 @@ def main():
         # colors below its own in the same stream: the whole CGRAM at once,
         # the menu's palette at the bottom because a 4-bit BG only reaches
         # those. The tiles' indices already come shifted from
-        # `paleta.convertir`.
+        # `palette.convert`.
         debajo = list(menu_paleta)
         debajo += [(0, 0, 0)] * (constants.MENU_CGRAM - len(debajo))
         pantalla = pantalla_completa.comprimida(
@@ -8110,13 +8110,13 @@ def main():
     # and which palette each cell ended up in without building or running the
     # ROM. They are indexed and their indices are CGRAM entries, so an editor
     # in indexed mode opens them just as `tiles` is going to see them.
-    asignador = os.path.join(os.path.dirname(os.path.abspath(args.output)),
+    allocator = os.path.join(os.path.dirname(os.path.abspath(args.output)),
                              "asignador")
-    os.makedirs(asignador, exist_ok=True)
+    os.makedirs(allocator, exist_ok=True)
     for mapa in mapas:
         imagenes = list(mapa["imagenes_fondo"]) + [("encima", mapa["above"][5])]
         for nombre, png in imagenes:
-            with open(os.path.join(asignador, "%04d-%s.png"
+            with open(os.path.join(allocator, "%04d-%s.png"
                                    % (mapa["id"], nombre)), "wb") as handle:
                 handle.write(png)
     # And **what it decided to lose**, written down: which color was merged
@@ -8422,7 +8422,7 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
     pitch each sound plays.
 
     The backdrops go first —`fondos` are the `(tiles, colors)` of **all the
-    game's**, by number, each in its fixed place: see `msu_datos.fondo_en`—
+    game's**, by number, each in its fixed place: see `msu_data.backdrop_offset`—
     and behind them the quality sound effects of each package, in the order
     of the package table and each package with its own in order of place in
     the directory —their SRCN—: it is the order `subir_colocadas` uploads them
@@ -8470,8 +8470,8 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
             lista.append((e, len(entradas), hechas[e, suyas[e]]))
             entradas.append(hechas[e, suyas[e]].data)
         del_paquete.append(lista)
-    archivo, donde = msu_datos.armar(entradas, fondos=len(fondos))
-    firma = archivo[:msu_datos.FIRMA]
+    archivo, donde = msu_data.build(entradas, backdrops=len(fondos))
+    firma = archivo[:msu_data.SIGNATURE_SIZE]
     with open(ruta + ".nuevo", "wb") as handle:
         handle.write(archivo)
     os.replace(ruta + ".nuevo", ruta)
