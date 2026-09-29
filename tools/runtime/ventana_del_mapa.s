@@ -1,29 +1,28 @@
 .segment "CODE"
 
-; --- la ventana móvil del mapa ---------------------------------------------
-; El tilemap del PPU son 64x32 celdas y los mapas del juego llegan a 1000x80:
-; el mapa entero nunca está en la VRAM. Lo que hay es una ventana que se trata
-; como un toro —la celda (mx,my) vive siempre en la ranura (mx mod 64, my mod
-; 32)— y que se mantiene reescribiendo la columna o la fila que acaba de entrar
-; en pantalla. La que sale queda 32 columnas o 4 filas afuera, así que nadie la
-; ve mientras se la pisa.
+; --- the map's moving window ----------------------------------------------------
+; The PPU's tilemap is 64x32 cells and the game's maps go up to 1000x80: the
+; whole map is never in VRAM. What there is is a window treated as a torus
+; —cell (mx,my) always lives in slot (mx mod 64, my mod 32)— and kept up by
+; rewriting the column or the row that just came on screen. The one leaving is
+; 32 columns or 4 rows outside, so nobody sees it while it is overwritten.
 ;
-; El scroll por hardware hace la vuelta solo: el registro son 10 bits, o sea
-; 1024 pixeles, y 1024 es múltiplo de los 512 que mide la ventana a lo ancho.
-; Se le escribe la posición de la cámara tal cual y cae donde tiene que caer.
+; The hardware scroll wraps by itself: the register is 10 bits, that is, 1024
+; pixels, and 1024 is a multiple of the 512 the window measures across. The
+; camera position is written to it as is and lands where it should.
 ;
-; De la ROM no sale un tilemap sino una grilla de bloques: la celda de 16x16 de
-; RM2k, que es la unidad con la que el juego fue dibujado y que se repite
-; muchísimo. El bloque lleva sus cuatro celdas de fondo, sus cuatro de la capa
-; de encima y su pasabilidad, todo junto. Guardarlo así es lo que hace que el
-; mapa más grande pase de 175 KB —más que la ROM entera— a 40.
+; What comes out of the ROM is not a tilemap but a grid of blocks: RM2k's 16x16
+; cell, which is the unit the game was drawn with and which repeats a great
+; deal. The block carries its four background cells, its four upper-layer cells
+; and its passability, all together. Storing it like that is what takes the
+; largest map from 175 KB —more than the whole ROM— down to 40.
 
-; La grilla llega a 40 KB y no entra en un banco, así que se recorre con un
-; puntero de 24 bits. Vive en la mitad alta de los dos bancos de la WRAM
-; —ver `GRILLA`—, que tiene la misma forma que un banco de LoROM: pasarse del
-; $FFFF no lleva al $0000 del banco siguiente sino a su $8000, y estas dos
-; rutinas son las únicas que saben eso. Era así cuando la grilla se leía del
-; cartucho, y por eso pasarla a la WRAM no tocó a nadie más.
+; The grid reaches 40 KB and does not fit in a bank, so it is walked with a
+; 24-bit pointer. It lives in the upper half of the two WRAM banks —see
+; `GRILLA`—, which has the same shape as a LoROM bank: going past $FFFF does
+; not lead to the next bank's $0000 but to its $8000, and these two routines
+; are the only ones that know that. It was like this when the grid was read
+; from the cartridge, and that is why moving it to WRAM touched nobody else.
 .proc ptr_mas
 .a16
 .i16
@@ -48,11 +47,11 @@ listo:
 .proc ptr_menos
 .a16
 .i16
-    eor #$FFFF                  ; restar es sumar el complemento
+    eor #$FFFF                  ; subtracting is adding the complement
     sec
     adc celdas_ptr
     cmp #$8000
-    bcs guarda                  ; sigue dentro de la mitad alta del banco
+    bcs guarda                  ; still inside the bank's upper half
     clc
     adc #$8000
     sta celdas_ptr
@@ -97,18 +96,19 @@ guarda:
     rts
 .endproc
 
-; A = el bloque que dice la grilla; vuelve con el que hay que usar, que es otro
-; sólo si alguna `TileSubstitution` lo cambió. Pasa por acá **todo** el que lea
-; una celda: las dos tiras y la pasabilidad, que en este port viaja adentro del
-; bloque. Que la pasabilidad siga a la sustitución es lo que hace RM2k:
-; `IsPassableLowerTile` mira `map_info.lower_tiles` antes de `passages_down`.
+; A = the block the grid says; returns with the one to use, which is different
+; only if some `TileSubstitution` changed it. **Everyone** who reads a cell
+; goes through here: the two strips and the passability, which in this port
+; travels inside the block. Passability following the substitution is what
+; RM2k does: `IsPassableLowerTile` looks at `map_info.lower_tiles` before
+; `passages_down`.
 ;
-; Usa Y, que en los tres llamadores está libre: los dos que arman tiras la
-; cargan justo después con el desplazamiento del bloque, y `pass_del_ptr`
-; también. X no se toca, y ahí sí importa: es la ranura de la tira.
+; It uses Y, which is free in all three callers: the two that build strips load
+; it right after with the block's offset, and `pass_del_ptr` too. X is not
+; touched, and there it does matter: it is the strip's slot.
 ;
-; Sin sustituciones puestas —los 328 mapas del juego de hoy— son cuatro ciclos
-; y una rama, que es lo que costó ponerla en el camino caliente.
+; With no substitutions set —the 328 maps of today's game— it is four cycles
+; and a branch, which is what it cost to put it on the hot path.
 .proc celda_sustituida
 .a16
 .i16
@@ -128,29 +128,30 @@ listo:
     rts
 .endproc
 
-; Arma la columna X del mapa —en celdas de 8x8— y deja en col_addr dónde va.
+; Builds column X of the map —in 8x8 cells— and leaves in col_addr where it
+; goes.
 ;
-; Se llenan las 32 filas de la ventana, no las 29 que se ven. La ranura de cada
-; fila es fija, fila mod 32, así que escribir de más no puede pisar nada que se
-; esté mirando, y ahorra tener que llevar la cuenta de qué parte de la columna
-; ya estaba bien.
+; All 32 rows of the window are filled, not the 29 that are visible. Each row's
+; slot is fixed, row mod 32, so writing extra cannot overwrite anything being
+; looked at, and it saves keeping track of which part of the column was
+; already right.
 .proc build_column
 .a16
 .i16
     stz col_addr
     cpx mapa_cw
     bcc dentro
-    rts                         ; más allá del borde: no hay nada que dibujar
+    rts                         ; past the edge: nothing to draw
 dentro:
 
-    ; Dónde cae en la VRAM. La ventana son dos pantallas de 32x32 pegadas, y la
-    ; de la derecha vive 1024 palabras más adelante, no al lado.
+    ; Where it lands in VRAM. The window is two 32x32 screens side by side, and
+    ; the right one lives 1024 words further on, not next to it.
     txa
     and #(WINDOW_COLS - 1)
     sta temp
     and #$001F
     clc
-    adc f:FAR_VRAM_MAPA         ; lo elige el reparto: ver LAYOUT_VENTANA_AMBOS
+    adc f:FAR_VRAM_MAPA         ; the layout picks it: see LAYOUT_VENTANA_AMBOS
     sta col_addr
     lda temp
     and #$0020
@@ -161,36 +162,37 @@ dentro:
     sta col_addr
 izquierda:
 
-    ; El bloque mide 16x16: la columna de bloques es la mitad de la de celdas y
-    ; el bit que sobra dice cuál de sus dos mitades toca.
+    ; The block is 16x16: the block column is half the cell column and the
+    ; leftover bit says which of its two halves it is.
     txa
     and #$0001
-    asl a                       ; 0 la mitad izquierda, 2 la derecha
+    asl a                       ; 0 the left half, 2 the right
     sta tira_ofs
     txa
     lsr a
-    asl a                       ; la columna de bloques, en bytes
+    asl a                       ; the block column, in bytes
     sta temp
 
     jsr ptr_desde_celdas
     lda temp
     jsr ptr_mas
 
-    ; La fila de arriba de la ventana decide la ranura donde arranca y en qué
-    ; mitad del bloque cae.
+    ; The window's top row decides the slot where it starts and which half of
+    ; the block it lands in.
     lda win_row
     and #$0001
     beq desde_arriba
     lda tira_ofs
-    ora #$0004                  ; arranca por la mitad de abajo del bloque
+    ora #$0004                  ; starts at the block's bottom half
     sta tira_ofs
 desde_arriba:
     lda win_row
     and #(WINDOW_ROWS - 1)
     asl a
-    tax                         ; la ranura, en bytes
+    tax                         ; the slot, in bytes
 
-    ; Cuántas filas hay por delante: la ventana entera, o lo que quede de mapa.
+    ; How many rows lie ahead: the whole window, or whatever is left of the
+    ; map.
     lda mapa_ch
     sec
     sbc win_row
@@ -200,53 +202,54 @@ desde_arriba:
 corta:
     sta tira_resta
 
-    ; El índice del bloque va en Y y la ranura en X, y no al revés: la tabla de
-    ; bloques ya no vive en el banco 0 —con varios mapas no entra— así que se
-    ; lee con un puntero de 24 bits, y ese modo sólo indexa por Y.
+    ; The block index goes in Y and the slot in X, and not the other way
+    ; around: the block table no longer lives in bank 0 —with several maps it
+    ; does not fit— so it is read with a 24-bit pointer, and that mode only
+    ; indexes by Y.
 fila:
-    lda [celdas_ptr]            ; el bloque de esta celda
+    lda [celdas_ptr]            ; this cell's block
     jsr celda_sustituida
     asl a
     asl a
     asl a
-    asl a                       ; su registro mide 16 bytes
+    asl a                       ; its record is 16 bytes
     clc
     adc tira_ofs
     tay
     lda [bloques_ptr], y
-    sta tira_col, x             ; la celda del fondo
+    sta tira_col, x             ; the background cell
     lda [bloques8_ptr], y
-    sta tira_col2, x            ; y la de la capa de encima
+    sta tira_col2, x            ; and the upper layer's
 
     inx
     inx
     txa
-    and #(WINDOW_ROWS * 2 - 1)  ; la ventana da la vuelta
+    and #(WINDOW_ROWS * 2 - 1)  ; the window wraps
     tax
 
     lda tira_ofs
-    eor #$0004                  ; la otra mitad del bloque
+    eor #$0004                  ; the other half of the block
     sta tira_ofs
     and #$0004
-    bne misma                   ; sigue en el mismo bloque
+    bne misma                   ; still in the same block
     lda tira_paso_col
-    jsr ptr_mas                 ; a la fila de bloques siguiente
+    jsr ptr_mas                 ; to the next block row
 misma:
     dec tira_resta
     bne fila
     rts
 .endproc
 
-; La imagen espejada de la anterior: arma la fila X del mapa en tira_row. Lo
-; único que cambia es cuál de los dos ejes alterna dentro del bloque y cuánto
-; avanza el puntero al pasar de uno al siguiente.
+; The mirror image of the previous one: builds row X of the map in tira_row.
+; All that changes is which of the two axes alternates inside the block and
+; how far the pointer advances when going from one to the next.
 .proc build_row
 .a16
 .i16
     stz row_addr
     cpx mapa_ch
     bcc dentro
-    rts                         ; más allá del borde de abajo
+    rts                         ; past the bottom edge
 dentro:
     txa
     and #(WINDOW_ROWS - 1)
@@ -254,7 +257,7 @@ dentro:
     asl a
     asl a
     asl a
-    asl a                       ; cada fila de la pantalla mide 32 palabras
+    asl a                       ; each screen row is 32 words
     clc
     adc f:FAR_VRAM_MAPA
     sta row_addr
@@ -262,14 +265,15 @@ dentro:
     txa
     and #$0001
     asl a
-    asl a                       ; 0 la mitad de arriba del bloque, 4 la de abajo
+    asl a                       ; 0 the block's top half, 4 the bottom
     sta tira_ofs
     txa
     lsr a
-    sta temp                    ; la fila de bloques que entra
+    sta temp                    ; the block row coming in
 
-    ; El ancla apunta a la fila de bloques de arriba de la ventana; la que entra
-    ; puede estar hasta catorce filas más abajo, si es la del pie de la pantalla.
+    ; The anchor points at the window's top block row; the one coming in may be
+    ; up to fourteen rows further down, if it is the one at the foot of the
+    ; screen.
     jsr ptr_desde_celdas
     lda temp
     sec
@@ -282,20 +286,20 @@ baja:
     dex
     bne baja
 en_la_fila:
-    ; La fila arranca MARGEN_COLS columnas antes de la ventana, que es el mismo
-    ; rango que cargan `fill_window` y `stream_map`: [win_col - MARGEN_COLS,
-    ; win_col + 60). Si arrancara en win_col, las cuatro últimas columnas de la
-    ; fila —win_col + 60 a 63— pisarían en el toro las ranuras del margen de la
-    ; izquierda, y eso se vio: la esquina de la pantalla del mapa 2 mostraba
-    ; columnas de 64 más adelante. Las columnas negativas y las que caen más
-    ; allá del borde derecho van vacías, como en `build_column`.
+    ; The row starts MARGEN_COLS columns before the window, which is the same
+    ; range `fill_window` and `stream_map` load: [win_col - MARGEN_COLS,
+    ; win_col + 60). If it started at win_col, the row's last four columns
+    ; —win_col + 60 to 63— would overwrite, on the torus, the slots of the left
+    ; margin, and that was seen: the corner of the screen on map 2 showed
+    ; columns from 64 further on. Negative columns and the ones past the right
+    ; edge go empty, as in `build_column`.
     lda win_col
     sec
     sbc #MARGEN_COLS
     sta fila_col
     and #(WINDOW_COLS - 1)
     asl a
-    tax                         ; la ranura de la primera columna, en bytes
+    tax                         ; the first column's slot, in bytes
     lda #WINDOW_COLS
     sta tira_total
 vacias_izq:
@@ -321,7 +325,7 @@ con_mapa:
 desde_izquierda:
     lda fila_col
     lsr a
-    asl a                       ; la columna de bloques de la izquierda, en bytes
+    asl a                       ; the leftmost block column, in bytes
     jsr ptr_mas
     lda mapa_cw
     sec
@@ -332,7 +336,7 @@ desde_izquierda:
 corta:
     sta tira_resta
     lda tira_resta
-    beq vacias_der              ; toda la fila cae fuera del mapa
+    beq vacias_der              ; the whole row falls outside the map
 columna:
     lda [celdas_ptr]
     jsr celda_sustituida
@@ -355,12 +359,12 @@ columna:
     tax
 
     lda tira_ofs
-    eor #$0002                  ; la otra mitad del bloque, ahora a lo ancho
+    eor #$0002                  ; the other half of the block, now across
     sta tira_ofs
     and #$0002
     bne mismo
     lda #2
-    jsr ptr_mas                 ; al bloque de al lado
+    jsr ptr_mas                 ; to the next block over
 mismo:
     dec tira_total
     dec tira_resta
@@ -381,29 +385,28 @@ listo:
     rts
 .endproc
 
-; Qué hay que redibujar este cuadro: las filas y las columnas que la cámara
-; acaba de destapar.
+; What has to be redrawn this frame: the rows and the columns the camera just
+; uncovered.
 ;
-; **Son hasta dos de cada eje por vuelta, y eso está medido.** En el mismo eje
-; se suman dos cosas: el héroe a velocidad 6 camina 8 px por cuadro
-; —`paso_medio_por_vel` llega a 64 octavos— y un `PanScreen` a velocidad 6
-; corre la cámara otros 8 —`2 << 6` dieciseisavos—. Dieciséis pixeles son dos
-; celdas de 8. El salto del héroe no llega: el más largo del juego es de cinco
-; celdas en once cuadros, 7,3 px por cuadro.
+; **It is up to two per axis per tick, and that is measured.** On the same axis
+; two things add up: the hero at speed 6 walks 8 px per frame
+; —`paso_medio_por_vel` goes up to 64 eighths— and a `PanScreen` at speed 6
+; moves the camera another 8 —`2 << 6` sixteenths—. Sixteen pixels are two
+; 8-pixel cells. The hero's jump does not get there: the longest in the game is
+; five cells in eleven frames, 7.3 px per frame.
 ;
-; Hasta el 2026-09-22 esto dibujaba **una sola** y anotaba `win_row` como si
-; hubiera dibujado todas las que la cámara saltó, con un comentario que decía
-; que la cámara no se movía más de dos pixeles. La fila salteada quedaba mal
-; **para siempre**, porque la ventana es un toro y nadie vuelve a pisar esa
-; ranura hasta 32 filas después: el mapa se veía corrido una o dos celdas
-; respecto de la colisión, y cualquier teletransporte lo arreglaba porque
-; rellena la ventana entera. taro lo encontró jugando, después de la cinemática
-; de los Neon Vipers.
+; Until 2026-09-22 this drew **only one** and recorded `win_row` as if it had
+; drawn all the ones the camera skipped, with a comment saying the camera never
+; moved more than two pixels. The skipped row stayed wrong **forever**, because
+; the window is a torus and nobody overwrites that slot again until 32 rows
+; later: the map looked shifted one or two cells relative to the collision, and
+; any teleport fixed it because it refills the whole window. taro found it
+; playing, after the Neon Vipers cutscene.
 ;
-; Y si la cámara llegara a saltar más de dos —hoy no pasa—, `win_row` **se
-; queda atrás** en vez de mentir: lo que falta se dibuja en las vueltas
-; siguientes y el desfase se cura solo. Lo que se ve mientras tanto es el borde
-; de la pantalla atrasado, que dura lo que dure el salto y no para siempre.
+; And if the camera ever jumped more than two —today it does not—, `win_row`
+; **falls behind** instead of lying: what is missing gets drawn on the
+; following ticks and the offset heals by itself. What is seen meanwhile is the
+; screen edge lagging, which lasts as long as the jump does and not forever.
 .proc stream_map
 .a8
 .i16
@@ -413,16 +416,16 @@ listo:
     stz row_addr
     stz col_addr_b
     stz row_addr_b
-    ; Dos llamadas y no un lazo con contador: `build_row` y `build_column` usan
-    ; Y para leer los bloques, así que el contador tendría que vivir en la RAM,
-    ; y "dos por vuelta" se lee mejor acá que en una constante.
+    ; Two calls and not a loop with a counter: `build_row` and `build_column`
+    ; use Y to read the blocks, so the counter would have to live in RAM, and
+    ; "two per tick" reads better here than in a constant.
     jsr una_fila
     jsr una_fila
     jsr una_columna
     jsr una_columna
-    ; Lo que dejó pendiente una `TileSubstitution`: una columna de la ventana,
-    ; y sólo si la cámara no se llevó ninguna de este cuadro —las dos
-    ; direcciones en cero es que no hay ninguna armada—. Ver `sub_refresco`.
+    ; What a `TileSubstitution` left pending: one column of the window, and
+    ; only if the camera did not take any this frame —both addresses at zero
+    ; means none is built—. See `sub_refresco`.
     lda sub_refresco
     beq sin_refresco
     lda col_addr
@@ -431,7 +434,7 @@ listo:
     dec sub_refresco
     lda win_col
     sec
-    sbc #MARGEN_COLS            ; el mismo rango que arma `fill_window`
+    sbc #MARGEN_COLS            ; the same range `fill_window` builds
     clc
     adc sub_refresco
     tax
@@ -442,10 +445,10 @@ sin_refresco:
     rts
 .endproc
 
-; Una fila más, si la cámara dejó alguna sin dibujar. `win_col` y `win_row`
-; avanzan **de a una** aunque la cámara haya saltado más: así el ancla de
-; bloques de `build_row` sigue valiendo paso a paso, y lo que no se alcanzó a
-; dibujar queda pendiente en vez de perderse.
+; One more row, if the camera left one undrawn. `win_col` and `win_row` advance
+; **one at a time** even if the camera jumped further: that way `build_row`'s
+; block anchor stays valid step by step, and what could not be drawn in time
+; stays pending instead of getting lost.
 .proc una_fila
 .a16
 .i16
@@ -455,15 +458,15 @@ sin_refresco:
     lsr a
     cmp win_row
     beq listo
-    ; El `jsr` va **después** del `bcs` y en las dos ramas: puesto antes, la
-    ; rama miraría un acarreo que pasó por una llamada. Es barato no tener que
-    ; demostrar que `guardar_fila` no lo toca.
+    ; The `jsr` goes **after** the `bcs` and on both branches: placed before,
+    ; the branch would look at a carry that went through a call. It is cheap
+    ; not to have to prove that `guardar_fila` does not touch it.
     bcs bajando
-    jsr guardar_fila            ; la tira de antes, si hay, al repuesto
+    jsr guardar_fila            ; the previous strip, if any, to the spare
     lda win_row
     dec a
     sta win_row
-    tax                         ; sube: entra la fila de arriba de la pantalla
+    tax                         ; going up: the screen's top row comes in
     bra con_fila
 bajando:
     jsr guardar_fila
@@ -472,9 +475,9 @@ bajando:
     sta win_row
     clc
     adc #(VIEW_ROWS - 1)
-    tax                         ; baja: entra la del pie
+    tax                         ; going down: the bottom one comes in
 con_fila:
-    ; El ancla de bloques sigue a la fila de arriba de la ventana.
+    ; The block anchor follows the window's top row.
     phx
     lda win_row
     lsr a
@@ -497,12 +500,12 @@ guarda_bloque:
     sta win_block
 mismo_bloque:
     plx
-    jsr build_row               ; X es la fila que entra
+    jsr build_row               ; X is the row coming in
 listo:
     rts
 .endproc
 
-; La imagen espejada, para el otro eje.
+; The mirror image, for the other axis.
 .proc una_columna
 .a16
 .i16
@@ -512,13 +515,13 @@ listo:
     lsr a
     cmp win_col
     beq listo
-    bcs derecha                 ; el `jsr` después del salto: ver `una_fila`
+    bcs derecha                 ; the `jsr` after the branch: see `una_fila`
     jsr guardar_columna
     lda win_col
     dec a
     sta win_col
     sec
-    sbc #MARGEN_COLS            ; sube: entra la del margen de la izquierda
+    sbc #MARGEN_COLS            ; going up: the left margin's comes in
     tax
     bra armar
 derecha:
@@ -535,29 +538,31 @@ listo:
     rts
 .endproc
 
-; La tira de fila que quedó armada, al repuesto de la RAM lejana, para que
-; `build_row` pueda volver a usar el buffer en esta misma vuelta.
+; The row strip left built, to the spare in far RAM, so that `build_row` can
+; reuse the buffer in this same tick.
 ;
-; Se copia en vez de tener dos juegos de tiras y que `build_row` elija: el lazo
-; de `build_row` escribe con `sta tira_row, x` y `stz tira_row, x`, y `stz` no
-; tiene modo largo indexado, así que mudarlas a la RAM lejana le costaría un
-; `lda #0` por celda en el lazo caliente. El `mvn` son 256 bytes a siete ciclos
-; y se paga **sólo** cuando la cámara saltó dos filas, que es raro.
+; It is copied instead of having two sets of strips and letting `build_row`
+; choose: `build_row`'s loop writes with `sta tira_row, x` and
+; `stz tira_row, x`, and `stz` has no long indexed mode, so moving them to far
+; RAM would cost it an `lda #0` per cell in the hot loop. The `mvn` is 256
+; bytes at seven cycles and is paid **only** when the camera jumped two rows,
+; which is rare.
 .proc guardar_fila
 .a16
 .i16
     lda row_addr
-    beq listo                   ; no hay ninguna armada
+    beq listo                   ; none is built
     sta row_addr_b
-    ; Las dos tiras de la fila son contiguas —ver su `.res`—, así que van en un
-    ; solo `mvn`, que copia A + 1 bytes y deja el banco de datos en el destino.
+    ; The row's two strips are contiguous —see their `.res`—, so they go in a
+    ; single `mvn`, which copies A + 1 bytes and leaves the data bank at the
+    ; destination.
     ldx #.loword(tira_row)
     ldy #.loword(FAR_TIRA_ROW)
     lda #(WINDOW_COLS * 2 * 2 - 1)
     phb
-    mvn #$00, #^FAR_TIRA_ROW    ; la BSS se ve desde el banco 0: es el espejo
-    plb                         ; de la WRAM de abajo del $2000
-    stz row_addr                ; el buffer queda libre
+    mvn #$00, #^FAR_TIRA_ROW    ; the BSS is visible from bank 0: it is the
+    plb                         ; mirror of the WRAM below $2000
+    stz row_addr                ; the buffer is free
 listo:
     rts
 .endproc
@@ -579,28 +584,28 @@ listo:
     rts
 .endproc
 
-; Llena la ventana entera desde cero: las 64 columnas, una por una. Va con la
-; pantalla apagada, al arrancar, y es el único momento en que se escribe tanto
-; tilemap de una vez.
-; Los dos tilemaps del mapa —el fondo y la capa de encima— en cero, y las
-; cuatro tiras con que se llenan.
+; Fills the whole window from scratch: the 64 columns, one by one. It runs with
+; the screen off, at startup, and it is the only moment when that much tilemap
+; is written at once.
+; The map's two tilemaps —the background and the upper layer— at zero, and the
+; four strips they are filled with.
 ;
-; `build_column` y `build_row` **saltean** lo que cae afuera del mapa, y las
-; tiras sólo se escriben hasta donde el mapa llega. En el arranque eso deja
-; ceros, que es la celda vacía y se ve negro, porque el reset limpió la VRAM
-; entera. Después de un teletransporte o de una puerta, en cambio, dejaba lo
-; que hubiera puesto el mapa anterior: lo destapa `ShakeScreen` contra el
-; borde, que corre la pantalla más allá de la primera columna. Lo encontró el
-; paso 9e, cuando los casos de `sacudir-borde` y `tram-viaje` pasaron a
-; llegar a su mapa con un `Teleport` en vez de arrancar ahí.
+; `build_column` and `build_row` **skip** whatever falls outside the map, and
+; the strips are only written as far as the map reaches. At boot that leaves
+; zeros, which is the empty cell and shows black, because the reset cleared
+; all of VRAM. After a teleport or a door, on the other hand, it left whatever
+; the previous map had put there: `ShakeScreen` against the edge uncovers it,
+; since it moves the screen past the first column. Step 9e found it, when the
+; `sacudir-borde` and `tram-viaje` cases switched to reaching their map with a
+; `Teleport` instead of starting there.
 ;
-; Corre con la pantalla en blanking forzado, que es como corre toda carga de
-; mapa: son dos DMA de 4 KB a la VRAM.
+; It runs with the screen in forced blanking, which is how every map load
+; runs: it is two 4 KB DMAs to VRAM.
 .proc limpiar_tilemaps
 .a8
 .i16
     lda #$80
-    sta VMAIN                   ; avanzar una palabra tras el byte alto
+    sta VMAIN                   ; advance one word after the high byte
     rep #$20
 .a16
     lda f:FAR_VRAM_MAPA
@@ -612,14 +617,14 @@ listo:
     jsr cero_a_tilemap
     ldx #$0000
 tiras:
-    stz tira_col, x             ; las cuatro son contiguas: ver su .res
+    stz tira_col, x             ; all four are contiguous: see their .res
     inx
     cpx #(WINDOW_ROWS * 2 * 2 + WINDOW_COLS * 2 * 2)
     bne tiras
     rts
 .endproc
 
-; Un tilemap de dos pantallas de 32x32, desde la palabra X de la VRAM, en cero.
+; A tilemap of two 32x32 screens, from VRAM word X, to zero.
 .proc cero_a_tilemap
 .a8
 .i16
@@ -628,12 +633,12 @@ tiras:
     stx A1T0L
     lda #^cero
     sta A1B0
-    ldx #(32 * 32 * 2 * 2)      ; dos pantallas, de a palabras
+    ldx #(32 * 32 * 2 * 2)      ; two screens, in words
     stx DAS0L
-    lda #$09                    ; dos registros, de a palabras, fuente fija
+    lda #$09                    ; two registers, word at a time, fixed source
     sta DMAP0
     lda #$18
-    sta BBAD0                   ; destino: VMDATAL
+    sta BBAD0                   ; destination: VMDATAL
     lda #$01
     sta MDMAEN
     rts
@@ -646,11 +651,11 @@ tiras:
 .a16
     stz col_addr
     stz row_addr
-    stz col_addr_b              ; y las de repuesto: acá se llena todo de cero,
-    stz row_addr_b              ; así que lo que quedara a medio armar no sirve
+    stz col_addr_b              ; and the spare ones: everything is filled from
+    stz row_addr_b              ; scratch here, so anything half built is useless
     lda mapa_ancho
     asl a
-    sta tira_paso_col           ; lo que mide una fila de bloques, en bytes
+    sta tira_paso_col           ; the size of a block row, in bytes
 
     lda camara_x
     lsr a
@@ -665,9 +670,10 @@ tiras:
     lsr a
     sta win_block
 
-    ; celdas = la grilla del mapa + win_block filas. Se suma de a una en vez de
-    ; multiplicar: pasa una sola vez y el 65816 no multiplica. La grilla está
-    ; en la WRAM, donde la descomprimió `lz2_grilla` al cargar el mapa.
+    ; celdas = the map's grid + win_block rows. It is added one at a time
+    ; instead of multiplying: it happens only once and the 65816 does not
+    ; multiply. The grid is in WRAM, where `lz2_grilla` decompressed it when
+    ; the map loaded.
     lda #.loword(GRILLA)
     sta celdas_ptr
     sep #$20
@@ -688,8 +694,8 @@ sin_filas:
 
     lda win_col
     sec
-    sbc #MARGEN_COLS            ; con el margen de la izquierda; las columnas
-    sta temp + 2                ; negativas las saltea `build_column`
+    sbc #MARGEN_COLS            ; with the left margin; `build_column` skips
+    sta temp + 2                ; the negative columns
     ldy #WINDOW_COLS
 columna:
     phy
@@ -709,8 +715,8 @@ columna:
     rts
 .endproc
 
-; `hdma_mascara` y `tabla_fila_buf` **vivían acá** y bajaron a RODATA el
-; 2026-09-13, las dos por separado y el mismo día: ver `banco1.s`. El HDMA lee
-; de donde diga `A1B3`, así que no necesita banco 0, y el compositor la indexa
-; con X, que sí tiene modo largo.
+; `hdma_mascara` and `tabla_fila_buf` **used to live here** and moved down to
+; RODATA on 2026-09-13, each separately and on the same day: see `banco1.s`.
+; The HDMA reads from wherever `A1B3` says, so it does not need bank 0, and the
+; compositor indexes it with X, which does have a long mode.
 
