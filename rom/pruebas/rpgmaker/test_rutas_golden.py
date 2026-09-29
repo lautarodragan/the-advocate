@@ -12,12 +12,12 @@ Del arnés hay una sola cosa que valga para todos: **ninguno de estos casos
 aprieta el pad**, salvo `pisar`. El que camina es la ruta, y un pad sostenido
 sería una segunda fuente de movimiento.
 
-Y una advertencia que no es del arnés pero decide los cuadros de varios: en el
-mapa 6, del tick 47 en adelante, una ruta que baja cuatro celdas desde (22,12)
-diverge en **diez pixeles** de dos tiles animados del chipset, con la orden 34
-puesta y sin ella. Está anotado en
-`divergencias/fase-de-los-tiles-animados.md` y es anterior a estos casos; por
-eso varios miran hasta el 40 y no más lejos.
+Y algo que no es del arnés pero decidió los cuadros de varios: en el mapa 6,
+una ruta que baja cuatro celdas desde (22,12) destapa el agua del chipset, que
+cambia de paso en el tick 47. Ahí la ROM difería en **diez pixeles** de la
+referencia en Python, y por eso varios casos miran hasta el 40 y no más lejos.
+Contra el RPG_RT la regla del reloj del agua es la misma —medido con Wine el
+2026-09-29—, así que el 47 ya no es un cuadro a evitar.
 
 El nombre que abre cada docstring es el del caso, que es también el de su
 golden.

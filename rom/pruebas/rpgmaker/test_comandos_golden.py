@@ -265,11 +265,11 @@ def test_saturar(nombre):
 
 
 TIMERS = (("timer", (2, 31, 61, 90)),
-          # El cronómetro llegando a cero. Mira el 2, el 40, el 59 y el 61 y
-          # **se saltea justo el 60**, que es el único que difiere: es una
-          # divergencia de un tick en el cuadro en que el cronómetro se apaga,
-          # 252 pixeles en los dígitos, y está anotada en
-          # `divergencias/cronometro-llegando-a-cero.md` como cosmética.
+          # El cronómetro llegando a cero. Mira el 2, el 40, el 59 y el 61, y
+          # se saltea el 60 —el último con dígitos— porque ahí difería de la
+          # referencia en Python. Medido el 2026-09-29 contra el RPG_RT con
+          # Wine, el 60 es como el original: el cronómetro se apaga en el 61
+          # y nunca muestra 00:00.
           ("timer-cero", (2, 40, 59, 61)))
 
 
