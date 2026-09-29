@@ -25,20 +25,19 @@ import sys
 
 # `realpath` y no `abspath`: `just herramientas` instala este script en el PATH
 # como symlink, y lo que importa es dónde está el archivo de verdad.
-RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-sys.path.insert(0, os.path.join(RAIZ, "tools"))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import muestras_brr                          # noqa: E402
+from comun import proyecto                              # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
 from port import tiles_bin                              # noqa: E402
 from port import comprimir                              # noqa: E402
 
-CASOS = os.path.join(RAIZ, "pruebas", "casos")
-FUENTE = os.path.join(RAIZ, "rom", "src")
+RAIZ = proyecto.raiz()
+CASOS = proyecto.casos()
+FUENTE = proyecto.runtime()
 
-# `tanda.py` lee la misma variable.
-DESTINO = os.environ.get("CARTUCHOS",
-                         os.path.join(RAIZ, "rom", "build", "tests"))
+DESTINO = proyecto.cartuchos_de_prueba()
 
 # Los mapas del juego que lleva `release`: **los de id menor a `MENOR_A`,
 # menos `EXCLUIDOS`, más `AGREGADOS`**. Hoy es Lashe City entera y el camino
@@ -274,10 +273,11 @@ def archivos_de_la_huella(fuente=FUENTE):
                  comprimir.binario()])
     # Menos las pruebas de las herramientas, que no arman nada: con ellas
     # adentro, editar una prueba dejaba viejos a todos los cartuchos.
-    pruebas = os.path.join(RAIZ, "tools", "pruebas", "")
-    partes += sorted(r for r in glob.glob(os.path.join(RAIZ, "tools", "*", "*.py"))
+    pruebas = os.path.join(proyecto.herramientas(), "pruebas", "")
+    partes += sorted(r for r in glob.glob(os.path.join(proyecto.herramientas(),
+                                                       "*", "*.py"))
                      if not r.startswith(pruebas))
-    partes += sorted(glob.glob(os.path.join(RAIZ, "parches", "manual", "*",
+    partes += sorted(glob.glob(os.path.join(proyecto.parches_manual(), "*",
                                             "*")))
     return partes
 
@@ -334,7 +334,7 @@ def sello(nombre, fuentes=None):
 def directorio(nombre):
     """Lo que las pruebas escriben no va acá sino a `pruebas/snapshots/`."""
     if nombre == RELEASE:
-        return os.path.join(RAIZ, "rom", "build", RELEASE)
+        return os.path.join(proyecto.build(), RELEASE)
     return os.path.join(DESTINO, nombre.replace("test-", "", 1))
 
 
@@ -411,8 +411,8 @@ def convertir(nombre, destino, sfc, extra=()):
     for k, caso in enumerate(casos_de(nombre)):
         de_casos += (["--caso"] if k else []) + [
             "--comandos-de-prueba",
-            os.path.join("pruebas", "casos", caso + ".json")]
-    orden = ([sys.executable, os.path.join(RAIZ, "tools", "port",
+            os.path.relpath(os.path.join(CASOS, caso + ".json"), RAIZ)]
+    orden = ([sys.executable, os.path.join(proyecto.herramientas(), "port",
                                            "snes_convert.py"),
               "-o", os.path.join(destino, "mapdata.inc"),
               "--msu", os.path.splitext(sfc)[0] + ".msu"]
@@ -423,7 +423,7 @@ def convertir(nombre, destino, sfc, extra=()):
     if hecho.returncode:
         sys.stderr.write(hecho.stdout[-3000:] + hecho.stderr)
         sys.exit("%s: el conversor falló; todo está en %s" % (nombre, log))
-    ensamblar.ensamblar(os.path.join(RAIZ, "rom", "src", "main.s"),
+    ensamblar.ensamblar(os.path.join(FUENTE, "main.s"),
                         destino, sfc, sfc + ".sym")
 
 

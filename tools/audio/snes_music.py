@@ -21,6 +21,7 @@ from audio import muestras_brr
 from audio import sdsp
 from audio import snes_samples
 from audio import spc700
+from comun import proyecto
 from comun.paralelo import en_paralelo
 from rpgmaker.recursos import GAME_DIR, find_resource
 
@@ -1994,8 +1995,7 @@ def leer_tema(name, game_dir=GAME_DIR):
 # decisiones de `parches/auto/`. Un tema que no está en la tabla va con
 # `sdsp.AIRE`. Cada cambio de la mezcla —las muestras, las envolventes, el
 # reparto— la deja vieja, y eso lo cobra `test_musica_techos.py`.
-TECHOS = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))), "parches", "auto", "musica", "techos.toml")
+TECHOS = os.path.join(proyecto.parches_auto(), "musica", "techos.toml")
 
 
 def leer_techos(ruta=TECHOS):
@@ -2350,8 +2350,7 @@ CUADROS_POR_KB_PAQUETE = 1.45
 CUADROS_POR_KB_IPL = 1.5
 CUADROS_DEL_MAPA = 10
 # Dónde vive `BOOT_CUADROS`, que es de la ROM y no de acá.
-RAM_LEJANA = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))), "rom", "src", "ram_lejana.s")
+RAM_LEJANA = os.path.join(proyecto.runtime(), "ram_lejana.s")
 
 
 def cuadros_del_arranque(driver, voces, temas, paquete, descomprimir=0.0,

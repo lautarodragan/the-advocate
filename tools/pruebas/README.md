@@ -48,4 +48,7 @@ nombrado tiene que existir: lo cobra `test_indice.py`.
   paquete de cada mapa, que es lo que el reparto le reserva
 * `test_musica_stream.py`: el stream que arma el conversor: a qué voz va cada
   nota, cuándo se suelta y con qué envolvente
+* `test_proyecto.py`: que dónde está cada cosa —la raíz, las carpetas del
+  repo, los valores por omisión del ambiente— lo sepa sólo
+  `comun/proyecto.py`
 * `test_indice.py`: que esta lista esté al día

@@ -12,14 +12,13 @@ import os
 
 from PIL import Image
 
+from comun import proyecto
 from rpgmaker import lcf
 from rpgmaker import rm2k
 from rpgmaker.recursos import GAME_DIR, RTP_DIR, find_resource
 from rpgmaker.rm2k import TILE
 from render import chipset_del_fork
 from render.chipset import ANIMATED, ChipsetAtlas, TERRAIN, UPPER
-
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def load_image(path):
@@ -206,7 +205,7 @@ class Renderer:
         self.database = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
         self.tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
         self.game_dir = game_dir
-        self.search_dirs = [REPO, game_dir, rtp_dir]
+        self.search_dirs = [proyecto.raiz(), game_dir, rtp_dir]
         # Las imágenes de los ChipSets que agrega `parches/manual/` se
         # **arman** —el arte del juego no es nuestro para versionar, ver
         # `chipset_del_fork.py`— y van primero en la búsqueda: son las que

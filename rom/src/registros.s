@@ -36,7 +36,7 @@ APU_CMD_IPL = 4
 ; La consola multiplica y divide por hardware, que es lo único que hace falta
 ; para el tinte de pantalla: escala cada canal por un valor de 0 a 200 con 100
 ; como neutro, o sea multiplicar y dividir por cien. Las dos son exactas y con
-; enteros, así que la misma cuenta en Python —`eventos.tenir`— da siempre lo
+; enteros, así que la misma cuenta en Python —`color.tenir`— da siempre lo
 ; mismo.
 ;
 ; El producto tarda 8 ciclos en estar listo y el cociente 16. No hay que

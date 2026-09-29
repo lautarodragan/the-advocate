@@ -34,8 +34,9 @@ import os
 import pickle
 import tempfile
 
-RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DONDE = os.environ.get("ABL_CACHE", os.path.join(RAIZ, "rom", "build", "cache"))
+from comun import proyecto
+
+DONDE = proyecto.cache()
 APAGADO = os.environ.get("SIN_CACHE") == "1"
 
 
@@ -44,7 +45,7 @@ def version_de(*archivos):
     clave: rutas relativas a `tools/`."""
     h = hashlib.sha256()
     for nombre in archivos:
-        with open(os.path.join(RAIZ, "tools", nombre), "rb") as f:
+        with open(os.path.join(proyecto.herramientas(), nombre), "rb") as f:
             h.update(f.read())
     return h.hexdigest()
 

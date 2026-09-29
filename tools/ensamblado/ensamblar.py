@@ -41,10 +41,15 @@ GENERADOS = ("mapdata.inc", "musicdata.inc")
 CHECKSUM = 0x7FDE
 COMPLEMENTO = 0x7FDC
 
+# Corrido como script, Python pone en el `sys.path` la carpeta de este archivo
+# y no `tools/`: ver el mismo arranque en `port/snes_convert.py`.
+if __name__ == "__main__":
+    sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
+from comun import proyecto                                  # noqa: E402
+
 # La raíz del repo: `ca65` y `ld65` corren parados acá, con rutas relativas.
-# `realpath` y no `abspath`: `just herramientas` instala este script en el PATH
-# como symlink, y lo que importa es dónde está el archivo de verdad.
-RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+RAIZ = proyecto.raiz()
 
 FALTA = """falta `%s`, del proyecto cc65.
 

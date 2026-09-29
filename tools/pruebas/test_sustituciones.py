@@ -12,12 +12,11 @@ lo que queda es compararlos.
 import os
 import re
 
-REPO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
-
 from port import snes_convert                            # noqa: E402
+from comun import proyecto  # noqa: E402
 from ensamblado import ensamblar  # noqa: E402
 
-MAIN = os.path.join(REPO, "rom", "src", "main.s")
+MAIN = os.path.join(proyecto.runtime(), "main.s")
 
 
 def de_main(nombre):

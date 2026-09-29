@@ -23,16 +23,24 @@ import textwrap
 
 # `realpath` y no `abspath`: `just herramientas` instala este script en el PATH
 # como symlink, y lo que importa es dónde está el archivo de verdad.
-RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-RELEASE = os.path.join(RAIZ, "rom", "build", "release")
-SHARED = os.environ.get("SHARED", "/shared")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
+from comun import proyecto                              # noqa: E402
+
+RAIZ = proyecto.raiz()
+RELEASE = os.path.join(proyecto.build(), "release")
+SHARED = proyecto.compartido()
 BUILDS = os.path.join(SHARED, "builds")
 MSU = os.path.join(SHARED, "msu")
 
 # Lo que entra en la ROM: lo que mira `cartuchos.huella()` más lo que lee el
 # conversor. Un cambio sin commitear ahí haría un build que no es el del commit
 # que lo nombra. `README.md`, `docs/` o un `.box.yml` suelto no entran.
-LO_QUE_ENTRA = ("rom/src", "tools", "parches", "data")
+# Relativas a la raíz, porque son pathspecs de `git`.
+RUNTIME = os.path.relpath(proyecto.runtime(), RAIZ)
+LO_QUE_ENTRA = tuple(os.path.relpath(r, RAIZ) for r in (
+    proyecto.runtime(), proyecto.herramientas(), proyecto.parches(),
+    proyecto.data()))
 
 # `<fecha>-<commit>` y lo que siga. Sólo esos se cuentan y se borran: lo demás
 # que haya en /shared/builds/ es de taro.
@@ -40,7 +48,8 @@ BUILD = re.compile(r"^(\d{4}-\d{2}-\d{2})-([0-9a-f]{7,40})")
 
 # Lo que escribe esto adentro del build. Si el directorio ya existía, se pisa
 # esto y nada más: taro deja ahí la partida de su emulador (`abl.ram`).
-LO_NUESTRO = ("abl.sfc", "abl.sfc.dbg", "abl.msu", "LEEME.txt", "rom")
+LO_NUESTRO = ("abl.sfc", "abl.sfc.dbg", "abl.msu", "LEEME.txt",
+              RUNTIME.split(os.sep)[0])
 
 # **El `abl.msu` es del build, no de las pistas.** Lleva los fondos de batalla
 # que el MSU-1 le sirve a la ROM —ver tools/port/msu_datos.py—, así que cambia
@@ -54,7 +63,8 @@ MSU_DEL_BUILD = "abl.msu"
 # El comando de la huella tal cual lo escribe `/shared/msu/LEEME.txt`, y se
 # corre con un shell y no reimplementado: la línea que hashea el segundo
 # `sha256sum` lleva la ruta, y el orden lo pone el glob del shell.
-HUELLA_MSU = "sha256sum rom/build/release/abl-*.pcm | sha256sum"
+HUELLA_MSU = ("sha256sum %s/abl-*.pcm | sha256sum"
+              % os.path.relpath(RELEASE, RAIZ))
 
 
 def fallar(mensaje):
@@ -181,8 +191,9 @@ def main():
 
     # `git archive` y no una copia del árbol: así es el del commit, sin nada
     # sin trackear que haya quedado en rom/src/.
-    shutil.rmtree(os.path.join(destino, "rom"), ignore_errors=True)
-    archivo = subprocess.run(["git", "-C", RAIZ, "archive", "HEAD", "rom/src"],
+    shutil.rmtree(os.path.join(destino, RUNTIME.split(os.sep)[0]),
+                  ignore_errors=True)
+    archivo = subprocess.run(["git", "-C", RAIZ, "archive", "HEAD", RUNTIME],
                              check=True, capture_output=True).stdout
     subprocess.run(["tar", "-x", "-C", destino], input=archivo, check=True)
 

@@ -6,13 +6,7 @@ el reparto que mueve el tilemap del fondo —`LAYOUT_VENTANA_AMBOS`— no lo usa
 hoy ningún cartucho: ver `workflow/tasks/done/el-tilemap-del-fondo-lo-elige-el-reparto.md`.
 """
 
-import os
-import sys
-
-RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(RAIZ, "tools"))
-
-from port import snes_convert as S                      # noqa: E402
+from port import snes_convert as S
 
 
 def test_los_repartos_respetan_al_hardware():

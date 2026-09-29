@@ -24,14 +24,15 @@ import os
 
 from PIL import Image
 
+from comun import proyecto
 from rpgmaker import lcf
-from rpgmaker.fork import REPO, ForkRoto, chipsets
+from rpgmaker.fork import ForkRoto, chipsets
 from rpgmaker.rm2k import (OFFSET_X, SPRITE_HEIGHT, SPRITE_WIDTH, TILE,
                            caja_de_comun, caja_de_terreno)
 
 # Dónde caen las imágenes armadas. Es un directorio de build como cualquier
 # otro: se puede borrar, y se rehace solo.
-GENERADO = os.path.join(REPO, "rom", "build", "parches-manual")
+GENERADO = os.path.join(proyecto.build(), "parches-manual")
 
 
 def _paleta(imagen):
@@ -70,7 +71,7 @@ def _lo_que_dibuja(map_id):
     Podando sin contarlos, el mapa 32 perdía la ranura 13 y la ROM salía con
     78 bytes distintos: lo cobró la comparación byte por byte, no una prueba.
     """
-    mapa = lcf.Map(os.path.join(REPO, "data", "maps", "Map%04d.json" % map_id))
+    mapa = lcf.Map(os.path.join(proyecto.data(), "maps", "Map%04d.json" % map_id))
     agua = False
     terrenos, comunes = set(), set()
     for capa in (mapa.lower_layer, mapa.upper_layer):

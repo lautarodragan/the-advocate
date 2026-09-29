@@ -37,9 +37,9 @@ import sys
 
 # `realpath` y no `abspath`: `just herramientas` instala este script en el PATH
 # como symlink, y lo que importa es dónde está el archivo de verdad.
-RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-sys.path.insert(0, os.path.join(RAIZ, "tools"))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
+from comun import proyecto                              # noqa: E402
 from ensamblado import bancos                           # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
 
@@ -65,7 +65,7 @@ def _areas(cfg):
 
 def _relleno_de_far(dbg):
     """Cuánto rellena el `.align $8000` de `cabecera.s`, en bytes."""
-    with open(os.path.join(RAIZ, "rom", "src", "cabecera.s")) as archivo:
+    with open(os.path.join(proyecto.runtime(), "cabecera.s")) as archivo:
         lineas = [n + 1 for n, l in enumerate(archivo)
                   if l.split(";")[0].strip().startswith(".align")]
     archivos = {f["id"] for f in _registros(dbg, "file")
@@ -115,7 +115,7 @@ def mostrar(nombre, sfc):
     m = medir(sfc)
     # Una ROM armada aparte se nombra por su ruta; un cartucho, por su nombre.
     print(nombre if os.path.isfile(nombre)
-          else "%s  (%s)" % (nombre, os.path.relpath(sfc, RAIZ)))
+          else "%s  (%s)" % (nombre, os.path.relpath(sfc, proyecto.raiz())))
     print("  bancos de datos  %d de %d usados, $%02X-$%02X; %d libres detrás"
           % (m["ultimo"] - m["primero"] + 1, m["bancos"], m["primero"],
              m["ultimo"], m["libres"]))

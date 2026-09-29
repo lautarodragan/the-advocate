@@ -39,12 +39,16 @@ La imagen de esos ChipSets la arma `render/chipset_del_fork.py`.
 import json
 import os
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-FORK = os.path.join(REPO, "parches", "manual")
+from comun import proyecto
+
+FORK = proyecto.parches_manual()
 MAPAS = os.path.join(FORK, "mapas")
 CHIPSETS = os.path.join(FORK, "chipsets")
 # Los mapas que el juego no tiene: ver `nuevos`.
 NUEVOS = os.path.join(FORK, "nuevos")
+# Los del juego, contra los que se valida que un fork pise uno y un mapa nuevo
+# no.
+DEL_JUEGO = os.path.join(proyecto.data(), "maps")
 
 
 class ForkRoto(Exception):
@@ -83,7 +87,7 @@ def _huella():
     """Lo que tiene que cambiar para que el fork validado deje de valer."""
     if not os.path.isdir(MAPAS):
         return None
-    partes = [MAPAS, REPO]
+    partes = [MAPAS, DEL_JUEGO]
     for entrada in sorted(os.listdir(MAPAS)):
         try:
             estado = os.stat(os.path.join(MAPAS, entrada))
@@ -91,8 +95,7 @@ def _huella():
         except OSError:
             partes.append((entrada, None, None))
         base = os.path.splitext(entrada)[0]
-        partes.append(os.path.isfile(os.path.join(REPO, "data", "maps",
-                                                  base + ".json")))
+        partes.append(os.path.isfile(os.path.join(DEL_JUEGO, base + ".json")))
     return tuple(partes)
 
 
@@ -119,7 +122,7 @@ def _validar():
                 "afuera del JSON, así que media pieza deja el build con las "
                 "capas de un mapa y los eventos de otro"
                 % (map_id, ", ".join(os.path.basename(p) for p in falta)))
-        original = os.path.join(REPO, "data", "maps", base + ".json")
+        original = os.path.join(DEL_JUEGO, base + ".json")
         if not os.path.isfile(original):
             raise ForkRoto(
                 "el fork nombra al mapa %d y en data/ no hay ninguno: un fork "
@@ -171,13 +174,12 @@ _nuevos_validados = {}
 def _huella_de_nuevos():
     if not os.path.isdir(NUEVOS):
         return (NUEVOS, None)
-    partes = [NUEVOS, REPO]
+    partes = [NUEVOS, DEL_JUEGO]
     for entrada in sorted(os.listdir(NUEVOS)):
         estado = os.stat(os.path.join(NUEVOS, entrada))
         base = os.path.splitext(entrada)[0]
         partes.append((entrada, estado.st_mtime_ns, estado.st_size,
-                       os.path.isfile(os.path.join(REPO, "data", "maps",
-                                                   base + ".json"))))
+                       os.path.isfile(os.path.join(DEL_JUEGO, base + ".json"))))
     return tuple(partes)
 
 
@@ -202,7 +204,7 @@ def _validar_nuevos():
             raise ForkRoto("el mapa nuevo %d está a medias: falta %s"
                            % (map_id, ", ".join(os.path.basename(p)
                                                 for p in falta)))
-        if os.path.isfile(os.path.join(REPO, "data", "maps", base + ".json")):
+        if os.path.isfile(os.path.join(DEL_JUEGO, base + ".json")):
             raise ForkRoto(
                 "el mapa nuevo %d ya existe en data/: un mapa nuevo no pisa "
                 "uno del juego; si es para cambiarlo, es un fork y va en "

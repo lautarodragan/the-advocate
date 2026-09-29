@@ -278,6 +278,12 @@ que revela menos y da más margen. Hoy tiene:
 Las capturas van ahí y no a `/tmp` por una razón concreta: el contenedor corre
 con `--rm --replace`, así que `/tmp` se muere con él y `/extras` no.
 
+Las herramientas llegan a `/extras` y a `/shared` por sus valores por
+omisión —`ABL_GAME_DIR`, `ABL_RTP_DIR`, `ABL_SOUNDFONT`, `SHARED` y los
+reemplazos de MSU-1—, y ésos viven todos en `tools/comun/proyecto.py`, junto
+con dónde está cada carpeta del repo. Si el ambiente cambia, se cambia ahí;
+el `justfile` de la raíz repite el del juego, porque no importa Python.
+
 **`ca65` y `ld65` se compilan acá adentro, y eso fue una decisión.** No están
 empaquetados en Arch, y hasta el 2026-09-15 la regla era no compilar fuentes de
 internet en la misma caja donde vive el repo: `audio-validar` corría `ca65` en un

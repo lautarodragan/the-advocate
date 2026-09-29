@@ -9,12 +9,7 @@ PATH: lo que cobran es justamente que los números salgan de ahí.
 """
 
 import math
-import os
 import struct
-import sys
-
-RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
 from audio import midi, sdsp, snes_music                   # noqa: E402
 
