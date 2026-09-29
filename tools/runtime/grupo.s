@@ -1,13 +1,13 @@
 .segment "CODE"
 
-; ¿Está el actor de A en el grupo? Vuelve con Z=0 si sí.
+; Is the actor in A in the party? Returns with Z=0 if so.
 .proc en_el_grupo
 .a8
 .i16
     ldx #$0000
 busca:
-    cpx grupo_n                 ; grupo_n es de 16 bits a propósito: con .i16
-    beq no_esta                 ; esta comparación lee dos bytes igual
+    cpx grupo_n                 ; grupo_n is 16 bits on purpose: with .i16
+    beq no_esta                 ; this comparison reads two bytes anyway
     cmp grupo, x
     beq esta
     inx
@@ -20,13 +20,13 @@ no_esta:
     rts
 .endproc
 
-; Agrega o saca un actor del grupo y recalcula con qué se dibuja el héroe.
-; A = el actor, temp = 0 para agregar y 1 para sacar.
+; Adds an actor to the party or removes one, and recomputes what the hero is
+; drawn with. A = the actor, temp = 0 to add and 1 to remove.
 ;
-; Las reglas son las de `Game_Party::AddActor` y `RemoveActor`: agregar a
-; alguien que ya está no lo duplica ni lo mueve de lugar, agregar con el grupo
-; lleno no hace nada, y sacar a alguien que no está tampoco. El orden importa
-; porque el primero es el que se dibuja.
+; The rules are those of `Game_Party::AddActor` and `RemoveActor`: adding
+; someone who is already there neither duplicates them nor moves them, adding
+; with the party full does nothing, and neither does removing someone who is
+; not there. The order matters because the first one is the one drawn.
 .proc cambiar_grupo
 .a8
 .i16
@@ -40,15 +40,15 @@ buscar:
     bra buscar
 
 estaba:
-    ; `temp` se mira con A y no con `ldy temp`: con .i16 eso leería dos bytes y
-    ; el de al lado no es nuestro. Es la trampa del ancho de los índices, que ya
-    ; está anotada arriba de main.s, y acá dio exactamente el síntoma que
-    ; promete: ningún cambio de grupo tenía efecto y no había ningún error.
+    ; `temp` is checked with A and not with `ldy temp`: with .i16 that would
+    ; read two bytes and the next one is not ours. It is the index-width trap,
+    ; already noted at the top of main.s, and here it gave exactly the symptom
+    ; it promises: no party change had any effect and there was no error.
     pha
     lda temp
-    beq era_agregar             ; agregar uno que ya está: nada que hacer
+    beq era_agregar             ; adding one who is already there: nothing to do
     pla
-    ; Sacarlo: se corren los de atrás un lugar.
+    ; Removing it: the ones behind move up one place.
 correr:
     inx
     cpx grupo_n
@@ -70,10 +70,10 @@ era_agregar:
 no_estaba:
     pha
     lda temp
-    bne era_sacar               ; sacar uno que no está: nada que hacer
+    bne era_sacar               ; removing one who is not there: nothing to do
     pla
     cpx #GRUPO_MAX
-    beq listo                   ; lleno: RM2k tampoco lo agrega
+    beq listo                   ; full: RM2k does not add it either
     sta grupo, x
     rep #$20
 .a16
@@ -86,69 +86,71 @@ era_sacar:
 
 listo:
     jsr elegir_grafico_heroe
-    ; El líder nuevo tiene otros colores y comparte la ranura con el anterior,
-    ; así que hay que rearmar las paletas. No toca CGRAM: deja todo en
-    ; `cgram_sombra` y lo sube `subir_tinte` en el vblank.
+    ; The new leader has other colors and shares the slot with the previous
+    ; one, so the palettes have to be rebuilt. It does not touch CGRAM: it
+    ; leaves everything in `cgram_sombra` and `subir_tinte` uploads it in the
+    ; vblank.
     jsr aplicar_tinte
     lda #1
-    sta refresco                ; las páginas que piden un actor pueden cambiar
+    sta refresco                ; the pages that ask for an actor may change
     rts
 .endproc
 
-; A: un índice de la tabla de gráficos del mapa —la que arma `ruta_grafico` y
-; que `load_ruta_graficos` copia a `ruta_graf_buf`—. Deja `hero_poses`,
-; `hero_pal` y `hero_cgram` apuntando a ese gráfico y vuelve con C=1; si el
-; gráfico no está en el banco de sprites de este mapa vuelve con C=0 y sin
-; tocar nada.
+; A: an index into the map's graphics table —the one `ruta_grafico` builds and
+; `load_ruta_graficos` copies to `ruta_graf_buf`—. Leaves `hero_poses`,
+; `hero_pal` and `hero_cgram` pointing at that graphic and returns with C=1;
+; if the graphic is not in this map's sprite bank it returns with C=0 and
+; without touching anything.
 ;
-; Sale barata porque las dos tablas de poses tienen la misma forma: una entrada
-; de `npc_poses` son doce punteros de tres bytes a las poses del personaje, y
-; los doce que la tabla de actores le da al líder están escritos igual. O sea
-; que alcanza con apuntar `hero_poses` treinta y seis bytes adentro de
-; `npc_poses` y `place_hero` sigue sin enterarse.
+; It comes cheap because the two pose tables have the same shape: an entry of
+; `npc_poses` is twelve three-byte pointers to the character's poses, and the
+; twelve the actor table gives the leader are written the same way. That is,
+; pointing `hero_poses` thirty-six bytes into `npc_poses` is enough and
+; `place_hero` still does not notice.
 ;
-; `hero_cgram` se apaga: los quince colores del líder los sube `aplicar_tinte`
-; **en la fila que dice `hero_pal`**, así que dejarlo puesto con la paleta nueva
-; le escribiría los colores de Talan encima a la paleta del gráfico al que se
-; cambió. Mientras el cambio está puesto, el héroe se dibuja con la paleta del
-; gráfico nuevo, que ya vive en CGRAM con el resto de los sprites del mapa.
+; `hero_cgram` is turned off: the leader's fifteen colors are uploaded by
+; `aplicar_tinte` **into the row `hero_pal` names**, so leaving it on with the
+; new palette would write Talan's colors over the palette of the graphic it
+; changed to. While the change is in effect, the hero is drawn with the new
+; graphic's palette, which already lives in CGRAM with the rest of the map's
+; sprites.
 ;
-; La usan los dos que le cambian el gráfico al héroe: la orden 34 de una ruta
-; —`grafico_heroe`— y el `ChangeSpriteAssociation` sobre el actor que lidera
-; —`elegir_grafico_heroe`—. Lo que cada uno hace con el C=0 es distinto y por
-; eso queda afuera: la orden 34 esconde al héroe y el cambio de actor lo deja
-; con el gráfico del LDB.
+; It is used by the two things that change the hero's graphic: move command
+; 34 of a move route —`grafico_heroe`— and the `ChangeSpriteAssociation` on
+; the actor who leads —`elegir_grafico_heroe`—. What each one does with C=0 is
+; different and that is why it stays outside: command 34 hides the hero and
+; the actor change leaves it with the LDB graphic.
 .proc hero_poses_de_grafico
 .a8
 .i16
-    asl a                       ; dos bytes por entrada en `ruta_graf_buf`
+    asl a                       ; two bytes per entry in `ruta_graf_buf`
     rep #$20
 .a16
     and #$00FF
     tax
     sep #$20
 .a8
-    lda ruta_graf_buf, x        ; su entrada en `npc_poses`, o $FF
+    lda ruta_graf_buf, x        ; its entry in `npc_poses`, or $FF
     cmp #$FF
     beq no_esta
     sta temp
     lda ruta_graf_buf + 1, x
     asl a
-    and #$0E                    ; la paleta, corrida a su lugar en vhoopppN
+    and #$0E                    ; the palette, shifted into place in vhoopppN
     sta hero_pal
     rep #$20
 .a16
     lda temp
     and #$00FF
     asl a
-    asl a                       ; k por cuatro
+    asl a                       ; k times four
     sta temp + 2
     asl a
     asl a
-    asl a                       ; k por treinta y dos
+    asl a                       ; k times thirty-two
     clc
-    adc temp + 2                ; treinta y seis por personaje: doce punteros
-    clc                         ; de tres bytes, como la tabla del actor
+    adc temp + 2                ; thirty-six per character: twelve three-byte
+    clc                         ; pointers, like the actor table
     adc poses_ptr
     sta hero_poses
     sep #$20
@@ -156,7 +158,7 @@ listo:
     lda poses_ptr + 2
     adc #0
     sta hero_poses + 2
-    stz hero_cgram + 2          ; ver arriba: nadie sube colores encima
+    stz hero_cgram + 2          ; see above: nobody uploads colors on top
     sec
     rts
 no_esta:
@@ -164,18 +166,19 @@ no_esta:
     rts
 .endproc
 
-; Con qué se dibuja el héroe: se busca al primero del grupo en la tabla de
-; actores del mapa y se guardan sus doce poses y su paleta.
+; What the hero is drawn with: the first one in the party is looked up in the
+; map's actor table and its twelve poses and its palette are stored.
 ;
-; Antes esto no existía: el héroe era siempre el personaje 0 del banco de
-; sprites y el tile de cada pose salía de una cuenta. Con el grupo cambiando en
-; caliente ya no alcanza, y además el tile puede pasar de ocho bits cuando hay
-; varios personajes, así que se lee de una tabla.
+; This did not exist before: the hero was always character 0 of the sprite
+; bank and each pose's tile came out of a computation. With the party
+; changing on the fly that is no longer enough, and besides the tile can go
+; past eight bits when there are several characters, so it is read from a
+; table.
 .proc elegir_grafico_heroe
 .a8
 .i16
     lda #$FF
-    sta hero_pose_vram          ; otro actor: su pose hay que subirla sí o sí
+    sta hero_pose_vram          ; another actor: its pose must be uploaded no matter what
     stz hero_pal
     rep #$20
 .a16
@@ -186,8 +189,8 @@ no_esta:
     stz hero_poses + 2
     stz hero_cgram + 2
     lda grupo_n
-    bne con_grupo               ; `beq sin_lider` ya no llega
-    rts                         ; grupo vacío: no se dibuja nada
+    bne con_grupo               ; `beq sin_lider` no longer reaches
+    rts                         ; empty party: nothing is drawn
 con_grupo:
 
     ldx mapa_ofs
@@ -204,7 +207,7 @@ con_grupo:
     sta act_ptr + 2
 
     ldy #$0000
-    lda grupo                   ; el líder
+    lda grupo                   ; the leader
     sta temp
 cada_actor:
     lda [act_ptr], y
@@ -223,13 +226,13 @@ cada_actor:
     bra sin_lider
 
 lo_encontre:
-    ; Antes que el LDB, el `ChangeSpriteAssociation` que le hayan hecho a este
-    ; actor: es el `actor->SetSprite` de RM2k, y vive en el actor, así que
-    ; **cruza el teletransporte**. Si su gráfico no está en el banco de sprites
-    ; de este mapa se cae al del LDB, que es a lo que apunta el camino de
-    ; abajo. Ver OP_ACTOR_SPRITE en eventos.py.
-    phy                         ; la entrada del actor, por si no hay cambio
-    lda temp                    ; el líder
+    ; Before the LDB, whatever `ChangeSpriteAssociation` was done to this
+    ; actor: it is RM2k's `actor->SetSprite`, and it lives in the actor, so it
+    ; **survives the teleport**. If its graphic is not in this map's sprite
+    ; bank it falls back to the LDB one, which is what the path below points
+    ; at. See OP_ACTOR_SPRITE in eventos.py.
+    phy                         ; the actor's entry, in case there is no change
+    lda temp                    ; the leader
     jsr actor_graf_leer
     cmp #ACTOR_GRAF_NINGUNO
     beq sin_cambio_de_sprite
@@ -240,11 +243,11 @@ lo_encontre:
 sin_cambio_de_sprite:
     ply
     iny
-    lda [act_ptr], y            ; su paleta, ya corrida a su lugar en vhoopppN
+    lda [act_ptr], y            ; its palette, already shifted into place in vhoopppN
     asl a
     and #$0E
     sta hero_pal
-    iny                         ; y acá arrancan sus quince colores
+    iny                         ; and here its fifteen colors start
     rep #$20
 .a16
     tya
@@ -260,7 +263,7 @@ sin_cambio_de_sprite:
 .a16
     tya
     clc
-    adc #ACTOR_COLORES          ; y detrás, las doce palabras de las poses
+    adc #ACTOR_COLORES          ; and after them, the twelve pose words
     tay
     clc
     adc act_ptr
@@ -270,17 +273,18 @@ sin_cambio_de_sprite:
     lda act_ptr + 2
     adc #0
     sta hero_poses + 2
-    ; Un actor sin gráfico —DummyHero— trae sus quince colores en cero y la
-    ; paleta 0, que no es suya: es la del primer gráfico que repartió el
-    ; conversor, y en las cinemáticas donde él lidera suele ser la de Talan
-    ; parado como evento. Subirlos lo dejaba negro hasta el mapa siguiente.
-    ; Se lo reconoce por el mismo centinela que mira `place_hero`, la pose en
-    ; $FFFF, y con `hero_cgram` apagado `aplicar_tinte` no sube nada.
+    ; An actor with no graphic —DummyHero— brings its fifteen colors at zero
+    ; and palette 0, which is not its own: it is the one of the first graphic
+    ; the converter handed out, and in the cutscenes where it leads it tends
+    ; to be Talan's, standing as an event. Uploading them left it black until
+    ; the next map. It is recognized by the same sentinel `place_hero` looks
+    ; at, the pose at $FFFF, and with `hero_cgram` off `aplicar_tinte` uploads
+    ; nothing.
     rep #$20
 .a16
-    lda [act_ptr], y            ; la primera de sus doce poses
+    lda [act_ptr], y            ; the first of its twelve poses
     cmp #$FFFF
-    sep #$20                    ; `sep` no toca Z: el `bne` mira el `cmp`
+    sep #$20                    ; `sep` does not touch Z: the `bne` looks at the `cmp`
 .a8
     bne con_grafico
     stz hero_cgram + 2
@@ -289,7 +293,7 @@ con_grafico:
 
 sin_lider16:
 .a16
-    ; se llega en dieciséis; el `sep` de abajo lo achica
+    ; reached in sixteen; the `sep` below narrows it
     sep #$20
 .a8
 sin_lider:

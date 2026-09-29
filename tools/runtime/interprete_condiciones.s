@@ -2,105 +2,106 @@
 .a8
 .i16
 
-; --- el intérprete: las condiciones y el salto -----------------------------
+; --- the interpreter: conditions and the jump ------------------------------
 ;
-; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
-; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
-; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps to
+; each one with Y on its first operand, and each one goes back to the loop
+; with `jmp correr_codigo::otro` or ends the frame with `rts`.
 
-; `ConditionalBranch` con condición de switch. Los operandos son el número (dos
-; bytes), la polaridad —copiada tal cual de RM2k, donde 0 quiere decir "tiene
-; que estar prendido"— y el destino: **el índice absoluto dentro de la página**
-; al que va el cursor si la condición no se cumple, o sea el `else` o el `end`
-; que le corresponde. Quién es ese destino lo resolvió el conversor, que es el
-; único que ve la página entera; acá saltar es asignar Y.
+; `ConditionalBranch` with a switch condition. The operands are the number
+; (two bytes), the polarity —copied as is from RM2k, where 0 means "it has to
+; be on"— and the target: **the absolute index inside the page** the cursor
+; goes to if the condition does not hold, that is, the matching `else` or
+; `end`. Which one that target is was resolved by the converter, which is the
+; only one that sees the whole page; here jumping is assigning Y.
 .proc op_if
-    ; El primer byte dice **qué se pregunta**, con el número de RM2k tal cual: 0
-    ; un switch, 3 el oro, 5 si un actor está en el grupo. Ver `bytes_de_rama`.
+    ; The first byte says **what is being asked**, with RM2k's number as is: 0
+    ; a switch, 3 the gold, 5 whether an actor is in the party. See
+    ; `bytes_de_rama`.
     ;
-    ; Cada rama deja en A si la condición se cumple —cero o distinto de cero— y
-    ; a Y apuntando al byte de polaridad; de ahí en adelante el camino es uno
-    ; solo. El switch es el único que usa la polaridad para decidir: en el oro
-    ; ya está adentro de la comparación y el actor no la tiene.
+    ; Each branch leaves in A whether the condition holds —zero or nonzero—
+    ; and Y pointing at the polarity byte; from there on there is a single
+    ; path. The switch is the only one that uses the polarity to decide: for
+    ; the gold it is already inside the comparison and the actor has none.
     lda [cod_ptr], y
-    iny                         ; Y -> el operando
+    iny                         ; Y -> the operand
     cmp #COND_ORO
     beq si_oro
     cmp #COND_ACTOR
     beq si_actor
     cmp #COND_ITEM
     bne :+
-    jmp si_item                 ; el cuerpo está detrás del oro: `beq` no llega
+    jmp si_item                 ; the body is past the gold: `beq` does not reach
 :
 
-    ; --- el switch ---
+    ; --- the switch ---
     rep #$20
 .a16
-    phy                         ; el cursor: `switch_encendido` se lleva X e Y
-    lda [cod_ptr], y            ; el número, de 16 bits
-    jsr switch_encendido        ; Z=1 apagado, Z=0 prendido
+    phy                         ; the cursor: `switch_encendido` clobbers X and Y
+    lda [cod_ptr], y            ; the number, 16 bits
+    jsr switch_encendido        ; Z=1 off, Z=0 on
     beq si_apagado
     lda #$0001
     bra si_tengo
 si_apagado:
     lda #$0000
 si_tengo:
-    ply                         ; el cursor de vuelta; `ply` no toca A
+    ply                         ; the cursor back; `ply` does not touch A
     sep #$20
 .a8
-    ; A vale 1 si el switch está prendido, y la polaridad 0 si tenía que
-    ; estarlo: el `eor` da distinto de cero exactamente cuando se cumple, en
-    ; los dos sentidos, y sin ninguna rama de más. Va por `temp` porque el
-    ; ensamblador no tiene `eor [dp], y`. El objeto usa el mismo final, con la
-    ; misma polaridad.
+    ; A is 1 if the switch is on, and the polarity is 0 if it had to be: the
+    ; `eor` gives nonzero exactly when it holds, in both directions, and
+    ; without any extra branch. It goes through `temp` because the assembler
+    ; has no `eor [dp], y`. The item uses the same ending, with the same
+    ; polarity.
 si_polaridad:
     iny
-    iny                         ; Y -> la polaridad
+    iny                         ; Y -> the polarity
     sta temp
     lda [cod_ptr], y
     eor temp
     bra si_decide
 
-    ; --- el actor: `IsActorInParty` ---
-    ; No lleva polaridad: la rama de abajo es el `else`, así que el conversor
-    ; emite cero ahí y acá no se lo mira.
+    ; --- the actor: `IsActorInParty` ---
+    ; It carries no polarity: the lower branch is the `else`, so the converter
+    ; emits zero there and it is not looked at here.
 si_actor:
-    lda [cod_ptr], y            ; el id, que entra en un byte
+    lda [cod_ptr], y            ; the id, which fits in a byte
     phy
-    jsr en_el_grupo             ; A=1 si está, A=0 si no
+    jsr en_el_grupo             ; A=1 if present, A=0 if not
     ply
     iny
-    iny                         ; Y -> la polaridad, que vale cero
-    ; **La Z se arma acá, pegada al salto.** `si_decide` decide con un `beq`,
-    ; y `ply` y los dos `iny` le dejaban la Z del cursor, que nunca es cero:
-    ; "está en el grupo" daba que sí siempre, y en el techo del Warehouse
-    ; aparecía Arden sin haberlo sumado. El 2026-09-12 el `cmp #0` iba
-    ; después del `ply` y antes de los `iny`, que era arreglar la mitad: ver
-    ; `test_rama_grupo`.
+    iny                         ; Y -> the polarity, which is zero
+    ; **Z is set here, right next to the branch.** `si_decide` decides with a
+    ; `beq`, and `ply` and the two `iny` left it the Z of the cursor, which is
+    ; never zero: "is in the party" always said yes, and on the Warehouse roof
+    ; Arden showed up without having been added. On 2026-09-12 the `cmp #0`
+    ; went after the `ply` and before the `iny`s, which was fixing half of it:
+    ; see `test_rama_grupo`.
     cmp #0
     bra si_decide
 
-    ; --- el oro ---
-    ; `CommandConditionalBranch` caso 3: con la polaridad en cero es
-    ; `oro >= operando` y con cualquier otra cosa `oro <= operando`. **No son
-    ; una la negación de la otra**: en la igualdad se cumplen las dos, así que
-    ; se calculan por separado en vez de dar vuelta un bit.
+    ; --- the gold ---
+    ; `CommandConditionalBranch` case 3: with the polarity at zero it is
+    ; `gold >= operand` and with anything else `gold <= operand`. **They are
+    ; not the negation of each other**: on equality both hold, so they are
+    ; computed separately instead of flipping a bit.
 si_oro:
     rep #$20
 .a16
-    lda [cod_ptr], y            ; contra cuánto, de 16 bits
+    lda [cod_ptr], y            ; against how much, 16 bits
     sta temp + 2
     sep #$20
 .a8
     iny
-    iny                         ; Y -> la polaridad
+    iny                         ; Y -> the polarity
     lda oro + 2
-    bne si_oro_grande           ; el oro pasa de 65535: mayor que cualquier
-                                ; operando, que entra en una palabra
+    bne si_oro_grande           ; the gold is past 65535: greater than any
+                                ; operand, which fits in a word
     rep #$20
 .a16
     lda oro
-    cmp temp + 2                ; C=1 si oro >= operando
+    cmp temp + 2                ; C=1 if gold >= operand
     sep #$20
 .a8
     lda #$01
@@ -111,7 +112,7 @@ si_oro_ge:
     rep #$20
 .a16
     lda temp + 2
-    cmp oro                     ; C=1 si operando >= oro, o sea oro <= operando
+    cmp oro                     ; C=1 if operand >= gold, i.e. gold <= operand
     sep #$20
 .a8
     lda #$01
@@ -122,10 +123,10 @@ si_oro_le:
     bra si_oro_elige
 si_oro_grande:
     lda #$01
-    sta temp                    ; el >= se cumple
-    stz temp + 1                ; y el <= no
+    sta temp                    ; the >= holds
+    stz temp + 1                ; and the <= does not
 si_oro_elige:
-    lda [cod_ptr], y            ; la polaridad
+    lda [cod_ptr], y            ; the polarity
     beq si_oro_usa_ge
     lda temp + 1
     bra si_decide
@@ -133,25 +134,25 @@ si_oro_usa_ge:
     lda temp
     bra si_decide
 
-    ; --- el objeto: `CommandConditionalBranch` caso 4 ---
-    ; `GetItemCount(id) > 0`, la misma pregunta que la condición de página por
-    ; ítem y leída del mismo lugar: un byte de `FAR_ITEMS` indexado por el
-    ; número de RM2k. `GetEquippedItemCount` no entra porque no hay equipo, que
-    ; es lo que `condiciones_ok` ya da por sentado.
+    ; --- the item: `CommandConditionalBranch` case 4 ---
+    ; `GetItemCount(id) > 0`, the same question as the page condition on an
+    ; item and read from the same place: a byte of `FAR_ITEMS` indexed by the
+    ; RM2k number. `GetEquippedItemCount` does not come in because there is no
+    ; equipment, which is what `condiciones_ok` already takes for granted.
     ;
-    ; La polaridad es la del switch —0 es "tiene que tenerlo"— así que decide
-    ; con el mismo `eor` y sin una rama de más.
+    ; The polarity is the switch's —0 is "has to have it"— so it decides with
+    ; the same `eor` and without an extra branch.
 si_item:
     rep #$20
 .a16
-    lda [cod_ptr], y            ; el número de ítem, de 16 bits
+    lda [cod_ptr], y            ; the item number, 16 bits
     clc
     adc #FAR_ITEMS
     sta WMADDL
     sep #$20
 .a8
     stz WMADDH
-    lda WMDATA                  ; cuántos hay en el inventario
+    lda WMDATA                  ; how many there are in the inventory
     beq si_item_no
     lda #$01
     bra si_item_listo
@@ -164,10 +165,10 @@ si_decide:
     beq si_no_cumple
     iny
     iny
-    iny                         ; Y -> el opcode siguiente
+    iny                         ; Y -> the next opcode
     jmp correr_codigo::otro
 si_no_cumple:
-    iny                         ; Y -> el destino
+    iny                         ; Y -> the target
     rep #$20
 .a16
     lda [cod_ptr], y
@@ -178,30 +179,30 @@ si_no_cumple:
 
 .endproc
 
-; `ConditionalBranch` por variable: ranura, clase del valor, comparación, el
-; valor de dieciséis bits y el destino si no se cumple. La comparación es con
-; signo: después de restar, "menor" es N distinto de V.
+; `ConditionalBranch` on a variable: slot, value class, comparison, the
+; sixteen-bit value and the target if it does not hold. The comparison is
+; signed: after subtracting, "less than" is N different from V.
 .proc op_if_var
 .a8
 .i16
     lda [cod_ptr], y
-    sta temp                    ; la ranura
+    sta temp                    ; the slot
     iny
     lda [cod_ptr], y
-    sta temp + 1                ; la clase: constante u otra variable
+    sta temp + 1                ; the class: constant or another variable
     iny
-    lda [cod_ptr], y            ; la comparación
+    lda [cod_ptr], y            ; the comparison
     pha
     iny
     rep #$20
 .a16
-    lda [cod_ptr], y            ; el valor, o la ranura
+    lda [cod_ptr], y            ; the value, or the slot
     sta temp + 2
     sep #$20
 .a8
     iny
-    iny                         ; Y -> el destino
-    ; `var_leer` no toca Y, así que el cursor no se guarda.
+    iny                         ; Y -> the target
+    ; `var_leer` does not touch Y, so the cursor is not saved.
     lda temp + 1
     beq si_var_contra_constante
     lda temp + 2
@@ -211,33 +212,33 @@ si_no_cumple:
     sep #$20
 .a8
 si_var_contra_constante:
-    pla                         ; la comparación
+    pla                         ; the comparison
     bne si_var_otra
-    ; "Igual", que es la de casi todas —las 40 páginas de cada vuelta de la
-    ; carrera la hacen por cuadro— va sin `comparar_var`: una resta de
-    ; dieciséis bits alcanza.
+    ; "Equal", which is the one almost all of them use —the 40 pages of each
+    ; lap of the race do it every frame— goes without `comparar_var`: a
+    ; sixteen-bit subtraction is enough.
     lda temp
-    jsr var_leer                ; A = la variable, de dieciséis
+    jsr var_leer                ; A = the variable, sixteen bits
 .a16
     cmp temp + 2
     sep #$20
 .a8
-    beq si_var_sigue            ; `sep` no toca Z
+    beq si_var_sigue            ; `sep` does not touch Z
     bra si_var_no
 si_var_otra:
     sta temp + 1
     lda temp
-    jsr var_leer                ; A = la variable, de dieciséis
+    jsr var_leer                ; A = the variable, sixteen bits
 .a16
     jsr comparar_var
 .a8
-    cmp #0                      ; la respuesta, en A: las banderas son de
-                                ; la última cuenta de `comparar_var`
+    cmp #0                      ; the answer, in A: the flags are from
+                                ; `comparar_var`'s last computation
     bne si_var_sigue
 si_var_no:
     rep #$20
 .a16
-    lda [cod_ptr], y            ; no se cumple: al destino
+    lda [cod_ptr], y            ; it does not hold: to the target
     tay
     sep #$20
 .a8
@@ -249,52 +250,52 @@ si_var_sigue:
 
 .endproc
 
-; `ConditionalBranch` caso 5 con dos operandos: "sabe esta habilidad" —el
-; sub 4— y "tiene puesto este objeto" —el 5—. Van en un opcode aparte y no en
-; `OP_IF` porque llevan **dos** operandos, el actor y el ítem o la habilidad;
-; ver OP_IF_ACTOR en eventos.py.
+; `ConditionalBranch` case 5 with two operands: "knows this skill" —sub 4—
+; and "has this item equipped" —sub 5—. They go in a separate opcode and not
+; in `OP_IF` because they carry **two** operands, the actor and the item or
+; the skill; see OP_IF_ACTOR in eventos.py.
 ;
-; Ninguna de las dos tiene polaridad: RM2k no se la da, igual que a "está en el
-; grupo", así que la rama de abajo es el `else`.
+; Neither has a polarity: RM2k does not give them one, same as "is in the
+; party", so the lower branch is the `else`.
 ;
-; Al entrar, Y apunta al sub. Los dos caminos terminan en `sia_si` o en
-; `sia_no` con Y ya apuntando al destino.
+; On entry, Y points at the sub. Both paths end at `sia_si` or at `sia_no`
+; with Y already pointing at the target.
 .proc op_if_actor
     lda [cod_ptr], y
-    sta temp                    ; el sub
+    sta temp                    ; the sub
     iny
     lda [cod_ptr], y
-    sta temp + 1                ; el actor, que entra en un byte
+    sta temp + 1                ; the actor, which fits in a byte
     iny
     rep #$20
 .a16
     lda [cod_ptr], y
-    sta temp + 2                ; el ítem o la habilidad, de 16 bits
+    sta temp + 2                ; the item or the skill, 16 bits
     sep #$20
 .a8
     iny
-    iny                         ; Y -> el destino
+    iny                         ; Y -> the target
     lda temp
     cmp #COND_ACTOR_HABILIDAD
     beq sia_habilidad
 
-    ; --- el equipo puesto ---
-    ; Los cinco `Get*Id()` de easyrpg comparados contra el ítem: alcanza con
-    ; que esté en una ranura. Se leen del mismo lugar que los lee la pantalla
-    ; de equipo —`FAR_EQUIPO` + actor * 10, ver `eq_apuntar`— por el puerto de
-    ; la WRAM, que autoincrementa: una palabra por ranura, byte por byte,
-    ; porque `WMDATA` es un puerto de ocho bits y leerlo de a dos leería el
-    ; registro de al lado.
+    ; --- the equipped equipment ---
+    ; easyrpg's five `Get*Id()` compared against the item: it is enough for it
+    ; to be in one slot. They are read from the same place the equipment
+    ; screen reads them —`FAR_EQUIPO` + actor * 10, see `eq_apuntar`— through
+    ; the WRAM port, which auto-increments: one word per slot, byte by byte,
+    ; because `WMDATA` is an eight-bit port and reading it two at a time would
+    ; read the register next to it.
     rep #$20
 .a16
     lda temp + 1
-    and #$00FF                  ; el actor, sin el ítem que sigue
-    asl a                       ; por dos
-    sta temp                    ; el sub ya no hace falta
+    and #$00FF                  ; the actor, without the item that follows
+    asl a                       ; times two
+    sta temp                    ; the sub is no longer needed
     asl a
-    asl a                       ; por ocho
+    asl a                       ; times eight
     clc
-    adc temp                    ; por diez, que es lo que mide una fila
+    adc temp                    ; times ten, which is how long a row is
     clc
     adc #FAR_EQUIPO
     sta WMADDL
@@ -304,7 +305,7 @@ si_var_sigue:
     ldx #RANURAS_EQUIPO
 sia_eq_otra:
     lda WMDATA
-    sta temp                    ; el byte bajo del ítem de esta ranura
+    sta temp                    ; the low byte of this slot's item
     lda WMDATA
     sta temp + 1
     rep #$20
@@ -313,36 +314,36 @@ sia_eq_otra:
     cmp temp + 2
     sep #$20
 .a8
-    beq sia_si                  ; `sep` no toca Z: la comparación sigue viva
+    beq sia_si                  ; `sep` does not touch Z: the comparison is still live
     dex
     bne sia_eq_otra
     bra sia_no
 
-    ; --- la habilidad ---
-    ; `Game_Actor::IsSkillLearned`: el bit del par (actor, habilidad) en
-    ; `FAR_HAB`. El conversor ya puso la ranura del par donde las otras
-    ; preguntas llevan el ítem, así que `temp + 2` la trae y el actor no hace
-    ; falta. Ver `HABILIDAD_RANURA` en eventos.py.
+    ; --- the skill ---
+    ; `Game_Actor::IsSkillLearned`: the bit of the (actor, skill) pair in
+    ; `FAR_HAB`. The converter already put the pair's slot where the other
+    ; questions carry the item, so `temp + 2` brings it and the actor is not
+    ; needed. See `HABILIDAD_RANURA` in eventos.py.
 sia_habilidad:
     jsl f:hab_sabe
     bne sia_si
 sia_no:
     rep #$20
 .a16
-    lda [cod_ptr], y            ; el destino, absoluto adentro de la página
+    lda [cod_ptr], y            ; the target, absolute inside the page
     tay
     sep #$20
 .a8
     jmp correr_codigo::otro
 sia_si:
     iny
-    iny                         ; Y -> el opcode siguiente
+    iny                         ; Y -> the next opcode
     jmp correr_codigo::otro
 
 .endproc
 
-; El salto sin condición que el conversor pone donde estaba el `else`, para que
-; la rama de arriba se saltee la de abajo.
+; The unconditional jump the converter puts where the `else` was, so that the
+; upper branch skips the lower one.
 .proc op_goto
     rep #$20
 .a16

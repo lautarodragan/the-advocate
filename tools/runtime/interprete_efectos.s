@@ -2,24 +2,25 @@
 .a8
 .i16
 
-; --- el intérprete: imágenes, animación y clima ----------------------------
+; --- the interpreter: pictures, animation and weather ----------------------
 ;
-; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
-; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
-; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps to
+; each one with Y on its first operand, and each one goes back to the loop
+; with `jmp correr_codigo::otro` or ends the frame with `rts`.
 
-; Los tres del cartel. `OP_PICTURE` lo pone ya con su tono —`Game_Pictures::
-; Show` deja `time_left` en cero—, `OP_PICTURE_MOVE` arranca la rampa hacia
-; otro tono y `OP_PICTURE_ERASE` lo saca. Ninguno corta el cuadro: si la página
-; espera lo que dura el fundido, el conversor le pone un OP_DELAY detrás,
-; igual que al `FlashScreen` y a la sacudida.
+; The three for the sign. `OP_PICTURE` shows it already with its tone
+; —`Game_Pictures::Show` leaves `time_left` at zero—, `OP_PICTURE_MOVE` starts
+; the ramp toward another tone and `OP_PICTURE_ERASE` removes it. None of them
+; ends the frame: if the page waits for as long as the fade lasts, the
+; converter puts an OP_DELAY after it, same as for `FlashScreen` and the
+; shake.
 .proc op_picture
     ldx #$0000
 img_poner:
     lda [cod_ptr], y
     cpx #3
-    bcs img_poner_sat           ; el cuarto operando es la saturación, que no
-    sta f:CARTEL_TONO, x        ; se guarda: la del cartel es siempre la neutra
+    bcs img_poner_sat           ; the fourth operand is the saturation, which
+    sta f:CARTEL_TONO, x        ; is not stored: the sign's is always neutral
     sta f:CARTEL_DESDE, x
     sta f:CARTEL_HASTA, x
 img_poner_sat:
@@ -42,7 +43,7 @@ img_poner_sat:
 img_mover:
     lda [cod_ptr], y
     cpx #3
-    bcs img_mover_sat           ; la saturación, otra vez
+    bcs img_mover_sat           ; the saturation, again
     sta f:CARTEL_HASTA, x
 img_mover_sat:
     iny
@@ -52,9 +53,9 @@ img_mover_sat:
     lda [cod_ptr], y
     sta f:CARTEL_PASOS
     iny
-    ; Un `Move` sobre una imagen que no se mostró le escribe el destino a algo
-    ; que no se dibuja: los operandos se consumen igual —el stream tiene que
-    ; seguir en el mismo byte de los dos lados— y no pasa nada más.
+    ; A `Move` on a picture that was not shown writes the target to something
+    ; that is not drawn: the operands are consumed anyway —the stream has to
+    ; stay on the same byte on both sides— and nothing else happens.
     lda f:CARTEL_ACTIVA
     beq img_mover_fin
     lda f:CARTEL_PASOS
@@ -93,24 +94,24 @@ img_mover_fin:
 
 .endproc
 
-; `OP_ANIMATION`: el número de animación de RM2k, sobre qué se dibuja, cuántas
-; entradas y las entradas, que se quedan en el bytecode. Ver OP_ANIMATION en
-; eventos.py y `animacion_tick`. La nueva reemplaza a la que hubiera, y no
-; cuesta ningún tick.
+; `OP_ANIMATION`: the RM2k animation number, what it is drawn on, how many
+; entries, and the entries, which stay in the bytecode. See OP_ANIMATION in
+; eventos.py and `animacion_tick`. The new one replaces whatever was running,
+; and it costs no tick.
 ;
-; Los dos primeros bytes son del **dibujo**, que va por su cuenta y dura más
-; que la línea de tiempo: ver `animacion_dibujo_empezar`.
+; The first two bytes are for the **drawing**, which runs on its own and lasts
+; longer than the timeline: see `animacion_dibujo_empezar`.
 .proc op_animation
-    lda [cod_ptr], y            ; el número de animación de RM2k
+    lda [cod_ptr], y            ; the RM2k animation number
     sta temp
     iny
-    lda [cod_ptr], y            ; y sobre qué va: $FF es la pantalla
+    lda [cod_ptr], y            ; and what it goes on: $FF is the screen
     sta temp + 1
     iny
     phy
     jsr animacion_dibujo_empezar
     ply
-    lda [cod_ptr], y            ; cuántas
+    lda [cod_ptr], y            ; how many
     sta f:ANIM_N
     iny
     rep #$20
@@ -118,7 +119,7 @@ img_mover_fin:
     tya
     clc
     adc cod_ptr
-    sta f:ANIM_PTR              ; la primera, en el banco del bytecode
+    sta f:ANIM_PTR              ; the first one, in the bytecode's bank
     sep #$20
 .a8
     lda cod_ptr + 2
@@ -131,7 +132,7 @@ img_mover_fin:
     and #$00FF
     asl a
     asl a
-    asl a                       ; ocho bytes por entrada
+    asl a                       ; eight bytes per entry
     sta temp
     tya
     clc
@@ -143,7 +144,7 @@ img_mover_fin:
 
 .endproc
 
-; `WeatherEffects`: el tipo y la fuerza. No cuesta ningún tick.
+; `WeatherEffects`: the type and the strength. It costs no tick.
 .proc op_weather
 .a8
 .i16
