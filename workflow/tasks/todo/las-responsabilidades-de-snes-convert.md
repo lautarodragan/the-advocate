@@ -23,3 +23,8 @@ cosas.
 
 Relacionado: taro quiere que todas las herramientas terminen en Rust, no por
 velocidad; cuando se encare eso se decide qué partes tienen sentido.
+
+El inventario por secciones, con rangos de líneas y qué es motor y qué es
+herramienta de RM2k, está en
+`docs/research/el-mapa-de-las-herramientas-de-python.md` (§2), con una foto
+del 2026-09-28.
