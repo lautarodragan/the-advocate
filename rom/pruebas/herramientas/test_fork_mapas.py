@@ -25,7 +25,6 @@ import pytest
 
 from common import project                                      # noqa: E402
 from render import chipset_recipe                             # noqa: E402
-from render.chipset import UPPER                               # noqa: E402
 from render.render_map import build_passability                # noqa: E402
 from rpgmaker import fork                                      # noqa: E402
 from rpgmaker import lcf                                       # noqa: E402
@@ -309,7 +308,7 @@ def _original(map_id):
 def _altos_del_original(map_id):
     """Los tiles de la página alta que el mapa **sin forkear** dibuja."""
     _, (_, arriba) = _original(map_id)
-    return {t - UPPER for t in arriba if t >= UPPER}
+    return {t - rm2k.UPPER_BASE for t in arriba if t >= rm2k.UPPER_BASE}
 
 
 def _destinos_altos(receta):

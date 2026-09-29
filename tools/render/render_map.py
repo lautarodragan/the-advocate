@@ -31,7 +31,6 @@ from rpgmaker import resources
 from rpgmaker.resources import find_resource
 from rpgmaker.rm2k import TILE
 from render import chipset_recipe
-from render.chipset import ANIMATED, ChipsetAtlas, TERRAIN, UPPER
 
 MISSING = """`rm2k-render` is missing, the one that draws a map's layers.
 
@@ -116,29 +115,6 @@ def build_passability(chipset):
         flags[5000 + i] = lower[18 + i]
         flags[10000 + i] = upper[i]
     return flags
-
-
-def draw_tiles(image, atlas, game_map, flags, pass_upper, steps=(0, 0)):
-    """Draws the tiles of both layers that fall in the requested pass.
-
-    A lower-layer tile with flags 0x30 and an upper-layer one with 0x10 are
-    drawn above the player; the rest, below. It is what decides whether an
-    event is covered by the roof or stands on top of it.
-
-    `steps` are the two of the ChipSet's animation —water and animated
-    tiles—, which pick which drawing of each family is painted. See
-    `render_tile`.
-    """
-    for y in range(game_map.height):
-        row = y * game_map.width
-        for x in range(game_map.width):
-            lower_tile = game_map.lower_layer[row + x]
-            if bool(flags[lower_tile] & 0x30) == pass_upper:
-                atlas.render_tile(image, x, y, lower_tile, *steps)
-
-            upper_tile = game_map.upper_layer[row + x]
-            if bool(flags[upper_tile] & 0x10) == pass_upper:
-                atlas.render_tile(image, x, y, upper_tile, *steps)
 
 
 # The dithers a translucent event is drawn with, and which pixel drops out.
