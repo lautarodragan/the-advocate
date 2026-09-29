@@ -1,17 +1,18 @@
-"""Qué tema puede venir sonando al cargar el paquete de cada mapa.
+"""Which song may be playing when each map's package is loaded.
 
-`temas_heredados`, en tools/port/snes_convert.py, sigue los saltos de las
-páginas compiladas sin mirar condiciones, y lo que no ve no le reserva lugar
-a nadie: el tema que llega sonando a un mapa cuyo paquete no lo cuenta deja
-los efectos esperando al próximo `PlayBGM`, y encima el reparto lo ignora.
-Pasó con `Kfmus5`, que entra al 41 desde la página del 37 y sigue por el 40 y
-los vidcasts: el 41 y el 40 sólo prenden temas para irse, y la regla de "un
-mapa con `PlayBGM` se va con uno de los suyos" se los llevaba a todos sus
-destinos en vez de lo que venía sonando.
+`temas_heredados`, in tools/port/snes_convert.py, follows the jumps of the
+compiled pages without looking at conditions, and what it does not see gets
+no room reserved: the song that arrives playing at a map whose package does
+not count it leaves the sound effects waiting for the next `PlayBGM`, and on
+top of that the layout ignores it. It happened with `Kfmus5`, which enters
+41 from 37's page and goes on through 40 and the vidcasts: 41 and 40 only
+start songs in order to leave, and the rule "a map with `PlayBGM` leaves with
+one of its own" carried those to all its destinations instead of what was
+playing.
 
-Se arma a mano, sin ROM: la tabla de temas de cinco mapas con la forma de los
-del juego. Lo que compilan las páginas —`Temas.salto` y `Temas.salida`— lo
-cubre `test_un_salto_anota_el_tema_que_se_lleva`.
+It is built by hand, without a ROM: the song table of five maps shaped like
+the game's. What the pages compile —`Temas.salto` and `Temas.salida`— is
+covered by `test_un_salto_anota_el_tema_que_se_lleva`.
 """
 
 from port import eventos                                      # noqa: E402
@@ -37,12 +38,12 @@ def _herencia(temas, n, inicial=0, apartes=None):
 
 
 def test_un_mapa_que_solo_prende_temas_para_irse_deja_pasar_lo_que_venia():
-    """El 37 (1) prende K y salta al 41 (2). El 41 prende G sólo para volver
-    al 37, y sin tema salta al 40 (3); el 40 prende T sólo para volver al 41,
-    y sin tema salta a los vidcasts (4), que vuelven al 40.
+    """37 (1) starts K and jumps to 41 (2). 41 starts G only to go back to
+    37, and with no song jumps to 40 (3); 40 starts T only to go back to 41,
+    and with no song jumps to the vidcasts (4), which go back to 40.
 
-    K llega sonando al 40 y a los vidcasts; G no sale del 41 más que al 37; T
-    llega al 41."""
+    K arrives playing at 40 and at the vidcasts; G leaves 41 only for 37; T
+    arrives at 41."""
     temas = _temas(
         por_mapa={0: {"temas": [], "destinos": [1]},
                   1: {"temas": [K], "destinos": [2]},
@@ -55,15 +56,15 @@ def test_un_mapa_que_solo_prende_temas_para_irse_deja_pasar_lo_que_venia():
     herencia = _herencia(temas, 5)
     for mapa in (3, 4):
         assert (mapa, K) in herencia, (
-            "K suena al llegar al mapa %d y el paquete no lo cuenta" % mapa)
+            "K is playing on arrival at map %d and the package does not count it" % mapa)
     assert (3, G) not in herencia, (
-        "G sólo suena para volver al 37 y el 40 lo hereda igual")
+        "G only plays to go back to 37 and 40 inherits it anyway")
     assert (2, T) in herencia and (1, G) in herencia
 
 
 def test_el_de_arranque_sigue_con_la_regla_de_siempre():
-    """El mismo 41 como mapa de arranque —el enrutador— se va sólo con su
-    tema de salida: lo que entra ahí saldría para cualquier lado."""
+    """The same 41 as the starting map —the router— leaves only with its exit
+    song: whatever enters there would go out anywhere."""
     temas = _temas(
         por_mapa={0: {"temas": [G], "destinos": [1, 2]},
                   1: {"temas": [K], "destinos": [0]},
@@ -75,8 +76,8 @@ def test_el_de_arranque_sigue_con_la_regla_de_siempre():
 
 
 def test_un_tema_aparte_no_sale_de_su_mapa():
-    """El 38 (1) prende V en una escena y G antes de irse: con V aparte, a
-    los mapas a los que se sale llega G y no V."""
+    """38 (1) starts V in a scene and G before leaving: with V separate, G
+    and not V reaches the maps it exits to."""
     temas = _temas(
         por_mapa={0: {"temas": [], "destinos": [1]},
                   1: {"temas": [V, G], "destinos": [2]},
@@ -88,8 +89,9 @@ def test_un_tema_aparte_no_sale_de_su_mapa():
 
 
 def test_un_salto_anota_el_tema_que_se_lleva():
-    """Lo que `temas_heredados` lee lo anota la página al compilar: el salto
-    que va pegado a un `PlayBGM` se lleva ese tema, y el que no, None."""
+    """What `temas_heredados` reads is noted by the page when it compiles: the
+    jump right after a `PlayBGM` takes that song along, and the one that is
+    not, None."""
     temas = eventos.Temas()
     temas.nombres = ["K"]
     temas.mapa = 0
