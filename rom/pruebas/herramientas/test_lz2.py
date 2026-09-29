@@ -17,8 +17,8 @@ import tanda
 import cartuchos
 from lz2 import descomprimir
 from port import compress
-from port.snes_convert import (COMPRESSED_KINDS, LZ2_CAP_BACKDROP,
-                               check_streams, compressed_parts)
+from port.materials import (COMPRESSED_KINDS, LZ2_CAP_BACKDROP,
+                            check_streams, compressed_parts)
 
 
 def _crudos(nombre):
