@@ -114,7 +114,7 @@ def rtp():
 
 def soundfont():
     """The bank the SPC700 samples and the MSU-1 tracks come from: the
-    converter passes it on to `rm2k-snes-audio`, and `audio/msu.py` renders
+    converter passes it on to `rm2k-snes-audio`, and `rm2k-snes-msu` renders
     with it."""
     return _require("soundfont")
 

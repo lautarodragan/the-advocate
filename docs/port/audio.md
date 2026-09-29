@@ -66,7 +66,7 @@ reproduce. Las rutas de abajo que terminan en `.rs` son de su `src/`.
 * **El MSU-1**: todo tema suena desde un PCM al lado de la ROM, y la ROM
   calla el SPC700 mientras tanto. El número de cada pista es el lugar del
   tema en `Music/` del juego —`track_numbers` en `game.rs`—, así que no
-  depende del cartucho; las arma `tools/audio/msu.py`. Con MSU-1, el paquete
+  depende del cartucho; las arma `rm2k-snes-msu` (`tracks.rs`). Con MSU-1, el paquete
   no sube las muestras de los temas con pista, salvo que la pista haya
   faltado en la tarjeta: `song_per_msu`, en `tools/runtime/audio_package.s`.
 * **Los efectos con MSU-1**: mientras el SPC700 no toca música, los efectos

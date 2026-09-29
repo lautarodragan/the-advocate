@@ -13,6 +13,13 @@ pub struct Game {
     pub project: Project,
 }
 
+/// Where a project's measured volume ceilings are: with what was decided
+/// automatically, in its patches. Whoever reads the table and whoever
+/// writes it ask here.
+pub fn ceilings_path(project: &Project) -> Result<PathBuf> {
+    Ok(project.auto_patches()?.join("musica").join("techos.toml"))
+}
+
 /// Python's `os.path.splitext`: the extension is from the last dot, unless
 /// everything before it is dots.
 fn splitext(name: &str) -> (&str, &str) {
@@ -178,7 +185,7 @@ impl Game {
     /// Where each song's measured volume ceiling is: a table the game
     /// versions.
     pub fn ceilings_path(&self) -> Result<PathBuf> {
-        Ok(self.project.auto_patches()?.join("musica").join("techos.toml"))
+        ceilings_path(&self.project)
     }
 
     /// {song: headroom} from the versioned table; empty if it does not

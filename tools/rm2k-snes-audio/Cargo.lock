@@ -250,6 +250,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "gunter",
+ "libc",
  "rm2k-project",
  "serde_json",
  "sha2",

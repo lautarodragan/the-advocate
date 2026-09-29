@@ -9,7 +9,8 @@
                                                                       rom/parches/ (decisiones)
     tools/runtime/*.s + esos .inc     --rm2k-snes-assemble----------> abl.sfc + abl.sfc.sym
                                         (reparto en bancos, ca65 + ld65)
-    abl.sfc + MIDI o reemplazos       --tools/audio/msu.py-->         abl-N.pcm
+    abl.sfc + MIDI o reemplazos       --rm2k-snes-msu---------------> abl-N.pcm
+                                        (fluidsynth, ffmpeg)
 
     just build release    todo, con las pistas de MSU-1, en rom/build/release/
     just parches          copia las decisiones de release a rom/parches/auto/
