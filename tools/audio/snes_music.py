@@ -1,7 +1,7 @@
 """Converts a map's MIDI to BRR samples and a stream for the S-DSP.
 
 What does not depend on the chip —reading the MIDI and turning times into
-frames— is in midi.py and musica.py; the S-DSP part, in sdsp.py. Voices are
+frames— is in midi.py and music.py; the S-DSP part, in sdsp.py. Voices are
 allocated note by note, all eight shared by every channel: see `assign`.
 
 Two things come out: the block uploaded to the SPC700's memory (the sample
@@ -16,7 +16,7 @@ import math
 import os
 
 from rpgmaker import lcf
-from audio import musica
+from audio import music
 from audio import midi
 from audio import muestras_brr
 from audio import sdsp
@@ -28,7 +28,7 @@ from common.parallel import in_parallel
 from rpgmaker import resources
 from rpgmaker.resources import find_resource
 
-TICKS_PER_SECOND = musica.TICKS_PER_SECOND
+TICKS_PER_SECOND = music.TICKS_PER_SECOND
 
 # Where each thing lives in the SPC700's 64 KB. The boot ROM keeps the first
 # $200 bytes for its variables, so everything starts higher up.
@@ -1912,8 +1912,8 @@ def leer_tema(name, game_dir=None):
         return None
     notes, tempos, division, programs, controls = midi.read(path)
     voices = assign(notes)
-    largo = musica.timeline(notes, tempos, division)
-    musica.timeline(controls, tempos, division)
+    largo = music.timeline(notes, tempos, division)
+    music.timeline(controls, tempos, division)
     return {
         "nombre": name,
         "notas": notes,
@@ -2016,13 +2016,13 @@ def _enteros_entran(banco, paquetes, herencia, efectos, presupuestado,
         # the same sound effects: see `temas_aparte`.
         for suyos in [None] + [[t] for t in (paquete[4] if len(paquete) > 4
                                              else ())]:
-            musica = banco.ocupa(claves_de[nombre] if suyos is None
-                                 else set(banco.asignacion[suyos[0]].values()))
-            if musica + ocupan > banco.libre:
+            music_bytes = banco.ocupa(claves_de[nombre] if suyos is None
+                                      else set(banco.asignacion[suyos[0]].values()))
+            if music_bytes + ocupan > banco.libre:
                 no_entran.append("%s in package %s%s (%d B over)" % (
                     ", ".join(enteros), nombre,
                     "" if suyos is None else ">" + nombres[suyos[0]],
-                    musica + ocupan - banco.libre))
+                    music_bytes + ocupan - banco.libre))
     if no_entran:
         raise SystemExit(
             "the whole sound effects do not fit without lowering an "
@@ -2034,10 +2034,10 @@ def _enteros_entran(banco, paquetes, herencia, efectos, presupuestado,
         if not any(e in todos and e not in pagados
                    for e in suyas):
             continue
-        musica = banco.ocupa(claves_de[nombre]
-                             | set(banco.asignacion[heredado].values()))
-        antes = musica + sum(presupuestado[e] for e in suyas)
-        ahora = musica + sum(len(efectos[e].data) for e in suyas)
+        music_bytes = banco.ocupa(claves_de[nombre]
+                                  | set(banco.asignacion[heredado].values()))
+        antes = music_bytes + sum(presupuestado[e] for e in suyas)
+        ahora = music_bytes + sum(len(efectos[e].data) for e in suyas)
         if antes <= banco.libre < ahora:
             print("  with %s playing, the whole sound effects of package %s "
                   "do not fit alongside: they wait for the PlayBGM"
@@ -2243,7 +2243,7 @@ def tiempo_perdido(reparto):
             perdido += largo
         elif robada is not None:
             perdido += max(0, fin - robada)
-    spans = musica.note_time(tramos)
+    spans = music.note_time(tramos)
     piso = sum(max(0, n - sdsp.VOICES) * cuadros for n, cuadros in spans.items())
     return perdido / float(max(1, total)), piso / float(max(1, total))
 

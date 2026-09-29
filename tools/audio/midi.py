@@ -55,7 +55,7 @@ class Note:
 
 class Control:
     """A controller that changes on a channel: `number` is VOLUME, PAN,
-    EXPRESSION or BEND. `end` is there only so that `musica.timeline` converts
+    EXPRESSION or BEND. `end` is there only so that `music.timeline` converts
     it to frames the same as a note."""
 
     __slots__ = ("start", "end", "channel", "number", "value")
