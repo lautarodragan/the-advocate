@@ -9,12 +9,12 @@ mechanism on this side and on the ROM's is in docs/port/msu-datos.md.
 
 What it carries first are **the quality battle backdrops**, 8bpp and 96
 colors, and **all of the game's**, whether or not they are in the
-cartridge's maps: see "Which backdrops there are" in tools/port/escena.py.
+cartridge's maps: see "Which backdrops there are" in tools/port/scene.py.
 **Without MSU-1 the game has to work the same** —Mednafen does not have
 it—, so the ROM carries a light fallback, 4bpp and 16 colors, of the few
 that fit, and a replacement for the rest; the `.msu` replaces them when it is
 there and it belongs to this cartridge. They are different on purpose: see
-"The light fallback" in tools/port/escena.py.
+"The light fallback" in tools/port/scene.py.
 
 ## The format
 

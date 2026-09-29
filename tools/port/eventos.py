@@ -3034,7 +3034,7 @@ class Tropas:
         # `EnemyEncounter` itself —`SJBackdropABL04` on map 2— and not
         # something to look up in the LDB. It goes here and not in a
         # separate registry because it is a fact of the battle, like the
-        # troop. See tools/port/escena.py.
+        # troop. See tools/port/scene.py.
         self.fondos = {}
 
     def pedir(self, numero, fondo=None):
@@ -3598,7 +3598,7 @@ def fondos_nombrados(game_dir):
     """The battle backdrops some command of the game names: the
     `EnemyEncounter`s and `ChangeBattleBG`s of all the maps, of the common
     events and of the troops' pages, whether they compile or not. The map
-    tree's and the terrains' are added by `escena.fondos_del_juego`.
+    tree's and the terrains' are added by `scene.game_backdrops`.
     """
     db = base_de_datos(game_dir)
     nombres = barrer_los_mapas(game_dir, mapas_del_juego(game_dir),

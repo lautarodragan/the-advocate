@@ -82,7 +82,7 @@ from port import end_game as fin_mod
 from port import pantallas as pantallas_mod
 from port import batalla as batalla_mod
 from port import experience as X
-from port import escena as escena_mod
+from port import scene as escena_mod
 from port import color as color_mod
 from port import constants
 from port import rules
@@ -3659,7 +3659,7 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
     """Which backdrops and which battlers the cartridge carries, and who uses
     each one.
 
-    It is the other half of tools/port/escena.py: there is how a backdrop or
+    It is the other half of tools/port/scene.py: there is how a backdrop or
     a battler is converted, here **which ones**. Backdrops are named by their
     number in the game —see "Which backdrops there are" there—, and a battle asks for its
     own in three ways:
@@ -3677,7 +3677,7 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
 
     A backdrop goes **into the ROM**, light, if some battle of the cartridge
     asks for it; if some can land on one that isn't there —a troop of the
-    place in a map without encounters—, `escena.reemplazo()` goes in too, and
+    place in a map without encounters—, `scene.replacement()` goes in too, and
     `respaldo_de` says which one of the ROM each backdrop of the game uses.
     **All of them go in the `.msu`**: `calidad` is their bytes, by number.
 
@@ -3686,8 +3686,8 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
     HairyVermin are the same `BLmouse` and two battlers.
     """
     E = escena_mod
-    juego = E.fondos_del_juego(eventos.fondos_nombrados(game_dir), tree,
-                               db.terrain_backdrops, game_dir)
+    juego = E.game_backdrops(eventos.fondos_nombrados(game_dir), tree,
+                             db.terrain_backdrops, game_dir)
     numero_de = {nombre.lower(): k for k, nombre in enumerate(juego)}
     if len(juego) >= FONDO_DEL_LUGAR:
         raise SystemExit("the game has %d battle backdrops and the number of "
@@ -3747,19 +3747,19 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
         if k < FONDO_DEL_LUGAR and k not in suyos:
             suyos.append(k)
     if any(k < FONDO_DEL_LUGAR and k not in suyos for k in posibles):
-        reemplazo = numero_de[E.reemplazo().lower()]
+        reemplazo = numero_de[E.replacement().lower()]
         if reemplazo not in suyos:
             suyos.append(reemplazo)
     for k in suyos:
-        info = E.fondo_liviano(juego[k], game_dir)
+        info = E.light_backdrop(juego[k], game_dir)
         datos["fondos"].append({"nombre": juego[k], "numero": k,
                                 "respaldo": info})
     lugar = {k: i for i, k in enumerate(suyos)}
-    reemplazo = lugar.get(numero_de[E.reemplazo().lower()], 0)
+    reemplazo = lugar.get(numero_de[E.replacement().lower()], 0)
     datos["respaldo_de"] = [lugar.get(k, reemplazo) for k in range(len(juego))]
     # The quality ones, for the `.msu`: all of them, whether in the ROM or not.
     datos["calidad"] = in_parallel(
-        lambda nombre: fondo_bytes(E.fondo(nombre, game_dir)), juego)
+        lambda nombre: fondo_bytes(E.backdrop(nombre, game_dir)), juego)
     battler_k = {}
     for numero in tropas.ids:
         if numero not in db.troops:
@@ -3770,7 +3770,7 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
             e = db.enemies[enemigo]
             nombre = e.battler_name or ""
             tono = getattr(e, "battler_hue", 0) or 0
-            k = E.clave(nombre, tono)
+            k = E.key(nombre, tono)
             if k not in battler_k:
                 info = E.battler(nombre, tono, game_dir) if nombre else None
                 battler_k[k] = 0xFF if info is None else len(datos["battlers"])
@@ -3822,8 +3822,8 @@ def usos_de_los_parches(mapas, db, tree):
                 continue
             e = db.enemies[enemigo]
             if e.battler_name:
-                battlers[E.clave(e.battler_name,
-                                 getattr(e, "battler_hue", 0) or 0)] |= origenes
+                battlers[E.key(e.battler_name,
+                               getattr(e, "battler_hue", 0) or 0)] |= origenes
     return {"animacion": animaciones, "battler": battlers}
 
 
@@ -3836,7 +3836,7 @@ def fondo_bytes(info):
     for celda in E.tiles(info["indices"]):
         tiles_ += pack_tile(celda, planes=8)
     colores = list(info["paleta"])
-    colores += [(0, 0, 0)] * (E.COLORES - len(colores))
+    colores += [(0, 0, 0)] * (E.COLORS - len(colores))
     cgram = bytearray()
     for color in colores:
         cgram += cgram_word(color).to_bytes(2, "little")
@@ -3866,14 +3866,14 @@ def respaldo_bytes(info):
     E = escena_mod
     liviano = info["respaldo"]
     chicos = [pack_tile([[v - E.CGRAM_BASE for v in fila] for fila in celda],
-                        planes=E.RESPALDO_PLANOS)
+                        planes=E.FALLBACK_PLANES)
               for celda in E.tiles(liviano["chico"])]
-    columnas = E.RESPALDO_ANCHO // E.CELDA
+    columnas = E.FALLBACK_WIDTH // E.CELL
     tiles_ = bytearray()
     for fila_grande in range(E.TILES_Y):
-        mitad = fila_grande % E.RESPALDO_ESCALA     # above or below the small one
+        mitad = fila_grande % E.FALLBACK_SCALE     # above or below the small one
         for columna in range(columnas):
-            chico = chicos[(fila_grande // E.RESPALDO_ESCALA) * columnas
+            chico = chicos[(fila_grande // E.FALLBACK_SCALE) * columnas
                            + columna]
             for par in (0, 16):                     # planes 0/1 and 2/3
                 for k in range(4):                  # the large rows 2k, 2k+1
@@ -3882,7 +3882,7 @@ def respaldo_bytes(info):
                     tiles_.append((p0 & 0xF0) | (p1 >> 4))
                     tiles_.append(((p0 & 0x0F) << 4) | (p1 & 0x0F))
     colores = list(liviano["paleta"])
-    colores += [(0, 0, 0)] * (E.RESPALDO_COLORES - len(colores))
+    colores += [(0, 0, 0)] * (E.FALLBACK_COLORS - len(colores))
     cgram = bytearray()
     for color in colores:
         cgram += cgram_word(color).to_bytes(2, "little")
@@ -3894,8 +3894,8 @@ def respaldo_alto():
     are those of `CGRAM_BASE` in every pixel. It is what the ROM appends
     after each 4bpp tile."""
     E = escena_mod
-    lleno = [[E.CGRAM_BASE] * E.CELDA for _ in range(E.CELDA)]
-    return pack_tile(lleno, planes=8)[E.RESPALDO_PLANOS * 8:]
+    lleno = [[E.CGRAM_BASE] * E.CELL for _ in range(E.CELL)]
+    return pack_tile(lleno, planes=8)[E.FALLBACK_PLANES * 8:]
 
 
 def respaldo_doble():
@@ -3913,7 +3913,7 @@ def escenas_asm(datos, tropas, db):
     """The cartridge's battle scene, ready for the `.inc`.
 
     The backdrops and the battlers **separately**, which the ROM composes when
-    the battle starts: the reason and the format are in tools/port/escena.py.
+    the battle starts: the reason and the format are in tools/port/scene.py.
     What is emitted:
 
       `escena_tropa_fondo`  per troop index —the order of `tropa_id`—, the
@@ -3926,7 +3926,7 @@ def escenas_asm(datos, tropas, db):
                             `FONDO_LISO`.
       `fondo_respaldo`      per backdrop number, which one of the ROM replaces
                             it without MSU-1: its own, or that of
-                            `escena.reemplazo()`.
+                            `scene.replacement()`.
       `fondo_dir`           per ROM backdrop, the 24-bit pointer to the 4 KB
                             of its light fallback, in the order of
                             `respaldo_bytes`.
@@ -3961,23 +3961,23 @@ def escenas_asm(datos, tropas, db):
         "FONDO_DEL_LUGAR = $%02X" % FONDO_DEL_LUGAR,
         "FONDO_TERRENOS  = %d" % len(datos.get("terreno_fondo") or [0]),
         "ESCENA_BATTLERS = %d" % len(battlers),
-        "ESCENA_ANCHO    = %d" % E.ANCHO,
-        "ESCENA_ALTO     = %d" % E.ALTO,
+        "ESCENA_ANCHO    = %d" % E.WIDTH,
+        "ESCENA_ALTO     = %d" % E.HEIGHT,
         "ESCENA_TILES    = %d" % E.TILES,
         "ESCENA_FILAS    = %d" % E.TILES_Y,
         "ESCENA_COLUMNAS = %d" % E.TILES_X,
-        "ESCENA_COLORES  = %d" % E.COLORES,
+        "ESCENA_COLORES  = %d" % E.COLORS,
         "ESCENA_CGRAM    = %d" % E.CGRAM_BASE,
         "ESCENA_VRAM     = $%04X" % E.VRAM_TILES,
-        "ESCENA_MAPA     = $%04X" % E.VRAM_MAPA,
+        "ESCENA_MAPA     = $%04X" % E.VRAM_MAP,
         "; The ROM's light fallback: 4bpp and a single palette. See",
         "; tools/port/escena.py.",
-        "RESPALDO_COLORES = %d" % E.RESPALDO_COLORES,
-        "RESPALDO_TILE   = %d" % (E.RESPALDO_PLANOS * 8),
-        "RESPALDO_BYTES  = %d" % (E.RESPALDO_ANCHO * E.RESPALDO_ALTO
-                                  * E.RESPALDO_PLANOS // 8),
-        "RESPALDO_ESCALA = %d" % E.RESPALDO_ESCALA,
-        "ESCENA_BAT_PALETA = %d" % E.BATTLER_PALETA,
+        "RESPALDO_COLORES = %d" % E.FALLBACK_COLORS,
+        "RESPALDO_TILE   = %d" % (E.FALLBACK_PLANES * 8),
+        "RESPALDO_BYTES  = %d" % (E.FALLBACK_WIDTH * E.FALLBACK_HEIGHT
+                                  * E.FALLBACK_PLANES // 8),
+        "RESPALDO_ESCALA = %d" % E.FALLBACK_SCALE,
+        "ESCENA_BAT_PALETA = %d" % E.BATTLER_PALETTE,
         "; The tile that covers what is left below the scene. It falls",
         "; **outside** the tile block: 512 8bpp tiles are the 16,384 words",
         "; that go from ESCENA_VRAM to the end of VRAM, so 512 wraps around",
@@ -4021,12 +4021,12 @@ def escenas_asm(datos, tropas, db):
     # The battlers: their tables and then their bytes, each in a block that
     # doesn't cross a bank because the ROM reads it with `[puntero], y`.
     out.append(bloque("battler_n", bytes(
-        E.columnas(b) for b in battlers) or b"\x00"))
+        E.columns(b) for b in battlers) or b"\x00"))
     out.append(bloque("battler_alto", bytes(
         b["alto"] for b in battlers) or b"\x00"))
     planos = bytearray()
     for b in battlers:
-        planos += ((E.columnas(b) + 1) * b["alto"]).to_bytes(2, "little")
+        planos += ((E.columns(b) + 1) * b["alto"]).to_bytes(2, "little")
     out.append(bloque("battler_plano", bytes(planos) or b"\x00\x00"))
     punteros = [".bloque %d" % (4 * max(1, len(battlers))), "battler_dir:"]
     punteros += ["    .dword battler_%d" % k for k in range(len(battlers))]
@@ -4050,13 +4050,13 @@ def escenas_asm(datos, tropas, db):
             k = datos["battler_de"].get(enemigo, 0xFF)
             miembro_b.append(k)
             infos.append(battlers[k] if k != 0xFF else None)
-            x, y = (E.posicion(centro, battlers[k]) if k != 0xFF else (0, 0))
+            x, y = (E.position(centro, battlers[k]) if k != 0xFF else (0, 0))
             miembro_x.append(x)
             miembro_y.append(y)
         # And the order they are drawn in, which isn't the troop's: see
-        # `escena.orden_de_dibujo`. It goes per member, with the place in the
+        # `scene.drawing_order`. It goes per member, with the place in the
         # troop.
-        miembro_orden += E.orden_de_dibujo([c for _e, c in suyos], infos)
+        miembro_orden += E.drawing_order([c for _e, c in suyos], infos)
     out.append(bloque("miembro_battler", bytes(miembro_b) or b"\xFF"))
     out.append(bloque("miembro_x", bytes(miembro_x) or b"\x00"))
     out.append(bloque("miembro_y", bytes(miembro_y) or b"\x00"))
@@ -5492,7 +5492,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # The first two, which are uploaded with the bank on every screen that
         # uses it; the "goes up" one and the red one go separately and only
         # the equipment screen uploads them, because in battle the entries
-        # from the third palette on are the backdrop's —`escena.CGRAM_BASE`—
+        # from the third palette on are the backdrop's —`scene.CGRAM_BASE`—
         # and uploading them there wouldn't help anyone.
         handle.write(bloque("items_cgram", paletas_cgram(
             ranuras["items_paletas"][:menus_mod.ITEM_SUBE])) + "\n")
@@ -8018,7 +8018,7 @@ def main():
     audio_batalla = eventos.audio_de_batalla(temas) if tropas.ids else None
     # The backdrops and the battlers the cartridge's battles ask for, each one
     # once: the ROM composes them when each battle starts. See
-    # tools/port/escena.py, which is where the reason and the budget are.
+    # tools/port/scene.py, which is where the reason and the budget are.
     escenas = escena_de_la_rom(renderer.database, tropas, mapas, renderer.tree,
                                encuentros, args.game_dir)
     # The `.msu` is written after the audio, because it also carries the
@@ -8029,11 +8029,11 @@ def main():
         print("  battle backdrop %d %r: %dx%d, %d tiles from CGRAM entry %d; "
               "in the ROM %dx%d at 4bpp and %d colors (%d B), in "
               "the .msu 8bpp and %d colors (%d B)"
-              % (info["numero"], info["nombre"], escena_mod.ANCHO,
-                 escena_mod.ALTO, escena_mod.TILES, escena_mod.CGRAM_BASE,
-                 escena_mod.RESPALDO_ANCHO, escena_mod.RESPALDO_ALTO,
+              % (info["numero"], info["nombre"], escena_mod.WIDTH,
+                 escena_mod.HEIGHT, escena_mod.TILES, escena_mod.CGRAM_BASE,
+                 escena_mod.FALLBACK_WIDTH, escena_mod.FALLBACK_HEIGHT,
                  len(info["respaldo"]["paleta"]),
-                 len(rom_tiles) + len(rom_colores), escena_mod.COLORES,
+                 len(rom_tiles) + len(rom_colores), escena_mod.COLORS,
                  len(msu_tiles) + len(msu_colores)))
     # And the ones that aren't in the ROM, with which one replaces them
     # without MSU-1.
@@ -8046,7 +8046,7 @@ def main():
                                       "%d %s" % (k, escenas["juego"][k])
                                       for k in fuera)))
     for info in escenas["battlers"]:
-        d = escena_mod.informe_battler(info)
+        d = escena_mod.battler_report(info)
         print("  battler %r: %dx%d, %d B, %d colors of %d"
               % (d["clave"], d["ancho"], d["alto"], d["bytes"], d["quedan"],
                  d["colores"]))
@@ -8145,7 +8145,7 @@ def main():
           % (cuantos, parches_mod.EN_BUILD_ANIM, pesan))
     # And **which fifteen colors each battler is reduced to**, which is the
     # decision the scene composed on the console brought: see
-    # tools/port/escena.py.
+    # tools/port/scene.py.
     cuantos, pesan = parches_mod.escribir_battlers(destino_parches,
                                                    escenas["battlers"])
     print("patches of %d battler(s) -> %s (%d B)"

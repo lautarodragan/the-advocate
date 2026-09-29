@@ -2,7 +2,7 @@
 
 El cartucho lleva en la ROM el respaldo liviano de cada fondo —128x64 en
 4bpp, 16 colores, que la ROM agranda al doble— y el conversor escribe en el `.msu` el de calidad —8bpp, 96—: ver
-"El respaldo liviano" en tools/port/escena.py. Con MSU-1 y el `.msu` de este
+"El respaldo liviano" en tools/port/scene.py. Con MSU-1 y el `.msu` de este
 cartucho la ROM lee el de calidad; sin MSU-1, o con otro `.msu`, el suyo. La
 tanda entera corre sin MSU-1 —el arnés le esconde el `.msu` al core, ver
 `retro.Console`—, así que cubre el respaldo; esto cubre el otro camino, y que
@@ -36,7 +36,7 @@ import shutil
 
 import pytest
 
-from port import escena, eventos, snes_format, msu_data, snes_convert
+from port import scene, eventos, snes_format, msu_data, snes_convert
 from rpgmaker.resources import GAME_DIR
 from rpgmaker import lcf, rm2k
 
@@ -105,7 +105,7 @@ def _pelea(tmp_path, nombre, nucleo, msu, lugar=SECTOR_27, antes=0,
     # y bsnes pasan el mismo color de 15 bits a 24 de distinta manera —98 y
     # 99—, y esta prueba corre en los dos contra la misma golden.
     imagen = una.consola.image().convert("RGB").point(lambda v: v & 0xF8)
-    limpio = una.consola.ram(en_la_wram(s["ESC_LIMPIO"]), escena.TILES * 64)
+    limpio = una.consola.ram(en_la_wram(s["ESC_LIMPIO"]), scene.TILES * 64)
     return (tanda.quince_bits(imagen), byte("ESC_MSU"), byte("ESC_FONDO"),
             imagen, bytes(limpio))
 
@@ -117,10 +117,10 @@ def _fondo_8bpp(liviano, nombre=FONDO_SECTOR_27):
     `respaldo_bytes`: así lo que se compara es lo que hace la ROM contra la
     imagen, y no contra el mismo orden de bytes del que ella lee."""
     if not liviano:
-        return snes_convert.fondo_bytes(escena.fondo(nombre, GAME_DIR))[0]
-    grande = escena.fondo_liviano(nombre, GAME_DIR)["indices"]
+        return snes_convert.fondo_bytes(scene.backdrop(nombre, GAME_DIR))[0]
+    grande = scene.light_backdrop(nombre, GAME_DIR)["indices"]
     return b"".join(snes_format.pack_tile(celda, planes=8)
-                    for celda in escena.tiles(grande))
+                    for celda in scene.tiles(grande))
 
 
 def _msu_del_cartucho():
@@ -204,8 +204,8 @@ def test_msu_de_otro_build_cae_al_cartucho(tmp_path, nucleo):
 def _fondos_del_juego():
     db = eventos.base_de_datos(GAME_DIR)
     tree = lcf.TreeMap(GAME_DIR + "/RPG_RT.lmt")
-    return escena.fondos_del_juego(eventos.fondos_nombrados(GAME_DIR), tree,
-                                   db.terrain_backdrops, GAME_DIR)
+    return scene.game_backdrops(eventos.fondos_nombrados(GAME_DIR), tree,
+                                db.terrain_backdrops, GAME_DIR)
 
 
 def _fondo_del_terreno(mapa, x, y):
@@ -295,7 +295,7 @@ def test_msu_la_rom_sabe_donde_esta_cada_fondo():
                 dt.to_bytes(4, "little") + dc.to_bytes(4, "little")), (
                 "%s: msu_fondo_pos del fondo %d no apunta a sus entradas"
                 % (nombre, k))
-            assert (lt, lc) == (escena.TILES * 64, escena.COLORES * 2), (
+            assert (lt, lc) == (scene.TILES * 64, scene.COLORS * 2), (
                 "%s: el fondo %d del .msu mide %d y %d" % (nombre, k, lt, lc))
         regiones[nombre] = msu[msu_data.BACKDROPS_START:
                                msu_data.backdrop_offset(len(juego))]

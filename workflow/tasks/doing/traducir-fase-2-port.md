@@ -29,6 +29,9 @@ ejecutables `rm2k-snes-*` andando desde `/tmp`.
 3. `ventana` → `window`, `imagen` → `picture` (el cartel de `ShowPicture`),
    `pantalla_completa` → `fullscreen`, `titulo` → `title`, `fin_del_juego` →
    `end_game`.
+4. `escena` → `scene`. `snes_convert` la usa también por un alias local
+   (`E = escena_mod`), que ningún renombre por import ve: sólo lo cobró el
+   build.
 
 Lo que el conversor escribe al `.inc` cita rutas de `tools/port/` en sus
 comentarios (`; See tools/port/imagen.py.`): esas quedan con el nombre

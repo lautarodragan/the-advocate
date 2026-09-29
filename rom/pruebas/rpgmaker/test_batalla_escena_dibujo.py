@@ -3,7 +3,7 @@ y que un enemigo muerto desaparezca.
 
 La tanda de pixeles —las goldens de `batalla*`— mira la pantalla entera y dice
 **que** cambió algo; esto dice **qué**. Se compara contra una composición hecha
-de este lado desde el juego, con las mismas reglas que tools/port/escena.py
+de este lado desde el juego, con las mismas reglas que tools/port/scene.py
 escribe y ninguna de las rutinas de la ROM: el fondo que le toca a la pelea, los
 battlers convertidos de sus PNG, sus esquinas desde las posiciones del LDB y las
 paletas repartidas en el orden de la tropa. Si la ROM corre mal un battler que
@@ -16,7 +16,7 @@ filas que el texto no toca: arriba de la escena van los renglones de los
 enemigos, uno por enemigo.
 """
 
-from port import escena
+from port import scene
 from port import batalla as modelo
 from rpgmaker.resources import GAME_DIR
 
@@ -43,9 +43,9 @@ def _byte(una, nombre, k=0):
 
 def _indices(crudo):
     """Los 512 tiles de 8bpp de la escena, como índices de CGRAM fila por fila."""
-    filas = [[0] * escena.ANCHO for _ in range(escena.ALTO)]
-    for t in range(escena.TILES):
-        tx, ty = t % escena.TILES_X, t // escena.TILES_X
+    filas = [[0] * scene.WIDTH for _ in range(scene.HEIGHT)]
+    for t in range(scene.TILES):
+        tx, ty = t % scene.TILES_X, t // scene.TILES_X
         base = t * 64
         for y in range(8):
             planos = [crudo[base + (p // 2) * 16 + y * 2 + (p % 2)]
@@ -60,7 +60,7 @@ def _indices(crudo):
 
 def _bufer(una, nombre):
     return _indices(una.consola.ram(en_la_wram(una.simbolos[nombre]),
-                                    escena.TILES * 64))
+                                    scene.TILES * 64))
 
 
 def _esperada(una, base, tropa, vivos):
@@ -76,19 +76,19 @@ def _esperada(una, base, tropa, vivos):
     claves, puestos = [], []
     for k, (enemigo, centro) in enumerate(zip(miembros, posiciones)):
         e = base.enemies[enemigo]
-        info = escena.battler(e.battler_name, e.battler_hue, GAME_DIR)
+        info = scene.battler(e.battler_name, e.battler_hue, GAME_DIR)
         if info["clave"] not in claves:
             claves.append(info["clave"])
-        paleta = escena.BATTLER_PALETA + claves.index(info["clave"])
+        paleta = scene.BATTLER_PALETTE + claves.index(info["clave"])
         if k in vivos:
-            x, y = escena.posicion(centro, info)
+            x, y = scene.position(centro, info)
             # El orden de dibujo de `Sprite_Battler::ResetZ`, escrito acá de
-            # nuevo y no pedido a `escena.orden_de_dibujo`: el borde de abajo
+            # nuevo y no pedido a `scene.drawing_order`: el borde de abajo
             # en RM2k y, a igual borde, arriba el de menor lugar.
             z = (centro[1] + info["alto_rm"] // 2, -k)
             puestos.append((z, (info, paleta, x, y)))
     puestos = [p for _z, p in sorted(puestos, key=lambda zp: zp[0])]
-    return limpio, escena.componer(limpio, puestos)
+    return limpio, scene.compose(limpio, puestos)
 
 
 def _colores(una):
@@ -107,14 +107,14 @@ def _colores(una):
     # Los del respaldo liviano, que es el que la tanda ve: corre sin MSU-1.
     # ESC_FONDO es el número del fondo en el juego, que indexa el `.msu`; el
     # de la ROM es ESC_RESPALDO.
-    base = en_la_rom(s["fondo_cgram"]) + fondo * escena.RESPALDO_COLORES * 2
-    for i in range(escena.RESPALDO_COLORES):
-        colores[escena.CGRAM_BASE + i] = color(base + 2 * i)
+    base = en_la_rom(s["fondo_cgram"]) + fondo * scene.FALLBACK_COLORS * 2
+    for i in range(scene.FALLBACK_COLORS):
+        colores[scene.CGRAM_BASE + i] = color(base + 2 * i)
     for j in range(_byte(una, "ESC_PAL_N")):
         b = _byte(una, "ESC_PAL_BAT", j)
         base = en_la_rom(s["battler_cgram"]) + b * 32
         for c in range(16):
-            colores[(escena.BATTLER_PALETA + j) * 16 + c] = color(base + 2 * c)
+            colores[(scene.BATTLER_PALETTE + j) * 16 + c] = color(base + 2 * c)
     return colores
 
 
@@ -124,8 +124,8 @@ def _pantalla_distinta(una, esperada, desde):
     colores = _colores(una)
     imagen = una.consola.image()
     malos = 0
-    for y in range(desde, escena.ALTO):
-        for x in range(escena.ANCHO):
+    for y in range(desde, scene.HEIGHT):
+        for x in range(scene.WIDTH):
             r, g, b = imagen.getpixel((x, y))[:3]
             if (r >> 3, g >> 3, b >> 3) != colores[esperada[y][x]]:
                 malos += 1
@@ -189,7 +189,7 @@ def test_escena_un_encuentro_al_azar_hereda_el_fondo_del_mapa(partida):
     """
     una = en_sector_27(partida)
     assert _byte(una, "ESC_FONDO") != 0xFF, "la pelea al azar quedó sin fondo"
-    fondo = escena.fondo_liviano("ABLBackdropSJ03", GAME_DIR)
+    fondo = scene.light_backdrop("ABLBackdropSJ03", GAME_DIR)
     limpio = _bufer(una, "ESC_LIMPIO")
     assert _distintos(limpio, fondo["indices"]) == 0, \
         "el fondo de la pelea no es el de Sector 27"
@@ -275,7 +275,7 @@ def _fondos_del_juego():
     from rpgmaker import lcf
     import os
     tree = lcf.TreeMap(os.path.join(GAME_DIR, "RPG_RT.lmt"))
-    juego = escena.fondos_del_juego(
+    juego = scene.game_backdrops(
         eventos.fondos_nombrados(GAME_DIR), tree,
         eventos.base_de_datos(GAME_DIR).terrain_backdrops, GAME_DIR)
     return tree, juego
@@ -301,7 +301,7 @@ def test_escena_una_pelea_del_lugar_usa_el_fondo_del_mapa(partida):
     assert _byte(una, "ESC_FONDO") == juego.index(del_mapa), (
         "la pelea del lugar en el 60 eligió el fondo %d y el del mapa es %r, "
         "el %d" % (_byte(una, "ESC_FONDO"), del_mapa, juego.index(del_mapa)))
-    suyo = escena.fondo_liviano(del_mapa, GAME_DIR)
+    suyo = scene.light_backdrop(del_mapa, GAME_DIR)
     assert _distintos(_bufer(una, "ESC_LIMPIO"), suyo["indices"]) == 0, (
         "sin MSU-1 la pelea del lugar en el 60 no tiene el respaldo de %r"
         % del_mapa)
@@ -319,7 +319,7 @@ def test_escena_una_pelea_cuyo_fondo_no_esta_usa_el_reemplazo(partida):
     un mapa sin encuentros, donde el fondo sale del terreno bajo el héroe y
     el conversor no puede saber cuál será. `ESC_FONDO` es el del terreno —el
     que se leería del `.msu`— y sin MSU-1 se dibuja el de
-    `escena.reemplazo()`, no negro. Ver "Qué fondos hay" en escena.py."""
+    `scene.replacement()`, no negro. Ver "Qué fondos hay" en escena.py."""
     from port import eventos
     from rpgmaker import lcf, rm2k
     _tree, juego = _fondos_del_juego()
@@ -337,7 +337,7 @@ def test_escena_una_pelea_cuyo_fondo_no_esta_usa_el_reemplazo(partida):
         "la pelea del lugar en el 7 eligió el fondo %d y el terreno del mapa "
         "pide %r, el %d" % (_byte(una, "ESC_FONDO"), suyo, juego.index(suyo)))
     respaldo = _byte(una, "ESC_RESPALDO")
-    reemplazo = escena.fondo_liviano(escena.reemplazo(), GAME_DIR)
+    reemplazo = scene.light_backdrop(scene.replacement(), GAME_DIR)
     assert _distintos(_bufer(una, "ESC_LIMPIO"), reemplazo["indices"]) == 0, (
         "sin MSU-1 la pelea del lugar en el 7 no tiene el fondo de reemplazo "
         "(ESC_RESPALDO en %d): o %r entró en la ROM y la prueba necesita otro "

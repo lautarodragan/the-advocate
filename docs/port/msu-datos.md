@@ -12,7 +12,7 @@ abajo.
 La ROM lleva los fondos que piden las peleas del cartucho, y **livianos**:
 128x64 en 4bpp y 16 colores, que la ROM agranda al doble, contra los 256x128
 en 8bpp y 96 colores del `.msu` —ver "The light fallback" en
-`tools/port/escena.py`—. Así se ve a ojo de qué lado salió el fondo, y cada
+`tools/port/scene.py`—. Así se ve a ojo de qué lado salió el fondo, y cada
 uno cuesta en la ROM un octavo de lo que pesa en el `.msu`. Una pelea cuyo
 fondo la ROM no lleva usa, sin MSU-1, uno de reemplazo.
 
@@ -94,7 +94,7 @@ entradas sin cambiar el formato.
 nombran los `EnemyEncounter` y los `ChangeBattleBG` de todo el juego, los del
 árbol de mapas y los de los terrenos. Se ordenan por nombre sin mirar
 mayúsculas, que es como RM2k los busca, y el lugar de cada uno en esa lista es
-su **número**: `escena.fondos_del_juego`. Un nombre que no está ni en el juego
+su **número**: `scene.game_backdrops`. Un nombre que no está ni en el juego
 ni en el RTP (`ABL_RTP_DIR`) no entra; esa pelea va sin fondo, como en RM2k.
 
 Qué fondo pide una pelea es lo de RM2k —`Game_Map::SetupBattle` y
@@ -108,7 +108,7 @@ salen las peleas del mundo.
 **La ROM lleva todos los que las peleas del cartucho pueden pedir**: los que
 nombran las tropas, los de los mapas con encuentros al azar y los de los
 terrenos de esos mapas cuando no nombran ninguno —ver "Which backdrops there are" en
-`tools/port/escena.py`—. Sin MSU-1, una pelea cuyo fondo la ROM no lleva usa
+`tools/port/scene.py`—. Sin MSU-1, una pelea cuyo fondo la ROM no lleva usa
 **el de reemplazo**, `[battle] fallback_backdrop` del archivo de proyecto
 —por qué ése, en su comentario—:
 `fondo_respaldo` dice, por número de fondo, cuál de la ROM se dibuja. Lo

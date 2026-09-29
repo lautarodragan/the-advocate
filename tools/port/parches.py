@@ -116,7 +116,7 @@ The third, from 2026-09-21: since the battle scene is composited on the
 console, each battler has **fifteen colors and the transparent one**, and
 which ones are lost is a new decision. What is written is the palette that
 remained and how many merges were needed —see `texto_battler`—, with the
-battler's key: its image and its hue, which is what `escena.clave` builds.
+battler's key: its image and its hue, which is what `scene.key` builds.
 It looks at neither the troop nor the cartridge: the reduction is of the
 already shrunk drawing and nothing else.
 
@@ -310,9 +310,9 @@ def escribir_animaciones(destino, animaciones):
 # console each battler carries **fifteen colors and the transparent one**, and
 # which ones are lost is a decision that did not exist before —the baked scene
 # split 96 among the backdrop and all the battlers together—. See
-# tools/port/escena.py.
+# tools/port/scene.py.
 #
-# The key is **the battler**: the RM2k image and its hue, `escena.clave`. It
+# The key is **the battler**: the RM2k image and its hue, `scene.key`. It
 # is the game's and does not depend on the cartridge nor on the troop,
 # because the reduction looks at the already shrunk drawing and nothing else.
 DIRECTORIO_BAT = "battlers"
@@ -332,7 +332,7 @@ def ruta_battler(auto, clave):
 
 def texto_battler(info):
     """A battler's file, exactly as it goes to disk. `info` is the one
-    `escena.battler` returns."""
+    `scene.battler` returns."""
     lineas = [
         "# La decisión artística del battler %s: **qué colores se pierden** al"
         % info["clave"],
