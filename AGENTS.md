@@ -413,7 +413,7 @@ borrarlo al tocar código. Lo único que pide es que cualquier cambio en lo que
 se cachea se verifique con `SIN_CACHE=1`: las dos ROMs tienen que ser byte por
 byte iguales. Ver `tools/common/disk_cache.py`.
 
-**Mientras corren las pruebas no se toca ningún fuente.** `huella()` cubre
+**Mientras corren las pruebas no se toca ningún fuente.** `cartridges.fingerprint()` cubre
 todo `tools/runtime/`, los `.py` de `tools/` y los binarios de `ca65` y `ld65`: tocar
 cualquiera de ésos a mitad de una corrida mezcla dos versiones y el resultado no
 dice nada.
