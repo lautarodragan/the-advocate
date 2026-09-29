@@ -172,13 +172,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 **La música**
 
 * `rpgmaker/test_musica_paquete.py`: las muestras del tema, en la ARAM
-* `herramientas/test_temas_heredados.py`: qué tema puede venir sonando al
-  cargar el paquete de cada mapa, que es lo que el reparto le reserva
 * `rpgmaker/test_tema_del_mapa.py`: el tema de cada mapa
 * `rpgmaker/test_bateria_suena.py`: lo que la música les escribe a las voces
   de la batería
-* `herramientas/test_musica_stream.py`: el stream que arma el conversor: a
-  qué voz va cada nota y cuándo se suelta
 * `rpgmaker/test_musica_reparto.py`: las ocho voces repartidas nota a nota,
   sobre `escape_newyork` —el acorde entero y los canales que antes no
   sonaban— y sobre el de batalla, cuya melodía no pierde notas
@@ -260,10 +256,7 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   conversor, sobre `release` armado
 * `herramientas/test_fork_mapas.py`: el fork de `parches/manual/`
 * `herramientas/test_horneados.py`: los eventos horneados en el mapa
-* `herramientas/test_repartos.py`: los repartos de VRAM, su orden y el del 38
-* `herramientas/test_sustituciones.py`: el tope de `TileSubstitution`
-* `herramientas/test_textos.py`, `herramientas/test_escapes.py`: los cuadros
-  de texto rearmados y los escapes `\|` y `\^`
+* `herramientas/test_textos.py`: los cuadros de texto rearmados
 * `herramientas/test_encuentros.py`: los encuentros al azar
 * `herramientas/test_lideres.py`: quién puede ser líder
 * `herramientas/test_destello_paleta.py`: la paleta de sprite de los líderes
