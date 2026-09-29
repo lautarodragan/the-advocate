@@ -14,7 +14,7 @@
 //!   and to what, each on its own —for the party—, and each map's pages
 //!   compiled without songs —for who walks and which graphics a route
 //!   changes to—;
-//! * [`compile`]: the real thing, with everything.
+//! * [`compile()`]: the real thing, with everything.
 //!
 //! The opcodes' numbers are not here: they come from the protocol's
 //! declaration, `events.toml`, generated into [`opcodes`].
@@ -345,6 +345,7 @@ fn with_test_event(mut map: Map, request: &Request) -> Map {
             Event {
                 id: 0,
                 pages: vec![],
+                starting: None,
             },
         );
     }

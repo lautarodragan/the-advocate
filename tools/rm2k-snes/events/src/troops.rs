@@ -199,6 +199,10 @@ fn commands(raw: &[Command]) -> Option<Vec<Command>> {
     Some(out)
 }
 
+/// A page that got in: its trigger, where its code is, and which of the
+/// troop's pages it is.
+pub type Entry = (Trigger, usize, usize);
+
 /// The pages of the cartridge's troops, compiled and deduplicated: the
 /// game copies its systems' pages into every troop, so the key is the
 /// compiled bytecode, header included.
@@ -208,7 +212,7 @@ pub struct TroopPages {
     where_: HashMap<Vec<u8>, usize>,
     /// Per troop, each page that got in: its trigger, where its code is,
     /// and which of the troop's pages it is.
-    pub per_troop: Vec<(i32, Vec<(Trigger, usize, usize)>)>,
+    pub per_troop: Vec<(i32, Vec<Entry>)>,
     pub pages: usize,
     pub left_out: usize,
 }
@@ -243,7 +247,7 @@ impl TroopPages {
         &mut self,
         ctx: &mut Ctx,
         pages: &[TroopPage],
-    ) -> Result<Vec<(Trigger, usize, usize)>> {
+    ) -> Result<Vec<Entry>> {
         let mut theirs = Vec::new();
         for (k, page) in pages.iter().enumerate() {
             self.pages += 1;

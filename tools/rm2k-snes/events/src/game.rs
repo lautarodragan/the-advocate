@@ -15,6 +15,7 @@ use crate::codes::*;
 use crate::fail::{Bad, Result};
 use ditto::dump::{read_map, Dump};
 use ditto::schema;
+use rm2k_rules::event::starting_page;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
@@ -56,17 +57,6 @@ pub struct Condition {
     pub timer: bool,
 }
 
-impl Condition {
-    pub fn is_empty(&self) -> bool {
-        self.switch_a.is_none()
-            && self.switch_b.is_none()
-            && self.variable.is_none()
-            && self.item.is_none()
-            && self.actor.is_none()
-            && !self.timer
-    }
-}
-
 /// `compare_operator` is RPG Maker 2003's, and a 2000 game always holds
 /// its default: `>=`, which is 1.
 pub const CONDITION_OPERATOR: i32 = 1;
@@ -97,13 +87,14 @@ pub struct Event {
     pub id: i32,
     /// In the order of their ids.
     pub pages: Vec<Page>,
+    /// Which of them the engine shows in a freshly started game, if any:
+    /// `rm2k-rules`' `starting_page`.
+    pub starting: Option<usize>,
 }
 
 impl Event {
-    /// The page the engine shows in a freshly started game: the last one
-    /// with no condition.
     pub fn active_page(&self) -> Option<&Page> {
-        self.pages.iter().rev().find(|p| p.condition.is_empty())
+        self.starting.map(|k| &self.pages[k])
     }
 }
 
@@ -421,8 +412,11 @@ impl Game {
             .map(|e| {
                 let mut pages: Vec<&schema::EventPage> = e.pages.iter().collect();
                 pages.sort_by_key(|p| p.id);
+                let starting =
+                    starting_page(e).and_then(|s| pages.iter().position(|p| p.id == s.id));
                 Event {
                     id: e.id,
+                    starting,
                     pages: pages
                         .into_iter()
                         .map(|p| {

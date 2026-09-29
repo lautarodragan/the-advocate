@@ -1,9 +1,9 @@
 //! What goes wrong, and which of the two kinds of wrong it is.
 //!
-//! "This page does not compile" is not here: it is the normal answer for a
-//! page, and it is [`crate::compile::Cannot`]. What is here stops the whole
-//! conversion: a text with a letter the font does not have, a request that
-//! is not JSON.
+//! A [`Bad`] stops the whole conversion: a text with a letter the font does
+//! not have, a request that is not JSON. "This page does not compile" is
+//! not one: it is the normal answer for a page, [`Stop::Cannot`], and the
+//! page is left out.
 
 use std::fmt;
 
