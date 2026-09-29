@@ -12,4 +12,4 @@ que el switch 231 cambia de destino.
 
 El único que sobrevive de ese camino es `FUNDIDO_PUERTA`, que hoy sólo escribe
 el arnés para plantar la partida en un mapa: está explicado en su línea de
-`rom/src/ram_baja.s`.
+`tools/runtime/ram_baja.s`.

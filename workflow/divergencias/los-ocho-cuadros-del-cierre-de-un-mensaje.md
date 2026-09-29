@@ -7,7 +7,7 @@ pad, y el paralelo que lo abrió sigue parado.
 
 **Acá la ventana se apaga de golpe.** Lo que sí se copió es que **el A que
 cierra** no lo vea nadie más: lo consume `espera_boton`, y lo cobran las
-pruebas de `pruebas/abl/test_piedras.py`. Lo que queda afuera es que **un A
+pruebas de `rom/pruebas/abl/test_piedras.py`. Lo que queda afuera es que **un A
 nuevo** apretado dentro de esos ocho cuadros acá sí cuenta —le habla al de
 enfrente, o saca una piedra— y en RM2k no.
 

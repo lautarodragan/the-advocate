@@ -7,7 +7,7 @@ el divisor del hardware. `vueltas` es de dieciséis bits y ni 24 ni 6 dividen a
 vuelta y el ciclo se saltea un dibujo**. En RM2k el contador es de treinta y
 dos bits y eso no pasa.
 
-El porqué está en `anim_paso` de `rom/src/animacion_del_chipset.s` y en `TICK_MASCARA` de
+El porqué está en `anim_paso` de `tools/runtime/animacion_del_chipset.s` y en `TICK_MASCARA` de
 `tools/rpgmaker/rm2k.py`: la animación no gasta un byte de RAM, que hacía falta
 porque la BSS estaba llena.
 

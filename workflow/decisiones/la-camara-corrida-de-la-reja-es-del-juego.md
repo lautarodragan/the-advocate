@@ -16,7 +16,7 @@ Y el pan se queda pegado porque así es RM2k: la cámara **se lo sigue llevando
 mientras el héroe camina** —`Game_Player::UpdateScroll` le resta el pan al
 objetivo, y sólo lo saltea si el pan está fijado— y lo único que lo borra es
 cambiar de mapa, en `PerformTeleport` con `map_changed`. Las dos cosas son las
-que hace `rom/src/camara.s`, así que el port lo copia bien.
+que hace `tools/runtime/camara.s`, así que el port lo copia bien.
 
 taro lo jugó en el RPG_RT original el 2026-09-23 —el de 2000, el que trae el
 juego, corriendo con Wine— y la cámara queda igual de corrida.
@@ -26,4 +26,4 @@ juego, corriendo con Wine— y la cámara queda igual de corrida.
 Nada. Si alguien ve la cámara descentrada después de la reja y quiere
 "arreglarla", está por romper la fidelidad. El síntoma de un defecto **nuestro**
 sería otro: que el mapa dibujado no coincida con la colisión —caminar sobre
-paredes—, que es lo que cuida `pruebas/rpgmaker/test_camara.py`.
+paredes—, que es lo que cuida `rom/pruebas/rpgmaker/test_camara.py`.

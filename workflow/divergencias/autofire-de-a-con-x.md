@@ -4,7 +4,7 @@ Sostener X aprieta y suelta A solo: `pad_a` pasa `AUTOFIRE_CUADROS` vueltas
 prendido y otras tantas apagado, y como el juego mira el flanco de A
 —RM2k cierra el mensaje con `Input::IsTriggered`—, cada vuelta a prendido es
 un toque. Sirve para pasar textos y repetir elecciones sin machacar el botón.
-Está todo en `read_pad` (`rom/src/control.s`), que es el único lugar que lee
+Está todo en `read_pad` (`tools/runtime/control.s`), que es el único lugar que lee
 el control, así que vale en el mapa, en los mensajes, en los menús, en la
 tienda, en la pelea y en la pantalla de título.
 
@@ -32,7 +32,7 @@ Con `AUTOFIRE_CUADROS` en 4 son cuatro cuadros prendido y cuatro apagado:
 constante con nombre para ajustarla jugando; tiene que ser potencia de dos,
 y un `.assert` lo cuida.
 
-Lo cubre `pruebas/rpgmaker/test_autofire.py`: el ritmo cuadro por cuadro,
+Lo cubre `rom/pruebas/rpgmaker/test_autofire.py`: el ritmo cuadro por cuadro,
 que la A de verdad gane, soltar X en cada una de las ocho fases, y el caso
 `autofire` —cinco mensajes seguidos— cerrado entero con X sostenido y uno
 solo con A sostenido. `test_cores.py` corre el mismo caso en los dos cores.

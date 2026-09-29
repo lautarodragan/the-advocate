@@ -5,7 +5,7 @@ lista de acciones del LDB, el `rating` de cada una y
 `SelectEnemyAiActionRpgRtCompat` de easyrpg —cada posible pesa
 `max(0, rating - máximo + 10)`— y usan habilidades. Lo decide
 `batalla.accion_del_enemigo` y lo copia `ba_accion_enemiga`
-(`rom/src/batalla.s`). Lo que queda distinto:
+(`tools/runtime/batalla.s`). Lo que queda distinto:
 
 * **Con una sola acción de peso no se tira el dado.** RM2k tira
   `rand(0, suma - 1)` igual. Es la misma distribución, y deja el azar de las
@@ -42,7 +42,7 @@ Trash Hauler y el Junkbot de la planta, entre ellos.
 
 Lo cobran `test_la_tropa_es_la_que_se_espera` y
 `test_el_tangle_wire_usa_short_circuit_y_deja_el_hp_del_modelo`, en
-`pruebas/rpgmaker/test_ag7_y_la_planta.py`, y `test_la_pelea_de_la_planta` en
+`rom/pruebas/rpgmaker/test_ag7_y_la_planta.py`, y `test_la_pelea_de_la_planta` en
 `test_cores.py`.
 
 # Cómo se ve hoy

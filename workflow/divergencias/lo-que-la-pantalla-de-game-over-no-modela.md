@@ -4,7 +4,7 @@ Un `EnemyEncounter` con `defeat_mode` 0 que se pierde, un encuentro al azar
 perdido, o un `GameOver`, mandan en RM2k a `Scene_Gameover`: la imagen de Game
 Over del proyecto, su tema, y al apretar una tecla la pantalla de título.
 
-Desde el 2026-09-28 la ROM lo hace —ver `rom/src/game_over.s`—: la imagen que
+Desde el 2026-09-28 la ROM lo hace —ver `tools/runtime/game_over.s`—: la imagen que
 nombra el `System` del LDB, buscada en `GameOver/` del juego y después en la
 del RTP (`ABL_RTP_DIR`), el tema de Game Over del sistema, 80 cuadros de
 fundido de entrada y 80 de salida, y la pantalla de título. Hasta ese día
@@ -40,7 +40,7 @@ el juego y después en el RTP, como en RM2k, y las pistas de MSU-1 de los temas
 del RTP que nombra el `System` van numeradas detrás de las del juego: ver
 `numeros_de_pista` en tools/audio/snes_music.py.
 
-Lo cubren `pruebas/rpgmaker/test_game_over.py` —los tres caminos, la golden,
+Lo cubren `rom/pruebas/rpgmaker/test_game_over.py` —los tres caminos, la golden,
 la tecla y el título— y `test_game_over` en `test_cores.py`.
 
 # Cuándo deja de alcanzar

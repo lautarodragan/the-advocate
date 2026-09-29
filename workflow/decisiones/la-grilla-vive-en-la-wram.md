@@ -2,9 +2,9 @@
 
 **La grilla del mapa se descomprime entera a la WRAM al cargar el mapa, y
 vive en `$7E8000-$7EFFFF`**, siguiendo en `$7F8000` si pasa de 32 KB: la
-mitad alta de los dos bancos (`GRILLA` en `rom/src/ram_lejana.s`). El
+mitad alta de los dos bancos (`GRILLA` en `tools/runtime/ram_lejana.s`). El
 cartucho la trae en LZ2, en dos flujos, uno por mitad (`lz2_grilla` en
-`rom/src/descomprimir.s`).
+`tools/runtime/descomprimir.s`).
 
 Decidido con taro el 2026-09-26, **como prueba y sabiendo que quizás haya que
 revertirlo**.
@@ -47,13 +47,13 @@ está ahí— también.
 
 # Cómo se sabría que hace falta revertirlo
 
-* **`pruebas/herramientas/test_reservas_de_la_wram.py` falla** si algún
+* **`rom/pruebas/herramientas/test_reservas_de_la_wram.py` falla** si algún
   símbolo del cartucho cae en `$7E8000-$7FFFFF` y no es la grilla, el buffer
   de carga o la escena de la pelea. Es la alarma para quien necesite RAM
   lejana: si falla, no es para agregar el símbolo a su lista, es para leer
   esto. No ve una dirección escrita de dieciséis bits y usada con el banco de
   datos en `$7E`, como `FAR_BATALLA`.
-* **`pruebas/rpgmaker/test_carga_descomprimida.py` compara la grilla entera
+* **`rom/pruebas/rpgmaker/test_carga_descomprimida.py` compara la grilla entera
   en la WRAM** contra la que dejó el conversor, en cada uno de los cuarenta
   mapas, en snes9x y en bsnes, y **a la vuelta de una pelea** en el mapa 52.
   Un intruso que escriba ahí en esos caminos la hace fallar.

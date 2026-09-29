@@ -1,7 +1,7 @@
 # Qué
 
 **El arranque está dimensionado para el paquete de audio del mapa de
-arranque**, no para la ARAM llena: `BOOT_CUADROS` (en `rom/src/ram_lejana.s`)
+arranque**, no para la ARAM llena: `BOOT_CUADROS` (en `tools/runtime/ram_lejana.s`)
 cubre la carga del mapa, el driver y el directorio por el IPL, y ese
 paquete, con margen. **Y el conversor se corta si no entra**: la cuenta es
 `snes_music.cuadros_del_arranque`.
