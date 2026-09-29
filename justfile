@@ -177,6 +177,21 @@ _instalar raiz *proyectos:
   ln -sfn "{{justfile_directory()}}/tools/ensamblado/entregar.py" "{{raiz}}/bin/abl-entregar"
   echo "en {{raiz}}/bin: los ocho de Python, y de Rust: {{ if proyectos == "" { "ninguno" } else { proyectos } }}"
 
+# **Un worktree sin su `bin/` no corre herramientas.** Correría los scripts
+# del checkout principal —los del global—, que arman en el `rom/build/` del
+# principal: pisaría sus cartuchos, quizás con una tanda corriendo ahí, sin
+# enterarse. Así que toda receta que corre un script de las herramientas
+# depende de ésta, y en un worktree sin `.herramientas-locales/bin/` se
+# niega. En el checkout principal pasa siempre. Un worktree se reconoce
+# porque su `git-dir` no es el común.
+_herramientas_del_checkout:
+  #!/usr/bin/env sh
+  [ "$(git rev-parse --git-dir)" = "$(git rev-parse --git-common-dir)" ] && exit 0
+  [ -d "{{locales}}/bin" ] && exit 0
+  echo "este worktree no tiene sus herramientas: corré 'just herramientas-locales' primero." >&2
+  echo "sin eso, los scripts serían los del checkout principal, y armarían en su rom/build/." >&2
+  exit 1
+
 # Qué ejecutable resuelve este checkout para cada herramienta: el de
 # `.herramientas-locales/bin/` si está, si no el global.
 cuales:
@@ -212,7 +227,7 @@ cuales:
 # Las pruebas no arman nada: corren contra los cartuchos de `cartuchos`, que
 # se arman antes, en serie, y sólo si cambió algo de lo que los arma. **Después
 # corren en paralelo**, con pytest-xdist: ver `procesos`.
-pruebas *args: _xdist cartuchos
+pruebas *args: _herramientas_del_checkout _xdist cartuchos
   pytest pruebas {{xdist}} {{args}}
 
 # Las mismas, de a una carpeta: `rpgmaker` —lo que el motor tiene que hacer
@@ -221,13 +236,13 @@ pruebas *args: _xdist cartuchos
 # herramientas, la de bancos, lee la tabla de símbolos del cartucho armado.
 # Van en paralelo igual que `pruebas`: hasta `herramientas`, que no corre
 # ninguna ROM, gana.
-pruebas-rpgmaker *args: _xdist cartuchos
+pruebas-rpgmaker *args: _herramientas_del_checkout _xdist cartuchos
   pytest pruebas/rpgmaker {{xdist}} {{args}}
 
-pruebas-abl *args: _xdist cartuchos
+pruebas-abl *args: _herramientas_del_checkout _xdist cartuchos
   pytest pruebas/abl {{xdist}} {{args}}
 
-pruebas-herramientas *args: _xdist cartuchos
+pruebas-herramientas *args: _herramientas_del_checkout _xdist cartuchos
   pytest pruebas/herramientas {{xdist}} {{args}}
 
 # Cuántos procesos de pytest corren las pruebas a la vez. **`PROCESOS=0` es en
@@ -265,7 +280,7 @@ _xdist:
 # pruebas` antes, y cada uno se rearma sólo si cambió algo de lo que lo arma.
 # Qué va en cada uno y por qué está en el fuente de `rm2k-snes-cartridges`;
 # `--lista` lo imprime.
-cartuchos *args:
+cartuchos *args: _herramientas_del_checkout
   rm2k-snes-cartridges {{args}}
 
 # **Cuánto espacio le queda a cada cartucho**: bancos de datos libres y los
@@ -279,7 +294,7 @@ cartuchos *args:
 #     just espacio otro/dir/abl.sfc     una ROM armada aparte, sin armar nada
 #
 # Imprime el espacio libre de cada cartucho.
-espacio *args:
+espacio *args: _herramientas_del_checkout
   #!/usr/bin/env sh
   for a in {{args}}; do [ -f "$a" ] && exec rm2k-snes-space {{args}}; done
   rm2k-snes-cartridges {{args}} >/dev/null && rm2k-snes-space {{args}}
@@ -295,14 +310,14 @@ espacio *args:
 #
 # Regenerarlos es deliberado, igual que con las goldens: si fuera automático o
 # lo hiciera la tanda, dejarían de avisar nada. Lo que se mira es el diff.
-parches: (build "release")
+parches: _herramientas_del_checkout (build "release")
   rm2k-snes-patches rom/build/release
 
 # Y la verificación, que es lo que corre la tanda: falla diciendo **qué
 # decisión cambió** —"la animación 82 se dibujaba a 64x50 y ahora se dibuja a
 # 64x49"—, no que el archivo difiere. Sin argumentos mira todos los cartuchos
 # de `cartuchos.py`, porque lo versionado tiene que salir igual en todos.
-parches-check *builds:
+parches-check *builds: _herramientas_del_checkout
   rm2k-snes-patches {{builds}} --check
 
 # **El techo de volumen de cada tema**, medido: arma una copia de `release`
@@ -314,7 +329,7 @@ parches-check *builds:
 # reparto—, que es cuando `test_musica_techos.py` avisa que quedó vieja. El
 # porqué, en `leer_techos`, que es donde el conversor la lee. `--medir` sólo
 # mide el `release` armado, sin escribir nada: recortes, pico y LUFS por tema.
-techos *args:
+techos *args: _herramientas_del_checkout
   rm2k-snes-volume-ceilings {{args}}
 
 # Arma un cartucho por nombre, si no está al día:
@@ -348,7 +363,7 @@ techos *args:
 # el MSU-1 no se enciende.
 #
 # Arma una ROM por nombre: release o test-special.
-build cual:
+build cual: _herramientas_del_checkout
   rm2k-snes-cartridges {{cual}}
 
 # **Le deja a taro el `release` en `/shared/builds/<fecha>-<commit>/`**: el
@@ -368,7 +383,7 @@ build cual:
 #     just entregar "..." --actualizar-msu
 #
 # Entrega el release en /shared/builds/ para que taro lo juegue.
-entregar que_mirar *args: (build "release")
+entregar que_mirar *args: _herramientas_del_checkout (build "release")
   abl-entregar {{quote(que_mirar)}} {{args}}
 
 # Es para que taro vea y escuche un build sin correrlo. Las jugadas son partes
@@ -382,5 +397,5 @@ entregar que_mirar *args: (build "release")
 #     just video release /shared/textos.mp4 apertura talan --leer 150
 #
 # Un video con sonido de una ROM ya armada, jugando las jugadas del recorrido.
-video cual salida +jugadas:
+video cual salida +jugadas: _herramientas_del_checkout
   pruebas/arnes/video.py rom/build/{{cual}} {{salida}} {{jugadas}}

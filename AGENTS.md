@@ -495,10 +495,11 @@ Lo que hay que hacer siempre:
   mismo lugar. Uno pisa al otro y el pisado no se entera. `<scratchpad>/<lo que
   hace>/…` alcanza.
 * **Que corra `just herramientas-locales` al empezar.** El global —`just
-  herramientas`— apunta al checkout principal, así que sin esto un worktree
-  corre los scripts de `tools/` de `main` y no los suyos. Arma un `bin/` en
-  el worktree con los ocho scripts, y el `justfile` lo pone adelante en el
-  PATH. **Un proyecto de Rust se le pasa sólo si el agente lo va a
+  herramientas`— apunta al checkout principal, y sus scripts arman en el
+  `rom/build/` de ése: por eso, en un worktree sin su `bin/`, las recetas que
+  corren herramientas —`cartuchos`, `pruebas`, `build`…— **se niegan** y
+  dicen qué correr. Arma un `bin/` en el worktree con los ocho scripts, y el
+  `justfile` lo pone adelante en el PATH. **Un proyecto de Rust se le pasa sólo si el agente lo va a
   modificar** —`just herramientas-locales lz2`—: compilar cuesta, y sin
   nombres no compila nada. Y **todo se corre por `just`**: un comando suelto
   no ve ese `bin/` y usa el global. Es de taro, el 2026-09-29, y reemplazó a

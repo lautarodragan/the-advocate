@@ -46,10 +46,18 @@ PATH— no lo recorre, y la prueba del grep tampoco —mira `parches/`, `data/` 
 `pruebas/`—. Oculto, porque no es parte del árbol. Adentro queda lo que
 `cargo install --root` deja: `bin/`, `.crates.toml` y `.crates2.json`.
 
-**Lo que cambia sin el `bin/`**: un worktree que no corrió
-`herramientas-locales` corre los scripts de `main`, que arman en el
-`rom/build/` de `main`. Es la regla nueva, y AGENTS.md la dice; antes el
-re-exec lo evitaba solo.
+**Sin el `bin/`, un worktree se niega.** Correría los scripts de `main`,
+que arman en el `rom/build/` de `main`: pisaría sus cartuchos sin enterarse.
+Lo marcó el coordinador antes de mergear, y se resolvió con
+`_herramientas_del_checkout`, de la que dependen `cartuchos`, `build`,
+`pruebas*`, `espacio`, `parches`, `parches-check`, `techos`, `entregar` y
+`video`. Pasa en el checkout principal (`git-dir` igual al común) y en un
+worktree con `.herramientas-locales/bin/`. `herramientas-locales` y `cuales`
+no dependen de ella. Medido: sin el `bin/`, `just cartuchos`, `just pruebas`,
+`just espacio release` y `just video` salen 1 con el mensaje, y `just
+cuales` anda; en el checkout principal la receta sale 0; después de `just
+herramientas-locales` —sin Rust— `just cartuchos` arma y `just pruebas` da
+973 en verde, con `abl.sfc` y `prueba.sfc` iguales que antes.
 
 **`cargo` fuera de instalar**: sólo lo llaman `herramientas`, `_instalar` y
 las `*-pruebas` de Rust, que son sus pruebas. Ningún `.py` de `tools/` ni de
