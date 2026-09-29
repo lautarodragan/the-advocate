@@ -794,7 +794,7 @@ class Songs:
         right away. So it has no reason to fit in ARAM with those effects: it
         goes in the **separate** package, it is uploaded if there is room,
         and if not its `PlayBGM` uploads it —see `exit_extra` in
-        tools/runtime/paquete_de_audio.s—. It is from 2026-09-26."""
+        tools/runtime/audio_package.s—. It is from 2026-09-26."""
         return [t for t, is_exit in self.exits.get(game_map, {}).items() if is_exit]
 
     def sound(self, name, volume, tempo, balance, in_package=True):
@@ -3125,7 +3125,7 @@ def troop_header(trigger):
     the turn or the HP: the turn's base and multiple, a word each, and the
     enemy's place, the actor and their ranges, a byte each. Empty if it looks
     at none of that. The order is `BA_COND`'s in
-    tools/runtime/ram_lejana.s."""
+    tools/runtime/far_ram.s."""
     if not trigger.flags & TROOP_WITH_HEADER:
         return b""
     d = trigger
@@ -3671,7 +3671,7 @@ def fadable_cells(commands):
     characters touch: the forty of each lap of the race, the lights of map 11
     and some two hundred more in the game. Fused, it runs in a single turn of
     the interpreter instead of four, and it is what keeps the race at 60
-    frames: see `cell_test` in tools/runtime/interprete_celdas.s.
+    frames: see `cell_test` in tools/runtime/interpreter_cells.s.
 
     Only the shape is looked at here; whether the operands compile is said
     by `_cell_test_piece`, which is the one that emits.

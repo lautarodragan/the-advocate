@@ -13,7 +13,7 @@ already on top. That multiplied images per combination —six in `abl`, over
 four backdrops— and a dead enemy was still visible. Since that day, taro's
 idea, the cartridge carries **each backdrop once and each battler once**,
 and the console composites them when the battle starts. See `scene_upload`
-in tools/runtime/batalla_escena.s.
+in tools/runtime/battle_scene.s.
 
 It is still a single 8bpp layer on BG1, and that is what buys the same as
 before:
@@ -142,7 +142,7 @@ doubles the small one with the CPU: each pixel twice across and each row
 twice down. From there on everything is the same —compositing, erasing a
 dead one, uploading to VRAM—, because what is left in WRAM is an 8bpp
 backdrop like the `.msu` one. See `scn_fill` and `scn_double` in
-tools/runtime/batalla_escena.s, and `fallback_bytes` in snes_convert.py for
+tools/runtime/battle_scene.s, and `fallback_bytes` in snes_convert.py for
 the order the bytes travel in, which is the one that saves the ROM math.
 
 The other way out was for the `.msu` to carry 4bpp too, "more quality within

@@ -30,8 +30,8 @@ def test_todo_lo_que_arma_la_rom_esta_en_la_huella(tmp_path):
                 if os.path.realpath(r) not in huella]
 
     assert cubiertas(cartridges.RUNTIME) == []
-    (tmp_path / "main.s").write_text('.include "tienda.s"\n')
-    (tmp_path / "tienda.s").write_text("")
+    (tmp_path / "main.s").write_text('.include "shop.s"\n')
+    (tmp_path / "shop.s").write_text("")
     assert cubiertas(str(tmp_path)) == []
 
 

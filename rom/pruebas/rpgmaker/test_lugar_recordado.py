@@ -6,7 +6,7 @@ héroe. **En las variables el mapa es el id de RM2k**, no el índice del
 cartucho: los pisos que se rompen de la planta de reciclaje (mapas 60 y 62)
 lo cargan con un `ControlVars` y enseguida saltan, así que la ROM lo traduce
 con la tabla `map_rm2k`. Ver `remembered_place` en
-runtime/lugar_y_tema_recordados.s.
+runtime/remembered_place_and_song.s.
 
 Los casos:
 

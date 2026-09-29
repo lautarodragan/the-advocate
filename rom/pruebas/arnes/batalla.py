@@ -192,7 +192,7 @@ class Pelea:
         """Toca A hasta que la pelea termina, y espera a que el mapa vuelva
         a correr.
 
-        Lo segundo es por la transición de salida —`fundido_de_pelea.s`—, que
+        Lo segundo es por la transición de salida —`battle_fade.s`—, que
         dura de dos a tres segundos entre el mosaico, la carga del paquete del
         mapa en negro y el fundido de vuelta, **sin que corra ningún tick**:
         un `Partida.correr(1)` justo después se daba por colgado, porque le da

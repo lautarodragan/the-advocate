@@ -945,13 +945,13 @@ class Partida:
     def temas_de_salida(self, indice):
         """Los temas de salida del paquete `indice`: los que el mapa prende
         sólo para irse, que se suben si hay lugar. Ver `exit_extra` en
-        runtime/paquete_de_audio.s."""
+        runtime/audio_package.s."""
         return self._listas_del_paquete(indice)[2]
 
     def temas_aparte(self, indice):
         """Los temas aparte del paquete `indice`: los que su `PlayBGM` sube
         solos con los efectos del paquete. Ver `extra_separate` en
-        runtime/paquete_de_audio.s."""
+        runtime/audio_package.s."""
         return self._listas_del_paquete(indice)[3]
 
     def _listas_del_paquete(self, indice):
@@ -1073,7 +1073,7 @@ def en_la_wram(direccion):
     """De una dirección larga del banco $7E al desplazamiento que pide
     `retro.Console.ram`.
 
-    Las de la RAM lejana están escritas de las dos maneras en `runtime/ram_lejana.s` —unas
+    Las de la RAM lejana están escritas de las dos maneras en `runtime/far_ram.s` —unas
     con el banco adelante (`$7E3100`) y otras sin él (`$2600`)—, así que el
     símbolo se enmascara en vez de suponerse.
     """
@@ -1102,7 +1102,7 @@ class DelCartucho:
     """Los bytes del cartucho desde `direccion`, como una secuencia. En LoROM
     el byte que sigue a $xxFFFF está en $(xx+1)8000, que en el archivo es el
     siguiente, así que alcanza con el desplazamiento: es el salto de banco de
-    `advance` en runtime/musica.s, visto desde el archivo."""
+    `advance` en runtime/music.s, visto desde el archivo."""
 
     def __init__(self, rom, direccion):
         self.rom, self.base = rom, en_la_rom(direccion)

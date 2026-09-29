@@ -19,7 +19,7 @@ es que `possible_leaders` mira también las páginas de los casos, así que Arde
 pasa a ser un líder posible y se le reserva sprite y paleta en cada mapa.
 
 La rama prende el switch 709, que ningún comando del juego toca. Sin el
-arreglo de `if_actor` en `runtime/interprete_condiciones.s`, `rama-grupo-no` lo prende
+arreglo de `if_actor` en `runtime/interpreter_conditions.s`, `rama-grupo-no` lo prende
 igual.
 """
 

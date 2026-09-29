@@ -333,7 +333,7 @@ def separate_songs():
     """{map id: names} of the separate songs: they do not go with the other
     songs of their map's package, their `PlayBGM` uploads them alone with the
     package's sound effects —see `extra_separate` in
-    tools/runtime/paquete_de_audio.s—, and they are not inherited by the maps
+    tools/runtime/audio_package.s—, and they are not inherited by the maps
     you exit to —see `inherited_songs` in snes_convert.py—. From
     `[music] apart_themes`."""
     return {m["map"]: set(m["themes"])
@@ -982,7 +982,7 @@ def effect_places(packages, names):
 
     The ROM cannot tell from the entry which sound effect is there: it
     records it when uploading it (`FAR_EFFECT_IN`, in
-    tools/runtime/paquete_de_audio.s).
+    tools/runtime/audio_package.s).
     """
     touches = {n: set() for n in names}
     for own in packages:
@@ -1066,7 +1066,7 @@ class Bank:
     the SRCN the stream writes is the sample's index in the cartridge, so
     two songs that play piano point to the same one. But **it is not
     uploaded whole**: the ARAM gets packages, one per map —see
-    `package_load` in tools/runtime/paquete_de_audio.s—, so what has to
+    `package_load` in tools/runtime/audio_package.s—, so what has to
     fit in the 64 KB is not the bank but each package, with its sound
     effects.
 
@@ -1753,7 +1753,7 @@ def pack(frames, length, init):
 
 def decode(stream, sounds):
     """The model of the 65816's decoder —`music_frame`, in
-    tools/runtime/musica.s—, step by step: what the stream writes, (frame,
+    tools/runtime/music.s—, step by step: what the stream writes, (frame,
     register, value), up to its `OP_END`. It has to give the same as
     `writes`.
 
@@ -2318,7 +2318,7 @@ FRAMES_PER_KB_PACKAGE = 1.45
 FRAMES_PER_KB_IPL = 1.5
 MAP_FRAMES = 10
 # Where `BOOT_FRAMES` lives, which belongs to the ROM and not here.
-FAR_RAM = os.path.join(project.runtime(), "ram_lejana.s")
+FAR_RAM = os.path.join(project.runtime(), "far_ram.s")
 
 
 def boot_frames_estimate(driver, voices, songs, package, decompress=0.0,
@@ -2369,7 +2369,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     **packages**, one per map —`packages`, in map table order, each with its
     songs, its sound effects' samples and its exit songs—, and the directory
     starts with all of them pointing to the silence. See `package_load` in
-    tools/runtime/paquete_de_audio.s.
+    tools/runtime/audio_package.s.
 
     `map_song` is the song each map turns on when entered, in the same
     order, or $FF if entering does not change what is playing. See

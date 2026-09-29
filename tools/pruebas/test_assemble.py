@@ -58,12 +58,12 @@ def test_refuses_a_generated_inc_next_to_the_source(tmp_path):
 def test_sources_are_the_included_s_files_not_the_generated_ones(tmp_path):
     (tmp_path / "main.s").write_text(
         '.include "event_opcodes.inc"\n'
-        '.include "tienda.s"\n'
+        '.include "shop.s"\n'
         '; .include "citado.s" en un comentario no cuenta\n')
-    (tmp_path / "tienda.s").write_text('.include "precios.s"\n')
+    (tmp_path / "shop.s").write_text('.include "precios.s"\n')
     (tmp_path / "precios.s").write_text("")
     principal = str(tmp_path / "main.s")
     assert assemble.sources(principal) == [
-        principal, str(tmp_path / "tienda.s"), str(tmp_path / "precios.s")]
+        principal, str(tmp_path / "shop.s"), str(tmp_path / "precios.s")]
     assert assemble.source_text(principal).endswith(
         '.include "precios.s"\n')

@@ -540,7 +540,7 @@ class Item:
     states it removes, one per LDB state from 1, which is the dead one: it is
     what decides whether it revives a fallen one. See
     `battle.item_usable_in_battle` and `medicine_use` in
-    tools/runtime/medicina.s.
+    tools/runtime/medicine.s.
     """
 
     def __init__(self, data):

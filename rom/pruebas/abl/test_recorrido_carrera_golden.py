@@ -129,7 +129,7 @@ class Oido:
     """Anota cada efecto que arranca —(muestra, cuadros)— mirando las dos
     voces de efectos en la RAM lejana, y junta el audio para guardarlo: un
     efecto arranca cuando los cuadros que le quedan a su voz suben. Ver
-    runtime/efectos_de_sonido.s."""
+    runtime/sound_effects.s."""
 
     def __init__(self, p):
         self.p = p

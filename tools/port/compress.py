@@ -4,7 +4,7 @@ The format is Nintendo's LC_LZ2, and taro chose it on 2026-09-26 with what
 was measured in `workflow/tasks/*/la-compresion-de-mapas-y-graficos.md`: it
 stays within 20% of zlib on the tiles and within 10 KB on the grids, and its
 repeat with an absolute address into the output is what an `mvn` does in one
-go. The decompressor is `lz2_decompress`, in `tools/runtime/descomprimir.s`.
+go. The decompressor is `lz2_decompress`, in `tools/runtime/decompress.s`.
 
 The compressor is a separate project, `tools/lz2/`, in Rust and in English,
 by the rule in AGENTS.md: it does not need to know anything about this game.

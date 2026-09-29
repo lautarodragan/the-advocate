@@ -4,7 +4,7 @@ por byte, lo que el conversor dice que tiene que haber.
 Desde el 2026-09-26 los tiles del mapa, de los sprites, de la capa de encima y
 de la animación del ChipSet viajan en el cartucho comprimidos en LZ2, y la ROM
 los descomprime al cargar el mapa —ver `lz2_decompress` en
-runtime/descomprimir.s—. La propiedad que hace verificable ese cambio es que
+runtime/decompress.s—. La propiedad que hace verificable ese cambio es que
 **lo que llega a la VRAM no cambió**, y eso es lo que se mira acá, en todos los
 mapas de `release`: contra `crudos/`, que el conversor deja al lado del
 cartucho sin comprimir —ver `write_raw`— y no contra nada que salga de la

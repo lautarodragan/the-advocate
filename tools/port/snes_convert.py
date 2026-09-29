@@ -3379,7 +3379,7 @@ def anim_table(maps):
            # `rom/src/` and not `tools/runtime/`, on purpose: it goes into the
            # `.inc`, and what is emitted isn't touched yet. See
            # las-herramientas-se-separan-de-abl.md.
-           "; See `anim_table` in tools/port/snes_convert.py and `anim_flush` in rom/src/animacion_del_chipset.s.",
+           "; See `anim_table` in tools/port/snes_convert.py and `anim_flush` in rom/src/chipset_animation.s.",
            ";",
            "; **It lives in RODATA and is read with `lda f:anim_table + campo, x`**,",
            "; for the same reason as `map_table`: it is 16 bytes per map, and",
@@ -4454,7 +4454,7 @@ def check_streams(map_id, kind, data):
         if len(part) > cap:
             raise SystemExit(
                 "map %d: a stream of %s is %d bytes and %d fit in WRAM: "
-                "see the LZ2 reservation in tools/runtime/ram_lejana.s"
+                "see the LZ2 reservation in tools/runtime/far_ram.s"
                 % (map_id, kind, len(part), cap))
     if len(parts) > count:
         raise SystemExit(
@@ -4617,8 +4617,8 @@ TITLE_HEADER = 21
 def rom_identity():
     """What the ROM says about itself, from the `[rom]` of the project file:
     the header title, already padded with blanks, and the save signature in
-    SRAM. They are `.define`s because they are text: `cabecera.s` and
-    `partida.s` use them, and until 2026-09-29 they had them written in."""
+    SRAM. They are `.define`s because they are text: `header.s` and
+    `save_game.s` use them, and until 2026-09-29 they had them written in."""
     title = settings.ascii("rom", "title", max_length=TITLE_HEADER)
     signature = settings.ascii("rom", "sram_signature", length=4)
     return ("; Who the ROM is, from the project file: the header title and\n"
@@ -4723,7 +4723,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "; The flags of `KeyInputProc`, which go in the second byte of\n"
         # `rom/src/` on purpose: it goes into the `.inc`, which isn't touched
         # yet.
-        "; OP_KEY. See `op_key` in rom/src/interprete_teclas_y_esperas.s.\n"
+        "; OP_KEY. See `op_key` in rom/src/interpreter_keys_and_waits.s.\n"
         "KEY_WAIT   = $%02X\n"
         "KEY_DIRS     = $%02X\n"
         "KEY_DECISION = $%02X\n"
@@ -5202,7 +5202,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         materials = Materials(dedupe=True,
                               compressed=compressed
                               or compress_blocks(maps))
-        handle.write("; The LZ2 caps, which descomprimir.s enforces\n"
+        handle.write("; The LZ2 caps, which decompress.s enforces\n"
                      "LZ2_CAP_BACKDROP = $%04X\n"
                      "LZ2_CAP_ABOVE_Y_SPRITES = $%04X\n"
                      "LZ2_CAP_ANIM = $%04X\n"
@@ -8317,7 +8317,7 @@ def main():
             "the boot doesn't fit in BOOT_FRAMES: the boot map's package is "
             "%d B and with the map, the driver and the directory the "
             "computation gives %.0f frames, against %d. Raise BOOT_FRAMES in "
-            "tools/runtime/ram_lejana.s, or shrink that package"
+            "tools/runtime/far_ram.s, or shrink that package"
             % (in_package, frames, cap))
     print("  boot: the boot map's package is %d B, %.0f of "
           "the %d frames of BOOT_FRAMES" % (in_package, frames, cap))

@@ -6,7 +6,7 @@ término de la victoria, la experiencia, el oro y un renglón por ítem que
 soltaron los enemigos, de a cuatro renglones por página; después cada actor que subió
 de nivel tiene la suya, con "<nombre> LEVEL <n> achieved!" y una línea por
 habilidad aprendida. Acá van en los cuatro renglones del grupo —ver
-`batalla_victoria.s`—.
+`battle_victory.s`—.
 
 No se compara contra una golden sino **contra el texto**: se lee el tilemap de
 la pantalla, `text_buf`, y se traduce cada celda con la tabla de glifos del

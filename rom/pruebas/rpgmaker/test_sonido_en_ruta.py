@@ -18,7 +18,7 @@ mueve el reparto de la música a nadie.
   suma los pasos hasta el `end_jump`— y el conversor lo tira.
 
 Lo que se mira es el estado de las dos voces de efectos en la RAM lejana
-(`SE_FRAMES` y `SE_NEW`, ver runtime/efectos_de_sonido.s): un efecto
+(`SE_FRAMES` y `SE_NEW`, ver runtime/sound_effects.s): un efecto
 arranca cuando los cuadros que le quedan a una voz suben.
 """
 

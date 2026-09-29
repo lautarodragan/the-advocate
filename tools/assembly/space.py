@@ -23,7 +23,7 @@ What it prints, and where each thing comes from:
   packing almost all of it is the end of the last one; see `resolve`.
 * **Bank 0**: the `.cfg`'s `ROM` area minus `CODE` and `TABLES`, which share
   it.
-* **Bank 1**: what the `.align $8000` in `cabecera.s` pads, which is what
+* **Bank 1**: what the `.align $8000` in `header.s` pads, which is what
   closes `FAR`. It is recognized by the source line and not by the position:
   if `FAR` filled the bank exactly, there would be no padding and it would
   give zero.
@@ -67,12 +67,12 @@ def _areas(cfg):
 
 
 def _far_padding(dbg):
-    """How much the `.align $8000` in `cabecera.s` pads, in bytes."""
-    with open(os.path.join(project.runtime(), "cabecera.s")) as handle:
+    """How much the `.align $8000` in `header.s` pads, in bytes."""
+    with open(os.path.join(project.runtime(), "header.s")) as handle:
         lines = [n + 1 for n, l in enumerate(handle)
                  if l.split(";")[0].strip().startswith(".align")]
     files = {f["id"] for f in _records(dbg, "file")
-             if f["name"].endswith("cabecera.s")}
+             if f["name"].endswith("header.s")}
     spans = set()
     for line in _records(dbg, "line"):
         if line["file"] in files and int(line["line"]) in lines \
