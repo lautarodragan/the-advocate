@@ -30,9 +30,11 @@ one in its own row or above.
                  and the image of the fork's ChipSets (chipset_recipe); uses
                  rpgmaker
 
-    audio/       from MIDI to the SPC700: snes_music, midi, musica, sdsp,
-                 spc700, brr_samples, snes_samples, music_opcodes, and the
-                 MSU-1 tracks (msu); uses rpgmaker and common
+    audio/       from MIDI to the SPC700: snes_music, midi, music, sdsp,
+                 spc700, brr_samples, snes_samples, music_opcodes; the
+                 MSU-1 tracks (msu) and sound effects (msu_effects); and
+                 each song's volume ceiling (ceilings); uses rpgmaker and
+                 common
 
     port/        the converter to SNES —snes_convert— and everything only it
                  uses: eventos, event_opcodes, batalla, experiencia,

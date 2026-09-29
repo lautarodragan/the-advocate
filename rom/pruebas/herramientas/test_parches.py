@@ -38,7 +38,7 @@ def _armados():
 
     `release` también, y es el que más importa: es el único del que
     `parches.revisar` exige que todo lo que convierte esté versionado. Salen
-    de `CARTUCHOS` y no de listar los de prueba: ahí puede quedar el directorio
+    de `CARTRIDGES` y no de listar los de prueba: ahí puede quedar el directorio
     de un cartucho que ya no existe —`main`, hasta el 2026-09-25— con
     decisiones de otro día.
     """

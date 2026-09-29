@@ -152,7 +152,7 @@ _herramientas_del_checkout:
 # pixeles se queda ciega. El recuerdo de CORE y MANTA que no arrancaba daba
 # verde en la tanda entera. Qué prueba cubre qué, en `pruebas/README.md`.
 #
-# Las de estado se apoyan en la tabla de símbolos que deja `ensamblar`, así
+# Las de estado se apoyan en la tabla de símbolos que deja `assemble`, así
 # que ninguna dirección de RAM está escrita a mano: renombrar una variable en
 # `runtime/` hace fallar la prueba diciendo qué símbolo falta.
 #

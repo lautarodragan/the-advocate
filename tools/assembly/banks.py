@@ -359,7 +359,7 @@ RESERVED_BANKS = 2
 
 # The stack starts at `$1FFF` and grows downwards, towards the BSS: the two
 # share the low 8 KB. This is what it is given, and the lowest byte it gets is
-# `$2000 - PILA`.
+# `$2000 - STACK`.
 #
 # **It went down from 256 to 128 on 2026-09-20, by taro's decision**, to give
 # those 128 bytes to the BSS, which is full. What keeps the margin from being

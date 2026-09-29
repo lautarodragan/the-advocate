@@ -517,7 +517,7 @@ class _Voice:
 def _release_frames(gain):
     """How many frames a voice released with that GAIN takes to go silent,
     from the top: the linear one drops 1/64 per step, and the exponential
-    one reaches zero in `PASOS_HASTA_CERO` —see `sdsp`—."""
+    one reaches zero in `STEPS_TO_ZERO` —see `sdsp`—."""
     period = sdsp.PERIOD[gain & 0x1F] or 0
     steps = (64 if gain & 0xE0 == sdsp.GAIN_LINEAR_DECREASE
              else sdsp.STEPS_TO_ZERO)

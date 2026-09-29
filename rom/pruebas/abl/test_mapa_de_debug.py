@@ -2,7 +2,7 @@
 puerta a cada punto clave del juego y un NPC por compañero.
 
 Es un mapa que el juego no tiene —`parches/manual/nuevos/Map0900.json`, ver
-`fork.new_maps`— y lo prende `CON_MAPA_DE_DEBUG` en cartridges.py. Cada puerta
+`fork.new_maps`— y lo prende `WITH_DEBUG_MAP` en cartridges.py. Cada puerta
 es una página de contacto que pone el estado de alguien que jugó hasta ahí
 —switches, grupo, oro, ítems, la velocidad del héroe— y salta; de dónde sale
 cada número lo dicen los comentarios de esa página. Acá se cobra que cada una
@@ -40,7 +40,7 @@ from tanda import golden, partida
 
 pytestmark = pytest.mark.skipif(
     not cartridges.WITH_DEBUG_MAP,
-    reason="release se arma sin el mapa de debug (CON_MAPA_DE_DEBUG)")
+    reason="release se arma sin el mapa de debug (WITH_DEBUG_MAP)")
 
 EL_MAPA = cartridges.DEBUG_MAP
 # El `Teleport` de la entrada, `pruebas/casos/mapa-de-debug.json`.

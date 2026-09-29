@@ -131,8 +131,8 @@ def partida(caso, nucleo=None, en=None, switches=(), titulo=None, pila=False,
     """
     if caso is None and (en or cartridges.RELEASE) == cartridges.RELEASE:
         # Sin caso, en `release`: la partida de verdad **sin el mapa de
-        # debug**, `LA_PARTIDA_DE_VERDAD`, que es la página 0 de la entrega
-        # limpia. Con el mapa, la página 0 lleva a él —ver `PRIMERO` en
+        # debug**, `REAL_GAME`, que es la página 0 de la entrega
+        # limpia. Con el mapa, la página 0 lleva a él —ver `FIRST_CASE` en
         # cartridges.py— y esto la elige por su número, como a cualquier caso:
         # así las pruebas que juegan desde el título siguen mirando el
         # arranque del juego, con la misma ROM que se entrega. Pasar por la
