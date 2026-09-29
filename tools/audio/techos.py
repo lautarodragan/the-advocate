@@ -49,6 +49,12 @@ from common import environment                              # noqa: E402
 from common import settings                              # noqa: E402
 from common import project                              # noqa: E402
 
+# `--project` is read before anything else: this module reads the project
+# file when imported —`NOMBRE_DE_LA_ROM`—, and `main`'s `parse_args` comes
+# too late.
+if __name__ == "__main__":
+    project.from_command_line()
+
 # Half the usual headroom: measured on 2026-09-26, with 0.25 none of the 32
 # songs of `release` clips, and the loudest one stays 3.9 dB below the cap.
 AIRE_DE_MEDIDA = sdsp.AIRE / 2
@@ -264,7 +270,6 @@ def imprimir(medido, techos=None):
 
 
 def main():
-    project.from_command_line()
     from ensamblado import cartuchos
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     project.add_argument(parser)
