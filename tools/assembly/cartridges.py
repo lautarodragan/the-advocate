@@ -37,6 +37,7 @@ from common import project                              # noqa: E402
 from assembly import assemble                        # noqa: E402
 from port import tiles_bin                              # noqa: E402
 from port import compress                              # noqa: E402
+from render import render_map                          # noqa: E402
 
 # `--project` is read before anything else: this module reads the project
 # file when imported, and `main`'s `parse_args` comes too late.
@@ -219,7 +220,7 @@ def fingerprint_files(runtime=RUNTIME):
                                          recursive=True) if os.path.isfile(r))
              + assemble.binaries()
              + [tiles_bin.binary(), brr_samples.binary(),
-                compress.binary()])
+                compress.binary(), render_map.binary()])
     # Except the tools' tests, which build nothing: with them inside, editing
     # a test made every cartridge stale.
     tests_dir = os.path.join(project.tools(), "tests", "")
