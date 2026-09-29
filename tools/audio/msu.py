@@ -103,7 +103,7 @@ def huella_de_fluidsynth():
     version.
 
     The binary goes in because it is what produces the bytes —the same reason
-    `muestras_brr.version()` carries `gunter`'s— and the `--version` text goes
+    `brr_samples.version()` carries `gunter`'s— and the `--version` text goes
     in because the bulk of the synthesis lives in `libfluidsynth`, which the
     binary does not contain: updating the library without the executable
     changing has to expire the tracks all the same.

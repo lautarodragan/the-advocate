@@ -33,7 +33,7 @@ Three constraints rule the result:
 import hashlib
 import math
 
-from audio import muestras_brr
+from audio import brr_samples
 from common import environment
 from common import disk_cache
 
@@ -57,7 +57,7 @@ def __getattr__(nombre):
     raise AttributeError("module %r has no attribute %r" % (__name__, nombre))
 
 
-BLOCK = muestras_brr.BLOQUE_MUESTRAS   # 16 samples per BRR block
+BLOCK = brr_samples.BLOCK_SAMPLES    # 16 samples per BRR block
 REFERENCE_KEY = 60                 # middle C: the note the zone is picked with
 PEAK = 0x6800                      # what each sample is normalized to
 
@@ -91,7 +91,7 @@ class Voice:
 # --- the prepared-sample cache ---------------------------------------------
 #
 # What is stored here is **the whole voice**: the resampling, the
-# normalization and the BRR that comes out of them. `muestras_brr.codificar`
+# normalization and the BRR that comes out of them. `brr_samples.encode`
 # already cached the last part, and that was never the problem — the Python
 # preparation that comes before was. Measured with `cProfile` over a
 # conversion of `abl` **with a warm cache**: of 165 s of profile, 114.6 were
@@ -115,13 +115,13 @@ def _version_de_la_preparacion():
     """Which version of the code produced the stored voice.
 
     It covers this file —the resampling, the normalization and the budget
-    allocation live here— and, through `muestras_brr.version()`, the bridge
+    allocation live here— and, through `brr_samples.version()`, the bridge
     and **the installed binary**. What decides the key is what produced the
     bytes, and the bytes go through all three.
     """
     global _version
     if _version is None:
-        _version = disk_cache.key(muestras_brr.version(),
+        _version = disk_cache.key(brr_samples.version(),
                                   disk_cache.version_of(
                                       "audio/snes_samples.py"))
     return _version
@@ -259,7 +259,7 @@ def plan_rate(attack_frames, loop_frames, source_rate, budget):
     if not frames:
         return MIN_RATE
     # How many samples fit in the budget.
-    allowed = budget * BLOCK / float(muestras_brr.BLOQUE_BYTES)
+    allowed = budget * BLOCK / float(brr_samples.BLOCK_BYTES)
     rate = source_rate * allowed / frames
     return int(max(MIN_RATE, min(MAX_RATE, min(rate, source_rate))))
 
@@ -281,7 +281,7 @@ def _build_voice(soundfont, program, budget, key):
     Then the attack is brought to the nearest multiple of 16 at that same
     rate.
     """
-    sample = muestras_brr.extraer("program:%d@%d" % (program, key), soundfont)
+    sample = brr_samples.extract("program:%d@%d" % (program, key), soundfont)
     if sample is None:
         return None
 
@@ -291,18 +291,18 @@ def _build_voice(soundfont, program, budget, key):
     # and `loop` already says no when the zone does not repeat or when the
     # loop is empty.
     looped = sample.loop
-    attack_frames = sample.loop_start if looped else sample.cuadros
+    attack_frames = sample.loop_start if looped else sample.frames
     loop_frames = sample.loop_end - sample.loop_start if looped else 0
 
-    rate = plan_rate(attack_frames, loop_frames, sample.tasa, budget)
-    ratio = rate / float(sample.tasa)
+    rate = plan_rate(attack_frames, loop_frames, sample.rate, budget)
+    ratio = rate / float(sample.rate)
 
     if looped:
         # The loop first: its length has to be a multiple of 16, and from that
         # rounding comes the rate we will actually declare.
         loop_out = max(BLOCK, int(round(loop_frames * ratio / BLOCK)) * BLOCK)
         ratio = loop_out / float(loop_frames)
-        rate = int(round(sample.tasa * ratio))
+        rate = int(round(sample.rate * ratio))
     else:
         loop_out = 0
 
@@ -314,10 +314,10 @@ def _build_voice(soundfont, program, budget, key):
         audio += resample(lazo, loop_out, circular=True)
     audio = normalize(audio)
 
-    data = muestras_brr.codificar(
+    data = brr_samples.encode(
         audio, loop_block=attack_out // BLOCK if looped else None)
-    return Voice(program, sample.nombre, data,
-                 rate * 2.0 ** (-sample.cents / 1200.0), sample.nota,
+    return Voice(program, sample.name, data,
+                 rate * 2.0 ** (-sample.cents / 1200.0), sample.root_key,
                  attack_out // BLOCK if looped else 0, len(audio))
 
 
@@ -341,16 +341,16 @@ def _build_drum(soundfont, note, budget, seconds):
     would cost more than all the melodic instruments together. It is cut and
     the rest is done by the DSP envelope, which is exactly what it is for.
     """
-    sample = muestras_brr.extraer("drum:%d" % note, soundfont)
+    sample = brr_samples.extract("drum:%d" % note, soundfont)
     if sample is None:
         return None
 
-    frames = min(sample.cuadros, int(seconds * sample.tasa))
-    rate = plan_rate(frames, 0, sample.tasa, budget)
-    out = int(round(frames * rate / float(sample.tasa)) / BLOCK) * BLOCK
+    frames = min(sample.frames, int(seconds * sample.rate))
+    rate = plan_rate(frames, 0, sample.rate, budget)
+    out = int(round(frames * rate / float(sample.rate)) / BLOCK) * BLOCK
     if out < BLOCK:
         return None
 
     audio = normalize(resample(sample.pcm[:frames], out))
-    data = muestras_brr.codificar(audio, loop_block=None)
-    return Voice(note, sample.nombre, data, rate, sample.nota, 0, out)
+    data = brr_samples.encode(audio, loop_block=None)
+    return Voice(note, sample.name, data, rate, sample.root_key, 0, out)

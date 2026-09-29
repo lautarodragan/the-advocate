@@ -31,7 +31,7 @@ one in its own row or above.
                  rpgmaker
 
     audio/       from MIDI to the SPC700: snes_music, midi, musica, sdsp,
-                 spc700, muestras_brr, snes_samples, music_opcodes, and the
+                 spc700, brr_samples, snes_samples, music_opcodes, and the
                  MSU-1 tracks (msu); uses rpgmaker and common
 
     port/        the converter to SNES —snes_convert— and everything only it

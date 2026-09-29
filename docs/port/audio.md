@@ -31,7 +31,7 @@ muestra y con qué envolvente, y la consola sólo reproduce.
   `rom/parches/auto/musica/techos.toml` (`just techos`): ver `leer_techos`.
 * **Las muestras salen del SoundFont** con el que se compuso el juego
   (`tools/audio/snes_samples.py`; `ABL_SOUNDFONT` apunta a otro), y las pasa a
-  BRR Gunter, por `tools/audio/muestras_brr.py`.
+  BRR Gunter, por `tools/audio/brr_samples.py`.
 * **Un solo banco de muestras para todo el cartucho, subido de a paquetes, uno
   por mapa**, y cada muestra con el presupuesto de su peor paquete: `Banco` y
   `repartir` en `snes_music.py`, y el porqué en

@@ -41,7 +41,7 @@ FLG_BASE = 0x20         # echo off; the five low bits are the noise
 # --- the envelopes ----------------------------------------------------------
 #
 # They come from the SoundFont, generators 33 to 40, which `gunter sf2 --json`
-# returns per zone —see `muestras_brr.envolvente`—. Until 2026-09-25 they
+# returns per zone —see `brr_samples.envelope`—. Until 2026-09-25 they
 # came from eight families picked by eye when the bank was synthetic, and
 # what differed most was the release: the synthetic bass and the saw release
 # in 30 ms in the SF2 and here they dragged a 2.4 s tail.

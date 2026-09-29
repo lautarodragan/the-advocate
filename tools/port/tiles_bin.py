@@ -7,7 +7,7 @@ cell goes in was decided by the allocator before writing the image: see
 "`tools/voodoo/` no decide colores" in `AGENTS.md`.
 
 This module is still called `tiles_bin` because it names **what it
-produces** —tiles— and not who produces them, like `muestras_brr`.
+produces** —tiles— and not who produces them, like `brr_samples`.
 
 It is used from the PATH, like `gunter` and `ca65`: it is installed with
 `just herramientas` and no script calls `cargo`.

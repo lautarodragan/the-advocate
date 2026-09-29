@@ -18,7 +18,7 @@ import os
 from rpgmaker import lcf
 from audio import music
 from audio import midi
-from audio import muestras_brr
+from audio import brr_samples
 from audio import sdsp
 from audio import snes_samples
 from audio import spc700
@@ -35,7 +35,7 @@ TICKS_PER_SECOND = music.TICKS_PER_SECOND
 DRIVER_ADDR = 0x0200
 SAMPLES_ADDR = 0x0400
 
-BLOQUE = muestras_brr.BLOQUE_MUESTRAS   # 16 samples per BRR block
+BLOQUE = brr_samples.BLOCK_SAMPLES   # 16 samples per BRR block
 
 # The samples go from $0400 to the end of the 64 KB —`ARAM_FIN`, further
 # down—, with no reservation: echo is off —FLG with the "do not write the
@@ -405,7 +405,7 @@ def build_efecto(nombre, game_dir=None, tasa=SE_TASA, enteros=None):
     if guardar < len(crudo):
         largo_loop = int(SE_LOOP_SEGUNDOS * tasa) // BLOQUE
         loop = max(0, salen // BLOQUE - max(1, largo_loop))
-    return Efecto(nombre, muestras_brr.codificar(audio, loop_block=loop),
+    return Efecto(nombre, brr_samples.encode(audio, loop_block=loop),
                   tasa, loop,
                   segundos)
 
@@ -709,8 +709,8 @@ def zonas_mas_usadas(leidos):
     tiempo = collections.defaultdict(collections.Counter)
     adentro = collections.defaultdict(collections.Counter)
     # The zones the loop below is going to ask for, requested beforehand all
-    # together: see `muestras_brr.precargar`.
-    muestras_brr.precargar(
+    # together: see `brr_samples.preload`.
+    brr_samples.preload(
         ("program:%d@%d" % (leido["programas"].get(nota.channel, 0),
                             nota.pitch)
          for leido in leidos if leido for nota in leido["notas"]
@@ -725,8 +725,8 @@ def zonas_mas_usadas(leidos):
                     or nota.channel not in leido["voces"]):
                 continue
             programa = leido["programas"].get(nota.channel, 0)
-            zona = muestras_brr.zona("program:%d@%d" % (programa, nota.pitch),
-                                     snes_samples.SOUNDFONT)
+            zona = brr_samples.zone("program:%d@%d" % (programa, nota.pitch),
+                                    snes_samples.SOUNDFONT)
             if zona is None:
                 continue
             tiempo[programa][zona] += nota.end - nota.start
@@ -735,8 +735,8 @@ def zonas_mas_usadas(leidos):
     for programa, por_zona in tiempo.items():
         zona = max(por_zona, key=lambda z: (por_zona[z], z))
         raiz = zona[1]
-        if muestras_brr.zona("program:%d@%d" % (programa, raiz),
-                             snes_samples.SOUNDFONT) == zona:
+        if brr_samples.zone("program:%d@%d" % (programa, raiz),
+                            snes_samples.SOUNDFONT) == zona:
             teclas[programa] = raiz
         else:
             cuanto = adentro[programa, zona]
@@ -1153,9 +1153,9 @@ class Banco:
         """
         clave = (program, key)
         if clave not in self._envolventes:
-            sf2 = (muestras_brr.envolvente("program:%d@%d" % (program, key),
-                                           snes_samples.SOUNDFONT)
-                   or muestras_brr.envolvente(
+            sf2 = (brr_samples.envelope("program:%d@%d" % (program, key),
+                                        snes_samples.SOUNDFONT)
+                   or brr_samples.envelope(
                        "program:%d@%d" % (program, snes_samples.REFERENCE_KEY),
                        snes_samples.SOUNDFONT))
             self._envolventes[clave] = sdsp.envelope(sf2, key)
@@ -2491,7 +2491,7 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
     filas_m = []
     for i, v in enumerate(voces or [None]):
         largo = len(v.data) if v is not None else len(SILENCIO)
-        loop = v.loop_block * muestras_brr.BLOQUE_BYTES if v is not None else 0
+        loop = v.loop_block * brr_samples.BLOCK_BYTES if v is not None else 0
         filas_m.append("    .byte <(muestra_%d), >(muestra_%d), ^(muestra_%d), "
                        "<%d, >%d, <%d, >%d" % (i, i, i, largo, largo, loop, loop))
     # Which samples each song uses, and each map's package. Two blocks with

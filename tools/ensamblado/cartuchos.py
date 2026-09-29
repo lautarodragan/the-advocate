@@ -30,7 +30,7 @@ import sys
 # the PATH as a symlink, and what matters is where the real file is.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
-from audio import muestras_brr                          # noqa: E402
+from audio import brr_samples                          # noqa: E402
 from common import environment                              # noqa: E402
 from common import settings                              # noqa: E402
 from common import project                              # noqa: E402
@@ -220,7 +220,7 @@ def archivos_de_la_huella(fuente=FUENTE):
     partes = (sorted(r for r in glob.glob(os.path.join(fuente, "**"),
                                           recursive=True) if os.path.isfile(r))
               + ensamblar.binarios()
-              + [tiles_bin.binario(), muestras_brr.binario(),
+              + [tiles_bin.binario(), brr_samples.binary(),
                  comprimir.binario()])
     # Except the tools' tests, which build nothing: with them inside, editing
     # a test made every cartridge stale.

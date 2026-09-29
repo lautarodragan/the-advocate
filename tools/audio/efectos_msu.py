@@ -31,7 +31,7 @@ it is what taro asked for first, the length.
 
 import collections
 
-from audio import muestras_brr
+from audio import brr_samples
 from audio import snes_music
 from audio import snes_samples
 
@@ -57,11 +57,11 @@ def armar(nombre, tasa, game_dir):
     as loud as the ROM's."""
     crudo, fuente = snes_music.leer_wav(nombre.split("@")[0], game_dir)
     tasa = min(tasa, fuente)
-    salen = max(muestras_brr.BLOQUE_MUESTRAS,
+    salen = max(brr_samples.BLOCK_SAMPLES,
                 int(round(len(crudo) * tasa / float(fuente)))
-                // muestras_brr.BLOQUE_MUESTRAS * muestras_brr.BLOQUE_MUESTRAS)
+                // brr_samples.BLOCK_SAMPLES * brr_samples.BLOCK_SAMPLES)
     audio = snes_samples.normalize(snes_samples.resample(crudo, salen))
-    return Version(nombre, tasa, muestras_brr.codificar(audio))
+    return Version(nombre, tasa, brr_samples.encode(audio))
 
 
 def _pesa(largo, fuente, tasa):
@@ -69,7 +69,7 @@ def _pesa(largo, fuente, tasa):
     whole at `tasa`: the same arithmetic as `armar`, without building it."""
     tasa = min(tasa, fuente)
     salen = max(16, int(round(largo * tasa / float(fuente))) // 16 * 16)
-    return salen // 16 * muestras_brr.BLOQUE_BYTES
+    return salen // 16 * brr_samples.BLOCK_BYTES
 
 
 def tasas(paquetes, efectos, libre, game_dir):

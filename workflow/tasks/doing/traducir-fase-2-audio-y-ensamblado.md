@@ -16,3 +16,21 @@ Hace falta además una forma de instalar sólo los scripts de Python en el
 PATH, sin compilar ni reinstalar Rust: hoy `herramientas` sin argumentos
 reinstala los cinco proyectos, y cada renombre de un script pide volver a
 enlazar.
+
+## Cómo se hace
+
+De a un módulo por commit, con los scripts de renombre por tokens de
+Mburucuyá adaptados —ahora también miran `docs/` salvo `docs/research/`,
+que son estudios fechados, y no tocan `musica.json`, `techos.toml` y
+demás nombres de archivo que parecen `módulo.atributo`—. Entre commit y
+commit: `SIN_CACHE=1 just cartuchos` con las huellas de `rom/build/`
+contra las de 2bd3cf64 (995 archivos), las dos tandas, pyflakes y cada
+ejecutable corrido por su nombre desde /tmp con `--project`.
+
+## Dónde quedó
+
+- `audio/musica.py` → `audio/music.py`.
+- `techos.py` no leía `--project` antes de importar, y fuera del juego
+  `rm2k-snes-volume-ceilings --project rom --help` se cortaba: arreglado en
+  su propio commit.
+- `audio/muestras_brr.py` → `audio/brr_samples.py`, con sus nombres.

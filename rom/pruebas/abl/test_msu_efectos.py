@@ -29,7 +29,7 @@ from array import array
 
 import numpy
 
-from audio import muestras_brr, snes_music
+from audio import brr_samples, snes_music
 from port import msu_datos
 
 import tanda
@@ -79,7 +79,7 @@ def _efectos_cambiados(msu, firma):
     entradas = [bytearray(e) for e in msu_datos.leer(msu)]
     for entrada in entradas[fondos:]:
         for i in range(len(entrada)):
-            if i % muestras_brr.BLOQUE_BYTES:
+            if i % brr_samples.BLOCK_BYTES:
                 entrada[i] ^= 0xFF
     if firma:
         return msu_datos.armar([bytes(e) for e in entradas])[0]
