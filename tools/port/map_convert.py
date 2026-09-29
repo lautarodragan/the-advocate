@@ -9,7 +9,7 @@ import multiprocessing
 import os
 import sys
 
-from port import events
+from port import compiler, events
 from rpgmaker import lcf
 from rpgmaker import rm2k
 from port import animation as animation_mod
@@ -136,10 +136,8 @@ def convert_map(renderer, map_id, args):
     # **before** the palette split because a graphic of command 34 is one
     # more character and asks for a palette like anyone: splitting without
     # counting it, it would come in later and there might be no room.
-    order = map_order(args)
     movable, route_graphics, animates_still, turning = movable_events(
-        game_map, {m: i for i, m in enumerate(order)}.get,
-        associations=args.associations)
+        game_map, compiler.map_entry(args.scan, map_id))
     # And the ones from `--test-graphic`, which go only in the maps where
     # some case runs, and for the same reason their pages are compiled with
     # that map's context. They are added **after** the game's, which is the

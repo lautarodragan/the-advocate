@@ -548,6 +548,10 @@ pub fn compile(game: &Game, request: &Request) -> Result<Value> {
         for (charset, index) in request.test_graphics.get(&map.id).into_iter().flatten() {
             graphics.index(charset, *index);
         }
+        // The table the map's pages number against, which the caller checks
+        // against the one it built the sprite bank with. A test page that
+        // runs here numbers after it.
+        let numbered = graphics.pairs.clone();
         // The test pages that run here, with this map's context.
         for (c, (run_map, case)) in request.cases.iter().enumerate() {
             if *run_map != map.id {
@@ -617,7 +621,7 @@ pub fn compile(game: &Game, request: &Request) -> Result<Value> {
         maps_out.push(json!({
             "id": map.id,
             "pages": pages,
-            "graphics": graphics.pairs,
+            "graphics": numbered,
             "debts": debts,
             "substitutions": asked,
         }));

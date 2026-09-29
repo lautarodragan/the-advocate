@@ -81,7 +81,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
          window=None, title=None, slots=None, picture_info=None,
          animations=None, troops=(), battle_audio=None, scenes=None,
          battle_tables=None, troop_pages=None, compressed=None,
-         enemy_hp=False, game_over=None):
+         enemy_hp=False, game_over=None, party_common=None):
     """The .inc that is assembled together with main.s.
 
     `enemy_hp` is `--enemy-hp`: whether the battle draws the
@@ -96,6 +96,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
     `slots` is the slots screen and **always goes**: the save point opens it
     from inside the game, whether the ROM has a title or not. See
     `slots_screen` in menus.py.
+
+    `party_common` is `{common event: its code}` of the equipment common
+    events, compiled: see `events.PARTY_COMMON_EVENTS`.
     """
     for number, map_info in enumerate(maps):
         layout = map_info["layout"]
@@ -1818,7 +1821,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                   declare=True)
         for _sw, n in party_ones:
             handle.write(block("common_equipment_%d" % n,
-                               events.compile_party_common_event(n)) + "\n")
+                               party_common[n]) + "\n")
         # And what each actor knows, which since 2026-09-21 is state: one bit
         # per (actor, skill) pair in `FAR_SKILL`, with the slots of
         # `events.SKILL_SLOT`. It is answered by branch 4 of

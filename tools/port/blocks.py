@@ -174,7 +174,7 @@ class Substitutions:
         base = rm2k.UPPER_BASE if high_layer else rm2k.LOWER_BASE
         return base + old, base + new
 
-    def pairs(self, high_layer, old, new):
+    def pure_pairs(self, high_layer, old, new):
         """The `(old block, new block)` pairs of a substitution, or None.
 
         None is "this page doesn't compile", which is what `events.py`
@@ -205,7 +205,14 @@ class Substitutions:
             out.append((block, new_block))
         if len(out) > 0xFF:
             return None         # the count operand is one byte
-        self.known_keys.update(pair[0] for pair in out)
+        return out
+
+    def pairs(self, high_layer, old, new):
+        """`pure_pairs`, and the keys it uses are counted: a page asked
+        for it. See `known_keys`."""
+        out = self.pure_pairs(high_layer, old, new)
+        if out is not None:
+            self.known_keys.update(pair[0] for pair in out)
         return out
 
     def close(self, triples):

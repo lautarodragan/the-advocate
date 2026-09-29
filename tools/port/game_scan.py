@@ -9,7 +9,7 @@ game directory comes from `main` through `args_game_dir`.
 import os
 import sys
 
-from port import events
+from port import compiler, events
 from rpgmaker import lcf
 from rpgmaker.rm2k import hero_start
 from rpgmaker import resources
@@ -78,7 +78,7 @@ def images_of(renderer, args, charset):
 _charsets = {}
 
 
-def possible_leaders(renderer, map_ids, party):
+def possible_leaders(renderer, map_ids, party, scan=None):
     """The actors that can end up drawn as the hero in this ROM.
 
     The party it starts with, plus all the ones some `ChangePartyMembers` of
@@ -124,7 +124,7 @@ def possible_leaders(renderer, map_ids, party):
     previous maps.
     """
     actors = list(party[:1])
-    for changes in _party_changes(map_ids):
+    for changes in _party_changes(map_ids, scan):
         state = events.PartyState(party)
         for batch in changes:
             for who, operation in batch:
@@ -135,55 +135,45 @@ def possible_leaders(renderer, map_ids, party):
     return actors
 
 
-def _party_changes(map_ids):
+def _party_changes(map_ids, scan=None):
     """The `ChangePartyMembers` of the pages that compile, map by map and in
     order: the only thing of each map `possible_leaders` looks at.
 
+    Which pages compile is the compiler's first answer —see `compiler.scan`—:
+    `scan` if the caller already has it, and otherwise it is asked for.
+
     **It is computed once per conversion**, because it doesn't depend on the
     party: `possible_leaders` runs again for each test case that touches the
-    party, and each run loaded and compiled all the maps again. The
-    compilation only reads the global indices of `events`, which are filled
-    before the first call and don't change afterwards.
+    party, and each run loaded all the maps again.
     """
     key = (_game(), tuple(map_ids))
     if key not in _changes_by_map:
-        _changes_by_map[key] = [_map_changes(map_id, map_ids)
-                                for map_id in map_ids]
+        if scan is None:
+            scan = compiler.scan(compiler.dump_of(_game()), map_ids)
+        _changes_by_map[key] = [
+            _map_changes(map_id, compiler.compiling_pages(scan, map_id))
+            for map_id in map_ids]
     return _changes_by_map[key]
 
 
 _changes_by_map = {}
 
 
-def _map_changes(map_id, map_ids):
-    indices = {m: i for i, m in enumerate(map_ids)}
+def _map_changes(map_id, compiling):
+    """`compiling` are the `(event, page)` that compile, by index. They are
+    compiled with the same context as the real compilation —the map's, the
+    text block, the songs, the graphics—, and it was not always so: without
+    the map, a page that sends another event walking didn't compile here and
+    did there, and the actors it adds were lost —the opening cutscene adds
+    Kersh right after sending event 8 walking, and the hero wasn't drawn—;
+    without the songs, the same with the chase car, whose `RaceController1`
+    of map 49 starts with a `PlayBGM` and then adds `CarRED`."""
     changes = []
     game_map = lcf.Map(os.path.join(_game(),
                                     "Map%04d.lmu" % map_id))
-    map_events = events.MapEvents(game_map)
-    for event in game_map.events:
-        for page in event.pages:
-            # With the map's context, which is the same the real filter uses.
-            # Without it, a page that sends another event walking doesn't
-            # compile here even though it does compile there, and the actors
-            # it adds are lost: the opening cutscene adds Kersh to the party
-            # right after sending event 8 walking, so the hero was left
-            # without a pose table and wasn't drawn.
-            # **With the same context as the real compilation**, and not only
-            # with the text block. `Songs`, `Graphics` and `Pictures` were
-            # missing, and without them a page that starts with a `PlayBGM`
-            # doesn't compile **here** and does compile there: the actors it
-            # adds to the party are lost. It is exactly what happened to the
-            # chase car —`RaceController1` of map 49 starts with `PlayBGM`
-            # and then adds `CarRED`—, and the symptom was that the hero
-            # wasn't drawn: `hero_poses` at zero because the actor wasn't in
-            # the map's table.
-            if events.compile_page(
-                    page, indices.get,
-                    events.Messages(),
-                    map_events.for_event(event.id), events.Songs(),
-                    events.Graphics(), events.Pictures(
-                        _game())) is None:
+    for e, event in enumerate(game_map.events):
+        for k, page in enumerate(event.pages):
+            if (e, k) not in compiling:
                 continue
             # **In batches of consecutive commands**, and the leader is looked
             # at the end of each one: `ChangePartyMembers` stuck together run

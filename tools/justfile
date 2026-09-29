@@ -302,6 +302,6 @@ _install root *projects:
 # `.local-tools/bin/` if it is there, otherwise the global one.
 which:
   #!/usr/bin/env sh
-  for x in protocol gunter ditto voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle abl-entregar; do
+  for x in protocol gunter ditto voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events abl-entregar; do
     printf '%-26s %s\n' "$x" "$(command -v "$x" || echo missing)"
   done
