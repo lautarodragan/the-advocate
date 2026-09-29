@@ -298,7 +298,7 @@ cargar:
     sta INIDISP                 ; screen on, full brightness
 
     ; The upload to the SPC700 goes after turning the screen on, not before:
-    ; with the map's audio pack it is a third of a second, and this way the
+    ; with the map's audio package it is a third of a second, and this way the
     ; map shows up right away instead of making you stare at a black screen
     ; until it ends.
     ;
@@ -325,7 +325,7 @@ cargar:
     ; Port 2 is the driver's command, and `spc_upload` leaves it with whatever
     ; it sent last: at zero, the driver reads DSP pairs.
     stz APUIO2
-    ; And the boot map's audio pack: `cargar_mapa` could not upload it
+    ; And the boot map's audio package: `cargar_mapa` could not upload it
     ; because the driver was not running yet. See `paquete_cargar`.
     lda #1
     sta f:APU_LISTO

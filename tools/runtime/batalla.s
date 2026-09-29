@@ -1017,7 +1017,7 @@ listo:
 ;    and it is chosen by weight in list order.
 ;
 ; The weights go in `BA_HAB_LISTA`, which belongs to the skill-choosing screen
-; and is rebuilt each time it opens: here the orders are already given.
+; and is rebuilt each time it opens: here the commands are already given.
 ; Clobbers `BA_S3` to `BA_S6`, `BA_T0`, `BA_T2`, A and X; not `BA_S0` or
 ; `BA_S1`.
 .assert ACCIONES_MAX <= BA_HAB_MAX, error, "an enemy's actions do not fit in BA_HAB_LISTA"
@@ -1265,7 +1265,7 @@ ordenado:
 ; and the shop. The geometry comes from `tools/port/pantallas.py` and the
 ; converter emits the positions, so it is written **by only one of the two
 ; sides**. The enemies at the top, the party at the bottom, and the last line
-; is either the order menu or the message's two lines.
+; is either the command menu or the message's two lines.
 
 ; `BA_T1` = A16 + `BA_S0` times what a line measures: where line number
 ; `BA_S0` of the list starting at A16 begins.

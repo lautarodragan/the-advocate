@@ -10,7 +10,7 @@
 ; —only two new ones were needed, `ba_t_lista` and `ba_t_armar`—.
 ;
 ; **The data bank is still 0**, unlike battle: these two read and write the
-; scratch area and bank 0's tables with absolute addressing and so keep working
+; scratch space and bank 0's tables with absolute addressing and so keep working
 ; without touching anything. What did change is the other way around: a datum
 ; **from here** read with absolute addressing would land in bank 0. There is
 ; only one, `mensaje_de`, and it goes with `f:`; it cost an afternoon of a shop

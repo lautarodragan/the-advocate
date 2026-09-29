@@ -516,7 +516,7 @@ cambia_ya:
 carga:
     ; The new map's song is decided **before** loading it, because if it
     ; changes the playing one has to be silenced before `paquete_cargar`
-    ; builds the pack: that one leaves in place the samples of the song it
+    ; builds the package: that one leaves in place the samples of the song it
     ; says is playing, and the one about to be turned on needs them in their
     ; place. See `mapa_tema_callar`.
     pha
@@ -558,7 +558,7 @@ salto:
     ; teleported looked at the tint, which is set by the origin map.
     ; Today `cargar_mapa_sin_eventos` does it, inside its refresh.
 prender:
-    ; And the map's song, with the pack already uploaded: its samples came in
+    ; And the map's song, with the package already uploaded: its samples came in
     ; it. It goes before any page of the new map runs, so a `PlayBGM` from an
     ; automatic event wins over it, which is RM2k's order: `Game_Map::PlayBgm`
     ; runs when the map is set up, before its events.

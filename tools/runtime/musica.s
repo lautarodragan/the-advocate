@@ -53,7 +53,7 @@ rapida:
     jsr bgm_fundido_tick
 sin_fundido:
     ; The sound effects wrap around the music, and run even when it is silent:
-    ; see "the sound effects".
+    ; see "sound effects" in `efectos_de_sonido.s`.
     jsr se_antes
     lda music_apagada
     bne listo

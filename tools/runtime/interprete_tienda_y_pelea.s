@@ -185,10 +185,10 @@ callado_antes:
     lda #$FF
 anotado:
     sta f:BAT_LARGO + BA_TEMA_ANT
-    ; The battle's audio pack: its song and its sound effects. It goes apart
-    ; from the map's pack and not inside it, and that is measured: the battle
+    ; The battle's audio package: its song and its sound effects. It goes apart
+    ; from the map's package and not inside it, and that is measured: the battle
     ; song is 18 samples and 51,480 B of the 64,512 of ARAM, which means that
-    ; putting it in map 2's pack dropped almost all of that map's 24 sound
+    ; putting it in map 2's package dropped almost all of that map's 24 sound
     ; effects. It is silenced before rebuilding, as `tema_asegurar` does:
     ; `paquete_cargar` leaves the playing song's samples in place, and the
     ; map's have no reason to take up room inside the battle.

@@ -25,14 +25,14 @@
 ; was no RAM for six more.
 ;
 ; **The quality sound effects from the `.msu`.** If the `.msu` is this
-; cartridge's —the signature, `msu_datos_validos`—, each pack's sound effects
+; cartridge's —the signature, `msu_datos_validos`—, each package's sound effects
 ; are uploaded to ARAM from there and not from ROM: whole, and at the rate
-; they fit at now that the music takes no room. Each pack has its version of
-; each sound effect —the rate depends on how heavy the pack is, see
+; they fit at now that the music takes no room. Each package has its version of
+; each sound effect —the rate depends on how heavy the package is, see
 ; tools/audio/efectos_msu.py— and the ROM does not keep which version was
-; left in ARAM, so **on every pack they are all uploaded again**, even if they
+; left in ARAM, so **on every package they are all uploaded again**, even if they
 ; were already there. Each sound's pitch comes from `se_msu_altura`, which the
-; converter builds per pack, and not from `sonido_tabla`. With another
+; converter builds per package, and not from `sonido_tabla`. With another
 ; `.msu`, or without one, everything comes from ROM as always.
 ;
 ; It lives in bank 1 because bank 0 has no room: it is reached with `jsl`,
@@ -236,10 +236,10 @@ tomar:
 .endproc
 
 ; The pitch of the sound of index A —sixteen bits— with the `.msu` version of
-; the pack that is in ARAM, or 0 if its sound effect is not from that pack. Z
+; the package that is in ARAM, or 0 if its sound effect is not from that package. Z
 ; according to the pitch. Clobbers X.
 ;
-; The pack's list is (index, pitch) pairs sorted by index and terminated with
+; The package's list is (index, pitch) pairs sorted by index and terminated with
 ; $FFFF, only with the sounds whose sound effect is from there: see
 ; `escribir_msu` in tools/port/snes_convert.py. It is walked whole at most
 ; —a few dozen pairs—, and since they are sorted, it stops on going past; the
@@ -257,7 +257,7 @@ buscar:
     lda f:se_msu_altura, x      ; the pair's index
     cmp 1, s
     beq esta
-    bcs no_esta                 ; already went past: it is not from this pack
+    bcs no_esta                 ; already went past: it is not from this package
     inx
     inx
     inx
@@ -540,11 +540,11 @@ tengo:
     rts
 .endproc
 
-; --- the `.msu` sound effects, when loading the pack --------------------------
+; --- the `.msu` sound effects, when loading the package --------------------------
 
-; At the start of each pack: if it is not known yet, whether the `.msu` is
+; At the start of each package: if it is not known yet, whether the `.msu` is
 ; this cartridge's —once per power-on: the file does not change—; and if it
-; is, the sound effects are all forgotten, so that the pack uploads them again
+; is, the sound effects are all forgotten, so that the package uploads them again
 ; with its version. See above.
 .proc se_msu_preparar
 .a8
@@ -577,8 +577,8 @@ listo:
     rtl
 .endproc
 
-; The `se_msu_filas` row of sound effect number A in PAQ_MAPA's pack, in X,
-; and C at 1; C at 0 if the pack does not carry it. Each pack has one row per
+; The `se_msu_filas` row of sound effect number A in PAQ_MAPA's package, in X,
+; and C at 1; C at 0 if the package does not carry it. Each package has one row per
 ; sound effect in its list in `paquetes`, in the same order. Does not touch Y.
 .proc se_msu_fila
 .a8
@@ -671,9 +671,9 @@ no:
 ; directory entry, and returns with C at 1. If not, C at 0 and the ROM
 ; uploads it.
 ;
-; A pack's sound effects are in the `.msu` one after the other, in the order
+; A package's sound effects are in the `.msu` one after the other, in the order
 ; they are uploaded, so a seek is done only if the stream was not already
-; left where it goes: once per pack. Seeking costs Mednafen one or two
+; left where it goes: once per package. Seeking costs Mednafen one or two
 ; frames; see `msu_datos_buscar`. If the seek does not arrive in time, the
 ; sound effect is not uploaded and does not play —its place stays reserved
 ; all the same—: the ROM has no way to fall back to its own version, which

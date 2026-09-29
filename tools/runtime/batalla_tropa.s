@@ -12,7 +12,7 @@
 ; pages in order and starts the first one that is met and **has not run this
 ; turn**; when it finishes, it tries again, until none is left. The "this
 ; turn" part is cleared by `NextTurn`, which is when the party finished giving
-; its orders. And there are three moments: before asking for the orders,
+; its commands. And there are three moments: before asking for the commands,
 ; before each action and after the last one —see the callers of
 ; `ba_pag_probar`—.
 

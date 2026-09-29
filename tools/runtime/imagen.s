@@ -1,13 +1,13 @@
 .segment "CODE"
 
-; --- the ShowPicture sign ----------------------------------------------------
+; --- the ShowPicture picture ------------------------------------------------
 ;
 ; Six 32x32 objects with a sprite palette all to themselves, and a fade that is
 ; a tint of those fifteen colors frame by frame. See `tools/port/imagen.py`,
 ; which is where it is written where each pixel lands and what color it is,
 ; and OP_PICTURE in eventos.py.
 ;
-; The sign lives in **a single map** of the ROM —the one that took its tiles
+; The picture lives in **a single map** of the ROM —the one that took its tiles
 ; into the sprite bank; the converter stops if another one shows it— and is
 ; erased on map change, which is
 ; `Game_Pictures`' `erase_on_map_change`. Both things are the same: without
@@ -120,15 +120,15 @@ igual:
     rts
 .endproc
 
-; The sign's sixteen colors tinted with its tone, in their place in
+; The picture's sixteen colors tinted with its tone, in their place in
 ; `cgram_sombra`. `flush_video` uploads them in the vblank with a DMA of its
 ; own.
 ;
 ; It reuses `tabla_canal` and `armar_paleta`, which is what the screen tint
 ; already did: the only difference is where the three values come from and
-; that the sign's saturation is always neutral —`imagen_aceptable` accepts no
+; that the picture's saturation is always neutral —`imagen_aceptable` accepts no
 ; other—, so `tinte_s` is set to neutral while this runs and then given back.
-; The three work tables are left with the sign's tint; `restaurar_tablas` puts
+; The three work tables are left with the picture's tint; `restaurar_tablas` puts
 ; them back as the screen tint's, copying `puro`, which is much cheaper than
 ; rebuilding them.
 .proc imagen_paleta
@@ -137,7 +137,7 @@ igual:
     ; **And Y is saved.** `armar_paleta` uses it as the palette cursor and
     ; leaves it at 32, and whoever calls this from an opcode has it pointing
     ; into the bytecode: without this the interpreter went on reading thirty-two
-    ; bytes further ahead and ran whatever was there. It was this sign's first
+    ; bytes further ahead and ran whatever was there. It was this picture's first
     ; red, and one of the kind you cannot see: the page kept running, just a
     ; different one.
     phy
@@ -184,7 +184,7 @@ copia:
     rts
 .endproc
 
-; The sign's objects, if it is shown.
+; The picture's objects, if it is shown.
 ;
 ; They go **after the timer and before the characters**, which is RM2k's
 ; order: `Priority_Timer` is 140, `Priority_PictureOld` 120 and
@@ -201,7 +201,7 @@ copia:
     rts
 hay:
     lda #$02
-    sta obj_grande              ; the sign's objects are 32x32
+    sta obj_grande              ; the picture's objects are 32x32
     lda #0
     sta f:CARTEL_I
 cada:
@@ -242,7 +242,7 @@ cada:
 .a8
     lda temp
     sta obj_tile
-    ; vhoopppN: priority 3 —in front of both layers—, the sign's palette,
+    ; vhoopppN: priority 3 —in front of both layers—, the picture's palette,
     ; and the tile's ninth bit.
     lda temp + 1
     and #$01

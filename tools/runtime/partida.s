@@ -62,8 +62,8 @@ SRAM_BYTES = $0106          ; PARTIDA_BYTES
 SRAM_FIRMA = $0108          ; PARTIDA_FIRMA
 SRAM_DATOS = $010A
 
-; `partida_tabla` lives in RODATA —see "lo que no hace falta que viva en el
-; banco 0"— and is read with `lda f:partida_tabla, x`.
+; `partida_tabla` lives in RODATA —see "what does not need to live in bank 0"
+; in `banco1.s`— and is read with `lda f:partida_tabla, x`.
 ; The same lengths, added up, so the saved game in the SRAM can be walked
 ; without looking at the table again. It is duplicated on purpose and **the
 ; ROM checks it**: `guardar_partida` compares against what `partida_copiar`

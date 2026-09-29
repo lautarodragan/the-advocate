@@ -55,11 +55,11 @@ hay_grupo:
     jsr escena_subir
     lda #BA_M_ORDEN
     sta BA_MODO
-    ; Before the first order, the pages already met: it is the `eCheckEvents`
+    ; Before the first command, the pages already met: it is the `eCheckEvents`
     ; of `ProcessSceneActionFightAutoEscape`. The first stretch runs **right
     ; here** and not on the next frame: every troop in the game brings a turn 0
     ; page that only turns on a switch, and this way the battle opens already
-    ; asking for orders, as it opened before those pages ran. One that shows
+    ; asking for commands, as it opened before those pages ran. One that shows
     ; a message opens with the message up.
     jsr ba_pag_probar
     beq sin_pagina_al_empezar
@@ -117,7 +117,7 @@ espera:
     jmp modo_pagina
 :   jmp modo_fin
 
-    ; --- choosing the order ---
+    ; --- choosing the command ---
 espera5:
     jmp espera
 modo_orden:
@@ -162,7 +162,7 @@ o_no_defiende:
     cmp #BA_ORDEN_USAR
     bne o_no_usa
     ; `Use Item`: the list of what can be used. Empty, nothing happens, which
-    ; is what the pause menu does with an order that leads nowhere.
+    ; is what the pause menu does with a command that leads nowhere.
     jsr ba_items_lista
     lda BA_ITEM_N
     beq espera5
@@ -175,8 +175,8 @@ o_no_defiende:
 o_no_usa:
     cmp #BA_ORDEN_HABILIDAD
     bne o_no_habilidad
-    ; The skill list of whoever is giving the order. Empty —Talan, who is
-    ; level 1— nothing happens, which is what the menu does with an order that
+    ; The skill list of whoever is giving the command. Empty —Talan, who is
+    ; level 1— nothing happens, which is what the menu does with a command that
     ; leads nowhere.
     jsr ba_hab_lista
     lda BA_HAB_N
@@ -348,7 +348,7 @@ a_mira_a:
     jsr ba_anotar
     jmp siguiente_actor
 a_es_item:
-    ; The order is recorded and **the item is spent right away**, which is
+    ; The command is recorded and **the item is spent right away**, which is
     ; what RM2k does on choosing it: otherwise the last one of an item could be
     ; handed out to two actors in the same turn.
     lda BA_ITEM_SEL
@@ -480,7 +480,7 @@ h_a_un_aliado:
 h_busca_vivo:
     lda BA_ACTOR2
     cmp BA_NACT
-    bcs espera7                 ; cannot happen: whoever gives the order is
+    bcs espera7                 ; cannot happen: whoever gives the command is
                                 ; alive
     lda BA_ACTOR2
     jsr ba_vivo
