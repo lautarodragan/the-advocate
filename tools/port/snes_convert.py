@@ -6866,11 +6866,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
 
 
 def sprite_colors_bytes(sprite):
-    """Las paletas de los sprites como bytes de CGRAM.
+    """The sprite palettes as CGRAM bytes.
 
-    Cada una son 16 entradas: el índice 0 es transparente y no se dibuja, pero
-    igual ocupa su lugar, y las que sobran se rellenan para que la siguiente
-    empiece donde el hardware la espera.
+    Each one is 16 entries: index 0 is transparent and isn't drawn, but it
+    still takes its place, and the leftover ones are padded so that the next
+    starts where the hardware expects it.
     """
     if not sprite:
         return b""
@@ -6883,146 +6883,150 @@ def sprite_colors_bytes(sprite):
     return bytes(out)
 
 
-# Un evento en la tabla de posiciones: x e y en celdas, las dos de 16 bits
-# porque hay mapas de 500 celdas de ancho.
+# An event in the position table: x and y in cells, both 16 bits because
+# there are maps 500 cells wide.
 EV_STRIDE = 4
-# Cuántos eventos guarda la RAM. El mapa más poblado de este juego tiene 114
-# —medido sobre los 328—; el conversor corta si alguno se pasa, así que el
-# número no puede quedar corto en silencio. Cada uno cuesta seis bytes de RAM
-# entre `ev_pos_buf` y `eleg_por_ev`.
+# How many events the RAM holds. The most populated map of this game has 114
+# —measured over the 328—; the converter stops if any goes over, so the number
+# can't fall short silently. Each one costs six bytes of RAM between
+# `ev_pos_buf` and `eleg_por_ev`.
 EV_MAX = 120
-# Cuántas rutas forzadas pueden estar corriendo a la vez sobre eventos. La
-# página que más manda a caminar de este juego mueve cuatro eventos distintos, y
-# una ruta sobrevive al final de su página, así que puede haber otra corriendo
-# encima. Ocho da margen y cuesta 88 bytes de RAM.
+# How many forced routes can be running at once on events. The page that sends
+# the most walking in this game moves four distinct events, and a route
+# survives the end of its page, so there can be another running on top. Eight
+# gives margin and costs 88 bytes of RAM.
 RUTA_EV_MAX = 12
-# Cuántos destellos pueden estar corriendo a la vez. Las páginas de este juego
-# los encadenan de a uno —casi todos esperan a que termine— así que cuatro sobra;
-# el conversor no lo puede comprobar porque depende de qué corra cuándo, y una
-# ranura que falte hace que el destello no se vea.
+# How many flashes can be running at once. This game's pages chain them one at
+# a time —almost all wait for it to finish— so four is plenty; the converter
+# can't check it because it depends on what runs when, and a missing slot
+# makes the flash not show.
 FLASH_MAX = 4
-# Cuántos eventos con página paralela puede haber a la vez en un mapa. Era 12
-# porque el más cargado era el 8 —Lashe City— con ocho: los cuatro autos y los
-# cuatro que los reubican.
+# How many events with a parallel page there can be at once in a map. It was
+# 12 because the most loaded one was 8 —Lashe City— with eight: the four cars
+# and the four that relocate them.
 #
-# **Con `ChangeSpriteAssociation` hecho son 40**, y los pone un solo mapa: cada
-# obstáculo de la persecución en auto es un evento con una página paralela que
-# compara la celda del auto con la suya, y los mapas 49, 52 y 54 tienen
-# cuarenta cada uno. Antes no contaban porque ninguna de esas páginas compilaba.
-# Medido sobre los 328 mapas con todo lo que hay hecho hoy; el conversor corta
-# si alguno se pasa.
+# **With `ChangeSpriteAssociation` done it is 40**, and a single map sets it:
+# each obstacle of the car chase is an event with a parallel page that
+# compares the car's cell with its own, and maps 49, 52 and 54 have forty each.
+# They didn't count before because none of those pages compiled. Measured over
+# the 328 maps with everything that is done today; the converter stops if any
+# goes over.
 #
-# Lo que cuesta: ocho bytes de `FAR_PAR_LISTA` por ranura —RAM lejana, no la
-# BSS; ver `PAR_LISTA_BYTES` en `tools/runtime/ram_lejana.s`, que además del evento guarda la página
-# que el refresco le eligió— y **una vuelta de intérprete por cuadro por cada
-# uno**. Es lo segundo lo que hay que mirar si la carrera se pone lenta: lo
-# primero ya no está, porque la página dejó de resolverse en cada cuadro.
+# What it costs: eight bytes of `FAR_PAR_LISTA` per slot —far RAM, not the
+# BSS; see `PAR_LISTA_BYTES` in `tools/runtime/ram_lejana.s`, which besides the
+# event stores the page the refresh chose for it— and **one interpreter pass
+# per frame for each one**. It is the second that has to be watched if the
+# race gets slow: the first is gone, because the page stopped being resolved
+# every frame.
 #
-# 48 por ocho son 384 bytes, y de `FAR_PAR_LISTA` a `FAR_AZAR` hay 508.
+# 48 times eight is 384 bytes, and from `FAR_PAR_LISTA` to `FAR_AZAR` there
+# are 508.
 PARALELO_MAX = 48
-# Un NPC en la RAM de la ROM. Eran ocho bytes; los cuatro de más son para los
-# que caminan: a cuál evento corresponden y dónde está su tabla de poses.
+# An NPC in the ROM's RAM. It was eight bytes; the four extra are for the ones
+# that walk: which event they correspond to and where their pose table is.
 #
-#   +0 x, +2 y   en pixeles
-#   +4 clave     capa y Y, que es lo que compara `build_oam`
-#   +6 tile, +7 atributos
-#   +8 evento    su índice en la tabla de eventos, o $FF si no camina
-#   +9 poses     su entrada en `npc_poses`, o $FF
-#   +10 dir      hacia dónde mira su página, para la primera pose de una ruta
-#   +11 relleno, para que la ranura se indexe con dos corrimientos
+#   +0 x, +2 y   in pixels
+#   +4 key       layer and Y, which is what `build_oam` compares
+#   +6 tile, +7 attributes
+#   +8 event     its index in the event table, or $FF if it doesn't walk
+#   +9 poses     its entry in `npc_poses`, or $FF
+#   +10 dir      where its page faces, for the first pose of a route
+#   +11 padding, so that the slot is indexed with two shifts
 NPC_STRIDE = 16
-NPC_QUIETO = 0xFF        # en +9: este NPC no camina
+NPC_QUIETO = 0xFF        # in +9: this NPC doesn't walk
 
-# La tabla de NPCs del mapa que está cargado se copia a RAM, porque build_oam la
-# recorre con un índice y eso direcciona el banco de datos. El techo de arriba
-# lo pone OAM: entran 128 objetos y uno es el héroe, así que ningún mapa puede
-# **mostrar** más de 127.
+# The table of NPCs of the loaded map is copied to RAM, because build_oam walks
+# it with an index and that addresses the data bank. The ceiling above is set
+# by OAM: 128 objects fit and one is the hero, so no map can **show** more
+# than 127.
 #
-# El número no es ése desde el 2026-09-06, y no por gusto: la fila mide
-# dieciséis bytes, así que el tope se lleva dos kilos de los ocho que tiene el
-# banco 0 de RAM, y la RAM se acabó —ver `PILA` en
-# tools/ensamblado/bancos.py—. **El mapa con más filas de todo el juego tiene 99**,
-# medido sobre los 328, así que 104 deja cinco de aire y devuelve 368 bytes. No
-# puede quedar corto en silencio: el conversor corta si algún mapa se pasa.
+# The number isn't that since 2026-09-06, and not by choice: the row is
+# sixteen bytes, so the cap takes two kilobytes of the eight bank 0 of RAM
+# has, and the RAM ran out —see `PILA` in tools/ensamblado/bancos.py—. **The
+# map with the most rows in the whole game has 99**, measured over the 328, so
+# 104 leaves five of headroom and gives back 368 bytes. It can't fall short
+# silently: the converter stops if any map goes over.
 NPC_MAX = 104
 
 
 def orden_de_dibujo(npc):
-    """Con qué se ordena un evento para dibujarlo, de adelante hacia atrás.
+    """What an event is sorted by to draw it, from front to back.
 
-    RM2k ordena por **mayor Y, después mayor X, y después mayor id**. Sale de
-    `Game_Character::GetScreenZ` en easyrpg-player, que arma un Z de 64 bits con
-    la capa arriba, la Y, la X y el id abajo, con el comentario puesto:
+    RM2k sorts by **highest Y, then highest X, and then highest id**. It comes
+    from `Game_Character::GetScreenZ` in easyrpg-player, which builds a 64-bit
+    Z with the layer on top, the Y, the X and the id at the bottom, with the
+    comment right there:
 
         The rendering order of characters is: Highest Y, Highest X, Highest ID
 
-    Los dos desempates faltaban. Con NPCs quietos casi no se
-    nota —hay que tener dos en la misma fila y que alguno tape al otro— pero en
-    cuanto uno camina cambia de fila todo el tiempo y empata con cualquiera.
+    The two tie-breakers were missing. With still NPCs it barely shows —you
+    need two on the same row and one covering the other— but as soon as one
+    walks it changes row all the time and ties with anybody.
 
-    El índice de la tabla vale por el id: los eventos vienen ordenados por id,
-    así que el orden es el mismo.
+    The table index stands for the id: the events come sorted by id, so the
+    order is the same.
     """
     return (npc["layer"], npc["y"], npc["x"], npc["evento"])
 
 
 def sort_key(layer, y):
-    """Cómo ordena RM2k: primero la capa y recién después la Y.
+    """How RM2k sorts: first the layer and only then the Y.
 
-    Un evento "below" queda debajo del héroe aunque esté más adelante en la
-    pantalla, y uno "above" lo tapa siempre. Meter la capa en los bits altos
-    hace que una sola comparación de 16 bits decida las dos cosas.
+    A "below" event stays below the hero even if it is further forward on the
+    screen, and an "above" one always covers it. Putting the layer in the high
+    bits makes a single 16-bit comparison decide both things.
     """
     return (layer << 12) | (y & 0x0FFF)
 
 
-# Cuánto ocupa cada opcode, para recorrer el bytecode sin ejecutarlo. Los que
-# llevan largo variable van con None y se miden aparte.
-# El recorrido del bytecode vive en eventos.py, con la tabla de largos: acá
-# había una copia y la de allá se quedó vieja sin que nadie lo viera.
+# How much each opcode takes, to walk the bytecode without running it. The
+# variable-length ones go with None and are measured separately.
+# The bytecode walk lives in eventos.py, with the length table: there was a
+# copy here and the one there went stale without anyone seeing it.
 recorrer_codigo = eventos.recorrer_codigo
 
 
 def orden_de_mapas(args):
-    """Los mapas de la ROM, en el orden de la tabla y sin repetidos.
+    """The ROM's maps, in table order and without repeats.
 
-    Está en una función y no escrito tres veces porque **el orden es el
-    contrato**: un teletransporte compilado guarda el índice en esta tabla, no
-    el id de RM2k. Dos listas que se armen distinto llevarían el mismo bytecode
-    a mapas distintos.
+    It is in a function and not written three times because **the order is
+    the contract**: a compiled teleport stores the index in this table, not
+    the RM2k id. Two lists built differently would take the same bytecode to
+    different maps.
     """
     return [args.map_id] + [m for m in (args.mapas or []) if m != args.map_id]
 
 
-# Cuántos eventos quietos con animación continua anima un mapa. Ver el porqué
-# —y el número medido— adentro de `eventos_movibles`.
-# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
-# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
+# How many still events with continuous animation a map animates. See the
+# reason —and the measured number— inside `eventos_movibles`.
+# Measured against A Blurred Line: an assumption of the engine, not a piece of
+# the game's data. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 ANIMA_QUIETO_MAX = 4
 
 
 def eventos_movibles(game_map, indice_de_mapa, asociaciones=()):
-    """Los eventos con gráfico a los que alguna página compilable manda a
-    caminar, y los gráficos a los que alguna ruta cambia con la orden 34.
+    """The events with a graphic that some compilable page sends walking, and
+    the graphics some route changes to with command 34.
 
-    Hace falta antes de armar el banco de sprites: a los que se mueven hay que
-    darles **las doce poses** del ciclo de caminata, y a los demás la única que
-    declaran. Dárselas a cualquiera que aparezca en un MoveEvent sería más
-    simple y no entra: hay mapas con siete, y son 1232 tiles de sprite.
+    It is needed before building the sprite bank: the ones that move have to
+    get **the twelve poses** of the walking cycle, and the others the single
+    one they declare. Giving them to anyone that shows up in a MoveEvent would
+    be simpler and doesn't fit: there are maps with seven, and that is 1232
+    sprite tiles.
 
-    Los gráficos de la orden 34 salen de la misma pasada y por lo mismo: a un
-    evento que cambia de gráfico hay que meterle en el cartucho las doce poses
-    del gráfico nuevo, y eso se decide antes de armar el banco. **El orden
-    tiene que ser el mismo que el de la compilación de verdad**, porque el
-    bytecode lleva el índice: lo garantiza que las dos pasadas compilen las
-    mismas páginas, con el mismo bloque de textos. Sin `Graficos` acá una
-    ruta con la 34 no compilaría en esta pasada y sí en la otra, y las dos
-    listas se irían.
+    The graphics of command 34 come from the same pass and for the same
+    reason: an event that changes graphic needs the twelve poses of the new
+    graphic put in the cartridge, and that is decided before building the
+    bank. **The order has to be the same as the real compilation's**, because
+    the bytecode carries the index: what guarantees it is that both passes
+    compile the same pages, with the same text block. Without `Graficos` here
+    a route with command 34 wouldn't compile in this pass and would in the
+    other, and the two lists would drift apart.
 
-    Se compilan las páginas para saberlo y se tira lo compilado. Es trabajo
-    repetido —main() las vuelve a compilar con el bloque de textos de verdad—
-    pero no es una **regla** repetida: la decisión de qué compila la toma la
-    misma función las dos veces.
+    The pages are compiled to find out and what was compiled is thrown away.
+    It is repeated work —main() compiles them again with the real text
+    block— but it isn't a repeated **rule**: the decision of what compiles is
+    made by the same function both times.
     """
     graficos = eventos.Graficos(asociaciones)
     paginas = eventos.paginas_del_mapa(
@@ -7030,34 +7034,35 @@ def eventos_movibles(game_map, indice_de_mapa, asociaciones=()):
         eventos.Mensajes(), graficos=graficos)
     npcs = rm2k.collect_npcs(game_map)
     visibles = {npc["evento"] for npc in npcs}
-    # Y los que caminan solos con la ruta propia de alguna página, que
-    # necesitan las doce poses igual que los que manda a caminar un MoveEvent.
+    # And the ones that walk on their own with some page's own route, which
+    # need the twelve poses just like the ones a MoveEvent sends walking.
     propios = {p["evento"] for p in paginas if p.get("ruta_propia")}
-    # Y los quietos con animación continua —el save point de Lashe City—, que
-    # no caminan pero **cambian de columna igual**. Sin las doce poses su ranura
-    # de VRAM llevaría una sola y no habría con qué animarlos: los quietos
-    # comparten ranura por (CharSet, índice, pose) y no tienen una propia.
+    # And the still ones with continuous animation —the save point in Lashe
+    # City—, which don't walk but **change column all the same**. Without the
+    # twelve poses their VRAM slot would carry a single one and there would be
+    # nothing to animate them with: the still ones share a slot by (CharSet,
+    # index, pose) and don't have one of their own.
     con_ruta = (eventos.blancos_de_ruta(paginas) | propios) & visibles
     animados = {npc["evento"] for npc in npcs
                 if npc.get("anima")} & visibles - con_ruta
-    # Y el tope: un evento quieto que anima **cuesta una ranura entera de VRAM**
-    # —doce tiles— porque deja de compartir la de su (CharSet, índice, pose) y
-    # pasa a tener las doce poses suyas, como los que caminan. Un mapa con
-    # treinta —el 52 tiene treinta— pide 572 tiles de sprite y entran 384.
+    # And the cap: a still event that animates **costs a whole VRAM slot**
+    # —twelve tiles— because it stops sharing that of its (CharSet, index,
+    # pose) and gets the twelve poses of its own, like the walking ones. A map
+    # with thirty —52 has thirty— asks for 572 sprite tiles and 384 fit.
     #
-    # Así que un mapa con más de `ANIMA_QUIETO_MAX` no anima **ninguno**, y no
-    # unos sí y otros no: dos fuentes iguales, una moviéndose y la otra
-    # congelada, se ve peor que las dos quietas. Medido sobre los 328 mapas del
-    # juego: 312 tienen cuatro o menos, y de los mapas que hoy llevan las ROMs
-    # el único que se pasa es el 52.
+    # So a map with more than `ANIMA_QUIETO_MAX` animates **none**, and not
+    # some yes and some no: two equal fountains, one moving and the other
+    # frozen, looks worse than both still. Measured over the 328 maps of the
+    # game: 312 have four or fewer, and of the maps the ROMs carry today the
+    # only one that goes over is 52.
     if len(animados) > ANIMA_QUIETO_MAX:
         animados = set()
-    # Y los que se dan vuelta hacia el héroe cuando les habla: los eventos con
-    # alguna página de acción o de contacto que compiló y gira —ver GIRO en
-    # eventos.py—, con los gráficos de **todas** sus páginas que giran. Las
-    # doce poses de cada uno van al cartucho, que es de donde la ROM saca la
-    # que mira al héroe; el refresco compara los gráficos de las páginas para
-    # saber si el giro sobrevive a un cambio de página.
+    # And the ones that turn toward the hero when it talks to them: the events
+    # with some action or touch page that compiled and turns —see GIRO in
+    # eventos.py—, with the graphics of **all** their pages that turn. The
+    # twelve poses of each go to the cartridge, which is where the ROM takes
+    # the one facing the hero from; the refresh compares the pages' graphics
+    # to know whether the turn survives a page change.
     giran = {}
     for p in paginas:
         if (p["codigo"] and p.get("gira")
@@ -7071,24 +7076,24 @@ def eventos_movibles(game_map, indice_de_mapa, asociaciones=()):
 
 
 def graficos_de_prueba(argumento):
-    """Los (CharSet, índice) de `--grafico-de-prueba`, o () si no hay."""
+    """The (CharSet, index) pairs of `--grafico-de-prueba`, or () if none."""
     return tuple((charset, int(indice)) for charset, indice in argumento or ())
 
 
 def firma_de_la_partida(pares, ranuras_exp, actores_n):
-    """Dieciséis bits que cambian cuando cambia **qué significa** cada byte de
-    la partida guardada, para que la ROM rechace una de otro build.
+    """Sixteen bits that change when **what each byte of the saved game
+    means** changes, so that the ROM rejects one from another build.
 
-    El tamaño lo cuida la ROM sola —`PARTIDA_BYTES`, que sale de las mismas
-    constantes—; esto cubre lo que el tamaño no ve: qué variable de RM2k va
-    en cada ranura, de qué actor es cada par de habilidad y cada ranura de
-    experiencia. Dos builds pueden llevar el mismo número de variables y que
-    la ranura 5 sea otra variable en cada uno; ahí la partida cargaría con
-    el mismo largo y todo corrido.
+    The size is guarded by the ROM on its own —`PARTIDA_BYTES`, which comes
+    from the same constants—; this covers what the size doesn't see: which
+    RM2k variable goes in each slot, which actor each skill pair and each
+    experience slot belongs to. Two builds can carry the same number of
+    variables and slot 5 be a different variable in each; then the save would
+    load with the same length and everything shifted.
 
-    Son las asignaciones y no la ROM entera a propósito: dos builds cuya
-    partida se lee igual tienen que poder compartirla, aunque cambie todo
-    lo demás.
+    It is the assignments and not the whole ROM on purpose: two builds whose
+    save reads the same have to be able to share it, even if everything else
+    changes.
     """
     forma = {
         "variables": sorted(eventos.VARIABLE_SLOT.items(), key=lambda x: x[1]),
@@ -7102,24 +7107,24 @@ def firma_de_la_partida(pares, ranuras_exp, actores_n):
 
 
 def variables_n():
-    """Cuántas ranuras de variables lleva la ROM: al menos una —un largo cero
-    cerraría la tabla de la partida— y hasta 256, que es lo que entra entre
-    `FAR_VARIABLES` y `FAR_ITEMS`."""
+    """How many variable slots the ROM carries: at least one —a zero length
+    would close the save table— and up to 256, which is what fits between
+    `FAR_VARIABLES` and `FAR_ITEMS`."""
     n = max(1, len(eventos.VARIABLE_SLOT))
     if n > 256:
-        sys.exit("%d variables no entran en la RAM lejana: FAR_ITEMS está a "
-                 "512 bytes de FAR_VARIABLES" % n)
+        sys.exit("%d variables don't fit in far RAM: FAR_ITEMS is "
+                 "512 bytes from FAR_VARIABLES" % n)
     return n
 
 
 def tabla_de_senos():
-    """El seno que la sacudida de pantalla lee por índice, para el banco."""
-    out = ["; El seno a escala 127, para la sacudida de pantalla: es la misma",
-           "; lista que arma `SENO_SACUDIDA` en eventos.py.",
+    """The sine the screen shake reads by index, for the bank."""
+    out = ["; The sine at scale 127, for the screen shake: it is the same",
+           "; list `SENO_SACUDIDA` builds in eventos.py.",
            ";",
-           "; Va fuera del banco 0 —`lda f:seno_sacudida, x`, una lectura por",
-           "; cuadro de sacudida— por lo mismo que `item_k`: son 256 bytes y",
-           "; el banco del código se llenó.",
+           "; It goes outside bank 0 —`lda f:seno_sacudida, x`, one read per",
+           "; shake frame— for the same reason as `item_k`: it is 256 bytes",
+           "; and the code's bank filled up.",
            '.segment "RODATA"',
            ".bloque 256",
            "seno_sacudida:"]
@@ -7127,27 +7132,27 @@ def tabla_de_senos():
     for i in range(0, 256, 16):
         out.append("    .byte " + ",".join("$%02X" % (v & 0xFF)
                                             for v in valores[i:i + 16]))
-    # Y se vuelve al banco 0: lo que sigue —`ruta_tras_paso` y compañía— se lee
-    # con direccionamiento absoluto indexado y tiene que quedar acá.
+    # And back to bank 0: what follows —`ruta_tras_paso` and company— is read
+    # with absolute indexed addressing and has to stay here.
     out.append('.segment "TABLAS"')
     return "\n".join(out) + "\n"
 
 
 def ev_pos_bytes(game_map):
-    """Dónde arranca cada evento del mapa, en celdas y en orden de índice.
+    """Where each event of the map starts, in cells and in index order.
 
-    Va **todo** el mapa y no sólo los eventos con gráfico: una ruta forzada
-    puede caer sobre uno invisible, y de hecho la mitad de las de este juego lo
-    hacen. La ROM la copia a RAM al cargar el mapa porque una ruta la cambia, y
-    la siguiente ruta sobre el mismo evento arranca de donde quedó: hay una
-    página que manda a caminar nueve veces al mismo.
+    The **whole** map goes and not only the events with a graphic: a forced
+    route can land on an invisible one, and in fact half of this game's do.
+    The ROM copies it to RAM when loading the map because a route changes it,
+    and the next route on the same event starts from where it was left: there
+    is a page that sends the same one walking nine times.
 
-    El orden es el índice de la tabla, que es lo que lleva el bytecode. **No es
-    el id de RM2k**: 39 mapas tienen huecos en la numeración, y traducir es
-    justamente lo que hace `eventos.Eventos`.
+    The order is the table index, which is what the bytecode carries. **It
+    isn't the RM2k id**: 39 maps have gaps in the numbering, and translating
+    is exactly what `eventos.Eventos` does.
     """
     if len(game_map.events) > EV_MAX:
-        raise SystemExit("el mapa tiene %d eventos y la RAM de la ROM guarda %d"
+        raise SystemExit("the map has %d events and the ROM's RAM holds %d"
                          % (len(game_map.events), EV_MAX))
     out = bytearray()
     for event in game_map.events:
@@ -7157,84 +7162,86 @@ def ev_pos_bytes(game_map):
 
 
 def npc_bytes(table):
-    """La tabla de NPCs: NPC_STRIDE bytes por cada uno.
+    """The NPC table: NPC_STRIDE bytes for each one.
 
-    Posición en el mapa, la clave con la que se ordena contra el héroe, qué tile
-    de sprite le toca, y el byte de atributos ya armado con su paleta. La ROM
-    sólo resta la cámara y lo copia a OAM.
+    Position on the map, the key it is sorted against the hero by, which
+    sprite tile it gets, and the attribute byte already built with its
+    palette. The ROM only subtracts the camera and copies it to OAM.
 
-    Los que caminan llevan además a qué evento corresponden y dónde está su
-    tabla de doce poses, que es lo que le permite a la ROM cambiarles el tile
-    mientras dan un paso.
+    The ones that walk also carry which event they correspond to and where
+    their table of twelve poses is, which is what lets the ROM change their
+    tile while they take a step.
     """
     out = bytearray()
     for npc in table:
         out += npc["x"].to_bytes(2, "little")
         out += npc["y"].to_bytes(2, "little")
-        # La clave va con la Y en pixeles, que es como la calcula la ROM a
-        # partir de la posición del héroe. Con la Y en celdas, la del héroe
-        # sería siempre mayor y quedaría siempre adelante de todos.
+        # The key goes with the Y in pixels, which is how the ROM computes it
+        # from the hero's position. With the Y in cells, the hero's would
+        # always be greater and it would always stay in front of everyone.
         #
-        # Y `npc["y"]` **ya está en pixeles**: lo pasa a pixeles `npc_table`.
-        # Multiplicarlo otra vez por 16 —que es lo que hacía acá— daba una clave
-        # dieciséis veces más grande que la del héroe, y como `sort_key` recorta
-        # a doce bits, encima daba la vuelta. La comparación no lo veía porque
-        # el orden **entre** NPCs lo fija el `sorted` del conversor y esta clave
-        # sólo decide dónde entra el héroe: hacía falta que el héroe pisara a un
-        # NPC para que se notara, y ninguna prueba lo hacía.
+        # And `npc["y"]` **is already in pixels**: `npc_table` converts it.
+        # Multiplying it by 16 again —which is what it did here— gave a key
+        # sixteen times larger than the hero's, and since `sort_key` clips to
+        # twelve bits, on top of that it wrapped around. The comparison didn't
+        # see it because the order **between** NPCs is fixed by the
+        # converter's `sorted` and this key only decides where the hero goes
+        # in: the hero had to step on an NPC for it to show, and no test did.
         out += sort_key(npc["layer"], npc["y"]).to_bytes(2, "little")
         out.append(npc["tile"] & 0xFF)
-        # vhoopppN: la prioridad son los bits 5 y 4, así que el valor va corrido
-        # cuatro lugares. Los eventos marcados "above" van en prioridad 2, que
-        # es lo único que queda por encima de BG2 1; el resto comparten con el
-        # héroe la prioridad 1, y como esa capa los tapa, caminan por debajo.
+        # vhoopppN: the priority is bits 5 and 4, so the value goes shifted
+        # four places. The events marked "above" go at priority 2, which is
+        # the only thing left above BG2 1; the rest share priority 1 with the
+        # hero, and since that layer covers them, they walk underneath.
         prioridad = (OBJ_PRIORITY_ABOVE
                      if npc["layer"] == rm2k.LAYER_ABOVE
                      else OBJ_PRIORITY)
         out.append(prioridad | ((npc["palette"] & 0x07) << 1)
                    | ((npc["tile"] >> 8) & 0x01))
-        # El índice del evento va **siempre**, aunque el NPC no camine: es el
-        # último desempate del orden de dibujado, y vale para todos. Lo que
-        # distingue a los que caminan es la tabla de poses.
+        # The event's index goes **always**, even if the NPC doesn't walk: it
+        # is the last tie-breaker of the drawing order, and it applies to all.
+        # What sets the walking ones apart is the pose table.
         out.append(npc["evento"])
         out.append(NPC_QUIETO if npc["poses"] is None else npc["poses"])
-        # Hacia dónde mira su página. Una ruta forzada que todavía no dio
-        # ninguna orden de girar lo deja mirando para acá, que es de donde sale
-        # la primera pose que se dibuja.
+        # Where its page faces. A forced route that hasn't given any turning
+        # command yet leaves it facing here, which is where the first pose
+        # drawn comes from.
         out.append(npc["dir"])
-        out.append(0)               # relleno
-        # +12: la pose que hay en VRAM, que al cargar es la de su página. La
-        # ROM la compara con la que quiere dibujar y sube la nueva si difiere.
+        out.append(0)               # padding
+        # +12: the pose that is in VRAM, which on loading is its page's. The
+        # ROM compares it with the one it wants to draw and uploads the new
+        # one if it differs.
         out.append(npc["pose"])
-        # +13: la velocidad de su página, para una ruta forzada sobre él, y en
-        # el bit 7 si es un quieto con animación continua. Van juntos porque la
-        # fila no tiene un byte libre —el +11 lo usa el salto— y porque los dos
-        # los lee la misma cuenta: cada cuántos cuadros cambia de columna sale
-        # de la velocidad. Ver `animar_quietos` en tools/runtime/quietos_que_animan.s.
+        # +13: its page's speed, for a forced route on it, and in bit 7
+        # whether it is a still one with continuous animation. They go
+        # together because the row has no free byte —+11 is used by the
+        # jump— and because both are read by the same computation: how many
+        # frames between column changes comes from the speed. See
+        # `animar_quietos` in tools/runtime/quietos_que_animan.s.
         out.append(npc["velocidad"] | (0x80 if npc.get("anima") else 0))
-        # +14: si se dibuja. Un evento cuya página activa no tiene gráfico
-        # está en la tabla escondido, para aparecer cuando otra página gane.
+        # +14: whether it is drawn. An event whose active page has no graphic
+        # is in the table hidden, to appear when another page wins.
         out.append(1 if npc["visible"] else 0)
-        # +15: los bits de paso que su tile le impone a la celda, o $FF: ver
-        # `rm2k.pasabilidad_del_tile`. Los dos los rehace el refresco.
+        # +15: the passage bits its tile imposes on the cell, or $FF: see
+        # `rm2k.pasabilidad_del_tile`. The refresh redoes both.
         out.append(0xFF if npc["tile_pasa"] is None else npc["tile_pasa"])
     assert len(out) == NPC_STRIDE * len(table)
     return bytes(out)
 
 
 def puntero(destino):
-    """Los tres bytes de un puntero simbólico, para `.byte`."""
+    """The three bytes of a symbolic pointer, for `.byte`."""
     return "<(%s), >(%s), ^(%s)" % (destino, destino, destino)
 
 
 def npc_poses_asm(numero, animados, indice_global):
-    """Los punteros a las doce poses de cada personaje que cambia de pose.
+    """The pointers to the twelve poses of each character that changes pose.
 
-    Una entrada por personaje animado —`k`, el mismo índice que lleva la fila
-    del NPC en +9 y el actor en su tabla— y en cada una doce punteros de 24
-    bits a sus poses, `pose_N`. Son simbólicos porque apuntan a bloques que
-    ubica el enlazador, como los de las páginas; dos poses iguales son el
-    mismo bloque.
+    One entry per animated character —`k`, the same index the NPC's row
+    carries in +9 and the actor in its table— and in each one twelve 24-bit
+    pointers to its poses, `pose_N`. They are symbolic because they point to
+    blocks the linker places, like the pages' ones; two equal poses are the
+    same block.
     """
     out = [".bloque %d" % (3 * SPRITE_POSES * max(1, len(animados))),
            "npc_poses_%d:" % numero]
@@ -7242,24 +7249,27 @@ def npc_poses_asm(numero, animados, indice_global):
         for pose in range(SPRITE_POSES):
             out.append("    .byte " + puntero(indice_global[par][pose]))
     if not animados:
-        out.append("    .byte $00")     # una etiqueta no puede quedar vacía
+        out.append("    .byte $00")     # a label can't be left empty
     return "\n".join(out)
 
 
 def actor_table_asm(numero, actores, animados, indice_global):
-    """Los candidatos a líder: id, paleta, y el puntero a cada una de sus poses.
+    """The leader candidates: id, palette, and the pointer to each of their
+    poses.
 
-    ACTOR_BYTES por actor. La ROM recorre la tabla buscando el id del primero
-    del grupo; son dos o tres entradas, así que buscar linealmente sale más
-    barato que indexar por id, que pediría 256 huecos. Un actor sin gráfico
-    lleva doce punteros en $FFFFFF, que es el centinela que `place_hero` mira.
+    ACTOR_BYTES per actor. The ROM walks the table looking for the id of the
+    party's first; there are two or three entries, so searching linearly is
+    cheaper than indexing by id, which would take 256 gaps. An actor without
+    a graphic carries twelve pointers at $FFFFFF, which is the sentinel
+    `place_hero` looks at.
     """
     out = [".bloque %d" % (ACTOR_BYTES * max(1, len(actores))),
            "actor_table_%d:" % numero]
     for actor, paleta, k, colores in actores:
         out.append("    .byte $%02X, $%02X" % (actor & 0xFF, paleta & 0x07))
-        # Sus quince colores, en el orden en que sus poses los indexan. Un actor
-        # sin gráfico los lleva en cero y la ROM no los sube: no se dibuja.
+        # Its fifteen colors, in the order its poses index them. An actor
+        # without a graphic carries them at zero and the ROM doesn't upload
+        # them: it isn't drawn.
         palabras = list(colores) + [0] * (OBJ_COLORS - len(colores))
         out.append("    .byte " + ",".join(
             "$%02X,$%02X" % (w & 0xFF, w >> 8) for w in palabras))
@@ -7275,111 +7285,109 @@ def actor_table_asm(numero, actores, animados, indice_global):
 
 
 def parser_de_flags():
-    """Los flags del conversor. Aparte de `main` para quien necesite leer una
-    línea de comandos sin convertir nada."""
+    """The converter's flags. Separate from `main` for whoever needs to read a
+    command line without converting anything."""
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    # Obligatorio, pero sin `required`: `casos_de_prueba` vuelve a leer los
-    # flags de cada `--caso` con este mismo parser, y ahí no va. Lo cobra
-    # `main`.
+    # Mandatory, but without `required`: `casos_de_prueba` reads the flags of
+    # each `--caso` again with this same parser, and there it doesn't go.
+    # `main` enforces it.
     parser.add_argument("--map-id", type=int, default=None,
-                        help="el mapa de arranque, que va primero en la "
-                             "tabla. Obligatorio y sin valor por omisión: "
-                             "es del juego, y lo declara su archivo de "
-                             "proyecto")
+                        help="the boot map, which goes first in the "
+                             "table. Mandatory and with no default: it "
+                             "belongs to the game, and its project file "
+                             "declares it")
     proyecto.argumento(parser)
-    # Sin valor por omisión, y sin `required` por lo mismo que `--map-id`:
-    # los cobra `ambiente` cuando se leen.
+    # No default, and no `required` for the same reason as `--map-id`:
+    # `ambiente` enforces them when they are read.
     ambiente.argumentos(parser, "game_dir", "rtp_dir", "soundfont", "cache")
     parser.add_argument("-o", "--output",
                         default=os.path.join(proyecto.build(), "inc", "mapdata.inc"))
     parser.add_argument("--msu",
-                        help="dónde escribir el .msu con los datos que el\n"
-                             "MSU-1 le sirve a la ROM: al lado del .sfc y con\n"
-                             "su nombre, para que el emulador lo encuentre.\n"
-                             "Sin esto, datos.msu al lado del --output")
+                        help="where to write the .msu with the data the\n"
+                             "MSU-1 serves to the ROM: next to the .sfc and\n"
+                             "with its name, so the emulator finds it.\n"
+                             "Without this, datos.msu next to --output")
     parser.add_argument("--relleno-de-textos", type=int, default=0,
-                        help="textos muertos detrás de los de los ítems, para\n"
-                             "que los índices de la batalla pasen de 255 sin\n"
-                             "armar un cartucho de veintinueve mapas. No\n"
-                             "cambia un pixel, y por eso no van delante de\n"
-                             "todo: el nombre del ítem k es el texto 3k")
+                        help="dead texts after the item ones, so that\n"
+                             "the battle's indices go past 255 without\n"
+                             "building a twenty-nine-map cartridge. It\n"
+                             "doesn't change a pixel, and that is why they\n"
+                             "don't go first: item k's name is text 3k")
     parser.add_argument("--sin-titulo", action="store_true",
-                        help="sin la pantalla de título del juego y su menú "
-                             "de empezar y cargar: la ROM arranca directo en "
-                             "el mapa. Es lo que piden los cartuchos de la "
-                             "tanda de regresión: la pantalla de título le "
-                             "agregaría cuadros al arranque, y los casos "
-                             "comparan cuadros contados desde el reset.")
-    parser.add_argument("--aire-de-medida", type=float, metavar="AIRE",
-                        help="el mismo aire para todos los temas, en vez de "
-                             "la tabla de techos: es con lo que "
-                             "`tools/audio/techos.py` arma la ROM en que mide "
-                             "el pico de cada tema. Ver `leer_techos` en "
-                             "tools/audio/snes_music.py")
+                        help="without the game's title screen and its "
+                             "start and load menu: the ROM boots straight "
+                             "into the map. It is what the regression "
+                             "suite's cartridges ask for: the title screen "
+                             "would add frames to the boot, and the cases "
+                             "compare frames counted from reset.")
+    parser.add_argument("--aire-de-medida", type=float, metavar="HEADROOM",
+                        help="the same headroom for every song, instead of "
+                             "the volume ceiling table: it is what "
+                             "`tools/audio/techos.py` builds the ROM where it "
+                             "measures each song's peak with. See "
+                             "`leer_techos` in tools/audio/snes_music.py")
     parser.add_argument("--hp-de-enemigos", action="store_true",
-                        help="la pelea muestra los HP de los enemigos, que "
-                             "RM2k no muestra nunca: para depurar. Lo pide "
-                             "`[debug] enemy_hp` del archivo de "
-                             "proyecto")
+                        help="the battle shows the enemies' HP, which RM2k "
+                             "never shows: for debugging. It is asked for by "
+                             "`[debug] enemy_hp` of the project file")
     parser.add_argument("--sin-timer", action="store_true",
-                        help="los dígitos del cronómetro —once glifos de la "
-                             "imagen de System al final del banco de sprites, "
-                             "que comparten paleta con un personaje— sólo en "
-                             "los mapas donde corre un caso que los usa, y no "
-                             "en todos. Es lo que piden los cartuchos de la "
-                             "tanda: ver `args.timer_en`")
+                        help="the timer digits —eleven glyphs of the System "
+                             "image at the end of the sprite bank, which "
+                             "share a palette with a character— only in the "
+                             "maps where a case that uses them runs, and not "
+                             "in all. It is what the suite's cartridges ask "
+                             "for: see `args.timer_en`")
     parser.add_argument("--grafico-de-prueba", nargs=2, action="append",
-                        default=None, metavar=("CHARSET", "INDICE"),
-                        help="mete este gráfico en el banco de sprites\n"
-                             "de los mapas donde corre algún caso, para que la\n"
-                             "página de prueba pueda cambiarle el gráfico a\n"
-                             "alguien con la orden 34 o con\n"
-                             "ChangeSpriteAssociation. Se puede repetir.\n"
-                             "Ninguna página que compile hoy cambia de\n"
-                             "gráfico, así que sin esto el camino no lo\n"
-                             "corre nada")
+                        default=None, metavar=("CHARSET", "INDEX"),
+                        help="puts this graphic in the sprite bank of the\n"
+                             "maps where some case runs, so that the test\n"
+                             "page can change someone's graphic with\n"
+                             "command 34 or with ChangeSpriteAssociation.\n"
+                             "It can be repeated. No page that compiles\n"
+                             "today changes graphic, so without this\n"
+                             "nothing runs that path")
     parser.add_argument("--encuentros-de-prueba", type=int, default=None,
-                        metavar="PASOS",
-                        help="cada cuántos pasos hay un encuentro al azar, "
-                             "para todos los mapas del cartucho. Sin esto vale "
-                             "el del árbol del juego, que va de 25 a 85 pasos; "
-                             "0 los apaga")
+                        metavar="STEPS",
+                        help="every how many steps there is a random "
+                             "encounter, for every map of the cartridge. "
+                             "Without this the game tree's value applies, "
+                             "which goes from 25 to 85 steps; 0 turns them off")
     parser.add_argument("--heroe-encima", action="store_true",
-                        help="el héroe en prioridad 2 de objeto, por "
-                             "encima de la capa que debería taparlo. "
-                             "Es la única forma de ejercitarla: el "
-                             "único evento above del juego no llega a "
-                             "pisar la capa de encima")
+                        help="the hero at object priority 2, above the "
+                             "layer that should cover it. It is the only "
+                             "way to exercise it: the game's only above "
+                             "event never gets to step on the upper layer")
     parser.add_argument("--grupo", nargs="+", type=int, default=None,
                         metavar="ACTOR",
-                        help="el grupo con el que arranca, por ids de actor. El gráfico "
-                             "del héroe es el del primero, que es como lo decide "
-                             "RM2k. Por defecto, el de la base: este juego "
-                             "arranca con el actor 10, DummyHero, cuyo sprite es "
-                             "una celda vacía a propósito")
+                        help="the party it starts with, by actor ids. The "
+                             "hero's graphic is the first one's, which is how "
+                             "RM2k decides it. By default, the database's: "
+                             "this game starts with actor 10, DummyHero, whose "
+                             "sprite is an empty cell on purpose")
     parser.add_argument("--comandos-de-prueba", default=None,
-                        metavar="ARCHIVO",
-                        help="la página de prueba de este caso, como la lista "
-                             "de comandos de una página de RM2k en el JSON de "
-                             "Ditto —ver rom/pruebas/casos/—. La compila el mismo "
-                             "camino que una página del juego, con el "
-                             "contexto del mapa donde corre: el de su "
-                             "Teleport si empieza con uno, y si no el de "
-                             "arranque")
+                        metavar="FILE",
+                        help="this case's test page, as the command list of "
+                             "an RM2k page in Ditto's JSON —see "
+                             "rom/pruebas/casos/—. It is compiled by the same "
+                             "path as a page of the game, with the context of "
+                             "the map where it runs: that of its Teleport if "
+                             "it starts with one, and otherwise the boot "
+                             "map's")
     parser.add_argument("--charset", default=None,
-                        help="forzar el CharSet del héroe; por defecto sale "
-                             "del primero del grupo, que es como lo decide RM2k")
+                        help="force the hero's CharSet; by default it comes "
+                             "from the party's first, which is how RM2k "
+                             "decides it")
     parser.add_argument("--charset-index", type=int, default=None,
-                        help="cuál de los 8 personajes del CharSet")
+                        help="which of the CharSet's 8 characters")
     parser.add_argument("--mapas", nargs="+", type=int, metavar="ID",
-                        help="otros mapas para meter en la misma ROM. El de "
-                             "--map-id va primero en la tabla")
+                        help="other maps to put in the same ROM. The one "
+                             "from --map-id goes first in the table")
     parser.add_argument("--inicial", type=int, default=0, metavar="N",
-                        help="en qué índice de la tabla arranca la ROM. Sirve "
-                             "para probar un mapa que no sea el primero, que "
-                             "es el único caso donde el desplazamiento del "
-                             "registro no es cero")
+                        help="which table index the ROM boots at. It serves "
+                             "to test a map other than the first, which is "
+                             "the only case where the record's offset isn't "
+                             "zero")
     return parser
 
 
@@ -7389,36 +7397,36 @@ def main():
     argv, tramos = partir_en_casos(sys.argv[1:])
     args = parser.parse_args(argv)
     if args.map_id is None:
-        parser.error("falta --map-id, el mapa de arranque")
+        parser.error("--map-id is missing, the boot map")
     ambiente.desde_argumentos(args, "game_dir", "rtp_dir", "soundfont",
                               "cache")
     args.game_dir = ambiente.juego()
     args.casos = casos_de_prueba(parser, args, tramos)
     orden = orden_de_mapas(args)
     if not 0 <= args.inicial < len(orden):
-        sys.exit("--inicial %d pero hay %d mapas" % (args.inicial, len(orden)))
+        sys.exit("--inicial %d but there are %d maps" % (args.inicial, len(orden)))
     for caso in args.casos:
         caso.mapa = mapa_del_caso(caso, orden, args.inicial)
     de_archivo = comandos_de_casos(args)
-    # Qué mapas llevan los dígitos del cronómetro, que cuestan una paleta de
-    # sprite. Normalmente, todos: es lo que pide el juego, donde la cuenta
-    # atrás arranca en un mapa y se ve en los que siguen. Con `--sin-timer`,
-    # los mapas donde corre un caso que lo toca: hasta el paso 9e bastaba uno para
-    # que los llevaran todos los del cartucho, y en el cartucho único del 9f
-    # eso le sacaba la paleta a cada mapa —medido, quince goldens se movían—.
-    # Un mapa sin dígitos no los dibuja: `TIMER_BASE` en cero, ver
-    # `timer_oam`.
+    # Which maps carry the timer digits, which cost a sprite palette.
+    # Normally, all: it is what the game asks for, where the countdown starts
+    # in one map and is seen in the following ones. With `--sin-timer`, the
+    # maps where a case that touches it runs: until step 9e one was enough for
+    # every map of the cartridge to carry them, and in the single cartridge of
+    # 9f that took the palette away from every map —measured, fifteen goldens
+    # moved—. A map without digits doesn't draw them: `TIMER_BASE` at zero,
+    # see `timer_oam`.
     args.timer_en = set(orden) if not args.sin_timer else {
         caso.mapa for caso in args.casos
         if any(cmd.code == eventos.TIMER_OPERATION for cmd in caso.comandos)}
 
     renderer = Renderer(args.game_dir)
 
-    # El gráfico del héroe sale del grupo, no de acá. En RM2k lo da el primero
-    # de la lista, y este juego arranca con el actor 10 —'DummyHero', que es
-    # Chubby2[2]—. Hasta ahora había un default puesto a mano que daba
-    # Future1[0], o sea el sprite de otro personaje.
-    # --charset queda para forzarlo a mano cuando hace falta.
+    # The hero's graphic comes from the party, not from here. In RM2k the
+    # first of the list gives it, and this game starts with actor 10
+    # —'DummyHero', which is Chubby2[2]—. Until now there was a hand-set
+    # default that gave Future1[0], that is another character's sprite.
+    # --charset stays to force it by hand when needed.
     grupo = args.grupo if args.grupo else renderer.database.party
     if args.charset is None:
         args.charset, indice = renderer.database.lider(grupo)
@@ -7427,187 +7435,188 @@ def main():
     if args.charset_index is None:
         args.charset_index = 0
 
-    # Los candidatos a líder se calculan con todos los mapas de la ROM juntos,
-    # porque el grupo es estado global: una página del mapa A puede meter a
-    # alguien que después camina por el mapa B.
+    # The leader candidates are computed with all the ROM's maps together,
+    # because the party is global state: a page of map A can add someone who
+    # then walks around map B.
     args_game_dir[0] = args.game_dir
     todos = orden_de_mapas(args)
-    # **Los índices van antes que todo lo que compile una página**, y
-    # `lideres_posibles` compila páginas. Estaban después, y el precio era
-    # concreto: sin `indexar_variables`, ninguna `ControlVars` compila, así que
-    # `RaceController1` del mapa 49 —que arranca con un `PlayBGM` y sigue con
-    # dos `ControlVars`— no compilaba **en esa pasada** y sí en la de verdad.
-    # Los actores que mete al grupo se perdían: `CarRED` no entraba en la tabla
-    # de actores del mapa y el héroe de la persecución se dibujaba **sin
-    # gráfico**, o sea que el auto no se veía. Es el mismo agujero que ya
-    # estaba anotado para las cuentas de páginas, en otro lugar.
+    # **The indices go before anything that compiles a page**, and
+    # `lideres_posibles` compiles pages. They were after, and the price was
+    # concrete: without `indexar_variables`, no `ControlVars` compiles, so
+    # `RaceController1` of map 49 —which starts with a `PlayBGM` and goes on
+    # with two `ControlVars`— didn't compile **in that pass** and did in the
+    # real one. The actors it adds to the party were lost: `CarRED` didn't go
+    # into the map's actor table and the chase's hero was drawn **with no
+    # graphic**, that is the car wasn't visible. It is the same hole that was
+    # already noted for the page counts, in another place.
     #
-    # Las variables del juego entero, con su ranura.
+    # The variables of the whole game, with their slot.
     extra = eventos.variables_de_comandos(de_archivo)
     if len(args.casos) > 1:
-        # La que elige el caso: ver `eventos.VARIABLE_DE_CASO`. Con uno solo
-        # no hace falta, y así ese cartucho sale igual que antes de `--caso`.
+        # The one that picks the case: see `eventos.VARIABLE_DE_CASO`. With a
+        # single one it isn't needed, and that way that cartridge comes out
+        # the same as before `--caso`.
         extra.add(eventos.VARIABLE_DE_CASO)
     eventos.indexar_variables(args.game_dir, extra)
-    # Y las animaciones de batalla, que `ShowBattleAnimation` compila con su
-    # línea de tiempo adentro: ver OP_ANIMATION.
+    # And the battle animations, which `ShowBattleAnimation` compiles with its
+    # timeline inside: see OP_ANIMATION.
     eventos.indexar_animaciones(args.game_dir)
-    # Y los eventos comunes, que `CallEvent` compila en el lugar.
+    # And the common events, which `CallEvent` compiles in place.
     eventos.indexar_comunes(args.game_dir)
     eventos.indexar_audio_de_batalla(args.game_dir)
-    # Y los términos de la posada, con los que `ShowInn` arma su saludo.
+    # And the inn terms, which `ShowInn` builds its greeting with.
     eventos.indexar_terminos(args.game_dir)
-    # Y el equipo y las habilidades de cada actor del LDB: es lo que contestan
-    # las dos ramas de actor con dos operandos. **Antes de
-    # `lideres_posibles`**, que compila páginas: ver
-    # su comentario.
+    # And the equipment and skills of each actor of the LDB: it is what the
+    # two actor branches with two operands answer. **Before
+    # `lideres_posibles`**, which compiles pages: see its comment.
     eventos.indexar_actores(args.game_dir)
-    # Y los pares (actor, habilidad) del juego entero, con los de las páginas
-    # de prueba: es el operando de `ChangeSkills` y de la rama que pregunta si
-    # sabe una, así que va antes de compilar nada, igual que las variables.
+    # And the (actor, skill) pairs of the whole game, with those of the test
+    # pages: it is the operand of `ChangeSkills` and of the branch that asks
+    # whether it knows one, so it goes before compiling anything, same as the
+    # variables.
     eventos.indexar_habilidades(
         args.game_dir, eventos.pares_de_habilidad_de_comandos(de_archivo))
     args.lideres = lideres_posibles(renderer, todos, grupo)
-    # Y los del grupo con que sigue cada página de prueba, detrás: la prueba
-    # puede arrancar con él en cualquier mapa del cartucho.
+    # And those of the party each test page continues with, behind: the test
+    # can start with it in any map of the cartridge.
     for caso in args.casos:
         de_prueba = grupo_de_la_pagina(caso, grupo)
         if de_prueba:
             for actor in lideres_posibles(renderer, todos, de_prueba):
                 if actor not in args.lideres:
                     args.lideres.append(actor)
-    # Si algún mapa pone lluvia, todos llevan las gotas: ver `hay_lluvia`.
+    # If some map sets rain, all of them carry the drops: see `hay_lluvia`.
     args.con_lluvia = hay_lluvia(todos, de_archivo)
-    # En cuántos mapas de esta ROM aparece cada personaje. Lo usa el reparto de
-    # paletas para elegir a quién puede bajarle un color sin romper nada: el
-    # banco de poses es **de la ROM entera**, así que un personaje que está en
-    # dos mapas tiene que quedar cuantizado igual en los dos. Cuantizarlo
-    # distinto no da una imagen fea sino un `sys.exit` al emitir, que es lo que
-    # pasó la primera vez que esto se escribió: `Future1:4` bajaba en un mapa y
-    # no en el otro.
+    # How many maps of this ROM each character appears in. The palette split
+    # uses it to choose who can lose a color without breaking anything: the
+    # pose bank is **the whole ROM's**, so a character that is in two maps has
+    # to be quantized the same in both. Quantizing it differently doesn't give
+    # an ugly image but a `sys.exit` when emitting, which is what happened the
+    # first time this was written: `Future1:4` dropped in one map and not in
+    # the other.
     args.mapas_por_personaje = mapas_por_personaje(renderer, todos,
                                                    args.game_dir)
-    # El cartel del `ShowPicture`, uno por ROM: ver `eventos.Imagenes`. Se lo
-    # queda el primer mapa de la tabla que lo muestre, que es el orden en que
-    # `convertir` los recorre.
+    # The `ShowPicture` sign, one per ROM: see `eventos.Imagenes`. The first
+    # map of the table that shows it keeps it, which is the order `convertir`
+    # walks them in.
     args.imagenes = eventos.Imagenes(args.game_dir)
     args.imagenes.mapa = None
-    # Y las ranuras que `ChangeSpriteAssociation` le reserva a la tabla de
-    # gráficos de **todos** los mapas, por la misma razón que el cartel: el
-    # gráfico que le pone a un actor cruza el teletransporte, así que su índice
-    # tiene que valer lo mismo en los dos mapas. Ver `eventos.asociaciones_de`.
+    # And the slots `ChangeSpriteAssociation` reserves in the graphics table
+    # of **all** maps, for the same reason as the sign: the graphic it gives
+    # an actor crosses the teleport, so its index has to mean the same in both
+    # maps. See `eventos.asociaciones_de`.
     #
-    # Los de las páginas de prueba entran por la misma puerta: si fueran por
-    # `--grafico-de-prueba` tendrían índice sólo en los mapas donde corre un
-    # caso, y lo que el comando hace —cruzar el teletransporte— no se podría
-    # probar.
+    # The test pages' ones come in through the same door: if they went by
+    # `--grafico-de-prueba` they would have an index only in the maps where a
+    # case runs, and what the command does —crossing the teleport— couldn't
+    # be tested.
     args.asociaciones = eventos.asociaciones_de(
         [lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % m))
          for m in todos], de_archivo)
 
     precalcular_capas(renderer, todos, args)
     mapas = [convertir(renderer, map_id, args) for map_id in todos]
-    # Antes acá se reconvertían los mapas cuya capa de encima arrancaba más
-    # arriba que la paleta de la ventana, para apretarles el fondo debajo de
-    # ella. Con la ventana en la paleta 0 no hay nada que apretar: el fondo de
-    # cada mapa arranca en `CGRAM_RESERVADAS` y llega hasta su propia capa de
-    # encima, sin depender de lo que necesiten los otros mapas de la ROM.
-    # Los teletransportes se resuelven cuando están todos los mapas: uno puede
-    # llevar a cualquier otro, así que el índice de destino no se sabe hasta el
-    # final.
+    # The maps whose upper layer started higher than the window's palette used
+    # to be reconverted here, to squeeze their background below it. With the
+    # window in palette 0 there is nothing to squeeze: each map's background
+    # starts at `CGRAM_RESERVADAS` and reaches up to its own upper layer,
+    # without depending on what the other maps of the ROM need.
+    # Teleports are resolved when all the maps are there: one can lead to any
+    # other, so the destination index isn't known until the end.
     indices = {mapa["id"]: numero for numero, mapa in enumerate(mapas)}
 
-    # Los bloques que las `TileSubstitution` del mapa van a necesitar, armados
-    # **antes** de compilar ninguna página: ver `Sustituciones`. Un mapa sin
-    # ese comando no arma nada y no crece un byte, que es el caso de los 328
-    # mapas del juego al día de hoy.
+    # The blocks the map's `TileSubstitution`s are going to need, built
+    # **before** compiling any page: see `Sustituciones`. A map without that
+    # command builds nothing and doesn't grow a byte, which is the case of the
+    # game's 328 maps as of today.
     for mapa in mapas:
         chipset = renderer.database.chipsets[mapa["game_map"].chipset_id]
         mapa["sustituciones"] = Sustituciones(
             mapa, build_passability(chipset), chipset)
-        # Le cuelga al mapa para que llegue a `eventos.Eventos`, que es lo que
-        # el compilador ya se pasa de mano en mano.
+        # It hangs from the map so it reaches `eventos.Eventos`, which is what
+        # the compiler already passes around.
         mapa["game_map"].sustituciones = mapa["sustituciones"]
         triples = triples_de_sustitucion(mapa["game_map"], args.casos,
                                          mapa["id"])
         for faltante in mapa["sustituciones"].cerrar(triples):
-            # No corta la conversión: la página que lo pide no compila, que es
-            # lo que hace cualquier comando que no se puede ejecutar. Pero se
-            # dice, porque desde afuera se ve como un evento que no hace nada.
+            # It doesn't stop the conversion: the page that asks for it
+            # doesn't compile, which is what any command that can't be run
+            # does. But it is said, because from outside it looks like an
+            # event that does nothing.
             #
-            # Los dos motivos por los que una sustitución no se puede armar, y
-            # los dos se arreglan del lado de la data: o el tile nuevo no está
-            # dibujado en ninguna celda del mapa —y entonces sus 8x8 no
-            # entraron en la VRAM—, o la combinación que haría falta lleva un
-            # tile alto **sin el bit "Above"**, que no se dibuja en BG2 sino
-            # horneado en el fondo, y ahí las dos capas del bloque dejan de ser
-            # independientes. Ver `Sustituciones._hornea`.
-            print("  mapa %d: TileSubstitution %d -> %d en la capa de %s: no "
-                  "se puede armar el bloque que haría falta. O el tile nuevo "
-                  "no está dibujado en ninguna celda del mapa, o alguno de los "
-                  "dos es un tile alto sin 'Above' y se hornea en el fondo. La "
-                  "página no compila."
+            # The two reasons a substitution can't be built, and both are
+            # fixed on the data side: either the new tile isn't drawn in any
+            # cell of the map —and then its 8x8s didn't go into VRAM—, or the
+            # combination that would be needed carries an upper tile **without
+            # the "Above" bit**, which isn't drawn on BG2 but baked into the
+            # background, and then the block's two layers stop being
+            # independent. See `Sustituciones._hornea`.
+            print("  map %d: TileSubstitution %d -> %d on the %s layer: the "
+                  "block that would be needed can't be built. Either the new "
+                  "tile isn't drawn in any cell of the map, or one of the two "
+                  "is an upper tile without 'Above' and is baked into the "
+                  "background. The page doesn't compile."
                   % (mapa["id"], faltante[1], faltante[2],
-                     "arriba" if faltante[0] else "abajo"))
+                     "upper" if faltante[0] else "lower"))
 
-    # El bloque de textos es de la ROM entera y se arma mientras se compilan las
-    # páginas: cada `ShowMessage` deja su texto acá y se lleva un
-    # desplazamiento, que es lo que va en el bytecode.
+    # The text block belongs to the whole ROM and is built while the pages
+    # are compiled: each `ShowMessage` leaves its text here and takes an
+    # offset, which is what goes in the bytecode.
     mensajes = eventos.Mensajes(paso=eventos.MENSAJES_PASO)
-    # Los temas que los PlayBGM de las páginas piden, numerados en el orden en
-    # que aparecen. La ROM lleva uno solo —ver `Temas`— y lo elige más abajo,
-    # cuando ya están todos compilados y se sabe cuáles se piden.
+    # The songs the pages' PlayBGMs ask for, numbered in the order they
+    # appear. The ROM carries a single one —see `Temas`— and picks it further
+    # down, when all are compiled and it is known which ones are asked for.
     temas = eventos.Temas()
-    # Y las tropas que los EnemyEncounter piden. No numera nada —el bytecode
-    # lleva el id de RM2k— así que sólo dice qué tablas de enemigos hay que
-    # emitir. Ver `eventos.Tropas`.
+    # And the troops the EnemyEncounters ask for. It doesn't number anything
+    # —the bytecode carries the RM2k id— so it only says which enemy tables
+    # have to be emitted. See `eventos.Tropas`.
     tropas = eventos.Tropas()
-    # Los textos de las páginas de prueba van **primero**, antes de todos los
-    # mapas, y eso no es estético: así su desplazamiento no depende de cuántos
-    # textos traiga el mapa donde arranca la ROM ni de en qué orden se
-    # compilen —el primero es el 0—. Se guardan acá y la compilación de la
-    # página, más abajo, los encuentra guardados, porque el bloque deduplica
-    # por contenido.
+    # The test pages' texts go **first**, before all the maps, and that isn't
+    # aesthetic: that way their offset doesn't depend on how many texts the
+    # map the ROM boots in brings nor on the order they are compiled in —the
+    # first is 0—. They are stored here and the page's compilation, further
+    # down, finds them stored, because the block deduplicates by content.
     for cmd, extra_lineas in eventos.agrupar(de_archivo):
         if cmd.code == eventos.SHOW_MESSAGE:
             mensajes.agregar([cmd.string] + extra_lineas)
-    # Las páginas de prueba ya compiladas, por caso: ver la segunda vuelta.
+    # The test pages already compiled, per case: see the second round.
     de_prueba = {}
 
     for mapa in mapas:
-        # Los eventos automáticos: sus páginas con las condiciones, y el código
-        # de las que se pueden ejecutar, todo seguido en un solo bloque.
-        # Un registro de gráficos por mapa: la orden 34 lleva el índice y la
-        # tabla `ruta_grafico` del mapa lo resuelve. Ver `eventos.Graficos`.
+        # The automatic events: their pages with the conditions, and the code
+        # of the ones that can be run, all together in a single block.
+        # One graphics registry per map: command 34 carries the index and the
+        # map's `ruta_grafico` table resolves it. See `eventos.Graficos`.
         graficos = eventos.Graficos(args.asociaciones)
-        temas.mapa = mapas.index(mapa)      # para su paquete de audio
+        temas.mapa = mapas.index(mapa)      # for its audio package
         paginas = eventos.paginas_del_mapa(mapa["game_map"], indices.get,
                                            mensajes, temas, graficos,
                                            args.imagenes, tropas)
         temas.mapa = None
-        # Un intérprete por evento con alguna página paralela que compile. La
-        # ROM los lleva en una lista de tope fijo y **no avisa** si se le pasa
-        # —los que sobran no correrían y nada lo diría—, así que el corte va acá.
+        # One interpreter per event with some parallel page that compiles. The
+        # ROM carries them in a fixed-cap list and **doesn't warn** if it goes
+        # over —the extra ones wouldn't run and nothing would say so—, so the
+        # stop goes here.
         con_paralela = {p["evento"] for p in paginas
                         if p["trigger"] == eventos.TRIGGER_PARALELO
                         and p["codigo"]}
         if len(con_paralela) > PARALELO_MAX:
-            sys.exit("el mapa %d tiene %d eventos con página paralela y entran "
-                     "%d: ver PARALELO_MAX"
+            sys.exit("map %d has %d events with a parallel page and %d "
+                     "fit: see PARALELO_MAX"
                      % (mapa["id"], len(con_paralela), PARALELO_MAX))
         if con_paralela:
-            print("  mapa %d: %d evento(s) con página paralela"
+            print("  map %d: %d event(s) with a parallel page"
                   % (mapa["id"], len(con_paralela)))
         if args.grafico_de_prueba and mapa["id"] in mapas_de_prueba(args):
             for charset, index in graficos_de_prueba(args.grafico_de_prueba):
                 graficos.indice(charset, index)
-        # **Sólo el mapa que se llevó sus tiles puede mostrar el cartel.** El
-        # banco de sprites es de cada mapa, así que desde otro los seis objetos
-        # leerían lo que hubiera en esos tiles. No pasa hoy —el cartel del "1
-        # year earlier" lo muestra una sola página— y por eso esto corta en vez
-        # de elegir: el día que dos mapas muestren el mismo, hay que decidir si
-        # sus tiles van en los dos, y esa decisión no la puede tomar el
-        # conversor solo.
+        # **Only the map that took its tiles can show the sign.** The sprite
+        # bank belongs to each map, so from another one the six objects would
+        # read whatever was in those tiles. It doesn't happen today —the "1
+        # year earlier" sign is shown by a single page— and that is why this
+        # stops instead of choosing: the day two maps show the same one, it
+        # has to be decided whether its tiles go in both, and the converter
+        # can't make that decision alone.
         if (args.imagenes.nombre is not None
                 and mapa["id"] != args.imagenes.mapa):
             for pagina in paginas:
@@ -7615,44 +7624,44 @@ def main():
                 if codigo and any(codigo[i] == eventos.OP_PICTURE
                                   for i, _c in eventos.recorrer_codigo(codigo)):
                     sys.exit(
-                        "mapa %d: muestra el cartel %r y sus tiles quedaron en "
-                        "el mapa %d; la ROM lo lleva en uno solo. Ver "
+                        "map %d: shows the sign %r and its tiles ended up in "
+                        "map %d; the ROM carries it in a single one. See "
                         "`cartel_de_imagen`."
                         % (mapa["id"], args.imagenes.nombre,
                            args.imagenes.mapa))
         if graficos.pares != mapa["graficos_de_ruta"]:
-            # Las dos pasadas compilaron cosas distintas. No puede pasar —las
-            # dos usan `paginas_del_mapa` con el mismo bloque de textos— y si
-            # pasara, el bytecode quedaría apuntando a la tabla equivocada sin
-            # que nada lo diga.
-            sys.exit("mapa %d: las dos pasadas numeraron distinto los gráficos "
-                     "de ruta: %s contra %s"
+            # The two passes compiled different things. It can't happen —both
+            # use `paginas_del_mapa` with the same text block— and if it did,
+            # the bytecode would end up pointing at the wrong table without
+            # anything saying so.
+            sys.exit("map %d: the two passes numbered the route graphics "
+                     "differently: %s against %s"
                      % (mapa["id"], graficos.pares, mapa["graficos_de_ruta"]))
-        # Las páginas de los casos que corren en este mapa, compiladas con su
-        # contexto aunque vayan a vivir en el mapa de arranque: ver
-        # `mapa_del_caso`. Se ponen allá en la segunda vuelta, cuando ya
-        # están todas.
+        # The pages of the cases that run in this map, compiled with its
+        # context even though they will live in the boot map: see
+        # `mapa_del_caso`. They are put there in the second round, when all
+        # are done.
         for k, caso in enumerate(args.casos):
             if caso.mapa == mapa["id"]:
                 de_prueba[k] = pagina_de_caso(caso, mapa, temas, graficos,
                                               mensajes, indices,
                                               args.imagenes)
         mapa["paginas"] = paginas
-        # Y a qué mapas de afuera de la ROM apuntan las que no compilan.
+        # And which maps outside the ROM the ones that don't compile point to.
         #
-        # Un `Teleport` a un mapa que no entró corta la página entera, y una
-        # página que no compila no hace **nada**: ni el teletransporte ni lo que
-        # venía antes. `evento` lo dice en su comentario desde siempre,
-        # pero el conteo de arriba no distingue esta razón de las otras por las
-        # que una página se cae, y es la única que se arregla desde afuera
-        # —sumando el mapa— y no tocando el compilador. Así se pasó por alto la
-        # página del ascensor del mapa 2, que se veía abrirse y no llevaba a
-        # ningún lado porque termina saltando al mapa 3.
+        # A `Teleport` to a map that didn't make it cuts the whole page, and a
+        # page that doesn't compile does **nothing**: neither the teleport nor
+        # what came before. `evento` has always said so in its comment, but
+        # the count above doesn't tell this reason apart from the others a
+        # page falls out for, and it is the only one that is fixed from
+        # outside —adding the map— and not by touching the compiler. That is
+        # how the elevator page of map 2 was overlooked, which was seen
+        # opening and led nowhere because it ends up jumping to map 3.
         afuera_de, cuantas = set(), 0
         for pagina in paginas:
             if pagina["codigo"] or pagina["trigger"] not in eventos.TRIGGERS \
                     or pagina.get("prueba"):
-                continue        # la página de prueba no sale del juego
+                continue        # the test page doesn't come from the game
             evento = mapa["game_map"].events[pagina["evento"]]
             faltan = {cmd.parameters[0]
                       for cmd in evento.pages[pagina["pagina"]].commands
@@ -7662,54 +7671,55 @@ def main():
                 afuera_de |= faltan
                 cuantas += 1
         if afuera_de:
-            print("  mapa %d: %d de ésas no %s por un teletransporte a un mapa "
-                  "que no entró en la ROM: %s"
+            print("  map %d: %d of those %s because of a teleport to a map "
+                  "that didn't make it into the ROM: %s"
                   % (mapa["id"], cuantas,
-                     "compila" if cuantas == 1 else "compilan",
+                     "doesn't compile" if cuantas == 1 else "don't compile",
                      ", ".join(str(m) for m in sorted(afuera_de))))
-        # Las deudas se avisan. Una página que se acepta sin hacer todo lo que
-        # pide es una diferencia con el juego original, y callarla es cómo se
-        # vuelve invisible: acá se nombra el comando y qué se pierde.
+        # Debts are warned about. A page that is accepted without doing
+        # everything it asks for is a difference from the original game, and
+        # keeping quiet about it is how it becomes invisible: here the command
+        # and what is lost are named.
         deudas = set()
         for evento in mapa["game_map"].events:
             for page in evento.pages:
                 if page.trigger != eventos.TRIGGER_AUTOMATICO:
                     continue
-                # Con el mismo bloque de textos que arriba: si acá fuera
-                # None, una página con un cuadro de texto no compilaría y su
-                # deuda —un PlayBGM, digamos— quedaría sin avisar aunque la ROM
-                # sí la corra. Volver a agregar un texto que ya está no crece
-                # el bloque: la clave es el contenido.
+                # With the same text block as above: if it were None here, a
+                # page with a text box wouldn't compile and its debt —a
+                # PlayBGM, say— would go unwarned even though the ROM does run
+                # it. Adding a text that is already there again doesn't grow
+                # the block: the key is the content.
                 if eventos.compilar_pagina(page, indices.get,
                                            mensajes) is None:
                     continue
                 deudas |= set(eventos.deudas_de_la_pagina(page,
                                                           args.imagenes))
         for codigo_cmd in sorted(deudas):
-            print("  mapa %d: AVISO, una página usa %s y la ROM no lo hace; "
-                  "ver ACEPTADOS_SIN_HACER en tools/port/eventos.py"
+            print("  map %d: WARNING, a page uses %s and the ROM doesn't do it; "
+                  "see ACEPTADOS_SIN_HACER in tools/port/eventos.py"
                   % (mapa["id"], event_codes.EVENT_CODES.get(codigo_cmd,
                                                              codigo_cmd)))
 
 
-    # La segunda vuelta: con las páginas de todos los casos compiladas, se
-    # ponen en el mapa de arranque y se arma el bloque de cada mapa.
+    # The second round: with the pages of all the cases compiled, they are
+    # put in the boot map and each map's block is built.
     for mapa in mapas:
         paginas = mapa["paginas"]
         if args.casos and mapa is mapas[args.inicial]:
-            # Las páginas de prueba, sólo en el mapa donde arranca la ROM. No
-            # salen del juego sino de `rom/pruebas/casos/`: existen porque hay
-            # caminos del intérprete que ninguna página del juego que compile
-            # ejercita —la primera fue una espera—.
+            # The test pages, only in the map the ROM boots in. They don't come
+            # from the game but from `rom/pruebas/casos/`: they exist because
+            # there are interpreter paths no page of the game that compiles
+            # exercises —the first was a wait—.
             #
-            # Va en el **índice 0**, el del evento vacío que `convertir` puso
-            # al principio del mapa: la ROM recorre los eventos de menor a
-            # mayor, y esta página tiene que correr antes que las del juego.
-            # Hasta el 2026-09-17 iba en el primer índice libre, al final.
+            # It goes at **index 0**, that of the empty event `convertir` put
+            # at the start of the map: the ROM walks the events from lowest to
+            # highest, and this page has to run before the game's. Until
+            # 2026-09-17 it went at the first free index, at the end.
             #
-            # **Una página por caso**, y la k pide que `VARIABLE_DE_CASO`
-            # valga al menos k: ver su comentario. La 0 no pide nada, así que
-            # un cartucho de un solo caso es el de siempre.
+            # **One page per case**, and page k asks for `VARIABLE_DE_CASO` to
+            # be at least k: see its comment. Page 0 asks for nothing, so a
+            # single-case cartridge is the usual one.
             paginas = paginas + [{
                 "evento": 0, "pagina": k, "prueba": True,
                 "trigger": eventos.TRIGGER_AUTOMATICO,
@@ -7720,10 +7730,10 @@ def main():
                 "item": 0, "capa": 0,
                 "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
                 "codigo": de_prueba[k]} for k in range(len(args.casos))] + [{
-                # Y la que la apaga: pide `SWITCH_DE_PRUEBA` y no tiene
-                # código, así que en cuanto
-                # gana, el evento inventado deja de tener una automática que
-                # correr y la primera no se repite.
+                # And the one that turns it off: it asks for
+                # `SWITCH_DE_PRUEBA` and has no code, so as soon as it wins,
+                # the invented event no longer has an automatic page to run and
+                # the first one doesn't repeat.
                 "evento": 0, "pagina": len(args.casos), "prueba": True,
                 "trigger": eventos.TRIGGER_AUTOMATICO,
                 "switch_a": eventos.SWITCH_DE_PRUEBA, "switch_b": 0,
@@ -7735,15 +7745,15 @@ def main():
             pagina["offset"] = len(codigo)
             if pagina["codigo"]:
                 codigo += pagina["codigo"]
-            # Y las órdenes de la ruta propia, detrás, un byte por orden.
+            # And the commands of the own route, behind, one byte per command.
             propia = pagina.get("ruta_propia")
             if propia:
                 pagina["ruta_offset"] = len(codigo)
                 codigo += bytes(propia["ordenes"])
         mapa["paginas"] = paginas
-        # Lo que dibuja cada página de los eventos que cambian de gráfico, ya
-        # como lo quiere OAM: es lo que la ROM copia a la fila del NPC cuando
-        # la página activa cambia. Ver `tabla_de_paginas`, +20.
+        # What each page of the events that change graphic draws, already as
+        # OAM wants it: it is what the ROM copies to the NPC's row when the
+        # active page changes. See `tabla_de_paginas`, +20.
         for pagina in paginas:
             sigue = pagina["evento"] in mapa["cambian"]
             if not sigue and pagina["evento"] not in mapa["aparecen"]:
@@ -7753,10 +7763,10 @@ def main():
                     or grafico[:2] in mapa["afuera"].get(pagina["evento"], ()):
                 continue
             if not sigue:
-                # El que sólo aparece no lleva tile ni atributos: los suyos
-                # apuntan a su ranura de doce poses y la ROM no los toca. Va
-                # la pose —con el bit 7, que es "esta página dibuja algo"— y
-                # lo que su tile le impone a la celda.
+                # The one that only appears carries no tile or attributes: its
+                # own point to its slot of twelve poses and the ROM doesn't
+                # touch them. The pose goes —with bit 7, which is "this page
+                # draws something"— and what its tile imposes on the cell.
                 pagina["oam"] = (0, 0, grafico[2] | 0x80,
                                  0xFF if pagina.get("tile_pasa") is None
                                  else pagina["tile_pasa"])
@@ -7772,26 +7782,27 @@ def main():
                              0xFF if pagina.get("tile_pasa") is None
                              else pagina["tile_pasa"])
         mapa["evcodigo"] = bytes(codigo)
-        # La tabla de sustituciones de la ROM es de tope fijo y **no avisa** si
-        # se le pasa: los pares que no entren no se aplicarían y el mapa
-        # dibujaría de más. Cuántas entradas puede llegar a tener se sabe acá,
-        # y es la cantidad de bloques distintos que alguna sustitución del mapa
-        # usa como clave, porque una clave nunca se pisa: la segunda vuelta
-        # cambia su valor. Ver `op_tile_sub` en tools/runtime/interprete_mapa.s.
+        # The ROM's substitution table has a fixed cap and **doesn't warn** if
+        # it goes over: the pairs that don't fit wouldn't be applied and the
+        # map would draw too much. How many entries it can end up having is
+        # known here, and it is the number of distinct blocks some substitution
+        # of the map uses as a key, because a key is never overwritten: the
+        # second round changes its value. See `op_tile_sub` in
+        # tools/runtime/interprete_mapa.s.
         claves = len(mapa["sustituciones"].claves)
         if claves > SUB_MAX:
-            sys.exit("el mapa %d sustituye %d bloques distintos y la tabla de "
-                     "la RAM lleva %d: ver SUB_MAX"
+            sys.exit("map %d substitutes %d distinct blocks and the RAM "
+                     "table carries %d: see SUB_MAX"
                      % (mapa["id"], claves, SUB_MAX))
-        # Cuántos eventos distintos puede llegar a mandar a caminar este mapa.
-        # La ROM tiene RUTA_EV_MAX ranuras y una ruta que no encuentre lugar se
-        # descarta **sin decir nada**: el NPC se queda quieto y, si la golden
-        # se saca así, la prueba defiende el error. Con los
-        # datos de este juego el peor mapa usa dos, así que el control no molesta
-        # a nadie; está para que un cambio futuro no las tire en silencio.
+        # How many distinct events this map can end up sending walking. The
+        # ROM has RUTA_EV_MAX slots and a route that finds no room is
+        # discarded **without saying anything**: the NPC stays still and, if
+        # the golden is taken like that, the test defends the error. With this
+        # game's data the worst map uses two, so the check bothers nobody; it
+        # is there so that a future change doesn't throw them away silently.
         #
-        # Las páginas que **corren** acá: las del mapa y las de los casos que
-        # saltan a él, que viven en el de arranque. Ver `mapa_del_caso`.
+        # The pages that **run** here: the map's and those of the cases that
+        # jump to it, which live in the boot one. See `mapa_del_caso`.
         corren_aca = [p["codigo"] for p in paginas
                       if p["codigo"] and not p.get("prueba")]
         corren_aca += [de_prueba[k] for k, caso in enumerate(args.casos)
@@ -7799,17 +7810,17 @@ def main():
         blancos = {c[i + 1] for codigo in corren_aca
                    for i, c in recorrer_codigo(codigo)
                    if c[i] == eventos.OP_ROUTE and c[i + 1]}
-        # Y que nadie destelle a alguien que comparte gráfico con otro. En la
-        # consola el destello se hace sobre la paleta del personaje, así que dos
-        # que compartan gráfico destellarían juntos. `eventos.py` ya rechaza el
-        # caso de dos eventos; acá se cubre el que allá no se puede ver, que es
-        # el del héroe: qué gráfico tiene depende del grupo, y eso lo sabe el
-        # conversor y no el compilador.
+        # And that nobody flashes someone who shares a graphic with another.
+        # On the console the flash is done on the character's palette, so two
+        # that share a graphic would flash together. `eventos.py` already
+        # rejects the case of two events; here the one it can't see there is
+        # covered, which is the hero's: which graphic it has depends on the
+        # party, and the converter knows that and the compiler doesn't.
         #
-        # `separar_del_heroe` ya evita esto en los mapas cuyas páginas destellan
-        # al héroe. Esto queda para lo que aquél no ve: un `FlashSprite` que
-        # llega adentro de un evento común, que se compila en el lugar desde
-        # cualquier `CallEvent` y no está en las páginas del mapa.
+        # `separar_del_heroe` already avoids this in the maps whose pages flash
+        # the hero. This stays for what that one doesn't see: a `FlashSprite`
+        # that arrives inside a common event, which is compiled in place from
+        # any `CallEvent` and isn't in the map's pages.
         graficos = collections.Counter(
             (npc["charset"], npc["index"])
             for npc in rm2k.collect_npcs(mapa["game_map"]))
@@ -7824,53 +7835,53 @@ def main():
                     a = renderer.database.actors[actor]
                     if graficos[(a.charset, a.charset_index)] > 1:
                         raise SystemExit(
-                            "mapa %d: una página hace destellar al héroe, y el "
-                            "actor %d se dibuja con %s[%d], que también usa un "
-                            "NPC del mapa. En la consola comparten paleta y "
-                            "destellarían los dos"
+                            "map %d: a page makes the hero flash, and "
+                            "actor %d is drawn with %s[%d], which an NPC of "
+                            "the map also uses. On the console they share a "
+                            "palette and both would flash"
                             % (mapa["id"], actor, a.charset, a.charset_index))
 
         if len(blancos) > RUTA_EV_MAX:
             raise SystemExit(
-                "mapa %d: sus páginas mandan a caminar %d eventos distintos y "
-                "la ROM tiene %d ranuras de ruta"
+                "map %d: its pages send %d distinct events walking and "
+                "the ROM has %d route slots"
                 % (mapa["id"], len(blancos), RUTA_EV_MAX))
         corribles = sum(1 for p in paginas if p["codigo"])
         if paginas:
-            print("  mapa %d: %d página(s) de evento automático, %d ejecutable(s)"
+            print("  map %d: %d automatic event page(s), %d runnable"
                   % (mapa["id"], len(paginas), corribles))
 
     if not 0 <= args.inicial < len(mapas):
-        sys.exit("--inicial %d pero hay %d mapas" % (args.inicial, len(mapas)))
+        sys.exit("--inicial %d but there are %d maps" % (args.inicial, len(mapas)))
     from port import ventana as ventana_mod
     skin = ventana_mod.skin(args.game_dir, renderer.database.system_name)
     font_id = renderer.database.font_id
     ventana_datos = convert_ventana(skin, font_id)
     ventana_datos["fuente"] = fuente_bytes(font_id)
     ventana_datos["mensajes"] = mensajes.bytes()
-    print("  ventana de mensaje: %d tiles fijos + %d de texto, %d colores; "
-          "fuente %d B, %d cuadro(s) de texto en %d B"
+    print("  message window: %d fixed tiles + %d of text, %d colors; "
+          "font %d B, %d text box(es) in %d B"
           % (len(ventana_datos["tiles"]) // 32,
              len(ventana_datos["fondo"]) // 32,
              sum(1 for w in ventana_datos["cram"] if w),
              len(ventana_datos["fuente"]), len(mensajes.textos),
              len(ventana_datos["mensajes"])))
-    # La pantalla de ranuras va en toda ROM: la abre el save point desde
-    # adentro del juego, y "Resume the Story" desde el título cuando lo hay.
-    # Se dibuja con la misma fuente y la misma skin que la ventana de mensaje,
-    # y vive en la VRAM del título, donde no hay mapa.
-    # Los actores que pueden estar en el grupo cuando se guarda, para tener
-    # su cara y su nombre en el cartucho: los de arranque y todos los que
-    # agrega algún `ChangePartyMembers` de estos mapas, compilen sus páginas o
-    # no. Es un superconjunto a propósito: una cara de más cuesta 36 tiles y
-    # una de menos deja un hueco en el menú.
+    # The slots screen goes in every ROM: the save point opens it from inside
+    # the game, and "Resume the Story" from the title when there is one. It is
+    # drawn with the same font and the same skin as the message window, and
+    # lives in the title's VRAM, where there is no map.
+    # The actors that can be in the party when saving, to have their face and
+    # their name in the cartridge: the starting ones and all the ones some
+    # `ChangePartyMembers` of these maps adds, whether their pages compile or
+    # not. It is a superset on purpose: one face too many costs 36 tiles and
+    # one too few leaves a hole in the menu.
     miembros = miembros_posibles(todos, grupo, de_archivo)
-    # Y los ítems que pueden estar en el inventario, para llevar su nombre y
-    # su descripción: ver "la pantalla de ítems" en menus.py.
+    # And the items that can be in the inventory, to carry their name and
+    # their description: see "la pantalla de ítems" in menus.py.
     items_rom = items_posibles(todos, miembros, renderer.database,
                                de_archivo)
-    # Con las letras de las medicinas, que la elección de actor escribe con
-    # los glifos del banco: ver `OBJETIVO_VENTANAS`.
+    # With the letters of the medicines, which the actor choice writes with
+    # the bank's glyphs: see `OBJETIVO_VENTANAS`.
     letras_medicinas = "".join(
         renderer.database.items[n].name for n in items_rom
         if renderer.database.items[n].type == lcf.ITEM_TIPO_MEDICINA)
@@ -7886,20 +7897,20 @@ def main():
     _controlar_objetivo(len(objetivo[0]))
     items_tiles, items_paletas, items_glifos = menus_mod.pantalla_items(
         skin, renderer.database.font_id)
-    # Las ventanas de ítems y de equipo comparten tiles y colores: ver
+    # The item and equipment windows share tiles and colors: see
     # `menus.marcos`.
     items_marco = menus_mod.marcos(
         skin, items_marco_primero(len(items_tiles)),
         [menus_mod.capas_items(skin), pantallas_mod.capas_equipo(skin)])
     _controlar_marco_de_items(len(items_tiles), len(items_marco[0]))
-    # Las de la tienda, con sus propios tiles y colores: ver
+    # The shop's, with their own tiles and colors: see
     # `pantallas.TI_VENTANAS`.
     tienda_marco = menus_mod.marcos(
         skin, 0, pantallas_mod.capas_tienda(skin),
         menus_mod.ITEM_MARCO_CGRAM, menus_mod.OBJETIVO_CGRAM)
     _controlar_tienda(len(tienda_marco[0]))
-    # Los tiles de la pantalla de End Game van donde los de las ranuras, así
-    # que lo que se controla es lo mismo.
+    # The End Game screen's tiles go where the slots' do, so what is checked
+    # is the same.
     fin = fin_mod.convertir(skin, renderer.database, renderer.database.font_id)
     _controlar_ranuras(len(fin[0]))
     ranuras_datos = {"tiles": ranura_tiles, "paletas": ranura_paletas,
@@ -7917,15 +7928,15 @@ def main():
                      "objetivo": objetivo}
     _controlar_ranuras(len(ranura_tiles))
     _controlar_repartos()
-    print("  pantalla de ranuras: %d, %d tiles de 4bpp (%d B) + %d paletas, "
-          "%d B de celdas; %d actores con cara: %s"
+    print("  slots screen: %d, %d 4bpp tiles (%d B) + %d palettes, "
+          "%d B of cells; %d actors with a face: %s"
           % (RANURAS, len(ranura_tiles), len(ranura_tiles) * 32,
              len(ranura_paletas),
              (len(ranura_cabs) * len(ranura_cabs[0])
               + RANURAS * 4 * len(ranura_filas[0][0][0])) * 2,
              len(ranura_caras),
              ", ".join("%d %s" % (a, renderer.database.actors[a].name)
-                       for a in sorted(ranura_caras)) or "ninguno"))
+                       for a in sorted(ranura_caras)) or "none"))
     titulo_datos = None
     if not args.sin_titulo:
         from PIL import Image
@@ -7935,10 +7946,10 @@ def main():
         textos = titulo_mod.opciones(renderer.database)
         menu_tiles, menu_paleta, menu_mapas = titulo_mod.menu(
             skin, textos, renderer.database.font_id)
-        # La imagen, comprimida como la de Game Over, y con los colores del
-        # menú debajo de los suyos en el mismo flujo: CGRAM entera de una vez,
-        # la paleta del menú abajo porque un BG de 4 bits sólo alcanza ésas.
-        # Los índices de los tiles ya vienen corridos desde
+        # The image, compressed like the Game Over one, and with the menu's
+        # colors below its own in the same stream: the whole CGRAM at once,
+        # the menu's palette at the bottom because a 4-bit BG only reaches
+        # those. The tiles' indices already come shifted from
         # `paleta.convertir`.
         debajo = list(menu_paleta)
         debajo += [(0, 0, 0)] * (constantes.MENU_CGRAM - len(debajo))
@@ -7947,114 +7958,115 @@ def main():
         titulo_datos = {"pantalla": pantalla,
                         "menu_tiles": menu_tiles, "menu_paleta": menu_paleta,
                         "menu_tilemaps": menu_mapas}
-        print("  pantalla de título %r: %d tiles de 8bpp + %d colores, "
-              "%d B en un flujo LZ2 de %d B"
+        print("  title screen %r: %d 8bpp tiles + %d colors, "
+              "%d B in an LZ2 stream of %d B"
               % (nombre, pantalla["tiles"],
                  pantalla["colores"] - len(debajo), pantalla["crudo"],
                  len(pantalla["flujo"])))
-        print("    menú (%s): %d tiles de 4bpp (%d B) + %d colores, %d tilemap(s)"
+        print("    menu (%s): %d 4bpp tiles (%d B) + %d colors, %d tilemap(s)"
               % (", ".join(repr(t) for t in textos), len(menu_tiles),
                  len(menu_tiles) * 32, len(menu_paleta), len(menu_mapas)))
-    # La pantalla de Game Over: la imagen que nombra el `System` del LDB, en
-    # `GameOver/` del juego o del RTP —como la busca RM2k—, comprimida. Va en
-    # toda ROM que la encuentre: cualquier cartucho puede perder una pelea o
-    # correr un `GameOver`. Ver tools/port/pantalla_completa.py.
+    # The Game Over screen: the image the LDB's `System` names, in the game's
+    # or the RTP's `GameOver/` —as RM2k looks for it—, compressed. It goes in
+    # every ROM that finds it: any cartridge can lose a battle or run a
+    # `GameOver`. See tools/port/pantalla_completa.py.
     game_over_datos = None
     ruta = find_resource([args.game_dir, recursos.RTP_DIR], "GameOver",
                          renderer.database.gameover_name)
     if renderer.database.gameover_name and ruta:
         from PIL import Image
         game_over_datos = pantalla_completa.comprimida(Image.open(ruta))
-        print("  pantalla de Game Over %r: %d tiles de 8bpp + %d colores, "
-              "%d B en un flujo LZ2 de %d B"
+        print("  Game Over screen %r: %d 8bpp tiles + %d colors, "
+              "%d B in an LZ2 stream of %d B"
               % (os.path.basename(ruta), game_over_datos["tiles"],
                  game_over_datos["colores"], game_over_datos["crudo"],
                  len(game_over_datos["flujo"])))
-    # Las animaciones de batalla que el bytecode ya emitido muestra: sus
-    # cuadros prerenderizados van al cartucho y la ROM los sube por DMA.
+    # The battle animations the already emitted bytecode shows: their
+    # prerendered frames go to the cartridge and the ROM uploads them by DMA.
     animaciones = animaciones_de_la_rom(mapas, renderer)
     for numero in sorted(animaciones):
         datos = animacion_mod.informe(numero, animaciones[numero])
-        print("  animación %d: %d cuadros de %dx%d, achicada de %dx%d al %d%%,"
-              " %d colores, %d B"
+        print("  animation %d: %d frames of %dx%d, shrunk from %dx%d to %d%%,"
+              " %d colors, %d B"
               % (datos["animacion"], datos["cuadros"], datos["caja"][0],
                  datos["caja"][1], datos["original"][0], datos["original"][1],
                  datos["porciento"], datos["colores"], datos["bytes"]))
-    # Los encuentros al azar de cada mapa, que piden sus tropas. Van **antes**
-    # que las de las páginas de prueba, que van al final: así las tropas del
-    # cartucho se numeran por los mapas y la inventada va última, que es lo
-    # mismo que hace `temas_de_la_rom` con el tema del mapa. Pedirla antes le
-    # daba siempre el índice 0, y con eso ningún caso de la tanda ejercitaba
-    # que `escena_tropa_fondo` y `tropa_id` se indexen de verdad. Por eso
-    # `pagina_de_caso` compila sin `Tropas`.
+    # The random encounters of each map, which ask for their troops. They go
+    # **before** those of the test pages, which go at the end: that way the
+    # cartridge's troops are numbered by the maps and the invented one goes
+    # last, which is the same `temas_de_la_rom` does with the map's song.
+    # Asking for it first always gave it index 0, and with that no case of the
+    # suite exercised that `escena_tropa_fondo` and `tropa_id` are really
+    # indexed. That is why `pagina_de_caso` compiles without `Tropas`.
     encuentros = encuentros_de_la_rom(mapas, renderer.tree,
                                       args.encuentros_de_prueba, tropas)
     cuantas = sum(z["tropa_n"] for z in encuentros["zonas"])
     if encuentros["registros"]:
-        print("  encuentros al azar: %d mapa(s), %d zona(s), %d tropa(s)"
+        print("  random encounters: %d map(s), %d zone(s), %d troop(s)"
               % (len(encuentros["registros"]), len(encuentros["zonas"]),
                  cuantas))
     for cmd in de_archivo:
         if cmd.code == eventos.ENEMY_ENCOUNTER:
             tropas.pedir(eventos.tropa_de_encuentro(cmd),
                          eventos.fondo_de_encuentro(cmd))
-    # El audio de la pelea, con los índices que ya sacó de `temas` mientras las
-    # páginas compilaban. Se vuelve a pedir sólo para leerlos: `Temas` numera
-    # una vez y devuelve lo mismo, y lo anotado va al paquete de la pelea y no
-    # al de ningún mapa.
+    # The battle's audio, with the indices it already got from `temas` while
+    # the pages compiled. It is asked for again only to read them: `Temas`
+    # numbers once and returns the same, and what was noted goes to the
+    # battle's package and not to any map's.
     audio_batalla = eventos.audio_de_batalla(temas) if tropas.ids else None
-    # Los fondos y los battlers que las peleas del cartucho piden, cada uno
-    # una vez: la ROM los compone al empezar cada pelea. Ver
-    # tools/port/escena.py, que es donde está el porqué y el presupuesto.
+    # The backdrops and the battlers the cartridge's battles ask for, each one
+    # once: the ROM composes them when each battle starts. See
+    # tools/port/escena.py, which is where the reason and the budget are.
     escenas = escena_de_la_rom(renderer.database, tropas, mapas, renderer.tree,
                                encuentros, args.game_dir)
-    # El `.msu` se escribe después del audio, porque lleva también los efectos
-    # de sonido de calidad: ver `msu_asm`.
+    # The `.msu` is written after the audio, because it also carries the
+    # quality sound effects: see `msu_asm`.
     for info in escenas["fondos"]:
         rom_tiles, rom_colores = respaldo_bytes(info)
         msu_tiles, msu_colores = escenas["calidad"][info["numero"]]
-        print("  fondo de batalla %d %r: %dx%d, %d tiles desde la entrada %d "
-              "de la CGRAM; en la ROM %dx%d en 4bpp y %d colores (%d B), en "
-              "el .msu 8bpp y %d colores (%d B)"
+        print("  battle backdrop %d %r: %dx%d, %d tiles from CGRAM entry %d; "
+              "in the ROM %dx%d at 4bpp and %d colors (%d B), in "
+              "the .msu 8bpp and %d colors (%d B)"
               % (info["numero"], info["nombre"], escena_mod.ANCHO,
                  escena_mod.ALTO, escena_mod.TILES, escena_mod.CGRAM_BASE,
                  escena_mod.RESPALDO_ANCHO, escena_mod.RESPALDO_ALTO,
                  len(info["respaldo"]["paleta"]),
                  len(rom_tiles) + len(rom_colores), escena_mod.COLORES,
                  len(msu_tiles) + len(msu_colores)))
-    # Y los que no están en la ROM, con cuál se reemplazan sin MSU-1.
+    # And the ones that aren't in the ROM, with which one replaces them
+    # without MSU-1.
     en_rom = {info["numero"] for info in escenas["fondos"]}
     fuera = [k for k in range(len(escenas["juego"])) if k not in en_rom]
     if fuera and escenas["fondos"]:
-        print("  fondos de batalla sólo en el .msu, que sin MSU-1 van sobre "
-              "%r: %s" % (escenas["fondos"][escenas["respaldo_de"][fuera[0]]]
-                          ["nombre"], ", ".join(
-                              "%d %s" % (k, escenas["juego"][k])
-                              for k in fuera)))
+        print("  battle backdrops only in the .msu, which without MSU-1 fall "
+              "back to %r: %s" % (escenas["fondos"][escenas["respaldo_de"][fuera[0]]]
+                                  ["nombre"], ", ".join(
+                                      "%d %s" % (k, escenas["juego"][k])
+                                      for k in fuera)))
     for info in escenas["battlers"]:
         d = escena_mod.informe_battler(info)
-        print("  battler %r: %dx%d, %d B, %d colores de %d"
+        print("  battler %r: %dx%d, %d B, %d colors of %d"
               % (d["clave"], d["ancho"], d["alto"], d["bytes"], d["quedan"],
                  d["colores"]))
-    # Las páginas de evento de las tropas que alguna pelea del cartucho pide,
-    # con **todas** las tropas ya pedidas: las de los mapas, las de los
-    # encuentros al azar y las de las páginas de prueba. Ver
-    # `eventos.PaginasDeTropa`, que es también por qué sus mensajes van a un
-    # bloque aparte. Con `temas`, porque un `PlaySound` de página suena en el
-    # paquete de la pelea, que todavía no se armó: se arma más abajo.
+    # The event pages of the troops some battle of the cartridge asks for,
+    # with **all** the troops already asked for: the maps', the random
+    # encounters' and the test pages'. See `eventos.PaginasDeTropa`, which is
+    # also why their messages go to a separate block. With `temas`, because a
+    # page's `PlaySound` sounds in the battle's package, which isn't built
+    # yet: it is built further down.
     paginas_tropa = eventos.PaginasDeTropa()
     for numero in tropas.ids:
         if numero in renderer.database.troops:
             paginas_tropa.compilar(numero, renderer.database.troops[numero],
                                    temas)
-    print("  páginas de tropa: %d de %d en %d cuerpo(s) distinto(s), %d B de "
-          "código y %d B en %d mensaje(s)"
+    print("  troop pages: %d of %d in %d distinct body(ies), %d B of "
+          "code and %d B in %d message(s)"
           % (paginas_tropa.paginas - paginas_tropa.afuera,
              paginas_tropa.paginas, len(paginas_tropa.donde),
              len(paginas_tropa.cuerpos), len(paginas_tropa.mensajes.datos),
              len(paginas_tropa.mensajes.textos)))
-    # Los ítems que sueltan los enemigos de esas tropas también pueden llegar
-    # al inventario: ver `items_del_botin`.
+    # The items the enemies of those troops drop can also reach the
+    # inventory: see `items_del_botin`.
     ranuras_datos["items"] = sorted(
         set(items_rom) | items_del_botin(renderer.database, tropas.ids))
     comprimidos = comprimir_los_bloques(mapas)
@@ -8064,13 +8076,13 @@ def main():
                    escenas, encuentros, paginas_tropa, comprimidos,
                    hp_de_enemigos=args.hp_de_enemigos,
                    game_over=game_over_datos)
-    # Qué entradas de su paleta usan los dígitos del cronómetro, un bit por
-    # entrada y una palabra por mapa, en el orden de `mapa_tabla`.
-    # `subir_timer_pal` vuelve a subir sin teñir **ésas** y no la paleta
-    # entera, porque la paleta es de un personaje que sí se tiñe. Va aparte y
-    # no como campo del registro porque el registro está en sus 128 justos.
-    # El índice es el mismo `index + 1` con el que `digitos_del_timer` pintó
-    # los glifos: el primero que tiene ese color.
+    # Which entries of their palette the timer digits use, one bit per entry
+    # and one word per map, in the order of `mapa_tabla`. `subir_timer_pal`
+    # uploads **those** again untinted and not the whole palette, because the
+    # palette belongs to a character that is tinted. It goes separately and
+    # not as a record field because the record is at exactly its 128. The
+    # index is the same `index + 1` `digitos_del_timer` painted the glyphs
+    # with: the first one that has that color.
     colores_timer = sorted(colores_del_timer(skin))
     mascaras = []
     for mapa in mapas:
@@ -8086,16 +8098,16 @@ def main():
                      % (2 * len(mascaras),
                         ", ".join("$%04X" % m for m in mascaras)))
     if len(args.casos) > 1:
-        # Dónde escribe el arnés el número de caso: ver `--caso`.
+        # Where the harness writes the case number: see `--caso`.
         with open(args.output, "a") as handle:
             handle.write("\nCASO_RANURA = %d\n" % eventos.ranura_de_variable(
                 eventos.VARIABLE_DE_CASO))
-    print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"
+    print("%d map(s) -> %s, boots at %d (map %d)"
           % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
-    # Lo que decidió el asignador, como imágenes: para mirar qué colores se
-    # perdieron y en qué paleta quedó cada celda sin armar ni correr la ROM.
-    # Son indexadas y sus índices son entradas de CGRAM, así que un editor en
-    # modo indexado las abre tal como las va a ver `tiles`.
+    # What the allocator decided, as images: to look at which colors were lost
+    # and which palette each cell ended up in without building or running the
+    # ROM. They are indexed and their indices are CGRAM entries, so an editor
+    # in indexed mode opens them just as `tiles` is going to see them.
     asignador = os.path.join(os.path.dirname(os.path.abspath(args.output)),
                              "asignador")
     os.makedirs(asignador, exist_ok=True)
@@ -8105,19 +8117,21 @@ def main():
             with open(os.path.join(asignador, "%04d-%s.png"
                                    % (mapa["id"], nombre)), "wb") as handle:
                 handle.write(png)
-    # Y **lo que decidió perder**, escrito: qué color se fusionó con cuál en
-    # cada capa. Va al lado de las imágenes porque sale de la misma decisión,
-    # pero es otra cosa: las imágenes son para mirar y esto es para leer de
-    # vuelta y para que el diff avise. Lo versionado está en `rom/parches/`, y
-    # `just parches --check` compara. Ver tools/port/parches.py.
+    # And **what it decided to lose**, written down: which color was merged
+    # with which in each layer. It goes next to the images because it comes
+    # from the same decision, but it is something else: the images are for
+    # looking at and this is for reading back and for the diff to warn. What
+    # is versioned is in `rom/parches/`, and `just parches --check` compares.
+    # See tools/port/parches.py.
     destino_parches = os.path.dirname(os.path.abspath(args.output))
     cuantos, pesan = parches_mod.escribir(destino_parches, mapas)
-    print("parches de %d mapa(s) -> %s (%d B)"
+    print("patches of %d map(s) -> %s (%d B)"
           % (cuantos, parches_mod.EN_BUILD, pesan))
-    # Y la otra decisión que ya está escrita: **a qué tamaño se dibuja cada
-    # animación de batalla**. Sale de la misma vuelta de arriba; acá se junta
-    # con el nombre y la hoja que la animación tiene en el LDB, que no los mira
-    # nadie para dibujar y están para que el diff diga de cuál se habla.
+    # And the other decision that is already written down: **at what size
+    # each battle animation is drawn**. It comes from the same round above;
+    # here it is joined with the name and the sheet the animation has in the
+    # LDB, which nobody looks at to draw and are there so that the diff says
+    # which one it is about.
     cuantos, pesan = parches_mod.escribir_animaciones(
         destino_parches,
         [dict(animacion_mod.informe(numero, animaciones[numero]),
@@ -8125,36 +8139,37 @@ def main():
               hoja=eventos.ANIMACIONES[numero].get("imagen", ""),
               lado=animacion_mod.CAJA)
          for numero in sorted(animaciones)])
-    print("parches de %d animación(es) -> %s (%d B)"
+    print("patches of %d animation(s) -> %s (%d B)"
           % (cuantos, parches_mod.EN_BUILD_ANIM, pesan))
-    # Y **a qué quince colores se reduce cada battler**, que es la decisión que
-    # trajo la escena compuesta en la consola: ver tools/port/escena.py.
+    # And **which fifteen colors each battler is reduced to**, which is the
+    # decision the scene composed on the console brought: see
+    # tools/port/escena.py.
     cuantos, pesan = parches_mod.escribir_battlers(destino_parches,
                                                    escenas["battlers"])
-    print("parches de %d battler(s) -> %s (%d B)"
+    print("patches of %d battler(s) -> %s (%d B)"
           % (cuantos, parches_mod.EN_BUILD_BAT, pesan))
-    # Y quién pidió cada uno, que no se versiona: es lo que separa, en la ROM
-    # que se juega, lo del juego de lo que sólo existe por la tanda.
+    # And who asked for each one, which isn't versioned: it is what separates,
+    # in the ROM that is played, what belongs to the game from what only
+    # exists because of the suite.
     parches_mod.escribir_usos(destino_parches, usos_de_los_parches(
         mapas, renderer.database, renderer.tree))
     if informe:
-        print("material comprimido y compartido entre mapas:")
+        print("material compressed and shared between maps:")
         for linea in informe:
             print(linea)
 
-    # La música sale de acá y no de una receta aparte. `musicdata.inc` era
-    # estado global como lo fue `mapdata.inc`, con el agravante de que nadie lo
-    # regeneraba: una ROM armada para los mapas 4, 7, 19 y 1 —que no tienen
-    # música— sonaba con el tema del mapa 348, que era el último que alguien
-    # había generado a mano. Emitirlos juntos es lo único que garantiza que los
-    # dos describan la misma ROM.
+    # The music comes from here and not from a separate recipe.
+    # `musicdata.inc` was global state as `mapdata.inc` was, with the
+    # aggravating factor that nobody regenerated it: a ROM built for maps 4, 7,
+    # 19 and 1 —which have no music— played the song of map 348, which was the
+    # last one somebody had generated by hand. Emitting them together is the
+    # only thing that guarantees both describe the same ROM.
     #
-    # Van **todos los temas**, compartiendo un solo banco de muestras, y
-    # suena el del mapa donde la ROM arranca; los demás los prende un
-    # `PlayBGM`, o el mapa al que se entra si trae uno propio —ver
-    # `mapa_tema_callar` en tools/runtime/cargar_mapa.s—. A qué tasa queda cada
-    # muestra lo decide la ARAM, paquete por paquete: ver `Banco` en
-    # snes_music.py.
+    # **All the songs** go, sharing a single sample bank, and the one of the
+    # map the ROM boots in plays; the others are started by a `PlayBGM`, or
+    # by the map that is entered if it brings its own —see `mapa_tema_callar`
+    # in tools/runtime/cargar_mapa.s—. What rate each sample ends up at is
+    # decided by the ARAM, package by package: see `Banco` in snes_music.py.
     musica = os.path.join(os.path.dirname(os.path.abspath(args.output)),
                           "musicdata.inc")
     pedidos, arranque, tema_titulo, tema_de_mapa, tema_game_over = (
@@ -8163,74 +8178,76 @@ def main():
             renderer.database.title_music if not args.sin_titulo else None,
             [m["id"] for m in mapas],
             renderer.database.gameover_music if game_over_datos else None))
-    # Los efectos, en el orden en que los piden las páginas compiladas: los
-    # mapas se compilan en el orden de la ROM, así que los del mapa donde
-    # arranca van primero —en la demo, la lluvia y el trueno de la apertura—.
-    # Sólo los que están en algún paquete: uno que no está en ninguno no
-    # suena en ningún lado —su fila de `sonido_tabla` queda en $FF— y
-    # armarlo le costaría a la música, porque `snes_music.copias` cuenta los
-    # efectos del cartucho. Pasa con los de ruta de `se_de_ruta_sin_paquete`.
+    # The sound effects, in the order the compiled pages ask for them: the
+    # maps are compiled in ROM order, so those of the map where it boots go
+    # first —in the demo, the rain and the thunder of the opening—. Only the
+    # ones that are in some package: one that isn't in any doesn't sound
+    # anywhere —its row of `sonido_tabla` stays at $FF— and building it would
+    # cost the music, because `snes_music.copias` counts the cartridge's
+    # sound effects. It happens with the route ones of
+    # `se_de_ruta_sin_paquete`.
     empaquetados = {n for pide in temas.por_mapa.values()
                     for n in pide["sonidos"]}
     pedidos_se = []
     for nombre, _v, _t, _b in temas.sonidos:
         if nombre not in pedidos_se and nombre in empaquetados:
             pedidos_se.append(nombre)
-    # El paquete de audio de cada mapa, en el orden de la tabla de mapas: los
-    # temas que sus páginas pueden prender —más, en el de arranque, el que
-    # suena desde el principio, y en todos el propio del mapa— y sus efectos,
-    # en el orden en que aparecen, que es la prioridad con que la ROM los sube
-    # si no entran todos. Ver `paquete_cargar` en tools/runtime/paquete_de_audio.s.
-    # Se arman **antes** que el banco, por nombre, porque el presupuesto de
-    # cada muestra sale de ellos: ver `snes_music.Banco`.
+    # Each map's audio package, in the order of the map table: the songs its
+    # pages can start —plus, in the boot one, the one that plays from the
+    # start, and in all the map's own— and its sound effects, in the order
+    # they appear, which is the priority the ROM uploads them with if they
+    # don't all fit. See `paquete_cargar` in tools/runtime/paquete_de_audio.s.
+    # They are built **before** the bank, by name, because each sample's
+    # budget comes from them: see `snes_music.Banco`.
     paquetes, apartes = [], []
     for i, _mapa in enumerate(mapas):
         pide = temas.por_mapa.get(i, {"temas": [], "sonidos": []})
         suyos = list(pide["temas"])
         if i == args.inicial and arranque != 0xFF and arranque not in suyos:
             suyos.insert(0, arranque)
-        # Y el tema propio del mapa, **adelante**: es el único de la lista que
-        # suena seguro al entrar, así que si la ARAM no alcanza para todo es
-        # el último que se tiene que caer. Sin él en el paquete, sus muestras
-        # las tendría que subir `tema_asegurar` al prenderlo, rearmando el
-        # paquete entero una segunda vez.
+        # And the map's own song, **in front**: it is the only one on the list
+        # that surely plays on entering, so if the ARAM isn't enough for
+        # everything it is the last one that has to fall. Without it in the
+        # package, its samples would have to be uploaded by `tema_asegurar`
+        # when starting it, rebuilding the whole package a second time.
         if tema_de_mapa[i] != 0xFF:
             if tema_de_mapa[i] in suyos:
                 suyos.remove(tema_de_mapa[i])
             suyos.insert(0, tema_de_mapa[i])
-        # Y los de salida, aparte y detrás de los efectos: los que el mapa
-        # prende sólo para irse no tienen por qué entrar con sus efectos. Ver
-        # `Temas.de_salida`. El propio del mapa y el del arranque no: ésos
-        # suenan al entrar.
+        # And the exit ones, separate and after the sound effects: the ones
+        # the map starts only to leave have no reason to go in with its sound
+        # effects. See `Temas.de_salida`. Not the map's own nor the boot one:
+        # those play on entering.
         salida = [t for t in temas.de_salida(i)
                   if t in suyos and t != tema_de_mapa[i]
                   and not (i == args.inicial and t == arranque)]
         suyos = [t for t in suyos if t not in salida]
-        # Y los aparte, que tampoco van con los otros temas: los sube su
-        # `PlayBGM` con los efectos del paquete. Ver `temas_aparte`.
+        # And the separate ones, which don't go with the other songs either:
+        # their `PlayBGM` uploads them with the package's sound effects. See
+        # `temas_aparte`.
         aparte = [t for t in suyos if pedidos[t] in snes_music.temas_aparte().get(
                       _mapa["id"], ()) and t != tema_de_mapa[i]
                   and not (i == args.inicial and t == arranque)]
         suyos = [t for t in suyos if t not in aparte]
         apartes.append(aparte)
         paquetes.append((suyos, list(pide["sonidos"]), salida))
-    # Y el paquete de la pelea, detrás de los mapas: el tema de batalla y sus
-    # efectos, que la ROM sube al abrir la pelea y descarga al cerrarla. Va
-    # aparte y no adentro del paquete del mapa porque el tema de batalla solo
-    # llena la ARAM; ver `eventos.PAQUETE_BATALLA`.
+    # And the battle's package, after the maps: the battle song and its sound
+    # effects, which the ROM uploads when opening the battle and unloads when
+    # closing it. It goes separately and not inside the map's package because
+    # the battle song alone fills the ARAM; see `eventos.PAQUETE_BATALLA`.
     pide = temas.por_mapa.get(eventos.PAQUETE_BATALLA)
     if pide:
         paquetes.append((list(pide["temas"]), list(pide["sonidos"]), []))
         apartes.append([])
     nombres_de_paquete = ([str(m["id"]) for m in mapas]
                           + (["pelea"] if pide else []))
-    # Y el de la pantalla de Game Over, último: su tema solo y ningún efecto.
-    # La ROM lo sube con la pantalla en negro, antes del fundido de entrada
-    # —ver `game_over_negro` en tools/runtime/game_over.s—, y con un paquete propio
-    # sube sólo eso: llegar con `tema_asegurar` rearmaría el paquete del mapa
-    # entero detrás, que es un segundo de negro más. Para el reparto es un
-    # paquete de un tema, que no le baja la tasa a nadie: sus muestras entran
-    # solas en la ARAM.
+    # And the Game Over screen's, last: its song alone and no sound effects.
+    # The ROM uploads it with the screen black, before the fade in —see
+    # `game_over_negro` in tools/runtime/game_over.s—, and with a package of
+    # its own it uploads only that: arriving with `tema_asegurar` would
+    # rebuild the whole map package behind it, which is one more second of
+    # black. For the allocation it is a one-song package, which doesn't lower
+    # anyone's rate: its samples fit alone in the ARAM.
     paquete_game_over = 0xFFFF
     if tema_game_over != 0xFF:
         paquete_game_over = len(paquetes)
@@ -8240,8 +8257,8 @@ def main():
     por_nombre = [(nombre, suyos, suyas, salida, aparte)
                   for nombre, (suyos, suyas, salida), aparte
                   in zip(nombres_de_paquete, paquetes, apartes)]
-    # Y el de la pantalla de título, que no está en la tabla: `tema_asegurar`
-    # sube su tema con el paquete del mapa de arranque detrás.
+    # And the title screen's, which isn't in the table: `tema_asegurar`
+    # uploads its song with the boot map's package behind.
     if tema_titulo != 0xFF:
         suyos, suyas, _salida = paquetes[args.inicial]
         por_nombre.append(("titulo", [tema_titulo] + suyos, suyas))
@@ -8254,21 +8271,22 @@ def main():
     driver, muestras, hechos, banco = snes_music.build_varios(
         pedidos, args.game_dir, pedidos_se, por_nombre, herencia,
         aire_de_medida=args.aire_de_medida)
-    # Y lo que `tools/audio/techos.py` necesita de cada tema —cuánto dura y
-    # la huella de su mezcla—, escrito al lado: el banco ya no se puede
-    # rearmar sin compilar las páginas, que es de donde salen los paquetes.
+    # And what `tools/audio/techos.py` needs from each song —how long it lasts
+    # and the fingerprint of its mix—, written next to it: the bank can no
+    # longer be rebuilt without compiling the pages, which is where the
+    # packages come from.
     with open(os.path.join(os.path.dirname(musica), "musica.json"),
               "w") as handle:
         json.dump({"temas": [
             {"nombre": t["nombre"],
              "largo": t["escrituras"][-1][0] + 1 if t["escrituras"] else 0,
              "huella": t.get("huella", ""),
-             # De acá la lee `tools/audio/msu.py`, que arma sólo las pistas
-             # de los temas del cartucho.
+             # `tools/audio/msu.py` reads it from here, which builds only the
+             # tracks of the cartridge's songs.
              "pista": t["pista"]} for t in hechos]},
             handle, indent=1)
-    # Los efectos de cada paquete van por número y no por SRCN: varios
-    # comparten el lugar del directorio. Ver `snes_music.lugares_de_efectos`.
+    # Each package's sound effects go by number and not by SRCN: several share
+    # the directory's place. See `snes_music.lugares_de_efectos`.
     efectos = getattr(banco, "efectos", {})
     efecto_id = getattr(banco, "efecto_id", {})
     paquetes = [(suyos, [efecto_id[n] for n in suyas if n in efectos], salida)
@@ -8278,15 +8296,15 @@ def main():
         efectos.values(), key=lambda v: efecto_id[v[1].name])]
     if pide:
         assert nombres_de_paquete[len(mapas)] == "pelea", (
-            "el paquete de la pelea tiene que quedar en el índice que emitió "
-            "`emit` como PAQUETE_BATALLA")
-        print("  paquete de audio de la pelea: %d tema(s), %d efecto(s)"
+            "the battle's package has to end up at the index `emit` emitted "
+            "as PAQUETE_BATALLA")
+        print("  battle audio package: %d song(s), %d sound effect(s)"
               % (len(pide["temas"]), len(paquetes[-1][1])))
-    # **Y que el arranque entre en `BOOT_CUADROS`**: la ROM espera hasta ese
-    # cuadro para que el lazo arranque siempre en el mismo, y si subir el
-    # paquete del mapa de arranque tardara más, saldría más tarde y las
-    # pruebas —que cuentan desde ahí— contarían mal. Ver el comentario de
-    # `BOOT_CUADROS` en tools/runtime/ram_lejana.s.
+    # **And that the boot fits in `BOOT_CUADROS`**: the ROM waits until that
+    # frame so that the loop always starts on the same one, and if uploading
+    # the boot map's package took longer, it would come out later and the
+    # tests —which count from there— would count wrong. See the comment on
+    # `BOOT_CUADROS` in tools/runtime/ram_lejana.s.
     cuadros, del_paquete = snes_music.cuadros_del_arranque(
         driver, muestras, hechos, paquetes[args.inicial],
         cuadros_de_descomprimir(mapas[args.inicial], comprimidos),
@@ -8294,101 +8312,102 @@ def main():
     tope = snes_music.boot_cuadros()
     if cuadros > tope:
         raise SystemExit(
-            "el arranque no entra en BOOT_CUADROS: el paquete del mapa de "
-            "arranque son %d B y con el mapa, el driver y el directorio la "
-            "cuenta da %.0f cuadros, contra %d. Subir BOOT_CUADROS en "
-            "tools/runtime/ram_lejana.s, o achicar ese paquete"
+            "the boot doesn't fit in BOOT_CUADROS: the boot map's package is "
+            "%d B and with the map, the driver and the directory the "
+            "computation gives %.0f frames, against %d. Raise BOOT_CUADROS in "
+            "tools/runtime/ram_lejana.s, or shrink that package"
             % (del_paquete, cuadros, tope))
-    print("  arranque: el paquete del mapa de arranque son %d B, %.0f de "
-          "los %d cuadros de BOOT_CUADROS" % (del_paquete, cuadros, tope))
+    print("  boot: the boot map's package is %d B, %.0f of "
+          "the %d frames of BOOT_CUADROS" % (del_paquete, cuadros, tope))
     snes_music.emit(musica, hechos, driver, muestras, arranque, tema_titulo,
                     snes_music.tabla_de_sonidos(temas.sonidos, banco),
                     [p + (aparte,) for p, aparte in zip(paquetes, apartes)],
                     tema_de_mapa, directorio, efecto_lugar,
                     game_over=(tema_game_over, paquete_game_over))
-    # El `.msu`: los fondos de calidad y los efectos de calidad, para leerlos
-    # por el MSU-1 cuando está. Se escribe siempre, aunque el cartucho no
-    # lleve ni fondos ni efectos, porque es también el archivo que enciende el
-    # MSU-1 para las pistas.
+    # The `.msu`: the quality backdrops and the quality sound effects, to read
+    # them through the MSU-1 when it is there. It is always written, even if
+    # the cartridge carries neither backdrops nor sound effects, because it is
+    # also the file that turns on the MSU-1 for the tracks.
     escribir_msu(args.msu or os.path.join(os.path.dirname(os.path.abspath(
         args.output)), "datos.msu"), musica, escenas["calidad"],
         por_nombre[:len(paquetes)], paquetes, hechos, muestras, banco,
         temas.sonidos, args.game_dir)
     for i, (suyos, suyas, salida) in enumerate(paquetes[:len(mapas)]):
         if suyos or suyas or salida or apartes[i]:
-            print("  paquete de audio del mapa %d: %d tema(s), %d efecto(s)%s%s"
+            print("  audio package of map %d: %d song(s), %d sound effect(s)%s%s"
                   % (mapas[i]["id"], len(suyos), len(suyas),
-                     ", y de salida %s" % ", ".join(hechos[t]["nombre"]
-                                                    for t in salida)
+                     ", and for exit %s" % ", ".join(hechos[t]["nombre"]
+                                                     for t in salida)
                      if salida else "",
-                     ", y aparte %s" % ", ".join(hechos[t]["nombre"]
-                                                 for t in apartes[i])
+                     ", and separate %s" % ", ".join(hechos[t]["nombre"]
+                                                     for t in apartes[i])
                      if apartes[i] else ""))
     if pedidos_se:
-        print("  efectos de sonido: %d, %d B en el cartucho"
+        print("  sound effects: %d, %d B in the cartridge"
               % (len(efectos), sum(len(e.data) for _s, e in efectos.values())))
-    print("música -> %s: %s"
+    print("music -> %s: %s"
           % (musica, ", ".join(t["nombre"] for t in hechos)
-             or "ninguna, sale muda"))
+             or "none, it comes out silent"))
 
-    # **Y recién acá se decide el acomodo de bancos**, con los dos archivos ya
-    # escritos: reparte todo lo que los dos mandan a RODATA, y los bancos
-    # quedan al final del último. Ver `tools/ensamblado/bancos.py`.
+    # **And only here is the bank packing decided**, with both files already
+    # written: it spreads everything both send to RODATA, and the banks end up
+    # at the end of the last one. See `tools/ensamblado/bancos.py`.
     piezas, usados = bancos.resolver([musica, args.output])
-    print("acomodo de bancos: %d pieza(s) en %d banco(s)" % (piezas, usados))
-    # Y el mapa de memoria para `ld65`, al lado: sale de acá y no de un
-    # archivo a mano para que en qué banco arrancan los datos esté escrito
-    # una sola vez, en `bancos.PRIMER_BANCO`.
+    print("bank packing: %d piece(s) in %d bank(s)" % (piezas, usados))
+    # And the memory map for `ld65`, next to it: it comes from here and not
+    # from a hand-written file so that which bank the data starts at is
+    # written only once, in `bancos.PRIMER_BANCO`.
     with open(os.path.join(os.path.dirname(os.path.abspath(args.output)),
                            "memoria.cfg"), "w") as handle:
         handle.write(bancos.cfg())
     for i, tema in enumerate(hechos):
-        # El porcentaje de notas que llegan al stream va acá y no escondido:
-        # es lo que se oye como "le faltan voces", y hasta el 2026-09-14 no lo
-        # decía nadie. Ver workflow/decisiones/un-solo-banco-de-muestras.md.
+        # The percentage of notes that reach the stream goes here and not
+        # hidden: it is what is heard as "it's missing voices", and until
+        # 2026-09-14 nobody said it. See
+        # workflow/decisiones/un-solo-banco-de-muestras.md.
         suenan = tema["resumen"].get("notas")
-        # Y cuánto de lo que sí tiene muestra se pierde por falta de voces,
-        # contra lo que se perdería sin remedio con ocho: es lo que mide el
-        # reparto de `snes_music.assign`.
+        # And how much of what does have a sample is lost for lack of voices,
+        # against what would be lost with no remedy with eight: it is what
+        # the allocation of `snes_music.assign` measures.
         perdido, piso = tema["resumen"].get("perdido", (0.0, 0.0))
-        print("  %d. %-16s %4.0f s, %6d B de stream y %4d de sonidos, "
-              "%s de las notas, %.0f%% del tiempo-nota sin voz (piso %.0f%%)%s"
+        print("  %d. %-16s %4.0f s, %6d B of stream and %4d of sounds, "
+              "%s of the notes, %.0f%% of note-time without a voice (floor %.0f%%)%s"
               % (i, tema["nombre"], tema["segundos"], len(tema["stream"]),
                  6 * len(tema["sonidos"]),
-                 "todas" if suenan is None or suenan > 0.999
+                 "all" if suenan is None or suenan > 0.999
                  else "%.0f%%" % (100 * suenan), 100 * perdido, 100 * piso,
-                 ", suena desde el arranque" if i == arranque else ""))
+                 ", plays from boot" if i == arranque else ""))
     if hechos:
-        print("  banco compartido: %d muestras, %d B en el cartucho; cada "
-              "paquete tiene %d B de ARAM para sus muestras"
+        print("  shared bank: %d samples, %d B in the cartridge; each "
+              "package has %d B of ARAM for its samples"
               % (len(banco.voces), sum(len(v.data) for v in banco.voces),
                  banco.libre))
-        # A qué tasa quedó cada muestra y qué paquete la limitó: es lo que se
-        # oye, y lo que dice dónde buscar lugar si hace falta. Una clave con
-        # copias sale una vez por copia, con los temas que la usan: ver
-        # `snes_music.copias`.
+        # What rate each sample ended up at and which package limited it: it
+        # is what is heard, and what says where to look for room if needed. A
+        # key with copies comes out once per copy, with the songs that use it:
+        # see `snes_music.copias`.
         usan = collections.defaultdict(list)
         for tema, suya in zip(hechos, banco.asignacion):
             for muestra in suya.values():
                 usan[muestra].append(tema["nombre"])
         for clave, voz in zip(banco.claves, banco.voces):
             print("    %s %3d %-10s %5.1f kHz, %5d B%s%s%s"
-                  % ("programa" if clave[0] == "p" else "golpe   ", clave[1],
+                  % ("program " if clave[0] == "p" else "hit     ", clave[1],
                      voz.name.strip()[:10], voz.rate / 1000.0, len(voz.data),
-                     ", raíz %d" % voz.root if clave[0] == "p" else "",
-                     ", la limita " + banco.limita[clave]
+                     ", root %d" % voz.root if clave[0] == "p" else "",
+                     ", limited by " + banco.limita[clave]
                      if clave in banco.limita else "",
-                     ", para " + " ".join(usan[clave])
+                     ", for " + " ".join(usan[clave])
                      if len(clave) > (3 if clave[0] == "p" else 2)
                      or any(len(k) > len(clave) and k[:len(clave)] == clave
                             for k in banco.claves) else ""))
-        # Y cuánto le sobra a cada paquete, con sus efectos: los enteros con
-        # lo que ocupan de verdad, no con lo que la música les presupuestó.
-        # Las restricciones del banco ya los traen así —son las de `reales`,
-        # ver `snes_music.copias`—: restarles otra vez lo de más daba
-        # paquetes que no entraban y entraban.
+        # And how much each package has left over, with its sound effects: the
+        # whole ones with what they really take, not with what the music
+        # budgeted for them. The bank's constraints already bring them that way
+        # —they are those of `reales`, see `snes_music.copias`—: subtracting
+        # the extra again gave packages that didn't fit and did fit.
         for r in banco.restricciones:
-            print("    paquete %-28s %5d B de muestras, sobran %5d"
+            print("    package %-28s %5d B of samples, %5d left over"
                   % (r.nombre[:28], banco.ocupa(r.claves),
                      r.libre - banco.ocupa(r.claves)))
 

@@ -51,3 +51,8 @@ de tocar nada.
   (`scratchpad/glosario-coronillo.md`): "hornear" es *bake*, "aire"
   *headroom*, "cuadro de texto" *text box*, "cobrar" una regla *enforce*.
   "La tanda lo cobró" quedó *the suite caught it*.
+- Líneas 6769–8296 (las constantes de la RAM, `eventos_movibles`, los
+  flags de `argparse` y `main` hasta la música): hecho. Quedan como datos
+  los nombres de paquete (`"pelea"`, `"gameover"`, `"titulo"`), los de las
+  imágenes del asignador (`"fondo"`, `"encima"`) y el nombre del evento
+  inventado (`"prueba"`).
