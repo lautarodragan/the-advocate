@@ -22,9 +22,9 @@ def abrir(una, tope=60):
     una.tocar_cuadros("b", 0)
     for _ in range(tope):
         if una.menu_abierto():
-            una.consola.correr(3)
+            una.consola.run(3)
             return una
-        una.consola.correr(1)
+        una.consola.run(1)
     raise AssertionError("B no abrió el menú en %d cuadros" % tope)
 
 

@@ -57,20 +57,20 @@ def test_una_pelea_en_el_mundo_vuelve_al_mapa_bien_dibujado():
     —de a dos flujos— y `lz2_grilla` la grilla."""
     p = llegar(KERSH)
     s = p.simbolos
-    p.consola.escribir_ram(en_la_wram(s["ENC_PIDE"]), [1])
+    p.consola.write_ram(en_la_wram(s["ENC_PIDE"]), [1])
     abierta = False
     # En cuadros de hardware: la pelea no cuenta ticks. A cada nueve cuadros,
     # que es lo que pasa los mensajes y elige atacar.
     for cuadros in range(1, 4000):
-        p.consola.apretar(*(("a",) if cuadros % 9 < 2 else ()))
-        p.consola.correr(1)
+        p.consola.hold(*(("a",) if cuadros % 9 < 2 else ()))
+        p.consola.run(1)
         if p.byte("menu_abierto"):
             abierta = True
         elif abierta:
             break
     else:
         raise AssertionError("la pelea no terminó en %d cuadros" % cuadros)
-    p.consola.apretar()
+    p.consola.hold()
     assert abierta, "el encuentro pedido no abrió ninguna pelea"
     p.correr(LLEGAR_TICKS)
     assert p.mapa() == EL_MUNDO and p.heroe() == LA_LLEGADA, (

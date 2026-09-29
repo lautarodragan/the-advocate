@@ -36,7 +36,7 @@ not say it that clearly:
   * **Answering "no such variable" to `GET_VARIABLE` is not neutral.** The core
     keeps values nobody chose. Here the first value of each list is answered,
     which is the default by libretro convention, and on top of that go the
-    ones in OPCIONES.
+    ones in CORE_OPTIONS.
 
 What is left out on purpose: `GET_LOG_INTERFACE` is answered no. The callback
 is a variadic printf and ctypes does not build those; the three cores put up
@@ -64,19 +64,19 @@ ENV_SET_PIXEL_FORMAT = 10
 ENV_GET_VARIABLE = 15
 ENV_SET_VARIABLES = 16
 ENV_GET_SAVE_DIRECTORY = 31
-FORMATOS = {0: "0RGB1555", 1: "XRGB8888", 2: "RGB565"}
+PIXEL_FORMATS = {0: "0RGB1555", 1: "XRGB8888", 2: "RGB565"}
 
 # The lines the project compares. Each core returns the height it wants
 # —bsnes and snes9x 224, mesen-s 239— and the excess is cropped around the
 # center, which is where the usual window falls: with mesen-s the crop comes to
 # (239-224)/2 = 7 and it is exactly the one that makes the three cores agree
 # at 0 pixels.
-ALTO = 224
+HEIGHT = 224
 
 # What has to be forced on each core so that it draws the same as the others,
 # and so that the test measures what we want. The key is the `library_name`
 # the core declares, not the file name.
-OPCIONES = {
+CORE_OPTIONS = {
     # The 150% gamma is a television's, and here the comparison is against a
     # Python reference that does not model it: with the default, bsnes differs
     # from snes9x in 56189 pixels out of 57344; with 100 it differs in 0.
@@ -94,7 +94,7 @@ OPCIONES = {
 }
 
 # RETRO_DEVICE_JOYPAD, in the order libretro numbers them.
-BOTONES = {"b": 0, "y": 1, "select": 2, "start": 3, "up": 4, "down": 5,
+BUTTONS = {"b": 0, "y": 1, "select": 2, "start": 3, "up": 4, "down": 5,
            "left": 6, "right": 7, "a": 8, "x": 9, "l": 10, "r": 11}
 
 
@@ -122,34 +122,34 @@ class AvInfo(ctypes.Structure):
                 ("fps", ctypes.c_double), ("sample_rate", ctypes.c_double)]
 
 
-class Consola:
+class Console:
 
-    def __init__(self, rom, core=CORE, opciones=None, msu=False):
+    def __init__(self, rom, core=CORE, options=None, msu=False):
         self.lib = ctypes.CDLL(core)
-        self._forzadas = dict(opciones or {})
-        self.formato = 0
+        self._forced = dict(options or {})
+        self.pixel_format = 0
         # The options the core declares, with their default value. Answering
         # "no such variable" is not the same as having no opinions: bsnes
         # leaves the luminance at zero and returns a black screen with the
         # audio playing anyway. A real frontend answers the first value of the
         # list, which is the default by libretro convention.
-        self.opciones = {}
-        self.cuadro = None          # (bytes, width, height, pitch) of the last one
-        self.cuadros = 0
-        self.apretados = set()
+        self.options = {}
+        self.frame = None           # (bytes, width, height, pitch) of the last one
+        self.frame_count = 0
+        self.held = set()
         self.audio = bytearray()
 
         info = SystemInfo()
         self.lib.retro_get_system_info(ctypes.byref(info))
-        self.nombre = "%s %s" % (info.library_name.decode(),
-                                 info.library_version.decode())
+        self.name = "%s %s" % (info.library_name.decode(),
+                               info.library_version.decode())
         # bsnes opens the file itself and does not even look at `data`. See
         # the docstring.
-        pide_archivo = info.need_fullpath
-        self._forzadas = dict(OPCIONES.get(info.library_name.decode(), {}),
-                              **self._forzadas)
+        wants_path = info.need_fullpath
+        self._forced = dict(CORE_OPTIONS.get(info.library_name.decode(), {}),
+                            **self._forced)
 
-        datos = open(rom, "rb").read()
+        data = open(rom, "rb").read()
         # **Whoever creates the console decides the MSU-1, not the
         # directory.** The cores look for `<rom>.msu` and `<rom>-N.pcm` next to
         # the path they are given —bsnes in `program.cpp`, with the path's
@@ -167,17 +167,17 @@ class Consola:
         # it— is that same one: if it were the ROM's, a core looking there
         # would also find the tracks.
         if msu:
-            ruta = os.path.abspath(rom)
+            path = os.path.abspath(rom)
         else:
-            propio = tempfile.mkdtemp(prefix="retro-")
+            own_dir = tempfile.mkdtemp(prefix="retro-")
             # It is deleted when the console is collected, or at exit: there
             # is no `retro_deinit` marking the end. Each console has its own,
             # so two at once do not step on each other.
-            weakref.finalize(self, shutil.rmtree, propio, True)
-            ruta = os.path.join(propio, os.path.basename(rom))
-            with open(ruta, "wb") as archivo:
-                archivo.write(datos)
-        self._directorio = ctypes.c_char_p(os.path.dirname(ruta).encode())
+            weakref.finalize(self, shutil.rmtree, own_dir, True)
+            path = os.path.join(own_dir, os.path.basename(rom))
+            with open(path, "wb") as handle:
+                handle.write(data)
+        self._directory = ctypes.c_char_p(os.path.dirname(path).encode())
 
         # The callbacks are kept on self: if they are left as temporaries,
         # Python's collector frees them and the core calls into dead memory.
@@ -187,7 +187,7 @@ class Consola:
                                        ctypes.c_uint, ctypes.c_size_t)(self._on_video)
         self._audio = ctypes.CFUNCTYPE(ctypes.c_size_t, ctypes.c_void_p,
                                        ctypes.c_size_t)(self._on_audio)
-        self._audio_uno = ctypes.CFUNCTYPE(None, ctypes.c_int16,
+        self._audio_one = ctypes.CFUNCTYPE(None, ctypes.c_int16,
                                            ctypes.c_int16)(lambda i, d: None)
         self._poll = ctypes.CFUNCTYPE(None)(lambda: None)
         self._state = ctypes.CFUNCTYPE(ctypes.c_int16, ctypes.c_uint,
@@ -200,16 +200,16 @@ class Consola:
         self.lib.retro_set_environment(self._env)
         self.lib.retro_init()
         self.lib.retro_set_video_refresh(self._video)
-        self.lib.retro_set_audio_sample(self._audio_uno)
+        self.lib.retro_set_audio_sample(self._audio_one)
         self.lib.retro_set_audio_sample_batch(self._audio)
         self.lib.retro_set_input_poll(self._poll)
         self.lib.retro_set_input_state(self._state)
 
-        self._buf = ctypes.create_string_buffer(datos, len(datos))
-        juego = GameInfo(ruta.encode(),
-                         None if pide_archivo
-                         else ctypes.cast(self._buf, ctypes.c_void_p),
-                         len(datos), None)
+        self._buf = ctypes.create_string_buffer(data, len(data))
+        game = GameInfo(path.encode(),
+                        None if wants_path
+                        else ctypes.cast(self._buf, ctypes.c_void_p),
+                        len(data), None)
         # snes9x writes "Map_LoROMMap" to standard output when loading. It is a
         # printf from the core, not from Python, so silencing it requires
         # moving the descriptor and not redirecting sys.stdout. It would
@@ -218,18 +218,18 @@ class Consola:
         # right away, it stays in the buffer and only comes out when the
         # process ends, that is, when the redirection is no longer there.
         libc = ctypes.CDLL(None)
-        guardado = os.dup(1)
-        nulo = os.open(os.devnull, os.O_WRONLY)
+        saved = os.dup(1)
+        devnull = os.open(os.devnull, os.O_WRONLY)
         sys.stdout.flush()
-        os.dup2(nulo, 1)
+        os.dup2(devnull, 1)
         try:
-            cargo = self.lib.retro_load_game(ctypes.byref(juego))
+            loaded = self.lib.retro_load_game(ctypes.byref(game))
         finally:
             libc.fflush(None)
-            os.dup2(guardado, 1)
-            os.close(nulo)
-            os.close(guardado)
-        if not cargo:
+            os.dup2(saved, 1)
+            os.close(devnull)
+            os.close(saved)
+        if not loaded:
             raise SystemExit("the core could not load %s" % rom)
 
     def _on_env(self, cmd, data):
@@ -237,27 +237,28 @@ class Consola:
             arr = ctypes.cast(data, ctypes.POINTER(Variable))
             i = 0
             while arr[i].key:
-                texto = arr[i].value.decode()
+                text = arr[i].value.decode()
                 # "Description; one|two|three" -> the default is the first.
-                defecto = texto.split(";", 1)[-1].strip().split("|")[0].strip()
-                self.opciones[arr[i].key.decode()] = defecto
+                default = text.split(";", 1)[-1].strip().split("|")[0].strip()
+                self.options[arr[i].key.decode()] = default
                 i += 1
-            self.opciones.update(self._forzadas)
+            self.options.update(self._forced)
             return True
         if cmd == ENV_GET_VARIABLE and data:
             var = ctypes.cast(data, ctypes.POINTER(Variable))
-            clave = var[0].key.decode() if var[0].key else ""
-            if clave not in self.opciones:
+            key = var[0].key.decode() if var[0].key else ""
+            if key not in self.options:
                 return False
-            self._vivas = getattr(self, "_vivas", {})
+            self._alive = getattr(self, "_alive", {})
             # The core keeps the pointer, so the bytes object has to outlive
             # this call.
-            self._vivas[clave] = self.opciones[clave].encode()
-            var[0].value = self._vivas[clave]
+            self._alive[key] = self.options[key].encode()
+            var[0].value = self._alive[key]
             return True
         if cmd == ENV_SET_PIXEL_FORMAT:
-            self.formato = ctypes.cast(data, ctypes.POINTER(ctypes.c_int))[0]
-            return self.formato in FORMATOS
+            self.pixel_format = ctypes.cast(
+                data, ctypes.POINTER(ctypes.c_int))[0]
+            return self.pixel_format in PIXEL_FORMATS
         if cmd == ENV_GET_OVERSCAN:
             # No cropping: we want the whole framebuffer, which is what the
             # console captures, not what a television would let through.
@@ -270,14 +271,14 @@ class Consola:
             ctypes.cast(data, ctypes.POINTER(ctypes.c_bool))[0] = True
             return True
         if cmd in (ENV_GET_SYSTEM_DIRECTORY, ENV_GET_SAVE_DIRECTORY) and data:
-            ctypes.cast(data, ctypes.POINTER(ctypes.c_char_p))[0] = self._directorio
+            ctypes.cast(data, ctypes.POINTER(ctypes.c_char_p))[0] = self._directory
             return True
         return False
 
     def _on_video(self, data, w, h, pitch):
         if data:
-            self.cuadro = (ctypes.string_at(data, pitch * h), w, h, pitch)
-        self.cuadros += 1
+            self.frame = (ctypes.string_at(data, pitch * h), w, h, pitch)
+        self.frame_count += 1
 
     def _on_audio(self, data, frames):
         if data:
@@ -285,17 +286,17 @@ class Consola:
         return frames
 
     def _on_state(self, port, device, index, ident):
-        return 1 if (port == 0 and ident in self.apretados) else 0
+        return 1 if (port == 0 and ident in self.held) else 0
 
-    def apretar(self, *nombres):
+    def hold(self, *names):
         """Which buttons are held from now on."""
-        self.apretados = {BOTONES[n] for n in nombres}
+        self.held = {BUTTONS[n] for n in names}
 
-    def correr(self, cuadros=1):
-        for _ in range(cuadros):
+    def run(self, frames=1):
+        for _ in range(frames):
             self.lib.retro_run()
 
-    def tasa(self):
+    def sample_rate(self):
         """At how many samples per second the core delivers the audio.
 
         It is not a constant of the console but of each core and each load:
@@ -323,17 +324,17 @@ class Consola:
     # container is a custom build with that fixed; see `/extras/bsnes-wram/`.
     # Without that fix the clock falls back to counting frames, which still
     # works.
-    MEMORIA_SISTEMA = 2
+    MEMORY_SYSTEM_RAM = 2
     # And the cartridge's SRAM, which is what a frontend saves to disk and what
     # the EverDrive keeps with a battery. `RETRO_MEMORY_SAVE_RAM` is 0, and bsnes
     # returns this one as null too: snes9x reads it, which is the suite's core.
-    MEMORIA_SRAM = 0
+    MEMORY_SAVE_RAM = 0
     # And the PPU's VRAM, `RETRO_MEMORY_VIDEO_RAM`: 64 KB. snes9x exposes it,
     # which is the suite's core; upstream bsnes returns it as null just like
     # the WRAM.
-    MEMORIA_VRAM = 3
+    MEMORY_VIDEO_RAM = 3
 
-    def sram(self, direccion=0, largo=None):
+    def sram(self, address=0, length=None):
         """Bytes of the cartridge's SRAM.
 
         It is what lets "persisting to disk" be tested without a disk: the
@@ -342,30 +343,30 @@ class Consola:
         """
         self.lib.retro_get_memory_data.restype = ctypes.c_void_p
         self.lib.retro_get_memory_size.restype = ctypes.c_size_t
-        base = self.lib.retro_get_memory_data(self.MEMORIA_SRAM)
-        total = self.lib.retro_get_memory_size(self.MEMORIA_SRAM)
+        base = self.lib.retro_get_memory_data(self.MEMORY_SAVE_RAM)
+        total = self.lib.retro_get_memory_size(self.MEMORY_SAVE_RAM)
         if not base or not total:
             raise RuntimeError("this core does not expose the cartridge's SRAM")
-        if largo is None:
-            largo = total - direccion
-        return ctypes.string_at(base + direccion, largo)
+        if length is None:
+            length = total - address
+        return ctypes.string_at(base + address, length)
 
-    def escribir_sram(self, direccion, datos):
+    def write_sram(self, address, data):
         """Writes bytes into the cartridge's SRAM: it is putting another
         `.srm` into the cartridge, like the one a previous build left. It
         exists to test that the ROM rejects a save file that is not in its
         format."""
         self.lib.retro_get_memory_data.restype = ctypes.c_void_p
         self.lib.retro_get_memory_size.restype = ctypes.c_size_t
-        base = self.lib.retro_get_memory_data(self.MEMORIA_SRAM)
-        total = self.lib.retro_get_memory_size(self.MEMORIA_SRAM)
+        base = self.lib.retro_get_memory_data(self.MEMORY_SAVE_RAM)
+        total = self.lib.retro_get_memory_size(self.MEMORY_SAVE_RAM)
         if not base or not total:
             raise RuntimeError("this core does not expose the cartridge's SRAM")
-        datos = bytes(datos)
-        if direccion + len(datos) > total:
+        data = bytes(data)
+        if address + len(data) > total:
             raise ValueError("writing %d bytes at %d goes past the SRAM (%d)"
-                             % (len(datos), direccion, total))
-        ctypes.memmove(base + direccion, datos, len(datos))
+                             % (len(data), address, total))
+        ctypes.memmove(base + address, data, len(data))
 
     def reset(self):
         """The console's reset button: the SRAM survives and the WRAM does not.
@@ -374,21 +375,21 @@ class Consola:
         at where the hero starts.
         """
         self.lib.retro_reset()
-        self.cuadro = None
+        self.frame = None
 
-    def ram(self, direccion=0, largo=None):
-        """Bytes of the WRAM from `direccion`, which is the one in bank $7E."""
+    def ram(self, address=0, length=None):
+        """Bytes of the WRAM from `address`, which is the one in bank $7E."""
         self.lib.retro_get_memory_data.restype = ctypes.c_void_p
         self.lib.retro_get_memory_size.restype = ctypes.c_size_t
-        base = self.lib.retro_get_memory_data(self.MEMORIA_SISTEMA)
-        total = self.lib.retro_get_memory_size(self.MEMORIA_SISTEMA)
+        base = self.lib.retro_get_memory_data(self.MEMORY_SYSTEM_RAM)
+        total = self.lib.retro_get_memory_size(self.MEMORY_SYSTEM_RAM)
         if not base or not total:
             raise RuntimeError("this core does not expose the WRAM")
-        if largo is None:
-            largo = total - direccion
-        return ctypes.string_at(base + direccion, largo)
+        if length is None:
+            length = total - address
+        return ctypes.string_at(base + address, length)
 
-    def vram(self, palabra=0, palabras=None):
+    def vram(self, word=0, words=None):
         """Words of the VRAM, from the PPU's **word address**.
 
         It is asked for in words and not in bytes because that is how the 65816
@@ -403,16 +404,16 @@ class Consola:
         """
         self.lib.retro_get_memory_data.restype = ctypes.c_void_p
         self.lib.retro_get_memory_size.restype = ctypes.c_size_t
-        base = self.lib.retro_get_memory_data(self.MEMORIA_VRAM)
-        total = self.lib.retro_get_memory_size(self.MEMORIA_VRAM)
+        base = self.lib.retro_get_memory_data(self.MEMORY_VIDEO_RAM)
+        total = self.lib.retro_get_memory_size(self.MEMORY_VIDEO_RAM)
         if not base or not total:
             raise RuntimeError("this core does not expose the VRAM")
-        if palabras is None:
-            palabras = total // 2 - palabra
-        crudo = ctypes.string_at(base + palabra * 2, palabras * 2)
-        return [crudo[i] | (crudo[i + 1] << 8) for i in range(0, len(crudo), 2)]
+        if words is None:
+            words = total // 2 - word
+        raw = ctypes.string_at(base + word * 2, words * 2)
+        return [raw[i] | (raw[i + 1] << 8) for i in range(0, len(raw), 2)]
 
-    def escribir_ram(self, direccion, datos):
+    def write_ram(self, address, data):
         """Writes bytes into the WRAM, at the bank $7E address.
 
         The pointer `retro_get_memory_data` returns is the core's memory, not a
@@ -427,26 +428,27 @@ class Consola:
         """
         self.lib.retro_get_memory_data.restype = ctypes.c_void_p
         self.lib.retro_get_memory_size.restype = ctypes.c_size_t
-        base = self.lib.retro_get_memory_data(self.MEMORIA_SISTEMA)
-        total = self.lib.retro_get_memory_size(self.MEMORIA_SISTEMA)
+        base = self.lib.retro_get_memory_data(self.MEMORY_SYSTEM_RAM)
+        total = self.lib.retro_get_memory_size(self.MEMORY_SYSTEM_RAM)
         if not base or not total:
             raise RuntimeError("this core does not expose the WRAM")
-        datos = bytes(datos)
-        if direccion + len(datos) > total:
+        data = bytes(data)
+        if address + len(data) > total:
             raise ValueError("writing %d bytes at %d goes past the WRAM (%d)"
-                             % (len(datos), direccion, total))
-        ctypes.memmove(base + direccion, datos, len(datos))
+                             % (len(data), address, total))
+        ctypes.memmove(base + address, data, len(data))
 
-    def imagen(self):
-        """The last frame as PIL, at 8 bits per channel and cropped to ALTO."""
-        datos, w, h, pitch = self.cuadro
-        if self.formato == 1:                      # XRGB8888
-            img = Image.frombuffer("RGBX", (pitch // 4, h), datos,
+    def image(self):
+        """The last frame as PIL, at 8 bits per channel and cropped to
+        HEIGHT."""
+        data, w, h, pitch = self.frame
+        if self.pixel_format == 1:                      # XRGB8888
+            img = Image.frombuffer("RGBX", (pitch // 4, h), data,
                                    "raw", "BGRX", 0, 1)
             img = img.convert("RGB")
         else:
-            modo = "BGR;16" if self.formato == 2 else "BGR;15"
-            img = Image.frombuffer("RGB", (pitch // 2, h), datos, "raw", modo,
+            mode = "BGR;16" if self.pixel_format == 2 else "BGR;15"
+            img = Image.frombuffer("RGB", (pitch // 2, h), data, "raw", mode,
                                    0, 1)
-        arriba = max(0, (h - ALTO) // 2)
-        return img.crop((0, arriba, w, arriba + min(h, ALTO)))
+        top = max(0, (h - HEIGHT) // 2)
+        return img.crop((0, top, w, top + min(h, HEIGHT)))

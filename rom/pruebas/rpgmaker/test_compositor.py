@@ -39,9 +39,9 @@ def _componer(p, largo, ticks=TICKS):
     caracteres salgan de ahí no importa, importa dónde se escriben.
     """
     mensajes = p.simbolos["mensajes"]
-    p.consola.escribir_ram(p.simbolos["msg_ptr"],
-                           [mensajes & 0xFF, (mensajes >> 8) & 0xFF,
-                            (mensajes >> 16) & 0xFF])
+    p.consola.write_ram(p.simbolos["msg_ptr"],
+                        [mensajes & 0xFF, (mensajes >> 8) & 0xFF,
+                         (mensajes >> 16) & 0xFF])
     for nombre, valor in (("msg_lineas", 1), ("msg_linea", 0),
                           ("msg_col", 0), ("msg_largo", largo),
                           ("msg_cebada", 1), ("msg_subir", 0),

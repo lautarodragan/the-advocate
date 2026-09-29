@@ -283,10 +283,10 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     # eso es lo que se mira acá. Medido: contra una referencia sin grupo o
     # con otro actor son unos 400 pixeles, así que el cero no es vacío.
     comparar(0)
-    una.consola.apretar("down")
-    una.consola.correr(2)
-    una.consola.apretar()
-    una.consola.correr(2)
+    una.consola.hold("down")
+    una.consola.run(2)
+    una.consola.hold()
+    una.consola.run(2)
     comparar(1)
 
 
@@ -362,7 +362,7 @@ def test_una_partida_de_otro_build_se_ve_vacia_y_no_carga(partida, como):
 
     # Y elegirla no carga nada ni se cuelga: arranca como "Begin the Story".
     una._bajar_y_elegir(1)
-    una.consola.correr(3)
+    una.consola.run(3)
     una.correr(1)
     assert una.mapa() == MAPA_DE_ARRANQUE, (
         "elegir la partida de otro build dejó el juego en el mapa %d"

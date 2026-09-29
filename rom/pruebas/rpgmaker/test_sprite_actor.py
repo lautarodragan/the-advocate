@@ -26,7 +26,7 @@ OTRO = 7            # con el que se ensucia la WRAM antes del reset
 
 
 def poner(una, actor, valor):
-    una.consola.escribir_ram(
+    una.consola.write_ram(
         una.simbolos["FAR_ACTOR_GRAF"] + actor, [valor])
 
 

@@ -101,8 +101,8 @@ def hasta_el_mensaje(una, pelea, tope=1500):
         if pelea.modo() in ("ORDEN", "FIN"):
             raise AssertionError("el turno terminó sin que corriera ninguna "
                                  "página de la tropa")
-        una.consola.apretar(*(("a",) if n % 6 < 2 else ()))
-        una.consola.correr(1)
+        una.consola.hold(*(("a",) if n % 6 < 2 else ()))
+        una.consola.run(1)
     raise AssertionError("ninguna página mostró su mensaje")
 
 
@@ -111,8 +111,8 @@ def cerrar_y_esperar_ordenes(una, pelea, tope=1500):
         if pelea.modo() == "ORDEN":
             return
         assert pelea.modo() != "FIN", "la pelea terminó"
-        una.consola.apretar(*(("a",) if n % 6 < 2 else ()))
-        una.consola.correr(1)
+        una.consola.hold(*(("a",) if n % 6 < 2 else ()))
+        una.consola.run(1)
     raise AssertionError("la pelea no volvió a pedir órdenes")
 
 
@@ -156,7 +156,7 @@ def test_el_sistema_de_batalla_de_talan(partida):
     for _ in range(600):
         if pelea.abierta():
             break
-        una.consola.correr(1)
+        una.consola.run(1)
     else:
         raise AssertionError("la página no abrió la pelea")
     assert pelea.byte("BA_NACT") == 1
@@ -223,7 +223,7 @@ def test_cada_pagina_corre_una_vez_por_turno(partida):
     for _ in range(600):
         if pelea.abierta():
             break
-        una.consola.correr(1)
+        una.consola.run(1)
     detect, _ = abrir_la_lista(una, pelea)
     pelea.ordenar(("habilidad", detect))
     hasta_el_mensaje(una, pelea)
@@ -237,10 +237,10 @@ def test_cada_pagina_corre_una_vez_por_turno(partida):
                 or pelea.palabra(una.simbolos["BA_PAG_MSG"]) == 0xFFFF):
             s = una.simbolos["switches"] + 134 // 8
             octeto = una.consola.ram(s, 1)[0] | (1 << (134 % 8))
-            una.consola.escribir_ram(s, [octeto])
+            una.consola.write_ram(s, [octeto])
         antes = pelea.palabra(una.simbolos["BA_PAG_MSG"])
-        una.consola.apretar(*(("a",) if n % 6 < 2 else ()))
-        una.consola.correr(1)
+        una.consola.hold(*(("a",) if n % 6 < 2 else ()))
+        una.consola.run(1)
         if (pelea.modo() == "PAGINA" and antes == 0xFFFF
                 and pelea.palabra(una.simbolos["BA_PAG_MSG"]) != 0xFFFF):
             vistos += 1

@@ -33,7 +33,7 @@ def test_guardar_pantalla(nombre, cuantos, toques):
     """
     consola = consola_cruda("guardar")
     correr_hardware(consola, cuantos, toques=toques)
-    golden(nombre, consola.imagen())
+    golden(nombre, consola.image())
 
 
 @pytest.mark.parametrize("cuadro", (122, 200))

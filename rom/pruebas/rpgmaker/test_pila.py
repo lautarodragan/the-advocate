@@ -111,10 +111,10 @@ def _tocar_cuadros(consola, boton, cuadros=8):
     mano: adentro de un menú el reloj del juego no corre, así que
     `Partida.correr` no termina nunca.
     """
-    consola.apretar(boton)
-    consola.correr(1)
-    consola.apretar()
-    consola.correr(cuadros)
+    consola.hold(boton)
+    consola.run(1)
+    consola.hold()
+    consola.run(cuadros)
 
 
 def _tienda():
@@ -132,7 +132,7 @@ def _tienda():
     for _ in range(120):
         if una.menu_abierto():
             break
-        consola.correr(1)
+        consola.run(1)
     assert una.menu_abierto(), (
         "la tienda no se abrió, así que esto mediría el mapa y no la tienda")
     # Comprar dos caños y venderlos: los dos submenús de `Scene_Shop`, cada uno
@@ -170,7 +170,7 @@ def _tropa():
     for _ in range(600):
         if una.menu_abierto():
             break
-        consola.correr(1)
+        consola.run(1)
     assert una.menu_abierto(), "la página no abrió la pelea"
     # La segunda orden es la de habilidades, y Detect Aura es la única que
     # sabe: A, A, y el turno arranca. Después, A hasta pasar la página.

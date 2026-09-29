@@ -37,7 +37,7 @@ def poner(una, actor, habilidad, valor):
     donde = una.simbolos["FAR_HAB"] + (r >> 3)
     octeto = una.consola.ram(donde, 1)[0]
     octeto = octeto | (1 << (r & 7)) if valor else octeto & ~(1 << (r & 7))
-    una.consola.escribir_ram(donde, [octeto])
+    una.consola.write_ram(donde, [octeto])
 
 
 # --- las habilidades --------------------------------------------------------
@@ -96,8 +96,8 @@ def test_change_equipment_saca_y_devuelve_al_inventario(partida):
     casco_m = base.actors[MANTA].initial_equipment[3]
     assert arma_k and arma_c and casco_m, "el caso no saca nada: no mide nada"
     # Uno de los ítems ya estaba en el tope: tiene que quedarse ahí.
-    una.consola.escribir_ram(una.simbolos["FAR_ITEMS"] + arma_c,
-                             [eventos.ITEM_MAX])
+    una.consola.write_ram(una.simbolos["FAR_ITEMS"] + arma_c,
+                          [eventos.ITEM_MAX])
     una.correr(DESPUES)
     assert una.equipo(KERSH)[0] == 0 and una.equipo(CORE)[0] == 0, (
         "el grupo sigue armado: %s, %s" % (una.equipo(KERSH), una.equipo(CORE)))

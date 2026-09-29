@@ -70,7 +70,7 @@ def _cargar(p, map_id, x, y):
     apenas arrancan. Es lo mismo que hace `test_carga_descomprimida.py`."""
     p.ir_al_mapa(map_id, x, y, cuadros=0)
     for _ in range(400):
-        p.consola.correr(1)
+        p.consola.run(1)
         if not p.byte("fundido_que"):
             assert p.mapa() == map_id, (
                 "pedí el mapa %d y la ROM cargó el %d" % (map_id, p.mapa()))

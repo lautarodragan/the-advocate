@@ -7,7 +7,7 @@ apunta al cartucho que se le pida. Así la jugada es una sola y
 esperan por RAM, no por cuadros contados: ver `recorrido.py`. La fábrica
 tiene que aceptar lo mismo que el fixture `recorrido` del conftest y arrancar
 en la misma página, y lo cobra `pruebas/abl/test_video.py`: ver `fabrica`. Lo que se graba
-se toma de `retro.Consola.correr`, parcheado desde acá: cada cuadro de hardware
+se toma de `retro.Console.run`, parcheado desde acá: cada cuadro de hardware
 va a ffmpeg y su audio a un wav, y al final se juntan.
 
     pruebas/arnes/video.py release salida.mp4 apertura talan
@@ -43,14 +43,14 @@ for ruta in (os.path.join(os.pardir, "tools"), "pruebas",
     sys.path.insert(0, os.path.join(RAIZ, ruta))
 
 import lugares                                         # noqa: E402,F401
-from emulador import retro                              # noqa: E402
+from emulator import retro                              # noqa: E402
 from recorrido import Mundo, Recorrido                  # noqa: E402
 import tanda                                            # noqa: E402
 import test_recorrido_golden                            # noqa: E402
 
 # Los cuadros por segundo de la SNES NTSC: si no coinciden con los de la
 # consola, el sonido se corre del video. La tasa del audio no va acá: la dice
-# el core, y snes9x la cambia con el MSU-1. Ver `retro.Consola.tasa`.
+# el core, y snes9x la cambia con el MSU-1. Ver `retro.Console.sample_rate`.
 CUADROS_POR_SEGUNDO = "60.0988"
 ANCHO, ALTO = 256, 224
 ESCALA = 3                      # con vecino más cercano: se ven los pixeles
@@ -124,12 +124,12 @@ def grabar(cartucho, salida, jugadas, leer=None, msu=True):
 
     # De a un cuadro aunque pidan más: si no, se graba un cuadro de video
     # por varios de audio y los dos se desfasan.
-    correr = retro.Consola.correr
+    correr = retro.Console.run
 
     def correr_grabando(self, n=1):
         for _ in range(n):
             correr(self, 1)
-            imagen = self.imagen()
+            imagen = self.image()
             if imagen.size != (ANCHO, ALTO):
                 imagen = imagen.resize((ANCHO, ALTO))
             ffmpeg.stdin.write(imagen.tobytes())
@@ -137,11 +137,11 @@ def grabar(cartucho, salida, jugadas, leer=None, msu=True):
                 wav.append(wave.open(audio, "wb"))
                 wav[0].setnchannels(2)
                 wav[0].setsampwidth(2)
-                wav[0].setframerate(int(round(self.tasa())))
+                wav[0].setframerate(int(round(self.sample_rate())))
             wav[0].writeframes(bytes(self.audio))
             self.audio = bytearray()
             cuadros[0] += 1
-    retro.Consola.correr = correr_grabando
+    retro.Console.run = correr_grabando
 
     recorrido = fabrica(cartucho, msu)
 
@@ -153,7 +153,7 @@ def grabar(cartucho, salida, jugadas, leer=None, msu=True):
                 jugada(pedido)(recorrido)
             print("%s: grabada" % pedido)
     finally:
-        retro.Consola.correr = correr
+        retro.Console.run = correr
         ffmpeg.stdin.close()
         ffmpeg.wait()
         if wav:

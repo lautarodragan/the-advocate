@@ -5,7 +5,7 @@ El cartucho lleva en la ROM el respaldo liviano de cada fondo —128x64 en
 "El respaldo liviano" en tools/port/escena.py. Con MSU-1 y el `.msu` de este
 cartucho la ROM lee el de calidad; sin MSU-1, o con otro `.msu`, el suyo. La
 tanda entera corre sin MSU-1 —el arnés le esconde el `.msu` al core, ver
-`retro.Consola`—, así que cubre el respaldo; esto cubre el otro camino, y que
+`retro.Console`—, así que cubre el respaldo; esto cubre el otro camino, y que
 el respaldo se elija cuando tiene que elegirse.
 
 Como los dos fondos son distintos a propósito, **cada camino se compara
@@ -88,23 +88,23 @@ def _pelea(tmp_path, nombre, nucleo, msu, lugar=SECTOR_27, antes=0,
     if antes:
         una.correr(antes)
     s = uno.simbolos
-    una.consola.escribir_ram(en_la_wram(s["ENC_SEM"]),
-                             [semilla & 0xFF, semilla >> 8])
-    una.consola.escribir_ram(en_la_wram(s["ENC_PIDE"]), [1])
+    una.consola.write_ram(en_la_wram(s["ENC_SEM"]),
+                          [semilla & 0xFF, semilla >> 8])
+    una.consola.write_ram(en_la_wram(s["ENC_PIDE"]), [1])
     for _ in range(400):
         if una.byte("menu_abierto"):
             break
-        una.consola.correr(1)
+        una.consola.run(1)
     else:
         raise AssertionError("la pelea en %s no se abrió" % (lugar,))
-    una.consola.correr(3)
+    una.consola.run(3)
 
     def byte(nombre):
         return una.consola.ram(en_la_wram(s[nombre]), 1)[0]
     # La captura, llevada a 15 bits antes de compararla con su golden: snes9x
     # y bsnes pasan el mismo color de 15 bits a 24 de distinta manera —98 y
     # 99—, y esta prueba corre en los dos contra la misma golden.
-    imagen = una.consola.imagen().convert("RGB").point(lambda v: v & 0xF8)
+    imagen = una.consola.image().convert("RGB").point(lambda v: v & 0xF8)
     limpio = una.consola.ram(en_la_wram(s["ESC_LIMPIO"]), escena.TILES * 64)
     return (tanda.quince_bits(imagen), byte("ESC_MSU"), byte("ESC_FONDO"),
             imagen, bytes(limpio))

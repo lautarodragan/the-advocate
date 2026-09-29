@@ -106,7 +106,7 @@ def _el_efecto(una, cuadros=400):
     assert inicio is not None, "el efecto del caso no arrancó"
     muestras = numpy.frombuffer(bytes(una.consola.audio[inicio:]),
                                 dtype="<i2").astype(float)
-    return muestras[0::2] + muestras[1::2], una.consola.tasa(), nuevo
+    return muestras[0::2] + muestras[1::2], una.consola.sample_rate(), nuevo
 
 
 def _envolvente(muestras, tasa, paso=0.02):
@@ -248,7 +248,7 @@ def test_con_msu_tres_efectos_suenan_a_la_vez(tmp_path):
         for _ in range(600):
             antes = len(una.consola.audio)
             if apagar and una.palabra("tema_actual") == _tema(una, "evilrhys"):
-                una.consola.escribir_ram(
+                una.consola.write_ram(
                     en_la_wram(una.simbolos["MSU_HAY"]), [0])
             una.correr(1)
             siete = _lejano(una, "SE_CUADROS", 12)
@@ -330,8 +330,8 @@ def test_con_msu_un_sonido_que_no_es_del_paquete_va_con_su_altura_de_la_rom(
     assert elegido is not None, "ningún paquete sirve para la prueba"
 
     una = _partida(tmp_path, "ajeno", "efecto-de-calidad", _msu_del_cartucho())
-    una.consola.escribir_ram(en_la_wram(rom.simbolos["PAQ_MAPA"]),
-                             elegido.to_bytes(2, "little"))
+    una.consola.write_ram(en_la_wram(rom.simbolos["PAQ_MAPA"]),
+                          elegido.to_bytes(2, "little"))
     _muestras, _tasa, nuevo = _el_efecto(una)
     assert _lejano(una, "MSU_SE")[0] == 1
     fila = en_la_rom(rom.simbolos["sonido_tabla"]) + 7 * k

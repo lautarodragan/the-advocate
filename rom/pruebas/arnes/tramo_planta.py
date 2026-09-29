@@ -56,7 +56,7 @@ def ranura(variable):
 def sin_encuentros(r):
     """Apaga los encuentros al azar del mapa en que se está. El mapa los
     vuelve a prender al cargarse, así que va después de cada llegada."""
-    r.p.consola.escribir_ram(en_la_wram(r.p.simbolos["ENC_BASE"]), [0, 0])
+    r.p.consola.write_ram(en_la_wram(r.p.simbolos["ENC_BASE"]), [0, 0])
 
 
 def pozos(r, mapa):

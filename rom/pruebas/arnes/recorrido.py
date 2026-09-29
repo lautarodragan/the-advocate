@@ -787,7 +787,7 @@ class Recorrido:
     def _paso(self, paso, hasta=None):
         """Un paso de una celda. Devuelve (si se movió, ticks gastados)."""
         antes = self.celda()
-        self.p.consola.apretar(BOTON[paso])
+        self.p.consola.hold(BOTON[paso])
         for ticks in range(1, PASO_TOPE + 1):
             self.p._un_tick()
             if self.celda() != antes:
@@ -1047,10 +1047,10 @@ class Recorrido:
         for _ in range(toques):
             if p.byte("menu_abierto"):
                 break
-            p.consola.apretar("a")
-            p.consola.correr(2)
-            p.consola.apretar()
-            p.consola.correr(8)
+            p.consola.hold("a")
+            p.consola.run(2)
+            p.consola.hold()
+            p.consola.run(8)
         if not p.byte("menu_abierto"):
             raise Trabado(
                 "el save point no abrió la pantalla de ranuras en %d toques "
@@ -1058,7 +1058,7 @@ class Recorrido:
         # El mismo aire que `Partida.guardar_en` le da a la pantalla antes de
         # tocarle nada: sube su banco con la pantalla apagada y un toque que
         # caiga ahí se pierde.
-        p.consola.correr(TITULO_AIRE)
+        p.consola.run(TITULO_AIRE)
         return self
 
     def guardar_en_el_save_point(self, ranura=0, toques=40):
@@ -1079,7 +1079,7 @@ class Recorrido:
         """
         p = self.abrir_el_save_point(toques).p
         p._bajar_y_elegir(ranura)
-        p.consola.correr(10)
+        p.consola.run(10)
         p._un_cuadro()
         return self
 

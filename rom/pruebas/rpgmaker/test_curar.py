@@ -28,7 +28,7 @@ def perdida_y_curada(partida):
     una = partida(caso="pelea-82-curar")
     sin_hp(una)
     largo = una.simbolos["FAR_SP"] - una.simbolos["FAR_HP"]
-    una.consola.escribir_ram(una.simbolos["FAR_SP"], [0] * largo)
+    una.consola.write_ram(una.simbolos["FAR_SP"], [0] * largo)
     una.correr(DESPUES_DE_PERDER)
     return una
 
@@ -73,7 +73,7 @@ def test_el_encuentro_de_despues_no_reinicia(partida):
     antes del arreglo: la ROM se reiniciaba a los pocos cuadros.
     """
     una = perdida_y_curada(partida)
-    una.consola.escribir_ram(una.simbolos["ENC_PIDE"], [1])
+    una.consola.write_ram(una.simbolos["ENC_PIDE"], [1])
     assert cuadros_hasta_el_game_over(una, tope=300) is None, (
         "el grupo perdió una pelea, el manejador llamó a FullHeal, y el "
         "encuentro siguiente igual fue Game Over: los HP no se curaron")
@@ -140,13 +140,13 @@ def test_el_balde_del_mapa_23_deja_los_hp_llenos(partida):
     una = partida(caso="curar-balde")
     una.poner_hp(10, 7)
     for _ in range(240):
-        una.consola.apretar("up")
-        una.consola.correr(1)
-    una.consola.apretar()
+        una.consola.hold("up")
+        una.consola.run(1)
+    una.consola.hold()
     for n in range(120):
-        una.consola.apretar(*(("a",) if n % 8 < 2 else ()))
-        una.consola.correr(1)
-    una.consola.apretar()
+        una.consola.hold(*(("a",) if n % 8 < 2 else ()))
+        una.consola.run(1)
+    una.consola.hold()
     assert una.hp(10) == maximos()[10][0], (
         "el balde dejó al actor 10 en %d y su máximo es %d"
         % (una.hp(10), maximos()[10][0]))

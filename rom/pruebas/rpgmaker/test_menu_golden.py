@@ -19,7 +19,7 @@ def test_menu(nombre, cuantos, toques):
     """`menu`: el menú de pausa, abierto con B desde el mapa."""
     consola = consola_cruda("grupo-11-en-73")
     correr_hardware(consola, cuantos, toques_hardware=toques)
-    golden(nombre, consola.imagen())
+    golden(nombre, consola.image())
 
 
 def test_menu_grupo():
@@ -28,7 +28,7 @@ def test_menu_grupo():
     15 y Talan en el 1, que arranca con cero."""
     consola = consola_cruda("menu-grupo")
     correr_hardware(consola, 52, toques_hardware=("b:40",))
-    golden("menu-grupo", consola.imagen())
+    golden("menu-grupo", consola.image())
 
 
 @pytest.mark.parametrize("nombre,cuantos,toques", (
@@ -41,7 +41,7 @@ def test_fin(nombre, cuantos, toques):
     cada una lo mira `test_fin_del_juego.py`."""
     consola = consola_cruda("grupo-11-en-73")
     correr_hardware(consola, cuantos, toques_hardware=toques)
-    golden(nombre, consola.imagen())
+    golden(nombre, consola.image())
 
 
 @pytest.mark.parametrize("cuadro", (50, 120))
@@ -67,7 +67,7 @@ def test_items(nombre, cuantos, toques):
     """
     consola = consola_cruda("items")
     correr_hardware(consola, cuantos, toques_hardware=toques)
-    golden(nombre, consola.imagen())
+    golden(nombre, consola.image())
 
 
 @pytest.mark.parametrize("cuadro", (60, 120))
@@ -98,7 +98,7 @@ def test_equipo(nombre, cuantos, toques):
     que se elige en la lista."""
     consola = consola_cruda("equipo")
     correr_hardware(consola, cuantos, toques_hardware=toques)
-    golden(nombre, consola.imagen())
+    golden(nombre, consola.image())
 
 
 @pytest.mark.parametrize("nombre,cuantos,toques", (
@@ -116,7 +116,7 @@ def test_equipo_colores(nombre, cuantos, toques):
     baja o queda igual."""
     consola = consola_cruda("equipo-colores")
     correr_hardware(consola, cuantos, toques_hardware=toques)
-    golden(nombre, consola.imagen())
+    golden(nombre, consola.image())
 
 
 @pytest.mark.parametrize("cuadro", (60, 120))

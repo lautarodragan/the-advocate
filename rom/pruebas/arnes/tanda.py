@@ -36,7 +36,7 @@ import os
 from consola import (EMPEZAR, NUCLEO, RETRASO_DE_PANTALLA, Partida,
                      Simbolos, en_la_rom, mapas_de, marcar_la_pila, toques_de)
 
-from emulador import retro
+from emulator import retro
 
 import lugares
 from ensamblado import cartuchos
@@ -180,10 +180,10 @@ def encender(en, cuadros, pila=False):
     —la pantalla de título—, donde el arranque de `Partida` todavía no
     terminó. Corre la página 0, la de siempre.
     """
-    consola = retro.Consola(cartucho(en).sfc, NUCLEO)
+    consola = retro.Console(cartucho(en).sfc, NUCLEO)
     if pila:
         marcar_la_pila(consola)
-    consola.correr(cuadros)
+    consola.run(cuadros)
     return consola
 
 
@@ -309,9 +309,9 @@ def correr_hardware(consola, cuantos, toques=(), toques_hardware=(),
     por_hardware = toques_de(toques_hardware, "toques_hardware")
     sosteniendo = tuple(sosteniendo)
     for corridos in range(cuantos):
-        consola.apretar(*(sosteniendo + por_tick.get(corridos + 1, ())
-                          + por_hardware.get(corridos, ())))
-        consola.correr(1)
+        consola.hold(*(sosteniendo + por_tick.get(corridos + 1, ())
+                       + por_hardware.get(corridos, ())))
+        consola.run(1)
     return consola
 
 

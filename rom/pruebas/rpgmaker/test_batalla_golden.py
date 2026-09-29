@@ -118,7 +118,7 @@ def test_batalla(nombre, caso, cuantos, toques, en):
     """
     consola = consola_cruda(caso, en=en)
     correr_hardware(consola, cuantos, toques_hardware=toques)
-    golden(nombre, consola.imagen())
+    golden(nombre, consola.image())
 
 
 # Los A que pelean hasta ganar, en cuadros de hardware porque adentro de la
@@ -170,7 +170,7 @@ def test_encuentro():
     """
     consola = consola_cruda("grupo-11-12-13", en="test-special")
     correr_hardware(consola, 268, sosteniendo=("up",))
-    golden("encuentro", consola.imagen())
+    golden("encuentro", consola.image())
 
 
 def test_encuentro_antes():

@@ -289,7 +289,7 @@ techos *args: _herramientas_del_checkout
 # en otro directorio hasta el 2026-09-25: el emulador busca el `.msu` al lado
 # del `.sfc`, y la tanda corría con el SPC700 callado o no según si estaban.
 # Ahora el arnés le da al core una copia de la ROM en un directorio vacío;
-# ver `retro.Consola`.
+# ver `retro.Console`.
 #
 # En la tarjeta del FX Pak los tres van en el mismo directorio y con el mismo
 # nombre base que la ROM: renombrar el `.sfc` obliga a renombrar los otros, o

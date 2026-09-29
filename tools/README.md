@@ -23,7 +23,7 @@ one in its own row or above.
     ensamblado/  the memory map (bancos), what builds the ROM (ensamblar), and
                  which ROMs exist and with which flags (cartuchos, used by
                  `just build`)
-    emulador/    the libretro core from Python (retro), and the bsnes-libretro
+    emulator/    the libretro core from Python (retro), and the bsnes-libretro
                  patch that exposes the WRAM
 
     render/      a map and a chipset as images, with the CharSets on top,
@@ -202,7 +202,7 @@ standing here, with `just <recipe>`. Both forms run the recipe standing in
 
 ## The bsnes patch
 
-`emulador/bsnes-wram.patch` is for **bsnes-libretro**, not for this repo.
+`emulator/bsnes-wram.patch` is for **bsnes-libretro**, not for this repo.
 bsnes does not expose the WRAM —`retro_get_memory_data` returns null for
 every id— and the tests' clock asks the ROM which tick of the loop it is on,
 which lives in `vueltas`, in the WRAM. Without the patch, whatever runs under
@@ -218,6 +218,6 @@ Building it takes `gcc` and `make`, and nothing else:
 
     git clone https://github.com/libretro/bsnes-libretro
     cd bsnes-libretro
-    git am < .../tools/emulador/bsnes-wram.patch
+    git am < .../tools/emulator/bsnes-wram.patch
     make -j$(nproc)
     cp bsnes_libretro.so /usr/lib/libretro/

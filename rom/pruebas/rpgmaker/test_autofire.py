@@ -32,7 +32,7 @@ def cerrados(p):
 def secuencia(p, cuadros, *botones):
     """`pad_a` y los flancos de subida que ve el juego, cuadro por cuadro,
     con `botones` apretados."""
-    p.consola.apretar(*botones)
+    p.consola.hold(*botones)
     prendido, flancos = [], []
     for _ in range(cuadros):
         p._un_cuadro()
@@ -116,7 +116,7 @@ def test_soltar_x_a_mitad_deja_de_cerrar_mensajes(partida):
     """El mismo caso que la primera: se suelta X apenas cerró el segundo
     mensaje, y la cuenta se queda en dos aunque pasen dos segundos."""
     p = partida(caso=CASO)
-    p.consola.apretar("x")
+    p.consola.hold("x")
     for _ in range(600):
         p._un_cuadro()
         if cerrados(p) == 2:

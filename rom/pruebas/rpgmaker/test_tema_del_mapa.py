@@ -11,7 +11,7 @@ ve: se pregunta por la RAM. Y no alcanza con `tema_actual`, por lo mismo que en
 las que el conversor le agrega al paquete del mapa.
 
 La consola de las pruebas no le deja ver al core las pistas de MSU-1 —ver
-`retro.Consola`—, así que esto mide el camino del SPC700. El del MSU-1 es el
+`retro.Console`—, así que esto mide el camino del SPC700. El del MSU-1 es el
 mismo `music_start` que usa un `PlayBGM`.
 """
 

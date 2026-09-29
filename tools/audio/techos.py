@@ -112,7 +112,7 @@ def tocar(sfc, tema, cuadros):
     """(the samples, interleaved stereo, and the rate): `cuadros` frames of
     the song from when the title starts it, in snes9x without MSU-1."""
     import numpy as np
-    from emulador import retro
+    from emulator import retro
     simbolos = simbolos_de(sfc)
     with open(sfc, "rb") as archivo:
         rom = con_el_tema_en_el_titulo(archivo.read(), simbolos, tema)
@@ -120,13 +120,13 @@ def tocar(sfc, tema, cuadros):
         ruta = os.path.join(tmp, "tema.sfc")
         with open(ruta, "wb") as archivo:
             archivo.write(rom)
-        consola = retro.Consola(ruta, msu=False)
-        tasa = consola.tasa()
-        consola.correr(simbolos["BOOT_CUADROS"] - ANTES_DEL_TITULO)
+        consola = retro.Console(ruta, msu=False)
+        tasa = consola.sample_rate()
+        consola.run(simbolos["BOOT_CUADROS"] - ANTES_DEL_TITULO)
         consola.audio = bytearray()
         partes = []
         for _ in range(cuadros):
-            consola.correr(1)
+            consola.run(1)
             if len(consola.audio) > 1 << 20:
                 partes.append(bytes(consola.audio))
                 consola.audio = bytearray()

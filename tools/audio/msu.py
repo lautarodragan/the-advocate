@@ -35,7 +35,7 @@ song is deleted: `just entregar` copies every one it finds to the card.
 There is no need to run it by hand: `just build release` always runs it
 —see `pistas` in `cartuchos.py`—, because the ROM that is played carries its
 tracks. Their being next to the ROM does not change the tests: the harness
-hides the tracks from the core, see `retro.Consola`.
+hides the tracks from the core, see `retro.Console`.
 
 **A track can come from an audio file instead of the MIDI.** If the
 replacements directory —`/extras/msu` unless another is given— has a

@@ -34,7 +34,7 @@ def test_el_tema_del_titulo_tiene_sus_muestras_en_la_aram(partida):
 
     No hace falta apagar el MSU-1 para probar esto, aunque `release` lleve sus
     pistas: la consola de las pruebas no se las deja ver al core —ver
-    `retro.Consola` y `test_msu.py`—, así que `msu_detectar` no encuentra la
+    `retro.Console` y `test_msu.py`—, así que `msu_detectar` no encuentra la
     firma y `music_start` cae siempre por `sin_pista`, que es el camino que se
     quiere medir.
     """
@@ -564,7 +564,7 @@ def test_un_efecto_no_suena_con_la_muestra_de_otro(partida):
                 lugares = max(1, s["SE_LUGARES"])
                 direccion = en_la_wram(s["FAR_EFECTO_EN"])
                 anotados = una.consola.ram(direccion, lugares)
-                una.consola.escribir_ram(
+                una.consola.write_ram(
                     direccion,
                     [(e + 1) % s["EFECTOS_N"] if e != 0xFF else e
                      for e in anotados])

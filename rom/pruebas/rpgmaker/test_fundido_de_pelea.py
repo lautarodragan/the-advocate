@@ -37,8 +37,8 @@ class Grabador:
                 + bytes(c.ram(en_la_wram(s["PAQ_S"]), 2)))
 
     def cuadro(self, *botones):
-        self.una.consola.apretar(*botones)
-        self.una.consola.correr(1)
+        self.una.consola.hold(*botones)
+        self.una.consola.run(1)
         negro = max(self.una.imagen().tobytes()) == 0
         paquete = self._leer_paquete()
         self.cuadros.append((negro, paquete != self._paquete))

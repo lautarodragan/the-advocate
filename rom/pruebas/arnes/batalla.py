@@ -91,7 +91,7 @@ class Pelea:
             if self.una.byte("msg_abierto"):
                 self.tocar_cuadros("a", 2)
             else:
-                self.una.consola.correr(1)
+                self.una.consola.run(1)
         raise AssertionError("la batalla no se abrió")
 
     def switch(self, numero):
@@ -105,7 +105,7 @@ class Pelea:
         for _ in range(tope):
             if self.modo() == modo:
                 return self
-            self.una.consola.correr(1)
+            self.una.consola.run(1)
         raise AssertionError("la pelea no llegó al modo %s, quedó en %s"
                              % (modo, self.modo()))
 
@@ -153,7 +153,7 @@ class Pelea:
         for _ in range(tope):
             if self.modo() in ("BLANCO", "ACTOR"):
                 break
-            self.una.consola.correr(1)
+            self.una.consola.run(1)
         else:
             raise AssertionError("la orden no pidió blanco")
         destino = que[-1]
@@ -208,7 +208,7 @@ class Pelea:
         for _ in range(transicion):
             if self.una.palabra("vueltas") != vueltas:
                 return self
-            self.una.consola.correr(1)
+            self.una.consola.run(1)
         raise AssertionError("el mapa no volvió a correr después de la pelea")
 
 
@@ -260,7 +260,7 @@ DESPUES_DE_PERDER = 60
 def sin_hp(una):
     """Todo el grupo caído, escrito en la RAM lejana."""
     largo = una.simbolos["FAR_SP"] - una.simbolos["FAR_HP"]
-    una.consola.escribir_ram(una.simbolos["FAR_HP"], [0] * largo)
+    una.consola.write_ram(una.simbolos["FAR_HP"], [0] * largo)
     return una
 
 
@@ -273,7 +273,7 @@ def cuadros_hasta_reiniciar(una, tope=900):
     """
     alto = una.palabra("vueltas")
     for n in range(tope):
-        una.consola.correr(1)
+        una.consola.run(1)
         ahora = una.palabra("vueltas")
         if ahora < alto:
             return n
@@ -295,7 +295,7 @@ def cuadros_hasta_el_game_over(una, tope=900):
     for n in range(tope):
         if en_el_game_over(una):
             return n
-        una.consola.correr(1)
+        una.consola.run(1)
     return None
 
 
@@ -306,9 +306,9 @@ def pasar_el_game_over(una, tope=900):
     assert cuadros_hasta_el_game_over(una, tope) is not None, (
         "la pantalla de Game Over no llegó a esperar la tecla en %d cuadros"
         % tope)
-    una.consola.apretar("a")
-    una.consola.correr(2)
-    una.consola.apretar()
+    una.consola.hold("a")
+    una.consola.run(2)
+    una.consola.hold()
     return cuadros_hasta_reiniciar(una, tope)
 
 
@@ -364,8 +364,8 @@ def exp_y_nivel(una, actor):
 
 def poner_exp(una, actor, exp, nivel):
     k = ranura_exp(una, actor)
-    una.consola.escribir_ram(una.simbolos["FAR_EXP"] + 4 * k,
-                             [exp & 0xFF, (exp >> 8) & 0xFF, exp >> 16, nivel])
+    una.consola.write_ram(una.simbolos["FAR_EXP"] + 4 * k,
+                          [exp & 0xFF, (exp >> 8) & 0xFF, exp >> 16, nivel])
 
 
 # El actor con que se prueba aprender habilidades al subir de nivel: ver "las
@@ -464,7 +464,7 @@ def paginas(una, pelea, tope=10):
         for _ in range(10):
             if not pelea.abierta():
                 break
-            una.consola.correr(1)
+            una.consola.run(1)
     raise AssertionError("la victoria no se cerró en %d páginas" % tope)
 
 
@@ -497,7 +497,7 @@ def pasar_el_titulo(una):
     hasta que alguien elige. En un cartucho sin título el arranque va directo
     al mapa y esto es sólo esperar el arranque.
     """
-    una.consola.correr(una.simbolos["BOOT_CUADROS"])
+    una.consola.run(una.simbolos["BOOT_CUADROS"])
     if una.titulo is not None:
         una.pasar_el_titulo(EMPEZAR)
 
@@ -519,7 +519,7 @@ def cuadros_hasta_volver(una, tope=VOLVER_TOPE):
         pasar_el_titulo(una)
     for n in range(tope):
         antes = una.palabra("vueltas")
-        una.consola.correr(1)
+        una.consola.run(1)
         if una.palabra("vueltas") > antes:
             return n
     return None

@@ -4,7 +4,7 @@
 la ROM— y el emulador busca el `.msu` al lado del `.sfc`: si el core lo
 encontrara, cada prueba que escucha correría con el SPC700 callado. Lo evita
 el arnés, que le da al core una copia de la ROM en un directorio vacío —ver
-`retro.Consola`—, y esto es lo que lo cobra si deja de hacerlo.
+`retro.Console`—, y esto es lo que lo cobra si deja de hacerlo.
 
 Se escucha la pantalla de título, que es lo primero que suena y tiene pista.
 La referencia es la misma ROM copiada a un directorio sin pistas, y el control
@@ -20,7 +20,7 @@ from array import array
 import pytest
 
 from audio import snes_music
-from emulador import retro
+from emulator import retro
 from rpgmaker.resources import GAME_DIR
 
 import tanda
@@ -35,8 +35,8 @@ CUADROS = 600
 
 
 def _con_msu(sfc):
-    consola = retro.Consola(sfc, NUCLEO, msu=True)
-    consola.correr(CUADROS)
+    consola = retro.Console(sfc, NUCLEO, msu=True)
+    consola.run(CUADROS)
     return bytes(consola.audio)
 
 
@@ -58,7 +58,7 @@ def test_las_pistas_de_release_no_llegan_al_core(tmp_path):
     # Por donde entran las pruebas, sin pedir nada: es lo que se protege.
     assert bytes(tanda.encender(cartuchos.RELEASE, CUADROS).audio) == spc700, (
         "la consola de las pruebas encontró las pistas de MSU-1 de %s: la "
-        "tanda está escuchando las pistas y no el SPC700. `retro.Consola` "
+        "tanda está escuchando las pistas y no el SPC700. `retro.Console` "
         "tiene que darle al core un directorio sin ellas"
         % os.path.dirname(sfc))
 
@@ -262,7 +262,7 @@ AL_EMPEZAR = 120
 
 def test_con_msu_la_pista_del_titulo_no_sigue_en_la_partida(tmp_path):
     una = _con_pistas(tmp_path, caso=None, titulo=False)
-    una.consola.correr(TITULO_AIRE)
+    una.consola.run(TITULO_AIRE)
     titulo = una.simbolos["TEMA_TITULO"]
     assert una.palabra("tema_actual") == titulo and _lejano(
         una, "MSU_SUENA")[0], (
@@ -271,7 +271,7 @@ def test_con_msu_la_pista_del_titulo_no_sigue_en_la_partida(tmp_path):
 
     una.titulo = EMPEZAR
     una.pasar_el_titulo(EMPEZAR)
-    una.consola.correr(AL_EMPEZAR)
+    una.consola.run(AL_EMPEZAR)
     assert una.byte("music_apagada"), (
         "la partida no arrancó con el SPC700 callado: o el mapa inicial "
         "trae tema, o un `PlayBGM` ya sonó, y el caso no pasa por el camino "
@@ -378,7 +378,7 @@ def test_la_partida_guardada_vuelve_con_su_tema(tmp_path, guarda, carga):
         una = _la_misma_rom(una, msu=carga)
         una.poner_sram(0, srm)
     una.reiniciar(SEGUIR)
-    una.consola.correr(AL_CARGAR)
+    una.consola.run(AL_CARGAR)
     assert una.mapa() == 26, "la partida no cargó en el mapa 26"
     assert una.palabra("tema_actual") == tema, (
         "la partida cargó con el tema %d y no con KSSMKEND"

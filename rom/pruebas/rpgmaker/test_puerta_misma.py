@@ -33,11 +33,11 @@ def caminar(una, tecla, destino, vueltas=80):
     for _ in range(vueltas):
         if una.heroe() == destino:
             return True
-        una.consola.apretar(tecla)
-        una.consola.correr(8)
+        una.consola.hold(tecla)
+        una.consola.run(8)
         una.cuadro += 8
-        una.consola.apretar()
-        una.consola.correr(2)
+        una.consola.hold()
+        una.consola.run(2)
         una.cuadro += 2
         if una.byte("msg_abierto"):
             una.tocar_ticks("a")

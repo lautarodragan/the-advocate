@@ -39,7 +39,7 @@ def arrancados(p, periodo, cuadros):
     lista = []
     antes = (p.byte("ev_activo"), p.byte("ev_corriendo"))
     for k in range(cuadros):
-        p.consola.apretar(*(("a",) if (k // periodo) % 2 == 0 else ()))
+        p.consola.hold(*(("a",) if (k // periodo) % 2 == 0 else ()))
         p._un_cuadro()
         ahora = (p.byte("ev_activo"), p.byte("ev_corriendo"))
         # Una página de un solo `MoveEvent` arranca y termina en el mismo

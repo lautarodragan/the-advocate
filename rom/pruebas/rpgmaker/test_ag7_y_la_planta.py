@@ -60,8 +60,8 @@ def todas_las_de_ag7():
 def poner_arma(una, item):
     """El arma de AG7 en `FAR_EQUIPO`, como la dejaría la pantalla de
     equipo."""
-    una.consola.escribir_ram(una.simbolos["FAR_EQUIPO"] + AG7 * 10,
-                             [item & 0xFF, item >> 8])
+    una.consola.write_ram(una.simbolos["FAR_EQUIPO"] + AG7 * 10,
+                          [item & 0xFF, item >> 8])
 
 
 def las_que_sabe(una):
@@ -110,7 +110,7 @@ def test_cambiar_el_arma_y_cerrar_el_menu_cambia_la_habilidad(partida):
     for _ in range(120):
         if not una.menu_abierto():
             break
-        una.consola.correr(1)
+        una.consola.run(1)
     assert not una.menu_abierto()
     assert las_que_sabe(una) == [ARM_MISSILE]
 
@@ -125,14 +125,14 @@ def test_con_el_switch_apagado_cerrar_el_menu_no_toca_nada(partida):
     s = una.simbolos
     donde = s["switches"] + 150 // 8
     byte = una.consola.ram(donde, 1)[0]
-    una.consola.escribir_ram(donde, [byte & ~(1 << (150 % 8)) & 0xFF])
+    una.consola.write_ram(donde, [byte & ~(1 << (150 % 8)) & 0xFF])
     poner_arma(una, ARM_LAUNCHER)
     menu.abrir(una)
     una.tocar_cuadros("b")
     for _ in range(120):
         if not una.menu_abierto():
             break
-        una.consola.correr(1)
+        una.consola.run(1)
     assert las_que_sabe(una) == [CONCENTRATED_SPRAY]
 
 
@@ -141,7 +141,7 @@ def test_con_el_switch_apagado_cerrar_el_menu_no_toca_nada(partida):
 def a_la_pelea(una, tope=600):
     """Corre la página hasta que abre la pelea."""
     for _ in range(tope):
-        una.consola.correr(1)
+        una.consola.run(1)
         if una.menu_abierto():
             return Pelea(una)
     raise AssertionError("la página no abrió la pelea")

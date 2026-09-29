@@ -63,7 +63,7 @@ def la_pantalla(una):
     assert cuadros_hasta_el_game_over(una, GAME_OVER_TOPE) is not None, (
         "la pantalla de Game Over no llegó a esperar la tecla en %d cuadros"
         % GAME_OVER_TOPE)
-    una.consola.correr(2)
+    una.consola.run(2)
     golden("game-over", una.imagen())
 
 
@@ -72,7 +72,7 @@ def pasar_el_arranque(una):
     mismos que corre `Partida` al encender, `BOOT_CUADROS` y tres, con la
     pantalla de título en el medio si el cartucho la tiene."""
     pasar_el_titulo(una)
-    una.consola.correr(3)
+    una.consola.run(3)
 
 
 # --- lo que se emite -------------------------------------------------------
@@ -241,14 +241,14 @@ def caminar(una, cuadros, tope_sin_reinicio=False):
     """
     alto = una.palabra("vueltas")
     for n in range(cuadros):
-        una.consola.apretar(DIRECCIONES[(n // 40) % 4])
-        una.consola.correr(1)
+        una.consola.hold(DIRECCIONES[(n // 40) % 4])
+        una.consola.run(1)
         ahora = una.palabra("vueltas")
         if ahora + 5 < alto or en_el_game_over(una):
-            una.consola.apretar()
+            una.consola.hold()
             return n
         alto = max(alto, ahora)
-    una.consola.apretar()
+    una.consola.hold()
     return None
 
 
@@ -298,7 +298,7 @@ def test_game_over_vuelve_al_titulo(partida):
     una = partida(caso="game-over")
     assert pasar_el_game_over(una, GAME_OVER_TOPE) is not None, (
         "la página llamó a GameOver, se apretó A, y la ROM no se reinició")
-    una.consola.correr(TITULO_QUIETO)
+    una.consola.run(TITULO_QUIETO)
     golden("titulo", una.imagen())
     assert cuadros_hasta_volver(una) is not None, (
         "después del GameOver el arranque no volvió a correr en %d cuadros"
@@ -325,7 +325,7 @@ def test_volver_al_titulo_no_pasa_por_el_game_over(partida):
     for _ in range(300):
         visto = visto or en_el_game_over(una)
         antes = una.palabra("vueltas")
-        una.consola.correr(1)
+        una.consola.run(1)
         if una.palabra("vueltas") < antes:
             break
     else:

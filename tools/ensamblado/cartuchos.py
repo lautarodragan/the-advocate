@@ -453,7 +453,7 @@ def pistas(armado=None):
     each one sounds depends on the MIDI, the soundfont and the synthesizer,
     and `msu.armar` already knows which ones are there —see
     `clave_de_la_pista`—. Having them next to it does not change the suite:
-    the harness hides the tracks from the core, see `retro.Consola`.
+    the harness hides the tracks from the core, see `retro.Console`.
     Returns the line that reports it, which `main` prints in its place.
     """
     if armado is not None:
