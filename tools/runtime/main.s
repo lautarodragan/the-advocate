@@ -1,46 +1,48 @@
 ; ---------------------------------------------------------------------------
-; La ROM entera, en un solo ensamblado: esto es lo único que ve `ca65`.
+; The whole ROM, in a single assembly: this is the only thing `ca65` sees.
 ;
-; Los `.s` de al lado **no se ensamblan solos**: son tramos de un solo texto,
-; y `.include` los pega en este orden. De ahí salen tres cosas que no se ven
-; abriendo uno:
+; The `.s` files next to this one **are not assembled on their own**: they are
+; stretches of a single text, and `.include` pastes them in this order. Three
+; things follow from that which you do not see by opening one of them:
 ;
-; * **El orden de la lista es el orden en la ROM.** Mover un `.include`, o un
-;   `.proc` de un archivo a otro, cambia direcciones y bytes; partir no, porque
-;   lo que llega a `ca65` es el mismo texto. Hasta el 2026-09-25 esto era un
-;   solo archivo de treinta y cuatro mil líneas, y se partió sin cambiar un
-;   byte: por eso algunos archivos terminan con una rutina que es de otro
-;   tema, y moverla es un cambio de ROM que se verifica aparte.
-; * **Cada archivo hereda el estado del anterior**: los anchos `.a8`/`.i16` y
-;   el segmento. El `.segment` del principio de cada uno está escrito para el
-;   que lee, y es el mismo que ya traía.
-; * **Las etiquetas anónimas y las locales de un `.proc` se resuelven sobre el
-;   texto pegado**, así que el script que partió se negó a cortar adentro de
-;   un bloque o entre un `:+` y su `:`, y cualquier corte nuevo tiene que
-;   respetar lo mismo.
+; * **The order of the list is the order in the ROM.** Moving an `.include`,
+;   or a `.proc` from one file to another, changes addresses and bytes;
+;   splitting does not, because what reaches `ca65` is the same text. Until
+;   2026-09-25 this was a single file of thirty-four thousand lines, and it
+;   was split without changing a byte: that is why some files end with a
+;   routine that belongs to another topic, and moving it is a ROM change that
+;   gets verified on its own.
+; * **Each file inherits the state of the previous one**: the `.a8`/`.i16`
+;   widths and the segment. The `.segment` at the top of each one is written
+;   for the reader, and it is the same one that was already in effect.
+; * **Anonymous labels and the local labels of a `.proc` are resolved over the
+;   pasted text**, so the script that did the split refused to cut inside a
+;   block or between a `:+` and its `:`, and any new cut has to respect the
+;   same.
 ;
-; Y dos trampas que valen para todos los archivos y no tienen una línea donde
-; vivir:
+; And two traps that hold for every file and have no line to live on:
 ;
-; * **El ancho de A y de X/Y es estado, y `ca65` lo cree sin comprobarlo.**
-;   `.a8` y `.a16` no describen: mandan cómo se emite cada inmediato. Una
-;   etiqueta a la que se salta desde otro ancho tiene que declarar el suyo
-;   —ver `baja` en `celdas.s`—, o el inmediato sale de dos bytes, la CPU en
-;   ocho lee uno, y el `$00` que sobra se ejecuta como `BRK`. La ROM se va por
-;   la ventana, no lo ve el diff ni la comparación pixel a pixel, y bisecar
-;   con `rts` no sirve porque desbalancea la pila: si una ROM se va por la
-;   ventana sin razón aparente, mirar primero acá. Lo mismo las
-;   transferencias entre anchos distintos —`tax` con X de 16 bits, `ldx` de
-;   una variable de un byte—, que se llevan el byte de al lado.
-; * **No hay convención de llamada**: un `jsr` devuelve X e Y como le
-;   convenga a la rutina. Si un índice tiene que sobrevivir a la llamada —el
-;   cursor del bytecode del intérprete—, lo guarda con `phy` el que llama, que
-;   es el único que sabe que hace falta.
+; * **The width of A and of X/Y is state, and `ca65` believes it without
+;   checking.** `.a8` and `.a16` do not describe: they dictate how each
+;   immediate is emitted. A label that is jumped to from another width has to
+;   declare its own —see `baja` in `celdas.s`—, or the immediate comes out as
+;   two bytes, the CPU in 8-bit mode reads one, and the leftover `$00` runs as
+;   a `BRK`. The ROM goes off the rails, and neither the diff nor the
+;   pixel-by-pixel comparison sees it, and bisecting with `rts` does not work
+;   because it unbalances the stack: if a ROM goes off the rails for no
+;   apparent reason, look here first. The same goes for transfers between
+;   different widths —`tax` with a 16-bit X, `ldx` from a one-byte variable—,
+;   which drag in the neighboring byte.
+; * **There is no calling convention**: a `jsr` returns X and Y however suits
+;   the routine. If an index has to survive the call —the interpreter's
+;   bytecode cursor—, the caller saves it with `phy`, since it is the only one
+;   that knows it is needed.
 ;
-; Lo que se queda escrito acá es lo que no es un subsistema: dónde entran los
-; `.inc` generados —los dos bytecodes y los datos del cartucho—. Un archivo
-; nuevo se agrega a la lista en el lugar que le toca en la ROM; la huella de
-; `tools/ensamblado/cartuchos.py` ya cubre todo `tools/runtime/`.
+; What stays written here is what is not a subsystem: where the generated
+; `.inc` files come in —the two bytecodes and the cartridge's data—. A new
+; file is added to the list at the place it belongs in the ROM; the
+; fingerprint in `tools/ensamblado/cartuchos.py` already covers all of
+; `tools/runtime/`.
 ; ---------------------------------------------------------------------------
 
 .p816
@@ -48,23 +50,23 @@
 
 .include "registros.s"
 .include "ram_lejana.s"
-; Los dos bytecodes que esta ROM lee, generados desde tools/protocol/: el de los
-; eventos, que interpreta `correr_codigo`, y el del stream de música, que lee
-; `irq_musica`. Cada uno lo declara un archivo que no es ni del que emite los
-; bytes ni del que los lee.
+; The two bytecodes this ROM reads, generated from tools/protocol/: the events
+; one, which `correr_codigo` interprets, and the music stream, which
+; `irq_musica` reads. Each one is declared by a file that belongs neither to
+; the side that emits the bytes nor to the side that reads them.
 ;
-; El de eventos venía adentro de mapdata.inc hasta el 2026-09-14, o sea que el
-; número de un opcode llegaba acá dentro de los datos de un mapa; el de música
-; estaba escrito a mano de los dos lados hasta el 2026-09-15.
+; The events one came inside mapdata.inc until 2026-09-14, which means an
+; opcode's number arrived here inside a map's data; the music one was written
+; by hand on both sides until 2026-09-15.
 .include "event_opcodes.inc"
 .include "music_opcodes.inc"
 
 .include "musicdata.inc"
 .include "mapdata.inc"
 
-; El área de texto son ocho filas de celda, o sea cuatro renglones de a dos, y
-; el buffer del compositor mide un renglón. Van acá abajo y no arriba porque
-; `VENTANA_TEXTO_COLS` lo emite el conversor.
+; The text area is eight cell rows, that is four lines of two rows each, and
+; the composer's buffer is one line long. They go down here and not above
+; because `VENTANA_TEXTO_COLS` is emitted by the converter.
 VENTANA_LINEAS_TEXTO = VENTANA_TEXTO_FILAS / 2
 TEXTO_BUF_BYTES = VENTANA_TEXTO_COLS * 2 * 32
 

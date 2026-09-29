@@ -1,21 +1,21 @@
 .segment "CODE"
 
-; --- el menú de pausa --------------------------------------------------------
+; --- the pause menu ----------------------------------------------------------
 ;
-; `Scene_Menu`, sobre el banco de la pantalla de ranuras: la geometría y los
-; bloques salen de `titulo.py`, y `render_menu` es la referencia. Se abre con
-; B, cuando el héroe está quieto: `pedir_menu` anota el pedido y `move_hero`
-; lo atiende, que es como lo hace RM2k con `menu_calling`. El reloj del juego
-; no corre mientras se ve —como en la pantalla de ranuras— así que el menú no
-; cuesta ningún tick.
+; `Scene_Menu`, over the bank of the slot screen: the geometry and the blocks
+; come from `titulo.py`, and `render_menu` is the reference. It opens with B,
+; when the hero is standing still: `pedir_menu` notes the request and
+; `move_hero` serves it, which is how RM2k does it with `menu_calling`. The
+; game clock does not run while it is shown —as on the slot screen— so the
+; menu costs no tick.
 ;
-; Hoy hacen algo usar ítems —la pantalla de ítems, en `items.s`—, el equipo,
-; guardar, que abre la pantalla de ranuras y vuelve al menú, y End Game, que
-; abre la suya —`fin_del_juego.s`—. Técnicas se dibuja en gris y A no hace
-; nada con ella.
+; Today the things that do something are using items —the item screen, in
+; `items.s`—, equipment, saving, which opens the slot screen and returns to
+; the menu, and End Game, which opens its own —`fin_del_juego.s`—. Skills is
+; drawn in gray and A does nothing with it.
 
-; El byte de permisos, en A. Sólo A, y las banderas del `lda`: el bit 7 queda
-; en N.
+; The permissions byte, in A. Only A, and the `lda`'s flags: bit 7 ends up in
+; N.
 .proc acceso_leer
 .a8
 .i16
@@ -30,13 +30,13 @@
     rts
 .endproc
 
-; --- el sprite que un `ChangeSpriteAssociation` le puso a un actor -----------
+; --- the sprite a `ChangeSpriteAssociation` gave an actor --------------------
 ;
-; Un byte por número de actor en `FAR_ACTOR_GRAF`, con el índice en la tabla de
-; gráficos del mapa o `ACTOR_GRAF_NINGUNO`. Vive lejos, así que se apunta WMADD
-; y se pasa por el puerto, como las variables.
+; One byte per actor number in `FAR_ACTOR_GRAF`, with the index into the map's
+; graphics table or `ACTOR_GRAF_NINGUNO`. It lives far away, so WMADD is
+; pointed at it and it goes through the port, like the variables.
 
-; A: el actor. Deja WMADD apuntando a su byte.
+; A: the actor. Leaves WMADD pointing at its byte.
 .proc actor_graf_apuntar
 .a8
 .i16
@@ -52,7 +52,7 @@
     rts
 .endproc
 
-; A: el actor. Vuelve con su gráfico en A, o `ACTOR_GRAF_NINGUNO`.
+; A: the actor. Returns with its graphic in A, or `ACTOR_GRAF_NINGUNO`.
 .proc actor_graf_leer
 .a8
 .i16
@@ -61,7 +61,7 @@
     rts
 .endproc
 
-; A: el actor; `temp + 1`: el gráfico.
+; A: the actor; `temp + 1`: the graphic.
 .proc actor_graf_escribir
 .a8
 .i16
@@ -71,8 +71,8 @@
     rts
 .endproc
 
-; Ningún actor con el sprite cambiado. Corre en el reset, antes de cargar la
-; partida, que lo pisa.
+; No actor with a changed sprite. Runs at reset, before loading the save,
+; which overwrites it.
 .proc actor_graf_limpiar
 .a8
 .i16
@@ -92,52 +92,54 @@ otro:
     rts
 .endproc
 
-; El valor que `KeyInputProc` le guarda a la variable, en A, o 0 si todavía no
-; hay tecla. `temp + 1` trae las banderas.
+; The value `KeyInputProc` stores in the variable, in A, or 0 if there is no
+; button yet. `temp + 1` carries the flags.
 ;
-; **Las tres cosas**: cancelar, la tecla de acción y la cruceta. Por flanco en
-; la forma que espera y por lo apretado en la que no —ver más abajo—. El orden es el de `CheckInput` —de mayor valor a menor, que es lo
-; que dice "RPG processes keys from highest variable value to lowest"— y es el
-; mismo que corre `eventos.tecla_de` del lado del modelo; los números salen del
-; conversor y no están escritos acá dos veces.
+; **All three things**: cancel, the action button and the D-pad. By edge in
+; the form that waits and by held state in the one that does not —see
+; below—. The order is that of `CheckInput` —from highest value to lowest,
+; which is what "RPG processes keys from highest variable value to lowest"
+; says— and it is the same one `eventos.tecla_de` runs on the model's side;
+; the numbers come from the converter and are not written here twice.
 ;
-; Hasta el 2026-09-13 esto miraba sólo la tecla de acción, y lo que lo tenía
-; cortado no era la ROM sino el arnés: la tanda sostenía una dirección desde el
-; arranque, así que un flanco de cruceta no lo podía producir ningún caso.
-; Ahora lo produce `--tocar`, y lo cobra el caso `tecla-dir` de la tanda.
+; Until 2026-09-13 this only looked at the action button, and what kept it
+; cut short was not the ROM but the harness: the suite held a direction from
+; boot, so no case could produce a D-pad edge. Now `--tocar` produces it, and
+; the suite's `tecla-dir` case checks it.
 ;
-; El flanco es `Input::IsTriggered`: `pad` contra `pad_ant` para B y las
-; direcciones, `pad_a` contra `pad_a_ant` para A —A vive en el otro byte del
-; control—, que es lo mismo con lo que se cierra un mensaje.
+; The edge is `Input::IsTriggered`: `pad` against `pad_ant` for B and the
+; directions, `pad_a` against `pad_a_ant` for A —A lives in the other byte of
+; the controller—, which is the same thing a message is closed with.
 ;
-; `temp + 3` es el único de los cuatro que está libre acá: `temp` trae la
-; ranura y `temp + 1` las banderas, y `op_key` guarda la respuesta en
-; `temp + 2` **después** de volver de acá.
+; `temp + 3` is the only one of the four that is free here: `temp` carries the
+; slot and `temp + 1` the flags, and `op_key` stores the answer in `temp + 2`
+; **after** returning from here.
 .proc tecla_valor
 .a8
 .i16
-    ; La forma que no espera mira lo **apretado** y no el flanco: es el `wait
-    ; ? IsTriggered : IsPressed` de `KeyInputState::CheckInput`, easyrpg
-    ; `game_interpreter.cpp:3222`. Es el volante de la carrera, que se sostiene:
-    ; por flanco, el auto cambiaba de carril una sola vez por apretada.
+    ; The form that does not wait looks at what is **held** and not at the
+    ; edge: it is the `wait ? IsTriggered : IsPressed` of
+    ; `KeyInputState::CheckInput`, easyrpg `game_interpreter.cpp:3222`. It is
+    ; the steering wheel of the race, which is held: by edge, the car changed
+    ; lanes only once per press.
     ;
-    ; El acarreo lleva la bandera de espera **hasta la tecla de acción**, sin
-    ; guardarla: ningún `lda`, `and`, `eor` ni `sta` del medio lo toca. Guardada
-    ; en `temp + 2` costaba cuatro bytes más de banco 0.
-    .assert TECLA_ESPERA = $01, error, "tecla_valor la saca con un lsr"
+    ; The carry carries the wait flag **all the way to the action button**,
+    ; without storing it: no `lda`, `and`, `eor` or `sta` in between touches
+    ; it. Stored in `temp + 2` it cost four more bytes of bank 0.
+    .assert TECLA_ESPERA = $01, error, "tecla_valor takes it out with an lsr"
     lda temp + 1
-    lsr a                       ; TECLA_ESPERA es el bit 0: al acarreo
+    lsr a                       ; TECLA_ESPERA is bit 0: into the carry
     lda pad
-    bcc joy_listo               ; sin espera: lo apretado, tal cual
+    bcc joy_listo               ; no wait: what is held, as is
     eor pad_ant
     and pad
-    ; Sin las flechas que `flechas_repetir` hizo repetir este cuadro: acá
-    ; RM2k mira `IsTriggered`, no `IsRepeated`. El `ora` y el `eor` son un
-    ; `and` con el complemento, y ninguno de los dos toca el acarreo.
+    ; Without the arrows that `flechas_repetir` made repeat this frame: here
+    ; RM2k looks at `IsTriggered`, not `IsRepeated`. The `ora` and the `eor`
+    ; are an `and` with the complement, and neither touches the carry.
     ora flechas_repetidas
     eor flechas_repetidas
 joy_listo:
-    sta temp + 3                ; JOY1H: B y las cuatro flechas
+    sta temp + 3                ; JOY1H: B and the four arrows
     lda temp + 1
     and #TECLA_CANCELAR
     beq sin_cancelar
@@ -151,7 +153,7 @@ sin_cancelar:
     and #TECLA_DECISION
     beq sin_decision
     lda pad_a
-    bcc a_lista                 ; el acarreo de arriba, todavía entero
+    bcc a_lista                 ; the carry from above, still intact
     eor pad_a_ant
     and pad_a
 a_lista:
@@ -162,9 +164,9 @@ sin_decision:
     lda temp + 1
     and #TECLA_DIRS
     beq ninguna
-    ; Las cuatro, en el orden de `CheckInput`, por tabla: escritas a mano son
-    ; cuatro `bit`/`bne` más cuatro `lda`/`rts`, y el banco 0 no los tiene.
-    ; La tabla termina en cero, que no es ningún botón.
+    ; The four, in the order of `CheckInput`, by table: written by hand they
+    ; are four `bit`/`bne` plus four `lda`/`rts`, and bank 0 does not have
+    ; them. The table ends in zero, which is no button.
     ldx #$0000
 dir_otra:
     lda f:tecla_dir_bit, x
@@ -181,7 +183,7 @@ ninguna:
     rts
 .endproc
 
-; A: el byte de permisos nuevo.
+; A: the new permissions byte.
 .proc acceso_escribir
 .a8
 .i16
@@ -198,7 +200,7 @@ ninguna:
     rts
 .endproc
 
-; Se tira el pedido de menú, si había. Sólo A.
+; The menu request is dropped, if there was one. Only A.
 .proc menu_olvidar
 .a8
 .i16
@@ -210,10 +212,10 @@ listo:
     rts
 .endproc
 
-; B recién apretado pide el menú, si está permitido, no hay mensaje y no hay
-; página corriendo: es el final de `Game_Player::Update`. Corre después de
-; `move_hero`, así que el menú se abre en el cuadro que viene —o cuando
-; termine el paso, si se estaba caminando—.
+; B just pressed asks for the menu, if it is allowed, there is no message and
+; no page running: it is the end of `Game_Player::Update`. Runs after
+; `move_hero`, so the menu opens on the next frame —or when the step ends, if
+; the hero was walking—.
 .proc pedir_menu
 .a8
 .i16
@@ -235,7 +237,7 @@ listo:
     rts
 .endproc
 
-; ¿La orden A hace algo? Vuelve con A = 1 y Z=0 si sí. Se lleva X.
+; Does option A do anything? Returns with A = 1 and Z=0 if so. Clobbers X.
 .proc menu_habilitada
 .a8
 .i16
@@ -251,14 +253,14 @@ listo:
     bne listo
     jsr acceso_leer
     and #ACCESO_SIN_GUARDAR
-    eor #ACCESO_SIN_GUARDAR     ; 1 si está permitido
+    eor #ACCESO_SIN_GUARDAR     ; 1 if allowed
 listo:
     rts
 .endproc
 
-; El cursor en la orden A: `temp + 3` en 1 lo pinta y en 0 lo borra. Son dos
-; celdas, una abajo de la otra, escritas de a una palabra. Con la pantalla
-; apagada o adentro del vblank.
+; The cursor on option A: `temp + 3` at 1 paints it and at 0 erases it. It is
+; two cells, one below the other, written one word at a time. With the screen
+; off or inside the vblank.
 .proc menu_cursor_escribir
 .a8
 .i16
@@ -302,10 +304,10 @@ borra:
     rts
 .endproc
 
-; El oro, alineado a la derecha contra la moneda: se divide por diez de a un
-; byte —el divisor del hardware es de 16 por 8, y con el resto de arrastre el
-; dividendo nunca pasa de 2559— y cada resto es una cifra, de derecha a
-; izquierda. El cero se escribe "0".
+; The gold, right-aligned against the coin: it is divided by ten one byte at
+; a time —the hardware divider is 16 by 8, and with the carried remainder the
+; dividend never goes past 2559— and each remainder is a digit, from right to
+; left. Zero is written "0".
 .proc menu_oro_escribir
 .a8
 .i16
@@ -321,7 +323,7 @@ borra:
     sta VMAIN
     ldy #(MENU_MONEDA_VRAM - 1)
 cifra:
-    stz temp + 3                ; el resto que se arrastra
+    stz temp + 3                ; the remainder carried along
     ldx #2
 dividir:
     lda temp, x
@@ -329,7 +331,7 @@ dividir:
     lda temp + 3
     sta WRDIVH
     lda #10
-    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    sta WRDIVB                  ; starts: the quotient takes sixteen cycles
     nop
     nop
     nop
@@ -340,7 +342,7 @@ dividir:
     nop
     lda RDDIVL
     sta temp, x
-    lda RDMPYL                  ; el resto
+    lda RDMPYL                  ; the remainder
     sta temp + 3
     dex
     bpl dividir
@@ -361,7 +363,7 @@ dividir:
     lda f:ranura_glifo_celdas + GLIFO_CIFRA_0 + 2, x
     sta VMDATAL
     dey
-    lda temp                    ; ¿queda algo?
+    lda temp                    ; anything left?
     bne otra
     sep #$20
 .a8
@@ -375,8 +377,8 @@ otra:
     bra cifra
 .endproc
 
-; La pantalla entera, con la pantalla apagada: el banco, las cinco órdenes, el
-; cursor en `titulo_sel`, el oro y el grupo. Al final la prende.
+; The whole screen, with the screen off: the bank, the five options, the
+; cursor on `titulo_sel`, the gold and the party. At the end it turns it on.
 .proc menu_subir
 .a8
 .i16
@@ -386,20 +388,20 @@ otra:
     stz TM
     jsr ranura_banco_subir
 
-    ; --- las órdenes, cada una en su variante ---
+    ; --- the options, each in its variant ---
     lda #0
 otra_opcion:
     pha
     jsr menu_habilitada
     eor #1
-    sta temp + 3                ; 1 si va en gris
+    sta temp + 3                ; 1 if it goes in gray
     pla
     pha
     asl a
     ora temp + 3
     clc
     adc #MENU_BLQ_OPCION
-    sta temp + 3                ; el bloque
+    sta temp + 3                ; the block
     pla
     pha
     rep #$20
@@ -424,13 +426,13 @@ otra_opcion:
     cmp #MENU_OPCIONES
     bcc otra_opcion
 
-    ; --- el cursor ---
+    ; --- the cursor ---
     lda #1
     sta temp + 3
     lda titulo_sel
     jsr menu_cursor_escribir
 
-    ; --- el oro y la moneda ---
+    ; --- the gold and the coin ---
     jsr menu_oro_escribir
     rep #$20
 .a16
@@ -445,26 +447,26 @@ otra_opcion:
     jsr ranura_rect_subir
 
     jsr menu_grupo_pintar
-    jsl f:menu_exp_pintar       ; la experiencia, que va en sprites, y prende
+    jsl f:menu_exp_pintar       ; the experience, which goes in sprites, and turns on
     lda #1
     sta menu_abierto
     rts
 .endproc
 
-; El grupo, de a una fila por actor: el bloque fijo de la fila, la cara, y
-; encima el nombre, el nivel, los HP de ahora y el máximo. Lo comparten el
-; menú y la elección de actor.
+; The party, one row per actor: the row's fixed block, the face, and on top
+; the name, the level, the current HP and the maximum. Shared by the menu and
+; the actor choice.
 ;
-; **El bloque es uno solo para las cuatro filas y para todos los actores**:
-; lleva el término del nivel, el estado y el de los HP, que no dependen de
-; nadie. Lo que sí depende del actor —su nombre, su nivel y su máximo— se
-; compone con glifos, y eso es lo que hace que el banco de tiles no crezca
-; con la cantidad de actores; ver `ranura_texto_escribir`.
+; **The block is a single one for the four rows and for every actor**: it
+; carries the level term, the status and the HP term, which depend on no one.
+; What does depend on the actor —its name, its level and its maximum— is
+; composed with glyphs, and that is what keeps the tile bank from growing
+; with the number of actors; see `ranura_texto_escribir`.
 ;
-; La fila se queda en la pila toda la vuelta y cada paso vuelve a sacar de
-; ella la celda y el actor en vez de guardarlos: la página directa está llena
-; —`temp` y `temp + 2` los usan las dos rutinas que escriben— y cada paso
-; corre una vez por fila, con el PPU apagado.
+; The row stays on the stack for the whole pass and each step pulls the cell
+; and the actor out of it again instead of saving them: the direct page is
+; full —`temp` and `temp + 2` are used by the two routines that write— and
+; each step runs once per row, with the PPU off.
 .proc menu_grupo_pintar
 .a8
 .i16
@@ -477,14 +479,14 @@ otro_miembro:
 grupo_listo:
     rts
 entra:
-    pha                         ; la fila, hasta el final de la vuelta
+    pha                         ; the row, until the end of the pass
     jsr actor_de
     cmp #MENU_ACTORES_N
     bcc conocido
-    jmp siguiente               ; uno que esta ROM no conoce
+    jmp siguiente               ; one this ROM does not know
 conocido:
 
-    ; --- el bloque fijo de la fila ---
+    ; --- the row's fixed block ---
     pla
     pha
     jsr fila_vram
@@ -495,7 +497,7 @@ conocido:
     ldx #MENU_BLQ_FILA
     jsr ranura_rect_subir
 
-    ; --- la cara, en la esquina de arriba a la izquierda de la fila ---
+    ; --- the face, in the row's top left corner ---
     pla
     pha
     jsr fila_vram
@@ -524,7 +526,7 @@ conocido:
     jsr ranura_rect_subir
 sin_cara:
 
-    ; --- el nombre ---
+    ; --- the name ---
     pla
     pha
     jsr fila_vram
@@ -544,7 +546,7 @@ sin_cara:
     lda #MENU_NOMBRE_COLS
     jsr ranura_texto_escribir
 
-    ; --- el nivel ---
+    ; --- the level ---
     pla
     pha
     jsr fila_vram
@@ -559,11 +561,11 @@ sin_cara:
     pla
     pha
     jsr actor_de
-    jsl f:texto_nivel           ; el de ahora: sube peleando
+    jsl f:texto_nivel           ; the current one: it goes up by fighting
     lda #RANURA_NIVEL_CIFRAS
     jsr ranura_texto_escribir
 
-    ; --- el máximo, detrás de la barra ---
+    ; --- the maximum, after the slash ---
     pla
     pha
     jsr fila_vram
@@ -578,25 +580,24 @@ sin_cara:
     pla
     pha
     jsr actor_de
-    jsl f:texto_maximo          ; el de su nivel de ahora, como el nivel
+    jsl f:texto_maximo          ; the one for its current level, like the level
     lda #MENU_MAX_CIFRAS
     jsr ranura_texto_escribir
 
-    ; --- y los HP de ahora, que no son texto del cartucho sino estado ---
+    ; --- and the current HP, which are not cartridge text but state ---
     pla
     pha
-    sta temp + 2                ; la fila
+    sta temp + 2                ; the row
     jsr actor_de
-    sta temp                    ; el actor
+    sta temp                    ; the actor
     jsl f:menu_hp_escribir
 siguiente:
     pla
     inc a
     jmp otro_miembro
 
-; El actor de la fila que trae A, y la celda donde arranca esa fila en el
-; tilemap. Las dos se vuelven a preguntar en cada paso; ver el comentario de
-; arriba.
+; The actor of the row given in A, and the cell where that row starts in the
+; tilemap. Both are asked again at each step; see the comment above.
 actor_de:
     rep #$20
 .a16
@@ -611,7 +612,7 @@ fila_vram:
     rep #$20
 .a16
     and #$00FF
-    asl a                       ; dos bytes por entrada
+    asl a                       ; two bytes per entry
     tax
     lda menu_fila_vram, x
     tay
@@ -620,8 +621,8 @@ fila_vram:
     rts
 .endproc
 
-; El menú, hasta que el jugador lo cierra con B. Vuelve al mapa repuesto,
-; como la pantalla de ranuras desde el save point.
+; The menu, until the player closes it with B. Returns to the restored map,
+; like the slot screen from the save point.
 .proc menu_pantalla
 .a8
 .i16
@@ -630,7 +631,7 @@ fila_vram:
     plb
     sep #$20
     rep #$10
-    stz titulo_sel              ; RM2k abre con el cursor en la primera
+    stz titulo_sel              ; RM2k opens with the cursor on the first
 armar:
     jsr menu_subir
 espera:
@@ -644,7 +645,7 @@ espera:
     beq no_arriba
     lda titulo_sel
     bne sube
-    lda #MENU_OPCIONES          ; desde la primera, arriba da la vuelta
+    lda #MENU_OPCIONES          ; from the first, up wraps around
 sube:
     dec a
     jsr mover
@@ -668,16 +669,16 @@ no_abajo:
     lda pad_a
     beq espera
     lda pad_a_ant
-    bne espera                  ; ya lo tenía apretado: no es un flanco
+    bne espera                  ; it was already held: not an edge
     lda titulo_sel
     jsr menu_habilitada
-    beq espera                  ; en gris: RM2k suena y no hace nada
+    beq espera                  ; in gray: RM2k plays a sound and does nothing
     lda titulo_sel
     cmp #2
     bne no_equipo
-    ; El equipo: a quién, y su pantalla. Las dos vuelven al menú.
+    ; Equipment: whom, and their screen. Both return to the menu.
     lda #1
-    sta eleg_cancel             ; para elegir
+    sta eleg_cancel             ; for choosing
     jsr objetivo_pantalla
     cmp #$FF
     beq volver_de_equipo
@@ -696,7 +697,8 @@ volver_de_equipo:
 no_equipo:
     lda titulo_sel
     bne no_items
-    ; Los ítems: B vuelve al menú, y usar uno vuelve derecho al mapa.
+    ; Items: B returns to the menu, and using one goes straight back to the
+    ; map.
     jsr items_pantalla
     beq volver_de_items
     jmp cerrar
@@ -706,17 +708,17 @@ volver_de_items:
 no_items:
     cmp #MENU_FIN
     bne guardar
-    ; End Game: su pantalla, en `fin_del_juego.s`. "Yes" no vuelve —termina
-    ; en el reset—; "No" y B vuelven al menú con el cursor en la orden, como
-    ; `Scene::Pop`.
+    ; End Game: its screen, in `fin_del_juego.s`. "Yes" does not return —it
+    ; ends in the reset—; "No" and B return to the menu with the cursor on the
+    ; option, like `Scene::Pop`.
     jsl f:fin_pantalla
     lda #MENU_FIN
     sta titulo_sel
     jmp armar
 guardar:
-    ; Guardar: la pantalla de ranuras y, elija
-    ; o cancele, de vuelta al menú con el cursor en "Save", como `Scene_Save`
-    ; cuando vuelve a `Scene_Menu`.
+    ; Save: the slot screen and, whether a slot is chosen or it is canceled,
+    ; back to the menu with the cursor on "Save", like `Scene_Save` when it
+    ; returns to `Scene_Menu`.
     lda #1
     jsr ranuras_pantalla
     cmp #$FF
@@ -728,8 +730,9 @@ guardar_listo:
     sta titulo_sel
     jmp armar
 cerrar:
-    ; El B que cierra y el A de antes quedan consumidos: sin esto `pedir_menu`
-    ; vería el flanco en esta misma vuelta y el menú se volvería a abrir.
+    ; The B that closes and the earlier A are consumed: without this
+    ; `pedir_menu` would see the edge in this same pass and the menu would
+    ; open again.
     lda pad
     sta pad_ant
     lda pad_a
@@ -737,16 +740,17 @@ cerrar:
     stz menu_abierto
     lda boot_cuadros
     sta nmi_visto
-    ; El equipo pudo cambiar: los eventos comunes que sólo lo miran corren
-    ; ahora, con el banco de datos todavía en el 0. Ver `COMUNES_DEL_EQUIPO`
-    ; en eventos.py.
+    ; The equipment may have changed: the common events that only look at it
+    ; run now, with the data bank still at 0. See `COMUNES_DEL_EQUIPO` in
+    ; eventos.py.
     jsl f:comunes_del_equipo
     plb
-    jsl f:menu_exp_cerrar       ; lo que los sprites del menú le cambiaron
+    jsl f:menu_exp_cerrar       ; what the menu sprites changed
     jsr volver_al_mapa
     rts
 
-; El cursor a la orden que trae A: se borra de donde estaba y se pinta ahí.
+; The cursor to the option given in A: erased from where it was and painted
+; there.
 mover:
     pha
     stz temp + 3
@@ -760,19 +764,20 @@ mover:
     jmp menu_cursor_escribir
 .endproc
 
-; --- la elección de actor ----------------------------------------------------
+; --- the actor choice --------------------------------------------------------
 ;
-; `Scene_ActorTarget`, sobre el banco del menú: el panel del grupo, y las
-; ventanas y la barra del System en BG1, que son de `eleccion_de_actor.s`. `eleg_cancel` dice para qué: en 1, para elegir
-; a quién equipar, y A vuelve con la fila; en 0, para la medicina de `k` en
-; `eleg_flancos`, y A la usa sobre la fila —`medicina_usar`— y **se queda**,
-; con los HP de esa fila repintados, que es lo que hace `UpdateItem`. B vuelve
-; con $FF. `render_objetivo` en titulo.py es la referencia.
+; `Scene_ActorTarget`, over the menu's bank: the party panel, and the System
+; windows and bar on BG1, which belong to `eleccion_de_actor.s`. `eleg_cancel`
+; says what for: at 1, to choose whom to equip, and A returns with the row; at
+; 0, for the medicine `k` in `eleg_flancos`, and A uses it on the row
+; —`medicina_usar`— and **stays**, with that row's HP repainted, which is what
+; `UpdateItem` does. B returns with $FF. `render_objetivo` in titulo.py is the
+; reference.
 ;
-; Hasta el 2026-09-21 A no hacía nada con una medicina: estaba escrito cuando
-; fuera de la pelea nadie podía tener los HP por debajo del máximo, y siguió
-; así cuando las peleas los bajaron. Es el "el sándwich no cura desde el menú"
-; de taro.
+; Until 2026-09-21 A did nothing with a medicine: it was written when outside
+; battle nobody could have HP below the maximum, and it stayed that way when
+; battles lowered them. It is taro's "the sandwich does not heal from the
+; menu".
 
 .proc objetivo_pantalla
 .a8
@@ -820,29 +825,29 @@ no_abajo:
     lda titulo_flancos
     and #PAD_B
     beq mira_a
-    lda #$FF                    ; B: sin elegir
+    lda #$FF                    ; B: nothing chosen
     rts
 mira_a:
     lda pad_a
     beq espera
     lda pad_a_ant
-    bne espera                  ; ya lo tenía apretado: no es un flanco
+    bne espera                  ; it was already held: not an edge
     lda eleg_cancel
     beq medicina
-    lda titulo_sel              ; eligiendo: la fila elegida
+    lda titulo_sel              ; choosing: the chosen row
     rts
 medicina:
     jsr actor_de_la_fila
     jsl f:medicina_usar
-    beq espera                  ; no sirvió: RM2k suena y no hace nada
-    ; Los HP de la fila, en el vblank que viene: el uso se llevó el de ahora.
+    beq espera                  ; it did not work: RM2k plays a sound and does nothing
+    ; The row's HP, in the next vblank: the use took away the current value.
     jsr wait_vblank
     jsr actor_de_la_fila
     sta temp
     lda titulo_sel
     sta temp + 2
     jsl f:menu_hp_escribir
-    jsl f:objetivo_cuantos      ; y cuántas quedan
+    jsl f:objetivo_cuantos      ; and how many are left
     jmp espera
 
 actor_de_la_fila:

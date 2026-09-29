@@ -2,47 +2,48 @@
 .a8
 .i16
 
-; --- el lugar y el tema recordados ----------------------------------------------
+; --- the memorized location and song ---------------------------------------------
 ;
-; Los cuerpos de `op_location` y `op_memorized_bgm`, que en el banco 0 son sólo
-; la entrada: los dos llegan con `jsl`, con Y en su primer operando, y vuelven
-; con `rtl` y el cursor avanzado. Viven acá por lugar —en el banco 0 quedaban
-; unos trescientos bytes y los dos juntos pedían casi doscientos—.
+; The bodies of `op_location` and `op_memorized_bgm`, which in bank 0 are only
+; the entry: both arrive with `jsl`, with Y on their first operand, and return
+; with `rtl` and the cursor advanced. They live here for space —bank 0 had
+; about three hundred bytes left and the two together asked for almost two
+; hundred—.
 ;
-; Las variables se leen y se escriben **directo en la RAM lejana**, con
-; `f:FAR_LARGO + FAR_VARIABLES`, y no con `var_leer` y `var_escribir`: ésas se
-; llaman con `jsr` y no cruzan de banco. Escribir así es lo mismo que por la
-; ventana —es la misma RAM— y el refresco se marca igual que en
-; `var_escribir`.
+; Variables are read and written **directly in far RAM**, with
+; `f:FAR_LARGO + FAR_VARIABLES`, and not with `var_leer` and `var_escribir`:
+; those are called with `jsr` and do not cross banks. Writing this way is the
+; same as through the window —it is the same RAM— and the refresh is flagged
+; the same way as in `var_escribir`.
 
-; `MemorizeLocation` y `RecallToLocation`: el lugar del héroe en tres
-; variables —el mapa, la x y la y—, y el salto a lo que digan. Los operandos
-; son el modo y las tres ranuras. En el modo, el bit 0 es cuál de los dos: 0
-; recordar, 1 saltar (`LUGAR_SALTAR` en eventos.py); al recordar, los bits 7,
-; 6 y 5 son el VAR_REFRESCO de las escrituras del mapa, la x y la y, en ese
-; orden, así que alcanza con correrlo uno por escritura.
+; `MemorizeLocation` and `RecallToLocation`: the hero's location in three
+; variables —the map, x and y—, and the jump to whatever they say. The
+; operands are the mode and the three slots. In the mode, bit 0 says which of
+; the two: 0 memorize, 1 jump (`LUGAR_SALTAR` in eventos.py); when memorizing,
+; bits 7, 6 and 5 are the VAR_REFRESCO of the writes of the map, x and y, in
+; that order, so it is enough to shift it once per write.
 ;
-; **En las variables el mapa es el id de RM2k**, no el índice del cartucho:
-; las lee y las escribe cualquier otra página —los pisos que se rompen de la
-; planta de reciclaje cargan el 61 con un ControlVars—, así que las dos
-; direcciones pasan por `mapa_rm2k`, la tabla de ids que emite el conversor.
+; **In the variables the map is the RM2k id**, not the cartridge's index: any
+; other page reads and writes them —the breaking floors of the recycling plant
+; load 61 with a ControlVars—, so both directions go through `mapa_rm2k`, the
+; table of ids the converter emits.
 ;
-; Saltar vuelve con el acarreo prendido y `salto_mapa`, `salto_x` y `salto_y`
-; puestos, y `op_location` termina como un `Teleport`: corta el cuadro y la
-; página sigue en el mapa nuevo. Es `CommandRecallToLocation`, que arma el
-; mismo `ReserveTeleport`. A un mapa que el cartucho no lleva **no salta, y la
-; página sigue**: saltar a cualquier lado sería peor, y cortar la página
-; dejaría al jugador sin saber por qué.
+; Jumping returns with carry set and `salto_mapa`, `salto_x` and `salto_y`
+; set, and `op_location` ends like a `Teleport`: it ends the frame and the
+; page continues on the new map. It is `CommandRecallToLocation`, which sets
+; up the same `ReserveTeleport`. To a map the cartridge does not carry **it
+; does not jump, and the page continues**: jumping anywhere would be worse,
+; and ending the page would leave the player not knowing why.
 .proc lugar_recordado
 .a8
 .i16
-    lda [cod_ptr], y            ; el modo
+    lda [cod_ptr], y            ; the mode
     iny
     sta temp + 1
     lsr a
     bcs saltar
-    ; Recordar: el mapa, de la tabla de ids, y la celda viva del héroe, como
-    ; la clase 6 de ControlVars.
+    ; Memorize: the map, from the table of ids, and the hero's live cell, like
+    ; class 6 of ControlVars.
     rep #$20
 .a16
     lda mapa_actual
@@ -60,21 +61,21 @@
     rtl
 
 .a16
-; A: el valor, en dieciséis. Lo escribe en la ranura del operando y marca el
-; refresco si lo pide el bit de arriba de `temp + 1`, que después corre.
+; A: the value, in sixteen bits. Writes it to the operand's slot and flags the
+; refresh if the top bit of `temp + 1` asks for it, then shifts it.
 escribir:
     pha
-    lda [cod_ptr], y            ; la ranura, y el byte de al lado
+    lda [cod_ptr], y            ; the slot, and the neighboring byte
     iny
     and #$00FF
-    asl a                       ; dos bytes por variable
+    asl a                       ; two bytes per variable
     tax
     pla
     sta f:FAR_LARGO + FAR_VARIABLES, x
     sep #$20
 .a8
     lda temp + 1
-    asl temp + 1                ; el de la escritura siguiente pasa arriba
+    asl temp + 1                ; the next write's bit moves to the top
     and #VAR_REFRESCO
     beq sin_refresco
     lda #1
@@ -88,7 +89,7 @@ sin_refresco:
 saltar:
     rep #$20
 .a16
-    jsr leer                    ; el id de RM2k del mapa
+    jsr leer                    ; the RM2k id of the map
     ldx #0
 buscar:
     cmp f:mapa_rm2k, x
@@ -97,8 +98,8 @@ buscar:
     inx
     cpx #MAPA_COUNT * 2
     bcc buscar
-    iny                         ; no está en el cartucho: las otras dos
-    iny                         ; ranuras, y sigue
+    iny                         ; not in the cartridge: the other two
+    iny                         ; slots, and carry on
     sep #$20
 .a8
     clc
@@ -118,7 +119,7 @@ hallado:
     rtl
 
 .a16
-; La variable de la ranura del operando, en A de dieciséis.
+; The variable in the operand's slot, in a 16-bit A.
 leer:
     lda [cod_ptr], y
     iny
@@ -130,28 +131,28 @@ leer:
 
 .endproc
 
-; `MemorizeBGM` (el operando en 0) y `PlayMemorizedBGM` (en 1): anotar qué
-; tema suena en `TEMA_RECORDADO`, y volver a ponerlo. Poner vuelve con el
-; acarreo prendido y el tema en A, y `op_memorized_bgm` lo toca como un
-; `PlayBGM`.
+; `MemorizeBGM` (operand 0) and `PlayMemorizedBGM` (operand 1): note down
+; which song is playing in `TEMA_RECORDADO`, and put it back on. Putting it on
+; returns with carry set and the song in A, and `op_memorized_bgm` plays it
+; like a `PlayBGM`.
 ;
-; Volver a poner el que ya suena **no lo arranca de nuevo**: es el
-; `Game_System::BgmPlay` de easyrpg, que con el mismo nombre y sin un fundido
-; en curso sólo ajusta el volumen. Es justamente el caso del juego: el
-; tutorial del droide recuerda el tema con el que llegó y lo pone al irse, y
-; en el medio no cambia. Con nada recordado ($FF) no hace nada, y en RM2k
-; callaría la música; ninguna página del juego pone un tema recordado sin
-; haberlo recordado antes en la misma página.
+; Putting back the one already playing **does not restart it**: that is
+; easyrpg's `Game_System::BgmPlay`, which with the same name and no fade in
+; progress only adjusts the volume. That is exactly the game's case: the droid
+; tutorial memorizes the song it arrived with and puts it on when leaving, and
+; in between it does not change. With nothing memorized ($FF) it does nothing,
+; where RM2k would silence the music; no page in the game plays a memorized
+; song without having memorized it earlier in the same page.
 .proc tema_recordado
 .a8
 .i16
     lda [cod_ptr], y
     iny
-    cmp #0                      ; explícito: que quede escrito qué se mira
+    cmp #0                      ; explicit: so it is written down what is being tested
     bne poner
     lda tema_actual + 1
     beq recordar
-    lda #$FF                    ; no suena ninguno
+    lda #$FF                    ; none is playing
     bra anotar
 recordar:
     lda tema_actual
@@ -162,11 +163,11 @@ anotar:
 poner:
     lda f:TEMA_RECORDADO
     cmp #TEMA_TOTAL
-    bcs nada                    ; ninguno, o uno que el cartucho no lleva
-    ; ¿Es el que suena? La misma pregunta que `mapa_tema_callar`.
+    bcs nada                    ; none, or one the cartridge does not carry
+    ; Is it the one playing? The same question as `mapa_tema_callar`.
     pha
     lda bgm_fundido
-    bne distinto                ; se estaba apagando: vuelve a empezar
+    bne distinto                ; it was fading out: start over
     lda f:MSU_SUENA
     bne suena
     lda music_apagada

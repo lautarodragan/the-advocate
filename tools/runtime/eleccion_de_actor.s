@@ -1,28 +1,27 @@
 .segment "FAR"
 
-; --- las ventanas de la elección de actor -----------------------------------
+; --- the actor choice windows ------------------------------------------------
 ;
-; `Scene_ActorTarget` con las ventanas del System en BG1, como ítems y equipo:
-; a la izquierda el nombre de la medicina y "Owned Items" con la cantidad, a
-; la derecha el grupo, y la barra roja sobre la fila marcada. La pantalla
-; sigue siendo `objetivo_pantalla`, en el banco 0, con el banco del menú en
-; BG2; esto es lo que le suma, fuera del banco 0. La geometría y el porqué
-; están en `OBJETIVO_VENTANAS`, en titulo.py, y `render_objetivo` es la
-; referencia.
+; `Scene_ActorTarget` with the System windows on BG1, like items and
+; equipment: on the left the medicine's name and "Owned Items" with the count,
+; on the right the party, and the red bar over the selected row. The screen is
+; still `objetivo_pantalla`, in bank 0, with the menu's bank on BG2; this is
+; what it adds, outside bank 0. The geometry and the why are in
+; `OBJETIVO_VENTANAS`, in titulo.py, and `render_objetivo` is the reference.
 ;
-; BG1 tiene **su propia base**, `OBJETIVO_VRAM`, detrás del tilemap del menú:
-; en la de BG2 no queda lugar, porque el banco del menú llega casi hasta su
-; tilemap. Todo cae en lo que `load_map` repone al cerrar el menú —lo
-; controla `_controlar_objetivo`—, y los colores van en 128..143, que son los
-; de los sprites del menú y los repone `menu_exp_cerrar`.
+; BG1 has **its own base**, `OBJETIVO_VRAM`, behind the menu's tilemap: there
+; is no room left in BG2's, because the menu's bank reaches almost up to its
+; tilemap. Everything falls in what `load_map` restores when the menu closes
+; —`_controlar_objetivo` checks it—, and the colors go in 128..143, which are
+; the menu sprites' and are restored by `menu_exp_cerrar`.
 ;
-; `eleg_cancel` dice cuál: en 0, para la medicina de `eleg_flancos`, con las
-; dos ventanas de la izquierda; si no, para elegir a quién equipar, sin ellas.
-; Se entra con `jsl`, con el banco de datos en el 0: los registros y
-; `item_id` van en absoluto.
+; `eleg_cancel` says which one: at 0, for the medicine in `eleg_flancos`, with
+; the two windows on the left; otherwise, for choosing whom to equip, without
+; them. Entered with `jsl`, with the data bank at 0: the registers and
+; `item_id` are addressed absolute.
 
-; Las ventanas, y el nombre y la cantidad si es una medicina. Con la pantalla
-; apagada, detrás de `ranura_banco_subir`.
+; The windows, and the name and count if it is a medicine. With the screen
+; off, after `ranura_banco_subir`.
 .proc objetivo_subir
 .a8
 .i16
@@ -46,8 +45,9 @@
     sta BBAD0
     lda #$01
     sta MDMAEN
-    ; El tilemap, que es uno solo: el con ítem. Sin ítem se le borran las
-    ; celdas de las dos ventanas de la izquierda —ver `objetivo_compacto`—.
+    ; The tilemap, which is a single one: the one with an item. Without an
+    ; item, the cells of the two left windows are erased —see
+    ; `objetivo_compacto`—.
     rep #$20
 .a16
     lda #OBJETIVO_MAPA
@@ -71,7 +71,7 @@ borrar_fila:
     sta VMADDL
     ldx #OBJETIVO_BORRAR_COLS
 borrar_celda:
-    stz VMDATAL                 ; las dos mitades de la palabra: A de 16
+    stz VMDATAL                 ; both halves of the word: 16-bit A
     dex
     bne borrar_celda
     clc
@@ -81,7 +81,7 @@ borrar_celda:
     sep #$20
 .a8
 colores:
-    ; Los colores.
+    ; The colors.
     lda #OBJETIVO_CGRAM
     sta CGADD
     rep #$20
@@ -103,9 +103,9 @@ colores:
     beq nombre
     rtl
 nombre:
-    ; Los dos renglones del nombre: `objetivo_nombres` tiene
-    ; 2 * OBJETIVO_NOMBRE_ANCHO letras por medicina, y `objetivo_nombre_de`
-    ; dice cuál es la del `k`.
+    ; The two lines of the name: `objetivo_nombres` has
+    ; 2 * OBJETIVO_NOMBRE_ANCHO letters per medicine, and `objetivo_nombre_de`
+    ; says which one belongs to `k`.
     rep #$20
 .a16
     lda eleg_flancos
@@ -124,7 +124,7 @@ nombre:
     adc temp                    ; k * 21
     clc
     adc temp                    ; k * 22
-    .assert OBJETIVO_NOMBRE_ANCHO = 11, error, "el nombre se indexa por k * 22"
+    .assert OBJETIVO_NOMBRE_ANCHO = 11, error, "the name is indexed by k * 22"
     tax
     ldy #OBJETIVO_NOMBRE_VRAM
     jsr renglon
@@ -138,21 +138,21 @@ nombre:
     jsr renglon
     jmp objetivo_cuantos
 
-; Un renglón: X su primera letra en `objetivo_nombres`, Y la celda. Las celdas
-; de arriba de todas las letras y después las de abajo, como
-; `ranura_texto_escribir`. Deja X como estaba y vuelve con A de 8 bits.
+; One line: X its first letter in `objetivo_nombres`, Y the cell. The top
+; cells of all the letters and then the bottom ones, like
+; `ranura_texto_escribir`. Leaves X as it was and returns with an 8-bit A.
 renglon:
     sep #$20
 .a8
     sty VMADDL
-    stz temp + 2                ; las celdas de arriba
+    stz temp + 2                ; the top cells
     stz temp + 3
     jsr pasada
     rep #$20
 .a16
     tya
     clc
-    adc #32                     ; y las de abajo
+    adc #32                     ; and the bottom ones
     sta VMADDL
     sep #$20
 .a8
@@ -171,7 +171,7 @@ letra:
     sec
     sbc #ITEM_PRIMER_CARACTER
     asl a
-    asl a                       ; cuatro bytes por glifo
+    asl a                       ; four bytes per glyph
     clc
     adc temp + 2
     tax
@@ -187,9 +187,9 @@ letra:
     rts
 .endproc
 
-; Cuántos quedan de la medicina de `eleg_flancos`, en dos cifras —la de las
-; decenas en blanco si es cero—, al lado de "Owned Items". En el vblank
-; después de usarla, o con la pantalla apagada al abrir. Sin medicina, nada.
+; How many are left of the medicine in `eleg_flancos`, in two digits —the tens
+; digit blank if it is zero—, next to "Owned Items". In the vblank after using
+; it, or with the screen off when opening. Without a medicine, nothing.
 .proc objetivo_cuantos
 .a8
 .i16
@@ -219,9 +219,9 @@ diez:
     inx
     bra diez
 unidades:
-    sta temp + 1                ; las unidades
+    sta temp + 1                ; the units
     txa
-    sta temp                    ; y las decenas
+    sta temp                    ; and the tens
     lda #$80
     sta VMAIN
     rep #$20
@@ -230,7 +230,7 @@ unidades:
     sta VMADDL
     sep #$20
 .a8
-    stz temp + 2                ; las celdas de arriba
+    stz temp + 2                ; the top cells
     jsr dos
     rep #$20
 .a16
@@ -238,7 +238,7 @@ unidades:
     sta VMADDL
     sep #$20
 .a8
-    lda #2                      ; y las de abajo
+    lda #2                      ; and the bottom ones
     sta temp + 2
     jsr dos
     rtl
@@ -248,7 +248,7 @@ dos:
     beq blanco
     clc
     adc #('0' - ITEM_PRIMER_CARACTER)
-blanco:                         ; el espacio es el primer glifo
+blanco:                         ; the space is the first glyph
     jsr glifo
     lda temp + 1
     clc
@@ -261,7 +261,7 @@ glifo:
     asl a
     clc
     adc temp + 2
-    and #$00FF                  ; `temp + 3` no es parte del desplazamiento
+    and #$00FF                  ; `temp + 3` is not part of the offset
     tax
     lda f:ranura_glifo_celdas, x
     sta VMDATAL
@@ -270,14 +270,14 @@ glifo:
     rts
 .endproc
 
-; La barra en la fila A del grupo: `temp + 3` en 1 la pinta y en 0 la borra.
-; Las dos cosas son copiar el rectángulo de BG1 donde la barra cambia algo
-; —`OBJETIVO_BARRA_FILAS` por `OBJETIVO_BARRA_COLS` celdas, ver
-; `objetivo_compacto`—: de `objetivo_barras`, que lo tiene con la barra, o del
-; tilemap. Un DMA por fila de celdas, que con la de borrar y la de pintar
-; entran en el vblank. Con ítem y sin ítem es el mismo: el rectángulo no toca
-; las ventanas de la izquierda. Se lleva `temp` a `temp + 3`: el que llama
-; vuelve a poner `temp + 3` antes de cada vez.
+; The bar on party row A: `temp + 3` at 1 paints it and at 0 erases it. Both
+; are a copy of the BG1 rectangle where the bar changes something
+; —`OBJETIVO_BARRA_FILAS` by `OBJETIVO_BARRA_COLS` cells, see
+; `objetivo_compacto`—: from `objetivo_barras`, which has it with the bar, or
+; from the tilemap. One DMA per row of cells, which fit in the vblank with the
+; erasing one and the painting one. With an item or without it is the same:
+; the rectangle does not touch the left windows. It clobbers `temp` through
+; `temp + 3`: the caller sets `temp + 3` again before each time.
 BARRA_BYTES = OBJETIVO_BARRA_FILAS * OBJETIVO_BARRA_COLS * 2
 .proc objetivo_barra
 .a8
@@ -287,8 +287,8 @@ BARRA_BYTES = OBJETIVO_BARRA_FILAS * OBJETIVO_BARRA_COLS * 2
     and #$00FF
     asl a
     tax
-    lda f:fila_vram, x          ; la primera celda del rectángulo
-    sta temp                    ; `temp` y `temp + 1`
+    lda f:fila_vram, x          ; the rectangle's first cell
+    sta temp                    ; `temp` and `temp + 1`
     sep #$20
 .a8
     lda #$80
@@ -306,7 +306,7 @@ BARRA_BYTES = OBJETIVO_BARRA_FILAS * OBJETIVO_BARRA_COLS * 2
     lda f:barra_ofs, x
     clc
     adc #.loword(objetivo_barras)
-    ldy #(OBJETIVO_BARRA_COLS * 2) ; el rectángulo va seguido
+    ldy #(OBJETIVO_BARRA_COLS * 2) ; the rectangle is contiguous
     bra filas
 .a8
 borra:
@@ -317,12 +317,12 @@ borra:
     lda temp
     sec
     sbc #OBJETIVO_MAPA
-    asl a                       ; de palabras de la VRAM a bytes del tilemap
+    asl a                       ; from VRAM words to tilemap bytes
     clc
     adc #.loword(objetivo_mapa)
-    ldy #64                     ; una fila entera del tilemap
+    ldy #64                     ; a whole tilemap row
 filas:
-    sty temp + 2                ; cuánto avanza el origen por fila
+    sty temp + 2                ; how much the source advances per row
     ldx #OBJETIVO_BARRA_FILAS
 fila:
     sta A1T0L
@@ -355,11 +355,11 @@ fila_vram:
     .word PRIMERA, PRIMERA + FILA, PRIMERA + 2 * FILA, PRIMERA + 3 * FILA
 barra_ofs:
     .word 0, BARRA_BYTES, 2 * BARRA_BYTES, 3 * BARRA_BYTES
-    .assert MENU_FILAS_GRUPO = 4, error, "una palabra por fila del grupo"
+    .assert MENU_FILAS_GRUPO = 4, error, "one word per party row"
 .endproc
 
-; BG2 con el grupo y BG1 con las ventanas, cada una con su base, y la
-; pantalla prendida. Es `ranura_ppu_prender` más BG1.
+; BG2 with the party and BG1 with the windows, each with its own base, and the
+; screen on. It is `ranura_ppu_prender` plus BG1.
 .proc objetivo_ppu_prender
 .a8
 .i16
