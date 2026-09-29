@@ -451,10 +451,10 @@ def collect_npcs(game_map):
     Every event with a graphic on **some** page gets in, even if the one
     active at load has none: this game's doors are exactly that, a page
     without a graphic and another with the rubble tile. `visible` says
-    whether it is seen at load, and `cambia` whether the graphic follows the
+    whether it is seen at load, and `changes` whether the graphic follows the
     active page: it is what the ROM refreshes with the switches, and it only
-    applies to events whose conditions it understands. `graficos` carries
-    each page's graphic, or None, and `capas` each one's layer.
+    applies to events whose conditions it understands. `graphics` carries
+    each page's graphic, or None, and `layers` each one's layer.
     """
     npcs = []
     chipset = getattr(game_map, "chipset_filename", None)
@@ -470,7 +470,7 @@ def collect_npcs(game_map):
         # That "nothing" is one more state.
         #
         # Without counting it, an event with a single conditioned page ends
-        # up with a single possible graphic, `cambia` comes out false, and
+        # up with a single possible graphic, `changes` comes out false, and
         # since it is not visible when the map loads either, it is skipped
         # entirely: there is no row to update when the switch turns on. taro
         # saw it on 2026-09-07 with map 8's `TalDoorBottom`, which can be
@@ -494,7 +494,7 @@ def collect_npcs(game_map):
             # The index in the map's event table, which is what the bytecode
             # of a forced route carries. **It is not the RM2k id**: there are
             # maps with gaps in the numbering.
-            "evento": number,
+            "event": number,
             "x": event.x, "y": event.y,
             "charset": charset, "index": index, "pose": pose,
             "layer": page.layer,
@@ -502,16 +502,16 @@ def collect_npcs(game_map):
             # Its page's speed, which is what a forced route on it carries:
             # RM2k sets it in `SetupFromPage` and `ForceMoveRoute` does not
             # touch it. By default it is 3, sixteen frames per cell.
-            "velocidad": page.move_speed,
+            "speed": page.move_speed,
             # Whether its page asks for continuous animation. Those that also
             # walk carry it inside their route slot; this is for the still
             # ones.
-            "anima": page.animation_type in CONTINUOUS_ANIMATION,
+            "animates": page.animation_type in CONTINUOUS_ANIMATION,
             "visible": visible,
-            "cambia": changes,
-            "graficos": graphics,
-            "capas": [p.layer for p in event.pages],
-            "tile_pasa": event_tile_passability(game_map, charset, page.layer)
+            "changes": changes,
+            "graphics": graphics,
+            "layers": [p.layer for p in event.pages],
+            "tile_pass": event_tile_passability(game_map, charset, page.layer)
                          if visible else None,
         })
     return npcs

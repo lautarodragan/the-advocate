@@ -5421,13 +5421,13 @@ def map_pages(game_map, map_index, messages=None, songs=None,
                 # never turns on. The pages below keep winning when their turn
                 # comes, which is what RM2k does while the item is not there.
                 party.append({
-                    "evento": event_number, "pagina": page_number,
+                    "event": event_number, "pagina": page_number,
                     "trigger": page.trigger,
                     "switch_a": SWITCH_IMPOSSIBLE, "switch_b": 0, "actor": 0,
                     "variable": None, "item": 0,
                     "capa": page.layer, "frecuencia": page.move_frequency,
-                    "velocidad": page.move_speed, "codigo": None,
-                    "ruta_propia": None, "grafico": None, "tile_pasa": None,
+                    "speed": page.move_speed, "codigo": None,
+                    "ruta_propia": None, "grafico": None, "tile_pass": None,
                     "gira": False,
                 })
                 continue
@@ -5468,7 +5468,7 @@ def map_pages(game_map, map_index, messages=None, songs=None,
                         TRIGGER_AUTOSTART, TRIGGER_PARALLEL):
                     code = None
             party.append({
-                "evento": event_number,
+                "event": event_number,
                 "pagina": page_number,
                 "trigger": page.trigger,
                 "switch_a": cond.ids["switch_a"] if "switch_a" in cond.active else 0,
@@ -5480,14 +5480,14 @@ def map_pages(game_map, map_index, messages=None, songs=None,
                 "item": cond.ids["item"] if "item" in cond.active else 0,
                 "capa": page.layer,
                 "frecuencia": page.move_frequency,
-                "velocidad": page.move_speed,
+                "speed": page.move_speed,
                 "codigo": code,
                 "ruta_propia": own_route(page),
                 # What the page draws and what its tile imposes on the cell:
                 # see `rm2k.collect_npcs`, and `pass_with_event` in
                 # tools/runtime/hero.s, which is the one that applies them.
                 "grafico": graphic,
-                "tile_pasa": (rm2k.event_tile_passability(game_map, graphic[0],
+                "tile_pass": (rm2k.event_tile_passability(game_map, graphic[0],
                                                           page.layer)
                               if graphic is not None else None),
                 # Whether the event turns around toward the hero with this
@@ -5555,7 +5555,7 @@ def own_route(page):
     return {
         "ordenes": commands,
         "frecuencia": page.move_frequency,
-        "velocidad": page.move_speed,
+        "speed": page.move_speed,
         "repite": page.move_route.repeat,
         "saltable": page.move_route.skippable,
         "dir_fija": page.animation_type in (ANIM_FIXED_NOT_CONTINUOUS,

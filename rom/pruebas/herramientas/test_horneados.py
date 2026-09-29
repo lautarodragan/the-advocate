@@ -84,8 +84,8 @@ def test_hornear_no_cambia_la_pasabilidad_de_la_celda():
         # Lo que la fila imponía, antes de hornear.
         antes = {}
         for npc in snes_convert.collect_npcs(game_map):
-            if npc["evento"] in horneados:
-                antes[npc["evento"]] = rm2k.event_tile_passability(
+            if npc["event"] in horneados:
+                antes[npc["event"]] = rm2k.event_tile_passability(
                     game_map, npc["charset"], npc["layer"])
         snes_convert.bake_into_map(game_map, horneados)
         pasable = rm2k.passability_map(game_map, flags)

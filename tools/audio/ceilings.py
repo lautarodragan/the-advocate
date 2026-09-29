@@ -86,8 +86,8 @@ def song_names(directory):
     """The names of the cartridge's songs, in the order of their indices."""
     with open(os.path.join(directory, "musicdata.inc")) as handle:
         inc = handle.read()
-    names = re.search(r"^; Temas: (.*)$", inc, re.M).group(1).split(", ")
-    return ["" if n == "sin música" else n for n in names]
+    names = re.search(r"^; Songs: (.*)$", inc, re.M).group(1).split(", ")
+    return ["" if n == "no music" else n for n in names]
 
 
 def symbols_of(sfc):

@@ -1082,13 +1082,13 @@ def en_la_wram(direccion):
 
 def indice_del_tema(una, nombre):
     """El índice del tema en el cartucho, leído de la cabecera del
-    `musicdata.inc` que se armó con él: `; Temas: a, b, …`, en el orden de
+    `musicdata.inc` que se armó con él: `; Songs: a, b, …`, en el orden de
     `Songs`."""
     inc = os.path.join(os.path.dirname(una.sfc), "musicdata.inc")
     with open(inc) as archivo:
         for linea in archivo:
-            if linea.startswith("; Temas: "):
-                nombres = linea[len("; Temas: "):].strip().split(", ")
+            if linea.startswith("; Songs: "):
+                nombres = linea[len("; Songs: "):].strip().split(", ")
                 break
         else:
             raise AssertionError("no encontré la lista de temas en %s" % inc)
@@ -1122,13 +1122,13 @@ def en_la_rom(direccion):
 def mapas_de(inc):
     """El orden de la tabla de mapas, leído del `mapdata.inc` generado.
 
-    El conversor deja un comentario por entrada —`--- 4: mapa 5 'Core
+    El conversor deja un comentario por entrada —`--- 4: map 5 'Core
     Retrospective' ---`— y de ahí sale, en vez de rehacer la convención.
     """
     with open(inc) as archivo:
         texto = archivo.read()
     orden = {}
-    for indice, map_id in re.findall(r"^; --- (\d+): mapa (\d+) ", texto,
+    for indice, map_id in re.findall(r"^; --- (\d+): map (\d+) ", texto,
                                      re.MULTILINE):
         orden[int(indice)] = int(map_id)
     if not orden:

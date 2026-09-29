@@ -162,8 +162,8 @@ def _con_pistas(tmp_path, sin_pista=(), sin_tema_msu=(), caso=ARRANQUE,
 def _temas(sfc):
     with open(os.path.join(os.path.dirname(sfc), "musicdata.inc")) as archivo:
         for linea in archivo:
-            if linea.startswith("; Temas: "):
-                return linea[len("; Temas: "):].strip().split(", ")
+            if linea.startswith("; Songs: "):
+                return linea[len("; Songs: "):].strip().split(", ")
     raise AssertionError("el musicdata.inc de %s no dice sus temas" % sfc)
 
 

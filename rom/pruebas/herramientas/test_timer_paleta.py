@@ -72,7 +72,7 @@ def test_la_puerta_que_core_rompe_tiene_paleta(partida=None):
     npcs, _fuera, reparto = snes_convert.drawable_npcs(
         ren, game_map, lideres, snes_convert.OBJ_PALETTES - 2, [])
     paleta_de = reparto[1]
-    suyos = [n for n in npcs if n["evento"] == PUERTA]
+    suyos = [n for n in npcs if n["event"] == PUERTA]
     assert suyos, "el evento 30 del mapa 2 no tiene fila de NPC"
     clave = (suyos[0]["charset"], suyos[0]["index"])
     assert clave in paleta_de, \

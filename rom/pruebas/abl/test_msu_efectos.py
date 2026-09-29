@@ -292,8 +292,8 @@ def _tema(una, nombre):
     with open(os.path.join(os.path.dirname(tanda.cartucho(
             cartridges.RELEASE).sfc), "musicdata.inc")) as archivo:
         for linea in archivo:
-            if linea.startswith("; Temas: "):
-                return linea[len("; Temas: "):].strip().split(", ").index(
+            if linea.startswith("; Songs: "):
+                return linea[len("; Songs: "):].strip().split(", ").index(
                     nombre)
     raise AssertionError("el musicdata.inc no dice sus temas")
 

@@ -21,7 +21,7 @@ def paginas_de(map_id, evento_id):
     numero = [n for n, e in enumerate(game_map.events) if e.id == evento_id][0]
     return [p for p in events.map_pages(game_map, indices.get,
                                         events.Messages())
-            if p["evento"] == numero]
+            if p["event"] == numero]
 
 
 def test_la_pagina_con_item_lleva_el_item():
@@ -197,13 +197,13 @@ def test_la_ruta_propia_apunta_al_bloque_que_recibe():
     tabla es texto, y lo que importa es a qué símbolo nombra.
     """
     pagina = {
-        "evento": 0, "pagina": 1, "trigger": events.TRIGGER_PARALLEL,
+        "event": 0, "pagina": 1, "trigger": events.TRIGGER_PARALLEL,
         "switch_a": 0, "switch_b": 0, "actor": 0, "capa": 1, "item": 0,
         "codigo": b"\x00", "offset": 0, "ruta_offset": 1,
-        "frecuencia": 3, "velocidad": 4,
+        "frecuencia": 3, "speed": 4,
         "ruta_propia": {"repite": True, "saltable": False, "dir_fija": False,
                         "anim_continues": False, "frecuencia": 3,
-                        "velocidad": 4, "ordenes": [0]},
+                        "speed": 4, "ordenes": [0]},
     }
     tabla = snes_convert.page_table({"pages": [pagina]}, 7,
                                     "evcode_3")

@@ -699,17 +699,17 @@ def map_poses(renderer, game_map, leaders, movable=(), turning=(),
         # Animates standing still and doesn't walk: the three frames of its
         # row. If it is also in `turning` it already took all twelve above, so
         # the turn doesn't run out of colors.
-        still_animated = (npc["evento"] in animates_still
-                          and npc["evento"] in movable)
+        still_animated = (npc["event"] in animates_still
+                          and npc["event"] in movable)
         if still_animated:
             own = pose_row(npc["pose"])
-        elif npc["evento"] in movable:
+        elif npc["event"] in movable:
             own = ALL_POSES
         else:
             own = frozenset((npc["pose"],))
         add(key, own)
-        if npc["cambia"]:
-            for graphic in npc["graficos"]:
+        if npc["changes"]:
+            for graphic in npc["graphics"]:
                 if graphic is not None:
                     # An event that walks and also changes graphic loses the
                     # change —walking wins, see `convert_map`—, but the page's
@@ -717,7 +717,7 @@ def map_poses(renderer, game_map, leaders, movable=(), turning=(),
                     # declares is counted.
                     add(graphic[:2],
                         pose_row(graphic[2]) if still_animated
-                        else ALL_POSES if npc["evento"] in movable
+                        else ALL_POSES if npc["event"] in movable
                         else (graphic[2],))
     return poses
 
@@ -830,11 +830,11 @@ def bakeable_events(renderer, game_map):
     opaque = {}
     bakeable = {}
     for npc in collect_npcs(game_map):
-        number = npc["evento"]
+        number = npc["event"]
         base = rm2k.unbaked(npc["charset"])
         if not base.startswith(rm2k.TILE_PREFIX) or not npc["visible"]:
             continue
-        if npc["cambia"] or number in walking or number in touched:
+        if npc["changes"] or number in walking or number in touched:
             continue
         pages = game_map.events[number].pages
         if pages[0].condition.active:
@@ -846,10 +846,10 @@ def bakeable_events(renderer, game_map):
         # `test_hornear_no_cambia_la_pasabilidad_de_la_celda` comes for free
         # from this: with the same graphic and the same layer on all of them,
         # `rm2k.event_tile_passability` gives the same on all of them.
-        if set(npc["graficos"]) != {npc["graficos"][0]} \
-                or npc["graficos"][0] is None:
+        if set(npc["graphics"]) != {npc["graphics"][0]} \
+                or npc["graphics"][0] is None:
             continue
-        if set(npc["capas"]) != {rm2k.LAYER_BELOW}:
+        if set(npc["layers"]) != {rm2k.LAYER_BELOW}:
             continue
         if any(p.animation_type in rm2k.CONTINUOUS_ANIMATION for p in pages):
             continue
@@ -877,7 +877,7 @@ def bakeable_events(renderer, game_map):
         # whole mechanism was never fully taken apart; what is measured is
         # that this baking is the only thing that changes between the two
         # ROMs.
-        if npc["tile_pasa"] & ~rm2k.cell_passability(
+        if npc["tile_pass"] & ~rm2k.cell_passability(
                 flags, game_map.lower_layer[cell],
                 game_map.upper_layer[cell]):
             continue
@@ -1041,8 +1041,8 @@ def drawable_npcs(renderer, game_map, leaders, cap, route_graphics=(),
         """The (CharSet, index) pairs the NPC can end up drawing: its row's
         and, if the graphic follows the page, those of all its pages."""
         out = [(npc["charset"], npc["index"])]
-        if npc["cambia"]:
-            out += [g[:2] for g in npc["graficos"] if g is not None]
+        if npc["changes"]:
+            out += [g[:2] for g in npc["graphics"] if g is not None]
         return out
 
     # The possible leaders, which are the ones the hero can end up drawing.
@@ -1142,16 +1142,16 @@ def drawable_npcs(renderer, game_map, leaders, cap, route_graphics=(),
         # it is its own, and the page that asks for it comes out with no
         # graphic.
         npc["afuera"] = {c for c in keys(npc) if c in outside}
-        discarded += [(npc["evento"], c[0]) for c in sorted(npc["afuera"])]
+        discarded += [(npc["event"], c[0]) for c in sorted(npc["afuera"])]
         if (npc["charset"], npc["index"]) in outside:
             npc["visible"] = False
-            npc["tile_pasa"] = None
-            if not npc["cambia"]:
+            npc["tile_pass"] = None
+            if not npc["changes"]:
                 continue
             # The row stays for the other pages, hidden, and its fields move to
             # the first of them that fits: it is the slot it starts with. If
             # none fits, the event is never drawn.
-            other = next((g for g in npc["graficos"]
+            other = next((g for g in npc["graphics"]
                           if g is not None and g[:2] not in outside), None)
             if other is None:
                 continue
@@ -1695,25 +1695,25 @@ def npc_table(npcs, where, movable=(), animated_index=None, animates_still=()):
     """
     rows = []
     for npc in sorted(npcs, key=drawing_order, reverse=True):
-        walks = npc["evento"] in movable
-        key = (("ev", npc["evento"]) if walks
+        walks = npc["event"] in movable
+        key = (("ev", npc["event"]) if walks
                else (npc["charset"], npc["index"], npc["pose"]))
         block, slot = where[key]
         rows.append({
             "x": npc["x"] * 16, "y": npc["y"] * 16,
             "tile": block_tile(block), "palette": slot,
             "layer": npc["layer"], "blocks": npc["blocks"],
-            "evento": npc["evento"], "dir": npc["pose"] // 3,
+            "event": npc["event"], "dir": npc["pose"] // 3,
             "pose": npc["pose"],
             "poses": (animated_index[(npc["charset"], npc["index"])]
                       if walks else None),
-            "velocidad": npc.get("velocidad", 3),
+            "speed": npc.get("speed", 3),
             # The still ones with continuous animation: their column comes from
             # the game clock. The walking ones carry it in their route slot, so
             # the flag doesn't apply to them even if their page asks for it too.
-            "anima": npc["evento"] in animates_still,
+            "animates": npc["event"] in animates_still,
             "visible": npc.get("visible", True),
-            "tile_pasa": npc.get("tile_pasa"),
+            "tile_pass": npc.get("tile_pass"),
         })
     return rows
 
@@ -3286,9 +3286,9 @@ def map_table(maps, labels):
            "map_table:"]
     for number, map_info in enumerate(maps):
         fields = map_fields(map_info)
-        # Stays in Spanish: `mapas_de` in rom/pruebas/arnes/consola.py reads
-        # the table order from this line with a regex that expects "mapa".
-        out.append("    ; --- %d: mapa %d %r ---" % (number, map_info["id"],
+        # `mapas_de` in rom/pruebas/arnes/consola.py reads the table order
+        # from this line with a regex that expects "map".
+        out.append("    ; --- %d: map %d %r ---" % (number, map_info["id"],
                                                      map_info["nombre"]))
         used = 0
         for name, comment in MAP_SCALARS:
@@ -3403,7 +3403,7 @@ def anim_table(maps):
                        % (tiles * BYTES_PER_TILE))
             padding = 0
             if family == FAMILIES[-1][0]:
-                padding = 1 if any(n.get("anima")
+                padding = 1 if any(n.get("animates")
                                    for n in (map_info["sprite"][3]
                                              if map_info["sprite"] else ())) else 0
             out.append("    .byte %d, %d   ; %d tile(s)%s"
@@ -4121,7 +4121,7 @@ def page_table(map_info, number, evcode):
            "pages_%d:" % number]
     # Which events have some page with its own route: the ROM's refresh only
     # looks at the pages of those, and doesn't spend a single read on the rest.
-    with_route = {p["evento"] for p in map_info["pages"] if p.get("ruta_propia")}
+    with_route = {p["event"] for p in map_info["pages"] if p.get("ruta_propia")}
     # And which ones change graphic with the page: the refresh also looks at
     # those, bit 5, and copies to the row what the active page draws.
     changing = map_info.get("cambian", set())
@@ -4145,7 +4145,7 @@ def page_table(map_info, number, evcode):
     # parallel is said by the trigger of the one that wins. Without this,
     # `pick_pages` doesn't even note which one is active —it filters by
     # $E0— and `parallel_tick` would have nowhere to get its code from.
-    with_autostart = {p["evento"] for p in map_info["pages"]
+    with_autostart = {p["event"] for p in map_info["pages"]
                       if p["trigger"] in (events.TRIGGER_AUTOSTART,
                                           events.TRIGGER_PARALLEL) and p["codigo"]}
     for page in map_info["pages"]:
@@ -4155,7 +4155,7 @@ def page_table(map_info, number, evcode):
         else:
             pointer = "$00, $00, $00"   # no code: nothing to run
         out.append("    .word %-4d ; +0  the event it belongs to"
-                   % page["evento"])
+                   % page["event"])
         out.append("    .byte %-4d ; +2  its page number" % page["pagina"])
         out.append("    .byte %-4d ; +3  what triggers it" % page["trigger"])
         out.append("    .word %-4d ; +4  switch it asks for, or 0" % page["switch_a"])
@@ -4175,14 +4175,14 @@ def page_table(map_info, number, evcode):
                      | (4 if own["saltable"] else 0)
                      | (8 if own["dir_fija"] else 0)
                      | (16 if own["anim_continues"] else 0) | 64
-                     | (32 if page["evento"] in changing
-                                 or page["evento"] in appear else 0)
-                     | (128 if page["evento"] in with_autostart else 0))
+                     | (32 if page["event"] in changing
+                                 or page["event"] in appear else 0)
+                     | (128 if page["event"] in with_autostart else 0))
             dest = "%s + %d" % (evcode, page["ruta_offset"])
             out.append("    .byte %-4d ; +13 the flags of its own route"
                        % flags)
             out.append("    .byte %-4d ; +14 its frequency" % own["frecuencia"])
-            out.append("    .byte %-4d ; +15 and its speed" % own["velocidad"])
+            out.append("    .byte %-4d ; +15 and its speed" % own["speed"])
             out.append("    .byte <(%s), >(%s), ^(%s) ; +16 its commands"
                        % (dest, dest, dest))
             out.append("    .byte %-4d ; +19 how many" % len(own["ordenes"]))
@@ -4191,13 +4191,13 @@ def page_table(map_info, number, evcode):
                        "another page of the event has one, 5 whether the "
                        "graphic follows the page, 7 whether the event has some "
                        "automatic one"
-                       % ((64 if page["evento"] in with_route else 0)
-                          | (32 if page["evento"] in changing
-                                   or page["evento"] in appear else 0)
-                          | (128 if page["evento"] in with_autostart else 0)))
+                       % ((64 if page["event"] in with_route else 0)
+                          | (32 if page["event"] in changing
+                                   or page["event"] in appear else 0)
+                          | (128 if page["event"] in with_autostart else 0)))
             out.append("    .byte %-4d ; +14 its frequency" % page["frecuencia"])
             out.append("    .byte %-4d ; +15 and its speed, that of a route "
-                       "forced on the event" % page["velocidad"])
+                       "forced on the event" % page["speed"])
             out.append("    .byte 0,0,0,0")
         # +20..+23: what the page draws, for the events that change graphic:
         # the tile, the attributes with the palette and the priority of its
@@ -4232,7 +4232,7 @@ def page_table(map_info, number, evcode):
         # another graphic undoes the turn. See TURN in events.py.
         graphic = page.get("grafico")
         k = (map_info.get("giro_k", {}).get(tuple(graphic[:2]))
-             if page.get("gira") and graphic and page["evento"] in
+             if page.get("gira") and graphic and page["event"] in
              map_info.get("giran", ()) else None)
         out.append("    .byte $%02X, %d ; +30 the turn: its poses and its pose"
                    % (0xFF if k is None else k, graphic[2] if k is not None else 0))
@@ -5211,10 +5211,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                         LZ2_CAP_ANIM, LZ2_CAP_GRID))
         labels = []
         for number, map_info in enumerate(maps):
-            # Stays in Spanish: `mapas_de` in rom/pruebas/arnes/consola.py
-            # reads the table order from this line with a regex that expects
-            # "mapa".
-            handle.write("; --- %d: mapa %d %r ---\n"
+            # `mapas_de` in rom/pruebas/arnes/consola.py reads the table
+            # order from this line with a regex that expects "map".
+            handle.write("; --- %d: map %d %r ---\n"
                          % (number, map_info["id"], map_info["nombre"]))
             text, theirs = map_data(map_info, number,
                                     index_per_map[number], materials)
@@ -6967,7 +6966,7 @@ def drawing_order(npc):
     The table index stands for the id: the events come sorted by id, so the
     order is the same.
     """
-    return (npc["layer"], npc["y"], npc["x"], npc["evento"])
+    return (npc["layer"], npc["y"], npc["x"], npc["event"])
 
 
 def sort_key(layer, y):
@@ -7034,18 +7033,18 @@ def movable_events(game_map, map_index, associations=()):
         game_map, map_index,
         events.Messages(), graphics=graphics)
     npcs = rm2k.collect_npcs(game_map)
-    visible = {npc["evento"] for npc in npcs}
+    visible = {npc["event"] for npc in npcs}
     # And the ones that walk on their own with some page's own route, which
     # need the twelve poses just like the ones a MoveEvent sends walking.
-    own = {p["evento"] for p in pages if p.get("ruta_propia")}
+    own = {p["event"] for p in pages if p.get("ruta_propia")}
     # And the still ones with continuous animation —the save point in Lashe
     # City—, which don't walk but **change column all the same**. Without the
     # twelve poses their VRAM slot would carry a single one and there would be
     # nothing to animate them with: the still ones share a slot by (CharSet,
     # index, pose) and don't have one of their own.
     with_route = (events.route_targets(pages) | own) & visible
-    animated = {npc["evento"] for npc in npcs
-                if npc.get("anima")} & visible - with_route
+    animated = {npc["event"] for npc in npcs
+                if npc.get("animates")} & visible - with_route
     # And the cap: a still event that animates **costs a whole VRAM slot**
     # —twelve tiles— because it stops sharing that of its (CharSet, index,
     # pose) and gets the twelve poses of its own, like the walking ones. A map
@@ -7069,10 +7068,10 @@ def movable_events(game_map, map_index, associations=()):
         if (p["codigo"] and p.get("gira")
                 and p["trigger"] in (events.TRIGGER_ACTION,
                                      events.TRIGGER_TOUCH_HERO)):
-            turning[p["evento"]] = set()
+            turning[p["event"]] = set()
     for p in pages:
-        if p["evento"] in turning and p.get("gira") and p["grafico"]:
-            turning[p["evento"]].add(tuple(p["grafico"][:2]))
+        if p["event"] in turning and p.get("gira") and p["grafico"]:
+            turning[p["event"]].add(tuple(p["grafico"][:2]))
     return with_route | animated, list(graphics.pairs), animated, turning
 
 
@@ -7202,7 +7201,7 @@ def npc_bytes(table):
         # The event's index goes **always**, even if the NPC doesn't walk: it
         # is the last tie-breaker of the drawing order, and it applies to all.
         # What sets the walking ones apart is the pose table.
-        out.append(npc["evento"])
+        out.append(npc["event"])
         out.append(NPC_STILL if npc["poses"] is None else npc["poses"])
         # Where its page faces. A forced route that hasn't given any turning
         # command yet leaves it facing here, which is where the first pose
@@ -7219,13 +7218,13 @@ def npc_bytes(table):
         # jump— and because both are read by the same computation: how many
         # frames between column changes comes from the speed. See
         # `animate_still` in tools/runtime/animated_stills.s.
-        out.append(npc["velocidad"] | (0x80 if npc.get("anima") else 0))
+        out.append(npc["speed"] | (0x80 if npc.get("animates") else 0))
         # +14: whether it is drawn. An event whose active page has no graphic
         # is in the table hidden, to appear when another page wins.
         out.append(1 if npc["visible"] else 0)
         # +15: the passage bits its tile imposes on the cell, or $FF: see
         # `rm2k.event_tile_passability`. The refresh redoes both.
-        out.append(0xFF if npc["tile_pasa"] is None else npc["tile_pasa"])
+        out.append(0xFF if npc["tile_pass"] is None else npc["tile_pass"])
     assert len(out) == NPC_STRIDE * len(table)
     return bytes(out)
 
@@ -7599,7 +7598,7 @@ def main():
         # ROM carries them in a fixed-cap list and **doesn't warn** if it goes
         # over —the extra ones wouldn't run and nothing would say so—, so the
         # stop goes here.
-        with_parallel = {p["evento"] for p in pages
+        with_parallel = {p["event"] for p in pages
                          if p["trigger"] == events.TRIGGER_PARALLEL
                          and p["codigo"]}
         if len(with_parallel) > PARALLEL_MAX:
@@ -7664,7 +7663,7 @@ def main():
             if test_page["codigo"] or test_page["trigger"] not in events.TRIGGERS \
                     or test_page.get("prueba"):
                 continue        # the test page doesn't come from the game
-            event = map_info["game_map"].events[test_page["evento"]]
+            event = map_info["game_map"].events[test_page["event"]]
             missing = {cmd.parameters[0]
                        for cmd in event.pages[test_page["pagina"]].commands
                        if cmd.code == events.TELEPORT and cmd.parameters
@@ -7723,24 +7722,24 @@ def main():
             # be at least k: see its comment. Page 0 asks for nothing, so a
             # single-case cartridge is the usual one.
             pages = pages + [{
-                "evento": 0, "pagina": k, "prueba": True,
+                "event": 0, "pagina": k, "prueba": True,
                 "trigger": events.TRIGGER_AUTOSTART,
                 "switch_a": 0, "switch_b": 0, "actor": 0,
                 "variable": ((events.variable_slot(
                     events.CASE_VARIABLE),
                     events.COMPARE_AT_LEAST, k) if k else None),
                 "item": 0, "capa": 0,
-                "frecuencia": events.ROUTE_FREQUENCY, "velocidad": 4,
+                "frecuencia": events.ROUTE_FREQUENCY, "speed": 4,
                 "codigo": test_party[k]} for k in range(len(args.cases))] + [{
                 # And the one that turns it off: it asks for
                 # `TEST_SWITCH` and has no code, so as soon as it wins,
                 # the invented event no longer has an automatic page to run and
                 # the first one doesn't repeat.
-                "evento": 0, "pagina": len(args.cases), "prueba": True,
+                "event": 0, "pagina": len(args.cases), "prueba": True,
                 "trigger": events.TRIGGER_AUTOSTART,
                 "switch_a": events.TEST_SWITCH, "switch_b": 0,
                 "actor": 0, "variable": None, "item": 0, "capa": 0,
-                "frecuencia": events.ROUTE_FREQUENCY, "velocidad": 4,
+                "frecuencia": events.ROUTE_FREQUENCY, "speed": 4,
                 "codigo": b""}]
         code = bytearray()
         for test_page in pages:
@@ -7757,12 +7756,12 @@ def main():
         # OAM wants it: it is what the ROM copies to the NPC's row when the
         # active page changes. See `page_table`, +20.
         for test_page in pages:
-            continues = test_page["evento"] in map_info["cambian"]
-            if not continues and test_page["evento"] not in map_info["aparecen"]:
+            continues = test_page["event"] in map_info["cambian"]
+            if not continues and test_page["event"] not in map_info["aparecen"]:
                 continue
             graphic = test_page.get("grafico")
             if graphic is None \
-                    or graphic[:2] in map_info["afuera"].get(test_page["evento"], ()):
+                    or graphic[:2] in map_info["afuera"].get(test_page["event"], ()):
                 continue
             if not continues:
                 # The one that only appears carries no tile or attributes: its
@@ -7770,8 +7769,8 @@ def main():
                 # touch them. The pose goes —with bit 7, which is "this page
                 # draws something"— and what its tile imposes on the cell.
                 test_page["oam"] = (0, 0, graphic[2] | 0x80,
-                                 0xFF if test_page.get("tile_pasa") is None
-                                 else test_page["tile_pasa"])
+                                 0xFF if test_page.get("tile_pass") is None
+                                 else test_page["tile_pass"])
                 continue
             block, slot = map_info["where"][graphic]
             tile = block_tile(block)
@@ -7781,8 +7780,8 @@ def main():
             test_page["oam"] = (tile & 0xFF,
                              priority | ((slot & 0x07) << 1) | ((tile >> 8) & 1),
                              graphic[2] | 0x80,
-                             0xFF if test_page.get("tile_pasa") is None
-                             else test_page["tile_pasa"])
+                             0xFF if test_page.get("tile_pass") is None
+                             else test_page["tile_pass"])
         map_info["evcode"] = bytes(code)
         # The ROM's substitution table has a fixed cap and **doesn't warn** if
         # it goes over: the pairs that don't fit wouldn't be applied and the
@@ -9281,7 +9280,7 @@ def convert_map(renderer, map_id, args):
     lent_baked = sorted(
         event for event in baked
         for npc in npcs
-        if npc["evento"] == event and (npc["charset"], npc["index"]) in lent)
+        if npc["event"] == event and (npc["charset"], npc["index"]) in lent)
     if lent_baked:
         print("  map %d: event %s is drawn with someone else's palette, so "
               "it isn't baked" % (map_id, ", ".join(str(e + 1)
@@ -9324,7 +9323,7 @@ def convert_map(renderer, map_id, args):
             animated.append((a.charset, a.charset_index))
     animated.sort(key=lambda pair: pair != first)   # the initial leader first
     for npc in npcs:
-        if npc["evento"] in movable \
+        if npc["event"] in movable \
                 and (npc["charset"], npc["index"]) not in animated:
             animated.append((npc["charset"], npc["index"]))
     # And the graphics a command 34 changes to. They go to the bank for the
@@ -9377,13 +9376,13 @@ def convert_map(renderer, map_id, args):
         charset, index = animated[0]
         slots.append(("heroe", charset, index, INITIAL_POSE))
     for npc in npcs:
-        if npc["evento"] in movable:
-            if npc["cambia"]:
+        if npc["event"] in movable:
+            if npc["changes"]:
                 # Two mechanisms on the same row: the cartridge's twelve poses
                 # and the page's graphic. The ROM doesn't know both at once, so
                 # **walking wins** and its graphic stops following the page. It
                 # is the same it did before `collect_npcs` counted "nothing" as
-                # a state —see `cambia` there—, that is nothing that used to
+                # a state —see `changes` there—, that is nothing that used to
                 # work is lost.
                 #
                 # This was a `sys.exit`, and it was fine while no event asked
@@ -9397,16 +9396,16 @@ def convert_map(renderer, map_id, args):
                 # loading the map no page qualifies. See `page_graphic` in
                 # tools/runtime/event_pages.s.
                 npc["aparece"] = True
-                npc["cambia"] = False
-            slots.append((("ev", npc["evento"]), npc["charset"],
+                npc["changes"] = False
+            slots.append((("ev", npc["event"]), npc["charset"],
                           npc["index"], npc["pose"]))
         else:
             # The pose of its row and, if the graphic follows the page, that of
             # each page: the ROM's refresh chooses between slots that are
             # already in VRAM.
             poses = [(npc["charset"], npc["index"], npc["pose"])]
-            if npc["cambia"]:
-                poses += [g for g in npc["graficos"]
+            if npc["changes"]:
+                poses += [g for g in npc["graphics"]
                           if g is not None and g[:2] not in npc["afuera"]]
             for key in poses:
                 if key not in {r[0] for r in slots}:
@@ -9419,10 +9418,10 @@ def convert_map(renderer, map_id, args):
     # ones that walk or animate don't need it: they have their own. See TURN
     # in events.py.
     still_turning = [npc for npc in npcs
-                     if npc["evento"] in turning
-                     and npc["evento"] not in movable
+                     if npc["event"] in turning
+                     and npc["event"] not in movable
                      and any(pair in split[1]
-                             for pair in turning[npc["evento"]])]
+                             for pair in turning[npc["event"]])]
     if still_turning:
         npc = still_turning[0]
         slots.append(("giro", npc["charset"], npc["index"], npc["pose"]))
@@ -9538,11 +9537,11 @@ def convert_map(renderer, map_id, args):
     # drawn in the map. The row is still whole —the event triggers, blocks the
     # way and is the target of a route like any other—, and `build_oam` skips
     # it without building an object, which is what is being saved.
-    # `tile_pasa` is left set on purpose: the cell is already resolved by the
+    # `tile_pass` is left set on purpose: the cell is already resolved by the
     # map's table with the same bits, and if a page ever showed this row
     # again, the data it needs is there.
     for npc in npcs:
-        if npc["evento"] in baked:
+        if npc["event"] in baked:
             npc["visible"] = False
     table = npc_table(npcs, where, movable, animated_index, animates_still)
     # For each leader candidate, its palette and which pose bank its twelve
@@ -9683,11 +9682,11 @@ def convert_map(renderer, map_id, args):
         # poses of each graphic are in, which is the page's +30.
         "giro_k": {pair: animated_index[pair] for pair in animated},
         "giran": set(turning),
-        "cambian": {npc["evento"] for npc in npcs if npc["cambia"]},
+        "cambian": {npc["event"] for npc in npcs if npc["changes"]},
         # And the ones that only appear and disappear with it: the ones that
         # walk, whose graphic was pinned further up.
-        "aparecen": {npc["evento"] for npc in npcs if npc.get("aparece")},
-        "afuera": {npc["evento"]: npc["afuera"] for npc in npcs},
+        "aparecen": {npc["event"] for npc in npcs if npc.get("aparece")},
+        "afuera": {npc["event"]: npc["afuera"] for npc in npcs},
     }
 
 
