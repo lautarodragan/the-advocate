@@ -9,14 +9,17 @@ cada cosa está en la carpeta de su responsabilidad.
 De abajo hacia arriba. Una carpeta importa sólo de las que tiene abajo, nunca de
 una de su misma fila ni de más arriba.
 
+    comun/       dónde está cada cosa (proyecto), el caché en disco del
+                 conversor (cache_disco) y el reparto de lo puro en procesos
+                 bifurcados (paralelo). No importa nada de `tools/`, y
+                 cualquiera de las de arriba lo puede importar
+
     rpgmaker/    el juego como datos: el volcado a JSON de data/ (lcf), lo
                  nuestro que manda sobre él (fork), los códigos de comando de
                  RM2k (event_codes), sus reglas y la geometría de sus imágenes
                  (rm2k), y dónde están el juego y el RTP (recursos). Ninguna
                  regla del formato vive acá: data/ viene resuelto. Tiene su
                  propio README
-    comun/       el caché en disco del conversor (cache_disco) y el reparto de
-                 lo puro en procesos bifurcados (paralelo)
     ensamblado/  el mapa de memoria (bancos), el que arma la ROM (ensamblar) y
                  qué ROMs hay y con qué flags (cartuchos, que usa `just build`)
     emulador/    el core de libretro desde Python (retro), y el parche de
@@ -71,7 +74,10 @@ propósito: qué hacer con él es una pregunta abierta, ver
 `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 
 El grafo, por archivo y por paquete, lo imprime el script del apéndice D de
-`docs/research/el-mapa-de-las-herramientas-de-python.md`.
+`docs/research/el-mapa-de-las-herramientas-de-python.md`. Ese script pone a
+`comun` en la misma fila que `rpgmaker`, como estaba al escribirlo; desde que
+`comun` tiene a `proyecto` va abajo de todo, y con `"comun": -1` en su
+`NIVEL` las únicas violaciones que imprime son las de `cartuchos`.
 
 ## Cómo se importa
 
@@ -102,7 +108,11 @@ de Rust. El `justfile` los llama por su nombre y no sabe dónde están:
 
 El porqué de los nombres está en `tools/justfile`. Uno nuevo se agrega en
 `_instalar`, y el `.py` busca sus paquetes resolviendo el symlink con
-`realpath`, porque `__file__` es la ruta del PATH. Las pruebas ponen `tools/`
+`realpath`, porque `__file__` es la ruta del PATH: sube hasta `tools/` y no
+más. **Dónde está todo lo demás** —la raíz, `data/`, `parches/`, el motor,
+`rom/build/`, los casos, y los valores por omisión de `ABL_GAME_DIR` y las
+otras variables— lo contesta `comun/proyecto.py`, y nadie más: lo cobra
+`pruebas/test_proyecto.py`. Las pruebas ponen `tools/`
 en el camino ellas mismas, desde `pytest.ini`: las de A Blurred Line, desde el
 de la raíz, y las de las herramientas —`pruebas/`, las que no necesitan el
 juego—, desde el de acá. Ver `pruebas/README.md`.
