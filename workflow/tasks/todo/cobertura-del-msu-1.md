@@ -5,8 +5,8 @@ type: test
 ---
 
 Desde el 2026-09-25 `release` lleva siempre sus pistas de MSU-1 y el arnés se
-las esconde al core (`retro.Consola(..., msu=False)`, en
-`tools/emulador/retro.py`). Lo cobra `pruebas/abl/test_msu.py`, **sólo en
+las esconde al core (`retro.Console(..., msu=False)`, en
+`tools/emulator/retro.py`). Lo cobra `pruebas/abl/test_msu.py`, **sólo en
 snes9x**. Lo que quedó medido a mano y sin prueba:
 
 * **bsnes y mesen-s con las pistas al lado.** Se midió a mano que bsnes da el

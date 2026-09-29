@@ -163,7 +163,7 @@ def map_fork(map_id):
 
 
 def new_maps():
-    """{map_id: (json, tiles, nodo)} of the maps the game **does not have**.
+    """{map_id: (json, tiles, node)} of the maps the game **does not have**.
 
     It is `maps`'s rule reversed, and that is why they live in another
     folder: a fork replaces a map that exists and a new map **cannot**

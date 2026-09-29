@@ -32,7 +32,7 @@ one in its own row or above.
 
     audio/       from MIDI to the SPC700: snes_music, midi, musica, sdsp,
                  spc700, muestras_brr, snes_samples, music_opcodes, and the
-                 MSU-1 tracks (msu); uses rpgmaker and comun
+                 MSU-1 tracks (msu); uses rpgmaker and common
 
     port/        the converter to SNES —snes_convert— and everything only it
                  uses: eventos, event_opcodes, batalla, experiencia,
@@ -78,9 +78,10 @@ question, see `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 
 The graph, per file and per package, is printed by the script in appendix D
 of `docs/research/el-mapa-de-las-herramientas-de-python.md`. That script puts
-`comun` in the same row as `rpgmaker`, as it was when it was written; since
-`comun` has `proyecto` it goes at the very bottom, and with `"comun": -1` in
-its `NIVEL` the only violations it prints are those of `cartuchos`.
+`comun` —`common` since 2026-09-29— in the same row as `rpgmaker`, as it
+was when it was written; since it has `project` it goes at the very bottom,
+and with `"common": -1` in its `NIVEL` the only violations it prints are
+those of `cartuchos`.
 
 ## How imports work
 

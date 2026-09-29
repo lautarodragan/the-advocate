@@ -865,8 +865,8 @@ class TreeMap:
         # The maps the game does not have bring their node: see
         # `fork.new_maps`. Only on this game's dump, same as `Map`'s forks.
         if dump_dir(path) == project.data():
-            for map_id, (_json, _tiles, nodo) in fork.new_maps().items():
-                infos[map_id] = nodo
+            for map_id, (_json, _tiles, node) in fork.new_maps().items():
+                infos[map_id] = node
 
         self.map_names = {i: field(f, "name")
                           for i, f in infos.items()}
