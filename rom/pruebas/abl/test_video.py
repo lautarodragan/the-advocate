@@ -16,7 +16,7 @@ import inspect
 
 import pytest
 
-from assembly import cartridges
+import cartuchos
 from recorrido import UN_ANO_DESPUES
 import video
 
@@ -26,15 +26,15 @@ PEDIDOS = [
     pytest.param({}, id="nada"),
     pytest.param({"switch": [UN_ANO_DESPUES]}, id="switch"),
 ]
-if cartridges.WITH_DEBUG_MAP:
+if cartuchos.con_mapa_de_debug():
     PEDIDOS.append(pytest.param(
-        {"caso": cartridges.DEBUG_MAP_ENTRY}, id="caso"))
+        {"caso": cartuchos.entrada_al_mapa_de_debug()}, id="caso"))
 
 
 def test_la_fabrica_del_video_acepta_lo_mismo_que_la_del_conftest(recorrido):
     """Misma firma: un argumento nuevo en el conftest que las jugadas
     empiecen a usar pone esto en rojo antes que el video."""
-    assert (inspect.signature(video.fabrica(cartridges.RELEASE))
+    assert (inspect.signature(video.fabrica(cartuchos.RELEASE))
             == inspect.signature(recorrido))
 
 
@@ -43,7 +43,7 @@ def test_el_video_arranca_donde_el_recorrido(recorrido, pedido):
     # Sin MSU-1, como la tanda: lo que se compara es la página y el mapa, y
     # así las dos consolas son iguales salvo por la fábrica.
     de_la_prueba = recorrido("video", **pedido)
-    del_video = video.fabrica(cartridges.RELEASE, msu=False)("video", **pedido)
+    del_video = video.fabrica(cartuchos.RELEASE, msu=False)("video", **pedido)
     assert ((del_video.p.caso, del_video.p.mapa(), del_video.celda())
             == (de_la_prueba.p.caso, de_la_prueba.p.mapa(),
                 de_la_prueba.celda())), (

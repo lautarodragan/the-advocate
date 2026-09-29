@@ -7,8 +7,8 @@ corriendo. Son
 dos redes distintas y se complementan: la de pixeles dice "la pantalla es
 exactamente ésta", ésta dice "y además llegaste adonde tenías que llegar".
 
-Lo que hace posible preguntar es que `tools/assembly/assemble.py` deja al lado de la ROM
-la tabla de símbolos que sale de `runtime/` de verdad, con las direcciones de la
+Lo que hace posible preguntar es que `rm2k-snes-assemble` deja al lado de la
+ROM la tabla de símbolos que sale de `runtime/` de verdad, con las direcciones de la
 RAM **y** las constantes del ensamblador:
 
     map_current 90
@@ -28,7 +28,7 @@ import lugares                                  # antes que nada
 from common import settings
 from common import project
 from emulator import retro
-from assembly import banks
+import cartuchos
 
 RAIZ = project.root()
 # Lo que las pruebas dejan para mirar. Lo toman de acá los pedazos del arnés
@@ -74,7 +74,7 @@ class SimboloDesconocido(KeyError):
 
 
 class Simbolos:
-    """La tabla que deja `tools/assembly/assemble.py`, leída por nombre."""
+    """La tabla que deja `rm2k-snes-assemble`, leída por nombre."""
 
     def __init__(self, ruta):
         self.ruta = ruta
@@ -1020,8 +1020,8 @@ class Partida:
 # --- la pila, marcada para poder medirla ------------------------------------
 #
 # La pila arranca en `$1FFF` —el `ldx #$1FFF` / `txs` del `reset`— y crece hacia
-# abajo, hacia la BSS. Lo que se le reserva es `banks.STACK`, así que el byte más
-# bajo que le toca es `TOPE_DE_LA_PILA - STACK`. Los dos números salen del mapa de
+# abajo, hacia la BSS. Lo que se le reserva es `STACK` —`cartuchos.pila()`—, así
+# que el byte más bajo que le toca es `TOPE_DE_LA_PILA - STACK`. Los dos números salen del mapa de
 # memoria y no están copiados: si `STACK` cambia, la medición cambia con él.
 TOPE_DE_LA_PILA = 0x2000
 
@@ -1045,9 +1045,10 @@ def marcar_la_pila(consola):
     pero todavía no ejecutó una instrucción, así que todo lo que aparezca abajo
     de `$2000` lo escribió la ROM.
     """
-    fondo = TOPE_DE_LA_PILA - banks.STACK
+    reservado = cartuchos.pila()
+    fondo = TOPE_DE_LA_PILA - reservado
     consola.write_ram(fondo, bytes(marca_de(fondo + i)
-                                   for i in range(banks.STACK)))
+                                   for i in range(reservado)))
 
 
 def hondura_de_la_pila(consola):
@@ -1061,8 +1062,9 @@ def hondura_de_la_pila(consola):
     llegó, no que la ROM no use la pila. Quien mida tiene que cobrar eso: es la
     forma de que esta medición pase en vacío.
     """
-    fondo = TOPE_DE_LA_PILA - banks.STACK
-    crudo = consola.ram(fondo, banks.STACK)
+    reservado = cartuchos.pila()
+    fondo = TOPE_DE_LA_PILA - reservado
+    crudo = consola.ram(fondo, reservado)
     for i, byte in enumerate(crudo):
         if byte != marca_de(fondo + i):
             return TOPE_DE_LA_PILA - (fondo + i)

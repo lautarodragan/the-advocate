@@ -19,7 +19,7 @@ compara la grilla entera en cada carga y a la vuelta de una pelea.
 import pytest
 
 import tanda
-from assembly import cartridges
+import cartuchos
 
 # Cada rango con los símbolos que tienen derecho a caer adentro.
 RESERVAS = (
@@ -35,7 +35,7 @@ RESERVAS = (
 )
 
 
-@pytest.mark.parametrize("nombre", sorted(cartridges.CARTRIDGES))
+@pytest.mark.parametrize("nombre", sorted(cartuchos.nombres()))
 def test_nadie_mas_cae_en_la_mitad_alta_de_la_wram(nombre):
     tabla = {n: int(v) for n, v in tanda.cartucho(nombre).simbolos.tabla.items()}
     intrusos = []
@@ -51,7 +51,7 @@ def test_nadie_mas_cae_en_la_mitad_alta_de_la_wram(nombre):
 
 def test_los_permitidos_existen():
     # Si uno se renombra, la lista de arriba dejaría pasar a su reemplazo.
-    tabla = tanda.cartucho(cartridges.RELEASE).simbolos.tabla
+    tabla = tanda.cartucho(cartuchos.RELEASE).simbolos.tabla
     faltan = sorted(n for _, permitidos in RESERVAS for n in permitidos
                     if n not in tabla)
     assert not faltan, "la tabla de símbolos no tiene %s" % faltan

@@ -97,6 +97,8 @@ port —ver `tools/README.md`—:
     tools/voodoo/    Voodoo: de una imagen a tiles, paletas y tilemap
     tools/lz2/       el LC_LZ2 de Nintendo, con el que se comprimen los mapas
     tools/rm2k-render/  las capas de un mapa de RM2k, dibujadas desde su ChipSet
+    tools/project/   la biblioteca: qué juego, sus perillas, los flags de la máquina
+    tools/cartridge/ los cartuchos: el reparto en bancos, ca65 + ld65, el espacio
 
 Hasta el 2026-09-16 hubo otro más, `w65/`, el ensamblador de 65816. Lo reemplazaron
 `ca65` y `ld65`, del proyecto cc65: ver "Dónde corre esto".
@@ -381,7 +383,7 @@ avisar: la ROM saldría con los datos de otro. Hasta el 2026-09-16 la receta
 `convert` escribía justo ahí —en `rom/src/`, donde vivía el runtime hasta el
 2026-09-29; era "estado global", y así se terminó mirando el
 mapa 6 creyendo que era la demo del hito 12—; hoy cada cartucho escribe el suyo
-en su directorio de `rom/build/`, y `tools/assembly/assemble.py` se niega a armar si
+en su directorio de `rom/build/`, y `rm2k-snes-assemble` se niega a armar si
 encuentra uno en `tools/runtime/`. **Las
 ROMs salen de una receta, no de un `ca65` suelto.**
 
@@ -414,10 +416,11 @@ borrarlo al tocar código. Lo único que pide es que cualquier cambio en lo que
 se cachea se verifique con `NO_CACHE=1`: las dos ROMs tienen que ser byte por
 byte iguales. Ver `tools/common/disk_cache.py`.
 
-**Mientras corren las pruebas no se toca ningún fuente.** `cartridges.fingerprint()` cubre
-todo `tools/runtime/`, los `.py` de `tools/` y los binarios de `ca65` y `ld65`: tocar
-cualquiera de ésos a mitad de una corrida mezcla dos versiones y el resultado no
-dice nada.
+**Mientras corren las pruebas no se toca ningún fuente.** La huella de
+`rm2k-snes-cartridges` cubre todo `tools/runtime/`, los `.py` de `tools/` y
+los binarios que arman —`ca65`, `ld65`, `rm2k-snes-assemble` y los que corre
+el conversor—: tocar cualquiera de ésos a mitad de una corrida, o reinstalar
+uno, mezcla dos versiones y el resultado no dice nada.
 
 Lo que **ya no hace falta** es aislarse en un worktree para eso. Hasta el
 2026-09-16 existía `just hitos-foto`, que sacaba una foto del árbol con

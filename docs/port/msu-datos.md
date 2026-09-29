@@ -62,7 +62,7 @@ Cuántos fondos son y cuánto pesa el `.msu` lo imprime el conversor, en
 `conversor.log` ("`.msu:` N fondo(s) y M efecto(s) en B bytes").
 
 Lo escribe el conversor —es el que tiene los bytes y decide el orden—, al lado
-de cada `.sfc` y con su nombre: `cartridges.py` le pasa `--msu`. Lo llevan los
+de cada `.sfc` y con su nombre: `rm2k-snes-cartridges` le pasa `--msu`. Lo llevan los
 dos cartuchos, y la prueba del camino con MSU-1 corre sobre `release`, que es
 la ROM que se juega.
 

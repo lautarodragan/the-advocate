@@ -33,8 +33,8 @@ song is deleted: `just entregar` copies every one it finds to the card.
     rm2k-snes-msu rom/build/release/abl.sfc
 
 There is no need to run it by hand: `just build release` always runs it
-—see `msu_tracks` in `cartridges.py`—, because the ROM that is played carries its
-tracks. Their being next to the ROM does not change the tests: the harness
+—`rm2k-snes-cartridges` does, with `--quiet`—, because the ROM that is played
+carries its tracks. Their being next to the ROM does not change the tests: the harness
 hides the tracks from the core, see `retro.Console`.
 
 **A track can come from an audio file instead of the MIDI.** If the
@@ -261,8 +261,8 @@ def build(rom, game_dir=None, soundfont=None, gain=GAIN,
     cartridge, and deletes the ones that no longer belong to any song.
 
     Returns how many tracks it redid and how many were already there.
-    `verbose` false silences the ones already there: `cartridges.py` calls it
-    on every `just pruebas`.
+    `verbose` false silences the ones already there: `rm2k-snes-cartridges`
+    runs this on every `just pruebas`, with `--quiet`.
     """
     game_dir = game_dir or resources.GAME_DIR
     soundfont = soundfont or snes_samples.SOUNDFONT
@@ -364,9 +364,17 @@ def main():
     project.add_argument(parser)
     environment.add_arguments(parser, *FROM_ENVIRONMENT)
     parser.add_argument("--gain", type=float, default=GAIN)
+    parser.add_argument("--quiet", action="store_true",
+                        help="do not list the tracks that were already there: "
+                             "`rm2k-snes-cartridges` runs this on every build")
     args = parser.parse_args()
     environment.from_arguments(args, *FROM_ENVIRONMENT)
-    build(args.rom, gain=args.gain)
+    made, already = build(args.rom, gain=args.gain, verbose=not args.quiet)
+    # The last line, always, and with this shape: `rm2k-snes-cartridges`
+    # recognizes it by its start and prints it in its place, after the
+    # cartridge's.
+    print("MSU-1 tracks, %d made and %d that were already there"
+          % (made, already))
 
 
 if __name__ == "__main__":

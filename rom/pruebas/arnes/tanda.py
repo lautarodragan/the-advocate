@@ -5,7 +5,7 @@ compara la pantalla contra el PNG congelado de `pruebas/golden/tanda/`, que **es
 una captura del emulador** y por eso se compara en cero pixeles exactos, sin
 máscara; el porqué está en el `LEEME.md` de ese directorio.
 
-**Acá no se arma nada.** Los cartuchos los arma `tools/assembly/cartridges.py`, una
+**Acá no se arma nada.** Los cartuchos los arma `rm2k-snes-cartridges`, una
 vez, antes de la tanda —`just pruebas` lo corre primero—, y el arnés sólo sabe
 buscar un caso por su nombre y decir en qué cartucho y en qué página está. Si
 el cartucho es de otros fuentes, se niega a correr: ver `Cartucho`.
@@ -22,8 +22,8 @@ Tres cosas que este archivo hace y conviene tener a la vista:
   `grupo-11-en-<mapa>` para el mismo grupo en otro lugar. Con el 10 el líder
   es otro, el sprite es otro, y las goldens no dan.
 * **El arranque de `Partida` es el `--arranque 115` del corredor**, que era
-  `tools/snes_correr.py` y es con lo que se sacaron las goldens: `BOOT_FRAMES`
-  más tres, y de ahí en más se cuentan ticks de `ticks` con la misma
+  `snes_correr.py`, de las herramientas, y es con lo que se sacaron las
+  goldens: `BOOT_FRAMES` más tres, y de ahí en más se cuentan ticks de `ticks` con la misma
   convención —el cuadro N de aquella referencia es el tick N+1— y se aprieta A un
   tick antes por `RETRASO_DE_PANTALLA`. O sea que para un caso de caminata con
   toques de A, `Partida.correr` **es** el lazo de aquel corredor, y por eso las
@@ -39,27 +39,27 @@ from consola import (EMPEZAR, NUCLEO, RETRASO_DE_PANTALLA, Partida,
 from emulator import retro
 
 import lugares
-from assembly import cartridges
+import cartuchos
 
 # Dónde viven las capturas congeladas y los planes.
 GOLDEN = os.path.join(lugares.GOLDENS, "tanda")
 
 
 class Cartucho:
-    """Uno de los cartuchos que dejó `tools/assembly/cartridges.py`, ya leído.
+    """Uno de los cartuchos que dejó `rm2k-snes-cartridges`, ya leído.
 
     **Se niega a servir uno viejo.** Si los fuentes, las herramientas o los
     casos cambiaron desde que se armó, la tanda correría contra una ROM que
     no es la del árbol y daría verde o rojo por algo que ya no existe; así que
-    dice qué correr y corta. Es la misma cuenta con que `cartridges.py` decide
-    si rearmar, así que los dos no pueden estar en desacuerdo.
+    dice qué correr y corta. Lo dice el mismo que decide si rearmar —ver
+    `cartuchos.viejo`—, así que los dos no pueden estar en desacuerdo.
     """
 
     def __init__(self, nombre):
         self.nombre = nombre
-        self.dir = cartridges.directory(nombre)
-        self.sfc = cartridges.rom_of(nombre)
-        viejo = cartridges.stale(nombre)
+        self.dir = cartuchos.directorio(nombre)
+        self.sfc = cartuchos.rom_de(nombre)
+        viejo = cartuchos.viejo(nombre)
         if viejo:
             raise AssertionError(
                 "el cartucho de prueba %r %s. Las pruebas no arman nada: "
@@ -67,11 +67,11 @@ class Cartucho:
                 "primero—." % (nombre, viejo))
         self.simbolos = Simbolos(self.sfc + ".sym")
         self.mapas = mapas_de(os.path.join(self.dir, "mapdata.inc"))
-        self.casos, self.saltan = cartridges.manifest(nombre)
+        self.casos, self.saltan = cartuchos.manifiesto(nombre)
         # Lo que se elige en la pantalla de título si nadie pide otra cosa:
         # "Begin the Story", que en la ROM que se juega es por donde se entra
         # a cualquier caso. None si el cartucho no tiene título.
-        self.titulo = (None if cartridges.without_title(nombre) else EMPEZAR)
+        self.titulo = (None if cartuchos.sin_titulo(nombre) else EMPEZAR)
 
 
 # El mapa 2 solo: el Linkage Block entero. Sus dos cuartos parecen dos mapas
@@ -83,7 +83,7 @@ LINKAGE = "en-2"
 _CARGADOS = {}
 
 
-def cartucho(nombre=cartridges.RELEASE):
+def cartucho(nombre=cartuchos.RELEASE):
     """El cartucho `nombre`, leído una vez por corrida."""
     if nombre not in _CARGADOS:
         _CARGADOS[nombre] = Cartucho(nombre)
@@ -97,7 +97,7 @@ def rom(caso, en=None):
     existen por lo que no entra en el grande, y cada caso vive en uno. Un caso
     que está en dos se pide con `en`.
     """
-    nombres = [en] if en else cartridges.where_is(caso)
+    nombres = [en] if en else cartuchos.donde_esta(caso)
     if not nombres:
         raise AssertionError(
             "ningún cartucho de prueba lleva el caso %r: ¿existe "
@@ -129,18 +129,18 @@ def partida(caso, nucleo=None, en=None, switches=(), titulo=None, pila=False,
     uno sin título. Medido al juntar `release` con `test-main`: pasar por el
     título no mueve ninguna golden.
     """
-    if caso is None and (en or cartridges.RELEASE) == cartridges.RELEASE:
+    if caso is None and (en or cartuchos.RELEASE) == cartuchos.RELEASE:
         # Sin caso, en `release`: la partida de verdad **sin el mapa de
-        # debug**, `REAL_GAME`, que es la página 0 de la entrega
-        # limpia. Con el mapa, la página 0 lleva a él —ver `FIRST_CASE` en
-        # cartridges.py— y esto la elige por su número, como a cualquier caso:
+        # debug**, `[cases] real_game`, que es la página 0 de la entrega
+        # limpia. Con el mapa, la página 0 lleva a él —`debug_map_entry`,
+        # del mismo `[cases]`— y esto la elige por su número, como a cualquier caso:
         # así las pruebas que juegan desde el título siguen mirando el
         # arranque del juego, con la misma ROM que se entrega. Pasar por la
         # puerta del comienzo normal no daría lo mismo: llegar al 4 con un
         # `Teleport` corre la rampa del fundido y el tinte —ver
         # `CINEMATICAS` en test_escenas_golden.py—. La puerta la cruza el
         # recorrido de la apertura.
-        uno, k = rom(cartridges.REAL_GAME, en)
+        uno, k = rom(cartuchos.juego_de_verdad(), en)
         salta = uno.saltan[k]
     elif caso is None:
         # Sin caso, en otro cartucho: la ROM como arranca, la página 0.

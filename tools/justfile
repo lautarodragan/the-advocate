@@ -20,8 +20,10 @@ cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
 local_tools := justfile_directory() / ".local-tools"
 export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bin" + ":" + env_var("PATH") } else { env_var("PATH") }
 
-# The Rust projects, in the order they are installed.
-rust_projects := "protocol gunter ditto voodoo lz2 rm2k-render"
+# The Rust projects, in the order they are installed. `project` is a
+# library: it has nothing to install, and it goes into `cartridge`'s
+# binaries, which are compiled with it.
+rust_projects := "protocol gunter ditto voodoo lz2 rm2k-render project cartridge"
 
 # The event opcodes: their number and their layout. The declaration lives in
 # `protocol/events.toml` and belongs neither to the compiler nor to the
@@ -123,11 +125,24 @@ lz2-test:
 render-test:
   cd rm2k-render && cargo test --release
 
+# The project library: finding `rm2k-snes.toml`, reading its settings with
+# errors that name the key, the machine's flags and the disk cache's key.
+# Its tests build their projects inside the test, so they need no game.
+project-test:
+  cd project && cargo test
+
+# `rm2k-snes-assemble`, `rm2k-snes-space` and `rm2k-snes-cartridges`: the
+# bank packing, the memory map, the checksum and the symbols are tested on
+# files made inside the test. That the ROMs come out right is enforced by
+# the game's suite, which runs them; building a real cartridge needs a game.
+cartridge-test:
+  cd cartridge && cargo test
+
 # --- Installation ----------------------------------------------------------
-# `protocol/`, `gunter/`, `ditto/`, `voodoo/`, `lz2/` and `rm2k-render/` are
-# separate projects, and the port consumes them **from the PATH**, the way it
-# consumes a libretro core: no script or test of the game calls `cargo`. They
-# are installed once and stay.
+# `protocol/`, `gunter/`, `ditto/`, `voodoo/`, `lz2/`, `rm2k-render/`,
+# `project/` and `cartridge/` are separate projects, and the port consumes
+# them **from the PATH**, the way it consumes a libretro core: no script or
+# test of the game calls `cargo`. They are installed once and stay.
 #
 # And the Python scripts that get executed, into the same `bin/`, so the
 # game's `justfile` calls them by name like the Rust ones. They go **as
@@ -165,7 +180,7 @@ install-scripts: _main_checkout_only (_install (cargo_root))
 # **A worktree's tools**, for the sub-agent that modifies them. A symlink in
 # the global install points to a single checkout —the main one—, so a
 # worktree that changes a tools script or a Rust project would not run its
-# change. This builds `<dest>/bin/` with the worktree's eight scripts,
+# change. This builds `<dest>/bin/` with the worktree's five scripts,
 # always, and with the Rust projects it is given, **only those**: compiling
 # Rust costs, and only makes sense if the agent is going to modify that
 # project. Without names it compiles nothing. From taro, 2026-09-29.
@@ -196,7 +211,7 @@ _main_checkout_only:
   exit 1
 
 # Installs into `root`: `cargo install` of the named Rust projects, and the
-# symlinks of the eight Python ones. A name that is not a project stops
+# symlinks of the five Python ones. A name that is not a project stops
 # before compiling anything.
 _install root *projects:
   #!/usr/bin/env sh
@@ -207,24 +222,31 @@ _install root *projects:
       *) echo "'$p' is not a Rust project: they are {{rust_projects}}." >&2; exit 1 ;;
     esac
   done
+  mkdir -p "{{root}}/bin"
+  # The suite's symlinks go first, and are made again below: a name that was
+  # a script and is now a Rust binary —`rm2k-snes-assemble`— would otherwise
+  # stay a symlink, and `cargo install` refuses to write over what it did
+  # not install.
+  find "{{root}}/bin" -maxdepth 1 -type l \( -name 'rm2k-snes-*' -o -name 'abl-*' \) -delete
   for p in {{projects}}; do
+    # A library has nothing to install: it goes into the binaries that use it.
+    if [ ! -f "$p/src/main.rs" ] && [ ! -d "$p/src/bin" ] && ! grep -q '^\[\[bin\]\]' "$p/Cargo.toml"; then
+      echo "$p is a library: it is compiled into the binaries that use it"
+      continue
+    fi
     cargo install --locked --path "$p" --root "{{root}}"
   done
-  mkdir -p "{{root}}/bin"
-  ln -sfn "{{justfile_directory()}}/assembly/cartridges.py" "{{root}}/bin/rm2k-snes-cartridges"
-  ln -sfn "{{justfile_directory()}}/assembly/assemble.py" "{{root}}/bin/rm2k-snes-assemble"
-  ln -sfn "{{justfile_directory()}}/assembly/space.py" "{{root}}/bin/rm2k-snes-space"
   ln -sfn "{{justfile_directory()}}/port/snes_convert.py" "{{root}}/bin/rm2k-snes-convert"
   ln -sfn "{{justfile_directory()}}/port/patches.py" "{{root}}/bin/rm2k-snes-patches"
   ln -sfn "{{justfile_directory()}}/audio/msu.py" "{{root}}/bin/rm2k-snes-msu"
   ln -sfn "{{justfile_directory()}}/audio/ceilings.py" "{{root}}/bin/rm2k-snes-volume-ceilings"
   ln -sfn "{{justfile_directory()}}/assembly/entregar.py" "{{root}}/bin/abl-entregar"
-  echo "in {{root}}/bin: the eight Python ones, and from Rust: {{ if projects == "" { "none" } else { projects } }}"
+  echo "in {{root}}/bin: the five Python ones, and from Rust: {{ if projects == "" { "none" } else { projects } }}"
 
 # Which executable this checkout resolves for each tool: the one in
 # `.local-tools/bin/` if it is there, otherwise the global one.
 which:
   #!/usr/bin/env sh
-  for x in {{rust_projects}} rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings abl-entregar; do
+  for x in protocol gunter ditto voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings abl-entregar; do
     printf '%-26s %s\n' "$x" "$(command -v "$x" || echo missing)"
   done

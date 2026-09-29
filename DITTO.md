@@ -286,7 +286,7 @@ no sólo como compensación.
 
 Es un sourcemap en el sentido literal: del offset del `.bin` a "el campo
 `trigger` de la página 2 del evento 12 del mapa 8". Con dos saltos y no uno
-—JSON → `.bin` → offset de ROM—, y el segundo lo aporta `tools/assembly/assemble.py`,
+—JSON → `.bin` → offset de ROM—, y el segundo lo aporta `rm2k-snes-assemble`,
 que ya escribe un `.sym` con los símbolos del código: esto es su extensión a
 los datos.
 
