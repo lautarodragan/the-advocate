@@ -1,28 +1,29 @@
 .segment "FAR"
 
-; --- el equipo y las habilidades desde un evento ----------------------------
+; --- equipment and skills from an event -------------------------------------
 ;
-; Los cuerpos de OP_EQUIPMENT y OP_SKILL, y lo que la rama "sabe la habilidad"
-; pregunta. Viven acá por lo mismo que `curar`: se entra con `jsl` desde el
-; intérprete, con Y en el operando y **el banco de datos del bytecode**, así que
-; todo lo que tocan va con `f:` o es de la página directa.
+; The bodies of OP_EQUIPMENT and OP_SKILL, and what the "knows the skill"
+; branch asks. They live here for the same reason as `curar`: they are entered
+; with `jsl` from the interpreter, with Y on the operand and **the bytecode's
+; data bank**, so everything they touch goes through `f:` or is on the direct
+; page.
 
-; `ChangeEquipment` que saca lo de una ranura: el actor —o 0 por todo el grupo,
-; como en `curar`— y la ranura, de 0 a 4. Se vuelve con Y después de ella. Se
-; lleva A, X y `temp`.
+; `ChangeEquipment` that removes what is in a slot: the actor —or 0 for the
+; whole party, as in `curar`— and the slot, 0 to 4. Returns with Y past it.
+; Clobbers A, X and `temp`.
 .proc equipo_quitar
 .a8
 .i16
-    lda [cod_ptr], y            ; el actor
+    lda [cod_ptr], y            ; the actor
     iny
     sta temp + 2
-    lda [cod_ptr], y            ; la ranura
+    lda [cod_ptr], y            ; the slot
     iny
     sta temp + 3
     phy
     lda temp + 2
     bne uno
-    ; Hasta `grupo_n`: ver `curar`, que tuvo el mismo cuidado.
+    ; Up to `grupo_n`: see `curar`, which took the same care.
     ldx #0
 ranura:
     cpx grupo_n
@@ -40,11 +41,11 @@ listo:
     rtl
 .endproc
 
-; El actor A, la ranura `temp + 3`. Es `Game_Actor::ChangeEquipment(ranura, 0)`
-; de easyrpg (`game_actor.cpp:335`): la ranura queda vacía y lo que tenía vuelve
-; al inventario —`Game_Party::AddItem`, topado en ITEM_MAX—. Lo de las armas a
-; dos manos no aplica: sacar nunca deja dos cosas donde entra una. Se lleva X y
-; `temp`.
+; Actor A, slot `temp + 3`. It is easyrpg's `Game_Actor::ChangeEquipment(slot,
+; 0)` (`game_actor.cpp:335`): the slot is left empty and what it held goes
+; back to the inventory —`Game_Party::AddItem`, capped at ITEM_MAX—. The
+; two-handed weapon business does not apply: removing never leaves two things
+; where one fits. Clobbers X and `temp`.
 .proc equipo_quitar_actor
 .a8
 .i16
@@ -52,26 +53,26 @@ listo:
 .a16
     and #$00FF
     asl a
-    sta temp                    ; el actor por dos
+    sta temp                    ; the actor times two
     asl a
     asl a
     clc
-    adc temp                    ; por diez, que es lo que mide una fila
+    adc temp                    ; times ten, which is what a row measures
     sta temp
     lda temp + 3
     and #$00FF
-    asl a                       ; la ranura es una palabra
+    asl a                       ; the slot is a word
     clc
     adc temp
     tax
     lda f:FAR_LARGO + FAR_EQUIPO, x
-    beq listo                   ; no tenía nada
+    beq listo                   ; it held nothing
     sta temp
     lda #0
     sta f:FAR_LARGO + FAR_EQUIPO, x
     lda temp
     cmp #ITEMS_N
-    bcs listo                   ; un ítem que el inventario no lleva
+    bcs listo                   ; an item the inventory does not carry
     tax
     sep #$20
 .a8
@@ -89,23 +90,24 @@ listo:
     rts
 .endproc
 
-; `ChangeSkills`: la ranura del par (actor, habilidad) y si la aprende. Es
-; prender o apagar su bit en `FAR_HAB`: `LearnSkill` no hace nada si ya la
-; sabía y `UnlearnSkill` tampoco si no, y con un bit las dos cosas salen solas.
-; Se vuelve con Y después de los operandos. Se lleva A, X y `temp`.
+; `ChangeSkills`: the slot of the (actor, skill) pair and whether it is
+; learned. It is setting or clearing its bit in `FAR_HAB`: `LearnSkill` does
+; nothing if it was already known and `UnlearnSkill` nothing if it was not,
+; and with a bit both come for free. Returns with Y past the operands.
+; Clobbers A, X and `temp`.
 .proc habilidad_cambiar
 .a8
 .i16
     rep #$20
 .a16
-    lda [cod_ptr], y            ; la ranura del par
+    lda [cod_ptr], y            ; the pair's slot
     iny
     iny
     sta temp + 2
     jsr hab_apuntar
     sep #$20
 .a8
-    lda [cod_ptr], y            ; 1 aprende, 0 olvida
+    lda [cod_ptr], y            ; 1 learns, 0 forgets
     iny
     cmp #0
     beq olvidar
@@ -121,19 +123,20 @@ poner:
     rtl
 .endproc
 
-; `IsSkillLearned` para la rama de `ConditionalBranch`: la ranura del par en
-; `temp + 2`, y vuelve con Z=0 si la sabe. Se lleva A, X y `temp`.
+; `IsSkillLearned` for the `ConditionalBranch` branch: the pair's slot in
+; `temp + 2`, and returns with Z=0 if it is known. Clobbers A, X and `temp`.
 .proc hab_sabe
 .a8
 .i16
     jsr hab_apuntar
     lda f:FAR_LARGO + FAR_HAB, x
     and temp
-    rtl                         ; `rtl` no toca las banderas: vale el `and`
+    rtl                         ; `rtl` does not touch the flags: the `and`
+                                ; holds
 .endproc
 
-; La ranura del par en `temp + 2` → X en su byte de `FAR_HAB`, y su bit en
-; `temp`. Vuelve con A de ocho bits.
+; The pair's slot in `temp + 2` → X at its byte of `FAR_HAB`, and its bit in
+; `temp`. Returns with 8-bit A.
 .proc hab_apuntar
 .a8
 .i16
@@ -158,19 +161,20 @@ poner:
     rts
 .endproc
 
-; Los eventos comunes paralelos que sólo miran el equipo —`COMUNES_DEL_EQUIPO`
-; en eventos.py; en el juego, el 37, `UpdateAG7 Skills`—, corridos cada uno de
-; una vez si su switch está prendido. Lo llama `menu_pantalla` al cerrarse,
-; que es donde el equipo cambia: en RM2k corren en cada cuadro, pero sólo leen
-; su switch y el equipo, así que entre un cierre del menú y otro darían lo
-; mismo. El otro momento en que cambian, prenderse el switch, no pasa por acá:
-; el conversor pega el cuerpo detrás del `ControlSwitches`.
+; The parallel common events that only look at the equipment
+; —`COMUNES_DEL_EQUIPO` in eventos.py; in the game, number 37, `UpdateAG7
+; Skills`—, each run once if its switch is on. `menu_pantalla` calls it on
+; closing, which is where the equipment changes: in RM2k they run every frame,
+; but they only read their switch and the equipment, so between one menu close
+; and the next they would give the same result. The other moment they change,
+; their switch turning on, does not go through here: the converter pastes the
+; body after the `ControlSwitches`.
 ;
-; Corren por `correr_codigo`, como un paralelo más, con el contexto del
-; intérprete guardado y repuesto como en `paralelos_tick`; su cuerpo no
-; espera ni abre mensajes, así que termina en la misma llamada. Tiene que
-; entrar con el banco de datos en el 0, que es donde `switches` y el
-; intérprete tienen lo suyo.
+; They run through `correr_codigo`, as one more parallel event, with the
+; interpreter's context saved and restored as in `paralelos_tick`; their body
+; neither waits nor opens messages, so it finishes within the same call. It
+; must be entered with the data bank at 0, which is where `switches` and the
+; interpreter keep their things.
 .proc comunes_del_equipo
 .a8
 .i16
@@ -187,7 +191,7 @@ hay:
 .a16
     txa
     asl a
-    tax                         ; por dos: las tablas de palabra
+    tax                         ; times two: the word tables
     lda f:comeq_byte, x
     tay
     sep #$20
@@ -221,7 +225,8 @@ hay:
     lda #1
     sta ev_activo
     lda #$FF
-    sta par_ev                  ; ni paralelo de un mapa ni página de pelea
+    sta par_ev                  ; neither a map's parallel event nor a
+                                ; battle page
     jsl f:correr_codigo_largo
     pla
     sta par_ev
@@ -247,10 +252,10 @@ apagado:
     bra otro
 .endproc
 
-; Los bits de las habilidades a lo que el LDB dice que cada actor sabe a su
-; nivel inicial: la tabla `hab_inicial` del conversor copiada a `FAR_HAB`. Corre
-; en el reset, antes de cargar la partida, que la pisa. Son pocos bytes y va de
-; a uno: un DMA costaría más código que el lazo.
+; The skill bits set to what the LDB says each actor knows at their initial
+; level: the converter's `hab_inicial` table copied into `FAR_HAB`. It runs at
+; reset, before loading the saved game, which overwrites it. It is few bytes
+; and goes one at a time: a DMA would cost more code than the loop.
 .proc hab_inicial_poner
 .a8
 .i16
@@ -263,4 +268,3 @@ otro:
     bne otro
     rtl
 .endproc
-
