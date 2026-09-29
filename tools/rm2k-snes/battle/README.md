@@ -26,13 +26,16 @@ time. The converter still orchestrates, and calls each stage by the PATH as
 a separate program. Every stage has the same shape, and this crate was the
 first to be written to it:
 
-* **It reads the game itself**, from a Ditto dump —`--data`, the directory
-  with `maps.json` and `db/`—, in its resolved view: every field is there,
-  with its default applied, and a missing one is an error that names it.
-  It reads **only the fields it uses**, into small types of its own
-  (`src/game.rs`). The model of the format is Ditto's; when Ditto is a
-  library, its structs replace those, and not before: a copy of the whole
-  model here would be a second reader to keep in step.
+* **It reads the game itself**, from a Ditto dump —`--data`—, **with
+  Ditto's library**: `ditto::dump::Dump` and the schema's types, which are
+  liblcf's names. It keeps no model of the format and no reader of its
+  own, and it reads only the sections it uses —here `actors` and the
+  tree—. A field the dump leaves out holds the format's default, which is
+  what Ditto says an absent field means.
+* **The rules of RPG Maker are `rm2k-rules`'**, not the stage's: here the
+  experience curve and which zones a map's encounters come from. What the
+  stage keeps is what belongs to the console: how the tables are laid
+  out and what fits.
 * **What the game does not say comes in a request**: a JSON the caller
   writes, with what the cartridge decided —here, which actors fight and
   which maps it carries, with their sizes— and whatever the project changed
@@ -94,7 +97,8 @@ from the next.
 
 The experience curve, the level cap, the starting experience and level are
 easyrpg-player's `Game_Actor` —`CalculateExp`, `MakeExpList`,
-`GetNextExp`, `GetMaxLevel`, `SetLevel`—; the encounter odds are its
+`GetNextExp`, `GetMaxLevel`, `SetLevel`—, and which troops a map's zones
+hold is its `GetEncountersAt`: both in `rm2k-rules`. The encounter odds are its
 `Game_Player::UpdateEncounterSteps`, whose eight rows of `pmod` are powers
 of two, so `1 / steps` in 1/65536 is shifted instead of multiplied. The
 source says which function each one is.

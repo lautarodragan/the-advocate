@@ -20,9 +20,11 @@ travels in the cartridge as a table per level. That way easyrpg's `double`
 is Python's `float`, which is the same 64-bit IEEE 754, and the truncation
 of C++'s `(int)` is Python's `int()`. There is no approximation to declare.
 
-The table is written by `rm2k-snes-battle`, which has the same functions in
-Rust. These stay for the menus and for the tests, which demand that the ROM
-gives what they give: so the two copies cannot drift apart unnoticed.
+The table is written by `rm2k-snes-battle`, with the same functions in Rust,
+which are `rm2k-rules`' (`tools/rm2k/rules/src/actor.rs`). These stay for the
+menus and for the tests, which demand that the ROM gives what they give; and
+`tools/tests/test_rm2k_rules.py` holds them to the answers the Rust copy is
+held to: so the two copies cannot drift apart unnoticed.
 """
 
 from port.constants import ENEMIES_MAX

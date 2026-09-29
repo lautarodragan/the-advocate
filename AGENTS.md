@@ -97,7 +97,10 @@ port —ver `tools/README.md`—:
       voodoo/          Voodoo: de una imagen a tiles, paletas y tilemap
       lz2/             el LC_LZ2 de Nintendo, con el que se comprimen los mapas
     tools/rm2k/        los de RPG Maker 2000, sin saber de la consola
-      ditto/           lee y escribe sus formatos
+      ditto/           lee y escribe sus formatos; como biblioteca, el único
+                       lugar en Rust que lee el volcado
+      rules/           rm2k-rules: lo que el formato significa —pasabilidad,
+                       páginas, experiencia—, la copia en Rust de rm2k.py
       rm2k-render/     las capas de un mapa, dibujadas desde su ChipSet
     tools/rm2k-snes/   los que unen las dos cosas
       project/         la biblioteca: qué juego, sus perillas, los flags de la máquina
@@ -143,7 +146,8 @@ Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 `DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
 mensaje; `tools/rm2k-snes/rm2k-snes-audio/` recibe el SoundFont por `SOUNDFONT`, igual;
 y `tools/snes/protocol/`, `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/snes/lz2/`,
-`tools/rm2k/rm2k-render/` y `tools/rm2k-snes/battle/` no necesitan nada.
+`tools/rm2k/rules/`, `tools/rm2k/rm2k-render/` y `tools/rm2k-snes/battle/`
+no necesitan nada.
 
 ### `tools/snes/voodoo/` no decide colores, y eso no se arregla
 

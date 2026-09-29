@@ -31,7 +31,9 @@ which files exist. All of them are RGBA PNGs at eight bits.
 Which side of the hero a tile goes on is not the layer it sits on but the
 ChipSet's passability: a lower-layer tile with either of the `0x30` bits, or
 an upper-layer one with the star, `0x10`, goes in front. Both layers are
-drawn cell by cell, lower tile first.
+drawn cell by cell, lower tile first. That rule, the passability table it
+reads and where each piece of the ChipSet is are RM2k's, and they are
+`rm2k-rules`' (`tools/rm2k/rules/`): what stays here is the drawing.
 
 `atlas` writes the ChipSet expanded: 32 tiles by 45, every combination of
 every autotile, in the order the tile ids index them. It is what every
@@ -39,14 +41,18 @@ drawing above is copied from.
 
 ## Where the map comes from
 
-**`--map N`** reads map `N` from the Ditto dump in **`--data`**
-—`maps/MapNNNN.json`, its layers from the `.tiles` beside it, and its
-ChipSet's entry from `db/chipsets.json`—. Like the game and the RTP, where
-the dump is is the caller's to say: this does not look for it.
+**`--map N`** reads map `N` from the Ditto dump in **`--data`**, with
+Ditto's own library: the map with its layers, and its ChipSet's entry from
+the database's `chipsets`. Either of Ditto's views will do, and it has to
+be a dump —its `ditto.json` says which view and which version—. Like the
+game and the RTP, where the dump is is the caller's to say: this does not
+look for it.
 
 That is the dump **as Ditto wrote it**. A caller that changes the map before
 drawing it —patches it, puts something into a layer— sends it as a
-**`--request`**: a JSON file with the same field names as the dump.
+**`--request`**: a JSON file that is a piece of the dump, a `Map` and its
+`Chipset`, read with Ditto's types. A field it leaves out holds the
+format's default, as in Ditto's exact dump.
 
     {"width": 3, "height": 2,
      "lower_layer": [0, 3000, 4000, 5000, 5001, 5002],

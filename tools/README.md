@@ -66,7 +66,13 @@ have layers of their own, one folder each:
       lz2/       Nintendo's LC_LZ2, with an optimal parser
 
     rm2k/        RPG Maker 2000's, knowing nothing of the console
-      ditto/     reads and writes its formats
+      ditto/     reads and writes its formats; and as a library, the one
+                 place in Rust that reads a dump, with the schema's types
+      rules/     `rm2k-rules`, the library of what the format means:
+                 passability, which layer covers which, the page a new
+                 game starts on and what it draws, the experience curve,
+                 what a map inherits from the tree. The converter's Python
+                 has the same rules, and a test holds the two together
       rm2k-render/  a map's tile layers, as pictures
 
     rm2k-snes/   what joins the two: an RPG Maker game made into a cartridge
