@@ -451,15 +451,15 @@ def pistas(armado=None):
     They go outside the stamp and are checked even if the ROM is up to date:
     which ones they are is said by the cartridge —its `musica.json`—, but how
     each one sounds depends on the MIDI, the soundfont and the synthesizer,
-    and `msu.armar` already knows which ones are there —see
-    `clave_de_la_pista`—. Having them next to it does not change the suite:
+    and `msu.build` already knows which ones are there —see
+    `track_key`—. Having them next to it does not change the suite:
     the harness hides the tracks from the core, see `retro.Console`.
     Returns the line that reports it, which `main` prints in its place.
     """
     if armado is not None:
         armado.result()         # the `musica.json` that says which ones
     from audio import msu       # fluidsynth and ffmpeg, only for `release`
-    hechas, estaban = msu.armar(rom_de(RELEASE), charlar=False)
+    hechas, estaban = msu.build(rom_de(RELEASE), verbose=False)
     return ("%s: MSU-1 tracks, %d made and %d that were already there"
             % (RELEASE, hechas, estaban))
 

@@ -48,3 +48,4 @@ ejecutable corrido por su nombre desde /tmp con `--project`.
   comentario de `tools/runtime/efectos_con_msu.s` que lo nombra queda con
   la ruta vieja: tocar un `.s` cambia el `.dbg`, y el runtime es la última
   área.
+- `audio/msu.py`: los nombres, y `--ganancia` pasa a `--gain`.

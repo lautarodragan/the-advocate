@@ -48,7 +48,7 @@ the music is not ours to redistribute.
 **A track that already exists is not rendered again.** It costs a minute and
 a half for the cartridge's and does not depend on it: it depends on the MIDI,
 the soundfont, the synthesizer and how it is normalized, and all of that goes
-into the key —see `clave_de_la_pista`—. What is stored in
+into the key —see `track_key`—. What is stored in
 `rom/build/cache/msu/` is the sha256 of the `.pcm`, not the `.pcm`: the
 tracks weigh hundreds of megabytes and are already on disk, next to the ROM;
 storing them would mean two copies of the same thing. With `SIN_CACHE=1` they
@@ -83,22 +83,22 @@ from common import project                                  # noqa: E402
 from rpgmaker import resources                               # noqa: E402
 
 # fluidsynth's gain. With 1.0 the songs with many voices saturate, so it is
-# rendered low and then normalized: the track's peak ends up at `PICO`, which
+# rendered low and then normalized: the track's peak ends up at `PEAK`, which
 # is almost full scale. Without this the track played at a quarter of the
 # SPC700 music's volume —measured: peak 4632 against 17012— and switching
 # from one song to another gave a jump in volume.
-GANANCIA = 0.6
-PICO = 0.97
+GAIN = 0.6
+PEAK = 0.97
 
 _fluidsynth = None
 _ffmpeg = None
 
 # Which extensions the replacements are looked for with, in this order.
 # Where is set by `--replacements`: see `common/environment.py`.
-EXTENSIONES = (".mp3", ".ogg", ".flac", ".wav")
+EXTENSIONS = (".mp3", ".ogg", ".flac", ".wav")
 
 
-def huella_de_fluidsynth():
+def fluidsynth_fingerprint():
     """Which synthesizer produced the track: the binary on the PATH and its
     version.
 
@@ -110,13 +110,13 @@ def huella_de_fluidsynth():
     """
     global _fluidsynth
     if _fluidsynth is None:
-        ruta = shutil.which("fluidsynth")
-        if ruta is None:
+        path = shutil.which("fluidsynth")
+        if path is None:
             sys.exit("fluidsynth is missing: on Arch, pacman -S fluidsynth")
         h = hashlib.sha256()
-        with open(ruta, "rb") as f:
-            for bloque in iter(lambda: f.read(1 << 20), b""):
-                h.update(bloque)
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                h.update(chunk)
         # **Only stdout.** stderr carries the PipeWire and ALSA warnings of a
         # box without a sound card, and inside them goes a pointer address:
         # with ASLR it changes on every run and the key never repeated.
@@ -130,18 +130,18 @@ def huella_de_fluidsynth():
     return _fluidsynth
 
 
-def huella_de_ffmpeg():
+def ffmpeg_fingerprint():
     """Which decoder produced a replacement's track: the binary on the PATH
-    and its version, for the same reason as `huella_de_fluidsynth`."""
+    and its version, for the same reason as `fluidsynth_fingerprint`."""
     global _ffmpeg
     if _ffmpeg is None:
-        ruta = shutil.which("ffmpeg")
-        if ruta is None:
+        path = shutil.which("ffmpeg")
+        if path is None:
             sys.exit("ffmpeg is missing: on Arch, pacman -S ffmpeg")
         h = hashlib.sha256()
-        with open(ruta, "rb") as f:
-            for bloque in iter(lambda: f.read(1 << 20), b""):
-                h.update(bloque)
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                h.update(chunk)
         version = subprocess.run(["ffmpeg", "-version"],
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.DEVNULL, text=True)
@@ -150,35 +150,35 @@ def huella_de_ffmpeg():
     return _ffmpeg
 
 
-def reemplazo(directorio, nombre):
+def replacement(directory, name):
     """The audio file that replaces this song's MIDI, or None. Without a
     replacements directory, none."""
-    if directorio is None:
+    if directory is None:
         return None
-    for extension in EXTENSIONES:
-        ruta = os.path.join(directorio, nombre + extension)
-        if os.path.isfile(ruta):
-            return ruta
+    for extension in EXTENSIONS:
+        path = os.path.join(directory, name + extension)
+        if os.path.isfile(path):
+            return path
     return None
 
 
-def clave_del_reemplazo(audio, pico=PICO):
-    """Like `clave_de_la_pista`, for a track that comes from an audio file: a
+def replacement_key(audio, peak=PEAK):
+    """Like `track_key`, for a track that comes from an audio file: a
     replacement, or a song that in the game is a WAV."""
     with open(audio, "rb") as f:
-        crudo = f.read()
+        raw = f.read()
     return disk_cache.key(disk_cache.version_of("audio/msu.py"),
-                          huella_de_ffmpeg(), "%.17g" % pico, crudo)
+                          ffmpeg_fingerprint(), "%.17g" % peak, raw)
 
 
-def decodificar(audio, salida):
+def decode(audio, out_path):
     """An audio file to 44.1 kHz 16-bit stereo WAV, with ffmpeg."""
     subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", audio,
-                    "-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", salida],
+                    "-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", out_path],
                    check=True)
 
 
-def clave_de_la_pista(midi, soundfont, ganancia, pico=PICO):
+def track_key(midi, soundfont, gain, peak=PEAK):
     """Everything that changes the track's bytes, as a key.
 
     The MIDI, the soundfont and the synthesizer are where the audio comes
@@ -189,170 +189,170 @@ def clave_de_la_pista(midi, soundfont, ganancia, pico=PICO):
     redoing anything.
     """
     with open(midi, "rb") as f:
-        crudo = f.read()
+        raw = f.read()
     return disk_cache.key(disk_cache.version_of("audio/msu.py"),
-                          huella_de_fluidsynth(),
+                          fluidsynth_fingerprint(),
                           snes_samples.soundfont_fingerprint(soundfont),
-                          "%.17g %.17g" % (ganancia, pico),
-                          crudo)
+                          "%.17g %.17g" % (gain, peak),
+                          raw)
 
 
-def huella_del_archivo(ruta):
+def file_fingerprint(path):
     """The sha256 of an already written file, or None if it is not there."""
     h = hashlib.sha256()
     try:
-        with open(ruta, "rb") as f:
-            for bloque in iter(lambda: f.read(1 << 20), b""):
-                h.update(bloque)
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                h.update(chunk)
     except OSError:
         return None
     return h.hexdigest()
 
 
-def render(midi, salida, soundfont, ganancia=GANANCIA):
+def render(midi, out_path, soundfont, gain=GAIN):
     """The MIDI to 44.1 kHz stereo WAV, with fluidsynth."""
-    subprocess.run(["fluidsynth", "-ni", "-r", "44100", "-g", str(ganancia),
-                    "-F", salida, soundfont, midi],
+    subprocess.run(["fluidsynth", "-ni", "-r", "44100", "-g", str(gain),
+                    "-F", out_path, soundfont, midi],
                    check=True, stdout=subprocess.DEVNULL)
 
 
-def pista(wav, salida, loop=0, pico=PICO):
+def track(wav, out_path, loop=0, peak=PEAK):
     """The WAV as an MSU-1 track, normalized, with its loop point."""
-    con = wave.open(wav)
-    if (con.getnchannels(), con.getsampwidth(), con.getframerate()) != (2, 2, 44100):
+    wav_in = wave.open(wav)
+    if (wav_in.getnchannels(), wav_in.getsampwidth(), wav_in.getframerate()) != (2, 2, 44100):
         raise SystemExit("%s is not 16-bit stereo at 44100" % wav)
     # With numpy and not sample by sample: it is the same arithmetic —the
     # product in double precision, truncated towards zero like `int()`, and
     # clipped—, and the tracks come out byte for byte the same. In pure Python
     # it was almost all the time spent redoing a track. The `int32` is because
     # of -32768, whose absolute value does not fit in 16 bits.
-    datos = numpy.frombuffer(con.readframes(con.getnframes()), dtype="<i2")
-    alto = int(numpy.abs(datos.astype(numpy.int32)).max()) or 1
-    escala = pico * 32767.0 / alto
-    if escala < 1.0 or escala > 1.02:
-        datos = numpy.clip(numpy.trunc(datos.astype(numpy.float64) * escala),
-                           -32768, 32767)
-    with open(salida, "wb") as handle:
+    data = numpy.frombuffer(wav_in.readframes(wav_in.getnframes()), dtype="<i2")
+    top = int(numpy.abs(data.astype(numpy.int32)).max()) or 1
+    scale = peak * 32767.0 / top
+    if scale < 1.0 or scale > 1.02:
+        data = numpy.clip(numpy.trunc(data.astype(numpy.float64) * scale),
+                          -32768, 32767)
+    with open(out_path, "wb") as handle:
         handle.write(b"MSU1")
         handle.write(struct.pack("<I", loop))
-        handle.write(datos.astype("<i2").tobytes())
-    return con.getnframes(), escala
+        handle.write(data.astype("<i2").tobytes())
+    return wav_in.getnframes(), scale
 
 
-def pistas_del_cartucho(rom):
+def cartridge_tracks(rom):
     """[(name, number)] of the cartridge's songs that have a track, in order
     of number: from the `musica.json` the converter leaves next to the ROM."""
-    ruta = os.path.join(os.path.dirname(os.path.abspath(rom)), "musica.json")
+    path = os.path.join(os.path.dirname(os.path.abspath(rom)), "musica.json")
     try:
-        with open(ruta, encoding="utf-8") as archivo:
-            temas = json.load(archivo)["temas"]
+        with open(path, encoding="utf-8") as handle:
+            songs = json.load(handle)["temas"]
     except OSError:
         sys.exit("%s is missing: the tracks are those of the cartridge's "
-                 "songs, so it has to be built first" % ruta)
+                 "songs, so it has to be built first" % path)
     # By number and not by name: two songs that differ only in case are the
     # same file, and two threads writing the same track clobber each other.
-    por_numero = {t["pista"]: t["nombre"] for t in temas if t.get("pista")}
-    return [(por_numero[n], n) for n in sorted(por_numero)]
+    by_number = {t["pista"]: t["nombre"] for t in songs if t.get("pista")}
+    return [(by_number[n], n) for n in sorted(by_number)]
 
 
-def armar(rom, game_dir=None, soundfont=None, ganancia=GANANCIA,
-          reemplazos=None, charlar=True):
+def build(rom, game_dir=None, soundfont=None, gain=GAIN,
+          replacements=None, verbose=True):
     """Leaves next to `rom` the `.msu` and one track per song of the
     cartridge, and deletes the ones that no longer belong to any song.
 
     Returns how many tracks it redid and how many were already there.
-    `charlar` false silences the ones already there: `cartuchos.py` calls it
+    `verbose` false silences the ones already there: `cartuchos.py` calls it
     on every `just pruebas`.
     """
     game_dir = game_dir or resources.GAME_DIR
     soundfont = soundfont or snes_samples.SOUNDFONT
-    reemplazos = reemplazos or environment.msu_replacements()
+    replacements = replacements or environment.msu_replacements()
     base = os.path.splitext(rom)[0]
     # The file that turns MSU-1 on. The converter writes it with its data, so
     # here it is created only if missing —a loose ROM, built by hand—, and
     # empty: without the signature it expects, the ROM reads the backgrounds
     # from itself. Mode "ab" does not truncate it if it is already there.
-    abierto = open(base + ".msu", "ab")
-    abierto.close()
-    pistas = pistas_del_cartucho(rom)
-    numeros = {numero for _nombre, numero in pistas}
-    for vieja in glob.glob(glob.escape(base) + "-*.pcm"):
-        numero = vieja[len(base) + 1:-len(".pcm")]
-        if numero.isdigit() and int(numero) not in numeros:
-            os.remove(vieja)
-            print("track %s: no longer belongs to any song, deleted" % numero)
+    opened = open(base + ".msu", "ab")
+    opened.close()
+    tracks = cartridge_tracks(rom)
+    numbers = {number for _name, number in tracks}
+    for old in glob.glob(glob.escape(base) + "-*.pcm"):
+        number = old[len(base) + 1:-len(".pcm")]
+        if number.isdigit() and int(number) not in numbers:
+            os.remove(old)
+            print("track %s: no longer belongs to any song, deleted" % number)
     # The tracks at once, in threads: each one writes its own file, the heavy
     # part runs in fluidsynth or ffmpeg and in numpy, and one by one they were
     # what took longest in a cold build. What is printed stays in order.
     import concurrent.futures
-    with concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 1) as hilos:
-        hechos = [hilos.submit(_una_pista, base, nombre, numero, game_dir,
-                               soundfont, ganancia, reemplazos)
-                  for nombre, numero in pistas]
-        hechas = estaban = 0
-        for (nombre, numero), hecho in zip(pistas, hechos):
-            linea = hecho.result()
-            if linea is None:
-                estaban += 1
-                if charlar:
+    with concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 1) as pool:
+        futures = [pool.submit(_one_track, base, name, number, game_dir,
+                               soundfont, gain, replacements)
+                   for name, number in tracks]
+        made = already = 0
+        for (name, number), future in zip(tracks, futures):
+            line = future.result()
+            if line is None:
+                already += 1
+                if verbose:
                     print("track %d: %-22s already there -> %s-%d.pcm"
-                          % (numero, nombre, base, numero))
+                          % (number, name, base, number))
             else:
-                hechas += 1
-                print(linea)
-    return hechas, estaban
+                made += 1
+                print(line)
+    return made, already
 
 
-def _una_pista(base, nombre, numero, game_dir, soundfont, ganancia,
-               reemplazos):
-    """One track of `armar`. Returns the line that reports it, or None if it
+def _one_track(base, name, number, game_dir, soundfont, gain,
+               replacements):
+    """One track of `build`. Returns the line that reports it, or None if it
     was already there."""
-    salida = "%s-%d.pcm" % (base, numero)
-    audio = reemplazo(reemplazos, nombre)
+    out_path = "%s-%d.pcm" % (base, number)
+    audio = replacement(replacements, name)
     midi = None
     if not audio:
-        fuente = snes_music.song_path(nombre, game_dir)
-        if not fuente:
-            sys.exit("cannot find the music for %s" % nombre)
-        if fuente.lower().endswith(".mid"):
-            midi = fuente
+        source = snes_music.song_path(name, game_dir)
+        if not source:
+            sys.exit("cannot find the music for %s" % name)
+        if source.lower().endswith(".mid"):
+            midi = source
         else:
-            audio = fuente
+            audio = source
     if audio:
-        clave = clave_del_reemplazo(audio)
+        key = replacement_key(audio)
     else:
-        clave = clave_de_la_pista(midi, soundfont, ganancia)
+        key = track_key(midi, soundfont, gain)
     # The track that is already there, if this same code wrote it with these
     # same sources. What is stored is the sha256 of the `.pcm`, so a run cut
     # off halfway —the `.pcm` is written in one go, and weighs tens of
     # megabytes— is not taken as good: it does not match and is redone.
-    guardado = disk_cache.read("msu", clave)
+    stored = disk_cache.read("msu", key)
     # The `is not None` is not redundant: without a cache `leer` gives
     # `None`, and a missing `.pcm` gives `None` too, so comparing them
     # plainly would say "already there" exactly when there is nothing.
-    if guardado is not None and guardado == huella_del_archivo(salida):
+    if stored is not None and stored == file_fingerprint(out_path):
         return None
-    temporal = salida + ".wav"
+    tmp_wav = out_path + ".wav"
     if audio:
-        decodificar(audio, temporal)
+        decode(audio, tmp_wav)
     else:
-        render(midi, temporal, soundfont, ganancia)
+        render(midi, tmp_wav, soundfont, gain)
     # It is written alongside and replaced, instead of overwriting the `.pcm`
     # in place: truncating it would change the content for whoever has it
     # open —an emulator playing it— or linked under another name.
-    muestras, escala = pista(temporal, salida + ".nuevo")
-    os.replace(salida + ".nuevo", salida)
-    os.remove(temporal)
-    disk_cache.write("msu", clave, huella_del_archivo(salida))
+    samples, scale = track(tmp_wav, out_path + ".nuevo")
+    os.replace(out_path + ".nuevo", out_path)
+    os.remove(tmp_wav)
+    disk_cache.write("msu", key, file_fingerprint(out_path))
     return ("track %d: %-22s %6.1f s, %d MB, normalized x%.2f -> %s%s"
-            % (numero, nombre, muestras / 44100.0,
-               os.path.getsize(salida) // (1 << 20), escala, salida,
+            % (number, name, samples / 44100.0,
+               os.path.getsize(out_path) // (1 << 20), scale, out_path,
                "  (from %s)" % audio if audio else ""))
 
 
 # What it uses from the machine: the RTP, because a song can come from there;
 # and the cache, where it remembers which tracks are already there.
-DEL_AMBIENTE = ("game_dir", "rtp_dir", "soundfont", "replacements", "cache")
+FROM_ENVIRONMENT = ("game_dir", "rtp_dir", "soundfont", "replacements", "cache")
 
 
 def main():
@@ -362,11 +362,11 @@ def main():
     parser.add_argument("rom", help="the ROM: the tracks go next to it, with "
                                     "its name and the track number")
     project.add_argument(parser)
-    environment.add_arguments(parser, *DEL_AMBIENTE)
-    parser.add_argument("--ganancia", type=float, default=GANANCIA)
+    environment.add_arguments(parser, *FROM_ENVIRONMENT)
+    parser.add_argument("--gain", type=float, default=GAIN)
     args = parser.parse_args()
-    environment.from_arguments(args, *DEL_AMBIENTE)
-    armar(args.rom, ganancia=args.ganancia)
+    environment.from_arguments(args, *FROM_ENVIRONMENT)
+    build(args.rom, gain=args.gain)
 
 
 if __name__ == "__main__":
