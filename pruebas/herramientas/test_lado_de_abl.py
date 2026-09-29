@@ -57,11 +57,11 @@ RECETAS_QUE_NOMBRAN_TOOLS = {
 }
 
 # Relativas a la raíz del repo. Las que arman el camino de los imports con
-# `tools/` —`pytest.ini`, `video.py`, `test_repartos.py`,
-# `test_musica_stream.py`— y las que leen archivos de ahí —`test_protocolo.py`,
-# las declaraciones y los generados— se van cuando las pruebas se separen de
+# `tools/` —`pytest.ini`, `video.py`— se van cuando las pruebas se separen de
 # las herramientas. Las demás lo nombran en la prosa, para decir dónde está
-# lo que prueban, y se van al reescribirla.
+# lo que prueban, y se van al reescribirla. El 2026-09-29 salieron cinco: las
+# pruebas que no necesitan el juego se mudaron con las herramientas, y los
+# pedazos que se quedaron ya no nombran `tools/`.
 PRUEBAS_QUE_TODAVIA_NOMBRAN_TOOLS = {
     "pytest.ini",
     "pruebas/README.md",
@@ -77,12 +77,7 @@ PRUEBAS_QUE_TODAVIA_NOMBRAN_TOOLS = {
     "pruebas/arnes/lz2.py",
     "pruebas/arnes/tanda.py",
     "pruebas/arnes/video.py",
-    "pruebas/herramientas/test_ensamblar.py",
     "pruebas/herramientas/test_lz2.py",
-    "pruebas/herramientas/test_musica_stream.py",
-    "pruebas/herramientas/test_protocolo.py",
-    "pruebas/herramientas/test_repartos.py",
-    "pruebas/herramientas/test_temas_heredados.py",
     "pruebas/rpgmaker/test_batalla.py",
     "pruebas/rpgmaker/test_batalla_escena_dibujo.py",
     "pruebas/rpgmaker/test_comandos_golden.py",

@@ -39,6 +39,43 @@ datos DIR="data" EXACTO="rom/build/ditto-exacto":
 ditto-volcado DIR="/extras/volcado-ditto":
   just datos {{DIR}} "{{DIR}}-exacto"
 
+# **Que este juego haga la ida y vuelta**: `ditto unpack` y después `ditto
+# pack` desde el volcado exacto, y cada `.lmu`, `.ldb` y `.lmt` que sale
+# comparado byte por byte con el del juego. Es lo que hace que `data/` sea
+# el juego y no una lectura aproximada de él: si un archivo no vuelve igual,
+# lo que dice `data/` de ese archivo no es todo lo que el archivo tiene.
+#
+# Usa el `ditto` del PATH, como `datos`, y no compila nada. Las pruebas de
+# Ditto miden lo mismo sobre el corpus que se les pase; ésta es la de ABL,
+# sobre su juego. Lo que arma va a `rom/build/ditto-vuelta/` y se rehace
+# entero en cada corrida.
+datos-vuelta:
+  #!/usr/bin/env sh
+  set -eu
+  juego="${ABL_GAME_DIR:-/extras/abl-rm}"
+  aca=rom/build/ditto-vuelta
+  rm -rf "$aca"
+  mkdir -p "$aca"
+  ditto unpack "$juego" "$aca/exacto" "$aca/resuelto"
+  ditto pack "$aca/exacto" "$aca/juego"
+  iguales=0
+  distintos=0
+  for original in "$juego"/*.lmu "$juego"/*.ldb "$juego"/*.lmt; do
+    [ -e "$original" ] || continue
+    nombre=$(basename "$original")
+    if [ ! -f "$aca/juego/$nombre" ]; then
+      echo "falta: $nombre" >&2
+      distintos=$((distintos + 1))
+    elif cmp -s "$original" "$aca/juego/$nombre"; then
+      iguales=$((iguales + 1))
+    else
+      echo "distinto: $nombre" >&2
+      distintos=$((distintos + 1))
+    fi
+  done
+  echo "$iguales iguales byte por byte, $distintos que no"
+  [ "$iguales" -gt 0 ] && [ "$distintos" -eq 0 ]
+
 # **Un worktree sin su `bin/` no corre herramientas.** Correría los scripts
 # del checkout principal —los del global—, que arman en el `rom/build/` del
 # principal: pisaría sus cartuchos, quizás con una tanda corriendo ahí, sin
@@ -90,7 +127,8 @@ pruebas *args: _herramientas_del_checkout _xdist cartuchos
 
 # Las mismas, de a una carpeta: `rpgmaker` —lo que el motor tiene que hacer
 # igual que RM2k—, `abl` —lo propio del juego— y `herramientas` —las que no
-# corren ninguna ROM—. Todas dependen de `cartuchos` porque una de
+# corren ninguna ROM pero miran el juego o un cartucho armado; las que no
+# necesitan nada del juego son de las herramientas, y no corren acá—. Todas dependen de `cartuchos` porque una de
 # herramientas, la de bancos, lee la tabla de símbolos del cartucho armado.
 # Van en paralelo igual que `pruebas`: hasta `herramientas`, que no corre
 # ninguna ROM, gana.
