@@ -19,11 +19,20 @@ Mira los `.py` de `tools/` —los paquetes y sus pruebas—, y falla si alguno:
   raíz —`RAIZ`, `proyecto.raiz()`—. Detrás de otra cosa no cuenta:
   `pruebas/` adentro de `tools/` es otra carpeta;
 * **lee una variable de ambiente de las que dicen dónde está algo**, o
-  escribe el valor por omisión de una: ésos viven en `proyecto.py`.
+  escribe el valor por omisión de una: desde el 2026-09-29 eso llega por
+  flags —ver `comun/ambiente.py`—, y los valores de la máquina son del que
+  llama a las herramientas.
 
-Lo que no mira: la prosa —comentarios, docstrings, `help=`—, que nombra
-rutas para que uno las encuentre; ni este archivo, que las escribe a
-propósito para ver que la red las agarra.
+Y aparte, `test_ninguna_herramienta_sabe_de_abl`, porque es otra regla y la
+de más arriba no la ve: que ningún `.py` de `tools/` lea una variable
+`ABL_*` —cualquiera, no sólo las de la lista—, ni escriba `rom/` como
+pedazo de ruta. Las herramientas encuentran el juego por su archivo de
+proyecto, y sus rutas las declara él: saber que A Blurred Line vive en
+`rom/` es saber de un juego.
+
+Lo que no mira: la prosa —comentarios, docstrings, `help=`, los mensajes—,
+que nombra rutas para que uno las encuentre; ni este archivo, que las
+escribe a propósito para ver que la red las agarra.
 """
 
 import ast
@@ -34,7 +43,6 @@ import pytest
 from comun import proyecto
 
 HERRAMIENTAS = proyecto.herramientas()
-PROYECTO = os.path.join(HERRAMIENTAS, "comun", "proyecto.py")
 ESTE = os.path.realpath(__file__)
 
 # Las carpetas de la raíz. Un pedazo de ruta que empieza por una de éstas es
@@ -57,7 +65,9 @@ PERMITIDOS = {
 
 
 def _nuestros():
-    """Los `.py` de `tools/`, menos los proyectos de Rust y `proyecto.py`."""
+    """Los `.py` de `tools/`, menos los proyectos de Rust. `proyecto.py`
+    también: hasta el 2026-09-29 era la excepción, porque ahí vivían los
+    valores de la máquina, y ya no los tiene."""
     for raiz, subs, archivos in os.walk(HERRAMIENTAS):
         subs[:] = sorted(s for s in subs
                          if s not in ("target", "__pycache__")
@@ -65,7 +75,7 @@ def _nuestros():
                                                              "Cargo.toml")))
         for archivo in sorted(archivos):
             ruta = os.path.join(raiz, archivo)
-            if archivo.endswith(".py") and ruta not in (PROYECTO, ESTE):
+            if archivo.endswith(".py") and ruta != ESTE:
                 yield ruta
 
 
@@ -141,12 +151,51 @@ def violaciones(ruta, fuente=None):
                                  "proyecto.py" % (nodo.lineno, primero))
         variable = _es_lectura_de_ambiente(nodo)
         if variable in DE_AMBIENTE:
-            malas.append("%d: lee %s: va en proyecto.py"
+            malas.append("%d: lee %s: llega por flag, ver comun/ambiente.py"
                          % (nodo.lineno, variable))
         texto = _texto(nodo)
         if texto and texto.startswith(("/extras", "/shared")):
-            malas.append("%d: un valor por omisión del ambiente: va en "
-                         "proyecto.py" % nodo.lineno)
+            malas.append("%d: un valor por omisión de la máquina: es del que "
+                         "llama a las herramientas" % nodo.lineno)
+    return malas
+
+
+def _prosa(arbol):
+    """Los strings que son prosa: docstrings y `help=`."""
+    ids = set()
+    for nodo in ast.walk(arbol):
+        if isinstance(nodo, (ast.Module, ast.FunctionDef, ast.ClassDef,
+                             ast.AsyncFunctionDef)):
+            cuerpo = nodo.body
+            if (cuerpo and isinstance(cuerpo[0], ast.Expr)
+                    and isinstance(cuerpo[0].value, ast.Constant)):
+                ids.add(id(cuerpo[0].value))
+        if isinstance(nodo, ast.keyword) and nodo.arg == "help":
+            ids.update(id(n) for n in ast.walk(nodo.value))
+    return ids
+
+
+def de_abl(ruta, fuente=None):
+    """Lo que un archivo sabe de A Blurred Line, como `línea: qué`: una
+    variable `ABL_*` leída, o `rom/` escrito como pedazo de ruta —un string
+    sin blancos, que es cómo se ve una ruta y no un mensaje—."""
+    if fuente is None:
+        with open(ruta, encoding="utf-8") as archivo:
+            fuente = archivo.read()
+    arbol = ast.parse(fuente, ruta)
+    prosa = _prosa(arbol)
+    malas = []
+    for nodo in ast.walk(arbol):
+        variable = _es_lectura_de_ambiente(nodo)
+        if variable and variable.startswith("ABL_"):
+            malas.append("%d: lee %s, que es de A Blurred Line"
+                         % (nodo.lineno, variable))
+        texto = _texto(nodo)
+        if (texto and id(nodo) not in prosa
+                and not any(c.isspace() for c in texto)
+                and (texto.startswith("rom/") or "/rom/" in texto)):
+            malas.append("%d: nombra %r, que es dónde vive A Blurred Line"
+                         % (nodo.lineno, texto))
     return malas
 
 
@@ -158,6 +207,42 @@ def test_nadie_mas_sabe_donde_esta_cada_cosa():
     assert not malas, (
         "dónde está cada cosa lo sabe comun/proyecto.py y nadie más:\n  "
         + "\n  ".join(malas))
+
+
+def test_ninguna_herramienta_sabe_de_abl():
+    malas = []
+    for ruta in _nuestros():
+        malas += ["%s:%s" % (os.path.relpath(ruta, HERRAMIENTAS), v)
+                  for v in de_abl(ruta)]
+    assert not malas, (
+        "las herramientas no saben de ningún juego: encuentran el proyecto "
+        "por su rm2k-snes.toml, sus rutas las declara él y lo de la máquina "
+        "llega por flags:\n  " + "\n  ".join(malas))
+
+
+@pytest.mark.parametrize("fuente", [
+    'JUEGO = os.environ.get("ABL_GAME_DIR", "/extras/abl-rm")\n',
+    'JUEGO = os.environ["ABL_OTRA_COSA"]\n',
+    'JUEGO = os.getenv("ABL_LO_QUE_SEA")\n',
+    'DATOS = "rom/data"\n',
+    'open("../rom/rm2k-snes.toml")\n',
+    'DATOS = os.path.join(RAIZ, "rom/data")\n',
+])
+def test_la_red_de_abl_ve_cada_forma(fuente):
+    assert de_abl(os.path.join(HERRAMIENTAS, "x", "y.py"), fuente)
+
+
+@pytest.mark.parametrize("fuente", [
+    '"""Lee `rom/data/`."""\n',
+    'parser.add_argument("x", help="rom/build/release")\n',
+    'sys.exit("pasame `rom/build/release` y no dos")\n',
+    'perillas.valor("rom", "name")\n',
+    'AVISO = os.environ.get("SIN_CACHE")\n',
+])
+def test_la_prosa_y_la_seccion_rom_no_son_abl(fuente):
+    """Nombrar `rom/` para que uno lo encuentre no es saber dónde está:
+    tampoco `[rom]`, que es una sección del archivo de proyecto."""
+    assert not de_abl(os.path.join(HERRAMIENTAS, "x", "y.py"), fuente)
 
 
 @pytest.mark.parametrize("fuente", [

@@ -124,3 +124,15 @@ los `.dbg` sin `mtime`—.
    - `snes_convert.args_game_dir` arranca en `None` y `_juego()` cae en el
      del ambiente: las pruebas llaman a `lideres_posibles` sin pasar por
      `main`.
+4. **La red: `test_ninguna_herramienta_sabe_de_abl`**, en
+   `tools/pruebas/test_proyecto.py`, al lado de la de Tipa porque comparte
+   cómo se lee una variable de ambiente. Falla si un `.py` de `tools/` lee
+   cualquier variable `ABL_*`, o escribe `rom/` como pedazo de ruta: un
+   string sin blancos que empieza por `rom/` o tiene `/rom/`. No mira la
+   prosa —docstrings, `help=`, los mensajes, que llevan blancos— ni la
+   sección `[rom]` del archivo de proyecto, que es un nombre de clave. Y
+   `proyecto.py` deja de ser la excepción de la de Tipa: ya no tiene los
+   valores de la máquina.
+   - Mostrado que falla: con `os.environ.get("ABL_GAME_DIR")` agregado a
+     `comun/ambiente.py` y `"rom/data/maps"` a `rpgmaker/fork.py`, las dos
+     pruebas dan rojo y nombran archivo y línea; sacados, verde.
