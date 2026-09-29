@@ -19,7 +19,7 @@ from port import eventos
 from port import constantes
 
 
-def test_la_cola_sale_del_texto_y_se_cuenta():
+def test_the_tail_leaves_the_text_and_is_counted():
     """`\\|\\^` is what the game uses 25 times: one pause and auto-close."""
     lineas, pausas, autocierre = eventos.cola_de_escapes(
         ["HELP!!", "That bandit... has a bow...\\|\\^"])
@@ -27,14 +27,14 @@ def test_la_cola_sale_del_texto_y_se_cuenta():
     assert (pausas, autocierre) == (1, True)
 
 
-def test_tres_pausas_seguidas():
+def test_three_pauses_in_a_row():
     """The `< Kiss >` of map 108, which is the most in the game."""
     _lineas, pausas, autocierre = eventos.cola_de_escapes(
         ["                  < Kiss >\\|\\|\\|\\^"])
     assert (pausas, autocierre) == (3, True)
 
 
-def test_la_cola_con_espacios_entre_medio():
+def test_the_tail_with_spaces_in_between():
     """The `RunDirectorScene` of map 98 is the only one that writes `\\| \\| \\| \\^`.
 
     The spaces in the tail go away with it: a space at the end of a line
@@ -47,7 +47,7 @@ def test_la_cola_con_espacios_entre_medio():
     assert (pausas, autocierre) == (3, True)
 
 
-def test_un_escape_que_no_conocemos_no_compila():
+def test_an_unknown_escape_does_not_compile():
     """The three `\\V` of the common events: a variable's value inserted into
     the text. They are still not done, and the page that uses them has to keep
     failing to compile instead of drawing them as two letters."""
@@ -55,7 +55,7 @@ def test_un_escape_que_no_conocemos_no_compila():
         eventos.cola_de_escapes(["tenés \\V[12] créditos"])
 
 
-def test_un_escape_en_el_medio_tampoco():
+def test_an_escape_in_the_middle_does_not_either():
     """With the window drawn all at once, a pause in the middle of the text
     cannot be modeled without making up how much text had been drawn. In the
     328 maps there is none: the 40 text boxes with escapes have them as a
@@ -64,7 +64,7 @@ def test_un_escape_en_el_medio_tampoco():
         eventos.cola_de_escapes(["uno\\|dos"])
 
 
-def test_la_cabecera_lleva_los_renglones_el_cierre_y_las_pausas():
+def test_the_header_carries_lines_close_and_pauses():
     """The byte `msg_empezar` reads, with the same masks as the ROM."""
     cabecera = eventos.mensaje_bytes(("a", "b"), pausas=3, autocierre=True)[0]
     assert cabecera & eventos.CABECERA_LINEAS == 2
@@ -72,7 +72,7 @@ def test_la_cabecera_lleva_los_renglones_el_cierre_y_las_pausas():
     assert cabecera >> 4 == 3
 
 
-def test_dos_cuadros_con_el_mismo_texto_y_distinta_cola_no_se_comparten():
+def test_two_boxes_with_same_text_and_different_tail_are_not_shared():
     """The trap that would give zero: one waits for the player and the other does not."""
     mensajes = eventos.Mensajes()
     pelado = mensajes.agregar(["Ready for the big night?"])
@@ -87,7 +87,7 @@ def test_dos_cuadros_con_el_mismo_texto_y_distinta_cola_no_se_comparten():
     assert mensajes.agregar(["Ready for the big night?\\|\\^"]) == con_cola
 
 
-def test_la_cola_se_saca_antes_de_recortar_el_renglon():
+def test_the_tail_is_removed_before_trimming_the_line():
     """The other way around, a full line would eat its own `\\|\\^` and the
     text box would be left waiting for an A that RM2k does not ask for."""
     mensajes = eventos.Mensajes()

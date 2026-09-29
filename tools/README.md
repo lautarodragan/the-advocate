@@ -116,7 +116,7 @@ The reason for the names is in `tools/justfile`. A new one is added in
 `_instalar`, and the `.py` finds its packages by resolving the symlink with
 `realpath`, because `__file__` is the PATH location: it climbs up to
 `tools/` and no further. **Where everything else is** is answered by
-`common/project.py`, and by nobody else: `pruebas/test_proyecto.py` enforces
+`common/project.py`, and by nobody else: `pruebas/test_project.py` enforces
 it. What belongs to the repo —the root, the runtime— comes from where that
 file is; what belongs to the game, from its project file: see "How they find
 the game". The tests put `tools/` on the path themselves, from
@@ -143,7 +143,7 @@ Line's is `rom/rm2k-snes.toml`—, and it is read with `common/settings.py`:
 
 * **A missing key is an error**, with its name, and not a default value: a
   default in a tool would be ABL's value, and another game would be built
-  with it without a warning. `pruebas/test_perillas.py` enforces it, and on
+  with it without a warning. `pruebas/test_settings.py` enforces it, and on
   ABL's side `test_perillas_repetidas.py`, which fails if a `.py` here writes
   a value from the file again.
 * **It is read when used, not at import**: the converter and what it uses
@@ -188,7 +188,7 @@ cartridges, which have their place in the project's `build`: a machine's
 value belongs to the caller. In A Blurred Line, `rom/justfile` translates its
 variables into flags.
 
-`pruebas/test_proyecto.py` enforces it: it fails if a `.py` here reads an
+`pruebas/test_project.py` enforces it: it fails if a `.py` here reads an
 `ABL_*` variable or writes `rom/` as a path.
 
 ## `tools/justfile`

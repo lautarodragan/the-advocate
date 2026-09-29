@@ -24,7 +24,7 @@ fails if any of them:
   —see `common/environment.py`—, and the machine's values belong to whoever
   calls the tools.
 
-And separately, `test_ninguna_herramienta_sabe_de_abl`, because it is another
+And separately, `test_no_tool_knows_about_abl`, because it is another
 rule and the one above does not see it: that no `.py` of `tools/` reads an
 `ABL_*` variable —any of them, not only those in the list—, or writes `rom/`
 as a piece of a path. The tools find the game through its project file, and
@@ -65,7 +65,7 @@ PERMITIDOS = {
 }
 
 
-def _nuestros():
+def _ours():
     """The `.py` files of `tools/`, minus the Rust projects. `project.py`
     too: until 2026-09-29 it was the exception, because the machine's values
     lived there, and it no longer has them."""
@@ -80,19 +80,19 @@ def _nuestros():
                 yield ruta
 
 
-def _texto(nodo):
+def _text(nodo):
     return nodo.value if (isinstance(nodo, ast.Constant)
                           and isinstance(nodo.value, str)) else None
 
 
-def _es_join(nodo):
+def _is_join(nodo):
     funcion = nodo.func
     return (isinstance(funcion, ast.Attribute) and funcion.attr == "join"
             and isinstance(funcion.value, ast.Attribute)
             and funcion.value.attr == "path")
 
 
-def _es_la_raiz(nodo):
+def _is_the_root(nodo):
     """`RAIZ`, `REPO`, `raiz`, `ROOT`, `root` or `something.root()`."""
     if isinstance(nodo, ast.Name):
         return nodo.id in RAIZ
@@ -100,7 +100,7 @@ def _es_la_raiz(nodo):
             and nodo.func.attr == "root")
 
 
-def _es_lectura_de_ambiente(nodo):
+def _is_environment_read(nodo):
     """`os.environ.get("X", …)`, `os.getenv("X")` or `os.environ["X"]`."""
     if isinstance(nodo, ast.Call):
         funcion = nodo.func
@@ -109,15 +109,15 @@ def _es_lectura_de_ambiente(nodo):
                 and funcion.value.attr == "environ") or (
                 isinstance(funcion, ast.Attribute)
                 and funcion.attr == "getenv"):
-            return _texto(nodo.args[0]) if nodo.args else None
+            return _text(nodo.args[0]) if nodo.args else None
     if (isinstance(nodo, ast.Subscript)
             and isinstance(nodo.value, ast.Attribute)
             and nodo.value.attr == "environ"):
-        return _texto(nodo.slice)
+        return _text(nodo.slice)
     return None
 
 
-def violaciones(ruta, fuente=None):
+def violations(ruta, fuente=None):
     """A file's violations, as `line: what`."""
     if fuente is None:
         with open(ruta, encoding="utf-8") as archivo:
@@ -136,32 +136,32 @@ def violaciones(ruta, fuente=None):
         if any(isinstance(n, ast.Name) and n.id == "__file__" for n in nodos):
             dirnames = sum(1 for n in nodos if isinstance(n, ast.Attribute)
                            and n.attr == "dirname")
-            if dirnames >= 3 or any(_texto(n) == ".." for n in nodos):
+            if dirnames >= 3 or any(_text(n) == ".." for n in nodos):
                 malas.append("%d: climbs up to the root from __file__: "
                              "project.root()" % sentencia.lineno)
     for nodo in ast.walk(arbol):
-        if isinstance(nodo, ast.Call) and _es_join(nodo):
+        if isinstance(nodo, ast.Call) and _is_join(nodo):
             for k, arg in enumerate(nodo.args):
-                texto = _texto(arg)
-                if texto is None or (k and not _es_la_raiz(nodo.args[k - 1])):
+                texto = _text(arg)
+                if texto is None or (k and not _is_the_root(nodo.args[k - 1])):
                     continue
                 primero = texto.split("/")[0]
                 if (primero in DE_LA_RAIZ
                         and (relativo, primero) not in PERMITIDOS):
                     malas.append("%d: builds a path to %s/ by hand: it goes in "
                                  "project.py" % (nodo.lineno, primero))
-        variable = _es_lectura_de_ambiente(nodo)
+        variable = _is_environment_read(nodo)
         if variable in DE_AMBIENTE:
             malas.append("%d: reads %s: it arrives by flag, see "
                          "common/environment.py" % (nodo.lineno, variable))
-        texto = _texto(nodo)
+        texto = _text(nodo)
         if texto and texto.startswith(("/extras", "/shared")):
             malas.append("%d: a machine default value: it belongs to whoever "
                          "calls the tools" % nodo.lineno)
     return malas
 
 
-def _prosa(arbol):
+def _prose(arbol):
     """The strings that are prose: docstrings and `help=`."""
     ids = set()
     for nodo in ast.walk(arbol):
@@ -176,7 +176,7 @@ def _prosa(arbol):
     return ids
 
 
-def de_abl(ruta, fuente=None):
+def about_abl(ruta, fuente=None):
     """What a file knows about A Blurred Line, as `line: what`: an `ABL_*`
     variable read, or `rom/` written as a piece of a path —a string without
     whitespace, which is what a path looks like and not a message—."""
@@ -184,14 +184,14 @@ def de_abl(ruta, fuente=None):
         with open(ruta, encoding="utf-8") as archivo:
             fuente = archivo.read()
     arbol = ast.parse(fuente, ruta)
-    prosa = _prosa(arbol)
+    prosa = _prose(arbol)
     malas = []
     for nodo in ast.walk(arbol):
-        variable = _es_lectura_de_ambiente(nodo)
+        variable = _is_environment_read(nodo)
         if variable and variable.startswith("ABL_"):
             malas.append("%d: reads %s, which belongs to A Blurred Line"
                          % (nodo.lineno, variable))
-        texto = _texto(nodo)
+        texto = _text(nodo)
         if (texto and id(nodo) not in prosa
                 and not any(c.isspace() for c in texto)
                 and (texto.startswith("rom/") or "/rom/" in texto)):
@@ -200,21 +200,21 @@ def de_abl(ruta, fuente=None):
     return malas
 
 
-def test_nadie_mas_sabe_donde_esta_cada_cosa():
+def test_nobody_else_knows_where_things_are():
     malas = []
-    for ruta in _nuestros():
+    for ruta in _ours():
         malas += ["%s:%s" % (os.path.relpath(ruta, HERRAMIENTAS), v)
-                  for v in violaciones(ruta)]
+                  for v in violations(ruta)]
     assert not malas, (
         "where each thing is is known by common/project.py and nobody else:\n  "
         + "\n  ".join(malas))
 
 
-def test_ninguna_herramienta_sabe_de_abl():
+def test_no_tool_knows_about_abl():
     malas = []
-    for ruta in _nuestros():
+    for ruta in _ours():
         malas += ["%s:%s" % (os.path.relpath(ruta, HERRAMIENTAS), v)
-                  for v in de_abl(ruta)]
+                  for v in about_abl(ruta)]
     assert not malas, (
         "the tools know about no game: they find the project "
         "through its rm2k-snes.toml, its paths are declared by it and the "
@@ -229,8 +229,8 @@ def test_ninguna_herramienta_sabe_de_abl():
     'open("../rom/rm2k-snes.toml")\n',
     'DATOS = os.path.join(RAIZ, "rom/data")\n',
 ])
-def test_la_red_de_abl_ve_cada_forma(fuente):
-    assert de_abl(os.path.join(HERRAMIENTAS, "x", "y.py"), fuente)
+def test_the_abl_net_sees_every_form(fuente):
+    assert about_abl(os.path.join(HERRAMIENTAS, "x", "y.py"), fuente)
 
 
 @pytest.mark.parametrize("fuente", [
@@ -240,10 +240,10 @@ def test_la_red_de_abl_ve_cada_forma(fuente):
     'settings.value("rom", "name")\n',
     'AVISO = os.environ.get("SIN_CACHE")\n',
 ])
-def test_la_prosa_y_la_seccion_rom_no_son_abl(fuente):
+def test_prose_and_the_rom_section_are_not_abl(fuente):
     """Naming `rom/` so that one can find it is not knowing where it is:
     neither is `[rom]`, which is a section of the project file."""
-    assert not de_abl(os.path.join(HERRAMIENTAS, "x", "y.py"), fuente)
+    assert not about_abl(os.path.join(HERRAMIENTAS, "x", "y.py"), fuente)
 
 
 @pytest.mark.parametrize("fuente", [
@@ -255,15 +255,15 @@ def test_la_prosa_y_la_seccion_rom_no_son_abl(fuente):
     'JUEGO = os.environ.get("ABL_GAME_DIR", "/extras/abl-rm")\n',
     'REEMPLAZOS = "/extras/msu"\n',
 ])
-def test_la_red_ve_cada_forma(fuente):
+def test_the_net_sees_every_form(fuente):
     """Every form that existed before `project.py` has to give a violation:
     otherwise the test above is not looking."""
-    assert violaciones(os.path.join(HERRAMIENTAS, "x", "y.py"), fuente)
+    assert violations(os.path.join(HERRAMIENTAS, "x", "y.py"), fuente)
 
 
-def test_subir_hasta_tools_se_puede():
+def test_climbing_up_to_tools_is_allowed():
     """A script's startup, which puts `tools/` on `sys.path` before it can
     import `project`."""
-    assert not violaciones(os.path.join(HERRAMIENTAS, "x", "y.py"),
-                           'sys.path.insert(0, os.path.dirname(os.path.dirname('
-                           'os.path.realpath(__file__))))\n')
+    assert not violations(os.path.join(HERRAMIENTAS, "x", "y.py"),
+                          'sys.path.insert(0, os.path.dirname(os.path.dirname('
+                          'os.path.realpath(__file__))))\n')

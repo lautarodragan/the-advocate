@@ -7,36 +7,37 @@ from common import settings
 
 
 @pytest.fixture
-def archivo(tmp_path):
+def project_file(tmp_path):
     ruta = tmp_path / "rm2k-snes.toml"
     ruta.write_text('[rom]\nname = "juego"\n[maps]\nbelow = 3\n'
                     'debug = true\n')
     return str(ruta)
 
 
-def test_lee_una_clave_anidada(archivo):
-    assert settings.value("rom", "name", path=archivo) == "juego"
-    assert settings.value("maps", "below", kind=int, path=archivo) == 3
+def test_reads_a_nested_key(project_file):
+    assert settings.value("rom", "name", path=project_file) == "juego"
+    assert settings.value("maps", "below", kind=int, path=project_file) == 3
 
 
-def test_una_clave_que_falta_dice_cual(archivo):
+def test_a_missing_key_says_which(project_file):
     with pytest.raises(settings.MissingKey, match=r"missing key rom\.title"):
-        settings.value("rom", "title", path=archivo)
+        settings.value("rom", "title", path=project_file)
     with pytest.raises(settings.MissingKey, match=r"missing key audio$"):
-        settings.value("audio", "se", path=archivo)
+        settings.value("audio", "se", path=project_file)
 
 
-def test_un_tipo_equivocado_tambien_falla(archivo):
+def test_a_wrong_type_fails_too(project_file):
     with pytest.raises(settings.MissingKey, match="must be int"):
-        settings.value("rom", "name", kind=int, path=archivo)
+        settings.value("rom", "name", kind=int, path=project_file)
     # `True` is an `int` to Python, and a boolean setting placed where a
     # number goes is an error in the file.
     with pytest.raises(settings.MissingKey, match="must be int"):
-        settings.value("maps", "debug", kind=int, path=archivo)
-    assert settings.value("maps", "debug", kind=bool, path=archivo) is True
+        settings.value("maps", "debug", kind=int, path=project_file)
+    assert settings.value("maps", "debug", kind=bool,
+                          path=project_file) is True
 
 
-def test_un_texto_que_va_a_la_rom_se_mide(tmp_path):
+def test_a_text_that_goes_to_the_rom_is_measured(tmp_path):
     ruta = tmp_path / "rm2k-snes.toml"
     ruta.write_text('[rom]\nfirma = "ABLS"\ncorta = "ABL"\nacento = "ÁBLS"\n')
     ruta = str(ruta)
@@ -49,7 +50,7 @@ def test_un_texto_que_va_a_la_rom_se_mide(tmp_path):
         settings.ascii("rom", "firma", max_length=2, path=ruta)
 
 
-def test_las_herramientas_se_importan_sin_un_juego(tmp_path):
+def test_the_tools_import_without_a_game(tmp_path):
     """The converter and what it uses read the settings and the project paths
     when they use them, not at import: otherwise importing `port.snes_convert`
     —which is what the tests here do— would require a game's project file.

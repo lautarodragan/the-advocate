@@ -13,28 +13,28 @@ from port import textos                                 # noqa: E402
 from port import constantes                             # noqa: E402
 
 
-def _palabras(cuadros, con_hablante):
+def _words(cuadros, con_hablante):
     desde = 1 if con_hablante else 0
     return " ".join(" ".join(c[desde:]) for c in cuadros).split()
 
 
-def test_un_cuadro_que_entra_no_se_toca():
+def test_a_box_that_fits_is_left_alone():
     """Not even the spaces inside: they are the author's."""
     cuadro = ["                  < Kiss >"]
     assert textos.reajustar(cuadro) == [cuadro]
 
 
-def test_se_rearma_y_conserva_al_que_habla():
+def test_it_is_rebuilt_and_keeps_the_speaker():
     cuadro = ["KERSH", "I have pressing business within the Linkage",
               "Block. No turning back."]
     salida = textos.reajustar(cuadro)
     assert len(salida) == 1
     assert salida[0][0] == "KERSH"
     assert all(len(t) <= constantes.COLUMNAS for t in salida[0])
-    assert _palabras(salida, True) == _palabras([cuadro], True)
+    assert _words(salida, True) == _words([cuadro], True)
 
 
-def test_lo_que_no_entra_se_parte_y_repite_al_que_habla():
+def test_what_does_not_fit_is_split_and_repeats_the_speaker():
     """As the game does with consecutive text boxes from the same character."""
     cuadro = ["MANTA",
               "According to this, the Catch Colony is connected",
@@ -44,10 +44,10 @@ def test_lo_que_no_entra_se_parte_y_repite_al_que_habla():
     assert len(salida) == 2
     assert all(c[0] == "MANTA" for c in salida)
     assert all(len(c) <= constantes.LINEAS for c in salida)
-    assert _palabras(salida, True) == _palabras([cuadro], True)
+    assert _words(salida, True) == _words([cuadro], True)
 
 
-def test_la_cola_va_al_final_del_ultimo_cuadro():
+def test_the_tail_goes_at_the_end_of_the_last_box():
     cuadro = ["CORE", "Thank you, Manta. And maybe... after all this,",
               "you'll be able to tell me the answer to the",
               "question none of my abilities... can.\\|\\^"]
@@ -83,7 +83,7 @@ CORTO = 2 * constantes.COLUMNAS // 3
      "you'll be able to tell me the answer to the",
      "question none of my abilities... can."],
 ])
-def test_ningun_renglon_se_interrumpe_antes_de_tiempo(cuadro):
+def test_no_line_breaks_too_early(cuadro):
     """Except the last one of each text box, no line ends up shorter than
     `CORTO`. All of these have a way of breaking that satisfies it."""
     salida = textos.reajustar(cuadro)
@@ -91,10 +91,10 @@ def test_ningun_renglon_se_interrumpe_antes_de_tiempo(cuadro):
         assert c[0] == cuadro[0]
         cortos = [t for t in c[1:-1] if len(t) < CORTO]
         assert not cortos, c
-    assert _palabras(salida, True) == _palabras([cuadro], True)
+    assert _words(salida, True) == _words([cuadro], True)
 
 
-def test_un_renglon_con_oraciones_enteras_puede_quedar_corto():
+def test_a_line_of_whole_sentences_may_be_short():
     """The other side of the rule: breaking between two short sentences reads
     as the author's line break, and it is not traded for filling the line."""
     assert textos.reajustar(
@@ -105,7 +105,7 @@ def test_un_renglon_con_oraciones_enteras_puede_quedar_corto():
         ["TALAN", "Ten minutes...", "I'm not sure I can make it."]]
 
 
-def test_no_se_separa_un_nombre_de_su_numero():
+def test_a_name_is_not_split_from_its_number():
     salida = textos.reajustar(
         ["TALAN", "I'd better not go back through Sector 33. The Lazer",
          "Teeth wouldn't be happy to see me..."])
@@ -113,7 +113,7 @@ def test_no_se_separa_un_nombre_de_su_numero():
     assert not any(t.endswith("Sector") for t in renglones), salida
 
 
-def test_no_se_agrega_un_cuadro_por_gusto():
+def test_no_box_is_added_for_nothing():
     """If the text fits in one text box, it is not split in two to look
     better: one more text box is one more key press."""
     cuadro = ["TALAN", "Well... time to get away from the Agency. Now I've",
@@ -129,11 +129,11 @@ def test_no_se_agrega_un_cuadro_por_gusto():
     ("NO!", False),
     ("Kersh", False),
 ])
-def test_quien_habla(linea, es):
+def test_who_speaks(linea, es):
     assert textos.es_hablante(linea) is es
 
 
-def test_los_comandos_que_no_cambian_son_los_mismos_objetos():
+def test_unchanged_commands_are_the_same_objects():
     cuadro_que_entra = {"code": eventos.SHOW_MESSAGE, "indent": 1,
                         "parameters": [], "string": "Hi."}
     otro = {"code": 10310, "indent": 1, "parameters": [0, 0], "string": ""}

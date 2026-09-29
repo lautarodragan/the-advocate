@@ -76,4 +76,4 @@ muestra y con qué envolvente, y la consola sólo reproduce.
 
 Qué prueba cubre qué: `rom/pruebas/rpgmaker/test_musica_*.py` corren la ROM
 —las escrituras, el reparto, el paquete, los techos— y
-`tools/pruebas/test_musica_stream.py` mira el stream sin ROM.
+`tools/pruebas/test_music_stream.py` mira el stream sin ROM.

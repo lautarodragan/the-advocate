@@ -38,3 +38,4 @@ un `-c`) se buscan aparte con grep.
 12. `render/chipset_del_fork.py` → `render/chipset_recipe.py`: lo que hace es aplicar la receta del fork al PNG.
 13. `emulador/` → `emulator/`, con `retro.Consola` → `retro.Console` y sus métodos.
 14. Lo que quedó: `nodo` en `lcf.py`, `tools/README.md` y la tarea pendiente del MSU-1, que citaban los nombres viejos.
+15. Los archivos de prueba de `tools/pruebas/` y sus funciones, al inglés.

@@ -1983,7 +1983,7 @@ CHANGE_PBG = 11720
 # free one" at the same time without seeing each other: $23 came out twice
 # and $24 twice, git merged them without a single conflict —each on its own
 # line— and what broke was the walk over the bytecode.
-# `test_ningun_opcode_comparte_numero_con_otro` guards it.
+# `test_no_opcode_shares_a_number_with_another` guards it.
 #
 # OP_ACTOR_SPRITE: actor (byte), graphic (byte)
 

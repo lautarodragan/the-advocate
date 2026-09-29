@@ -34,7 +34,7 @@ SIN_MIRAR = {"cases", "excluded_cases"}
 # `[paths]` entera: son nombres de carpeta, y las herramientas usan las mismas
 # palabras para la forma de lo que arman —`parches/auto/` adentro del
 # directorio de cada cartucho, a imagen de la del juego—. Armar a mano una
-# ruta del juego con esas palabras lo cobra `test_proyecto.py`, de las
+# ruta del juego con esas palabras lo cobra `test_project.py`, de las
 # herramientas, que mira las rutas y no los textos.
 TABLAS_SIN_MIRAR = {"paths"}
 

@@ -6,7 +6,7 @@ Hasta el 2026-09-26 cada canal del MIDI tenía sus voces fijas, y en este tema
 eso eran una voz para los acordes de tres notas de las cuerdas (canal 2) y
 ninguna para el clavinet (canal 5) ni la onda cuadrada (canal 7): no sonaban
 nunca, y sus programas ni siquiera entraban al banco. Las pruebas de
-`test_musica_stream.py`, con las de las herramientas, miran la regla con notas
+`test_music_stream.py`, con las de las herramientas, miran la regla con notas
 armadas a mano; ésta, que el stream que sale del conversor para el tema de verdad
 tenga lo que la regla promete.
 
