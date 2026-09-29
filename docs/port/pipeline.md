@@ -7,7 +7,8 @@
       ($ABL_GAME_DIR, $ABL_RTP_DIR)     (voodoo: tiles, gunter: BRR)    mapdata.inc, musicdata.inc,
                                                                       abl.msu (fondos de batalla),
                                                                       rom/parches/ (decisiones)
-    tools/runtime/*.s + esos .inc           --ca65 + ld65 (assemble.py)---> abl.sfc + abl.sfc.sym
+    tools/runtime/*.s + esos .inc     --rm2k-snes-assemble----------> abl.sfc + abl.sfc.sym
+                                        (reparto en bancos, ca65 + ld65)
     abl.sfc + MIDI o reemplazos       --tools/audio/msu.py-->         abl-N.pcm
 
     just build release    todo, con las pistas de MSU-1, en rom/build/release/

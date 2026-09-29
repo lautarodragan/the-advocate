@@ -176,8 +176,8 @@ def new_maps():
     —`rom/data/maps.json`—, which is where its name, its parent, its music
     and its encounters come from. So it brings its own: the JSON's `arbol`
     field is the whole node, in the same resolved view as the dump, and
-    `lcf.TreeMap` adds it. Today there is only one, the debug map: see
-    `debug_map_id` in `tools/assembly/cartridges.py`.
+    `lcf.TreeMap` adds it. Today there is only one, the debug map, which
+    `rm2k-snes-cartridges` recognizes by being the only one.
 
     What was validated is remembered as in `maps`, and for the same reason:
     every `lcf.Map` asks here.

@@ -54,8 +54,8 @@ SFC = NOMBRE + ".sfc"
 DBG = SFC + ".dbg"
 PISTAS = NOMBRE + "-*.pcm"
 
-# Lo que entra en la ROM: lo que mira `cartridges.fingerprint()` más lo que lee el
-# conversor. Un cambio sin commitear ahí haría un build que no es el del commit
+# Lo que entra en la ROM: lo que mira la huella de `rm2k-snes-cartridges` más lo
+# que lee el conversor. Un cambio sin commitear ahí haría un build que no es el del commit
 # que lo nombra. `README.md`, `docs/` o un `.box.yml` suelto no entran.
 # Relativas a la raíz, porque son pathspecs de `git`.
 RUNTIME = os.path.relpath(project.runtime(), RAIZ)

@@ -20,9 +20,8 @@ one in its own row or above.
                  (rm2k), and where the game and the RTP are (resources). No
                  rule of the format lives here: rom/data/ comes resolved. It
                  has its own README
-    assembly/    the memory map (banks), what builds the ROM (assemble), and
-                 which ROMs exist and with which flags (cartridges, used by
-                 `just build`)
+    assembly/    only `entregar`, which is A Blurred Line's and not the
+                 suite's: what builds the ROM is `cartridge/`, in Rust
     emulator/    the libretro core from Python (retro), and the bsnes-libretro
                  patch that exposes the WRAM
 
@@ -56,12 +55,17 @@ in English and without a single mention of this game (see AGENTS.md):
     voodoo/      Voodoo: from an image to tiles, palettes and tilemap
     lz2/         Nintendo's LC_LZ2, with an optimal parser
     rm2k-render/ an RPG Maker 2000 map's tile layers, as pictures
+    project/     `rm2k-project`, the library: which game, its settings, the
+                 machine's flags and the disk cache's key
+    cartridge/   `rm2k-snes-cartridges`, `rm2k-snes-assemble` and
+                 `rm2k-snes-space`: which cartridges there are and building
+                 them, the bank packing, ca65 + ld65, and the space left
 
 They are installed with `just -f tools/justfile install` and used from
 the PATH: no `.py` here builds them or looks for them in `target/`. The same
 goes for the Python scripts that get executed: see "The ones that run".
 
-## Cycles, and the violation that remains
+## Cycles
 
 Counting the imports inside functions, which Python does not see at load
 time but are still dependencies, there is no import cycle among the `.py`
@@ -72,19 +76,17 @@ something —`battle` from `events`, `screens` from `menus` and `events`,
 which uses all of them. The imports still inside a function no longer hide
 any cycle.
 
-The only exception is `assembly/cartridges.py`, which is the orchestrator
-and lives at the bottom: it imports from `port/` and `audio/`, runs
-`port/snes_convert.py` as a subprocess, and `port/patches.py` imports it
-back: the only cycle, if the subprocess counts. These are the only layer
-violations, and they stay on purpose: what to do with it is an open
-question, see `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
+Until 2026-09-29 there was one exception, `assembly/cartridges.py`, the
+orchestrator: it lived at the bottom, imported from `port/` and `audio/`,
+and `port/patches.py` imported it back. It went to Rust —`rm2k-snes-cartridges`—,
+and whoever needs what it knows asks the executable: `patches` and
+`ceilings` run it with `--list --json`.
 
 The graph, per file and per package, is printed by the script in appendix D
 of `docs/research/el-mapa-de-las-herramientas-de-python.md`. That script puts
 `comun` —`common` since 2026-09-29— in the same row as `rpgmaker`, as it
 was when it was written; since it has `project` it goes at the very bottom,
-and with `"common": -1` in its `NIVEL` the only violations it prints are
-those of `cartridges`.
+with `"common": -1` in its `NIVEL`.
 
 ## How imports work
 
@@ -103,19 +105,20 @@ through.
 
 The scripts that get run are executables —shebang and `chmod +x`— and `just
 install` installs them as symlinks in the same `bin/` as the Rust
-projects; `just install-scripts`, the symlinks alone, without compiling
+binaries; `just install-scripts`, the symlinks alone, without compiling
 anything, which is what a renamed or new script needs: a symlink points to
 a file path. The `justfile` calls them by name and does not know where they
 are:
 
-    rm2k-snes-cartridges        assembly/cartridges.py
-    rm2k-snes-assemble          assembly/assemble.py
-    rm2k-snes-space             assembly/space.py
     rm2k-snes-convert           port/snes_convert.py
     rm2k-snes-patches           port/patches.py
     rm2k-snes-msu               audio/msu.py
     rm2k-snes-volume-ceilings   audio/ceilings.py
     abl-entregar                assembly/entregar.py
+
+and next to them the three that are Rust binaries —`rm2k-snes-cartridges`,
+`rm2k-snes-assemble` and `rm2k-snes-space`, from `cartridge/`—, which find
+the runtime through the checkout they were installed from.
 
 The reason for the names is in `tools/justfile`. A new one is added in
 `_install`, and the `.py` finds its packages by resolving the symlink with
@@ -152,9 +155,9 @@ Line's is `rom/rm2k-snes.toml`—, and it is read with `common/settings.py`:
   ABL's side `test_perillas_repetidas.py`, which fails if a `.py` here writes
   a value from the file again.
 * **It is read when used, not at import**: the converter and what it uses
-  must be importable without a game, which is what the tests here do. The
-  exception is `assembly/cartridges.py`, which is the game's orchestrator
-  and reads the whole file when loaded.
+  must be importable without a game, which is what the tests here do.
+  `rm2k-snes-cartridges`, the game's orchestrator, reads the whole file when
+  it starts; it is the Rust library `project/` that reads it there.
 * **What the runtime needs** —the title, the SRAM signature— reaches it as a
   `.define` in the `mapdata.inc` the converter emits: the runtime does not
   read TOML.
