@@ -1,16 +1,16 @@
-"""Voodoo, el binario que convierte una imagen que ya entra en tiles.
+"""Voodoo, the binary that turns an image that already fits into tiles.
 
-Recibe un PNG indexado de 8 bits cuyos índices son entradas de CGRAM —en una
-capa de 4bpp, `índice >> 4` es la paleta— y devuelve tiles, tilemap y CGRAM.
-**No decide nada que se vea**: qué colores quedan y en qué paleta va cada
-celda lo decidió el asignador antes de escribir la imagen: ver
-"`tools/voodoo/` no decide colores" en `AGENTS.md`.
+It takes an 8-bit indexed PNG whose indices are CGRAM entries —on a 4bpp
+layer, `index >> 4` is the palette— and returns tiles, tilemap and CGRAM.
+**It decides nothing visible**: which colors stay and which palette each
+cell goes in was decided by the allocator before writing the image: see
+"`tools/voodoo/` no decide colores" in `AGENTS.md`.
 
-Este módulo se sigue llamando `tiles_bin` porque nombra **lo que produce**
-—tiles— y no quién los produce, igual que `muestras_brr`.
+This module is still called `tiles_bin` because it names **what it
+produces** —tiles— and not who produces them, like `muestras_brr`.
 
-Se consume desde el PATH, como `gunter` y `ca65`: se instala con `just
-herramientas` y ningún script llama a `cargo`.
+It is used from the PATH, like `gunter` and `ca65`: it is installed with
+`just herramientas` and no script calls `cargo`.
 """
 
 import hashlib
@@ -21,16 +21,17 @@ import shutil
 import subprocess
 import tempfile
 
-FALTA = """falta `voodoo`, el conversor de imágenes a tiles.
+FALTA = """`voodoo` is missing, the converter from images to tiles.
 
-Es un binario de Rust que vive en `tools/voodoo/` y se instala como herramienta
-del sistema:
+It is a Rust binary that lives in `tools/voodoo/` and is installed as a
+system tool:
 
     just -f tools/justfile herramientas"""
 
 
 def binario():
-    """La ruta del `voodoo` del PATH. Sale con el mensaje si no está."""
+    """The path of the `voodoo` on the PATH. Exits with the message if it is
+    not there."""
     ruta = shutil.which("voodoo")
     if ruta is None:
         raise SystemExit(FALTA)
@@ -38,8 +39,8 @@ def binario():
 
 
 def version():
-    """Qué produjo lo que haya en un caché: este archivo y el binario
-    instalado, que es lo que de verdad convirtió."""
+    """What produced whatever is in a cache: this file and the installed
+    binary, which is what actually did the converting."""
     h = hashlib.sha256()
     for ruta in (os.path.abspath(__file__), binario()):
         with open(ruta, "rb") as f:
@@ -48,11 +49,11 @@ def version():
 
 
 def png_indexado(ancho, alto, pixeles, colores, transparentes):
-    """Los bytes de un PNG indexado de 8 bits.
+    """The bytes of an 8-bit indexed PNG.
 
-    `colores` son las 256 entradas de CGRAM en 15 bits, o None. `transparentes`
-    dice qué entradas no dibujan: no le importa a `voodoo`, que lo sabe por la
-    profundidad, pero sí a quien abra la imagen para mirarla.
+    `colores` are the 256 CGRAM entries in 15 bits, or None. `transparentes`
+    says which entries do not draw: `voodoo` does not care, since it knows
+    from the depth, but whoever opens the image to look at it does.
     """
     from PIL import Image
     imagen = Image.new("P", (ancho, alto))
@@ -70,11 +71,11 @@ def png_indexado(ancho, alto, pixeles, colores, transparentes):
 
 def convertir(png, bpp, columnas, prioridad=False, animaciones=(),
               max_tiles=None):
-    """Convierte un PNG indexado. Devuelve (tiles, cgram, tilemap, corridas).
+    """Converts an indexed PNG. Returns (tiles, cgram, tilemap, corridas).
 
-    `animaciones` son listas de PNG: los dibujos de cada una además de la
-    imagen. `corridas` es, por animación, (primer tile, cuántos, bytes de cada
-    dibujo).
+    `animaciones` are lists of PNGs: the drawings of each one besides the
+    image. `corridas` is, per animation, (first tile, how many, bytes of each
+    drawing).
     """
     with tempfile.TemporaryDirectory(prefix="voodoo-") as d:
         entrada = os.path.join(d, "imagen.png")
@@ -99,7 +100,7 @@ def convertir(png, bpp, columnas, prioridad=False, animaciones=(),
                      "--animation-out", os.path.join(d, "anim%d.bin" % a)]
         hecho = subprocess.run(args, capture_output=True, text=True)
         if hecho.returncode:
-            raise SystemExit("voodoo salió con %d: %s"
+            raise SystemExit("voodoo exited with %d: %s"
                              % (hecho.returncode, hecho.stderr.strip()))
         informe = json.loads(hecho.stdout)
 

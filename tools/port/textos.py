@@ -1,39 +1,39 @@
-r"""Los cuadros de texto rearmados para el ancho de la SNES.
+r"""Text boxes reflowed for the SNES width.
 
-RM2k no tiene auto-wrap: cada salto de un `ShowMessage` lo puso el autor a mano,
-pensando en una ventana de 320 px. La de acá es más angosta
-—`constantes.COLUMNAS` caracteres por renglón—, y hasta esto lo que no entraba
-se truncaba.
+RM2k has no auto-wrap: every break in a `ShowMessage` was put there by hand
+by the author, thinking of a 320 px window. The one here is narrower
+—`constantes.COLUMNAS` characters per line—, and until this, whatever did
+not fit was truncated.
 
-`reajustar` recibe los renglones de **un** cuadro, tal como están en `rom/data/`, y
-devuelve uno o más cuadros que entran. Es una función pura: el mismo cuadro da
-siempre el mismo resultado, y eso es lo que permite aplicarla en cada build en
-vez de guardar su salida.
+`reajustar` takes the lines of **one** box, exactly as they are in
+`rom/data/`, and returns one or more boxes that fit. It is a pure function:
+the same box always gives the same result, and that is what allows applying
+it on every build instead of storing its output.
 
-Las reglas, y de dónde sale cada una:
+The rules, and where each one comes from:
 
-* **Un cuadro que entra se devuelve tal cual**, con sus saltos y sus espacios.
-  La mayoría entra, y así conservan todo lo que el autor decidió.
-* **La línea del que habla no se toca** —`KERSH`, `MANTA`, `?????`— y el
-  cuerpo tiene un renglón menos.
-* **Un salto original es un buen lugar para cortar, no uno obligado.**
-  Tratarlo como obligado dejaba una palabra sola en un renglón ("it still /
-  is.") y hacía que más cuadros no entraran.
-* **Un renglón que parte una oración va lleno**; uno con oraciones enteras
-  puede quedar corto. Lo que taro no quiere ver es un renglón que se
-  interrumpe mucho antes del borde —"Remember," solo, y abajo el resto—, y
-  eso pasa cuando cortar en un punto sale más barato que llenar.
-* **Lo que no entra en un cuadro se parte en varios**, cortando entre
-  oraciones si se puede, y **cada uno repite la línea del que habla.** Es lo
-  que hace el juego: medido el 2026-09-24, de los cuadros seguidos del mismo
-  personaje ninguno deja de repetir el nombre, y el autor mismo parte así una
-  frase —`MANTA` / "...up to the Emitter Room -" y `MANTA` / "- where the Link
-  is projected!"—.
-* **La cola de escapes** —`\|` y `\^`, ver `eventos.cola_de_escapes`— va al
-  final del último cuadro, que es donde el jugador la veía.
+* **A box that fits is returned as is**, with its breaks and its spaces.
+  Most fit, and that way they keep everything the author decided.
+* **The speaker's line is not touched** —`KERSH`, `MANTA`, `?????`— and the
+  body has one line less.
+* **An original break is a good place to cut, not a mandatory one.**
+  Treating it as mandatory left a word alone on a line ("it still /
+  is.") and made more boxes not fit.
+* **A line that splits a sentence goes full**; one with whole sentences may
+  be short. What taro does not want to see is a line that stops long before
+  the edge —"Remember," alone, and the rest below—, and that happens when
+  cutting at a period comes out cheaper than filling.
+* **What does not fit in one box is split into several**, cutting between
+  sentences when possible, and **each one repeats the speaker's line.** It
+  is what the game does: measured on 2026-09-24, of the consecutive boxes
+  of the same character none fails to repeat the name, and the author
+  himself splits a sentence that way —`MANTA` / "...up to the Emitter Room
+  -" and `MANTA` / "- where the Link is projected!"—.
+* **The escape tail** —`\|` and `\^`, see `eventos.cola_de_escapes`— goes at
+  the end of the last box, which is where the player saw it.
 
-Lo que se pierde en un cuadro rearmado son los espacios de más entre palabras:
-las palabras se vuelven a juntar con uno. En uno que entra, no se pierde nada.
+What is lost in a reflowed box are the extra spaces between words: the words
+are joined again with one. In one that fits, nothing is lost.
 """
 
 import re
@@ -41,68 +41,69 @@ import re
 from port import eventos
 from port import constantes
 
-# Un fin de oración, con las comillas o el paréntesis que lo cierren: cortar
-# ahí es gratis. `...` entra por el punto.
+# An end of sentence, with the quotes or parenthesis that close it: cutting
+# there is free. `...` matches through the period.
 FIN_DE_ORACION = re.compile(r"""[.!?]["')]*$""")
-# Una pausa menor: cortar ahí cuesta poco.
+# A minor pause: cutting there costs little.
 PAUSA = re.compile(r"""[,;:\-]["')]*$""")
 
-# Los costos. Son gusto y no una medida: con otros valores el mismo cuadro sale
-# de otra forma. Los primeros se probaron sobre la introducción y Lashe City el
-# 2026-09-24; los del hueco, la cola y el cuadro de más salieron el mismo día de
-# lo que taro jugó hasta los Back Alleys, comparando contra la versión anterior
-# en todos los cuadros del juego.
+# The costs. They are taste and not a measurement: with other values the same
+# box comes out differently. The first ones were tried on the introduction and
+# Lashe City on 2026-09-24; those of the gap, the tail and the extra box came
+# out the same day from what taro played up to the Back Alleys, comparing
+# against the previous version on every box of the game.
 #
-# Cortar un renglón después de una palabra:
+# Cutting a line after a word:
 COSTO_FIN_DE_ORACION = 0
 COSTO_PAUSA = 15
 COSTO_CUALQUIERA = 40
-DESCUENTO_SALTO_ORIGINAL = 10   # donde cortaba el autor
-COSTO_HUERFANA = 200            # una palabra sola en el último renglón
-# Entre un nombre propio y su número —"Sector / 33."—. Es casi prohibido: sale
-# más caro que un cuadro de más.
+DESCUENTO_SALTO_ORIGINAL = 10   # where the author cut
+COSTO_HUERFANA = 200            # a lone word on the last line
+# Between a proper name and its number —"Sector / 33."—. It is almost
+# forbidden: it costs more than an extra box.
 COSTO_ANTES_DE_NUMERO = 1000
 
-# El hueco que deja un renglón que no es el último. Cuánto pesa depende de dónde
-# corta, y ésa es la regla que más cambia lo que se ve: **un renglón que parte
-# una oración tiene que ir lleno.** Uno que tiene oraciones enteras puede quedar
-# corto —"Time is running out." / "There's no turning back."—, porque se lee
-# como un salto que el autor quiso. Con un solo peso para todos, cortar en un
-# fin de oración era tan barato frente al hueco que el reajuste dejaba
-# "Remember," o "Well," solos en un renglón para que los de abajo terminaran
-# en punto: de eso se quejó taro.
-PESO_HUECO = 20                 # oraciones enteras: el hueco al cuadrado / 20
-PESO_HUECO_PAUSA = 8            # corta en una coma: al cuadrado / 8
-PESO_HUECO_PARTIDO = 1000       # parte una oración: al cubo, relativo al ancho
+# The gap a line that is not the last one leaves. How much it weighs depends
+# on where it cuts, and that is the rule that most changes what is seen: **a
+# line that splits a sentence has to go full.** One with whole sentences may
+# be short —"Time is running out." / "There's no turning back."—, because it
+# reads as a break the author intended. With a single weight for all, cutting
+# at an end of sentence was so cheap against the gap that the reflow left
+# "Remember," or "Well," alone on a line so that the ones below would end in
+# a period: that is what taro complained about.
+PESO_HUECO = 20                 # whole sentences: the gap squared / 20
+PESO_HUECO_PAUSA = 8            # cuts at a comma: squared / 8
+PESO_HUECO_PARTIDO = 1000       # splits a sentence: cubed, relative to the width
 
-# El pedazo de oración que queda del otro lado de un corte —"sure." al principio
-# de un renglón, "There" al final—, si es más corto que esto. Es la huérfana
-# generalizada: "in time?" solo abajo se ve tan interrumpido como "Well," arriba.
+# The piece of sentence left on the other side of a cut —"sure." at the start
+# of a line, "There" at the end—, if it is shorter than this. It is the
+# generalized orphan: "in time?" alone below looks as cut off as "Well," above.
 COLA_MINIMA = 16
-PESO_COLA = 3                   # lo que le falta, al cuadrado / 3
+PESO_COLA = 3                   # what it is short of, squared / 3
 
-# Un cuadro de más es una tecla de más para el jugador. Si lo más lindo no entra
-# en un cuadro pero hay una forma que entra y cuesta a lo sumo esto más, gana
-# la que entra.
+# An extra box is an extra key press for the player. If the nicest layout
+# does not fit in one box but there is one that fits and costs at most this
+# much more, the one that fits wins.
 COSTO_CUADRO_DE_MAS = 300
 
 
 def ancho(texto):
-    """Cuántas columnas ocupa: un caracter, una columna. La fuente es de ancho
-    fijo, y los únicos escapes que compilan van en la cola, afuera de esto."""
+    """How many columns it takes: one character, one column. The font is
+    fixed-width, and the only escapes that compile go in the tail, outside
+    of this."""
     return len(texto)
 
 
-# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
-# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
+# Measured against A Blurred Line: an assumption of the engine, not a fact of
+# the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 def es_hablante(linea):
-    """Si el renglón nombra al que habla: todo en mayúsculas, corto, y sin
-    puntuación de frase al final.
+    """Whether the line names the speaker: all caps, short, and with no
+    sentence punctuation at the end.
 
-    `?????` es el caso raro que tiene que entrar —lo usa el juego mientras no
-    se sabe quién habla—, así que un signo de pregunta al final sólo cuenta si
-    no hay nada más que signos de pregunta. "WHAT?" es una frase gritada, no
-    un nombre.
+    `?????` is the odd case that has to match —the game uses it while it is
+    not known who is speaking—, so a question mark at the end only counts if
+    there is nothing but question marks. "WHAT?" is a shouted sentence, not
+    a name.
     """
     texto = linea.strip()
     if not texto or len(texto) > 20 or texto != texto.upper():
@@ -113,15 +114,15 @@ def es_hablante(linea):
 
 
 def entra(lineas, columnas=constantes.COLUMNAS, renglones=constantes.LINEAS):
-    """Si el cuadro se ve entero, sin contar su cola de escapes."""
+    """Whether the box is fully visible, not counting its escape tail."""
     sin_cola, _pausas, _autocierre = eventos.cola_de_escapes(lineas)
     return (len(sin_cola) <= renglones
             and all(ancho(t) <= columnas for t in sin_cola))
 
 
 def _cola(lineas):
-    """La cola de escapes del cuadro, tal como está escrita, y los renglones
-    sin ella."""
+    """The box's escape tail, exactly as written, and the lines without
+    it."""
     sin_cola, _pausas, _autocierre = eventos.cola_de_escapes(lineas)
     sin_cola = list(sin_cola)
     if not sin_cola:
@@ -130,10 +131,10 @@ def _cola(lineas):
 
 
 def _palabras(renglones, columnas):
-    """Las palabras del cuerpo, y después de cuáles cortaba el autor.
+    """The words of the body, and after which of them the author cut.
 
-    Una palabra más ancha que un renglón se parte a la fuerza: no hay otra
-    forma de mostrarla.
+    A word wider than a line is split by force: there is no other way to
+    show it.
     """
     palabras = []
     cortes = set()
@@ -165,19 +166,19 @@ def _costo_de_cortar(palabras, cortes, i):
 
 
 def _costo_del_renglon(palabras, cortes, i, j, columnas):
-    """Lo que cuesta un renglón con las palabras de `i` a `j`: su hueco, el
-    corte con que termina y los pedazos de oración que deja sueltos.
+    """What a line with the words from `i` to `j` costs: its gap, the cut it
+    ends with and the pieces of sentence it leaves loose.
 
-    El último renglón no paga su hueco —termina donde termina el texto—, pero
-    sí quedar con una sola palabra o con un pedazo corto de la oración de
-    arriba.
+    The last line does not pay for its gap —it ends where the text ends—,
+    but it does pay for being left with a single word or with a short piece
+    of the sentence above.
     """
     n = len(palabras)
     largo = ancho(" ".join(palabras[i:j]))
     fines = [k for k in range(i, j) if FIN_DE_ORACION.search(palabras[k])]
     empieza_oracion = i == 0 or FIN_DE_ORACION.search(palabras[i - 1])
     costo = 0
-    # El final de una oración que empezó en el renglón de arriba.
+    # The end of a sentence that started on the line above.
     if not empieza_oracion and (j == n or (fines and fines[0] < j - 1)):
         hasta = fines[0] + 1 if fines else j
         costo += _costo_de_fragmento(palabras[i:hasta])
@@ -185,7 +186,7 @@ def _costo_del_renglon(palabras, cortes, i, j, columnas):
         if j - i == 1 and i > 0:
             costo += COSTO_HUERFANA
         return costo
-    # El principio de una oración que sigue en el renglón de abajo.
+    # The start of a sentence that continues on the line below.
     if not FIN_DE_ORACION.search(palabras[j - 1]) and fines:
         costo += _costo_de_fragmento(palabras[fines[-1] + 1:j])
     hueco = columnas - largo
@@ -199,22 +200,22 @@ def _costo_del_renglon(palabras, cortes, i, j, columnas):
 
 
 def _costo_de_fragmento(palabras):
-    """Un pedazo de oración separado del resto por un corte de renglón."""
+    """A piece of sentence separated from the rest by a line break."""
     falta = max(0, COLA_MINIMA - ancho(" ".join(palabras)))
     return falta * falta / PESO_COLA
 
 
 def _renglones(palabras, cortes, columnas, maximo=None):
-    """Las palabras en renglones, eligiendo los cortes que cuestan menos.
+    """The words in lines, choosing the cuts that cost the least.
 
-    Es el algoritmo de párrafo de TeX en chico: programación dinámica sobre
-    dónde termina cada renglón, llevando la cuenta de cuántos van.
+    It is TeX's paragraph algorithm in miniature: dynamic programming over
+    where each line ends, keeping count of how many there are so far.
     """
     n = len(palabras)
     if n == 0:
         return []
-    # mejor[j][k]: el costo de poner las primeras j palabras en k renglones,
-    # y desde dónde arranca el último.
+    # mejor[j][k]: the cost of putting the first j words in k lines, and
+    # where the last one starts.
     mejor = [dict() for _ in range(n + 1)]
     mejor[0][0] = (0, None)
     for j in range(1, n + 1):
@@ -227,16 +228,16 @@ def _renglones(palabras, cortes, columnas, maximo=None):
             propio = _costo_del_renglon(palabras, cortes, i, j, columnas)
             for k, (antes, _desde) in mejor[i].items():
                 costo = antes + propio
-                # `<` y no `<=`: ante un empate gana el renglón más largo,
-                # que es el que se encontró primero. Es lo que lo hace
-                # determinístico.
+                # `<` and not `<=`: on a tie the longest line wins, which is
+                # the one found first. It is what makes it deterministic.
                 if k + 1 not in mejor[j] or costo < mejor[j][k + 1][0]:
                     mejor[j][k + 1] = (costo, i)
     opciones = sorted(mejor[n].items(), key=lambda kv: (kv[1][0], kv[0]))
     elegido = opciones[0][0]
     if maximo is not None and elegido > maximo:
-        # Lo más lindo no entra en un cuadro. Si hay una forma que entra y no
-        # es mucho peor, se usa ésa: un cuadro de más es una tecla de más.
+        # The nicest layout does not fit in one box. If there is one that
+        # fits and is not much worse, that one is used: an extra box is an
+        # extra key press.
         entran = [kv for kv in opciones if kv[0] <= maximo]
         if entran and entran[0][1][0] < opciones[0][1][0] + COSTO_CUADRO_DE_MAS:
             elegido = entran[0][0]
@@ -250,10 +251,10 @@ def _renglones(palabras, cortes, columnas, maximo=None):
 
 
 def _tramos(palabras, cortes, columnas, cuerpo):
-    """Las palabras repartidas en tantos cuadros como hagan falta.
+    """The words spread over as many boxes as needed.
 
-    Cada cuadro se llena con oraciones enteras mientras entren. Una oración que
-    sola no entra en un cuadro se parte por renglones.
+    Each box is filled with whole sentences while they fit. A sentence that
+    does not fit in a box on its own is split by lines.
     """
     oraciones = []
     desde = 0
@@ -278,7 +279,7 @@ def _tramos(palabras, cortes, columnas, cuerpo):
         if len(renglones_de(a, b)) <= cuerpo:
             fin = b
             continue
-        # La oración sola no entra en un cuadro: se reparte por renglones.
+        # The sentence alone does not fit in a box: it is spread by lines.
         todos = renglones_de(a, b)
         for k in range(0, len(todos) - cuerpo, cuerpo):
             tramos.append(todos[k:k + cuerpo])
@@ -292,16 +293,16 @@ def _tramos(palabras, cortes, columnas, cuerpo):
 
 def reajustar(lineas, columnas=constantes.COLUMNAS,
               renglones=constantes.LINEAS):
-    """Los cuadros que reemplazan a éste, cada uno una lista de renglones.
+    """The boxes that replace this one, each a list of lines.
 
-    Devuelve `[lineas]` sin tocar si el cuadro ya entra, o si trae un escape
-    que no compila —`eventos.NoSePuede`—: esa página no llega a la ROM, así
-    que no hay nada que acomodar.
+    Returns `[lineas]` untouched if the box already fits, or if it carries an
+    escape that does not compile —`eventos.NoSePuede`—: that page does not
+    reach the ROM, so there is nothing to arrange.
 
-    Se recuerda por texto: la cuenta es pura, y un mapa se carga varias veces
-    por conversión —cada vez con todos sus cuadros— así que la mayoría de las
-    llamadas repiten una anterior. Se devuelve una copia, porque hay quien
-    agrega renglones a lo que recibe.
+    It is memoized by text: the math is pure, and a map is loaded several
+    times per conversion —each time with all its boxes— so most calls repeat
+    an earlier one. A copy is returned, because some callers add lines to
+    what they receive.
     """
     clave = (tuple(lineas), columnas, renglones)
     if clave not in _reajustados:
@@ -337,13 +338,13 @@ def _reajustar(lineas, columnas, renglones):
 
 def reajustar_comandos(comandos, columnas=constantes.COLUMNAS,
                        renglones=constantes.LINEAS):
-    """Una lista de comandos de `rom/data/` —diccionarios, como están en el JSON—
-    con cada cuadro de texto rearmado.
+    """A list of commands from `rom/data/` —dictionaries, as they are in the
+    JSON— with each text box reflowed.
 
-    Un `ShowMessage` con sus `ShowMessage_2` se reemplaza por uno o más cuadros
-    del mismo formato, con el mismo `indent`. Lo que no es texto, y los cuadros
-    que ya entraban, salen **los mismos objetos**: quien compare con `is` sabe
-    qué cambió.
+    A `ShowMessage` with its `ShowMessage_2`s is replaced by one or more
+    boxes in the same format, with the same `indent`. What is not text, and
+    the boxes that already fit, come out as **the same objects**: whoever
+    compares with `is` knows what changed.
     """
     salida = []
     i = 0

@@ -1,151 +1,161 @@
 #!/usr/bin/env python3
-"""La escena de la batalla: el fondo y los monstruos, **compuestos en la consola**.
+"""The battle scene: the backdrop and the monsters, **composited on the console**.
 
-Vive aparte de `snes_convert.py` por lo mismo que `imagen.py` y `animacion.py`:
-no es un mapa, es un dibujo suelto. Lo que el conversor y la ROM tienen que
-compartir es exactamente dónde cae cada pixel y de qué color es.
+It lives apart from `snes_convert.py` for the same reason as `imagen.py` and
+`animacion.py`: it is not a map, it is a loose drawing. What the converter
+and the ROM have to share is exactly where each pixel lands and what color
+it is.
 
-taro pidió las dos cosas el 2026-09-13 —*"La batalla no tiene ni imagen de fondo
-ni imagen del monstruo"*— y hasta el 2026-09-21 iban horneadas juntas: una
-imagen de 32 KB **por tropa**, con el fondo y los battlers ya encima. Eso
-multiplicaba imágenes por combinación —seis en `abl`, sobre cuatro fondos— y un
-enemigo muerto se seguía viendo. Desde ese día, idea de taro, el cartucho lleva
-**cada fondo una vez y cada battler una vez**, y la consola los compone al
-empezar la pelea. Ver `escena_subir` en tools/runtime/batalla_escena.s.
+taro asked for both things on 2026-09-13 —*"The battle has neither a
+background image nor a monster image"*— and until 2026-09-21 they were baked
+together: a 32 KB image **per troop**, with the backdrop and the battlers
+already on top. That multiplied images per combination —six in `abl`, over
+four backdrops— and a dead enemy was still visible. Since that day, taro's
+idea, the cartridge carries **each backdrop once and each battler once**,
+and the console composites them when the battle starts. See `escena_subir`
+in tools/runtime/batalla_escena.s.
 
-Sigue siendo una sola capa de 8bpp en BG1, y eso es lo que compra lo mismo que
-compraba antes:
+It is still a single 8bpp layer on BG1, and that is what buys the same as
+before:
 
-* **No hay que rehacer la pantalla.** La grilla de texto de 32x28 está llena
-  —ocho enemigos, cuatro actores y dos renglones de mensaje— y un monstruo
-  dibujado con objetos pediría sacar algo. En el fondo, el texto se sigue
-  viendo encima.
-* **No hay objetos**: ni OAM que armar ni el límite de 34 tiles por línea, que
-  con cuatro battlers de 64 pixeles de ancho quedaba en 32 y sin margen.
+* **The screen does not have to be redone.** The 32x28 text grid is full
+  —eight enemies, four actors and two message lines— and a monster drawn
+  with objects would require taking something out. On the backdrop, the
+  text is still visible on top.
+* **There are no objects**: no OAM to build and no 34-tiles-per-line limit,
+  which with four 64-pixel-wide battlers was at 32 with no margin.
 
-## Cómo se superpone un battler
+## How a battler is overlaid
 
-El 8bpp de la SNES es **planar**: cada fila de un tile son ocho bytes, uno por
-plano de bits, y los planos 0/1, 2/3, 4/5 y 6/7 van intercalados de a pares.
-Así que poner un battler encima del fondo es, por byte de cada plano,
-`fondo AND NOT máscara OR battler`, sin tocar pixel por pixel.
+The SNES 8bpp is **planar**: each row of a tile is eight bytes, one per
+bitplane, and planes 0/1, 2/3, 4/5 and 6/7 are interleaved in pairs. So
+putting a battler over the backdrop is, per byte of each plane,
+`backdrop AND NOT mask OR battler`, without touching pixel by pixel.
 
-Cada battler tiene **15 colores más el transparente**. Sus 4 bits bajos salen de
-su dibujo —el índice 0 es el transparente, que es la máscara— y sus 4 bits
-altos son **la paleta que le toca en esta pelea**: la ROM la elige al empezar,
-el primer battler distinto de la tropa en la paleta 8, el segundo en la 9, y
-así. Los planos 4 a 7 no se guardan: son la máscara o cero, según los bits de
-la paleta. Por eso el mismo battler sirve para cualquier tropa sin preparar
-nada por combinación.
+Each battler has **15 colors plus transparent**. Its low 4 bits come from
+its drawing —index 0 is the transparent one, which is the mask— and its high
+4 bits are **the palette it gets in this battle**: the ROM picks it at the
+start, the troop's first distinct battler on palette 8, the second on 9, and
+so on. Planes 4 to 7 are not stored: they are the mask or zero, depending on
+the palette's bits. That is why the same battler serves any troop without
+preparing anything per combination.
 
-Que sean quince colores **es una decisión artística**: se pierde color respecto
-de la escena horneada, donde los battlers compartían las 96 entradas con el
-fondo. Qué se fusionó con qué queda escrito por battler en
-`rom/parches/auto/battlers/`, como las capas de los mapas. Ver
+That they are fifteen colors **is an artistic decision**: color is lost
+compared with the baked scene, where the battlers shared the 96 entries with
+the backdrop. What was merged with what is written per battler in
+`rom/parches/auto/battlers/`, like the map layers. See
 `tools/port/parches.py`.
 
-El borde también cambia: antes el battler se mezclaba con el fondo al
-achicarlo —`alpha_composite`— y ahora cada pixel es del battler o del fondo,
-con el corte en la mitad del alfa. Es lo que cuesta no preparar nada por tropa.
+The edge changes too: before, the battler blended with the backdrop when
+shrunk —`alpha_composite`— and now each pixel is either the battler's or the
+backdrop's, with the cut at half the alpha. It is the cost of not preparing
+anything per troop.
 
-## La geometría
+## The geometry
 
-El fondo de batalla de RM2k mide 320x160 y se dibuja arriba de todo en una
-pantalla de 320x240. Acá la pantalla es de 256x224, así que el fondo entra
-escalado al **80%**: 256x128, que son los siete renglones de texto de arriba.
-Los battlers van al mismo 80%, con lo cual las posiciones de la tropa —que en
-el LDB son las del centro de cada battler, en coordenadas de 320x240— se
-mapean multiplicando por lo mismo y sin ninguna otra cuenta.
+RM2k's battle backdrop is 320x160 and is drawn at the very top of a 320x240
+screen. Here the screen is 256x224, so the backdrop goes in scaled to
+**80%**: 256x128, which are the top seven text lines. The battlers go at the
+same 80%, so the troop positions —which in the LDB are the center of each
+battler, in 320x240 coordinates— map by multiplying by the same and no other
+math.
 
-Lo único que no es de RM2k es **el recorte**: un battler alto se sale de los
-128 pixeles de la escena, así que su esquina se topa adentro. En RM2k no se
-sale porque abajo tiene otros ochenta pixeles de pantalla.
+The only thing that is not RM2k's is **the clipping**: a tall battler goes
+past the scene's 128 pixels, so its corner is clamped inside. In RM2k it
+does not go past because it has another eighty pixels of screen below.
 
-## El presupuesto
+## The budget
 
-* **512 tiles de 8bpp, 32.768 B de VRAM**, que es exactamente la grilla de
-  32x16 sin deduplicar. Una foto no repite, y componer encima la haría repetir
-  todavía menos.
-* **Los colores**: el fondo lleva 96, las entradas 32 a 127 de la CGRAM —las 0
-  a 31 son las dos paletas del texto—, y los battlers **las ocho paletas de
-  arriba**, 128 a 255. Esas son las de los objetos del mapa, y la pelea no
-  dibuja objetos; volver al mapa no las reponía enteras —el cartel y la
-  animación de batalla se suben sólo cuando cambian—, así que ahora
-  `volver_de_batalla` sube las 128 de `cgram_sombra` antes que nada.
-* **La WRAM**: el fondo limpio en `$7F0000` y la escena compuesta en
-  `$7F8000`, 32 KB cada uno. El limpio es lo que deja recomponer las celdas de
-  un enemigo muerto sin volver a leer nada del cartucho: ver `escena_tick`.
-* En la VRAM de la pelea entra todo sin pelearle a nada: la pantalla de batalla
-  **no comparte VRAM con el mapa**, porque `volver_de_batalla` la rehace entera
-  al salir. Los tiles del texto viven en $2000, su tilemap en $3C00, el de la
-  escena en $3800 y los tiles de la escena en $4000.
+* **512 tiles at 8bpp, 32,768 B of VRAM**, which is exactly the 32x16 grid
+  without deduplicating. A photo does not repeat, and compositing on top
+  would make it repeat even less.
+* **The colors**: the backdrop carries 96, CGRAM entries 32 to 127 —0 to 31
+  are the two text palettes—, and the battlers **the top eight palettes**,
+  128 to 255. Those are the map objects' ones, and the battle draws no
+  objects; returning to the map did not restore them whole —the picture and
+  the battle animation are uploaded only when they change—, so now
+  `volver_de_batalla` uploads the 128 from `cgram_sombra` before anything
+  else.
+* **WRAM**: the clean backdrop at `$7F0000` and the composited scene at
+  `$7F8000`, 32 KB each. The clean one is what allows recompositing the
+  cells of a dead enemy without reading anything from the cartridge again:
+  see `escena_tick`.
+* In the battle's VRAM everything fits without fighting anything: the battle
+  screen **does not share VRAM with the map**, because `volver_de_batalla`
+  redoes it entirely on the way out. The text tiles live at $2000, their
+  tilemap at $3C00, the scene's at $3800 and the scene's tiles at $4000.
 
-## Qué fondos hay, y cuáles lleva el cartucho
+## Which backdrops there are, and which ones the cartridge carries
 
-**Los fondos del juego** son todos los que una pelea puede pedir: los que
-nombran los `EnemyEncounter` y los `ChangeBattleBG`, los del árbol de mapas y
-los de los terrenos —ver `fondos_del_juego`—. Cada uno tiene un **número**,
-su lugar en esa lista ordenada por nombre, y el número no depende de qué
-mapas lleve el cartucho: es lo que le da a cada fondo un lugar fijo en el
-`.msu`, que los lleva **todos**, en calidad (tools/port/msu_datos.py).
+**The game's backdrops** are all the ones a battle can ask for: those named
+by the `EnemyEncounter`s and the `ChangeBattleBG`s, those of the map tree and
+those of the terrains —see `fondos_del_juego`—. Each one has a **number**,
+its place in that list sorted by name, and the number does not depend on
+which maps the cartridge carries: it is what gives each backdrop a fixed
+place in the `.msu`, which carries **all** of them, in quality
+(tools/port/msu_datos.py).
 
-**La ROM lleva, en el respaldo liviano, todos los que las peleas del
-cartucho pueden pedir**: los que nombra una tropa, los de los mapas con
-encuentros al azar y, si el mapa no nombra ninguno, los de los terrenos que
-pisan sus celdas. Lo pidió taro el 2026-09-27, con la calidad tan baja como
-hiciera falta para que entren: ver "El respaldo liviano". Hasta ese día
-llevaba tres, y las demás peleas usaban el de reemplazo.
+**The ROM carries, in the light fallback, all the ones the cartridge's
+battles can ask for**: those a troop names, those of the maps with random
+encounters and, if the map names none, those of the terrains its cells
+stand on. taro asked for it on 2026-09-27, with the quality as low as needed
+for them to fit: see "The light fallback". Until that day it carried three,
+and the other battles used the replacement.
 
-**El de reemplazo**, `reemplazo()`, queda para lo que la ROM no puede saber al
-convertir: una tropa que pelea con el fondo "del lugar" en un mapa sin
-encuentros al azar, donde el fondo sale del terreno bajo el héroe y cualquier
-terreno del mapa es posible. En `release` eso lo hacen sólo páginas de
-prueba. No negro, porque "negro confunde", de taro. Con MSU-1, cada pelea lee
-el suyo del `.msu`, esté o no en la ROM.
+**The replacement**, `reemplazo()`, is left for what the ROM cannot know at
+conversion time: a troop that fights with the "local" backdrop on a map
+without random encounters, where the backdrop comes from the terrain under
+the hero and any terrain of the map is possible. In `release` only test
+pages do that. Not black, because "black is confusing", taro's words. With
+MSU-1, each battle reads its own from the `.msu`, whether or not it is in
+the ROM.
 
-El fondo liso —ceros, que es negro— queda para la pelea que no tiene fondo:
-un `EnemyEncounter` con el nombre vacío, o un terreno sin fondo. Es lo mismo
-que hace RM2k, y es el mismo código con el fondo en cero.
+The flat backdrop —zeros, which is black— is left for the battle that has no
+backdrop: an `EnemyEncounter` with an empty name, or a terrain without a
+backdrop. It is the same as RM2k does, and it is the same code with the
+backdrop at zero.
 
-## El respaldo liviano
+## The light fallback
 
-Y desde el mismo día **no son los mismos**: el `.msu` lleva el fondo de
-calidad —8bpp, 96 colores, 32 KB— y la ROM uno de **16 colores a la mitad de
-resolución, 128x64 en 4bpp: 4 KB**, que la ROM agranda al doble. Es lo que ve
-quien juega sin MSU-1, y se distingue a ojo del de calidad, que es lo que
-taro pidió para saber de qué lado salió.
+And since that same day **they are not the same**: the `.msu` carries the
+quality backdrop —8bpp, 96 colors, 32 KB— and the ROM one of **16 colors at
+half resolution, 128x64 at 4bpp: 4 KB**, which the ROM doubles in size. It
+is what someone playing without MSU-1 sees, and it can be told apart by eye
+from the quality one, which is what taro asked for to know which side it
+came from.
 
-Hasta el 2026-09-27 era de 256x128, 16 KB, y la ROM llevaba tres. Ese día
-taro pidió que entraran todos los que piden los mapas de `release` "con la
-calidad tan baja como haga falta", y se midió cada forma —las cifras y las
-imágenes, en `workflow/tasks/*/todos-los-fondos-en-la-rom.md`—: a 256x128,
-ni en LZ2 entran sin comerse los bancos que necesita el camino principal
-del mundo; con cuatro colores en 2bpp se pierden los tonos; y deduplicar
-tiles no ahorra casi nada, porque una foto no repite. A 128x64 cada fondo
-pesa la cuarta parte, y los dieciséis colores se quedan.
+Until 2026-09-27 it was 256x128, 16 KB, and the ROM carried three. That day
+taro asked that all the ones `release`'s maps ask for fit "with the quality
+as low as it takes", and every option was measured —the figures and the
+images, in `workflow/tasks/*/todos-los-fondos-en-la-rom.md`—: at 256x128,
+not even with LZ2 do they fit without eating the banks the main path of the
+world needs; with four colors at 2bpp the shades are lost; and deduplicating
+tiles saves almost nothing, because a photo does not repeat. At 128x64 each
+backdrop weighs a quarter, and the sixteen colors stay.
 
-La capa sigue siendo **una sola de 8bpp**: lo que cambia es sólo cómo viaja el
-respaldo. Sus dieciséis colores van en la paleta de `CGRAM_BASE` —las entradas
-32 a 47—, así que en 8bpp sus índices son `CGRAM_BASE + i` y los planos 4 a 7
-de todos sus pixeles son los mismos: los de `CGRAM_BASE`. La ROM llena
-primero los dos búferes de la WRAM con esos planos fijos, por DMA, y después
-agranda el chico con la CPU: cada pixel dos veces a lo ancho y cada fila dos
-veces a lo alto. De ahí para adelante todo es igual —componer, borrar a un
-muerto, subir a la VRAM—, porque en la WRAM queda un fondo de 8bpp como el
-del `.msu`. Ver `esc_llenar` y `esc_doblar` en tools/runtime/batalla_escena.s, y
-`respaldo_bytes` en snes_convert.py para el orden en que viajan los bytes,
-que es el que le ahorra cuentas a la ROM.
+The layer is still **a single one at 8bpp**: the only thing that changes is
+how the fallback travels. Its sixteen colors go in the `CGRAM_BASE` palette
+—entries 32 to 47—, so at 8bpp its indices are `CGRAM_BASE + i` and planes
+4 to 7 of all its pixels are the same: those of `CGRAM_BASE`. The ROM first
+fills the two WRAM buffers with those fixed planes, by DMA, and then
+doubles the small one with the CPU: each pixel twice across and each row
+twice down. From there on everything is the same —compositing, erasing a
+dead one, uploading to VRAM—, because what is left in WRAM is an 8bpp
+backdrop like the `.msu` one. See `esc_llenar` and `esc_doblar` in
+tools/runtime/batalla_escena.s, and `respaldo_bytes` in snes_convert.py for
+the order the bytes travel in, which is the one that saves the ROM math.
 
-La otra salida era que el `.msu` llevara también 4bpp, "más calidad dentro
-del mismo formato"; pero dieciséis colores son el techo de 4bpp, así que la
-calidad no tendría adónde crecer.
+The other way out was for the `.msu` to carry 4bpp too, "more quality within
+the same format"; but sixteen colors are the ceiling of 4bpp, so the quality
+would have nowhere to grow.
 
-Los dieciséis salen de `asignador.merge_least_visible`, el de los battlers, y
-no de `paleta.reducir`, que es el que arma los 96: reducir se queda con los
-más usados, y en un fondo los dieciséis más usados son todos del piso y de
-las paredes —el cartel verde y el agua violeta se volvían gris—. Fundir por
-lo que menos se nota deja los acentos. Los 96 no se cambiaron de reductor
-porque son los bytes del `.msu`, y con eso su firma.
+The sixteen come from `asignador.merge_least_visible`, the battlers' one,
+and not from `paleta.reducir`, which is the one that builds the 96: reducir
+keeps the most used, and in a backdrop the sixteen most used are all from
+the floor and the walls —the green sign and the violet water turned gray—.
+Merging by what shows the least keeps the accents. The 96 did not change
+reducer because they are the bytes of the `.msu`, and with them its
+signature.
 """
 
 import collections
@@ -153,72 +163,73 @@ import os
 
 from comun import perillas
 
-# La escena, en pixeles de pantalla: los siete renglones de texto de arriba.
+# The scene, in screen pixels: the top seven text lines.
 ANCHO, ALTO = 256, 128
-# El fondo de batalla de RM2k y la pantalla donde vive, de donde sale el 80%.
+# RM2k's battle backdrop and the screen it lives on, where the 80% comes from.
 FONDO_RM = (320, 160)
 PANTALLA_RM = (320, 240)
 ESCALA_NUM, ESCALA_DEN = ANCHO, FONDO_RM[0]     # 256/320
 
-# Los colores del fondo, y desde qué entrada de la CGRAM van. Ver "El
-# presupuesto".
+# The backdrop's colors, and from which CGRAM entry they go. See "The
+# budget".
 COLORES = 96
 CGRAM_BASE = 32
-# Los del respaldo liviano, que va en 4bpp: ver "El respaldo liviano". Caben en
-# una paleta de dieciséis, y `CGRAM_BASE` tiene que ser el principio de una
-# para que los planos 4 a 7 sean los mismos en todos sus pixeles.
+# Those of the light fallback, which goes at 4bpp: see "The light fallback".
+# They fit in a palette of sixteen, and `CGRAM_BASE` has to be the start of
+# one so that planes 4 to 7 are the same on all its pixels.
 RESPALDO_COLORES = 16
 RESPALDO_PLANOS = 4
 assert CGRAM_BASE % RESPALDO_COLORES == 0
-# Y va a la mitad de resolución: la ROM duplica cada pixel a lo ancho y a lo
-# alto. `esc_doblar` está escrita para el doble y nada más.
+# And it goes at half resolution: the ROM doubles each pixel across and down.
+# `esc_doblar` is written for double and nothing else.
 RESPALDO_ESCALA = 2
 RESPALDO_ANCHO = ANCHO // RESPALDO_ESCALA
 RESPALDO_ALTO = ALTO // RESPALDO_ESCALA
-# Las paletas de los battlers: de la 8 a la 15, o sea las entradas 128 a 255.
-# Una por battler distinto de la tropa, y una tropa tiene a lo sumo ocho
-# enemigos, así que siempre alcanzan.
+# The battlers' palettes: 8 to 15, that is entries 128 to 255. One per
+# distinct battler of the troop, and a troop has at most eight enemies, so
+# there are always enough.
 BATTLER_PALETA = 8
 BATTLER_PALETAS = 8
 BATTLER_COLORES = 15
 
 CELDA = 8
 TILES_X, TILES_Y = ANCHO // CELDA, ALTO // CELDA
-TILES = TILES_X * TILES_Y                       # 512, la grilla entera
+TILES = TILES_X * TILES_Y                       # 512, the whole grid
 
-# Dónde vive en la VRAM, en palabras. El tilemap va antes del del texto
-# —$3C00— y los tiles después, que es el único hueco de 32 KB que queda.
+# Where it lives in VRAM, in words. The tilemap goes before the text's
+# —$3C00— and the tiles after, which is the only 32 KB gap left.
 VRAM_MAPA = 0x3800
 VRAM_TILES = 0x4000
 
 def reemplazo():
-    """El fondo de las peleas cuyo fondo no está en la ROM: ver "Qué fondos
-    hay". Lo elige el juego, en `[battle] fallback_backdrop` del archivo de
-    proyecto, con su porqué."""
+    """The backdrop of the battles whose backdrop is not in the ROM: see
+    "Which backdrops there are". The game chooses it, in
+    `[battle] fallback_backdrop` of the project file, with its reason."""
     return perillas.valor("battle", "fallback_backdrop", tipo=str)
 
-# Cuántos planos guarda el cartucho por fila de un battler: la máscara y los
-# cuatro de su dibujo. Los otros cuatro los pone la ROM según la paleta.
+# How many planes the cartridge stores per row of a battler: the mask and the
+# four of its drawing. The ROM sets the other four according to the palette.
 BATTLER_PLANOS = 5
 
 
 def escalar(valor):
-    """Un largo de RM2k en pixeles de la escena. La misma cuenta de los dos
-    lados, con enteros: `//` redondearía distinto que el divisor del hardware
-    sólo con negativos, y acá no los hay."""
+    """An RM2k length in scene pixels. The same math on both sides, with
+    integers: `//` would round differently from the hardware divider only
+    with negatives, and there are none here."""
     return max(1, (valor * ESCALA_NUM + ESCALA_DEN // 2) // ESCALA_DEN)
 
 
 def _abrir(game_dir, carpeta, nombre, rtp=False):
-    """Un PNG del juego con el color 0 como transparente, que es la regla de
-    RM2k. Sale de `render_map.load_image` para no tener dos maneras de leer lo
-    mismo.
+    """A game PNG with color 0 as transparent, which is RM2k's rule. It comes
+    from `render_map.load_image` so as not to have two ways of reading the
+    same thing.
 
-    Con `rtp`, si el juego no lo trae se busca en el RTP, como RM2k. Lo piden
-    sólo los fondos: trece de los del juego son del RTP —`Cave1`, `Castle`,
-    los de los terrenos—, y hasta el 2026-09-27 no hacía falta porque los tres
-    de la ROM son del juego. Los battlers siguen sin buscar ahí, para no
-    cambiar cuáles entran sin mirarlo."""
+    With `rtp`, if the game does not have it, it is looked up in the RTP,
+    like RM2k. Only the backdrops ask for it: thirteen of the game's are from
+    the RTP —`Cave1`, `Castle`, the terrain ones—, and until 2026-09-27 it
+    was not needed because the ROM's three are the game's. The battlers still
+    do not look there, so as not to change which ones get in without looking
+    at it."""
     from render import render_map
     from rpgmaker import recursos
     lugares = [game_dir] + ([recursos.RTP_DIR] if rtp else [])
@@ -229,18 +240,18 @@ def _abrir(game_dir, carpeta, nombre, rtp=False):
     return render_map.load_image(camino)
 
 
-# --- el tono del battler ----------------------------------------------------
+# --- the battler's hue -------------------------------------------------------
 
 def _div(a, b):
-    """La división entera de C, que trunca hacia cero. `//` redondea hacia
-    abajo, y con numeradores negativos —el tono de un color donde el verde es
-    menor que el azul— daría un tono corrido en uno."""
+    """C's integer division, which truncates toward zero. `//` rounds down,
+    and with negative numerators —the hue of a color where green is less
+    than blue— it would give a hue off by one."""
     q = abs(a) // abs(b)
     return q if (a >= 0) == (b >= 0) else -q
 
 
 def _a_hsl(r, g, b):
-    """`RGB_to_HSL` de easyrpg-player, `bitmap_hslrgb.h`, con sus enteros."""
+    """easyrpg-player's `RGB_to_HSL`, `bitmap_hslrgb.h`, with its integers."""
     if r > g:
         orden = ("rbg" if g < b else "rgb") if r > b else "brg"
     else:
@@ -269,7 +280,7 @@ def _a_hsl(r, g, b):
 
 
 def _de_hsl(h, s, l):
-    """`HSL_to_RGB` de easyrpg-player."""
+    """easyrpg-player's `HSL_to_RGB`."""
     l2 = 2 * l
     c = _div(s * ((0x1FF - l2) if l2 > 0xFF else l2), 0x100)
     m = _div(l2 - c, 2)
@@ -290,11 +301,11 @@ def _de_hsl(h, s, l):
 
 
 def girar_tono(imagen, grados):
-    """`Bitmap::HueChangeBlit`: el `battler_hue` del enemigo, en grados.
+    """`Bitmap::HueChangeBlit`: the enemy's `battler_hue`, in degrees.
 
-    Es lo que hace que el mismo `BLmouse` sea la GiantRat, la MutantMouse y la
-    HairyVermin. La escena horneada lo ignoraba; ahora, con un battler por
-    enemigo y no por imagen, ignorarlo dibujaría a los tres iguales.
+    It is what makes the same `BLmouse` be the GiantRat, the MutantMouse and
+    the HairyVermin. The baked scene ignored it; now, with one battler per
+    enemy and not per image, ignoring it would draw all three the same.
     """
     tono = int(grados / 60.0 * 0x100)
     if tono < 0:
@@ -317,18 +328,18 @@ def girar_tono(imagen, grados):
     return salida
 
 
-# --- el fondo -----------------------------------------------------------------
+# --- the backdrop -------------------------------------------------------------
 
 def fondos_del_juego(nombrados, tree, terrenos, game_dir):
-    """Los fondos del juego, en el orden que les da su número: ver "Qué fondos
-    hay".
+    """The game's backdrops, in the order that gives them their number: see
+    "Which backdrops there are".
 
-    `nombrados` son los que nombran los comandos (`eventos.fondos_nombrados`),
-    `tree` el árbol de mapas y `terrenos` el fondo de cada terreno
-    (`Database.terrain_backdrops`). Se ordenan por nombre sin mirar
-    mayúsculas, que es como RM2k los busca, y un nombre que no está ni en el
-    juego ni en el RTP no entra: en RM2k esa pelea va sin fondo. Devuelve los
-    nombres como los escribe el juego la primera vez, en ese orden.
+    `nombrados` are the ones the commands name (`eventos.fondos_nombrados`),
+    `tree` the map tree and `terrenos` each terrain's backdrop
+    (`Database.terrain_backdrops`). They are sorted by name ignoring case,
+    which is how RM2k looks them up, and a name that is neither in the game
+    nor in the RTP is left out: in RM2k that battle has no backdrop. Returns
+    the names as the game writes them the first time, in that order.
     """
     from rpgmaker import recursos
     todos = set(nombrados)
@@ -344,18 +355,18 @@ def fondos_del_juego(nombrados, tree, terrenos, game_dir):
         if recursos.find_resource([game_dir, recursos.RTP_DIR],
                                   "Backdrop", nombre,
                                   (".png", ".bmp", ".xyz")) is None:
-            print("  el fondo %r no está ni en el juego ni en el RTP" % nombre)
+            print("  backdrop %r is neither in the game nor in the RTP" % nombre)
             continue
         salida.append(nombre)
     return salida
 
 
 def fondo(nombre, game_dir):
-    """Un fondo de batalla listo para la ROM, o None si no está.
+    """A battle backdrop ready for the ROM, or None if it is not there.
 
-      `indices`  256x128 índices de CGRAM, fila por fila, ya corridos por
-                 `CGRAM_BASE`: es lo que la consola lee.
-      `paleta`   sus `COLORES` colores de 15 bits, desde `CGRAM_BASE`.
+      `indices`  256x128 CGRAM indices, row by row, already shifted by
+                 `CGRAM_BASE`: it is what the console reads.
+      `paleta`   its `COLORES` 15-bit colors, from `CGRAM_BASE`.
     """
     from PIL import Image
     from port.paleta import reducir
@@ -373,18 +384,17 @@ def fondo(nombre, game_dir):
 
 
 def fondo_liviano(nombre, game_dir):
-    """El respaldo del fondo: el que va en la ROM, con `RESPALDO_COLORES` y a
-    la mitad de resolución.
+    """The backdrop's fallback: the one that goes in the ROM, with
+    `RESPALDO_COLORES` and at half resolution.
 
-    La misma imagen que `fondo`, achicada a `RESPALDO_ANCHO` x
-    `RESPALDO_ALTO` y con dieciséis colores fundidos por
-    `asignador.merge_least_visible`: ver "El respaldo liviano". La paleta va
-    de más usado a menos, y a igual cuenta por color, para que salga siempre
-    igual.
+    The same image as `fondo`, shrunk to `RESPALDO_ANCHO` x `RESPALDO_ALTO`
+    and with sixteen colors merged by `asignador.merge_least_visible`: see
+    "The light fallback". The palette goes from most used to least, and on
+    equal counts by color, so it always comes out the same.
 
-      `chico`    los índices de CGRAM del respaldo, a 128x64: lo que viaja.
-      `indices`  los mismos, duplicados a 256x128 como los deja la ROM en la
-                 WRAM: es lo que comparan las pruebas.
+      `chico`    the fallback's CGRAM indices, at 128x64: what travels.
+      `indices`  the same, doubled to 256x128 as the ROM leaves them in
+                 WRAM: it is what the tests compare.
     """
     from PIL import Image
     from port import asignador
@@ -411,9 +421,9 @@ def fondo_liviano(nombre, game_dir):
 
 
 def tiles(indices):
-    """Los tiles de 8x8 de una grilla —los 512 de una de 256x128—, en el
-    orden en que los lee el tilemap: fila por fila, sin deduplicar. Ver "El
-    presupuesto"."""
+    """The 8x8 tiles of a grid —the 512 of a 256x128 one—, in the order the
+    tilemap reads them: row by row, without deduplicating. See "The
+    budget"."""
     salida = []
     for ty in range(len(indices) // CELDA):
         for tx in range(len(indices[0]) // CELDA):
@@ -422,24 +432,26 @@ def tiles(indices):
     return salida
 
 
-# --- los battlers ---------------------------------------------------------------
+# --- the battlers --------------------------------------------------------------
 
 def clave(nombre, tono):
-    """Cómo se llama un battler en el cartucho y en `rom/parches/`: la imagen y su
-    tono, que es lo que lo hace distinto de otro con la misma imagen."""
+    """What a battler is called in the cartridge and in `rom/parches/`: the
+    image and its hue, which is what makes it different from another with
+    the same image."""
     return "%s-%d" % (nombre, tono) if tono else nombre
 
 
 def battler(nombre, tono, game_dir):
-    """Un battler listo para la ROM, o None si no está la imagen.
+    """A battler ready for the ROM, or None if the image is not there.
 
-      `ancho`, `alto`  en pixeles de la escena, ya al 80%.
-      `pixeles`        fila por fila, de 0 a 15: 0 es el transparente y los
-                       otros el color en `paleta`, más uno.
-      `paleta`         sus hasta quince colores de 15 bits.
-      `colores`        cuántos distintos traía el dibujo, ya achicado.
-      `fusiones`       qué se fusionó con qué para llegar a quince, como las
-                       devuelve `asignador.merge_least_visible`.
+      `ancho`, `alto`  in scene pixels, already at 80%.
+      `pixeles`        row by row, from 0 to 15: 0 is the transparent one and
+                       the others the color in `paleta`, plus one.
+      `paleta`         its up to fifteen 15-bit colors.
+      `colores`        how many distinct ones the drawing had, already
+                       shrunk.
+      `fusiones`       what was merged with what to get to fifteen, as
+                       `asignador.merge_least_visible` returns them.
     """
     from PIL import Image
     from port import asignador
@@ -451,7 +463,8 @@ def battler(nombre, tono, game_dir):
         imagen = girar_tono(imagen, tono)
     ancho, alto = escalar(imagen.width), escalar(imagen.height)
     chica = imagen.resize((ancho, alto), Image.LANCZOS)
-    # Un pixel es del battler o del fondo: la mitad del alfa decide.
+    # A pixel is either the battler's or the backdrop's: half the alpha
+    # decides.
     datos = chica.get_flattened_data()
     opacos = [(r >> 3, g >> 3, b >> 3) if a >= 128 else None
               for r, g, b, a in datos]
@@ -462,8 +475,9 @@ def battler(nombre, tono, game_dir):
         finales[mapeo[color]] += n
     paleta = sorted(finales, key=lambda c: (-finales[c], c))
     lugar = {c: i + 1 for i, c in enumerate(paleta)}
-    # Lo que se sale de la escena no se guarda: un battler más alto que ella
-    # queda topado arriba —ver `posicion`— y sus filas de abajo no se ven.
+    # What goes past the scene is not stored: a battler taller than it ends
+    # up clamped at the top —see `posicion`— and its bottom rows are not
+    # seen.
     ancho, alto = min(ancho, ANCHO), min(alto, ALTO)
     pixeles = [[0 if opacos[y * chica.width + x] is None
                 else lugar[mapeo[opacos[y * chica.width + x]]]
@@ -475,26 +489,26 @@ def battler(nombre, tono, game_dir):
 
 
 def columnas(info):
-    """Cuántos bytes mide una fila de un plano: ocho pixeles por byte."""
+    """How many bytes a row of a plane is: eight pixels per byte."""
     return (info["ancho"] + 7) // 8
 
 
 def battler_bytes(info):
-    """Un battler en el formato que lee `escena_poner`.
+    """A battler in the format `escena_poner` reads.
 
-    **Plano por plano**, y dentro de cada plano fila por fila: la máscara
-    primero y después los cuatro planos del dibujo. Cada fila de un plano mide
-    `columnas + 1` bytes y va **al revés**, la columna de la derecha primero,
-    con un cero adelante:
+    **Plane by plane**, and within each plane row by row: the mask first and
+    then the four planes of the drawing. Each row of a plane is
+    `columnas + 1` bytes and goes **backwards**, the rightmost column first,
+    with a zero in front:
 
         [0] [col n-1] ... [col 1] [col 0]
 
-    Así una lectura de dieciséis bits en la columna `k` trae la `k` en el byte
-    bajo y la `k - 1` en el alto, que es exactamente la palabra que hay que
-    correr a la derecha para acomodar un battler que no cae en el borde de un
-    tile. La columna `-1` es el cero de adelante de la fila siguiente —o del
-    plano siguiente—, así que la ROM no tiene que preguntar por el borde; el
-    último plano lleva un cero de más al final por lo mismo.
+    That way a sixteen-bit read at column `k` brings `k` in the low byte and
+    `k - 1` in the high one, which is exactly the word that has to be shifted
+    right to place a battler that does not fall on a tile boundary. Column
+    `-1` is the leading zero of the next row —or of the next plane—, so the
+    ROM does not have to check for the edge; the last plane carries an extra
+    zero at the end for the same reason.
     """
     n = columnas(info)
     planos = []
@@ -513,11 +527,11 @@ def battler_bytes(info):
 
 
 def posicion(centro, info):
-    """Dónde cae la esquina de un battler en la escena, ya topada adentro.
+    """Where a battler's corner lands in the scene, already clamped inside.
 
-    La posición del LDB es **el centro** del battler, en la pantalla de 320x240
-    de RM2k. Se escala igual que todo lo demás y se topa adentro de la escena:
-    ver "La geometría".
+    The LDB position is **the center** of the battler, on RM2k's 320x240
+    screen. It is scaled like everything else and clamped inside the scene:
+    see "The geometry".
     """
     x, y = centro
     px = min(max(escalar(x) - info["ancho"] // 2, 0),
@@ -528,13 +542,14 @@ def posicion(centro, info):
 
 
 def orden_de_dibujo(centros, infos):
-    """En qué orden se ponen los enemigos de una tropa: el que va después tapa.
+    """The order a troop's enemies are placed in: the one that goes later
+    covers.
 
-    Es `Sprite_Battler::ResetZ` de easyrpg: la profundidad es el borde de abajo
-    del battler en RM2k —el centro del LDB más la mitad del alto del PNG— y, a
-    igual borde, queda arriba el de menor lugar en la tropa. `infos` puede
-    traer None para un enemigo sin battler: no se dibuja, y da igual dónde
-    caiga.
+    It is easyrpg's `Sprite_Battler::ResetZ`: the depth is the battler's
+    bottom edge in RM2k —the LDB center plus half the PNG's height— and, on
+    an equal edge, the one with the lower place in the troop ends up on top.
+    `infos` may carry None for an enemy without a battler: it is not drawn,
+    and it does not matter where it lands.
     """
     def z(k):
         alto = infos[k]["alto_rm"] if infos[k] else 0
@@ -543,13 +558,13 @@ def orden_de_dibujo(centros, infos):
 
 
 def componer(fondo_indices, puestos):
-    """La escena como la compone la consola, en índices de CGRAM.
+    """The scene as the console composites it, in CGRAM indices.
 
-    `fondo_indices` es la grilla de un fondo, o None para el fondo liso.
-    `puestos` son `(info, paleta, x, y)` en el orden en que la ROM los pone,
-    que es `orden_de_dibujo`: el que va después tapa al de antes. No lo usa el
-    conversor —la ROM compone sola— sino las pruebas, para saber qué tiene que
-    haber en cada pixel.
+    `fondo_indices` is a backdrop's grid, or None for the flat backdrop.
+    `puestos` are `(info, paleta, x, y)` in the order the ROM places them,
+    which is `orden_de_dibujo`: the one that goes later covers the one
+    before. The converter does not use it —the ROM composites on its own—
+    but the tests do, to know what has to be in each pixel.
     """
     escena = [list(fila) if fondo_indices else [0] * ANCHO
               for fila in (fondo_indices or [None] * ALTO)]
@@ -562,7 +577,7 @@ def componer(fondo_indices, puestos):
 
 
 def informe_battler(info):
-    """Los números del battler, para que el conversor los imprima."""
+    """The battler's numbers, for the converter to print."""
     return {"clave": info["clave"], "ancho": info["ancho"],
             "alto": info["alto"], "bytes": len(battler_bytes(info)),
             "colores": info["colores"], "quedan": len(info["paleta"])}

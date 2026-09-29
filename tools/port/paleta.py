@@ -1,8 +1,8 @@
-"""Una imagen llevada a N colores de 15 bits, o a pantalla completa en 8 bpp.
+"""An image brought down to N 15-bit colors, or to a full screen at 8 bpp.
 
-`reducir` y `convertir` son de la pantalla de título de nacimiento, y hoy los
-usan también los carteles, las animaciones, los fondos de la pelea y las
-pantallas completas.
+`reducir` and `convertir` were born for the title screen, and today the
+signs, the animations, the battle backdrops and the full screens use them
+too.
 """
 
 import collections
@@ -13,35 +13,36 @@ NEGRO = (0, 0, 0)
 
 
 def _distancia(a, b):
-    """Lo lejos que están dos colores de 15 bits, al cuadrado.
+    """How far apart two 15-bit colors are, squared.
 
-    Euclídea y sin pesos por canal: la alternativa —ponderar por luma, que es
-    lo que hace `merge_least_visible` para las paletas de dieciséis— acá no
-    cambiaría nada visible y sí haría falta explicar por qué los pesos son esos.
-    Los colores que se fusionan son los que casi no aparecen, y el vecino que
-    les toca está a un paso de distancia.
+    Euclidean and with no per-channel weights: the alternative —weighting by
+    luma, which is what `merge_least_visible` does for the palettes of
+    sixteen— would change nothing visible here and would need an explanation
+    of why the weights are those. The colors that get merged are the ones
+    that barely appear, and the neighbor they get is one step away.
     """
     return sum((x - y) ** 2 for x, y in zip(a, b))
 
 
 def reducir(pixeles, tope=COLORES):
-    """Los colores de la imagen llevados a `tope`, y el mapa de a dónde fue cada uno.
+    """The image's colors brought down to `tope`, and the map of where each
+    one went.
 
-    Se queda con los más usados y manda cada uno de los que sobran a su vecino
-    más cercano de los que quedaron. **No es mediancut**: no promedia colores,
-    así que no puede inventar uno que no estuviera en la imagen y no hay que
-    volver a cuantizar a 15 bits después. Y no depende de qué versión de PIL
-    esté instalada, que es lo que hace que la ROM salga igual byte por byte en
-    cualquier máquina.
+    It keeps the most used ones and sends each of the leftovers to its
+    nearest neighbor among those that stayed. **It is not median cut**: it
+    does not average colors, so it cannot invent one that was not in the
+    image and there is no need to quantize to 15 bits again afterwards. And
+    it does not depend on which version of PIL is installed, which is what
+    makes the ROM come out the same byte for byte on any machine.
 
-    El desempate es por el color, no por el orden en que aparecieron: dos
-    colores con la misma cuenta tienen que caer siempre del mismo lado o la
-    ROM cambia sin que nadie haya tocado nada.
+    Ties are broken by the color, not by the order they appeared in: two
+    colors with the same count must always fall on the same side, or the ROM
+    changes without anyone having touched anything.
     """
     cuenta = collections.Counter(pixeles)
-    # El negro se queda con el índice 0 aunque no fuera de los más usados: es
-    # el color del fondo, y así lo que el PPU pinta donde no hay nada coincide
-    # con lo que la imagen tiene ahí.
+    # Black keeps index 0 even if it was not among the most used: it is the
+    # backdrop color, and this way what the PPU paints where there is
+    # nothing matches what the image has there.
     orden = sorted(cuenta, key=lambda c: (-cuenta[c], c))
     if NEGRO in orden:
         orden.remove(NEGRO)
@@ -54,11 +55,12 @@ def reducir(pixeles, tope=COLORES):
 
 
 def _quince(imagen):
-    """La imagen escalada a la pantalla y con los colores a 15 bits.
+    """The image scaled to the screen, with its colors at 15 bits.
 
-    El escalado es LANCZOS, que es el que menos ensucia los bordes del texto
-    del título; el original tiene mucho degradé y poco detalle fino, así que la
-    diferencia contra bicúbico se ve en los créditos y en ningún otro lado.
+    The scaling is LANCZOS, which is the one that smears the edges of the
+    title's text the least; the original has a lot of gradient and little
+    fine detail, so the difference against bicubic shows in the credits and
+    nowhere else.
     """
     from PIL import Image
     chica = imagen.convert("RGB").resize((ANCHO, ALTO), Image.LANCZOS)
@@ -66,21 +68,22 @@ def _quince(imagen):
 
 
 def convertir(imagen, primer_color=MENU_CGRAM, tope=COLORES):
-    """Una imagen de pantalla completa como (tiles, paleta, tilemap).
+    """A full-screen image as (tiles, paleta, tilemap).
 
-    `tiles` son los tiles únicos de 8 bits por pixel; `paleta` sus colores, que
-    van en CGRAM **a partir de `primer_color`** —en el título, `MENU_CGRAM`,
-    porque las de abajo son del menú—; `tilemap` las 32x28 entradas, en el
-    tilemap de 32x32 que el PPU espera. `tope` es cuántos colores le quedan.
+    `tiles` are the unique tiles at 8 bits per pixel; `paleta` their colors,
+    which go in CGRAM **starting at `primer_color`** —on the title,
+    `MENU_CGRAM`, because the ones below belong to the menu—; `tilemap` the
+    32x28 entries, in the 32x32 tilemap the PPU expects. `tope` is how many
+    colors are left.
 
-    Los índices que los tiles llevan ya vienen corridos, así que quien los emita
-    no tiene que acordarse de sumar nada: el corrimiento se escribe una sola vez
-    y acá.
+    The indices the tiles carry are already shifted, so whoever emits them
+    does not have to remember to add anything: the shift is written once and
+    here.
     """
     pixeles = _quince(imagen)
     paleta, mapa = reducir(pixeles, tope)
     indice = {color: i + primer_color for i, color in enumerate(paleta)}
-    # La imagen como índices de paleta, fila por fila.
+    # The image as palette indices, row by row.
     filas = []
     for y in range(ALTO):
         filas.append([indice[mapa[pixeles[y * ANCHO + x]]] for x in range(ANCHO)])

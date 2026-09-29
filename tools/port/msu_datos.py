@@ -1,75 +1,79 @@
-"""Lo que el cartucho guarda en el `.msu`: el puerto de datos del MSU-1.
+"""What the cartridge stores in the `.msu`: the MSU-1's data port.
 
-El `.msu` es el archivo que enciende el MSU-1, y hasta el 2026-09-25 iba vacío.
-El MSU-1 lo expone como un flujo: la ROM escribe una posición de 32 bits en
-$2000..$2003 —la escritura a $2003 es la que busca—, espera a que se apague el
-bit 7 de $2000 y lee de $2001 byte por byte, avanzando solo; por DMA con el
-origen fijo en $2001 se lee a la velocidad de cualquier DMA. El mecanismo de
-este lado y del de la ROM está en docs/port/msu-datos.md.
+The `.msu` is the file that turns the MSU-1 on, and until 2026-09-25 it was
+empty. The MSU-1 exposes it as a stream: the ROM writes a 32-bit position to
+$2000..$2003 —the write to $2003 is the one that seeks—, waits for bit 7 of
+$2000 to clear and reads from $2001 byte by byte, advancing on its own; by
+DMA with the source fixed at $2001 it reads at the speed of any DMA. The
+mechanism on this side and on the ROM's is in docs/port/msu-datos.md.
 
-Lo que lleva primero son **los fondos de batalla de calidad**, 8bpp y 96
-colores, y **todos los del juego**, estén o no en los mapas del cartucho: ver
-"Qué fondos hay" en tools/port/escena.py. **Sin MSU-1 el juego tiene que
-andar igual** —Mednafen no lo tiene—, así que la ROM lleva un respaldo
-liviano, 4bpp y 16 colores, de los pocos que entran, y uno de reemplazo para
-los demás; el `.msu` los reemplaza cuando está y es el de este cartucho. Son
-distintos a propósito: ver "El respaldo liviano" en tools/port/escena.py.
+What it carries first are **the quality battle backdrops**, 8bpp and 96
+colors, and **all of the game's**, whether or not they are in the
+cartridge's maps: see "Which backdrops there are" in tools/port/escena.py.
+**Without MSU-1 the game has to work the same** —Mednafen does not have
+it—, so the ROM carries a light fallback, 4bpp and 16 colors, of the few
+that fit, and a replacement for the rest; the `.msu` replaces them when it is
+there and it belongs to this cartridge. They are different on purpose: see
+"The light fallback" in tools/port/escena.py.
 
-## El formato
+## The format
 
-Todo en little-endian:
+All little-endian:
 
-    $00     8  la firma: los primeros 8 bytes del sha256 de todo lo que
-               sigue
-    $08     4  la firma del juego: `[rom] msu_data_signature`
-    $0C     2  la versión del formato, hoy 2
-    $0E     2  cuántas entradas hay, N
-    $10     8N por entrada: dónde empieza en el archivo y cuánto mide, 4 y 4
-    ...        ceros, hasta FONDOS_DESDE
-    $10000     los fondos, uno cada FONDO_LUGAR bytes y en orden de número:
-               el fondo k en `fondo_en(k)`
-    ...        detrás del último, las demás entradas, una detrás de la otra
-               y en el orden del índice
+    $00     8  the signature: the first 8 bytes of the sha256 of everything
+               that follows
+    $08     4  the game's signature: `[rom] msu_data_signature`
+    $0C     2  the format version, 2 today
+    $0E     2  how many entries there are, N
+    $10     8N per entry: where it starts in the file and how long it is,
+               4 and 4
+    ...        zeros, up to FONDOS_DESDE
+    $10000     the backdrops, one every FONDO_LUGAR bytes and in order of
+               number: backdrop k at `fondo_en(k)`
+    ...        after the last one, the other entries, one after the other
+               and in the order of the index
 
-**La región de los fondos es fija.** Hasta la versión 1 las entradas iban
-todas seguidas detrás del índice, así que el lugar de un fondo dependía de
-cuántas entradas hubiera —y los efectos son de cada cartucho— y de qué fondos
-llevara el cartucho. Desde el 2026-09-27 el `.msu` lleva todos los fondos del
-juego, cada uno con su número, y el fondo k está en el mismo byte en el
-`.msu` de cualquier cartucho: `FONDOS_DESDE + k * FONDO_LUGAR` sus tiles, y
-`COLORES_EN` más adelante sus colores. El índice sigue estando, y dice lo
-mismo, para las herramientas. Si el índice llegara a pasar de
-`FONDOS_DESDE` —más de ocho mil entradas— `armar` se niega.
+**The backdrop region is fixed.** Up to version 1 the entries all went one
+after the other behind the index, so the place of a backdrop depended on how
+many entries there were —and the sound effects belong to each cartridge— and
+on which backdrops the cartridge carried. Since 2026-09-27 the `.msu`
+carries all of the game's backdrops, each one with its number, and backdrop
+k is at the same byte in the `.msu` of any cartridge:
+`FONDOS_DESDE + k * FONDO_LUGAR` its tiles, and `COLORES_EN` further on its
+colors. The index is still there, and says the same thing, for the tools. If
+the index were ever to go past `FONDOS_DESDE` —more than eight thousand
+entries— `armar` refuses.
 
-Cada lugar mide 32.768 bytes de tiles, 192 de colores y relleno hasta el
-próximo múltiplo de 512: así los tiles de cada fondo empiezan en un sector de
-la tarjeta SD, que es de donde los lee el FX Pak. No está medido que eso lo
-haga más rápido; cuesta 320 bytes por fondo.
+Each place is 32,768 bytes of tiles, 192 of colors and padding up to the
+next multiple of 512: that way the tiles of each backdrop start at a sector
+of the SD card, which is where the FX Pak reads them from. It is not
+measured that this makes it faster; it costs 320 bytes per backdrop.
 
-**La firma es del contenido, no del build.** La ROM lleva la que espera —el
-conversor la emite en el `.inc`— y la compara con los 8 primeros bytes del
-`.msu` antes de leer nada: si no coinciden —un `.msu` de otro build, uno
-vacío, uno cortado— usa la ROM. Que sea del contenido y no del commit quiere
-decir que un `.msu` de otro build **con los mismos datos** se acepta, y eso
-está bien: lo que se protege es que los bytes sean los que la ROM espera, y
-cubrir el índice con el hash cubre también dónde está cada cosa.
+**The signature is of the content, not of the build.** The ROM carries the
+one it expects —the converter emits it in the `.inc`— and compares it with
+the first 8 bytes of the `.msu` before reading anything: if they do not
+match —a `.msu` from another build, an empty one, a truncated one— it uses
+the ROM. That it is of the content and not of the commit means that a
+`.msu` from another build **with the same data** is accepted, and that is
+fine: what is protected is that the bytes are the ones the ROM expects, and
+covering the index with the hash also covers where each thing is.
 
-**Las posiciones las lee la ROM de su `.inc`, no del índice.** Una vez
-aceptada la firma, el índice del archivo y las constantes del `.inc` son el
-mismo dato por construcción —salen de `armar`—, y leerlo en la consola sería
-una búsqueda más por pelea para no aprender nada. El índice está para las
-herramientas de este lado (`leer`) y para que sumar otra cosa después sea
-sumar entradas, sin cambiar el formato.
+**The ROM reads the positions from its `.inc`, not from the index.** Once
+the signature is accepted, the file's index and the `.inc` constants are the
+same data by construction —they come from `armar`—, and reading it on the
+console would be one more seek per battle to learn nothing. The index is
+there for the tools on this side (`leer`) and so that adding something else
+later means adding entries, without changing the format.
 
-Cada fondo son dos entradas, en este orden: sus 512 tiles de 8bpp —32.768
-bytes, tal cual van a la WRAM— y sus 96 colores de 15 bits —192 bytes, tal
-cual van a la CGRAM desde la entrada 32—. Los arma `fondo_bytes` en
-snes_convert.py, y la ROM sabe dónde está cada uno por `msu_fondo_pos`, que
-emite `escribir_msu`.
+Each backdrop is two entries, in this order: its 512 tiles at 8bpp —32,768
+bytes, exactly as they go to WRAM— and its 96 15-bit colors —192 bytes,
+exactly as they go to CGRAM from entry 32—. `fondo_bytes` in
+snes_convert.py builds them, and the ROM knows where each one is from
+`msu_fondo_pos`, which `escribir_msu` emits.
 
-Detrás de los fondos van los efectos de sonido de calidad, una entrada por
-efecto de cada paquete de audio, en BRR: los ordena `escribir_msu` en
-snes_convert.py, y el porqué está en tools/audio/efectos_msu.py.
+After the backdrops come the quality sound effects, one entry per effect of
+each audio pack, in BRR: `escribir_msu` in snes_convert.py orders them, and
+the reason is in tools/audio/efectos_msu.py.
 """
 
 import hashlib
@@ -82,45 +86,46 @@ FIRMA = 8
 CABECERA = 16
 ENTRADA = 8
 
-# La región de los fondos: ver "El formato".
+# The backdrop region: see "The format".
 FONDOS_DESDE = 0x10000
-COLORES_EN = 0x8000                 # 512 tiles de 8bpp
-FONDO_LUGAR = 0x8200                # y los 192 bytes de colores, al sector
+COLORES_EN = 0x8000                 # 512 tiles at 8bpp
+FONDO_LUGAR = 0x8200                # and the 192 bytes of colors, to the sector
 SECTOR = 512
 assert FONDO_LUGAR % SECTOR == 0 and FONDO_LUGAR >= COLORES_EN + 96 * 2
 
 
 def fondo_en(k):
-    """Dónde están los tiles del fondo número `k`; sus colores, `COLORES_EN`
-    más adelante."""
+    """Where the tiles of backdrop number `k` are; its colors, `COLORES_EN`
+    further on."""
     return FONDOS_DESDE + k * FONDO_LUGAR
 
 
 def armar(entradas, fondos=0):
-    """El `.msu` con estas entradas, y dónde quedó cada una.
+    """The `.msu` with these entries, and where each one ended up.
 
-    `entradas` son los bytes de cada una, en orden. Las primeras `2 *
-    fondos` son los fondos —tiles y colores de cada uno— y van en su lugar
-    fijo, `fondo_en`; las demás detrás de la región de los fondos, una tras
-    otra. Sin fondos, todas seguidas detrás del índice. Devuelve `(archivo,
-    posiciones)`, con `posiciones[k]` el desplazamiento de la entrada `k`
-    desde el principio del archivo.
+    `entradas` are the bytes of each one, in order. The first `2 * fondos`
+    are the backdrops —tiles and colors of each— and go in their fixed
+    place, `fondo_en`; the rest after the backdrop region, one after the
+    other. Without backdrops, all of them in a row after the index. Returns
+    `(archivo, posiciones)`, with `posiciones[k]` the offset of entry `k`
+    from the start of the file.
     """
     posiciones = []
     donde = CABECERA + ENTRADA * len(entradas)
     if fondos:
         if donde > FONDOS_DESDE:
-            raise ValueError("el índice del .msu mide %d B y pisa la región de "
-                             "los fondos, en $%X" % (donde, FONDOS_DESDE))
+            raise ValueError("the .msu index is %d B long and overlaps the "
+                             "backdrop region, at $%X" % (donde, FONDOS_DESDE))
         for k in range(fondos):
             tiles, colores = entradas[2 * k], entradas[2 * k + 1]
             if len(tiles) > COLORES_EN or \
                     COLORES_EN + len(colores) > FONDO_LUGAR:
-                raise ValueError("el fondo %d no entra en su lugar del .msu"
+                raise ValueError("backdrop %d does not fit in its place in the .msu"
                                  % k)
             posiciones += [fondo_en(k), fondo_en(k) + COLORES_EN]
-        # Lo que sigue va detrás de la región entera, no del último byte
-        # escrito: así tampoco depende de cuánto mida el último fondo.
+        # What follows goes after the whole region, not after the last byte
+        # written: that way it does not depend on the size of the last
+        # backdrop either.
         donde = fondo_en(fondos)
     for datos in entradas[2 * fondos:]:
         posiciones.append(donde)
@@ -130,7 +135,8 @@ def armar(entradas, fondos=0):
     cuerpo = bytearray(magia() + struct.pack("<HH", VERSION, len(entradas))
                        + indice)
     for p, datos in zip(posiciones, entradas):
-        # Relleno con ceros hasta donde va: la firma lo cubre como a todo.
+        # Zero padding up to where it goes: the signature covers it like
+        # everything else.
         cuerpo += bytes(p - FIRMA - len(cuerpo))
         cuerpo += datos
     cuerpo = bytes(cuerpo)
@@ -138,32 +144,33 @@ def armar(entradas, fondos=0):
 
 
 def magia():
-    """Los cuatro bytes que dicen de qué juego es el `.msu`: los del archivo
-    de proyecto, `[rom] msu_data_signature`. La ROM no los compara: compara
-    la firma de adelante, que los cubre. Se leen al usarlos y no al importar,
-    para que el conversor se pueda importar sin un juego."""
+    """The four bytes that say which game the `.msu` belongs to: those of
+    the project file, `[rom] msu_data_signature`. The ROM does not compare
+    them: it compares the signature at the front, which covers them. They are
+    read when used and not on import, so the converter can be imported
+    without a game."""
     return perillas.ascii("rom", "msu_data_signature", largo=4).encode()
 
 
 def firma_de(cuerpo):
-    """Los 8 bytes que van al principio: del sha256 de lo que sigue."""
+    """The 8 bytes that go at the start: from the sha256 of what follows."""
     return hashlib.sha256(cuerpo).digest()[:FIRMA]
 
 
 def indice(archivo):
-    """El índice de un `.msu`: `(donde, largo)` por entrada, o `ValueError` si
-    no es uno válido."""
+    """The index of a `.msu`: `(donde, largo)` per entry, or `ValueError` if
+    it is not a valid one."""
     if len(archivo) < CABECERA or archivo[FIRMA:FIRMA + 4] != magia():
-        raise ValueError("no es un .msu con datos de este port")
+        raise ValueError("not a .msu with data from this port")
     if firma_de(archivo[FIRMA:]) != archivo[:FIRMA]:
-        raise ValueError("la firma no coincide con el contenido")
+        raise ValueError("the signature does not match the content")
     version, n = struct.unpack_from("<HH", archivo, FIRMA + 4)
     if version != VERSION:
-        raise ValueError("versión %d, y esto lee la %d" % (version, VERSION))
+        raise ValueError("version %d, and this reads %d" % (version, VERSION))
     return [struct.unpack_from("<II", archivo, CABECERA + ENTRADA * k)
             for k in range(n)]
 
 
 def leer(archivo):
-    """Las entradas de un `.msu`, o `ValueError` si no es uno válido."""
+    """The entries of a `.msu`, or `ValueError` if it is not a valid one."""
     return [archivo[donde:donde + largo] for donde, largo in indice(archivo)]

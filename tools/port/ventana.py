@@ -1,25 +1,26 @@
-"""La ventana de mensaje de RM2k, armada desde el System del juego.
+"""RM2k's message window, built from the game's System.
 
-Las reglas salen de `Window::RefreshBackground` y `Window::RefreshFrame` de
-easyrpg-player, y el texto de `Font::Render`. No se inventa nada acá: si algo
-no coincide con el original, se arregla mirando esas funciones.
+The rules come from easyrpg-player's `Window::RefreshBackground` and
+`Window::RefreshFrame`, and the text from `Font::Render`. Nothing is made up
+here: if something does not match the original, it is fixed by looking at
+those functions.
 
-El System es una imagen de 160x80 con todo adentro:
+The System is a 160x80 image with everything inside:
 
-    (0,0,32,32)     el fondo, que se **estira** al tamaño de la ventana
-    (32,0,8,8)      la esquina de arriba a la izquierda del marco
-    (40,0,16,8)     el borde de arriba, que se repite hasta el ancho
-    (56,0,8,8)      la esquina de arriba a la derecha
-    (32,8,8,16)     el borde izquierdo, que se repite hasta el alto
-    (56,8,8,16)     el borde derecho
-    (56,0,8,8)      la esquina de arriba a la derecha
-    (...,24,...)    lo mismo de abajo
-    (16,32,16,16)   el color de la sombra del texto
-    (c%10*16, c//10*16+48, 16, 16)   el color de texto número c
+    (0,0,32,32)     the background, which is **stretched** to the window size
+    (32,0,8,8)      the top-left corner of the frame
+    (40,0,16,8)     the top edge, repeated across the width
+    (56,0,8,8)      the top-right corner
+    (32,8,8,16)     the left edge, repeated down the height
+    (56,8,8,16)     the right edge
+    (56,0,8,8)      the top-right corner
+    (...,24,...)    the same for the bottom
+    (16,32,16,16)   the color of the text shadow
+    (c%10*16, c//10*16+48, 16, 16)   text color number c
 
-Los colores de texto y de sombra son **bloques de 16x16**, no colores sueltos:
-cada pixel del glifo toma el color de su misma posición dentro del bloque, así
-que una letra sale con un degradé vertical. Es lo que hace `MaskedBlit`.
+The text and shadow colors are **16x16 blocks**, not single colors: each
+pixel of the glyph takes the color at the same position inside the block, so
+a letter comes out with a vertical gradient. It is what `MaskedBlit` does.
 """
 import os
 
@@ -28,38 +29,38 @@ from PIL import Image
 from port.constantes import COLUMNAS, LINEAS
 from render import render_map
 
-# El tamaño y el lugar de la ventana de mensaje. En RM2k la pantalla es de
-# 320x240 y la ventana ocupa 320x80 abajo; acá la pantalla son 256x224, así que
-# la ventana es de 256x80 y el texto pierde 64 px de ancho. Lo que no entra se
-# trunca: es la decisión de la fase 1.
+# The size and place of the message window. In RM2k the screen is 320x240
+# and the window takes 320x80 at the bottom; here the screen is 256x224, so
+# the window is 256x80 and the text loses 64 px of width. What does not fit
+# is truncated: it is the phase 1 decision.
 ANCHO, ALTO = 256, 80
-BORDE = 8                       # `border_x` y `border_y` de Window
-ALTO_LINEA = 16                 # `contents_y += 16` de Window_Message
-TEXTO_Y = 2                     # el `contents_y = 2` de la primera línea
+BORDE = 8                       # `border_x` and `border_y` of Window
+ALTO_LINEA = 16                 # `contents_y += 16` of Window_Message
+TEXTO_Y = 2                     # the `contents_y = 2` of the first line
 
 
 def skin(game_dir, nombre):
-    """El System del juego, en RGBA y con el color key ya resuelto.
+    """The game's System, in RGBA and with the color key already resolved.
 
-    Va por `render_map.load_image` y no por `Image.open` a propósito: en RM2k
-    **el índice 0 de la paleta es transparente**, y esa regla ya está escrita
-    ahí. Escribirla de nuevo acá sería tener dos convenciones que hay que
-    mantener iguales.
+    It goes through `render_map.load_image` and not `Image.open` on purpose:
+    in RM2k **palette index 0 is transparent**, and that rule is already
+    written there. Writing it again here would mean two conventions that
+    have to be kept the same.
 
-    No es un detalle: en `ablskin` el índice 0 es un naranja fuerte, y el marco
-    de la ventana lo usa para todo su interior. Dibujarlo opaco daba un marco
-    naranja de 8 px donde el juego tiene uno de 2 y el resto transparente. Lo
-    encontró la captura de EasyRPG, no el ojo.
+    It is not a detail: in `ablskin` index 0 is a strong orange, and the
+    window frame uses it for its whole inside. Drawing it opaque gave an
+    8 px orange frame where the game has a 2 px one and the rest
+    transparent. The EasyRPG capture found it, not the eye.
     """
     for base in (os.path.join(game_dir, "System"), game_dir):
         ruta = os.path.join(base, nombre + ".png")
         if os.path.exists(ruta):
             return render_map.load_image(ruta)
-    raise FileNotFoundError("no está el System %r en %s" % (nombre, game_dir))
+    raise FileNotFoundError("System %r is not in %s" % (nombre, game_dir))
 
 
 def color_de_texto(sys_img, numero):
-    """El bloque de 16x16 del color de texto número `numero`."""
+    """The 16x16 block of text color number `numero`."""
     x, y = numero % 10 * 16, numero // 10 * 16 + 48
     return sys_img.crop((x, y, x + 16, y + 16))
 
@@ -69,7 +70,7 @@ def color_de_sombra(sys_img):
 
 
 def _repetido(origen, ancho, alto):
-    """`TiledBlit`: repetir un recorte hasta llenar ancho x alto."""
+    """`TiledBlit`: repeat a crop until it fills ancho x alto."""
     salida = Image.new("RGBA", (ancho, alto), (0, 0, 0, 0))
     for y in range(0, alto, origen.height):
         for x in range(0, ancho, origen.width):
@@ -78,24 +79,25 @@ def _repetido(origen, ancho, alto):
 
 
 def _pegar(destino, trozo, x, y):
-    """Pegar respetando el color key, como `chipset.blit`."""
+    """Paste honoring the color key, like `chipset.blit`."""
     destino.paste(trozo, (x, y), trozo)
 
 
 def ventana(sys_img, ancho=ANCHO, alto=ALTO):
-    """La ventana vacía: el fondo estirado y el marco encima."""
-    # El fondo se estira, no se repite: es el `stretch` que RM2k trae prendido.
+    """The empty window: the stretched background and the frame on top."""
+    # The background is stretched, not tiled: it is the `stretch` RM2k has on
+    # by default.
     fondo = sys_img.crop((0, 0, 32, 32)).resize((ancho, alto), Image.NEAREST)
     marco = fondo.copy()
-    # Los bordes de arriba y de abajo, repetidos entre las esquinas.
+    # The top and bottom edges, repeated between the corners.
     _pegar(marco, _repetido(sys_img.crop((40, 0, 56, 8)), ancho - 16, 8), 8, 0)
     _pegar(marco, _repetido(sys_img.crop((40, 24, 56, 32)), ancho - 16, 8),
            8, alto - 8)
-    # Los de los costados.
+    # The side ones.
     _pegar(marco, _repetido(sys_img.crop((32, 8, 40, 24)), 8, alto - 16), 0, 8)
     _pegar(marco, _repetido(sys_img.crop((56, 8, 64, 24)), 8, alto - 16),
            ancho - 8, 8)
-    # Y las cuatro esquinas, que van últimas porque pisan a los bordes.
+    # And the four corners, which go last because they overwrite the edges.
     _pegar(marco, sys_img.crop((32, 0, 40, 8)), 0, 0)
     _pegar(marco, sys_img.crop((56, 0, 64, 8)), ancho - 8, 0)
     _pegar(marco, sys_img.crop((32, 24, 40, 32)), 0, alto - 8)
@@ -104,9 +106,9 @@ def ventana(sys_img, ancho=ANCHO, alto=ALTO):
 
 
 def cursor(sys_img, ancho, alto=16):
-    """El cursor de una lista, el primero de los dos cuadros del System: el
-    `RefreshCursor` de Window en easyrpg, esquinas de 8x8 y el resto repetido
-    entre ellas. Lo transparente del System queda transparente."""
+    """The cursor of a list, the first of the System's two frames: Window's
+    `RefreshCursor` in easyrpg, 8x8 corners and the rest repeated between
+    them. What is transparent in the System stays transparent."""
     x0 = 64
     salida = Image.new("RGBA", (ancho, alto), (0, 0, 0, 0))
     if ancho > 16 and alto > 16:
@@ -129,25 +131,25 @@ def cursor(sys_img, ancho, alto=16):
     return salida
 
 
-# De dónde sale el color de cada pixel del glifo, según `Font::Render` de
-# easyrpg-player. No es un color plano: el glifo se usa como máscara sobre el
-# bloque de 16x16 del System, así que la letra sale con degradé.
+# Where the color of each glyph pixel comes from, according to easyrpg-player's
+# `Font::Render`. It is not a flat color: the glyph is used as a mask over the
+# System's 16x16 block, so the letter comes out with a gradient.
 #
-#   texto   (color%10*16 + 2, color//10*16 + 48 + 16 - 12)
-#   sombra  (16, 32), y dibujada primero, corrida un pixel en x y en y
+#   text    (color%10*16 + 2, color//10*16 + 48 + 16 - 12)
+#   shadow  (16, 32), drawn first, shifted one pixel in x and in y
 #
-# El `16 - 12` es lo que apoya el glifo de 12 filas contra el pie del bloque de
-# 16. Ninguno de estos números se adivina: salen de font.cpp.
+# The `16 - 12` is what rests the 12-row glyph against the foot of the 16 block.
+# None of these numbers is guessed: they come from font.cpp.
 TEXTO_OFS = (2, 4)
 SOMBRA_ORIGEN = (16, 32)
 
 
 def dibujar_linea(destino, sys_img, x, y, texto, color=0,
                   font_id=None):
-    """Una línea de texto sobre `destino`, con su sombra, como RM2k.
+    """A line of text on `destino`, with its shadow, like RM2k.
 
-    Devuelve en qué x quedó. Lo que se pase del ancho de `destino` se recorta
-    solo: en la fase 1 las líneas que no entran se truncan.
+    Returns the x it ended at. Whatever goes past the width of `destino` is
+    clipped on its own: in phase 1 lines that do not fit are truncated.
     """
     from port import fuente
     if font_id is None:
@@ -157,8 +159,9 @@ def dibujar_linea(destino, sys_img, x, y, texto, color=0,
     ox, oy = TEXTO_OFS
     for ch in texto:
         for px, py in fuente.pixeles(ch, font_id):
-            # La sombra va primero y corrida uno, así el texto la pisa donde se
-            # superponen. Es el orden de easyrpg y se nota en las diagonales.
+            # The shadow goes first and shifted by one, so the text covers it
+            # where they overlap. It is easyrpg's order and it shows on the
+            # diagonals.
             for dx, dy, fuente_color, fx, fy in (
                     (1, 1, sombra, px, py), (0, 0, bloque, ox + px, oy + py)):
                 dx, dy = x + px + dx, y + py + dy
@@ -171,11 +174,11 @@ def dibujar_linea(destino, sys_img, x, y, texto, color=0,
 
 
 def pagina(sys_img, lineas, ancho=ANCHO, alto=ALTO, font_id=None):
-    """La ventana con hasta cuatro líneas de texto adentro."""
+    """The window with up to four lines of text inside."""
     vista = ventana(sys_img, ancho, alto)
     for n, texto in enumerate(lineas[:LINEAS]):
-        # El truncado va acá y no en el llamador para que los dos lados usen el
-        # mismo número: la ROM lo aplica al emitir el mensaje.
+        # The truncation goes here and not in the caller so both sides use
+        # the same number: the ROM applies it when emitting the message.
         dibujar_linea(vista, sys_img, BORDE,
                       BORDE + TEXTO_Y + n * ALTO_LINEA, texto[:COLUMNAS],
                       font_id=font_id)

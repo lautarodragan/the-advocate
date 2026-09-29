@@ -1,28 +1,29 @@
-"""Una imagen que ocupa la pantalla entera, comprimida en un flujo LZ2.
+"""An image that fills the whole screen, compressed into one LZ2 stream.
 
-Es el camino de las pantallas de Game Over y de título: la imagen se convierte
-con `paleta.convertir` —escalada a 256x224, a 8 bits por pixel en BG1, que en
-modo 3 direcciona CGRAM entera— y lo que va al cartucho es **un solo flujo**
-con las tres cosas que la ROM sube, una detrás de otra:
+It is the path of the Game Over and title screens: the image is converted
+with `paleta.convertir` —scaled to 256x224, at 8 bits per pixel on BG1,
+which in mode 3 addresses all of CGRAM— and what goes into the cartridge is
+**a single stream** with the three things the ROM uploads, one after the
+other:
 
-    los tiles, a 64 bytes cada uno
-    el tilemap de 32x32, que son 2048 bytes
-    los colores, a dos bytes cada uno
+    the tiles, 64 bytes each
+    the 32x32 tilemap, which is 2048 bytes
+    the colors, two bytes each
 
-La ROM lo descomprime entero en la WRAM y lo sube con tres DMA: ver
-`pantalla_subir` en tools/runtime/game_over.s, que lee de `pantallas_tabla` dónde
-está cada flujo y cuánto mide cada parte.
+The ROM decompresses it whole into WRAM and uploads it with three DMAs: see
+`pantalla_subir` in tools/runtime/game_over.s, which reads from
+`pantallas_tabla` where each stream is and how long each part is.
 
-**Por qué comprimido y no un liviano en la ROM con el de calidad en el
-`.msu`**, como los fondos de batalla: medido el 2026-09-28 con la imagen de
-Game Over del RTP, a calidad completa son 36.224 B de tiles crudos y 11.530
-con LZ2; una liviana a 128x112 y 16 colores, agrandada al doble como el
-respaldo de los fondos, son 2.901 comprimida. El ahorro de la liviana son
-unos 9 KB del cartucho, y costaría un segundo camino en la ROM —agrandar al
-doble, leer del `.msu`, la espera de la búsqueda— que ningún core de la tanda
-ejercita entero. Comprimida, la imagen de calidad va en todas las consolas.
-La del título se decidió igual, el 2026-09-28: los números están en
-`workflow/tasks/*/la-pantalla-de-game-over.md` y en
+**Why compressed, and not a light one in the ROM with the quality one in the
+`.msu`**, like the battle backdrops: measured on 2026-09-28 with the RTP's
+Game Over image, at full quality it is 36,224 B of raw tiles and 11,530 with
+LZ2; a light one at 128x112 and 16 colors, doubled in size like the backdrop
+fallback, is 2,901 compressed. The light one saves about 9 KB of cartridge,
+and it would cost a second path in the ROM —doubling, reading from the
+`.msu`, waiting for the seek— that no core in the suite exercises in full.
+Compressed, the quality image goes on every console. The title one was
+decided the same way, on 2026-09-28: the numbers are in
+`workflow/tasks/*/la-pantalla-de-game-over.md` and in
 `workflow/tasks/*/la-pantalla-de-titulo-comprimida.md`.
 """
 
@@ -30,28 +31,29 @@ from port import comprimir
 from port.formato_snes import cgram_word, entry, pack_tile
 from port.paleta import convertir
 
-# El tilemap que sube la ROM: 32x32 entradas de dos bytes, aunque la pantalla
-# muestre 28 filas. Es el tamaño que el PPU lee, y el mismo que el título.
+# The tilemap the ROM uploads: 32x32 entries of two bytes, even though the
+# screen shows 28 rows. It is the size the PPU reads, and the same as the
+# title.
 TILEMAP_BYTES = 32 * 32 * 2
 
 
 def comprimida(imagen, primer_color=0, tope=256, debajo=()):
-    """La imagen como un dict: `flujo` es el LZ2 con las tres partes, y
-    `tiles`, `colores` y `primer_color` son lo que la ROM necesita para
-    partirlo.
+    """The image as a dict: `flujo` is the LZ2 with the three parts, and
+    `tiles`, `colores` and `primer_color` are what the ROM needs to split
+    it.
 
-    `primer_color` y `tope` son los de `paleta.convertir`: por omisión la
-    imagen se queda con CGRAM entera, desde el 0. El índice 0 es además el
-    color del fondo del PPU, y `paleta.reducir` le deja ahí el negro.
+    `primer_color` and `tope` are those of `paleta.convertir`: by default the
+    image takes all of CGRAM, from 0. Index 0 is also the PPU's backdrop
+    color, and `paleta.reducir` leaves black there.
 
-    `debajo` son colores que no son de la imagen y van en CGRAM justo antes
-    de los suyos —en el título, los del menú—: viajan en el mismo flujo y se
-    suben con el mismo DMA, así que el `primer_color` de la fila baja lo que
-    ellos ocupen. Es para no gastar otro DMA en el banco 0.
+    `debajo` are colors that are not the image's and go in CGRAM right before
+    its own —on the title, the menu's—: they travel in the same stream and
+    are uploaded with the same DMA, so the stream's `primer_color` drops by
+    as many as they take. It is to avoid spending another DMA in bank 0.
     """
     if len(debajo) > primer_color:
-        raise ValueError("%d colores debajo de la imagen y la imagen empieza "
-                         "en el %d" % (len(debajo), primer_color))
+        raise ValueError("%d colors below the image, and the image starts "
+                         "at %d" % (len(debajo), primer_color))
     tiles, paleta, tilemap = convertir(imagen, primer_color, tope)
     datos = bytearray()
     for celda in tiles:

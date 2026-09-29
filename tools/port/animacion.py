@@ -1,92 +1,96 @@
 #!/usr/bin/env python3
-"""El **dibujo** de una animación de batalla sobre el mapa.
+"""The **drawing** of a battle animation over the map.
 
-Vive aparte de `snes_convert.py` por la misma razón que `imagen.py`: no es un
-mapa. Es un dibujo suelto que hay que meter en la pantalla, y lo único que
-hay que decidir es **exactamente dónde cae y de qué color es cada pixel**. Los sonidos y los destellos de la misma animación
-no están acá: ésos son `OP_ANIMATION` en `eventos.py`, y existen desde el
-2026-09-11.
+It lives apart from `snes_convert.py` for the same reason as `imagen.py`: it
+is not a map. It is a loose drawing that has to be put on the screen, and
+the only thing to decide is **exactly where each pixel lands and what color
+it is**. The sounds and flashes of the same animation are not here: those
+are `OP_ANIMATION` in `eventos.py`, and they exist since 2026-09-11.
 
-El presupuesto, que es de donde sale todo lo demás:
+The budget, which is where everything else comes from:
 
-* La VRAM de sprites que le queda libre a un mapa son **101 tiles en el mapa 2
-  y 162 en el 3**, que son los dos peores de los que muestran animaciones. Una
-  caja de 96x96 son 144 tiles y no entra en el mapa 2.
-* Un objeto de 32x32 lee cuatro tiles de cuatro filas seguidas de la grilla de
-  nombres, así que **una fila de bloques son 64 tiles y cuatro objetos**, ni
-  uno más. Cuatro objetos en dos por dos son 64x64 pixeles.
-* Un cuadro de esos son 2 KB de DMA, y sube uno cada dos cuadros de consola,
-  que es lo que dura un cuadro de animación en RM2k.
+* The sprite VRAM a map has left free is **101 tiles on map 2 and 162 on
+  map 3**, which are the two worst of those that show animations. A 96x96
+  box is 144 tiles and does not fit on map 2.
+* A 32x32 object reads four tiles from four consecutive rows of the name
+  grid, so **a row of blocks is 64 tiles and four objects**, not one more.
+  Four objects in two by two are 64x64 pixels.
+* One of those frames is 2 KB of DMA, and one goes up every two console
+  frames, which is how long an animation frame lasts in RM2k.
 
-De ahí sale **la caja de 64x64, la misma para toda la ROM**. No es por
-comodidad: que la caja no dependa del mapa es lo que deja que los 388
-`ShowBattleAnimation` de los 81 mapas del juego compartan los cuadros ya
-convertidos en el cartucho en vez de emitir una copia por mapa.
+From there comes **the 64x64 box, the same for the whole ROM**. It is not
+for convenience: the box not depending on the map is what lets the game's
+388 `ShowBattleAnimation` across 81 maps share the frames already converted
+in the cartridge instead of emitting one copy per map.
 
-Y de ahí sale también lo que taro aceptó el 2026-09-12 —*"deberíamos poder
-lograrlo si reducimos el tamaño de algunos de los efectos"*—: **la animación se
-achica entera hasta entrar en la caja**, con su proporción, y cuánto se achicó
-lo dice el conversor animación por animación. Las chicas casi no se tocan —una
-de 96x96 queda en 64x64, el 67%— y las grandes de la intro sí: la 82 mide
-536x416 y queda en 64x49, el 11%. Nada se dibuja mal en silencio: el criterio
-es una cuenta, `tamano`, y es la que exige `test_parches.py`.
+And from there also comes what taro accepted on 2026-09-12 —*"we should be
+able to pull it off if we shrink some of the effects"*—: **the animation is
+shrunk whole until it fits in the box**, keeping its proportions, and how
+much it was shrunk is reported by the converter animation by animation. The
+small ones are barely touched —a 96x96 one ends up at 64x64, 67%— and the
+big ones from the intro are: number 82 measures 536x416 and ends up at
+64x49, 11%. Nothing is drawn wrong silently: the criterion is a computation,
+`tamano`, and it is the one `test_parches.py` enforces.
 
-Lo que se pierde, y está declarado en
+What is lost, and it is declared in
 `workflow/divergencias/la-animacion-de-batalla-achicada.md`:
 
-* **La transparencia de una celda no existe.** Un objeto de la consola es opaco
-  o no está. Lo que se hace es componer las celdas con su alfa en el cuadro y
-  después **redondear el alfa**: un pixel con 128 o más queda, el resto no. Una
-  celda que se desvanece desaparece al pasar la mitad, en vez de irse de a poco.
-* **La animación no la tiñe el tinte de pantalla ni la alcanza el destello.**
-  Lo primero es fiel: `Spriteset_Map::Update` le pone el tono al tilemap, a los
-  personajes, al panorama y a las sombras, y a las animaciones no. Lo segundo es
-  deuda, la misma que ya tiene el cartel: su paleta cae arriba de `SPRITE_CGRAM`.
-* **Un objetivo sin fila de NPC, o con la fila escondida, no lleva
-  animación.** En la consola no hay de dónde sacar su posición; en RM2k la
-  animación se dibuja igual sobre un evento invisible.
-* **`global` —la que RM2k repite en tres por tres para tapar la pantalla— no se
-  dibuja.** Ninguna de las once de la intro la pide.
+* **A cell's transparency does not exist.** A console object is opaque or it
+  is not there. What is done is to composite the cells with their alpha in
+  the frame and then **round the alpha**: a pixel at 128 or more stays, the
+  rest does not. A cell that fades out disappears when it passes the half,
+  instead of going away gradually.
+* **The animation is not tinted by the screen tint nor reached by the
+  flash.** The first is faithful: `Spriteset_Map::Update` sets the tone on
+  the tilemap, the characters, the panorama and the shadows, and not on the
+  animations. The second is debt, the same the picture already has: its
+  palette lands above `SPRITE_CGRAM`.
+* **A target without an NPC row, or with the row hidden, gets no
+  animation.** On the console there is nowhere to get its position from; in
+  RM2k the animation is drawn anyway over an invisible event.
+* **`global` —the one RM2k repeats three by three to cover the screen— is
+  not drawn.** None of the eleven in the intro asks for it.
 """
 
-# La caja, y los objetos de 32x32 con que se dibuja.
-# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
-# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
+# The box, and the 32x32 objects it is drawn with.
+# Measured against A Blurred Line: an assumption of the engine, not a fact of
+# the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 CAJA = 64
 OBJ = 32
 OBJ_LADO = OBJ // 8
-GRILLA = 16                 # tiles por fila de la grilla de nombres de OAM
+GRILLA = 16                 # tiles per row of the OAM name grid
 OBJETOS = (CAJA // OBJ) ** 2
-TILES = 4 * GRILLA          # una fila de bloques: los cuatro objetos
+TILES = 4 * GRILLA          # one row of blocks: the four objects
 COLORES = 15
 
-# La hoja de `Battle`: cinco celdas por fila, de 96x96 —o de 128x128 si la
-# animación es `large`, que en el ABL no lo es ninguna—. Es el `size` de
+# The `Battle` sheet: five cells per row, of 96x96 —or 128x128 if the
+# animation is `large`, which none is in ABL—. It is the `size` of
 # `BattleAnimation::DrawAt`.
 CELDA = 96
 CELDA_GRANDE = 128
 COLUMNAS = 5
 
-# `character_height` de `BattleAnimationMap::DrawSingle`, y el centro de la
-# pantalla de RM2k, que es donde caen las de alcance "pantalla".
+# `character_height` of `BattleAnimationMap::DrawSingle`, and the center of
+# RM2k's screen, which is where those with "screen" scope land.
 ALTO_PERSONAJE = 24
 PANTALLA_RM = (320, 240)
 PANTALLA = (256, 224)
 
-# Los tres valores de `Animation::Position`, que es lo que corre la animación
-# para arriba o para abajo del objetivo.
+# The three values of `Animation::Position`, which is what shifts the
+# animation up or down from the target.
 POS_ARRIBA, POS_CENTRO, POS_ABAJO = 0, 1, 2
 ALCANCE_PANTALLA = 1        # `Animation::Scope_screen`
 
-# El alfa a partir del cual un pixel se dibuja. La mitad, y redondeando para
-# arriba: un pixel medio a medio se queda.
+# The alpha from which a pixel is drawn. Half, rounding up: a pixel that is
+# half and half stays.
 ALFA_MINIMO = 128
 
 _CACHE = {}
 
 
 def hoja_de(renderer, anim):
-    """La hoja de `Battle` de esta animación, o None si no tiene o no está."""
+    """The `Battle` sheet of this animation, or None if it has none or it is
+    not there."""
     from render import render_map
     from rpgmaker import recursos
     nombre = anim.get("imagen") or ""
@@ -98,29 +102,29 @@ def hoja_de(renderer, anim):
 
 
 def _celdas_vivas(anim, i):
-    """Las celdas válidas del cuadro `i`, en el orden del LDB.
+    """The valid cells of frame `i`, in the LDB's order.
 
-    `valid` viene en 1 de fábrica —liblcf, `AnimationCellData`— así que una
-    celda sin el campo cuenta. Las inválidas son los huecos que deja el editor
-    al borrar una celda del medio.
+    `valid` defaults to 1 —liblcf, `AnimationCellData`— so a cell without the
+    field counts. The invalid ones are the holes the editor leaves when a
+    cell in the middle is deleted.
     """
     return [c for _k, c in sorted((anim["cuadros"][i] or {}).items())
             if c.get("valid", 1)]
 
 
 def _lado(anim, celda):
-    """Cuánto mide en pantalla una celda con su zoom, en pixeles de RM2k."""
+    """How big a cell is on screen with its zoom, in RM2k pixels."""
     lado = CELDA_GRANDE if anim.get("grande") else CELDA
     return max(1, lado * celda.get("zoom", 100) // 100)
 
 
 def caja_rm(anim):
-    """El rectángulo que la animación entera ocupa en pixeles de RM2k,
-    relativo a su ancla: (x0, y0, ancho, alto).
+    """The rectangle the whole animation takes in RM2k pixels, relative to
+    its anchor: (x0, y0, ancho, alto).
 
-    Es la unión de todas las celdas de todos los cuadros, no la del cuadro más
-    grande: la caja de la consola es una sola para toda la animación, así que
-    un cuadro que se corra para un lado tiene que entrar igual.
+    It is the union of all the cells of all the frames, not that of the
+    biggest frame: the console box is a single one for the whole animation,
+    so a frame that shifts to one side has to fit all the same.
     """
     x0 = y0 = None
     x1 = y1 = None
@@ -139,22 +143,23 @@ def caja_rm(anim):
 
 
 def tamano(ancho, alto):
-    """A qué tamaño se achica una animación de `ancho` x `alto` para entrar en
-    la caja, con su proporción.
+    """The size an animation of `ancho` x `alto` is shrunk to in order to
+    fit in the box, keeping its proportions.
 
-    El denominador es el lado que más se pasa, y nunca menos que la caja: una
-    animación que ya entra no se agranda. Va con enteros.
+    The denominator is the side that overflows the most, and never less than
+    the box: an animation that already fits is not enlarged. Done with
+    integers.
     """
     den = max(ancho, alto, CAJA)
     return max(1, ancho * CAJA // den), max(1, alto * CAJA // den)
 
 
 def _pintar_cuadro(anim, hoja, i, caja):
-    """Un cuadro en pixeles de RM2k, del tamaño de `caja`, con alfa.
+    """A frame in RM2k pixels, the size of `caja`, with alpha.
 
-    Es `BattleAnimation::DrawAt` sin la pantalla: cada celda sale de la hoja,
-    se escala por su zoom, se le aplica el tono y la transparencia, y se compone
-    centrada en su (x, y).
+    It is `BattleAnimation::DrawAt` without the screen: each cell comes from
+    the sheet, is scaled by its zoom, gets its tone and transparency applied,
+    and is composited centered at its (x, y).
     """
     from PIL import Image
     from port import eventos
@@ -165,7 +170,7 @@ def _pintar_cuadro(anim, hoja, i, caja):
         cid = celda.get("cell_id", 0)
         sx, sy = (cid % COLUMNAS) * lado_hoja, (cid // COLUMNAS) * lado_hoja
         if sx + lado_hoja > hoja.width or sy + lado_hoja > hoja.height:
-            continue            # una celda que la hoja no tiene: RM2k no dibuja
+            continue            # a cell the sheet does not have: RM2k draws nothing
         trozo = hoja.crop((sx, sy, sx + lado_hoja, sy + lado_hoja))
         lado = _lado(anim, celda)
         if lado != lado_hoja:
@@ -186,11 +191,11 @@ def _pintar_cuadro(anim, hoja, i, caja):
 
 
 def _tenir(trozo, tono):
-    """El tono de una celda, con la misma cuenta que el tinte de pantalla.
+    """The tone of a cell, with the same math as the screen tint.
 
-    `color.tenir` trabaja sobre los quince bits de la consola, que es donde
-    la comparación mira: teñir los ocho del PNG y recortar después daría otro
-    número que el del tinte de pantalla sobre el mismo color.
+    `color.tenir` works on the console's fifteen bits, which is where the
+    comparison looks: tinting the PNG's eight and truncating afterwards would
+    give a different number from the screen tint's on the same color.
     """
     from port.color import tenir
     from PIL import Image
@@ -210,18 +215,18 @@ def _tenir(trozo, tono):
 
 
 def convertir(anim, hoja):
-    """La animación lista para las dos puntas, o None si no se puede dibujar.
+    """The animation ready for both ends, or None if it cannot be drawn.
 
-    Devuelve un diccionario con:
+    Returns a dictionary with:
 
-      `cuadros`  por cada cuadro de RM2k, la caja de 64x64 como índices de la
-                 paleta corridos uno: el 0 es el transparente de la consola.
-      `paleta`   sus quince colores de 15 bits, elegidos **sobre todos los
-                 cuadros de una**: la paleta se sube una sola vez al empezar.
-      `ancla`    dónde cae adentro de la caja el punto que RM2k pone sobre el
-                 objetivo. La ROM le resta esto a la posición del objetivo y
-                 le sale la esquina de la caja.
-      `tam`      a cuánto quedó achicada, y `caja_rm` de cuánto venía.
+      `cuadros`  for each RM2k frame, the 64x64 box as palette indices
+                 shifted by one: 0 is the console's transparent.
+      `paleta`   its fifteen 15-bit colors, chosen **over all the frames at
+                 once**: the palette is uploaded only once at the start.
+      `ancla`    where inside the box the point that RM2k puts over the
+                 target lands. The ROM subtracts this from the target's
+                 position and gets the corner of the box.
+      `tam`      what it was shrunk to, and `caja_rm` what it came from.
     """
     caja = caja_rm(anim)
     if caja is None or hoja is None:
@@ -238,8 +243,9 @@ def convertir(anim, hoja):
         entero = Image.new("RGBA", (CAJA, CAJA), (0, 0, 0, 0))
         entero.paste(chico, (ox, oy))
         cuadros.append(entero)
-    # Los colores de todos los cuadros juntos, a quince. `paleta.reducir` no
-    # promedia, así que no inventa un color que haya que volver a cuantizar.
+    # The colors of all the frames together, down to fifteen.
+    # `paleta.reducir` does not average, so it does not invent a color that
+    # would have to be quantized again.
     pixeles = []
     for entero in cuadros:
         for r, g, b, a in entero.get_flattened_data():
@@ -271,10 +277,10 @@ def convertir(anim, hoja):
 
 
 def de_numero(renderer, numero):
-    """La animación `numero` convertida, cacheada por proceso.
+    """Animation `numero` converted, cached per process.
 
-    Convertir una son unos cuantos `resize` grandes y el conversor la pide una
-    vez por mapa que la muestre.
+    Converting one is a handful of large `resize`s, and the converter asks
+    for it once per map that shows it.
     """
     from port import eventos
     if numero in _CACHE:
@@ -286,12 +292,12 @@ def de_numero(renderer, numero):
 
 
 def ancla_rom(info):
-    """El ancla tal como la lleva la tabla de la ROM: (ax, ay).
+    """The anchor as the ROM's table carries it: (ax, ay).
 
-    Se le hornea la corrida vertical de `Animation::Position`, que es fija por
-    animación, así que la consola sólo tiene que restar. Con alcance "pantalla"
-    no va ninguna corrida: `DrawSingle` dibuja en el centro sin preguntarle
-    nada al objetivo.
+    The vertical shift of `Animation::Position` is baked into it, since it
+    is fixed per animation, so the console only has to subtract. With
+    "screen" scope there is no shift: `DrawSingle` draws at the center
+    without asking the target anything.
     """
     ax, ay = info["ancla"]
     if info["alcance"] == ALCANCE_PANTALLA:
@@ -302,15 +308,15 @@ def ancla_rom(info):
 
 
 def celdas(cuadro):
-    """Un cuadro cortado en tiles de 8x8, en el orden en que los numera OAM.
+    """A frame cut into 8x8 tiles, in the order OAM numbers them.
 
-    Los cuatro objetos entran en una fila de bloques —64 tiles— y el objeto `o`
-    arranca en `o * 4`; adentro de él, el tile (tx, ty) está `ty` filas de la
-    grilla más adelante. Es la misma aritmética de `imagen.celdas`, que es de
-    donde salió.
+    The four objects fit in one row of blocks —64 tiles— and object `o`
+    starts at `o * 4`; inside it, tile (tx, ty) is `ty` grid rows further
+    on. It is the same arithmetic as `imagen.celdas`, which is where it came
+    from.
 
-    En pantalla los objetos van en dos por dos: el `o` en
-    `(o % 2 * 32, o // 2 * 32)` de la caja.
+    On screen the objects go two by two: `o` at `(o % 2 * 32, o // 2 * 32)`
+    of the box.
     """
     salida = {}
     for o in range(OBJETOS):
@@ -327,8 +333,8 @@ def celdas(cuadro):
 
 
 def render(info, cuadro):
-    """El cuadro como se ve en la pantalla: una imagen RGBA de 64x64 para
-    pegar donde diga `ancla_en_pantalla`."""
+    """The frame as it looks on screen: a 64x64 RGBA image to paste wherever
+    `ancla_en_pantalla` says."""
     from PIL import Image
     colores = [(0, 0, 0, 0)] + [(r << 3, g << 3, b << 3, 255)
                                 for r, g, b in info["paleta"]]
@@ -339,7 +345,7 @@ def render(info, cuadro):
 
 
 def informe(numero, info):
-    """Los números que justifican el reparto, para que la receta los imprima."""
+    """The numbers that justify the layout, for the recipe to print."""
     ancho, alto = info["caja_rm"]
     ta, tal = info["tam"]
     return {

@@ -1,29 +1,31 @@
 #!/usr/bin/env python3
-"""Los parches: lo que el conversor **decide perder** al pasar el juego a la SNES.
+"""The patches: what the converter **decides to lose** when taking the game to the SNES.
 
-Al pasar de RPG Maker a la consola hay dos clases de transformación y sólo una
-es un parche. El horneado de eventos opacos, el reuso de tiles espejados o
-`separar_del_heroe` no piden criterio y no cambian lo que se ve: son
-optimizaciones y no están acá. Fusionar dos colores porque la CGRAM no da para
-los dos, en cambio, **pierde algo y alguien eligió qué**, y eso es un parche.
+Going from RPG Maker to the console there are two kinds of transformation
+and only one is a patch. Baking opaque events, reusing mirrored tiles or
+`separar_del_heroe` require no judgment and do not change what is seen: they
+are optimizations and are not here. Merging two colors because CGRAM does
+not have room for both, on the other hand, **loses something and someone
+chose what**, and that is a patch.
 
-Hasta hoy esas decisiones se tomaban solas y no dejaban rastro: si un cambio
-hacía que un mapa perdiera dos colores más, la única forma de enterarse era
-mirar la ROM. Acá salen escritas, se versionan, y la tanda falla si lo
-commiteado no coincide —lo mismo que `just protocolo --check` hace con los
-opcodes—. El punto es que **el diff avise**: es lo que las goldens hacen con
-los pixeles, para las decisiones.
+Until now those decisions were made silently and left no trace: if a change
+made a map lose two more colors, the only way to find out was to look at the
+ROM. Here they come out written, they are versioned, and the suite fails if
+what is committed does not match —the same as `just protocolo --check` does
+with the opcodes—. The point is that **the diff warns**: it is what the
+goldens do with the pixels, for the decisions.
 
-Lo que se escribe es **el estado deseado y no un informe**, porque la fase 2
-—ya decidida— es que el conversor lea estos archivos en vez de volver a
-decidir. Por eso cada fusión se escribe como "este color se va a este otro" y
-en el orden en que se aplicaron: replayar la lista reconstruye el mapeo entero,
-que es exactamente lo que devuelve `asignador.merge_least_visible`. Y por eso
-una animación escribe el rectángulo al que se dibuja y no cuánto se achicó: el
-porcentaje es para leer y el rectángulo es para aplicar.
+What is written is **the desired state and not a report**, because phase 2
+—already decided— is for the converter to read these files instead of
+deciding again. That is why each merge is written as "this color goes to
+this other one" and in the order they were applied: replaying the list
+rebuilds the whole mapping, which is exactly what
+`asignador.merge_least_visible` returns. And that is why an animation writes
+the rectangle it is drawn at and not how much it was shrunk: the percentage
+is for reading and the rectangle is for applying.
 
-Dos ejemplos de cómo se leería de vuelta, que es lo que guió el formato. El
-mapeo de colores de una capa::
+Two examples of how it would be read back, which is what guided the format.
+The color mapping of a layer::
 
     mapping = {}
     for f in parches.leer(proyecto.parches_auto(), 7)["capas"]["fondo"]["fusiones"]:
@@ -33,91 +35,96 @@ mapeo de colores de una capa::
                 mapping[viejo] = a
         mapping[de] = a
 
-Y el tamaño al que se dibuja una animación de batalla, que es una sola línea
-porque la decisión es un rectángulo::
+And the size a battle animation is drawn at, which is a single line because
+the decision is a rectangle::
 
     ta, tal = parches.leer_animacion(proyecto.parches_auto(), 82)["tamano"]
 
-La clave
---------
+The key
+-------
 
-Un archivo por situación del juego: ``rom/parches/auto/mapas/<id>.toml`` para las
-capas de un mapa, con una sección por capa, y
-``rom/parches/auto/animaciones/<n>.toml`` para las animaciones de batalla. **El id
-del mapa es del juego y no del cartucho**: no se mueve cuando cambia la lista
-de mapas de la ROM, ni cuando cambia el orden interno del conversor, ni cuando
-cambia el algoritmo del asignador. Los colores se escriben por su valor —RGB de
-15 bits, que es la profundidad real de la consola— y no por su índice en
-ninguna paleta, por lo mismo: el índice se corre con cualquier cosa y el valor
-identifica al color para siempre.
+One file per game situation: ``rom/parches/auto/mapas/<id>.toml`` for the
+layers of a map, with one section per layer, and
+``rom/parches/auto/animaciones/<n>.toml`` for the battle animations. **The
+map id is the game's and not the cartridge's**: it does not move when the
+ROM's list of maps changes, nor when the converter's internal order changes,
+nor when the allocator's algorithm changes. Colors are written by their
+value —15-bit RGB, which is the console's real depth— and not by their index
+in any palette, for the same reason: the index shifts with anything and the
+value identifies the color forever.
 
-Y el cartucho **no entra en la clave**: la regla es de taro, del 2026-09-21, y
-dice que *la decisión versionada es siempre la del ROM jugable*, hoy `release`. Lo
-versionado es lo que perdió **el juego**, que es lo único que le importa a
-alguien que mire el repo; un cartucho de prueba la reusa cuando aplica, y
-cuando no aplica decide por su cuenta y eso no se versiona. Por eso acá están
-los 29 mapas de `abl` y no los 40 que arman los cartuchos de prueba: los once
-que sobran son situaciones que sólo existen en la tanda.
+And the cartridge **is not part of the key**: the rule is taro's, from
+2026-09-21, and it says that *the versioned decision is always the playable
+ROM's*, today `release`. What is versioned is what **the game** lost, which
+is the only thing that matters to someone looking at the repo; a test
+cartridge reuses it when it applies, and when it does not apply it decides
+on its own and that is not versioned. That is why the 29 maps of `abl` are
+here and not the 40 the test cartridges build: the eleven extra are
+situations that only exist in the suite.
 
-Lo que pasa **cuando la decisión de `abl` no se puede aplicar** en un cartucho
-de prueba es, entonces, un camino previsto y no una excepción: ese cartucho
-decide solo, escribe lo que decidió al lado de su ROM —en
-`rom/build/<cartucho>/parches/`, que no se versiona— y `--check` no le pide
-nada. En esta clase de decisión, encima, la pregunta no se llega a hacer: las
-fusiones de las capas dependen del mapa y de su ChipSet y de nada más —es la
-misma razón por la que `capas_convertidas` las puede cachear con una clave que
-no sabe qué cartucho se está armando—. Que eso sea cierto **no se supone**:
-`--check` compara contra lo versionado **todos** los cartuchos que lleven un
-mapa versionado, así que si alguno decidiera distinto, la tanda lo dice con su
-nombre puesto. Medido el 2026-09-21: los tres cartuchos de prueba de entonces y `abl`
-emiten los mismos 29 archivos byte por byte.
+What happens **when `abl`'s decision cannot be applied** in a test cartridge
+is, then, an expected path and not an exception: that cartridge decides on
+its own, writes what it decided next to its ROM —in
+`rom/build/<cartucho>/parches/`, which is not versioned— and `--check` asks
+nothing of it. In this kind of decision, moreover, the question never even
+comes up: the layer merges depend on the map and its ChipSet and nothing
+else —it is the same reason `capas_convertidas` can cache them with a key
+that does not know which cartridge is being built—. That this is true **is
+not assumed**: `--check` compares against what is versioned **every**
+cartridge that carries a versioned map, so if any decided differently, the
+suite says so with its name on it. Measured on 2026-09-21: the three test
+cartridges of the time and `abl` emit the same 29 files byte for byte.
 
-Y una cosa que el formato deja abierta a propósito. El rumbo es que qué mapas
-entran, dónde arranca la ROM y con qué grupo dejen de ser argumentos sueltos de
-una receta y pasen a ser **una descripción** que el que reparte paletas pueda
-leer. Una clave que nombra la situación del juego —el mapa, y mañana el
-gráfico o el tema— no le estorba: el día que exista, lo que cambia es de dónde
-sale la lista de situaciones, no cómo se identifica cada una.
+And one thing the format leaves open on purpose. The direction is for which
+maps go in, where the ROM starts and with which party to stop being loose
+arguments of a recipe and become **a description** that whoever hands out
+palettes can read. A key that names the game situation —the map, and
+tomorrow the graphic or the song— does not get in its way: the day it
+exists, what changes is where the list of situations comes from, not how
+each one is identified.
 
-Las animaciones de batalla
---------------------------
+The battle animations
+---------------------
 
-La segunda clase que dejó de decidirse en silencio, y la más barata de las que
-quedaban: **a qué tamaño se dibuja cada animación**. Una que no entra en la
-caja de la consola se achica entera, con su proporción, y eso se ve —la 82 de
-la intro mide 536x416 en RM2k y se dibuja en 64x49, el 11%—.
+The second kind that stopped being decided silently, and the cheapest of the
+ones left: **the size each animation is drawn at**. One that does not fit in
+the console's box is shrunk whole, keeping its proportions, and that shows
+—number 82 of the intro measures 536x416 in RM2k and is drawn at 64x49,
+11%—.
 
-Su clave es **el número de animación de RM2k**, y alcanza sola porque el
-tamaño sale de `animacion.tamano`, que mira la caja que la animación ocupa en
-RM2k y la caja de la consola, que es **una sola para toda la ROM** —el porqué
-está en `animacion.py`: que no dependa del mapa es lo que deja que los
-`ShowBattleAnimation` de todos los mapas compartan los cuadros ya
-convertidos—. Ni el cartucho ni el mapa entran, y no se supone: lo mismo que
-con las capas, `--check` compara todos los cartuchos que muestren una
-animación versionada, y
+Its key is **the RM2k animation number**, and it is enough alone because the
+size comes from `animacion.tamano`, which looks at the box the animation
+takes in RM2k and the console's box, which is **a single one for the whole
+ROM** —the reason is in `animacion.py`: that it does not depend on the map is
+what lets the `ShowBattleAnimation`s of every map share the frames already
+converted—. Neither the cartridge nor the map is part of it, and it is not
+assumed: as with the layers, `--check` compares every cartridge that shows
+a versioned animation, and
 `test_el_tamano_de_cada_animacion_versionada_sale_de_su_caja_y_de_nada_mas`
-rehace la cuenta desde lo escrito.
+redoes the math from what is written.
 
-Lo que **sí** depende del mapa es otra cosa y no está acá: si la animación se
-dibuja, que es lo que decide `animacion_de_mapa` cuando el mapa ya se llevó
-las ocho paletas de sprite. Es otra decisión —y otra clase—, y meterla en este
-archivo sería volver a mezclar el cartucho con el juego.
+What **does** depend on the map is something else and is not here: whether
+the animation is drawn, which is what `animacion_de_mapa` decides when the
+map already took the eight sprite palettes. It is another decision —and
+another kind—, and putting it in this file would mix the cartridge with the
+game again.
 
-Los battlers
+The battlers
 ------------
 
-La tercera, del 2026-09-21: desde que la escena de la pelea se compone en la
-consola, cada battler tiene **quince colores y el transparente**, y cuáles se
-pierden es una decisión nueva. Se escribe la paleta que quedó y cuántas
-fusiones hicieron falta —ver `texto_battler`—, con la clave del battler:
-su imagen y su tono, que es lo que `escena.clave` arma. No mira la tropa ni el
-cartucho: la reducción es del dibujo ya achicado y de nada más.
+The third, from 2026-09-21: since the battle scene is composited on the
+console, each battler has **fifteen colors and the transparent one**, and
+which ones are lost is a new decision. What is written is the palette that
+remained and how many merges were needed —see `texto_battler`—, with the
+battler's key: its image and its hue, which is what `escena.clave` builds.
+It looks at neither the troop nor the cartridge: the reduction is of the
+already shrunk drawing and nothing else.
 
-Lo que **todavía no está acá**, y es lo que queda para más adelante: las
-paletas de los personajes —que sí dependen del cartucho, porque quién le paga
-la entrada al cronómetro lo decide `npcs_dibujables` mirando el mapa entero—,
-las voces que se caen de un MIDI, las muestras recortadas, los quince colores
-a los que se reduce cada animación y `DECORAR_TRANSLUCIDO`.
+What **is not here yet**, and is left for later: the character palettes
+—which do depend on the cartridge, because who pays the timer's entry is
+decided by `npcs_dibujables` looking at the whole map—, the voices dropped
+from a MIDI, the trimmed samples, the fifteen colors each animation is
+reduced to, and `DECORAR_TRANSLUCIDO`.
 """
 
 import argparse
@@ -126,24 +133,25 @@ import os
 import sys
 import tomllib
 
-# Corrido como script, Python pone en el `sys.path` la carpeta de este archivo
-# y no `tools/`: ver el mismo arranque en `port/snes_convert.py`.
+# Run as a script, Python puts this file's folder in `sys.path` and not
+# `tools/`: see the same startup in `port/snes_convert.py`.
 if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 from comun import ambiente                                  # noqa: E402
 from comun import proyecto                                  # noqa: E402
 
-# Dónde viven los versionados, relativo a lo que el conversor decidió y se
-# versiona: las funciones reciben ese directorio —`proyecto.parches_auto()`,
-# o uno temporal en las pruebas— y esto es lo que se le suma. Hasta el
-# 2026-09-29 recibían la raíz del repo y sumaban `rom/parches/auto/`, que
-# es saber dónde vive el juego.
+# Where the versioned ones live, relative to what the converter decided and
+# is versioned: the functions receive that directory —`proyecto.parches_auto()`,
+# or a temporary one in the tests— and this is what is appended. Until
+# 2026-09-29 they received the repo root and appended `rom/parches/auto/`,
+# which is knowing where the game lives.
 DIRECTORIO = "mapas"
 
-# Dónde los deja cada cartucho al armarse, relativo al directorio del build.
-# Es la forma del build, no dónde está `rom/parches/` en el repo: por eso no sale
-# de `proyecto`, y no se mueve con él.
+# Where each cartridge leaves them when it is built, relative to the build
+# directory. It is the shape of the build, not where `rom/parches/` is in the
+# repo: that is why it does not come from `proyecto`, and does not move with
+# it.
 EN_BUILD = os.path.join("parches", "auto", "mapas")
 
 
@@ -156,9 +164,9 @@ def _color(c):
 
 
 def texto(map_id, nombre, resumen):
-    """El archivo de un mapa, tal cual va a disco.
+    """A map's file, exactly as it goes to disk.
 
-    `resumen` es el que deja `_convert_layers` en `mapa["resumen"]`.
+    `resumen` is the one `_convert_layers` leaves in `mapa["resumen"]`.
     """
     fusiones = resumen.get("fusiones", {"fondo": [], "encima": []})
     lineas = [
@@ -203,11 +211,11 @@ def _cadena(valor):
 
 
 def _vaciar(carpeta):
-    """La carpeta de una clase en el build, creada y sin los `.toml` de la
-    corrida anterior. Sin esto, un cartucho que deja de llevar un mapa o una
-    animación seguía teniendo su parche viejo al lado de la ROM, y
-    `revisar` lo contaba como convertido: al sacar los mapas de prueba de
-    `release`, el `0052.toml` que había quedado hacía caer `test_parches`."""
+    """A kind's folder in the build, created and without the previous run's
+    `.toml`s. Without this, a cartridge that stops carrying a map or an
+    animation still had its old patch next to the ROM, and `revisar` counted
+    it as converted: when the test maps were taken out of `release`, the
+    `0052.toml` left behind made `test_parches` fail."""
     os.makedirs(carpeta, exist_ok=True)
     for viejo in os.listdir(carpeta):
         if viejo.endswith(".toml"):
@@ -216,11 +224,11 @@ def _vaciar(carpeta):
 
 
 def escribir(destino, mapas):
-    """Los parches de los mapas de un cartucho, en
+    """The patches of a cartridge's maps, in
     `<destino>/parches/auto/mapas/`.
 
-    `mapas` son los que devuelve `main()` del conversor. Devuelve cuántos
-    archivos escribió y cuántos bytes ocupan.
+    `mapas` are the ones the converter's `main()` returns. Returns how many
+    files it wrote and how many bytes they take.
     """
     carpeta = _vaciar(os.path.join(destino, EN_BUILD))
     bytes_ = 0
@@ -232,11 +240,11 @@ def escribir(destino, mapas):
     return len(mapas), bytes_
 
 
-# --- las animaciones de batalla, que se dibujan a otro tamaño ---------------
+# --- the battle animations, which are drawn at another size -----------------
 
-# Igual que los mapas: versionadas acá, y cada cartucho deja las suyas al lado
-# de su ROM. La clave es **el número de animación de RM2k**, que es del juego:
-# el mismo 82 en cualquier cartucho que la muestre.
+# Like the maps: versioned here, and each cartridge leaves its own next to its
+# ROM. The key is **the RM2k animation number**, which is the game's: the same
+# 82 in any cartridge that shows it.
 DIRECTORIO_ANIM = "animaciones"
 EN_BUILD_ANIM = os.path.join("parches", "auto", "animaciones")
 
@@ -246,10 +254,10 @@ def ruta_animacion(auto, numero):
 
 
 def texto_animacion(datos):
-    """El archivo de una animación, tal cual va a disco.
+    """An animation's file, exactly as it goes to disk.
 
-    `datos` es lo que arma `snes_convert` con `animacion.informe` y el nombre
-    que la animación tiene en el LDB.
+    `datos` is what `snes_convert` builds with `animacion.informe` and the
+    name the animation has in the LDB.
     """
     ancho, alto = datos["original"]
     ta, tal = datos["caja"]
@@ -280,10 +288,10 @@ def texto_animacion(datos):
 
 
 def escribir_animaciones(destino, animaciones):
-    """Los parches de las animaciones de un cartucho, en
+    """The patches of a cartridge's animations, in
     `<destino>/parches/auto/animaciones/`.
 
-    Devuelve cuántos archivos escribió y cuántos bytes ocupan.
+    Returns how many files it wrote and how many bytes they take.
     """
     carpeta = _vaciar(os.path.join(destino, EN_BUILD_ANIM))
     bytes_ = 0
@@ -296,24 +304,25 @@ def escribir_animaciones(destino, animaciones):
     return len(animaciones), bytes_
 
 
-# --- los battlers, que se reducen a quince colores --------------------------
+# --- the battlers, which are reduced to fifteen colors ----------------------
 
-# La tercera clase, desde el 2026-09-21: con la escena de la pelea compuesta en
-# la consola cada battler lleva **quince colores y el transparente**, y cuáles
-# se pierden es una decisión que antes no existía —la escena horneada repartía
-# 96 entre el fondo y todos los battlers juntos—. Ver tools/port/escena.py.
+# The third kind, since 2026-09-21: with the battle scene composited on the
+# console each battler carries **fifteen colors and the transparent one**, and
+# which ones are lost is a decision that did not exist before —the baked scene
+# split 96 among the backdrop and all the battlers together—. See
+# tools/port/escena.py.
 #
-# La clave es **el battler**: la imagen de RM2k y su tono, `escena.clave`. Es
-# del juego y no depende del cartucho ni de la tropa, porque la reducción mira
-# el dibujo ya achicado y nada más.
+# The key is **the battler**: the RM2k image and its hue, `escena.clave`. It
+# is the game's and does not depend on the cartridge nor on the troop,
+# because the reduction looks at the already shrunk drawing and nothing else.
 DIRECTORIO_BAT = "battlers"
 EN_BUILD_BAT = os.path.join("parches", "auto", "battlers")
 
 
 def _archivo(clave):
-    """El nombre de archivo de una clave: los battlers de RM2k pueden tener
-    espacios —`sentry drone`—, y un archivo con espacios en el repo es una
-    molestia en cada comando que lo nombre."""
+    """The file name of a key: RM2k battlers can have spaces —`sentry
+    drone`—, and a file with spaces in the repo is a nuisance in every
+    command that names it."""
     return "%s.toml" % str(clave).replace(" ", "_")
 
 
@@ -322,8 +331,8 @@ def ruta_battler(auto, clave):
 
 
 def texto_battler(info):
-    """El archivo de un battler, tal cual va a disco. `info` es el que devuelve
-    `escena.battler`."""
+    """A battler's file, exactly as it goes to disk. `info` is the one
+    `escena.battler` returns."""
     lineas = [
         "# La decisión artística del battler %s: **qué colores se pierden** al"
         % info["clave"],
@@ -346,12 +355,13 @@ def texto_battler(info):
     ]
     for color in info["paleta"]:
         lineas.append("  %s," % _color(color))
-    # **La forma mínima, a propósito**: la paleta que quedó y no la lista de
-    # fusiones que llevó a ella. Un battler ya achicado trae cientos de colores
-    # —los grises intermedios que deja el LANCZOS en cada borde— y la lista
-    # medía 179 KB para los once de `abl`; lo que se ve es qué quince quedan, y
-    # eso es lo que el diff tiene que mostrar. El día que la fase 2 quiera leer
-    # esto en vez de decidir, la lista vuelve: es `info["fusiones"]`.
+    # **The minimal form, on purpose**: the palette that remained and not the
+    # list of merges that led to it. An already shrunk battler carries
+    # hundreds of colors —the intermediate grays LANCZOS leaves on every
+    # edge— and the list measured 179 KB for `abl`'s eleven; what is seen is
+    # which fifteen remain, and that is what the diff has to show. The day
+    # phase 2 wants to read this instead of deciding, the list comes back: it
+    # is `info["fusiones"]`.
     lineas += [
         "]",
         "",
@@ -364,8 +374,9 @@ def texto_battler(info):
 
 
 def escribir_battlers(destino, battlers):
-    """Los parches de los battlers de un cartucho, en
-    `<destino>/parches/auto/battlers/`. Devuelve cuántos y cuántos bytes."""
+    """The patches of a cartridge's battlers, in
+    `<destino>/parches/auto/battlers/`. Returns how many and how many
+    bytes."""
     carpeta = _vaciar(os.path.join(destino, EN_BUILD_BAT))
     bytes_ = 0
     for info in battlers:
@@ -381,42 +392,42 @@ def leer_battler(auto, clave):
 
 
 def diferencias_battler(viejo, nuevo):
-    """Qué cambió entre dos parches de battler, en castellano: primero si se
-    pierde otro color, después por qué."""
+    """What changed between two battler patches, in plain words: first
+    whether another color is lost, then why."""
     salida = []
     antes = [tuple(c) for c in viejo.get("paleta", [])]
     ahora = [tuple(c) for c in nuevo.get("paleta", [])]
     for c in ahora:
         if c not in antes:
-            salida.append("se queda con %s, que antes se fusionaba"
+            salida.append("keeps %s, which used to be merged"
                           % _color(c))
     for c in antes:
         if c not in ahora:
-            salida.append("pierde %s, que antes se quedaba" % _color(c))
+            salida.append("loses %s, which used to stay" % _color(c))
     if not salida and antes != ahora:
-        salida.append("los mismos colores en otro orden de paleta")
+        salida.append("the same colors in another palette order")
     for campo in ("tamano", "colores", "imagen", "tono"):
         if viejo.get(campo) != nuevo.get(campo):
-            salida.append("%s pasó de %s a %s"
+            salida.append("%s went from %s to %s"
                           % (campo, viejo.get(campo), nuevo.get(campo)))
     if viejo.get("fusiones") != nuevo.get("fusiones"):
-        salida.append("hacían falta %s fusiones y ahora %s"
+        salida.append("%s merges were needed and now %s"
                       % (viejo.get("fusiones"), nuevo.get("fusiones")))
     return salida
 
 
-# --- lo que no es del juego -------------------------------------------------
+# --- what is not the game's -------------------------------------------------
 
-# Quién pidió cada parche del cartucho, al lado de sus parches y **sin
-# versionar**: lo escribe el conversor —ver `usos_de_los_parches` en
-# snes_convert.py— y lo lee `de_prueba`. Hace falta desde que la ROM que se
-# juega lleva también los mapas y las páginas de la tanda.
+# Who asked for each of the cartridge's patches, next to its patches and **not
+# versioned**: the converter writes it —see `usos_de_los_parches` in
+# snes_convert.py— and `de_prueba` reads it. It is needed since the ROM that
+# is played also carries the suite's maps and pages.
 USOS = os.path.join("parches", "usos.json")
 
 
 def escribir_usos(destino, usos):
-    """`usos` es `{clave de la clase: {clave: [origen, ...]}}`; el origen es un
-    id de mapa o `"caso"`."""
+    """`usos` is `{kind key: {key: [origin, ...]}}`; the origin is a map id
+    or `"caso"`."""
     import json
     with open(os.path.join(destino, USOS), "w") as f:
         json.dump({clase: {str(k): sorted(v, key=str)
@@ -425,20 +436,20 @@ def escribir_usos(destino, usos):
 
 
 def mapas_de_prueba():
-    """Los mapas que sólo existen por la tanda. Los declara el archivo de
-    proyecto, `[maps] test`, y los lee `cartuchos.py`; acá no se escriben
-    otra vez."""
+    """The maps that only exist for the suite. The project file declares
+    them, `[maps] test`, and `cartuchos.py` reads them; they are not written
+    again here."""
     from ensamblado import cartuchos
     return set(cartuchos.MAPAS_DE_PRUEBA)
 
 
 def de_prueba(build, clase, cual, prueba):
-    """Si `cual` está en el cartucho `build` sólo por la tanda: un mapa de
-    prueba, o una animación o un battler que sólo piden los mapas de prueba y
-    las páginas de los casos. `prueba` es `mapas_de_prueba()`.
+    """Whether `cual` is in cartridge `build` only for the suite: a test
+    map, or an animation or a battler that only the test maps and the cases'
+    pages ask for. `prueba` is `mapas_de_prueba()`.
 
-    Sin `usos.json`, o sin origen conocido, **no**: la duda va para el lado de
-    pedir el parche, que es la queja que se ve.
+    Without `usos.json`, or without a known origin, **no**: doubt goes to the
+    side of asking for the patch, which is the complaint that shows.
     """
     if clase.clave == "mapa":
         return cual in prueba
@@ -452,7 +463,7 @@ def de_prueba(build, clase, cual, prueba):
                                   for o in origenes)
 
 
-# --- la verificación --------------------------------------------------------
+# --- the check -------------------------------------------------------------
 
 def _leer(ruta_):
     with open(ruta_, "rb") as f:
@@ -460,16 +471,16 @@ def _leer(ruta_):
 
 
 def leer(auto, map_id):
-    """Lo decidido y versionado para un mapa, parseado.
+    """What was decided and versioned for a map, parsed.
 
-    Es la puerta de entrada de la fase 2 y la usa la verificación, que es lo
-    que la mantiene viva mientras la fase 2 no exista.
+    It is phase 2's entry point and the check uses it, which is what keeps it
+    alive while phase 2 does not exist.
     """
     return _leer(ruta(auto, map_id))
 
 
 def leer_animacion(auto, numero):
-    """Lo decidido y versionado para una animación de batalla, parseado."""
+    """What was decided and versioned for a battle animation, parsed."""
     return _leer(ruta_animacion(auto, numero))
 
 
@@ -479,12 +490,13 @@ def _fusiones(doc, capa):
 
 
 def diferencias(viejo, nuevo):
-    """Qué decisión cambió entre dos parches ya parseados, en castellano.
+    """Which decision changed between two already parsed patches, in plain
+    words.
 
-    No es un diff de texto: un archivo que difiere sólo en un comentario no
-    dice nada, y uno al que le cambió una fusión tiene que decir **cuál**. Es
-    lo único que hace útil a la verificación: "el archivo difiere" manda a
-    correr `diff` y a adivinar si el cambio importa.
+    It is not a text diff: a file that differs only in a comment says
+    nothing, and one where a merge changed has to say **which**. It is the
+    only thing that makes the check useful: "the file differs" sends you to
+    run `diff` and guess whether the change matters.
     """
     salida = []
     for capa in ("fondo", "encima"):
@@ -493,115 +505,117 @@ def diferencias(viejo, nuevo):
             a = viejo.get("capas", {}).get(capa, {}).get(campo)
             b = nuevo.get("capas", {}).get(capa, {}).get(campo)
             if a != b:
-                salida.append("capa %s: %s pasó de %s a %s"
+                salida.append("layer %s: %s went from %s to %s"
                               % (capa, campo, a, b))
         if len(antes) != len(ahora):
-            salida.append("capa %s: fusionaba %d color(es) y ahora fusiona %d"
+            salida.append("layer %s: it merged %d color(s) and now merges %d"
                           % (capa, len(antes), len(ahora)))
         for i, (a, b) in enumerate(zip(antes, ahora)):
             if a[:2] != b[:2]:
                 salida.append(
-                    "capa %s: la fusión %d mandaba %s a %s y ahora manda %s a %s"
+                    "layer %s: merge %d sent %s to %s and now sends %s to %s"
                     % (capa, i, _color(a[0]), _color(a[1]),
                        _color(b[0]), _color(b[1])))
             elif a[2] != b[2]:
                 salida.append(
-                    "capa %s: la fusión %d de %s movía %d pixel(es) y ahora "
-                    "mueve %d" % (capa, i, _color(a[0]), a[2], b[2]))
+                    "layer %s: merge %d of %s moved %d pixel(s) and now "
+                    "moves %d" % (capa, i, _color(a[0]), a[2], b[2]))
         sobran = ahora[len(antes):] if len(ahora) > len(antes) else []
         faltan = antes[len(ahora):] if len(antes) > len(ahora) else []
         for v, d, _p in sobran:
-            salida.append("capa %s: fusiona de más %s -> %s"
+            salida.append("layer %s: extra merge %s -> %s"
                           % (capa, _color(v), _color(d)))
         for v, d, _p in faltan:
-            salida.append("capa %s: ya no fusiona %s -> %s"
+            salida.append("layer %s: no longer merges %s -> %s"
                           % (capa, _color(v), _color(d)))
     return salida
 
 
 def diferencias_animacion(viejo, nuevo):
-    """Qué cambió entre dos parches de animación, en castellano.
+    """What changed between two animation patches, in plain words.
 
-    Lo que importa es la primera línea: **a qué tamaño se dibuja**. Las otras
-    dos dicen por qué cambió —la animación mide otra cosa en RM2k, o tiene
-    otros cuadros—, y pueden salir solas: que la caja no se mueva no quiere
-    decir que la animación sea la misma.
+    What matters is the first line: **the size it is drawn at**. The other
+    two say why it changed —the animation measures something else in RM2k,
+    or has other frames—, and they can come out alone: the box not moving
+    does not mean the animation is the same.
     """
     salida = []
     if viejo.get("tamano") != nuevo.get("tamano"):
-        salida.append("se dibujaba a %s y ahora se dibuja a %s"
+        salida.append("it was drawn at %s and now it is drawn at %s"
                       % (_lados(viejo.get("tamano")),
                          _lados(nuevo.get("tamano"))))
     if viejo.get("original") != nuevo.get("original"):
-        salida.append("venía de %s en RM2k y ahora viene de %s"
+        salida.append("it came from %s in RM2k and now comes from %s"
                       % (_lados(viejo.get("original")),
                          _lados(nuevo.get("original"))))
     if viejo.get("cuadros") != nuevo.get("cuadros"):
-        salida.append("tenía %s cuadro(s) y ahora tiene %s"
+        salida.append("it had %s frame(s) and now has %s"
                       % (viejo.get("cuadros"), nuevo.get("cuadros")))
     if viejo.get("hoja") != nuevo.get("hoja"):
-        salida.append("salía de la hoja %r y ahora sale de %r"
+        salida.append("it came from sheet %r and now comes from %r"
                       % (viejo.get("hoja"), nuevo.get("hoja")))
     return salida
 
 
 def _lados(par):
-    return "%dx%d" % tuple(par) if par else "nada"
+    return "%dx%d" % tuple(par) if par else "nothing"
 
 
-# Las clases de decisión que hay escritas, cada una con su directorio, la
-# clave con que se identifica —que es siempre algo **del juego**— y cómo se
-# cuenta qué cambió. Agregar una clase es agregar una fila acá y su `texto`:
-# la verificación, el copiado a `rom/parches/` y los mensajes salen de ésta.
+# The kinds of decision that are written, each with its directory, the key
+# that identifies it —which is always something **of the game**— and how
+# what changed is told. Adding a kind is adding a row here and its `texto`:
+# the check, the copy to `rom/parches/` and the messages come from this one.
 Clase = collections.namedtuple(
     "Clase", "nombre articulo directorio en_build clave leer diferencias")
 
 CLASES = (
-    Clase("mapa(s)", "el mapa", DIRECTORIO, EN_BUILD, "mapa", leer,
+    Clase("map(s)", "map", DIRECTORIO, EN_BUILD, "mapa", leer,
           diferencias),
-    Clase("animación(es)", "la animación", DIRECTORIO_ANIM, EN_BUILD_ANIM,
+    Clase("animation(s)", "animation", DIRECTORIO_ANIM, EN_BUILD_ANIM,
           "animacion", leer_animacion, diferencias_animacion),
-    Clase("battler(s)", "el battler", DIRECTORIO_BAT, EN_BUILD_BAT, "battler",
+    Clase("battler(s)", "battler", DIRECTORIO_BAT, EN_BUILD_BAT, "battler",
           leer_battler, diferencias_battler),
 )
 
 
 def versionados(auto, clase=None):
-    """Los que tienen parche versionado, o sea los del ROM jugable.
+    """The ones with a versioned patch, that is the playable ROM's.
 
-    Sin `clase`, los mapas: es lo que pedían los llamadores cuando ésta era la
-    única clase que había.
+    Without `clase`, the maps: it is what the callers asked for when this was
+    the only kind there was.
     """
     clase = clase or CLASES[0]
     carpeta = os.path.join(auto, clase.directorio)
     if not os.path.isdir(carpeta):
         return []
-    # La clave se lee de adentro del archivo y no del nombre: la de un battler
-    # es un texto, y su nombre de archivo no lleva los espacios. Ver `_archivo`.
+    # The key is read from inside the file and not from the name: a battler's
+    # is a text, and its file name does not carry the spaces. See `_archivo`.
     return sorted(_leer(os.path.join(carpeta, n))[clase.clave]
                   for n in os.listdir(carpeta) if n.endswith(".toml"))
 
 
 def revisar(auto, builds, jugable="release"):
-    """Los parches de los builds contra los versionados: (quejas, propios).
+    """The builds' patches against the versioned ones: (quejas, propios).
 
-    `builds` son directorios de cartuchos armados, y se miran **todos**. Lo que
-    no está versionado no es una queja: es una situación que `abl` no tiene
-    —un mapa que no lleva, una animación que no muestra—, así que el cartucho
-    de prueba decidió solo y eso no se versiona; sale en `propios`, que es
-    información sobre cuánto se parecen los cartuchos al juego y no un error.
-    Del ROM jugable, en cambio, todo tiene que estar versionado **salvo lo que
-    lleva sólo por la tanda** —ver `de_prueba`—, que también sale en
+    `builds` are directories of built cartridges, and **all** of them are
+    looked at. What is not versioned is not a complaint: it is a situation
+    `abl` does not have —a map it does not carry, an animation it does not
+    show—, so the test cartridge decided on its own and that is not
+    versioned; it comes out in `propios`, which is information about how
+    much the cartridges resemble the game and not an error. For the playable
+    ROM, on the other hand, everything has to be versioned **except what it
+    carries only for the suite** —see `de_prueba`—, which also comes out in
     `propios`.
 
-    Lo que **sí** está versionado se compara contra lo commiteado en cada
-    cartucho que lo lleve. Para las dos clases de hoy eso no puede dar distinto
-    —ni las fusiones de las capas ni el tamaño de una animación miran el
-    cartucho— y por eso da queja: si diera, lo que se rompió es esa
-    independencia, y conviene enterarse ahí y no en la fase 2.
+    What **is** versioned is compared against what is committed in every
+    cartridge that carries it. For today's two kinds that cannot differ
+    —neither the layer merges nor the size of an animation look at the
+    cartridge— and that is why it complains: if it did differ, what broke is
+    that independence, and it is better to find out there and not in
+    phase 2.
 
-    `propios` va por clase: `{"mapa": {7: ["test-special"]}, ...}`, con la clave de
-    cada una.
+    `propios` goes per kind: `{"mapa": {7: ["test-special"]}, ...}`, with
+    each one's key.
     """
     quejas, propios = [], {}
     for clase in CLASES:
@@ -617,10 +631,11 @@ def _revisar_clase(clase, auto, builds, jugable):
     prueba = mapas_de_prueba()
     tengo = set(versionados(auto, clase))
     vistos = set()
-    # Una queja por situación **y por juego de diferencias**: cuatro cartuchos
-    # que llevan el mismo mapa dicen todos lo mismo, y repetirlo cuatro veces
-    # tapa a las de los demás. Si uno decidiera distinto que los otros, sus
-    # diferencias son otras y su queja sale igual, con su nombre.
+    # One complaint per situation **and per set of differences**: four
+    # cartridges that carry the same map all say the same thing, and
+    # repeating it four times buries the others'. If one decided differently
+    # from the rest, its differences are different and its complaint comes
+    # out anyway, with its name.
     dichas = set()
     for build in builds:
         carpeta = os.path.join(build, clase.en_build)
@@ -635,13 +650,13 @@ def _revisar_clase(clase, auto, builds, jugable):
             if cual not in tengo:
                 if cartucho == jugable and not de_prueba(build, clase, cual,
                                                           prueba):
-                    # Lo que el ROM jugable convierte **tiene** que estar
-                    # versionado: si no, el juego pierde algo en algún lado y
-                    # no queda escrito. En un cartucho de prueba, en cambio, es
-                    # lo normal y no se dice nada.
+                    # What the playable ROM converts **has** to be versioned:
+                    # otherwise the game loses something somewhere and it is
+                    # not written down. In a test cartridge, on the other
+                    # hand, it is normal and nothing is said.
                     quejas.append(
-                        "%s %s entró en «%s», el ROM jugable, y no tiene "
-                        "parche versionado: corré `just parches`."
+                        "%s %s went into «%s», the playable ROM, and has no "
+                        "versioned patch: run `just parches`."
                         % (clase.articulo, cual, cartucho))
                 else:
                     propios.setdefault(cual, []).append(cartucho)
@@ -652,17 +667,17 @@ def _revisar_clase(clase, auto, builds, jugable):
             if cambios and (cual, tuple(cambios)) not in dichas:
                 dichas.add((cual, tuple(cambios)))
                 quejas.append(
-                    "%s quedó viejo (lo dice el cartucho «%s»), y lo que "
-                    "cambió de %s %s es esto:\n    %s\n"
-                    "  Si el cambio es el que se buscaba, `just parches` y al "
-                    "commit; si no, algo movió lo que se ve."
+                    "%s is stale (cartridge «%s» says so), and what "
+                    "changed in %s %s is this:\n    %s\n"
+                    "  If the change is the one intended, `just parches` and "
+                    "commit; if not, something moved what is seen."
                     % (os.path.relpath(versionado), cartucho,
                        clase.articulo, cual, "\n    ".join(cambios)))
     for cual in sorted(tengo - vistos):
         quejas.append(
-            "%s %s tiene parche versionado y ninguno de los cartuchos armados "
-            "lo convierte: o el juego dejó de llevarlo —y entonces sobra el "
-            "archivo— o falta armar el cartucho que lo tiene."
+            "%s %s has a versioned patch and none of the built cartridges "
+            "converts it: either the game stopped carrying it —and then the "
+            "file is left over— or the cartridge that has it is not built."
             % (clase.articulo, cual))
     return quejas, propios
 
@@ -675,12 +690,12 @@ def main(argv=None):
     ambiente.argumentos(parser, "test_cartridges")
     parser.add_argument(
         "builds", nargs="*",
-        help="los directorios de los cartuchos armados. Sin --check tiene que "
-             "ser el del ROM jugable y nada más: lo versionado es lo que "
-             "decide `abl`. Con --check y sin ninguno, los de todos los "
-             "cartuchos de `cartuchos.py`")
+        help="the directories of the built cartridges. Without --check it has "
+             "to be the playable ROM's and nothing else: what is versioned is "
+             "what `abl` decides. With --check and none given, those of all "
+             "the cartridges in `cartuchos.py`")
     parser.add_argument("--check", action="store_true",
-                        help="no escribe: falla si lo versionado quedó viejo")
+                        help="do not write: fail if what is versioned is stale")
     args = parser.parse_args(argv)
     ambiente.desde_argumentos(args, "test_cartridges")
     if not args.builds and args.check:
@@ -694,31 +709,33 @@ def main(argv=None):
             builds += [os.path.join(build, n) for n in sorted(os.listdir(build))
                        if _tiene_parches(os.path.join(build, n))]
     if not builds:
-        sys.exit("no encontré ningún cartucho armado con parches adentro: %s"
+        sys.exit("found no built cartridge with patches inside: %s"
                  % ", ".join(args.builds))
     if args.check:
         quejas, propios = revisar(auto, builds)
         for queja in quejas:
             print("  " + queja, file=sys.stderr)
         if quejas:
-            sys.exit("%d parche(s) no coinciden con lo que decide el conversor"
+            sys.exit("%d patch(es) do not match what the converter decides"
                      % len(quejas))
         for clase in CLASES:
-            print("los %d parche(s) de %s del juego coinciden con lo que "
-                  "decidieron %d cartucho(s)"
+            print("the game's %d patch(es) of %s match what %d "
+                  "cartridge(s) decided"
                   % (len(versionados(auto, clase)), clase.nombre, len(builds)))
             mios = propios.get(clase.clave)
             if mios:
-                # No es una queja: son situaciones que `abl` no tiene, así que
-                # el cartucho de prueba decidió solo y eso no se versiona. Se
-                # imprime porque dice cuánto se parece la tanda al juego.
-                print("  y %d que sólo existe(n) por la tanda, "
-                      "que deciden solos: %s"
+                # It is not a complaint: they are situations `abl` does not
+                # have, so the test cartridge decided on its own and that is
+                # not versioned. It is printed because it says how much the
+                # suite resembles the game.
+                print("  and %d that only exist for the suite, "
+                      "which decide on their own: %s"
                       % (len(mios), ", ".join(str(m) for m in sorted(mios))))
         return
     if len(builds) != 1:
-        sys.exit("lo versionado es lo que decide **un** ROM, el jugable: "
-                 "pasame `rom/build/release` y no %d cartuchos" % len(builds))
+        sys.exit("what is versioned is what **one** ROM decides, the playable "
+                 "one: pass `rom/build/release` and not %d cartridges"
+                 % len(builds))
     for clase in CLASES:
         _copiar(auto, builds[0], clase)
 
@@ -729,7 +746,8 @@ def _tiene_parches(build):
 
 
 def _copiar(auto, build, clase):
-    """Lo que decidió el ROM jugable, a `rom/parches/`, y afuera lo que ya no está."""
+    """What the playable ROM decided, to `rom/parches/`, and out with what is
+    no longer there."""
     destino = os.path.join(auto, clase.directorio)
     os.makedirs(destino, exist_ok=True)
     carpeta = os.path.join(build, clase.en_build)
@@ -738,8 +756,8 @@ def _copiar(auto, build, clase):
     for nombre in sorted(os.listdir(carpeta) if os.path.isdir(carpeta) else []):
         if not nombre.endswith(".toml"):
             continue
-        # Lo que el ROM jugable lleva sólo por la tanda no se versiona: ver
-        # `de_prueba`.
+        # What the playable ROM carries only for the suite is not versioned:
+        # see `de_prueba`.
         if de_prueba(build, clase, _leer(os.path.join(carpeta, nombre))[
                 clase.clave], prueba):
             continue
@@ -752,10 +770,10 @@ def _copiar(auto, build, clase):
     for nombre in sorted(os.listdir(destino)):
         if nombre.endswith(".toml") and nombre not in vistos:
             os.remove(os.path.join(destino, nombre))
-            print("  %s: el juego ya no lo lleva, lo saco"
+            print("  %s: the game no longer carries it, removing it"
                   % os.path.relpath(os.path.join(destino, nombre)))
-    print("%d parche(s) en %s, %d B" % (len(vistos), os.path.relpath(destino),
-                                        bytes_))
+    print("%d patch(es) in %s, %d B" % (len(vistos), os.path.relpath(destino),
+                                         bytes_))
 
 
 if __name__ == "__main__":
