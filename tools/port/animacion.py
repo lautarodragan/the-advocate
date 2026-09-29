@@ -50,6 +50,8 @@ Lo que se pierde, y está declarado en
 """
 
 # La caja, y los objetos de 32x32 con que se dibuja.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 CAJA = 64
 OBJ = 32
 OBJ_LADO = OBJ // 8

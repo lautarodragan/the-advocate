@@ -1071,6 +1071,8 @@ CUADROS_POR_CELDA = CELDA_PX // WALK_SPEED
 # les da **35 cuadros** a cada una. Mientras la transición corre el juego está
 # congelado: `Scene::MainFunction` ve `IsAsyncPending()` y llama a
 # `Player::Update(false)`, que no actualiza la escena.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 FUNDIDO_CUADROS = 35
 FUNDIDO_TOTAL = FUNDIDO_CUADROS * 2
 
@@ -1429,6 +1431,8 @@ CABECERA_AUTOCIERRE = 0x08
 # ninguno ahorra lo que complica: ver `workflow/tasks/*/mundo-3-el-espacio.md`.
 # `msg_empezar` lo multiplica por cuatro, y un `.assert` de allá cobra que
 # los dos lados de la cuenta sean el mismo: `MENSAJES_TOPE`.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 MENSAJES_PASO = 4
 
 
@@ -1634,6 +1638,8 @@ COND_VARIABLE = 1
 # arriba libre, y la ranura quedó de ocho: 256, que es lo que reserva la RAM
 # lejana entre `FAR_VARIABLES` y `FAR_ITEMS`.
 VAR_REFRESCO = 0x80
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 VAR_RANURA_MAX = 0xFF
 #
 # OP_IF_VAR: ranura (byte), clase (byte), comparación (byte), valor (word),
@@ -1648,6 +1654,8 @@ VAR_RANURA_MAX = 0xFF
 # deja de ser "nunca activa". Cambiar un ítem pide el refresco de páginas.
 #
 # OP_ITEM: ítem (word), delta (byte con signo)
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 ITEMS_N = 451       # los 450 ítems del LDB más el 0, que no se usa; lo cobra
                     # test_items.py contra RPG_RT.ldb
 ITEM_MAX = 99
@@ -2766,6 +2774,8 @@ ORO_MAX = 999999
 
 # Cuántos switches entra el bitmap de la ROM: `SWITCH_BYTES` son 128, o sea del
 # 0 al 1023. Una rama sobre uno más alto escribiría fuera, así que no compila.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 SWITCH_MAX = 1024
 
 
@@ -3255,6 +3265,8 @@ ENC_TABLA = ((0, -4), (20, -3), (40, -2), (60, -1),
 
 # El `encounter_rate` con el que sube el acumulado: el del terreno, que en este
 # juego es 100 en los 53 mapas con encuentros. Ver arriba.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 ENC_RATE = 100
 
 # La semilla del azar de los encuentros. Es otra que `AZAR_SEMILLA` y otra que
@@ -5193,6 +5205,8 @@ def blancos_de_ruta(paginas):
 # tienen ese problema porque terminan prendiendo el switch que las desactiva
 # —es el idioma de RM2k— así que la de prueba hace lo mismo, y de paso ejercita
 # ese idioma.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 SWITCH_DE_PRUEBA = 1023
 
 # La variable que elige cuál de las páginas de prueba corre, cuando un cartucho
@@ -5206,6 +5220,8 @@ SWITCH_DE_PRUEBA = 1023
 # El número no importa, porque la ROM habla de ranuras, y ninguna página del
 # juego nombra al 1000. Va más arriba que todas las del juego, así que su
 # ranura es la última y no corre la de ninguna otra.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 VARIABLE_DE_CASO = 1000
 COMPARAR_AL_MENOS = 1   # el `>=` de las condiciones de página de RM2k
 # El switch que no se prende nunca: es lo que lleva como `switch_a` una página
@@ -5213,6 +5229,8 @@ COMPARAR_AL_MENOS = 1   # el `>=` de las condiciones de página de RM2k
 # `rm2k.CONDICIONES_IMPOSIBLES`— para que la ROM no la elija jamás, y las
 # otras páginas del evento sí. El juego consulta switches hasta el
 # 1003 y el 1023 es el de la página de prueba.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 SWITCH_IMPOSIBLE = 1021
 
 

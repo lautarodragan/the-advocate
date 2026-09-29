@@ -223,6 +223,8 @@ MINCHO_TABLA = {
 }
 
 
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 def glifos(font_id=MINCHO):
     return MINCHO_TABLA if font_id == MINCHO else GOTICA
 

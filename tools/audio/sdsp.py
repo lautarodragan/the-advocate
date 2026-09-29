@@ -216,6 +216,8 @@ def pitch_for(note, root, rate, length=None):
 # **Y es el techo, no el de todos**: desde el 2026-09-26 el tema que con 0,5
 # recortaría va con uno más bajo, el suyo, medido y versionado —ver
 # `leer_techos` en snes_music.py—. Lo que no recorta queda en 0,5.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 AIRE = 0.5
 MASTER = min(0x7F, int(round(0x60 / AIRE)))
 CEILING = int(round(96 * AIRE))

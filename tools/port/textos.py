@@ -93,6 +93,8 @@ def ancho(texto):
     return len(texto)
 
 
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 def es_hablante(linea):
     """Si el renglón nombra al que habla: todo en mayúsculas, corto, y sin
     puntuación de frase al final.

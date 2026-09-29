@@ -53,6 +53,8 @@ CABECERA_FILAS = 2
 # Qué dice una ranura sin partida. RM2k no tiene un término para esto —su menú
 # muestra el hueco vacío— así que el texto es nuestro y por eso se escribe acá
 # y no se saca del LDB, para que se vea que lo inventamos.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 VACIA = "- Empty -"
 # Las caras: dónde va la primera, en celdas desde el borde izquierdo, y cada
 # cuántas la siguiente. Seis de ancho por seis de alto, pegadas.

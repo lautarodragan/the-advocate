@@ -6895,6 +6895,8 @@ def orden_de_mapas(args):
 
 # Cuántos eventos quietos con animación continua anima un mapa. Ver el porqué
 # —y el número medido— adentro de `eventos_movibles`.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 ANIMA_QUIETO_MAX = 4
 
 
