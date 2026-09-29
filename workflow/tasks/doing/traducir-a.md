@@ -44,3 +44,10 @@ de tocar nada.
   `TITULO_MENU_CGRAM`, que es un mensaje del ensamblador. Los `.dbg` cambian
   de ids además de líneas —ld65 numera las `line` en orden de línea—, así
   que se comparan resolviendo ids: iguales.
+- Líneas 5420–6768 (el resto de `emit`: tienda, fin del juego, textos,
+  ítems, equipo, habilidades, tropas, encuentros, batalla): hecho, con las
+  mismas comprobaciones.
+- Términos: se alinean con los que eligió Coronillo
+  (`scratchpad/glosario-coronillo.md`): "hornear" es *bake*, "aire"
+  *headroom*, "cuadro de texto" *text box*, "cobrar" una regla *enforce*.
+  "La tanda lo cobró" quedó *the suite caught it*.

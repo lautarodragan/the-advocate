@@ -150,7 +150,7 @@ def above_split(palettes):
 # **Eight and not seven.** Counting them with `sum(1 for w in cram if w)` gives
 # seven because one of the window colors is pure black and its CGRAM word is
 # zero. With seven, the ROM drew the text with a color nobody had uploaded and
-# the suite charged 79 pixels in the text lines. What rules is the highest
+# the suite caught 79 pixels in the text lines. What rules is the highest
 # index the window uses, and `convert_ventana` makes sure of that.
 VENTANA_COLORES = 8
 CGRAM_RESERVADAS = 1 + VENTANA_COLORES
@@ -4102,7 +4102,7 @@ def tabla_de_paginas(mapa, numero, evcodigo):
     rebuilt here: two maps whose events compile to the same bytes share the
     block and the label doesn't carry this map's number. Rebuilding it is what
     it did —`"evcodigo_%d" % numero`— and when deduplication was turned on the
-    suite charged it right away: `varios` didn't assemble because it named an
+    suite caught it right away: `varios` didn't assemble because it named an
     `evcodigo_2` that no longer existed.
 
     It doesn't go through `bloque()` because its pointers are symbolic: they
@@ -4113,7 +4113,7 @@ def tabla_de_paginas(mapa, numero, evcodigo):
     map 2's sprites grew with the events drawn with a tile, the table ended up
     straddling `$02FFFF`, the ROM read garbage instead of the last pages
     —among them the test one— and the shake at the edge of the map never
-    started. The suite charged it in pixels without saying why; the
+    started. The suite caught it in pixels without saying why; the
     emulator's RAM said it.
     """
     out = [".bloque %d" % (PAGINA_BYTES * len(mapa["paginas"])),
@@ -5497,11 +5497,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             ranuras["items_paletas"][:menus_mod.ITEM_SUBE])) + "\n")
         handle.write(bloque("item_cgram_sube", paletas_cgram(
             ranuras["items_paletas"][menus_mod.ITEM_SUBE:])) + "\n")
-        # Las ventanas de las pantallas de ítems y de equipo, en BG1: ver
-        # `ITEM_VENTANAS` y `pantallas.EQ_VENTANAS`. Los tiles y los colores
-        # son los mismos para las dos. Cada tilemap va sin las filas de abajo
-        # que la pantalla no muestra, y cada cursor como las dos filas de
-        # celdas que ocupa, que la ROM copia encima: 128 bytes.
+        # The windows of the item and equipment screens, on BG1: see
+        # `ITEM_VENTANAS` and `pantallas.EQ_VENTANAS`. The tiles and the
+        # colors are the same for both. Each tilemap goes without the bottom
+        # rows the screen doesn't show, and each cursor as the two rows of
+        # cells it takes, which the ROM copies on top: 128 bytes.
         marco_tiles, marco_colores, ((marco_mapa, marco_barras),
                                      (eq_mapa, eq_barras)) = \
             ranuras["items_marco"]
@@ -5520,12 +5520,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write(bloque("items_marco_cgram", b"".join(
             cgram_word(c).to_bytes(2, "little")
             for c in marco_colores)) + "\n")
-        # Las ventanas de la tienda, en BG1 con su propia base: ver
-        # `pantallas.TI_VENTANAS` y `tienda_compacta`, que dice qué se guarda.
-        # Los tramos de cada capa son `(palabra de la VRAM, byte de origen en
-        # `ti_marco_filas`, bytes)`, terminados en tres ceros; las barras,
-        # `(palabra de la VRAM, byte de origen en `ti_marco_parches`, bytes
-        # por fila, filas)`.
+        # The shop windows, on BG1 with their own base: see
+        # `pantallas.TI_VENTANAS` and `tienda_compacta`, which says what is
+        # stored. The stretches of each layer are `(VRAM word, source byte in
+        # `ti_marco_filas`, bytes)`, terminated by three zeros; the bars,
+        # `(VRAM word, source byte in `ti_marco_parches`, bytes per row,
+        # rows)`.
         PM = pantallas_mod
         ti_tiles, ti_colores, ti_mapas = ranuras["tienda_marco"]
         ti_filas, ti_arriba, ti_capas, ti_parches, ti_barras = \
@@ -5571,9 +5571,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "TI_MARCO_ARRIBA   = %d\n"
             % (PM.TI_VRAM, PM.TI_MAPA, len(ti_tiles), len(ti_colores),
                ti_arriba))
-        # La pantalla de End Game, entera: ver tools/port/fin_del_juego.py.
-        # Las dos paletas van seguidas, la de "Yes" primero: la ROM elige
-        # una multiplicando.
+        # The End Game screen, whole: see tools/port/fin_del_juego.py. The two
+        # palettes go one after the other, the "Yes" one first: the ROM picks
+        # one by multiplying.
         fin_tiles, fin_filas, fin_fila0, fin_paletas = ranuras["fin"]
         handle.write(bloque("fin_tiles", b"".join(
             pack_tile(celda, planes=4) for celda in fin_tiles)) + "\n")
@@ -5606,28 +5606,29 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                     item.name, menus_mod.ITEM_NOMBRE_ANCHO)]
                     + menus_mod.partir_descripcion(item.description)):
                 texto_nuevo(texto)
-        # Textos muertos **detrás de los de los ítems y delante de todos los
-        # demás**, para que los índices de la batalla pasen de 255 en un
-        # cartucho de un mapa: reproducirlo de verdad pide los cincuenta y
-        # siete ítems de `abl`, o sea sus veintinueve mapas y dos minutos y
-        # medio de conversor por caso. Tuvo un hermano, `--relleno-de-mensajes`,
-        # que hacía lo mismo con el bloque de textos; ése se fue el 2026-09-20
-        # porque el empujón lo puede dar un caso —ver el cartucho `test-special` en
-        # el archivo de proyecto— y éste no, porque lo que corre no es un
-        # texto sino un índice.
+        # Dead texts **after the item ones and before all the others**, so
+        # that the battle's indices go past 255 in a one-map cartridge:
+        # reproducing it for real takes the fifty-seven items of `abl`, that
+        # is its twenty-nine maps and two and a half minutes of converter per
+        # case. It had a sibling, `--relleno-de-mensajes`, that did the same
+        # with the text block; that one went away on 2026-09-20 because the
+        # push can be given by a case —see the `test-special` cartridge in the
+        # project file— and this one can't, because what shifts isn't a text
+        # but an index.
         #
-        # **Van acá y no al principio, que es donde estaban hasta el
-        # 2026-09-20.** El nombre de un ítem no se nombra por una tabla sino
-        # por la cuenta `3k` —`3k + 1` y `3k + 2` son sus dos renglones de
-        # descripción, ver `texto_escribir`—, así que un texto muerto delante
-        # del primero corre todos los ítems y la ROM termina dibujando los
-        # muertos, que miden cero: la lista "Use Item" de la pelea salía con
-        # el cursor y las cantidades y sin un solo nombre. Con el relleno acá
-        # el flag vuelve a cumplir lo que promete, que es no cambiar un pixel.
+        # **They go here and not at the start, which is where they were until
+        # 2026-09-20.** An item's name isn't named through a table but by the
+        # computation `3k` —`3k + 1` and `3k + 2` are its two description
+        # lines, see `texto_escribir`—, so a dead text before the first one
+        # shifts every item and the ROM ends up drawing the dead ones, which
+        # measure zero: the battle's "Use Item" list came out with the cursor
+        # and the quantities and without a single name. With the padding here
+        # the flag goes back to doing what it promises, which is not changing
+        # a pixel.
         for _ in range(ranuras.get("relleno_textos") or 0):
             item_textos_ofs.append((0, 0))
-        # Y los fijos, detrás: los parámetros y las ranuras del equipo, y el
-        # nombre de cada actor que puede entrar al grupo. Ver pantallas.py.
+        # And the fixed ones, behind: the parameters and the equipment slots,
+        # and the name of each actor that can join the party. See pantallas.py.
         P = pantallas_mod
         B = batalla_mod
         db = ranuras["db"]
@@ -5637,20 +5638,20 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                         for t in db.term_equipo]
         texto_actor = {a: texto_nuevo(db.actors[a].name)
                        for a in ranuras["actores"]}
-        # Los de la tienda: los once mensajes de cada uno de los tres juegos,
-        # de a dos renglones —`partir_descripcion`, como en pantallas.py—, y
-        # "Owned Items", "Equipped Items" y la moneda.
+        # The shop's: the eleven messages of each of the three sets, two lines
+        # each —`partir_descripcion`, as in pantallas.py—, and "Owned Items",
+        # "Equipped Items" and the currency.
         texto_tienda = None
         for juego in range(3):
             term = P.terminos_tienda(db, juego)
             for nombre, _termino in P.TI_TERMINOS:
                 renglones = menus_mod.partir_descripcion(term[nombre])
-                # Fuera de la principal, el mensaje va en una ventana de un
-                # renglón: `ti_mensaje` escribe sólo el primero.
+                # Outside the main one, the message goes in a one-line window:
+                # `ti_mensaje` writes only the first.
                 if renglones[1] and nombre not in ("saludo", "resaludo"):
                     raise SystemExit(
-                        "el mensaje %r de la tienda, del juego %d, ocupa dos "
-                        "renglones y su ventana tiene uno"
+                        "the shop message %r, of set %d, takes two "
+                        "lines and its window has one"
                         % (term[nombre], juego))
                 for renglon in renglones:
                     t = texto_nuevo(renglon)
@@ -5659,18 +5660,18 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         texto_tengo = texto_nuevo(P.lcf_termino(db, P.TI_TERMINO_TENGO))
         texto_llevo = texto_nuevo(P.lcf_termino(db, P.TI_TERMINO_LLEVO))
         texto_moneda = texto_nuevo(db.term_gold)
-        # Y los de la batalla: los quince términos del LDB que la pantalla usa
-        # —en el orden de `reglas.BA_TERMINOS`, que es el que la ROM
-        # indexa— y el nombre de cada enemigo que alguna tropa del cartucho
-        # traiga. Las tres órdenes van **ya recortadas**, por
-        # `pantallas.texto_de_orden`: el LDB las trae con espacios adelante y
-        # eso correría el texto de su columna.
+        # And the battle's: the fifteen LDB terms the screen uses —in the order
+        # of `reglas.BA_TERMINOS`, which is the one the ROM indexes— and the
+        # name of each enemy some troop of the cartridge brings. The three
+        # commands go **already trimmed**, by `pantallas.texto_de_orden`: the
+        # LDB brings them with leading spaces and that would shift the text of
+        # their column.
         term_batalla = reglas.terminos_batalla(db)
         texto_batalla = None
         victoria = P.renglones_de_la_victoria(term_batalla["victoria"])
         if len(victoria) > P.BA_VIC_TERMINO_MAX:
-            raise SystemExit("el término de la victoria ocupa %d renglones y "
-                             "la ventana le deja %d: %r"
+            raise SystemExit("the victory term takes %d lines and "
+                             "the window leaves it %d: %r"
                              % (len(victoria), P.BA_VIC_TERMINO_MAX, victoria))
         for nombre, _termino in reglas.BA_TERMINOS:
             texto = term_batalla[nombre]
@@ -5681,31 +5682,32 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             t = texto_nuevo(texto)
             if texto_batalla is None:
                 texto_batalla = t
-        # Y el renglón de un caído que un ítem levantó: el `message_recovery`
-        # del estado de muerto, que va pegado al nombre —"Core has revived!"—.
-        # No es un término sino un dato del estado, así que va aparte y con su
-        # propio índice. Ver `ba_mensaje`.
+        # And the line for a fallen one an item revived: the dead state's
+        # `message_recovery`, which goes stuck to the name —"Core has
+        # revived!"—. It isn't a term but a piece of the state's data, so it
+        # goes separately and with its own index. See `ba_mensaje`.
         texto_revivio = texto_nuevo(P.texto_revivio(db))
-        # El segundo renglón de la victoria, vacío si entra en uno: va aparte
-        # para no correr los índices de `BA_TERMINOS`.
+        # The second line of the victory, empty if it fits in one: it goes
+        # separately so as not to shift the indices of `BA_TERMINOS`.
         texto_victoria2 = texto_nuevo((victoria + [""])[1])
         enemigos_rom = sorted({e for numero in tropas
                                if numero in db.troops
                                for e in db.troops[numero].members})
         texto_enemigo = {e: texto_nuevo(menus_mod.texto_de_item(
             db.enemies[e].name, P.BA_NOMBRE_ANCHO)) for e in enemigos_rom}
-        # Y los de las habilidades: las que sabe algún actor que puede entrar
-        # al grupo, **a su nivel del LDB** —ver `batalla.habilidades_de`—,
-        # ordenadas por número, que es el orden en que el menú las pone. Con el
-        # grupo de la intro son siete: 129, 130, 131, 143, 144, 146 y 150.
+        # And the skills': the ones some actor that can join the party knows,
+        # **at their LDB level** —see `batalla.habilidades_de`—, sorted by
+        # number, which is the order the menu puts them in. With the intro's
+        # party they are seven: 129, 130, 131, 143, 144, 146 and 150.
         #
-        # **Todas las que pueden llegar a saber**, y no sólo las del LDB: un
-        # `ChangeSkills` le enseña al actor lo que la tabla de aprendizaje no
-        # tiene, y desde el 2026-09-21 eso se ve en la pelea. Son las de sus
-        # pares de `eventos.HABILIDAD_RANURA` que la pelea sabe ofrecer.
+        # **All the ones they can end up knowing**, and not only the LDB's: a
+        # `ChangeSkills` teaches the actor what the learning table doesn't
+        # have, and since 2026-09-21 that shows in battle. They are those of
+        # their pairs in `eventos.HABILIDAD_RANURA` that the battle knows how
+        # to offer.
         #
-        # Y las que usa algún enemigo de las tropas del cartucho, desde el
-        # 2026-09-27: `ShortCircuit`, de los de la planta de reciclaje. Ver
+        # And the ones some enemy of the cartridge's troops uses, since
+        # 2026-09-27: `ShortCircuit`, from the ones at the recycling plant. See
         # `batalla.acciones_de_enemigo`.
         acciones_rom = {e: B.acciones_de_enemigo(db, e) for e in enemigos_rom}
         habilidades_rom = sorted(
@@ -5719,10 +5721,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         texto_hab_desc = {h: texto_nuevo(menus_mod.texto_de_item(
             db.skills[h].description, P.BA_HAB_DESC_ANCHO))
             for h in habilidades_rom}
-        # Y el nombre **entero** de las que se aprenden al subir de nivel, que
-        # es lo que dice "<habilidad> acquired!" en la victoria: el de la lista
-        # va cortado a su columna, y hay de éstas que la pelea no sabe ofrecer
-        # —Lurk In Shadows, de Arden— y no están en la lista. Ver
+        # And the **whole** name of the ones learned on leveling up, which is
+        # what "<skill> acquired!" says at the victory: the list's is cut to
+        # its column, and some of these the battle doesn't know how to offer
+        # —Lurk In Shadows, Arden's— and aren't in the list. See
         # `hab_par_aprende_txt`.
         ensenadas = {h for (a, h) in eventos.HABILIDAD_RANURA
                      if a in ranuras["actores"] and a in db.actors
@@ -5731,32 +5733,33 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         texto_hab_entero = {
             h: texto_nuevo(menus_mod.texto_de_item(db.skills[h].name, 255))
             for h in sorted(ensenadas)}
-        # Los dos renglones que RM2k dice al usarla: `using_message1` va detrás
-        # del nombre del que la usa y `using_message2` solo, en el renglón de
-        # abajo. `GetSkillFirstStartMessage2k` y su hermana.
+        # The two lines RM2k says when using it: `using_message1` goes after
+        # the name of the one using it and `using_message2` alone, on the line
+        # below. `GetSkillFirstStartMessage2k` and its sibling.
         texto_hab_msg1 = {h: texto_nuevo(db.skills[h].using_message1)
                           for h in habilidades_rom}
         texto_hab_msg2 = {h: texto_nuevo(db.skills[h].using_message2)
                           for h in habilidades_rom}
-        # Y cómo se llama la orden de cada actor: `Game_Actor::GetSkillName`,
-        # o sea su `skill_name` —"AgentTrain", "Telepathy", "Slicing"— y no el
-        # `command_skill` del LDB. Va recortada como las otras cuatro órdenes.
+        # And what each actor's command is called: `Game_Actor::GetSkillName`,
+        # that is its `skill_name` —"AgentTrain", "Telepathy", "Slicing"— and
+        # not the LDB's `command_skill`. It goes trimmed like the other four
+        # commands.
         texto_hab_orden = {a: texto_nuevo(P.texto_de_orden(
             B.nombre_de_orden_habilidad(db, a))) for a in ranuras["actores"]}
         handle.write(bloque("item_textos", bytes(item_textos) or b"\x00")
                      + "\n")
         if len(bloques_ranura) > 255:
-            raise SystemExit("la pantalla de ranuras tiene %d bloques y las "
-                             "tablas que los nombran son de un byte"
+            raise SystemExit("the slots screen has %d blocks and the "
+                             "tables that name them are one byte"
                              % len(bloques_ranura))
-        # Las tablas que los nombran **no van acá**: la ROM las lee con
-        # `lda ranura_bloque_lo, x`, que direcciona el banco de datos, así que
-        # tienen que vivir en el banco 0 junto con el código. Se emiten más
-        # abajo, en el segmento TABLAS.
+        # The tables that name them **don't go here**: the ROM reads them with
+        # `lda ranura_bloque_lo, x`, which addresses the data bank, so they
+        # have to live in bank 0 together with the code. They are emitted
+        # further down, in the TABLAS segment.
         #
-        # La paleta va rellena hasta las TITULO_MENU_CGRAM entradas, que es lo
-        # que la ROM sube de una vez: si el texto usa menos colores, el DMA
-        # leería lo que siga en el cartucho.
+        # The palette goes padded up to the TITULO_MENU_CGRAM entries, which
+        # is what the ROM uploads at once: if the text uses fewer colors, the
+        # DMA would read whatever follows in the cartridge.
         colores = []
         for paleta in ranuras["paletas"]:
             paleta = list(paleta)
@@ -5767,11 +5770,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                      for c in colores)) + "\n")
 
         handle.write('\n.segment "TABLAS"\n')
-        # Los bloques de celdas de la pantalla de ranuras se nombran por
-        # punteros, y las tres tablas van en el banco 0 porque la ROM las lee
-        # con `lda ranura_bloque_lo, x`. Lo mismo `ranura_vram`, que dice a qué
-        # dirección del tilemap va cada fila: la cuenta sale de la misma
-        # geometría que dibujó el texto y por eso vive en un solo lado.
+        # The cell blocks of the slots screen are named by pointers, and the
+        # three tables go in bank 0 because the ROM reads them with
+        # `lda ranura_bloque_lo, x`. The same for `ranura_vram`, which says
+        # which tilemap address each row goes to: the computation comes from
+        # the same geometry that drew the text and that is why it lives in a
+        # single place.
         for campo, prefijo in (("lo", "<"), ("hi", ">"), ("bk", "^")):
             handle.write("ranura_bloque_%s:\n    .byte %s\n"
                          % (campo, ", ".join(prefijo + e
@@ -5781,9 +5785,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                    // constantes.CELL * 32 for n in range(RANURAS)]
         handle.write("ranura_vram:\n    .word %s\n" % ", ".join(
             str(v) for v in fila_de))
-        # A dónde van las caras —de a cuatro entradas por ranura, para que el
-        # índice sea la ranura por cuatro más el lugar, sin multiplicar por
-        # tres— y el nombre del líder.
+        # Where the faces go —four entries per slot, so that the index is the
+        # slot times four plus the place, without multiplying by three— and
+        # the leader's name.
         handle.write("ranura_cara_vram:\n    .word %s\n" % ", ".join(
             str(fila_de[n] + menus_mod.CARA_COL
                 + lugar * menus_mod.CARA_PASO if lugar < menus_mod.CARAS_MAX
@@ -5797,8 +5801,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write("ranura_cara_bloque:\n    .byte %s\n" % (", ".join(
             str(bloque_de_cara.get(actor, 0xFF))
             for actor in range(actores_n)) or "$FF"))
-        # El menú de pausa: sus bloques, y a dónde va cada cosa en el tilemap,
-        # en palabras. La geometría es la de `menus.py` y sale de ahí.
+        # The pause menu: its blocks, and where each thing goes in the
+        # tilemap, in words. The geometry is `menus.py`'s and comes from
+        # there.
         T = menus_mod
         from port import fuente as fuente_mod
 
@@ -5835,21 +5840,21 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                celda_vram(T.MENU_ORO_Y // constantes.CELL, T.MENU_MONEDA_COL),
                T.MENU_ACTOR_COLS, T.MENU_ACTOR_FILAS, T.MENU_FILAS_GRUPO,
                actores_n,
-               # Y a cuántas celdas de la primera del bloque del actor cae la
-               # de las centenas de sus HP, que es lo que `menu_hp_escribir`
-               # le suma a `menu_fila_vram`.
+               # And how many cells from the first of the actor's block the
+               # hundreds of its HP fall, which is what `menu_hp_escribir`
+               # adds to `menu_fila_vram`.
                T.MENU_HP_CIFRAS,
                T.MENU_HP_FILA * 32 + T.MENU_HP_COL - T.MENU_ACTOR_COL,
-               # La cara va en la esquina de arriba a la izquierda de la fila
-               # —de ahí que no lleve desplazamiento— y las tres tiras que la
-               # ROM compone, cada una en la suya.
+               # The face goes in the top-left corner of the row —that is why
+               # it carries no offset— and the three strips the ROM composes,
+               # each in its own.
                T.CARA_CELDAS, T.MENU_NOMBRE_COLS,
                T.MENU_NOMBRE_FILA * 32 + T.MENU_NOMBRE_COL - T.MENU_ACTOR_COL,
                T.MENU_NIVEL_FILA * 32 + T.MENU_NIVEL_COL - T.MENU_ACTOR_COL,
                T.MENU_MAX_CIFRAS,
                T.MENU_HP_FILA * 32 + T.MENU_MAX_COL - T.MENU_ACTOR_COL))
-        # Qué órdenes hacen algo: 1 sí, 0 no. La de guardar además mira el
-        # permiso, en la ROM.
+        # Which commands do something: 1 yes, 0 no. The save one also checks
+        # the permission, in the ROM.
         handle.write("menu_hecha:\n    .byte %s\n" % ", ".join(
             "1" if n in T.MENU_HECHAS else "0"
             for n in range(T.MENU_OPCIONES)))
@@ -5860,17 +5865,18 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write("menu_fila_vram:\n    .word %s\n" % ", ".join(
             str(celda_vram(r * T.MENU_ACTOR_FILAS, T.MENU_ACTOR_COL))
             for r in range(T.MENU_FILAS_GRUPO)))
-        # Las dos celdas del cursor, arriba y abajo: la ROM las escribe de a
-        # una palabra.
+        # The cursor's two cells, top and bottom: the ROM writes them one word
+        # at a time.
         handle.write("menu_cursor_celdas:\n    .word %s\n" % ", ".join(
             "$%04X" % entry(c, False, False, priority=1)
             for c in menu["cursor"]))
-        # Y lo que la pantalla compone en caliente, que va **fuera del banco
-        # 0**: se lee con `lda f:`, y son casi mil bytes que al banco del
-        # código le harían falta. Los glifos están indexados por carácter
-        # —desde ITEM_PRIMER_CARACTER, como los de la pantalla de ítems— y las
-        # letras que este cartucho no usa quedan en la celda vacía: nadie las
-        # pide, y una tabla completa se indexa sin restar nada más.
+        # And what the screen composes on the fly, which goes **outside bank
+        # 0**: it is read with `lda f:`, and it is almost a thousand bytes the
+        # code's bank would miss. The glyphs are indexed by character —from
+        # ITEM_PRIMER_CARACTER, like those of the item screen— and the letters
+        # this cartridge doesn't use stay in the empty cell: nobody asks for
+        # them, and a complete table is indexed without subtracting anything
+        # else.
         handle.write('.segment "RODATA"\n')
         vacio = "$%04X, $%04X" % (entry(0, False, False),
                                   entry(0, False, False))
@@ -5884,19 +5890,19 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                              chr, range(menus_mod.ITEM_PRIMER_CARACTER,
                                         menus_mod.ITEM_PRIMER_CARACTER
                                         + menus_mod.ITEM_CARACTERES)))))
-        # La línea de la experiencia, que la ROM dibuja con sprites: ver
-        # `MENU_EXP_X` en menus.py. El término son cuatro tiles —dos de
-        # ancho, arriba y abajo— y las cifras salen de `ranura_glifo_celdas`.
+        # The experience line, which the ROM draws with sprites: see
+        # `MENU_EXP_X` in menus.py. The term is four tiles —two wide, top and
+        # bottom— and the digits come from `ranura_glifo_celdas`.
         handle.write(".bloque %d\nmenu_exp_termino:\n    .word %s\n" % (
             2 * len(menu["exp_termino"]), ", ".join(
                 "$%04X" % entry(c, False, False)
                 for c in menu["exp_termino"])))
-        # La elección de actor: sus ventanas en BG1 —ver `OBJETIVO_VENTANAS`
-        # en menus.py—. Un solo tilemap, el con ítem, y la barra sólo en el
-        # rectángulo que cambia: ver `menus.objetivo_compacto`. Y el nombre
-        # de cada medicina en dos renglones, en ASCII, con una tabla de un
-        # byte por `k` que dice cuál es —$FF si no es medicina—: sólo las
-        # medicinas abren esta pantalla.
+        # The actor choice: its windows on BG1 —see `OBJETIVO_VENTANAS` in
+        # menus.py—. A single tilemap, the one with an item, and the bar only
+        # in the rectangle that changes: see `menus.objetivo_compacto`. And
+        # the name of each medicine on two lines, in ASCII, with a table of
+        # one byte per `k` that says which one it is —$FF if it isn't a
+        # medicine—: only medicines open this screen.
         obj_tiles, obj_colores, obj_mapas = ranuras["objetivo"]
         (obj_mapa, obj_barras, obj_fila0, obj_filas, obj_col0, obj_cols,
          obj_borrar_filas, obj_borrar_cols) = T.objetivo_compacto(obj_mapas)
@@ -5912,7 +5918,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         medicinas = [n for n in ranuras["items"]
                      if ranuras["items_db"][n].type == lcf.ITEM_TIPO_MEDICINA]
         if len(medicinas) > 255:
-            raise SystemExit("%d medicinas no entran en `objetivo_nombre_de`"
+            raise SystemExit("%d medicines don't fit in `objetivo_nombre_de`"
                              % len(medicinas))
         handle.write(bloque("objetivo_nombre_de", bytes(
             medicinas.index(n) if n in medicinas else 0xFF
@@ -5953,17 +5959,17 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                T.MENU_EXP_X + T.MENU_EXP_NUM_DX - T.GLIFO_DX,
                T.MENU_EXP_Y - T.GLIFO_DY, fuente_mod.ANCHO, T.MENU_EXP_CIFRAS,
                T.MENU_EXP_LETRAS, T.MENU_ACTOR_FILAS * constantes.CELL))
-        # El texto de cada actor, en ASCII: el nombre —con espacios detrás,
-        # que son los que borran lo que hubiera—, las dos cifras del nivel y
-        # el máximo de HP detrás de su barra. **Las tres juntas, en una fila
-        # por actor**, para que la ROM tenga una sola dirección que calcular y
-        # tres desplazamientos que son constantes.
+        # Each actor's text, in ASCII: the name —with trailing spaces, which
+        # are what erase whatever was there—, the two digits of the level and
+        # max HP after its bar. **The three together, in one row per actor**,
+        # so the ROM has a single address to compute and three offsets that
+        # are constants.
         db_ranuras = ranuras["db"]
         if (RANURA_TEXTO_NIVEL < menus_mod.MENU_NOMBRE_COLS
                 or RANURA_TEXTO_MAX + menus_mod.MENU_MAX_CIFRAS
                 > RANURA_TEXTO_ANCHO):
-            raise SystemExit("las tres tiras del actor no entran en los %d "
-                             "bytes de su fila" % RANURA_TEXTO_ANCHO)
+            raise SystemExit("the actor's three strips don't fit in the %d "
+                             "bytes of its row" % RANURA_TEXTO_ANCHO)
         tira = bytearray()
         for a in range(actores_n):
             fila = (menus_mod.texto_de_nombre(db_ranuras, a)
@@ -5975,17 +5981,17 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                      % (max(1, len(tira)),
                         ", ".join(str(b) for b in tira) or "0"))
         handle.write('.segment "TABLAS"\n')
-        # La pantalla de ítems. `item_k` va del número de RM2k a su lugar en
-        # las tablas de la ROM, $FF si esta ROM no lo conoce; lo demás es por
-        # lugar. `item_uso`: bit 0 si va en blanco y A hace algo, bit 1 si
-        # usarlo gasta uno —los de switch con usos—, bit 2 si abre la elección
-        # de actor —las medicinas—, bit 3 si es un arma a dos manos. Los textos
-        # van de a tres por ítem —el nombre y los
-        # dos renglones de la descripción—: el texto `t` es el `3k + campo`.
+        # The item screen. `item_k` goes from the RM2k number to its place in
+        # the ROM's tables, $FF if this ROM doesn't know it; the rest is per
+        # place. `item_uso`: bit 0 if it goes in white and A does something,
+        # bit 1 if using it spends one —the switch ones with uses—, bit 2 if it
+        # opens the actor choice —the medicines—, bit 3 if it is a two-handed
+        # weapon. The texts go three per item —the name and the two lines of
+        # the description—: text `t` is `3k + field`.
         items = ranuras["items"]
         db_items = ranuras["items_db"]
         if len(items) > 255:
-            raise SystemExit("%d ítems no entran en las tablas de un byte"
+            raise SystemExit("%d items don't fit in one-byte tables"
                              % len(items))
         k_de = {numero: k for k, numero in enumerate(items)}
         handle.write(
@@ -6033,8 +6039,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             handle.write("%s:\n    .word %s\n" % (etiqueta, ", ".join(
                 formato % v for v in valores) or "0"))
 
-        # `item_k` va fuera del banco 0 —se lee con `lda f:item_k, x`—: el
-        # banco del código se llenó con el paquete de audio.
+        # `item_k` goes outside bank 0 —it is read with `lda f:item_k, x`—:
+        # the code's bank filled up with the audio package.
         handle.write('.segment "RODATA"\n')
         bytes_asm("item_k", [k_de.get(n, 0xFF)
                              for n in range(eventos.ITEMS_N)],
@@ -6049,22 +6055,24 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             | (4 if T.item_pide_actor(db_items[n]) else 0)
             | (8 if db_items[n].two_handed else 0)
             for n in items])
-        # `item_switch` va fuera del banco 0 —se lee con `lda f:item_switch, x`,
-        # una sola vez por ítem usado— porque los encuentros al azar lo pasaron
-        # por 34 bytes el 2026-09-13. Son 124: la tabla más grande de las que
-        # se leen con X y no están en ningún lazo por cuadro.
+        # `item_switch` goes outside bank 0 —it is read with
+        # `lda f:item_switch, x`, only once per item used— because the random
+        # encounters pushed it over by 34 bytes on 2026-09-13. It is 124: the
+        # largest of the tables that are read with X and aren't in any
+        # per-frame loop.
         handle.write('.segment "RODATA"\n')
         words_asm("item_switch", [db_items[n].switch_id for n in items],
                   declarar=True)
         handle.write('.segment "TABLAS"\n')
-        # Lo que cada ítem hace en una pelea: si entra en la lista que se
-        # ofrece y cuánto cura. La regla de cuáles entran es
-        # `batalla.item_usable_en_batalla`, o sea `Game_Party::IsItemUsable`
-        # con la pelea abierta más lo que este port sabe hacer; la cuenta de
-        # cuánto cura es `Game_BattleAlgorithm::Item::vExecute`.
-        # **Fuera del banco 0**, como `item_k` y por lo mismo: con los mapas de
-        # `abl` el área de código quedó en 32775 de 32704 al ponerlas
-        # acá. La pelea las lee con `lda f:item_batalla, x`.
+        # What each item does in a battle: whether it goes in the list that is
+        # offered and how much it heals. The rule for which ones go in is
+        # `batalla.item_usable_en_batalla`, that is `Game_Party::IsItemUsable`
+        # with the battle open plus what this port knows how to do; the
+        # computation of how much it heals is
+        # `Game_BattleAlgorithm::Item::vExecute`.
+        # **Outside bank 0**, like `item_k` and for the same reason: with the
+        # maps of `abl` the code area ended up at 32775 of 32704 when putting
+        # them here. The battle reads them with `lda f:item_batalla, x`.
         handle.write('.segment "RODATA"\n')
         bytes_asm("item_batalla", [
             1 if B.item_usable_en_batalla(db_items[n]) else 0 for n in items],
@@ -6073,13 +6081,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                      for n in items], declarar=True)
         words_asm("item_cura_hp", [min(db_items[n].recover_hp, 0xFFFF)
                                    for n in items], declarar=True)
-        # Y lo que una medicina hace fuera de la pelea, que es
-        # `Game_Battler::UseItem` entero: los SP, como los HP, y
-        # `item_medicina` con tres bits —1 si es `ko_only`, 2 si saca el
-        # estado de muerto, que es el primero de `state_set` y lo que levanta
-        # a un caído, 4 si usarla gasta uno, que es `uses` distinto de cero—.
-        # Los demás estados de `state_set` no van: fuera de la pelea este port
-        # no tiene estados, así que sacarlos nunca sirve. Ver `medicina_usar`.
+        # And what a medicine does outside battle, which is the whole of
+        # `Game_Battler::UseItem`: the SP, like the HP, and `item_medicina`
+        # with three bits —1 if it is `ko_only`, 2 if it removes the dead
+        # state, which is the first of `state_set` and what revives a fallen
+        # one, 4 if using it spends one, which is `uses` nonzero—. The other
+        # states of `state_set` don't go: outside battle this port has no
+        # states, so removing them is never useful. See `medicina_usar`.
         bytes_asm("item_cura_sp_rate", [db_items[n].recover_sp_rate
                                         for n in items], declarar=True)
         words_asm("item_cura_sp", [min(db_items[n].recover_sp, 0xFFFF)
@@ -6090,12 +6098,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             | (4 if db_items[n].uses else 0)
             for n in items], declarar=True)
         handle.write('.segment "TABLAS"\n')
-        # Las cuatro de los textos van **fuera del banco 0**, como `item_k` y
-        # por lo mismo: ahí no entran. Con los diez mapas de `abl` el
-        # área de código quedaba en 32622 de 32704 —ochenta y dos bytes
-        # libres— y el cartel del `ShowPicture` no entraba. Se leen con
-        # `lda f:item_txt_lo, x`, que cuesta un byte y un ciclo por lectura en
-        # trece lugares, ninguno adentro de un lazo por cuadro.
+        # The four text ones go **outside bank 0**, like `item_k` and for the
+        # same reason: they don't fit there. With the ten maps of `abl` the
+        # code area was at 32622 of 32704 —eighty-two free bytes— and the
+        # `ShowPicture` sign didn't fit. They are read with
+        # `lda f:item_txt_lo, x`, which costs one byte and one cycle per read
+        # in thirteen places, none inside a per-frame loop.
         handle.write('.segment "RODATA"\n')
         for campo, prefijo in (("lo", "<"), ("hi", ">"), ("bk", "^")):
             handle.write(".bloque %d\n" % max(1, len(item_textos_ofs)))
@@ -6108,48 +6116,48 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         words_asm("item_fila_vram", [
             celda_vram(T.ITEM_LISTA_Y // constantes.CELL + 2 * f, 0)
             for f in range(T.ITEM_FILAS)])
-        # Las dos celdas de cada carácter, arriba y abajo: primero los 95 en
-        # blanco, después en gris y después en el color de "sube". El carácter
-        # `c` en la variante `g` está en
+        # The two cells of each character, top and bottom: first the 95 in
+        # white, then in gray and then in the "goes up" color. Character `c`
+        # in variant `g` is at
         # `g * ITEM_GLIFOS_GRIS + (c - ITEM_PRIMER_CARACTER) * 4`.
-        # --- el equipo ---
-        # Por ítem conocido: su tipo, lo que suma —ataque, defensa, espíritu,
-        # agilidad, con signo— y quién puede ponérselo, un bit por actor. Por
-        # actor, del 0 al último del LDB: sus parámetros del nivel y su equipo
-        # inicial, que la ROM copia a `FAR_EQUIPO` en el reset. Y dónde va
-        # cada cosa en el búfer de la pantalla, en bytes: fila * 64 + col * 2.
+        # --- the equipment ---
+        # Per known item: its type, what it adds —attack, defense, spirit,
+        # agility, signed— and who can equip it, one bit per actor. Per actor,
+        # from 0 to the LDB's last: its level parameters and its initial
+        # equipment, which the ROM copies to `FAR_EQUIPO` on reset. And where
+        # each thing goes in the screen's buffer, in bytes: row * 64 + col * 2.
         actores_n = max(db.actors) + 1
 
         def pos(fila, col):
             return fila * 64 + col * 2
 
         bytes_asm("item_tipo", [db_items[n].type for n in items])
-        handle.write('.segment "RODATA"\n')     # ídem: ver `item_txt_lo`
+        handle.write('.segment "RODATA"\n')     # same: see `item_txt_lo`
         words_asm("item_puntos", [p & 0xFFFF for n in items
                                   for p in db_items[n].puntos],
                   declarar=True)
-        # Y lo que cuesta atacar con cada uno: el `sp_cost` de las armas, cero
-        # para lo demás —`batalla.sp_del_arma`—. La pelea lo lee una vez por
-        # actor al armarse.
+        # And what attacking with each one costs: the weapons' `sp_cost`, zero
+        # for the rest —`batalla.sp_del_arma`—. The battle reads it once per
+        # actor when it is set up.
         bytes_asm("item_sp", [db_items[n].sp_cost
                               if db_items[n].type == lcf.ITEM_TIPO_ARMA
                               else 0 for n in items], declarar=True)
-        # `item_actores` va también fuera del banco 0 —se lee con
-        # `lda f:item_actores, x`—: son 496 bytes, los más gordos que le
-        # quedaban a `TABLAS`, y el banco 0 se pasó. No es una previsión: el
-        # 2026-09-13 `just demo` cortaba con "el área no
-        # entra: 32719 bytes en 32704" y ningún caso de la tanda lo veía.
-        # Se lee una vez por ítem al armar la lista de la pantalla de equipo,
-        # así que el ciclo de más del direccionamiento largo no se nota.
+        # `item_actores` also goes outside bank 0 —it is read with
+        # `lda f:item_actores, x`—: it is 496 bytes, the fattest ones `TABLAS`
+        # had left, and bank 0 overflowed. It isn't a precaution: on
+        # 2026-09-13 `just demo` stopped with "el área no
+        # entra: 32719 bytes en 32704" and no case of the suite saw it.
+        # It is read once per item when building the equipment screen's list,
+        # so the extra cycle of long addressing doesn't show.
         bytes_asm("item_actores", [
             sum(1 << b for b in range(8)
                 if 8 * byte + b + 1 < actores_n
                 and db_items[n].equipable_por(8 * byte + b + 1))
             for n in items for byte in range(8)], declarar=True)
-        # `actor_params` va fuera del banco 0 —se lee con
-        # `lda f:actor_params, x`, una sola vez por pantalla de equipo— por lo
-        # mismo que `item_k`: son 488 bytes y el banco del código se llenó, y
-        # esta vez con el dibujo de las animaciones de batalla.
+        # `actor_params` goes outside bank 0 —it is read with
+        # `lda f:actor_params, x`, only once per equipment screen— for the same
+        # reason as `item_k`: it is 488 bytes and the code's bank filled up,
+        # and this time with the drawing of the battle animations.
         handle.write('.segment "RODATA"\n')
         words_asm("actor_params", [
             (reglas.parametro_de(db.actors[a], k)
@@ -6211,12 +6219,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                pos(P.TI_CUANTOS_FILA, P.TI_CUANTOS_X_COL),
                pos(P.TI_CUANTOS_FILA, P.TI_CUANTOS_COL),
                pos(P.TI_TOTAL_FILA, P.TI_ORO_COL), T.ITEM_ROJO))
-        # `eq_barra` cuenta las filas de las ranuras y las de la lista desde
-        # la misma: son la misma ventana.
+        # `eq_barra` counts the rows of the slots and those of the list from
+        # the same one: they are the same window.
         if P.EQ_LISTA_FILA0 != P.EQ_RANURA_FILA0:
-            raise SystemExit("la lista del equipo arranca en la fila %d y las "
-                             "ranuras en la %d" % (P.EQ_LISTA_FILA0,
-                                                   P.EQ_RANURA_FILA0))
+            raise SystemExit("the equipment list starts at row %d and the "
+                             "slots at %d" % (P.EQ_LISTA_FILA0,
+                                              P.EQ_RANURA_FILA0))
         handle.write(
             "ACTORES_N         = %d\n"
             "RANURAS_EQUIPO    = %d\n"
@@ -6250,46 +6258,49 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                P.EQ_LISTA_NOMBRE_COL * 2,
                T.ITEM_DOS_PUNTOS_COL * 2,
                pos(T.ITEM_DESC_Y // constantes.CELL, T.ITEM_DESC_COL)))
-        # --- la batalla ---
-        # Los HP máximos de cada actor a su nivel, por número de actor. Van
-        # aparte de `actor_params`, que lleva los cuatro que la pantalla de
-        # equipo muestra; los HP no los toca el equipo, como en RM2k.
+        # --- the battle ---
+        # Each actor's max HP at its level, by actor number. They go separately
+        # from `actor_params`, which carries the four the equipment screen
+        # shows; the equipment doesn't touch the HP, as in RM2k.
         handle.write('.segment "RODATA"\n')
         words_asm("actor_hpmax", [
             (reglas.parametro_de(db.actors[a], "maxhp")
              if a in db.actors else 0) & 0xFFFF
             for a in range(actores_n)], declarar=True)
-        # Y los SP, que son estado desde el 2026-09-13 por lo mismo que los HP:
-        # las habilidades los gastan. Ver `hp_inicial_poner` en tools/runtime/banco1.s.
+        # And the SP, which are state since 2026-09-13 for the same reason as
+        # the HP: the skills spend them. See `hp_inicial_poner` in
+        # tools/runtime/banco1.s.
         words_asm("actor_spmax", [
             (reglas.parametro_de(db.actors[a], "maxsp")
              if a in db.actors else 0) & 0xFFFF
             for a in range(actores_n)], declarar=True)
         handle.write(experiencia_asm(db, ranuras["actores"], actores_n))
-        # --- las habilidades ---
+        # --- the skills ---
         #
-        # Una fila por habilidad que el cartucho lleva, en el orden de
-        # `habilidades_rom`, que es por número de RM2k. Los campos son los de
-        # `lcf.Skill` y las cuentas que los usan están en `batalla.py`:
-        # `efecto_habilidad` es `Algo::CalcSkillEffect` y `costo_de` es
+        # One row per skill the cartridge carries, in the order of
+        # `habilidades_rom`, which is by RM2k number. The fields are those of
+        # `lcf.Skill` and the computations that use them are in `batalla.py`:
+        # `efecto_habilidad` is `Algo::CalcSkillEffect` and `costo_de` is
         # `CalcSkillCost`.
         #
-        # Van **fuera del banco 0** y declaradas con `.bloque`, como todo lo
-        # que la pelea lee con `lda f:`: el banco del código está lleno, y una
-        # tabla partida entre dos bancos se leería mal desde la mitad.
+        # They go **outside bank 0** and declared with `.bloque`, like
+        # everything the battle reads with `lda f:`: the code's bank is full,
+        # and a table split between two banks would be read wrong from the
+        # middle on.
         lugar_hab = {h: k for k, h in enumerate(habilidades_rom)}
-        # Que todas las que llegan acá sean de las que la pelea sabe ofrecer lo
-        # garantiza `batalla.habilidad_usable`, que es el filtro que
-        # `habilidades_de` aplica de los dos lados. Se vuelve a comprobar por
-        # si alguna vez se emitieran desde otro lado: un alcance de a muchos o
-        # un costo de tres cifras se dibujarían mal en silencio.
+        # That all the ones that reach here are of the kind the battle knows
+        # how to offer is guaranteed by `batalla.habilidad_usable`, which is
+        # the filter `habilidades_de` applies on both sides. It is checked
+        # again in case they were ever emitted from somewhere else: a
+        # multi-target scope or a three-digit cost would be drawn wrong
+        # silently.
         for h in habilidades_rom:
             if not B.habilidad_usable(db.skills[h]):
                 raise SystemExit(
-                    "la habilidad %d —tipo %d, alcance %d, %d SP— no es de las "
-                    "que esta pelea sabe ofrecer" % (h, db.skills[h].type,
-                                                     db.skills[h].scope,
-                                                     db.skills[h].sp_cost))
+                    "skill %d —type %d, scope %d, %d SP— isn't one of the "
+                    "ones this battle knows how to offer" % (h, db.skills[h].type,
+                                                             db.skills[h].scope,
+                                                             db.skills[h].sp_cost))
         words_asm("hab_id", habilidades_rom, declarar=True)
         words_asm("hab_txt", [texto_hab[h] for h in habilidades_rom],
                   declarar=True)
@@ -6305,8 +6316,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                  for h in habilidades_rom], declarar=True)
         bytes_asm("hab_sp", [db.skills[h].sp_cost for h in habilidades_rom],
                   declarar=True)
-        # El tipo: 0 es `normal` y 3 es `switch`, que es la que prende un
-        # switch y no hace nada más. Ver `Skill::vExecute`.
+        # The type: 0 is `normal` and 3 is `switch`, which is the one that
+        # turns on a switch and does nothing else. See `Skill::vExecute`.
         bytes_asm("hab_tipo", [db.skills[h].type for h in habilidades_rom],
                   declarar=True)
         bytes_asm("hab_fis", [db.skills[h].physical_rate
@@ -6317,10 +6328,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                               for h in habilidades_rom], declarar=True)
         bytes_asm("hab_hit", [db.skills[h].hit for h in habilidades_rom],
                   declarar=True)
-        # Qué toca, un bit por cosa, en el orden en que `Skill::vExecute` las
-        # mira —que es el orden en que consume azar y por eso importa—: HP, SP,
-        # ataque, defensa, espíritu y agilidad. El bit 6 dice si apunta a
-        # enemigos —`Algo::SkillTargetsEnemies`— y el 7 si ignora la defensa.
+        # What it touches, one bit per thing, in the order `Skill::vExecute`
+        # looks at them —which is the order it consumes randomness in and
+        # that is why it matters—: HP, SP, attack, defense, spirit and
+        # agility. Bit 6 says whether it targets enemies
+        # —`Algo::SkillTargetsEnemies`— and 7 whether it ignores defense.
         bytes_asm("hab_afecta", [
             (1 if db.skills[h].affect_hp else 0)
             | (2 if db.skills[h].affect_sp else 0)
@@ -6331,15 +6343,15 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             | (64 if db.skills[h].apunta_a_enemigos else 0)
             | (128 if db.skills[h].ignore_defense else 0)
             for h in habilidades_rom], "$%02X", declarar=True)
-        # Y el alcance tal cual, `rpg::Skill::Scope`: 0 un enemigo, 1 todos,
-        # 2 uno mismo, 3 un aliado, 4 todo el grupo. Desde el 2026-09-27 la
-        # pelea sabe los cinco: ver `batalla.blancos_de_la_habilidad`.
+        # And the scope as is, `rpg::Skill::Scope`: 0 one enemy, 1 all, 2
+        # oneself, 3 one ally, 4 the whole party. Since 2026-09-27 the battle
+        # knows all five: see `batalla.blancos_de_la_habilidad`.
         bytes_asm("hab_alcance", [db.skills[h].scope for h in habilidades_rom],
                   declarar=True)
-        # Los eventos comunes paralelos que sólo miran el equipo, compilados:
-        # la ROM los corre al cerrar el menú si su switch está prendido. Por
-        # cada uno, dónde está su switch en el bitmap —byte y máscara— y su
-        # código. Ver `eventos.COMUNES_DEL_EQUIPO`.
+        # The parallel common events that only look at the equipment,
+        # compiled: the ROM runs them when closing the menu if their switch is
+        # on. For each one, where its switch is in the bitmap —byte and mask—
+        # and its code. See `eventos.COMUNES_DEL_EQUIPO`.
         del_equipo = sorted(eventos.COMUNES_DEL_EQUIPO.items())
         handle.write("COMEQ_N = %d\n" % len(del_equipo))
         words_asm("comeq_byte", [sw >> 3 for sw, _n in del_equipo],
@@ -6350,26 +6362,27 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         words_asm("comeq_cod", [".loword(comun_equipo_%d)" % n
                                 for _sw, n in del_equipo], "%s",
                   declarar=True)
-        # El banco va de a palabra —su byte alto no se lee— para que la ROM
-        # lo indexe con el mismo X que `comeq_cod`.
+        # The bank goes as a word —its high byte isn't read— so that the ROM
+        # indexes it with the same X as `comeq_cod`.
         words_asm("comeq_banco", ["^comun_equipo_%d" % n
                                   for _sw, n in del_equipo], "%s",
                   declarar=True)
         for _sw, n in del_equipo:
             handle.write(bloque("comun_equipo_%d" % n,
                                 eventos.compilar_comun_del_equipo(n)) + "\n")
-        # Y qué sabe cada actor, que desde el 2026-09-21 es estado: un bit por
-        # par (actor, habilidad) en `FAR_HAB`, con las ranuras de
-        # `eventos.HABILIDAD_RANURA`. Lo contestan la rama 4 de
-        # `ConditionalBranch` —que ya trae la ranura en el bytecode— y la lista
-        # de la pelea, que recorre los pares del actor: dónde arrancan
-        # —`hab_par_ini`, de a palabra porque son más de 255—, cuántos son, y
-        # el `k` de cada uno en las tablas `hab_*` de arriba, o $FF si ésta no
-        # la sabe ofrecer. Como los pares de un actor van seguidos y por
-        # número, la lista sale ordenada como la de `LearnSkill`.
+        # And what each actor knows, which since 2026-09-21 is state: one bit
+        # per (actor, skill) pair in `FAR_HAB`, with the slots of
+        # `eventos.HABILIDAD_RANURA`. It is answered by branch 4 of
+        # `ConditionalBranch` —which already brings the slot in the bytecode—
+        # and by the battle's list, which walks the actor's pairs: where they
+        # start —`hab_par_ini`, as words because there are more than 255—,
+        # how many there are, and the `k` of each one in the `hab_*` tables
+        # above, or $FF if this one doesn't know how to offer it. Since an
+        # actor's pairs go together and by number, the list comes out sorted
+        # like `LearnSkill`'s.
         #
-        # Los bits arrancan con `reglas.aprendidas_de`, que es lo que el LDB
-        # dice a su nivel inicial: `hab_inicial_poner` los copia en el reset.
+        # The bits start with `reglas.aprendidas_de`, which is what the LDB
+        # says at its initial level: `hab_inicial_poner` copies them on reset.
         pares = sorted(eventos.HABILIDAD_RANURA.items(), key=lambda x: x[1])
         hab_par_ini, hab_par_n = [], []
         for a in range(actores_n):
@@ -6377,20 +6390,20 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             hab_par_ini.append(suyos[0] if suyos else 0)
             hab_par_n.append(len(suyos))
             if suyos and suyos != list(range(suyos[0], suyos[0] + len(suyos))):
-                raise SystemExit("los pares de habilidad del actor %d no van "
-                                 "seguidos" % a)
+                raise SystemExit("the skill pairs of actor %d aren't "
+                                 "contiguous" % a)
         if max(hab_par_n, default=0) > 255:
-            raise SystemExit("un actor tiene más de 255 pares de habilidad y "
-                             "`hab_par_n` es de un byte")
+            raise SystemExit("an actor has more than 255 skill pairs and "
+                             "`hab_par_n` is one byte")
         hab_bytes = max(1, (len(pares) + 7) // 8)
         sabe_de = {a: set(reglas.aprendidas_de(db, a)) for a in db.actors}
         bits = [0] * hab_bytes
         for (a, h), r in pares:
             if h in sabe_de.get(a, ()):
                 bits[r >> 3] |= 1 << (r & 7)
-        handle.write("; Cuántos bytes ocupan los bits de las habilidades en `FAR_HAB`.\n"
+        handle.write("; How many bytes the skill bits take in `FAR_HAB`.\n"
                      "HAB_BYTES = %d\n" % hab_bytes)
-        handle.write("; La firma del formato de la partida: ver `SRAM_FIRMA`.\n"
+        handle.write("; The signature of the save format: see `SRAM_FIRMA`.\n"
                      "PARTIDA_FIRMA = $%04X\n" % firma_de_la_partida(
                          pares, experiencia_ranuras(db, ranuras["actores"]),
                          actores_n))
@@ -6400,32 +6413,32 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                 if a in ranuras["actores"] else 0xFF
                                 for (a, h), _r in pares], declarar=True)
         bytes_asm("hab_inicial", bits, "$%02X", declarar=True)
-        # Y en qué nivel enseña cada par la tabla de aprendizaje del LDB, o 0
-        # si no lo enseña —los que sólo da un `ChangeSkills`—: al subir de
-        # nivel, `exp_sumar` prende los bits de los pares cuyo nivel acaba de
-        # pasar, que es `LearnLevelSkills(old_level + 1, new_level)`.
+        # And at which level the LDB's learning table teaches each pair, or 0
+        # if it doesn't —the ones only a `ChangeSkills` gives—: on leveling
+        # up, `exp_sumar` sets the bits of the pairs whose level it just
+        # passed, which is `LearnLevelSkills(old_level + 1, new_level)`.
         bytes_asm("hab_par_nivel", [B.nivel_en_que_aprende(db, a, h)
                                     if a in db.actors else 0
                                     for (a, h), _r in pares], declarar=True)
-        # Y con qué nombre lo cuenta la victoria —"<habilidad> acquired!"—,
-        # o $FFFF si no se aprende subiendo de nivel desde el de arranque.
+        # And the name the victory tells it by —"<skill> acquired!"—, or $FFFF
+        # if it isn't learned by leveling up from the starting one.
         words_asm("hab_par_aprende_txt", [
             texto_hab_entero[h] if a in ranuras["actores"]
             and B.nivel_en_que_aprende(db, a, h) > 0 and h in texto_hab_entero
             else 0xFFFF for (a, h), _r in pares], "$%04X", declarar=True)
-        # 254 y no 256: `eacc_hab` usa $FF para el ataque y `ba_accion_enemiga`
-        # contesta $FE cuando no le queda ninguna.
+        # 254 and not 256: `eacc_hab` uses $FF for the attack and
+        # `ba_accion_enemiga` answers $FE when it has none left.
         if len(habilidades_rom) > 254:
-            raise SystemExit("las habilidades del cartucho son %d y `hab_par_k` "
-                             "es de un byte" % len(habilidades_rom))
-        # Y cómo se llama la orden de habilidades de cada actor en el menú.
+            raise SystemExit("the cartridge's skills are %d and `hab_par_k` "
+                             "is one byte" % len(habilidades_rom))
+        # And what each actor's skills command is called in the menu.
         words_asm("actor_hab_txt", [texto_hab_orden.get(a, 0xFFFF)
                                     for a in range(actores_n)], "$%04X",
                   declarar=True)
-        # Las tropas que alguna pelea del cartucho pide, y los enemigos que las
-        # forman. El bytecode lleva el **número de RM2k** de la tropa, así que
-        # `tropa_id` es lo que la ROM busca; que la lista sea sólo la de las
-        # tropas usadas no cambia un byte de ninguna página. Ver
+        # The troops some battle of the cartridge asks for, and the enemies
+        # that form them. The bytecode carries the troop's **RM2k number**, so
+        # `tropa_id` is what the ROM looks up; the list being only that of the
+        # used troops doesn't change a byte of any page. See
         # `eventos.Tropas`.
         usadas = [n for n in tropas if n in db.troops]
         lugar_de = {e: k for k, e in enumerate(enemigos_rom)}
@@ -6435,29 +6448,29 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             inicios.append(len(miembros))
             miembros += [lugar_de[e] for e in lista]
         if len(miembros) > 255 or len(usadas) > 255:
-            raise SystemExit("las tropas del cartucho no entran en las tablas "
-                             "de un byte: %d tropas, %d miembros"
+            raise SystemExit("the cartridge's troops don't fit in one-byte "
+                             "tables: %d troops, %d members"
                              % (len(usadas), len(miembros)))
         words_asm("tropa_id", usadas, declarar=True)
-        # La experiencia que da ganarle a cada una, ya sumada: ver
-        # `experiencia.exp_de_la_tropa`. Va fuera del banco 0, como todo lo de
-        # acá, porque la lee una vez por pelea.
+        # The experience beating each one gives, already added up: see
+        # `experiencia.exp_de_la_tropa`. It goes outside bank 0, like
+        # everything here, because it is read once per battle.
         exp_tropa = [X.exp_de_la_tropa(db, n) for n in usadas]
         for n, exp in zip(usadas, exp_tropa):
             if exp > 0xFFFF:
-                raise SystemExit("la tropa %d da %d de experiencia y la ROM "
-                                 "la suma en dieciséis bits" % (n, exp))
+                raise SystemExit("troop %d gives %d experience and the ROM "
+                                 "adds it in sixteen bits" % (n, exp))
         words_asm("tropa_exp", exp_tropa, declarar=True)
-        # Y el oro, igual: `batalla.oro_de_la_tropa`. La victoria lo cuenta
-        # con `ba_vic_numero`, que llega a cinco cifras.
+        # And the gold, the same: `batalla.oro_de_la_tropa`. The victory tells
+        # it with `ba_vic_numero`, which reaches five digits.
         oro_tropa = [B.oro_de_la_tropa(db, n) for n in usadas]
         for n, oro in zip(usadas, oro_tropa):
             if oro > 0xFFFF:
-                raise SystemExit("la tropa %d da %d de oro y la ROM lo suma "
-                                 "en dieciséis bits" % (n, oro))
+                raise SystemExit("troop %d gives %d gold and the ROM adds it "
+                                 "in sixteen bits" % (n, oro))
         words_asm("tropa_oro", oro_tropa, declarar=True)
-        # Lo que la victoria escribe tiene que entrar en su renglón: la ROM lo
-        # arma con un número o un nombre en el medio y no lo parte.
+        # What the victory writes has to fit on its line: the ROM builds it
+        # with a number or a name in the middle and doesn't split it.
         P.cobrar_la_victoria(
             term_batalla, max(exp_tropa, default=0),
             [db.actors[a].name for a in ranuras["actores"] if a in db.actors],
@@ -6467,9 +6480,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                                for e in enemigos_rom}
                                               - {0})])
         bytes_asm("tropa_ini", inicios, declarar=True)
-        # Qué miembros de cada tropa empiezan **ocultos** —el `invisible` de
-        # la tropa—, un bit por lugar: los aparece una página con
-        # `ShowHiddenMonster`. Es el Rat King, que llama a sus ratas. Ver
+        # Which members of each troop start **hidden** —the troop's
+        # `invisible`—, one bit per place: a page with `ShowHiddenMonster`
+        # makes them appear. It is the Rat King, who calls his rats. See
         # `BAF_OCULTO`.
         bytes_asm("tropa_ocultos", [
             sum(1 << k for k, oculto in enumerate(
@@ -6479,22 +6492,23 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                   [len(db.troops[n].members[:constantes.ENEMIGOS_MAX])
                    for n in usadas], declarar=True)
         bytes_asm("tropa_miembro", miembros, declarar=True)
-        # Y las páginas de evento de cada tropa, en el orden del LDB —que es el
-        # orden en que `ScheduleNextPage` las prueba—, sin las que no
-        # compilaron: saltearlas no le cambia el orden a las demás. Por tropa,
-        # dónde arrancan y cuántas son; por página, su disparador y dónde está
-        # su código adentro de `tropa_codigo`, que las deduplica. Ver
-        # `eventos.PaginasDeTropa` y `ba_pag_probar` en tools/runtime/batalla_tropa.s.
+        # And the event pages of each troop, in LDB order —which is the order
+        # `ScheduleNextPage` tries them in—, without the ones that didn't
+        # compile: skipping them doesn't change the order of the others. Per
+        # troop, where they start and how many there are; per page, its
+        # trigger and where its code is inside `tropa_codigo`, which
+        # deduplicates them. See `eventos.PaginasDeTropa` and `ba_pag_probar`
+        # in tools/runtime/batalla_tropa.s.
         #
-        # **Las tablas chicas van al banco 1, `FAR`; los dos bloques grandes
-        # —el código y los mensajes—, a RODATA.** Hasta el 2026-09-27 iban los
-        # cuatro al banco 1, porque con ellos en RODATA el cartucho `juego` se
-        # pasaba de los 4 MB (medido el 2026-09-21); ese cartucho ya no existe,
-        # `release` anda por el 71%, y en el banco 1 los dos bloques eran casi
-        # once KB de los que el código a mano de la pelea no tenía ni
-        # cuatrocientos bytes. Los dos se leen con un puntero largo cuyo banco
-        # sale de `^tropa_codigo` y `^mensajes_tropa`, así que alcanza con que
-        # cada uno entre entero en un banco, que es lo que pide `bloque`.
+        # **The small tables go to bank 1, `FAR`; the two big blocks —the code
+        # and the messages—, to RODATA.** Until 2026-09-27 all four went to
+        # bank 1, because with them in RODATA the `juego` cartridge went over
+        # 4 MB (measured on 2026-09-21); that cartridge no longer exists,
+        # `release` is around 71%, and in bank 1 the two blocks were almost
+        # eleven KB of which the battle's hand-written code didn't have even
+        # four hundred bytes. Both are read with a long pointer whose bank
+        # comes from `^tropa_codigo` and `^mensajes_tropa`, so it is enough
+        # for each to fit whole in one bank, which is what `bloque` asks for.
         pt = paginas_tropa or eventos.PaginasDeTropa()
         entradas, pag_ini, pag_n = [], [], []
         for numero in usadas:
@@ -6503,7 +6517,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             pag_n.append(len(suyas))
             entradas += suyas
         if max(pag_n, default=0) > eventos.TROPA_PAGINAS_MAX:
-            raise SystemExit("una tropa trae %d páginas y la pelea anota %d"
+            raise SystemExit("a troop brings %d pages and the battle tracks %d"
                              % (max(pag_n), eventos.TROPA_PAGINAS_MAX))
         handle.write('.segment "FAR"\n')
         words_asm("tropa_pag_ini", pag_ini)
@@ -6512,11 +6526,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         words_asm("tpag_sw_a", [d.switch_a for d, _ofs in entradas])
         words_asm("tpag_cod", [".loword(tropa_codigo + %d)" % ofs
                                for _d, ofs in entradas], "%s")
-        # Las tres del `switch_b` y la variable sólo si alguna página las usa:
-        # los 32 sistemas de los personajes miran sólo el `switch_a`, y sin
-        # ninguna la ROM no las lee nunca —el bit de `tpag_flags` está en
-        # cero—, así que alcanza con la etiqueta. Lo del turno y los HP no
-        # tiene tabla: va delante del código, ver `eventos.cabecera_de_tropa`.
+        # The three for `switch_b` and the variable only if some page uses
+        # them: the characters' 32 systems only look at `switch_a`, and with
+        # none the ROM never reads them —the bit in `tpag_flags` is zero—, so
+        # the label is enough. The turn and the HP have no table: they go in
+        # front of the code, see `eventos.cabecera_de_tropa`.
         for nombre, campo, bit in (
                 ("tpag_sw_b", "switch_b", eventos.TROPA_DISPARO_SWITCH_B),
                 ("tpag_var", "ranura", eventos.TROPA_DISPARO_VARIABLE),
@@ -6529,10 +6543,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                      + "\n")
         handle.write(bloque("mensajes_tropa", pt.mensajes.bytes())
                      + "\n")
-        # Y los encuentros al azar, que también hablan de tropas por su número
-        # de RM2k. Van acá afuera del banco 0 —se leen con `lda f:tabla, x`—
-        # porque allá quedaban ochenta y cinco bytes y esto son unos doscientos.
-        # Ver `encuentros_de_la_rom` y `tools/runtime/encuentros.s`.
+        # And the random encounters, which also talk about troops by their
+        # RM2k number. They go here outside bank 0 —they are read with
+        # `lda f:tabla, x`— because eighty-five bytes were left there and this
+        # is about two hundred. See `encuentros_de_la_rom` and
+        # `tools/runtime/encuentros.s`.
         enc = encuentros or {"por_mapa": [0xFF] * len(mapas), "registros": [],
                              "zonas": [], "tropas": []}
         bytes_asm("enc_mapa", enc["por_mapa"], declarar=True)
@@ -6540,8 +6555,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                   declarar=True)
         umbrales = []
         for r in enc["registros"]:
-            # Siete umbrales y uno de relleno: con ocho el índice del registro
-            # es un corrimiento y no una multiplicación. Ver ENC_STRIDE.
+            # Seven thresholds and one of padding: with eight the record's
+            # index is a shift and not a multiplication. See ENC_STRIDE.
             umbrales += list(r["umbrales"]) + [0xFF]
         bytes_asm("enc_umbral_n", umbrales, declarar=True)
         bytes_asm("enc_zona_ini", [r["zona_ini"] for r in enc["registros"]],
@@ -6565,66 +6580,68 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                   declarar=True)
         words_asm("enemigo_agi", [db.enemies[e].agility for e in enemigos_rom],
                   declarar=True)
-        # El espíritu y los SP: los pide `CalcSkillEffect`, que le resta al
-        # efecto `magical_rate * spi_del_blanco / 80`. Hasta el 2026-09-13 no
-        # los leía nadie porque ninguna cuenta de la pelea los usaba.
+        # The spirit and the SP: `CalcSkillEffect` asks for them, subtracting
+        # `magical_rate * spi_del_blanco / 80` from the effect. Until
+        # 2026-09-13 nobody read them because no computation of the battle
+        # used them.
         words_asm("enemigo_spi", [db.enemies[e].spirit for e in enemigos_rom],
                   declarar=True)
         words_asm("enemigo_sp", [db.enemies[e].max_sp for e in enemigos_rom],
                   declarar=True)
         bytes_asm("enemigo_hit", [db.enemies[e].hit for e in enemigos_rom],
                   declarar=True)
-        # El crítico, ya en por ciento entero: `CalcCriticalHitChance` lo
-        # calcula como `1 / critical_hit_chance` por cien y lo trunca.
+        # The critical hit, already as a whole percentage:
+        # `CalcCriticalHitChance` computes it as `1 / critical_hit_chance`
+        # times a hundred and truncates it.
         bytes_asm("enemigo_crit", [
             (100 // (db.enemies[e].critical_hit_chance or 30))
             if db.enemies[e].critical_hit else 0 for e in enemigos_rom],
             declarar=True)
         words_asm("enemigo_txt", [texto_enemigo[e] for e in enemigos_rom],
                   declarar=True)
-        # La experiencia y el oro de cada uno, que la victoria le resta a los
-        # de la tropa por cada enemigo que siguió oculto: ver `ba_sin_ocultos`.
+        # Each one's experience and gold, which the victory subtracts from the
+        # troop's for each enemy that stayed hidden: see `ba_sin_ocultos`.
         words_asm("enemigo_exp", [db.enemies[e].exp for e in enemigos_rom],
                   declarar=True)
         words_asm("enemigo_oro", [db.enemies[e].gold for e in enemigos_rom],
                   declarar=True)
-        # Lo que deja al morir: el ítem del LDB, o 0 si no deja nada, y la
-        # chance en por ciento. Ver `ba_vic_botin` y `batalla.tirar_el_botin`.
-        # Todo ítem que se puede soltar está en `items`: ver
-        # `items_del_botin`, que lo agrega.
+        # What it drops on dying: the LDB item, or 0 if it drops nothing, and
+        # the chance as a percentage. See `ba_vic_botin` and
+        # `batalla.tirar_el_botin`. Every item that can be dropped is in
+        # `items`: see `items_del_botin`, which adds it.
         for e in enemigos_rom:
             if db.enemies[e].drop_id and db.enemies[e].drop_id not in k_de:
-                raise SystemExit("el enemigo %d suelta el ítem %d y el "
-                                 "cartucho no lo lleva"
+                raise SystemExit("enemy %d drops item %d and the "
+                                 "cartridge doesn't carry it"
                                  % (e, db.enemies[e].drop_id))
         words_asm("enemigo_botin", [db.enemies[e].drop_id
                                     for e in enemigos_rom], declarar=True)
         bytes_asm("enemigo_botin_pct", [db.enemies[e].drop_prob
                                         for e in enemigos_rom], declarar=True)
-        # Lo que cada enemigo puede hacer en su turno: su lista de
-        # `batalla.acciones_de_enemigo`, seguida en `eacc_*` —dónde arranca y
-        # cuántas son—. Por acción, la habilidad como `k` de las tablas `hab_*`
-        # o $FF para el ataque, y su `rating` con el bit 7 prendido si no es
-        # `efectiva`: cuenta para el máximo y después pesa cero. Ver
-        # `ba_accion_enemiga` en tools/runtime/batalla.s.
+        # What each enemy can do on its turn: its list from
+        # `batalla.acciones_de_enemigo`, contiguous in `eacc_*` —where it
+        # starts and how many there are—. Per action, the skill as a `k` of the
+        # `hab_*` tables or $FF for the attack, and its `rating` with bit 7 set
+        # if it isn't `efectiva`: it counts for the maximum and then weighs
+        # zero. See `ba_accion_enemiga` in tools/runtime/batalla.s.
         eacc_ini, eacc_hab, eacc_peso = [], [], []
         for e in enemigos_rom:
             if len(acciones_rom[e]) > B.ACCIONES_MAX:
-                raise SystemExit("el enemigo %d trae %d acciones y la ROM "
-                                 "pesa %d: ver `batalla.ACCIONES_MAX`"
+                raise SystemExit("enemy %d brings %d actions and the ROM "
+                                 "weighs %d: see `batalla.ACCIONES_MAX`"
                                  % (e, len(acciones_rom[e]), B.ACCIONES_MAX))
             eacc_ini.append(len(eacc_hab))
             for rating, skill, efectiva in acciones_rom[e]:
                 if not 0 < rating < 0x80:
-                    raise SystemExit("el enemigo %d trae una acción de rating "
-                                     "%d y la ROM lo lleva en siete bits"
+                    raise SystemExit("enemy %d brings an action with rating "
+                                     "%d and the ROM carries it in seven bits"
                                      % (e, rating))
                 eacc_hab.append(0xFF if skill is None
                                 else lugar_hab[skill.id])
                 eacc_peso.append(rating | (0 if efectiva else 0x80))
         if len(eacc_hab) > 255:
-            raise SystemExit("las acciones de los enemigos del cartucho son %d "
-                             "y `enemigo_acc_ini` es de un byte"
+            raise SystemExit("the actions of the cartridge's enemies are %d "
+                             "and `enemigo_acc_ini` is one byte"
                              % len(eacc_hab))
         handle.write("ACCIONES_MAX = %d\n" % B.ACCIONES_MAX)
         bytes_asm("enemigo_acc_ini", eacc_ini, declarar=True)
@@ -6632,36 +6649,36 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                   declarar=True)
         bytes_asm("eacc_hab", eacc_hab, declarar=True)
         bytes_asm("eacc_peso", eacc_peso, declarar=True)
-        # Y la escena de la pelea: los fondos y los battlers por separado.
-        # `usadas` es el mismo orden que `tropa_id`, que es lo que
-        # `escena_tropa_fondo` indexa, y el de `tropa_miembro`.
+        # And the battle scene: the backdrops and the battlers separately.
+        # `usadas` is the same order as `tropa_id`, which is what
+        # `escena_tropa_fondo` indexes, and that of `tropa_miembro`.
         handle.write(escenas_asm(escenas or {"fondos": [], "battlers": [],
                                              "battler_de": {},
                                              "tropa_fondo": {},
                                              "mapa_fondo": [0xFF] * len(mapas)},
                                  usadas, db))
         handle.write('.segment "TABLAS"\n')
-        # El producto de la cuenta del acierto tiene que entrar en dieciséis
-        # bits: (100 - acierto) por la suma de las dos agilidades. Con el
-        # acierto mínimo de 70 son 30 por 1998, y el tope de agilidad lo cuida
-        # `BA_AGI_TOPE`; un enemigo que acertara menos lo desbordaría sin
-        # avisar, así que se corta acá.
-        # `recover_hp_rate * hp_max` tiene que entrar en dieciséis bits: la
-        # ROM lo hace con el multiplicador del hardware, que da una palabra.
-        # Con el por ciento topado en 100 eso son hp_max de hasta 655, y los
-        # actores de este juego andan en 40. Un actor más gordo desbordaría sin
-        # avisar, así que se corta acá.
+        # The product of the hit computation has to fit in sixteen bits:
+        # (100 - hit rate) times the sum of both agilities. With the minimum
+        # hit rate of 70 that is 30 times 1998, and the agility cap is guarded
+        # by `BA_AGI_TOPE`; an enemy with a lower hit rate would overflow it
+        # without warning, so it stops here.
+        # `recover_hp_rate * hp_max` has to fit in sixteen bits: the ROM does
+        # it with the hardware multiplier, which gives a word. With the
+        # percentage capped at 100 that is hp_max of up to 655, and this
+        # game's actors are around 40. A fatter actor would overflow without
+        # warning, so it stops here.
         for a in range(actores_n):
             maximo = (reglas.parametro_de(db.actors[a], "maxhp")
                       if a in db.actors else 0)
             if maximo * 100 > 0xFFFF:
                 raise SystemExit(
-                    "el actor %d tiene %d HP y la cuenta de la curación de la "
-                    "ROM está dimensionada para 655" % (a, maximo))
+                    "actor %d has %d HP and the ROM's healing computation "
+                    "is sized for 655" % (a, maximo))
         for e in enemigos_rom:
             if db.enemies[e].hit < 70:
-                raise SystemExit("el enemigo %d acierta %d, y la cuenta del "
-                                 "acierto de la ROM está dimensionada para 70"
+                raise SystemExit("enemy %d has a hit rate of %d, and the ROM's "
+                                 "hit computation is sized for 70"
                                  % (e, db.enemies[e].hit))
         handle.write(
             "TROPAS_N          = %d\n"
@@ -6706,19 +6723,19 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                eventos.TROPA_DISPARO_VARIABLE, eventos.TROPA_DISPARO_TURNO,
                eventos.TROPA_DISPARO_ENEMIGO, eventos.TROPA_DISPARO_ACTOR,
                eventos.TROPA_CON_CABECERA, eventos.TROPA_CABECERA_BYTES))
-        # El audio: el tema de la pelea, el de la victoria y los cinco efectos,
-        # con el índice que sacaron de `Temas`. $FF y $FFFF quieren decir "el
-        # LDB lo tiene apagado", que es el caso de `battle_se` en este juego.
-        # Quién suena en qué momento está en `eventos.AUDIO_BATALLA`, sacado de
-        # easyrpg-player; acá sólo viajan los números.
+        # The audio: the battle song, the victory one and the five sound
+        # effects, with the index they got from `Temas`. $FF and $FFFF mean
+        # "the LDB has it turned off", which is the case of `battle_se` in
+        # this game. Who sounds at which moment is in `eventos.AUDIO_BATALLA`,
+        # taken from easyrpg-player; only the numbers travel here.
         audio = audio_batalla or {}
-        # El paquete de audio de la pelea va detrás de los de los mapas, así
-        # que su índice es cuántos mapas lleva la ROM. Lo emite acá y lo
-        # comprueba la sección de música, que es la que arma la lista.
+        # The battle's audio package goes after the maps' ones, so its index
+        # is how many maps the ROM carries. It is emitted here and checked by
+        # the music section, which is the one that builds the list.
         #
-        # De dieciséis bits, y el "no hay" es $FFFF: con los 328 mapas del
-        # juego entero el índice no entra en un byte, igual que `mapa_actual`.
-        # Ver `batalla_audio_cargar`.
+        # Sixteen bits, and "there is none" is $FFFF: with the 328 maps of the
+        # whole game the index doesn't fit in a byte, same as `mapa_actual`.
+        # See `batalla_audio_cargar`.
         handle.write(
             "BA_TEMA           = $%02X\n"
             "BA_TEMA_FIN       = $%02X\n"
@@ -6738,16 +6755,17 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write("BA_TXT_VICTORIA2  = %d\n"
                      "BA_VIC_TERMINO_N  = %d\n"
                      % (texto_victoria2, len(victoria)))
-        # Los términos, por su lugar en `reglas.BA_TERMINOS`.
+        # The terms, by their place in `reglas.BA_TERMINOS`.
         for k, (nombre, _termino) in enumerate(reglas.BA_TERMINOS):
             handle.write("BA_TXT_%-11s= BA_TXT_BASE + %d\n"
                          % (nombre.upper(), k))
         handle.write("BA_TXT_REVIVIO    = %d\n" % texto_revivio)
-        # Las cinco órdenes del menú, con lo que la ROM necesita de cada una:
-        # en qué renglón y en qué columna va, qué término la nombra y si va
-        # siempre en gris. Van en tablas y no en una cuenta porque desde el
-        # 2026-09-13 **no son tres seguidas en un renglón**: son las cinco del
-        # menú del ABL repartidas en dos. Ver `pantallas.BA_ORDENES`.
+        # The menu's five commands, with what the ROM needs of each one: which
+        # line and which column it goes in, which term names it and whether it
+        # always goes in gray. They go in tables and not in a computation
+        # because since 2026-09-13 **they aren't three in a row on one line**:
+        # they are the five of ABL's menu spread over two. See
+        # `pantallas.BA_ORDENES`.
         handle.write("BA_ORDENES_N      = %d\n" % len(P.BA_ORDENES))
         handle.write("BA_ITEM_CUENTA_DX = %d\n" % (P.BA_ITEM_CUENTA_COL * 2))
         handle.write("BA_ORDEN_USAR     = %d\n" % P.BA_ORDEN_USAR)
@@ -6755,9 +6773,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write("BA_ORDEN_ATACAR   = %d\n" % P.BA_ORDEN_ATACAR)
         handle.write("BA_ORDEN_DEFENDER = %d\n" % P.BA_ORDEN_DEFENDER)
         handle.write("BA_ORDEN_HABILIDAD= %d\n" % P.BA_ORDEN_HABILIDAD)
-        # La pantalla de habilidades: dos columnas con el nombre y el costo, y
-        # la descripción de la que marca el cursor arriba de todo. La geometría
-        # sale de `pantallas.py`, como la de la lista de ítems.
+        # The skills screen: two columns with the name and the cost, and the
+        # description of the one under the cursor at the very top. The
+        # geometry comes from `pantallas.py`, like the item list's.
         handle.write(
             "HABILIDADES_N     = %d\n"
             "BA_HAB_DESC_POS   = %d\n"
@@ -6782,10 +6800,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             for _n, f, _c in P.BA_ORDENES], declarar=True)
         words_asm("ba_orden_dx", [c * 2 for _n, _f, c in P.BA_ORDENES],
                   declarar=True)
-        # **De dos bytes.** Un índice de texto no entra en uno: con los 29
-        # mapas de `abl` los de la batalla arrancan en el 273, y la
-        # tabla de un byte que había acá hasta el 2026-09-14 los emitía igual
-        # —`.byte 273`— para que el ensamblador los truncara sin decir nada.
+        # **Two bytes.** A text index doesn't fit in one: with the 29 maps of
+        # `abl` the battle's start at 273, and the one-byte table that was here
+        # until 2026-09-14 emitted them anyway —`.byte 273`— for the assembler
+        # to truncate them without saying anything.
         words_asm("ba_orden_txt", [
             texto_batalla + [n for n, _c in reglas.BA_TERMINOS].index(nombre)
             for nombre, _f, _c in P.BA_ORDENES], declarar=True)
@@ -6795,17 +6813,17 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write('.segment "TABLAS"\n')
 
         glifos = ranuras["items_glifos"]
-        # Fuera del banco 0, como `item_k`: se lee con `lda f:`.
+        # Outside bank 0, like `item_k`: it is read with `lda f:`.
         handle.write('.segment "RODATA"\n')
-        # **Con el bit de prioridad puesto**, desde que la pelea dibuja la
-        # escena en BG1: en modo 3 el orden del PPU deja BG1 de prioridad 0
-        # **arriba** de BG2 de prioridad 0, así que sin esto el fondo taparía
-        # las letras. En las otras pantallas que usan estos glifos —ítems,
-        # equipo, tienda— BG1 está apagado y el bit no cambia un pixel, y en
-        # las celdas vacías tampoco, porque sus pixeles son transparentes.
-        # La variante de "sube" trae sólo las cifras; las demás letras caen en
-        # las blancas, que nadie pide en ese color pero así la tabla se indexa
-        # igual que las otras.
+        # **With the priority bit set**, since the battle draws the scene on
+        # BG1: in mode 3 the PPU order leaves BG1 at priority 0 **above** BG2
+        # at priority 0, so without this the backdrop would cover the letters.
+        # On the other screens that use these glyphs —items, equipment, shop—
+        # BG1 is off and the bit doesn't change a pixel, and in the empty
+        # cells neither, because their pixels are transparent. The "goes up"
+        # variant brings only the digits; the other letters fall on the white
+        # ones, which nobody asks for in that color but that way the table is
+        # indexed the same as the others.
         words_asm("item_glifo_celdas", [
             entry(celda, False, False, priority=1)
             for gris in (T.ITEM_BLANCO, T.ITEM_GRIS, T.ITEM_SUBE,
@@ -6817,19 +6835,20 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "$%04X", declarar=True)
         handle.write('.segment "TABLAS"\n')
         handle.write("\n")
-        # `fuente_color` va en el banco 0 y no con el resto de la ventana: la
-        # ROM la lee con `lda fuente_color, y`, y ese modo direcciona el banco
-        # de datos. Con ella en RODATA leía basura, y el texto salía en negro.
+        # `fuente_color` goes in bank 0 and not with the rest of the window:
+        # the ROM reads it with `lda fuente_color, y`, and that mode addresses
+        # the data bank. With it in RODATA it read garbage, and the text came
+        # out black.
         handle.write(bloque("fuente_color", bytes(ventana["color"]),
                             acomodar=False) + "\n")
         handle.write("grupo_inicial:\n    .byte %s\n\n"
                      % ",".join("%d" % a for a in grupo_inicial) or "0")
         handle.write(tabla_de_senos() + "\n")
-        # Cuántos cuadros se queda quieto un personaje después de un paso y
-        # después de un giro, por frecuencia de ruta: el contador de parada de
-        # RM2k, en dos tablas de nueve para indexar con la frecuencia tal cual.
-        # Salen de `eventos.espera_tras_paso` y `espera_tras_giro`. La 0 y la
-        # 1 no se compilan; llevan cero para que la tabla no tenga agujeros.
+        # How many frames a character stays still after a step and after a
+        # turn, per route frequency: RM2k's stop counter, in two tables of
+        # nine to index with the frequency as is. They come from
+        # `eventos.espera_tras_paso` and `espera_tras_giro`. 0 and 1 aren't
+        # compiled; they carry zero so that the table has no holes.
         handle.write("ruta_tras_paso:\n    .byte %s\n" % ",".join(
             "%d" % (eventos.espera_tras_paso(f)
                     if f >= eventos.RUTA_FRECUENCIA_MIN else 0)
@@ -6840,7 +6859,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             for f in range(eventos.RUTA_FRECUENCIA + 1)))
         handle.write(tabla_de_mapas(mapas, etiquetas))
         handle.write("\n\n")
-        # Después de la de mapas, que ya dejó el segmento en RODATA.
+        # After the map one, which already left the segment in RODATA.
         handle.write(anim_tabla(mapas))
         handle.write("\n")
     return materiales.informe()
