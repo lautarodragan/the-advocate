@@ -2,7 +2,7 @@
 
 The converter is a single Python process and the machine has several cores:
 what is pure —the same result for the same argument, without touching
-anything outside— and costly is spread with `en_paralelo`. The processes are
+anything outside— and costly is spread with `in_parallel`. The processes are
 **forked**, so they are born with all of the converter's state already built;
 the only things that travel between processes are the arguments and the
 results.
@@ -11,7 +11,7 @@ results.
 import os
 
 
-def en_paralelo(funcion, argumentos):
+def in_parallel(function, arguments):
     """`[funcion(a) for a in argumentos]`, in forked processes.
 
     Because it forks, the function can be a lambda or a closure: it does not
@@ -27,35 +27,35 @@ def en_paralelo(funcion, argumentos):
     warns about it. The converter runs in a process of its own with a single
     thread.
     """
-    argumentos = list(argumentos)
-    procesos = min(len(argumentos), os.cpu_count() or 1)
-    if procesos < 2 or not _un_solo_hilo():
-        return [funcion(a) for a in argumentos]
+    arguments = list(arguments)
+    processes = min(len(arguments), os.cpu_count() or 1)
+    if processes < 2 or not _single_thread():
+        return [function(a) for a in arguments]
     import multiprocessing
-    global _funcion
-    _funcion = funcion
+    global _function
+    _function = function
     try:
-        with multiprocessing.get_context("fork").Pool(procesos) as pool:
-            hechos = pool.map(_uno, argumentos, chunksize=1)
+        with multiprocessing.get_context("fork").Pool(processes) as pool:
+            results = pool.map(_one, arguments, chunksize=1)
     finally:
-        _funcion = None
-    for _hecho, error in hechos:
+        _function = None
+    for _result, error in results:
         if error is not None:
             raise error
-    return [hecho for hecho, _error in hechos]
+    return [result for result, _error in results]
 
 
-_funcion = None
+_function = None
 
 
-def _uno(argumento):
+def _one(argument):
     try:
-        return _funcion(argumento), None
-    except BaseException as e:      # noqa: B036 — see `en_paralelo`
+        return _function(argument), None
+    except BaseException as e:      # noqa: B036 — see `in_parallel`
         return None, e
 
 
-def _un_solo_hilo():
+def _single_thread():
     """Whether this process has a single thread, counting the ones that are
     not Python's: it is the same thing Python looks at to warn."""
     try:

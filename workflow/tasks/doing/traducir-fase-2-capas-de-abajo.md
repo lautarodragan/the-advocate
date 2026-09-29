@@ -29,3 +29,4 @@ un `-c`) se buscan aparte con grep.
 3. `perillas.py` → `settings.py`.
 4. `ambiente.py` → `environment.py`, con `--reemplazos` → `--replacements` y `--compartido` → `--shared`.
 5. `cache_disco.py` → `disk_cache.py`.
+6. `paralelo.py` → `parallel.py`.

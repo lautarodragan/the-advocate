@@ -11,7 +11,7 @@ one in its own row or above.
 
     common/      where everything is (project), the converter's disk cache
                  (disk_cache), and spreading pure work across forked
-                 processes (paralelo). It imports nothing from `tools/`, and
+                 processes (parallel). It imports nothing from `tools/`, and
                  any of the ones above may import it
 
     rpgmaker/    the game as data: the JSON dump of rom/data/ (lcf), what is

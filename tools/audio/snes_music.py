@@ -24,7 +24,7 @@ from audio import snes_samples
 from audio import spc700
 from common import settings
 from common import project
-from common.paralelo import en_paralelo
+from common.parallel import in_parallel
 from rpgmaker import recursos
 from rpgmaker.recursos import find_resource
 
@@ -420,7 +420,7 @@ def build_efectos(pedidos, game_dir=None, budget=SE_ARAM):
     # encode it— and that is pure: all at once, and then the allocation in
     # the requested order.
     unicos = list(dict.fromkeys(pedidos))
-    armados = dict(zip(unicos, en_paralelo(
+    armados = dict(zip(unicos, in_parallel(
         lambda n: build_efecto(n, game_dir), unicos)))
     for nombre in pedidos:
         if nombre in hechos:
@@ -2085,7 +2085,7 @@ def build_varios(nombres, game_dir=None, efectos=(), paquetes=None,
         techos = leer_techos()
     # Reading the MIDIs is pure and there is one per song: in parallel, like
     # building them.
-    leidos = en_paralelo(lambda n: leer_tema(n, game_dir), nombres)
+    leidos = in_parallel(lambda n: leer_tema(n, game_dir), nombres)
     teclas = zonas_mas_usadas(leidos)
     claves_de = [claves_del_tema(t, teclas) for t in leidos]
     # **All** the sound effects go in: which ones fit is decided by the ROM
@@ -2154,7 +2154,7 @@ def build_varios(nombres, game_dir=None, efectos=(), paquetes=None,
     # was half of this function: they go in parallel, and come back in the
     # usual order.
     contexto = (nombres, leidos, asignacion, banco, techos, aire_de_medida)
-    temas = en_paralelo(lambda i: _armar_tema(contexto, i),
+    temas = in_parallel(lambda i: _armar_tema(contexto, i),
                         range(len(nombres)))
     # And each one's MSU-1 track: see `pista_msu`.
     for tema in temas:
@@ -2506,7 +2506,7 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
         return block(label, datos_ or b"\xFF", bloque=True)
     # Decoding the streams to find out is pure and costly: in parallel.
     tema_muestras = listas("tema_muestras", [
-        [m] for m in en_paralelo(lambda i: muestras_del_tema(temas[i]),
+        [m] for m in in_parallel(lambda i: muestras_del_tema(temas[i]),
                                  range(len(temas)))] or [[[]]])
     # Each package, four lists: its songs, its sound effects' samples, its
     # exit songs and its separate songs —see `extra_de_salida` and

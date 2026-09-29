@@ -90,7 +90,7 @@ from port import msu_datos
 from audio import efectos_msu
 from common import settings
 from common import project
-from common.paralelo import en_paralelo
+from common.parallel import in_parallel
 from audio import snes_music
 from port.asignador import CELL, tile_colors
 from port.formato_snes import cgram_word, entry, pack_tile
@@ -3757,7 +3757,7 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
     reemplazo = lugar.get(numero_de[E.reemplazo().lower()], 0)
     datos["respaldo_de"] = [lugar.get(k, reemplazo) for k in range(len(juego))]
     # The quality ones, for the `.msu`: all of them, whether in the ROM or not.
-    datos["calidad"] = en_paralelo(
+    datos["calidad"] = in_parallel(
         lambda nombre: fondo_bytes(E.fondo(nombre, game_dir)), juego)
     battler_k = {}
     for numero in tropas.ids:
@@ -8453,7 +8453,7 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
     tasas = efectos_msu.tasas(pedidos, efectos, banco.libre, game_dir)
     unicas = sorted({(e, t) for suyas in tasas.values()
                      for e, t in suyas.items()})
-    hechas = dict(zip(unicas, en_paralelo(
+    hechas = dict(zip(unicas, in_parallel(
         lambda par: efectos_msu.armar(par[0], par[1], game_dir), unicas)))
 
     entradas = [parte for par in fondos for parte in par]
