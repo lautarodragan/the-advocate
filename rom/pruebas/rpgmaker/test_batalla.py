@@ -888,7 +888,7 @@ def test_el_elixir_levanta_a_un_caido_en_la_pelea(partida):
     que `ba_exp_repartir` le da a los que quedaron en pie.
     """
     from port import experiencia
-    from test_experiencia_dibujo import exp_y_nivel
+    from batalla import exp_y_nivel
     una = partida(caso="elixir-en-la-pelea")
     una.poner_grupo(*GRUPO)
     una.ir_al_mapa(2, *DROIDE)

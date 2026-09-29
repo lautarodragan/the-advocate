@@ -28,11 +28,10 @@ from port import batalla as modelo
 from port import eventos
 from port import reglas
 
-from batalla import Pelea, modelo_de
+from batalla import (Pelea, mensaje_en_pantalla, modelo_de, paginas,
+                     primera_pagina)
 from consola import en_la_rom
 import datos
-from test_tropa import mensaje_en_pantalla
-from test_victoria import paginas, primera_pagina
 
 KERSH, TALAN, AG7 = 11, 14, 18
 KING_RAT, GIANT_RAT = 56, 64

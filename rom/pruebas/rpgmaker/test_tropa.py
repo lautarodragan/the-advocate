@@ -27,8 +27,7 @@ en todos los mapas y le podría mover los colores a más de una golden.
 
 from port import eventos
 
-from consola import en_la_rom
-from batalla import Pelea, hab_id, sabe
+from batalla import Pelea, hab_id, mensaje_en_pantalla, sabe
 import datos
 
 CASO = "tropa-talan-aura"
@@ -91,24 +90,6 @@ def lo_que_cuenta(pagina):
         else:
             raise AssertionError("una ControlVars que este recorrido no sabe")
     return valores
-
-
-def mensaje_en_pantalla(una, pelea):
-    """Los renglones del mensaje de página que la ROM tiene puesto, leídos del
-    cartucho en el desplazamiento que dejó `op_message`."""
-    desplazamiento = pelea.palabra(una.simbolos["BA_PAG_MSG"])
-    assert desplazamiento != 0xFFFF, "no hay ningún mensaje de página"
-    with open(una.sfc, "rb") as archivo:
-        rom = archivo.read()
-    i = en_la_rom(una.simbolos["mensajes_tropa"]) + desplazamiento
-    cuantos = rom[i] & eventos.CABECERA_LINEAS
-    i += 1
-    renglones = []
-    for _ in range(cuantos):
-        largo = rom[i]
-        renglones.append("".join(chr(b + 32) for b in rom[i + 1:i + 1 + largo]))
-        i += 1 + largo
-    return renglones
 
 
 def hasta_el_mensaje(una, pelea, tope=1500):

@@ -31,7 +31,7 @@ RAM.
 """
 
 from batalla import grupo_de
-from consola import en_la_wram
+from tramo_wick import FUNDIDO, MOSAICO, transiciones
 
 # Los del camino: la computadora del pad abre la puerta del vecino, que prende
 # el 155 al golpear. La escena 1 prende el 156, el video el 160, y los vidcasts
@@ -63,16 +63,6 @@ DELANTE_DE_LA_PUERTA = (29, 31)
 # anything!".
 ACEPTAR, RECHAZAR = 0, 1
 SI = 0
-
-# Lo que la ROM guarda de `ChangeScreenTransitions`: ver `transicion_poner`.
-MOSAICO = 1
-FUNDIDO = 0
-
-
-def transiciones(p):
-    borrar, mostrar = (p.consola.ram(en_la_wram(p.simbolos[n]), 1)[0]
-                       for n in ("TRANSICION_BORRAR", "TRANSICION_MOSTRAR"))
-    return borrar, mostrar
 
 
 def hasta_el_favor(r, companero):

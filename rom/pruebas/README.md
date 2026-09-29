@@ -29,7 +29,8 @@ sólo de las pruebas.
                            herramientas, y tienen su índice aparte
     pruebas/arnes/         consola, tanda, recorrido y video; y lo que
                            comparten varias pruebas: menu, batalla, datos,
-                           dibujo y piedras. Ninguna prueba importa de otra
+                           dibujo, piedras, msu, y los `tramo_*` que juegan
+                           varios recorridos. Ninguna prueba importa de otra
     pruebas/casos/         las páginas de prueba, una por archivo
     pruebas/golden/        las capturas congeladas: `tanda/` y `playthrough/`
     pruebas/snapshots/     lo que dejó la última corrida en rojo, para mirar

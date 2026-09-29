@@ -30,8 +30,9 @@ cuelgue, una pila que se desborde— pasaría por verde.
 
 from port import eventos
 
-from consola import EMPEZAR
-from batalla import (con_encuentros, cuadros_hasta_el_game_over,
+from batalla import (TITULO_QUIETO, VOLVER_TOPE, con_encuentros,
+                     cuadros_hasta_el_game_over, cuadros_hasta_volver,
+                     pasar_el_titulo,
                      cuadros_hasta_reiniciar, en_el_game_over,
                      pasar_el_game_over, sin_hp)
 from datos import pagina_de
@@ -49,18 +50,11 @@ RAT_TRACKS_B2, JEFE = 26, 6
 # taro se encontró jugando: el `RatTrackChest6c`, que en vez de un ítem trae
 # tres GiantRat y no deja huir. Ver `test_el_cofre_trampa_compila`.
 RAT_TRACKS_B1, COFRE_TRAMPA = 21, 20
-# Cuántos cuadros de hardware se le dan al arranque de después del Game Over
-# para volver al lazo. El arranque son BOOT_CUADROS y encima la subida al
-# SPC700, que no se cuenta en cuadros: el doble es paciencia de sobra.
-VOLVER_TOPE = 600
 # Los cuadros de hardware que se le dan a la pantalla de Game Over para llegar
 # a esperar la tecla: el fundido de la pelea o del mapa, subir su tema y su
 # imagen, y los 80 del fundido de entrada. Desde la pelea es lo más largo, y
 # con esto sobra más del doble.
 GAME_OVER_TOPE = 600
-# Y los que se le dan al título después del reinicio para estar quieto, como
-# en `test_titulo_golden.py`.
-TITULO_QUIETO = 170
 
 
 def la_pantalla(una):
@@ -79,42 +73,6 @@ def pasar_el_arranque(una):
     pantalla de título en el medio si el cartucho la tiene."""
     pasar_el_titulo(una)
     una.consola.correr(3)
-
-
-def pasar_el_titulo(una):
-    """`BOOT_CUADROS` y, con pantalla de título, "Begin the Story".
-
-    **El Game Over vuelve al título**, que es lo que hace RM2k
-    —`Scene_Gameover` termina en `Scene_Title`—, y ahí el juego no corre
-    hasta que alguien elige. En un cartucho sin título el arranque va directo
-    al mapa y esto es sólo esperar el arranque.
-    """
-    una.consola.correr(una.simbolos["BOOT_CUADROS"])
-    if una.titulo is not None:
-        una.pasar_el_titulo(EMPEZAR)
-
-
-def cuadros_hasta_volver(una, tope=VOLVER_TOPE):
-    """Cuántos cuadros pasan, desde el reinicio, hasta que el lazo vuelve a
-    correr. `None` si no volvió: eso es el cuelgue.
-
-    Se mira que `vueltas` **suba**, que es lo único que dice que el arranque
-    terminó: `mapa_actual` ya vale lo suyo mucho antes —`cargar_mapa` corre
-    antes de la subida al SPC700— así que preguntarle a él da verde con la ROM
-    clavada. Es exactamente lo que pasaba acá hasta el 2026-09-13.
-
-    Con pantalla de título se la pasa primero —ver `pasar_el_titulo`—: si el
-    arranque se colgara antes, los toques caen en nada y `vueltas` no sube
-    igual.
-    """
-    if una.titulo is not None:
-        pasar_el_titulo(una)
-    for n in range(tope):
-        antes = una.palabra("vueltas")
-        una.consola.correr(1)
-        if una.palabra("vueltas") > antes:
-            return n
-    return None
 
 
 # --- lo que se emite -------------------------------------------------------

@@ -35,7 +35,7 @@ from port import msu_datos
 import tanda
 from consola import Partida, en_la_rom, en_la_wram
 from ensamblado import cartuchos
-from test_msu import pistas_de
+from msu import pistas_de
 
 # Por debajo de esto un pico es ruido de redondeo, no un efecto que suena.
 AUDIBLE = 1000

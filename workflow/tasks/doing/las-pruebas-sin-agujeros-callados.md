@@ -48,3 +48,35 @@ Tres redes, las tres probadas en rojo a mano y revertidas:
 * `herramientas/test_goldens_del_recorrido.py`, sin emular: cada tramo con
   goldens o pendientes lo nombra alguna prueba (con una carpeta
   `tramo-borrado/`).
+
+### 2. Lo que las pruebas se importaban entre sí, al arnés
+
+Diez pruebas importaban de otra `test_*` —y `arnes/video.py`, a
+propósito—. Se mudó sólo lo importado y lo que eso arrastra, tal cual —el
+diff de las líneas borradas contra los módulos nuevos da cero, salvo imports
+y un comentario partido en dos—:
+
+* a `arnes/batalla.py`: la experiencia (`exp_y_nivel`, `poner_exp`,
+  `ranura_exp`, `rom_de`, `ARDEN`) de `test_experiencia_dibujo`; el mensaje
+  de página de `test_tropa`; la ventana de la victoria (`glifos`,
+  `renglones`, `ventana`, `paginas`, `primera_pagina`) de `test_victoria`; y
+  volver del Game Over (`VOLVER_TOPE`, `TITULO_QUIETO`, `pasar_el_titulo`,
+  `cuadros_hasta_volver`) de `test_game_over`;
+* a `arnes/menu.py`: `comparar`, de `test_menu_dibujo`;
+* a `arnes/msu.py`, nuevo: `pistas_de`, de `test_msu`;
+* a cuatro `arnes/tramo_*.py`, uno por recorrido de origen, porque tienen
+  nombres iguales con firmas distintas (`sin_encuentros(r)` en la planta y
+  `sin_encuentros(p)` en Sorbe): `tramo_lashe`, `tramo_planta`,
+  `tramo_wick` y `tramo_sorbe`.
+
+`test_indice.py` cobra ahora que ninguna prueba importe de otra, con
+`arnes/video.py` como única excepción declarada.
+
+`video.py` no se tocó ni depende de nada mudado: sigue importando
+`test_recorrido_golden`, que no importaba de nadie. **Pero `just video` con
+jugadas está roto desde antes**, desde que `release` arranca en el mapa de
+debug (`991bf935`, 2026-09-27): la fábrica de `recorrido` de `video.py` no
+acepta `caso` —`apertura` da `TypeError`— y no elige la página sin el mapa
+como hace `tanda.partida` —`talan` se traba en el mapa 900—. `quieto:120`
+graba bien. No se arregló: es de la tarea de sacar a `video.py` de las
+pruebas.
