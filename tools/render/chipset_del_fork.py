@@ -28,7 +28,7 @@ from common import project
 from rpgmaker import lcf
 from rpgmaker.fork import BrokenFork, chipsets
 from rpgmaker.rm2k import (OFFSET_X, SPRITE_HEIGHT, SPRITE_WIDTH, TILE,
-                           caja_de_comun, caja_de_terreno)
+                           common_box, terrain_box)
 
 def generado():
     """Where the built images land. It is a build directory like any other:
@@ -70,7 +70,7 @@ def _lo_que_dibuja(map_id):
     to note it down anywhere.
 
     And the two layers are not enough. **An event without a CharSet is drawn
-    with a tile from the upper page** —see `rm2k.nombre_de_tile`: that is how
+    with a tile from the upper page** —see `rm2k.tile_name`: that is how
     doors and a good part of the decoration are made— and that tile does not
     appear on any layer. Pruning without counting them, map 32 lost slot 13
     and the ROM came out with 78 different bytes: the byte-for-byte
@@ -126,10 +126,10 @@ def podar(imagen, map_id):
                      CAJA_AGUA[:2])
     for n in range(12):
         if n not in terrenos:
-            imagen.paste(Image.new("P", (48, 64)), caja_de_terreno(n)[:2])
+            imagen.paste(Image.new("P", (48, 64)), terrain_box(n)[:2])
     for i in range(288):
         if i not in comunes:
-            imagen.paste(Image.new("P", (16, 16)), caja_de_comun(i)[:2])
+            imagen.paste(Image.new("P", (16, 16)), common_box(i)[:2])
 
 
 class _Paleta:
@@ -227,13 +227,13 @@ def imagen_del_chipset(datos, buscar):
     if "podar" in receta:
         podar(imagen, receta["podar"])
     for desde, hasta in receta.get("bloques_bajos", []):
-        imagen.paste(imagen.crop(caja_de_terreno(desde)),
-                     caja_de_terreno(hasta)[:2])
+        imagen.paste(imagen.crop(terrain_box(desde)),
+                     terrain_box(hasta)[:2])
     for desde, hasta in receta.get("tiles_altos", []):
         # Upper tile `u` is common tile 144 + u: the first 144 are the lower
-        # layer. See `caja_de_comun`.
-        imagen.paste(imagen.crop(caja_de_comun(144 + desde)),
-                     caja_de_comun(144 + hasta)[:2])
+        # layer. See `common_box`.
+        imagen.paste(imagen.crop(common_box(144 + desde)),
+                     common_box(144 + hasta)[:2])
 
     # The slots `desde_imagen` is going to overwrite are emptied **before**
     # looking at the palette. Otherwise their current colors still count as
@@ -244,7 +244,7 @@ def imagen_del_chipset(datos, buscar):
     for entrada in (receta.get("desde_imagen") or {}).get("celdas", []):
         if len(entrada) <= 3:      # not the ones that compose over another slot
             imagen.paste(Image.new("P", (TILE, TILE)),
-                         caja_de_comun(144 + entrada[2])[:2])
+                         common_box(144 + entrada[2])[:2])
 
     # The two operations that bring pixels from outside share **a single**
     # palette: each `_Paleta` hands out the free indices from scratch, so two
@@ -280,7 +280,7 @@ def imagen_del_chipset(datos, buscar):
                                        else paleta.indice(desde[indice]))
                 tile = Image.new("P", (TILE, TILE))
                 tile.putdata(pixeles)
-                imagen.paste(tile, caja_de_comun(144 + ranura)[:2])
+                imagen.paste(tile, common_box(144 + ranura)[:2])
 
     if receta.get("desde_imagen"):
         una = receta["desde_imagen"]
@@ -316,7 +316,7 @@ def imagen_del_chipset(datos, buscar):
             # overwriting it. The terrace wall of map 32 asks for it, where
             # nine pixels of the tip of the tram land on a cell that already
             # draws something.
-            tile = (imagen.crop(caja_de_comun(144 + entrada[3]))
+            tile = (imagen.crop(common_box(144 + entrada[3]))
                     if len(entrada) > 3 else Image.new("P", (TILE, TILE)))
             pixeles = tile.load()
             for y in range(TILE):
@@ -327,7 +327,7 @@ def imagen_del_chipset(datos, buscar):
                     indice = chica[px, py]
                     if indice and desde[indice] not in transparentes:
                         pixeles[x, y] = paleta.indice(_a_quince(desde[indice]))
-            imagen.paste(tile, caja_de_comun(144 + ranura)[:2])
+            imagen.paste(tile, common_box(144 + ranura)[:2])
 
     if paleta is not None:
         paleta.aplicar(imagen)

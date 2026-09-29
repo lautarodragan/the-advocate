@@ -280,7 +280,7 @@ def test_fork_los_teleports_que_entran_siguen_cayendo_en_celdas_pisables():
         flags = build_passability(base.chipsets[game_map.chipset_id])
         pasa = rm2k.passability_map(game_map, flags)
         datos, (abajo, arriba) = _original(map_id)
-        antes = [rm2k.pasa_de_celda(
+        antes = [rm2k.cell_passability(
             build_passability(base.chipsets[datos["chipset_id"]]),
             abajo[i], arriba[i]) for i in range(len(abajo))]
         destinos = _teleports_al(map_id)
@@ -448,12 +448,12 @@ def test_desde_imagen_trae_el_png_a_quince_bits_y_compone_sobre_su_base(tmp_path
       lo que deja viva una pared donde el dibujo sólo apoya unos pixeles.
     """
     from PIL import Image
-    from rpgmaker.rm2k import caja_de_comun
+    from rpgmaker.rm2k import common_box
 
     # Un ChipSet de mentira, con la ranura alta 5 pintada de su único color.
     base = Image.new("P", (480, 256))
     base.putpalette([0, 0, 0] + [7, 7, 7] + [0, 0, 0] * 254)
-    base.paste(Image.new("P", (16, 16), 1), caja_de_comun(144 + 5)[:2])
+    base.paste(Image.new("P", (16, 16), 1), common_box(144 + 5)[:2])
     ruta_chip = tmp_path / "base.png"
     base.save(ruta_chip)
 
@@ -492,7 +492,7 @@ def test_desde_imagen_trae_el_png_a_quince_bits_y_compone_sobre_su_base(tmp_path
     paleta = salida.getpalette()
 
     def color(ranura, x, y):
-        indice = salida.crop(caja_de_comun(144 + ranura)).load()[x, y]
+        indice = salida.crop(common_box(144 + ranura)).load()[x, y]
         return indice, tuple(paleta[indice * 3:indice * 3 + 3])
 
     # Al 50% el dibujo de 32x32 queda de 16x16: sus 8x8 de arriba a la

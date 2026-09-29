@@ -32,8 +32,8 @@ from consola import TITULO_AIRE
 from render.render_map import Renderer
 from rpgmaker.resources import GAME_DIR
 from rpgmaker.rm2k import (PASS_DOWN, PASS_LEFT, PASS_RIGHT,
-                           PASS_UP, TELEPORT, grafico_de_pagina,
-                           pasabilidad_del_tile, passability_map)
+                           PASS_UP, TELEPORT, page_graphic,
+                           event_tile_passability, passability_map)
 
 # El switch que prende el final del Emitter Room y que hace que el enrutador del
 # mapa 4 mande a la casa de Talan con el cartel de "One year previously". Es el
@@ -177,15 +177,15 @@ class Mundo:
             pagina = self.pagina_activa(evento, prendido)
             if pagina is None:
                 continue
-            grafico = grafico_de_pagina(pagina, getattr(
-                game_map, "chipset_nombre", None))
+            grafico = page_graphic(pagina, getattr(
+                game_map, "chipset_filename", None))
             pasa = (None if grafico is None else
-                    pasabilidad_del_tile(game_map, grafico[0], pagina.layer))
+                    event_tile_passability(game_map, grafico[0], pagina.layer))
             eventos.append(((evento.x, evento.y), pasa))
         clave = ("mapa", map_id, tuple(eventos))
         if clave not in self.cache:
             pasable = bytearray(
-                passability_map(game_map, game_map.pasabilidad_tiles))
+                passability_map(game_map, game_map.passability_table))
             for (x, y), pasa in eventos:
                 if pasa is not None:
                     pasable[y * game_map.width + x] = pasa

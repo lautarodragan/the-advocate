@@ -237,7 +237,7 @@ def handwritten_commands(data):
 
 # If not None, the CharSet name of a translucent page goes through here and,
 # for whoever reads it, it is a different graphic. The port turns it on —see
-# `rm2k.decorar_translucido`— and not the reader: the JSON dump has to keep
+# `rm2k.decorate_translucent`— and not the reader: the JSON dump has to keep
 # seeing the real name.
 #
 # It also receives **where the event stands** (map, x, y), because the baking

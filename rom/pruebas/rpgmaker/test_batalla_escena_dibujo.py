@@ -325,7 +325,7 @@ def test_escena_una_pelea_cuyo_fondo_no_esta_usa_el_reemplazo(partida):
     _tree, juego = _fondos_del_juego()
     db = eventos.base_de_datos(GAME_DIR)
     game_map = lcf.Map("%s/Map%04d.lmu" % (GAME_DIR, 7))
-    terrenos = {rm2k.terreno_de(db.chipsets[game_map.chipset_id], t)
+    terrenos = {rm2k.terrain_of(db.chipsets[game_map.chipset_id], t)
                 for t in game_map.lower_layer}
     assert len(terrenos) == 1, (
         "el 7 dejó de ser de un solo terreno: %r" % sorted(terrenos))

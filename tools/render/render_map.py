@@ -110,14 +110,14 @@ class Charsets:
 
     def get(self, name):
         if name not in self.images:
-            base, donde = rm2k.parte_horneada(name)
-            if name.endswith(rm2k.COPIA_SUFIJO):
-                self.images[name] = self.get(name[:-len(rm2k.COPIA_SUFIJO)])
+            base, donde = rm2k.baked_parts(name)
+            if name.endswith(rm2k.COPY_SUFFIX):
+                self.images[name] = self.get(name[:-len(rm2k.COPY_SUFFIX)])
             elif donde is not None:
                 self.images[name] = self._horneado(base, *donde)
-            elif name.endswith(rm2k.TRAMA_SUFIJO):
+            elif name.endswith(rm2k.DITHER_SUFFIX):
                 self.images[name] = self._tramado(
-                    name[:-len(rm2k.TRAMA_SUFIJO)])
+                    name[:-len(rm2k.DITHER_SUFFIX)])
             elif name.startswith(rm2k.TILE_PREFIX):
                 self.images[name] = self._de_tile(name)
             else:
@@ -127,13 +127,13 @@ class Charsets:
 
     def _tramado(self, name):
         """The CharSet of a translucent event: the same one, with part of its
-        pixels transparent. See `rm2k.TRAMA_SUFIJO` and `TRAMAS`."""
+        pixels transparent. See `rm2k.DITHER_SUFFIX` and `TRAMAS`."""
         base = self.get(name)
         if base is None:
             return None
         image = base.convert("RGBA")
         pix = image.load()
-        cae = TRAMAS[rm2k.TRAMA_PATRON]
+        cae = TRAMAS[rm2k.DITHER_PATTERN]
         for y in range(image.height):
             for x in range(image.width):
                 if cae(x, y):
@@ -167,7 +167,7 @@ class Charsets:
         atras = fondo.load()
         ox = tile_x * TILE + rm2k.OFFSET_X
         oy = tile_y * TILE + rm2k.OFFSET_Y
-        alfa = rm2k.OPACIDAD_TRANSLUCIDO
+        alfa = rm2k.TRANSLUCENT_OPACITY
         for y in range(image.height):
             fy = oy + y % rm2k.SPRITE_HEIGHT
             for x in range(image.width):
@@ -307,10 +307,10 @@ class Renderer:
         the events that are drawn with a tile."""
         game_map = lcf.Map(path)
         chipset = self.database.chipsets[game_map.chipset_id]
-        game_map.chipset_nombre = chipset.filename
+        game_map.chipset_filename = chipset.filename
         # And the passability of its tiles, for the events drawn with one on
-        # the lower layer: see `rm2k.pasabilidad_del_tile`.
-        game_map.pasabilidad_tiles = build_passability(chipset)
+        # the lower layer: see `rm2k.event_tile_passability`.
+        game_map.passability_table = build_passability(chipset)
         return game_map
 
     def render_layers(self, game_map, pasos=(0, 0)):
@@ -362,7 +362,7 @@ class Renderer:
             elif tile < TERRAIN:
                 tiene["animado"] = True
         variantes = {}
-        for familia, dibujos in rm2k.FAMILIAS_ANIMADAS:
+        for familia, dibujos in rm2k.ANIMATED_FAMILIES:
             if not tiene[familia]:
                 continue
             variantes[familia] = [

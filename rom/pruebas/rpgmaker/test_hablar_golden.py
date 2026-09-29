@@ -62,7 +62,7 @@ HABLADAS = (
     ("gemelo-fija", "gemelo-fija", (25, 70, 110, 150),
      (20, 60, 140, 160)),
     # Los fuegos translúcidos de los barriles del mapa 9, con la mezcla
-    # horneada en el gráfico: ver `rm2k.HORNEADO_SUFIJO`. Es el caso que cobra
+    # horneada en el gráfico: ver `rm2k.BAKED_SUFFIX`. Es el caso que cobra
     # la mezcla horneada.
     ("fuego", "hablar-fuego", (900,), (20, 40)),
     # El Tram Officer del mapa 9 con el 13 adentro: **es el caso de

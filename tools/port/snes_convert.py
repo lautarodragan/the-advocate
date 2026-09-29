@@ -64,9 +64,9 @@ from port import eventos
 from rpgmaker import lcf
 from rpgmaker import rm2k
 
-# Translucent events carry their own graphic: see `rm2k.decorar_translucido`
+# Translucent events carry their own graphic: see `rm2k.decorate_translucent`
 # —baked against the background, dithered, or opaque—.
-lcf.DECORATE_TRANSLUCENT = rm2k.decorar_translucido
+lcf.DECORATE_TRANSLUCENT = rm2k.decorate_translucent
 # And the text boxes, rebuilt for the SNES window: see
 # `lcf.REFIT_TEXTS` and `port/textos.py`.
 from port import textos
@@ -629,7 +629,7 @@ def peso_de_grafico(charset):
     `~trama` suffix of translucent ones doesn't count: the weight belongs to
     the drawing."""
     pesos = settings.value("graphics", "palette_weight", kind=dict)
-    return pesos.get((charset or "").split(rm2k.TRAMA_SUFIJO)[0], 0)
+    return pesos.get((charset or "").split(rm2k.DITHER_SUFFIX)[0], 0)
 
 
 def fila_de_pose(pose):
@@ -733,10 +733,10 @@ def poses_del_mapa(renderer, game_map, lideres, movibles=(), giran=(),
 # **Passability doesn't change, and that is what allows hiding the row.** For
 # an upper-layer tile without the "above the hero" bit,
 # `rm2k.passability_map` resolves the cell with that tile's bits, which are
-# exactly the ones `rm2k.pasabilidad_del_tile` made the event's row impose; and
-# `pasa_con_evento`, in tools/runtime/heroe.s, skips hidden rows. That is, the
-# baking hands the same table answer over to the map. It is guarded by
-# `rom/pruebas/herramientas/test_horneados.py`.
+# exactly the ones `rm2k.event_tile_passability` made the event's row
+# impose; and `pasa_con_evento`, in tools/runtime/heroe.s, skips hidden
+# rows. That is, the baking hands the same table answer over to the map. It
+# is guarded by `rom/pruebas/herramientas/test_horneados.py`.
 #
 # What is **not** saved yet: its sprite palette and its VRAM slot. The event
 # still enters the `npcs_dibujables` split as if it were drawn, on purpose:
@@ -798,8 +798,9 @@ def eventos_horneables(renderer, game_map):
     layer and `capas_animadas` renders all of them from there. What is lost is
     the animation the opaque tile already covered.
     """
-    atlas = renderer.atlas_por_nombre(getattr(game_map, "chipset_nombre", None))
-    flags = getattr(game_map, "pasabilidad_tiles", None)
+    atlas = renderer.atlas_por_nombre(getattr(game_map, "chipset_filename",
+                                              None))
+    flags = getattr(game_map, "passability_table", None)
     if atlas is None or flags is None:
         return {}
     # That tile 0 of the upper layer —the one an empty cell carries— draws
@@ -830,7 +831,7 @@ def eventos_horneables(renderer, game_map):
     horneables = {}
     for npc in collect_npcs(game_map):
         numero = npc["evento"]
-        base = rm2k.sin_horneado(npc["charset"])
+        base = rm2k.unbaked(npc["charset"])
         if not base.startswith(rm2k.TILE_PREFIX) or not npc["visible"]:
             continue
         if npc["cambia"] or numero in caminan or numero in tocados:
@@ -850,7 +851,7 @@ def eventos_horneables(renderer, game_map):
             continue
         if set(npc["capas"]) != {rm2k.LAYER_BELOW}:
             continue
-        if any(p.animation_type in rm2k.ANIMA_CONTINUO for p in paginas):
+        if any(p.animation_type in rm2k.CONTINUOUS_ANIMATION for p in paginas):
             continue
         indice = int(base.rsplit(":", 1)[1])
         if not indice:
@@ -876,7 +877,7 @@ def eventos_horneables(renderer, game_map):
         # whole mechanism was never fully taken apart; what is measured is
         # that this baking is the only thing that changes between the two
         # ROMs.
-        if npc["tile_pasa"] & ~rm2k.pasa_de_celda(
+        if npc["tile_pasa"] & ~rm2k.cell_passability(
                 flags, game_map.lower_layer[celda],
                 game_map.upper_layer[celda]):
             continue
@@ -2006,7 +2007,7 @@ def paleta_de_la_ventana(primeras=None):
 # The two tile families the ChipSet animates, with how many drawings each one
 # has and in the order their runs go to VRAM. It lives in rm2k.py together with
 # each one's cadence, which is what says which drawing is due.
-FAMILIAS = rm2k.FAMILIAS_ANIMADAS
+FAMILIAS = rm2k.ANIMATED_FAMILIES
 
 
 def convert(grid, palette, variantes, otras, resumen):
@@ -2837,7 +2838,7 @@ def build_blocks(game_map, tilemap, above_tilemap, passable, width, height,
                    # with different terrain, and the ROM reads it per block.
                    # It doesn't split any extra block in this game, where the
                    # terrain of every ChipSet is 1.
-                   rm2k.terreno_de(chipset, abajo) if chipset else 1)
+                   rm2k.terrain_of(chipset, abajo) if chipset else 1)
             if key not in blocks:
                 blocks[key] = len(blocks)
             cells.append(blocks[key])
@@ -2963,8 +2964,8 @@ class Sustituciones:
         None is "this page doesn't compile", which is what `eventos.py`
         expects from a command that can't be done.
         """
-        if not (0 <= viejo < rm2k.TILES_POR_CAPA
-                and 0 <= nuevo < rm2k.TILES_POR_CAPA):
+        if not (0 <= viejo < rm2k.TILES_PER_LAYER
+                and 0 <= nuevo < rm2k.TILES_PER_LAYER):
             return None
         capa = 1 if capa_alta else 0
         viejo_id, nuevo_id = self._combo(capa_alta, viejo, nuevo)
@@ -3003,8 +3004,8 @@ class Sustituciones:
         while True:
             antes = len(self.combos)
             for capa_alta, viejo, nuevo in triples:
-                if not (0 <= viejo < rm2k.TILES_POR_CAPA
-                        and 0 <= nuevo < rm2k.TILES_POR_CAPA):
+                if not (0 <= viejo < rm2k.TILES_PER_LAYER
+                        and 0 <= nuevo < rm2k.TILES_PER_LAYER):
                     continue
                 capa = 1 if capa_alta else 0
                 viejo_id, nuevo_id = self._combo(capa_alta, viejo, nuevo)
@@ -3038,8 +3039,8 @@ class Sustituciones:
                 or alto not in self.celdas[1]:
             return None
         huella = (self.celdas[0][bajo] + self.celdas[1][alto],
-                  rm2k.pasa_de_celda(self.flags, bajo, alto),
-                  rm2k.terreno_de(self.chipset, bajo))
+                  rm2k.cell_passability(self.flags, bajo, alto),
+                  rm2k.terrain_of(self.chipset, bajo))
         numero = self.por_bytes.get(huella)
         if numero is None:
             numero = len(self.mapa["pass"])
@@ -5097,9 +5098,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            ventana["sombra"],
            FUENTE_PRE_FILAS, FUENTE_PRE_CHAR,
            len(FAMILIAS), ANIM_STRIDE, ANIM_FAM_STRIDE,
-           rm2k.AGUA_CUADROS_LENTO,
+           rm2k.WATER_FRAMES_SLOW,
            FAMILIAS[0][1],
-           len(rm2k.AGUA_CICLO), rm2k.ANIMADO_CUADROS, rm2k.ANIMADO_PASOS,
+           len(rm2k.WATER_CYCLE), rm2k.ANIMATED_FRAMES, rm2k.ANIMATED_STEPS,
            BYTES_PER_TILE,
            0 if titulo is None else titulo["pantalla"]["tiles"],
            constantes.MENU_CGRAM,
@@ -7223,7 +7224,7 @@ def npc_bytes(table):
         # is in the table hidden, to appear when another page wins.
         out.append(1 if npc["visible"] else 0)
         # +15: the passage bits its tile imposes on the cell, or $FF: see
-        # `rm2k.pasabilidad_del_tile`. The refresh redoes both.
+        # `rm2k.event_tile_passability`. The refresh redoes both.
         out.append(0xFF if npc["tile_pasa"] is None else npc["tile_pasa"])
     assert len(out) == NPC_STRIDE * len(table)
     return bytes(out)
@@ -8995,7 +8996,7 @@ def separar_del_heroe(renderer, game_map, args, comandos=()):
     that is also an NPC in the map shares a palette with that NPC —so that the
     NPC isn't drawn with another leader's colors—, so both flashed. It is
     solved by counting those NPCs' graphic as another one, with the suffix
-    `rm2k.COPIA_SUFIJO`: the same drawing, with its own palette. It costs one
+    `rm2k.COPY_SUFFIX`: the same drawing, with its own palette. It costs one
     palette per graphic, and only in the maps where something flashes the
     hero. `comandos` are those of the test pages.
     """
@@ -9014,7 +9015,7 @@ def separar_del_heroe(renderer, game_map, args, comandos=()):
     for ev in game_map.events:
         for page in ev.pages:
             if (page.character_name, page.character_index) in de_lider:
-                page.character_name += rm2k.COPIA_SUFIJO
+                page.character_name += rm2k.COPY_SUFFIX
 
 
 # The flags that describe **a test case** —what its page does— and not the
@@ -9662,7 +9663,7 @@ def convertir(renderer, map_id, args):
         # The terrain of a cell **outside the map**: `GetTerrainTag` uses the
         # ChipSet's index 0, that is the first autotile, and not that of any
         # cell. See `op_terrain`.
-        "terreno_fuera": rm2k.terreno_de(chipset, 0),
+        "terreno_fuera": rm2k.terrain_of(chipset, 0),
         "layout": vram_layout(
             len(tile_data) // BYTES_PER_TILE,
             len(sprite[0]) // 32 if sprite else 0,

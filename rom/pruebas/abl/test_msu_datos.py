@@ -214,7 +214,7 @@ def _fondo_del_terreno(mapa, x, y):
     que `Spriteset_Battle` usa cuando el mapa no nombra fondo."""
     db = eventos.base_de_datos(GAME_DIR)
     game_map = lcf.Map("%s/Map%04d.lmu" % (GAME_DIR, mapa))
-    terreno = rm2k.terreno_de(db.chipsets[game_map.chipset_id],
+    terreno = rm2k.terrain_of(db.chipsets[game_map.chipset_id],
                               game_map.lower_layer[y * game_map.width + x])
     return db.terrain_backdrops[terreno]
 

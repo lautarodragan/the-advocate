@@ -25,7 +25,7 @@ CELL = 8
 TILE = 16
 
 
-def caja_de_terreno(n):
+def terrain_box(n):
     """Where, in the ChipSet's image, the block of terrain autotile `n` lives
     —0 to 11, the one the map names with ids 4000 + n * 50—.
 
@@ -41,7 +41,7 @@ def caja_de_terreno(n):
     return (sx, sy, sx + 48, sy + 64)
 
 
-def caja_de_comun(i):
+def common_box(i):
     """Where common tile `i` lives —0 to 287, the three pages of 96 in the
     right half—. The first 144 are the lower layer (ids 5000 + i) and the 144
     after them the upper one (ids 10000 + i - 144)."""
@@ -82,7 +82,7 @@ def lower_passable(flags, raw, bit):
     return bool(flags[raw] & bit)
 
 
-def pasa_de_celda(flags, lower, upper):
+def cell_passability(flags, lower, upper):
     """A cell's four direction bits, given its two tiles."""
     byte = 0
     for bit in (PASS_DOWN, PASS_LEFT, PASS_RIGHT, PASS_UP):
@@ -102,8 +102,8 @@ def passability_map(game_map, flags):
     """
     result = bytearray(game_map.width * game_map.height)
     for i in range(len(result)):
-        result[i] = pasa_de_celda(flags, game_map.lower_layer[i],
-                                  game_map.upper_layer[i])
+        result[i] = cell_passability(flags, game_map.lower_layer[i],
+                                     game_map.upper_layer[i])
     return bytes(result)
 
 
@@ -135,8 +135,8 @@ def hero_start(passable, width, height, blocked=()):
 # Two animations that have nothing to do with each other and run at the same
 # time, both in easyrpg's `TilemapLayer::Draw` (tilemap_layer.cpp:289):
 #
-#   the A/B/C water autotiles   3 drawings, one every `AGUA_CUADROS` frames
-#   the "animated tiles"        4 drawings, one every `ANIMADO_CUADROS`
+#   the A/B/C water autotiles   3 drawings, one every `WATER_FRAMES_*` frames
+#   the "animated tiles"        4 drawings, one every `ANIMATED_FRAMES`
 #
 # The water does not cycle through its three drawings in a circle: the step
 # goes from 0 to 3 and 3 **draws 1 again**, so the cycle is 0,1,2,1 and lasts
@@ -155,29 +155,29 @@ def hero_start(passable, width, height, blocked=()):
 # sides look at the same tick.
 # The two families, with how many drawings each one has. The order is that of
 # the tile runs in VRAM; see `convert` in snes_convert.py.
-FAMILIAS_ANIMADAS = (("agua", 3), ("animado", 4))
+ANIMATED_FAMILIES = (("agua", 3), ("animado", 4))
 # The ROM's clock is `vueltas`, sixteen bits, so it wraps around every 65536
 # ticks —eighteen minutes— and there the cycle skips a drawing; RM2k's is
 # thirty-two bits. The reference wraps around the same way on purpose: what
 # has to match is what both sides draw, and losing one water step once every
 # eighteen minutes is seen by nobody. It is declared in
 # workflow/divergencias/el-chipset-se-saltea-un-dibujo-cada-18-minutos.md.
-TICK_MASCARA = 0xFFFF
-AGUA_CUADROS_LENTO, AGUA_CUADROS_RAPIDO = 24, 12
+TICK_MASK = 0xFFFF
+WATER_FRAMES_SLOW, WATER_FRAMES_FAST = 24, 12
 # Three drawings walked in four steps, with the fourth repeating the second.
 # It is the same shape in both places of RM2k where it shows up: the
 # ChipSet's water —`animation_step_ab`— and a character's walk cycle, which
 # has three columns and `Game_Character::columna` draws column 1 when the
 # step is 3.
-CICLO_TRES = (0, 1, 2, 1)
-AGUA_CICLO = CICLO_TRES
-ANIMADO_CUADROS = 6
-ANIMADO_PASOS = 4
+CYCLE_OF_THREE = (0, 1, 2, 1)
+WATER_CYCLE = CYCLE_OF_THREE
+ANIMATED_FRAMES = 6
+ANIMATED_STEPS = 4
 
 
-def paso_animado(tick):
+def animated_step(tick):
     """Which of the four drawings of the animated tiles is due at that tick."""
-    return ((tick & TICK_MASCARA) // ANIMADO_CUADROS) % ANIMADO_PASOS
+    return ((tick & TICK_MASK) // ANIMATED_FRAMES) % ANIMATED_STEPS
 
 
 # --- the character sprite ----------------------------------------------------
@@ -237,25 +237,25 @@ TILE_PREFIX = "@tile:"
 # checkerboard, which is what games of the era did and on a CRT TV looks
 # like semi-transparency. For the port it is another CharSet, with this
 # suffix in the name: the reader sticks it on translucent pages —see
-# `decorar_translucido`, which `snes_convert` turns on— and
+# `decorate_translucent`, which `snes_convert` turns on— and
 # `render_map.Charsets` builds the dithered image. Everything else —palettes,
 # slots, poses, the reference— treats it like any other.
-TRAMA_SUFIJO = "~trama"
+DITHER_SUFFIX = "~trama"
 
 # A CharSet with this suffix is **the same drawing, counted as another
 # graphic**: the allocator gives it its own palette. It exists because of
 # the hero's flash, which on the console is done on the character's palette:
 # an NPC drawn with the graphic of a possible leader shared its palette and
 # flashed too. See `convertir` in snes_convert.py.
-COPIA_SUFIJO = "~aparte"
+COPY_SUFFIX = "~aparte"
 
 # Which dither. The options are in `render_map.TRAMAS`; it is chosen by
 # looking at a CRT TV, which is where this shows.
-TRAMA_PATRON = os.environ.get("TRAMA_PATRON", "cinco_de_ocho")
+DITHER_PATTERN = os.environ.get("TRAMA_PATRON", "cinco_de_ocho")
 
 
 # The opacity RM2k draws a translucent page with: 160 out of 255.
-OPACIDAD_TRANSLUCIDO = 160
+TRANSLUCENT_OPACITY = 160
 
 # The other way out, and today's: **bake the blend into the graphic**. The
 # game's 70 translucent events are all static —`move_type` 0 and no route of
@@ -272,35 +272,35 @@ OPACIDAD_TRANSLUCIDO = 160
 # that is needed to rebuild the background. The reader sticks it on —see
 # `lcf.DECORATE_TRANSLUCENT`, which the converter turns on— and
 # `render_map.Charsets` builds the image.
-HORNEADO_SUFIJO = "~horneado"
+BAKED_SUFFIX = "~horneado"
 
 # Which of the two paths runs. It is switched with MODO_TRANSLUCIDO=trama to
 # be able to compare both on the same tree.
-MODO_TRANSLUCIDO = os.environ.get("MODO_TRANSLUCIDO", "horneado")
+TRANSLUCENT_MODE = os.environ.get("MODO_TRANSLUCIDO", "horneado")
 
 
-def nombre_horneado(nombre, map_id, x, y):
-    return "%s%s:%d:%d:%d" % (nombre, HORNEADO_SUFIJO, map_id, x, y)
+def baked_name(name, map_id, x, y):
+    return "%s%s:%d:%d:%d" % (name, BAKED_SUFFIX, map_id, x, y)
 
 
-def parte_horneada(nombre):
+def baked_parts(name):
     """(base name, (map, x, y)) of a baked CharSet, or (name, None).
 
     Everything that looks at *which* graphic it is —the tile's passability,
     which is a tile and which a real CharSet— has to ask about the base: the
     suffix carries where it stands, not what it draws.
     """
-    base, marca, resto = nombre.partition(HORNEADO_SUFIJO + ":")
-    if not marca:
-        return nombre, None
-    return base, tuple(int(n) for n in resto.split(":"))
+    base, mark, rest = name.partition(BAKED_SUFFIX + ":")
+    if not mark:
+        return name, None
+    return base, tuple(int(n) for n in rest.split(":"))
 
 
-def sin_horneado(nombre):
-    return parte_horneada(nombre)[0]
+def unbaked(name):
+    return baked_parts(name)[0]
 
 
-def sin_trama():
+def opaque_charsets():
     """The CharSets that are drawn **opaque even though their page says
     translucent**, lowercase: a deliberate divergence from RM2k that the game
     decides, in `[graphics] opaque` of the project file."""
@@ -308,25 +308,25 @@ def sin_trama():
         "graphics", "opaque", kind=list))
 
 
-def decorar_translucido(nombre, map_id, x, y):
+def decorate_translucent(name, map_id, x, y):
     """The name the graphic of a translucent page carries.
 
-    Three ways out, and the first one wins: those in `sin_trama()` are drawn
-    **opaque** even though their page says translucent —taro's decision, see
-    the list—, the rest go baked against their cell's background, and
-    `MODO_TRANSLUCIDO=trama` goes back to the checkerboard to be able to
-    compare both on the same tree.
+    Three ways out, and the first one wins: those in `opaque_charsets()` are
+    drawn **opaque** even though their page says translucent —taro's
+    decision, see the list—, the rest go baked against their cell's
+    background, and `MODO_TRANSLUCIDO=trama` goes back to the checkerboard to
+    be able to compare both on the same tree.
     """
-    if nombre.lower() in sin_trama():
-        return nombre
-    if MODO_TRANSLUCIDO == "trama":
-        return nombre + TRAMA_SUFIJO
-    return nombre_horneado(nombre, map_id, x, y)
+    if name.lower() in opaque_charsets():
+        return name
+    if TRANSLUCENT_MODE == "trama":
+        return name + DITHER_SUFFIX
+    return baked_name(name, map_id, x, y)
 
 
 
-def nombre_de_tile(chipset, indice):
-    return "%s%s:%d" % (TILE_PREFIX, chipset, indice)
+def tile_name(chipset, index):
+    return "%s%s:%d" % (TILE_PREFIX, chipset, index)
 
 
 # The page conditions the ROM knows how to check. An event with a page that
@@ -336,7 +336,7 @@ def nombre_de_tile(chipset, indice):
 # carries the slot, the comparison and the value, and the ROM checks them in
 # `condiciones_ok`. The timer is missing, which only one page of the game
 # asks for, page 81 of map 312.
-CONDICIONES_SOPORTADAS = ("switch_a", "switch_b", "actor", "variable", "item")
+SUPPORTED_CONDITIONS = ("switch_a", "switch_b", "actor", "variable", "item")
 # And the ones the port **can never meet**. The item one was for a day:
 # without an inventory, `ChangeItems` was accepted doing nothing and the
 # party never had any item, so the page was emitted as one that is never
@@ -344,26 +344,26 @@ CONDICIONES_SOPORTADAS = ("switch_a", "switch_b", "actor", "variable", "item")
 # ran as they should. Since the night of 2026-09-10 there is an inventory and
 # the item condition is evaluated; the machinery stays in case another
 # condition like that shows up.
-CONDICIONES_IMPOSIBLES = ()
+IMPOSSIBLE_CONDITIONS = ()
 
 
-def pagina_imposible(page):
+def impossible_page(page):
     """Whether the page asks for something this port never meets."""
-    return any(c in CONDICIONES_IMPOSIBLES for c in page.condition.active)
+    return any(c in IMPOSSIBLE_CONDITIONS for c in page.condition.active)
 
 
-def condiciones_soportadas(event):
-    return not any(c not in CONDICIONES_SOPORTADAS
-                   and c not in CONDICIONES_IMPOSIBLES
+def supported_conditions(event):
+    return not any(c not in SUPPORTED_CONDITIONS
+                   and c not in IMPOSSIBLE_CONDITIONS
                    for page in event.pages for c in page.condition.active)
 
 
-def grafico_de_pagina(page, chipset):
+def page_graphic(page, chipset):
     """(CharSet, index, pose) of what the page draws, or None if nothing.
 
     Those drawn with a chipset tile go with a made-up CharSet —see
-    `nombre_de_tile`—, as long as whoever loaded the map set
-    `chipset_nombre` on it; tile 0 is "no graphic".
+    `tile_name`—, as long as whoever loaded the map set
+    `chipset_filename` on it; tile 0 is "no graphic".
     """
     if not page.character_name and (page.character_index == 0
                                     or chipset is None):
@@ -371,12 +371,12 @@ def grafico_de_pagina(page, chipset):
     # The walk is four phases over three columns: the middle one goes twice,
     # so the fourth draws the same as the second.
     column = 1 if page.character_pattern == 3 else page.character_pattern
-    return (page.character_name or nombre_de_tile(chipset, page.character_index),
+    return (page.character_name or tile_name(chipset, page.character_index),
             page.character_index if page.character_name else 0,
             page.character_direction * 3 + column)
 
 
-def pasabilidad_del_tile(game_map, charset, layer):
+def event_tile_passability(game_map, charset, layer):
     """The four passage bits an event drawn with `charset` on layer `layer`
     imposes on its cell, or None if it imposes nothing.
 
@@ -386,17 +386,17 @@ def pasabilidad_del_tile(game_map, charset, layer):
     this game: the cell is wall, and with the switch on the page shows the
     rubble tile, which can be stepped on. The bits come from the same table
     as the map's upper layer, which whoever loaded the map leaves in
-    `pasabilidad_tiles`.
+    `passability_table`.
     """
-    flags = getattr(game_map, "pasabilidad_tiles", None)
-    base = sin_horneado(charset)
+    flags = getattr(game_map, "passability_table", None)
+    base = unbaked(charset)
     if flags is None or layer != LAYER_BELOW \
             or not base.startswith(TILE_PREFIX):
         return None
-    valor = flags[UPPER_BASE + int(base.rsplit(":", 1)[1])]
-    if valor & PASS_ABOVE:
+    value = flags[UPPER_BASE + int(base.rsplit(":", 1)[1])]
+    if value & PASS_ABOVE:
         return None
-    return valor & PASS_ALL
+    return value & PASS_ALL
 
 
 UPPER_BASE = 10000      # the first tile of the upper layer, in the map and in the table
@@ -405,29 +405,29 @@ UPPER_BASE = 10000      # the first tile of the upper layer, in the map and in t
 # ranges `TileSubstitution` speaks in, numbering from the first of each. The
 # autotiles are left out: not even RM2k substitutes them.
 LOWER_BASE = 5000
-TILES_POR_CAPA = 144
+TILES_PER_LAYER = 144
 
 # The format's six tile id blocks, as in easyrpg's `map_data.h`: (first id,
 # how many, how much each one takes, first index). The **index** is what the
 # ChipSet's terrain table and passability table are read with, and it is not
 # the id: autotiles take 50 or 1000 ids each —the edge combinations— and a
 # single index.
-BLOQUES_DE_CHIP = ((0, 2, 1000, 0), (2000, 1, 1000, 2), (3000, 3, 50, 3),
-                   (4000, 12, 50, 6), (LOWER_BASE, 144, 1, 18),
-                   (UPPER_BASE, 144, 1, 162))
+CHIP_BLOCKS = ((0, 2, 1000, 0), (2000, 1, 1000, 2), (3000, 3, 50, 3),
+               (4000, 12, 50, 6), (LOWER_BASE, 144, 1, 18),
+               (UPPER_BASE, 144, 1, 162))
 # How many entries the terrain table has: those of the lower layer.
-TERRENOS_POR_CHIPSET = 162
+TERRAINS_PER_CHIPSET = 162
 
 
-def indice_de_chip(chip_id):
+def chip_index(chip_id):
     """`ChipIdToIndex`: from a map tile id to its ChipSet entry."""
-    for base, cuantos, paso, indice in BLOQUES_DE_CHIP:
-        if base <= chip_id < base + cuantos * paso:
-            return indice + (chip_id - base) // paso
+    for base, count, step, index in CHIP_BLOCKS:
+        if base <= chip_id < base + count * step:
+            return index + (chip_id - base) // step
     return 0
 
 
-def terreno_de(chipset, chip_id):
+def terrain_of(chipset, chip_id):
     """The terrain of a lower-layer tile, as `GetTerrainTag`.
 
     A ChipSet whose terrain is all 1 **does not store the table**: it is an
@@ -436,12 +436,12 @@ def terreno_de(chipset, chip_id):
     """
     if not chipset.terrain:
         return 1
-    return chipset.terrain[indice_de_chip(chip_id)]
+    return chipset.terrain[chip_index(chip_id)]
 
 # The `animation_type` values that ask for continuous animation:
 # "Continuous" and "Fixed Dir/Continuous". Lashe City's save point is of the
 # second type.
-ANIMA_CONTINUO = (1, 3)
+CONTINUOUS_ANIMATION = (1, 3)
 
 
 def collect_npcs(game_map):
@@ -457,12 +457,12 @@ def collect_npcs(game_map):
     each page's graphic, or None, and `capas` each one's layer.
     """
     npcs = []
-    chipset = getattr(game_map, "chipset_nombre", None)
-    for numero, event in enumerate(game_map.events):
+    chipset = getattr(game_map, "chipset_filename", None)
+    for number, event in enumerate(game_map.events):
         # An impossible page is never drawn: its graphic does not count.
-        graficos = [None if pagina_imposible(p) else grafico_de_pagina(p, chipset)
+        graphics = [None if impossible_page(p) else page_graphic(p, chipset)
                     for p in event.pages]
-        if not any(graficos):
+        if not any(graphics):
             continue
         # What this event may end up drawing over the course of the game. It
         # is not only each page's graphic: if the **first** one has a
@@ -476,25 +476,25 @@ def collect_npcs(game_map):
         # saw it on 2026-09-07 with map 8's `TalDoorBottom`, which can be
         # used and runs its commands but is never drawn. That is **350
         # events in 68 maps**.
-        posibles = set(graficos)
+        possible = set(graphics)
         if event.pages and event.pages[0].condition.active:
-            posibles.add(None)
-        cambia = len(posibles) > 1 and condiciones_soportadas(event)
+            possible.add(None)
+        changes = len(possible) > 1 and supported_conditions(event)
         page = event.active_page()
-        visible = page is not None and grafico_de_pagina(page, chipset) is not None
-        if not visible and not cambia:
+        visible = page is not None and page_graphic(page, chipset) is not None
+        if not visible and not changes:
             continue                # no graphic at load and no change: it is not there
         if not visible:
             # The row exists hidden: its fields come from the first page with
             # a graphic, which is where it will come from when it appears.
-            page = next(p for p, g in zip(event.pages, graficos)
+            page = next(p for p, g in zip(event.pages, graphics)
                         if g is not None)
-        charset, index, pose = grafico_de_pagina(page, chipset)
+        charset, index, pose = page_graphic(page, chipset)
         npcs.append({
             # The index in the map's event table, which is what the bytecode
             # of a forced route carries. **It is not the RM2k id**: there are
             # maps with gaps in the numbering.
-            "evento": numero,
+            "evento": number,
             "x": event.x, "y": event.y,
             "charset": charset, "index": index, "pose": pose,
             "layer": page.layer,
@@ -506,12 +506,12 @@ def collect_npcs(game_map):
             # Whether its page asks for continuous animation. Those that also
             # walk carry it inside their route slot; this is for the still
             # ones.
-            "anima": page.animation_type in ANIMA_CONTINUO,
+            "anima": page.animation_type in CONTINUOUS_ANIMATION,
             "visible": visible,
-            "cambia": cambia,
-            "graficos": graficos,
+            "cambia": changes,
+            "graficos": graphics,
             "capas": [p.layer for p in event.pages],
-            "tile_pasa": pasabilidad_del_tile(game_map, charset, page.layer)
+            "tile_pasa": event_tile_passability(game_map, charset, page.layer)
                          if visible else None,
         })
     return npcs

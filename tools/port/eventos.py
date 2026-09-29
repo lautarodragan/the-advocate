@@ -5352,7 +5352,7 @@ SWITCH_DE_PRUEBA = 1023
 VARIABLE_DE_CASO = 1000
 COMPARAR_AL_MENOS = 1   # the `>=` of RM2k's page conditions
 # The switch that is never turned on: it is what a page with a condition the
-# port cannot meet —an item, see `rm2k.CONDICIONES_IMPOSIBLES`— carries as
+# port cannot meet —an item, see `rm2k.IMPOSSIBLE_CONDITIONS`— carries as
 # `switch_a`, so the ROM never picks it, and does pick the event's other
 # pages. The game checks switches up to 1003 and 1023 is the test page's.
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
@@ -5392,7 +5392,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
     """
     salida = []
     del_mapa = Eventos(game_map)
-    chipset = getattr(game_map, "chipset_nombre", None)
+    chipset = getattr(game_map, "chipset_filename", None)
     for numero_evento, event in enumerate(game_map.events):
         # **All** events go, whether or not they have a page that triggers
         # something: since 2026-09-05 the table also says which layer the
@@ -5409,14 +5409,14 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
         # either: its layer is as unknown as its code. The **item** condition
         # is something else: it is known that it is never met, and the page
         # is emitted as such.
-        if not rm2k.condiciones_soportadas(event):
+        if not rm2k.supported_conditions(event):
             continue
 
         grupo = []
         for numero_pagina, page in enumerate(event.pages):
             cond = page.condition
             codigo = None
-            if rm2k.pagina_imposible(page):
+            if rm2k.impossible_page(page):
                 # Never active: no code, no graphic, and with the switch that
                 # never turns on. The pages below keep winning when their turn
                 # comes, which is what RM2k does while the item is not there.
@@ -5431,7 +5431,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                     "gira": False,
                 })
                 continue
-            grafico = rm2k.grafico_de_pagina(page, chipset)
+            grafico = rm2k.page_graphic(page, chipset)
             # **An automatic or parallel page without a single command starts
             # nothing.** It is `Game_Interpreter::Push`, which returns right
             # away with an empty list: the interpreter does not keep running
@@ -5487,8 +5487,8 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                 # see `rm2k.collect_npcs`, and `pasa_con_evento` in
                 # tools/runtime/heroe.s, which is the one that applies them.
                 "grafico": grafico,
-                "tile_pasa": (rm2k.pasabilidad_del_tile(game_map, grafico[0],
-                                                        page.layer)
+                "tile_pasa": (rm2k.event_tile_passability(game_map, grafico[0],
+                                                          page.layer)
                               if grafico is not None else None),
                 # Whether the event turns around toward the hero with this
                 # page: a CharSet —a chipset tile has nowhere to look— and an
