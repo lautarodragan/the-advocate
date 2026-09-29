@@ -249,8 +249,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `herramientas/test_espacio.py`: `just espacio`, contra el `.res` linkeado a
   mano que reemplazó
 * `herramientas/test_ensamblar.py`: `ensamblar.py`
-* `herramientas/test_protocolo.py`: el bytecode: las declaraciones y los
-  generados
+* `herramientas/test_protocolo_contra_el_juego.py`: el bytecode contra el
+  juego: la tabla del despacho en cada cartucho, y los largos en todas las
+  páginas
 * `herramientas/test_paginas.py`: las tablas de páginas del lado de Python
 * `herramientas/test_parches.py`: los parches versionados contra el
   conversor, sobre `release` armado
