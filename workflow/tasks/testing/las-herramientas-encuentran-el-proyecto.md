@@ -2,7 +2,7 @@
 name: "Las herramientas encuentran el proyecto"
 description: "Las herramientas dejan de saber que ABL vive en rom/ y de leer ABL_*: buscan rm2k-snes.toml hacia arriba, sus rutas salen del archivo, y el ambiente llega por flags"
 type: refactor
-assignee: Timbó
+assignee: taro
 ---
 
 Lo que queda para que `tools/` no sepa nada de dónde ni cómo está ABL, después
@@ -136,3 +136,69 @@ los `.dbg` sin `mtime`—.
    - Mostrado que falla: con `os.environ.get("ABL_GAME_DIR")` agregado a
      `comun/ambiente.py` y `"rom/data/maps"` a `rpgmaker/fork.py`, las dos
      pruebas dan rojo y nombran archivo y línea; sacados, verde.
+5. **La prosa**, en su commit: `tools/README.md` ("Cómo encuentran el
+   juego"), `AGENTS.md` (los valores de la máquina los pone `rom/justfile`,
+   y cómo correr acá las dos de `SOUNDFONT`), `README.md` y los índices de
+   las dos carpetas de pruebas.
+
+## Qué cambia para taro en el host
+
+**Nada en las recetas ni en las variables**: `just cartuchos`, `just build
+release`, `just pruebas`, `just espacio`, `just parches`, `just techos`,
+`just entregar` y `just video` se llaman igual, y `ABL_GAME_DIR`,
+`ABL_RTP_DIR`, `ABL_SOUNDFONT`, `ABL_CACHE`, `CARTUCHOS` y `SHARED` apuntan
+a lo mismo, con los mismos valores por omisión —ahora en `rom/justfile`—.
+Lo que cambia:
+
+* **Un script de la suite corrido a mano**, fuera de `just`, ya no cae en
+  los valores de esta máquina: hay que pasarle `--game-dir` y los demás, y
+  correrlo desde adentro de `rom/` o con `--proyecto`. Corta diciendo qué
+  falta.
+* **Un `pytest` suelto** de las pruebas de ABL necesita las variables
+  puestas; por `just` las pone el `justfile`.
+* **`just -f tools/justfile pruebas`** saltea dos si no se le pasa
+  `SOUNDFONT`.
+
+## Verificado
+
+* `SIN_CACHE=1 just cartuchos` y los sha256 de `rom/build/` antes de tocar
+  nada y después de cada commit que toca lo que arma (1, 2 y 3) y al final:
+  **995 archivos iguales**, con los `.sfc`, `.msu`, `.pcm`, `.sym` y los
+  `.inc` adentro. Las dos pistas que salen de un reemplazo salieron de él
+  las dos veces.
+
+      7a3c6483…a6552  build/release/abl.sfc
+      905decd2…6cee   build/release/abl.msu
+      fb6db844…0617   build/tests/special/prueba.sfc
+      d9e96eab…1578   build/tests/special/prueba.msu
+
+* `just pruebas`: 867, en cada commit y al final.
+  `just -f tools/justfile pruebas`: 132 y 2 salteadas, y 134 con
+  `SOUNDFONT`. Eran 122: las diez nuevas son las de la red del paso 4.
+* Sin ABL: `rm2k-snes-cartridges --lista` desde `/tmp` corta con "no
+  encontré un rm2k-snes.toml en /tmp ni en ninguna carpeta de más
+  arriba…"; desde `rom/data/maps/` encuentra el proyecto; con `--proyecto`
+  desde `/tmp` andan `rm2k-snes-cartridges --lista`, `rm2k-snes-patches
+  --check` y `rm2k-snes-space release`. El conversor sin `--game-dir` corta
+  con "falta --game-dir…".
+* A mano: `just espacio release`, `just parches-check`, `just techos
+  --medir`, `rm2k-snes-msu` sobre `release`, y `video.py --help` con y sin
+  las variables.
+* `test_lado_de_abl.py` no se tocó.
+* `main` no se movió desde `9e276429`: no hubo nada que mergear.
+
+## Lo que no se hizo
+
+* **`just entregar` no se corrió**: se miró su línea con `--dry-run`.
+  Tampoco `just techos` entero —escribe la tabla—, sólo `--medir`.
+* **`raiz()` sigue en dos lugares que no son para llegar a ABL**: el
+  directorio donde corren el conversor y `ca65` —de ahí salen las rutas
+  relativas del `.dbg` y de los `.inc`, y cambiarlo cambia el `.dbg`—, y la
+  búsqueda de recursos de `render_map`, que no encuentra nada ahí. Cuando
+  las herramientas sean otro repo, las dos hay que pensarlas.
+* **El pre-parseo de `--proyecto`** existe porque `cartuchos` y `entregar`
+  leen el archivo al importarse. Si dejan de hacerlo, alcanza con el
+  `parse_args` de cada `main`.
+* **La forma de adentro de `build/` y de `parches/`** —`release/`,
+  `tests/`, `manual/`, `auto/`— sigue siendo de las herramientas. Si otro
+  juego quisiera otra, serían más claves de `[paths]`.
