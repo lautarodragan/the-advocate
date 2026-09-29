@@ -1,15 +1,16 @@
 .segment "CODE"
 
-; --- la ventana de mensaje -------------------------------------------------
-; Sus tiles y su paleta se suben una sola vez, con la pantalla apagada, igual
-; que los de la capa de encima. Viven detrás de los de encima, y BG2 los
-; alcanza con la misma base: según el reparto, la capa de encima tiene 128 o
-; 256 tiles y la ventana arranca en ese índice. Por eso el conversor emite dos
-; planos de celdas, uno con cada corrimiento sumado, y `estampar_ventana`
-; elige.
+; --- the message window ----------------------------------------------------
+; Its tiles and palette are uploaded only once, with the screen off, like
+; those of the layer above. They live behind the ones of the layer above, and
+; BG2 reaches them with the same base: depending on the layout, the layer
+; above has 128 or 256 tiles and the window starts at that index. That is why
+; the converter emits two planes of cells, one with each offset added, and
+; `estampar_ventana` picks one.
 ;
-; Su paleta es la **0**, o sea las entradas que están debajo del fondo, y la
-; sube `cargar_mapa_sin_eventos` junto con el color de fondo de la pantalla.
+; Its palette is palette **0**, that is the entries below the background, and
+; `cargar_mapa_sin_eventos` uploads it together with the screen's backdrop
+; color.
 .proc load_ventana
 .a8
 .i16
@@ -35,47 +36,48 @@
     lda #$01
     sta MDMAEN
 
-    ; La paleta de la ventana no se sube acá: es la **0**, o sea las entradas
-    ; que `cargar_mapa_sin_eventos` ya subió junto con el color de fondo. Antes
-    ; iba flotando debajo de la capa de encima más baja de la ROM y se subía
-    ; por su cuenta; con eso el fondo de todos los mapas quedaba apretado
-    ; abajo de ella —47 colores— aunque tuvieran media CGRAM libre arriba.
+    ; The window's palette is not uploaded here: it is palette **0**, that is
+    ; the entries `cargar_mapa_sin_eventos` already uploaded together with the
+    ; backdrop color. It used to float below the lowest layer above in the
+    ; ROM and got uploaded on its own; with that, every map's background was
+    ; squeezed below it —47 colors— even when they had half of CGRAM free
+    ; above.
 
-    ; El tilemap propio y las tablas del HDMA, que son de este mapa: la ventana
-    ; vive en un lugar de la VRAM que depende del reparto.
+    ; The window's own tilemap and the HDMA tables, which belong to this map:
+    ; the window lives at a VRAM location that depends on the layout.
     jsr estampar_ventana
     jsr armar_hdma
     rts
 .endproc
 
-; Escribe el tilemap propio de la ventana: 320 celdas seguidas, un solo DMA.
+; Writes the window's own tilemap: 320 contiguous cells, a single DMA.
 ;
-; Acá está toda la diferencia con lo que había antes. La ventana ya no se
-; estampa en el tilemap del mapa —que se scrollea— sino en uno suyo, de 32x32,
-; que no comparte con nadie. Como es propio, sus diez filas de 32 celdas son
-; 320 palabras contiguas: no hay tramos, ni envoltura, ni columna 32 que
-; esquivar. Y como nadie más lo toca, esto corre **una sola vez por mapa**,
-; desde `load_ventana` y con la pantalla ya apagada.
+; Here is the whole difference with what there was before. The window is no
+; longer stamped onto the map's tilemap —which scrolls— but onto one of its
+; own, 32x32, that it shares with no one. Since it is its own, its ten rows
+; of 32 cells are 320 contiguous words: there are no stretches, no wrapping,
+; no column 32 to dodge. And since nobody else touches it, this runs **only
+; once per map**, from `load_ventana` and with the screen already off.
 ;
-; Quién lo muestra y dónde lo decide el HDMA; ver `armar_hdma`.
+; Who shows it and where is decided by HDMA; see `armar_hdma`.
 .proc estampar_ventana
 .a8
 .i16
     lda #$80
     sta VMAIN
     ldx mapa_ofs
-    ; Qué plano: el que tiene horneado el índice donde arranca la ventana, que
-    ; es la distancia entre ella y la base de BG2 —el nibble alto de
-    ; BG12NBA—. Los repartos la ponen 128 tiles detrás o, el de la capa de
-    ; encima de 256, 256: 256 tiles de 4bpp son $1000 palabras, $10 en el
-    ; byte alto. Ver `VENTANA_BASES` en el conversor.
+    ; Which plane: the one that has baked in the index where the window
+    ; starts, which is the distance between it and BG2's base —the high
+    ; nibble of BG12NBA—. The layouts put it 128 tiles behind or, the one with
+    ; a 256-tile layer above, 256: 256 tiles of 4bpp are $1000 words, $10 in
+    ; the high byte. See `VENTANA_BASES` in the converter.
     lda f:mapa_tabla + M_BG12NBA_VALUE, x
     and #$F0
     sta temp
     lda f:mapa_tabla + M_VRAM_VENTANA + 1, x
     sec
     sbc temp
-    cmp #$10                    ; el acarreo sobrevive al `rep` y al `lda`
+    cmp #$10                    ; the carry survives the `rep` and the `lda`
     rep #$20
 .a16
     lda f:mapa_tabla + M_VRAM_VENTANA_MAP, x
@@ -107,19 +109,19 @@ con_plano:
     rts
 .endproc
 
-; Deja armadas las dos tablas del HDMA y programa sus canales. Corre una vez por
-; mapa, junto con el resto de la carga.
+; Sets up the two HDMA tables and programs their channels. Runs once per map,
+; together with the rest of the load.
 ;
-; Lo que el HDMA consigue, y que ninguna cantidad de estampado conseguía: BG2
-; cambia de tilemap y de scroll **a mitad de cuadro**. De la línea 0 a la 143
-; sigue siendo la capa de encima del mapa, con la cámara; de la 144 a la 223 es
-; el tilemap propio de la ventana, con el scroll clavado. Por eso la ventana no
-; se mueve aunque la cámara sí, y por eso no hay una sola escritura de VRAM
-; mientras un mensaje está en pantalla.
+; What HDMA achieves, and no amount of stamping achieved: BG2 changes tilemap
+; and scroll **mid-frame**. From line 0 to 143 it is still the map's layer
+; above, with the camera; from 144 to 223 it is the window's own tilemap, with
+; the scroll pinned. That is why the window does not move even though the
+; camera does, and why there is not a single VRAM write while a message is on
+; screen.
 ;
-; Las dos primeras entradas llevan justo lo que `flush_video` ya escribía en los
-; registros, así que arriba de la línea 144 no cambia nada. Van en dos tramos
-; porque el contador de líneas de una entrada es de 7 bits y 144 no entra.
+; The first two entries carry exactly what `flush_video` was already writing
+; to the registers, so above line 144 nothing changes. They go in two
+; stretches because an entry's line counter is 7 bits and 144 does not fit.
 .proc armar_hdma
 .a8
 .i16
@@ -133,117 +135,117 @@ con_plano:
     sta hdma_sc + 4
     sta hdma_ofs + 10
 
-    ; El tilemap del mapa arriba y el de la ventana abajo. BG2SC lleva la
-    ; dirección en el byte alto; el tamaño de la ventana es 0, que es 32x32.
+    ; The map's tilemap on top and the window's below. BG2SC carries the
+    ; address in the high byte; the window's size is 0, which is 32x32.
     lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
     sta hdma_sc + 1
     sta hdma_sc + 3
     ldx mapa_ofs
     lda f:mapa_tabla + M_VRAM_VENTANA_MAP + 1, x
     sta hdma_sc + 5
-    stz hdma_sc + 6             ; fin de tabla
+    stz hdma_sc + 6             ; end of table
 
-    ; Y el scroll clavado de las líneas de la ventana. Los dos tramos de arriba
-    ; los llena `flush_video` con la cámara de cada cuadro.
+    ; And the pinned scroll of the window's lines. The two stretches above are
+    ; filled by `flush_video` with each frame's camera.
     stz hdma_ofs + 11
     stz hdma_ofs + 12
     lda #<VENTANA_VOFS
     sta hdma_ofs + 13
     lda #>VENTANA_VOFS
     sta hdma_ofs + 14
-    stz hdma_ofs + 15           ; fin de tabla
+    stz hdma_ofs + 15           ; end of table
 
-    lda #$00                    ; un registro, una escritura por tramo
+    lda #$00                    ; one register, one write per stretch
     sta DMAP1
     lda #<BG2SC
     sta BBAD1
     ldx #hdma_sc
     stx A1T1L
-    stz A1B1                    ; las tablas viven en el banco 0
+    stz A1B1                    ; the tables live in bank 0
 
-    lda #$03                    ; dos registros, dos escrituras cada uno, que
-    sta DMAP2                   ; es lo que piden BG2HOFS y BG2VOFS
+    lda #$03                    ; two registers, two writes each, which
+    sta DMAP2                   ; is what BG2HOFS and BG2VOFS ask for
     lda #<BG2HOFS
     sta BBAD2
     ldx #hdma_ofs
     stx A1T2L
     stz A1B2
 
-    ; Y el tercer canal esconde los objetos debajo de la ventana. En RM2k la
-    ; ventana de mensaje tapa todo —`Priority_Window` es 130 y los personajes
-    ; van por debajo—, pero acá es BG2 con prioridad 1, y un evento marcado
-    ; "above" va en objetos con prioridad 2, que en el modo 3 queda *adelante*
-    ; de BG2: se veía a través de la ventana. Lo cobró la tanda con la puerta
-    ; del mapa 7 apenas los eventos dibujados con un tile pasaron a sprites.
-    ; La máscara es la ventana 1 del PPU, de punta a punta, prendida para los
-    ; objetos sólo en las líneas de la ventana de mensaje: `hdma_mascara`,
-    ; que no cambia nunca y vive en la ROM.
+    ; And the third channel hides the objects under the window. In RM2k the
+    ; message window covers everything —`Priority_Window` is 130 and the
+    ; characters go below it—, but here it is BG2 with priority 1, and an
+    ; event marked "above" goes in objects with priority 2, which in mode 3
+    ; sits *in front* of BG2: it showed through the window. The suite caught
+    ; it with the door on map 7 as soon as events drawn with a tile moved to
+    ; sprites. The mask is the PPU's window 1, edge to edge, enabled for
+    ; objects only on the lines of the message window: `hdma_mascara`, which
+    ; never changes and lives in the ROM.
     lda #$00
     sta DMAP3
     lda #<WOBJSEL
     sta BBAD3
     ldx #.loword(hdma_mascara)
     stx A1T3L
-    lda #^hdma_mascara          ; ya no es el banco 0: vive en RODATA
+    lda #^hdma_mascara          ; no longer bank 0: it lives in RODATA
     sta A1B3
     rts
 .endproc
 
-; --- el compositor de texto ------------------------------------------------
+; --- the text composer -----------------------------------------------------
 ;
-; Lo que hace que esto entre en un 65816. RM2k dibuja cada glifo usando sus
-; pixeles como **máscara** sobre un bloque de 16x16 del System, y leído así
-; pide muestrear el bloque pixel por pixel. Medido, no hace falta: cada fila
-; del glifo toma un solo color —el degradé es vertical— y la sombra es un color
-; plano. O sea que todo el color se reduce a doce bytes, `fuente_color`, más
-; `FUENTE_SOMBRA`. Es la medición que volvió barato esto.
+; What makes this fit in a 65816. RM2k draws each glyph using its pixels as a
+; **mask** over a 16x16 block of the System, and read that way it asks for
+; sampling the block pixel by pixel. Measured, that is not needed: each row of
+; the glyph takes a single color —the gradient is vertical— and the shadow is
+; a flat color. So all the color comes down to twelve bytes, `fuente_color`,
+; plus `FUENTE_SOMBRA`. That is the measurement that made this cheap.
 ;
-; El área de texto son 30 celdas de ancho por 8 de alto y sus 240 tiles **no
-; están deduplicados**: cada celda tiene el suyo, fijo, así que componer es
-; escribir un buffer y subirlo. Se hace de a un renglón —dos filas de celda, 60
-; tiles, 1920 bytes— y se sube en el vblank siguiente.
+; The text area is 30 cells wide by 8 tall and its 240 tiles **are not
+; deduplicated**: each cell has its own, fixed, so composing is writing a
+; buffer and uploading it. It is done one line at a time —two cell rows, 60
+; tiles, 1920 bytes— and uploaded in the next vblank.
 ;
-; Un renglón se ceba con el fondo de la ventana antes de escribirle el texto,
-; porque los glifos no se dibujan sobre negro sino sobre el degradé del skin.
-; Eso es un DMA de la ROM a la RAM, que el DMA normal no sabe hacer: va por la
-; ventana que la WRAM tiene en el bus B, o sea WMADD más $2180.
+; A line is primed with the window's background before the text is written
+; on it, because glyphs are not drawn on black but on the skin's gradient.
+; That is a DMA from ROM to RAM, which normal DMA cannot do: it goes through
+; the window WRAM has on bus B, that is WMADD plus $2180.
 
-; Cuántos caracteres por vuelta del lazo. El número está **medido**, no
-; elegido: componiendo el mensaje de `snes-anclada` sobre el mapa 6, con 5 no se
-; pierde un cuadro, con 6 tampoco y con 8 se pierde uno. Va en 5 y no en 7 por
-; margen, porque la vuelta cuesta distinto en cada mapa —el streaming del fondo,
-; los NPCs, la música— y perder cuadros no se ve mirando: lo que pasa es que el
-; héroe camina más lento que en RM2k.
+; How many characters per pass of the loop. The number is **measured**, not
+; chosen: composing the `snes-anclada` message over map 6, with 5 no frame is
+; lost, with 6 neither, and with 8 one is lost. It is 5 and not 7 for margin,
+; because a pass costs differently on each map —the background streaming, the
+; NPCs, the music— and losing frames does not show by looking: what happens is
+; that the hero walks slower than in RM2k.
 ;
-; Lo que cuesta: el mensaje de tres renglones y 51 caracteres de `snes-ventana`
-; tarda unos 15 cuadros en aparecer, y uno de cuatro renglones llenos tardaría
-; unos 36. Es un cuarto de segundo, que en RM2k tampoco desentona: allá la
-; ventana se abre con una animación.
+; What it costs: the three-line, 51-character message of `snes-ventana` takes
+; about 15 frames to appear, and one with four full lines would take about 36.
+; That is a quarter of a second, which does not stand out in RM2k either:
+; there the window opens with an animation.
 MSG_CHARS = 5
 
-; Dónde empieza el texto adentro de la ventana, en pixeles. Es el `border_x` de
-; `Window`, el mismo que usa `tools/port/ventana.py`.
+; Where the text starts inside the window, in pixels. It is `Window`'s
+; `border_x`, the same one `tools/port/ventana.py` uses.
 VENTANA_BORDE = 8
 
-; La fila del glifo cae dos pixeles abajo del borde de la celda, y eso no
-; depende del renglón: los cuatro empiezan en 10, 26, 42 y 58, que módulo 8 dan
-; todos 2. Por eso un glifo de doce filas entra siempre en las mismas dos filas
-; de celda y el buffer puede ser de dos.
+; The glyph's row falls two pixels below the cell's edge, and that does not
+; depend on the line: all four start at 10, 26, 42 and 58, which modulo 8 are
+; all 2. That is why a twelve-row glyph always fits in the same two cell rows
+; and the buffer can be two rows tall.
 TEXTO_OFS_Y = 2
 
-; Un byte más adelante en el bloque de textos, cruzando la ventana de banco.
+; One byte further in the text block, crossing the bank window.
 ;
-; `msg_ptr` es un puntero largo pero el compositor lo avanzaba con un `inc` de
-; dieciséis bits, así que al pasar de $FFFF volvía al $0000 del **mismo** banco.
-; En LoROM ahí no hay ROM: lo que sigue a $FFFF es el $8000 del banco siguiente,
-; que es lo que ya sabían `ptr_mas` y `msg_empezar`.
+; `msg_ptr` is a long pointer but the composer advanced it with a 16-bit
+; `inc`, so on going past $FFFF it went back to $0000 of the **same** bank.
+; In LoROM there is no ROM there: what follows $FFFF is $8000 of the next
+; bank, which is what `ptr_mas` and `msg_empezar` already knew.
 ;
-; No es teórico y no bastaba con arreglar `msg_empezar`: el bloque de textos de
-; `abl` mide 56 KB, o sea que cruza, y **un cuadro cuyos bytes caen
-; encima del borde** empieza bien y sigue leyendo basura. Es la cinemática de
-; los Neon Vipers del mapa 14: de la basura salía un largo de renglón de 76
-; caracteres y con él la pantalla hecha basura, por el camino que el tope de
-; `mensaje_tick` ahora corta.
+; It is not theoretical and fixing `msg_empezar` was not enough: `abl`'s text
+; block is 56 KB, so it crosses, and **a box whose bytes fall across the
+; edge** starts fine and goes on reading garbage. It is the Neon Vipers
+; cutscene on map 14: out of the garbage came a line length of 76 characters
+; and with it the whole screen turned to garbage, along the path that the cap
+; in `mensaje_tick` now cuts off.
 .proc msg_ptr_sig
 .a16
 .i16
@@ -260,33 +262,33 @@ listo:
     rts
 .endproc
 
-; Arranca un mensaje: deja el puntero en su primer renglón y el compositor en
-; marcha. La ventana no aparece hasta que termine.
+; Starts a message: leaves the pointer on its first line and the composer
+; running. The window does not appear until it finishes.
 ;
-; **A trae el desplazamiento del cuadro dentro de `mensajes`, en 16 bits**, y
-; hay que sumárselo a un puntero largo cruzando bancos: ver el lazo de abajo y
-; `msg_ptr_sig`, que es la misma cuenta para avanzar de a un byte.
-.assert MENSAJES_TOPE = 4 * $10000, error, "msg_empezar multiplica el desplazamiento por cuatro: es MENSAJES_PASO en eventos.py"
+; **A carries the box's offset within `mensajes`, in 16 bits**, and it has to
+; be added to a long pointer crossing banks: see the loop below and
+; `msg_ptr_sig`, which is the same arithmetic for advancing one byte at a
+; time.
+.assert MENSAJES_TOPE = 4 * $10000, error, "msg_empezar multiplies the offset by four: it is MENSAJES_PASO in eventos.py"
 .proc msg_empezar
 .a16
 .i16
-    ; El desplazamiento es de dieciséis bits y el bloque de textos puede medir
-    ; **más que la ventana de un banco de LoROM**: con los
-    ; 29 mapas de `abl` son 48972 bytes y arranca en $46:8000, así que
-    ; desde el desplazamiento $8000 la suma se pasa de $FFFF. Lo que sigue a
-    ; $FFFF no es el $0000 del banco que viene sino su $8000, que es lo mismo
-    ; que ya sabía `ptr_mas` para la grilla del mapa; acá se sumaba de a
-    ; dieciséis bits y el acarreo se perdía, así que **todo cuadro de texto
-    ; pasado el primer banco leía de otro lado**: la cabecera y los largos de
-    ; renglón salían de cualquier cosa. El lazo suma un banco por vuelta porque
-    ; un bloque de 64 KB cruza hasta dos veces.
+    ; The offset is sixteen bits and the text block can be **larger than a
+    ; LoROM bank's window**: with the 29 maps of `abl` it is 48972 bytes and
+    ; starts at $46:8000, so from offset $8000 on the sum goes past $FFFF.
+    ; What follows $FFFF is not $0000 of the next bank but its $8000, which
+    ; is the same thing `ptr_mas` already knew for the map grid; here it was
+    ; added sixteen bits at a time and the carry was lost, so **every text box
+    ; past the first bank read from somewhere else**: the header and the line
+    ; lengths came out of anything. The loop adds one bank per pass because a
+    ; 64 KB block crosses up to twice.
     ;
-    ; Y el desplazamiento cuenta de a cuatro bytes —`MENSAJES_PASO` en
-    ; eventos.py—, así que el bloque llega a 256 KB: los dos bits que se caen
-    ; de los `asl` van a `temp`, y cada uno de lo que junta son 64 KB, o sea
-    ; dos bancos de LoROM. Con `rol` y no con un salto por bit a propósito:
-    ; así el bit de arriba —más de 128 KB, que ningún cartucho de la tanda
-    ; alcanza— corre las mismas instrucciones que el de abajo, que sí.
+    ; And the offset counts in steps of four bytes —`MENSAJES_PASO` in
+    ; eventos.py—, so the block reaches 256 KB: the two bits that fall out of
+    ; the `asl`s go to `temp`, and each unit of what it gathers is 64 KB, that
+    ; is two LoROM banks. With `rol` and not with a branch per bit on purpose:
+    ; that way the top bit —more than 128 KB, which no cartridge in the suite
+    ; reaches— runs the same instructions as the bottom one, which does.
     phx
     stz temp
     asl a
@@ -295,7 +297,7 @@ listo:
     rol temp
     pha
     lda temp
-    asl a                       ; dos bancos por cada 64 KB
+    asl a                       ; two banks per 64 KB
     clc
     adc #^mensajes
     tax
@@ -317,33 +319,33 @@ en_el_banco:
     rep #$20
 .a16
     plx
-    ; La cola de escapes arranca limpia antes de leer la cabecera: una pausa de
-    ; basura ahí dejaría la página frenada para siempre.
+    ; The escape queue starts clean before reading the header: a garbage pause
+    ; there would leave the page stuck forever.
     lda #0
-    sta f:FAR_MSG_PAUSA         ; `stz` no tiene modo largo
+    sta f:FAR_MSG_PAUSA         ; `stz` has no long mode
     sep #$20
 .a8
     sta f:FAR_MSG_AUTO
     ldy #0
-    lda [msg_ptr], y            ; la cabecera: los renglones en los tres bits
-    sta msg_lineas              ; de abajo, el autocierre en el 3 y las pausas
-                                ; en el nibble de arriba. Se guarda entera y la
-                                ; enmascara quien la lea; un byte más en el
-                                ; banco 0 es justo lo que no hay.
+    lda [msg_ptr], y            ; the header: the lines in the bottom three
+    sta msg_lineas              ; bits, the auto-close in bit 3 and the pauses
+                                ; in the top nibble. It is stored whole and
+                                ; whoever reads it masks it; one more byte in
+                                ; bank 0 is exactly what there is not.
     and #CABECERA_AUTOCIERRE
     sta f:FAR_MSG_AUTO
     lda msg_lineas
     lsr
     lsr
     lsr
-    lsr                         ; cuántas pausas trae
+    lsr                         ; how many pauses it carries
     beq sin_pausa
-    ; Y cuánto duran: `CUADROS_DE_PAUSA` cada una, que son 61 y no 60. El
-    ; producto va en 16 bits porque quince pausas son 915 cuadros, así que lo
-    ; hace el hardware, como el tinte.
+    ; And how long they last: `CUADROS_DE_PAUSA` each, which is 61 and not 60.
+    ; The product is 16 bits because fifteen pauses are 915 frames, so the
+    ; hardware does it, as with the tint.
     sta WRMPYA
     lda #CUADROS_DE_PAUSA
-    sta WRMPYB                  ; arranca: el producto tarda ocho ciclos
+    sta WRMPYB                  ; starts: the product takes eight cycles
     nop
     nop
     nop
@@ -368,7 +370,7 @@ sin_pausa:
     rts
 .endproc
 
-; Un cuadro del compositor, desde el lazo principal.
+; One frame of the composer, from the main loop.
 .proc mensaje_tick
 .a8
 .i16
@@ -379,18 +381,18 @@ sin_pausa:
 trabajando:
     lda msg_subir
     beq sin_subir
-    rts                         ; el renglón anterior todavía no subió
+    rts                         ; the previous line has not been uploaded yet
 sin_subir:
     lda msg_cebada
     bne componiendo
 
-    ; Renglón nuevo: se le copia el fondo y se lee su largo. Los renglones que
-    ; el mensaje no trae igual se ceban y se suben: en la VRAM está el texto del
-    ; mensaje anterior y hay que taparlo.
+    ; New line: the background is copied into it and its length is read. The
+    ; lines the message does not carry are primed and uploaded anyway: VRAM
+    ; holds the previous message's text and it has to be covered.
     jsr cebar_linea
     stz msg_largo
     lda msg_lineas
-    and #CABECERA_LINEAS        ; la cabecera trae además la cola de escapes
+    and #CABECERA_LINEAS        ; the header also carries the escape queue
     sta temp
     lda msg_linea
     cmp temp
@@ -427,18 +429,18 @@ otro:
     sep #$20
 .a8
     inc msg_col
-    ; El tope de la columna. El byte se consume igual —si no, el puntero
-    ; quedaría desfasado y el renglón que sigue leería del medio de éste— pero
-    ; no se dibuja: `componer_char` escribe en `texto_buf` con un desplazamiento
-    ; que sale de la columna, y a partir de la 39 eso cae **afuera** del buffer,
-    ; encima del HDMA de la ventana, de la imagen de OAM y de `vq_n`. Ver el
-    ; comentario de `componer_char`, más abajo.
+    ; The column cap. The byte is consumed anyway —otherwise the pointer
+    ; would be out of step and the next line would read from the middle of
+    ; this one— but it is not drawn: `componer_char` writes into `texto_buf`
+    ; with an offset that comes from the column, and from 39 on that lands
+    ; **outside** the buffer, on top of the window's HDMA, the OAM image and
+    ; `vq_n`. See the comment on `componer_char`, further down.
     ;
-    ; Y el tope va acá aunque el conversor no emita nunca un renglón más largo,
-    ; porque **el síntoma no señala al texto**: con `vq_n` pisado, `vram_drenar`
-    ; sube bloques de 128 bytes a direcciones cualquiera de la VRAM, así que un
-    ; largo de renglón malo se ve como la pantalla entera hecha basura unos
-    ; cuadros más tarde y en otro mapa.
+    ; And the cap goes here even though the converter never emits a longer
+    ; line, because **the symptom does not point at the text**: with `vq_n`
+    ; overwritten, `vram_drenar` uploads 128-byte blocks to arbitrary VRAM
+    ; addresses, so a bad line length shows up as the whole screen turned to
+    ; garbage a few frames later and on another map.
     lda comp_col
     cmp #MENSAJE_COLS
     bcs sin_dibujar
@@ -451,9 +453,9 @@ sin_dibujar:
     rts
 
 fin_linea:
-    ; El renglón está listo: se sube en el vblank que viene y se pasa al que
-    ; sigue. El fondo del próximo no se ceba en este mismo cuadro a propósito:
-    ; el buffer todavía tiene lo que hay que subir.
+    ; The line is ready: it goes up in the next vblank and we move on to the
+    ; next one. The next one's background is not primed in this same frame on
+    ; purpose: the buffer still holds what has to be uploaded.
     lda #1
     sta msg_subir
     stz msg_cebada
@@ -462,29 +464,29 @@ fin_linea:
     cmp #VENTANA_LINEAS_TEXTO
     bcc mas
     lda #2
-    sta msg_estado              ; ya está: `flush_video` prende el HDMA
+    sta msg_estado              ; done: `flush_video` turns on the HDMA
 mas:
     rts
 .endproc
 
-; Copia al buffer el fondo de las dos filas de celda del renglón en curso. Es
-; la única forma de que los glifos queden sobre el degradé del skin y no sobre
-; negro, y va por DMA de la ROM a la RAM.
+; Copies into the buffer the background of the two cell rows of the current
+; line. It is the only way for the glyphs to sit on the skin's gradient and
+; not on black, and it goes by DMA from ROM to RAM.
 .proc cebar_linea
 .a8
 .i16
     rep #$20
 .a16
-    ; El destino: siempre el principio del buffer.
+    ; The destination: always the start of the buffer.
     lda #.loword(texto_buf)
     sta WMADDL
     sep #$20
 .a8
-    stz WMADDH                  ; el buffer vive en el banco 0 de la WRAM
+    stz WMADDH                  ; the buffer lives in WRAM bank 0
 
     rep #$20
 .a16
-    ; El origen: dos filas de celda por renglón, 60 tiles de 32 bytes.
+    ; The source: two cell rows per line, 60 tiles of 32 bytes.
     lda msg_linea
     and #$00FF
     sta temp
@@ -493,17 +495,17 @@ mas:
     asl a
     asl a
     asl a
-    asl a                       ; renglón * 64
+    asl a                       ; line * 64
     sec
     sbc temp
     sbc temp
     sbc temp
-    sbc temp                    ; renglón * 60, o sea los tiles que ya pasaron
+    sbc temp                    ; line * 60, that is the tiles already past
     asl a
     asl a
     asl a
     asl a
-    asl a                       ; por 32 bytes cada uno
+    asl a                       ; times 32 bytes each
     clc
     adc #.loword(ventana_fondo)
     sta A1T0L
@@ -513,7 +515,7 @@ mas:
 .a8
     lda #^ventana_fondo
     sta A1B0
-    lda #$00                    ; un registro, de a un byte
+    lda #$00                    ; one register, one byte at a time
     sta DMAP0
     lda #<WMDATA
     sta BBAD0
@@ -522,8 +524,8 @@ mas:
     rts
 .endproc
 
-; Sube el renglón compuesto al banco de tiles de la ventana. Va en el vblank,
-; desde `flush_video`, y son 1920 bytes de un solo DMA.
+; Uploads the composed line to the window's tile bank. It goes in the vblank,
+; from `flush_video`, and it is 1920 bytes in a single DMA.
 .proc subir_linea
 .a8
 .i16
@@ -533,8 +535,8 @@ mas:
     ldx mapa_ofs
     rep #$20
 .a16
-    ; El tile donde arranca este renglón, en palabras de VRAM. El renglón que
-    ; hay que subir es el anterior: `mensaje_tick` ya pasó al siguiente.
+    ; The tile where this line starts, in VRAM words. The line to upload is
+    ; the previous one: `mensaje_tick` already moved on to the next.
     lda msg_linea
     and #$00FF
     dec a
@@ -549,13 +551,13 @@ mas:
     sbc temp
     sbc temp
     sbc temp
-    sbc temp                    ; renglón * 60 tiles
+    sbc temp                    ; line * 60 tiles
     clc
     adc #VENTANA_TEXTO_BASE
     asl a
     asl a
     asl a
-    asl a                       ; por 16 palabras cada tile
+    asl a                       ; times 16 words per tile
     clc
     adc f:mapa_tabla + M_VRAM_VENTANA, x
     sta VMADDL
@@ -565,7 +567,7 @@ mas:
     sta DAS0L
     sep #$20
 .a8
-    stz A1B0                    ; el buffer vive en el banco 0
+    stz A1B0                    ; the buffer lives in bank 0
     lda #$01
     sta DMAP0
     lda #$18
@@ -575,34 +577,36 @@ mas:
     rts
 .endproc
 
-; Un caracter, desde sus datos ya compuestos: `fuente_pre0` a `fuente_pre3`,
-; una tabla por fase, que arma `fuente_prerender` en el conversor. Por cada
-; una de las FUENTE_PRE_FILAS filas y cada una de las dos celdas que puede
-; pisar vienen tres palabras —qué se conserva del buffer, y qué se prende en
-; los planos 0-1 y en los 2-3—, así que pintar es leer, enmascarar y
-; escribir. Una celda que no toca nada viene con la máscara en $FFFF y se
-; saltea.
+; One character, from its already composed data: `fuente_pre0` to
+; `fuente_pre3`, one table per phase, built by `fuente_prerender` in the
+; converter. For each of the FUENTE_PRE_FILAS rows and each of the two cells
+; it can touch come three words —what is kept from the buffer, and what is
+; set in planes 0-1 and in 2-3—, so painting is read, mask and write. A cell
+; that touches nothing comes with the mask at $FFFF and is skipped.
 ;
-; **La columna la topa `mensaje_tick`**, no esto: acá `comp_col` ya llegó como
-; buena y el desplazamiento que sale de ella se usa sin mirar. El tope está allá
-; porque el byte hay que consumirlo igual aunque no se dibuje.
+; **The column is capped by `mensaje_tick`**, not by this: here `comp_col`
+; has already arrived as good and the offset that comes from it is used
+; without checking. The cap is there because the byte has to be consumed
+; anyway even if it is not drawn.
 ;
-; Hasta el 2026-09-11 esto pintaba cada fila dos veces —la sombra y después
-; el glifo, con una rutina `pintar` que armaba las máscaras en cada llamada—
-; y corría la fila de a un bit hasta su fase: unas 25 líneas por carácter, y
-; con MSG_CHARS en 5 era lo que más costaba del cuadro mientras se armaba un
-; mensaje. taro lo notó en la apertura, con lluvia. El resultado es el mismo
-; byte por byte: el orden de `Font::Render` —la sombra de una fila la pisa el
-; glifo de la siguiente— ya viene resuelto en las tablas.
+; Until 2026-09-11 this painted each row twice —the shadow and then the
+; glyph, with a `pintar` routine that built the masks on each call— and
+; shifted the row one bit at a time up to its phase: about 25 lines per
+; character, and with MSG_CHARS at 5 it was the most expensive thing in the
+; frame while a message was being built. taro noticed it in the opening, with
+; rain. The result is the same byte for byte: the order of `Font::Render`
+; —the shadow of a row is overwritten by the glyph of the next— already comes
+; resolved in the tables.
 .proc componer_char
 .a8
 .i16
     lda comp_char
     sta WRMPYA
     lda #FUENTE_PRE_CHAR
-    sta WRMPYB                  ; arranca: lo que sigue le da los ocho ciclos
+    sta WRMPYB                  ; starts: what follows gives it the eight cycles
 
-    ; Dónde cae: x = borde + 6 por columna, y de ahí la celda y la fase.
+    ; Where it lands: x = border + 6 per column, and from that the cell and
+    ; the phase.
     rep #$20
 .a16
     lda comp_col
@@ -610,26 +614,26 @@ mas:
     asl a
     clc
     adc temp
-    asl a                       ; por 6
+    asl a                       ; times 6
     clc
     adc #VENTANA_BORDE
-    sta temp                    ; x adentro de la ventana
+    sta temp                    ; x inside the window
     and #$0007
-    sta comp_fase               ; 0, 2, 4 o 6
+    sta comp_fase               ; 0, 2, 4 or 6
     lda temp
     lsr a
     lsr a
     lsr a
     sec
-    sbc #VENTANA_TEXTO_COL      ; la columna de celda, contada desde el texto
+    sbc #VENTANA_TEXTO_COL      ; the cell column, counted from the text
     asl a
     asl a
     asl a
     asl a
-    asl a                       ; por 32 bytes de tile
+    asl a                       ; times 32 bytes per tile
     sta comp_base
 
-    ; Sus datos: la tabla de su fase, más el carácter por FUENTE_PRE_CHAR.
+    ; Its data: its phase's table, plus the character times FUENTE_PRE_CHAR.
     ldx comp_fase
     lda f:fuente_pre_lo, x
     clc
@@ -642,7 +646,7 @@ mas:
 
     ldy #0
     lda #(TEXTO_OFS_Y * 2)
-    sta comp_fila               ; de a dos: es el índice en `tabla_fila_buf`
+    sta comp_fila               ; two at a time: it is the index into `tabla_fila_buf`
 fila:
     rep #$20
 .a16
@@ -652,20 +656,20 @@ fila:
     lda f:tabla_fila_buf, x
     clc
     adc comp_base
-    tax                         ; X = el byte del buffer donde arranca la fila
+    tax                         ; X = the buffer byte where the row starts
     lda [comp_glifo], y
     cmp #$FFFF
     beq sin_primera
     sta comp_and
     iny
     iny
-    lda texto_buf, x            ; planos 0 y 1 de la primera celda
+    lda texto_buf, x            ; planes 0 and 1 of the first cell
     and comp_and
     ora [comp_glifo], y
     sta texto_buf, x
     iny
     iny
-    lda texto_buf + 16, x       ; planos 2 y 3
+    lda texto_buf + 16, x       ; planes 2 and 3
     and comp_and
     ora [comp_glifo], y
     sta texto_buf + 16, x
@@ -684,7 +688,7 @@ segunda:
     sta comp_and
     iny
     iny
-    lda texto_buf + 32, x       ; la celda de al lado, un tile más adelante
+    lda texto_buf + 32, x       ; the neighboring cell, one tile further
     and comp_and
     ora [comp_glifo], y
     sta texto_buf + 32, x

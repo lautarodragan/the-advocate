@@ -2,28 +2,29 @@
 
 ; --- End Game ----------------------------------------------------------------
 ;
-; `Scene_End`: la orden End Game del menú de pausa. Dos ventanas sobre negro
-; —la pregunta, y "Yes" y "No" con la barra del System— que salen enteras,
-; ya dibujadas, de tools/port/fin_del_juego.py: los tiles, las filas del
-; tilemap que tienen algo, y dos paletas, una por orden marcada. Mover el
-; cursor es subir la otra paleta; el porqué está en el encabezado de
-; fin_del_juego.py.
+; `Scene_End`: the End Game command in the pause menu. Two windows over black
+; —the question, and "Yes" and "No" with the System's bar— that come whole,
+; already drawn, from tools/port/fin_del_juego.py: the tiles, the tilemap rows
+; that have something in them, and two palettes, one per highlighted command.
+; Moving the cursor means uploading the other palette; the why is in the header
+; of fin_del_juego.py.
 ;
-; Todo va en BG2, sobre `RANURA_VRAM` y `RANURA_MAP`, que son los lugares que
-; ya escriben el menú y la pantalla de ranuras: al volver, `menu_subir` los
-; rearma y `volver_al_mapa` no tiene que reponer nada más.
+; Everything goes on BG2, over `RANURA_VRAM` and `RANURA_MAP`, which are the
+; places the menu and the slot screen already write: on the way back,
+; `menu_subir` rebuilds them and `volver_al_mapa` has nothing else to restore.
 ;
-; Se entra con `jsl` desde `menu_pantalla`, con la pantalla prendida o no, y:
+; It is entered with `jsl` from `menu_pantalla`, with the screen on or not,
+; and:
 ;
-;   B o "No"   vuelve con `rtl`, con la pantalla apagada: el menú se rearma
-;   "Yes"      no vuelve: el tema y la pantalla se funden, se calla la música
-;              y termina en `reset`, que es la pantalla de título si el
-;              cartucho la lleva. Es el mismo final que el de la pantalla de
-;              Game Over, y por lo mismo no cuida la pila ni la VRAM: el
-;              arranque repone todo.
+;   B or "No"  returns with `rtl`, with the screen off: the menu gets rebuilt
+;   "Yes"      does not return: the song and the screen fade, the music goes
+;              quiet, and it ends in `reset`, which is the title screen if the
+;              cartridge has one. It is the same ending as the Game Over
+;              screen's, and for the same reason it does not care about the
+;              stack or VRAM: the boot restores everything.
 ;
-; `titulo_sel` es la orden marcada mientras se ve: el menú la vuelve a poner
-; en End Game al volver, como hace con las otras pantallas.
+; `titulo_sel` is the highlighted command while it is shown: the menu puts it
+; back on End Game on return, as it does with the other screens.
 .proc fin_pantalla
 .a8
 .i16
@@ -31,12 +32,12 @@
     phk
     plb
     lda #$80
-    sta INIDISP                 ; blanking forzado: la VRAM sólo se toca así
+    sta INIDISP                 ; forced blank: VRAM is only touched this way
     stz HDMAEN
     lda #FIN_ENTRA
     sta titulo_sel
 
-    ; --- los tiles, desde RANURA_VRAM ---
+    ; --- the tiles, from RANURA_VRAM ---
     lda #$80
     sta VMAIN
     rep #$20
@@ -52,12 +53,12 @@
     lda #^fin_tiles
     sta A1B0
     lda #$01
-    sta DMAP0                   ; dos registros, de a palabras
+    sta DMAP0                   ; two registers, word by word
     lda #$18
-    sta BBAD0                   ; destino: VMDATAL
+    sta BBAD0                   ; destination: VMDATAL
     lda #$01
     sta MDMAEN
-    ; --- el tilemap en blanco: origen fijo en el primer tile, que es cero ---
+    ; --- the blank tilemap: fixed source at the first tile, which is zero ---
     rep #$20
 .a16
     lda #RANURA_MAP
@@ -68,11 +69,11 @@
     sta A1T0L
     sep #$20
 .a8
-    lda #$09                    ; dos registros, sin avanzar el origen
+    lda #$09                    ; two registers, without advancing the source
     sta DMAP0
     lda #$01
     sta MDMAEN
-    ; --- y las filas que tienen algo ---
+    ; --- and the rows that have something ---
     rep #$20
 .a16
     lda #(RANURA_MAP + FIN_FILA0 * 32)
@@ -90,14 +91,14 @@
     sta MDMAEN
     jsr fin_paleta
 
-    ; --- el PPU: BG2 sola, como `ranura_ppu_prender` ---
+    ; --- the PPU: BG2 alone, like `ranura_ppu_prender` ---
     lda #(RANURA_MAP / 1024 * 4)
     sta BG2SC
     lda #(RANURA_VRAM / 4096 * 16)
     sta BG12NBA
     stz BG2HOFS
     stz BG2HOFS
-    lda #$FF                    ; la línea vofs+1 en el primer scanline: ver
+    lda #$FF                    ; line vofs+1 on the first scanline: see
     sta BG2VOFS                 ; `ppu_init`
     sta BG2VOFS
     lda #$02
@@ -108,8 +109,8 @@
 espera:
     jsl f:ba_t_vblank
     jsl f:ba_t_pad
-    ; Arriba y abajo cambian de orden, y con dos da lo mismo cuál: no hay
-    ; tope, como en `Window_Selectable`, que da la vuelta.
+    ; Up and down switch commands, and with two it does not matter which: there
+    ; is no cap, as in `Window_Selectable`, which wraps around.
     lda pad
     eor pad_ant
     and pad
@@ -120,13 +121,13 @@ espera:
     lda titulo_sel
     eor #1
     sta titulo_sel
-    jsr fin_paleta              ; todavía en el vblank
+    jsr fin_paleta              ; still in the vblank
     bra espera
 mira_a:
     lda pad_a
     beq espera
     lda pad_a_ant
-    bne espera                  ; ya lo tenía apretado: no es un flanco
+    bne espera                  ; it was already held: not an edge
     lda titulo_sel
     cmp #FIN_NO
     bne salir
@@ -137,29 +138,29 @@ volver:
     rtl
 
 salir:
-    ; "Yes": el tema se funde como un `FadeOutBGM` de 400 ms —el `BgmFade`
-    ; de `Scene_End`—, con la misma guarda que `op_fade_bgm`: con el tema
-    ; apagado no hay nada que fundir, y con una pista del MSU-1 sí.
+    ; "Yes": the song fades like a 400 ms `FadeOutBGM` —`Scene_End`'s
+    ; `BgmFade`—, with the same guard as `op_fade_bgm`: with the song off
+    ; there is nothing to fade, and with an MSU-1 track there is.
     lda f:MSU_SUENA
     bne fundir
     lda music_apagada
     bne pantalla
 fundir:
     php
-    sei                         ; lo lee `irq_musica`: todo junto o nada
+    sei                         ; `irq_musica` reads it: all at once or nothing
     rep #$20
 .a16
     lda #FIN_PASO_TEMA
     sta bgm_paso
     lda #$FFFF
-    sta bgm_nivel               ; el volumen entero, que es de donde baja
+    sta bgm_nivel               ; full volume, which is where it goes down from
     sep #$20
 .a8
     lda #1
     sta bgm_fundido
     plp
 pantalla:
-    ; Y la pantalla, a negro por la rampa del conversor.
+    ; And the screen, to black along the converter's ramp.
     ldx #0
 baja:
     phx
@@ -172,10 +173,10 @@ baja:
     bne baja
     lda #$80
     sta INIDISP
-    ; El tema termina de fundirse con la pantalla en negro: el fundido de la
-    ; pantalla es más corto. `bgm_fundido` vuelve a cero solo, en
-    ; `irq_musica`; si no había tema, ya lo está. El tope es por las dudas:
-    ; lo que le falta al tema son unos pocos cuadros, y FIN_CUADROS sobra.
+    ; The song finishes fading with the screen black: the screen fade is
+    ; shorter. `bgm_fundido` goes back to zero on its own, in `irq_musica`; if
+    ; there was no song, it already is. The cap is just in case: the song only
+    ; has a few frames left, and FIN_CUADROS is more than enough.
     ldx #FIN_CUADROS
 tema:
     lda bgm_fundido
@@ -186,9 +187,9 @@ tema:
     dex
     bne tema
 callado:
-    ; La música, callada antes del arranque, como al salir del Game Over: el
-    ; reset vuelve a subir el driver al SPC700, pero una pista de MSU-1
-    ; seguiría sonando durante todo el arranque.
+    ; The music, silenced before the boot, as when leaving Game Over: the
+    ; reset uploads the driver to the SPC700 again, but an MSU-1 track would
+    ; keep playing through the whole boot.
     lda #0
     sta f:MSU_SUENA
     sta MSU_CONTROL
@@ -197,8 +198,8 @@ callado:
     jml f:reset
 .endproc
 
-; La paleta de la orden `titulo_sel` a las entradas 0 a 15. Con la pantalla
-; apagada o adentro del vblank.
+; The palette for command `titulo_sel` into entries 0 to 15. With the screen
+; off or inside the vblank.
 .proc fin_paleta
 .a8
 .i16
@@ -211,7 +212,7 @@ callado:
     asl a
     asl a
     asl a
-    asl a                       ; 32 bytes por paleta
+    asl a                       ; 32 bytes per palette
     clc
     adc #.loword(fin_cgram)
     sta A1T0L
@@ -221,9 +222,9 @@ callado:
 .a8
     lda #^fin_cgram
     sta A1B0
-    stz DMAP0                   ; un registro, de a bytes
+    stz DMAP0                   ; one register, byte by byte
     lda #$22
-    sta BBAD0                   ; destino: CGDATA
+    sta BBAD0                   ; destination: CGDATA
     lda #$01
     sta MDMAEN
     rts

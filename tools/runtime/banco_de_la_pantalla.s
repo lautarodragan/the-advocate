@@ -1,23 +1,23 @@
 .segment "FAR"
 
-; --- el banco de la pantalla, también fuera del banco 0 ---------------------
+; --- the screen's bank, also outside bank 0 ---------------------------------
 ;
-; Se mudó acá el 2026-09-13, cuando `volver_de_batalla` pidió cuarenta y seis
-; bytes que el banco 0 ya no tenía: `abl` quedaba en 32748 de 32704, y
-; antes de eso le sobraban **dos**. Ésta es la que sale más barata de mudar de
-; todo lo que mide más de cien bytes: no llama a nadie —son escrituras de
-; registro y cuatro DMA— así que no hace falta ningún puente, y no corre por
-; cuadro sino al abrir una pantalla con el PPU apagado, o sea que el ciclo de
-; más del `jsl` no se nota.
+; It moved here on 2026-09-13, when `volver_de_batalla` asked for forty-six
+; bytes that bank 0 no longer had: `abl` ended up at 32748 of 32704, and
+; before that it had **two** to spare. This is the cheapest one to move of
+; everything that measures more than a hundred bytes: it calls nobody —they are
+; register writes and four DMAs— so no bridge is needed, and it does not run
+; every frame but when opening a screen with the PPU off, so the `jsl`'s extra
+; cycle is not noticeable.
 ;
-; Lo que sí obliga: **se entra con `jsl` y vuelve con `rtl`**, y el banco de
-; datos tiene que seguir siendo uno donde $2100..$21FF sea la consola, porque
-; escribe los registros en absoluto. Los seis llamadores están todos en el
-; banco 0; el de la pelea entra por el puente `ba_t_banco`, que es justo el que
-; pone el banco de datos en cero antes de llamar.
+; What it does require: **it is entered with `jsl` and returns with `rtl`**,
+; and the data bank has to remain one where $2100..$21FF is the console,
+; because it writes the registers as absolute. The six callers are all in bank
+; 0; the battle's comes in through the `ba_t_banco` bridge, which is exactly
+; the one that sets the data bank to zero before calling.
 
-; El banco de la pantalla, con la pantalla apagada: la fuente, el tilemap en
-; blanco y las dos paletas.
+; The screen's bank, with the screen off: the font, the blank tilemap and the
+; two palettes.
 .proc items_banco_subir
 .a8
 .i16
@@ -42,8 +42,8 @@
     sta BBAD0
     lda #$01
     sta MDMAEN
-    ; El tilemap en blanco: un DMA de origen fijo desde el primer tile, que
-    ; es transparente.
+    ; The blank tilemap: a fixed-source DMA from the first tile, which is
+    ; transparent.
     rep #$20
 .a16
     lda #RANURA_MAP
@@ -57,11 +57,11 @@
 .a8
     lda #^(items_tiles)
     sta A1B0
-    lda #$09                    ; dos registros, sin avanzar el origen
+    lda #$09                    ; two registers, without advancing the source
     sta DMAP0
     lda #$01
     sta MDMAEN
-    ; Los colores.
+    ; The colors.
     stz CGADD
     rep #$20
 .a16
@@ -83,23 +83,23 @@
 .endproc
 
 
-; --- las ventanas de las pantallas de ítems y de equipo ------------------------
+; --- the windows of the item and equipment screens ----------------------------
 ;
-; Las dos únicas de las que usan este banco que llevan ventanas: el marco y el
-; fondo del System, en BG1, detrás del texto de BG2 —ver `ITEM_VENTANAS` en
-; titulo.py y `EQ_VENTANAS` en pantallas.py—. BG1 lee sus tiles desde la misma
-; base que BG2, y los de las ventanas van detrás de la fuente. Los tiles y los
-; colores son **los mismos para las dos** —ver `titulo.marcos`—; lo que cambia
-; es el tilemap.
+; The only two of the ones using this bank that have windows: the System's
+; frame and background, on BG1, behind BG2's text —see `ITEM_VENTANAS` in
+; titulo.py and `EQ_VENTANAS` in pantallas.py—. BG1 reads its tiles from the
+; same base as BG2, and the windows' tiles go after the font. The tiles and the
+; colors are **the same for both** —see `titulo.marcos`—; what changes is the
+; tilemap.
 
-; El banco de la pantalla y las ventanas de los ítems, con la pantalla
-; apagada: se entra con `jsl`, como a `items_banco_subir`.
+; The screen's bank and the item windows, with the screen off: it is entered
+; with `jsl`, like `items_banco_subir`.
 .proc items_pantalla_subir
 .a8
 .i16
     jsl f:items_banco_subir
     jsr marco_subir
-    ; El tilemap: las filas que se ven, sin cursor.
+    ; The tilemap: the visible rows, without cursor.
     rep #$20
 .a16
     lda #ITEM_MARCO_MAPA
@@ -117,10 +117,10 @@
     rtl
 .endproc
 
-; Lo mismo para la pantalla de equipo, y además las dos paletas que sólo usa
-; ella: la del color de "sube" y la roja de los términos, que van justo detrás
-; de las del banco —son las paletas 2 y 3 que tienen puestas las celdas de
-; esas variantes—. Sin cursor: lo pinta `eq_barra` en cada cuadro.
+; The same for the equipment screen, plus the two palettes only it uses: the
+; one for the "goes up" color and the red one for the terms, which go right
+; after the bank's —they are palettes 2 and 3, which the cells of those
+; variants have set—. Without cursor: `eq_barra` paints it every frame.
 .proc eq_pantalla_subir
 .a8
 .i16
@@ -160,13 +160,13 @@
     rtl
 .endproc
 
-; Los tiles de las ventanas, que son de 8bpp, y sus colores, después de las
-; cuatro paletas del texto. Deja el canal 0 listo para subir un tilemap: VMAIN,
-; DMAP0 y BBAD0.
+; The windows' tiles, which are 8bpp, and their colors, after the text's four
+; palettes. Leaves channel 0 ready to upload a tilemap: VMAIN, DMAP0 and
+; BBAD0.
 .proc marco_subir
 .a8
 .i16
-    ; Los colores primero, así el canal queda armado para la VRAM.
+    ; The colors first, so the channel is left set up for VRAM.
     lda #ITEM_MARCO_CGRAM
     sta CGADD
     rep #$20
@@ -207,16 +207,16 @@
     rts
 .endproc
 
-; BG2 con el texto y BG1 con las ventanas, y la pantalla prendida. Es
-; `ranura_ppu_prender` más BG1.
+; BG2 with the text and BG1 with the windows, and the screen on. It is
+; `ranura_ppu_prender` plus BG1.
 .proc items_ppu_prender
 .a8
 .i16
     lda #(RANURA_VRAM / 4096 * 16 + RANURA_VRAM / 4096)
-    ; Las dos capas desde la misma base, y sigue de largo en la que viene.
+    ; Both layers from the same base, and it falls through into the next one.
 .endproc
 
-; Lo mismo, con BG12NBA en A: la tienda le da a BG1 una base propia.
+; The same, with BG12NBA in A: the shop gives BG1 a base of its own.
 .proc pantalla_ppu_prender
 .a8
 .i16
@@ -241,11 +241,11 @@
     rtl
 .endproc
 
-; El cursor en la fila A de la lista, que es la barra del System: `temp + 3` en
-; 1 lo pinta y en 0 lo borra. Las dos cosas son copiar las dos filas de celdas
-; de BG1 que ocupa la fila: de `items_marco_barras`, que las tiene con el
-; cursor encima, o del tilemap sin cursor. Un DMA de 128 bytes, que entra en el
-; vblank junto con la descripción. Se lleva X e Y.
+; The cursor on row A of the list, which is the System's bar: `temp + 3` at 1
+; paints it and at 0 erases it. Both mean copying the two rows of BG1 cells the
+; row takes: from `items_marco_barras`, which has them with the cursor on top,
+; or from the tilemap without cursor. A 128-byte DMA, which fits in the vblank
+; along with the description. Clobbers X and Y.
 .proc items_barra
 .a8
 .i16
@@ -253,9 +253,9 @@
 .a16
     and #$00FF
     xba
-    lsr a                       ; 128 bytes por fila de la lista
+    lsr a                       ; 128 bytes per list row
     tay
-    lsr a                       ; que son 64 palabras
+    lsr a                       ; which is 64 words
     clc
     adc #(ITEM_MARCO_MAPA + ITEM_MARCO_LISTA * 32)
     tax

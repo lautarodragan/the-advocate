@@ -2,25 +2,25 @@
 .a8
 .i16
 
-; --- el intérprete: la cámara y el tinte -----------------------------------
+; --- the interpreter: the camera and the tint ------------------------------
 ;
-; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
-; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
-; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps to
+; each one with Y on its first operand, and each one goes back to the loop
+; with `jmp correr_codigo::otro` or ends the frame with `rts`.
 
-; `PanScreen`, en sus dos operaciones: correr la cámara sin el héroe y
-; devolverla. El desplazamiento viene con signo y en 1/16 de pixel, y el paso
-; por cuadro ya resuelto; lo que se cuenta acá son los cuadros que la página
-; espera, que salen de **lo que falta** después de mover el destino y no de lo
-; que este comando pidió. Ver `GetPanWait`.
+; `PanScreen`, in its two operations: move the camera away from the hero and
+; bring it back. The offset comes signed and in 1/16 of a pixel, and the
+; per-frame step already resolved; what is counted here are the frames the
+; page waits, which come from **what is left** after moving the target and
+; not from what this command asked for. See `GetPanWait`.
 .proc op_pan
-    lda [cod_ptr], y            ; la operación
+    lda [cod_ptr], y            ; the operation
     iny
     cmp #PAN_VOLVER
     bne pan_correr
     rep #$20
 .a16
-    stz pan_dest_x              ; volver es ir al cero
+    stz pan_dest_x              ; going back is going to zero
     stz pan_dest_y
     sep #$20
 .a8
@@ -28,28 +28,28 @@
 pan_correr:
     rep #$20
 .a16
-    lda [cod_ptr], y            ; el desplazamiento en x, con signo
+    lda [cod_ptr], y            ; the x offset, signed
     clc
     adc pan_dest_x
     sta pan_dest_x
     iny
     iny
-    lda [cod_ptr], y            ; y en y
+    lda [cod_ptr], y            ; and the y one
     clc
     adc pan_dest_y
     sta pan_dest_y
     sep #$20
 .a8
-    iny                         ; los dos de la y
+    iny                         ; the two bytes of y
     iny
     bra pan_leer_paso
 pan_saltear_desp:
-    iny                         ; los cuatro bytes del desplazamiento
+    iny                         ; the four bytes of the offset
     iny
     iny
     iny
 pan_leer_paso:
-    lda [cod_ptr], y            ; el paso por cuadro
+    lda [cod_ptr], y            ; the per-frame step
     iny
     rep #$20
 .a16
@@ -57,23 +57,23 @@ pan_leer_paso:
     sta pan_paso
     sep #$20
 .a8
-    lda [cod_ptr], y            ; si la página espera
+    lda [cod_ptr], y            ; whether the page waits
     iny
     beq pan_sin_espera
     jsr pan_cuadros
     rep #$20
 .a16
     sta ev_esperando
-    ora #$0000                  ; `sta` no toca las banderas
+    ora #$0000                  ; `sta` does not touch the flags
     sep #$20
 .a8
-    ; Cero cuadros —la cámara ya estaba donde va— y la página **sigue en este
-    ; mismo cuadro**: `CommandPanScreen` pone `wait_time = GetPanWait()` y
-    ; devuelve true, y el lazo del intérprete sólo se detiene si `wait_time`
-    ; es mayor que cero. Acá se cortaba el cuadro igual, y la puerta EV0009 del
-    ; mapa 8 —un "volver" con espera y después el Teleport— llegaba al mapa 9
-    ; un tick tarde: el auto de Lashe City 33,36 iba 4 px atrás, medido el
-    ; 2026-09-10. Lo cobra `snes-pan 6 "3 0 0 4 1"`.
+    ; Zero frames —the camera was already where it is going— and the page
+    ; **continues in this same frame**: `CommandPanScreen` sets `wait_time =
+    ; GetPanWait()` and returns true, and the interpreter loop only stops if
+    ; `wait_time` is greater than zero. This used to end the frame anyway, and
+    ; door EV0009 on map 8 —a "go back" with wait and then the Teleport—
+    ; reached map 9 one tick late: the car in Lashe City 33,36 was 4 px
+    ; behind, measured on 2026-09-10. `snes-pan 6 "3 0 0 4 1"` catches it.
     beq pan_sin_espera
     sty ev_cur
     rts
@@ -95,16 +95,17 @@ pan_sin_espera:
     lda [cod_ptr], y
     sta tinte_s
     iny
-    ; El tinte no se aplica acá: se pide, y lo hace `flush_video` en el vblank
-    ; siguiente. `aplicar_tinte` sube tres paletas a CGRAM por DMA, y con el PPU
-    ; dibujando esas escrituras se pierden. Mientras el intérprete corría adentro
-    ; de `cargar_mapa`, con la pantalla apagada, no hacía falta; al mudarlo al
-    ; lazo principal pasó a ejecutarse con la pantalla encendida y el tinte
-    ; entraba a medias —quedaban teñidos la capa de encima y un sprite, y el
-    ; resto no, según qué escritura pescara el vblank—.
+    ; The tint is not applied here: it is requested, and `flush_video` does it
+    ; in the next vblank. `aplicar_tinte` uploads three palettes to CGRAM by
+    ; DMA, and with the PPU drawing those writes are lost. While the
+    ; interpreter ran inside `cargar_mapa`, with the screen off, it did not
+    ; matter; when it moved to the main loop it started running with the
+    ; screen on and the tint came in halfway —the upper layer and one sprite
+    ; were tinted and the rest not, depending on which write the vblank
+    ; caught—.
     lda #1
     sta tinte_pendiente
-    jmp correr_codigo::otro     ; `bra` no llega: el lazo quedó lejos
+    jmp correr_codigo::otro     ; `bra` does not reach: the loop is far away
 
 .endproc
 

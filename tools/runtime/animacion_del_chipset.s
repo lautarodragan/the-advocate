@@ -1,54 +1,57 @@
 .segment "CODE"
 
-; --- la animación del ChipSet ----------------------------------------------
+; --- ChipSet animation -----------------------------------------------------
 ;
-; Dos animaciones que corren a la vez y a cadencias distintas: los autotiles de
-; agua, que cambian cada AGUA_CUADROS y recorren el ciclo 0,1,2,1, y los "tiles
-; animados", que cambian cada ANIMADO_CUADROS y dan la vuelta entre cuatro.
+; Two animations that run at once and at different rates: the water
+; autotiles, which change every AGUA_CUADROS and go through the cycle 0,1,2,1,
+; and the "animated tiles", which change every ANIMADO_CUADROS and cycle
+; through four.
 ;
-; Animar es **pisar el dato de unos pocos tiles de la VRAM**; el tilemap no se
-; toca. El conversor deja los que cambian en una corrida contigua al final del
-; banco del mapa, sin compartir ninguno con las celdas quietas, así que un paso
-; es un DMA solo: entre 128 y 1664 bytes según el mapa. Ver `convert` en
-; tools/port/snes_convert.py.
+; Animating is **overwriting the data of a few tiles in VRAM**; the tilemap is
+; not touched. The converter puts the ones that change in a contiguous run at
+; the end of the map's bank, sharing none with the still cells, so one step is
+; a single DMA: between 128 and 1664 bytes depending on the map. See `convert`
+; in tools/port/snes_convert.py.
 ;
-; **No guarda en qué punto va y no lee nada del cartucho para decidir**, y las
-; dos cosas eran obligatorias y no elegancia: la BSS estaba en 7680 de 7680 y la
-; página directa en 255 de 256, así que no había dónde poner ni un contador ni
-; un puntero para `lda [puntero], y`. En qué punto del ciclo va cada familia
-; sale de dividir `vueltas` —menos `vueltas_congeladas`, los ticks del fundido—
-; por su cadencia con el divisor del hardware; dónde están sus tiles y sus
-; dibujos lo trae `anim_tabla`, que arma el conversor.
+; **It does not store where it is and reads nothing from the cartridge to
+; decide**, and both things were mandatory, not elegance: the BSS was at 7680
+; of 7680 and the direct page at 255 of 256, so there was nowhere to put
+; either a counter or a pointer for `lda [puntero], y`. Where in the cycle each
+; family is comes from dividing `vueltas` —minus `vueltas_congeladas`, the
+; fade's ticks— by its rate with the hardware divider; where its tiles and its
+; drawings are comes from `anim_tabla`, which the converter builds.
 ;
-; El resto de esa división dice además **si este tick es el del cambio**, que es
-; lo único que hay que preguntar para saber si hace falta el DMA.
+; The remainder of that division also says **whether this tick is the one
+; where it changes**, which is the only thing to ask to know whether the DMA is
+; needed.
 ;
-; El ciclo del agua: cuatro pasos, y el cuarto vuelve a dibujar el segundo. Es
-; `animation_step_ab` de easyrpg, tilemap_layer.cpp:289, con `animation_type` en
-; 0, que es el default y lo que tienen todos los ChipSets de este juego.
-; Tres dibujos en cuatro pasos, con el cuarto repitiendo el segundo. Lo usan
-; las dos animaciones que hay: el agua del ChipSet —`animation_step_ab` de
-; easyrpg— y el ciclo de caminata de un personaje, que tiene tres columnas y
-; dibuja la 1 cuando el paso es el 3. Es `CICLO_TRES` en tools/rpgmaker/rm2k.py.
+; The water cycle: four steps, and the fourth draws the second again. It is
+; easyrpg's `animation_step_ab`, tilemap_layer.cpp:289, with `animation_type`
+; at 0, which is the default and what every ChipSet in this game has.
+; Three drawings in four steps, with the fourth repeating the second. Both
+; animations there are use it: the ChipSet's water —easyrpg's
+; `animation_step_ab`— and a character's walk cycle, which has three columns
+; and draws column 1 when the step is 3. It is `CICLO_TRES` in
+; tools/rpgmaker/rm2k.py.
 ciclo_tres:
     .byte 0, 1, 2, 1
 
-; Cuánto avanza el héroe por cuadro según su velocidad, en **medias unidades**
-; de RM2k: RM2k cuenta 256 por celda y avanza `1 << (1 + velocidad)`, o sea 4,
-; 8, 16, 32, 64 y 128 —`PASO_POR_VELOCIDAD` en eventos.py—, y acá `step_left`
-; es un byte, así que se cuenta de a dos: 128 por celda y la mitad de cada
-; paso. Los pixeles que faltan son `step_left >> 3`: la división entera tira
-; los dieciseisavos, y a las velocidades con medio pixel por cuadro eso es lo
-; mismo que contar los cuadros por dos.
+; How far the hero advances per frame according to its speed, in **half
+; units** of RM2k: RM2k counts 256 per cell and advances `1 << (1 + speed)`,
+; that is 4, 8, 16, 32, 64 and 128 —`PASO_POR_VELOCIDAD` in eventos.py—, and
+; here `step_left` is a byte, so it counts by twos: 128 per cell and half of
+; each step. The pixels left are `step_left >> 3`: integer division drops the
+; sixteenths, and at the speeds with half a pixel per frame that is the same as
+; counting the frames by two.
 paso_medio_por_vel:
     .byte 2, 4, 8, 16, 32, 64
-; Y cada cuántos cuadros cambia el frame de la caminata:
-; `GetStationaryAnimFrames`, los mismos números que `anim_parado`.
+; And every how many frames the walk frame changes:
+; `GetStationaryAnimFrames`, the same numbers as `anim_parado`.
 anim_por_vel:
     .byte 12, 10, 8, 6, 5, 4
 
-; Deja en X la entrada de la familia Y adentro de `anim_tabla`. Cuál es el mapa
-; sale de `mapa_ofs` sin guardar nada: los dos pasos son potencias de dos.
+; Leaves in X the entry of family Y inside `anim_tabla`. Which map it is comes
+; from `mapa_ofs` without storing anything: both strides are powers of two.
 .proc anim_donde
 .a8
 .i16
@@ -58,14 +61,14 @@ anim_por_vel:
     lsr a
     lsr a
     lsr a
-.assert MAPA_STRIDE = 128, error, "las tres divisiones de arriba son MAPA_STRIDE/ANIM_STRIDE"
-.assert ANIM_STRIDE = 16, error, "ídem"
+.assert MAPA_STRIDE = 128, error, "the three divisions above are MAPA_STRIDE/ANIM_STRIDE"
+.assert ANIM_STRIDE = 16, error, "same"
     sta temp
     tya
     asl a
     asl a
     asl a
-.assert ANIM_FAM_STRIDE = 8, error, "las tres multiplicaciones son ANIM_FAM_STRIDE"
+.assert ANIM_FAM_STRIDE = 8, error, "the three multiplications are ANIM_FAM_STRIDE"
     clc
     adc temp
     tax
@@ -74,13 +77,13 @@ anim_por_vel:
     rts
 .endproc
 
-; Qué dibujo le toca a la familia Y en el tick que venga en X. Devuelve el
-; dibujo en A y en `temp + 3` un 1 si **este** tick es aquel en que cambia, o
-; sea si el reloj cayó justo en el borde.
+; Which drawing family Y gets on the tick given in X. Returns the drawing in A
+; and in `temp + 3` a 1 if **this** tick is the one where it changes, that is,
+; if the clock landed right on the edge.
 ;
-; El tick es `vueltas`. Como es de dieciséis bits, cada 65536 ticks
-; —dieciocho minutos— da la vuelta y el ciclo se saltea un dibujo; RM2k cuenta
-; en treinta y dos. Lo que se pierde está declarado en
+; The tick is `vueltas`. Since it is sixteen bits, every 65536 ticks
+; —eighteen minutes— it wraps around and the cycle skips a drawing; RM2k
+; counts in thirty-two. What is lost is declared in
 ; workflow/divergencias/el-chipset-se-saltea-un-dibujo-cada-18-minutos.md.
 .proc anim_paso
 .a8
@@ -88,7 +91,7 @@ anim_por_vel:
     rep #$20
 .a16
     txa
-    sta WRDIVL                  ; el dividendo, en una sola escritura de 16
+    sta WRDIVL                  ; the dividend, in a single 16-bit write
     sep #$20
 .a8
     lda #AGUA_CUADROS
@@ -96,7 +99,7 @@ anim_por_vel:
     beq divisor
     lda #ANIMADO_CUADROS
 divisor:
-    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    sta WRDIVB                  ; starts it: the quotient takes sixteen cycles
     nop
     nop
     nop
@@ -106,17 +109,17 @@ divisor:
     nop
     nop
     stz temp + 3
-    lda RDMPYL                  ; el resto: cero es el tick del cambio
+    lda RDMPYL                  ; the remainder: zero is the tick of the change
     ora RDMPYL + 1
     bne no_cambia
     inc temp + 3
 no_cambia:
     lda RDDIVL
     and #(AGUA_CICLO_N - 1)
-.assert AGUA_CICLO_N = 4, error, "el ciclo se recorta con un and de dos bits"
-.assert ANIMADO_PASOS = 4, error, "y los dos ciclos miden lo mismo"
+.assert AGUA_CICLO_N = 4, error, "the cycle is trimmed with a two-bit and"
+.assert ANIMADO_PASOS = 4, error, "and both cycles have the same length"
     cpy #$0000
-    bne listo                   ; los tiles animados dan la vuelta y ya está
+    bne listo                   ; the animated tiles just wrap around
     phx
     rep #$20
 .a16
@@ -130,16 +133,17 @@ listo:
     rts
 .endproc
 
-; El DMA de una familia: X su entrada en `anim_tabla` e Y el dibujo. El modo del
-; DMA lo deja puesto quien llama, que siempre pide lo mismo.
+; The DMA of one family: X its entry in `anim_tabla` and Y the drawing. The DMA
+; mode is left set by the caller, which always asks for the same one.
 .proc anim_subir
 .a8
 .i16
-    pha                         ; el dibujo, que las cuentas de abajo pisan
+    pha                         ; the drawing, which the arithmetic below
+                                ; overwrites
     lda f:anim_tabla + 6, x
     bne hay
     pla
-    rts                         ; esta familia no anima en este mapa
+    rts                         ; this family does not animate on this map
 hay:
     rep #$20
 .a16
@@ -147,15 +151,15 @@ hay:
     sta VMADDL
     lda f:anim_tabla + 4, x
     sta DAS0L
-    sta temp                    ; cuánto mide un dibujo
+    sta temp                    ; how big one drawing is
     lda f:anim_tabla + 2, x
-    sta temp + 2                ; y dónde está el 0, adentro del bloque
+    sta temp + 2                ; and where drawing 0 is, inside the block
     sep #$20
 .a8
-    ; El dibujo se ensancha acá y no en quien llama: `ldy` con X e Y anchos se
-    ; lleva el byte de al lado, y eso ya costó una tarde dos veces —ver
-    ; `anim_tick`—. Con `and #$00FF` sobre el acumulador ancho, el byte alto
-    ; queda en cero venga de donde venga.
+    ; The drawing is widened here and not in the caller: `ldy` with wide X and
+    ; Y takes the next byte along, and that has already cost an afternoon
+    ; twice —see `anim_tick`—. With `and #$00FF` on the wide accumulator, the
+    ; high byte ends up zero wherever it comes from.
     pla
     rep #$20
 .a16
@@ -171,8 +175,8 @@ saltar:
     dey
     bra saltar
 puesto:
-    ; Los dibujos están en la WRAM, donde los dejó `lz2_anim` al cargar el
-    ; mapa: el cartucho los trae comprimidos.
+    ; The drawings are in WRAM, where `lz2_anim` left them when loading the
+    ; map: the cartridge carries them compressed.
     lda #.loword(ANIM_DIBUJOS)
     clc
     adc temp + 2
@@ -186,27 +190,27 @@ puesto:
     rts
 .endproc
 
-; El modo del DMA que piden los dos de abajo: tiles de fondo a la VRAM.
+; The DMA mode the two below ask for: background tiles to VRAM.
 .proc anim_modo
 .a8
 .i16
     lda #$80
-    sta VMAIN                   ; avanzar una palabra tras el byte alto
+    sta VMAIN                   ; advance one word after the high byte
     lda #$01
-    sta DMAP0                   ; dos registros, de a palabras
+    sta DMAP0                   ; two registers, by words
     lda #$18
-    sta BBAD0                   ; destino: VMDATAL
+    sta BBAD0                   ; destination: VMDATAL
     rts
 .endproc
 
-; Las dos familias, ya mismo y sin presupuesto: es lo que hace `load_map`, con
-; la pantalla apagada. El mapa nuevo trae en la VRAM el dibujo 0 de cada
-; corrida y el reloj puede estar en cualquier otro, porque es de la partida y no
-; del mapa.
+; Both families, right now and with no budget: it is what `load_map` does, with
+; the screen off. The new map brings drawing 0 of each run in VRAM and the
+; clock may be at any other, because it belongs to the saved game and not to
+; the map.
 .proc anim_cargar
 .a8
 .i16
-    stz anim_pend               ; lo que hubiera pendiente se sube acá
+    stz anim_pend               ; whatever was pending gets uploaded here
     jsr anim_modo
     ldy #$0000
 otra:
@@ -215,11 +219,11 @@ otra:
 .a16
     lda vueltas
     sec
-    sbc f:vueltas_congeladas    ; el reloj de las animaciones: ver ahí
+    sbc f:vueltas_congeladas    ; the animations' clock: see there
     tax
     sep #$20
 .a8
-    jsr anim_paso               ; Y sigue siendo la familia
+    jsr anim_paso               ; Y is still the family
     ply
     phy
     pha
@@ -233,11 +237,11 @@ otra:
     rts
 .endproc
 
-; Qué hay que subir en el vblank que viene, decidido en el cuerpo del lazo.
+; What to upload in the coming vblank, decided in the body of the loop.
 ;
-; Va **después** del `inc vueltas`, así que el tick que mira es el de la vuelta
-; que sigue, que es la que va a mostrar el dibujo. Que sea ése y no el anterior
-; está medido y no razonado: ver `anim_flush`.
+; It goes **after** the `inc vueltas`, so the tick it looks at is that of the
+; next tick, which is the one that will show the drawing. That it is that one
+; and not the previous one is measured, not reasoned: see `anim_flush`.
 .proc anim_tick
 .a8
 .i16
@@ -249,33 +253,33 @@ otra:
 .a16
     lda vueltas
     sec
-    sbc f:vueltas_congeladas    ; el reloj de las animaciones: ver ahí
+    sbc f:vueltas_congeladas    ; the animations' clock: see there
     tax
     sep #$20
 .a8
     jsr anim_paso
-    inc a                       ; el dibujo, más uno: el cero es "nada"
+    inc a                       ; the drawing, plus one: zero is "nothing"
     sta temp + 2
-    ; Y si este tick es el del cambio. Se mira con el acumulador en ocho bits y
-    ; no con `ldx`: con X ancho la lectura se lleva también `temp + 4`, que es
-    ; el byte bajo de `hero_x`, y entonces todos los ticks parecen el del
-    ; cambio. Subir el dibujo que ya está subido no se ve, así que el error
-    ; sobrevive a la comparación de pixeles; lo que se ve es el presupuesto de
-    ; poses bajando todos los cuadros.
+    ; And whether this tick is the one where it changes. It is checked with
+    ; the accumulator in eight bits and not with `ldx`: with wide X the read
+    ; also takes `temp + 4`, which is the low byte of `hero_x`, and then every
+    ; tick looks like the one of the change. Uploading the drawing that is
+    ; already uploaded does not show, so the bug survives the pixel
+    ; comparison; what shows is the pose budget going down every frame.
     lda temp + 3
     beq siguiente
     ply
     phy
     jsr anim_donde
     lda f:anim_tabla + 6, x
-    beq siguiente               ; esta familia no anima en este mapa
+    beq siguiente               ; this family does not animate on this map
     lda temp + 2
     cpy #$0000
     beq baja
     asl a
     asl a
-    asl a                       ; tres bits por familia
-.assert ANIM_FAMILIAS = 2, error, "los dos nibbles de anim_pend entran en un byte"
+    asl a                       ; three bits per family
+.assert ANIM_FAMILIAS = 2, error, "the two nibbles of anim_pend fit in a byte"
 baja:
     ora anim_pend
     sta anim_pend
@@ -287,31 +291,32 @@ siguiente:
     rts
 .endproc
 
-; El paso que toque, en el vblank, y sólo en el tick en que cambia.
+; The step that is due, in the vblank, and only on the tick where it changes.
 ;
-; El tick que se mira es `vueltas` tal cual, sin corregir nada por el cuadro que
-; el video va atrasado. Está medido y no razonado: con `vueltas - 1` la tanda da
-; rojo en **un tick de cada 24** —el del cambio— y en ninguno más, que es 32%
-; de la pantalla en el mapa 5. El caso que lo cobra es `snes-caminando 5 left`
-; con el avance 46, o sea el tick 24 justo.
+; The tick looked at is `vueltas` as is, without correcting anything for the
+; frame the video lags behind. It is measured, not reasoned: with
+; `vueltas - 1` the test suite goes red on **one tick in every 24** —the one of
+; the change— and on no other, which is 32% of the screen on map 5. The case
+; that catches it is `snes-caminando 5 left` with advance 46, that is, exactly
+; tick 24.
 ;
-; Lo que sube se le descuenta al presupuesto de poses en vez de fijarlo, para
-; que se sume a lo que ya se hayan llevado el tinte o un renglón de la ventana.
+; What it uploads is subtracted from the pose budget instead of setting it, so
+; that it adds to whatever the tint or a line of the window already took.
 .proc anim_flush
 .a8
 .i16
     lda anim_pend
     bne hay
-    rts                         ; el caso de siempre: un lda y un beq
+    rts                         ; the usual case: an lda and a beq
 hay:
     jsr anim_modo
     ldy #$0000
 otra:
-    ; Los tres bits de esta familia, leídos de `anim_pend` cada vuelta y no de
-    ; una copia en `temp`: `anim_subir` guarda ahí una palabra y se llevaba
-    ; puesta la copia. Cuando las dos familias cambiaban en el mismo tick —cada
-    ; 24, que es múltiplo de 6— la segunda se perdía y se quedaba con el dibujo
-    ; viejo hasta el cambio siguiente. Se veía en 8 pixeles del mapa 2.
+    ; This family's three bits, read from `anim_pend` on each pass and not
+    ; from a copy in `temp`: `anim_subir` stores a word there and used to wipe
+    ; out the copy. When both families changed on the same tick —every 24,
+    ; which is a multiple of 6— the second was lost and kept the old drawing
+    ; until the next change. It showed in 8 pixels of map 2.
     lda anim_pend
     cpy #$0000
     beq baja
@@ -321,20 +326,20 @@ otra:
 baja:
     and #$07
     beq siguiente
-    dec a                       ; el dibujo que pidió `anim_tick`
+    dec a                       ; the drawing `anim_tick` asked for
     phy
     pha
     jsr anim_donde
     pla
     jsr anim_subir
-    ; Lo que se llevó, en poses: una pose son 512 bytes y un tile de fondo 64.
-    ; Se le descuenta al presupuesto en vez de fijarlo, para que se sume a lo
-    ; que ya se hayan llevado el tinte o un renglón de la ventana.
+    ; What it took, in poses: a pose is 512 bytes and a background tile 64.
+    ; It is subtracted from the budget instead of setting it, so that it adds
+    ; to whatever the tint or a line of the window already took.
     lda f:anim_tabla + 6, x
     lsr a
     lsr a
     lsr a
-.assert BYTES_POR_TILE = 64, error, "ocho tiles de fondo entran en una pose de 512"
+.assert BYTES_POR_TILE = 64, error, "eight background tiles fit in a 512-byte pose"
     inc a
     sta temp + 2
     lda vq_tope
@@ -343,7 +348,7 @@ baja:
     bcc una
     bne queda
 una:
-    lda #1                      ; siempre queda para una pose
+    lda #1                      ; there is always room for one pose
 queda:
     sta vq_tope
     ply
@@ -354,4 +359,3 @@ siguiente:
     stz anim_pend
     rts
 .endproc
-

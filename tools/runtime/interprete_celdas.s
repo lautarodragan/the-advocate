@@ -2,36 +2,36 @@
 .a8
 .i16
 
-; --- OP_CELL_TEST: "¿está este personaje en la celda de las variables?" -------
+; --- OP_CELL_TEST: "is this character on the cell in the variables?" ---------
 ;
-; Es el patrón con que las páginas paralelas de RM2k miran si dos personajes se
-; tocan: dos `ControlVars` de clase 6 que copian la celda de uno a dos
-; variables, y dos `ConditionalBranch` anidados que las comparan con otras dos.
-; El conversor funde los cuatro en uno —ver `fundir_celdas` en eventos.py— y
-; hace **exactamente lo mismo**: las dos escrituras, con su refresco, y las dos
-; comparaciones, cada una con su destino.
+; It is the pattern RM2k's parallel pages use to check whether two characters
+; touch: two class-6 `ControlVars` that copy one's cell into two variables, and
+; two nested `ConditionalBranch` that compare them with two others. The
+; converter fuses the four into one —see `fundir_celdas` in eventos.py— and it
+; does **exactly the same**: the two writes, with their refresh, and the two
+; comparisons, each with its target.
 ;
-; Existe por el costo, no por la semántica. Cada vuelta de la carrera (49, 52 y
-; 54) tiene cuarenta páginas así corriendo en cada cuadro, y por los cuatro
-; opcodes el intérprete se llevaba casi cinco líneas por página: la vuelta
-; entera no entraba en un cuadro. Medido en
+; It exists for the cost, not for the semantics. Each lap of the race (49, 52
+; and 54) has forty pages like this running every frame, and with the four
+; opcodes the interpreter took almost five lines per page: the whole lap did
+; not fit in a frame. Measured in
 ; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
 ;
-; Vive en el banco 1 porque en el banco 0 no hay lugar: `op_cell_test`, el
-; manejador del despacho, es un `jsl` hasta acá. Por eso todo va con
-; direccionamiento largo: el banco de datos es el del bytecode.
+; It lives in bank 1 because there is no room in bank 0: `op_cell_test`, the
+; dispatch handler, is a `jsl` to here. That is why everything uses long
+; addressing: the data bank is the bytecode's.
 ;
-; Entra con Y en el primer operando y vuelve con Y en el opcode que sigue o en
-; el destino de la condición que falló.
-; Una de las dos escrituras: la variable, como desplazamiento, con la
-; coordenada y el refresco en los dos bits de arriba. `temp` es la x del
-; personaje y `temp + 2` su y. Entra y sale con A de dieciséis bits.
+; Enters with Y on the first operand and returns with Y on the next opcode or
+; on the target of the condition that failed.
+; One of the two writes: the variable, as an offset, with the coordinate and
+; the refresh in the top two bits. `temp` is the character's x and `temp + 2`
+; its y. Enters and leaves with a 16-bit A.
 .macro CELDA_ESCRIBIR
 .local refrescar, ya, es_y, poner
     lda [cod_ptr], y
     iny
     iny
-    bmi refrescar               ; CELDA_REFRESCO, el bit 15
+    bmi refrescar               ; CELDA_REFRESCO, bit 15
 ya:
     bit #CELDA_Y
     bne es_y
@@ -55,22 +55,22 @@ poner:
     sta f:FAR_LARGO + FAR_VARIABLES, x
 .endmacro
 
-; Una de las dos comparaciones: dos variables, como desplazamientos, y el
-; destino si no son iguales. Si falla, deja Y en el destino y salta a `fin`.
+; One of the two comparisons: two variables, as offsets, and the target if
+; they are not equal. If it fails, it leaves Y on the target and jumps to `fin`.
 .macro CELDA_PROBAR fin
 .local falla
-    lda [cod_ptr], y            ; la de la izquierda
+    lda [cod_ptr], y            ; the left one
     tax
     lda f:FAR_LARGO + FAR_VARIABLES, x
-    sta temp                    ; la celda del personaje ya no hace falta
+    sta temp                    ; the character's cell is no longer needed
     iny
     iny
-    lda [cod_ptr], y            ; y la de la derecha
+    lda [cod_ptr], y            ; and the right one
     tax
     lda f:FAR_LARGO + FAR_VARIABLES, x
     cmp temp
     bne falla
-    iny                         ; se cumple: saltea la derecha y el destino
+    iny                         ; it holds: skip the right one and the target
     iny
     iny
     iny
@@ -78,16 +78,16 @@ poner:
 falla:
     iny
     iny
-    lda [cod_ptr], y            ; el destino, absoluto adentro de la página
+    lda [cod_ptr], y            ; the target, absolute within the page
     tay
     bra fin
 :
 .endmacro
 
-; Lo que queda de una escritura sin los dos bits de arriba: el desplazamiento
-; de la variable, que con 256 ranuras llega a 510.
+; What is left of a write without the top two bits: the variable's offset,
+; which with 256 slots goes up to 510.
 CELDA_VARIABLE = $01FF
-.assert CELDA_Y = $4000 && CELDA_REFRESCO = $8000, error, "celda_probar lee el refresco con el bit N y la coordenada con el 14"
+.assert CELDA_Y = $4000 && CELDA_REFRESCO = $8000, error, "celda_probar reads the refresh from the N bit and the coordinate from bit 14"
 
 .proc celda_probar
 .a8
@@ -96,20 +96,20 @@ CELDA_VARIABLE = $01FF
     rtl
 .endproc
 
-; Lo mismo, para quien está en el banco 1: vuelve con `rts`.
+; The same, for callers in bank 1: returns with `rts`.
 .proc celda_probar_cerca
 .a8
 .i16
     rep #$20
 .a16
-    lda [cod_ptr], y            ; el blanco: 0 el héroe, o el evento más uno
+    lda [cod_ptr], y            ; the target: 0 the hero, or the event plus one
     iny
     and #$00FF
     asl a
-    asl a                       ; por EV_STRIDE
+    asl a                       ; times EV_STRIDE
     tax
     beq heroe
-    ; La celda viva, igual que la clase 6 de `op_var`.
+    ; The live cell, the same as class 6 of `op_var`.
     lda f:ev_pos_buf - EV_STRIDE + 0, x
     sta temp
     lda f:ev_pos_buf - EV_STRIDE + 2, x
@@ -121,7 +121,7 @@ heroe:
     lda tile_y
     sta temp + 2
 escribir:
-    ; Todo en línea y sin `jsr`: corre cuarenta veces por cuadro.
+    ; All inline and without `jsr`: it runs forty times per frame.
     CELDA_ESCRIBIR
     CELDA_ESCRIBIR
     CELDA_PROBAR listo
@@ -132,28 +132,28 @@ listo:
     rts
 .endproc
 
-; --- los paralelos que no pasan de su `OP_CELL_TEST` -------------------------
+; --- the parallels that go no further than their `OP_CELL_TEST` --------------
 ;
-; `paralelos_tick` corre la lista de paralelos de a uno, y cada uno paga
-; buscar su estado, guardarlo y volver: casi una línea por página. Pero la
-; mayoría de los de la carrera —cuarenta por vuelta— empiezan con
-; `OP_CELL_TEST`, no están a mitad de nada, fallan la condición y terminan
-; ahí. Ésos se corren acá de corrido, desde `par_i`, hasta el primero que no
-; sea así; lo que hace cada uno es exactamente el atajo de `un_paralelo`: su
-; condición, y como lo que sigue es el `OP_DONE`, nada más.
+; `paralelos_tick` runs the list of parallels one at a time, and each one pays
+; for finding its state, saving it and returning: almost one line per page.
+; But most of the race's —forty per lap— start with `OP_CELL_TEST`, are not
+; in the middle of anything, fail the condition and end there. Those are run
+; here back to back, from `par_i`, up to the first one that is not like that;
+; what each one does is exactly the shortcut of `un_paralelo`: its condition,
+; and since what follows is the `OP_DONE`, nothing else.
 ;
-; Para, sin haber tocado nada de ése, en el primero que:
-;   * no empiece con `OP_CELL_TEST`;
-;   * tenga el estado de otra página, una espera o la página a medio correr;
-;   * ande —tenga ranura de ruta—: su paso lo da `un_paralelo`;
-; y antes de empezar si hay un mensaje o una elección en pantalla, porque
-; entonces importa de quién es (ver `un_paralelo`). Vuelve con el acarreo en
-; 0 y `par_i` en ése, o en `par_n` si llegó al final.
+; It stops, without having touched anything of that one, at the first one that:
+;   * does not start with `OP_CELL_TEST`;
+;   * has the state of another page, a wait, or the page half run;
+;   * moves —has a move route slot—: its step is taken by `un_paralelo`;
+; and before starting if there is a message or a choice on screen, because
+; then it matters whose it is (see `un_paralelo`). Returns with carry at 0 and
+; `par_i` on that one, or on `par_n` if it reached the end.
 ;
-; Si la condición de uno se cumple —o lo que sigue no es el `OP_DONE`— ya
-; corrió su primera instrucción, con lo que escribe: vuelve con el acarreo en
-; 1, Y en la siguiente y `cod_ptr`, `pag_ofs`, `par_dir` y `par_ev` puestos,
-; para que `un_paralelo_seguir` siga con su intérprete.
+; If one's condition holds —or what follows is not the `OP_DONE`— it has
+; already run its first instruction, with whatever it writes: it returns with
+; carry at 1, Y on the next one and `cod_ptr`, `pag_ofs`, `par_dir` and
+; `par_ev` set, so that `un_paralelo_seguir` continues with its interpreter.
 .proc paralelos_celda
 .a8
 .i16
@@ -170,7 +170,7 @@ otro:
     and #$00FF
     asl a
     asl a
-    asl a                       ; por PAR_LISTA_BYTES
+    asl a                       ; times PAR_LISTA_BYTES
     tax
     lda f:FAR_LARGO + FAR_PAR_LISTA + 1, x
     sta cod_ptr
@@ -178,7 +178,7 @@ otro:
 .a8
     lda f:FAR_LARGO + FAR_PAR_LISTA + 3, x
     sta cod_ptr + 2
-    lda [cod_ptr]               ; el primer opcode
+    lda [cod_ptr]               ; the first opcode
     cmp #OP_CELL_TEST
     bne no
     rep #$20
@@ -189,24 +189,24 @@ otro:
     and #$00FF
     asl a
     asl a
-    asl a                       ; por PAR_BYTES
+    asl a                       ; times PAR_BYTES
     sta par_dir
     tax
     lda f:FAR_LARGO + FAR_PAR_ESTADO + 5, x
     cmp pag_ofs
-    bne no16                    ; el estado es de otra página
+    bne no16                    ; the state is another page's
     lda f:FAR_LARGO + FAR_PAR_ESTADO + 2, x
-    bne no16                    ; esperando
+    bne no16                    ; waiting
     sep #$20
 .a8
     lda f:FAR_LARGO + FAR_PAR_ESTADO + 4, x
-    bne no                      ; a medio correr
+    bne no                      ; half run
     lda f:FAR_LARGO + FAR_PAR_ESTADO + PAR_RANURA, x
-    bne no                      ; anda
+    bne no                      ; it moves
     ldy #1
     jsr celda_probar_cerca
     lda [cod_ptr], y
-    bne sigue                   ; no terminó en su `OP_DONE`
+    bne sigue                   ; did not end at its `OP_DONE`
     inc par_i
     bra otro
 sigue:

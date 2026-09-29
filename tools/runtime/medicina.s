@@ -1,24 +1,24 @@
 .segment "FAR"
 
-; --- una medicina desde el menú ----------------------------------------------
+; --- a medicine from the menu ------------------------------------------------
 ;
-; `Game_Party::UseItem(id, actor)` de easyrpg (`game_party.cpp:322`), que es
-; `Game_Actor::IsItemUsable` —el `actor_set` del ítem— y después
-; `Game_Battler::UseItem` (`game_battler.cpp:146`), más el `ConsumeItemUse` si
-; sirvió y, antes de todo, el "¿queda alguno?" de `Scene_ActorTarget`. La
-; elección de actor la llama con cada A sobre una medicina.
+; easyrpg's `Game_Party::UseItem(id, actor)` (`game_party.cpp:322`), which is
+; `Game_Actor::IsItemUsable` —the item's `actor_set`— and then
+; `Game_Battler::UseItem` (`game_battler.cpp:146`), plus the `ConsumeItemUse`
+; if it was of use and, before everything, the "is there any left?" of
+; `Scene_ActorTarget`. The actor choice calls it on each A over a medicine.
 ;
-; Entra con A8 el actor y `eleg_flancos` el `k` del ítem, que lo deja ahí
-; `items_pantalla`. Vuelve con A8 en 1 si sirvió y en 0 si no, y Z según eso.
-; Se entra con `jsl`, con cualquier banco de datos: pone el $7E y lo repone.
-; Se lleva X, Y y `temp`.
+; It enters with the actor in A8 and the item's `k` in `eleg_flancos`, where
+; `items_pantalla` leaves it. It returns with A8 at 1 if it was of use and at
+; 0 if not, and Z to match. It is entered with `jsl`, with any data bank: it
+; sets $7E and restores it. It clobbers X, Y and `temp`.
 ;
-; **Un caído es un actor con cero HP**, y no por atajo: `IsDead` de easyrpg
-; (`game_battler.h:995`) mira los HP y no el estado, "RPG_RT compatibility
-; requires checking the death state and not hp". Fuera de la pelea este port no
-; guarda estados, así que levantar a uno es el `SetHp(1)` de `RemoveStates`, y
-; los demás estados de `state_set` no sacan nada: `was_used` sólo se prende si
-; el actor tenía el estado.
+; **A fallen actor is an actor with zero HP**, and not as a shortcut:
+; easyrpg's `IsDead` (`game_battler.h:995`) looks at the HP and not at the
+; state, "RPG_RT compatibility requires checking the death state and not hp".
+; Outside battle this port keeps no states, so reviving one is the `SetHp(1)`
+; of `RemoveStates`, and the other states in `state_set` remove nothing:
+; `was_used` is only set if the actor had the state.
 .proc medicina_usar
 .a8
 .i16
@@ -32,8 +32,8 @@
     stz MED_USADO
     stz MED_REVIVIO
     stz MED_REVIVIO + 1
-    ; ¿Queda alguno? Con la elección abierta se puede gastar el último y
-    ; seguir apretando A.
+    ; Is there any left? With the choice open the last one can be spent and
+    ; A still pressed.
     jsr k_en_x
     lda f:item_medicina, x
     sta MED_BANDERAS
@@ -42,7 +42,7 @@
     txa
     asl a
     tax
-    lda f:item_id, x            ; en TABLAS, del banco 0: con `f:`
+    lda f:item_id, x            ; in TABLAS, in bank 0: with `f:`
     sta MED_ID
     tax
     sep #$20
@@ -51,8 +51,8 @@
     bne queda
     jmp no_sirve
 queda:
-    ; `Game_Actor::IsItemUsable`: el bit del actor en `item_actores`, ocho
-    ; bytes por ítem, el actor 1 en el bit 0 del primero.
+    ; `Game_Actor::IsItemUsable`: the actor's bit in `item_actores`, eight
+    ; bytes per item, actor 1 in bit 0 of the first.
     jsr k_en_x
     rep #$20
 .a16
@@ -88,7 +88,7 @@ bit_listo:
     bne puede
     jmp no_sirve
 puede:
-    ; Los máximos de su nivel de ahora, como `FullHeal`.
+    ; The maximums for their current level, like `FullHeal`.
     lda MED_ACTOR
     ldy #0
     jsl f:nivel_param
@@ -97,8 +97,8 @@ puede:
     ldy #1
     jsl f:nivel_param
     stx MED_SP_MAX
-    ; `hp_change = recover_hp_rate * GetMaxHp() / 100 + recover_hp`, y lo
-    ; mismo con los SP. Topado en $FFFF, que es "más de lo que falta".
+    ; `hp_change = recover_hp_rate * GetMaxHp() / 100 + recover_hp`, and the
+    ; same with SP. Capped at $FFFF, which means "more than what is missing".
     jsr k_en_x
     lda f:item_cura_rate, x
     ldx MED_HP_MAX
@@ -137,7 +137,7 @@ hp_listo:
     lda #$FFFF
 sp_listo:
     sta MED_SP
-    ; Muerto o no. Desde acá X es el actor por dos, para los HP y los SP.
+    ; Dead or not. From here on X is the actor times two, for HP and SP.
     lda MED_ACTOR
     and #$00FF
     asl a
@@ -146,7 +146,7 @@ sp_listo:
     sep #$20
 .a8
     bne vivo
-    ; Muerto: sólo sirve si saca el estado de muerto, y sacarlo es 1 HP.
+    ; Dead: it is only of use if it removes the death state, and removing it is 1 HP.
     lda MED_BANDERAS
     and #2
     bne levantar
@@ -165,18 +165,18 @@ vivo:
     lda MED_BANDERAS
     and #1
     beq curar_hp
-    jmp no_sirve                ; `ko_only` sobre uno en pie
+    jmp no_sirve                ; `ko_only` on one standing
 curar_hp:
     ; `if (hp_change > 0 && !HasFullHp()) ChangeHp(hp_change - revived)`.
-    ; `ChangeHp` topa en el máximo con el `SetHp` de adentro, y nunca baja
-    ; de 1 porque acá nada resta.
+    ; `ChangeHp` caps at the maximum with the `SetHp` inside it, and never
+    ; goes below 1 because nothing subtracts here.
     rep #$20
 .a16
     lda MED_HP
     beq curar_sp
     lda FAR_HP, x
     cmp MED_HP_MAX
-    bcs curar_sp                ; lleno
+    bcs curar_sp                ; full
     lda MED_HP
     sec
     sbc MED_REVIVIO
@@ -216,9 +216,9 @@ sp_poner:
     lda #1
     sta MED_USADO
 gastar:
-    ; `ConsumeItemUse`, si sirvió y el ítem tiene usos. Uno por vez: RM2k
-    ; cuenta los usos de un ítem de varios, y este port no, pero las medicinas
-    ; de este juego son todas de uno.
+    ; `ConsumeItemUse`, if it was of use and the item has uses. One at a
+    ; time: RM2k counts the uses of a multi-use item, and this port does not,
+    ; but this game's medicines are all single-use.
     sep #$20
 .a8
     lda MED_USADO
@@ -235,10 +235,10 @@ no_sirve:
     stz MED_USADO
 listo:
     plb
-    lda f:FAR_LARGO + MED_USADO ; después del `plb`: las banderas son de esto
+    lda f:FAR_LARGO + MED_USADO ; after the `plb`: the flags come from this
     rtl
 
-; El `k` del ítem, de `eleg_flancos` a X. Sólo A y X.
+; The item's `k`, from `eleg_flancos` to X. Only A and X.
 k_en_x:
     rep #$20
 .a16
@@ -249,16 +249,16 @@ k_en_x:
 .a8
     rts
 
-; A8 el tanto por ciento y X el máximo: vuelve con A16 = tanto * máximo / 100,
-; la división entera de easyrpg. El producto se arma en 24 bits —un máximo de
-; SP llega a 999, y por 100 no entra en dieciséis— y se divide restando, de a
-; un bit. Se lleva X e Y.
+; A8 the percentage and X the maximum: returns with A16 = percent * max / 100,
+; easyrpg's integer division. The product is built in 24 bits —an SP maximum
+; reaches 999, and times 100 it does not fit in sixteen— and divided by
+; subtraction, one bit at a time. It clobbers X and Y.
 por_ciento:
 .a8
     sta f:WRMPYA
     stx MED_P
     lda MED_P
-    sta f:WRMPYB                ; arranca: el producto tarda ocho ciclos
+    sta f:WRMPYB                ; starts: the product takes eight cycles
     nop
     nop
     nop
@@ -266,18 +266,18 @@ por_ciento:
     rep #$20
 .a16
     lda f:RDMPYL
-    sta MED_R                   ; tanto por el byte bajo
+    sta MED_R                   ; percent times the low byte
     sep #$20
 .a8
     lda MED_P + 1
-    sta f:WRMPYB                ; WRMPYA sigue siendo el tanto
+    sta f:WRMPYB                ; WRMPYA is still the percent
     nop
     nop
     nop
     nop
     rep #$20
 .a16
-    lda f:RDMPYL                ; tanto por el byte alto, que pesa 256
+    lda f:RDMPYL                ; percent times the high byte, which weighs 256
     xba
     pha
     and #$FF00
@@ -286,7 +286,7 @@ por_ciento:
     sta MED_P
     pla
     and #$00FF
-    adc #0                      ; el acarreo de la suma de arriba
+    adc #0                      ; the carry from the addition above
     sta MED_P + 2
     stz MED_R
     ldy #32
@@ -299,7 +299,7 @@ dividir:
     sbc #100
     bcc no_entra
     sta MED_R
-    inc MED_P                   ; el bit del cociente que acaba de entrar
+    inc MED_P                   ; the quotient bit that just came in
 no_entra:
     dey
     bne dividir

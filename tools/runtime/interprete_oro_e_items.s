@@ -2,38 +2,38 @@
 .a8
 .i16
 
-; --- el intérprete: el oro y los ítems -------------------------------------
+; --- the interpreter: gold and items ---------------------------------------
 ;
-; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
-; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
-; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+; Opcode handlers: the `correr_codigo` dispatch, in interprete.s, jumps to
+; each one with Y on its first operand, and each one returns to the loop
+; with `jmp correr_codigo::otro` or ends the frame with `rts`.
 
-; `ChangeGold`: suma o resta y recorta a [0, ORO_MAX], que es lo que hace
-; `Game_Party::GainGold`. El monto va en tres bytes porque el tope de RM2k son
-; 999999 y este juego usa el valor entero.
+; `ChangeGold`: adds or subtracts and clamps to [0, ORO_MAX], which is what
+; `Game_Party::GainGold` does. The amount takes three bytes because RM2k's cap
+; is 999999 and this game uses the full value.
 ;
-; No hay dónde mostrarlo —el menú no existe— pero sí quién lo pregunta: la rama
-; de oro de `ConditionalBranch`.
+; There is nowhere to show it —the menu does not exist— but there is someone
+; who asks for it: the gold branch of `ConditionalBranch`.
 .proc op_gold
-    lda [cod_ptr], y            ; el signo: 0 suma, 1 resta
+    lda [cod_ptr], y            ; the sign: 0 adds, 1 subtracts
     sta temp
     iny
     rep #$20
 .a16
-    lda [cod_ptr], y            ; los 16 bits bajos del monto
+    lda [cod_ptr], y            ; the low 16 bits of the amount
     sta temp + 2
     sep #$20
 .a8
     iny
     iny
-    lda [cod_ptr], y            ; y el byte alto
-    sta temp + 1                ; el byte alto del monto
+    lda [cod_ptr], y            ; and the high byte
+    sta temp + 1                ; the high byte of the amount
     iny
     phy
 
     lda temp
     bne oro_resta
-    ; Sumar: 24 bits, y si se pasa de ORO_MAX queda en ORO_MAX.
+    ; Add: 24 bits, and if it goes past ORO_MAX it stays at ORO_MAX.
     rep #$20
 .a16
     lda oro
@@ -59,7 +59,7 @@ oro_resta:
     sbc temp + 1
     sta oro + 2
     bcs oro_recorta
-    ; Se fue abajo de cero: queda en cero.
+    ; It went below zero: it stays at zero.
     rep #$20
 .a16
     stz oro
@@ -68,7 +68,7 @@ oro_resta:
     stz oro + 2
     bra oro_listo
 oro_recorta:
-    ; ¿Se pasó de ORO_MAX? Se compara de 24 bits, el byte alto primero.
+    ; Did it go past ORO_MAX? Compared as 24 bits, high byte first.
     lda oro + 2
     cmp #^ORO_MAX
     bcc oro_listo
@@ -96,34 +96,34 @@ oro_listo:
 
 .endproc
 
-; `ChangeItems`: el ítem de dieciséis bits y cuánto se suma, con signo. Es
-; `Game_Party::AddItem`: la cuenta queda en [0, ITEM_MAX]. Y como cambiar
-; un ítem puede cambiar qué página está activa, pide el refresco: RM2k hace
-; `SetNeedRefresh(true)` tras cada ChangeItems.
+; `ChangeItems`: the sixteen-bit item and how much is added, signed. It is
+; `Game_Party::AddItem`: the count stays in [0, ITEM_MAX]. And since changing
+; an item can change which page is active, it asks for the refresh: RM2k does
+; `SetNeedRefresh(true)` after every ChangeItems.
 .proc op_item
 .a8
 .i16
     rep #$20
 .a16
-    lda [cod_ptr], y            ; el ítem
+    lda [cod_ptr], y            ; the item
     clc
     adc #FAR_ITEMS
     sta WMADDL
-    sta temp + 2                ; el puerto avanza al leer y no se puede leer
-    iny                         ; de vuelta: se guarda la dirección
+    sta temp + 2                ; the port advances on read and cannot be read
+    iny                         ; again: the address is saved
     iny
     sep #$20
 .a8
     stz WMADDH
-    lda [cod_ptr], y            ; cuánto, con signo
+    lda [cod_ptr], y            ; how much, signed
     iny
     sta temp
-    lda WMDATA                  ; la cuenta que había
+    lda WMDATA                  ; the count there was
     clc
     adc temp
     bit temp
     bmi item_resto
-    ; Sumó: si se pasó de ITEM_MAX —o dio la vuelta— queda en el tope.
+    ; It added: if it went past ITEM_MAX —or wrapped around— it stays at the cap.
     bcs item_tope
     cmp #(ITEM_MAX + 1)
     bcc item_guardar
@@ -131,14 +131,14 @@ item_tope:
     lda #ITEM_MAX
     bra item_guardar
 item_resto:
-    ; Restó: sin acarreo se fue abajo de cero, y queda en cero.
+    ; It subtracted: with no carry it went below zero, and it stays at zero.
     bcs item_guardar
     lda #0
 item_guardar:
     pha
     rep #$20
 .a16
-    lda temp + 2                ; el puerto avanzó al leer: se vuelve
+    lda temp + 2                ; the port advanced on read: go back
     sta WMADDL
     sep #$20
 .a8

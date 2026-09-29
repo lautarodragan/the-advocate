@@ -1,17 +1,18 @@
 .segment "CODE"
 
-; --- los destellos ----------------------------------------------------------
+; --- the flashes ------------------------------------------------------------
 ;
-; RM2k destella un personaje mezclando su dibujo hacia un color durante unos
-; cuadros. Acá el dibujo es una paleta de CGRAM, así que destellar es subir esa
-; paleta mezclada, y apagarlo es volver a subirla como estaba.
+; RM2k flashes a character by blending its drawing toward a color for a few
+; frames. Here the drawing is a CGRAM palette, so flashing is uploading that
+; palette blended, and turning it off is uploading it again as it was.
 ;
-; La mezcla se hace **antes** de que el color llegue a CGRAM, con las mismas
-; tablas de canal que el tinte de pantalla: se arman con el tinte y el destello
-; juntos, se sube la paleta del personaje, y se vuelven a armar como estaban. Así
-; el camino de la paleta es uno solo y no hay dos lugares que puedan diferir.
+; The blend is done **before** the color reaches CGRAM, with the same channel
+; tables as the screen tint: they are built with the tint and the flash
+; together, the character's palette is uploaded, and they are built again as
+; they were. That way the palette's path is a single one and there are no two
+; places that can differ.
 
-; Guarda el destello que traen los seis operandos que siguen a Y.
+; Stores the flash carried by the six operands that follow Y.
 .proc flash_empezar
 .a8
 .i16
@@ -30,10 +31,10 @@ buscar:
     sep #$20
 .a8
     bcc buscar
-    rts                         ; no hay ranura: este destello se pierde
+    rts                         ; no slot: this flash is lost
 
 puesta:
-    lda [cod_ptr], y            ; el blanco
+    lda [cod_ptr], y            ; the target
     sta flash_ev + 0, x
     iny
     lda [cod_ptr], y
@@ -46,24 +47,24 @@ puesta:
     sta flash_ev + 3, x         ; b
     iny
     lda [cod_ptr], y
-    sta flash_ev + 4, x         ; potencia
+    sta flash_ev + 4, x         ; strength
     iny
     lda [cod_ptr], y
-    sta flash_ev + 5, x         ; cuántos cuadros
-    stz flash_ev + 6, x         ; recién empieza
+    sta flash_ev + 5, x         ; how many frames
+    stz flash_ev + 6, x         ; just starting
     rts
 .endproc
 
-; En qué paleta de sprite se dibuja el blanco que trae A, o $FF si no se
-; dibuja. El héroe la lleva en `hero_pal`, ya corrida; un evento, en el byte de
-; atributos de su fila.
+; Which sprite palette the target in A is drawn with, or $FF if it is not
+; drawn. The hero carries it in `hero_pal`, already shifted; an event, in the
+; attribute byte of its row.
 .proc paleta_del_blanco
 .a8
 .i16
     cmp #$00
     bne de_evento
     lda hero_pal
-    lsr a                       ; hero_pal viene corrido un lugar
+    lsr a                       ; hero_pal comes shifted one place
     and #$07
     rts
 de_evento:
@@ -80,7 +81,7 @@ hay:
     rts
 .endproc
 
-; Un cuadro de todos los destellos.
+; One frame of all the flashes.
 .proc flashes_tick
 .a8
 .i16
@@ -106,9 +107,10 @@ siguiente:
     rts
 .endproc
 
-; Un cuadro del destello de la ranura X: avanza, calcula con cuánta fuerza toca
-; y sube la paleta. Cuando se pasa de los cuadros que dura, la ranura se libera:
-; el cuadro anterior ya la subió con fuerza cero, o sea como estaba.
+; One frame of the flash in slot X: advances, computes how strong it should be
+; and uploads the palette. When it goes past the frames it lasts, the slot is
+; freed: the previous frame already uploaded it with zero strength, that is,
+; as it was.
 .proc un_flash
 .a8
 .i16
@@ -117,20 +119,20 @@ siguiente:
     sta flash_ev + 6, x
     cmp flash_ev + 5, x
     bcc todavia
-    beq todavia                 ; el último cuadro va con fuerza cero
+    beq todavia                 ; the last frame goes with zero strength
     lda #FLASH_LIBRE
     sta flash_ev + 0, x
     rts
 
 todavia:
-    ; La fuerza: potencia * (cuadros - k) / cuadros, que es la forma cerrada de
-    ; la cuenta que easyrpg hace cuadro a cuadro.
+    ; The strength: power * (frames - k) / frames, which is the closed form of
+    ; the computation easyrpg does frame by frame.
     lda flash_ev + 5, x
     sec
     sbc flash_ev + 6, x
     sta WRMPYA
     lda flash_ev + 4, x
-    sta WRMPYB                  ; el producto tarda ocho ciclos
+    sta WRMPYB                  ; the product takes eight cycles
     nop
     nop
     nop
@@ -142,7 +144,7 @@ todavia:
     sep #$20
 .a8
     lda flash_ev + 5, x
-    sta WRDIVB                  ; el cociente tarda dieciséis
+    sta WRDIVB                  ; the quotient takes sixteen
     nop
     nop
     nop
@@ -154,12 +156,12 @@ todavia:
     lda RDDIVL
     asl a
     asl a
-    asl a                       ; el alfa de easyrpg es la fuerza por ocho
+    asl a                       ; easyrpg's alpha is the strength times eight
     sta flash_alfa
     jmp pintar_flash
 .endproc
 
-; Sube la paleta del blanco de la ranura X con la fuerza que ya está en
+; Uploads the palette of the target of slot X with the strength already in
 ; `flash_alfa`.
 .proc pintar_flash
 .a8
@@ -167,7 +169,7 @@ todavia:
     lda flash_ev + 0, x
     jsr paleta_del_blanco
     cmp #$FF
-    beq listo                   ; no se dibuja: no hay paleta que tocar
+    beq listo                   ; not drawn: no palette to touch
     rep #$20
 .a16
     and #$00FF
@@ -179,29 +181,29 @@ listo:
     rts
 .endproc
 
-; Sube la paleta del personaje `flash_slot` con el tinte y el destello puestos.
-; Los colores del destello salen de la ranura X.
+; Uploads the palette of character `flash_slot` with the tint and the flash
+; applied. The flash colors come from slot X.
 .proc paleta_con_destello
 .a8
 .i16
-    stx flash_ranura            ; `tabla_canal_flash` usa X para la tabla
+    stx flash_ranura            ; `tabla_canal_flash` uses X for the table
     lda flash_ev + 1, x
     sta flash_dest
-    ldy #0                      ; el rojo de `puro` y de las de trabajo
+    ldy #0                      ; the red of `puro` and of the working ones
     jsr tabla_canal_flash
     ldx flash_ranura
     lda flash_ev + 2, x
     sta flash_dest
-    ldy #32                     ; el verde
+    ldy #32                     ; the green
     jsr tabla_canal_flash
     ldx flash_ranura
     lda flash_ev + 3, x
     sta flash_dest
-    ldy #64                     ; el azul
+    ldy #64                     ; the blue
     jsr tabla_canal_flash
 
-    ; La paleta del personaje: dieciséis colores de dos bytes, y en CGRAM la
-    ; mitad de arriba arranca en el color 128.
+    ; The character's palette: sixteen two-byte colors, and in CGRAM the upper
+    ; half starts at color 128.
     rep #$20
 .a16
     lda flash_slot
@@ -209,7 +211,7 @@ listo:
     asl a
     asl a
     asl a
-    asl a                       ; treinta y dos bytes por paleta
+    asl a                       ; thirty-two bytes per palette
     sta temp
     ldx mapa_ofs
     lda f:mapa_tabla + M_PTR_SPRITE_CGRAM, x
@@ -228,7 +230,7 @@ listo:
     asl a
     asl a
     asl a
-    asl a                       ; dieciséis colores por paleta
+    asl a                       ; sixteen colors per palette
     clc
     adc #128
     sep #$20
@@ -236,17 +238,17 @@ listo:
     sta tin_cgadd
     jsr armar_paleta
 
-    ; La paleta armada se guarda aparte y se sube en el vblank que viene, no
-    ; acá. Escribir CGRAM en mitad del cuadro deja la mitad de arriba de la
-    ; pantalla con la paleta vieja y la de abajo con la nueva: el sprite sale
-    ; con un nivel y el resto con otro. Es la misma razón por la que el tinte
-    ; apaga la pantalla para aplicarse. Cada ranura en su lugar de
-    ; FAR_FLASH_PAL: ver ahí.
+    ; The built palette is stored aside and uploaded in the next vblank, not
+    ; here. Writing CGRAM in the middle of the frame leaves the top half of
+    ; the screen with the old palette and the bottom with the new one: the
+    ; sprite comes out at one level and the rest at another. It is the same
+    ; reason the tint turns the screen off to apply itself. Each slot in its
+    ; place in FAR_FLASH_PAL: see there.
     rep #$20
 .a16
     lda flash_ranura
     asl a
-    asl a                       ; de ocho bytes por ranura a treinta y dos
+    asl a                       ; from eight bytes per slot to thirty-two
     tax
     sep #$20
 .a8
@@ -260,20 +262,22 @@ copiar:
     bne copiar
     ldx flash_ranura
     lda tin_cgadd
-    sta flash_ev + 7, x         ; y queda esperando el vblank
+    sta flash_ev + 7, x         ; and it is left waiting for the vblank
 
-    ; Y las tablas vuelven a ser las del tinte solo, que es lo que espera todo
-    ; el resto. Copiando, no rehaciéndolas: ver `tablas_de_tinte`.
+    ; And the tables go back to being the tint-only ones, which is what
+    ; everything else expects. By copying, not rebuilding them: see
+    ; `tablas_de_tinte`.
     jmp restaurar_tablas
 .endproc
 
-; Las tres tablas de canal del tinte, sin destello, y su copia en `puro`.
+; The tint's three channel tables, without flash, and their copy in `puro`.
 ;
-; La copia existe por el presupuesto de cuadro. `paleta_con_destello` corre en
-; todos los cuadros mientras dura un destello y antes terminaba rehaciendo estas
-; tres tablas —noventa y seis productos y noventa y seis divisiones—; ahora
-; `restaurar_tablas` copia noventa y seis bytes. Y de paso `tabla_canal_flash`
-; se ahorra la cuenta del tinte por entrada: la busca acá.
+; The copy exists because of the frame budget. `paleta_con_destello` runs on
+; every frame while a flash lasts and it used to end by rebuilding these
+; three tables —ninety-six products and ninety-six divisions—; now
+; `restaurar_tablas` copies ninety-six bytes. And on the way
+; `tabla_canal_flash` saves the tint computation per entry: it looks it up
+; here.
 .proc tablas_de_tinte
 .a8
 .i16
@@ -289,7 +293,7 @@ copiar:
     ; fallthrough
 .endproc
 
-; Las tablas de trabajo, tal cual quedaron las del tinte solo.
+; The working tables, exactly as the tint-only ones were left.
 .proc restaurar_tablas
 .a8
 .i16
@@ -307,68 +311,72 @@ copiar:
     rts
 .endproc
 
-; Como `tabla_canal`, pero mezclando antes hacia el color del destello. Y trae
-; qué canal: 0, 32 o 64, que es a la vez el desplazamiento en `puro` y en las
-; tablas de trabajo —`tabla_r`, `tabla_g` y `tabla_b` van pegadas, igual que
-; las tres de `puro`—; `flash_dest` el canal del destello y `flash_alfa` con
-; cuánta fuerza.
+; Like `tabla_canal`, but blending toward the flash color first. Y carries
+; which channel: 0, 32 or 64, which is both the offset into `puro` and into
+; the working tables —`tabla_r`, `tabla_g` and `tabla_b` are contiguous, like
+; the three of `puro`—; `flash_dest` the flash channel and `flash_alfa` how
+; strong.
 ;
-; La mezcla es la de easyrpg puesta en cinco bits: `destino * a + canal *
-; (255 - a)` sobre 255, con `a` el nivel por ocho —`Flash::MakeColor` y el
-; `PIXMAN_OP_OVER` de `BlendBlit`—. Que el espacio sea de cinco y no de ocho es
-; lo que hace que el resultado no sea el de RM2k sino el que da la misma cuenta
-; con cinco bits. Es una deuda declarada, y de las que no se pueden medir con
-; una comparación: hace falta una captura de EasyRPG tomada durante un destello.
+; The blend is easyrpg's put into five bits: `dest * a + channel * (255 - a)`
+; over 255, with `a` the level times eight —`Flash::MakeColor` and the
+; `PIXMAN_OP_OVER` of `BlendBlit`—. That the space is five bits and not eight
+; is what makes the result not RM2k's but the one the same computation gives
+; with five bits. It is a declared debt, and one of those that cannot be
+; measured with a comparison: it needs an EasyRPG capture taken during a
+; flash.
 ;
-; **Y va antes del tinte, no después.** easyrpg hace al revés —`ToneBlit` y
-; después `BlendBlit`— pero allá el tono es del sprite y acá el tinte es de la
-; pantalla entera. Con el tinte neutro da lo mismo; con tinte, la ROM hace
-; `tinte(destello(c))` y RM2k `destello(tono(c))`. Es otra deuda declarada del
-; mismo tipo que la de los cinco bits, y la única que se ve es en una página
-; que tiña y destelle a la vez.
+; **And it goes before the tint, not after.** easyrpg does it the other way
+; round —`ToneBlit` and then `BlendBlit`— but there the tone belongs to the
+; sprite and here the tint belongs to the whole screen. With a neutral tint it
+; makes no difference; with a tint, the ROM does `tinte(destello(c))` and RM2k
+; `destello(tono(c))`. It is another declared debt of the same kind as the
+; five-bit one, and the only place it shows is in a page that tints and
+; flashes at the same time.
 ;
-; **La saturación va antes de esta mezcla**: `armar_paleta` satura el color
-; crudo, porque la saturación necesita los tres canales juntos y esta tabla es
-; de a uno. Es el orden de RM2k, donde saturar es parte de `ToneBlit`.
+; **Saturation goes before this blend**: `armar_paleta` saturates the raw
+; color, because saturation needs the three channels together and this table
+; is one at a time. It is RM2k's order, where saturating is part of
+; `ToneBlit`.
 .proc tabla_canal_flash
 .a8
 .i16
-    ; La mezcla de la entrada c es `(destino * a + c * (255 - a)) / 255`, y de
-    ; una entrada a la que sigue el numerador crece siempre lo mismo: 255 - a.
-    ; Así que la división se hace una vez, para c = 0, y después se lleva el
-    ; resto: cada vez que pasa de 254 se le restan 255 y el cociente sube uno.
-    ; Da el mismo cociente que dividir cada vez, porque 255 - a no llega a
-    ; 255 * 2 y el resto no puede pasarse dos veces en un paso.
+    ; The blend of entry c is `(dest * a + c * (255 - a)) / 255`, and from one
+    ; entry to the next the numerator always grows by the same amount:
+    ; 255 - a. So the division is done once, for c = 0, and after that the
+    ; remainder is carried: every time it goes past 254, 255 is subtracted and
+    ; the quotient goes up by one. It gives the same quotient as dividing each
+    ; time, because 255 - a does not reach 255 * 2 and the remainder cannot
+    ; overflow twice in one step.
     ;
-    ; Hasta el 2026-09-26 cada una de las 96 entradas hacía dos productos y
-    ; una división con sus esperas, a unos 150 ciclos por entrada: un destello
-    ; de personaje se comía ~94 líneas por cuadro, y en la terraza del mapa 32,
-    ; sumado a un `FlashScreen`, la vuelta se pasaba del cuadro. Así son unos
-    ; 30 ciclos por entrada.
+    ; Until 2026-09-26 each of the 96 entries did two products and a division
+    ; with their waits, at about 150 cycles per entry: a character flash ate
+    ; ~94 lines per frame, and on the terrace of map 32, added to a
+    ; `FlashScreen`, the tick overran the frame. This way it is about 30
+    ; cycles per entry.
     ;
-    ; No hace falta topar el cociente en 31, como hacía la división suelta:
-    ; el destino y el canal son de cinco bits —el conversor no deja pasar
-    ; otra cosa, ni en los eventos ni en las animaciones de batalla—, así que
-    ; la mezcla tampoco se pasa.
+    ; There is no need to cap the quotient at 31, as the standalone division
+    ; did: the destination and the channel are five bits —the converter lets
+    ; nothing else through, neither in the events nor in the battle
+    ; animations—, so the blend does not overflow either.
     lda flash_dest
     sta WRMPYA
     lda flash_alfa
-    sta WRMPYB                  ; el producto tarda ocho ciclos
+    sta WRMPYB                  ; the product takes eight cycles
     rep #$20
 .a16
     tya
     clc
     adc #32
-    sta puro_ofs                ; dónde termina este canal
+    sta puro_ofs                ; where this channel ends
     lda RDMPYL
     sta WRDIVL
     sep #$20
 .a8
     lda #255
-    sta WRDIVB                  ; el cociente tarda dieciséis
+    sta WRDIVB                  ; the quotient takes sixteen
     sec
     sbc flash_alfa
-    sta flash_parcial           ; el paso del numerador, 255 - a
+    sta flash_parcial           ; the numerator's step, 255 - a
     nop
     nop
     nop
@@ -377,21 +385,21 @@ copiar:
 .a16
     tya
     clc
-    adc RDDIVL                  ; X: el cociente, en el canal de `puro`
+    adc RDDIVL                  ; X: the quotient, in `puro`'s channel
     tax
     sep #$20
 .a8
-    ; El resto va corrido uno arriba —de 1 a 255 en vez de 0 a 254— para que
-    ; "se pasó de 254" sea el acarreo de la suma de ocho bits; y al pasarse,
-    ; restar 255 es quedarse con el byte y sumarle uno. Vive en B mientras A
-    ; lee `puro`.
+    ; The remainder is shifted up by one —from 1 to 255 instead of 0 to 254—
+    ; so that "went past 254" is the carry of the eight-bit add; and when it
+    ; goes past, subtracting 255 is keeping the byte and adding one. It lives
+    ; in B while A reads `puro`.
     lda RDMPYL
     inc a
 cada:
     xba
-    ; Y el tinte, que ya está resuelto: buscar el canal mezclado en la tabla
-    ; del tinte solo **es** el hard light, y saca del lazo un producto y una
-    ; división por entrada.
+    ; And the tint, which is already resolved: looking up the blended channel
+    ; in the tint-only table **is** the hard light, and it takes a product and
+    ; a division per entry out of the loop.
     lda puro, x
     sta tabla_r, y
     xba
@@ -405,6 +413,5 @@ cada:
     bne cada
     rts
 .endproc
-.assert tabla_g = tabla_r + 32 && tabla_b = tabla_r + 64, error, "tabla_canal_flash indexa las tres desde tabla_r"
-
+.assert tabla_g = tabla_r + 32 && tabla_b = tabla_r + 64, error, "tabla_canal_flash indexes all three from tabla_r"
 

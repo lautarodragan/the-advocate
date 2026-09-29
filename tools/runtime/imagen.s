@@ -1,53 +1,54 @@
 .segment "CODE"
 
-; --- el cartel del ShowPicture ----------------------------------------------
+; --- the ShowPicture picture ------------------------------------------------
 ;
-; Seis objetos de 32x32 con una paleta de sprite para ellos solos, y un fundido
-; que es un tinte de esos quince colores cuadro a cuadro. Ver `tools/port/imagen.py`,
-; que es donde está escrito dónde cae y de qué color es cada pixel, y OP_PICTURE
-; en eventos.py.
+; Six 32x32 objects with a sprite palette all to themselves, and a fade that is
+; a tint of those fifteen colors frame by frame. See `tools/port/imagen.py`,
+; which is where it is written where each pixel lands and what color it is,
+; and OP_PICTURE in eventos.py.
 ;
-; El cartel vive en **un solo mapa** de la ROM —el que se llevó sus tiles al
-; banco de sprites; el conversor corta si otro lo muestra— y se borra al
-; cambiar de mapa, que es el
-; `erase_on_map_change` de `Game_Pictures`. Las dos cosas son la misma: sin sus
-; tiles en VRAM no habría qué dibujar.
+; The picture lives in **a single map** of the ROM —the one that took its tiles
+; into the sprite bank; the converter stops if another one shows it— and is
+; erased on map change, which is
+; `Game_Pictures`' `erase_on_map_change`. Both things are the same: without
+; its tiles in VRAM there would be nothing to draw.
 
-; Un cuadro de la rampa. `Game_Pictures::Picture::Update` interpola con
-; `(finish - current) / dt` sobre `double`, y el resultado exacto de esa
-; sucesión es lineal: `desde + (hasta - desde) * paso / pasos`. Acá va con
-; enteros, y el signo se saca antes de dividir: el divisor del hardware no lo
-; tiene.
+; One frame of the ramp. `Game_Pictures::Picture::Update` interpolates with
+; `(finish - current) / dt` over `double`, and the exact result of that
+; sequence is linear: `desde + (hasta - desde) * paso / pasos`. Here it is
+; done with integers, and the sign is taken out before dividing: the hardware
+; divider does not have one.
 ;
-; La paleta se rehace **sólo cuando el tono cambió de verdad**. En la rampa de
-; 210 cuadros del "1 year earlier" el rojo sube de 0 a 100, o sea que cambia
-; uno de cada dos cuadros: rehacerla igual costaba 96 productos y 96 divisiones
-; por cuadro para escribir los mismos treinta y dos bytes.
+; The palette is rebuilt **only when the tone really changed**. In the
+; 210-frame ramp of "1 year earlier" the red goes up from 0 to 100, which means
+; it changes one frame out of two: rebuilding it anyway cost 96 products and 96
+; divisions per frame to write the same thirty-two bytes.
 .proc imagen_tick
 .a8
 .i16
     lda f:CARTEL_ACTIVA
     beq listo
     lda f:CARTEL_PASOS
-    beq listo                   ; puesto y quieto
+    beq listo                   ; shown and still
     lda f:CARTEL_PASO
     cmp f:CARTEL_PASOS
-    bcs listo                   ; la rampa ya llegó
-    lda f:CARTEL_PASO           ; `inc` no tiene forma larga
+    bcs listo                   ; the ramp has already arrived
+    lda f:CARTEL_PASO           ; `inc` has no long form
     inc a
     sta f:CARTEL_PASO
     jsr imagen_tono_ahora
-    beq listo                   ; el mismo tono que el cuadro pasado
+    beq listo                   ; the same tone as the previous frame
     jmp imagen_paleta
 listo:
     rts
 .endproc
 
-; El tono de este cuadro, canal por canal. Deja en A si cambió alguno.
+; This frame's tone, channel by channel. Leaves in A whether any changed.
 ;
-; La resta va siempre del lado positivo, como en `una_tabla_de_destello`: el
-; divisor del hardware no tiene signo, y `//` de Python redondea para el otro
-; lado con negativos. Los dos lados hacen esta misma cuenta partida en dos.
+; The subtraction always goes on the positive side, as in
+; `una_tabla_de_destello`: the hardware divider has no sign, and Python's `//`
+; rounds the other way with negatives. Both sides do this same computation
+; split in two.
 .proc imagen_tono_ahora
 .a8
 .i16
@@ -69,8 +70,8 @@ baja:
     sec
     sbc f:CARTEL_HASTA, x
     jsr imagen_parte
-    eor #$FF                    ; `desde - parte` sin una variable de por medio:
-    sec                         ; el complemento a uno más el acarreo es el menos
+    eor #$FF                    ; `desde - parte` without a variable in between:
+    sec                         ; ones' complement plus the carry is the minus
     adc f:CARTEL_DESDE, x
 guardar:
     cmp f:CARTEL_TONO, x
@@ -86,27 +87,27 @@ igual:
     rts
 .endproc
 
-; A = A * CARTEL_PASO / CARTEL_PASOS, con el multiplicador y el divisor del
-; hardware. El producto llega a 200 * 255 y entra en dieciséis bits; el
-; cociente no pasa de 200, así que alcanza con el byte bajo.
+; A = A * CARTEL_PASO / CARTEL_PASOS, with the hardware multiplier and
+; divider. The product reaches 200 * 255 and fits in sixteen bits; the
+; quotient does not go past 200, so the low byte is enough.
 .proc imagen_parte
 .a8
 .i16
     sta WRMPYA
     lda f:CARTEL_PASO
     sta WRMPYB
-    nop                         ; ocho ciclos hasta que el producto está
+    nop                         ; eight cycles until the product is ready
     nop
     nop
     nop
     rep #$20
 .a16
     lda RDMPYL
-    sta WRDIVL                  ; el dividendo, de dieciséis bits
+    sta WRDIVL                  ; the dividend, sixteen bits
     sep #$20
 .a8
     lda f:CARTEL_PASOS
-    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    sta WRDIVB                  ; starts it: the quotient takes sixteen cycles
     nop
     nop
     nop
@@ -119,24 +120,26 @@ igual:
     rts
 .endproc
 
-; Los dieciséis colores del cartel teñidos con su tono, en su lugar de
-; `cgram_sombra`. Los sube `flush_video` en el vblank con un DMA propio.
+; The picture's sixteen colors tinted with its tone, in their place in
+; `cgram_sombra`. `flush_video` uploads them in the vblank with a DMA of its
+; own.
 ;
-; Se reusan `tabla_canal` y `armar_paleta`, que es lo que el tinte de pantalla
-; ya hacía: la única diferencia es de dónde salen los tres valores y que la
-; saturación del cartel es siempre neutra —`imagen_aceptable` no acepta otra—,
-; así que se le pone la neutra a `tinte_s` mientras dura y se la devuelve.
-; Las tres tablas de trabajo quedan con el tinte del cartel; `restaurar_tablas`
-; las vuelve a dejar como las del tinte de pantalla, copiando `puro`, que es
-; mucho más barato que rehacerlas.
+; It reuses `tabla_canal` and `armar_paleta`, which is what the screen tint
+; already did: the only difference is where the three values come from and
+; that the picture's saturation is always neutral —`imagen_aceptable` accepts no
+; other—, so `tinte_s` is set to neutral while this runs and then given back.
+; The three work tables are left with the picture's tint; `restaurar_tablas` puts
+; them back as the screen tint's, copying `puro`, which is much cheaper than
+; rebuilding them.
 .proc imagen_paleta
 .a8
 .i16
-    ; **Y se guarda.** `armar_paleta` la usa de cursor de la paleta y la deja
-    ; en 32, y quien llama a esto desde un opcode la tiene apuntando al
-    ; bytecode: sin esto el intérprete seguía leyendo treinta y dos bytes más
-    ; adelante y corría lo que hubiera ahí. Fue el primer rojo de este cartel,
-    ; y de los que no se ven: la página seguía corriendo, sólo que otra.
+    ; **And Y is saved.** `armar_paleta` uses it as the palette cursor and
+    ; leaves it at 32, and whoever calls this from an opcode has it pointing
+    ; into the bytecode: without this the interpreter went on reading thirty-two
+    ; bytes further ahead and ran whatever was there. It was this picture's first
+    ; red, and one of the kind you cannot see: the page kept running, just a
+    ; different one.
     phy
     lda tinte_s
     pha
@@ -161,10 +164,10 @@ igual:
 .a8
     lda #^imagen_cgram
     sta tin_ptr + 2
-    jsr armar_paleta            ; los dieciséis, teñidos, en `pal_buf`
-    ; Y de ahí a la sombra, **sin tocar `tinte_listo`**: prenderlo mandaría a
-    ; subir las tres paletas del mapa en cada cuadro de la rampa, y eso le come
-    ; al vblank el presupuesto de poses.
+    jsr armar_paleta            ; the sixteen, tinted, in `pal_buf`
+    ; And from there to the shadow, **without touching `tinte_listo`**:
+    ; setting it would send the map's three palettes up on every frame of the
+    ; ramp, and that eats the vblank's pose budget.
     ldx #$0000
 copia:
     lda pal_buf, x
@@ -181,16 +184,15 @@ copia:
     rts
 .endproc
 
-; Los objetos del cartel, si está puesto.
+; The picture's objects, if it is shown.
 ;
-; Van **después del cronómetro y antes de los personajes**, que es el orden de
-; RM2k: `Priority_Timer` es 140, `Priority_PictureOld` 120 y `Priority_Player`
-; 40. En OAM eso es el orden de la lista, porque gana el índice más bajo; y la
-; prioridad 3 los pone adelante de las dos capas.
+; They go **after the timer and before the characters**, which is RM2k's
+; order: `Priority_Timer` is 140, `Priority_PictureOld` 120 and
+; `Priority_Player` 40. In OAM that is the order of the list, because the
+; lowest index wins; and priority 3 puts them in front of both layers.
 ;
-; Cuestan **veinticuatro de los treinta y cuatro tiles por línea** en las
-; veintinueve líneas que ocupan, así que ahí entran dos personajes más y no
-; más.
+; They cost **twenty-four of the thirty-four tiles per line** on the
+; twenty-nine lines they take, so two more characters fit there and no more.
 .proc imagen_oam
 .a8
 .i16
@@ -199,7 +201,7 @@ copia:
     rts
 hay:
     lda #$02
-    sta obj_grande              ; los objetos del cartel son de 32x32
+    sta obj_grande              ; the picture's objects are 32x32
     lda #0
     sta f:CARTEL_I
 cada:
@@ -211,26 +213,26 @@ cada:
     asl a
     asl a
     asl a
-    asl a                       ; treinta y dos por objeto
+    asl a                       ; thirty-two per object
     clc
-    adc #IMAGEN_X & $FFFF       ; es negativo, y ca65 no acepta un inmediato negativo
+    adc #IMAGEN_X & $FFFF       ; it is negative, and ca65 does not accept a negative immediate
     sta obj_x
     lda #IMAGEN_Y
     sta obj_y
-    ; Y qué tile. Un objeto de 32x32 lee cuatro tiles de cuatro filas seguidas
-    ; de la grilla de nombres, que es de dieciséis: o sea que en una fila de
-    ; bloques entran cuatro objetos y el quinto arranca 64 tiles más adelante.
+    ; And which tile. A 32x32 object reads four tiles from four consecutive
+    ; rows of the name grid, which is sixteen wide: so four objects fit in one
+    ; row of blocks and the fifth starts 64 tiles further on.
     lda f:CARTEL_I
     and #$0003
     asl a
-    asl a                       ; los cuatro de ancho del objeto
+    asl a                       ; the object's four across
     sta temp
     lda f:CARTEL_I
     and #$00FC
     asl a
     asl a
     asl a
-    asl a                       ; y la fila de bloques, que son 64 por cada 4
+    asl a                       ; and the row of blocks, which is 64 per 4
     clc
     adc temp
     clc
@@ -240,8 +242,8 @@ cada:
 .a8
     lda temp
     sta obj_tile
-    ; vhoopppN: prioridad 3 —adelante de las dos capas—, la paleta del cartel,
-    ; y el noveno bit del tile.
+    ; vhoopppN: priority 3 —in front of both layers—, the picture's palette,
+    ; and the tile's ninth bit.
     lda temp + 1
     and #$01
     ora #($30 | (IMAGEN_PAL * 2))
@@ -256,4 +258,3 @@ cada:
 salir:
     rts
 .endproc
-

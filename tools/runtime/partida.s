@@ -1,92 +1,94 @@
 .segment "CODE"
 
-; --- guardar y cargar la partida -------------------------------------------
+; --- saving and loading the game -------------------------------------------
 ;
-; El cartucho lleva SRAM con batería, con las ranuras de `SRAM_RANURAS`.
+; The cartridge carries battery-backed SRAM, with `SRAM_RANURAS` slots.
 ;
-; Qué se guarda lo dice `partida_tabla` y nada más: pares de (dirección en la
-; WRAM del banco 0, cuántos bytes), terminados en un largo cero. Tenerlo en una
-; tabla y no en código es lo que hace que guardar y cargar no se puedan ir uno
-; del otro —los dos la recorren— y que agregar un campo sea una línea.
+; What gets saved is said by `partida_tabla` and nothing else: pairs of
+; (address in bank 0 WRAM, how many bytes), terminated by a zero length.
+; Having it in a table and not in code is what keeps saving and loading from
+; drifting apart —both walk it— and makes adding a field one line.
 ;
-; La copia va por DMA en las dos direcciones, y la ventana de la WRAM es la que
-; lo hace posible: el bus B no llega a la SRAM, pero sí a `WMDATA`, así que la
-; SRAM va del lado del bus A y la WRAM del otro. Guardar es un DMA de B a A —el
-; bit 7 de DMAP— y cargar el mismo al revés.
+; The copy goes by DMA in both directions, and the WRAM window is what makes it
+; possible: the B bus does not reach SRAM, but it does reach `WMDATA`, so the
+; SRAM goes on the A-bus side and the WRAM on the other. Saving is a DMA from B
+; to A —bit 7 of DMAP— and loading the same one reversed.
 ;
-; La partida arranca en $0100 y no en $0000 por el ensamblador: `ca65` elige
-; página directa cuando la dirección entra en un byte, así que
-; con la partida en $0000 un `lda SRAM_MAGIA, x` leería la página directa en vez
-; de la SRAM. Los 256 bytes que quedan abajo no los usa nadie.
-SRAM_BANCO = $70            ; en LoROM la SRAM se ve desde $70:0000
+; The saved game starts at $0100 and not at $0000 because of the assembler:
+; `ca65` picks direct page when the address fits in a byte, so
+; with the saved game at $0000 an `lda SRAM_MAGIA, x` would read the direct
+; page instead of the SRAM. Nobody uses the 256 bytes left below.
+SRAM_BANCO = $70            ; in LoROM the SRAM shows at $70:0000
 
-; **Cuatro ranuras**, que es lo que pidió taro: RM2k abre un menú de quince y
-; para este juego no tiene sentido. En la SRAM entrarían muchas más —son 8 KB y
-; una ranura ocupa 165 bytes— así que el número no sale de acá sino de cuántas
-; se pueden mostrar y elegir sin que la pantalla se vuelva una lista.
+; **Four slots**, which is what taro asked for: RM2k opens a menu of fifteen
+; and for this game that makes no sense. Many more would fit in the SRAM —it
+; is 8 KB and a slot takes 165 bytes— so the number does not come from there
+; but from how many can be shown and picked without the screen turning into a
+; list.
 SRAM_RANURAS = 4
 
-; Cada ranura arranca en un múltiplo de 256, que es lo que hace que su
-; desplazamiento sea la ranura por 256 —un `xba`— y no una multiplicación. Se
-; pagan 91 bytes de relleno por ranura y sobra SRAM de todas formas: cuatro
-; ranuras terminan en $0500 de los $2000 que hay.
+; Each slot starts at a multiple of 256, which is what makes its offset the
+; slot times 256 —an `xba`— and not a multiplication. It costs 91 bytes of
+; padding per slot and there is SRAM to spare anyway: four slots end at $0500
+; of the $2000 there are.
 ;
-; **Si `PARTIDA_BYTES` pasara de 250, esto se rompe en silencio**: la ranura
-; siguiente empieza a pisar el final de la anterior. Hoy son 159, y crecen cada
-; vez que se agrega un campo a la partida —ya pasó con la música—. El
-; ensamblador no lo puede cortar, así que lo cuida
+; **If `PARTIDA_BYTES` went past 250, this breaks silently**: the next slot
+; starts overwriting the end of the previous one. Today it is 159, and it grows
+; every time a field is added to the saved game —it already happened with the
+; music—. The assembler cannot stop it, so it is guarded by
 ; `rom/pruebas/rpgmaker/test_guardar.py::test_las_cuatro_ranuras_entran_en_la_sram`.
 SRAM_STRIDE = 2048
 
-; Y dentro de cada ranura, contando desde su base. `SRAM_MAGIA` sigue siendo
-; $0100 y no $0000 por lo de siempre: un operando que entra en un byte lo
-; resuelve el ensamblador como página directa y leería la WRAM. Ese error costó
-; que la partida no cargara en mednafen, en Mesen ni en la consola.
-SRAM_MAGIA = $0100          ; cuatro bytes: la firma del juego, `SRAM_MAGIA_TEXTO`
-SRAM_SUMA  = $0104          ; la suma de los bytes de la partida
-; Y de qué formato es: la magia y la suma dicen que la ranura está entera, no
-; que sea de este build. Desde que los casos de prueba viajan en la ROM que se
-; juega, la partida cambia de forma cada vez que un caso nombra una variable
-; o trae una tropa, y una de otro build **cargaba corrupta** —con ceros
-; detrás la suma cuadraba igual— o no cargaba según lo que hubiera en la SRAM.
-; Una que no coincide es "no hay partida": ver `ranura_de_este_formato`.
+; And inside each slot, counting from its base. `SRAM_MAGIA` is still $0100
+; and not $0000 for the usual reason: an operand that fits in a byte gets
+; resolved by the assembler as direct page and would read WRAM. That bug cost
+; the saved game not loading in mednafen, in Mesen or on the console.
+SRAM_MAGIA = $0100          ; four bytes: the game's signature,
+                            ; `SRAM_MAGIA_TEXTO`
+SRAM_SUMA  = $0104          ; the sum of the saved game's bytes
+; And which format it is: the magic and the sum say the slot is intact, not
+; that it is from this build. Since the test cases travel in the ROM that gets
+; played, the saved game changes shape every time a case names a variable or
+; brings a troop, and one from another build **loaded corrupted** —with zeros
+; behind it the sum still added up— or did not load, depending on what was in
+; the SRAM. One that does not match is "no saved game": see
+; `ranura_de_este_formato`.
 ;
-; Son dos palabras y ninguna se escribe a mano: el largo sale de las mismas
-; constantes que `partida_tabla`, y la firma la calcula el conversor de qué
-; variable, actor y habilidad va en cada ranura —`firma_de_la_partida`—, que
-; es lo que el largo no ve.
+; They are two words and neither is written by hand: the length comes from the
+; same constants as `partida_tabla`, and the signature is computed by the
+; converter from which variable, actor and skill goes in each slot
+; —`firma_de_la_partida`—, which is what the length does not see.
 SRAM_BYTES = $0106          ; PARTIDA_BYTES
 SRAM_FIRMA = $0108          ; PARTIDA_FIRMA
 SRAM_DATOS = $010A
 
-; `partida_tabla` vive en RODATA —ver "lo que no hace falta que viva en el
-; banco 0"— y se lee con `lda f:partida_tabla, x`.
-; Los mismos largos, sumados, para poder recorrer la partida en la SRAM sin
-; volver a mirar la tabla. Está duplicado a propósito y **la ROM lo comprueba**:
-; `guardar_partida` compara con lo que le quedó a `partida_copiar` y si no dan
-; iguales entra en pánico. Duplicar un número que nadie verifica es la forma de
-; error que este repo ya pagó tres veces.
+; `partida_tabla` lives in RODATA —see "what does not need to live in bank 0"
+; in `banco1.s`— and is read with `lda f:partida_tabla, x`.
+; The same lengths, added up, so the saved game in the SRAM can be walked
+; without looking at the table again. It is duplicated on purpose and **the
+; ROM checks it**: `guardar_partida` compares against what `partida_copiar`
+; ended with and panics if they differ. Duplicating a number nobody verifies
+; is the kind of bug this repo has already paid for three times.
 PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10 + ACTORES_N * 2 + ACTORES_N * 2 + ACTORES_N + HAB_BYTES + EXP_K * 4
-; Dónde cae el grupo adentro de la partida: después de la posición, la
-; dirección, la celda y el mapa. Lo lee la pantalla de ranuras desde la SRAM
-; para poner el nombre del líder y las caras. Es la misma suma que arriba,
-; cortada en el sexto renglón de la tabla; si `partida_tabla` cambia de orden,
-; esto cambia con ella.
-PARTIDA_GRUPO   = 2 + 2 + 1 + 2 + 2 + 2   ; el mapa ocupa dos desde que su
-                                          ; índice es de dieciséis bits
+; Where the party lands inside the saved game: after the position, the
+; direction, the cell and the map. The slot screen reads it from the SRAM to
+; show the leader's name and the faces. It is the same sum as above, cut at the
+; table's sixth line; if `partida_tabla` changes order, this changes with it.
+PARTIDA_GRUPO   = 2 + 2 + 1 + 2 + 2 + 2   ; the map takes two since its
+                                          ; index is sixteen bits
 PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
 
-; Pone la ranura con la que van a trabajar `guardar_partida` y `cargar_partida`,
-; y calcula su desplazamiento. A trae el número de ranura.
+; Sets the slot `guardar_partida` and `cargar_partida` will work with, and
+; computes its offset. A brings the slot number.
 ;
-; El desplazamiento es la ranura por 2048, o sea un `xba` y tres `asl`: de ahí
-; sale que `SRAM_STRIDE` valga 2048 y no el largo justo de una partida.
-; Multiplicar por ese largo pediría el multiplicador del hardware y ocho
-; ciclos de espera, para ahorrar unos bytes de una SRAM que sobra. Era 256
-; hasta que las 81 variables del juego entraron en la partida, 512 hasta el
-; inventario y 1024 hasta el equipo, que son 610 bytes más. Con 2048 cuatro
-; ranuras no entran en 8 KB, y el cartucho declara 32 KB, que en LoROM es un
-; banco entero de SRAM en $70.
+; The offset is the slot times 2048, that is one `xba` and three `asl`: that
+; is why `SRAM_STRIDE` is 2048 and not the exact length of a saved game.
+; Multiplying by that length would need the hardware multiplier and eight
+; cycles of waiting, to save a few bytes of an SRAM that has room to spare. It
+; was 256 until the game's 81 variables went into the saved game, 512 until the
+; inventory and 1024 until the equipment, which is 610 bytes more. With 2048
+; four slots do not fit in 8 KB, and the cartridge declares 32 KB, which in
+; LoROM is a whole bank of SRAM at $70.
 .proc poner_ranura
 .a8
 .i16
@@ -94,10 +96,11 @@ PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
     rts
 .endproc
 
-; El desplazamiento de la ranura en la SRAM, en X. **Pide el banco de datos
-; normal**: lee `ranura`, que vive en la WRAM.
+; The slot's offset in the SRAM, in X. **It needs the normal data bank**: it
+; reads `ranura`, which lives in WRAM.
 ;
-; Es la ranura por 2048, o sea un `xba` y tres `asl`: ver `poner_ranura`.
+; It is the slot times 2048, that is one `xba` and three `asl`: see
+; `poner_ranura`.
 .proc ranura_en_x
 .a8
 .i16
@@ -105,36 +108,36 @@ PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
 .a16
     lda ranura
     and #$00FF
-    xba                         ; por 256...
+    xba                         ; times 256...
     asl a
     asl a
-    asl a                       ; ...y por ocho: SRAM_STRIDE, que es 2048
+    asl a                       ; ...and times eight: SRAM_STRIDE, which is 2048
     tax
     sep #$20
 .a8
     rts
 .endproc
 
-; Recorre `partida_tabla` copiando cada tramo. A trae el DMAP: $80 guarda —de la
-; ventana de la WRAM a la SRAM— y $00 carga. Deja en `temp` dónde terminó la
-; partida adentro de la SRAM.
+; Walks `partida_tabla` copying each stretch. A brings the DMAP: $80 saves
+; —from the WRAM window to the SRAM— and $00 loads. Leaves in `temp` where the
+; saved game ended inside the SRAM.
 .proc partida_copiar
 .a8
 .i16
     sta DMAP0
     lda #$80
-    sta BBAD0                   ; el otro lado es siempre WMDATA
+    sta BBAD0                   ; the other side is always WMDATA
     lda #SRAM_BANCO
     sta A1B0
-    ldx #$0000                  ; por dónde va la tabla
+    ldx #$0000                  ; where the table is at
     phx
-    jsr ranura_en_x             ; banco de datos normal: acá todavía lo es
+    jsr ranura_en_x             ; normal data bank: here it still is
     rep #$20
 .a16
     txa
     clc
     adc #SRAM_DATOS
-    sta temp                    ; y por dónde va la SRAM, dentro de su ranura
+    sta temp                    ; and where the SRAM is at, inside its slot
     sep #$20
 .a8
     plx
@@ -146,7 +149,7 @@ otra:
     rep #$20
 .a16
     lda f:partida_tabla + 2, x
-    beq listo                   ; largo cero: se terminó la tabla
+    beq listo                   ; zero length: the table is over
     sta DAS0L
     lda temp
     sta A1T0L
@@ -154,7 +157,7 @@ otra:
     adc DAS0L
     sta temp
     lda f:partida_tabla, x
-    sta WMADDL                  ; la WRAM, que va siempre en el banco 0
+    sta WMADDL                  ; the WRAM, which is always in bank 0
     sep #$20
 .a8
     stz WMADDH
@@ -176,26 +179,26 @@ listo:
     rts
 .endproc
 
-; La suma de los bytes de la partida que hay en la SRAM, en `temp + 2`. Pide el
-; banco de datos ya puesto en la SRAM y **X con el desplazamiento de la
-; ranura**: no lo lee de `ranura_ofs` porque con el banco en $70 eso leería la
-; SRAM. Se lleva X.
+; The sum of the saved game's bytes in the SRAM, in `temp + 2`. It needs the
+; data bank already set to the SRAM and **X with the slot's offset**: it does
+; not read it from `ranura_ofs` because with the bank at $70 that would read
+; the SRAM. Clobbers X.
 ;
-; **El índice va desde cero y la dirección la pone la base.** Escrito al revés
-; —`ldx #SRAM_DATOS` y después `lda $0000, x`— parece lo mismo y no lo es: el
-; operando `$0000` entra en un byte, así que el ensamblador elige página
-; directa igual que ca65, y el bucle terminaba sumando **la WRAM baja** en vez
-; de la SRAM. Es exactamente la trampa que el comentario de `SRAM_MAGIA`
-; advierte veinte líneas más arriba, cometida en la línea de al lado.
+; **The index goes from zero and the base supplies the address.** Written the
+; other way round —`ldx #SRAM_DATOS` and then `lda $0000, x`— it looks the
+; same and it is not: the operand `$0000` fits in a byte, so the assembler
+; picks direct page just like ca65, and the loop ended up adding **low WRAM**
+; instead of the SRAM. It is exactly the trap the `SRAM_MAGIA` comment warns
+; about twenty lines above, committed on the line next to it.
 ;
-; Lo que lo mantuvo escondido es que el error es **simétrico**: guardar y
-; cargar suman los dos la misma basura, así que mientras la WRAM no cambie
-; entre una cosa y la otra los números coinciden y la partida carga. Eso pasa
-; en el arranque de snes9x, que llena la RAM siempre con lo mismo y llama a
-; `cargar_partida` a los microsegundos del reset. Con la WRAM de mednafen, de
-; Mesen o de la consola de verdad, no coinciden y la partida no carga nunca;
-; y desde el menú del título tampoco, porque para entonces la WRAM ya se movió.
-; Tres reportes de taro y un `xfail` eran todos este bug.
+; What kept it hidden is that the bug is **symmetric**: saving and loading
+; both add up the same garbage, so as long as the WRAM does not change between
+; one and the other the numbers match and the saved game loads. That happens
+; at snes9x's startup, which always fills RAM with the same thing and calls
+; `cargar_partida` microseconds after reset. With the WRAM of mednafen, of
+; Mesen or of the real console, they do not match and the saved game never
+; loads; and from the title menu neither, because by then the WRAM has already
+; moved. Three reports from taro and an `xfail` were all this bug.
 .proc partida_suma
 .a8
 .i16
@@ -205,10 +208,10 @@ listo:
     sta temp + 2
     sep #$20
 .a8
-    ldy #$0000                  ; X ya viene con el principio de su ranura
+    ldy #$0000                  ; X already comes with the start of its slot
 suma:
-    lda SRAM_DATOS, x           ; la base no entra en un byte: absoluto, y el
-                                ; banco de datos es la SRAM
+    lda SRAM_DATOS, x           ; the base does not fit in a byte: absolute,
+                                ; and the data bank is the SRAM
     rep #$20
 .a16
     and #$00FF
@@ -218,26 +221,26 @@ suma:
     sep #$20
 .a8
     inx
-    iny                         ; X anda por la SRAM e Y cuenta: la ranura no
-    cpy #PARTIDA_BYTES          ; arranca en cero y las dos cosas no son la misma
+    iny                         ; X walks the SRAM and Y counts: the slot does
+    cpy #PARTIDA_BYTES          ; not start at zero and the two are not the same
     bne suma
     rts
 .endproc
 
-; Guarda la partida. Es lo que hace `OP_SAVE`, o sea el `OpenSaveMenu` del
-; save point de Lashe City.
+; Saves the game. It is what `OP_SAVE` does, that is, the `OpenSaveMenu` of
+; the Lashe City save point.
 .proc guardar_partida
 .a8
 .i16
-    ; **El `music_apagada` que se guarda es "¿está sonando?", y no el de la
-    ; RAM.** Con una pista del MSU-1 sonando el SPC700 está callado a
-    ; propósito y `music_apagada` vale 1, así que guardado tal cual la
-    ; partida cargaba muda: `music_boot_ya` lo lee como "se guardó sin
-    ; música". Se pone en cero mientras dura la copia —la misma pregunta
-    ; que `mapa_tema_callar`— y así la partida no dice por dónde sonaba: al
-    ; cargarla, `music_start` elige la pista o el SPC700 según haya MSU-1.
-    ; Con las interrupciones cerradas, porque `irq_musica` correría el
-    ; stream del SPC700 al verlo en cero. Lo cobra
+    ; **The `music_apagada` that gets saved is "is it playing?", and not the
+    ; one in RAM.** With an MSU-1 track playing the SPC700 is silent on
+    ; purpose and `music_apagada` is 1, so saved as is the game loaded mute:
+    ; `music_boot_ya` reads it as "saved without music". It is set to zero
+    ; while the copy lasts —the same question as `mapa_tema_callar`— and so
+    ; the saved game does not say where it was playing from: on loading it,
+    ; `music_start` picks the track or the SPC700 depending on whether there
+    ; is an MSU-1. With interrupts disabled, because `irq_musica` would run the
+    ; SPC700 stream on seeing it at zero. It is caught by
     ; `test_la_partida_guardada_vuelve_con_su_tema`.
     php
     sei
@@ -247,14 +250,14 @@ suma:
     beq copiar
     stz music_apagada
 copiar:
-    lda #$80                    ; de la ventana de la WRAM a la SRAM
+    lda #$80                    ; from the WRAM window to the SRAM
     jsr partida_copiar
     pla
     sta music_apagada
     plp
-    ; Lo que se copió tiene que ser lo que `PARTIDA_BYTES` dice. Si no, la suma
-    ; miraría otro tramo y la ranura quedaría inválida para siempre sin decir
-    ; por qué.
+    ; What was copied has to be what `PARTIDA_BYTES` says. Otherwise the sum
+    ; would look at another stretch and the slot would stay invalid forever
+    ; without saying why.
     rep #$20
 .a16
     sep #$20
@@ -265,25 +268,25 @@ copiar:
     txa
     clc
     adc #(SRAM_DATOS + PARTIDA_BYTES)
-    cmp temp                    ; dónde tendría que haber terminado la copia
+    cmp temp                    ; where the copy should have ended
     sep #$20
 .a8
     beq cuadra
     jmp entrar_en_panico
 cuadra:
-    ; La magia y la suma son lo que dice que la ranura vale. El banco de datos
-    ; se muda a la SRAM: es la única forma de direccionarla sin un puntero en la
-    ; página directa, que está llena.
+    ; The magic and the sum are what say the slot is valid. The data bank moves
+    ; to the SRAM: it is the only way to address it without a pointer on the
+    ; direct page, which is full.
     ;
-    ; El desplazamiento de la ranura se lee **antes** de mudarlo, y de ahí en
-    ; más viaja en X: con el banco en $70, `lda ranura_ofs` leería la SRAM.
+    ; The slot's offset is read **before** moving it, and from then on it
+    ; travels in X: with the bank at $70, `lda ranura_ofs` would read the SRAM.
     jsr ranura_en_x
     phb
     lda #SRAM_BANCO
     pha
     plb
     phx
-    jsr partida_suma            ; se lleva X
+    jsr partida_suma            ; clobbers X
     plx
     rep #$20
 .a16
@@ -307,13 +310,14 @@ cuadra:
     rts
 .endproc
 
-; Si la SRAM tiene una partida, la carga y devuelve A distinto de cero. Corre en
-; el arranque, antes de cargar el mapa: los switches deciden qué página está
-; activa en cada evento, así que tienen que estar puestos antes.
+; If the SRAM has a saved game, loads it and returns A nonzero. It runs at
+; startup, before loading the map: the switches decide which page is active in
+; each event, so they have to be set before.
 .proc cargar_partida
 .a8
 .i16
-    jsr ranura_en_x             ; antes de mudar el banco: ver `guardar_partida`
+    jsr ranura_en_x             ; before moving the bank: see
+                                ; `guardar_partida`
     phb
     lda #SRAM_BANCO
     pha
@@ -321,7 +325,7 @@ cuadra:
     jsr ranura_de_este_formato
     beq no_hay
     phx
-    jsr partida_suma            ; se lleva X
+    jsr partida_suma            ; clobbers X
     plx
     rep #$20
 .a16
@@ -331,32 +335,32 @@ cuadra:
 .a8
     bne no_hay
     plb
-    lda #$00                    ; de la SRAM a la ventana de la WRAM
+    lda #$00                    ; from the SRAM to the WRAM window
     jsr partida_copiar
     lda #$01
     rts
 no_hay:
     plb
     lda #$FF
-    sta ranura                  ; el centinela: no hay partida cargada
+    sta ranura                  ; the sentinel: no saved game loaded
     lda #$00
     rts
 .endproc
 
-; Si la ranura lleva una partida **de este formato**: la magia, el largo y la
-; firma. Devuelve A = 1 si sí y 0 si no, con Z según A —el `lda #` del final
-; lo deja—. Pide el banco de datos en la SRAM y X con el desplazamiento de la
-; ranura, y no toca X.
+; Whether the slot holds a saved game **of this format**: the magic, the length
+; and the signature. Returns A = 1 if so and 0 if not, with Z according to A
+; —the final `lda #` leaves it—. It needs the data bank at the SRAM and X with
+; the slot's offset, and does not touch X.
 ;
-; La usan la pantalla de ranuras y `cargar_partida`, y es una sola para que
-; las dos contesten lo mismo: una partida de otro build se ve vacía y no
-; carga. Si sólo la carga la rechazara, la pantalla mostraría el nombre y el
-; nivel leídos de un formato que no es el suyo —basura— y elegirla empezaría
-; de cero sin decir por qué.
+; It is used by the slot screen and by `cargar_partida`, and it is a single
+; routine so both answer the same: a saved game from another build looks empty
+; and does not load. If only the load rejected it, the screen would show the
+; name and level read from a format that is not its own —garbage— and picking
+; it would start from scratch without saying why.
 ;
-; La magia se compara contra inmediatos y no contra una tabla de la ROM porque
-; con el banco de datos en la SRAM no hay cómo leer la ROM: el ensamblador no
-; tiene direccionamiento largo y la página directa está llena.
+; The magic is compared against immediates and not against a ROM table
+; because with the data bank at the SRAM there is no way to read the ROM: the
+; assembler has no long addressing and the direct page is full.
 .proc ranura_de_este_formato
 .a8
 .i16
@@ -393,11 +397,12 @@ no:
     rts
 .endproc
 
-; La celda donde quedó guardada la partida, puesta como entrada del mapa: es
-; como una puerta le dice a `cargar_mapa` dónde plantar al héroe. Lo usan el
-; arranque —cuando la ROM no lleva título y la partida se carga sola— y el menú
-; del título cuando el jugador elige seguir. Estaba escrito en el arranque nomás
-; y copiarlo al menú habría sido el segundo lugar donde equivocarse.
+; The cell where the saved game was left, set as the map's entry: it is how a
+; door tells `cargar_mapa` where to place the hero. It is used by startup
+; —when the ROM carries no title and the saved game loads by itself— and by
+; the title menu when the player chooses to continue. It used to be written
+; only in startup, and copying it to the menu would have been the second place
+; to get it wrong.
 .proc entrada_de_la_partida
 .a8
 .i16
@@ -411,4 +416,3 @@ no:
 .a8
     rts
 .endproc
-

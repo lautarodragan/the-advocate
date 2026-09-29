@@ -1,29 +1,29 @@
 .segment "FAR"
 
-; --- el lazo de la pelea --------------------------------------------------
+; --- the battle loop -------------------------------------------------------
 
-; El promedio de agilidad de un lado: A8 en 0 el grupo y en 1 la tropa. Si no
-; queda nadie vivo cuentan todos, que es el `or list(quienes)` de
-; `batalla.Batalla._promedio`. El resultado va en `BA_T1`, topado en
-; `BA_AGI_TOPE`: por memoria y no por el acumulador, por lo mismo que
-; `ba_param`.
+; The average agility of one side: A8 at 0 the party and at 1 the troop. If
+; nobody is left alive everyone counts, which is the `or list(quienes)` of
+; `batalla.Batalla._promedio`. The result goes in `BA_T1`, capped at
+; `BA_AGI_TOPE`: through memory and not the accumulator, for the same reason
+; as `ba_param`.
 .proc ba_promedio
 .a8
 .i16
     sta BA_S6
-    ; Dos vueltas: la primera cuenta sólo a los vivos y, si no hubo ninguno,
-    ; la segunda cuenta a todos.
+    ; Two passes: the first counts only the living and, if there were none,
+    ; the second counts everyone.
     lda #1
-    sta BA_S5                   ; ¿sólo los vivos?
+    sta BA_S5                   ; only the living?
 vuelta:
     rep #$20
 .a16
     lda #0
-    sta BA_T0                   ; la suma
+    sta BA_T0                   ; the sum
     sep #$20
 .a8
     lda #0
-    sta BA_S4                   ; cuántos
+    sta BA_S4                   ; how many
     lda BA_S6
     beq desde_el_grupo
     lda #BA_GRUPO_MAX
@@ -66,7 +66,7 @@ sumados:
     lda BA_S4
     bne dividir
     lda BA_S5
-    beq dividir                 ; ni vivos ni muertos: no hay nadie
+    beq dividir                 ; neither living nor dead: there is nobody
     stz BA_S5
     bra vuelta
 dividir:
@@ -91,13 +91,13 @@ listo:
     rts
 .endproc
 
-; La chance de escapar: `Scene_Battle::InitEscapeChance`.
+; The chance to escape: `Scene_Battle::InitEscapeChance`.
 ;
-;     base   = redondear(100 * agi_enemigos / agi_grupo)
-;     chance = recortar(150 - base, 0, 100)
+;     base   = round(100 * enemy_agi / party_agi)
+;     chance = clamp(150 - base, 0, 100)
 ;
-; El redondeo es `(2a + b) / (2b)`, que es `RoundTo` con enteros y sin
-; flotantes: ver `batalla.Batalla._chance_de_huir`.
+; The rounding is `(2a + b) / (2b)`, which is `RoundTo` with integers and no
+; floats: see `batalla.Batalla._chance_de_huir`.
 .proc ba_chance_huir
 .a8
 .i16
@@ -109,7 +109,7 @@ listo:
     bne grupo_hay
     lda #1
 grupo_hay:
-    sta BA_S1                   ; el promedio del grupo
+    sta BA_S1                   ; the party's average
     sep #$20
 .a8
     lda #1
@@ -117,18 +117,18 @@ grupo_hay:
     rep #$20
 .a16
     lda BA_T1
-    sta BA_S2                   ; el de la tropa
+    sta BA_S2                   ; the troop's
     lda #200
     sta BA_T2
     lda BA_S2
-    jsr ba_mul                  ; 200 por el promedio de la tropa
+    jsr ba_mul                  ; 200 times the troop's average
     clc
     adc BA_S1
     sta temp
     lda BA_S1
     asl a
     sta temp + 2
-    jsr ba_div                  ; A16 = la base
+    jsr ba_div                  ; A16 = the base
     sta BA_S3
     lda #150
     sec
@@ -146,8 +146,8 @@ chance_lista:
     rts
 .endproc
 
-; `TryEscape`: se tira contra la chance y, si falla, sube diez. Vuelve con A8
-; en 1 si se escapó.
+; `TryEscape`: roll against the chance and, if it fails, it goes up by ten.
+; Returns with A8 at 1 if the escape worked.
 .proc ba_huir
 .a8
 .i16
@@ -169,7 +169,7 @@ salio:
     rts
 .endproc
 
-; El primer actor vivo desde `BA_ACTOR`, o A8 en $FF si no queda ninguno.
+; The first living actor from `BA_ACTOR` on, or A8 at $FF if none is left.
 .proc ba_actor_siguiente
 .a8
 .i16
@@ -190,7 +190,7 @@ ninguno:
     rts
 .endproc
 
-; El primer enemigo vivo, en A8, o $FF.
+; The first living enemy, in A8, or $FF.
 .proc ba_enemigo_vivo
 .a8
 .i16
@@ -215,10 +215,10 @@ ninguno:
     rts
 .endproc
 
-; Le anota la orden A8 al actor `BA_ACTOR`, con el blanco de `BA_T0`, y la
-; apila en la lista de ejecución. El orden en que se apila **importa**: el
-; desempate del orden de turnos es estable, así que primero va el grupo y
-; después la tropa, como en `batalla.Batalla.jugar_turno`.
+; Records command A8 for actor `BA_ACTOR`, with the target in `BA_T0`, and
+; pushes it onto the execution list. The order it is pushed in **matters**:
+; the tie-break of the turn order is stable, so the party goes first and then
+; the troop, as in `batalla.Batalla.jugar_turno`.
 .proc ba_anotar
 .a8
 .i16
@@ -239,13 +239,13 @@ ninguno:
     rts
 .endproc
 
-; El mensaje de `BA_MTIPO` en pantalla, por `BA_MSG_CUADROS` cuadros o hasta
-; que alguien apriete A.
+; The message in `BA_MTIPO` on screen, for `BA_MSG_CUADROS` frames or until
+; someone presses A.
 .proc ba_mostrar
 .a8
 .i16
-    ; El efecto que hubiera quedado pendiente no sobrevive al mensaje que lo
-    ; dejó: quien quiera uno en éste lo anota después de llamar acá.
+    ; Whatever sound effect was left pending does not outlive the message that
+    ; left it: whoever wants one on this one records it after calling here.
     rep #$20
 .a16
     lda #$FFFF
@@ -260,26 +260,26 @@ ninguno:
     rts
 .endproc
 
-; Qué suena en el golpe que se acaba de resolver, y cuándo.
+; What plays on the hit that was just resolved, and when.
 ;
-; RM2k toca **dos** efectos por golpe: el del ataque al empezar la acción
-; —`Normal::GetStartSe`, y sólo cuando el que pega es un enemigo— y el del
-; resultado en el sub-estado del mensaje, unos cuadros más tarde. Acá el del
-; resultado queda pendiente en `BA_SE2` y sale a los `BA_MSG_CUADROS -
-; BA_SE2_CUADROS` cuadros. Cuando el que pega es del grupo no hay primero, así
-; que el del resultado suena ya. (Cuando esto se escribió los efectos tenían
-; una sola voz y los dos juntos habrían sido uno solo; desde 8c9c182 son dos,
-; ver `efectos_de_sonido.s`.)
+; RM2k plays **two** sound effects per hit: the attack's when the action
+; starts —`Normal::GetStartSe`, and only when the one hitting is an enemy—
+; and the result's in the message sub-state, a few frames later. Here the
+; result's is left pending in `BA_SE2` and goes out after `BA_MSG_CUADROS -
+; BA_SE2_CUADROS` frames. When the one hitting is in the party there is no
+; first one, so the result's plays right away. (When this was written sound
+; effects had a single voice and the two together would have been just one;
+; since 8c9c182 they are two, see `efectos_de_sonido.s`.)
 ;
-; El del resultado sale de easyrpg y no de memoria: errar es `GetFailureSe`
-; —dodge_se—, pegarle a un actor es actor_damaged_se y a un enemigo
-; enemy_damaged_se, salvo que lo mate, que es el enemy_death_se de
+; The result's comes from easyrpg and not from memory: missing is
+; `GetFailureSe` —dodge_se—, hitting an actor is actor_damaged_se and an
+; enemy enemy_damaged_se, unless it kills it, which is the enemy_death_se of
 ; `ProcessBattleActionDeath`.
 .proc ba_sonido_del_golpe
 .a8
 .i16
     lda BA_MBLA
-    jsr ba_x                    ; X: el desplazamiento del blanco
+    jsr ba_x                    ; X: the target's offset
     rep #$20
 .a16
     lda BA_MDANO
@@ -317,8 +317,8 @@ anotado:
     lda BA_MQUIEN
     cmp #BA_GRUPO_MAX
     bcs del_enemigo
-    ; Pega alguien del grupo: RM2k no le pone efecto de ataque, así que el del
-    ; resultado no tiene a qué esperar y sale en el acto.
+    ; Someone in the party hits: RM2k gives it no attack sound effect, so the
+    ; result's has nothing to wait for and goes out at once.
     rep #$20
 .a16
     lda BA_SE2
@@ -337,14 +337,14 @@ del_enemigo:
     rts
 .endproc
 
-; El turno, ya con las órdenes del grupo anotadas: las de la tropa, el orden de
-; ejecución, y a ejecutar.
+; The turn, with the party's commands already recorded: the troop's, the
+; execution order, and on to executing.
 .proc ba_empezar_turno
 .a8
 .i16
-    ; `NextTurn`: con las órdenes del grupo dadas, el turno sube —`IncTurns`,
-    ; que es lo que mira la condición de turno de una página— y las páginas
-    ; pueden volver a correr —`ResetPagesExecuted`—.
+    ; `NextTurn`: with the party's commands given, the turn goes up
+    ; —`IncTurns`, which is what a page's turn condition looks at— and the
+    ; pages can run again —`ResetPagesExecuted`—.
     rep #$20
 .a16
     inc BA_TURNO
@@ -357,8 +357,8 @@ limpia:
     lda BA_S0
     jsr ba_x
     lda BA_UNO + BA_FLAGS, x
-    and #(BAF_HAY | BAF_ACTOR | BAF_OCULTO) ; sin BAF_DEF: la defensa dura un
-                                ; turno
+    and #(BAF_HAY | BAF_ACTOR | BAF_OCULTO) ; without BAF_DEF: defending lasts
+                                ; one turn
     sta BA_UNO + BA_FLAGS, x
     inc BA_S0
     lda BA_S0
@@ -371,12 +371,13 @@ limpia:
     jmp ba_ejecutar
 .endproc
 
-; La experiencia de una victoria, repartida: `ProcessSceneActionVictory` le da
-; **la suma entera** a cada actor vivo del grupo —`GetActiveBattlers`, o sea los
-; que no están muertos—, no la divide entre ellos. La suma ya viene hecha por
-; tropa en `tropa_exp`: todos los enemigos de una victoria están muertos, que es
-; lo que `Game_EnemyParty::GetExp` pide. Corre al ganar, desde
-; `ba_vic_empezar`, antes de mostrar nada. Se lleva `BA_S0`, `BA_T*`, A y X.
+; A victory's experience, handed out: `ProcessSceneActionVictory` gives **the
+; whole sum** to each living actor in the party —`GetActiveBattlers`, that is,
+; the ones that are not dead—, it does not split it among them. The sum comes
+; precomputed per troop in `tropa_exp`: every enemy in a victory is dead,
+; which is what `Game_EnemyParty::GetExp` asks for. It runs on winning, from
+; `ba_vic_empezar`, before showing anything. It clobbers `BA_S0`, `BA_T*`, A
+; and X.
 .proc ba_exp_repartir
 .a8
 .i16
@@ -385,14 +386,14 @@ limpia:
     bne listo
     lda BA_TROPA_K
     cmp #$FF
-    beq listo                   ; una tropa que el cartucho no lleva
+    beq listo                   ; a troop the cartridge does not carry
     rep #$20
 .a16
     and #$00FF
     asl a
     tax
     lda f:tropa_exp, x
-    ldy #0                      ; la experiencia: ver `ba_sin_ocultos`
+    ldy #0                      ; the experience: see `ba_sin_ocultos`
     jsr ba_sin_ocultos
     sta BA_T1
     sep #$20
@@ -411,7 +412,7 @@ otro:
     lda BA_UNO + BA_HP, x
     sep #$20
 .a8
-    beq siguiente               ; muerto: `Exists()` lo deja afuera
+    beq siguiente               ; dead: `Exists()` leaves it out
     lda BA_UNO + BA_NUMERO, x
     jsr exp_sumar
 siguiente:
@@ -421,7 +422,8 @@ listo:
     rts
 .endproc
 
-; El fin del turno: o se acabó la pelea, o se vuelve a pedir órdenes.
+; The end of the turn: either the battle is over, or commands are asked for
+; again.
 .proc ba_fin_de_turno
 .a8
 .i16
@@ -432,10 +434,10 @@ listo:
     sta BA_RESULT
     lda #BA_MSG_VICTORIA
     sta BA_MTIPO
-    ; El `BGM_Victory` de `Scene_Battle_Rpg2k`. En el ABL es **el mismo tema
-    ; que el de la pelea** —los dos campos del LDB dicen T_VGFighterMAX_Masako—
-    ; así que en la práctica vuelve a empezar; que sean dos constantes y no una
-    ; es porque el dato es del juego y no nuestro.
+    ; `Scene_Battle_Rpg2k`'s `BGM_Victory`. In ABL it is **the same song as
+    ; the battle's** —both LDB fields say T_VGFighterMAX_Masako— so in
+    ; practice it starts over; that they are two constants and not one is
+    ; because the data is the game's and not ours.
     lda #BA_TEMA_FIN
     jsl f:ba_t_bgm
     jsr ba_vic_empezar
@@ -464,10 +466,10 @@ otro_turno:
     sta BA_ORDEN
     lda #BA_M_ORDEN
     sta BA_MODO
-    ; Y antes de pedir las órdenes, otra vez: el `eCheckEvents` de
-    ; `ProcessSceneActionFightAutoEscape`. Lo que ya corrió en el turno no
-    ; vuelve —las anotadas se borran recién al empezar el que viene—, así que
-    ; esto sólo encuentra lo que se cumplió después de la última acción.
+    ; And before asking for the commands, once more: the `eCheckEvents` of
+    ; `ProcessSceneActionFightAutoEscape`. What already ran this turn does not
+    ; come back —the recorded ones are cleared only when the next one
+    ; starts—, so this only finds what became true after the last action.
     jsr ba_pag_probar
     beq sin_pagina
     lda #1
@@ -478,20 +480,20 @@ sin_pagina:
     rts
 .endproc
 
-; La acción que sigue, salteando a los que murieron en el camino.
+; The next action, skipping the ones who died along the way.
 .proc ba_ejecutar
 .a8
 .i16
-    ; Antes de cada acción, y también después de la última, las páginas de la
-    ; tropa que se cumplan: es el `ePreAction` de
-    ; `ProcessSceneActionBattle`, con su `CheckBattleEndAndScheduleEvents`.
-    ; Así es como la página de Detect Aura corre apenas Talan termina de usarla
-    ; y antes de que actúe el que sigue. Cuando terminan, `ba_pag_paso` vuelve
-    ; acá, y lo que ya corrió en el turno no vuelve a correr.
+    ; Before each action, and also after the last one, the troop pages whose
+    ; conditions hold: it is the `ePreAction` of `ProcessSceneActionBattle`,
+    ; with its `CheckBattleEndAndScheduleEvents`. That is how the Detect Aura
+    ; page runs right after Talan finishes using it and before the next one
+    ; acts. When they finish, `ba_pag_paso` comes back here, and what already
+    ; ran this turn does not run again.
     ;
-    ; Va antes de `otra` y no adentro: saltear a uno que murió no cambia nada
-    ; de lo que una página mira, que es también por qué easyrpg saca a los
-    ; muertos de la lista antes de probar y no después.
+    ; It goes before `otra` and not inside it: skipping one who died changes
+    ; nothing a page looks at, which is also why easyrpg takes the dead off
+    ; the list before checking and not after.
     jsr ba_pag_probar
     beq otra
     stz BA_PAG_VUELTA
@@ -514,9 +516,9 @@ hay:
     asl a
     jsr ba_ax
     lda BA_ACC, x
-    sta BA_S1                   ; la orden
+    sta BA_S1                   ; the command
     lda BA_ACC + 1, x
-    sta BA_MBLA                 ; y el blanco
+    sta BA_MBLA                 ; and the target
     lda BA_S1
     cmp #BA_DEFENDER
     beq a_defiende
@@ -532,8 +534,8 @@ a_defiende:
 a_no_huyo:
     jmp no_huyo
 ataca:
-    ; Atacar. Si el blanco murió antes de que le tocara, se reapunta al primero
-    ; vivo de ese lado, como hace `Game_BattleAlgorithm`.
+    ; Attack. If the target died before its turn came, it is retargeted to the
+    ; first living one on that side, as `Game_BattleAlgorithm` does.
     lda BA_MBLA
     jsr ba_vivo
     bne pega
@@ -558,12 +560,13 @@ pega:
     jsr ba_atacar
     lda #BA_MSG_ATAQUE
     sta BA_MTIPO
-    jsr ba_mostrar              ; que limpia el pendiente, así que va antes
+    jsr ba_mostrar              ; which clears the pending one, so it goes first
     jmp ba_sonido_del_golpe
 usa_una_habilidad:
-    ; El blanco muerto **no se reapunta**, como con un ítem: `IsTargetValid`
-    ; de `Skill` lo descarta y la acción se pierde. Con una que apunta al
-    ; grupo eso es lo que pasa si al que se iba a curar lo mataron antes.
+    ; A dead target **is not retargeted**, as with an item: `Skill`'s
+    ; `IsTargetValid` discards it and the action is lost. With one that
+    ; targets the party that is what happens if the one about to be healed was
+    ; killed first.
     lda BA_MBLA
     jsr ba_vivo
     beq otra_hab
@@ -573,15 +576,15 @@ usa_una_habilidad:
     jsr ba_mostrar
     rep #$20
 .a16
-    lda #BA_SE_ITEM             ; el mismo que un ítem: RM2k no tiene otro
+    lda #BA_SE_ITEM             ; the same as an item: RM2k has no other
     jsl f:ba_t_sonido
 .a8
     rts
 otra_hab:
     jmp otra
 usa_un_item:
-    ; El ítem no falla ni lo esquiva nadie, así que no tira azar; y el blanco
-    ; muerto **no se reapunta**, que es lo contrario de un ataque.
+    ; An item does not miss and nobody dodges it, so it rolls no dice; and a
+    ; dead target **is not retargeted**, which is the opposite of an attack.
     jsr ba_item_usar
     lda #BA_MSG_ITEM
     sta BA_MTIPO

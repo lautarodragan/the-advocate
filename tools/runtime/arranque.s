@@ -1,61 +1,61 @@
 .segment "CODE"
 
-; --- arranque --------------------------------------------------------------
+; --- boot -------------------------------------------------------------------
 .proc reset
     sei
     clc
-    xce                         ; a modo nativo del 65816
-    jml f:rapido + RAPIDO       ; al espejo rápido: ver MEMSEL
+    xce                         ; into the 65816's native mode
+    jml f:rapido + RAPIDO       ; to the fast mirror: see MEMSEL
 rapido:
-    rep #$30                    ; A, X e Y de 16 bits
+    rep #$30                    ; 16-bit A, X and Y
 .a16
 .i16
     ldx #$1FFF
     txs
-    ; El banco de datos, en el del código. En un reset de verdad el 65816 lo
-    ; deja en cero y todo lo de acá abajo funcionaría igual, pero desde el
-    ; 2026-09-13 acá se llega también con un `jml` —el Game Over de
-    ; `op_battle`— y ahí el banco de datos es el del bytecode, o sea un banco
-    ; del cartucho: `sta INIDISP` escribiría la ROM en vez del PPU.
+    ; The data bank, set to the code's. On a real reset the 65816 leaves it at
+    ; zero and everything below would work the same, but since 2026-09-13 we
+    ; also get here with a `jml` —the Game Over of `op_battle`— and there the
+    ; data bank is the bytecode's, that is, a cartridge bank: `sta INIDISP`
+    ; would write to ROM instead of the PPU.
     phk
     plb
 
     sep #$20
 .a8
     lda #$80
-    sta INIDISP                 ; blanking forzado: la VRAM sólo se toca así
-    ; La región no es un detalle cosmético: el stream de música está armado en
-    ; cuadros, y una consola PAL da 50 por segundo en vez de 60. Sin corregirlo
-    ; el tema suena un 17% lento.
+    sta INIDISP                 ; forced blanking: VRAM is only touched this way
+    ; The region is not a cosmetic detail: the music stream is built in
+    ; frames, and a PAL console gives 50 per second instead of 60. Without
+    ; correcting it the song plays 17% slow.
     lda STAT78
     and #$10
     sta es_pal
     stz pal_tick
 
-    jsr ppu_reset               ; la consola no arranca limpia; el emulador sí
+    jsr ppu_reset               ; the console does not boot clean; the emulator does
     lda #$01
-    sta MEMSEL                  ; la ROM del espejo, rápida
-    jsr msu_detectar            ; ¿la música sale de una pista?
+    sta MEMSEL                  ; the mirror's ROM, fast
+    jsr msu_detectar            ; does the music come from a track?
 
-    ; Después del reset, no antes: ppu_reset apaga NMITIMEN junto con todo lo
-    ; demás, así que habilitarlo primero no serviría de nada.
+    ; After the reset, not before: ppu_reset turns NMITIMEN off along with
+    ; everything else, so enabling it first would be no use.
     lda #$01
-    sta NMITIMEN                ; que la consola lea los controles sola
+    sta NMITIMEN                ; let the console read the pads by itself
     stz boot_cuadros
-    stz vueltas                 ; la RAM arranca con basura y el arnés lo
-    stz vueltas + 1             ; lee desde el cuadro cero
+    stz vueltas                 ; RAM starts with garbage and the harness
+    stz vueltas + 1             ; reads it from frame zero
     rep #$20
 .a16
     lda #0
-    sta f:vueltas_congeladas    ; y ésta, que las animaciones restan
+    sta f:vueltas_congeladas    ; and this one, which the animations subtract
     sep #$20
 .a8
     lda #$81
-    sta NMITIMEN                ; y la NMI, que cuenta los cuadros del arranque
+    sta NMITIMEN                ; and the NMI, which counts the boot frames
 
     jsr ppu_init
 
-    ; Sin entrada puesta: el primer mapa arranca donde diga su registro.
+    ; No entry set: the first map starts wherever its record says.
     rep #$20
 .a16
     lda #$FFFF
@@ -63,8 +63,8 @@ rapido:
     sep #$20
 .a8
 
-    ; Los switches arrancan todos apagados, como una partida nueva de RM2k, y
-    ; la pantalla sin teñir.
+    ; The switches all start off, like a new RM2k game, and the screen
+    ; untinted.
     ldx #$0000
 borrar_switches:
     stz switches, x
@@ -77,18 +77,19 @@ borrar_switches:
     sta tinte_b
     sta tinte_s
     stz salto_hay
-    lda #$FF                    ; ningún tema recordado, como una partida
-    sta f:TEMA_RECORDADO        ; nueva: ver `op_memorized_bgm`
-    stz anim_pend               ; la RAM arranca con basura y esto dispara DMAs
-    stz panico                  ; la RAM arranca con basura, y 85 no es un código
+    lda #$FF                    ; no song remembered, like a new
+    sta f:TEMA_RECORDADO        ; game: see `op_memorized_bgm`
+    stz anim_pend               ; RAM starts with garbage and this triggers DMAs
+    stz panico                  ; RAM starts with garbage, and 85 is not a code
     stz oro
     stz oro + 1
     stz oro + 2
-    ; El grupo va antes de cargar el primer mapa: `cargar_mapa` elige con
-    ; qué se dibuja el héroe, y sin esto leería la basura con la que
-    ; arranca la RAM. El grupo con el que arranca la partida la partida, de la base del juego. El gráfico
-    ; del héroe sale del primero, así que esto decide qué sprite se ve; que en
-    ; este juego el actor 10 sea invisible es dato del juego, no un error.
+    ; The party goes before loading the first map: `cargar_mapa` picks what
+    ; the hero is drawn with, and without this it would read the garbage RAM
+    ; starts with. The party the game starts with, from the game's database.
+    ; The hero's graphic comes from the first one, so this decides which
+    ; sprite shows; that in this game actor 10 is invisible is game data, not
+    ; a bug.
     ldx #$0000
 copiar_grupo:
     cpx #GRUPO_INICIAL_N
@@ -101,77 +102,81 @@ grupo_listo:
     rep #$20
 .a16
     lda #GRUPO_INICIAL_N
-    sta grupo_n                 ; de 16 bits: X e Y lo comparan enteros
+    sta grupo_n                 ; 16 bits: X and Y compare it whole
     sep #$20
 .a8
 
-    ; El intérprete y la ruta, en cero antes de cargar nada. La RAM arranca con
-    ; basura y esto la lee en el primer cuadro: con `ev_esperando` en cualquier
-    ; cosa se queda descontando para siempre y ninguna página corre, y con
-    ; `ruta_i` menor que `ruta_n` `move_hero` cree que hay una ruta forzada
-    ; pendiente y no lee el pad nunca —el héroe no se mueve—.
+    ; The interpreter and the route, at zero before loading anything. RAM
+    ; starts with garbage and this reads it on the first frame: with
+    ; `ev_esperando` at anything it stays counting down forever and no page
+    ; runs, and with `ruta_i` less than `ruta_n` `move_hero` believes there is
+    ; a forced move route pending and never reads the pad —the hero does not
+    ; move—.
     ;
-    ; Lo de la ruta lo encontró taro jugando en mednafen, no la tanda, y ésa es
-    ; la parte que importa: **lo que snes9x deja en la RAM es siempre lo mismo**,
-    ; así que esconde justo los errores que un patrón fijo esconde. Con estas dos
-    ; sin inicializar, `ruta_i < ruta_n` da falso las diez corridas de snes9x y
-    ; el error desaparece; en bsnes con entropía alta se ve. La tanda entera
-    ; daba verde con esto adentro, y en hardware real habría fallado igual que
-    ; en mednafen. Está medido: con estas dos sin inicializar a mano y diez
-    ; corridas por core, snes9x da 0 de 10 en rojo y bsnes 2 de 10. Contra eso
-    ; existe `rom/pruebas/rpgmaker/test_cores.py`, que corre la misma ROM en snes9x y en
-    ; bsnes —éste con `bsnes_entropy=High`— y compara las dos pantallas entre
-    ; sí; ese archivo tiene el resto de los números. Verificado el 2026-09-16
-    ; sacando estas dos líneas: de cinco corridas, cuatro en rojo.
+    ; The route one was found by taro playing in mednafen, not by the suite,
+    ; and that is the part that matters: **what snes9x leaves in RAM is always
+    ; the same**, so it hides exactly the errors a fixed pattern hides. With
+    ; these two uninitialized, `ruta_i < ruta_n` is false on all ten snes9x
+    ; runs and the error disappears; on bsnes with high entropy it shows. The
+    ; whole suite was green with this inside, and on real hardware it would
+    ; have failed just like in mednafen. It is measured: with these two
+    ; uninitialized by hand and ten runs per core, snes9x gives 0 of 10 red
+    ; and bsnes 2 of 10. Against that there is
+    ; `rom/pruebas/rpgmaker/test_cores.py`, which runs the same ROM on snes9x
+    ; and on bsnes —the latter with `bsnes_entropy=High`— and compares the two
+    ; screens with each other; that file has the rest of the numbers. Verified
+    ; on 2026-09-16 by removing these two lines: of five runs, four red.
     stz ev_activo
     jsr limpiar_esperas
-    stz ruta_n                  ; sin ruta forzada pendiente
+    stz ruta_n                  ; no forced move route pending
     stz ruta_i
     stz ruta_espera
     lda #8
-    sta ruta_frec               ; la de siempre, hasta que un OP_ROUTE diga otra
-    ; Y lo demás que una ruta deja prendido. La RAM arranca con basura —snes9x
-    ; la llena de $55— así que sin esto el héroe arrancaría atravesando paredes
-    ; y con la animación parada.
+    sta ruta_frec               ; the usual one, until an OP_ROUTE says otherwise
+    ; And the rest of what a route leaves on. RAM starts with garbage —snes9x
+    ; fills it with $55— so without this the hero would start walking through
+    ; walls and with the animation stopped.
     stz ruta_salto
     stz ruta_atraviesa
     stz ruta_anim_para
     stz atravesando
     stz atravesando + 1
     stz tinte_pendiente
-    ; Y la ventana de mensaje. `msg_abierto` en basura deja la página bloqueada
-    ; para siempre: `eventos_tick` cree que hay un mensaje en pantalla y espera
-    ; una A que ya no cierra nada. Está medido —sin este `stz`, `snes-cerrar` se
-    ; cae en las doce corridas, y en snes9x además de en bsnes—.
+    ; And the message window. `msg_abierto` with garbage leaves the page
+    ; blocked forever: `eventos_tick` believes there is a message on screen
+    ; and waits for an A that no longer closes anything. It is measured
+    ; —without this `stz`, `snes-cerrar` fails on all twelve runs, and on
+    ; snes9x as well as on bsnes—.
     stz msg_abierto
     stz eleg_activo
     stz msg_estado
     stz msg_subir
-    ; Los dos que dicen quién abrió el mensaje. En basura, `par_ev` haría que
-    ; el primer plano anotara un dueño cualquiera y `un_paralelo` saltearía
-    ; para siempre al evento que llevara ese número: es de los errores que
-    ; `test_cores.py` ve y una golden no, porque bsnes arranca la WRAM con
-    ; basura y snes9x en cero.
+    ; The two that say who opened the message. With garbage, `par_ev` would
+    ; make the foreground record any owner at all and `un_paralelo` would skip
+    ; forever the event that had that number: it is one of the errors
+    ; `test_cores.py` sees and a golden does not, because bsnes starts WRAM
+    ; with garbage and snes9x at zero.
     lda #$FF
     sta msg_duenio
     sta par_ev
-    ; Y su cola de escapes, por lo mismo: una pausa en basura frenaría la
-    ; página igual que `msg_abierto`. Hoy no se leen sin que `msg_empezar` las
-    ; haya escrito, pero eso vale mientras el guard de arriba siga siendo
-    ; `msg_abierto | msg_estado`.
+    ; And its escape queue, for the same reason: a pause with garbage would
+    ; stop the page just like `msg_abierto`. Today they are not read without
+    ; `msg_empezar` having written them, but that holds only as long as the
+    ; guard above stays `msg_abierto | msg_estado`.
     rep #$20
 .a16
     lda #0
-    sta f:FAR_MSG_PAUSA         ; `stz` no tiene modo largo
+    sta f:FAR_MSG_PAUSA         ; `stz` has no long mode
     sep #$20
 .a8
     sta f:FAR_MSG_AUTO
-    ; Los dos del pad son por las dudas y no por un error visto: `read_pad`
-    ; los reescribe antes de que nadie los mire. Cuestan dos instrucciones.
+    ; The two pad ones are just in case and not for a bug that was seen:
+    ; `read_pad` rewrites them before anyone looks at them. They cost two
+    ; instructions.
     stz pad_a
     stz pad_a_ant
     stz autofire
-    stz flechas_cuadros         ; con una flecha sostenida desde el encendido
+    stz flechas_cuadros         ; with an arrow held since power-on
     stz flechas_repetidas
     lda #MOVIL_HEROE
     sta movil
@@ -184,8 +189,8 @@ grupo_listo:
     sta vq_tope
     stz sacudida_resta
     stz sacudida_resta + 1
-    stz destello_nivel          ; la RAM arranca con basura: sin esto el
-    stz destello_nivel + 1      ; primer cuadro sale destellado
+    stz destello_nivel          ; RAM starts with garbage: without this the
+    stz destello_nivel + 1      ; first frame comes out flashed
     stz destello_resta
     stz destello_listo
     rep #$20
@@ -195,16 +200,16 @@ grupo_listo:
     sep #$20
 .a8
 
-    ; Mirando a cámara, como arranca RM2k. Va antes de cargar el primer mapa
-    ; porque ahí corren sus eventos, y una ruta forzada puede girarlo: si esto
-    ; quedara después, pisaría lo que la ruta acaba de decidir.
+    ; Facing the camera, as RM2k starts. It goes before loading the first map
+    ; because its events run there, and a forced move route can turn it: if
+    ; this were after, it would overwrite what the route just decided.
     lda #DIR_DOWN
     sta hero_dir
 
-    ; El cronómetro arranca apagado y en cero. Va acá y no en `cargar_mapa`
-    ; porque en RM2k vive en `Game_Party`: sobrevive a los mapas, que es
-    ; justamente para lo que el juego lo usa. La RAM arranca con basura —snes9x
-    ; la llena de $55— así que sin esto se vería corriendo solo.
+    ; The timer starts off and at zero. It goes here and not in `cargar_mapa`
+    ; because in RM2k it lives in `Game_Party`: it survives maps, which is
+    ; exactly what the game uses it for. RAM starts with garbage —snes9x fills
+    ; it with $55— so without this it would be seen running by itself.
     stz timer_activo
     stz timer_visible
     stz timer_sub
@@ -215,25 +220,25 @@ grupo_listo:
 .a8
     jsr timer_digitos
 
-    ; La RAM arranca con basura —snes9x la llena de $55— y `flush_video` mira
-    ; las dos: sin esto el primer vblank prendería la pantalla con el brillo que
-    ; hubiera quedado, y el lazo arrancaría creyéndose adentro de un fundido.
+    ; RAM starts with garbage —snes9x fills it with $55— and `flush_video`
+    ; looks at both: without this the first vblank would turn the screen on
+    ; with whatever brightness was left, and the loop would start believing
+    ; it was inside a fade.
     stz fundido
     lda #BRILLO_MAX
     sta brillo
-    stz bgm_fundido             ; y lo mismo con el del tema
-    jsl f:transicion_de_arranque    ; y el teletransporte, con fundido
-    jsl f:encuentro_arranque    ; la semilla del azar de los encuentros
+    stz bgm_fundido             ; and the same with the song's
+    jsl f:transicion_de_arranque    ; and the teleport, with fade
+    jsl f:encuentro_arranque    ; the encounters' random seed
 
-    ; Si el cartucho tiene una partida guardada, se carga acá: los switches que
-    ; trae deciden qué página está activa en cada evento, así que tienen que
-    ; estar puestos **antes** de cargar el mapa. Y la entrada se arma con la
-    ; celda guardada, que es como una puerta le dice a `cargar_mapa` dónde
-    ; plantar al héroe.
+    ; If the cartridge has a saved game, it is loaded here: the switches it
+    ; carries decide which page is active on each event, so they have to be
+    ; set **before** loading the map. And the entry is built from the saved
+    ; cell, which is how a door tells `cargar_mapa` where to plant the hero.
     lda #$FF
-    sta ranura                  ; ninguna cargada; la RAM arranca con basura
-    ; La semilla del azar, y las variables en cero: la RAM lejana también
-    ; arranca con basura, y una partida cargada las pisa después.
+    sta ranura                  ; none loaded; RAM starts with garbage
+    ; The random seed, and the variables at zero: far RAM also starts with
+    ; garbage, and a loaded save overwrites them afterwards.
     jsr limpiar_variables
     jsr equipo_inicial_poner
     jsl f:hp_inicial_poner
@@ -245,29 +250,29 @@ grupo_listo:
     jsr giro_limpiar
     jsr aram_limpiar
     jsr animacion_limpiar
-    lda #0                      ; la RAM arranca con basura
+    lda #0                      ; RAM starts with garbage
     sta f:CARTEL_ACTIVA
     sta f:CARTEL_LISTO
-    sta f:GO_ESPERA             ; la mira el arnés: ver game_over.s
-    ; El testigo de la pantalla de ranuras también: con $55 el arnés la vería
-    ; abierta desde el reset. Es lo que pasó el 2026-09-10 con los dos
-    ; contadores que "daban 85": leían la basura del emulador.
+    sta f:GO_ESPERA             ; the harness looks at it: see game_over.s
+    ; The slot screen's flag too: with $55 the harness would see it open from
+    ; the reset. That is what happened on 2026-09-10 with the two counters
+    ; that "gave 85": they were reading the emulator's garbage.
     stz menu_abierto
-    ; Con pantalla de título esto no se hace acá: cargar o empezar de nuevo lo
-    ; decide el menú, y hasta que el jugador elija la partida guardada no se
-    ; toca. Sin pantalla de título —que es toda la tanda— sigue pasando lo de
-    ; siempre, o sea que si hay partida se carga sola.
+    ; With a title screen this is not done here: loading or starting over is
+    ; decided by the menu, and until the player picks it the saved game is not
+    ; touched. Without a title screen —which is the whole suite— the usual
+    ; still happens, that is, if there is a save it loads by itself.
     lda #<TITULO_TILES
     ora #>TITULO_TILES
     bne nueva
-    lda #0                      ; sin menú que elija, siempre la primera
+    lda #0                      ; no menu to choose, always the first
     jsr poner_ranura
     jsr cargar_partida
     beq nueva
     jsr entrada_de_la_partida
     rep #$20
 .a16
-    lda mapa_actual             ; el índice va en dieciséis bits
+    lda mapa_actual             ; the index goes in sixteen bits
     bra cargar
 .a8
 nueva:
@@ -280,185 +285,191 @@ cargar:
 .a8
     jsr clear_oam
 
-    stz step_left               ; parado, sin paso en curso
-    stz pad                     ; la RAM arranca con basura y move_hero la lee
+    stz step_left               ; standing, no step in progress
+    stz pad                     ; RAM starts with garbage and move_hero reads it
     lda #1
-    sta anim_step               ; el frame del medio: la pose parada
+    sta anim_step               ; the middle frame: the standing pose
     stz anim_timer
 
     jsr build_oam
     jsr flush_video
 
     lda #$0F
-    sta INIDISP                 ; pantalla encendida, brillo al máximo
+    sta INIDISP                 ; screen on, full brightness
 
-    ; La subida al SPC700 va después de prender la pantalla, no antes: con el
-    ; paquete de audio del mapa es un tercio de segundo, y así el mapa aparece
-    ; de entrada en vez de hacerte mirar una pantalla negra hasta que termine.
+    ; The upload to the SPC700 goes after turning the screen on, not before:
+    ; with the map's audio package it is a third of a second, and this way the
+    ; map shows up right away instead of making you stare at a black screen
+    ; until it ends.
     ;
-    ; Y antes de subir nada, el comando 4: **que el SPC700 vuelva a su ROM del
-    ; IPL**. Acá se llega de dos maneras y sólo una de las dos deja al SPC700
-    ; como recién encendido. Con el botón de reset de la consola la línea les
-    ; llega a los dos procesadores y el IPL arranca solo; con el `jml reset`
-    ; del Game Over de `op_battle`, no: el SPC700 sigue corriendo el driver y
-    ; el saludo $AA/$BB que `spc_upload` espera no llega **nunca**. Ése era el
-    ; cuelgue del cofre trampa de los Rat Tracks —pantalla encendida, mapa
-    ; dibujado y el juego clavado—, y el mismo lo tenía cualquier Game Over.
+    ; And before uploading anything, command 4: **the SPC700 goes back to its
+    ; IPL ROM**. We get here two ways and only one of them leaves the SPC700
+    ; as if freshly powered on. With the console's reset button the line
+    ; reaches both processors and the IPL starts by itself; with the
+    ; `jml reset` of `op_battle`'s Game Over, it does not: the SPC700 keeps
+    ; running the driver and the $AA/$BB greeting that `spc_upload` waits for
+    ; **never** arrives. That was the hang of the trap chest in the Rat Tracks
+    ; —screen on, map drawn and the game stuck—, and any Game Over had the
+    ; same one.
     ;
-    ; Con el IPL corriendo esto no molesta: mientras espera el $CC mira el
-    ; puerto 0, y acá se escriben el 2 y el 3. El testigo se incrementa sin
-    ; esperar acuse, porque del otro lado ya no queda quién lo devuelva.
+    ; With the IPL running this does no harm: while it waits for $CC it looks
+    ; at port 0, and here ports 2 and 3 are written. The token is incremented
+    ; without waiting for an acknowledgement, because on the other side there
+    ; is no longer anyone to return it.
     lda #APU_CMD_IPL
     sta APUIO2
     inc token
     lda token
     sta APUIO3
     jsr spc_upload
-    ; El puerto 2 es el comando del driver, y `spc_upload` lo deja con lo que
-    ; haya mandado último: en cero, el driver lee pares del DSP.
+    ; Port 2 is the driver's command, and `spc_upload` leaves it with whatever
+    ; it sent last: at zero, the driver reads DSP pairs.
     stz APUIO2
-    ; Y el paquete de audio del mapa de arranque: `cargar_mapa` no lo pudo
-    ; subir porque el driver todavía no corría. Ver `paquete_cargar`.
+    ; And the boot map's audio package: `cargar_mapa` could not upload it
+    ; because the driver was not running yet. See `paquete_cargar`.
     lda #1
     sta f:APU_LISTO
     jsr paquete_cargar
     jsr music_boot
 
-    ; La imagen del título, descomprimida a la WRAM **antes** de la espera, que
-    ; es donde sobran cuadros: descomprimirla al mostrarla eran nueve cuadros
-    ; más de negro antes del título. La sube `titulo_subir`. Una ROM con título
-    ; puede pasarse de BOOT_CUADROS por esto, y no importa: lo que cuenta
-    ; cuadros desde el reset es el lazo, y ahí se llega después del título.
+    ; The title image, decompressed to WRAM **before** the wait, which is
+    ; where there are frames to spare: decompressing it when showing it was
+    ; nine more frames of black before the title. `titulo_subir` uploads it.
+    ; A ROM with a title can go past BOOT_CUADROS because of this, and it does
+    ; not matter: what counts frames from the reset is the loop, and that is
+    ; reached after the title.
 .ifdef PANTALLA_TITULO
     ldx #(PANTALLA_TITULO * PANTALLA_FILA)
     jsl f:pantalla_descomprimir
 .endif
 
-    ; Y se espera a que el arranque dure lo que dura siempre: BOOT_CUADROS.
+    ; And we wait for boot to last what it always lasts: BOOT_CUADROS.
 espera_boot:
     lda boot_cuadros
     cmp #BOOT_CUADROS
     bcc espera_boot
-    ; La NMI sigue contando después del arranque: es la única forma de saber
-    ; si una vuelta del lazo se pasó del cuadro. Ver `contar_perdidos`.
+    ; The NMI keeps counting after boot: it is the only way to know whether a
+    ; loop iteration overran the frame. See `contar_perdidos`.
     lda boot_cuadros
     sta nmi_visto
     stz cuadros_perdidos
 
-    ; Y desde acá la música corre sola, en `irq_musica`: una vez por cuadro
-    ; en la línea IRQ_LINEA, tarde lo que tarde el lazo. Va después de la
-    ; espera y no antes para que el tema arranque en el mismo cuadro que
-    ; cuando la tocaba el lazo.
+    ; And from here the music runs by itself, in `irq_musica`: once per frame
+    ; on line IRQ_LINEA, however long the loop takes. It goes after the wait
+    ; and not before so that the song starts on the same frame as when the
+    ; loop played it.
     lda #<IRQ_LINEA
     sta VTIMEL
     lda #>IRQ_LINEA
     sta VTIMEH
     lda #$A1
-    sta NMITIMEN                ; la NMI, los controles y la IRQ vertical
+    sta NMITIMEN                ; the NMI, the pads and the vertical IRQ
     cli
 
-    ; La pantalla de título, si esta ROM la lleva. Va **después** de que el
-    ; arranque terminó de contar sus BOOT_CUADROS y no antes: así una ROM sin
-    ; título llega al lazo exactamente en el cuadro de siempre, y los 96 casos
-    ; de la tanda —que cuentan cuadros desde el reset— no se enteran de que
-    ; esto existe.
+    ; The title screen, if this ROM has one. It goes **after** boot has
+    ; finished counting its BOOT_CUADROS and not before: that way a ROM
+    ; without a title reaches the loop on exactly the usual frame, and the 96
+    ; cases of the suite —which count frames from the reset— never learn that
+    ; this exists.
     jsr pantalla_titulo
 
 loop:
     jsr wait_vblank
-    ; El control primero: la consola lo lee sola al empezar el vblank y hay que
-    ; esperar a que arranque. Si antes se hiciera algo largo —el DMA de OAM, por
-    ; ejemplo— se llegaría con la lectura ya terminada, y esperar su arranque
-    ; significaría esperar al cuadro siguiente: medio cuadro por vuelta.
+    ; The pad first: the console reads it by itself when vblank starts and we
+    ; have to wait for that to begin. If something long were done before —the
+    ; OAM DMA, for example— we would arrive with the read already finished,
+    ; and waiting for it to start would mean waiting for the next frame: half
+    ; a frame per iteration.
     jsr read_pad
-    jsr flush_video             ; lo del cuadro anterior, todavía en vblank
-    ; El fundido de un teletransporte congela el juego entero mientras dura,
-    ; como RM2k: lo único que sigue corriendo es la música. Ver `fundido_tick`.
+    jsr flush_video             ; the previous frame's, still in vblank
+    ; A teleport's fade freezes the whole game while it lasts, like RM2k: the
+    ; only thing that keeps running is the music. See `fundido_tick`.
     jsr fundido_tick
     bne congelado
-    ; De acá abajo el cuadro sigue el orden de `Game_Map::Update`
-    ; —`game_map.cpp:1256-1318` de easyrpg—, y lo que manda es **dónde cae el
-    ; jugador**: allá `UpdateMapEvents` va antes de `game_player->Update()`
-    ; (`:1274` contra `:1288`) y `UpdateForegroundEvents` va después (`:1310`),
-    ; con `UpdateMessage` (`:1297`) y `UpdateTimers` (`:1304`) en el medio.
+    ; From here down the frame follows the order of `Game_Map::Update`
+    ; —easyrpg's `game_map.cpp:1256-1318`—, and what rules is **where the
+    ; player falls**: there `UpdateMapEvents` goes before
+    ; `game_player->Update()` (`:1274` against `:1288`) and
+    ; `UpdateForegroundEvents` goes after (`:1310`), with `UpdateMessage`
+    ; (`:1297`) and `UpdateTimers` (`:1304`) in between.
     ;
-    ; Lo que **no** está en ese orden son los ticks de pantalla —el destello,
-    ; la sacudida, la cámara corrida, el cartel, la lluvia—: allá son
-    ; `game_screen->Update()` y `game_pictures->Update()` y van en `:1305`, o
-    ; sea antes del intérprete, y acá van después. Ninguno de ellos decide si
-    ; algo se mueve ni cuándo, así que la diferencia es de un cuadro en lo que
-    ; se ve y no en lo que pasa; moverlos es otro cambio, con sus goldens.
-    jsr eventos_de_mapa         ; `UpdateMapEvents`: refresco, automáticas y
-                                ; paralelos, **antes** del héroe
-    jsr animar_quietos          ; los que animan sin moverse, antes que las
-                                ; rutas: si una agarra a uno, gana la ranura
-    jsr mover_eventos           ; y las rutas forzadas de los eventos, que son
-                                ; la parte de `UpdateMapEvents` que camina
-                                ; —`Game_Character::Update()` desde
+    ; What is **not** in that order are the screen ticks —the flash, the
+    ; shake, the panned camera, the picture, the rain—: there they are
+    ; `game_screen->Update()` and `game_pictures->Update()` and go at
+    ; `:1305`, that is, before the interpreter, and here they go after. None
+    ; of them decides whether something moves or when, so the difference is
+    ; one frame in what is seen and not in what happens; moving them is
+    ; another change, with its goldens.
+    jsr eventos_de_mapa         ; `UpdateMapEvents`: refresh, automatic and
+                                ; parallels, **before** the hero
+    jsr animar_quietos          ; the ones that animate without moving, before
+                                ; the routes: if one grabs one, it wins the slot
+    jsr mover_eventos           ; and the events' forced move routes, which are
+                                ; the part of `UpdateMapEvents` that walks
+                                ; —`Game_Character::Update()` from
                                 ; `Game_Event::Update`, `game_event.cpp:608`—.
-                                ; Van acá y no después del intérprete para que
-                                ; un evento y el héroe arranquen la ruta que
-                                ; una página les acaba de poner en el mismo
-                                ; cuadro: los dos, en el que viene. Con el
-                                ; intérprete todavía arriba del héroe los dos
-                                ; arrancaban un cuadro antes y empataban; con
-                                ; él abajo, dejarlos acá abajo desempataba, y
-                                ; `parar-rutas` lo mostraba con el NPC
-                                ; adelantado un cuadro respecto del héroe.
+                                ; They go here and not after the interpreter so
+                                ; that an event and the hero start the route a
+                                ; page just gave them on the same frame: both,
+                                ; on the next one. With the interpreter still
+                                ; above the hero both started one frame earlier
+                                ; and tied; with it below, leaving them down
+                                ; there broke the tie, and `parar-rutas` showed
+                                ; it with the NPC one frame ahead of the hero.
     jsr move_hero               ; `game_player->Update()`
-    jsr pedir_menu              ; B, al final del héroe: ver `pedir_menu`
-    ; El cronómetro va **antes** del intérprete, que es donde lo pone
-    ; `Game_Map::Update`: `UpdateTimers()` corre y recién después
-    ; `UpdateForegroundEvents`. O sea que la página que lo arranca no se lleva
-    ; un cuadro en el mismo cuadro en que lo arranca. Después del intérprete
-    ; la ROM iba un cuadro adelante de RM2k para siempre, y se veía sólo en los
-    ; cuadros en que los dos puntos parpadean o cambia un dígito.
+    jsr pedir_menu              ; B, at the end of the hero: see `pedir_menu`
+    ; The timer goes **before** the interpreter, which is where
+    ; `Game_Map::Update` puts it: `UpdateTimers()` runs and only then
+    ; `UpdateForegroundEvents`. That is, the page that starts it does not get
+    ; a frame on the same frame it starts it. After the interpreter the ROM
+    ; was one frame ahead of RM2k forever, and it only showed on the frames
+    ; where the colon blinks or a digit changes.
     jsr timer_tick
-    ; `UpdateForegroundEvents`, **después** del héroe: lo que el paso recién
-    ; terminado encoló —un evento de contacto, un cofre, una trampa— arranca en
-    ; este mismo cuadro y no en el que viene. Estuvo arriba de `move_hero`
-    ; hasta el 2026-09-20, y eso le costaba un cuadro a todo contacto: el
-    ; barrido de la cola ya había pasado cuando `advance_step` la llenaba.
+    ; `UpdateForegroundEvents`, **after** the hero: what the step just
+    ; finished queued —a touch event, a chest, a trap— starts on this same
+    ; frame and not on the next. It was above `move_hero` until 2026-09-20,
+    ; and that cost every touch a frame: the queue sweep had already passed
+    ; when `advance_step` filled it.
     jsr eventos_tick
-    ; Y el `Teleport` que haya pedido un paralelo, si el primer plano no lo
-    ; atendió: `eventos_tick` mira `salto_hay` sólo después de correr una
-    ; página suya, y con el primer plano quieto sale antes. En RM2k el salto
-    ; pendiente se atiende después de `Game_Map::Update`, corra lo que corra
-    ; (`Scene_Map::UpdateStage2`). Son las 126 salidas de la carrera —cada
-    ; auto, cada meta y el puente—, y hasta que entró ninguna página de
-    ; `release` saltaba desde un paralelo.
+    ; And the `Teleport` a parallel may have requested, if the foreground did
+    ; not handle it: `eventos_tick` looks at `salto_hay` only after running
+    ; one of its pages, and with the foreground idle it leaves earlier. In
+    ; RM2k the pending jump is handled after `Game_Map::Update`, whatever runs
+    ; (`Scene_Map::UpdateStage2`). They are the race's 126 exits —each car,
+    ; each finish line and the bridge—, and until it went in no `release`
+    ; page jumped from a parallel.
     lda salto_hay
     beq sin_salto_pendiente
     jsr eventos_atender_salto
 sin_salto_pendiente:
-    jsr tinte_de_evento        ; el tinte que haya pedido el intérprete, pegado
-                                ; a él: si no, lo aplicaría un cuadro tarde
-    jsr animacion_tick          ; la animación de batalla, antes que los
-                                ; destellos que dispara
-    jsr animacion_dibujo_tick   ; y su dibujo, pegado: los dos avanzan el
-                                ; mismo reloj de RM2k y el dibujo dura más
-    jsr flashes_tick            ; y los destellos, en el mismo lugar
-    jsr sacudida_tick           ; y uno de la sacudida de pantalla
-    jsr pan_tick                ; y uno de la cámara corrida sin el héroe
-    jsr imagen_tick             ; y uno del fundido del cartel. Va **antes**
-                                ; del destello y no después: los dos arman su
-                                ; paleta en `pal_buf`, y el destello deja la
-                                ; suya ahí esperando el vblank. Al revés, el
-                                ; cartel le pisaba los primeros dieciséis
-                                ; colores del fondo en el cuadro en que los
-                                ; dos corren.
-    jsr destello_tick           ; y uno del destello de pantalla
-    jsr lluvia_tick             ; y uno de la lluvia
+    jsr tinte_de_evento        ; the tint the interpreter may have requested, right
+                                ; after it: otherwise it would apply a frame late
+    jsr animacion_tick          ; the battle animation, before the
+                                ; flashes it triggers
+    jsr animacion_dibujo_tick   ; and its drawing, right after: both advance the
+                                ; same RM2k clock and the drawing lasts longer
+    jsr flashes_tick            ; and the flashes, in the same place
+    jsr sacudida_tick           ; and one of the screen shake
+    jsr pan_tick                ; and one of the camera panned away from the hero
+    jsr imagen_tick             ; and one of the picture's fade. It goes **before**
+                                ; the flash and not after: both build their
+                                ; palette in `pal_buf`, and the flash leaves
+                                ; its own there waiting for the vblank. The
+                                ; other way round, the picture overwrote the
+                                ; background's first sixteen colors on the
+                                ; frame where both run.
+    jsr destello_tick           ; and one of the screen flash
+    jsr lluvia_tick             ; and one of the rain
     jsr animate_hero
     jsr follow_camera
-    jsr stream_map              ; la columna o la fila que la cámara destapó
-    jsr mensaje_tick            ; y unos caracteres del mensaje que se esté
-                                ; componiendo, si hay alguno
-    jsr build_oam               ; y se arma el siguiente, ya fuera del vblank
+    jsr stream_map              ; the column or row the camera uncovered
+    jsr mensaje_tick            ; and a few characters of the message being
+                                ; composed, if there is one
+    jsr build_oam               ; and the next one is built, now outside vblank
     bra contada
 congelado:
-    ; Una vuelta del fundido: el tick corre —el fundido y el arnés lo cuentan—
-    ; pero el mundo no, y las animaciones del mapa tampoco. Ver
+    ; A fade iteration: the tick runs —the fade and the harness count it—
+    ; but the world does not, and neither do the map animations. See
     ; `vueltas_congeladas`.
     rep #$20
 .a16
@@ -473,28 +484,28 @@ contada:
     inc vueltas
     sep #$20
 .a8
-    jsr anim_tick               ; qué dibujo del ChipSet toca en la vuelta que
-                                ; viene, para que el vblank sólo tenga que subirlo
+    jsr anim_tick               ; which ChipSet drawing is due on the next
+                                ; iteration, so the vblank only has to upload it
     jsr contar_perdidos
     bra loop
 .endproc
 
-; Cuántos vblanks pasaron desde la vuelta anterior: uno es lo normal, y cada
-; uno de más es un cuadro que la ROM perdió, porque la vuelta tardó más que un
-; cuadro y `wait_vblank` tuvo que esperar al siguiente. Se mira acá, al final
-; de la vuelta, y no a la salida de `wait_vblank`: ahí la NMI de este cuadro
-; puede no haber corrido todavía. Contra una golden un cuadro perdido es
-; una posición atrasada, y la comparación lo cobra en pixeles sin decir por
-; qué; este contador dice por qué. Lo leen las pruebas por la WRAM del
-; emulador —`Partida.cuadros_perdidos`—, y en la consola no lo lee nadie.
-; Satura en 255.
+; How many vblanks went by since the previous iteration: one is normal, and
+; each extra one is a frame the ROM lost, because the iteration took longer
+; than a frame and `wait_vblank` had to wait for the next. It is checked here,
+; at the end of the iteration, and not on leaving `wait_vblank`: there this
+; frame's NMI may not have run yet. Against a golden a lost frame is a
+; position that lags behind, and the comparison charges it in pixels without
+; saying why; this counter says why. The tests read it through the emulator's
+; WRAM —`Partida.cuadros_perdidos`—, and on the console nobody reads it.
+; Saturates at 255.
 .proc contar_perdidos
 .a8
 .i16
     lda boot_cuadros
     sec
     sbc nmi_visto
-    dec a                       ; el vblank que le tocaba a esta vuelta
+    dec a                       ; the vblank that was this iteration's due
     beq al_dia
     clc
     adc cuadros_perdidos
@@ -508,19 +519,20 @@ al_dia:
     rts
 .endproc
 
-; Se acabó: algo que no puede pasar pasó. A trae el código, que queda en
-; `panico` para que una prueba de estado pueda decir cuál fue.
+; It is over: something that cannot happen happened. A carries the code, which
+; stays in `panico` so that a state test can say which one it was.
 ;
-; No hay `printf` en una SNES y volver de acá no tiene sentido —el estado ya es
-; inconsistente—, así que lo que queda es que se vea: la pantalla parpadea entre
-; negro y pleno para siempre. Es feo a propósito. Lo que se quiere evitar es lo
-; contrario, que el juego siga andando como si nada y el error aparezca media
-; hora después convertido en otra cosa.
+; There is no `printf` on a SNES and returning from here makes no sense —the
+; state is already inconsistent—, so what is left is to make it visible: the
+; screen flashes between black and full forever. It is ugly on purpose. What
+; we want to avoid is the opposite, the game carrying on as if nothing
+; happened and the error showing up half an hour later turned into something
+; else.
 .proc entrar_en_panico
 .a8
 .i16
     sta panico
-    sei                         ; ni siquiera el vblank: nada más va a pasar
+    sei                         ; not even the vblank: nothing else is going to happen
 lazo:
     ldx #$2000
 espera_prendido:
@@ -537,25 +549,25 @@ espera_apagado:
     bra lazo
 .endproc
 
-; --- espera de vblank ------------------------------------------------------
-; Sin NMI habilitada, se mira la bandera de HVBJOY: primero que salga del
-; vblank anterior y después que entre al siguiente.
-; La NMI: suma un cuadro y baja la bandera. No toca nada más, y deja P como
-; estaba porque `rti` lo saca de la pila. Corre durante el arranque, para que
-; dure siempre lo mismo, y después también: ver `contar_perdidos`.
+; --- waiting for vblank -----------------------------------------------------
+; With NMI disabled, the HVBJOY flag is checked: first that it leaves the
+; previous vblank and then that it enters the next one.
+; The NMI: adds a frame and clears the flag. It touches nothing else, and
+; leaves P as it was because `rti` pulls it from the stack. It runs during
+; boot, so that boot always lasts the same, and afterwards too: see
+; `contar_perdidos`.
 .proc nmi_boot
     sep #$20
 .a8
     pha
-    ; **El banco de datos, fijado acá y no heredado.** `boot_cuadros` y
-    ; `RDNMI` se leen con direccionamiento absoluto, así que van al banco de
-    ; datos que tenga el código al que la NMI interrumpió. Guardar y cargar
-    ; corren con el banco en la SRAM, y una NMI que cayera ahí le sumaba uno a
-    ; `$70:1C07` —el byte 769 de la cuarta ranura— en vez de a `boot_cuadros`:
-    ; la suma de control dejaba de dar y la ranura 4 cargaba como vacía. Las
-    ; otras tres no pasan por esa dirección, que es por qué fallaba una sola.
-    ; `phk` da el banco 0, porque los vectores corren ahí, y en el 0 están la
-    ; WRAM baja y los registros.
+    ; **The data bank, set here and not inherited.** `boot_cuadros` and
+    ; `RDNMI` are read with absolute addressing, so they go to whatever data
+    ; bank the code the NMI interrupted had. Save and load run with the bank
+    ; in SRAM, and an NMI landing there added one to `$70:1C07` —byte 769 of
+    ; the fourth slot— instead of to `boot_cuadros`: the checksum stopped
+    ; matching and slot 4 loaded as empty. The other three do not go through
+    ; that address, which is why only one failed. `phk` gives bank 0, because
+    ; the vectors run there, and bank 0 has low WRAM and the registers.
     phb
     phk
     plb
@@ -578,30 +590,30 @@ in:
     rts
 .endproc
 
-; --- puesta a cero del PPU -------------------------------------------------
-; El emulador arranca con todos los registros en cero. La consola real no: se
-; queda con lo que dejó el programa anterior, que en un EverDrive es su menú.
-; Si ese menú dejó encendido el color math, el sub-screen, una ventana o un
-; canal de HDMA, todo eso sigue funcionando debajo de nuestro mapa aunque
-; nosotros no lo hayamos pedido.
+; --- PPU reset --------------------------------------------------------------
+; The emulator boots with all registers at zero. The real console does not:
+; it keeps whatever the previous program left, which on an EverDrive is its
+; menu. If that menu left color math, the sub-screen, a window or an HDMA
+; channel on, all of that keeps working under our map even though we did not
+; ask for it.
 ;
-; Por eso no alcanza con escribir los registros que usamos: hay que escribir
-; todos.
+; That is why writing the registers we use is not enough: all of them have
+; to be written.
 .proc ppu_reset
 .a8
 .i16
     lda #$80
-    sta INIDISP                 ; blanking forzado antes de tocar nada
+    sta INIDISP                 ; forced blanking before touching anything
 
-    ; Lo primero es cortar el DMA por scanline: si quedó un canal activo, sigue
-    ; escribiendo registros del PPU en cada línea y nada de lo que hagamos acá
-    ; se sostiene.
+    ; The first thing is to cut per-scanline DMA: if a channel was left
+    ; active, it keeps writing PPU registers on every line and nothing we do
+    ; here holds.
     stz HDMAEN
     stz MDMAEN
     stz NMITIMEN
 
-    ; Los registros del PPU con valores conocidos, en dos tramos: los de scroll
-    ; quedan en el medio y necesitan otro tratamiento.
+    ; The PPU registers to known values, in two stretches: the scroll ones sit
+    ; in the middle and need different handling.
     ldx #$0000
 bajos:
     lda f:ppu_bajos, x
@@ -618,8 +630,8 @@ altos:
     cpx #(ppu_altos_end - ppu_altos)
     bne altos
 
-    ; Los ocho registros de scroll: cada uno se escribe dos veces, byte bajo y
-    ; byte alto, o el latch queda a medias.
+    ; The eight scroll registers: each one is written twice, low byte and
+    ; high byte, or the latch is left half done.
     ldx #$0000
 scrolls:
     stz $210D, x
@@ -628,8 +640,8 @@ scrolls:
     cpx #8
     bne scrolls
 
-    ; La VRAM entera a cero, por DMA con la fuente fija en un byte nulo. Sin
-    ; esto quedan los tiles del menú donde no llegan los nuestros.
+    ; All of VRAM to zero, by DMA with the source fixed on a null byte.
+    ; Without this the menu's tiles stay wherever ours do not reach.
     lda #$80
     sta VMAIN
     ldx #$0000
@@ -638,16 +650,17 @@ scrolls:
     stx A1T0L
     lda #^cero
     sta A1B0
-    ldx #$0000                  ; 0 significa 65536: la VRAM completa
+    ldx #$0000                  ; 0 means 65536: the whole VRAM
     stx DAS0L
-    lda #$09                    ; dos registros, de a palabras, fuente fija
+    lda #$09                    ; two registers, word at a time, fixed source
     sta DMAP0
     lda #$18
     sta BBAD0
     lda #$01
     sta MDMAEN
 
-    ; Y CGRAM, que si no deja la paleta del menú en los colores que no usamos.
+    ; And CGRAM, which otherwise leaves the menu's palette in the colors we
+    ; do not use.
     stz CGADD
     ldx #.loword(cero)
     stx A1T0L
@@ -655,7 +668,7 @@ scrolls:
     sta A1B0
     ldx #512
     stx DAS0L
-    lda #$08                    ; un registro, de a bytes, fuente fija
+    lda #$08                    ; one register, byte at a time, fixed source
     sta DMAP0
     lda #$22
     sta BBAD0
@@ -664,22 +677,23 @@ scrolls:
     rts
 .endproc
 
-; De $2101 a $210C: objetos, modo, mosaico y dónde vive cada capa. Todo en
-; cero, que es "nada encendido".
+; From $2101 to $210C: objects, mode, mosaic and where each layer lives. All
+; at zero, which is "nothing on".
 .segment "TABLAS"
 
-; Lo que **tiene** que vivir en el banco 0: se lee con `lda tabla, y`, y el
-; 65816 no tiene absoluto largo indexado por Y —`long,X` sí, `long,Y` no—, o
-; con tantos índices distintos que el byte de más por acceso costaría más que
-; la tabla. Las que se leen con X y se leen poco fueron bajando a RODATA a lo
-; largo del 2026-09-13, en tres vueltas distintas y por el mismo motivo: hacer
-; lugar. En `banco1.s` está el porqué de cada una y lo que todavía se podría bajar.
+; What **has** to live in bank 0: it is read with `lda tabla, y`, and the
+; 65816 has no absolute long indexed by Y —`long,X` yes, `long,Y` no—, or
+; with so many different indices that the extra byte per access would cost
+; more than the table. The ones read with X and rarely read were moved down
+; to RODATA over the course of 2026-09-13, in three separate rounds and for
+; the same reason: making room. `banco1.s` has the reason for each one and
+; what could still be moved down.
 
-; `salto_por_vel` bajó a RODATA el 2026-09-14: un solo acceso, y pasarlo por X
-; cuesta cuatro bytes contra los seis de la tabla. Ver `banco1.s`.
-; Cada cuántos cuadros cambia el frame de la caminata, por velocidad: caminando
-; y quieto con la animación continua: `GetStationaryAnimFrames` y
-; `GetContinuousAnimFrames` de `Game_Character::UpdateAnimation`.
+; `salto_por_vel` moved down to RODATA on 2026-09-14: a single access, and
+; going through X costs four bytes against the table's six. See `banco1.s`.
+; Every how many frames the walk frame changes, per speed: walking and
+; standing with continuous animation: `GetStationaryAnimFrames` and
+; `GetContinuousAnimFrames` of `Game_Character::UpdateAnimation`.
 anim_parado:
     .byte 12, 10, 8, 6, 5, 4
 anim_continua:
@@ -688,36 +702,35 @@ anim_continua:
 
 .segment "CODE"
 
-; --- el PPU ----------------------------------------------------------------
-; Modo 3: BG1 con 8 bits por pixel. Ahí cada pixel es un índice directo a CGRAM
-; y no hay paleta por tile, así que el mapa entra con sus 60 colores sin
-; fusionar ninguno. Cuesta el doble de VRAM por tile y sobra lugar de todas
-; formas.
+; --- the PPU ----------------------------------------------------------------
+; Mode 3: BG1 with 8 bits per pixel. There each pixel is a direct index into
+; CGRAM and there is no per-tile palette, so the map fits with its 60 colors
+; without merging any. It costs twice the VRAM per tile and there is room to
+; spare anyway.
 .proc ppu_init
 .a8
 .i16
     lda #$03
     sta BGMODE
-    ; BG2SC lleva la dirección del tilemap en el byte alto y el tamaño en los
-    ; dos bits bajos; con VRAM_ABOVE_MAP en $7800 y el tamaño 1 —dos pantallas
-    ; de 32x32 una al lado de la otra, o sea 64x32— queda $79.
+    ; BG2SC carries the tilemap address in the high byte and the size in the
+    ; two low bits; with VRAM_ABOVE_MAP at $7800 and size 1 —two 32x32 screens
+    ; side by side, that is 64x32— it comes to $79.
     lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
-    sta BG2SC                   ; la ventana de la capa de encima
-    ; BG12NBA y BG1SC salen del mapa, así que los pone cargar_mapa —y
-    ; `volver_al_mapa`—. Acá quedarían con el valor del mapa anterior en cuanto
-    ; haya más de uno: el tilemap del fondo no está en el mismo lugar en todos
-    ; los repartos, ver LAYOUT_VENTANA_AMBOS.
-    stz BG1HOFS                 ; el scroll es de dos escrituras, byte bajo
-    stz BG1HOFS                 ; y byte alto
-    ; El PPU muestra la línea vofs+1 en el primer scanline visible, no la vofs.
-    ; Con 0 el mapa queda corrido una línea hacia arriba; con -1 cae en su
-    ; lugar. Lo destapó la comparación pixel a pixel contra el render de Python:
-    ; a ojo las dos imágenes se veían idénticas.
+    sta BG2SC                   ; the upper layer's window
+    ; BG12NBA and BG1SC come from the map, so cargar_mapa sets them —and
+    ; `volver_al_mapa`—. Here they would keep the previous map's value as soon
+    ; as there is more than one: the background's tilemap is not in the same
+    ; place in every layout, see LAYOUT_VENTANA_AMBOS.
+    stz BG1HOFS                 ; the scroll takes two writes, low byte
+    stz BG1HOFS                 ; and high byte
+    ; The PPU shows line vofs+1 on the first visible scanline, not vofs. With
+    ; 0 the map ends up shifted one line up; with -1 it falls in place. The
+    ; pixel-by-pixel comparison against the Python render uncovered it: by eye
+    ; the two images looked identical.
     lda #$FF
     sta BG1VOFS
     sta BG1VOFS
     lda #$13
-    sta TM                      ; las dos capas del mapa y los sprites
+    sta TM                      ; the map's two layers and the sprites
     rts
 .endproc
-

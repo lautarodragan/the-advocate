@@ -1,24 +1,26 @@
 .segment "FAR"
 
-; --- ejecutar una habilidad -----------------------------------------------
+; --- executing a skill ----------------------------------------------------
 ;
-; `Game_BattleAlgorithm::Skill::vStart` y `vExecute`. **El orden en que consume
-; azar es el contrato con `batalla.Batalla.usar_habilidad`**: una de switch
-; termina antes de cualquier tiro; después va el crítico, que se tira siempre
-; aunque la chance sea cero; después la varianza; y después un tiro contra el
-; acierto por cada cosa que la habilidad afecta, en el orden HP, SP, ataque,
-; defensa, espíritu y agilidad.
+; `Game_BattleAlgorithm::Skill::vStart` and `vExecute`. **The order in which
+; it consumes randomness is the contract with
+; `batalla.Batalla.usar_habilidad`**: a switch skill finishes before any roll;
+; then comes the critical, which is always rolled even if the chance is zero;
+; then the variance; and then one roll against the hit rate for each thing the
+; skill affects, in the order HP, SP, attack, defense, spirit and agility.
 
-; `Algo::VarianceAdjustEffect`: A16 = el efecto, `BA_S5` = la varianza.
+; `Algo::VarianceAdjustEffect`: A16 = the effect, `BA_S5` = the variance.
 ;
-;     adj = max(1, var * efecto / 10); efecto += rand(0, adj) - adj / 2
+;     adj = max(1, var * effect / 10); effect += rand(0, adj) - adj / 2
 ;
-; **Sólo tira si la varianza y el efecto son mayores que cero**, que es el `if`
-; de easyrpg: sin esa condición los dos lados se irían de fase en el tiro
-; siguiente cada vez que pasara por acá una habilidad que no hace daño.
+; **It only rolls if the variance and the effect are greater than zero**,
+; which is easyrpg's `if`: without that condition the two sides would drift
+; out of phase on the next roll every time a skill that does no damage went
+; through here.
 ;
-; El golpe normal tiene la suya escrita adentro de `ba_atacar` con la varianza
-; en cuatro; ésta salió para las habilidades, que traen la suya en el LDB.
+; The normal attack has its own written inside `ba_atacar` with the variance
+; at four; this one was split out for the skills, which carry their own in the
+; LDB.
 .proc ba_varianza
 .a16
 .i16
@@ -33,7 +35,7 @@
     rep #$20
 .a16
     lda BA_T0
-    jsr ba_mul                  ; la varianza por el efecto
+    jsr ba_mul                  ; the variance times the effect
     sta temp
     lda #10
     sta temp + 2
@@ -42,7 +44,7 @@
     lda #1                      ; `max(1, ...)`
 ajuste_listo:
     sta BA_T1
-    jsr ba_hasta                ; A16 sigue siendo el ajuste
+    jsr ba_hasta                ; A16 is still the adjustment
     clc
     adc BA_T0
     sta BA_T0
@@ -65,11 +67,11 @@ sin_varianza:
     rts
 .endproc
 
-; Un modificador de parámetro se mueve `BA_MEFECTO` y el parámetro efectivo se
-; rehace: `CanChangeAtkModifier` y sus hermanas, más `AdjustParam`.
+; A parameter modifier moves by `BA_MEFECTO` and the effective parameter is
+; recomputed: `CanChangeAtkModifier` and its siblings, plus `AdjustParam`.
 ;
-;   BA_S4 = el desplazamiento del blanco adentro de `BA_UNO`
-;   BA_S5 = el del modificador, BA_S6 = el del base, BA_T1 = el del efectivo
+;   BA_S4 = the target's offset inside `BA_UNO`
+;   BA_S5 = the modifier's, BA_S6 = the base's, BA_T1 = the effective one's
 .proc ba_mod
 .a8
 .i16
@@ -82,20 +84,21 @@ sin_varianza:
     lda BA_UNO, x
     clc
     adc BA_MEFECTO
-    sta temp                    ; el modificador que se pide
+    sta temp                    ; the modifier being asked for
     lda BA_S4
     clc
     adc BA_S6
     tax
     lda BA_UNO, x
-    sta BA_T0                   ; el parámetro base. **Las dos de paso son
-                                ; `BA_T0` y `BA_T2` y no `BA_S2` y `BA_S3`**:
-                                ; el que llama lleva en `BA_S3` qué toca la
-                                ; habilidad y en `BA_S0` su acierto, y los
-                                ; necesita en las cuatro vueltas
-    ; El tope de arriba es el base, y el de abajo su mitad con signo menos.
-    ; Los números de este juego andan en centenas, así que el `bmi` sobre la
-    ; resta alcanza: nada se acerca a los 32768 donde se daría vuelta.
+    sta BA_T0                   ; the base parameter. **The two scratch ones are
+                                ; `BA_T0` and `BA_T2` and not `BA_S2` and
+                                ; `BA_S3`**: the caller keeps in `BA_S3` what
+                                ; the skill touches and in `BA_S0` its hit
+                                ; rate, and needs them on all four passes
+    ; The upper cap is the base, and the lower one its half with a minus sign.
+    ; The numbers in this game are in the hundreds, so the `bmi` on the
+    ; subtraction is enough: nothing comes close to the 32768 where it would
+    ; wrap around.
     lda temp
     sec
     sbc BA_T0
@@ -120,9 +123,9 @@ abajo_ok:
     adc BA_S5
     tax
     lda temp
-    sta BA_UNO, x               ; el modificador nuevo
+    sta BA_UNO, x               ; the new modifier
     clc
-    adc BA_T0                   ; base + modificador
+    adc BA_T0                   ; base + modifier
     bmi al_uno
     cmp #1
     bcs no_es_cero
@@ -146,10 +149,10 @@ efectivo_listo:
     rts
 .endproc
 
-; Prende el switch de `BA_T0`, que es el `switch_id` del LDB tal cual, como
-; hace `item_switch` con el suyo. No se llama a `poner_switch`: vive en el
-; banco 0 y la pelea corre con el banco de datos en $7E, así que la máscara se
-; arma acá con un corrimiento en vez de leerse de una tabla del cartucho.
+; Turns on the switch in `BA_T0`, which is the LDB's `switch_id` as is, like
+; `item_switch` does with its own. It does not call `poner_switch`: that lives
+; in bank 0 and the battle runs with the data bank at $7E, so the mask is
+; built here with a shift instead of being read from a cartridge table.
 .proc ba_switch
 .a8
 .i16
@@ -159,10 +162,10 @@ efectivo_listo:
     lsr a
     lsr a
     lsr a
-    tax                         ; qué byte del bitmap
+    tax                         ; which byte of the bitmap
     lda BA_T0
     and #$0007
-    tay                         ; y qué bit
+    tay                         ; and which bit
     sep #$20
 .a8
     lda #1
@@ -176,13 +179,13 @@ mascara_lista:
     ora switches, x
     sta switches, x
     lda #1
-    sta refresco                ; las páginas que lo piden pueden cambiar
+    sta refresco                ; the pages that ask for it may change
     rts
 .endproc
 
-; El efecto de la habilidad `BA_MHAB` de `BA_MQUIEN` sobre `BA_MBLA`, **sin la
-; varianza**: `Algo::CalcSkillEffect`. Deja el resultado en `BA_MEFECTO`, ya
-; recortado por abajo en cero.
+; The effect of skill `BA_MHAB` from `BA_MQUIEN` on `BA_MBLA`, **without the
+; variance**: `Algo::CalcSkillEffect`. Leaves the result in `BA_MEFECTO`,
+; already clamped below at zero.
 .proc ba_hab_efecto
 .a8
 .i16
@@ -191,7 +194,7 @@ mascara_lista:
     rep #$20
 .a16
     txa
-    sta BA_S0                   ; el desplazamiento de la fuente
+    sta BA_S0                   ; the source's offset
     sep #$20
 .a8
     lda BA_MBLA
@@ -199,14 +202,14 @@ mascara_lista:
     rep #$20
 .a16
     txa
-    sta BA_S1                   ; y el del blanco
-    ; el `k` de la habilidad, por dos para las tablas de palabra
+    sta BA_S1                   ; and the target's
+    ; the skill's `k`, times two for the word tables
     lda BA_MHAB
     and #$00FF
     asl a
     tax
     lda f:hab_power, x
-    sta BA_S2                   ; el acumulador del efecto
+    sta BA_S2                   ; the effect accumulator
     sep #$20
 .a8
     ; + physical_rate * atk / 20
@@ -251,9 +254,9 @@ sin_fisico:
     sep #$20
 .a8
 sin_magico:
-    ; Contra un enemigo y sin `ignore_defense`, se le restan su defensa y su
-    ; espíritu. `SkillTargetsEnemies` es el bit 6 de `hab_afecta` y el bit 7 es
-    ; `ignore_defense`.
+    ; Against an enemy and without `ignore_defense`, its defense and spirit
+    ; are subtracted. `SkillTargetsEnemies` is bit 6 of `hab_afecta` and bit 7
+    ; is `ignore_defense`.
     lda BA_MHAB
     jsr ba_ax
     lda f:hab_afecta, x
@@ -316,10 +319,10 @@ no_negativo:
     sta BA_MEFECTO
     sep #$20
 .a8
-    ; El crítico, que para una habilidad del LDB **siempre da que no**: la
-    ; chance que `CalcCriticalHitChance` recibe es
-    ; `easyrpg_critical_hit_chance`, que vale 0 y no -1. El tiro se hace igual,
-    ; porque si no los dos lados se irían de fase.
+    ; The critical, which for an LDB skill **always comes out no**: the chance
+    ; `CalcCriticalHitChance` receives is `easyrpg_critical_hit_chance`, which
+    ; is 0 and not -1. The roll is made anyway, because otherwise the two
+    ; sides would drift out of phase.
     lda #0
     jsr ba_pct
     beq sin_critico
@@ -329,7 +332,7 @@ no_negativo:
     sta temp
     asl a
     clc
-    adc temp                    ; por tres
+    adc temp                    ; times three
     sta BA_MEFECTO
     sep #$20
 .a8
@@ -337,9 +340,9 @@ sin_critico:
     rts
 .endproc
 
-; Los HP del blanco se mueven `BA_MEFECTO`. Curar no mata —el
-; `max(-(cur_hp - 1), hp_effect)` de `vExecute`— y el daño lo parte al medio el
-; que se está defendiendo, con la división de C++, que **trunca hacia cero**.
+; The target's HP move by `BA_MEFECTO`. Healing does not kill —the
+; `max(-(cur_hp - 1), hp_effect)` of `vExecute`— and damage is halved for one
+; who is defending, with C++ division, which **truncates toward zero**.
 .proc ba_hab_hp
 .a8
 .i16
@@ -367,7 +370,7 @@ hace_dano:
     inc a
     lsr a
     eor #$FFFF
-    inc a                       ; la mitad truncada hacia cero
+    inc a                       ; half, truncated toward zero
     sta BA_T0
     bra aplica
 sin_defensa:
@@ -398,8 +401,9 @@ cabe:
     rts
 .endproc
 
-; Y los SP, igual pero sin defensa que valga. Ninguna de las siete lo usa; está
-; porque `vExecute` lo hace y porque el tiro que lo precede ya se hizo.
+; And the SP, the same but with no defense that counts. None of the seven uses
+; it; it is here because `vExecute` does it and because the roll before it has
+; already been made.
 .proc ba_hab_sp
 .a8
 .i16
@@ -424,7 +428,7 @@ sp_cabe:
     rts
 .endproc
 
-; La habilidad que eligió `BA_MQUIEN`, sobre `BA_MBLA`. Deja el mensaje listo.
+; The skill `BA_MQUIEN` chose, on `BA_MBLA`. Leaves the message ready.
 .proc ba_hab_usar
 .a8
 .i16
@@ -432,13 +436,13 @@ sp_cabe:
     jsr ba_ax
     lda BA_ACC_HAB, x
     sta BA_MHAB
-    ; --- `vStart`: el costo, antes que nada y sin tirar azar ---
+    ; --- `vStart`: the cost, before anything and without rolling ---
     jsr ba_hab_costo
     sta BA_T2
-    stz BA_T2 + 1               ; la resta de abajo es de dieciséis bits y
-                                ; `hab_sp` es de ocho: sin esto el byte de
-                                ; arriba es el que dejó el que pasó por acá
-                                ; antes, y los SP quedaban en cero
+    stz BA_T2 + 1               ; the subtraction below is 16 bits and
+                                ; `hab_sp` is 8: without this the high byte
+                                ; is whatever the last one through here left,
+                                ; and SP ended up at zero
     lda BA_MQUIEN
     jsr ba_x
     rep #$20
@@ -447,12 +451,12 @@ sp_cabe:
     sec
     sbc BA_T2
     bpl sp_ok
-    lda #0                      ; no puede pasar: sin SP no se elige
+    lda #0                      ; cannot happen: without SP it is not chosen
 sp_ok:
     sta BA_UNO + BA_SP, x
     sep #$20
 .a8
-    ; --- una de switch prende su switch y no hace nada más ---
+    ; --- a switch skill turns on its switch and does nothing else ---
     lda BA_MHAB
     jsr ba_ax
     lda f:hab_tipo, x
@@ -472,12 +476,12 @@ sp_ok:
 .a8
     jmp ba_switch
 no_es_switch:
-    ; --- sobre quiénes: `batalla.blancos_de_la_habilidad` ---
+    ; --- on whom: `batalla.blancos_de_la_habilidad` ---
     ;
-    ; `enemy` y `ally` sobre el que se eligió, `self` sobre el que la usa, y
-    ; `enemies` y `party` sobre cada vivo del lado contrario o del propio, en
-    ; el orden de la pantalla y **cada uno con sus tiros**. Al mensaje le
-    ; queda el último.
+    ; `enemy` and `ally` on the chosen one, `self` on the user, and `enemies`
+    ; and `party` on each living one on the opposing side or its own, in
+    ; screen order and **each with its own rolls**. The message gets the last
+    ; one.
     lda BA_MHAB
     jsr ba_ax
     lda f:hab_alcance, x
@@ -493,9 +497,9 @@ no_es_uno:
     beq de_a_muchos
     jmp ba_hab_uno
 de_a_muchos:
-    ; El lado: el contrario con `enemies`, el propio con `party`. Que la
-    ; fuente sea del grupo es `BA_MQUIEN < BA_GRUPO_MAX`.
-    ldy #0                      ; 0 el grupo, 1 la tropa
+    ; The side: the opposing one with `enemies`, its own with `party`. That
+    ; the source is in the party is `BA_MQUIEN < BA_GRUPO_MAX`.
+    ldy #0                      ; 0 the party, 1 the troop
     lda BA_MQUIEN
     cmp #BA_GRUPO_MAX
     bcc del_grupo
@@ -526,20 +530,20 @@ no_cae:
     inc a
     sta f:BA_HAB_I
     cmp #BA_GRUPO_MAX
-    beq listos                  ; el grupo termina donde empieza la tropa
+    beq listos                  ; the party ends where the troop begins
     cmp #BA_COMB_MAX
     bcc otro_blanco
 listos:
     rts
 .endproc
 
-; `vExecute` sobre el blanco `BA_MBLA`: el efecto, la varianza y los tiros
-; del acierto. Lo llama `ba_hab_usar`, una vez o una por blanco.
+; `vExecute` on target `BA_MBLA`: the effect, the variance and the hit rolls.
+; Called by `ba_hab_usar`, once or once per target.
 .proc ba_hab_uno
 .a8
 .i16
     jsr ba_hab_efecto
-    ; la varianza, con el `variance` de la habilidad
+    ; the variance, with the skill's `variance`
     lda BA_MHAB
     jsr ba_ax
     lda f:hab_var, x
@@ -548,7 +552,7 @@ listos:
 .a16
     lda BA_MEFECTO
     jsr ba_varianza
-    ; el tope del daño, que es el mismo de un golpe
+    ; the damage cap, which is the same as an attack's
     cmp #(BA_DANO_MAX + 1)
     bcc efecto_cabe
     lda #BA_DANO_MAX
@@ -556,12 +560,12 @@ efecto_cabe:
     sta BA_MEFECTO
     sep #$20
 .a8
-    ; Si apunta a enemigos el efecto es negativo: `SetIsPositive` es
-    ; `SkillTargetsAllies`, y `vExecute` da vuelta el signo cuando no lo es.
+    ; If it targets enemies the effect is negative: `SetIsPositive` is
+    ; `SkillTargetsAllies`, and `vExecute` flips the sign when it is not.
     lda BA_MHAB
     jsr ba_ax
     lda f:hab_afecta, x
-    sta BA_S3                   ; qué toca, que ya no se vuelve a leer
+    sta BA_S3                   ; what it touches, which is not read again
     and #$40
     beq es_positivo
     rep #$20
@@ -573,12 +577,12 @@ efecto_cabe:
     sep #$20
 .a8
 es_positivo:
-    ; el acierto, que las siete traen en 100
+    ; the hit rate, which all seven carry at 100
     lda BA_MHAB
     jsr ba_ax
     lda f:hab_hit, x
-    sta BA_S0                   ; el acierto, que sobrevive a los `jsr`
-    ; --- los HP ---
+    sta BA_S0                   ; the hit rate, which survives the `jsr`s
+    ; --- the HP ---
     lda BA_S3
     and #$01
     beq sin_hp
@@ -587,10 +591,11 @@ es_positivo:
     beq sin_hp
     jsr ba_hab_hp
 sin_hp:
-    ; --- los SP ---
+    ; --- the SP ---
     ;
-    ; Ninguna de las siete que el grupo de la intro sabe los toca, **pero el
-    ; tiro va igual**: `vExecute` lo hace y sacarlo desfasaría el azar.
+    ; None of the seven the intro party knows touches them, **but the roll
+    ; happens anyway**: `vExecute` makes it and removing it would put the
+    ; randomness out of phase.
     lda BA_S3
     and #$02
     beq sin_sp
@@ -599,7 +604,7 @@ sin_hp:
     beq sin_sp
     jsr ba_hab_sp
 sin_sp:
-    ; --- los cuatro parámetros, en el orden de `vExecute` ---
+    ; --- the four parameters, in `vExecute`'s order ---
     lda BA_MBLA
     jsr ba_x
     rep #$20
@@ -683,18 +688,19 @@ sin_agi:
     rts
 .endproc
 
-; --- las habilidades en la pelea -------------------------------------------
+; --- skills in battle ------------------------------------------------------
 ;
-; `Game_BattleAlgorithm::Skill` con lo que este port sabe hacer. Qué sabe cada
-; actor al empezar, cuánto cuesta y cuánto hace **no se decide acá**: sale de
-; `batalla.habilidades_de`, `batalla.costo_de` y `batalla.efecto_habilidad`,
-; que es el modelo con el que `rom/pruebas/rpgmaker/test_batalla.py` predice el número
-; exacto, y el conversor lo emite en `hab_par_*` y `hab_*`. Lo que sabe
-; **ahora** es `FAR_HAB`, que `ChangeSkills` mueve.
+; `Game_BattleAlgorithm::Skill` with what this port knows how to do. What each
+; actor knows at the start, how much it costs and how much it does **is not
+; decided here**: it comes from `batalla.habilidades_de`, `batalla.costo_de`
+; and `batalla.efecto_habilidad`, which is the model with which
+; `rom/pruebas/rpgmaker/test_batalla.py` predicts the exact number, and the
+; converter emits it in `hab_par_*` and `hab_*`. What it knows **now** is
+; `FAR_HAB`, which `ChangeSkills` changes.
 
-; A8 = el número de actor del LDB del combatiente `BA_ACTOR`. Es lo que indexa
-; `hab_par_ini`, `hab_par_n` y `actor_hab_txt`, que son por número de actor y
-; no por lugar en el grupo.
+; A8 = the LDB actor number of combatant `BA_ACTOR`. It is what indexes
+; `hab_par_ini`, `hab_par_n` and `actor_hab_txt`, which are by actor number
+; and not by place in the party.
 .proc ba_actor_ldb
 .a8
 .i16
@@ -704,12 +710,12 @@ sin_agi:
     rts
 .endproc
 
-; La lista de habilidades del actor que está ordenando, a `BA_HAB_LISTA`, con
-; cuántas en `BA_HAB_N`. Son sus pares de `FAR_HAB` con el bit prendido —lo que
-; sabe **ahora**, que `ChangeSkills` mueve— y que la pelea sabe ofrecer, o sea
-; con un `k` en `hab_par_k`. Los pares de un actor van seguidos y por número de
-; habilidad, así que la lista sale en el orden de `LearnSkill`. Se lleva
-; `BA_S1`, `BA_S2`, `BA_T0` y X.
+; The skill list of the actor giving commands, into `BA_HAB_LISTA`, with how
+; many in `BA_HAB_N`. They are its `FAR_HAB` pairs with the bit set —what it
+; knows **now**, which `ChangeSkills` changes— that the battle knows how to
+; offer, that is, with a `k` in `hab_par_k`. An actor's pairs are contiguous
+; and in skill-number order, so the list comes out in `LearnSkill` order.
+; Clobbers `BA_S1`, `BA_S2`, `BA_T0` and X.
 .proc ba_hab_lista
 .a8
 .i16
@@ -719,14 +725,14 @@ sin_agi:
     jsr ba_ax
     lda f:hab_par_n, x
     beq listo
-    sta BA_S1                   ; cuántos pares le quedan por mirar
+    sta BA_S1                   ; how many pairs it has left to look at
     rep #$20
 .a16
     txa
     asl a
     tax
     lda f:hab_par_ini, x
-    sta BA_S2                   ; la ranura del par que se mira
+    sta BA_S2                   ; the slot of the pair being looked at
     sep #$20
 .a8
 otro:
@@ -741,7 +747,7 @@ otro:
     sep #$20
 .a8
     lda f:mascara, x
-    sta BA_T0                   ; su bit
+    sta BA_T0                   ; its bit
     rep #$20
 .a16
     lda BA_S2
@@ -753,11 +759,11 @@ otro:
 .a8
     lda f:FAR_LARGO + FAR_HAB, x
     and BA_T0
-    beq siguiente               ; no la sabe
+    beq siguiente               ; it does not know it
     ldx BA_S2
     lda f:hab_par_k, x
     cmp #$FF
-    beq siguiente               ; la sabe y la pelea no la ofrece
+    beq siguiente               ; it knows it and the battle does not offer it
     pha
     lda BA_HAB_N
     jsr ba_ax
@@ -776,7 +782,7 @@ listo:
     rts
 .endproc
 
-; El `k` del lugar A8 de la lista. Sólo A y X.
+; The `k` at place A8 in the list. Only A and X.
 .proc ba_hab_de_lista
 .a8
 .i16
@@ -785,8 +791,8 @@ listo:
     rts
 .endproc
 
-; El costo en SP del `k` de A8, en A8. `Algo::CalcSkillCost`: el `sp_cost` a
-; secas, que es lo que RM2k hace.
+; The SP cost of the `k` in A8, in A8. `Algo::CalcSkillCost`: the plain
+; `sp_cost`, which is what RM2k does.
 .proc ba_hab_costo
 .a8
 .i16
@@ -795,8 +801,8 @@ listo:
     rts
 .endproc
 
-; Si el combatiente `BA_ACTOR` puede pagar el `k` de A8: Z=0 si sí. **No usa el
-; flag que deja un `pl*`**: la trampa de siempre.
+; Whether combatant `BA_ACTOR` can pay for the `k` in A8: Z=0 if so. **It does
+; not use the flag a `pl*` leaves**: the usual trap.
 .proc ba_hab_alcanza
 .a8
 .i16
@@ -811,7 +817,7 @@ listo:
     cmp BA_UNO + BA_SP, x
     sep #$20
 .a8
-    beq si                      ; justo los que tiene alcanza
+    beq si                      ; exactly as many as it has is enough
     bcs no
 si:
     lda #1
@@ -821,20 +827,21 @@ no:
     rts
 .endproc
 
-; La pantalla entera, en `texto_buf`.
+; The whole screen, in `texto_buf`.
 .proc ba_componer
 .a8
 .i16
     lda #255
     sta comp_dup + 3
     jsl f:ba_t_limpiar
-    ; --- los enemigos, o la lista de ítems mientras se elige uno ---
+    ; --- the enemies, or the item list while one is being chosen ---
     ;
-    ; Van en los mismos renglones a propósito: eligiendo qué usar lo que hace
-    ; falta ver es el grupo, que es a quién se cura, y no los enemigos.
-    ; **Eligiendo a quién se le da, arriba va la lista de la orden en curso**:
-    ; la de ítems o la de habilidades, en gris las dos. Cuál de las dos lo dice
-    ; `BA_ORDEN`, que sigue puesto mientras se elige el blanco.
+    ; They go on the same lines on purpose: while choosing what to use, what
+    ; needs to be seen is the party, which is who gets healed, and not the
+    ; enemies. **While choosing whom to give it to, the list of the current
+    ; command goes on top**: the items one or the skills one, both in gray.
+    ; Which of the two is said by `BA_ORDEN`, which stays set while the target
+    ; is being chosen.
     lda BA_MODO
     cmp #BA_M_HAB
     beq a_la_lista_hab
@@ -874,7 +881,7 @@ enemigo:
     bne sin_cursor_ene
     jsr ba_cursor
 sin_cursor_ene:
-    stz BA_CONMAX               ; un enemigo no muestra su máximo
+    stz BA_CONMAX               ; an enemy does not show its maximum
     lda BA_S0
     clc
     adc #BA_GRUPO_MAX
@@ -882,11 +889,11 @@ sin_cursor_ene:
     inc BA_S0
     bra enemigo
 enemigos_listos:
-    ; --- el grupo ---
+    ; --- the party ---
     ;
-    ; Salvo que haya un mensaje de una página de tropa, que va en sus renglones:
-    ; en RM2k la ventana de mensaje de la pelea tapa la del grupo. Ver
-    ; `ba_pag_mensaje`. Y lo mismo con lo que la victoria cuenta.
+    ; Unless there is a message from a troop page, which goes on its lines: in
+    ; RM2k the battle's message window covers the party's. See
+    ; `ba_pag_mensaje`. And the same with what the victory reports.
     jsr ba_vic_en_pantalla
     beq sin_victoria
     jmp ba_vic_mensaje
@@ -921,7 +928,7 @@ actor:
     cmp #BA_M_ACTOR
     bne cursor_en_el_que_ordena
     lda BA_S0
-    cmp BA_ITEM_BLA             ; eligiendo a quién curar
+    cmp BA_ITEM_BLA             ; choosing whom to heal
     bne sin_cursor_act
     bra pone_cursor_act
 cursor_en_el_que_ordena:
@@ -938,10 +945,10 @@ sin_cursor_act:
     inc BA_S0
     bra actor
 actores_listos:
-    ; --- el último renglón ---
+    ; --- the last line ---
     ;
-    ; Que corriendo una página queda vacío: el mensaje de la acción anterior
-    ; ya se leyó, y el de la página va arriba.
+    ; Which stays empty while a page is running: the previous action's message
+    ; has already been read, and the page's goes on top.
     lda BA_MODO
     cmp #BA_M_PAGINA
     bne no_es_pagina
@@ -959,7 +966,8 @@ orden:
     bcc hay_orden
     jmp ordenes_listas
 hay_orden:
-    ; En qué renglón cae ésta: desde el 2026-09-13 son cinco y van en dos.
+    ; Which line this one falls on: since 2026-09-13 there are five and they
+    ; go on two.
     lda BA_S0
     jsr ba_ax
     rep #$20
@@ -971,8 +979,9 @@ hay_orden:
     sta BA_T1
     sep #$20
 .a8
-    ; En gris mientras se elige otra cosa —el menú ya no manda— y siempre la
-    ; que no está hecha, que es lo que el menú de pausa hace con las suyas.
+    ; In gray while something else is being chosen —the menu is no longer in
+    ; charge— and always the one that is not implemented, which is what the
+    ; pause menu does with its own.
     lda BA_MODO
     cmp #BA_M_ORDEN
     bne en_gris
@@ -980,13 +989,12 @@ hay_orden:
     jsr ba_ax
     lda f:ba_orden_gris, x
     bne en_gris
-    ; Y la habilidad de un actor que no sabe ninguna —Talan, que es de nivel
-    ; 1— también va en gris, como el menú de pausa con lo que no lleva a
-    ; ningún lado.
+    ; And the skill command of an actor who knows none —Talan, who is level
+    ; 1— also goes in gray, like the pause menu with what leads nowhere.
     lda BA_S0
     cmp #BA_ORDEN_HABILIDAD
     bne sin_gris_orden
-    jsr ba_hab_lista            ; lo que sabe ahora: ver `FAR_HAB`
+    jsr ba_hab_lista            ; what it knows now: see `FAR_HAB`
     lda BA_HAB_N
     beq en_gris
 sin_gris_orden:
@@ -1021,7 +1029,7 @@ pone_variante:
     jsr ba_ir
     sep #$20
 .a8
-    lda #$3E                    ; el cursor
+    lda #$3E                    ; the cursor
     jsl f:ba_t_glifo
 sin_cursor_orden:
     rep #$20
@@ -1034,19 +1042,20 @@ sin_cursor_orden:
     sta temp + 1
     lda #255
     sta comp_dup + 3
-    ; **La segunda orden no dice "Tech Skill"**: dice el `skill_name` del actor
-    ; que está ordenando —"AgentTrain", "Telepathy", "Slicing"—, que es
-    ; `Game_Actor::GetSkillName`. Por eso su texto sale de `actor_hab_txt`, que
-    ; es por número de actor, y no de `ba_orden_txt`, que es fijo.
+    ; **The second command does not say "Tech Skill"**: it says the
+    ; `skill_name` of the actor giving commands —"AgentTrain", "Telepathy",
+    ; "Slicing"—, which is `Game_Actor::GetSkillName`. That is why its text
+    ; comes from `actor_hab_txt`, which is by actor number, and not from
+    ; `ba_orden_txt`, which is fixed.
     lda BA_S0
     cmp #BA_ORDEN_HABILIDAD
     beq texto_de_la_habilidad
-    ; **De dos bytes**, como `actor_hab_txt` y `enemigo_txt`: el índice de un
-    ; texto no entra en uno. Con los 29 mapas de `abl` los textos de la
-    ; batalla arrancan en el 273, así que la tabla de un byte que estaba acá
-    ; hasta el 2026-09-14 los truncaba a 17, 18, 19 y 32, que son renglones de
-    ; la descripción de un ítem: el menú dibujaba cuatro textos largos, uno
-    ; encima del otro. Ningún cartucho de la tanda llega a 256 textos.
+    ; **Two bytes wide**, like `actor_hab_txt` and `enemigo_txt`: a text index
+    ; does not fit in one. With the 29 maps of `abl` the battle texts start at
+    ; 273, so the one-byte table that was here until 2026-09-14 truncated them
+    ; to 17, 18, 19 and 32, which are lines of an item's description: the menu
+    ; drew four long texts, one on top of the other. No cartridge in the test
+    ; suite reaches 256 texts.
     rep #$20
 .a16
     lda BA_S0
@@ -1077,7 +1086,7 @@ texto_puesto:
 ordenes_listas:
     rts
 
-    ; --- la lista de ítems, donde van los enemigos ---
+    ; --- the item list, where the enemies go ---
 la_lista:
     lda #0
     sta BA_S0
@@ -1092,15 +1101,15 @@ fila_item:
 no_hay_mas:
     jmp items_listos
 hay_item:
-    sta BA_S6                   ; el lugar en la lista
+    sta BA_S6                   ; the place in the list
     rep #$20
 .a16
     lda #BA_ENEMIGO_POS0
     jsr ba_fila
     sep #$20
 .a8
-    ; El cursor, sólo mientras se elige el ítem: eligiendo el blanco la lista
-    ; queda en gris y el cursor se va al grupo.
+    ; The cursor, only while the item is being chosen: while choosing the
+    ; target the list stays gray and the cursor moves to the party.
     lda BA_MODO
     cmp #BA_M_ITEM
     bne gris_item
@@ -1115,7 +1124,7 @@ gris_item:
     lda #1
 variante_item:
     sta temp + 1
-    ; el nombre
+    ; the name
     rep #$20
 .a16
     lda #BA_NOMBRE_DX
@@ -1126,19 +1135,19 @@ variante_item:
     sta comp_dup + 3
     lda BA_S6
     jsr ba_item_de_lista
-    sta BA_S1                   ; el `k`
+    sta BA_S1                   ; the `k`
     rep #$20
 .a16
     and #$00FF
     sta BA_T0
     asl a
     clc
-    adc BA_T0                   ; por tres: `3k` es el nombre
+    adc BA_T0                   ; times three: `3k` is the name
     tax
     sep #$20
 .a8
     jsl f:ba_t_texto
-    ; y cuántos hay, con los dos puntos adelante
+    ; and how many there are, with the colon in front
     rep #$20
 .a16
     lda #BA_ITEM_CUENTA_DX
@@ -1154,7 +1163,7 @@ cuenta_blanca:
     lda #0
 cuenta_variante:
     sta temp + 1
-    lda #$3A                    ; los dos puntos
+    lda #$3A                    ; the colon
     jsl f:ba_t_glifo
     lda BA_S1
     rep #$20
@@ -1181,12 +1190,12 @@ cuenta_variante:
 items_listos:
     jmp enemigos_listos
 
-    ; --- la lista de habilidades, donde van los enemigos ---
+    ; --- the skill list, where the enemies go ---
     ;
-    ; La forma es la del original —la de una captura del juego de verdad, del
-    ; 2026-09-12—: la descripción de la que marca el cursor arriba de todo, y
-    ; abajo dos columnas con el nombre a la izquierda y el costo en SP a la
-    ; derecha, con un guión delante. Se lee **por filas**, que es lo que la captura muestra.
+    ; The layout is the original's —from a capture of the real game, of
+    ; 2026-09-12—: the description of the one under the cursor at the very
+    ; top, and below two columns with the name on the left and the SP cost on
+    ; the right, with a dash in front. It reads **by rows**, which is what the capture shows.
 la_lista_hab:
     jsr ba_hab_lista
     lda BA_HAB_N
@@ -1195,8 +1204,8 @@ la_lista_hab:
 hay_alguna:
     lda BA_MODO
     cmp #BA_M_HAB
-    bne hab_en_gris             ; eligiendo el blanco: sin descripción
-    ; la descripción de la que marca el cursor
+    bne hab_en_gris             ; choosing the target: no description
+    ; the description of the one under the cursor
     rep #$20
 .a16
     lda #BA_HAB_DESC_POS
@@ -1220,7 +1229,7 @@ hay_alguna:
     jsl f:ba_t_texto
 hab_en_gris:
     lda #0
-    sta BA_S3                   ; el lugar en la lista
+    sta BA_S3                   ; the place in the list
 fila_hab:
     lda BA_S3
     cmp BA_HAB_N
@@ -1231,9 +1240,10 @@ hay_hab:
     bcc hay_lugar_hab
     jmp hab_listas
 hay_lugar_hab:
-    ; Fila y columna: con dos columnas son un `lsr` y el bit 0. Si alguna vez
-    ; fueran otras, esto es lo que hay que cambiar; el conversor emite
-    ; `BA_HAB_COLUMNAS` para que se vea desde acá que son dos.
+    ; Row and column: with two columns they are an `lsr` and bit 0. If they
+    ; were ever something else, this is what has to change; the converter
+    ; emits `BA_HAB_COLUMNAS` so that it is visible from here that they are
+    ; two.
     lda BA_S3
     lsr a
     sta BA_S0
@@ -1252,17 +1262,17 @@ hay_lugar_hab:
 columna_cero:
     lda #0
 columna_puesta:
-    sta BA_S5                   ; el desplazamiento de la columna
+    sta BA_S5                   ; the column's offset
     sep #$20
 .a8
-    ; El `k` de esta habilidad, y si se puede pagar: la que no alcanza va en
-    ; gris, que es lo que RM2k hace con una que no se puede usar.
+    ; This skill's `k`, and whether it can be paid for: one that cannot goes
+    ; in gray, which is what RM2k does with one that cannot be used.
     lda BA_S3
     jsr ba_hab_de_lista
     sta BA_S6
     lda BA_MODO
     cmp #BA_M_HAB
-    bne gris_hab                ; eligiendo el blanco, la lista entera en gris
+    bne gris_hab                ; choosing the target, the whole list in gray
     lda BA_S6
     jsr ba_hab_alcanza
     bne se_puede
@@ -1273,7 +1283,7 @@ se_puede:
     lda #0
 variante_hab:
     sta BA_S2
-    ; el cursor, sólo mientras se elige la habilidad
+    ; the cursor, only while the skill is being chosen
     lda BA_MODO
     cmp #BA_M_HAB
     bne sin_cursor_hab
@@ -1290,7 +1300,7 @@ variante_hab:
     lda #$3E
     jsl f:ba_t_glifo
 sin_cursor_hab:
-    ; el nombre
+    ; the name
     lda BA_S2
     sta temp + 1
     rep #$20
@@ -1314,7 +1324,7 @@ sin_cursor_hab:
     sep #$20
 .a8
     jsl f:ba_t_texto
-    ; el guión y el costo
+    ; the dash and the cost
     rep #$20
 .a16
     lda BA_S5
@@ -1325,7 +1335,7 @@ sin_cursor_hab:
 .a8
     lda BA_S2
     sta temp + 1
-    lda #$2D                    ; el guión
+    lda #$2D                    ; the dash
     jsl f:ba_t_glifo
     rep #$20
 .a16
@@ -1353,4 +1363,3 @@ sin_cursor_hab:
 hab_listas:
     jmp enemigos_listos
 .endproc
-

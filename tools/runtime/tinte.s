@@ -1,52 +1,52 @@
 .segment "CODE"
 
-; --- el tinte de pantalla --------------------------------------------------
+; --- the screen tint --------------------------------------------------------
 ;
-; RM2k escala cada canal por un valor de 0 a 200, con 100 como neutro. En una
-; consola con paleta eso no es un efecto de pantalla sino una transformación de
-; la paleta: se escalan los colores al subirlos y el fondo, que va en 8 bits por
-; pixel y direcciona CGRAM en directo, queda teñido exactamente.
+; RM2k scales each channel by a value from 0 to 200, with 100 as neutral. On a
+; console with a palette that is not a screen effect but a transformation of
+; the palette: the colors are scaled when uploaded and the background, which
+; is 8 bits per pixel and addresses CGRAM directly, ends up tinted exactly.
 ;
-; La cuenta es `i * valor / 100` con enteros. Las dos operaciones las hace el
-; hardware y son exactas, así que la misma cuenta en Python da siempre lo
-; mismo. Una aproximación con corrimientos no serviría: la
-; comparación es pixel por pixel.
+; The computation is `i * value / 100` on integers. The hardware does both
+; operations and they are exact, so the same computation in Python always
+; gives the same result. An approximation with shifts would not do: the
+; comparison is pixel by pixel.
 
-; t[i] = i * valor / 100 para i de 0 a 31, topado en 31. A = valor, X = tabla.
+; t[i] = i * value / 100 for i from 0 to 31, capped at 31. A = value, X = table.
 .proc tabla_canal
 .a8
 .i16
-    ; El tinte de RM2k no escala el canal: lo compone con un *hard light*, que
-    ; es `2ab` para la mitad de abajo y el screen `1-2(1-a)(1-b)` para la de
-    ; arriba. En las unidades de RM2k, con 100 neutro, las dos mitades son la
-    ; misma cuenta espejada en los dos ejes:
+    ; RM2k's tint does not scale the channel: it composes it with a *hard
+    ; light*, which is `2ab` for the lower half and the screen
+    ; `1-2(1-a)(1-b)` for the upper one. In RM2k units, with 100 neutral, the
+    ; two halves are the same computation mirrored on both axes:
     ;
-    ;     valor <= 100:  canal * valor / 100
-    ;     valor  > 100:  31 - (200 - valor) * (31 - canal) / 100
+    ;     value <= 100:  channel * value / 100
+    ;     value  > 100:  31 - (200 - value) * (31 - channel) / 100
     ;
-    ; Así que se arma siempre la de abajo —que es lo que este código venía
-    ; haciendo, o sea que los tintes que oscurecen dan exactamente lo mismo que
-    ; antes— y si el valor aclara se espeja la tabla terminada:
+    ; So the lower one is always built —which is what this code had been
+    ; doing, meaning the tints that darken give exactly the same as before—
+    ; and if the value brightens the finished table is mirrored:
     ; `t'[j] = 31 - t[31 - j]`.
     ;
-    ; La mitad de arriba estaba mal: multiplicaba por dos y topaba en 31, y la
-    ; diferencia con RM2k llegaba a 31 de 31 con el valor 200. No lo cobró nadie
-    ; porque ninguna página que compilara aclaraba la pantalla; dos de las once
-    ; que destraba la saturación sí, con (0, 120, 120).
+    ; The upper half was wrong: it multiplied by two and capped at 31, and the
+    ; difference from RM2k reached 31 of 31 with the value 200. Nobody caught
+    ; it because no page that compiled brightened the screen; two of the eleven
+    ; that saturation unlocks do, with (0, 120, 120).
     ;
-    ; El espejo va afuera del lazo a propósito. Hacerlo por entrada —con la
-    ; cuenta metida en una subrutina— son noventa y seis `jsr` y `rts` de más
-    ; por tinte, y eso alcanzó para que `aplicar_tinte` pasara de un cuadro a
-    ; dos: se vio como `snes-timer` perdiendo un tic del cronómetro.
-    sta temp                    ; el valor del canal
-    stx temp + 2                ; dónde va la tabla
+    ; The mirror goes outside the loop on purpose. Doing it per entry —with
+    ; the computation put in a subroutine— is ninety-six extra `jsr` and `rts`
+    ; per tint, and that was enough for `aplicar_tinte` to go from one frame
+    ; to two: it showed as `snes-timer` losing one timer tick.
+    sta temp                    ; the channel's value
+    stx temp + 2                ; where the table goes
     stz tinte_espejo
     cmp #(TINTE_NEUTRO + 1)
     bcc arrancar
     lda #(2 * TINTE_NEUTRO)
     sec
     sbc temp
-    sta temp                    ; 200 - valor
+    sta temp                    ; 200 - value
     inc tinte_espejo
 arrancar:
     ldy #$0000
@@ -54,7 +54,7 @@ cada:
     tya
     sta WRMPYA
     lda temp
-    sta WRMPYB                  ; arranca: el producto tarda ocho ciclos
+    sta WRMPYB                  ; starts: the product takes eight cycles
     nop
     nop
     nop
@@ -62,11 +62,11 @@ cada:
     rep #$20
 .a16
     lda RDMPYL
-    sta WRDIVL                  ; el dividendo, en una sola escritura de 16
+    sta WRDIVL                  ; the dividend, in a single 16-bit write
     sep #$20
 .a8
     lda #TINTE_NEUTRO
-    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    sta WRDIVB                  ; starts: the quotient takes sixteen cycles
     nop
     nop
     nop
@@ -78,7 +78,7 @@ cada:
     lda RDDIVL
     cmp #32
     bcc cabe
-    lda #31                     ; el canal tiene cinco bits y no más
+    lda #31                     ; the channel has five bits and no more
 cabe:
     sta (temp + 2), y
     iny
@@ -89,8 +89,9 @@ cabe:
     bne espejar
     rts
 
-    ; El espejo va en dos pasadas, con una copia en el medio, porque `(dp), y`
-    ; direcciona con Y y acá hacen falta dos índices a la vez: `j` y `31 - j`.
+    ; The mirror goes in two passes, with a copy in between, because
+    ; `(dp), y` addresses with Y and here two indices are needed at once: `j`
+    ; and `31 - j`.
 espejar:
     ldy #$0000
 copiar:
@@ -104,7 +105,7 @@ volver:
     rep #$20
 .a16
     tya
-    eor #$001F                  ; con cinco bits, el complemento es 31 - j
+    eor #$001F                  ; with five bits, the complement is 31 - j
     tax
     sep #$20
 .a8
@@ -118,15 +119,15 @@ volver:
     rts
 .endproc
 
-; Lee una paleta de la ROM, la tiñe color por color y la sube a CGRAM.
+; Reads a palette from ROM, tints it color by color and uploads it to CGRAM.
 .proc tenir_paleta
 .a8
 .i16
     jsr armar_paleta
     jmp copiar_a_sombra
 .endproc
-; Copia la paleta recién armada en `pal_buf` a su lugar de `cgram_sombra`, y
-; deja el tinte listo para que `flush_video` lo suba en el vblank.
+; Copies the palette just built in `pal_buf` to its place in `cgram_sombra`,
+; and leaves the tint ready for `flush_video` to upload in the vblank.
 .proc copiar_a_sombra
 .a8
 .i16
@@ -134,13 +135,13 @@ volver:
     rep #$20
 .a16
     and #$00FF
-    asl a                       ; dos bytes por color
+    asl a                       ; two bytes per color
     tay
     sep #$20
 .a8
     ldx #$0000
     cpx tin_fin
-    beq listo                   ; una paleta sin colores
+    beq listo                   ; a palette with no colors
 copia:
     lda pal_buf, x
     sta cgram_sombra, y
@@ -154,36 +155,38 @@ listo:
     rts
 .endproc
 
-; Arma la paleta teñida en `pal_buf`, sin subirla.
+; Builds the tinted palette in `pal_buf`, without uploading it.
 .proc armar_paleta
 .a8
 .i16
-    ; La cuenta va en Y y no en X: adentro del lazo X es el índice de las tres
-    ; tablas de canal, así que al llegar acá vale el azul del color anterior y
-    ; no cuántos colores van. Y sí sobrevive: es el cursor de la paleta.
+    ; The count goes in Y and not in X: inside the loop X is the index into the
+    ; three channel tables, so on getting here it holds the previous color's
+    ; blue and not how many colors there are. Y does survive: it is the
+    ; palette's cursor.
     rep #$20
 .a16
     lda tin_count
-    asl a                       ; dos bytes por color
+    asl a                       ; two bytes per color
     sta tin_fin
     sep #$20
 .a8
-    ; Ni `sta` ni `sep` tocan Z, así que esto mira el `asl`. Una paleta sin
-    ; colores se va sin hacer nada: el DMA de abajo mediría cero bytes, que en
-    ; el hardware son 64 KB, y llenaría CGRAM de basura.
+    ; Neither `sta` nor `sep` touch Z, so this looks at the `asl`. A palette
+    ; with no colors leaves without doing anything: the DMA below would
+    ; measure zero bytes, which on the hardware is 64 KB, and would fill CGRAM
+    ; with garbage.
     bne hay_colores
     rts
 hay_colores:
     ldy #$0000
-    ; Con la saturación neutra —que es casi siempre— el color no necesita ni
-    ; los tres canales juntos ni salir de los dieciséis bits, y ahí el lazo
-    ; corto se paga solo. La cuenta: `aplicar_tinte` recorre los colores del
-    ; mapa, los de la capa de encima, los de las ocho paletas de sprite y los
-    ; del líder —en CoreRetro II son 151— y el lazo largo salía 205 ciclos cada
-    ; uno. Con eso la vuelta del cuadro en que corre el tinte terminaba en la
-    ; línea 224 de 262: **una** de margen. El primer evento de más que pidió
-    ; una paleta la voló, y la pantalla quedó un cuadro sin teñir. Medido con
-    ; la sonda de `contar_perdidos`.
+    ; With neutral saturation —which is almost always— the color needs neither
+    ; the three channels together nor to leave sixteen bits, and there the
+    ; short loop pays for itself. The numbers: `aplicar_tinte` walks the map's
+    ; colors, the upper layer's, those of the eight sprite palettes and the
+    ; leader's —in CoreRetro II that is 151— and the long loop cost 205 cycles
+    ; each. With that the iteration of the frame where the tint runs ended on
+    ; line 224 of 262: **one** of margin. The first extra event that asked for
+    ; a palette blew it, and the screen stayed untinted for a frame. Measured
+    ; with the `contar_perdidos` probe.
     lda tinte_s
     cmp #TINTE_NEUTRO
     bne cada_color
@@ -200,7 +203,7 @@ sigue_color:
     rep #$20
 .a16
     lda [tin_ptr], y
-    sta temp                    ; el color original, de 15 bits
+    sta temp                    ; the original color, 15 bits
     and #$001F
     sta sat_r
     lda temp
@@ -226,14 +229,16 @@ sigue_color:
     sta sat_b
     sep #$20
 .a8
-    ; La saturación va **antes** del color, que es el orden de `ToneBlit`: allá
-    ; `saturation_tone` corre antes que `color_tone`. Al revés el gris se
-    ; calcularía sobre el color ya teñido, y es de las que una golden no vería:
-    ; se sacaría con el error puesto y lo defendería.
+    ; Saturation goes **before** color, which is `ToneBlit`'s order: there
+    ; `saturation_tone` runs before `color_tone`. The other way round the gray
+    ; would be computed on the already tinted color, and it is one of those a
+    ; golden would not see: it would be taken with the error in and would
+    ; defend it.
     ;
-    ; Y sólo cuando hace falta, igual que el `apply_sat` de easyrpg: no se puede
-    ; hacer canal por canal —necesita el gris del color entero, o sea los tres a
-    ; la vez— así que no entra en las tablas y es lo caro de todo esto.
+    ; And only when needed, same as easyrpg's `apply_sat`: it cannot be done
+    ; channel by channel —it needs the gray of the whole color, that is, all
+    ; three at once— so it does not go into the tables and it is the expensive
+    ; part of all this.
     lda tinte_s
     cmp #TINTE_NEUTRO
     beq sin_saturar
@@ -250,13 +255,13 @@ sin_saturar:
     rep #$20
 .a16
     and #$001F
-    xba                         ; el azul va en los bits 10 a 14: ocho lugares
-    asl a                       ; los da el intercambio de bytes y los dos que
-    asl a                       ; faltan, dos corrimientos. Diez `asl` seguidos
-                                ; se cuentan mal, y así fue como salieron cinco
+    xba                         ; blue goes in bits 10 to 14: eight places
+    asl a                       ; come from the byte swap and the two missing
+    asl a                       ; ones, two shifts. Ten `asl` in a row are
+                                ; easy to miscount, and that is how five came out
     sta temp
     lda temp + 2
-    and #$001F                  ; el rojo, sin el verde que quedó al lado
+    and #$001F                  ; the red, without the green left next to it
     ora temp
     sta temp
     lda temp + 3
@@ -265,7 +270,7 @@ sin_saturar:
     asl a
     asl a
     asl a
-    asl a                       ; y el verde en los bits 5 a 9
+    asl a                       ; and the green in bits 5 to 9
     ora temp
     sta pal_buf, y
 
@@ -275,16 +280,16 @@ sin_saturar:
 .a8
     bra cada_color
 
-    ; El mismo color, sin saturación y sin salir de los dieciséis bits. Los
-    ; `lda tabla_x, x` leen de paso el byte de al lado —las tres tablas están
-    ; pegadas y después viene `puro`—; el `and` lo tira.
+    ; The same color, without saturation and without leaving sixteen bits. The
+    ; `lda tabla_x, x` also read the byte next to it —the three tables are
+    ; contiguous and `puro` comes after—; the `and` throws it away.
 cada_color_neutro:
 .a16
     cpy tin_fin
     beq subir_neutro
     lda [tin_ptr], y
     sta temp
-    and #$001F                  ; el rojo
+    and #$001F                  ; the red
     tax
     lda tabla_r, x
     and #$001F
@@ -295,27 +300,27 @@ cada_color_neutro:
     lsr a
     lsr a
     lsr a
-    and #$001F                  ; el verde
+    and #$001F                  ; the green
     tax
     lda tabla_g, x
     and #$001F
-    xba                         ; por ocho
+    xba                         ; times eight
     lsr a
     lsr a
-    lsr a                       ; menos tres: a los bits 5 a 9
+    lsr a                       ; minus three: to bits 5 to 9
     ora temp + 2
     sta temp + 2
     lda temp
-    xba                         ; el byte de arriba abajo
+    xba                         ; the high byte down
     lsr a
     lsr a
-    and #$001F                  ; el azul, que estaba en los bits 10 a 14
+    and #$001F                  ; the blue, which was in bits 10 to 14
     tax
     lda tabla_b, x
     and #$001F
-    xba                         ; por ocho
+    xba                         ; times eight
     asl a
-    asl a                       ; y dos más: a los bits 10 a 14
+    asl a                       ; and two more: to bits 10 to 14
     ora temp + 2
     sta pal_buf, y
     iny
@@ -328,19 +333,19 @@ subir:
     rts
 .endproc
 
-; --- la saturación del tinte -----------------------------------------------
-; Acerca o aleja del gris los tres canales que quedaron en `sat_r`, `sat_g` y
-; `sat_b`. Es `saturation_tone` de easyrpg puesto en cinco bits y en las
-; unidades de RM2k: allá el factor sale de `gray = s * 128 / 100` y vale
-; `gray * 8` o `1024 + (gray - 128) * 16` sobre 1024, que hecha la cuenta es
-; `s / 100` por debajo de 100 y `(2s - 100) / 100` por arriba. O sea que 0
-; lleva todo al gris, 100 no hace nada y 200 triplica la distancia.
+; --- the tint's saturation --------------------------------------------------
+; Moves the three channels left in `sat_r`, `sat_g` and `sat_b` toward or away
+; from gray. It is easyrpg's `saturation_tone` put into five bits and into
+; RM2k units: there the factor comes from `gray = s * 128 / 100` and is
+; `gray * 8` or `1024 + (gray - 128) * 16` over 1024, which worked out is
+; `s / 100` below 100 and `(2s - 100) / 100` above. That is, 0 takes
+; everything to gray, 100 does nothing and 200 triples the distance.
 .proc saturar_color
 .a8
 .i16
-    ; Primero el gris. Los pesos son los de Y' del Y'CbCr y suman 65536
-    ; exactos, así que sobre canales de cinco bits dan una luminancia de cinco
-    ; bits: alcanza con quedarse con el byte de arriba de la suma de 24.
+    ; First the gray. The weights are those of Y' in Y'CbCr and add up to
+    ; exactly 65536, so on five-bit channels they give a five-bit luminance:
+    ; it is enough to keep the top byte of the 24-bit sum.
     stz sat_acc + 0
     stz sat_acc + 1
     stz sat_acc + 2
@@ -365,7 +370,7 @@ subir:
     lda #>LUZ_B
     sta peso_hi
     jsr sumar_peso
-    lda sat_acc + 2             ; la suma sobre 65536
+    lda sat_acc + 2             ; the sum divided by 65536
     sta sat_luz
 
     lda sat_r
@@ -395,16 +400,16 @@ subir:
     rts
 .endproc
 
-; `sat_acc += peso * peso_ch`, en 24 bits. El peso es de dieciséis y la unidad
-; de la consola multiplica de a ocho, así que va en dos productos: el bajo tal
-; cual y el alto corrido un byte.
+; `sat_acc += weight * peso_ch`, in 24 bits. The weight is sixteen bits and the
+; console's unit multiplies eight at a time, so it goes in two products: the
+; low one as is and the high one shifted a byte.
 .proc sumar_peso
 .a8
 .i16
     lda peso_lo
     sta WRMPYA
     lda peso_ch
-    sta WRMPYB                  ; arranca: el producto tarda ocho ciclos
+    sta WRMPYB                  ; starts: the product takes eight cycles
     nop
     nop
     nop
@@ -418,7 +423,7 @@ subir:
     sep #$20
 .a8
     lda sat_acc + 2
-    adc #0                      ; ni `sta` ni `sep` tocan el acarreo
+    adc #0                      ; neither `sta` nor `sep` touch the carry
     sta sat_acc + 2
 
     lda peso_hi
@@ -432,21 +437,21 @@ subir:
     rep #$20
 .a16
     lda RDMPYL
-    sta temp                    ; el producto alto, que va corrido ocho bits
+    sta temp                    ; the high product, which goes shifted eight bits
     and #$00FF
-    xba                         ; su byte bajo, ya en el lugar de arriba
+    xba                         ; its low byte, already in the upper place
     clc
     adc sat_acc
     sta sat_acc
     sep #$20
 .a8
-    lda temp + 1                ; y el byte alto del producto
+    lda temp + 1                ; and the product's high byte
     adc sat_acc + 2
     sta sat_acc + 2
     rts
 .endproc
 
-; Un canal acercado o alejado de `sat_luz`. Entra y sale en A.
+; A channel moved toward or away from `sat_luz`. Enters and leaves in A.
 .proc saturar_canal
 .a8
 .i16
@@ -455,10 +460,10 @@ subir:
     cmp #(TINTE_NEUTRO + 1)
     bcs sobre
 
-    ; Hasta 100 es una interpolación entre el gris y el color, con los dos
-    ; términos positivos: es la forma que el 65816 puede hacer sin signo.
+    ; Up to 100 it is an interpolation between the gray and the color, with
+    ; both terms positive: it is the form the 65816 can do unsigned.
     ;
-    ;     (luz * (100 - s) + canal * s) / 100
+    ;     (luma * (100 - s) + channel * s) / 100
     lda #TINTE_NEUTRO
     sec
     sbc tinte_s
@@ -493,11 +498,11 @@ subir:
 .a8
     jmp dividir_y_topar
 
-    ; Por arriba de 100 el canal se aleja del gris: `canal +- |canal - luz| *
-    ; (s - 100) / 100`, con el signo aparte para no tener que restar con signo.
-    ; easyrpg lo hace con un desplazamiento aritmético, que redondea hacia abajo
-    ; también con negativos; acá se trunca. La diferencia es de un valor de 31 y
-    ; sólo cuando sobresatura.
+    ; Above 100 the channel moves away from gray: `channel +- |channel - luma|
+    ; * (s - 100) / 100`, with the sign kept apart so as not to have to do a
+    ; signed subtraction. easyrpg does it with an arithmetic shift, which
+    ; rounds down also with negatives; here it truncates. The difference is
+    ; one value out of 31 and only when oversaturating.
 sobre:
     lda tinte_s
     sec
@@ -558,12 +563,12 @@ restar:
     rts
 .endproc
 
-; El divisor y la espera, que son los mismos en los dos caminos.
+; The divisor and the wait, which are the same on both paths.
 .proc dividir_y_topar
 .a8
 .i16
     lda #TINTE_NEUTRO
-    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    sta WRDIVB                  ; starts: the quotient takes sixteen cycles
     nop
     nop
     nop
@@ -580,25 +585,26 @@ cabe:
     rts
 .endproc
 
-; Y la sube desde `pal_buf` a la entrada `tin_cgadd` de CGRAM.
+; And uploads it from `pal_buf` to CGRAM entry `tin_cgadd`.
 
-; El tinte que dejó el evento, aplicado a las tres paletas del mapa.
+; The tint the event left, applied to the map's three palettes.
 .proc aplicar_tinte
 .a8
 .i16
     jsr tablas_de_tinte
 
-    ; El fondo, desde donde arranca: debajo de él están el color de fondo de la
-    ; pantalla y la paleta de la ventana, que **no se tiñen**. Que queden afuera
-    ; sale de dónde empieza el rango y no de acordarse de saltearlas.
+    ; The background, from where it starts: below it are the screen's
+    ; backdrop color and the window's palette, which **are not tinted**. That
+    ; they stay out comes from where the range starts and not from
+    ; remembering to skip them.
     ldx #M_PTR_MAP_CGRAM
     ldy #M_MAP_CGRAM
     lda #CGRAM_BASE
     jsr una_paleta
 
-    ; La capa de encima, en la entrada que le haya tocado a este mapa. Hay que
-    ; leerla del registro antes de cargar X con el campo, porque el registro se
-    ; direcciona justamente con X.
+    ; The upper layer, at whatever entry this map got. It has to be read from
+    ; the record before loading X with the field, because the record is
+    ; addressed precisely with X.
     ldx mapa_ofs
     lda f:mapa_tabla + M_ABOVE_FIRST, x
     pha
@@ -607,19 +613,20 @@ cabe:
     pla
     jsr una_paleta
 
-    ; Y los sprites, en la mitad de arriba de CGRAM.
+    ; And the sprites, in the upper half of CGRAM.
     ldx #M_PTR_SPRITE_CGRAM
     ldy #M_SPRITE_CGRAM
     lda #128
     jsr una_paleta
 
-    ; Encima, los colores del líder en su ranura. Los líderes posibles comparten
-    ; una, así que el bloque que vino del cartucho trae los del que el conversor
-    ; puso primero, y el que está liderando puede ser otro. Va **acá** y no
-    ; aparte para que se tiña con todo lo demás: subirlos después dejaría al
-    ; héroe sin teñir, que es el error inverso del cronómetro.
+    ; On top, the leader's colors in its slot. The possible leaders share one,
+    ; so the block that came from the cartridge carries those of the one the
+    ; converter put first, and the one leading may be another. It goes
+    ; **here** and not apart so that it is tinted with everything else:
+    ; uploading them afterwards would leave the hero untinted, which is the
+    ; inverse of the timer's error.
     lda hero_cgram + 2
-    beq sin_lider_pal           ; ningún líder con gráfico: nada que subir
+    beq sin_lider_pal           ; no leader with a graphic: nothing to upload
     rep #$20
 .a16
     lda hero_cgram
@@ -630,73 +637,73 @@ cabe:
 .a8
     lda hero_cgram + 2
     sta tin_ptr + 2
-    lda hero_pal                ; viene corrido un lugar, o sea paleta por dos
+    lda hero_pal                ; it comes shifted one place, that is palette times two
     asl a
     asl a
-    asl a                       ; y esto lo lleva a paleta por dieciséis
+    asl a                       ; and this takes it to palette times sixteen
     clc
-    adc #129                    ; la mitad de sprites, más el índice 0 que no se
-    sta tin_cgadd               ; dibuja
+    adc #129                    ; the sprite half, plus index 0 which is not
+    sta tin_cgadd               ; drawn
     jsr tenir_paleta
 sin_lider_pal:
 
-    ; El cronómetro va **sin teñir**, encima de lo que acaba de subir. En RM2k
-    ; el tinte es una propiedad de los dibujables del mapa —`Priority_Screen`
-    ; es 90 y `Priority_Timer` 140—, así que la pantalla se oscurece y los
-    ; dígitos no. Acá el tinte es una transformación de CGRAM y se lleva por
-    ; delante todo lo que toca, así que `subir_timer_pal` vuelve a subir de la
-    ; ROM las entradas de los dígitos, y sólo ésas: la paleta la comparten con
-    ; un personaje.
+    ; The timer goes **untinted**, on top of what was just uploaded. In RM2k
+    ; the tint is a property of the map's drawables —`Priority_Screen` is 90
+    ; and `Priority_Timer` 140—, so the screen darkens and the digits do not.
+    ; Here the tint is a CGRAM transformation and runs over everything it
+    ; touches, so `subir_timer_pal` uploads the digits' entries again from
+    ; ROM, and only those: they share the palette with a character.
     ;
-    ; La ventana de mensaje tampoco se tiñe, y sin hacer nada: vive en las
-    ; entradas de abajo de todo y el fondo arranca en `CGRAM_BASE`, así que
-    ; queda fuera del rango. Es lo que hace RM2k —el tono se aplica al mapa, a
-    ; los personajes y al panorama, no a la ventana— y acá decía que no se
-    ; podía.
+    ; The message window is not tinted either, and without doing anything: it
+    ; lives in the entries at the very bottom and the background starts at
+    ; `CGRAM_BASE`, so it stays out of the range. It is what RM2k does —the
+    ; tone applies to the map, the characters and the panorama, not to the
+    ; window— and here it used to say it could not be done.
     ;
-    ; Nada de esto tocó CGRAM: las tres paletas quedaron en `cgram_sombra` y
-    ; las sube `subir_tinte`, en el vblank.
+    ; None of this touched CGRAM: the three palettes were left in
+    ; `cgram_sombra` and `subir_tinte` uploads them, in the vblank.
     rts
 .endproc
 
-; El tinte que haya pedido un evento, con la pantalla apagada mientras dura.
+; The tint an event may have requested, with the screen off while it lasts.
 ;
-; CGRAM no acepta escrituras con el PPU dibujando, así que esto no puede correr
-; en cualquier momento. Se intentó primero meterlo en `flush_video`, que corre en
-; el vblank, y no entra: `aplicar_tinte` arma tres tablas de canal de treinta y
-; dos entradas y sube tres paletas por DMA. Lo que se pasaba del vblank caía con
-; el PPU dibujando, y el resultado era un tinte a medias distinto cada vez —una
-; vez la capa de encima y un sprite, otra vez el fondo con el héroe en negro y
-; los NPCs sin teñir—.
+; CGRAM does not accept writes with the PPU drawing, so this cannot run at
+; just any moment. It was first tried inside `flush_video`, which runs in
+; vblank, and it does not fit: `aplicar_tinte` builds three channel tables of
+; thirty-two entries and uploads three palettes by DMA. What overran the
+; vblank landed with the PPU drawing, and the result was a half-done tint
+; different each time —once the upper layer and a sprite, another time the
+; background with the hero in black and the NPCs untinted—.
 ;
-; Y esto la tanda no lo cobra: snes9x **acepta** las escrituras a CGRAM con el
-; PPU dibujando y mednafen no, así que un tinte roto puede dar verde en las
-; sesenta comparaciones y verse mal en la consola. Cuando algo de CGRAM o VRAM
-; anda acá adentro y no en el hardware, ésta es la primera sospecha.
+; And the suite does not catch this: snes9x **accepts** CGRAM writes with the
+; PPU drawing and mednafen does not, so a broken tint can be green on the
+; sixty comparisons and look wrong on the console. When something about CGRAM
+; or VRAM works in here and not on the hardware, this is the first suspect.
 ;
-; La otra salida que se probó —apagar la pantalla a mitad del cuadro, escribir
-; el tinte y volver a prenderla— es otra trampa de las que el emulador tapa: en
-; la consola son líneas negras mientras dura la cuenta, y en el emulador un
-; cuadro teñido de la mitad para abajo. La vio la sacudida de pantalla, que es
-; la primera receta que compara cuadro por cuadro.
+; The other way out that was tried —turning the screen off in the middle of
+; the frame, writing the tint and turning it back on— is another trap the
+; emulator covers up: on the console it is black lines while the computation
+; lasts, and on the emulator a frame tinted from the middle down. The screen
+; shake saw it, being the first recipe that compares frame by frame.
 ;
-; Apagar la pantalla es lo que ya hace el teletransporte —`cargar_lo_pedido`—
-; por la misma razón. Cuesta un cuadro en negro, que en RM2k tampoco desentona: el
-; motor original funde a negro en las transiciones.
+; Turning the screen off is what the teleport already does —`cargar_lo_pedido`—
+; for the same reason. It costs one black frame, which does not look out of
+; place in RM2k either: the original engine fades to black on transitions.
 .proc tinte_de_evento
 .a8
 .i16
     lda tinte_pendiente
     beq nada
     stz tinte_pendiente
-    jsr aplicar_tinte           ; a la sombra; CGRAM se escribe en el vblank
+    jsr aplicar_tinte           ; to the shadow; CGRAM is written in the vblank
 nada:
     rts
 .endproc
 
-; Sube a CGRAM las tres paletas teñidas de `cgram_sombra`, y las entradas del
-; cronómetro sin teñir detrás. Es para el vblank, o para `cargar_mapa` con la pantalla
-; apagada. Los tres DMA juntos son a lo sumo 544 bytes.
+; Uploads to CGRAM the three tinted palettes from `cgram_sombra`, and the
+; untinted timer entries after them. It is for the vblank, or for
+; `cargar_mapa` with the screen off. The three DMAs together are 544 bytes at
+; most.
 .proc subir_tinte
 .a8
 .i16
@@ -709,9 +716,9 @@ nada:
 .a8
     jmp subir_paletas
 .endproc
-; Lo mismo desde `pal_buf`, que es donde queda la sombra con el destello de
-; pantalla encima. Se lleva el tinte pendiente, si lo había: el destello ya
-; se armó sobre la sombra recién teñida.
+; The same from `pal_buf`, which is where the shadow sits with the screen
+; flash on top. It takes the pending tint along, if there was one: the flash
+; was already built on the freshly tinted shadow.
 .proc subir_destello
 .a8
 .i16
@@ -735,8 +742,8 @@ nada:
     sta tin_count
     sep #$20
 .a8
-    lda #CGRAM_BASE             ; el fondo arranca corrido: abajo está la
-    jsr dma_sombra              ; ventana, que no se tiñe ni se vuelve a subir
+    lda #CGRAM_BASE             ; the background starts shifted: below is the
+    jsr dma_sombra              ; window, which is neither tinted nor re-uploaded
     ldx mapa_ofs
     rep #$20
 .a16
@@ -757,7 +764,7 @@ nada:
     jsr dma_sombra
     jmp subir_timer_pal
 .endproc
-; Un DMA de `tin_count` colores desde `sombra_origen` a la entrada A de CGRAM.
+; A DMA of `tin_count` colors from `sombra_origen` to CGRAM entry A.
 .proc dma_sombra
 .a8
 .i16
@@ -770,16 +777,16 @@ nada:
     adc sombra_origen
     sta A1T0L
     lda tin_count
-    asl a                       ; dos bytes por color
-    beq nada                    ; cero bytes serían 64 KB
+    asl a                       ; two bytes per color
+    beq nada                    ; zero bytes would be 64 KB
     sta DAS0L
     sep #$20
 .a8
-    stz A1B0                    ; la sombra vive en el banco 0
+    stz A1B0                    ; the shadow lives in bank 0
     lda #$00
-    sta DMAP0                   ; un registro, de a bytes
+    sta DMAP0                   ; one register, byte at a time
     lda #$22
-    sta BBAD0                   ; destino: CGDATA
+    sta BBAD0                   ; destination: CGDATA
     lda #$01
     sta MDMAEN
     rts
@@ -790,23 +797,23 @@ nada:
     rts
 .endproc
 
-; Las entradas de los dígitos del cronómetro, sin teñir, encima de lo que
-; acaba de subir. **Sólo esas entradas y no la paleta entera**: desde
-; `034d721` los dígitos comparten la paleta con un personaje —el que tenga
-; lugar para sus dos colores—, y ese personaje sí se tiñe. Subir la paleta
-; entera lo dejaba sin teñir en cualquier pantalla teñida, con el cronómetro
-; prendido o no: `release` lleva los dígitos en todos los mapas.
+; The timer digits' entries, untinted, on top of what was just uploaded.
+; **Only those entries and not the whole palette**: since `034d721` the
+; digits share the palette with a character —whichever has room for their two
+; colors—, and that character is tinted. Uploading the whole palette left it
+; untinted on any tinted screen, with the timer on or not: `release` carries
+; the digits on every map.
 ;
-; Y sólo **con el cronómetro en pantalla**. Sin dígitos que dibujar esas
-; entradas son del personaje nada más y van teñidas como las demás; al
-; prenderlo o apagarlo, `timer_repintar` pide volver a subir. Lo que queda
-; sin arreglo es una entrada que el personaje y los dígitos comparten —el
-; negro, casi siempre, y el rojo del save point—: mientras el cronómetro se ve,
-; ésa queda sin teñir para los dos, porque los dígitos mandan. El negro sólo
-; se nota con un tinte que aclara: oscurecer y desaturar lo dejan negro.
+; And only **with the timer on screen**. With no digits to draw those entries
+; belong to the character alone and are tinted like the others; when it is
+; turned on or off, `timer_repintar` asks for a re-upload. What stays unfixed
+; is an entry the character and the digits share —black, almost always, and
+; the save point's red—: while the timer is visible, that one stays untinted
+; for both, because the digits win. The black only shows with a tint that
+; brightens: darkening and desaturating leave it black.
 ;
-; Qué entradas son lo dice `timer_mascara`, un bit por entrada y una palabra
-; por mapa, que emite el conversor.
+; Which entries they are is said by `timer_mascara`, one bit per entry and one
+; word per map, which the converter emits.
 .proc subir_timer_pal
 .a8
 .i16
@@ -822,18 +829,18 @@ visible:
     lsr a
     lsr a
     lsr a
-    lsr a                       ; de 128 bytes por mapa a dos
+    lsr a                       ; from 128 bytes per map to two
     tax
     lda f:timer_mascara, x
     bne hay
     sep #$20
 .a8
-    rts                         ; este mapa no lleva los dígitos
+    rts                         ; this map does not carry the digits
 .a16
 hay:
-    sta tin_count               ; los bits que faltan: ni `temp`, que en el
-                                ; vblank puede estar ocupado
-    ; La paleta en la ROM, y la entrada 0 de CGRAM que le toca.
+    sta tin_count               ; the bits left: not `temp`, which in the
+                                ; vblank may be busy
+    ; The palette in ROM, and the CGRAM entry 0 it gets.
     ldx mapa_ofs
     lda f:mapa_tabla + M_TIMER_PAL, x
     and #$0007
@@ -841,11 +848,11 @@ hay:
     asl a
     asl a
     asl a
-    asl a                       ; 32 bytes por paleta
+    asl a                       ; 32 bytes per palette
     clc
     adc f:mapa_tabla + M_PTR_SPRITE_CGRAM, x
-    sta tin_ptr                 ; el bloque entra entero en un banco: lo
-    sep #$20                    ; sube un DMA
+    sta tin_ptr                 ; the block fits whole in one bank: one
+    sep #$20                    ; DMA uploads it
 .a8
     lda f:mapa_tabla + M_PTR_SPRITE_CGRAM + 2, x
     sta tin_ptr + 2
@@ -853,7 +860,7 @@ hay:
     asl a
     asl a
     asl a
-    asl a                       ; dieciséis colores por paleta
+    asl a                       ; sixteen colors per palette
     clc
     adc #128
     sta tin_cgadd
@@ -868,7 +875,7 @@ cada:
     lda tin_cgadd
     sta CGADD
     lda [tin_ptr], y
-    sta CGDATA                  ; primero el byte de abajo
+    sta CGDATA                  ; low byte first
     iny
     lda [tin_ptr], y
     sta CGDATA
@@ -879,18 +886,18 @@ siguiente:
     iny
     lda tin_count
     ora tin_count + 1
-    bne cada                    ; sin más bits, lo demás ya quedó teñido
+    bne cada                    ; with no more bits, the rest is already tinted
     rts
 .endproc
 
-; El cronómetro se acaba de prender o de apagar, y sus entradas cambian de
-; dueño: sin teñir si se ve, teñidas con el personaje si no. Se vuelven a
-; subir en el vblank que viene, con todo lo demás, desde la sombra.
+; The timer was just turned on or off, and its entries change owner: untinted
+; if it is visible, tinted with the character if not. They are uploaded again
+; in the next vblank, with everything else, from the shadow.
 ;
-; Con el tinte neutro no hace falta: teñidas o no son el mismo color. Y
-; preguntarlo no es por ahorrar el DMA sino el presupuesto: el cuadro que sube
-; el tinte sube menos poses —ver `flush_video`—, y eso movería al que camina
-; justo cuando arranca un cronómetro sin tinte.
+; With a neutral tint it is not needed: tinted or not they are the same color.
+; And asking is not to save the DMA but the budget: the frame that uploads
+; the tint uploads fewer poses —see `flush_video`—, and that would move
+; whoever is walking right when a timer starts with no tint.
 .proc timer_repintar
 .a8
 .i16
@@ -913,8 +920,8 @@ pedir:
     rts
 .endproc
 
-; Tiñe y sube una de las paletas del mapa. X = el campo del puntero, Y = el
-; campo de la cantidad, A = en qué entrada de CGRAM arranca.
+; Tints and uploads one of the map's palettes. X = the pointer's field, Y = the
+; count's field, A = which CGRAM entry it starts at.
 .proc una_paleta
 .a8
 .i16
@@ -948,4 +955,3 @@ pedir:
     jsr tenir_paleta
     rts
 .endproc
-

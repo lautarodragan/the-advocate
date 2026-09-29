@@ -1,31 +1,32 @@
 .segment "FAR"
 
-; --- el cuadro de la animación de batalla, rearmado -------------------------
+; --- the battle animation frame, rebuilt ------------------------------------
 ;
-; El cartucho guarda cada cuadro **sin sus tiles vacíos**: una lista de tiles,
-; cada uno con su número en la caja delante —un byte de 0 a 63 y sus 32 bytes—
-; y $FF al final. Ver `cuadro_sin_vacios` en snes_convert.py. Acá se rearman
-; los 2 KB en `ANIMB_BUF`, que es de donde el vblank los sube enteros: lo que
-; queda en la VRAM es lo mismo que cuando el cartucho los traía completos.
+; The cartridge stores each frame **without its empty tiles**: a list of
+; tiles, each with its number in the box in front —a byte from 0 to 63 and its
+; 32 bytes— and $FF at the end. See `cuadro_sin_vacios` in snes_convert.py.
+; Here the 2 KB are rebuilt in `ANIMB_BUF`, which is where vblank uploads them
+; whole from: what ends up in VRAM is the same as when the cartridge carried
+; them complete.
 ;
-; El buffer se mantiene en cero salvo los tiles del último cuadro armado, que
-; `ANIMB_PREV` apunta. Así que armar uno nuevo es borrar esos y copiar los del
-; nuevo, y cuesta lo que pesan los dos y no los 2 KB: los cuadros son casi
-; todos transparencia. Corre en el lazo principal, con la pantalla prendida,
-; y por eso copia la CPU y no un DMA a $2180: un DMA general fuera del vblank
-; se cruza con el HDMA de la ventana de mensaje, y en la primera revisión de
-; la CPU de la consola ese cruce la puede colgar.
+; The buffer is kept at zero except for the tiles of the last frame built,
+; which `ANIMB_PREV` points to. So building a new one means clearing those and
+; copying the new one's, and it costs what the two weigh, not the 2 KB: the
+; frames are almost all transparency. It runs in the main loop, with the
+; screen on, and that is why the CPU copies and not a DMA to $2180: a general
+; DMA outside vblank collides with the HDMA of the message window, and on the
+; console's first CPU revision that collision can hang it.
 ;
-; Vive en el banco 1 porque en el banco 0 no hay lugar, y se entra por su
-; espejo rápido, igual que el código del banco 0 —ver MEMSEL—. Cada tile se
-; copia desenrollado, dieciséis palabras seguidas, porque un lazo de a palabra
-; gasta en contar y en saltar casi lo mismo que en copiar; el `jmp` del final
-; de cada lazo es por eso: el cuerpo desenrollado no le deja alcance a un
-; `bra`.
+; It lives in bank 1 because there is no room in bank 0, and it is entered
+; through its fast mirror, like the bank 0 code —see MEMSEL—. Each tile is
+; copied unrolled, sixteen words in a row, because a word-at-a-time loop
+; spends almost as much on counting and branching as on copying; that is why
+; each loop ends in a `jmp`: the unrolled body leaves a `bra` without enough
+; reach.
 
-; Todo el buffer en cero y ningún cuadro armado. Lo llama `cargar_mapa`, con la
-; pantalla apagada; es lo que hace falta al menos una vez desde el encendido,
-; porque la WRAM arranca con basura en la consola —y en bsnes—.
+; The whole buffer at zero and no frame built. Called by `cargar_mapa`, with
+; the screen off; it is needed at least once after power-on, because WRAM
+; starts out with garbage on the console —and in bsnes—.
 .proc anim_buf_limpiar
 .a8
 .i16
@@ -41,32 +42,32 @@ borra:
     bpl borra
     sep #$20
 .a8
-    sta f:ANIMB_PREV + 2        ; A es cero: ningún cuadro armado
+    sta f:ANIMB_PREV + 2        ; A is zero: no frame built
     plp
     rtl
 .endproc
 
-; Arma en `ANIMB_BUF` el cuadro `ANIMB_CUADRO` de la animación de la fila
-; `ANIMB_FILA`. Pisa A, X, Y y `temp`.
+; Builds in `ANIMB_BUF` frame `ANIMB_CUADRO` of the animation in row
+; `ANIMB_FILA`. Clobbers A, X, Y and `temp`.
 .proc anim_cuadro_armar
 .a8
 .i16
     phb
     lda f:ANIMB_PREV + 2
     beq sin_anterior
-    ora #^RAPIDO                ; su espejo rápido: ver MEMSEL
+    ora #^RAPIDO                ; its fast mirror: see MEMSEL
     pha
-    plb                         ; el banco del cuadro anterior
+    plb                         ; the previous frame's bank
     rep #$20
 .a16
     lda f:ANIMB_PREV
     tay
     sep #$20
 .a8
-    ; Sus tiles, a cero.
+    ; Its tiles, to zero.
 borrar:
     lda a:0, y
-    bmi sin_anterior            ; $FF: se terminó. Los tiles van de 0 a 63
+    bmi sin_anterior            ; $FF: done. Tiles go from 0 to 63
     rep #$20
 .a16
     and #$00FF
@@ -74,11 +75,11 @@ borrar:
     asl a
     asl a
     asl a
-    asl a                       ; 32 bytes por tile
+    asl a                       ; 32 bytes per tile
     tax
     tya
     clc
-    adc #33                     ; el número y sus 32 bytes
+    adc #33                     ; the number and its 32 bytes
     tay
     lda #0
 .repeat 16, i
@@ -89,9 +90,9 @@ borrar:
     jmp borrar
 
 sin_anterior:
-    ; El puntero del nuevo: el primero de la animación más el que toca, cuatro
-    ; bytes por puntero. Es la cuenta que hacía el vblank cuando subía el
-    ; cuadro directo del cartucho.
+    ; The new one's pointer: the animation's first plus the one that is due,
+    ; four bytes per pointer. It is the same arithmetic vblank did when it
+    ; uploaded the frame straight from the cartridge.
     rep #$20
 .a16
     lda f:ANIMB_FILA
@@ -111,11 +112,11 @@ sin_anterior:
     sta f:ANIMB_PREV + 2
     ora #^RAPIDO
     pha
-    plb                         ; el banco del cuadro nuevo
+    plb                         ; the new frame's bank
 copiar:
     lda a:0, y
     bpl un_tile
-    plb                         ; $FF: listo
+    plb                         ; $FF: done
     rtl
 un_tile:
     rep #$20

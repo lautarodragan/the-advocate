@@ -1,22 +1,23 @@
 .segment "FAR"
 
-; --- las páginas de evento de la tropa ----------------------------------------
+; --- the troop's event pages --------------------------------------------------
 ;
-; `Game_Interpreter_Battle`: cada tropa trae sus páginas, y una corre cuando
-; se cumple su disparador. Es lo que hace andar los sistemas de batalla de los
-; personajes —Detect Aura prende el switch 134 y la página de la tropa que lo
-; mira dice de qué color es el aura—. El código es el de los mapas y corre en
-; el mismo intérprete, por el puente `ba_t_pagina`; lo de acá decide **cuándo**.
+; `Game_Interpreter_Battle`: each troop brings its pages, and one runs when its
+; trigger is met. It is what makes the characters' battle systems work
+; —Detect Aura turns on switch 134 and the troop page that watches it says
+; what color the aura is—. The code is the maps' code and runs in the same
+; interpreter, through the `ba_t_pagina` bridge; what is here decides **when**.
 ;
-; La regla sale de easyrpg y no de memoria: `ScheduleNextPage` prueba las
-; páginas en orden y arranca la primera que se cumpla y **no haya corrido en
-; este turno**; cuando termina, prueba de nuevo, hasta que no quede ninguna. Lo
-; de "este turno" lo borra `NextTurn`, que es cuando el grupo terminó de dar
-; las órdenes. Y los momentos son tres: antes de pedir las órdenes, antes de
-; cada acción y después de la última —ver los que llaman a `ba_pag_probar`—.
+; The rule comes from easyrpg and not from memory: `ScheduleNextPage` tries the
+; pages in order and starts the first one that is met and **has not run this
+; turn**; when it finishes, it tries again, until none is left. The "this
+; turn" part is cleared by `NextTurn`, which is when the party finished giving
+; its commands. And there are three moments: before asking for the commands,
+; before each action and after the last one —see the callers of
+; `ba_pag_probar`—.
 
-; Las páginas de la tropa de esta pelea, desde `BA_TROPA_K`. Una tropa que el
-; cartucho no lleva no tiene ninguna.
+; The pages of this battle's troop, from `BA_TROPA_K`. A troop the cartridge
+; does not carry has none.
 .proc ba_pag_armar
 .a8
 .i16
@@ -24,8 +25,8 @@
     rep #$20
 .a16
     stz BA_PAG_ESPERA
-    stz BA_TURNO                ; el `turns` de `Game_Party`, que la pelea
-                                ; pone en cero al empezar
+    stz BA_TURNO                ; the `turns` of `Game_Party`, which the
+                                ; battle sets to zero when it starts
     sep #$20
 .a8
     lda BA_TROPA_K
@@ -48,7 +49,7 @@ listo:
     rts
 .endproc
 
-; `ResetPagesExecuted`: ninguna corrió todavía en este turno.
+; `ResetPagesExecuted`: none has run yet this turn.
 .proc ba_pag_turno
 .a8
 .i16
@@ -61,12 +62,12 @@ otra:
     rts
 .endproc
 
-; Si hay una página para correr, la deja lista —su código, el cursor en cero,
-; anotada como corrida— con la pelea en `BA_M_PAGINA`, y vuelve con A8 en 1.
-; Si no, en 0. **La Z vale lo mismo que A**: sale de un `lda` explícito.
+; If there is a page to run, leaves it ready —its code, the cursor at zero,
+; marked as run— with the battle in `BA_M_PAGINA`, and returns with A8 at 1.
+; If not, at 0. **Z matches A**: it comes from an explicit `lda`.
 ;
-; Primero `CheckBattleEndConditions`: con un lado entero caído la pelea se
-; termina y no corre ninguna. Se lleva `BA_S0`, `BA_T*`, A, X e Y.
+; First `CheckBattleEndConditions`: with one whole side down the battle ends
+; and none runs. Clobbers `BA_S0`, `BA_T*`, A, X and Y.
 .proc ba_pag_probar
 .a8
 .i16
@@ -80,7 +81,7 @@ otra:
 alguien:
     lda BA_PAG_I
     cmp BA_NACT
-    bcs no                      ; nadie del grupo en pie
+    bcs no                      ; nobody in the party standing
     jsr ba_vivo
     bne hay_grupo
     inc BA_PAG_I
@@ -128,10 +129,10 @@ no:
     rts
 .endproc
 
-; Si la página `BA_PAG_I` de la tropa se cumple: `AreConditionsMet`, con los
-; seis disparadores que la ROM sabe mirar —los de RM2k; los tres de 2003 no
-; existen en este juego—. Deja en `BA_PAG_G` su lugar en las tablas `tpag_*`
-; y vuelve con Z=0 si se cumple. Se lleva `BA_T*`, `temp`, A, X e Y.
+; Whether the troop's page `BA_PAG_I` is met: `AreConditionsMet`, with the six
+; triggers the ROM knows how to check —RM2k's; the three from 2003 do not
+; exist in this game—. Leaves in `BA_PAG_G` its place in the `tpag_*` tables
+; and returns with Z=0 if it is met. Clobbers `BA_T*`, `temp`, A, X and Y.
 .proc ba_pag_cumple
 .a8
 .i16
@@ -146,7 +147,7 @@ no:
     sep #$20
 .a8
     lda f:tpag_flags, x
-    sta BA_PAG_FL               ; los disparadores, que sobreviven a los `jsr`
+    sta BA_PAG_FL               ; the triggers, which survive the `jsr`s
     and #TPAG_SWITCH_A
     beq sin_a
     rep #$20
@@ -177,7 +178,7 @@ sin_b:
     lda BA_PAG_FL
     and #TPAG_VARIABLE
     beq sin_var
-    ; La variable, `>=` con signo: `Get(variable_id) >= variable_value`.
+    ; The variable, signed `>=`: `Get(variable_id) >= variable_value`.
     rep #$20
 .a16
     lda BA_PAG_G
@@ -192,9 +193,9 @@ sin_b:
     sec
     sbc BA_T0
     bvc sin_desborde
-    eor #$8000                  ; con desborde, el signo es el contrario
+    eor #$8000                  ; with overflow, the sign is the opposite
 sin_desborde:
-    sep #$20                    ; `sep` no toca N
+    sep #$20                    ; `sep` does not touch N
 .a8
     bpl sin_var
     jmp no
@@ -208,16 +209,17 @@ con_cabecera:
     lda BA_PAG_FL
     and #TPAG_TURNO
     beq sin_turno
-    ; El turno: `Game_Battle::CheckTurns(turno, turn_b, turn_a)`, con la base
-    ; y el múltiplo **en ese orden**, que es el contrario del que sugieren los
-    ; nombres de liblcf. Sin múltiplo, justo en la base; con él, en la base y
-    ; cada tantos. El conversor los deja en la cabecera ya en su lugar.
+    ; The turn: `Game_Battle::CheckTurns(turn, turn_b, turn_a)`, with the base
+    ; and the multiple **in that order**, which is the opposite of what
+    ; liblcf's names suggest. Without a multiple, exactly at the base; with
+    ; one, at the base and every so many. The converter leaves them in the
+    ; header already in place.
     rep #$20
 .a16
     lda BA_TURNO
     sec
     sbc BA_COND + BA_COND_BASE
-    bcc no_turno                ; todavía no llegó a la base
+    bcc no_turno                ; it has not reached the base yet
     sta temp
     lda BA_COND + BA_COND_MULT
     bne con_multiplo
@@ -226,7 +228,7 @@ con_cabecera:
     bra turno_si
 con_multiplo:
     sta temp + 2
-    jsr ba_div                  ; el resto, en `comp_and`
+    jsr ba_div                  ; the remainder, in `comp_and`
     lda comp_and
     bne no_turno
 turno_si:
@@ -239,8 +241,8 @@ sin_turno:
     lda BA_PAG_FL
     and #TPAG_ENEMIGO
     beq sin_enemigo
-    ; Los HP de un enemigo, por su lugar en la tropa. `GetEnemy` no mira si
-    ; está oculto ni si murió: sólo si el lugar existe.
+    ; An enemy's HP, by its place in the troop. `GetEnemy` does not check
+    ; whether it is hidden or dead: only whether the place exists.
     lda BA_COND + BA_COND_EMIN
     sta BA_PCT_MIN
     lda BA_COND + BA_COND_EMAX
@@ -257,17 +259,17 @@ sin_enemigo:
     lda BA_PAG_FL
     and #TPAG_ACTOR
     beq si
-    ; Los HP de un actor, por su número del LDB. **Sólo si está en el
-    ; grupo**: `Game_Actors::GetActor` contesta por cualquiera, pero los HP de
-    ; uno que no pelea viven en `FAR_HP` sin su máximo a mano, y las dos
-    ; páginas del juego que miran esto son de Talan en la pelea de los Lazer
-    ; Teeth, donde está. Ver `batalla.PaginaDeTropa`, que hace lo mismo.
+    ; An actor's HP, by its number in the LDB. **Only if it is in the
+    ; party**: `Game_Actors::GetActor` answers for anyone, but the HP of one
+    ; who is not fighting live in `FAR_HP` without its maximum at hand, and
+    ; the game's two pages that check this are Talan's in the Lazer Teeth
+    ; battle, where he is. See `batalla.PaginaDeTropa`, which does the same.
     lda BA_COND + BA_COND_AMIN
     sta BA_PCT_MIN
     lda BA_COND + BA_COND_AMAX
     sta BA_PCT_MAX
     lda #0
-    sta BA_T0 + 1               ; la ranura del grupo que se mira
+    sta BA_T0 + 1               ; the party slot being checked
 busca_actor:
     lda BA_T0 + 1
     cmp BA_NACT
@@ -295,11 +297,11 @@ no:
     rts
 .endproc
 
-; La cabecera de la página `BA_PAG_G` —los números del turno y de los HP, que
-; el conversor pone delante de su código, `TPAG_CABECERA` bytes antes de donde
-; apunta `tpag_cod`— a `BA_COND`. Se lee con el banco de datos en el de
-; `tropa_codigo`, que entra entero en un banco, y se escribe con `f:`. Se
-; lleva A, X e Y. Ver `eventos.cabecera_de_tropa`.
+; The header of page `BA_PAG_G` —the turn and HP numbers, which the converter
+; puts in front of its code, `TPAG_CABECERA` bytes before where `tpag_cod`
+; points— into `BA_COND`. It is read with the data bank at that of
+; `tropa_codigo`, which fits whole in one bank, and written with `f:`.
+; Clobbers A, X and Y. See `eventos.cabecera_de_tropa`.
 .proc ba_pag_cabecera
 .a8
 .i16
@@ -330,13 +332,14 @@ otro:
     rts
 .endproc
 
-; Si los HP del combatiente de desplazamiento X —el de `ba_x`— están entre
-; `BA_PCT_MIN` y `BA_PCT_MAX` por ciento, contados como los cuenta
-; `AreConditionsMet`: `100 * hp / hp_max`, entero. Sin dividir: que el
-; cociente sea al menos `min` es `min * hp_max <= 100 * hp`, y que no pase de
-; `max` es `100 * hp < (max + 1) * hp_max`. Los productos pasan de dieciséis
-; bits —cien veces los HP de un jefe— y por eso van en veinticuatro. Vuelve
-; con A8 y Z=0 si está. Se lleva `BA_T1`, `BA_T2` y `temp`.
+; Whether the HP of the combatant at offset X —the one from `ba_x`— are
+; between `BA_PCT_MIN` and `BA_PCT_MAX` percent, counted the way
+; `AreConditionsMet` counts them: `100 * hp / hp_max`, integer. Without
+; dividing: the quotient being at least `min` is `min * hp_max <= 100 * hp`,
+; and it not going past `max` is `100 * hp < (max + 1) * hp_max`. The products
+; go past sixteen bits —a hundred times a boss's HP— and so they go in
+; twenty-four. Returns with A8 and Z=0 if it is. Clobbers `BA_T1`, `BA_T2`
+; and `temp`.
 .proc ba_pag_hp
 .a8
 .i16
@@ -363,7 +366,7 @@ otro:
     lda BA_P_HP
     sec
     sbc BA_P24
-    sep #$20                    ; `sep` no toca C
+    sep #$20                    ; `sep` does not touch C
 .a8
     lda BA_P_HP + 2
     sbc BA_P24 + 2
@@ -391,8 +394,8 @@ no:
     rts
 .endproc
 
-; A16 por el byte de `BA_T2`, en veinticuatro bits, en `BA_P24`: `ba_mul`
-; sin perder lo que pasa de dieciséis. Se lleva `temp`.
+; A16 times the byte in `BA_T2`, in twenty-four bits, in `BA_P24`: `ba_mul`
+; without losing what goes past sixteen. Clobbers `temp`.
 .proc ba_mul24
 .a16
 .i16
@@ -402,7 +405,7 @@ no:
     lda temp
     sta f:WRMPYA
     lda BA_T2
-    sta f:WRMPYB                ; arranca: el producto tarda ocho ciclos
+    sta f:WRMPYB                ; starts it: the product takes eight cycles
     nop
     nop
     nop
@@ -417,25 +420,25 @@ no:
     sta f:WRMPYA
     lda BA_T2
     sta f:WRMPYB
-    stz BA_P24 + 2              ; mientras tanto
+    stz BA_P24 + 2              ; meanwhile
     nop
     nop
     nop
     rep #$20
 .a16
-    lda f:RDMPYL                ; el byte alto por el multiplicador, que pesa
-    clc                         ; 256: se suma corrido un byte
+    lda f:RDMPYL                ; the high byte times the multiplier, which
+    clc                         ; weighs 256: it is added shifted one byte
     adc BA_P24 + 1
     sta BA_P24 + 1
     rts
 .endproc
 
-; `ShowHiddenMonster`: el enemigo del lugar A8 de la tropa deja de estar
-; oculto y pasa a contar para todo —blanco, victoria, acciones—, que es lo
-; que hace `SetHidden(false)`. Uno que no estaba oculto no cambia: el comando
-; no revive a nadie. Lo dibuja `escena_tick`, que pone en la escena a todo el
-; que está vivo y no se ve. Lo llama `op_show_enemy` desde el intérprete, con
-; el banco de datos en 0: acá se pone el de la pelea.
+; `ShowHiddenMonster`: the enemy at place A8 of the troop stops being hidden
+; and starts counting for everything —target, victory, actions—, which is what
+; `SetHidden(false)` does. One that was not hidden does not change: the
+; command revives nobody. It is drawn by `escena_tick`, which puts in the scene
+; everyone who is alive and not shown. It is called by `op_show_enemy` from
+; the interpreter, with the data bank at 0: the battle's is set here.
 .proc ba_mostrar_oculto
 .a8
 .i16
@@ -461,9 +464,9 @@ listo:
     rtl
 .endproc
 
-; A16 el número de switch; vuelve con A8 y Z=0 si está prendido. Es el mismo
-; bitmap que mira el mapa, `switches`, en la RAM baja, que con el banco de
-; datos en $7E está en su lugar de siempre. Se lleva X e Y.
+; A16 the switch number; returns with A8 and Z=0 if it is on. It is the same
+; bitmap the map looks at, `switches`, in low RAM, which with the data bank at
+; $7E is in its usual place. Clobbers X and Y.
 .proc ba_pag_switch
 .a16
 .i16
@@ -471,10 +474,10 @@ listo:
     lsr a
     lsr a
     lsr a
-    tay                         ; qué byte
+    tay                         ; which byte
     pla
     and #$0007
-    tax                         ; y qué bit
+    tax                         ; and which bit
     sep #$20
 .a8
     lda f:mascara, x
@@ -482,15 +485,15 @@ listo:
     rts
 .endproc
 
-; Un tramo de la página que está corriendo, y lo que sigue: si pidió un
-; mensaje, a la pantalla; si terminó, la que siga; y si no queda ninguna, la
-; pelea sigue por donde estaba —`BA_PAG_VUELTA`—.
+; One stretch of the running page, and what follows: if it asked for a
+; message, to the screen; if it finished, the next one; and if none is left,
+; the battle carries on where it was —`BA_PAG_VUELTA`—.
 .proc ba_pag_paso
 .a8
 .i16
-    ; Una espera de la página —la de un `ShakeScreen` que espera, que el
-    ; conversor emite como OP_DELAY— se cuenta acá, un cuadro por vuelta, que
-    ; es lo que `eventos_tick` hace con la del mapa.
+    ; A wait in the page —that of a `ShakeScreen` that waits, which the
+    ; converter emits as OP_DELAY— is counted here, one frame per tick, which
+    ; is what `eventos_tick` does with the map's.
     rep #$20
 .a16
     lda BA_PAG_ESPERA
@@ -506,8 +509,8 @@ otro_tramo:
 .a8
     rep #$20
 .a16
-    ; `ev_esperando` es del intérprete del mapa, que quedó a medio correr
-    ; adentro de `op_battle`: el de la página se guarda aparte.
+    ; `ev_esperando` belongs to the map's interpreter, which was left halfway
+    ; through inside `op_battle`: the page's is kept separately.
     lda ev_esperando
     pha
     stz ev_esperando
@@ -526,11 +529,12 @@ otro_tramo:
 .a8
     bne a_la_pantalla
     lda BA_PAG_ACT
-    bne a_la_pantalla           ; no terminó y no pidió nada: no pasa con los
-                                ; comandos de `TROPA_COMANDOS`, pero si pasara
-                                ; sigue el cuadro que viene
+    bne a_la_pantalla           ; it did not finish and asked for nothing:
+                                ; that does not happen with the commands in
+                                ; `TROPA_COMANDOS`, but if it did, the next
+                                ; frame carries on
     jsr ba_pag_probar
-    bne otro_tramo              ; la que sigue, en este mismo cuadro
+    bne otro_tramo              ; the next one, in this same frame
     lda BA_PAG_VUELTA
     bne a_las_ordenes
     jmp ba_ejecutar
@@ -541,12 +545,12 @@ a_la_pantalla:
     jmp ba_componer
 .endproc
 
-; El mensaje de la página, en los renglones del grupo: ver `BA_PAG_MSG_FILA0`
-; en pantallas.py. Lo lee de `mensajes_tropa` con el formato de siempre —la
-; cabecera con los renglones y cada renglón con su largo, un byte por letra con
-; el ASCII menos 32— y lo escribe con los glifos de la pantalla, cortado a
-; `BA_PAG_MSG_ANCHO`. El bloque entra en un banco —lo garantiza el
-; conversor—, así que el puntero se avanza con Y y el banco queda fijo.
+; The page's message, in the party's lines: see `BA_PAG_MSG_FILA0` in
+; pantallas.py. It reads it from `mensajes_tropa` in the usual format —the
+; header with the lines and each line with its length, one byte per letter
+; with the ASCII minus 32— and writes it with the screen's glyphs, cut at
+; `BA_PAG_MSG_ANCHO`. The block fits in one bank —the converter guarantees
+; it—, so the pointer is advanced with Y and the bank stays fixed.
 .proc ba_pag_mensaje
 .a8
 .i16
@@ -562,10 +566,10 @@ a_la_pantalla:
 .a8
     lda #^mensajes_tropa
     sta msg_ptr + 2
-    stz temp + 1                ; en blanco
+    stz temp + 1                ; blank
     lda [msg_ptr]
     and #CABECERA_LINEAS
-    sta BA_PAG_I                ; los renglones que quedan
+    sta BA_PAG_I                ; the lines left
     ldy #1
 renglon:
     lda BA_PAG_I
@@ -576,17 +580,17 @@ renglon:
     jsr ba_ir
     sep #$20
 .a8
-    lda [msg_ptr], y            ; el largo
+    lda [msg_ptr], y            ; the length
     iny
-    sta BA_T0                   ; las letras que le quedan
-    stz BA_T2                   ; y las que ya se escribieron
+    sta BA_T0                   ; the letters it has left
+    stz BA_T2                   ; and the ones already written
 letra:
     lda BA_T0
     beq fin_renglon
     dec BA_T0
     lda BA_T2
     cmp #BA_PAG_MSG_ANCHO
-    bcs no_entra                ; se consume y no se dibuja
+    bcs no_entra                ; consumed and not drawn
     inc BA_T2
     lda [msg_ptr], y
     clc
@@ -611,4 +615,3 @@ fin_renglon:
 listo:
     rts
 .endproc
-

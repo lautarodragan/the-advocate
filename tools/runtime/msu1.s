@@ -1,50 +1,50 @@
 .segment "CODE"
 
-; --- el MSU-1 ---------------------------------------------------------------
+; --- the MSU-1 --------------------------------------------------------------
 ;
-; El MSU-1 no es hardware de la consola: es una extensión que soportan el FX
-; Pak Pro y los emuladores, con la música en archivos PCM al lado de la ROM.
-; Cuando el tema que se prende tiene pista —`tema_msu`, que emite el
-; conversor—, el SPC700 se calla y suena la pista; los efectos de sonido
-; siguen en el SPC700 como siempre. Sin MSU-1 no cambia nada: la firma no
-; está y todo sigue saliendo del SPC700.
+; The MSU-1 is not console hardware: it is an extension supported by the FX
+; Pak Pro and the emulators, with the music in PCM files next to the ROM. When
+; the song being started has a track —`tema_msu`, emitted by the converter—,
+; the SPC700 goes quiet and the track plays; sound effects stay on the SPC700
+; as always. Without an MSU-1 nothing changes: the signature is not there and
+; everything keeps coming out of the SPC700.
 ;
-; Los registros viven en $2000..$2007 de cualquier banco del área baja:
+; The registers live at $2000..$2007 of any bank in the low area:
 ;
-;   $2000  leer: bit 7 datos ocupados, 6 pista cargando, 5 repitiendo,
-;          4 tocando, 3 pista ausente, 2..0 revisión
-;   $2002..$2007  leer: la firma "S-MSU1"
-;   $2004  escribir: qué pista, dos bytes
-;   $2006  el volumen, de 0 a 255
-;   $2007  bit 0 tocar, bit 1 repetir
+;   $2000  read: bit 7 data busy, 6 track loading, 5 repeating,
+;          4 playing, 3 track missing, 2..0 revision
+;   $2002..$2007  read: the signature "S-MSU1"
+;   $2004  write: which track, two bytes
+;   $2006  the volume, 0 to 255
+;   $2007  bit 0 play, bit 1 repeat
 MSU_ESTADO  = $2000
 MSU_FIRMA   = $2002
 MSU_PISTA   = $2004
 MSU_VOLUMEN = $2006
 MSU_CONTROL = $2007
-MSU_HAY     = $7E30E8           ; si la firma está
-MSU_SUENA   = $7E30E9           ; si la pista está tocando ahora
+MSU_HAY     = $7E30E8           ; whether the signature is there
+MSU_SUENA   = $7E30E9           ; whether the track is playing right now
 
-; El volumen con que suena la pista, de 0 a 255, y **no es 255**: el MSU-1 se
-; suma a la salida del SPC700 en vez de mezclarse con ella, así que la música a
-; fondo no deja margen para los efectos de sonido. Con 255, en la apertura, 42
-; muestras llegaban al tope —y las 42 en cuadros con un efecto sonando—,
-; mientras que la misma corrida por el SPC700 no clavetea ni una vez. Medido
-; también: la música por pista picaba 28933 contra 23867 del SPC700, o sea
-; 1,21 veces más alta, que es lo que taro escuchó como "los efectos se oyen
-; mucho más bajos".
+; The volume the track plays at, 0 to 255, and **it is not 255**: the MSU-1 is
+; added to the SPC700's output instead of being mixed with it, so music at full
+; volume leaves no headroom for the sound effects. With 255, in the opening, 42
+; samples hit the ceiling —all 42 in frames with an effect playing—, while the
+; same run through the SPC700 does not clip once. Also measured: the music
+; from the track peaked at 28933 against 23867 from the SPC700, that is 1.21
+; times louder, which is what taro heard as "the effects sound much quieter".
 ;
-; $D8 es ese 0,85. Baja la música hasta donde estaba y devuelve el margen, sin
-; tocar las pistas: normalizarlas más abajo serían 195 MB a rehacer por ROM y
-; encima perdería la referencia de nivel entre un tema y otro.
+; $D8 is that 0.85. It brings the music down to where it was and gives back
+; the headroom, without touching the tracks: normalizing them lower would mean
+; 195 MB to redo per ROM, and on top of that it would lose the level reference
+; between one song and another.
 MSU_VOLUMEN_MAX = $D8
 
-; Y dos bytes para el factor del fundido, en la RAM lejana porque la del banco 0
-; está llena. El byte alto queda siempre en cero: el lazo lo suma de a dieciséis
-; bits. Vive acá y no en `temp` porque el fundido corre adentro de `irq_musica`.
+; And two bytes for the fade factor, in far RAM because bank 0's is full. The
+; high byte always stays at zero: the loop adds it as sixteen bits. It lives
+; here and not in `temp` because the fade runs inside `irq_musica`.
 MSU_FACTOR  = $7E30EA
 
-; La firma, una vez, en el reset.
+; The signature, once, at reset.
 .proc msu_detectar
 .a8
 .i16
@@ -52,7 +52,7 @@ MSU_FACTOR  = $7E30EA
     sta f:MSU_SUENA
     ldx #$0000
 limpiar:
-    sta f:MSU_FALTA, x          ; ninguna pista faltó todavía
+    sta f:MSU_FALTA, x          ; no track has been missing yet
     inx
     cpx #MSU_FALTA_BYTES
     bcc limpiar
@@ -76,7 +76,7 @@ no_hay:
 msu_firma:
     .byte "S-MSU1"
 
-; Calla la pista, si había una.
+; Silences the track, if there was one.
 .proc msu_parar
 .a8
 .i16
@@ -89,23 +89,24 @@ listo:
     rts
 .endproc
 
-; Espera a que el MSU-1 suelte `AUDIO_BUSY`. Vuelve con el acarreo limpio si lo
-; soltó y puesto si se acabó el tiempo. Se lleva X.
+; Waits for the MSU-1 to release `AUDIO_BUSY`. Returns with carry clear if it
+; released it and set if time ran out. Clobbers X.
 ;
-; **Este lazo no lo ejercita ningún core de la tanda.** bsnes no pone
-; `io.audioBusy` nunca —arranca en falso en `power()` y no se escribe en ningún
-; lado; está en `/extras/ref/bsnes-libretro/bsnes/sfc/coprocessor/msu1/msu1.cpp`—,
-; y snes9x tampoco, así que en la tanda sale en la primera vuelta. **Mednafen
-; sí** (`-force_module snes_faust`): prende el bit 6 por 400.000 ciclos maestros
-; al elegir la pista —`MSU1_WriteTrack` en `snes_faust/msu1.cpp`— y recién lo
-; apaga al final del cuadro en que se cumplen, o sea uno o dos cuadros. Que las
-; pistas suenen ahí es la prueba de que este lazo espera. En el FX Pak la pista
-; sale de la tarjeta SD, y eso no está medido.
+; **No core in the test suite exercises this loop.** bsnes never sets
+; `io.audioBusy` —it starts false in `power()` and is not written anywhere;
+; it is in `/extras/ref/bsnes-libretro/bsnes/sfc/coprocessor/msu1/msu1.cpp`—,
+; and neither does snes9x, so in the suite it exits on the first pass.
+; **Mednafen does** (`-force_module snes_faust`): it sets bit 6 for 400,000
+; master cycles when the track is chosen —`MSU1_WriteTrack` in
+; `snes_faust/msu1.cpp`— and only clears it at the end of the frame in which
+; they elapse, that is one or two frames. That the tracks play there is the
+; proof that this loop waits. On the FX Pak the track comes off the SD card,
+; and that is not measured.
 ;
-; Por eso el tope es generoso y no ajustado: $FFFF vueltas de 96 ciclos maestros
-; —desde el espejo rápido—, unos diecisiete cuadros. Antes eran $4000 —setenta
-; milisegundos— y el precio de quedarse corto no es un cuadro perdido sino que
-; el tema entero suene por el SPC700.
+; That is why the cap is generous and not tight: $FFFF passes of 96 master
+; cycles —from the fast mirror—, about seventeen frames. It used to be $4000
+; —seventy milliseconds— and the price of falling short is not a lost frame
+; but the whole song playing through the SPC700.
 MSU_ESPERA = $FFFF
 
 .proc msu_esperar
@@ -114,7 +115,7 @@ MSU_ESPERA = $FFFF
     ldx #$0000
 otra:
     lda MSU_ESTADO
-    and #$40                    ; la está cargando
+    and #$40                    ; it is loading it
     beq listo
     inx
     cpx #MSU_ESPERA
@@ -126,13 +127,15 @@ listo:
     rts
 .endproc
 
-; Arranca la pista del tema A, si tiene y si hay MSU-1. Vuelve con A distinto
-; de cero si la pista quedó sonando, y ahí la música del SPC700 no va.
+; Starts the track for song A, if it has one and if there is an MSU-1. Returns
+; with A nonzero if the track was left playing, and then the SPC700 music does
+; not go.
 .proc msu_arrancar
 .a8
 .i16
     pha
-    lda f:MSU_HAY               ; de a un byte: con `ldx` se leía el de al lado
+    lda f:MSU_HAY               ; one byte at a time: with `ldx` it read the
+                                ; next byte too
     beq sin_msu1
     pla
     cmp #TEMA_TOTAL
@@ -146,53 +149,53 @@ listo:
     lda tema_msu, x
     cmp #$FF
     beq no
-    ; **Antes de escribir la pista, esperar a que el MSU-1 esté libre.** Con
-    ; `AUDIO_BUSY` puesto el hardware ignora las escrituras a los registros de
-    ; audio —en bsnes se ve en `writeIO`, `case 0x2007: if(io.audioBusy)
-    ; break;`—, así que un `PlayBGM` que llega mientras la pista anterior
-    ; todavía se está abriendo se pierde entero. Acá pasa de verdad: con
-    ; pantalla de título hay dos pistas pedidas con 1,8 s de diferencia —la del
-    ; título y la de la apertura—, y sin pantalla de título la primera es la
-    ; única.
+    ; **Before writing the track, wait for the MSU-1 to be free.** With
+    ; `AUDIO_BUSY` set the hardware ignores writes to the audio registers —in
+    ; bsnes it shows in `writeIO`, `case 0x2007: if(io.audioBusy) break;`—,
+    ; so a `PlayBGM` that arrives while the previous track is still opening is
+    ; lost entirely. Here it really happens: with a title screen there are two
+    ; tracks requested 1.8 s apart —the title's and the opening's—, and without
+    ; a title screen the first one is the only one.
     ;
-    ; La pista se guarda en Y mientras tanto: la espera usa X. El tema va a
-    ; la pila, para anotarlo si la pista falla.
+    ; The track is kept in Y meanwhile: the wait uses X. The song goes on the
+    ; stack, to record it if the track fails.
     phx
     tay
     jsr msu_esperar
-    bcs falla                   ; sigue ocupado: que suene el SPC700
+    bcs falla                   ; still busy: let the SPC700 play
     tya
     sta MSU_PISTA
     stz MSU_PISTA + 1
-    jsr msu_esperar             ; y ahora, que termine de abrirla
+    jsr msu_esperar             ; and now, for it to finish opening it
     bcs falla
     lda MSU_ESTADO
-    and #$08                    ; la pista no está en la tarjeta
+    and #$08                    ; the track is not on the card
     bne falla
     plx
     lda #MSU_VOLUMEN_MAX
     sta MSU_VOLUMEN
-    lda #$03                    ; tocar y repetir
+    lda #$03                    ; play and repeat
     sta MSU_CONTROL
     lda #1
     sta f:MSU_SUENA
     rts
 falla:
-    ; El tema suena por el SPC700 y necesita sus muestras, que el paquete no
-    ; subió porque contaba con la pista —ver `tema_por_msu`—: las sube
-    ; `tema_asegurar`, que es lo que `music_start` llama a continuación, y
-    ; desde ahora los paquetes de este tema las suben de entrada.
+    ; The song plays through the SPC700 and needs its samples, which the
+    ; package did not upload because it counted on the track —see
+    ; `tema_por_msu`—: they are uploaded by `tema_asegurar`, which is what
+    ; `music_start` calls next, and from now on this song's packages upload
+    ; them from the start.
     plx
     rep #$20
 .a16
     txa
     and #$0007
-    tay                         ; el bit
+    tay                         ; the bit
     txa
     lsr a
     lsr a
     lsr a
-    tax                         ; el byte
+    tax                         ; the byte
     sep #$20
 .a8
     lda #1
@@ -211,55 +214,55 @@ no:
     lda #0
     rts
 .endproc
-.assert TEMA_TOTAL <= 8 * MSU_FALTA_BYTES, error, "MSU_FALTA no tiene un bit para cada tema"
+.assert TEMA_TOTAL <= 8 * MSU_FALTA_BYTES, error, "MSU_FALTA does not have a bit for every song"
 
 
-; --- el puerto de datos -----------------------------------------------------
+; --- the data port ----------------------------------------------------------
 ;
-; El `.msu` no es sólo lo que enciende el MSU-1: es un archivo que la ROM lee
-; como un flujo. Se escribe una posición de 32 bits en $2000..$2003 —la
-; escritura a $2003 es la que busca—, se espera a que se apague el bit 7 de
-; $2000 y se lee de $2001, que avanza solo. Por DMA con el origen fijo en
-; $2001 sale a la velocidad de cualquier DMA: en bsnes el A-bus sólo excluye
-; $2100..$21FF y los registros de la CPU (`validA`, en sfc/cpu/dma.cpp), y en
-; snes9x la página $2000 es `MAP_PPU`, sin puntero directo, así que el DMA va
-; byte por byte por `S9xGetPPU`, que atiende al MSU-1.
+; The `.msu` is not only what turns the MSU-1 on: it is a file the ROM reads
+; as a stream. A 32-bit position is written to $2000..$2003 —the write to
+; $2003 is the one that seeks—, you wait for bit 7 of $2000 to clear, and you
+; read from $2001, which advances by itself. By DMA with the source fixed at
+; $2001 it runs at the speed of any DMA: in bsnes the A-bus only excludes
+; $2100..$21FF and the CPU registers (`validA`, in sfc/cpu/dma.cpp), and in
+; snes9x page $2000 is `MAP_PPU`, with no direct pointer, so the DMA goes byte
+; by byte through `S9xGetPPU`, which serves the MSU-1.
 ;
-; Qué hay adentro y en qué formato lo decide el conversor: ver
-; tools/port/msu_datos.py y docs/port/msu-datos.md. Hoy son los fondos de
-; batalla, y **la ROM sigue llevando los suyos**: esto los reemplaza sólo si
-; hay MSU-1 y el `.msu` es el de este cartucho.
+; What is inside and in what format is decided by the converter: see
+; tools/port/msu_datos.py and docs/port/msu-datos.md. Today it is the battle
+; backgrounds, and **the ROM still carries its own**: this replaces them only
+; if there is an MSU-1 and the `.msu` is this cartridge's.
 ;
-; Va en el banco 1 porque lo llama la escena de la pelea, que corre ahí y con
-; el banco de datos en $7E: por eso cada registro va con `f:`. Un `lda $2000`
-; suelto leería la WRAM.
-MSU_BUSCAR  = $2000             ; escribir: la posición, cuatro bytes
-MSU_DATOS   = $2001             ; leer: el byte que sigue
+; It goes in bank 1 because it is called by the battle scene, which runs there
+; with the data bank at $7E: that is why every register goes through `f:`. A
+; bare `lda $2000` would read WRAM.
+MSU_BUSCAR  = $2000             ; write: the position, four bytes
+MSU_DATOS   = $2001             ; read: the next byte
 .segment "FAR"
 
-; Busca en el `.msu` la posición de 32 bits que viene en A —los dieciséis de
-; abajo, con A de dieciséis bits— y en Y —los de arriba— y espera a que el
-; MSU-1 la tenga. Vuelve con A de ocho bits, el acarreo limpio si quedó lista y
-; puesto si se acabó el tiempo. Se lleva X.
+; Seeks in the `.msu` to the 32-bit position given in A —the low sixteen, with
+; 16-bit A— and in Y —the high ones— and waits for the MSU-1 to have it.
+; Returns with 8-bit A, carry clear if it was ready and set if time ran out.
+; Clobbers X.
 ;
-; Las escrituras de dieciséis bits van primero al byte bajo, así que $2003, la
-; que busca, es la última: es el orden que pide el MSU-1.
+; Sixteen-bit writes go to the low byte first, so $2003, the one that seeks,
+; is the last: that is the order the MSU-1 asks for.
 ;
-; **La espera no la ejercita ningún core de la tanda**, igual que
-; `msu_esperar`: bsnes, snes9x, mesen-s y ares no ponen nunca `dataBusy` —buscan
-; en el acto—. **Mednafen sí**: `MSU1_WriteDataSeek` prende el bit 7 por 400.000
-; ciclos maestros, y como `MSU1_ReadStatus` no se pone al día, se apaga al final
-; del cuadro en que se cumplen: cada búsqueda cuesta uno o dos cuadros. Medido
-; el 2026-09-26 en la pelea del droide jugando desde el título: el fondo sale
-; del `.msu`, con `ESC_CUADROS` en 11 contra 4 de snes9x. Ver "Cuánto tarda"
-; en docs/port/msu-datos.md.
+; **No core in the test suite exercises the wait**, same as `msu_esperar`:
+; bsnes, snes9x, mesen-s and ares never set `dataBusy` —they seek on the
+; spot—. **Mednafen does**: `MSU1_WriteDataSeek` sets bit 7 for 400,000 master
+; cycles, and since `MSU1_ReadStatus` does not catch up, it clears at the end
+; of the frame in which they elapse: each seek costs one or two frames.
+; Measured on 2026-09-26 in the droid battle playing from the title: the
+; background comes from the `.msu`, with `ESC_CUADROS` at 11 against 4 in
+; snes9x. See "Cuánto tarda" in docs/port/msu-datos.md.
 ;
-; En el FX Pak buscar fuera de su búfer de 16 KB es leer la tarjeta SD
-; —`prepare_data` en `/extras/ref/sd2snes/src/msu1.c`—, unos milisegundos. El
-; tope es el mismo que el del audio y por lo mismo: $FFFF vueltas de 114 ciclos
-; maestros —esto corre en el banco 1, lento—, unos veintiún cuadros, diez veces
-; lo que tarda Mednafen. Quedarse corto no cuesta un cuadro sino que la pelea
-; use el fondo de la ROM.
+; On the FX Pak, seeking outside its 16 KB buffer means reading the SD card
+; —`prepare_data` in `/extras/ref/sd2snes/src/msu1.c`—, a few milliseconds.
+; The cap is the same as the audio's and for the same reason: $FFFF passes of
+; 114 master cycles —this runs in bank 1, slow—, about twenty-one frames, ten
+; times what Mednafen takes. Falling short does not cost a frame but makes the
+; battle use the ROM's background.
 .proc msu_datos_buscar
 .a16
 .i16
@@ -271,7 +274,7 @@ MSU_DATOS   = $2001             ; leer: el byte que sigue
     ldx #$0000
 otra:
     lda f:MSU_ESTADO
-    bpl listo                   ; el bit 7: todavía buscando
+    bpl listo                   ; bit 7: still seeking
     inx
     cpx #MSU_ESPERA
     bcc otra
@@ -282,12 +285,13 @@ listo:
     rts
 .endproc
 
-; Si el `.msu` es el de este cartucho: A en 1 si hay MSU-1 y los 8 primeros
-; bytes del `.msu` son `msu_datos_firma`, que el conversor saca del contenido.
-; Con otro `.msu` —de otro build, vacío, cortado— o sin MSU-1, A en 0 y la ROM
-; usa lo suyo. Un `.msu` más corto que la firma también da 0: los tres
-; emuladores devuelven cero pasado el final, y la firma no es ocho ceros más
-; que por un azar de uno en 2^64.
+; Whether the `.msu` is this cartridge's: A at 1 if there is an MSU-1 and the
+; first 8 bytes of the `.msu` are `msu_datos_firma`, which the converter
+; derives from the contents. With another `.msu` —from another build, empty,
+; truncated— or without an MSU-1, A at 0 and the ROM uses its own. A `.msu`
+; shorter than the signature also gives 0: the three emulators return zero
+; past the end, and the signature is not eight zeros except by a one in 2^64
+; chance.
 .proc msu_datos_validos
 .a8
 .i16

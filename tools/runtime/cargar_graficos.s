@@ -1,19 +1,19 @@
 .segment "CODE"
 
-; Deja en A1T0L/A1B0 el puntero de 24 bits que el registro del mapa guarda en el
-; campo que venga en Y. Los tres bytes del puntero están seguidos, así que la
-; parte baja sale de una lectura de 16 bits y el banco de la de al lado.
-; La cuenta va con el acumulador en 16 bits de punta a punta. Hacerla en 8 y
-; después `tax` no sirve: el acumulador del 65816 son 16 bits siempre, y `tax`
-; con X ancho transfiere los dos bytes, incluido el alto que quedó de la
-; operación anterior. Con el mapa 7 daba cero de casualidad para los tiles y
-; basura para la paleta.
+; Leaves in A1T0L/A1B0 the 24-bit pointer that the map's record keeps in the
+; field given in Y. The pointer's three bytes are contiguous, so the low part
+; comes from a 16-bit read and the bank from the neighboring one.
+; The arithmetic is done with a 16-bit accumulator from end to end. Doing it
+; in 8 and then `tax` does not work: the 65816's accumulator is always 16
+; bits, and `tax` with a wide X transfers both bytes, including the high one
+; left over from the previous operation. With map 7 it gave zero by chance for
+; the tiles and garbage for the palette.
 .proc dma_origen
 .a8
 .i16
     rep #$20
 .a16
-    tya                         ; el desplazamiento del campo
+    tya                         ; the field's offset
     clc
     adc mapa_ofs
     tax
@@ -30,33 +30,34 @@
 .a8
 .i16
     ldx mapa_ofs
-    ; --- los tiles ---
+    ; --- the tiles ---
     lda #$80
-    sta VMAIN                   ; avanzar una palabra tras el byte alto
+    sta VMAIN                   ; increment one word after the high byte
     rep #$20
 .a16
     lda f:mapa_tabla + M_VRAM_TILES, x
     sta VMADDL
     sep #$20
 .a8
-    jsl f:lz2_fondo + RAPIDO    ; comprimidos, de a flujos: ver descomprimir.s
+    jsl f:lz2_fondo + RAPIDO    ; compressed, in streams: see descomprimir.s
 
-    ; --- la animación del ChipSet ---
-    ; El mapa trae en la VRAM el dibujo 0 de cada corrida y el reloj puede estar
-    ; en cualquier otro: es un reloj de la partida y no del mapa. Acá se sube el
-    ; que toca, sin presupuesto de vblank porque la pantalla está apagada.
-    ; Sus dibujos vienen comprimidos y se descomprimen a la WRAM, de donde
-    ; los sube `anim_subir` mientras dure el mapa. Van después de los tiles
-    ; del fondo, que usan el mismo banco de la WRAM: ver `ANIM_DIBUJOS`.
+    ; --- the ChipSet animation ---
+    ; The map brings drawing 0 of each run into VRAM, and the clock can be on
+    ; any other: it is a clock of the saved game and not of the map. The one
+    ; due is uploaded here, with no vblank budget because the screen is off.
+    ; Its drawings come compressed and are decompressed to WRAM, from where
+    ; `anim_subir` uploads them for as long as the map lasts. They go after
+    ; the background tiles, which use the same WRAM bank: see `ANIM_DIBUJOS`.
     jsl f:lz2_anim + RAPIDO
     jsr anim_cargar
 
-    ; --- los colores ---
+    ; --- the colors ---
     ;
-    ; Primero lo de abajo, que es de toda la ROM y no de este mapa: el color de
-    ; fondo de la pantalla y la paleta de la ventana de mensaje. Va acá y no en
-    ; `load_ventana` porque `load_ventana` se saltea entera cuando la ROM no
-    ; lleva ventana, y el color de fondo hace falta igual.
+    ; First the bottom part, which belongs to the whole ROM and not to this
+    ; map: the screen's backdrop color and the message window's palette. It
+    ; goes here and not in `load_ventana` because `load_ventana` is skipped
+    ; entirely when the ROM has no window, and the backdrop color is needed
+    ; anyway.
     stz CGADD
     rep #$20
 .a16
@@ -69,13 +70,13 @@
     lda #^ventana_cgram
     sta A1B0
     lda #$00
-    sta DMAP0                   ; un registro, de a bytes
+    sta DMAP0                   ; one register, byte by byte
     lda #$22
-    sta BBAD0                   ; destino: CGDATA
+    sta BBAD0                   ; destination: CGDATA
     lda #$01
     sta MDMAEN
 
-    ; Y encima el mapa, que arranca donde termina lo reservado.
+    ; And on top of it the map, which starts where the reserved part ends.
     lda #CGRAM_BASE
     sta CGADD
     ldy #M_PTR_MAP_CGRAM
@@ -84,30 +85,31 @@
     rep #$20
 .a16
     lda f:mapa_tabla + M_MAP_CGRAM, x
-    asl a                       ; dos bytes por color
+    asl a                       ; two bytes per color
     sta DAS0L
     sep #$20
 .a8
     lda #$00
-    sta DMAP0                   ; un registro, de a bytes
+    sta DMAP0                   ; one register, byte by byte
     lda #$22
-    sta BBAD0                   ; destino: CGDATA
+    sta BBAD0                   ; destination: CGDATA
     lda #$01
     sta MDMAEN
 
-    ; El tilemap no se sube acá: no existe uno entero para subir. Lo arma
-    ; fill_window a partir de los bloques, y desde ahí lo mantiene el streaming.
+    ; The tilemap is not uploaded here: there is no whole one to upload.
+    ; fill_window builds it from the blocks, and from then on the streaming
+    ; keeps it.
     rts
 .endproc
 
-; --- los sprites -----------------------------------------------------------
+; --- the sprites -----------------------------------------------------------
 .proc load_sprite
 .a8
 .i16
-    ; El banco que sube acá trae una pose por ranura. La cola de subidas
-    ; arranca vacía, y la pose del héroe en VRAM es la que puso el conversor
-    ; —mirando abajo— salvo que mire a otro lado: `place_hero` lo resuelve en
-    ; el primer cuadro, con la pantalla todavía apagada.
+    ; The bank uploaded here brings one pose per slot. The upload queue
+    ; starts empty, and the hero's pose in VRAM is the one the converter put
+    ; there —facing down— unless he faces elsewhere: `place_hero` resolves it
+    ; on the first frame, with the screen still off.
     stz vq_n
     lda #$FF
     sta hero_pose_vram
@@ -130,7 +132,7 @@
     asl a
     asl a
     asl a
-    asl a                       ; 32 bytes por tile de 4 bits
+    asl a                       ; 32 bytes per 4-bit tile
     sta DAS0L
     sep #$20
 .a8
@@ -141,8 +143,8 @@
     lda #$01
     sta MDMAEN
 
-    ; La paleta va a la mitad de arriba de CGRAM, que es la de los sprites: la
-    ; 8 arranca en el color 128.
+    ; The palette goes to the upper half of CGRAM, which is the sprites': 8
+    ; starts at color 128.
     lda #128
     sta CGADD
     ldy #M_PTR_SPRITE_CGRAM
@@ -168,12 +170,11 @@
 .endproc
 
 ; --- OAM -------------------------------------------------------------------
-; Todos los objetos arrancan escondidos: ver `oam_esconder`, que vive en el
-; banco 1.
+; All objects start hidden: see `oam_esconder`, which lives in bank 1.
 .proc clear_oam
 .a8
 .i16
-    jsl f:oam_esconder + RAPIDO ; ver MEMSEL
+    jsl f:oam_esconder + RAPIDO ; see MEMSEL
     rts
 .endproc
 
@@ -186,28 +187,29 @@
     stx A1T0L
     lda #^oam
     sta A1B0
-    ldy #544                    ; los 512 de la tabla grande más los 32 chicos
+    ldy #544                    ; the 512 of the big table plus the 32 small ones
     sty DAS0L
     lda #$00
     sta DMAP0
     lda #$04
-    sta BBAD0                   ; destino: OAMDATA
+    sta BBAD0                   ; destination: OAMDATA
     lda #$01
     sta MDMAEN
     rts
 .endproc
 
-; --- las poses en caliente ---------------------------------------------------
-; En VRAM vive una pose por personaje: el héroe en el bloque 0 y cada NPC que
-; camina en su ranura. Las doce poses de cada uno están en el cartucho, y
-; cuando alguien quiere dibujarse con otra, la encola acá y sube en el vblank
-; que viene, en el mismo `flush_video` que sube la OAM que ya cuenta con ella.
-; Es lo que hacen los RPG de la consola con más de dos personajes animados:
-; con todas las poses residentes, 512 tiles son dos personajes y medio.
+; --- poses on the fly ------------------------------------------------------
+; VRAM holds one pose per character: the hero in block 0 and each walking NPC
+; in its slot. The twelve poses of each one are in the cartridge, and when
+; someone wants to be drawn with another, it queues it here and it goes up in
+; the next vblank, in the same `flush_video` that uploads the OAM already
+; counting on it. It is what the console's RPGs do with more than two animated
+; characters: with every pose resident, 512 tiles are two and a half
+; characters.
 ;
-; Encola la pose que está en `vq_src` (24 bits, en el cartucho) para la
-; ranura que arranca en la palabra `vq_dest`. Devuelve A distinto de cero si
-; entró; si la cola está llena, quien llama tiene que volver a pedirla.
+; Queues the pose at `vq_src` (24 bits, in the cartridge) for the slot that
+; starts at word `vq_dest`. Returns A nonzero if it got in; if the queue is
+; full, the caller has to ask for it again.
 .proc vram_encolar
 .a8
 .i16
@@ -221,7 +223,7 @@ hay_lugar:
     asl a
     asl a
     clc
-    adc temp + 2                ; por cinco
+    adc temp + 2                ; times five
     rep #$20
 .a16
     and #$00FF
@@ -243,9 +245,9 @@ hay_lugar:
     rts
 .endproc
 
-; Sube hasta VQ_POR_CUADRO poses de la cola y deja las demás al principio.
-; Cada pose son cuatro DMA de 128 bytes: las cuatro filas del bloque de 4x4,
-; que en la grilla de nombres están a 256 palabras una de otra.
+; Uploads up to VQ_POR_CUADRO poses from the queue and leaves the rest at the
+; start. Each pose is four DMAs of 128 bytes: the four rows of the 4x4 block,
+; which in the name grid are 256 words apart from each other.
 .proc vram_drenar
 .a8
 .i16
@@ -254,13 +256,13 @@ hay_lugar:
     rts
 hay:
     lda #$80
-    sta VMAIN                   ; avanzar una palabra tras el byte alto
+    sta VMAIN                   ; increment one word after the high byte
     lda #$01
-    sta DMAP0                   ; dos registros, de a palabras
+    sta DMAP0                   ; two registers, word by word
     lda #$18
-    sta BBAD0                   ; destino: VMDATAL
+    sta BBAD0                   ; destination: VMDATAL
     stz vq_hechas
-    ldx #$0000                  ; la entrada, en bytes
+    ldx #$0000                  ; the entry, in bytes
 otra:
     lda vq_hechas
     cmp vq_n
@@ -268,7 +270,7 @@ otra:
     cmp vq_tope
     beq fin
     lda vq + 2, x
-    sta A1B0                    ; el banco del origen
+    sta A1B0                    ; the source's bank
     rep #$20
 .a16
     lda vq + 0, x
@@ -300,7 +302,7 @@ fila:
     sta vq_src
     lda vq_dest
     clc
-    adc #256                    ; la fila que sigue de la grilla de nombres
+    adc #256                    ; the next row of the name grid
     sta vq_dest
     sep #$20
 .a8
@@ -317,8 +319,8 @@ fila:
 .a8
     bra otra
 fin:
-    ; Lo que no entró, al principio de la cola. X apunta a la primera entrada
-    ; que quedó.
+    ; What did not fit, to the start of the queue. X points to the first
+    ; entry left.
     lda vq_n
     sec
     sbc vq_hechas
@@ -328,7 +330,7 @@ fin:
     asl a
     asl a
     clc
-    adc temp + 2                ; los bytes que quedan: entradas por cinco
+    adc temp + 2                ; the bytes left: entries times five
     sta temp + 2
     ldy #$0000
 mover:
@@ -342,10 +344,10 @@ listo:
     rts
 .endproc
 
-; --- la capa que va por encima del héroe -----------------------------------
-; Sus tiles y su paleta se suben una sola vez, con la pantalla apagada. Su
-; tilemap no: va en la misma ventana móvil que el del fondo, y lo llena el
-; streaming.
+; --- the layer that goes above the hero ------------------------------------
+; Its tiles and palette are uploaded only once, with the screen off. Its
+; tilemap is not: it goes in the same moving window as the background's, and
+; the streaming fills it.
 .proc load_above
 .a8
 .i16
@@ -354,9 +356,9 @@ listo:
     sta VMAIN
     rep #$20
 .a16
-    ; La base de BG2 no tiene campo propio en el registro, que está lleno: es
-    ; el nibble alto de BG12NBA, en pasos de 4096 palabras. El byte de arriba
-    ; que trae la lectura de dieciséis bits es ABOVE_FIRST, y se tira.
+    ; BG2's base has no field of its own in the record, which is full: it is
+    ; the high nibble of BG12NBA, in steps of 4096 words. The top byte that
+    ; the sixteen-bit read brings is ABOVE_FIRST, and it is discarded.
     lda f:mapa_tabla + M_BG12NBA_VALUE, x
     and #$00F0
     xba
@@ -373,7 +375,7 @@ listo:
     asl a
     asl a
     asl a
-    asl a                       ; son de 4 bits: 32 bytes por tile
+    asl a                       ; they are 4-bit: 32 bytes per tile
     sta DAS0L
     sep #$20
 .a8
@@ -384,9 +386,9 @@ listo:
     lda #$01
     sta MDMAEN
 
-    ; Su paleta va en las últimas paletas de la mitad baja de CGRAM, que el
-    ; fondo de 8 bits deja libres. Cuántas y desde dónde lo decidió el
-    ; conversor mapa por mapa, así que viene en el registro.
+    ; Its palette goes in the last palettes of the lower half of CGRAM, which
+    ; the 8-bit background leaves free. How many and from where was decided by
+    ; the converter map by map, so it comes in the record.
     lda f:mapa_tabla + M_ABOVE_FIRST, x
     sta CGADD
     ldy #M_PTR_ABOVE_CGRAM
@@ -408,13 +410,13 @@ listo:
     rts
 .endproc
 
-; La tabla de NPCs a la RAM, que es de donde build_oam la lee.
+; The NPC table to RAM, which is where build_oam reads it from.
 ;
-; Con un lazo y no con un DMA: para llegar a la WRAM el DMA tiene que pasar por
-; el puerto $2180 y dejar la dirección puesta en $2181-$2183, que son tres
-; registros más que acordarse de cargar. Son mil bytes como mucho y esto corre
-; una vez por mapa, así que el lazo no le cuesta nada a nadie y no puede
-; escribir en el lugar equivocado.
+; With a loop and not a DMA: to reach WRAM the DMA has to go through port
+; $2180 and leave the address set in $2181-$2183, which are three more
+; registers to remember to load. It is a thousand bytes at most and this runs
+; once per map, so the loop costs nobody anything and cannot write to the
+; wrong place.
 .proc load_npcs
 .a8
 .i16
@@ -424,11 +426,11 @@ listo:
     clc
     adc mapa_ofs
     tax
-    lda f:mapa_tabla, x           ; los 16 bits bajos del puntero
+    lda f:mapa_tabla, x           ; the low 16 bits of the pointer
     sta npc_ptr
     sep #$20
 .a8
-    lda f:mapa_tabla + 2, x       ; y su banco
+    lda f:mapa_tabla + 2, x       ; and its bank
     sta npc_ptr + 2
 
     ldx mapa_ofs
@@ -438,8 +440,8 @@ listo:
     asl a
     asl a
     asl a
-    asl a                       ; por dieciséis: NPC_STRIDE
-.assert NPC_STRIDE = 16, error, "la cuenta de arriba multiplica por dieciséis a mano"
+    asl a                       ; times sixteen: NPC_STRIDE
+.assert NPC_STRIDE = 16, error, "the arithmetic above multiplies by sixteen by hand"
     sta temp
     sep #$20
 .a8
@@ -456,8 +458,8 @@ listo:
     rts
 .endproc
 
-; Y la tabla de gráficos de la orden 34, con el mismo lazo y el mismo puntero
-; prestado. Son dieciséis bytes como mucho.
+; And the table of graphics for move command 34, with the same loop and the
+; same borrowed pointer. It is sixteen bytes at most.
 .proc load_ruta_graficos
 .a8
 .i16
@@ -478,7 +480,7 @@ listo:
     rep #$20
 .a16
     lda f:mapa_tabla + M_RUTA_GRAFICO_COUNT, x
-    asl a                       ; dos bytes por gráfico
+    asl a                       ; two bytes per graphic
     sta temp
     sep #$20
 .a8
@@ -494,14 +496,15 @@ listo:
     rts
 .endproc
 
-; La tabla de posiciones de eventos a la RAM, y las rutas que hubiera corriendo
-; a la basura.
+; The table of event positions to RAM, and whatever routes were running to the
+; trash.
 ;
-; Lo segundo es lo que hace RM2k al cambiar de mapa: las rutas forzadas son de
-; los eventos del mapa que se deja, y allá no queda nadie caminando.
+; The second part is what RM2k does when changing maps: forced routes belong
+; to the events of the map being left, and there is nobody left walking
+; there.
 ;
-; Reusa `npc_ptr`, que sólo vive mientras se copia una tabla y nunca las dos a
-; la vez.
+; Reuses `npc_ptr`, which only lives while a table is being copied and never
+; both at once.
 .proc load_ev_pos
 .a8
 .i16
@@ -511,11 +514,11 @@ listo:
     clc
     adc mapa_ofs
     tax
-    lda f:mapa_tabla, x           ; los 16 bits bajos del puntero
+    lda f:mapa_tabla, x           ; the low 16 bits of the pointer
     sta npc_ptr
     sep #$20
 .a8
-    lda f:mapa_tabla + 2, x       ; y su banco
+    lda f:mapa_tabla + 2, x       ; and its bank
     sta npc_ptr + 2
 
     ldx mapa_ofs
@@ -523,7 +526,7 @@ listo:
 .a16
     lda f:mapa_tabla + M_EV_COUNT, x
     asl a
-    asl a                       ; EV_STRIDE bytes por evento
+    asl a                       ; EV_STRIDE bytes per event
     sta temp
     sep #$20
 .a8
@@ -537,7 +540,7 @@ copiar:
     bra copiar
 
 tablas:
-    stz ruta_ev_tope            ; ninguna ranura usada todavía en este mapa
+    stz ruta_ev_tope            ; no slot used yet on this map
     ldx #$0000
 libre:
     lda #RUTA_EV_LIBRE
@@ -553,13 +556,13 @@ libre:
 .a8
     bcc libre
 
-    ; Y los destellos, que también son de los eventos del mapa que se deja.
+    ; And the flashes, which also belong to the events of the map being left.
     ldx #$0000
 sin_flash:
     lda #FLASH_LIBRE
     sta flash_ev, x
-    stz flash_ev + 7, x         ; ninguna paleta pendiente: la RAM arranca con
-                                ; basura y el vblank lee esto
+    stz flash_ev + 7, x         ; no pending palette: RAM starts with
+                                ; garbage and the vblank reads this
     rep #$20
 .a16
     txa

@@ -1,35 +1,37 @@
 .segment "CODE"
 
-; --- la cámara corrida sin el héroe ----------------------------------------
-; `Game_Player::UpdatePan`: cada eje se acerca a su destino de a `pan_paso`
-; dieciseisavos de pixel, sin pasarse. Y de paso se baja a pixeles enteros, que
-; es lo que `follow_camera` suma: la división es **al piso** y con signo, que es
-; lo que hace `Spriteset_Map` dividiendo `GetDisplayX()` por 16.
+; --- the camera panned away from the hero ----------------------------------
+; `Game_Player::UpdatePan`: each axis approaches its destination by
+; `pan_paso` sixteenths of a pixel, without overshooting. And along the way it
+; is brought down to whole pixels, which is what `follow_camera` adds: the
+; division is **floored** and signed, which is what `Spriteset_Map` does by
+; dividing `GetDisplayX()` by 16.
 ;
-; Se guarda en pixeles en vez de dividir en cada uso porque `follow_camera`
-; corre una vez por cuadro y esto también, pero acá la cuenta se hace una sola
-; vez por eje.
+; It is stored in pixels instead of dividing on every use because
+; `follow_camera` runs once per frame and so does this, but here the
+; arithmetic is done only once per axis.
 .proc pan_tick
 .a8
 .i16
     rep #$20
 .a16
-    ldx #0                      ; el eje: 0 es la x, 2 la y
+    ldx #0                      ; the axis: 0 is x, 2 is y
 otro_eje:
     lda pan_dest_x, x
     sec
     sbc pan_x, x
-    beq en_su_lugar             ; ya llegó
+    beq en_su_lugar             ; already there
     bpl hacia_adelante
-    ; Falta hacia atrás: se resta el paso, o lo que quede si es menos.
+    ; Remaining distance is backwards: subtract the step, or what is left if
+    ; that is less.
     eor #$FFFF
-    inc a                       ; el valor absoluto de lo que falta
+    inc a                       ; the absolute value of what is left
     cmp pan_paso
     bcc corto
     lda pan_paso
 corto:
     eor #$FFFF
-    inc a                       ; y de vuelta con signo
+    inc a                       ; and back to signed
     bra sumar
 hacia_adelante:
     cmp pan_paso
@@ -40,7 +42,7 @@ sumar:
     adc pan_x, x
     sta pan_x, x
 en_su_lugar:
-    ; A pixeles: cuatro corrimientos aritméticos, que conservan el signo.
+    ; To pixels: four arithmetic shifts, which keep the sign.
     lda pan_x, x
     cmp #$8000
     ror a
@@ -60,13 +62,13 @@ en_su_lugar:
     rts
 .endproc
 
-; Cuántos cuadros espera la página que pidió el pan: lo que le falta al eje que
-; más falta, dividido por el paso y redondeado para arriba. Es `GetPanWait`.
-; Devuelve el número en A de dieciséis bits.
+; How many frames the page that asked for the pan waits: what the axis with
+; the most left to go still needs, divided by the step and rounded up. It is
+; `GetPanWait`. Returns the number in a 16-bit A.
 ;
-; Lo que falta llega hasta quince celdas —3840 dieciseisavos— y el paso no pasa
-; de 128, así que entran justo en el dividendo de dieciséis y el divisor de ocho
-; del hardware.
+; What is left goes up to fifteen cells —3840 sixteenths— and the step does
+; not go past 128, so they fit exactly in the hardware's 16-bit dividend and
+; 8-bit divisor.
 .proc pan_cuadros
 .a8
 .i16
@@ -91,16 +93,16 @@ falta_y:
     bcs mayor
     lda temp
 mayor:
-    ; Redondear para arriba es sumarle el paso menos uno antes de dividir.
+    ; Rounding up is adding the step minus one before dividing.
     clc
     adc pan_paso
     sec
     sbc #1
-    sta WRDIVL                  ; el dividendo, en una escritura de dieciséis
+    sta WRDIVL                  ; the dividend, in one 16-bit write
     sep #$20
 .a8
     lda pan_paso
-    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    sta WRDIVB                  ; starts it: the quotient takes sixteen cycles
     nop
     nop
     nop
@@ -117,24 +119,25 @@ mayor:
     rts
 .endproc
 
-; --- la cámara -------------------------------------------------------------
-; Sigue al héroe: lo deja en el centro de la pantalla salvo cerca de los bordes
-; del mapa, donde se queda pegada para no mostrar el vacío de afuera.
+; --- the camera ------------------------------------------------------------
+; It follows the hero: keeps it in the center of the screen except near the
+; map's edges, where it stays stuck so as not to show the void outside.
 ;
-; El scroll es por hardware, así que esto son dos restas y dos escrituras. No
-; hay que redibujar nada: el mapa entero ya está en el tilemap.
-; Un cuadro de la sacudida de pantalla: `Shake::Update` y `NextPosition` de
-; easyrpg, con la cuenta entera que sigue:
+; Scrolling is done by hardware, so this is two subtractions and two writes.
+; Nothing has to be redrawn: the whole map is already in the tilemap.
+; One frame of the screen shake: easyrpg's `Shake::Update` and
+; `NextPosition`, with the whole computation as follows:
 ;
-;     amplitud = 1 + 2 * fuerza
-;     nuevo    = -amplitud * seno[(resta * 4 * (velocidad + 2)) % 256] / 127
-;     corte    = velocidad * amplitud / 8 + 1
-;     posicion = clamp(nuevo, posicion - corte, posicion + corte)
+;     amplitude = 1 + 2 * strength
+;     new       = -amplitude * sine[(remaining * 4 * (speed + 2)) % 256] / 127
+;     cut       = speed * amplitude / 8 + 1
+;     position  = clamp(new, position - cut, position + cut)
 ;
-; Los productos van por el multiplicador del hardware y la división por el
-; divisor, que son los que ya usa `aplicar_tinte`. El seno es `seno_sacudida`,
-; en el banco 0, con signo y a escala 127; el signo se saca antes de multiplicar
-; y se vuelve a poner después, que es truncar hacia cero como hace `int`.
+; The products go through the hardware multiplier and the division through
+; the divider, which are the ones `aplicar_tinte` already uses. The sine is
+; `seno_sacudida`, in bank 0, signed and scaled to 127; the sign is taken off
+; before multiplying and put back afterwards, which is truncating toward zero
+; like `int` does.
 .proc sacudida_tick
 .a8
 .i16
@@ -145,15 +148,15 @@ mayor:
     dec a
     sta sacudida_resta
     bne sigue
-    stz sacudida_pos            ; el último cuadro: la pantalla vuelve
+    stz sacudida_pos            ; the last frame: the screen goes back
 nada16:
     sep #$20
 .a8
     rts
 .a16
 sigue:
-    ; t = (resta * 4 * (velocidad + 2)) % 256: alcanza con el byte bajo de
-    ; resta * 4, porque lo que sobra de 256 se va igual.
+    ; t = (remaining * 4 * (speed + 2)) % 256: the low byte of remaining * 4
+    ; is enough, because whatever is above 256 goes away anyway.
     asl a
     asl a
     sep #$20
@@ -162,29 +165,29 @@ sigue:
     lda sacudida_vel
     inc a
     inc a
-    sta WRMPYB                  ; arranca: el producto tarda ocho ciclos
-    lda sacudida_fuerza         ; mientras tanto, la amplitud
+    sta WRMPYB                  ; starts it: the product takes eight cycles
+    lda sacudida_fuerza         ; meanwhile, the amplitude
     asl a
     inc a
     sta sac_amp
     nop
     nop
-    lda RDMPYL                  ; el byte bajo del producto es t
+    lda RDMPYL                  ; the low byte of the product is t
     rep #$20
 .a16
     and #$00FF
     tax
     sep #$20
 .a8
-    lda f:seno_sacudida, x      ; fuera del banco 0: ver `tabla_de_senos`
+    lda f:seno_sacudida, x      ; outside bank 0: see `tabla_de_senos`
     sta sac_seno
     bpl positivo
     eor #$FF
-    inc a                       ; |seno|
+    inc a                       ; |sine|
 positivo:
     sta WRMPYA
     lda sac_amp
-    sta WRMPYB                  ; |seno| * amplitud
+    sta WRMPYB                  ; |sine| * amplitude
     nop
     nop
     nop
@@ -192,11 +195,11 @@ positivo:
     rep #$20
 .a16
     lda RDMPYL
-    sta WRDIVL                  ; el dividendo, en una sola escritura de 16
+    sta WRDIVL                  ; the dividend, in a single 16-bit write
     sep #$20
 .a8
     lda #127
-    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    sta WRDIVB                  ; starts it: the quotient takes sixteen cycles
     nop
     nop
     nop
@@ -208,21 +211,21 @@ positivo:
     rep #$20
 .a16
     lda RDDIVL
-    sta sac_nuevo               ; |nuevo|
+    sta sac_nuevo               ; |new|
     sep #$20
 .a8
     lda sac_seno
-    bmi con_signo               ; seno negativo: nuevo queda positivo
+    bmi con_signo               ; negative sine: new stays positive
     rep #$20
 .a16
     lda sac_nuevo
     eor #$FFFF
     inc a
-    sta sac_nuevo               ; seno positivo: nuevo es negativo
+    sta sac_nuevo               ; positive sine: new is negative
     sep #$20
 .a8
 con_signo:
-    ; corte = velocidad * amplitud / 8 + 1
+    ; cut = speed * amplitude / 8 + 1
     lda sacudida_vel
     sta WRMPYA
     lda sac_amp
@@ -247,8 +250,8 @@ con_signo:
     clc
     adc sac_corte
     sta sac_hi
-    ; Los números son chicos —la amplitud no pasa de 19— así que el signo de
-    ; la resta alcanza para comparar con signo.
+    ; The numbers are small —the amplitude does not go past 19— so the sign
+    ; of the subtraction is enough for a signed comparison.
     lda sac_nuevo
     sec
     sbc sac_lo
@@ -278,20 +281,20 @@ guardar:
 .a16
     lda hero_x
     clc
-    adc #8                      ; el centro de su celda de 16x16
+    adc #8                      ; the center of its 16x16 cell
     sec
-    sbc #128                    ; media pantalla de ancho
+    sbc #128                    ; half a screen wide
     clc
-    ; Y la cámara corrida sin el héroe. **El pan se suma en cada cuadro, no
-    ; una vez**: en RM2k la cámara se lo sigue llevando mientras el héroe
-    ; camina —`Game_Player::UpdateScroll`— y sólo lo borra un cambio de mapa.
-    ; Por eso un `PanScreen` que nadie devuelve deja la pantalla descentrada
-    ; para siempre, y eso **es fiel**: pasa al salir por la reja del mapa 12 y
-    ; pasa igual en el RPG_RT original. Ver
+    ; And the camera panned away from the hero. **The pan is added every
+    ; frame, not once**: in RM2k the camera keeps carrying it while the hero
+    ; walks —`Game_Player::UpdateScroll`— and only a map change clears it.
+    ; That is why a `PanScreen` that nobody returns leaves the screen off
+    ; center forever, and that **is faithful**: it happens on leaving through
+    ; the gate of map 12 and happens the same in the original RPG_RT. See
     ; `workflow/decisiones/la-camara-corrida-de-la-reja-es-del-juego.md`.
     adc pan_px
     bpl limite_x
-    lda #0                      ; el héroe está cerca del borde izquierdo
+    lda #0                      ; the hero is near the left edge
 limite_x:
     cmp cam_max_x
     bcc guarda_x
@@ -303,7 +306,7 @@ guarda_x:
     clc
     adc #8
     sec
-    sbc #112                    ; media pantalla de alto
+    sbc #112                    ; half a screen high
     clc
     adc pan_py
     bpl limite_y
@@ -315,11 +318,11 @@ limite_y:
 guarda_y:
     sta camara_y
 
-    ; El PPU muestra la línea vofs+1 en el primer scanline, así que lo que se le
-    ; escribe es siempre uno menos que dónde queremos mirar.
+    ; The PPU shows line vofs+1 on the first scanline, so what gets written
+    ; to it is always one less than where we want to look.
     dec a
     sta scroll_y
-    ; Y lo que ve el dibujo: la cámara más la sacudida de pantalla.
+    ; And what the drawing sees: the camera plus the screen shake.
     lda camara_x
     clc
     adc sacudida_pos
@@ -328,4 +331,3 @@ guarda_y:
 .a8
     rts
 .endproc
-

@@ -1,35 +1,36 @@
 .segment "FAR"
 
-; --- los encuentros al azar, fuera del banco 0 -------------------------------
+; --- random encounters, outside bank 0 ---------------------------------------
 ;
-; Lo que RM2k hace, de `Game_Player::UpdateEncounterSteps`, `GetEncountersAt` y
-; `PrepareEncounter`, y escrito igual en `eventos.Encuentros`, que es contra lo
-; que se compara:
+; What RM2k does, from `Game_Player::UpdateEncounterSteps`, `GetEncountersAt`
+; and `PrepareEncounter`, and written the same way in `eventos.Encuentros`,
+; which is what it is compared against:
 ;
-;   * cada paso del héroe **con el pad** —una ruta forzada sale antes, por
-;     `IsMoveRouteOverwritten`— suma el `encounter_rate` del terreno y mira si
-;     salió un encuentro;
-;   * la chance es `pmod / encounter_steps`, con `pmod` una potencia de dos que
-;     sube a medida que se camina sin que salga nada;
-;   * si sale, queda pendiente y se cobra en el cuadro siguiente, con el héroe
-;     ya parado: se juntan las tropas del mapa y las de cada área que tape su
-;     celda, y se elige una al azar.
+;   * each hero step **with the pad** —a forced move route exits early, via
+;     `IsMoveRouteOverwritten`— adds the terrain's `encounter_rate` and checks
+;     whether an encounter came up;
+;   * the chance is `pmod / encounter_steps`, with `pmod` a power of two that
+;     grows as one walks without anything coming up;
+;   * if one comes up, it stays pending and is collected the next frame, with
+;     the hero already standing still: the map's troops and those of each area
+;     covering his cell are gathered, and one is picked at random.
 ;
-; **Todas las cuentas son enteras**, que es lo que la consola puede hacer: el
-; conversor precalcula `1 / encounter_steps` en 1/65536 —`enc_base`— y en qué
-; paso se cruza cada fila de la tabla —`enc_umbral_n`—, así que acá no hay ni
-; una división. Ver `eventos.enc_base` y `eventos.enc_umbrales_de_paso`, que son
-; las mismas cuentas del otro lado.
+; **All the arithmetic is integer**, which is what the console can do: the
+; converter precomputes `1 / encounter_steps` in 1/65536 —`enc_base`— and at
+; which step each row of the table is crossed —`enc_umbral_n`—, so there is
+; not a single division here. See `eventos.enc_base` and
+; `eventos.enc_umbrales_de_paso`, which are the same arithmetic on the other
+; side.
 ;
-; Vive acá y no en el banco 0 porque allá quedaban ochenta y cinco bytes: lo
-; único que queda del otro lado son los cuatro `jsl` y el puente a la pelea.
-; **El banco de datos es $7E mientras esto corre**, como en la batalla: así el
-; estado de $3900 se lee con direccionamiento absoluto y la RAM baja —`temp`,
-; `tile_x`, `mapa_actual`— se sigue leyendo igual, porque en el banco $7E las
-; direcciones de $0000 a $1FFF **son** las del banco 0.
+; It lives here and not in bank 0 because there were eighty-five bytes left
+; there: all that remains on the other side are the four `jsl` and the bridge
+; to the battle. **The data bank is $7E while this runs**, as in battle: that
+; way the state at $3900 is read with absolute addressing and low RAM —`temp`,
+; `tile_x`, `mapa_actual`— is still read the same, because in bank $7E the
+; addresses from $0000 to $1FFF **are** bank 0's.
 
-; La semilla del azar de los encuentros, en el reset. Es otra que la del mapa y
-; otra que la de la pelea: ver `enc_azar`.
+; The seed for the encounters' randomness, at reset. It is a different one from
+; the map's and from the battle's: see `enc_azar`.
 .proc encuentro_arranque
 .a8
 .i16
@@ -47,7 +48,7 @@
     rtl
 .endproc
 
-; El registro del mapa actual, o que este mapa no tiene encuentros.
+; The current map's record, or that this map has no encounters.
 .proc encuentro_mapa
 .a8
 .i16
@@ -66,7 +67,7 @@
 .a16
     and #$00FF
     pha
-    ; Los umbrales del registro, a la RAM: los siete bytes y el de relleno.
+    ; The record's thresholds, into RAM: the seven bytes and the padding one.
     asl a
     asl a
     asl a
@@ -97,7 +98,8 @@ con_base:
     sta ENC_BASE
     sep #$20
 .a8
-    ; Y el acumulado en cero, como en todo `MoveTo`: entrar a un mapa es uno.
+    ; And the running count at zero, as in every `MoveTo`: entering a map is
+    ; one.
     stz ENC_N
     stz ENC_IDX
     stz ENC_PIDE
@@ -107,19 +109,20 @@ con_base:
     rtl
 .endproc
 
-; `ChangeEncounterSteps`, el cuerpo de OP_ENCOUNTER_STEPS: el `1 / pasos` nuevo
-; y los siete umbrales que salen de los mismos pasos, que el conversor ya
-; calculó —ver `eventos.enc_base` y `eventos.enc_umbrales_de_paso`—. Cero es
-; apagarlos, que es lo que pide el viaje de Dalia a Tasgarde. No toca lo
-; caminado: `SetEncounterSteps` de easyrpg tampoco.
+; `ChangeEncounterSteps`, the body of OP_ENCOUNTER_STEPS: the new `1 / steps`
+; and the seven thresholds that come from the same steps, which the converter
+; already computed —see `eventos.enc_base` and
+; `eventos.enc_umbrales_de_paso`—. Zero turns them off, which is what Dalia's
+; trip to Tasgarde asks for. It does not touch the distance walked: easyrpg's
+; `SetEncounterSteps` does not either.
 ;
-; En un mapa sin tropas ni áreas no hace nada, que es lo que hace
-; `eventos.Encuentros.poner_pasos`: sin zonas no hay encuentro que prender.
-; Tampoco dura más que el mapa, como en RM2k: `encuentro_mapa` vuelve a poner
-; los del mapa en cada carga.
+; On a map with no troops or areas it does nothing, which is what
+; `eventos.Encuentros.poner_pasos` does: with no zones there is no encounter
+; to turn on. Nor does it outlast the map, as in RM2k: `encuentro_mapa` puts
+; the map's back on each load.
 ;
-; Se entra con `jsl` desde el intérprete, con Y en el operando y el banco de
-; datos del bytecode; se vuelve con Y después de los diez bytes.
+; It is entered with `jsl` from the interpreter, with Y on the operand and the
+; bytecode's data bank; it returns with Y past the ten bytes.
 .proc encuentro_pasos
 .a8
 .i16
@@ -139,7 +142,7 @@ con_base:
     ldx #0
 umbral:
 .a16
-    lda [cod_ptr], y            ; de a dos: los siete y el relleno
+    lda [cod_ptr], y            ; two at a time: the seven and the padding
     sta ENC_UMB, x
     iny
     iny
@@ -165,9 +168,9 @@ saltear:
     rtl
 .endproc
 
-; El `SetTotalEncounterRate(0)` de `Game_Player::MoveTo`: un teletransporte
-; —una puerta, un `Teleport`, un `ChangeEventLocation` sobre el héroe— borra lo
-; caminado. No toca `ENC_BASE`: el mapa puede ser el mismo.
+; The `SetTotalEncounterRate(0)` of `Game_Player::MoveTo`: a teleport —a door,
+; a `Teleport`, a `ChangeEventLocation` on the hero— erases the distance
+; walked. It does not touch `ENC_BASE`: the map may be the same one.
 .proc encuentro_mover
 .a8
 .i16
@@ -182,7 +185,7 @@ saltear:
     rtl
 .endproc
 
-; Un paso del héroe. Entra y sale con el acumulador en ocho bits.
+; One hero step. Enters and leaves with an 8-bit accumulator.
 .proc encuentro_paso
 .a8
 .i16
@@ -195,7 +198,7 @@ saltear:
 .a16
     lda ENC_BASE
     bne hay
-    ; Apagados: `encounter_steps` en cero, o un mapa sin tropas ni áreas.
+    ; Off: `encounter_steps` at zero, or a map with no troops or areas.
     sep #$20
 .a8
     stz ENC_N
@@ -207,12 +210,12 @@ hay:
 .a8
     lda ENC_N
     inc a
-    beq sigue_arriba            ; 255 pasos sin encuentro: no da la vuelta
+    beq sigue_arriba            ; 255 steps without an encounter: it does not wrap around
     sta ENC_N
 sigue_arriba:
 .a8
-    ; La fila de la tabla, que **no baja nunca**: es el `last_encounter_idx` de
-    ; allá. X apunta al umbral de la fila que sigue, en `ENC_UMB`.
+    ; The table row, which **never goes down**: it is the `last_encounter_idx`
+    ; over there. X points at the next row's threshold, in `ENC_UMB`.
     rep #$20
 .a16
     lda ENC_IDX
@@ -224,9 +227,9 @@ sube:
 .a8
     lda ENC_IDX
     cmp #(ENC_FILAS - 1)
-    bcs con_fila                ; la última fila no sube más
+    bcs con_fila                ; the last row goes no higher
     lda ENC_N
-    cmp ENC_UMB, x              ; ¿llegó al umbral de la que sigue?
+    cmp ENC_UMB, x              ; did it reach the next one's threshold?
     bcc con_fila
     inx
     lda ENC_IDX
@@ -235,8 +238,8 @@ sube:
     bra sube
 con_fila:
 .a8
-    ; El umbral del azar: `base` corrido por el `pmod` de la fila. Las filas 0
-    ; a 3 son 1/16, 1/8, 1/4 y 1/2; las 4 a 7 son 2, 4, 8 y 16.
+    ; The random threshold: `base` shifted by the row's `pmod`. Rows 0 to 3
+    ; are 1/16, 1/8, 1/4 and 1/2; rows 4 to 7 are 2, 4, 8 and 16.
     rep #$20
 .a16
     lda ENC_IDX
@@ -260,7 +263,7 @@ a_la_izquierda:
 izquierda:
 .a16
     asl a
-    bcs siempre                 ; pasó de 1: es certeza, como `PercentChance`
+    bcs siempre                 ; went past 1: it is a certainty, like `PercentChance`
     dex
     bne izquierda
 con_umbral:
@@ -289,11 +292,12 @@ fin:
     rtl
 .endproc
 
-; ¿Hay un encuentro pendiente que pelear acá? Vuelve con A en ocho bits: 1 si
-; hay que pelear, y con la tropa ya puesta en `BA_TROPA`.
+; Is there a pending encounter to fight here? Returns with 8-bit A: 1 if there
+; is a battle, with the troop already set in `BA_TROPA`.
 ;
-; Es `PrepareEncounter`: si en la celda no tapa ninguna zona, el pendiente se
-; consume y no pasa nada, que es lo que hace allá al volver `false`.
+; It is `PrepareEncounter`: if no zone covers the cell, the pending one is
+; consumed and nothing happens, which is what it does over there by returning
+; `false`.
 .proc encuentro_probar
 .a8
 .i16
@@ -315,9 +319,9 @@ pendiente:
     jmp no_hay
 con_registro:
 .a8
-    ; El rango de zonas del mapa: la suya y una por área.
+    ; The map's range of zones: its own and one per area.
     jsr enc_zonas
-    ; Primera pasada: cuántas tropas tapan la celda del héroe.
+    ; First pass: how many troops cover the hero's cell.
     rep #$20
 .a16
     lda #0
@@ -351,9 +355,10 @@ contadas:
     bra no_hay
 hay_tropas:
 .a16
-    ; Una al azar, `Rand::GetRandomNumber(0, n - 1)`: el resto de dividir el
-    ; azar por cuántas hay. La división es la de toda la vida, a mano, porque
-    ; el 65816 no divide y la de la pelea vive en otro banco.
+    ; One at random, `Rand::GetRandomNumber(0, n - 1)`: the remainder of
+    ; dividing the random number by how many there are. The division is the
+    ; good old long division, by hand, because the 65816 does not divide and
+    ; the battle's lives in another bank.
     sta comp_and + 2
     jsr enc_azar
     sta comp_or23
@@ -375,8 +380,8 @@ sin_restar:
     dey
     bne divide
     lda comp_or23 + 2
-    sta comp_and                ; cuántas hay que saltear
-    ; Segunda pasada: la que le toca.
+    sta comp_and                ; how many to skip
+    ; Second pass: the one whose turn it is.
     sep #$20
 .a8
     jsr enc_zonas
@@ -386,7 +391,7 @@ elegir:
 .a16
     lda temp
     cmp temp + 2
-    bcs no_hay16                ; no puede pasar: el total salió de estas zonas
+    bcs no_hay16                ; cannot happen: the total came from these zones
     jsr enc_tapa
     bcc sigue_eligiendo
     sep #$20
@@ -423,7 +428,7 @@ es_de_esta:
     sep #$20
 .a8
     lda #1
-    sta ESC_ORIGEN              ; el fondo de la pelea, el del mapa
+    sta ESC_ORIGEN              ; the battle background, the map's
     bra fin
 no_hay16:
 .a16
@@ -440,8 +445,8 @@ fin:
     rtl
 .endproc
 
-; De qué zona a qué zona son las del mapa: `temp` la primera y `temp + 2` una
-; más que la última. Entra con el acumulador en ocho bits y sale igual.
+; From which zone to which zone the map's go: `temp` the first and `temp + 2`
+; one past the last. Enters with an 8-bit accumulator and leaves the same.
 .proc enc_zonas
 .a8
 .i16
@@ -472,11 +477,10 @@ fin:
     rts
 .endproc
 
-; ¿La zona `temp` tapa la celda donde está parado el héroe? Vuelve con el
-; acarreo puesto si sí, y con X en el número de zona, que es lo que indexan las
-; tablas de un byte. El rectángulo es **semiabierto** —`l <= x < r`—, que es lo
-; que dice `Rect::IsOutOfBounds` de easyrpg con el héroe como un rectángulo de
-; una celda.
+; Does zone `temp` cover the cell the hero is standing on? Returns with carry
+; set if so, and with X at the zone number, which is what the one-byte tables
+; index by. The rectangle is **half-open** —`l <= x < r`—, which is what
+; easyrpg's `Rect::IsOutOfBounds` says with the hero as a one-cell rectangle.
 .proc enc_tapa
 .a16
 .i16
@@ -503,10 +507,10 @@ afuera:
     rts
 .endproc
 
-; El paso del xorshift de los encuentros: el mismo de `azar_siguiente` y de
-; `ba_azar`, sobre `ENC_SEM`, que tiene **semilla propia**. Caminar no le corre
-; el azar al mapa: un `ControlVars` al azar tiene que dar lo mismo con
-; encuentros y sin ellos. Es `eventos.Encuentros._azar`.
+; The encounters' xorshift step: the same as `azar_siguiente` and `ba_azar`,
+; on `ENC_SEM`, which has **its own seed**. Walking does not advance the
+; map's randomness: a random `ControlVars` has to give the same result with
+; and without encounters. It is `eventos.Encuentros._azar`.
 .proc enc_azar
 .a16
 .i16

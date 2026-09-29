@@ -3,36 +3,36 @@
 .i16
 
 ; ===========================================================================
-; Los NPC, sus ranuras de ruta y la OAM, desde el banco 1
+; The NPCs, their move route slots and the OAM, from bank 1
 ; ===========================================================================
 ;
-; Lo que corre por cada evento que anda, o por cada fila de NPC, en cada
-; cuadro o en cada paso que empieza. En la carrera —cuarenta autos, cinco que
-; andan— esto se llevaba casi cien líneas de las 262 del cuadro, y el banco 0
-; no tenía lugar para hacerlo más rápido: vive acá, en el espejo rápido, y los
-; de allá entran con `jsl f:... + RAPIDO`. Ver
+; What runs for each event that moves, or for each NPC row, on every frame or
+; on every step that starts. In the race —forty cars, five of them moving—
+; this took almost a hundred lines of the frame's 262, and bank 0 had no room
+; to make it faster: it lives here, in the fast mirror, and the callers over
+; there come in with `jsl f:... + RAPIDO`. See
 ; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
 
-; --- la fila de un NPC que cambió, a su lugar -------------------------------
+; --- an NPC row that changed, into its place --------------------------------
 ;
-; Deja la fila `npc_fila` donde le toca ahora, con la tabla ya ordenada, y
-; `npc_fila` en su lugar nuevo. El orden es el de RM2k: mayor Y —que va
-; adentro de la clave, junto con la capa—, después mayor X, y después mayor id.
-; Los tres desempates hacen falta porque un evento que camina cambia de fila
-; todo el tiempo y empata con cualquiera; con NPCs quietos casi nunca se
-; notaba.
+; Leaves row `npc_fila` where it now belongs, with the table already sorted,
+; and `npc_fila` at its new place. The order is RM2k's: greater Y —which goes
+; inside the key, together with the layer—, then greater X, and then greater
+; id. The three tie-breakers are needed because an event that walks changes
+; row all the time and ties with anyone; with still NPCs it was hardly ever
+; noticeable.
 ;
-; Sólo se mueve la que cambió: la Y cambia de a dos pixeles por cuadro, y
-; ordenar la tabla entera todos los cuadros costaría lo mismo aunque no se
-; moviera nadie. Hasta el 2026-09-27 se movía de a un lugar, intercambiando
-; las dos filas enteras en cada uno; en la carrera un auto que cambia de carril
-; pasa de una vez a los siete u ocho que van por el de al lado, y cinco autos
-; que arrancan su paso en el mismo cuadro sumaban treinta líneas. Ahora se
-; busca primero hasta dónde va, comparando con la clave de ella, y las del
-; medio se corren todas juntas con un `mvn`/`mvp`: el mismo orden al final,
-; que es el que dejaban los intercambios uno por uno.
+; Only the one that changed is moved: Y changes by two pixels per frame, and
+; sorting the whole table every frame would cost the same even if nobody
+; moved. Until 2026-09-27 it moved one place at a time, swapping the two whole
+; rows at each one; in the race a car that changes lane goes past the seven or
+; eight on the lane next to it at once, and five cars starting their step on
+; the same frame added up to thirty lines. Now it first searches how far it
+; goes, comparing with its key, and the rows in between are shifted all
+; together with an `mvn`/`mvp`: the same order in the end, which is the one
+; the one-by-one swaps left.
 ;
-; Pisa `temp` y `cmp_a`, y X e Y.
+; Clobbers `temp` and `cmp_a`, and X and Y.
 .proc acomodar_lejos
 .a8
 .i16
@@ -40,13 +40,13 @@
 .a16
     ldx npc_fila
     lda npc_buf + 4, x
-    sta temp                    ; su clave: la capa y la Y
+    sta temp                    ; its key: the layer and the Y
     lda npc_buf + 0, x
-    sta temp + 2                ; su X
+    sta temp + 2                ; its X
     lda npc_buf + 8, x
     and #$00FF
-    sta cmp_a                   ; su evento
-    ; ¿Sube? Mientras vaya antes que la de arriba.
+    sta cmp_a                   ; its event
+    ; Does it go up? As long as it goes before the one above.
     txy
 subir:
     cpy #$0000
@@ -60,10 +60,10 @@ subir:
     lda npc_buf + 8 - NPC_STRIDE, y
     and #$00FF
     cmp cmp_a
-    bcs tope_arriba             ; la de arriba tiene el id mayor o igual
+    bcs tope_arriba             ; the one above has the greater or equal id
     bra s_pasa
 s_por_clave:
-    bcc tope_arriba             ; la de arriba va antes
+    bcc tope_arriba             ; the one above goes first
 s_pasa:
     tya
     sec
@@ -73,22 +73,22 @@ s_pasa:
 tope_arriba:
     cpy npc_fila
     beq no_sube
-    ; Sube a Y: la fila, aparte; las de Y a la suya, un lugar abajo; y la
-    ; fila en Y.
-    sty cmp_a                   ; adónde va (su evento ya no hace falta)
+    ; It goes up to Y: the row, set aside; the ones from Y to its own, one
+    ; place down; and the row at Y.
+    sty cmp_a                   ; where it goes (its event is no longer needed)
     jsr apartar
     phb
     lda npc_fila
     sec
-    sbc cmp_a                   ; cuántos bytes se corren
+    sbc cmp_a                   ; how many bytes are shifted
     dec a
     pha
     lda npc_fila
     clc
     adc #.loword(npc_buf) - 1
-    tax                         ; el último de los que se corren
-    adc #NPC_STRIDE             ; el acarreo quedó en cero
-    tay                         ; y adónde va
+    tax                         ; the last of the ones shifted
+    adc #NPC_STRIDE             ; carry was left at zero
+    tay                         ; and where it goes
     pla
     mvp #^FAR_LARGO, #^FAR_LARGO
     plb
@@ -99,7 +99,7 @@ tope_arriba:
     rtl
 .a16
 no_sube:
-    ; ¿Baja? Mientras la de abajo vaya antes que ella.
+    ; Does it go down? As long as the one below goes before it.
 bajar:
     tya
     clc
@@ -116,11 +116,11 @@ bajar:
     lda npc_buf + 8, x
     and #$00FF
     cmp cmp_a
-    beq tope_abajo              ; el mismo id: no pasa
-    bcc tope_abajo              ; la de abajo tiene el id menor
+    beq tope_abajo              ; the same id: it does not pass
+    bcc tope_abajo              ; the one below has the smaller id
     bra b_pasa
 b_por_clave:
-    bcc tope_abajo              ; la de abajo va después
+    bcc tope_abajo              ; the one below goes after
 b_pasa:
     txy
     bra bajar
@@ -132,15 +132,15 @@ tope_abajo:
     phb
     tya
     sec
-    sbc npc_fila                ; cuántos bytes se corren
+    sbc npc_fila                ; how many bytes are shifted
     dec a
     pha
     lda npc_fila
     clc
     adc #.loword(npc_buf)
-    tay                         ; adónde van: donde estaba ella
+    tay                         ; where they go: where it was
     adc #NPC_STRIDE
-    tax                         ; y de dónde: la que le seguía
+    tax                         ; and from where: the one after it
     pla
     mvn #^FAR_LARGO, #^FAR_LARGO
     plb
@@ -151,7 +151,7 @@ listo:
 .a8
     rtl
 
-; La fila `npc_fila`, aparte en `NPC_FILA_APARTE`; y de vuelta en la X.
+; Row `npc_fila`, set aside in `NPC_FILA_APARTE`; and back at X.
 .a16
 apartar:
     ldx npc_fila
@@ -168,12 +168,12 @@ volver:
     stx npc_fila
     rts
 .endproc
-.assert .bankbyte(npc_buf) = 0 && .loword(npc_buf) < $2000, error, "acomodar_lejos corre las filas en el banco $7E: npc_buf tiene que estar en la RAM baja"
+.assert .bankbyte(npc_buf) = 0 && .loword(npc_buf) < $2000, error, "acomodar_lejos shifts the rows in bank $7E: npc_buf has to be in low RAM"
 
-; --- si alguna fila impone sus bits de paso --------------------------------
+; --- whether some row imposes its passability bits --------------------------
 ;
-; `pasa_hay` recién cargada la tabla de NPCs: uno si alguna fila trae +15
-; distinto de $FF. Corre una vez por mapa.
+; `pasa_hay` right after the NPC table is loaded: one if some row has a +15
+; other than $FF. Runs once per map.
 .proc pasa_mirar
 .a8
 .i16
@@ -199,16 +199,16 @@ listo:
     rtl
 .endproc
 
-; --- los objetos, escondidos ------------------------------------------------
+; --- the objects, hidden -----------------------------------------------------
 ;
-; Todos los objetos arrancan escondidos, y `build_oam` lo hace al empezar cada
-; cuadro. Un objeto de 32 de alto en la fila 224 ocupa de la 224 a la 255, o
-; sea entero fuera de las 224 que se ven, y sin darle la vuelta al contador.
+; All objects start hidden, and `build_oam` does it at the start of every
+; frame. An object 32 tall at row 224 covers 224 to 255, that is, entirely
+; outside the 224 that are visible, and without wrapping the counter.
 ;
-; Desenrollado y en el banco 1 —en el espejo rápido—, porque el lazo de a un
-; objeto que había en el banco 0 se llevaba quince líneas de cada cuadro, en
-; todos los mapas: un cuarto de lo que le sobraba a la carrera. Así son unas
-; cuatro. Ver workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
+; Unrolled and in bank 1 —in the fast mirror—, because the one-object-at-a-time
+; loop that was in bank 0 took fifteen lines of every frame, on every map: a
+; quarter of what the race had to spare. This way it is about four. See
+; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
 .proc oam_esconder
 .a8
 .i16
@@ -216,9 +216,9 @@ listo:
 grande:
     lda #$E0
     .repeat 16, k
-    sta oam + 1 + k * 4, x      ; la Y de cada objeto
+    sta oam + 1 + k * 4, x      ; each object's Y
     .endrepeat
-    rep #$21                    ; M en dieciséis y el acarreo en cero
+    rep #$21                    ; M at sixteen and carry at zero
 .a16
     txa
     adc #16 * 4
@@ -227,8 +227,8 @@ grande:
 .a8
     cpx #512
     bne grande
-    ; La tabla chica: dos bits por objeto, el alto dice si es grande. Sólo el
-    ; objeto 0 lo es; el resto quedan chicos y escondidos igual.
+    ; The small table: two bits per object, the high one says whether it is
+    ; large. Only object 0 is; the rest stay small and hidden all the same.
     rep #$20
 .a16
     .repeat 16, k
@@ -237,17 +237,17 @@ grande:
     sep #$20
 .a8
     lda #$02
-    sta oam_high                ; objeto 0: tamaño grande
+    sta oam_high                ; object 0: large size
     rtl
 .endproc
 
-; --- las ranuras de ruta ------------------------------------------------------
+; --- the move route slots -----------------------------------------------------
 
-; La ranura de ruta X —en bytes, por RUTA_EV_STRIDE— acaba de ser del evento
-; A: se anota en su estado de paralelo, `PAR_RANURA`, para que `un_paralelo`
-; no tenga que buscarla. Es de los dos lugares que dan una ranura
-; —`ruta_para_evento` y `aplicar_paginas`—, y vive acá por el banco 0. No toca
-; A, X ni Y.
+; Move route slot X —in bytes, times RUTA_EV_STRIDE— has just become event
+; A's: it is noted in its parallel state, `PAR_RANURA`, so that `un_paralelo`
+; does not have to search for it. It belongs to the two places that hand out
+; a slot —`ruta_para_evento` and `aplicar_paginas`—, and lives here because
+; of bank 0. Does not touch A, X or Y.
 .proc ranura_anotar
     php
     rep #$30
@@ -259,14 +259,14 @@ grande:
     and #$00FF
     asl a
     asl a
-    asl a                       ; por PAR_BYTES
+    asl a                       ; times PAR_BYTES
     tay
     txa
     lsr a
     lsr a
     lsr a
     lsr a
-    lsr a                       ; de bytes a número de ranura
+    lsr a                       ; from bytes to slot number
     inc a
     tyx
     sep #$20
@@ -280,17 +280,17 @@ grande:
     plp
     rtl
 .endproc
-.assert RUTA_EV_STRIDE = 32, error, "ranura_anotar divide por RUTA_EV_STRIDE con cinco lsr"
+.assert RUTA_EV_STRIDE = 32, error, "ranura_anotar divides by RUTA_EV_STRIDE with five lsr"
 
-; La fila de `npc_buf` del evento de la ranura de ruta X, en Y, o $FFFF si no
-; tiene. Es `npc_de_evento` para `refrescar_npc`, que la pide por cada evento
-; que anda y en cada cuadro: la búsqueda recorre las filas desde la primera, y
-; en un mapa con cuarenta eventos eran cuatro líneas por cada uno.
+; The `npc_buf` row of the event of move route slot X, in Y, or $FFFF if it
+; has none. It is `npc_de_evento` for `refrescar_npc`, which asks for it for
+; every event that moves and on every frame: the search walks the rows from
+; the first one, and on a map with forty events it was four lines for each.
 ;
-; La fila se recuerda en el +19 de la ranura, más uno, y se cree sólo si
-; sigue siendo de ese evento: las filas se reordenan cuando dos eventos se
-; cruzan en Y (`acomodar_npc`), y una ranura recién tomada trae lo que haya
-; quedado. Si no, se busca y se anota. No toca X; A se pierde.
+; The row is remembered in the slot's +19, plus one, and is trusted only if
+; it still belongs to that event: the rows are reordered when two events
+; cross in Y (`acomodar_npc`), and a slot just taken carries whatever was left
+; in it. Otherwise, it is searched for and noted. Does not touch X; A is lost.
 .proc npc_de_ranura
 .a8
 .i16
@@ -303,12 +303,12 @@ grande:
     asl a
     asl a
     asl a
-    asl a                       ; por NPC_STRIDE
+    asl a                       ; times NPC_STRIDE
     tay
     sep #$20
 .a8
     cpy npc_total
-    bcs buscar                  ; fuera de la tabla: un resto
+    bcs buscar                  ; outside the table: a leftover
     lda npc_buf + 8, y
     cmp ruta_ev + 0, x
     beq listo
@@ -349,5 +349,5 @@ no_hay:
     ldy #$FFFF
     rtl
 .endproc
-.assert NPC_STRIDE = 16, error, "npc_de_ranura multiplica por NPC_STRIDE con cuatro asl"
-.assert NPC_MAX < 255, error, "npc_de_ranura guarda la fila más uno en un byte"
+.assert NPC_STRIDE = 16, error, "npc_de_ranura multiplies by NPC_STRIDE with four asl"
+.assert NPC_MAX < 255, error, "npc_de_ranura stores the row plus one in a byte"

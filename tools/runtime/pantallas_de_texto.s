@@ -1,23 +1,23 @@
 .segment "CODE"
 
-; --- las pantallas de texto -----------------------------------------------------
+; --- the text screens -----------------------------------------------------------
 ;
-; El equipo y la tienda son pantallas de puro texto sobre la fuente de la
-; pantalla de ítems. Se componen **enteras** en `texto_buf` —el tilemap de 32
-; por 28 celdas, 1792 bytes— y suben de un DMA al empezar cada vblank, así que
-; componer no tiene apuro de tiempo. `pantallas.py` es la referencia. Una
-; posición es un byte del búfer: fila * 64 + columna * 2; la celda de abajo de
-; cada letra está 64 bytes más adelante.
+; The equipment and shop screens are pure text on top of the item screen's
+; font. They are composed **whole** in `texto_buf` —the 32 by 28 cell
+; tilemap, 1792 bytes— and go up in one DMA at the start of each vblank, so
+; composing is in no hurry. `pantallas.py` is the reference. A position is a
+; byte of the buffer: row * 64 + column * 2; the cell below each letter is 64
+; bytes further on.
 ;
-; El escritorio son variables prestadas: las del compositor de mensajes,
-; `comp_*`, que se recalculan con cada carácter y con el menú abierto no hay
-; mensaje; y `eleg_tabla`, que es la posición donde se escribe.
+; The scratch space is borrowed variables: the message composer's, `comp_*`,
+; which are recomputed with each character, and with the menu open there is
+; no message; and `eleg_tabla`, which is the position being written to.
 PANT_BYTES = 32 * 28 * 2
-;   pant_valor   es comp_dup       ; el número que se escribe, dos bytes
-;   pant_ancho   es comp_dup + 2   ; en cuántas cifras
-;   pant_tope    es comp_dup + 3   ; cuántas letras de un texto, a lo sumo
+;   pant_valor   is comp_dup       ; the number being written, two bytes
+;   pant_ancho   is comp_dup + 2   ; in how many digits
+;   pant_tope    is comp_dup + 3   ; how many letters of a text, at most
 
-; El búfer en blanco.
+; The buffer, blank.
 .proc pant_limpiar
 .a8
 .i16
@@ -35,7 +35,7 @@ otra:
     rts
 .endproc
 
-; El búfer al tilemap: un DMA, en el vblank.
+; The buffer to the tilemap: one DMA, in vblank.
 .proc pant_subir
 .a8
 .i16
@@ -51,7 +51,7 @@ otra:
     sta DAS0L
     sep #$20
 .a8
-    stz A1B0                    ; el búfer vive en el banco 0
+    stz A1B0                    ; the buffer lives in bank 0
     lda #$01
     sta DMAP0
     lda #$18
@@ -61,9 +61,10 @@ otra:
     rts
 .endproc
 
-; Una letra: A el carácter, `temp + 1` la variante —0 blanco, 1 gris, 2 el
-; color de "sube", que sólo tiene cifras, y 3 el rojo: ver `ITEM_SUBE` en
-; titulo.py—. Va en `eleg_tabla`, que avanza una celda. Se lleva X e Y.
+; One letter: A the character, `temp + 1` the variant —0 white, 1 gray, 2 the
+; "goes up" color, which only has digits, and 3 red: see `ITEM_SUBE` in
+; titulo.py—. It goes at `eleg_tabla`, which advances one cell. Clobbers X
+; and Y.
 .proc pant_glifo
 .a8
 .i16
@@ -78,7 +79,7 @@ otra:
     lda temp + 1
     and #$00FF
     beq blanco
-    tay                         ; una tabla más allá por cada variante
+    tay                         ; one table further per variant
 otra_tabla:
     txa
     clc
@@ -100,8 +101,8 @@ blanco:
     rts
 .endproc
 
-; Un texto: X su número —ver `item_txt_*`—, en `eleg_tabla` y con la variante
-; de `temp + 1`, y no más de `pant_tope` letras.
+; A text: X its number —see `item_txt_*`—, at `eleg_tabla` and with the
+; variant in `temp + 1`, and no more than `pant_tope` letters.
 .proc pant_texto
 .a8
 .i16
@@ -116,8 +117,8 @@ blanco:
     bcc cabe
     lda comp_dup + 3
 cabe:
-    sta temp                    ; cuántas letras
-    stz temp + 2                ; por cuál va
+    sta temp                    ; how many letters
+    stz temp + 2                ; which one it is on
 letra:
     lda temp + 2
     cmp temp
@@ -134,16 +135,16 @@ letra:
     bra letra
 listo:
     lda #255
-    sta comp_dup + 3               ; el tope es de un texto solo
+    sta comp_dup + 3               ; the cap is for one text only
     rts
 .endproc
 
-; Un número de `pant_valor`, de 0 a 999, en `pant_ancho` cifras —2 o 3— con
-; espacios adelante, en `eleg_tabla` y con la variante de `temp + 1`.
+; A number from `pant_valor`, 0 to 999, in `pant_ancho` digits —2 or 3— with
+; leading spaces, at `eleg_tabla` and with the variant in `temp + 1`.
 .proc pant_numero
 .a8
 .i16
-    stz temp + 3                ; ya salió una cifra
+    stz temp + 3                ; a digit has already been written
     lda comp_dup + 2
     cmp #3
     bcc decenas
@@ -178,12 +179,12 @@ diez_listo:
     sep #$20
 .a8
     jsr cifra
-    lda comp_dup              ; las unidades, siempre
+    lda comp_dup              ; the units, always
     clc
     adc #$30
     jmp pant_glifo
 
-; X: la cifra. Un cero adelante de todo va como espacio.
+; X: the digit. A zero before everything else goes out as a space.
 cifra:
     txa
     bne escribir

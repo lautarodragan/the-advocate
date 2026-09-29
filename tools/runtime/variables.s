@@ -1,57 +1,56 @@
 .segment "CODE"
 
-; --- las variables ---------------------------------------------------------
+; --- the variables ---------------------------------------------------------
 ;
-; Viven en la RAM lejana, y se leen y escriben con direccionamiento largo
-; indexado —`lda f:FAR_LARGO + FAR_VARIABLES, x`—, que no depende del banco de
-; datos. `var_leer` devuelve en A de dieciséis bits **y deja M en dieciséis**;
-; `var_escribir` toma el valor de `temp + 2`. Ninguna de las dos toca X, Y ni
-; `temp`: los que llaman cuentan con eso —ver `op_place_var`—, y por eso el
+; They live in far RAM, and are read and written with long indexed addressing
+; —`lda f:FAR_LARGO + FAR_VARIABLES, x`—, which does not depend on the data
+; bank. `var_leer` returns in a 16-bit A **and leaves M at sixteen**;
+; `var_escribir` takes the value from `temp + 2`. Neither of them touches X, Y
+; or `temp`: callers count on that —see `op_place_var`—, and that is why the
 ; `phx`/`plx`.
 ;
-; Hasta el 2026-09-27 se llegaba por la ventana de WMADD, apuntando y leyendo
-; de a un byte por el puerto: eso costaba el doble, y cada página paralela de
-; la carrera hace cuatro de éstas por cuadro. Ver
+; Until 2026-09-27 they were reached through the WMADD window, pointing and
+; reading one byte at a time through the port: that cost twice as much, and
+; each parallel page of the race does four of these per frame. See
 ; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
 
-; A: la ranura. Vuelve con su valor en A de dieciséis bits, y M en dieciséis.
+; A: the slot. Returns its value in a 16-bit A, and M at sixteen.
 .proc var_leer
 .a8
 .i16
     phx
     rep #$20
 .a16
-    and #VAR_RANURA             ; el byte de la ranura, sin lo que traiga B
-    asl a                       ; dos bytes por variable
+    and #VAR_RANURA             ; the slot byte, without whatever B carries
+    asl a                       ; two bytes per variable
     tax
     lda f:FAR_LARGO + FAR_VARIABLES, x
     plx
     rts
 .endproc
 
-; A: la ranura; B: el byte de banderas del opcode, con `VAR_REFRESCO` en el
-; bit de arriba si esta escritura pide el refresco de páginas; `temp + 2`: el
-; valor.
+; A: the slot; B: the opcode's flags byte, with `VAR_REFRESCO` in the top bit
+; if this write asks for a page refresh; `temp + 2`: the value.
 ;
-; El refresco se marca **acá y no en cada opcode** porque por acá pasan todas
-; las escrituras —`op_var`, las dos ramas de `op_key`, `op_terrain` y
-; `op_location`— y así el bit se mira una sola vez. Es
-; `Game_Map::SetNeedRefreshForVarChange`, que tampoco marca por cualquier
-; escritura: le pregunta al `map_cache` si alguna condición de página del mapa
-; mira esa variable. Acá esa pregunta la contestó el conversor; ver
-; VAR_REFRESCO en eventos.py.
+; The refresh is flagged **here and not in each opcode** because every write
+; goes through here —`op_var`, both branches of `op_key`, `op_terrain` and
+; `op_location`— and that way the bit is checked only once. It is
+; `Game_Map::SetNeedRefreshForVarChange`, which does not flag on just any
+; write either: it asks `map_cache` whether any page condition on the map
+; looks at that variable. Here that question was answered by the converter;
+; see VAR_REFRESCO in eventos.py.
 ;
-; Hasta el 2026-09-27 el bit venía en la ranura, y eso topaba las variables en
-; 128: ver VAR_RANURA_MAX en eventos.py.
+; Until 2026-09-27 the bit came in the slot, and that capped the variables at
+; 128: see VAR_RANURA_MAX in eventos.py.
 .proc var_escribir
 .a8
 .i16
-    xba                         ; las banderas
-    bpl sin_refresco            ; VAR_REFRESCO es el bit 7: ver el .assert
-    lda #1                      ; las banderas ya no hacen falta: el `and` de
-    sta refresco                ; abajo tira lo que quede en B
+    xba                         ; the flags
+    bpl sin_refresco            ; VAR_REFRESCO is bit 7: see the .assert
+    lda #1                      ; the flags are no longer needed: the `and`
+    sta refresco                ; below drops whatever is left in B
 sin_refresco:
-    xba                         ; y la ranura de vuelta
+    xba                         ; and the slot back
     phx
     rep #$20
 .a16
@@ -66,17 +65,17 @@ sin_refresco:
     rts
 .endproc
 
-.assert VAR_REFRESCO = $80, error, "var_escribir mira VAR_REFRESCO con el bit N"
+.assert VAR_REFRESCO = $80, error, "var_escribir checks VAR_REFRESCO with the N flag"
 
-; Enciende o apaga el switch de temp según A.
+; Turns the switch in temp on or off according to A.
 ;
-; **Pisa X e Y**, y quien llama desde el intérprete tiene que salvar Y, que es el
-; cursor del bytecode: por eso el `phy`/`ply` de `op_switch`. Sin él el lazo de
-; `correr_codigo` sigue leyendo desde el byte que quedó en Y —un desplazamiento
-; de la tabla de switches— así que la página se corta en su primer comando y el
-; evento no hace nada. Las dos páginas del juego que hacen algo arrancan
-; prendiendo switches, así que el síntoma es "ninguna página corre" y no "esta
-; página falla".
+; **Clobbers X and Y**, and a caller from the interpreter has to save Y, which
+; is the bytecode cursor: that is why the `phy`/`ply` in `op_switch`. Without
+; it the `correr_codigo` loop keeps reading from the byte left in Y —an offset
+; into the switch table— so the page is cut off at its first command and the
+; event does nothing. The two pages in the game that do something start by
+; turning switches on, so the symptom is "no page runs" and not "this page
+; fails".
 .proc poner_switch
 .a8
 .i16
@@ -99,7 +98,7 @@ sin_refresco:
     ora f:mascara, x
     sta switches, y
     lda #1
-    sta refresco                ; las páginas que lo piden pueden cambiar
+    sta refresco                ; the pages that ask for it may change
     rts
 apagar:
     lda f:mascara, x
@@ -111,10 +110,10 @@ apagar:
     rts
 .endproc
 
-; Todas en cero, la semilla del azar puesta, la velocidad del héroe en 4, el
-; inventario vacío y el menú y guardar permitidos. Corre en el reset, antes de
-; cargar la partida. Viven seguidos en la RAM lejana, así que es una sola
-; pasada por el puerto.
+; All at zero, the random seed set, the hero's speed at 4, the inventory empty
+; and the menu and saving allowed. Runs at reset, before loading the saved
+; game. They live back to back in far RAM, so it is a single pass through the
+; port.
 .proc limpiar_variables
 .a8
 .i16
@@ -122,14 +121,14 @@ apagar:
 .a16
     lda #FAR_ACCESO
     sta WMADDL
-    ; Hasta el final del inventario, con el hueco que haya entre las
-    ; variables y él: es una pasada en el reset y no importa.
+    ; Up to the end of the inventory, with whatever gap there is between the
+    ; variables and it: it is one pass at reset and it does not matter.
     ldx #(FAR_ITEMS + ITEMS_N - FAR_ACCESO - 4)
     sep #$20
 .a8
     stz WMADDH
-    stz WMDATA                  ; guardar y el menú, permitidos
-    lda #4                      ; la velocidad normal del héroe
+    stz WMDATA                  ; saving and the menu, allowed
+    lda #4                      ; the hero's normal speed
     sta WMDATA
     lda #<AZAR_SEMILLA
     sta WMDATA
@@ -142,9 +141,9 @@ otra:
     rts
 .endproc
 
-; El equipo inicial de todos los actores a `FAR_EQUIPO`: un DMA de la tabla
-; del conversor a la ventana de la WRAM. Corre en el reset, antes de cargar
-; la partida, que lo pisa.
+; Every actor's initial equipment into `FAR_EQUIPO`: a DMA from the
+; converter's table to the WRAM window. Runs at reset, before loading the
+; saved game, which overwrites it.
 .proc equipo_inicial_poner
 .a8
 .i16
@@ -162,7 +161,7 @@ otra:
     stz WMADDH
     lda #^(equipo_inicial)
     sta A1B0
-    stz DMAP0                   ; de A a B, de a un byte
+    stz DMAP0                   ; A to B, one byte at a time
     lda #$80                    ; WMDATA
     sta BBAD0
     lda #$01
@@ -171,8 +170,8 @@ otra:
 .endproc
 
 
-; La velocidad del héroe, en A. Sólo A: quien la pide está en medio de un paso
-; con X e Y ocupados.
+; The hero's speed, in A. Only A: whoever asks for it is in the middle of a
+; step with X and Y in use.
 .proc hero_vel_leer
 .a8
 .i16
@@ -187,7 +186,7 @@ otra:
     rts
 .endproc
 
-; A: la velocidad nueva.
+; A: the new speed.
 .proc hero_vel_escribir
 .a8
 .i16
@@ -204,9 +203,9 @@ otra:
     rts
 .endproc
 
-; Cuántos cuadros dura cada frame de la caminata a la velocidad del héroe:
-; `anim_por_vel`, que es `GetStationaryAnimFrames`. Con la velocidad 4
-; son los seis de siempre.
+; How many frames each frame of the walk animation lasts at the hero's speed:
+; `anim_por_vel`, which is `GetStationaryAnimFrames`. At speed 4 it is the
+; usual six.
 .proc anim_cuadros_del_heroe
 .a8
 .i16
@@ -222,38 +221,39 @@ otra:
     rts
 .endproc
 
-; La comparación con signo de `ConditionalBranch` y de la condición de página
-; por variable —RM2k usa `CheckOperator` para las dos—. A trae el valor de la
-; variable en dieciséis bits, `temp + 2` contra qué se compara y `temp + 1` el
-; código: ==, >=, <=, >, <, != en ese orden. Vuelve en ocho bits con A = 1 y
-; Z=0 si se cumple, A = 0 y Z=1 si no. Pisa `temp + 1` a `temp + 3`.
+; The signed comparison of `ConditionalBranch` and of the page condition by
+; variable —RM2k uses `CheckOperator` for both—. A carries the variable's
+; value in sixteen bits, `temp + 2` what it is compared against and `temp + 1`
+; the code: ==, >=, <=, >, <, != in that order. Returns in eight bits with
+; A = 1 and Z=0 if it holds, A = 0 and Z=1 if not. Clobbers `temp + 1` to
+; `temp + 3`.
 .proc comparar_var
 .a16
 .i16
     sec
-    sbc temp + 2                ; N, V y Z de la resta con signo
+    sbc temp + 2                ; N, V and Z of the signed subtraction
     sep #$20
 .a8
     php
-    pla                         ; A = las banderas: N $80, V $40, Z $02
+    pla                         ; A = the flags: N $80, V $40, Z $02
     pha
     and #$C0
-    beq no_menor                ; N y V en cero: no es menor
+    beq no_menor                ; N and V clear: not less
     cmp #$C0
-    beq no_menor                ; los dos puestos: tampoco
+    beq no_menor                ; both set: not either
     lda #1
     bra menor_listo
 no_menor:
     lda #0
 menor_listo:
-    sta temp + 2                ; menor
+    sta temp + 2                ; less
     pla
     and #$02
     beq no_igual
     lda #1
 no_igual:
-    sta temp + 3                ; igual
-    lda temp + 1                ; la comparación
+    sta temp + 3                ; equal
+    lda temp + 1                ; the comparison
     beq igual
     cmp #1
     beq mayor_igual
@@ -287,10 +287,10 @@ menor:
     rts
 .endproc
 
-; El paso del xorshift: x ^= x << 7; x ^= x >> 9; x ^= x << 8. Vuelve con el
-; valor nuevo en A de dieciséis bits, y M en dieciséis. Es `azar_siguiente` de
-; eventos.py, instrucción por instrucción. Usa `temp + 2` de escritorio: quien
-; lo llama —`op_var`— todavía no lo cargó.
+; The xorshift step: x ^= x << 7; x ^= x >> 9; x ^= x << 8. Returns with the
+; new value in a 16-bit A, and M at sixteen. It is `azar_siguiente` from
+; eventos.py, instruction by instruction. Uses `temp + 2` as scratch: its
+; caller —`op_var`— has not loaded it yet.
 .proc azar_siguiente
 .a8
 .i16
@@ -358,62 +358,62 @@ menor:
 
 
 
-; Compone la ventana de la opción marcada. El cuadro sale de la tabla, en
-; `eleg_tabla + eleg_sel * 4`; el destino está dos bytes más allá y lo lee
-; `eleccion_tick`.
+; Composes the window for the highlighted option. The box comes from the
+; table, at `eleg_tabla + eleg_sel * 4`; the destination is two bytes further
+; on and `eleccion_tick` reads it.
 ;
-; Volver a llamar a `msg_empezar` con la ventana ya abierta es lo que mueve el
-; cursor: `msg_abierto` no se apaga, así que la ventana no parpadea, y el
-; compositor va pisando renglón por renglón lo que había. Un renglón de una
-; opción son cinco o seis caracteres, o sea un par de cuadros: se ve como un
-; cursor que se mueve, no como una ventana que se rehace.
+; Calling `msg_empezar` again with the window already open is what moves the
+; cursor: `msg_abierto` is not cleared, so the window does not flicker, and the
+; composer overwrites what was there line by line. One option's line is five
+; or six characters, that is, a couple of frames: it looks like a cursor
+; moving, not like a window being rebuilt.
 .proc eleg_abrir
 .a8
 .i16
     lda eleg_sel
     asl
-    asl                         ; cuatro bytes por opción
+    asl                         ; four bytes per option
     rep #$20
 .a16
     and #$00FF
     clc
     adc eleg_tabla
     tay
-    lda [cod_ptr], y            ; el desplazamiento del cuadro, de 16 bits
-    jsr msg_empezar             ; que lo espera en A y en modo 16
+    lda [cod_ptr], y            ; the box's offset, 16 bits
+    jsr msg_empezar             ; which expects it in A and in 16-bit mode
     sep #$20
 .a8
     rts
 .endproc
 
-; Un cuadro de una elección abierta. Devuelve A distinto de cero cuando el
-; jugador eligió, y ahí la página ya tiene el cursor puesto en el cuerpo de la
-; opción y sigue en este mismo cuadro.
+; One frame of an open choice. Returns A nonzero when the player chose, and
+; at that point the page already has the cursor set on the option's body and
+; carries on in this same frame.
 ;
-; El movimiento del cursor es `Window_Selectable::Update` con `column_max` en
-; uno: arriba y abajo dan la vuelta, y valen por **flanco** y no por estado, que
-; es el `Input::IsTriggered` de allá. Sostener abajo no baja de a un renglón por
-; cuadro.
+; The cursor movement is `Window_Selectable::Update` with `column_max` at one:
+; up and down wrap around, and they count on the **edge** and not the state,
+; which is the `Input::IsTriggered` over there. Holding down does not move down
+; one line per frame.
 ;
-; Lo cubre `rom/pruebas/rpgmaker/test_elegir.py`, que puede apretar cualquier
-; botón.
+; Covered by `rom/pruebas/rpgmaker/test_elegir.py`, which can press any
+; button.
 .proc eleccion_tick
 .a8
 .i16
     lda msg_abierto
     bne abierta
-    lda #0                      ; todavía se está componiendo: nadie elige
+    lda #0                      ; still being composed: nobody chooses
     rts
 abierta:
     lda pad
     eor pad_ant
-    and pad                     ; lo que se apretó **en este cuadro**
+    and pad                     ; what was pressed **on this frame**
     sta eleg_flancos
     and #PAD_UP
     beq no_arriba
     lda eleg_sel
     bne sube_una
-    lda eleg_n                  ; desde la primera, arriba da la vuelta
+    lda eleg_n                  ; from the first one, up wraps around
 sube_una:
     dec a
     sta eleg_sel
@@ -428,7 +428,7 @@ no_arriba:
     inc a
     cmp eleg_n
     bcc baja_una
-    lda #0                      ; y desde la última, abajo también
+    lda #0                      ; and from the last one, down does too
 baja_una:
     sta eleg_sel
     jsr eleg_abrir
@@ -439,12 +439,13 @@ no_abajo:
     and #PAD_B
     beq mira_a
     lda eleg_cancel
-    beq mira_a                  ; esta elección no se deja cancelar
+    beq mira_a                  ; this choice cannot be cancelled
     dec a                       ; `choice_result = cancel_type - 1`
     sta eleg_sel
-    ; Y el B se consume acá: en RM2k la ventana procesa la tecla **después**
-    ; del héroe, que la vio con el mensaje abierto y no pidió el menú. Acá la
-    ; elección corre antes que `pedir_menu`, así que se le borra el flanco.
+    ; And the B is consumed here: in RM2k the window processes the button
+    ; **after** the hero, who saw it with the message open and did not ask for
+    ; the menu. Here the choice runs before `pedir_menu`, so its edge is
+    ; cleared.
     lda pad_ant
     ora #PAD_B
     sta pad_ant
@@ -453,7 +454,7 @@ mira_a:
     lda pad_a
     beq nada
     lda pad_a_ant
-    bne nada                    ; ya lo tenía apretado: no es un flanco
+    bne nada                    ; it was already held: not an edge
 elige:
     lda eleg_sel
     asl
@@ -464,18 +465,17 @@ elige:
     clc
     adc eleg_tabla
     inc a
-    inc a                       ; el destino va después del cuadro
+    inc a                       ; the destination comes after the box
     tay
     lda [cod_ptr], y
     sta ev_cur
     sep #$20
 .a8
     stz eleg_activo
-    stz msg_abierto             ; y con eso `flush_video` apaga el HDMA
+    stz msg_abierto             ; and with that `flush_video` turns HDMA off
     lda #1
     rts
 nada:
     lda #0
     rts
 .endproc
-
