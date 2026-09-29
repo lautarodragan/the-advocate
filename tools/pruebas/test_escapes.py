@@ -16,7 +16,7 @@ defend it. See "Una golden caza regresiones" in AGENTS.md.
 import pytest
 
 from port import eventos
-from port import constantes
+from port import constants
 
 
 def test_the_tail_leaves_the_text_and_is_counted():
@@ -91,7 +91,7 @@ def test_the_tail_is_removed_before_trimming_the_line():
     """The other way around, a full line would eat its own `\\|\\^` and the
     text box would be left waiting for an A that RM2k does not ask for."""
     mensajes = eventos.Mensajes()
-    largo = "x" * constantes.COLUMNAS
+    largo = "x" * constants.COLUMNS
     donde = mensajes.agregar([largo + "\\|\\^"])
     assert mensajes.lineas(donde) == (largo,)
     assert mensajes.cola(donde) == (1, True)

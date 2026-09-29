@@ -22,7 +22,7 @@ Acá se pelea la primera. La tropa de cuatro enemigos la ejercitan los casos
 `batalla` de `test_batalla_golden.py`, con la página de prueba.
 """
 
-from port import reglas
+from port import rules
 from port import batalla as modelo
 
 from batalla import (DROIDE, GRUPO, TROPA_DROIDE, Pelea, en_el_droide, hab_id,
@@ -55,7 +55,7 @@ def test_los_hp_arrancan_llenos(partida):
     una = partida()
     base = datos.base()
     for actor in GRUPO:
-        esperado = reglas.parametro_de(base.actors[actor], "maxhp")
+        esperado = rules.param_of(base.actors[actor], "maxhp")
         assert esperado > 40, (
             "el actor %d tendría que tener los HP de su nivel inicial y no "
             "los del 1: si son 40 el caso no distingue nada" % actor)
@@ -103,16 +103,16 @@ def test_los_sp_arrancan_llenos(partida):
     base = datos.base()
     distintos = 0
     for actor in sorted(base.actors):
-        esperado = reglas.parametro_de(base.actors[actor], "maxsp")
+        esperado = rules.param_of(base.actors[actor], "maxsp")
         distintos += (esperado
-                      != reglas.parametro_de(base.actors[actor], "maxhp"))
+                      != rules.param_of(base.actors[actor], "maxhp"))
         assert una.sp(actor) == esperado, \
             "el actor %d no arranca con los SP de su nivel" % actor
     assert distintos > 10, (
         "si ningún actor tuviera SP distintos de sus HP este caso no "
         "distinguiría de qué tabla se llenó FAR_SP")
     for actor in GRUPO:
-        assert reglas.parametro_de(base.actors[actor], "maxsp") > 40, (
+        assert rules.param_of(base.actors[actor], "maxsp") > 40, (
             "el actor %d tendría que tener los SP de su nivel inicial: con "
             "los del 1 no alcanzan para ninguna habilidad" % actor)
 
@@ -351,7 +351,7 @@ def test_una_habilidad_que_cura_apunta_al_grupo(partida):
     una = en_el_droide(partida)
     base = datos.base()
     assert habilidades(base, GRUPO[0])[0] == HEALING_SYRINGE
-    lastimado = reglas.parametro_de(base.actors[GRUPO[1]], "maxhp") // 2
+    lastimado = rules.param_of(base.actors[GRUPO[1]], "maxhp") // 2
     una.poner_hp(GRUPO[1], lastimado)
     pelea = Pelea(una).abrir()
     esperado = modelo_de(base)
@@ -784,7 +784,7 @@ def en_el_droide_con_pocion(partida):
     # que el nivel sale del LDB, Kersh tiene 168 de máximo y cincuenta no lo
     # llenan.
     for actor in GRUPO:
-        maximo = reglas.parametro_de(datos.base().actors[actor], "maxhp")
+        maximo = rules.param_of(datos.base().actors[actor], "maxhp")
         falta = maximo - 20
         una.poner_hp(actor, falta)
     return una

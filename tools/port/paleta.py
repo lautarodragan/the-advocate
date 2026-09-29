@@ -7,7 +7,7 @@ too.
 
 import collections
 
-from port.constantes import ALTO, ANCHO, CELL, COLORES, COLS, FILAS, MENU_CGRAM
+from port.constants import HEIGHT, WIDTH, CELL, COLORS, COLS, ROWS, MENU_CGRAM
 
 NEGRO = (0, 0, 0)
 
@@ -24,7 +24,7 @@ def _distancia(a, b):
     return sum((x - y) ** 2 for x, y in zip(a, b))
 
 
-def reducir(pixeles, tope=COLORES):
+def reducir(pixeles, tope=COLORS):
     """The image's colors brought down to `tope`, and the map of where each
     one went.
 
@@ -63,11 +63,11 @@ def _quince(imagen):
     nowhere else.
     """
     from PIL import Image
-    chica = imagen.convert("RGB").resize((ANCHO, ALTO), Image.LANCZOS)
+    chica = imagen.convert("RGB").resize((WIDTH, HEIGHT), Image.LANCZOS)
     return [(r >> 3, g >> 3, b >> 3) for r, g, b in chica.get_flattened_data()]
 
 
-def convertir(imagen, primer_color=MENU_CGRAM, tope=COLORES):
+def convertir(imagen, primer_color=MENU_CGRAM, tope=COLORS):
     """A full-screen image as (tiles, paleta, tilemap).
 
     `tiles` are the unique tiles at 8 bits per pixel; `paleta` their colors,
@@ -85,11 +85,11 @@ def convertir(imagen, primer_color=MENU_CGRAM, tope=COLORES):
     indice = {color: i + primer_color for i, color in enumerate(paleta)}
     # The image as palette indices, row by row.
     filas = []
-    for y in range(ALTO):
-        filas.append([indice[mapa[pixeles[y * ANCHO + x]]] for x in range(ANCHO)])
+    for y in range(HEIGHT):
+        filas.append([indice[mapa[pixeles[y * WIDTH + x]]] for x in range(WIDTH)])
 
     tiles, donde, tilemap = [], {}, []
-    for ty in range(FILAS):
+    for ty in range(ROWS):
         for tx in range(COLS):
             celda = tuple(tuple(filas[ty * CELL + y][tx * CELL:(tx + 1) * CELL])
                           for y in range(CELL))

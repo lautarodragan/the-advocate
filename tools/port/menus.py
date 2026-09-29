@@ -8,10 +8,10 @@ import numpy
 
 from port import asignador
 from port import experiencia
-from port import fuente
-from port.constantes import ALTO, ANCHO, CELL, COLS, FILAS, MENU_CGRAM
+from port import font
+from port.constants import HEIGHT, WIDTH, CELL, COLS, ROWS, MENU_CGRAM
 from port.paleta import NEGRO
-from port.reglas import nivel_de, parametro_de
+from port.rules import level_of, param_of
 
 
 # --- the slot screen ---------------------------------------------------------
@@ -74,7 +74,7 @@ NIVEL_CIFRAS = 2                # "%2d", which is what RM2k shows
 # Which cell the number starts at: the one after the term, which is two font
 # characters wide. It is not `RANURA_X + 12` rounded by hand because the term
 # comes from the LDB and its width is the font's.
-NIVEL_COL = (RANURA_X + 2 * fuente.ANCHO) // CELL       # 8
+NIVEL_COL = (RANURA_X + 2 * font.WIDTH) // CELL       # 8
 # And which palette the faces use: 0 is the text's, and each face carries its
 # own from 1. They are the palettes of BG2 at 4bpp, which are eight on the
 # console.
@@ -133,7 +133,7 @@ def _bloque_de_celdas(capa, fila0, filas, tiles, donde, indice, col0=0,
                 for x in range(CELL):
                     sx = col * CELL + x
                     sy = (fila0 + fila) * CELL + y
-                    if sy >= ALTO or sx >= ANCHO:
+                    if sy >= HEIGHT or sx >= WIDTH:
                         renglon.append(0)
                         continue
                     r, g, b, a = px[sx, sy]
@@ -192,7 +192,7 @@ def texto_de_nivel(db, actor, nivel=None):
     `nivel`, the starting one; the ROM composes the current one with the
     same, `texto_nivel`."""
     if nivel is None:
-        nivel = nivel_de(db.actors[actor]) if actor in db.actors else 0
+        nivel = level_of(db.actors[actor]) if actor in db.actors else 0
     return ("%*d" % (NIVEL_CIFRAS, nivel))[-NIVEL_CIFRAS:]
 
 
@@ -201,7 +201,7 @@ def texto_de_maximo(db, actor, nivel=None):
     current HP, which the ROM writes with the same glyphs. Without `nivel`,
     those of the starting one; the ROM composes those of the current one,
     `texto_maximo`."""
-    maximo = (parametro_de(db.actors[actor], "maxhp", nivel)
+    maximo = (param_of(db.actors[actor], "maxhp", nivel)
               if actor in db.actors else 0)
     return ("/%d" % maximo).ljust(MENU_MAX_CIFRAS)[:MENU_MAX_CIFRAS]
 
@@ -391,7 +391,7 @@ MENU_MAX_X = (MENU_HP_COL + MENU_HP_CIFRAS) * CELL      # 192
 MENU_NOMBRE_COL = MENU_TEXTO_X // CELL                  # 19
 MENU_NOMBRE_COLS = COLS - MENU_NOMBRE_COL               # 13
 MENU_NOMBRE_FILA = 0
-MENU_NIVEL_COL = (MENU_TEXTO_X + 2 * fuente.ANCHO) // CELL      # 20
+MENU_NIVEL_COL = (MENU_TEXTO_X + 2 * font.WIDTH) // CELL      # 20
 MENU_NIVEL_FILA = LINEA // CELL                         # 2
 MENU_MAX_COL = MENU_MAX_X // CELL                       # 24
 MENU_MAX_CIFRAS = 4             # the slash and up to three digits: "/168"
@@ -491,8 +491,8 @@ ITEMS_TILES_MAX = (0x3800 - 0x2000) // 16
 # text palettes, and black is 0, the transparent one, which lets the backdrop
 # color show through, which is black.
 ITEM_AYUDA_ALTO = 48
-ITEM_VENTANAS = ((0, 0, ANCHO, ITEM_AYUDA_ALTO),
-                 (0, ITEM_AYUDA_ALTO, ANCHO, ALTO - ITEM_AYUDA_ALTO))
+ITEM_VENTANAS = ((0, 0, WIDTH, ITEM_AYUDA_ALTO),
+                 (0, ITEM_AYUDA_ALTO, WIDTH, HEIGHT - ITEM_AYUDA_ALTO))
 ITEM_MARCO_CGRAM = 4 * MENU_CGRAM
 # The frame's tiles go in the font's bank, after it: BG1's base is the same as
 # BG2's, and an 8bpp tile is the size of two 4bpp ones. Everything has to fit
@@ -510,7 +510,7 @@ def ventanas_items(sys_img, barra=None):
     BG1 draws. With `barra`, the cursor on that row of the list."""
     from PIL import Image
     from port import ventana as ventana_mod
-    fuera = Image.new("RGBA", (ANCHO, ALTO), (0, 0, 0, 0))
+    fuera = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     for x, y, ancho, alto in ITEM_VENTANAS:
         una = ventana_mod.ventana(sys_img, ancho, alto)
         fuera.paste(una, (x, y), una)
@@ -602,7 +602,7 @@ def marcos(sys_img, primer_tile, pantallas, cgram=None, tope=256):
 
     mapas = []
     for fondo, barras in pantallas:
-        mapas.append((palabras(fondo, range(FILAS)),
+        mapas.append((palabras(fondo, range(ROWS)),
                       [palabras(b[0], range(b[1], b[1] + (b[2] if len(b) > 2
                                                          else 2)))
                        for b in barras]))
@@ -675,7 +675,7 @@ def pantalla_items(sys_img, font_id=None):
             c = chr(ITEM_PRIMER_CARACTER + n)
             if gris == ITEM_SUBE and c not in ITEM_SUBE_CARACTERES:
                 continue
-            una = Image.new("RGBA", (ANCHO, ALTO), (0, 0, 0, 0))
+            una = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
             ventana_mod.dibujar_linea(una, sys_img, 1, 2, c,
                                       color=colores[gris], font_id=font_id)
             capas.append((gris, n, una))
@@ -755,7 +755,7 @@ def hp_de_menu(db, actor, hp=None):
     with."""
     if hp is not None and actor in hp:
         return hp[actor]
-    return parametro_de(db.actors[actor], "maxhp")
+    return param_of(db.actors[actor], "maxhp")
 
 
 def _pegar_hp(pegar, menu, fila, cuanto):
@@ -806,7 +806,7 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
     from port import ventana as ventana_mod
 
     def capa():
-        return Image.new("RGBA", (ANCHO, ALTO), (0, 0, 0, 0))
+        return Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
 
     def escribir(destino, x, y, texto):
         if texto:
@@ -992,7 +992,7 @@ def _pintor(fuera, tiles, paletas):
             celda = tiles[palabra & 0x3FF]
             paleta = paletas[(palabra >> 10) & 7]
             for y in range(CELL):
-                if ty + y >= ALTO:
+                if ty + y >= HEIGHT:
                     break
                 for x in range(CELL):
                     valor = celda[y][x]
@@ -1011,7 +1011,7 @@ def _pegar_sprite(fuera, tiles, paletas, palabra, x, y):
     for dy in range(CELL):
         for dx in range(CELL):
             valor = celda[dy][dx]
-            if valor and 0 <= x + dx < ANCHO and 0 <= y + dy < ALTO:
+            if valor and 0 <= x + dx < WIDTH and 0 <= y + dy < HEIGHT:
                 px[x + dx, y + dy] = tuple(v << 3 for v in paleta[valor])
 
 
@@ -1027,7 +1027,7 @@ def _pegar_exp(fuera, tiles, paletas, menu, fila, texto):
     for n, letra in enumerate(texto):
         if letra == " ":
             continue
-        x = MENU_EXP_X + MENU_EXP_NUM_DX + n * fuente.ANCHO - GLIFO_DX
+        x = MENU_EXP_X + MENU_EXP_NUM_DX + n * font.WIDTH - GLIFO_DX
         arriba, abajo = menu["glifos"][letra]
         _pegar_sprite(fuera, tiles, paletas, arriba, x, y)
         _pegar_sprite(fuera, tiles, paletas, abajo, x, y + CELL)
@@ -1082,7 +1082,7 @@ def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
     actores = sorted(set(actores if actores is not None else grupo))
     tiles, paletas, _, _, caras, menu = pantalla_ranuras(
         sys_img, db, ranuras, font_id, actores, game_dir)
-    fuera = Image.new("RGB", (ANCHO, ALTO), (0, 0, 0))
+    fuera = Image.new("RGB", (WIDTH, HEIGHT), (0, 0, 0))
     pegar = _pintor(fuera, tiles, paletas)
     for orden in range(MENU_OPCIONES):
         hecha = orden in MENU_HECHAS and (orden != MENU_GUARDAR
@@ -1139,7 +1139,7 @@ def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
 OBJETIVO_IZQ = 104
 OBJETIVO_NOMBRE_ALTO = 48
 OBJETIVO_CUANTOS_ALTO = 32
-OBJETIVO_GRUPO = (OBJETIVO_IZQ, 0, ANCHO - OBJETIVO_IZQ, ALTO)
+OBJETIVO_GRUPO = (OBJETIVO_IZQ, 0, WIDTH - OBJETIVO_IZQ, HEIGHT)
 OBJETIVO_VENTANAS = ((0, 0, OBJETIVO_IZQ, OBJETIVO_NOMBRE_ALTO),
                      (0, OBJETIVO_NOMBRE_ALTO, OBJETIVO_IZQ,
                       OBJETIVO_CUANTOS_ALTO),
@@ -1156,7 +1156,7 @@ OBJETIVO_CUANTOS_COL = OBJETIVO_NOMBRE_COL + OBJETIVO_NOMBRE_ANCHO - 2    # 10
 # with the bottom tip mid-cell it was 64 tiles, which is exactly what fits
 # before the tilemap, and this way it is 60. What is left out is the shadow of
 # the HP letters.
-OBJETIVO_BARRA = (MENU_TEXTO_X - 4, 2, ANCHO - MENU_TEXTO_X, 3 * LINEA - 2)
+OBJETIVO_BARRA = (MENU_TEXTO_X - 4, 2, WIDTH - MENU_TEXTO_X, 3 * LINEA - 2)
 # BG1's colors go in 128..143: they are those of sprite palette 0, which on
 # this screen are off, and which `menu_exp_cerrar` restores on closing the
 # menu. There is no room in 0..127: they are the menu bank's palettes.
@@ -1200,7 +1200,7 @@ def ventanas_objetivo(sys_img, db, con_item=True, barra=None, font_id=None):
     `barra`, the cursor on that party row."""
     from PIL import Image
     from port import ventana as ventana_mod
-    fuera = Image.new("RGBA", (ANCHO, ALTO), (0, 0, 0, 0))
+    fuera = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     for x, y, ancho, alto in (OBJETIVO_VENTANAS if con_item
                               else (OBJETIVO_GRUPO,)):
         una = ventana_mod.ventana(sys_img, ancho, alto)
@@ -1301,7 +1301,7 @@ def render_objetivo(sys_img, db, ranuras, grupo, elegida=0, font_id=None,
     nombre = db.items[item].name if item else ""
     tiles, paletas, _, _, caras, menu = pantalla_ranuras(
         sys_img, db, ranuras, font_id, actores, game_dir, nombre)
-    fuera = Image.new("RGB", (ANCHO, ALTO), (0, 0, 0))
+    fuera = Image.new("RGB", (WIDTH, HEIGHT), (0, 0, 0))
     ventanas = ventanas_objetivo(sys_img, db, bool(item), elegida, font_id)
     fuera.paste(ventanas, (0, 0), ventanas)
     pegar = _pintor(fuera, tiles, paletas)
@@ -1330,7 +1330,7 @@ def render_items(sys_img, db, inventario, elegida=0, arriba=0, font_id=None,
     items = sorted(items if items is not None
                    else [i for i, n in inventario.items() if n > 0])
     tiles, paletas, glifos = pantalla_items(sys_img, font_id)
-    fuera = Image.new("RGB", (ANCHO, ALTO), (0, 0, 0))
+    fuera = Image.new("RGB", (WIDTH, HEIGHT), (0, 0, 0))
     lista = lista_de_items(items, inventario)
     # The cursor is part of the windows: see `ITEM_BARRA_X`.
     ventanas = ventanas_items(sys_img, elegida - arriba if lista else None)
@@ -1379,7 +1379,7 @@ def render_ranuras(sys_img, db, ranuras, llenas, elegida, modo=0, font_id=None,
     actores = sorted({a for g in grupos.values() for a in g})
     tiles, paletas, cabeceras, filas, caras, menu = pantalla_ranuras(
         sys_img, db, ranuras, font_id, actores, game_dir)
-    fuera = Image.new("RGB", (ANCHO, ALTO), (0, 0, 0))
+    fuera = Image.new("RGB", (WIDTH, HEIGHT), (0, 0, 0))
     pegar = _pintor(fuera, tiles, paletas)
 
     pegar(cabeceras[modo], CABECERA_Y // CELL)

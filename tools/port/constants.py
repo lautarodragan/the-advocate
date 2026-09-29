@@ -8,10 +8,10 @@ to ask `pantallas` how many equipment slots there are, and `pantallas` imports
 
 # The console screen, in pixels and in 8x8 cells.
 CELL = 8
-ANCHO = 256
-ALTO = 224
-COLS = ANCHO // CELL            # 32
-FILAS = ALTO // CELL            # 28
+WIDTH = 256
+HEIGHT = 224
+COLS = WIDTH // CELL            # 32
+ROWS = HEIGHT // CELL            # 28
 
 # How many CGRAM entries the menu takes, since it sits on BG2 at four bits per
 # pixel: one palette of sixteen, palette 0. They are the **first** ones in
@@ -22,10 +22,10 @@ MENU_CGRAM = 16
 # How many colors are left for the image. Going from 256 to 240 does not
 # show: it already came down from 369, and the ones that get merged are the
 # ones that appear in a handful of pixels.
-COLORES = 256 - MENU_CGRAM
+COLORS = 256 - MENU_CGRAM
 
 # How many lines of text fit in the message window. See `ventana.py`.
-LINEAS = 4
+LINES = 4
 
 # How many characters fit on a line, and where the number comes from. It is
 # not the width of the window: it is the tile bank. The text area of the
@@ -39,12 +39,12 @@ LINEAS = 4
 # 1.58% of the characters, against 1.09% when truncating at 40.
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
-COLUMNAS = 39
+COLUMNS = 39
 
 # How many equipment slots an RM2k actor has.
-RANURAS_EQUIPO = 5              # weapon, shield, armor, helmet, accessory
+EQUIPMENT_SLOTS = 5              # weapon, shield, armor, helmet, accessory
 
 # How many enemies fit in a battle: what fits on the text screen without
 # covering anything of the party. The largest troop in the game has eight
 # members, so with eight none is lost.
-ENEMIGOS_MAX = 8
+ENEMIES_MAX = 8

@@ -56,8 +56,8 @@ Three things are **not** RM2k's, and all three are on purpose:
 """
 
 from port import eventos
-from port import reglas
-from port.constantes import ENEMIGOS_MAX
+from port import rules
+from port.constants import ENEMIES_MAX
 
 # The seed of the battle's randomness. It differs from `AZAR_SEMILLA` on
 # purpose: see above. The value means nothing, it only has to be nonzero —the
@@ -65,7 +65,7 @@ from port.constantes import ENEMIGOS_MAX
 BATALLA_SEMILLA = 0x2B1D
 
 # How many fit in a battle. The party is RM2k's, four; the enemies,
-# `constantes.ENEMIGOS_MAX`.
+# `constants.ENEMIES_MAX`.
 GRUPO_MAX = 4
 
 # The three outcomes, in the order the bytecode carries their destinations.
@@ -323,7 +323,7 @@ def habilidades_de(db, numero, nivel=None):
     The ones this port does not know how to offer are left out: see
     `habilidad_usable`.
     """
-    return [s for s in reglas.aprendidas_de(db, numero, nivel)
+    return [s for s in rules.learned_skills(db, numero, nivel)
             if habilidad_usable(db.skills[s])]
 
 
@@ -347,7 +347,7 @@ def nombre_de_orden_habilidad(db, numero):
     actor = db.actors[numero]
     if actor.rename_skill and actor.skill_name:
         return actor.skill_name
-    return reglas.terminos_batalla(db)["habilidad"]
+    return rules.battle_terms(db)["habilidad"]
 
 
 def costo_de(skill):
@@ -540,7 +540,7 @@ class Combatiente:
 def actor_de(db, numero, equipo=None, nivel=None):
     """The combatant of an LDB actor, with whatever it has equipped.
 
-    The parameters come from `reglas.parametros`, which is the same function
+    The parameters come from `rules.equipped_params`, which is the same function
     the equipment screen uses: the level's plus what each piece adds,
     clamped to [1, 999]. The HP are the level's and carry no equipment, like
     `Game_Actor::GetMaxHp` in RM2k, where equipment does not touch HP.
@@ -550,7 +550,7 @@ def actor_de(db, numero, equipo=None, nivel=None):
     debt: no weapon in ABL lowers it, but the day one does this will be
     wrong silently.
 
-    The level is the LDB's `initial_level` and not 1: see `reglas.nivel_de`.
+    The level is the LDB's `initial_level` and not 1: see `rules.level_of`.
     Until 2026-09-13 it was 1 and Kersh fought with 40 HP and attack 17
     instead of 168 and 80. With `nivel`, whatever it reached: see
     `port.experiencia`.
@@ -558,13 +558,13 @@ def actor_de(db, numero, equipo=None, nivel=None):
     actor = db.actors[numero]
     if equipo is None:
         equipo = list(actor.initial_equipment)
-    ataque, defensa, espiritu, agilidad = reglas.parametros(db, numero,
+    ataque, defensa, espiritu, agilidad = rules.equipped_params(db, numero,
                                                                equipo, nivel)
     critico = (100 // actor_critico_cada(db, numero)) \
         if actor_tiene_critico(db, numero) else 0
-    quien = Combatiente(actor.name, reglas.parametro_de(actor, "maxhp", nivel),
+    quien = Combatiente(actor.name, rules.param_of(actor, "maxhp", nivel),
                         ataque, defensa, agilidad, 90, critico, True, numero,
-                        espiritu, reglas.parametro_de(actor, "maxsp", nivel),
+                        espiritu, rules.param_of(actor, "maxsp", nivel),
                         habilidades_de(db, numero, nivel),
                         sp_arma=sp_del_arma(db, equipo))
     return quien
@@ -604,11 +604,11 @@ def enemigo_de(db, enemy_id, lugar, oculto=False):
 
 def enemigos_de_la_tropa(db, tropa):
     """The combatants of a troop, in their order and with their hidden ones,
-    up to `ENEMIGOS_MAX` like the battle."""
+    up to `ENEMIES_MAX` like the battle."""
     t = db.troops[tropa]
     return [enemigo_de(db, e, n, oculto)
             for n, (e, oculto) in enumerate(
-                list(zip(t.members, t.hidden))[:ENEMIGOS_MAX])]
+                list(zip(t.members, t.hidden))[:ENEMIES_MAX])]
 
 
 def _turnos(turno, base, multiplo):
@@ -707,10 +707,10 @@ class PaginaDeTropa:
 def oro_de_la_tropa(db, tropa):
     """`Game_EnemyParty::GetMoney`: the `gold` of each **dead** enemy, which
     in a victory is all of them except those that stayed hidden —as in
-    `experiencia.exp_de_la_tropa`—, up to `ENEMIGOS_MAX`. It is the sum of
+    `experiencia.exp_de_la_tropa`—, up to `ENEMIES_MAX`. It is the sum of
     the whole troop; the ROM subtracts the hidden ones' when winning. It
     rolls nothing."""
-    return sum(db.enemies[e].gold for e in db.troops[tropa].members[:ENEMIGOS_MAX])
+    return sum(db.enemies[e].gold for e in db.troops[tropa].members[:ENEMIES_MAX])
 
 
 def acierto_por_agilidad(base, agi_fuente, agi_blanco):

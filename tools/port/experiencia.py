@@ -22,7 +22,7 @@ level. That way easyrpg's `double` is Python's `float`, which is the same
 There is no approximation to declare.
 """
 
-from port.constantes import ENEMIGOS_MAX
+from port.constants import ENEMIES_MAX
 
 # RM2k's `MaxExpValue()` and `MaxLevel()`: `easyrpg_max_exp` and
 # `easyrpg_max_level` come as -1 in an RM2k LDB, and with that these apply.
@@ -106,8 +106,8 @@ def sumar(actor, nivel, exp, cantidad):
 def exp_de_la_tropa(db, tropa):
     """`Game_EnemyParty::GetExp`: that of each **dead** enemy. A victory has
     them all dead except the ones that stayed hidden, so this is the sum of
-    the whole troop, up to `ENEMIGOS_MAX` like the battle, and the ROM
+    the whole troop, up to `ENEMIES_MAX` like the battle, and the ROM
     subtracts the hidden ones' when winning: see `ba_sin_ocultos` and
     `batalla.Batalla.experiencia`."""
     return sum(db.enemies[e].exp
-               for e in db.troops[tropa].members[:ENEMIGOS_MAX])
+               for e in db.troops[tropa].members[:ENEMIES_MAX])

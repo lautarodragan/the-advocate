@@ -49,9 +49,9 @@ def maximos():
     la ROM copiara de una tabla equivocada, comparar contra esa misma tabla
     daría verde.
     """
-    from port import reglas
-    return {a: (reglas.parametro_de(actor, "maxhp"),
-                reglas.parametro_de(actor, "maxsp"))
+    from port import rules
+    return {a: (rules.param_of(actor, "maxhp"),
+                rules.param_of(actor, "maxsp"))
             for a, actor in base().actors.items()}
 
 

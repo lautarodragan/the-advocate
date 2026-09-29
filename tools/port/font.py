@@ -20,13 +20,13 @@ Each glyph is 12 rows of 6 bits, and bit `b` of a row is the pixel of column
 with the other one, the 'S' comes out mirrored.
 """
 
-ANCHO, ALTO = 6, 12
+WIDTH, HEIGHT = 6, 12
 
 # The two values of `font_id` in RM2k's System (lcf::rpg::System::Font).
 GOTHIC, MINCHO = 0, 1
 
 # ttyp0, the one easyrpg uses for font_id = 0 (Gothic).
-GOTICA = {
+GOTHIC_TABLE = {
      32: (0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000),   # ' '
      33: (0x000,0x008,0x008,0x008,0x008,0x008,0x000,0x008,0x008,0x000,0x000,0x000),   # '!'
      34: (0x000,0x014,0x014,0x014,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000),   # '"'
@@ -125,7 +125,7 @@ GOTICA = {
 }
 
 # rmg2000, the one easyrpg uses for font_id = 1 (Mincho).
-MINCHO_TABLA = {
+MINCHO_TABLE = {
      32: (0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000),   # ' '
      33: (0x000,0x004,0x004,0x004,0x004,0x004,0x004,0x004,0x000,0x004,0x000,0x000),   # '!'
      34: (0x000,0x012,0x012,0x012,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000),   # '"'
@@ -226,17 +226,17 @@ MINCHO_TABLA = {
 
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
-def glifos(font_id=MINCHO):
-    return MINCHO_TABLA if font_id == MINCHO else GOTICA
+def glyphs(font_id=MINCHO):
+    return MINCHO_TABLE if font_id == MINCHO else GOTHIC_TABLE
 
 
-def filas(ch, font_id=MINCHO):
+def rows(ch, font_id=MINCHO):
     """The 12 rows of the glyph, or those of the space if we do not have it."""
-    tabla = glifos(font_id)
-    return tabla.get(ord(ch), tabla[32])
+    table = glyphs(font_id)
+    return table.get(ord(ch), table[32])
 
 
-def pixeles(ch, font_id=MINCHO):
+def pixels(ch, font_id=MINCHO):
     """The lit (x, y) of the glyph."""
-    return [(x, y) for y, fila in enumerate(filas(ch, font_id))
-            for x in range(ANCHO) if fila >> x & 1]
+    return [(x, y) for y, row in enumerate(rows(ch, font_id))
+            for x in range(WIDTH) if row >> x & 1]

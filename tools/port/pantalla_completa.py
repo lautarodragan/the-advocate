@@ -27,8 +27,8 @@ decided the same way, on 2026-09-28: the numbers are in
 `workflow/tasks/*/la-pantalla-de-titulo-comprimida.md`.
 """
 
-from port import comprimir
-from port.formato_snes import cgram_word, entry, pack_tile
+from port import compress
+from port.snes_format import cgram_word, entry, pack_tile
 from port.paleta import convertir
 
 # The tilemap the ROM uploads: 32x32 entries of two bytes, even though the
@@ -65,6 +65,6 @@ def comprimida(imagen, primer_color=0, tope=256, debajo=()):
     colores = list(debajo) + list(paleta)
     crudo = (bytes(datos) + bytes(plano)
              + b"".join(cgram_word(c).to_bytes(2, "little") for c in colores))
-    return {"flujo": comprimir.comprimir(crudo), "crudo": len(crudo),
+    return {"flujo": compress.compress(crudo), "crudo": len(crudo),
             "tiles": len(tiles), "colores": len(colores),
             "primer_color": primer_color - len(debajo)}

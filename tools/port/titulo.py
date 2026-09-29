@@ -24,7 +24,7 @@ From there comes the only step that is not mechanical: from 369 colors to
 
 import collections
 
-from port.constantes import ALTO, ANCHO, CELL, COLS, MENU_CGRAM
+from port.constants import HEIGHT, WIDTH, CELL, COLS, MENU_CGRAM
 from port.paleta import NEGRO, convertir
 
 
@@ -57,7 +57,7 @@ def render(imagen, sys_img=None, textos=None, elegida=0, font_id=None):
     """
     from PIL import Image
     tiles, paleta, tilemap = convertir(imagen)
-    fuera = Image.new("RGB", (ANCHO, ALTO))
+    fuera = Image.new("RGB", (WIDTH, HEIGHT))
     px = fuera.load()
     for i, indice in enumerate(tilemap):
         tx, ty = (i % COLS) * CELL, (i // COLS) * CELL
@@ -76,7 +76,7 @@ def render(imagen, sys_img=None, textos=None, elegida=0, font_id=None):
     tiles_menu, paleta_menu, mapas = menu(sys_img, textos, font_id)
     for i, indice in enumerate(mapas[elegida]):
         tx, ty = (i % COLS) * CELL, (i // COLS) * CELL
-        if ty >= ALTO:
+        if ty >= HEIGHT:
             break
         celda = tiles_menu[indice]
         for y in range(CELL):
@@ -132,7 +132,7 @@ def _capa_de_texto(sys_img, textos, elegida, font_id=None):
     """
     from PIL import Image
     from port import ventana as ventana_mod
-    capa = Image.new("RGBA", (ANCHO, ALTO), (0, 0, 0, 0))
+    capa = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     for n, texto in enumerate(textos):
         marca = CURSOR if n == elegida else SIN_CURSOR
         ventana_mod.dibujar_linea(capa, sys_img, MENU_X, MENU_Y + n * MENU_ALTO,
@@ -183,7 +183,7 @@ def menu(sys_img, textos, font_id=None):
                     fila = []
                     for x in range(CELL):
                         sx, sy = tx * CELL + x, ty * CELL + y
-                        if sy >= ALTO:
+                        if sy >= HEIGHT:
                             fila.append(0)
                             continue
                         r, g, b, a = px[sx, sy]

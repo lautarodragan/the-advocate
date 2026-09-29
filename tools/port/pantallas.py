@@ -17,11 +17,11 @@ equipment and shop screens carry the System's windows on BG1, like the item
 screen —see `ventanas_equipo` and `ventanas_tienda`—.
 """
 
-from port import constantes
+from port import constants
 from port import menus
-from port.constantes import ALTO, ANCHO, CELL, RANURAS_EQUIPO
+from port.constants import HEIGHT, WIDTH, CELL, EQUIPMENT_SLOTS
 from port.eventos import ELEGIR_CURSOR, ITEM_MAX
-from port.reglas import parametros
+from port.rules import equipped_params
 
 FILAS, COLS = 28, 32
 
@@ -46,7 +46,7 @@ class Texto:
     def render(self, sys_img, font_id=None):
         from PIL import Image
         tiles, paletas, glifos = menus.pantalla_items(sys_img, font_id)
-        fuera = Image.new("RGB", (ANCHO, ALTO), (0, 0, 0))
+        fuera = Image.new("RGB", (WIDTH, HEIGHT), (0, 0, 0))
         if self.ventanas is not None:
             ventanas = self.ventanas(sys_img)
             fuera.paste(ventanas, (0, 0), ventanas)
@@ -85,9 +85,9 @@ def descripcion(pantalla, texto):
 EQ_ARMA, EQ_ESCUDO = 0, 1
 EQ_ESTADO_Y = menus.ITEM_AYUDA_ALTO
 EQ_ABAJO_Y = 128                # four parameters of 16, and RM2k's spacing
-EQ_VENTANAS = ((0, 0, ANCHO, menus.ITEM_AYUDA_ALTO),
-               (0, EQ_ESTADO_Y, ANCHO, EQ_ABAJO_Y - EQ_ESTADO_Y),
-               (0, EQ_ABAJO_Y, ANCHO, ALTO - EQ_ABAJO_Y))
+EQ_VENTANAS = ((0, 0, WIDTH, menus.ITEM_AYUDA_ALTO),
+               (0, EQ_ESTADO_Y, WIDTH, EQ_ABAJO_Y - EQ_ESTADO_Y),
+               (0, EQ_ABAJO_Y, WIDTH, HEIGHT - EQ_ABAJO_Y))
 EQ_ACTOR_FILA = EQ_ESTADO_Y // CELL + 1
 EQ_ACTOR_COL = 19              # two cells of spacing, and twelve letters up to 30
 EQ_PARAMS = tuple((EQ_ACTOR_FILA + 2 * n, 1) for n in range(4))
@@ -127,15 +127,15 @@ EQ_BARRA_LISTA = EQ_BARRA_RANURA
 def ventanas_equipo(sys_img, barra=None):
     """The equipment screen's windows, in RGBA and the size of the screen:
     what BG1 draws. `barra` is the cursor: the slot number, or
-    `RANURAS_EQUIPO` plus the visible row of the list."""
+    `EQUIPMENT_SLOTS` plus the visible row of the list."""
     from PIL import Image
     from port import ventana as ventana_mod
-    fuera = Image.new("RGBA", (ANCHO, ALTO), (0, 0, 0, 0))
+    fuera = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     for x, y, ancho, alto in EQ_VENTANAS:
         una = ventana_mod.ventana(sys_img, ancho, alto)
         fuera.paste(una, (x, y), una)
     if barra is not None:
-        x, ancho = (EQ_BARRA_RANURA if barra < RANURAS_EQUIPO
+        x, ancho = (EQ_BARRA_RANURA if barra < EQUIPMENT_SLOTS
                     else EQ_BARRA_LISTA)
         una = ventana_mod.cursor(sys_img, ancho, 2 * CELL)
         fuera.paste(una, (x, fila_de_barra(barra) * CELL), una)
@@ -144,9 +144,9 @@ def ventanas_equipo(sys_img, barra=None):
 
 def fila_de_barra(barra):
     """The first cell row of cursor `barra` of `ventanas_equipo`."""
-    if barra < RANURAS_EQUIPO:
+    if barra < EQUIPMENT_SLOTS:
         return EQ_RANURA_FILA0 + 2 * barra
-    return EQ_LISTA_FILA0 + 2 * (barra - RANURAS_EQUIPO)
+    return EQ_LISTA_FILA0 + 2 * (barra - EQUIPMENT_SLOTS)
 
 
 def capas_equipo(sys_img):
@@ -155,7 +155,7 @@ def capas_equipo(sys_img):
     order the ROM indexes them: see `eq_barra`."""
     return (ventanas_equipo(sys_img),
             [(ventanas_equipo(sys_img, k), fila_de_barra(k))
-             for k in range(RANURAS_EQUIPO + EQ_LISTA_FILAS)])
+             for k in range(EQUIPMENT_SLOTS + EQ_LISTA_FILAS)])
 
 
 def color_del_valor_nuevo(ahora, luego):
@@ -212,15 +212,15 @@ def pantalla_equipo(db, actor, equipo, inventario, ranura, eligiendo=False,
     t = Texto()
     t.escribir(EQ_ACTOR_FILA, EQ_ACTOR_COL, db.actors[actor].name)
     lista = candidatos(db, actor, ranura, inventario, items_rom)
-    barra = RANURAS_EQUIPO + elegido - arriba if eligiendo else ranura
+    barra = EQUIPMENT_SLOTS + elegido - arriba if eligiendo else ranura
     t.ventanas = lambda sys_img: ventanas_equipo(sys_img, barra)
-    ahora = parametros(db, actor, equipo)
+    ahora = equipped_params(db, actor, equipo)
     luego = None
     if eligiendo:
         prueba = list(equipo)
         inv = dict(inventario)
         equipar(db, prueba, inv, ranura, lista[elegido])
-        luego = parametros(db, actor, prueba)
+        luego = equipped_params(db, actor, prueba)
         if lista[elegido]:
             descripcion(t, db.items[lista[elegido]].description)
     elif equipo[ranura]:
@@ -234,7 +234,7 @@ def pantalla_equipo(db, actor, equipo, inventario, ranura, eligiendo=False,
             t.numero(fila, col + EQ_PARAM_FLECHA + 1, luego[n], 3,
                      color_del_valor_nuevo(ahora[n], luego[n]))
     if not eligiendo:
-        for r in range(RANURAS_EQUIPO):
+        for r in range(EQUIPMENT_SLOTS):
             fila = EQ_RANURA_FILA0 + 2 * r
             t.escribir(fila, EQ_RANURA_TERM_COL,
                        db.term_equipment[r][:EQ_RANURA_TERM_ANCHO],
@@ -339,17 +339,17 @@ TI_CUANTOS_X_COL = 24
 TI_CUANTOS_COL = 26             # two digits
 TI_TOTAL_FILA = TI_CUANTOS_FILA + 4
 TI_VENTANAS = {
-    TI_CAPA_PRINCIPAL: ((0, TI_MEDIO_Y, ANCHO,
+    TI_CAPA_PRINCIPAL: ((0, TI_MEDIO_Y, WIDTH,
                          TI_PRINCIPAL_MSG_Y - TI_MEDIO_Y),
-                        (0, TI_PRINCIPAL_MSG_Y, ANCHO,
-                         ALTO - TI_PRINCIPAL_MSG_Y)),
-    TI_CAPA_COMPRA: ((0, TI_MEDIO_Y, ANCHO, TI_ESTADO_Y - TI_MEDIO_Y),
+                        (0, TI_PRINCIPAL_MSG_Y, WIDTH,
+                         HEIGHT - TI_PRINCIPAL_MSG_Y)),
+    TI_CAPA_COMPRA: ((0, TI_MEDIO_Y, WIDTH, TI_ESTADO_Y - TI_MEDIO_Y),
                      (0, TI_ESTADO_Y, TI_ORO_X, TI_MSG_Y - TI_ESTADO_Y),
-                     (TI_ORO_X, TI_ESTADO_Y, ANCHO - TI_ORO_X,
+                     (TI_ORO_X, TI_ESTADO_Y, WIDTH - TI_ORO_X,
                       TI_MSG_Y - TI_ESTADO_Y),
-                     (0, TI_MSG_Y, ANCHO, ALTO - TI_MSG_Y)),
-    TI_CAPA_VENTA: ((0, TI_MEDIO_Y, ANCHO, TI_MSG_Y - TI_MEDIO_Y),
-                    (0, TI_MSG_Y, ANCHO, ALTO - TI_MSG_Y)),
+                     (0, TI_MSG_Y, WIDTH, HEIGHT - TI_MSG_Y)),
+    TI_CAPA_VENTA: ((0, TI_MEDIO_Y, WIDTH, TI_MSG_Y - TI_MEDIO_Y),
+                    (0, TI_MSG_Y, WIDTH, HEIGHT - TI_MSG_Y)),
 }
 # The bars. The lists' are the equipment one —four pixels before the name and
 # up to four after the price or the count—. The commands' starts where the
@@ -392,8 +392,8 @@ def ventanas_tienda(sys_img, capa, barra=None):
     `barras_tienda(capa)`."""
     from PIL import Image
     from port import ventana as ventana_mod
-    fuera = Image.new("RGBA", (ANCHO, ALTO), (0, 0, 0, 0))
-    for x, y, ancho, alto in ((0, 0, ANCHO, TI_MEDIO_Y),) \
+    fuera = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
+    for x, y, ancho, alto in ((0, 0, WIDTH, TI_MEDIO_Y),) \
             + TI_VENTANAS[capa]:
         una = ventana_mod.ventana(sys_img, ancho, alto)
         fuera.paste(una, (x, y), una)
@@ -445,7 +445,7 @@ def tienda_compacta(mapas):
     bar `k` of layer `c` as `(fila, col, filas, cols, origen)`, with `origen`
     the index of its first word in `parches`.
     """
-    COLS, FILAS_ = constantes.COLS, constantes.FILAS
+    COLS, FILAS_ = constants.COLS, constants.ROWS
     arriba = TI_MEDIO_Y // CELL
 
     def fila(mapa, n):

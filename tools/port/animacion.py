@@ -193,11 +193,11 @@ def _pintar_cuadro(anim, hoja, i, caja):
 def _tenir(trozo, tono):
     """The tone of a cell, with the same math as the screen tint.
 
-    `color.tenir` works on the console's fifteen bits, which is where the
+    `color.apply_tint` works on the console's fifteen bits, which is where the
     comparison looks: tinting the PNG's eight and truncating afterwards would
     give a different number from the screen tint's on the same color.
     """
-    from port.color import tenir
+    from port.color import apply_tint
     from PIL import Image
     salida = Image.new("RGBA", trozo.size)
     memo = {}
@@ -205,7 +205,7 @@ def _tenir(trozo, tono):
     for r, g, b, a in trozo.convert("RGBA").get_flattened_data():
         clave = (r >> 3, g >> 3, b >> 3)
         if clave not in memo:
-            p = tenir(clave[0] | (clave[1] << 5) | (clave[2] << 10),
+            p = apply_tint(clave[0] | (clave[1] << 5) | (clave[2] << 10),
                               tono)
             memo[clave] = ((p & 0x1F) << 3, ((p >> 5) & 0x1F) << 3,
                            ((p >> 10) & 0x1F) << 3)

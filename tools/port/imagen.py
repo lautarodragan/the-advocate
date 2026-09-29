@@ -39,7 +39,7 @@ the next is the **tone**, which is what draws the fade.
 
 import collections
 
-from port.color import tenir
+from port.color import apply_tint
 from port.paleta import reducir
 
 # RM2k's screen and the console's.
@@ -185,13 +185,13 @@ def render(info, tono):
     image of `ancho` x `alto` to paste at (x, y).
 
     The tone is RM2k's —(r, g, b, sat), 100 neutral— and goes through
-    `color.tenir`, which is the same math as the screen tint: there and here
+    `color.apply_tint`, which is the same math as the screen tint: there and here
     it is `ToneBlit`. The console does not tint pixels but the picture's
     fifteen CGRAM entries, so tinting the palette and painting gives exactly
     the same thing.
     """
     from PIL import Image
-    paleta = [tenir(c[0] | (c[1] << 5) | (c[2] << 10), tono)
+    paleta = [apply_tint(c[0] | (c[1] << 5) | (c[2] << 10), tono)
               for c in info["paleta"]]
     colores = [(0, 0, 0, 0)] + [(((p & 0x1F) << 3), (((p >> 5) & 0x1F) << 3),
                                  (((p >> 10) & 0x1F) << 3), 255)

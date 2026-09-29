@@ -11,3 +11,16 @@ el conversor en Python —`snes_convert.py`, `eventos.py`, `batalla.py`,
 `tools/` y `rom/pruebas/`. Las constantes y los símbolos que el conversor
 emite al ensamblador (lo que escribe en los `.inc`) **no** entran: son de la
 última área, junto con el runtime.
+
+## Cómo va
+
+De a un módulo o un grupo chico por commit, de las hojas hacia
+`snes_convert.py`. Cada commit: `SIN_CACHE=1 just cartuchos` con todo
+`rom/build/` (menos `cache/`, `.o`, `sello.txt` y el mtime de los `.dbg`)
+byte por byte igual al de `a6fd0d19`, `just pruebas` y
+`just -f tools/justfile test` en verde, pyflakes sin avisos nuevos y los
+ejecutables `rm2k-snes-*` andando desde `/tmp`.
+
+1. `constantes` → `constants`, `formato_snes` → `snes_format`, `comprimir` →
+   `compress`, `fuente` → `font`, `reglas` → `rules`, y los nombres de
+   `color`.

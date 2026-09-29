@@ -16,7 +16,7 @@ import pytest
 import tanda
 from assembly import cartridges
 from lz2 import descomprimir
-from port import comprimir
+from port import compress
 from port.snes_convert import (CLASES_COMPRIMIDAS, LZ2_TOPE_FONDO,
                                controlar_flujos, partes_comprimidas)
 
@@ -42,7 +42,7 @@ def test_cada_bloque_vuelve_igual_por_la_referencia(nombre):
     for archivo, datos in crudos.items():
         partes = partes_comprimidas(archivo.split(".")[1], datos)
         trozos += [(archivo, k, parte) for k, parte in enumerate(partes)]
-    flujos = comprimir.comprimir_varios([t[2] for t in trozos])
+    flujos = compress.compress_many([t[2] for t in trozos])
     mal = []
     for (archivo, k, parte), flujo in zip(trozos, flujos):
         vuelta, fin = descomprimir(flujo)

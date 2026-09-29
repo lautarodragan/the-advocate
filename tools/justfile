@@ -106,7 +106,7 @@ voodoo-test:
   cd voodoo && cargo test
 
 # LZ2: Nintendo's LC_LZ2, which the converter uses to compress the tiles and
-# grids the ROM decompresses when loading a map —see `port/comprimir.py`—.
+# grids the ROM decompresses when loading a map —see `port/compress.py`—.
 # Its tests do not need the game; the ones that run every block of the
 # cartridge through the reference are the port's.
 lz2-test:

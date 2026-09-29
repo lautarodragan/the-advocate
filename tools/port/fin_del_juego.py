@@ -27,11 +27,11 @@ cursor is writing those few entries with the other image's palette, during
 vblank. That way there is no second tilemap and no extra tiles.
 """
 
-from port import constantes
+from port import constants
 from port import ventana as ventana_mod
 
-ANCHO, ALTO = constantes.ANCHO, constantes.ALTO
-CELL = constantes.CELL
+ANCHO, ALTO = constants.WIDTH, constants.HEIGHT
+CELL = constants.CELL
 NEGRO = (0, 0, 0)
 
 # `menu_item_height` of Window_Selectable and the borders of Window.
@@ -66,8 +66,8 @@ def textos(db):
 
 
 def _ancho_de(texto):
-    from port import fuente
-    return len(texto) * fuente.ANCHO
+    from port import font
+    return len(texto) * font.WIDTH
 
 
 def dibujar(sys_img, db, elegida, font_id=None, ancho=ANCHO, alto=ALTO,

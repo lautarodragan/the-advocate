@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
 from assembly import banks
 from port import tiles_bin
-from port import comprimir
+from port import compress
 from rpgmaker import event_codes
 from port import eventos
 from rpgmaker import lcf
@@ -84,8 +84,8 @@ from port import batalla as batalla_mod
 from port import experiencia as X
 from port import escena as escena_mod
 from port import color as color_mod
-from port import constantes
-from port import reglas
+from port import constants
+from port import rules
 from port import msu_datos
 from audio import msu_effects
 from common import settings
@@ -93,7 +93,7 @@ from common import project
 from common.parallel import in_parallel
 from audio import snes_music
 from port.asignador import CELL, tile_colors
-from port.formato_snes import cgram_word, entry, pack_tile
+from port.snes_format import cgram_word, entry, pack_tile
 from rpgmaker.rm2k import TILE, collect_npcs, hero_start, passability_map
 from render.render_map import Renderer, build_passability, load_image
 from common import environment
@@ -184,7 +184,7 @@ PRIORITY_ABOVE = 1                       # for the BG2 cells
 VENTANA_COLS_INC, VENTANA_FILAS_INC = 32, 10
 
 # The glyph, which is what the ROM composes. The same numbers as
-# `tools/port/fuente.py`, which is generated from easyrpg-player.
+# `tools/port/font.py`, which is generated from easyrpg-player.
 FUENTE_ANCHO, FUENTE_ALTO = 6, 12
 
 # And the ones for objects, already shifted into place in the vhoopppN byte:
@@ -2619,7 +2619,7 @@ def _columnas():
     """How many characters fit on a line. It lives in `ventana.py` with the
     rest of the geometry, and the reason for the number is there."""
     from port import ventana as ventana_mod
-    return constantes.COLUMNAS
+    return constants.COLUMNS
 
 
 def _quince(imagen):
@@ -2652,7 +2652,7 @@ def convert_ventana(sys_img, font_id=None):
         color     the palette index of each of the glyph's 12 rows
         sombra    the index of the shadow
     """
-    from port import fuente as fuente_mod
+    from port import font as fuente_mod
     from port import ventana as ventana_mod
 
     if font_id is None:
@@ -2669,9 +2669,9 @@ def convert_ventana(sys_img, font_id=None):
     sombra_img = ventana_mod.color_de_sombra(sys_img)
     ox, oy = ventana_mod.TEXTO_OFS
     color_fila = []
-    for py in range(fuente_mod.ALTO):
+    for py in range(fuente_mod.HEIGHT):
         fila = {tuple(v >> 3 for v in bloque.getpixel((ox + px, oy + py))[:3])
-                for px in range(fuente_mod.ANCHO)}
+                for px in range(fuente_mod.WIDTH)}
         if len(fila) != 1:
             raise SystemExit(
                 "row %d of the text color has %d distinct colors; the "
@@ -2741,16 +2741,16 @@ def convert_ventana(sys_img, font_id=None):
 def fuente_bytes(font_id):
     """The 95 ASCII glyphs, twelve rows of six bits each.
 
-    It is the same table as `tools/port/fuente.py`, which is generated from
+    It is the same table as `tools/port/font.py`, which is generated from
     easyrpg-player, but **with the bits reversed**: there bit 0 is the
     leftmost pixel and in the console's tile format the leftmost is bit 7.
     Reversing them here and not in the ROM comes for free: it is a 1140-byte
     table generated once.
     """
-    from port import fuente as fuente_mod
+    from port import font as fuente_mod
     out = bytearray()
     for code in range(32, 127):
-        for fila in fuente_mod.filas(chr(code), font_id):
+        for fila in fuente_mod.rows(chr(code), font_id):
             invertida = 0
             for px in range(FUENTE_ANCHO):
                 if fila >> px & 1:
@@ -3764,7 +3764,7 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
     for numero in tropas.ids:
         if numero not in db.troops:
             continue
-        for enemigo in db.troops[numero].members[:constantes.ENEMIGOS_MAX]:
+        for enemigo in db.troops[numero].members[:constants.ENEMIES_MAX]:
             if enemigo in datos["battler_de"] or enemigo not in db.enemies:
                 continue
             e = db.enemies[enemigo]
@@ -3817,7 +3817,7 @@ def usos_de_los_parches(mapas, db, tree):
     for numero, origenes in tropas.items():
         if numero not in db.troops:
             continue
-        for enemigo in db.troops[numero].members[:constantes.ENEMIGOS_MAX]:
+        for enemigo in db.troops[numero].members[:constants.ENEMIES_MAX]:
             if enemigo not in db.enemies:
                 continue
             e = db.enemies[enemigo]
@@ -4044,7 +4044,7 @@ def escenas_asm(datos, tropas, db):
     for numero in usadas:
         tropa = db.troops[numero]
         suyos = list(zip(tropa.members,
-                         tropa.positions))[:constantes.ENEMIGOS_MAX]
+                         tropa.positions))[:constants.ENEMIES_MAX]
         infos = []
         for enemigo, centro in suyos:
             k = datos["battler_de"].get(enemigo, 0xFF)
@@ -4388,7 +4388,7 @@ def cuadros_de_descomprimir(mapa, comprimidos):
         if clase not in CLASES_COMPRIMIDAS:
             continue
         for parte in partes_comprimidas(clase, datos):
-            ciclos += (comprimir.comandos(comprimidos[parte])
+            ciclos += (compress.commands(comprimidos[parte])
                        * LZ2_CICLOS_POR_COMANDO
                        + len(parte) * LZ2_CICLOS_POR_BYTE)
     return ciclos / float(CICLOS_POR_CUADRO)
@@ -4406,7 +4406,7 @@ def comprimir_los_bloques(mapas):
             controlar_flujos(mapa["id"], clase, datos)
             partes += partes_comprimidas(clase, datos)
     partes = list(dict.fromkeys(partes))
-    return dict(zip(partes, comprimir.comprimir_varios(partes)))
+    return dict(zip(partes, compress.compress_many(partes)))
 
 
 # The grid goes to the upper half of the two WRAM banks —see `lz2_grilla`—, so
@@ -5076,13 +5076,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.CUADROS_POR_CELDA, eventos.RUTA_FRECUENCIA,
            eventos.CUADROS_DE_ESPERA_DE_RUTA,
            eventos.SALTO_PASO,
-           color_mod.TINTE_NEUTRO,
+           color_mod.NEUTRAL_TINT,
            eventos.FUNDIDO_RAMPA,
            eventos.FUNDIDO_CUADROS, eventos.FUNDIDO_TOTAL,
            eventos.FUNDIDO_RAMPA, eventos.FUNDIDO_NEGRO,
            eventos.FUNDIDO_RAMPA, eventos.BRILLO_MAX,
            eventos.TRANSICION_MOSAICO, eventos.TRANSICION_CORTE,
-           color_mod.LUZ_R, color_mod.LUZ_G, color_mod.LUZ_B, SWITCH_BYTES,
+           color_mod.LUMA_R, color_mod.LUMA_G, color_mod.LUMA_B, SWITCH_BYTES,
            eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
            ACTOR_COLORES, OBJ_COLORS,
            rm2k.LAYER_SAME,
@@ -5103,20 +5103,20 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            len(rm2k.WATER_CYCLE), rm2k.ANIMATED_FRAMES, rm2k.ANIMATED_STEPS,
            BYTES_PER_TILE,
            0 if titulo is None else titulo["pantalla"]["tiles"],
-           constantes.MENU_CGRAM,
+           constants.MENU_CGRAM,
            0 if titulo is None else len(titulo["menu_tiles"]),
            0 if titulo is None else len(titulo["menu_tilemaps"]),
            RANURA_VRAM, RANURA_MAP,
            len(ranuras["filas"]),
            len(ranuras["tiles"]),
-           menus_mod.CABECERA_Y // constantes.CELL,
+           menus_mod.CABECERA_Y // constants.CELL,
            menus_mod.CABECERA_FILAS,
-           menus_mod.CABECERA_FILAS * constantes.COLS,
-           menus_mod.RANURA_Y // constantes.CELL,
-           menus_mod.RANURA_SALTO // constantes.CELL,
+           menus_mod.CABECERA_FILAS * constants.COLS,
+           menus_mod.RANURA_Y // constants.CELL,
+           menus_mod.RANURA_SALTO // constants.CELL,
            menus_mod.RANURA_FILAS,
-           menus_mod.RANURA_FILAS * constantes.COLS,
-           menus_mod.CABECERA_Y // constantes.CELL * 32,
+           menus_mod.RANURA_FILAS * constants.COLS,
+           menus_mod.CABECERA_Y // constants.CELL * 32,
            menus_mod.CARAS_MAX, menus_mod.CARA_CELDAS,
            menus_mod.CARA_CELDAS, menus_mod.NOMBRE_COLS,
            RANURA_TEXTO_ANCHO, RANURA_TEXTO_NIVEL, RANURA_TEXTO_MAX,
@@ -5126,8 +5126,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            (ord("0") - menus_mod.ITEM_PRIMER_CARACTER) * 4,
            (max(list(ranuras["caras"]) + list(ranuras["actores"]) + [-1])
             + 1),
-           len(ranuras["paletas"]) * constantes.MENU_CGRAM,
-           constantes.MENU_CGRAM))
+           len(ranuras["paletas"]) * constants.MENU_CGRAM,
+           constants.MENU_CGRAM))
 
     with open(path, "w") as handle:
         handle.write(cabecera)
@@ -5486,7 +5486,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         def paletas_cgram(paletas):
             return b"".join(
                 cgram_word(c).to_bytes(2, "little") for paleta in paletas
-                for c in list(paleta) + [(0, 0, 0)] * (constantes.MENU_CGRAM
+                for c in list(paleta) + [(0, 0, 0)] * (constants.MENU_CGRAM
                                                        - len(paleta)))
 
         # The first two, which are uploaded with the bank on every screen that
@@ -5543,7 +5543,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             p for f in ti_filas for p in f)) + "\n")
         handle.write(bloque("ti_marco_parches", palabras_le(ti_parches))
                      + "\n")
-        cols = constantes.COLS
+        cols = constants.COLS
         tramos, capa_tramos = [], []
         for capa in ti_capas:
             capa_tramos.append(2 * len(tramos))
@@ -5590,7 +5590,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "FIN_NO      = %d\n"
             "FIN_CUADROS = %d\n"
             "FIN_PASO_TEMA = %d\n"
-            % (len(fin_tiles), fin_fila0, len(fin_filas) // constantes.COLS,
+            % (len(fin_tiles), fin_fila0, len(fin_filas) // constants.COLS,
                fin_mod.ENTRA, fin_mod.NO, fin_mod.CUADROS_FUNDIDO,
                eventos.paso_de_fundido(fin_mod.MS_FUNDIDO_TEMA)))
         item_textos, item_textos_ofs = bytearray(), []
@@ -5662,19 +5662,19 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         texto_llevo = texto_nuevo(P.lcf_termino(db, P.TI_TERMINO_LLEVO))
         texto_moneda = texto_nuevo(db.term_gold)
         # And the battle's: the fifteen LDB terms the screen uses —in the order
-        # of `reglas.BA_TERMINOS`, which is the one the ROM indexes— and the
+        # of `rules.BATTLE_TERMS`, which is the one the ROM indexes— and the
         # name of each enemy some troop of the cartridge brings. The three
         # commands go **already trimmed**, by `pantallas.texto_de_orden`: the
         # LDB brings them with leading spaces and that would shift the text of
         # their column.
-        term_batalla = reglas.terminos_batalla(db)
+        term_batalla = rules.battle_terms(db)
         texto_batalla = None
         victoria = P.renglones_de_la_victoria(term_batalla["victoria"])
         if len(victoria) > P.BA_VIC_TERMINO_MAX:
             raise SystemExit("the victory term takes %d lines and "
                              "the window leaves it %d: %r"
                              % (len(victoria), P.BA_VIC_TERMINO_MAX, victoria))
-        for nombre, _termino in reglas.BA_TERMINOS:
+        for nombre, _termino in rules.BATTLE_TERMS:
             texto = term_batalla[nombre]
             if nombre in ("atacar", "defender", "huir"):
                 texto = P.texto_de_orden(texto)
@@ -5764,7 +5764,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         colores = []
         for paleta in ranuras["paletas"]:
             paleta = list(paleta)
-            colores += paleta + [(0, 0, 0)] * (constantes.MENU_CGRAM
+            colores += paleta + [(0, 0, 0)] * (constants.MENU_CGRAM
                                                - len(paleta))
         handle.write(bloque("ranura_cgram",
                             b"".join(cgram_word(c).to_bytes(2, "little")
@@ -5783,7 +5783,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                              for e in bloques_ranura)))
         fila_de = [RANURA_MAP + (menus_mod.RANURA_Y
                                  + n * menus_mod.RANURA_SALTO)
-                   // constantes.CELL * 32 for n in range(RANURAS)]
+                   // constants.CELL * 32 for n in range(RANURAS)]
         handle.write("ranura_vram:\n    .word %s\n" % ", ".join(
             str(v) for v in fila_de))
         # Where the faces go —four entries per slot, so that the index is the
@@ -5806,13 +5806,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # tilemap, in words. The geometry is `menus.py`'s and comes from
         # there.
         T = menus_mod
-        from port import fuente as fuente_mod
+        from port import font as fuente_mod
 
         def celda_vram(fila, col):
             return RANURA_MAP + fila * 32 + col
 
         filas_opcion = [(T.MENU_OPC_Y + n * T.MENU_OPC_SALTO)
-                        // constantes.CELL for n in range(T.MENU_OPCIONES)]
+                        // constants.CELL for n in range(T.MENU_OPCIONES)]
         handle.write(
             "MENU_OPCIONES     = %d\n"
             "MENU_GUARDAR      = %d\n"
@@ -5838,7 +5838,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             % (T.MENU_OPCIONES, T.MENU_GUARDAR, T.MENU_FIN, bloque_menu_opcion,
                bloque_menu_moneda, bloque_menu_fila,
                T.MENU_OPC_COLS, T.MENU_MONEDA_COLS,
-               celda_vram(T.MENU_ORO_Y // constantes.CELL, T.MENU_MONEDA_COL),
+               celda_vram(T.MENU_ORO_Y // constants.CELL, T.MENU_MONEDA_COL),
                T.MENU_ACTOR_COLS, T.MENU_ACTOR_FILAS, T.MENU_FILAS_GRUPO,
                actores_n,
                # And how many cells from the first of the actor's block the
@@ -5958,8 +5958,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "MENU_ACTOR_ALTO   = %d\n"
             % (T.MENU_EXP_X,
                T.MENU_EXP_X + T.MENU_EXP_NUM_DX - T.GLIFO_DX,
-               T.MENU_EXP_Y - T.GLIFO_DY, fuente_mod.ANCHO, T.MENU_EXP_CIFRAS,
-               T.MENU_EXP_LETRAS, T.MENU_ACTOR_FILAS * constantes.CELL))
+               T.MENU_EXP_Y - T.GLIFO_DY, fuente_mod.WIDTH, T.MENU_EXP_CIFRAS,
+               T.MENU_EXP_LETRAS, T.MENU_ACTOR_FILAS * constants.CELL))
         # Each actor's text, in ASCII: the name —with trailing spaces, which
         # are what erase whatever was there—, the two digits of the level and
         # max HP after its bar. **The three together, in one row per actor**,
@@ -6016,17 +6016,17 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "ITEM_MARCO_FILAS  = %d\n"
             "ITEM_MARCO_LISTA  = %d\n"
             % (len(items), len(ranuras["items_tiles"]),
-               menus_mod.ITEM_SUBE * constantes.MENU_CGRAM,
+               menus_mod.ITEM_SUBE * constants.MENU_CGRAM,
                T.ITEM_FILAS, T.ITEM_CURSOR_COL, T.ITEM_NOMBRE_COL,
                T.ITEM_DOS_PUNTOS_COL, T.ITEM_CIFRAS_COL,
-               celda_vram(T.ITEM_DESC_Y // constantes.CELL, T.ITEM_DESC_COL),
+               celda_vram(T.ITEM_DESC_Y // constants.CELL, T.ITEM_DESC_COL),
                T.ITEM_DESC_COL,
                T.ITEM_PRIMER_CARACTER, T.ITEM_CARACTERES * 4,
                RANURA_VRAM
                + items_marco_primero(len(ranuras["items_tiles"])) * 32,
                len(marco_tiles), T.ITEM_MARCO_MAPA, T.ITEM_MARCO_CGRAM,
-               len(marco_colores), constantes.FILAS,
-               T.ITEM_LISTA_Y // constantes.CELL))
+               len(marco_colores), constants.ROWS,
+               T.ITEM_LISTA_Y // constants.CELL))
 
         def bytes_asm(etiqueta, valores, formato="%d", declarar=False):
             if declarar:
@@ -6115,7 +6115,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                   declarar=True)
         handle.write('.segment "TABLAS"\n')
         words_asm("item_fila_vram", [
-            celda_vram(T.ITEM_LISTA_Y // constantes.CELL + 2 * f, 0)
+            celda_vram(T.ITEM_LISTA_Y // constants.CELL + 2 * f, 0)
             for f in range(T.ITEM_FILAS)])
         # The two cells of each character, top and bottom: first the 95 in
         # white, then in gray and then in the "goes up" color. Character `c`
@@ -6161,7 +6161,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # and this time with the drawing of the battle animations.
         handle.write('.segment "RODATA"\n')
         words_asm("actor_params", [
-            (reglas.parametro_de(db.actors[a], k)
+            (rules.param_of(db.actors[a], k)
              if a in db.actors else 0) & 0xFFFF
             for a in range(actores_n)
             for k in ("attack", "defense", "spirit", "agility")],
@@ -6169,11 +6169,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write('.segment "TABLAS"\n')
         handle.write('\n.segment "RODATA"\n')
         handle.write(".bloque %d\n"
-                     % (2 * actores_n * constantes.RANURAS_EQUIPO))
+                     % (2 * actores_n * constants.EQUIPMENT_SLOTS))
         handle.write("equipo_inicial:\n    .word %s\n" % ", ".join(
             str(db.actors[a].initial_equipment[r] if a in db.actors else 0)
             for a in range(actores_n)
-            for r in range(constantes.RANURAS_EQUIPO)))
+            for r in range(constants.EQUIPMENT_SLOTS)))
         handle.write('\n.segment "TABLAS"\n')
         words_asm("actor_txt", [texto_actor.get(a, 0xFFFF)
                                 for a in range(actores_n)], "$%04X")
@@ -6246,11 +6246,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "EQ_LISTA_NOMBRE   = %d\n"
             "PANT_DOS_PUNTOS   = %d\n"
             "PANT_DESC_POS     = %d\n"
-            % (actores_n, constantes.RANURAS_EQUIPO, texto_param[0],
+            % (actores_n, constants.EQUIPMENT_SLOTS, texto_param[0],
                texto_ranura[0],
                pos(P.EQ_ACTOR_FILA, P.EQ_ACTOR_COL), P.EQ_RANURA_FILA0,
                P.EQ_RANURA_FILA0,
-               max(constantes.RANURAS_EQUIPO, P.EQ_LISTA_FILAS) * 2,
+               max(constants.EQUIPMENT_SLOTS, P.EQ_LISTA_FILAS) * 2,
                P.EQ_PARAM_VALOR * 2,
                P.EQ_PARAM_FLECHA * 2, pos(P.EQ_RANURA_FILA0, 0),
                P.EQ_RANURA_TERM_COL * 2, P.EQ_RANURA_NOMBRE_COL * 2,
@@ -6258,21 +6258,21 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                P.EQ_LISTA_FILAS,
                P.EQ_LISTA_NOMBRE_COL * 2,
                T.ITEM_DOS_PUNTOS_COL * 2,
-               pos(T.ITEM_DESC_Y // constantes.CELL, T.ITEM_DESC_COL)))
+               pos(T.ITEM_DESC_Y // constants.CELL, T.ITEM_DESC_COL)))
         # --- the battle ---
         # Each actor's max HP at its level, by actor number. They go separately
         # from `actor_params`, which carries the four the equipment screen
         # shows; the equipment doesn't touch the HP, as in RM2k.
         handle.write('.segment "RODATA"\n')
         words_asm("actor_hpmax", [
-            (reglas.parametro_de(db.actors[a], "maxhp")
+            (rules.param_of(db.actors[a], "maxhp")
              if a in db.actors else 0) & 0xFFFF
             for a in range(actores_n)], declarar=True)
         # And the SP, which are state since 2026-09-13 for the same reason as
         # the HP: the skills spend them. See `hp_inicial_poner` in
         # tools/runtime/banco1.s.
         words_asm("actor_spmax", [
-            (reglas.parametro_de(db.actors[a], "maxsp")
+            (rules.param_of(db.actors[a], "maxsp")
              if a in db.actors else 0) & 0xFFFF
             for a in range(actores_n)], declarar=True)
         handle.write(experiencia_asm(db, ranuras["actores"], actores_n))
@@ -6382,7 +6382,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # actor's pairs go together and by number, the list comes out sorted
         # like `LearnSkill`'s.
         #
-        # The bits start with `reglas.aprendidas_de`, which is what the LDB
+        # The bits start with `rules.learned_skills`, which is what the LDB
         # says at its initial level: `hab_inicial_poner` copies them on reset.
         pares = sorted(eventos.HABILIDAD_RANURA.items(), key=lambda x: x[1])
         hab_par_ini, hab_par_n = [], []
@@ -6397,7 +6397,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             raise SystemExit("an actor has more than 255 skill pairs and "
                              "`hab_par_n` is one byte")
         hab_bytes = max(1, (len(pares) + 7) // 8)
-        sabe_de = {a: set(reglas.aprendidas_de(db, a)) for a in db.actors}
+        sabe_de = {a: set(rules.learned_skills(db, a)) for a in db.actors}
         bits = [0] * hab_bytes
         for (a, h), r in pares:
             if h in sabe_de.get(a, ()):
@@ -6445,7 +6445,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         lugar_de = {e: k for k, e in enumerate(enemigos_rom)}
         miembros, inicios = [], []
         for numero in usadas:
-            lista = db.troops[numero].members[:constantes.ENEMIGOS_MAX]
+            lista = db.troops[numero].members[:constants.ENEMIES_MAX]
             inicios.append(len(miembros))
             miembros += [lugar_de[e] for e in lista]
         if len(miembros) > 255 or len(usadas) > 255:
@@ -6487,10 +6487,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # `BAF_OCULTO`.
         bytes_asm("tropa_ocultos", [
             sum(1 << k for k, oculto in enumerate(
-                db.troops[n].hidden[:constantes.ENEMIGOS_MAX]) if oculto)
+                db.troops[n].hidden[:constants.ENEMIES_MAX]) if oculto)
             for n in usadas], "$%02X", declarar=True)
         bytes_asm("tropa_n",
-                  [len(db.troops[n].members[:constantes.ENEMIGOS_MAX])
+                  [len(db.troops[n].members[:constants.ENEMIES_MAX])
                    for n in usadas], declarar=True)
         bytes_asm("tropa_miembro", miembros, declarar=True)
         # And the event pages of each troop, in LDB order —which is the order
@@ -6670,7 +6670,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # game's actors are around 40. A fatter actor would overflow without
         # warning, so it stops here.
         for a in range(actores_n):
-            maximo = (reglas.parametro_de(db.actors[a], "maxhp")
+            maximo = (rules.param_of(db.actors[a], "maxhp")
                       if a in db.actors else 0)
             if maximo * 100 > 0xFFFF:
                 raise SystemExit(
@@ -6756,8 +6756,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write("BA_TXT_VICTORIA2  = %d\n"
                      "BA_VIC_TERMINO_N  = %d\n"
                      % (texto_victoria2, len(victoria)))
-        # The terms, by their place in `reglas.BA_TERMINOS`.
-        for k, (nombre, _termino) in enumerate(reglas.BA_TERMINOS):
+        # The terms, by their place in `rules.BATTLE_TERMS`.
+        for k, (nombre, _termino) in enumerate(rules.BATTLE_TERMS):
             handle.write("BA_TXT_%-11s= BA_TXT_BASE + %d\n"
                          % (nombre.upper(), k))
         handle.write("BA_TXT_REVIVIO    = %d\n" % texto_revivio)
@@ -6806,7 +6806,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # until 2026-09-14 emitted them anyway —`.byte 273`— for the assembler
         # to truncate them without saying anything.
         words_asm("ba_orden_txt", [
-            texto_batalla + [n for n, _c in reglas.BA_TERMINOS].index(nombre)
+            texto_batalla + [n for n, _c in rules.BATTLE_TERMS].index(nombre)
             for nombre, _f, _c in P.BA_ORDENES], declarar=True)
         bytes_asm("ba_orden_gris", [
             1 if k in P.BA_ORDEN_SIN_HACER else 0
@@ -7954,9 +7954,9 @@ def main():
         # those. The tiles' indices already come shifted from
         # `paleta.convertir`.
         debajo = list(menu_paleta)
-        debajo += [(0, 0, 0)] * (constantes.MENU_CGRAM - len(debajo))
+        debajo += [(0, 0, 0)] * (constants.MENU_CGRAM - len(debajo))
         pantalla = pantalla_completa.comprimida(
-            imagen, constantes.MENU_CGRAM, constantes.COLORES, debajo)
+            imagen, constants.MENU_CGRAM, constants.COLORS, debajo)
         titulo_datos = {"pantalla": pantalla,
                         "menu_tiles": menu_tiles, "menu_paleta": menu_paleta,
                         "menu_tilemaps": menu_mapas}

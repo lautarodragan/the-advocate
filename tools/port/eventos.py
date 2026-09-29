@@ -21,8 +21,8 @@ import math
 import os
 
 from port import imagen as imagen_mod
-from port import reglas
-from port.constantes import COLUMNAS, LINEAS, RANURAS_EQUIPO
+from port import rules
+from port.constants import COLUMNS, LINES, EQUIPMENT_SLOTS
 from rpgmaker import rm2k
 
 # The opcodes' numbers, lengths and layout. **They are not declared here**:
@@ -1392,8 +1392,8 @@ class Mensajes:
         an offset would make them last the same.
         """
         lineas, pausas, autocierre = cola_de_escapes(lineas)
-        lineas = tuple(t[:COLUMNAS]
-                       for t in list(lineas)[:LINEAS])
+        lineas = tuple(t[:COLUMNS]
+                       for t in list(lineas)[:LINES])
         clave = (lineas, pausas, autocierre)
         if clave not in self.donde:
             while len(self.datos) % self.paso:
@@ -1488,11 +1488,11 @@ def mensaje_bytes(lineas, pausas=0, autocierre=False):
     have a single accented letter.
     """
     assert 0 <= pausas <= PAUSAS_MAX
-    out = bytearray([min(len(lineas), LINEAS)
+    out = bytearray([min(len(lineas), LINES)
                      | (CABECERA_AUTOCIERRE if autocierre else 0)
                      | (pausas << 4)])
-    for texto in list(lineas)[:LINEAS]:
-        texto = texto[:COLUMNAS]
+    for texto in list(lineas)[:LINES]:
+        texto = texto[:COLUMNS]
         out.append(len(texto))
         for ch in texto:
             if not 32 <= ord(ch) < 127:
@@ -1626,7 +1626,7 @@ COND_ACTOR = 5
 COND_ACTOR_EN_GRUPO = 0
 # `actor->IsSkillLearned(p[3])`. Since 2026-09-21 it is state: the bit of the
 # (actor, skill) pair in `FAR_HAB`, which starts with what
-# `reglas.aprendidas_de` says from the LDB and which `ChangeSkills` turns on
+# `rules.learned_skills` says from the LDB and which `ChangeSkills` turns on
 # and off. The operand that travels is the pair's slot and not the skill; see
 # `HABILIDAD_RANURA`.
 COND_ACTOR_HABILIDAD = 4
@@ -2643,7 +2643,7 @@ def compilar_comun_del_equipo(numero):
 # only once before compiling anything, so all pages read the same reading of
 # the LDB.
 ACTOR_EQUIPO = {}       # RM2k actor -> its five slots, in the order of
-                        # `constantes.RANURAS_EQUIPO`
+                        # `constants.EQUIPMENT_SLOTS`
 ACTOR_SABE = {}         # RM2k actor -> the skills it knows
 _ACTORES_INDEXADOS = []
 
@@ -2662,7 +2662,7 @@ def indexar_actores(game_dir):
     ACTOR_SABE.clear()
     ACTOR_EQUIPO.update({a: tuple(act.initial_equipment)
                          for a, act in db.actors.items()})
-    ACTOR_SABE.update({a: reglas.aprendidas_de(db, a)
+    ACTOR_SABE.update({a: rules.learned_skills(db, a)
                        for a in db.actors})
     _ACTORES_INDEXADOS[:] = [True]
     return dict(ACTOR_EQUIPO)
@@ -4529,7 +4529,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             raise NoSePuede("ChangeEquipment with no operands")
         if p[2] != 1:
             raise NoSePuede("ChangeEquipment that equips")
-        if not 0 <= p[3] < RANURAS_EQUIPO:
+        if not 0 <= p[3] < EQUIPMENT_SLOTS:
             raise NoSePuede("ChangeEquipment that unequips everything")
         actor = actor_de_blanco(p, "ChangeEquipment")
         if _ACTORES_INDEXADOS and actor and actor not in ACTOR_EQUIPO:

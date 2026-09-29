@@ -5,7 +5,7 @@ They belong to `Game_Actor` and the LDB, not to any screen.
 """
 
 
-def aprendidas_de(db, numero, nivel=None):
+def learned_skills(db, number, level=None):
     """The skills this actor **knows**, usable or not, sorted.
 
     It is plain `Game_Actor::LearnLevelSkills`: the ones with a level lower
@@ -18,11 +18,11 @@ def aprendidas_de(db, numero, nivel=None):
     Both come from here so they cannot drift apart: the branch and the menu
     have to agree on what each one knows.
     """
-    actor = db.actors[numero]
-    if nivel is None:
-        nivel = actor.initial_level
-    return sorted({s for aprende, s in actor.skills
-                   if s and aprende <= nivel})
+    actor = db.actors[number]
+    if level is None:
+        level = actor.initial_level
+    return sorted({s for at_level, s in actor.skills
+                   if s and at_level <= level})
 
 
 # Each actor's level comes from the LDB since 2026-09-13: it is its
@@ -40,13 +40,13 @@ def aprendidas_de(db, numero, nivel=None):
 # experience. The level is a static fact of the LDB.
 
 
-def nivel_de(actor):
+def level_of(actor):
     """The level an actor starts at: `Game_Actor::Setup`, which calls
     `ChangeLevel(initial_level)` when the field is there."""
     return actor.initial_level
 
 
-def parametro_de(actor, cual, nivel=None):
+def param_of(actor, which, level=None):
     """A parameter of the actor at its level: `maxhp`, `maxsp`, `attack`,
     `defense`, `spirit` or `agility`.
 
@@ -54,25 +54,25 @@ def parametro_de(actor, cual, nivel=None):
     actor without the table —or with one shorter than its level, which does
     not happen in this game— gives zero, which is what the old code did.
 
-    Without `nivel` it is the starting one; with it, whatever it reached by
+    Without `level` it is the starting one; with it, whatever it reached by
     fighting: see `port.experiencia`.
     """
-    valores = actor.params.get(cual) or []
-    if nivel is None:
-        nivel = nivel_de(actor)
-    return valores[nivel - 1] if nivel - 1 < len(valores) else 0
+    values = actor.params.get(which) or []
+    if level is None:
+        level = level_of(actor)
+    return values[level - 1] if level - 1 < len(values) else 0
 
 
 PARAM_MAX = 999
 
 
-def parametros(db, actor, equipo, nivel=None):
+def equipped_params(db, actor, equipment, level=None):
     """Attack, defense, spirit and agility: the level's plus what the
     equipment adds, clamped to [1, 999] like `Game_Actor::GetAtk` and its
-    siblings. Without `nivel`, the starting one."""
-    base = [parametro_de(db.actors[actor], k, nivel)
+    siblings. Without `level`, the starting one."""
+    base = [param_of(db.actors[actor], k, level)
             for k in ("attack", "defense", "spirit", "agility")]
-    for item in equipo:
+    for item in equipment:
         if item:
             base = [b + p for b, p in zip(base, db.items[item].points)]
     return [max(1, min(PARAM_MAX, b)) for b in base]
@@ -83,7 +83,7 @@ def parametros(db, actor, equipo, nivel=None):
 # rom/data/README.md. Until 2026-09-20 they were the chunk numbers from
 # `ldb/chunks.h`, with the name beside them in a comment; today the name is
 # the data and the comment is what the term says in the game.
-BA_TERMINOS = (
+BATTLE_TERMS = (
     ("atacar", "command_attack"),        # "Attack"
     ("defender", "command_defend"),      # "Defend"
     ("huir", "battle_escape"),           # "Escape"
@@ -119,6 +119,6 @@ BA_TERMINOS = (
 )
 
 
-def terminos_batalla(db):
+def battle_terms(db):
     from rpgmaker import lcf
-    return {n: lcf.to_string(db.terms[t]) for n, t in BA_TERMINOS}
+    return {n: lcf.to_string(db.terms[t]) for n, t in BATTLE_TERMS}

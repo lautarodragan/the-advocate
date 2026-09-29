@@ -2,7 +2,7 @@ r"""Text boxes reflowed for the SNES width.
 
 RM2k has no auto-wrap: every break in a `ShowMessage` was put there by hand
 by the author, thinking of a 320 px window. The one here is narrower
-—`constantes.COLUMNAS` characters per line—, and until this, whatever did
+—`constants.COLUMNS` characters per line—, and until this, whatever did
 not fit was truncated.
 
 `reajustar` takes the lines of **one** box, exactly as they are in
@@ -39,7 +39,7 @@ are joined again with one. In one that fits, nothing is lost.
 import re
 
 from port import eventos
-from port import constantes
+from port import constants
 
 # An end of sentence, with the quotes or parenthesis that close it: cutting
 # there is free. `...` matches through the period.
@@ -113,7 +113,7 @@ def es_hablante(linea):
     return not texto.endswith((".", "!", "?", ","))
 
 
-def entra(lineas, columnas=constantes.COLUMNAS, renglones=constantes.LINEAS):
+def entra(lineas, columnas=constants.COLUMNS, renglones=constants.LINES):
     """Whether the box is fully visible, not counting its escape tail."""
     sin_cola, _pausas, _autocierre = eventos.cola_de_escapes(lineas)
     return (len(sin_cola) <= renglones
@@ -291,8 +291,8 @@ def _tramos(palabras, cortes, columnas, cuerpo):
     return tramos
 
 
-def reajustar(lineas, columnas=constantes.COLUMNAS,
-              renglones=constantes.LINEAS):
+def reajustar(lineas, columnas=constants.COLUMNS,
+              renglones=constants.LINES):
     """The boxes that replace this one, each a list of lines.
 
     Returns `[lineas]` untouched if the box already fits, or if it carries an
@@ -336,8 +336,8 @@ def _reajustar(lineas, columnas, renglones):
     return cuadros
 
 
-def reajustar_comandos(comandos, columnas=constantes.COLUMNAS,
-                       renglones=constantes.LINEAS):
+def reajustar_comandos(comandos, columnas=constants.COLUMNS,
+                       renglones=constants.LINES):
     """A list of commands from `rom/data/` —dictionaries, as they are in the
     JSON— with each text box reflowed.
 

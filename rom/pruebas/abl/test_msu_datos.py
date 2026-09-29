@@ -36,7 +36,7 @@ import shutil
 
 import pytest
 
-from port import escena, eventos, formato_snes, msu_datos, snes_convert
+from port import escena, eventos, snes_format, msu_datos, snes_convert
 from rpgmaker.resources import GAME_DIR
 from rpgmaker import lcf, rm2k
 
@@ -119,7 +119,7 @@ def _fondo_8bpp(liviano, nombre=FONDO_SECTOR_27):
     if not liviano:
         return snes_convert.fondo_bytes(escena.fondo(nombre, GAME_DIR))[0]
     grande = escena.fondo_liviano(nombre, GAME_DIR)["indices"]
-    return b"".join(formato_snes.pack_tile(celda, planes=8)
+    return b"".join(snes_format.pack_tile(celda, planes=8)
                     for celda in escena.tiles(grande))
 
 

@@ -19,7 +19,7 @@ niveles y las habilidades salen de `experiencia.sumar` y del LDB, no de acá.
 from port import batalla as modelo
 from port import experiencia
 from port import pantallas
-from port import reglas
+from port import rules
 
 from batalla import (ARDEN, GRUPO, Pelea, en_el_droide, paginas, poner_exp,
                      primera_pagina)
@@ -63,7 +63,7 @@ def test_la_victoria_dice_la_experiencia_y_se_cierra(partida):
     pasaba al renglón de abajo, cortado a la mitad de "victory!"."""
     una = en_el_droide(partida)
     base = datos.base()
-    term = reglas.terminos_batalla(base)
+    term = rules.battle_terms(base)
     ganada = experiencia.exp_de_la_tropa(base, TROPA_DROIDE)
     for actor in GRUPO:
         nivel = experiencia.nivel_inicial(base.actors[actor])
@@ -85,7 +85,7 @@ def test_el_que_sube_tiene_su_pagina_y_el_que_no_no(partida):
     igual, que es lo que hace RM2k."""
     una = en_el_droide(partida)
     base = datos.base()
-    term = reglas.terminos_batalla(base)
+    term = rules.battle_terms(base)
     ganada = experiencia.exp_de_la_tropa(base, TROPA_DROIDE)
     grupo = (ARDEN, KERSH, MANTA)
     una.poner_grupo(*grupo)
@@ -120,7 +120,7 @@ def test_las_habilidades_que_no_entran_siguen_en_otra_pagina(partida):
     mensaje de más de cuatro renglones."""
     una = en_el_droide(partida)
     base = datos.base()
-    term = reglas.terminos_batalla(base)
+    term = rules.battle_terms(base)
     ganada = experiencia.exp_de_la_tropa(base, TROPA_DROIDE)
     grupo = (ARDEN, KERSH)
     una.poner_grupo(*grupo)
@@ -218,7 +218,7 @@ def test_la_victoria_da_el_oro_y_los_items_y_los_cuenta(partida):
     de la tropa. El número de ítems y cuáles lo dice el modelo, que tira el
     botín con el mismo azar después del último golpe."""
     base = datos.base()
-    term = reglas.terminos_batalla(base)
+    term = rules.battle_terms(base)
     semilla, esperado = semilla_con_botin_a_medias(base)
     una, pelea = a_los_merodeadores(partida, semilla)
     oro_antes = una.oro()

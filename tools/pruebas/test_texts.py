@@ -10,7 +10,7 @@ import pytest
 
 from port import eventos                                # noqa: E402
 from port import textos                                 # noqa: E402
-from port import constantes                             # noqa: E402
+from port import constants                             # noqa: E402
 
 
 def _words(cuadros, con_hablante):
@@ -30,7 +30,7 @@ def test_it_is_rebuilt_and_keeps_the_speaker():
     salida = textos.reajustar(cuadro)
     assert len(salida) == 1
     assert salida[0][0] == "KERSH"
-    assert all(len(t) <= constantes.COLUMNAS for t in salida[0])
+    assert all(len(t) <= constants.COLUMNS for t in salida[0])
     assert _words(salida, True) == _words([cuadro], True)
 
 
@@ -43,7 +43,7 @@ def test_what_does_not_fit_is_split_and_repeats_the_speaker():
     salida = textos.reajustar(cuadro)
     assert len(salida) == 2
     assert all(c[0] == "MANTA" for c in salida)
-    assert all(len(c) <= constantes.LINEAS for c in salida)
+    assert all(len(c) <= constants.LINES for c in salida)
     assert _words(salida, True) == _words([cuadro], True)
 
 
@@ -58,7 +58,7 @@ def test_the_tail_goes_at_the_end_of_the_last_box():
 
 
 # A line that is not the last one and takes up less than this looks cut off.
-CORTO = 2 * constantes.COLUMNAS // 3
+CORTO = 2 * constants.COLUMNS // 3
 
 
 @pytest.mark.parametrize("cuadro", [

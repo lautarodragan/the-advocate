@@ -26,7 +26,7 @@ import os
 
 from PIL import Image
 
-from port.constantes import COLUMNAS, LINEAS
+from port.constants import COLUMNS, LINES
 from render import render_map
 
 # The size and place of the message window. In RM2k the screen is 320x240
@@ -151,14 +151,14 @@ def dibujar_linea(destino, sys_img, x, y, texto, color=0,
     Returns the x it ended at. Whatever goes past the width of `destino` is
     clipped on its own: in phase 1 lines that do not fit are truncated.
     """
-    from port import fuente
+    from port import font
     if font_id is None:
-        font_id = fuente.MINCHO
+        font_id = font.MINCHO
     bloque = color_de_texto(sys_img, color)
     sombra = color_de_sombra(sys_img)
     ox, oy = TEXTO_OFS
     for ch in texto:
-        for px, py in fuente.pixeles(ch, font_id):
+        for px, py in font.pixels(ch, font_id):
             # The shadow goes first and shifted by one, so the text covers it
             # where they overlap. It is easyrpg's order and it shows on the
             # diagonals.
@@ -169,17 +169,17 @@ def dibujar_linea(destino, sys_img, x, y, texto, color=0,
                 if (0 <= dx < destino.width and 0 <= dy < destino.height
                         and color[3]):
                     destino.putpixel((dx, dy), color)
-        x += fuente.ANCHO
+        x += font.WIDTH
     return x
 
 
 def pagina(sys_img, lineas, ancho=ANCHO, alto=ALTO, font_id=None):
     """The window with up to four lines of text inside."""
     vista = ventana(sys_img, ancho, alto)
-    for n, texto in enumerate(lineas[:LINEAS]):
+    for n, texto in enumerate(lineas[:LINES]):
         # The truncation goes here and not in the caller so both sides use
         # the same number: the ROM applies it when emitting the message.
         dibujar_linea(vista, sys_img, BORDE,
-                      BORDE + TEXTO_Y + n * ALTO_LINEA, texto[:COLUMNAS],
+                      BORDE + TEXTO_Y + n * ALTO_LINEA, texto[:COLUMNS],
                       font_id=font_id)
     return vista
