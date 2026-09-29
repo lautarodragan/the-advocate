@@ -32,7 +32,7 @@ más honda que existe en la ROM. Por eso el umbral no está pegado al tope.
 
 import pytest
 
-from ensamblado import bancos
+from assembly import bancos
 
 from consola import hondura_de_la_pila
 from tanda import consola_cruda, correr_hardware, encender, partida
@@ -217,7 +217,7 @@ def test_la_pila_no_pasa_del_umbral(nombre, camino):
         "el camino %r bajó la pila %s bytes, y el umbral es %d —la mitad de "
         "PILA, que reserva %d—. La pila crece hacia la BSS, así que pasarse de "
         "%d la pisa sin que ninguna golden ni test_cores.py lo vean. Hay dos "
-        "salidas: subir PILA en tools/ensamblado/bancos.py, que le saca esos "
+        "salidas: subir PILA en tools/assembly/bancos.py, que le saca esos "
         "bytes a la BSS, o mover la pila a la RAM lejana, que es lo que ya hace "
         "la pelea con su banco de datos."
         # "al menos" cuando la zona marcada quedó tocada hasta el último byte:

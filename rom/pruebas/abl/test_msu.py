@@ -26,7 +26,7 @@ from rpgmaker.resources import GAME_DIR
 import tanda
 from consola import (EMPEZAR, NUCLEO, SEGUIR, TITULO_AIRE, Partida,
                      en_la_rom, en_la_wram, indice_del_tema)
-from ensamblado import cartuchos
+from assembly import cartuchos
 from msu import pistas_de
 
 # Del encendido: a esta altura el tema del título ya suena, y con el MSU-1 lo

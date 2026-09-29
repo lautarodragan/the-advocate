@@ -1,4 +1,4 @@
-"""What `tools/ensamblado/ensamblar.py` does besides calling `ca65` + `ld65`.
+"""What `tools/assembly/ensamblar.py` does besides calling `ca65` + `ld65`.
 
 The big part —that the ROM comes out the same as before— is enforced by every
 test that builds a cartridge. This is the small part, where an error breaks
@@ -8,7 +8,7 @@ emulator, and a missing symbol only shows up in the test that asks for it.
 
 import pytest
 
-from ensamblado import ensamblar
+from assembly import ensamblar
 
 
 def test_checksum_and_complement_do_not_move_the_sum():

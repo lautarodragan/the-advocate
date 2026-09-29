@@ -125,7 +125,7 @@ declararse con `.bloque`** para no quedar partida entre dos bancos: ver
 `bloque` en `tools/port/snes_convert.py`. El acomodo se niega a armar con una
 etiqueta de RODATA sin declarar, y lo que cruza a propósito —el stream de la
 música, lo que se sube al SPC700— lleva `.cruza`: ver `resolver` en
-`tools/ensamblado/bancos.py`.
+`tools/assembly/bancos.py`.
 
 ## Lo que falta
 

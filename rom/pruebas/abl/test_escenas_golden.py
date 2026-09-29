@@ -27,7 +27,7 @@ hablarle a algo, y lo de acá son escenas de ABL.
 
 import pytest
 
-from ensamblado.cartuchos import RELEASE
+from assembly.cartuchos import RELEASE
 from consola import EMPEZAR
 from tanda import golden, partida
 

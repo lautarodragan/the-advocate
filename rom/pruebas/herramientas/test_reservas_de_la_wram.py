@@ -19,7 +19,7 @@ compara la grilla entera en cada carga y a la vuelta de una pelea.
 import pytest
 
 import tanda
-from ensamblado import cartuchos
+from assembly import cartuchos
 
 # Cada rango con los símbolos que tienen derecho a caer adentro.
 RESERVAS = (

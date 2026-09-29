@@ -14,7 +14,7 @@ from port import event_opcodes
 from port import eventos
 from rpgmaker import lcf
 from rpgmaker.resources import GAME_DIR
-from ensamblado import cartuchos
+from assembly import cartuchos
 import tanda
 
 

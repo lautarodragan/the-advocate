@@ -56,7 +56,7 @@ import numpy
 if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-from ensamblado import bancos
+from assembly import bancos
 from port import tiles_bin
 from port import comprimir
 from rpgmaker import event_codes
@@ -6943,7 +6943,7 @@ NPC_QUIETO = 0xFF        # in +9: this NPC doesn't walk
 #
 # The number isn't that since 2026-09-06, and not by choice: the row is
 # sixteen bytes, so the cap takes two kilobytes of the eight bank 0 of RAM
-# has, and the RAM ran out —see `PILA` in tools/ensamblado/bancos.py—. **The
+# has, and the RAM ran out —see `PILA` in tools/assembly/bancos.py—. **The
 # map with the most rows in the whole game has 99**, measured over the 328, so
 # 104 leaves five of headroom and gives back 368 bytes. It can't fall short
 # silently: the converter stops if any map goes over.
@@ -8353,7 +8353,7 @@ def main():
 
     # **And only here is the bank packing decided**, with both files already
     # written: it spreads everything both send to RODATA, and the banks end up
-    # at the end of the last one. See `tools/ensamblado/bancos.py`.
+    # at the end of the last one. See `tools/assembly/bancos.py`.
     piezas, usados = bancos.resolver([musica, args.output])
     print("bank packing: %d piece(s) in %d bank(s)" % (piezas, usados))
     # And the memory map for `ld65`, next to it: it comes from here and not

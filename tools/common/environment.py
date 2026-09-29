@@ -136,5 +136,5 @@ def test_cartridges():
 
 
 def shared():
-    """Where what gets built is delivered: see `ensamblado/entregar.py`."""
+    """Where what gets built is delivered: see `assembly/entregar.py`."""
     return _require("shared")

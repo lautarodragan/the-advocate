@@ -42,7 +42,7 @@ from rpgmaker import lcf, rm2k
 
 import tanda
 from consola import Partida, en_la_rom, en_la_wram
-from ensamblado import cartuchos
+from assembly import cartuchos
 
 SNES9X = "/usr/lib/libretro/snes9x_libretro.so"
 BSNES = "/usr/lib/libretro/bsnes_libretro.so"

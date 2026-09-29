@@ -34,7 +34,7 @@ import pytest
 
 from batalla import grupo_de, sabe
 import lugares
-from ensamblado import cartuchos
+from assembly import cartuchos
 from recorrido import Recorrido
 from tanda import golden, partida
 

@@ -7,7 +7,7 @@ corriendo. Son
 dos redes distintas y se complementan: la de pixeles dice "la pantalla es
 exactamente ésta", ésta dice "y además llegaste adonde tenías que llegar".
 
-Lo que hace posible preguntar es que `tools/ensamblado/ensamblar.py` deja al lado de la ROM
+Lo que hace posible preguntar es que `tools/assembly/ensamblar.py` deja al lado de la ROM
 la tabla de símbolos que sale de `runtime/` de verdad, con las direcciones de la
 RAM **y** las constantes del ensamblador:
 
@@ -28,7 +28,7 @@ import lugares                                  # antes que nada
 from common import settings
 from common import project
 from emulator import retro
-from ensamblado import bancos
+from assembly import bancos
 
 RAIZ = project.root()
 # Lo que las pruebas dejan para mirar. Lo toman de acá los pedazos del arnés
@@ -74,7 +74,7 @@ class SimboloDesconocido(KeyError):
 
 
 class Simbolos:
-    """La tabla que deja `tools/ensamblado/ensamblar.py`, leída por nombre."""
+    """La tabla que deja `tools/assembly/ensamblar.py`, leída por nombre."""
 
     def __init__(self, ruta):
         self.ruta = ruta

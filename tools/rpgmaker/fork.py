@@ -177,7 +177,7 @@ def new_maps():
     and its encounters come from. So it brings its own: the JSON's `arbol`
     field is the whole node, in the same resolved view as the dump, and
     `lcf.TreeMap` adds it. Today there is only one, the debug map: see
-    `el_mapa_de_debug` in `tools/ensamblado/cartuchos.py`.
+    `el_mapa_de_debug` in `tools/assembly/cartuchos.py`.
 
     What was validated is remembered as in `maps`, and for the same reason:
     every `lcf.Map` asks here.

@@ -13,7 +13,7 @@ import re
 
 import pytest
 
-from ensamblado import bancos
+from assembly import bancos
 
 
 def resolve(texto, tmp_path, segundo=None):

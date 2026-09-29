@@ -14,7 +14,7 @@ import os
 import pytest
 
 import tanda
-from ensamblado import cartuchos
+from assembly import cartuchos
 from lz2 import descomprimir
 from port import comprimir
 from port.snes_convert import (CLASES_COMPRIMIDAS, LZ2_TOPE_FONDO,

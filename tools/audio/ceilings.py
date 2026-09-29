@@ -270,7 +270,7 @@ def report(measured, ceilings=None):
 
 
 def main():
-    from ensamblado import cartuchos
+    from assembly import cartuchos
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     project.add_argument(parser)
     environment.add_arguments(parser, *cartuchos.AL_CONVERSOR)

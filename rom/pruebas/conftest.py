@@ -3,7 +3,7 @@
 **La ROM no cambia entre prueba y prueba.** Lo que cambia es el estado inicial,
 y eso se escribe en la RAM —ver `Partida.prender`— o lo pone el caso, en vez de
 hornearse en un cartucho distinto para cada prueba. Desde el paso 9f el
-cartucho es el mismo que usa la tanda —ver `tools/ensamblado/cartuchos.py`— y las
+cartucho es el mismo que usa la tanda —ver `tools/assembly/cartuchos.py`— y las
 pruebas no arman nada: piden un caso por el nombre.
 
 Una prueba que no pide ninguno arranca en el mapa 5 con el grupo del juego, que
@@ -25,7 +25,7 @@ import pytest
 import lugares                                  # antes que nada
 import tanda
 from consola import EMPEZAR
-from ensamblado import cartuchos
+from assembly import cartuchos
 
 # Dónde arranca una prueba de estado que no pide otra cosa: el mapa 5, con el
 # grupo del juego. Es el caso `en-5`, el `Teleport` a la celda donde el héroe

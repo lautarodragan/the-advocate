@@ -29,7 +29,7 @@ jugador.
   porqué, en `Recorrido.foto`.
 """
 
-from ensamblado import cartuchos
+from assembly import cartuchos
 from recorrido import UN_ANO_DESPUES
 
 # La primera puerta del mapa de debug, la del comienzo normal: su `Teleport`

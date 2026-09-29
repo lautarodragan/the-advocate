@@ -19,7 +19,7 @@ cartucho para ese mapa.
 import pytest
 
 from consola import EMPEZAR, en_la_rom, en_la_wram
-from ensamblado import cartuchos
+from assembly import cartuchos
 
 DUMMY_HERO = 10
 TALAN = 14

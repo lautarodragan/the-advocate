@@ -13,8 +13,8 @@ import subprocess
 
 import pytest
 
-from ensamblado import cartuchos
-from ensamblado import espacio
+from assembly import cartuchos
+from assembly import espacio
 
 
 def _libre_con_res(sfc, segmento, tmp_path, n):

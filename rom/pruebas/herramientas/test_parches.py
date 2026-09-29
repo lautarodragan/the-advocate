@@ -30,7 +30,7 @@ from common import project                                    # noqa: E402
 from port import animacion                                    # noqa: E402
 from port import parches                                      # noqa: E402
 
-from ensamblado import cartuchos                             # noqa: E402
+from assembly import cartuchos                             # noqa: E402
 
 
 def _armados():

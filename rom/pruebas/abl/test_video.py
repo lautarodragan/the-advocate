@@ -16,7 +16,7 @@ import inspect
 
 import pytest
 
-from ensamblado import cartuchos
+from assembly import cartuchos
 from recorrido import UN_ANO_DESPUES
 import video
 

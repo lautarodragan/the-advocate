@@ -34,7 +34,7 @@ from audio import brr_samples                          # noqa: E402
 from common import environment                              # noqa: E402
 from common import settings                              # noqa: E402
 from common import project                              # noqa: E402
-from ensamblado import ensamblar                        # noqa: E402
+from assembly import ensamblar                        # noqa: E402
 from port import tiles_bin                              # noqa: E402
 from port import comprimir                              # noqa: E402
 

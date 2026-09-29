@@ -5,7 +5,7 @@ compara la pantalla contra el PNG congelado de `pruebas/golden/tanda/`, que **es
 una captura del emulador** y por eso se compara en cero pixeles exactos, sin
 máscara; el porqué está en el `LEEME.md` de ese directorio.
 
-**Acá no se arma nada.** Los cartuchos los arma `tools/ensamblado/cartuchos.py`, una
+**Acá no se arma nada.** Los cartuchos los arma `tools/assembly/cartuchos.py`, una
 vez, antes de la tanda —`just pruebas` lo corre primero—, y el arnés sólo sabe
 buscar un caso por su nombre y decir en qué cartucho y en qué página está. Si
 el cartucho es de otros fuentes, se niega a correr: ver `Cartucho`.
@@ -39,14 +39,14 @@ from consola import (EMPEZAR, NUCLEO, RETRASO_DE_PANTALLA, Partida,
 from emulator import retro
 
 import lugares
-from ensamblado import cartuchos
+from assembly import cartuchos
 
 # Dónde viven las capturas congeladas y los planes.
 GOLDEN = os.path.join(lugares.GOLDENS, "tanda")
 
 
 class Cartucho:
-    """Uno de los cartuchos que dejó `tools/ensamblado/cartuchos.py`, ya leído.
+    """Uno de los cartuchos que dejó `tools/assembly/cartuchos.py`, ya leído.
 
     **Se niega a servir uno viejo.** Si los fuentes, las herramientas o los
     casos cambiaron desde que se armó, la tanda correría contra una ROM que

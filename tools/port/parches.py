@@ -439,7 +439,7 @@ def mapas_de_prueba():
     """The maps that only exist for the suite. The project file declares
     them, `[maps] test`, and `cartuchos.py` reads them; they are not written
     again here."""
-    from ensamblado import cartuchos
+    from assembly import cartuchos
     return set(cartuchos.MAPAS_DE_PRUEBA)
 
 
@@ -699,7 +699,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     environment.from_arguments(args, "test_cartridges")
     if not args.builds and args.check:
-        from ensamblado import cartuchos
+        from assembly import cartuchos
         args.builds = [cartuchos.directorio(n) for n in cartuchos.CARTUCHOS]
     builds = []
     for build in args.builds:

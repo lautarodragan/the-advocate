@@ -20,7 +20,7 @@ one in its own row or above.
                  (rm2k), and where the game and the RTP are (resources). No
                  rule of the format lives here: rom/data/ comes resolved. It
                  has its own README
-    ensamblado/  the memory map (bancos), what builds the ROM (ensamblar), and
+    assembly/    the memory map (bancos), what builds the ROM (ensamblar), and
                  which ROMs exist and with which flags (cartuchos, used by
                  `just build`)
     emulator/    the libretro core from Python (retro), and the bsnes-libretro
@@ -69,7 +69,7 @@ something —`batalla` from `eventos`, `pantallas` from `menus` and `eventos`,
 which uses all of them. The imports still inside a function no longer hide
 any cycle.
 
-The only exception is `ensamblado/cartuchos.py`, which is the orchestrator
+The only exception is `assembly/cartuchos.py`, which is the orchestrator
 and lives at the bottom: it imports from `port/` and `audio/`, runs
 `port/snes_convert.py` as a subprocess, and `port/parches.py` imports it
 back: the only cycle, if the subprocess counts. These are the only layer
@@ -103,14 +103,14 @@ herramientas` installs them as symlinks in the same `bin/` as the Rust
 projects. The `justfile` calls them by name and does not know where they
 are:
 
-    rm2k-snes-cartridges        ensamblado/cartuchos.py
-    rm2k-snes-assemble          ensamblado/ensamblar.py
-    rm2k-snes-space             ensamblado/espacio.py
+    rm2k-snes-cartridges        assembly/cartuchos.py
+    rm2k-snes-assemble          assembly/ensamblar.py
+    rm2k-snes-space             assembly/espacio.py
     rm2k-snes-convert           port/snes_convert.py
     rm2k-snes-patches           port/parches.py
     rm2k-snes-msu               audio/msu.py
     rm2k-snes-volume-ceilings   audio/ceilings.py
-    abl-entregar                ensamblado/entregar.py
+    abl-entregar                assembly/entregar.py
 
 The reason for the names is in `tools/justfile`. A new one is added in
 `_instalar`, and the `.py` finds its packages by resolving the symlink with
@@ -148,7 +148,7 @@ Line's is `rom/rm2k-snes.toml`—, and it is read with `common/settings.py`:
   a value from the file again.
 * **It is read when used, not at import**: the converter and what it uses
   must be importable without a game, which is what the tests here do. The
-  exception is `ensamblado/cartuchos.py`, which is the game's orchestrator
+  exception is `assembly/cartuchos.py`, which is the game's orchestrator
   and reads the whole file when loaded.
 * **What the runtime needs** —the title, the SRAM signature— reaches it as a
   `.define` in the `mapdata.inc` the converter emits: the runtime does not

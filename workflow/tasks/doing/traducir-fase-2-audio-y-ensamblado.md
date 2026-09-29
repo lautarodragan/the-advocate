@@ -52,3 +52,6 @@ ejecutable corrido por su nombre desde /tmp con `--project`.
 - `audio/techos.py` → `audio/ceilings.py`, con sus nombres, y `--medir`
   pasa a `--measure`. El symlink de `rm2k-snes-volume-ceilings` cambia de
   destino: el global queda roto hasta reinstalar los scripts.
+- `tools/ensamblado/` → `tools/assembly/`, y no `tools/build/`: ver el
+  commit. Los comentarios de `tools/runtime/*.s` que la citan quedan con la
+  ruta vieja, por lo mismo que el de `efectos_con_msu.s`.

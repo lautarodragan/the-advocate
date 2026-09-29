@@ -43,8 +43,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from common import environment                              # noqa: E402
 from common import project                              # noqa: E402
-from ensamblado import bancos                           # noqa: E402
-from ensamblado import ensamblar                        # noqa: E402
+from assembly import bancos                           # noqa: E402
+from assembly import ensamblar                        # noqa: E402
 
 CAMPO = re.compile(r'(\w+)=("[^"]*"|[^,\s]+)')
 
@@ -138,7 +138,7 @@ def mostrar(nombre, sfc):
 
 def main():
     project.from_command_line()
-    from ensamblado import cartuchos
+    from assembly import cartuchos
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     project.add_argument(parser)
     environment.add_arguments(parser, "test_cartridges")

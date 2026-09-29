@@ -24,7 +24,7 @@ import pytest  # noqa: E402
 from port import event_opcodes  # noqa: E402
 from port import eventos  # noqa: E402
 from rpgmaker import lcf  # noqa: E402
-from ensamblado import ensamblar  # noqa: E402
+from assembly import ensamblar  # noqa: E402
 from audio import music_opcodes  # noqa: E402
 from common import project  # noqa: E402
 

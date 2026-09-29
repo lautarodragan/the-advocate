@@ -12,7 +12,7 @@ import re
 
 import pytest
 
-from ensamblado import cartuchos, ensamblar
+from assembly import cartuchos, ensamblar
 import tanda
 
 

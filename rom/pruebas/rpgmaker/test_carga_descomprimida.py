@@ -27,7 +27,7 @@ import os
 import pytest
 
 from consola import en_la_rom, en_la_wram
-from ensamblado import cartuchos
+from assembly import cartuchos
 from tanda import partida
 
 BSNES = "/usr/lib/libretro/bsnes_libretro.so"

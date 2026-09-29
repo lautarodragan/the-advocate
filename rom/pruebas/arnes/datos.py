@@ -18,7 +18,7 @@ import functools
 import json
 import os
 
-from ensamblado import cartuchos
+from assembly import cartuchos
 from rpgmaker.resources import GAME_DIR
 
 
