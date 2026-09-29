@@ -5,7 +5,7 @@
 ; `Scene_ActorTarget` with the System windows on BG1, like items and
 ; equipment: on the left the medicine's name and "Owned Items" with the count,
 ; on the right the party, and the red bar over the selected row. The screen is
-; still `objetivo_pantalla`, in bank 0, with the menu's bank on BG2; this is
+; still `target_screen`, in bank 0, with the menu's bank on BG2; this is
 ; what it adds, outside bank 0. The geometry and the why are in
 ; `OBJETIVO_VENTANAS`, in titulo.py, and `render_objetivo` is the reference.
 ;
@@ -13,7 +13,7 @@
 ; is no room left in BG2's, because the menu's bank reaches almost up to its
 ; tilemap. Everything falls in what `load_map` restores when the menu closes
 ; —`_controlar_objetivo` checks it—, and the colors go in 128..143, which are
-; the menu sprites' and are restored by `menu_exp_cerrar`.
+; the menu sprites' and are restored by `menu_exp_close`.
 ;
 ; `eleg_cancel` says which one: at 0, for the medicine in `eleg_flancos`, with
 ; the two windows on the left; otherwise, for choosing whom to equip, without
@@ -21,8 +21,8 @@
 ; `item_id` are addressed absolute.
 
 ; The windows, and the name and count if it is a medicine. With the screen
-; off, after `ranura_banco_subir`.
-.proc objetivo_subir
+; off, after `slot_bank_upload`.
+.proc target_upload
 .a8
 .i16
     lda #$80
@@ -136,11 +136,11 @@ nombre:
     tax
     ldy #(OBJETIVO_NOMBRE_VRAM + 64)
     jsr renglon
-    jmp objetivo_cuantos
+    jmp target_count
 
 ; One line: X its first letter in `objetivo_nombres`, Y the cell. The top
 ; cells of all the letters and then the bottom ones, like
-; `ranura_texto_escribir`. Leaves X as it was and returns with an 8-bit A.
+; `slot_text_write`. Leaves X as it was and returns with an 8-bit A.
 renglon:
     sep #$20
 .a8
@@ -190,7 +190,7 @@ letra:
 ; How many are left of the medicine in `eleg_flancos`, in two digits —the tens
 ; digit blank if it is zero—, next to "Owned Items". In the vblank after using
 ; it, or with the screen off when opening. Without a medicine, nothing.
-.proc objetivo_cuantos
+.proc target_count
 .a8
 .i16
     lda eleg_cancel
@@ -278,8 +278,8 @@ glifo:
 ; erasing one and the painting one. With an item or without it is the same:
 ; the rectangle does not touch the left windows. It clobbers `temp` through
 ; `temp + 3`: the caller sets `temp + 3` again before each time.
-BARRA_BYTES = OBJETIVO_BARRA_FILAS * OBJETIVO_BARRA_COLS * 2
-.proc objetivo_barra
+BAR_BYTES = OBJETIVO_BARRA_FILAS * OBJETIVO_BARRA_COLS * 2
+.proc target_bar
 .a8
 .i16
     rep #$20
@@ -354,13 +354,13 @@ FILA = MENU_ACTOR_FILAS * 32
 fila_vram:
     .word PRIMERA, PRIMERA + FILA, PRIMERA + 2 * FILA, PRIMERA + 3 * FILA
 barra_ofs:
-    .word 0, BARRA_BYTES, 2 * BARRA_BYTES, 3 * BARRA_BYTES
+    .word 0, BAR_BYTES, 2 * BAR_BYTES, 3 * BAR_BYTES
     .assert MENU_FILAS_GRUPO = 4, error, "one word per party row"
 .endproc
 
 ; BG2 with the party and BG1 with the windows, each with its own base, and the
-; screen on. It is `ranura_ppu_prender` plus BG1.
-.proc objetivo_ppu_prender
+; screen on. It is `slot_ppu_on` plus BG1.
+.proc target_ppu_on
 .a8
 .i16
     lda #(RANURA_MAP / 1024 * 4)

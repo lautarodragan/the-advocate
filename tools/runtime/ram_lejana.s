@@ -741,7 +741,7 @@ BA_BOTIN_FIN  = BA_BOTIN_K + BA_ENEMIGOS_MAX
 ; --- experience in the menu --------------------------------------------------
 ;
 ; $7E7A40 to $7E7A4F, reserved on 2026-09-28: the thirteen letters of the
-; experience line of a party row, which `menu_exp_pintar` builds before
+; experience line of a party row, which `menu_exp_paint` builds before
 ; turning them into sprites. It lives as long as that routine.
 MENU_EXP_TEXTO = $7E7A40
 MENU_EXP_TEXTO_FIN = $7E7A50

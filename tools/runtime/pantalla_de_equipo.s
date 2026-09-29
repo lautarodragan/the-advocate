@@ -5,7 +5,7 @@
 ; The two screens are three kilobytes, and bank 0 had twelve bytes left in the
 ; test cartridge. They moved down here on 2026-09-19 for the same reason as
 ; battle and by the same route: they are entered with `jsl` to
-; `equipo_pantalla` and `tienda_pantalla`, and what they need from bank 0 is
+; `equipment_screen` and `shop_screen`, and what they need from bank 0 is
 ; called through the `ba_t_*` bridges, which were already there for battle
 ; —only two new ones were needed, `bt_t_list` and `bt_t_build`—.
 ;
@@ -26,7 +26,7 @@
 ; The empty line at the end is taking off what is in the slot. B goes back.
 ; `pantallas.pantalla_equipo` is the reference, and `pantallas.equipar` the
 ; rule. The windows and the cursor bar go on BG1, which BG2's text does not
-; touch: see `eq_pantalla_subir` and `eq_barra`.
+; touch: see `eq_screen_upload` and `eq_bar`.
 ;   eq_actor     is comp_char      ; the actor number
 ;   eq_ranura    is comp_col       ; the highlighted slot, 0 to 4
 ;   eq_eligiendo is comp_col + 1   ; whether the list is shown
@@ -38,11 +38,11 @@
 ;   eq_param     is comp_or01 + 2  ; which one
 ;   eq_s         is comp_or01 + 3  ; the slot being looked at
 ;   eq_id        is comp_or23      ; an item, two bytes
-;   eq_tmp       is comp_and       ; `eq_apuntar`'s scratch, four bytes
+;   eq_tmp       is comp_and       ; `eq_point`'s scratch, four bytes
 
 ; A: the slot. Leaves the WRAM window pointing at that slot of the actor:
 ; `FAR_EQUIPO` + actor * 10 + slot * 2.
-.proc eq_apuntar
+.proc eq_point
 .a8
 .i16
     rep #$20
@@ -70,10 +70,10 @@
 .endproc
 
 ; A: the slot. Returns with the item in `eq_id`.
-.proc eq_leer
+.proc eq_read
 .a8
 .i16
-    jsr eq_apuntar
+    jsr eq_point
     lda WMDATA
     sta comp_or23
     lda WMDATA
@@ -82,10 +82,10 @@
 .endproc
 
 ; A: the slot; `eq_id`: the new item.
-.proc eq_escribir
+.proc eq_write
 .a8
 .i16
-    jsr eq_apuntar
+    jsr eq_point
     lda comp_or23
     sta WMDATA
     lda comp_or23 + 1
@@ -128,7 +128,7 @@ ninguno8:
 .endproc
 
 ; How many of item `eq_id` are in the inventory, in A.
-.proc eq_inv_apuntar
+.proc eq_inv_point
 .a8
 .i16
     rep #$20
@@ -144,14 +144,14 @@ ninguno8:
 .endproc
 
 ; One more —capped at 99— or one less of item `eq_id`. A: 1 adds, 0 subtracts.
-.proc eq_inv_mover
+.proc eq_inv_move
 .a8
 .i16
     pha
-    jsr eq_inv_apuntar
+    jsr eq_inv_point
     lda WMDATA
     sta comp_and
-    jsr eq_inv_apuntar
+    jsr eq_inv_point
     pla
     beq resta
     lda comp_and
@@ -170,7 +170,7 @@ listo:
 .endproc
 
 ; Is item `eq_id` a two-handed weapon? Z=0 if so.
-.proc eq_dos_manos
+.proc eq_two_handed
 .a8
 .i16
     jsr eq_k
@@ -187,7 +187,7 @@ no:
 ; under the cursor if it is the chosen slot, and none in the other if the
 ; weapon is two-handed. It is `pantallas.equipar` without touching anything.
 ; Returns in `eq_id`.
-.proc eq_efectivo
+.proc eq_effective
 .a8
 .i16
     sta comp_or01 + 3
@@ -217,7 +217,7 @@ otra:
     bne no_escudo
     lda comp_col
     bne tiene                   ; the weapon is not being chosen
-    jsr eq_dos_manos
+    jsr eq_two_handed
     bne ninguno
     bra tiene
 no_escudo:
@@ -233,13 +233,13 @@ no_escudo:
 .a8
     beq tiene                   ; taking off the shield does not touch the weapon
     lda #0
-    jsr eq_leer
-    jsr eq_dos_manos
+    jsr eq_read
+    jsr eq_two_handed
     bne ninguno
     rts                         ; `eq_id` is already the weapon
 tiene:
     lda comp_or01 + 3
-    jmp eq_leer
+    jmp eq_read
 ninguno:
     stz comp_or23
     stz comp_or23 + 1
@@ -247,8 +247,8 @@ ninguno:
 .endproc
 
 ; Parameter `eq_param` —0 attack, 1 defense, 2 spirit, 3 agility— with the
-; equipment `eq_efectivo` says, in `pant_valor`, capped to [1, 999].
-.proc eq_parametro
+; equipment `eq_effective` says, in `pant_valor`, capped to [1, 999].
+.proc eq_parameter
 .a8
 .i16
     ; The one for their current level: `level_param`, where the four here go
@@ -271,7 +271,7 @@ ninguno:
     lda #0
 ranura:
     pha
-    jsr eq_efectivo
+    jsr eq_effective
     jsr eq_k
     beq sin_puntos
     rep #$20
@@ -317,9 +317,9 @@ listo:
 .endproc
 
 ; The list of what the actor can put on in `eq_ranura`, as `k` in
-; `FAR_ITEM_LISTA`, and at the end an $FF which is the empty line. How many in
+; `FAR_ITEM_LIST`, and at the end an $FF which is the empty line. How many in
 ; `eq_n`. It is `pantallas.candidatos`.
-.proc eq_lista_armar
+.proc eq_list_build
 .a8
 .i16
     stz comp_base
@@ -408,7 +408,7 @@ bit_listo:
     lda comp_base
     and #$00FF
     clc
-    adc #FAR_ITEM_LISTA
+    adc #FAR_ITEM_LIST
     sta WMADDL
     sep #$20
 .a8
@@ -430,7 +430,7 @@ lista_lista:
     lda comp_base
     and #$00FF
     clc
-    adc #FAR_ITEM_LISTA
+    adc #FAR_ITEM_LIST
     sta WMADDL
     sep #$20
 .a8
@@ -442,7 +442,7 @@ lista_lista:
 .endproc
 
 ; The item at place A in the list, in `eq_id`: 0 if it is the empty line.
-.proc eq_de_lista
+.proc eq_from_list
 .a8
 .i16
     jsl f:bt_t_list
@@ -466,7 +466,7 @@ empty:
 
 ; Writes to `eleg_tabla` the name of item `eq_id`, if the ROM knows it, with
 ; no more than A letters.
-.proc eq_nombre
+.proc eq_name
 .a8
 .i16
     sta comp_dup + 3
@@ -530,7 +530,7 @@ nothing:
 .endproc
 
 ; The whole screen, in the buffer: `pantallas.pantalla_equipo`.
-.proc eq_componer
+.proc eq_compose
 .a8
 .i16
     lda #255
@@ -558,7 +558,7 @@ sin_nombre:
     lda comp_col + 1
     beq la_puesta
     lda comp_fase
-    jsr eq_de_lista
+    jsr eq_from_list
     rep #$20
 .a16
     lda comp_or23
@@ -568,7 +568,7 @@ sin_nombre:
     bra desc
 la_puesta:
     lda comp_col
-    jsr eq_leer
+    jsr eq_read
 desc:
     jsr eq_desc
     ; --- the parameters: now and, while choosing, after ---
@@ -596,7 +596,7 @@ param:
     lda comp_col + 1
     pha
     stz comp_col + 1            ; now: what is on
-    jsl f:eq_parametro
+    jsl f:eq_parameter
     pla
     sta comp_col + 1
     rep #$20
@@ -630,7 +630,7 @@ param:
     sta temp + 1
     lda #$3E                    ; '>'
     jsl f:bt_t_glyph
-    jsl f:eq_parametro            ; after: with what the cursor is on
+    jsl f:eq_parameter            ; after: with what the cursor is on
     ; And its color, `Window_EquipStatus::GetNewParameterColor`'s: equal in
     ; white, more in the "goes up" one and less in gray. It is `pantallas.
     ; color_del_valor_nuevo`.
@@ -674,7 +674,7 @@ params_listos:
     ; --- the slots ---
     lda #0
 ranura:
-    pha                         ; the cursor is the bar: see `eq_barra`
+    pha                         ; the cursor is the bar: see `eq_bar`
     jsr fila_pos
     rep #$20
 .a16
@@ -694,7 +694,7 @@ ranura:
     sep #$20
 .a8
     lda #3                      ; the term in red, and the name of what
-    sta temp + 1                ; is on in white: `eq_nombre` restores it
+    sta temp + 1                ; is on in white: `eq_name` restores it
     jsl f:bt_t_text
     pla
     pha
@@ -708,9 +708,9 @@ ranura:
 .a8
     pla
     pha
-    jsr eq_leer
+    jsr eq_read
     lda #EQ_RANURA_ANCHO
-    jsr eq_nombre
+    jsr eq_name
     pla
     inc a
     cmp #5
@@ -730,7 +730,7 @@ lista_fila:
     pha
     clc
     adc comp_fase + 1
-    jsr eq_de_lista
+    jsr eq_from_list
     rep #$20
 .a16
     lda comp_or23
@@ -748,7 +748,7 @@ lista_fila:
     sep #$20
 .a8
     lda #255
-    jsr eq_nombre
+    jsr eq_name
     pla
     pha
     jsr fila_pos_lista
@@ -762,7 +762,7 @@ lista_fila:
     stz temp + 1
     lda #$3A                    ; ':'
     jsl f:bt_t_glyph
-    jsr eq_inv_apuntar
+    jsr eq_inv_point
     lda WMDATA
     sta comp_dup
     stz comp_dup + 1
@@ -817,11 +817,11 @@ fila_pos_lista:
 .endproc
 
 ; A on the list: `pantallas.equipar` with what the cursor is on.
-.proc eq_equipar
+.proc eq_equip
 .a8
 .i16
     lda comp_fase
-    jsr eq_de_lista
+    jsr eq_from_list
     rep #$20
 .a16
     lda comp_or23
@@ -843,7 +843,7 @@ fila_pos_lista:
     sep #$20
 .a8
     lda #0
-    jsr eq_inv_mover            ; one less in the inventory
+    jsr eq_inv_move            ; one less in the inventory
     rep #$20
 .a16
     lda comp_mask
@@ -851,11 +851,11 @@ fila_pos_lista:
     sep #$20
 .a8
     lda comp_col
-    jsr eq_escribir
+    jsr eq_write
     ; Two hands.
     lda comp_col
     bne no_arma
-    jsr eq_dos_manos            ; `eq_id` is the new weapon
+    jsr eq_two_handed            ; `eq_id` is the new weapon
     beq listo
     lda #1
     jmp sacar
@@ -863,8 +863,8 @@ no_arma:
     cmp #1
     bne listo
     lda #0
-    jsr eq_leer
-    jsr eq_dos_manos
+    jsr eq_read
+    jsr eq_two_handed
     beq listo
     lda #0
     jmp sacar
@@ -874,7 +874,7 @@ listo:
 ; A: the slot. What it has goes back to the inventory and it is left empty.
 sacar:
     pha
-    jsr eq_leer
+    jsr eq_read
     rep #$20
 .a16
     lda comp_or23
@@ -882,11 +882,11 @@ sacar:
 .a8
     beq empty
     lda #1
-    jsr eq_inv_mover
+    jsr eq_inv_move
     stz comp_or23
     stz comp_or23 + 1
     pla
-    jmp eq_escribir
+    jmp eq_write
 empty:
     pla
     rts
@@ -899,7 +899,7 @@ empty:
 ; list rows. Without remembering where it was: each frame restores everything,
 ; so the bar cannot end up painted in two places. It is 768 bytes, some five
 ; vblank lines on top of the text's ten.
-.proc eq_barra
+.proc eq_bar
 .a8
 .i16
     lda #$80
@@ -962,7 +962,7 @@ row:
 .endproc
 
 ; The equipment screen of actor A, until the player goes back with B.
-.proc equipo_pantalla
+.proc equipment_screen
 .a8
 .i16
     sta comp_char
@@ -972,11 +972,11 @@ row:
     sta INIDISP
     stz HDMAEN
     stz TM
-    jsl f:eq_pantalla_subir
-    jsr eq_componer
+    jsl f:eq_screen_upload
+    jsr eq_compose
     jsl f:bt_t_upload
-    jsr eq_barra
-    jsl f:items_ppu_prender     ; BG2 and BG1, the windows
+    jsr eq_bar
+    jsl f:items_ppu_on     ; BG2 and BG1, the windows
 espera:
     jsl f:bt_t_vblank
     ; The pad first and the DMA after. The other way around, the 1792 bytes
@@ -986,7 +986,7 @@ espera:
     ; read, the DMA still fits in vblank.
     jsl f:bt_t_pad
     jsl f:bt_t_upload
-    jsr eq_barra
+    jsr eq_bar
     lda pad
     eor pad_ant
     and pad
@@ -1021,7 +1021,7 @@ r_mira_a:
     beq espera
     lda pad_a_ant
     bne espera
-    jsr eq_lista_armar
+    jsr eq_list_build
     stz comp_fase
     stz comp_fase + 1
     lda #1
@@ -1065,10 +1065,10 @@ l_mira_a:
     beq espera2
     lda pad_a_ant
     bne espera2
-    jsr eq_equipar
+    jsr eq_equip
     stz comp_col + 1
 recomponer:
-    jsr eq_componer
+    jsr eq_compose
 espera2:
     jmp espera
 .endproc

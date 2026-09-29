@@ -163,7 +163,7 @@ put:
 
 ; The parallel common events that only look at the equipment
 ; —`COMUNES_DEL_EQUIPO` in eventos.py; in the game, number 37, `UpdateAG7
-; Skills`—, each run once if its switch is on. `menu_pantalla` calls it on
+; Skills`—, each run once if its switch is on. `menu_screen` calls it on
 ; closing, which is where the equipment changes: in RM2k they run every frame,
 ; but they only read their switch and the equipment, so between one menu close
 ; and the next they would give the same result. The other moment they change,

@@ -47,7 +47,7 @@
     sta temp + 1
     phy
     lda temp
-    jsr actor_graf_escribir
+    jsr actor_gfx_write
     lda temp
     cmp grupo                   ; is it the leader?
     bne graf_no_lidera

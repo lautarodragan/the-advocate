@@ -29,7 +29,7 @@ timer_poner_16:
     ; nothing else.
     lda #TIMER_DE_MAS
     sta timer_sub
-    jsr timer_digitos
+    jsr timer_digits
     bra timer_fin
 no_pone:
     cmp #TIMER_PONER_VAR

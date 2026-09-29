@@ -1017,7 +1017,7 @@ def _paste_sprite(outside, tiles, palettes, word, x, y):
 
 def _paste_exp(outside, tiles, palettes, menu, row, text):
     """The experience line of a party row, in sprites: the term and the
-    thirteen letters of `text`, at six pixels. It is what `menu_exp_pintar`
+    thirteen letters of `text`, at six pixels. It is what `menu_exp_paint`
     does in the ROM; spaces get no sprite."""
     y = row * MENU_ACTOR_ROWS * CELL + MENU_EXP_Y - GLYPH_DY
     for n, word in enumerate(menu["exp_termino"]):
@@ -1042,7 +1042,7 @@ def _paste_text(paste, menu, text, row, col):
 def _paste_actor_row(paste, menu, faces, db, row, actor, hp=None,
                      levels=None):
     """A row of the party panel: the fixed block, the face and the three
-    strips that depend on the actor. It is what `menu_grupo_pintar` does, in
+    strips that depend on the actor. It is what `menu_party_paint` does, in
     the same order, and that is why the menu and the actor choice share
     it."""
     row0 = row * MENU_ACTOR_ROWS
@@ -1158,7 +1158,7 @@ TARGET_COUNT_COL = TARGET_NAME_COL + TARGET_NAME_WIDTH - 2    # 10
 # the HP letters.
 TARGET_BAR = (MENU_TEXT_X - 4, 2, WIDTH - MENU_TEXT_X, 3 * LINE - 2)
 # BG1's colors go in 128..143: they are those of sprite palette 0, which on
-# this screen are off, and which `menu_exp_cerrar` restores on closing the
+# this screen are off, and which `menu_exp_close` restores on closing the
 # menu. There is no room in 0..127: they are the menu bank's palettes.
 TARGET_CGRAM = 128
 TARGET_COLORS_MAX = 16
@@ -1292,7 +1292,7 @@ def render_target(sys_img, db, slots, party, chosen=0, font_id=None,
     """The actor choice as the console has to show it.
 
     It shares the party panel with the menu, so it also writes the HP:
-    `menu_grupo_pintar` paints them, which is the same routine on both
+    `menu_party_paint` paints them, which is the same routine on both
     sides. `item` is the medicine being used, with `amount` how many are
     left; without it, it is the choice of whom to equip.
     """

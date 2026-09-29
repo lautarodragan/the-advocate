@@ -100,7 +100,7 @@ def test_en_las_ranuras_la_repeticion_no_da_la_vuelta(partida):
     primero = movidas[0]
     assert movidas == [primero, primero + ESPERA, primero + ESPERA + CADA], (
         "se movió en los cuadros %s" % movidas)
-    assert cursor(una) == una.simbolos["SRAM_RANURAS"] - 1
+    assert cursor(una) == una.simbolos["SRAM_SLOTS"] - 1
     cuadros_en_que_se_mueve(una, 4)
     cuadros_en_que_se_mueve(una, 2, "down")
     assert cursor(una) == 0, "el toque no dio la vuelta: quedó en %d" % (

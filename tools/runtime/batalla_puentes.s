@@ -23,8 +23,8 @@
 ; not have to touch it: all it does is switch program bank and return.
 ;
 ; **Each bridge restores the data bank**, which on the other side is $7E. It
-; is not a detail: `eq_parametro` reads `actor_params` and
-; `ranura_ppu_prender` writes BG2SC, both with absolute addressing, and with
+; is not a detail: `eq_parameter` reads `actor_params` and
+; `slot_ppu_on` writes BG2SC, both with absolute addressing, and with
 ; the bank at $7E the first would read WRAM and the second would write to RAM
 ; instead of the PPU. It cost an afternoon: each actor's three parameters came
 ; out as 999.
@@ -49,56 +49,56 @@ bt_t_upload:
     phb
     phk
     plb
-    jsr pant_subir
+    jsr scr_upload
     plb
     rtl
 bt_t_clear:
     phb
     phk
     plb
-    jsr pant_limpiar
+    jsr scr_clear
     plb
     rtl
 bt_t_text:
     phb
     phk
     plb
-    jsr pant_texto
+    jsr scr_text
     plb
     rtl
 bt_t_number:
     phb
     phk
     plb
-    jsr pant_numero
+    jsr scr_number
     plb
     rtl
 bt_t_glyph:
     phb
     phk
     plb
-    jsr pant_glifo
+    jsr scr_glyph
     plb
     rtl
 bt_t_bank:
     phb
     phk
     plb
-    jsl f:items_banco_subir
+    jsl f:items_bank_upload
     plb
     rtl
 bt_t_ppu:
     phb
     phk
     plb
-    jsr ranura_ppu_prender
+    jsr slot_ppu_on
     plb
     rtl
 bt_t_param:
     phb
     phk
     plb
-    jsl f:eq_parametro
+    jsl f:eq_parameter
     plb
     rtl
 ; The two for audio, which are from this round: a sound effect —A16 the index
@@ -137,20 +137,20 @@ bt_t_shake:
     rtl
 
 ; And the two for the shop and the equipment, which also live outside: the
-; inventory item list and building it. `ti_lista_venta` and `eq_de_lista` call
+; inventory item list and building it. `shop_sell_list` and `eq_from_list` call
 ; them.
 bt_t_list:
     phb
     phk
     plb
-    jsr item_de_lista
+    jsr item_from_list
     plb
     rtl
 bt_t_build:
     phb
     phk
     plb
-    jsr items_armar_lista
+    jsr items_build_list
     plb
     rtl
 

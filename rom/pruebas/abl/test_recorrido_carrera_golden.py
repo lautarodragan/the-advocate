@@ -29,7 +29,7 @@ Es el hito 1 de `workflow/tasks/*/la-carrera-y-lo-que-sigue.md`. El recorrido:
 paralela**, con el primer plano quieto, y el volante es el `KeyInputProc` que
 no espera y mira lo apretado. Las dos cosas las estrenó este recorrido: hasta
 el 2026-09-27 ninguna página de `release` las usaba, y la ROM no hacía
-ninguna de las dos —ver el lazo principal y `tecla_valor`—.
+ninguna de las dos —ver el lazo principal y `key_value`—.
 
 El volante se maneja **sosteniendo** arriba o abajo con el arnés, y quien
 decide es `piloto`: mira en la RAM la celda de cada auto y la del héroe, y se

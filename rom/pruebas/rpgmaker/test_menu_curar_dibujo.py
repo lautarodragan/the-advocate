@@ -207,8 +207,8 @@ def test_la_eleccion_se_ve_igual_al_volver_a_entrar(partida):
     volver con B, contra `render_target`: las dos tienen que ser la misma.
 
     Lo que la rompía era la última fila de la lista, que acá son las botas, en
-    gris: `ranura_rect_subir` leía de `temp` los bytes por fila **en dieciséis
-    bits**, `menu_grupo_pintar` le escribía sólo el byte bajo, y el alto
+    gris: `slot_rect_upload` leía de `temp` los bytes por fila **en dieciséis
+    bits**, `menu_party_paint` le escribía sólo el byte bajo, y el alto
     quedaba con la variante de la última letra de la lista —1, gris—. Así que
     el primer DMA de la primera fila subía 256 bytes de más encima del
     tilemap.

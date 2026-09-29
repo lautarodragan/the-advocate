@@ -53,7 +53,7 @@ SCREEN_BUFFER = $7F0000
 ; The screen's tilemap, in VRAM words. The tiles go from $0000 and the
 ; heaviest image is 896 8bpp tiles, that is, up to $7000: they never get above
 ; that. The title puts its menu in the middle: see the `.assert` in
-; `titulo_subir`.
+; `title_upload`.
 SCREEN_MAP = $7C00
 
 ; `op_battle` before fighting: the defeat destination, which is six bytes
@@ -182,7 +182,7 @@ sube:
     bra sube
 arriba:
     ; And the button, which in RM2k is `Input::DECISION`: A, on the edge.
-    ; START too, as on the title screen: see `titulo_lazo`. What was pressed
+    ; START too, as on the title screen: see `title_loop`. What was pressed
     ; during the fade does not count, because `go_wait` read the
     ; controller on every frame and the edge has already passed.
     lda #1
@@ -255,7 +255,7 @@ cuadro:
 ; Both the Game Over screen and the title use it: that is why it does not know
 ; which one it is uploading. It is two steps because of the title, which is
 ; decompressed during boot, while the BOOT_CUADROS are waited out, and only
-; uploaded when shown: see `titulo_subir`.
+; uploaded when shown: see `title_upload`.
 ;
 ; Decompressing does not touch VRAM, so it can be done with the screen on.
 ; Leaves X as it was.

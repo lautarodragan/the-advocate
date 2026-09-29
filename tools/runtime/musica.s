@@ -390,7 +390,7 @@ igual:
 .a8
 .i16
     ; A loaded save brings its own song —the one the event's `PlayBGM` turned
-    ; on— and `cargar_partida` already left it in `tema_actual` and
+    ; on— and `load_game` already left it in `tema_actual` and
     ; `music_apagada`. Without this the save would start with the song of the
     ; ROM's starting map, which is the opening's and not the one of the place
     ; where the player saved.

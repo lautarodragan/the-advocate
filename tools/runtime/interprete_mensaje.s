@@ -64,11 +64,11 @@ abrir:
     stz eleg_activo
     rep #$20
 .a16
-    lda [cod_ptr], y            ; the offset, which goes in A to msg_empezar
+    lda [cod_ptr], y            ; the offset, which goes in A to msg_start
     iny
     iny
     phy
-    jsr msg_empezar
+    jsr msg_start
     ply
     sep #$20
 .a8

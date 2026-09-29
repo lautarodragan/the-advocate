@@ -13,7 +13,7 @@
 ;
 ; **It blocks inside the interpreter and costs no tick**, which is what RM2k
 ; does: `OpenSaveMenu` pushes `Scene_Save`, the map stops updating until it
-; closes, and the page goes on with the next command. Here `ranuras_pantalla`
+; closes, and the page goes on with the next command. Here `slots_screen`
 ; runs its own frame loop —as it does from the title— and `vueltas` does not
 ; advance while it is shown, so both interpreters are still on the same tick
 ; when it returns. Cancelling with B goes back to the map without saving,
@@ -34,11 +34,11 @@
 .proc op_save
     phy
     lda #1                      ; save mode
-    jsr ranuras_pantalla
+    jsr slots_screen
     cmp #$FF
     beq cancelado
-    jsr poner_ranura
-    jsr guardar_partida
+    jsr set_slot
+    jsr save_game
 cancelado:
     jsr volver_al_mapa
     ply
@@ -68,7 +68,7 @@ cancelado:
     ; The permission is looked at with an 8-bit A and not with Y: with 16-bit
     ; index registers, `ldy temp + 1` also took `temp + 2`, and a permission
     ; at zero with garbage next to it ended up allowed.
-    jsr acceso_leer
+    jsr access_read
     xba                         ; B = the permissions, while we look
     lda temp + 1
     beq acceso_prohibir
@@ -82,7 +82,7 @@ acceso_prohibir:
     xba
     ora temp
 acceso_listo:
-    jsr acceso_escribir
+    jsr access_write
     ply
     jmp run_code::otro
 

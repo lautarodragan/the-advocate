@@ -152,7 +152,7 @@ mascara:
 
 ; The HDMA table that masks the objects under the message window: nothing in
 ; the top 144 lines —in two stretches, because of the counter's 7 bits— and
-; window 1 enabled for the objects in the bottom 80. See `armar_hdma`.
+; window 1 enabled for the objects in the bottom 80. See `build_hdma`.
 ;
 ; **Outside bank 0**: HDMA reads from wherever `A1B3` says, so an eight-byte
 ; table that never changes has no reason to spend it.
@@ -184,7 +184,7 @@ diag_horiz:
 
 ; Where the composed glyphs of each phase start, indexed by the phase itself
 ; —0, 2, 4 or 6—: that is why the banks go with a padding byte between them.
-; See `componer_char`. They are read **once per glyph**, not per row.
+; See `compose_char`. They are read **once per glyph**, not per row.
 fuente_pre_lo:
     .word .loword(fuente_pre0), .loword(fuente_pre1)
     .word .loword(fuente_pre2), .loword(fuente_pre3)
@@ -201,7 +201,7 @@ tecla_dir_val:
     .byte TECLA_VALOR_ARRIBA, TECLA_VALOR_DERECHA
     .byte TECLA_VALOR_IZQUIERDA, TECLA_VALOR_ABAJO
 
-; Adding, removing or enlarging a line changes `PARTIDA_BYTES`, and with it
+; Adding, removing or enlarging a line changes `SAVE_BYTES`, and with it
 ; the header: saves made before stop loading, which is what has to happen
 ; —see `SRAM_BYTES`—. **Reordering two lines without changing the total goes
 ; unseen**: the header comes out the same and an old save would load shifted.
@@ -257,7 +257,7 @@ partida_tabla:
 ; `op_battle`'s Game Over. The three that are indexed are read with
 ; `lda f:tabla, x` —absolute long, which does not depend on the data bank— and
 ; that is why they go with X and not Y: the 65816 has no `long,Y`.
-; `hdma_mascara` is not indexed: `armar_hdma` hands its address and bank to
+; `hdma_mascara` is not indexed: `build_hdma` hands its address and bank to
 ; the HDMA channel.
 
 ; Which way each pose faces, 0 to 11: the direction is the pose divided by

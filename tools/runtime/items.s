@@ -14,23 +14,23 @@
 ;
 ; The list is built on entering: the items there are and that this ROM knows,
 ; in number order like `Game_Party`, stored as their place `k` in the
-; converter's tables, in `FAR_ITEM_LISTA`. How many there are, the first one
+; converter's tables, in `FAR_ITEM_LIST`. How many there are, the first one
 ; visible and the cursor go in borrowed variables: `eleg_n`, `eleg_sel` and
 ; `titulo_sel`. The choice cannot be open with the menu —the menu does not
 ; open with a message up— so its bytes are free; `eleg_cancel`, `eleg_flancos`
 ; and `eleg_tabla` serve as scratch, and `msg_ptr` points to the text being
 ; written.
-FAR_ITEM_LISTA = $2A00
+FAR_ITEM_LIST = $2A00
 
 ; A: a place in the list. Returns with A = its `k`. Only A.
-.proc item_de_lista
+.proc item_from_list
 .a8
 .i16
     rep #$20
 .a16
     and #$00FF
     clc
-    adc #FAR_ITEM_LISTA
+    adc #FAR_ITEM_LIST
     sta WMADDL
     sep #$20
 .a8
@@ -40,7 +40,7 @@ FAR_ITEM_LISTA = $2A00
 .endproc
 
 ; A: a `k`. Returns with A = how many of that item there are. Clobbers X.
-.proc item_cuantos
+.proc item_count
 .a8
 .i16
     rep #$20
@@ -59,8 +59,8 @@ FAR_ITEM_LISTA = $2A00
     rts
 .endproc
 
-; The list, into `FAR_ITEM_LISTA`, and how many there are into `eleg_n`.
-.proc items_armar_lista
+; The list, into `FAR_ITEM_LIST`, and how many there are into `eleg_n`.
+.proc items_build_list
 .a8
 .i16
     stz eleg_n
@@ -86,7 +86,7 @@ otro:
     lda eleg_n
     and #$00FF
     clc
-    adc #FAR_ITEM_LISTA
+    adc #FAR_ITEM_LIST
     sta WMADDL
     sep #$20
 .a8
@@ -102,7 +102,7 @@ siguiente:
 
 ; One letter: A the character, Y the address of the upper cell and `temp + 1`
 ; the variant, 0 white and 1 gray. Clobbers X.
-.proc glifo_par
+.proc glyph_pair
 .a8
 .i16
     rep #$20
@@ -145,7 +145,7 @@ blanco:
 ; `3k + 2` the description lines—, `eleg_tabla` the address of the upper cell
 ; of its first letter and `temp + 1` the variant. First the upper cells of all
 ; the letters, which are contiguous in VRAM, and then the lower ones.
-.proc texto_escribir
+.proc text_write
 .a8
 .i16
     lda f:item_txt_lo, x
@@ -217,14 +217,14 @@ en_blanco:
 
 ; The description of the item under the cursor, composed in `texto_buf` and
 ; not in VRAM: it is four rows of whole cells —256 bytes— that
-; `items_desc_subir` uploads in one DMA. Writing them one word at a time did
+; `items_desc_upload` uploads in one DMA. Writing them one word at a time did
 ; not fit in vblank: when moving the cursor the second line came out cut off,
 ; because VRAM ignores what is written to it while the screen is drawing. The
 ; buffer is the message composer's, which does not exist with the menu open.
 ; With the list empty it stays blank.
 ITEM_DESC_BYTES = 4 * 64
 
-.proc items_desc_pintar
+.proc items_desc_paint
 .a8
 .i16
     ldx #0
@@ -236,7 +236,7 @@ borrar:
     lda eleg_n
     beq listo
     lda titulo_sel
-    jsr item_de_lista
+    jsr item_from_list
     rep #$20
 .a16
     and #$00FF
@@ -309,7 +309,7 @@ fin:
 
 ; Uploads the composed description: a 256-byte DMA, which fits in any
 ; vblank.
-.proc items_desc_subir
+.proc items_desc_upload
 .a8
 .i16
     lda #$80
@@ -336,7 +336,7 @@ fin:
 
 ; Screen row A, which has to have an item: the cursor if it applies, the
 ; name, the colon and the quantity, in gray if A does not use it.
-.proc items_fila_pintar
+.proc items_row_paint
 .a8
 .i16
     sta eleg_cancel             ; the row
@@ -344,7 +344,7 @@ fin:
     clc
     adc eleg_sel                ; its place in the list
     pha
-    jsr item_de_lista
+    jsr item_from_list
     sta eleg_flancos            ; its `k`
     pla
     cmp titulo_sel
@@ -352,7 +352,7 @@ fin:
     lda #1
     sta temp + 3
     lda eleg_cancel
-    jsl f:items_barra
+    jsl f:items_bar
 sin_cursor:
     ; --- the color: gray if A does not use it ---
     lda eleg_flancos
@@ -386,10 +386,10 @@ sin_cursor:
     tax                         ; 3k, the name
     sep #$20
 .a8
-    jsr texto_escribir
+    jsr text_write
     ; --- the colon and the quantity ---
     lda eleg_flancos
-    jsr item_cuantos
+    jsr item_count
     cmp #100
     bcc cabe
     lda #99
@@ -417,7 +417,7 @@ unidades:
     sep #$20
 .a8
     lda #$3A                    ; ':'
-    jsr glifo_par
+    jsr glyph_pair
     rep #$20
 .a16
     lda eleg_tabla
@@ -429,7 +429,7 @@ unidades:
     beq sin_decenas             ; a 7 is " 7", not "07"
     clc
     adc #$30                    ; '0'
-    jsr glifo_par
+    jsr glyph_pair
 sin_decenas:
     rep #$20
 .a16
@@ -442,12 +442,12 @@ sin_decenas:
     pla
     clc
     adc #$30                    ; '0'
-    jmp glifo_par
+    jmp glyph_pair
 .endproc
 
 
 ; The visible rows, over the blank tilemap.
-.proc items_filas_pintar
+.proc items_rows_paint
 .a8
 .i16
     lda #0
@@ -460,7 +460,7 @@ row:
     bcs termina                 ; no more items
     pla
     pha
-    jsr items_fila_pintar
+    jsr items_row_paint
     pla
     inc a
     cmp #ITEM_FILAS
@@ -474,26 +474,26 @@ termina:
 ; The items screen, until the player goes back with B —A = 0, to the menu— or
 ; uses an item —A = 1: RM2k goes straight back to the map,
 ; `PopUntil(Scene::Map)`—.
-.proc items_pantalla
+.proc items_screen
 .a8
 .i16
-    jsr items_armar_lista
+    jsr items_build_list
     stz titulo_sel
     stz eleg_sel
     lda #$80
     sta INIDISP
     stz HDMAEN
     stz TM
-    jsl f:items_pantalla_subir
-    jsr items_desc_pintar
-    jsr items_desc_subir
-    jsr items_filas_pintar
-    jsl f:items_ppu_prender
+    jsl f:items_screen_upload
+    jsr items_desc_paint
+    jsr items_desc_upload
+    jsr items_rows_paint
+    jsl f:items_ppu_on
     lda #1
     sta menu_abierto
 espera:
     jsr wait_vblank
-    jsr items_desc_subir        ; first thing in vblank: the description
+    jsr items_desc_upload        ; first thing in vblank: the description
     jsr read_pad
     lda pad
     eor pad_ant
@@ -530,7 +530,7 @@ mira_a:
     lda eleg_n
     beq espera                  ; the list is empty
     lda titulo_sel
-    jsr item_de_lista
+    jsr item_from_list
     sta eleg_flancos            ; its `k`
     rep #$20
 .a16
@@ -551,7 +551,7 @@ mira_a:
     lda eleg_sel
     pha
     stz eleg_cancel             ; for a medicine, the one in `eleg_flancos`
-    jsr objetivo_pantalla
+    jsr target_screen
     pla
     sta eleg_sel
     pla
@@ -559,7 +559,7 @@ mira_a:
     ; The list again, which is `Scene_Item::Continue`: the medicine may have
     ; been used up entirely. A cursor left outside goes to the last one, the
     ; `SetIndex(min(index, item_max - 1))` over there, and the view follows it.
-    jsr items_armar_lista
+    jsr items_build_list
     lda eleg_n
     beq empty
     lda titulo_sel
@@ -579,11 +579,11 @@ cursor_listo:
 vista_lista:
     lda #$80
     sta INIDISP
-    jsl f:items_pantalla_subir
-    jsr items_desc_pintar
-    jsr items_desc_subir
-    jsr items_filas_pintar
-    jsl f:items_ppu_prender
+    jsl f:items_screen_upload
+    jsr items_desc_paint
+    jsr items_desc_upload
+    jsr items_rows_paint
+    jsl f:items_ppu_on
     jmp espera
 de_switch:
     ; A switch item: `ConsumeItemUse` if it has uses, the switch turned on and
@@ -593,7 +593,7 @@ de_switch:
     and #2
     beq sin_gastar
     lda eleg_flancos
-    jsr item_cuantos
+    jsr item_count
     dec a
     pha
     lda eleg_flancos
@@ -635,7 +635,7 @@ mover:
     lda titulo_sel
     sec
     sbc eleg_sel
-    jsl f:items_barra
+    jsl f:items_bar
     pla
     sta titulo_sel
     cmp eleg_sel
@@ -649,8 +649,8 @@ mover:
     lda titulo_sel
     sec
     sbc eleg_sel
-    jsl f:items_barra
-    jmp items_desc_pintar
+    jsl f:items_bar
+    jmp items_desc_paint
 sube_la_vista:
     lda titulo_sel
     sta eleg_sel
@@ -663,10 +663,10 @@ baja_la_vista:
 repintar:
     lda #$80
     sta INIDISP
-    jsl f:items_pantalla_subir  ; the blank tilemap, and the rest along with it
-    jsr items_desc_pintar
-    jsr items_desc_subir
-    jsr items_filas_pintar
+    jsl f:items_screen_upload  ; the blank tilemap, and the rest along with it
+    jsr items_desc_paint
+    jsr items_desc_upload
+    jsr items_rows_paint
     lda #$0F
     sta INIDISP
     rts

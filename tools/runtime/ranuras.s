@@ -17,23 +17,23 @@
 ; Moving the cursor rewrites **two rows** of 96 cells, not the whole tilemap.
 
 ; Whether the slot in A has a save. Returns A nonzero, and **clobbers
-; `ranura`**: `ranuras_pantalla` saves it on entry and restores it on exit.
+; `ranura`**: `slots_screen` saves it on entry and restores it on exit.
 ;
 ; It looks at the magic and the format —a save from another build looks
-; empty, see `ranura_de_este_formato`— but not at the checksum: it is for
+; empty, see `slot_of_this_format`— but not at the checksum: it is for
 ; painting the list, and walking every slot's bytes to draw a screen would be
-; overpaying. The checksum is verified by `cargar_partida` when the player
+; overpaying. The checksum is verified by `load_game` when the player
 ; picks, which is where it matters.
-.proc ranura_llena
+.proc slot_full
 .a8
 .i16
-    jsr poner_ranura
-    jsr ranura_en_x             ; with the data bank still normal
+    jsr set_slot
+    jsr slot_in_x             ; with the data bank still normal
     phb
-    lda #SRAM_BANCO
+    lda #SRAM_BANK
     pha
     plb
-    jsr ranura_de_este_formato
+    jsr slot_of_this_format
     beq no                      ; the `plb` below clobbers Z: it is checked first
     plb
     lda #$01
@@ -51,7 +51,7 @@ no:
 ; With the screen off on entry and inside the vblank when moving the cursor:
 ; 192 bytes by DMA fit with room to spare in a vblank that has nothing else
 ; to do.
-.proc ranura_bloque_subir
+.proc slot_block_upload
 .a8
 .i16
     sty VMADDL
@@ -86,11 +86,11 @@ no:
 ; it is four bytes of SRAM and it only happens when the cursor moves. Storing
 ; it would need RAM that is not there —see `ranura`— and a way to invalidate
 ; it after saving.
-.proc ranura_pintar
+.proc slot_paint
 .a8
 .i16
     pha
-    jsr ranura_llena
+    jsr slot_full
     asl a                       ; full counts 2 in the variant index
     sta temp + 2
     pla
@@ -129,7 +129,7 @@ sin_cursor:
     sta temp
     sep #$20
 .a8
-    jsr ranura_bloque_subir
+    jsr slot_block_upload
     ; And on top of the row, if it has a save, the leader's name and the faces
     ; of the party it saved. `temp + 2` was left with the variant: full is 2
     ; or 3.
@@ -137,7 +137,7 @@ sin_cursor:
     lda temp + 2
     cmp #2
     bcc sin_grupo
-    jmp ranura_grupo_pintar
+    jmp slot_party_paint
 sin_grupo:
     rts
 .endproc
@@ -149,7 +149,7 @@ sin_grupo:
 ;
 ; **`temp` is one byte**, and the high byte of the DMA size is set to zero
 ; here: a tilemap row is 32 cells, 64 bytes. Until 2026-09-21 it was read as
-; sixteen bits, and the two callers of `menu_grupo_pintar` write only the low
+; sixteen bits, and the two callers of `menu_party_paint` write only the low
 ; byte: the high one kept whatever was there, which coming from the item
 ; screen is the variant of its last letter —`temp + 1`, 1 if it is gray—.
 ; With a gray item at the end of the list, the panel's first row uploaded 256
@@ -160,7 +160,7 @@ sin_grupo:
 ; A single source pointer for all rows: the DMA leaves `A1T0` pointing where
 ; it ended, so the next row starts from there without reloading it. What
 ; changes per row is the destination, which moves down 32 cells.
-.proc ranura_rect_subir
+.proc slot_rect_upload
 .a8
 .i16
     lda #$80
@@ -213,7 +213,7 @@ row:
 ; none of these screens opens with a message on screen, so the composer does
 ; not have it in use. And it has to be that one or another in the direct
 ; page, because `lda [dp], y` only addresses there.
-.proc ranura_texto_de
+.proc slot_text_of
 .a8
 .i16
     rep #$20
@@ -245,9 +245,9 @@ row:
 ;
 ; First the upper cells of all the letters, which are contiguous in VRAM and
 ; make use of the auto-increment, and then the lower ones. It is the item
-; screen's `texto_escribir` with the other glyph table: they are two
+; screen's `text_write` with the other glyph table: they are two
 ; different banks and each has its own.
-.proc ranura_texto_escribir
+.proc slot_text_write
 .a8
 .i16
     sta temp                    ; how many letters
@@ -315,21 +315,21 @@ letra:
 ; on a single side.
 ;
 ; The face is a baked block and the name and the level **are not**: those are
-; composed with glyphs, see `ranura_texto_escribir`.
+; composed with glyphs, see `slot_text_write`.
 ;
 ; The scratch space, which is tight: `temp` and `temp + 2` belong to the
 ; rectangle, `temp + 3` keeps how many there are, and **`titulo_flancos`
 ; serves as the member index**. There is no other byte in the direct page,
 ; and the edges have already been looked at by the time this is reached.
-.proc ranura_grupo_pintar
+.proc slot_party_paint
 .a8
 .i16
-    jsr ranura_en_x
+    jsr slot_in_x
     phb
-    lda #SRAM_BANCO
+    lda #SRAM_BANK
     pha
     plb
-    lda SRAM_DATOS + PARTIDA_GRUPO_N, x
+    lda SRAM_DATA + SAVE_PARTY_N, x
     plb
     cmp #RANURA_CARAS_MAX
     bcc caben
@@ -379,14 +379,14 @@ otro_miembro:
     tax
     sep #$20
 .a8
-    jsr ranura_rect_subir
+    jsr slot_rect_upload
 siguiente:
     inc titulo_flancos
     bra otro_miembro
 las_caras_listas:
     ; The name of the leader, who is the first, and its level: both composed
     ; with glyphs on top of the row. `temp + 3` is no longer needed, so
-    ; `ranura_texto_escribir` can use `temp`.
+    ; `slot_text_write` can use `temp`.
     lda temp + 3
     beq listo                   ; an empty party has no leader
     stz titulo_flancos
@@ -407,11 +407,11 @@ las_caras_listas:
     pla
     pha
     ldx #RANURA_TEXTO_NOMBRE
-    jsr ranura_texto_de
+    jsr slot_text_of
     lda #RANURA_NOMBRE_COLS
-    jsr ranura_texto_escribir
+    jsr slot_text_write
     ; And the level, which falls a few cells further along the same row. Y
-    ; stayed where it was: `ranura_texto_escribir` preserves it.
+    ; stayed where it was: `slot_text_write` preserves it.
     rep #$20
 .a16
     tya
@@ -423,7 +423,7 @@ las_caras_listas:
     pla
     jsl f:text_level_saved  ; the one from the slot's save, not the current one
     lda #RANURA_NIVEL_CIFRAS
-    jsr ranura_texto_escribir
+    jsr slot_text_write
 listo:
     rts
 
@@ -447,10 +447,10 @@ actor_del_miembro:
     sep #$20
 .a8
     phb
-    lda #SRAM_BANCO
+    lda #SRAM_BANK
     pha
     plb
-    lda SRAM_DATOS + PARTIDA_GRUPO, x
+    lda SRAM_DATA + SAVE_PARTY, x
     plb
     rts
 .endproc
@@ -461,9 +461,9 @@ actor_del_miembro:
 ;
 ; It leaves VRAM and CGRAM overwritten, so the caller restores its own: the
 ; title uploads its image and its menu again, and the save point reloads the
-; map. It is the same thing `pantalla_titulo` does on exit, and for the same
+; map. It is the same thing `title_screen` does on exit, and for the same
 ; reason: while this screen is up there is neither map nor title to preserve.
-.proc ranuras_pantalla
+.proc slots_screen
 .a8
 .i16
     ; The data bank, to 0. **From the title it already is; from the save point
@@ -487,7 +487,7 @@ actor_del_miembro:
     stz HDMAEN
     stz TM                      ; nothing visible while it is built
 
-    jsr ranura_banco_subir
+    jsr slot_bank_upload
 
     ; --- the header, according to the mode ---
     pla
@@ -501,7 +501,7 @@ actor_del_miembro:
     ldy #(RANURA_MAP + RANURA_CAB_VRAM)
     sep #$20
 .a8
-    jsr ranura_bloque_subir
+    jsr slot_block_upload
 
     ; --- where the cursor starts ---
     ; Loading, on the first. Saving, on the slot in use —the one loaded from,
@@ -518,10 +518,10 @@ primera:
 arranca_ahi:
     sta titulo_sel
 
-    ; `ranura` onto the stack. Painting a row overwrites it —`ranura_llena`
+    ; `ranura` onto the stack. Painting a row overwrites it —`slot_full`
     ; writes it to address the SRAM— and on exit it has to hold what it held,
     ; whether the player picks or cancels: whoever picks sets it afterwards
-    ; with `poner_ranura`. From the title it did not matter because it held
+    ; with `set_slot`. From the title it did not matter because it held
     ; $FF and was set on picking; from the save point, cancelling would leave
     ; the save of the last painted row as the "loaded" one.
     lda ranura
@@ -531,13 +531,13 @@ arranca_ahi:
     lda #0
 pintar_todas:
     pha
-    jsr ranura_pintar
+    jsr slot_paint
     pla
     inc a
     cmp #SRAM_RANURAS_N
     bcc pintar_todas
 
-    jsr ranura_ppu_prender
+    jsr slot_ppu_on
     lda #1
     sta menu_abierto
 
@@ -612,7 +612,7 @@ cerrar:
     phx
     ; And the B and A edges, consumed: the one that closed the screen belongs
     ; to it. Without this, from the save point, the B for cancelling reached
-    ; `pedir_menu` in the same tick —if the page ended there— and opened the
+    ; `request_menu` in the same tick —if the page ended there— and opened the
     ; pause menu; and the A for picking could talk to an event.
     lda pad
     sta pad_ant
@@ -633,15 +633,15 @@ mover_cursor:
     lda temp + 3
     sta titulo_sel
     pla
-    jsr ranura_pintar           ; the cursor is erased from where it was
+    jsr slot_paint           ; the cursor is erased from where it was
     lda titulo_sel
-    jmp ranura_pintar           ; and painted where it goes
+    jmp slot_paint           ; and painted where it goes
 .endproc
 
 ; Uploads the tile bank of the slot screen and the menu, blanks the tilemap
 ; and uploads their colors. With the screen off. It came out of
-; `ranuras_pantalla` the day the pause menu started using the same bank.
-.proc ranura_banco_subir
+; `slots_screen` the day the pause menu started using the same bank.
+.proc slot_bank_upload
 .a8
 .i16
     ; --- the tiles ---
@@ -714,7 +714,7 @@ mover_cursor:
 .endproc
 
 ; BG2 with the slot screen's tilemap, and the screen on.
-.proc ranura_ppu_prender
+.proc slot_ppu_on
 .a8
 .i16
     ; --- the PPU ---

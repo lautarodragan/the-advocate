@@ -152,7 +152,7 @@ def bar_row(bar):
 def equipment_layers(sys_img):
     """What `menus.borders` needs from this screen: the windows without a
     cursor and with each cursor —the slots and then the list rows—, in the
-    order the ROM indexes them: see `eq_barra`."""
+    order the ROM indexes them: see `eq_bar`."""
     return (equipment_windows(sys_img),
             [(equipment_windows(sys_img, k), bar_row(k))
              for k in range(EQUIPMENT_SLOTS + EQ_LIST_ROWS)])
@@ -164,7 +164,7 @@ def new_value_color(now, then):
     3 if it goes down. In ABL's skin 2 is a peach and 3 the "cannot" gray;
     that is how the original shows it, captured with the 2015 RPG_RT on
     2026-09-28. Returns the font variant —`menus.ITEM_*`—, which is what the
-    ROM compares in `eq_componer`."""
+    ROM compares in `eq_compose`."""
     if then == now:
         return menus.ITEM_WHITE
     return menus.ITEM_UP if then > now else menus.ITEM_GRAY

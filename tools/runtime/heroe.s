@@ -74,7 +74,7 @@ sin_ruta:
     ; `IsAnyEventStarting` afterwards.
     lda ev_activo
     beq menu_sin_pagina
-    jsr menu_olvidar
+    jsr menu_forget
     rts
 menu_sin_pagina:
     lda msg_abierto
@@ -96,11 +96,11 @@ menu_sin_pagina:
     jsl f:game_over_always
     jmp battle_start
 sin_encuentro:
-    jsr acceso_leer
+    jsr access_read
     bpl menu_sin_pedido         ; bit 7 is the request
     and #$7F
-    jsr acceso_escribir
-    jsr menu_pantalla
+    jsr access_write
+    jsr menu_screen
     rts
 menu_sin_pedido:
     ; And a message on screen rules over the pad, just like the forced move

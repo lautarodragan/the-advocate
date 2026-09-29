@@ -2,7 +2,7 @@
 
 Ésta es la red que faltó dos veces. Un cuadro de texto trae, por renglón, un
 byte con cuántos caracteres tiene, y ese byte sale del cartucho.
-`componer_char` escribe en `texto_buf` con
+`compose_char` escribe en `texto_buf` con
 un desplazamiento que sale de la columna, así que un largo mayor que
 `MENSAJE_COLS` escribe **fuera del buffer**, y lo que hay del otro lado es la
 tabla del HDMA de la ventana, la imagen de OAM y `vq_n`, el contador de la cola
@@ -32,7 +32,7 @@ def _componer(p, largo, ticks=TICKS):
     """Pone al compositor a armar un renglón de `largo` caracteres y lo deja
     correr.
 
-    Es el estado en el que `mensaje_tick` se deja a sí mismo después de leer el
+    Es el estado en el que `message_tick` se deja a sí mismo después de leer el
     byte de largo del cartucho, salteando esa lectura: `msg_cebada` en 1 dice
     que el fondo del renglón ya está en el buffer, así que lo próximo que hace
     es componer. `msg_ptr` apunta al bloque de textos, que es ROM legible: qué
@@ -72,7 +72,7 @@ def test_un_largo_inventado_no_escribe_fuera_del_buffer(partida):
     dependa de qué caracteres salgan del cartucho ni de dónde esté cada
     variable.
 
-    Comprobado en rojo sacándole el tope a `mensaje_tick`: **207 bytes
+    Comprobado en rojo sacándole el tope a `message_tick`: **207 bytes
     distintos**, desde `hdma_sc` hasta adentro de `vq`.
 
     Las dos partidas no se pueden tener vivas a la vez —el núcleo de libretro es

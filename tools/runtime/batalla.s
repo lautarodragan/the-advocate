@@ -226,9 +226,9 @@ no:
 ; routine that enters with 8-bit A and leaves with 16-bit A leaves the
 ; assembler believing something else, and an `lda #1` coming after would eat
 ; the next opcode. It already happened, and what showed was an attack of 999.
-; It is `eq_parametro`, the same one the equipment screen uses: the level's
+; It is `eq_parameter`, the same one the equipment screen uses: the level's
 ; value plus what each piece adds, capped to [1, 999]. `comp_col + 1` at zero
-; is "nothing is being chosen", the simple path of `eq_efectivo`. **Clobbers
+; is "nothing is being chosen", the simple path of `eq_effective`. **Clobbers
 ; X.**
 .proc bt_param
 .a8
@@ -410,7 +410,7 @@ con_actor:
     ; formula asked for it. It goes in a second pass because `bt_param`
     ; clobbers X and it has to be set again.
     lda #2
-    jsr bt_param                ; the spirit, `eq_parametro` like the others
+    jsr bt_param                ; the spirit, `eq_parameter` like the others
     rep #$20
 .a16
     sep #$20
@@ -1329,7 +1329,7 @@ variante:
     rep #$20
 .a16
     txa
-    sta BA_S5                   ; its offset, which `pant_texto` overwrites
+    sta BA_S5                   ; its offset, which `scr_text` overwrites
     lda #BA_NOMBRE_DX
     jsr bt_go
     sep #$20
@@ -1432,7 +1432,7 @@ max_cabe:
 
 ; A number with no leading spaces, in `BA_T0`, wherever `eleg_tabla` says. It
 ; is what easyrpg does when building the damage message, which sticks the
-; number to the name without padding; `pant_numero` pads, so it has to be told
+; number to the name without padding; `scr_number` pads, so it has to be told
 ; the exact width.
 .proc bt_number_exact
 .a8

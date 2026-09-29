@@ -83,7 +83,7 @@ TEXTOS = (
     ("texto-cruza", "grupo-11-en-255", "test-special", (60,), PRIMER_CUADRO,
      "cruza"),
     # Y el cuadro que sigue, que en el mismo cartucho cae entero del otro lado
-    # del borde: ahí `msg_empezar` sumaba el desplazamiento de dieciséis bits
+    # del borde: ahí `msg_start` sumaba el desplazamiento de dieciséis bits
     # al puntero y perdía el acarreo. Verificado en rojo con esa suma: 3404
     # pixeles. Son las dos posiciones de un solo empujón, y por eso un cartucho
     # solo donde antes hacían falta dos rellenos que no convivían.
@@ -124,7 +124,7 @@ def test_texto(nombre, caso, en, cuadros, renglon, donde):
         cruza = byte >> 15 != (byte + largo - 1) >> 15
         # Y "del otro lado" es que el operando de 16 bits sumado a la
         # dirección del bloque se pase de $FFFF, que es la cuenta que hace
-        # `msg_empezar`.
+        # `msg_start`.
         lejos = (cartucho(en).simbolos["mensajes"] & 0xFFFF) \
             + desplazamiento > 0xFFFF
         porque = (

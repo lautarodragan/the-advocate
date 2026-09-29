@@ -41,8 +41,8 @@ del frontend.
     evento        tiñe la pantalla desde un evento: CGRAM y el intérprete.
     caminando     camina: la RAM del control, que es la que tenía el error.
     cerrar        el mensaje. Es el código que más CGRAM y VRAM toca con la
-                  pantalla apagada —`load_ventana` sube tiles y una paleta
-                  entera, `estampar_ventana` escribe su tilemap—, que es justo
+                  pantalla apagada —`load_window` sube tiles y una paleta
+                  entera, `stamp_window` escribe su tilemap—, que es justo
                   la clase de escritura que snes9x perdona y ahí ya nos mordió
                   dos veces. De paso trae `msg_abierto`, una variable de RAM que
                   si nadie pone en cero deja la página bloqueada para siempre.

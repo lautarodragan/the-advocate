@@ -41,7 +41,7 @@ def test_arranca_sin_ningun_actor_cambiado(partida):
     `clear_variables` para todo lo que está más abajo— cada actor arrancaría
     con "el gráfico 0 de la tabla del mapa", o sea el primero que a cada mapa
     le haya tocado, y el héroe se dibujaría con cualquier cosa desde el primer
-    cuadro. Lo evita `actor_graf_limpiar`.
+    cuadro. Lo evita `actor_gfx_clear`.
     """
     una = partida()
     ninguno = una.simbolos["ACTOR_GRAF_NINGUNO"]

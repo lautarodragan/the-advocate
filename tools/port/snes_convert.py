@@ -2327,7 +2327,7 @@ LAYOUT_WINDOW_BG_CEILING = {"sprites": (0x0000, 256), "tiles": (0x1000, 544),
 # What it costs is that the window starts at index 256 and not 128, and its
 # cells carry that index baked in: that is why there are **two layouts** of
 # the window, one for each base the VRAM layouts use —see `ventana_bases`—,
-# and `estampar_ventana` picks its own by looking at where the window ended up
+# and `stamp_window` picks its own by looking at where the window ended up
 # relative to the BG2 base.
 #
 # **It goes last on purpose**, for the same reason as the previous ones:
@@ -2346,7 +2346,7 @@ LAYOUTS = (("VENTANA", LAYOUT_WINDOW),
            ("VENTANA_FONDO_TECHO", LAYOUT_WINDOW_BG_CEILING),
            ("VENTANA_ENCIMA", LAYOUT_WINDOW_ABOVE))
 # How many save slots the cartridge has. The same number is in
-# `tools/runtime/partida.s` as `SRAM_RANURAS`, and the ROM checks it: if they
+# `tools/runtime/partida.s` as `SRAM_SLOTS`, and the ROM checks it: if they
 # didn't match, the screen would show one number of slots and the SRAM would
 # have another.
 SLOTS = 4
@@ -2404,7 +2404,7 @@ def window_base(layout):
 # first one's is `ventana_celdas` —the usual one— and the second's,
 # `ventana_celdas_256`. The ROM picks between the two by the distance between
 # the window and the BG2 base, so **there can't be a third** without touching
-# `estampar_ventana`; `_check_splits` enforces it.
+# `stamp_window`; `_check_splits` enforces it.
 WINDOW_TILE_BASE = window_base(LAYOUT_WINDOW)
 WINDOW_BASES = (WINDOW_TILE_BASE, 256)
 
@@ -2760,14 +2760,14 @@ def font_bytes(font_id):
 
 
 # The window glyphs already composed, for each of the four phases a character
-# can land on: x is `VENTANA_BORDE + 6 * column`, so modulo 8 it gives 0, 6, 4
+# can land on: x is `WINDOW_BORDER + 6 * column`, so modulo 8 it gives 0, 6, 4
 # or 2 and never anything else. Per glyph and phase go the cell rows of
-# `FONT_PRE_ROWS` it touches —the glyph's twelve from `TEXTO_OFS_Y`, and
+# `FONT_PRE_ROWS` it touches —the glyph's twelve from `TEXT_OFS_Y`, and
 # one more of shadow— and per row the two cells it can step on, each with
 # three words: what is kept from the buffer, and what is set in planes 0-1
 # and in 2-3. The ROM does `buf = buf & conservar | prender`, which is what it
 # used to compute on each row with `pintar`, twice —shadow and glyph— and with
-# a one-bit-at-a-time shift. See `componer_char`.
+# a one-bit-at-a-time shift. See `compose_char`.
 #
 # The shadow and the glyph come already combined, with the ordering rule of
 # `Font::Render`: on a row lands the glyph from two rows up and the shadow
@@ -5255,7 +5255,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             # One layout for each window base the VRAM layouts use: the tile
             # index goes shifted behind the upper layer, and the upper layer
             # measures 128 or 256 depending on the layout. See
-            # `WINDOW_BASES` and `estampar_ventana`.
+            # `WINDOW_BASES` and `stamp_window`.
             for base, label in zip(WINDOW_BASES, ("ventana_celdas",
                                                   "ventana_celdas_256")):
                 plane = bytearray()
@@ -5620,7 +5620,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # **They go here and not at the start, which is where they were until
         # 2026-09-20.** An item's name isn't named through a table but by the
         # computation `3k` —`3k + 1` and `3k + 2` are its two description
-        # lines, see `texto_escribir`—, so a dead text before the first one
+        # lines, see `text_write`—, so a dead text before the first one
         # shifts every item and the ROM ends up drawing the dead ones, which
         # measure zero: the battle's "Use Item" list came out with the cursor
         # and the quantities and without a single name. With the padding here
@@ -5648,7 +5648,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             for name, _term in P.TI_TERMS:
                 lines = menus_mod.split_description(term[name])
                 # Outside the main one, the message goes in a one-line window:
-                # `ti_mensaje` writes only the first.
+                # `shop_message` writes only the first.
                 if lines[1] and name not in ("saludo", "resaludo"):
                     raise SystemExit(
                         "the shop message %r, of set %d, takes two "
@@ -6220,7 +6220,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                pos(P.TI_COUNT_ROW, P.TI_COUNT_X_COL),
                pos(P.TI_COUNT_ROW, P.TI_COUNT_COL),
                pos(P.TI_TOTAL_ROW, P.TI_GOLD_COL), T.ITEM_RED))
-        # `eq_barra` counts the rows of the slots and those of the list from
+        # `eq_bar` counts the rows of the slots and those of the list from
         # the same one: they are the same window.
         if P.EQ_LIST_ROW0 != P.EQ_SLOT_ROW0:
             raise SystemExit("the equipment list starts at row %d and the "
@@ -6404,7 +6404,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                 bits[r >> 3] |= 1 << (r & 7)
         handle.write("; How many bytes the skill bits take in `FAR_HAB`.\n"
                      "HAB_BYTES = %d\n" % skill_bytes)
-        handle.write("; The signature of the save format: see `SRAM_FIRMA`.\n"
+        handle.write("; The signature of the save format: see `SRAM_SIGNATURE`.\n"
                      "PARTIDA_FIRMA = $%04X\n" % save_signature(
                          pairs, experience_slots(db, slots["actores"]),
                          n_actors))
@@ -7085,7 +7085,7 @@ def save_signature(pairs, slots_exp, n_actors):
     """Sixteen bits that change when **what each byte of the saved game
     means** changes, so that the ROM rejects one from another build.
 
-    The size is guarded by the ROM on its own —`PARTIDA_BYTES`, which comes
+    The size is guarded by the ROM on its own —`SAVE_BYTES`, which comes
     from the same constants—; this covers what the size doesn't see: which
     RM2k variable goes in each slot, which actor each skill pair and each
     experience slot belongs to. Two builds can carry the same number of

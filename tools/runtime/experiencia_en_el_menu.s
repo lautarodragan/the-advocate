@@ -10,10 +10,10 @@
 ;
 ; Sprites read their tiles from `RANURA_VRAM`, so a glyph's tile in the bank
 ; is the same number, and their palette 0 is a copy of the text's. No other
-; screen turns sprites on —`ranura_ppu_prender` leaves only BG2—, so the
+; screen turns sprites on —`slot_ppu_on` leaves only BG2—, so the
 ; actor choice, which shares the panel, does not show it, which is what
 ; `Window_ActorTarget` does. What this changes from the map —OBSEL and colors
-; 128 to 143— is restored by `menu_exp_cerrar` on the way back.
+; 128 to 143— is restored by `menu_exp_close` on the way back.
 ;
 ; It runs with the screen off: the OAM is written straight through the port,
 ; and nothing overwrites it while the menu is shown because `flush_video`
@@ -33,15 +33,15 @@
 ;   comp_col + 1    whether a digit has already come out
 
 MENU_EXP_TERM_TILES = 4         ; the term: two wide, top and bottom
-MENU_EXP_OCULTO = 224           ; a y below the last visible line
+MENU_EXP_HIDDEN = 224           ; a y below the last visible line
 MENU_EXP_SPRITES = 128
 
 .assert MENU_EXP_TEXTO + MENU_EXP_LETRAS <= MENU_EXP_TEXTO_FIN, error, "the experience line does not fit in its place"
 .assert MENU_FILAS_GRUPO * (MENU_EXP_TERM_TILES + 2 * MENU_EXP_LETRAS) <= MENU_EXP_SPRITES, error, "the party's experience does not fit in the sprites"
 
-; From `menu_subir`, instead of `ranura_ppu_prender`: the sprites, and then
+; From `menu_upload`, instead of `slot_ppu_on`: the sprites, and then
 ; it turns the screen on with them. With the screen off.
-.proc menu_exp_pintar
+.proc menu_exp_paint
 .a8
 .i16
     phb
@@ -96,7 +96,7 @@ filas_listas:
     cmp #MENU_EXP_SPRITES
     bcs ocultos_listos
     stz OAMDATA
-    lda #MENU_EXP_OCULTO
+    lda #MENU_EXP_HIDDEN
     sta OAMDATA
     stz OAMDATA
     stz OAMDATA
@@ -380,12 +380,12 @@ potencias:
     .faraddr 100000, 10000, 1000, 100, 10, 1
 .endproc
 
-; When closing the menu, before `volver_al_mapa`: what `menu_exp_pintar`
+; When closing the menu, before `volver_al_mapa`: what `menu_exp_paint`
 ; changed on the map and the map does not restore by itself. OBSEL, which
 ; `volver_al_mapa` does not touch, and the colors of sprite palette 0, from
 ; `cgram_sombra`, which has the map's even if the tint or a picture changed
 ; them. It turns the screen off, which `volver_al_mapa` turns off anyway.
-.proc menu_exp_cerrar
+.proc menu_exp_close
 .a8
 .i16
     phb

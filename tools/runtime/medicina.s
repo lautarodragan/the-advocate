@@ -9,7 +9,7 @@
 ; `Scene_ActorTarget`. The actor choice calls it on each A over a medicine.
 ;
 ; It enters with the actor in A8 and the item's `k` in `eleg_flancos`, where
-; `items_pantalla` leaves it. It returns with A8 at 1 if it was of use and at
+; `items_screen` leaves it. It returns with A8 at 1 if it was of use and at
 ; 0 if not, and Z to match. It is entered with `jsl`, with any data bank: it
 ; sets $7E and restores it. It clobbers X, Y and `temp`.
 ;

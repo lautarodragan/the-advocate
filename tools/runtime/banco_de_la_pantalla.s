@@ -18,7 +18,7 @@
 
 ; The screen's bank, with the screen off: the font, the blank tilemap and the
 ; two palettes.
-.proc items_banco_subir
+.proc items_bank_upload
 .a8
 .i16
     lda #$80
@@ -93,12 +93,12 @@
 ; tilemap.
 
 ; The screen's bank and the item windows, with the screen off: it is entered
-; with `jsl`, like `items_banco_subir`.
-.proc items_pantalla_subir
+; with `jsl`, like `items_bank_upload`.
+.proc items_screen_upload
 .a8
 .i16
-    jsl f:items_banco_subir
-    jsr marco_subir
+    jsl f:items_bank_upload
+    jsr border_upload
     ; The tilemap: the visible rows, without cursor.
     rep #$20
 .a16
@@ -120,12 +120,12 @@
 ; The same for the equipment screen, plus the two palettes only it uses: the
 ; one for the "goes up" color and the red one for the terms, which go right
 ; after the bank's —they are palettes 2 and 3, which the cells of those
-; variants have set—. Without cursor: `eq_barra` paints it every frame.
-.proc eq_pantalla_subir
+; variants have set—. Without cursor: `eq_bar` paints it every frame.
+.proc eq_screen_upload
 .a8
 .i16
-    jsl f:items_banco_subir
-    jsr marco_subir
+    jsl f:items_bank_upload
+    jsr border_upload
     rep #$20
 .a16
     lda #ITEM_MARCO_MAPA
@@ -163,7 +163,7 @@
 ; The windows' tiles, which are 8bpp, and their colors, after the text's four
 ; palettes. Leaves channel 0 ready to upload a tilemap: VMAIN, DMAP0 and
 ; BBAD0.
-.proc marco_subir
+.proc border_upload
 .a8
 .i16
     ; The colors first, so the channel is left set up for VRAM.
@@ -208,8 +208,8 @@
 .endproc
 
 ; BG2 with the text and BG1 with the windows, and the screen on. It is
-; `ranura_ppu_prender` plus BG1.
-.proc items_ppu_prender
+; `slot_ppu_on` plus BG1.
+.proc items_ppu_on
 .a8
 .i16
     lda #(RANURA_VRAM / 4096 * 16 + RANURA_VRAM / 4096)
@@ -217,7 +217,7 @@
 .endproc
 
 ; The same, with BG12NBA in A: the shop gives BG1 a base of its own.
-.proc pantalla_ppu_prender
+.proc screen_ppu_on
 .a8
 .i16
     sta BG12NBA
@@ -246,7 +246,7 @@
 ; row takes: from `items_marco_barras`, which has them with the cursor on top,
 ; or from the tilemap without cursor. A 128-byte DMA, which fits in the vblank
 ; along with the description. Clobbers X and Y.
-.proc items_barra
+.proc items_bar
 .a8
 .i16
     rep #$20

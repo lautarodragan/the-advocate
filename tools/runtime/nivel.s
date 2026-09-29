@@ -7,7 +7,7 @@
 ; leveling up exists, they are composed here in `EXP_TEXTO` with the same
 ; thing they used to say —`titulo.texto_de_nivel` and
 ; `titulo.texto_de_maximo`— and the menu writes them with
-; `ranura_texto_escribir` as before: all that changes is where `msg_ptr`
+; `slot_text_write` as before: all that changes is where `msg_ptr`
 ; points. With the starting level they give exactly the same letters as the
 ; strips, which is what keeps the menu goldens still.
 ;
@@ -56,7 +56,7 @@ unidades:
 .endproc
 
 ; `msg_ptr` to actor A's cartridge strip, offset by X bytes: the same as bank
-; 0's `ranura_texto_de`, for those with no slot. Clobbers A.
+; 0's `slot_text_of`, for those with no slot. Clobbers A.
 .proc cartridge_strip
 .a8
 .i16
@@ -138,7 +138,7 @@ tiene:
     jmp point_text
 .endproc
 
-EXP_LEVEL_IN_SRAM = SRAM_BANCO * $10000 + SRAM_DATOS + PARTIDA_BYTES - EXP_K * 4 + EXP_NIVEL
+EXP_LEVEL_IN_SRAM = SRAM_BANK * $10000 + SRAM_DATA + SAVE_BYTES - EXP_K * 4 + EXP_NIVEL
 
 ; The level actor A had **in the saved game in slot `ranura`**, read from its
 ; SRAM: the slots screen shows each save as it was left, not as the current
@@ -393,7 +393,7 @@ listo:
 .endproc
 
 ; Parameter Y of an actor **at its current level**: `GetBaseMaxHp` and its
-; siblings, without the equipment —`eq_parametro` adds that— and without the
+; siblings, without the equipment —`eq_parameter` adds that— and without the
 ; `*_mod` from `ChangeParameters`, which the game does not use. Y is the order
 ; of `lcf.CURVES`: 0 HP, 1 SP, 2 attack, 3 defense, 4 spirit and 5 agility.
 ;

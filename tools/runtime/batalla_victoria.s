@@ -78,7 +78,7 @@ anotadas:
     sep #$20
 .a8
     stz comp_or01 + 2
-    jsr oro_sumar
+    jsr gold_add
 listo:
     rts
 .endproc
@@ -642,7 +642,7 @@ arriba:
 .endproc
 
 ; `BA_T0` without leading spaces, up to five digits: a troop's experience does
-; not fit in `pant_numero`'s three. Clobbers A, X, Y and `BA_T0`.
+; not fit in `scr_number`'s three. Clobbers A, X, Y and `BA_T0`.
 .proc bt_vic_number
 .a8
 .i16

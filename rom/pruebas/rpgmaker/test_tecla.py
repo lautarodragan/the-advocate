@@ -76,7 +76,7 @@ def test_sostener_la_tecla_no_contesta(partida):
     que hace que el comando no se coma la misma A que acaba de cerrar el
     cartel: en el juego las 23 esperas vienen justo detrás de un `ShowMessage`.
 
-    Verificado en rojo cambiando `tecla_valor` para que mire el estado en vez
+    Verificado en rojo cambiando `key_value` para que mire el estado en vez
     del flanco: ahí la variable queda en 5 sin que nadie haya apretado nada
     nuevo.
     """
@@ -114,7 +114,7 @@ def test_cancelar_guarda_seis(partida):
     **El mismo B abre además el menú de pausa, y está bien que lo abra**: el
     comando no se come nada, y `Game_Player::Update` mira `IsTriggered(CANCEL)`
     igual. Lo único que lo frena es que haya una página corriendo —el
-    `ev_activo` de `pedir_menu`, que es el
+    `ev_activo` de `request_menu`, que es el
     `Game_Map::GetInterpreter().IsRunning()` de allá— y en este cuadro la
     página **termina**: el comando era su último. Por eso el toque es un tick y
     no `tocar_ticks`, que son dos: con la pantalla de pausa abierta `vueltas` no

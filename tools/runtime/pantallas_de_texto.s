@@ -12,13 +12,13 @@
 ; The scratch space is borrowed variables: the message composer's, `comp_*`,
 ; which are recomputed with each character, and with the menu open there is
 ; no message; and `eleg_tabla`, which is the position being written to.
-PANT_BYTES = 32 * 28 * 2
+SCR_BYTES = 32 * 28 * 2
 ;   pant_valor   is comp_dup       ; the number being written, two bytes
 ;   pant_ancho   is comp_dup + 2   ; in how many digits
 ;   pant_tope    is comp_dup + 3   ; how many letters of a text, at most
 
 ; The buffer, blank.
-.proc pant_limpiar
+.proc scr_clear
 .a8
 .i16
     rep #$20
@@ -28,7 +28,7 @@ otra:
     stz texto_buf, x
     inx
     inx
-    cpx #PANT_BYTES
+    cpx #SCR_BYTES
     bcc otra
     sep #$20
 .a8
@@ -36,7 +36,7 @@ otra:
 .endproc
 
 ; The buffer to the tilemap: one DMA, in vblank.
-.proc pant_subir
+.proc scr_upload
 .a8
 .i16
     lda #$80
@@ -47,7 +47,7 @@ otra:
     sta VMADDL
     lda #.loword(texto_buf)
     sta A1T0L
-    lda #PANT_BYTES
+    lda #SCR_BYTES
     sta DAS0L
     sep #$20
 .a8
@@ -65,7 +65,7 @@ otra:
 ; "goes up" color, which only has digits, and 3 red: see `ITEM_SUBE` in
 ; titulo.py—. It goes at `eleg_tabla`, which advances one cell. Clobbers X
 ; and Y.
-.proc pant_glifo
+.proc scr_glyph
 .a8
 .i16
     rep #$20
@@ -103,7 +103,7 @@ blanco:
 
 ; A text: X its number —see `item_txt_*`—, at `eleg_tabla` and with the
 ; variant in `temp + 1`, and no more than `pant_tope` letters.
-.proc pant_texto
+.proc scr_text
 .a8
 .i16
     lda f:item_txt_lo, x
@@ -130,7 +130,7 @@ letra:
     sep #$20
 .a8
     lda [msg_ptr], y
-    jsr pant_glifo
+    jsr scr_glyph
     inc temp + 2
     bra letra
 listo:
@@ -141,7 +141,7 @@ listo:
 
 ; A number from `pant_valor`, 0 to 999, in `pant_ancho` digits —2 or 3— with
 ; leading spaces, at `eleg_tabla` and with the variant in `temp + 1`.
-.proc pant_numero
+.proc scr_number
 .a8
 .i16
     stz temp + 3                ; a digit has already been written
@@ -182,7 +182,7 @@ diez_listo:
     lda comp_dup              ; the units, always
     clc
     adc #$30
-    jmp pant_glifo
+    jmp scr_glyph
 
 ; X: the digit. A zero before everything else goes out as a space.
 cifra:
@@ -191,7 +191,7 @@ cifra:
     lda temp + 3
     bne escribir_cero
     lda #$20
-    jmp pant_glifo
+    jmp scr_glyph
 escribir_cero:
     lda #0
 escribir:
@@ -201,7 +201,7 @@ escribir:
     lda #1
     sta temp + 3
     pla
-    jmp pant_glifo
+    jmp scr_glyph
 .endproc
 
 

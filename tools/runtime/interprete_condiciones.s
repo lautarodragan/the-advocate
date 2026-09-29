@@ -282,7 +282,7 @@ si_var_sigue:
     ; --- the equipped equipment ---
     ; easyrpg's five `Get*Id()` compared against the item: it is enough for it
     ; to be in one slot. They are read from the same place the equipment
-    ; screen reads them —`FAR_EQUIPO` + actor * 10, see `eq_apuntar`— through
+    ; screen reads them —`FAR_EQUIPO` + actor * 10, see `eq_point`— through
     ; the WRAM port, which auto-increments: one word per slot, byte by byte,
     ; because `WMDATA` is an eight-bit port and reading it two at a time would
     ; read the register next to it.

@@ -362,7 +362,7 @@ menor:
 ; table, at `eleg_tabla + eleg_sel * 4`; the destination is two bytes further
 ; on and `choice_tick` reads it.
 ;
-; Calling `msg_empezar` again with the window already open is what moves the
+; Calling `msg_start` again with the window already open is what moves the
 ; cursor: `msg_abierto` is not cleared, so the window does not flicker, and the
 ; composer overwrites what was there line by line. One option's line is five
 ; or six characters, that is, a couple of frames: it looks like a cursor
@@ -380,7 +380,7 @@ menor:
     adc eleg_tabla
     tay
     lda [cod_ptr], y            ; the box's offset, 16 bits
-    jsr msg_empezar             ; which expects it in A and in 16-bit mode
+    jsr msg_start             ; which expects it in A and in 16-bit mode
     sep #$20
 .a8
     rts
@@ -444,7 +444,7 @@ no_abajo:
     sta eleg_sel
     ; And the B is consumed here: in RM2k the window processes the button
     ; **after** the hero, who saw it with the message open and did not ask for
-    ; the menu. Here the choice runs before `pedir_menu`, so its edge is
+    ; the menu. Here the choice runs before `request_menu`, so its edge is
     ; cleared.
     lda pad_ant
     ora #PAD_B

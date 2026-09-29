@@ -140,7 +140,7 @@ def test_la_pelea_del_droide_se_abre_con_la_tropa_del_juego(partida):
     """El `EnemyEncounter` del `FightableDroid`: tropa 82, un Sentry Drone.
 
     Los parámetros del enemigo salen del LDB y los del grupo de
-    `eq_parametro`, la misma función que la pantalla de equipo. Que coincidan
+    `eq_parameter`, la misma función que la pantalla de equipo. Que coincidan
     con `battle.py` es lo que hace que el resto de este archivo signifique
     algo: si la ROM peleara con otros números, los turnos también darían otra
     cosa y no se sabría cuál de las dos está mal.

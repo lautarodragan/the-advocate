@@ -211,7 +211,7 @@ sin_anim_pal:
     ; none are left.
     lda msg_subir
     beq sin_subir
-    jsr subir_linea
+    jsr upload_line
 sin_subir:
     lda msg_estado
     cmp #2

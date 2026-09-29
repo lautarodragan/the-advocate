@@ -182,7 +182,7 @@ def test_la_pelea_usa_los_parametros_del_nivel_de_ahora(partida):
     la pelea arma —HP y SP máximos, ataque, defensa, espíritu y agilidad—
     tienen que ser los de `battle.actor_of` con ese nivel, y distintos de
     los del 20, que si no el caso no distingue nada. Los cuatro del medio
-    pasan por `eq_parametro`, que es también la de la pantalla de equipo.
+    pasan por `eq_parameter`, que es también la de la pantalla de equipo.
     """
     una = en_el_droide(partida)
     base = datos.base()
@@ -290,10 +290,10 @@ def test_el_menu_muestra_el_nivel_y_el_maximo_de_ahora(partida):
         exps[actor] = experience.exp_list(base.actors[actor])[nivel - 1]
         poner_exp(una, actor, exps[actor], nivel)
     abrir(una)
-    ahora = menus.render_menu(skin, base, una.simbolos["SRAM_RANURAS"],
+    ahora = menus.render_menu(skin, base, una.simbolos["SRAM_SLOTS"],
                                GRUPO_MENU, ORO, 0, True, base.font_id, None,
                                game_dir, levels=NIVELES_DEL_MENU, exps=exps)
-    antes = menus.render_menu(skin, base, una.simbolos["SRAM_RANURAS"],
+    antes = menus.render_menu(skin, base, una.simbolos["SRAM_SLOTS"],
                                GRUPO_MENU, ORO, 0, True, base.font_id, None,
                                game_dir)
     assert diferencia(una, ahora) == 0
@@ -304,7 +304,7 @@ def test_el_menu_muestra_el_nivel_y_el_maximo_de_ahora(partida):
 def test_el_menu_muestra_guiones_en_el_nivel_tope(partida):
     """`DrawActorExp` en el nivel máximo: `GetNextExp` da -1 y el RPG_RT
     escribe guiones en las dos mitades. Es el otro camino de
-    `menu_exp_pintar`, que ningún nivel de arranque recorre: se pone a un
+    `menu_exp_paint`, que ningún nivel de arranque recorre: se pone a un
     actor en el tope y al otro un nivel antes, que todavía muestra números."""
     from port import menus
     from menu import GRUPO as GRUPO_MENU, ORO, abrir, con_grupo
@@ -317,7 +317,7 @@ def test_el_menu_muestra_guiones_en_el_nivel_tope(partida):
         exps[actor] = experience.exp_list(base.actors[actor])[tope - n - 1]
         poner_exp(una, actor, exps[actor], niveles[actor])
     abrir(una)
-    ahora = menus.render_menu(skin, base, una.simbolos["SRAM_RANURAS"],
+    ahora = menus.render_menu(skin, base, una.simbolos["SRAM_SLOTS"],
                                GRUPO_MENU, ORO, 0, True, base.font_id, None,
                                game_dir, levels=niveles, exps=exps)
     assert "-" in menus.exp_text(base, GRUPO_MENU[0], niveles[
@@ -344,7 +344,7 @@ def test_la_ranura_muestra_el_nivel_que_tenia_esa_partida(partida):
     assert una.hay_partida(), "la partida no se guardó"
     poner_exp(una, lider, experience.exp_list(base.actors[lider])[4], 5)
     una.tocar_cuadros("a", TITULO_AIRE)  # y la vuelve a abrir
-    ranuras = una.simbolos["SRAM_RANURAS"]
+    ranuras = una.simbolos["SRAM_SLOTS"]
     llenas = [True] + [False] * (ranuras - 1)
     grupos = {0: GRUPO_MENU}
     ahora = menus.render_slots(skin, base, ranuras, llenas, 0, 1,

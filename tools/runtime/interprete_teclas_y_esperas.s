@@ -70,7 +70,7 @@ tecla_mirar:
     bne tecla_rebobinar
 tecla_leer:
     phy
-    jsr tecla_valor
+    jsr key_value
     ply
     sta temp + 2                ; the value, which is where var_write takes it from
     stz temp + 3

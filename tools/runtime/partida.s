@@ -2,7 +2,7 @@
 
 ; --- saving and loading the game -------------------------------------------
 ;
-; The cartridge carries battery-backed SRAM, with `SRAM_RANURAS` slots.
+; The cartridge carries battery-backed SRAM, with `SRAM_SLOTS` slots.
 ;
 ; What gets saved is said by `partida_tabla` and nothing else: pairs of
 ; (address in bank 0 WRAM, how many bytes), terminated by a zero length.
@@ -16,69 +16,69 @@
 ;
 ; The saved game starts at $0100 and not at $0000 because of the assembler:
 ; `ca65` picks direct page when the address fits in a byte, so
-; with the saved game at $0000 an `lda SRAM_MAGIA, x` would read the direct
+; with the saved game at $0000 an `lda SRAM_MAGIC, x` would read the direct
 ; page instead of the SRAM. Nobody uses the 256 bytes left below.
-SRAM_BANCO = $70            ; in LoROM the SRAM shows at $70:0000
+SRAM_BANK = $70            ; in LoROM the SRAM shows at $70:0000
 
 ; **Four slots**, which is what taro asked for: RM2k opens a menu of fifteen
 ; and for this game that makes no sense. Many more would fit in the SRAM —it
 ; is 8 KB and a slot takes 165 bytes— so the number does not come from there
 ; but from how many can be shown and picked without the screen turning into a
 ; list.
-SRAM_RANURAS = 4
+SRAM_SLOTS = 4
 
 ; Each slot starts at a multiple of 256, which is what makes its offset the
 ; slot times 256 —an `xba`— and not a multiplication. It costs 91 bytes of
 ; padding per slot and there is SRAM to spare anyway: four slots end at $0500
 ; of the $2000 there are.
 ;
-; **If `PARTIDA_BYTES` went past 250, this breaks silently**: the next slot
+; **If `SAVE_BYTES` went past 250, this breaks silently**: the next slot
 ; starts overwriting the end of the previous one. Today it is 159, and it grows
 ; every time a field is added to the saved game —it already happened with the
 ; music—. The assembler cannot stop it, so it is guarded by
 ; `rom/pruebas/rpgmaker/test_guardar.py::test_las_cuatro_ranuras_entran_en_la_sram`.
 SRAM_STRIDE = 2048
 
-; And inside each slot, counting from its base. `SRAM_MAGIA` is still $0100
+; And inside each slot, counting from its base. `SRAM_MAGIC` is still $0100
 ; and not $0000 for the usual reason: an operand that fits in a byte gets
 ; resolved by the assembler as direct page and would read WRAM. That bug cost
 ; the saved game not loading in mednafen, in Mesen or on the console.
-SRAM_MAGIA = $0100          ; four bytes: the game's signature,
+SRAM_MAGIC = $0100          ; four bytes: the game's signature,
                             ; `SRAM_MAGIA_TEXTO`
-SRAM_SUMA  = $0104          ; the sum of the saved game's bytes
+SRAM_CHECKSUM  = $0104          ; the sum of the saved game's bytes
 ; And which format it is: the magic and the sum say the slot is intact, not
 ; that it is from this build. Since the test cases travel in the ROM that gets
 ; played, the saved game changes shape every time a case names a variable or
 ; brings a troop, and one from another build **loaded corrupted** —with zeros
 ; behind it the sum still added up— or did not load, depending on what was in
 ; the SRAM. One that does not match is "no saved game": see
-; `ranura_de_este_formato`.
+; `slot_of_this_format`.
 ;
 ; They are two words and neither is written by hand: the length comes from the
 ; same constants as `partida_tabla`, and the signature is computed by the
 ; converter from which variable, actor and skill goes in each slot
 ; —`firma_de_la_partida`—, which is what the length does not see.
-SRAM_BYTES = $0106          ; PARTIDA_BYTES
-SRAM_FIRMA = $0108          ; PARTIDA_FIRMA
-SRAM_DATOS = $010A
+SRAM_BYTES = $0106          ; SAVE_BYTES
+SRAM_SIGNATURE = $0108          ; PARTIDA_FIRMA
+SRAM_DATA = $010A
 
 ; `partida_tabla` lives in RODATA —see "what does not need to live in bank 0"
 ; in `banco1.s`— and is read with `lda f:partida_tabla, x`.
 ; The same lengths, added up, so the saved game in the SRAM can be walked
 ; without looking at the table again. It is duplicated on purpose and **the
-; ROM checks it**: `guardar_partida` compares against what `partida_copiar`
+; ROM checks it**: `save_game` compares against what `save_copy`
 ; ended with and panics if they differ. Duplicating a number nobody verifies
 ; is the kind of bug this repo has already paid for three times.
-PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10 + ACTORES_N * 2 + ACTORES_N * 2 + ACTORES_N + HAB_BYTES + EXP_K * 4
+SAVE_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10 + ACTORES_N * 2 + ACTORES_N * 2 + ACTORES_N + HAB_BYTES + EXP_K * 4
 ; Where the party lands inside the saved game: after the position, the
 ; direction, the cell and the map. The slot screen reads it from the SRAM to
 ; show the leader's name and the faces. It is the same sum as above, cut at the
 ; table's sixth line; if `partida_tabla` changes order, this changes with it.
-PARTIDA_GRUPO   = 2 + 2 + 1 + 2 + 2 + 2   ; the map takes two since its
+SAVE_PARTY   = 2 + 2 + 1 + 2 + 2 + 2   ; the map takes two since its
                                           ; index is sixteen bits
-PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
+SAVE_PARTY_N = SAVE_PARTY + 4
 
-; Sets the slot `guardar_partida` and `cargar_partida` will work with, and
+; Sets the slot `save_game` and `load_game` will work with, and
 ; computes its offset. A brings the slot number.
 ;
 ; The offset is the slot times 2048, that is one `xba` and three `asl`: that
@@ -89,7 +89,7 @@ PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
 ; inventory and 1024 until the equipment, which is 610 bytes more. With 2048
 ; four slots do not fit in 8 KB, and the cartridge declares 32 KB, which in
 ; LoROM is a whole bank of SRAM at $70.
-.proc poner_ranura
+.proc set_slot
 .a8
 .i16
     sta ranura
@@ -100,8 +100,8 @@ PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
 ; reads `ranura`, which lives in WRAM.
 ;
 ; It is the slot times 2048, that is one `xba` and three `asl`: see
-; `poner_ranura`.
-.proc ranura_en_x
+; `set_slot`.
+.proc slot_in_x
 .a8
 .i16
     rep #$20
@@ -121,22 +121,22 @@ PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
 ; Walks `partida_tabla` copying each stretch. A brings the DMAP: $80 saves
 ; —from the WRAM window to the SRAM— and $00 loads. Leaves in `temp` where the
 ; saved game ended inside the SRAM.
-.proc partida_copiar
+.proc save_copy
 .a8
 .i16
     sta DMAP0
     lda #$80
     sta BBAD0                   ; the other side is always WMDATA
-    lda #SRAM_BANCO
+    lda #SRAM_BANK
     sta A1B0
     ldx #$0000                  ; where the table is at
     phx
-    jsr ranura_en_x             ; normal data bank: here it still is
+    jsr slot_in_x             ; normal data bank: here it still is
     rep #$20
 .a16
     txa
     clc
-    adc #SRAM_DATOS
+    adc #SRAM_DATA
     sta temp                    ; and where the SRAM is at, inside its slot
     sep #$20
 .a8
@@ -185,21 +185,21 @@ listo:
 ; the SRAM. Clobbers X.
 ;
 ; **The index goes from zero and the base supplies the address.** Written the
-; other way round —`ldx #SRAM_DATOS` and then `lda $0000, x`— it looks the
+; other way round —`ldx #SRAM_DATA` and then `lda $0000, x`— it looks the
 ; same and it is not: the operand `$0000` fits in a byte, so the assembler
 ; picks direct page just like ca65, and the loop ended up adding **low WRAM**
-; instead of the SRAM. It is exactly the trap the `SRAM_MAGIA` comment warns
+; instead of the SRAM. It is exactly the trap the `SRAM_MAGIC` comment warns
 ; about twenty lines above, committed on the line next to it.
 ;
 ; What kept it hidden is that the bug is **symmetric**: saving and loading
 ; both add up the same garbage, so as long as the WRAM does not change between
 ; one and the other the numbers match and the saved game loads. That happens
 ; at snes9x's startup, which always fills RAM with the same thing and calls
-; `cargar_partida` microseconds after reset. With the WRAM of mednafen, of
+; `load_game` microseconds after reset. With the WRAM of mednafen, of
 ; Mesen or of the real console, they do not match and the saved game never
 ; loads; and from the title menu neither, because by then the WRAM has already
 ; moved. Three reports from taro and an `xfail` were all this bug.
-.proc partida_suma
+.proc save_checksum
 .a8
 .i16
     rep #$20
@@ -210,7 +210,7 @@ listo:
 .a8
     ldy #$0000                  ; X already comes with the start of its slot
 suma:
-    lda SRAM_DATOS, x           ; the base does not fit in a byte: absolute,
+    lda SRAM_DATA, x           ; the base does not fit in a byte: absolute,
                                 ; and the data bank is the SRAM
     rep #$20
 .a16
@@ -222,14 +222,14 @@ suma:
 .a8
     inx
     iny                         ; X walks the SRAM and Y counts: the slot does
-    cpy #PARTIDA_BYTES          ; not start at zero and the two are not the same
+    cpy #SAVE_BYTES          ; not start at zero and the two are not the same
     bne suma
     rts
 .endproc
 
 ; Saves the game. It is what `OP_SAVE` does, that is, the `OpenSaveMenu` of
 ; the Lashe City save point.
-.proc guardar_partida
+.proc save_game
 .a8
 .i16
     ; **The `music_apagada` that gets saved is "is it playing?", and not the
@@ -251,23 +251,23 @@ suma:
     stz music_apagada
 copiar:
     lda #$80                    ; from the WRAM window to the SRAM
-    jsr partida_copiar
+    jsr save_copy
     pla
     sta music_apagada
     plp
-    ; What was copied has to be what `PARTIDA_BYTES` says. Otherwise the sum
+    ; What was copied has to be what `SAVE_BYTES` says. Otherwise the sum
     ; would look at another stretch and the slot would stay invalid forever
     ; without saying why.
     rep #$20
 .a16
     sep #$20
 .a8
-    jsr ranura_en_x
+    jsr slot_in_x
     rep #$20
 .a16
     txa
     clc
-    adc #(SRAM_DATOS + PARTIDA_BYTES)
+    adc #(SRAM_DATA + SAVE_BYTES)
     cmp temp                    ; where the copy should have ended
     sep #$20
 .a8
@@ -280,32 +280,32 @@ cuadra:
     ;
     ; The slot's offset is read **before** moving it, and from then on it
     ; travels in X: with the bank at $70, `lda ranura_ofs` would read the SRAM.
-    jsr ranura_en_x
+    jsr slot_in_x
     phb
-    lda #SRAM_BANCO
+    lda #SRAM_BANK
     pha
     plb
     phx
-    jsr partida_suma            ; clobbers X
+    jsr save_checksum            ; clobbers X
     plx
     rep #$20
 .a16
     lda temp + 2
-    sta SRAM_SUMA, x
-    lda #PARTIDA_BYTES
+    sta SRAM_CHECKSUM, x
+    lda #SAVE_BYTES
     sta SRAM_BYTES, x
     lda #PARTIDA_FIRMA
-    sta SRAM_FIRMA, x
+    sta SRAM_SIGNATURE, x
     sep #$20
 .a8
     lda #.strat(SRAM_MAGIA_TEXTO, 0)
-    sta SRAM_MAGIA, x
+    sta SRAM_MAGIC, x
     lda #.strat(SRAM_MAGIA_TEXTO, 1)
-    sta SRAM_MAGIA + 1, x
+    sta SRAM_MAGIC + 1, x
     lda #.strat(SRAM_MAGIA_TEXTO, 2)
-    sta SRAM_MAGIA + 2, x
+    sta SRAM_MAGIC + 2, x
     lda #.strat(SRAM_MAGIA_TEXTO, 3)
-    sta SRAM_MAGIA + 3, x
+    sta SRAM_MAGIC + 3, x
     plb
     rts
 .endproc
@@ -313,30 +313,30 @@ cuadra:
 ; If the SRAM has a saved game, loads it and returns A nonzero. It runs at
 ; startup, before loading the map: the switches decide which page is active in
 ; each event, so they have to be set before.
-.proc cargar_partida
+.proc load_game
 .a8
 .i16
-    jsr ranura_en_x             ; before moving the bank: see
-                                ; `guardar_partida`
+    jsr slot_in_x             ; before moving the bank: see
+                                ; `save_game`
     phb
-    lda #SRAM_BANCO
+    lda #SRAM_BANK
     pha
     plb
-    jsr ranura_de_este_formato
+    jsr slot_of_this_format
     beq no_hay
     phx
-    jsr partida_suma            ; clobbers X
+    jsr save_checksum            ; clobbers X
     plx
     rep #$20
 .a16
     lda temp + 2
-    cmp SRAM_SUMA, x
+    cmp SRAM_CHECKSUM, x
     sep #$20
 .a8
     bne no_hay
     plb
     lda #$00                    ; from the SRAM to the WRAM window
-    jsr partida_copiar
+    jsr save_copy
     lda #$01
     rts
 no_hay:
@@ -352,7 +352,7 @@ no_hay:
 ; —the final `lda #` leaves it—. It needs the data bank at the SRAM and X with
 ; the slot's offset, and does not touch X.
 ;
-; It is used by the slot screen and by `cargar_partida`, and it is a single
+; It is used by the slot screen and by `load_game`, and it is a single
 ; routine so both answer the same: a saved game from another build looks empty
 ; and does not load. If only the load rejected it, the screen would show the
 ; name and level read from a format that is not its own —garbage— and picking
@@ -361,27 +361,27 @@ no_hay:
 ; The magic is compared against immediates and not against a ROM table
 ; because with the data bank at the SRAM there is no way to read the ROM: the
 ; assembler has no long addressing and the direct page is full.
-.proc ranura_de_este_formato
+.proc slot_of_this_format
 .a8
 .i16
-    lda SRAM_MAGIA, x
+    lda SRAM_MAGIC, x
     cmp #.strat(SRAM_MAGIA_TEXTO, 0)
     bne no
-    lda SRAM_MAGIA + 1, x
+    lda SRAM_MAGIC + 1, x
     cmp #.strat(SRAM_MAGIA_TEXTO, 1)
     bne no
-    lda SRAM_MAGIA + 2, x
+    lda SRAM_MAGIC + 2, x
     cmp #.strat(SRAM_MAGIA_TEXTO, 2)
     bne no
-    lda SRAM_MAGIA + 3, x
+    lda SRAM_MAGIC + 3, x
     cmp #.strat(SRAM_MAGIA_TEXTO, 3)
     bne no
     rep #$20
 .a16
     lda SRAM_BYTES, x
-    cmp #PARTIDA_BYTES
+    cmp #SAVE_BYTES
     bne no_16
-    lda SRAM_FIRMA, x
+    lda SRAM_SIGNATURE, x
     cmp #PARTIDA_FIRMA
     bne no_16
     sep #$20
@@ -403,7 +403,7 @@ no:
 ; the title menu when the player chooses to continue. It used to be written
 ; only in startup, and copying it to the menu would have been the second place
 ; to get it wrong.
-.proc entrada_de_la_partida
+.proc save_entry
 .a8
 .i16
     rep #$20

@@ -43,7 +43,7 @@ def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
     from port import menus
     from rpgmaker.resources import GAME_DIR
     db, skin = datos.base(), datos.skin()
-    esperada = menus.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
+    esperada = menus.render_menu(skin, db, una.simbolos["SRAM_SLOTS"],
                                   GRUPO, ORO, elegida, guardar, db.font_id,
                                   None, GAME_DIR, hp)
     comparar_pantalla(una, esperada, nombre,

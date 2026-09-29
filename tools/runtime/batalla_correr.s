@@ -3,7 +3,7 @@
 ; The whole battle. It is entered with `jsl` from `op_battle`, with the data
 ; bank already at $7E, and returns with the result in `BA_RESULT`.
 ;
-; It runs **its own frame loop**, like `ranuras_pantalla` and like the shop:
+; It runs **its own frame loop**, like `slots_screen` and like the shop:
 ; `vueltas` does not advance while it is shown, so the battle costs no tick,
 ; however long the player takes. See `OP_BATTLE`
 ; in tools/port/events.py.
@@ -70,7 +70,7 @@ sin_pagina_al_empezar:
     jsr bt_compose
     jsl f:bt_t_upload
     ; Turn the screen on **in black**, which the entry transition shows:
-    ; `ranura_ppu_prender` writes full brightness, so it is called inside a
+    ; `slot_ppu_on` writes full brightness, so it is called inside a
     ; vblank and in the same vblank it is brought down to zero —not a single
     ; line gets drawn—. See `fundido_de_pelea.s`.
     jsl f:bt_t_vblank

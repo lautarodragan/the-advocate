@@ -69,7 +69,7 @@ SCN_DP_BYTES = 48
 SCN_CLEAN   = $7F0000
 SCN_SCENE   = $7F8000
 ; How many scene bytes are uploaded per vblank when an enemy is erased. The
-; NTSC vblank allows about six kilobytes of DMA and `pant_subir` already
+; NTSC vblank allows about six kilobytes of DMA and `scr_upload` already
 ; takes the text's 1,792 in the same vblank; two more leave some margin.
 SCN_SUB_BUDGET = 2048
 
@@ -1547,7 +1547,7 @@ listo:
     rts
 .endproc
 
-; BG1 with the scene, after `ranura_ppu_prender` has set up BG2 and turned
+; BG1 with the scene, after `slot_ppu_on` has set up BG2 and turned
 ; the screen on. If this battle has no scene it touches nothing and the
 ; screen stays on black, as before 2026-09-13.
 .proc scene_on

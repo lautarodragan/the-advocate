@@ -6,12 +6,12 @@
 ; BG2 reaches them with the same base: depending on the layout, the layer
 ; above has 128 or 256 tiles and the window starts at that index. That is why
 ; the converter emits two planes of cells, one with each offset added, and
-; `estampar_ventana` picks one.
+; `stamp_window` picks one.
 ;
 ; Its palette is palette **0**, that is the entries below the background, and
 ; `cargar_mapa_sin_eventos` uploads it together with the screen's backdrop
 ; color.
-.proc load_ventana
+.proc load_window
 .a8
 .i16
     ldx mapa_ofs
@@ -45,8 +45,8 @@
 
     ; The window's own tilemap and the HDMA tables, which belong to this map:
     ; the window lives at a VRAM location that depends on the layout.
-    jsr estampar_ventana
-    jsr armar_hdma
+    jsr stamp_window
+    jsr build_hdma
     rts
 .endproc
 
@@ -57,10 +57,10 @@
 ; own, 32x32, that it shares with no one. Since it is its own, its ten rows
 ; of 32 cells are 320 contiguous words: there are no stretches, no wrapping,
 ; no column 32 to dodge. And since nobody else touches it, this runs **only
-; once per map**, from `load_ventana` and with the screen already off.
+; once per map**, from `load_window` and with the screen already off.
 ;
-; Who shows it and where is decided by HDMA; see `armar_hdma`.
-.proc estampar_ventana
+; Who shows it and where is decided by HDMA; see `build_hdma`.
+.proc stamp_window
 .a8
 .i16
     lda #$80
@@ -122,7 +122,7 @@ con_plano:
 ; The first two entries carry exactly what `flush_video` was already writing
 ; to the registers, so above line 144 nothing changes. They go in two
 ; stretches because an entry's line counter is 7 bits and 144 does not fit.
-.proc armar_hdma
+.proc build_hdma
 .a8
 .i16
     lda #127
@@ -225,28 +225,28 @@ MSG_CHARS = 5
 
 ; Where the text starts inside the window, in pixels. It is `Window`'s
 ; `border_x`, the same one `tools/port/window.py` uses.
-VENTANA_BORDE = 8
+WINDOW_BORDER = 8
 
 ; The glyph's row falls two pixels below the cell's edge, and that does not
 ; depend on the line: all four start at 10, 26, 42 and 58, which modulo 8 are
 ; all 2. That is why a twelve-row glyph always fits in the same two cell rows
 ; and the buffer can be two rows tall.
-TEXTO_OFS_Y = 2
+TEXT_OFS_Y = 2
 
 ; One byte further in the text block, crossing the bank window.
 ;
 ; `msg_ptr` is a long pointer but the composer advanced it with a 16-bit
 ; `inc`, so on going past $FFFF it went back to $0000 of the **same** bank.
 ; In LoROM there is no ROM there: what follows $FFFF is $8000 of the next
-; bank, which is what `ptr_mas` and `msg_empezar` already knew.
+; bank, which is what `ptr_mas` and `msg_start` already knew.
 ;
-; It is not theoretical and fixing `msg_empezar` was not enough: `abl`'s text
+; It is not theoretical and fixing `msg_start` was not enough: `abl`'s text
 ; block is 56 KB, so it crosses, and **a box whose bytes fall across the
 ; edge** starts fine and goes on reading garbage. It is the Neon Vipers
 ; cutscene on map 14: out of the garbage came a line length of 76 characters
 ; and with it the whole screen turned to garbage, along the path that the cap
-; in `mensaje_tick` now cuts off.
-.proc msg_ptr_sig
+; in `message_tick` now cuts off.
+.proc msg_ptr_next
 .a16
 .i16
     inc msg_ptr
@@ -267,10 +267,10 @@ listo:
 ;
 ; **A carries the box's offset within `mensajes`, in 16 bits**, and it has to
 ; be added to a long pointer crossing banks: see the loop below and
-; `msg_ptr_sig`, which is the same arithmetic for advancing one byte at a
+; `msg_ptr_next`, which is the same arithmetic for advancing one byte at a
 ; time.
-.assert MENSAJES_TOPE = 4 * $10000, error, "msg_empezar multiplies the offset by four: it is MENSAJES_PASO in eventos.py"
-.proc msg_empezar
+.assert MENSAJES_TOPE = 4 * $10000, error, "msg_start multiplies the offset by four: it is MENSAJES_PASO in eventos.py"
+.proc msg_start
 .a16
 .i16
     ; The offset is sixteen bits and the text block can be **larger than a
@@ -359,7 +359,7 @@ en_el_banco:
 sin_pausa:
     rep #$20
 .a16
-    jsr msg_ptr_sig
+    jsr msg_ptr_next
     sep #$20
 .a8
     stz msg_linea
@@ -371,7 +371,7 @@ sin_pausa:
 .endproc
 
 ; One frame of the composer, from the main loop.
-.proc mensaje_tick
+.proc message_tick
 .a8
 .i16
     lda msg_estado
@@ -389,7 +389,7 @@ sin_subir:
     ; New line: the background is copied into it and its length is read. The
     ; lines the message does not carry are primed and uploaded anyway: VRAM
     ; holds the previous message's text and it has to be covered.
-    jsr cebar_linea
+    jsr prime_line
     stz msg_largo
     lda msg_lineas
     and #CABECERA_LINEAS        ; the header also carries the escape queue
@@ -402,7 +402,7 @@ sin_subir:
     sta msg_largo
     rep #$20
 .a16
-    jsr msg_ptr_sig
+    jsr msg_ptr_next
     sep #$20
 .a8
 vacio:
@@ -425,16 +425,16 @@ otro:
     lda msg_col
     and #$00FF
     sta comp_col
-    jsr msg_ptr_sig
+    jsr msg_ptr_next
     sep #$20
 .a8
     inc msg_col
     ; The column cap. The byte is consumed anyway —otherwise the pointer
     ; would be out of step and the next line would read from the middle of
-    ; this one— but it is not drawn: `componer_char` writes into `texto_buf`
+    ; this one— but it is not drawn: `compose_char` writes into `texto_buf`
     ; with an offset that comes from the column, and from 39 on that lands
     ; **outside** the buffer, on top of the window's HDMA, the OAM image and
-    ; `vq_n`. See the comment on `componer_char`, further down.
+    ; `vq_n`. See the comment on `compose_char`, further down.
     ;
     ; And the cap goes here even though the converter never emits a longer
     ; line, because **the symptom does not point at the text**: with `vq_n`
@@ -445,7 +445,7 @@ otro:
     cmp #MENSAJE_COLS
     bcs sin_dibujar
     phx
-    jsr componer_char
+    jsr compose_char
     plx
 sin_dibujar:
     dex
@@ -472,7 +472,7 @@ mas:
 ; Copies into the buffer the background of the two cell rows of the current
 ; line. It is the only way for the glyphs to sit on the skin's gradient and
 ; not on black, and it goes by DMA from ROM to RAM.
-.proc cebar_linea
+.proc prime_line
 .a8
 .i16
     rep #$20
@@ -526,7 +526,7 @@ mas:
 
 ; Uploads the composed line to the window's tile bank. It goes in the vblank,
 ; from `flush_video`, and it is 1920 bytes in a single DMA.
-.proc subir_linea
+.proc upload_line
 .a8
 .i16
     stz msg_subir
@@ -536,7 +536,7 @@ mas:
     rep #$20
 .a16
     ; The tile where this line starts, in VRAM words. The line to upload is
-    ; the previous one: `mensaje_tick` already moved on to the next.
+    ; the previous one: `message_tick` already moved on to the next.
     lda msg_linea
     and #$00FF
     dec a
@@ -584,7 +584,7 @@ mas:
 ; set in planes 0-1 and in 2-3—, so painting is read, mask and write. A cell
 ; that touches nothing comes with the mask at $FFFF and is skipped.
 ;
-; **The column is capped by `mensaje_tick`**, not by this: here `comp_col`
+; **The column is capped by `message_tick`**, not by this: here `comp_col`
 ; has already arrived as good and the offset that comes from it is used
 ; without checking. The cap is there because the byte has to be consumed
 ; anyway even if it is not drawn.
@@ -597,7 +597,7 @@ mas:
 ; rain. The result is the same byte for byte: the order of `Font::Render`
 ; —the shadow of a row is overwritten by the glyph of the next— already comes
 ; resolved in the tables.
-.proc componer_char
+.proc compose_char
 .a8
 .i16
     lda comp_char
@@ -616,7 +616,7 @@ mas:
     adc temp
     asl a                       ; times 6
     clc
-    adc #VENTANA_BORDE
+    adc #WINDOW_BORDER
     sta temp                    ; x inside the window
     and #$0007
     sta comp_fase               ; 0, 2, 4 or 6
@@ -645,7 +645,7 @@ mas:
     sta comp_glifo + 2
 
     ldy #0
-    lda #(TEXTO_OFS_Y * 2)
+    lda #(TEXT_OFS_Y * 2)
     sta comp_fila               ; two at a time: it is the index into `tabla_fila_buf`
 row:
     rep #$20
@@ -713,7 +713,7 @@ otra_fila:
     clc
     adc #2
     sta comp_fila
-    cmp #((TEXTO_OFS_Y + FUENTE_PRE_FILAS) * 2)
+    cmp #((TEXT_OFS_Y + FUENTE_PRE_FILAS) * 2)
     bcc row
     rts
 .endproc

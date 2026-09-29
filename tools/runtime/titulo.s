@@ -20,7 +20,7 @@
 ; hero, runs the interpreter and builds the OAM, and there is none of that
 ; here: all that has to happen each frame is reading the pad and keeping the
 ; music going.
-.proc pantalla_titulo
+.proc title_screen
 .a8
 .i16
     ; Does this ROM carry a title screen? TITULO_TILES does not fit in eight
@@ -30,11 +30,11 @@
     bne hay
     rts
 hay:
-    jsr titulo_subir
+    jsr title_upload
     ; The title song. $FF means this ROM does not carry it —or that it did not
     ; fit in the ARAM—, and then the screen is shown silent.
     ;
-    ; It goes **here and not in `titulo_subir`**: that one also runs when
+    ; It goes **here and not in `title_upload`**: that one also runs when
     ; coming back from the slot screen, and there the song is still playing
     ; and must not be touched. Until 2026-09-10 it restarted it, with a comment
     ; saying that was what RM2k did, and it is not: `Scene_Title::Continue`,
@@ -46,14 +46,14 @@ hay:
     beq mudo
     jsr music_start
 mudo:
-    jmp titulo_lazo
+    jmp title_loop
 .endproc
 
 ; Uploads the whole title screen —the image, the menu, the colors— and turns it
 ; on. It is separate from the loop because two paths arrive here: entering, and
 ; **coming back from the slot screen after cancelling**, which overwrote VRAM
 ; and CGRAM with its own things.
-.proc titulo_subir
+.proc title_upload
 .a8
 .i16
     stz HDMAEN                  ; without the message window on top
@@ -137,7 +137,7 @@ mudo:
 ; the same as `choice_tick` with ShowChoice: it is RM2k's
 ; `Window_Selectable::Update` with a single column, and holding down does not
 ; move one line per frame.
-.proc titulo_lazo
+.proc title_loop
 .a8
 .i16
 espera:
@@ -194,16 +194,16 @@ elige:
     ; with B it goes back to the title, and since that screen overwrote VRAM
     ; and CGRAM the title has to be uploaded again in full.
     lda #0
-    jsr ranuras_pantalla
+    jsr slots_screen
     cmp #$FF
     bne la_elegida
-    jsr titulo_subir
-    jmp titulo_lazo
+    jsr title_upload
+    jmp title_loop
 la_elegida:
-    jsr poner_ranura
-    jsr cargar_partida
+    jsr set_slot
+    jsr load_game
     beq salir                   ; the slot was empty or the checksum does not match
-    jsr entrada_de_la_partida
+    jsr save_entry
     rep #$20
 .a16
     lda mapa_actual             ; the index goes in sixteen bits

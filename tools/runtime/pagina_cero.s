@@ -31,7 +31,7 @@ eleg_flancos: .res 1    ; the buttons just pressed this frame. It does not
 ; sharing them would tie together two things that never touch.
 ; 1 if boot —or the title menu— loaded a save from SRAM. `music_boot` looks at
 ; it: a save brings its own song and not the one of the starting map.
-; Which slot is being worked on, from 0 to SRAM_RANURAS - 1, or **$FF if no
+; Which slot is being worked on, from 0 to SRAM_SLOTS - 1, or **$FF if no
 ; save is loaded**. That sentinel does both jobs —which slot and whether one
 ; was loaded— because bank 0 RAM is full and storing the fact separately did
 ; not fit.

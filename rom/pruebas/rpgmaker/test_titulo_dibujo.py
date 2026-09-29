@@ -156,7 +156,7 @@ def test_la_musica_viaja_en_la_partida(con_musica):
     # campo a la partida la deja mal, y lo que se ve es este caso en rojo. Es
     # lo que pasó con los HP, y lo que volvió a pasar con los SP y con las
     # habilidades.
-    largo = (una.simbolos["PARTIDA_BYTES"] - 2 * una.simbolos["VARIABLES_N"]
+    largo = (una.simbolos["SAVE_BYTES"] - 2 * una.simbolos["VARIABLES_N"]
              - 1 - una.simbolos["ITEMS_N"] - 1
              - 10 * una.simbolos["ACTORES_N"]
              - 2 * una.simbolos["ACTORES_N"]
@@ -164,7 +164,7 @@ def test_la_musica_viaja_en_la_partida(con_musica):
              - una.simbolos["ACTORES_N"]
              - una.simbolos["HAB_BYTES"]
              - 4 * una.simbolos["EXP_K"])
-    cola = una.sram(una.simbolos["SRAM_DATOS"] + largo - 3, 3)
+    cola = una.sram(una.simbolos["SRAM_DATA"] + largo - 3, 3)
     assert cola[0] == una.byte("music_apagada"), (
         "la SRAM guardó music_apagada = %d y la consola lo tenía en %d"
         % (cola[0], una.byte("music_apagada")))
@@ -180,7 +180,7 @@ def test_la_partida_cargada_arranca_con_su_musica(con_musica):
     `music_boot` lo ignora. Se ensucia la WRAM antes de elegir porque **el reset
     de snes9x no la borra** —una consola de verdad enciende con basura ahí— y
     sin ensuciarla el estado viejo sobrevive solo y no se compara nada. Es la
-    misma trampa que escondió el bug de página directa de `partida_suma`.
+    misma trampa que escondió el bug de página directa de `save_checksum`.
     """
     una = con_musica()
     una.guardar_por_el_menu()
@@ -192,7 +192,7 @@ def test_la_partida_cargada_arranca_con_su_musica(con_musica):
     una.poner_byte("music_apagada", 1)
     una.pasar_el_titulo(SEGUIR)
     # Un tick y no unos cuadros: mientras se carga el mapa el título está
-    # callado —`music_apagada` en 1, ver `titulo_lazo`— y la música de la
+    # callado —`music_apagada` en 1, ver `title_loop`— y la música de la
     # partida recién se repone en `music_boot`, con el mapa ya cargado.
     una.correr(1)
 
@@ -207,7 +207,7 @@ def test_la_pantalla_de_ranuras_carga_la_que_se_elige(partida):
     """Elegir la ranura 1 carga la 1, y elegir una vacía no carga nada.
 
     Es lo que distingue cuatro ranuras de una sola disfrazada de cuatro: si el
-    número que elige el cursor no llegara hasta `cargar_partida`, la primera
+    número que elige el cursor no llegara hasta `load_game`, la primera
     mitad de este caso pasaría igual —hay una partida y se carga— y sólo la
     segunda lo delataría. Por eso están las dos.
     """
@@ -268,7 +268,7 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     una.abrir_ranuras_desde_el_titulo()
 
     db, skin = datos.base(), datos.skin()
-    ranuras = una.simbolos["SRAM_RANURAS"]
+    ranuras = una.simbolos["SRAM_SLOTS"]
 
     def comparar(elegida):
         esperada = menus.render_slots(skin, db, ranuras, [False] * ranuras,
@@ -295,7 +295,7 @@ def _suma(bytes_):
 
 
 def _de_otro_build(simbolos, guardado, como):
-    """La ranura entera —desde `SRAM_MAGIA`— de una partida guardada por otro
+    """La ranura entera —desde `SRAM_MAGIC`— de una partida guardada por otro
     build, armada con los bytes de `guardado`, que son los de una de éste.
 
     El otro formato se simula corriendo todo dos bytes desde la mitad de la
@@ -310,13 +310,13 @@ def _de_otro_build(simbolos, guardado, como):
         # Un build de antes de que la partida llevara su formato: la suma y
         # los datos pegados, sin nada en el medio.
         return magia + _suma(corrida).to_bytes(2, "little") + corrida
-    bytes_ = simbolos["PARTIDA_BYTES"]
+    bytes_ = simbolos["SAVE_BYTES"]
     firma = simbolos["PARTIDA_FIRMA"]
     if como == "otro-largo":
         bytes_ -= 2
     else:
         firma ^= 0x0100
-    relleno = bytes(simbolos["SRAM_DATOS"] - simbolos["SRAM_MAGIA"] - 10)
+    relleno = bytes(simbolos["SRAM_DATA"] - simbolos["SRAM_MAGIC"] - 10)
     return (magia + _suma(corrida).to_bytes(2, "little")
             + bytes_.to_bytes(2, "little") + firma.to_bytes(2, "little")
             + relleno + corrida)
@@ -346,14 +346,14 @@ def test_una_partida_de_otro_build_se_ve_vacia_y_no_carga(partida, como):
     una.guardar_por_el_menu(1)
     s = una.simbolos
     base = s["SRAM_STRIDE"]
-    guardado = una.sram(base + s["SRAM_DATOS"], s["PARTIDA_BYTES"])
+    guardado = una.sram(base + s["SRAM_DATA"], s["SAVE_BYTES"])
     ranura = _de_otro_build(s, guardado, como)
-    una.poner_sram(base + s["SRAM_MAGIA"],
+    una.poner_sram(base + s["SRAM_MAGIC"],
                    ranura + bytes(s["SRAM_STRIDE"] - len(ranura)))
     una.abrir_ranuras_desde_el_titulo()
 
     db, skin = datos.base(), datos.skin()
-    ranuras = s["SRAM_RANURAS"]
+    ranuras = s["SRAM_SLOTS"]
     esperada = menus.render_slots(skin, db, ranuras, [False] * ranuras,
                                      0, 0, db.font_id, {}, GAME_DIR)
     comparar_pantalla(una, esperada, "ranuras-otro-build-%s" % como,

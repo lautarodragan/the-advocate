@@ -4,7 +4,7 @@
 ;
 ; `Scene_Menu`, over the bank of the slot screen: the geometry and the blocks
 ; come from `titulo.py`, and `render_menu` is the reference. It opens with B,
-; when the hero is standing still: `pedir_menu` notes the request and
+; when the hero is standing still: `request_menu` notes the request and
 ; `move_hero` serves it, which is how RM2k does it with `menu_calling`. The
 ; game clock does not run while it is shown —as on the slot screen— so the
 ; menu costs no tick.
@@ -16,7 +16,7 @@
 
 ; The permissions byte, in A. Only A, and the `lda`'s flags: bit 7 ends up in
 ; N.
-.proc acceso_leer
+.proc access_read
 .a8
 .i16
     rep #$20
@@ -37,7 +37,7 @@
 ; pointed at it and it goes through the port, like the variables.
 
 ; A: the actor. Leaves WMADD pointing at its byte.
-.proc actor_graf_apuntar
+.proc actor_gfx_point
 .a8
 .i16
     rep #$20
@@ -53,19 +53,19 @@
 .endproc
 
 ; A: the actor. Returns with its graphic in A, or `ACTOR_GRAF_NINGUNO`.
-.proc actor_graf_leer
+.proc actor_gfx_read
 .a8
 .i16
-    jsr actor_graf_apuntar
+    jsr actor_gfx_point
     lda WMDATA
     rts
 .endproc
 
 ; A: the actor; `temp + 1`: the graphic.
-.proc actor_graf_escribir
+.proc actor_gfx_write
 .a8
 .i16
-    jsr actor_graf_apuntar
+    jsr actor_gfx_point
     lda temp + 1
     sta WMDATA
     rts
@@ -73,7 +73,7 @@
 
 ; No actor with a changed sprite. Runs at reset, before loading the save,
 ; which overwrites it.
-.proc actor_graf_limpiar
+.proc actor_gfx_clear
 .a8
 .i16
     rep #$20
@@ -114,7 +114,7 @@ otro:
 ; `temp + 3` is the only one of the four that is free here: `temp` carries the
 ; slot and `temp + 1` the flags, and `op_key` stores the answer in `temp + 2`
 ; **after** returning from here.
-.proc tecla_valor
+.proc key_value
 .a8
 .i16
     ; The form that does not wait looks at what is **held** and not at the
@@ -126,7 +126,7 @@ otro:
     ; The carry carries the wait flag **all the way to the action button**,
     ; without storing it: no `lda`, `and`, `eor` or `sta` in between touches
     ; it. Stored in `temp + 2` it cost four more bytes of bank 0.
-    .assert TECLA_ESPERA = $01, error, "tecla_valor takes it out with an lsr"
+    .assert TECLA_ESPERA = $01, error, "key_value takes it out with an lsr"
     lda temp + 1
     lsr a                       ; TECLA_ESPERA is bit 0: into the carry
     lda pad
@@ -184,7 +184,7 @@ ninguna:
 .endproc
 
 ; A: the new permissions byte.
-.proc acceso_escribir
+.proc access_write
 .a8
 .i16
     pha
@@ -201,13 +201,13 @@ ninguna:
 .endproc
 
 ; The menu request is dropped, if there was one. Only A.
-.proc menu_olvidar
+.proc menu_forget
 .a8
 .i16
-    jsr acceso_leer
+    jsr access_read
     bpl listo
     and #$7F
-    jsr acceso_escribir
+    jsr access_write
 listo:
     rts
 .endproc
@@ -216,7 +216,7 @@ listo:
 ; no page running: it is the end of `Game_Player::Update`. Runs after
 ; `move_hero`, so the menu opens on the next frame —or when the step ends, if
 ; the hero was walking—.
-.proc pedir_menu
+.proc request_menu
 .a8
 .i16
     lda pad
@@ -228,17 +228,17 @@ listo:
     bne listo
     lda ev_activo
     bne listo
-    jsr acceso_leer
+    jsr access_read
     bit #ACCESO_SIN_MENU
     bne listo
     ora #ACCESO_PEDIDO
-    jsr acceso_escribir
+    jsr access_write
 listo:
     rts
 .endproc
 
 ; Does option A do anything? Returns with A = 1 and Z=0 if so. Clobbers X.
-.proc menu_habilitada
+.proc menu_enabled
 .a8
 .i16
     rep #$20
@@ -251,7 +251,7 @@ listo:
     beq listo
     cpx #MENU_GUARDAR
     bne listo
-    jsr acceso_leer
+    jsr access_read
     and #ACCESO_SIN_GUARDAR
     eor #ACCESO_SIN_GUARDAR     ; 1 if allowed
 listo:
@@ -261,7 +261,7 @@ listo:
 ; The cursor on option A: `temp + 3` at 1 paints it and at 0 erases it. It is
 ; two cells, one below the other, written one word at a time. With the screen
 ; off or inside the vblank.
-.proc menu_cursor_escribir
+.proc menu_cursor_write
 .a8
 .i16
     rep #$20
@@ -308,7 +308,7 @@ borra:
 ; a time —the hardware divider is 16 by 8, and with the carried remainder the
 ; dividend never goes past 2559— and each remainder is a digit, from right to
 ; left. Zero is written "0".
-.proc menu_oro_escribir
+.proc menu_gold_write
 .a8
 .i16
     rep #$20
@@ -379,20 +379,20 @@ otra:
 
 ; The whole screen, with the screen off: the bank, the five options, the
 ; cursor on `titulo_sel`, the gold and the party. At the end it turns it on.
-.proc menu_subir
+.proc menu_upload
 .a8
 .i16
     lda #$80
     sta INIDISP
     stz HDMAEN
     stz TM
-    jsr ranura_banco_subir
+    jsr slot_bank_upload
 
     ; --- the options, each in its variant ---
     lda #0
 otra_opcion:
     pha
-    jsr menu_habilitada
+    jsr menu_enabled
     eor #1
     sta temp + 3                ; 1 if it goes in gray
     pla
@@ -420,7 +420,7 @@ otra_opcion:
 .a8
     lda #2
     sta temp + 2
-    jsr ranura_rect_subir
+    jsr slot_rect_upload
     pla
     inc a
     cmp #MENU_OPCIONES
@@ -430,10 +430,10 @@ otra_opcion:
     lda #1
     sta temp + 3
     lda titulo_sel
-    jsr menu_cursor_escribir
+    jsr menu_cursor_write
 
     ; --- the gold and the coin ---
-    jsr menu_oro_escribir
+    jsr menu_gold_write
     rep #$20
 .a16
     ldx #MENU_BLQ_MONEDA
@@ -444,10 +444,10 @@ otra_opcion:
 .a8
     lda #2
     sta temp + 2
-    jsr ranura_rect_subir
+    jsr slot_rect_upload
 
-    jsr menu_grupo_pintar
-    jsl f:menu_exp_pintar       ; the experience, which goes in sprites, and turns on
+    jsr menu_party_paint
+    jsl f:menu_exp_paint       ; the experience, which goes in sprites, and turns on
     lda #1
     sta menu_abierto
     rts
@@ -461,13 +461,13 @@ otra_opcion:
 ; carries the level term, the status and the HP term, which depend on no one.
 ; What does depend on the actor —its name, its level and its maximum— is
 ; composed with glyphs, and that is what keeps the tile bank from growing
-; with the number of actors; see `ranura_texto_escribir`.
+; with the number of actors; see `slot_text_write`.
 ;
 ; The row stays on the stack for the whole pass and each step pulls the cell
 ; and the actor out of it again instead of saving them: the direct page is
 ; full —`temp` and `temp + 2` are used by the two routines that write— and
 ; each step runs once per row, with the PPU off.
-.proc menu_grupo_pintar
+.proc menu_party_paint
 .a8
 .i16
     lda #0
@@ -495,7 +495,7 @@ conocido:
     lda #MENU_ACTOR_FILAS
     sta temp + 2
     ldx #MENU_BLQ_FILA
-    jsr ranura_rect_subir
+    jsr slot_rect_upload
 
     ; --- the face, in the row's top left corner ---
     pla
@@ -523,7 +523,7 @@ conocido:
     sta temp
     lda #MENU_CARA_CELDAS
     sta temp + 2
-    jsr ranura_rect_subir
+    jsr slot_rect_upload
 sin_cara:
 
     ; --- the name ---
@@ -542,9 +542,9 @@ sin_cara:
     pha
     jsr actor_de
     ldx #RANURA_TEXTO_NOMBRE
-    jsr ranura_texto_de
+    jsr slot_text_of
     lda #MENU_NOMBRE_COLS
-    jsr ranura_texto_escribir
+    jsr slot_text_write
 
     ; --- the level ---
     pla
@@ -563,7 +563,7 @@ sin_cara:
     jsr actor_de
     jsl f:text_level           ; the current one: it goes up by fighting
     lda #RANURA_NIVEL_CIFRAS
-    jsr ranura_texto_escribir
+    jsr slot_text_write
 
     ; --- the maximum, after the slash ---
     pla
@@ -582,7 +582,7 @@ sin_cara:
     jsr actor_de
     jsl f:text_max          ; the one for its current level, like the level
     lda #MENU_MAX_CIFRAS
-    jsr ranura_texto_escribir
+    jsr slot_text_write
 
     ; --- and the current HP, which are not cartridge text but state ---
     pla
@@ -623,7 +623,7 @@ fila_vram:
 
 ; The menu, until the player closes it with B. Returns to the restored map,
 ; like the slot screen from the save point.
-.proc menu_pantalla
+.proc menu_screen
 .a8
 .i16
     phb
@@ -633,7 +633,7 @@ fila_vram:
     rep #$10
     stz titulo_sel              ; RM2k opens with the cursor on the first
 armar:
-    jsr menu_subir
+    jsr menu_upload
 espera:
     jsr wait_vblank
     jsr read_pad
@@ -671,7 +671,7 @@ no_abajo:
     lda pad_a_ant
     bne espera                  ; it was already held: not an edge
     lda titulo_sel
-    jsr menu_habilitada
+    jsr menu_enabled
     beq espera                  ; in gray: RM2k plays a sound and does nothing
     lda titulo_sel
     cmp #2
@@ -679,7 +679,7 @@ no_abajo:
     ; Equipment: whom, and their screen. Both return to the menu.
     lda #1
     sta eleg_cancel             ; for choosing
-    jsr objetivo_pantalla
+    jsr target_screen
     cmp #$FF
     beq volver_de_equipo
     rep #$20
@@ -689,7 +689,7 @@ no_abajo:
     sep #$20
 .a8
     lda grupo, x
-    jsl f:equipo_pantalla
+    jsl f:equipment_screen
 volver_de_equipo:
     lda #2
     sta titulo_sel
@@ -699,7 +699,7 @@ no_equipo:
     bne no_items
     ; Items: B returns to the menu, and using one goes straight back to the
     ; map.
-    jsr items_pantalla
+    jsr items_screen
     beq volver_de_items
     jmp cerrar
 volver_de_items:
@@ -720,18 +720,18 @@ guardar:
     ; back to the menu with the cursor on "Save", like `Scene_Save` when it
     ; returns to `Scene_Menu`.
     lda #1
-    jsr ranuras_pantalla
+    jsr slots_screen
     cmp #$FF
     beq guardar_listo
-    jsr poner_ranura
-    jsr guardar_partida
+    jsr set_slot
+    jsr save_game
 guardar_listo:
     lda #MENU_GUARDAR
     sta titulo_sel
     jmp armar
 cerrar:
     ; The B that closes and the earlier A are consumed: without this
-    ; `pedir_menu` would see the edge in this same pass and the menu would
+    ; `request_menu` would see the edge in this same pass and the menu would
     ; open again.
     lda pad
     sta pad_ant
@@ -745,7 +745,7 @@ cerrar:
     ; eventos.py.
     jsl f:equipment_commons
     plb
-    jsl f:menu_exp_cerrar       ; what the menu sprites changed
+    jsl f:menu_exp_close       ; what the menu sprites changed
     jsr volver_al_mapa
     rts
 
@@ -755,13 +755,13 @@ mover:
     pha
     stz temp + 3
     lda titulo_sel
-    jsr menu_cursor_escribir
+    jsr menu_cursor_write
     pla
     sta titulo_sel
     lda #1
     sta temp + 3
     lda titulo_sel
-    jmp menu_cursor_escribir
+    jmp menu_cursor_write
 .endproc
 
 ; --- the actor choice --------------------------------------------------------
@@ -779,22 +779,22 @@ mover:
 ; battles lowered them. It is taro's "the sandwich does not heal from the
 ; menu".
 
-.proc objetivo_pantalla
+.proc target_screen
 .a8
 .i16
     lda #$80
     sta INIDISP
     stz HDMAEN
     stz TM
-    jsr ranura_banco_subir
-    jsr menu_grupo_pintar
-    jsl f:objetivo_subir
+    jsr slot_bank_upload
+    jsr menu_party_paint
+    jsl f:target_upload
     stz titulo_sel
     lda #1
     sta temp + 3
     lda #0
-    jsl f:objetivo_barra
-    jsl f:objetivo_ppu_prender
+    jsl f:target_bar
+    jsl f:target_ppu_on
 espera:
     jsr wait_vblank
     jsr read_pad
@@ -847,7 +847,7 @@ medicina:
     lda titulo_sel
     sta temp + 2
     jsl f:menu_hp_write
-    jsl f:objetivo_cuantos      ; and how many are left
+    jsl f:target_count      ; and how many are left
     jmp espera
 
 actor_de_la_fila:
@@ -865,13 +865,13 @@ mover:
     pha
     stz temp + 3
     lda titulo_sel
-    jsl f:objetivo_barra
+    jsl f:target_bar
     pla
     sta titulo_sel
     lda #1
     sta temp + 3
     lda titulo_sel
-    jsl f:objetivo_barra
+    jsl f:target_bar
     rts
 .endproc
 

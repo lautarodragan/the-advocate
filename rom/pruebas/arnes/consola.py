@@ -62,10 +62,10 @@ WRAM = 0x20000
 EFECTO = 0x100
 
 # La marca de una ranura con partida. **No sale de la tabla de símbolos porque
-# la ROM no la tiene como símbolo**: `ranura_llena` la compara con cuatro
-# `cmp #` inmediatos, y `guardar_partida` la escribe igual. Sale del archivo
+# la ROM no la tiene como símbolo**: `slot_full` la compara con cuatro
+# `cmp #` inmediatos, y `save_game` la escribe igual. Sale del archivo
 # de proyecto, de donde la saca el conversor. Lo que sí es símbolo es dónde
-# va, `SRAM_MAGIA`.
+# va, `SRAM_MAGIC`.
 MAGIA = settings.ascii("rom", "sram_signature", length=4).encode()
 
 
@@ -270,7 +270,7 @@ class Partida:
         ranuras, así que elegirla son dos menús y no uno. `ranura` dice cuál se
         elige ahí; con la primera opción no se mira.
         """
-        # Unos cuadros de aire primero: `pantalla_titulo` corre **después** de
+        # Unos cuadros de aire primero: `title_screen` corre **después** de
         # que el arranque contó sus BOOT_CUADROS, y antes de llegar a su lazo
         # sube 33 KB a la VRAM con la pantalla apagada. Un toque en el cuadro
         # BOOT_CUADROS justo cae ahí y se pierde. La pantalla de ranuras sube
@@ -466,7 +466,7 @@ class Partida:
 
     def magia(self, ranura=0):
         """Los cuatro bytes de la marca de la ranura, en la SRAM."""
-        return self.sram(self.simbolos["SRAM_MAGIA"]
+        return self.sram(self.simbolos["SRAM_MAGIC"]
                          + ranura * self.simbolos["SRAM_STRIDE"], 4)
 
     def hay_partida(self, ranura=0):

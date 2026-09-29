@@ -97,7 +97,7 @@ apagado:
 ;
 ; For what has to tell a press from a repeat, `flechas_repetidas` holds which
 ; bits were faked this frame. There are two: key input **with wait**, which in
-; RM2k is plain `IsTriggered` and drops them (`tecla_valor`), and the slots
+; RM2k is plain `IsTriggered` and drops them (`key_value`), and the slots
 ; screen, which is `Scene_File` and does not wrap around when repeating
 ; (`ranuras.s`).
 ;

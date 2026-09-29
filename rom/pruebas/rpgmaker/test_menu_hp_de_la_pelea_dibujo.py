@@ -86,7 +86,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     """Y la segunda: el menú abierto en el mapa dibuja esos mismos números.
 
     **Comprobado en rojo con la ROM de antes** —sin el `jsl menu_hp_write`
-    de `menu_grupo_pintar`—: 111 pixeles de diferencia, los de las cifras que
+    de `menu_party_paint`—: 111 pixeles de diferencia, los de las cifras que
     nadie escribía.
     """
     from port import menus
@@ -101,7 +101,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     abrir(una)
     db, skin = datos.base(), datos.skin()
     oro = una.oro()
-    esperada = menus.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
+    esperada = menus.render_menu(skin, db, una.simbolos["SRAM_SLOTS"],
                                   GRUPO, oro, 0, True, db.font_id, None,
                                   GAME_DIR, quedo, niveles, exps)
     comparar_pantalla(una, esperada, "menu-tras-pelea",
@@ -109,7 +109,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     # Y que la comparación de arriba mida algo: con los HP llenos la referencia
     # dibuja **otra** imagen. Sin esto, una ROM que volviera a hornear el
     # máximo pasaría el caso el día que la referencia se equivocara igual.
-    llena = menus.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
+    llena = menus.render_menu(skin, db, una.simbolos["SRAM_SLOTS"],
                                GRUPO, oro, 0, True, db.font_id, None,
                                GAME_DIR, MAXIMOS, niveles, exps)
     assert pixeles_distintos(llena, esperada) > 20, (

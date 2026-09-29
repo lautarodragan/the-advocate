@@ -11,9 +11,9 @@
 ;
 ; Everything goes on BG2, over `RANURA_VRAM` and `RANURA_MAP`, which are the
 ; places the menu and the slot screen already write: on the way back,
-; `menu_subir` rebuilds them and `volver_al_mapa` has nothing else to restore.
+; `menu_upload` rebuilds them and `volver_al_mapa` has nothing else to restore.
 ;
-; It is entered with `jsl` from `menu_pantalla`, with the screen on or not,
+; It is entered with `jsl` from `menu_screen`, with the screen on or not,
 ; and:
 ;
 ;   B or "No"  returns with `rtl`, with the screen off: the menu gets rebuilt
@@ -91,7 +91,7 @@
     sta MDMAEN
     jsr ending_palette
 
-    ; --- the PPU: BG2 alone, like `ranura_ppu_prender` ---
+    ; --- the PPU: BG2 alone, like `slot_ppu_on` ---
     lda #(RANURA_MAP / 1024 * 4)
     sta BG2SC
     lda #(RANURA_VRAM / 4096 * 16)

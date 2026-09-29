@@ -249,7 +249,7 @@ def test_con_msu_la_pista_que_falta_cae_al_spc700_con_sus_muestras(tmp_path):
 
 # --- con MSU-1, la pista del título se calla al empezar -----------------------
 #
-# Al elegir "Begin the Story", `pantalla_titulo` llama a `music_boot`, que con
+# Al elegir "Begin the Story", `title_screen` llama a `music_boot`, que con
 # el mapa inicial callado —el de la apertura no trae tema: lo prende un
 # `PlayBGM`— marcaba `music_apagada` y nada más. El SPC700 quedaba callado,
 # pero la pista del título seguía sonando por el MSU-1 hasta el primer
@@ -336,7 +336,7 @@ def test_con_msu_el_fundido_para_la_pista_y_los_efectos_siguen(tmp_path):
 # propósito. La partida guarda ese byte como "no suena nada", y al cargarla
 # `music_boot_done` tomaba el camino callado. Lo que viaja tiene que ser la
 # respuesta a "¿está sonando?", que no depende de por dónde: ver
-# `guardar_partida`.
+# `save_game`.
 #
 # Se guarda en el mapa 26, que prende `KSSMKEND` —con pista— al llegar, y se
 # carga en las cuatro combinaciones de con y sin MSU-1. La partida viaja de una

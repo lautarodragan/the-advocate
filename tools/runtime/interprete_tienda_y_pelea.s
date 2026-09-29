@@ -51,7 +51,7 @@ op_shop_other:
     lda comp_mask + 1
     and #$00FF
     clc
-    adc #FAR_TIENDA
+    adc #FAR_SHOP
     sta WMADDL
     sep #$20
 .a8
@@ -64,7 +64,7 @@ op_shop_next:
     bra op_shop_other
 op_shop_done:
     phy
-    jsl f:tienda_pantalla
+    jsl f:shop_screen
     ; The edges that closed the shop belong to it, as in the menu.
     lda pad
     sta pad_ant

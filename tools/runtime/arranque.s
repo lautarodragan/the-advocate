@@ -161,7 +161,7 @@ grupo_listo:
     sta par_ev
     ; And its escape queue, for the same reason: a pause with garbage would
     ; stop the page just like `msg_abierto`. Today they are not read without
-    ; `msg_empezar` having written them, but that holds only as long as the
+    ; `msg_start` having written them, but that holds only as long as the
     ; guard above stays `msg_abierto | msg_estado`.
     rep #$20
 .a16
@@ -218,7 +218,7 @@ grupo_listo:
     stz timer_seg
     sep #$20
 .a8
-    jsr timer_digitos
+    jsr timer_digits
 
     ; RAM starts with garbage —snes9x fills it with $55— and `flush_video`
     ; looks at both: without this the first vblank would turn the screen on
@@ -243,7 +243,7 @@ grupo_listo:
     jsr initial_equipment_set
     jsl f:hp_initial_set
     jsl f:initial_skills_set
-    jsr actor_graf_limpiar
+    jsr actor_gfx_clear
     jsr clima_limpiar
     jsr se_clear
     jsr music_clear
@@ -266,10 +266,10 @@ grupo_listo:
     ora #>TITULO_TILES
     bne nueva
     lda #0                      ; no menu to choose, always the first
-    jsr poner_ranura
-    jsr cargar_partida
+    jsr set_slot
+    jsr load_game
     beq nueva
-    jsr entrada_de_la_partida
+    jsr save_entry
     rep #$20
 .a16
     lda mapa_actual             ; the index goes in sixteen bits
@@ -334,7 +334,7 @@ cargar:
 
     ; The title image, decompressed to WRAM **before** the wait, which is
     ; where there are frames to spare: decompressing it when showing it was
-    ; nine more frames of black before the title. `titulo_subir` uploads it.
+    ; nine more frames of black before the title. `title_upload` uploads it.
     ; A ROM with a title can go past BOOT_CUADROS because of this, and it does
     ; not matter: what counts frames from the reset is the loop, and that is
     ; reached after the title.
@@ -371,7 +371,7 @@ espera_boot:
     ; without a title reaches the loop on exactly the usual frame, and the 96
     ; cases of the suite —which count frames from the reset— never learn that
     ; this exists.
-    jsr pantalla_titulo
+    jsr title_screen
 
 loop:
     jsr wait_vblank
@@ -417,7 +417,7 @@ loop:
                                 ; there broke the tie, and `parar-rutas` showed
                                 ; it with the NPC one frame ahead of the hero.
     jsr move_hero               ; `game_player->Update()`
-    jsr pedir_menu              ; B, at the end of the hero: see `pedir_menu`
+    jsr request_menu              ; B, at the end of the hero: see `request_menu`
     ; The timer goes **before** the interpreter, which is where
     ; `Game_Map::Update` puts it: `UpdateTimers()` runs and only then
     ; `UpdateForegroundEvents`. That is, the page that starts it does not get
@@ -463,7 +463,7 @@ sin_salto_pendiente:
     jsr animate_hero
     jsr follow_camera
     jsr stream_map              ; the column or row the camera uncovered
-    jsr mensaje_tick            ; and a few characters of the message being
+    jsr message_tick            ; and a few characters of the message being
                                 ; composed, if there is one
     jsr build_oam               ; and the next one is built, now outside vblank
     bra contada

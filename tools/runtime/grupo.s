@@ -233,7 +233,7 @@ lo_encontre:
     ; at. See OP_ACTOR_SPRITE in eventos.py.
     phy                         ; the actor's entry, in case there is no change
     lda temp                    ; the leader
-    jsr actor_graf_leer
+    jsr actor_gfx_read
     cmp #ACTOR_GRAF_NINGUNO
     beq sin_cambio_de_sprite
     jsr hero_poses_de_grafico

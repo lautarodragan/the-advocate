@@ -157,7 +157,7 @@ def test_el_cursor_de_guardar_arranca_en_la_ranura_en_uso(partida, mundo):
         % (CELDA, (p.palabra("tile_x"), p.palabra("tile_y"))))
 
     # Y se le toca A otra vez, sin moverse: la pantalla de ranuras del save
-    # point, con el cursor donde lo dejó `cargar_partida`.
+    # point, con el cursor donde lo dejó `load_game`.
     r.p = p
     r.abrir_el_save_point()
     assert p.byte("titulo_sel") == 2, (

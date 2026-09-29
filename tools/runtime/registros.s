@@ -153,7 +153,7 @@ A1T3L    = $4332
 A1B3     = $4334
 HDMA_VENTANA = $0E      ; channels 1, 2 and 3 on at once
 ; PPU window 1, which is not the message window: it is the mask that hides
-; the objects under it. See `armar_hdma`.
+; the objects under it. See `build_hdma`.
 WOBJSEL  = $2125        ; which PPU windows mask objects
 WH0      = $2126        ; window 1's left edge
 WH1      = $2127        ; and the right one

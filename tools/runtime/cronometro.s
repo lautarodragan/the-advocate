@@ -27,7 +27,7 @@ otro_segundo:
     sta timer_seg
     sep #$20
 .a8
-    jsr timer_digitos
+    jsr timer_digits
     lda timer_seg
     ora timer_seg + 1
     beq apagar
@@ -53,7 +53,7 @@ ya_no_se_veia:
 ; The minutes fit in two digits because the converter does not let through a
 ; timer of more than 1092 seconds: the cap comes from the frame count in
 ; sixteen bits, not from the screen.
-.proc timer_digitos
+.proc timer_digits
 .a8
 .i16
     rep #$20

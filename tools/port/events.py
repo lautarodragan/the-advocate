@@ -1417,7 +1417,7 @@ class Messages:
         """How many pauses that box carries and whether it closes on its own.
 
         It comes from **the same bytes the ROM reads** and not from a
-        parallel dictionary: `msg_empezar` decodes that header byte with the
+        parallel dictionary: `msg_start` decodes that header byte with the
         same masks. A format read in two different ways is exactly the
         failure mode this repo has already paid for twice.
         """
@@ -1472,7 +1472,7 @@ HEADER_AUTO_CLOSE = 0x08
 # multiplication by three in the ROM) and a 24-bit operand (no padding but one
 # more byte for each `OP_MESSAGE`, which outnumber the boxes), and neither
 # saves what it complicates: see `workflow/tasks/*/mundo-3-el-espacio.md`.
-# `msg_empezar` multiplies it by four, and an `.assert` there enforces that
+# `msg_start` multiplies it by four, and an `.assert` there enforces that
 # both sides of the math are the same: `MENSAJES_TOPE`.
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
@@ -2012,7 +2012,7 @@ CHANGE_PBG = 11720
 # opcodes and not a state byte because the interpreter has nowhere to keep
 # it: the one that waits **rewinds its own cursor** and runs again frame after
 # frame, so it cannot tell the first turn from the others.
-KEY_WAIT   = 0x01    # bit 0 on purpose: `tecla_valor` reads it with an `lsr`
+KEY_WAIT   = 0x01    # bit 0 on purpose: `key_value` reads it with an `lsr`
 KEY_DIRS     = 0x02
 KEY_DECISION = 0x04
 KEY_CANCEL = 0x08
@@ -2576,7 +2576,7 @@ COMMON_EVENTS = {}            # RM2k common event -> its commands
 # enough to run it **when they change**: when the switch turns on —the
 # converter pastes the body after the `ControlSwitches` that turns it on, like
 # a `CallEvent`— and when closing the menu, which is where the equipment is
-# changed —the ROM runs it from `menu_pantalla`, see `equipment_commons` in
+# changed —the ROM runs it from `menu_screen`, see `equipment_commons` in
 # tools/runtime/equipo_desde_eventos.s—. It is what the droid tutorial says:
 # "these abilities become available once you equip a particular component and
 # exit the menu".
@@ -4578,7 +4578,7 @@ def _compile(cmd, map_index, messages=None, extra=(),
             # over the pad— and then, when the reference went away, because
             # nobody had looked at it again. On accepting it two things of the
             # ROM that no compiled page exercised showed up: that `op_key`
-            # looked at edges in this form too —see `tecla_valor`— and that
+            # looked at edges in this form too —see `key_value`— and that
             # a `Teleport` from a parallel page was not handled with the
             # foreground idle —see the main loop—.
             # `test_recorrido_carrera_golden.py` enforces it.

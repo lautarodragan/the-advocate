@@ -202,7 +202,7 @@ puesto:
     jsr elegir_grafico_heroe
     jsr limpiar_tilemaps        ; what `fill_window` does not overwrite, from the map before
     jsr fill_window             ; leaves tira_paso_col ready, which the other one uses
-    jsr load_ventana            ; tiles, palette, its own tilemap and HDMA tables
+    jsr load_window            ; tiles, palette, its own tilemap and HDMA tables
     jsr init_hero_ptr
 
     ; The tint is game state, not map state: it survives the teleport. The
@@ -312,7 +312,7 @@ puesto:
 ;                                       touched, and `fill_window` refills it
 ;                                       all the same
 ;   $7800  the upper layer's            the same
-;   $6800  the window's tiles           `load_ventana`, with its tilemap and HDMA
+;   $6800  the window's tiles           `load_window`, with its tilemap and HDMA
 ;   the sprites                         `load_sprite`: they start at 0, and
 ;                                       word 0 takes out the hero's first two
 ;                                       tiles
@@ -336,7 +336,7 @@ puesto:
     jsl f:scene_cgram_restore  ; the palettes the battlers took
     jsr load_sprite             ; the pose bank, the object palette and OBSEL
     jsr poses_npc_olvidar
-    jsr load_ventana
+    jsr load_window
     ; The grid, which the scene overwrote in the middle of bank $7F —it is
     ; `SCN_SCENE`— if the map has more than 32 KB of grid. It is
     ; decompressed again in full, which is simpler than tracking where the
@@ -606,7 +606,7 @@ listo:
 .a8
     stz step_left               ; a step halfway along is cut short
     stz moving
-    jsr menu_olvidar            ; and a menu request too: `MoveTo`
+    jsr menu_forget            ; and a menu request too: `MoveTo`
     jsl f:encounter_move       ; and the distance walked, which is the other thing it erases
     jsr follow_camera
     jsr fill_window             ; the camera jumped: the tilemap is filled again

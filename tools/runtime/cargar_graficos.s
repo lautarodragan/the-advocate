@@ -55,7 +55,7 @@
     ;
     ; First the bottom part, which belongs to the whole ROM and not to this
     ; map: the screen's backdrop color and the message window's palette. It
-    ; goes here and not in `load_ventana` because `load_ventana` is skipped
+    ; goes here and not in `load_window` because `load_window` is skipped
     ; entirely when the ROM has no window, and the backdrop color is needed
     ; anyway.
     stz CGADD
