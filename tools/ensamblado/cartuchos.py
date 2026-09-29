@@ -28,12 +28,6 @@ import sys
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
-# Desde el PATH, si el directorio actual es otro checkout, corre el de ahí:
-# ver `comun/ejecutable.py`.
-if __name__ == "__main__":
-    from comun import ejecutable                        # noqa: E402
-    ejecutable.usar_el_del_checkout(__file__)
-
 from audio import muestras_brr                          # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
 from port import tiles_bin                              # noqa: E402

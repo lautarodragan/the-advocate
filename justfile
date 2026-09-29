@@ -95,6 +95,16 @@ lz2-pruebas:
 # Dónde instala `just herramientas`. En el contenedor `/usr/local` está en el
 # PATH; desde el host conviene `CARGO_ROOT=~/.cargo`, el default de cargo.
 cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
+
+# Dónde instala `just herramientas-locales`: adentro del checkout, ignorado
+# por git. Si existe, su `bin/` va **adelante en el PATH de toda receta**, y lo
+# que no esté ahí sale del global. En el checkout principal no existe.
+locales := justfile_directory() / ".herramientas-locales"
+export PATH := if path_exists(locales / "bin") == "true" { locales / "bin" + ":" + env_var("PATH") } else { env_var("PATH") }
+
+# Los proyectos de Rust, en el orden en que se instalan.
+proyectos_de_rust := "protocol gunter ditto voodoo lz2"
+
 # --- Las herramientas ------------------------------------------------------
 # `tools/protocol/`, `tools/gunter/`, `tools/ditto/`, `tools/voodoo/` y
 # `tools/lz2/` son proyectos aparte, y el port los consume **desde el PATH**,
@@ -104,32 +114,91 @@ cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
 # Y los scripts de Python que se ejecutan, al mismo `bin/`, para que este
 # archivo los llame por su nombre como a los de Rust. Van **como symlinks y no
 # como copias**: una copia quedaría vieja al editar el `.py`, y la tanda
-# correría otra versión que la del árbol. El symlink apunta al checkout desde
-# el que se corrió esto, pero corrido adentro de otro checkout —el worktree de
-# un sub-agente— cada script corre la copia de ése: ver
-# `tools/comun/ejecutable.py`. Si el checkout del symlink se borra, hay que
-# volver a correr esto desde otro.
+# correría otra versión que la del árbol. Apuntan al checkout desde el que se
+# corrió esto: si ése se borra, hay que volver a correrlo desde otro.
+#
+# Con nombres de proyectos de Rust —`just herramientas lz2`— instala sólo
+# ésos, más los symlinks de Python, que no cuestan nada: es lo que corre el
+# que mergea una rama, con lo de Rust que la rama tocó. Sin nombres, todos.
 #
 # Los nombres siguen al repo donde va a vivir cada programa cuando las
 # herramientas se separen de ABL: `rm2k-snes-` y en inglés los de la suite,
 # que va a ser un repo en inglés; `abl-` y en castellano el que se queda con
 # el juego. El prefijo es porque el `bin/` es compartido: un `espacio` o un
 # `parches` suelto no dice qué es y puede chocar con cualquier cosa.
-herramientas:
-  cargo install --locked --path tools/protocol --root {{cargo_root}}
-  cargo install --locked --path tools/gunter --root {{cargo_root}}
-  cargo install --locked --path tools/ditto --root {{cargo_root}}
-  cargo install --locked --path tools/voodoo --root {{cargo_root}}
-  cargo install --locked --path tools/lz2 --root {{cargo_root}}
-  mkdir -p "{{cargo_root}}/bin"
-  ln -sfn "{{justfile_directory()}}/tools/ensamblado/cartuchos.py" "{{cargo_root}}/bin/rm2k-snes-cartridges"
-  ln -sfn "{{justfile_directory()}}/tools/ensamblado/ensamblar.py" "{{cargo_root}}/bin/rm2k-snes-assemble"
-  ln -sfn "{{justfile_directory()}}/tools/ensamblado/espacio.py" "{{cargo_root}}/bin/rm2k-snes-space"
-  ln -sfn "{{justfile_directory()}}/tools/port/snes_convert.py" "{{cargo_root}}/bin/rm2k-snes-convert"
-  ln -sfn "{{justfile_directory()}}/tools/port/parches.py" "{{cargo_root}}/bin/rm2k-snes-patches"
-  ln -sfn "{{justfile_directory()}}/tools/audio/msu.py" "{{cargo_root}}/bin/rm2k-snes-msu"
-  ln -sfn "{{justfile_directory()}}/tools/audio/techos.py" "{{cargo_root}}/bin/rm2k-snes-volume-ceilings"
-  ln -sfn "{{justfile_directory()}}/tools/ensamblado/entregar.py" "{{cargo_root}}/bin/abl-entregar"
+#
+# `(cargo_root)` va entre paréntesis porque, pegado al paréntesis que sigue,
+# `just` lo leería como una llamada a una función `cargo_root`.
+herramientas *proyectos: (_instalar (cargo_root) (if proyectos == "" { proyectos_de_rust } else { proyectos }))
+
+# **Las herramientas de un worktree**, para el sub-agente que las modifica.
+# Un symlink del global apunta a un solo checkout —el principal—, así que un
+# worktree que cambia un script de las herramientas o un proyecto de Rust no
+# correría su cambio. Esto arma `.herramientas-locales/bin/` con los ocho
+# scripts del worktree, siempre, y con los proyectos de Rust que se le
+# nombren, **sólo ésos**: compilar Rust cuesta, y sólo tiene sentido si el
+# agente va a modificar ese proyecto. Sin nombres no compila nada. Es de
+# taro, el 2026-09-29.
+#
+# Vale sólo para lo que corre por `just`, que es el que pone el `bin/`
+# adelante en el PATH: un comando suelto usa el global. Se niega en el
+# checkout principal, donde taparía al global con lo mismo.
+herramientas-locales *proyectos: _no_en_el_principal (_instalar locales proyectos)
+
+_no_en_el_principal:
+  #!/usr/bin/env sh
+  [ "$(git rev-parse --git-dir)" != "$(git rev-parse --git-common-dir)" ] && exit 0
+  echo "esto es el checkout principal: acá las herramientas son las globales, las de 'just herramientas'." >&2
+  exit 1
+
+# Instala en `raiz`: `cargo install` de los proyectos de Rust nombrados, y los
+# symlinks de los ocho de Python. Un nombre que no es proyecto corta antes de
+# compilar nada.
+_instalar raiz *proyectos:
+  #!/usr/bin/env sh
+  set -eu
+  for p in {{proyectos}}; do
+    case " {{proyectos_de_rust}} " in
+      *" $p "*) ;;
+      *) echo "'$p' no es un proyecto de Rust: son {{proyectos_de_rust}}." >&2; exit 1 ;;
+    esac
+  done
+  for p in {{proyectos}}; do
+    cargo install --locked --path "tools/$p" --root "{{raiz}}"
+  done
+  mkdir -p "{{raiz}}/bin"
+  ln -sfn "{{justfile_directory()}}/tools/ensamblado/cartuchos.py" "{{raiz}}/bin/rm2k-snes-cartridges"
+  ln -sfn "{{justfile_directory()}}/tools/ensamblado/ensamblar.py" "{{raiz}}/bin/rm2k-snes-assemble"
+  ln -sfn "{{justfile_directory()}}/tools/ensamblado/espacio.py" "{{raiz}}/bin/rm2k-snes-space"
+  ln -sfn "{{justfile_directory()}}/tools/port/snes_convert.py" "{{raiz}}/bin/rm2k-snes-convert"
+  ln -sfn "{{justfile_directory()}}/tools/port/parches.py" "{{raiz}}/bin/rm2k-snes-patches"
+  ln -sfn "{{justfile_directory()}}/tools/audio/msu.py" "{{raiz}}/bin/rm2k-snes-msu"
+  ln -sfn "{{justfile_directory()}}/tools/audio/techos.py" "{{raiz}}/bin/rm2k-snes-volume-ceilings"
+  ln -sfn "{{justfile_directory()}}/tools/ensamblado/entregar.py" "{{raiz}}/bin/abl-entregar"
+  echo "en {{raiz}}/bin: los ocho de Python, y de Rust: {{ if proyectos == "" { "ninguno" } else { proyectos } }}"
+
+# **Un worktree sin su `bin/` no corre herramientas.** Correría los scripts
+# del checkout principal —los del global—, que arman en el `rom/build/` del
+# principal: pisaría sus cartuchos, quizás con una tanda corriendo ahí, sin
+# enterarse. Así que toda receta que corre un script de las herramientas
+# depende de ésta, y en un worktree sin `.herramientas-locales/bin/` se
+# niega. En el checkout principal pasa siempre. Un worktree se reconoce
+# porque su `git-dir` no es el común.
+_herramientas_del_checkout:
+  #!/usr/bin/env sh
+  [ "$(git rev-parse --git-dir)" = "$(git rev-parse --git-common-dir)" ] && exit 0
+  [ -d "{{locales}}/bin" ] && exit 0
+  echo "este worktree no tiene sus herramientas: corré 'just herramientas-locales' primero." >&2
+  echo "sin eso, los scripts serían los del checkout principal, y armarían en su rom/build/." >&2
+  exit 1
+
+# Qué ejecutable resuelve este checkout para cada herramienta: el de
+# `.herramientas-locales/bin/` si está, si no el global.
+cuales:
+  #!/usr/bin/env sh
+  for x in {{proyectos_de_rust}} rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings abl-entregar; do
+    printf '%-26s %s\n' "$x" "$(command -v "$x" || echo falta)"
+  done
 
 # --- Super Nintendo --------------------------------------------------------
 # El port. El toolchain son dos cosas: un core de libretro y las herramientas
@@ -158,7 +227,7 @@ herramientas:
 # Las pruebas no arman nada: corren contra los cartuchos de `cartuchos`, que
 # se arman antes, en serie, y sólo si cambió algo de lo que los arma. **Después
 # corren en paralelo**, con pytest-xdist: ver `procesos`.
-pruebas *args: _xdist cartuchos
+pruebas *args: _herramientas_del_checkout _xdist cartuchos
   pytest pruebas {{xdist}} {{args}}
 
 # Las mismas, de a una carpeta: `rpgmaker` —lo que el motor tiene que hacer
@@ -167,13 +236,13 @@ pruebas *args: _xdist cartuchos
 # herramientas, la de bancos, lee la tabla de símbolos del cartucho armado.
 # Van en paralelo igual que `pruebas`: hasta `herramientas`, que no corre
 # ninguna ROM, gana.
-pruebas-rpgmaker *args: _xdist cartuchos
+pruebas-rpgmaker *args: _herramientas_del_checkout _xdist cartuchos
   pytest pruebas/rpgmaker {{xdist}} {{args}}
 
-pruebas-abl *args: _xdist cartuchos
+pruebas-abl *args: _herramientas_del_checkout _xdist cartuchos
   pytest pruebas/abl {{xdist}} {{args}}
 
-pruebas-herramientas *args: _xdist cartuchos
+pruebas-herramientas *args: _herramientas_del_checkout _xdist cartuchos
   pytest pruebas/herramientas {{xdist}} {{args}}
 
 # Cuántos procesos de pytest corren las pruebas a la vez. **`PROCESOS=0` es en
@@ -211,7 +280,7 @@ _xdist:
 # pruebas` antes, y cada uno se rearma sólo si cambió algo de lo que lo arma.
 # Qué va en cada uno y por qué está en el fuente de `rm2k-snes-cartridges`;
 # `--lista` lo imprime.
-cartuchos *args:
+cartuchos *args: _herramientas_del_checkout
   rm2k-snes-cartridges {{args}}
 
 # **Cuánto espacio le queda a cada cartucho**: bancos de datos libres y los
@@ -225,7 +294,7 @@ cartuchos *args:
 #     just espacio otro/dir/abl.sfc     una ROM armada aparte, sin armar nada
 #
 # Imprime el espacio libre de cada cartucho.
-espacio *args:
+espacio *args: _herramientas_del_checkout
   #!/usr/bin/env sh
   for a in {{args}}; do [ -f "$a" ] && exec rm2k-snes-space {{args}}; done
   rm2k-snes-cartridges {{args}} >/dev/null && rm2k-snes-space {{args}}
@@ -241,14 +310,14 @@ espacio *args:
 #
 # Regenerarlos es deliberado, igual que con las goldens: si fuera automático o
 # lo hiciera la tanda, dejarían de avisar nada. Lo que se mira es el diff.
-parches: (build "release")
+parches: _herramientas_del_checkout (build "release")
   rm2k-snes-patches rom/build/release
 
 # Y la verificación, que es lo que corre la tanda: falla diciendo **qué
 # decisión cambió** —"la animación 82 se dibujaba a 64x50 y ahora se dibuja a
 # 64x49"—, no que el archivo difiere. Sin argumentos mira todos los cartuchos
 # de `cartuchos.py`, porque lo versionado tiene que salir igual en todos.
-parches-check *builds:
+parches-check *builds: _herramientas_del_checkout
   rm2k-snes-patches {{builds}} --check
 
 # **El techo de volumen de cada tema**, medido: arma una copia de `release`
@@ -260,7 +329,7 @@ parches-check *builds:
 # reparto—, que es cuando `test_musica_techos.py` avisa que quedó vieja. El
 # porqué, en `leer_techos`, que es donde el conversor la lee. `--medir` sólo
 # mide el `release` armado, sin escribir nada: recortes, pico y LUFS por tema.
-techos *args:
+techos *args: _herramientas_del_checkout
   rm2k-snes-volume-ceilings {{args}}
 
 # Arma un cartucho por nombre, si no está al día:
@@ -294,7 +363,7 @@ techos *args:
 # el MSU-1 no se enciende.
 #
 # Arma una ROM por nombre: release o test-special.
-build cual:
+build cual: _herramientas_del_checkout
   rm2k-snes-cartridges {{cual}}
 
 # **Le deja a taro el `release` en `/shared/builds/<fecha>-<commit>/`**: el
@@ -314,7 +383,7 @@ build cual:
 #     just entregar "..." --actualizar-msu
 #
 # Entrega el release en /shared/builds/ para que taro lo juegue.
-entregar que_mirar *args: (build "release")
+entregar que_mirar *args: _herramientas_del_checkout (build "release")
   abl-entregar {{quote(que_mirar)}} {{args}}
 
 # Es para que taro vea y escuche un build sin correrlo. Las jugadas son partes
@@ -328,5 +397,5 @@ entregar que_mirar *args: (build "release")
 #     just video release /shared/textos.mp4 apertura talan --leer 150
 #
 # Un video con sonido de una ROM ya armada, jugando las jugadas del recorrido.
-video cual salida +jugadas:
+video cual salida +jugadas: _herramientas_del_checkout
   pruebas/arnes/video.py rom/build/{{cual}} {{salida}} {{jugadas}}

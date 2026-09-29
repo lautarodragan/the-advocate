@@ -9,15 +9,12 @@ cada cosa está en la carpeta de su responsabilidad.
 De abajo hacia arriba. Una carpeta importa sólo de las que tiene abajo, nunca de
 una de su misma fila ni de más arriba.
 
-    comun/       el caché en disco del conversor (cache_disco), el reparto de
-                 lo puro en procesos bifurcados (paralelo) y el arranque de
-                 los scripts que se instalan en el PATH (ejecutable). No
-                 importa nada de acá, y lo puede importar cualquiera
-
     rpgmaker/    el juego como datos: el volcado a JSON de data/ (lcf), los
                  códigos de comando de RM2k (event_codes) y sus reglas
                  (rm2k). Ninguna regla del formato vive acá: data/ viene
                  resuelto. Tiene su propio README
+    comun/       el caché en disco del conversor (cache_disco) y el reparto de
+                 lo puro en procesos bifurcados (paralelo)
     ensamblado/  el mapa de memoria (bancos), el que arma la ROM (ensamblar) y
                  qué ROMs hay y con qué flags (cartuchos, que usa `just build`)
     emulador/    el core de libretro desde Python (retro), y el parche de
@@ -90,12 +87,14 @@ de Rust. El `justfile` los llama por su nombre y no sabe dónde están:
     rm2k-snes-volume-ceilings   audio/techos.py
     abl-entregar                ensamblado/entregar.py
 
-El porqué de los nombres está en la receta. Uno nuevo se agrega ahí, y el
-`.py` lleva el mismo arranque que los demás: corrido como script, pone
-`tools/` en el `sys.path` —resolviendo el symlink con `realpath`, porque
-`__file__` es la ruta del PATH— y, si el directorio actual es otro checkout
-con su propia copia, corre ésa (`comun/ejecutable.py`). Las pruebas ponen
-`tools/` en el camino ellas mismas, desde `pytest.ini`.
+El porqué de los nombres está en la receta. Uno nuevo se agrega en
+`_instalar`, y el `.py` busca sus paquetes resolviendo el symlink con
+`realpath`, porque `__file__` es la ruta del PATH. Las pruebas ponen `tools/`
+en el camino ellas mismas, desde `pytest.ini`.
+
+Un worktree que modifica las herramientas usa las suyas con `just
+herramientas-locales`, que arma un `bin/` propio y el `justfile` lo pone
+adelante en el PATH: ver la receta, y "Sub-agentes" en AGENTS.md.
 
 ## El parche de bsnes
 

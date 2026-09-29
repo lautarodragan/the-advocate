@@ -51,7 +51,10 @@ NOMBRA_PYTHON = re.compile(r"\bpython(?!-)", re.IGNORECASE)
 
 # Las recetas del `justfile` que son de las herramientas y no de ABL: arman
 # los proyectos de Rust, corren sus pruebas o instalan la suite. Se van con
-# ella. También sólo puede achicarse.
+# ella. También sólo puede achicarse, con una excepción que no la agranda:
+# `_instalar` entró el 2026-09-29 con lo que antes estaba adentro de
+# `herramientas`, cuando la instalación pasó a servir también a
+# `herramientas-locales`.
 RECETAS_DE_LAS_HERRAMIENTAS = {
     "protocolo",
     "protocolo-pruebas",
@@ -61,6 +64,7 @@ RECETAS_DE_LAS_HERRAMIENTAS = {
     "voodoo-pruebas",
     "lz2-pruebas",
     "herramientas",
+    "_instalar",
 }
 
 # Relativas a la raíz del repo. Las que arman el camino de los imports con

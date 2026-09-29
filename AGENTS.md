@@ -494,6 +494,16 @@ Lo que hay que hacer siempre:
   nombre obvio: el 2026-09-15 dos escribieron un `comparar.sh` cada uno en el
   mismo lugar. Uno pisa al otro y el pisado no se entera. `<scratchpad>/<lo que
   hace>/…` alcanza.
+* **Que corra `just herramientas-locales` al empezar.** El global —`just
+  herramientas`— apunta al checkout principal, y sus scripts arman en el
+  `rom/build/` de ése: por eso, en un worktree sin su `bin/`, las recetas que
+  corren herramientas —`cartuchos`, `pruebas`, `build`…— **se niegan** y
+  dicen qué correr. Arma un `bin/` en el worktree con los ocho scripts, y el
+  `justfile` lo pone adelante en el PATH. **Un proyecto de Rust se le pasa sólo si el agente lo va a
+  modificar** —`just herramientas-locales lz2`—: compilar cuesta, y sin
+  nombres no compila nada. Y **todo se corre por `just`**: un comando suelto
+  no ve ese `bin/` y usa el global. Es de taro, el 2026-09-29, y reemplazó a
+  un re-exec implícito que los scripts hacían solos.
 * **Pedirle que no deje nada esperando cuando termina.** Un sub-agente puede
   lanzar los suyos, y ésos **no aparecen** en la lista del que los mandó. 
   Lo mismo con los `sleep` largos para esperar
@@ -548,6 +558,9 @@ Así que al mergear una rama de sub-agente:
 
 * **Correr `just pruebas` y la tanda sobre el árbol mergeado**, no sobre las
   ramas. Que cada una viniera en verde no dice nada del merge.
+* **Reinstalar en el global sólo lo de Rust que la rama tocó**: `just
+  herramientas lz2`, desde el checkout principal. Lo de Python no hace
+  falta, porque el global apunta a ese checkout y el merge ya lo trajo.
 * **Un rojo heredado se bisecta, no se hereda.** Si una prueba está en rojo y
   nadie la rompió, apareció en algún lado: `git log -S` para saber cuándo nació
   y correrla en los padres del merge sospechoso. Cuesta veinte minutos.

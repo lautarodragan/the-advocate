@@ -21,14 +21,6 @@ import subprocess
 import sys
 import textwrap
 
-# Corrido como script, deja `tools/` en el camino de los imports en vez de la
-# carpeta de este archivo; y desde el PATH, si el directorio actual es otro
-# checkout, corre el de ahí: ver `comun/ejecutable.py`.
-if __name__ == "__main__":
-    sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    from comun import ejecutable
-    ejecutable.usar_el_del_checkout(__file__)
-
 # `realpath` y no `abspath`: `just herramientas` instala este script en el PATH
 # como symlink, y lo que importa es dónde está el archivo de verdad.
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))

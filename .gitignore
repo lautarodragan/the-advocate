@@ -32,3 +32,5 @@ pruebas/snapshots/
 # El target de Ditto: binarios y dependencias compiladas.
 tools/ditto/target/
 tools/ditto/.idea/
+# Las herramientas de un worktree: `just herramientas-locales`, ver el justfile.
+.herramientas-locales/

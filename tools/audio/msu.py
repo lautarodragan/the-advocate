@@ -72,10 +72,6 @@ import numpy
 # symlink, y la carpeta que sirve es la del archivo de verdad.
 if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    # Y si el directorio actual es otro checkout, corre el de ahí: ver
-    # `comun/ejecutable.py`.
-    from comun import ejecutable
-    ejecutable.usar_el_del_checkout(__file__)
 
 from audio import snes_music                                # noqa: E402
 from audio import snes_samples                              # noqa: E402
