@@ -12,9 +12,18 @@ path = "src/lib.rs"
 name = "rm2k-snes-audio"
 path = "src/main.rs"
 
+[[bin]]
+name = "rm2k-snes-msu"
+path = "src/bin/msu.rs"
+
+[[bin]]
+name = "rm2k-snes-volume-ceilings"
+path = "src/bin/volume_ceilings.rs"
+
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 gunter = { path = "../gunter" }
+libc = "0.2"
 rm2k-project = { path = "../project" }
 serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.10"

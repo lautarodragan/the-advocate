@@ -18,7 +18,10 @@ time either side is touched.
 value but its sha256**, because the value is a file of tens of megabytes that
 is already written next to the ROM, which is where the MSU-1 will look for
 it. What the cache answers there is not "take this" but "what is there is
-what I would make".
+what I would make". And nothing here writes it: since 2026-09-29 it is
+`rm2k-snes-msu`'s, in Rust, which shares the directory and the `key` —see
+`rm2k-project`'s `cache`— and stores the sha256 as plain text, not as a
+pickle.
 
 It lives in `rom/build/cache/`, which git ignores and which exists on both
 sides —the host and the container—, because the recipes are run from both.

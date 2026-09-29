@@ -537,7 +537,7 @@ Lo que hay que hacer siempre:
   principal, y sus scripts arman en el `rom/build/` de ése: por eso, en un
   worktree sin su `bin/`, las recetas que corren herramientas —`cartuchos`,
   `pruebas`, `build`…— **se niegan** y dan el comando entero, con rutas
-  absolutas. Arma un `bin/` en el destino con los ocho scripts, y
+  absolutas. Arma un `bin/` en el destino con los scripts de Python, y
   `rom/justfile` lo pone adelante en el PATH. **El destino es obligatorio**
   porque ninguno de los dos lados sabe dónde vive el otro: `rom/justfile`
   busca el suyo en `rom/`, y `tools/justfile` el suyo en `tools/`, que es

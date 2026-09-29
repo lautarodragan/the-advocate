@@ -193,7 +193,7 @@ install-scripts: _main_checkout_only (_install (cargo_root))
 # **A worktree's tools**, for the sub-agent that modifies them. A symlink in
 # the global install points to a single checkout —the main one—, so a
 # worktree that changes a tools script or a Rust project would not run its
-# change. This builds `<dest>/bin/` with the worktree's five scripts,
+# change. This builds `<dest>/bin/` with the worktree's Python scripts,
 # always, and with the Rust projects it is given, **only those**: compiling
 # Rust costs, and only makes sense if the agent is going to modify that
 # project. Without names it compiles nothing. From taro, 2026-09-29.
@@ -224,7 +224,7 @@ _main_checkout_only:
   exit 1
 
 # Installs into `root`: `cargo install` of the named Rust projects, and the
-# symlinks of the five Python ones. A name that is not a project stops
+# symlinks of the Python ones. A name that is not a project stops
 # before compiling anything.
 _install root *projects:
   #!/usr/bin/env sh
@@ -251,10 +251,8 @@ _install root *projects:
   done
   ln -sfn "{{justfile_directory()}}/port/snes_convert.py" "{{root}}/bin/rm2k-snes-convert"
   ln -sfn "{{justfile_directory()}}/port/patches.py" "{{root}}/bin/rm2k-snes-patches"
-  ln -sfn "{{justfile_directory()}}/audio/msu.py" "{{root}}/bin/rm2k-snes-msu"
-  ln -sfn "{{justfile_directory()}}/audio/ceilings.py" "{{root}}/bin/rm2k-snes-volume-ceilings"
   ln -sfn "{{justfile_directory()}}/assembly/entregar.py" "{{root}}/bin/abl-entregar"
-  echo "in {{root}}/bin: the five Python ones, and from Rust: {{ if projects == "" { "none" } else { projects } }}"
+  echo "in {{root}}/bin: the Python scripts, and from Rust: {{ if projects == "" { "none" } else { projects } }}"
 
 # Which executable this checkout resolves for each tool: the one in
 # `.local-tools/bin/` if it is there, otherwise the global one.
