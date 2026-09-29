@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Las pistas de MSU-1 del cartucho, desde los MIDI del juego.
 
 El MSU-1 no es hardware de la Super Nintendo: es una extensión que soportan el
@@ -67,8 +68,14 @@ import numpy
 # Corrido como script, Python pone en el `sys.path` la carpeta de este archivo
 # y no `tools/`, que es de donde se importan los paquetes: ver el mismo
 # arranque en `port/snes_convert.py`.
+# `realpath` y no `abspath`: `just herramientas` lo instala en el PATH como
+# symlink, y la carpeta que sirve es la del archivo de verdad.
 if __name__ == "__main__":
-    sys.path[0] = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    # Y si el directorio actual es otro checkout, corre el de ahí: ver
+    # `comun/ejecutable.py`.
+    from comun import ejecutable
+    ejecutable.usar_el_del_checkout(__file__)
 
 from audio import snes_music                                # noqa: E402
 from audio import snes_samples                              # noqa: E402

@@ -1,3 +1,4 @@
+#!/usr/bin/env -S python3 -O
 """Un video con sonido de una ROM jugando, para que taro la vea sin correrla.
 
 No trae una jugada propia: juega **las del recorrido**, llamando a las funciones

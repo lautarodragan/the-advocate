@@ -126,6 +126,14 @@ import os
 import sys
 import tomllib
 
+# Corrido como script, deja `tools/` en el camino de los imports en vez de la
+# carpeta de este archivo; y desde el PATH, si el directorio actual es otro
+# checkout, corre el de ahí: ver `comun/ejecutable.py`.
+if __name__ == "__main__":
+    sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    from comun import ejecutable
+    ejecutable.usar_el_del_checkout(__file__)
+
 # Dónde viven los versionados, relativo a la raíz del repo.
 DIRECTORIO = os.path.join("parches", "auto", "mapas")
 
@@ -414,7 +422,8 @@ def mapas_de_prueba():
     """Los mapas que sólo existen por la tanda. Salen de `cartuchos.py`, que es
     donde se decide qué mapas lleva cada cartucho; acá no se escriben otra
     vez."""
-    herramientas = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # `realpath`: corrido desde el PATH, `__file__` es el symlink.
+    herramientas = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     if herramientas not in sys.path:
         sys.path.insert(0, herramientas)
     from ensamblado import cartuchos
@@ -656,8 +665,9 @@ def _revisar_clase(clase, raiz, builds, jugable):
 
 
 def main(argv=None):
+    # `realpath`: corrido desde el PATH, `__file__` es el symlink.
     raiz = os.path.dirname(os.path.dirname(os.path.dirname(
-        os.path.abspath(__file__))))
+        os.path.realpath(__file__))))
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
         "builds", nargs="*",

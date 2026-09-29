@@ -51,8 +51,14 @@ import numpy
 # importan los paquetes. Se la reemplaza en vez de sumar `tools/` al lado: con
 # las dos, un `import eventos` suelto andaría y cargaría una segunda copia del
 # módulo, distinta de `port.eventos`.
+# `realpath` y no `abspath`: `just herramientas` lo instala en el PATH como
+# symlink, y la carpeta que sirve es la del archivo de verdad.
 if __name__ == "__main__":
-    sys.path[0] = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    # Y si el directorio actual es otro checkout, corre el de ahí: ver
+    # `comun/ejecutable.py`.
+    from comun import ejecutable
+    ejecutable.usar_el_del_checkout(__file__)
 
 from ensamblado import bancos
 from port import tiles_bin
