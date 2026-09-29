@@ -2,7 +2,7 @@
 name: "Las pruebas sin agujeros callados"
 description: "Que falte una golden del recorrido se declare en vez de pasar en verde, y los helpers que se importan de otros test_* se mudan al arnés"
 type: test
-assignee: Irupé
+assignee: taro
 ---
 
 Las dos mejoras de la inspección de Codex
@@ -80,3 +80,22 @@ acepta `caso` —`apertura` da `TypeError`— y no elige la página sin el mapa
 como hace `tanda.partida` —`talan` se traba en el mapa 900—. `quieto:120`
 graba bien. No se arregló: es de la tarea de sacar a `video.py` de las
 pruebas.
+
+## Qué le toca a taro
+
+* **Mirar las 127 pendientes** de `rom/pruebas/golden/playthrough/pendientes.txt`
+  y aprobar las que estén bien: aprobar una es copiar su captura de
+  `rom/pruebas/snapshots/playthrough/<tramo>/` a la golden y sacar su renglón,
+  en el mismo commit; la prueba se niega si queda una de las dos cosas sola.
+* Decidir si las 14 `debug-*` son pendientes o permanentes: su prueba dice
+  que no llevan golden a propósito. Si son permanentes, hoy la lista las
+  trata igual que a las demás.
+
+## Verificado
+
+Sobre el árbol mergeado con `main` en `42986e43`: `just pruebas`, 870 en
+verde —867 al empezar, más las dos de `test_goldens_del_recorrido.py` y
+`test_ninguna_prueba_importa_de_otra`—; los recorridos largos están adentro
+de esa corrida. `rom/build/release/abl.sfc` igual byte por byte que al
+empezar. `just video` sólo con `quieto:120`: con jugadas estaba roto desde
+antes, ver arriba.
