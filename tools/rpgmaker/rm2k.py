@@ -15,6 +15,39 @@ from rpgmaker import lcf
 
 CELL = 8
 
+# --- la geometría del ChipSet ------------------------------------------------
+#
+# Dónde vive cada cosa en la imagen de un ChipSet, que es de 480x256. Los
+# offsets son los de lmu2png de EasyRPG Tools, igual que los de
+# `render/chipset.py`, que es quien expande el ChipSet con ellos.
+
+TILE = 16
+
+
+def caja_de_terreno(n):
+    """Dónde vive, en la imagen del ChipSet, el bloque del autotile de terreno
+    `n` —0 a 11, el que el mapa nombra con los ids 4000 + n * 50—.
+
+    Son 48x64 píxeles con las piezas que `ChipsetAtlas._terrain_tile`
+    combina. Está acá y no en quien lo use porque los offsets son de lmu2png y
+    no tienen por qué escribirse dos veces: `ChipsetAtlas._terrain_tile`
+    calcula su esquina con esta misma cuenta.
+    """
+    terrain = n + 4
+    sx = (terrain % 2) * 48 + (terrain // 8) * 96
+    sy = ((terrain // 2) % 4) * 64
+    return (sx, sy, sx + 48, sy + 64)
+
+
+def caja_de_comun(i):
+    """Dónde vive el tile común `i` —0 a 287, las tres páginas de 96 de la
+    mitad derecha—. Los 144 primeros son la capa baja (ids 5000 + i) y los 144
+    de atrás la alta (ids 10000 + i - 144)."""
+    x = 192 + (i % 6) * TILE + (i // 96) * 96
+    y = ((i // 6) % TILE) * TILE
+    return (x, y, x + TILE, y + TILE)
+
+
 # --- colisión ---------------------------------------------------------------
 #
 # Cada tile de RM2k tiene cuatro bits que dicen por qué lados se lo puede
@@ -153,6 +186,14 @@ SPRITE_CELLS_H = 4
 SPRITE_POSES = 12
 POSE_W = SPRITE_CELLS_W * CELL
 POSE_H = SPRITE_CELLS_H * CELL
+
+SPRITE_WIDTH = 24
+SPRITE_HEIGHT = 32
+
+# El sprite es más ancho y más alto que la celda de 16x16 sobre la que se para:
+# se centra horizontalmente y se apoya por los pies.
+OFFSET_X = -(SPRITE_WIDTH - TILE) // 2
+OFFSET_Y = -(SPRITE_HEIGHT - TILE)
 
 
 # --- los NPCs ---------------------------------------------------------------

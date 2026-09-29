@@ -87,9 +87,8 @@ from audio import efectos_msu
 from comun.paralelo import en_paralelo
 from audio import snes_music
 from port.asignador import CELL, tile_colors
-from rpgmaker.rm2k import collect_npcs, hero_start, passability_map
-from render.render_map import (REPO, Renderer, TILE, build_passability,
-                               load_image)
+from rpgmaker.rm2k import TILE, collect_npcs, hero_start, passability_map
+from render.render_map import REPO, Renderer, build_passability, load_image
 from rpgmaker.recursos import GAME_DIR, RTP_DIR, find_resource
 
 # El PPU direcciona 1024 tiles por capa: diez bits en cada celda del tilemap.

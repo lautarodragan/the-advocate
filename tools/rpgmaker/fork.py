@@ -348,7 +348,7 @@ def podar(imagen, map_id):
     """
     from PIL import Image
 
-    from render.chipset import caja_de_comun, caja_de_terreno
+    from rpgmaker.rm2k import caja_de_comun, caja_de_terreno
 
     agua, terrenos, comunes = _lo_que_dibuja(map_id)
     if not agua:
@@ -422,9 +422,9 @@ def _pose(imagen, receta):
     """El cuadro de 24x32 de una pose, recortado del CharSet.
 
     Un CharSet son 8 personajes de 4x2, cada uno con sus 12 poses: 3 patrones
-    de caminata por 4 direcciones. Ver `render/charset.py`.
+    de caminata por 4 direcciones. Ver `rm2k.SPRITE_WIDTH`.
     """
-    from render.charset import SPRITE_HEIGHT, SPRITE_WIDTH
+    from rpgmaker.rm2k import SPRITE_HEIGHT, SPRITE_WIDTH
 
     x = (receta["personaje"] % 4) * 72 + receta["patron"] * SPRITE_WIDTH
     y = (receta["personaje"] // 4) * 128 + receta["direccion"] * SPRITE_HEIGHT
@@ -444,8 +444,8 @@ def imagen_del_chipset(datos, buscar):
     """
     from PIL import Image
 
-    from render.charset import OFFSET_X, SPRITE_WIDTH
-    from render.chipset import TILE, caja_de_comun, caja_de_terreno
+    from rpgmaker.rm2k import (OFFSET_X, SPRITE_WIDTH, TILE, caja_de_comun,
+                               caja_de_terreno)
 
     receta = datos["imagen"]
     origen = buscar("ChipSet", receta["base"])

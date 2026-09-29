@@ -446,7 +446,7 @@ def test_desde_imagen_trae_el_png_a_quince_bits_y_compone_sobre_su_base(tmp_path
       lo que deja viva una pared donde el dibujo sólo apoya unos pixeles.
     """
     from PIL import Image
-    from render.chipset import caja_de_comun
+    from rpgmaker.rm2k import caja_de_comun
 
     # Un ChipSet de mentira, con la ranura alta 5 pintada de su único color.
     base = Image.new("P", (480, 256))

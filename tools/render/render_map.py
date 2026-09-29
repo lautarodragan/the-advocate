@@ -12,12 +12,12 @@ import os
 
 from PIL import Image
 
-from render import charset
 from rpgmaker import fork
 from rpgmaker import lcf
 from rpgmaker import rm2k
 from rpgmaker.recursos import GAME_DIR, RTP_DIR, find_resource
-from render.chipset import ANIMATED, ChipsetAtlas, TERRAIN, TILE, UPPER
+from rpgmaker.rm2k import TILE
+from render.chipset import ANIMATED, ChipsetAtlas, TERRAIN, UPPER
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -161,16 +161,16 @@ class Charsets:
         image = sheet.convert("RGBA")
         pix = image.load()
         atras = fondo.load()
-        ox = tile_x * TILE + charset.OFFSET_X
-        oy = tile_y * TILE + charset.OFFSET_Y
+        ox = tile_x * TILE + rm2k.OFFSET_X
+        oy = tile_y * TILE + rm2k.OFFSET_Y
         alfa = rm2k.OPACIDAD_TRANSLUCIDO
         for y in range(image.height):
-            fy = oy + y % charset.SPRITE_HEIGHT
+            fy = oy + y % rm2k.SPRITE_HEIGHT
             for x in range(image.width):
                 r, g, b, a = pix[x, y]
                 if not a:
                     continue
-                fx = ox + x % charset.SPRITE_WIDTH
+                fx = ox + x % rm2k.SPRITE_WIDTH
                 if 0 <= fx < fondo.width and 0 <= fy < fondo.height:
                     br, bg, bb = atras[fx, fy][:3]
                 else:
