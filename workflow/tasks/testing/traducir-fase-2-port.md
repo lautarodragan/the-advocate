@@ -2,7 +2,7 @@
 name: "Traducir las herramientas, fase 2: port/"
 description: "Los nombres de código de tools/port/ (el conversor en Python) al inglés, con todos sus usos"
 type: refactor
-assignee: Tatú
+assignee: taro
 ---
 
 Fase 2 de la traducción de `tools/` al inglés, tercera área: `tools/port/`,
@@ -85,6 +85,38 @@ ejecutables `rm2k-snes-*` andando desde `/tmp`.
     cada caso, que es una copia de `args` y que al llamarse `map_id` pisaba
     el `--map-id` del cartucho: se llama `run_map`.
 
-Lo que el conversor escribe al `.inc` cita rutas de `tools/port/` en sus
-comentarios (`; See tools/port/imagen.py.`): esas quedan con el nombre
-viejo, porque cambiarlas cambia el `.inc`. Van con la última área.
+13. Las citas que quedaron con los nombres viejos en comentarios, docstrings
+    y mensajes de error de `tools/`.
+14. Las rutas de `tools/port/` en los comentarios de `tools/runtime/*.s`.
+    No cambia ningún `.sfc`, `.msu`, `.pcm` ni `.inc`; sí los dos
+    `.sfc.dbg`, que anotan el tamaño de cada fuente.
+
+## Lo que queda, a propósito
+
+- **Lo que el conversor escribe al `.inc`**: los símbolos y los comentarios
+  que cita (`; See tools/port/imagen.py.`, `; Temas: …`). Cambiarlos cambia
+  el `.inc`: van con la última área, junto con el runtime.
+- **Las constantes de Python y los símbolos del ensamblador ya no se llaman
+  igual**: `events.GOLD_MAX` se escribe como `ORO_MAX`, `KEY_DECISION` como
+  `TECLA_DECISION`. La última área puede tomar los de Python como guía.
+- **Las claves de los diccionarios** que viajan entre módulos o a disco —las
+  de `collect_npcs` (`evento`, `cambia`, `graficos`, `tile_pasa`…), las de
+  `scene` (`clave`, `chico`, `alto_rm`), las de cada mapa convertido—, los
+  TOML de `rom/parches/auto/` con sus comentarios (el
+  `asignador.merge_least_visible` de los battlers lo escribe `patches.py`) y
+  los nombres de archivo y de directorio que producen las herramientas
+  (`rom/build/<cartucho>/asignador/`, `parches/auto/mapas/`).
+- **Los nombres propios de las pruebas de ABL**: `rom/pruebas/` sigue en
+  castellano, incluidos sus alias de los módulos de `tools/`
+  (`from port import battle as modelo`).
+- Alguna prosa describe tuplas o diccionarios con los nombres de sus
+  campos en castellano (`(tiles, filas, fila0, paletas)`), que son datos.
+
+## Para quien mergea
+
+- `patches.py` cambió de nombre: el symlink global de `rm2k-snes-patches`
+  queda apuntando a nada hasta que se corra `just -f tools/justfile
+  install-scripts` en el checkout principal.
+- Cualquier rama que todavía use un nombre viejo de `port/` —un `from
+  port import eventos`, un flag `--sin-titulo` en `rom/rm2k-snes.toml`—
+  mergea limpio y rompe al armar: hay que buscarla con grep.
