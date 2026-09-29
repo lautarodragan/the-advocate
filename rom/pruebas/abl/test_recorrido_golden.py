@@ -29,7 +29,7 @@ jugador.
   porqué, en `Recorrido.foto`.
 """
 
-from assembly import cartuchos
+from assembly import cartridges
 from recorrido import UN_ANO_DESPUES
 
 # La primera puerta del mapa de debug, la del comienzo normal: su `Teleport`
@@ -57,8 +57,8 @@ def test_la_apertura_termina_con_kersh_en_el_linkage_block(recorrido):
     y la cruza. Así esta prueba también la cubre. Las demás que juegan desde
     el título arrancan en la partida sin el mapa: ver `tanda.partida`.
     """
-    if cartuchos.CON_MAPA_DE_DEBUG:
-        r = recorrido("apertura", caso=cartuchos.ENTRADA_AL_MAPA_DE_DEBUG)
+    if cartridges.WITH_DEBUG_MAP:
+        r = recorrido("apertura", caso=cartridges.DEBUG_MAP_ENTRY)
         r.empezar("la puerta del comienzo normal del mapa de debug")
         r.caminar_a(COMIENZO_NORMAL, hasta=lambda p: p.mapa() == 1)
         r.esperar("el mapa 1", lambda p: p.mapa() == 1, tope=2000)

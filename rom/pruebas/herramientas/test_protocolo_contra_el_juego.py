@@ -14,7 +14,7 @@ from port import event_opcodes
 from port import eventos
 from rpgmaker import lcf
 from rpgmaker.resources import GAME_DIR
-from assembly import cartuchos
+from assembly import cartridges
 import tanda
 
 
@@ -29,7 +29,7 @@ def desde_la_rom(datos, direccion):
     return ((direccion >> 16) & 0x7F) * 0x8000 + (direccion & 0x7FFF)
 
 
-@pytest.mark.parametrize("nombre", sorted(cartuchos.CARTUCHOS))
+@pytest.mark.parametrize("nombre", sorted(cartridges.CARTRIDGES))
 def test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k(nombre):
     """El despacho de `correr_codigo` es `jmp (manejadores_de_opcode, x)`.
 

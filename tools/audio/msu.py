@@ -33,7 +33,7 @@ song is deleted: `just entregar` copies every one it finds to the card.
     rm2k-snes-msu rom/build/release/abl.sfc
 
 There is no need to run it by hand: `just build release` always runs it
-—see `pistas` in `cartuchos.py`—, because the ROM that is played carries its
+—see `msu_tracks` in `cartridges.py`—, because the ROM that is played carries its
 tracks. Their being next to the ROM does not change the tests: the harness
 hides the tracks from the core, see `retro.Console`.
 
@@ -261,7 +261,7 @@ def build(rom, game_dir=None, soundfont=None, gain=GAIN,
     cartridge, and deletes the ones that no longer belong to any song.
 
     Returns how many tracks it redid and how many were already there.
-    `verbose` false silences the ones already there: `cartuchos.py` calls it
+    `verbose` false silences the ones already there: `cartridges.py` calls it
     on every `just pruebas`.
     """
     game_dir = game_dir or resources.GAME_DIR

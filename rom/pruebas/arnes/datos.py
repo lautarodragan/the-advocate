@@ -18,7 +18,7 @@ import functools
 import json
 import os
 
-from assembly import cartuchos
+from assembly import cartridges
 from rpgmaker.resources import GAME_DIR
 
 
@@ -80,33 +80,33 @@ def pagina_de(map_id, evento_id, numero):
 # todas las que vienen detrás.
 
 @functools.lru_cache(maxsize=None)
-def comandos_de_los_casos(cartucho=cartuchos.RELEASE):
+def comandos_de_los_casos(cartucho=cartridges.RELEASE):
     """Los comandos de todos los casos del cartucho, seguidos: lo que barre
     `comandos_de_casos` en el conversor."""
     from rpgmaker import lcf
     comandos = []
-    for nombre in cartuchos.casos_de(cartucho):
-        with open(os.path.join(cartuchos.CASOS, nombre + ".json"),
+    for nombre in cartridges.cases_of(cartucho):
+        with open(os.path.join(cartridges.CASES, nombre + ".json"),
                   encoding="utf-8") as archivo:
             comandos += lcf.handwritten_commands(json.load(archivo))
     return tuple(comandos)
 
 
 @functools.lru_cache(maxsize=None)
-def ranuras_de_variable(cartucho=cartuchos.RELEASE):
+def ranuras_de_variable(cartucho=cartridges.RELEASE):
     """{número de variable: ranura} del cartucho: las del juego, las de sus
     casos y, si lleva más de uno, la que elige el caso —ver
     `eventos.VARIABLE_DE_CASO`—. Es lo que le pasa a `indexar_variables` el
     conversor."""
     from port import eventos
     extra = eventos.variables_de_comandos(comandos_de_los_casos(cartucho))
-    if len(cartuchos.casos_de(cartucho)) > 1:
+    if len(cartridges.cases_of(cartucho)) > 1:
         extra.add(eventos.VARIABLE_DE_CASO)
     return eventos.variables_de(GAME_DIR, None, extra)
 
 
 @functools.lru_cache(maxsize=None)
-def ranuras_de_habilidad(cartucho=cartuchos.RELEASE):
+def ranuras_de_habilidad(cartucho=cartridges.RELEASE):
     """{(actor, habilidad): bit} del cartucho: los pares del juego con los que
     nombran sus casos, que es lo que le pasa el conversor."""
     from port import eventos

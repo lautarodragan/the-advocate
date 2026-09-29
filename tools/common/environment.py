@@ -130,7 +130,7 @@ def cache():
 
 def test_cartridges():
     """Where the suite's cartridges are built, except `release`: see
-    `cartuchos.directorio`."""
+    `cartridges.directory`."""
     return (_values.get("test_cartridges")
             or os.path.join(project.build(), "tests"))
 

@@ -54,7 +54,7 @@ SFC = NOMBRE + ".sfc"
 DBG = SFC + ".dbg"
 PISTAS = NOMBRE + "-*.pcm"
 
-# Lo que entra en la ROM: lo que mira `cartuchos.huella()` más lo que lee el
+# Lo que entra en la ROM: lo que mira `cartridges.fingerprint()` más lo que lee el
 # conversor. Un cambio sin commitear ahí haría un build que no es el del commit
 # que lo nombra. `README.md`, `docs/` o un `.box.yml` suelto no entran.
 # Relativas a la raíz, porque son pathspecs de `git`.

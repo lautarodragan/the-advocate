@@ -181,7 +181,7 @@ _instalar raiz *proyectos:
     cargo install --locked --path "$p" --root "{{raiz}}"
   done
   mkdir -p "{{raiz}}/bin"
-  ln -sfn "{{justfile_directory()}}/assembly/cartuchos.py" "{{raiz}}/bin/rm2k-snes-cartridges"
+  ln -sfn "{{justfile_directory()}}/assembly/cartridges.py" "{{raiz}}/bin/rm2k-snes-cartridges"
   ln -sfn "{{justfile_directory()}}/assembly/assemble.py" "{{raiz}}/bin/rm2k-snes-assemble"
   ln -sfn "{{justfile_directory()}}/assembly/space.py" "{{raiz}}/bin/rm2k-snes-space"
   ln -sfn "{{justfile_directory()}}/port/snes_convert.py" "{{raiz}}/bin/rm2k-snes-convert"

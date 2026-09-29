@@ -60,3 +60,5 @@ ejecutable corrido por su nombre desde /tmp con `--project`.
   `--simbolos` pasa a `--symbols`.
 - `assembly/espacio.py` → `assembly/space.py`, con sus nombres y las
   claves de `measure`, que lee `test_espacio.py`.
+- `assembly/cartuchos.py` → `assembly/cartridges.py`, con sus nombres, y
+  `--lista` pasa a `--list`.

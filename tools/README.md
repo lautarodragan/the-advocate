@@ -20,8 +20,8 @@ one in its own row or above.
                  (rm2k), and where the game and the RTP are (resources). No
                  rule of the format lives here: rom/data/ comes resolved. It
                  has its own README
-    assembly/    the memory map (banks), what builds the ROM (ensamblar), and
-                 which ROMs exist and with which flags (cartuchos, used by
+    assembly/    the memory map (banks), what builds the ROM (assemble), and
+                 which ROMs exist and with which flags (cartridges, used by
                  `just build`)
     emulator/    the libretro core from Python (retro), and the bsnes-libretro
                  patch that exposes the WRAM
@@ -69,7 +69,7 @@ something —`batalla` from `eventos`, `pantallas` from `menus` and `eventos`,
 which uses all of them. The imports still inside a function no longer hide
 any cycle.
 
-The only exception is `assembly/cartuchos.py`, which is the orchestrator
+The only exception is `assembly/cartridges.py`, which is the orchestrator
 and lives at the bottom: it imports from `port/` and `audio/`, runs
 `port/snes_convert.py` as a subprocess, and `port/parches.py` imports it
 back: the only cycle, if the subprocess counts. These are the only layer
@@ -81,7 +81,7 @@ of `docs/research/el-mapa-de-las-herramientas-de-python.md`. That script puts
 `comun` —`common` since 2026-09-29— in the same row as `rpgmaker`, as it
 was when it was written; since it has `project` it goes at the very bottom,
 and with `"common": -1` in its `NIVEL` the only violations it prints are
-those of `cartuchos`.
+those of `cartridges`.
 
 ## How imports work
 
@@ -103,7 +103,7 @@ herramientas` installs them as symlinks in the same `bin/` as the Rust
 projects. The `justfile` calls them by name and does not know where they
 are:
 
-    rm2k-snes-cartridges        assembly/cartuchos.py
+    rm2k-snes-cartridges        assembly/cartridges.py
     rm2k-snes-assemble          assembly/assemble.py
     rm2k-snes-space             assembly/space.py
     rm2k-snes-convert           port/snes_convert.py
@@ -148,7 +148,7 @@ Line's is `rom/rm2k-snes.toml`—, and it is read with `common/settings.py`:
   a value from the file again.
 * **It is read when used, not at import**: the converter and what it uses
   must be importable without a game, which is what the tests here do. The
-  exception is `assembly/cartuchos.py`, which is the game's orchestrator
+  exception is `assembly/cartridges.py`, which is the game's orchestrator
   and reads the whole file when loaded.
 * **What the runtime needs** —the title, the SRAM signature— reaches it as a
   `.define` in the `mapdata.inc` the converter emits: the runtime does not

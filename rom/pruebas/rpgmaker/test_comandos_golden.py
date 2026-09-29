@@ -132,7 +132,7 @@ def test_texto(nombre, caso, en, cuadros, renglon, donde):
             "mide %d y su desplazamiento es %d: cruza=%s, del otro lado=%s. "
             "Esta prueba lo quiere %r y lo que lo pone ahí es el tamaño del "
             "caso `empujon` —ver pruebas/casos/empujon.json y el cartucho "
-            "`test-special` en tools/assembly/cartuchos.py—, así que si el "
+            "`test-special` en tools/assembly/cartridges.py—, así que si el "
             "bloque de textos se movió, el empujón hay que volver a medirlo."
             % (renglon, en, byte, largo, desplazamiento, cruza, lejos, donde))
         assert (cruza if donde == "cruza" else lejos and not cruza), porque

@@ -34,7 +34,7 @@ from port import msu_datos
 
 import tanda
 from consola import Partida, en_la_rom, en_la_wram
-from assembly import cartuchos
+from assembly import cartridges
 from msu import pistas_de
 
 # Por debajo de esto un pico es ruido de redondeo, no un efecto que suena.
@@ -44,7 +44,7 @@ AUDIBLE = 1000
 def _partida(tmp_path, nombre, caso, msu):
     """Una copia de `release` en su directorio, con `msu` —los bytes de un
     `.msu`— y todas las pistas al lado, y el caso elegido."""
-    uno = tanda.cartucho(cartuchos.RELEASE)
+    uno = tanda.cartucho(cartridges.RELEASE)
     base = os.path.splitext(uno.sfc)[0]
     directorio = os.path.join(tmp_path, nombre)
     os.makedirs(directorio)
@@ -61,8 +61,8 @@ def _partida(tmp_path, nombre, caso, msu):
 
 
 def _msu_del_cartucho():
-    tanda.cartucho(cartuchos.RELEASE)       # se niega si está viejo
-    with open(cartuchos.msu_de(cartuchos.RELEASE), "rb") as archivo:
+    tanda.cartucho(cartridges.RELEASE)       # se niega si está viejo
+    with open(cartridges.msu_of(cartridges.RELEASE), "rb") as archivo:
         return archivo.read()
 
 
@@ -75,7 +75,7 @@ def _efectos_cambiados(msu, firma):
     cabeceras de cada bloque de BRR quedan como estaban— y la firma de la
     cabecera tal cual, o recalculada si `firma`: con ella es el `.msu` de otro
     build, que la ROM no tiene que leer."""
-    fondos = 2 * tanda.cartucho(cartuchos.RELEASE).simbolos["MSU_FONDOS_N"]
+    fondos = 2 * tanda.cartucho(cartridges.RELEASE).simbolos["MSU_FONDOS_N"]
     entradas = [bytearray(e) for e in msu_datos.leer(msu)]
     for entrada in entradas[fondos:]:
         for i in range(len(entrada)):
@@ -213,7 +213,7 @@ def test_con_un_msu_de_otro_build_los_efectos_salen_de_la_rom(tmp_path):
     assert numpy.array_equal(de_otro, vacio), (
         "con el .msu de otro build Success2 no suena como con uno vacío: la "
         "ROM subió algo de ahí")
-    rom = tanda.cartucho(cartuchos.RELEASE)
+    rom = tanda.cartucho(cartridges.RELEASE)
     with open(rom.sfc, "rb") as archivo:
         cartucho = archivo.read()
     fila = en_la_rom(rom.simbolos["sonido_tabla"]) + 7 * _indice_de(
@@ -272,7 +272,7 @@ def test_con_msu_tres_efectos_suenan_a_la_vez(tmp_path):
             "las voces 0 a 5")
         voz = (ocupadas & -ocupadas).bit_length() - 1
         idx = int.from_bytes(extras[12 + 2 * voz:14 + 2 * voz], "little")
-        rom = tanda.cartucho(cartuchos.RELEASE)
+        rom = tanda.cartucho(cartridges.RELEASE)
         with open(rom.sfc, "rb") as archivo:
             cartucho = archivo.read()
         tercera = cartucho[en_la_rom(rom.simbolos["sonido_tabla"]) + 7 * idx]
@@ -290,7 +290,7 @@ def test_con_msu_tres_efectos_suenan_a_la_vez(tmp_path):
 
 def _tema(una, nombre):
     with open(os.path.join(os.path.dirname(tanda.cartucho(
-            cartuchos.RELEASE).sfc), "musicdata.inc")) as archivo:
+            cartridges.RELEASE).sfc), "musicdata.inc")) as archivo:
         for linea in archivo:
             if linea.startswith("; Temas: "):
                 return linea[len("; Temas: "):].strip().split(", ").index(
@@ -306,7 +306,7 @@ def test_con_msu_un_sonido_que_no_es_del_paquete_va_con_su_altura_de_la_rom(
     tiene a Success2 y sí algún sonido de índice mayor —para que la búsqueda
     corte por pasar de largo y no sólo en el $FFFF—: la ROM no guarda qué
     versión subió, así que la lista es lo único que mira."""
-    rom = tanda.cartucho(cartuchos.RELEASE)
+    rom = tanda.cartucho(cartridges.RELEASE)
     with open(rom.sfc, "rb") as archivo:
         cartucho = archivo.read()
     with open(os.path.join(os.path.dirname(rom.sfc), "efectos.json")) as a:

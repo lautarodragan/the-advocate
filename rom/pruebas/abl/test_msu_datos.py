@@ -42,7 +42,7 @@ from rpgmaker import lcf, rm2k
 
 import tanda
 from consola import Partida, en_la_rom, en_la_wram
-from assembly import cartuchos
+from assembly import cartridges
 
 SNES9X = "/usr/lib/libretro/snes9x_libretro.so"
 BSNES = "/usr/lib/libretro/bsnes_libretro.so"
@@ -71,7 +71,7 @@ def _pelea(tmp_path, nombre, nucleo, msu, lugar=SECTOR_27, antes=0,
     —los bytes de un `.msu`, o None— al lado de una copia de la ROM, y `antes`
     ticks de espera al llegar. Devuelve (la imagen a 15 bits, de dónde salió
     el fondo, qué fondo, la captura y el fondo limpio de la WRAM)."""
-    uno = tanda.cartucho(cartuchos.RELEASE)
+    uno = tanda.cartucho(cartridges.RELEASE)
     k = uno.casos.index(ARRANQUE)
     directorio = os.path.join(tmp_path, nombre)
     os.makedirs(directorio)
@@ -124,8 +124,8 @@ def _fondo_8bpp(liviano, nombre=FONDO_SECTOR_27):
 
 
 def _msu_del_cartucho():
-    tanda.cartucho(cartuchos.RELEASE)       # se niega si está viejo
-    with open(cartuchos.msu_de(cartuchos.RELEASE), "rb") as archivo:
+    tanda.cartucho(cartridges.RELEASE)       # se niega si está viejo
+    with open(cartridges.msu_of(cartridges.RELEASE), "rb") as archivo:
         return archivo.read()
 
 
@@ -265,11 +265,11 @@ def test_msu_la_rom_sabe_donde_esta_cada_fondo():
     lo cubre `test_msu_cada_camino_dibuja_su_fondo`."""
     juego = _fondos_del_juego()
     regiones = {}
-    for nombre in cartuchos.CARTUCHOS:
+    for nombre in cartridges.CARTRIDGES:
         uno = tanda.cartucho(nombre)
         with open(uno.sfc, "rb") as archivo:
             rom = archivo.read()
-        with open(cartuchos.msu_de(nombre), "rb") as archivo:
+        with open(cartridges.msu_of(nombre), "rb") as archivo:
             msu = archivo.read()
         indice = msu_datos.indice(msu)
         s = uno.simbolos

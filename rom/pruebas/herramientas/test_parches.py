@@ -30,7 +30,7 @@ from common import project                                    # noqa: E402
 from port import animacion                                    # noqa: E402
 from port import parches                                      # noqa: E402
 
-from assembly import cartuchos                             # noqa: E402
+from assembly import cartridges                             # noqa: E402
 
 
 def _armados():
@@ -42,17 +42,17 @@ def _armados():
     de un cartucho que ya no existe —`main`, hasta el 2026-09-25— con
     decisiones de otro día.
     """
-    candidatos = [cartuchos.directorio(n) for n in sorted(cartuchos.CARTUCHOS)]
+    candidatos = [cartridges.directory(n) for n in sorted(cartridges.CARTRIDGES)]
     return [c for c in candidatos
             if os.path.isdir(os.path.join(c, parches.EN_BUILD))]
 
 
 def test_los_parches_versionados_son_los_que_decide_el_conversor():
     armados = _armados()
-    assert cartuchos.directorio(cartuchos.RELEASE) in armados, (
+    assert cartridges.directory(cartridges.RELEASE) in armados, (
         "`release` no dejó parches en %s: se arma con `just cartuchos`, y sin "
         "él nada mira que lo que el juego convierte esté versionado"
-        % cartuchos.directorio(cartuchos.RELEASE))
+        % cartridges.directory(cartridges.RELEASE))
     quejas, _propios = parches.revisar(project.auto_patches(), armados)
     assert not quejas, "\n\n".join(quejas)
 
@@ -106,8 +106,8 @@ def test_lo_que_sale_solo_por_la_tanda_no_pide_parche(tmp_path):
     clases = dict((c.clave, c) for c in parches.CLASES)
     prueba = parches.mapas_de_prueba()
     uno = min(prueba)
-    del_juego = min(cartuchos.MAPAS_DEL_JUEGO)
-    assert not prueba & set(cartuchos.MAPAS_DEL_JUEGO)
+    del_juego = min(cartridges.GAME_MAPS)
+    assert not prueba & set(cartridges.GAME_MAPS)
     (tmp_path / "parches").mkdir()
     parches.escribir_usos(str(tmp_path), {
         "animacion": {91: {"caso"}, 92: {uno, "caso"}, 93: {uno, del_juego}},

@@ -270,16 +270,16 @@ def report(measured, ceilings=None):
 
 
 def main():
-    from assembly import cartuchos
+    from assembly import cartridges
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     project.add_argument(parser)
-    environment.add_arguments(parser, *cartuchos.AL_CONVERSOR)
+    environment.add_arguments(parser, *cartridges.TO_CONVERTER)
     parser.add_argument("--measure", action="store_true",
                         help="only measure the built `release`: clipping, "
                              "peak and LUFS of each song")
     args = parser.parse_args()
-    environment.from_arguments(args, *cartuchos.AL_CONVERSOR)
-    release = cartuchos.directorio(cartuchos.RELEASE)
+    environment.from_arguments(args, *cartridges.TO_CONVERTER)
+    release = cartridges.directory(cartridges.RELEASE)
     if args.measure:
         report(measure(release, lufs=True))
         return
@@ -288,9 +288,9 @@ def main():
     measure_dir = os.path.join(project.build(), "techos")
     print("a copy of release with the headroom at %s, in %s"
           % (MEASURING_HEADROOM, measure_dir))
-    cartuchos.convertir(cartuchos.RELEASE, measure_dir,
-                        os.path.join(measure_dir, ROM_NAME + ".sfc"),
-                        ["--aire-de-medida", str(MEASURING_HEADROOM)])
+    cartridges.convert(cartridges.RELEASE, measure_dir,
+                       os.path.join(measure_dir, ROM_NAME + ".sfc"),
+                       ["--aire-de-medida", str(MEASURING_HEADROOM)])
     at_half = measure(measure_dir)
     clipping = [n for n, f in at_half.items() if f["recortes"]]
     if clipping:
@@ -306,7 +306,7 @@ def main():
         write(ceilings, {n: dict(f, lufs=0.0) for n, f in at_half.items()},
               {n: "" for n in ceilings})
         print("release with the table, round %d" % (attempt + 1))
-        cartuchos.armar(cartuchos.RELEASE, cartuchos.huella())
+        cartridges.build(cartridges.RELEASE, cartridges.fingerprint())
         measured = measure(release, lufs=True)
         clipping = {n: f for n, f in measured.items() if f["recortes"]}
         if not clipping:
@@ -321,7 +321,7 @@ def main():
                     for t in built_songs(release) if t["largo"]}
     # What is rewritten now —the peaks, the fingerprints— does not change the
     # headrooms, so the cartridge just measured is still up to date: its
-    # stamp looks only at the table's headrooms (see `cartuchos.huella`).
+    # stamp looks only at the table's headrooms (see `cartridges.fingerprint`).
     write(ceilings, measured, fingerprints)
     report(measured, ceilings)
     print("-> %s" % os.path.relpath(snes_music.ceilings_path()))

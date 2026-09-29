@@ -138,28 +138,28 @@ def show(name, sfc):
 
 def main():
     project.from_command_line()
-    from assembly import cartuchos
+    from assembly import cartridges
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     project.add_argument(parser)
     environment.add_arguments(parser, "test_cartridges")
     parser.add_argument("which_ones", nargs="*", metavar="CARTRIDGE",
-                        help="a cartridge from cartuchos.py or the path of a "
+                        help="a cartridge from cartridges.py or the path of a "
                              "built ROM; with nothing, every cartridge")
     args = parser.parse_args()
     environment.from_arguments(args, "test_cartridges")
     first = True
-    for which in args.which_ones or list(cartuchos.CARTUCHOS):
-        if which in cartuchos.CARTUCHOS:
-            reason = cartuchos.viejo(which)
+    for which in args.which_ones or list(cartridges.CARTRIDGES):
+        if which in cartridges.CARTRIDGES:
+            reason = cartridges.stale(which)
             if reason:
                 sys.exit("%s: %s; `just espacio` builds it first"
                          % (which, reason))
-            sfc = cartuchos.rom_de(which)
+            sfc = cartridges.rom_of(which)
         elif os.path.isfile(which):
             sfc = os.path.abspath(which)
         else:
             sys.exit("%r is neither a cartridge (%s) nor a built ROM"
-                     % (which, ", ".join(cartuchos.CARTUCHOS)))
+                     % (which, ", ".join(cartridges.CARTRIDGES)))
         if not first:
             print()
         first = False

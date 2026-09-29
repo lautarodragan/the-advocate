@@ -212,7 +212,7 @@ _xdist:
 # Todos los cartuchos: `release` y los de la tanda. Es lo que corre `just
 # pruebas` antes, y cada uno se rearma sólo si cambió algo de lo que lo arma.
 # Qué va en cada uno y por qué está en el fuente de `rm2k-snes-cartridges`;
-# `--lista` lo imprime.
+# `--list` lo imprime.
 cartuchos *args: _herramientas_del_checkout
   rm2k-snes-cartridges {{al_armar}} {{args}}
 

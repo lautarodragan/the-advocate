@@ -27,7 +27,7 @@ import os
 import pytest
 
 from consola import en_la_rom, en_la_wram
-from assembly import cartuchos
+from assembly import cartridges
 from tanda import partida
 
 BSNES = "/usr/lib/libretro/bsnes_libretro.so"
@@ -205,7 +205,7 @@ def _mirar_la_wram(p, indice):
 def _recorrer(nucleo):
     """Una partida que pasa por todos los mapas de `release`, con lo que no
     coincidió en cada uno."""
-    p = partida(None, en=cartuchos.RELEASE, nucleo=nucleo)
+    p = partida(None, en=cartridges.RELEASE, nucleo=nucleo)
     with open(p.sfc, "rb") as f:
         p.rom = f.read()
     vistos = {}
@@ -286,7 +286,7 @@ def test_la_grilla_vuelve_entera_de_una_pelea(nucleo):
 
 
 def test_un_fondo_de_dos_flujos_no_se_sale_del_buffer():
-    p = partida(None, en=cartuchos.RELEASE)
+    p = partida(None, en=cartridges.RELEASE)
     with open(p.sfc, "rb") as f:
         p.rom = f.read()
     s = p.simbolos

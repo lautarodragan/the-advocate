@@ -24,12 +24,12 @@ from render.render_map import Renderer, build_passability
 from rpgmaker.resources import GAME_DIR
 from rpgmaker import rm2k
 
-from assembly import cartuchos
+from assembly import cartridges
 
 # Los mapas que se miran: los del cartucho de pruebas, que son los que las
-# goldens dibujan. Salen de `cartuchos` y no copiados acá, que es lo que evita
+# goldens dibujan. Salen de `cartridges` y no copiados acá, que es lo que evita
 # que la lista envejezca cuando se le suma un mapa al proyecto.
-MAPAS = cartuchos.MAPAS
+MAPAS = cartridges.MAPS
 
 
 def horneados_de(renderer, map_id):
