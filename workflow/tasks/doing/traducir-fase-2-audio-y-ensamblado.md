@@ -62,3 +62,17 @@ ejecutable corrido por su nombre desde /tmp con `--project`.
   claves de `measure`, que lee `test_espacio.py`.
 - `assembly/cartuchos.py` → `assembly/cartridges.py`, con sus nombres, y
   `--lista` pasa a `--list`.
+- Las recetas de `tools/justfile`, al inglés: `herramientas` → `install`,
+  `herramientas-locales` → `install-local`, `protocolo` → `protocol`,
+  `pruebas` → `test`, `*-pruebas` → `*-test`, `ditto-vuelta-entera` →
+  `ditto-round-trip`, `cuales` → `which`. Su directorio local,
+  `tools/.herramientas-locales/` → `tools/.local-tools/`; el de ABL,
+  `rom/.herramientas-locales/`, es de ABL y queda.
+- `install-scripts`: los symlinks de Python solos, al global, sin compilar
+  nada. Se niega en un worktree. De paso, la guarda de `install-local` no
+  reconocía el checkout principal: comparaba `--git-dir`, absoluto, con
+  `--git-common-dir`, que desde `tools/` sale relativo (`../.git`), así que
+  nunca eran iguales. Ahora las dos piden `--path-format=absolute`, como la
+  de `rom/justfile`.
+- `tools/runtime/interprete.s` cita `just protocolo` en un comentario: queda,
+  por lo mismo que los otros `.s`.

@@ -47,7 +47,7 @@ MISSING = """`gunter`, the SPC700 sample codec, is missing.
 It is a Rust binary that lives in `tools/gunter/` and is installed as a system
 tool, not built on every run:
 
-    just -f tools/justfile herramientas
+    just -f tools/justfile install
 
 That does `cargo install --locked --path tools/gunter`. If cargo is missing, on
 Arch it is `pacman -S rust`."""
@@ -85,7 +85,7 @@ def version():
 
     It covers this file and **the installed binary**, not the sources in
     `tools/gunter/`: the binary on the PATH is installed separately, so a tree
-    with `tools/gunter/src` touched and without `just herramientas` run keeps
+    with `tools/gunter/src` touched and without `just install` run keeps
     encoding with the old one. What the key has to describe is what produced
     the bytes.
 

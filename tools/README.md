@@ -54,7 +54,7 @@ in English and without a single mention of this game (see AGENTS.md):
     voodoo/      Voodoo: from an image to tiles, palettes and tilemap
     lz2/         Nintendo's LC_LZ2, with an optimal parser
 
-They are installed with `just -f tools/justfile herramientas` and used from
+They are installed with `just -f tools/justfile install` and used from
 the PATH: no `.py` here builds them or looks for them in `target/`. The same
 goes for the Python scripts that get executed: see "The ones that run".
 
@@ -99,8 +99,10 @@ through.
 ## The ones that run
 
 The scripts that get run are executables —shebang and `chmod +x`— and `just
-herramientas` installs them as symlinks in the same `bin/` as the Rust
-projects. The `justfile` calls them by name and does not know where they
+install` installs them as symlinks in the same `bin/` as the Rust
+projects; `just install-scripts`, the symlinks alone, without compiling
+anything, which is what a renamed or new script needs: a symlink points to
+a file path. The `justfile` calls them by name and does not know where they
 are:
 
     rm2k-snes-cartridges        assembly/cartridges.py
@@ -113,7 +115,7 @@ are:
     abl-entregar                assembly/entregar.py
 
 The reason for the names is in `tools/justfile`. A new one is added in
-`_instalar`, and the `.py` finds its packages by resolving the symlink with
+`_install`, and the `.py` finds its packages by resolving the symlink with
 `realpath`, because `__file__` is the PATH location: it climbs up to
 `tools/` and no further. **Where everything else is** is answered by
 `common/project.py`, and by nobody else: `pruebas/test_project.py` enforces
@@ -125,11 +127,11 @@ the game". The tests put `tools/` on the path themselves, from
 `pruebas/README.md`.
 
 A worktree that modifies the tools uses its own with `just -f
-tools/justfile herramientas-locales <destination>`, which builds a `bin/` of
-its own wherever whoever will use it says: the game's `justfile` looks for
-its own in a directory of its own, and this one, in
-`tools/.herramientas-locales/`. Each puts it first on the PATH of its
-recipes: see the recipe, and "Sub-agentes" in AGENTS.md.
+tools/justfile install-local <destination>`, which builds a `bin/` of its
+own wherever whoever will use it says: the game's `justfile` looks for its
+own in a directory of its own, and this one, in `tools/.local-tools/`.
+Each puts it first on the PATH of its recipes: see the recipe, and
+"Sub-agentes" in AGENTS.md.
 
 ## What the game decides: the project file
 

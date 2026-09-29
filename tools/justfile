@@ -6,21 +6,22 @@
 # inside `tools/`, with `just <recipe>`, because `just` uses the nearest
 # `justfile`. Either way the recipes run standing in `tools/`.
 
-# Where `just herramientas` installs. In the container `/usr/local` is on the
-# PATH; from the host `CARGO_ROOT=~/.cargo`, cargo's default, is better.
+# Where `just install` and `just install-scripts` install. In the container
+# `/usr/local` is on the PATH; from the host `CARGO_ROOT=~/.cargo`, cargo's
+# default, is better.
 cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
 
-# A worktree's tools, used by the recipes in this file: `protocolo` and
-# `pruebas` run the worktree's `protocol` if the agent is modifying it and
-# installed it here, with `just herramientas-locales
-# <this directory>/.herramientas-locales protocol`. Each game puts its own
-# wherever it wants and tells `herramientas-locales` where: this file does
-# not know where any of them lives.
-locales := justfile_directory() / ".herramientas-locales"
-export PATH := if path_exists(locales / "bin") == "true" { locales / "bin" + ":" + env_var("PATH") } else { env_var("PATH") }
+# A worktree's tools, used by the recipes in this file: `protocol` and
+# `test` run the worktree's `protocol` if the agent is modifying it and
+# installed it here, with `just install-local
+# <this directory>/.local-tools protocol`. Each game puts its own wherever
+# it wants and tells `install-local` where: this file does not know where
+# any of them lives.
+local_tools := justfile_directory() / ".local-tools"
+export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bin" + ":" + env_var("PATH") } else { env_var("PATH") }
 
 # The Rust projects, in the order they are installed.
-proyectos_de_rust := "protocol gunter ditto voodoo lz2"
+rust_projects := "protocol gunter ditto voodoo lz2"
 
 # The event opcodes: their number and their layout. The declaration lives in
 # `protocol/events.toml` and belongs neither to the compiler nor to the
@@ -33,7 +34,7 @@ proyectos_de_rust := "protocol gunter ditto voodoo lz2"
 # The music one cannot —it ends at 0xFF— and does not need it.
 #
 # `--check` is what the suite runs: it fails if any of them is stale.
-protocolo *args:
+protocol *args:
   protocol protocol/events.toml \
       --python port/event_opcodes.py --asm runtime/event_opcodes.inc \
       --jump-table {{args}}
@@ -49,13 +50,13 @@ protocolo *args:
 # one is. Without the variable, those two are skipped with a message.
 # `pytest` takes `pruebas/` from `pytest.ini`, so whatever is passed to it —a
 # file, `-k`— works the same as in a plain `pytest`.
-pruebas *args:
+test *args:
   pytest {{args}}
 
 # The generator's tests: the errors it must give for a broken declaration,
 # and the exact shape of the text it emits. They need neither the game nor
 # the ROM.
-protocolo-pruebas:
+protocol-test:
   cd protocol && cargo test
 
 # Gunter: the BRR codec and the SoundFont reader, and **what builds the ROM's
@@ -63,7 +64,7 @@ protocolo-pruebas:
 # square, impulse, clipping— plus the error messages, so they need neither
 # the game nor a soundfont. That the real samples come out right is enforced
 # by any ROM, because they travel inside the `.sfc`.
-gunter-pruebas:
+gunter-test:
   cd gunter && cargo test
 
 # .ldb/.lmu/.lmt ⇄ JSON in Rust. It does not replace `rpgmaker/lcf.py` or the
@@ -76,20 +77,20 @@ gunter-pruebas:
 # Without the variable, the tests that need it are skipped with a message and
 # the rest —the schema defaults, the synthetic corpus— run anyway.
 #
-# The short suite runs over a sample of maps; `ditto-vuelta-entera` is every
+# The short suite runs over a sample of maps; `ditto-round-trip` is every
 # map, the LDB and the tree, and measures the only thing that makes the tool
 # useful: that the binary comes back **byte for byte**. It is separate
 # because it is the one you want to see with the number, not the one that
 # runs quietly; and without a corpus it measures nothing, so instead of
 # skipping it refuses.
-ditto-pruebas:
+ditto-test:
   cd ditto && cargo test
 
-ditto-vuelta-entera:
+ditto-round-trip:
   #!/usr/bin/env sh
   set -eu
   if [ -z "${DITTO_CORPUS:-}" ]; then
-    echo "ditto-vuelta-entera needs a game: DITTO_CORPUS=<folder with RPG_RT.ldb, RPG_RT.lmt and the Map*.lmu>." >&2
+    echo "ditto-round-trip needs a game: DITTO_CORPUS=<folder with RPG_RT.ldb, RPG_RT.lmt and the Map*.lmu>." >&2
     exit 1
   fi
   cd ditto
@@ -101,14 +102,14 @@ ditto-vuelta-entera:
 #
 # Its tests are images generated inside the test, plus the error messages,
 # so they do not need the game.
-voodoo-pruebas:
+voodoo-test:
   cd voodoo && cargo test
 
 # LZ2: Nintendo's LC_LZ2, which the converter uses to compress the tiles and
 # grids the ROM decompresses when loading a map —see `port/comprimir.py`—.
 # Its tests do not need the game; the ones that run every block of the
 # cartridge through the reference are the port's.
-lz2-pruebas:
+lz2-test:
   cd lz2 && cargo test --release
 
 # --- Installation ----------------------------------------------------------
@@ -124,24 +125,36 @@ lz2-pruebas:
 # point to the checkout this was run from: if that one is deleted, it has to
 # be run again from another.
 #
-# With Rust project names —`just herramientas lz2`— it installs only those,
-# plus the Python symlinks, which cost nothing: that is what whoever merges a
-# branch runs, with the Rust the branch touched. Without names, all of them.
+# With Rust project names —`just install lz2`— it installs only those, plus
+# the Python symlinks, which cost nothing: that is what whoever merges a
+# branch runs, with the Rust the branch touched. Without names, all of them;
+# and the symlinks alone, without compiling anything, are `install-scripts`.
 #
 # The names follow the repo each program will live in once the tools split
 # from ABL: `rm2k-snes-` and in English for the suite's, which will be an
 # English repo; `abl-` and in Spanish for the one that stays with the game.
-# The prefix is because `bin/` is shared: a bare `espacio` or `parches` does
+# The prefix is because `bin/` is shared: a bare `space` or `patches` does
 # not say what it is and can clash with anything.
 #
 # `(cargo_root)` goes in parentheses because, stuck to the parenthesis that
 # follows, `just` would read it as a call to a function `cargo_root`.
-herramientas *proyectos: (_instalar (cargo_root) (if proyectos == "" { proyectos_de_rust } else { proyectos }))
+install *projects: (_install (cargo_root) (if projects == "" { rust_projects } else { projects }))
+
+# **Only the Python scripts**, into the same `bin/` as `install`: their
+# symlinks, without compiling or reinstalling any Rust. It is what is run
+# after a branch that renames or adds a script, because a symlink points to
+# a file path, and a renamed `.py` leaves it pointing nowhere. The Rust
+# binaries are left as they are.
+#
+# Only from the main checkout: the global symlinks point to the checkout
+# they were made from, and a worktree is deleted when its branch is merged.
+# A worktree has its own, with `install-local`.
+install-scripts: _main_checkout_only (_install (cargo_root))
 
 # **A worktree's tools**, for the sub-agent that modifies them. A symlink in
 # the global install points to a single checkout —the main one—, so a
 # worktree that changes a tools script or a Rust project would not run its
-# change. This builds `<destino>/bin/` with the worktree's eight scripts,
+# change. This builds `<dest>/bin/` with the worktree's eight scripts,
 # always, and with the Rust projects it is given, **only those**: compiling
 # Rust costs, and only makes sense if the agent is going to modify that
 # project. Without names it compiles nothing. From taro, 2026-09-29.
@@ -157,44 +170,50 @@ herramientas *proyectos: (_instalar (cargo_root) (if proyectos == "" { proyectos
 # first on the PATH: a plain command uses the global one. It refuses in the
 # main checkout, where it would shadow the global install with the same
 # thing.
-herramientas-locales destino *proyectos: _no_en_el_principal (_instalar (join(invocation_directory(), destino)) proyectos)
+install-local dest *projects: _not_in_main_checkout (_install (join(invocation_directory(), dest)) projects)
 
-_no_en_el_principal:
+_not_in_main_checkout:
   #!/usr/bin/env sh
-  [ "$(git rev-parse --git-dir)" != "$(git rev-parse --git-common-dir)" ] && exit 0
-  echo "this is the main checkout: here the tools are the global ones, from 'just -f tools/justfile herramientas'." >&2
+  [ "$(git rev-parse --path-format=absolute --git-dir)" != "$(git rev-parse --path-format=absolute --git-common-dir)" ] && exit 0
+  echo "this is the main checkout: here the tools are the global ones, from 'just -f tools/justfile install'." >&2
   exit 1
 
-# Installs into `raiz`: `cargo install` of the named Rust projects, and the
+_main_checkout_only:
+  #!/usr/bin/env sh
+  [ "$(git rev-parse --path-format=absolute --git-dir)" = "$(git rev-parse --path-format=absolute --git-common-dir)" ] && exit 0
+  echo "this is a worktree: its scripts go in its own bin/, with 'just -f tools/justfile install-local <dest>'." >&2
+  exit 1
+
+# Installs into `root`: `cargo install` of the named Rust projects, and the
 # symlinks of the eight Python ones. A name that is not a project stops
 # before compiling anything.
-_instalar raiz *proyectos:
+_install root *projects:
   #!/usr/bin/env sh
   set -eu
-  for p in {{proyectos}}; do
-    case " {{proyectos_de_rust}} " in
+  for p in {{projects}}; do
+    case " {{rust_projects}} " in
       *" $p "*) ;;
-      *) echo "'$p' is not a Rust project: they are {{proyectos_de_rust}}." >&2; exit 1 ;;
+      *) echo "'$p' is not a Rust project: they are {{rust_projects}}." >&2; exit 1 ;;
     esac
   done
-  for p in {{proyectos}}; do
-    cargo install --locked --path "$p" --root "{{raiz}}"
+  for p in {{projects}}; do
+    cargo install --locked --path "$p" --root "{{root}}"
   done
-  mkdir -p "{{raiz}}/bin"
-  ln -sfn "{{justfile_directory()}}/assembly/cartridges.py" "{{raiz}}/bin/rm2k-snes-cartridges"
-  ln -sfn "{{justfile_directory()}}/assembly/assemble.py" "{{raiz}}/bin/rm2k-snes-assemble"
-  ln -sfn "{{justfile_directory()}}/assembly/space.py" "{{raiz}}/bin/rm2k-snes-space"
-  ln -sfn "{{justfile_directory()}}/port/snes_convert.py" "{{raiz}}/bin/rm2k-snes-convert"
-  ln -sfn "{{justfile_directory()}}/port/parches.py" "{{raiz}}/bin/rm2k-snes-patches"
-  ln -sfn "{{justfile_directory()}}/audio/msu.py" "{{raiz}}/bin/rm2k-snes-msu"
-  ln -sfn "{{justfile_directory()}}/audio/ceilings.py" "{{raiz}}/bin/rm2k-snes-volume-ceilings"
-  ln -sfn "{{justfile_directory()}}/assembly/entregar.py" "{{raiz}}/bin/abl-entregar"
-  echo "in {{raiz}}/bin: the eight Python ones, and from Rust: {{ if proyectos == "" { "none" } else { proyectos } }}"
+  mkdir -p "{{root}}/bin"
+  ln -sfn "{{justfile_directory()}}/assembly/cartridges.py" "{{root}}/bin/rm2k-snes-cartridges"
+  ln -sfn "{{justfile_directory()}}/assembly/assemble.py" "{{root}}/bin/rm2k-snes-assemble"
+  ln -sfn "{{justfile_directory()}}/assembly/space.py" "{{root}}/bin/rm2k-snes-space"
+  ln -sfn "{{justfile_directory()}}/port/snes_convert.py" "{{root}}/bin/rm2k-snes-convert"
+  ln -sfn "{{justfile_directory()}}/port/parches.py" "{{root}}/bin/rm2k-snes-patches"
+  ln -sfn "{{justfile_directory()}}/audio/msu.py" "{{root}}/bin/rm2k-snes-msu"
+  ln -sfn "{{justfile_directory()}}/audio/ceilings.py" "{{root}}/bin/rm2k-snes-volume-ceilings"
+  ln -sfn "{{justfile_directory()}}/assembly/entregar.py" "{{root}}/bin/abl-entregar"
+  echo "in {{root}}/bin: the eight Python ones, and from Rust: {{ if projects == "" { "none" } else { projects } }}"
 
 # Which executable this checkout resolves for each tool: the one in
-# `.herramientas-locales/bin/` if it is there, otherwise the global one.
-cuales:
+# `.local-tools/bin/` if it is there, otherwise the global one.
+which:
   #!/usr/bin/env sh
-  for x in {{proyectos_de_rust}} rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings abl-entregar; do
+  for x in {{rust_projects}} rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings abl-entregar; do
     printf '%-26s %s\n' "$x" "$(command -v "$x" || echo missing)"
   done

@@ -101,7 +101,7 @@ Hasta el 2026-09-16 hubo otro más, `w65/`, el ensamblador de 65816. Lo reemplaz
 `ca65` y `ld65`, del proyecto cc65: ver "Dónde corre esto".
 
 **Se consumen desde el PATH, no desde `target/release`.** Se instalan con
-`just -f tools/justfile herramientas` —`cargo install --locked --path …`— y a
+`just -f tools/justfile install` —`cargo install --locked --path …`— y a
 partir de ahí son herramientas del sistema, como `python3` o un core de
 libretro: **ningún script ni prueba de este juego llama a `cargo`**. Es de taro, el 2026-09-15, y lo que
 evita es que cada corrida de la tanda quede atada al toolchain de Rust.
@@ -304,7 +304,7 @@ Las dos pruebas de las herramientas que leen un SoundFont de verdad lo
 reciben en `SOUNDFONT`, como Ditto su corpus en `DITTO_CORPUS`: sin la
 variable se saltean. Para correrlas acá,
 `SOUNDFONT="/extras/soundfonts/Microsoft GS Wavetable Synth.sf2" just -f
-tools/justfile pruebas`.
+tools/justfile test`.
 
 **`ca65` y `ld65` se compilan acá adentro, y eso fue una decisión.** No están
 empaquetados en Arch, y hasta el 2026-09-15 la regla era no compilar fuentes de
@@ -525,9 +525,9 @@ Lo que hay que hacer siempre:
   nombre obvio: el 2026-09-15 dos escribieron un `comparar.sh` cada uno en el
   mismo lugar. Uno pisa al otro y el pisado no se entera. `<scratchpad>/<lo que
   hace>/…` alcanza.
-* **Que corra `just -f tools/justfile herramientas-locales
+* **Que corra `just -f tools/justfile install-local
   rom/.herramientas-locales` al empezar**, desde la raíz del worktree. El
-  global —`just -f tools/justfile herramientas`— apunta al checkout
+  global —`just -f tools/justfile install`— apunta al checkout
   principal, y sus scripts arman en el `rom/build/` de ése: por eso, en un
   worktree sin su `bin/`, las recetas que corren herramientas —`cartuchos`,
   `pruebas`, `build`…— **se niegan** y dan el comando entero, con rutas
@@ -535,8 +535,8 @@ Lo que hay que hacer siempre:
   `rom/justfile` lo pone adelante en el PATH. **El destino es obligatorio**
   porque ninguno de los dos lados sabe dónde vive el otro: `rom/justfile`
   busca el suyo en `rom/`, y `tools/justfile` el suyo en `tools/`, que es
-  el que usa `protocolo`. **Un proyecto de Rust se le pasa sólo si el
-  agente lo va a modificar** —`… herramientas-locales
+  el que usa `protocol`. **Un proyecto de Rust se le pasa sólo si el
+  agente lo va a modificar** —`… install-local
   rom/.herramientas-locales lz2`—: compilar cuesta, y sin nombres no
   compila nada. Y **todo se corre por `just`**: un comando suelto no ve ese
   `bin/` y usa el global. Es de taro, el 2026-09-29, y reemplazó a un
@@ -596,9 +596,14 @@ Así que al mergear una rama de sub-agente:
 * **Correr `just pruebas` y la tanda sobre el árbol mergeado**, no sobre las
   ramas. Que cada una viniera en verde no dice nada del merge.
 * **Reinstalar en el global sólo lo de Rust que la rama tocó**: `just -f
-  tools/justfile herramientas lz2`, desde el checkout principal. Lo de
-  Python no hace falta, porque el global apunta a ese checkout y el merge ya
-  lo trajo.
+  tools/justfile install lz2`, desde el checkout principal, que rearma de
+  paso los symlinks de Python. Lo de Python no hace falta reinstalarlo si la
+  rama sólo cambió el contenido de un script, porque el global apunta a ese
+  checkout y el merge ya lo trajo; **si renombró o agregó uno, sí**: un
+  symlink apunta a la ruta de un archivo, y un `.py` renombrado lo deja
+  apuntando a nada. Para eso está `just -f tools/justfile install-scripts`,
+  que rearma los symlinks sin compilar ni reinstalar nada de Rust, y se
+  niega a correr en un worktree.
 * **Un rojo heredado se bisecta, no se hereda.** Si una prueba está en rojo y
   nadie la rompió, apareció en algún lado: `git log -S` para saber cuándo nació
   y correrla en los padres del merge sospechoso. Cuesta veinte minutos.

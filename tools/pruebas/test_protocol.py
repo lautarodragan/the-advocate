@@ -5,7 +5,7 @@ There are two bytecodes in this port: the event one, which
 which `tools/audio/snes_music.py` writes and `irq_musica` reads. They are
 declared by `tools/protocol/`, which belongs to neither side, and from there
 the files in `GENERADOS` are generated. The generator is a Rust binary
-installed with `just -f tools/justfile herramientas` and used from the PATH,
+installed with `just -f tools/justfile install` and used from the PATH,
 so these cases need it installed; the generated output is committed, so
 **building the ROM does not even need that**.
 
@@ -46,7 +46,7 @@ GENERADOS = [
                             "music_opcodes.py"))),
 ]
 MAIN = os.path.join(project.runtime(), "main.s")
-# What each one needs on top, as in the `protocolo` recipe of tools/justfile:
+# What each one needs on top, as in the `protocol` recipe of tools/justfile:
 # without this `--check` compares against an `.inc` without the dispatch table
 # and reports it as stale.
 BANDERAS = {"events": ["--jump-table"]}
@@ -68,7 +68,7 @@ def test_the_generated_files_are_up_to_date(nombre, modulo, inc, py):
         + BANDERAS.get(nombre, []),
         capture_output=True, text=True)
     assert hecho.returncode != 2, (
-        "the generator could not run —is `just -f tools/justfile herramientas` missing?—:\n%s"
+        "the generator could not run —is `just -f tools/justfile install` missing?—:\n%s"
         % hecho.stderr)
     assert hecho.returncode == 0, (
         "a generated file is out of date:\n%s%s" % (hecho.stdout, hecho.stderr))

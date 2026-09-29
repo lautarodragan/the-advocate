@@ -51,7 +51,7 @@ import numpy
 # from. It is replaced instead of adding `tools/` next to it: with both, a bare
 # `import eventos` would work and load a second copy of the module, distinct
 # from `port.eventos`.
-# `realpath` and not `abspath`: `just herramientas` installs it on the PATH as
+# `realpath` and not `abspath`: `just install` installs it on the PATH as
 # a symlink, and the folder that matters is the one of the real file.
 if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))

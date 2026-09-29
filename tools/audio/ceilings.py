@@ -40,7 +40,7 @@ import tempfile
 import wave
 from multiprocessing import Pool
 
-# `realpath` and not `abspath`: `just herramientas` installs this script on the
+# `realpath` and not `abspath`: `just install` installs this script on the
 # PATH as a symlink, and what matters is where the real file is.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 

@@ -11,7 +11,7 @@ chose what**, and that is a patch.
 Until now those decisions were made silently and left no trace: if a change
 made a map lose two more colors, the only way to find out was to look at the
 ROM. Here they come out written, they are versioned, and the suite fails if
-what is committed does not match —the same as `just protocolo --check` does
+what is committed does not match —the same as `just protocol --check` does
 with the opcodes—. The point is that **the diff warns**: it is what the
 goldens do with the pixels, for the decisions.
 

@@ -10,7 +10,7 @@ This module is still called `tiles_bin` because it names **what it
 produces** —tiles— and not who produces them, like `brr_samples`.
 
 It is used from the PATH, like `gunter` and `ca65`: it is installed with
-`just herramientas` and no script calls `cargo`.
+`just install` and no script calls `cargo`.
 """
 
 import hashlib
@@ -26,7 +26,7 @@ FALTA = """`voodoo` is missing, the converter from images to tiles.
 It is a Rust binary that lives in `tools/voodoo/` and is installed as a
 system tool:
 
-    just -f tools/justfile herramientas"""
+    just -f tools/justfile install"""
 
 
 def binario():

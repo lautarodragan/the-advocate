@@ -21,7 +21,7 @@ import subprocess
 import sys
 import textwrap
 
-# `realpath` y no `abspath`: `just herramientas` instala este script en el PATH
+# `realpath` y no `abspath`: `just install` instala este script en el PATH
 # como symlink, y lo que importa es dónde está el archivo de verdad.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 

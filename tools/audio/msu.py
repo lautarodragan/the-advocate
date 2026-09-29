@@ -70,7 +70,7 @@ import numpy
 # Run as a script, Python puts this file's folder on `sys.path` and not
 # `tools/`, which is where the packages are imported from: see the same
 # startup in `port/snes_convert.py`.
-# `realpath` and not `abspath`: `just herramientas` installs it on the PATH as
+# `realpath` and not `abspath`: `just install` installs it on the PATH as
 # a symlink, and the folder that works is the real file's.
 if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))

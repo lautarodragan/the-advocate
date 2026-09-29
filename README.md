@@ -57,9 +57,9 @@ instalan una vez, y ningún script ni prueba de este juego llama a `cargo`. El p
 cc65, que no viene empaquetado en todas las distribuciones y se compila de sus
 fuentes: ver "Referencias".
 
-    just -f tools/justfile herramientas   # instala las herramientas en el PATH
-    just cartuchos                        # arma las ROMs: release y las de prueba
-    just pruebas                          # la tanda entera; arma antes lo que haga falta
+    just -f tools/justfile install   # instala las herramientas en el PATH
+    just cartuchos                   # arma las ROMs: release y las de prueba
+    just pruebas                     # la tanda entera; arma antes lo que haga falta
 
 El repo tiene dos mitades: `tools/`, las herramientas y el runtime
 —`tools/runtime/`, el motor en ensamblador, que se arma junto con los `.inc`
