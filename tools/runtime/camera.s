@@ -2,7 +2,7 @@
 
 ; --- the camera panned away from the hero ----------------------------------
 ; `Game_Player::UpdatePan`: each axis approaches its destination by
-; `pan_step` sixteenths of a pixel, without overshooting. And along the way it
+; the step `OP_PAN` carries, in 1/16 px, without overshooting. And along the way it
 ; is brought down to whole pixels, which is what `follow_camera` adds: the
 ; division is **floored** and signed, which is what `Spriteset_Map` does by
 ; dividing `GetDisplayX()` by 16.

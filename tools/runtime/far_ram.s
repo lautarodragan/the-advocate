@@ -200,8 +200,8 @@ BA_PCT_MAX    = $7A15
 BA_P24        = $7A16           ; three bytes: what `ba_mul24` leaves
 BA_P_HP       = $7A19           ; three bytes: a hundred times the HP checked
 BA_PAGE_FL    = $7A1C           ; the triggers of the page being tested
-; And its header, copied from in front of its code: `events.troop_header`,
-; in the same order.
+; And its header, copied from in front of its code: `Trigger::header` in
+; the event compiler, in the same order.
 BA_COND       = $7A20
 BA_COND_BASE  = 0               ; word: the turn base, `turn_b`
 BA_COND_MULT  = 2               ; word: and its multiple, `turn_a`

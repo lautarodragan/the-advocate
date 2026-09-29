@@ -618,6 +618,35 @@ FADE_RAMP = 24
 FADE_BLACK = FADE_FRAMES - FADE_RAMP
 BRIGHTNESS_MAX = 15
 
+# `ChangeScreenTransitions` (10690) changes that transition from then on:
+# `[which, transition]`, with which 0 the teleport's erase and 1 its show —2
+# to 5 are the battle's— and the transition an index into
+# `Game_System::GetTransition`'s `fades` table. The game uses it in Boss
+# Wick's hideout: zoom (16) to go to the vidcasts, mosaic (17) inside, and fade
+# (0) on the way back. It is state that crosses the teleport, and in RM2k it
+# travels in the save; here it does not —see `TRANSITION_ERASE` in
+# tools/runtime/far_ram.s—.
+#
+# The ROM does two: **the mosaic**, with the PPU's MOSAIC register tied to the
+# brightness ramp —like the battle's, `battle_fade.s`, and for the same
+# reason: the map load has to fall inside the black—, and **the fade**, which
+# is what goes for the ones the console does not do (the zoom is mode 7, and
+# the map is in mode 3): taro decided it on 2026-09-26. See
+# workflow/divergencias/las-transiciones-del-teletransporte.md.
+#
+# And **the cut** (19) for erasing: the screen to black in one frame
+# —`TransitionCutOut`, which `Transition::GetDefaultFrames` makes last 1— and
+# the new map loaded there; the way back is whatever the show says. Eisen's
+# story (95 ev55) asks for it and, for "none" (20), 93 ev4: "none" compiles
+# **to the cut**, and it is a divergence. In RM2k erasing with "none" does not
+# touch the screen, so the fade back fades from the old map to the new one;
+# the console has nothing to blend two frames with, and loading the map
+# requires forced blanking: the closest thing is one frame of black. See
+# workflow/divergencias/las-transiciones-del-teletransporte.md.
+#
+# The cut and "none" for **showing** do not compile: no ROM map uses them,
+# and with nobody running them they would be a path no test walks. The
+# battle's do not either: the ROM always uses the database's.
 # What the bytecode carries: what the ROM does, and not the RM2k number.
 TRANSITION_FADE, TRANSITION_MOSAIC, TRANSITION_CUT = 0, 1, 2
 
@@ -1033,6 +1062,62 @@ ANIM_TARGET_SCREEN = 0xFF     # "screen" scope: goes to the center, no target
 # looks at it in `op_battle`.
 BATTLE_LOSE = 0xFFFF
 
+# `HaltAllMovement`: all of the map's forced routes are abandoned at once. It
+# is `Game_Map::RemoveAllPendingMoves`, that is a `CancelMoveRoute` on the
+# hero and on each event, and what cancelling means is written only once: it
+# is **the same as what happens when the route ends on its own** —whoever had
+# a page route of its own goes back to it, whoever did not stands still— and
+# that is why the ROM calls `resume_page`.
+#
+# What it **does not** touch, same as `CancelMoveRoute`: the step or jump in
+# progress are finished, and where each one faces stays where the route left
+# it.
+#
+# In the whole game there is **a single one** —map 11, the event that
+# rearranges the Lazer Teeth hideout when you are discovered— and that is why
+# it is worth it: without it that page does not compile and the HQ cannot be
+# played again after you get caught.
+#
+# OP_STOP_ROUTES: no operands
+
+# The two actor questions that do not fit in `OP_IF`, since 2026-09-13: "does
+# it have this item equipped?" and "does it know this skill?". They do not fit
+# because they carry **two** operands —the actor and the item or the skill—
+# and `OP_IF` has a single one; the actor fits in a byte because the LDB has
+# 60 and `ACTORS_N` counts them, and the data does not, because the items go
+# up to 450.
+#
+# It carries no polarity: RM2k gives none to these two —the branch below is
+# the `else`— same as to "is in the party". The destination goes last, as in
+# all of them, because it is what `with_dest` patches when closing the
+# branch.
+#
+# OP_IF_ACTOR: sub (byte), actor (byte), data (word), destination (word)
+
+# The picture of a `ShowPicture`, since 2026-09-12. The ROM carries **a
+# single one** —see `Pictures`— and that is why the three opcodes do not say
+# which: they say what to do to it.
+#
+#   OP_PICTURE        r, g, b, sat (bytes, 100 neutral): puts it up with that
+#                     tone.
+#   OP_PICTURE_MOVE  the tone it goes to, and in how many frames. It does not
+#                    cut the frame: if the page waits, the converter puts an
+#                    OP_DELAY after it, as with `FlashScreen` and the shake.
+#   OP_PICTURE_ERASE takes it down.
+#
+# **The picture's fade is the tone and not the transparency**, which is what
+# had to be checked: the two `MovePicture`s of the "1 year earlier" page leave
+# `top_trans` at 0 and move (r, g, b) between 0 and 100 with the saturation
+# still at 100. So the image appears **black**, goes up to its color and back
+# to black; on the console that is tinting its fifteen CGRAM entries, which is
+# exactly the math the screen tint already did.
+#
+# OP_PICTURE: r, g, b, sat
+#
+# OP_PICTURE_MOVE: r, g, b, sat, frames (byte)
+# How many frames a `MovePicture` can last to fit in `OP_PICTURE_MOVE`'s byte.
+# The page's two last 210 and 120.
+
 # `ChangeSpriteAssociation`: actor (byte) and which graphic of the map's table
 # (byte). It is the same as move command 34 but on an **actor**, and the
 # two differences come from there:
@@ -1098,6 +1183,41 @@ KEY_VALUE_CANCEL = 6
 KEY_VALUE_DECISION = 5
 # By ROM direction: 0 up, 1 right, 2 down, 3 left.
 KEY_VALUE_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
+
+# `ChangeEventLocation` with the cell **in two variables**, which is RM2k's
+# other `LUGAR`: same effects as `OP_PLACE` —`MoveTo`, the cell changes right
+# away and the step in progress is cut— but the two numbers are read when it
+# runs.
+#
+# It goes in its own opcode and not in a bit of `OP_PLACE` because the
+# operands are different: two one-byte slots against two words. `OPCODE_SIZE`
+# is a table, so an opcode whose size depends on a bit cannot be walked by
+# either the converter or the ROM.
+#
+# What it unlocks is **one page**, measured over the whole game, and there are
+# 129 occurrences in 32 pages: the other 31 are held back by something else
+# anyway. That page is the one that matters: the engine of the stones
+# minigame on map 11, which without this cannot place the stone where the
+# player is standing and therefore none can be thrown.
+#
+# **The number is chosen by looking at the ones already there**, not the last
+# one you remember: see `OP_ACTOR_SPRITE`'s warning.
+#
+# OP_PLACE_VAR: target (byte, as in OP_PLACE), slot of x
+#     (byte), slot of y (byte)
+#
+# OP_LOCATION: mode (byte), and the slots of the map, x and y (a byte each).
+#     `MemorizeLocation` and `RecallToLocation` are the same opcode because
+#     they are the same location read or written: bit 0 of the mode says
+#     which —`PLACE_JUMP`, in the compiler—, and when recalling bits 7, 6
+#     and 5 are the VAR_REFRESH of each of the three writes. **The map in the variable is
+#     the RM2k id**, which is what any other page reads and writes; the ROM
+#     translates it with `map_rm2k`. They unlock 55 pages of Lashe City's
+#     milestone 3 —the plant's floors, 28 on 60 and 26 on 62, and the droid
+#     tutorial— and they are what holds back the most pages in the whole
+#     game.
+#
+# OP_MEMORIZED_BGM: 0 remember the song that plays, 1 put it back.
 
 
 def key_value(flags, pressed):
@@ -1480,6 +1600,33 @@ class Troops:
 # place —from 0, in troop order— stops being hidden. See OP_SHOW_ENEMY and
 # `ba_show_hidden`.
 SHOW_HIDDEN_MONSTER = 13150
+
+# The battle's three branch commands, with their map twin. Of the six
+# questions of `CommandConditionalBranchBattle` the game uses **only two** —the
+# switch and the variable, in 1108 branches of 295 distinct bodies, measured
+# on 2026-09-21— and those have the operands in the same place as the map's:
+# `[kind, number, polarity or value kind, value, comparison, else]`. So they
+# are translated to the map's code and compile to OP_IF and OP_IF_VAR without
+# a new opcode. The other four —whether an actor or an enemy can act, whom it
+# targets, which command it gave— ask for battle state and do not compile.
+# The translation is `battle_branch`, in the compiler's `indices.rs`.
+
+# What a troop page can do in this port. **It is a list of the ones that do,
+# not of the ones that do not**, on purpose: almost everything that compiles
+# on a map assumes the map —a teleport, a route, a tint, a choice, which opens
+# the map's window— and inside the battle it would do something else without
+# warning.
+#
+# `PlaySound` sounds in the battle's audio package if its effect fits there
+# —see `TroopPages::compile` in the compiler—, and `ShakeScreen` moves
+# the scene: see `ba_shake`. Its wait, an OP_DELAY, is counted by
+# `ba_page_step`.
+#
+# The ones left out that the game uses, in case someone wants to add them:
+# `ChangeHP` and `FullHeal` —in battle HP lives in `BA_ONE` and `FAR_HP` is
+# overwritten when closing it—, `ChangePartyMembers`, `ChangeEquipment`,
+# `Wait`, `TintScreen` and five of the six that only exist in battle. The
+# list is `TROOP_COMMANDS`, in the compiler's `troops.rs`.
 
 # Which triggers the ROM knows how to look at, with their bit in
 # `tpage_flags`: RM2k's six. The three from 2003 —an actor's or an enemy's
