@@ -27,7 +27,7 @@ one in its own row or above.
                  patch that exposes the WRAM
 
     render/      a map and a chipset as images, with the CharSets on top,
-                 and the image of the fork's ChipSets (chipset_del_fork); uses
+                 and the image of the fork's ChipSets (chipset_recipe); uses
                  rpgmaker
 
     audio/       from MIDI to the SPC700: snes_music, midi, musica, sdsp,

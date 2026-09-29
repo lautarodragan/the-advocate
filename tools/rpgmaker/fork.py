@@ -33,7 +33,7 @@ of the other six maps that share number 10. An id already in
 `rom/data/db/chipsets.json` is an error, because a fork that overwrites a
 database entry goes stale without warning the day `just datos` changes it.
 
-The image of those ChipSets is built by `render/chipset_del_fork.py`.
+The image of those ChipSets is built by `render/chipset_recipe.py`.
 """
 
 import json

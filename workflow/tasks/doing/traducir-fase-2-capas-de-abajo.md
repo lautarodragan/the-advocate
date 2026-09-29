@@ -35,3 +35,4 @@ un `-c`) se buscan aparte con grep.
 9. `rpgmaker/lcf.py` y `rpgmaker/event_codes.py`, sus nombres, con los atributos en castellano de las clases del juego.
 10. `rpgmaker/rm2k.py`, sus nombres, y los dos atributos que el render le pone al mapa: `chipset_nombre` → `chipset_filename` y `pasabilidad_tiles` → `passability_table`.
 11. `render/render_map.py` y `render/chipset.py`, sus nombres.
+12. `render/chipset_del_fork.py` → `render/chipset_recipe.py`: lo que hace es aplicar la receta del fork al PNG.

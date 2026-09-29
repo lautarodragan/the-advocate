@@ -63,7 +63,7 @@ def test_las_herramientas_se_importan_sin_un_juego(tmp_path):
     codigo = (
         "import port.snes_convert, port.eventos, port.escena, port.msu_datos\n"
         "import port.parches, audio.snes_music, audio.msu, rpgmaker.rm2k\n"
-        "import render.render_map, render.chipset_del_fork\n"
+        "import render.render_map, render.chipset_recipe\n"
         "from common import project\n"
         "project.directory()\n")
     vacio = tmp_path / "vacio"

@@ -19,7 +19,7 @@ from rpgmaker import rm2k
 from rpgmaker import resources
 from rpgmaker.resources import find_resource
 from rpgmaker.rm2k import TILE
-from render import chipset_del_fork
+from render import chipset_recipe
 from render.chipset import ANIMATED, ChipsetAtlas, TERRAIN, UPPER
 
 
@@ -216,10 +216,10 @@ class Renderer:
         self.game_dir = game_dir
         self.search_dirs = [project.root(), game_dir, rtp_dir]
         # The images of the ChipSets `rom/parches/manual/` adds are **built**
-        # —the game's art is not ours to version, see `chipset_del_fork.py`—
+        # —the game's art is not ours to version, see `chipset_recipe.py`—
         # and go first in the search: they are the ones that win when they
         # exist.
-        self.search_dirs.insert(0, chipset_del_fork.imagenes(
+        self.search_dirs.insert(0, chipset_recipe.build_images(
             lambda folder, name: find_resource(self.search_dirs, folder,
                                                name)))
         self.charsets = Charsets(self.search_dirs, self.atlas_by_name,
