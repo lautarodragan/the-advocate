@@ -83,12 +83,12 @@ def test_un_fondo_de_mas_de_un_buffer_va_en_dos_flujos_y_de_tres_no_arma():
     assert [len(t) for t in partes] == [tope, len(dos) - tope]
     assert b"".join(partes) == dos
     controlar_flujos(66, "map_tiles", dos)
-    with pytest.raises(SystemExit, match="3 flujos"):
+    with pytest.raises(SystemExit, match="3 streams"):
         controlar_flujos(66, "map_tiles", bytes(2 * tope + 64))
 
 
 def test_un_flujo_que_no_entra_en_su_lugar_de_la_wram_no_arma():
     """La capa de encima y los sprites van en un solo flujo, y más grande que
     su lugar pisaría los dibujos de la animación."""
-    with pytest.raises(SystemExit, match="un flujo de sprite_tiles"):
+    with pytest.raises(SystemExit, match="a stream of sprite_tiles"):
         controlar_flujos(1, "sprite_tiles", bytes(0x6000 + 32))
