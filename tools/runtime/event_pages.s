@@ -17,51 +17,51 @@
     ldy page_ofs
     rep #$20
 .a16
-    lda [page_ptr], y            ; +0  which event it belongs to
+    lda [page_ptr], y           ; +0  which event it belongs to
     sta pg_event
     sep #$20
 .a8
     iny
     iny
     iny
-    lda [page_ptr], y            ; +3  what triggers it. One byte at a time: reading it two
+    lda [page_ptr], y           ; +3  what triggers it. One byte at a time: reading it two
     sta pg_trigger              ;     at a time would take the next switch along with it
     iny
     rep #$20
 .a16
-    lda [page_ptr], y            ; +4  the switch it requires, or 0
+    lda [page_ptr], y           ; +4  the switch it requires, or 0
     sta pg_sa
     iny
     iny
-    lda [page_ptr], y            ; +6  the second one, or 0
+    lda [page_ptr], y           ; +6  the second one, or 0
     sta pg_sb
     iny
     iny
-    lda [page_ptr], y            ; +8  its code: the low 16 bits
+    lda [page_ptr], y           ; +8  its code: the low 16 bits
     sta pg_code
     sep #$20
 .a8
     iny
     iny
-    lda [page_ptr], y            ; +10 and its bank
+    lda [page_ptr], y           ; +10 and its bank
     sta pg_code + 2
     iny
-    lda [page_ptr], y            ; +11 the actor it requires in the party, or 0
+    lda [page_ptr], y           ; +11 the actor it requires in the party, or 0
     sta pg_actor
     iny
-    lda [page_ptr], y            ; +12 its layer
+    lda [page_ptr], y           ; +12 its layer
     sta pg_layer
     iny
-    lda [page_ptr], y            ; +13 the flags of its own move route
+    lda [page_ptr], y           ; +13 the flags of its own move route
     sta pg_flags
     iny
-    lda [page_ptr], y            ; +14 its frequency
+    lda [page_ptr], y           ; +14 its frequency
     sta pg_freq
     iny
-    lda [page_ptr], y            ; +15 the page's speed
+    lda [page_ptr], y           ; +15 the page's speed
     sta pg_speed
     iny
-    lda [page_ptr], y            ; +16 the commands of its own move route
+    lda [page_ptr], y           ; +16 the commands of its own move route
     sta pg_route
     iny
     lda [page_ptr], y
@@ -70,19 +70,19 @@
     lda [page_ptr], y
     sta pg_route + 2
     iny
-    lda [page_ptr], y            ; +19 how many
+    lda [page_ptr], y           ; +19 how many
     sta pg_route_n
     iny
-    lda [page_ptr], y            ; +20 what the page draws, for events that
+    lda [page_ptr], y           ; +20 what the page draws, for events that
     sta pg_tile                 ;     change graphic: the tile,
     iny
-    lda [page_ptr], y            ; +21 the attributes with palette and priority,
+    lda [page_ptr], y           ; +21 the attributes with palette and priority,
     sta pg_attr
     iny
-    lda [page_ptr], y            ; +22 the pose, with bit 7 if there is a graphic,
+    lda [page_ptr], y           ; +22 the pose, with bit 7 if there is a graphic,
     sta pg_pose
     iny
-    lda [page_ptr], y            ; +23 and its tile's passability bits, or $FF
+    lda [page_ptr], y           ; +23 and its tile's passability bits, or $FF
     sta pg_pass
     rts
 .endproc
@@ -145,7 +145,7 @@
 .a16
     lda #$FFFF
     sta rp_ev_prev
-    bra no_empty              ; the short pass does not clobber the routes' data
+    bra no_empty                ; the short pass does not clobber the routes' data
 .a8
 empty_all:
     rep #$20
@@ -153,7 +153,7 @@ empty_all:
     ldx #$0000
     lda ev_total
     asl a
-    sta rp_ev_prev               ; the limit in bytes, borrowed for a moment
+    sta rp_ev_prev              ; the limit in bytes, borrowed for a moment
 drain:
     lda #$FFFF
     sta pick_by_ev, x
@@ -162,13 +162,13 @@ drain:
     cpx rp_ev_prev
     bne drain
     lda #$FFFF
-    sta rp_ev_prev               ; and now, "no event seen yet"
+    sta rp_ev_prev              ; and now, "no event seen yet"
 .a16
 no_empty:
     ldx map_ofs
     lda f:map_table + M_PAGE_COUNT, x
     bne has_pages
-    jmp no_pages             ; too far for a short branch
+    jmp no_pages                ; too far for a short branch
 has_pages:
     sta pages_left
     lda f:map_table + M_PTR_PAGES, x
@@ -209,7 +209,7 @@ filter_full:
     and #$E0
 with_filter:
     bne look_page
-    jmp next               ; the walk grew and no longer fits in a beq
+    jmp next                    ; the walk grew and no longer fits in a beq
 look_page:
     jsr read_page
     ; The first page of an event with autostart pages clears its `FLAG_AUTO`:
@@ -241,7 +241,7 @@ already_off:
     ; `ClearWaitingForegroundExecution` that `RefreshPage` does when it finds
     ; none. Leaving it set, the page that had just finished started again: in
     ; the opening cutscene that restarted the whole scene at frame 692.
-    jsr unmark_waiting     ; the waiting one, with its count
+    jsr unmark_waiting          ; the waiting one, with its count
     stz ev_flags, x             ; and the autostart one, whose count already went down
     bra not_auto
 .a16
@@ -267,7 +267,7 @@ not_auto:
     dec auto_n
 continues_off:
     lda ev_flags, x
-    and #FLAG_WAIT            ; cleared, and set again below if due
+    and #FLAG_WAIT              ; cleared, and set again below if due
     sta ev_flags, x
     lda pg_trigger
     cmp #TRIGGER_AUTO
@@ -280,7 +280,7 @@ continues_off:
     ora #FLAG_AUTO
     sta ev_flags, x
     inc auto_n
-    jsr mark_waiting        ; still autostart: the mark comes back
+    jsr mark_waiting            ; still autostart: the mark comes back
     bra no_auto
 no_wins_one_auto:
     ; The winner is not autostart, so the event **stops** waiting. It is
@@ -301,7 +301,7 @@ no_auto:
     asl a
     tax
     lda page_ofs
-    sta pick_by_ev, x          ; the last one that qualifies wins
+    sta pick_by_ev, x           ; the last one that qualifies wins
     sep #$20
 .a8
     bra next
@@ -309,7 +309,7 @@ no_met:
     lda pg_flags
     and #$60
     bne with_routes
-    jmp next               ; autostart only: it was already cleared above
+    jmp next                    ; autostart only: it was already cleared above
 with_routes:
     ; An event with routes and no qualifying page yet: $FFFE, so the second
     ; pass can tell it apart from those without routes.
@@ -353,7 +353,7 @@ next:
     sep #$20
 .a8
     beq ready_picking
-    jmp walk                ; the walk grew and no longer fits in a bcc
+    jmp walk                    ; the walk grew and no longer fits in a bcc
 ready_picking:
     rts
 no_pages:
@@ -385,7 +385,7 @@ no_pages:
 .a8
     lda f:map_table + M_PTR_PAGES + 2, x
     sta page_ptr + 2
-    stz pair_n                   ; the list of parallels is rebuilt from scratch
+    stz pair_n                  ; the list of parallels is rebuilt from scratch
     stz rp_ev
     stz rp_ev + 1
 each_event:
@@ -401,15 +401,15 @@ each_event:
     lda pick_by_ev, x
     cmp #$FFFF
     bne :+
-    jmp next                 ; no routes of its own: nothing to look at
+    jmp next                    ; no routes of its own: nothing to look at
 :
     cmp #$FFFE
     bne :+
-    jmp no_active16            ; with routes, and no qualifying page
+    jmp no_active16             ; with routes, and no qualifying page
 :
     cmp #$FFFD
     bne :+
-    jmp hide16              ; with a page graphic, and none: it is hidden
+    jmp hide16                  ; with a page graphic, and none: it is hidden
 :
     sta page_ofs
     sep #$20
@@ -426,17 +426,17 @@ each_event:
     lda pg_code
     ora pg_code + 1
     ora pg_code + 2
-    beq not_parallel          ; did not compile: nothing to run
+    beq not_parallel            ; did not compile: nothing to run
     jsr record_parallel
 not_parallel:
     lda pg_flags
     and #$60
     bne with_route_o_graphic
-    jmp next                 ; autostart only: the note is for something else
+    jmp next                    ; autostart only: the note is for something else
 with_route_o_graphic:
-    jsr page_graphic       ; what the page draws, to the NPC's row
+    jsr page_graphic            ; what the page draws, to the NPC's row
     lda rp_ev
-    jsr event_slot       ; X = its slot, or $FFFF
+    jsr event_slot              ; X = its slot, or $FFFF
     lda pg_flags
     and #$01
     beq no_route
@@ -449,7 +449,7 @@ with_route_o_graphic:
     sep #$20
 .a8
     bne :+
-    jmp next                 ; the same page as before: it goes on where it was
+    jmp next                    ; the same page as before: it goes on where it was
 :
     bra load
 fresh:
@@ -458,7 +458,7 @@ fresh:
     jsr free_slot
     cpx #$FFFF
     bne :+
-    jmp next                 ; no room: it stays still
+    jmp next                    ; no room: it stays still
 :
     lda rp_ev
     sta route_ev + 0, x
@@ -477,7 +477,7 @@ fresh:
 load:
     phx
     lda rp_ev
-    jsr turn_per_route           ; with a route, the route decides where it faces
+    jsr turn_per_route          ; with a route, the route decides where it faces
     plx
     jsr load_page_into_slot
     jmp next
@@ -534,11 +534,11 @@ no_pages:
     ; The pending refresh, before everything: it is when `Game_Map::Update`
     ; looks at `GetNeedRefresh`.
     lda refresh
-    ora refresh_frame         ; or one from inside the command loop, which
-    beq no_refresh            ; did the short pass and left this one owed
+    ora refresh_frame           ; or one from inside the command loop, which
+    beq no_refresh              ; did the short pass and left this one owed
     stz refresh
     stz refresh_frame
-    jsr page_routes         ; which also rebuilds each event's `FLAG_AUTO`:
+    jsr page_routes             ; which also rebuilds each event's `FLAG_AUTO`:
                                 ; the active page changed
 no_refresh:
     ; `Game_Event::CheckEventAutostart`, which hangs off
@@ -604,11 +604,11 @@ no_wait:
     lda pick_active
     beq no_choice
     jsr choice_tick
-    bne no_message             ; it chose: the page goes on this same frame
+    bne no_message              ; it chose: the page goes on this same frame
     rts
 no_choice:
     lda msg_open
-    ora msg_state              ; also while it is being composed
+    ora msg_state               ; also while it is being composed
     beq no_message
     ; The `\|` pause, if the box has one. It is counted **from when the page
     ; asked for the message** and not from when the window finished composing:
@@ -646,12 +646,12 @@ no_pause:
     bra continues
 wait_button:
     lda msg_open
-    beq no_advances               ; has not finished composing yet
+    beq no_advances             ; has not finished composing yet
     lda pad_a
-    beq no_advances               ; nobody pressed: the message stays
+    beq no_advances             ; nobody pressed: the message stays
     lda pad_a_prev
-    bne no_advances               ; it was already held: not an edge
-    stz msg_open             ; and with that `flush_video` turns off the HDMA: closing
+    bne no_advances             ; it was already held: not an edge
+    stz msg_open                ; and with that `flush_video` turns off the HDMA: closing
                                 ; the window does not write a single byte of VRAM
     ; And the edge is consumed, like B's in the choice. If the message was a
     ; parallel's there is no page to go on, so this same frame falls into
@@ -707,16 +707,16 @@ no_message:
     lda pad_a
     beq nothing
     lda pad_a_prev
-    bne nothing                    ; it was already held: not an edge
+    bne nothing                 ; it was already held: not an edge
     lda step_left
-    bne nothing                    ; no talking in the middle of a step
+    bne nothing                 ; no talking in the middle of a step
     ; The hero's forced move route is checked inside: see `try_action`.
     jsr try_action
     beq nothing
     ; It marked an event: it starts this same frame.
 has_waiting:
     jsr start_waiting
-    beq nothing                    ; none had a page to run with
+    beq nothing                 ; none had a page to run with
 
 running:
     ; The `while (!interp.IsRunning())` of `Game_Map::UpdateForegroundEvents`:
@@ -755,17 +755,17 @@ no_end_turn:
     beq no_refresh_here
     stz refresh
     lda #1
-    sta refresh_frame         ; the full one, at the start of the next frame
+    sta refresh_frame           ; the full one, at the start of the next frame
     jsr pick_autostart
 no_refresh_here:
     lda jump_has
     bne was_jump
     lda ev_active
-    bne nothing                    ; still running: the frame is over
+    bne nothing                 ; still running: the frame is over
     lda waiting_n
     beq nothing
     dec boots
-    beq nothing                    ; the frame's budget ran out
+    beq nothing                 ; the frame's budget ran out
     jsr start_waiting
     bne follow_running
     rts
@@ -801,7 +801,7 @@ was_jump:
     stx fade_map
     cpx map_current
     bne other_map
-    lda #FADE_SAME          ; a jump to the same map reloads nothing
+    lda #FADE_SAME              ; a jump to the same map reloads nothing
     bra request_fade
 other_map:
     ; The jump budget is spent **here and not before**, that is, only when the
@@ -821,7 +821,7 @@ other_map:
     lda jumps_left
     bne has_budget
     lda #PANIC_JUMPS
-    jmp enter_panic        ; and there is no coming back from there
+    jmp enter_panic             ; and there is no coming back from there
 has_budget:
     dec jumps_left
     lda #FADE_JUMP
@@ -960,7 +960,7 @@ loop:
     ; with `OP_CELL_TEST` and go no further, and stops at the first one that
     ; is not like that. With carry at 1 it stopped at one whose condition was
     ; met: it goes on from Y, with its interpreter.
-    jsl f:parallel_cell + FAST  ; see MEMSEL
+    jsl f:parallel_cell + FAST      ; see MEMSEL
     bcc slow
     jsr one_parallel_continue
     bra next
@@ -980,9 +980,9 @@ slow:
     asl a                       ; times PAIR_LIST_BYTES
     tax
     lda f:FAR_LENGTH + FAR_PAIR_LIST + 1, x
-    sta code_ptr                 ; its page, already resolved by the refresh:
+    sta code_ptr                ; its page, already resolved by the refresh:
     lda f:FAR_LENGTH + FAR_PAIR_LIST + 4, x
-    sta page_ofs                 ; straight to the interpreter's cursor, which is
+    sta page_ofs                ; straight to the interpreter's cursor, which is
     lda f:FAR_LENGTH + FAR_PAIR_LIST + 0, x
     and #$00FF                  ; all `one_parallel` was going to do with it
     asl a
@@ -992,7 +992,7 @@ slow:
     sep #$20
 .a8
     lda f:FAR_LENGTH + FAR_PAIR_LIST + 0, x
-    sta pair_ev                  ; which event it belongs to
+    sta pair_ev                 ; which event it belongs to
     lda f:FAR_LENGTH + FAR_PAIR_LIST + 3, x
     sta code_ptr + 2
     jsr one_parallel
@@ -1052,13 +1052,13 @@ all_ready:
     ; event's step does happen, because `Game_Event::Update` calls
     ; `Game_Character::Update()` whatever happens with the interpreter.
     lda msg_open
-    ora msg_state              ; also while it is being composed
+    ora msg_state               ; also while it is being composed
     ora pick_active
     beq not_mine
     lda msg_owner
     cmp pair_ev
     bne not_mine
-    jmp give_step             ; `beq` does not reach: the body is in between
+    jmp give_step               ; `beq` does not reach: the body is in between
 not_mine:
     ; Its state, at `FAR_PAIR_STATE` + `pair_dir`, with long indexed
     ; addressing: like the list, and for the same reason. Only what is needed
@@ -1068,7 +1068,7 @@ not_mine:
 .a16
     ldx pair_dir
     lda f:FAR_LENGTH + FAR_PAIR_STATE + 5, x
-    cmp page_ofs                 ; which page this state belonged to
+    cmp page_ofs                ; which page this state belonged to
     bne other_page
     ; The wait, same as the foreground's.
     lda f:FAR_LENGTH + FAR_PAIR_STATE + 2, x
@@ -1076,7 +1076,7 @@ not_mine:
     sep #$20
 .a8
     lda f:FAR_LENGTH + FAR_PAIR_STATE + 4, x
-    beq begin                 ; it was not running
+    beq begin                   ; it was not running
     sta ev_active               ; it was: it goes on where it left off
     rep #$20
 .a16
@@ -1097,7 +1097,7 @@ waiting:
     ; (`ev_route_frame`).
     lda f:FAR_LENGTH + FAR_PAIR_STATE + 4, x
     sta ev_active
-    jmp give_step             ; this frame goes by waiting
+    jmp give_step               ; this frame goes by waiting
 .a16
 other_page:
     ; Another page: another interpreter, and its number is noted down. RM2k
@@ -1125,11 +1125,11 @@ begin:
     ; round and its second; if what follows is something else, the
     ; interpreter goes on from there. It is almost two lines of the frame's
     ; 262 per page: see workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
-    lda [code_ptr]               ; the first opcode
+    lda [code_ptr]              ; the first opcode
     cmp #OP_CELL_TEST
     bne from_zero
     ldy #1
-    jsl f:cell_test + FAST   ; see MEMSEL
+    jsl f:cell_test + FAST        ; see MEMSEL
     lda [code_ptr], y
     bne follow                  ; it is not the OP_DONE
     stz ev_active               ; what `op_done` would do
@@ -1151,7 +1151,7 @@ running:
 .a16
     lda pair_ev
     and #$00FF
-    sta ev_running            ; whose page it is, for a MoveEvent of its own
+    sta ev_running              ; whose page it is, for a MoveEvent of its own
     sep #$20
 .a8
     jsr run_code
@@ -1454,7 +1454,7 @@ already_was:
     ora #$01                    ; a page one
     sta route_ev + 18, x
     lda pg_layer
-    sta route_ev + 31, x         ; its layer, for colliding with the others
+    sta route_ev + 31, x        ; its layer, for colliding with the others
     rep #$20
 .a16
     lda page_ofs
@@ -1462,7 +1462,7 @@ already_was:
     sep #$20
 .a8
     lda pg_freq
-    jsr after_turn               ; `SetMaxStopCountForTurn` before the first one
+    jsr after_turn              ; `SetMaxStopCountForTurn` before the first one
     sta route_ev + 9, x
     rts
 .endproc
@@ -1590,7 +1590,7 @@ walk:
     rep #$20
 .a16
     ldy page_ofs
-    lda [page_ptr], y            ; +0 which event it belongs to
+    lda [page_ptr], y           ; +0 which event it belongs to
     cmp layer_ev
     sep #$20
 .a8
@@ -1673,7 +1673,7 @@ next:
 .i16
     lda walker_layer
     cmp #$FF
-    beq free_near             ; with no active page it collides with nobody
+    beq free_near               ; with no active page it collides with nobody
     lda walker
     cmp #HERO_WALKER
     beq is_hero
@@ -1695,7 +1695,7 @@ is_hero:
     lda crossing
     beq walk
 free_near:
-    jmp free                   ; `free` is too far for a short branch
+    jmp free                    ; `free` is too far for a short branch
 walk:
     ; Back to front and in sixteen bits, with Y on each event's cell: the
     ; answer is a yes or a no, so the order does not change it, and that way
@@ -1734,7 +1734,7 @@ same_x:
     sep #$20
 .a8
     cmp walker
-    beq next8              ; not with itself
+    beq next8                   ; not with itself
     sta other_ev
     phy
     jsr event_crossable
@@ -1801,7 +1801,7 @@ free:
 .i16
     lda route_ev + 0, x
     sta walker
-    lda route_ev + 31, x         ; the layer the slot has carried since it was loaded
+    lda route_ev + 31, x        ; the layer the slot has carried since it was loaded
     sta walker_layer
     rts
 .endproc
@@ -1845,7 +1845,7 @@ look_var:
     clc
     adc #28
     tay
-    lda [page_ptr], y            ; +28 the item it requires, or 0
+    lda [page_ptr], y           ; +28 the item it requires, or 0
     beq no_item
     ; With the inventory in far RAM: the item's count, and at zero it is not
     ; there. It is `GetItemCount(id) + GetEquippedItemCount(id)` without
@@ -1867,17 +1867,17 @@ no_item:
     tay                         ; +24
     sep #$20
 .a8
-    lda [page_ptr], y            ; +24 the slot
+    lda [page_ptr], y           ; +24 the slot
     cmp #$FF
     beq met8
     pha
     iny
-    lda [page_ptr], y            ; +25 the comparison
+    lda [page_ptr], y           ; +25 the comparison
     sta temp + 1
     iny
     rep #$20
 .a16
-    lda [page_ptr], y            ; +26 against what, signed
+    lda [page_ptr], y           ; +26 against what, signed
     sta temp + 2
     sep #$20
 .a8
@@ -2079,7 +2079,7 @@ with_page:
     lda chosen
     ora chosen + 1
     ora chosen + 2
-    beq seek_more              ; the active page could not be compiled
+    beq seek_more               ; the active page could not be compiled
     rep #$20
 .a16
     lda chosen
@@ -2092,7 +2092,7 @@ with_page:
     rep #$20
 .a16
     txa
-    sta ev_running            ; so it can be re-marked when it ends
+    sta ev_running              ; so it can be re-marked when it ends
     sep #$20
 .a8
     lda #1

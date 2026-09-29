@@ -31,7 +31,7 @@
 ; easyrpg-player's: `Scene_Gameover` fades in and out in 80 frames, and the
 ; map is cleared with the usual fade, which is 35 —here 32, two per level—.
 GO_FRAMES_SCREEN = 5
-GO_FRAMES_MAP     = 2
+GO_FRAMES_MAP       = 2
 
 ; The PPU registers that only this screen sets to zero: the rest are named by
 ; registers.s. The map can come with the message window, a tint or a mosaic,
@@ -162,7 +162,7 @@ black:
     jsl f:ba_t_bgm
     ldx #(SCREEN_GAME_OVER * SCREEN_ROW)
     jsl f:screen_decompress
-    jsl f:screen_upload        ; the same row: `screen_decompress` does
+    jsl f:screen_upload         ; the same row: `screen_decompress` does
                                 ; not touch X
 
     ; The fade in.

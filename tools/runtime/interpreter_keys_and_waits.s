@@ -19,10 +19,10 @@
 .proc op_key
 .a8
 .i16
-    lda [code_ptr], y            ; the variable's slot
+    lda [code_ptr], y           ; the variable's slot
     iny
     sta temp
-    lda [code_ptr], y            ; the flags
+    lda [code_ptr], y           ; the flags
     iny
     sta temp + 1
     and #KEY_STARTS
@@ -49,7 +49,7 @@
     lda temp + 1                ; the flags, which carry the refresh bit
     xba
     lda temp
-    jsr var_write            ; with its refresh, if the flags ask for it
+    jsr var_write               ; with its refresh, if the flags ask for it
     sty ev_cur
     rts
 key_look:
@@ -65,7 +65,7 @@ key_look:
     and #KEY_WAIT
     beq key_read
     lda msg_open
-    ora msg_state              ; also while it is being composed
+    ora msg_state               ; also while it is being composed
     ora pick_active
     bne key_rewind
 key_read:
@@ -76,7 +76,7 @@ key_read:
     stz temp + 3
     lda temp + 1
     and #KEY_WAIT
-    beq key_save           ; without a wait, whatever is there is stored, zero included
+    beq key_save                ; without a wait, whatever is there is stored, zero included
     lda temp + 2
     bne key_save
 key_rewind:
@@ -89,8 +89,8 @@ key_save:
     lda temp + 1
     xba
     lda temp
-    jsr var_write            ; `SetNeedRefreshForVarChange`, like ControlVars:
-    jmp run_code::other     ; the flags decide it. See `var_write`
+    jsr var_write               ; `SetNeedRefreshForVarChange`, like ControlVars:
+    jmp run_code::other         ; the flags decide it. See `var_write`
 
 .endproc
 
@@ -102,7 +102,7 @@ key_save:
     ; player watches go by.
     rep #$20
 .a16
-    lda [code_ptr], y            ; how many frames, sixteen bits
+    lda [code_ptr], y           ; how many frames, sixteen bits
     sta ev_waiting
     sep #$20
 .a8

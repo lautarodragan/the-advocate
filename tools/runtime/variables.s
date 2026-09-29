@@ -21,7 +21,7 @@
     phx
     rep #$20
 .a16
-    and #VAR_SLOT             ; the slot byte, without whatever B carries
+    and #VAR_SLOT               ; the slot byte, without whatever B carries
     asl a                       ; two bytes per variable
     tax
     lda f:FAR_LENGTH + FAR_VARIABLES, x
@@ -46,9 +46,9 @@
 .a8
 .i16
     xba                         ; the flags
-    bpl no_refresh            ; VAR_REFRESH is bit 7: see the .assert
+    bpl no_refresh              ; VAR_REFRESH is bit 7: see the .assert
     lda #1                      ; the flags are no longer needed: the `and`
-    sta refresh                ; below drops whatever is left in B
+    sta refresh                 ; below drops whatever is left in B
 no_refresh:
     xba                         ; and the slot back
     phx
@@ -98,7 +98,7 @@ no_refresh:
     ora f:mask, x
     sta switches, y
     lda #1
-    sta refresh                ; the pages that ask for it may change
+    sta refresh                 ; the pages that ask for it may change
     rts
 off:
     lda f:mask, x
@@ -238,9 +238,9 @@ other:
     pla                         ; A = the flags: N $80, V $40, Z $02
     pha
     and #$C0
-    beq no_less                ; N and V clear: not less
+    beq no_less                 ; N and V clear: not less
     cmp #$C0
-    beq no_less                ; both set: not either
+    beq no_less                 ; both set: not either
     lda #1
     bra less_ready
 no_less:
@@ -379,8 +379,8 @@ less:
     clc
     adc pick_table
     tay
-    lda [code_ptr], y            ; the box's offset, 16 bits
-    jsr msg_start             ; which expects it in A and in 16-bit mode
+    lda [code_ptr], y           ; the box's offset, 16 bits
+    jsr msg_start               ; which expects it in A and in 16-bit mode
     sep #$20
 .a8
     rts
@@ -439,7 +439,7 @@ no_down:
     and #PAD_B
     beq faces_a
     lda pick_cancel
-    beq faces_a                  ; this choice cannot be cancelled
+    beq faces_a                 ; this choice cannot be cancelled
     dec a                       ; `choice_result = cancel_type - 1`
     sta pick_sel
     ; And the B is consumed here: in RM2k the window processes the button
@@ -454,7 +454,7 @@ faces_a:
     lda pad_a
     beq nothing
     lda pad_a_prev
-    bne nothing                    ; it was already held: not an edge
+    bne nothing                 ; it was already held: not an edge
 picks:
     lda pick_sel
     asl
@@ -472,7 +472,7 @@ picks:
     sep #$20
 .a8
     stz pick_active
-    stz msg_open             ; and with that `flush_video` turns HDMA off
+    stz msg_open                ; and with that `flush_video` turns HDMA off
     lda #1
     rts
 nothing:

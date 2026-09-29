@@ -148,7 +148,7 @@ greater:
     dec a
     sta shake_remain
     bne continues
-    stz shake_pos            ; the last frame: the screen goes back
+    stz shake_pos               ; the last frame: the screen goes back
 nothing16:
     sep #$20
 .a8
@@ -166,7 +166,7 @@ continues:
     inc a
     inc a
     sta WRMPYB                  ; starts it: the product takes eight cycles
-    lda shake_force         ; meanwhile, the amplitude
+    lda shake_force             ; meanwhile, the amplitude
     asl a
     inc a
     sta shake_amp
@@ -179,7 +179,7 @@ continues:
     tax
     sep #$20
 .a8
-    lda f:sine_shake, x      ; outside bank 0: see `tabla_de_senos`
+    lda f:sine_shake, x         ; outside bank 0: see `tabla_de_senos`
     sta shake_sine
     bpl positive
     eor #$FF

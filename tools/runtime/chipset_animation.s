@@ -219,11 +219,11 @@ other:
 .a16
     lda ticks
     sec
-    sbc f:frozen_ticks    ; the animations' clock: see there
+    sbc f:frozen_ticks          ; the animations' clock: see there
     tax
     sep #$20
 .a8
-    jsr anim_advance               ; Y is still the family
+    jsr anim_advance            ; Y is still the family
     ply
     phy
     pha
@@ -253,7 +253,7 @@ other:
 .a16
     lda ticks
     sec
-    sbc f:frozen_ticks    ; the animations' clock: see there
+    sbc f:frozen_ticks          ; the animations' clock: see there
     tax
     sep #$20
 .a8
@@ -272,7 +272,7 @@ other:
     phy
     jsr anim_where
     lda f:anim_table + 6, x
-    beq next               ; this family does not animate on this map
+    beq next                    ; this family does not animate on this map
     lda temp + 2
     cpy #$0000
     beq low

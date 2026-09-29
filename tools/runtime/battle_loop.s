@@ -66,7 +66,7 @@ added:
     lda BA_S4
     bne divide_it
     lda BA_S5
-    beq divide_it                 ; neither living nor dead: there is nobody
+    beq divide_it               ; neither living nor dead: there is nobody
     stz BA_S5
     bra tick
 divide_it:
@@ -412,7 +412,7 @@ other:
     lda BA_ONE + BA_HP, x
     sep #$20
 .a8
-    beq next               ; dead: `Exists()` leaves it out
+    beq next                    ; dead: `Exists()` leaves it out
     lda BA_ONE + BA_NUMBER, x
     jsr exp_add
 next:
@@ -560,7 +560,7 @@ sticks:
     jsr ba_attack
     lda #BA_MSG_ATTACK
     sta BA_MTYPE
-    jsr ba_show              ; which clears the pending one, so it goes first
+    jsr ba_show                 ; which clears the pending one, so it goes first
     jmp ba_hit_sound
 uses_one_skill:
     ; A dead target **is not retargeted**, as with an item: `Skill`'s

@@ -11,15 +11,15 @@
 ; Gold and items are in interpreter_gold_and_items.s.
 
 .proc op_party
-    lda [code_ptr], y            ; 0 = add, 1 = remove
+    lda [code_ptr], y           ; 0 = add, 1 = remove
     sta temp
     iny
-    lda [code_ptr], y            ; the actor
+    lda [code_ptr], y           ; the actor
     iny
     phy
     jsr change_party
     ply
-    jmp run_code::other     ; `bra` does not reach: the loop ended up far away
+    jmp run_code::other         ; `bra` does not reach: the loop ended up far away
 
 .endproc
 
@@ -39,10 +39,10 @@
 .proc op_actor_sprite
 .a8
 .i16
-    lda [code_ptr], y            ; the actor
+    lda [code_ptr], y           ; the actor
     iny
     sta temp
-    lda [code_ptr], y            ; the graphic
+    lda [code_ptr], y           ; the graphic
     iny
     sta temp + 1
     phy

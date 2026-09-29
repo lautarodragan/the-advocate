@@ -49,10 +49,10 @@
 .proc transition_set
 .a8
 .i16
-    lda [code_ptr], y            ; which: 0 erase, 1 show
+    lda [code_ptr], y           ; which: 0 erase, 1 show
     iny
     lsr a                       ; into the carry
-    lda [code_ptr], y            ; the transition
+    lda [code_ptr], y           ; the transition
     iny
     bcs show
     sta f:TRANSITION_ERASE

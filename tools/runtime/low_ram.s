@@ -21,20 +21,20 @@ frozen_ticks: .res 2
 ; makes it possible to re-mark every frame. Both bits go in the same table and
 ; not in two: 128 more bytes did not fit in the 7680 of RAM.
 ev_flags:     .res EV_MAX
-waiting_n:  .res 1     ; how many are waiting, so as not to sweep 128 bytes for nothing
-ev_running: .res 2     ; which event the running page belongs to, or $FFFF
+waiting_n:    .res 1     ; how many are waiting, so as not to sweep 128 bytes for nothing
+ev_running: .res 2       ; which event the running page belongs to, or $FFFF
 only_auto:    .res 1     ; the short pass of `pick_autostart`
 auto_n:       .res 1     ; how many events have an active autorun
-refresh_frame: .res 1  ; a refresh in the middle of a command left the long pass
-rp_ev_prev:    .res 2     ; the previous page's event, in the refresh
-boots:    .res 1     ; budget of pages per frame; see STARTS_MAX
+refresh_frame: .res 1    ; a refresh in the middle of a command left the long pass
+rp_ev_prev:   .res 2     ; the previous page's event, in the refresh
+boots:        .res 1     ; budget of pages per frame; see STARTS_MAX
 port0: .res 1
 
 ; What `flush_video` writes to INIDISP at the end of the vblank: the master
 ; brightness from 0 to BRIGHTNESS_MAX. Nobody else writes it, and the why is in
 ; `on`. It goes in the BSS and not in the direct page because it is
 ; touched once per frame, in no tight loop —and the zero page is full—.
-brightness:      .res 1
+brightness:  .res 1
 
 ; `FadeOutBGM`: if one is running, how much volume is left —from 65535 down to
 ; zero— and how much it drops per frame. The converter emits the step; see
@@ -58,10 +58,10 @@ pan_px:     .res 2
 pan_py:     .res 2
 
 ; A teleport's fade. See `fade_tick`.
-fade:      .res 1    ; whether one is running
-fade_base: .res 1    ; the low byte of `ticks` when it started
-fade_kind:  .res 1    ; what has to be done on the black frame, and is no longer
-fade_map: .res 2    ; to which map, for the two cases that load
+fade:         .res 1    ; whether one is running
+fade_base: .res 1       ; the low byte of `ticks` when it started
+fade_kind:    .res 1    ; what has to be done on the black frame, and is no longer
+fade_map: .res 2        ; to which map, for the two cases that load
 FADE_NOTHING   = 0      ; already done
 ; `FADE_DOOR` is the only one that **no path in the ROM asks for**: the
 ; harness writes it from outside —`Partida.ir_al_mapa`— to plant the game on
@@ -71,9 +71,9 @@ FADE_NOTHING   = 0      ; already done
 ; today they go through the interpreter and ask for `FADE_JUMP` like any
 ; other teleport. Deleting it takes away the tests' way of starting on a map
 ; that is not the cartridge's.
-FADE_DOOR = 1      ; the harness's: `enter_map`, with its jump cap
-FADE_JUMP  = 2      ; a Teleport to another map
-FADE_SAME  = 3      ; a Teleport to the same one: just move the hero
+FADE_DOOR = 1           ; the harness's: `enter_map`, with its jump cap
+FADE_JUMP      = 2      ; a Teleport to another map
+FADE_SAME      = 3      ; a Teleport to the same one: just move the hero
 
 ; The hero's forced move route: the pointer to its first command, inside the
 ; bytecode, just like an event's. Until 2026-09-27 it was copied here, into a
@@ -87,7 +87,7 @@ FADE_SAME  = 3      ; a Teleport to the same one: just move the hero
 hero_route:  .res 3
 ; The frequency of the move route set on the hero, and the one the OP_ROUTE
 ; being read carries. It is RM2k's stop counter: see `route_after_step`.
-route_freq:    .res 1
+route_freq:   .res 1
 route_freq_op: .res 1
 
 ; The message window. `msg_open` is whether one is on screen, and the other
@@ -103,7 +103,7 @@ msg_open: .res 1
 ; `_state.show_message`, which there is a field per interpreter and here one
 ; is enough because there is one message at a time. `op_message` writes it by
 ; copying `pair_ev`, which is $FF outside the parallel loop.
-msg_owner:  .res 1
+msg_owner:   .res 1
 
 ; The compositor's state. A message does not appear on the frame it is asked
 ; for: it is composed MSG_CHARS characters per pass of the loop, line by line,
@@ -112,19 +112,19 @@ msg_owner:  .res 1
 ; The per-pass budget is not an optimization but what keeps the game's pace:
 ; if a pass overran the frame, `wait_vblank` would catch the next one and the
 ; hero would walk at half speed.
-msg_state:  .res 1     ; 0 idle, 1 composing, 2 ready
-msg_line:   .res 1     ; which line is being built
-msg_lines:  .res 1     ; how many the message has
+msg_state:   .res 1     ; 0 idle, 1 composing, 2 ready
+msg_line:    .res 1     ; which line is being built
+msg_lines:   .res 1     ; how many the message has
 msg_col:     .res 1     ; which character it is on
-msg_length:   .res 1     ; how many the line has
+msg_length:  .res 1     ; how many the line has
 msg_primed:  .res 1     ; whether the buffer already has the line's background
-msg_upload:   .res 1     ; whether there is a line ready to upload to VRAM
+msg_upload:  .res 1     ; whether there is a line ready to upload to VRAM
 
 ; The line being composed: two rows of cells by 30 columns, in the console's
 ; tile format. The 48 extra bytes are so the last character's mask can write
 ; its second column without going out: it always writes zero there, but
 ; reading and writing outside the buffer would be stepping on someone else.
-text_buf:   .res (WINDOW_TEXT_COLS * 2 * 32 + 48)
+text_buf:    .res (WINDOW_TEXT_COLS * 2 * 32 + 48)
 
 ; The window's two HDMA tables. They live in RAM because the first two entries
 ; carry this frame's camera; the last one, which is the window's, never
@@ -159,10 +159,10 @@ vq:        .res VQ_MAX * VQ_STRIDE
 vq_src:    .res 3
 vq_dest:   .res 2
 vq_done: .res 1
-vq_rows:  .res 1
+vq_rows:   .res 1
 ; The hero pose that is in VRAM, or $FF if whichever is due has to be uploaded.
 hero_pose_vram: .res 1
-hero_pose:     .res 1
+hero_pose:      .res 1
 
 ; The map strips are built here outside the vblank and uploaded from here when
 ; the next one starts, just like OAM. Building them inside the vblank would not
@@ -174,17 +174,17 @@ hero_pose:     .res 1
 ; The four in a row and in this order: `clear_tilemaps` clears them in one
 ; go, and `push_one_row` and `push_one_column` reach the upper layer's by
 ; adding the other's length, instead of carrying two pointers.
-strip_col:   .res WINDOW_ROWS * 2
-strip_col2:  .res WINDOW_ROWS * 2
-strip_row:   .res WINDOW_COLS * 2
-strip_row2:  .res WINDOW_COLS * 2
+strip_col:  .res WINDOW_ROWS * 2
+strip_col2: .res WINDOW_ROWS * 2
+strip_row:  .res WINDOW_COLS * 2
+strip_row2: .res WINDOW_COLS * 2
 
 ; The strip `push_strips` is uploading, while it lasts: where it comes from and
 ; where it goes. They exist because there are **two** per axis and not one
 ; —see `stream_map`— and writing the DMA block four times with different
 ; addresses was four copies of the same code.
-strip_vram:  .res 2      ; the VRAM word where it starts
-strip_of:    .res 2      ; and where it comes from, the low sixteen bits
+strip_vram: .res 2      ; the VRAM word where it starts
+strip_of:   .res 2      ; and where it comes from, the low sixteen bits
 strip_bank: .res 1      ; in which bank: 0 this pass's, $7E the spare
 ; And where the spare ones go, which is the same as `col_addr` and `row_addr`
 ; for the others. In the BSS and not in the direct page like their twins
@@ -210,7 +210,7 @@ row_addr_b: .res 2
 ; compares the two: here there is no way to report that it went over.
 SUB_MAX = 8
 sub_n:      .res 2      ; how many pairs are set, **in bytes**
-sub_key:  .res SUB_MAX * 2
+sub_key:    .res SUB_MAX * 2
 sub_value:  .res SUB_MAX * 2
 ; What `op_tile_sub` needs while it applies an instruction. It does not go in
 ; `temp`, which is four bytes and half the interpreter already uses.
@@ -292,8 +292,8 @@ ev_pos_buf: .res EV_MAX * EV_STRIDE
 ; the frequency, +19 its row in `npc_buf` plus one, remembered by `slot_npc`. The stride is a power of two out of habit; there is room to spare.
 ROUTE_EV_STRIDE = 32
 ROUTE_EV_FREE = $FF
-ROUTE_EV_NO_FACE = $FF     ; in +8: the move route has not turned it yet
-route_ev:  .res ROUTE_EV_MAX * ROUTE_EV_STRIDE
+ROUTE_EV_NO_FACE = $FF      ; in +8: the move route has not turned it yet
+route_ev: .res ROUTE_EV_MAX * ROUTE_EV_STRIDE
 ; How many of the twelve are worth looking at: the highest one used since the
 ; map was loaded, plus one. **It does not go down** when one is freed, and it
 ; does not need to: a slot that was never taken has $FF at +0, so searching
@@ -330,8 +330,8 @@ flash_partial: .res 2
 ; and not in the direct page because it is read with absolute addressing,
 ; which is enough: only what is used as a pointer with `[dp], y` has to be in
 ; the direct page, and there are twelve bytes left there, counted.
-cell_x:  .res 2
-cell_y:  .res 2
+cell_x:   .res 2
+cell_y:   .res 2
 ; How many events the map has —to look them up by cell— and which one is being
 ; looked at. They go here and not in the direct page because they are read
 ; with absolute addressing.
@@ -354,17 +354,17 @@ routes_moved: .res 1
 cmp_a:    .res 2
 cmp_b:    .res 2
 slot_frames: .res 1
-slot_facing:    .res 1
+slot_facing:  .res 1
 slot_step:    .res 1
 ; The two current directions. They are two bytes with the high one at zero
 ; because they are used as an index, and X and Y are sixteen-bit: a one-byte
 ; `ldx dir` would pick up the next byte along with it. `route_dir` is the one of
 ; the command being executed and has to survive the call that uses `cell_dir`.
-route_dir:  .res 2
+route_dir: .res 2
 cell_dir: .res 2
 ; What command 34 takes from the map's table: which character the poses will
 ; come from —$FF is "hide the row"— and with which palette.
-gfx_k:   .res 1
+gfx_k:    .res 1
 gfx_pal: .res 1
 ; What a diagonal step needs while it tries its two L's: the two components,
 ; and the cell it starts from, because `cell_allowed` works on
@@ -401,7 +401,7 @@ timer_glyph: .res 1
 ; The size the next object goes out with, already shifted into its place in
 ; OAM's small table: $02 is the characters' 32x32 and $00 the digits' 8x8. It
 ; is the only thing the two OBSEL sizes need to tell apart.
-obj_big:  .res 1
+obj_big:     .res 1
 
 ; One bit per RM2k switch. The game queries up to 1003 in page conditions, so
 ; 1024 is enough. They are cleared only once at boot: in RM2k a new game
@@ -409,7 +409,7 @@ obj_big:  .res 1
 ; The party's gold, 24 bits because RM2k's cap is 999999. It is not shown
 ; anywhere yet —the menu does not exist— but the gold branch of
 ; `ConditionalBranch` asks about it, and `ChangeGold` moves it.
-gold:      .res 3
+gold:     .res 3
 switches: .res SWITCH_BYTES
 
 ; The screen tint scales each channel by the same factor for every color, so
@@ -423,7 +423,7 @@ switches: .res SWITCH_BYTES
 ; BSS and not in the direct page —where `route_i` and `route_n` are— because it
 ; no longer fits there: only what is used as a pointer with `[dp], y` has to be
 ; there.
-route_crosses: .res 1  ; walk_everywhere: the move route ignores collision
+route_crosses: .res 1   ; walk_everywhere: the move route ignores collision
 route_anim_for: .res 1  ; stop_animation: the pose stays on the middle one
 route_jump:  .res 1     ; what is left of the current jump, 0 if there is none
 ; `ruta_salto_dx` and `ruta_salto_dy` lived here and nobody read them; their
@@ -438,12 +438,12 @@ crossing: .res 2
 ; nobody. `prepare_walker` sets them for an event and `hero_blocked` for the
 ; hero, and `move_events` gives them back to the hero when it finishes, so
 ; outside an event's move route they always say "the hero".
-walker:       .res 1
-walker_layer:  .res 1
+walker:      .res 1
+walker_layer: .res 1
 ; Which layer the page `read_page` just read is on. It goes here and not
 ; with the other `pg_*` because the direct page is full —257 bytes in 256 with
 ; this one inside— and it is read with absolute addressing, which is enough.
-pg_layer:     .res 1
+pg_layer:    .res 1
 ; And its own move route, the one it walks by itself: the flags —bit 0 it has
 ; one, 1 it repeats, 2 it skips what is blocked, 3 it always faces the same
 ; way, 4 the animation keeps going while still—, the frequency and the speed,
@@ -465,14 +465,14 @@ pass_y:      .res 2
 ; `pass_with_event` does not walk the table.
 pass_has:    .res 1
 pg_freq:     .res 1
-pg_speed:      .res 1
-pg_route:     .res 3
-pg_route_n:   .res 1
+pg_speed:    .res 1
+pg_route:    .res 3
+pg_route_n:  .res 1
 ; +24..+27, the condition on a variable, is not copied: `conditions_ok` reads
 ; it from the table, which is the only one that looks at it. The BSS is full.
 ; That a switch or the party changed and which page is active on each event
 ; has to be looked at again: `page_routes`, at the start of the next frame.
-refresh:    .res 1
+refresh:     .res 1
 ; What `page_routes` gathers: the active page of each event with its own
 ; move routes, by its offset in the table; $FFFF if the event has no move
 ; routes and $FFFE if it has them and no page qualifies.
@@ -481,17 +481,17 @@ rp_ev:       .res 2
 slot_px:     .res 2
 slot_dir:    .res 1
 HERO_WALKER = $FF
-HERO_LAYER_INDEX  = 1
+HERO_LAYER_INDEX = 1
 ; The cell it wants to enter, and what `cell_blocked` is looking at.
 dest_x:      .res 2
 ; Where `build_row` is: the column it builds, signed, and how many of the 64
 ; it has left.
-row_col:    .res 2
-strip_total:  .res 2
+row_col:     .res 2
+strip_total: .res 2
 dest_y:      .res 2
-other_ev:     .res 1
-swap_a:   .res 1
-swap_b:   .res 1
+other_ev:    .res 1
+swap_a:      .res 1
+swap_b:      .res 1
 ; The screen shake: where it is in pixels, signed; how many frames it has
 ; left; and with what strength and speed. And `screen_x`, which is the
 ; camera plus the shake: it is what the scroll, the HDMA table and OAM see,
@@ -503,48 +503,48 @@ swap_b:   .res 1
 ; CGRAM directly, and that is a half-tinted frame in the emulator and a black
 ; band on hardware; the shake gave it away, since it compares frame by frame.
 cgram_shadow: .res 512
-tint_ready:  .res 1
+tint_ready:   .res 1
 ; And the screen flash: whether there is one built in `pal_buf` to upload,
 ; where `dma_shadow` uploads from, and the flash itself.
 flash_ready: .res 1
 shadow_origin:  .res 2
-flash_rgb:   .res 3
-flash_level: .res 2  ; at scale 256: the high byte is what gets drawn
+flash_rgb:      .res 3
+flash_level: .res 2     ; at scale 256: the high byte is what gets drawn
 flash_remain: .res 1
-flash_tab_r:  .res 32    ; the three tables, 32 bytes each
-flash_tab_g:  .res 32
-flash_tab_b:  .res 32
-flash_tab_level:  .res 1
-flash_tab_toward:  .res 2    ; sixteen-bit: it is added to an index
-flash_tab_end:    .res 2
+flash_tab_r: .res 32    ; the three tables, 32 bytes each
+flash_tab_g: .res 32
+flash_tab_b: .res 32
+flash_tab_level: .res 1
+flash_tab_toward: .res 2 ; sixteen-bit: it is added to an index
+flash_tab_end: .res 2
 ; How many poses `vram_drain` can upload this vblank: VQ_PER_FRAME, unless
 ; the tint has already taken part of the budget.
-vq_cap:      .res 1
+vq_cap:       .res 1
 ; The frames since reset, counted by the NMI: the boot waits for them to be
 ; BOOT_FRAMES, and afterwards it keeps counting for `count_lost`.
 boot_frames: .res 1
-nmi_seen:        .res 1  ; what it was at the end of the previous pass
-lost_frames: .res 1  ; the ones the main loop let go by, saturated
+nmi_seen:         .res 1  ; what it was at the end of the previous pass
+lost_frames: .res 1       ; the ones the main loop let go by, saturated
 
-shake_pos:    .res 2
-shake_remain:  .res 2
+shake_pos:       .res 2
+shake_remain:    .res 2
 shake_force: .res 1
-shake_speed:    .res 1
-screen_x:      .res 2
-shake_amp:   .res 1
-shake_sine:  .res 1
+shake_speed:     .res 1
+screen_x:        .res 2
+shake_amp: .res 1
+shake_sine: .res 1
 shake_new: .res 2
 shake_cutoff: .res 2
-shake_lo:    .res 2
-shake_hi:    .res 2
-layer_ev:     .res 2
+shake_lo:  .res 2
+shake_hi:  .res 2
+layer_ev:    .res 2
 found_layer: .res 1
-jump_command:   .res 1  ; the index of the `begin_jump` being built
-jump_stuck: .res 1  ; 1 if the jump did not start because the cell is occupied
+jump_command:  .res 1  ; the index of the `begin_jump` being built
+jump_stuck: .res 1     ; 1 if the jump did not start because the cell is occupied
 ; What `armar_salto` gathers while it walks the commands of a jump: how far it
 ; moves in cells —signed— and which way it ends up facing.
-jump_dx:  .res 1
-jump_dy:  .res 1
+jump_dx:   .res 1
+jump_dy:   .res 1
 ; And the absolute value `jump_direction` compares the two axes with.
 facing_abs: .res 2
 
@@ -562,28 +562,28 @@ jump_dy16: .res 2
 ; And what `dibujo_del_salto` takes and returns: the position in pixels of
 ; whoever jumps, how much the jump has left, and how much the drawing has to
 ; be raised.
-jump_px:  .res 2
-jump_py:  .res 2
+jump_px:   .res 2
+jump_py:   .res 2
 jump_remain: .res 1
 jump_height: .res 2
-jump_val:  .res 2
+jump_val:   .res 2
 jump_prod: .res 2
 jump_sign: .res 2
 
-tint_s:  .res 1
+tint_s:   .res 1
 ; What the saturation needs while it runs. The three channels go in words and
 ; not in bytes so `ldx sat_r` can be done directly: the indexes are sixteen
 ; bits, so an `ldx` on a byte would pick up the next one along with it.
 sat_r:    .res 2
 sat_g:    .res 2
 sat_b:    .res 2
-sat_light:  .res 1     ; the color's gray, five bits
+sat_light: .res 1    ; the color's gray, five bits
 sat_ch:   .res 1     ; the channel being saturated
-sat_upload_mark: .res 1  ; whether oversaturating moves the channel away upward
+sat_upload_mark: .res 1 ; whether oversaturating moves the channel away upward
 sat_acc:  .res 3     ; the sum of the three weights, 24 bits
-weight_lo:  .res 1
-weight_hi:  .res 1
-weight_ch:  .res 1
+weight_lo: .res 1
+weight_hi: .res 1
+weight_ch: .res 1
 ; Whether the table being built is the upper half of the hard light, that is,
 ; the one that lightens. See `channel_table`.
 tint_mirror: .res 1
@@ -623,5 +623,5 @@ autofire: .res 1
 ; How many frames some arrow has been held, and which ones were made to repeat
 ; on this one: see `arrows_repeat`. At the end for the same reason as
 ; `autofire`.
-arrows_frames:   .res 1
+arrows_frames:     .res 1
 arrows_repeated: .res 1

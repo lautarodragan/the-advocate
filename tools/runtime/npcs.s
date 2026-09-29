@@ -123,12 +123,12 @@ ready:
 .i16
     stz jump_height
     stz jump_height + 1
-    jsr event_cell        ; leaves its cell in celda_x/celda_y, and uses X
+    jsr event_cell              ; leaves its cell in celda_x/celda_y, and uses X
     lda route_ev + 7, x
-    sta slot_frames            ; whether there is a step in progress
+    sta slot_frames             ; whether there is a step in progress
     rep #$20
 .a16
-    lda route_ev + 22, x         ; and how much it has left, at 256 per cell: to
+    lda route_ev + 22, x        ; and how much it has left, at 256 per cell: to
     lsr a                       ; pixels, dropping the sixteenths
     lsr a
     lsr a
@@ -142,7 +142,7 @@ ready:
     sta slot_dir                ; the direction of the step in progress
     lda route_ev + 10, x
     sta slot_step
-    jsl f:slot_npc + FAST  ; `event_npc`, remembered in the slot
+    jsl f:slot_npc + FAST         ; `event_npc`, remembered in the slot
     sty npc_row
     cpy #$FFFF
     bne has_row
@@ -170,7 +170,7 @@ has_row:
     sep #$20
 .a8
     lda slot_frames
-    beq no_step_npc            ; no step in progress, it is already on its cell
+    beq no_step_npc             ; no step in progress, it is already on its cell
     bra with_step_npc
 no_step_npc:
     ; Is it jumping? Then the cell is the destination and the drawing lags
@@ -206,7 +206,7 @@ with_step_npc:
 .a8
     lda f:step_dx_table, x
     beq no_dx_npc
-    bmi more_px                  ; $FF, that is, to the left
+    bmi more_px                 ; $FF, that is, to the left
     jsr sub_a_from_px
     bra no_dx_npc
 more_px:
@@ -214,7 +214,7 @@ more_px:
 no_dx_npc:
     lda f:step_dy_table, x
     beq set
-    bmi more_py                  ; it came from below: it still has to go up
+    bmi more_py                 ; it came from below: it still has to go up
     jsr sub_a_from_py
     bra set
 more_py:
@@ -279,7 +279,7 @@ no_adjust:
     adc temp                    ; the pose, 0 to 11
     jsr upload_npc_pose
 fit:
-    jmp fit_npc            ; and the row, to wherever it belongs now
+    jmp fit_npc                 ; and the row, to wherever it belongs now
 .endproc
 
 ; Puts row `npc_row` where it belongs now, with the table already sorted:
@@ -287,7 +287,7 @@ fit:
 .proc fit_npc
 .a8
 .i16
-    jsl f:fit_far + FAST   ; see MEMSEL
+    jsl f:fit_far + FAST            ; see MEMSEL
     rts
 .endproc
 

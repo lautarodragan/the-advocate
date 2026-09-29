@@ -37,8 +37,8 @@
     lda #$02
     sta obj_big
     jsr timer_oam
-    jsr picture_oam              ; and the picture behind it: see `picture_oam`
-    jsr anim_drawing_oam    ; and the battle animation behind the picture:
+    jsr picture_oam             ; and the picture behind it: see `picture_oam`
+    jsr anim_drawing_oam        ; and the battle animation behind the picture:
                                 ; `Priority_BattleAnimation` is 110 against
                                 ; `Priority_PictureOld`'s 120
 
@@ -65,7 +65,7 @@ walk:
 
 touches_npc:
     lda npc_buf + 14, x
-    beq hidden               ; its active page draws nothing
+    beq hidden                  ; its active page draws nothing
     ; What `emit_object` was going to discard is discarded **here**, with the
     ; same comparison and before building the rest of the row. It discards the
     ; same as before, object by object, so the OAM comes out identical; what
@@ -88,7 +88,7 @@ touches_npc:
     cmp #(256 + 32)
     sep #$20
 .a8
-    bcs hidden               ; `sep` does not touch the carry
+    bcs hidden                  ; `sep` does not touch the carry
     jsr place_npc
 hidden:
     rep #$20
@@ -106,7 +106,7 @@ last:
     bne close
     jsr place_hero
 close:
-    jsr rain_oam              ; the drops, at the very end
+    jsr rain_oam                ; the drops, at the very end
     jsr flush_high
     rts
 .endproc
@@ -137,7 +137,7 @@ no_end:
     rts
 
 with_end:
-    jsr jump_to_cells          ; the offset, signed and in sixteen bits
+    jsr jump_to_cells           ; the offset, signed and in sixteen bits
     rep #$20
 .a16
     lda tile_x
@@ -503,7 +503,7 @@ with_end:
     sta crossing
     stz crossing + 1
     phx
-    jsr event_cell        ; its cell, which `can_fall` needs
+    jsr event_cell              ; its cell, which `can_fall` needs
     jsr jump_to_cells
     rep #$20
 .a16
@@ -524,7 +524,7 @@ with_end:
     cmp #0                      ; `plx` sets Z from what it pulls off the stack
     bne se_can
     stz route_ev + 13, x
-    inc jump_stuck           ; there was an `end_jump` and the cell is taken
+    inc jump_stuck              ; there was an `end_jump` and the cell is taken
     rts
 se_can:
     ; The target cell, which `event_cell` left in celda_x/celda_y.
@@ -798,7 +798,7 @@ no_adjust:
     lda hero_pose
     asl a
     clc
-    adc hero_pose              ; times three
+    adc hero_pose               ; times three
     rep #$20
 .a16
     and #$00FF
@@ -865,7 +865,7 @@ same_pose:
     sec
     sbc #SPRITE_OFF_Y
     sec
-    sbc jump_height              ; the arc raises the drawing, not the order
+    sbc jump_height             ; the arc raises the drawing, not the order
     sta obj_y
     sep #$20
 .a8
@@ -934,7 +934,7 @@ no_draw:
     ; Its two bits in the small table: X's ninth and the size.
     lda obj_x + 1
     and #$01
-    ora obj_big              ; 32x32 the characters, 8x8 the digits
+    ora obj_big                 ; 32x32 the characters, 8x8 the digits
     jsr push_high
     rep #$20
 .a16

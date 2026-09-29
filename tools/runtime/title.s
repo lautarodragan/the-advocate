@@ -74,7 +74,7 @@ mute:
     ; the ChipSet animation drawings of the boot map, and that is allowed
     ; because this screen is always left through `enter_map`, which
     ; rebuilds them.
-.ifdef ::SCREEN_TITLE        ; no title screen, no row
+.ifdef ::SCREEN_TITLE           ; no title screen, no row
     ldx #(SCREEN_TITLE * SCREEN_ROW)
     jsl f:screen_upload
 .endif
@@ -120,7 +120,7 @@ mute:
     lda #$03
     sta TM                      ; the image and the menu; there are no sprites
 
-    stz title_sel              ; it opens with the first option selected
+    stz title_sel               ; it opens with the first option selected
     jsl f:title_upload_menu
 
     lda #$0F
@@ -152,7 +152,7 @@ wait:
     beq no_up
     lda title_sel
     bne uploads_one
-    lda #TITLE_MENU_N          ; from the first one, up wraps around
+    lda #TITLE_MENU_N           ; from the first one, up wraps around
 uploads_one:
     dec a
     sta title_sel
@@ -253,7 +253,7 @@ title_load_map:
     sta music_off
     lda #$FF
     ldx #SE_KOF
-    jsr dsp_music              ; as below: without touching the sound effect voices
+    jsr dsp_music               ; as below: without touching the sound effect voices
     plp
     rep #$20
 .a16

@@ -84,7 +84,7 @@ walk:
     cmp ev_sought
     sep #$20
 .a8
-    bne next               ; not the event we are looking at
+    bne next                    ; not the event we are looking at
     jsr conditions_ok
     beq next
     lda pg_trigger
@@ -176,7 +176,7 @@ no_layer:
     beq no                      ; the active page could not be compiled
     ldx ev_sought
     jsr mark_waiting
-    jsr turn_fire           ; and it turns toward the hero, if it turns
+    jsr turn_fire               ; and it turns toward the hero, if it turns
     lda #1
     rts
 no:
@@ -239,7 +239,7 @@ no:
     sta trigger_sought
     jsr action_in_cell
     ldx #TRIGGER_ACTION
-    stx trigger_sought         ; left as the action button expects it
+    stx trigger_sought          ; left as the action button expects it
     rts
 .endproc
 
@@ -265,12 +265,12 @@ no:
     ; presses every two frames, it always happened. Caught by
     ; `test_accion_con_ruta.py`.
     lda route_jump
-    bne with_route                ; in the air
+    bne with_route              ; in the air
     lda route_wait
-    bne with_route                ; in a route `wait`
+    bne with_route              ; in a route `wait`
     lda route_i
     cmp route_n
-    bcc with_route                ; it has move commands left
+    bcc with_route              ; it has move commands left
     ; The two cells, in the order of `Game_Player::CheckActionEvent`: first the
     ; hero's own —`CheckEventTriggerHere`, which asks for a layer different
     ; from the hero's— and then the one in front —`CheckEventTriggerThere`,

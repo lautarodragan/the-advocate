@@ -37,7 +37,7 @@
 .proc remembered_place
 .a8
 .i16
-    lda [code_ptr], y            ; the mode
+    lda [code_ptr], y           ; the mode
     iny
     sta temp + 1
     lsr a
@@ -65,7 +65,7 @@
 ; refresh if the top bit of `temp + 1` asks for it, then shifts it.
 write:
     pha
-    lda [code_ptr], y            ; the slot, and the neighboring byte
+    lda [code_ptr], y           ; the slot, and the neighboring byte
     iny
     and #$00FF
     asl a                       ; two bytes per variable
@@ -163,11 +163,11 @@ record:
 put:
     lda f:REMEMBERED_SONG
     cmp #SONG_TOTAL
-    bcs nothing                    ; none, or one the cartridge does not carry
+    bcs nothing                 ; none, or one the cartridge does not carry
     ; Is it the one playing? The same question as `map_song_mute`.
     pha
     lda bgm_fade
-    bne different                ; it was fading out: start over
+    bne different               ; it was fading out: start over
     lda f:MSU_PLAYING
     bne plays
     lda music_off

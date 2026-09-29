@@ -2429,7 +2429,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     # And each map's own song. Outside bank 0: it is read once per teleport,
     # with `lda f:map_song, x`.
     per_map = list(map_song) or [0xFF]
-    map_song_table = ".block %d\nmap_song:\n    .byte " % len(per_map) \
+    map_song_table = ".block %d\nmap_song:\n      .byte " % len(per_map) \
         + ", ".join("$%02X" % t for t in per_map)
     # And the music's sounds —`pack`'s: six bytes, the pitch, SRCN, ADSR1,
     # ADSR2 and the release GAIN—, those of every song in one table and
@@ -2444,7 +2444,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     if len(body) > 0x8000:
         raise SystemExit("the music's sounds go over one bank: %d B"
                          % len(body))
-    map_song_table += ("\n.block %d\nsong_sounds:\n    .word "
+    map_song_table += ("\n.block %d\nsong_sounds:\n      .word "
                        % (2 * len(bases or [0]))
                        + ", ".join("%d" % b for b in bases or [0]) + "\n"
                        + block("music_sounds", bytes(body) or bytes(6),
@@ -2461,10 +2461,10 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     # sample is a place several sound effects share, and `sound_play` asks
     # with this whether the one in the ARAM is its own. And each sound
     # effect's place, which is what the package uses to upload it.
-    se_table += "\n.block %d\nsound_effect:\n    .byte " % len(rows) \
+    se_table += "\n.block %d\nsound_effect:\n      .byte " % len(rows) \
         + ", ".join("$%02X" % row[5] for row in rows)
     se_places = list(effect_place) or [0xFF]
-    se_table += "\n.block %d\neffect_place:\n    .byte " % len(se_places) \
+    se_table += "\n.block %d\neffect_place:\n     .byte " % len(se_places) \
         + ", ".join("$%02X" % l for l in se_places)
 
     # The SPC700 directory, with all of them on the silence, and the silence
@@ -2531,10 +2531,10 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
             "; $FF in SONG_BOOT means 'the ROM boots silent': the song of the\n"
             "; map it boots in does not exist, so an event has to turn it on.\n"
             "SONG_TOTAL       = %d\n"
-            "SONG_BOOT    = $%02X\n"
+            "SONG_BOOT        = $%02X\n"
             "; And the title screen's, which comes from the LDB's `title_music`.\n"
             "; $FF means this ROM has no title screen.\n"
-            "SONG_TITLE      = $%02X\n"
+            "SONG_TITLE       = $%02X\n"
             # `rom/src/` and not `tools/runtime/`, here and six lines further
             # down, on purpose: it is text that goes into the `.inc`, and the
             # paths in what is emitted are not changed yet
@@ -2549,7 +2549,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
             "; from: the stream already writes them at start, and a `FadeOutBGM`\n"
             "; writes them again lowering them. Writing them in rom/src/ too\n"
             "; would be two sides that can be wrong in the same way.\n"
-            "SONG_VOLUME     = $%02X\n"
+            "SONG_VOLUME      = $%02X\n"
             "DSP_MVOL_L       = $%02X\n"
             "DSP_MVOL_R       = $%02X\n"
             "SPC_DRIVER_ADDR  = $%04X\n"
@@ -2564,22 +2564,22 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
             "; Each sound effect has its number —EFFECTS_N in total, which is\n"
             "; what the package lists carry— and its `sample_table` row at\n"
             "; SE_FIRST plus that number. See `lugares_de_efectos`.\n"
-            "SAMPLES_N       = %d\n"
-            "SE_FIRST       = %d\n"
-            "SE_PLACES       = %d\n"
+            "SAMPLES_N        = %d\n"
+            "SE_FIRST         = %d\n"
+            "SE_PLACES        = %d\n"
             "EFFECTS_N        = %d\n"
-            "ARAM_SILENCE    = $%04X\n"
-            "ARAM_DATA       = $%04X\n"
+            "ARAM_SILENCE     = $%04X\n"
+            "ARAM_DATA        = $%04X\n"
             "ARAM_END         = $%04X\n"
             "PACKAGES_N       = %d\n"
             "; The sound effects: which voice they play on and how many entries\n"
             "; `sound_table` has. See `build_efectos`.\n"
-            "SE_VOICE           = %d\n"
+            "SE_VOICE         = %d\n"
             "SE_BIT           = $%02X\n"
             "SE_REG           = $%02X\n"
             "SE2_BIT          = $%02X\n"
             "SE2_REG          = $%02X\n"
-            "SOUNDS_N        = %d\n\n"
+            "SOUNDS_N         = %d\n\n"
             "; Where each song's stream starts, split into three tables\n"
             "; because they are read with an index: they go in bank 0 like\n"
             "; everything the CPU walks with `lda tabla, x`.\n"

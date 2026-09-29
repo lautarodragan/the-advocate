@@ -42,18 +42,18 @@
     bne sum
     lda route_ev + 10, x
     and #$01
-    beq sum                    ; on frame 0 or 2 it goes on to the middle one
+    beq sum                     ; on frame 0 or 2 it goes on to the middle one
     lda route_ev + 11, x
     inc a
     cmp temp
-    bcc sum                    ; count < stopped - 1
+    bcc sum                     ; count < stopped - 1
     bra see_change
 sum:
     inc route_ev + 11, x
 see_change:
     lda route_ev + 11, x
     cmp temp + 1
-    bcs changes                  ; reached the continuous one
+    bcs changes                 ; reached the continuous one
     lda route_ev + 6, x
     beq ready
     lda route_ev + 11, x
@@ -167,14 +167,14 @@ seek:
 .a8
     lda #0
     sta npc_buf + 11, y         ; no jump: nothing to lift
-    jmp fit_npc            ; and the row, to wherever it belongs now
+    jmp fit_npc                 ; and the row, to wherever it belongs now
 
 with_slot:
     lda #0
-    sta route_ev + 7, x          ; no step in progress
+    sta route_ev + 7, x         ; no step in progress
     sta route_ev + 22, x
     sta route_ev + 23, x
-    sta route_ev + 13, x         ; nor jump
+    sta route_ev + 13, x        ; nor jump
 ready:
     rts
 .endproc

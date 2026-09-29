@@ -15,18 +15,18 @@
 ; There is nowhere to show it —the menu does not exist— but there is someone
 ; who asks for it: the gold branch of `ConditionalBranch`.
 .proc op_gold
-    lda [code_ptr], y            ; the sign: 0 adds, 1 subtracts
+    lda [code_ptr], y           ; the sign: 0 adds, 1 subtracts
     sta temp
     iny
     rep #$20
 .a16
-    lda [code_ptr], y            ; the low 16 bits of the amount
+    lda [code_ptr], y           ; the low 16 bits of the amount
     sta temp + 2
     sep #$20
 .a8
     iny
     iny
-    lda [code_ptr], y            ; and the high byte
+    lda [code_ptr], y           ; and the high byte
     sta temp + 1                ; the high byte of the amount
     iny
     phy
@@ -105,7 +105,7 @@ gold_ready:
 .i16
     rep #$20
 .a16
-    lda [code_ptr], y            ; the item
+    lda [code_ptr], y           ; the item
     clc
     adc #FAR_ITEMS
     sta WMADDL
@@ -115,7 +115,7 @@ gold_ready:
     sep #$20
 .a8
     stz WMADDH
-    lda [code_ptr], y            ; how much, signed
+    lda [code_ptr], y           ; how much, signed
     iny
     sta temp
     lda WMDATA                  ; the count there was

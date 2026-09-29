@@ -11,8 +11,8 @@
 .proc op_teleport
     rep #$20
 .a16
-    lda [code_ptr], y            ; the map, as a word since the format has
-    sta jump_map              ; to be able to name all 328 in the game
+    lda [code_ptr], y           ; the map, as a word since the format has
+    sta jump_map                ; to be able to name all 328 in the game
     iny
     iny
     lda [code_ptr], y

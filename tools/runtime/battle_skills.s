@@ -179,7 +179,7 @@ mask_list:
     ora switches, x
     sta switches, x
     lda #1
-    sta refresh                ; the pages that ask for it may change
+    sta refresh                 ; the pages that ask for it may change
     rts
 .endproc
 
@@ -530,7 +530,7 @@ no_falls:
     inc a
     sta f:BA_SKILL_I
     cmp #BA_PARTY_MAX
-    beq all_ready                  ; the party ends where the troop begins
+    beq all_ready               ; the party ends where the troop begins
     cmp #BA_COMB_MAX
     bcc other_target
 all_ready:
@@ -759,11 +759,11 @@ other:
 .a8
     lda f:FAR_LENGTH + FAR_SKILL, x
     and BA_T0
-    beq next               ; it does not know it
+    beq next                    ; it does not know it
     ldx BA_S2
     lda f:skill_pair_k, x
     cmp #$FF
-    beq next               ; it knows it and the battle does not offer it
+    beq next                    ; it knows it and the battle does not offer it
     pha
     lda BA_SKILL_N
     jsr ba_ax
@@ -881,7 +881,7 @@ enemy:
     bne no_cursor_enemy
     jsr ba_cursor
 no_cursor_enemy:
-    stz BA_WITHMAX               ; an enemy does not show its maximum
+    stz BA_WITHMAX              ; an enemy does not show its maximum
     lda BA_S0
     clc
     adc #BA_PARTY_MAX
@@ -994,7 +994,7 @@ has_command:
     lda BA_S0
     cmp #BA_COMMAND_SKILL
     bne no_gray_command
-    jsr ba_skill_list            ; what it knows now: see `FAR_SKILL`
+    jsr ba_skill_list           ; what it knows now: see `FAR_SKILL`
     lda BA_SKILL_N
     beq in_gray
 no_gray_command:
@@ -1204,7 +1204,7 @@ list_skill:
 has_any:
     lda BA_MODE
     cmp #BA_M_SKILL
-    bne skill_in_gray             ; choosing the target: no description
+    bne skill_in_gray           ; choosing the target: no description
     ; the description of the one under the cursor
     rep #$20
 .a16
@@ -1272,7 +1272,7 @@ column_set:
     sta BA_S6
     lda BA_MODE
     cmp #BA_M_SKILL
-    bne gray_skill                ; choosing the target, the whole list in gray
+    bne gray_skill              ; choosing the target, the whole list in gray
     lda BA_S6
     jsr ba_skill_reaches
     bne se_can

@@ -6,7 +6,7 @@ camera_y:   .res 2
 scroll_y:   .res 2      ; the same minus one, which is what the PPU wants
 pad:        .res 1      ; what the pad had pressed this frame
 pad_a:      .res 1      ; and A, which lives in the pad's other byte
-pad_a_prev:  .res 1      ; how it was last frame, to see the edge
+pad_a_prev: .res 1      ; how it was last frame, to see the edge
 ; The open choice, if there is one: it is `ShowChoice`. While `pick_active` is
 ; set there is a message window on screen with the options and the page is
 ; blocked, same as with an ordinary message.
@@ -23,7 +23,7 @@ pick_cancel: .res 1     ; which option the B button picks, plus one; 0 is "canno
                         ; is, which easyrpg uses as `type - 1`.
 pick_table:  .res 2     ; where the choice's table starts, inside the page:
                         ; for each option, the frame and the destination
-pick_edges: .res 1    ; the buttons just pressed this frame. It does not
+pick_edges: .res 1      ; the buttons just pressed this frame. It does not
                         ; use `temp` because `events_tick` has it busy.
 ; The title screen menu. These are two bytes of its own and not the `eleg_`
 ; ones even though the cursor movement is the same: the interpreter's choice
@@ -41,14 +41,14 @@ pick_edges: .res 1    ; the buttons just pressed this frame. It does not
 ; variable read with absolute addressing would give them SRAM. The direct page
 ; always points to bank 0, so from there it reads correctly whatever the bank.
 slot: .res 1
-title_sel:     .res 1  ; which option is selected, from zero
-title_edges: .res 1  ; and the buttons just pressed
+title_sel:      .res 1  ; which option is selected, from zero
+title_edges: .res 1     ; and the buttons just pressed
 ; 1 while the slot screen is visible. The ROM does not read it: it is for the
 ; harness, like `lost_frames`. `ticks` does not advance while the
 ; screen is showing, so a test that waits by ticks would hang; with this
 ; `consola.py` knows when to press. See `Partida.guardar_en`.
-menu_open:   .res 1
-pad_prev:     .res 1     ; last frame's JOY1H, to look at the edges of the
+menu_open:      .res 1
+pad_prev:    .res 1     ; last frame's JOY1H, to look at the edges of the
                         ; directions and of B as was already done with A
 
 temp:       .res 4      ; intermediate computations
@@ -57,14 +57,14 @@ hero_y:     .res 2
 hero_dir:   .res 1      ; which way it faces
 tile_x:     .res 2      ; and which 16x16 cell it is in. Two bytes: there are maps
 tile_y:     .res 2      ; 500 cells wide and one would not fit
-cells:     .res 3      ; pointer to the block row where the window starts
-cells_ptr: .res 3      ; the same, while it is walked to build a strip
+cells:      .res 3      ; pointer to the block row where the window starts
+cells_ptr: .res 3       ; the same, while it is walked to build a strip
 ; The forced move route of the event being walked, while the tick lasts. It
 ; lives in the direct page and not in the slot because `lda [ptr], y`
 ; **only** addresses the direct page: with the pointer in BSS the assembler
 ; would emit the low byte and the ROM would read from somewhere else. It
 ; already happened once, with `msg_ptr`.
-route_ptr:   .res 3
+route_ptr:  .res 3
 ; The pose table of the walking NPCs, of the loaded map.
 poses_ptr:  .res 3
 win_col:    .res 2      ; the 8x8 cell that was at the window's edge
@@ -72,8 +72,8 @@ win_row:    .res 2      ; last frame, to know whether the camera crossed it
 win_block:  .res 2      ; and the block row `cells` points to
 col_addr:   .res 2      ; where in VRAM the column just built goes
 row_addr:   .res 2      ; likewise the row; $0000 in both if there is nothing
-strip_ofs:   .res 2      ; offset inside the block, while it is built
-strip_step_col: .res 2   ; the size of a block row, in bytes
+strip_ofs:  .res 2      ; offset inside the block, while it is built
+strip_step_col: .res 2  ; the size of a block row, in bytes
 strip_left: .res 2      ; how many cells are left to build
 hero_ptr:   .res 3      ; and which grid cell, as a pointer: it moves
                         ; with it instead of being recomputed
@@ -100,40 +100,40 @@ obj_attr:   .res 1
 token:      .res 1      ; token for the handshake with the SPC700
 is_pal:     .res 1      ; 1 if the console runs at 50 frames per second
 pal_tick:   .res 1      ; to insert the missing music frame
-restart:   .res 1      ; whether the stream already looped this frame
+restart:    .res 1      ; whether the stream already looped this frame
 
 ; The loaded map. All of this came from constants in the .inc when there was
 ; a single map; now it comes from its record in `map_table` —which lives in
 ; RODATA and is read with `lda f:`— and stays here for as
 ; long as it lasts. What is used only once —the DMA sizes, the VRAM bases—
 ; is not copied: it is read from the record at the time.
-map_ofs:    .res 2     ; the offset of the current map's record
+map_ofs:     .res 2     ; the offset of the current map's record
 ; And its index, to know whether a jump changes map. Two bytes since
 ; OP_TELEPORT's destination is a word: the game has 328 maps and a byte holds
 ; 256. The ceiling left is MAP_STRIDE: `map_ofs` is sixteen bits, so it is
 ; 512 maps.
 map_current: .res 2
-map_width:  .res 2     ; its width in 16x16 cells
-map_height:   .res 2
-map_cw:     .res 2     ; and in 8x8 cells, which is double. It is stored ready
-map_ch:     .res 2     ; because the redraw looks at it on every column and row
+map_width:   .res 2     ; its width in 16x16 cells
+map_height:  .res 2
+map_cw:      .res 2     ; and in 8x8 cells, which is double. It is stored ready
+map_ch:      .res 2     ; because the redraw looks at it on every column and row
 npc_total:   .res 2     ; how many bytes this map's NPC table takes
 cam_max_x:   .res 2     ; how far the camera can go without leaving the map
 cam_max_y:   .res 2
-blocks_ptr: .res 3     ; the block table, which no longer fits in bank 0
-blocks8_ptr: .res 3    ; the same shifted eight bytes, which is where the upper
+blocks_ptr: .res 3      ; the block table, which no longer fits in bank 0
+blocks8_ptr: .res 3     ; the same shifted eight bytes, which is where the upper
                         ; layer starts inside the block. Two pointers come out
                         ; cheaper than eight `iny` in the hottest loop.
 pass_ptr:    .res 3     ; passability, one byte per block
 npc_ptr:     .res 3     ; and the NPC table, only while it is copied to RAM
-entry_x:   .res 2    ; where to enter the map about to be loaded, in
-entry_y:   .res 2     ; cells. $FFFF means "wherever the record says"
+entry_x:     .res 2    ; where to enter the map about to be loaded, in
+entry_y:     .res 2     ; cells. $FFFF means "wherever the record says"
 
 ; The event interpreter.
-page_ptr:     .res 3     ; the page table of the loaded map
-code_ptr:     .res 3     ; the code of the page being run
-chosen:     .res 3     ; the code of the page that won, while it is decided
-chosen_any: .res 1     ; whether some page of the current event won
+page_ptr:    .res 3     ; the page table of the loaded map
+code_ptr:    .res 3     ; the code of the page being run
+chosen:      .res 3     ; the code of the page that won, while it is decided
+chosen_any: .res 1      ; whether some page of the current event won
 chosen_trigger: .res 1 ; and what triggers it, to run only the automatic ones
 ; And which layer it is on, which is what decides which of the two cells
 ; triggers it with the action button: the one in front asks for the hero's
@@ -144,10 +144,10 @@ own_action: .res 1
 ; `ev_actual` lived here and nobody read it: its two bytes are the ones that
 ; pay for the sixteen-bit map index, which otherwise did not fit —the ZP was
 ; at 256 of 256—.
-jump_map:  .res 2     ; a Teleport requested by an event: to which map
-jump_x:     .res 2     ; and to which cell. jump_has says if one is pending
-jump_y:     .res 2
-jump_has:   .res 1
+jump_map:    .res 2     ; a Teleport requested by an event: to which map
+jump_x:      .res 2     ; and to which cell. jump_has says if one is pending
+jump_y:      .res 2
+jump_has:    .res 1
 jumps_left: .res 1 ; how many teleport chains are still allowed
 ; And how many there are. What the cap counts is **chained** teleports, that
 ; is, the ones that happen without the player getting control back: two maps
@@ -174,8 +174,8 @@ JUMPS_MAX = 32
 ; `panic` is the code of what happened, zero as long as nothing happens. The
 ; state test reads it; on the console what you see is the screen flashing,
 ; which cannot be mistaken for anything in the game.
-panic:      .res 1
-PANIC_JUMPS = 1       ; the teleport budget ran out
+panic:       .res 1
+PANIC_JUMPS = 1         ; the teleport budget ran out
 ; The interpreter runs one frame at a time, not in a single pass. Before,
 ; `enter_map` ran all the pages in one go with the screen off and the waits
 ; were skipped: that collapsed time, and everything that in RM2k happens
@@ -195,10 +195,10 @@ FLAG_AUTO   = $02
 ev_cur:      .res 2     ; the cursor inside the running page
 ; The parallel interpreters. The event list and each one's state live in bank
 ; 1 RAM; only what the loop needs at hand stays here.
-pair_n:       .res 1     ; how many events with a parallel page the map has
-pair_i:       .res 1     ; which one the loop is on
-pair_dir:     .res 2     ; where its state falls, which has to be pointed at twice
-pair_ev:      .res 1     ; which event it belongs to, to move it after the interpreter
+pair_n:      .res 1     ; how many events with a parallel page the map has
+pair_i:      .res 1     ; which one the loop is on
+pair_dir:    .res 2     ; where its state falls, which has to be pointed at twice
+pair_ev:     .res 1     ; which event it belongs to, to move it after the interpreter
 ; How many ticks the main loop has run, that is, **game time**. A tick is an
 ; RM2k logic step —easyrpg's `while (Game_Clock::NextGameTimeStep())`,
 ; `player.cpp:245`—, which there too is separate from the frame that is
@@ -210,7 +210,7 @@ pair_ev:      .res 1     ; which event it belongs to, to move it after the inter
 ; —see `Partida` in rom/pruebas/arnes/consola.py—, so with this it no longer
 ; matters whether the ROM was late. How late it is is told by
 ; `lost_frames`, which is another question.
-ticks:     .res 2
+ticks:       .res 2
 ; The only thing the ChipSet animation stores: what has to be uploaded in the
 ; next vblank, three bits per family —zero is nothing, otherwise the drawing
 ; plus one—.
@@ -223,20 +223,20 @@ ticks:     .res 2
 ; a `beq`. It is the last free byte of the direct page.
 anim_pend:   .res 1
 ev_active:   .res 1     ; whether there is a page halfway through running
-ev_waiting: .res 2    ; how many frames are left of the current wait
+ev_waiting: .res 2      ; how many frames are left of the current wait
 ; The hero's forced move route. In RM2k `ForceMoveRoute` is asynchronous: the
 ; page keeps running and the one who walks is the character, so this does not
 ; live in the interpreter but here, and `move_hero` consumes it instead of the
 ; pad. The commands are in the bytecode: see `hero_route`.
-route_n:      .res 1
-route_i:      .res 1
+route_n:     .res 1
+route_i:     .res 1
 ; Whether the step the hero has in progress was started by the forced route
 ; and not by the pad. `any_routes` needs it: the last step of a route still
 ; counts as a pending route even when no commands are left, and a pad step
 ; never counts. Without this, `ProceedWithMovement` would stop waiting eight
 ; frames early, or would wait too long because the player started walking.
-route_step:   .res 1
-route_wait: .res 1     ; the frames left of a route `wait`
+route_step:  .res 1
+route_wait: .res 1      ; the frames left of a route `wait`
 ; The target and the length of the route being read from the bytecode. The
 ; length goes in two bytes with the high one always zero: it is added to Y,
 ; which is sixteen.
@@ -263,22 +263,22 @@ hero_cgram:  .res 3
 ; The page being looked at, already read from the table. It is copied instead
 ; of read in place because Y is the table's cursor, and also using it to index
 ; the switch bitmap makes the code impossible to follow.
-page_ofs:     .res 2
+page_ofs:    .res 2
 pages_left:  .res 2
-pg_event:   .res 2
+pg_event:    .res 2
 pg_trigger:  .res 1
 pg_sa:       .res 2
 pg_sb:       .res 2
-pg_code:      .res 3
+pg_code:     .res 3
 pg_actor:    .res 1     ; the actor it requires in the party, or 0
 act_ptr:     .res 3     ; cursor into the map's actor table
-tint_r:     .res 1     ; the screen tint, from 0 to 200 with 100 neutral
-tint_g:     .res 1
-tint_b:     .res 1
-tint_ptr:     .res 3     ; the palette being tinted, in ROM
-tint_count:   .res 2     ; how many colors it has
-tint_cgadd:   .res 1     ; and which CGRAM entry it goes to
-tint_end:     .res 2     ; how many bytes it is, which is the loop's limit
+tint_r:      .res 1     ; the screen tint, from 0 to 200 with 100 neutral
+tint_g:      .res 1
+tint_b:      .res 1
+tint_ptr:    .res 3     ; the palette being tinted, in ROM
+tint_count:  .res 2     ; how many colors it has
+tint_cgadd:  .res 1     ; and which CGRAM entry it goes to
+tint_end:    .res 2     ; how many bytes it is, which is the loop's limit
 
 ; --- the text composer ------------------------------------------------------
 ; All of this is touched in the innermost loop of the repo —twelve rows per
@@ -289,11 +289,11 @@ msg_ptr:     .res 3     ; pointer to the next character, inside `messages`. It g
 comp_glyph:  .res 3     ; pointer to the character's twelve rows, in ROM
 comp_char:   .res 2     ; which character, already as an index into the font
 comp_col:    .res 2     ; which column of the line it is at
-comp_phase:   .res 2     ; and which pixel of the cell it falls on, that is x mod 8
+comp_phase:  .res 2     ; and which pixel of the cell it falls on, that is x mod 8
 comp_base:   .res 2     ; the buffer byte where its cell column starts
 comp_mask:   .res 2     ; the glyph row already shifted to its phase
 comp_color:  .res 1     ; which palette index it is painted with
-comp_row:   .res 1     ; which buffer row, from 0 to 15
+comp_row:    .res 1     ; which buffer row, from 0 to 15
 comp_dup:    .res 4     ; the mask duplicated to the two planes of each pair
 comp_and:    .res 4     ; and the three combinations that come out of it
 comp_or01:   .res 4

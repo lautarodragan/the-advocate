@@ -52,7 +52,7 @@ has:
 .a8
     lda flash_remain
     sta WRDIVB                  ; starts it: the quotient takes sixteen cycles
-    dec flash_remain          ; six cycles, and the nops still needed
+    dec flash_remain            ; six cycles, and the nops still needed
     nop
     nop
     nop
@@ -80,7 +80,7 @@ has:
 phase_pair:
     lda tint_ready
     beq sprites
-    jsr flash_backdrop         ; the new tint overwrote the background already run
+    jsr flash_backdrop          ; the new tint overwrote the background already run
 sprites:
     jsr flash_sprites
 upload:
@@ -102,20 +102,20 @@ off:
 .proc flash_from_code
 .a8
 .i16
-    lda [code_ptr], y            ; r
+    lda [code_ptr], y           ; r
     sta flash_rgb
     iny
-    lda [code_ptr], y            ; g
+    lda [code_ptr], y           ; g
     sta flash_rgb + 1
     iny
-    lda [code_ptr], y            ; b
+    lda [code_ptr], y           ; b
     sta flash_rgb + 2
     iny
-    lda [code_ptr], y            ; the strength, which is the starting level
+    lda [code_ptr], y           ; the strength, which is the starting level
     sta flash_level + 1
     stz flash_level
     iny
-    lda [code_ptr], y            ; frames
+    lda [code_ptr], y           ; frames
     sta flash_remain
     iny
     rts
@@ -128,7 +128,7 @@ off:
 .proc flash_tables
 .a8
 .i16
-    lda flash_level + 1      ; the integer part of the level, 0 to 31
+    lda flash_level + 1         ; the integer part of the level, 0 to 31
     sta flash_tab_level
     rep #$20
 .a16
@@ -196,7 +196,7 @@ off:
     tax                         ; X: the row, at channel 0's distance
     lda flash_tab_toward
     inc a
-    sta flash_tab_end                ; the first channel above the target
+    sta flash_tab_end           ; the first channel above the target
     sep #$20
 .a8
     ldy #0
@@ -307,7 +307,7 @@ color:
     sta temp                    ; the color, and in temp + 2 what is being built
     and #$001F
     tay
-    lda flash_tab_r, y           ; and the next byte, which gets masked
+    lda flash_tab_r, y          ; and the next byte, which gets masked
     and #$00FF
     sta temp + 2
     lda temp

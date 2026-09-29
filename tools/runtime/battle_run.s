@@ -13,7 +13,7 @@
     rep #$20
 .a16
     lda #BATTLE_SEED
-    sta BA_SEED                  ; randomness starts the same in every battle
+    sta BA_SEED                 ; randomness starts the same in every battle
     lda #$FFFF
     sta BA_SE2                  ; no sound effect pending
     sep #$20
@@ -35,7 +35,7 @@ has_troop:
     jsr ba_next_actor
     cmp #$FF
     bne has_party
-    lda #BA_DEFEAT             ; nobody standing: lost without fighting
+    lda #BA_DEFEAT              ; nobody standing: lost without fighting
     sta BA_RESULT
     rtl
 has_party:
@@ -87,8 +87,8 @@ wait:
     jsl f:ba_t_pad                ; the controller before the DMA, as in the
                                   ; shop
     jsl f:ba_t_upload
-    jsr ba_shake              ; the shake, before the vblank ends
-    jsr scene_tick             ; still in the vblank: an enemy that died
+    jsr ba_shake                ; the shake, before the vblank ends
+    jsr scene_tick              ; still in the vblank: an enemy that died
     lda pad
     eor pad_prev
     and pad
@@ -253,7 +253,7 @@ b_attacks:
     lda #BA_ATTACK
 b_records:
     jsr ba_record
-    jmp next_actor         ; the two modes below ended up in between
+    jmp next_actor              ; the two modes below ended up in between
 
     ; --- choosing which item ---
 mode_item:
@@ -480,7 +480,7 @@ h_a_ally:
 h_seek_alive:
     lda BA_ACTOR2
     cmp BA_NACTORS
-    bcs wait7                 ; cannot happen: whoever gives the command is
+    bcs wait7                   ; cannot happen: whoever gives the command is
                                 ; alive
     lda BA_ACTOR2
     jsr ba_alive

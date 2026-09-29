@@ -85,10 +85,10 @@ def equipped_params(db, actor, equipment, level=None):
 # the data and the comment is what the term says in the game.
 BATTLE_TERMS = (
     ("attack", "command_attack"),        # "Attack"
-    ("defend", "command_defend"),      # "Defend"
-    ("escape", "battle_escape"),           # "Escape"
+    ("defend", "command_defend"),        # "Defend"
+    ("escape", "battle_escape"),         # "Escape"
     ("hp", "hp_short"),                  # "HP"
-    ("attacks", "attacking"),              # " attacks the enemy"
+    ("attacks", "attacking"),            # " attacks the enemy"
     ("defends", "defending"),
     ("critical", "actor_critical"),
     ("damage_enemy", "enemy_damaged"),   # " health lost."
@@ -101,20 +101,20 @@ BATTLE_TERMS = (
     ("no_fled", "escape_failure"),
     # The four from 2026-09-13: the two missing commands and the two lines
     # of the use-an-item message.
-    ("use", "command_item"),            # "Use Item"
-    ("skill", "command_skill"),      # "Tech Skill"
-    ("uses", "use_item"),                 # " used."
-    ("recovered", "hp_recovery"),         # " Recovered"
+    ("use", "command_item"),             # "Use Item"
+    ("skill", "command_skill"),          # "Tech Skill"
+    ("uses", "use_item"),                # " used."
+    ("recovered", "hp_recovery"),        # " Recovered"
     # The four of what the victory reports, since 2026-09-26: see
     # `ba_vic_message` in battle_victory.s.
     ("exp_received", "exp_received"),    # " EXP"
     ("level", "level"),                  # "LEVEL"
-    ("level_up", "level_up"),               # " achieved!"
-    ("learned", "skill_learned"),       # " acquired!"
+    ("level_up", "level_up"),            # " achieved!"
+    ("learned", "skill_learned"),        # " acquired!"
     # And those of the gold and items won, since 2026-09-27.
-    ("gold_a", "gold_recieved_a"),        # " You found"
-    ("currency", "gold"),                  # "Cr"
-    ("gold_b", "gold_recieved_b"),        # " credits!"
+    ("gold_a", "gold_recieved_a"),       # " You found"
+    ("currency", "gold"),                # "Cr"
+    ("gold_b", "gold_recieved_b"),       # " credits!"
     ("obtained", "item_recieved"),       # " obtained!"
 )
 

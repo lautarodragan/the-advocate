@@ -34,7 +34,7 @@ seek:
     rts                         ; no slot: this flash is lost
 
 set2:
-    lda [code_ptr], y            ; the target
+    lda [code_ptr], y           ; the target
     sta flash_ev + 0, x
     iny
     lda [code_ptr], y
@@ -119,7 +119,7 @@ next:
     sta flash_ev + 6, x
     cmp flash_ev + 5, x
     bcc still
-    beq still                 ; the last frame goes with zero strength
+    beq still                   ; the last frame goes with zero strength
     lda #FLASH_FREE
     sta flash_ev + 0, x
     rts
@@ -186,7 +186,7 @@ ready:
 .proc palette_with_flash
 .a8
 .i16
-    stx flash_slot_ofs            ; `flash_channel_table` uses X for the table
+    stx flash_slot_ofs          ; `flash_channel_table` uses X for the table
     lda flash_ev + 1, x
     sta flash_dest
     ldy #0                      ; the red of `pure` and of the working ones

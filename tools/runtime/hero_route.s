@@ -59,7 +59,7 @@ has_command:
     jsr hero_command
 
     cmp #23                     ; wait: this one and the ROUTE_WAIT - 1 after it,
-    bne not_wait              ; plus the turn's if the frequency is low
+    bne not_wait                ; plus the turn's if the frequency is low
     lda route_freq
     jsr after_turn
     clc
@@ -69,7 +69,7 @@ has_command:
 not_wait:
     cmp #12
     bcs not_move
-    jmp move                   ; 0..3 are the move_*
+    jmp move                    ; 0..3 are the move_*
 not_move:
     cmp #16
     bcc face                    ; 12..15 are the face_*
@@ -83,35 +83,35 @@ not_move:
     jsr build_hero_jump
     lda route_jump
     bne jump_started
-    jmp other_command              ; it could not land there: skipped
+    jmp other_command           ; it could not land there: skipped
 jump_started:
     jmp ready
 not_jump:
     cmp #25
     bne not_end
-    jmp other_command              ; the `begin_jump` already consumed the pair
+    jmp other_command           ; the `begin_jump` already consumed the pair
 not_end:
     cmp #28
-    bcc other_command              ; 26 and 27 do not reach the hero
+    bcc other_command           ; 26 and 27 do not reach the hero
     cmp #30
     bcs not_speed
-    jmp speed               ; 28 and 29: the speed, which stays
+    jmp speed                   ; 28 and 29: the speed, which stays
 not_speed:
     cmp #32
-    bcc frequency              ; 30 and 31: the move route's frequency
+    bcc frequency               ; 30 and 31: the move route's frequency
     cmp #34
     bne not_graphic_hero
-    jmp graphic_hero           ; 34, the only one with an operand; it is far
+    jmp graphic_hero            ; 34, the only one with an operand; it is far
 not_graphic_hero:
     cmp #35
     bne not_sound_hero
-    jmp sound_hero            ; 35, with its operand; it is far
+    jmp sound_hero              ; 35, with its operand; it is far
 not_sound_hero:
     cmp #36
-    bcc other_command              ; 32 and 33, the switches, do not get here: the
+    bcc other_command           ; 32 and 33, the switches, do not get here: the
                                 ; converter rejects them
     cmp #38
-    bcc cross               ; 36 and 37
+    bcc cross                   ; 36 and 37
     cmp #40
     bcs other_command
     ; 38 stops the animation and 39 resumes it, so the subtraction goes the
@@ -155,8 +155,8 @@ face:
     sec
     sbc #12
     sta hero_dir                ; face_*: with frequency 8 it is instant and the
-    lda route_freq               ; next one follows; with another, it stands
-    jsr after_turn               ; still for the turn's frames
+    lda route_freq              ; next one follows; with another, it stands
+    jsr after_turn              ; still for the turn's frames
     bne turn_wait
     jmp other_command
 turn_wait:
@@ -190,7 +190,7 @@ turn_wait:
 graphic_hero:
     lda #$FF
     sta hero_pose_vram          ; the pose in VRAM is no longer its own
-    jsr hero_command         ; the operand, which is left consumed
+    jsr hero_command            ; the operand, which is left consumed
     jsr hero_poses_of_graphic
     bcc hero_no_graphic
     jmp other_command
@@ -208,12 +208,12 @@ hero_no_graphic:
 ; it sounds the same as a `PlaySound`'s, with MSU-1 or without. It does not
 ; cost a frame: the next command runs in this one.
 sound_hero:
-    jsr hero_command         ; the low byte: leaves Y there and `route_ptr` set
-    inc route_i                  ; and the cursor, past the high one
+    jsr hero_command            ; the low byte: leaves Y there and `route_ptr` set
+    inc route_i                 ; and the cursor, past the high one
     rep #$20
 .a16
     lda [route_ptr], y
-    jsr sound_play            ; with 16-bit A; returns with 8-bit A
+    jsr sound_play              ; with 16-bit A; returns with 8-bit A
 .a8
     jmp other_command
 
@@ -331,12 +331,12 @@ other:
     beq next
     lda route_ev + 18, x
     and #$01
-    bne next               ; the page's own move route is not waited for
-    lda route_ev + 7, x          ; a step in progress
+    bne next                    ; the page's own move route is not waited for
+    lda route_ev + 7, x         ; a step in progress
     bne if
-    lda route_ev + 9, x          ; or a wait
+    lda route_ev + 9, x         ; or a wait
     bne if
-    lda route_ev + 13, x         ; or a jump
+    lda route_ev + 13, x        ; or a jump
     bne if
     lda route_ev + 5, x
     cmp route_ev + 4, x

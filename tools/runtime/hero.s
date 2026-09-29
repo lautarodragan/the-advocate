@@ -97,7 +97,7 @@ menu_no_page:
     jmp battle_start
 no_encounter:
     jsr access_read
-    bpl menu_no_requested         ; bit 7 is the request
+    bpl menu_no_requested       ; bit 7 is the request
     and #$7F
     jsr access_write
     jsr menu_screen
@@ -195,7 +195,7 @@ no_right:
     sta dest_y
     sep #$20
 .a8
-    jsr hero_blocked         ; someone standing there stops it like a wall
+    jsr hero_blocked            ; someone standing there stops it like a wall
     bne no8
     rep #$20
 .a16
@@ -231,7 +231,7 @@ no8:
     beq no
     jsr ptr_from_hero
     lda strip_step_col
-    jsr ptr_more                 ; one row of blocks down
+    jsr ptr_more                ; one row of blocks down
     lda #PASS_UP
     jsr can_enter
     beq no
@@ -242,7 +242,7 @@ no8:
     sta dest_y
     sep #$20
 .a8
-    jsr hero_blocked         ; someone standing there stops it like a wall
+    jsr hero_blocked            ; someone standing there stops it like a wall
     bne no8
     rep #$20
 .a16
@@ -287,7 +287,7 @@ no8:
     sta dest_y
     sep #$20
 .a8
-    jsr hero_blocked         ; someone standing there stops it like a wall
+    jsr hero_blocked            ; someone standing there stops it like a wall
     bne no8
     rep #$20
 .a16
@@ -334,7 +334,7 @@ no8:
     sta dest_y
     sep #$20
 .a8
-    jsr hero_blocked         ; someone standing there stops it like a wall
+    jsr hero_blocked            ; someone standing there stops it like a wall
     bne no8
     rep #$20
 .a16
@@ -382,7 +382,7 @@ no8:
     jsr pass_of_ptr
     jsr pass_with_event
     and temp
-    ora crossing             ; with walk_everywhere the answer is yes
+    ora crossing                ; with walk_everywhere the answer is yes
     rts
 .endproc
 
@@ -442,15 +442,15 @@ no8:
     sta temp + 2
     lda pass_has
     and #$00FF
-    beq none                 ; no row on this map imposes anything
+    beq none                    ; no row on this map imposes anything
     ldy npc_total
     bra next
 other:
     lda npc_buf + 14, y         ; whether it is there, and above that what it imposes
     cmp #$FF00
-    bcs next               ; $FF: imposes nothing
+    bcs next                    ; $FF: imposes nothing
     bit #$00FF
-    beq next               ; hidden: not there
+    beq next                    ; hidden: not there
     lda npc_buf + 8, y          ; its event, and with it its cell
     and #$00FF
     asl a
@@ -516,7 +516,7 @@ positive:
 .proc pass_of_ptr
 .a16
 .i16
-    lda [cells_ptr]            ; which block this cell is
+    lda [cells_ptr]             ; which block this cell is
     jsr cell_replaced
     tay
     sep #$20
@@ -682,7 +682,7 @@ high:
     ; pixels are **recomputed** from the destination cell and not
     ; accumulated: with half a pixel per frame there is nothing whole to add.
     ; `step_dx` and `step_dy` are the step's direction, -1, 0 or 1.
-    jsr hero_anim_frames  ; incidentally leaves X at the speed minus one
+    jsr hero_anim_frames        ; incidentally leaves X at the speed minus one
     lda step_left
     sec
     sbc half_step_per_speed, x
@@ -732,7 +732,7 @@ y_ready:
     sep #$20
 .a8
     lda step_left
-    bne continues                   ; the step has not finished yet
+    bne continues               ; the step has not finished yet
     ; While the hero has forced move route left, nothing is stepped on:
     ; neither door nor touch event. It is the `!IsMoveRouteOverwritten()` of
     ; `Game_Player::UpdateMovement`, and the last step does count because in

@@ -643,7 +643,7 @@ fits:
     asl a                       ; and this takes it to palette times sixteen
     clc
     adc #129                    ; the sprite half, plus index 0 which is not
-    sta tint_cgadd               ; drawn
+    sta tint_cgadd              ; drawn
     jsr tint_palette
 no_leader_pal:
 
@@ -695,7 +695,7 @@ no_leader_pal:
     lda tint_pending
     beq nothing
     stz tint_pending
-    jsr apply_tint           ; to the shadow; CGRAM is written in the vblank
+    jsr apply_tint              ; to the shadow; CGRAM is written in the vblank
 nothing:
     rts
 .endproc
@@ -778,7 +778,7 @@ nothing:
     sta A1T0L
     lda tint_count
     asl a                       ; two bytes per color
-    beq nothing                    ; zero bytes would be 64 KB
+    beq nothing                 ; zero bytes would be 64 KB
     sta DAS0L
     sep #$20
 .a8
@@ -838,7 +838,7 @@ visible:
     rts                         ; this map does not carry the digits
 .a16
 has:
-    sta tint_count               ; the bits left: not `temp`, which in the
+    sta tint_count              ; the bits left: not `temp`, which in the
                                 ; vblank may be busy
     ; The palette in ROM, and the CGRAM entry 0 it gets.
     ldx map_ofs
@@ -851,7 +851,7 @@ has:
     asl a                       ; 32 bytes per palette
     clc
     adc f:map_table + M_PTR_SPRITE_CGRAM, x
-    sta tint_ptr                 ; the block fits whole in one bank: one
+    sta tint_ptr                ; the block fits whole in one bank: one
     sep #$20                    ; DMA uploads it
 .a8
     lda f:map_table + M_PTR_SPRITE_CGRAM + 2, x

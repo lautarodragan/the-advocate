@@ -153,7 +153,7 @@ no_cancel:
     and #KEY_DECISION
     beq no_decision
     lda pad_a
-    bcc a_list                 ; the carry from above, still intact
+    bcc a_list                  ; the carry from above, still intact
     eor pad_a_prev
     and pad_a
 a_list:
@@ -253,7 +253,7 @@ ready:
     bne ready
     jsr access_read
     and #ACCESS_NO_SAVE
-    eor #ACCESS_NO_SAVE     ; 1 if allowed
+    eor #ACCESS_NO_SAVE         ; 1 if allowed
 ready:
     rts
 .endproc
@@ -447,7 +447,7 @@ other_option:
     jsr slot_rect_upload
 
     jsr menu_party_paint
-    jsl f:menu_exp_paint       ; the experience, which goes in sprites, and turns on
+    jsl f:menu_exp_paint        ; the experience, which goes in sprites, and turns on
     lda #1
     sta menu_open
     rts
@@ -483,7 +483,7 @@ enters:
     jsr actor
     cmp #MENU_ACTORS_N
     bcc known
-    jmp next               ; one this ROM does not know
+    jmp next                    ; one this ROM does not know
 known:
 
     ; --- the row's fixed block ---
@@ -561,7 +561,7 @@ no_face:
     pla
     pha
     jsr actor
-    jsl f:text_level           ; the current one: it goes up by fighting
+    jsl f:text_level            ; the current one: it goes up by fighting
     lda #SLOT_LEVEL_DIGITS
     jsr slot_text_write
 
@@ -580,7 +580,7 @@ no_face:
     pla
     pha
     jsr actor
-    jsl f:text_max          ; the one for its current level, like the level
+    jsl f:text_max              ; the one for its current level, like the level
     lda #MENU_MAX_DIGITS
     jsr slot_text_write
 
@@ -631,7 +631,7 @@ row_vram:
     plb
     sep #$20
     rep #$10
-    stz title_sel              ; RM2k opens with the cursor on the first
+    stz title_sel               ; RM2k opens with the cursor on the first
 build:
     jsr menu_upload
 wait:
@@ -645,7 +645,7 @@ wait:
     beq no_up
     lda title_sel
     bne uploads
-    lda #MENU_OPTIONS          ; from the first, up wraps around
+    lda #MENU_OPTIONS           ; from the first, up wraps around
 uploads:
     dec a
     jsr move
@@ -669,10 +669,10 @@ no_down:
     lda pad_a
     beq wait
     lda pad_a_prev
-    bne wait                  ; it was already held: not an edge
+    bne wait                    ; it was already held: not an edge
     lda title_sel
     jsr menu_enabled
-    beq wait                  ; in gray: RM2k plays a sound and does nothing
+    beq wait                    ; in gray: RM2k plays a sound and does nothing
     lda title_sel
     cmp #2
     bne no_equipment
@@ -745,7 +745,7 @@ close:
     ; events.py.
     jsl f:equipment_commons
     plb
-    jsl f:menu_exp_close       ; what the menu sprites changed
+    jsl f:menu_exp_close        ; what the menu sprites changed
     jsr back_to_map
     rts
 
@@ -831,15 +831,15 @@ faces_a:
     lda pad_a
     beq wait
     lda pad_a_prev
-    bne wait                  ; it was already held: not an edge
+    bne wait                    ; it was already held: not an edge
     lda pick_cancel
     beq medicine
-    lda title_sel              ; choosing: the chosen row
+    lda title_sel               ; choosing: the chosen row
     rts
 medicine:
     jsr actor_row
     jsl f:medicine_use
-    beq wait                  ; it did not work: RM2k plays a sound and does nothing
+    beq wait                    ; it did not work: RM2k plays a sound and does nothing
     ; The row's HP, in the next vblank: the use took away the current value.
     jsr wait_vblank
     jsr actor_row
@@ -847,7 +847,7 @@ medicine:
     lda title_sel
     sta temp + 2
     jsl f:menu_hp_write
-    jsl f:target_count      ; and how many are left
+    jsl f:target_count          ; and how many are left
     jmp wait
 
 actor_row:

@@ -266,7 +266,7 @@ ready:
     clc
     adc comp_phase
     adc comp_phase
-    adc comp_phase                ; times 11
+    adc comp_phase               ; times 11
     clc
     adc temp + 3
     rep #$20
@@ -379,7 +379,7 @@ sale:
     ; data bank is still 0: without the long form, the absolute would read bank 0.
     lda f:message, x
     bne with_message
-    lda comp_phase + 1             ; the main mode: greeting or re-greeting
+    lda comp_phase + 1            ; the main mode: greeting or re-greeting
 with_message:
     jsr ti_message
     lda comp_col
@@ -549,7 +549,7 @@ command:
 .a8
     pla
     pha
-    jsr command_message           ; which term: buy, sell or leave
+    jsr command_message         ; which term: buy, sell or leave
     jsr ti_line1
     pla
     inc a
@@ -1028,7 +1028,7 @@ ready:
     sta comp_base + 1
     rts
 no_up:
-    jsr ti_rows                ; the buying one and the selling one do not measure the same
+    jsr ti_rows                 ; the buying one and the selling one do not measure the same
     sta temp + 3
     lda comp_base
     sec
@@ -1182,11 +1182,11 @@ bar:
     beq in_count
     rts
 in_count:
-    lda #TI_LIST_ROWS_BUY  ; the quantity one, after the list's
+    lda #TI_LIST_ROWS_BUY       ; the quantity one, after the list's
     bra with_bar
 in_list:
     lda comp_mask
-    beq no_bar               ; the empty list has no cursor
+    beq no_bar                  ; the empty list has no cursor
     lda comp_base
     sec
     sbc comp_base + 1
@@ -1194,7 +1194,7 @@ in_list:
 in_main:
     ; With a two-line greeting the commands go down one: see `command_pos`.
     jsr ti_two_lines
-    beq line              ; and A was left at zero
+    beq line                    ; and A was left at zero
     lda #1
 line:
     clc
@@ -1305,7 +1305,7 @@ begins:
     jsl f:ba_t_upload
     jsr ti_windows
     lda #(SLOT_VRAM / 4096 * 16 + TI_BORDER_VRAM / 4096)
-    jsl f:screen_ppu_on  ; BG2 and BG1, the windows with their base
+    jsl f:screen_ppu_on         ; BG2 and BG1, the windows with their base
     lda #1
     sta menu_open
 wait:
@@ -1334,7 +1334,7 @@ not_main:
 :   cmp #TI_SOLD
     bne :+
     jmp ready_deal
-:   jmp buy                 ; buying and selling share the code
+:   jmp buy                     ; buying and selling share the code
 
     ; --- the main mode ---
 main:
@@ -1432,7 +1432,7 @@ l_faces_a:
     bcs l_sell
     jsr ti_item                 ; X = k
     jsr ti_can
-    beq wait2                 ; grayed out: it plays a sound and does nothing
+    beq wait2                   ; grayed out: it plays a sound and does nothing
     lda #TI_COUNT_BUY
     bra l_count
 l_sell:
@@ -1443,7 +1443,7 @@ l_sell:
     lda comp_or01
     sep #$20
 .a8
-    beq wait2                 ; it is worth nothing
+    beq wait2                   ; it is worth nothing
     lda #TI_COUNT_SALE
 l_count:
     pha
@@ -1521,7 +1521,7 @@ c_faces_a:
     sta comp_col
     cmp #TI_SOLD
     bne recompose
-    jsr ti_sell_list          ; what was sold may no longer be there
+    jsr ti_sell_list            ; what was sold may no longer be there
     jmp recompose
 
     ; --- the "done", one second ---

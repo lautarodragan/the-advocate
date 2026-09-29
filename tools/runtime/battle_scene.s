@@ -18,7 +18,7 @@ SCN_ORIGIN   = $6600    ; 1: a random encounter started the battle
 ; The number of this battle's background among the game's, or BACKDROP_PLAIN.
 ; It is the one read from the `.msu`; the ROM's is SCN_FALLBACK. See "Qué
 ; fondos hay" in tools/port/scene.py.
-SCN_BACKDROP    = $6601
+SCN_BACKDROP = $6601
 SCN_VIS      = $6602    ; one bit per enemy: still drawn
 SCN_PAL_N    = $6603    ; how many battler palettes were handed out
 SCN_PAL_BAT  = $6604    ; 8 bytes: which battler each one holds
@@ -29,13 +29,13 @@ SCN_E_Y      = $6628
 ; What is left to upload to VRAM of an enemy that was just erased: whole tile
 ; rows of the scene, `SCN_SUB_BUDGET` bytes per vblank.
 SCN_SUB_N    = $6630    ; word: how many tile rows are left; 0 is none
-SCN_SUB_ROW = $6632    ; word: the next one
+SCN_SUB_ROW = $6632     ; word: the next one
 SCN_SUB_COL  = $6634    ; word: the first tile column
-SCN_SUB_LENGTH = $6636   ; word: how many bytes each row is
+SCN_SUB_LENGTH = $6636  ; word: how many bytes each row is
 ; How many frames composing took, counted with `boot_frames`: the ROM does
 ; not read it; the tests read it, and so does whoever wants to measure it with
 ; the emulator.
-SCN_FRAMES  = $6638
+SCN_FRAMES   = $6638
 SCN_T0       = $663A    ; scratch
 SCN_E        = $663C    ; the enemy being placed or erased
 SCN_I        = $663D
@@ -48,7 +48,7 @@ SCN_CLIP_C1  = $6646
 ; Where the walk is in the drawing order, and where the troop starts in the
 ; `miembro_*` tables. See `scn_by_command`.
 SCN_K        = $6648
-SCN_INIT      = $6649
+SCN_INIT     = $6649
 ; 1 if this battle's background comes from the MSU-1 and not from the
 ; cartridge: see `scn_fill`. The tests read it too, to know which path
 ; ran.
@@ -66,8 +66,8 @@ SCN_DP_BYTES = 48
 ; goes up to $7E67FF— and no `WMADDH` is written with anything but zero. The
 ; clean one is what lets an enemy be erased without reading anything from
 ; the cartridge again: see `scene_tick`.
-SCN_CLEAN   = $7F0000
-SCN_SCENE   = $7F8000
+SCN_CLEAN    = $7F0000
+SCN_SCENE    = $7F8000
 ; How many scene bytes are uploaded per vblank when an enemy is erased. The
 ; NTSC vblank allows about six kilobytes of DMA and `scr_upload` already
 ; takes the text's 1,792 in the same vblank; two more leave some margin.
@@ -392,7 +392,7 @@ has:
     sta ED_STEP
     lda f:battler_height, x
     and #$00FF
-    sta ED_ROWS                ; not clipped yet
+    sta ED_ROWS                 ; not clipped yet
 
     ; --- the palette: planes 4 to 7 of each battler pixel ---
     lda SCN_E
@@ -420,7 +420,7 @@ has:
     and #$00FF
     sta SCN_T0
     and #7
-    sta ED_COUNT               ; the shift, borrowed for a moment
+    sta ED_COUNT                ; the shift, borrowed for a moment
     lda ED_N
     ldy ED_COUNT
     beq :+
@@ -471,7 +471,7 @@ has:
     cmp SCN_CLIP_Y1
     bcc :+
     lda SCN_CLIP_Y1
-:   sta ED_ROWS                ; the final row
+:   sta ED_ROWS                 ; the final row
     lda ED_YY
     cmp SCN_CLIP_Y0
     bcs :+
@@ -611,7 +611,7 @@ from_troop:
     beq from_place
 backdrop_chosen:
     cmp #BACKDROPS_GAME
-    bcs no_backdrop               ; BACKDROP_PLAIN, or a cartridge with no backgrounds
+    bcs no_backdrop             ; BACKDROP_PLAIN, or a cartridge with no backgrounds
     sta SCN_BACKDROP
     rep #$20
 .a16
@@ -619,7 +619,7 @@ backdrop_chosen:
     tax
     sep #$20
 .a8
-    lda f:backdrop_fallback, x     ; its own if the ROM carries it, or the replacement
+    lda f:backdrop_fallback, x  ; its own if the ROM carries it, or the replacement
     sta SCN_FALLBACK
 no_backdrop:
     lda #0
@@ -641,7 +641,7 @@ with_troop:
 .a8
     lda f:troop_init, x
     sta SCN_I                   ; the first member
-    sta SCN_INIT                 ; and again, for `scn_by_command`
+    sta SCN_INIT                ; and again, for `scn_by_command`
 other_enemy:
     lda SCN_E
     cmp BA_KID
@@ -712,7 +712,7 @@ allocated:
     bne has_scene
     lda SCN_VIS
     bne has_scene
-    jmp no_scene              ; neither background nor battlers: on black, as before
+    jmp no_scene                ; neither background nor battlers: on black, as before
 has_scene:
     lda #0
     sta BA_SCENE
@@ -721,7 +721,7 @@ has_scene:
     sta SCN_MSU
     lda SCN_BACKDROP
     cmp #$FF
-    beq no_msu                 ; the plain one is not read from anywhere
+    beq no_msu                  ; the plain one is not read from anywhere
     jsr msu_data_valid
     sta SCN_MSU
 no_msu:
@@ -956,7 +956,7 @@ ready:
     lda SCN_BACKDROP
     cmp #$FF
     beq ready                   ; the plain one is already there: it is zeros
-    jsl f:scn_double + FAST   ; from the fast mirror: see MEMSEL
+    jsl f:scn_double + FAST     ; from the fast mirror: see MEMSEL
 ready:
     rts
 .endproc
@@ -1205,7 +1205,7 @@ tile:
     sep #$20
 .a8
     lda f:backdrop_dir + 2, x
-    ora #^FAST                ; the fallback, through the fast mirror
+    ora #^FAST                  ; the fallback, through the fast mirror
     sta ED_FONT + 2
     phb
     lda #^SCN_CLEAN
@@ -1396,7 +1396,7 @@ repaint:
     asl a
     asl a
     asl a
-    sta SCN_SUB_LENGTH           ; bytes per tile row
+    sta SCN_SUB_LENGTH          ; bytes per tile row
     lda f:battler_height, x
     and #$00FF
     sta SCN_T0

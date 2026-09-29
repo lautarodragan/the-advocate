@@ -96,7 +96,7 @@ with_row:
     rts                         ; a still one with no turn slot
 can:
     phy
-    jsr turn_undo           ; if another one was left, it goes back to its own
+    jsr turn_undo               ; if another one was left, it goes back to its own
     ply
 
     ; Which way: `GetDirectionToCharacter`, with sx and sy being the event
@@ -124,7 +124,7 @@ sy_pos:
     cmp temp
     bcs vertical                ; |sy| >= |sx|
     pla
-    bmi to_right            ; the event to the left of the hero
+    bmi to_right                ; the event to the left of the hero
     lda #DIR_LEFT
     bra dir_list
 to_right:
@@ -134,7 +134,7 @@ vertical:
     pla
     lda temp + 2
     beq down
-    bmi down                   ; the event above the hero
+    bmi down                    ; the event above the hero
     lda #DIR_UP
     bra dir_list
 down:
@@ -253,7 +253,7 @@ still:
 .a8
     jsr vram_queue
     bne ready
-    jsr turn_undo           ; the queue was full: it does not turn
+    jsr turn_undo               ; the queue was full: it does not turn
 ready:
     rts
 .endproc
@@ -309,7 +309,7 @@ if:
     rts
 own:
     lda npc_buf + 13, y
-    bmi nothing                    ; animates in place: goes back by itself, next frame
+    bmi nothing                 ; animates in place: goes back by itself, next frame
     sty npc_row
     lda f:TURN_POSE_PREV
     jmp upload_npc_pose
@@ -347,7 +347,7 @@ nothing:
 .a8
     jsr seek_event_page
     lda chosen_any
-    beq undo                ; it was left without a page
+    beq undo                    ; it was left without a page
     lda f:PICK_K
     cmp #$FF
     beq undo

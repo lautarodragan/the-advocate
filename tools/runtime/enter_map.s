@@ -17,18 +17,18 @@
     sta map_current             ; to know whether the next jump changes map
     sep #$20
 .a8
-    jsr turn_clear            ; the rows are going to be different
+    jsr turn_clear              ; the rows are going to be different
     jsr battle_anim_clear       ; and the battle animation does not carry on
     rep #$20
 .a16
     stz sub_n                   ; and the tile substitutions are lost when
-    stz sub_refresh            ; loading a map, as in RM2k: see `sub_n`
+    stz sub_refresh             ; loading a map, as in RM2k: see `sub_n`
     sep #$20
 .a8
     lda #0                      ; and the picture is erased: it is the
-    sta f:PICTURE_ACTIVE         ; `erase_on_map_change` of Game_Pictures, and
-    sta f:PICTURE_READY          ; besides, its tiles belong to a single map
-    jsr package_load          ; the map's audio, during the fade
+    sta f:PICTURE_ACTIVE        ; `erase_on_map_change` of Game_Pictures, and
+    sta f:PICTURE_READY         ; besides, its tiles belong to a single map
+    jsr package_load            ; the map's audio, during the fade
     rep #$20
 .a16
     lda map_current
@@ -48,8 +48,8 @@
     phx
     sep #$20
 .a8
-    jsr anim_drawing_map   ; enters and leaves with the accumulator at eight
-    jsl f:encounter_map        ; and every how many steps there is an encounter here
+    jsr anim_drawing_map        ; enters and leaves with the accumulator at eight
+    jsl f:encounter_map         ; and every how many steps there is an encounter here
     rep #$20
 .a16
     plx
@@ -58,7 +58,7 @@
     lda f:map_table + M_MAP_BW, x
     sta map_width
     asl a
-    sta map_cw                 ; the width in 8x8 cells is double
+    sta map_cw                  ; the width in 8x8 cells is double
     lda f:map_table + M_MAP_BH, x
     sta map_height
     asl a
@@ -142,7 +142,7 @@ from_door:
     asl a
     sta hero_y
     lda #$FFFF
-    sta entry_x               ; consumed: the next load goes back to the record
+    sta entry_x                 ; consumed: the next load goes back to the record
 
 set:
     sep #$20
@@ -196,13 +196,13 @@ set:
     ; applies to.
     jsr clear_waits
     jsr clear_parallel
-    jsr page_routes         ; and the move routes of the active pages themselves
+    jsr page_routes             ; and the move routes of the active pages themselves
     ; The actor table belongs to this map, so where the leader's poses fall
     ; changes when changing map even if the party is the same.
     jsr pick_hero_graphic
-    jsr clear_tilemaps        ; what `fill_window` does not overwrite, from the map before
+    jsr clear_tilemaps          ; what `fill_window` does not overwrite, from the map before
     jsr fill_window             ; leaves strip_step_col ready, which the other one uses
-    jsr load_window            ; tiles, palette, its own tilemap and HDMA tables
+    jsr load_window             ; tiles, palette, its own tilemap and HDMA tables
     jsr init_hero_ptr
 
     ; The tint is game state, not map state: it survives the teleport. The
@@ -211,7 +211,7 @@ set:
     ; the colors where they were, so there is no need to ask whether there is
     ; a tint: the path is always the same.
     jsr apply_tint
-    stz flash_ready          ; whatever was in `pal_buf` no longer
+    stz flash_ready             ; whatever was in `pal_buf` no longer
                                 ; belongs to this map; the next frame
                                 ; builds it again if the flash goes on
     jsr upload_tint             ; the screen is off: it goes now
@@ -234,7 +234,7 @@ set:
     sep #$20
 .a8
     lda #JUMPS_MAX
-    sta jumps_left        ; with stx it would be two bytes and clobber the next one
+    sta jumps_left              ; with stx it would be two bytes and clobber the next one
     rep #$20
 .a16
     pla
@@ -291,7 +291,7 @@ set:
     ; which can fall in there.
     jsr load_above
     jsr apply_tint
-    stz flash_ready          ; `pal_buf` was from before; if the flash goes on,
+    stz flash_ready             ; `pal_buf` was from before; if the flash goes on,
                                 ; the next frame builds it again
     jsr upload_tint
     rts
@@ -333,7 +333,7 @@ set:
 .i16
     lda #$80
     sta INIDISP                 ; what follows writes VRAM by DMA
-    jsl f:scene_cgram_restore  ; the palettes the battlers took
+    jsl f:scene_cgram_restore   ; the palettes the battlers took
     jsr load_sprite             ; the pose bank, the object palette and OBSEL
     jsr npc_poses_forget
     jsr load_window
@@ -386,15 +386,15 @@ set:
 .i16
     lda fade
     beq none
-    lda ticks                 ; the low byte is enough: the fade lasts 70
+    lda ticks                   ; the low byte is enough: the fade lasts 70
     sec
     sbc fade_base
     cmp #FADE_TOTAL
     bcs finish
     cmp #FADE_LOAD
-    bcc ramp                   ; still going dark
+    bcc ramp                    ; still going dark
     pha
-    jsr load_requested        ; only once: it turns itself off
+    jsr load_requested          ; only once: it turns itself off
     pla
 ramp:
     ; This frame's brightness. Going down, the ramp is read backwards.
@@ -402,12 +402,12 @@ ramp:
     bcs uploading
     eor #$FF
     clc
-    adc #FADE_RAMP          ; FADE_RAMP - 1 - t
+    adc #FADE_RAMP              ; FADE_RAMP - 1 - t
     bra in_ramp
 uploading:
     sec
     sbc #(FADE_FRAMES + FADE_BLACK)
-    bcs in_ramp             ; past the load: the ramp back up
+    bcs in_ramp                 ; past the load: the ramp back up
     lda #0                      ; the black in the middle
     sta brightness
     bra continues
@@ -465,10 +465,10 @@ MAP_SONG = $7E6100
     ldx fade_map
     lda f:map_song, x
     cmp #SONG_TOTAL
-    bcs nothing                    ; $FF, or one the cartridge does not carry
+    bcs nothing                 ; $FF, or one the cartridge does not carry
     pha
     lda bgm_fade
-    bne changes                  ; it was fading out: it starts over
+    bne changes                 ; it was fading out: it starts over
     lda f:MSU_PLAYING
     bne plays
     lda music_off
@@ -488,7 +488,7 @@ changes_already:
     pha
     jsr msu_stop
     lda #$FF
-    jsr battle_bgm             ; silence: the voices release
+    jsr battle_bgm              ; silence: the voices release
     pla
     rts
 .endproc
@@ -507,7 +507,7 @@ changes_already:
     pha
     lda #$80
     sta INIDISP
-    stz brightness                  ; and let the next vblank leave it black
+    stz brightness              ; and let the next vblank leave it black
     pla
     cmp #FADE_SAME
     bne load
@@ -527,8 +527,8 @@ load:
     bne jump
     rep #$20
 .a16
-    lda fade_map            ; the index goes in sixteen bits
-    jsr enter_map             ; the harness's: resets the jump cap
+    lda fade_map                ; the index goes in sixteen bits
+    jsr enter_map               ; the harness's: resets the jump cap
     sep #$20
 .a8
     ; The hero appears standing still on the entry cell. No jump in the game
@@ -542,7 +542,7 @@ load:
 jump:
     rep #$20
 .a16
-    lda fade_map            ; the index goes in sixteen bits
+    lda fade_map                ; the index goes in sixteen bits
     jsr enter_map_no_events
     sep #$20
 .a8
@@ -601,13 +601,13 @@ ready:
     asl a
     sta hero_y
     lda #$FFFF
-    sta entry_x               ; consumed
+    sta entry_x                 ; consumed
     sep #$20
 .a8
     stz step_left               ; a step halfway along is cut short
     stz moving
-    jsr menu_forget            ; and a menu request too: `MoveTo`
-    jsl f:encounter_move       ; and the distance walked, which is the other thing it erases
+    jsr menu_forget             ; and a menu request too: `MoveTo`
+    jsl f:encounter_move        ; and the distance walked, which is the other thing it erases
     jsr follow_camera
     jsr fill_window             ; the camera jumped: the tilemap is filled again
     jsr init_hero_ptr

@@ -26,15 +26,15 @@ ANIM_T     = $7E30E6
 ; is `FAR_ARAM_OF`, at $3100. It started at $30E8 and overwrote them: the ROM
 ; stopped detecting the MSU-1 and the title music went silent. No test saw it
 ; —the suite compares pixels— and taro found it by listening.
-FAR_PICTURE    = $7E30EC
+FAR_PICTURE   = $7E30EC
 PICTURE_ACTIVE = FAR_PICTURE + 0
-PICTURE_TONE   = FAR_PICTURE + 1  ; r, g, b, with 100 neutral like the tint
+PICTURE_TONE  = FAR_PICTURE + 1 ; r, g, b, with 100 neutral like the tint
 PICTURE_FROM  = FAR_PICTURE + 4
-PICTURE_TO  = FAR_PICTURE + 7
-PICTURE_STEP   = FAR_PICTURE + 10
-PICTURE_STEPS  = FAR_PICTURE + 11
-PICTURE_READY  = FAR_PICTURE + 12 ; a new palette is waiting for vblank
-PICTURE_I      = FAR_PICTURE + 13
+PICTURE_TO    = FAR_PICTURE + 7
+PICTURE_STEP  = FAR_PICTURE + 10
+PICTURE_STEPS = FAR_PICTURE + 11
+PICTURE_READY = FAR_PICTURE + 12 ; a new palette is waiting for vblank
+PICTURE_I     = FAR_PICTURE + 13
 PICTURE_CHANGE = FAR_PICTURE + 14
 
 ; And the tail of escapes of whatever text box is open: how many frames are
@@ -85,11 +85,11 @@ has:
     sta code_ptr + 2
 other:
     ldy #0
-    lda [code_ptr], y            ; its tick
+    lda [code_ptr], y           ; its tick
     cmp f:ANIM_T
     bne ready
     iny
-    lda [code_ptr], y            ; its type
+    lda [code_ptr], y           ; its type
     iny                         ; and the data, from the third byte
     cmp #ANIM_SOUND
     bne no_sound
@@ -101,7 +101,7 @@ no_sound:
     jsr flash_from_code
     bra made
 no_flash:
-    jsr flash_start           ; the target's
+    jsr flash_start             ; the target's
 made:
     rep #$20
 .a16
@@ -161,12 +161,12 @@ ANIMB_VRAM   = $7E3604          ; where the frame's DMA goes, in words
 ANIMB_CGADD  = $7E3606          ; its palette's CGRAM entry
 ANIMB_SHADOW = $7E3607          ; and its offset in `cgram_shadow`, word
 ANIMB_ACTIVE = $7E3609          ; one is being drawn
-ANIMB_ROW   = $7E360A          ; its row in `anim_battle_table`, word
+ANIMB_ROW    = $7E360A          ; its row in `anim_battle_table`, word
 ANIMB_TARGET = $7E360C          ; what it goes on; $FF is the screen
 ANIMB_T      = $7E360D          ; the tick, word
-ANIMB_FRAME = $7E360F          ; the current frame, word
+ANIMB_FRAME = $7E360F           ; the current frame, word
 ANIMB_N      = $7E3611          ; how many frames it has, word
-ANIMB_UPLOAD  = $7E3613          ; a frame is waiting for vblank
+ANIMB_UPLOAD = $7E3613          ; a frame is waiting for vblank
 ANIMB_PAL    = $7E3614          ; and a palette
 ANIMB_I      = $7E3615          ; which of the four objects is being built
 ANIMB_PREV   = $7E3616          ; three bytes: the last frame built in
@@ -178,7 +178,7 @@ ANIMB_PREV   = $7E3616          ; three bytes: the last frame built in
 .proc anim_drawing_map
 .a8
 .i16
-    jsl f:anim_buf_clear      ; with the screen off, where it does not show
+    jsl f:anim_buf_clear        ; with the screen off, where it does not show
     lda #0
     sta f:ANIMB_ACTIVE
     sta f:ANIMB_UPLOAD
@@ -256,7 +256,7 @@ has:
     asl a
     asl a
     clc
-    adc f:map_table + M_VRAM_SPRITE, x   ; long: `map_table` lives in RODATA
+    adc f:map_table + M_VRAM_SPRITE, x    ; long: `map_table` lives in RODATA
     sta f:ANIMB_VRAM
     sep #$20
 .a8
@@ -304,7 +304,7 @@ has:
     lda #0
     sta f:ANIMB_T
     lda #$FFFF
-    sta f:ANIMB_FRAME          ; none yet: the first tick uploads 0
+    sta f:ANIMB_FRAME           ; none yet: the first tick uploads 0
     sep #$20
 .a8
     lda temp + 1
@@ -381,11 +381,11 @@ continues:
     sep #$20
 .a8
     lda #1
-    sta f:ANIMB_UPLOAD           ; the next vblank sends it to VRAM
+    sta f:ANIMB_UPLOAD          ; the next vblank sends it to VRAM
     ; And it is built now, out here: the vblank only copies. There is no race
     ; with the DMA because the loop uploads what is pending before calling
     ; this again.
-    jsl f:anim_frame_build + FAST   ; from the fast mirror: see MEMSEL
+    jsl f:anim_frame_build + FAST      ; from the fast mirror: see MEMSEL
     rep #$20
 .a16
 equal:
@@ -477,7 +477,7 @@ event:
     dec a                       ; the target is the event index plus one
     jsr event_npc
     cpy #$FFFF
-    beq nothing                    ; without a row there is nowhere to draw it
+    beq nothing                 ; without a row there is nowhere to draw it
     lda npc_buf + 14, y
     bne with_row
 nothing:
@@ -538,7 +538,7 @@ subtract_anchor:
     sep #$20
 .a8
     lda #$02
-    sta obj_big              ; all four objects are 32x32
+    sta obj_big                 ; all four objects are 32x32
     lda f:ANIMB_ATTR
     sta obj_attr
     lda #0

@@ -25,7 +25,7 @@
     rep #$20
 .a16
     stz BA_PAGE_WAIT
-    stz BA_TURN                ; the `turns` of `Game_Party`, which the
+    stz BA_TURN                 ; the `turns` of `Game_Party`, which the
                                 ; battle sets to zero when it starts
     sep #$20
 .a8
@@ -147,7 +147,7 @@ no:
     sep #$20
 .a8
     lda f:tpage_flags, x
-    sta BA_PAGE_FL               ; the triggers, which survive the `jsr`s
+    sta BA_PAGE_FL              ; the triggers, which survive the `jsr`s
     and #TPAGE_SWITCH_A
     beq no_a
     rep #$20
@@ -529,12 +529,12 @@ other_stretch:
 .a8
     bne to_screen
     lda BA_PAGE_ACT
-    bne to_screen           ; it did not finish and asked for nothing:
+    bne to_screen               ; it did not finish and asked for nothing:
                                 ; that does not happen with the commands in
                                 ; `TROPA_COMANDOS`, but if it did, the next
                                 ; frame carries on
     jsr ba_page_test
-    bne other_stretch              ; the next one, in this same frame
+    bne other_stretch           ; the next one, in this same frame
     lda BA_PAGE_TICK
     bne to_commands
     jmp ba_execute
@@ -569,7 +569,7 @@ to_screen:
     stz temp + 1                ; blank
     lda [msg_ptr]
     and #HEADER_LINES
-    sta BA_PAGE_I                ; the lines left
+    sta BA_PAGE_I               ; the lines left
     ldy #1
 line:
     lda BA_PAGE_I
@@ -590,7 +590,7 @@ letter:
     dec BA_T0
     lda BA_T2
     cmp #BA_PAGE_MSG_WIDTH
-    bcs no_enters                ; consumed and not drawn
+    bcs no_enters               ; consumed and not drawn
     inc BA_T2
     lda [msg_ptr], y
     clc

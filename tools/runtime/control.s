@@ -28,16 +28,16 @@ AUTOFIRE_FRAMES = 4
 starts:
     lda HVBJOY
     and #$01
-    beq starts                 ; not started yet
+    beq starts                  ; not started yet
 ends:
     lda HVBJOY
     and #$01
-    bne ends                 ; still reading
+    bne ends                    ; still reading
     lda pad
-    sta pad_prev                 ; the previous one, for the edges below
+    sta pad_prev                ; the previous one, for the edges below
     lda JOY1H
     sta pad
-    jsl arrows_repeat         ; holding an arrow presses it again
+    jsl arrows_repeat           ; holding an arrow presses it again
     ; For A what matters is not the state but the edge: RM2k closes the
     ; message with `Input::IsTriggered`, that is, with the transition from
     ; released to pressed. Holding it fires nothing again, and that is why the
@@ -67,7 +67,7 @@ with_x:
     sta pad_a
     lda autofire
     inc autofire
-    and #AUTOFIRE_FRAMES       ; tick 0 falls in the pressed phase: X presses now
+    and #AUTOFIRE_FRAMES        ; tick 0 falls in the pressed phase: X presses now
     bne off
     lda #PAD_A
     tsb pad_a
@@ -124,10 +124,10 @@ ARROWS = PAD_UP | PAD_DOWN | PAD_LEFT | PAD_RIGHT
     eor pad_prev
     and pad
     and #ARROWS
-    bne from_zero                 ; an arrow just pressed: its edge is enough
+    bne from_zero               ; an arrow just pressed: its edge is enough
     lda pad
     and #ARROWS
-    beq from_zero                 ; none held
+    beq from_zero               ; none held
     inc arrows_frames
     lda arrows_frames
     cmp #REPEAT_WAIT
@@ -139,7 +139,7 @@ ARROWS = PAD_UP | PAD_DOWN | PAD_LEFT | PAD_RIGHT
     lda pad
     and #ARROWS
     sta arrows_repeated
-    trb pad_prev                 ; to the screens, just pressed
+    trb pad_prev                ; to the screens, just pressed
     rtl
 from_zero:
     stz arrows_frames

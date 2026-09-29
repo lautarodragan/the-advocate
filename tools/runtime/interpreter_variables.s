@@ -23,7 +23,7 @@
     lda [code_ptr], y
     sta temp + 1                ; the operation, with VAR_REFRESH on top
     iny
-    lda [code_ptr], y            ; the operand class
+    lda [code_ptr], y           ; the operand class
     iny
     phy                         ; Y -> a; restored at the end
     ; Class 6 first: it is the one that the parallel pages comparing cells run
@@ -40,13 +40,13 @@
     beq other_var
     rep #$20
 .a16
-    lda [code_ptr], y            ; a constant
+    lda [code_ptr], y           ; a constant
     sta temp + 2
     sep #$20
 .a8
     bra var_apply
 variable_var:
-    lda [code_ptr], y            ; the slot it comes from
+    lda [code_ptr], y           ; the slot it comes from
     jsr var_read
 .a16
     sta temp + 2
@@ -91,11 +91,11 @@ var_random:
     ; not let through a range wider than 255.
     jsr random_next
     sta WRDIVL                  ; the dividend, sixteen bits
-    lda [code_ptr], y            ; a
+    lda [code_ptr], y           ; a
     sta temp + 2
     iny
     iny
-    lda [code_ptr], y            ; b
+    lda [code_ptr], y           ; b
     sec
     sbc temp + 2
     inc a                       ; b - a + 1
@@ -156,7 +156,7 @@ var_sets:
     lda temp + 1                ; the operation, which carries the refresh bit
     xba
     lda temp
-    jsr var_write            ; and the refresh, if the operation asks for
+    jsr var_write               ; and the refresh, if the operation asks for
                                 ; it: the pages that look at this variable may
     ply                         ; change. See `var_write`
     iny                         ; a and b, four bytes
@@ -179,7 +179,7 @@ character_var:
     ; **times** EV_STRIDE is carried in X, which nobody uses here, with the
     ; offset folded into the address: that way the hero ends up with X at zero
     ; and telling it apart is a `cpx`, which does not touch the accumulator.
-    lda [code_ptr], y            ; a: the target
+    lda [code_ptr], y           ; a: the target
     rep #$20
 .a16
     and #$00FF
@@ -190,7 +190,7 @@ character_var:
 .a8
     iny
     iny
-    lda [code_ptr], y            ; b: which coordinate
+    lda [code_ptr], y           ; b: which coordinate
     cpx #$0000
     beq var_character_hero
     ; An event: its cell is in `ev_pos_buf`, indexed by the index in the
@@ -231,25 +231,25 @@ var_character_ready:
 ; Two class-6 `ControlVars` and two `ConditionalBranch` on variable equality,
 ; fused into one: see `cell_test`, which lives in bank 1.
 .proc op_cell_test
-    jsl f:cell_test + FAST   ; see MEMSEL
+    jsl f:cell_test + FAST        ; see MEMSEL
     jmp run_code::other
 .endproc
 
 .proc op_switch
     rep #$20
 .a16
-    lda [code_ptr], y            ; the number, 16 bits
+    lda [code_ptr], y           ; the number, 16 bits
     sta temp
     sep #$20
 .a8
     iny
     iny
-    lda [code_ptr], y            ; and whether it goes on or off
+    lda [code_ptr], y           ; and whether it goes on or off
     iny
     phy
     jsr set_switch
     ply
-    jmp run_code::other     ; `bra` does not reach: the loop is far away
+    jmp run_code::other         ; `bra` does not reach: the loop is far away
 
 .endproc
 

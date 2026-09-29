@@ -58,10 +58,10 @@ cancelled:
 .proc op_access
 .a8
 .i16
-    lda [code_ptr], y            ; the bit: $01 save, $02 the menu, $04 escape
+    lda [code_ptr], y           ; the bit: $01 save, $02 the menu, $04 escape
     sta temp
     iny
-    lda [code_ptr], y            ; allowed
+    lda [code_ptr], y           ; allowed
     iny
     sta temp + 1
     phy

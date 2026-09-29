@@ -28,7 +28,7 @@
 .a8
 .i16
     jsr set_slot
-    jsr slot_in_x             ; with the data bank still normal
+    jsr slot_in_x               ; with the data bank still normal
     phb
     lda #SRAM_BANK
     pha
@@ -343,7 +343,7 @@ other_member:
     bcs faces_lists
     jsr member_actor
     cmp #SLOT_ACTORS_N
-    bcs next               ; an actor this ROM does not know
+    bcs next                    ; an actor this ROM does not know
     rep #$20
 .a16
     and #$00FF
@@ -352,7 +352,7 @@ other_member:
 .a8
     lda slot_face_block, x
     cmp #$FF
-    beq next               ; no face
+    beq next                    ; no face
     pha                         ; the block, while the destination is built
     ; The table goes four per slot: the slot times four plus the place.
     lda slot
@@ -421,7 +421,7 @@ faces_lists:
     sep #$20
 .a8
     pla
-    jsl f:text_level_saved  ; the one from the slot's save, not the current one
+    jsl f:text_level_saved      ; the one from the slot's save, not the current one
     lda #SLOT_LEVEL_DIGITS
     jsr slot_text_write
 ready:
@@ -573,7 +573,7 @@ no_up:
     inc a
     cmp #SRAM_SLOTS_N
     bcc low
-    lda arrows_repeated       ; the same going down: repeating does not wrap
+    lda arrows_repeated         ; the same going down: repeating does not wrap
     and #PAD_DOWN
     bne wait
     lda #0
@@ -591,7 +591,7 @@ faces_a:
     lda pad_a
     beq wait
     lda pad_a_prev
-    bne wait                  ; it was already held: not an edge
+    bne wait                    ; it was already held: not an edge
     jsr close
     lda title_sel
     rts
@@ -633,9 +633,9 @@ move_cursor:
     lda temp + 3
     sta title_sel
     pla
-    jsr slot_paint           ; the cursor is erased from where it was
+    jsr slot_paint              ; the cursor is erased from where it was
     lda title_sel
-    jmp slot_paint           ; and painted where it goes
+    jmp slot_paint              ; and painted where it goes
 .endproc
 
 ; Uploads the tile bank of the slot screen and the menu, blanks the tilemap

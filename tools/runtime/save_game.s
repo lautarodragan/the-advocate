@@ -18,7 +18,7 @@
 ; `ca65` picks direct page when the address fits in a byte, so
 ; with the saved game at $0000 an `lda SRAM_MAGIC, x` would read the direct
 ; page instead of the SRAM. Nobody uses the 256 bytes left below.
-SRAM_BANK = $70            ; in LoROM the SRAM shows at $70:0000
+SRAM_BANK = $70             ; in LoROM the SRAM shows at $70:0000
 
 ; **Four slots**, which is what taro asked for: RM2k opens a menu of fifteen
 ; and for this game that makes no sense. Many more would fit in the SRAM —it
@@ -45,7 +45,7 @@ SRAM_STRIDE = 2048
 ; the saved game not loading in mednafen, in Mesen or on the console.
 SRAM_MAGIC = $0100          ; four bytes: the game's signature,
                             ; `SRAM_MAGIC_TEXT`
-SRAM_CHECKSUM  = $0104          ; the sum of the saved game's bytes
+SRAM_CHECKSUM = $0104       ; the sum of the saved game's bytes
 ; And which format it is: the magic and the sum say the slot is intact, not
 ; that it is from this build. Since the test cases travel in the ROM that gets
 ; played, the saved game changes shape every time a case names a variable or
@@ -59,7 +59,7 @@ SRAM_CHECKSUM  = $0104          ; the sum of the saved game's bytes
 ; converter from which variable, actor and skill goes in each slot
 ; —`firma_de_la_partida`—, which is what the length does not see.
 SRAM_BYTES = $0106          ; SAVE_BYTES
-SRAM_SIGNATURE = $0108          ; GAME_SIGNATURE
+SRAM_SIGNATURE = $0108      ; GAME_SIGNATURE
 SRAM_DATA = $010A
 
 ; `save_table` lives in RODATA —see "what does not need to live in bank 0"
@@ -74,7 +74,7 @@ SAVE_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + 
 ; direction, the cell and the map. The slot screen reads it from the SRAM to
 ; show the leader's name and the faces. It is the same sum as above, cut at the
 ; table's sixth line; if `save_table` changes order, this changes with it.
-SAVE_PARTY   = 2 + 2 + 1 + 2 + 2 + 2   ; the map takes two since its
+SAVE_PARTY      = 2 + 2 + 1 + 2 + 2 + 2   ; the map takes two since its
                                           ; index is sixteen bits
 SAVE_PARTY_N = SAVE_PARTY + 4
 
@@ -131,7 +131,7 @@ SAVE_PARTY_N = SAVE_PARTY + 4
     sta A1B0
     ldx #$0000                  ; where the table is at
     phx
-    jsr slot_in_x             ; normal data bank: here it still is
+    jsr slot_in_x               ; normal data bank: here it still is
     rep #$20
 .a16
     txa
@@ -210,7 +210,7 @@ ready:
 .a8
     ldy #$0000                  ; X already comes with the start of its slot
 sum:
-    lda SRAM_DATA, x           ; the base does not fit in a byte: absolute,
+    lda SRAM_DATA, x            ; the base does not fit in a byte: absolute,
                                 ; and the data bank is the SRAM
     rep #$20
 .a16
@@ -222,7 +222,7 @@ sum:
 .a8
     inx
     iny                         ; X walks the SRAM and Y counts: the slot does
-    cpy #SAVE_BYTES          ; not start at zero and the two are not the same
+    cpy #SAVE_BYTES             ; not start at zero and the two are not the same
     bne sum
     rts
 .endproc
@@ -286,7 +286,7 @@ square:
     pha
     plb
     phx
-    jsr save_checksum            ; clobbers X
+    jsr save_checksum           ; clobbers X
     plx
     rep #$20
 .a16
@@ -316,7 +316,7 @@ square:
 .proc load_game
 .a8
 .i16
-    jsr slot_in_x             ; before moving the bank: see
+    jsr slot_in_x               ; before moving the bank: see
                                 ; `save_game`
     phb
     lda #SRAM_BANK
@@ -325,7 +325,7 @@ square:
     jsr slot_of_this_format
     beq none
     phx
-    jsr save_checksum            ; clobbers X
+    jsr save_checksum           ; clobbers X
     plx
     rep #$20
 .a16
@@ -342,7 +342,7 @@ square:
 none:
     plb
     lda #$FF
-    sta slot                  ; the sentinel: no saved game loaded
+    sta slot                    ; the sentinel: no saved game loaded
     lda #$00
     rts
 .endproc

@@ -39,7 +39,7 @@
     sta VMADDL
     sep #$20
 .a8
-    jsl f:lz2_backdrop + FAST    ; compressed, in streams: see decompress.s
+    jsl f:lz2_backdrop + FAST   ; compressed, in streams: see decompress.s
 
     ; --- the ChipSet animation ---
     ; The map brings drawing 0 of each run into VRAM, and the clock can be on
@@ -426,11 +426,11 @@ ready:
     clc
     adc map_ofs
     tax
-    lda f:map_table, x           ; the low 16 bits of the pointer
+    lda f:map_table, x            ; the low 16 bits of the pointer
     sta npc_ptr
     sep #$20
 .a8
-    lda f:map_table + 2, x       ; and its bank
+    lda f:map_table + 2, x        ; and its bank
     sta npc_ptr + 2
 
     ldx map_ofs
@@ -454,7 +454,7 @@ copy:
     iny
     bra copy
 ready:
-    jsl f:pass_look + FAST   ; ver `pass_has`
+    jsl f:pass_look + FAST      ; ver `pass_has`
     rts
 .endproc
 
@@ -514,11 +514,11 @@ ready:
     clc
     adc map_ofs
     tax
-    lda f:map_table, x           ; the low 16 bits of the pointer
+    lda f:map_table, x            ; the low 16 bits of the pointer
     sta npc_ptr
     sep #$20
 .a8
-    lda f:map_table + 2, x       ; and its bank
+    lda f:map_table + 2, x        ; and its bank
     sta npc_ptr + 2
 
     ldx map_ofs

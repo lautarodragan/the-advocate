@@ -38,8 +38,8 @@
     rep #$20
 .a16
     phy                         ; the cursor: `switch_on` clobbers X and Y
-    lda [code_ptr], y            ; the number, 16 bits
-    jsr switch_on        ; Z=1 off, Z=0 on
+    lda [code_ptr], y           ; the number, 16 bits
+    jsr switch_on               ; Z=1 off, Z=0 on
     beq if_off
     lda #$0001
     bra if_have
@@ -66,9 +66,9 @@ if_polarity:
     ; It carries no polarity: the lower branch is the `else`, so the converter
     ; emits zero there and it is not looked at here.
 if_actor:
-    lda [code_ptr], y            ; the id, which fits in a byte
+    lda [code_ptr], y           ; the id, which fits in a byte
     phy
-    jsr in_party             ; A=1 if present, A=0 if not
+    jsr in_party                ; A=1 if present, A=0 if not
     ply
     iny
     iny                         ; Y -> the polarity, which is zero
@@ -89,14 +89,14 @@ if_actor:
 if_gold:
     rep #$20
 .a16
-    lda [code_ptr], y            ; against how much, 16 bits
+    lda [code_ptr], y           ; against how much, 16 bits
     sta temp + 2
     sep #$20
 .a8
     iny
     iny                         ; Y -> the polarity
     lda gold + 2
-    bne if_gold_big           ; the gold is past 65535: greater than any
+    bne if_gold_big             ; the gold is past 65535: greater than any
                                 ; operand, which fits in a word
     rep #$20
 .a16
@@ -112,7 +112,7 @@ if_gold_ge:
     rep #$20
 .a16
     lda temp + 2
-    cmp gold                     ; C=1 if operand >= gold, i.e. gold <= operand
+    cmp gold                    ; C=1 if operand >= gold, i.e. gold <= operand
     sep #$20
 .a8
     lda #$01
@@ -126,7 +126,7 @@ if_gold_big:
     sta temp                    ; the >= holds
     stz temp + 1                ; and the <= does not
 if_gold_picks:
-    lda [code_ptr], y            ; the polarity
+    lda [code_ptr], y           ; the polarity
     beq if_gold_uses_ge
     lda temp + 1
     bra if_decides
@@ -145,7 +145,7 @@ if_gold_uses_ge:
 if_item:
     rep #$20
 .a16
-    lda [code_ptr], y            ; the item number, 16 bits
+    lda [code_ptr], y           ; the item number, 16 bits
     clc
     adc #FAR_ITEMS
     sta WMADDL
@@ -191,12 +191,12 @@ if_no_met:
     lda [code_ptr], y
     sta temp + 1                ; the class: constant or another variable
     iny
-    lda [code_ptr], y            ; the comparison
+    lda [code_ptr], y           ; the comparison
     pha
     iny
     rep #$20
 .a16
-    lda [code_ptr], y            ; the value, or the slot
+    lda [code_ptr], y           ; the value, or the slot
     sta temp + 2
     sep #$20
 .a8
@@ -223,7 +223,7 @@ if_var_against_constant:
     cmp temp + 2
     sep #$20
 .a8
-    beq if_var_continues            ; `sep` does not touch Z
+    beq if_var_continues        ; `sep` does not touch Z
     bra if_var_no
 if_var_other:
     sta temp + 1
@@ -238,7 +238,7 @@ if_var_other:
 if_var_no:
     rep #$20
 .a16
-    lda [code_ptr], y            ; it does not hold: to the target
+    lda [code_ptr], y           ; it does not hold: to the target
     tay
     sep #$20
 .a8
@@ -314,7 +314,7 @@ sia_eq_other:
     cmp temp + 2
     sep #$20
 .a8
-    beq sia_yes                  ; `sep` does not touch Z: the comparison is still live
+    beq sia_yes                 ; `sep` does not touch Z: the comparison is still live
     dex
     bne sia_eq_other
     bra sia_no
@@ -330,7 +330,7 @@ sia_skill:
 sia_no:
     rep #$20
 .a16
-    lda [code_ptr], y            ; the target, absolute inside the page
+    lda [code_ptr], y           ; the target, absolute inside the page
     tay
     sep #$20
 .a8

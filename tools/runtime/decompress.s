@@ -54,7 +54,7 @@
 .i16
     php
     phb
-    ora #^FAST                ; the stream, through the fast mirror
+    ora #^FAST                  ; the stream, through the fast mirror
     pha
     ; The literal's trampoline. In `mvn`'s machine code the destination bank
     ; goes first and the source bank after.
@@ -122,9 +122,9 @@ length:
     asl a
 dispatch:
     asl a
-    bcs repeat              ; 4: 5 and 6 do not exist
+    bcs repeat                  ; 4: 5 and 6 do not exist
     asl a
-    bcs word                 ; 2; 3, the increasing fill, never arrives
+    bcs word                    ; 2; 3, the increasing fill, never arrives
     asl a
     bcs padding
     ; 0: the bytes, from the stream to the output.
@@ -281,7 +281,7 @@ ready:
 ;
 ; Enters with VMAIN and VMADD set; the DMA carries the VRAM address on from one
 ; stream to the next. Leaves the tile bank uploaded and clobbers A, X and Y.
-BACKDROP_TILES_PER_STREAM = LZ2_CAP_BACKDROP / 64     ; 64 bytes per 8-bit tile
+BACKDROP_TILES_PER_STREAM = LZ2_CAP_BACKDROP / 64 ; 64 bytes per 8-bit tile
 .proc lz2_backdrop
 .a8
 .i16
@@ -300,7 +300,7 @@ stream:
     sta f:LZ2_BANK
     lda 1, s
     ldy #.loword(LZ2_BUFFER)
-    jsl f:lz2_decompress + FAST     ; leaves X on the next stream
+    jsl f:lz2_decompress + FAST         ; leaves X on the next stream
     rep #$20
 .a16
     ; The ones that will be left after this one: zero if this is the last.
@@ -388,7 +388,7 @@ stream:
     pla
     pha
     ldy #.loword(GRID)
-    jsl f:lz2_decompress + FAST     ; leaves X on the second stream
+    jsl f:lz2_decompress + FAST         ; leaves X on the second stream
     lda #^GRID_HIGH
     sta f:LZ2_BANK
     pla

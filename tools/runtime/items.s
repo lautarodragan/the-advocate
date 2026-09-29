@@ -79,7 +79,7 @@ other:
     beq next
     lda f:item_k, x
     cmp #$FF
-    beq next               ; one this ROM does not know how to show
+    beq next                    ; one this ROM does not know how to show
     pha
     rep #$20
 .a16
@@ -345,7 +345,7 @@ end:
     adc pick_sel                ; its place in the list
     pha
     jsr item_from_list
-    sta pick_edges            ; its `k`
+    sta pick_edges              ; its `k`
     pla
     cmp title_sel
     bne no_cursor
@@ -426,7 +426,7 @@ units:
     sep #$20
 .a8
     lda temp + 3
-    beq no_tens             ; a 7 is " 7", not "07"
+    beq no_tens                 ; a 7 is " 7", not "07"
     clc
     adc #$30                    ; '0'
     jsr glyph_pair
@@ -457,7 +457,7 @@ row:
     adc pick_sel
     bcs ends
     cmp pick_n
-    bcs ends                 ; no more items
+    bcs ends                    ; no more items
     pla
     pha
     jsr items_row_paint
@@ -493,7 +493,7 @@ ends:
     sta menu_open
 wait:
     jsr wait_vblank
-    jsr items_desc_upload        ; first thing in vblank: the description
+    jsr items_desc_upload       ; first thing in vblank: the description
     jsr read_pad
     lda pad
     eor pad_prev
@@ -502,7 +502,7 @@ wait:
     and #PAD_UP
     beq no_up
     lda title_sel
-    beq wait                  ; RM2k does not wrap around in a list
+    beq wait                    ; RM2k does not wrap around in a list
     dec a
     jsr move
     bra wait
@@ -526,12 +526,12 @@ faces_a:
     lda pad_a
     beq wait
     lda pad_a_prev
-    bne wait                  ; it was already held: not an edge
+    bne wait                    ; it was already held: not an edge
     lda pick_n
-    beq wait                  ; the list is empty
+    beq wait                    ; the list is empty
     lda title_sel
     jsr item_from_list
-    sta pick_edges            ; its `k`
+    sta pick_edges              ; its `k`
     rep #$20
 .a16
     and #$00FF
@@ -540,7 +540,7 @@ faces_a:
 .a8
     lda item_use, x
     and #1
-    beq wait                  ; grayed out: RM2k plays a sound and does nothing
+    beq wait                    ; grayed out: RM2k plays a sound and does nothing
     lda item_use, x
     and #4
     beq from_switch
@@ -663,7 +663,7 @@ low_view:
 repaint:
     lda #$80
     sta INIDISP
-    jsl f:items_screen_upload  ; the blank tilemap, and the rest along with it
+    jsl f:items_screen_upload   ; the blank tilemap, and the rest along with it
     jsr items_desc_paint
     jsr items_desc_upload
     jsr items_rows_paint

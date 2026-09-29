@@ -22,7 +22,7 @@ other_second:
     rep #$20
 .a16
     lda timer_sec
-    beq off_16               ; it was already at zero: nothing to decrement
+    beq off_16                  ; it was already at zero: nothing to decrement
     dec a
     sta timer_sec
     sep #$20
@@ -41,7 +41,7 @@ off:
     lda timer_visible
     stz timer_visible           ; `stz` does not touch Z: the branch looks at the `lda`
     beq already_no_se_saw
-    jsr timer_repaint          ; its entries get tinted again
+    jsr timer_repaint           ; its entries get tinted again
 already_no_se_saw:
     rts
 .endproc
@@ -125,7 +125,7 @@ has:
     bne draw
     rts                         ; this ROM does not carry the glyphs
 draw:
-    stz obj_big              ; the digits are 8x8
+    stz obj_big                 ; the digits are 8x8
     stz timer_i
 each_glyph:
     lda timer_i

@@ -251,7 +251,7 @@ ba_t_page:
     beq ready
     phx
     lda #$FF
-    jsr battle_bgm             ; silence, so nothing stays pinned
+    jsr battle_bgm              ; silence, so nothing stays pinned
     plx
     rep #$20
 .a16
@@ -287,7 +287,7 @@ mute:
     sta music_off
     lda #$FF
     ldx #SE_KOF
-    jsr dsp_pair                 ; all eight voices release
+    jsr dsp_pair                ; all eight voices release
     plp
     rts
 .endproc

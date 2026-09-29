@@ -23,13 +23,13 @@
 ; goes nowhere. The hero's was copied to RAM, with a 32-byte cap, until
 ; 2026-09-27: see `hero_route`.
 .proc op_route
-    lda [code_ptr], y            ; on whom
+    lda [code_ptr], y           ; on whom
     sta route_target
     iny
-    lda [code_ptr], y            ; at what frequency
+    lda [code_ptr], y           ; at what frequency
     sta route_freq_op
     iny
-    lda [code_ptr], y            ; how many commands it carries
+    lda [code_ptr], y           ; how many commands it carries
     sta route_count
     stz route_count + 1
     iny
@@ -88,7 +88,7 @@ skip_route:
 ; touches the direction. The opening cutscene uses it six times to bring
 ; Core, Manta and the droid into the scene.
 .proc op_place
-    lda [code_ptr], y            ; the target: the event's index plus one
+    lda [code_ptr], y           ; the target: the event's index plus one
     dec a
     sta temp
     iny
@@ -110,7 +110,7 @@ skip_route:
     sep #$20
 .a8
     phy
-place_plant:                  ; with Y already on the stack: see `op_place_var`
+place_plant:                    ; with Y already on the stack: see `op_place_var`
     jsr plant_event
     ply
     jmp run_code::other
@@ -134,14 +134,14 @@ place_plant:                  ; with Y already on the stack: see `op_place_var`
 .proc op_place_var
 .a8
 .i16
-    lda [code_ptr], y            ; the target: the event's index plus one
+    lda [code_ptr], y           ; the target: the event's index plus one
     dec a
     sta temp
     iny
-    lda [code_ptr], y            ; the slot for x
+    lda [code_ptr], y           ; the slot for x
     sta temp + 1
     iny
-    lda [code_ptr], y            ; and the one for y
+    lda [code_ptr], y           ; and the one for y
     sta temp + 2
     iny
     phy
@@ -176,11 +176,11 @@ place_plant:                  ; with Y already on the stack: see `op_place_var`
 ; `MoveTo` like the one in `op_place` —the cell, cutting the step, and the
 ; drawing that follows it—. Both cells are read before writing either.
 .proc op_swap
-    lda [code_ptr], y            ; the first: the index plus one
+    lda [code_ptr], y           ; the first: the index plus one
     dec a
     sta swap_a
     iny
-    lda [code_ptr], y            ; and the second
+    lda [code_ptr], y           ; and the second
     dec a
     sta swap_b
     iny
@@ -269,8 +269,8 @@ stop_other:
     beq stop_next
     lda route_ev + 18, x
     and #$01
-    bne stop_next         ; the page's one is not forced
-    lda route_ev + 27, x         ; does it have its own route to go back to?
+    bne stop_next               ; the page's one is not forced
+    lda route_ev + 27, x        ; does it have its own route to go back to?
     beq stop_no_page
     jsr resume_page
     bra stop_next

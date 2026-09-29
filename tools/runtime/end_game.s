@@ -121,13 +121,13 @@ wait:
     lda title_sel
     eor #1
     sta title_sel
-    jsr ending_palette              ; still in the vblank
+    jsr ending_palette          ; still in the vblank
     bra wait
 faces_a:
     lda pad_a
     beq wait
     lda pad_a_prev
-    bne wait                  ; it was already held: not an edge
+    bne wait                    ; it was already held: not an edge
     lda title_sel
     cmp #END_NO
     bne leave

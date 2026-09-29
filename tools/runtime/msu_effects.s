@@ -41,7 +41,7 @@
 ; `se_extras_after`— does not use `temp`, for the same reason
 ; `sound_effects.s` does not.
 
-EX_VOICES = 6                    ; from 0 to 5
+EX_VOICES = 6                   ; from 0 to 5
 .assert SE_BIT = $80 && SE2_BIT = $40, error, "the usual sound effect voices are no longer 7 and 6"
 
 ; The bit of each voice, and that of the voice of each DSP register: that of
@@ -254,10 +254,10 @@ take:
     lda f:se_msu_pitch_pkg, x
     tax
 seek:
-    lda f:se_msu_pitch, x      ; the pair's index
+    lda f:se_msu_pitch, x       ; the pair's index
     cmp 1, s
     beq is
-    bcs no_is                 ; already went past: it is not from this package
+    bcs no_is                   ; already went past: it is not from this package
     inx
     inx
     inx
@@ -297,7 +297,7 @@ no_is:
     lda 3, s
     tax
     tya
-    sta f:SE_NEW + 1, x       ; the low pitch and the high one
+    sta f:SE_NEW + 1, x         ; the low pitch and the high one
 ready:
     pla
     plx
@@ -403,7 +403,7 @@ count_up:
     tyx
     lda f:ex_bit, x
     and 2, s
-    bne continues                   ; just started: counted from the next one
+    bne continues               ; just started: counted from the next one
     rep #$20
 .a16
     tya
@@ -484,11 +484,11 @@ have:
     pha                         ; [frames][pitch][voice]
     sep #$20
 .a8
-    lda f:sound_table + 0, x   ; SRCN
+    lda f:sound_table + 0, x    ; SRCN
     pha
-    lda f:sound_table + 3, x   ; VOLL
+    lda f:sound_table + 3, x    ; VOLL
     pha
-    lda f:sound_table + 4, x   ; VOLR
+    lda f:sound_table + 4, x    ; VOLR
     pha                         ; [volr][voll][srcn][frames][pitch][voice]
     lda 8, s                    ; the voice
     asl a
@@ -503,22 +503,22 @@ have:
 .a8
     pla
     inx
-    jsl dsp_pair_l               ; VOLR
+    jsl dsp_pair_l              ; VOLR
     dex
     pla
-    jsl dsp_pair_l               ; VOLL
+    jsl dsp_pair_l              ; VOLL
     inx
     inx
     inx
     lda 5, s
-    jsl dsp_pair_l               ; the high pitch
+    jsl dsp_pair_l              ; the high pitch
     dex
     lda 4, s
-    jsl dsp_pair_l               ; and the low
+    jsl dsp_pair_l              ; and the low
     inx
     inx
     pla
-    jsl dsp_pair_l               ; SRCN
+    jsl dsp_pair_l              ; SRCN
     inx
     lda #$FF                    ; ADSR on, attack and decay at maximum
     jsl dsp_pair_l
@@ -710,7 +710,7 @@ seek:
     lda f:se_msu_rows + 2, x
     tay
     lda f:se_msu_rows, x
-    jsr msu_data_seek        ; returns with 8-bit A
+    jsr msu_data_seek           ; returns with 8-bit A
 .a8
     plx
     bcc in_su_place
@@ -737,7 +737,7 @@ in_su_place:
     sta f:PKG_LENGTH
     clc
     adc f:se_msu_rows, x
-    sta f:MSU_SE_NEXT            ; where it will be left
+    sta f:MSU_SE_NEXT           ; where it will be left
     sep #$20
 .a8
     lda f:se_msu_rows + 2, x

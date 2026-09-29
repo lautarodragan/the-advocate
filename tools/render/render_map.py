@@ -91,9 +91,9 @@ def draw_tiles(image, atlas, game_map, flags, pass_upper, steps=(0, 0)):
 # which is where this is decided: a CRT's scan blurs **along the line**, so
 # alternating columns blend and the checkerboard does not.
 DITHERS = {
-    "checkerboard":   lambda x, y: (x + y) % 2 == 1,
-    "columns":        lambda x, y: x % 2 == 1,
-    "rows":           lambda x, y: y % 2 == 1,
+    "checkerboard":  lambda x, y: (x + y) % 2 == 1,
+    "columns":       lambda x, y: x % 2 == 1,
+    "rows":          lambda x, y: y % 2 == 1,
     "five_of_eight":  lambda x, y: ((y % 2) * 4 + (x % 4)) in (1, 4, 7),
     "three_of_four":  lambda x, y: x % 2 == 1 and y % 2 == 1,
 }

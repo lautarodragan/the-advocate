@@ -14,10 +14,10 @@
 .proc equipment_remove
 .a8
 .i16
-    lda [code_ptr], y            ; the actor
+    lda [code_ptr], y           ; the actor
     iny
     sta temp + 2
-    lda [code_ptr], y            ; the slot
+    lda [code_ptr], y           ; the slot
     iny
     sta temp + 3
     phy
@@ -100,14 +100,14 @@ ready:
 .i16
     rep #$20
 .a16
-    lda [code_ptr], y            ; the pair's slot
+    lda [code_ptr], y           ; the pair's slot
     iny
     iny
     sta temp + 2
     jsr skill_point
     sep #$20
 .a8
-    lda [code_ptr], y            ; 1 learns, 0 forgets
+    lda [code_ptr], y           ; 1 learns, 0 forgets
     iny
     cmp #0
     beq forget
@@ -225,7 +225,7 @@ has:
     lda #1
     sta ev_active
     lda #$FF
-    sta pair_ev                  ; neither a map's parallel event nor a
+    sta pair_ev                 ; neither a map's parallel event nor a
                                 ; battle page
     jsl f:run_code_long
     pla

@@ -17,13 +17,13 @@
 ;   $2004  write: which track, two bytes
 ;   $2006  the volume, 0 to 255
 ;   $2007  bit 0 play, bit 1 repeat
-MSU_STATE  = $2000
-MSU_SIGNATURE   = $2002
+MSU_STATE   = $2000
+MSU_SIGNATURE = $2002
 MSU_TRACK   = $2004
 MSU_VOLUME = $2006
 MSU_CONTROL = $2007
 MSU_HAS     = $7E30E8           ; whether the signature is there
-MSU_PLAYING   = $7E30E9           ; whether the track is playing right now
+MSU_PLAYING = $7E30E9           ; whether the track is playing right now
 
 ; The volume the track plays at, 0 to 255, and **it is not 255**: the MSU-1 is
 ; added to the SPC700's output instead of being mixed with it, so music at full
@@ -52,7 +52,7 @@ MSU_FACTOR  = $7E30EA
     sta f:MSU_PLAYING
     ldx #$0000
 clear:
-    sta f:MSU_MISSING, x          ; no track has been missing yet
+    sta f:MSU_MISSING, x        ; no track has been missing yet
     inx
     cpx #MSU_MISSING_BYTES
     bcc clear
@@ -166,7 +166,7 @@ ready:
     tya
     sta MSU_TRACK
     stz MSU_TRACK + 1
-    jsr msu_wait             ; and now, for it to finish opening it
+    jsr msu_wait                ; and now, for it to finish opening it
     bcs fails
     lda MSU_STATE
     and #$08                    ; the track is not on the card
@@ -236,8 +236,8 @@ no:
 ; It goes in bank 1 because it is called by the battle scene, which runs there
 ; with the data bank at $7E: that is why every register goes through `f:`. A
 ; bare `lda $2000` would read WRAM.
-MSU_SEEK  = $2000             ; write: the position, four bytes
-MSU_DATA   = $2001             ; read: the next byte
+MSU_SEEK    = $2000             ; write: the position, four bytes
+MSU_DATA    = $2001             ; read: the next byte
 .segment "FAR"
 
 ; Seeks in the `.msu` to the 32-bit position given in A —the low sixteen, with

@@ -51,7 +51,7 @@ ready:
     sec
     adc cells_ptr
     cmp #$8000
-    bcs saves                  ; still inside the bank's upper half
+    bcs saves                   ; still inside the bank's upper half
     clc
     adc #$8000
     sta cells_ptr
@@ -151,7 +151,7 @@ inside:
     sta temp
     and #$001F
     clc
-    adc f:FAR_VRAM_MAP         ; the layout picks it: see LAYOUT_VENTANA_AMBOS
+    adc f:FAR_VRAM_MAP          ; the layout picks it: see LAYOUT_VENTANA_AMBOS
     sta col_addr
     lda temp
     and #$0020
@@ -207,7 +207,7 @@ short:
     ; does not fit— so it is read with a 24-bit pointer, and that mode only
     ; indexes by Y.
 row:
-    lda [cells_ptr]            ; this cell's block
+    lda [cells_ptr]             ; this cell's block
     jsr cell_replaced
     asl a
     asl a
@@ -217,9 +217,9 @@ row:
     adc strip_ofs
     tay
     lda [blocks_ptr], y
-    sta strip_col, x             ; the background cell
+    sta strip_col, x            ; the background cell
     lda [blocks8_ptr], y
-    sta strip_col2, x            ; and the upper layer's
+    sta strip_col2, x           ; and the upper layer's
 
     inx
     inx
@@ -231,9 +231,9 @@ row:
     eor #$0004                  ; the other half of the block
     sta strip_ofs
     and #$0004
-    bne same                   ; still in the same block
+    bne same                    ; still in the same block
     lda strip_step_col
-    jsr ptr_more                 ; to the next block row
+    jsr ptr_more                ; to the next block row
 same:
     dec strip_left
     bne row
@@ -336,7 +336,7 @@ from_left:
 short:
     sta strip_left
     lda strip_left
-    beq empty_right              ; the whole row falls outside the map
+    beq empty_right             ; the whole row falls outside the map
 column:
     lda [cells_ptr]
     jsr cell_replaced
@@ -364,7 +364,7 @@ column:
     and #$0002
     bne same
     lda #2
-    jsr ptr_more                 ; to the next block over
+    jsr ptr_more                ; to the next block over
 same:
     dec strip_total
     dec strip_left
@@ -462,7 +462,7 @@ no_refresh:
     ; the branch would look at a carry that went through a call. It is cheap
     ; not to have to prove that `save_row` does not touch it.
     bcs lowering
-    jsr save_row            ; the previous strip, if any, to the spare
+    jsr save_row                ; the previous strip, if any, to the spare
     lda win_row
     dec a
     sta win_row
@@ -515,7 +515,7 @@ ready:
     lsr a
     cmp win_col
     beq ready
-    bcs right                 ; the `jsr` after the branch: see `one_row`
+    bcs right                   ; the `jsr` after the branch: see `one_row`
     jsr save_column
     lda win_col
     dec a
@@ -560,7 +560,7 @@ ready:
     ldy #.loword(FAR_STRIP_ROW)
     lda #(WINDOW_COLS * 2 * 2 - 1)
     phb
-    mvn #$00, #^FAR_STRIP_ROW    ; the BSS is visible from bank 0: it is the
+    mvn #$00, #^FAR_STRIP_ROW   ; the BSS is visible from bank 0: it is the
     plb                         ; mirror of the WRAM below $2000
     stz row_addr                ; the buffer is free
 ready:
@@ -617,7 +617,7 @@ ready:
     jsr zero_to_tilemap
     ldx #$0000
 strips:
-    stz strip_col, x             ; all four are contiguous: see their .res
+    stz strip_col, x            ; all four are contiguous: see their .res
     inx
     cpx #(WINDOW_ROWS * 2 * 2 + WINDOW_COLS * 2 * 2)
     bne strips
@@ -655,7 +655,7 @@ strips:
     stz row_addr_b              ; scratch here, so anything half built is useless
     lda map_width
     asl a
-    sta strip_step_col           ; the size of a block row, in bytes
+    sta strip_step_col          ; the size of a block row, in bytes
 
     lda camera_x
     lsr a

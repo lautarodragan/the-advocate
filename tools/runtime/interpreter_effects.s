@@ -19,8 +19,8 @@
 img_set:
     lda [code_ptr], y
     cpx #3
-    bcs img_set_sat           ; the fourth operand is the saturation, which
-    sta f:PICTURE_TONE, x        ; is not stored: the picture's is always neutral
+    bcs img_set_sat             ; the fourth operand is the saturation, which
+    sta f:PICTURE_TONE, x       ; is not stored: the picture's is always neutral
     sta f:PICTURE_FROM, x
     sta f:PICTURE_TO, x
 img_set_sat:
@@ -43,7 +43,7 @@ img_set_sat:
 img_move:
     lda [code_ptr], y
     cpx #3
-    bcs img_move_sat           ; the saturation, again
+    bcs img_move_sat            ; the saturation, again
     sta f:PICTURE_TO, x
 img_move_sat:
     iny
@@ -102,16 +102,16 @@ img_move_end:
 ; The first two bytes are for the **drawing**, which runs on its own and lasts
 ; longer than the timeline: see `anim_drawing_start`.
 .proc op_animation
-    lda [code_ptr], y            ; the RM2k animation number
+    lda [code_ptr], y           ; the RM2k animation number
     sta temp
     iny
-    lda [code_ptr], y            ; and what it goes on: $FF is the screen
+    lda [code_ptr], y           ; and what it goes on: $FF is the screen
     sta temp + 1
     iny
     phy
     jsr anim_drawing_start
     ply
-    lda [code_ptr], y            ; how many
+    lda [code_ptr], y           ; how many
     sta f:ANIM_N
     iny
     rep #$20

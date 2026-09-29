@@ -60,10 +60,10 @@ upload:
     lda npc_buf + 8 - NPC_STRIDE, y
     and #$00FF
     cmp cmp_a
-    bcs cap_up             ; the one above has the greater or equal id
+    bcs cap_up                  ; the one above has the greater or equal id
     bra s_pass
 s_per_key:
-    bcc cap_up             ; the one above goes first
+    bcc cap_up                  ; the one above goes first
 s_pass:
     tya
     sec
@@ -116,11 +116,11 @@ lower:
     lda npc_buf + 8, x
     and #$00FF
     cmp cmp_a
-    beq cap_down              ; the same id: it does not pass
-    bcc cap_down              ; the one below has the smaller id
+    beq cap_down                ; the same id: it does not pass
+    bcc cap_down                ; the one below has the smaller id
     bra b_pass
 b_per_key:
-    bcc cap_down              ; the one below goes after
+    bcc cap_down                ; the one below goes after
 b_pass:
     txy
     bra lower
@@ -132,7 +132,7 @@ cap_down:
     phb
     tya
     sec
-    sbc npc_row                ; how many bytes are shifted
+    sbc npc_row                 ; how many bytes are shifted
     dec a
     pha
     lda npc_row
@@ -308,7 +308,7 @@ big:
     sep #$20
 .a8
     cpy npc_total
-    bcs seek                  ; outside the table: a leftover
+    bcs seek                    ; outside the table: a leftover
     lda npc_buf + 8, y
     cmp route_ev + 0, x
     beq ready

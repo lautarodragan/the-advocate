@@ -55,7 +55,7 @@ erase:
     phb
     lda f:ANIMB_PREV + 2
     beq no_previous
-    ora #^FAST                ; its fast mirror: see MEMSEL
+    ora #^FAST                  ; its fast mirror: see MEMSEL
     pha
     plb                         ; the previous frame's bank
     rep #$20
@@ -67,7 +67,7 @@ erase:
     ; Its tiles, to zero.
 erase:
     lda a:0, y
-    bmi no_previous            ; $FF: done. Tiles go from 0 to 63
+    bmi no_previous             ; $FF: done. Tiles go from 0 to 63
     rep #$20
 .a16
     and #$00FF

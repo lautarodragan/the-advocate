@@ -26,7 +26,7 @@
 .proc op_tile_sub
 .a8
 .i16
-    lda [code_ptr], y            ; how many pairs the instruction carries
+    lda [code_ptr], y           ; how many pairs the instruction carries
     iny
     sta sub_remain
 other_pair:
@@ -38,11 +38,11 @@ other_pair:
     sta sub_remain
     rep #$20
 .a16
-    lda [code_ptr], y            ; the outgoing block
+    lda [code_ptr], y           ; the outgoing block
     sta sub_of
     iny
     iny
-    lda [code_ptr], y            ; and the incoming one
+    lda [code_ptr], y           ; and the incoming one
     sta sub_a
     iny
     iny
@@ -67,10 +67,10 @@ continues_sub:
     bra walk_sub
 add_sub:
     lda sub_has
-    bne other_pair                ; the key was already there, and the loop set its value
+    bne other_pair              ; the key was already there, and the loop set its value
     lda sub_n
     cmp #(SUB_MAX * 2)
-    bcs other_pair                ; it does not fit. The converter refuses to emit
+    bcs other_pair              ; it does not fit. The converter refuses to emit
     tax                         ; a map that could get here: see SUB_MAX
     lda sub_of
     sta sub_key, x
@@ -85,7 +85,7 @@ sub_ready:
     rep #$20
 .a16
     lda #WINDOW_COLS            ; and the window is redrawn one column per
-    sta sub_refresh            ; frame: see `sub_refresh`
+    sta sub_refresh             ; frame: see `sub_refresh`
     sep #$20
 .a8
     jmp run_code::other
@@ -107,7 +107,7 @@ sub_ready:
 .proc op_terrain
 .a8
 .i16
-    lda [code_ptr], y            ; the mode: 0 the written cell, 1 by variable,
+    lda [code_ptr], y           ; the mode: 0 the written cell, 1 by variable,
     iny                         ; with VAR_REFRESH on top
     sta temp
     rep #$20
@@ -122,7 +122,7 @@ sub_ready:
     iny
     sep #$20
 .a8
-    lda [code_ptr], y            ; the slot where it is stored
+    lda [code_ptr], y           ; the slot where it is stored
     iny
     sta temp + 1
     phy
@@ -146,8 +146,8 @@ sub_ready:
 terrain_cell:
     rep #$20
 .a16
-    lda cell_x                 ; `IsValid`: outside the map it answers the
-    bmi terrain_outside          ; first tile's, not the neighboring cell's
+    lda cell_x                  ; `IsValid`: outside the map it answers the
+    bmi terrain_outside         ; first tile's, not the neighboring cell's
     cmp map_width
     bcs terrain_outside
     lda cell_y
@@ -158,11 +158,11 @@ terrain_cell:
 .a8
     ldx map_ofs
     lda f:map_table + M_TERRAIN_PLANE, x
-    bne terrain_set          ; a single terrain in the whole map
+    bne terrain_set             ; a single terrain in the whole map
     jsr cell_ptr
     rep #$20
 .a16
-    lda [cells_ptr]            ; which block the cell is, already substituted
+    lda [cells_ptr]             ; which block the cell is, already substituted
     jsr cell_replaced
     sta temp + 2
     ; The table lives outside bank 0, so it is read with a 24-bit pointer, and
@@ -189,7 +189,7 @@ terrain_set:
     lda temp                    ; the mode, which carries the refresh bit:
     xba                         ; `cell_ptr` and `cell_replaced` do
     lda temp + 1                ; not touch `temp`
-    jsr var_write            ; with its refresh, if the mode asks for it
+    jsr var_write               ; with its refresh, if the mode asks for it
     ply
     jmp run_code::other
 

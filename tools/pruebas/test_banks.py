@@ -132,7 +132,7 @@ def test_the_banks_go_at_the_end_of_the_last_file(tmp_path):
     (primero, segundo), _ = resolve(
         '.segment "RODATA"\nCONSTANTE = 7\n.block 16\nuna:\n' + bytes_(16),
         tmp_path,
-        segundo='.segment "RODATA"\n.block %d\notra:\n    .res %d\n'
+        segundo='.segment "RODATA"\n.block %d\notra:\n     .res %d\n'
         % ((banks.BANK_SIZE - 8,) * 2))
     assert "BANK" not in primero and "una:" not in primero
     assert "CONSTANTE = 7" in primero
@@ -144,7 +144,7 @@ def test_what_does_not_fit_in_the_cartridge_says_so(tmp_path):
     say space is short."""
     entran = banks.BANKS - banks.RESERVED_BANKS - banks.FIRST_BANK
     texto = '.segment "RODATA"\n' + "".join(
-        ".block %d\nb%d:\n    .res %d\n" % (banks.BANK_SIZE, k, banks.BANK_SIZE)
+        ".block %d\nb%d:\n     .res %d\n" % (banks.BANK_SIZE, k, banks.BANK_SIZE)
         for k in range(entran + 1))
     with pytest.raises(ValueError, match="needs %d banks and %d fit"
                        % (entran + 1, entran)):
@@ -177,8 +177,8 @@ def test_align_is_left_alone_but_counted(tmp_path):
     """
     (salida,), _ = resolve(
         '.segment "RODATA"\n'
-        ".block %d\ngrande:\n    .res %d\n" % ((banks.BANK_SIZE - 1,) * 2)
-        + ".align 2\n.block 1\nalineada:\n    .byte $00\n", tmp_path)
+        ".block %d\ngrande:\n     .res %d\n" % ((banks.BANK_SIZE - 1,) * 2)
+        + ".align 2\n.block 1\nalineada:\n     .byte $00\n", tmp_path)
     assert ".align 2" in salida
     # One byte is left, and with the alignment counted the one-byte one no
     # longer fits.
@@ -195,7 +195,7 @@ def test_a_block_outside_rodata_is_not_silent(tmp_path):
     the assembler would accept it.
     """
     ruta = tmp_path / "tablas.inc"
-    ruta.write_text('.segment "TABLES"\n.block 12\n    .byte $00\n')
+    ruta.write_text('.segment "TABLES"\n.block 12\n     .byte $00\n')
     with pytest.raises(ValueError, match="unresolved"):
         banks.resolve([str(ruta)])
 
@@ -223,7 +223,7 @@ def test_a_table_without_a_block_is_not_silent(tmp_path):
 def test_a_block_covers_the_tables_inside_it(tmp_path):
     """A `.block` that spans several tables covers them all, and a one-byte
     label cannot be split."""
-    resolve('.segment "RODATA"\n.block 8\nuna:\n    .word 1,2\n'
+    resolve('.segment "RODATA"\n.block 8\nuna:\n     .word 1,2\n'
             "otra:\n    .word 3,4\nsuelta:\n    .byte 5\n", tmp_path)
 
 
@@ -245,9 +245,9 @@ def test_what_crosses_and_fits_whole_fills_a_gap(tmp_path):
     a bank, it goes there whole, and the chain of what crosses does not
     grow."""
     (salida,), cuenta = resolve(
-        '.segment "RODATA"\n.block %d\ngrande:\n    .res %d\n'
+        '.segment "RODATA"\n.block %d\ngrande:\n     .res %d\n'
         % ((banks.BANK_SIZE - 64,) * 2)
-        + ".block %d\notro:\n    .res %d\n" % ((banks.BANK_SIZE - 16,) * 2)
+        + ".block %d\notro:\n     .res %d\n" % ((banks.BANK_SIZE - 16,) * 2)
         + ".crossbank\nstream:\n" + bytes_(16) * 3, tmp_path)
     assert cuenta == (3, 2)
     b2, b3 = salida.split(B3)

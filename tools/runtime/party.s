@@ -7,7 +7,7 @@
     ldx #$0000
 seek:
     cpx party_n                 ; party_n is 16 bits on purpose: with .i16
-    beq no_is                 ; this comparison reads two bytes anyway
+    beq no_is                   ; this comparison reads two bytes anyway
     cmp party, x
     beq is
     inx
@@ -46,7 +46,7 @@ was:
     ; it promises: no party change had any effect and there was no error.
     pha
     lda temp
-    beq was_add             ; adding one who is already there: nothing to do
+    beq was_add                 ; adding one who is already there: nothing to do
     pla
     ; Removing it: the ones behind move up one place.
 run:
@@ -70,7 +70,7 @@ was_add:
 no_was:
     pha
     lda temp
-    bne was_take               ; removing one who is not there: nothing to do
+    bne was_take                ; removing one who is not there: nothing to do
     pla
     cpx #PARTY_MAX
     beq ready                   ; full: RM2k does not add it either
@@ -92,7 +92,7 @@ ready:
     ; vblank.
     jsr apply_tint
     lda #1
-    sta refresh                ; the pages that ask for an actor may change
+    sta refresh                 ; the pages that ask for an actor may change
     rts
 .endproc
 
@@ -189,7 +189,7 @@ no_is:
     stz hero_poses + 2
     stz hero_cgram + 2
     lda party_n
-    bne with_party               ; `beq no_leader` no longer reaches
+    bne with_party              ; `beq no_leader` no longer reaches
     rts                         ; empty party: nothing is drawn
 with_party:
 
@@ -263,7 +263,7 @@ no_change_sprite:
 .a16
     tya
     clc
-    adc #ACTOR_COLORS          ; and after them, the twelve pose words
+    adc #ACTOR_COLORS           ; and after them, the twelve pose words
     tay
     clc
     adc act_ptr

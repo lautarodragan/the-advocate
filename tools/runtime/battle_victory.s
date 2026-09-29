@@ -111,7 +111,7 @@ other:
     clc
     adc BA_T0
     jsr ba_ax
-    lda f:troop_member, x      ; the enemy, as a place in the tables
+    lda f:troop_member, x       ; the enemy, as a place in the tables
     rep #$20
 .a16
     and #$00FF
@@ -189,7 +189,7 @@ to_view:
     sta BA_S1                   ; the LDB item, or 0
     sep #$20
 .a8
-    beq next               ; leaves nothing: no roll
+    beq next                    ; leaves nothing: no roll
     lda BA_S2
     jsr ba_ax
     lda f:enemy_drop_pct, x
@@ -359,7 +359,7 @@ first:
     ldx #BA_TXT_VICTORY
     jsr ba_finished
 no_v1:
-    lda #BA_VIC_FINISHED_N       ; not with `.if`: the constant comes later
+    lda #BA_VIC_FINISHED_N      ; not with `.if`: the constant comes later
     cmp #2
     bcc line
     jsr ba_vic_line
@@ -548,7 +548,7 @@ pair:
     inc BA_S4
     lda BA_S4
     cmp BA_VIC_SKIP
-    beq next               ; shown on an earlier page
+    beq next                    ; shown on an earlier page
     bcc next
     lda BA_S3
     cmp #BA_VIC_LINES
@@ -561,7 +561,7 @@ enters:
     inc BA_VIC_NEXT
     lda BA_S3
     cmp #1
-    beq up                  ; the first one of a continuation
+    beq up                      ; the first one of a continuation
     jsr ba_vic_text_line
 up:
     rep #$20
@@ -616,7 +616,7 @@ no:
 enters:
     inc BA_VIC_NEXT
     lda BA_S3
-    beq up                  ; the page's first one is already set
+    beq up                      ; the page's first one is already set
     jsr ba_vic_text_line
 up:
     inc BA_S3
@@ -654,9 +654,9 @@ power:
 .a16
 remain:
     lda BA_T0
-    cmp f:powers, x          ; with `f:`: the data bank is $7E
+    cmp f:powers, x             ; with `f:`: the data bank is $7E
     bcc digit
-    sbc f:powers, x          ; C comes from the comparison
+    sbc f:powers, x             ; C comes from the comparison
     sta BA_T0
     iny
     bra remain

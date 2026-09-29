@@ -92,7 +92,7 @@ with_collision:
     jsr cell_ptr
     rep #$20
 .a16
-    lda cell_x                 ; the cell being left, for whatever a tile
+    lda cell_x                  ; the cell being left, for whatever a tile
     sta pass_x                  ; event imposes on it
     lda cell_y
     sta pass_y
@@ -146,7 +146,7 @@ right:
     jsr ptr_more
 enters:
 .a16
-    lda cell_x                 ; and the cell being entered
+    lda cell_x                  ; and the cell being entered
     sta pass_x
     lda cell_y
     sta pass_y
@@ -221,7 +221,7 @@ no:
     sta diag_h
     rep #$20
 .a16
-    lda cell_x                 ; where it starts from, to go back between L and L
+    lda cell_x                  ; where it starts from, to go back between L and L
     sta diag_x
     lda cell_y
     sta diag_y
@@ -237,7 +237,7 @@ no:
     jsr cell_allowed
     bne if
 other_lshape:
-    jsr cell_to_origin         ; the horizontal L: sideways and then up
+    jsr cell_to_origin          ; the horizontal L: sideways and then up
     lda diag_h
     jsr cell_allowed
     beq no
@@ -368,7 +368,7 @@ with_pose:
     lda diag_v
     cmp diag_facing
     beq remains
-    lda diag_facing               ; neither of the two: 180°
+    lda diag_facing             ; neither of the two: 180°
     clc
     adc #2
     and #$03

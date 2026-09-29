@@ -215,7 +215,7 @@ save_table:
     .word tile_y, 2
     .word map_current, 2
     .word party, 6              ; the party and how many there are, which are contiguous
-    .word tint_r, 3            ; the tint, minus the saturation, which lives far away
+    .word tint_r, 3             ; the tint, minus the saturation, which lives far away
     .word tint_s, 1
     .word timer_sec, 5          ; seconds, sub, whether it runs and whether it shows
     .word gold, 3
@@ -232,10 +232,10 @@ save_table:
     ; And the variables, from far RAM. VARIABLES_N is at least 1 —the
     ; converter guarantees it— because a zero length would end the table here.
     .word FAR_VARIABLES, VARIABLES_N * 2
-    .word FAR_HERO_SPEED, 1       ; the hero's speed, which routes change
+    .word FAR_HERO_SPEED, 1     ; the hero's speed, which routes change
     .word FAR_ITEMS, ITEMS_N    ; the inventory
     .word FAR_ACCESS, 1         ; the save and menu permissions
-    .word FAR_EQUIPMENT, ACTORS_N * 10    ; each actor's equipment
+    .word FAR_EQUIPMENT, ACTORS_N * 10  ; each actor's equipment
     ; And each actor's HP, which since there are battles is real state.
     .word FAR_HP, ACTORS_N * 2
     ; And the SP, for the same reason since there are skills to spend them.

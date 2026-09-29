@@ -28,7 +28,7 @@
     ; that is why `pair_ev` decides.
     lda pair_ev
     cmp #$FF
-    beq open                   ; foreground
+    beq open                    ; foreground
     cmp #PAIR_BATTLE
     beq in_battle
     lda msg_open
@@ -56,7 +56,7 @@ in_battle:
     rts
 open:
     lda pair_ev
-    sta msg_owner              ; $FF if the foreground opens it
+    sta msg_owner               ; $FF if the foreground opens it
     ; The message does not appear this frame: its text has to be composed,
     ; and that takes quite a few. The window turns itself on when the composer
     ; finishes; meanwhile the page is already blocked.
@@ -64,7 +64,7 @@ open:
     stz pick_active
     rep #$20
 .a16
-    lda [code_ptr], y            ; the offset, which goes in A to msg_start
+    lda [code_ptr], y           ; the offset, which goes in A to msg_start
     iny
     iny
     phy
@@ -84,10 +84,10 @@ open:
 ; here: what is saved is where the table is, which is where both come from,
 ; the box that is drawn and the destination.
 .proc op_choice
-    lda [code_ptr], y            ; how many options
+    lda [code_ptr], y           ; how many options
     sta pick_n
     iny
-    lda [code_ptr], y            ; which option cancel picks, plus one
+    lda [code_ptr], y           ; which option cancel picks, plus one
     sta pick_cancel
     iny
     sty pick_table

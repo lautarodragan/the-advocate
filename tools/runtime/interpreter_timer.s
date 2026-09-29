@@ -11,14 +11,14 @@
 ; The timer: set, start or stop. The five operand bytes are fixed even though
 ; each operation uses two, so the cursor advances the same in all three.
 .proc op_timer
-    lda [code_ptr], y            ; the operation
+    lda [code_ptr], y           ; the operation
     sta temp
     iny
     cmp #TIMER_SET
     bne no_sets
     rep #$20
 .a16
-    lda [code_ptr], y            ; the seconds, sixteen bits
+    lda [code_ptr], y           ; the seconds, sixteen bits
 timer_set_16:
     sta timer_sec
     sep #$20
@@ -37,7 +37,7 @@ no_sets:
     ; The seconds from a variable, which is what the Tram Officer on map 9
     ; does: "what the timer has left, minus sixty". A negative variable sets
     ; zero, like `Game_Party::SetTimer`.
-    lda [code_ptr], y            ; the slot
+    lda [code_ptr], y           ; the slot
     phy
     jsr var_read                ; 16-bit A
 .a16
@@ -55,14 +55,14 @@ no_sets_var:
     sta timer_active
     iny
     iny
-    lda [code_ptr], y            ; whether it shows
+    lda [code_ptr], y           ; whether it shows
     dey
     dey
     cmp timer_visible
     beq timer_end               ; it already showed, or already didn't:
                                 ; nothing to repaint
     sta timer_visible
-    jsr timer_repaint          ; its palette entries change owner
+    jsr timer_repaint           ; its palette entries change owner
     bra timer_end
 timer_for:
     ; `StopTimer` turns off both things, not just the count.

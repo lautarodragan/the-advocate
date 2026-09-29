@@ -277,7 +277,7 @@ letter:
     rep #$20
 .a16
     lda f:slot_glyph_cells, x
-    jsr put                   ; the top cell
+    jsr put                     ; the top cell
 .a8
     lda comp_phase
     clc
@@ -286,7 +286,7 @@ letter:
     rep #$20
 .a16
     lda f:slot_glyph_cells + 2, x
-    jsr put                   ; and the bottom one
+    jsr put                     ; and the bottom one
 .a8
     plx
 next:

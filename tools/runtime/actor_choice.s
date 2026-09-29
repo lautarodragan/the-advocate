@@ -287,7 +287,7 @@ BAR_BYTES = TARGET_BAR_ROWS * TARGET_BAR_COLS * 2
     and #$00FF
     asl a
     tax
-    lda f:row_vram, x          ; the rectangle's first cell
+    lda f:row_vram, x           ; the rectangle's first cell
     sta temp                    ; `temp` and `temp + 1`
     sep #$20
 .a8

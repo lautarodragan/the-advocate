@@ -277,7 +277,7 @@ no:
 .a8
     lda f:item_k, x
     cmp #$FF
-    beq nothing8                   ; an item the cartridge does not carry
+    beq nothing8                ; an item the cartridge does not carry
     jsr ba_ax
     lda f:item_sp, x
     rts
@@ -335,7 +335,7 @@ has_slot:
 .a8
     lda party, x
     bne with_actor
-    jmp next_actor         ; a party slot with nobody in it
+    jmp next_actor              ; a party slot with nobody in it
 with_actor:
     sta BA_S0                 ; the actor from the LDB
     ldy #0
@@ -530,7 +530,7 @@ has_slot_enemy:
     tax
     sep #$20
 .a8
-    lda f:troop_member, x      ; the enemy, as a place in the tables
+    lda f:troop_member, x       ; the enemy, as a place in the tables
     sta BA_S0
     ; As with the actor: first everything is gathered and then written,
     ; because the long index is X and there are two tables to walk with it.
@@ -948,7 +948,7 @@ record:
     lda BA_S0
     jsr ba_ax
     lda BA_T1
-    sta BA_ACC_SKILL, x           ; the `k`, which `ba_skill_use` reads from here
+    sta BA_ACC_SKILL, x         ; the `k`, which `ba_skill_use` reads from here
     lda BA_S0
     asl a
     jsr ba_ax                   ; two bytes of action per combatant
@@ -1062,7 +1062,7 @@ possibles:
     lda f:eacc_skill, x
     cmp #BA_EACC_ATTACK
     beq possible
-    jsr ba_skill_cost            ; can its SP pay for it?
+    jsr ba_skill_cost           ; can its SP pay for it?
     sta BA_T0 + 1
     rep #$20
 .a16
@@ -1099,8 +1099,8 @@ weights:
     bcs weighted
     jsr ba_ax
     lda BA_SKILL_LIST, x
-    beq no_weight                ; impossible
-    bmi no_weight8               ; not effective
+    beq no_weight               ; impossible
+    bmi no_weight8              ; not effective
     clc
     adc #10
     sec
@@ -1130,7 +1130,7 @@ weighted:
     rts
 any:
     cmp #1
-    beq chosen                 ; only one: no roll
+    beq chosen                  ; only one: no roll
     ; --- 3: by weight ---
     rep #$20
 .a16
@@ -1148,7 +1148,7 @@ per_weight:
     lda BA_T0
     sec
     sbc BA_SKILL_LIST, x
-    bcc falls_here                 ; `which` went negative
+    bcc falls_here              ; `which` went negative
     sta BA_T0
     inc BA_T2
     bra per_weight
@@ -1238,7 +1238,7 @@ inside:
     cmp BA_S3
     sep #$20
 .a8
-    bcs put                   ; the one above is greater or equal: it stays
+    bcs put                     ; the one above is greater or equal: it stays
                                 ; there
     lda BA_S1
     dec a

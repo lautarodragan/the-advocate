@@ -15,10 +15,10 @@
 ; `rain_tick` and `rain_oam` run on every frame it rains and read with
 ; long addressing, which is one instruction per byte: with the WMADD window
 ; every drop paid for pointing at it.
-FAR_WEATHER  = $2EF0
+FAR_WEATHER = $2EF0
 FAR_RAIN = $2F00
-WEATHER_L    = $7E0000 + FAR_WEATHER
-RAIN_L   = $7E0000 + FAR_RAIN
+WEATHER_L  = $7E0000 + FAR_WEATHER
+RAIN_L     = $7E0000 + FAR_RAIN
 
 ; The weather at zero: no rain. On reset.
 .proc weather_clear
@@ -166,7 +166,7 @@ has:
 .a8
     ldx #0
 drop:
-    lda f:RAIN_L + 2, x       ; its life
+    lda f:RAIN_L + 2, x         ; its life
     beq off
     ; Alive: down four, one to the left, and one less life left.
     dec a
@@ -206,7 +206,7 @@ next:
     rep #$20
 .a16
     lda comp_mask
-    sta f:WEATHER_L + 3           ; the randomness, back in its place
+    sta f:WEATHER_L + 3         ; the randomness, back in its place
     sep #$20
 .a8
     rts
@@ -278,13 +278,13 @@ tone:
     sec
     sbc camera_y
     sta comp_dup + 1
-    stz comp_row               ; the half: 0 top, 1 bottom
+    stz comp_row                ; the half: 0 top, 1 bottom
 half:
     lda comp_dup + 1
     cmp #224
     bcc se_sees
     cmp #248
-    bcs se_sees                   ; peeks in from the top
+    bcs se_sees                 ; peeks in from the top
     jmp other_half
 se_sees:
     rep #$20

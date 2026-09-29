@@ -186,7 +186,7 @@ with_plane:
     sta BBAD3
     ldx #.loword(hdma_mask)
     stx A1T3L
-    lda #^hdma_mask          ; no longer bank 0: it lives in RODATA
+    lda #^hdma_mask             ; no longer bank 0: it lives in RODATA
     sta A1B3
     rts
 .endproc
@@ -328,7 +328,7 @@ in_bank:
     sta f:FAR_MSG_AUTO
     ldy #0
     lda [msg_ptr], y            ; the header: the lines in the bottom three
-    sta msg_lines              ; bits, the auto-close in bit 3 and the pauses
+    sta msg_lines               ; bits, the auto-close in bit 3 and the pauses
                                 ; in the top nibble. It is stored whole and
                                 ; whoever reads it masks it; one more byte in
                                 ; bank 0 is exactly what there is not.
@@ -392,7 +392,7 @@ no_upload:
     jsr prime_line
     stz msg_length
     lda msg_lines
-    and #HEADER_LINES        ; the header also carries the escape queue
+    and #HEADER_LINES           ; the header also carries the escape queue
     sta temp
     lda msg_line
     cmp temp
@@ -464,7 +464,7 @@ end_line:
     cmp #WINDOW_TEXT_LINES
     bcc more
     lda #2
-    sta msg_state              ; done: `flush_video` turns on the HDMA
+    sta msg_state               ; done: `flush_video` turns on the HDMA
 more:
     rts
 .endproc
@@ -619,13 +619,13 @@ more:
     adc #WINDOW_BORDER
     sta temp                    ; x inside the window
     and #$0007
-    sta comp_phase               ; 0, 2, 4 or 6
+    sta comp_phase              ; 0, 2, 4 or 6
     lda temp
     lsr a
     lsr a
     lsr a
     sec
-    sbc #WINDOW_TEXT_COL      ; the cell column, counted from the text
+    sbc #WINDOW_TEXT_COL        ; the cell column, counted from the text
     asl a
     asl a
     asl a
@@ -646,7 +646,7 @@ more:
 
     ldy #0
     lda #(TEXT_OFS_Y * 2)
-    sta comp_row               ; two at a time: it is the index into `row_buf_table`
+    sta comp_row                ; two at a time: it is the index into `row_buf_table`
 row:
     rep #$20
 .a16
@@ -663,13 +663,13 @@ row:
     sta comp_and
     iny
     iny
-    lda text_buf, x            ; planes 0 and 1 of the first cell
+    lda text_buf, x             ; planes 0 and 1 of the first cell
     and comp_and
     ora [comp_glyph], y
     sta text_buf, x
     iny
     iny
-    lda text_buf + 16, x       ; planes 2 and 3
+    lda text_buf + 16, x        ; planes 2 and 3
     and comp_and
     ora [comp_glyph], y
     sta text_buf + 16, x
@@ -688,7 +688,7 @@ second:
     sta comp_and
     iny
     iny
-    lda text_buf + 32, x       ; the neighboring cell, one tile further
+    lda text_buf + 32, x        ; the neighboring cell, one tile further
     and comp_and
     ora [comp_glyph], y
     sta text_buf + 32, x

@@ -165,7 +165,7 @@ alive:
     lda MED_FLAGS
     and #1
     beq heal_hp
-    jmp no_serves                ; `ko_only` on one standing
+    jmp no_serves               ; `ko_only` on one standing
 heal_hp:
     ; `if (hp_change > 0 && !HasFullHp()) ChangeHp(hp_change - revived)`.
     ; `ChangeHp` caps at the maximum with the `SetHp` inside it, and never
@@ -176,7 +176,7 @@ heal_hp:
     beq heal_sp
     lda FAR_HP, x
     cmp MED_HP_MAX
-    bcs heal_sp                ; full
+    bcs heal_sp                 ; full
     lda MED_HP
     sec
     sbc MED_REVIVED

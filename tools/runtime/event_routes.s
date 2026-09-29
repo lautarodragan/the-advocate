@@ -29,7 +29,7 @@
     phy
     lda route_target
     dec a
-    jsr turn_per_route           ; with a move route, the move route decides where it faces
+    jsr turn_per_route          ; with a move route, the move route decides where it faces
     ply
     lda route_target
     dec a
@@ -53,18 +53,18 @@ set2:
     sta route_ev + 0, x
     jsl f:slot_record + FAST
     stz route_ev + 6, x
-    stz route_ev + 7, x          ; no step in progress
+    stz route_ev + 7, x         ; no step in progress
     stz route_ev + 22, x
     stz route_ev + 23, x
     lda #ROUTE_EV_NO_FACE
-    sta route_ev + 8, x          ; faces wherever its page says until it turns
-    stz route_ev + 12, x         ; no flags
-    stz route_ev + 13, x         ; nor jump
+    sta route_ev + 8, x         ; faces wherever its page says until it turns
+    stz route_ev + 12, x        ; no flags
+    stz route_ev + 13, x        ; nor jump
     lda #1
-    sta route_ev + 10, x         ; the middle frame, like `animate_hero`
+    sta route_ev + 10, x        ; the middle frame, like `animate_hero`
     stz route_ev + 11, x
     stz route_ev + 18, x
-    stz route_ev + 27, x         ; no page to go back to
+    stz route_ev + 27, x        ; no page to go back to
     rep #$20
 .a16
     lda #$FFFF
@@ -76,7 +76,7 @@ set2:
     ; —without a graphic— goes at 3, a default page's.
     phy                         ; Y is the bytecode cursor, and it is needed
     lda temp                    ; afterwards: `event_npc` overwrites it
-    jsr event_npc           ; Y = its row, or $FFFF; A is lost
+    jsr event_npc               ; Y = its row, or $FFFF; A is lost
     cpy #$FFFF
     beq no_row
     lda npc_buf + 13, y
@@ -87,7 +87,7 @@ with_speed:
     ply
     sta route_ev + 17, x
     lda temp
-    jsr active_layer             ; its layer, once and not on every step
+    jsr active_layer            ; its layer, once and not on every step
     sta route_ev + 31, x
 reused:
     lda route_ev + 18, x
@@ -110,8 +110,8 @@ reused:
     sta route_ev + 3, x
     lda route_count
     sta route_ev + 4, x
-    stz route_ev + 5, x          ; just starting
-    stz route_ev + 9, x          ; and no wait in progress: the first command runs right away
+    stz route_ev + 5, x         ; just starting
+    stz route_ev + 9, x         ; and no wait in progress: the first command runs right away
     lda route_freq_op
     sta route_ev + 16, x
     rts
@@ -195,7 +195,7 @@ vertical:
     bmi down
     lda temp + 2
     ora temp + 3
-    beq down                   ; the same cell: down
+    beq down                    ; the same cell: down
     lda #DIR_UP
     rts
 down:
@@ -285,11 +285,11 @@ no_negative:
     sep #$20
 .a8
     bne still_moving
-    stz route_ev + 7, x          ; the step ended on this frame
+    stz route_ev + 7, x         ; the step ended on this frame
     lda route_ev + 5, x
     cmp route_ev + 4, x
     bcc with_commands
-    lda route_ev + 18, x         ; no commands: only the repeating page one
+    lda route_ev + 18, x        ; no commands: only the repeating page one
     and #$03                    ; keeps waiting
     cmp #$03
     bne still_moving
@@ -345,8 +345,8 @@ no_frozen:
     sta route_ptr + 2
 
 other_command:
-    lda route_ev + 5, x          ; which one it is on
-    cmp route_ev + 4, x          ; how many it has
+    lda route_ev + 5, x         ; which one it is on
+    cmp route_ev + 4, x         ; how many it has
     bcc has_command
     ; The commands ran out. The repeating page one goes back to the start on the
     ; same frame, and only once per frame —`UpdateMoveRoute`'s `current_index ==
@@ -364,9 +364,9 @@ other_command:
 no_repeats:
     lda route_ev + 18, x
     and #$01
-    bne frozen               ; the page one, finished: done
+    bne frozen                  ; the page one, finished: done
     lda route_ev + 27, x
-    beq frozen               ; no page to go back to
+    beq frozen                  ; no page to go back to
     jsr resume_page
 frozen:
     jmp ready
@@ -381,7 +381,7 @@ has_command:
     inc route_ev + 5, x
 
     cmp #23                     ; wait: this one and the ROUTE_WAIT - 1 after it,
-    bne not_wait              ; plus the turn's if the frequency is low
+    bne not_wait                ; plus the turn's if the frequency is low
     lda route_ev + 16, x
     jsr after_turn
     clc
@@ -401,7 +401,7 @@ not_wait:
     ; `toward_hero` does not overwrite X, which is the slot.
     jsr event_cell
     jsr toward_hero
-:   jmp move                   ; 0..3 are the move_*, and 9 already brings its own
+:   jmp move                    ; 0..3 are the move_*, and 9 already brings its own
 no_moves:
     cmp #16
     bcs :+
@@ -421,7 +421,7 @@ no_faces:
     jsr prepare_walker          ; who jumps, to collide with the others
     lda route_ev + 5, x
     dec a
-    sta jump_command             ; where the 24 is, in case it has to go back
+    sta jump_command            ; where the 24 is, in case it has to go back
     jsr build_ev_jump
     lda route_ev + 13, x
     bne jump_started
@@ -448,14 +448,14 @@ not_jump:
     cmp #26
     bcc follow                  ; the others do nothing
     cmp #32
-    bcc fix_o_speed       ; 26 and 27 the facing, 28 and 29 the speed,
+    bcc fix_o_speed             ; 26 and 27 the facing, 28 and 29 the speed,
     cmp #34                     ; 30 and 31 the frequency
-    bne not_graphic           ; and 34 the graphic, which carries an operand
-    jmp change_graphic         ; it is too far for a short branch
+    bne not_graphic             ; and 34 the graphic, which carries an operand
+    jmp change_graphic          ; it is too far for a short branch
 not_graphic:
     cmp #35
     bne not_sound
-    jmp sound_ev               ; 35, with its operand
+    jmp sound_ev                ; 35, with its operand
 not_sound:
     cmp #36
     bcc follow                  ; 32 and 33, the switches, do not get here
@@ -549,7 +549,7 @@ save_18:
 ; It does not touch the pose either: the walk cycle stays where it was, which is
 ; what `SetSpriteGraphic` does.
 change_graphic:
-    lda route_ev + 5, x          ; the cursor already advanced when reading the command
+    lda route_ev + 5, x         ; the cursor already advanced when reading the command
     rep #$20
 .a16
     and #$00FF
@@ -557,7 +557,7 @@ change_graphic:
     sep #$20
 .a8
     lda [route_ptr], y
-    inc route_ev + 5, x          ; and now past the operand
+    inc route_ev + 5, x         ; and now past the operand
     asl a                       ; two bytes per entry
     rep #$20
 .a16
@@ -566,16 +566,16 @@ change_graphic:
     sep #$20
 .a8
     lda route_gfx_buf, y
-    sta gfx_k                  ; its entry in `npc_poses`, or $FF
+    sta gfx_k                   ; its entry in `npc_poses`, or $FF
     lda route_gfx_buf + 1, y
     sta gfx_pal
 
     lda route_ev + 0, x
     phx
-    jsr event_npc           ; its row, which is what has to change
+    jsr event_npc               ; its row, which is what has to change
     plx
     cpy #$FFFF
-    beq ready_gfx              ; an event without a graphic has no row
+    beq ready_gfx               ; an event without a graphic has no row
     lda #$FF
     sta npc_buf + 15, y         ; a CharSet imposes nothing on the cell
     lda gfx_k
@@ -608,10 +608,10 @@ ready_gfx:
 ; Same as on the hero —see `sound_hero`—: `sound_play`, `OP_SOUND`'s path,
 ; and without costing a frame. X is the slot, and `sound_play` overwrites it.
 sound_ev:
-    lda route_ev + 5, x          ; the cursor is already on the operand
+    lda route_ev + 5, x         ; the cursor is already on the operand
     inc a
     inc a
-    sta route_ev + 5, x          ; and moves past it
+    sta route_ev + 5, x         ; and moves past it
     dec a
     dec a
     rep #$20
@@ -620,7 +620,7 @@ sound_ev:
     tay
     lda [route_ptr], y
     phx
-    jsr sound_play            ; returns with 8-bit A
+    jsr sound_play              ; returns with 8-bit A
 .a8
     plx
     jmp other_command
@@ -628,9 +628,9 @@ face:
     sec
     sbc #12
 look:
-    sta route_ev + 8, x          ; face_*: with frequency 8 it is instant and the
-    lda route_ev + 16, x         ; next one follows; with another, it stands
-    jsr after_turn               ; still for the turn's frames
+    sta route_ev + 8, x         ; face_*: with frequency 8 it is instant and the
+    lda route_ev + 16, x        ; next one follows; with another, it stands
+    jsr after_turn              ; still for the turn's frames
     bne turn_wait
     jmp other_command
 turn_wait:
@@ -644,26 +644,26 @@ move:
     stz route_dir + 1
     lda route_ev + 18, x
     and #$08
-    bne no_turn               ; always faces the same way: `lock_facing` or the
+    bne no_turn                 ; always faces the same way: `lock_facing` or the
                                 ; page's animation type
     lda route_dir
     cmp #4
-    bcc right                 ; the usual four face where they go
-    jsr face_diagonal        ; a diagonal has no pose of its own: see there
+    bcc right                   ; the usual four face where they go
+    jsr face_diagonal           ; a diagonal has no pose of its own: see there
 right:
-    sta route_ev + 8, x          ; move_* faces where it goes
+    sta route_ev + 8, x         ; move_* faces where it goes
 no_turn:
     phx
-    jsr event_cell        ; leaves its position in celda_x/celda_y
+    jsr event_cell              ; leaves its position in celda_x/celda_y
     jsr prepare_walker          ; and who it is, to collide with the others
     lda route_ev + 12, x
     and #$01
-    sta crossing             ; walk_everywhere: `cell_allowed` looks at it
+    sta crossing                ; walk_everywhere: `cell_allowed` looks at it
     stz crossing + 1
     lda route_dir
     cmp #4
     bcc straight
-    jsr cell_allowed_diag        ; the two L's: nobody looks at the diagonal cell
+    jsr cell_allowed_diag       ; the two L's: nobody looks at the diagonal cell
     bra tested
 straight:
     jsr cell_allowed
@@ -692,16 +692,16 @@ no_blocked:
     jsr move_event_cell
     plx
     lda route_dir
-    sta route_ev + 30, x         ; which way the step goes, which with the facing
+    sta route_ev + 30, x        ; which way the step goes, which with the facing
     lda #1                      ; locked is not where it faces
-    sta route_ev + 7, x          ; there is a step in progress
+    sta route_ev + 7, x         ; there is a step in progress
     jsr step_slot
     rep #$20
 .a16
     lda #JUMP_STEP
     sec
     sbc temp
-    sta route_ev + 22, x         ; and this frame's part already advanced
+    sta route_ev + 22, x        ; and this frame's part already advanced
     sep #$20
 .a8
     lda #1
@@ -787,7 +787,7 @@ ready:
 .a8
 .i16
     sta route_dir
-    stz route_dir + 1            ; it is used as a sixteen-bit index
+    stz route_dir + 1           ; it is used as a sixteen-bit index
     lda route_ev + 0, x
     rep #$20
 .a16

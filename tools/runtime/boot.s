@@ -5,7 +5,7 @@
     sei
     clc
     xce                         ; into the 65816's native mode
-    jml f:fast + FAST       ; to the fast mirror: see MEMSEL
+    jml f:fast + FAST           ; to the fast mirror: see MEMSEL
 fast:
     rep #$30                    ; 16-bit A, X and Y
 .a16
@@ -35,19 +35,19 @@ fast:
     jsr ppu_reset               ; the console does not boot clean; the emulator does
     lda #$01
     sta MEMSEL                  ; the mirror's ROM, fast
-    jsr msu_detect            ; does the music come from a track?
+    jsr msu_detect              ; does the music come from a track?
 
     ; After the reset, not before: ppu_reset turns NMITIMEN off along with
     ; everything else, so enabling it first would be no use.
     lda #$01
     sta NMITIMEN                ; let the console read the pads by itself
     stz boot_frames
-    stz ticks                 ; RAM starts with garbage and the harness
-    stz ticks + 1             ; reads it from frame zero
+    stz ticks                   ; RAM starts with garbage and the harness
+    stz ticks + 1               ; reads it from frame zero
     rep #$20
 .a16
     lda #0
-    sta f:frozen_ticks    ; and this one, which the animations subtract
+    sta f:frozen_ticks          ; and this one, which the animations subtract
     sep #$20
 .a8
     lda #$81
@@ -78,9 +78,9 @@ erase_switches:
     sta tint_s
     stz jump_has
     lda #$FF                    ; no song remembered, like a new
-    sta f:REMEMBERED_SONG        ; game: see `op_memorized_bgm`
+    sta f:REMEMBERED_SONG       ; game: see `op_memorized_bgm`
     stz anim_pend               ; RAM starts with garbage and this triggers DMAs
-    stz panic                  ; RAM starts with garbage, and 85 is not a code
+    stz panic                   ; RAM starts with garbage, and 85 is not a code
     stz gold
     stz gold + 1
     stz gold + 2
@@ -128,11 +128,11 @@ party_ready:
     ; on 2026-09-16 by removing these two lines: of five runs, four red.
     stz ev_active
     jsr clear_waits
-    stz route_n                  ; no forced move route pending
+    stz route_n                 ; no forced move route pending
     stz route_i
     stz route_wait
     lda #8
-    sta route_freq               ; the usual one, until an OP_ROUTE says otherwise
+    sta route_freq              ; the usual one, until an OP_ROUTE says otherwise
     ; And the rest of what a route leaves on. RAM starts with garbage —snes9x
     ; fills it with $55— so without this the hero would start walking through
     ; walls and with the animation stopped.
@@ -176,7 +176,7 @@ party_ready:
     stz pad_a
     stz pad_a_prev
     stz autofire
-    stz arrows_frames         ; with an arrow held since power-on
+    stz arrows_frames           ; with an arrow held since power-on
     stz arrows_repeated
     lda #HERO_WALKER
     sta walker
@@ -189,8 +189,8 @@ party_ready:
     sta vq_cap
     stz shake_remain
     stz shake_remain + 1
-    stz flash_level          ; RAM starts with garbage: without this the
-    stz flash_level + 1      ; first frame comes out flashed
+    stz flash_level             ; RAM starts with garbage: without this the
+    stz flash_level + 1         ; first frame comes out flashed
     stz flash_remain
     stz flash_ready
     rep #$20
@@ -227,16 +227,16 @@ party_ready:
     stz fade
     lda #BRIGHTNESS_MAX
     sta brightness
-    stz bgm_fade             ; and the same with the song's
-    jsl f:boot_transition    ; and the teleport, with fade
-    jsl f:encounter_boot    ; the encounters' random seed
+    stz bgm_fade                ; and the same with the song's
+    jsl f:boot_transition           ; and the teleport, with fade
+    jsl f:encounter_boot        ; the encounters' random seed
 
     ; If the cartridge has a saved game, it is loaded here: the switches it
     ; carries decide which page is active on each event, so they have to be
     ; set **before** loading the map. And the entry is built from the saved
     ; cell, which is how a door tells `enter_map` where to plant the hero.
     lda #$FF
-    sta slot                  ; none loaded; RAM starts with garbage
+    sta slot                    ; none loaded; RAM starts with garbage
     ; The random seed, and the variables at zero: far RAM also starts with
     ; garbage, and a loaded save overwrites them afterwards.
     jsr clear_variables
@@ -253,7 +253,7 @@ party_ready:
     lda #0                      ; RAM starts with garbage
     sta f:PICTURE_ACTIVE
     sta f:PICTURE_READY
-    sta f:GO_WAIT             ; the harness looks at it: see game_over.s
+    sta f:GO_WAIT               ; the harness looks at it: see game_over.s
     ; The slot screen's flag too: with $55 the harness would see it open from
     ; the reset. That is what happened on 2026-09-10 with the two counters
     ; that "gave 85": they were reading the emulator's garbage.
@@ -400,11 +400,11 @@ loop:
     ; of them decides whether something moves or when, so the difference is
     ; one frame in what is seen and not in what happens; moving them is
     ; another change, with its goldens.
-    jsr map_events         ; `UpdateMapEvents`: refresh, automatic and
+    jsr map_events              ; `UpdateMapEvents`: refresh, automatic and
                                 ; parallels, **before** the hero
-    jsr animate_still          ; the ones that animate without moving, before
+    jsr animate_still           ; the ones that animate without moving, before
                                 ; the routes: if one grabs one, it wins the slot
-    jsr move_events           ; and the events' forced move routes, which are
+    jsr move_events             ; and the events' forced move routes, which are
                                 ; the part of `UpdateMapEvents` that walks
                                 ; —`Game_Character::Update()` from
                                 ; `Game_Event::Update`, `game_event.cpp:608`—.
@@ -417,7 +417,7 @@ loop:
                                 ; there broke the tie, and `parar-rutas` showed
                                 ; it with the NPC one frame ahead of the hero.
     jsr move_hero               ; `game_player->Update()`
-    jsr request_menu              ; B, at the end of the hero: see `request_menu`
+    jsr request_menu            ; B, at the end of the hero: see `request_menu`
     ; The timer goes **before** the interpreter, which is where
     ; `Game_Map::Update` puts it: `UpdateTimers()` runs and only then
     ; `UpdateForegroundEvents`. That is, the page that starts it does not get
@@ -442,24 +442,24 @@ loop:
     beq no_jump_pending
     jsr events_handle_jump
 no_jump_pending:
-    jsr event_tint        ; the tint the interpreter may have requested, right
+    jsr event_tint             ; the tint the interpreter may have requested, right
                                 ; after it: otherwise it would apply a frame late
-    jsr battle_anim_tick          ; the battle animation, before the
+    jsr battle_anim_tick        ; the battle animation, before the
                                 ; flashes it triggers
-    jsr anim_drawing_tick   ; and its drawing, right after: both advance the
+    jsr anim_drawing_tick       ; and its drawing, right after: both advance the
                                 ; same RM2k clock and the drawing lasts longer
     jsr flashes_tick            ; and the flashes, in the same place
-    jsr shake_tick           ; and one of the screen shake
+    jsr shake_tick              ; and one of the screen shake
     jsr pan_tick                ; and one of the camera panned away from the hero
-    jsr picture_tick             ; and one of the picture's fade. It goes **before**
+    jsr picture_tick            ; and one of the picture's fade. It goes **before**
                                 ; the flash and not after: both build their
                                 ; palette in `pal_buf`, and the flash leaves
                                 ; its own there waiting for the vblank. The
                                 ; other way round, the picture overwrote the
                                 ; background's first sixteen colors on the
                                 ; frame where both run.
-    jsr flash_tick           ; and one of the screen flash
-    jsr rain_tick             ; and one of the rain
+    jsr flash_tick              ; and one of the screen flash
+    jsr rain_tick               ; and one of the rain
     jsr animate_hero
     jsr follow_camera
     jsr stream_map              ; the column or row the camera uncovered

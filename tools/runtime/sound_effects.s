@@ -37,22 +37,22 @@
 ; instruction. The only thing the main code writes here is the pending one,
 ; in `sound_play`, and it does so with interrupts disabled.
 FAR_SE       = $30A0
-SE_FRAMES   = $7E0000 + FAR_SE
+SE_FRAMES    = $7E0000 + FAR_SE
 SE_PENDING = SE_FRAMES + 2
-SE_RETURN  = SE_FRAMES + 3
+SE_RETURN    = SE_FRAMES + 3
 SE_LOWER     = SE_FRAMES + 4
-SE_NEW     = SE_FRAMES + 5
+SE_NEW       = SE_FRAMES + 5
 SE_SHADOW    = $7E0000 + $30B0
 SE_KOF_SHADOW = SE_SHADOW + 8
 ; The second voice, at $3D00: the far RAM map above ends at the battle,
 ; which does not go past $3CFF, and the next thing is `FAR_SKILL`, at $6000. It
 ; uses $3D00 to $3D17.
-SE2_OFS    = $3D00 - FAR_SE
-SE2_FRAMES  = SE_FRAMES + SE2_OFS
+SE2_OFS      = $3D00 - FAR_SE
+SE2_FRAMES   = SE_FRAMES + SE2_OFS
 SE2_PENDING = SE_PENDING + SE2_OFS
 SE2_RETURN = SE_RETURN + SE2_OFS
 SE2_LOWER    = SE_LOWER + SE2_OFS
-SE2_NEW    = SE_NEW + SE2_OFS
+SE2_NEW      = SE_NEW + SE2_OFS
 SE2_SHADOW   = SE_SHADOW + SE2_OFS
 SE_BYTES     = 12               ; from SE_FRAMES to SE_NEW, inclusive
 ; SE_BIT and SE_REG —the voice's bit in KON and KOF, and its first
@@ -88,7 +88,7 @@ SE_KOF     = $5C
 .a8
 .i16
     jsr se_busy
-    beq no_7                   ; A was left at zero
+    beq no_7                    ; A was left at zero
     lda #SE_BIT
 no_7:
     pha
@@ -169,7 +169,7 @@ voice_7:
     txa
     and #$0F
     cmp #8
-    bcs no_voice                  ; ENVX and OUTX are never written
+    bcs no_voice                ; ENVX and OUTX are never written
     ; The shadow is indexed with the whole register, which is already in X,
     ; and the value does not leave B. Until 2026-09-26 the index was built in
     ; A with a `sep #$10` / `tax`, which wiped the high part of Y; and before
@@ -325,7 +325,7 @@ ready:
 .i16
     SE_BEFORE_VOICE SE_LOWER, SE_RETURN, SE_SHADOW, SE_REG
     SE_BEFORE_VOICE SE2_LOWER, SE2_RETURN, SE2_SHADOW, SE2_REG
-    jsl se_extras_before         ; and voices 0 to 5: see msu_effects.s
+    jsl se_extras_before        ; and voices 0 to 5: see msu_effects.s
     rts
 .endproc
 
@@ -346,23 +346,23 @@ start:
     ldx #SE_KOF
     jsr dsp_pair
     lda #0
-    sta f:pending             ; no longer pending
+    sta f:pending               ; no longer pending
     ; The sample, the pitch, the volume and the envelope, from the pending one.
     lda f:new + 4
     ldx #(reg + 1)
-    jsr dsp_pair                 ; VOLR
+    jsr dsp_pair                ; VOLR
     lda f:new + 3
     ldx #(reg + 0)
-    jsr dsp_pair                 ; VOLL
+    jsr dsp_pair                ; VOLL
     lda f:new + 2
     ldx #(reg + 3)
-    jsr dsp_pair                 ; pitch high
+    jsr dsp_pair                ; pitch high
     lda f:new + 1
     ldx #(reg + 2)
-    jsr dsp_pair                 ; and low
+    jsr dsp_pair                ; and low
     lda f:new
     ldx #(reg + 4)
-    jsr dsp_pair                 ; SRCN
+    jsr dsp_pair                ; SRCN
     lda #$FF                    ; ADSR on, attack and decay at maximum
     ldx #(reg + 5)
     jsr dsp_pair
@@ -416,13 +416,13 @@ end:
     SE_AFTER_VOICE SE2_FRAMES, SE2_PENDING, SE2_RETURN, SE2_LOWER, SE2_NEW, SE2_BIT, SE2_REG
     ora 1, s
     sta 1, s
-    jsl se_extras_after       ; those of voices 0 to 5, in the same trigger
+    jsl se_extras_after         ; those of voices 0 to 5, in the same trigger
     ora 1, s
     sta 1, s
     pla
     beq ready
     ldx #SE_KON
-    jsr dsp_pair                 ; and the trigger, for both together
+    jsr dsp_pair                ; and the trigger, for both together
 ready:
     rts
 .endproc
@@ -439,7 +439,7 @@ other:
     inx
     cpx #SE_BYTES
     bcc other
-    jsl se_extras_clear       ; and the msu_effects.s part
+    jsl se_extras_clear         ; and the msu_effects.s part
     rts
 .endproc
 
@@ -448,11 +448,11 @@ other:
 .i16
     rep #$20
 .a16
-    lda [code_ptr], y            ; the index
+    lda [code_ptr], y           ; the index
     iny
     iny
     phy
-    jsr sound_play            ; with a 16-bit A; returns with an 8-bit A
+    jsr sound_play              ; with a 16-bit A; returns with an 8-bit A
 .a8
     ply
     rts
@@ -528,7 +528,7 @@ is:
     lda f:sound_table, x
     sec
     sbc #SE_FIRST
-    bcc is_own                 ; not one of the effects' places
+    bcc is_own                  ; not one of the effects' places
     phx
     rep #$20
 .a16
@@ -540,7 +540,7 @@ is:
 .a8
     lda f:FAR_EFFECT_IN, x
     ldx temp
-    eor f:sound_effect, x      ; zero if it is its own
+    eor f:sound_effect, x       ; zero if it is its own
     plx
     cmp #0                      ; `plx`'s Z is X's, not the `eor`'s
     beq is_own

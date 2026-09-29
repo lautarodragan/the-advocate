@@ -26,23 +26,23 @@
 ; skipping those. See "El paquete de audio de cada mapa" in
 ; workflow/tasks/done/audio-bgm.md.
 FAR_ARAM_OF = $7E3100           ; one word per sample
-FAR_WANTS  = $7E3300           ; one byte per sample: 2 for the ones that do not move
+FAR_WANTS   = $7E3300           ; one byte per sample: 2 for the ones that do not move
 APU_READY   = $7E30D0           ; whether the driver is already running
 PKG_EXTRA   = $7E30D1           ; a song that goes first, or $FF
-PKG_COMPACT = $7E30D2         ; 1 if the package is being rearranged again
+PKG_COMPACT = $7E30D2           ; 1 if the package is being rearranged again
                                 ; from scratch: see `package_load_done`
-PKG_LENGTH   = $7E30D4
+PKG_LENGTH  = $7E30D4
 PKG_DEST    = $7E30D6
 PKG_S       = $7E30D8           ; the sample being placed
 PKG_X7      = $7E30DA           ; its row in `sample_table`
 PKG_A       = $7E30DC           ; where placing it is tried
-PKG_MAP    = $7E30DE           ; the package's map, in a word since the
+PKG_MAP     = $7E30DE           ; the package's map, in a word since the
                                 ; map index does not fit in a byte
 INT_N       = $7E30E0           ; how many are occupied, in bytes: two for each
                                 ; $30E2 to $30E6 belong to the battle animation
-PKG_PARTIAL = $7E30E7        ; 1 if something of the package did not fit: see
+PKG_PARTIAL = $7E30E7           ; 1 if something of the package did not fit: see
                                 ; `song_ensure`. What follows is MSU_HAS
-INT_INIT     = $7E3400           ; what is occupied, in order: where it starts
+INT_INIT    = $7E3400           ; what is occupied, in order: where it starts
 INT_END     = $7E3500           ; and where it ends
 
 ; Nothing in ARAM. At reset: the driver is not running yet.
@@ -292,7 +292,7 @@ ready:
 .a16
     lda f:PKG_X7
     tax
-    lda f:sample_table + 5, x  ; the loop, from the start
+    lda f:sample_table + 5, x   ; the loop, from the start
     clc
     adc f:PKG_A
     sta temp
@@ -363,7 +363,7 @@ no_is:
 .a16
     lda f:sample_table + 3, x
     sta f:PKG_LENGTH
-    jsl se_msu_length            ; or what the one in the `.msu` measures: msu_effects.s
+    jsl se_msu_length           ; or what the one in the `.msu` measures: msu_effects.s
 .a16
     ; The first gap where it fits: the occupied ones are walked in order,
     ; with PKG_A at the start of the gap being looked at.
@@ -377,9 +377,9 @@ gap:
     lda f:INT_INIT, x
     sec
     sbc f:PKG_A                 ; how much there is before this occupied one
-    bcc continues                   ; it starts before: no gap
+    bcc continues               ; it starts before: no gap
     cmp f:PKG_LENGTH
-    bcs here                     ; it fits
+    bcs here                    ; it fits
 continues:
     lda f:INT_END, x
     cmp f:PKG_A
@@ -400,7 +400,7 @@ no_enters:
     sep #$20
 .a8
     lda #1
-    sta f:PKG_PARTIAL        ; so the next `PlayBGM` completes it
+    sta f:PKG_PARTIAL           ; so the next `PlayBGM` completes it
     rts                         ; does not fit: does not play
 .a16
 here:
@@ -472,7 +472,7 @@ other:
 .a8
     lda f:PKG_S
     jsr sample_row
-    jsl se_msu_upload            ; a sound effect from the `.msu`: see msu_effects.s
+    jsl se_msu_upload           ; a sound effect from the `.msu`: see msu_effects.s
     bcs upload
     jsr upload_sample
     jsr write_directory
@@ -630,9 +630,9 @@ ready:
     sta f:SE2_PENDING
     sta f:SE2_LOWER
     lda #1
-    sta f:SE_RETURN           ; the music gets its voices back
+    sta f:SE_RETURN             ; the music gets its voices back
     sta f:SE2_RETURN
-    jsl se_extras_mute        ; and those of voices 0 to 5, in the same KOF
+    jsl se_extras_mute          ; and those of voices 0 to 5, in the same KOF
     ora #(SE_BIT | SE2_BIT)
     ldx #SE_KOF
     jsr dsp_pair
@@ -681,7 +681,7 @@ ready_apu:
     sta f:PKG_PARTIAL
     sta f:PKG_COMPACT
     jsr se_mute
-    jsl se_msu_prepare         ; with the `.msu` sound effects, all are
+    jsl se_msu_prepare          ; with the `.msu` sound effects, all are
                                 ; uploaded again: see msu_effects.s
     ldx #0
 clear:
@@ -792,7 +792,7 @@ forget:
     bra next
 wants:
     lda f:FAR_ARAM_OF, x
-    beq next                 ; wanted but not there: the next step uploads it
+    beq next                    ; wanted but not there: the next step uploads it
     sta f:PKG_A
     txa
     lsr a
@@ -889,7 +889,7 @@ placed:
     lda f:PKG_PARTIAL
     beq upload
     lda f:PKG_COMPACT
-    bne upload                   ; already redone: it is the song playing
+    bne upload                  ; already redone: it is the song playing
     lda #1
     sta f:PKG_COMPACT
     lda #0
@@ -898,9 +898,9 @@ placed:
 compact:
     lda f:FAR_WANTS, x
     cmp #2
-    beq still                  ; the ones of the song playing do not move
+    beq still                   ; the ones of the song playing do not move
     cmp #0
-    beq still                  ; and the ones nobody wants were already forgotten
+    beq still                   ; and the ones nobody wants were already forgotten
     lda #1
     sta f:FAR_WANTS, x
     phx
@@ -1186,7 +1186,7 @@ ran:
     cmp #SONG_TOTAL
     bcs ready
     lda f:PKG_PARTIAL
-    bne missing                   ; even if the song is missing nothing
+    bne missing                 ; even if the song is missing nothing
     lda temp + 1                ; the song: `song_list` reads it from A
     jsr song_list
 look:
@@ -1221,7 +1221,7 @@ missing:
     sta music_off
     lda #$FF
     ldx #SE_KOF
-    jsr dsp_pair                 ; all voices release
+    jsr dsp_pair                ; all voices release
     plp
     lda temp + 1
     sta f:PKG_EXTRA

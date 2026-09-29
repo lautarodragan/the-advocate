@@ -36,7 +36,7 @@ op_shop_other:
     beq op_shop_done
     rep #$20
 .a16
-    lda [code_ptr], y            ; the item
+    lda [code_ptr], y           ; the item
     iny
     iny
     tax
@@ -88,7 +88,7 @@ op_shop_done:
 .i16
     rep #$20
 .a16
-    lda [code_ptr], y            ; the troop, as an RM2k number
+    lda [code_ptr], y           ; the troop, as an RM2k number
     sta f:BAT_LENGTH + BA_TROOP
     sep #$20
 .a8
@@ -119,7 +119,7 @@ op_shop_done:
     inc a
     inc a
     tay
-    lda [code_ptr], y            ; the destination, absolute within the page
+    lda [code_ptr], y           ; the destination, absolute within the page
     tay
     ; `BATALLA_PERDER`, that is $FFFF —the battle had no defeat handler,
     ; because in RM2k losing it is `Scene_Gameover`— never gets here:
@@ -232,13 +232,13 @@ recorded:
     ldx map_current             ; and the map's audio goes back to the SPC700
     jsr battle_audio_load
     lda f:BAT_LENGTH + BA_SONG_PREV
-    jsr battle_bgm             ; the map's song, or the silence there was
+    jsr battle_bgm              ; the map's song, or the silence there was
     plb
     jsr back_from_battle
     phb
     phk
     plb
-    jsr battle_fade_to_map    ; and the map from black, with `flush_video`
+    jsr battle_fade_to_map      ; and the map from black, with `flush_video`
     plb
     rts
 .endproc

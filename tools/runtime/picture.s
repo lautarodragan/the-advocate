@@ -33,7 +33,7 @@
     lda f:PICTURE_STEP
     cmp f:PICTURE_STEPS
     bcs ready                   ; the ramp has already arrived
-    lda f:PICTURE_STEP           ; `inc` has no long form
+    lda f:PICTURE_STEP          ; `inc` has no long form
     inc a
     sta f:PICTURE_STEP
     jsr picture_tone_now
@@ -164,7 +164,7 @@ equal:
 .a8
     lda #^picture_cgram
     sta tint_ptr + 2
-    jsr build_palette            ; the sixteen, tinted, in `pal_buf`
+    jsr build_palette           ; the sixteen, tinted, in `pal_buf`
     ; And from there to the shadow, **without touching `tint_ready`**:
     ; setting it would send the map's three palettes up on every frame of the
     ; ramp, and that eats the vblank's pose budget.
@@ -201,7 +201,7 @@ copy:
     rts
 has:
     lda #$02
-    sta obj_big              ; the picture's objects are 32x32
+    sta obj_big                 ; the picture's objects are 32x32
     lda #0
     sta f:PICTURE_I
 each:
@@ -215,7 +215,7 @@ each:
     asl a
     asl a                       ; thirty-two per object
     clc
-    adc #PICTURE_X & $FFFF       ; it is negative, and ca65 does not accept a negative immediate
+    adc #PICTURE_X & $FFFF      ; it is negative, and ca65 does not accept a negative immediate
     sta obj_x
     lda #PICTURE_Y
     sta obj_y

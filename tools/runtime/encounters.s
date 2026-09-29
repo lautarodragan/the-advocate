@@ -142,7 +142,7 @@ with_base:
     ldx #0
 threshold:
 .a16
-    lda [code_ptr], y            ; two at a time: the seven and the padding
+    lda [code_ptr], y           ; two at a time: the seven and the padding
     sta ENC_THR, x
     iny
     iny
@@ -263,7 +263,7 @@ to_left:
 left:
 .a16
     asl a
-    bcs always                 ; went past 1: it is a certainty, like `PercentChance`
+    bcs always                  ; went past 1: it is a certainty, like `PercentChance`
     dex
     bne left
 with_threshold:

@@ -21,7 +21,7 @@ MEMSEL   = $420D        ; bit 0: the ROM from bank $80 onwards, fast
 ; there on every `jsr` and every `rts` stays in the bank it is in. Since
 ; 2026-09-11, because the opening with rain, thunder and text dropped one
 ; frame out of three.
-FAST   = $800000
+FAST     = $800000
 STAT78   = $213F        ; bit 4: 0 = NTSC console, 1 = PAL
 HDMAEN   = $420C        ; per-scanline DMA channels
 APUIO0   = $2140        ; the four ports to the SPC700
@@ -151,7 +151,7 @@ DMAP3    = $4330
 BBAD3    = $4331
 A1T3L    = $4332
 A1B3     = $4334
-HDMA_WINDOW = $0E      ; channels 1, 2 and 3 on at once
+HDMA_WINDOW = $0E       ; channels 1, 2 and 3 on at once
 ; PPU window 1, which is not the message window: it is the mask that hides
 ; the objects under it. See `build_hdma`.
 WOBJSEL  = $2125        ; which PPU windows mask objects

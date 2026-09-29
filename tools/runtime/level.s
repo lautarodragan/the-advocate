@@ -218,7 +218,7 @@ has:
     sta f:EXP_TEXT, x
     inx
     lda f:EXP_TEXT + 6
-    bra with_tens              ; with hundreds the tens digit goes in even if zero
+    bra with_tens               ; with hundreds the tens digit goes in even if zero
 no_hundreds:
     lda f:EXP_TEXT + 6
     beq no_tens
@@ -425,7 +425,7 @@ ready:
     asl a
     asl a
     tax
-    lda f:FAR_LENGTH + FAR_EXP + 2, x    ; the high byte is the level
+    lda f:FAR_LENGTH + FAR_EXP + 2, x   ; the high byte is the level
     xba
     and #$00FF
     dec a
@@ -597,12 +597,12 @@ ready:
 .proc heal
 .a8
 .i16
-    lda [code_ptr], y            ; the actor
+    lda [code_ptr], y           ; the actor
     iny
     sta temp + 2
     rep #$20
 .a16
-    lda [code_ptr], y            ; and the amount
+    lda [code_ptr], y           ; and the amount
     sta temp
     sep #$20
 .a8
@@ -673,7 +673,7 @@ add:
     beq ready                   ; fallen: `ChangeHp` does not revive it
     clc
     adc temp
-    bcs cap                   ; it wrapped around: the amount reaches $FFFF
+    bcs cap                     ; it wrapped around: the amount reaches $FFFF
     cmp 3, s
     bcc put
 cap:

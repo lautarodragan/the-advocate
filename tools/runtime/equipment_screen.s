@@ -216,22 +216,22 @@ other:
     cmp #1
     bne no_shield
     lda comp_col
-    bne has                   ; the weapon is not being chosen
+    bne has                     ; the weapon is not being chosen
     jsr eq_two_handed
     bne none
     bra has
 no_shield:
     lda comp_or01 + 3
-    bne has                   ; neither shield nor weapon: the usual one
+    bne has                     ; neither shield nor weapon: the usual one
     lda comp_col
     cmp #1
-    bne has                   ; the shield is not being chosen
+    bne has                     ; the shield is not being chosen
     rep #$20
 .a16
     lda comp_mask
     sep #$20
 .a8
-    beq has                   ; taking off the shield does not touch the weapon
+    beq has                     ; taking off the shield does not touch the weapon
     lda #0
     jsr eq_read
     jsr eq_two_handed
@@ -422,7 +422,7 @@ next:
     inx
     cpx #ITEMS_N
     bcs list_list
-    jmp other                    ; a `bcc`'s 127 bytes fell short once
+    jmp other                   ; a `bcc`'s 127 bytes fell short once
                                 ; `item_actors` was read long
 list_list:
     rep #$20
@@ -736,7 +736,7 @@ list_row:
     lda comp_or23
     sep #$20
 .a8
-    beq list_next         ; the empty line
+    beq list_next               ; the empty line
     pla
     pha
     jsr row_pos_list
@@ -843,7 +843,7 @@ row_pos_list:
     sep #$20
 .a8
     lda #0
-    jsr eq_inv_move            ; one less in the inventory
+    jsr eq_inv_move             ; one less in the inventory
     rep #$20
 .a16
     lda comp_mask
@@ -855,7 +855,7 @@ row_pos_list:
     ; Two hands.
     lda comp_col
     bne no_weapon
-    jsr eq_two_handed            ; `eq_id` is the new weapon
+    jsr eq_two_handed           ; `eq_id` is the new weapon
     beq ready
     lda #1
     jmp take
@@ -976,7 +976,7 @@ row:
     jsr eq_compose
     jsl f:ba_t_upload
     jsr eq_bar
-    jsl f:items_ppu_on     ; BG2 and BG1, the windows
+    jsl f:items_ppu_on          ; BG2 and BG1, the windows
 wait:
     jsl f:ba_t_vblank
     ; The pad first and the DMA after. The other way around, the 1792 bytes

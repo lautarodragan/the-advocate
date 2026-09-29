@@ -38,9 +38,9 @@ other:
     cpy npc_total
     beq ready
     lda npc_buf + 14, y
-    beq next               ; hidden: not drawn
+    beq next                    ; hidden: not drawn
     lda npc_buf + 13, y
-    bpl next               ; bit 7 is "still and animating"
+    bpl next                    ; bit 7 is "still and animating"
     and #$7F
     dec a                       ; the speed, 0 to 5
     phy
@@ -60,7 +60,7 @@ other:
     sta WRDIVL                  ; the dividend, in a single 16-bit write
     sep #$20
 .a8
-    lda anim_continues, x        ; how many frames between column changes
+    lda anim_continues, x       ; how many frames between column changes
     sta WRDIVB                  ; starts it: the quotient takes sixteen cycles
     nop
     nop
@@ -78,12 +78,12 @@ other:
     tax
     sep #$20
 .a8
-    lda cycle_three, x           ; the column: 0, 1, 2 or back to 1
+    lda cycle_three, x          ; the column: 0, 1, 2 or back to 1
     ply
     sta temp + 3
     ; The pose: where its page faces times three, plus the column. With a
     ; fixed facing —which is what `animation_type` 3 asks for— nobody turns it.
-    jsr facing_of_row          ; its page's, or the turn's
+    jsr facing_of_row           ; its page's, or the turn's
     sta temp + 2
     asl a
     clc

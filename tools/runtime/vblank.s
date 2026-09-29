@@ -15,9 +15,9 @@
     jsr push_oam
     lda flash_ready
     beq no_flash2
-    jsr upload_flash          ; the flash, or the tint, go before the
+    jsr upload_flash            ; the flash, or the tint, go before the
     lda #2                      ; poses and eat into their budget in this
-    sta vq_cap                 ; same vblank
+    sta vq_cap                  ; same vblank
     bra no_tint
 no_flash2:
     lda tint_ready
@@ -75,9 +75,9 @@ no_strip:
     sta f:ANIMB_UPLOAD
     jsr anim_drawing_dma
 no_anim_frame:
-    jsr vram_drain             ; the poses this OAM already takes as uploaded
+    jsr vram_drain              ; the poses this OAM already takes as uploaded
     lda #VQ_PER_FRAME
-    sta vq_cap                 ; the coming vblank starts with everything
+    sta vq_cap                  ; the coming vblank starts with everything
 
     ; The flash palettes left pending from the previous frame, **all of
     ; them**: one per slot. See FAR_FLASH_PAL.
@@ -180,7 +180,7 @@ no_anim_pal:
     ; share a single latch among all planes, so interleaving the writes —BG1
     ; low, BG2 low, BG1 high, BG2 high— mixes the values and the plane ends up
     ; shifted within its cell, moving in place.
-    lda screen_x              ; the camera plus the shake, if any
+    lda screen_x                ; the camera plus the shake, if any
     sta BG1HOFS
     lda screen_x + 1
     sta BG1HOFS
@@ -265,7 +265,7 @@ no_window:
     ; exception is a load's forced blank, which `fade_tick` writes by hand:
     ; there the screen is already black and the change does not show.
 on:
-    jsl f:fade_mosaic       ; the teleport's, if it asks for it
+    jsl f:fade_mosaic           ; the teleport's, if it asks for it
     lda brightness
     sta INIDISP
     rts

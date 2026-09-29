@@ -31,7 +31,7 @@
     lda [code_ptr], y
     iny
     iny
-    bmi do_refresh               ; CELL_REFRESH, bit 15
+    bmi do_refresh              ; CELL_REFRESH, bit 15
 already:
     bit #CELL_Y
     bne is_y
@@ -59,13 +59,13 @@ put:
 ; they are not equal. If it fails, it leaves Y on the target and jumps to `end`.
 .macro CELL_TEST end
 .local fails
-    lda [code_ptr], y            ; the left one
+    lda [code_ptr], y           ; the left one
     tax
     lda f:FAR_LENGTH + FAR_VARIABLES, x
     sta temp                    ; the character's cell is no longer needed
     iny
     iny
-    lda [code_ptr], y            ; and the right one
+    lda [code_ptr], y           ; and the right one
     tax
     lda f:FAR_LENGTH + FAR_VARIABLES, x
     cmp temp
@@ -78,7 +78,7 @@ put:
 fails:
     iny
     iny
-    lda [code_ptr], y            ; the target, absolute within the page
+    lda [code_ptr], y           ; the target, absolute within the page
     tay
     bra end
 :
@@ -102,7 +102,7 @@ CELL_VARIABLE = $01FF
 .i16
     rep #$20
 .a16
-    lda [code_ptr], y            ; the target: 0 the hero, or the event plus one
+    lda [code_ptr], y           ; the target: 0 the hero, or the event plus one
     iny
     and #$00FF
     asl a
@@ -178,7 +178,7 @@ other:
 .a8
     lda f:FAR_LENGTH + FAR_PAIR_LIST + 3, x
     sta code_ptr + 2
-    lda [code_ptr]               ; the first opcode
+    lda [code_ptr]              ; the first opcode
     cmp #OP_CELL_TEST
     bne no
     rep #$20
@@ -206,7 +206,7 @@ other:
     ldy #1
     jsr cell_test_near
     lda [code_ptr], y
-    bne continues                   ; did not end at its `OP_DONE`
+    bne continues               ; did not end at its `OP_DONE`
     inc pair_i
     bra other
 continues:

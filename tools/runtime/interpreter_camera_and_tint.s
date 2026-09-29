@@ -14,7 +14,7 @@
 ; page waits, which come from **what is left** after moving the target and
 ; not from what this command asked for. See `GetPanWait`.
 .proc op_pan
-    lda [code_ptr], y            ; the operation
+    lda [code_ptr], y           ; the operation
     iny
     cmp #PAN_RETURN
     bne pan_run
@@ -28,13 +28,13 @@
 pan_run:
     rep #$20
 .a16
-    lda [code_ptr], y            ; the x offset, signed
+    lda [code_ptr], y           ; the x offset, signed
     clc
     adc pan_dest_x
     sta pan_dest_x
     iny
     iny
-    lda [code_ptr], y            ; and the y one
+    lda [code_ptr], y           ; and the y one
     clc
     adc pan_dest_y
     sta pan_dest_y
@@ -49,7 +49,7 @@ pan_skip_after:
     iny
     iny
 pan_read_step:
-    lda [code_ptr], y            ; the per-frame step
+    lda [code_ptr], y           ; the per-frame step
     iny
     rep #$20
 .a16
@@ -57,7 +57,7 @@ pan_read_step:
     sta pan_step
     sep #$20
 .a8
-    lda [code_ptr], y            ; whether the page waits
+    lda [code_ptr], y           ; whether the page waits
     iny
     beq pan_no_wait
     jsr pan_frames
@@ -105,7 +105,7 @@ pan_no_wait:
     ; caught—.
     lda #1
     sta tint_pending
-    jmp run_code::other     ; `bra` does not reach: the loop is far away
+    jmp run_code::other         ; `bra` does not reach: the loop is far away
 
 .endproc
 

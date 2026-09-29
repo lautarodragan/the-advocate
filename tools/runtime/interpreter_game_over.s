@@ -34,7 +34,7 @@
     xba
     lda pair_ev
     cmp #$FF
-    beq game_over_already            ; foreground
+    beq game_over_already       ; foreground
     lda msg_open
     ora msg_state
     ora pick_active

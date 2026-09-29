@@ -11,7 +11,7 @@
 ; One music frame per video frame, plus an extra one every five if the console
 ; is PAL: six every five is exactly 60 per 50.
 .proc irq_music
-    jml f:fast + FAST       ; the vector lands in bank 0: see MEMSEL
+    jml f:fast + FAST           ; the vector lands in bank 0: see MEMSEL
 fast:
     ; Everything touched is saved, B and D included: this lands in the middle
     ; of anything, among them the interpreter with B pointing at the bytecode.
@@ -89,7 +89,7 @@ ready:
     ; and changing the pointer halfway with `irq_music` reading it would be
     ; playing one song from the middle of another.
     pha
-    jsr msu_stop               ; the previous track, if there was one
+    jsr msu_stop                ; the previous track, if there was one
     pla
     pha
     jsr msu_start
@@ -106,7 +106,7 @@ ready:
     stz bgm_fade
     lda #$FF
     ldx #SE_KOF
-    jsr dsp_pair                 ; the eight voices release, and KOF stays set
+    jsr dsp_pair                ; the eight voices release, and KOF stays set
     ; And the DSP has to be set up here, which is what was missing: the start
     ; of the stream does it —FLG without the mute the SPC700 boots with, the
     ; master volume, and where the sample directory is— and with a track the
@@ -135,7 +135,7 @@ no_track:
     ; the stream pointer outside its table and the ROM mute within ten frames.
     pla
     pha
-    jsr song_ensure           ; that its samples are in the ARAM
+    jsr song_ensure             ; that its samples are in the ARAM
     pla
     php
     sei
@@ -175,7 +175,7 @@ no_track:
     rep #$20
 .a16
     lda #0                      ; again: the 8-bit `lda #0` did not
-    sta f:MUS_WAIT            ; clear B, and the wait is sixteen bits
+    sta f:MUS_WAIT              ; clear B, and the wait is sixteen bits
     lda song_current
     asl a
     tax
@@ -208,16 +208,16 @@ no_track:
 .a16
     lda bgm_level
     jsr level_factor
-    sta f:FADE_BEFORE         ; the one the DSP has
+    sta f:FADE_BEFORE           ; the one the DSP has
     lda bgm_level
     sec
     sbc bgm_step
-    bcs low                    ; still some left
+    bcs low                     ; still some left
     lda #0
 low:
     sta bgm_level
     jsr level_factor
-    sta f:FADE_N             ; this frame's
+    sta f:FADE_N                ; this frame's
     sep #$20
 .a8
     lda bgm_level
@@ -225,7 +225,7 @@ low:
     bne continues
     stz bgm_fade
     lda #1
-    sta music_off           ; the song is cut, like `BgmFade`
+    sta music_off               ; the song is cut, like `BgmFade`
 continues:
     lda f:MSU_PLAYING
     bne track
@@ -269,7 +269,7 @@ no_add:
     sta MSU_VOLUME
     cmp #0
     bne ready_msu
-    jsr msu_stop               ; reached zero: the track is cut
+    jsr msu_stop                ; reached zero: the track is cut
 ready_msu:
     rts
 .endproc
@@ -308,7 +308,7 @@ ready:
 other_voice:
     lda f:MUS_VIEWS
     and voice_bit, y
-    beq next               ; did not play in this song: not sounding
+    beq next                    ; did not play in this song: not sounding
     jsr volume_refresh
     inx
     jsr volume_refresh          ; VOL_R
@@ -398,7 +398,7 @@ equal:
     cmp #$FF
     beq from_map                ; no slot loaded: the map's song
     lda music_off
-    bne muted                 ; saved at a moment without music
+    bne muted                   ; saved at a moment without music
     lda song_current
     jmp music_start
 from_map:
@@ -430,7 +430,7 @@ plays:
 ; returned intact: hence the pha/pla in the bank-crossing branch.
     inc music
     bne done
-height:                           ; where `READ` continues when the low byte wrapped
+height:                         ; where `READ` continues when the low byte wrapped
     inc music + 1
     bne done                    ; if the high part did not wrap, done
     pha
@@ -523,8 +523,8 @@ no_init:
     lda restart
     bne mute
     inc restart
-    lda song_current             ; it ended: the same one, again from the top
-    jsr music_start_done          ; inside the IRQ: no `sei` and no package
+    lda song_current            ; it ended: the same one, again from the top
+    jsr music_start_done        ; inside the IRQ: no `sei` and no package
     bra read
 mute:
     ; An empty stream: nothing to play, neither this frame nor the ones to
@@ -618,7 +618,7 @@ other_init:
     sep #$20
 .a8
     lda dsp_init_val, y
-    jsr dsp_music              ; does not touch Y
+    jsr dsp_music               ; does not touch Y
     iny
     bra other_init
 init_ready:
@@ -737,10 +737,10 @@ already:
     jsr first_note
     READ
     pha
-    jsr mus_write            ; VOL_L
+    jsr mus_write               ; VOL_L
     iny
     pla
-    jsr mus_write            ; VOL_R, the same one
+    jsr mus_write               ; VOL_R, the same one
     iny
     jmp note_sound
 .endproc
@@ -750,10 +750,10 @@ already:
 .i16
     jsr first_note
     READ
-    jsr mus_write            ; VOL_L
+    jsr mus_write               ; VOL_L
     iny
     READ
-    jsr mus_write            ; VOL_R
+    jsr mus_write               ; VOL_R
     iny
     jmp note_sound
 .endproc
