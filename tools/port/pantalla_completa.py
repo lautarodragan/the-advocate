@@ -27,6 +27,7 @@ La del título se decidió igual, el 2026-09-28: los números están en
 """
 
 from port import comprimir
+from port.formato_snes import cgram_word, entry, pack_tile
 from port.paleta import convertir
 
 # El tilemap que sube la ROM: 32x32 entradas de dos bytes, aunque la pantalla
@@ -51,7 +52,6 @@ def comprimida(imagen, primer_color=0, tope=256, debajo=()):
     if len(debajo) > primer_color:
         raise ValueError("%d colores debajo de la imagen y la imagen empieza "
                          "en el %d" % (len(debajo), primer_color))
-    from port.snes_convert import cgram_word, pack_tile, entry
     tiles, paleta, tilemap = convertir(imagen, primer_color, tope)
     datos = bytearray()
     for celda in tiles:

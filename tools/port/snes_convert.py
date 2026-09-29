@@ -90,6 +90,7 @@ from audio import efectos_msu
 from comun.paralelo import en_paralelo
 from audio import snes_music
 from port.asignador import CELL, tile_colors
+from port.formato_snes import cgram_word, entry, pack_tile
 from rpgmaker.rm2k import TILE, collect_npcs, hero_start, passability_map
 from render.render_map import REPO, Renderer, build_passability, load_image
 from rpgmaker.recursos import GAME_DIR, RTP_DIR, find_resource
@@ -267,25 +268,6 @@ def _colores_de(grillas):
     return counts
 
 
-def pack_tile(indices, planes=8):
-    """Formato del PPU: planos de bits, no dos pixeles por byte.
-
-    Cada plano guarda un bit de cada pixel, una fila por byte y el pixel de más
-    a la izquierda en el bit más alto. Los planos van de a pares y de a 16
-    bytes: 0 y 1 primero, después 2 y 3, y así. Por eso un tile de 4 bits es
-    exactamente la primera mitad de uno de 8, y el mismo código sirve para los
-    dos con sólo cambiar cuántos planos recorre.
-    """
-    data = bytearray(planes * 8)
-    for y, row in enumerate(indices):
-        for x, value in enumerate(row):
-            bit = 1 << (7 - x)
-            for plane in range(planes):
-                if (value >> plane) & 1:
-                    data[(plane // 2) * 16 + y * 2 + (plane % 2)] |= bit
-    return bytes(data)
-
-
 def pack_tiles(tiles, planes=8):
     """`pack_tile` de varios tiles a la vez: `tiles` es un arreglo de numpy
     de (n, 8, 8) índices, y sale la lista de los n tiles empaquetados."""
@@ -297,12 +279,6 @@ def pack_tiles(tiles, planes=8):
     ppu = filas.reshape(-1, CELL, planes // 2, 2).transpose(0, 2, 1, 3)
     datos = numpy.ascontiguousarray(ppu).reshape(len(tiles), planes * 8)
     return [bytes(fila) for fila in datos]
-
-
-def cgram_word(color):
-    """Palabra de CGRAM: 0BBB BBGG GGGR RRRR."""
-    red, green, blue = color
-    return (blue << 10) | (green << 5) | red
 
 
 def repartir_encima(grid, limite):
@@ -396,17 +372,6 @@ def convert_above(grid, palettes, above_first, merged=0):
     if not cram:
         cram = bytes(2 * COLORS_PER_PALETTE)
     return tiles, cram, tilemap, above_first, merged, png
-
-
-def entry(tile, horizontal, vertical, priority=0):
-    """Una celda del tilemap: vhop ppcc cccc cccc.
-
-    Los tres bits de paleta no se ponen acá: en 8 bits por pixel el índice ya
-    alcanza CGRAM entero y el PPU los ignora. Las celdas de la pantalla de
-    ranuras, que es BG2 a 4bpp, ya vienen de `titulo.py` con la paleta puesta
-    en `tile`, y esto la deja pasar.
-    """
-    return (tile | (priority << 13) | (horizontal << 14) | (vertical << 15))
 
 
 # --- el sprite del personaje ------------------------------------------------
