@@ -19,7 +19,10 @@ No arranca ninguna ROM: mira al conversor.
 
 import os
 
-from port import snes_convert
+# Por los ganchos que pone en `lcf` al importarse: los mapas se leen como
+# los lee el conversor.
+from port import snes_convert                            # noqa: F401
+from port import baking
 from render.render_map import Renderer, build_passability
 from rpgmaker.resources import GAME_DIR
 from rpgmaker import rm2k
@@ -35,7 +38,7 @@ MAPAS = cartuchos.mapas()
 def horneados_de(renderer, map_id):
     game_map = renderer.load_map(
         os.path.join(GAME_DIR, "Map%04d.lmu" % map_id))
-    return game_map, snes_convert.bakeable_events(renderer, game_map)
+    return game_map, baking.bakeable_events(renderer, game_map)
 
 
 def test_la_regla_sigue_alcanzando_a_algun_mapa_del_cartucho():
@@ -58,11 +61,11 @@ def test_lo_que_se_hornea_tapa_la_celda_entera():
         if not horneados:
             continue
         chipset = renderer.chipset_by_name(game_map.chipset_filename)
-        assert not any(snes_convert._tile_alphas(chipset, 0)), \
+        assert not any(baking._tile_alphas(chipset, 0)), \
             "mapa %d: el tile 0 de la capa alta dibuja algo, así que la celda " \
             "vacía donde se hornea no estaba vacía" % map_id
         for evento, (_celda, tile) in horneados.items():
-            alfas = snes_convert._tile_alphas(chipset, tile - rm2k.UPPER_BASE)
+            alfas = baking._tile_alphas(chipset, tile - rm2k.UPPER_BASE)
             assert all(a == 255 for a in alfas), \
                 "mapa %d: el evento %d se hornea con un tile que tiene " \
                 "pixeles transparentes" % (map_id, evento + 1)
@@ -83,11 +86,11 @@ def test_hornear_no_cambia_la_pasabilidad_de_la_celda():
         flags = build_passability(chipset)
         # Lo que la fila imponía, antes de hornear.
         antes = {}
-        for npc in snes_convert.collect_npcs(game_map):
+        for npc in rm2k.collect_npcs(game_map):
             if npc["event"] in horneados:
                 antes[npc["event"]] = rm2k.event_tile_passability(
                     game_map, npc["charset"], npc["layer"])
-        snes_convert.bake_into_map(game_map, horneados)
+        baking.bake_into_map(game_map, horneados)
         pasable = rm2k.passability_map(game_map, flags)
         for evento, (celda, _tile) in horneados.items():
             assert antes[evento] is not None, \
