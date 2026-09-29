@@ -424,8 +424,8 @@ def battler_diff(old, new):
 
 # Who asked for each of the cartridge's patches, next to its patches and **not
 # versioned**: the converter writes it —see `patch_uses` in
-# snes_convert.py— and `only_for_tests` reads it. It is needed since the ROM that
-# is played also carries the suite's maps and pages.
+# battle_scenes.py— and `only_for_tests` reads it. It is needed since the ROM
+# that is played also carries the suite's maps and pages.
 USES_FILE = os.path.join("parches", "usos.json")
 
 

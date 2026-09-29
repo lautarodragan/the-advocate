@@ -7,8 +7,9 @@ que muestran animaciones los personajes se reparten **siete** paletas y no
 ocho, y eso les fusiona más colores que en RM2k, donde no hay paletas.
 
 **Salvo que con siete no entre el cronómetro**: ahí manda él, se vuelve a ocho y
-ese mapa no dibuja animaciones. La regla está en `tools/port/snes_convert.py`,
-donde se reparten las paletas de personajes.
+ese mapa no dibuja animaciones. La regla es `map_palette_cap`, en
+`tools/port/obj_extras.py`, que dice cuántas paletas se reparten los
+personajes.
 
 # Medido
 

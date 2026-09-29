@@ -122,7 +122,7 @@ rutinas que saben eso; todo lo demás las usa y se olvida del tema.
 
 Y una tabla mudada, o una que se recorra con `[ptr], y`, **tiene que
 declararse con `.block`** para no quedar partida entre dos bancos: ver
-`bloque` en `tools/port/snes_convert.py`. El acomodo se niega a armar con una
+`block` en `tools/port/asm.py`. El acomodo se niega a armar con una
 etiqueta de RODATA sin declarar, y lo que cruza a propósito —el stream de la
 música, lo que se sube al SPC700— lleva `.crossbank`: el reparto lo hace
 `rm2k-snes-assemble` antes de `ca65`, ver `resolve` en

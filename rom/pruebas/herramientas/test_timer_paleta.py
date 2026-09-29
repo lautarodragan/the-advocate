@@ -21,7 +21,12 @@ import pytest
 
 from render import render_map
 from rpgmaker import resources
-from port import snes_convert
+# Por los ganchos que pone en `lcf` al importarse: los mapas se leen como
+# los lee el conversor.
+from port import snes_convert                            # noqa: F401
+from port import game_scan
+from port import obj_extras
+from port import sprites
 
 from datos import DEMO
 
@@ -41,9 +46,9 @@ GRUPO = [10]
 def descartados(paletas):
     """Qué eventos del mapa 2 no se dibujan con tantas paletas de sprite."""
     ren = render_map.Renderer(JUEGO)
-    lideres = snes_convert.possible_leaders(ren, DEMO, GRUPO)
+    lideres = game_scan.possible_leaders(ren, DEMO, GRUPO)
     game_map = ren.load_map(os.path.join(JUEGO, "Map%04d.lmu" % MAPA))
-    _npcs, fuera, _reparto = snes_convert.drawable_npcs(
+    _npcs, fuera, _reparto = sprites.drawable_npcs(
         ren, game_map, lideres, paletas, [])
     return {evento for evento, _tile in fuera}
 
@@ -60,17 +65,17 @@ def test_no_se_descarta_ningun_grafico(partida=None):
     Se mira con **seis** paletas y no con ocho para que el mapa se quede corto
     de verdad: con ocho entra casi todo y la prueba no diría nada.
     """
-    assert descartados(snes_convert.OBJ_PALETTES - 2) == set(), \
+    assert descartados(sprites.OBJ_PALETTES - 2) == set(), \
         "el mapa 2 descarta gráficos en vez de prestarles una paleta"
 
 
 def test_la_puerta_que_core_rompe_tiene_paleta(partida=None):
     """Y en particular la del evento 30, que es la que taro perdió jugando."""
     ren = render_map.Renderer(JUEGO)
-    lideres = snes_convert.possible_leaders(ren, DEMO, GRUPO)
+    lideres = game_scan.possible_leaders(ren, DEMO, GRUPO)
     game_map = ren.load_map(os.path.join(JUEGO, "Map%04d.lmu" % MAPA))
-    npcs, _fuera, reparto = snes_convert.drawable_npcs(
-        ren, game_map, lideres, snes_convert.OBJ_PALETTES - 2, [])
+    npcs, _fuera, reparto = sprites.drawable_npcs(
+        ren, game_map, lideres, sprites.OBJ_PALETTES - 2, [])
     paleta_de = reparto[1]
     suyos = [n for n in npcs if n["event"] == PUERTA]
     assert suyos, "el evento 30 del mapa 2 no tiene fila de NPC"
@@ -79,7 +84,7 @@ def test_la_puerta_que_core_rompe_tiene_paleta(partida=None):
         "el medio de la puerta que Core rompe se quedó sin paleta"
 
 
-def paletas_de(cuantos_colores, cuantas=snes_convert.OBJ_PALETTES):
+def paletas_de(cuantos_colores, cuantas=sprites.OBJ_PALETTES):
     """Paletas inventadas, con colores que el cronómetro no usa."""
     return [[(1, i, k) for k in range(cuantos_colores)] for i in range(cuantas)]
 
@@ -90,11 +95,11 @@ def test_los_digitos_entran_en_una_paleta_que_ya_existe():
     ren = render_map.Renderer(JUEGO)
     sys_img = ventana_mod.skin(JUEGO, ren.database.system_name)
     palettes = paletas_de(13)
-    _tiles, _base, cual = snes_convert.timer_digits(
+    _tiles, _base, cual = obj_extras.timer_digits(
         sys_img, bytes(32 * 64), palettes)
-    assert len(palettes) == snes_convert.OBJ_PALETTES, \
+    assert len(palettes) == sprites.OBJ_PALETTES, \
         "el cronómetro se agregó una paleta teniendo dónde entrar"
-    assert cual < snes_convert.OBJ_PALETTES
+    assert cual < sprites.OBJ_PALETTES
     assert len(palettes[cual]) <= 15, "la paleta que eligió se pasó de 15"
 
 
@@ -104,7 +109,7 @@ def test_si_de_verdad_no_entra_lo_dice():
     ren = render_map.Renderer(JUEGO)
     sys_img = ventana_mod.skin(JUEGO, ren.database.system_name)
     with pytest.raises(SystemExit):
-        snes_convert.timer_digits(sys_img, bytes(32 * 64), paletas_de(15))
+        obj_extras.timer_digits(sys_img, bytes(32 * 64), paletas_de(15))
 
 
 def test_el_cronometro_no_cae_en_la_ranura_de_un_lider():
@@ -127,7 +132,7 @@ def test_el_cronometro_no_cae_en_la_ranura_de_un_lider():
     sys_img = ventana_mod.skin(JUEGO, ren.database.system_name)
     # Dos paletas con lugar de sobra; la primera es la del líder.
     palettes = [[(1, 1, k) for k in range(4)], [(2, 2, k) for k in range(4)]]
-    _tiles, _base, cual = snes_convert.timer_digits(
+    _tiles, _base, cual = obj_extras.timer_digits(
         sys_img, bytes(32 * 64), palettes, leader_owned={0})
     assert cual == 1, \
         "el cronómetro se metió en la paleta %d, que es de un líder: la ROM " \
@@ -149,7 +154,7 @@ def test_las_gotas_no_caen_en_la_paleta_del_cronometro():
     lo que se prueba es el mecanismo.
     """
     palettes = [[(1, 1, k) for k in range(4)], [(2, 2, k) for k in range(4)]]
-    _tiles, base, cual = snes_convert.rain_drops(
+    _tiles, base, cual = obj_extras.rain_drops(
         bytes(32 * 64), palettes, timer_base=64, timer_pal=0)
     assert base, "las gotas no entraron en ninguna paleta"
     assert cual != 0, \

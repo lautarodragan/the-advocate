@@ -3,7 +3,7 @@ descomprime al cargar un mapa, en todos los cartuchos.
 
 `tools/lz2/` tiene sus propias pruebas, en inglés y sin nada de este juego;
 éstas son las del port: que cada bloque que el conversor dejó en `crudos/` —ver
-`write_raw` en snes_convert.py— vuelva igual pasando por el binario y por
+`write_raw` en materials.py— vuelva igual pasando por el binario y por
 `pruebas/arnes/lz2.py`, que está escrita aparte a propósito. Lo que la ROM hace
 con esos flujos lo mira `test_carga_descomprimida.py`.
 """
@@ -17,8 +17,8 @@ import tanda
 import cartuchos
 from lz2 import descomprimir
 from port import compress
-from port.snes_convert import (COMPRESSED_KINDS, LZ2_CAP_BACKDROP,
-                               check_streams, compressed_parts)
+from port.materials import (COMPRESSED_KINDS, LZ2_CAP_BACKDROP,
+                            check_streams, compressed_parts)
 
 
 def _crudos(nombre):

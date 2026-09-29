@@ -16,8 +16,9 @@ corre, está en `wishlist/timer-paleta-dinamica.md`.
 
 En un mapa que llene las ocho paletas a quince colores. Ahí se le hace lugar
 bajando a un personaje a catorce —el que menos pixeles mueva, y nunca uno de
-líder—, y si ni eso alcanza el conversor corta y lo dice. Ver "por último, el
-cronómetro" en `tools/port/snes_convert.py`.
+líder—, y si ni eso alcanza el conversor corta y lo dice. Ver "the timer
+**before the events drawn with a chipset tile**" en `drawable_npcs`, en
+`tools/port/sprites.py`.
 
 # Lo que obliga en la ROM
 

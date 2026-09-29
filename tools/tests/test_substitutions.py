@@ -11,7 +11,7 @@ cutoff share nothing— so what is left is comparing them.
 
 import re
 
-from port import snes_convert                            # noqa: E402
+from port import blocks                                  # noqa: E402
 
 
 def from_main(fuente, nombre):
@@ -27,7 +27,7 @@ def reservation(fuente, nombre):
 
 
 def test_the_table_cap_is_the_same_on_both_sides(runtime_source):
-    assert from_main(runtime_source, "SUB_MAX") == snes_convert.SUB_MAX
+    assert from_main(runtime_source, "SUB_MAX") == blocks.SUB_MAX
 
 
 def test_the_rom_table_is_as_long_as_the_cap_says(runtime_source):

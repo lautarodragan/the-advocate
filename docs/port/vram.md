@@ -19,7 +19,7 @@ uno al final no le cambia el reparto a ningún mapa que ya lo tenía:
     ventana+encima sprites 384 | mapa $1800 | fondo 384  | encima 256 | ventana 256 | ventana_map
 
 Los detalles, con las direcciones, están en `LAYOUT_WINDOW*` de
-`tools/port/snes_convert.py`, y `_check_splits` comprueba que cada uno
+`tools/port/vram.py`, y `_check_splits` comprueba que cada uno
 respete las alineaciones del hardware y lo que la ROM supone.
 
 El "+sprite" lo pide **Delcentric Factory**, el camino al auditorio: gasta 217

@@ -27,7 +27,11 @@ import pytest
 
 from render import render_map
 from rpgmaker import resources
-from port import snes_convert
+# Por los ganchos que pone en `lcf` al importarse: los mapas se leen como
+# los lee el conversor.
+from port import snes_convert                            # noqa: F401
+from port import game_scan
+from port import sprites
 
 from datos import DEMO
 
@@ -43,10 +47,10 @@ MAPAS = [3, 2, 1]
 @pytest.mark.parametrize("map_id", MAPAS)
 def test_ningun_tile_entra_en_la_paleta_de_un_lider(map_id):
     ren = render_map.Renderer(JUEGO)
-    lideres = snes_convert.possible_leaders(ren, DEMO, GRUPO)
+    lideres = game_scan.possible_leaders(ren, DEMO, GRUPO)
     game_map = ren.load_map(os.path.join(JUEGO, "Map%04d.lmu" % map_id))
-    _npcs, _fuera, reparto = snes_convert.drawable_npcs(
-        ren, game_map, lideres, snes_convert.OBJ_PALETTES, [])
+    _npcs, _fuera, reparto = sprites.drawable_npcs(
+        ren, game_map, lideres, sprites.OBJ_PALETTES, [])
     paletas, paleta_de = reparto[0], reparto[1]
 
     de_lider = set()

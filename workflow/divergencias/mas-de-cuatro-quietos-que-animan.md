@@ -2,7 +2,7 @@
 
 Un evento quieto con animación continua deja de compartir la ranura de VRAM de
 su (CharSet, índice, pose) y necesita **las doce poses suyas**, como los que
-caminan. El tope es `ANIMA_QUIETO_MAX` en `tools/port/snes_convert.py`, y es
+caminan. El tope es `ANIMATES_STILL_MAX` en `tools/port/sprites.py`, y es
 **por mapa y todo o nada**: con más de ésos, el mapa no anima ninguno. En RM2k
 animan todos.
 

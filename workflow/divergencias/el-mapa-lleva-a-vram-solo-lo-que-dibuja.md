@@ -19,7 +19,7 @@ y no entraba en ningún reparto de VRAM de ese día. La cuenta entera está en
 # Cómo se ve hoy
 
 No se ve: cada mapa dibuja lo mismo que en RM2k. El reparto de cada mapa lo
-elige `vram_layout` en `tools/port/snes_convert.py`, y `docs/port/vram.md`
+elige `vram_layout` en `tools/port/vram.py`, y `docs/port/vram.md`
 explica de dónde salen los posibles.
 
 # Cuándo deja de alcanzar

@@ -2,7 +2,7 @@
 tener, byte por byte, para **cada cuadro de cada animación** del cartucho.
 
 Desde el 2026-09-26 el cartucho no guarda los cuadros enteros sino sólo sus
-tiles con algo —ver `frame_without_gaps` en snes_convert.py—, y la ROM los
+tiles con algo —ver `frame_without_gaps` en battle_animations.py—, y la ROM los
 rearma en la RAM lejana antes de subirlos. La propiedad que hace verificable
 ese cambio es que **lo que llega a la VRAM no cambió**, y eso es lo que se mira
 acá: contra `animation_frame`, que es la cuenta de los 2 KB sin comprimir y
@@ -19,7 +19,7 @@ camino que se prueba.
 import pytest
 
 from port import animation, events
-from port.snes_convert import animation_frame
+from port.battle_animations import animation_frame
 from render.render_map import Renderer
 from rpgmaker.resources import GAME_DIR
 

@@ -737,7 +737,7 @@ class Songs:
         # package: see `package_load` in tools/runtime/audio_package.s.
         # And which ROM maps each one jumps to —`destinos`, indices into the
         # map table—, which is where it comes from which song may be playing
-        # when a package is loaded: see `inherited_songs` in snes_convert.py.
+        # when a package is loaded: see `inherited_songs` in music.py.
         self.current_map = None
         self.per_map = {}
         # And which `PlayBGM`s of each map are **exit ones**: see `output`.
@@ -771,7 +771,7 @@ class Songs:
         effects in between —the one it surely carries—, or with None if it
         carries whatever is playing. The page notes it when it compiles, and
         `_recalled_destination` that of a `RecallToLocation`, always with None.
-        See `inherited_songs` in snes_convert.py."""
+        See `inherited_songs` in music.py."""
         if self.current_map is None:
             return
         self.jumps.setdefault(self.current_map, {}).setdefault(dest, set()).add(
@@ -5101,7 +5101,7 @@ def _compile(cmd, map_index, messages=None, extra=(),
             raise CannotCompile("TileSubstitution with no operands")
         if map_events is None or map_events.substitutions is None:
             # Without the converter in between there are no blocks to
-            # translate against. See `Substitutions` in snes_convert.py.
+            # translate against. See `Substitutions` in blocks.py.
             raise CannotCompile("TileSubstitution without the map's blocks")
         pairs = map_events.substitutions.pairs(bool(p[0]), p[1], p[2])
         if pairs is None:
@@ -5275,7 +5275,7 @@ def _compile(cmd, map_index, messages=None, extra=(),
 
 class PartyState:
     """The party, to simulate its changes when converting:
-    `possible_leaders` and `page_party` in snes_convert.py. It is
+    `possible_leaders` in game_scan.py and `page_party` in cases.py. It is
     what is left of the Python interpreter's state, which went away with the
     reference; the ROM is the only one that runs the bytecode."""
 
