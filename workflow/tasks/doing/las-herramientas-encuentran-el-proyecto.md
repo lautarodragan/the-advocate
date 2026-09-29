@@ -57,3 +57,25 @@ los `.dbg` sin `mtime`—.
      de 2026-08-31 (`00d96428`, cuando el RTP podía vivir en el repo) y hoy
      no encuentra nada ahí, porque la raíz no tiene carpetas de RM2k. No es
      llegar a ABL, así que no se tocó.
+2. **`[paths]` en el archivo**, con claves en inglés y relativas a él:
+
+       [paths]
+       data = "data"
+       patches = "parches"
+       build = "build"
+       cases = "pruebas/casos"
+
+   `proyecto.build()`, `data()`, `parches()` y `casos()` las leen de ahí.
+   Lo de adentro de `parches/` (`manual/`, `auto/`) y de `build/`
+   (`release/`, `tests/`, `cache/`, `techos/`) sigue siendo de las
+   herramientas: es la forma que le dan ellas, no una decisión del juego.
+   - **Qué entra y qué no, con el criterio del encargo: es del archivo si lo
+     lee una herramienta.** `cases` entra aunque viva en `pruebas/`, porque
+     la lee `rm2k-snes-cartridges`. Las goldens y los snapshots no: sólo los
+     leen las pruebas de ABL, que los saben por su propia ubicación, en
+     `pruebas/arnes/lugares.py` (`GOLDENS`, `SNAPSHOTS`).
+     `proyecto.pruebas()`, `goldens()` y `snapshots()` desaparecen.
+   - `test_perillas_repetidas.py` no mira `[paths]`: sus valores son nombres
+     de carpeta, y las herramientas usan `parches/auto/` como forma del
+     directorio de cada cartucho. Armar a mano una ruta del juego con esas
+     palabras lo cobra `test_proyecto.py`, que mira rutas.

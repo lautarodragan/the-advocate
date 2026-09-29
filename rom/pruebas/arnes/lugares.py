@@ -14,8 +14,17 @@ import os
 
 from comun import proyecto
 
-# La raíz del juego: donde está su archivo de proyecto.
-ABL = os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__))))
+# `pruebas/`, y la raíz del juego arriba: donde está su archivo de proyecto.
+PRUEBAS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ABL = os.path.dirname(PRUEBAS)
 
 proyecto.fijar(ABL)
+
+# Lo que es sólo de las pruebas, y no lo lee ninguna herramienta: por eso no
+# está en el archivo de proyecto. Los casos sí, porque los lee
+# `rm2k-snes-cartridges`: son `cartuchos.CASOS`.
+#
+# Las capturas congeladas: `tanda/`, `playthrough/`…
+GOLDENS = os.path.join(PRUEBAS, "golden")
+# Lo que dejan las pruebas para mirar: no se versiona.
+SNAPSHOTS = os.path.join(PRUEBAS, "snapshots")

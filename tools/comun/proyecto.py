@@ -130,19 +130,28 @@ def archivo_de_proyecto():
     return os.path.join(directorio(), ARCHIVO)
 
 
+def _ruta(clave):
+    """Una ruta de `[paths]`: la declara el archivo, relativa a él. Cómo está
+    armado el juego por dentro es del juego, no de las herramientas."""
+    from comun import perillas      # adentro: `perillas` importa éste
+    return os.path.normpath(os.path.join(
+        directorio(), perillas.valor("paths", clave, tipo=str)))
+
+
 def build():
-    """`rom/build/`: todo lo que se arma, y nada versionado."""
-    return os.path.join(directorio(), "build")
+    """`[paths] build`: todo lo que se arma, y nada versionado."""
+    return _ruta("build")
 
 
 def data():
-    """El juego volcado a JSON."""
-    return os.path.join(directorio(), "data")
+    """`[paths] data`: el juego volcado a JSON."""
+    return _ruta("data")
 
 
 def parches():
-    """Lo que se decidió sobre el juego: `manual/` y `auto/`."""
-    return os.path.join(directorio(), "parches")
+    """`[paths] patches`: lo que se decidió sobre el juego, `manual/` y
+    `auto/`. Lo de adentro tiene la forma que le dan las herramientas."""
+    return _ruta("patches")
 
 
 def parches_manual():
@@ -155,23 +164,10 @@ def parches_auto():
     return os.path.join(parches(), "auto")
 
 
-def pruebas():
-    return os.path.join(directorio(), "pruebas")
-
-
 def casos():
-    """Los casos de la tanda, un JSON por caso."""
-    return os.path.join(pruebas(), "casos")
-
-
-def goldens():
-    """Las capturas congeladas: `tanda/`, `playthrough/`…"""
-    return os.path.join(pruebas(), "golden")
-
-
-def snapshots():
-    """Lo que dejan las pruebas para mirar: no se versiona."""
-    return os.path.join(pruebas(), "snapshots")
+    """`[paths] cases`: los casos de la tanda, un JSON por caso. Los lee
+    `cartuchos.py`, que los mete en las páginas de prueba."""
+    return _ruta("cases")
 
 
 # Lo que es de la máquina. Los nombres de las variables y sus valores por

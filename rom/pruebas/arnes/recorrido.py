@@ -27,7 +27,7 @@ juego: es la celda del evento que teletransporta al mapa que sigue.
 import collections
 import os
 
-from comun import proyecto
+import lugares
 from consola import TITULO_AIRE
 from render.render_map import Renderer
 from rpgmaker.recursos import GAME_DIR
@@ -88,7 +88,7 @@ PASO_TOPE = 40
 A_CADA = 8
 
 # Dónde viven las capturas que taro bendijo, y cuánto se les tolera. Ver `foto`.
-GOLDEN = os.path.join(proyecto.goldens(), "playthrough")
+GOLDEN = os.path.join(lugares.GOLDENS, "playthrough")
 GOLDEN_TOLERANCIA = 0.15
 
 

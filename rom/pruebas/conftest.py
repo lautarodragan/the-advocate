@@ -21,9 +21,8 @@ import os
 
 import pytest
 
-import lugares                                  # noqa: F401 — antes que nada
+import lugares                                  # antes que nada
 import tanda
-from comun import proyecto
 from consola import EMPEZAR
 from ensamblado import cartuchos
 
@@ -117,7 +116,7 @@ def partida():
 # Dónde quedan las capturas de cada hito de las pruebas que **juegan**, una
 # carpeta por tramo. Las goldens de `pruebas/golden/playthrough/<tramo>/` se
 # buscan por ese mismo nombre: ver `Recorrido.foto`.
-FOTOS = os.path.join(proyecto.snapshots(), "playthrough")
+FOTOS = os.path.join(lugares.SNAPSHOTS, "playthrough")
 
 
 # Las dos que siguen **importan `recorrido` adentro** y no arriba, y no es
