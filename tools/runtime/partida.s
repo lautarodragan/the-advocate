@@ -44,7 +44,7 @@ SRAM_STRIDE = 2048
 ; resolved by the assembler as direct page and would read WRAM. That bug cost
 ; the saved game not loading in mednafen, in Mesen or on the console.
 SRAM_MAGIC = $0100          ; four bytes: the game's signature,
-                            ; `SRAM_MAGIA_TEXTO`
+                            ; `SRAM_MAGIC_TEXT`
 SRAM_CHECKSUM  = $0104          ; the sum of the saved game's bytes
 ; And which format it is: the magic and the sum say the slot is intact, not
 ; that it is from this build. Since the test cases travel in the ROM that gets
@@ -59,7 +59,7 @@ SRAM_CHECKSUM  = $0104          ; the sum of the saved game's bytes
 ; converter from which variable, actor and skill goes in each slot
 ; —`firma_de_la_partida`—, which is what the length does not see.
 SRAM_BYTES = $0106          ; SAVE_BYTES
-SRAM_SIGNATURE = $0108          ; PARTIDA_FIRMA
+SRAM_SIGNATURE = $0108          ; GAME_SIGNATURE
 SRAM_DATA = $010A
 
 ; `save_table` lives in RODATA —see "what does not need to live in bank 0"
@@ -69,7 +69,7 @@ SRAM_DATA = $010A
 ; ROM checks it**: `save_game` compares against what `save_copy`
 ; ended with and panics if they differ. Duplicating a number nobody verifies
 ; is the kind of bug this repo has already paid for three times.
-SAVE_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10 + ACTORES_N * 2 + ACTORES_N * 2 + ACTORES_N + HAB_BYTES + EXP_K * 4
+SAVE_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORS_N * 10 + ACTORS_N * 2 + ACTORS_N * 2 + ACTORS_N + SKILL_BYTES + EXP_K * 4
 ; Where the party lands inside the saved game: after the position, the
 ; direction, the cell and the map. The slot screen reads it from the SRAM to
 ; show the leader's name and the faces. It is the same sum as above, cut at the
@@ -294,17 +294,17 @@ cuadra:
     sta SRAM_CHECKSUM, x
     lda #SAVE_BYTES
     sta SRAM_BYTES, x
-    lda #PARTIDA_FIRMA
+    lda #GAME_SIGNATURE
     sta SRAM_SIGNATURE, x
     sep #$20
 .a8
-    lda #.strat(SRAM_MAGIA_TEXTO, 0)
+    lda #.strat(SRAM_MAGIC_TEXT, 0)
     sta SRAM_MAGIC, x
-    lda #.strat(SRAM_MAGIA_TEXTO, 1)
+    lda #.strat(SRAM_MAGIC_TEXT, 1)
     sta SRAM_MAGIC + 1, x
-    lda #.strat(SRAM_MAGIA_TEXTO, 2)
+    lda #.strat(SRAM_MAGIC_TEXT, 2)
     sta SRAM_MAGIC + 2, x
-    lda #.strat(SRAM_MAGIA_TEXTO, 3)
+    lda #.strat(SRAM_MAGIC_TEXT, 3)
     sta SRAM_MAGIC + 3, x
     plb
     rts
@@ -365,16 +365,16 @@ no_hay:
 .a8
 .i16
     lda SRAM_MAGIC, x
-    cmp #.strat(SRAM_MAGIA_TEXTO, 0)
+    cmp #.strat(SRAM_MAGIC_TEXT, 0)
     bne no
     lda SRAM_MAGIC + 1, x
-    cmp #.strat(SRAM_MAGIA_TEXTO, 1)
+    cmp #.strat(SRAM_MAGIC_TEXT, 1)
     bne no
     lda SRAM_MAGIC + 2, x
-    cmp #.strat(SRAM_MAGIA_TEXTO, 2)
+    cmp #.strat(SRAM_MAGIC_TEXT, 2)
     bne no
     lda SRAM_MAGIC + 3, x
-    cmp #.strat(SRAM_MAGIA_TEXTO, 3)
+    cmp #.strat(SRAM_MAGIC_TEXT, 3)
     bne no
     rep #$20
 .a16
@@ -382,7 +382,7 @@ no_hay:
     cmp #SAVE_BYTES
     bne no_16
     lda SRAM_SIGNATURE, x
-    cmp #PARTIDA_FIRMA
+    cmp #GAME_SIGNATURE
     bne no_16
     sep #$20
 .a8

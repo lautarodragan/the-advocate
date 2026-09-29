@@ -478,7 +478,7 @@ grupo_listo:
     sta BA_S1
 busca:
     lda BA_S1
-    cmp #TROPAS_N
+    cmp #TROOPS_N
     bcs sin_tropa
     rep #$20
 .a16
@@ -486,7 +486,7 @@ busca:
     and #$00FF
     asl a
     tax
-    lda f:tropa_id, x
+    lda f:troop_id, x
     cmp BA_TROOP
     sep #$20
 .a8
@@ -497,7 +497,7 @@ sin_tropa:
     rts
 la_tengo:
     lda BA_S1
-    sta BA_TROOP_K              ; for `escena_tropa_fondo`
+    sta BA_TROOP_K              ; for `scene_troop_backdrop`
     rep #$20
 .a16
     lda BA_S1
@@ -505,9 +505,9 @@ la_tengo:
     tax
     sep #$20
 .a8
-    lda f:tropa_n, x
+    lda f:troop_n, x
     sta BA_S2                 ; how many members
-    lda f:tropa_ini, x
+    lda f:troop_init, x
     sta BA_S3                 ; where its list starts
     lda #0
     sta BA_S1                 ; the place in the troop
@@ -530,7 +530,7 @@ hay_ranura_ene:
     tax
     sep #$20
 .a8
-    lda f:tropa_miembro, x      ; the enemy, as a place in the tables
+    lda f:troop_member, x      ; the enemy, as a place in the tables
     sta BA_S0
     ; As with the actor: first everything is gathered and then written,
     ; because the long index is X and there are two tables to walk with it.
@@ -540,15 +540,15 @@ hay_ranura_ene:
     and #$00FF
     asl a
     tax
-    lda f:enemigo_hp, x
+    lda f:enemy_hp, x
     sta BA_S4
-    lda f:enemigo_atk, x
+    lda f:enemy_atk, x
     sta BA_S5
-    lda f:enemigo_def, x
+    lda f:enemy_def, x
     sta BA_S6
-    lda f:enemigo_agi, x
+    lda f:enemy_agi, x
     sta BA_T0
-    lda f:enemigo_txt, x
+    lda f:enemy_txt, x
     sta BA_T1
     sep #$20
 .a8
@@ -559,9 +559,9 @@ hay_ranura_ene:
     tax
     sep #$20
 .a8
-    lda f:enemigo_hit, x
+    lda f:enemy_hit, x
     sta BA_T2
-    lda f:enemigo_crit, x
+    lda f:enemy_crit, x
     sta BA_T2 + 1
     lda BA_S1
     clc
@@ -588,12 +588,12 @@ hay_ranura_ene:
     sta BA_ONE + BA_CRIT, x
     lda BA_S1
     sta BA_ONE + BA_NUMBER, x
-    ; Hidden or not, by the bit of its place in `tropa_ocultos`: the troop's
+    ; Hidden or not, by the bit of its place in `troop_hidden`: the troop's
     ; `invisible`, which `Game_Enemy` copies in `SetHidden` when set up.
     phx
     lda BA_TROOP_K
     jsr ba_ax
-    lda f:tropa_ocultos, x
+    lda f:troop_hidden, x
     sta BA_T0
     lda BA_S1
     jsr ba_ax
@@ -619,9 +619,9 @@ con_flags:
     asl a
     phx
     tax
-    lda f:enemigo_sp, x
+    lda f:enemy_sp, x
     sta BA_T0
-    lda f:enemigo_spi, x
+    lda f:enemy_spi, x
     sta BA_T1
     plx
     lda BA_T0
@@ -922,7 +922,7 @@ con_accion:
     cmp #BA_EACC_ATTACK
     beq a_un_actor
     jsr ba_ax
-    lda f:hab_alcance, x
+    lda f:skill_scope, x
     cmp #BA_SCOPE_ENEMY
     beq a_un_actor
     cmp #BA_SCOPE_ALLY
@@ -1011,7 +1011,7 @@ ready:
 ;
 ; 1. The possible ones are the attack and the skills its SP can pay for.
 ; 2. Each possible one weighs `max(0, rating - maximum + 10)`, and zero the one
-;    that is not effective —bit 7 of `eacc_peso`—, which still counts toward
+;    that is not effective —bit 7 of `eacc_weight`—, which still counts toward
 ;    the maximum.
 ; 3. **With only one that has weight, no roll**; with more, `rand(0, sum - 1)`
 ;    and it is chosen by weight in list order.
@@ -1020,11 +1020,11 @@ ready:
 ; and is rebuilt each time it opens: here the commands are already given.
 ; Clobbers `BA_S3` to `BA_S6`, `BA_T0`, `BA_T2`, A and X; not `BA_S0` or
 ; `BA_S1`.
-.assert ACCIONES_MAX <= BA_SKILL_MAX, error, "an enemy's actions do not fit in BA_SKILL_LIST"
+.assert ACTIONS_MAX <= BA_SKILL_MAX, error, "an enemy's actions do not fit in BA_SKILL_LIST"
 .proc ba_enemy_action
 .a8
 .i16
-    ; --- which enemy of the tables it is: `tropa_miembro` of its place ---
+    ; --- which enemy of the tables it is: `troop_member` of its place ---
     sta BA_S3
     jsr ba_x
     lda BA_ONE + BA_NUMBER, x
@@ -1037,15 +1037,15 @@ ready:
 .a8
     lda BA_TROOP_K
     jsr ba_ax
-    lda f:tropa_ini, x
+    lda f:troop_init, x
     clc
     adc BA_T0
     jsr ba_ax
-    lda f:tropa_miembro, x
+    lda f:troop_member, x
     jsr ba_ax
-    lda f:enemigo_acc_n, x
+    lda f:enemy_acc_n, x
     sta BA_S5                   ; how many actions
-    lda f:enemigo_acc_ini, x
+    lda f:enemy_acc_init, x
     sta BA_S5 + 1               ; where they start
     ; --- 1: the possible ones, with their raw weight, and the maximum ---
     stz BA_S6                   ; the maximum
@@ -1057,9 +1057,9 @@ posibles:
     clc
     adc BA_S5 + 1
     jsr ba_ax
-    lda f:eacc_peso, x
+    lda f:eacc_weight, x
     sta BA_T0
-    lda f:eacc_hab, x
+    lda f:eacc_skill, x
     cmp #BA_EACC_ATTACK
     beq posible
     jsr ba_skill_cost            ; can its SP pay for it?
@@ -1160,7 +1160,7 @@ chosen:
     clc
     adc BA_S5 + 1
     jsr ba_ax
-    lda f:eacc_hab, x
+    lda f:eacc_skill, x
     rts
 .endproc
 
@@ -1299,7 +1299,7 @@ ordenado:
 .endproc
 
 ; A combatant's line: its name and its HP —an enemy's, only with
-; `BA_HP_ENEMIGOS`—, in grey if it is dead.
+; `BA_HP_ENEMIES`—, in grey if it is dead.
 ; A8 = the combatant, `BA_T1` = where its line starts, and bit 0 of
 ; `BA_CONMAX` says whether the max HP go too —that is, whether it belongs to
 ; the party—.
@@ -1330,11 +1330,11 @@ variante:
 .a16
     txa
     sta BA_S5                   ; its offset, which `scr_text` overwrites
-    lda #BA_NOMBRE_DX
+    lda #BA_NAME_DX
     jsr ba_go
     sep #$20
 .a8
-    lda #BA_NOMBRE_ANCHO
+    lda #BA_NAME_WIDTH
     sta comp_dup + 3
     ldx BA_S5
     rep #$20
@@ -1344,7 +1344,7 @@ variante:
     sep #$20
 .a8
     jsl f:ba_t_text
-.if ::BA_HP_ENEMIGOS = 0
+.if ::BA_HP_ENEMIES = 0
     ; An enemy does not show its HP, as in RM2k: the line is only its name.
     ; With `[debug] enemy_hp` in the project file they show, for debugging.
     ; The `::` is not redundant: inside a `.proc`, `ca65` does not give a
@@ -1389,7 +1389,7 @@ hp_cabe:
 con_maximo:
     rep #$20
 .a16
-    lda #BA_BARRA_DX
+    lda #BA_BAR_DX
     jsr ba_go
     sep #$20
 .a8
@@ -1519,30 +1519,30 @@ ancho_listo:
     beq usa_item
     cmp #BA_MSG_SKILL
     beq usa_hab
-    ldx #BA_TXT_DERROTA
+    ldx #BA_TXT_DEFEAT
     jmp solo
 usa_hab:
     jmp habilidad
 usa_item:
     jmp item
 huyo:
-    ldx #BA_TXT_HUYO
+    ldx #BA_TXT_FLED
     jmp solo
 no_huyo:
-    ldx #BA_TXT_NO_HUYO
+    ldx #BA_TXT_NO_FLED
 solo:
     jsr ba_finished
     rts
 defiende:
     lda BA_MQUIEN
     jsr ba_name
-    ldx #BA_TXT_DEFIENDE
+    ldx #BA_TXT_DEFENDS
     jsr ba_finished
     rts
 ataque:
     lda BA_MQUIEN
     jsr ba_name
-    ldx #BA_TXT_ATACA
+    ldx #BA_TXT_ATTACKS
     jsr ba_finished
     ; The second line: the result on the target.
     rep #$20
@@ -1577,10 +1577,10 @@ pego:
     lda BA_MBLA
     cmp #BA_PARTY_MAX
     bcs es_enemigo
-    ldx #BA_TXT_DANO_ACTOR
+    ldx #BA_TXT_DAMAGE_ACTOR
     bra dice
 es_enemigo:
-    ldx #BA_TXT_DANO_ENEMIGO
+    ldx #BA_TXT_DAMAGE_ENEMY
 dice:
     jsr ba_finished
     rts
@@ -1607,7 +1607,7 @@ item:
     sep #$20
 .a8
     jsl f:ba_t_text
-    ldx #BA_TXT_USO
+    ldx #BA_TXT_USES
     jsr ba_finished
     ; `<target> HP <n> Recovered`, which is `GetHpSpRecoveredMessage`.
     rep #$20
@@ -1627,7 +1627,7 @@ item:
     ; —`IsRevived` in the `ePreHp` of `ProcessBattleActionParamEffects`— but
     ; the one for the states it removed —`ProcessBattleActionStateEffects`—,
     ; and of those the port only knows the dead one.
-    ldx #BA_TXT_REVIVIO
+    ldx #BA_TXT_REVIVED
     jsr ba_finished
     rts
 recupero:
@@ -1644,7 +1644,7 @@ recupero:
     sep #$20
 .a8
     jsr ba_number_exact
-    ldx #BA_TXT_RECUPERO
+    ldx #BA_TXT_RECOVERED
     jsr ba_finished
     rts
 habilidad:
@@ -1662,7 +1662,7 @@ habilidad:
     and #$00FF
     asl a
     tax
-    lda f:hab_msg1, x
+    lda f:skill_msg1, x
     tax
     sep #$20
 .a8
@@ -1677,7 +1677,7 @@ habilidad:
     and #$00FF
     asl a
     tax
-    lda f:hab_msg2, x
+    lda f:skill_msg2, x
     tax
     sep #$20
 .a8
@@ -1687,10 +1687,10 @@ fallo:
     lda BA_MBLA
     cmp #BA_PARTY_MAX
     bcs falla_enemigo
-    ldx #BA_TXT_SIN_DANO_ACTOR
+    ldx #BA_TXT_NO_DAMAGE_ACTOR
     bra falla_dice
 falla_enemigo:
-    ldx #BA_TXT_SIN_DANO_ENEMIGO
+    ldx #BA_TXT_NO_DAMAGE_ENEMY
 falla_dice:
     jsr ba_finished
     rts

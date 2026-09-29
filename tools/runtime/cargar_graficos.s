@@ -17,11 +17,11 @@
     clc
     adc map_ofs
     tax
-    lda f:mapa_tabla, x
+    lda f:map_table, x
     sta A1T0L
     sep #$20
 .a8
-    lda f:mapa_tabla + 2, x
+    lda f:map_table + 2, x
     sta A1B0
     rts
 .endproc
@@ -35,7 +35,7 @@
     sta VMAIN                   ; increment one word after the high byte
     rep #$20
 .a16
-    lda f:mapa_tabla + M_VRAM_TILES, x
+    lda f:map_table + M_VRAM_TILES, x
     sta VMADDL
     sep #$20
 .a8
@@ -61,13 +61,13 @@
     stz CGADD
     rep #$20
 .a16
-    lda #.loword(ventana_cgram)
+    lda #.loword(window_cgram)
     sta A1T0L
     lda #(CGRAM_BASE * 2)
     sta DAS0L
     sep #$20
 .a8
-    lda #^ventana_cgram
+    lda #^window_cgram
     sta A1B0
     lda #$00
     sta DMAP0                   ; one register, byte by byte
@@ -84,7 +84,7 @@
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_MAP_CGRAM, x
+    lda f:map_table + M_MAP_CGRAM, x
     asl a                       ; two bytes per color
     sta DAS0L
     sep #$20
@@ -118,7 +118,7 @@
     sta VMAIN
     rep #$20
 .a16
-    lda f:mapa_tabla + M_VRAM_SPRITE, x
+    lda f:map_table + M_VRAM_SPRITE, x
     sta VMADDL
     sep #$20
 .a8
@@ -127,7 +127,7 @@
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_SPRITE_TILES, x
+    lda f:map_table + M_SPRITE_TILES, x
     asl a
     asl a
     asl a
@@ -152,7 +152,7 @@
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_SPRITE_CGRAM, x
+    lda f:map_table + M_SPRITE_CGRAM, x
     asl a
     sta DAS0L
     sep #$20
@@ -164,7 +164,7 @@
     lda #$01
     sta MDMAEN
 
-    lda f:mapa_tabla + M_OBSEL_VALUE, x
+    lda f:map_table + M_OBSEL_VALUE, x
     sta OBSEL
     rts
 .endproc
@@ -359,7 +359,7 @@ ready:
     ; BG2's base has no field of its own in the record, which is full: it is
     ; the high nibble of BG12NBA, in steps of 4096 words. The top byte that
     ; the sixteen-bit read brings is ABOVE_FIRST, and it is discarded.
-    lda f:mapa_tabla + M_BG12NBA_VALUE, x
+    lda f:map_table + M_BG12NBA_VALUE, x
     and #$00F0
     xba
     sta VMADDL
@@ -370,7 +370,7 @@ ready:
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_ABOVE_TILES, x
+    lda f:map_table + M_ABOVE_TILES, x
     asl a
     asl a
     asl a
@@ -389,14 +389,14 @@ ready:
     ; Its palette goes in the last palettes of the lower half of CGRAM, which
     ; the 8-bit background leaves free. How many and from where was decided by
     ; the converter map by map, so it comes in the record.
-    lda f:mapa_tabla + M_ABOVE_FIRST, x
+    lda f:map_table + M_ABOVE_FIRST, x
     sta CGADD
     ldy #M_PTR_ABOVE_CGRAM
     jsr dma_origin
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_ABOVE_CGRAM, x
+    lda f:map_table + M_ABOVE_CGRAM, x
     asl a
     sta DAS0L
     sep #$20
@@ -426,17 +426,17 @@ ready:
     clc
     adc map_ofs
     tax
-    lda f:mapa_tabla, x           ; the low 16 bits of the pointer
+    lda f:map_table, x           ; the low 16 bits of the pointer
     sta npc_ptr
     sep #$20
 .a8
-    lda f:mapa_tabla + 2, x       ; and its bank
+    lda f:map_table + 2, x       ; and its bank
     sta npc_ptr + 2
 
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_NPC_COUNT, x
+    lda f:map_table + M_NPC_COUNT, x
     asl a
     asl a
     asl a
@@ -465,21 +465,21 @@ ready:
 .i16
     rep #$20
 .a16
-    lda #M_PTR_RUTA_GRAFICO
+    lda #M_PTR_ROUTE_GRAPHIC
     clc
     adc map_ofs
     tax
-    lda f:mapa_tabla, x
+    lda f:map_table, x
     sta npc_ptr
     sep #$20
 .a8
-    lda f:mapa_tabla + 2, x
+    lda f:map_table + 2, x
     sta npc_ptr + 2
 
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_RUTA_GRAFICO_COUNT, x
+    lda f:map_table + M_ROUTE_GRAPHIC_COUNT, x
     asl a                       ; two bytes per graphic
     sta temp
     sep #$20
@@ -514,17 +514,17 @@ ready:
     clc
     adc map_ofs
     tax
-    lda f:mapa_tabla, x           ; the low 16 bits of the pointer
+    lda f:map_table, x           ; the low 16 bits of the pointer
     sta npc_ptr
     sep #$20
 .a8
-    lda f:mapa_tabla + 2, x       ; and its bank
+    lda f:map_table + 2, x       ; and its bank
     sta npc_ptr + 2
 
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_EV_COUNT, x
+    lda f:map_table + M_EV_COUNT, x
     asl a
     asl a                       ; EV_STRIDE bytes per event
     sta temp
@@ -551,7 +551,7 @@ libre:
     clc
     adc #ROUTE_EV_STRIDE
     tax
-    cmp #RUTA_EV_MAX * ROUTE_EV_STRIDE
+    cmp #ROUTE_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
     bcc libre

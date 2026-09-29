@@ -168,7 +168,7 @@ def test_el_tema_del_titulo_desde_el_encendido(partida):
     """
     una = partida(titulo=EMPEZAR)
     s = una.simbolos
-    tema = s["TEMA_TITULO"]
+    tema = s["SONG_TITLE"]
     vuelta = una.escrituras_del_tema(tema)
     una.consola.write_ram(0, bytes([0x55]) * WRAM)
     una.consola.reset()

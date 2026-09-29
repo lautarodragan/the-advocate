@@ -294,21 +294,21 @@ ninguno:
 .a16
     lda BA_ONE + BA_HP, x
     beq murio
-    lda #BA_SE_DANO_ENEMIGO
+    lda #BA_SE_DAMAGE_ENEMY
     bra anotado
 murio:
 .a16
-    lda #BA_SE_MUERTE
+    lda #BA_SE_DEATH
     bra anotado
 erro:
 .a16
-    lda #BA_SE_ERRAR
+    lda #BA_SE_MISS
     bra anotado
 al_actor:
 .a8
     rep #$20
 .a16
-    lda #BA_SE_DANO_ACTOR
+    lda #BA_SE_DAMAGE_ACTOR
 anotado:
 .a16
     sta BA_SE2
@@ -331,7 +331,7 @@ del_enemigo:
 .a8
     rep #$20
 .a16
-    lda #BA_SE_ATAQUE
+    lda #BA_SE_ATTACK
     jsl f:ba_t_sound
 .a8
     rts
@@ -374,7 +374,7 @@ limpia:
 ; A victory's experience, handed out: `ProcessSceneActionVictory` gives **the
 ; whole sum** to each living actor in the party —`GetActiveBattlers`, that is,
 ; the ones that are not dead—, it does not split it among them. The sum comes
-; precomputed per troop in `tropa_exp`: every enemy in a victory is dead,
+; precomputed per troop in `troop_exp`: every enemy in a victory is dead,
 ; which is what `Game_EnemyParty::GetExp` asks for. It runs on winning, from
 ; `ba_vic_start`, before showing anything. It clobbers `BA_S0`, `BA_T*`, A
 ; and X.
@@ -392,7 +392,7 @@ limpia:
     and #$00FF
     asl a
     tax
-    lda f:tropa_exp, x
+    lda f:troop_exp, x
     ldy #0                      ; the experience: see `ba_no_hidden`
     jsr ba_no_hidden
     sta BA_T1
@@ -438,7 +438,7 @@ ready:
     ; the battle's** —both LDB fields say T_VGFighterMAX_Masako— so in
     ; practice it starts over; that they are two constants and not one is
     ; because the data is the game's and not ours.
-    lda #BA_TEMA_FIN
+    lda #BA_SONG_END
     jsl f:ba_t_bgm
     jsr ba_vic_start
     jsr ba_show

@@ -111,7 +111,7 @@ jump_per_speed:
     sta VMAIN
     rep #$20
 .a16
-    lda #TITULO_MENU_MAP
+    lda #TITLE_MENU_MAP
     sta VMADDL
     lda #(32 * 32 * 2)
     sta DAS0L
@@ -123,8 +123,8 @@ jump_per_speed:
     asl a
     asl a                       ; and times 8: 2048 in total
     sta temp
-    lda #<(titulo_menu_celdas)
-    ora #(>(titulo_menu_celdas) * 256)
+    lda #<(title_menu_cells)
+    ora #(>(title_menu_cells) * 256)
     clc
     adc temp
     ; The sum can overflow the 16 bits of the offset, so the bank is taken
@@ -133,7 +133,7 @@ jump_per_speed:
     sta A1T0L
     sep #$20
 .a8
-    lda #^(titulo_menu_celdas)
+    lda #^(title_menu_cells)
     adc #0
     sta A1B0
     lda #$01
@@ -186,10 +186,10 @@ diag_horiz:
 ; —0, 2, 4 or 6—: that is why the banks go with a padding byte between them.
 ; See `compose_char`. They are read **once per glyph**, not per row.
 font_pre_lo:
-    .word .loword(fuente_pre0), .loword(fuente_pre1)
-    .word .loword(fuente_pre2), .loword(fuente_pre3)
+    .word .loword(font_pre0), .loword(font_pre1)
+    .word .loword(font_pre2), .loword(font_pre3)
 font_pre_bk:
-    .byte ^fuente_pre0, 0, ^fuente_pre1, 0, ^fuente_pre2, 0, ^fuente_pre3
+    .byte ^font_pre0, 0, ^font_pre1, 0, ^font_pre2, 0, ^font_pre3
 
 ; Which JOY1H bit each `KeyInputProc` direction looks at and which number it
 ; stores in the variable, in the order of `CheckInput` —from highest value to
@@ -198,8 +198,8 @@ font_pre_bk:
 key_dir_bit:
     .byte PAD_UP, PAD_RIGHT, PAD_LEFT, PAD_DOWN, 0
 key_dir_val:
-    .byte TECLA_VALOR_ARRIBA, TECLA_VALOR_DERECHA
-    .byte TECLA_VALOR_IZQUIERDA, TECLA_VALOR_ABAJO
+    .byte KEY_VALUE_UP, KEY_VALUE_RIGHT
+    .byte KEY_VALUE_LEFT, KEY_VALUE_DOWN
 
 ; Adding, removing or enlarging a line changes `SAVE_BYTES`, and with it
 ; the header: saves made before stop loading, which is what has to happen
@@ -235,17 +235,17 @@ save_table:
     .word FAR_HERO_SPEED, 1       ; the hero's speed, which routes change
     .word FAR_ITEMS, ITEMS_N    ; the inventory
     .word FAR_ACCESS, 1         ; the save and menu permissions
-    .word FAR_EQUIPMENT, ACTORES_N * 10    ; each actor's equipment
+    .word FAR_EQUIPMENT, ACTORS_N * 10    ; each actor's equipment
     ; And each actor's HP, which since there are battles is real state.
-    .word FAR_HP, ACTORES_N * 2
+    .word FAR_HP, ACTORS_N * 2
     ; And the SP, for the same reason since there are skills to spend them.
-    .word FAR_SP, ACTORES_N * 2
+    .word FAR_SP, ACTORS_N * 2
     ; And which graphic a `ChangeSpriteAssociation` changed the sprite to: one
     ; byte per actor. It travels in the save as in RM2k, and survives teleport.
-    .word FAR_ACTOR_GFX, ACTORES_N
+    .word FAR_ACTOR_GFX, ACTORS_N
     ; And which skills each actor knows: one bit per (actor, skill) pair, which
     ; `ChangeSkills` sets and clears. See `FAR_SKILL`.
-    .word FAR_SKILL, HAB_BYTES
+    .word FAR_SKILL, SKILL_BYTES
     ; And the experience and level of each actor that can fight. **It goes
     ; last on purpose**: the slot screen reads the leader's level from SRAM
     ; counting from the end of the save —`EXP_LEVEL_IN_SRAM`—, and a line

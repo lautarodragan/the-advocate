@@ -208,14 +208,14 @@ mascara_lista:
     and #$00FF
     asl a
     tax
-    lda f:hab_power, x
+    lda f:skill_power, x
     sta BA_S2                   ; the effect accumulator
     sep #$20
 .a8
     ; + physical_rate * atk / 20
     lda BA_MHAB
     jsr ba_ax
-    lda f:hab_fis, x
+    lda f:skill_phys, x
     sta BA_T2
     beq sin_fisico
     ldx BA_S0
@@ -236,7 +236,7 @@ sin_fisico:
     ; + magical_rate * spi / 40
     lda BA_MHAB
     jsr ba_ax
-    lda f:hab_mag, x
+    lda f:skill_mag, x
     sta BA_T2
     beq sin_magico
     ldx BA_S0
@@ -255,11 +255,11 @@ sin_fisico:
 .a8
 sin_magico:
     ; Against an enemy and without `ignore_defense`, its defense and spirit
-    ; are subtracted. `SkillTargetsEnemies` is bit 6 of `hab_afecta` and bit 7
+    ; are subtracted. `SkillTargetsEnemies` is bit 6 of `skill_affects` and bit 7
     ; is `ignore_defense`.
     lda BA_MHAB
     jsr ba_ax
-    lda f:hab_afecta, x
+    lda f:skill_affects, x
     sta BA_S3
     and #$40
     beq sin_resta
@@ -268,7 +268,7 @@ sin_magico:
     bne sin_resta
     lda BA_MHAB
     jsr ba_ax
-    lda f:hab_fis, x
+    lda f:skill_phys, x
     sta BA_T2
     beq sin_resta_fis
     ldx BA_S1
@@ -290,7 +290,7 @@ sin_magico:
 sin_resta_fis:
     lda BA_MHAB
     jsr ba_ax
-    lda f:hab_mag, x
+    lda f:skill_mag, x
     sta BA_T2
     beq sin_resta
     ldx BA_S1
@@ -440,7 +440,7 @@ sp_cabe:
     jsr ba_skill_cost
     sta BA_T2
     stz BA_T2 + 1               ; the subtraction below is 16 bits and
-                                ; `hab_sp` is 8: without this the high byte
+                                ; `skill_sp` is 8: without this the high byte
                                 ; is whatever the last one through here left,
                                 ; and SP ended up at zero
     lda BA_MQUIEN
@@ -459,7 +459,7 @@ sp_ok:
     ; --- a switch skill turns on its switch and does nothing else ---
     lda BA_MHAB
     jsr ba_ax
-    lda f:hab_tipo, x
+    lda f:skill_type, x
     cmp #BA_SKILL_TYPE_SWITCH
     bne no_es_switch
     rep #$20
@@ -468,7 +468,7 @@ sp_ok:
     and #$00FF
     asl a
     tax
-    lda f:hab_switch, x
+    lda f:skill_switch, x
     sta BA_T0
     lda #0
     sta BA_MEFECTO
@@ -484,7 +484,7 @@ no_es_switch:
     ; one.
     lda BA_MHAB
     jsr ba_ax
-    lda f:hab_alcance, x
+    lda f:skill_scope, x
     cmp #BA_SCOPE_ONE
     bne no_es_uno
     lda BA_MQUIEN
@@ -505,7 +505,7 @@ de_a_muchos:
     bcc del_grupo
     iny
 del_grupo:
-    lda f:hab_alcance, x
+    lda f:skill_scope, x
     cmp #BA_SCOPE_ENEMIES
     bne lado_listo
     tya
@@ -546,7 +546,7 @@ listos:
     ; the variance, with the skill's `variance`
     lda BA_MHAB
     jsr ba_ax
-    lda f:hab_var, x
+    lda f:skill_var, x
     sta BA_S5
     rep #$20
 .a16
@@ -564,7 +564,7 @@ efecto_cabe:
     ; `SkillTargetsAllies`, and `vExecute` flips the sign when it is not.
     lda BA_MHAB
     jsr ba_ax
-    lda f:hab_afecta, x
+    lda f:skill_affects, x
     sta BA_S3                   ; what it touches, which is not read again
     and #$40
     beq es_positivo
@@ -580,7 +580,7 @@ es_positivo:
     ; the hit rate, which all seven carry at 100
     lda BA_MHAB
     jsr ba_ax
-    lda f:hab_hit, x
+    lda f:skill_hit, x
     sta BA_S0                   ; the hit rate, which survives the `jsr`s
     ; --- the HP ---
     lda BA_S3
@@ -699,7 +699,7 @@ sin_agi:
 ; `FAR_SKILL`, which `ChangeSkills` changes.
 
 ; A8 = the LDB actor number of combatant `BA_ACTOR`. It is what indexes
-; `hab_par_ini`, `hab_par_n` and `actor_hab_txt`, which are by actor number
+; `skill_pair_init`, `skill_pair_n` and `actor_skill_txt`, which are by actor number
 ; and not by place in the party.
 .proc ba_actor_ldb
 .a8
@@ -713,7 +713,7 @@ sin_agi:
 ; The skill list of the actor giving commands, into `BA_SKILL_LIST`, with how
 ; many in `BA_SKILL_N`. They are its `FAR_SKILL` pairs with the bit set —what it
 ; knows **now**, which `ChangeSkills` changes— that the battle knows how to
-; offer, that is, with a `k` in `hab_par_k`. An actor's pairs are contiguous
+; offer, that is, with a `k` in `skill_pair_k`. An actor's pairs are contiguous
 ; and in skill-number order, so the list comes out in `LearnSkill` order.
 ; Clobbers `BA_S1`, `BA_S2`, `BA_T0` and X.
 .proc ba_skill_list
@@ -723,7 +723,7 @@ sin_agi:
     sta BA_SKILL_N
     jsr ba_actor_ldb
     jsr ba_ax
-    lda f:hab_par_n, x
+    lda f:skill_pair_n, x
     beq ready
     sta BA_S1                   ; how many pairs it has left to look at
     rep #$20
@@ -731,7 +731,7 @@ sin_agi:
     txa
     asl a
     tax
-    lda f:hab_par_ini, x
+    lda f:skill_pair_init, x
     sta BA_S2                   ; the slot of the pair being looked at
     sep #$20
 .a8
@@ -761,7 +761,7 @@ otro:
     and BA_T0
     beq siguiente               ; it does not know it
     ldx BA_S2
-    lda f:hab_par_k, x
+    lda f:skill_pair_k, x
     cmp #$FF
     beq siguiente               ; it knows it and the battle does not offer it
     pha
@@ -797,7 +797,7 @@ ready:
 .a8
 .i16
     jsr ba_ax
-    lda f:hab_sp, x
+    lda f:skill_sp, x
     rts
 .endproc
 
@@ -848,7 +848,7 @@ no:
     cmp #BA_M_ACTOR
     bne no_es_hab
     lda BA_COMMAND
-    cmp #BA_ORDEN_HABILIDAD
+    cmp #BA_COMMAND_SKILL
     bne no_es_hab
 a_la_lista_hab:
     jmp la_lista_hab
@@ -869,7 +869,7 @@ enemigo:
     bcs enemigos_listos
     rep #$20
 .a16
-    lda #BA_ENEMIGO_POS0
+    lda #BA_ENEMY_POS0
     jsr ba_row
     sep #$20
 .a8
@@ -918,7 +918,7 @@ actor:
     bcs actores_listos
     rep #$20
 .a16
-    lda #BA_GRUPO_POS0
+    lda #BA_PARTY_POS0
     jsr ba_row
     sep #$20
 .a8
@@ -962,7 +962,7 @@ ordenes:
     sta BA_S0
 orden:
     lda BA_S0
-    cmp #BA_ORDENES_N
+    cmp #BA_COMMANDS_N
     bcc hay_orden
     jmp ordenes_listas
 hay_orden:
@@ -975,7 +975,7 @@ hay_orden:
     txa
     asl a
     tax
-    lda f:ba_orden_fila, x
+    lda f:ba_command_row, x
     sta BA_T1
     sep #$20
 .a8
@@ -987,12 +987,12 @@ hay_orden:
     bne en_gris
     lda BA_S0
     jsr ba_ax
-    lda f:ba_orden_gris, x
+    lda f:ba_command_gray, x
     bne en_gris
     ; And the skill command of an actor who knows none —Talan, who is level
     ; 1— also goes in gray, like the pause menu with what leads nowhere.
     lda BA_S0
-    cmp #BA_ORDEN_HABILIDAD
+    cmp #BA_COMMAND_SKILL
     bne sin_gris_orden
     jsr ba_skill_list            ; what it knows now: see `FAR_SKILL`
     lda BA_SKILL_N
@@ -1010,7 +1010,7 @@ pone_variante:
     and #$00FF
     asl a
     tax
-    lda f:ba_orden_dx, x
+    lda f:ba_command_dx, x
     sta BA_T2
     sep #$20
 .a8
@@ -1045,12 +1045,12 @@ sin_cursor_orden:
     ; **The second command does not say "Tech Skill"**: it says the
     ; `skill_name` of the actor giving commands —"AgentTrain", "Telepathy",
     ; "Slicing"—, which is `Game_Actor::GetSkillName`. That is why its text
-    ; comes from `actor_hab_txt`, which is by actor number, and not from
-    ; `ba_orden_txt`, which is fixed.
+    ; comes from `actor_skill_txt`, which is by actor number, and not from
+    ; `ba_command_txt`, which is fixed.
     lda BA_S0
-    cmp #BA_ORDEN_HABILIDAD
+    cmp #BA_COMMAND_SKILL
     beq texto_de_la_habilidad
-    ; **Two bytes wide**, like `actor_hab_txt` and `enemigo_txt`: a text index
+    ; **Two bytes wide**, like `actor_skill_txt` and `enemy_txt`: a text index
     ; does not fit in one. With the 29 maps of `abl` the battle texts start at
     ; 273, so the one-byte table that was here until 2026-09-14 truncated them
     ; to 17, 18, 19 and 32, which are lines of an item's description: the menu
@@ -1062,7 +1062,7 @@ sin_cursor_orden:
     and #$00FF
     asl a
     tax
-    lda f:ba_orden_txt, x
+    lda f:ba_command_txt, x
     tax
     bra texto_puesto
 texto_de_la_habilidad:
@@ -1074,7 +1074,7 @@ texto_de_la_habilidad:
     and #$00FF
     asl a
     tax
-    lda f:actor_hab_txt, x
+    lda f:actor_skill_txt, x
     tax
 texto_puesto:
 .a16
@@ -1104,7 +1104,7 @@ hay_item:
     sta BA_S6                   ; the place in the list
     rep #$20
 .a16
-    lda #BA_ENEMIGO_POS0
+    lda #BA_ENEMY_POS0
     jsr ba_row
     sep #$20
 .a8
@@ -1127,11 +1127,11 @@ variante_item:
     ; the name
     rep #$20
 .a16
-    lda #BA_NOMBRE_DX
+    lda #BA_NAME_DX
     jsr ba_go
     sep #$20
 .a8
-    lda #BA_NOMBRE_ANCHO
+    lda #BA_NAME_WIDTH
     sta comp_dup + 3
     lda BA_S6
     jsr ba_item_from_list
@@ -1150,7 +1150,7 @@ variante_item:
     ; and how many there are, with the colon in front
     rep #$20
 .a16
-    lda #BA_ITEM_CUENTA_DX
+    lda #BA_ITEM_COUNT_DX
     jsr ba_go
     sep #$20
 .a8
@@ -1208,7 +1208,7 @@ hay_alguna:
     ; the description of the one under the cursor
     rep #$20
 .a16
-    lda #BA_HAB_DESC_POS
+    lda #BA_SKILL_DESC_POS
     sta pick_table
     sep #$20
 .a8
@@ -1222,7 +1222,7 @@ hay_alguna:
     and #$00FF
     asl a
     tax
-    lda f:hab_desc, x
+    lda f:skill_desc, x
     tax
     sep #$20
 .a8
@@ -1236,13 +1236,13 @@ fila_hab:
     bcc hay_hab
     jmp hab_listas
 hay_hab:
-    cmp #(BA_HAB_FILAS * BA_HAB_COLUMNAS)
+    cmp #(BA_SKILL_ROWS * BA_SKILL_COLUMNS)
     bcc hay_lugar_hab
     jmp hab_listas
 hay_lugar_hab:
     ; Row and column: with two columns they are an `lsr` and bit 0. If they
     ; were ever something else, this is what has to change; the converter
-    ; emits `BA_HAB_COLUMNAS` so that it is visible from here that they are
+    ; emits `BA_SKILL_COLUMNS` so that it is visible from here that they are
     ; two.
     lda BA_S3
     lsr a
@@ -1252,12 +1252,12 @@ hay_lugar_hab:
     sta BA_S4
     rep #$20
 .a16
-    lda #BA_HAB_POS0
+    lda #BA_SKILL_POS0
     jsr ba_row
     lda BA_S4
     and #$00FF
     beq columna_cero
-    lda #BA_HAB_COLUMNA_DX
+    lda #BA_SKILL_COLUMN_DX
     bra columna_puesta
 columna_cero:
     lda #0
@@ -1307,11 +1307,11 @@ sin_cursor_hab:
 .a16
     lda BA_S5
     clc
-    adc #BA_HAB_NOMBRE_DX
+    adc #BA_SKILL_NAME_DX
     jsr ba_go
     sep #$20
 .a8
-    lda #BA_HAB_NOMBRE_ANCHO
+    lda #BA_SKILL_NAME_WIDTH
     sta comp_dup + 3
     rep #$20
 .a16
@@ -1319,7 +1319,7 @@ sin_cursor_hab:
     and #$00FF
     asl a
     tax
-    lda f:hab_txt, x
+    lda f:skill_txt, x
     tax
     sep #$20
 .a8
@@ -1329,7 +1329,7 @@ sin_cursor_hab:
 .a16
     lda BA_S5
     clc
-    adc #BA_HAB_GUION_DX
+    adc #BA_SKILL_DASH_DX
     jsr ba_go
     sep #$20
 .a8
@@ -1341,7 +1341,7 @@ sin_cursor_hab:
 .a16
     lda BA_S5
     clc
-    adc #BA_HAB_COSTO_DX
+    adc #BA_SKILL_COST_DX
     jsr ba_go
     sep #$20
 .a8
@@ -1353,7 +1353,7 @@ sin_cursor_hab:
     sta comp_dup
     sep #$20
 .a8
-    lda #BA_HAB_COSTO_CIFRAS
+    lda #BA_SKILL_COST_DIGITS
     sta comp_dup + 2
     lda BA_S2
     sta temp + 1

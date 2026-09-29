@@ -125,7 +125,7 @@ def test_texto(nombre, caso, en, cuadros, renglon, donde):
         # Y "del otro lado" es que el operando de 16 bits sumado a la
         # dirección del bloque se pase de $FFFF, que es la cuenta que hace
         # `msg_start`.
-        lejos = (cartucho(en).simbolos["mensajes"] & 0xFFFF) \
+        lejos = (cartucho(en).simbolos["messages"] & 0xFFFF) \
             + desplazamiento > 0xFFFF
         porque = (
             "el cuadro %r del cartucho %r cae en el byte $%06X del archivo, "
@@ -166,8 +166,8 @@ VARIABLES = (
     # el número se ve en los dígitos: si la ROM lee otra cosa, se nota.
     #
     # `var-heroe-x` lee la x del héroe, que está en (22,12): muestra 22 y no
-    # 12. Verificado en rojo con el `cmp #PERSONAJE_X` de
-    # `var_personaje_heroe` cambiado por PERSONAJE_Y: 48 pixeles en el cuadro
+    # 12. Verificado en rojo con el `cmp #CHARACTER_X` de
+    # `var_personaje_heroe` cambiado por CHARACTER_Y: 48 pixeles en el cuadro
     # 30.
     ("var-heroe-x", (2, 30)),
     # `var-evento-y` lee la y de Kersh —el evento 3, blanco 4— **después** de

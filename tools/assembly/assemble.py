@@ -145,7 +145,7 @@ def symbols(dbg):
 
     Labels inside a `.proc` come out as `proc::label`, the same as `w65` gave
     them. `ld65` writes the values as unsigned 32 bits, so a negative
-    constant —`IMAGEN_X`— is given back its sign.
+    constant —`PICTURE_X`— is given back its sign.
     """
     scopes, syms = {}, []
     with open(dbg) as handle:

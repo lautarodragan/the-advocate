@@ -116,13 +116,13 @@ VIENTOS = 6
 
 def muestra_de(p, sonido):
     """La muestra con que suena `sonido` —(nombre, volumen, tempo, paneo)—:
-    la primera columna de su fila de `sonido_tabla`. El índice sale de
+    la primera columna de su fila de `sound_table`. El índice sale de
     `efectos.json`, que el conversor deja al lado del cartucho."""
     with open(os.path.join(os.path.dirname(p.sfc), "efectos.json")) as a:
         sonidos = [tuple(s) for s in json.load(a)["sonidos"]]
     with open(p.sfc, "rb") as a:
         rom = a.read()
-    return rom[en_la_rom(p.simbolos["sonido_tabla"]) + 7 * sonidos.index(sonido)]
+    return rom[en_la_rom(p.simbolos["sound_table"]) + 7 * sonidos.index(sonido)]
 
 
 class Oido:

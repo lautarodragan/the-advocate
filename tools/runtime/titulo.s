@@ -13,7 +13,7 @@
 ;
 ; The image comes compressed, and `screen_upload` uploads it, the same routine
 ; as the Game Over one: the tiles from $0000 and its tilemap at SCREEN_MAP.
-; The VRAM layout is in mapdata.inc, next to TITULO_MENU_VRAM. On the way out,
+; The VRAM layout is in mapdata.inc, next to TITLE_MENU_VRAM. On the way out,
 ; `enter_map` restores the bases and overwrites everything.
 ;
 ; **It runs with its own loop and not the main one.** The main loop moves the
@@ -23,10 +23,10 @@
 .proc title_screen
 .a8
 .i16
-    ; Does this ROM carry a title screen? TITULO_TILES does not fit in eight
+    ; Does this ROM carry a title screen? TITLE_TILES does not fit in eight
     ; bits, so the question is both bytes.
-    lda #<TITULO_TILES
-    ora #>TITULO_TILES
+    lda #<TITLE_TILES
+    ora #>TITLE_TILES
     bne hay
     rts
 hay:
@@ -41,7 +41,7 @@ hay:
     ; coming back from the load screen, does not go through `Start()`, and
     ; `Game_System::BgmPlay` with the same song already playing does not
     ; restart it. taro heard it on the console.
-    lda #TEMA_TITULO
+    lda #SONG_TITLE
     cmp #$FF
     beq mudo
     jsr music_start
@@ -74,8 +74,8 @@ mudo:
     ; the ChipSet animation drawings of the boot map, and that is allowed
     ; because this screen is always left through `enter_map`, which
     ; rebuilds them.
-.ifdef ::PANTALLA_TITULO        ; no title screen, no row
-    ldx #(PANTALLA_TITULO * PANTALLA_FILA)
+.ifdef ::SCREEN_TITLE        ; no title screen, no row
+    ldx #(SCREEN_TITLE * SCREEN_ROW)
     jsl f:screen_upload
 .endif
 
@@ -85,16 +85,16 @@ mudo:
     ; what lets the image below show. `VMAIN` is the one `screen_upload` left.
     rep #$20
 .a16
-    lda #TITULO_MENU_VRAM
+    lda #TITLE_MENU_VRAM
     sta VMADDL
-    lda #(TITULO_MENU_TILES * 32)
+    lda #(TITLE_MENU_TILES * 32)
     sta DAS0L
-    lda #<(titulo_menu_tiles)
-    ora #(>(titulo_menu_tiles) * 256)
+    lda #<(title_menu_tiles)
+    ora #(>(title_menu_tiles) * 256)
     sta A1T0L
     sep #$20
 .a8
-    lda #^(titulo_menu_tiles)
+    lda #^(title_menu_tiles)
     sta A1B0
     lda #$01
     sta DMAP0                   ; two registers, word at a time
@@ -104,11 +104,11 @@ mudo:
     sta MDMAEN
 
     ; --- and the PPU pointing at the menu ---
-    lda #(TITULO_MENU_MAP / 1024 * 4)
+    lda #(TITLE_MENU_MAP / 1024 * 4)
     sta BG2SC                   ; 32x32 tilemap: the two low bits at zero
     ; The two tile bases, in steps of 4096 words: BG1 in the low nibble —at
     ; zero, where `screen_upload` put the image— and BG2 in the high one.
-    lda #(TITULO_MENU_VRAM / 4096 * 16)
+    lda #(TITLE_MENU_VRAM / 4096 * 16)
     sta BG12NBA
     stz BG2HOFS
     stz BG2HOFS
@@ -130,8 +130,8 @@ mudo:
 ; What `screen_upload` puts in VRAM must not overwrite the menu's: the image's
 ; tiles, at 32 words each, go below the menu's tilemap, and the menu's tiles,
 ; at 16, end before the image's tilemap.
-.assert TITULO_TILES * 32 <= TITULO_MENU_MAP, error, "the title tiles overwrite the menu tilemap"
-.assert TITULO_MENU_VRAM + TITULO_MENU_TILES * 16 <= SCREEN_MAP, error, "the title menu tiles overwrite the image tilemap"
+.assert TITLE_TILES * 32 <= TITLE_MENU_MAP, error, "the title tiles overwrite the menu tilemap"
+.assert TITLE_MENU_VRAM + TITLE_MENU_TILES * 16 <= SCREEN_MAP, error, "the title menu tiles overwrite the image tilemap"
 
 ; The menu loop. Up and down move the cursor on the **edge** and wrap around,
 ; the same as `choice_tick` with ShowChoice: it is RM2k's
@@ -152,7 +152,7 @@ espera:
     beq no_arriba
     lda title_sel
     bne sube_una
-    lda #TITULO_MENU_N          ; from the first one, up wraps around
+    lda #TITLE_MENU_N          ; from the first one, up wraps around
 sube_una:
     dec a
     sta title_sel
@@ -164,7 +164,7 @@ no_arriba:
     beq no_abajo
     lda title_sel
     inc a
-    cmp #TITULO_MENU_N
+    cmp #TITLE_MENU_N
     bcc baja_una
     lda #0                      ; and from the last one, so does down
 baja_una:
@@ -212,7 +212,7 @@ la_elegida:
 salir:
     rep #$20
 .a16
-    lda #MAPA_INICIAL
+    lda #MAP_INITIAL
 cargar_el_mapa:
     ; VRAM was left with the title image, so the map has to be loaded again in
     ; full. But VRAM is not the only thing this screen moved: the **PPU
@@ -278,7 +278,7 @@ cargar_el_mapa:
     jsr music_boot
     lda music_off
     beq listo_musica
-    ; `TEMA_ARRANQUE` at $FF means the map starts silent and a `PlayBGM` turns
+    ; `SONG_BOOT` at $FF means the map starts silent and a `PlayBGM` turns
     ; the music on, which is the usual case in this game. `music_boot` writes
     ; nothing to the DSP because at boot nothing is playing; **here something
     ; is**, so the title's voices are released by hand. With KOF and through

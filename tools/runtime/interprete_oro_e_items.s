@@ -8,7 +8,7 @@
 ; each one with Y on its first operand, and each one returns to the loop
 ; with `jmp run_code::otro` or ends the frame with `rts`.
 
-; `ChangeGold`: adds or subtracts and clamps to [0, ORO_MAX], which is what
+; `ChangeGold`: adds or subtracts and clamps to [0, GOLD_MAX], which is what
 ; `Game_Party::GainGold` does. The amount takes three bytes because RM2k's cap
 ; is 999999 and this game uses the full value.
 ;
@@ -33,7 +33,7 @@
 
     lda temp
     bne oro_resta
-    ; Add: 24 bits, and if it goes past ORO_MAX it stays at ORO_MAX.
+    ; Add: 24 bits, and if it goes past GOLD_MAX it stays at GOLD_MAX.
     rep #$20
 .a16
     lda gold
@@ -68,15 +68,15 @@ oro_resta:
     stz gold + 2
     bra oro_listo
 oro_recorta:
-    ; Did it go past ORO_MAX? Compared as 24 bits, high byte first.
+    ; Did it go past GOLD_MAX? Compared as 24 bits, high byte first.
     lda gold + 2
-    cmp #^ORO_MAX
+    cmp #^GOLD_MAX
     bcc oro_listo
     bne oro_tope
     rep #$20
 .a16
     lda gold
-    cmp #.loword(ORO_MAX)
+    cmp #.loword(GOLD_MAX)
     sep #$20
 .a8
     bcc oro_listo
@@ -84,11 +84,11 @@ oro_recorta:
 oro_tope:
     rep #$20
 .a16
-    lda #.loword(ORO_MAX)
+    lda #.loword(GOLD_MAX)
     sta gold
     sep #$20
 .a8
-    lda #^ORO_MAX
+    lda #^GOLD_MAX
     sta gold + 2
 oro_listo:
     ply

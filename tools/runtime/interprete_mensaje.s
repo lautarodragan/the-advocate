@@ -12,7 +12,7 @@
 ; next command —the loop's `iny`— but `events_tick` does not call here again
 ; until the player presses A.
 ;
-; The operand is the offset of the text box inside the `mensajes` block, 16
+; The operand is the offset of the text box inside the `messages` block, 16
 ; bits. It is not the text: emitting each box already composed is 240 4bpp
 ; tiles, that is 7.5 KB, and the game's 2895 would be 21 MB. What travels in
 ; the cartridge is one byte per letter, and the 65816 composes it, which is

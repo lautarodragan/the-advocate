@@ -64,15 +64,15 @@ no_hay:
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_PAGINA_COUNT, x
+    lda f:map_table + M_PAGE_COUNT, x
     beq sin_paginas
     sta pages_left
-    lda f:mapa_tabla + M_PTR_PAGINAS, x
+    lda f:map_table + M_PTR_PAGES, x
     sta page_ptr
     stz page_ofs
     sep #$20
 .a8
-    lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
+    lda f:map_table + M_PTR_PAGES + 2, x
     sta page_ptr + 2
     stz chosen_any
 
@@ -121,7 +121,7 @@ siguiente:
 .a16
     lda page_ofs
     clc
-    adc #PAGINA_BYTES
+    adc #PAGE_BYTES
     sta page_ofs
     dec pages_left
     sep #$20
@@ -158,7 +158,7 @@ sin_paginas:
     ; Only for the action button; touch has its own rule and is resolved at
     ; compile time.
     lda trigger_sought
-    cmp #TRIGGER_ACCION
+    cmp #TRIGGER_ACTION
     bne sin_capa
     lda chosen_layer
     cmp #HERO_LAYER
@@ -235,10 +235,10 @@ no:
     sta cell_y
     sep #$20
 .a8
-    lda #TRIGGER_TOCA_HEROE
+    lda #TRIGGER_TOUCHES_HERO
     sta trigger_sought
     jsr action_in_cell
-    ldx #TRIGGER_ACCION
+    ldx #TRIGGER_ACTION
     stx trigger_sought         ; left as the action button expects it
     rts
 .endproc
@@ -278,7 +278,7 @@ no:
     ; 2026-09-07 and taro found it playing: the door out of Talan's pad is
     ; `TalDoorTop`, action-triggered and on layer 2, and it opens by standing
     ; on it.
-    lda #TRIGGER_ACCION
+    lda #TRIGGER_ACTION
     sta trigger_sought
     lda #1
     sta own_action

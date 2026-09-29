@@ -43,15 +43,15 @@ def salto_de_los_eventos(una):
     """
     base = una.simbolos["route_ev"]
     paso = una.simbolos["ROUTE_EV_STRIDE"]
-    crudo = una.consola.ram(base, una.simbolos["RUTA_EV_MAX"] * paso)
-    return [crudo[k * paso + 13] for k in range(una.simbolos["RUTA_EV_MAX"])
+    crudo = una.consola.ram(base, una.simbolos["ROUTE_EV_MAX"] * paso)
+    return [crudo[k * paso + 13] for k in range(una.simbolos["ROUTE_EV_MAX"])
             if crudo[k * paso] != 0xFF]
 
 
 def test_el_heroe_aterriza_cuando_el_salto_es_la_ultima_orden(partida):
     """El caso pelado: ruta forzada de un salto y nada detrás.
 
-    Sin el arreglo `route_jump` se queda en 232 —`SALTO_PASO` menos el primer
+    Sin el arreglo `route_jump` se queda en 232 —`JUMP_STEP` menos el primer
     descuento— y `hero_y` en 323 con la celda de destino ya en `tile_y = 22`,
     indefinidamente. El número de aterrizaje no se escribe: en reposo
     `jump_hero_position` deja `hero_y = tile_y * 16`, porque el descuento que

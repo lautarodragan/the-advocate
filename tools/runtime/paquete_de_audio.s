@@ -6,16 +6,16 @@
 ; songs is 53 KB and the sound effects maps 2 and 3 ask for, 43 and 55 more—,
 ; so they are uploaded per map: when one loads, the songs its pages can start
 ; and the sound effects they ask for, in the order they appear. It is the
-; `paquetes` table the converter builds. The ones that do not fit do not
+; `packages` table the converter builds. The ones that do not fit do not
 ; play. With MSU-1, the songs that have a track are not uploaded: see
 ; `song_per_msu`.
 ;
 ; The music samples have a fixed number across the whole cartridge —the SRCN
 ; the stream already writes— and the SPC700's directory has one entry for
-; each. **Sound effects do not**: they share the SE_LUGARES at the end of the
-; directory, from SE_PRIMERA on, because two that are never in the same
+; each. **Sound effects do not**: they share the SE_PLACES at the end of the
+; directory, from SE_FIRST on, because two that are never in the same
 ; package can go in the same place —see `lugares_de_efectos` in
-; snes_music.py—. The package lists carry them by number, `efecto_lugar` says
+; snes_music.py—. The package lists carry them by number, `effect_place` says
 ; each one's place and `FAR_EFFECT_IN` which one was noted down in each place.
 ; An entry that is not in ARAM points to silence. `FAR_ARAM_OF` says where
 ; each one is, or 0, and is indexed by directory entry.
@@ -34,7 +34,7 @@ PKG_COMPACT = $7E30D2         ; 1 if the package is being rearranged again
 PKG_LENGTH   = $7E30D4
 PKG_DEST    = $7E30D6
 PKG_S       = $7E30D8           ; the sample being placed
-PKG_X7      = $7E30DA           ; its row in `muestra_tabla`
+PKG_X7      = $7E30DA           ; its row in `sample_table`
 PKG_A       = $7E30DC           ; where placing it is tried
 PKG_MAP    = $7E30DE           ; the package's map, in a word since the
                                 ; map index does not fit in a byte
@@ -59,7 +59,7 @@ otra:
     lda #0
     sta f:FAR_ARAM_OF, x
     inx
-    cpx #(2 * MUESTRAS_N)
+    cpx #(2 * SAMPLES_N)
     bcc otra
     ldx #0
     lda #$FF
@@ -68,7 +68,7 @@ ninguno:
     sta f:FAR_EFFECT_IN, x      ; no sound effect noted down
     inx
 ninguno_mas:
-    cpx #SE_LUGARES
+    cpx #SE_PLACES
     bcc ninguno
     rts
 .endproc
@@ -121,7 +121,7 @@ espera:
     rts
 .endproc
 
-; The sample in row PKG_X7 of `muestra_tabla`, to PKG_DEST. In triplets via
+; The sample in row PKG_X7 of `sample_table`, to PKG_DEST. In triplets via
 ; command 3, in batches of up to 128 with interrupts disabled —about five
 ; milliseconds: the music is delayed, not lost—, and whatever is left over
 ; one byte at a time.
@@ -132,13 +132,13 @@ espera:
 .a16
     lda f:PKG_X7
     tax
-    lda f:muestra_tabla, x
+    lda f:sample_table, x
     sta comp_glyph
-    lda f:muestra_tabla + 3, x
+    lda f:sample_table + 3, x
     sta f:PKG_LENGTH
     sep #$20
 .a8
-    lda f:muestra_tabla + 2, x
+    lda f:sample_table + 2, x
     sta comp_glyph + 2
     ldy #0
 tanda:
@@ -292,7 +292,7 @@ ready:
 .a16
     lda f:PKG_X7
     tax
-    lda f:muestra_tabla + 5, x  ; the loop, from the start
+    lda f:sample_table + 5, x  ; the loop, from the start
     clc
     adc f:PKG_A
     sta temp
@@ -304,10 +304,10 @@ ready:
     jmp aram_byte
 .endproc
 
-; X7 of directory entry A: its row in `muestra_tabla` times 7, in PKG_X7 and
+; X7 of directory entry A: its row in `sample_table` times 7, in PKG_X7 and
 ; in X. For a music sample it is the entry itself; for a sound effect place,
 ; that of the effect noted down there —`FAR_EFFECT_IN`—, which goes after the
-; music: SE_PRIMERA plus its number. That row can go past 255, so the
+; music: SE_FIRST plus its number. That row can go past 255, so the
 ; arithmetic is sixteen bits.
 .proc sample_row
 .a8
@@ -315,13 +315,13 @@ ready:
     rep #$20
 .a16
     and #$00FF
-    cmp #SE_PRIMERA
+    cmp #SE_FIRST
     bcc de_musica
     tax
-    lda f:FAR_EFFECT_IN - SE_PRIMERA, x
+    lda f:FAR_EFFECT_IN - SE_FIRST, x
     and #$00FF
     clc
-    adc #SE_PRIMERA
+    adc #SE_FIRST
 de_musica:
     sta temp
     asl a
@@ -337,8 +337,8 @@ de_musica:
 .endproc
 
 ; Finds a place for sample A, if it is not there: the first gap from
-; ARAM_DATOS on that does not overwrite any of the ones that already have a
-; place. If it does not fit before ARAM_FIN, it is not uploaded and does not
+; ARAM_DATA on that does not overwrite any of the ones that already have a
+; place. If it does not fit before ARAM_END, it is not uploaded and does not
 ; play. **It does not upload it**: it marks it with 3 in FAR_WANTS and
 ; `upload_placed` uploads it, once it is known the package fits; see
 ; `package_load_done`.
@@ -361,13 +361,13 @@ no_esta:
     jsr sample_row
     rep #$30
 .a16
-    lda f:muestra_tabla + 3, x
+    lda f:sample_table + 3, x
     sta f:PKG_LENGTH
     jsl se_msu_length            ; or what the one in the `.msu` measures: efectos_con_msu.s
 .a16
     ; The first gap where it fits: the occupied ones are walked in order,
     ; with PKG_A at the start of the gap being looked at.
-    lda #ARAM_DATOS
+    lda #ARAM_DATA
     sta f:PKG_A
     ldx #0
 hueco:
@@ -390,7 +390,7 @@ no_avanza:
     inx
     bra hueco
 al_final:
-    lda #ARAM_FIN
+    lda #ARAM_END
     sec
     sbc f:PKG_A
     bcc no_entra
@@ -480,12 +480,12 @@ subida:
     plx
 sigue:
     inx
-    cpx #MUESTRAS_N
+    cpx #SAMPLES_N
     bcc otra
     rts
 .endproc
 
-; The samples of song A: X at the start of its list in `tema_muestras`.
+; The samples of song A: X at the start of its list in `song_samples`.
 .proc song_list
 .a8
 .i16
@@ -494,7 +494,7 @@ sigue:
     and #$00FF
     asl a
     tax
-    lda f:tema_muestras, x
+    lda f:song_samples, x
     tax
     sep #$20
 .a8
@@ -507,7 +507,7 @@ sigue:
 .i16
     jsr song_list
 otra:
-    lda f:tema_muestras, x
+    lda f:song_samples, x
     cmp #$FF
     beq ready
     phx
@@ -543,7 +543,7 @@ ready:
     lda f:MSU_HAS
     beq no
     lda 1, s
-    cmp #TEMA_TOTAL
+    cmp #SONG_TOTAL
     bcs no
     phx
     phy
@@ -553,7 +553,7 @@ ready:
     tax
     sep #$20
 .a8
-    lda f:tema_msu, x
+    lda f:song_msu, x
     cmp #$FF
     beq no_xy                   ; it has no track
     rep #$20
@@ -660,7 +660,7 @@ ready:
 
 ; And the package whose index is already written in `PKG_MAP`, which is how
 ; the battle comes in: its package is not any map's —it goes after all of
-; them, see `BA_PAQUETE`— so it cannot come from `map_current`.
+; them, see `BA_PACKAGE`— so it cannot come from `map_current`.
 ;
 ; It exists because there was a bug here that no git conflict flagged: when
 ; the index became sixteen bits, `package_load` stopped reading the package
@@ -688,13 +688,13 @@ limpiar:
     lda #0
     sta f:FAR_WANTS, x
     inx
-    cpx #MUESTRAS_N
+    cpx #SAMPLES_N
     bcc limpiar
     ; The ones of the song playing do not move: 2.
     lda music_off
     bne sin_fijas
     lda song_current
-    cmp #TEMA_TOTAL
+    cmp #SONG_TOTAL
     bcs sin_fijas
     ldy #2
     jsr mark_song
@@ -721,13 +721,13 @@ con_paquete:
     jsr extra_separate
     bcc temas_q
 saltear_q:
-    lda f:paquetes, x
+    lda f:packages, x
     cmp #$FF
     beq efectos_q
     inx
     bra saltear_q
 temas_q:
-    lda f:paquetes, x
+    lda f:packages, x
     cmp #$FF
     beq efectos_q
     phx
@@ -739,7 +739,7 @@ temas_q:
 efectos_q:
     inx
 otro_q:
-    lda f:paquetes, x
+    lda f:packages, x
     cmp #$FF
     beq salida_q
     phx
@@ -756,7 +756,7 @@ salida_q:
     bcs marcadas
     inx
 otro_s:
-    lda f:paquetes, x
+    lda f:packages, x
     cmp #$FF
     beq marcadas
     phx
@@ -801,7 +801,7 @@ quiere:
     jsr sample_row
     rep #$20
 .a16
-    lda f:muestra_tabla + 3, x
+    lda f:sample_table + 3, x
     sta f:PKG_LENGTH
     jsr sorted_interval
 proxima:
@@ -809,7 +809,7 @@ proxima:
 .a8
     plx
     inx
-    cpx #MUESTRAS_N
+    cpx #SAMPLES_N
     bcc olvidar
     ; And the missing ones are placed, in order of priority: the extra song,
     ; the map's songs and its sound effects.
@@ -826,13 +826,13 @@ con_paquete2:
     jsr extra_separate
     bcc temas
 saltear:
-    lda f:paquetes, x
+    lda f:packages, x
     cmp #$FF
     beq efectos
     inx
     bra saltear
 temas:
-    lda f:paquetes, x
+    lda f:packages, x
     cmp #$FF
     beq efectos
     phx
@@ -843,7 +843,7 @@ temas:
 efectos:
     inx
 otro_efecto:
-    lda f:paquetes, x
+    lda f:packages, x
     cmp #$FF
     beq de_salida
     phx
@@ -864,7 +864,7 @@ de_salida:
     lda f:PKG_PARTIAL
     pha
 otro_de_salida:
-    lda f:paquetes, x
+    lda f:packages, x
     cmp #$FF
     beq salida_puesta
     phx
@@ -916,7 +916,7 @@ compactar:
     plx
 quieta:
     inx
-    cpx #MUESTRAS_N
+    cpx #SAMPLES_N
     bcc compactar
     jmp marcadas
 subir:
@@ -936,7 +936,7 @@ ready:
 .endproc
 
 ; C at 1 if PKG_EXTRA is one of the exit songs of PKG_MAP's package: the
-; third list in `paquetes`. They are the ones the map starts only to leave
+; third list in `packages`. They are the ones the map starts only to leave
 ; —see `Temas.de_salida` in tools/port/events.py—, and the game's case is
 ; `lufsorr` on map 3: it plays after the sequence of sound effects, so it has
 ; no reason to fit alongside them, and the converter gives it the rate of a
@@ -955,7 +955,7 @@ ready:
 .endproc
 
 ; C at 1 if PKG_EXTRA is one of the separate songs of PKG_MAP's package: the
-; fourth list in `paquetes`. They are the ones in `[music] apart_themes` of
+; fourth list in `packages`. They are the ones in `[music] apart_themes` of
 ; the project file, and the game's case is `vswar` on 38 and 47: it plays in
 ; a scene, never at the same time as the map's other songs, and with them it
 ; did not fit at the rate it has on its own. When its `PlayBGM` asks for it
@@ -990,13 +990,13 @@ saltar:
     dey
     bmi mirar
 otra:
-    lda f:paquetes, x
+    lda f:packages, x
     inx
     cmp #$FF
     bne otra
     bra saltar
 mirar:
-    lda f:paquetes, x
+    lda f:packages, x
     cmp #$FF
     beq no
     cmp f:PKG_EXTRA
@@ -1022,7 +1022,7 @@ no:
     lda f:PKG_MAP
     asl a
     tax
-    lda f:paquetes, x
+    lda f:packages, x
     tax
     sep #$20
 .a8
@@ -1046,7 +1046,7 @@ no:
     tax
     sep #$20
 .a8
-    lda f:efecto_lugar, x
+    lda f:effect_place, x
     rep #$20
 .a16
     and #$00FF
@@ -1061,7 +1061,7 @@ no:
 .a16
     txa
     clc
-    adc #SE_PRIMERA
+    adc #SE_FIRST
     asl a
     tax
     lda #0
@@ -1074,7 +1074,7 @@ no:
 anotado:
     txa
     clc
-    adc #SE_PRIMERA
+    adc #SE_FIRST
     rts
 .endproc
 
@@ -1104,7 +1104,7 @@ ready:
     jsr song_list
     ply
 otra:
-    lda f:tema_muestras, x
+    lda f:song_samples, x
     cmp #$FF
     beq ready
     phx
@@ -1183,14 +1183,14 @@ corrido:
     lda f:APU_READY
     beq ready
     lda temp + 1
-    cmp #TEMA_TOTAL
+    cmp #SONG_TOTAL
     bcs ready
     lda f:PKG_PARTIAL
     bne falta                   ; even if the song is missing nothing
     lda temp + 1                ; the song: `song_list` reads it from A
     jsr song_list
 mirar:
-    lda f:tema_muestras, x
+    lda f:song_samples, x
     cmp #$FF
     beq ready                   ; they are all there
     phx

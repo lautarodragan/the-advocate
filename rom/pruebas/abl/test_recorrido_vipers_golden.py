@@ -108,7 +108,7 @@ def sin_quedarse_en_el_aire(partida, a_cada=A_CADA):
 
     Lo que mira es `route_jump`, el descuento del arco, y lo que le tolera es
     **lo que dura un salto y una muestra más**, contado de los símbolos de la
-    ROM y de la velocidad del héroe, no a ojo: `SALTO_PASO` sobre lo que baja
+    ROM y de la velocidad del héroe, no a ojo: `JUMP_STEP` sobre lo que baja
     el salto a esa velocidad son las vueltas que tarda en aterrizar, y el
     vigilante corre una vez cada `a_cada`. Si una ruta le cambia la velocidad,
     el tope se mueve solo.
@@ -124,7 +124,7 @@ def sin_quedarse_en_el_aire(partida, a_cada=A_CADA):
         if not p.byte("route_jump"):
             seguidas[0] = 0
             return
-        dura = -(-partida.simbolos["SALTO_PASO"]
+        dura = -(-partida.simbolos["JUMP_STEP"]
                  // events.JUMP_PER_SPEED[p.velocidad_del_heroe() - 1])
         tope = -(-dura // a_cada) + 1
         seguidas[0] += 1

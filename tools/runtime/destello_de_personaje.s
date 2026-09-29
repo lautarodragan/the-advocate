@@ -214,13 +214,13 @@ ready:
     asl a                       ; thirty-two bytes per palette
     sta temp
     ldx map_ofs
-    lda f:mapa_tabla + M_PTR_SPRITE_CGRAM, x
+    lda f:map_table + M_PTR_SPRITE_CGRAM, x
     clc
     adc temp
     sta tint_ptr
     sep #$20
 .a8
-    lda f:mapa_tabla + M_PTR_SPRITE_CGRAM + 2, x
+    lda f:map_table + M_PTR_SPRITE_CGRAM + 2, x
     sta tint_ptr + 2
     rep #$20
 .a16

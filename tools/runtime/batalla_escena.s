@@ -15,7 +15,7 @@
 ; **$7E6600 to $7E67FF belongs to this**: the range was reserved in advance
 ; on 2026-09-21, when splitting work among tasks that touched far RAM.
 SCN_ORIGIN   = $6600    ; 1: a random encounter started the battle
-; The number of this battle's background among the game's, or FONDO_LISO.
+; The number of this battle's background among the game's, or BACKDROP_PLAIN.
 ; It is the one read from the `.msu`; the ROM's is SCN_FALLBACK. See "Qué
 ; fondos hay" in tools/port/scene.py.
 SCN_BACKDROP    = $6601
@@ -266,7 +266,7 @@ empty:
 other_tile:
     lda ED_FX
     clc
-    adc #(ESCENA_COLUMNAS * 64 - 14)
+    adc #(SCENE_COLUMNS * 64 - 14)
 set2:
     sta ED_FX
     inc ED_YY
@@ -297,7 +297,7 @@ scn_bits:
 ; `SCN_E` = the enemy that comes `SCN_K`-th in the drawing order, which is
 ; RM2k's and not the troop's: easyrpg's `Sprite_Battler::ResetZ` sorts by
 ; the battler's bottom edge, and with equal edges the one with the lower
-; place ends up on top. The converter computes the order: `miembro_orden`.
+; place ends up on top. The converter computes the order: `member_command`.
 ; It clobbers X.
 .proc scn_by_command
 .a8
@@ -311,7 +311,7 @@ scn_bits:
     tax
     sep #$20
 .a8
-    lda f:miembro_orden, x
+    lda f:member_command, x
     sta SCN_E
     rts
 .endproc
@@ -372,7 +372,7 @@ hay:
     tya
     asl a
     tax
-    lda f:battler_plano, x
+    lda f:battler_plane, x
     sta SCN_T0
     lda ED_M
     clc
@@ -390,7 +390,7 @@ hay:
     sta ED_N
     inc a
     sta ED_STEP
-    lda f:battler_alto, x
+    lda f:battler_height, x
     and #$00FF
     sta ED_ROWS                ; not clipped yet
 
@@ -571,7 +571,7 @@ afuera:
     ; And the map's can be that of the terrain the hero stands on, just as a
     ; troop can fight with the place's: it is `Game_Map::SetupBattle`. See
     ; `escena_de_la_rom` in tools/port/snes_convert.py.
-    lda #FONDO_LISO
+    lda #BACKDROP_PLAIN
     sta SCN_BACKDROP
     lda SCN_ORIGIN
     beq de_la_tropa
@@ -582,11 +582,11 @@ del_lugar:
     tax
     sep #$20
 .a8
-    lda f:escena_mapa_fondo, x
-    cmp #FONDO_DEL_LUGAR
+    lda f:scene_map_backdrop, x
+    cmp #PLACE_BACKDROP
     bne fondo_elegido
     jsr scn_terrain             ; the terrain under the hero, in A
-    cmp #FONDO_TERRENOS
+    cmp #BACKDROP_TERRAINS
     bcs sin_fondo
     rep #$20
 .a16
@@ -594,7 +594,7 @@ del_lugar:
     tax
     sep #$20
 .a8
-    lda f:fondo_terreno, x
+    lda f:backdrop_terrain, x
     bra fondo_elegido
 de_la_tropa:
     lda BA_TROOP_K
@@ -606,12 +606,12 @@ de_la_tropa:
     tax
     sep #$20
 .a8
-    lda f:escena_tropa_fondo, x
-    cmp #FONDO_DEL_LUGAR
+    lda f:scene_troop_backdrop, x
+    cmp #PLACE_BACKDROP
     beq del_lugar
 fondo_elegido:
-    cmp #FONDOS_JUEGO
-    bcs sin_fondo               ; FONDO_LISO, or a cartridge with no backgrounds
+    cmp #BACKDROPS_GAME
+    bcs sin_fondo               ; BACKDROP_PLAIN, or a cartridge with no backgrounds
     sta SCN_BACKDROP
     rep #$20
 .a16
@@ -619,7 +619,7 @@ fondo_elegido:
     tax
     sep #$20
 .a8
-    lda f:fondo_respaldo, x     ; its own if the ROM carries it, or the replacement
+    lda f:backdrop_fallback, x     ; its own if the ROM carries it, or the replacement
     sta SCN_FALLBACK
 sin_fondo:
     lda #0
@@ -639,7 +639,7 @@ con_tropa:
     tax
     sep #$20
 .a8
-    lda f:tropa_ini, x
+    lda f:troop_init, x
     sta SCN_I                   ; the first member
     sta SCN_INIT                 ; and again, for `scn_by_command`
 otro_enemigo:
@@ -658,11 +658,11 @@ otro_enemigo:
     tax                         ; X: the member
     sep #$20
 .a8
-    lda f:miembro_x, x
+    lda f:member_x, x
     sta SCN_E_X, y
-    lda f:miembro_y, x
+    lda f:member_y, x
     sta SCN_E_Y, y
-    lda f:miembro_battler, x
+    lda f:member_battler, x
     sta SCN_E_BAT, y
     cmp #$FF
     beq siguiente
@@ -748,9 +748,9 @@ fondo_listo:
     lda #0
     sta SCN_CLIP_Y0
     sta SCN_CLIP_C0
-    lda #ESCENA_ALTO
+    lda #SCENE_HEIGHT
     sta SCN_CLIP_Y1
-    lda #ESCENA_COLUMNAS
+    lda #SCENE_COLUMNS
     sta SCN_CLIP_C1
     sep #$20
 .a8
@@ -776,11 +776,11 @@ puestos:
     sta f:VMAIN                 ; one word per write
     rep #$20
 .a16
-    lda #ESCENA_VRAM
+    lda #SCENE_VRAM
     sta f:VMADDL
     lda #.loword(SCN_SCENE)
     sta f:A1T0L
-    lda #(ESCENA_TILES * 64)
+    lda #(SCENE_TILES * 64)
     sta f:DAS0L
     sep #$20
 .a8
@@ -800,11 +800,11 @@ puestos:
     sta f:VMADDL
     lda #64
     sta f:DAS0L
-    lda #.loword(escena_cero)
+    lda #.loword(scene_zero)
     sta f:A1T0L
     sep #$20
 .a8
-    lda #^escena_cero
+    lda #^scene_zero
     sta f:A1B0
     lda #$01
     sta f:DMAP0
@@ -819,15 +819,15 @@ puestos:
     ; and emitting them would be two kilobytes of cartridge to say that.
     rep #$20
 .a16
-    lda #ESCENA_MAPA
+    lda #SCENE_MAP
     sta f:VMADDL
     lda #0
     sta SCN_T0                  ; the tile that goes in the cell
     ldx #0
 celda:
-    cpx #ESCENA_TILES
+    cpx #SCENE_TILES
     bcc celda_escena
-    lda #ESCENA_BLANCO
+    lda #SCENE_TARGET
     bra celda_pone
 celda_escena:
 .a16
@@ -855,7 +855,7 @@ otra_paleta:
     asl a
     asl a
     clc
-    adc #(ESCENA_BAT_PALETA * 16)
+    adc #(SCENE_BAT_PALETTE * 16)
     sta f:CGADD
     rep #$20
 .a16
@@ -903,7 +903,7 @@ sin_escena:
 .a8
 .i16
     ldx map_ofs
-    lda f:mapa_tabla + M_TERRENO_PLANO, x
+    lda f:map_table + M_TERRAIN_PLANE, x
     bne ready                   ; a single terrain on the whole map
     rep #$20
 .a16
@@ -922,11 +922,11 @@ hallada:
     lda sub_value, y
 sustituida:
     sta SCN_T0
-    lda f:mapa_tabla + M_PTR_BLOQUE_TERRENO, x
+    lda f:map_table + M_PTR_BLOCK_TERRAIN, x
     sta cells_ptr
     sep #$20
 .a8
-    lda f:mapa_tabla + M_PTR_BLOQUE_TERRENO + 2, x
+    lda f:map_table + M_PTR_BLOCK_TERRAIN + 2, x
     sta cells_ptr + 2
     ldy SCN_T0
     lda [cells_ptr], y
@@ -961,7 +961,7 @@ ready:
     rts
 .endproc
 
-; The background's colors, from entry ESCENA_CGRAM: the high-quality one's
+; The background's colors, from entry SCENE_CGRAM: the high-quality one's
 ; 96 if it comes from the `.msu`, the light one's 16 if it comes from the
 ; ROM. Nothing with the plain one.
 .proc scn_colors
@@ -972,7 +972,7 @@ ready:
     bne hay
     rts
 hay:
-    lda #ESCENA_CGRAM
+    lda #SCENE_CGRAM
     sta f:CGADD
     lda SCN_MSU
     beq de_la_rom
@@ -985,15 +985,15 @@ hay:
     asl a
     asl a                       ; times 8: two 32-bit positions
     tax
-    lda f:msu_fondo_pos + 6, x
+    lda f:msu_backdrop_pos + 6, x
     tay
-    lda f:msu_fondo_pos + 4, x
+    lda f:msu_backdrop_pos + 4, x
     jsr msu_data_seek
 .a8
     bcs no_la_encontro
     rep #$20
 .a16
-    lda #(ESCENA_COLORES * 2)
+    lda #(SCENE_COLORS * 2)
     sta f:DAS0L
     sep #$20
 .a8
@@ -1011,16 +1011,16 @@ de_la_rom:
     asl a
     asl a
     asl a
-    asl a                       ; times 32, which is RESPALDO_COLORES * 2
-    .assert RESPALDO_COLORES * 2 = 32, error, "fondo_cgram changed its stride"
+    asl a                       ; times 32, which is FALLBACK_COLORS * 2
+    .assert FALLBACK_COLORS * 2 = 32, error, "backdrop_cgram changed its stride"
     clc
-    adc #.loword(fondo_cgram)
+    adc #.loword(backdrop_cgram)
     sta f:A1T0L
-    lda #(RESPALDO_COLORES * 2)
+    lda #(FALLBACK_COLORS * 2)
     sta f:DAS0L
     sep #$20
 .a8
-    lda #^fondo_cgram
+    lda #^backdrop_cgram
     jmp scn_dma_cgram
 .endproc
 
@@ -1083,13 +1083,13 @@ de_la_rom:
     ; The plain background: the same zero 32,768 times, with the source fixed.
     rep #$20
 .a16
-    lda #.loword(escena_cero)
+    lda #.loword(scene_zero)
     sta f:A1T0L
-    lda #(ESCENA_TILES * 64)
+    lda #(SCENE_TILES * 64)
     sta f:DAS0L
     sep #$20
 .a8
-    lda #^escena_cero
+    lda #^scene_zero
     sta f:A1B0
     lda #$08
     sta f:DMAP0
@@ -1112,15 +1112,15 @@ con_fondo:
     asl a
     asl a                       ; times 8: two 32-bit positions
     tax
-    lda f:msu_fondo_pos + 2, x
+    lda f:msu_backdrop_pos + 2, x
     tay
-    lda f:msu_fondo_pos, x
+    lda f:msu_backdrop_pos, x
     jsr msu_data_seek
 .a8
     bcs no_la_encontro
     rep #$20
 .a16
-    lda #(ESCENA_TILES * 64)
+    lda #(SCENE_TILES * 64)
     sta f:DAS0L
     sep #$20
 .a8
@@ -1133,7 +1133,7 @@ no_la_encontro:
     sta SCN_MSU
 de_la_rom:
     ; From the ROM, only planes 4 to 7 go here, which are the same on every
-    ; pixel of the fallback: the 32 bytes of `respaldo_alto` in the top half
+    ; pixel of the fallback: the 32 bytes of `fallback_height` in the top half
     ; of every tile, rewinding the source and moving WMADD on each one.
     ; `scn_double` fills the bottom half afterwards. See "El respaldo
     ; liviano" in tools/port/scene.py.
@@ -1141,21 +1141,21 @@ de_la_rom:
     sta f:DMAP7                 ; one byte at a time, the source advancing
     lda #$80                    ; WMDATA
     sta f:BBAD7
-    lda #^respaldo_alto
+    lda #^fallback_height
     sta f:A1B7
     rep #$20
 .a16
     lda SCN_T0
     clc
-    adc #RESPALDO_TILE          ; the top half of the first tile
+    adc #FALLBACK_TILE          ; the top half of the first tile
     tax
-    ldy #ESCENA_TILES
+    ldy #SCENE_TILES
 tile:
     txa
     sta f:WMADDL                ; and WMADDM; WMADDH stays at $7F
-    lda #(64 - RESPALDO_TILE)
+    lda #(64 - FALLBACK_TILE)
     sta f:DAS7L
-    lda #.loword(respaldo_alto)
+    lda #.loword(fallback_height)
     sta f:A1T7L
     sep #$20
 .a8
@@ -1179,7 +1179,7 @@ tile:
 ; already put the top ones there.
 ;
 ; It is CPU and not DMA because each small pixel is two across, and in
-; planar that means splitting every byte in two: `respaldo_doble` does it, a
+; planar that means splitting every byte in two: `fallback_double` does it, a
 ; table of 256 words. `respaldo_bytes`, in tools/port/snes_convert.py,
 ; leaves the bytes in the order they are read here, so the ROM only moves
 ; forward: for each pair of neighboring scene tiles —the left and right ones
@@ -1198,13 +1198,13 @@ tile:
 .a16
     and #$00FF
     asl a
-    asl a                       ; times 4: the row of `fondo_dir`
+    asl a                       ; times 4: the row of `backdrop_dir`
     tax
-    lda f:fondo_dir, x
+    lda f:backdrop_dir, x
     sta ED_FONT
     sep #$20
 .a8
-    lda f:fondo_dir + 2, x
+    lda f:backdrop_dir + 2, x
     ora #^FAST                ; the fallback, through the fast mirror
     sta ED_FONT + 2
     phb
@@ -1212,7 +1212,7 @@ tile:
     pha
     plb
     .assert ^SCN_SCENE = ^SCN_CLEAN, error, "the scene buffers changed bank"
-    .assert RESPALDO_ESCALA = 2, error, "scn_double only enlarges to double size"
+    .assert FALLBACK_SCALE = 2, error, "scn_double only enlarges to double size"
     rep #$20
 .a16
     ldy #0                      ; the pair's left tile, in the buffers
@@ -1226,7 +1226,7 @@ word:
     and #$00FF
     asl a
     tax
-    lda f:respaldo_doble + FAST, x
+    lda f:fallback_double + FAST, x
     sta a:.loword(SCN_CLEAN), y
     sta a:.loword(SCN_CLEAN) + 2, y
     sta a:.loword(SCN_SCENE), y
@@ -1236,7 +1236,7 @@ word:
     and #$00FF
     asl a
     tax
-    lda f:respaldo_doble + FAST, x
+    lda f:fallback_double + FAST, x
     sta a:.loword(SCN_CLEAN) + 64, y
     sta a:.loword(SCN_CLEAN) + 66, y
     sta a:.loword(SCN_SCENE) + 64, y
@@ -1259,7 +1259,7 @@ word:
     clc
     adc #(128 - 32)
     tay
-    cpy #(ESCENA_TILES * 64)
+    cpy #(SCENE_TILES * 64)
     bcc par
     sep #$20
 .a8
@@ -1384,9 +1384,9 @@ repintar:
 :   lda SCN_CLIP_C1
     clc
     adc SCN_CLIP_C0
-    cmp #ESCENA_COLUMNAS
+    cmp #SCENE_COLUMNS
     bcc :+
-    lda #ESCENA_COLUMNAS
+    lda #SCENE_COLUMNS
 :   sta SCN_CLIP_C1
     sec
     sbc SCN_CLIP_C0
@@ -1397,7 +1397,7 @@ repintar:
     asl a
     asl a
     sta SCN_SUB_LENGTH           ; bytes per tile row
-    lda f:battler_alto, x
+    lda f:battler_height, x
     and #$00FF
     sta SCN_T0
     lda SCN_E
@@ -1515,7 +1515,7 @@ row:
     asl a                       ; times 32 words
     pha
     clc
-    adc #ESCENA_VRAM
+    adc #SCENE_VRAM
     sta f:VMADDL
     pla
     asl a                       ; times 64 bytes
@@ -1556,9 +1556,9 @@ ready:
     lda BA_SCENE
     cmp #$FF
     beq ready
-    lda #((ESCENA_MAPA / 1024) * 4)
+    lda #((SCENE_MAP / 1024) * 4)
     sta f:BG1SC                 ; 32x32, which is what covers the whole screen
-    lda #((RANURA_VRAM / 4096) * 16 + (ESCENA_VRAM / 4096))
+    lda #((SLOT_VRAM / 4096) * 16 + (SCENE_VRAM / 4096))
     sta f:BG12NBA               ; the text on BG2 and the scene on BG1
     lda #0
     sta f:BG1HOFS               ; `stz` has no long mode

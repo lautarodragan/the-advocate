@@ -127,11 +127,11 @@ sin_flash:
     beq sin_imagen
     lda #0
     sta f:PICTURE_READY
-    lda #(128 + 16 * IMAGEN_PAL)
+    lda #(128 + 16 * PICTURE_PAL)
     sta CGADD
     rep #$20
 .a16
-    lda #.loword(cgram_shadow + 2 * (128 + 16 * IMAGEN_PAL))
+    lda #.loword(cgram_shadow + 2 * (128 + 16 * PICTURE_PAL))
     sta A1T0L
     lda #32
     sta DAS0L

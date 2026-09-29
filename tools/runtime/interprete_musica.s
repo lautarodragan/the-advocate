@@ -9,14 +9,14 @@
 ; with `jmp run_code::otro` or ends the frame with `rts`.
 
 ; `PlayBGM`. The operand is the song's index in `Temas`, and the cartridge
-; carries the ones that fit in ARAM: the first `TEMA_TOTAL`. A higher index is
+; carries the ones that fit in ARAM: the first `SONG_TOTAL`. A higher index is
 ; a song that did not fit and does not play, which is what happened to all but
 ; one of them until 2026-09-06. See `temas_de_la_rom` in the converter.
 .proc op_bgm
     lda [code_ptr], y
     iny
 tocar:
-    cmp #TEMA_TOTAL
+    cmp #SONG_TOTAL
     bcs otro_tema
     phy
     jsr music_start
@@ -78,7 +78,7 @@ fundir_nada:
 
 .endproc
 
-; `OP_SOUND`: the index into `sonido_tabla`. It stays pending and starts at the
+; `OP_SOUND`: the index into `sound_table`. It stays pending and starts at the
 ; end of `music_tick`, after whatever the music writes in the frame.
 .proc op_sound
     jsr sound_from_code

@@ -73,27 +73,27 @@ cambia:
     lda temp + 1
     sta WMDATA
     lda temp
-    cmp #CLIMA_LLUVIA
+    cmp #WEATHER_RAIN
     bne ninguna
     lda temp + 1
     beq debil
     cmp #1
     beq media
-    lda #LLUVIA_GOTAS_2
+    lda #RAIN_DROPS_2
     bra cuantas
 media:
-    lda #LLUVIA_GOTAS_1
+    lda #RAIN_DROPS_1
     bra cuantas
 debil:
-    lda #LLUVIA_GOTAS_0
+    lda #RAIN_DROPS_0
     bra cuantas
 ninguna:
     lda #0
 cuantas:
     sta WMDATA
-    lda #<LLUVIA_SEMILLA
+    lda #<RAIN_SEED
     sta WMDATA
-    lda #>LLUVIA_SEMILLA
+    lda #>RAIN_SEED
     sta WMDATA
     ; All off.
     rep #$20
@@ -102,7 +102,7 @@ cuantas:
     sta WMADDL
     sep #$20
 .a8
-    ldx #(LLUVIA_GOTAS_MAX * 3)
+    ldx #(RAIN_DROPS_MAX * 3)
 apagar:
     stz WMDATA
     dex
@@ -180,14 +180,14 @@ gota:
     sta f:RAIN_L + 1, x
     bra siguiente
 apagada:
-    ; It is born with a LLUVIA_NACE in 256 chance, at a random place.
+    ; It is born with a RAIN_BORN in 256 chance, at a random place.
     ; `rain_random` returns with a 16-bit A and does not touch X.
     jsr rain_random
     sep #$20
 .a8
-    cmp #LLUVIA_NACE
+    cmp #RAIN_BORN
     bcs siguiente
-    lda #LLUVIA_VIDA
+    lda #RAIN_LIFE
     sta f:RAIN_L + 2, x
     jsr rain_random
     sep #$20
@@ -214,7 +214,7 @@ siguiente:
 
 ; The drops in OAM: two 8x8 objects per live drop, with priority 2, at the
 ; very end —any character covers them— and until the OAM fills up. A map
-; with no room for their colors has `M_LLUVIA_BASE` at zero and draws no
+; with no room for their colors has `M_RAIN_BASE` at zero and draws no
 ; rain. See `gotas_en_oam` in snes_expect.py, which has the rule for what is
 ; dropped.
 ;
@@ -226,8 +226,8 @@ siguiente:
 .a8
 .i16
     ldx map_ofs
-    lda f:mapa_tabla + M_LLUVIA_BASE, x
-    ora f:mapa_tabla + M_LLUVIA_BASE + 1, x
+    lda f:map_table + M_RAIN_BASE, x
+    ora f:map_table + M_RAIN_BASE + 1, x
     bne con_gotas
     rts
 con_gotas:
@@ -238,12 +238,12 @@ hay:
     sta comp_col                ; how many
     rep #$20
 .a16
-    lda f:mapa_tabla + M_LLUVIA_BASE, x
+    lda f:map_table + M_RAIN_BASE, x
     sta comp_base               ; the first tile
     sep #$20
 .a8
     ; vhoopppN: priority 2 and the drops' palette; the ninth bit goes apart.
-    lda f:mapa_tabla + M_LLUVIA_PAL, x
+    lda f:map_table + M_RAIN_PAL, x
     and #$07
     asl a
     ora #$20

@@ -33,11 +33,11 @@
 ; loads, and only then the other one comes up: however long the load takes
 ; —with MSU-1 the song is not uploaded—, it stays inside.
 ;
-; The ramps are the teleport's, `fundido_rampa`: master brightness has
+; The ramps are the teleport's, `fade_ramp`: master brightness has
 ; sixteen steps, and the mosaic is tied to it —size 16 at brightness 0, size
 ; 1 at brightness 15—, which are also the sixteen sizes the PPU has. In RM2k
 ; the zoom and the mosaic last 41 frames; here each ramp lasts
-; `FUNDIDO_RAMPA` and the rest is the black of the load, which is always
+; `FADE_RAMP` and the rest is the black of the load, which is always
 ; longer.
 ;
 ; All of this **blocks**, like the battle itself: `ticks` does not advance,
@@ -58,14 +58,14 @@
     jsr build_oam
     ldx #0
 subir:
-    lda fundido_rampa, x
+    lda fade_ramp, x
     sta brightness
     phx
     jsr wait_vblank
     jsr flush_video
     plx
     inx
-    cpx #FUNDIDO_RAMPA
+    cpx #FADE_RAMP
     bcc subir
     rts                         ; and `brightness` is left at full, as it was
 .endproc
@@ -109,7 +109,7 @@ destello:
     ; And the map down to black. The first frame turns off the flash, in the
     ; same vblank; the ramp starts one step below full so as not to spend a
     ; frame on the brightness that was already there.
-    ldx #(FUNDIDO_RAMPA - 2)
+    ldx #(FADE_RAMP - 2)
 lower:
     jsl f:ba_t_vblank
     lda #$30
@@ -118,7 +118,7 @@ lower:
     sta f:CGADSUB
     lda #$E0
     sta f:COLDATA
-    lda f:fundido_rampa, x
+    lda f:fade_ramp, x
     sta f:INIDISP
     dex
     bpl lower
@@ -145,10 +145,10 @@ battle_flash:
     beq ready
     lda #0
     sta f:BATTLE_ON
-    ldx #(FUNDIDO_RAMPA - 2)
+    ldx #(FADE_RAMP - 2)
 lower:
     jsl f:ba_t_vblank
-    lda f:fundido_rampa, x
+    lda f:fade_ramp, x
     sta f:INIDISP
     eor #$0F                    ; the mosaic, tied to brightness: see above
     asl a
@@ -175,7 +175,7 @@ ready:
     ldx #0
 subir:
     jsl f:ba_t_vblank           ; `wait_vblank`, which does not touch X
-    lda f:fundido_rampa, x
+    lda f:fade_ramp, x
     sta f:INIDISP
     eor #$0F
     asl a
@@ -185,7 +185,7 @@ subir:
     ora #$03                    ; BG1 and BG2
     sta f:MOSAIC
     inx
-    cpx #FUNDIDO_RAMPA
+    cpx #FADE_RAMP
     bcc subir
     lda #0
     sta f:MOSAIC                ; the last one was already size 1: same thing, off

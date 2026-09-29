@@ -68,7 +68,7 @@ def test_las_pistas_de_release_no_llegan_al_core(tmp_path):
 # Lo pidió taro el 2026-09-26: con MSU-1, **todos** los temas suenan desde su
 # pista. El número lo da `snes_music.msu_track` y las pistas las arma
 # `tools/audio/msu.py` al lado de `release`; esto mira las tres cosas juntas
-# —el `musica.json` del conversor, la `tema_msu` de la ROM y los `.pcm`—,
+# —el `musica.json` del conversor, la `song_msu` de la ROM y los `.pcm`—,
 # porque cada una por separado puede estar bien y no coincidir con las otras.
 
 
@@ -80,7 +80,7 @@ def test_todo_tema_tiene_su_pista():
         temas = json.load(archivo)["temas"]
     with open(uno.sfc, "rb") as archivo:
         rom = archivo.read()
-    tabla = en_la_rom(uno.simbolos["tema_msu"])
+    tabla = en_la_rom(uno.simbolos["song_msu"])
     hay = pistas_de(base)
     sin, mal, faltan = [], [], []
     for i, tema in enumerate(temas):
@@ -97,7 +97,7 @@ def test_todo_tema_tiene_su_pista():
         elif numero not in hay:
             faltan.append("%s-%d.pcm (%s)" % (base, numero, tema["nombre"]))
     assert not sin, "estos temas entraron en el cartucho sin pista: %s" % sin
-    assert not mal, "la `tema_msu` de la ROM no es la del conversor: %s" % mal
+    assert not mal, "la `song_msu` de la ROM no es la del conversor: %s" % mal
     assert not faltan, (
         "faltan las pistas %s: las arma `just build release`, ver "
         "tools/audio/msu.py" % ", ".join(faltan))
@@ -116,7 +116,7 @@ def test_todo_tema_tiene_su_pista():
 # Ver `song_per_msu` en runtime/paquete_de_audio.s. Estas corren **con** el
 # MSU-1, al revés que la tanda: sobre una copia de `release` en un directorio
 # propio, con enlaces a sus pistas —a todas o a todas menos una— y, para el
-# tema sin pista, con su entrada de `tema_msu` borrada en la copia.
+# tema sin pista, con su entrada de `song_msu` borrada en la copia.
 #
 # Los dos mapas son los de los temas que se prenden solos al llegar: el 26
 # prende `KSSMKEND`, que es el único tema de su paquete, y el 19 prende
@@ -137,7 +137,7 @@ def _con_pistas(tmp_path, sin_pista=(), sin_tema_msu=(), caso=ARRANQUE,
     with open(uno.sfc, "rb") as archivo:
         rom = bytearray(archivo.read())
     nombres = _temas(uno.sfc)
-    pistas = en_la_rom(uno.simbolos["tema_msu"])
+    pistas = en_la_rom(uno.simbolos["song_msu"])
     faltan = {rom[pistas + nombres.index(t)] for t in sin_pista}
     for tema in sin_tema_msu:
         rom[pistas + nombres.index(tema)] = 0xFF
@@ -263,7 +263,7 @@ AL_EMPEZAR = 120
 def test_con_msu_la_pista_del_titulo_no_sigue_en_la_partida(tmp_path):
     una = _con_pistas(tmp_path, caso=None, titulo=False)
     una.consola.run(TITULO_AIRE)
-    titulo = una.simbolos["TEMA_TITULO"]
+    titulo = una.simbolos["SONG_TITLE"]
     assert una.palabra("song_current") == titulo and _lejano(
         una, "MSU_PLAYING")[0], (
         "la pantalla de título no está tocando su pista por el MSU-1: esta "

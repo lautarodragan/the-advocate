@@ -103,14 +103,14 @@ pal_tick:   .res 1      ; to insert the missing music frame
 restart:   .res 1      ; whether the stream already looped this frame
 
 ; The loaded map. All of this came from constants in the .inc when there was
-; a single map; now it comes from its record in `mapa_tabla` —which lives in
+; a single map; now it comes from its record in `map_table` —which lives in
 ; RODATA and is read with `lda f:`— and stays here for as
 ; long as it lasts. What is used only once —the DMA sizes, the VRAM bases—
 ; is not copied: it is read from the record at the time.
 map_ofs:    .res 2     ; the offset of the current map's record
 ; And its index, to know whether a jump changes map. Two bytes since
 ; OP_TELEPORT's destination is a word: the game has 328 maps and a byte holds
-; 256. The ceiling left is MAPA_STRIDE: `map_ofs` is sixteen bits, so it is
+; 256. The ceiling left is MAP_STRIDE: `map_ofs` is sixteen bits, so it is
 ; 512 maps.
 map_current: .res 2
 map_width:  .res 2     ; its width in 16x16 cells
@@ -283,7 +283,7 @@ tint_end:     .res 2     ; how many bytes it is, which is the loop's limit
 ; --- the text composer ------------------------------------------------------
 ; All of this is touched in the innermost loop of the repo —twelve rows per
 ; character, four sixteen-bit writes per row— so it goes in the zero page.
-msg_ptr:     .res 3     ; pointer to the next character, inside `mensajes`. It goes
+msg_ptr:     .res 3     ; pointer to the next character, inside `messages`. It goes
                         ; here and not with the rest of the state because `[dp],y`
                         ; only addresses the direct page.
 comp_glyph:  .res 3     ; pointer to the character's twelve rows, in ROM

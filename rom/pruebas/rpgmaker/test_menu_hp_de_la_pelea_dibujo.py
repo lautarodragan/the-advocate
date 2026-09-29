@@ -14,7 +14,7 @@ Lo que se mide acá es la cadena completa:
     -> el menú los lee    ->  y dibuja los de ahora, no los del bloque
 
 La pelea es la del droide del mapa 2 contra Kersh y Core, que es determinista:
-`battle_run` arranca el azar con `BATALLA_SEMILLA` en cada pelea, así que
+`battle_run` arranca el azar con `BATTLE_SEED` en cada pelea, así que
 sale siempre igual. Medido el 2026-09-13: gana el grupo, Kersh no pierde un HP
 y Core queda en 79 de 127. Que el número esté escrito acá no es adorno: si
 alguna vez cambia, cambió una fórmula de la pelea y hay que saberlo.
@@ -122,7 +122,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
 # partir de la segunda batalla aleatoria... se guarda el HP asociado a un
 # índice de enemigo y no se reinicia"*— **no era un defecto**, y esto es lo que
 # lo deja medido en vez de razonado: `ba_build` vacía las doce ranuras y
-# rellena los HP de cada enemigo desde `enemigo_hp` del cartucho en cada pelea.
+# rellena los HP de cada enemigo desde `enemy_hp` del cartucho en cada pelea.
 #
 # Lo que taro vio es de los datos del juego: las tropas de Rat Tracks B1 son
 # GiantRat (20 HP), MutantMouse (25) y HairyVermin (40), y la pantalla de la

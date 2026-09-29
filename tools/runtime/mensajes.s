@@ -19,15 +19,15 @@
     sta VMAIN
     rep #$20
 .a16
-    lda f:mapa_tabla + M_VRAM_VENTANA, x
+    lda f:map_table + M_VRAM_WINDOW, x
     sta VMADDL
-    lda #.loword(ventana_tiles)
+    lda #.loword(window_tiles)
     sta A1T0L
-    lda #(VENTANA_TILES * 32)
+    lda #(WINDOW_TILES * 32)
     sta DAS0L
     sep #$20
 .a8
-    lda #^ventana_tiles
+    lda #^window_tiles
     sta A1B0
     lda #$01
     sta DMAP0
@@ -71,33 +71,33 @@
     ; nibble of BG12NBA—. The layouts put it 128 tiles behind or, the one with
     ; a 256-tile layer above, 256: 256 tiles of 4bpp are $1000 words, $10 in
     ; the high byte. See `VENTANA_BASES` in the converter.
-    lda f:mapa_tabla + M_BG12NBA_VALUE, x
+    lda f:map_table + M_BG12NBA_VALUE, x
     and #$F0
     sta temp
-    lda f:mapa_tabla + M_VRAM_VENTANA + 1, x
+    lda f:map_table + M_VRAM_WINDOW + 1, x
     sec
     sbc temp
     cmp #$10                    ; the carry survives the `rep` and the `lda`
     rep #$20
 .a16
-    lda f:mapa_tabla + M_VRAM_VENTANA_MAP, x
+    lda f:map_table + M_VRAM_WINDOW_MAP, x
     sta VMADDL
-    lda #(TEXT_WINDOW_ROWS * VENTANA_COLS * 2)
+    lda #(TEXT_WINDOW_ROWS * TEXT_WINDOW_COLS * 2)
     sta DAS0L
     bcs plano_256
-    lda #.loword(ventana_celdas)
+    lda #.loword(window_cells)
     sta A1T0L
     sep #$20
 .a8
-    lda #^ventana_celdas
+    lda #^window_cells
     bra con_plano
 plano_256:
 .a16
-    lda #.loword(ventana_celdas_256)
+    lda #.loword(window_cells_256)
     sta A1T0L
     sep #$20
 .a8
-    lda #^ventana_celdas_256
+    lda #^window_cells_256
 con_plano:
     sta A1B0
     lda #$01
@@ -141,7 +141,7 @@ con_plano:
     sta hdma_sc + 1
     sta hdma_sc + 3
     ldx map_ofs
-    lda f:mapa_tabla + M_VRAM_VENTANA_MAP + 1, x
+    lda f:map_table + M_VRAM_WINDOW_MAP + 1, x
     sta hdma_sc + 5
     stz hdma_sc + 6             ; end of table
 
@@ -197,8 +197,8 @@ con_plano:
 ; **mask** over a 16x16 block of the System, and read that way it asks for
 ; sampling the block pixel by pixel. Measured, that is not needed: each row of
 ; the glyph takes a single color —the gradient is vertical— and the shadow is
-; a flat color. So all the color comes down to twelve bytes, `fuente_color`,
-; plus `FUENTE_SOMBRA`. That is the measurement that made this cheap.
+; a flat color. So all the color comes down to twelve bytes, `font_color`,
+; plus `FONT_SHADOW`. That is the measurement that made this cheap.
 ;
 ; The text area is 30 cells wide by 8 tall and its 240 tiles **are not
 ; deduplicated**: each cell has its own, fixed, so composing is writing a
@@ -265,11 +265,11 @@ ready:
 ; Starts a message: leaves the pointer on its first line and the composer
 ; running. The window does not appear until it finishes.
 ;
-; **A carries the box's offset within `mensajes`, in 16 bits**, and it has to
+; **A carries the box's offset within `messages`, in 16 bits**, and it has to
 ; be added to a long pointer crossing banks: see the loop below and
 ; `msg_ptr_next`, which is the same arithmetic for advancing one byte at a
 ; time.
-.assert MENSAJES_TOPE = 4 * $10000, error, "msg_start multiplies the offset by four: it is MENSAJES_PASO in eventos.py"
+.assert MESSAGES_CAP = 4 * $10000, error, "msg_start multiplies the offset by four: it is MENSAJES_PASO in eventos.py"
 .proc msg_start
 .a16
 .i16
@@ -299,11 +299,11 @@ ready:
     lda temp
     asl a                       ; two banks per 64 KB
     clc
-    adc #^mensajes
+    adc #^messages
     tax
     pla
     clc
-    adc #.loword(mensajes)
+    adc #.loword(messages)
 otro_banco:
     bcc en_el_banco
     inx
@@ -332,7 +332,7 @@ en_el_banco:
                                 ; in the top nibble. It is stored whole and
                                 ; whoever reads it masks it; one more byte in
                                 ; bank 0 is exactly what there is not.
-    and #CABECERA_AUTOCIERRE
+    and #HEADER_AUTOCLOSE
     sta f:FAR_MSG_AUTO
     lda msg_lines
     lsr
@@ -340,11 +340,11 @@ en_el_banco:
     lsr
     lsr                         ; how many pauses it carries
     beq sin_pausa
-    ; And how long they last: `CUADROS_DE_PAUSA` each, which is 61 and not 60.
+    ; And how long they last: `PAUSE_FRAMES` each, which is 61 and not 60.
     ; The product is 16 bits because fifteen pauses are 915 frames, so the
     ; hardware does it, as with the tint.
     sta WRMPYA
-    lda #CUADROS_DE_PAUSA
+    lda #PAUSE_FRAMES
     sta WRMPYB                  ; starts: the product takes eight cycles
     nop
     nop
@@ -392,7 +392,7 @@ sin_subir:
     jsr prime_line
     stz msg_length
     lda msg_lines
-    and #CABECERA_LINEAS        ; the header also carries the escape queue
+    and #HEADER_LINES        ; the header also carries the escape queue
     sta temp
     lda msg_line
     cmp temp
@@ -442,7 +442,7 @@ otro:
     ; addresses, so a bad line length shows up as the whole screen turned to
     ; garbage a few frames later and on another map.
     lda comp_col
-    cmp #MENSAJE_COLS
+    cmp #MESSAGE_COLS
     bcs sin_dibujar
     phx
     jsr compose_char
@@ -507,13 +507,13 @@ mas:
     asl a
     asl a                       ; times 32 bytes each
     clc
-    adc #.loword(ventana_fondo)
+    adc #.loword(window_backdrop)
     sta A1T0L
     lda #TEXT_BUF_BYTES
     sta DAS0L
     sep #$20
 .a8
-    lda #^ventana_fondo
+    lda #^window_backdrop
     sta A1B0
     lda #$00                    ; one register, one byte at a time
     sta DMAP0
@@ -553,13 +553,13 @@ mas:
     sbc temp
     sbc temp                    ; line * 60 tiles
     clc
-    adc #VENTANA_TEXTO_BASE
+    adc #WINDOW_TEXT_BASE
     asl a
     asl a
     asl a
     asl a                       ; times 16 words per tile
     clc
-    adc f:mapa_tabla + M_VRAM_VENTANA, x
+    adc f:map_table + M_VRAM_WINDOW, x
     sta VMADDL
     lda #.loword(text_buf)
     sta A1T0L
@@ -577,9 +577,9 @@ mas:
     rts
 .endproc
 
-; One character, from its already composed data: `fuente_pre0` to
-; `fuente_pre3`, one table per phase, built by `fuente_prerender` in the
-; converter. For each of the FUENTE_PRE_FILAS rows and each of the two cells
+; One character, from its already composed data: `font_pre0` to
+; `font_pre3`, one table per phase, built by `fuente_prerender` in the
+; converter. For each of the FONT_PRE_ROWS rows and each of the two cells
 ; it can touch come three words —what is kept from the buffer, and what is
 ; set in planes 0-1 and in 2-3—, so painting is read, mask and write. A cell
 ; that touches nothing comes with the mask at $FFFF and is skipped.
@@ -602,7 +602,7 @@ mas:
 .i16
     lda comp_char
     sta WRMPYA
-    lda #FUENTE_PRE_CHAR
+    lda #FONT_PRE_CHAR
     sta WRMPYB                  ; starts: what follows gives it the eight cycles
 
     ; Where it lands: x = border + 6 per column, and from that the cell and
@@ -625,7 +625,7 @@ mas:
     lsr a
     lsr a
     sec
-    sbc #VENTANA_TEXTO_COL      ; the cell column, counted from the text
+    sbc #WINDOW_TEXT_COL      ; the cell column, counted from the text
     asl a
     asl a
     asl a
@@ -633,7 +633,7 @@ mas:
     asl a                       ; times 32 bytes per tile
     sta comp_base
 
-    ; Its data: its phase's table, plus the character times FUENTE_PRE_CHAR.
+    ; Its data: its phase's table, plus the character times FONT_PRE_CHAR.
     ldx comp_phase
     lda f:font_pre_lo, x
     clc
@@ -713,7 +713,7 @@ otra_fila:
     clc
     adc #2
     sta comp_row
-    cmp #((TEXT_OFS_Y + FUENTE_PRE_FILAS) * 2)
+    cmp #((TEXT_OFS_Y + FONT_PRE_ROWS) * 2)
     bcc row
     rts
 .endproc

@@ -28,7 +28,7 @@ What it prints, and where each thing comes from:
   if `FAR` filled the bank exactly, there would be no padding and it would
   give zero.
 * **BSS and ZEROPAGE**: their `.cfg` areas minus what they take.
-* **Texts**: `MENSAJES_BYTES` against `MENSAJES_TOPE`, which the converter
+* **Texts**: `MESSAGES_BYTES` against `MESSAGES_CAP`, which the converter
   emits next to the block; see `events.MESSAGES_STEP`.
 """
 
@@ -105,8 +105,8 @@ def measure(sfc):
         "bank1": _far_padding(dbg),
         "bss": areas["RAM"] - used.get("BSS", 0),
         "zeropage": areas["ZP"] - used.get("ZEROPAGE", 0),
-        "texts": symbols.get("MENSAJES_BYTES"),
-        "texts_cap": symbols.get("MENSAJES_TOPE"),
+        "texts": symbols.get("MESSAGES_BYTES"),
+        "texts_cap": symbols.get("MESSAGES_CAP"),
     }
 
 

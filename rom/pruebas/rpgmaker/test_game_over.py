@@ -126,7 +126,7 @@ def test_perder_sin_manejador_muestra_el_game_over(partida):
     la_pantalla(una)
     # Y su tema, por el SPC700 —la tanda corre sin MSU-1—, con las muestras
     # arriba: el paquete de la pantalla, que se sube desde el de la pelea.
-    tema = una.simbolos["TEMA_GAME_OVER"]
+    tema = una.simbolos["SONG_GAME_OVER"]
     assert una.byte("song_current") == tema and not una.byte("music_off"), (
         "la pantalla de Game Over no prendió su tema")
     faltan = set(una.muestras_del_tema(tema)) - una.muestras_en_la_aram()

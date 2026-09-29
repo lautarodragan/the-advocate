@@ -61,7 +61,7 @@ def test_el_banco_1_es_lo_que_rellena_el_align():
 
 
 def test_los_textos_son_el_bloque_entero():
-    """`MENSAJES_BYTES` y `MENSAJES_TOPE` los emite el conversor al lado de
+    """`MESSAGES_BYTES` y `MESSAGES_CAP` los emite el conversor al lado de
     `mensajes`: sin ellos la receta diría que la ROM no sabe cuánto miden."""
     sfc = cartridges.rom_of(cartridges.RELEASE)
     medido = space.measure(sfc)

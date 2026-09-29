@@ -257,7 +257,7 @@ def min_frequency(frequency, commands, repeats=False):
     """The lowest frequency a route with commands 30 and 31 goes through.
 
     It is what decides whether the route can be compiled: with frequency 1
-    the wait after a step is 256 frames and the `ruta_tras_paso` byte cannot
+    the wait after a step is 256 frames and the `route_after_step` byte cannot
     hold it, so a route that goes down that far is rejected whole.
 
     `commands` are bare codes, without operands: the two callers pass what
@@ -712,7 +712,7 @@ class Songs:
 
     It is the sibling of `Messages`: the bytecode carries an index and not a
     name, and the converter is the one that resolves the index. The ROM
-    carries **the first `TEMA_TOTAL`**, which are the ones that fit in ARAM:
+    carries **the first `SONG_TOTAL`**, which are the ones that fit in ARAM:
     all of them share the samples and the shared bank lives in the SPC700's
     64 KB, which are uploaded only once at boot. A higher index is a song
     that did not fit and does not sound.
@@ -991,7 +991,7 @@ def sprite_associations(game_maps, extra=()):
 #     whole value: there is a command that gives exactly
 #     that.
 #
-#     The ROM clamps to [0, ORO_MAX] like
+#     The ROM clamps to [0, GOLD_MAX] like
 #     `Game_Party::GainGold`. There is still nowhere to
 #     show it —the menu does not exist— but there is who
 #     asks for it: the gold branch of `ConditionalBranch`.
@@ -1014,7 +1014,7 @@ def sprite_associations(game_maps, extra=()):
 #     OP_IF's, and each option's body ends in an OP_GOTO
 #     to the end of the choice.
 #
-# OP_PAN: operation (byte: PAN_CORRER or PAN_VOLVER), how far
+# OP_PAN: operation (byte: PAN_RUN or PAN_RETURN), how far
 #     the destination moves in x and in y (a signed word
 #     each, in 1/16 of a pixel), the step per frame
 #     (byte) and whether the page waits (byte).
@@ -1041,7 +1041,7 @@ def sprite_associations(game_maps, extra=()):
 #     `fade_step` does it.
 #
 # OP_BGM: the song's index in `Songs` (byte). The ROM plays the
-#     ones it carried —the first `TEMA_TOTAL`— and with
+#     ones it carried —the first `SONG_TOTAL`— and with
 #     any other it does nothing. See `Songs`.
 #
 # OP_TIMER: operation (byte), seconds (word), visible (byte).
@@ -1180,7 +1180,7 @@ def fade_ramp():
 
     It is a rounded straight line over the sixteen steps the master
     brightness has. The ROM does not compute it: the converter emits it in
-    `mapdata.inc` as `fundido_rampa`, so the number lives in a single
+    `mapdata.inc` as `fade_ramp`, so the number lives in a single
     place.
     """
     last = FADE_RAMP - 1
@@ -1457,7 +1457,7 @@ class Messages:
 #     bits 4-7   how many pauses, from 0 to 15: the `\|`s
 #
 # The order is not arbitrary: the lines go at the bottom because it is what
-# the ROM reads in the compositor's loop —`and #CABECERA_LINEAS` and done— and
+# the ROM reads in the compositor's loop —`and #HEADER_LINES` and done— and
 # the pauses at the top because they are read only once, on opening, where an
 # extra `lsr` does not show.
 HEADER_LINES = 0x07
@@ -1473,7 +1473,7 @@ HEADER_AUTO_CLOSE = 0x08
 # more byte for each `OP_MESSAGE`, which outnumber the boxes), and neither
 # saves what it complicates: see `workflow/tasks/*/mundo-3-el-espacio.md`.
 # `msg_start` multiplies it by four, and an `.assert` there enforces that
-# both sides of the math are the same: `MENSAJES_TOPE`.
+# both sides of the math are the same: `MESSAGES_CAP`.
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 MESSAGES_STEP = 4
@@ -1835,7 +1835,7 @@ ANIMATIONS = {}
 # The **drawing**, since 2026-09-12. The opcode carries two more bytes: the
 # RM2k animation number as is —180 at most, so it fits in one— and what it is
 # drawn over. The number goes raw and not as an index of ours on purpose: the
-# ROM looks it up in `anim_batalla_de`, a table by number, so neither end has
+# ROM looks it up in `anim_battle`, a table by number, so neither end has
 # to carry a counter the other one guesses. See `animation.py`.
 #
 # `ANIM_NO_DRAWING` is "this animation is not drawn", and it is used by the
@@ -1894,7 +1894,7 @@ PICTURE_FRAMES_MAX = 255
 # at all the pages, and if the bytecode carried the index, the same number
 # would mean another troop depending on which maps each ROM carries. With the
 # RM2k number inside, a page's bytecode is always the same; the ROM resolves
-# it by looking it up in `tropa_id`, and a troop that is not there is a battle
+# it by looking it up in `troop_id`, and a troop that is not there is a battle
 # that does not happen and goes out through the victory branch.
 #
 # The destinations are **absolute within the page**, like `OP_IF`'s. A
@@ -1932,7 +1932,7 @@ BATTLE_LOSE = 0xFFFF
 # it have this item equipped?" and "does it know this skill?". They do not fit
 # because they carry **two** operands —the actor and the item or the skill—
 # and `OP_IF` has a single one; the actor fits in a byte because the LDB has
-# 60 and `ACTORES_N` counts them, and the data does not, because the items go
+# 60 and `ACTORS_N` counts them, and the data does not, because the items go
 # up to 450.
 #
 # It carries no polarity: RM2k gives none to these two —the branch below is
@@ -2055,7 +2055,7 @@ KEY_VALUE_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
 #     which —`PLACE_JUMP`—, and when recalling bits 7, 6 and 5 are the
 #     VAR_REFRESH of each of the three writes. **The map in the variable is
 #     the RM2k id**, which is what any other page reads and writes; the ROM
-#     translates it with `mapa_rm2k`. They unlock 55 pages of Lashe City's
+#     translates it with `map_rm2k`. They unlock 55 pages of Lashe City's
 #     milestone 3 —the plant's floors, 28 on 60 and 26 on 62, and the droid
 #     tutorial— and they are what holds back the most pages in the whole
 #     game.
@@ -3091,7 +3091,7 @@ TROOP_COMMANDS = ({END, SHOW_MESSAGE, SHOW_MESSAGE_2, CONTROL_SWITCHES,
                    COND_BRANCH, COND_ELSE, COND_END} | IGNORABLE)
 
 # Which triggers the ROM knows how to look at, with their bit in
-# `tpag_flags`: RM2k's six. The three from 2003 —an actor's or an enemy's
+# `tpage_flags`: RM2k's six. The three from 2003 —an actor's or an enemy's
 # turn, fatigue and an actor's command— do not exist in a 2000 game, and a
 # page that asked for them is left out.
 TROOP_TRIGGER_SWITCH_A = 0x01
@@ -3113,7 +3113,7 @@ TROOP_PAGES_MAX = 32
 
 # The triggers that carry a **header**: the turn and HP numbers do not go in
 # per-page tables in bank 1 —which no longer has room for ten bytes for each
-# of the five hundred— but in front of the page's code, in `tropa_codigo`,
+# of the five hundred— but in front of the page's code, in `troop_code`,
 # which is in RODATA. See `troop_header` and `ba_page_header`.
 TROOP_WITH_HEADER = (TROOP_TRIGGER_TURN | TROOP_TRIGGER_ENEMY
                      | TROOP_TRIGGER_ACTOR)
@@ -3237,7 +3237,7 @@ class TroopPages:
     troop —4588 pages and 295 distinct bodies—, so the key is the already
     compiled bytecode, same as `Materials` with the map's blocks.
 
-    The messages go to **their own block**, `mensajes_tropa`, and not to the
+    The messages go to **their own block**, `messages_troop`, and not to the
     maps': `OP_MESSAGE` carries a sixteen-bit offset and the maps' block of
     the test cartridge is already around 65 KB. The battle draws them on its
     screen and not in the map's window, so reading them from elsewhere costs

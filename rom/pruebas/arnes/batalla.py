@@ -25,7 +25,7 @@ GRUPO = (11, 12, 13)
 # Los modos de la pantalla y las cinco órdenes del menú **se leen de la tabla
 # de símbolos**: `Pelea.modo()` contesta el nombre de la constante `BA_M_*` de
 # la ROM sin el prefijo —"COMMAND", "TARGET", "END"...— y las órdenes son
-# `BA_ORDEN_ATACAR` y compañía. El orden es el del original —Attack /
+# `BA_COMMAND_ATTACK` y compañía. El orden es el del original —Attack /
 # <habilidad> / Defend / Use Item— y `Escape` va quinta, que es la
 # simplificación que `port/battle.py` declara.
 
@@ -71,8 +71,8 @@ class Pelea:
         return self._modos.get(valor, valor)
 
     def orden(self, nombre):
-        """El número de la orden del menú: `BA_ORDEN_<nombre>`."""
-        return self.s["BA_ORDEN_" + nombre]
+        """El número de la orden del menú: `BA_COMMAND_<nombre>`."""
+        return self.s["BA_COMMAND_" + nombre]
 
     def abierta(self):
         return bool(self.una.byte("menu_open"))
@@ -120,8 +120,8 @@ class Pelea:
         """
         self.esperar("COMMAND", tope)
         cual = que[0]
-        pasos = self.orden({"atacar": "ATACAR", "defender": "DEFENDER",
-                            "habilidad": "HABILIDAD"}[cual])
+        pasos = self.orden({"atacar": "ATTACK", "defender": "DEFEND",
+                            "habilidad": "SKILL"}[cual])
         # El cursor primero a la izquierda del todo: volver de la lista de
         # habilidades con B lo deja donde estaba, así que contar derechas desde
         # donde quedó elegiría otra orden.
@@ -241,7 +241,7 @@ def hab_id(una, k):
     """
     with open(una.sfc, "rb") as archivo:
         rom = archivo.read()
-    donde = en_la_rom(una.simbolos["hab_id"]) + 2 * k
+    donde = en_la_rom(una.simbolos["skill_id"]) + 2 * k
     return rom[donde] | (rom[donde + 1] << 8)
 
 
@@ -391,7 +391,7 @@ def mensaje_en_pantalla(una, pelea):
     assert desplazamiento != 0xFFFF, "no hay ningún mensaje de página"
     with open(una.sfc, "rb") as archivo:
         rom = archivo.read()
-    i = en_la_rom(una.simbolos["mensajes_tropa"]) + desplazamiento
+    i = en_la_rom(una.simbolos["messages_troop"]) + desplazamiento
     cuantos = rom[i] & events.HEADER_LINES
     i += 1
     renglones = []
@@ -404,11 +404,11 @@ def mensaje_en_pantalla(una, pelea):
 
 def glifos(una):
     """Las dos celdas de cada letra blanca, al carácter: la tabla
-    `item_glifo_celdas` del cartucho, cuatro bytes por letra. Las dos, porque
+    `item_glyph_cells` del cartucho, cuatro bytes por letra. Las dos, porque
     hay letras que comparten la de arriba —la "h" y la "b"—."""
     with open(una.sfc, "rb") as archivo:
         rom = archivo.read()
-    base = en_la_rom(una.simbolos["item_glifo_celdas"])
+    base = en_la_rom(una.simbolos["item_glyph_cells"])
     de = {}
     for n in range(menus.ITEM_CHARS):
         b = rom[base + 4 * n:base + 4 * n + 4]
@@ -469,7 +469,7 @@ def paginas(una, pelea, tope=10):
 
 
 def primera_pagina(term, exp):
-    return (screens.victory_lines(term["victoria"])
+    return (screens.victory_lines(term["victory"])
             + [screens.exp_line(term, exp)])
 
 

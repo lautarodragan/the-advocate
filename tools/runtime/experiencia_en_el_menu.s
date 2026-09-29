@@ -8,7 +8,7 @@
 ; there was no room. The why and the geometry are in `MENU_EXP_X`, in
 ; titulo.py, and `render_menu` is the reference.
 ;
-; Sprites read their tiles from `RANURA_VRAM`, so a glyph's tile in the bank
+; Sprites read their tiles from `SLOT_VRAM`, so a glyph's tile in the bank
 ; is the same number, and their palette 0 is a copy of the text's. No other
 ; screen turns sprites on —`slot_ppu_on` leaves only BG2—, so the
 ; actor choice, which shares the panel, does not show it, which is what
@@ -36,8 +36,8 @@ MENU_EXP_TERM_TILES = 4         ; the term: two wide, top and bottom
 MENU_EXP_HIDDEN = 224           ; a y below the last visible line
 MENU_EXP_SPRITES = 128
 
-.assert MENU_EXP_TEXT + MENU_EXP_LETRAS <= MENU_EXP_TEXT_END, error, "the experience line does not fit in its place"
-.assert MENU_FILAS_GRUPO * (MENU_EXP_TERM_TILES + 2 * MENU_EXP_LETRAS) <= MENU_EXP_SPRITES, error, "the party's experience does not fit in the sprites"
+.assert MENU_EXP_TEXT + MENU_EXP_LETTERS <= MENU_EXP_TEXT_END, error, "the experience line does not fit in its place"
+.assert MENU_ROWS_PARTY * (MENU_EXP_TERM_TILES + 2 * MENU_EXP_LETTERS) <= MENU_EXP_SPRITES, error, "the party's experience does not fit in the sprites"
 
 ; From `menu_upload`, instead of `slot_ppu_on`: the sprites, and then
 ; it turns the screen on with them. With the screen off.
@@ -48,21 +48,21 @@ MENU_EXP_SPRITES = 128
     lda #0
     pha
     plb                         ; the registers and the tables in bank 0
-    ; 8x8 sprites with the tiles from `RANURA_VRAM`.
-    lda #(RANURA_VRAM / $2000)
+    ; 8x8 sprites with the tiles from `SLOT_VRAM`.
+    lda #(SLOT_VRAM / $2000)
     sta OBSEL
     ; Sprite palette 0, the text's.
     lda #128
     sta CGADD
     rep #$20
 .a16
-    lda #.loword(ranura_cgram)
+    lda #.loword(slot_cgram)
     sta A1T0L
     lda #(16 * 2)
     sta DAS0L
     sep #$20
 .a8
-    lda #^ranura_cgram
+    lda #^slot_cgram
     sta A1B0
     stz DMAP0
     lda #$22
@@ -80,12 +80,12 @@ row:
     lda comp_char
     cmp party_n
     bcs filas_listas
-    cmp #MENU_FILAS_GRUPO
+    cmp #MENU_ROWS_PARTY
     bcs filas_listas
     jsr one_row
     lda comp_phase
     clc
-    adc #MENU_ACTOR_ALTO
+    adc #MENU_ACTOR_HEIGHT
     sta comp_phase
     inc comp_char
     bra row
@@ -125,7 +125,7 @@ one_row:
     sep #$20
 .a8
     lda party, x
-    cmp #MENU_ACTORES_N
+    cmp #MENU_ACTORS_N
     bcc conocido
     rts                         ; one this ROM does not know
 conocido:
@@ -159,7 +159,7 @@ con_exp:
     tax
     sep #$20
 .a8
-    lda f:exp_nivel_max, x
+    lda f:exp_level_max, x
     plx
     cmp comp_dup
     beq tope
@@ -179,7 +179,7 @@ con_exp:
     tyx
     sta f:MENU_EXP_TEXT, x
     iny
-    ; And the next level's: its curve's row in `exp_tabla`, at the current
+    ; And the next level's: its curve's row in `exp_table`, at the current
     ; level, which is `GetNextExp(level)`.
     rep #$20
 .a16
@@ -191,13 +191,13 @@ con_exp:
     asl a
     asl a                       ; four bytes per level
     clc
-    adc f:exp_curva, x
+    adc f:exp_curve, x
     tax
-    lda f:exp_tabla, x
+    lda f:exp_table, x
     sta comp_or01
     sep #$20
 .a8
-    lda f:exp_tabla + 2, x
+    lda f:exp_table + 2, x
     sta comp_or01 + 2
     jsr seis_cifras
     bra sprites
@@ -210,13 +210,13 @@ tope:
     ldx #0
 guion:
     lda #'-'
-    cpx #MENU_EXP_CIFRAS
+    cpx #MENU_EXP_DIGITS
     bne no_barra
     lda #'/'
 no_barra:
     sta f:MENU_EXP_TEXT, x
     inx
-    cpx #MENU_EXP_LETRAS
+    cpx #MENU_EXP_LETTERS
     bcc guion
 
 sprites:
@@ -245,7 +245,7 @@ term_y:
     txa
     asl a
     tax
-    lda f:menu_exp_termino, x
+    lda f:menu_exp_finished, x
     jsr put
 .a8
     plx
@@ -266,7 +266,7 @@ letra:
 .a16
     and #$00FF
     sec
-    sbc #ITEM_PRIMER_CARACTER
+    sbc #ITEM_FIRST_CHAR
     asl a
     asl a                       ; two words per letter
     tax
@@ -276,7 +276,7 @@ letra:
     sta comp_phase + 1
     rep #$20
 .a16
-    lda f:ranura_glifo_celdas, x
+    lda f:slot_glyph_cells, x
     jsr put                   ; the top cell
 .a8
     lda comp_phase
@@ -285,17 +285,17 @@ letra:
     sta comp_phase + 1
     rep #$20
 .a16
-    lda f:ranura_glifo_celdas + 2, x
+    lda f:slot_glyph_cells + 2, x
     jsr put                   ; and the bottom one
 .a8
     plx
 siguiente:
     lda comp_mask
     clc
-    adc #MENU_EXP_PASO
+    adc #MENU_EXP_STEP
     sta comp_mask
     inx
-    cpx #MENU_EXP_LETRAS
+    cpx #MENU_EXP_LETTERS
     bcc letra
     rts
 
@@ -395,7 +395,7 @@ potencias:
     lda #$80
     sta INIDISP
     ldx map_ofs
-    lda f:mapa_tabla + M_OBSEL_VALUE, x
+    lda f:map_table + M_OBSEL_VALUE, x
     sta OBSEL
     lda #128
     sta CGADD

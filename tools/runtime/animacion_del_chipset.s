@@ -3,8 +3,8 @@
 ; --- ChipSet animation -----------------------------------------------------
 ;
 ; Two animations that run at once and at different rates: the water
-; autotiles, which change every AGUA_CUADROS and go through the cycle 0,1,2,1,
-; and the "animated tiles", which change every ANIMADO_CUADROS and cycle
+; autotiles, which change every WATER_FRAMES and go through the cycle 0,1,2,1,
+; and the "animated tiles", which change every ANIMATED_FRAMES and cycle
 ; through four.
 ;
 ; Animating is **overwriting the data of a few tiles in VRAM**; the tilemap is
@@ -19,7 +19,7 @@
 ; either a counter or a pointer for `lda [puntero], y`. Where in the cycle each
 ; family is comes from dividing `ticks` —minus `frozen_ticks`, the
 ; fade's ticks— by its rate with the hardware divider; where its tiles and its
-; drawings are comes from `anim_tabla`, which the converter builds.
+; drawings are comes from `anim_table`, which the converter builds.
 ;
 ; The remainder of that division also says **whether this tick is the one
 ; where it changes**, which is the only thing to ask to know whether the DMA is
@@ -50,7 +50,7 @@ half_step_per_speed:
 anim_per_speed:
     .byte 12, 10, 8, 6, 5, 4
 
-; Leaves in X the entry of family Y inside `anim_tabla`. Which map it is comes
+; Leaves in X the entry of family Y inside `anim_table`. Which map it is comes
 ; from `map_ofs` without storing anything: both strides are powers of two.
 .proc anim_where
 .a8
@@ -61,7 +61,7 @@ anim_per_speed:
     lsr a
     lsr a
     lsr a
-.assert MAPA_STRIDE = 128, error, "the three divisions above are MAPA_STRIDE/ANIM_STRIDE"
+.assert MAP_STRIDE = 128, error, "the three divisions above are MAPA_STRIDE/ANIM_STRIDE"
 .assert ANIM_STRIDE = 16, error, "same"
     sta temp
     tya
@@ -94,10 +94,10 @@ anim_per_speed:
     sta WRDIVL                  ; the dividend, in a single 16-bit write
     sep #$20
 .a8
-    lda #AGUA_CUADROS
+    lda #WATER_FRAMES
     cpy #$0000
     beq divisor
-    lda #ANIMADO_CUADROS
+    lda #ANIMATED_FRAMES
 divisor:
     sta WRDIVB                  ; starts it: the quotient takes sixteen cycles
     nop
@@ -115,9 +115,9 @@ divisor:
     inc temp + 3
 no_cambia:
     lda RDDIVL
-    and #(AGUA_CICLO_N - 1)
-.assert AGUA_CICLO_N = 4, error, "the cycle is trimmed with a two-bit and"
-.assert ANIMADO_PASOS = 4, error, "and both cycles have the same length"
+    and #(WATER_CYCLE_N - 1)
+.assert WATER_CYCLE_N = 4, error, "the cycle is trimmed with a two-bit and"
+.assert ANIMATED_STEPS = 4, error, "and both cycles have the same length"
     cpy #$0000
     bne ready                   ; the animated tiles just wrap around
     phx
@@ -133,26 +133,26 @@ ready:
     rts
 .endproc
 
-; The DMA of one family: X its entry in `anim_tabla` and Y the drawing. The DMA
+; The DMA of one family: X its entry in `anim_table` and Y the drawing. The DMA
 ; mode is left set by the caller, which always asks for the same one.
 .proc anim_upload
 .a8
 .i16
     pha                         ; the drawing, which the arithmetic below
                                 ; overwrites
-    lda f:anim_tabla + 6, x
+    lda f:anim_table + 6, x
     bne hay
     pla
     rts                         ; this family does not animate on this map
 hay:
     rep #$20
 .a16
-    lda f:anim_tabla + 0, x
+    lda f:anim_table + 0, x
     sta VMADDL
-    lda f:anim_tabla + 4, x
+    lda f:anim_table + 4, x
     sta DAS0L
     sta temp                    ; how big one drawing is
-    lda f:anim_tabla + 2, x
+    lda f:anim_table + 2, x
     sta temp + 2                ; and where drawing 0 is, inside the block
     sep #$20
 .a8
@@ -232,7 +232,7 @@ otra:
     jsr anim_upload
     ply
     iny
-    cpy #ANIM_FAMILIAS
+    cpy #ANIM_FAMILIES
     bne otra
     rts
 .endproc
@@ -271,7 +271,7 @@ otra:
     ply
     phy
     jsr anim_where
-    lda f:anim_tabla + 6, x
+    lda f:anim_table + 6, x
     beq siguiente               ; this family does not animate on this map
     lda temp + 2
     cpy #$0000
@@ -279,14 +279,14 @@ otra:
     asl a
     asl a
     asl a                       ; three bits per family
-.assert ANIM_FAMILIAS = 2, error, "the two nibbles of anim_pend fit in a byte"
+.assert ANIM_FAMILIES = 2, error, "the two nibbles of anim_pend fit in a byte"
 baja:
     ora anim_pend
     sta anim_pend
 siguiente:
     ply
     iny
-    cpy #ANIM_FAMILIAS
+    cpy #ANIM_FAMILIES
     bne otra
     rts
 .endproc
@@ -335,11 +335,11 @@ baja:
     ; What it took, in poses: a pose is 512 bytes and a background tile 64.
     ; It is subtracted from the budget instead of setting it, so that it adds
     ; to whatever the tint or a line of the window already took.
-    lda f:anim_tabla + 6, x
+    lda f:anim_table + 6, x
     lsr a
     lsr a
     lsr a
-.assert BYTES_POR_TILE = 64, error, "eight background tiles fit in a 512-byte pose"
+.assert BYTES_PER_TILE = 64, error, "eight background tiles fit in a 512-byte pose"
     inc a
     sta temp + 2
     lda vq_cap
@@ -354,7 +354,7 @@ queda:
     ply
 siguiente:
     iny
-    cpy #ANIM_FAMILIAS
+    cpy #ANIM_FAMILIES
     bne otra
     stz anim_pend
     rts

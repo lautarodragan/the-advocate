@@ -58,7 +58,7 @@ anotadas:
     rts
 .endproc
 
-; The troop's gold, to the party: `Game_Party::GainGold`, capped at ORO_MAX.
+; The troop's gold, to the party: `Game_Party::GainGold`, capped at GOLD_MAX.
 ; It does not check whether the troop gives zero: adding zero changes nothing.
 .proc ba_vic_gold
 .a8
@@ -71,7 +71,7 @@ anotadas:
     and #$00FF
     asl a
     tax
-    lda f:tropa_oro, x
+    lda f:troop_gold, x
     ldy #2                      ; the gold: see `ba_no_hidden`
     jsr ba_no_hidden
     sta comp_or01
@@ -107,11 +107,11 @@ otro:
     beq siguiente
     lda BA_TROOP_K
     jsr ba_ax
-    lda f:tropa_ini, x
+    lda f:troop_init, x
     clc
     adc BA_T0
     jsr ba_ax
-    lda f:tropa_miembro, x      ; the enemy, as a place in the tables
+    lda f:troop_member, x      ; the enemy, as a place in the tables
     rep #$20
 .a16
     and #$00FF
@@ -121,12 +121,12 @@ otro:
     bne es_oro
     lda BA_T2
     sec
-    sbc f:enemigo_exp, x
+    sbc f:enemy_exp, x
     bra restado
 es_oro:
     lda BA_T2
     sec
-    sbc f:enemigo_oro, x
+    sbc f:enemy_gold, x
 restado:
     sta BA_T2
     sep #$20
@@ -174,25 +174,25 @@ a_la_vista:
     ; The enemy, as a place in the tables: the same path as `ba_build`.
     lda BA_TROOP_K
     jsr ba_ax
-    lda f:tropa_ini, x
+    lda f:troop_init, x
     clc
     adc BA_S0
     jsr ba_ax
-    lda f:tropa_miembro, x
+    lda f:troop_member, x
     sta BA_S2
     rep #$20
 .a16
     and #$00FF
     asl a
     tax
-    lda f:enemigo_botin, x
+    lda f:enemy_drop, x
     sta BA_S1                   ; the LDB item, or 0
     sep #$20
 .a8
     beq siguiente               ; leaves nothing: no roll
     lda BA_S2
     jsr ba_ax
-    lda f:enemigo_botin_pct, x
+    lda f:enemy_drop_pct, x
     jsr ba_pct
     beq siguiente
     ldx BA_S1
@@ -334,9 +334,9 @@ si:
     stz temp + 1                ; white
     rep #$20
 .a16
-    lda #BA_PAG_MSG_POS0
+    lda #BA_PAGE_MSG_POS0
     sta BA_T1
-    lda #BA_PAG_MSG_DX
+    lda #BA_PAGE_MSG_DX
     jsr ba_go
     sep #$20
 .a8
@@ -356,15 +356,15 @@ primera:
     ; `pantallas.renglones_de_la_victoria`—.
     jsr ba_vic_line
     bcc sin_v1
-    ldx #BA_TXT_VICTORIA
+    ldx #BA_TXT_VICTORY
     jsr ba_finished
 sin_v1:
-    lda #BA_VIC_TERMINO_N       ; not with `.if`: the constant comes later
+    lda #BA_VIC_FINISHED_N       ; not with `.if`: the constant comes later
     cmp #2
     bcc un_renglon
     jsr ba_vic_line
     bcc un_renglon
-    ldx #BA_TXT_VICTORIA2
+    ldx #BA_TXT_VICTORY2
     jsr ba_finished
 un_renglon:
     ; And the experience, if any: easyrpg's `if (exp > 0)`. The gold goes the
@@ -380,7 +380,7 @@ con_tropa:
     asl a
     sta BA_S1                   ; the troop's place in the word-sized tables
     tax
-    lda f:tropa_exp, x
+    lda f:troop_exp, x
     ldy #0                      ; without those that stayed hidden
     jsr ba_no_hidden
     sep #$20                    ; `sep` does not touch Z
@@ -391,20 +391,20 @@ con_tropa:
     rep #$20
 .a16
     ldx BA_S1
-    lda f:tropa_exp, x
+    lda f:troop_exp, x
     ldy #0
     jsr ba_no_hidden
     sta BA_T0
     sep #$20
 .a8
     jsr ba_vic_number
-    ldx #BA_TXT_EXP_RECIBIDA
+    ldx #BA_TXT_EXP_RECEIVED
     jsr ba_finished
 sin_exp:
     rep #$20
 .a16
     ldx BA_S1
-    lda f:tropa_oro, x
+    lda f:troop_gold, x
     ldy #2
     jsr ba_no_hidden
     sep #$20
@@ -412,23 +412,23 @@ sin_exp:
     beq sin_oro
     jsr ba_vic_line
     bcc sin_oro
-    ldx #BA_TXT_ORO_A
+    ldx #BA_TXT_GOLD_A
     jsr ba_finished
     lda #$20
     jsl f:ba_t_glyph
     rep #$20
 .a16
     ldx BA_S1
-    lda f:tropa_oro, x
+    lda f:troop_gold, x
     ldy #2
     jsr ba_no_hidden
     sta BA_T0
     sep #$20
 .a8
     jsr ba_vic_number
-    ldx #BA_TXT_MONEDA
+    ldx #BA_TXT_CURRENCY
     jsr ba_finished
-    ldx #BA_TXT_ORO_B
+    ldx #BA_TXT_GOLD_B
     jsr ba_finished
 sin_oro:
     ; And one line per item, in the order they came up.
@@ -456,7 +456,7 @@ item:
     sta comp_dup + 3
     stz temp + 1
     jsl f:ba_t_text
-    ldx #BA_TXT_OBTENIDO
+    ldx #BA_TXT_OBTAINED
     jsr ba_finished
 otro_item:
     inc BA_S0
@@ -474,7 +474,7 @@ de_un_actor:
     jsr ba_name
     lda #$20
     jsl f:ba_t_glyph
-    ldx #BA_TXT_NIVEL
+    ldx #BA_TXT_LEVEL
     jsr ba_finished
     lda #$20
     jsl f:ba_t_glyph
@@ -487,7 +487,7 @@ de_un_actor:
     sep #$20
 .a8
     jsr ba_vic_number
-    ldx #BA_TXT_SUBIO
+    ldx #BA_TXT_LEVEL_UP
     jsr ba_finished
     bra habilidades
 sin_nivel:
@@ -524,25 +524,25 @@ nivel:
     rts                         ; the current one has been looked at already
 otro_nivel:
     inc BA_S0
-    ; The actor's pairs: `hab_par_ini` and `hab_par_n`, like `learn_from_level`.
+    ; The actor's pairs: `skill_pair_init` and `skill_pair_n`, like `learn_from_level`.
     lda BA_S0 + 1
     rep #$20
 .a16
     and #$00FF
     asl a
     tax
-    lda f:hab_par_ini, x
+    lda f:skill_pair_init, x
     sta BA_S1                   ; the pair being looked at
     sep #$20
 .a8
     lda BA_S0 + 1
     jsr ba_ax
-    lda f:hab_par_n, x
+    lda f:skill_pair_n, x
     sta BA_S2 + 1               ; how many it has left
     beq nivel
 par:
     ldx BA_S1
-    lda f:hab_par_nivel, x
+    lda f:skill_pair_level, x
     cmp BA_S0
     bne siguiente
     inc BA_S4
@@ -569,12 +569,12 @@ arriba:
     lda BA_S1
     asl a
     tax
-    lda f:hab_par_aprende_txt, x
+    lda f:skill_pair_learns_txt, x
     tax
     sep #$20
 .a8
     jsr ba_finished
-    ldx #BA_TXT_APRENDIO
+    ldx #BA_TXT_LEARNED
     jsr ba_finished
 siguiente:
     rep #$20
@@ -632,9 +632,9 @@ arriba:
 .a16
     lda BA_T1
     clc
-    adc #BA_FILA_BYTES
+    adc #BA_ROW_BYTES
     sta BA_T1
-    lda #BA_PAG_MSG_DX
+    lda #BA_PAGE_MSG_DX
     jsr ba_go
     sep #$20
 .a8

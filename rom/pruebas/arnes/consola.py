@@ -312,7 +312,7 @@ class Partida:
         """El grupo, por ids de actor, escrito en la RAM como lo dejaría un
         `ChangePartyMembers`. Es lo que la partida guarda y la pantalla de
         ranuras muestra."""
-        largo = self.simbolos["GRUPO_MAX"]
+        largo = self.simbolos["PARTY_MAX"]
         assert len(actores) <= largo
         self.consola.write_ram(self.simbolos["party"],
                                list(actores) + [0] * (largo - len(actores)))
@@ -379,7 +379,7 @@ class Partida:
             raise RuntimeError("B no abrió el menú de pausa: ¿el héroe tenía "
                                "el control?")
         self.consola.run(TITULO_AIRE)
-        self._bajar_y_elegir(self.simbolos["MENU_GUARDAR"])
+        self._bajar_y_elegir(self.simbolos["MENU_SAVE"])
         # La pantalla de ranuras, arriba del menú: el menú sigue abierto
         # abajo, así que no hay bandera que esperar, y se le da el aire del
         # título, que sube más.
@@ -451,7 +451,7 @@ class Partida:
         if self.caso:
             self.consola.write_ram(
                 self.simbolos["FAR_VARIABLES"]
-                + 2 * self.simbolos["CASO_RANURA"],
+                + 2 * self.simbolos["CASE_SLOT"],
                 [self.caso & 0xFF, self.caso >> 8])
             self.consola.write_ram(self.simbolos["refresh"], [1])
 
@@ -858,7 +858,7 @@ class Partida:
         if tinte:
             for nombre in ("tint_r", "tint_g", "tint_b", "tint_s"):
                 self.consola.write_ram(self.simbolos[nombre],
-                                       [self.simbolos["TINTE_NEUTRO"]])
+                                       [self.simbolos["TINT_NEUTRAL"]])
         self.correr(cuadros)
         return self
 
@@ -888,37 +888,37 @@ class Partida:
         entrada del directorio del SPC700 apunta al silencio, o sea una nota
         que no suena.
 
-        Las entradas desde `SE_PRIMERA` son lugares que comparten los
+        Las entradas desde `SE_FIRST` son lugares que comparten los
         efectos, así que la entrada sola no dice cuál está: de ésas sale el
         efecto anotado en `FAR_EFFECT_IN`, como `EFECTO + su número`, que es
         como los cuenta `muestras_del_paquete`.
         """
         s = self.simbolos
-        n = s["MUESTRAS_N"]
+        n = s["SAMPLES_N"]
         crudo = self.consola.ram(en_la_wram(s["FAR_ARAM_OF"]), 2 * n)
         anotados = self.consola.ram(en_la_wram(s["FAR_EFFECT_IN"]),
-                                    max(1, s["SE_LUGARES"]))
-        return {i if i < s["SE_PRIMERA"]
-                else EFECTO + anotados[i - s["SE_PRIMERA"]]
+                                    max(1, s["SE_PLACES"]))
+        return {i if i < s["SE_FIRST"]
+                else EFECTO + anotados[i - s["SE_FIRST"]]
                 for i in range(n) if crudo[2 * i] | (crudo[2 * i + 1] << 8)}
 
     def muestras_del_tema(self, indice):
-        """Qué muestras necesita el tema, leídas de `tema_muestras` **en el
+        """Qué muestras necesita el tema, leídas de `song_samples` **en el
         cartucho**.
 
         Es la misma tabla que mira `song_ensure`, y se lee de la ROM en vez
         de recalcularla con `snes_music.song_samples`: recalcularla
         sería una segunda manera de contestar la pregunta, y las dos se pueden
         equivocar igual. Un índice de desplazamientos de dos bytes por tema
-        —`TEMA_TOTAL` de ellos— y detrás una lista por tema cerrada con $FF.
+        —`SONG_TOTAL` de ellos— y detrás una lista por tema cerrada con $FF.
         """
         with open(self.sfc, "rb") as archivo:
             rom = archivo.read()
-        base = en_la_rom(self.simbolos["tema_muestras"])
-        if not 0 <= indice < self.simbolos["TEMA_TOTAL"]:
+        base = en_la_rom(self.simbolos["song_samples"])
+        if not 0 <= indice < self.simbolos["SONG_TOTAL"]:
             raise AssertionError(
                 "el tema %d no está en esta ROM, que lleva %d"
-                % (indice, self.simbolos["TEMA_TOTAL"]))
+                % (indice, self.simbolos["SONG_TOTAL"]))
         salto = base + 2 * indice
         lista = base + (rom[salto] | (rom[salto + 1] << 8))
         muestras = []
@@ -957,7 +957,7 @@ class Partida:
     def _listas_del_paquete(self, indice):
         with open(self.sfc, "rb") as archivo:
             rom = archivo.read()
-        base = en_la_rom(self.simbolos["paquetes"])
+        base = en_la_rom(self.simbolos["packages"])
         salto = base + 2 * indice
         lista = base + (rom[salto] | (rom[salto + 1] << 8))
         partes = []
@@ -972,15 +972,15 @@ class Partida:
 
     def stream_del_tema(self, indice):
         """(dirección del stream, sus sonidos) del tema, leídos **del
-        cartucho** con las mismas tablas que usa `music_start_done`: `tema_lo`,
-        `tema_hi` y `tema_bk`, y `tema_sonidos` dentro de `musica_sonidos`."""
+        cartucho** con las mismas tablas que usa `music_start_done`: `song_lo`,
+        `song_hi` y `song_bk`, y `song_sounds` dentro de `music_sounds`."""
         s = self.simbolos
         with open(self.sfc, "rb") as archivo:
             rom = archivo.read()
         lo, hi, bk = (rom[en_la_rom(s[t] + indice)]
-                      for t in ("tema_lo", "tema_hi", "tema_bk"))
-        base = en_la_rom(s["tema_sonidos"] + 2 * indice)
-        desde = en_la_rom(s["musica_sonidos"]) + (rom[base] | rom[base + 1] << 8)
+                      for t in ("song_lo", "song_hi", "song_bk"))
+        base = en_la_rom(s["song_sounds"] + 2 * indice)
+        desde = en_la_rom(s["music_sounds"]) + (rom[base] | rom[base + 1] << 8)
         sonidos = [tuple(rom[desde + 6 * i:desde + 6 * i + 6])
                    for i in range(256)]
         return lo | hi << 8 | bk << 16, sonidos

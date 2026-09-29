@@ -230,11 +230,11 @@ ready:
     tax
     sep #$20
 .a8
-    lda f:mapa_tabla + 2, x
+    lda f:map_table + 2, x
     pha
     rep #$20
 .a16
-    lda f:mapa_tabla, x
+    lda f:map_table, x
     tax
     sep #$20
 .a8
@@ -271,24 +271,24 @@ ready:
 
 ; The map's background tiles, to VRAM: they are decompressed into `LZ2_BUFFER`
 ; and uploaded by DMA one stream at a time. A background of more than
-; `LZ2_TOPE_FONDO` bytes —map 66's, with the 544-tile layout— comes in two
+; `LZ2_CAP_BACKDROP` bytes —map 66's, with the 544-tile layout— comes in two
 ; streams back to back, and the second is decompressed **after** uploading the
 ; first, in the same place: decompressed whole it does not fit in the buffer,
 ; and whatever overflowed landed in the upper half of the grid. The converter
-; splits into stretches of exactly `LZ2_TOPE_FONDO` —see `partes_comprimidas`—,
+; splits into stretches of exactly `LZ2_CAP_BACKDROP` —see `partes_comprimidas`—,
 ; so how many tiles each stream carries follows from how many tiles the map has
 ; and there is no need to record it.
 ;
 ; Enters with VMAIN and VMADD set; the DMA carries the VRAM address on from one
 ; stream to the next. Leaves the tile bank uploaded and clobbers A, X and Y.
-BACKDROP_TILES_PER_STREAM = LZ2_TOPE_FONDO / 64     ; 64 bytes per 8-bit tile
+BACKDROP_TILES_PER_STREAM = LZ2_CAP_BACKDROP / 64     ; 64 bytes per 8-bit tile
 .proc lz2_backdrop
 .a8
 .i16
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_MAP_TILES, x
+    lda f:map_table + M_MAP_TILES, x
     pha                         ; the tiles still to upload
     sep #$20
 .a8
@@ -380,7 +380,7 @@ flujo:
 .proc lz2_grid
 .a8
 .i16
-    ldy #M_PTR_MAP_CELDAS
+    ldy #M_PTR_MAP_CELLS
     jsr lz2_from_field
     pha                         ; the stream's bank, for the second one
     lda #^GRID
@@ -400,8 +400,8 @@ flujo:
 ; Each block's caps come from the reservation in ram_lejana.s and the converter
 ; enforces them when compressing: if either side moves on its own, the build
 ; must fail.
-.assert LZ2_BUFFER + LZ2_TOPE_FONDO <= ANIM_DRAWINGS_END, error, "the background tiles do not fit in the load buffer"
-.assert LZ2_BUFFER + LZ2_TOPE_ENCIMA_Y_SPRITES <= ANIM_DRAWINGS, error, "the upper layer or the sprites would overwrite the animation drawings"
-.assert ANIM_DRAWINGS + LZ2_TOPE_ANIM <= ANIM_DRAWINGS_END, error, "the animation drawings do not fit in their place"
+.assert LZ2_BUFFER + LZ2_CAP_BACKDROP <= ANIM_DRAWINGS_END, error, "the background tiles do not fit in the load buffer"
+.assert LZ2_BUFFER + LZ2_CAP_ABOVE_Y_SPRITES <= ANIM_DRAWINGS, error, "the upper layer or the sprites would overwrite the animation drawings"
+.assert ANIM_DRAWINGS + LZ2_CAP_ANIM <= ANIM_DRAWINGS_END, error, "the animation drawings do not fit in their place"
 .assert GRID_HIGH = GRID + $10000, error, "the two halves of the grid must be the same address in two consecutive banks: that is how `ptr_more` walks them"
-.assert LZ2_TOPE_GRILLA <= 2 * (GRID_END - GRID), error, "the largest grid does not fit in the two upper halves of WRAM"
+.assert LZ2_CAP_GRID <= 2 * (GRID_END - GRID), error, "the largest grid does not fit in the two upper halves of WRAM"

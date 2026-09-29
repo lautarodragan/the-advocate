@@ -13,7 +13,7 @@
 ; does not fit in 7 or in 6 takes one of those. In RM2k sound effects add up,
 ; and `evilrhys`'s scene on map 3 has a moment with three at once. Their state
 ; lives in `EX_*` (ram_lejana.s), smaller than that of 7 and 6: instead of the
-; copy of the `sonido_tabla` row, its index, and the interrupt reads it when
+; copy of the `sound_table` row, its index, and the interrupt reads it when
 ; starting it.
 ;
 ; If a song starts playing through the SPC700 while a sound effect plays on
@@ -31,8 +31,8 @@
 ; each sound effect —the rate depends on how heavy the package is, see
 ; tools/audio/efectos_msu.py— and the ROM does not keep which version was
 ; left in ARAM, so **on every package they are all uploaded again**, even if they
-; were already there. Each sound's pitch comes from `se_msu_altura`, which the
-; converter builds per package, and not from `sonido_tabla`. With another
+; were already there. Each sound's pitch comes from `se_msu_pitch`, which the
+; converter builds per package, and not from `sound_table`. With another
 ; `.msu`, or without one, everything comes from ROM as always.
 ;
 ; It lives in bank 1 because bank 0 has no room: it is reached with `jsl`,
@@ -106,7 +106,7 @@ no:
     pla
     sep #$20
 .a8
-    lda f:sonido_tabla, x
+    lda f:sound_table, x
     rts
 .endproc
 
@@ -152,7 +152,7 @@ no:
 .a8
     jsr ex_allowed
     bcc no
-    lda f:sonido_tabla, x
+    lda f:sound_table, x
     pha                         ; [srcn][index][row]
     ldy #0
 otra:
@@ -251,10 +251,10 @@ tomar:
     lda f:PKG_MAP
     asl a
     tax
-    lda f:se_msu_altura_paq, x
+    lda f:se_msu_pitch_pkg, x
     tax
 buscar:
-    lda f:se_msu_altura, x      ; the pair's index
+    lda f:se_msu_pitch, x      ; the pair's index
     cmp 1, s
     beq esta
     bcs no_esta                 ; already went past: it is not from this package
@@ -267,7 +267,7 @@ esta:
     pla
     ; The `lda` goes after the `pla`, which leaves Z from the index: the caller
     ; looks at Z of the pitch.
-    lda f:se_msu_altura + 2, x
+    lda f:se_msu_pitch + 2, x
     rts
 no_esta:
     pla
@@ -477,18 +477,18 @@ ninguno:
     cmp #0                      ; `plx` leaves Z from X, not from the pitch
     bne tengo
 de_la_tabla:
-    lda f:sonido_tabla + 1, x
+    lda f:sound_table + 1, x
 tengo:
     sta 1, s                    ; [pitch][voice]
-    lda f:sonido_tabla + 5, x
+    lda f:sound_table + 5, x
     pha                         ; [frames][pitch][voice]
     sep #$20
 .a8
-    lda f:sonido_tabla + 0, x   ; SRCN
+    lda f:sound_table + 0, x   ; SRCN
     pha
-    lda f:sonido_tabla + 3, x   ; VOLL
+    lda f:sound_table + 3, x   ; VOLL
     pha
-    lda f:sonido_tabla + 4, x   ; VOLR
+    lda f:sound_table + 4, x   ; VOLR
     pha                         ; [volr][voll][srcn][frames][pitch][voice]
     lda 8, s                    ; the voice
     asl a
@@ -560,10 +560,10 @@ valido:
 mirado:
     cmp #1
     bne ready
-    ldx #(2 * SE_PRIMERA)
+    ldx #(2 * SE_FIRST)
     lda #0
 olvidar:
-    cpx #(2 * MUESTRAS_N)
+    cpx #(2 * SAMPLES_N)
     bcs olvidados
     sta f:FAR_ARAM_OF, x
     inx
@@ -577,9 +577,9 @@ ready:
     rtl
 .endproc
 
-; The `se_msu_filas` row of sound effect number A in PKG_MAP's package, in X,
+; The `se_msu_rows` row of sound effect number A in PKG_MAP's package, in X,
 ; and C at 1; C at 0 if the package does not carry it. Each package has one row per
-; sound effect in its list in `paquetes`, in the same order. Does not touch Y.
+; sound effect in its list in `packages`, in the same order. Does not touch Y.
 .proc se_msu_row
 .a8
 .i16
@@ -590,18 +590,18 @@ ready:
     lda f:PKG_MAP
     asl a
     tax
-    lda f:paquetes, x           ; like `package_list`
+    lda f:packages, x           ; like `package_list`
     tax
     sep #$20
 .a8
 temas:
-    lda f:paquetes, x
+    lda f:packages, x
     inx
     cmp #$FF
     bne temas
     ldy #0                      ; the row, eight at a time
 efectos:
-    lda f:paquetes, x
+    lda f:packages, x
     cmp #$FF
     beq no
     cmp 1, s
@@ -624,7 +624,7 @@ si:
     tax
     tya
     clc
-    adc f:se_msu_paq, x
+    adc f:se_msu_pkg, x
     tax
     sep #$20
 .a8
@@ -650,14 +650,14 @@ no:
     cmp #1
     bne no
     lda f:PKG_S
-    cmp #SE_PRIMERA
+    cmp #SE_FIRST
     bcc no
     jsr place_effect
     jsr se_msu_row
     bcc no
     rep #$20
 .a16
-    lda f:se_msu_filas + 4, x
+    lda f:se_msu_rows + 4, x
     sta f:PKG_LENGTH
     rtl
 no:
@@ -685,7 +685,7 @@ no:
     cmp #1
     bne no
     lda f:PKG_S
-    cmp #SE_PRIMERA
+    cmp #SE_FIRST
     bcc no
     jsr place_effect
     jsr se_msu_row
@@ -694,22 +694,22 @@ no:
     clc
     rtl
 hay:
-    lda f:se_msu_filas, x
+    lda f:se_msu_rows, x
     cmp f:MSU_SE_NEXT
     bne buscar
-    lda f:se_msu_filas + 1, x
+    lda f:se_msu_rows + 1, x
     cmp f:MSU_SE_NEXT + 1
     bne buscar
-    lda f:se_msu_filas + 2, x
+    lda f:se_msu_rows + 2, x
     cmp f:MSU_SE_NEXT + 2
     beq en_su_lugar
 buscar:
     phx
     rep #$20
 .a16
-    lda f:se_msu_filas + 2, x
+    lda f:se_msu_rows + 2, x
     tay
-    lda f:se_msu_filas, x
+    lda f:se_msu_rows, x
     jsr msu_data_seek        ; returns with 8-bit A
 .a8
     plx
@@ -733,14 +733,14 @@ buscar:
 en_su_lugar:
     rep #$20
 .a16
-    lda f:se_msu_filas + 4, x
+    lda f:se_msu_rows + 4, x
     sta f:PKG_LENGTH
     clc
-    adc f:se_msu_filas, x
+    adc f:se_msu_rows, x
     sta f:MSU_SE_NEXT            ; where it will be left
     sep #$20
 .a8
-    lda f:se_msu_filas + 2, x
+    lda f:se_msu_rows + 2, x
     adc #0
     sta f:MSU_SE_NEXT + 2
     phx
@@ -863,7 +863,7 @@ ready:
 .endproc
 
 ; The number of the sound effect noted in directory entry A, which is a sound
-; effect place —SE_PRIMERA or above—, in A: see `FAR_EFFECT_IN`. Clobbers X.
+; effect place —SE_FIRST or above—, in A: see `FAR_EFFECT_IN`. Clobbers X.
 .proc place_effect
 .a8
 .i16
@@ -873,7 +873,7 @@ ready:
     tax
     sep #$20
 .a8
-    lda f:FAR_EFFECT_IN - SE_PRIMERA, x
+    lda f:FAR_EFFECT_IN - SE_FIRST, x
     rts
 .endproc
 
@@ -892,7 +892,7 @@ ready:
     clc
     adc #SPC_SAMPLES_ADDR
     sta f:PKG_DEST
-    lda f:se_msu_filas + 6, x
+    lda f:se_msu_rows + 6, x
     clc
     adc f:PKG_A
     sta temp

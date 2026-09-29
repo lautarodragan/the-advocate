@@ -185,7 +185,7 @@ otro:
     rtl
 hay:
     phx
-    lda f:comeq_mascara, x
+    lda f:comeq_mask, x
     sta temp
     rep #$20
 .a16
@@ -209,7 +209,7 @@ hay:
     pha
     lda code_ptr
     pha
-    lda f:comeq_cod, x
+    lda f:comeq_code, x
     sta code_ptr
     stz ev_cur
     sep #$20
@@ -220,7 +220,7 @@ hay:
     pha
     lda pair_ev
     pha
-    lda f:comeq_banco, x
+    lda f:comeq_bank, x
     sta code_ptr + 2
     lda #1
     sta ev_active
@@ -253,7 +253,7 @@ apagado:
 .endproc
 
 ; The skill bits set to what the LDB says each actor knows at their initial
-; level: the converter's `hab_inicial` table copied into `FAR_SKILL`. It runs at
+; level: the converter's `skill_initial` table copied into `FAR_SKILL`. It runs at
 ; reset, before loading the saved game, which overwrites it. It is few bytes
 ; and goes one at a time: a DMA would cost more code than the loop.
 .proc initial_skills_set
@@ -261,10 +261,10 @@ apagado:
 .i16
     ldx #0
 otro:
-    lda f:hab_inicial, x
+    lda f:skill_initial, x
     sta f:FAR_LENGTH + FAR_SKILL, x
     inx
-    cpx #HAB_BYTES
+    cpx #SKILL_BYTES
     bne otro
     rtl
 .endproc

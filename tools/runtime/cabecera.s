@@ -9,7 +9,7 @@
     ; This is what the FX Pak menu shows and what any ROM database reads. The
     ; game declares it in its project file, and the converter emits it already
     ; padded to 21 characters: see `identidad_de_la_rom`.
-    .byte ROM_TITULO
+    .byte ROM_TITLE
     .byte $30                      ; LoROM, FastROM: see MEMSEL
     .byte $02                      ; ROM and battery-backed RAM: the saved game
     .byte $0C                      ; size: 4 MB (the byte is log2 of the KB)

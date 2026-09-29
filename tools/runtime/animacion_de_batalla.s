@@ -20,7 +20,7 @@ ANIM_T     = $7E30E6
 ;
 ; The tone is **three** bytes and not four: a picture's saturation is always
 ; the neutral one —`imagen_aceptable` accepts no other— so there is nothing to
-; interpolate there and `picture_palette` sets `tint_s` to `TINTE_NEUTRO`.
+; interpolate there and `picture_palette` sets `tint_s` to `TINT_NEUTRAL`.
 ; **$30E8 to $30EB belong to the MSU-1** —`MSU_HAS`, `MSU_PLAYING` and
 ; `MSU_FACTOR`—, so this starts at $30EC and goes up to $30FA; the next block
 ; is `FAR_ARAM_OF`, at $3100. It started at $30E8 and overwrote them: the ROM
@@ -47,7 +47,7 @@ PICTURE_CHANGE = FAR_PICTURE + 14
 ; byte fit and three are needed. Here there are five spare, left between the
 ; picture —which ends at $30FA— and `FAR_ARAM_OF`, at $3100. They are read
 ; once per frame and never indexed, so the long addressing does not show.
-FAR_MSG_PAUSE = $7E30FB         ; word: up to PAUSAS_MAX times CUADROS_DE_PAUSA
+FAR_MSG_PAUSE = $7E30FB         ; word: up to PAUSAS_MAX times PAUSE_FRAMES
 FAR_MSG_AUTO  = $7E30FD
 
 .proc battle_anim_clear
@@ -91,12 +91,12 @@ otra:
     iny
     lda [code_ptr], y            ; its type
     iny                         ; and the data, from the third byte
-    cmp #ANIM_SONIDO
+    cmp #ANIM_SOUND
     bne no_sonido
     jsr sound_from_code
     bra hecha
 no_sonido:
-    cmp #ANIM_DESTELLO
+    cmp #ANIM_FLASH
     bne no_destello
     jsr flash_from_code
     bra hecha
@@ -107,7 +107,7 @@ hecha:
 .a16
     lda code_ptr
     clc
-    adc #ANIM_ENTRADA
+    adc #ANIM_ENTRY
     sta code_ptr
     sep #$20
 .a8
@@ -148,7 +148,7 @@ ready:
 ; `tools/port/animation.py`, which is the only thing both ends share; nothing
 ; of that is decided here. There is one box for the whole ROM and what changes
 ; per map —which tile it lands on and with which palette— comes from
-; `anim_batalla_reparto`, one byte per map.
+; `anim_battle_split`, one byte per map.
 ;
 ; The state lives in far RAM, at $3600, well above the MSU-1's ($30E8), the
 ; picture's ($30EC to $30FA) and the audio package's tables ($3100 to $35FF):
@@ -161,7 +161,7 @@ ANIMB_VRAM   = $7E3604          ; where the frame's DMA goes, in words
 ANIMB_CGADD  = $7E3606          ; its palette's CGRAM entry
 ANIMB_SHADOW = $7E3607          ; and its offset in `cgram_shadow`, word
 ANIMB_ACTIVE = $7E3609          ; one is being drawn
-ANIMB_ROW   = $7E360A          ; its row in `anim_batalla_tabla`, word
+ANIMB_ROW   = $7E360A          ; its row in `anim_battle_table`, word
 ANIMB_TARGET = $7E360C          ; what it goes on; $FF is the screen
 ANIMB_T      = $7E360D          ; the tick, word
 ANIMB_FRAME = $7E360F          ; the current frame, word
@@ -190,7 +190,7 @@ ANIMB_PREV   = $7E3616          ; three bytes: the last frame built in
     tax
     sep #$20
 .a8
-    lda f:anim_batalla_reparto, x
+    lda f:anim_battle_split, x
     bne hay
     rts
 hay:
@@ -256,7 +256,7 @@ hay:
     asl a
     asl a
     clc
-    adc f:mapa_tabla + M_VRAM_SPRITE, x   ; long: `mapa_tabla` lives in RODATA
+    adc f:map_table + M_VRAM_SPRITE, x   ; long: `map_table` lives in RODATA
     sta f:ANIMB_VRAM
     sep #$20
 .a8
@@ -283,8 +283,8 @@ hay:
     tax
     sep #$20
 .a8
-    lda f:anim_batalla_de, x
-    cmp #ANIM_B_SIN
+    lda f:anim_battle, x
+    cmp #ANIM_B_NO
     beq no
     rep #$20
 .a16
@@ -296,7 +296,7 @@ hay:
     tax
     sep #$20
 .a8
-    lda f:anim_batalla_tabla, x ; how many frames
+    lda f:anim_battle_table, x ; how many frames
     rep #$20
 .a16
     and #$00FF
@@ -334,7 +334,7 @@ no:
 copia:
     sep #$20
 .a8
-    lda f:anim_batalla_cgram, x
+    lda f:anim_battle_cgram, x
     sta cgram_shadow, y
     rep #$20
 .a16
@@ -457,7 +457,7 @@ queda:
     rts
 hay:
     lda f:ANIMB_TARGET
-    cmp #ANIM_B_PANTALLA
+    cmp #ANIM_B_SCREEN
     beq pantalla
     ; On the target: the center of its cell and its feet, which is
     ; `GetScreenX()` and `GetScreenY(false)`, minus the camera. The table's
@@ -511,9 +511,9 @@ pantalla:
 .a8
     rep #$20
 .a16
-    lda #ANIM_B_CENTRO_X
+    lda #ANIM_B_CENTER_X
     sta obj_x
-    lda #ANIM_B_CENTRO_Y
+    lda #ANIM_B_CENTER_Y
     sta obj_y
 restar_ancla:
     ; The table's anchor, which already has `Animation::Position`'s shift
@@ -521,14 +521,14 @@ restar_ancla:
     ; X low and Y high.
     lda f:ANIMB_ROW
     tax
-    lda f:anim_batalla_tabla + 1, x
+    lda f:anim_battle_table + 1, x
     and #$00FF
     sta temp
     lda obj_x
     sec
     sbc temp
     sta temp
-    lda f:anim_batalla_tabla + 2, x
+    lda f:anim_battle_table + 2, x
     and #$00FF
     sta temp + 2
     lda obj_y
@@ -581,7 +581,7 @@ con_y:
     lda f:ANIMB_I
     inc a
     sta f:ANIMB_I
-    cmp #ANIM_B_OBJETOS
+    cmp #ANIM_B_OBJECTS
     bne cada
     rts
 .endproc

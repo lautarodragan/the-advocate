@@ -25,7 +25,7 @@
     sta VMAIN
     rep #$20
 .a16
-    lda #RANURA_VRAM
+    lda #SLOT_VRAM
     sta VMADDL
     lda #(ITEMS_TILES * 32)
     sta DAS0L
@@ -46,7 +46,7 @@
     ; transparent.
     rep #$20
 .a16
-    lda #RANURA_MAP
+    lda #SLOT_MAP
     sta VMADDL
     lda #(32 * 32 * 2)
     sta DAS0L
@@ -102,15 +102,15 @@
     ; The tilemap: the visible rows, without cursor.
     rep #$20
 .a16
-    lda #ITEM_MARCO_MAPA
+    lda #ITEM_BORDER_MAP
     sta VMADDL
-    lda #(ITEM_MARCO_FILAS * 64)
+    lda #(ITEM_BORDER_ROWS * 64)
     sta DAS0L
-    lda #.loword(items_marco_mapa)
+    lda #.loword(items_border_map)
     sta A1T0L
     sep #$20
 .a8
-    lda #^(items_marco_mapa)
+    lda #^(items_border_map)
     sta A1B0
     lda #$01
     sta MDMAEN
@@ -128,15 +128,15 @@
     jsr border_upload
     rep #$20
 .a16
-    lda #ITEM_MARCO_MAPA
+    lda #ITEM_BORDER_MAP
     sta VMADDL
-    lda #(ITEM_MARCO_FILAS * 64)
+    lda #(ITEM_BORDER_ROWS * 64)
     sta DAS0L
-    lda #.loword(eq_marco_mapa)
+    lda #.loword(eq_border_map)
     sta A1T0L
     sep #$20
 .a8
-    lda #^(eq_marco_mapa)
+    lda #^(eq_border_map)
     sta A1B0
     lda #$01
     sta MDMAEN
@@ -144,13 +144,13 @@
     sta CGADD
     rep #$20
 .a16
-    lda #.loword(item_cgram_sube)
+    lda #.loword(item_cgram_uploads)
     sta A1T0L
     lda #(2 * 16 * 2)
     sta DAS0L
     sep #$20
 .a8
-    lda #^item_cgram_sube
+    lda #^item_cgram_uploads
     sta A1B0
     stz DMAP0
     lda #$22
@@ -167,17 +167,17 @@
 .a8
 .i16
     ; The colors first, so the channel is left set up for VRAM.
-    lda #ITEM_MARCO_CGRAM
+    lda #ITEM_BORDER_CGRAM
     sta CGADD
     rep #$20
 .a16
-    lda #(ITEM_MARCO_COLORES * 2)
+    lda #(ITEM_BORDER_COLORS * 2)
     sta DAS0L
-    lda #.loword(items_marco_cgram)
+    lda #.loword(items_border_cgram)
     sta A1T0L
     sep #$20
 .a8
-    lda #^(items_marco_cgram)
+    lda #^(items_border_cgram)
     sta A1B0
     stz DMAP0
     lda #$22
@@ -188,15 +188,15 @@
     sta VMAIN
     rep #$20
 .a16
-    lda #ITEM_MARCO_VRAM
+    lda #ITEM_BORDER_VRAM
     sta VMADDL
-    lda #(ITEM_MARCO_TILES * 64)
+    lda #(ITEM_BORDER_TILES * 64)
     sta DAS0L
-    lda #.loword(items_marco_tiles)
+    lda #.loword(items_border_tiles)
     sta A1T0L
     sep #$20
 .a8
-    lda #^(items_marco_tiles)
+    lda #^(items_border_tiles)
     sta A1B0
     lda #$01
     sta DMAP0
@@ -212,7 +212,7 @@
 .proc items_ppu_on
 .a8
 .i16
-    lda #(RANURA_VRAM / 4096 * 16 + RANURA_VRAM / 4096)
+    lda #(SLOT_VRAM / 4096 * 16 + SLOT_VRAM / 4096)
     ; Both layers from the same base, and it falls through into the next one.
 .endproc
 
@@ -221,9 +221,9 @@
 .a8
 .i16
     sta BG12NBA
-    lda #(RANURA_MAP / 1024 * 4)
+    lda #(SLOT_MAP / 1024 * 4)
     sta BG2SC
-    lda #(ITEM_MARCO_MAPA / 1024 * 4)
+    lda #(ITEM_BORDER_MAP / 1024 * 4)
     sta BG1SC
     stz BG2HOFS
     stz BG2HOFS
@@ -243,7 +243,7 @@
 
 ; The cursor on row A of the list, which is the System's bar: `temp + 3` at 1
 ; paints it and at 0 erases it. Both mean copying the two rows of BG1 cells the
-; row takes: from `items_marco_barras`, which has them with the cursor on top,
+; row takes: from `items_border_bars`, which has them with the cursor on top,
 ; or from the tilemap without cursor. A 128-byte DMA, which fits in the vblank
 ; along with the description. Clobbers X and Y.
 .proc items_bar
@@ -257,7 +257,7 @@
     tay
     lsr a                       ; which is 64 words
     clc
-    adc #(ITEM_MARCO_MAPA + ITEM_MARCO_LISTA * 32)
+    adc #(ITEM_BORDER_MAP + ITEM_BORDER_LIST * 32)
     tax
     sep #$20
 .a8
@@ -266,23 +266,23 @@
     stx VMADDL
     lda temp + 3
     beq borra
-    lda #^(items_marco_barras)
+    lda #^(items_border_bars)
     sta A1B0
     rep #$20
 .a16
     tya
     clc
-    adc #.loword(items_marco_barras)
+    adc #.loword(items_border_bars)
     bra fuente
 .a8
 borra:
-    lda #^(items_marco_mapa)
+    lda #^(items_border_map)
     sta A1B0
     rep #$20
 .a16
     tya
     clc
-    adc #.loword(items_marco_mapa + ITEM_MARCO_LISTA * 64)
+    adc #.loword(items_border_map + ITEM_BORDER_LIST * 64)
 fuente:
     sta A1T0L
     lda #128

@@ -38,7 +38,7 @@
     asl a
     asl a
     asl a
-    asl a                       ; times MAPA_STRIDE, which is 128
+    asl a                       ; times MAP_STRIDE, which is 128
     sta map_ofs
     tax
 
@@ -55,24 +55,24 @@
     plx
 
     ; What is looked at often is copied; what is used once is read in place.
-    lda f:mapa_tabla + M_MAP_BW, x
+    lda f:map_table + M_MAP_BW, x
     sta map_width
     asl a
     sta map_cw                 ; the width in 8x8 cells is double
-    lda f:mapa_tabla + M_MAP_BH, x
+    lda f:map_table + M_MAP_BH, x
     sta map_height
     asl a
     sta map_ch
-    lda f:mapa_tabla + M_CAM_MAX_X, x
+    lda f:map_table + M_CAM_MAX_X, x
     sta cam_max_x
-    lda f:mapa_tabla + M_CAM_MAX_Y, x
+    lda f:map_table + M_CAM_MAX_Y, x
     sta cam_max_y
-    lda f:mapa_tabla + M_EV_COUNT, x
+    lda f:map_table + M_EV_COUNT, x
     ; Everything that sweeps events goes up to here and not up to `EV_MAX`:
     ; with the hundred and twenty, a map with four events swept a hundred and
     ; sixteen too many and that was enough to lose the frame.
     sta ev_total
-    lda f:mapa_tabla + M_NPC_COUNT, x
+    lda f:map_table + M_NPC_COUNT, x
     asl a
     asl a
     asl a
@@ -84,23 +84,23 @@
     ; eight bytes further, which is where each block stores its upper layer;
     ; adding eight cannot overflow the bank because the placement in
     ; `tools/ensamblado/bancos.py` guarantees the whole table fits in one.
-    lda f:mapa_tabla + M_PTR_NPC_POSES, x
+    lda f:map_table + M_PTR_NPC_POSES, x
     sta poses_ptr
-    lda f:mapa_tabla + M_PTR_MAP_BLOQUES, x
+    lda f:map_table + M_PTR_MAP_BLOCKS, x
     sta blocks_ptr
     clc
     adc #8
     sta blocks8_ptr
-    lda f:mapa_tabla + M_PTR_BLOQUE_PASS, x
+    lda f:map_table + M_PTR_BLOCK_PASS, x
     sta pass_ptr
     sep #$20
 .a8
-    lda f:mapa_tabla + M_PTR_MAP_BLOQUES + 2, x
+    lda f:map_table + M_PTR_MAP_BLOCKS + 2, x
     sta blocks_ptr + 2
     sta blocks8_ptr + 2
-    lda f:mapa_tabla + M_PTR_BLOQUE_PASS + 2, x
+    lda f:map_table + M_PTR_BLOCK_PASS + 2, x
     sta pass_ptr + 2
-    lda f:mapa_tabla + M_PTR_NPC_POSES + 2, x
+    lda f:map_table + M_PTR_NPC_POSES + 2, x
     sta poses_ptr + 2
 
     ; Where the hero starts: wherever the record says, unless the caller left
@@ -111,14 +111,14 @@
     lda entry_x
     cmp #$FFFF
     bne desde_puerta
-    lda f:mapa_tabla + M_HERO_START_X, x
+    lda f:map_table + M_HERO_START_X, x
     sta hero_x
     lsr a
     lsr a
     lsr a
     lsr a
     sta tile_x
-    lda f:mapa_tabla + M_HERO_START_Y, x
+    lda f:map_table + M_HERO_START_Y, x
     sta hero_y
     lsr a
     lsr a
@@ -147,7 +147,7 @@ desde_puerta:
 puesto:
     sep #$20
 .a8
-    lda f:mapa_tabla + M_BG12NBA_VALUE, x
+    lda f:map_table + M_BG12NBA_VALUE, x
     sta BG12NBA
     ; And the background's tilemap, which also comes from the layout: almost
     ; always at $5800, but not in all of them. It is copied to RAM because
@@ -155,7 +155,7 @@ puesto:
     ; read the table.
     rep #$20
 .a16
-    lda f:mapa_tabla + M_VRAM_MAP, x
+    lda f:map_table + M_VRAM_MAP, x
     sta f:FAR_VRAM_MAP
     sep #$20
 .a8
@@ -246,8 +246,8 @@ puesto:
 ; for the save point, which opens it with the game running; the title does
 ; not need it because on leaving it loads the whole map.
 ;
-; What it overwrote, in VRAM words: the tiles at RANURA_VRAM and the tilemap
-; at RANURA_MAP, which are chosen to fall inside BG1's tile bank **in every
+; What it overwrote, in VRAM words: the tiles at SLOT_VRAM and the tilemap
+; at SLOT_MAP, which are chosen to fall inside BG1's tile bank **in every
 ; layout** of `vram_layout` —the converter checks it—. The sprites, the upper
 ; layer, the window and the map's two tilemaps are left outside. It was not
 ; so with the title menu's addresses: in the wide layout the sprites start at
@@ -279,9 +279,9 @@ puesto:
     sta INIDISP
     jsr ppu_init
     ldx map_ofs
-    lda f:mapa_tabla + M_BG12NBA_VALUE, x
+    lda f:map_table + M_BG12NBA_VALUE, x
     sta BG12NBA
-    lda f:mapa_tabla + M_VRAM_MAP + 1, x
+    lda f:map_table + M_VRAM_MAP + 1, x
     ora #MAP_LAYOUT
     sta BG1SC                   ; the battle leaves it pointing at its scene
     jsr load_map
@@ -301,7 +301,7 @@ puesto:
 ; screen.
 ;
 ; `back_to_map` is enough for the shop, the menu and the slots because all
-; three write nothing but `RANURA_VRAM` and `RANURA_MAP`, chosen to fall
+; three write nothing but `SLOT_VRAM` and `SLOT_MAP`, chosen to fall
 ; inside BG1's tile bank in every layout. The battle scene is not:
 ; `scene_upload` uploads **32 KB**, that is words $4000 to $8000, plus its
 ; tilemap at $3800 and 64 bytes at word 0. In the layouts of `vram_layout`
@@ -356,7 +356,7 @@ puesto:
     lda #1
     sta fade
     ; The fade's clock is **loop iterations**, that is ticks, and not hardware
-    ; frames: that way the fade lasts FUNDIDO_TOTAL ticks however long the
+    ; frames: that way the fade lasts FADE_TOTAL ticks however long the
     ; map load inside the black takes.
     ;
     ; It was counting `boot_frames` —hardware frames— since the load started
@@ -389,24 +389,24 @@ puesto:
     lda ticks                 ; the low byte is enough: the fade lasts 70
     sec
     sbc fade_base
-    cmp #FUNDIDO_TOTAL
+    cmp #FADE_TOTAL
     bcs terminar
-    cmp #FUNDIDO_CARGA
+    cmp #FADE_LOAD
     bcc rampa                   ; still going dark
     pha
     jsr load_requested        ; only once: it turns itself off
     pla
 rampa:
     ; This frame's brightness. Going down, the ramp is read backwards.
-    cmp #FUNDIDO_RAMPA
+    cmp #FADE_RAMP
     bcs subiendo
     eor #$FF
     clc
-    adc #FUNDIDO_RAMPA          ; FUNDIDO_RAMPA - 1 - t
+    adc #FADE_RAMP          ; FADE_RAMP - 1 - t
     bra en_la_rampa
 subiendo:
     sec
-    sbc #(FUNDIDO_CUADROS + FUNDIDO_NEGRO)
+    sbc #(FADE_FRAMES + FADE_BLACK)
     bcs en_la_rampa             ; past the load: the ramp back up
     lda #0                      ; the black in the middle
     sta brightness
@@ -418,14 +418,14 @@ en_la_rampa:
     tax
     sep #$20
 .a8
-    lda fundido_rampa, x
+    lda fade_ramp, x
     sta brightness
 sigue:
     lda #1                      ; the game stays frozen
     rts
 terminar:
     stz fade
-    lda #BRILLO_MAX
+    lda #BRIGHTNESS_MAX
     sta brightness
 no_hay:
     lda #0
@@ -438,15 +438,15 @@ no_hay:
 MAP_SONG = $7E6100
 
 ; What the map being entered does to the music, which is easyrpg's
-; `Game_Map::PlayBgm`: its song, if it has one —`mapa_tema`, which already
+; `Game_Map::PlayBgm`: its song, if it has one —`map_song`, which already
 ; resolved the tree's inheritance—. Returns with A holding the song to turn on
 ; when the map is loaded, or $FF if nothing has to be touched, and in that
 ; case whatever was playing goes on.
 ;
 ; Nothing is touched in two cases:
 ;
-; * `mapa_tema` at $FF: the map has no song, or it is `music_type` 1, "an
-;   event decides". Also a song beyond `TEMA_TOTAL`, same as `op_bgm` does.
+; * `map_song` at $FF: the map has no song, or it is `music_type` 1, "an
+;   event decides". Also a song beyond `SONG_TOTAL`, same as `op_bgm` does.
 ; * **the song is the one already playing**. `Game_System::BgmPlay` with the
 ;   same name does not restart it: going from one Rat Tracks map to the other
 ;   does not send `KSSMKEND` back to the start. With one exception, which is
@@ -463,8 +463,8 @@ MAP_SONG = $7E6100
 .a8
 .i16
     ldx fade_map
-    lda f:mapa_tema, x
-    cmp #TEMA_TOTAL
+    lda f:map_song, x
+    cmp #SONG_TOTAL
     bcs nothing                    ; $FF, or one the cartridge does not carry
     pha
     lda bgm_fade

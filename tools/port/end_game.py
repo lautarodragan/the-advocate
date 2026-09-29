@@ -114,8 +114,8 @@ def draw(sys_img, db, chosen, font_id=None, width=WIDTH, height=HEIGHT,
 
 # --- what goes into the cartridge ---------------------------------------------
 #
-# BG2, at 4bpp and with palette 0: the tiles from `RANURA_VRAM` and the tilemap
-# at `RANURA_MAP`, which are the VRAM places the menu and the slot screen
+# BG2, at 4bpp and with palette 0: the tiles from `SLOT_VRAM` and the tilemap
+# at `SLOT_MAP`, which are the VRAM places the menu and the slot screen
 # already write —see `back_to_map`—, so the map comes back without anything
 # else having to be restored. The palette is entries 0 to 15, which the menu
 # also restores on the way back.

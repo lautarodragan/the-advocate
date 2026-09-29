@@ -71,7 +71,7 @@ borrar_switches:
     inx
     cpx #SWITCH_BYTES
     bne borrar_switches
-    lda #TINTE_NEUTRO
+    lda #TINT_NEUTRAL
     sta tint_r
     sta tint_g
     sta tint_b
@@ -92,16 +92,16 @@ borrar_switches:
     ; a bug.
     ldx #$0000
 copiar_grupo:
-    cpx #GRUPO_INICIAL_N
+    cpx #PARTY_INITIAL_N
     beq grupo_listo
-    lda grupo_inicial, x
+    lda party_initial, x
     sta party, x
     inx
     bra copiar_grupo
 grupo_listo:
     rep #$20
 .a16
-    lda #GRUPO_INICIAL_N
+    lda #PARTY_INITIAL_N
     sta party_n                 ; 16 bits: X and Y compare it whole
     sep #$20
 .a8
@@ -225,7 +225,7 @@ grupo_listo:
     ; with whatever brightness was left, and the loop would start believing
     ; it was inside a fade.
     stz fade
-    lda #BRILLO_MAX
+    lda #BRIGHTNESS_MAX
     sta brightness
     stz bgm_fade             ; and the same with the song's
     jsl f:boot_transition    ; and the teleport, with fade
@@ -262,8 +262,8 @@ grupo_listo:
     ; decided by the menu, and until the player picks it the saved game is not
     ; touched. Without a title screen —which is the whole suite— the usual
     ; still happens, that is, if there is a save it loads by itself.
-    lda #<TITULO_TILES
-    ora #>TITULO_TILES
+    lda #<TITLE_TILES
+    ora #>TITLE_TILES
     bne nueva
     lda #0                      ; no menu to choose, always the first
     jsr set_slot
@@ -278,7 +278,7 @@ grupo_listo:
 nueva:
     rep #$20
 .a16
-    lda #MAPA_INICIAL
+    lda #MAP_INITIAL
 cargar:
     jsr enter_map
     sep #$20
@@ -338,8 +338,8 @@ cargar:
     ; A ROM with a title can go past BOOT_FRAMES because of this, and it does
     ; not matter: what counts frames from the reset is the loop, and that is
     ; reached after the title.
-.ifdef PANTALLA_TITULO
-    ldx #(PANTALLA_TITULO * PANTALLA_FILA)
+.ifdef SCREEN_TITLE
+    ldx #(SCREEN_TITLE * SCREEN_ROW)
     jsl f:screen_decompress
 .endif
 

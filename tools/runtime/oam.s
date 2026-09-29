@@ -191,7 +191,7 @@ se_puede:
 sin_girar:
     ; The first decrement goes in the same frame that builds the jump, as in
     ; `Game_Character::Update`, which after `UpdateNextMovementAction` already
-    ; sees it jumping and calls `UpdateMovement`. SALTO_PASO is 256 and does
+    ; sees it jumping and calls `UpdateMovement`. JUMP_STEP is 256 and does
     ; not fit in a byte: `256 - s` in eight bits is the two's complement of
     ; `s`, which is never zero.
     jsr hero_jump
@@ -392,7 +392,7 @@ hay:
     ; only moves the **drawing**: the order against the others comes from
     ; `GetScreenY(false)`, that is, without the jump, so whoever is in the air
     ; does not move ahead.
-    cmp #(SALTO_PASO / 2)
+    cmp #(JUMP_STEP / 2)
     bcc de_bajada
     eor #$FF                    ; 256 - remaining, with a one-byte remaining
     inc a
@@ -834,7 +834,7 @@ sin_ajuste:
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_VRAM_SPRITE, x
+    lda f:map_table + M_VRAM_SPRITE, x
     sta vq_dest
     sep #$20
 .a8

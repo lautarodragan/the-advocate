@@ -53,10 +53,10 @@ def _byte(p, nombre, valor=None):
 
 
 def _animaciones_del_cartucho(p):
-    """{número de RM2k: fila en `anim_batalla_tabla`}, leído de la ROM."""
+    """{número de RM2k: fila en `anim_battle_table`}, leído de la ROM."""
     with open(p.sfc, "rb") as archivo:
         rom = archivo.read()
-    de = en_la_rom(p.simbolos["anim_batalla_de"])
+    de = en_la_rom(p.simbolos["anim_battle"])
     return {n: rom[de + n] for n in range(p.simbolos["ANIM_B_MAX"])
             if rom[de + n] != SIN_DIBUJO}
 

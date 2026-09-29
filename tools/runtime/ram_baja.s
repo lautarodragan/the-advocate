@@ -31,7 +31,7 @@ boots:    .res 1     ; budget of pages per frame; see STARTS_MAX
 port0: .res 1
 
 ; What `flush_video` writes to INIDISP at the end of the vblank: the master
-; brightness from 0 to BRILLO_MAX. Nobody else writes it, and the why is in
+; brightness from 0 to BRIGHTNESS_MAX. Nobody else writes it, and the why is in
 ; `prender`. It goes in the BSS and not in the direct page because it is
 ; touched once per frame, in no tight loop —and the zero page is full—.
 brightness:      .res 1
@@ -86,7 +86,7 @@ FADE_SAME  = 3      ; a Teleport to the same one: just move the hero
 ; `route_ptr` to read.
 hero_route:  .res 3
 ; The frequency of the move route set on the hero, and the one the OP_ROUTE
-; being read carries. It is RM2k's stop counter: see `ruta_tras_paso`.
+; being read carries. It is RM2k's stop counter: see `route_after_step`.
 route_freq:    .res 1
 route_freq_op: .res 1
 
@@ -124,7 +124,7 @@ msg_upload:   .res 1     ; whether there is a line ready to upload to VRAM
 ; tile format. The 48 extra bytes are so the last character's mask can write
 ; its second column without going out: it always writes zero there, but
 ; reading and writing outside the buffer would be stepping on someone else.
-text_buf:   .res (VENTANA_TEXTO_COLS * 2 * 32 + 48)
+text_buf:   .res (WINDOW_TEXT_COLS * 2 * 32 + 48)
 
 ; The window's two HDMA tables. They live in RAM because the first two entries
 ; carry this frame's camera; the last one, which is the window's, never
@@ -247,8 +247,8 @@ npc_buf:  .res NPC_MAX * NPC_STRIDE
 ; Copying it rather than reading it from the cartridge with a long pointer is
 ; what makes it cheap: an `lda [ptr], y` wants the pointer in the direct page,
 ; and the direct page is full. It fits easily: the map that asks for the most
-; in the whole game asks for six. See RUTA_GRAF_MAX in snes_convert.py.
-route_gfx_buf: .res RUTA_GRAF_MAX * 2
+; in the whole game asks for six. See ROUTE_GFX_MAX in snes_convert.py.
+route_gfx_buf: .res ROUTE_GFX_MAX * 2
 
 ; Where each of the map's events is, in cells, by table index. It is copied
 ; from the ROM when the map loads, like the NPC one, and for a reason that is
@@ -293,7 +293,7 @@ ev_pos_buf: .res EV_MAX * EV_STRIDE
 ROUTE_EV_STRIDE = 32
 ROUTE_EV_FREE = $FF
 ROUTE_EV_NO_FACE = $FF     ; in +8: the move route has not turned it yet
-route_ev:  .res RUTA_EV_MAX * ROUTE_EV_STRIDE
+route_ev:  .res ROUTE_EV_MAX * ROUTE_EV_STRIDE
 ; How many of the twelve are worth looking at: the highest one used since the
 ; map was loaded, plus one. **It does not go down** when one is freed, and it
 ; does not need to: a slot that was never taken has $FF at +0, so searching

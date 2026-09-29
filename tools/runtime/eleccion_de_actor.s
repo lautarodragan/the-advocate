@@ -9,7 +9,7 @@
 ; what it adds, outside bank 0. The geometry and the why are in
 ; `OBJETIVO_VENTANAS`, in titulo.py, and `render_objetivo` is the reference.
 ;
-; BG1 has **its own base**, `OBJETIVO_VRAM`, behind the menu's tilemap: there
+; BG1 has **its own base**, `TARGET_VRAM`, behind the menu's tilemap: there
 ; is no room left in BG2's, because the menu's bank reaches almost up to its
 ; tilemap. Everything falls in what `load_map` restores when the menu closes
 ; —`_controlar_objetivo` checks it—, and the colors go in 128..143, which are
@@ -29,15 +29,15 @@
     sta VMAIN
     rep #$20
 .a16
-    lda #OBJETIVO_VRAM
+    lda #TARGET_VRAM
     sta VMADDL
-    lda #(OBJETIVO_TILES * 64)
+    lda #(TARGET_TILES * 64)
     sta DAS0L
-    lda #.loword(objetivo_tiles)
+    lda #.loword(target_tiles)
     sta A1T0L
     sep #$20
 .a8
-    lda #^(objetivo_tiles)
+    lda #^(target_tiles)
     sta A1B0
     lda #$01
     sta DMAP0
@@ -50,15 +50,15 @@
     ; `objetivo_compacto`—.
     rep #$20
 .a16
-    lda #OBJETIVO_MAPA
+    lda #TARGET_MAP
     sta VMADDL
     lda #(32 * 28 * 2)
     sta DAS0L
-    lda #.loword(objetivo_mapa)
+    lda #.loword(target_map)
     sta A1T0L
     sep #$20
 .a8
-    lda #^(objetivo_mapa)
+    lda #^(target_map)
     sta A1B0
     lda #$01
     sta MDMAEN
@@ -66,33 +66,33 @@
     beq colores
     rep #$20
 .a16
-    lda #OBJETIVO_MAPA
+    lda #TARGET_MAP
 borrar_fila:
     sta VMADDL
-    ldx #OBJETIVO_BORRAR_COLS
+    ldx #TARGET_ERASE_COLS
 borrar_celda:
     stz VMDATAL                 ; both halves of the word: 16-bit A
     dex
     bne borrar_celda
     clc
     adc #32
-    cmp #(OBJETIVO_MAPA + OBJETIVO_BORRAR_FILAS * 32)
+    cmp #(TARGET_MAP + TARGET_ERASE_ROWS * 32)
     bcc borrar_fila
     sep #$20
 .a8
 colores:
     ; The colors.
-    lda #OBJETIVO_CGRAM
+    lda #TARGET_CGRAM
     sta CGADD
     rep #$20
 .a16
-    lda #(OBJETIVO_COLORES * 2)
+    lda #(TARGET_COLORS * 2)
     sta DAS0L
-    lda #.loword(objetivo_cgram)
+    lda #.loword(target_cgram)
     sta A1T0L
     sep #$20
 .a8
-    lda #^(objetivo_cgram)
+    lda #^(target_cgram)
     sta A1B0
     stz DMAP0
     lda #$22
@@ -103,15 +103,15 @@ colores:
     beq nombre
     rtl
 nombre:
-    ; The two lines of the name: `objetivo_nombres` has
-    ; 2 * OBJETIVO_NOMBRE_ANCHO letters per medicine, and `objetivo_nombre_de`
+    ; The two lines of the name: `target_names` has
+    ; 2 * TARGET_NAME_WIDTH letters per medicine, and `target_name`
     ; says which one belongs to `k`.
     rep #$20
 .a16
     lda pick_edges
     and #$00FF
     tax
-    lda f:objetivo_nombre_de, x
+    lda f:target_name, x
     and #$00FF
     sta temp
     asl a
@@ -124,21 +124,21 @@ nombre:
     adc temp                    ; k * 21
     clc
     adc temp                    ; k * 22
-    .assert OBJETIVO_NOMBRE_ANCHO = 11, error, "the name is indexed by k * 22"
+    .assert TARGET_NAME_WIDTH = 11, error, "the name is indexed by k * 22"
     tax
-    ldy #OBJETIVO_NOMBRE_VRAM
+    ldy #TARGET_NAME_VRAM
     jsr renglon
     rep #$20
 .a16
     txa
     clc
-    adc #OBJETIVO_NOMBRE_ANCHO
+    adc #TARGET_NAME_WIDTH
     tax
-    ldy #(OBJETIVO_NOMBRE_VRAM + 64)
+    ldy #(TARGET_NAME_VRAM + 64)
     jsr renglon
     jmp target_count
 
-; One line: X its first letter in `objetivo_nombres`, Y the cell. The top
+; One line: X its first letter in `target_names`, Y the cell. The top
 ; cells of all the letters and then the bottom ones, like
 ; `slot_text_write`. Leaves X as it was and returns with an 8-bit A.
 renglon:
@@ -160,22 +160,22 @@ renglon:
     sta temp + 2
 pasada:
     phx
-    lda #OBJETIVO_NOMBRE_ANCHO
+    lda #TARGET_NAME_WIDTH
     sta temp
 letra:
-    lda f:objetivo_nombres, x
+    lda f:target_names, x
     phx
     rep #$20
 .a16
     and #$00FF
     sec
-    sbc #ITEM_PRIMER_CARACTER
+    sbc #ITEM_FIRST_CHAR
     asl a
     asl a                       ; four bytes per glyph
     clc
     adc temp + 2
     tax
-    lda f:ranura_glifo_celdas, x
+    lda f:slot_glyph_cells, x
     sta VMDATAL
     sep #$20
 .a8
@@ -226,7 +226,7 @@ unidades:
     sta VMAIN
     rep #$20
 .a16
-    lda #OBJETIVO_CUANTOS_VRAM
+    lda #TARGET_COUNT_VRAM
     sta VMADDL
     sep #$20
 .a8
@@ -234,7 +234,7 @@ unidades:
     jsr dos
     rep #$20
 .a16
-    lda #(OBJETIVO_CUANTOS_VRAM + 32)
+    lda #(TARGET_COUNT_VRAM + 32)
     sta VMADDL
     sep #$20
 .a8
@@ -247,12 +247,12 @@ dos:
     lda temp
     beq blanco
     clc
-    adc #('0' - ITEM_PRIMER_CARACTER)
+    adc #('0' - ITEM_FIRST_CHAR)
 blanco:                         ; the space is the first glyph
     jsr glifo
     lda temp + 1
     clc
-    adc #('0' - ITEM_PRIMER_CARACTER)
+    adc #('0' - ITEM_FIRST_CHAR)
 glifo:
     rep #$20
 .a16
@@ -263,7 +263,7 @@ glifo:
     adc temp + 2
     and #$00FF                  ; `temp + 3` is not part of the offset
     tax
-    lda f:ranura_glifo_celdas, x
+    lda f:slot_glyph_cells, x
     sta VMDATAL
     sep #$20
 .a8
@@ -272,13 +272,13 @@ glifo:
 
 ; The bar on party row A: `temp + 3` at 1 paints it and at 0 erases it. Both
 ; are a copy of the BG1 rectangle where the bar changes something
-; —`OBJETIVO_BARRA_FILAS` by `OBJETIVO_BARRA_COLS` cells, see
-; `objetivo_compacto`—: from `objetivo_barras`, which has it with the bar, or
+; —`TARGET_BAR_ROWS` by `TARGET_BAR_COLS` cells, see
+; `objetivo_compacto`—: from `target_bars`, which has it with the bar, or
 ; from the tilemap. One DMA per row of cells, which fit in the vblank with the
 ; erasing one and the painting one. With an item or without it is the same:
 ; the rectangle does not touch the left windows. It clobbers `temp` through
 ; `temp + 3`: the caller sets `temp + 3` again before each time.
-BAR_BYTES = OBJETIVO_BARRA_FILAS * OBJETIVO_BARRA_COLS * 2
+BAR_BYTES = TARGET_BAR_ROWS * TARGET_BAR_COLS * 2
 .proc target_bar
 .a8
 .i16
@@ -299,31 +299,31 @@ BAR_BYTES = OBJETIVO_BARRA_FILAS * OBJETIVO_BARRA_COLS * 2
     sta BBAD0
     lda temp + 3
     beq borra
-    lda #^(objetivo_barras)
+    lda #^(target_bars)
     sta A1B0
     rep #$20
 .a16
     lda f:barra_ofs, x
     clc
-    adc #.loword(objetivo_barras)
-    ldy #(OBJETIVO_BARRA_COLS * 2) ; the rectangle is contiguous
+    adc #.loword(target_bars)
+    ldy #(TARGET_BAR_COLS * 2) ; the rectangle is contiguous
     bra filas
 .a8
 borra:
-    lda #^(objetivo_mapa)
+    lda #^(target_map)
     sta A1B0
     rep #$20
 .a16
     lda temp
     sec
-    sbc #OBJETIVO_MAPA
+    sbc #TARGET_MAP
     asl a                       ; from VRAM words to tilemap bytes
     clc
-    adc #.loword(objetivo_mapa)
+    adc #.loword(target_map)
     ldy #64                     ; a whole tilemap row
 filas:
     sty temp + 2                ; how much the source advances per row
-    ldx #OBJETIVO_BARRA_FILAS
+    ldx #TARGET_BAR_ROWS
 row:
     sta A1T0L
     pha
@@ -332,7 +332,7 @@ row:
     clc
     adc #32
     sta temp
-    lda #(OBJETIVO_BARRA_COLS * 2)
+    lda #(TARGET_BAR_COLS * 2)
     sta DAS0L
     sep #$20
 .a8
@@ -349,13 +349,13 @@ row:
 .a8
     rtl
 
-PRIMERA = OBJETIVO_MAPA + OBJETIVO_BARRA_FILA0 * 32 + OBJETIVO_BARRA_COL0
-FILA = MENU_ACTOR_FILAS * 32
+PRIMERA = TARGET_MAP + TARGET_BAR_ROW0 * 32 + TARGET_BAR_COL0
+FILA = MENU_ACTOR_ROWS * 32
 fila_vram:
     .word PRIMERA, PRIMERA + FILA, PRIMERA + 2 * FILA, PRIMERA + 3 * FILA
 barra_ofs:
     .word 0, BAR_BYTES, 2 * BAR_BYTES, 3 * BAR_BYTES
-    .assert MENU_FILAS_GRUPO = 4, error, "one word per party row"
+    .assert MENU_ROWS_PARTY = 4, error, "one word per party row"
 .endproc
 
 ; BG2 with the party and BG1 with the windows, each with its own base, and the
@@ -363,11 +363,11 @@ barra_ofs:
 .proc target_ppu_on
 .a8
 .i16
-    lda #(RANURA_MAP / 1024 * 4)
+    lda #(SLOT_MAP / 1024 * 4)
     sta BG2SC
-    lda #(OBJETIVO_MAPA / 1024 * 4)
+    lda #(TARGET_MAP / 1024 * 4)
     sta BG1SC
-    lda #(RANURA_VRAM / 4096 * 16 + OBJETIVO_VRAM / 4096)
+    lda #(SLOT_VRAM / 4096 * 16 + TARGET_VRAM / 4096)
     sta BG12NBA
     stz BG2HOFS
     stz BG2HOFS

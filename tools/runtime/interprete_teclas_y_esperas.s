@@ -25,7 +25,7 @@
     lda [code_ptr], y            ; the flags
     iny
     sta temp + 1
-    and #TECLA_ARRANCA
+    and #KEY_STARTS
     beq tecla_mirar
     ; The first of the two: the variable to zero and control handed back
     ; without looking at anything. It is RPG_RT's `Input::ResetTriggerKeys()`:
@@ -62,7 +62,7 @@ tecla_mirar:
     ; boulder engine, and a boulder was lost. It is covered by
     ; `test_la_a_que_cierra_el_mensaje_no_saca_una_piedra`.
     lda temp + 1
-    and #TECLA_ESPERA
+    and #KEY_WAIT
     beq tecla_leer
     lda msg_open
     ora msg_state              ; also while it is being composed
@@ -75,7 +75,7 @@ tecla_leer:
     sta temp + 2                ; the value, which is where var_write takes it from
     stz temp + 3
     lda temp + 1
-    and #TECLA_ESPERA
+    and #KEY_WAIT
     beq tecla_guardar           ; without a wait, whatever is there is stored, zero included
     lda temp + 2
     bne tecla_guardar

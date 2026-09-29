@@ -309,15 +309,15 @@ def test_el_despegue_pide_su_efecto(partida):
         i = en_la_rom(s[simbolo]) + 2 * k
         return rom[i] | rom[i + 1] << 8
 
-    tropas = [palabra("tropa_id", k) for k in range(80)]
+    tropas = [palabra("troop_id", k) for k in range(80)]
     k = tropas.index(TROPA_AGENTES)
-    ini, n = palabra("tropa_pag_ini", k), rom[en_la_rom(s["tropa_pag_n"]) + k]
+    ini, n = palabra("troop_page_init", k), rom[en_la_rom(s["troop_page_n"]) + k]
     con_turno = [j for j in range(ini, ini + n)
-                 if rom[en_la_rom(s["tpag_flags"]) + j] & s["TPAG_TURNO"]]
+                 if rom[en_la_rom(s["tpage_flags"]) + j] & s["TPAGE_TURN"]]
     codigos = []
     for j in con_turno:
-        ofs = palabra("tpag_cod", j) - (s["tropa_codigo"] & 0xFFFF)
-        codigos.append(rom[en_la_rom(s["tropa_codigo"]) + ofs:][:3])
+        ofs = palabra("tpage_code", j) - (s["troop_code"] & 0xFFFF)
+        codigos.append(rom[en_la_rom(s["troop_code"]) + ofs:][:3])
     import json
     import os
     with open(os.path.join(os.path.dirname(una.sfc), "efectos.json")) as f:

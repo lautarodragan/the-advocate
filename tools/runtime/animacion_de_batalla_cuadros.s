@@ -97,18 +97,18 @@ sin_anterior:
 .a16
     lda f:ANIMB_ROW
     tax
-    lda f:anim_batalla_tabla + 4, x
+    lda f:anim_battle_table + 4, x
     clc
     adc f:ANIMB_FRAME
     asl a
     asl a
     tax
-    lda f:anim_batalla_cuadros, x
+    lda f:anim_battle_frames, x
     sta f:ANIMB_PREV
     tay
     sep #$20
 .a8
-    lda f:anim_batalla_cuadros + 2, x
+    lda f:anim_battle_frames + 2, x
     sta f:ANIMB_PREV + 2
     ora #^FAST
     pha

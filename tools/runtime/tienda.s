@@ -31,7 +31,7 @@ TI_BUY = 1
 TI_COUNT_BUY = 2
 TI_BOUGHT = 3
 TI_SELL = 4
-TI_COUNT_SELL = 5
+TI_COUNT_SALE = 5
 TI_SOLD = 6
 
 ; A: a place in the mode's list. Returns with A = its `k`.
@@ -88,7 +88,7 @@ de_venta:
     txa
     asl a
     tay
-    lda item_precio, y
+    lda item_price, y
     sta comp_or01
     sep #$20
 .a8
@@ -274,7 +274,7 @@ ready:
     and #$00FF
     asl a                       ; two lines each
     clc
-    adc #TI_TEXTO
+    adc #TI_TEXT
     tax
     sep #$20
 .a8
@@ -312,7 +312,7 @@ ready:
     bne uno
     rep #$20
 .a16
-    lda #TI_PRINCIPAL_MSG_POS
+    lda #TI_MAIN_MSG_POS
     sta pick_table
     sep #$20
 .a8
@@ -321,7 +321,7 @@ ready:
     jsl f:ba_t_text
     rep #$20
 .a16
-    lda #(TI_PRINCIPAL_MSG_POS + 128)
+    lda #(TI_MAIN_MSG_POS + 128)
     sta pick_table
     plx
     inx
@@ -337,9 +337,9 @@ uno:
 .proc ti_currency
 .a8
 .i16
-    lda #TI_ROJO
+    lda #TI_RED
     sta temp + 1
-    ldx #TI_TEXTO_MONEDA
+    ldx #TI_TEXT_CURRENCY
     jsl f:ba_t_text
     rts
 .endproc
@@ -352,10 +352,10 @@ uno:
     lda comp_col
     cmp #TI_SELL
     beq venta
-    lda #TI_LISTA_FILAS_COMPRA
+    lda #TI_LIST_ROWS_BUY
     rts
 venta:
-    lda #TI_LISTA_FILAS_VENTA
+    lda #TI_LIST_ROWS_SALE
     rts
 .endproc
 
@@ -403,7 +403,7 @@ cerca_12209:
 .a16
     lda gold
     sta comp_or01
-    lda #TI_ORO_POS
+    lda #TI_GOLD_POS
     sta comp_glyph + 1
     clc
     adc #2
@@ -425,13 +425,13 @@ cerca_12209:
     beq sin_oro
     rep #$20
 .a16
-    lda #TI_TENGO_POS
+    lda #TI_HAVE_POS
     sta pick_table
     sep #$20
 .a8
-    lda #TI_ROJO
+    lda #TI_RED
     sta temp + 1
-    ldx #TI_TEXTO_TENGO
+    ldx #TI_TEXT_HAVE
     jsl f:ba_t_text
     jsr ti_item
     jsr eq_inv_point
@@ -440,7 +440,7 @@ cerca_12209:
     stz comp_dup + 1
     rep #$20
 .a16
-    lda #TI_TENGO_NUM
+    lda #TI_HAVE_NUM
     sta pick_table
     sep #$20
 .a8
@@ -450,19 +450,19 @@ cerca_12209:
     jsl f:ba_t_number
     rep #$20
 .a16
-    lda #TI_LLEVO_POS
+    lda #TI_CARRIED_POS
     sta pick_table
     sep #$20
 .a8
-    lda #TI_ROJO
+    lda #TI_RED
     sta temp + 1
-    ldx #TI_TEXTO_LLEVO
+    ldx #TI_TEXT_CARRIED
     jsl f:ba_t_text
     jsr ti_item
     jsr ti_held
     rep #$20
 .a16
-    lda #TI_LLEVO_NUM
+    lda #TI_CARRIED_NUM
     sta pick_table
     sep #$20
 .a8
@@ -474,7 +474,7 @@ sin_oro:
     lda comp_col
     cmp #TI_COUNT_BUY
     beq cuantos
-    cmp #TI_COUNT_SELL
+    cmp #TI_COUNT_SALE
     beq cuantos
     ; The two "done" leave the middle window empty, like RM2k.
     cmp #TI_BOUGHT
@@ -490,7 +490,7 @@ cuantos:
     jsr ti_item
     rep #$20
 .a16
-    lda #TI_CUANTOS_POS
+    lda #TI_COUNT_POS
     sta pick_table
     sep #$20
 .a8
@@ -498,7 +498,7 @@ cuantos:
     jsr eq_name
     rep #$20
 .a16
-    lda #TI_CUANTOS_X_POS
+    lda #TI_COUNT_X_POS
     sta pick_table
     sep #$20
 .a8
@@ -507,7 +507,7 @@ cuantos:
     jsl f:ba_t_glyph
     rep #$20
 .a16
-    lda #TI_CUANTOS_NUM_POS
+    lda #TI_COUNT_NUM_POS
     sta pick_table
     sep #$20
 .a8
@@ -622,7 +622,7 @@ color_listo:
 .a16
     lda comp_glyph + 1
     clc
-    adc #TI_NOMBRE
+    adc #TI_NAME
     sta pick_table
     sep #$20
 .a8
@@ -657,7 +657,7 @@ color_listo:
 .a16
     lda comp_glyph + 1
     clc
-    adc #TI_PRECIO
+    adc #TI_PRICE
     pha
     sep #$20
 .a8
@@ -676,7 +676,7 @@ cuenta:
 .a16
     lda comp_glyph + 1
     clc
-    adc #PANT_DOS_PUNTOS
+    adc #SCR_TWO_POINTS
     sta pick_table
     sep #$20
 .a8
@@ -723,7 +723,7 @@ con_renglon:
     xba
     lsr a
     clc
-    adc #TI_ORDEN_POS0
+    adc #TI_COMMAND_POS0
     rts
 .a8
 
@@ -735,7 +735,7 @@ fila_pos:
     xba
     lsr a
     clc
-    adc #TI_LISTA_POS0
+    adc #TI_LIST_POS0
     rts
 .a8
 
@@ -877,7 +877,7 @@ ready:
     jsr ti_price
     jsr ti_times_count
     lda comp_col
-    cmp #TI_COUNT_SELL
+    cmp #TI_COUNT_SALE
     beq vender
     ; --- buy: the gold goes down and the items go up ---
     rep #$20
@@ -908,7 +908,7 @@ suma:
     bne suma
     rts
 vender:
-    ; --- sell: the gold goes up, capped at ORO_MAX, and the items go down ---
+    ; --- sell: the gold goes up, capped at GOLD_MAX, and the items go down ---
     jsr gold_add
     lda comp_color
     rep #$20
@@ -928,7 +928,7 @@ quita:
     rts
 .endproc
 
-; `gold` plus the 24 bits of `comp_or01`, capped at ORO_MAX: the adding half of
+; `gold` plus the 24 bits of `comp_or01`, capped at GOLD_MAX: the adding half of
 ; `Game_Party::GainGold`. The shop's selling and the victory use it
 ; —`ba_vic_start`—; `op_gold` has its own because it lives in bank 0.
 .proc gold_add
@@ -945,13 +945,13 @@ quita:
     lda gold + 2
     adc comp_or01 + 2
     sta gold + 2
-    cmp #^ORO_MAX
+    cmp #^GOLD_MAX
     bcc ready
     bne tope
     rep #$20
 .a16
     lda gold
-    cmp #.loword(ORO_MAX)
+    cmp #.loword(GOLD_MAX)
     sep #$20
 .a8
     bcc ready
@@ -959,11 +959,11 @@ quita:
 tope:
     rep #$20
 .a16
-    lda #.loword(ORO_MAX)
+    lda #.loword(GOLD_MAX)
     sta gold
     sep #$20
 .a8
-    lda #^ORO_MAX
+    lda #^GOLD_MAX
     sta gold + 2
 ready:
     rts
@@ -1055,30 +1055,30 @@ ready:
     sta CGADD
     rep #$20
 .a16
-    lda #.loword(item_cgram_sube)
+    lda #.loword(item_cgram_uploads)
     sta A1T0L
     lda #(2 * 16 * 2)
     sta DAS0L
     sep #$20
 .a8
-    lda #^item_cgram_sube
+    lda #^item_cgram_uploads
     sta A1B0
     stz DMAP0
     lda #$22
     sta BBAD0
     lda #$01
     sta MDMAEN
-    lda #ITEM_MARCO_CGRAM
+    lda #ITEM_BORDER_CGRAM
     sta CGADD
     rep #$20
 .a16
-    lda #.loword(ti_marco_cgram)
+    lda #.loword(ti_border_cgram)
     sta A1T0L
-    lda #(TI_MARCO_COLORES * 2)
+    lda #(TI_BORDER_COLORS * 2)
     sta DAS0L
     sep #$20
 .a8
-    lda #^ti_marco_cgram
+    lda #^ti_border_cgram
     sta A1B0
     lda #$01
     sta MDMAEN
@@ -1086,15 +1086,15 @@ ready:
     sta VMAIN
     rep #$20
 .a16
-    lda #TI_MARCO_VRAM
+    lda #TI_BORDER_VRAM
     sta VMADDL
-    lda #.loword(ti_marco_tiles)
+    lda #.loword(ti_border_tiles)
     sta A1T0L
-    lda #(TI_MARCO_TILES * 64)
+    lda #(TI_BORDER_TILES * 64)
     sta DAS0L
     sep #$20
 .a8
-    lda #^ti_marco_tiles
+    lda #^ti_border_tiles
     sta A1B0
     lda #$01
     sta DMAP0
@@ -1104,15 +1104,15 @@ ready:
     sta MDMAEN
     rep #$20
 .a16
-    lda #TI_MARCO_MAPA
+    lda #TI_BORDER_MAP
     sta VMADDL
-    lda #.loword(ti_marco_filas)
+    lda #.loword(ti_border_rows)
     sta A1T0L
-    lda #(TI_MARCO_ARRIBA * 64)
+    lda #(TI_BORDER_UP * 64)
     sta DAS0L
     sep #$20
 .a8
-    lda #^ti_marco_filas
+    lda #^ti_border_rows
     sta A1B0
     lda #$01
     sta MDMAEN
@@ -1121,8 +1121,8 @@ ready:
 
 ; BG1's windows below the help, and the bar: in each frame's vblank, behind the
 ; text, like `eq_bar`. The rows of the mode's layer are uploaded
-; —`ti_tramos`, from `ti_marco_filas`— and on top the bar's rectangle, from
-; `ti_marco_parches`. Without remembering anything: every frame restores
+; —`ti_stretches`, from `ti_border_rows`— and on top the bar's rectangle, from
+; `ti_border_patches`. Without remembering anything: every frame restores
 ; everything, so neither the bar nor the previous layer can be left painted. It
 ; is 1408 bytes, plus the bar's, which together with the text's 1792 fit in the
 ; vblank —see `pantallas.tienda_compacta`—.
@@ -1131,7 +1131,7 @@ ready:
 .i16
     lda #$80
     sta VMAIN
-    lda #^ti_marco_filas
+    lda #^ti_border_rows
     sta A1B0
     lda #$01
     sta DMAP0
@@ -1142,17 +1142,17 @@ ready:
 .a16
     asl a
     tax
-    lda f:ti_capa_tramos, x
+    lda f:ti_layer_stretches, x
     tax
 tramo:
-    lda f:ti_tramos + 4, x
+    lda f:ti_stretches + 4, x
     beq barra
     sta DAS0L
-    lda f:ti_tramos, x
+    lda f:ti_stretches, x
     sta VMADDL
-    lda f:ti_tramos + 2, x
+    lda f:ti_stretches + 2, x
     clc
-    adc #.loword(ti_marco_filas)
+    adc #.loword(ti_border_rows)
     sta A1T0L
     sep #$20
 .a8
@@ -1178,11 +1178,11 @@ barra:
     beq en_lista
     cmp #TI_COUNT_BUY
     beq en_cuantos
-    cmp #TI_COUNT_SELL
+    cmp #TI_COUNT_SALE
     beq en_cuantos
     rts
 en_cuantos:
-    lda #TI_LISTA_FILAS_COMPRA  ; the quantity one, after the list's
+    lda #TI_LIST_ROWS_BUY  ; the quantity one, after the list's
     bra con_barra
 en_lista:
     lda comp_mask
@@ -1207,7 +1207,7 @@ con_barra:
     tax
     sep #$20
 .a8
-    lda f:ti_barra_base, x
+    lda f:ti_bar_base, x
     clc
     adc temp + 2
     rep #$20
@@ -1217,17 +1217,17 @@ con_barra:
     asl a
     asl a                       ; eight bytes per bar
     tax
-    lda f:ti_barras, x
+    lda f:ti_bars, x
     sta temp                    ; the VRAM word of the row
-    lda f:ti_barras + 2, x
+    lda f:ti_bars + 2, x
     clc
-    adc #.loword(ti_marco_parches)
+    adc #.loword(ti_border_patches)
     sta temp + 2                ; and where it comes from
-    lda f:ti_barras + 6, x
+    lda f:ti_bars + 6, x
     tay                         ; how many rows
     sep #$20
 .a8
-    lda #^ti_marco_parches
+    lda #^ti_border_patches
     sta A1B0
     rep #$20
 .a16
@@ -1239,7 +1239,7 @@ row:
     sta temp
     lda temp + 2
     sta A1T0L
-    lda f:ti_barras + 4, x
+    lda f:ti_bars + 4, x
     sta DAS0L
     clc
     adc temp + 2
@@ -1266,7 +1266,7 @@ capa:
     tax
     sep #$20
 .a8
-    lda f:ti_capa_de_modo, x
+    lda f:ti_layer_mode, x
     rep #$20
 .a16
     and #$00FF
@@ -1304,7 +1304,7 @@ empieza:
     jsr ti_compose
     jsl f:ba_t_upload
     jsr ti_windows
-    lda #(RANURA_VRAM / 4096 * 16 + TI_MARCO_VRAM / 4096)
+    lda #(SLOT_VRAM / 4096 * 16 + TI_BORDER_VRAM / 4096)
     jsl f:screen_ppu_on  ; BG2 and BG1, the windows with their base
     lda #1
     sta menu_open
@@ -1325,7 +1325,7 @@ no_es_principal:
     cmp #TI_COUNT_BUY
     bne :+
     jmp cuantos
-:   cmp #TI_COUNT_SELL
+:   cmp #TI_COUNT_SALE
     bne :+
     jmp cuantos
 :   cmp #TI_BOUGHT
@@ -1444,7 +1444,7 @@ l_vender:
     sep #$20
 .a8
     beq espera2                 ; it is worth nothing
-    lda #TI_COUNT_SELL
+    lda #TI_COUNT_SALE
 l_cuantos:
     pha
     jsr ti_max
@@ -1501,7 +1501,7 @@ c_no_abajo:
     and #PAD_B
     beq c_mira_a
     lda comp_col
-    cmp #TI_COUNT_SELL
+    cmp #TI_COUNT_SALE
     beq c_a_vender
     lda #TI_BUY
     sta comp_col
@@ -1514,7 +1514,7 @@ c_mira_a:
     jsr flanco_a
     beq espera2
     jsr ti_close_deal
-    lda #TI_SEGUNDO
+    lda #TI_SECOND
     sta comp_glyph
     lda comp_col
     inc a                       ; CUANTOS_COMPRA -> COMPRADO, and the selling the same

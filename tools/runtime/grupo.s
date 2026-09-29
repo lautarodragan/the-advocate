@@ -72,7 +72,7 @@ no_estaba:
     lda temp
     bne era_sacar               ; removing one who is not there: nothing to do
     pla
-    cpx #GRUPO_MAX
+    cpx #PARTY_MAX
     beq ready                   ; full: RM2k does not add it either
     sta party, x
     rep #$20
@@ -196,14 +196,14 @@ con_grupo:
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_ACTOR_COUNT, x
+    lda f:map_table + M_ACTOR_COUNT, x
     beq sin_lider16
     sta temp + 2
-    lda f:mapa_tabla + M_PTR_ACTOR_TABLE, x
+    lda f:map_table + M_PTR_ACTOR_TABLE, x
     sta act_ptr
     sep #$20
 .a8
-    lda f:mapa_tabla + M_PTR_ACTOR_TABLE + 2, x
+    lda f:map_table + M_PTR_ACTOR_TABLE + 2, x
     sta act_ptr + 2
 
     ldy #$0000
@@ -263,7 +263,7 @@ sin_cambio_de_sprite:
 .a16
     tya
     clc
-    adc #ACTOR_COLORES          ; and after them, the twelve pose words
+    adc #ACTOR_COLORS          ; and after them, the twelve pose words
     tay
     clc
     adc act_ptr

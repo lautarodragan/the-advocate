@@ -67,17 +67,17 @@ unidades:
     asl a
     asl a
     asl a
-    asl a                       ; RANURA_TEXTO_ANCHO bytes per actor
+    asl a                       ; SLOT_TEXT_WIDTH bytes per actor
     sta msg_ptr
     txa
     clc
     adc msg_ptr
     clc
-    adc #.loword(ranura_actor_texto)
+    adc #.loword(slot_actor_text)
     sta msg_ptr
     sep #$20
 .a8
-    lda #^ranura_actor_texto
+    lda #^slot_actor_text
     sta msg_ptr + 2
     rtl
 .endproc
@@ -130,7 +130,7 @@ decena:
     cmp #$FF
     bne tiene
     pla
-    ldx #RANURA_TEXTO_NIVEL
+    ldx #SLOT_TEXT_LEVEL
     jmp cartridge_strip
 tiene:
     jsr level_to_text
@@ -158,7 +158,7 @@ EXP_LEVEL_IN_SRAM = SRAM_BANK * $10000 + SRAM_DATA + SAVE_BYTES - EXP_K * 4 + EX
     cmp #$FF
     bne tiene
     pla
-    ldx #RANURA_TEXTO_NIVEL
+    ldx #SLOT_TEXT_LEVEL
     jmp cartridge_strip
 tiene:
     rep #$20
@@ -186,7 +186,7 @@ tiene:
 .endproc
 
 ; The maximum HP for actor A's current level, as "/%d" padded to
-; `MENU_MAX_CIFRAS` with spaces: `titulo.texto_de_maximo`.
+; `MENU_MAX_DIGITS` with spaces: `titulo.texto_de_maximo`.
 .proc text_max
 .a8
 .i16
@@ -195,7 +195,7 @@ tiene:
     cmp #$FF
     bne tiene
     pla
-    ldx #RANURA_TEXTO_MAX
+    ldx #SLOT_TEXT_MAX
     jmp cartridge_strip
 tiene:
     pla
@@ -232,7 +232,7 @@ sin_decena:
     sta f:EXP_TEXT, x
     inx
 padding:
-    cpx #MENU_MAX_CIFRAS
+    cpx #MENU_MAX_DIGITS
     bcs completo
     lda #' '
     sta f:EXP_TEXT, x
@@ -254,7 +254,7 @@ completo:
 ; it always shows 40"), which is Talan's maximum—. The maximum and the bar are
 ; still baked, since those do not change.
 ;
-; The digits are the same glyphs as the gold —`ranura_glifo_celdas`, one per
+; The digits are the same glyphs as the gold —`slot_glyph_cells`, one per
 ; cell— and they line up without touching anything because both lines are
 ; drawn two pixels from the top edge of their cell. `titulo._pegar_hp` is the
 ; reference, with the same columns.
@@ -280,9 +280,9 @@ completo:
     and #$00FF
     asl a
     tax
-    lda menu_fila_vram, x
+    lda menu_row_vram, x
     clc
-    adc #(MENU_HP_DESPL + MENU_HP_CIFRAS - 1)
+    adc #(MENU_HP_OFS + MENU_HP_DIGITS - 1)
     tay
     ; And the HP, from far RAM. An actor with more than 999 would show its
     ; three lowest digits; nobody in the game gets there.
@@ -296,7 +296,7 @@ completo:
 .a8
     lda #$80
     sta VMAIN
-    lda #MENU_HP_CIFRAS
+    lda #MENU_HP_DIGITS
     sta temp + 3
 cifra:
     rep #$20
@@ -325,13 +325,13 @@ cifra:
     asl a                       ; two words per digit
     tax
     sty VMADDL
-    lda f:ranura_glifo_celdas + GLIFO_CIFRA_0, x
+    lda f:slot_glyph_cells + GLYPH_DIGIT_0, x
     sta VMDATAL
     tya
     clc
     adc #32                     ; the lower cell
     sta VMADDL
-    lda f:ranura_glifo_celdas + GLIFO_CIFRA_0 + 2, x
+    lda f:slot_glyph_cells + GLYPH_DIGIT_0 + 2, x
     sta VMDATAL
     sep #$20
 .a8
@@ -441,11 +441,11 @@ ready:
     adc 3, s
     asl a
     tax
-    lda f:nivel_fila, x
+    lda f:level_row, x
     clc
     adc 1, s
     tax
-    lda f:nivel_params, x
+    lda f:level_params, x
     tax
     pla
     pla
@@ -513,7 +513,7 @@ ready:
     lda #<(actor_hpmax)
     ora #(>(actor_hpmax) * 256)
     sta f:A1T0L
-    lda #(ACTORES_N * 2)
+    lda #(ACTORS_N * 2)
     sta f:DAS0L
     sep #$20
 .a8
@@ -535,7 +535,7 @@ ready:
     lda #<(actor_spmax)
     ora #(>(actor_spmax) * 256)
     sta f:A1T0L
-    lda #(ACTORES_N * 2)
+    lda #(ACTORS_N * 2)
     sta f:DAS0L
     sep #$20
 .a8
@@ -549,14 +549,14 @@ ready:
     sta f:BBAD0
     lda #$01
     sta f:MDMAEN
-    ; and the experience and level, from `exp_inicial`: `Game_Actor` starts
+    ; and the experience and level, from `exp_initial`: `Game_Actor` starts
     ; at `initial_level` with exactly the experience for that level.
     rep #$20
 .a16
     lda #FAR_EXP
     sta f:WMADDL
-    lda #<(exp_inicial)
-    ora #(>(exp_inicial) * 256)
+    lda #<(exp_initial)
+    ora #(>(exp_initial) * 256)
     sta f:A1T0L
     lda #(EXP_K * 4)
     sta f:DAS0L
@@ -564,7 +564,7 @@ ready:
 .a8
     lda #0
     sta f:WMADDH
-    lda #^(exp_inicial)
+    lda #^(exp_initial)
     sta f:A1B0
     lda #0
     sta f:DMAP0
@@ -750,13 +750,13 @@ topar:
     sta FAR_EXP + 2, x
 sin_tope:
     ; And it levels up while it is enough: the `ChangeExp` loop, which looks at
-    ; `GetNextExp(level)` —row `level` of `exp_tabla`, what it takes to reach
+    ; `GetNextExp(level)` —row `level` of `exp_table`, what it takes to reach
     ; the next one— up to `GetMaxLevel()`. A battle can raise more than one
     ; level at once, and that is RM2k's. HP and SP are not touched: leveling
     ; up does not heal, it only raises the maximum.
 subir:
     ldx BA_T2
-    lda f:exp_nivel_max, x
+    lda f:exp_level_max, x
     ldx BA_T0
     cmp FAR_EXP + EXP_LEVEL, x
     beq ready                   ; at the cap
@@ -771,16 +771,16 @@ subir:
     lda BA_T2
     asl a
     tax
-    lda f:exp_curva, x
+    lda f:exp_curve, x
     clc
     adc 1, s
     tax
     pla
     ; What it takes, in two halves: the low one to the stack —all three
     ; `BA_T*` are in use— and the high one in A.
-    lda f:exp_tabla, x
+    lda f:exp_table, x
     pha
-    lda f:exp_tabla + 2, x
+    lda f:exp_table + 2, x
     ldx BA_T0
     sep #$20
 .a8
@@ -812,7 +812,7 @@ ready:
 
 ; `LearnLevelSkills` for a single level, A, for actor Y: sets in `FAR_SKILL` the
 ; bit of each of its pairs that the LDB's learning table teaches at that level
-; —`hab_par_nivel`—. If it already knew it nothing changes, which is
+; —`skill_pair_level`—. If it already knew it nothing changes, which is
 ; `LearnSkill`; and what a `ChangeSkills` made it forget comes back only if it
 ; is taught at a level just reached, as in RM2k. Runs in battle, but
 ; everything it touches goes with `f:` or through the stack. Clobbers A, X
@@ -826,10 +826,10 @@ ready:
     tya
     asl a
     tax
-    lda f:hab_par_ini, x
+    lda f:skill_pair_init, x
     pha                         ; the slot of the pair being looked at: stack = slot, level
     tyx
-    lda f:hab_par_n, x
+    lda f:skill_pair_n, x
     and #$00FF
     beq end
     tay                         ; how many pairs it has left
@@ -838,7 +838,7 @@ otro:
     tax
     sep #$20
 .a8
-    lda f:hab_par_nivel, x
+    lda f:skill_pair_level, x
     cmp 3, s
     bne siguiente
     rep #$20

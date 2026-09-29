@@ -2,7 +2,7 @@
 
 ; --- sound effects ----------------------------------------------------------------
 ;
-; `PlaySound`, on two voices stolen from the music while they last: SE_VOZ
+; `PlaySound`, on two voices stolen from the music while they last: SE_VOICE
 ; and SE2_VOZ, the ones the music's voice allocation fills first with
 ; percussion (`VOCES_DE_EFECTOS` in snes_music.py). See `build_efectos`
 ; there. In RM2k sound effects add up —EasyRPG has 31 channels—, and with a
@@ -57,7 +57,7 @@ SE2_SHADOW   = SE_SHADOW + SE2_OFS
 SE_BYTES     = 12               ; from SE_FRAMES to SE_NEW, inclusive
 ; SE_BIT and SE_REG —the voice's bit in KON and KOF, and its first
 ; register— and the second one's are emitted by snes_music.py together with
-; SE_VOZ.
+; SE_VOICE.
 SE_KON     = $4C
 SE_KOF     = $5C
 
@@ -458,7 +458,7 @@ otro:
     rts
 .endproc
 
-; The effect whose index in `sonido_tabla` comes in a 16-bit A, or nothing
+; The effect whose index in `sound_table` comes in a 16-bit A, or nothing
 ; if it is $FFFF. It was split from `sound_from_code` when the battle
 ; started playing sound effects: its ones do not come from the bytecode but
 ; from the `BA_SE_*` constants the converter emits, so the index arrives in
@@ -496,7 +496,7 @@ hay:
     tax
     sep #$20
 .a8
-    lda f:sonido_tabla, x
+    lda f:sound_table, x
     cmp #$FF
     bne hay_efecto
     jmp ready         ; there is no effect
@@ -525,9 +525,9 @@ esta:
     ; the one there is the one recorded in `FAR_EFFECT_IN`. Without this, an
     ; effect from another map —a common event's— would play with the
     ; neighbor's sample.
-    lda f:sonido_tabla, x
+    lda f:sound_table, x
     sec
-    sbc #SE_PRIMERA
+    sbc #SE_FIRST
     bcc es_suyo                 ; not one of the effects' places
     phx
     rep #$20
@@ -540,7 +540,7 @@ esta:
 .a8
     lda f:FAR_EFFECT_IN, x
     ldx temp
-    eor f:sonido_efecto, x      ; zero if it is its own
+    eor f:sound_effect, x      ; zero if it is its own
     plx
     cmp #0                      ; `plx`'s Z is X's, not the `eor`'s
     beq es_suyo
@@ -551,7 +551,7 @@ es_suyo:
     ; The interrupt is not lost, it is delayed until the `plp`.
     php
     sei
-    ; The voice: Y ends up at 0 for SE_VOZ or at SE2_OFS for the other.
+    ; The voice: Y ends up at 0 for SE_VOICE or at SE2_OFS for the other.
     ; First the one already playing this same sample —the rain triggers again
     ; before ending, and this way it does not steal the other voice from the
     ; thunder—, then a free one, and otherwise the one that ends sooner. A
@@ -559,14 +559,14 @@ es_suyo:
     ; has played yet.
     ldy #0
     lda f:SE_NEW
-    cmp f:sonido_tabla, x
+    cmp f:sound_table, x
     bne no_misma_7
     jsr se_busy
     bne chosen
 no_misma_7:
     ldy #SE2_OFS
     lda f:SE2_NEW
-    cmp f:sonido_tabla, x
+    cmp f:sound_table, x
     bne no_misma_6
     jsr se2_busy
     bne chosen
@@ -617,7 +617,7 @@ chosen:
     sep #$20
 .a8
 copiar:
-    lda f:sonido_tabla, x
+    lda f:sound_table, x
     phx
     tyx
     sta f:SE_NEW, x

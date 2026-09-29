@@ -43,7 +43,7 @@ otra:
     sta VMAIN
     rep #$20
 .a16
-    lda #RANURA_MAP
+    lda #SLOT_MAP
     sta VMADDL
     lda #.loword(text_buf)
     sta A1T0L
@@ -72,7 +72,7 @@ otra:
 .a16
     and #$00FF
     sec
-    sbc #ITEM_PRIMER_CARACTER
+    sbc #ITEM_FIRST_CHAR
     asl a
     asl a
     tax
@@ -83,15 +83,15 @@ otra:
 otra_tabla:
     txa
     clc
-    adc #ITEM_GLIFOS_GRIS
+    adc #ITEM_GLYPHS_GRAY
     tax
     dey
     bne otra_tabla
 blanco:
     ldy pick_table
-    lda f:item_glifo_celdas, x
+    lda f:item_glyph_cells, x
     sta text_buf, y
-    lda f:item_glifo_celdas + 2, x
+    lda f:item_glyph_cells + 2, x
     sta text_buf + 64, y
     iny
     iny

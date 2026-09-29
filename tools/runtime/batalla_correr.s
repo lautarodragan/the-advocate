@@ -12,7 +12,7 @@
 .i16
     rep #$20
 .a16
-    lda #BATALLA_SEMILLA
+    lda #BATTLE_SEED
     sta BA_SEED                  ; randomness starts the same in every battle
     lda #$FFFF
     sta BA_SE2                  ; no sound effect pending
@@ -133,7 +133,7 @@ o_no_izq:
     and #PAD_RIGHT
     beq o_no_der
     lda BA_COMMAND
-    cmp #(BA_ORDENES_N - 1)
+    cmp #(BA_COMMANDS_N - 1)
     bcs espera5
     inc BA_COMMAND
     jmp recomponer
@@ -141,7 +141,7 @@ o_no_der:
     jsr ba_flanco_a
     beq espera5
     lda BA_COMMAND
-    cmp #BA_ORDEN_ATACAR
+    cmp #BA_COMMAND_ATTACK
     bne o_no_ataca
     jsr ba_enemy_alive
     cmp #$FF
@@ -151,7 +151,7 @@ o_no_der:
     sta BA_MODE
     jmp recomponer
 o_no_ataca:
-    cmp #BA_ORDEN_DEFENDER
+    cmp #BA_COMMAND_DEFEND
     bne o_no_defiende
     lda #0
     sta BA_T0
@@ -159,7 +159,7 @@ o_no_ataca:
     jsr ba_record
     jmp siguiente_actor
 o_no_defiende:
-    cmp #BA_ORDEN_USAR
+    cmp #BA_COMMAND_USE
     bne o_no_usa
     ; `Use Item`: the list of what can be used. Empty, nothing happens, which
     ; is what the pause menu does with a command that leads nowhere.
@@ -173,7 +173,7 @@ o_no_defiende:
     sta BA_MODE
     jmp recomponer
 o_no_usa:
-    cmp #BA_ORDEN_HABILIDAD
+    cmp #BA_COMMAND_SKILL
     bne o_no_habilidad
     ; The skill list of whoever is giving the command. Empty —Talan, who is
     ; level 1— nothing happens, which is what the menu does with a command that
@@ -187,7 +187,7 @@ o_no_usa:
     sta BA_MODE
     jmp recomponer
 o_no_habilidad:
-    cmp #BA_ORDEN_HUIR
+    cmp #BA_COMMAND_ESCAPE
     beq o_huye
     jmp espera
 o_huye:
@@ -200,7 +200,7 @@ o_huye:
     jsr ba_show
     rep #$20
 .a16
-    lda #BA_SE_HUIR             ; the escape_se of `Scene_Battle_Rpg2k`
+    lda #BA_SE_FLEE             ; the escape_se of `Scene_Battle_Rpg2k`
     jsl f:ba_t_sound
 .a8
     lda #BA_M_END
@@ -245,7 +245,7 @@ b_mira_a:
     ; The target mode is shared by attacking and by a skill that targets the
     ; enemies; which of the two it is says `BA_COMMAND`, which is still set.
     lda BA_COMMAND
-    cmp #BA_ORDEN_HABILIDAD
+    cmp #BA_COMMAND_SKILL
     bne b_ataca
     lda #BA_SKILL
     bra b_anota
@@ -327,7 +327,7 @@ a_no_abajo:
     beq a_mira_a
     ; B goes back to the list it came from: the item list or the skill list.
     lda BA_COMMAND
-    cmp #BA_ORDEN_HABILIDAD
+    cmp #BA_COMMAND_SKILL
     bne a_vuelve_a_items
     lda #BA_M_SKILL
     sta BA_MODE
@@ -340,7 +340,7 @@ a_mira_a:
     jsr ba_flanco_a
     beq espera4
     lda BA_COMMAND
-    cmp #BA_ORDEN_HABILIDAD
+    cmp #BA_COMMAND_SKILL
     bne a_es_item
     lda BA_ITEM_BLA
     sta BA_T0
@@ -394,10 +394,10 @@ h_no_der:
     and #PAD_UP
     beq h_no_arriba
     lda BA_SKILL_SEL
-    cmp #BA_HAB_COLUMNAS
+    cmp #BA_SKILL_COLUMNS
     bcc espera6
     sec
-    sbc #BA_HAB_COLUMNAS
+    sbc #BA_SKILL_COLUMNS
     sta BA_SKILL_SEL
     jmp recomponer
 h_no_arriba:
@@ -406,7 +406,7 @@ h_no_arriba:
     beq h_no_abajo
     lda BA_SKILL_SEL
     clc
-    adc #BA_HAB_COLUMNAS
+    adc #BA_SKILL_COLUMNS
     cmp BA_SKILL_N
     bcs espera6
     sta BA_SKILL_SEL
@@ -445,10 +445,10 @@ h_mira_a:
     ; scope: only `enemy` and `ally` ask for it —`batalla.pide_blanco`—.
     lda BA_S0
     jsr ba_ax
-    lda f:hab_tipo, x
+    lda f:skill_type, x
     cmp #BA_SKILL_TYPE_SWITCH
     beq h_sin_blanco
-    lda f:hab_alcance, x
+    lda f:skill_scope, x
     cmp #BA_SCOPE_ENEMY
     beq h_con_blanco
     cmp #BA_SCOPE_ALLY
@@ -460,10 +460,10 @@ h_sin_blanco:
     jsr ba_record
     jmp siguiente_actor
 h_con_blanco:
-    ; Whom it targets: bit 6 of `hab_afecta` is `SkillTargetsEnemies`.
+    ; Whom it targets: bit 6 of `skill_affects` is `SkillTargetsEnemies`.
     lda BA_S0
     jsr ba_ax
-    lda f:hab_afecta, x
+    lda f:skill_affects, x
     and #$40
     beq h_a_un_aliado
     jsr ba_enemy_alive
@@ -684,7 +684,7 @@ nada_act:
 ba_blanco_act_sirve:
     pha
     lda BA_COMMAND
-    cmp #BA_ORDEN_HABILIDAD
+    cmp #BA_COMMAND_SKILL
     beq sirve_hab
     pla
     jmp ba_item_usable_on

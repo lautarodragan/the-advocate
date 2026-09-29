@@ -80,7 +80,7 @@ LEVEL_COL = (SLOT_X + 2 * font.WIDTH) // CELL       # 8
 # console.
 FACE_PALETTES_MAX = 7
 # How many tiles fit in the screen's bank: the converter checks it against
-# the VRAM layout, see RANURA_MAP there.
+# the VRAM layout, see SLOT_MAP there.
 SLOT_TILES_MAX = 448
 
 # --- what depends on the actor, composed with glyphs ---------------------------
@@ -408,7 +408,7 @@ MENU_MAX_DIGITS = 4             # the slash and up to three digits: "/168"
 # row's 56 pixels. In sprites it goes wherever needed: twelve pixels below
 # the HP, which is the font's pitch, and at the font's six pixels and not the
 # cells' eight —at eight, the thirteen letters went off the screen—. The
-# tiles are the bank's own glyphs: the sprites read VRAM from `RANURA_VRAM`,
+# tiles are the bank's own glyphs: the sprites read VRAM from `SLOT_VRAM`,
 # so a glyph's tile is the same number.
 #
 # Twelve and not sixteen pixels below the HP leaves one pixel of space above
@@ -471,7 +471,7 @@ ITEM_WHITE, ITEM_GRAY, ITEM_UP, ITEM_RED = range(4)
 ITEM_UP_CHARS = "0123456789 "
 # How far the font bank can grow: the battle uploads it and then writes its
 # scene's tilemap at VRAM word $3800, which is tile 384 counting from
-# `RANURA_VRAM`. Whatever goes past there would be overwritten.
+# `SLOT_VRAM`. Whatever goes past there would be overwritten.
 ITEMS_TILES_MAX = (0x3800 - 0x2000) // 16
 
 # The screen's windows, like `Scene_Item`: the help one on top and the list
@@ -485,7 +485,7 @@ ITEMS_TILES_MAX = (0x3800 - 0x2000) // 16
 # as before: that way the text does not have to know anything about the
 # windows, and the description, which is uploaded in whole rows, does not
 # erase the frame. The glyphs already carry the priority bit —see
-# `item_glifo_celdas` in the converter—, so the text stays above the band of
+# `item_glyph_cells` in the converter—, so the text stays above the band of
 # the background that crosses it, as in RM2k. At 8bpp a pixel is directly its
 # CGRAM entry: the frame's colors go from `ITEM_BORDER_CGRAM`, after the four
 # text palettes, and black is 0, the transparent one, which lets the backdrop
@@ -845,7 +845,7 @@ def slots_screen(sys_img, db, slots, font_id=None, actors=(),
                 image, sys_img, MENU_OPT_COL * CELL,
                 MENU_OPT_Y + option * MENU_OPT_STEP + 2, text,
                 color=3 if disabled else 0, font_id=font_id)
-            layers.append(("menu_opcion", (option, disabled), image))
+            layers.append(("menu_option", (option, disabled), image))
     image = layer()
     write(image, MENU_CURSOR_COL * CELL, MENU_OPT_Y + 2, ">")
     layers.append(("menu_cursor", None, image))
@@ -858,10 +858,10 @@ def slots_screen(sys_img, db, slots, font_id=None, actors=(),
     window_mod.draw_line(image, sys_img, MENU_CURRENCY_COL * CELL,
                           MENU_GOLD_Y + 2, db.term_gold, color=1,
                           font_id=font_id)
-    layers.append(("menu_moneda", None, image))
+    layers.append(("menu_currency", None, image))
     image = layer()
     _write_menu_row(image, sys_img, db, font_id)
-    layers.append(("menu_fila", None, image))
+    layers.append(("menu_row", None, image))
     # The experience term, loose like a glyph: sprites draw it. Up to two
     # letters, which are the twelve pixels `DrawActorExp` leaves it before
     # the digits.
@@ -870,13 +870,13 @@ def slots_screen(sys_img, db, slots, font_id=None, actors=(),
                           GLYPH_ROW * CELL + GLYPH_DY,
                           (db.term_exp_short or "")[:2], color=1,
                           font_id=font_id)
-    layers.append(("menu_exp_termino", None, image))
+    layers.append(("menu_exp_finished", None, image))
 
     # The disabled commands go in **their own palette**, number 1: system
     # color 3 is a gradient that, added to the text's, gives 18 colors, and
     # 4bpp fits 15. It costs the faces one palette.
     def gray(kind, key):
-        return kind == "menu_opcion" and key[1]
+        return kind == "menu_option" and key[1]
 
     seen, seen_gray = collections.Counter(), collections.Counter()
     for kind, key, image in layers:
@@ -902,7 +902,7 @@ def slots_screen(sys_img, db, slots, font_id=None, actors=(),
     menu = {"opciones": [[None, None] for _ in range(MENU_OPTIONS)],
             "cursor": None, "glifos": {}, "moneda": None, "fila": None}
     for kind, key, image in layers:
-        if kind == "menu_opcion":
+        if kind == "menu_option":
             option, disabled = key
             menu["opciones"][option][disabled] = _cell_block(
                 image, (MENU_OPT_Y + option * MENU_OPT_STEP) // CELL, 2, tiles,
@@ -915,15 +915,15 @@ def slots_screen(sys_img, db, slots, font_id=None, actors=(),
         elif kind == "menu_glifo":
             menu["glifos"][key] = _cell_block(
                 image, GLYPH_ROW, 2, tiles, offset, index, GLYPH_COL, 1)
-        elif kind == "menu_moneda":
+        elif kind == "menu_currency":
             menu["moneda"] = _cell_block(
                 image, MENU_GOLD_Y // CELL, 2, tiles, offset, index,
                 MENU_CURRENCY_COL, MENU_CURRENCY_COLS)
-        elif kind == "menu_fila":
+        elif kind == "menu_row":
             menu["fila"] = _cell_block(
                 image, 0, MENU_ACTOR_ROWS, tiles, offset, index,
                 MENU_ACTOR_COL, MENU_ACTOR_COLS)
-        elif kind == "menu_exp_termino":
+        elif kind == "menu_exp_finished":
             menu["exp_termino"] = _cell_block(
                 image, GLYPH_ROW, 2, tiles, offset, index, GLYPH_COL,
                 MENU_EXP_TERM_CELLS)

@@ -7,8 +7,8 @@
 ; fallen actor. What goes in the list and how much it heals is not decided
 ; here but in `batalla.item_usable_en_batalla` and `batalla.efecto_de_item`,
 ; which is the model `rom/pruebas/rpgmaker/test_batalla.py` uses to predict
-; the exact HP; the converter emits the result in `item_batalla`,
-; `item_cura_rate`, `item_cura_hp` and `item_medicina`, which is the same one
+; the exact HP; the converter emits the result in `item_battle`,
+; `item_heal_rate`, `item_heal_hp` and `item_medicine`, which is the same one
 ; `medicine_use` uses.
 ;
 ; All of this runs with the data bank at $7E, so **the inventory is read with
@@ -30,7 +30,7 @@ otro:
     bcs ready
     lda BA_S0
     jsr ba_ax
-    lda f:item_batalla, x
+    lda f:item_battle, x
     beq siguiente
     lda BA_S0
     rep #$20
@@ -113,7 +113,7 @@ ready:
 .a8
     lda BA_S3
     jsr ba_ax
-    lda f:item_cura_rate, x
+    lda f:item_heal_rate, x
     sta BA_T2                   ; the product's byte
     ldx BA_S4
     rep #$20
@@ -129,7 +129,7 @@ ready:
     and #$00FF
     asl a
     tax
-    lda f:item_cura_hp, x
+    lda f:item_heal_hp, x
     clc
     adc BA_S5
     sta BA_S5                   ; what it would heal
@@ -177,7 +177,7 @@ topado:
     lda BA_ITEM_SEL
     jsr ba_item_from_list
     jsr ba_ax
-    lda f:item_medicina, x
+    lda f:item_medicine, x
     and #MED_KO_ONLY
     beq si
 no:
@@ -187,7 +187,7 @@ caido:
     lda BA_ITEM_SEL
     jsr ba_item_from_list
     jsr ba_ax
-    lda f:item_medicina, x
+    lda f:item_medicine, x
     and #MED_RAISES
     beq no
 si:
@@ -223,7 +223,7 @@ si:
     lda BA_ACC_ITEM, x
     sta BA_MITEM
     jsr ba_ax
-    lda f:item_medicina, x
+    lda f:item_medicine, x
     sta BA_S2                   ; its flags
     lda BA_MBLA
     jsr ba_x

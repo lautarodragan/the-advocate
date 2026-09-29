@@ -66,9 +66,9 @@
 
 ; The text area is eight cell rows, that is four lines of two rows each, and
 ; the composer's buffer is one line long. They go down here and not above
-; because `VENTANA_TEXTO_COLS` is emitted by the converter.
-WINDOW_TEXT_LINES = VENTANA_TEXTO_FILAS / 2
-TEXT_BUF_BYTES = VENTANA_TEXTO_COLS * 2 * 32
+; because `WINDOW_TEXT_COLS` is emitted by the converter.
+WINDOW_TEXT_LINES = WINDOW_TEXT_ROWS / 2
+TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 
 .include "pagina_cero.s"
 .include "arranque.s"

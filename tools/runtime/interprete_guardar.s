@@ -29,7 +29,7 @@
 ; Until 2026-09-10 this saved to the loaded slot —or to the first one—
 ; without showing anything, and the attempt to open the screen gave "black
 ; with garbage": the test ROM had no title, and without a title the converter
-; emitted the slot screen as one filler byte with `RANURA_TILES` at zero.
+; emitted the slot screen as one filler byte with `SLOT_TILES` at zero.
 ; Today it goes in every ROM.
 .proc op_save
     phy

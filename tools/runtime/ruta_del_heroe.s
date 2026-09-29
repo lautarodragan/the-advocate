@@ -41,7 +41,7 @@
 .a8
 .i16
     ; A `wait` in progress takes the whole frame and does not look at the move
-    ; route. It is RUTA_ESPERA frames and not one: it is RM2k's
+    ; route. It is ROUTE_WAIT frames and not one: it is RM2k's
     ; `SetMaxStopCountForWait`, which with frequency 8 gives twenty.
     ; The jump in progress is not looked at here but in `move_hero`: see
     ; `jump_advance_hero`.
@@ -58,12 +58,12 @@ otra_orden:
 hay_orden:
     jsr hero_command
 
-    cmp #23                     ; wait: this one and the RUTA_ESPERA - 1 after it,
+    cmp #23                     ; wait: this one and the ROUTE_WAIT - 1 after it,
     bne no_es_wait              ; plus the turn's if the frequency is low
     lda route_freq
     jsr after_turn
     clc
-    adc #(RUTA_ESPERA - 1)
+    adc #(ROUTE_WAIT - 1)
     sta route_wait
     jmp ready
 no_es_wait:
@@ -134,13 +134,13 @@ frecuencia:
     ; and not from anywhere else.
     ;
     ; With 1 the wait after a step is 256 frames and does not fit in
-    ; `ruta_tras_paso`'s byte; the converter guarantees it is never reached,
+    ; `route_after_step`'s byte; the converter guarantees it is never reached,
     ; since it rejects the whole move route. Here it is capped at 1 anyway,
     ; like RM2k, in case that guard ever fails.
     and #$01
     bne frec_menos
     lda route_freq
-    cmp #RUTA_FRECUENCIA
+    cmp #ROUTE_FREQUENCY
     bcs frec_listo
     inc route_freq
     bra frec_listo
@@ -348,7 +348,7 @@ siguiente:
     clc
     adc #ROUTE_EV_STRIDE
     tax
-    cmp #RUTA_EV_MAX * ROUTE_EV_STRIDE
+    cmp #ROUTE_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
     bcc otra

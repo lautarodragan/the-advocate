@@ -10,7 +10,7 @@
 ; goes —see `CHANGE_SCREEN_TRANSITIONS` in tools/port/events.py—:
 ;
 ;   the fade     the usual one, `fade_tick`: the master brightness over
-;                `fundido_rampa`. It is also what goes for the ones the
+;                `fade_ramp`. It is also what goes for the ones the
 ;                console does not do, like the zoom
 ;   the mosaic   the same fade, plus the MOSAIC register tied to the
 ;                brightness: size 16 at brightness 0, size 1 at brightness
@@ -65,24 +65,24 @@ mostrar:
 ; The byte of `ticks` from which the fade being started counts, into
 ; `fade_base`. From `start_fade`.
 ;
-; With the cut for erasing it starts `FUNDIDO_CUADROS - 1` ticks back: the
+; With the cut for erasing it starts `FADE_FRAMES - 1` ticks back: the
 ; first `fade_tick` lands on the last frame of the outgoing half, which is
-; already past `FUNDIDO_CARGA` —so it loads the map right there— and in the
+; already past `FADE_LOAD` —so it loads the map right there— and in the
 ; black in the middle. It is `TransitionCutOut`, which lasts one frame in RM2k,
 ; followed by the usual show. `fade_tick` knows nothing about it.
-.assert FUNDIDO_CARGA < FUNDIDO_CUADROS, error, "the cut has to land past the load"
+.assert FADE_LOAD < FADE_FRAMES, error, "the cut has to land past the load"
 .proc fade_from
 .a8
 .i16
     lda f:TRANSITION_ERASE
-    cmp #TRANSICION_CORTE
+    cmp #TRANSITION_CUTOFF
     beq corte
     lda ticks
     bra put
 corte:
     lda ticks
     sec
-    sbc #(FUNDIDO_CUADROS - 1)
+    sbc #(FADE_FRAMES - 1)
 put:
     sta f:fade_base
     rtl
@@ -90,10 +90,10 @@ put:
 
 ; Both set to the fade, from reset: far RAM starts with garbage in bsnes, and
 ; the first teleport would come out as a mosaic if it happened to land that
-; way. Any value that is neither TRANSICION_MOSAICO nor TRANSICION_CORTE is the
+; way. Any value that is neither TRANSITION_MOSAIC nor TRANSITION_CUTOFF is the
 ; fade.
-.assert TRANSICION_MOSAICO <> 0, error, "zero has to be the fade"
-.assert TRANSICION_CORTE <> 0, error, "zero has to be the fade"
+.assert TRANSITION_MOSAIC <> 0, error, "zero has to be the fade"
+.assert TRANSITION_CUTOFF <> 0, error, "zero has to be the fade"
 .proc boot_transition
 .a8
 .i16
@@ -123,7 +123,7 @@ put:
 mostrando:
     lda f:TRANSITION_SHOW
 mirar:
-    cmp #TRANSICION_MOSAICO
+    cmp #TRANSITION_MOSAIC
     bne apagado
     lda f:brightness
     eor #$0F                    ; the size, the reverse of the brightness

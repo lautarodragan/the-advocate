@@ -14,7 +14,7 @@
     lda [code_ptr], y            ; the operation
     sta temp
     iny
-    cmp #TIMER_PONER
+    cmp #TIMER_SET
     bne no_pone
     rep #$20
 .a16
@@ -27,12 +27,12 @@ timer_poner_16:
     ; make the requested value show for a whole second and not a single frame.
     ; Here the frames are kept separately, so they are the remainder and
     ; nothing else.
-    lda #TIMER_DE_MAS
+    lda #MORE_TIMER
     sta timer_sub
     jsr timer_digits
     bra timer_fin
 no_pone:
-    cmp #TIMER_PONER_VAR
+    cmp #TIMER_SET_VAR
     bne no_pone_var
     ; The seconds from a variable, which is what the Tram Officer on map 9
     ; does: "what the timer has left, minus sixty". A negative variable sets
@@ -49,7 +49,7 @@ no_pone:
     bra timer_poner_16
 .a8
 no_pone_var:
-    cmp #TIMER_ARRANCAR
+    cmp #TIMER_START
     bne timer_para
     lda #1
     sta timer_active

@@ -16,7 +16,7 @@
 .proc op_pan
     lda [code_ptr], y            ; the operation
     iny
-    cmp #PAN_VOLVER
+    cmp #PAN_RETURN
     bne pan_correr
     rep #$20
 .a16

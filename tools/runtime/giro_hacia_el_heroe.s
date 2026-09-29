@@ -28,7 +28,7 @@
 ;               `seek_event_page` ran
 ;
 ; A still one shares its VRAM slot with the other still ones of the same pose,
-; so to turn it moves to the map's turn slot, `M_GIRO_TILE4`, and the new pose
+; so to turn it moves to the map's turn slot, `M_TURN_TILE4`, and the new pose
 ; is uploaded there. One that walks or animates in place has its own and turns
 ; where it is.
 FAR_TURN   = $30C0
@@ -87,10 +87,10 @@ sin_ruta:
     rts
 con_fila:
     lda npc_buf + 9, y
-    cmp #NPC_QUIETO
+    cmp #NPC_STILL
     bne puede
     ldx map_ofs
-    lda f:mapa_tabla + M_GIRO_TILE4, x
+    lda f:map_table + M_TURN_TILE4, x
     cmp #$FF
     bne puede
     rts                         ; a still one with no turn slot
@@ -180,7 +180,7 @@ con_columna:
     adc temp
     sta temp                    ; the new pose
     lda npc_buf + 9, y
-    cmp #NPC_QUIETO
+    cmp #NPC_STILL
     beq quieto
     lda npc_buf + 13, y
     bmi ready                   ; animates in place: `animate_still` uploads it
@@ -192,7 +192,7 @@ quieto:
     lda temp
     sta npc_buf + 12, y
     ldx map_ofs
-    lda f:mapa_tabla + M_GIRO_TILE4, x
+    lda f:map_table + M_TURN_TILE4, x
     asl a
     asl a                       ; the tile: the byte times four, and bit 8
     sta npc_buf + 6, y
@@ -236,7 +236,7 @@ quieto:
     lda [poses_ptr], y
     sta vq_src + 2
     ldx map_ofs
-    lda f:mapa_tabla + M_GIRO_TILE4, x
+    lda f:map_table + M_TURN_TILE4, x
     rep #$20
 .a16
     and #$00FF
@@ -247,7 +247,7 @@ quieto:
     asl a
     asl a                       ; sixteen words per tile
     clc
-    adc f:mapa_tabla + M_VRAM_SPRITE, x
+    adc f:map_table + M_VRAM_SPRITE, x
     sta vq_dest
     sep #$20
 .a8
@@ -298,7 +298,7 @@ si:
     cpy #$FFFF
     beq nothing
     lda npc_buf + 9, y
-    cmp #NPC_QUIETO
+    cmp #NPC_STILL
     bne propia
     lda f:TURN_TILE_PREV
     sta npc_buf + 6, y

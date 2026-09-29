@@ -6,7 +6,7 @@
 ; inventory list with how many there are. It has **its own tile bank**,
 ; `items_tiles`: each font character in two cells, in white and in gray, and
 ; the text —name and two lines of description per item— goes in ASCII in
-; `item_textos`. Writing a letter is two tilemap words. The geometry comes
+; `item_texts`. Writing a letter is two tilemap words. The geometry comes
 ; from `titulo.py` and `render_items` is the reference.
 ;
 ; The windows and the cursor —the System's bar— go on BG1, and belong to
@@ -109,7 +109,7 @@ siguiente:
 .a16
     and #$00FF
     sec
-    sbc #ITEM_PRIMER_CARACTER
+    sbc #ITEM_FIRST_CHAR
     asl a
     asl a                       ; four bytes per character
     tax
@@ -118,7 +118,7 @@ siguiente:
     beq blanco
     txa
     clc
-    adc #ITEM_GLIFOS_GRIS
+    adc #ITEM_GLYPHS_GRAY
     tax
 blanco:
     sep #$20
@@ -128,13 +128,13 @@ blanco:
     rep #$20
 .a16
     sty VMADDL
-    lda f:item_glifo_celdas, x
+    lda f:item_glyph_cells, x
     sta VMDATAL
     tya
     clc
     adc #32
     sta VMADDL
-    lda f:item_glifo_celdas + 2, x
+    lda f:item_glyph_cells + 2, x
     sta VMDATAL
     sep #$20
 .a8
@@ -190,7 +190,7 @@ letra:
 .a16
     and #$00FF
     sec
-    sbc #ITEM_PRIMER_CARACTER
+    sbc #ITEM_FIRST_CHAR
     asl a
     asl a
     clc
@@ -201,10 +201,10 @@ letra:
     beq en_blanco
     txa
     clc
-    adc #ITEM_GLIFOS_GRIS
+    adc #ITEM_GLYPHS_GRAY
     tax
 en_blanco:
-    lda f:item_glifo_celdas, x
+    lda f:item_glyph_cells, x
     sta VMDATAL                 ; and VRAM advances one word
     sep #$20
 .a8
@@ -283,13 +283,13 @@ letra:
 .a16
     and #$00FF
     sec
-    sbc #ITEM_PRIMER_CARACTER
+    sbc #ITEM_FIRST_CHAR
     asl a
     asl a
     tax
-    lda f:item_glifo_celdas, x
+    lda f:item_glyph_cells, x
     pha
-    lda f:item_glifo_celdas + 2, x
+    lda f:item_glyph_cells + 2, x
     ldx pick_table
     sta text_buf + 64, x
     pla
@@ -362,7 +362,7 @@ sin_cursor:
     tax
     sep #$20
 .a8
-    lda item_uso, x
+    lda item_use, x
     and #1
     eor #1
     sta temp + 1
@@ -373,9 +373,9 @@ sin_cursor:
     and #$00FF
     asl a
     tax
-    lda item_fila_vram, x
+    lda item_row_vram, x
     clc
-    adc #ITEM_NOMBRE_COL
+    adc #ITEM_NAME_COL
     sta pick_table
     lda pick_edges
     and #$00FF
@@ -409,9 +409,9 @@ unidades:
     and #$00FF
     asl a
     tax
-    lda item_fila_vram, x
+    lda item_row_vram, x
     clc
-    adc #ITEM_DOS_PUNTOS_COL
+    adc #ITEM_TWO_POINTS_COL
     sta pick_table
     tay
     sep #$20
@@ -463,7 +463,7 @@ row:
     jsr items_row_paint
     pla
     inc a
-    cmp #ITEM_FILAS
+    cmp #ITEM_ROWS
     bcc row
     rts
 termina:
@@ -538,10 +538,10 @@ mira_a:
     tax
     sep #$20
 .a8
-    lda item_uso, x
+    lda item_use, x
     and #1
     beq espera                  ; grayed out: RM2k plays a sound and does nothing
-    lda item_uso, x
+    lda item_use, x
     and #4
     beq de_switch
     ; A medicine: the actor choice, and back to the list with the cursor where
@@ -589,7 +589,7 @@ de_switch:
     ; A switch item: `ConsumeItemUse` if it has uses, the switch turned on and
     ; straight to the map. `set_switch` asks for the page refresh, which is
     ; the `SetNeedRefresh(true)` over there.
-    lda item_uso, x
+    lda item_use, x
     and #2
     beq sin_gastar
     lda pick_edges
@@ -642,7 +642,7 @@ mover:
     bcc sube_la_vista
     sec
     sbc pick_sel
-    cmp #ITEM_FILAS
+    cmp #ITEM_ROWS
     bcs baja_la_vista
     lda #1
     sta temp + 3
@@ -658,7 +658,7 @@ sube_la_vista:
 baja_la_vista:
     lda title_sel
     sec
-    sbc #(ITEM_FILAS - 1)
+    sbc #(ITEM_ROWS - 1)
     sta pick_sel
 repintar:
     lda #$80

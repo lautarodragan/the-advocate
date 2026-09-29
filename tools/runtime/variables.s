@@ -21,7 +21,7 @@
     phx
     rep #$20
 .a16
-    and #VAR_RANURA             ; the slot byte, without whatever B carries
+    and #VAR_SLOT             ; the slot byte, without whatever B carries
     asl a                       ; two bytes per variable
     tax
     lda f:FAR_LENGTH + FAR_VARIABLES, x
@@ -29,7 +29,7 @@
     rts
 .endproc
 
-; A: the slot; B: the opcode's flags byte, with `VAR_REFRESCO` in the top bit
+; A: the slot; B: the opcode's flags byte, with `VAR_REFRESH` in the top bit
 ; if this write asks for a page refresh; `temp + 2`: the value.
 ;
 ; The refresh is flagged **here and not in each opcode** because every write
@@ -38,7 +38,7 @@
 ; `Game_Map::SetNeedRefreshForVarChange`, which does not flag on just any
 ; write either: it asks `map_cache` whether any page condition on the map
 ; looks at that variable. Here that question was answered by the converter;
-; see VAR_REFRESCO in eventos.py.
+; see VAR_REFRESH in eventos.py.
 ;
 ; Until 2026-09-27 the bit came in the slot, and that capped the variables at
 ; 128: see VAR_RANURA_MAX in eventos.py.
@@ -46,7 +46,7 @@
 .a8
 .i16
     xba                         ; the flags
-    bpl sin_refresco            ; VAR_REFRESCO is bit 7: see the .assert
+    bpl sin_refresco            ; VAR_REFRESH is bit 7: see the .assert
     lda #1                      ; the flags are no longer needed: the `and`
     sta refresh                ; below drops whatever is left in B
 sin_refresco:
@@ -54,7 +54,7 @@ sin_refresco:
     phx
     rep #$20
 .a16
-    and #VAR_RANURA
+    and #VAR_SLOT
     asl a
     tax
     lda temp + 2
@@ -65,7 +65,7 @@ sin_refresco:
     rts
 .endproc
 
-.assert VAR_REFRESCO = $80, error, "var_write checks VAR_REFRESCO with the N flag"
+.assert VAR_REFRESH = $80, error, "var_write checks VAR_REFRESH with the N flag"
 
 ; Turns the switch in temp on or off according to A.
 ;
@@ -130,9 +130,9 @@ apagar:
     stz WMDATA                  ; saving and the menu, allowed
     lda #4                      ; the hero's normal speed
     sta WMDATA
-    lda #<AZAR_SEMILLA
+    lda #<RANDOM_SEED
     sta WMDATA
-    lda #>AZAR_SEMILLA
+    lda #>RANDOM_SEED
     sta WMDATA
 otra:
     stz WMDATA
@@ -151,15 +151,15 @@ otra:
 .a16
     lda #FAR_EQUIPMENT
     sta WMADDL
-    lda #<(equipo_inicial)
-    ora #(>(equipo_inicial) * 256)
+    lda #<(equipment_initial)
+    ora #(>(equipment_initial) * 256)
     sta A1T0L
-    lda #(ACTORES_N * 10)
+    lda #(ACTORS_N * 10)
     sta DAS0L
     sep #$20
 .a8
     stz WMADDH
-    lda #^(equipo_inicial)
+    lda #^(equipment_initial)
     sta A1B0
     stz DMAP0                   ; A to B, one byte at a time
     lda #$80                    ; WMDATA

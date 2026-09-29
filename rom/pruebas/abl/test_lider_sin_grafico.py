@@ -36,7 +36,7 @@ def _cartucho(p):
 
 def _registro(p, rom, map_id):
     s = p.simbolos
-    return en_la_rom(s["mapa_tabla"]) + p.mapas.index(map_id) * s["MAPA_STRIDE"]
+    return en_la_rom(s["map_table"]) + p.mapas.index(map_id) * s["MAP_STRIDE"]
 
 
 def _palabra(rom, k):

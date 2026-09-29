@@ -108,7 +108,7 @@ sub_listo:
 .a8
 .i16
     lda [code_ptr], y            ; the mode: 0 the written cell, 1 by variable,
-    iny                         ; with VAR_REFRESCO on top
+    iny                         ; with VAR_REFRESH on top
     sta temp
     rep #$20
 .a16
@@ -127,7 +127,7 @@ sub_listo:
     sta temp + 1
     phy
     lda temp
-    and #<~VAR_REFRESCO
+    and #<~VAR_REFRESH
     beq terreno_celda
     ; By variable: what came in the opcode is two slots, and they are read now
     ; —it is the `ValueOrVariable` of `CommandStoreTerrainID`—.
@@ -157,7 +157,7 @@ terreno_celda:
     sep #$20
 .a8
     ldx map_ofs
-    lda f:mapa_tabla + M_TERRENO_PLANO, x
+    lda f:map_table + M_TERRAIN_PLANE, x
     bne terreno_puesto          ; a single terrain in the whole map
     jsr cell_ptr
     rep #$20
@@ -169,11 +169,11 @@ terreno_celda:
     ; the only free one here is `cells_ptr` —which has already been used and
     ; is temporary anyway: everyone repositions it before reading—.
     ldx map_ofs
-    lda f:mapa_tabla + M_PTR_BLOQUE_TERRENO, x
+    lda f:map_table + M_PTR_BLOCK_TERRAIN, x
     sta cells_ptr
     sep #$20
 .a8
-    lda f:mapa_tabla + M_PTR_BLOQUE_TERRENO + 2, x
+    lda f:map_table + M_PTR_BLOCK_TERRAIN + 2, x
     sta cells_ptr + 2
     ldy temp + 2
     lda [cells_ptr], y
@@ -182,7 +182,7 @@ terreno_afuera:
     sep #$20
 .a8
     ldx map_ofs
-    lda f:mapa_tabla + M_TERRENO_FUERA, x
+    lda f:map_table + M_TERRAIN_OUTSIDE, x
 terreno_puesto:
     sta temp + 2                ; `var_write` takes it from here
     stz temp + 3

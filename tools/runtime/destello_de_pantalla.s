@@ -165,7 +165,7 @@ apagar:
 ; The subtraction is always on the positive side, because the divider is
 ; unsigned.
 ;
-; The products come from the level's row in `prod31_tabla`, and the distance
+; The products come from the level's row in `prod31_table`, and the distance
 ; to the target drops by one down to the target and then rises by one, so
 ; instead of computing each index it is walked: X goes down the row in the
 ; first stretch and up in the second. Until 2026-09-26 each entry compared,
@@ -203,7 +203,7 @@ apagar:
 sube:
     tya                         ; the channel, which is Y
     clc
-    adc f:prod31_tabla, x
+    adc f:prod31_table, x
     sta (temp), y
     dex
     iny
@@ -221,7 +221,7 @@ sube:
 baja:
     tya
     sec
-    sbc f:prod31_tabla, x
+    sbc f:prod31_table, x
     sta (temp), y
     inx
     iny
@@ -240,7 +240,7 @@ ready:
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_MAP_CGRAM, x
+    lda f:map_table + M_MAP_CGRAM, x
     sta tint_count
     sep #$20
 .a8
@@ -261,11 +261,11 @@ ready:
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_ABOVE_CGRAM, x
+    lda f:map_table + M_ABOVE_CGRAM, x
     sta tint_count
     sep #$20
 .a8
-    lda f:mapa_tabla + M_ABOVE_FIRST, x
+    lda f:map_table + M_ABOVE_FIRST, x
     jmp flash_range
 .endproc
 
@@ -276,7 +276,7 @@ ready:
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_SPRITE_CGRAM, x
+    lda f:map_table + M_SPRITE_CGRAM, x
     sta tint_count
     sep #$20
 .a8

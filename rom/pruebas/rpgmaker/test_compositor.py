@@ -4,7 +4,7 @@
 byte con cuántos caracteres tiene, y ese byte sale del cartucho.
 `compose_char` escribe en `text_buf` con
 un desplazamiento que sale de la columna, así que un largo mayor que
-`MENSAJE_COLS` escribe **fuera del buffer**, y lo que hay del otro lado es la
+`MESSAGE_COLS` escribe **fuera del buffer**, y lo que hay del otro lado es la
 tabla del HDMA de la ventana, la imagen de OAM y `vq_n`, el contador de la cola
 de poses. Con `vq_n` alto, `vram_drain` sube bloques de 128 bytes a direcciones
 cualquiera de la VRAM y la pantalla se hace basura unos cuadros después, en
@@ -38,7 +38,7 @@ def _componer(p, largo, ticks=TICKS):
     es componer. `msg_ptr` apunta al bloque de textos, que es ROM legible: qué
     caracteres salgan de ahí no importa, importa dónde se escriben.
     """
-    mensajes = p.simbolos["mensajes"]
+    mensajes = p.simbolos["messages"]
     p.consola.write_ram(p.simbolos["msg_ptr"],
                         [mensajes & 0xFF, (mensajes >> 8) & 0xFF,
                          (mensajes >> 16) & 0xFF])
@@ -81,7 +81,7 @@ def test_un_largo_inventado_no_escribe_fuera_del_buffer(partida):
     """
     legal = partida()
     antes, desde = _cola_de_la_ram(
-        _componer(legal, legal.simbolos["MENSAJE_COLS"]))
+        _componer(legal, legal.simbolos["MESSAGE_COLS"]))
     despues, _ = _cola_de_la_ram(_componer(partida(), LARGO_INVENTADO))
     distintos = [desde + i for i in range(len(antes))
                  if antes[i] != despues[i]]
@@ -102,11 +102,11 @@ def test_el_renglon_cortado_igual_consume_sus_bytes(partida):
     caracteres.
     """
     p = partida()
-    mensajes = p.simbolos["mensajes"]
+    mensajes = p.simbolos["messages"]
     _componer(p, LARGO_INVENTADO)
     bajo, alto, banco = p.consola.ram(p.simbolos["msg_ptr"], 3)
     ptr = (banco << 16) | (alto << 8) | bajo
     assert ptr - mensajes == LARGO_INVENTADO, (
         "el compositor tiene que consumir los %d caracteres del renglón aunque "
         "sólo dibuje %d: avanzó %d"
-        % (LARGO_INVENTADO, p.simbolos["MENSAJE_COLS"], ptr - mensajes))
+        % (LARGO_INVENTADO, p.simbolos["MESSAGE_COLS"], ptr - mensajes))

@@ -101,13 +101,13 @@ def symbols_of(sfc):
 
 def with_song_on_title(rom, symbols, song):
     """The ROM with the title screen playing `song`: the immediate of the
-    `lda #TEMA_TITULO` it starts it with is changed. It is the only way for a
+    `lda #SONG_TITLE` it starts it with is changed. It is the only way for a
     song to play on its own, with its samples uploaded, without playing
     anything."""
-    pattern = bytes([0xA9, symbols["TEMA_TITULO"], 0xC9, 0xFF, 0xF0])
+    pattern = bytes([0xA9, symbols["SONG_TITLE"], 0xC9, 0xFF, 0xF0])
     where = rom.find(pattern)
     assert where >= 0 and rom.find(pattern, where + 1) < 0, (
-        "cannot find the title screen's `lda #TEMA_TITULO`: how it starts "
+        "cannot find the title screen's `lda #SONG_TITLE`: how it starts "
         "its song has changed, and this has to change too")
     patched = bytearray(rom)
     patched[where + 1] = song

@@ -9,7 +9,7 @@
 ; Moving the cursor means uploading the other palette; the why is in the header
 ; of fin_del_juego.py.
 ;
-; Everything goes on BG2, over `RANURA_VRAM` and `RANURA_MAP`, which are the
+; Everything goes on BG2, over `SLOT_VRAM` and `SLOT_MAP`, which are the
 ; places the menu and the slot screen already write: on the way back,
 ; `menu_upload` rebuilds them and `back_to_map` has nothing else to restore.
 ;
@@ -34,23 +34,23 @@
     lda #$80
     sta INIDISP                 ; forced blank: VRAM is only touched this way
     stz HDMAEN
-    lda #FIN_ENTRA
+    lda #END_ENTERS
     sta title_sel
 
-    ; --- the tiles, from RANURA_VRAM ---
+    ; --- the tiles, from SLOT_VRAM ---
     lda #$80
     sta VMAIN
     rep #$20
 .a16
-    lda #RANURA_VRAM
+    lda #SLOT_VRAM
     sta VMADDL
-    lda #(FIN_TILES * 32)
+    lda #(END_TILES * 32)
     sta DAS0L
-    lda #.loword(fin_tiles)
+    lda #.loword(end_tiles)
     sta A1T0L
     sep #$20
 .a8
-    lda #^fin_tiles
+    lda #^end_tiles
     sta A1B0
     lda #$01
     sta DMAP0                   ; two registers, word by word
@@ -61,11 +61,11 @@
     ; --- the blank tilemap: fixed source at the first tile, which is zero ---
     rep #$20
 .a16
-    lda #RANURA_MAP
+    lda #SLOT_MAP
     sta VMADDL
     lda #(32 * 32 * 2)
     sta DAS0L
-    lda #.loword(fin_tiles)
+    lda #.loword(end_tiles)
     sta A1T0L
     sep #$20
 .a8
@@ -76,15 +76,15 @@
     ; --- and the rows that have something ---
     rep #$20
 .a16
-    lda #(RANURA_MAP + FIN_FILA0 * 32)
+    lda #(SLOT_MAP + END_ROW0 * 32)
     sta VMADDL
-    lda #(FIN_FILAS * 64)
+    lda #(END_ROWS * 64)
     sta DAS0L
-    lda #.loword(fin_mapa)
+    lda #.loword(end_map)
     sta A1T0L
     sep #$20
 .a8
-    lda #^fin_mapa
+    lda #^end_map
     sta A1B0
     lda #$01
     sta DMAP0
@@ -92,9 +92,9 @@
     jsr ending_palette
 
     ; --- the PPU: BG2 alone, like `slot_ppu_on` ---
-    lda #(RANURA_MAP / 1024 * 4)
+    lda #(SLOT_MAP / 1024 * 4)
     sta BG2SC
-    lda #(RANURA_VRAM / 4096 * 16)
+    lda #(SLOT_VRAM / 4096 * 16)
     sta BG12NBA
     stz BG2HOFS
     stz BG2HOFS
@@ -129,7 +129,7 @@ mira_a:
     lda pad_a_prev
     bne espera                  ; it was already held: not an edge
     lda title_sel
-    cmp #FIN_NO
+    cmp #END_NO
     bne salir
 volver:
     lda #$80
@@ -150,7 +150,7 @@ fundir:
     sei                         ; `irq_music` reads it: all at once or nothing
     rep #$20
 .a16
-    lda #FIN_PASO_TEMA
+    lda #END_STEP_SONG
     sta bgm_step
     lda #$FFFF
     sta bgm_level               ; full volume, which is where it goes down from
@@ -166,18 +166,18 @@ baja:
     phx
     jsl f:ba_t_vblank
     plx
-    lda f:fin_rampa, x
+    lda f:end_ramp, x
     sta INIDISP
     inx
-    cpx #FIN_CUADROS
+    cpx #END_FRAMES
     bne baja
     lda #$80
     sta INIDISP
     ; The song finishes fading with the screen black: the screen fade is
     ; shorter. `bgm_fade` goes back to zero on its own, in `irq_music`; if
     ; there was no song, it already is. The cap is just in case: the song only
-    ; has a few frames left, and FIN_CUADROS is more than enough.
-    ldx #FIN_CUADROS
+    ; has a few frames left, and END_FRAMES is more than enough.
+    ldx #END_FRAMES
 tema:
     lda bgm_fade
     beq callado
@@ -214,13 +214,13 @@ callado:
     asl a
     asl a                       ; 32 bytes per palette
     clc
-    adc #.loword(fin_cgram)
+    adc #.loword(end_cgram)
     sta A1T0L
     lda #32
     sta DAS0L
     sep #$20
 .a8
-    lda #^fin_cgram
+    lda #^end_cgram
     sta A1B0
     stz DMAP0                   ; one register, byte by byte
     lda #$22

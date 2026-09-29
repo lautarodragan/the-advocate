@@ -122,7 +122,7 @@ def item_usable_in_battle(item):
 def revives(item):
     """Whether the item removes the dead state: the first of its
     `state_set`, which is state 1. It is the `MED_RAISES` bit of
-    `item_medicina`."""
+    `item_medicine`."""
     return item.state_set[:1] == [True]
 
 
@@ -347,7 +347,7 @@ def skill_command_name(db, number):
     actor = db.actors[number]
     if actor.rename_skill and actor.skill_name:
         return actor.skill_name
-    return rules.battle_terms(db)["habilidad"]
+    return rules.battle_terms(db)["skill"]
 
 
 def cost_of(skill):

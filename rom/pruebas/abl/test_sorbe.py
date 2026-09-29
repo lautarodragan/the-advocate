@@ -4,7 +4,7 @@ capa de encima de 256.
 Sorbe Village, el mapa 69, es el que estrena `LAYOUT_WINDOW_ABOVE`: la base
 de BG2 en $5000, 157 tiles en la capa de encima, y la ventana de mensaje en
 los índices 256 a 511 de BG2 y no en los 128 a 383 de los otros repartos. Sus
-celdas salen de otro plano, `ventana_celdas_256`, y si `stamp_window`
+celdas salen de otro plano, `window_cells_256`, y si `stamp_window`
 eligiera el equivocado la ventana saldría con los tiles de la capa de encima:
 eso lo cobra `sorbe-69-mensaje`.
 

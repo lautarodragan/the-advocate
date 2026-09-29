@@ -24,7 +24,7 @@ def test_arranca_en_cero(partida):
 
 def test_el_tope_es_el_de_rm2k(partida):
     una = partida()
-    assert una.simbolos["ORO_MAX"] == ORO_MAX, \
+    assert una.simbolos["GOLD_MAX"] == ORO_MAX, \
         "el tope que la ROM lleva no es el de `MaxGoldValue()`"
 
 

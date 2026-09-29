@@ -21,22 +21,22 @@
     sta temp                    ; the slot
     iny
     lda [code_ptr], y
-    sta temp + 1                ; the operation, with VAR_REFRESCO on top
+    sta temp + 1                ; the operation, with VAR_REFRESH on top
     iny
     lda [code_ptr], y            ; the operand class
     iny
     phy                         ; Y -> a; restored at the end
     ; Class 6 first: it is the one that the parallel pages comparing cells run
     ; every frame —the ones for the race, the lights on map 11—.
-    cmp #VAR_PERSONAJE
+    cmp #VAR_CHARACTER
     bne :+
     jmp var_de_personaje
 :
     cmp #VAR_VARIABLE
     beq var_de_variable
-    cmp #VAR_AZAR
+    cmp #VAR_RANDOM
     beq var_al_azar
-    cmp #VAR_OTRO
+    cmp #VAR_OTHER
     beq var_de_otro
     rep #$20
 .a16
@@ -122,7 +122,7 @@ var_aplicar:
     ; `temp + 2` is the operand; depending on the operation, it is set as is
     ; or added to or subtracted from what the variable had.
     lda temp + 1
-    and #<~VAR_REFRESCO
+    and #<~VAR_REFRESH
     beq var_pone
     lda temp
     jsr var_read                ; A = what it had, sixteen bits
@@ -131,8 +131,8 @@ var_aplicar:
     sep #$20
 .a8
     lda temp + 1
-    and #<~VAR_REFRESCO
-    cmp #VAR_SUMAR
+    and #<~VAR_REFRESH
+    cmp #VAR_ADD
     beq var_suma
     rep #$20
 .a16
@@ -168,7 +168,7 @@ var_pone:
 var_de_personaje:
     ; Class 6: a character's coordinates, in cells. `a` is the target —0 the
     ; hero, the event index plus one, the same byte as OP_ROUTE— and `b` says
-    ; which one: PERSONAJE_X or PERSONAJE_Y.
+    ; which one: CHARACTER_X or CHARACTER_Y.
     ;
     ; The cell read is the **live** one: `tile_x`/`tile_y` for the hero and
     ; `ev_pos_buf` for an event, which is where a forced move route, a
@@ -195,7 +195,7 @@ var_de_personaje:
     beq var_personaje_heroe
     ; An event: its cell is in `ev_pos_buf`, indexed by the index in the
     ; map's table, which is the target minus one; hence the - EV_STRIDE.
-    cmp #PERSONAJE_X
+    cmp #CHARACTER_X
     beq var_personaje_ev_x
     rep #$20
 .a16
@@ -209,7 +209,7 @@ var_personaje_ev_x:
     bra var_personaje_listo
 .a8
 var_personaje_heroe:
-    cmp #PERSONAJE_X
+    cmp #CHARACTER_X
     beq var_personaje_heroe_x
     rep #$20
 .a16

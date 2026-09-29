@@ -197,9 +197,9 @@ anotado:
     ; second and a half, and it is the entry transition that hides it. See
     ; `fundido_de_pelea.s`.
     jsl f:battle_fade_in
-    ldx #BA_PAQUETE
+    ldx #BA_PACKAGE
     jsr battle_audio_load
-    lda #BA_TEMA
+    lda #BA_SONG
     jsr battle_bgm
     plb
     ; The data bank, at $7E: that is what lets the battle code use absolute

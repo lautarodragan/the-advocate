@@ -4,7 +4,7 @@
 ;
 ; An event with a forced move route walks like the hero: turning does not use up
 ; a frame, waiting does, and moving starts a one-cell step that lasts
-; CUADROS_POR_CELDA. The difference with the hero is that its position lives in
+; FRAMES_PER_CELL. The difference with the hero is that its position lives in
 ; cells and not in pixels, and that —for now— it is not drawn: the move routes
 ; that compile are on events without a graphic. The only visible thing about
 ; them is how long they take, which is what `ProceedWithMovement` waits for.
@@ -132,7 +132,7 @@ reusada:
     tay
     sep #$20
 .a8
-    lda ruta_tras_paso, y
+    lda route_after_step, y
     rts
 .endproc
 
@@ -145,7 +145,7 @@ reusada:
     tay
     sep #$20
 .a8
-    lda ruta_tras_giro, y
+    lda route_after_turn, y
     rts
 .endproc
 
@@ -242,7 +242,7 @@ siguiente:
     clc
     adc #ROUTE_EV_STRIDE
     tax
-    cmp #RUTA_EV_MAX * ROUTE_EV_STRIDE
+    cmp #ROUTE_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
     bcc otra
@@ -380,12 +380,12 @@ hay_orden:
     lda [route_ptr], y
     inc route_ev + 5, x
 
-    cmp #23                     ; wait: this one and the RUTA_ESPERA - 1 after it,
+    cmp #23                     ; wait: this one and the ROUTE_WAIT - 1 after it,
     bne no_es_wait              ; plus the turn's if the frequency is low
     lda route_ev + 16, x
     jsr after_turn
     clc
-    adc #(RUTA_ESPERA - 1)
+    adc #(ROUTE_WAIT - 1)
     sta route_ev + 9, x
     jmp ready
 no_es_wait:
@@ -525,7 +525,7 @@ ev_frecuencia:
     and #$01
     bne menos_frec
     lda route_ev + 16, x
-    cmp #RUTA_FRECUENCIA
+    cmp #ROUTE_FREQUENCY
     bcs seguir
     inc route_ev + 16, x
     bra seguir
@@ -698,7 +698,7 @@ no_bloqueado:
     jsr step_slot
     rep #$20
 .a16
-    lda #SALTO_PASO
+    lda #JUMP_STEP
     sec
     sbc temp
     sta route_ev + 22, x         ; and this frame's part already advanced

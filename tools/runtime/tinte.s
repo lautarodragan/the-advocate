@@ -41,9 +41,9 @@
     sta temp                    ; the channel's value
     stx temp + 2                ; where the table goes
     stz tint_mirror
-    cmp #(TINTE_NEUTRO + 1)
+    cmp #(TINT_NEUTRAL + 1)
     bcc start
-    lda #(2 * TINTE_NEUTRO)
+    lda #(2 * TINT_NEUTRAL)
     sec
     sbc temp
     sta temp                    ; 200 - value
@@ -65,7 +65,7 @@ cada:
     sta WRDIVL                  ; the dividend, in a single 16-bit write
     sep #$20
 .a8
-    lda #TINTE_NEUTRO
+    lda #TINT_NEUTRAL
     sta WRDIVB                  ; starts: the quotient takes sixteen cycles
     nop
     nop
@@ -188,7 +188,7 @@ hay_colores:
     ; a palette blew it, and the screen stayed untinted for a frame. Measured
     ; with the `count_lost` probe.
     lda tint_s
-    cmp #TINTE_NEUTRO
+    cmp #TINT_NEUTRAL
     bne cada_color
     rep #$20
 .a16
@@ -240,7 +240,7 @@ sigue_color:
     ; three at once— so it does not go into the tables and it is the expensive
     ; part of all this.
     lda tint_s
-    cmp #TINTE_NEUTRO
+    cmp #TINT_NEUTRAL
     beq sin_saturar
     jsr saturate_color
 sin_saturar:
@@ -351,23 +351,23 @@ subir:
     stz sat_acc + 2
     lda sat_r
     sta weight_ch
-    lda #<LUZ_R
+    lda #<LIGHT_R
     sta weight_lo
-    lda #>LUZ_R
+    lda #>LIGHT_R
     sta weight_hi
     jsr add_weight
     lda sat_g
     sta weight_ch
-    lda #<LUZ_G
+    lda #<LIGHT_G
     sta weight_lo
-    lda #>LUZ_G
+    lda #>LIGHT_G
     sta weight_hi
     jsr add_weight
     lda sat_b
     sta weight_ch
-    lda #<LUZ_B
+    lda #<LIGHT_B
     sta weight_lo
-    lda #>LUZ_B
+    lda #>LIGHT_B
     sta weight_hi
     jsr add_weight
     lda sat_acc + 2             ; the sum divided by 65536
@@ -457,14 +457,14 @@ subir:
 .i16
     sta sat_ch
     lda tint_s
-    cmp #(TINTE_NEUTRO + 1)
+    cmp #(TINT_NEUTRAL + 1)
     bcs sobre
 
     ; Up to 100 it is an interpolation between the gray and the color, with
     ; both terms positive: it is the form the 65816 can do unsigned.
     ;
     ;     (luma * (100 - s) + channel * s) / 100
-    lda #TINTE_NEUTRO
+    lda #TINT_NEUTRAL
     sec
     sbc tint_s
     sta WRMPYA
@@ -506,7 +506,7 @@ subir:
 sobre:
     lda tint_s
     sec
-    sbc #TINTE_NEUTRO
+    sbc #TINT_NEUTRAL
     sta WRMPYA
     lda sat_ch
     cmp sat_light
@@ -532,7 +532,7 @@ multiplicar:
     sta WRDIVL
     sep #$20
 .a8
-    lda #TINTE_NEUTRO
+    lda #TINT_NEUTRAL
     sta WRDIVB
     nop
     nop
@@ -567,7 +567,7 @@ restar:
 .proc divide_and_cap
 .a8
 .i16
-    lda #TINTE_NEUTRO
+    lda #TINT_NEUTRAL
     sta WRDIVB                  ; starts: the quotient takes sixteen cycles
     nop
     nop
@@ -606,7 +606,7 @@ cabe:
     ; the record before loading X with the field, because the record is
     ; addressed precisely with X.
     ldx map_ofs
-    lda f:mapa_tabla + M_ABOVE_FIRST, x
+    lda f:map_table + M_ABOVE_FIRST, x
     pha
     ldx #M_PTR_ABOVE_CGRAM
     ldy #M_ABOVE_CGRAM
@@ -738,7 +738,7 @@ nothing:
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_MAP_CGRAM, x
+    lda f:map_table + M_MAP_CGRAM, x
     sta tint_count
     sep #$20
 .a8
@@ -747,16 +747,16 @@ nothing:
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_ABOVE_CGRAM, x
+    lda f:map_table + M_ABOVE_CGRAM, x
     sta tint_count
     sep #$20
 .a8
-    lda f:mapa_tabla + M_ABOVE_FIRST, x
+    lda f:map_table + M_ABOVE_FIRST, x
     jsr dma_shadow
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_SPRITE_CGRAM, x
+    lda f:map_table + M_SPRITE_CGRAM, x
     sta tint_count
     sep #$20
 .a8
@@ -812,7 +812,7 @@ nothing:
 ; for both, because the digits win. The black only shows with a tint that
 ; brightens: darkening and desaturating leave it black.
 ;
-; Which entries they are is said by `timer_mascara`, one bit per entry and one
+; Which entries they are is said by `timer_mask`, one bit per entry and one
 ; word per map, which the converter emits.
 .proc upload_timer_pal
 .a8
@@ -831,7 +831,7 @@ visible:
     lsr a
     lsr a                       ; from 128 bytes per map to two
     tax
-    lda f:timer_mascara, x
+    lda f:timer_mask, x
     bne hay
     sep #$20
 .a8
@@ -842,7 +842,7 @@ hay:
                                 ; vblank may be busy
     ; The palette in ROM, and the CGRAM entry 0 it gets.
     ldx map_ofs
-    lda f:mapa_tabla + M_TIMER_PAL, x
+    lda f:map_table + M_TIMER_PAL, x
     and #$0007
     asl a
     asl a
@@ -850,13 +850,13 @@ hay:
     asl a
     asl a                       ; 32 bytes per palette
     clc
-    adc f:mapa_tabla + M_PTR_SPRITE_CGRAM, x
+    adc f:map_table + M_PTR_SPRITE_CGRAM, x
     sta tint_ptr                 ; the block fits whole in one bank: one
     sep #$20                    ; DMA uploads it
 .a8
-    lda f:mapa_tabla + M_PTR_SPRITE_CGRAM + 2, x
+    lda f:map_table + M_PTR_SPRITE_CGRAM + 2, x
     sta tint_ptr + 2
-    lda f:mapa_tabla + M_TIMER_PAL, x
+    lda f:map_table + M_TIMER_PAL, x
     asl a
     asl a
     asl a
@@ -902,16 +902,16 @@ siguiente:
 .a8
 .i16
     lda tint_r
-    cmp #TINTE_NEUTRO
+    cmp #TINT_NEUTRAL
     bne pedir
     lda tint_g
-    cmp #TINTE_NEUTRO
+    cmp #TINT_NEUTRAL
     bne pedir
     lda tint_b
-    cmp #TINTE_NEUTRO
+    cmp #TINT_NEUTRAL
     bne pedir
     lda tint_s
-    cmp #TINTE_NEUTRO
+    cmp #TINT_NEUTRAL
     bne pedir
     rts
 pedir:
@@ -935,11 +935,11 @@ pedir:
     clc
     adc map_ofs
     tax
-    lda f:mapa_tabla, x
+    lda f:map_table, x
     sta tint_ptr
     sep #$20
 .a8
-    lda f:mapa_tabla + 2, x
+    lda f:map_table + 2, x
     sta tint_ptr + 2
 
     rep #$20
@@ -948,7 +948,7 @@ pedir:
     clc
     adc map_ofs
     tax
-    lda f:mapa_tabla, x
+    lda f:map_table, x
     sta tint_count
     sep #$20
 .a8

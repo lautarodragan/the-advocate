@@ -107,7 +107,7 @@ def _colores(una):
     # Los del respaldo liviano, que es el que la tanda ve: corre sin MSU-1.
     # SCN_BACKDROP es el número del fondo en el juego, que indexa el `.msu`; el
     # de la ROM es SCN_FALLBACK.
-    base = en_la_rom(s["fondo_cgram"]) + fondo * scene.FALLBACK_COLORS * 2
+    base = en_la_rom(s["backdrop_cgram"]) + fondo * scene.FALLBACK_COLORS * 2
     for i in range(scene.FALLBACK_COLORS):
         colores[scene.CGRAM_BASE + i] = color(base + 2 * i)
     for j in range(_byte(una, "SCN_PAL_N")):
@@ -309,7 +309,7 @@ def test_escena_una_pelea_del_lugar_usa_el_fondo_del_mapa(partida):
 
 # Una pelea del lugar en el 7, que no tiene encuentros al azar y no nombra
 # fondo: el del terreno, y el 7 es todo de uno solo —la rama de
-# `M_TERRENO_PLANO` en `scn_terrain`—, que la ROM no lleva porque ninguna
+# `M_TERRAIN_PLANE` en `scn_terrain`—, que la ROM no lleva porque ninguna
 # pelea del cartucho lo pide de antemano.
 PELEA_EN_7 = "pelea-113-en-7"
 

@@ -143,7 +143,7 @@ igual:
     phy
     lda tint_s
     pha
-    lda #TINTE_NEUTRO
+    lda #TINT_NEUTRAL
     sta tint_s
     lda f:PICTURE_TONE + 0
     ldx #.loword(table_r)
@@ -156,13 +156,13 @@ igual:
     jsr channel_table
     rep #$20
 .a16
-    lda #.loword(imagen_cgram)
+    lda #.loword(picture_cgram)
     sta tint_ptr
     lda #16
     sta tint_count
     sep #$20
 .a8
-    lda #^imagen_cgram
+    lda #^picture_cgram
     sta tint_ptr + 2
     jsr build_palette            ; the sixteen, tinted, in `pal_buf`
     ; And from there to the shadow, **without touching `tint_ready`**:
@@ -171,7 +171,7 @@ igual:
     ldx #$0000
 copia:
     lda pal_buf, x
-    sta cgram_shadow + 2 * (128 + 16 * IMAGEN_PAL), x
+    sta cgram_shadow + 2 * (128 + 16 * PICTURE_PAL), x
     inx
     cpx #32
     bne copia
@@ -215,9 +215,9 @@ cada:
     asl a
     asl a                       ; thirty-two per object
     clc
-    adc #IMAGEN_X & $FFFF       ; it is negative, and ca65 does not accept a negative immediate
+    adc #PICTURE_X & $FFFF       ; it is negative, and ca65 does not accept a negative immediate
     sta obj_x
-    lda #IMAGEN_Y
+    lda #PICTURE_Y
     sta obj_y
     ; And which tile. A 32x32 object reads four tiles from four consecutive
     ; rows of the name grid, which is sixteen wide: so four objects fit in one
@@ -236,7 +236,7 @@ cada:
     clc
     adc temp
     clc
-    adc #IMAGEN_BASE
+    adc #PICTURE_BASE
     sta temp
     sep #$20
 .a8
@@ -246,13 +246,13 @@ cada:
     ; and the tile's ninth bit.
     lda temp + 1
     and #$01
-    ora #($30 | (IMAGEN_PAL * 2))
+    ora #($30 | (PICTURE_PAL * 2))
     sta obj_attr
     jsr emit_object
     lda f:PICTURE_I
     inc a
     sta f:PICTURE_I
-    cmp #IMAGEN_OBJETOS
+    cmp #PICTURE_OBJECTS
     beq salir
     jmp cada
 salir:

@@ -33,14 +33,14 @@
     cmp #$FF
     beq ready
     jsr ba_ax
-    lda f:tropa_pag_n, x
+    lda f:troop_page_n, x
     sta BA_PAGE_N
     rep #$20
 .a16
     txa
     asl a
     tax
-    lda f:tropa_pag_ini, x
+    lda f:troop_page_init, x
     sta BA_PAGE_INIT
     sep #$20
 .a8
@@ -57,7 +57,7 @@ ready:
 otra:
     stz BA_PAGE_DONE, x
     inx
-    cpx #TROPA_PAG_MAX
+    cpx #TROOP_PAGE_MAX
     bne otra
     rts
 .endproc
@@ -111,7 +111,7 @@ esta:
     lda BA_PAGE_G
     asl a
     tax
-    lda f:tpag_cod, x
+    lda f:tpage_code, x
     sta BA_PAGE_CODE
     stz BA_PAGE_CUR
     lda #$FFFF
@@ -146,37 +146,37 @@ no:
     tax
     sep #$20
 .a8
-    lda f:tpag_flags, x
+    lda f:tpage_flags, x
     sta BA_PAGE_FL               ; the triggers, which survive the `jsr`s
-    and #TPAG_SWITCH_A
+    and #TPAGE_SWITCH_A
     beq sin_a
     rep #$20
 .a16
     lda BA_PAGE_G
     asl a
     tax
-    lda f:tpag_sw_a, x
+    lda f:tpage_sw_a, x
     jsr ba_page_switch
 .a8
     bne sin_a
     jmp no
 sin_a:
     lda BA_PAGE_FL
-    and #TPAG_SWITCH_B
+    and #TPAGE_SWITCH_B
     beq sin_b
     rep #$20
 .a16
     lda BA_PAGE_G
     asl a
     tax
-    lda f:tpag_sw_b, x
+    lda f:tpage_sw_b, x
     jsr ba_page_switch
 .a8
     bne sin_b
     jmp no
 sin_b:
     lda BA_PAGE_FL
-    and #TPAG_VARIABLE
+    and #TPAGE_VARIABLE
     beq sin_var
     ; The variable, signed `>=`: `Get(variable_id) >= variable_value`.
     rep #$20
@@ -184,9 +184,9 @@ sin_b:
     lda BA_PAGE_G
     asl a
     tax
-    lda f:tpag_valor, x
+    lda f:tpage_value, x
     sta BA_T0
-    lda f:tpag_var, x
+    lda f:tpage_var, x
     asl a
     tax
     lda FAR_VARIABLES, x
@@ -201,13 +201,13 @@ sin_desborde:
     jmp no
 sin_var:
     lda BA_PAGE_FL
-    and #TPAG_CON_CABECERA
+    and #TPAGE_WITH_HEADER
     bne con_cabecera
     jmp si
 con_cabecera:
     jsr ba_page_header
     lda BA_PAGE_FL
-    and #TPAG_TURNO
+    and #TPAGE_TURN
     beq sin_turno
     ; The turn: `Game_Battle::CheckTurns(turn, turn_b, turn_a)`, with the base
     ; and the multiple **in that order**, which is the opposite of what
@@ -239,7 +239,7 @@ no_turno:
     jmp no
 sin_turno:
     lda BA_PAGE_FL
-    and #TPAG_ENEMIGO
+    and #TPAGE_ENEMY
     beq sin_enemigo
     ; An enemy's HP, by its place in the troop. `GetEnemy` does not check
     ; whether it is hidden or dead: only whether the place exists.
@@ -257,7 +257,7 @@ sin_turno:
     beq no
 sin_enemigo:
     lda BA_PAGE_FL
-    and #TPAG_ACTOR
+    and #TPAGE_ACTOR
     beq si
     ; An actor's HP, by its number in the LDB. **Only if it is in the
     ; party**: `Game_Actors::GetActor` answers for anyone, but the HP of one
@@ -298,9 +298,9 @@ no:
 .endproc
 
 ; The header of page `BA_PAGE_G` —the turn and HP numbers, which the converter
-; puts in front of its code, `TPAG_CABECERA` bytes before where `tpag_cod`
+; puts in front of its code, `TPAGE_HEADER` bytes before where `tpage_code`
 ; points— into `BA_COND`. It is read with the data bank at that of
-; `tropa_codigo`, which fits whole in one bank, and written with `f:`.
+; `troop_code`, which fits whole in one bank, and written with `f:`.
 ; Clobbers A, X and Y. See `eventos.cabecera_de_tropa`.
 .proc ba_page_header
 .a8
@@ -310,14 +310,14 @@ no:
     lda BA_PAGE_G
     asl a
     tax
-    lda f:tpag_cod, x
+    lda f:tpage_code, x
     sec
-    sbc #TPAG_CABECERA
+    sbc #TPAGE_HEADER
     tay
     sep #$20
 .a8
     phb
-    lda #^tropa_codigo
+    lda #^troop_code
     pha
     plb
     ldx #0
@@ -326,7 +326,7 @@ otro:
     sta f:BAT_LENGTH + BA_COND, x
     iny
     inx
-    cpx #TPAG_CABECERA
+    cpx #TPAGE_HEADER
     bne otro
     plb
     rts
@@ -546,10 +546,10 @@ a_la_pantalla:
 .endproc
 
 ; The page's message, in the party's lines: see `BA_PAG_MSG_FILA0` in
-; pantallas.py. It reads it from `mensajes_tropa` in the usual format —the
+; pantallas.py. It reads it from `messages_troop` in the usual format —the
 ; header with the lines and each line with its length, one byte per letter
 ; with the ASCII minus 32— and writes it with the screen's glyphs, cut at
-; `BA_PAG_MSG_ANCHO`. The block fits in one bank —the converter guarantees
+; `BA_PAGE_MSG_WIDTH`. The block fits in one bank —the converter guarantees
 ; it—, so the pointer is advanced with Y and the bank stays fixed.
 .proc ba_page_message
 .a8
@@ -558,17 +558,17 @@ a_la_pantalla:
 .a16
     lda BA_PAGE_MSG
     clc
-    adc #.loword(mensajes_tropa)
+    adc #.loword(messages_troop)
     sta msg_ptr
-    lda #BA_PAG_MSG_POS0
+    lda #BA_PAGE_MSG_POS0
     sta BA_T1
     sep #$20
 .a8
-    lda #^mensajes_tropa
+    lda #^messages_troop
     sta msg_ptr + 2
     stz temp + 1                ; blank
     lda [msg_ptr]
-    and #CABECERA_LINEAS
+    and #HEADER_LINES
     sta BA_PAGE_I                ; the lines left
     ldy #1
 renglon:
@@ -576,7 +576,7 @@ renglon:
     beq ready
     rep #$20
 .a16
-    lda #BA_PAG_MSG_DX
+    lda #BA_PAGE_MSG_DX
     jsr ba_go
     sep #$20
 .a8
@@ -589,12 +589,12 @@ letra:
     beq fin_renglon
     dec BA_T0
     lda BA_T2
-    cmp #BA_PAG_MSG_ANCHO
+    cmp #BA_PAGE_MSG_WIDTH
     bcs no_entra                ; consumed and not drawn
     inc BA_T2
     lda [msg_ptr], y
     clc
-    adc #ITEM_PRIMER_CARACTER
+    adc #ITEM_FIRST_CHAR
     phy
     jsl f:ba_t_glyph
     ply
@@ -606,7 +606,7 @@ fin_renglon:
 .a16
     lda BA_T1
     clc
-    adc #BA_FILA_BYTES
+    adc #BA_ROW_BYTES
     sta BA_T1
     sep #$20
 .a8

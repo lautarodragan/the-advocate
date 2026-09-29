@@ -4,7 +4,7 @@
 ;
 ; The MSU-1 is not console hardware: it is an extension supported by the FX
 ; Pak Pro and the emulators, with the music in PCM files next to the ROM. When
-; the song being started has a track —`tema_msu`, emitted by the converter—,
+; the song being started has a track —`song_msu`, emitted by the converter—,
 ; the SPC700 goes quiet and the track plays; sound effects stay on the SPC700
 ; as always. Without an MSU-1 nothing changes: the signature is not there and
 ; everything keeps coming out of the SPC700.
@@ -138,7 +138,7 @@ ready:
                                 ; next byte too
     beq sin_msu1
     pla
-    cmp #TEMA_TOTAL
+    cmp #SONG_TOTAL
     bcs no
     rep #$20
 .a16
@@ -146,7 +146,7 @@ ready:
     tax
     sep #$20
 .a8
-    lda tema_msu, x
+    lda song_msu, x
     cmp #$FF
     beq no
     ; **Before writing the track, wait for the MSU-1 to be free.** With
@@ -214,7 +214,7 @@ no:
     lda #0
     rts
 .endproc
-.assert TEMA_TOTAL <= 8 * MSU_MISSING_BYTES, error, "MSU_MISSING does not have a bit for every song"
+.assert SONG_TOTAL <= 8 * MSU_MISSING_BYTES, error, "MSU_MISSING does not have a bit for every song"
 
 
 ; --- the data port ----------------------------------------------------------
@@ -286,7 +286,7 @@ ready:
 .endproc
 
 ; Whether the `.msu` is this cartridge's: A at 1 if there is an MSU-1 and the
-; first 8 bytes of the `.msu` are `msu_datos_firma`, which the converter
+; first 8 bytes of the `.msu` are `msu_data_signature`, which the converter
 ; derives from the contents. With another `.msu` —from another build, empty,
 ; truncated— or without an MSU-1, A at 0 and the ROM uses its own. A `.msu`
 ; shorter than the signature also gives 0: the three emulators return zero
@@ -307,7 +307,7 @@ ready:
     ldx #0
 compara:
     lda f:MSU_DATA
-    cmp f:msu_datos_firma, x
+    cmp f:msu_data_signature, x
     bne no
     inx
     cpx #8

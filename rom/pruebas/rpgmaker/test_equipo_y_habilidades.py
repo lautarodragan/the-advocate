@@ -48,7 +48,7 @@ def test_los_bits_arrancan_con_lo_que_dice_el_ldb(partida):
     147 por el motivo equivocado."""
     una = partida(caso="habilidades-cambiar")
     pares = len(datos.ranuras_de_habilidad())
-    assert una.simbolos["HAB_BYTES"] == (pares + 7) // 8, (
+    assert una.simbolos["SKILL_BYTES"] == (pares + 7) // 8, (
         "el cartucho tiene otro índice de pares que el que arma la prueba: "
         "sus ranuras no valen")
     assert sabe(una, ARDEN, OLVIDA), "Arden arranca sin la 147 del LDB"

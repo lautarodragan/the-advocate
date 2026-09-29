@@ -80,7 +80,7 @@
 .a16
     lda #FAR_ACTOR_GFX
     sta WMADDL
-    ldx #ACTORES_N
+    ldx #ACTORS_N
     sep #$20
 .a8
     stz WMADDH
@@ -126,9 +126,9 @@ otro:
     ; The carry carries the wait flag **all the way to the action button**,
     ; without storing it: no `lda`, `and`, `eor` or `sta` in between touches
     ; it. Stored in `temp + 2` it cost four more bytes of bank 0.
-    .assert TECLA_ESPERA = $01, error, "key_value takes it out with an lsr"
+    .assert KEY_WAIT = $01, error, "key_value takes it out with an lsr"
     lda temp + 1
-    lsr a                       ; TECLA_ESPERA is bit 0: into the carry
+    lsr a                       ; KEY_WAIT is bit 0: into the carry
     lda pad
     bcc joy_listo               ; no wait: what is held, as is
     eor pad_prev
@@ -141,16 +141,16 @@ otro:
 joy_listo:
     sta temp + 3                ; JOY1H: B and the four arrows
     lda temp + 1
-    and #TECLA_CANCELAR
+    and #KEY_CANCEL
     beq sin_cancelar
     lda temp + 3
     and #PAD_B
     beq sin_cancelar
-    lda #TECLA_VALOR_CANCELAR
+    lda #KEY_VALUE_CANCEL
     rts
 sin_cancelar:
     lda temp + 1
-    and #TECLA_DECISION
+    and #KEY_DECISION
     beq sin_decision
     lda pad_a
     bcc a_lista                 ; the carry from above, still intact
@@ -158,11 +158,11 @@ sin_cancelar:
     and pad_a
 a_lista:
     beq sin_decision
-    lda #TECLA_VALOR_DECISION
+    lda #KEY_VALUE_DECISION
     rts
 sin_decision:
     lda temp + 1
-    and #TECLA_DIRS
+    and #KEY_DIRS
     beq ninguna
     ; The four, in the order of `CheckInput`, by table: written by hand they
     ; are four `bit`/`bne` plus four `lda`/`rts`, and bank 0 does not have
@@ -247,9 +247,9 @@ ready:
     tax
     sep #$20
 .a8
-    lda menu_hecha, x
+    lda menu_done, x
     beq ready
-    cpx #MENU_GUARDAR
+    cpx #MENU_SAVE
     bne ready
     jsr access_read
     and #ACCESS_NO_SAVE
@@ -280,13 +280,13 @@ ready:
     rep #$20
 .a16
     beq borra
-    lda menu_cursor_celdas
+    lda menu_cursor_cells
     sta VMDATAL
     tya
     clc
     adc #32
     sta VMADDL
-    lda menu_cursor_celdas + 2
+    lda menu_cursor_cells + 2
     sta VMDATAL
     sep #$20
 .a8
@@ -321,7 +321,7 @@ borra:
     sta temp + 2
     lda #$80
     sta VMAIN
-    ldy #(MENU_MONEDA_VRAM - 1)
+    ldy #(MENU_CURRENCY_VRAM - 1)
 cifra:
     stz temp + 3                ; the remainder carried along
     ldx #2
@@ -354,13 +354,13 @@ dividir:
     asl a
     asl a
     tax
-    lda f:ranura_glifo_celdas + GLIFO_CIFRA_0, x
+    lda f:slot_glyph_cells + GLYPH_DIGIT_0, x
     sta VMDATAL
     tya
     clc
     adc #32
     sta VMADDL
-    lda f:ranura_glifo_celdas + GLIFO_CIFRA_0 + 2, x
+    lda f:slot_glyph_cells + GLYPH_DIGIT_0 + 2, x
     sta VMDATAL
     dey
     lda temp                    ; anything left?
@@ -400,7 +400,7 @@ otra_opcion:
     asl a
     ora temp + 3
     clc
-    adc #MENU_BLQ_OPCION
+    adc #MENU_BLK_OPTION
     sta temp + 3                ; the block
     pla
     pha
@@ -409,12 +409,12 @@ otra_opcion:
     and #$00FF
     asl a
     tax
-    lda menu_opcion_vram, x
+    lda menu_option_vram, x
     tay
     lda temp + 3
     and #$00FF
     tax
-    lda #(MENU_OPC_COLS * 2)
+    lda #(MENU_OPT_COLS * 2)
     sta temp
     sep #$20
 .a8
@@ -423,7 +423,7 @@ otra_opcion:
     jsr slot_rect_upload
     pla
     inc a
-    cmp #MENU_OPCIONES
+    cmp #MENU_OPTIONS
     bcc otra_opcion
 
     ; --- the cursor ---
@@ -436,9 +436,9 @@ otra_opcion:
     jsr menu_gold_write
     rep #$20
 .a16
-    ldx #MENU_BLQ_MONEDA
-    ldy #MENU_MONEDA_VRAM
-    lda #(MENU_MONEDA_COLS * 2)
+    ldx #MENU_BLK_CURRENCY
+    ldy #MENU_CURRENCY_VRAM
+    lda #(MENU_CURRENCY_COLS * 2)
     sta temp
     sep #$20
 .a8
@@ -474,14 +474,14 @@ otra_opcion:
 otro_miembro:
     cmp party_n
     bcs grupo_listo
-    cmp #MENU_FILAS_GRUPO
+    cmp #MENU_ROWS_PARTY
     bcc entra
 grupo_listo:
     rts
 entra:
     pha                         ; the row, until the end of the pass
     jsr actor_de
-    cmp #MENU_ACTORES_N
+    cmp #MENU_ACTORS_N
     bcc conocido
     jmp siguiente               ; one this ROM does not know
 conocido:
@@ -492,9 +492,9 @@ conocido:
     jsr fila_vram
     lda #(MENU_ACTOR_COLS * 2)
     sta temp
-    lda #MENU_ACTOR_FILAS
+    lda #MENU_ACTOR_ROWS
     sta temp + 2
-    ldx #MENU_BLQ_FILA
+    ldx #MENU_BLK_ROW
     jsr slot_rect_upload
 
     ; --- the face, in the row's top left corner ---
@@ -510,7 +510,7 @@ conocido:
     tax
     sep #$20
 .a8
-    lda ranura_cara_bloque, x
+    lda slot_face_block, x
     cmp #$FF
     beq sin_cara
     rep #$20
@@ -519,9 +519,9 @@ conocido:
     tax
     sep #$20
 .a8
-    lda #(MENU_CARA_CELDAS * 2)
+    lda #(MENU_FACE_CELLS * 2)
     sta temp
-    lda #MENU_CARA_CELDAS
+    lda #MENU_FACE_CELLS
     sta temp + 2
     jsr slot_rect_upload
 sin_cara:
@@ -534,16 +534,16 @@ sin_cara:
 .a16
     tya
     clc
-    adc #MENU_NOMBRE_DESPL
+    adc #MENU_NAME_OFS
     tay
     sep #$20
 .a8
     pla
     pha
     jsr actor_de
-    ldx #RANURA_TEXTO_NOMBRE
+    ldx #SLOT_TEXT_NAME
     jsr slot_text_of
-    lda #MENU_NOMBRE_COLS
+    lda #MENU_NAME_COLS
     jsr slot_text_write
 
     ; --- the level ---
@@ -554,7 +554,7 @@ sin_cara:
 .a16
     tya
     clc
-    adc #MENU_NIVEL_DESPL
+    adc #MENU_LEVEL_OFS
     tay
     sep #$20
 .a8
@@ -562,7 +562,7 @@ sin_cara:
     pha
     jsr actor_de
     jsl f:text_level           ; the current one: it goes up by fighting
-    lda #RANURA_NIVEL_CIFRAS
+    lda #SLOT_LEVEL_DIGITS
     jsr slot_text_write
 
     ; --- the maximum, after the slash ---
@@ -573,7 +573,7 @@ sin_cara:
 .a16
     tya
     clc
-    adc #MENU_MAX_DESPL
+    adc #MENU_MAX_OFS
     tay
     sep #$20
 .a8
@@ -581,7 +581,7 @@ sin_cara:
     pha
     jsr actor_de
     jsl f:text_max          ; the one for its current level, like the level
-    lda #MENU_MAX_CIFRAS
+    lda #MENU_MAX_DIGITS
     jsr slot_text_write
 
     ; --- and the current HP, which are not cartridge text but state ---
@@ -614,7 +614,7 @@ fila_vram:
     and #$00FF
     asl a                       ; two bytes per entry
     tax
-    lda menu_fila_vram, x
+    lda menu_row_vram, x
     tay
     sep #$20
 .a8
@@ -645,7 +645,7 @@ espera:
     beq no_arriba
     lda title_sel
     bne sube
-    lda #MENU_OPCIONES          ; from the first, up wraps around
+    lda #MENU_OPTIONS          ; from the first, up wraps around
 sube:
     dec a
     jsr mover
@@ -656,7 +656,7 @@ no_arriba:
     beq no_abajo
     lda title_sel
     inc a
-    cmp #MENU_OPCIONES
+    cmp #MENU_OPTIONS
     bcc baja
     lda #0
 baja:
@@ -706,13 +706,13 @@ volver_de_items:
     stz title_sel
     jmp armar
 no_items:
-    cmp #MENU_FIN
+    cmp #MENU_END
     bne guardar
     ; End Game: its screen, in `fin_del_juego.s`. "Yes" does not return —it
     ; ends in the reset—; "No" and B return to the menu with the cursor on the
     ; option, like `Scene::Pop`.
     jsl f:ending_screen
-    lda #MENU_FIN
+    lda #MENU_END
     sta title_sel
     jmp armar
 guardar:
@@ -726,7 +726,7 @@ guardar:
     jsr set_slot
     jsr save_game
 guardar_listo:
-    lda #MENU_GUARDAR
+    lda #MENU_SAVE
     sta title_sel
     jmp armar
 cerrar:
@@ -817,7 +817,7 @@ no_arriba:
     inc a
     cmp party_n
     bcs espera
-    cmp #MENU_FILAS_GRUPO
+    cmp #MENU_ROWS_PARTY
     bcs espera
     jsr mover
     bra espera

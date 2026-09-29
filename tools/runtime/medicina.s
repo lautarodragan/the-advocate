@@ -35,7 +35,7 @@
     ; Is there any left? With the choice open the last one can be spent and
     ; A still pressed.
     jsr k_en_x
-    lda f:item_medicina, x
+    lda f:item_medicine, x
     sta MED_FLAGS
     rep #$20
 .a16
@@ -51,7 +51,7 @@
     bne queda
     jmp no_sirve
 queda:
-    ; `Game_Actor::IsItemUsable`: the actor's bit in `item_actores`, eight
+    ; `Game_Actor::IsItemUsable`: the actor's bit in `item_actors`, eight
     ; bytes per item, actor 1 in bit 0 of the first.
     jsr k_en_x
     rep #$20
@@ -76,7 +76,7 @@ queda:
     tay
     sep #$20
 .a8
-    lda f:item_actores, x
+    lda f:item_actors, x
     cpy #0
     beq bit_listo
 correr:
@@ -100,7 +100,7 @@ puede:
     ; `hp_change = recover_hp_rate * GetMaxHp() / 100 + recover_hp`, and the
     ; same with SP. Capped at $FFFF, which means "more than what is missing".
     jsr k_en_x
-    lda f:item_cura_rate, x
+    lda f:item_heal_rate, x
     ldx MED_HP_MAX
     jsr por_ciento
     sta MED_HP
@@ -110,7 +110,7 @@ puede:
     txa
     asl a
     tax
-    lda f:item_cura_hp, x
+    lda f:item_heal_hp, x
     clc
     adc MED_HP
     bcc hp_listo
@@ -120,7 +120,7 @@ hp_listo:
     sep #$20
 .a8
     jsr k_en_x
-    lda f:item_cura_sp_rate, x
+    lda f:item_heal_sp_rate, x
     ldx MED_SP_MAX
     jsr por_ciento
     sta MED_SP
@@ -130,7 +130,7 @@ hp_listo:
     txa
     asl a
     tax
-    lda f:item_cura_sp, x
+    lda f:item_heal_sp, x
     clc
     adc MED_SP
     bcc sp_listo

@@ -175,7 +175,7 @@ ready:
 .i16
     jsr eq_k
     beq no
-    lda item_uso, x
+    lda item_use, x
     and #8
     rts
 no:
@@ -287,7 +287,7 @@ slot:
     clc
     adc comp_and
     tax
-    lda f:item_puntos, x
+    lda f:item_points, x
     clc
     adc comp_or01
     sta comp_or01
@@ -348,7 +348,7 @@ otro:
 .a8
     lda comp_col
     inc a
-    cmp item_tipo, x
+    cmp item_type, x
     bne no_va
     ; Can the actor use it? One bit per actor, eight bytes per item.
     rep #$20
@@ -373,7 +373,7 @@ otro:
     sta comp_and + 2              ; and the bit
     sep #$20
 .a8
-    ; With `f:` because `item_actores` moved to RODATA on 2026-09-13: it is 496
+    ; With `f:` because `item_actors` moved to RODATA on 2026-09-13: it is 496
     ; bytes and bank 0's area was already fifteen over before the skills. It
     ; costs one byte and one cycle per read, and this runs once per item when
     ; opening the equipment screen.
@@ -390,7 +390,7 @@ otro:
     ; together they assembled and read a register nobody loaded anymore.
     phx
     ldx comp_and
-    lda f:item_actores, x
+    lda f:item_actors, x
     plx
     ldy comp_and + 2
     beq bit_listo
@@ -423,7 +423,7 @@ siguiente:
     cpx #ITEMS_N
     bcs lista_lista
     jmp otro                    ; a `bcc`'s 127 bytes fell short once
-                                ; `item_actores` was read long
+                                ; `item_actors` was read long
 lista_lista:
     rep #$20
 .a16
@@ -506,7 +506,7 @@ nothing:
     adc comp_and
     inc a                       ; 3k + 1
     pha
-    lda #PANT_DESC_POS
+    lda #SCR_DESC_POS
     sta pick_table
     plx
     phx
@@ -516,7 +516,7 @@ nothing:
     jsl f:ba_t_text
     rep #$20
 .a16
-    lda #(PANT_DESC_POS + 128)
+    lda #(SCR_DESC_POS + 128)
     sta pick_table
     plx
     inx
@@ -585,7 +585,7 @@ param:
     lda comp_or01 + 2
     and #$00FF
     clc
-    adc #EQ_TEXTO_PARAM
+    adc #EQ_TEXT_PARAM
     tax
     sep #$20
 .a8
@@ -609,7 +609,7 @@ param:
     rep #$20
 .a16
     clc
-    adc #EQ_PARAM_VALOR
+    adc #EQ_PARAM_VALUE
     sta pick_table
     sep #$20
 .a8
@@ -622,7 +622,7 @@ param:
     rep #$20
 .a16
     clc
-    adc #EQ_PARAM_FLECHA
+    adc #EQ_PARAM_ARROW
     sta pick_table
     sep #$20
 .a8
@@ -679,7 +679,7 @@ slot:
     rep #$20
 .a16
     clc
-    adc #EQ_RANURA_TERM
+    adc #EQ_SLOT_TERM
     sta pick_table
     sep #$20
 .a8
@@ -689,7 +689,7 @@ slot:
 .a16
     and #$00FF
     clc
-    adc #EQ_TEXTO_RANURA
+    adc #EQ_TEXT_SLOT
     tax
     sep #$20
 .a8
@@ -702,14 +702,14 @@ slot:
     rep #$20
 .a16
     clc
-    adc #EQ_RANURA_NOMBRE
+    adc #EQ_SLOT_NAME
     sta pick_table
     sep #$20
 .a8
     pla
     pha
     jsr eq_read
-    lda #EQ_RANURA_ANCHO
+    lda #EQ_SLOT_WIDTH
     jsr eq_name
     pla
     inc a
@@ -743,7 +743,7 @@ lista_fila:
     rep #$20
 .a16
     clc
-    adc #EQ_LISTA_NOMBRE
+    adc #EQ_LIST_NAME
     sta pick_table
     sep #$20
 .a8
@@ -755,7 +755,7 @@ lista_fila:
     rep #$20
 .a16
     clc
-    adc #PANT_DOS_PUNTOS
+    adc #SCR_TWO_POINTS
     sta pick_table
     sep #$20
 .a8
@@ -772,7 +772,7 @@ lista_fila:
 lista_siguiente:
     pla
     inc a
-    cmp #EQ_LISTA_FILAS
+    cmp #EQ_LIST_ROWS
     bcc lista_fila
     rts
 lista_listo:
@@ -799,7 +799,7 @@ fila_pos:
     xba
     lsr a                       ; times 128: two rows of cells
     clc
-    adc #EQ_RANURA_POS0
+    adc #EQ_SLOT_POS0
     rts
 .a8
 
@@ -811,7 +811,7 @@ fila_pos_lista:
     xba
     lsr a
     clc
-    adc #EQ_LISTA_POS0
+    adc #EQ_LIST_POS0
     rts
 .a8
 .endproc
@@ -894,8 +894,8 @@ empty:
 
 ; The BG1 windows under the bar, and the bar: in each frame's vblank, behind
 ; the text. The rows of the bottom window are uploaded without the cursor
-; —`EQ_MARCO_TEXTO_N` rows of cells— and on top the cursor's two with the bar,
-; from `eq_marco_barras`: first those of the five slots and then those of the
+; —`EQ_BORDER_TEXT_N` rows of cells— and on top the cursor's two with the bar,
+; from `eq_border_bars`: first those of the five slots and then those of the
 ; list rows. Without remembering where it was: each frame restores everything,
 ; so the bar cannot end up painted in two places. It is 768 bytes, some five
 ; vblank lines on top of the text's ten.
@@ -906,15 +906,15 @@ empty:
     sta VMAIN
     rep #$20
 .a16
-    lda #(ITEM_MARCO_MAPA + EQ_MARCO_TEXTO * 32)
+    lda #(ITEM_BORDER_MAP + EQ_BORDER_TEXT * 32)
     sta VMADDL
-    lda #.loword(eq_marco_mapa + EQ_MARCO_TEXTO * 64)
+    lda #.loword(eq_border_map + EQ_BORDER_TEXT * 64)
     sta A1T0L
-    lda #(EQ_MARCO_TEXTO_N * 64)
+    lda #(EQ_BORDER_TEXT_N * 64)
     sta DAS0L
     sep #$20
 .a8
-    lda #^(eq_marco_mapa)
+    lda #^(eq_border_map)
     sta A1B0
     lda #$01
     sta DMAP0
@@ -928,7 +928,7 @@ empty:
     lda comp_phase
     sec
     sbc comp_phase + 1
-    ldx #(RANURAS_EQUIPO * 128) ; the list's, after the slots'
+    ldx #(SLOTS_EQUIPMENT * 128) ; the list's, after the slots'
     bra row
 en_ranuras:
     lda comp_col
@@ -942,19 +942,19 @@ row:
     pha
     lsr a                       ; which is 64 words
     clc
-    adc #(ITEM_MARCO_MAPA + EQ_BARRA_FILA0 * 32)
+    adc #(ITEM_BORDER_MAP + EQ_BAR_ROW0 * 32)
     sta VMADDL
     txa
     clc
     adc 1, s
-    adc #.loword(eq_marco_barras) ; carry was left at zero: it is a
+    adc #.loword(eq_border_bars) ; carry was left at zero: it is a
     sta A1T0L                   ; single-bank table
     pla
     lda #128
     sta DAS0L
     sep #$20
 .a8
-    lda #^(eq_marco_barras)
+    lda #^(eq_border_bars)
     sta A1B0
     lda #$01
     sta MDMAEN
@@ -1050,7 +1050,7 @@ l_no_arriba:
     sta comp_phase
     sec
     sbc comp_phase + 1
-    cmp #EQ_LISTA_FILAS
+    cmp #EQ_LIST_ROWS
     bcc recomponer
     inc comp_phase + 1
     bra recomponer

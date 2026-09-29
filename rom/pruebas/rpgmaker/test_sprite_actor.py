@@ -45,7 +45,7 @@ def test_arranca_sin_ningun_actor_cambiado(partida):
     """
     una = partida()
     ninguno = una.simbolos["ACTOR_GFX_NONE"]
-    actores = una.simbolos["ACTORES_N"]
+    actores = una.simbolos["ACTORS_N"]
     puestos = [a for a in range(actores) if leer(una, a) != ninguno]
     assert not puestos, (
         "los actores %s arrancaron con un gráfico puesto y nadie se lo puso"
@@ -97,11 +97,11 @@ def test_el_mapa_de_la_ram_lejana_no_se_pisa(partida):
     El mapa de la RAM lejana ya se pisó una vez —el cartel encima del estado
     del MSU-1, y la música quedó muda un día entero— y el único control que
     tiene es que alguien lo mire. Acá se lo mira con los dos números que la ROM
-    misma declara, así que un `ACTORES_N` más grande lo dice en vez de
+    misma declara, así que un `ACTORS_N` más grande lo dice en vez de
     escribirle encima al primer byte de la batalla.
     """
     una = partida()
-    fin = una.simbolos["FAR_ACTOR_GFX"] + una.simbolos["ACTORES_N"]
+    fin = una.simbolos["FAR_ACTOR_GFX"] + una.simbolos["ACTORS_N"]
     assert fin <= una.simbolos["FAR_BATTLE"], (
         "los %d actores llegan hasta $%04X y la pelea empieza en $%04X"
-        % (una.simbolos["ACTORES_N"], fin, una.simbolos["FAR_BATTLE"]))
+        % (una.simbolos["ACTORS_N"], fin, una.simbolos["FAR_BATTLE"]))

@@ -42,10 +42,10 @@ POCION = 1
 # dejar afuera; sin él, ofrecer todo y ofrecer lo correcto dan lo mismo.
 LLAVE = 151
 # El nombre de la constante de la ROM para cada caso del reparto.
-PENDIENTE_DE = {"errar": "BA_SE_ERRAR",
-                "dano_actor": "BA_SE_DANO_ACTOR",
-                "dano_enemigo": "BA_SE_DANO_ENEMIGO",
-                "muerte": "BA_SE_MUERTE"}
+PENDIENTE_DE = {"errar": "BA_SE_MISS",
+                "dano_actor": "BA_SE_DAMAGE_ACTOR",
+                "dano_enemigo": "BA_SE_DAMAGE_ENEMY",
+                "muerte": "BA_SE_DEATH"}
 
 
 # --- los HP como estado ----------------------------------------------------
@@ -247,7 +247,7 @@ def test_cada_actor_sabe_las_habilidades_de_su_nivel(partida):
             "la ROM le dio %d habilidades al actor %d y sabe %d"
             % (pelea.byte("BA_SKILL_N"), actor, len(esperado[actor])))
         # Y que sean **las mismas y en el mismo orden**: `BA_SKILL_LIST` lleva
-        # el `k` del cartucho y `hab_id` lo traduce al número de RM2k.
+        # el `k` del cartucho y `skill_id` lo traduce al número de RM2k.
         lista = una.consola.ram(una.simbolos["BA_SKILL_LIST"],
                                 pelea.byte("BA_SKILL_N"))
         numeros = [hab_id(una, n) for n in lista]
@@ -520,7 +520,7 @@ def test_la_pelea_no_gasta_ningun_tick(partida):
 # la ROM estar tocando, y si lo que dice tocar tiene sus muestras arriba.
 
 def sonido_muestra(una, indice):
-    """La muestra que le toca a una fila de `sonido_tabla`, leída del
+    """La muestra que le toca a una fila de `sound_table`, leída del
     cartucho: siete bytes por entrada y la muestra es el primero.
 
     Se lee de la ROM y no se recalcula, por lo mismo que `muestras_del_tema`:
@@ -529,7 +529,7 @@ def sonido_muestra(una, indice):
     """
     with open(una.sfc, "rb") as archivo:
         rom = archivo.read()
-    return rom[en_la_rom(una.simbolos["sonido_tabla"]) + 7 * indice]
+    return rom[en_la_rom(una.simbolos["sound_table"]) + 7 * indice]
 
 
 def se_disparado(una):
@@ -572,7 +572,7 @@ def test_la_pelea_prende_el_tema_de_batalla_del_ldb(partida):
     `events.battle_audio`.
     """
     una = en_el_droide(partida)
-    tema = una.simbolos["BA_TEMA"]
+    tema = una.simbolos["BA_SONG"]
     assert tema != 0xFF, "esta ROM no lleva tema de batalla: el caso no mide nada"
     Pelea(una).abrir()
     assert una.palabra("song_current") == tema, (
@@ -616,7 +616,7 @@ def test_ganar_prende_el_tema_de_la_victoria(partida):
         esperado.play_turn(
             [(modelo.COMMAND_ATTACK, 0)] * len(esperado.living(esperado.actors)))
     assert pelea.byte("BA_RESULT") == modelo.VICTORY
-    assert una.palabra("song_current") == una.simbolos["BA_TEMA_FIN"], \
+    assert una.palabra("song_current") == una.simbolos["BA_SONG_END"], \
         "al ganar tiene que sonar el battle_end_music del LDB"
     assert not una.byte("music_off")
     assert cursor_del_stream(una) < antes, (
@@ -644,7 +644,7 @@ def test_al_terminar_vuelve_lo_que_sonaba_en_el_mapa(partida, con_musica):
     assert not una.byte("music_off"), \
         "el mapa tenía que arrancar con su tema: el caso no mide nada"
     pelea = Pelea(una).abrir()
-    assert una.palabra("song_current") == una.simbolos["BA_TEMA"], \
+    assert una.palabra("song_current") == una.simbolos["BA_SONG"], \
         "la pelea tiene que tapar el tema del mapa"
     esperado = modelo_de(datos.base())
     while esperado.result is None:
@@ -735,11 +735,11 @@ def test_el_golpe_suena_con_el_efecto_que_le_toca(partida):
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
     esperados = {
-        "errar": sonido_muestra(una, una.simbolos["BA_SE_ERRAR"]),
-        "ataque": sonido_muestra(una, una.simbolos["BA_SE_ATAQUE"]),
-        "dano_enemigo": sonido_muestra(una, una.simbolos["BA_SE_DANO_ENEMIGO"]),
-        "dano_actor": sonido_muestra(una, una.simbolos["BA_SE_DANO_ACTOR"]),
-        "muerte": sonido_muestra(una, una.simbolos["BA_SE_MUERTE"]),
+        "errar": sonido_muestra(una, una.simbolos["BA_SE_MISS"]),
+        "ataque": sonido_muestra(una, una.simbolos["BA_SE_ATTACK"]),
+        "dano_enemigo": sonido_muestra(una, una.simbolos["BA_SE_DAMAGE_ENEMY"]),
+        "dano_actor": sonido_muestra(una, una.simbolos["BA_SE_DAMAGE_ACTOR"]),
+        "muerte": sonido_muestra(una, una.simbolos["BA_SE_DEATH"]),
     }
     vistos = set()
     for _ in range(8):
@@ -800,9 +800,9 @@ def test_la_lista_de_items_es_la_que_se_puede_usar(partida):
     """
     una = en_el_droide_con_pocion(partida)
     pelea = Pelea(una).abrir()
-    for _ in range(pelea.orden("USAR")):
+    for _ in range(pelea.orden("USE")):
         pelea.tocar_cuadros("right")
-    assert pelea.byte("BA_COMMAND") == pelea.orden("USAR")
+    assert pelea.byte("BA_COMMAND") == pelea.orden("USE")
     pelea.tocar_cuadros()
     assert pelea.modo() == "ITEM", "A sobre `Use Item` abre la lista"
     base = datos.base()
@@ -835,7 +835,7 @@ def test_usar_una_pocion_cura_lo_que_dice_el_modelo(partida):
         quien.hp = quien.hp_max - 20
     antes = una.item(POCION)
     # El primer actor usa la poción sobre sí mismo; los otros dos atacan.
-    for _ in range(pelea.orden("USAR")):
+    for _ in range(pelea.orden("USE")):
         pelea.tocar_cuadros("right")
     pelea.tocar_cuadros()               # abre la lista
     pelea.tocar_cuadros()               # elige el primero
@@ -903,7 +903,7 @@ def test_el_elixir_levanta_a_un_caido_en_la_pelea(partida):
     pelea = Pelea(una).abrir()
     assert pelea.hp_del_combatiente(1) == 0, "Core tenía que entrar caído"
     # Kersh: `Use Item`, el elixir —el único de la lista— y a quién.
-    for _ in range(pelea.orden("USAR")):
+    for _ in range(pelea.orden("USE")):
         pelea.tocar_cuadros("right")
     pelea.tocar_cuadros()
     assert pelea.modo() == "ITEM"
@@ -988,7 +988,7 @@ def test_el_segundo_elixir_sobre_el_mismo_caido_no_hace_nada(partida):
         assert pelea.byte("BA_ACTOR") == quien
         for _ in range(5):
             pelea.tocar_cuadros("left")
-        for _ in range(pelea.orden("USAR")):
+        for _ in range(pelea.orden("USE")):
             pelea.tocar_cuadros("right")
         pelea.tocar_cuadros()
         pelea.tocar_cuadros()
@@ -1026,20 +1026,20 @@ def test_el_menu_va_en_el_orden_del_original(partida):
     pelea = Pelea(una).abrir()
     for _ in range(4):
         pelea.tocar_cuadros("right")
-    assert pelea.byte("BA_COMMAND") == pelea.orden("HUIR"), \
+    assert pelea.byte("BA_COMMAND") == pelea.orden("ESCAPE"), \
         "el cursor tiene que llegar hasta `Escape`, que es la quinta"
     pelea.tocar_cuadros("right")
-    assert pelea.byte("BA_COMMAND") == pelea.orden("HUIR"), \
+    assert pelea.byte("BA_COMMAND") == pelea.orden("ESCAPE"), \
         "y no pasarse de la quinta"
     for _ in range(3):
         pelea.tocar_cuadros("left")
-    assert pelea.byte("BA_COMMAND") == pelea.orden("HABILIDAD")
+    assert pelea.byte("BA_COMMAND") == pelea.orden("SKILL")
     pelea.tocar_cuadros()
     assert pelea.modo() == "SKILL", \
         "A sobre la habilidad tiene que abrir su lista"
     pelea.tocar_cuadros("b")
     assert pelea.modo() == "COMMAND", "y B tiene que volver al menú"
-    assert pelea.byte("BA_COMMAND") == pelea.orden("HABILIDAD"), \
+    assert pelea.byte("BA_COMMAND") == pelea.orden("SKILL"), \
         "volviendo con B el cursor se queda donde estaba"
 
 
@@ -1061,7 +1061,7 @@ def test_un_actor_sin_habilidades_no_abre_la_lista(partida):
     pelea = Pelea(una).abrir()
     assert pelea.byte("BA_ACTOR") == 0
     pelea.tocar_cuadros("right")
-    assert pelea.byte("BA_COMMAND") == pelea.orden("HABILIDAD")
+    assert pelea.byte("BA_COMMAND") == pelea.orden("SKILL")
     pelea.tocar_cuadros()
     assert pelea.modo() == "COMMAND", \
         "sin ninguna habilidad, A no tiene que llevar a ningún lado"

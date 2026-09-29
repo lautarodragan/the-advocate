@@ -17,7 +17,7 @@
 ;
 ; **All the arithmetic is integer**, which is what the console can do: the
 ; converter precomputes `1 / encounter_steps` in 1/65536 —`enc_base`— and at
-; which step each row of the table is crossed —`enc_umbral_n`—, so there is
+; which step each row of the table is crossed —`enc_threshold_n`—, so there is
 ; not a single division here. See `eventos.enc_base` and
 ; `eventos.enc_umbrales_de_paso`, which are the same arithmetic on the other
 ; side.
@@ -40,7 +40,7 @@
     plb
     rep #$20
 .a16
-    lda #ENC_SEMILLA
+    lda #ENC_SEED
     sta ENC_RNG
     sep #$20
 .a8
@@ -59,7 +59,7 @@
     pha
     plb
     ldx map_current
-    lda f:enc_mapa, x
+    lda f:enc_map, x
     sta ENC_REG
     cmp #ENC_NONE
     beq sin_encuentros
@@ -75,7 +75,7 @@
     ldy #0
 copiar:
 .a16
-    lda f:enc_umbral_n, x
+    lda f:enc_threshold_n, x
     sta ENC_THR, y
     inx
     inx
@@ -335,7 +335,7 @@ count_up:
     bcc sin_tapar
     sep #$20
 .a8
-    lda f:enc_tropa_n, x
+    lda f:enc_troop_n, x
     rep #$20
 .a16
     and #$00FF
@@ -396,7 +396,7 @@ elegir:
     bcc sigue_eligiendo
     sep #$20
 .a8
-    lda f:enc_tropa_n, x
+    lda f:enc_troop_n, x
     rep #$20
 .a16
     and #$00FF
@@ -415,7 +415,7 @@ es_de_esta:
 .a16
     sep #$20
 .a8
-    lda f:enc_tropa_ini, x
+    lda f:enc_troop_init, x
     rep #$20
 .a16
     and #$00FF
@@ -423,7 +423,7 @@ es_de_esta:
     adc comp_and
     asl a
     tax
-    lda f:enc_tropa, x
+    lda f:enc_troop, x
     sta BA_TROOP
     sep #$20
 .a8
@@ -457,7 +457,7 @@ end:
     tax
     sep #$20
 .a8
-    lda f:enc_zona_ini, x
+    lda f:enc_zone_init, x
     rep #$20
 .a16
     and #$00FF
@@ -465,7 +465,7 @@ end:
     sta temp + 2
     sep #$20
 .a8
-    lda f:enc_zona_n, x
+    lda f:enc_zone_n, x
     rep #$20
 .a16
     and #$00FF
@@ -488,14 +488,14 @@ end:
     asl a
     tax
     lda tile_x
-    cmp f:enc_izq, x
+    cmp f:enc_left, x
     bcc afuera
-    cmp f:enc_der, x
+    cmp f:enc_right, x
     bcs afuera
     lda tile_y
     cmp f:enc_arr, x
     bcc afuera
-    cmp f:enc_aba, x
+    cmp f:enc_down, x
     bcs afuera
     ldx temp
     sec

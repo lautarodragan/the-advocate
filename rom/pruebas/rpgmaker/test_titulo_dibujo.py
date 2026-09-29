@@ -148,7 +148,7 @@ def test_la_musica_viaja_en_la_partida(con_musica):
     # un byte; el inventario, ITEMS_N bytes; los permisos del menú, un byte;
     # el equipo, diez bytes por actor; los HP, dos bytes por actor, y los SP,
     # otros dos; el gráfico que un `ChangeSpriteAssociation` le haya puesto a
-    # cada actor, un byte; las habilidades que sabe cada uno, HAB_BYTES; y la
+    # cada actor, un byte; las habilidades que sabe cada uno, SKILL_BYTES; y la
     # experiencia y el nivel, cuatro bytes por cada actor que puede pelear,
     # que es lo que cierra la tabla.
     #
@@ -158,11 +158,11 @@ def test_la_musica_viaja_en_la_partida(con_musica):
     # habilidades.
     largo = (una.simbolos["SAVE_BYTES"] - 2 * una.simbolos["VARIABLES_N"]
              - 1 - una.simbolos["ITEMS_N"] - 1
-             - 10 * una.simbolos["ACTORES_N"]
-             - 2 * una.simbolos["ACTORES_N"]
-             - 2 * una.simbolos["ACTORES_N"]
-             - una.simbolos["ACTORES_N"]
-             - una.simbolos["HAB_BYTES"]
+             - 10 * una.simbolos["ACTORS_N"]
+             - 2 * una.simbolos["ACTORS_N"]
+             - 2 * una.simbolos["ACTORS_N"]
+             - una.simbolos["ACTORS_N"]
+             - una.simbolos["SKILL_BYTES"]
              - 4 * una.simbolos["EXP_K"])
     cola = una.sram(una.simbolos["SRAM_DATA"] + largo - 3, 3)
     assert cola[0] == una.byte("music_off"), (
@@ -188,7 +188,7 @@ def test_la_partida_cargada_arranca_con_su_musica(con_musica):
     sonaba = una.palabra("song_current")
 
     una._resetear()
-    una.poner_byte("song_current", (sonaba + 1) % una.simbolos["TEMA_TOTAL"])
+    una.poner_byte("song_current", (sonaba + 1) % una.simbolos["SONG_TOTAL"])
     una.poner_byte("music_off", 1)
     una.pasar_el_titulo(SEGUIR)
     # Un tick y no unos cuadros: mientras se carga el mapa el título está
@@ -311,7 +311,7 @@ def _de_otro_build(simbolos, guardado, como):
         # los datos pegados, sin nada en el medio.
         return magia + _suma(corrida).to_bytes(2, "little") + corrida
     bytes_ = simbolos["SAVE_BYTES"]
-    firma = simbolos["PARTIDA_FIRMA"]
+    firma = simbolos["GAME_SIGNATURE"]
     if como == "otro-largo":
         bytes_ -= 2
     else:

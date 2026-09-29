@@ -113,7 +113,7 @@ def sin_quedarse_en_el_aire(partida, a_cada=A_CADA):
         if not p.byte("route_jump"):
             seguidas[0] = 0
             return
-        dura = -(-partida.simbolos["SALTO_PASO"]
+        dura = -(-partida.simbolos["JUMP_STEP"]
                  // events.JUMP_PER_SPEED[p.velocidad_del_heroe() - 1])
         tope = -(-dura // a_cada) + 1
         seguidas[0] += 1

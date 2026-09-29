@@ -152,15 +152,15 @@ negro:
     stz HDMAEN                  ; without the message window
     lda #0
     sta f:GO_WAIT
-    ; The song, first: its package —the song alone, see PAQUETE_GAME_OVER in
+    ; The song, first: its package —the song alone, see PACKAGE_GAME_OVER in
     ; snes_convert.py— is uploaded with the screen black, and so it plays from
     ; the first frame of the fade, as in RM2k. With an MSU-1 track the package
     ; uploads nothing and the track plays.
-    ldx #PAQUETE_GAME_OVER
+    ldx #PACKAGE_GAME_OVER
     jsl f:ba_t_audio
-    lda #TEMA_GAME_OVER
+    lda #SONG_GAME_OVER
     jsl f:ba_t_bgm
-    ldx #(PANTALLA_GAME_OVER * PANTALLA_FILA)
+    ldx #(SCREEN_GAME_OVER * SCREEN_ROW)
     jsl f:screen_decompress
     jsl f:screen_upload        ; the same row: `screen_decompress` does
                                 ; not touch X
@@ -243,7 +243,7 @@ cuadro:
     rts
 .endproc
 
-; A full screen from `pantallas_tabla` —X is its row, in bytes—, in two steps:
+; A full screen from `screens_table` —X is its row, in bytes—, in two steps:
 ; `screen_decompress` leaves it in `SCREEN_BUFFER`, and
 ; `screen_upload` takes it from there to VRAM and CGRAM.
 ;
@@ -262,18 +262,18 @@ cuadro:
 .proc screen_decompress
 .a8
 .i16
-.ifdef ::PANTALLA_FILA
+.ifdef ::SCREEN_ROW
     phb
     phk
     plb
     phx                         ; the row
     lda #^SCREEN_BUFFER
     sta f:LZ2_BANK
-    lda f:pantallas_tabla + 2, x
+    lda f:screens_table + 2, x
     pha                         ; the stream's bank
     rep #$20
 .a16
-    lda f:pantallas_tabla, x
+    lda f:screens_table, x
     tax
     sep #$20
 .a8
@@ -292,7 +292,7 @@ cuadro:
 .proc screen_upload
 .a8
 .i16
-.ifdef ::PANTALLA_FILA
+.ifdef ::SCREEN_ROW
     phb
     phk
     plb
@@ -306,7 +306,7 @@ cuadro:
 .a16
     lda #$0000
     sta VMADDL
-    lda f:pantallas_tabla + 3, x
+    lda f:screens_table + 3, x
     sta DAS0L
     lda #.loword(SCREEN_BUFFER)
     sta A1T0L
@@ -328,7 +328,7 @@ cuadro:
     sta VMADDL
     lda #(32 * 32 * 2)
     sta DAS0L
-    lda f:pantallas_tabla + 3, x
+    lda f:screens_table + 3, x
     clc
     adc #.loword(SCREEN_BUFFER)
     sta A1T0L
@@ -338,13 +338,13 @@ cuadro:
     sta MDMAEN                  ; the bank and destination, the ones above
 
     ; --- the colors, after the tilemap ---
-    lda f:pantallas_tabla + 7, x
+    lda f:screens_table + 7, x
     sta CGADD
     rep #$20
 .a16
-    lda f:pantallas_tabla + 5, x
+    lda f:screens_table + 5, x
     sta DAS0L
-    lda f:pantallas_tabla + 3, x
+    lda f:screens_table + 3, x
     clc
     adc #(.loword(SCREEN_BUFFER) + 32 * 32 * 2)
     sta A1T0L

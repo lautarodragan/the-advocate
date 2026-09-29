@@ -25,11 +25,11 @@
 .proc animate_still
 .a8
 .i16
-    ; Does this map have any? The padding of the last family in `anim_tabla`
+    ; Does this map have any? The padding of the last family in `anim_table`
     ; says so; without this we would have to walk the forty rows every time.
-    ldy #(ANIM_FAMILIAS - 1)
+    ldy #(ANIM_FAMILIES - 1)
     jsr anim_where
-    lda f:anim_tabla + 7, x
+    lda f:anim_table + 7, x
     bne hay
     rts
 hay:
@@ -71,7 +71,7 @@ otra:
     nop
     nop
     lda RDDIVL
-    and #(AGUA_CICLO_N - 1)
+    and #(WATER_CYCLE_N - 1)
     rep #$20
 .a16
     and #$00FF

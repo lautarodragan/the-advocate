@@ -131,7 +131,7 @@ def track_numbers(game_dir=None):
         system_songs = sorted(({n.lower() for n in lcf.system_songs(ldb)}
                                - names) & from_rtp)
         order = sorted(names) + system_songs
-        # The number goes in a byte of `tema_msu`, and $FF is "no track".
+        # The number goes in a byte of `song_msu`, and $FF is "no track".
         if len(order) > 0xFE:
             raise SystemExit("Music/ has %d songs and the track goes in a byte"
                              % len(order))
@@ -2162,7 +2162,7 @@ def build_all(names, game_dir=None, effects=(), packages=None,
     # The sound effects go after the bank in the same directory, in its
     # `places` entries: their `V_SRCN` is the place each one got after the
     # music's samples. And each one also has its sound effect number, which
-    # is what the package lists carry, and its `muestra_tabla` row after the
+    # is what the package lists carry, and its `sample_table` row after the
     # music's: see `effect_places`.
     bank.places = places
     bank.effects = {e.name: (len(bank.voices) + place[e.name], e)
@@ -2396,13 +2396,13 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
             out.append("    .byte " + ",".join("$%02X" % b for b in data[i:i + 16]))
         return "\n".join(out)
 
-    labels = ["tema_stream_%d" % i for i in range(len(songs))] or \
-        ["tema_stream_0"]
+    labels = ["song_stream_%d" % i for i in range(len(songs))] or \
+        ["song_stream_0"]
     streams = [t["stream"] for t in songs] or [bytes([OP_END])]
     table = "\n".join(
         "%s:\n    .byte %s" % (name, ", ".join(prefix + e for e in labels))
-        for name, prefix in (("tema_lo", "<"), ("tema_hi", ">"),
-                             ("tema_bk", "^")))
+        for name, prefix in (("song_lo", "<"), ("song_hi", ">"),
+                             ("song_bk", "^")))
     # The DSP prologue, for the MSU-1 path. With a track the stream never
     # runs, and it is the start of the stream that takes the DSP out of the
     # mute the SPC700 boots with, sets its master volume and tells it where
@@ -2423,18 +2423,18 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     table += "\ndsp_init_val:\n    .byte " + ", ".join(
         "$%02X" % v for _, v in init) + ", $00"
     # And which MSU-1 track each one gets, or $FF: see `msu_track`.
-    table += "\ntema_msu:\n    .byte " + ", ".join(
+    table += "\nsong_msu:\n    .byte " + ", ".join(
         "$%02X" % (t.get("pista") or 0xFF)
         for t in (songs or [{"nombre": ""}]))
     # And each map's own song. Outside bank 0: it is read once per teleport,
-    # with `lda f:mapa_tema, x`.
+    # with `lda f:map_song, x`.
     per_map = list(map_song) or [0xFF]
-    map_song_table = ".bloque %d\nmapa_tema:\n    .byte " % len(per_map) \
+    map_song_table = ".bloque %d\nmap_song:\n    .byte " % len(per_map) \
         + ", ".join("$%02X" % t for t in per_map)
     # And the music's sounds —`pack`'s: six bytes, the pitch, SRCN, ADSR1,
     # ADSR2 and the release GAIN—, those of every song in one table and
     # where each one's start. In a single bank, because `music_frame`
-    # reaches them with `lda f:musica_sonidos, x` and a sixteen-bit X does
+    # reaches them with `lda f:music_sounds, x` and a sixteen-bit X does
     # not cross banks.
     body, bases = bytearray(), []
     for t in songs:
@@ -2444,15 +2444,15 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     if len(body) > 0x8000:
         raise SystemExit("the music's sounds go over one bank: %d B"
                          % len(body))
-    map_song_table += ("\n.bloque %d\ntema_sonidos:\n    .word "
+    map_song_table += ("\n.bloque %d\nsong_sounds:\n    .word "
                        % (2 * len(bases or [0]))
                        + ", ".join("%d" % b for b in bases or [0]) + "\n"
-                       + block("musica_sonidos", bytes(body) or bytes(6),
+                       + block("music_sounds", bytes(body) or bytes(6),
                                as_block=True))
     # And the sound effects: seven bytes per entry of `Songs.sounds`.
-    # Outside bank 0: `op_sound` reads them with `lda f:sonido_tabla, x`.
+    # Outside bank 0: `op_sound` reads them with `lda f:sound_table, x`.
     rows = list(sounds) or [(0xFF, 0, 0, 0, 0, 0xFF)]
-    se_table = ".bloque %d\nsonido_tabla:\n" % (7 * len(rows)) + "\n".join(
+    se_table = ".bloque %d\nsound_table:\n" % (7 * len(rows)) + "\n".join(
         "    .byte $%02X, <%d, >%d, %d, %d, <%d, >%d" % (
             srcn, pitch, pitch, left, right, n_frames, n_frames)
         for srcn, pitch, left, right, n_frames, _e in rows)
@@ -2461,10 +2461,10 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     # sample is a place several sound effects share, and `sound_play` asks
     # with this whether the one in the ARAM is its own. And each sound
     # effect's place, which is what the package uses to upload it.
-    se_table += "\n.bloque %d\nsonido_efecto:\n    .byte " % len(rows) \
+    se_table += "\n.bloque %d\nsound_effect:\n    .byte " % len(rows) \
         + ", ".join("$%02X" % row[5] for row in rows)
     se_places = list(effect_place) or [0xFF]
-    se_table += "\n.bloque %d\nefecto_lugar:\n    .byte " % len(se_places) \
+    se_table += "\n.bloque %d\neffect_place:\n    .byte " % len(se_places) \
         + ", ".join("$%02X" % l for l in se_places)
 
     # The SPC700 directory, with all of them on the silence, and the silence
@@ -2486,13 +2486,13 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     directory_bytes = (silence.to_bytes(2, "little") * 2) * n + SILENCE
     # Each sample, on its own, and its row: the pointer, its length and
     # where it loops back to.
-    samples = [block("muestra_%d" % i, v.data, as_block=True)
-               for i, v in enumerate(voices)] or [block("muestra_0", SILENCE)]
+    samples = [block("sample_%d" % i, v.data, as_block=True)
+               for i, v in enumerate(voices)] or [block("sample_0", SILENCE)]
     sample_rows = []
     for i, v in enumerate(voices or [None]):
         length = len(v.data) if v is not None else len(SILENCE)
         loop = v.loop_block * brr_samples.BLOCK_BYTES if v is not None else 0
-        sample_rows.append("    .byte <(muestra_%d), >(muestra_%d), ^(muestra_%d), "
+        sample_rows.append("    .byte <(sample_%d), >(sample_%d), ^(sample_%d), "
                            "<%d, >%d, <%d, >%d" % (i, i, i, length, length, loop, loop))
     # Which samples each song uses, and each map's package. Two blocks with
     # an index of offsets in front, and each list terminated with $FF.
@@ -2505,7 +2505,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
         data_ = b"".join(o.to_bytes(2, "little") for o in ofs) + bytes(body)
         return block(label, data_ or b"\xFF", as_block=True)
     # Decoding the streams to find out is pure and costly: in parallel.
-    song_samples_block = lists("tema_muestras", [
+    song_samples_block = lists("song_samples", [
         [m] for m in in_parallel(lambda i: song_samples(songs[i]),
                                  range(len(songs)))] or [[[]]])
     # Each package, four lists: its songs, its sound effects' samples, its
@@ -2513,7 +2513,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     # `extra_separate` in tools/runtime/paquete_de_audio.s—.
     packages = [tuple(p) + ((),) * (4 - len(p)) for p in packages] or \
         [([], [], [], [])]
-    packages_block = lists("paquetes", [[list(t), list(m), list(s),
+    packages_block = lists("packages", [[list(t), list(m), list(s),
                                             list(a)]
                                            for t, m, s, a in packages])
 
@@ -2528,13 +2528,13 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
             "; How many songs the cartridge carries and which one plays from boot.\n"
             "; The indices are those of `Temas` in eventos.py, that is, the ones\n"
             "; the PlayBGM bytecode already has emitted.\n"
-            "; $FF in TEMA_ARRANQUE means 'the ROM boots silent': the song of the\n"
+            "; $FF in SONG_BOOT means 'the ROM boots silent': the song of the\n"
             "; map it boots in does not exist, so an event has to turn it on.\n"
-            "TEMA_TOTAL       = %d\n"
-            "TEMA_ARRANQUE    = $%02X\n"
+            "SONG_TOTAL       = %d\n"
+            "SONG_BOOT    = $%02X\n"
             "; And the title screen's, which comes from the LDB's `title_music`.\n"
             "; $FF means this ROM has no title screen.\n"
-            "TEMA_TITULO      = $%02X\n"
+            "SONG_TITLE      = $%02X\n"
             # `rom/src/` and not `tools/runtime/`, here and six lines further
             # down, on purpose: it is text that goes into the `.inc`, and the
             # paths in what is emitted are not changed yet
@@ -2542,14 +2542,14 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
             "; And the Game Over screen's —`gameover_music`— with its package,\n"
             "; which goes after all the others: the song alone. $FF and $FFFF\n"
             "; if this ROM has no such screen. See rom/src/game_over.s.\n"
-            "TEMA_GAME_OVER   = $%02X\n"
-            "PAQUETE_GAME_OVER = $%04X\n"
+            "SONG_GAME_OVER   = $%02X\n"
+            "PACKAGE_GAME_OVER = $%04X\n"
             "; The master volume the song plays at and the two DSP registers it\n"
             "; goes in. `sdsp.py` emits them, since that is where they come\n"
             "; from: the stream already writes them at start, and a `FadeOutBGM`\n"
             "; writes them again lowering them. Writing them in rom/src/ too\n"
             "; would be two sides that can be wrong in the same way.\n"
-            "TEMA_VOLUMEN     = $%02X\n"
+            "SONG_VOLUME     = $%02X\n"
             "DSP_MVOL_L       = $%02X\n"
             "DSP_MVOL_R       = $%02X\n"
             "SPC_DRIVER_ADDR  = $%04X\n"
@@ -2558,34 +2558,34 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
             "SPC_SAMPLES_SIZE = %d\n"
             "; Samples go to the SPC700 in packages: see `package_load`.\n"
             "; The directory is at SPC_SAMPLES_ADDR, the silence after it, and\n"
-            "; the samples are placed between ARAM_DATOS and ARAM_FIN.\n"
-            "; MUESTRAS_N is the directory's entries: the music's, and from\n"
-            "; SE_PRIMERA on the SE_LUGARES the sound effects share.\n"
-            "; Each sound effect has its number —EFECTOS_N in total, which is\n"
-            "; what the package lists carry— and its `muestra_tabla` row at\n"
-            "; SE_PRIMERA plus that number. See `lugares_de_efectos`.\n"
-            "MUESTRAS_N       = %d\n"
-            "SE_PRIMERA       = %d\n"
-            "SE_LUGARES       = %d\n"
-            "EFECTOS_N        = %d\n"
-            "ARAM_SILENCIO    = $%04X\n"
-            "ARAM_DATOS       = $%04X\n"
-            "ARAM_FIN         = $%04X\n"
-            "PAQUETES_N       = %d\n"
+            "; the samples are placed between ARAM_DATA and ARAM_END.\n"
+            "; SAMPLES_N is the directory's entries: the music's, and from\n"
+            "; SE_FIRST on the SE_PLACES the sound effects share.\n"
+            "; Each sound effect has its number —EFFECTS_N in total, which is\n"
+            "; what the package lists carry— and its `sample_table` row at\n"
+            "; SE_FIRST plus that number. See `lugares_de_efectos`.\n"
+            "SAMPLES_N       = %d\n"
+            "SE_FIRST       = %d\n"
+            "SE_PLACES       = %d\n"
+            "EFFECTS_N        = %d\n"
+            "ARAM_SILENCE    = $%04X\n"
+            "ARAM_DATA       = $%04X\n"
+            "ARAM_END         = $%04X\n"
+            "PACKAGES_N       = %d\n"
             "; The sound effects: which voice they play on and how many entries\n"
-            "; `sonido_tabla` has. See `build_efectos`.\n"
-            "SE_VOZ           = %d\n"
+            "; `sound_table` has. See `build_efectos`.\n"
+            "SE_VOICE           = %d\n"
             "SE_BIT           = $%02X\n"
             "SE_REG           = $%02X\n"
             "SE2_BIT          = $%02X\n"
             "SE2_REG          = $%02X\n"
-            "SONIDOS_N        = %d\n\n"
+            "SOUNDS_N        = %d\n\n"
             "; Where each song's stream starts, split into three tables\n"
             "; because they are read with an index: they go in bank 0 like\n"
             "; everything the CPU walks with `lda tabla, x`.\n"
             '.segment "TABLAS"\n%s\n\n'
             '.segment "RODATA"\n%s\n%s\n%s\n%s\n'
-            '.bloque %d\nmuestra_tabla:\n%s\n%s\n%s\n%s\n%s\n'
+            '.bloque %d\nsample_table:\n%s\n%s\n%s\n%s\n%s\n'
             % (", ".join(t["nombre"] or "sin música" for t in songs)
                or "ninguno",
                len(songs), boot, title, game_over[0], game_over[1],

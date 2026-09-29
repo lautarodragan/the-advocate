@@ -102,7 +102,7 @@ ba_t_param:
     plb
     rtl
 ; The two for audio, which are from this round: a sound effect —A16 the index
-; into `sonido_tabla`, $FFFF none— and the song, with A8.
+; into `sound_table`, $FFFF none— and the song, with A8.
 ba_t_sound:
     phb
     phk
@@ -197,7 +197,7 @@ ba_t_page:
     pha
     lda pair_ev
     pha
-    lda #^tropa_codigo
+    lda #^troop_code
     sta code_ptr + 2
     lda #PAIR_BATTLE
     sta pair_ev
@@ -241,7 +241,7 @@ ba_t_page:
 ; after the maps' ones, so with all 328 of the whole game it does not fit in a
 ; byte —and neither does `map_current`, which is what is passed on leaving—.
 ;
-; With `BA_PAQUETE` at $FFFF —a ROM with no battles— there is nothing to load;
+; With `BA_PACKAGE` at $FFFF —a ROM with no battles— there is nothing to load;
 ; it cannot happen, because this is reached from `op_battle`, but the opcode
 ; exists in every ROM's bytecode.
 .proc battle_audio_load

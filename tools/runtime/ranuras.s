@@ -57,11 +57,11 @@ no:
     sty VMADDL
     lda #$80
     sta VMAIN
-    lda ranura_bloque_lo, x
+    lda slot_block_lo, x
     sta A1T0L
-    lda ranura_bloque_hi, x
+    lda slot_block_hi, x
     sta A1T0L + 1
-    lda ranura_bloque_bk, x
+    lda slot_block_bk, x
     sta A1B0
     rep #$20
 .a16
@@ -108,7 +108,7 @@ sin_cursor:
     clc
     adc temp + 2
     clc
-    adc #RANURA_BLOQUE_FILAS
+    adc #SLOT_BLOCK_ROWS
     rep #$20
 .a16
     and #$00FF
@@ -123,9 +123,9 @@ sin_cursor:
     and #$00FF
     asl a                       ; two bytes per entry
     tay
-    lda ranura_vram, y
+    lda slot_vram, y
     tay
-    lda #RANURA_CELDAS
+    lda #SLOT_CELLS
     sta temp
     sep #$20
 .a8
@@ -165,11 +165,11 @@ sin_grupo:
 .i16
     lda #$80
     sta VMAIN
-    lda ranura_bloque_lo, x
+    lda slot_block_lo, x
     sta A1T0L
-    lda ranura_bloque_hi, x
+    lda slot_block_hi, x
     sta A1T0L + 1
-    lda ranura_bloque_bk, x
+    lda slot_block_bk, x
     sta A1B0
     lda #$01
     sta DMAP0
@@ -199,13 +199,13 @@ row:
 ;
 ; The name, the level and the max HP **are not baked** into one block of
 ; cells per actor: they are composed one letter per cell, with the glyphs in
-; `ranura_glifo_celdas`. The reason is in "what depends on the actor" in
+; `slot_glyph_cells`. The reason is in "what depends on the actor" in
 ; menus.py and is the same one that already holds for the gold and for the
 ; item screen: the tile bank is a single one and deduplicated, so a block per
 ; actor made it grow with every one who could be in the party.
 
 ; `msg_ptr` pointing at one of the strips of the actor in A, offset by the X
-; bytes of `RANURA_TEXTO_NOMBRE`, `_NIVEL` or `_MAX`. Clobbers A and X, and
+; bytes of `SLOT_TEXT_NAME`, `_NIVEL` or `_MAX`. Clobbers A and X, and
 ; **Y stays as it was**: the caller brings it with the cell it is going to
 ; write to.
 ;
@@ -223,17 +223,17 @@ row:
     asl a
     asl a
     asl a
-    asl a                       ; RANURA_TEXTO_ANCHO bytes per actor
+    asl a                       ; SLOT_TEXT_WIDTH bytes per actor
     sta msg_ptr
     txa
     clc
     adc msg_ptr
     clc
-    adc #.loword(ranura_actor_texto)
+    adc #.loword(slot_actor_text)
     sta msg_ptr
     sep #$20
 .a8
-    lda #^ranura_actor_texto
+    lda #^slot_actor_text
     sta msg_ptr + 2
     rts
 .endproc
@@ -284,13 +284,13 @@ letra:
 .a16
     and #$00FF
     sec
-    sbc #ITEM_PRIMER_CARACTER
+    sbc #ITEM_FIRST_CHAR
     asl a
     asl a                       ; four bytes per glyph
     clc
     adc temp + 2                ; the upper or the lower cell
     tax
-    lda f:ranura_glifo_celdas, x
+    lda f:slot_glyph_cells, x
     sta VMDATAL                 ; and VRAM advances one word
     sep #$20
 .a8
@@ -302,7 +302,7 @@ letra:
 .endproc
 
 ; The party of the save in the slot held in `slot`: the faces of the first
-; RANURA_CARAS_MAX, and the name of the first one. It is what
+; SLOT_FACES_MAX, and the name of the first one. It is what
 ; `Window_SaveFile::Refresh` draws per file, minus the hit points, which this
 ; port does not have.
 ;
@@ -310,8 +310,8 @@ letra:
 ; enough to read one byte: the block tables and the DMA registers address
 ; bank 0. An actor with no face —DummyHero— draws nothing, which is what
 ; `DrawFace` does with an empty name. And where each face and each name goes
-; is said by two converter tables, `ranura_cara_vram` and
-; `ranura_nombre_vram`, like `ranura_vram` for the rows: the computation lives
+; is said by two converter tables, `slot_face_vram` and
+; `slot_name_vram`, like `slot_vram` for the rows: the computation lives
 ; on a single side.
 ;
 ; The face is a baked block and the name and the level **are not**: those are
@@ -331,9 +331,9 @@ letra:
     plb
     lda SRAM_DATA + SAVE_PARTY_N, x
     plb
-    cmp #RANURA_CARAS_MAX
+    cmp #SLOT_FACES_MAX
     bcc caben
-    lda #RANURA_CARAS_MAX
+    lda #SLOT_FACES_MAX
 caben:
     sta temp + 3
     stz title_edges
@@ -342,7 +342,7 @@ otro_miembro:
     cmp temp + 3
     bcs las_caras_listas
     jsr actor_del_miembro
-    cmp #RANURA_ACTORES_N
+    cmp #SLOT_ACTORS_N
     bcs siguiente               ; an actor this ROM does not know
     rep #$20
 .a16
@@ -350,7 +350,7 @@ otro_miembro:
     tax
     sep #$20
 .a8
-    lda ranura_cara_bloque, x
+    lda slot_face_block, x
     cmp #$FF
     beq siguiente               ; no face
     pha                         ; the block, while the destination is built
@@ -364,13 +364,13 @@ otro_miembro:
     and #$00FF
     asl a                       ; two bytes per entry
     tax
-    lda ranura_cara_vram, x
+    lda slot_face_vram, x
     tay
-    lda #(RANURA_CARA_COLS * 2)
+    lda #(SLOT_FACE_COLS * 2)
     sta temp
     sep #$20
 .a8
-    lda #RANURA_CARA_FILAS
+    lda #SLOT_FACE_ROWS
     sta temp + 2
     pla
     rep #$20
@@ -391,7 +391,7 @@ las_caras_listas:
     beq ready                   ; an empty party has no leader
     stz title_edges
     jsr actor_del_miembro
-    cmp #RANURA_ACTORES_N
+    cmp #SLOT_ACTORS_N
     bcs ready                   ; an actor this ROM does not know
     pha                         ; the actor, for both strips
     lda slot
@@ -400,15 +400,15 @@ las_caras_listas:
     and #$00FF
     asl a
     tax
-    lda ranura_nombre_vram, x
+    lda slot_name_vram, x
     tay                         ; the name's cell
     sep #$20
 .a8
     pla
     pha
-    ldx #RANURA_TEXTO_NOMBRE
+    ldx #SLOT_TEXT_NAME
     jsr slot_text_of
-    lda #RANURA_NOMBRE_COLS
+    lda #SLOT_NAME_COLS
     jsr slot_text_write
     ; And the level, which falls a few cells further along the same row. Y
     ; stayed where it was: `slot_text_write` preserves it.
@@ -416,13 +416,13 @@ las_caras_listas:
 .a16
     tya
     clc
-    adc #RANURA_NIVEL_DESPL
+    adc #SLOT_LEVEL_OFS
     tay
     sep #$20
 .a8
     pla
     jsl f:text_level_saved  ; the one from the slot's save, not the current one
-    lda #RANURA_NIVEL_CIFRAS
+    lda #SLOT_LEVEL_DIGITS
     jsr slot_text_write
 ready:
     rts
@@ -496,9 +496,9 @@ actor_del_miembro:
 .a16
     and #$00FF
     tax                         ; the first two blocks are the headers
-    lda #RANURA_CAB_CELDAS
+    lda #SLOT_HDR_CELLS
     sta temp
-    ldy #(RANURA_MAP + RANURA_CAB_VRAM)
+    ldy #(SLOT_MAP + SLOT_HDR_VRAM)
     sep #$20
 .a8
     jsr slot_block_upload
@@ -534,7 +534,7 @@ pintar_todas:
     jsr slot_paint
     pla
     inc a
-    cmp #SRAM_RANURAS_N
+    cmp #SRAM_SLOTS_N
     bcc pintar_todas
 
     jsr slot_ppu_on
@@ -560,7 +560,7 @@ espera:
     lda arrows_repeated
     and #PAD_UP
     bne espera
-    lda #SRAM_RANURAS_N
+    lda #SRAM_SLOTS_N
 sube:
     dec a
     jsr mover_cursor
@@ -571,7 +571,7 @@ no_arriba:
     beq no_abajo
     lda title_sel
     inc a
-    cmp #SRAM_RANURAS_N
+    cmp #SRAM_SLOTS_N
     bcc baja
     lda arrows_repeated       ; the same going down: repeating does not wrap
     and #PAD_DOWN
@@ -649,16 +649,16 @@ mover_cursor:
     sta VMAIN
     rep #$20
 .a16
-    lda #RANURA_VRAM
+    lda #SLOT_VRAM
     sta VMADDL
-    lda #(RANURA_TILES * 32)
+    lda #(SLOT_TILES * 32)
     sta DAS0L
-    lda #<(ranura_tiles)
-    ora #(>(ranura_tiles) * 256)
+    lda #<(slot_tiles)
+    ora #(>(slot_tiles) * 256)
     sta A1T0L
     sep #$20
 .a8
-    lda #^(ranura_tiles)
+    lda #^(slot_tiles)
     sta A1B0
     lda #$01
     sta DMAP0
@@ -674,16 +674,16 @@ mover_cursor:
     ; zeros at hand.
     rep #$20
 .a16
-    lda #RANURA_MAP
+    lda #SLOT_MAP
     sta VMADDL
     lda #(32 * 32 * 2)
     sta DAS0L
-    lda #<(ranura_tiles)
-    ora #(>(ranura_tiles) * 256)
+    lda #<(slot_tiles)
+    ora #(>(slot_tiles) * 256)
     sta A1T0L
     sep #$20
 .a8
-    lda #^(ranura_tiles)
+    lda #^(slot_tiles)
     sta A1B0
     lda #$09                    ; two registers, without advancing the source
     sta DMAP0
@@ -691,18 +691,18 @@ mover_cursor:
     sta MDMAEN
 
     ; --- the colors ---
-    ; Palette 0 for the text and one per face: RANURA_CGRAM_N entries, in a row.
+    ; Palette 0 for the text and one per face: SLOT_CGRAM_N entries, in a row.
     stz CGADD
     rep #$20
 .a16
-    lda #(RANURA_CGRAM_N * 2)
+    lda #(SLOT_CGRAM_N * 2)
     sta DAS0L
-    lda #<(ranura_cgram)
-    ora #(>(ranura_cgram) * 256)
+    lda #<(slot_cgram)
+    ora #(>(slot_cgram) * 256)
     sta A1T0L
     sep #$20
 .a8
-    lda #^(ranura_cgram)
+    lda #^(slot_cgram)
     sta A1B0
     stz DMAP0
     lda #$22
@@ -718,9 +718,9 @@ mover_cursor:
 .a8
 .i16
     ; --- the PPU ---
-    lda #(RANURA_MAP / 1024 * 4)
+    lda #(SLOT_MAP / 1024 * 4)
     sta BG2SC
-    lda #(RANURA_VRAM / 4096 * 16)
+    lda #(SLOT_VRAM / 4096 * 16)
     sta BG12NBA                 ; only BG2; BG1 is not drawn
     stz BG2HOFS
     stz BG2HOFS

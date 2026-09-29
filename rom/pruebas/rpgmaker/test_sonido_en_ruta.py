@@ -31,7 +31,7 @@ EFECTO = ("Close1", 100, 100, 50)
 
 
 def fila(una, sonido=EFECTO):
-    """La fila de `sonido_tabla` del efecto: la muestra, la altura, el volumen
+    """La fila de `sound_table` del efecto: la muestra, la altura, el volumen
     de cada lado y los cuadros que dura. El índice sale de `efectos.json`, que
     el conversor escribe al lado del cartucho en el orden de `Songs.sounds`."""
     with open(os.path.join(os.path.dirname(una.sfc), "efectos.json")) as a:
@@ -39,7 +39,7 @@ def fila(una, sonido=EFECTO):
     k = sonidos.index(sonido)
     with open(una.sfc, "rb") as a:
         rom = a.read()
-    base = en_la_rom(una.simbolos["sonido_tabla"]) + 7 * k
+    base = en_la_rom(una.simbolos["sound_table"]) + 7 * k
     return rom[base:base + 7]
 
 

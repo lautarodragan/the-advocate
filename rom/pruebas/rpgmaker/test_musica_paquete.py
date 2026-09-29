@@ -10,7 +10,7 @@ el SPC700 no toca nada, así que el único camino roto era justamente el que
 siempre tiene que andar.
 
 Lo que se pregunta es lo mismo que mira `song_ensure` en runtime/paquete_de_audio.s: para cada
-muestra que el stream del tema escribe en SRCN —`tema_muestras`, leída del
+muestra que el stream del tema escribe en SRCN —`song_samples`, leída del
 cartucho—, que `FAR_ARAM_OF` diga dónde está. Una muestra que no está apunta al
 bloque de silencio, o sea una nota que no se oye.
 
@@ -40,7 +40,7 @@ def test_el_tema_del_titulo_tiene_sus_muestras_en_la_aram(partida):
     """
     una = partida(titulo=EMPEZAR).quedarse_en_el_titulo()
 
-    tema = una.simbolos["TEMA_TITULO"]
+    tema = una.simbolos["SONG_TITLE"]
     assert tema != 0xFF, (
         "esta ROM no lleva tema de título, así que el caso no compara nada")
     assert una.palabra("song_current") == tema, (
@@ -86,12 +86,12 @@ def test_entrar_al_juego_devuelve_las_muestras_del_tema_del_mapa(con_musica):
     del_mapa = una.palabra("song_current")
     assert not una.byte("music_off"), (
         "esta ROM tenía que entrar al juego con el tema del mapa sonando")
-    assert del_mapa != una.simbolos["TEMA_TITULO"], (
+    assert del_mapa != una.simbolos["SONG_TITLE"], (
         "el tema del mapa y el del título son el mismo: no hay desalojo que "
         "probar")
 
     suyas = set(una.muestras_del_tema(del_mapa))
-    del_titulo = set(una.muestras_del_tema(una.simbolos["TEMA_TITULO"]))
+    del_titulo = set(una.muestras_del_tema(una.simbolos["SONG_TITLE"]))
     assert suyas - del_titulo, (
         "los dos temas usan las mismas muestras, así que entrar al juego no "
         "tiene nada que reponer")
@@ -483,7 +483,7 @@ def test_los_efectos_comparten_lugares_del_directorio():
     el 2026-09-26 cada efecto del cartucho tenía la suya —92 en `release`,
     `se_usual`—, y `snes_music.copies` paraba por llenarlo: las muestras
     que un paquete limitaba seguían limitando a los temas de afuera. Desde ese
-    día los efectos comparten los `SE_LUGARES` del final —dos efectos que
+    día los efectos comparten los `SE_PLACES` del final —dos efectos que
     nunca van en el mismo paquete pueden ir al mismo lugar, ver
     `snes_music.effect_places`—, y lo que liberan es para las copias.
 
@@ -507,17 +507,17 @@ def test_los_efectos_comparten_lugares_del_directorio():
     s = release.simbolos
     with open(release.sfc, "rb") as archivo:
         rom = archivo.read()
-    assert s["MUESTRAS_N"] <= snes_music.DIRECTORY_MAX, s["MUESTRAS_N"]
-    assert s["SE_LUGARES"] < snes_music.se_usual(), (
+    assert s["SAMPLES_N"] <= snes_music.DIRECTORY_MAX, s["SAMPLES_N"]
+    assert s["SE_PLACES"] < snes_music.se_usual(), (
         "los efectos ocupan %d entradas del directorio, tantas como cuando "
-        "cada uno tenía la suya: no comparten" % s["SE_LUGARES"])
-    assert s["MUESTRAS_N"] == s["SE_PRIMERA"] + s["SE_LUGARES"]
-    lugar = rom[en_la_rom(s["efecto_lugar"]):
-                en_la_rom(s["efecto_lugar"]) + s["EFECTOS_N"]]
+        "cada uno tenía la suya: no comparten" % s["SE_PLACES"])
+    assert s["SAMPLES_N"] == s["SE_FIRST"] + s["SE_PLACES"]
+    lugar = rom[en_la_rom(s["effect_place"]):
+                en_la_rom(s["effect_place"]) + s["EFFECTS_N"]]
 
-    base = en_la_rom(s["paquetes"])
+    base = en_la_rom(s["packages"])
     mas_cargado, pisados = 0, []
-    for p in range(s["PAQUETES_N"]):
+    for p in range(s["PACKAGES_N"]):
         salto = base + 2 * p
         cursor = base + (rom[salto] | rom[salto + 1] << 8)
         while rom[cursor] != 0xFF:          # los temas
@@ -536,9 +536,9 @@ def test_los_efectos_comparten_lugares_del_directorio():
     assert not pisados, (
         "efectos del mismo paquete en el mismo lugar del directorio: %s"
         % "; ".join(pisados))
-    assert s["SE_LUGARES"] == mas_cargado, (
+    assert s["SE_PLACES"] == mas_cargado, (
         "los efectos ocupan %d lugares del directorio y el paquete más "
-        "cargado trae %d" % (s["SE_LUGARES"], mas_cargado))
+        "cargado trae %d" % (s["SE_PLACES"], mas_cargado))
 
 
 def test_un_efecto_no_suena_con_la_muestra_de_otro(partida):
@@ -561,12 +561,12 @@ def test_un_efecto_no_suena_con_la_muestra_de_otro(partida):
             if una.mapa() != 10:
                 continue
             if cambiar and not cambiado:
-                lugares = max(1, s["SE_LUGARES"])
+                lugares = max(1, s["SE_PLACES"])
                 direccion = en_la_wram(s["FAR_EFFECT_IN"])
                 anotados = una.consola.ram(direccion, lugares)
                 una.consola.write_ram(
                     direccion,
-                    [(e + 1) % s["EFECTOS_N"] if e != 0xFF else e
+                    [(e + 1) % s["EFFECTS_N"] if e != 0xFF else e
                      for e in anotados])
                 cambiado = True
             for voz in ("SE_FRAMES", "SE2_FRAMES"):

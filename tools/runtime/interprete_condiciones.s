@@ -25,7 +25,7 @@
     ; the gold it is already inside the comparison and the actor has none.
     lda [code_ptr], y
     iny                         ; Y -> the operand
-    cmp #COND_ORO
+    cmp #COND_GOLD
     beq si_oro
     cmp #COND_ACTOR
     beq si_actor
@@ -276,7 +276,7 @@ si_var_sigue:
     iny
     iny                         ; Y -> the target
     lda temp
-    cmp #COND_ACTOR_HABILIDAD
+    cmp #COND_ACTOR_SKILL
     beq sia_habilidad
 
     ; --- the equipped equipment ---
@@ -302,7 +302,7 @@ si_var_sigue:
     sep #$20
 .a8
     stz WMADDH
-    ldx #RANURAS_EQUIPO
+    ldx #SLOTS_EQUIPMENT
 sia_eq_otra:
     lda WMDATA
     sta temp                    ; the low byte of this slot's item

@@ -157,11 +157,11 @@ sin_pista:
     sta song_current
     stz song_current + 1
     ldx song_current
-    lda tema_lo, x
+    lda song_lo, x
     sta music
-    lda tema_hi, x
+    lda song_hi, x
     sta music + 1
-    lda tema_bk, x
+    lda song_bk, x
     sta music + 2
     ; The decoder from scratch: no wait, no pending key-ons, and with nothing
     ; valid in the cache —each voice's first note rewrites it—. This also
@@ -179,7 +179,7 @@ sin_pista:
     lda song_current
     asl a
     tax
-    lda f:tema_sonidos, x
+    lda f:song_sounds, x
     sta f:MUS_BASE
     sep #$20
 .a8
@@ -372,7 +372,7 @@ igual:
     rts
 .endproc
 
-; The music when the ROM boots. `TEMA_ARRANQUE` is the song of the map the ROM
+; The music when the ROM boots. `SONG_BOOT` is the song of the map the ROM
 ; boots into, or $FF if that map has none —which is the usual case in this
 ; game: the first maps carry no music and a `PlayBGM` turns it on—. Silent
 ; means nothing is written to the DSP, so there is nothing to silence.
@@ -402,7 +402,7 @@ igual:
     lda song_current
     jmp music_start
 del_mapa:
-    lda #TEMA_ARRANQUE
+    lda #SONG_BOOT
     cmp #$FF
     bne suena
 callado:
@@ -787,11 +787,11 @@ already:
     plp
 .a8
     .repeat 5, k
-    lda f:musica_sonidos + k, x
+    lda f:music_sounds + k, x
     jsr mus_write
     iny
     .endrepeat
-    lda f:musica_sonidos + 5, x
+    lda f:music_sounds + 5, x
     tyx                         ; the voice's register 8, which is ENVX
     sta f:MUS_SHADOW + 1, x
     lda f:MUS_BIT

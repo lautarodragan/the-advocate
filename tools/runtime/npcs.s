@@ -65,7 +65,7 @@ cambia:
     asl a                       ; sixteen words per tile
     ldx map_ofs
     clc
-    adc f:mapa_tabla + M_VRAM_SPRITE, x
+    adc f:map_table + M_VRAM_SPRITE, x
     sta vq_dest
     sep #$20
 .a8

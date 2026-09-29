@@ -11,7 +11,7 @@
 ; not fit in bank 0. The day there are RM2k variables —five thousand, ten
 ; kilobytes— they go here too.
 FAR_PAIR_STATE = $2000      ; EV_MAX entries of PAIR_BYTES
-FAR_PAIR_LIST  = $2400      ; PARALELO_MAX entries of PAIR_LIST_BYTES
+FAR_PAIR_LIST  = $2400      ; PARALLEL_MAX entries of PAIR_LIST_BYTES
 ; The RM2k variables, one signed word per slot. How many there are is said by
 ; the converter —`VARIABLES_N`—, which gives a slot only to the ones named by
 ; the pages of the maps in the ROM; the bytecode talks in slots. They are read
@@ -79,7 +79,7 @@ FAR_LENGTH = $7E0000
 ; And the SP, which are state for the same reason as the HP since skills can
 ; be used: each one costs its `sp_cost` and `Scene_Battle` deducts it from
 ; whoever uses it. They start full from `actor_spmax` and travel in the save,
-; after the HP. `FAR_HP` is ACTORES_N words —61 actors, 122 bytes— so it
+; after the HP. `FAR_HP` is ACTORS_N words —61 actors, 122 bytes— so it
 ; reaches $3779; this starts at $3780 and ends before $3800.
 FAR_SP = $3780
 
@@ -92,7 +92,7 @@ FAR_SP = $3780
 ;
 ; It goes at $3800 and the battle moves to $3A00. It could have gone right
 ; after `FAR_HP` —today there is more than enough room up to $37FF— but then
-; its address would depend on `ACTORES_N`, which the converter emits, and the
+; its address would depend on `ACTORS_N`, which the converter emits, and the
 ; far RAM map would be at the mercy of a number not written here. See above:
 ; this map was stepped on once already and the music was silent for a whole
 ; day.
@@ -104,7 +104,7 @@ ACTOR_GFX_NONE = $FF
 ; `HABILIDAD_RANURA` in eventos.py—. It starts with what the LDB says for the
 ; initial level, which `initial_skills_set` copies on reset, `ChangeSkills`
 ; sets and clears it, and it travels in the save. How many bytes it takes is
-; said by `HAB_BYTES`, and the converter stops if they go past 256.
+; said by `SKILL_BYTES`, and the converter stops if they go past 256.
 ;
 ; **$6000 to $60FF belongs to this**: the range was reserved in advance, when
 ; splitting work among three jobs that ran at the same time and touched far
@@ -134,7 +134,7 @@ ENC_NONE   = $FF
 ; of padding, so that the index is a shift and not a multiplication.
 ENC_ROWS  = 8
 ENC_STRIDE = 8
-; The current map's thresholds, copied from `enc_umbral_n` on entry: the step
+; The current map's thresholds, copied from `enc_threshold_n` on entry: the step
 ; at which each row is crossed, from 1 to 7. They live in RAM and are not
 ; read from the table because `ChangeEncounterSteps` changes them along with
 ; `ENC_BASE`: the chance and the rows come from the same `encounter_steps`.
@@ -151,7 +151,7 @@ ENC_THR   = $79C0
 ; `experiencia_ranuras` —`actor_exp_k` says which one each actor number gets,
 ; or $FF—: the 24-bit experience, which in RM2k reaches 999999, and the level.
 ; Having the level right next to the experience is what makes the save carry
-; a single line for both. It starts from `exp_inicial` on reset and travels
+; a single line for both. It starts from `exp_initial` on reset and travels
 ; in the save.
 ;
 ; $6200 to $63FF is the place given to this on 2026-09-21, split among three
@@ -179,16 +179,16 @@ FAR_PAGE       = $6400
 BA_PAGE_N      = FAR_PAGE + 0     ; how many pages this battle's troop brings
 BA_PAGE_INIT    = FAR_PAGE + 1     ; word: the first, in the `tpag_*` tables
 BA_PAGE_CODE    = FAR_PAGE + 3     ; word: where the running one starts, in the
-                                ; bank of `tropa_codigo`
+                                ; bank of `troop_code`
 BA_PAGE_CUR    = FAR_PAGE + 5     ; word: its cursor, its own `ev_cur`
 BA_PAGE_ACT    = FAR_PAGE + 7     ; whether it has not finished yet: its `ev_active`
 BA_PAGE_MSG    = FAR_PAGE + 8     ; word: the message it asked for and is on
-                                ; screen, in `mensajes_tropa`, or $FFFF
+                                ; screen, in `messages_troop`, or $FFFF
 BA_PAGE_TICK = FAR_PAGE + 10    ; where the battle goes on when none are left:
                                 ; 0 the next action, 1 ask for the commands
 BA_PAGE_I      = FAR_PAGE + 11    ; which one the sweep is on
 BA_PAGE_G      = FAR_PAGE + 12    ; word: that same one, in the `tpag_*` tables
-BA_PAGE_DONE  = FAR_PAGE + 16    ; TROPA_PAG_MAX bytes: already ran this turn
+BA_PAGE_DONE  = FAR_PAGE + 16    ; TROOP_PAGE_MAX bytes: already ran this turn
 ; And what the turn and HP conditions and the commands that come with them
 ; added, on 2026-09-28: $7E7A10 to $7E7A3F, which is what was allotted to
 ; this. With a sixteen-bit address, like the rest of the battle.
@@ -211,7 +211,7 @@ BA_COND_EMAX  = 6
 BA_COND_ACT   = 7               ; the actor, by LDB number
 BA_COND_AMIN  = 8
 BA_COND_AMAX  = 9
-.assert BA_COND + TPAG_CABECERA <= $7A40, error, "the pages' state overflows its range"
+.assert BA_COND + TPAGE_HEADER <= $7A40, error, "the pages' state overflows its range"
 
 ; --- a medicine outside battle: its scratch space in far RAM -----------------
 ;
@@ -221,7 +221,7 @@ BA_COND_AMAX  = 9
 ; `medicine_use` runs with the data bank at $7E.
 FAR_MED       = $6800
 MED_ACTOR     = FAR_MED + 0     ; the actor, by LDB number
-MED_FLAGS  = FAR_MED + 1     ; the item's `item_medicina` bits
+MED_FLAGS  = FAR_MED + 1     ; the item's `item_medicine` bits
 MED_USED     = FAR_MED + 2     ; whether it worked: easyrpg's `was_used`
 MED_REVIVED   = FAR_MED + 3     ; word: 1 if it revived it, the `revived`
 MED_HP_MAX    = FAR_MED + 5     ; word: the max HP for its level
@@ -231,7 +231,7 @@ MED_SP        = FAR_MED + 11    ; word: the `sp_change`
 MED_P         = FAR_MED + 13    ; four bytes: the product, and the quotient
 MED_R         = FAR_MED + 17    ; word: the remainder
 MED_ID        = FAR_MED + 19    ; word: the item's RM2k number
-; The `item_medicina` bits, which the converter emits. `medicine_use` writes
+; The `item_medicine` bits, which the converter emits. `medicine_use` writes
 ; them by number; the battle, which reads them since 2026-09-26, by name.
 MED_KO_ONLY   = $01             ; only on a fallen one
 MED_RAISES   = $02             ; removes the dead state: revives the fallen one
@@ -299,8 +299,8 @@ BA_SE2      = FAR_BATTLE + 42     ; word
 ; Whether there is a scene in BG1 —0— or this battle goes on black —$FF—: no
 ; background and no battler. See `scene_upload`.
 BA_SCENE   = FAR_BATTLE + 44
-; And at which place in `tropa_id` this battle's troop landed, which is what
-; `escena_tropa_fondo` indexes. $FF: the cartridge does not carry it.
+; And at which place in `troop_id` this battle's troop landed, which is what
+; `scene_troop_backdrop` indexes. $FF: the cartridge does not carry it.
 BA_TROOP_K  = FAR_BATTLE + 45
 ; And the item being used, since 2026-09-13. It goes **after `BA_ONE`**,
 ; which ends at +575, because between +40 and +48 nothing is left and moving
@@ -328,7 +328,7 @@ BA_SKILL_SEL   = FAR_BATTLE + 657   ; which one the cursor marks
 BA_MHAB      = FAR_BATTLE + 658   ; the `k` of the current message's one
 BA_ACC_SKILL   = FAR_BATTLE + 660   ; the `k` each actor chose, one per byte
 BA_SKILL_LIST = FAR_BATTLE + 672   ; their list, one `k` per byte
-BA_SKILL_MAX   = 16                  ; BA_HAB_FILAS times BA_HAB_COLUMNAS, with room to spare
+BA_SKILL_MAX   = 16                  ; BA_SKILL_ROWS times BA_SKILL_COLUMNS, with room to spare
 BA_MEFECTO   = FAR_BATTLE + 688   ; signed word: how much the last one did
 BA_ACC     = FAR_BATTLE + 48     ; two bytes per combatant: command and target
 BA_EXEC    = FAR_BATTLE + 72     ; the execution order, one combatant per byte
@@ -451,7 +451,7 @@ BA_PARAM_MAX = 999
 ; else. It is the only type this port tells apart from normal: the seven the
 ; intro party knows are either `normal` or `switch`.
 BA_SKILL_TYPE_SWITCH = 3
-; The five scopes of `rpg::Skill::Scope`, which is what `hab_alcance` carries.
+; The five scopes of `rpg::Skill::Scope`, which is what `skill_scope` carries.
 ; Only `enemy` and `ally` ask for a target when chosen; for the other three
 ; the scope decides it: see `batalla.blancos_de_la_habilidad`.
 BA_SCOPE_ENEMY  = 0
@@ -459,12 +459,12 @@ BA_SCOPE_ENEMIES = 1
 BA_SCOPE_ONE      = 2
 BA_SCOPE_ALLY   = 3
 BA_SCOPE_PARTY    = 4
-; An enemy action that is not a skill: the basic attack, in `eacc_hab`, and
+; An enemy action that is not a skill: the basic attack, in `eacc_skill`, and
 ; what `ba_enemy_action` answers when it has none left. See
 ; `batalla.accion_del_enemigo`.
 BA_EACC_ATTACK = $FF
 BA_EACC_NOTHING   = $FE
-BA_EACC_NO_EFFECTIVE = $80       ; the `eacc_peso` bit
+BA_EACC_NO_EFFECTIVE = $80       ; the `eacc_weight` bit
 
 ; Cursor (2), wait (2), whether it is running (1) and from which page (2).
 ; **Eight and not seven**: the index comes out of three `asl` instead of an
@@ -489,7 +489,7 @@ PAIR_SLOT = 7
 ; may have changed, so recording it there is the same answer and only once.
 ; Eight for the same reason as `PAIR_BYTES`: the two spare ones are paid for
 ; in far RAM, of which there is plenty, and saved in bank 0 and in cycles.
-; PARALELO_MAX times eight is 384 bytes and up to `FAR_RANDOM` there are 508.
+; PARALLEL_MAX times eight is 384 bytes and up to `FAR_RANDOM` there are 508.
 PAIR_LIST_BYTES = 8
 WMADDL   = $2181
 WMADDM   = $2182
@@ -630,7 +630,7 @@ FAR_FLASH_PAL = $7E6900         ; FLASH_MAX * 32
 ;   MUS_WAIT   word: how many frames until the stream is read
 ;   MUS_KON      the voices that got a note in the frame being read
 ;   MUS_PLAYING  the ones keyed on when the previous one closed: released on opening
-;   MUS_BASE     word: where the song's sounds start in `musica_sonidos`
+;   MUS_BASE     word: where the song's sounds start in `music_sounds`
 ;   MUS_VIEWS   the voices that have had a note since the song started
 ;   MUS_GAINS    the ones that have already received a GAIN
 ;   MUS_BIT      the voice bit of the event being read
@@ -767,7 +767,7 @@ ANIM_DRAWINGS_END = $7F8000
 ; effects. `se_clear` zeroes it, on reset; it does not travel in the save.
 EX_FRAMES  = $7E78B0           ; six words: how many frames the sound effect
                                 ; on each voice has left, from 0 to 5
-EX_IDX      = $7E78BC           ; six words: its row in `sonido_tabla`
+EX_IDX      = $7E78BC           ; six words: its row in `sound_table`
 EX_PEND     = $7E78C8           ; one bit per voice: the sound effect has not started yet
 EX_BUSY     = $7E78C9           ; one bit per voice: it belongs to a sound effect
                                 ; —pending, playing or being handed back— and
@@ -783,14 +783,14 @@ EX_END      = $7E78CF
 ; --- which sound effect is in each directory place ---------------------------
 ;
 ; $7E78D0 to $7E78FF, reserved on 2026-09-26: one byte for each of the
-; SE_LUGARES of the SPC700 directory that the sound effects share, with the
+; SE_PLACES of the SPC700 directory that the sound effects share, with the
 ; number of the sound effect recorded there, or $FF. Several sound effects go
 ; to the same place —the ones that are never in the same package: see
 ; `lugares_de_efectos` in tools/audio/snes_music.py— and the directory does
 ; not say which one is there. See `record_effect` in paquete_de_audio.s.
 ; `aram_clear` sets it to $FF; it does not travel in the save.
 FAR_EFFECT_IN = $7E78D0
-.assert FAR_EFFECT_IN + SE_LUGARES <= $7E7900, error, "the sound effect places do not fit in FAR_EFFECT_IN: see SE_LUGARES_MAX in snes_music.py"
+.assert FAR_EFFECT_IN + SE_PLACES <= $7E7900, error, "the sound effect places do not fit in FAR_EFFECT_IN: see SE_LUGARES_MAX in snes_music.py"
 
 ; --- the battle transition ---------------------------------------------------
 ;
@@ -802,7 +802,7 @@ BATTLE_ON = $7E7840        ; 1 if the battle got to turn its screen on
 ; $7E7920 to $7E793F, reserved on 2026-09-27: the transition with which the
 ; teleport erases the screen and the one with which it shows it again, which
 ; `ChangeScreenTransitions` changes —`op_transition`— and `fade_mosaic`
-; and `fade_from` read: TRANSICION_MOSAICO, TRANSICION_CORTE (only for
+; and `fade_from` read: TRANSITION_MOSAIC, TRANSITION_CUTOFF (only for
 ; erasing), or anything else for the fade.
 ;
 ; `boot_transition` sets them to the fade, on reset: bsnes starts WRAM

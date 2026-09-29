@@ -184,7 +184,7 @@ def test_autofire():
 
 
 def test_lugar_recordado():
-    """Recordar en el 6, ir al 61 y volver: la tabla `mapa_rm2k` y las
+    """Recordar en el 6, ir al 61 y volver: la tabla `map_rm2k` y las
     variables que `remembered_place` lee y escribe directo en la RAM lejana,
     en los dos cores. A los 600 ticks ya volvió al 6."""
     iguales("lugar-ida-y-vuelta-600",

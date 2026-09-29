@@ -114,7 +114,7 @@ def test_batalla(nombre, caso, cuantos, toques, en):
 
     El grupo son tres actores y no el de los demás casos: la pantalla muestra
     a los tres. La pelea es la misma todas las veces porque el azar está
-    clavado en `BATALLA_SEMILLA`.
+    clavado en `BATTLE_SEED`.
     """
     consola = consola_cruda(caso, en=en)
     correr_hardware(consola, cuantos, toques_hardware=toques)

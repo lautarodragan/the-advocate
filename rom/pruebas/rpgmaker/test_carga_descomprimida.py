@@ -42,12 +42,12 @@ def _crudo(p, indice, clase):
 
 
 class Registro:
-    """El registro de un mapa en `mapa_tabla`, leído del cartucho."""
+    """El registro de un mapa en `map_table`, leído del cartucho."""
 
     def __init__(self, p, rom, indice):
         self.s = p.simbolos
-        self.base = (en_la_rom(self.s["mapa_tabla"])
-                     + indice * self.s["MAPA_STRIDE"])
+        self.base = (en_la_rom(self.s["map_table"])
+                     + indice * self.s["MAP_STRIDE"])
         self.rom = rom
 
     def palabra(self, campo):
@@ -60,11 +60,11 @@ class Registro:
 
 def _corridas_animadas(p, rom, indice):
     """[(palabra de VRAM, bytes por dibujo, desplazamiento del dibujo 0)] de
-    las familias que animan en este mapa, leídas de `anim_tabla`."""
+    las familias que animan en este mapa, leídas de `anim_table`."""
     s = p.simbolos
     corridas = []
-    for familia in range(s["ANIM_FAMILIAS"]):
-        k = (en_la_rom(s["anim_tabla"]) + indice * s["ANIM_STRIDE"]
+    for familia in range(s["ANIM_FAMILIES"]):
+        k = (en_la_rom(s["anim_table"]) + indice * s["ANIM_STRIDE"]
              + familia * s["ANIM_FAM_STRIDE"])
         vram, cero, largo = (rom[k] | rom[k + 1] << 8, rom[k + 2] | rom[k + 3] << 8,
                              rom[k + 4] | rom[k + 5] << 8)
@@ -175,7 +175,7 @@ def _grilla(p):
 
 
 def _mirar_la_grilla(p, indice):
-    crudo = _crudo(p, indice, "map_celdas")
+    crudo = _crudo(p, indice, "map_cells")
     visto = _grilla(p)
     if visto == crudo:
         return []
@@ -241,7 +241,7 @@ def test_la_grilla_vuelve_entera_de_una_pelea(nucleo):
     p = partida(PELEA_EN_52, nucleo=nucleo)
     s = p.simbolos
     indice = p.mapas.index(52)
-    crudo = _crudo(p, indice, "map_celdas")
+    crudo = _crudo(p, indice, "map_cells")
     mitad = s["GRID_END"] - s["GRID"]
     assert len(crudo) > mitad, (
         "la grilla del mapa 52 mide %d: no llega a la mitad del $7F y esto no "
@@ -277,7 +277,7 @@ def test_la_grilla_vuelve_entera_de_una_pelea(nucleo):
 
 # --- el fondo de dos flujos ----------------------------------------------------
 #
-# Un fondo de más de `LZ2_TOPE_FONDO` bytes va en dos flujos, y `lz2_backdrop`
+# Un fondo de más de `LZ2_CAP_BACKDROP` bytes va en dos flujos, y `lz2_backdrop`
 # sube el primero antes de descomprimir el segundo en el mismo lugar. Antes de
 # eso el fondo del 66 se descomprimía entero y lo que no entraba en el buffer
 # de carga caía en `GRID_HIGH`: en el 66, que usa sólo la mitad baja, andaba
@@ -291,14 +291,14 @@ def test_un_fondo_de_dos_flujos_no_se_sale_del_buffer():
         p.rom = f.read()
     s = p.simbolos
     grandes = [m for k, m in enumerate(p.mapas)
-               if len(_crudo(p, k, "map_tiles")) > s["LZ2_TOPE_FONDO"]]
+               if len(_crudo(p, k, "map_tiles")) > s["LZ2_CAP_BACKDROP"]]
     assert grandes, (
         "ningún mapa de `release` tiene el fondo en dos flujos: esta prueba "
         "no mira el camino de dos de `lz2_backdrop`")
     map_id = grandes[0]
     indice = p.mapas.index(map_id)
     mitad = s["GRID_END"] - s["GRID"]
-    assert len(_crudo(p, indice, "map_celdas")) <= mitad, (
+    assert len(_crudo(p, indice, "map_cells")) <= mitad, (
         "la grilla del mapa %d usa la mitad alta, y ahí el testigo lo pisaría "
         "ella: hace falta otro mapa" % map_id)
     alta = en_la_wram(s["GRID_HIGH"])

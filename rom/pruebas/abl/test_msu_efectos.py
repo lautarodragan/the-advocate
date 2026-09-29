@@ -75,7 +75,7 @@ def _efectos_cambiados(msu, firma):
     cabeceras de cada bloque de BRR quedan como estaban— y la firma de la
     cabecera tal cual, o recalculada si `firma`: con ella es el `.msu` de otro
     build, que la ROM no tiene que leer."""
-    fondos = 2 * tanda.cartucho(cartridges.RELEASE).simbolos["MSU_FONDOS_N"]
+    fondos = 2 * tanda.cartucho(cartridges.RELEASE).simbolos["MSU_BACKDROPS_N"]
     entradas = [bytearray(e) for e in msu_data.read(msu)]
     for entrada in entradas[fondos:]:
         for i in range(len(entrada)):
@@ -216,22 +216,22 @@ def test_con_un_msu_de_otro_build_los_efectos_salen_de_la_rom(tmp_path):
     rom = tanda.cartucho(cartridges.RELEASE)
     with open(rom.sfc, "rb") as archivo:
         cartucho = archivo.read()
-    fila = en_la_rom(rom.simbolos["sonido_tabla"]) + 7 * _indice_de(
+    fila = en_la_rom(rom.simbolos["sound_table"]) + 7 * _indice_de(
         rom, nuevo_vacio)
     assert nuevo_vacio == cartucho[fila:fila + 7], (
-        "sin el .msu, Success2 no arrancó con la fila de `sonido_tabla`")
+        "sin el .msu, Success2 no arrancó con la fila de `sound_table`")
 
 
 def _indice_de(rom, nuevo):
-    """El índice de la fila de `sonido_tabla` que empieza con la muestra de
+    """El índice de la fila de `sound_table` que empieza con la muestra de
     `nuevo`, con volumen 100 al centro: la de Success2."""
     with open(rom.sfc, "rb") as archivo:
         cartucho = archivo.read()
-    base = en_la_rom(rom.simbolos["sonido_tabla"])
-    for k in range(rom.simbolos["SONIDOS_N"]):
+    base = en_la_rom(rom.simbolos["sound_table"])
+    for k in range(rom.simbolos["SOUNDS_N"]):
         if cartucho[base + 7 * k:base + 7 * k + 7] == nuevo:
             return k
-    raise AssertionError("ninguna fila de sonido_tabla es %s" % nuevo.hex())
+    raise AssertionError("ninguna fila de sound_table es %s" % nuevo.hex())
 
 
 def test_con_msu_tres_efectos_suenan_a_la_vez(tmp_path):
@@ -275,7 +275,7 @@ def test_con_msu_tres_efectos_suenan_a_la_vez(tmp_path):
         rom = tanda.cartucho(cartridges.RELEASE)
         with open(rom.sfc, "rb") as archivo:
             cartucho = archivo.read()
-        tercera = cartucho[en_la_rom(rom.simbolos["sonido_tabla"]) + 7 * idx]
+        tercera = cartucho[en_la_rom(rom.simbolos["sound_table"]) + 7 * idx]
         muestras = {siete[5], seis[5], tercera}
         assert len(muestras) == 3, (
             "las tres voces tocan las muestras %s: no son los tres efectos"
@@ -301,7 +301,7 @@ def _tema(una, nombre):
 def test_con_msu_un_sonido_que_no_es_del_paquete_va_con_su_altura_de_la_rom(
         tmp_path):
     """La otra salida de `msu_pitch`: el sonido no está en la lista del
-    paquete, y la altura queda la de `sonido_tabla`. Es `efecto-de-calidad`
+    paquete, y la altura queda la de `sound_table`. Es `efecto-de-calidad`
     con `PKG_MAP` cambiado, al llegar al 10, por un paquete cuya lista no
     tiene a Success2 y sí algún sonido de índice mayor —para que la búsqueda
     corte por pasar de largo y no sólo en el $FFFF—: la ROM no guarda qué
@@ -315,10 +315,10 @@ def test_con_msu_un_sonido_que_no_es_del_paquete_va_con_su_altura_de_la_rom(
 
     def palabra(donde):
         return int.from_bytes(cartucho[donde:donde + 2], "little")
-    paq = en_la_rom(rom.simbolos["se_msu_altura_paq"])
-    alturas = en_la_rom(rom.simbolos["se_msu_altura"])
+    paq = en_la_rom(rom.simbolos["se_msu_pitch_pkg"])
+    alturas = en_la_rom(rom.simbolos["se_msu_pitch"])
     elegido = None
-    for p in range(rom.simbolos["PAQUETES_N"]):
+    for p in range(rom.simbolos["PACKAGES_N"]):
         donde, indices = alturas + palabra(paq + 2 * p), []
         while palabra(donde) != 0xFFFF:
             indices.append(palabra(donde))
@@ -334,9 +334,9 @@ def test_con_msu_un_sonido_que_no_es_del_paquete_va_con_su_altura_de_la_rom(
                           elegido.to_bytes(2, "little"))
     _muestras, _tasa, nuevo = _el_efecto(una)
     assert _lejano(una, "MSU_SE")[0] == 1
-    fila = en_la_rom(rom.simbolos["sonido_tabla"]) + 7 * k
+    fila = en_la_rom(rom.simbolos["sound_table"]) + 7 * k
     assert nuevo[1:3] == cartucho[fila + 1:fila + 3], (
         "Success2 con el paquete %d, que no lo lleva, arrancó con la altura "
-        "%d y la de sonido_tabla es %d" % (
+        "%d y la de sound_table es %d" % (
             elegido, int.from_bytes(nuevo[1:3], "little"),
             palabra(fila + 1)))

@@ -135,7 +135,7 @@ mayor:
 ;
 ; The products go through the hardware multiplier and the division through
 ; the divider, which are the ones `apply_tint` already uses. The sine is
-; `seno_sacudida`, in bank 0, signed and scaled to 127; the sign is taken off
+; `sine_shake`, in bank 0, signed and scaled to 127; the sign is taken off
 ; before multiplying and put back afterwards, which is truncating toward zero
 ; like `int` does.
 .proc shake_tick
@@ -179,7 +179,7 @@ sigue:
     tax
     sep #$20
 .a8
-    lda f:seno_sacudida, x      ; outside bank 0: see `tabla_de_senos`
+    lda f:sine_shake, x      ; outside bank 0: see `tabla_de_senos`
     sta shake_sine
     bpl positivo
     eor #$FF

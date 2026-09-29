@@ -285,7 +285,7 @@ parar_siguiente:
     clc
     adc #ROUTE_EV_STRIDE
     tax
-    cmp #RUTA_EV_MAX * ROUTE_EV_STRIDE
+    cmp #ROUTE_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
     bcc parar_otra

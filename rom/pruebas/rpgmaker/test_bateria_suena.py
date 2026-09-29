@@ -46,7 +46,7 @@ MARGEN = 120
 def test_las_voces_de_la_bateria_reciben_lo_que_la_musica_les_manda(partida):
     una = partida(titulo=EMPEZAR).quedarse_en_el_titulo()
     s = una.simbolos
-    tema = s["TEMA_TITULO"]
+    tema = s["SONG_TITLE"]
     assert una.palabra("song_current") == tema and not una.byte(
         "music_off"), "la pantalla de título no está tocando su tema"
 

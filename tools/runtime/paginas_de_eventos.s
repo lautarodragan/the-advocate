@@ -166,17 +166,17 @@ vaciar:
 .a16
 sin_vaciar:
     ldx map_ofs
-    lda f:mapa_tabla + M_PAGINA_COUNT, x
+    lda f:map_table + M_PAGE_COUNT, x
     bne hay_paginas
     jmp sin_paginas             ; too far for a short branch
 hay_paginas:
     sta pages_left
-    lda f:mapa_tabla + M_PTR_PAGINAS, x
+    lda f:map_table + M_PTR_PAGES, x
     sta page_ptr
     stz page_ofs
     sep #$20
 .a8
-    lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
+    lda f:map_table + M_PTR_PAGES + 2, x
     sta page_ptr + 2
 recorrer:
     ; Only the pages of events that have some page with its own route, or a
@@ -270,7 +270,7 @@ sigue_apagada:
     and #FLAG_WAIT            ; cleared, and set again below if due
     sta ev_flags, x
     lda pg_trigger
-    cmp #TRIGGER_AUTOMATICO
+    cmp #TRIGGER_AUTO
     bne no_gana_una_auto
     lda pg_code
     ora pg_code + 1
@@ -347,7 +347,7 @@ siguiente:
 .a16
     lda page_ofs
     clc
-    adc #PAGINA_BYTES
+    adc #PAGE_BYTES
     sta page_ofs
     dec pages_left
     sep #$20
@@ -379,11 +379,11 @@ sin_paginas:
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_PTR_PAGINAS, x
+    lda f:map_table + M_PTR_PAGES, x
     sta page_ptr
     sep #$20
 .a8
-    lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
+    lda f:map_table + M_PTR_PAGES + 2, x
     sta page_ptr + 2
     stz pair_n                   ; the list of parallels is rebuilt from scratch
     stz rp_ev
@@ -421,7 +421,7 @@ cada_evento:
     ; and twenty events every frame is exactly what this refresh exists to
     ; avoid.
     lda pg_trigger
-    cmp #TRIGGER_PARALELO
+    cmp #TRIGGER_PARALLEL
     bne no_es_paralela
     lda pg_code
     ora pg_code + 1
@@ -907,7 +907,7 @@ borrar:
 .a8
 .i16
     lda pair_n
-    cmp #PARALELO_MAX
+    cmp #PARALLEL_MAX
     bcc hay_lugar
     rts                         ; the converter cuts off before this happens
 hay_lugar:
@@ -1247,7 +1247,7 @@ sin_ranura:
     ;
     ; It is not a new bit because there is none left in +13: with a route of
     ; its own the five low ones are the route's flags. And it is not needed,
-    ; because **the row already says it**: +9 holds NPC_QUIETO or the bank of
+    ; because **the row already says it**: +9 holds NPC_STILL or the bank of
     ; its poses.
     lda pg_flags
     and #$20
@@ -1284,7 +1284,7 @@ con_grafico:
     ; it still; the pose above does go, as it is the one the page declares and
     ; the one the refresh uploads from the bank.
     lda npc_buf + 9, y
-    cmp #NPC_QUIETO
+    cmp #NPC_STILL
     bne sin_tocar_el_tile
     lda pg_tile
     sta npc_buf + 6, y
@@ -1396,7 +1396,7 @@ buscar:
     clc
     adc #ROUTE_EV_STRIDE
     tax
-    cmp #RUTA_EV_MAX * ROUTE_EV_STRIDE
+    cmp #ROUTE_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
     bcc buscar
@@ -1573,15 +1573,15 @@ ready:
     ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_PAGINA_COUNT, x
+    lda f:map_table + M_PAGE_COUNT, x
     beq sin_paginas
     sta pages_left
-    lda f:mapa_tabla + M_PTR_PAGINAS, x
+    lda f:map_table + M_PTR_PAGES, x
     sta page_ptr
     stz page_ofs
     sep #$20
 .a8
-    lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
+    lda f:map_table + M_PTR_PAGES + 2, x
     sta page_ptr + 2
 recorrer:
     ; Only the event being looked for: of the other pages only the event is
@@ -1605,7 +1605,7 @@ siguiente:
 .a16
     lda page_ofs
     clc
-    adc #PAGINA_BYTES
+    adc #PAGE_BYTES
     sta page_ofs
     dec pages_left
     sep #$20
@@ -1647,7 +1647,7 @@ siguiente:
     clc
     adc #ROUTE_EV_STRIDE
     tax
-    cmp #RUTA_EV_MAX * ROUTE_EV_STRIDE
+    cmp #ROUTE_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
     bcc buscar
@@ -2003,18 +2003,18 @@ no:
 .a16
 anotada:
     sta page_ofs
-    ; With X, and not with Y as until `mapa_tabla` moved to RODATA: the
+    ; With X, and not with Y as until `map_table` moved to RODATA: the
     ; 65816's long absolute indexed addressing only exists with X. X holds
     ; the event and the caller counts on it, so it goes out and back through
     ; the stack; the `plx` leaves N and Z of the value it pulls, and that is
     ; why what follows is a `jsr` and not a branch.
     phx
     ldx map_ofs
-    lda f:mapa_tabla + M_PTR_PAGINAS, x
+    lda f:map_table + M_PTR_PAGES, x
     sta page_ptr
     sep #$20
 .a8
-    lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
+    lda f:map_table + M_PTR_PAGES + 2, x
     sta page_ptr + 2
     plx
     jsr read_page

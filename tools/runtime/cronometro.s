@@ -17,7 +17,7 @@ corre:
     dec timer_sub
     rts
 otro_segundo:
-    lda #(TIMER_CUADROS - 1)
+    lda #(TIMER_FRAMES - 1)
     sta timer_sub
     rep #$20
 .a16
@@ -120,8 +120,8 @@ listo_10b:
     rts
 hay:
     ldx map_ofs
-    lda f:mapa_tabla + M_TIMER_BASE, x
-    ora f:mapa_tabla + M_TIMER_BASE + 1, x
+    lda f:map_table + M_TIMER_BASE, x
+    ora f:map_table + M_TIMER_BASE + 1, x
     bne dibujar
     rts                         ; this ROM does not carry the glyphs
 dibujar:
@@ -137,9 +137,9 @@ hay_glifo:
     bne es_digito
     ; The colon, and only when it is due.
     lda timer_sub
-    cmp #(TIMER_CUADROS / 2)
+    cmp #(TIMER_FRAMES / 2)
     bcc siguiente
-    lda #TIMER_DOS_PUNTOS
+    lda #TIMER_TWO_POINTS
     bra con_glifo
 es_digito:
     ; The index into `timer_dig`: the position, minus one if it comes after
@@ -194,7 +194,7 @@ cada_mitad:
     and #$00FF                  ; byte, and hence the `and`
     ldx map_ofs
     clc
-    adc f:mapa_tabla + M_TIMER_BASE, x
+    adc f:map_table + M_TIMER_BASE, x
     sta temp
     sep #$20
 .a8
@@ -205,7 +205,7 @@ cada_mitad:
     lda temp + 1
     and #$01
     sta temp + 2
-    lda f:mapa_tabla + M_TIMER_PAL, x
+    lda f:map_table + M_TIMER_PAL, x
     and #$07
     asl a
     ora #$30

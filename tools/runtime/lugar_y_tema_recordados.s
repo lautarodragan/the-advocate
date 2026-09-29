@@ -20,12 +20,12 @@
 ; variables —the map, x and y—, and the jump to whatever they say. The
 ; operands are the mode and the three slots. In the mode, bit 0 says which of
 ; the two: 0 memorize, 1 jump (`LUGAR_SALTAR` in eventos.py); when memorizing,
-; bits 7, 6 and 5 are the VAR_REFRESCO of the writes of the map, x and y, in
+; bits 7, 6 and 5 are the VAR_REFRESH of the writes of the map, x and y, in
 ; that order, so it is enough to shift it once per write.
 ;
 ; **In the variables the map is the RM2k id**, not the cartridge's index: any
 ; other page reads and writes them —the breaking floors of the recycling plant
-; load 61 with a ControlVars—, so both directions go through `mapa_rm2k`, the
+; load 61 with a ControlVars—, so both directions go through `map_rm2k`, the
 ; table of ids the converter emits.
 ;
 ; Jumping returns with carry set and `jump_map`, `jump_x` and `jump_y`
@@ -49,7 +49,7 @@
     lda map_current
     asl a
     tax
-    lda f:mapa_rm2k, x
+    lda f:map_rm2k, x
     jsr escribir
     lda tile_x
     jsr escribir
@@ -76,7 +76,7 @@ escribir:
 .a8
     lda temp + 1
     asl temp + 1                ; the next write's bit moves to the top
-    and #VAR_REFRESCO
+    and #VAR_REFRESH
     beq sin_refresco
     lda #1
     sta refresh
@@ -92,11 +92,11 @@ saltar:
     jsr leer                    ; the RM2k id of the map
     ldx #0
 buscar:
-    cmp f:mapa_rm2k, x
+    cmp f:map_rm2k, x
     beq hallado
     inx
     inx
-    cpx #MAPA_COUNT * 2
+    cpx #MAP_COUNT * 2
     bcc buscar
     iny                         ; not in the cartridge: the other two
     iny                         ; slots, and carry on
@@ -162,7 +162,7 @@ anotar:
     rtl
 put:
     lda f:REMEMBERED_SONG
-    cmp #TEMA_TOTAL
+    cmp #SONG_TOTAL
     bcs nothing                    ; none, or one the cartridge does not carry
     ; Is it the one playing? The same question as `map_song_mute`.
     pha

@@ -31,9 +31,9 @@
     lda [code_ptr], y
     iny
     iny
-    bmi do_refresh               ; CELDA_REFRESCO, bit 15
+    bmi do_refresh               ; CELL_REFRESH, bit 15
 already:
-    bit #CELDA_Y
+    bit #CELL_Y
     bne is_y
     and #CELL_VARIABLE
     tax
@@ -87,7 +87,7 @@ fails:
 ; What is left of a write without the top two bits: the variable's offset,
 ; which with 256 slots goes up to 510.
 CELL_VARIABLE = $01FF
-.assert CELDA_Y = $4000 && CELDA_REFRESCO = $8000, error, "cell_test reads the refresh from the N bit and the coordinate from bit 14"
+.assert CELL_Y = $4000 && CELL_REFRESH = $8000, error, "cell_test reads the refresh from the N bit and the coordinate from bit 14"
 
 .proc cell_test
 .a8
