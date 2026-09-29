@@ -16,7 +16,7 @@ covered by `test_a_teleport_notes_the_song_it_carries`.
 """
 
 from port import events                                      # noqa: E402
-from port.snes_convert import inherited_songs                 # noqa: E402
+from port.music import inherited_songs                        # noqa: E402
 
 K, G, T, V = 0, 1, 2, 3            # Kfmus5, golden_axe, tsmedit, vswar
 SIN = 0xFF
