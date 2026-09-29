@@ -7,7 +7,7 @@
 ; battle and by the same route: they are entered with `jsl` to
 ; `equipment_screen` and `shop_screen`, and what they need from bank 0 is
 ; called through the `ba_t_*` bridges, which were already there for battle
-; —only two new ones were needed, `bt_t_list` and `bt_t_build`—.
+; —only two new ones were needed, `ba_t_list` and `ba_t_build`—.
 ;
 ; **The data bank is still 0**, unlike battle: these two read and write the
 ; scratch space and bank 0's tables with absolute addressing and so keep working
@@ -445,7 +445,7 @@ lista_lista:
 .proc eq_from_list
 .a8
 .i16
-    jsl f:bt_t_list
+    jsl f:ba_t_list
     cmp #$FF
     beq empty
     rep #$20
@@ -483,7 +483,7 @@ empty:
     sep #$20
 .a8
     stz temp + 1
-    jsl f:bt_t_text
+    jsl f:ba_t_text
     rts
 nothing:
     lda #255
@@ -513,7 +513,7 @@ nothing:
     sep #$20
 .a8
     stz temp + 1
-    jsl f:bt_t_text
+    jsl f:ba_t_text
     rep #$20
 .a16
     lda #(PANT_DESC_POS + 128)
@@ -523,7 +523,7 @@ nothing:
     sep #$20
 .a8
     stz temp + 1
-    jsl f:bt_t_text
+    jsl f:ba_t_text
     rts
 nothing:
     rts
@@ -535,7 +535,7 @@ nothing:
 .i16
     lda #255
     sta comp_dup + 3
-    jsl f:bt_t_clear
+    jsl f:ba_t_clear
     stz temp + 1
     ; --- the actor's name ---
     rep #$20
@@ -552,7 +552,7 @@ nothing:
     sep #$20                    ; `sep` does not touch Z
 .a8
     beq sin_nombre
-    jsl f:bt_t_text
+    jsl f:ba_t_text
 sin_nombre:
     ; --- the description ---
     lda comp_col + 1
@@ -591,7 +591,7 @@ param:
 .a8
     lda #3                      ; the term in red: `ITEM_ROJO`
     sta temp + 1
-    jsl f:bt_t_text
+    jsl f:ba_t_text
     stz temp + 1
     lda comp_col + 1
     pha
@@ -601,7 +601,7 @@ param:
     sta comp_col + 1
     rep #$20
 .a16
-    lda comp_dup                ; `bt_t_number` consumes it, and the new value
+    lda comp_dup                ; `ba_t_number` consumes it, and the new value
     pha                         ; is colored by comparing it with this one
     sep #$20
 .a8
@@ -615,7 +615,7 @@ param:
 .a8
     lda #3
     sta comp_dup + 2
-    jsl f:bt_t_number
+    jsl f:ba_t_number
     lda comp_col + 1
     beq sin_flecha
     jsr param_pos
@@ -629,7 +629,7 @@ param:
     lda #3                      ; in red, like `Window_EquipStatus`
     sta temp + 1
     lda #$3E                    ; '>'
-    jsl f:bt_t_glyph
+    jsl f:ba_t_glyph
     jsl f:eq_parameter            ; after: with what the cursor is on
     ; And its color, `Window_EquipStatus::GetNewParameterColor`'s: equal in
     ; white, more in the "goes up" one and less in gray. It is `pantallas.
@@ -653,7 +653,7 @@ con_color:
     sta temp + 1
     lda #3
     sta comp_dup + 2
-    jsl f:bt_t_number
+    jsl f:ba_t_number
     stz temp + 1                ; what follows goes in white
     bra param_listo
 sin_flecha:
@@ -695,7 +695,7 @@ slot:
 .a8
     lda #3                      ; the term in red, and the name of what
     sta temp + 1                ; is on in white: `eq_name` restores it
-    jsl f:bt_t_text
+    jsl f:ba_t_text
     pla
     pha
     jsr fila_pos
@@ -761,14 +761,14 @@ lista_fila:
 .a8
     stz temp + 1
     lda #$3A                    ; ':'
-    jsl f:bt_t_glyph
+    jsl f:ba_t_glyph
     jsr eq_inv_point
     lda WMDATA
     sta comp_dup
     stz comp_dup + 1
     lda #2
     sta comp_dup + 2
-    jsl f:bt_t_number
+    jsl f:ba_t_number
 lista_siguiente:
     pla
     inc a
@@ -974,18 +974,18 @@ row:
     stz TM
     jsl f:eq_screen_upload
     jsr eq_compose
-    jsl f:bt_t_upload
+    jsl f:ba_t_upload
     jsr eq_bar
     jsl f:items_ppu_on     ; BG2 and BG1, the windows
 espera:
-    jsl f:bt_t_vblank
+    jsl f:ba_t_vblank
     ; The pad first and the DMA after. The other way around, the 1792 bytes
     ; take some ten lines and `read_pad` arrived with the pad's auto-read
     ; already over: it waited for the next frame's, each tick took two
     ; frames, and a one-frame press was lost half the time. With the pad
     ; read, the DMA still fits in vblank.
-    jsl f:bt_t_pad
-    jsl f:bt_t_upload
+    jsl f:ba_t_pad
+    jsl f:ba_t_upload
     jsr eq_bar
     lda pad
     eor pad_prev

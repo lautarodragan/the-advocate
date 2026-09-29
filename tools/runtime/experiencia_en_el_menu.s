@@ -109,7 +109,7 @@ tabla_chica:
     dex
     bne tabla_chica
 
-    jsl f:bt_t_ppu              ; the screen, on with BG2 alone
+    jsl f:ba_t_ppu              ; the screen, on with BG2 alone
     lda #$12                    ; and the sprites on top
     sta TM
     plb

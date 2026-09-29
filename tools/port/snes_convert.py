@@ -5648,7 +5648,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             for name, _term in P.TI_TERMS:
                 lines = menus_mod.split_description(term[name])
                 # Outside the main one, the message goes in a one-line window:
-                # `shop_message` writes only the first.
+                # `ti_message` writes only the first.
                 if lines[1] and name not in ("saludo", "resaludo"):
                     raise SystemExit(
                         "the shop message %r, of set %d, takes two "
@@ -5686,7 +5686,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # And the line for a fallen one an item revived: the dead state's
         # `message_recovery`, which goes stuck to the name —"Core has
         # revived!"—. It isn't a term but a piece of the state's data, so it
-        # goes separately and with its own index. See `bt_message`.
+        # goes separately and with its own index. See `ba_message`.
         revived_text = new_text(P.revived_text(db))
         # The second line of the victory, empty if it fits in one: it goes
         # separately so as not to shift the indices of `BATTLE_TERMS`.
@@ -6428,7 +6428,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             and B.level_learned(db, a, h) > 0 and h in whole_skill_text
             else 0xFFFF for (a, h), _r in pairs], "$%04X", declare=True)
         # 254 and not 256: `eacc_skill` uses $FF for the attack and
-        # `bt_enemy_action` answers $FE when it has none left.
+        # `ba_enemy_action` answers $FE when it has none left.
         if len(rom_skills) > 254:
             raise SystemExit("the cartridge's skills are %d and `hab_par_k` "
                              "is one byte" % len(rom_skills))
@@ -6463,7 +6463,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                                  "adds it in sixteen bits" % (n, exp))
         words_asm("tropa_exp", troop_exp, declare=True)
         # And the gold, the same: `battle.troop_gold`. The victory tells
-        # it with `bt_vic_number`, which reaches five digits.
+        # it with `ba_vic_number`, which reaches five digits.
         troop_gold = [B.troop_gold(db, n) for n in used]
         for n, gold in zip(used, troop_gold):
             if gold > 0xFFFF:
@@ -6498,7 +6498,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # compile: skipping them doesn't change the order of the others. Per
         # troop, where they start and how many there are; per page, its
         # trigger and where its code is inside `tropa_codigo`, which
-        # deduplicates them. See `events.TroopPages` and `bt_page_test`
+        # deduplicates them. See `events.TroopPages` and `ba_page_test`
         # in tools/runtime/batalla_tropa.s.
         #
         # **The small tables go to bank 1, `FAR`; the two big blocks —the code
@@ -6601,13 +6601,13 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         words_asm("enemigo_txt", [enemy_text[e] for e in rom_enemies],
                   declare=True)
         # Each one's experience and gold, which the victory subtracts from the
-        # troop's for each enemy that stayed hidden: see `bt_no_hidden`.
+        # troop's for each enemy that stayed hidden: see `ba_no_hidden`.
         words_asm("enemigo_exp", [db.enemies[e].exp for e in rom_enemies],
                   declare=True)
         words_asm("enemigo_oro", [db.enemies[e].gold for e in rom_enemies],
                   declare=True)
         # What it drops on dying: the LDB item, or 0 if it drops nothing, and
-        # the chance as a percentage. See `bt_vic_drop` and
+        # the chance as a percentage. See `ba_vic_drop` and
         # `battle.roll_drops`. Every item that can be dropped is in
         # `items`: see `drop_items`, which adds it.
         for e in rom_enemies:
@@ -6624,7 +6624,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # starts and how many there are—. Per action, the skill as a `k` of the
         # `hab_*` tables or $FF for the attack, and its `rating` with bit 7 set
         # if it isn't `effective`: it counts for the maximum and then weighs
-        # zero. See `bt_enemy_action` in tools/runtime/batalla.s.
+        # zero. See `ba_enemy_action` in tools/runtime/batalla.s.
         eacc_start, eacc_skill, eacc_weight = [], [], []
         for e in rom_enemies:
             if len(rom_actions[e]) > B.ACTIONS_MAX:
@@ -6662,7 +6662,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # The product of the hit computation has to fit in sixteen bits:
         # (100 - hit rate) times the sum of both agilities. With the minimum
         # hit rate of 70 that is 30 times 1998, and the agility cap is guarded
-        # by `BT_AGI_CAP`; an enemy with a lower hit rate would overflow it
+        # by `BA_AGI_CAP`; an enemy with a lower hit rate would overflow it
         # without warning, so it stops here.
         # `recover_hp_rate * hp_max` has to fit in sixteen bits: the ROM does
         # it with the hardware multiplier, which gives a word. With the

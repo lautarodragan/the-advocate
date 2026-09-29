@@ -13,7 +13,7 @@
 ; What it does require: **it is entered with `jsl` and returns with `rtl`**,
 ; and the data bank has to remain one where $2100..$21FF is the console,
 ; because it writes the registers as absolute. The six callers are all in bank
-; 0; the battle's comes in through the `bt_t_bank` bridge, which is exactly
+; 0; the battle's comes in through the `ba_t_bank` bridge, which is exactly
 ; the one that sets the data bank to zero before calling.
 
 ; The screen's bank, with the screen off: the font, the blank tilemap and the

@@ -98,7 +98,7 @@ subir:
 otro_destello:
     ldx #0
 destello:
-    jsl f:bt_t_vblank           ; `wait_vblank`: touches neither X nor Y
+    jsl f:ba_t_vblank           ; `wait_vblank`: touches neither X nor Y
     lda f:battle_flash, x
     sta f:COLDATA
     inx
@@ -111,7 +111,7 @@ destello:
     ; frame on the brightness that was already there.
     ldx #(FUNDIDO_RAMPA - 2)
 lower:
-    jsl f:bt_t_vblank
+    jsl f:ba_t_vblank
     lda #$30
     sta f:CGWSEL                ; color math off, as `ppu_reset` leaves it
     lda #0
@@ -147,7 +147,7 @@ battle_flash:
     sta f:BATTLE_ON
     ldx #(FUNDIDO_RAMPA - 2)
 lower:
-    jsl f:bt_t_vblank
+    jsl f:ba_t_vblank
     lda f:fundido_rampa, x
     sta f:INIDISP
     eor #$0F                    ; the mosaic, tied to brightness: see above
@@ -174,7 +174,7 @@ ready:
     sta f:BATTLE_ON
     ldx #0
 subir:
-    jsl f:bt_t_vblank           ; `wait_vblank`, which does not touch X
+    jsl f:ba_t_vblank           ; `wait_vblank`, which does not touch X
     lda f:fundido_rampa, x
     sta f:INIDISP
     eor #$0F

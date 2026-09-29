@@ -23,7 +23,7 @@ TROPA_DROIDE = 82
 GRUPO = (11, 12, 13)
 
 # Los modos de la pantalla y las cinco órdenes del menú **se leen de la tabla
-# de símbolos**: `Pelea.modo()` contesta el nombre de la constante `BT_M_*` de
+# de símbolos**: `Pelea.modo()` contesta el nombre de la constante `BA_M_*` de
 # la ROM sin el prefijo —"COMMAND", "TARGET", "END"...— y las órdenes son
 # `BA_ORDEN_ATACAR` y compañía. El orden es el del original —Attack /
 # <habilidad> / Defend / Use Item— y `Escape` va quinta, que es la
@@ -41,9 +41,9 @@ class Pelea:
     def __init__(self, una):
         self.una = una
         self.s = una.simbolos
-        self._modos = {int(valor): nombre[len("BT_M_"):]
+        self._modos = {int(valor): nombre[len("BA_M_"):]
                        for nombre, valor in self.s.tabla.items()
-                       if nombre.startswith("BT_M_")}
+                       if nombre.startswith("BA_M_")}
 
     def byte(self, nombre):
         return self.una.consola.ram(self.s[nombre], 1)[0]
@@ -52,22 +52,22 @@ class Pelea:
         bajo, alto = self.una.consola.ram(direccion, 2)
         return bajo | (alto << 8)
 
-    # Los HP y SP **de la pelea**: la ranura `BT_ONE` del combatiente `k`, que
-    # es el puesto en la pantalla —0 a 2 los actores, desde `BT_PARTY_MAX` los
+    # Los HP y SP **de la pelea**: la ranura `BA_ONE` del combatiente `k`, que
+    # es el puesto en la pantalla —0 a 2 los actores, desde `BA_PARTY_MAX` los
     # enemigos— y no el número de actor. Los de la partida son
     # `Partida.hp(actor)`, y la pelea los copia ahí recién al terminar.
 
     def hp_del_combatiente(self, k):
-        return self.palabra(self.s["BT_ONE"] + k * self.s["BT_BYTES"])
+        return self.palabra(self.s["BA_ONE"] + k * self.s["BA_BYTES"])
 
     def sp_del_combatiente(self, k):
-        return self.palabra(self.s["BT_ONE"] + k * self.s["BT_BYTES"]
-                            + self.s["BT_SP"])
+        return self.palabra(self.s["BA_ONE"] + k * self.s["BA_BYTES"]
+                            + self.s["BA_SP"])
 
     def modo(self):
-        """El nombre del modo de la pantalla: el de su `BT_M_*` sin el
+        """El nombre del modo de la pantalla: el de su `BA_M_*` sin el
         prefijo. Un valor que no es de ninguno vuelve como número."""
-        valor = self.byte("BT_MODE")
+        valor = self.byte("BA_MODE")
         return self._modos.get(valor, valor)
 
     def orden(self, nombre):
@@ -129,9 +129,9 @@ class Pelea:
             self.tocar_cuadros("left")
         for _ in range(pasos):
             self.tocar_cuadros("right")
-        assert self.byte("BT_COMMAND") == pasos, (
+        assert self.byte("BA_COMMAND") == pasos, (
             "el cursor tenía que quedar en la orden %d y quedó en %d"
-            % (pasos, self.byte("BT_COMMAND")))
+            % (pasos, self.byte("BA_COMMAND")))
         self.tocar_cuadros()
         if cual == "defender":
             return self
@@ -139,7 +139,7 @@ class Pelea:
             self.esperar("SKILL", tope)
             for _ in range(que[1]):
                 self.tocar_cuadros("right")
-            assert self.byte("BT_SKILL_SEL") == que[1]
+            assert self.byte("BA_SKILL_SEL") == que[1]
             self.tocar_cuadros()
             if len(que) == 2:
                 # Una de switch no pide blanco: `Scene_Battle::AssignSkill`
@@ -248,7 +248,7 @@ def hab_id(una, k):
 # --- perder sin pelear ------------------------------------------------------
 #
 # Con todo el grupo en cero HP, `battle_run` contesta derrota antes de abrir
-# la pantalla —el `bt_next_actor` que devuelve $FF—, así que las pruebas
+# la pantalla —el `ba_next_actor` que devuelve $FF—, así que las pruebas
 # de Game Over y de `FullHeal` no dependen de ningún tiro de dado.
 
 # Cuántos ticks se le dan a la página `pelea-82-curar` para perder la pelea y
@@ -387,7 +387,7 @@ ARDEN = 15
 def mensaje_en_pantalla(una, pelea):
     """Los renglones del mensaje de página que la ROM tiene puesto, leídos del
     cartucho en el desplazamiento que dejó `op_message`."""
-    desplazamiento = pelea.palabra(una.simbolos["BT_PAGE_MSG"])
+    desplazamiento = pelea.palabra(una.simbolos["BA_PAGE_MSG"])
     assert desplazamiento != 0xFFFF, "no hay ningún mensaje de página"
     with open(una.sfc, "rb") as archivo:
         rom = archivo.read()

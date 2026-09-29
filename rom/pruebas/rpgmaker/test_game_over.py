@@ -18,7 +18,7 @@ Sin estas pruebas, el `jml reset` sería exactamente lo que AGENTS.md llama "un
 camino que ninguna prueba ejecuta".
 
 **Cómo se pierde sin pelear**: con todo el grupo en cero HP, `battle_run`
-contesta derrota antes de abrir la pantalla —el `bt_next_actor` que
+contesta derrota antes de abrir la pantalla —el `ba_next_actor` que
 devuelve $FF, "nadie en pie: se pierde sin pelear"—. Así la prueba no depende
 de ningún tiro de dado.
 

@@ -7,12 +7,12 @@
 ; back and the page goes on. It is a text screen —see "the text
 ; screens"— and `pantallas.pantalla_tienda` is the reference for each mode. The
 ; System's windows and the bar go on BG1, with their own base: see
-; `shop_screen_upload` and `shop_windows`, and `pantallas.TI_VENTANAS`. What
+; `ti_screen_upload` and `ti_windows`, and `pantallas.TI_VENTANAS`. What
 ; it sells goes as `k` in `FAR_SHOP`; the selling list, in
 ; `FAR_ITEM_LIST`.
 ;
 ; The scratch space, borrowed from the message compositor:
-;   ti_modo      is comp_col       ; SHOP_MAIN ... SHOP_SOLD
+;   ti_modo      is comp_col       ; TI_MAIN ... TI_SOLD
 ;   ti_tipo      is comp_col + 1   ; 0 buys and sells, 1 buys, 2 sells
 ;   ti_juego     is comp_phase      ; the message set, 0 to 2
 ;   ti_resaludo  is comp_phase + 1  ; whether it already went back to the main one
@@ -26,21 +26,21 @@
 ;   ti_pos       is comp_glyph + 1 ; two bytes: where the digit goes
 ;   ti_num       is comp_or01      ; three bytes: a 24-bit number
 FAR_SHOP = $2B00
-SHOP_MAIN = 0
-SHOP_BUY = 1
-SHOP_COUNT_BUY = 2
-SHOP_BOUGHT = 3
-SHOP_SELL = 4
-SHOP_COUNT_SELL = 5
-SHOP_SOLD = 6
+TI_MAIN = 0
+TI_BUY = 1
+TI_COUNT_BUY = 2
+TI_BOUGHT = 3
+TI_SELL = 4
+TI_COUNT_SELL = 5
+TI_SOLD = 6
 
 ; A: a place in the mode's list. Returns with A = its `k`.
-.proc shop_k_of
+.proc ti_k_of
 .a8
 .i16
     pha
     lda comp_col
-    cmp #SHOP_SELL
+    cmp #TI_SELL
     bcs de_venta
     pla
     rep #$20
@@ -56,16 +56,16 @@ SHOP_SOLD = 6
     rts
 de_venta:
     pla
-    jsl f:bt_t_list
+    jsl f:ba_t_list
     rts
 .endproc
 
 ; The item the cursor highlights, in `eq_id`, and its `k` in X.
-.proc shop_item
+.proc ti_item
 .a8
 .i16
     lda comp_base
-    jsr shop_k_of
+    jsr ti_k_of
     rep #$20
 .a16
     and #$00FF
@@ -80,7 +80,7 @@ de_venta:
 .endproc
 
 ; The price of X's `k`, in `ti_num`, halved if selling.
-.proc shop_price
+.proc ti_price
 .a8
 .i16
     rep #$20
@@ -94,7 +94,7 @@ de_venta:
 .a8
     stz comp_or01 + 2
     lda comp_col
-    cmp #SHOP_SELL
+    cmp #TI_SELL
     bcc ready
     rep #$20
 .a16
@@ -107,11 +107,11 @@ ready:
 
 ; Is there enough gold for X's `k`, and does it have fewer than 99? Z=0 if it
 ; can be bought. `Window_ShopBuy::CheckEnable`.
-.proc shop_can
+.proc ti_can
 .a8
 .i16
     phx
-    jsr shop_price
+    jsr ti_price
     plx
     ; gold >= price, 24 bits
     lda gold + 2
@@ -186,7 +186,7 @@ dividir:
     lda temp + 3
     clc
     adc #$30
-    jsl f:bt_t_glyph
+    jsl f:ba_t_glyph
     rep #$20
 .a16
     lda comp_or01
@@ -200,7 +200,7 @@ dividir:
 
 ; How many of item `eq_id` the party has equipped: `GetEquippedItemCount`.
 ; Returns in `pant_valor`.
-.proc shop_held
+.proc ti_held
 .a8
 .i16
     rep #$20
@@ -255,7 +255,7 @@ ready:
 
 ; A: the message number of the shop's set. X = the text of its first line; the
 ; second is the next one.
-.proc shop_text_of
+.proc ti_text_of
 .a8
 .i16
     sta temp + 3
@@ -284,11 +284,11 @@ ready:
 ; A != 0 if the main mode's greeting —or the re-greeting— takes two lines: the
 ; commands go below, so they start one lower. It is the length of the second
 ; line.
-.proc shop_two_lines
+.proc ti_two_lines
 .a8
 .i16
     lda comp_phase + 1
-    jsr shop_text_of
+    jsr ti_text_of
     inx
     lda f:item_txt_n, x
     rts
@@ -298,10 +298,10 @@ ready:
 ; lines, above the commands; in the other modes, just one, which is what fits
 ; in their window —those modes' messages are one line long, and the converter
 ; checks it—.
-.proc shop_message
+.proc ti_message
 .a8
 .i16
-    jsr shop_text_of
+    jsr ti_text_of
     rep #$20
 .a16
     lda #TI_MSG_POS
@@ -318,7 +318,7 @@ ready:
 .a8
     phx
     stz temp + 1
-    jsl f:bt_t_text
+    jsl f:ba_t_text
     rep #$20
 .a16
     lda #(TI_PRINCIPAL_MSG_POS + 128)
@@ -329,28 +329,28 @@ ready:
 .a8
 uno:
     stz temp + 1
-    jsl f:bt_t_text
+    jsl f:ba_t_text
     rts
 .endproc
 
 ; The currency in `pick_table`, in red as in RM2k.
-.proc shop_currency
+.proc ti_currency
 .a8
 .i16
     lda #TI_ROJO
     sta temp + 1
     ldx #TI_TEXTO_MONEDA
-    jsl f:bt_t_text
+    jsl f:ba_t_text
     rts
 .endproc
 
 ; How many rows the mode's list has: the buying one has the count and the gold
 ; below it, and the selling one does not.
-.proc shop_rows
+.proc ti_rows
 .a8
 .i16
     lda comp_col
-    cmp #SHOP_SELL
+    cmp #TI_SELL
     beq venta
     lda #TI_LISTA_FILAS_COMPRA
     rts
@@ -360,13 +360,13 @@ venta:
 .endproc
 
 ; The whole screen, in the buffer: `pantallas.pantalla_tienda`. The windows and
-; the bar are not: they go on BG1, and `shop_windows` puts them there every frame.
-.proc shop_compose
+; the bar are not: they go on BG1, and `ti_windows` puts them there every frame.
+.proc ti_compose
 .a8
 .i16
     lda #255
     sta comp_dup + 3
-    jsl f:bt_t_clear
+    jsl f:ba_t_clear
     ; --- the message: greeting, re-greeting, or the mode's ---
     lda comp_col
     rep #$20
@@ -381,7 +381,7 @@ venta:
     bne con_mensaje
     lda comp_phase + 1             ; the main mode: greeting or re-greeting
 con_mensaje:
-    jsr shop_message
+    jsr ti_message
     lda comp_col
     bne no_principal
     jmp principal
@@ -389,13 +389,13 @@ no_principal:
     ; --- the help: the description of the one the cursor highlights ---
     lda comp_mask
     beq sin_ayuda
-    jsr shop_item
+    jsr ti_item
     jsr eq_desc
 sin_ayuda:
     ; --- the gold, and how many of the highlighted one it has and has equipped:
     ; in all modes of the buying layer, which is all but selling ---
     lda comp_col
-    cmp #SHOP_SELL
+    cmp #TI_SELL
     bne cerca_12209
     jmp sin_oro
 cerca_12209:
@@ -420,7 +420,7 @@ cerca_12209:
     sta pick_table
     sep #$20
 .a8
-    jsr shop_currency
+    jsr ti_currency
     lda comp_mask
     beq sin_oro
     rep #$20
@@ -432,8 +432,8 @@ cerca_12209:
     lda #TI_ROJO
     sta temp + 1
     ldx #TI_TEXTO_TENGO
-    jsl f:bt_t_text
-    jsr shop_item
+    jsl f:ba_t_text
+    jsr ti_item
     jsr eq_inv_point
     lda WMDATA
     sta comp_dup
@@ -447,7 +447,7 @@ cerca_12209:
     lda #2
     sta comp_dup + 2
     stz temp + 1
-    jsl f:bt_t_number
+    jsl f:ba_t_number
     rep #$20
 .a16
     lda #TI_LLEVO_POS
@@ -457,9 +457,9 @@ cerca_12209:
     lda #TI_ROJO
     sta temp + 1
     ldx #TI_TEXTO_LLEVO
-    jsl f:bt_t_text
-    jsr shop_item
-    jsr shop_held
+    jsl f:ba_t_text
+    jsr ti_item
+    jsr ti_held
     rep #$20
 .a16
     lda #TI_LLEVO_NUM
@@ -469,17 +469,17 @@ cerca_12209:
     lda #2
     sta comp_dup + 2
     stz temp + 1
-    jsl f:bt_t_number
+    jsl f:ba_t_number
 sin_oro:
     lda comp_col
-    cmp #SHOP_COUNT_BUY
+    cmp #TI_COUNT_BUY
     beq cuantos
-    cmp #SHOP_COUNT_SELL
+    cmp #TI_COUNT_SELL
     beq cuantos
     ; The two "done" leave the middle window empty, like RM2k.
-    cmp #SHOP_BOUGHT
+    cmp #TI_BOUGHT
     beq empty
-    cmp #SHOP_SOLD
+    cmp #TI_SOLD
     beq empty
     jmp lista
 empty:
@@ -487,7 +487,7 @@ empty:
 
     ; --- the quantity: the item, "x" and how many, and the total ---
 cuantos:
-    jsr shop_item
+    jsr ti_item
     rep #$20
 .a16
     lda #TI_CUANTOS_POS
@@ -504,7 +504,7 @@ cuantos:
 .a8
     stz temp + 1
     lda #$78                    ; 'x'
-    jsl f:bt_t_glyph
+    jsl f:ba_t_glyph
     rep #$20
 .a16
     lda #TI_CUANTOS_NUM_POS
@@ -516,10 +516,10 @@ cuantos:
     stz comp_dup + 1
     lda #2
     sta comp_dup + 2
-    jsl f:bt_t_number
-    jsr shop_item
-    jsr shop_price
-    jsr shop_times_count          ; ti_num = price * quantity
+    jsl f:ba_t_number
+    jsr ti_item
+    jsr ti_price
+    jsr ti_times_count          ; ti_num = price * quantity
     rep #$20
 .a16
     lda #TI_TOTAL_POS
@@ -534,7 +534,7 @@ cuantos:
     sta pick_table
     sep #$20
 .a8
-    jmp shop_currency
+    jmp ti_currency
 
     ; --- the main mode: the commands, below the greeting ---
 principal:
@@ -584,7 +584,7 @@ cerca_12382:
     pha
     clc
     adc comp_base + 1
-    jsr shop_k_of
+    jsr ti_k_of
     rep #$20
 .a16
     and #$00FF
@@ -598,12 +598,12 @@ cerca_12382:
     phx
     ; the color: buying, if there is enough; selling, if it is worth something
     lda comp_col
-    cmp #SHOP_SELL
+    cmp #TI_SELL
     bcs color_venta
-    jsr shop_can
+    jsr ti_can
     bra color
 color_venta:
-    jsr shop_price
+    jsr ti_price
     rep #$20
 .a16
     lda comp_or01
@@ -645,12 +645,12 @@ color_listo:
     pla
     sta temp + 1
     pha
-    jsl f:bt_t_text
+    jsl f:ba_t_text
     pla
     sta temp + 1
     plx
     lda comp_col
-    cmp #SHOP_SELL
+    cmp #TI_SELL
     bcs cuenta
     ; buying: the price, right-aligned
     rep #$20
@@ -661,7 +661,7 @@ color_listo:
     pha
     sep #$20
 .a8
-    jsr shop_price
+    jsr ti_price
     rep #$20
 .a16
     pla
@@ -681,18 +681,18 @@ cuenta:
     sep #$20
 .a8
     lda #$3A
-    jsl f:bt_t_glyph
+    jsl f:ba_t_glyph
     jsr eq_inv_point
     lda WMDATA
     sta comp_dup
     stz comp_dup + 1
     lda #2
     sta comp_dup + 2
-    jsl f:bt_t_number
+    jsl f:ba_t_number
 lista_siguiente:
-    ; The next row, if the mode's list has it: `shop_rows` does not touch the
+    ; The next row, if the mode's list has it: `ti_rows` does not touch the
     ; stack.
-    jsr shop_rows
+    jsr ti_rows
     sta temp + 3
     pla
     inc a
@@ -709,7 +709,7 @@ lista_listo:
 ; greeting, one lower if the greeting has two lines.
 orden_pos:
     pha
-    jsr shop_two_lines
+    jsr ti_two_lines
     beq un_renglon
     pla
     inc a
@@ -757,9 +757,9 @@ tres:
 
 ; A: the message number. Its first line, in `pick_table`, in white.
 ti_renglon1:
-    jsr shop_text_of
+    jsr ti_text_of
     stz temp + 1
-    jsl f:bt_t_text
+    jsl f:ba_t_text
     rts
 
 ; Each mode's message: 0 is "the greeting or the re-greeting".
@@ -768,7 +768,7 @@ mensaje_de:
 .endproc
 
 ; `ti_num` times `ti_cuantos`, by adding: it is 99 passes at most.
-.proc shop_times_count
+.proc ti_times_count
 .a8
 .i16
     rep #$20
@@ -809,17 +809,17 @@ ready:
 
 ; Up to how many of the highlighted one can be bought: the ones missing to 99,
 ; and no more than the gold pays for. Selling, the ones it has. In `ti_max`.
-.proc shop_max
+.proc ti_max
 .a8
 .i16
-    jsr shop_item
+    jsr ti_item
     phx
     jsr eq_inv_point
     lda WMDATA
     plx
     sta temp + 3                ; how many it has
     lda comp_col
-    cmp #SHOP_SELL
+    cmp #TI_SELL
     bcc comprando
     lda temp + 3
     sta comp_row
@@ -829,7 +829,7 @@ comprando:
     sec
     sbc temp + 3
     sta temp + 3                ; the ones missing
-    jsr shop_price
+    jsr ti_price
     rep #$20
 .a16
     lda gold
@@ -870,14 +870,14 @@ ready:
 
 ; Buy or sell `ti_cuantos` of the highlighted one: the gold and the inventory,
 ; like `UpdateNumberInput`.
-.proc shop_close_deal
+.proc ti_close_deal
 .a8
 .i16
-    jsr shop_item
-    jsr shop_price
-    jsr shop_times_count
+    jsr ti_item
+    jsr ti_price
+    jsr ti_times_count
     lda comp_col
-    cmp #SHOP_COUNT_SELL
+    cmp #TI_COUNT_SELL
     beq vender
     ; --- buy: the gold goes down and the items go up ---
     rep #$20
@@ -900,7 +900,7 @@ ready:
 .a8
 suma:
     phx
-    jsr shop_item
+    jsr ti_item
     lda #1
     jsr eq_inv_move
     plx
@@ -919,7 +919,7 @@ vender:
 .a8
 quita:
     phx
-    jsr shop_item
+    jsr ti_item
     lda #0
     jsr eq_inv_move
     plx
@@ -930,7 +930,7 @@ quita:
 
 ; `gold` plus the 24 bits of `comp_or01`, capped at ORO_MAX: the adding half of
 ; `Game_Party::GainGold`. The shop's selling and the victory use it
-; —`bt_vic_start`—; `op_gold` has its own because it lives in bank 0.
+; —`ba_vic_start`—; `op_gold` has its own because it lives in bank 0.
 .proc gold_add
 .a8
 .i16
@@ -970,10 +970,10 @@ ready:
 .endproc
 
 ; The selling list: the inventory the ROM knows, in `FAR_ITEM_LIST`.
-.proc shop_sell_list
+.proc ti_sell_list
 .a8
 .i16
-    jsl f:bt_t_build
+    jsl f:ba_t_build
     lda pick_n
     sta comp_mask
     lda comp_base
@@ -989,11 +989,11 @@ ready:
 .endproc
 
 ; A: the new mode. Sets what is needed to enter: the list, the cursor.
-.proc shop_mode_set
+.proc ti_mode_set
 .a8
 .i16
     sta comp_col
-    cmp #SHOP_MAIN
+    cmp #TI_MAIN
     bne no_principal
     lda comp_col + 1
     beq tres
@@ -1005,21 +1005,21 @@ n_listo:
     sta comp_mask
     rts
 no_principal:
-    cmp #SHOP_BUY
+    cmp #TI_BUY
     bne no_comprar
     lda comp_mask + 1
     sta comp_mask
     rts
 no_comprar:
-    cmp #SHOP_SELL
+    cmp #TI_SELL
     bne ready
-    jmp shop_sell_list
+    jmp ti_sell_list
 ready:
     rts
 .endproc
 
 ; The list's cursor, with the view following it.
-.proc shop_move
+.proc ti_move
 .a8
 .i16
     sta comp_base
@@ -1028,7 +1028,7 @@ ready:
     sta comp_base + 1
     rts
 no_arriba:
-    jsr shop_rows                ; the buying one and the selling one do not measure the same
+    jsr ti_rows                ; the buying one and the selling one do not measure the same
     sta temp + 3
     lda comp_base
     sec
@@ -1047,8 +1047,8 @@ ready:
 ; The shop's windows, with the screen off and after the screen's bank: the red
 ; palette of the terms —it goes with the "goes up" one, as in the equipment
 ; screen—, the colors and tiles of the windows, and the help rows, which are the
-; same in all three layers. `shop_windows` puts the rest.
-.proc shop_screen_upload
+; same in all three layers. `ti_windows` puts the rest.
+.proc ti_screen_upload
 .a8
 .i16
     lda #ITEMS_CGRAM_N
@@ -1126,7 +1126,7 @@ ready:
 ; everything, so neither the bar nor the previous layer can be left painted. It
 ; is 1408 bytes, plus the bar's, which together with the text's 1792 fit in the
 ; vblank —see `pantallas.tienda_compacta`—.
-.proc shop_windows
+.proc ti_windows
 .a8
 .i16
     lda #$80
@@ -1172,13 +1172,13 @@ barra:
     ; quantity. The two "done" have none.
     lda comp_col
     beq en_principal
-    cmp #SHOP_BUY
+    cmp #TI_BUY
     beq en_lista
-    cmp #SHOP_SELL
+    cmp #TI_SELL
     beq en_lista
-    cmp #SHOP_COUNT_BUY
+    cmp #TI_COUNT_BUY
     beq en_cuantos
-    cmp #SHOP_COUNT_SELL
+    cmp #TI_COUNT_SELL
     beq en_cuantos
     rts
 en_cuantos:
@@ -1193,7 +1193,7 @@ en_lista:
     bra con_barra
 en_principal:
     ; With a two-line greeting the commands go down one: see `orden_pos`.
-    jsr shop_two_lines
+    jsr ti_two_lines
     beq un_renglon              ; and A was left at zero
     lda #1
 un_renglon:
@@ -1286,33 +1286,33 @@ capa:
     beq a_principal
     cmp #1
     beq a_comprar
-    lda #SHOP_SELL
+    lda #TI_SELL
     bra empieza
 a_comprar:
-    lda #SHOP_BUY
+    lda #TI_BUY
     bra empieza
 a_principal:
-    lda #SHOP_MAIN
+    lda #TI_MAIN
 empieza:
-    jsr shop_mode_set
+    jsr ti_mode_set
     lda #$80
     sta INIDISP
     stz HDMAEN
     stz TM
     jsl f:items_bank_upload
-    jsr shop_screen_upload
-    jsr shop_compose
-    jsl f:bt_t_upload
-    jsr shop_windows
+    jsr ti_screen_upload
+    jsr ti_compose
+    jsl f:ba_t_upload
+    jsr ti_windows
     lda #(RANURA_VRAM / 4096 * 16 + TI_MARCO_VRAM / 4096)
     jsl f:screen_ppu_on  ; BG2 and BG1, the windows with their base
     lda #1
     sta menu_open
 espera:
-    jsl f:bt_t_vblank
-    jsl f:bt_t_pad                ; the controller before the DMA: see the equipment screen
-    jsl f:bt_t_upload
-    jsr shop_windows
+    jsl f:ba_t_vblank
+    jsl f:ba_t_pad                ; the controller before the DMA: see the equipment screen
+    jsl f:ba_t_upload
+    jsr ti_windows
     lda pad
     eor pad_prev
     and pad
@@ -1322,16 +1322,16 @@ espera:
     bne no_es_principal
     jmp principal
 no_es_principal:
-    cmp #SHOP_COUNT_BUY
+    cmp #TI_COUNT_BUY
     bne :+
     jmp cuantos
-:   cmp #SHOP_COUNT_SELL
+:   cmp #TI_COUNT_SELL
     bne :+
     jmp cuantos
-:   cmp #SHOP_BOUGHT
+:   cmp #TI_BOUGHT
     bne :+
     jmp listo_trato
-:   cmp #SHOP_SOLD
+:   cmp #TI_SOLD
     bne :+
     jmp listo_trato
 :   jmp comprar                 ; buying and selling share the code
@@ -1370,14 +1370,14 @@ p_mira_a:
 p_no_salir:
     cmp #1
     beq p_vender
-    lda #SHOP_BUY
+    lda #TI_BUY
     bra p_entrar
 p_vender:
-    lda #SHOP_SELL
+    lda #TI_SELL
 p_entrar:
     stz comp_base
     stz comp_base + 1
-    jsr shop_mode_set
+    jsr ti_mode_set
     jmp recomponer
 
     ; --- the lists ---
@@ -1389,7 +1389,7 @@ vender:
     lda comp_base
     beq espera2
     dec a
-    jsr shop_move
+    jsr ti_move
     jmp recomponer
 l_no_arriba:
     lda title_edges
@@ -1399,7 +1399,7 @@ l_no_arriba:
     inc a
     cmp comp_mask
     bcs espera2
-    jsr shop_move
+    jsr ti_move
     jmp recomponer
 l_no_abajo:
     lda title_edges
@@ -1411,7 +1411,7 @@ l_no_abajo:
     jmp salir
 a_la_principal:
     lda comp_col
-    cmp #SHOP_SELL
+    cmp #TI_SELL
     lda #0
     bcc cursor_listo
     lda #1                      ; the cursor on the command it is returning from
@@ -1419,8 +1419,8 @@ cursor_listo:
     sta comp_base
     lda #1
     sta comp_phase + 1
-    lda #SHOP_MAIN
-    jsr shop_mode_set
+    lda #TI_MAIN
+    jsr ti_mode_set
     jmp recomponer
 l_mira_a:
     jsr flanco_a
@@ -1428,26 +1428,26 @@ l_mira_a:
     lda comp_mask
     beq espera2
     lda comp_col
-    cmp #SHOP_SELL
+    cmp #TI_SELL
     bcs l_vender
-    jsr shop_item                 ; X = k
-    jsr shop_can
+    jsr ti_item                 ; X = k
+    jsr ti_can
     beq espera2                 ; grayed out: it plays a sound and does nothing
-    lda #SHOP_COUNT_BUY
+    lda #TI_COUNT_BUY
     bra l_cuantos
 l_vender:
-    jsr shop_item
-    jsr shop_price
+    jsr ti_item
+    jsr ti_price
     rep #$20
 .a16
     lda comp_or01
     sep #$20
 .a8
     beq espera2                 ; it is worth nothing
-    lda #SHOP_COUNT_SELL
+    lda #TI_COUNT_SELL
 l_cuantos:
     pha
-    jsr shop_max
+    jsr ti_max
     pla
     sta comp_col
     lda #1
@@ -1501,27 +1501,27 @@ c_no_abajo:
     and #PAD_B
     beq c_mira_a
     lda comp_col
-    cmp #SHOP_COUNT_SELL
+    cmp #TI_COUNT_SELL
     beq c_a_vender
-    lda #SHOP_BUY
+    lda #TI_BUY
     sta comp_col
     jmp recomponer
 c_a_vender:
-    lda #SHOP_SELL
+    lda #TI_SELL
     sta comp_col
     jmp recomponer
 c_mira_a:
     jsr flanco_a
     beq espera2
-    jsr shop_close_deal
+    jsr ti_close_deal
     lda #TI_SEGUNDO
     sta comp_glyph
     lda comp_col
     inc a                       ; CUANTOS_COMPRA -> COMPRADO, and the selling the same
     sta comp_col
-    cmp #SHOP_SOLD
+    cmp #TI_SOLD
     bne recomponer
-    jsr shop_sell_list          ; what was sold may no longer be there
+    jsr ti_sell_list          ; what was sold may no longer be there
     jmp recomponer
 
     ; --- the "done", one second ---
@@ -1533,7 +1533,7 @@ listo_trato:
     dec a                       ; COMPRADO -> COMPRAR, VENDIDO -> VENDER
     sta comp_col
 recomponer:
-    jsr shop_compose
+    jsr ti_compose
     jmp espera
 
 salir:

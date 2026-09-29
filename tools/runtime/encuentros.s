@@ -293,7 +293,7 @@ end:
 .endproc
 
 ; Is there a pending encounter to fight here? Returns with 8-bit A: 1 if there
-; is a battle, with the troop already set in `BT_TROOP`.
+; is a battle, with the troop already set in `BA_TROOP`.
 ;
 ; It is `PrepareEncounter`: if no zone covers the cell, the pending one is
 ; consumed and nothing happens, which is what it does over there by returning
@@ -424,7 +424,7 @@ es_de_esta:
     asl a
     tax
     lda f:enc_tropa, x
-    sta BT_TROOP
+    sta BA_TROOP
     sep #$20
 .a8
     lda #1
@@ -507,7 +507,7 @@ afuera:
     rts
 .endproc
 
-; The encounters' xorshift step: the same as `random_next` and `bt_random`,
+; The encounters' xorshift step: the same as `random_next` and `ba_random`,
 ; on `ENC_RNG`, which has **its own seed**. Walking does not advance the
 ; map's randomness: a random `ControlVars` has to give the same result with
 ; and without encounters. It is `eventos.Encuentros._azar`.

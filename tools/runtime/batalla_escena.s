@@ -548,7 +548,7 @@ afuera:
 ; With the screen off. Fills both buffers with the background —or with
 ; zeros—, places the troop's battlers in order and uploads everything: the
 ; 32 KB of tiles, the tilemap, the background's colors and one palette per
-; distinct battler. Leaves in `BT_SCENE` a 0 if there is something to show
+; distinct battler. Leaves in `BA_SCENE` a 0 if there is something to show
 ; and $FF if not.
 .proc scene_upload
 .a8
@@ -597,7 +597,7 @@ del_lugar:
     lda f:fondo_terreno, x
     bra fondo_elegido
 de_la_tropa:
-    lda BT_TROOP_K
+    lda BA_TROOP_K
     cmp #$FF
     beq sin_fondo
     rep #$20
@@ -628,7 +628,7 @@ sin_fondo:
     ; --- the troop's battlers, and one palette for each distinct one ---
     lda #0
     sta SCN_E
-    lda BT_TROOP_K
+    lda BA_TROOP_K
     cmp #$FF
     bne con_tropa
     jmp repartidos
@@ -644,7 +644,7 @@ con_tropa:
     sta SCN_INIT                 ; and again, for `scn_by_command`
 otro_enemigo:
     lda SCN_E
-    cmp BT_KID
+    cmp BA_KID
     bcc :+
     jmp repartidos
 :   rep #$20
@@ -695,9 +695,9 @@ pal_lista:
     ; appears.
     lda SCN_E
     clc
-    adc #BT_PARTY_MAX
-    jsr bt_x
-    lda BT_ONE + BT_FLAGS, x
+    adc #BA_PARTY_MAX
+    jsr ba_x
+    lda BA_ONE + BA_FLAGS, x
     and #BAF_HIDDEN
     bne siguiente
     jsr scn_bit
@@ -715,7 +715,7 @@ repartidos:
     jmp sin_escena              ; neither background nor battlers: on black, as before
 hay_escena:
     lda #0
-    sta BT_SCENE
+    sta BA_SCENE
 
     ; --- where the background comes from: the MSU-1 if present and it is this cartridge's ---
     sta SCN_MSU
@@ -759,7 +759,7 @@ fondo_listo:
     sta SCN_K
 put:
     lda SCN_K
-    cmp BT_KID
+    cmp BA_KID
     bcs puestos
     jsr scn_by_command
     jsr scn_bit                 ; only the visible ones: not a hidden one
@@ -889,7 +889,7 @@ ready:
 sin_escena:
 .a8
     lda #$FF
-    sta BT_SCENE
+    sta BA_SCENE
     rts
 .endproc
 
@@ -1271,7 +1271,7 @@ word:
 ; --- erasing a dead enemy, and placing one that appears ---
 ;
 ; Once per frame, from the battle loop and **inside the vblank**, right after
-; `bt_t_upload`. If rows of a just-erased enemy were left un-uploaded, it
+; `ba_t_upload`. If rows of a just-erased enemy were left un-uploaded, it
 ; uploads the ones that fit and returns. Otherwise, it looks for a dead one
 ; that is still visible and erases it —or one that appeared and is not
 ; visible, and places it, by the same path—: the cells it covered go back to
@@ -1285,7 +1285,7 @@ word:
 .proc scene_tick
 .a8
 .i16
-    lda BT_SCENE
+    lda BA_SCENE
     cmp #$FF
     bne hay
     rts
@@ -1302,7 +1302,7 @@ buscar:
     sta SCN_E
 otro:
     lda SCN_E
-    cmp BT_KID
+    cmp BA_KID
     bcc :+
     rts
 :   ; Is it drawn?
@@ -1313,11 +1313,11 @@ otro:
     ; And dead?
     lda SCN_E
     clc
-    adc #BT_PARTY_MAX
-    jsr bt_x
+    adc #BA_PARTY_MAX
+    jsr ba_x
     rep #$20
 .a16
-    lda BT_ONE + BT_HP, x
+    lda BA_ONE + BA_HP, x
     sep #$20
 .a8
     beq borrar
@@ -1342,8 +1342,8 @@ no_dibujado:
     beq siguiente
     lda SCN_E
     clc
-    adc #BT_PARTY_MAX
-    jsr bt_alive
+    adc #BA_PARTY_MAX
+    jsr ba_alive
     beq siguiente
     lda SCN_T0
     ora SCN_VIS
@@ -1470,7 +1470,7 @@ copia:
     sta SCN_K
 reponer:
     lda SCN_K
-    cmp BT_KID
+    cmp BA_KID
     bcs repuestos
     jsr scn_by_command
     jsr scn_bit
@@ -1553,7 +1553,7 @@ ready:
 .proc scene_on
 .a8
 .i16
-    lda BT_SCENE
+    lda BA_SCENE
     cmp #$FF
     beq ready
     lda #((ESCENA_MAPA / 1024) * 4)

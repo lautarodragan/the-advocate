@@ -176,42 +176,42 @@ EXP_CAP_LO = $423F
 ; it with the data bank at $7E; the bridge from bank 0 puts `BAT_LENGTH` in
 ; front of it.
 FAR_PAGE       = $6400
-BT_PAGE_N      = FAR_PAGE + 0     ; how many pages this battle's troop brings
-BT_PAGE_INIT    = FAR_PAGE + 1     ; word: the first, in the `tpag_*` tables
-BT_PAGE_CODE    = FAR_PAGE + 3     ; word: where the running one starts, in the
+BA_PAGE_N      = FAR_PAGE + 0     ; how many pages this battle's troop brings
+BA_PAGE_INIT    = FAR_PAGE + 1     ; word: the first, in the `tpag_*` tables
+BA_PAGE_CODE    = FAR_PAGE + 3     ; word: where the running one starts, in the
                                 ; bank of `tropa_codigo`
-BT_PAGE_CUR    = FAR_PAGE + 5     ; word: its cursor, its own `ev_cur`
-BT_PAGE_ACT    = FAR_PAGE + 7     ; whether it has not finished yet: its `ev_active`
-BT_PAGE_MSG    = FAR_PAGE + 8     ; word: the message it asked for and is on
+BA_PAGE_CUR    = FAR_PAGE + 5     ; word: its cursor, its own `ev_cur`
+BA_PAGE_ACT    = FAR_PAGE + 7     ; whether it has not finished yet: its `ev_active`
+BA_PAGE_MSG    = FAR_PAGE + 8     ; word: the message it asked for and is on
                                 ; screen, in `mensajes_tropa`, or $FFFF
-BT_PAGE_TICK = FAR_PAGE + 10    ; where the battle goes on when none are left:
+BA_PAGE_TICK = FAR_PAGE + 10    ; where the battle goes on when none are left:
                                 ; 0 the next action, 1 ask for the commands
-BT_PAGE_I      = FAR_PAGE + 11    ; which one the sweep is on
-BT_PAGE_G      = FAR_PAGE + 12    ; word: that same one, in the `tpag_*` tables
-BT_PAGE_DONE  = FAR_PAGE + 16    ; TROPA_PAG_MAX bytes: already ran this turn
+BA_PAGE_I      = FAR_PAGE + 11    ; which one the sweep is on
+BA_PAGE_G      = FAR_PAGE + 12    ; word: that same one, in the `tpag_*` tables
+BA_PAGE_DONE  = FAR_PAGE + 16    ; TROPA_PAG_MAX bytes: already ran this turn
 ; And what the turn and HP conditions and the commands that come with them
 ; added, on 2026-09-28: $7E7A10 to $7E7A3F, which is what was allotted to
 ; this. With a sixteen-bit address, like the rest of the battle.
-BT_TURN      = $7A10           ; word: the turn, `Game_Party::GetTurns`
-BT_PAGE_WAIT = $7A12           ; word: frames left in the wait of the
+BA_TURN      = $7A10           ; word: the turn, `Game_Party::GetTurns`
+BA_PAGE_WAIT = $7A12           ; word: frames left in the wait of the
                                 ; running page
-BT_PCT_MIN    = $7A14           ; the HP range, in percent, that is checked
-BT_PCT_MAX    = $7A15
-BT_P24        = $7A16           ; three bytes: what `bt_mul24` leaves
-BT_P_HP       = $7A19           ; three bytes: a hundred times the HP checked
-BT_PAGE_FL     = $7A1C           ; the triggers of the page being tested
+BA_PCT_MIN    = $7A14           ; the HP range, in percent, that is checked
+BA_PCT_MAX    = $7A15
+BA_P24        = $7A16           ; three bytes: what `ba_mul24` leaves
+BA_P_HP       = $7A19           ; three bytes: a hundred times the HP checked
+BA_PAGE_FL     = $7A1C           ; the triggers of the page being tested
 ; And its header, copied from in front of its code: `eventos.cabecera_de_tropa`,
 ; in the same order.
-BT_COND       = $7A20
-BT_COND_BASE  = 0               ; word: the turn base, `turn_b`
-BT_COND_MULT  = 2               ; word: and its multiple, `turn_a`
-BT_COND_ENEMY   = 4               ; the enemy's place in the troop
-BT_COND_EMIN  = 5               ; and its HP range, in percent
-BT_COND_EMAX  = 6
-BT_COND_ACT   = 7               ; the actor, by LDB number
-BT_COND_AMIN  = 8
-BT_COND_AMAX  = 9
-.assert BT_COND + TPAG_CABECERA <= $7A40, error, "the pages' state overflows its range"
+BA_COND       = $7A20
+BA_COND_BASE  = 0               ; word: the turn base, `turn_b`
+BA_COND_MULT  = 2               ; word: and its multiple, `turn_a`
+BA_COND_ENEMY   = 4               ; the enemy's place in the troop
+BA_COND_EMIN  = 5               ; and its HP range, in percent
+BA_COND_EMAX  = 6
+BA_COND_ACT   = 7               ; the actor, by LDB number
+BA_COND_AMIN  = 8
+BA_COND_AMAX  = 9
+.assert BA_COND + TPAG_CABECERA <= $7A40, error, "the pages' state overflows its range"
 
 ; --- a medicine outside battle: its scratch space in far RAM -----------------
 ;
@@ -238,7 +238,7 @@ MED_RAISES   = $02             ; removes the dead state: revives the fallen one
 
 ; What `pair_ev` holds while a troop page runs: neither the foreground ($FF)
 ; nor a map event, which are fewer than EV_MAX. It is what tells
-; `op_message` that the message belongs to the battle. See `bt_t_page`.
+; `op_message` that the message belongs to the battle. See `ba_t_page`.
 PAIR_BATTLE = $FE
 .assert EV_MAX < PAIR_BATTLE, error, "PAIR_BATTLE must not be an event"
 
@@ -255,178 +255,178 @@ BAT_LENGTH = $7E0000
 ; nothing to the rest: in bank $7E the addresses $0000 to $1FFF **are** bank
 ; 0's low RAM, so `temp`, `comp_*` and `party` are still read as always. What
 ; does change are the ROM tables, which go with `f:`.
-BT_TROOP   = FAR_BATTLE + 0      ; the troop, as an RM2k number
-BT_RESULT  = FAR_BATTLE + 2      ; 0 victory, 1 escape, 2 defeat
-BT_SEED     = FAR_BATTLE + 3      ; the battle's xorshift, with its own seed
-BT_NACT    = FAR_BATTLE + 5      ; how many actors
-BT_KID    = FAR_BATTLE + 6      ; how many enemies
-BT_MODE    = FAR_BATTLE + 7
-BT_ACTOR   = FAR_BATTLE + 8      ; who is being asked for a command
-BT_COMMAND   = FAR_BATTLE + 9      ; which command the cursor marks
-BT_TARGET  = FAR_BATTLE + 10     ; which enemy the cursor marks
-BT_ESCAPE   = FAR_BATTLE + 11     ; the chance to escape, which rises on failing
-BT_I       = FAR_BATTLE + 12     ; which one of the execution the turn is on
-BT_WAIT  = FAR_BATTLE + 13     ; frames the message has left
-BT_MTIPO   = FAR_BATTLE + 14     ; what the message says
-BT_MQUIEN  = FAR_BATTLE + 15
-BT_MBLA    = FAR_BATTLE + 16
-BT_MDANO   = FAR_BATTLE + 17     ; word
-BT_NACC    = FAR_BATTLE + 19     ; how many actions the turn has
-BT_T0      = FAR_BATTLE + 20     ; scratch words, which anyone clobbers
-BT_T1      = FAR_BATTLE + 22
-BT_T2      = FAR_BATTLE + 24
-BT_S0      = FAR_BATTLE + 26     ; and the ones that survive a `jsr`
-BT_S1      = FAR_BATTLE + 28
-BT_S2      = FAR_BATTLE + 30
-BT_S3      = FAR_BATTLE + 32
-BT_S4      = FAR_BATTLE + 34
-BT_S5      = FAR_BATTLE + 36
-BT_S6      = FAR_BATTLE + 38
+BA_TROOP   = FAR_BATTLE + 0      ; the troop, as an RM2k number
+BA_RESULT  = FAR_BATTLE + 2      ; 0 victory, 1 escape, 2 defeat
+BA_SEED     = FAR_BATTLE + 3      ; the battle's xorshift, with its own seed
+BA_NACT    = FAR_BATTLE + 5      ; how many actors
+BA_KID    = FAR_BATTLE + 6      ; how many enemies
+BA_MODE    = FAR_BATTLE + 7
+BA_ACTOR   = FAR_BATTLE + 8      ; who is being asked for a command
+BA_COMMAND   = FAR_BATTLE + 9      ; which command the cursor marks
+BA_TARGET  = FAR_BATTLE + 10     ; which enemy the cursor marks
+BA_ESCAPE   = FAR_BATTLE + 11     ; the chance to escape, which rises on failing
+BA_I       = FAR_BATTLE + 12     ; which one of the execution the turn is on
+BA_WAIT  = FAR_BATTLE + 13     ; frames the message has left
+BA_MTIPO   = FAR_BATTLE + 14     ; what the message says
+BA_MQUIEN  = FAR_BATTLE + 15
+BA_MBLA    = FAR_BATTLE + 16
+BA_MDANO   = FAR_BATTLE + 17     ; word
+BA_NACC    = FAR_BATTLE + 19     ; how many actions the turn has
+BA_T0      = FAR_BATTLE + 20     ; scratch words, which anyone clobbers
+BA_T1      = FAR_BATTLE + 22
+BA_T2      = FAR_BATTLE + 24
+BA_S0      = FAR_BATTLE + 26     ; and the ones that survive a `jsr`
+BA_S1      = FAR_BATTLE + 28
+BA_S2      = FAR_BATTLE + 30
+BA_S3      = FAR_BATTLE + 32
+BA_S4      = FAR_BATTLE + 34
+BA_S5      = FAR_BATTLE + 36
+BA_S6      = FAR_BATTLE + 38
 ; Whether the line being composed also shows the max HP, that is, whether it
-; belongs to the party. It has its own byte and not a borrowed `BT_T2 + 2`,
-; which is what it was and it landed right on top of `BT_S0`: the enemy loop
+; belongs to the party. It has its own byte and not a borrowed `BA_T2 + 2`,
+; which is what it was and it landed right on top of `BA_S0`: the enemy loop
 ; restarted by itself and the screen never got to appear.
-BT_CONMAX  = FAR_BATTLE + 40
-; The battle's audio, in the bytes that were left loose before `BT_ACC`.
-; `BT_SONG_PREV` is the song that was playing on the map —$FF if nothing was—,
+BA_CONMAX  = FAR_BATTLE + 40
+; The battle's audio, in the bytes that were left loose before `BA_ACC`.
+; `BA_SONG_PREV` is the song that was playing on the map —$FF if nothing was—,
 ; which is RM2k's `before_battle_music`: when the battle ends it comes back.
-; `BT_SE2` is the sound effect still to fire in the current message, or
+; `BA_SE2` is the sound effect still to fire in the current message, or
 ; $FFFF: RM2k plays two per hit —the attack's and the damage's, separated by
-; a wait— and here the second goes out when `BT_WAIT` reaches
-; `BT_SE2_FRAMES`.
-BT_SONG_PREV = FAR_BATTLE + 41
-BT_SE2      = FAR_BATTLE + 42     ; word
+; a wait— and here the second goes out when `BA_WAIT` reaches
+; `BA_SE2_FRAMES`.
+BA_SONG_PREV = FAR_BATTLE + 41
+BA_SE2      = FAR_BATTLE + 42     ; word
 ; Whether there is a scene in BG1 —0— or this battle goes on black —$FF—: no
 ; background and no battler. See `scene_upload`.
-BT_SCENE   = FAR_BATTLE + 44
+BA_SCENE   = FAR_BATTLE + 44
 ; And at which place in `tropa_id` this battle's troop landed, which is what
 ; `escena_tropa_fondo` indexes. $FF: the cartridge does not carry it.
-BT_TROOP_K  = FAR_BATTLE + 45
-; And the item being used, since 2026-09-13. It goes **after `BT_ONE`**,
+BA_TROOP_K  = FAR_BATTLE + 45
+; And the item being used, since 2026-09-13. It goes **after `BA_ONE`**,
 ; which ends at +575, because between +40 and +48 nothing is left and moving
-; `BT_ACC` would mean moving everything else.
+; `BA_ACC` would mean moving everything else.
 ;
-; It was at +320 until `BT_BYTES` went from 18 to 40 —the SP and the four
-; parameter modifiers of the skills— and `BT_ONE` ran into it.
-BT_ITEM_N    = FAR_BATTLE + 576   ; how many are in the list
-BT_ITEM_SEL  = FAR_BATTLE + 577   ; which one the cursor marks
-BT_ITEM_ARR  = FAR_BATTLE + 578   ; the first one visible
-BT_ITEM_BLA  = FAR_BATTLE + 579   ; which actor it is given to; since 2026-09-13
+; It was at +320 until `BA_BYTES` went from 18 to 40 —the SP and the four
+; parameter modifiers of the skills— and `BA_ONE` ran into it.
+BA_ITEM_N    = FAR_BATTLE + 576   ; how many are in the list
+BA_ITEM_SEL  = FAR_BATTLE + 577   ; which one the cursor marks
+BA_ITEM_ARR  = FAR_BATTLE + 578   ; the first one visible
+BA_ITEM_BLA  = FAR_BATTLE + 579   ; which actor it is given to; since 2026-09-13
                                    ; also the target of a healing skill,
                                    ; which picks with the same mode
-BT_MITEM     = FAR_BATTLE + 580   ; the `k` of the current message's item
-BT_ACTOR2    = FAR_BATTLE + 581   ; an actor counter `BT_S0` cannot be
-BT_MCURA     = FAR_BATTLE + 582   ; word: how much it healed
-BT_ACC_ITEM  = FAR_BATTLE + 584   ; the `k` each actor chose, one per byte
-BT_ITEM_LIST = FAR_BATTLE + 592  ; the list, one `k` per byte
-BT_ITEM_MAX = 64
+BA_MITEM     = FAR_BATTLE + 580   ; the `k` of the current message's item
+BA_ACTOR2    = FAR_BATTLE + 581   ; an actor counter `BA_S0` cannot be
+BA_MCURA     = FAR_BATTLE + 582   ; word: how much it healed
+BA_ACC_ITEM  = FAR_BATTLE + 584   ; the `k` each actor chose, one per byte
+BA_ITEM_LIST = FAR_BATTLE + 592  ; the list, one `k` per byte
+BA_ITEM_MAX = 64
 ; --- skills, since 2026-09-13 ---------------------------------------------
 ;
-; After `BT_ITEM_LIST`, which ends at +656.
-BT_SKILL_N     = FAR_BATTLE + 656   ; how many the one giving commands knows
-BT_SKILL_SEL   = FAR_BATTLE + 657   ; which one the cursor marks
-BT_MHAB      = FAR_BATTLE + 658   ; the `k` of the current message's one
-BT_ACC_SKILL   = FAR_BATTLE + 660   ; the `k` each actor chose, one per byte
-BT_SKILL_LIST = FAR_BATTLE + 672   ; their list, one `k` per byte
-BT_SKILL_MAX   = 16                  ; BA_HAB_FILAS times BA_HAB_COLUMNAS, with room to spare
-BT_MEFECTO   = FAR_BATTLE + 688   ; signed word: how much the last one did
-BT_ACC     = FAR_BATTLE + 48     ; two bytes per combatant: command and target
-BT_EXEC    = FAR_BATTLE + 72     ; the execution order, one combatant per byte
-BT_CAND    = FAR_BATTLE + 88     ; the living on one side, to pick a target
-BT_ONE     = FAR_BATTLE + 96     ; the combatants, BT_BYTES each
+; After `BA_ITEM_LIST`, which ends at +656.
+BA_SKILL_N     = FAR_BATTLE + 656   ; how many the one giving commands knows
+BA_SKILL_SEL   = FAR_BATTLE + 657   ; which one the cursor marks
+BA_MHAB      = FAR_BATTLE + 658   ; the `k` of the current message's one
+BA_ACC_SKILL   = FAR_BATTLE + 660   ; the `k` each actor chose, one per byte
+BA_SKILL_LIST = FAR_BATTLE + 672   ; their list, one `k` per byte
+BA_SKILL_MAX   = 16                  ; BA_HAB_FILAS times BA_HAB_COLUMNAS, with room to spare
+BA_MEFECTO   = FAR_BATTLE + 688   ; signed word: how much the last one did
+BA_ACC     = FAR_BATTLE + 48     ; two bytes per combatant: command and target
+BA_EXEC    = FAR_BATTLE + 72     ; the execution order, one combatant per byte
+BA_CAND    = FAR_BATTLE + 88     ; the living on one side, to pick a target
+BA_ONE     = FAR_BATTLE + 96     ; the combatants, BA_BYTES each
 ; Whether the current message's item revived a fallen one: the second line
 ; changes. **Outside `FAR_BATTLE`**, at $7E7850-$7E785F, which is what was
 ; allotted to this on 2026-09-26 —other agents were choosing RAM at the same
 ; time—. Like everything in the battle, with a sixteen-bit address and the
 ; data bank at $7E.
-BT_MREVIVIO = $7850
+BA_MREVIVIO = $7850
 
 ; The combatants: the first four are the party and the next eight the troop.
 ; That the place is fixed and not a compacted list is what keeps a dead one
 ; visible in its line, as on the screen.
-BT_PARTY_MAX = 4
-BT_ENEMIES_MAX = 8
-BT_COMB_MAX = BT_PARTY_MAX + BT_ENEMIES_MAX
+BA_PARTY_MAX = 4
+BA_ENEMIES_MAX = 8
+BA_COMB_MAX = BA_PARTY_MAX + BA_ENEMIES_MAX
 ; It was 18 until 2026-09-13, which is when the SP came in along with the
 ; four parameter modifiers that two of the party's seven skills move. 40 is
 ; also convenient: the offset comes out of five `asl` and an addition, see
-; `bt_x`.
-BT_BYTES  = 40
-BT_HP     = 0               ; word
-BT_HPMAX  = 2
+; `ba_x`.
+BA_BYTES  = 40
+BA_HP     = 0               ; word
+BA_HPMAX  = 2
 ; **The four parameters here are the effective ones**, that is,
 ; game_battler.cpp's `AdjustParam`: `clamp(base + modifier, 1, 999)`. The
 ; base and the modifier live further down and are stored whole because a
 ; modifier that survives the clamp cannot be recovered from the subtraction;
-; `bt_mod` recomputes them.
-BT_ATK    = 4
-BT_DEF    = 6
-BT_AGI    = 8
-BT_SORT   = 10              ; the `agi + random` the turn is sorted by
-BT_TXT    = 12              ; the text number of its name
-BT_HIT    = 14              ; byte
-BT_CRIT   = 15
-BT_FLAGS  = 16
-BT_NUMBER = 17              ; the LDB actor, or the place in the troop
-BT_SP     = 18              ; word: the SP it has left
-BT_SPMAX  = 20
-BT_MATK   = 22              ; the four modifiers, signed
-BT_MDEF   = 24
-BT_MSPI   = 26
-BT_MAGI   = 28
-BT_BATK   = 30              ; and the four bases
-BT_BDEF   = 32
-BT_BSPI   = 34
-BT_BAGI   = 36
-BT_SPI    = 38              ; the effective spirit, which `CalcSkillEffect` asks for
+; `ba_mod` recomputes them.
+BA_ATK    = 4
+BA_DEF    = 6
+BA_AGI    = 8
+BA_SORT   = 10              ; the `agi + random` the turn is sorted by
+BA_TXT    = 12              ; the text number of its name
+BA_HIT    = 14              ; byte
+BA_CRIT   = 15
+BA_FLAGS  = 16
+BA_NUMBER = 17              ; the LDB actor, or the place in the troop
+BA_SP     = 18              ; word: the SP it has left
+BA_SPMAX  = 20
+BA_MATK   = 22              ; the four modifiers, signed
+BA_MDEF   = 24
+BA_MSPI   = 26
+BA_MAGI   = 28
+BA_BATK   = 30              ; and the four bases
+BA_BDEF   = 32
+BA_BSPI   = 34
+BA_BAGI   = 36
+BA_SPI    = 38              ; the effective spirit, which `CalcSkillEffect` asks for
 BAF_DEF   = $01             ; it is defending
 BAF_ACTOR = $02             ; it belongs to the party
 BAF_HAS   = $04             ; the slot is taken
 ; A hidden enemy —`invisible` in the troop— takes its place but **does not
 ; have `BAF_HAS`**: that way everything that looks at who is there
-; —`bt_alive`, and with it the target, the actions, the victory and the
+; —`ba_alive`, and with it the target, the actions, the victory and the
 ; scene— skips it without knowing anything about hidden ones, which is what
 ; `Exists()` does in easyrpg. `ShowHiddenMonster` swaps one bit for the
-; other: see `bt_show_hidden`.
+; other: see `ba_show_hidden`.
 BAF_HIDDEN = $08
 
 ; The three results and the three commands, in the order of `tools/port/battle.py`.
-BT_VICTORY = 0
-BT_ESCAPE_R  = 1
-BT_DEFEAT  = 2
-BT_ATTACK   = 0
-BT_DEFEND = 1
-BT_FLEE     = 2
-BT_ITEM     = 3
-BT_SKILL = 4
+BA_VICTORY = 0
+BA_ESCAPE_R  = 1
+BA_DEFEAT  = 2
+BA_ATTACK   = 0
+BA_DEFEND = 1
+BA_FLEE     = 2
+BA_ITEM     = 3
+BA_SKILL = 4
 ; The screen modes, like `pantallas.BA_ELIGE_ORDEN` and company. **The order
-; matters**: more than one place asks `cmp #BT_M_MESSAGE / bcs` to say
+; matters**: more than one place asks `cmp #BA_M_MESSAGE / bcs` to say
 ; "message or end", so the ones that choose something all go first.
-BT_M_COMMAND  = 0
-BT_M_TARGET = 1
-BT_M_ITEM   = 2
-BT_M_ACTOR  = 3
-BT_M_SKILL    = 4
-BT_M_MESSAGE = 5
-BT_M_END    = 6
+BA_M_COMMAND  = 0
+BA_M_TARGET = 1
+BA_M_ITEM   = 2
+BA_M_ACTOR  = 3
+BA_M_SKILL    = 4
+BA_M_MESSAGE = 5
+BA_M_END    = 6
 ; Running a troop page, with or without its message on screen: see
 ; `modo_pagina`. It goes after the message ones because it chooses nothing.
-BT_M_PAGE = 7
+BA_M_PAGE = 7
 ; What the message says.
-BT_MSG_ATTACK = 0
-BT_MSG_DEFENDS = 1
-BT_MSG_NO_FLED = 2
-BT_MSG_FLED = 3
-BT_MSG_VICTORY = 4
-BT_MSG_DEFEAT = 5
-BT_MSG_ITEM = 6
-BT_MSG_SKILL = 7
+BA_MSG_ATTACK = 0
+BA_MSG_DEFENDS = 1
+BA_MSG_NO_FLED = 2
+BA_MSG_FLED = 3
+BA_MSG_VICTORY = 4
+BA_MSG_DEFEAT = 5
+BA_MSG_ITEM = 6
+BA_MSG_SKILL = 7
 ; How many frames a message stays if nobody presses A. Two seconds, which is
 ; how long a line takes to read, and A skips it.
-BT_MSG_FRAMES = 120
+BA_MSG_FRAMES = 120
 ; When the hit's second sound effect goes out: `Scene_Battle_Rpg2k` plays the
 ; attack's when the action starts and the damage's in the message sub-state,
-; with a `SetWait(4,4)` in between. Here the message lasts `BT_MSG_FRAMES`
+; with a `SetWait(4,4)` in between. Here the message lasts `BA_MSG_FRAMES`
 ; and the second sound effect goes out twenty-four frames later. The
 ; twenty-four were chosen when sound effects had a single voice and the new
 ; one cut off the previous one's voice, so they had to stay apart by ear;
@@ -434,37 +434,37 @@ BT_MSG_FRAMES = 120
 ; different sound effects no longer cut each other off; the same sound effect
 ; twice does, because `sound_play` fires it again on the voice that is
 ; already playing it.
-BT_SE2_FRAMES = BT_MSG_FRAMES - 24
+BA_SE2_FRAMES = BA_MSG_FRAMES - 24
 ; The hit rate of an actor with no weapon that changes it:
 ; `Game_Actor::GetHitChance`.
-BT_HIT_ACTOR = 90
+BA_HIT_ACTOR = 90
 ; The damage cap —RM2k's `MaxDamageValue()`— and the cap on the average
 ; agility that goes into the escape computation: two hundred times the
 ; average has to fit in sixteen bits, and the game's most agile enemy has
 ; 300.
-BT_DAMAGE_MAX = 999
-BT_AGI_CAP = 320
+BA_DAMAGE_MAX = 999
+BA_AGI_CAP = 320
 ; The cap on an effective parameter: `Game_Actor::GetAtk` and its siblings,
 ; that is, RM2k's `MaxStatBattleValue`.
-BT_PARAM_MAX = 999
+BA_PARAM_MAX = 999
 ; `rpg::Skill::Type_switch`, the one that turns on a switch and does nothing
 ; else. It is the only type this port tells apart from normal: the seven the
 ; intro party knows are either `normal` or `switch`.
-BT_SKILL_TYPE_SWITCH = 3
+BA_SKILL_TYPE_SWITCH = 3
 ; The five scopes of `rpg::Skill::Scope`, which is what `hab_alcance` carries.
 ; Only `enemy` and `ally` ask for a target when chosen; for the other three
 ; the scope decides it: see `batalla.blancos_de_la_habilidad`.
-BT_SCOPE_ENEMY  = 0
-BT_SCOPE_ENEMIES = 1
-BT_SCOPE_ONE      = 2
-BT_SCOPE_ALLY   = 3
-BT_SCOPE_PARTY    = 4
+BA_SCOPE_ENEMY  = 0
+BA_SCOPE_ENEMIES = 1
+BA_SCOPE_ONE      = 2
+BA_SCOPE_ALLY   = 3
+BA_SCOPE_PARTY    = 4
 ; An enemy action that is not a skill: the basic attack, in `eacc_hab`, and
-; what `bt_enemy_action` answers when it has none left. See
+; what `ba_enemy_action` answers when it has none left. See
 ; `batalla.accion_del_enemigo`.
-BT_EACC_ATTACK = $FF
-BT_EACC_NOTHING   = $FE
-BT_EACC_NO_EFFECTIVE = $80       ; the `eacc_peso` bit
+BA_EACC_ATTACK = $FF
+BA_EACC_NOTHING   = $FE
+BA_EACC_NO_EFFECTIVE = $80       ; the `eacc_peso` bit
 
 ; Cursor (2), wait (2), whether it is running (1) and from which page (2).
 ; **Eight and not seven**: the index comes out of three `asl` instead of an
@@ -712,31 +712,31 @@ LZ2_BANK      = $7E7804        ; the output bank
 ; $7E7810 to $7E781F, reserved on 2026-09-26: the "N EXP" and "Level up!"
 ; pages of `batalla_victoria.s`. Like `FAR_BATTLE`, they are named with a
 ; sixteen-bit address because the battle reads them, with the data bank at
-; $7E. `bt_vic_start` writes all of them on winning and nobody reads them
+; $7E. `ba_vic_start` writes all of them on winning and nobody reads them
 ; before, so there is no need to set them to anything at startup.
-BT_VIC        = $7810
-BT_VIC_ACTOR  = BT_VIC + 0      ; whose page it is, or $FF the first
-BT_VIC_BEFORE  = BT_VIC + 1      ; the level before winning, one per party
+BA_VIC        = $7810
+BA_VIC_ACTOR  = BA_VIC + 0      ; whose page it is, or $FF the first
+BA_VIC_BEFORE  = BA_VIC + 1      ; the level before winning, one per party
                                 ; slot; 0 if it has no experience
-BT_VIC_SKIP = BT_VIC + 5     ; the skill lines from earlier pages of the
+BA_VIC_SKIP = BA_VIC + 5     ; the skill lines from earlier pages of the
                                 ; same actor
-BT_VIC_NEXT    = BT_VIC + 6      ; this one's and the earlier ones': what
+BA_VIC_NEXT    = BA_VIC + 6      ; this one's and the earlier ones': what
                                 ; the next one skips
-BT_VIC_MORE    = BT_VIC + 7      ; whether skills were left for another page
-BT_VIC_END    = BT_VIC + 8
-.assert BT_VIC_END <= $7820, error, "the victory's state overflows its range"
+BA_VIC_MORE    = BA_VIC + 7      ; whether skills were left for another page
+BA_VIC_END    = BA_VIC + 8
+.assert BA_VIC_END <= $7820, error, "the victory's state overflows its range"
 
 ; --- what the enemies dropped ------------------------------------------------
 ;
 ; $7E79E0 to $7E79FF, reserved on 2026-09-27: the items the victory won, so
-; its page can list them. Like `BT_VIC`, with a sixteen-bit address, and
-; `bt_vic_drop` writes them on winning before anyone reads them.
-BT_DROP      = $79E0
-BT_DROP_N    = BT_DROP + 0    ; how many
-BT_DROP_K    = BT_DROP + 1    ; the `k` of each one, in troop order:
+; its page can list them. Like `BA_VIC`, with a sixteen-bit address, and
+; `ba_vic_drop` writes them on winning before anyone reads them.
+BA_DROP      = $79E0
+BA_DROP_N    = BA_DROP + 0    ; how many
+BA_DROP_K    = BA_DROP + 1    ; the `k` of each one, in troop order:
                                 ; its name is text `3k`
-BT_DROP_END  = BT_DROP_K + BT_ENEMIES_MAX
-.assert BT_DROP_END <= $7A00, error, "what the enemies dropped overflows its range"
+BA_DROP_END  = BA_DROP_K + BA_ENEMIES_MAX
+.assert BA_DROP_END <= $7A00, error, "what the enemies dropped overflows its range"
 
 ; --- experience in the menu --------------------------------------------------
 ;
@@ -839,14 +839,14 @@ REMEMBERED_SONG = $7E7940
 ; --- the weapons' SP, and the target of multi-target skills -----------------
 ;
 ; $7E7960 to $7E797F, reserved on 2026-09-27 for Lashe City milestone 4.
-; `bt_build` builds it at the start of each battle, so it does not travel in
+; `ba_build` builds it at the start of each battle, so it does not travel in
 ; the save and there is no need to set it on reset.
-BT_WEAPON_SP = $7E7960            ; BT_PARTY_MAX bytes: what attacking costs
+BA_WEAPON_SP = $7E7960            ; BA_PARTY_MAX bytes: what attacking costs
                                 ; each party place, `batalla.sp_del_arma`
-BT_SKILL_I   = $7E7964            ; which combatant a multi-target skill is on:
-                                ; `bt_skill_use` calls `bt_skill_one` for each
+BA_SKILL_I   = $7E7964            ; which combatant a multi-target skill is on:
+                                ; `ba_skill_use` calls `ba_skill_one` for each
                                 ; one, and that one clobbers the `BA_S*`
-.assert BT_SKILL_I < $7E7980, error, "milestone 4 overflows its range in far RAM"
+.assert BA_SKILL_I < $7E7980, error, "milestone 4 overflows its range in far RAM"
 
 ; --- an NPC row, set aside ---------------------------------------------------
 ;

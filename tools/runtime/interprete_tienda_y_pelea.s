@@ -89,7 +89,7 @@ op_shop_done:
     rep #$20
 .a16
     lda [code_ptr], y            ; the troop, as an RM2k number
-    sta f:BAT_LENGTH + BT_TROOP
+    sta f:BAT_LENGTH + BA_TROOP
     sep #$20
 .a8
     lda #0
@@ -101,7 +101,7 @@ op_shop_done:
     ; Y points at the troop; the three destinations come after it, one word
     ; each, in the order victory, escape, defeat, which is that of
     ; `BATALLA_HANDLERS`.
-    lda f:BAT_LENGTH + BT_RESULT
+    lda f:BAT_LENGTH + BA_RESULT
     jmp op_battle_destination
 
 .endproc
@@ -134,7 +134,7 @@ op_shop_done:
 .endproc
 
 ; `ShowHiddenMonster`, which only exists in a troop page: the member in that
-; position stops being hidden. `bt_show_hidden` does it, in the battle's
+; position stops being hidden. `ba_show_hidden` does it, in the battle's
 ; bank, which is where its state lives.
 .proc op_show_enemy
 .a8
@@ -142,12 +142,12 @@ op_shop_done:
     lda [code_ptr], y
     iny
     phy
-    jsl f:bt_show_hidden
+    jsl f:ba_show_hidden
     ply
     jmp run_code::otro
 .endproc
 
-; A battle from start to finish, with the troop already set in `BT_TROOP`:
+; A battle from start to finish, with the troop already set in `BA_TROOP`:
 ; save the map's song, load the battle's audio, fight it and go back to the
 ; map.
 ;
@@ -184,7 +184,7 @@ sonaba_antes:
 callado_antes:
     lda #$FF
 anotado:
-    sta f:BAT_LENGTH + BT_SONG_PREV
+    sta f:BAT_LENGTH + BA_SONG_PREV
     ; The battle's audio package: its song and its sound effects. It goes apart
     ; from the map's package and not inside it, and that is measured: the battle
     ; song is 18 samples and 51,480 B of the 64,512 of ARAM, which means that
@@ -231,7 +231,7 @@ anotado:
     jsl f:game_over_if_lost
     ldx map_current             ; and the map's audio goes back to the SPC700
     jsr battle_audio_load
-    lda f:BAT_LENGTH + BT_SONG_PREV
+    lda f:BAT_LENGTH + BA_SONG_PREV
     jsr battle_bgm             ; the map's song, or the silence there was
     plb
     jsr back_from_battle

@@ -24,7 +24,7 @@
 ;
 ; It lives in bank 1 because there is no room in bank 0: only the entry
 ; points stay there —three `jsl` and the `jml` of `op_game_over`— and the
-; audio bridge, `bt_t_audio`. What it needs from bank 0 it asks for through
+; audio bridge, `ba_t_audio`. What it needs from bank 0 it asks for through
 ; the battle's bridges, which restore the data bank.
 
 ; How many frames each of the sixteen brightness levels lasts. They are
@@ -96,8 +96,8 @@ SCREEN_MAP = $7C00
 .proc game_over_if_lost
 .a8
 .i16
-    lda f:BAT_LENGTH + BT_RESULT
-    cmp #BT_DEFEAT
+    lda f:BAT_LENGTH + BA_RESULT
+    cmp #BA_DEFEAT
     bne sigue
     rep #$20
 .a16
@@ -157,9 +157,9 @@ negro:
     ; the first frame of the fade, as in RM2k. With an MSU-1 track the package
     ; uploads nothing and the track plays.
     ldx #PAQUETE_GAME_OVER
-    jsl f:bt_t_audio
+    jsl f:ba_t_audio
     lda #TEMA_GAME_OVER
-    jsl f:bt_t_bgm
+    jsl f:ba_t_bgm
     ldx #(PANTALLA_GAME_OVER * PANTALLA_FILA)
     jsl f:screen_decompress
     jsl f:screen_upload        ; the same row: `screen_decompress` does
@@ -188,8 +188,8 @@ arriba:
     lda #1
     sta f:GO_WAIT
 espera:
-    jsl f:bt_t_vblank
-    jsl f:bt_t_pad
+    jsl f:ba_t_vblank
+    jsl f:ba_t_pad
     lda pad_a
     beq mira_start
     lda pad_a_prev
@@ -223,7 +223,7 @@ negro:
     sta f:MSU_PLAYING
     sta MSU_CONTROL
     lda #$FF
-    jsl f:bt_t_bgm
+    jsl f:ba_t_bgm
     jml f:reset
 .endif
 .endproc
@@ -235,8 +235,8 @@ negro:
     lda f:GO_FRAMES
 cuadro:
     pha
-    jsl f:bt_t_vblank
-    jsl f:bt_t_pad
+    jsl f:ba_t_vblank
+    jsl f:ba_t_pad
     pla
     dec a
     bne cuadro

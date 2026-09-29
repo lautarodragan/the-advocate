@@ -82,7 +82,7 @@ menu_sin_pagina:
     ; The encounter left pending is collected here: with no page running, no
     ; message open and no forced move route, which is the order of
     ; `Game_Player::UpdateNextMovementAction` —the encounter goes **before**
-    ; the menu request—. `encounter_test` leaves the troop in `BT_TROOP`.
+    ; the menu request—. `encounter_test` leaves the troop in `BA_TROOP`.
     jsl f:encounter_test
     cmp #0                      ; the `plx` over there left its own flags
     beq sin_encuentro

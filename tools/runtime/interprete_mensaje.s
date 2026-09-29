@@ -43,11 +43,11 @@ en_la_pelea:
     ; is the battle's, and `text_buf` is the battle's— but is left noted for
     ; the battle, which draws it on its lines and waits for A. The page stays
     ; held behind it just as on the map: `ev_active` stays at one and the
-    ; cursor, on the next command. See `bt_page_step`.
+    ; cursor, on the next command. See `ba_page_step`.
     rep #$20
 .a16
     lda [code_ptr], y
-    sta f:BAT_LENGTH + BT_PAGE_MSG
+    sta f:BAT_LENGTH + BA_PAGE_MSG
     iny
     iny
     sep #$20

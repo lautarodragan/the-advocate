@@ -3053,7 +3053,7 @@ class Troops:
 # what is accepted: see `TROOP_COMMANDS`.
 #
 # When each one runs is decided by the ROM and it is copied from
-# `Scene_Battle_Rpg2k`; see `bt_page_test` in tools/runtime/batalla_tropa.s.
+# `Scene_Battle_Rpg2k`; see `ba_page_test` in tools/runtime/batalla_tropa.s.
 
 # The battle's three branch commands, with their map twin. Of the six
 # questions of `CommandConditionalBranchBattle` the game uses **only two** —the
@@ -3068,7 +3068,7 @@ BATTLE_BRANCH_KINDS = (COND_SWITCH, COND_VARIABLE)
 
 # `ShowHiddenMonster`, which only exists in battle: the troop member in that
 # place —from 0, in troop order— stops being hidden. See OP_SHOW_ENEMY and
-# `bt_show_hidden`.
+# `ba_show_hidden`.
 SHOW_HIDDEN_MONSTER = 13150
 
 # What a troop page can do in this port. **It is a list of the ones that do,
@@ -3079,10 +3079,10 @@ SHOW_HIDDEN_MONSTER = 13150
 #
 # `PlaySound` sounds in the battle's audio package if its effect fits there
 # —see `TroopPages.compile`—, and `ShakeScreen` moves the scene: see
-# `bt_shake`. Its wait, an OP_DELAY, is counted by `bt_page_step`.
+# `ba_shake`. Its wait, an OP_DELAY, is counted by `ba_page_step`.
 #
 # The ones left out that the game uses, in case someone wants to add them:
-# `ChangeHP` and `FullHeal` —in battle HP lives in `BT_ONE` and `FAR_HP` is
+# `ChangeHP` and `FullHeal` —in battle HP lives in `BA_ONE` and `FAR_HP` is
 # overwritten when closing it—, `ChangePartyMembers`, `ChangeEquipment`,
 # `Wait`, `TintScreen` and five of the six that only exist in battle.
 TROOP_COMMANDS = ({END, SHOW_MESSAGE, SHOW_MESSAGE_2, CONTROL_SWITCHES,
@@ -3107,14 +3107,14 @@ TROOP_TRIGGERS = {"switch_a": TROOP_TRIGGER_SWITCH_A,
                   "enemy_hp": TROOP_TRIGGER_ENEMY,
                   "actor_hp": TROOP_TRIGGER_ACTOR}
 # How many pages of a troop the battle notes as "already ran this turn", one
-# byte each in `BT_PAGE_DONE`. It is a far RAM cap and not the game's: the
+# byte each in `BA_PAGE_DONE`. It is a far RAM cap and not the game's: the
 # converter stops if any troop goes over.
 TROOP_PAGES_MAX = 32
 
 # The triggers that carry a **header**: the turn and HP numbers do not go in
 # per-page tables in bank 1 —which no longer has room for ten bytes for each
 # of the five hundred— but in front of the page's code, in `tropa_codigo`,
-# which is in RODATA. See `troop_header` and `bt_page_header`.
+# which is in RODATA. See `troop_header` and `ba_page_header`.
 TROOP_WITH_HEADER = (TROOP_TRIGGER_TURN | TROOP_TRIGGER_ENEMY
                      | TROOP_TRIGGER_ACTOR)
 TROOP_HEADER_BYTES = 10
@@ -3124,7 +3124,7 @@ def troop_header(trigger):
     """The ten bytes that go in front of the code of a page that looks at
     the turn or the HP: the turn's base and multiple, a word each, and the
     enemy's place, the actor and their ranges, a byte each. Empty if it looks
-    at none of that. The order is `BT_COND`'s in
+    at none of that. The order is `BA_COND`'s in
     tools/runtime/ram_lejana.s."""
     if not trigger.flags & TROOP_WITH_HEADER:
         return b""
@@ -3210,7 +3210,7 @@ def troop_trigger(page):
     if "turn" in page.active:
         base, mult = c["turn_b"], c["turn_a"]
         if not (0 <= base <= 0xFFFF and 0 <= mult < 0x8000):
-            return None     # `bt_div` requires the divisor below 32768
+            return None     # `ba_div` requires the divisor below 32768
     enemy, e_min, e_max = 0, 0, 0
     if "enemy_hp" in page.active:
         enemy, e_min, e_max = (c["enemy_id"], c["enemy_hp_min"],
@@ -5108,7 +5108,7 @@ def _compile(cmd, map_index, messages=None, extra=(),
     if cmd.code == SHOW_HIDDEN_MONSTER:
         # It only arrives from a troop page: see `TROOP_COMMANDS`. A place
         # the troop does not have does nothing in easyrpg —`GetEnemy` gives
-        # null—, and the ROM checks it against `BT_KID`.
+        # null—, and the ROM checks it against `BA_KID`.
         if len(p) < 1 or not 0 <= p[0] < 256:
             raise CannotCompile("ShowHiddenMonster without a place")
         return bytes([OP_SHOW_ENEMY, p[0]])

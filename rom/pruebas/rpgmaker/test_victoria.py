@@ -139,7 +139,7 @@ def test_las_habilidades_que_no_entran_siguen_en_otra_pagina(partida):
 #
 # Tres Crazed Marauder, que dan 95 de oro cada uno y sueltan una Healing
 # Draught-HP con chance 35: tres tiros de botín, uno por enemigo. **La semilla
-# la elige el modelo**: se escribe en `BT_SEED` al abrir la pelea, y es la
+# la elige el modelo**: se escribe en `BA_SEED` al abrir la pelea, y es la
 # primera con la que `battle.Battle` gana sin que caiga nadie y alguno suelta
 # su ítem y otro no. Así la prueba pasa por los dos lados del tiro y no depende
 # de que la semilla de fábrica caiga en uno. Los tres enemigos arrancan con 1
@@ -201,12 +201,12 @@ def a_los_merodeadores(partida, semilla, tope=600):
     else:
         raise AssertionError("la página no abrió la pelea")
     pelea = Pelea(una).esperar("COMMAND")
-    una.consola.write_ram(una.simbolos["BT_SEED"],
+    una.consola.write_ram(una.simbolos["BA_SEED"],
                           [semilla & 0xFF, semilla >> 8])
-    g = una.simbolos["BT_PARTY_MAX"]
+    g = una.simbolos["BA_PARTY_MAX"]
     for k in range(3):
         una.consola.write_ram(
-            una.simbolos["BT_ONE"] + (g + k) * una.simbolos["BT_BYTES"],
+            una.simbolos["BA_ONE"] + (g + k) * una.simbolos["BA_BYTES"],
             [1, 0])
     return una, pelea
 
@@ -230,7 +230,7 @@ def test_la_victoria_da_el_oro_y_los_items_y_los_cuenta(partida):
                     if pelea.hp_del_combatiente(k) > 0)
         pelea.turno(vivos)
     assert pelea.modo() == "END"
-    assert pelea.byte("BT_RESULT") == modelo.VICTORY
+    assert pelea.byte("BA_RESULT") == modelo.VICTORY
     assert una.oro() == oro_antes + 285
     assert una.item(HEALING_DRAUGHT) == items_antes + len(esperado.drops), \
         "el modelo soltó %d ítems con la semilla %d" % (len(esperado.drops),
@@ -260,4 +260,4 @@ def test_el_item_que_sale_no_pasa_del_tope(partida):
     assert pelea.modo() == "END"
     assert esperado.drops
     assert una.item(HEALING_DRAUGHT) == tope
-    assert pelea.byte("BT_DROP_N") == len(esperado.drops)
+    assert pelea.byte("BA_DROP_N") == len(esperado.drops)

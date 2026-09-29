@@ -31,70 +31,70 @@
 ;
 ; `phk` here pushes the bank of this code, which is 0 because the `jsl`
 ; arrives with a $00xxxx address.
-bt_t_vblank:
+ba_t_vblank:
     phb
     phk
     plb
     jsr wait_vblank
     plb
     rtl
-bt_t_pad:
+ba_t_pad:
     phb
     phk
     plb
     jsr read_pad
     plb
     rtl
-bt_t_upload:
+ba_t_upload:
     phb
     phk
     plb
     jsr scr_upload
     plb
     rtl
-bt_t_clear:
+ba_t_clear:
     phb
     phk
     plb
     jsr scr_clear
     plb
     rtl
-bt_t_text:
+ba_t_text:
     phb
     phk
     plb
     jsr scr_text
     plb
     rtl
-bt_t_number:
+ba_t_number:
     phb
     phk
     plb
     jsr scr_number
     plb
     rtl
-bt_t_glyph:
+ba_t_glyph:
     phb
     phk
     plb
     jsr scr_glyph
     plb
     rtl
-bt_t_bank:
+ba_t_bank:
     phb
     phk
     plb
     jsl f:items_bank_upload
     plb
     rtl
-bt_t_ppu:
+ba_t_ppu:
     phb
     phk
     plb
     jsr slot_ppu_on
     plb
     rtl
-bt_t_param:
+ba_t_param:
     phb
     phk
     plb
@@ -103,14 +103,14 @@ bt_t_param:
     rtl
 ; The two for audio, which are from this round: a sound effect —A16 the index
 ; into `sonido_tabla`, $FFFF none— and the song, with A8.
-bt_t_sound:
+ba_t_sound:
     phb
     phk
     plb
     jsr sound_play
     plb
     rtl
-bt_t_bgm:
+ba_t_bgm:
     phb
     phk
     plb
@@ -119,7 +119,7 @@ bt_t_bgm:
     rtl
 ; And the audio package in X, which is `battle_audio_load`: the Game Over
 ; screen uses it, which uploads its own. See tools/runtime/game_over.s.
-bt_t_audio:
+ba_t_audio:
     phb
     phk
     plb
@@ -128,7 +128,7 @@ bt_t_audio:
     rtl
 ; One frame of the screen shake, which in RM2k belongs to `Game_Screen` and
 ; keeps running in battle: a `ShakeScreen` in a troop page starts it.
-bt_t_shake:
+ba_t_shake:
     phb
     phk
     plb
@@ -137,16 +137,16 @@ bt_t_shake:
     rtl
 
 ; And the two for the shop and the equipment, which also live outside: the
-; inventory item list and building it. `shop_sell_list` and `eq_from_list` call
+; inventory item list and building it. `ti_sell_list` and `eq_from_list` call
 ; them.
-bt_t_list:
+ba_t_list:
     phb
     phk
     plb
     jsr item_from_list
     plb
     rtl
-bt_t_build:
+ba_t_build:
     phb
     phk
     plb
@@ -175,7 +175,7 @@ run_code_long:
 ; `pair_ev` at `PAIR_BATTLE` is what tells `op_message` that the message belongs
 ; to the battle. The opcodes that run here are only those in
 ; `TROPA_COMANDOS`, in eventos.py: no other one knows there is no map.
-bt_t_page:
+ba_t_page:
     phb
     phk
     plb
@@ -185,9 +185,9 @@ bt_t_page:
     pha
     lda code_ptr
     pha
-    lda f:BAT_LENGTH + BT_PAGE_CUR
+    lda f:BAT_LENGTH + BA_PAGE_CUR
     sta ev_cur
-    lda f:BAT_LENGTH + BT_PAGE_CODE
+    lda f:BAT_LENGTH + BA_PAGE_CODE
     sta code_ptr
     sep #$20
 .a8
@@ -205,11 +205,11 @@ bt_t_page:
     sta ev_active
     jsr run_code
     lda ev_active
-    sta f:BAT_LENGTH + BT_PAGE_ACT
+    sta f:BAT_LENGTH + BA_PAGE_ACT
     rep #$20
 .a16
     lda ev_cur
-    sta f:BAT_LENGTH + BT_PAGE_CUR
+    sta f:BAT_LENGTH + BA_PAGE_CUR
     sep #$20
 .a8
     pla

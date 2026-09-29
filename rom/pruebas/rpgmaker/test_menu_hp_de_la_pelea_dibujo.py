@@ -121,12 +121,12 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
 # El cuarto síntoma del reporte —*"varios enemigos empezaban con HP bajo a
 # partir de la segunda batalla aleatoria... se guarda el HP asociado a un
 # índice de enemigo y no se reinicia"*— **no era un defecto**, y esto es lo que
-# lo deja medido en vez de razonado: `bt_build` vacía las doce ranuras y
+# lo deja medido en vez de razonado: `ba_build` vacía las doce ranuras y
 # rellena los HP de cada enemigo desde `enemigo_hp` del cartucho en cada pelea.
 #
 # Lo que taro vio es de los datos del juego: las tropas de Rat Tracks B1 son
 # GiantRat (20 HP), MutantMouse (25) y HairyVermin (40), y la pantalla de la
-# pelea muestra el HP de cada enemigo —el máximo no, `BT_CONMAX` en cero—. O
+# pelea muestra el HP de cada enemigo —el máximo no, `BA_CONMAX` en cero—. O
 # sea que un GiantRat dice "20" porque tiene 20, y no porque le haya quedado
 # eso de la pelea anterior.
 
@@ -137,14 +137,14 @@ def enemigos_de(una):
     """Los enemigos armados: (número, HP de ahora, HP máximo)."""
     sim = una.simbolos
     salida = []
-    for ranura in range(sim["BT_COMB_MAX"]):
-        base = sim["BT_ONE"] + ranura * sim["BT_BYTES"]
-        banderas = una.consola.ram(base + sim["BT_FLAGS"], 1)[0]
+    for ranura in range(sim["BA_COMB_MAX"]):
+        base = sim["BA_ONE"] + ranura * sim["BA_BYTES"]
+        banderas = una.consola.ram(base + sim["BA_FLAGS"], 1)[0]
         if not banderas & sim["BAF_HAS"] or banderas & sim["BAF_ACTOR"]:
             continue
         hp, hpmax = (una.consola.ram(base + campo, 2)
-                     for campo in (sim["BT_HP"], sim["BT_HPMAX"]))
-        salida.append((una.consola.ram(base + sim["BT_NUMBER"], 1)[0],
+                     for campo in (sim["BA_HP"], sim["BA_HPMAX"]))
+        salida.append((una.consola.ram(base + sim["BA_NUMBER"], 1)[0],
                        hp[0] | (hp[1] << 8), hpmax[0] | (hpmax[1] << 8)))
     return salida
 

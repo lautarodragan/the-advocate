@@ -689,10 +689,10 @@ ready:
     rts
 .endproc
 
-; `Game_Actor::ChangeExp(GetExp() + BT_T1)` for actor A: adds, caps at
+; `Game_Actor::ChangeExp(GetExp() + BA_T1)` for actor A: adds, caps at
 ; `MaxExpValue()` and levels up while it is enough. An actor with no
 ; experience slot gains nothing. Runs with the data bank at $7E, like the
-; whole battle. Clobbers A, X, Y, `BT_T0` and `BT_T2`; `BT_T1` stays as it
+; whole battle. Clobbers A, X, Y, `BA_T0` and `BA_T2`; `BA_T1` stays as it
 ; was, so whoever hands it out can add it to several.
 ;
 ; And for each level gained, `LearnLevelSkills` for that level: see
@@ -715,14 +715,14 @@ tiene:
     rep #$20
 .a16
     and #$00FF
-    sta BT_T2                   ; the slot
+    sta BA_T2                   ; the slot
     asl a
     asl a
-    sta BT_T0                   ; and its offset in `FAR_EXP`
+    sta BA_T0                   ; and its offset in `FAR_EXP`
     tax
     lda FAR_EXP, x
     clc
-    adc BT_T1
+    adc BA_T1
     sta FAR_EXP, x
     sep #$20
 .a8
@@ -755,9 +755,9 @@ sin_tope:
     ; level at once, and that is RM2k's. HP and SP are not touched: leveling
     ; up does not heal, it only raises the maximum.
 subir:
-    ldx BT_T2
+    ldx BA_T2
     lda f:exp_nivel_max, x
-    ldx BT_T0
+    ldx BA_T0
     cmp FAR_EXP + EXP_LEVEL, x
     beq ready                   ; at the cap
     bcc ready                   ; above the cap: does not happen, but no level up
@@ -768,7 +768,7 @@ subir:
     asl a
     asl a
     pha                         ; the level times four: its row in the curve
-    lda BT_T2
+    lda BA_T2
     asl a
     tax
     lda f:exp_curva, x
@@ -781,7 +781,7 @@ subir:
     lda f:exp_tabla, x
     pha
     lda f:exp_tabla + 2, x
-    ldx BT_T0
+    ldx BA_T0
     sep #$20
 .a8
     cmp FAR_EXP + 2, x          ; the high byte first

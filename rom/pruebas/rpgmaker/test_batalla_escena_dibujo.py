@@ -170,7 +170,7 @@ def en_sector_27(partida):
     una.consola.write_ram(en_la_wram(s["ENC_ASKS"]), [1])
     _esperar(una)
     una.consola.run(3)
-    tropa = una.palabra("BT_TROOP")
+    tropa = una.palabra("BA_TROOP")
     assert tropa == TROPA_100, (
         "con la semilla %d el encuentro de Sector 27 tenía que ser la tropa %d "
         "y fue la %d: la prueba no mide lo que dice" % (
@@ -229,7 +229,7 @@ def test_escena_un_enemigo_muerto_desaparece(partida):
     n = len(base.troops[TROPA_100].members)
     muerto = 1
     s = una.simbolos
-    donde = s["BT_ONE"] + (s["BT_PARTY_MAX"] + muerto) * s["BT_BYTES"]
+    donde = s["BA_ONE"] + (s["BA_PARTY_MAX"] + muerto) * s["BA_BYTES"]
     una.consola.write_ram(en_la_wram(donde), [0, 0])
     _hasta_subido(una, muerto)
     limpio, esperada = _esperada(una, base, TROPA_100,
@@ -261,7 +261,7 @@ def test_escena_el_droide_muerto_peleando_desaparece(partida):
         pelea.turno(len(esperado.living(esperado.actors)))
         esperado.play_turn(
             [(modelo.COMMAND_ATTACK, 0)] * len(esperado.living(esperado.actors)))
-    assert pelea.byte("BT_RESULT") == modelo.VICTORY
+    assert pelea.byte("BA_RESULT") == modelo.VICTORY
     _hasta_subido(una, 0)
     limpio = _bufer(una, "SCN_CLEAN")
     assert _distintos(_bufer(una, "SCN_SCENE"), limpio) == 0, \

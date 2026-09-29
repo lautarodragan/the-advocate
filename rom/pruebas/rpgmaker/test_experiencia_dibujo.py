@@ -190,10 +190,10 @@ def test_la_pelea_usa_los_parametros_del_nivel_de_ahora(partida):
     poner_exp(una, kersh, experience.exp_list(base.actors[kersh])[29], 30)
     pelea = Pelea(una).abrir()
     s = una.simbolos
-    d = s["BT_ONE"]
-    campos = {"hp_max": d + s["BT_HPMAX"], "sp_max": d + s["BT_SPMAX"],
-              "attack": d + s["BT_ATK"], "defense": d + s["BT_DEF"],
-              "spirit": d + s["BT_SPI"], "agility": d + s["BT_AGI"]}
+    d = s["BA_ONE"]
+    campos = {"hp_max": d + s["BA_HPMAX"], "sp_max": d + s["BA_SPMAX"],
+              "attack": d + s["BA_ATK"], "defense": d + s["BA_DEF"],
+              "spirit": d + s["BA_SPI"], "agility": d + s["BA_AGI"]}
     de_la_rom = {k: pelea.palabra(v) for k, v in campos.items()}
     en_30 = modelo.actor_of(base, kersh, level=30)
     en_20 = modelo.actor_of(base, kersh)

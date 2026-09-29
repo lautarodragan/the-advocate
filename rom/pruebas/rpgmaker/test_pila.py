@@ -160,7 +160,7 @@ def _tropa():
 
     Es la cadena más honda, y por construcción: la pelea
     se abre desde un manejador de `run_code` —`op_battle`—, cruza al banco 1,
-    y desde ahí vuelve al banco 0 por `bt_t_page` a correr **otra vez**
+    y desde ahí vuelve al banco 0 por `ba_t_page` a correr **otra vez**
     `run_code`, con el contexto del mapa guardado en la pila. Ver
     `pruebas/rpgmaker/test_tropa.py`, que recorre lo mismo mirando qué hace.
     """
@@ -179,7 +179,7 @@ def _tropa():
     corrio = False
     for boton in ("right", "a", "a") + ("a",) * 40:
         _tocar_cuadros(consola, boton)
-        corrio = corrio or any(consola.ram(una.simbolos["BT_PAGE_DONE"],
+        corrio = corrio or any(consola.ram(una.simbolos["BA_PAGE_DONE"],
                                            una.simbolos["TROPA_PAG_MAX"]))
     assert corrio, (
         "no corrió ninguna página de la tropa, así que esto mediría la pelea "

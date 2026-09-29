@@ -1,7 +1,7 @@
 .segment "FAR"
 
 ; The whole battle. It is entered with `jsl` from `op_battle`, with the data
-; bank already at $7E, and returns with the result in `BT_RESULT`.
+; bank already at $7E, and returns with the result in `BA_RESULT`.
 ;
 ; It runs **its own frame loop**, like `slots_screen` and like the shop:
 ; `ticks` does not advance while it is shown, so the battle costs no tick,
@@ -13,34 +13,34 @@
     rep #$20
 .a16
     lda #BATALLA_SEMILLA
-    sta BT_SEED                  ; randomness starts the same in every battle
+    sta BA_SEED                  ; randomness starts the same in every battle
     lda #$FFFF
-    sta BT_SE2                  ; no sound effect pending
+    sta BA_SE2                  ; no sound effect pending
     sep #$20
 .a8
-    lda #BT_VICTORY
-    sta BT_RESULT
+    lda #BA_VICTORY
+    sta BA_RESULT
     lda #0
-    sta BT_NACC
-    sta BT_COMMAND
-    sta BT_ACTOR
-    sta BT_I
-    jsr bt_build
-    lda BT_KID
+    sta BA_NACC
+    sta BA_COMMAND
+    sta BA_ACTOR
+    sta BA_I
+    jsr ba_build
+    lda BA_KID
     bne hay_tropa
     rtl                         ; a troop this cartridge does not carry
 hay_tropa:
     lda #0
-    sta BT_ACTOR
-    jsr bt_next_actor
+    sta BA_ACTOR
+    jsr ba_next_actor
     cmp #$FF
     bne hay_grupo
-    lda #BT_DEFEAT             ; nobody standing: lost without fighting
-    sta BT_RESULT
+    lda #BA_DEFEAT             ; nobody standing: lost without fighting
+    sta BA_RESULT
     rtl
 hay_grupo:
-    jsr bt_flee_chance
-    jsr bt_page_build
+    jsr ba_flee_chance
+    jsr ba_page_build
     ; Turn off the screen, from here: the three registers go through `f:`
     ; because the data bank is $7E and absolute ones would land in RAM.
     lda #$80
@@ -48,33 +48,33 @@ hay_grupo:
     lda #0
     sta f:HDMAEN
     sta f:TM
-    jsl f:bt_t_bank
+    jsl f:ba_t_bank
     ; And the scene: the background with the monsters, composed here and
     ; uploaded to BG1. It goes with the screen off because it is 32 KB of VRAM
     ; plus the tilemap and the palettes.
     jsr scene_upload
-    lda #BT_M_COMMAND
-    sta BT_MODE
+    lda #BA_M_COMMAND
+    sta BA_MODE
     ; Before the first command, the pages already met: it is the `eCheckEvents`
     ; of `ProcessSceneActionFightAutoEscape`. The first stretch runs **right
     ; here** and not on the next frame: every troop in the game brings a turn 0
     ; page that only turns on a switch, and this way the battle opens already
     ; asking for commands, as it opened before those pages ran. One that shows
     ; a message opens with the message up.
-    jsr bt_page_test
+    jsr ba_page_test
     beq sin_pagina_al_empezar
     lda #1
-    sta BT_PAGE_TICK
-    jsr bt_page_step
+    sta BA_PAGE_TICK
+    jsr ba_page_step
 sin_pagina_al_empezar:
-    jsr bt_compose
-    jsl f:bt_t_upload
+    jsr ba_compose
+    jsl f:ba_t_upload
     ; Turn the screen on **in black**, which the entry transition shows:
     ; `slot_ppu_on` writes full brightness, so it is called inside a
     ; vblank and in the same vblank it is brought down to zero —not a single
     ; line gets drawn—. See `fundido_de_pelea.s`.
-    jsl f:bt_t_vblank
-    jsl f:bt_t_ppu
+    jsl f:ba_t_vblank
+    jsl f:ba_t_ppu
     lda #0
     sta f:INIDISP
     jsr scene_on
@@ -83,36 +83,36 @@ sin_pagina_al_empezar:
     sta menu_open
 
 espera:
-    jsl f:bt_t_vblank
-    jsl f:bt_t_pad                ; the controller before the DMA, as in the
+    jsl f:ba_t_vblank
+    jsl f:ba_t_pad                ; the controller before the DMA, as in the
                                   ; shop
-    jsl f:bt_t_upload
-    jsr bt_shake              ; the shake, before the vblank ends
+    jsl f:ba_t_upload
+    jsr ba_shake              ; the shake, before the vblank ends
     jsr scene_tick             ; still in the vblank: an enemy that died
     lda pad
     eor pad_prev
     and pad
     sta title_edges
-    lda BT_MODE
-    cmp #BT_M_COMMAND
+    lda BA_MODE
+    cmp #BA_M_COMMAND
     bne :+
     jmp modo_orden
-:   cmp #BT_M_TARGET
+:   cmp #BA_M_TARGET
     bne :+
     jmp modo_blanco
-:   cmp #BT_M_ITEM
+:   cmp #BA_M_ITEM
     bne :+
     jmp modo_item
-:   cmp #BT_M_ACTOR
+:   cmp #BA_M_ACTOR
     bne :+
     jmp modo_actor
-:   cmp #BT_M_SKILL
+:   cmp #BA_M_SKILL
     bne :+
     jmp modo_hab
-:   cmp #BT_M_MESSAGE
+:   cmp #BA_M_MESSAGE
     bne :+
     jmp modo_mensaje
-:   cmp #BT_M_PAGE
+:   cmp #BA_M_PAGE
     bne :+
     jmp modo_pagina
 :   jmp modo_fin
@@ -124,53 +124,53 @@ modo_orden:
     lda title_edges
     and #PAD_LEFT
     beq o_no_izq
-    lda BT_COMMAND
+    lda BA_COMMAND
     beq espera5
-    dec BT_COMMAND
+    dec BA_COMMAND
     jmp recomponer
 o_no_izq:
     lda title_edges
     and #PAD_RIGHT
     beq o_no_der
-    lda BT_COMMAND
+    lda BA_COMMAND
     cmp #(BA_ORDENES_N - 1)
     bcs espera5
-    inc BT_COMMAND
+    inc BA_COMMAND
     jmp recomponer
 o_no_der:
     jsr ba_flanco_a
     beq espera5
-    lda BT_COMMAND
+    lda BA_COMMAND
     cmp #BA_ORDEN_ATACAR
     bne o_no_ataca
-    jsr bt_enemy_alive
+    jsr ba_enemy_alive
     cmp #$FF
     beq espera5
-    sta BT_TARGET
-    lda #BT_M_TARGET
-    sta BT_MODE
+    sta BA_TARGET
+    lda #BA_M_TARGET
+    sta BA_MODE
     jmp recomponer
 o_no_ataca:
     cmp #BA_ORDEN_DEFENDER
     bne o_no_defiende
     lda #0
-    sta BT_T0
-    lda #BT_DEFEND
-    jsr bt_record
+    sta BA_T0
+    lda #BA_DEFEND
+    jsr ba_record
     jmp siguiente_actor
 o_no_defiende:
     cmp #BA_ORDEN_USAR
     bne o_no_usa
     ; `Use Item`: the list of what can be used. Empty, nothing happens, which
     ; is what the pause menu does with a command that leads nowhere.
-    jsr bt_items_list
-    lda BT_ITEM_N
+    jsr ba_items_list
+    lda BA_ITEM_N
     beq espera5
     lda #0
-    sta BT_ITEM_SEL
-    sta BT_ITEM_ARR
-    lda #BT_M_ITEM
-    sta BT_MODE
+    sta BA_ITEM_SEL
+    sta BA_ITEM_ARR
+    lda #BA_M_ITEM
+    sta BA_MODE
     jmp recomponer
 o_no_usa:
     cmp #BA_ORDEN_HABILIDAD
@@ -178,39 +178,39 @@ o_no_usa:
     ; The skill list of whoever is giving the command. Empty —Talan, who is
     ; level 1— nothing happens, which is what the menu does with a command that
     ; leads nowhere.
-    jsr bt_skill_list
-    lda BT_SKILL_N
+    jsr ba_skill_list
+    lda BA_SKILL_N
     beq espera5
     lda #0
-    sta BT_SKILL_SEL
-    lda #BT_M_SKILL
-    sta BT_MODE
+    sta BA_SKILL_SEL
+    lda #BA_M_SKILL
+    sta BA_MODE
     jmp recomponer
 o_no_habilidad:
     cmp #BA_ORDEN_HUIR
     beq o_huye
     jmp espera
 o_huye:
-    jsr bt_flee
+    jsr ba_flee
     beq o_no_huyo
-    lda #BT_ESCAPE_R
-    sta BT_RESULT
-    lda #BT_MSG_FLED
-    sta BT_MTIPO
-    jsr bt_show
+    lda #BA_ESCAPE_R
+    sta BA_RESULT
+    lda #BA_MSG_FLED
+    sta BA_MTIPO
+    jsr ba_show
     rep #$20
 .a16
     lda #BA_SE_HUIR             ; the escape_se of `Scene_Battle_Rpg2k`
-    jsl f:bt_t_sound
+    jsl f:ba_t_sound
 .a8
-    lda #BT_M_END
-    sta BT_MODE
+    lda #BA_M_END
+    sta BA_MODE
     jmp espera
 o_no_huyo:
     lda #0
-    sta BT_T0
-    lda #BT_FLEE
-    jsr bt_record
+    sta BA_T0
+    lda #BA_FLEE
+    jsr ba_record
     jmp siguiente_actor
 espera2:
     jmp espera
@@ -232,27 +232,27 @@ b_no_abajo:
     lda title_edges
     and #PAD_B
     beq b_mira_a
-    lda #BT_M_COMMAND
-    sta BT_MODE
+    lda #BA_M_COMMAND
+    sta BA_MODE
     jmp recomponer
 b_mira_a:
     jsr ba_flanco_a
     beq espera2
-    lda BT_TARGET
+    lda BA_TARGET
     clc
-    adc #BT_PARTY_MAX
-    sta BT_T0
+    adc #BA_PARTY_MAX
+    sta BA_T0
     ; The target mode is shared by attacking and by a skill that targets the
-    ; enemies; which of the two it is says `BT_COMMAND`, which is still set.
-    lda BT_COMMAND
+    ; enemies; which of the two it is says `BA_COMMAND`, which is still set.
+    lda BA_COMMAND
     cmp #BA_ORDEN_HABILIDAD
     bne b_ataca
-    lda #BT_SKILL
+    lda #BA_SKILL
     bra b_anota
 b_ataca:
-    lda #BT_ATTACK
+    lda #BA_ATTACK
 b_anota:
-    jsr bt_record
+    jsr ba_record
     jmp siguiente_actor         ; the two modes below ended up in between
 
     ; --- choosing which item ---
@@ -260,50 +260,50 @@ modo_item:
     lda title_edges
     and #PAD_UP
     beq i_no_arriba
-    lda BT_ITEM_SEL
+    lda BA_ITEM_SEL
     beq espera4
-    dec BT_ITEM_SEL
+    dec BA_ITEM_SEL
     jsr ba_item_ver
     jmp recomponer
 i_no_arriba:
     lda title_edges
     and #PAD_DOWN
     beq i_no_abajo
-    lda BT_ITEM_SEL
+    lda BA_ITEM_SEL
     inc a
-    cmp BT_ITEM_N
+    cmp BA_ITEM_N
     bcs espera4
-    sta BT_ITEM_SEL
+    sta BA_ITEM_SEL
     jsr ba_item_ver
     jmp recomponer
 i_no_abajo:
     lda title_edges
     and #PAD_B
     beq i_mira_a
-    lda #BT_M_COMMAND
-    sta BT_MODE
+    lda #BA_M_COMMAND
+    sta BA_MODE
     jmp recomponer
 i_mira_a:
     jsr ba_flanco_a
     beq espera4
     ; Whom to give it to: the first in the party it is good for —standing for
     ; a potion, fallen for an elixir—. If it is good for nobody, A does not get
-    ; past the list: see `bt_item_usable_on`.
+    ; past the list: see `ba_item_usable_on`.
     lda #0
-    sta BT_ACTOR2
+    sta BA_ACTOR2
 busca_vivo:
-    lda BT_ACTOR2
-    cmp BT_NACT
+    lda BA_ACTOR2
+    cmp BA_NACT
     bcs espera4
-    jsr bt_item_usable_on
+    jsr ba_item_usable_on
     bne hay_blanco_act
-    inc BT_ACTOR2
+    inc BA_ACTOR2
     bra busca_vivo
 hay_blanco_act:
-    lda BT_ACTOR2
-    sta BT_ITEM_BLA
-    lda #BT_M_ACTOR
-    sta BT_MODE
+    lda BA_ACTOR2
+    sta BA_ITEM_BLA
+    lda #BA_M_ACTOR
+    sta BA_MODE
     jmp recomponer
 espera4:
     jmp espera
@@ -326,43 +326,43 @@ a_no_abajo:
     and #PAD_B
     beq a_mira_a
     ; B goes back to the list it came from: the item list or the skill list.
-    lda BT_COMMAND
+    lda BA_COMMAND
     cmp #BA_ORDEN_HABILIDAD
     bne a_vuelve_a_items
-    lda #BT_M_SKILL
-    sta BT_MODE
+    lda #BA_M_SKILL
+    sta BA_MODE
     jmp recomponer
 a_vuelve_a_items:
-    lda #BT_M_ITEM
-    sta BT_MODE
+    lda #BA_M_ITEM
+    sta BA_MODE
     jmp recomponer
 a_mira_a:
     jsr ba_flanco_a
     beq espera4
-    lda BT_COMMAND
+    lda BA_COMMAND
     cmp #BA_ORDEN_HABILIDAD
     bne a_es_item
-    lda BT_ITEM_BLA
-    sta BT_T0
-    lda #BT_SKILL
-    jsr bt_record
+    lda BA_ITEM_BLA
+    sta BA_T0
+    lda #BA_SKILL
+    jsr ba_record
     jmp siguiente_actor
 a_es_item:
     ; The command is recorded and **the item is spent right away**, which is
     ; what RM2k does on choosing it: otherwise the last one of an item could be
     ; handed out to two actors in the same turn.
-    lda BT_ITEM_SEL
-    jsr bt_item_from_list
+    lda BA_ITEM_SEL
+    jsr ba_item_from_list
     pha
-    lda BT_ACTOR
-    jsr bt_ax
+    lda BA_ACTOR
+    jsr ba_ax
     pla
-    sta BT_ACC_ITEM, x
-    jsr bt_item_consume
-    lda BT_ITEM_BLA
-    sta BT_T0
-    lda #BT_ITEM
-    jsr bt_record
+    sta BA_ACC_ITEM, x
+    jsr ba_item_consume
+    lda BA_ITEM_BLA
+    sta BA_T0
+    lda #BA_ITEM
+    jsr ba_record
     jmp siguiente_actor
 
     ; --- choosing which skill ---
@@ -375,41 +375,41 @@ modo_hab:
     bne h_izq
     jmp h_no_izq
 h_izq:
-    lda BT_SKILL_SEL
+    lda BA_SKILL_SEL
     beq espera6
-    dec BT_SKILL_SEL
+    dec BA_SKILL_SEL
     jmp recomponer
 h_no_izq:
     lda title_edges
     and #PAD_RIGHT
     beq h_no_der
-    lda BT_SKILL_SEL
+    lda BA_SKILL_SEL
     inc a
-    cmp BT_SKILL_N
+    cmp BA_SKILL_N
     bcs espera6
-    sta BT_SKILL_SEL
+    sta BA_SKILL_SEL
     jmp recomponer
 h_no_der:
     lda title_edges
     and #PAD_UP
     beq h_no_arriba
-    lda BT_SKILL_SEL
+    lda BA_SKILL_SEL
     cmp #BA_HAB_COLUMNAS
     bcc espera6
     sec
     sbc #BA_HAB_COLUMNAS
-    sta BT_SKILL_SEL
+    sta BA_SKILL_SEL
     jmp recomponer
 h_no_arriba:
     lda title_edges
     and #PAD_DOWN
     beq h_no_abajo
-    lda BT_SKILL_SEL
+    lda BA_SKILL_SEL
     clc
     adc #BA_HAB_COLUMNAS
-    cmp BT_SKILL_N
+    cmp BA_SKILL_N
     bcs espera6
-    sta BT_SKILL_SEL
+    sta BA_SKILL_SEL
     jmp recomponer
 espera6:
     jmp espera
@@ -417,8 +417,8 @@ h_no_abajo:
     lda title_edges
     and #PAD_B
     beq h_mira_a
-    lda #BT_M_COMMAND
-    sta BT_MODE
+    lda #BA_M_COMMAND
+    sta BA_MODE
     jmp recomponer
 h_mira_a:
     jsr ba_flanco_a
@@ -426,15 +426,15 @@ h_mira_a:
     ; One that cannot be paid for is not chosen, which is what RM2k does with
     ; a greyed-out skill. The cost is deducted **when it executes** and not
     ; here: `Skill::vStart` runs when its turn comes.
-    lda BT_SKILL_SEL
-    jsr bt_skill_from_list
-    sta BT_S0
-    jsr bt_skill_reaches
+    lda BA_SKILL_SEL
+    jsr ba_skill_from_list
+    sta BA_S0
+    jsr ba_skill_reaches
     beq espera6
-    lda BT_ACTOR
-    jsr bt_ax
-    lda BT_S0
-    sta BT_ACC_SKILL, x
+    lda BA_ACTOR
+    jsr ba_ax
+    lda BA_S0
+    sta BA_ACC_SKILL, x
     ; A switch skill **asks for no target**, whatever its `scope` points at:
     ; `Scene_Battle::AssignSkill` records it on its user and moves on. Without
     ; this, Detect Aura —`scope` 0, one enemy— asked to choose one, and if that
@@ -443,96 +443,96 @@ h_mira_a:
     ;
     ; Nor do the ones on many or on oneself, whose target is decided by the
     ; scope: only `enemy` and `ally` ask for it —`batalla.pide_blanco`—.
-    lda BT_S0
-    jsr bt_ax
+    lda BA_S0
+    jsr ba_ax
     lda f:hab_tipo, x
-    cmp #BT_SKILL_TYPE_SWITCH
+    cmp #BA_SKILL_TYPE_SWITCH
     beq h_sin_blanco
     lda f:hab_alcance, x
-    cmp #BT_SCOPE_ENEMY
+    cmp #BA_SCOPE_ENEMY
     beq h_con_blanco
-    cmp #BT_SCOPE_ALLY
+    cmp #BA_SCOPE_ALLY
     beq h_con_blanco
 h_sin_blanco:
-    lda BT_ACTOR
-    sta BT_T0
-    lda #BT_SKILL
-    jsr bt_record
+    lda BA_ACTOR
+    sta BA_T0
+    lda #BA_SKILL
+    jsr ba_record
     jmp siguiente_actor
 h_con_blanco:
     ; Whom it targets: bit 6 of `hab_afecta` is `SkillTargetsEnemies`.
-    lda BT_S0
-    jsr bt_ax
+    lda BA_S0
+    jsr ba_ax
     lda f:hab_afecta, x
     and #$40
     beq h_a_un_aliado
-    jsr bt_enemy_alive
+    jsr ba_enemy_alive
     cmp #$FF
     beq espera7
-    sta BT_TARGET
-    lda #BT_M_TARGET
-    sta BT_MODE
+    sta BA_TARGET
+    lda #BA_M_TARGET
+    sta BA_MODE
     jmp recomponer
 h_a_un_aliado:
     ; The first one alive in the party, as with an item.
     lda #0
-    sta BT_ACTOR2
+    sta BA_ACTOR2
 h_busca_vivo:
-    lda BT_ACTOR2
-    cmp BT_NACT
+    lda BA_ACTOR2
+    cmp BA_NACT
     bcs espera7                 ; cannot happen: whoever gives the command is
                                 ; alive
-    lda BT_ACTOR2
-    jsr bt_alive
+    lda BA_ACTOR2
+    jsr ba_alive
     bne h_hay_blanco
-    inc BT_ACTOR2
+    inc BA_ACTOR2
     bra h_busca_vivo
 espera7:
     jmp espera
 h_hay_blanco:
-    lda BT_ACTOR2
-    sta BT_ITEM_BLA
-    lda #BT_M_ACTOR
-    sta BT_MODE
+    lda BA_ACTOR2
+    sta BA_ITEM_BLA
+    lda #BA_M_ACTOR
+    sta BA_MODE
     jmp recomponer
 
 siguiente_actor:
     ; On to the next one; if none is left, the turn starts.
-    jsr bt_next_actor
+    jsr ba_next_actor
     cmp #$FF
     beq arranca_turno
     lda #0
-    sta BT_COMMAND
-    lda #BT_M_COMMAND
-    sta BT_MODE
+    sta BA_COMMAND
+    lda #BA_M_COMMAND
+    sta BA_MODE
     jmp recomponer
 arranca_turno:
-    jsr bt_start_turn
+    jsr ba_start_turn
     jmp espera
 
     ; --- a message on screen ---
 modo_mensaje:
     jsr ba_flanco_a
     bne pasa
-    dec BT_WAIT
-    lda BT_WAIT
-    cmp #BT_SE2_FRAMES
+    dec BA_WAIT
+    lda BA_WAIT
+    cmp #BA_SE2_FRAMES
     bne sin_segundo
     ; The hit's second sound effect, the one RM2k plays in the message
-    ; sub-state. It is taken out of `BT_SE2` when fired so it does not come out
+    ; sub-state. It is taken out of `BA_SE2` when fired so it does not come out
     ; again if the message runs longer.
     rep #$20
 .a16
-    lda BT_SE2
+    lda BA_SE2
     ldx #$FFFF
-    stx BT_SE2
-    jsl f:bt_t_sound
+    stx BA_SE2
+    jsl f:ba_t_sound
 .a8
 sin_segundo:
-    lda BT_WAIT
+    lda BA_WAIT
     bne espera3
 pasa:
-    jsr bt_execute
+    jsr ba_execute
 espera3:
     jmp espera
 
@@ -545,7 +545,7 @@ espera3:
 modo_pagina:
     rep #$20
 .a16
-    lda BT_PAGE_MSG
+    lda BA_PAGE_MSG
     cmp #$FFFF
     sep #$20
 .a8
@@ -555,11 +555,11 @@ modo_pagina:
     rep #$20
 .a16
     lda #$FFFF
-    sta BT_PAGE_MSG
+    sta BA_PAGE_MSG
     sep #$20
 .a8
 p_sigue:
-    jsr bt_page_step
+    jsr ba_page_step
     jmp espera
 
     ; --- the battle is over ---
@@ -568,48 +568,48 @@ modo_fin:
     beq espera3
     ; Victory has more than one page: "N EXP", and one for each actor who
     ; leveled up.
-    jsr bt_vic_next
+    jsr ba_vic_next
     beq cerrar
     jmp recomponer
 cerrar:
     ; The party's HP and SP go back to the saved game: since there are battles
     ; they are real state and travel in the SRAM slot.
     lda #0
-    sta BT_S0
+    sta BA_S0
 guarda:
-    lda BT_S0
-    cmp BT_NACT
+    lda BA_S0
+    cmp BA_NACT
     bcs guardados
-    lda BT_S0
-    jsr bt_x
+    lda BA_S0
+    jsr ba_x
     rep #$20
 .a16
-    lda BT_ONE + BT_HP, x
-    sta BT_T0
-    lda BT_ONE + BT_SP, x
-    sta BT_T1
+    lda BA_ONE + BA_HP, x
+    sta BA_T0
+    lda BA_ONE + BA_SP, x
+    sta BA_T1
     sep #$20
 .a8
-    lda BT_ONE + BT_NUMBER, x
-    jsr bt_ax
+    lda BA_ONE + BA_NUMBER, x
+    jsr ba_ax
     rep #$20
 .a16
     txa
     asl a
     tax
-    lda BT_T0
+    lda BA_T0
     sta FAR_HP, x
-    lda BT_T1
+    lda BA_T1
     sta FAR_SP, x
     sep #$20
 .a8
-    inc BT_S0
+    inc BA_S0
     bra guarda
 guardados:
     rtl
 
 recomponer:
-    jsr bt_compose
+    jsr ba_compose
     jmp espera
 
 ; Z=0 if A was just pressed. It is the same one as the shop's: `pad_a` and its
@@ -629,19 +629,19 @@ si_a:
 ; Makes the highlighted item visible: scrolls the eight-line window just
 ; enough.
 ba_item_ver:
-    lda BT_ITEM_SEL
-    cmp BT_ITEM_ARR
+    lda BA_ITEM_SEL
+    cmp BA_ITEM_ARR
     bcs ver_abajo
-    sta BT_ITEM_ARR             ; it went off the top: the window follows it
+    sta BA_ITEM_ARR             ; it went off the top: the window follows it
     rts
 ver_abajo:
     sec
-    sbc #BT_ENEMIES_MAX
+    sbc #BA_ENEMIES_MAX
     bcc listo_ver               ; it fits without moving anything
     inc a                       ; the first one that should be visible
-    cmp BT_ITEM_ARR
+    cmp BA_ITEM_ARR
     bcc listo_ver
-    sta BT_ITEM_ARR
+    sta BA_ITEM_ARR
 listo_ver:
     rts
 
@@ -650,78 +650,78 @@ listo_ver:
 ; stays where it is. It is the sibling of `ba_blanco_arriba`, over the party
 ; instead of over the troop.
 ba_blanco_act_arriba:
-    lda BT_ITEM_BLA
+    lda BA_ITEM_BLA
 mira_arriba_act:
     beq nada_act
     dec a
-    sta BT_ACTOR2               ; `bt_item_usable_on` clobbers `BT_S0`
+    sta BA_ACTOR2               ; `ba_item_usable_on` clobbers `BA_S0`
     jsr ba_blanco_act_sirve
     bne pone_act
-    lda BT_ACTOR2
+    lda BA_ACTOR2
     bra mira_arriba_act
 ba_blanco_act_abajo:
-    lda BT_ITEM_BLA
+    lda BA_ITEM_BLA
 mira_abajo_act:
     inc a
-    cmp BT_NACT
+    cmp BA_NACT
     bcs nada_act
-    sta BT_ACTOR2
+    sta BA_ACTOR2
     jsr ba_blanco_act_sirve
     bne pone_act
-    lda BT_ACTOR2
+    lda BA_ACTOR2
     bra mira_abajo_act
 pone_act:
-    lda BT_ACTOR2
-    sta BT_ITEM_BLA
+    lda BA_ACTOR2
+    sta BA_ITEM_BLA
 nada_act:
     rts
 
 ; Whether the "whom" cursor can stop on actor A8: Z=0 if so. It is shared by an
 ; item and a skill that targets the party, and which of the two it is says
-; `BT_COMMAND`. A skill only on those standing, which is what
+; `BA_COMMAND`. A skill only on those standing, which is what
 ; `Skill::IsTargetValid` allows with this port's skills —none removes
 ; death—; an item, on whoever it is good for, who may be a fallen one.
 ba_blanco_act_sirve:
     pha
-    lda BT_COMMAND
+    lda BA_COMMAND
     cmp #BA_ORDEN_HABILIDAD
     beq sirve_hab
     pla
-    jmp bt_item_usable_on
+    jmp ba_item_usable_on
 sirve_hab:
     pla
-    jmp bt_alive
+    jmp ba_alive
 
 ; The target cursor, to the living enemy above or below. If no living one is
 ; left in that direction, it stays where it is.
 ba_blanco_arriba:
-    lda BT_TARGET
+    lda BA_TARGET
 mira_arriba:
     beq nothing
     dec a
-    sta BT_S0
+    sta BA_S0
     clc
-    adc #BT_PARTY_MAX
-    jsr bt_alive
+    adc #BA_PARTY_MAX
+    jsr ba_alive
     bne pone
-    lda BT_S0
+    lda BA_S0
     bra mira_arriba
 ba_blanco_abajo:
-    lda BT_TARGET
+    lda BA_TARGET
 mira_abajo:
     inc a
-    cmp BT_KID
+    cmp BA_KID
     bcs nothing
-    sta BT_S0
+    sta BA_S0
     clc
-    adc #BT_PARTY_MAX
-    jsr bt_alive
+    adc #BA_PARTY_MAX
+    jsr ba_alive
     bne pone
-    lda BT_S0
+    lda BA_S0
     bra mira_abajo
 pone:
-    lda BT_S0
-    sta BT_TARGET
+    lda BA_S0
+    sta BA_TARGET
 nothing:
     rts
 .endproc
@@ -733,11 +733,11 @@ nothing:
 ; and the battlers, which is what `Spriteset_Battle` runs with
 ; `GetShakeOffsetX`; the windows stay still, and here so does the text, which
 ; is BG2.
-.proc bt_shake
+.proc ba_shake
 .a8
 .i16
-    jsl f:bt_t_shake
-    lda BT_SCENE
+    jsl f:ba_t_shake
+    lda BA_SCENE
     cmp #$FF
     beq ready
     lda shake_pos

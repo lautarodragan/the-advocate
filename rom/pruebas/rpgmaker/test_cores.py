@@ -56,8 +56,8 @@ del frontend.
                   la pusiera, bsnes podía pixelar un salto que no lo pidió.
     planta        tres turnos de la pelea de la tropa 113, a fuerza de A: la
                   elección de los enemigos, que pesa sus acciones en
-                  `BT_SKILL_LIST`, y el SP del arma en `BT_WEAPON_SP`, que
-                  `bt_build` escribe al empezar cada pelea y el reset no toca.
+                  `BA_SKILL_LIST`, y el SP del arma en `BA_WEAPON_SP`, que
+                  `ba_build` escribe al empezar cada pelea y el reset no toca.
     game-over     la pantalla de Game Over después de perder una pelea: el
                   destino de la derrota que anota `game_over_record`, el
                   flujo que se descomprime en el banco $7F —el mismo que
@@ -251,7 +251,7 @@ def test_escena_de_la_pelea():
         # carga en negro y el mosaico. Ver `fundido_de_pelea.s`.
         una.consola.run(200)
         assert una.byte("menu_open"), "la pelea no se abrió"
-        donde = s["BT_ONE"] + (s["BT_PARTY_MAX"] + 1) * s["BT_BYTES"]
+        donde = s["BA_ONE"] + (s["BA_PARTY_MAX"] + 1) * s["BA_BYTES"]
         una.consola.write_ram(en_la_wram(donde), [0, 0])
         una.consola.run(60)
         assert una.consola.ram(en_la_wram(s["SCN_VIS"]), 1)[0] == 0b101, \

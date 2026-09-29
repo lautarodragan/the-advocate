@@ -164,7 +164,7 @@ def modelo_de_la_planta(base, equipo_de_ag7=None):
 
 def estado(pelea, una):
     """Los HP de los cuatro y los SP de AG7 y del Tangle Wire, de la RAM."""
-    g = una.simbolos["BT_PARTY_MAX"]
+    g = una.simbolos["BA_PARTY_MAX"]
     return ([pelea.hp_del_combatiente(k) for k in (0, 1, g, g + 1)]
             + [pelea.sp_del_combatiente(1), pelea.sp_del_combatiente(g)])
 
@@ -239,12 +239,12 @@ def test_la_lista_de_ag7_en_la_pelea_es_la_de_su_arma(partida):
     pelea = a_la_pelea(una)
     pelea.ordenar(("defender",))
     pelea.esperar("COMMAND")
-    assert pelea.byte("BT_ACTOR") == 1
+    assert pelea.byte("BA_ACTOR") == 1
     pelea.tocar_cuadros("right")
     pelea.tocar_cuadros()
     pelea.esperar("SKILL")
-    lista = una.consola.ram(una.simbolos["BT_SKILL_LIST"],
-                            pelea.byte("BT_SKILL_N"))
+    lista = una.consola.ram(una.simbolos["BA_SKILL_LIST"],
+                            pelea.byte("BA_SKILL_N"))
     assert [hab_id(una, k) for k in lista] == [CONCENTRATED_SPRAY]
 
 

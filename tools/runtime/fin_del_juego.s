@@ -107,8 +107,8 @@
     sta INIDISP
 
 espera:
-    jsl f:bt_t_vblank
-    jsl f:bt_t_pad
+    jsl f:ba_t_vblank
+    jsl f:ba_t_pad
     ; Up and down switch commands, and with two it does not matter which: there
     ; is no cap, as in `Window_Selectable`, which wraps around.
     lda pad
@@ -164,7 +164,7 @@ pantalla:
     ldx #0
 baja:
     phx
-    jsl f:bt_t_vblank
+    jsl f:ba_t_vblank
     plx
     lda f:fin_rampa, x
     sta INIDISP
@@ -182,7 +182,7 @@ tema:
     lda bgm_fade
     beq callado
     phx
-    jsl f:bt_t_vblank
+    jsl f:ba_t_vblank
     plx
     dex
     bne tema
@@ -194,7 +194,7 @@ callado:
     sta f:MSU_PLAYING
     sta MSU_CONTROL
     lda #$FF
-    jsl f:bt_t_bgm
+    jsl f:ba_t_bgm
     jml f:reset
 .endproc
 
