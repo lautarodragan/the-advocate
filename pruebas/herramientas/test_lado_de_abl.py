@@ -77,7 +77,6 @@ PRUEBAS_QUE_TODAVIA_NOMBRAN_TOOLS = {
     "pruebas/arnes/lz2.py",
     "pruebas/arnes/tanda.py",
     "pruebas/arnes/video.py",
-    "pruebas/herramientas/test_ensamblar.py",
     "pruebas/herramientas/test_lz2.py",
     "pruebas/rpgmaker/test_batalla.py",
     "pruebas/rpgmaker/test_batalla_escena_dibujo.py",

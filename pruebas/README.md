@@ -245,10 +245,11 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   mapa, ida y vuelta por el compresor y por la referencia
 * `herramientas/test_reservas_de_la_wram.py`: que nadie más caiga en la mitad
   alta de la WRAM, que es de la grilla y de la pelea
-* `herramientas/test_bancos.py`: el acomodo de bancos
+* `herramientas/test_bancos.py`: que el código a mano entre en el banco 1
 * `herramientas/test_espacio.py`: `just espacio`, contra el `.res` linkeado a
   mano que reemplazó
-* `herramientas/test_ensamblar.py`: `ensamblar.py`
+* `herramientas/test_cartuchos.py`: la huella y el `.dbg` de los cartuchos,
+  y a cuál va cada caso
 * `herramientas/test_protocolo_contra_el_juego.py`: el bytecode contra el
   juego: la tabla del despacho en cada cartucho, y los largos en todas las
   páginas
@@ -257,7 +258,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   conversor, sobre `release` armado
 * `herramientas/test_fork_mapas.py`: el fork de `parches/manual/`
 * `herramientas/test_horneados.py`: los eventos horneados en el mapa
-* `herramientas/test_textos.py`: los cuadros de texto rearmados
+* `herramientas/test_textos_del_juego.py`: los cuadros de texto de `data/`
+  rearmados
 * `herramientas/test_encuentros.py`: los encuentros al azar
 * `herramientas/test_lideres.py`: quién puede ser líder
 * `herramientas/test_destello_paleta.py`: la paleta de sprite de los líderes
