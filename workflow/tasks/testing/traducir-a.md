@@ -2,7 +2,7 @@
 name: "Traducir las herramientas al inglés, fase 1: snes_convert"
 description: "Comentarios, docstrings, mensajes y prosa al inglés, sin tocar nombres de código: tools/port/snes_convert.py, entero"
 type: refactor
-assignee: Aromo
+assignee: taro
 ---
 
 De taro, el 2026-09-29: "traducir las herramientas a inglés". Es la regla de
@@ -62,3 +62,14 @@ de tocar nada.
   `tools/port/` ("Qué fondos hay", "lo que depende del actor", "la pantalla
   de ítems", "las variables de RM2k"): los traduce Cina, y se alinean al
   mergear.
+
+## Cierre
+
+Mergeado `main` (`5e652dc2`, con Coronillo y Palmar) y verificado sobre el
+árbol mergeado: `SIN_CACHE=1 just cartuchos` da los 47 `.sfc`, `.msu` y
+`.pcm` iguales a la base; `just pruebas` 874 en verde y
+`just -f tools/justfile pruebas` 132 y 2 salteadas.
+
+Qué mirar: nada se juega distinto —la ROM es la misma byte por byte—; lo
+que cambia es el texto del conversor, del `mapdata.inc` y de lo que imprime
+el build.
