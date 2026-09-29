@@ -14,8 +14,13 @@
 
 use crate::picture::Picture;
 
+use rm2k_rules::chipset as rules;
+
+// The ChipSet's geometry is RM2k's and lives in `rm2k-rules`; it is
+// restated here only in the types the drawing computes in.
+
 /// A tile is 16x16 pixels, and an autotile piece a quarter of one.
-pub const TILE: i64 = 16;
+pub const TILE: i64 = rules::TILE as i64;
 const HALF: i64 = TILE / 2;
 
 pub const ATLAS_COLUMNS: i64 = 32;
@@ -23,35 +28,25 @@ pub const ATLAS_ROWS: i64 = 45;
 
 /// What a ChipSet measures. A smaller one is drawn as if padded with
 /// transparency to this; a bigger one is cut.
-pub const CHIPSET_WIDTH: usize = 480;
-pub const CHIPSET_HEIGHT: usize = 256;
+pub const CHIPSET_WIDTH: usize = rules::CHIPSET_WIDTH as usize;
+pub const CHIPSET_HEIGHT: usize = rules::CHIPSET_HEIGHT as usize;
 
-/// Where each family of tile ids starts, as the map layers carry them: the
-/// three waters take 0 to 2999, then the animated tiles, the twelve terrain
-/// autotiles, and the two pages of plain tiles.
-pub const ANIMATED: i64 = 3000;
-pub const TERRAIN: i64 = 4000;
-pub const LOWER: i64 = 5000;
-pub const UPPER: i64 = 10000;
+/// Where each family of tile ids starts: see `rm2k_rules::chipset`.
+pub const ANIMATED: i64 = rules::ANIMATED as i64;
+pub const TERRAIN: i64 = rules::TERRAIN as i64;
+pub const LOWER: i64 = rules::LOWER as i64;
+pub const UPPER: i64 = rules::UPPER as i64;
 
-/// Where, in the ChipSet, the 48x64 block of terrain autotile `n` —0 to 11—
-/// starts.
-pub fn terrain_origin(n: i64) -> (i64, i64) {
-    let terrain = n + 4;
-    (
-        (terrain % 2) * 48 + (terrain / 8) * 96,
-        ((terrain / 2) % 4) * 64,
-    )
+/// Where, in the ChipSet, the 48x64 block of terrain autotile `n` starts.
+fn terrain_origin(n: i64) -> (i64, i64) {
+    let (x, y) = rules::terrain_origin(n as i32);
+    (x as i64, y as i64)
 }
 
-/// Where plain tile `i` starts —0 to 287, the three pages of 96 in the right
-/// half—. The first 144 are the lower layer's (ids 5000 + i) and the next 144
-/// the upper layer's (ids 10000 + i - 144).
-pub fn common_origin(i: i64) -> (i64, i64) {
-    (
-        192 + (i % 6) * TILE + (i / 96) * 96,
-        ((i / 6) % TILE) * TILE,
-    )
+/// Where plain tile `i` starts.
+fn common_origin(i: i64) -> (i64, i64) {
+    let (x, y) = rules::common_origin(i as i32);
+    (x as i64, y as i64)
 }
 
 /// Every tile a ChipSet can draw, already combined.

@@ -7,6 +7,13 @@ the same for any port —and for any RM2k game—.
 
 What these rules say is checked against liblcf and easyrpg-player; none of
 these numbers was written from memory.
+
+The ones that are RPG Maker's and not the port's also live in Rust, in
+`rm2k-rules` (`tools/rm2k/rules/`), for what moves to Rust. The two copies
+stay until the converter moves, and `tests/test_rm2k_rules.py` holds them
+together: a rule changed here has to change there, in the same commit. What
+is the port's —the `@tile:` names, dithering and baking the translucent
+ones, the conditions the ROM understands, where the hero starts— has no copy.
 """
 
 import os
@@ -31,9 +38,9 @@ def terrain_box(n):
 
     It is 48x64 pixels with the pieces `rm2k-render` combines into each
     terrain tile, computing its corner with this same calculation
-    (`terrain_origin`, in its `src/chipset.rs`). It is here for the Python
-    that copies whole blocks —the fork's ChipSets—; the Rust side has its
-    own copy because it is a separate project.
+    (`terrain_origin`, in `rm2k-rules`' `src/chipset.rs`). It is here for
+    the Python that copies whole blocks —the fork's ChipSets—; the Rust side
+    has its own copy because it is a separate project.
     """
     terrain = n + 4
     sx = (terrain % 2) * 48 + (terrain // 8) * 96

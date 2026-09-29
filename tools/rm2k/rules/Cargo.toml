@@ -1,0 +1,17 @@
+[package]
+name = "rm2k-rules"
+version = "0.1.0"
+edition = "2021"
+description = "What the data of an RPG Maker 2000 game means: where one can walk, which layer covers which, which page is active and what it draws, the experience curve, the encounters of a map"
+
+[lib]
+name = "rm2k_rules"
+path = "src/lib.rs"
+
+[dependencies]
+ditto = { path = "../ditto" }
+
+[dev-dependencies]
+serde = "1"
+serde_json = "1"
+sha2 = "0.10"

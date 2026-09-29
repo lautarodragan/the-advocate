@@ -16,11 +16,8 @@
 
 use crate::asm;
 use crate::fail::{Bad, Result};
-use crate::game::{Game, AREA};
-
-/// Every how many steps when the tree does not carry the node: RM2k's
-/// default (liblcf's `rpg::MapInfo::encounter_steps`).
-pub const DEFAULT_STEPS: i64 = 25;
+use crate::game::Game;
+pub use rm2k_rules::tree::Zone;
 
 /// The `encounter_rate` the accumulator goes up by. It is the terrain's,
 /// and here it is fixed: on every map of the game it was measured against,
@@ -50,41 +47,6 @@ pub fn base(steps: i64) -> i64 {
 /// the console.
 pub fn step_thresholds(steps: i64) -> [i64; 7] {
     ROWS.map(|row| -((-row * steps).div_euclid(RATE)))
-}
-
-/// One place a map's encounters come from: the whole map, or an area.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Zone {
-    /// Left, top, right, bottom, **half-open** —`Rect::IsOutOfBounds`:
-    /// inside is `l <= x < r` and `t <= y < b`—.
-    pub rect: [i64; 4],
-    pub troops: Vec<i64>,
-}
-
-/// A map's zones: its own, covering it all, and one per area that hangs
-/// from it, in the order of the tree.
-///
-/// The order is that of easyrpg's `GetEncountersAt`, which walks the tree
-/// by index: in the game this was measured against no map has troops of its
-/// own **and** areas, so putting its own first cannot change which troop
-/// comes out.
-pub fn zones(game: &Game, map: i64, width: i64, height: i64) -> Vec<Zone> {
-    let mut zones = Vec::new();
-    if let Some(node) = game.tree.get(&map).filter(|n| !n.troops.is_empty()) {
-        zones.push(Zone {
-            rect: [0, 0, width, height],
-            troops: node.troops.clone(),
-        });
-    }
-    for node in game.tree.values() {
-        if node.kind == AREA && node.parent == map && !node.troops.is_empty() {
-            zones.push(Zone {
-                rect: node.rect,
-                troops: node.troops.clone(),
-            });
-        }
-    }
-    zones
 }
 
 /// A map of the cartridge: its number and its size, in cells.
@@ -121,12 +83,13 @@ impl Encounters {
     pub fn of(game: &Game, maps: &[Map], steps: Option<i64>) -> Result<Encounters> {
         let mut e = Encounters::default();
         for map in maps {
-            let theirs = zones(game, map.id, map.width, map.height);
-            let steps = steps.unwrap_or_else(|| {
-                game.tree
-                    .get(&map.id)
-                    .map_or(DEFAULT_STEPS, |n| n.encounter_steps)
-            });
+            // In the game this was measured against no map has troops of
+            // its own **and** areas, so the order of the zones —the map's
+            // own first, see `encounter_zones`— cannot change which troop
+            // comes out.
+            let theirs = game.tree.encounter_zones(map.id as i32, map.width, map.height);
+            let steps =
+                steps.unwrap_or_else(|| game.tree.encounter_steps(map.id as i32) as i64);
             if theirs.is_empty() || base(steps) == 0 {
                 e.per_map.push(0xFF);
                 continue;

@@ -157,6 +157,12 @@ fn dump(dir: &Path) {
     let db = dir.join("dump").join("db");
     std::fs::create_dir_all(&maps).unwrap();
     std::fs::create_dir_all(&db).unwrap();
+    // What makes a directory a Ditto dump, and which view it is.
+    std::fs::write(
+        dir.join("dump").join("ditto.json"),
+        serde_json::json!({"ditto": 2, "view": "resolved"}).to_string(),
+    )
+    .unwrap();
     std::fs::write(
         maps.join("Map0007.json"),
         serde_json::json!({"id": 7, "chipset_id": 2, "width": 3, "height": 2}).to_string(),

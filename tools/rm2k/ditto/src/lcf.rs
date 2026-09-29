@@ -237,6 +237,25 @@ pub fn serialize_enum<S: serde::Serializer>(
     }
 }
 
+/// How an enum value comes out of the JSON: every shape `serialize_enum`
+/// writes, from either view. The generated `Deserialize` of each enum reads
+/// one of these and turns it into its variant.
+///
+/// The number is the resolved view's, and it is what lets the library read
+/// that view into the same types the exact dump reads into: without it, a
+/// consumer of the resolved view would need types of its own, which is the
+/// second reader this crate exists to avoid.
+#[derive(Deserialize)]
+#[serde(untagged)]
+pub enum EnumRepr {
+    Number(i32),
+    Name(String),
+    Other {
+        #[serde(rename = "Other")]
+        other: i32,
+    },
+}
+
 // --- The default, written once ---------------------------------------------
 
 /// The name a field goes by in the JSON.

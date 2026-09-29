@@ -461,13 +461,14 @@ fn emit_enum(out: &mut String, name: &str, variants: &[(String, i64)]) -> Vec<(S
     // `Other` is what keeps the round trip from depending on liblcf knowing
     // every value: a number the table does not name is stored as a number and
     // comes back the same.
-    // `Serialize` is **not** in the derive list: an enum goes into the JSON as
-    // its name in the exact dump and as its number in the resolved view, and
-    // that choice is `lcf::serialize_enum`'s. `Deserialize` is derived, and it
-    // is the `#[serde(rename)]` below that it reads.
+    // Neither `Serialize` nor `Deserialize` is derived: an enum goes into the
+    // JSON as its name in the exact dump and as its number in the resolved
+    // view, and both have to read back —the resolved one is what a consumer
+    // of the library reads—. Writing is `lcf::serialize_enum`'s; reading,
+    // `lcf::EnumRepr`'s.
     out.push_str(&format!(
         "/// Generated from `enums.csv`.\n\
-         #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]\n\
+         #[derive(Debug, Clone, Copy, PartialEq, Eq)]\n\
          pub enum {name} {{\n"
     ));
     let mut seen = BTreeSet::new();
@@ -478,7 +479,6 @@ fn emit_enum(out: &mut String, name: &str, variants: &[(String, i64)]) -> Vec<(S
         if !seen.insert(id.clone()) {
             continue; // the CSV repeats some entry under the same name
         }
-        out.push_str(&format!("    #[serde(rename = \"{variant}\")]\n"));
         out.push_str(&format!("    {id},\n"));
         usable.push((id, *value));
         json_names.push((variant.clone(), *value));
@@ -517,7 +517,32 @@ fn emit_enum(out: &mut String, name: &str, variants: &[(String, i64)]) -> Vec<(S
         ));
     }
     out.push_str(&format!(
-        "            {name}::Other(_) => None,\n        }}\n    }}\n}}\n\n"
+        "            {name}::Other(_) => None,\n        }}\n    }}\n"
+    ));
+    out.push_str(
+        "    /// The value `enums.csv` gives this name, and `None` for a name it\n\
+         \x20   /// does not have.\n\
+         \x20   pub fn from_json_name(name: &str) -> Option<Self> {\n        match name {\n",
+    );
+    for ((id, _), (variant, _)) in usable.iter().zip(json_names.iter()) {
+        out.push_str(&format!("            \"{variant}\" => Some({name}::{id}),\n"));
+    }
+    out.push_str("            _ => None,\n        }\n    }\n}\n\n");
+
+    // `{"Other": n}` is read as `Other(n)` as is, and not through `from_i32`:
+    // it is what the exact dump wrote for that value, and the round trip
+    // gives back what it was given.
+    let names: Vec<String> = json_names.iter().map(|(v, _)| format!("\"{v}\"")).collect();
+    out.push_str(&format!(
+        "impl<'de> serde::Deserialize<'de> for {name} {{\n    \
+         fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {{\n        \
+         match EnumRepr::deserialize(d)? {{\n            \
+         EnumRepr::Number(v) => Ok({name}::from_i32(v)),\n            \
+         EnumRepr::Other {{ other }} => Ok({name}::Other(other)),\n            \
+         EnumRepr::Name(n) => {name}::from_json_name(&n)\n                \
+         .ok_or_else(|| serde::de::Error::unknown_variant(&n, &[{}])),\n        \
+         }}\n    }}\n}}\n\n",
+        names.join(", ")
     ));
 
     out.push_str(&format!(

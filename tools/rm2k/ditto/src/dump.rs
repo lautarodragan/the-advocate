@@ -70,7 +70,7 @@ pub const VERSION: u32 = 2;
 /// Which of the two views a dump directory holds. It is written into
 /// `ditto.json`, and it is what lets `pack` refuse a resolved dump instead of
 /// writing a binary with every chunk in it.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum View {
     /// The binary's own shape: defaults omitted, enums by name. The only one
     /// `pack` reads.
@@ -81,7 +81,7 @@ pub enum View {
 }
 
 impl View {
-    fn name(self) -> &'static str {
+    pub fn name(self) -> &'static str {
         match self {
             View::Exact => "exact",
             View::Resolved => "resolved",
@@ -263,67 +263,167 @@ fn grid(map: &Map, w: usize, h: usize) -> String {
     s
 }
 
+// --- reading a dump --------------------------------------------------------
+
+/// A dump directory, to read the game from **with the schema's types**.
+///
+/// It is the one place that knows the layout —which file is which section,
+/// where a map's layers are— and `pack` reads through it too, so the
+/// binary and a consumer read the same tree the same way.
+///
+/// Either view reads into the same types. The exact dump leaves a field out
+/// when it holds its default and `#[serde(default)]` puts it back; the
+/// resolved view writes it, and writes an enum as its number, which the
+/// generated `Deserialize` reads too. So a consumer that reads the resolved
+/// view —the one that needs no schema to be read by anybody else— still gets
+/// liblcf's names and types, and not a model of its own.
+pub struct Dump {
+    dir: PathBuf,
+    view: View,
+    manifest: Value,
+}
+
+impl Dump {
+    /// Opens the dump in `dir`: reads its `ditto.json` and refuses one of
+    /// another layout version, which would be read wrong instead of failing.
+    pub fn open(dir: &Path) -> Result<Dump> {
+        let manifest = read_json(&dir.join(MANIFEST))?;
+        let version = manifest.get("ditto").and_then(Value::as_u64).unwrap_or(0);
+        if version != VERSION as u64 {
+            return error(format!(
+                "{}: it says it is a dump of version {version} and this Ditto writes {VERSION}",
+                dir.join(MANIFEST).display()
+            ));
+        }
+        let view = match manifest.get("view").and_then(Value::as_str).unwrap_or("") {
+            v if v == View::Exact.name() => View::Exact,
+            v if v == View::Resolved.name() => View::Resolved,
+            v => {
+                return error(format!(
+                    "{}: {v:?} is not a view this Ditto writes",
+                    dir.join(MANIFEST).display()
+                ))
+            }
+        };
+        Ok(Dump { dir: dir.to_path_buf(), view, manifest })
+    }
+
+    pub fn dir(&self) -> &Path {
+        &self.dir
+    }
+
+    pub fn view(&self) -> View {
+        self.view
+    }
+
+    /// The whole database: every section joined back into one `Database`.
+    pub fn database(&self) -> Result<Database> {
+        Ok(serde_json::from_value(join_database(&self.dir.join(DB))?)?)
+    }
+
+    /// One section of the database, by the name of its field in `Database`
+    /// —`actors`, `chipsets`, `system`—, without reading the others: the
+    /// battle's tables have no reason to parse every animation.
+    ///
+    /// ```no_run
+    /// # let dump = ditto::dump::Dump::open(std::path::Path::new("data")).unwrap();
+    /// let actors: Vec<ditto::schema::Actor> = dump.section("actors").unwrap();
+    /// ```
+    pub fn section<T: serde::de::DeserializeOwned>(&self, name: &str) -> Result<T> {
+        let path = self.dir.join(DB).join(format!("{name}.json"));
+        serde_json::from_value(read_json(&path)?)
+            .map_err(|e| Error(format!("{}: {e}", path.display())))
+    }
+
+    /// The map tree: the `.lmt`.
+    pub fn tree(&self) -> Result<TreeMap> {
+        let path = self.dir.join(TREE);
+        serde_json::from_value(read_json(&path)?)
+            .map_err(|e| Error(format!("{}: {e}", path.display())))
+    }
+
+    /// Map `id`, with its tile layers.
+    pub fn map(&self, id: u32) -> Result<Map> {
+        read_map(&self.dir.join(MAPS).join(format!("Map{id:04}.json")))
+    }
+
+    /// The map files of the dump, sorted: what `map` reads, by path.
+    pub fn map_files(&self) -> Result<Vec<PathBuf>> {
+        json_files(&self.dir.join(MAPS))
+    }
+
+    /// The header the manifest keeps for a kind of file —`database`, `tree`,
+    /// `map`— or `fallback` if it has none.
+    fn header(&self, kind: &str, fallback: &str) -> String {
+        self.manifest
+            .get("headers")
+            .and_then(|h| h.get(kind))
+            .and_then(Value::as_str)
+            .unwrap_or(fallback)
+            .to_string()
+    }
+
+    /// The header of one map, which is the manifest's for every map unless
+    /// it keeps one of its own for it.
+    fn map_header(&self, stem: &str) -> String {
+        self.manifest
+            .get("headers")
+            .and_then(|h| h.get("map_overrides"))
+            .and_then(|o| o.get(stem))
+            .and_then(Value::as_str)
+            .map_or_else(|| self.header("map", "LcfMapUnit"), str::to_string)
+    }
+}
+
+/// A map from its JSON, with its layers from the `.tiles` beside it if there
+/// is one. It takes a path and not a number so that a map in the same shape
+/// that is not in a dump —one a project changed, kept elsewhere— reads the
+/// same way.
+pub fn read_map(path: &Path) -> Result<Map> {
+    let stem = stem(path)?;
+    serde_json::from_value(join_map(path, &stem)?)
+        .map_err(|e| Error(format!("{}: {e}", path.display())))
+}
+
 // --- pack ------------------------------------------------------------------
 
 /// Builds the binaries back from a dump: `RPG_RT.ldb`, `RPG_RT.lmt` and one
 /// `.lmu` per map, written into `out`.
 pub fn pack(dump: &Path, out: &Path) -> Result<Vec<PathBuf>> {
-    let manifest = read_json(&dump.join(MANIFEST))?;
-    let version = manifest.get("ditto").and_then(Value::as_u64).unwrap_or(0);
-    if version != VERSION as u64 {
-        return error(format!(
-            "{}: it says it is a dump of version {version} and this Ditto writes {VERSION}",
-            dump.join(MANIFEST).display()
-        ));
-    }
+    let source = Dump::open(dump)?;
     // The resolved view has every field written, so packing it would write
     // every chunk and give a binary the editor never wrote. It is refused
     // rather than left to the person to notice, because what comes out is a
     // valid file: nothing downstream would complain.
-    let view = manifest.get("view").and_then(Value::as_str).unwrap_or("");
-    if view != View::Exact.name() {
+    if source.view() != View::Exact {
         return error(format!(
-            "{}: it is the {view} view, and only the {} one can be written back",
+            "{}: it is the {} view, and only the {} one can be written back",
             dump.join(MANIFEST).display(),
+            source.view().name(),
             View::Exact.name()
         ));
     }
-    let headers = manifest.get("headers").cloned().unwrap_or(Value::Null);
-    let header = |k: &str, fallback: &str| -> String {
-        headers
-            .get(k)
-            .and_then(Value::as_str)
-            .unwrap_or(fallback)
-            .to_string()
-    };
-
     std::fs::create_dir_all(out)?;
     let mut written = Vec::new();
 
-    let db: Database = serde_json::from_value(join_database(&dump.join(DB))?)?;
     written.push(write_binary(
         &out.join("RPG_RT.ldb"),
-        &Document::Ldb { header: header("database", "LcfDataBase"), data: db },
+        &Document::Ldb {
+            header: source.header("database", "LcfDataBase"),
+            data: source.database()?,
+        },
     )?);
 
-    let tree: TreeMap = serde_json::from_value(read_json(&dump.join(TREE))?)?;
     written.push(write_binary(
         &out.join("RPG_RT.lmt"),
-        &Document::Lmt { header: header("tree", "LcfMapTree"), data: tree },
+        &Document::Lmt { header: source.header("tree", "LcfMapTree"), data: source.tree()? },
     )?);
 
-    let default_map_header = header("map", "LcfMapUnit");
-    for path in json_files(&dump.join(MAPS))? {
+    for path in source.map_files()? {
         let stem = stem(&path)?;
-        let map: Map = serde_json::from_value(join_map(&path, &stem)?)?;
-        let header = headers
-            .get("map_overrides")
-            .and_then(|o| o.get(&stem))
-            .and_then(Value::as_str)
-            .map_or_else(|| default_map_header.clone(), str::to_string);
         written.push(write_binary(
             &out.join(format!("{stem}.lmu")),
-            &Document::Lmu { header, data: map },
+            &Document::Lmu { header: source.map_header(&stem), data: read_map(&path)? },
         )?);
     }
 

@@ -9,6 +9,8 @@
 use crate::chipset::{Atlas, ANIMATED, TERRAIN, TILE};
 use crate::fail::{Bad, Result};
 use crate::picture::Picture;
+use rm2k_rules::chipset::passability_table;
+use rm2k_rules::passability::{lower_above, upper_above};
 
 /// What of a map reaches the drawing, and nothing else.
 #[derive(Clone, Debug)]
@@ -101,28 +103,9 @@ impl Map {
         Ok(())
     }
 
-    /// The passability of every tile id, as the tables of EasyRPG's
-    /// `lmu2png` build it: one entry per family for the autotiles, one per
-    /// tile for the plain ones.
+    /// The passability of every tile id: `rm2k_rules::chipset::passability_table`.
     pub fn passability(&self) -> Vec<u8> {
-        let mut flags = vec![0u8; 65536];
-        let (lower, upper) = (&self.passable_lower, &self.passable_upper);
-        for i in 0..3 {
-            // the waters A, B and C
-            flags[1000 * i..1000 * i + 1000].fill(lower[i]);
-        }
-        for i in 0..3 {
-            // the animated tiles
-            flags[3000 + i * 50..3050 + i * 50].fill(lower[3 + i]);
-        }
-        for i in 0..12 {
-            // the terrain autotiles
-            flags[4000 + i * 50..4050 + i * 50].fill(lower[6 + i]);
-        }
-        // the plain tiles, of each layer
-        flags[5000..5144].copy_from_slice(&lower[18..162]);
-        flags[10000..10144].copy_from_slice(&upper[..144]);
-        flags
+        passability_table(&self.passable_lower, &self.passable_upper)
     }
 
     /// The families the map can animate: a map without water or animated
@@ -146,11 +129,11 @@ impl Map {
             for x in 0..self.width {
                 let (xi, yi) = (x as i64, y as i64);
                 let lower = self.lower_layer[row + x];
-                if (flags[lower as usize] & 0x30 != 0) == above {
+                if lower_above(flags, lower as i32) == above {
                     atlas.draw_tile(dst, xi, yi, lower, steps.0, steps.1);
                 }
                 let upper = self.upper_layer[row + x];
-                if (flags[upper as usize] & 0x10 != 0) == above {
+                if upper_above(flags, upper as i32) == above {
                     atlas.draw_tile(dst, xi, yi, upper, steps.0, steps.1);
                 }
             }

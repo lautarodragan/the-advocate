@@ -84,6 +84,22 @@ recuperar los nombres legibles sin introducir código extra ni json extra"*. O
 sea que el camino de vuelta está pensado, y mientras tanto el volcado exacto se
 sigue generando a pedido.
 
+**Y ya se recorrió, del lado de Rust**: desde el 2026-09-29 la biblioteca
+de Ditto lee `rom/data/` a sus propios structs —`ditto::dump::Dump`, ver
+"As a library" en `tools/rm2k/ditto/README.md`—, y es **el único lugar en
+Rust que lee el volcado**. `rm2k-render` y `rm2k-snes-battle` tenían cada
+uno su lector a mano; se fueron. Lo que hizo falta fue una sola cosa: que
+un enum se pueda leer como el número que escribe la vista resuelta, y lo
+escribe el generador. Los tipos no se escribieron: son los 61 structs y
+69 enums que Ditto ya generaba del esquema de liblcf para armar el
+binario. Las dos vistas se leen a los mismos valores, y lo exigen sus
+pruebas.
+
+Las **reglas** —qué significa lo que el formato dice— no son de Ditto:
+son de `rm2k-rules`, `tools/rm2k/rules/`, sobre esos tipos. Es la copia
+en Rust de `tools/rpgmaker/rm2k.py`, que se queda porque el conversor
+sigue en Python; las dos las ata `tools/tests/test_rm2k_rules.py`.
+
 Lo que **cuesta** son 19,4 MB contra 30,9: un 59% más. Se paga una sola vez, en
 un árbol que es derivado, y a cambio `tools/rpgmaker/lcf.py` no tiene adentro
 ninguna regla del formato.

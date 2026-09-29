@@ -56,4 +56,8 @@ has to exist: `test_index.py` enforces it.
 * `test_layers.py`: that the Rust projects' layers only depend downwards:
   `snes/` and `rm2k/` on nothing of the other two, `rm2k-snes/` on both;
   and that neither of the first two names `rm2k-snes.toml`
+* `test_rm2k_rules.py`: that the RPG Maker rules the converter uses in
+  Python —`rpgmaker/rm2k.py` and the few in `lcf.py`, `render_map.py` and
+  `experience.py`— still answer what `rm2k-rules`, their Rust copy, is
+  held to, in `rm2k/rules/tests/python.json`
 * `test_index.py`: that this list is up to date

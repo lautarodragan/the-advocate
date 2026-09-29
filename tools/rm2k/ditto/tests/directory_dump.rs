@@ -43,12 +43,13 @@ impl Drop for Temp {
 fn there_and_back(game: &Path, tmp: &Temp) -> Vec<String> {
     let dump = tmp.join("dump");
     let back = tmp.join("back");
-    ditto::dump::unpack(game, &dump, &tmp.join("resolved")).expect("unpack");
+    let resolved = tmp.join("resolved");
+    ditto::dump::unpack(game, &dump, &resolved).expect("unpack");
     ditto::dump::pack(&dump, &back).expect("pack");
 
     let mut originals = vec![game.join("RPG_RT.ldb"), game.join("RPG_RT.lmt")];
     originals.extend(common::maps(game));
-    let mut failed = Vec::new();
+    let mut failed = the_views_disagree(&dump, &resolved);
     for a in &originals {
         let name = a.file_name().unwrap().to_string_lossy().to_string();
         let original = std::fs::read(a).unwrap();
@@ -69,6 +70,33 @@ fn there_and_back(game: &Path, tmp: &Temp) -> Vec<String> {
     );
     for f in &failed {
         println!("  {f}");
+    }
+    failed
+}
+
+/// What the library promises over a real game: the resolved view reads into
+/// the same values as the exact dump, which is what lets a consumer read the
+/// view that needs no schema and still get the schema's types. Returns what
+/// disagrees.
+fn the_views_disagree(exact: &Path, resolved: &Path) -> Vec<String> {
+    let (e, r) = (
+        ditto::dump::Dump::open(exact).expect("the exact dump opens"),
+        ditto::dump::Dump::open(resolved).expect("the resolved view opens"),
+    );
+    let mut failed = Vec::new();
+    if e.database().expect("exact database") != r.database().expect("resolved database") {
+        failed.push("the database reads differently from each view".to_string());
+    }
+    if e.tree().expect("exact tree") != r.tree().expect("resolved tree") {
+        failed.push("the tree reads differently from each view".to_string());
+    }
+    for path in e.map_files().expect("the maps") {
+        let name = path.file_name().unwrap().to_string_lossy().to_string();
+        let there = ditto::dump::read_map(&path).expect("exact map");
+        let here = ditto::dump::read_map(&resolved.join("maps").join(&name)).expect("resolved map");
+        if there != here {
+            failed.push(format!("{name} reads differently from each view"));
+        }
     }
     failed
 }

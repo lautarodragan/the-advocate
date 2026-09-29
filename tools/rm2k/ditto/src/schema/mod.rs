@@ -36,13 +36,10 @@ pub const kPanYDefault: i32 = 7 * 256;
 pub const kPanSpeedDefault: i32 = 2 << 3;
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AnimationPosition {
-    #[serde(rename = "up")]
     Up,
-    #[serde(rename = "middle")]
     Middle,
-    #[serde(rename = "down")]
     Down,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -75,6 +72,27 @@ impl AnimationPosition {
             AnimationPosition::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "up" => Some(AnimationPosition::Up),
+            "middle" => Some(AnimationPosition::Middle),
+            "down" => Some(AnimationPosition::Down),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for AnimationPosition {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(AnimationPosition::from_i32(v)),
+            EnumRepr::Other { other } => Ok(AnimationPosition::Other(other)),
+            EnumRepr::Name(n) => AnimationPosition::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["up", "middle", "down"])),
+        }
+    }
 }
 
 impl serde::Serialize for AnimationPosition {
@@ -88,11 +106,9 @@ impl Default for AnimationPosition {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AnimationScope {
-    #[serde(rename = "target")]
     Target,
-    #[serde(rename = "screen")]
     Screen,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -122,6 +138,26 @@ impl AnimationScope {
             AnimationScope::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "target" => Some(AnimationScope::Target),
+            "screen" => Some(AnimationScope::Screen),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for AnimationScope {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(AnimationScope::from_i32(v)),
+            EnumRepr::Other { other } => Ok(AnimationScope::Other(other)),
+            EnumRepr::Name(n) => AnimationScope::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["target", "screen"])),
+        }
+    }
 }
 
 impl serde::Serialize for AnimationScope {
@@ -135,13 +171,10 @@ impl Default for AnimationScope {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AnimationTimingFlashScope {
-    #[serde(rename = "nothing")]
     Nothing,
-    #[serde(rename = "target")]
     Target,
-    #[serde(rename = "screen")]
     Screen,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -174,6 +207,27 @@ impl AnimationTimingFlashScope {
             AnimationTimingFlashScope::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "nothing" => Some(AnimationTimingFlashScope::Nothing),
+            "target" => Some(AnimationTimingFlashScope::Target),
+            "screen" => Some(AnimationTimingFlashScope::Screen),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for AnimationTimingFlashScope {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(AnimationTimingFlashScope::from_i32(v)),
+            EnumRepr::Other { other } => Ok(AnimationTimingFlashScope::Other(other)),
+            EnumRepr::Name(n) => AnimationTimingFlashScope::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["nothing", "target", "screen"])),
+        }
+    }
 }
 
 impl serde::Serialize for AnimationTimingFlashScope {
@@ -187,13 +241,10 @@ impl Default for AnimationTimingFlashScope {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AnimationTimingScreenShake {
-    #[serde(rename = "nothing")]
     Nothing,
-    #[serde(rename = "target")]
     Target,
-    #[serde(rename = "screen")]
     Screen,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -226,6 +277,27 @@ impl AnimationTimingScreenShake {
             AnimationTimingScreenShake::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "nothing" => Some(AnimationTimingScreenShake::Nothing),
+            "target" => Some(AnimationTimingScreenShake::Target),
+            "screen" => Some(AnimationTimingScreenShake::Screen),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for AnimationTimingScreenShake {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(AnimationTimingScreenShake::from_i32(v)),
+            EnumRepr::Other { other } => Ok(AnimationTimingScreenShake::Other(other)),
+            EnumRepr::Name(n) => AnimationTimingScreenShake::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["nothing", "target", "screen"])),
+        }
+    }
 }
 
 impl serde::Serialize for AnimationTimingScreenShake {
@@ -239,11 +311,9 @@ impl Default for AnimationTimingScreenShake {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AttributeType {
-    #[serde(rename = "physical")]
     Physical,
-    #[serde(rename = "magical")]
     Magical,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -273,6 +343,26 @@ impl AttributeType {
             AttributeType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "physical" => Some(AttributeType::Physical),
+            "magical" => Some(AttributeType::Magical),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for AttributeType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(AttributeType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(AttributeType::Other(other)),
+            EnumRepr::Name(n) => AttributeType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["physical", "magical"])),
+        }
+    }
 }
 
 impl serde::Serialize for AttributeType {
@@ -286,21 +376,14 @@ impl Default for AttributeType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BattleCommandType {
-    #[serde(rename = "attack")]
     Attack,
-    #[serde(rename = "skill")]
     Skill,
-    #[serde(rename = "subskill")]
     Subskill,
-    #[serde(rename = "defense")]
     Defense,
-    #[serde(rename = "item")]
     Item,
-    #[serde(rename = "escape")]
     Escape,
-    #[serde(rename = "special")]
     Special,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -345,6 +428,31 @@ impl BattleCommandType {
             BattleCommandType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "attack" => Some(BattleCommandType::Attack),
+            "skill" => Some(BattleCommandType::Skill),
+            "subskill" => Some(BattleCommandType::Subskill),
+            "defense" => Some(BattleCommandType::Defense),
+            "item" => Some(BattleCommandType::Item),
+            "escape" => Some(BattleCommandType::Escape),
+            "special" => Some(BattleCommandType::Special),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for BattleCommandType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(BattleCommandType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(BattleCommandType::Other(other)),
+            EnumRepr::Name(n) => BattleCommandType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["attack", "skill", "subskill", "defense", "item", "escape", "special"])),
+        }
+    }
 }
 
 impl serde::Serialize for BattleCommandType {
@@ -358,13 +466,10 @@ impl Default for BattleCommandType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BattleCommandsBattleType {
-    #[serde(rename = "traditional")]
     Traditional,
-    #[serde(rename = "alternative")]
     Alternative,
-    #[serde(rename = "gauge")]
     Gauge,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -397,6 +502,27 @@ impl BattleCommandsBattleType {
             BattleCommandsBattleType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "traditional" => Some(BattleCommandsBattleType::Traditional),
+            "alternative" => Some(BattleCommandsBattleType::Alternative),
+            "gauge" => Some(BattleCommandsBattleType::Gauge),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for BattleCommandsBattleType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(BattleCommandsBattleType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(BattleCommandsBattleType::Other(other)),
+            EnumRepr::Name(n) => BattleCommandsBattleType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["traditional", "alternative", "gauge"])),
+        }
+    }
 }
 
 impl serde::Serialize for BattleCommandsBattleType {
@@ -410,17 +536,12 @@ impl Default for BattleCommandsBattleType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BattleCommandsFacing {
-    #[serde(rename = "retain")]
     Retain,
-    #[serde(rename = "up")]
     Up,
-    #[serde(rename = "right")]
     Right,
-    #[serde(rename = "down")]
     Down,
-    #[serde(rename = "left")]
     Left,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -459,6 +580,29 @@ impl BattleCommandsFacing {
             BattleCommandsFacing::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "retain" => Some(BattleCommandsFacing::Retain),
+            "up" => Some(BattleCommandsFacing::Up),
+            "right" => Some(BattleCommandsFacing::Right),
+            "down" => Some(BattleCommandsFacing::Down),
+            "left" => Some(BattleCommandsFacing::Left),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for BattleCommandsFacing {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(BattleCommandsFacing::from_i32(v)),
+            EnumRepr::Other { other } => Ok(BattleCommandsFacing::Other(other)),
+            EnumRepr::Name(n) => BattleCommandsFacing::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["retain", "up", "right", "down", "left"])),
+        }
+    }
 }
 
 impl serde::Serialize for BattleCommandsFacing {
@@ -472,11 +616,9 @@ impl Default for BattleCommandsFacing {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BattleCommandsPlacement {
-    #[serde(rename = "manual")]
     Manual,
-    #[serde(rename = "automatic")]
     Automatic,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -506,6 +648,26 @@ impl BattleCommandsPlacement {
             BattleCommandsPlacement::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "manual" => Some(BattleCommandsPlacement::Manual),
+            "automatic" => Some(BattleCommandsPlacement::Automatic),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for BattleCommandsPlacement {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(BattleCommandsPlacement::from_i32(v)),
+            EnumRepr::Other { other } => Ok(BattleCommandsPlacement::Other(other)),
+            EnumRepr::Name(n) => BattleCommandsPlacement::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["manual", "automatic"])),
+        }
+    }
 }
 
 impl serde::Serialize for BattleCommandsPlacement {
@@ -519,11 +681,9 @@ impl Default for BattleCommandsPlacement {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BattleCommandsRowShown {
-    #[serde(rename = "front")]
     Front,
-    #[serde(rename = "back")]
     Back,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -553,6 +713,26 @@ impl BattleCommandsRowShown {
             BattleCommandsRowShown::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "front" => Some(BattleCommandsRowShown::Front),
+            "back" => Some(BattleCommandsRowShown::Back),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for BattleCommandsRowShown {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(BattleCommandsRowShown::from_i32(v)),
+            EnumRepr::Other { other } => Ok(BattleCommandsRowShown::Other(other)),
+            EnumRepr::Name(n) => BattleCommandsRowShown::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["front", "back"])),
+        }
+    }
 }
 
 impl serde::Serialize for BattleCommandsRowShown {
@@ -566,11 +746,9 @@ impl Default for BattleCommandsRowShown {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BattleCommandsTransparency {
-    #[serde(rename = "opaque")]
     Opaque,
-    #[serde(rename = "transparent")]
     Transparent,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -600,6 +778,26 @@ impl BattleCommandsTransparency {
             BattleCommandsTransparency::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "opaque" => Some(BattleCommandsTransparency::Opaque),
+            "transparent" => Some(BattleCommandsTransparency::Transparent),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for BattleCommandsTransparency {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(BattleCommandsTransparency::from_i32(v)),
+            EnumRepr::Other { other } => Ok(BattleCommandsTransparency::Other(other)),
+            EnumRepr::Name(n) => BattleCommandsTransparency::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["opaque", "transparent"])),
+        }
+    }
 }
 
 impl serde::Serialize for BattleCommandsTransparency {
@@ -613,11 +811,9 @@ impl Default for BattleCommandsTransparency {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BattleCommandsWindowSize {
-    #[serde(rename = "large")]
     Large,
-    #[serde(rename = "small")]
     Small,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -647,6 +843,26 @@ impl BattleCommandsWindowSize {
             BattleCommandsWindowSize::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "large" => Some(BattleCommandsWindowSize::Large),
+            "small" => Some(BattleCommandsWindowSize::Small),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for BattleCommandsWindowSize {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(BattleCommandsWindowSize::from_i32(v)),
+            EnumRepr::Other { other } => Ok(BattleCommandsWindowSize::Other(other)),
+            EnumRepr::Name(n) => BattleCommandsWindowSize::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["large", "small"])),
+        }
+    }
 }
 
 impl serde::Serialize for BattleCommandsWindowSize {
@@ -660,11 +876,9 @@ impl Default for BattleCommandsWindowSize {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BattlerAnimationItemSkillAfterimage {
-    #[serde(rename = "none")]
     None,
-    #[serde(rename = "add")]
     Add,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -694,6 +908,26 @@ impl BattlerAnimationItemSkillAfterimage {
             BattlerAnimationItemSkillAfterimage::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "none" => Some(BattlerAnimationItemSkillAfterimage::None),
+            "add" => Some(BattlerAnimationItemSkillAfterimage::Add),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for BattlerAnimationItemSkillAfterimage {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(BattlerAnimationItemSkillAfterimage::from_i32(v)),
+            EnumRepr::Other { other } => Ok(BattlerAnimationItemSkillAfterimage::Other(other)),
+            EnumRepr::Name(n) => BattlerAnimationItemSkillAfterimage::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["none", "add"])),
+        }
+    }
 }
 
 impl serde::Serialize for BattlerAnimationItemSkillAfterimage {
@@ -707,11 +941,9 @@ impl Default for BattlerAnimationItemSkillAfterimage {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BattlerAnimationItemSkillAnimType {
-    #[serde(rename = "weapon")]
     Weapon,
-    #[serde(rename = "battle")]
     Battle,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -741,6 +973,26 @@ impl BattlerAnimationItemSkillAnimType {
             BattlerAnimationItemSkillAnimType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "weapon" => Some(BattlerAnimationItemSkillAnimType::Weapon),
+            "battle" => Some(BattlerAnimationItemSkillAnimType::Battle),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for BattlerAnimationItemSkillAnimType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(BattlerAnimationItemSkillAnimType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(BattlerAnimationItemSkillAnimType::Other(other)),
+            EnumRepr::Name(n) => BattlerAnimationItemSkillAnimType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["weapon", "battle"])),
+        }
+    }
 }
 
 impl serde::Serialize for BattlerAnimationItemSkillAnimType {
@@ -754,15 +1006,11 @@ impl Default for BattlerAnimationItemSkillAnimType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BattlerAnimationItemSkillMovement {
-    #[serde(rename = "none")]
     None,
-    #[serde(rename = "step")]
     Step,
-    #[serde(rename = "jump")]
     Jump,
-    #[serde(rename = "move")]
     Move,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -798,6 +1046,28 @@ impl BattlerAnimationItemSkillMovement {
             BattlerAnimationItemSkillMovement::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "none" => Some(BattlerAnimationItemSkillMovement::None),
+            "step" => Some(BattlerAnimationItemSkillMovement::Step),
+            "jump" => Some(BattlerAnimationItemSkillMovement::Jump),
+            "move" => Some(BattlerAnimationItemSkillMovement::Move),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for BattlerAnimationItemSkillMovement {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(BattlerAnimationItemSkillMovement::from_i32(v)),
+            EnumRepr::Other { other } => Ok(BattlerAnimationItemSkillMovement::Other(other)),
+            EnumRepr::Name(n) => BattlerAnimationItemSkillMovement::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["none", "step", "jump", "move"])),
+        }
+    }
 }
 
 impl serde::Serialize for BattlerAnimationItemSkillMovement {
@@ -811,13 +1081,10 @@ impl Default for BattlerAnimationItemSkillMovement {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BattlerAnimationItemSkillSpeed {
-    #[serde(rename = "fast")]
     Fast,
-    #[serde(rename = "medium")]
     Medium,
-    #[serde(rename = "slow")]
     Slow,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -850,6 +1117,27 @@ impl BattlerAnimationItemSkillSpeed {
             BattlerAnimationItemSkillSpeed::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "fast" => Some(BattlerAnimationItemSkillSpeed::Fast),
+            "medium" => Some(BattlerAnimationItemSkillSpeed::Medium),
+            "slow" => Some(BattlerAnimationItemSkillSpeed::Slow),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for BattlerAnimationItemSkillSpeed {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(BattlerAnimationItemSkillSpeed::from_i32(v)),
+            EnumRepr::Other { other } => Ok(BattlerAnimationItemSkillSpeed::Other(other)),
+            EnumRepr::Name(n) => BattlerAnimationItemSkillSpeed::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["fast", "medium", "slow"])),
+        }
+    }
 }
 
 impl serde::Serialize for BattlerAnimationItemSkillSpeed {
@@ -863,31 +1151,19 @@ impl Default for BattlerAnimationItemSkillSpeed {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BattlerAnimationPose {
-    #[serde(rename = "Idle")]
     Idle,
-    #[serde(rename = "AttackRight")]
     AttackRight,
-    #[serde(rename = "AttackLeft")]
     AttackLeft,
-    #[serde(rename = "Skill")]
     Skill,
-    #[serde(rename = "Dead")]
     Dead,
-    #[serde(rename = "Damage")]
     Damage,
-    #[serde(rename = "Dazed")]
     Dazed,
-    #[serde(rename = "Defend")]
     Defend,
-    #[serde(rename = "WalkLeft")]
     WalkLeft,
-    #[serde(rename = "WalkRight")]
     WalkRight,
-    #[serde(rename = "Victory")]
     Victory,
-    #[serde(rename = "Item")]
     Item,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -947,6 +1223,36 @@ impl BattlerAnimationPose {
             BattlerAnimationPose::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "Idle" => Some(BattlerAnimationPose::Idle),
+            "AttackRight" => Some(BattlerAnimationPose::AttackRight),
+            "AttackLeft" => Some(BattlerAnimationPose::AttackLeft),
+            "Skill" => Some(BattlerAnimationPose::Skill),
+            "Dead" => Some(BattlerAnimationPose::Dead),
+            "Damage" => Some(BattlerAnimationPose::Damage),
+            "Dazed" => Some(BattlerAnimationPose::Dazed),
+            "Defend" => Some(BattlerAnimationPose::Defend),
+            "WalkLeft" => Some(BattlerAnimationPose::WalkLeft),
+            "WalkRight" => Some(BattlerAnimationPose::WalkRight),
+            "Victory" => Some(BattlerAnimationPose::Victory),
+            "Item" => Some(BattlerAnimationPose::Item),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for BattlerAnimationPose {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(BattlerAnimationPose::from_i32(v)),
+            EnumRepr::Other { other } => Ok(BattlerAnimationPose::Other(other)),
+            EnumRepr::Name(n) => BattlerAnimationPose::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["Idle", "AttackRight", "AttackLeft", "Skill", "Dead", "Damage", "Dazed", "Defend", "WalkLeft", "WalkRight", "Victory", "Item"])),
+        }
+    }
 }
 
 impl serde::Serialize for BattlerAnimationPose {
@@ -960,11 +1266,9 @@ impl Default for BattlerAnimationPose {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BattlerAnimationPoseAnimType {
-    #[serde(rename = "character")]
     Character,
-    #[serde(rename = "battle")]
     Battle,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -994,6 +1298,26 @@ impl BattlerAnimationPoseAnimType {
             BattlerAnimationPoseAnimType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "character" => Some(BattlerAnimationPoseAnimType::Character),
+            "battle" => Some(BattlerAnimationPoseAnimType::Battle),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for BattlerAnimationPoseAnimType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(BattlerAnimationPoseAnimType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(BattlerAnimationPoseAnimType::Other(other)),
+            EnumRepr::Name(n) => BattlerAnimationPoseAnimType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["character", "battle"])),
+        }
+    }
 }
 
 impl serde::Serialize for BattlerAnimationPoseAnimType {
@@ -1007,13 +1331,10 @@ impl Default for BattlerAnimationPoseAnimType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BattlerAnimationSpeed {
-    #[serde(rename = "slow")]
     Slow,
-    #[serde(rename = "medium")]
     Medium,
-    #[serde(rename = "fast")]
     Fast,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -1046,6 +1367,27 @@ impl BattlerAnimationSpeed {
             BattlerAnimationSpeed::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "slow" => Some(BattlerAnimationSpeed::Slow),
+            "medium" => Some(BattlerAnimationSpeed::Medium),
+            "fast" => Some(BattlerAnimationSpeed::Fast),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for BattlerAnimationSpeed {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(BattlerAnimationSpeed::from_i32(v)),
+            EnumRepr::Other { other } => Ok(BattlerAnimationSpeed::Other(other)),
+            EnumRepr::Name(n) => BattlerAnimationSpeed::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["slow", "medium", "fast"])),
+        }
+    }
 }
 
 impl serde::Serialize for BattlerAnimationSpeed {
@@ -1059,11 +1401,9 @@ impl Default for BattlerAnimationSpeed {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChipsetAnimType {
-    #[serde(rename = "reciprocating")]
     Reciprocating,
-    #[serde(rename = "cyclic")]
     Cyclic,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -1093,6 +1433,26 @@ impl ChipsetAnimType {
             ChipsetAnimType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "reciprocating" => Some(ChipsetAnimType::Reciprocating),
+            "cyclic" => Some(ChipsetAnimType::Cyclic),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ChipsetAnimType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(ChipsetAnimType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(ChipsetAnimType::Other(other)),
+            EnumRepr::Name(n) => ChipsetAnimType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["reciprocating", "cyclic"])),
+        }
+    }
 }
 
 impl serde::Serialize for ChipsetAnimType {
@@ -1106,13 +1466,10 @@ impl Default for ChipsetAnimType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CommonEventTrigger {
-    #[serde(rename = "automatic")]
     Automatic,
-    #[serde(rename = "parallel")]
     Parallel,
-    #[serde(rename = "call")]
     Call,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -1145,6 +1502,27 @@ impl CommonEventTrigger {
             CommonEventTrigger::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "automatic" => Some(CommonEventTrigger::Automatic),
+            "parallel" => Some(CommonEventTrigger::Parallel),
+            "call" => Some(CommonEventTrigger::Call),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for CommonEventTrigger {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(CommonEventTrigger::from_i32(v)),
+            EnumRepr::Other { other } => Ok(CommonEventTrigger::Other(other)),
+            EnumRepr::Name(n) => CommonEventTrigger::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["automatic", "parallel", "call"])),
+        }
+    }
 }
 
 impl serde::Serialize for CommonEventTrigger {
@@ -1158,23 +1536,15 @@ impl Default for CommonEventTrigger {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EnemyActionBasic {
-    #[serde(rename = "attack")]
     Attack,
-    #[serde(rename = "dual_attack")]
     DualAttack,
-    #[serde(rename = "defense")]
     Defense,
-    #[serde(rename = "observe")]
     Observe,
-    #[serde(rename = "charge")]
     Charge,
-    #[serde(rename = "autodestruction")]
     Autodestruction,
-    #[serde(rename = "escape")]
     Escape,
-    #[serde(rename = "nothing")]
     Nothing,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -1222,6 +1592,32 @@ impl EnemyActionBasic {
             EnemyActionBasic::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "attack" => Some(EnemyActionBasic::Attack),
+            "dual_attack" => Some(EnemyActionBasic::DualAttack),
+            "defense" => Some(EnemyActionBasic::Defense),
+            "observe" => Some(EnemyActionBasic::Observe),
+            "charge" => Some(EnemyActionBasic::Charge),
+            "autodestruction" => Some(EnemyActionBasic::Autodestruction),
+            "escape" => Some(EnemyActionBasic::Escape),
+            "nothing" => Some(EnemyActionBasic::Nothing),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for EnemyActionBasic {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(EnemyActionBasic::from_i32(v)),
+            EnumRepr::Other { other } => Ok(EnemyActionBasic::Other(other)),
+            EnumRepr::Name(n) => EnemyActionBasic::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["attack", "dual_attack", "defense", "observe", "charge", "autodestruction", "escape", "nothing"])),
+        }
+    }
 }
 
 impl serde::Serialize for EnemyActionBasic {
@@ -1235,23 +1631,15 @@ impl Default for EnemyActionBasic {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EnemyActionConditionType {
-    #[serde(rename = "always")]
     Always,
-    #[serde(rename = "switch")]
     Switch,
-    #[serde(rename = "turn")]
     Turn,
-    #[serde(rename = "actors")]
     Actors,
-    #[serde(rename = "hp")]
     Hp,
-    #[serde(rename = "sp")]
     Sp,
-    #[serde(rename = "party_lvl")]
     PartyLvl,
-    #[serde(rename = "party_fatigue")]
     PartyFatigue,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -1299,6 +1687,32 @@ impl EnemyActionConditionType {
             EnemyActionConditionType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "always" => Some(EnemyActionConditionType::Always),
+            "switch" => Some(EnemyActionConditionType::Switch),
+            "turn" => Some(EnemyActionConditionType::Turn),
+            "actors" => Some(EnemyActionConditionType::Actors),
+            "hp" => Some(EnemyActionConditionType::Hp),
+            "sp" => Some(EnemyActionConditionType::Sp),
+            "party_lvl" => Some(EnemyActionConditionType::PartyLvl),
+            "party_fatigue" => Some(EnemyActionConditionType::PartyFatigue),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for EnemyActionConditionType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(EnemyActionConditionType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(EnemyActionConditionType::Other(other)),
+            EnumRepr::Name(n) => EnemyActionConditionType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["always", "switch", "turn", "actors", "hp", "sp", "party_lvl", "party_fatigue"])),
+        }
+    }
 }
 
 impl serde::Serialize for EnemyActionConditionType {
@@ -1312,13 +1726,10 @@ impl Default for EnemyActionConditionType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EnemyActionKind {
-    #[serde(rename = "basic")]
     Basic,
-    #[serde(rename = "skill")]
     Skill,
-    #[serde(rename = "transformation")]
     Transformation,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -1351,6 +1762,27 @@ impl EnemyActionKind {
             EnemyActionKind::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "basic" => Some(EnemyActionKind::Basic),
+            "skill" => Some(EnemyActionKind::Skill),
+            "transformation" => Some(EnemyActionKind::Transformation),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for EnemyActionKind {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(EnemyActionKind::from_i32(v)),
+            EnumRepr::Other { other } => Ok(EnemyActionKind::Other(other)),
+            EnumRepr::Name(n) => EnemyActionKind::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["basic", "skill", "transformation"])),
+        }
+    }
 }
 
 impl serde::Serialize for EnemyActionKind {
@@ -1364,263 +1796,135 @@ impl Default for EnemyActionKind {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventCommandCode {
-    #[serde(rename = "END")]
     END,
-    #[serde(rename = "CallCommonEvent")]
     CallCommonEvent,
-    #[serde(rename = "ForceFlee")]
     ForceFlee,
-    #[serde(rename = "EnableCombo")]
     EnableCombo,
-    #[serde(rename = "ChangeClass")]
     ChangeClass,
-    #[serde(rename = "ChangeBattleCommands")]
     ChangeBattleCommands,
-    #[serde(rename = "OpenLoadMenu")]
     OpenLoadMenu,
-    #[serde(rename = "ExitGame")]
     ExitGame,
-    #[serde(rename = "ToggleAtbMode")]
     ToggleAtbMode,
-    #[serde(rename = "ToggleFullscreen")]
     ToggleFullscreen,
-    #[serde(rename = "OpenVideoOptions")]
     OpenVideoOptions,
-    #[serde(rename = "ShowMessage")]
     ShowMessage,
-    #[serde(rename = "MessageOptions")]
     MessageOptions,
-    #[serde(rename = "ChangeFaceGraphic")]
     ChangeFaceGraphic,
-    #[serde(rename = "ShowChoice")]
     ShowChoice,
-    #[serde(rename = "InputNumber")]
     InputNumber,
-    #[serde(rename = "ControlSwitches")]
     ControlSwitches,
-    #[serde(rename = "ControlVars")]
     ControlVars,
-    #[serde(rename = "TimerOperation")]
     TimerOperation,
-    #[serde(rename = "ChangeGold")]
     ChangeGold,
-    #[serde(rename = "ChangeItems")]
     ChangeItems,
-    #[serde(rename = "ChangePartyMembers")]
     ChangePartyMembers,
-    #[serde(rename = "ChangeExp")]
     ChangeExp,
-    #[serde(rename = "ChangeLevel")]
     ChangeLevel,
-    #[serde(rename = "ChangeParameters")]
     ChangeParameters,
-    #[serde(rename = "ChangeSkills")]
     ChangeSkills,
-    #[serde(rename = "ChangeEquipment")]
     ChangeEquipment,
-    #[serde(rename = "ChangeHP")]
     ChangeHP,
-    #[serde(rename = "ChangeSP")]
     ChangeSP,
-    #[serde(rename = "ChangeCondition")]
     ChangeCondition,
-    #[serde(rename = "FullHeal")]
     FullHeal,
-    #[serde(rename = "SimulatedAttack")]
     SimulatedAttack,
-    #[serde(rename = "ChangeHeroName")]
     ChangeHeroName,
-    #[serde(rename = "ChangeHeroTitle")]
     ChangeHeroTitle,
-    #[serde(rename = "ChangeSpriteAssociation")]
     ChangeSpriteAssociation,
-    #[serde(rename = "ChangeActorFace")]
     ChangeActorFace,
-    #[serde(rename = "ChangeVehicleGraphic")]
     ChangeVehicleGraphic,
-    #[serde(rename = "ChangeSystemBGM")]
     ChangeSystemBGM,
-    #[serde(rename = "ChangeSystemSFX")]
     ChangeSystemSFX,
-    #[serde(rename = "ChangeSystemGraphics")]
     ChangeSystemGraphics,
-    #[serde(rename = "ChangeScreenTransitions")]
     ChangeScreenTransitions,
-    #[serde(rename = "EnemyEncounter")]
     EnemyEncounter,
-    #[serde(rename = "OpenShop")]
     OpenShop,
-    #[serde(rename = "ShowInn")]
     ShowInn,
-    #[serde(rename = "EnterHeroName")]
     EnterHeroName,
-    #[serde(rename = "Teleport")]
     Teleport,
-    #[serde(rename = "MemorizeLocation")]
     MemorizeLocation,
-    #[serde(rename = "RecallToLocation")]
     RecallToLocation,
-    #[serde(rename = "EnterExitVehicle")]
     EnterExitVehicle,
-    #[serde(rename = "SetVehicleLocation")]
     SetVehicleLocation,
-    #[serde(rename = "ChangeEventLocation")]
     ChangeEventLocation,
-    #[serde(rename = "TradeEventLocations")]
     TradeEventLocations,
-    #[serde(rename = "StoreTerrainID")]
     StoreTerrainID,
-    #[serde(rename = "StoreEventID")]
     StoreEventID,
-    #[serde(rename = "EraseScreen")]
     EraseScreen,
-    #[serde(rename = "ShowScreen")]
     ShowScreen,
-    #[serde(rename = "TintScreen")]
     TintScreen,
-    #[serde(rename = "FlashScreen")]
     FlashScreen,
-    #[serde(rename = "ShakeScreen")]
     ShakeScreen,
-    #[serde(rename = "PanScreen")]
     PanScreen,
-    #[serde(rename = "WeatherEffects")]
     WeatherEffects,
-    #[serde(rename = "ShowPicture")]
     ShowPicture,
-    #[serde(rename = "MovePicture")]
     MovePicture,
-    #[serde(rename = "ErasePicture")]
     ErasePicture,
-    #[serde(rename = "ShowBattleAnimation")]
     ShowBattleAnimation,
-    #[serde(rename = "PlayerVisibility")]
     PlayerVisibility,
-    #[serde(rename = "FlashSprite")]
     FlashSprite,
-    #[serde(rename = "MoveEvent")]
     MoveEvent,
-    #[serde(rename = "ProceedWithMovement")]
     ProceedWithMovement,
-    #[serde(rename = "HaltAllMovement")]
     HaltAllMovement,
-    #[serde(rename = "Wait")]
     Wait,
-    #[serde(rename = "PlayBGM")]
     PlayBGM,
-    #[serde(rename = "FadeOutBGM")]
     FadeOutBGM,
-    #[serde(rename = "MemorizeBGM")]
     MemorizeBGM,
-    #[serde(rename = "PlayMemorizedBGM")]
     PlayMemorizedBGM,
-    #[serde(rename = "PlaySound")]
     PlaySound,
-    #[serde(rename = "PlayMovie")]
     PlayMovie,
-    #[serde(rename = "KeyInputProc")]
     KeyInputProc,
-    #[serde(rename = "ChangeMapTileset")]
     ChangeMapTileset,
-    #[serde(rename = "ChangePBG")]
     ChangePBG,
-    #[serde(rename = "ChangeEncounterSteps")]
     ChangeEncounterSteps,
-    #[serde(rename = "TileSubstitution")]
     TileSubstitution,
-    #[serde(rename = "TeleportTargets")]
     TeleportTargets,
-    #[serde(rename = "ChangeTeleportAccess")]
     ChangeTeleportAccess,
-    #[serde(rename = "EscapeTarget")]
     EscapeTarget,
-    #[serde(rename = "ChangeEscapeAccess")]
     ChangeEscapeAccess,
-    #[serde(rename = "OpenSaveMenu")]
     OpenSaveMenu,
-    #[serde(rename = "ChangeSaveAccess")]
     ChangeSaveAccess,
-    #[serde(rename = "OpenMainMenu")]
     OpenMainMenu,
-    #[serde(rename = "ChangeMainMenuAccess")]
     ChangeMainMenuAccess,
-    #[serde(rename = "ConditionalBranch")]
     ConditionalBranch,
-    #[serde(rename = "Label")]
     Label,
-    #[serde(rename = "JumpToLabel")]
     JumpToLabel,
-    #[serde(rename = "Loop")]
     Loop,
-    #[serde(rename = "BreakLoop")]
     BreakLoop,
-    #[serde(rename = "EndEventProcessing")]
     EndEventProcessing,
-    #[serde(rename = "EraseEvent")]
     EraseEvent,
-    #[serde(rename = "CallEvent")]
     CallEvent,
-    #[serde(rename = "Comment")]
     Comment,
-    #[serde(rename = "GameOver")]
     GameOver,
-    #[serde(rename = "ReturntoTitleScreen")]
     ReturntoTitleScreen,
-    #[serde(rename = "ChangeMonsterHP")]
     ChangeMonsterHP,
-    #[serde(rename = "ChangeMonsterMP")]
     ChangeMonsterMP,
-    #[serde(rename = "ChangeMonsterCondition")]
     ChangeMonsterCondition,
-    #[serde(rename = "ShowHiddenMonster")]
     ShowHiddenMonster,
-    #[serde(rename = "ChangeBattleBG")]
     ChangeBattleBG,
-    #[serde(rename = "ShowBattleAnimation_B")]
     ShowBattleAnimationB,
-    #[serde(rename = "ConditionalBranch_B")]
     ConditionalBranchB,
-    #[serde(rename = "TerminateBattle")]
     TerminateBattle,
-    #[serde(rename = "ShowMessage_2")]
     ShowMessage2,
-    #[serde(rename = "ShowChoiceOption")]
     ShowChoiceOption,
-    #[serde(rename = "ShowChoiceEnd")]
     ShowChoiceEnd,
-    #[serde(rename = "VictoryHandler")]
     VictoryHandler,
-    #[serde(rename = "EscapeHandler")]
     EscapeHandler,
-    #[serde(rename = "DefeatHandler")]
     DefeatHandler,
-    #[serde(rename = "EndBattle")]
     EndBattle,
-    #[serde(rename = "Transaction")]
     Transaction,
-    #[serde(rename = "NoTransaction")]
     NoTransaction,
-    #[serde(rename = "EndShop")]
     EndShop,
-    #[serde(rename = "Stay")]
     Stay,
-    #[serde(rename = "NoStay")]
     NoStay,
-    #[serde(rename = "EndInn")]
     EndInn,
-    #[serde(rename = "ElseBranch")]
     ElseBranch,
-    #[serde(rename = "EndBranch")]
     EndBranch,
-    #[serde(rename = "EndLoop")]
     EndLoop,
-    #[serde(rename = "Comment_2")]
     Comment2,
-    #[serde(rename = "ElseBranch_B")]
     ElseBranchB,
-    #[serde(rename = "EndBranch_B")]
     EndBranchB,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -2028,6 +2332,152 @@ impl EventCommandCode {
             EventCommandCode::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "END" => Some(EventCommandCode::END),
+            "CallCommonEvent" => Some(EventCommandCode::CallCommonEvent),
+            "ForceFlee" => Some(EventCommandCode::ForceFlee),
+            "EnableCombo" => Some(EventCommandCode::EnableCombo),
+            "ChangeClass" => Some(EventCommandCode::ChangeClass),
+            "ChangeBattleCommands" => Some(EventCommandCode::ChangeBattleCommands),
+            "OpenLoadMenu" => Some(EventCommandCode::OpenLoadMenu),
+            "ExitGame" => Some(EventCommandCode::ExitGame),
+            "ToggleAtbMode" => Some(EventCommandCode::ToggleAtbMode),
+            "ToggleFullscreen" => Some(EventCommandCode::ToggleFullscreen),
+            "OpenVideoOptions" => Some(EventCommandCode::OpenVideoOptions),
+            "ShowMessage" => Some(EventCommandCode::ShowMessage),
+            "MessageOptions" => Some(EventCommandCode::MessageOptions),
+            "ChangeFaceGraphic" => Some(EventCommandCode::ChangeFaceGraphic),
+            "ShowChoice" => Some(EventCommandCode::ShowChoice),
+            "InputNumber" => Some(EventCommandCode::InputNumber),
+            "ControlSwitches" => Some(EventCommandCode::ControlSwitches),
+            "ControlVars" => Some(EventCommandCode::ControlVars),
+            "TimerOperation" => Some(EventCommandCode::TimerOperation),
+            "ChangeGold" => Some(EventCommandCode::ChangeGold),
+            "ChangeItems" => Some(EventCommandCode::ChangeItems),
+            "ChangePartyMembers" => Some(EventCommandCode::ChangePartyMembers),
+            "ChangeExp" => Some(EventCommandCode::ChangeExp),
+            "ChangeLevel" => Some(EventCommandCode::ChangeLevel),
+            "ChangeParameters" => Some(EventCommandCode::ChangeParameters),
+            "ChangeSkills" => Some(EventCommandCode::ChangeSkills),
+            "ChangeEquipment" => Some(EventCommandCode::ChangeEquipment),
+            "ChangeHP" => Some(EventCommandCode::ChangeHP),
+            "ChangeSP" => Some(EventCommandCode::ChangeSP),
+            "ChangeCondition" => Some(EventCommandCode::ChangeCondition),
+            "FullHeal" => Some(EventCommandCode::FullHeal),
+            "SimulatedAttack" => Some(EventCommandCode::SimulatedAttack),
+            "ChangeHeroName" => Some(EventCommandCode::ChangeHeroName),
+            "ChangeHeroTitle" => Some(EventCommandCode::ChangeHeroTitle),
+            "ChangeSpriteAssociation" => Some(EventCommandCode::ChangeSpriteAssociation),
+            "ChangeActorFace" => Some(EventCommandCode::ChangeActorFace),
+            "ChangeVehicleGraphic" => Some(EventCommandCode::ChangeVehicleGraphic),
+            "ChangeSystemBGM" => Some(EventCommandCode::ChangeSystemBGM),
+            "ChangeSystemSFX" => Some(EventCommandCode::ChangeSystemSFX),
+            "ChangeSystemGraphics" => Some(EventCommandCode::ChangeSystemGraphics),
+            "ChangeScreenTransitions" => Some(EventCommandCode::ChangeScreenTransitions),
+            "EnemyEncounter" => Some(EventCommandCode::EnemyEncounter),
+            "OpenShop" => Some(EventCommandCode::OpenShop),
+            "ShowInn" => Some(EventCommandCode::ShowInn),
+            "EnterHeroName" => Some(EventCommandCode::EnterHeroName),
+            "Teleport" => Some(EventCommandCode::Teleport),
+            "MemorizeLocation" => Some(EventCommandCode::MemorizeLocation),
+            "RecallToLocation" => Some(EventCommandCode::RecallToLocation),
+            "EnterExitVehicle" => Some(EventCommandCode::EnterExitVehicle),
+            "SetVehicleLocation" => Some(EventCommandCode::SetVehicleLocation),
+            "ChangeEventLocation" => Some(EventCommandCode::ChangeEventLocation),
+            "TradeEventLocations" => Some(EventCommandCode::TradeEventLocations),
+            "StoreTerrainID" => Some(EventCommandCode::StoreTerrainID),
+            "StoreEventID" => Some(EventCommandCode::StoreEventID),
+            "EraseScreen" => Some(EventCommandCode::EraseScreen),
+            "ShowScreen" => Some(EventCommandCode::ShowScreen),
+            "TintScreen" => Some(EventCommandCode::TintScreen),
+            "FlashScreen" => Some(EventCommandCode::FlashScreen),
+            "ShakeScreen" => Some(EventCommandCode::ShakeScreen),
+            "PanScreen" => Some(EventCommandCode::PanScreen),
+            "WeatherEffects" => Some(EventCommandCode::WeatherEffects),
+            "ShowPicture" => Some(EventCommandCode::ShowPicture),
+            "MovePicture" => Some(EventCommandCode::MovePicture),
+            "ErasePicture" => Some(EventCommandCode::ErasePicture),
+            "ShowBattleAnimation" => Some(EventCommandCode::ShowBattleAnimation),
+            "PlayerVisibility" => Some(EventCommandCode::PlayerVisibility),
+            "FlashSprite" => Some(EventCommandCode::FlashSprite),
+            "MoveEvent" => Some(EventCommandCode::MoveEvent),
+            "ProceedWithMovement" => Some(EventCommandCode::ProceedWithMovement),
+            "HaltAllMovement" => Some(EventCommandCode::HaltAllMovement),
+            "Wait" => Some(EventCommandCode::Wait),
+            "PlayBGM" => Some(EventCommandCode::PlayBGM),
+            "FadeOutBGM" => Some(EventCommandCode::FadeOutBGM),
+            "MemorizeBGM" => Some(EventCommandCode::MemorizeBGM),
+            "PlayMemorizedBGM" => Some(EventCommandCode::PlayMemorizedBGM),
+            "PlaySound" => Some(EventCommandCode::PlaySound),
+            "PlayMovie" => Some(EventCommandCode::PlayMovie),
+            "KeyInputProc" => Some(EventCommandCode::KeyInputProc),
+            "ChangeMapTileset" => Some(EventCommandCode::ChangeMapTileset),
+            "ChangePBG" => Some(EventCommandCode::ChangePBG),
+            "ChangeEncounterSteps" => Some(EventCommandCode::ChangeEncounterSteps),
+            "TileSubstitution" => Some(EventCommandCode::TileSubstitution),
+            "TeleportTargets" => Some(EventCommandCode::TeleportTargets),
+            "ChangeTeleportAccess" => Some(EventCommandCode::ChangeTeleportAccess),
+            "EscapeTarget" => Some(EventCommandCode::EscapeTarget),
+            "ChangeEscapeAccess" => Some(EventCommandCode::ChangeEscapeAccess),
+            "OpenSaveMenu" => Some(EventCommandCode::OpenSaveMenu),
+            "ChangeSaveAccess" => Some(EventCommandCode::ChangeSaveAccess),
+            "OpenMainMenu" => Some(EventCommandCode::OpenMainMenu),
+            "ChangeMainMenuAccess" => Some(EventCommandCode::ChangeMainMenuAccess),
+            "ConditionalBranch" => Some(EventCommandCode::ConditionalBranch),
+            "Label" => Some(EventCommandCode::Label),
+            "JumpToLabel" => Some(EventCommandCode::JumpToLabel),
+            "Loop" => Some(EventCommandCode::Loop),
+            "BreakLoop" => Some(EventCommandCode::BreakLoop),
+            "EndEventProcessing" => Some(EventCommandCode::EndEventProcessing),
+            "EraseEvent" => Some(EventCommandCode::EraseEvent),
+            "CallEvent" => Some(EventCommandCode::CallEvent),
+            "Comment" => Some(EventCommandCode::Comment),
+            "GameOver" => Some(EventCommandCode::GameOver),
+            "ReturntoTitleScreen" => Some(EventCommandCode::ReturntoTitleScreen),
+            "ChangeMonsterHP" => Some(EventCommandCode::ChangeMonsterHP),
+            "ChangeMonsterMP" => Some(EventCommandCode::ChangeMonsterMP),
+            "ChangeMonsterCondition" => Some(EventCommandCode::ChangeMonsterCondition),
+            "ShowHiddenMonster" => Some(EventCommandCode::ShowHiddenMonster),
+            "ChangeBattleBG" => Some(EventCommandCode::ChangeBattleBG),
+            "ShowBattleAnimation_B" => Some(EventCommandCode::ShowBattleAnimationB),
+            "ConditionalBranch_B" => Some(EventCommandCode::ConditionalBranchB),
+            "TerminateBattle" => Some(EventCommandCode::TerminateBattle),
+            "ShowMessage_2" => Some(EventCommandCode::ShowMessage2),
+            "ShowChoiceOption" => Some(EventCommandCode::ShowChoiceOption),
+            "ShowChoiceEnd" => Some(EventCommandCode::ShowChoiceEnd),
+            "VictoryHandler" => Some(EventCommandCode::VictoryHandler),
+            "EscapeHandler" => Some(EventCommandCode::EscapeHandler),
+            "DefeatHandler" => Some(EventCommandCode::DefeatHandler),
+            "EndBattle" => Some(EventCommandCode::EndBattle),
+            "Transaction" => Some(EventCommandCode::Transaction),
+            "NoTransaction" => Some(EventCommandCode::NoTransaction),
+            "EndShop" => Some(EventCommandCode::EndShop),
+            "Stay" => Some(EventCommandCode::Stay),
+            "NoStay" => Some(EventCommandCode::NoStay),
+            "EndInn" => Some(EventCommandCode::EndInn),
+            "ElseBranch" => Some(EventCommandCode::ElseBranch),
+            "EndBranch" => Some(EventCommandCode::EndBranch),
+            "EndLoop" => Some(EventCommandCode::EndLoop),
+            "Comment_2" => Some(EventCommandCode::Comment2),
+            "ElseBranch_B" => Some(EventCommandCode::ElseBranchB),
+            "EndBranch_B" => Some(EventCommandCode::EndBranchB),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for EventCommandCode {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(EventCommandCode::from_i32(v)),
+            EnumRepr::Other { other } => Ok(EventCommandCode::Other(other)),
+            EnumRepr::Name(n) => EventCommandCode::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["END", "CallCommonEvent", "ForceFlee", "EnableCombo", "ChangeClass", "ChangeBattleCommands", "OpenLoadMenu", "ExitGame", "ToggleAtbMode", "ToggleFullscreen", "OpenVideoOptions", "ShowMessage", "MessageOptions", "ChangeFaceGraphic", "ShowChoice", "InputNumber", "ControlSwitches", "ControlVars", "TimerOperation", "ChangeGold", "ChangeItems", "ChangePartyMembers", "ChangeExp", "ChangeLevel", "ChangeParameters", "ChangeSkills", "ChangeEquipment", "ChangeHP", "ChangeSP", "ChangeCondition", "FullHeal", "SimulatedAttack", "ChangeHeroName", "ChangeHeroTitle", "ChangeSpriteAssociation", "ChangeActorFace", "ChangeVehicleGraphic", "ChangeSystemBGM", "ChangeSystemSFX", "ChangeSystemGraphics", "ChangeScreenTransitions", "EnemyEncounter", "OpenShop", "ShowInn", "EnterHeroName", "Teleport", "MemorizeLocation", "RecallToLocation", "EnterExitVehicle", "SetVehicleLocation", "ChangeEventLocation", "TradeEventLocations", "StoreTerrainID", "StoreEventID", "EraseScreen", "ShowScreen", "TintScreen", "FlashScreen", "ShakeScreen", "PanScreen", "WeatherEffects", "ShowPicture", "MovePicture", "ErasePicture", "ShowBattleAnimation", "PlayerVisibility", "FlashSprite", "MoveEvent", "ProceedWithMovement", "HaltAllMovement", "Wait", "PlayBGM", "FadeOutBGM", "MemorizeBGM", "PlayMemorizedBGM", "PlaySound", "PlayMovie", "KeyInputProc", "ChangeMapTileset", "ChangePBG", "ChangeEncounterSteps", "TileSubstitution", "TeleportTargets", "ChangeTeleportAccess", "EscapeTarget", "ChangeEscapeAccess", "OpenSaveMenu", "ChangeSaveAccess", "OpenMainMenu", "ChangeMainMenuAccess", "ConditionalBranch", "Label", "JumpToLabel", "Loop", "BreakLoop", "EndEventProcessing", "EraseEvent", "CallEvent", "Comment", "GameOver", "ReturntoTitleScreen", "ChangeMonsterHP", "ChangeMonsterMP", "ChangeMonsterCondition", "ShowHiddenMonster", "ChangeBattleBG", "ShowBattleAnimation_B", "ConditionalBranch_B", "TerminateBattle", "ShowMessage_2", "ShowChoiceOption", "ShowChoiceEnd", "VictoryHandler", "EscapeHandler", "DefeatHandler", "EndBattle", "Transaction", "NoTransaction", "EndShop", "Stay", "NoStay", "EndInn", "ElseBranch", "EndBranch", "EndLoop", "Comment_2", "ElseBranch_B", "EndBranch_B"])),
+        }
+    }
 }
 
 impl serde::Serialize for EventCommandCode {
@@ -2041,21 +2491,14 @@ impl Default for EventCommandCode {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventPageAnimType {
-    #[serde(rename = "non_continuous")]
     NonContinuous,
-    #[serde(rename = "continuous")]
     Continuous,
-    #[serde(rename = "fixed_non_continuous")]
     FixedNonContinuous,
-    #[serde(rename = "fixed_continuous")]
     FixedContinuous,
-    #[serde(rename = "fixed_graphic")]
     FixedGraphic,
-    #[serde(rename = "spin")]
     Spin,
-    #[serde(rename = "step_frame_fix")]
     StepFrameFix,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -2100,6 +2543,31 @@ impl EventPageAnimType {
             EventPageAnimType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "non_continuous" => Some(EventPageAnimType::NonContinuous),
+            "continuous" => Some(EventPageAnimType::Continuous),
+            "fixed_non_continuous" => Some(EventPageAnimType::FixedNonContinuous),
+            "fixed_continuous" => Some(EventPageAnimType::FixedContinuous),
+            "fixed_graphic" => Some(EventPageAnimType::FixedGraphic),
+            "spin" => Some(EventPageAnimType::Spin),
+            "step_frame_fix" => Some(EventPageAnimType::StepFrameFix),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for EventPageAnimType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(EventPageAnimType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(EventPageAnimType::Other(other)),
+            EnumRepr::Name(n) => EventPageAnimType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["non_continuous", "continuous", "fixed_non_continuous", "fixed_continuous", "fixed_graphic", "spin", "step_frame_fix"])),
+        }
+    }
 }
 
 impl serde::Serialize for EventPageAnimType {
@@ -2113,19 +2581,13 @@ impl Default for EventPageAnimType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventPageConditionComparison {
-    #[serde(rename = "equal")]
     Equal,
-    #[serde(rename = "greater_equal")]
     GreaterEqual,
-    #[serde(rename = "less_equal")]
     LessEqual,
-    #[serde(rename = "greater")]
     Greater,
-    #[serde(rename = "less")]
     Less,
-    #[serde(rename = "not_equal")]
     NotEqual,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -2167,6 +2629,30 @@ impl EventPageConditionComparison {
             EventPageConditionComparison::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "equal" => Some(EventPageConditionComparison::Equal),
+            "greater_equal" => Some(EventPageConditionComparison::GreaterEqual),
+            "less_equal" => Some(EventPageConditionComparison::LessEqual),
+            "greater" => Some(EventPageConditionComparison::Greater),
+            "less" => Some(EventPageConditionComparison::Less),
+            "not_equal" => Some(EventPageConditionComparison::NotEqual),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for EventPageConditionComparison {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(EventPageConditionComparison::from_i32(v)),
+            EnumRepr::Other { other } => Ok(EventPageConditionComparison::Other(other)),
+            EnumRepr::Name(n) => EventPageConditionComparison::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["equal", "greater_equal", "less_equal", "greater", "less", "not_equal"])),
+        }
+    }
 }
 
 impl serde::Serialize for EventPageConditionComparison {
@@ -2180,15 +2666,11 @@ impl Default for EventPageConditionComparison {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventPageDirection {
-    #[serde(rename = "up")]
     Up,
-    #[serde(rename = "right")]
     Right,
-    #[serde(rename = "down")]
     Down,
-    #[serde(rename = "left")]
     Left,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -2224,6 +2706,28 @@ impl EventPageDirection {
             EventPageDirection::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "up" => Some(EventPageDirection::Up),
+            "right" => Some(EventPageDirection::Right),
+            "down" => Some(EventPageDirection::Down),
+            "left" => Some(EventPageDirection::Left),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for EventPageDirection {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(EventPageDirection::from_i32(v)),
+            EnumRepr::Other { other } => Ok(EventPageDirection::Other(other)),
+            EnumRepr::Name(n) => EventPageDirection::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["up", "right", "down", "left"])),
+        }
+    }
 }
 
 impl serde::Serialize for EventPageDirection {
@@ -2237,15 +2741,11 @@ impl Default for EventPageDirection {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventPageFrame {
-    #[serde(rename = "left")]
     Left,
-    #[serde(rename = "middle")]
     Middle,
-    #[serde(rename = "right")]
     Right,
-    #[serde(rename = "middle2")]
     Middle2,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -2281,6 +2781,28 @@ impl EventPageFrame {
             EventPageFrame::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "left" => Some(EventPageFrame::Left),
+            "middle" => Some(EventPageFrame::Middle),
+            "right" => Some(EventPageFrame::Right),
+            "middle2" => Some(EventPageFrame::Middle2),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for EventPageFrame {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(EventPageFrame::from_i32(v)),
+            EnumRepr::Other { other } => Ok(EventPageFrame::Other(other)),
+            EnumRepr::Name(n) => EventPageFrame::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["left", "middle", "right", "middle2"])),
+        }
+    }
 }
 
 impl serde::Serialize for EventPageFrame {
@@ -2294,13 +2816,10 @@ impl Default for EventPageFrame {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventPageLayers {
-    #[serde(rename = "below")]
     Below,
-    #[serde(rename = "same")]
     Same,
-    #[serde(rename = "above")]
     Above,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -2333,6 +2852,27 @@ impl EventPageLayers {
             EventPageLayers::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "below" => Some(EventPageLayers::Below),
+            "same" => Some(EventPageLayers::Same),
+            "above" => Some(EventPageLayers::Above),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for EventPageLayers {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(EventPageLayers::from_i32(v)),
+            EnumRepr::Other { other } => Ok(EventPageLayers::Other(other)),
+            EnumRepr::Name(n) => EventPageLayers::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["below", "same", "above"])),
+        }
+    }
 }
 
 impl serde::Serialize for EventPageLayers {
@@ -2346,19 +2886,13 @@ impl Default for EventPageLayers {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventPageMoveSpeed {
-    #[serde(rename = "eighth")]
     Eighth,
-    #[serde(rename = "quarter")]
     Quarter,
-    #[serde(rename = "half")]
     Half,
-    #[serde(rename = "normal")]
     Normal,
-    #[serde(rename = "double")]
     Double,
-    #[serde(rename = "fourfold")]
     Fourfold,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -2400,6 +2934,30 @@ impl EventPageMoveSpeed {
             EventPageMoveSpeed::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "eighth" => Some(EventPageMoveSpeed::Eighth),
+            "quarter" => Some(EventPageMoveSpeed::Quarter),
+            "half" => Some(EventPageMoveSpeed::Half),
+            "normal" => Some(EventPageMoveSpeed::Normal),
+            "double" => Some(EventPageMoveSpeed::Double),
+            "fourfold" => Some(EventPageMoveSpeed::Fourfold),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for EventPageMoveSpeed {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(EventPageMoveSpeed::from_i32(v)),
+            EnumRepr::Other { other } => Ok(EventPageMoveSpeed::Other(other)),
+            EnumRepr::Name(n) => EventPageMoveSpeed::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["eighth", "quarter", "half", "normal", "double", "fourfold"])),
+        }
+    }
 }
 
 impl serde::Serialize for EventPageMoveSpeed {
@@ -2413,21 +2971,14 @@ impl Default for EventPageMoveSpeed {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventPageMoveType {
-    #[serde(rename = "stationary")]
     Stationary,
-    #[serde(rename = "random")]
     Random,
-    #[serde(rename = "vertical")]
     Vertical,
-    #[serde(rename = "horizontal")]
     Horizontal,
-    #[serde(rename = "toward")]
     Toward,
-    #[serde(rename = "away")]
     Away,
-    #[serde(rename = "custom")]
     Custom,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -2472,6 +3023,31 @@ impl EventPageMoveType {
             EventPageMoveType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "stationary" => Some(EventPageMoveType::Stationary),
+            "random" => Some(EventPageMoveType::Random),
+            "vertical" => Some(EventPageMoveType::Vertical),
+            "horizontal" => Some(EventPageMoveType::Horizontal),
+            "toward" => Some(EventPageMoveType::Toward),
+            "away" => Some(EventPageMoveType::Away),
+            "custom" => Some(EventPageMoveType::Custom),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for EventPageMoveType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(EventPageMoveType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(EventPageMoveType::Other(other)),
+            EnumRepr::Name(n) => EventPageMoveType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["stationary", "random", "vertical", "horizontal", "toward", "away", "custom"])),
+        }
+    }
 }
 
 impl serde::Serialize for EventPageMoveType {
@@ -2485,17 +3061,12 @@ impl Default for EventPageMoveType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventPageTrigger {
-    #[serde(rename = "action")]
     Action,
-    #[serde(rename = "touched")]
     Touched,
-    #[serde(rename = "collision")]
     Collision,
-    #[serde(rename = "auto_start")]
     AutoStart,
-    #[serde(rename = "parallel")]
     Parallel,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -2534,6 +3105,29 @@ impl EventPageTrigger {
             EventPageTrigger::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "action" => Some(EventPageTrigger::Action),
+            "touched" => Some(EventPageTrigger::Touched),
+            "collision" => Some(EventPageTrigger::Collision),
+            "auto_start" => Some(EventPageTrigger::AutoStart),
+            "parallel" => Some(EventPageTrigger::Parallel),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for EventPageTrigger {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(EventPageTrigger::from_i32(v)),
+            EnumRepr::Other { other } => Ok(EventPageTrigger::Other(other)),
+            EnumRepr::Name(n) => EventPageTrigger::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["action", "touched", "collision", "auto_start", "parallel"])),
+        }
+    }
 }
 
 impl serde::Serialize for EventPageTrigger {
@@ -2547,15 +3141,11 @@ impl Default for EventPageTrigger {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ItemTarget {
-    #[serde(rename = "single")]
     Single,
-    #[serde(rename = "center")]
     Center,
-    #[serde(rename = "simultaneous")]
     Simultaneous,
-    #[serde(rename = "sequential")]
     Sequential,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -2591,6 +3181,28 @@ impl ItemTarget {
             ItemTarget::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "single" => Some(ItemTarget::Single),
+            "center" => Some(ItemTarget::Center),
+            "simultaneous" => Some(ItemTarget::Simultaneous),
+            "sequential" => Some(ItemTarget::Sequential),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ItemTarget {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(ItemTarget::from_i32(v)),
+            EnumRepr::Other { other } => Ok(ItemTarget::Other(other)),
+            EnumRepr::Name(n) => ItemTarget::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["single", "center", "simultaneous", "sequential"])),
+        }
+    }
 }
 
 impl serde::Serialize for ItemTarget {
@@ -2604,11 +3216,9 @@ impl Default for ItemTarget {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ItemTrajectory {
-    #[serde(rename = "straight")]
     Straight,
-    #[serde(rename = "return")]
     Return,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -2638,6 +3248,26 @@ impl ItemTrajectory {
             ItemTrajectory::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "straight" => Some(ItemTrajectory::Straight),
+            "return" => Some(ItemTrajectory::Return),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ItemTrajectory {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(ItemTrajectory::from_i32(v)),
+            EnumRepr::Other { other } => Ok(ItemTrajectory::Other(other)),
+            EnumRepr::Name(n) => ItemTrajectory::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["straight", "return"])),
+        }
+    }
 }
 
 impl serde::Serialize for ItemTrajectory {
@@ -2651,29 +3281,18 @@ impl Default for ItemTrajectory {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ItemType {
-    #[serde(rename = "normal")]
     Normal,
-    #[serde(rename = "weapon")]
     Weapon,
-    #[serde(rename = "shield")]
     Shield,
-    #[serde(rename = "armor")]
     Armor,
-    #[serde(rename = "helmet")]
     Helmet,
-    #[serde(rename = "accessory")]
     Accessory,
-    #[serde(rename = "medicine")]
     Medicine,
-    #[serde(rename = "book")]
     Book,
-    #[serde(rename = "material")]
     Material,
-    #[serde(rename = "special")]
     Special,
-    #[serde(rename = "switch")]
     Switch,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -2730,6 +3349,35 @@ impl ItemType {
             ItemType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "normal" => Some(ItemType::Normal),
+            "weapon" => Some(ItemType::Weapon),
+            "shield" => Some(ItemType::Shield),
+            "armor" => Some(ItemType::Armor),
+            "helmet" => Some(ItemType::Helmet),
+            "accessory" => Some(ItemType::Accessory),
+            "medicine" => Some(ItemType::Medicine),
+            "book" => Some(ItemType::Book),
+            "material" => Some(ItemType::Material),
+            "special" => Some(ItemType::Special),
+            "switch" => Some(ItemType::Switch),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ItemType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(ItemType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(ItemType::Other(other)),
+            EnumRepr::Name(n) => ItemType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["normal", "weapon", "shield", "armor", "helmet", "accessory", "medicine", "book", "material", "special", "switch"])),
+        }
+    }
 }
 
 impl serde::Serialize for ItemType {
@@ -2743,15 +3391,11 @@ impl Default for ItemType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MapGeneratorMode {
-    #[serde(rename = "single_passage")]
     SinglePassage,
-    #[serde(rename = "linked_rooms")]
     LinkedRooms,
-    #[serde(rename = "maze_passage")]
     MazePassage,
-    #[serde(rename = "open_room")]
     OpenRoom,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -2787,6 +3431,28 @@ impl MapGeneratorMode {
             MapGeneratorMode::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "single_passage" => Some(MapGeneratorMode::SinglePassage),
+            "linked_rooms" => Some(MapGeneratorMode::LinkedRooms),
+            "maze_passage" => Some(MapGeneratorMode::MazePassage),
+            "open_room" => Some(MapGeneratorMode::OpenRoom),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for MapGeneratorMode {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(MapGeneratorMode::from_i32(v)),
+            EnumRepr::Other { other } => Ok(MapGeneratorMode::Other(other)),
+            EnumRepr::Name(n) => MapGeneratorMode::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["single_passage", "linked_rooms", "maze_passage", "open_room"])),
+        }
+    }
 }
 
 impl serde::Serialize for MapGeneratorMode {
@@ -2800,11 +3466,9 @@ impl Default for MapGeneratorMode {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MapGeneratorTiles {
-    #[serde(rename = "one")]
     One,
-    #[serde(rename = "two")]
     Two,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -2834,6 +3498,26 @@ impl MapGeneratorTiles {
             MapGeneratorTiles::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "one" => Some(MapGeneratorTiles::One),
+            "two" => Some(MapGeneratorTiles::Two),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for MapGeneratorTiles {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(MapGeneratorTiles::from_i32(v)),
+            EnumRepr::Other { other } => Ok(MapGeneratorTiles::Other(other)),
+            EnumRepr::Name(n) => MapGeneratorTiles::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["one", "two"])),
+        }
+    }
 }
 
 impl serde::Serialize for MapGeneratorTiles {
@@ -2847,13 +3531,10 @@ impl Default for MapGeneratorTiles {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MapInfoBGMType {
-    #[serde(rename = "parent")]
     Parent,
-    #[serde(rename = "terrain")]
     Terrain,
-    #[serde(rename = "specific")]
     Specific,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -2886,6 +3567,27 @@ impl MapInfoBGMType {
             MapInfoBGMType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "parent" => Some(MapInfoBGMType::Parent),
+            "terrain" => Some(MapInfoBGMType::Terrain),
+            "specific" => Some(MapInfoBGMType::Specific),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for MapInfoBGMType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(MapInfoBGMType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(MapInfoBGMType::Other(other)),
+            EnumRepr::Name(n) => MapInfoBGMType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["parent", "terrain", "specific"])),
+        }
+    }
 }
 
 impl serde::Serialize for MapInfoBGMType {
@@ -2899,13 +3601,10 @@ impl Default for MapInfoBGMType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MapInfoMusicType {
-    #[serde(rename = "parent")]
     Parent,
-    #[serde(rename = "event")]
     Event,
-    #[serde(rename = "specific")]
     Specific,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -2938,6 +3637,27 @@ impl MapInfoMusicType {
             MapInfoMusicType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "parent" => Some(MapInfoMusicType::Parent),
+            "event" => Some(MapInfoMusicType::Event),
+            "specific" => Some(MapInfoMusicType::Specific),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for MapInfoMusicType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(MapInfoMusicType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(MapInfoMusicType::Other(other)),
+            EnumRepr::Name(n) => MapInfoMusicType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["parent", "event", "specific"])),
+        }
+    }
 }
 
 impl serde::Serialize for MapInfoMusicType {
@@ -2951,13 +3671,10 @@ impl Default for MapInfoMusicType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MapInfoTriState {
-    #[serde(rename = "parent")]
     Parent,
-    #[serde(rename = "allow")]
     Allow,
-    #[serde(rename = "forbid")]
     Forbid,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -2990,6 +3707,27 @@ impl MapInfoTriState {
             MapInfoTriState::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "parent" => Some(MapInfoTriState::Parent),
+            "allow" => Some(MapInfoTriState::Allow),
+            "forbid" => Some(MapInfoTriState::Forbid),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for MapInfoTriState {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(MapInfoTriState::from_i32(v)),
+            EnumRepr::Other { other } => Ok(MapInfoTriState::Other(other)),
+            EnumRepr::Name(n) => MapInfoTriState::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["parent", "allow", "forbid"])),
+        }
+    }
 }
 
 impl serde::Serialize for MapInfoTriState {
@@ -3003,15 +3741,11 @@ impl Default for MapInfoTriState {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MapScrollType {
-    #[serde(rename = "none")]
     None,
-    #[serde(rename = "vertical")]
     Vertical,
-    #[serde(rename = "horizontal")]
     Horizontal,
-    #[serde(rename = "both")]
     Both,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -3047,6 +3781,28 @@ impl MapScrollType {
             MapScrollType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "none" => Some(MapScrollType::None),
+            "vertical" => Some(MapScrollType::Vertical),
+            "horizontal" => Some(MapScrollType::Horizontal),
+            "both" => Some(MapScrollType::Both),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for MapScrollType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(MapScrollType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(MapScrollType::Other(other)),
+            EnumRepr::Name(n) => MapScrollType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["none", "vertical", "horizontal", "both"])),
+        }
+    }
 }
 
 impl serde::Serialize for MapScrollType {
@@ -3060,91 +3816,49 @@ impl Default for MapScrollType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MoveCommandCode {
-    #[serde(rename = "move_up")]
     MoveUp,
-    #[serde(rename = "move_right")]
     MoveRight,
-    #[serde(rename = "move_down")]
     MoveDown,
-    #[serde(rename = "move_left")]
     MoveLeft,
-    #[serde(rename = "move_upright")]
     MoveUpright,
-    #[serde(rename = "move_downright")]
     MoveDownright,
-    #[serde(rename = "move_downleft")]
     MoveDownleft,
-    #[serde(rename = "move_upleft")]
     MoveUpleft,
-    #[serde(rename = "move_random")]
     MoveRandom,
-    #[serde(rename = "move_towards_hero")]
     MoveTowardsHero,
-    #[serde(rename = "move_away_from_hero")]
     MoveAwayFromHero,
-    #[serde(rename = "move_forward")]
     MoveForward,
-    #[serde(rename = "face_up")]
     FaceUp,
-    #[serde(rename = "face_right")]
     FaceRight,
-    #[serde(rename = "face_down")]
     FaceDown,
-    #[serde(rename = "face_left")]
     FaceLeft,
-    #[serde(rename = "turn_90_degree_right")]
     Turn90DegreeRight,
-    #[serde(rename = "turn_90_degree_left")]
     Turn90DegreeLeft,
-    #[serde(rename = "turn_180_degree")]
     Turn180Degree,
-    #[serde(rename = "turn_90_degree_random")]
     Turn90DegreeRandom,
-    #[serde(rename = "face_random_direction")]
     FaceRandomDirection,
-    #[serde(rename = "face_hero")]
     FaceHero,
-    #[serde(rename = "face_away_from_hero")]
     FaceAwayFromHero,
-    #[serde(rename = "wait")]
     Wait,
-    #[serde(rename = "begin_jump")]
     BeginJump,
-    #[serde(rename = "end_jump")]
     EndJump,
-    #[serde(rename = "lock_facing")]
     LockFacing,
-    #[serde(rename = "unlock_facing")]
     UnlockFacing,
-    #[serde(rename = "increase_movement_speed")]
     IncreaseMovementSpeed,
-    #[serde(rename = "decrease_movement_speed")]
     DecreaseMovementSpeed,
-    #[serde(rename = "increase_movement_frequence")]
     IncreaseMovementFrequence,
-    #[serde(rename = "decrease_movement_frequence")]
     DecreaseMovementFrequence,
-    #[serde(rename = "switch_on")]
     SwitchOn,
-    #[serde(rename = "switch_off")]
     SwitchOff,
-    #[serde(rename = "change_graphic")]
     ChangeGraphic,
-    #[serde(rename = "play_sound_effect")]
     PlaySoundEffect,
-    #[serde(rename = "walk_everywhere_on")]
     WalkEverywhereOn,
-    #[serde(rename = "walk_everywhere_off")]
     WalkEverywhereOff,
-    #[serde(rename = "stop_animation")]
     StopAnimation,
-    #[serde(rename = "start_animation")]
     StartAnimation,
-    #[serde(rename = "increase_transp")]
     IncreaseTransp,
-    #[serde(rename = "decrease_transp")]
     DecreaseTransp,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -3294,6 +4008,66 @@ impl MoveCommandCode {
             MoveCommandCode::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "move_up" => Some(MoveCommandCode::MoveUp),
+            "move_right" => Some(MoveCommandCode::MoveRight),
+            "move_down" => Some(MoveCommandCode::MoveDown),
+            "move_left" => Some(MoveCommandCode::MoveLeft),
+            "move_upright" => Some(MoveCommandCode::MoveUpright),
+            "move_downright" => Some(MoveCommandCode::MoveDownright),
+            "move_downleft" => Some(MoveCommandCode::MoveDownleft),
+            "move_upleft" => Some(MoveCommandCode::MoveUpleft),
+            "move_random" => Some(MoveCommandCode::MoveRandom),
+            "move_towards_hero" => Some(MoveCommandCode::MoveTowardsHero),
+            "move_away_from_hero" => Some(MoveCommandCode::MoveAwayFromHero),
+            "move_forward" => Some(MoveCommandCode::MoveForward),
+            "face_up" => Some(MoveCommandCode::FaceUp),
+            "face_right" => Some(MoveCommandCode::FaceRight),
+            "face_down" => Some(MoveCommandCode::FaceDown),
+            "face_left" => Some(MoveCommandCode::FaceLeft),
+            "turn_90_degree_right" => Some(MoveCommandCode::Turn90DegreeRight),
+            "turn_90_degree_left" => Some(MoveCommandCode::Turn90DegreeLeft),
+            "turn_180_degree" => Some(MoveCommandCode::Turn180Degree),
+            "turn_90_degree_random" => Some(MoveCommandCode::Turn90DegreeRandom),
+            "face_random_direction" => Some(MoveCommandCode::FaceRandomDirection),
+            "face_hero" => Some(MoveCommandCode::FaceHero),
+            "face_away_from_hero" => Some(MoveCommandCode::FaceAwayFromHero),
+            "wait" => Some(MoveCommandCode::Wait),
+            "begin_jump" => Some(MoveCommandCode::BeginJump),
+            "end_jump" => Some(MoveCommandCode::EndJump),
+            "lock_facing" => Some(MoveCommandCode::LockFacing),
+            "unlock_facing" => Some(MoveCommandCode::UnlockFacing),
+            "increase_movement_speed" => Some(MoveCommandCode::IncreaseMovementSpeed),
+            "decrease_movement_speed" => Some(MoveCommandCode::DecreaseMovementSpeed),
+            "increase_movement_frequence" => Some(MoveCommandCode::IncreaseMovementFrequence),
+            "decrease_movement_frequence" => Some(MoveCommandCode::DecreaseMovementFrequence),
+            "switch_on" => Some(MoveCommandCode::SwitchOn),
+            "switch_off" => Some(MoveCommandCode::SwitchOff),
+            "change_graphic" => Some(MoveCommandCode::ChangeGraphic),
+            "play_sound_effect" => Some(MoveCommandCode::PlaySoundEffect),
+            "walk_everywhere_on" => Some(MoveCommandCode::WalkEverywhereOn),
+            "walk_everywhere_off" => Some(MoveCommandCode::WalkEverywhereOff),
+            "stop_animation" => Some(MoveCommandCode::StopAnimation),
+            "start_animation" => Some(MoveCommandCode::StartAnimation),
+            "increase_transp" => Some(MoveCommandCode::IncreaseTransp),
+            "decrease_transp" => Some(MoveCommandCode::DecreaseTransp),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for MoveCommandCode {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(MoveCommandCode::from_i32(v)),
+            EnumRepr::Other { other } => Ok(MoveCommandCode::Other(other)),
+            EnumRepr::Name(n) => MoveCommandCode::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["move_up", "move_right", "move_down", "move_left", "move_upright", "move_downright", "move_downleft", "move_upleft", "move_random", "move_towards_hero", "move_away_from_hero", "move_forward", "face_up", "face_right", "face_down", "face_left", "turn_90_degree_right", "turn_90_degree_left", "turn_180_degree", "turn_90_degree_random", "face_random_direction", "face_hero", "face_away_from_hero", "wait", "begin_jump", "end_jump", "lock_facing", "unlock_facing", "increase_movement_speed", "decrease_movement_speed", "increase_movement_frequence", "decrease_movement_frequence", "switch_on", "switch_off", "change_graphic", "play_sound_effect", "walk_everywhere_on", "walk_everywhere_off", "stop_animation", "start_animation", "increase_transp", "decrease_transp"])),
+        }
+    }
 }
 
 impl serde::Serialize for MoveCommandCode {
@@ -3307,11 +4081,9 @@ impl Default for MoveCommandCode {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SaveActorRowType {
-    #[serde(rename = "front")]
     Front,
-    #[serde(rename = "back")]
     Back,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -3341,6 +4113,26 @@ impl SaveActorRowType {
             SaveActorRowType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "front" => Some(SaveActorRowType::Front),
+            "back" => Some(SaveActorRowType::Back),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SaveActorRowType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SaveActorRowType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SaveActorRowType::Other(other)),
+            EnumRepr::Name(n) => SaveActorRowType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["front", "back"])),
+        }
+    }
 }
 
 impl serde::Serialize for SaveActorRowType {
@@ -3354,11 +4146,9 @@ impl Default for SaveActorRowType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SavePartyLocationPanState {
-    #[serde(rename = "fixed")]
     Fixed,
-    #[serde(rename = "follow")]
     Follow,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -3388,6 +4178,26 @@ impl SavePartyLocationPanState {
             SavePartyLocationPanState::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "fixed" => Some(SavePartyLocationPanState::Fixed),
+            "follow" => Some(SavePartyLocationPanState::Follow),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SavePartyLocationPanState {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SavePartyLocationPanState::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SavePartyLocationPanState::Other(other)),
+            EnumRepr::Name(n) => SavePartyLocationPanState::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["fixed", "follow"])),
+        }
+    }
 }
 
 impl serde::Serialize for SavePartyLocationPanState {
@@ -3401,15 +4211,11 @@ impl Default for SavePartyLocationPanState {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SavePartyLocationVehicleType {
-    #[serde(rename = "none")]
     None,
-    #[serde(rename = "skiff")]
     Skiff,
-    #[serde(rename = "ship")]
     Ship,
-    #[serde(rename = "airship")]
     Airship,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -3445,6 +4251,28 @@ impl SavePartyLocationVehicleType {
             SavePartyLocationVehicleType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "none" => Some(SavePartyLocationVehicleType::None),
+            "skiff" => Some(SavePartyLocationVehicleType::Skiff),
+            "ship" => Some(SavePartyLocationVehicleType::Ship),
+            "airship" => Some(SavePartyLocationVehicleType::Airship),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SavePartyLocationVehicleType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SavePartyLocationVehicleType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SavePartyLocationVehicleType::Other(other)),
+            EnumRepr::Name(n) => SavePartyLocationVehicleType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["none", "skiff", "ship", "airship"])),
+        }
+    }
 }
 
 impl serde::Serialize for SavePartyLocationVehicleType {
@@ -3458,19 +4286,13 @@ impl Default for SavePartyLocationVehicleType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SavePictureBattleLayer {
-    #[serde(rename = "none")]
     None,
-    #[serde(rename = "background")]
     Background,
-    #[serde(rename = "battlers_and_animations")]
     BattlersAndAnimations,
-    #[serde(rename = "weather")]
     Weather,
-    #[serde(rename = "windows_and_status")]
     WindowsAndStatus,
-    #[serde(rename = "timers")]
     Timers,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -3512,6 +4334,30 @@ impl SavePictureBattleLayer {
             SavePictureBattleLayer::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "none" => Some(SavePictureBattleLayer::None),
+            "background" => Some(SavePictureBattleLayer::Background),
+            "battlers_and_animations" => Some(SavePictureBattleLayer::BattlersAndAnimations),
+            "weather" => Some(SavePictureBattleLayer::Weather),
+            "windows_and_status" => Some(SavePictureBattleLayer::WindowsAndStatus),
+            "timers" => Some(SavePictureBattleLayer::Timers),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SavePictureBattleLayer {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SavePictureBattleLayer::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SavePictureBattleLayer::Other(other)),
+            EnumRepr::Name(n) => SavePictureBattleLayer::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["none", "background", "battlers_and_animations", "weather", "windows_and_status", "timers"])),
+        }
+    }
 }
 
 impl serde::Serialize for SavePictureBattleLayer {
@@ -3525,15 +4371,11 @@ impl Default for SavePictureBattleLayer {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SavePictureEffect {
-    #[serde(rename = "none")]
     None,
-    #[serde(rename = "rotation")]
     Rotation,
-    #[serde(rename = "wave")]
     Wave,
-    #[serde(rename = "maniac_fixed_angle")]
     ManiacFixedAngle,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -3569,6 +4411,28 @@ impl SavePictureEffect {
             SavePictureEffect::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "none" => Some(SavePictureEffect::None),
+            "rotation" => Some(SavePictureEffect::Rotation),
+            "wave" => Some(SavePictureEffect::Wave),
+            "maniac_fixed_angle" => Some(SavePictureEffect::ManiacFixedAngle),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SavePictureEffect {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SavePictureEffect::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SavePictureEffect::Other(other)),
+            EnumRepr::Name(n) => SavePictureEffect::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["none", "rotation", "wave", "maniac_fixed_angle"])),
+        }
+    }
 }
 
 impl serde::Serialize for SavePictureEffect {
@@ -3582,29 +4446,18 @@ impl Default for SavePictureEffect {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SavePictureMapLayer {
-    #[serde(rename = "none")]
     None,
-    #[serde(rename = "parallax")]
     Parallax,
-    #[serde(rename = "tilemap_below")]
     TilemapBelow,
-    #[serde(rename = "events_below")]
     EventsBelow,
-    #[serde(rename = "events_same_as_player")]
     EventsSameAsPlayer,
-    #[serde(rename = "tilemap_above")]
     TilemapAbove,
-    #[serde(rename = "events_above")]
     EventsAbove,
-    #[serde(rename = "weather")]
     Weather,
-    #[serde(rename = "animations")]
     Animations,
-    #[serde(rename = "windows")]
     Windows,
-    #[serde(rename = "timers")]
     Timers,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -3661,6 +4514,35 @@ impl SavePictureMapLayer {
             SavePictureMapLayer::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "none" => Some(SavePictureMapLayer::None),
+            "parallax" => Some(SavePictureMapLayer::Parallax),
+            "tilemap_below" => Some(SavePictureMapLayer::TilemapBelow),
+            "events_below" => Some(SavePictureMapLayer::EventsBelow),
+            "events_same_as_player" => Some(SavePictureMapLayer::EventsSameAsPlayer),
+            "tilemap_above" => Some(SavePictureMapLayer::TilemapAbove),
+            "events_above" => Some(SavePictureMapLayer::EventsAbove),
+            "weather" => Some(SavePictureMapLayer::Weather),
+            "animations" => Some(SavePictureMapLayer::Animations),
+            "windows" => Some(SavePictureMapLayer::Windows),
+            "timers" => Some(SavePictureMapLayer::Timers),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SavePictureMapLayer {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SavePictureMapLayer::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SavePictureMapLayer::Other(other)),
+            EnumRepr::Name(n) => SavePictureMapLayer::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["none", "parallax", "tilemap_below", "events_below", "events_same_as_player", "tilemap_above", "events_above", "weather", "animations", "windows", "timers"])),
+        }
+    }
 }
 
 impl serde::Serialize for SavePictureMapLayer {
@@ -3674,11 +4556,9 @@ impl Default for SavePictureMapLayer {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SaveSystemAtbMode {
-    #[serde(rename = "atb_active")]
     AtbActive,
-    #[serde(rename = "atb_wait")]
     AtbWait,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -3708,6 +4588,26 @@ impl SaveSystemAtbMode {
             SaveSystemAtbMode::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "atb_active" => Some(SaveSystemAtbMode::AtbActive),
+            "atb_wait" => Some(SaveSystemAtbMode::AtbWait),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SaveSystemAtbMode {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SaveSystemAtbMode::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SaveSystemAtbMode::Other(other)),
+            EnumRepr::Name(n) => SaveSystemAtbMode::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["atb_active", "atb_wait"])),
+        }
+    }
 }
 
 impl serde::Serialize for SaveSystemAtbMode {
@@ -3721,25 +4621,16 @@ impl Default for SaveSystemAtbMode {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SaveSystemScene {
-    #[serde(rename = "map")]
     Map,
-    #[serde(rename = "menu")]
     Menu,
-    #[serde(rename = "battle")]
     Battle,
-    #[serde(rename = "shop")]
     Shop,
-    #[serde(rename = "name")]
     Name,
-    #[serde(rename = "file")]
     File,
-    #[serde(rename = "title")]
     Title,
-    #[serde(rename = "game_over")]
     GameOver,
-    #[serde(rename = "debug")]
     Debug,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -3790,6 +4681,33 @@ impl SaveSystemScene {
             SaveSystemScene::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "map" => Some(SaveSystemScene::Map),
+            "menu" => Some(SaveSystemScene::Menu),
+            "battle" => Some(SaveSystemScene::Battle),
+            "shop" => Some(SaveSystemScene::Shop),
+            "name" => Some(SaveSystemScene::Name),
+            "file" => Some(SaveSystemScene::File),
+            "title" => Some(SaveSystemScene::Title),
+            "game_over" => Some(SaveSystemScene::GameOver),
+            "debug" => Some(SaveSystemScene::Debug),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SaveSystemScene {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SaveSystemScene::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SaveSystemScene::Other(other)),
+            EnumRepr::Name(n) => SaveSystemScene::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["map", "menu", "battle", "shop", "name", "file", "title", "game_over", "debug"])),
+        }
+    }
 }
 
 impl serde::Serialize for SaveSystemScene {
@@ -3803,15 +4721,11 @@ impl Default for SaveSystemScene {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SaveVehicleLocationVehicleType {
-    #[serde(rename = "none")]
     None,
-    #[serde(rename = "skiff")]
     Skiff,
-    #[serde(rename = "ship")]
     Ship,
-    #[serde(rename = "airship")]
     Airship,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -3847,6 +4761,28 @@ impl SaveVehicleLocationVehicleType {
             SaveVehicleLocationVehicleType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "none" => Some(SaveVehicleLocationVehicleType::None),
+            "skiff" => Some(SaveVehicleLocationVehicleType::Skiff),
+            "ship" => Some(SaveVehicleLocationVehicleType::Ship),
+            "airship" => Some(SaveVehicleLocationVehicleType::Airship),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SaveVehicleLocationVehicleType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SaveVehicleLocationVehicleType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SaveVehicleLocationVehicleType::Other(other)),
+            EnumRepr::Name(n) => SaveVehicleLocationVehicleType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["none", "skiff", "ship", "airship"])),
+        }
+    }
 }
 
 impl serde::Serialize for SaveVehicleLocationVehicleType {
@@ -3860,17 +4796,12 @@ impl Default for SaveVehicleLocationVehicleType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SkillScope {
-    #[serde(rename = "enemy")]
     Enemy,
-    #[serde(rename = "enemies")]
     Enemies,
-    #[serde(rename = "self")]
     Self_,
-    #[serde(rename = "ally")]
     Ally,
-    #[serde(rename = "party")]
     Party,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -3909,6 +4840,29 @@ impl SkillScope {
             SkillScope::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "enemy" => Some(SkillScope::Enemy),
+            "enemies" => Some(SkillScope::Enemies),
+            "self" => Some(SkillScope::Self_),
+            "ally" => Some(SkillScope::Ally),
+            "party" => Some(SkillScope::Party),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SkillScope {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SkillScope::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SkillScope::Other(other)),
+            EnumRepr::Name(n) => SkillScope::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["enemy", "enemies", "self", "ally", "party"])),
+        }
+    }
 }
 
 impl serde::Serialize for SkillScope {
@@ -3922,11 +4876,9 @@ impl Default for SkillScope {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SkillSpType {
-    #[serde(rename = "cost")]
     Cost,
-    #[serde(rename = "percent")]
     Percent,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -3956,6 +4908,26 @@ impl SkillSpType {
             SkillSpType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "cost" => Some(SkillSpType::Cost),
+            "percent" => Some(SkillSpType::Percent),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SkillSpType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SkillSpType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SkillSpType::Other(other)),
+            EnumRepr::Name(n) => SkillSpType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["cost", "percent"])),
+        }
+    }
 }
 
 impl serde::Serialize for SkillSpType {
@@ -3969,17 +4941,12 @@ impl Default for SkillSpType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SkillType {
-    #[serde(rename = "normal")]
     Normal,
-    #[serde(rename = "teleport")]
     Teleport,
-    #[serde(rename = "escape")]
     Escape,
-    #[serde(rename = "switch")]
     Switch,
-    #[serde(rename = "subskill")]
     Subskill,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -4018,6 +4985,29 @@ impl SkillType {
             SkillType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "normal" => Some(SkillType::Normal),
+            "teleport" => Some(SkillType::Teleport),
+            "escape" => Some(SkillType::Escape),
+            "switch" => Some(SkillType::Switch),
+            "subskill" => Some(SkillType::Subskill),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SkillType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SkillType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SkillType::Other(other)),
+            EnumRepr::Name(n) => SkillType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["normal", "teleport", "escape", "switch", "subskill"])),
+        }
+    }
 }
 
 impl serde::Serialize for SkillType {
@@ -4031,13 +5021,10 @@ impl Default for SkillType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StateAffectType {
-    #[serde(rename = "half")]
     Half,
-    #[serde(rename = "double")]
     Double,
-    #[serde(rename = "nothing")]
     Nothing,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -4070,6 +5057,27 @@ impl StateAffectType {
             StateAffectType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "half" => Some(StateAffectType::Half),
+            "double" => Some(StateAffectType::Double),
+            "nothing" => Some(StateAffectType::Nothing),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for StateAffectType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(StateAffectType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(StateAffectType::Other(other)),
+            EnumRepr::Name(n) => StateAffectType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["half", "double", "nothing"])),
+        }
+    }
 }
 
 impl serde::Serialize for StateAffectType {
@@ -4083,13 +5091,10 @@ impl Default for StateAffectType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StateChangeType {
-    #[serde(rename = "lose")]
     Lose,
-    #[serde(rename = "gain")]
     Gain,
-    #[serde(rename = "nothing")]
     Nothing,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -4122,6 +5127,27 @@ impl StateChangeType {
             StateChangeType::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "lose" => Some(StateChangeType::Lose),
+            "gain" => Some(StateChangeType::Gain),
+            "nothing" => Some(StateChangeType::Nothing),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for StateChangeType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(StateChangeType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(StateChangeType::Other(other)),
+            EnumRepr::Name(n) => StateChangeType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["lose", "gain", "nothing"])),
+        }
+    }
 }
 
 impl serde::Serialize for StateChangeType {
@@ -4135,11 +5161,9 @@ impl Default for StateChangeType {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StatePersistence {
-    #[serde(rename = "ends")]
     Ends,
-    #[serde(rename = "persists")]
     Persists,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -4169,6 +5193,26 @@ impl StatePersistence {
             StatePersistence::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "ends" => Some(StatePersistence::Ends),
+            "persists" => Some(StatePersistence::Persists),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for StatePersistence {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(StatePersistence::from_i32(v)),
+            EnumRepr::Other { other } => Ok(StatePersistence::Other(other)),
+            EnumRepr::Name(n) => StatePersistence::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["ends", "persists"])),
+        }
+    }
 }
 
 impl serde::Serialize for StatePersistence {
@@ -4182,15 +5226,11 @@ impl Default for StatePersistence {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StateRestriction {
-    #[serde(rename = "normal")]
     Normal,
-    #[serde(rename = "do_nothing")]
     DoNothing,
-    #[serde(rename = "attack_enemy")]
     AttackEnemy,
-    #[serde(rename = "attack_ally")]
     AttackAlly,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -4226,6 +5266,28 @@ impl StateRestriction {
             StateRestriction::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "normal" => Some(StateRestriction::Normal),
+            "do_nothing" => Some(StateRestriction::DoNothing),
+            "attack_enemy" => Some(StateRestriction::AttackEnemy),
+            "attack_ally" => Some(StateRestriction::AttackAlly),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for StateRestriction {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(StateRestriction::from_i32(v)),
+            EnumRepr::Other { other } => Ok(StateRestriction::Other(other)),
+            EnumRepr::Name(n) => StateRestriction::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["normal", "do_nothing", "attack_enemy", "attack_ally"])),
+        }
+    }
 }
 
 impl serde::Serialize for StateRestriction {
@@ -4239,17 +5301,12 @@ impl Default for StateRestriction {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SystemBattleCondition {
-    #[serde(rename = "none")]
     None,
-    #[serde(rename = "initiative")]
     Initiative,
-    #[serde(rename = "back")]
     Back,
-    #[serde(rename = "surround")]
     Surround,
-    #[serde(rename = "pincers")]
     Pincers,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -4288,6 +5345,29 @@ impl SystemBattleCondition {
             SystemBattleCondition::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "none" => Some(SystemBattleCondition::None),
+            "initiative" => Some(SystemBattleCondition::Initiative),
+            "back" => Some(SystemBattleCondition::Back),
+            "surround" => Some(SystemBattleCondition::Surround),
+            "pincers" => Some(SystemBattleCondition::Pincers),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SystemBattleCondition {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SystemBattleCondition::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SystemBattleCondition::Other(other)),
+            EnumRepr::Name(n) => SystemBattleCondition::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["none", "initiative", "back", "surround", "pincers"])),
+        }
+    }
 }
 
 impl serde::Serialize for SystemBattleCondition {
@@ -4301,13 +5381,10 @@ impl Default for SystemBattleCondition {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SystemBattleFormation {
-    #[serde(rename = "terrain")]
     Terrain,
-    #[serde(rename = "loose")]
     Loose,
-    #[serde(rename = "tight")]
     Tight,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -4340,6 +5417,27 @@ impl SystemBattleFormation {
             SystemBattleFormation::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "terrain" => Some(SystemBattleFormation::Terrain),
+            "loose" => Some(SystemBattleFormation::Loose),
+            "tight" => Some(SystemBattleFormation::Tight),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SystemBattleFormation {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SystemBattleFormation::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SystemBattleFormation::Other(other)),
+            EnumRepr::Name(n) => SystemBattleFormation::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["terrain", "loose", "tight"])),
+        }
+    }
 }
 
 impl serde::Serialize for SystemBattleFormation {
@@ -4353,11 +5451,9 @@ impl Default for SystemBattleFormation {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SystemEquipmentSetting {
-    #[serde(rename = "actor")]
     Actor,
-    #[serde(rename = "class")]
     Class,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -4387,6 +5483,26 @@ impl SystemEquipmentSetting {
             SystemEquipmentSetting::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "actor" => Some(SystemEquipmentSetting::Actor),
+            "class" => Some(SystemEquipmentSetting::Class),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SystemEquipmentSetting {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SystemEquipmentSetting::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SystemEquipmentSetting::Other(other)),
+            EnumRepr::Name(n) => SystemEquipmentSetting::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["actor", "class"])),
+        }
+    }
 }
 
 impl serde::Serialize for SystemEquipmentSetting {
@@ -4400,51 +5516,29 @@ impl Default for SystemEquipmentSetting {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SystemFadeIn {
-    #[serde(rename = "default")]
     Default,
-    #[serde(rename = "fade_in")]
     FadeIn,
-    #[serde(rename = "reconstitute_blocks")]
     ReconstituteBlocks,
-    #[serde(rename = "unwipe_downward")]
     UnwipeDownward,
-    #[serde(rename = "unwipe_upward")]
     UnwipeUpward,
-    #[serde(rename = "venetian_blinds")]
     VenetianBlinds,
-    #[serde(rename = "vertical_blinds")]
     VerticalBlinds,
-    #[serde(rename = "horizontal_blinds")]
     HorizontalBlinds,
-    #[serde(rename = "receding_square")]
     RecedingSquare,
-    #[serde(rename = "expanding_square")]
     ExpandingSquare,
-    #[serde(rename = "screen_moves_down")]
     ScreenMovesDown,
-    #[serde(rename = "screen_moves_up")]
     ScreenMovesUp,
-    #[serde(rename = "screen_moves_right")]
     ScreenMovesRight,
-    #[serde(rename = "screen_moves_left")]
     ScreenMovesLeft,
-    #[serde(rename = "vertical_unify")]
     VerticalUnify,
-    #[serde(rename = "horizontal_unify")]
     HorizontalUnify,
-    #[serde(rename = "unify_quadrants")]
     UnifyQuadrants,
-    #[serde(rename = "zoom_out")]
     ZoomOut,
-    #[serde(rename = "mosaic")]
     Mosaic,
-    #[serde(rename = "waver_screen")]
     WaverScreen,
-    #[serde(rename = "instantaneous")]
     Instantaneous,
-    #[serde(rename = "none")]
     None,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -4534,6 +5628,46 @@ impl SystemFadeIn {
             SystemFadeIn::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "default" => Some(SystemFadeIn::Default),
+            "fade_in" => Some(SystemFadeIn::FadeIn),
+            "reconstitute_blocks" => Some(SystemFadeIn::ReconstituteBlocks),
+            "unwipe_downward" => Some(SystemFadeIn::UnwipeDownward),
+            "unwipe_upward" => Some(SystemFadeIn::UnwipeUpward),
+            "venetian_blinds" => Some(SystemFadeIn::VenetianBlinds),
+            "vertical_blinds" => Some(SystemFadeIn::VerticalBlinds),
+            "horizontal_blinds" => Some(SystemFadeIn::HorizontalBlinds),
+            "receding_square" => Some(SystemFadeIn::RecedingSquare),
+            "expanding_square" => Some(SystemFadeIn::ExpandingSquare),
+            "screen_moves_down" => Some(SystemFadeIn::ScreenMovesDown),
+            "screen_moves_up" => Some(SystemFadeIn::ScreenMovesUp),
+            "screen_moves_right" => Some(SystemFadeIn::ScreenMovesRight),
+            "screen_moves_left" => Some(SystemFadeIn::ScreenMovesLeft),
+            "vertical_unify" => Some(SystemFadeIn::VerticalUnify),
+            "horizontal_unify" => Some(SystemFadeIn::HorizontalUnify),
+            "unify_quadrants" => Some(SystemFadeIn::UnifyQuadrants),
+            "zoom_out" => Some(SystemFadeIn::ZoomOut),
+            "mosaic" => Some(SystemFadeIn::Mosaic),
+            "waver_screen" => Some(SystemFadeIn::WaverScreen),
+            "instantaneous" => Some(SystemFadeIn::Instantaneous),
+            "none" => Some(SystemFadeIn::None),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SystemFadeIn {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SystemFadeIn::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SystemFadeIn::Other(other)),
+            EnumRepr::Name(n) => SystemFadeIn::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["default", "fade_in", "reconstitute_blocks", "unwipe_downward", "unwipe_upward", "venetian_blinds", "vertical_blinds", "horizontal_blinds", "receding_square", "expanding_square", "screen_moves_down", "screen_moves_up", "screen_moves_right", "screen_moves_left", "vertical_unify", "horizontal_unify", "unify_quadrants", "zoom_out", "mosaic", "waver_screen", "instantaneous", "none"])),
+        }
+    }
 }
 
 impl serde::Serialize for SystemFadeIn {
@@ -4547,51 +5681,29 @@ impl Default for SystemFadeIn {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SystemFadeOut {
-    #[serde(rename = "default")]
     Default,
-    #[serde(rename = "fade_out")]
     FadeOut,
-    #[serde(rename = "remove_blocks")]
     RemoveBlocks,
-    #[serde(rename = "wipe_downward")]
     WipeDownward,
-    #[serde(rename = "wipe_upward")]
     WipeUpward,
-    #[serde(rename = "venetian_blinds")]
     VenetianBlinds,
-    #[serde(rename = "vertical_blinds")]
     VerticalBlinds,
-    #[serde(rename = "horizontal_blinds")]
     HorizontalBlinds,
-    #[serde(rename = "receding_square")]
     RecedingSquare,
-    #[serde(rename = "expanding_square")]
     ExpandingSquare,
-    #[serde(rename = "screen_moves_up")]
     ScreenMovesUp,
-    #[serde(rename = "screen_moves_down")]
     ScreenMovesDown,
-    #[serde(rename = "screen_moves_left")]
     ScreenMovesLeft,
-    #[serde(rename = "screen_moves_right")]
     ScreenMovesRight,
-    #[serde(rename = "vertical_div")]
     VerticalDiv,
-    #[serde(rename = "horizontal_div")]
     HorizontalDiv,
-    #[serde(rename = "quadrasection")]
     Quadrasection,
-    #[serde(rename = "zoom_in")]
     ZoomIn,
-    #[serde(rename = "mosaic")]
     Mosaic,
-    #[serde(rename = "waver_screen")]
     WaverScreen,
-    #[serde(rename = "instantaneous")]
     Instantaneous,
-    #[serde(rename = "none")]
     None,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -4681,6 +5793,46 @@ impl SystemFadeOut {
             SystemFadeOut::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "default" => Some(SystemFadeOut::Default),
+            "fade_out" => Some(SystemFadeOut::FadeOut),
+            "remove_blocks" => Some(SystemFadeOut::RemoveBlocks),
+            "wipe_downward" => Some(SystemFadeOut::WipeDownward),
+            "wipe_upward" => Some(SystemFadeOut::WipeUpward),
+            "venetian_blinds" => Some(SystemFadeOut::VenetianBlinds),
+            "vertical_blinds" => Some(SystemFadeOut::VerticalBlinds),
+            "horizontal_blinds" => Some(SystemFadeOut::HorizontalBlinds),
+            "receding_square" => Some(SystemFadeOut::RecedingSquare),
+            "expanding_square" => Some(SystemFadeOut::ExpandingSquare),
+            "screen_moves_up" => Some(SystemFadeOut::ScreenMovesUp),
+            "screen_moves_down" => Some(SystemFadeOut::ScreenMovesDown),
+            "screen_moves_left" => Some(SystemFadeOut::ScreenMovesLeft),
+            "screen_moves_right" => Some(SystemFadeOut::ScreenMovesRight),
+            "vertical_div" => Some(SystemFadeOut::VerticalDiv),
+            "horizontal_div" => Some(SystemFadeOut::HorizontalDiv),
+            "quadrasection" => Some(SystemFadeOut::Quadrasection),
+            "zoom_in" => Some(SystemFadeOut::ZoomIn),
+            "mosaic" => Some(SystemFadeOut::Mosaic),
+            "waver_screen" => Some(SystemFadeOut::WaverScreen),
+            "instantaneous" => Some(SystemFadeOut::Instantaneous),
+            "none" => Some(SystemFadeOut::None),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SystemFadeOut {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SystemFadeOut::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SystemFadeOut::Other(other)),
+            EnumRepr::Name(n) => SystemFadeOut::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["default", "fade_out", "remove_blocks", "wipe_downward", "wipe_upward", "venetian_blinds", "vertical_blinds", "horizontal_blinds", "receding_square", "expanding_square", "screen_moves_up", "screen_moves_down", "screen_moves_left", "screen_moves_right", "vertical_div", "horizontal_div", "quadrasection", "zoom_in", "mosaic", "waver_screen", "instantaneous", "none"])),
+        }
+    }
 }
 
 impl serde::Serialize for SystemFadeOut {
@@ -4694,11 +5846,9 @@ impl Default for SystemFadeOut {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SystemFont {
-    #[serde(rename = "gothic")]
     Gothic,
-    #[serde(rename = "mincho")]
     Mincho,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -4728,6 +5878,26 @@ impl SystemFont {
             SystemFont::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "gothic" => Some(SystemFont::Gothic),
+            "mincho" => Some(SystemFont::Mincho),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SystemFont {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SystemFont::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SystemFont::Other(other)),
+            EnumRepr::Name(n) => SystemFont::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["gothic", "mincho"])),
+        }
+    }
 }
 
 impl serde::Serialize for SystemFont {
@@ -4741,13 +5911,10 @@ impl Default for SystemFont {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SystemStretch {
-    #[serde(rename = "stretch")]
     Stretch,
-    #[serde(rename = "tiled")]
     Tiled,
-    #[serde(rename = "easyrpg_none")]
     EasyrpgNone,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -4780,6 +5947,27 @@ impl SystemStretch {
             SystemStretch::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "stretch" => Some(SystemStretch::Stretch),
+            "tiled" => Some(SystemStretch::Tiled),
+            "easyrpg_none" => Some(SystemStretch::EasyrpgNone),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SystemStretch {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(SystemStretch::from_i32(v)),
+            EnumRepr::Other { other } => Ok(SystemStretch::Other(other)),
+            EnumRepr::Name(n) => SystemStretch::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["stretch", "tiled", "easyrpg_none"])),
+        }
+    }
 }
 
 impl serde::Serialize for SystemStretch {
@@ -4793,11 +5981,9 @@ impl Default for SystemStretch {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TerrainBGAssociation {
-    #[serde(rename = "background")]
     Background,
-    #[serde(rename = "frame")]
     Frame,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -4827,6 +6013,26 @@ impl TerrainBGAssociation {
             TerrainBGAssociation::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "background" => Some(TerrainBGAssociation::Background),
+            "frame" => Some(TerrainBGAssociation::Frame),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for TerrainBGAssociation {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(TerrainBGAssociation::from_i32(v)),
+            EnumRepr::Other { other } => Ok(TerrainBGAssociation::Other(other)),
+            EnumRepr::Name(n) => TerrainBGAssociation::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["background", "frame"])),
+        }
+    }
 }
 
 impl serde::Serialize for TerrainBGAssociation {
@@ -4840,15 +6046,11 @@ impl Default for TerrainBGAssociation {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TerrainBushDepth {
-    #[serde(rename = "normal")]
     Normal,
-    #[serde(rename = "third")]
     Third,
-    #[serde(rename = "half")]
     Half,
-    #[serde(rename = "full")]
     Full,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -4884,6 +6086,28 @@ impl TerrainBushDepth {
             TerrainBushDepth::Other(_) => None,
         }
     }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "normal" => Some(TerrainBushDepth::Normal),
+            "third" => Some(TerrainBushDepth::Third),
+            "half" => Some(TerrainBushDepth::Half),
+            "full" => Some(TerrainBushDepth::Full),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for TerrainBushDepth {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(TerrainBushDepth::from_i32(v)),
+            EnumRepr::Other { other } => Ok(TerrainBushDepth::Other(other)),
+            EnumRepr::Name(n) => TerrainBushDepth::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["normal", "third", "half", "full"])),
+        }
+    }
 }
 
 impl serde::Serialize for TerrainBushDepth {
@@ -4897,13 +6121,10 @@ impl Default for TerrainBushDepth {
 }
 
 /// Generated from `enums.csv`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TreeMapMapType {
-    #[serde(rename = "root")]
     Root,
-    #[serde(rename = "map")]
     Map,
-    #[serde(rename = "area")]
     Area,
     /// A value `enums.csv` does not name. It goes back to the binary as is.
     Other(i32),
@@ -4934,6 +6155,27 @@ impl TreeMapMapType {
             TreeMapMapType::Map => Some("map"),
             TreeMapMapType::Area => Some("area"),
             TreeMapMapType::Other(_) => None,
+        }
+    }
+    /// The value `enums.csv` gives this name, and `None` for a name it
+    /// does not have.
+    pub fn from_json_name(name: &str) -> Option<Self> {
+        match name {
+            "root" => Some(TreeMapMapType::Root),
+            "map" => Some(TreeMapMapType::Map),
+            "area" => Some(TreeMapMapType::Area),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for TreeMapMapType {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        match EnumRepr::deserialize(d)? {
+            EnumRepr::Number(v) => Ok(TreeMapMapType::from_i32(v)),
+            EnumRepr::Other { other } => Ok(TreeMapMapType::Other(other)),
+            EnumRepr::Name(n) => TreeMapMapType::from_json_name(&n)
+                .ok_or_else(|| serde::de::Error::unknown_variant(&n, &["root", "map", "area"])),
         }
     }
 }

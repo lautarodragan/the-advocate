@@ -44,6 +44,35 @@ Both come out of the same `Serialize` impls and the same defaults —`src/lcf.rs
 `as_resolved`— for the same reason: two serializers could say different things
 about the same field.
 
+## As a library: reading a dump with types
+
+The resolved view needs no schema to be read, which is what it is for; but
+a program in Rust that reads it by hand has to rebuild the model —which
+field is which, of which type— and then there are two readers of the same
+format, each with its own idea of it. So the library reads a dump **into
+the schema's own types**, the same ones the binary is built from:
+
+    let dump = ditto::dump::Dump::open(Path::new("data"))?;
+    let db: Database = dump.database()?;
+    let actors: Vec<Actor> = dump.section("actors")?;   // only that file
+    let tree: TreeMap = dump.tree()?;
+    let map: Map = dump.map(7)?;                         // layers included
+    let other: Map = ditto::dump::read_map(Path::new("elsewhere/Map0007.json"))?;
+
+**Either view reads into the same values.** The exact dump leaves a field
+out and `#[serde(default)]` puts its default back; the resolved view writes
+it. An enum reads from every shape the JSON holds it in —the name, the
+number the resolved view writes, and `{"Other": n}`—: that is why the
+generator writes its `Deserialize` instead of deriving it. And since a field
+the JSON leaves out holds the format's default, a piece of a dump —a map a
+caller patched and sends somewhere, a node of the tree— reads with these
+types too.
+
+`tests/library.rs` requires the two views of a game written in the test to
+read into the same values, with no corpus; with one, `there_and_back`
+requires the same of the whole game. `pack` reads through `Dump` too, so
+the binary and a consumer read a dump with the same code.
+
 ## The only thing that makes it worth anything: the way back is byte for byte
 
 Over a whole game —328 `.lmu`, the `RPG_RT.ldb` and the `RPG_RT.lmt`— reading,
