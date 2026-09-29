@@ -1,0 +1,14 @@
+# El archivo de proyecto de A Blurred Line: lo que este juego decide y las
+# herramientas no. Qué mapas y qué casos lleva cada cartucho, cómo se llama la
+# ROM, qué efectos de sonido van enteros. Lo lee la suite `rm2k-snes-*`, y una
+# clave que falta es un error: ninguna herramienta tiene un valor por omisión
+# para lo que está acá.
+#
+# Las claves van en inglés, porque son la interfaz de las herramientas y van a
+# ser las de cualquier juego; los comentarios, en castellano, porque el archivo
+# es de ABL. Lo que protege un valor —por qué ese mapa sale, por qué ese efecto
+# va a esa tasa— va como comentario al lado del valor.
+#
+# Lo que **no** va: dónde está el juego en esta máquina —el RTP, el SoundFont—,
+# que es del ambiente y no del proyecto; y los límites del motor que se
+# midieron sobre ABL, que son supuestos del motor y se quedan en su código.

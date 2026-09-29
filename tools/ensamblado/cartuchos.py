@@ -279,6 +279,9 @@ def archivos_de_la_huella(fuente=FUENTE):
                      if not r.startswith(pruebas))
     partes += sorted(glob.glob(os.path.join(proyecto.parches_manual(), "*",
                                             "*")))
+    # Y el archivo de proyecto, entero: lo leen el conversor y la música, y
+    # no sólo lo que llega a los flags del sello.
+    partes.append(proyecto.archivo_de_proyecto())
     return partes
 
 

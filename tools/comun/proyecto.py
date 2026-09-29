@@ -48,6 +48,11 @@ def abl():
     return os.path.join(raiz(), "rom")
 
 
+def archivo_de_proyecto():
+    """`rom/rm2k-snes.toml`: las perillas del juego. Lo lee `comun/perillas.py`."""
+    return os.path.join(abl(), "rm2k-snes.toml")
+
+
 def build():
     """`rom/build/`: todo lo que se arma, y nada versionado."""
     return os.path.join(abl(), "build")
