@@ -3376,7 +3376,10 @@ def enc_base(steps):
     A step's chance is `pmod / pasos`, and `pmod` is a power of two: if the
     quotient is precomputed here, on the console what is left is a shift and
     a sixteen-bit comparison, with no division. **The truncation is part of
-    the contract**: both sides use this same number.
+    the contract**: both sides use this same number. The cartridge's comes
+    from `base` in `rm2k-snes-battle`, which does the same; this one is the
+    model's and `ChangeEncounterSteps`', and the tests compare the ROM
+    against it.
 
     Zero means off, which is what `encounter_steps` 0 means in RM2k.
     """
@@ -4761,8 +4764,8 @@ def _compile(cmd, map_index, messages=None, extra=(),
         return b""     # accepted with the debt declared above
 
     if cmd.code == CHANGE_ENCOUNTER_STEPS:
-        # The `1 / pasos` and the rows' seven thresholds, computed here as for
-        # the map's registry —`rom_encounters`—, so a change of steps
+        # The `1 / pasos` and the rows' seven thresholds, computed here as
+        # `rm2k-snes-battle` does for the map's registry, so a change of steps
         # changes the chance and the rows together, same as
         # `Encounters.set_steps`. It lasts until the next map load: the ROM
         # sets the map's again, which is what RM2k does.

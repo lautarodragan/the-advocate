@@ -861,13 +861,19 @@ class TreeMap:
     """RPG_RT.lmt: the map tree and the player's starting position."""
 
     def __init__(self, path):
-        data = read_json(dump_dir(path), "maps.json")
+        # Where it was read from, and what was added on top: a tool that
+        # reads the dump itself —`rm2k-snes-battle`— gets both, and so sees
+        # the same tree.
+        self.dump = dump_dir(path)
+        self.added_nodes = {}
+        data = read_json(self.dump, "maps.json")
         infos = by_id(list_field(data, "maps"))
         # The maps the game does not have bring their node: see
         # `fork.new_maps`. Only on this game's dump, same as `Map`'s forks.
-        if dump_dir(path) == project.data():
+        if self.dump == project.data():
             for map_id, (_json, _tiles, node) in fork.new_maps().items():
                 infos[map_id] = node
+                self.added_nodes[map_id] = node
 
         self.map_names = {i: field(f, "name")
                           for i, f in infos.items()}

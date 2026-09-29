@@ -147,8 +147,8 @@ ENC_THR   = $79C0
 
 ; --- experience and level: their state in far RAM ----------------------------
 ;
-; Four bytes per actor who can fight, in the order of the converter's
-; `experience_slots` —`actor_exp_k` says which one each actor number gets,
+; Four bytes per actor who can fight, in the order of the slots of
+; `rm2k-snes-battle` —`actor_exp_k` says which one each actor number gets,
 ; or $FF—: the 24-bit experience, which in RM2k reaches 999999, and the level.
 ; Having the level right next to the experience is what makes the save carry
 ; a single line for both. It starts from `exp_initial` on reset and travels
@@ -162,7 +162,7 @@ EXP_LEVEL   = 3             ; the level, the fourth byte
 ; siblings compose the level and the maximum the menu writes: they are
 ; numbers from the save and no longer strips from the cartridge. The slots
 ; reach 128 before stepping on them, and the converter stops much earlier:
-; see `experience_asm`.
+; see `tables` in rm2k-snes-battle's `experience.rs`.
 EXP_TEXT    = $7E63F8
 ; RM2k's `MaxExpValue()`, in its two halves.
 EXP_CAP_HI = $0F

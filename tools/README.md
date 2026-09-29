@@ -40,7 +40,8 @@ one in its own row or above.
                  2026-09-29 (options, cases, game_scan, map_convert,
                  map_layers, baking, sprites, obj_extras, vram, blocks,
                  message_window, battle_scenes, battle_animations,
-                 battle_tables, music, mapdata, map_record, materials; the
+                 music, mapdata, map_record, materials, and stage, which
+                 runs the parts that are programs of their own; the
                  docstring of snes_convert says what each one is), and
                  events, event_opcodes, battle, experience, screens, menus,
                  title, picture, window, font, scene, animation, texts,
@@ -77,6 +78,10 @@ have layers of their own, one folder each:
       rm2k-snes-audio/  a game's music for the SPC700: the shared sample
                  bank, a stream per song, an audio package per map; the
                  converter runs it, and it uses `gunter` as a library
+      battle/    `rm2k-snes-battle`: the battle's tables —experience and
+                 level per actor, each map's random encounters—; the
+                 converter runs it as a stage, through `port/stage.py`,
+                 and its README says what shape a stage has
 
 `rm2k-snes/` may depend on the other two; `snes/` and `rm2k/` on nothing
 outside themselves —not on each other, and not on `rm2k-snes/`—. So either
@@ -156,7 +161,8 @@ and next to them the ones that are Rust binaries —`rm2k-snes-cartridges`,
 `rm2k-snes-assemble` and `rm2k-snes-space`, from `rm2k-snes/cartridge/`, which find
 the runtime through the checkout they were installed from; and
 `rm2k-snes-msu` and `rm2k-snes-volume-ceilings`, from
-`rm2k-snes/rm2k-snes-audio/`—.
+`rm2k-snes/rm2k-snes-audio/`; and `rm2k-snes-battle`, from
+`rm2k-snes/battle/`—.
 
 The reason for the names is in `tools/justfile`. A new one is added in
 `_install`, and the `.py` finds its packages by resolving the symlink with

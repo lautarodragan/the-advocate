@@ -18,7 +18,8 @@ in its own module of `port/`, one per piece that can be replaced alone:
     message_window      the message window and the font
     battle_scenes       backdrops and battlers
     battle_animations   the battle animations
-    battle_tables       experience and encounters
+    stage               runs a part that is a program of its own:
+                        `rm2k-snes-battle`, experience and encounters
     music               the job for `rm2k-snes-audio`, and the `.msu`
     mapdata             `emit`: the whole `mapdata.inc`
       map_record        the tables of each map
@@ -38,6 +39,7 @@ the cartridge flags before the first. The harness picks which one runs with
 """
 
 import collections
+import json
 import os
 import sys
 
@@ -91,7 +93,7 @@ from port.materials import compress_blocks, decompress_frames
 from port.map_record import PARALLEL_MAX, ROUTE_EV_MAX
 from port.battle_animations import rom_animations
 from port.battle_scenes import fallback_bytes, patch_uses, rom_scene
-from port.battle_tables import rom_encounters
+from port import stage
 from port.music import (boot_frames, compile_music, inherited_songs,
                         rom_songs, separate_songs, write_msu)
 from port.game_scan import (args_game_dir, drop_items, has_rain,
@@ -718,13 +720,30 @@ def main():
     # Asking for it first always gave it index 0, and with that no case of the
     # suite exercised that `scene_troop_backdrop` and `troop_id` are really
     # indexed. That is why `case_page` compiles without `Troops`.
-    encounters = rom_encounters(maps, renderer.tree,
-                                args.test_encounters, troops)
-    how_many = sum(z["troop_n"] for z in encounters["zonas"])
-    if encounters["registros"]:
+    #
+    # They come from `rm2k-snes-battle`, with the experience tables: it
+    # reads the game from the same dump as `renderer.tree`, plus the nodes
+    # the project added on top. Which actors fight is the party's, and which
+    # troops the cartridge carries is `troops`', so the one goes in the
+    # request and the other comes back as a list, in the order they are met.
+    written = stage.run("rm2k-snes-battle", "battle", "tables", {
+        "party": list(members),
+        "maps": [{"id": m["id"], "width": m["game_map"].width,
+                  "height": m["game_map"].height} for m in maps],
+        "encounter_steps": args.test_encounters,
+        "tree_nodes": list(renderer.tree.added_nodes.values()),
+    }, "--data", renderer.tree.dump)
+    answer = json.loads(written["battle.json"])
+    encounters = answer["encounters"]
+    battle_tables = {"experience": written["experience.inc"],
+                     "slots": answer["experience"]["slots"],
+                     "encounters": written["encounters.inc"]}
+    for number in encounters["troops"]:
+        troops.request(number)
+    if encounters["records"]:
         print("  random encounters: %d map(s), %d zone(s), %d troop(s)"
-              % (len(encounters["registros"]), len(encounters["zonas"]),
-                 how_many))
+              % (encounters["records"], encounters["zones"],
+                 len(encounters["troops"])))
     for cmd in file_commands:
         if cmd.code == events.ENEMY_ENCOUNTER:
             troops.request(events.encounter_troop(cmd),
@@ -793,7 +812,7 @@ def main():
     report = emit(args.output, maps, args.start_index, args.hero_above, party,
                   window_data, title_data, slots_data,
                   args.pictures.info, animations, troops.ids, battle_audio,
-                  scenes, encounters, troop_pages, compressed,
+                  scenes, battle_tables, troop_pages, compressed,
                   enemy_hp=args.enemy_hp,
                   game_over=game_over_data)
     # Which entries of their palette the timer digits use, one bit per entry

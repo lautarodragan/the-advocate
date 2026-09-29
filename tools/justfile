@@ -29,7 +29,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # `*-test` recipes run `cargo test` standing in the project, which tests
 # only that one, and `cargo install --locked --path` takes the workspace's
 # lock.
-rust_projects := "protocol gunter ditto voodoo lz2 rm2k-render project cartridge rm2k-snes-audio"
+rust_projects := "protocol gunter ditto voodoo lz2 rm2k-render project cartridge rm2k-snes-audio battle"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.
@@ -169,6 +169,16 @@ cartridge-test:
 audio-test:
   cd rm2k-snes/rm2k-snes-audio && cargo test --release
 
+# rm2k-snes-battle: the battle's tables —experience and level per actor,
+# each map's random encounters— from the dump and a request, as pieces of
+# `mapdata.inc`; see `port/snes_convert.py`, which is what calls it.
+#
+# Its tests build a small game inside the test, and compare against the
+# hashes of what the Python that wrote these tables until 2026-09-29 gave for
+# the same input: they need no game.
+battle-test:
+  cd rm2k-snes/battle && cargo test
+
 # --- Installation ----------------------------------------------------------
 # The Rust projects, in `snes/`, `rm2k/` and `rm2k-snes/`, are separate
 # projects, and the port consumes them **from the PATH**, the way it
@@ -280,6 +290,6 @@ _install root *projects:
 # `.local-tools/bin/` if it is there, otherwise the global one.
 which:
   #!/usr/bin/env sh
-  for x in protocol gunter ditto voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings abl-entregar; do
+  for x in protocol gunter ditto voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle abl-entregar; do
     printf '%-26s %s\n' "$x" "$(command -v "$x" || echo missing)"
   done
