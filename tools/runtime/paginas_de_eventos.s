@@ -1,67 +1,67 @@
 .segment "CODE"
 
-; --- el intérprete de eventos ----------------------------------------------
+; --- the event interpreter -------------------------------------------------
 ;
-; RM2k se queda con la página de número más alto cuyas condiciones se cumplen
-; todas. Las páginas vienen agrupadas por evento y en orden, así que alcanza una
-; sola pasada: se recuerda la última que cumplió, y al cambiar de evento se
-; ejecuta la que haya quedado.
+; RM2k keeps the highest-numbered page whose conditions are all met. Pages
+; come grouped by event and in order, so a single pass is enough: the last one
+; that met them is remembered, and when the event changes, whichever was left
+; is executed.
 ;
-; Sólo se corren las automáticas. Las de contacto ya las cubren las puertas, y
-; las de botón necesitan que haya un botón que apretar.
+; Only the autostart ones are run. The touch ones are already covered by the
+; doors, and the button ones need a button to press.
 
-; Los campos de la página que está en pag_ofs, a variables.
+; The fields of the page at pag_ofs, into variables.
 .proc leer_pagina
 .a8
 .i16
     ldy pag_ofs
     rep #$20
 .a16
-    lda [pag_ptr], y            ; +0  a qué evento pertenece
+    lda [pag_ptr], y            ; +0  which event it belongs to
     sta pg_evento
     sep #$20
 .a8
     iny
     iny
     iny
-    lda [pag_ptr], y            ; +3  qué la dispara. De a un byte: leerlo de a
-    sta pg_trigger              ;     dos se llevaría puesto el switch de al lado
+    lda [pag_ptr], y            ; +3  what triggers it. One byte at a time: reading it two
+    sta pg_trigger              ;     at a time would take the next switch along with it
     iny
     rep #$20
 .a16
-    lda [pag_ptr], y            ; +4  el switch que pide, o 0
+    lda [pag_ptr], y            ; +4  the switch it requires, or 0
     sta pg_sa
     iny
     iny
-    lda [pag_ptr], y            ; +6  el segundo, o 0
+    lda [pag_ptr], y            ; +6  the second one, or 0
     sta pg_sb
     iny
     iny
-    lda [pag_ptr], y            ; +8  su código: los 16 bits bajos
+    lda [pag_ptr], y            ; +8  its code: the low 16 bits
     sta pg_cod
     sep #$20
 .a8
     iny
     iny
-    lda [pag_ptr], y            ; +10 y su banco
+    lda [pag_ptr], y            ; +10 and its bank
     sta pg_cod + 2
     iny
-    lda [pag_ptr], y            ; +11 el actor que pide en el grupo, o 0
+    lda [pag_ptr], y            ; +11 the actor it requires in the party, or 0
     sta pg_actor
     iny
-    lda [pag_ptr], y            ; +12 su capa
+    lda [pag_ptr], y            ; +12 its layer
     sta pg_capa
     iny
-    lda [pag_ptr], y            ; +13 las banderas de la ruta propia
+    lda [pag_ptr], y            ; +13 the flags of its own move route
     sta pg_flags
     iny
-    lda [pag_ptr], y            ; +14 su frecuencia
+    lda [pag_ptr], y            ; +14 its frequency
     sta pg_frec
     iny
-    lda [pag_ptr], y            ; +15 la velocidad de la página
+    lda [pag_ptr], y            ; +15 the page's speed
     sta pg_vel
     iny
-    lda [pag_ptr], y            ; +16 las órdenes de la ruta propia
+    lda [pag_ptr], y            ; +16 the commands of its own move route
     sta pg_ruta
     iny
     lda [pag_ptr], y
@@ -70,37 +70,37 @@
     lda [pag_ptr], y
     sta pg_ruta + 2
     iny
-    lda [pag_ptr], y            ; +19 cuántas
+    lda [pag_ptr], y            ; +19 how many
     sta pg_ruta_n
     iny
-    lda [pag_ptr], y            ; +20 lo que dibuja la página, para los eventos
-    sta pg_tile                 ;     que cambian de gráfico: el tile,
+    lda [pag_ptr], y            ; +20 what the page draws, for events that
+    sta pg_tile                 ;     change graphic: the tile,
     iny
-    lda [pag_ptr], y            ; +21 los atributos con paleta y prioridad,
+    lda [pag_ptr], y            ; +21 the attributes with palette and priority,
     sta pg_attr
     iny
-    lda [pag_ptr], y            ; +22 la pose, con el bit 7 si hay gráfico,
+    lda [pag_ptr], y            ; +22 the pose, with bit 7 if there is a graphic,
     sta pg_pose
     iny
-    lda [pag_ptr], y            ; +23 y los bits de paso de su tile, o $FF
+    lda [pag_ptr], y            ; +23 and its tile's passability bits, or $FF
     sta pg_pasa
     rts
 .endproc
 
-; La página activa de cada evento y, con ella, la ruta propia que le toca. Es
-; `Game_Map::Refresh` con `Game_Event::SetupFromPage`: al cargar el mapa y cada
-; vez que un switch o el grupo cambian. Un evento cuya página activa es la
-; misma de antes no se toca, y su ruta sigue por donde iba; uno cuya página
-; cambió carga la ruta de la nueva desde el principio, con la espera del giro
-; antes de la primera orden; y uno cuya página nueva no tiene ruta se queda sin
-; órdenes. La velocidad de la página queda en `vel_por_ev` para las rutas
-; forzadas.
+; The active page of each event and, with it, the move route of its own that
+; is due. It is `Game_Map::Refresh` with `Game_Event::SetupFromPage`: on
+; loading the map and every time a switch or the party changes. An event
+; whose active page is the same as before is left alone, and its route goes on
+; where it was; one whose page changed loads the new one's route from the
+; start, with the turn's wait before the first command; and one whose new page
+; has no route is left with no commands. The page's speed stays in
+; `vel_por_ev` for forced move routes.
 ;
-; Son dos pasadas y no un lazo adentro del otro: la tabla de páginas se recorre
-; una sola vez anotando la ganadora de cada evento, y después se mira evento
-; por evento. Con eventos por páginas costaba más de un cuadro, y un cuadro
-; perdido en un switch atrasa un cuadro todo lo que viene después.
-; `Game_Map::Refresh` entero: elegir las páginas activas y aplicarlas.
+; It is two passes and not one loop inside the other: the page table is walked
+; only once noting each event's winner, and then events are looked at one by
+; one. With events times pages it cost more than a frame, and a frame lost on
+; a switch delays everything that comes after by a frame.
+; `Game_Map::Refresh` whole: choose the active pages and apply them.
 .proc rutas_de_pagina
 .a8
 .i16
@@ -108,13 +108,13 @@
     jmp aplicar_paginas
 .endproc
 
-; Como `elegir_paginas`, pero mirando **sólo** los eventos con automáticas.
+; Like `elegir_paginas`, but looking **only** at events with autostart pages.
 ;
-; Es lo que corre el refresco de adentro del lazo de comandos, y es lo único
-; que ese refresco necesita hacer en el acto: lo que el comando siguiente puede
-; llegar a mirar es qué evento tiene una automática activa. En el mapa 2 son
-; cuatro páginas de sesenta y tres, contra las veintitrés que mira la completa.
-; La completa corre igual, al principio del cuadro que viene.
+; It is what the refresh from inside the command loop runs, and it is the
+; only thing that refresh needs to do on the spot: what the next command may
+; end up looking at is which event has an active autostart. On map 2 that is
+; four pages out of sixty-three, against the twenty-three the full one looks
+; at. The full one runs anyway, at the start of the next frame.
 .proc elegir_automaticas
 .a8
 .i16
@@ -123,8 +123,8 @@
     jmp elegir_con_filtro
 .endproc
 
-; La primera mitad: qué página queda activa en cada evento, y de paso el
-; `FLAG_AUTO` de cada uno.
+; The first half: which page stays active in each event, and along the way
+; each one's `FLAG_AUTO`.
 .proc elegir_paginas
 .a8
 .i16
@@ -132,20 +132,20 @@
     jmp elegir_con_filtro
 .endproc
 
-; El cuerpo de las dos, con `solo_auto` diciendo cuál es.
+; The body of both, with `solo_auto` saying which one it is.
 .proc elegir_con_filtro
 .a8
 .i16
-    ; El `FLAG_AUTO` no se apaga con un lazo aparte sino en la primera página
-    ; de cada evento, más abajo: ciento veinte vueltas en cada refresco
-    ; costaban el cuadro entero cuando el refresco caía sobre algo caro.
+    ; `FLAG_AUTO` is not cleared with a separate loop but on each event's first
+    ; page, further down: a hundred and twenty iterations on every refresh
+    ; cost the whole frame when the refresh landed on something expensive.
     lda solo_auto
     beq vaciar_todo
     rep #$20
 .a16
     lda #$FFFF
     sta rp_ev_ant
-    bra sin_vaciar              ; la pasada corta no pisa lo de las rutas
+    bra sin_vaciar              ; the short pass does not clobber the routes' data
 .a8
 vaciar_todo:
     rep #$20
@@ -153,7 +153,7 @@ vaciar_todo:
     ldx #$0000
     lda ev_total
     asl a
-    sta rp_ev_ant               ; el tope en bytes, prestado un momento
+    sta rp_ev_ant               ; the limit in bytes, borrowed for a moment
 vaciar:
     lda #$FFFF
     sta eleg_por_ev, x
@@ -162,13 +162,13 @@ vaciar:
     cpx rp_ev_ant
     bne vaciar
     lda #$FFFF
-    sta rp_ev_ant               ; y ahora sí, "ningún evento visto todavía"
+    sta rp_ev_ant               ; and now, "no event seen yet"
 .a16
 sin_vaciar:
     ldx mapa_ofs
     lda f:mapa_tabla + M_PAGINA_COUNT, x
     bne hay_paginas
-    jmp sin_paginas             ; queda lejos para un salto corto
+    jmp sin_paginas             ; too far for a short branch
 hay_paginas:
     sta pag_restan
     lda f:mapa_tabla + M_PTR_PAGINAS, x
@@ -179,15 +179,15 @@ hay_paginas:
     lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
     sta pag_ptr + 2
 recorrer:
-    ; Sólo las páginas de los eventos que tienen alguna con ruta propia, o
-    ; gráfico que sigue a la página, o alguna automática: los bits 5, 6 y 7 de
-    ; +13 lo dicen, y se lee ese byte solo. Con todas las páginas enteras esto
-    ; costaba más de un cuadro, y el cuadro se perdía.
+    ; Only the pages of events that have some page with its own route, or a
+    ; graphic that follows the page, or some autostart: bits 5, 6 and 7 of +13
+    ; say so, and only that byte is read. With every page read whole this cost
+    ; more than a frame, and the frame was lost.
     ;
-    ; Las tres cosas se resuelven en **una sola** recorrida a propósito. Con la
-    ; de las automáticas aparte —que es como nació— el refresco hacía dos
-    ; vueltas y volvía a perder el cuadro: se veía como el tinte de
-    ; `snes-pan` llegando uno tarde.
+    ; The three things are resolved in **a single** walk on purpose. With the
+    ; autostart one separate —which is how it was born— the refresh made two
+    ; rounds and lost the frame again: it looked like the `snes-pan` tint
+    ; arriving one late.
     rep #$20
 .a16
     lda pag_ofs
@@ -196,25 +196,26 @@ recorrer:
     tay
     sep #$20
 .a8
-    ; Con A y no con un `ldx`: X está en 16 bits y se llevaría también
-    ; `auto_n`, el byte de al lado, así que con una automática corriendo la
-    ; pasada completa filtraría como la corta.
+    ; With A and not with an `ldx`: X is 16 bits and would also take
+    ; `auto_n`, the next byte, so with an autostart running the full pass
+    ; would filter like the short one.
     lda solo_auto
     beq filtro_completo
     lda [pag_ptr], y
-    and #$80                    ; la pasada corta: sólo las automáticas
+    and #$80                    ; the short pass: only autostart pages
     bra con_filtro
 filtro_completo:
     lda [pag_ptr], y
     and #$E0
 con_filtro:
     bne mirar_pagina
-    jmp siguiente               ; la recorrida creció y ya no entra en un beq
+    jmp siguiente               ; the walk grew and no longer fits in a beq
 mirar_pagina:
     jsr leer_pagina
-    ; La primera página de un evento con automáticas le apaga el `FLAG_AUTO`:
-    ; lo vuelve a prender, más abajo, la última de sus páginas que cumpla. Las
-    ; páginas de un evento vienen juntas, así que alcanza con mirar si cambió.
+    ; The first page of an event with autostart pages clears its `FLAG_AUTO`:
+    ; the last of its pages that meets its conditions sets it again, further
+    ; down. An event's pages come together, so checking whether it changed is
+    ; enough.
     lda pg_flags
     and #$80
     beq no_es_auto
@@ -234,15 +235,14 @@ mirar_pagina:
     beq ya_apagada
     dec auto_n
 ya_apagada:
-    ; Los **dos** bits, y la última página que cumpla los vuelve a poner. El
-    ; de espera también: si ninguna página del evento cumple, se queda sin
-    ; página activa y la marca tiene que irse, que es el
-    ; `ClearWaitingForegroundExecution` que `RefreshPage` hace cuando no
-    ; encuentra ninguna. Dejándola puesta, la página que acababa de terminar
-    ; volvía a arrancar: en la cinemática de apertura eso reiniciaba la escena
-    ; entera en el cuadro 692.
-    jsr desmarcar_esperando     ; el de espera, con su cuenta
-    stz ev_flags, x             ; y el de automática, que la cuenta ya bajó
+    ; **Both** bits, and the last page that meets its conditions sets them
+    ; again. The waiting one too: if no page of the event qualifies, it is left
+    ; with no active page and the mark has to go, which is the
+    ; `ClearWaitingForegroundExecution` that `RefreshPage` does when it finds
+    ; none. Leaving it set, the page that had just finished started again: in
+    ; the opening cutscene that restarted the whole scene at frame 692.
+    jsr desmarcar_esperando     ; the waiting one, with its count
+    stz ev_flags, x             ; and the autostart one, whose count already went down
     bra no_es_auto
 .a16
 mismo_ev16:
@@ -251,9 +251,10 @@ mismo_ev16:
 no_es_auto:
     jsr condiciones_ok
     beq no_cumple
-    ; Cumple, así que por ahora es la activa de su evento. Si el evento tiene
-    ; automáticas, acá se decide si la activa lo es: escribir en cada página
-    ; que cumple deja al final lo que diga la última, que es la que gana.
+    ; It qualifies, so for now it is its event's active page. If the event
+    ; has autostart pages, this is where it is decided whether the active one
+    ; is one: writing on every qualifying page leaves in the end what the last
+    ; one says, which is the one that wins.
     lda pg_flags
     and #$80
     beq sin_auto
@@ -266,7 +267,7 @@ no_es_auto:
     dec auto_n
 sigue_apagada:
     lda ev_flags, x
-    and #FLAG_ESPERA            ; se apaga, y abajo se vuelve a prender si toca
+    and #FLAG_ESPERA            ; cleared, and set again below if due
     sta ev_flags, x
     lda pg_trigger
     cmp #TRIGGER_AUTOMATICO
@@ -274,33 +275,33 @@ sigue_apagada:
     lda pg_cod
     ora pg_cod + 1
     ora pg_cod + 2
-    beq no_gana_una_auto        ; no compiló: no hay nada que arrancar
+    beq no_gana_una_auto        ; did not compile: nothing to start
     lda ev_flags, x
     ora #FLAG_AUTO
     sta ev_flags, x
     inc auto_n
-    jsr marcar_esperando        ; sigue siendo automática: la marca vuelve
+    jsr marcar_esperando        ; still autostart: the mark comes back
     bra sin_auto
 no_gana_una_auto:
-    ; La que gana no es automática, así que el evento **deja** de esperar. Se
-    ; escribe en cada página que cumple y gana la última, que es la activa;
-    ; marcando y no desmarcando, la página 0 de un evento dejaba la marca
-    ; puesta aunque ganara la 1. Es el `ClearWaitingForegroundExecution` que
-    ; `Game_Event::RefreshPage` hace al cambiar de página.
+    ; The winner is not autostart, so the event **stops** waiting. It is
+    ; written on every qualifying page and the last one wins, which is the
+    ; active one; by marking and not unmarking, an event's page 0 left the
+    ; mark set even if page 1 won. It is the `ClearWaitingForegroundExecution`
+    ; that `Game_Event::RefreshPage` does when it changes page.
     jsr desmarcar_esperando
 sin_auto:
-    ; La página activa se anota para los tres casos, no sólo para los de ruta o
-    ; gráfico: `arrancar_esperando` la lee de acá en vez de volver a recorrer
-    ; las páginas del mapa. En el mapa 2 eso son sesenta y tres páginas por
-    ; cada página que arranca, y se perdía el cuadro. La segunda pasada, que
-    ; es la que toca rutas y gráficos, saltea a los que no tienen esos bits.
+    ; The active page is noted for all three cases, not only for the route or
+    ; graphic ones: `arrancar_esperando` reads it from here instead of walking
+    ; the map's pages again. On map 2 that is sixty-three pages for each page
+    ; that starts, and the frame was lost. The second pass, which is the one
+    ; that touches routes and graphics, skips the ones without those bits.
     rep #$20
 .a16
     lda pg_evento
     asl a
     tax
     lda pag_ofs
-    sta eleg_por_ev, x          ; gana la última que cumple
+    sta eleg_por_ev, x          ; the last one that qualifies wins
     sep #$20
 .a8
     bra siguiente
@@ -308,10 +309,10 @@ no_cumple:
     lda pg_flags
     and #$60
     bne con_rutas
-    jmp siguiente               ; sólo automáticas: ya quedó apagado arriba
+    jmp siguiente               ; autostart only: it was already cleared above
 con_rutas:
-    ; Un evento con rutas y sin página que cumpla todavía: $FFFE, para que la
-    ; segunda pasada lo distinga de los que no tienen rutas.
+    ; An event with routes and no qualifying page yet: $FFFE, so the second
+    ; pass can tell it apart from those without routes.
     rep #$20
 .a16
     lda pg_evento
@@ -320,8 +321,8 @@ con_rutas:
     lda eleg_por_ev, x
     cmp #$FFFF
     bne ya_tiene
-    ; Sin página que cumpla, por ahora: $FFFE, o $FFFD si el gráfico sigue a
-    ; la página, que es el que hay que esconder.
+    ; No qualifying page, for now: $FFFE, or $FFFD if the graphic follows
+    ; the page, which is the one that has to be hidden.
     lda #$FFFE
     sta eleg_por_ev, x
     sep #$20
@@ -352,7 +353,7 @@ siguiente:
     sep #$20
 .a8
     beq listo_eligiendo
-    jmp recorrer                ; la recorrida creció y ya no entra en un bcc
+    jmp recorrer                ; the walk grew and no longer fits in a bcc
 listo_eligiendo:
     rts
 sin_paginas:
@@ -361,20 +362,20 @@ sin_paginas:
     rts
 .endproc
 
-; La segunda mitad: cada evento con la ruta y el gráfico de su página activa.
-; Recorre los eventos del mapa recargando filas de OAM y ranuras de ruta, así
-; que es la cara: hacerla en medio de un cuadro costaba el cuadro entero en el
-; mapa 2. Por eso el refresco a mitad de comando la deja para el principio del
-; cuadro que viene, donde no cambia nada: lo que toca no se ve hasta que se
-; dibuje.
+; The second half: each event with the route and graphic of its active page.
+; It walks the map's events reloading OAM rows and move route slots, so it is
+; the expensive one: doing it in the middle of a frame cost the whole frame
+; on map 2. That is why the mid-command refresh leaves it for the start of
+; the next frame, where nothing changes: what it touches is not seen until it
+; is drawn.
 .proc aplicar_paginas
 .a8
 .i16
-    ; El giro primero, con las páginas nuevas ya elegidas y antes de que se
-    ; reescriban las filas: ver `giro_revisar` y `giro_reponer`.
+    ; The turn first, with the new pages already chosen and before the rows
+    ; are rewritten: see `giro_revisar` and `giro_reponer`.
     jsr giro_revisar
-    ; El puntero a las páginas se rearma acá y no se hereda de `elegir_paginas`:
-    ; entre una y otra puede haber pasado un cuadro entero.
+    ; The pointer to the pages is rebuilt here and not inherited from
+    ; `elegir_paginas`: a whole frame may have passed between the two.
     ldx mapa_ofs
     rep #$20
 .a16
@@ -384,7 +385,7 @@ sin_paginas:
 .a8
     lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
     sta pag_ptr + 2
-    stz par_n                   ; la lista de paralelos se rehace entera
+    stz par_n                   ; the list of parallels is rebuilt from scratch
     stz rp_ev
     stz rp_ev + 1
 cada_evento:
@@ -393,48 +394,49 @@ cada_evento:
     lda rp_ev
     cmp ev_total
     bcc :+
-    jmp fin16                   ; lejos para un salto corto
+    jmp fin16                   ; far for a short branch
 :
     asl a
     tax
     lda eleg_por_ev, x
     cmp #$FFFF
     bne :+
-    jmp proximo                 ; sin rutas propias: nada que mirar
+    jmp proximo                 ; no routes of its own: nothing to look at
 :
     cmp #$FFFE
     bne :+
-    jmp sin_activa16            ; con rutas, y ninguna página que cumpla
+    jmp sin_activa16            ; with routes, and no qualifying page
 :
     cmp #$FFFD
     bne :+
-    jmp esconder16              ; con gráfico de página, y ninguna: se esconde
+    jmp esconder16              ; with a page graphic, and none: it is hidden
 :
     sta pag_ofs
     sep #$20
 .a8
     jsr leer_pagina
-    ; Si la que ganó es paralela, el evento entra en la lista de los que
-    ; `paralelos_tick` corre. Se arma acá y no en cada cuadro porque cuál es la
-    ; página activa sólo cambia en un refresco, y recorrer los ciento veinte
-    ; eventos por cuadro es justo lo que este refresco existe para no hacer.
+    ; If the winner is parallel, the event goes into the list that
+    ; `paralelos_tick` runs. It is built here and not every frame because
+    ; which page is active only changes on a refresh, and walking the hundred
+    ; and twenty events every frame is exactly what this refresh exists to
+    ; avoid.
     lda pg_trigger
     cmp #TRIGGER_PARALELO
     bne no_es_paralela
     lda pg_cod
     ora pg_cod + 1
     ora pg_cod + 2
-    beq no_es_paralela          ; no compiló: no hay nada que correr
+    beq no_es_paralela          ; did not compile: nothing to run
     jsr anotar_paralelo
 no_es_paralela:
     lda pg_flags
     and #$60
     bne con_ruta_o_grafico
-    jmp proximo                 ; sólo automáticas: la anotación es para otro
+    jmp proximo                 ; autostart only: the note is for something else
 con_ruta_o_grafico:
-    jsr grafico_de_pagina       ; lo que la página dibuja, a la fila del NPC
+    jsr grafico_de_pagina       ; what the page draws, to the NPC's row
     lda rp_ev
-    jsr ranura_del_evento       ; X = su ranura, o $FFFF
+    jsr ranura_del_evento       ; X = its slot, or $FFFF
     lda pg_flags
     and #$01
     beq sin_ruta
@@ -447,7 +449,7 @@ con_ruta_o_grafico:
     sep #$20
 .a8
     bne :+
-    jmp proximo                 ; la misma página de antes: sigue por donde iba
+    jmp proximo                 ; the same page as before: it goes on where it was
 :
     bra cargar
 nueva:
@@ -456,7 +458,7 @@ nueva:
     jsr ranura_libre
     cpx #$FFFF
     bne :+
-    jmp proximo                 ; no hay lugar: se queda quieto
+    jmp proximo                 ; no room: it stays still
 :
     lda rp_ev
     sta ruta_ev + 0, x
@@ -475,7 +477,7 @@ nueva:
 cargar:
     phx
     lda rp_ev
-    jsr giro_por_ruta           ; con ruta, adónde mira lo decide ella
+    jsr giro_por_ruta           ; with a route, the route decides where it faces
     plx
     jsr cargar_pagina_en_ranura
     jmp proximo
@@ -519,60 +521,60 @@ sin_paginas:
     rts
 .endproc
 
-; Lo que en `Game_Map::Update` corre **antes** del jugador: el refresco
-; pendiente y `UpdateMapEvents` —`game_map.cpp:1259` y `:1274`, contra el
-; `game_player->Update()` de `:1288`—.
+; What in `Game_Map::Update` runs **before** the player: the pending refresh
+; and `UpdateMapEvents` —`game_map.cpp:1259` and `:1274`, against the
+; `game_player->Update()` at `:1288`—.
 ;
-; Está partido de `eventos_tick` justamente por eso: el primer plano cae del
-; otro lado del héroe, y así lo que un paso encola se atiende en el mismo
-; cuadro. Ver el lazo principal.
+; It is split from `eventos_tick` precisely for that: the foreground falls on
+; the other side of the hero, and that way what a step queues is handled in
+; the same frame. See the main loop.
 .proc eventos_de_mapa
 .a8
 .i16
-    ; El refresco pendiente, antes de todo: es cuando `Game_Map::Update` mira
-    ; `GetNeedRefresh`.
+    ; The pending refresh, before everything: it is when `Game_Map::Update`
+    ; looks at `GetNeedRefresh`.
     lda refresco
-    ora refresco_cuadro         ; o uno de adentro del lazo de comandos, que
-    beq sin_refresco            ; hizo la pasada corta y dejó ésta debiendo
+    ora refresco_cuadro         ; or one from inside the command loop, which
+    beq sin_refresco            ; did the short pass and left this one owed
     stz refresco
     stz refresco_cuadro
-    jsr rutas_de_pagina         ; que además rehace el `FLAG_AUTO` de cada
-                                ; evento: la página activa cambió
+    jsr rutas_de_pagina         ; which also rebuilds each event's `FLAG_AUTO`:
+                                ; the active page changed
 sin_refresco:
-    ; `Game_Event::CheckEventAutostart`, que cuelga de
-    ; `Game_Event::UpdateNextMovementAction` —`game_event.cpp:409`— y por eso
-    ; corre acá adentro: todo evento con una automática activa queda esperando,
-    ; una vez por cuadro y **antes** del intérprete. Marcarlo más tarde —al
-    ; terminar una página— le adelantaba un cuadro a las que se activan en
-    ; medio de otra.
+    ; `Game_Event::CheckEventAutostart`, which hangs off
+    ; `Game_Event::UpdateNextMovementAction` —`game_event.cpp:409`— and that is
+    ; why it runs in here: every event with an active autostart page is left
+    ; waiting, once per frame and **before** the interpreter. Marking it later
+    ; —when a page ends— moved the ones that get activated in the middle of
+    ; another one a frame earlier.
     ;
-    ; `auto_n` está para que el lazo de ciento veinte no corra cuando no hay
-    ; ninguna, que es casi siempre: corriéndolo igual se perdía el cuadro justo
-    ; donde caía algo caro, como el tinte de `snes-pan`.
+    ; `auto_n` is there so the loop over a hundred and twenty does not run
+    ; when there are none, which is almost always: running it anyway lost the
+    ; frame right where something expensive landed, like the `snes-pan` tint.
     lda auto_n
     beq sin_automaticas
     jsr esperar_automaticas
 sin_automaticas:
-    ; Los paralelos, que es la otra mitad de `UpdateMapEvents`
-    ; —`game_event.cpp:590`—: corren antes del héroe, antes del mensaje y antes
-    ; del primer plano. O sea que un evento paralelo sigue corriendo con un
-    ; cuadro de texto abierto y con otra página en curso, que es justo para lo
-    ; que existe.
+    ; The parallels, which are the other half of `UpdateMapEvents`
+    ; —`game_event.cpp:590`—: they run before the hero, before the message and
+    ; before the foreground. That is, a parallel event keeps running with a
+    ; text box open and with another page in progress, which is exactly what
+    ; it exists for.
     jmp paralelos_tick
 .endproc
 
-; Un cuadro del intérprete de primer plano, desde el lazo principal:
-; `Game_Map::UpdateForegroundEvents` —`game_map.cpp:1310`— con el
-; `UpdateMessage` de `:1297` pegado adelante.
+; One frame of the foreground interpreter, from the main loop:
+; `Game_Map::UpdateForegroundEvents` —`game_map.cpp:1310`— with the
+; `UpdateMessage` at `:1297` stuck in front.
 ;
-; Acá estaba el cambio de fondo: antes `cargar_mapa` corría todas las páginas de
-; una, con la pantalla apagada, y volvía con todo hecho. El tiempo quedaba
-; colapsado —las esperas se salteaban, y lo que pasaba antes de un
-; teletransporte no se veía nunca— y por eso nada de eso se podía verificar.
+; This is where the fundamental change was: before, `cargar_mapa` ran all the
+; pages in one go, with the screen off, and came back with everything done.
+; Time was collapsed —waits were skipped, and what happened before a teleport
+; was never seen— and that is why none of it could be verified.
 ;
-; Un teletransporte se atiende acá y no adentro del intérprete: llamar a
-; `cargar_mapa` desde ahí sería recursión, y dos mapas que se apuntan entre sí
-; la harían infinita. El tope de saltos sigue por la misma razón.
+; A teleport is handled here and not inside the interpreter: calling
+; `cargar_mapa` from there would be recursion, and two maps pointing at each
+; other would make it infinite. The jump cap stays for the same reason.
 .proc eventos_tick
 .a8
 .i16
@@ -587,34 +589,36 @@ sin_automaticas:
     rts
 sin_espera:
 .a16
-    ; se llega en dieciséis; el `sep` de abajo lo achica
+    ; it arrives at sixteen; the `sep` below shrinks it
     sep #$20
 .a8
 
-    ; Con un mensaje en pantalla la página queda bloqueada, que es lo que hace
-    ; `Game_Message`. Todo lo demás sigue: la ruta forzada del héroe camina y la
-    ; cámara lo sigue, porque en `game_player.cpp` de easyrpg `UpdateMoveRoute`
-    ; corre **antes** del guard de `IsMessageActive`. En este juego hay 186
-    ; páginas donde eso pasa, y la primera está en el mapa 1.
-    ; Una elección abierta manda sobre el mensaje: la ventana es la misma pero
-    ; A no la cierra, la resuelve.
+    ; With a message on screen the page stays blocked, which is what
+    ; `Game_Message` does. Everything else goes on: the hero's forced move
+    ; route walks and the camera follows him, because in easyrpg's
+    ; `game_player.cpp` `UpdateMoveRoute` runs **before** the
+    ; `IsMessageActive` guard. In this game there are 186 pages where that
+    ; happens, and the first one is on map 1.
+    ; An open choice overrides the message: the window is the same but A does
+    ; not close it, it resolves it.
     lda eleg_activo
     beq sin_eleccion
     jsr eleccion_tick
-    bne sin_mensaje             ; eligió: la página sigue en este mismo cuadro
+    bne sin_mensaje             ; it chose: the page goes on this same frame
     rts
 sin_eleccion:
     lda msg_abierto
-    ora msg_estado              ; también mientras se está componiendo
+    ora msg_estado              ; also while it is being composed
     beq sin_mensaje
-    ; La pausa del `\|`, si el cuadro trae alguna. Se cuenta **desde que la
-    ; página pidió el mensaje** y no desde que la ventana terminó de
-    ; componerse: así no depende de lo que tarde la composición, que va de
-    ; nueve a diecinueve cuadros según el texto. Con una pausa de 61 la
-    ; composición termina mucho antes, así que en pantalla se ve lo mismo.
-    ; **A no la saltea**: en `Window_Message::Update` el `if (wait_count > 0)`
-    ; va antes de `WaitForInput()`, así que mientras la pausa corre el botón no
-    ; se mira. Por eso va arriba de todo y no después del flanco.
+    ; The `\|` pause, if the box has one. It is counted **from when the page
+    ; asked for the message** and not from when the window finished composing:
+    ; that way it does not depend on how long composing takes, which goes from
+    ; nine to nineteen frames depending on the text. With a pause of 61 the
+    ; composing finishes long before, so the screen shows the same thing.
+    ; **A does not skip it**: in `Window_Message::Update` the
+    ; `if (wait_count > 0)` goes before `WaitForInput()`, so while the pause
+    ; runs the button is not looked at. That is why it goes at the very top
+    ; and not after the edge.
     rep #$20
 .a16
     lda f:FAR_MSG_PAUSA
@@ -630,10 +634,10 @@ sin_pausa:
 .a8
     lda f:FAR_MSG_AUTO
     beq espera_boton
-    ; El `\^`: el cuadro se cierra solo, sin que nadie apriete nada. Se apaga
-    ; también el compositor, y no es teórico: un cuadro con `\^` y ninguna
-    ; pausa se cierra antes de que termine de componerse, y sin esto
-    ; `flush_video` prendería la ventana de un mensaje ya cerrado.
+    ; The `\^`: the box closes by itself, without anyone pressing anything.
+    ; The composer is turned off too, and it is not theoretical: a box with
+    ; `\^` and no pause closes before it finishes composing, and without this
+    ; `flush_video` would turn on the window of a message already closed.
     lda #0
     sta f:FAR_MSG_AUTO
     stz msg_estado
@@ -642,27 +646,28 @@ sin_pausa:
     bra sigue
 espera_boton:
     lda msg_abierto
-    beq no_avanza               ; todavía no terminó de componerse
+    beq no_avanza               ; has not finished composing yet
     lda pad_a
-    beq no_avanza               ; nadie apretó: el mensaje se queda
+    beq no_avanza               ; nobody pressed: the message stays
     lda pad_a_ant
-    bne no_avanza               ; ya lo tenía apretado: no es un flanco
-    stz msg_abierto             ; y con eso `flush_video` apaga el HDMA: cerrar
-                                ; la ventana no escribe un solo byte de VRAM
-    ; Y el flanco queda consumido, como el de B en la elección. Si el mensaje
-    ; era de un paralelo no hay página que siga, así que este mismo cuadro cae
-    ; en `probar_accion` con la A todavía "recién apretada" y le hablaba al
-    ; evento que el héroe tuviera enfrente. En RM2k el mensaje sigue activo
-    ; unos ocho cuadros más, mientras se anima el cierre (easyrpg
-    ; `window_message.cpp:379-403`), y con un mensaje activo el héroe no busca
-    ; eventos (`game_player.cpp:297`). Lo cobra `test_la_a_que_cierra_el_
+    bne no_avanza               ; it was already held: not an edge
+    stz msg_abierto             ; and with that `flush_video` turns off the HDMA: closing
+                                ; the window does not write a single byte of VRAM
+    ; And the edge is consumed, like B's in the choice. If the message was a
+    ; parallel's there is no page to go on, so this same frame falls into
+    ; `probar_accion` with A still "just pressed" and talked to whatever event
+    ; the hero had in front of him. In RM2k the message stays active some eight
+    ; more frames, while the close animates (easyrpg
+    ; `window_message.cpp:379-403`), and with a message active the hero does
+    ; not look for events (`game_player.cpp:297`). It is enforced by
+    ; `test_la_a_que_cierra_el_
     ; mensaje_no_le_habla_al_de_enfrente`.
     lda pad_a
     sta pad_a_ant
 sigue:
-    ; Y la página sigue **en este mismo cuadro**, cayendo en el `jsr
-    ; correr_codigo` de siempre. Cerrar acá y retomar el cuadro siguiente
-    ; le costaría un cuadro a cada página que cierra un mensaje.
+    ; And the page goes on **in this same frame**, falling into the usual
+    ; `jsr correr_codigo`. Closing here and resuming the next frame would cost
+    ; a frame to every page that closes a message.
     bra sin_mensaje
 no_avanza:
     rts
@@ -670,60 +675,60 @@ sin_mensaje:
 
     lda ev_activo
     bne corriendo
-    ; No hay página a medio correr: se toma la del primer evento que espere.
+    ; No page half run: take the one of the first event that is waiting.
     lda esperando_n
     bne hay_esperando
 
-    ; Nada corriendo y nada esperando: el jugador tiene el control, así que la
-    ; cadena de teletransportes terminó y el presupuesto se repone.
+    ; Nothing running and nothing waiting: the player has control, so the
+    ; chain of teleports is over and the budget is replenished.
     ;
-    ; Antes lo reponía sólo `cargar_mapa`, y a esa altura el único que la
-    ; llamaba era una **puerta**: un comando `Teleport` carga el mapa por
-    ; `cargar_mapa_sin_eventos`, que no la toca. Así que ocho teletransportes
-    ; gastaban el presupuesto para toda la partida y del noveno en adelante el
-    ; `beq nada` de abajo los descartaba **en silencio**. La apertura entera son
-    ; teletransportes encadenados y casi no tiene puertas: para cuando el
-    ; despachante del mapa 4 quería mandar al pad de Talan ya no quedaba
-    ; ninguno, el salto se perdía, y como su página es automática y su switch
-    ; sigue prendido volvía a arrancar sola para siempre. taro lo vio el
-    ; 2026-09-07 como un mapa vacío del que no se podía salir, con la música
-    ; fundiéndose y volviendo a empezar en ciclo; el volcado de la RAM decía
-    ; `mapa_actual` = 4 con el evento 1 corriendo.
+    ; Before, only `cargar_mapa` replenished it, and by then the only thing
+    ; calling it was a **door**: a `Teleport` command loads the map through
+    ; `cargar_mapa_sin_eventos`, which does not touch it. So eight teleports
+    ; spent the budget for the whole game and from the ninth on the
+    ; `beq nada` below dropped them **silently**. The whole opening is
+    ; chained teleports and has almost no doors: by the time map 4's
+    ; dispatcher wanted to send the player to Talan's pad there were none
+    ; left, the jump was lost, and since its page is autostart and its switch
+    ; stays on it started again by itself forever. taro saw it on 2026-09-07
+    ; as an empty map there was no way out of, with the music fading out and
+    ; starting again in a loop; the RAM dump said `mapa_actual` = 4 with event
+    ; 1 running.
     lda #SALTOS_MAX
     sta saltos_restantes
 
-    ; La cola está vacía, así que el flanco de A es para hablar. En RM2k es el
-    ; mismo botón que cierra un mensaje y que confirma, y el orden importa: con
-    ; un mensaje abierto el jugador no se actualiza —arriba se sale por
-    ; `no_avanza`— así que no puede hablarle a nadie mientras lee.
+    ; The queue is empty, so the edge on A is for talking. In RM2k it is the
+    ; same button that closes a message and that confirms, and the order
+    ; matters: with a message open the player is not updated —above, it exits
+    ; through `no_avanza`— so he cannot talk to anyone while reading.
     ;
-    ; Y sólo con el héroe quieto: `CheckActionEvent` cuelga del `if
-    ; (IsStopping())` de `Game_Player::UpdateNextMovementAction`.
+    ; And only with the hero standing still: `CheckActionEvent` hangs off the
+    ; `if (IsStopping())` in `Game_Player::UpdateNextMovementAction`.
     lda pad_a
     beq nada
     lda pad_a_ant
-    bne nada                    ; ya lo tenía apretado: no es un flanco
+    bne nada                    ; it was already held: not an edge
     lda step_left
-    bne nada                    ; a mitad de un paso no se habla
-    ; La ruta forzada del héroe se mira adentro: ver `probar_accion`.
+    bne nada                    ; no talking in the middle of a step
+    ; The hero's forced move route is checked inside: see `probar_accion`.
     jsr probar_accion
     beq nada
-    ; Marcó un evento: se arranca en este mismo cuadro.
+    ; It marked an event: it starts this same frame.
 hay_esperando:
     jsr arrancar_esperando
-    beq nada                    ; ninguno tenía página con qué correr
+    beq nada                    ; none had a page to run with
 
 corriendo:
-    ; El `while (!interp.IsRunning())` de `Game_Map::UpdateForegroundEvents`:
-    ; si la página termina, la que siga esperando arranca **en este mismo
-    ; cuadro** y no en el que viene. Encadenarlas al cuadro siguiente metía un
-    ; cuadro de diferencia por página, y una cinemática son decenas.
+    ; The `while (!interp.IsRunning())` of `Game_Map::UpdateForegroundEvents`:
+    ; if the page ends, the next one waiting starts **in this same frame** and
+    ; not the next one. Chaining them to the next frame added one frame of
+    ; difference per page, and a cutscene is dozens.
     lda #ARRANQUES_MAX
     sta arranques
 seguir_corriendo:
     jsr correr_codigo
-    ; Si la página terminó y era la del evento que gira, vuelve a su pose: el
-    ; `UpdateFacing` de `OnFinishForegroundEvent`.
+    ; If the page ended and it was the turning event's, it goes back to its
+    ; pose: the `UpdateFacing` of `OnFinishForegroundEvent`.
     lda ev_activo
     bne sin_fin_de_giro
     lda f:GIRO_EV
@@ -731,35 +736,36 @@ seguir_corriendo:
     bne sin_fin_de_giro
     jsr giro_deshacer
 sin_fin_de_giro:
-    ; El refresco pendiente, **al salir del intérprete**: es el
-    ; `if (Game_Map::GetNeedRefresh()) Game_Map::Refresh();` del final de
-    ; `Game_Interpreter::Update`, y de él depende que el idioma de RM2k
-    ; funcione. Una página que prende el switch que la desactiva deja de ser la
-    ; activa antes de que se decida qué corre después; sin esto, al terminar
-    ; seguía pareciendo automática y volvía a arrancar en el mismo cuadro, una
-    ; y otra vez hasta agotar el presupuesto de `ARRANQUES_MAX`.
+    ; The pending refresh, **on leaving the interpreter**: it is the
+    ; `if (Game_Map::GetNeedRefresh()) Game_Map::Refresh();` at the end of
+    ; `Game_Interpreter::Update`, and RM2k's idiom depends on it working. A
+    ; page that turns on the switch that deactivates it stops being the active
+    ; one before deciding what runs next; without this, on ending it still
+    ; looked autostart and started again in the same frame, over and over
+    ; until the `ARRANQUES_MAX` budget ran out.
     ;
-    ; EasyRPG además refresca **antes de cada comando**, arriba del lazo. Acá
-    ; no hace falta y sale caro: ningún opcode de los que hay lee cuál es la
-    ; página activa de un evento —el único que la lee es `arrancar_esperando`,
-    ; que corre justo acá abajo—. Haciéndolo por comando, la cinemática de
-    ; apertura perdía cinco cuadros: sus páginas prenden switches de a montones.
-    ; El día que aparezca un opcode que sí la lea, esto vuelve al lazo.
+    ; EasyRPG also refreshes **before each command**, at the top of the loop.
+    ; Here it is not needed and it is expensive: none of the existing opcodes
+    ; reads which page of an event is active —the only one that reads it is
+    ; `arrancar_esperando`, which runs right below here—. Doing it per
+    ; command, the opening cutscene lost five frames: its pages turn on
+    ; switches by the heap. The day an opcode appears that does read it, this
+    ; goes back into the loop.
     lda refresco
     beq sin_refresco_aca
     stz refresco
     lda #1
-    sta refresco_cuadro         ; la completa, al principio del cuadro que viene
+    sta refresco_cuadro         ; the full one, at the start of the next frame
     jsr elegir_automaticas
 sin_refresco_aca:
     lda salto_hay
     bne hubo_salto
     lda ev_activo
-    bne nada                    ; sigue corriendo: el cuadro terminó
+    bne nada                    ; still running: the frame is over
     lda esperando_n
     beq nada
     dec arranques
-    beq nada                    ; se acabó el presupuesto del cuadro
+    beq nada                    ; the frame's budget ran out
     jsr arrancar_esperando
     bne seguir_corriendo
     rts
@@ -773,85 +779,87 @@ hubo_salto:
     sta entrada_y
     sep #$20
 .a8
-    ; De acá no se carga nada: se pide el fundido y el mapa se carga adentro,
-    ; en el primer cuadro negro. Ver `fundido_tick`. Lo que sí queda decidido
-    ; acá es **cuál** de los dos casos es, porque `mapa_actual` va a haber
-    ; cambiado para cuando toque hacerlo.
+    ; Nothing is loaded from here: the fade is requested and the map is loaded
+    ; inside it, on the first black frame. See `fundido_tick`. What does get
+    ; decided here is **which** of the two cases it is, because `mapa_actual`
+    ; will have changed by the time it is due.
     ;
-    ; Un salto **al mismo mapa** no recarga nada: sólo mueve al héroe. Es el
-    ; `map_changed = (GetMapId() != teleport_target.GetMapId())` de
-    ; `Game_Player::PerformTeleport`. Recargarlo volvía a encolar los eventos
-    ; automáticos, y con eso la cinemática de apertura —que salta dos veces
-    ; adentro del mapa 1— se reiniciaba sola para siempre. Fundir, en cambio,
-    ; funde igual: en RM2k el `TeleportParams` sale siempre con
-    ; `erase_screen = true`, mire a donde mire el salto.
-    ; El índice del mapa es de dieciséis bits —ver `mapa_actual`— y esto va por
-    ; X y no por A justamente por eso: X ya es de dieciséis, así que copiar y
-    ; comparar no cuesta el `rep`/`sep` que sí costaría por el acumulador. Y no
-    ; es una cuenta de elegancia: con los cuatro bytes de más, el `beq nada` de
-    ; `eventos_tick` se pasaba de los 128 que alcanza un salto relativo.
+    ; A jump **to the same map** reloads nothing: it only moves the hero. It is
+    ; the `map_changed = (GetMapId() != teleport_target.GetMapId())` of
+    ; `Game_Player::PerformTeleport`. Reloading it queued the autostart events
+    ; again, and with that the opening cutscene —which jumps twice inside map
+    ; 1— restarted by itself forever. Fading, on the other hand, fades all
+    ; the same: in RM2k the `TeleportParams` always goes out with
+    ; `erase_screen = true`, wherever the jump points.
+    ; The map index is sixteen bits —see `mapa_actual`— and this goes through
+    ; X and not A precisely for that: X is already sixteen, so copying and
+    ; comparing does not cost the `rep`/`sep` it would through the
+    ; accumulator. And it is not a matter of elegance: with the four extra
+    ; bytes, the `beq nada` in `eventos_tick` went past the 128 a relative
+    ; branch reaches.
     ldx salto_mapa
     stx fundido_mapa
     cpx mapa_actual
     bne otro_mapa
-    lda #FUNDIDO_MISMO          ; un salto al mismo mapa no recarga nada
+    lda #FUNDIDO_MISMO          ; a jump to the same map reloads nothing
     bra pedir_fundido
 otro_mapa:
-    ; El presupuesto de saltos se gasta **acá y no antes**, o sea sólo cuando
-    ; se cambia de mapa: un salto al mismo mapa no lo toca.
+    ; The jump budget is spent **here and not before**, that is, only when the
+    ; map changes: a jump to the same map does not touch it.
     ;
-    ; Cobrándoselo a los saltos al mismo mapa —que es lo que hacía— el
-    ; presupuesto se drenaba sin reponerse nunca, porque un salto al mismo mapa
-    ; no llama a `cargar_mapa`, que es quien lo repone. La escena de Talan salta
-    ; tres veces adentro del mapa 3 y la apertura dos adentro del 1: después de
-    ; ocho, **todo teletransporte se descartaba en silencio**. taro lo vio como
-    ; puertas que se abren y no llevan a ningún lado, y como algo que "a veces
-    ; pasa y a veces no": dependía de cuántos saltos llevara la partida.
+    ; Charging it to jumps to the same map —which is what it did— drained the
+    ; budget without ever replenishing it, because a jump to the same map does
+    ; not call `cargar_mapa`, which is what replenishes it. Talan's scene jumps
+    ; three times inside map 3 and the opening twice inside map 1: after eight,
+    ; **every teleport was silently dropped**. taro saw it as doors that open
+    ; and lead nowhere, and as something that "sometimes happens and sometimes
+    ; doesn't": it depended on how many jumps the game had taken.
     ;
-    ; Y se mira antes de bajarlo, no después: con `dec` sobre cero el byte daba
-    ; la vuelta a 255 y el tope fallaba **una sola vez** y después dejaba pasar
-    ; doscientos cincuenta y cinco más.
+    ; And it is checked before decrementing, not after: with `dec` on zero the
+    ; byte wrapped to 255 and the cap failed **only once** and then let two
+    ; hundred and fifty-five more through.
     lda saltos_restantes
     bne hay_presupuesto
     lda #PANICO_SALTOS
-    jmp entrar_en_panico        ; y de ahí no se vuelve
+    jmp entrar_en_panico        ; and there is no coming back from there
 hay_presupuesto:
     dec saltos_restantes
     lda #FUNDIDO_SALTO
 pedir_fundido:
     jsr empezar_fundido
-    ; La página que pidió el salto sigue corriendo del otro lado: su código está
-    ; en la ROM y el cursor quedó guardado. Las páginas del mapa nuevo se
-    ; encolan recién cuando ésta termine.
+    ; The page that asked for the jump keeps running on the other side: its
+    ; code is in the ROM and the cursor was saved. The new map's pages are
+    ; queued only when this one ends.
 nada:
     rts
 .endproc
 
-; La mitad de `eventos_tick` que atiende un salto pendiente, para el lazo
-; principal: el `Teleport` de un paralelo con el primer plano quieto. Con
-; nombre global porque `arranque.s` va antes en el ensamblado, y `ca65` no
-; resuelve `eventos_tick::hubo_salto` hacia adelante.
+; The half of `eventos_tick` that handles a pending jump, for the main loop:
+; the `Teleport` of a parallel with the foreground idle. With a global name
+; because `arranque.s` comes earlier in the assembly, and `ca65` does not
+; resolve `eventos_tick::hubo_salto` forward.
 eventos_atender_salto = eventos_tick::hubo_salto
 
-; --- los intérpretes paralelos ----------------------------------------------
-; `Game_Map::UpdateMapEvents`: cada evento con una página paralela tiene **su
-; propio intérprete** y corre todos los cuadros, aparte del de primer plano, con
-; un mensaje abierto y con otra página en curso. Cuando su página termina, el
-; cuadro siguiente la vuelve a empezar: RPG_RT hace el `Push` antes de cada
-; `Update` si el intérprete no está corriendo, así que una página que se agota
-; en un cuadro se reinicia para siempre. Es lo que hace andar a los cuatro autos
-; de Lashe City, cuya página entera es un `MoveEvent`.
+; --- the parallel interpreters ----------------------------------------------
+; `Game_Map::UpdateMapEvents`: each event with a parallel page has **its own
+; interpreter** and runs every frame, apart from the foreground one, with a
+; message open and with another page in progress. When its page ends, the
+; next frame starts it again: RPG_RT does the `Push` before each `Update` if
+; the interpreter is not running, so a page that runs out in one frame
+; restarts forever. It is what makes the four cars of Lashe City go, whose
+; whole page is a `MoveEvent`.
 ;
-; Corren con los **mismos** globales que el primer plano —`cod_ptr`, `ev_cur`,
-; `ev_esperando`, `ev_activo`, `ev_corriendo`— así que ese contexto se guarda en
-; la pila y se devuelve al final. Doce bytes, y cuánta pila queda debajo lo mide
-; `rom/pruebas/rpgmaker/test_pila.py`: este camino es uno de los que corre.
+; They run with the **same** globals as the foreground —`cod_ptr`, `ev_cur`,
+; `ev_esperando`, `ev_activo`, `ev_corriendo`— so that context is saved on
+; the stack and given back at the end. Twelve bytes, and how much stack is
+; left below is measured by `rom/pruebas/rpgmaker/test_pila.py`: this path is
+; one of the ones it runs.
 ;
-; El estado de cada uno va en la RAM del banco 1 e **indexado por evento**, no
-; por ranura, y lleva de qué página es: si la página activa cambia, RM2k rehace
-; el intérprete (`Game_Event::Setup`), así que se arranca de cero. Sin eso, un
-; refresco en medio de una espera la dejaba a mitad de camino corriendo el
-; código de otra página.
+; The state of each one goes in bank 1 RAM and **indexed by event**, not by
+; slot, and records which page it belongs to: if the active page changes,
+; RM2k rebuilds the interpreter (`Game_Event::Setup`), so it starts from
+; zero. Without that, a refresh in the middle of a wait left it halfway
+; running another page's code.
 .proc limpiar_paralelos
 .a8
 .i16
@@ -859,20 +867,21 @@ eventos_atender_salto = eventos_tick::hubo_salto
     rep #$20
 .a16
     lda #FAR_PAR_ESTADO
-    sta WMADDL                  ; los dos bytes bajos de la dirección
+    sta WMADDL                  ; the two low bytes of the address
     sep #$20
 .a8
     stz WMADDH
     ldx #(EV_MAX * PAR_BYTES)
 borrar:
-    stz WMDATA                  ; el puerto auto-incrementa
+    stz WMDATA                  ; the port auto-increments
     dex
     bne borrar
     rts
 .endproc
 
-; La ventana de banco apuntada a la entrada de la lista que trae A. Es la misma
-; cuenta para escribirla y para leerla, y estaba copiada en los dos lados.
+; The bank window pointed at the list entry A carries. It is the same
+; arithmetic for writing it and for reading it, and it was copied on both
+; sides.
 .proc par_lista_apuntar
 .a8
 .i16
@@ -881,7 +890,7 @@ borrar:
     and #$00FF
     asl a
     asl a
-    asl a                       ; por PAR_LISTA_BYTES
+    asl a                       ; times PAR_LISTA_BYTES
     clc
     adc #FAR_PAR_LISTA
     sta WMADDL
@@ -891,16 +900,16 @@ borrar:
     rts
 .endproc
 
-; Anota al evento `rp_ev` en la lista de paralelos del mapa, con la página que
-; acaba de ganar: entra con `pg_*` de ella y con `pag_ofs` en su offset, que es
-; como `aplicar_paginas` la tiene leída.
+; Notes event `rp_ev` in the map's list of parallels, with the page that just
+; won: it enters with that page's `pg_*` and with `pag_ofs` at its offset,
+; which is how `aplicar_paginas` has it read.
 .proc anotar_paralelo
 .a8
 .i16
     lda par_n
     cmp #PARALELO_MAX
     bcc hay_lugar
-    rts                         ; el conversor corta antes de que esto pase
+    rts                         ; the converter cuts off before this happens
 hay_lugar:
     jsr par_lista_apuntar
     lda rp_ev
@@ -919,7 +928,7 @@ hay_lugar:
     rts
 .endproc
 
-; Un cuadro de cada evento con página paralela.
+; One frame of each event with a parallel page.
 .proc paralelos_tick
 .a8
 .i16
@@ -946,11 +955,12 @@ hay:
 
     stz par_i
 lazo:
-    ; Primero los que se resuelven sin intérprete: `paralelos_celda`, en el
-    ; banco 1, corre de corrido los que empiezan con `OP_CELL_TEST` y no pasan
-    ; de ahí, y para en el primero que no es así. Con el acarreo en 1 paró en
-    ; uno cuya condición se cumplió: sigue desde Y, con su intérprete.
-    jsl f:paralelos_celda + RAPIDO  ; ver MEMSEL
+    ; First the ones that are resolved without an interpreter:
+    ; `paralelos_celda`, in bank 1, runs straight through the ones that start
+    ; with `OP_CELL_TEST` and go no further, and stops at the first one that
+    ; is not like that. With carry at 1 it stopped at one whose condition was
+    ; met: it goes on from Y, with its interpreter.
+    jsl f:paralelos_celda + RAPIDO  ; see MEMSEL
     bcc lento
     jsr un_paralelo_seguir
     bra siguiente
@@ -958,32 +968,31 @@ lento:
     lda par_i
     cmp par_n
     bcs listos
-    ; La entrada de la lista, con direccionamiento largo indexado y no por la
-    ; ventana de WMADD: apuntar el puerto costaba más que leer, y esto corre
-    ; por cada paralelo en cada cuadro —cuarenta y uno en cada vuelta de la
-    ; carrera—.
+    ; The list entry, with long indexed addressing and not through the WMADD
+    ; window: pointing the port cost more than reading, and this runs for each
+    ; parallel on every frame —forty-one on each lap of the race—.
     rep #$20
 .a16
     lda par_i
     and #$00FF
     asl a
     asl a
-    asl a                       ; por PAR_LISTA_BYTES
+    asl a                       ; times PAR_LISTA_BYTES
     tax
     lda f:FAR_LARGO + FAR_PAR_LISTA + 1, x
-    sta cod_ptr                 ; su página, ya resuelta por el refresco:
+    sta cod_ptr                 ; its page, already resolved by the refresh:
     lda f:FAR_LARGO + FAR_PAR_LISTA + 4, x
-    sta pag_ofs                 ; derecho al cursor del intérprete, que es lo
+    sta pag_ofs                 ; straight to the interpreter's cursor, which is
     lda f:FAR_LARGO + FAR_PAR_LISTA + 0, x
-    and #$00FF                  ; único que `un_paralelo` iba a hacer con ella
+    and #$00FF                  ; all `un_paralelo` was going to do with it
     asl a
     asl a
-    asl a                       ; por PAR_BYTES: dónde cae su estado
+    asl a                       ; times PAR_BYTES: where its state lands
     sta par_dir
     sep #$20
 .a8
     lda f:FAR_LARGO + FAR_PAR_LISTA + 0, x
-    sta par_ev                  ; de qué evento es
+    sta par_ev                  ; which event it belongs to
     lda f:FAR_LARGO + FAR_PAR_LISTA + 3, x
     sta cod_ptr + 2
     jsr un_paralelo
@@ -994,8 +1003,9 @@ siguiente:
     bcc lazo
 listos:
 
-    ; Fuera del lazo no hay paralelo, y eso es lo que `op_message` mira para
-    ; saber si el mensaje que abre es de un paralelo o del primer plano.
+    ; Outside the loop there is no parallel, and that is what `op_message`
+    ; looks at to know whether the message it opens is a parallel's or the
+    ; foreground's.
     lda #$FF
     sta par_ev
 
@@ -1018,54 +1028,56 @@ listos:
     rts
 .endproc
 
-; Un cuadro del evento `par_ev`, con `cod_ptr`, `pag_ofs` y `par_dir` —dónde
-; cae su estado— ya puestos por el lazo desde la lista de paralelos.
+; One frame of event `par_ev`, with `cod_ptr`, `pag_ofs` and `par_dir` —where
+; its state lands— already set by the loop from the list of parallels.
 ;
-; Acá **no** se vuelve a elegir la página ni a leerla del cartucho. Era lo que
-; costaba el cuadro en el HQ de los Lazer Teeth —once paralelos, y el décimo se
-; pasaba— y no podía dar otra respuesta: la lista y lo que lleva adentro los
-; rehace `aplicar_paginas`, que es `Game_Map::Refresh`, o sea el único momento
-; en que la página activa cambia. Tampoco hace falta preguntar si la página es
-; paralela y si compiló: si no lo fuera, el evento no estaría en la lista.
+; Here the page is **not** chosen again nor read from the cartridge. That was
+; what cost the frame in the Lazer Teeth HQ —eleven parallels, and the tenth
+; went over— and it could not give a different answer: the list and what it
+; carries are rebuilt by `aplicar_paginas`, which is `Game_Map::Refresh`,
+; that is, the only moment the active page changes. Nor is there any need to
+; ask whether the page is parallel and whether it compiled: if it were not,
+; the event would not be on the list.
 .proc un_paralelo
 .a8
 .i16
-    ; Con un mensaje en pantalla un paralelo sigue corriendo —para eso
-    ; existe—, **salvo que el mensaje sea suyo**: el guard de
-    ; `Game_Interpreter::Update` es `IsMessageActive() && _state.show_message`
-    ; (easyrpg `game_interpreter.cpp:434-441`). Sin esto, el paralelo del
-    ; guardia del `Lazer Teeth HQ` prendía sus dos switches y se echaba a
-    ; caminar un tick después de pedir su propio mensaje.
+    ; With a message on screen a parallel keeps running —that is what it
+    ; exists for—, **unless the message is its own**: the guard in
+    ; `Game_Interpreter::Update` is `IsMessageActive() && _state.show_message`
+    ; (easyrpg `game_interpreter.cpp:434-441`). Without this, the parallel of
+    ; the guard in the `Lazer Teeth HQ` turned on its two switches and set off
+    ; walking a tick after asking for its own message.
     ;
-    ; Su estado no se lee ni se guarda: este cuadro no lo toca. El paso del
-    ; evento sí se da, porque `Game_Event::Update` llama a
-    ; `Game_Character::Update()` pase lo que pase con el intérprete.
+    ; Its state is neither read nor saved: this frame does not touch it. The
+    ; event's step does happen, because `Game_Event::Update` calls
+    ; `Game_Character::Update()` whatever happens with the interpreter.
     lda msg_abierto
-    ora msg_estado              ; también mientras se compone
+    ora msg_estado              ; also while it is being composed
     ora eleg_activo
     beq no_es_mio
     lda msg_duenio
     cmp par_ev
     bne no_es_mio
-    jmp dar_el_paso             ; `beq` no llega: el cuerpo está en el medio
+    jmp dar_el_paso             ; `beq` does not reach: the body is in between
 no_es_mio:
-    ; Su estado, en `FAR_PAR_ESTADO` + `par_dir`, con direccionamiento largo
-    ; indexado: igual que la lista, y por lo mismo. Sólo se lee y se escribe
-    ; lo que hace falta: con una espera en curso cambia la espera y nada más.
+    ; Its state, at `FAR_PAR_ESTADO` + `par_dir`, with long indexed
+    ; addressing: like the list, and for the same reason. Only what is needed
+    ; is read and written: with a wait in progress the wait changes and
+    ; nothing else.
     rep #$20
 .a16
     ldx par_dir
     lda f:FAR_LARGO + FAR_PAR_ESTADO + 5, x
-    cmp pag_ofs                 ; de qué página era este estado
+    cmp pag_ofs                 ; which page this state belonged to
     bne otra_pagina
-    ; La espera, igual que la del primer plano.
+    ; The wait, same as the foreground's.
     lda f:FAR_LARGO + FAR_PAR_ESTADO + 2, x
     bne esperando
     sep #$20
 .a8
     lda f:FAR_LARGO + FAR_PAR_ESTADO + 4, x
-    beq empezar                 ; no venía corriendo
-    sta ev_activo               ; venía: sigue por donde quedó
+    beq empezar                 ; it was not running
+    sta ev_activo               ; it was: it goes on where it left off
     rep #$20
 .a16
     stz ev_esperando
@@ -1080,16 +1092,18 @@ esperando:
     sta f:FAR_LARGO + FAR_PAR_ESTADO + 2, x
     sep #$20
 .a8
-    ; Y si está corriendo, que es lo que mira su paso: una ruta propia no
-    ; lee órdenes nuevas con la página en curso (`cuadro_de_ruta_ev`).
+    ; And whether it is running, which is what its step looks at: a route of
+    ; its own does not read new commands with the page in progress
+    ; (`cuadro_de_ruta_ev`).
     lda f:FAR_LARGO + FAR_PAR_ESTADO + 4, x
     sta ev_activo
-    jmp dar_el_paso             ; este cuadro se le va esperando
+    jmp dar_el_paso             ; this frame goes by waiting
 .a16
 otra_pagina:
-    ; Otra página: otro intérprete, y su número queda anotado. RM2k lo rehace
-    ; en `Game_Event::Setup`, así que arranca de cero. La espera y si corría
-    ; se escriben ya, en cero, y no al guardar: el atajo de abajo no guarda.
+    ; Another page: another interpreter, and its number is noted down. RM2k
+    ; rebuilds it in `Game_Event::Setup`, so it starts from zero. The wait and
+    ; whether it was running are written now, as zero, and not when saving:
+    ; the shortcut below does not save.
     lda pag_ofs
     sta f:FAR_LARGO + FAR_PAR_ESTADO + 5, x
     lda #0
@@ -1098,27 +1112,27 @@ otra_pagina:
 .a8
     sta f:FAR_LARGO + FAR_PAR_ESTADO + 4, x
 empezar:
-    ; No venía corriendo: la página vuelve a empezar. Es el `Push` que RPG_RT
-    ; hace antes de cada `Update`, y por eso no se reinicia al terminar sino al
-    ; cuadro siguiente.
+    ; It was not running: the page starts over. It is the `Push` RPG_RT does
+    ; before each `Update`, and that is why it does not restart when it ends
+    ; but on the next frame.
     ;
-    ; **El atajo de `OP_CELL_TEST`.** Una página que empieza con él —las de
-    ; los autos de la carrera, las luces del mapa 11— casi siempre falla la
-    ; condición y termina ahí mismo: su condición se evalúa acá, sin pasar por
-    ; `correr_codigo`, y si lo que sigue es el `OP_DONE` la página terminó y
-    ; su estado ya está como tiene que quedar —sin espera y sin correr—, así
-    ; que no se guarda. Es exactamente la primera vuelta del intérprete y la
-    ; segunda; si lo que sigue es otra cosa, el intérprete sigue desde ahí.
-    ; Son casi dos líneas de las 262 del cuadro por página: ver
-    ; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
-    lda [cod_ptr]               ; el primer opcode
+    ; **The `OP_CELL_TEST` shortcut.** A page that starts with it —those of
+    ; the race cars, the lights on map 11— almost always fails the condition
+    ; and ends right there: its condition is evaluated here, without going
+    ; through `correr_codigo`, and if what follows is the `OP_DONE` the page
+    ; is over and its state is already as it has to stay —no wait and not
+    ; running—, so it is not saved. It is exactly the interpreter's first
+    ; round and its second; if what follows is something else, the
+    ; interpreter goes on from there. It is almost two lines of the frame's
+    ; 262 per page: see workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
+    lda [cod_ptr]               ; the first opcode
     cmp #OP_CELL_TEST
     bne desde_cero
     ldy #1
-    jsl f:celda_probar + RAPIDO   ; ver MEMSEL
+    jsl f:celda_probar + RAPIDO   ; see MEMSEL
     lda [cod_ptr], y
-    bne seguir                  ; no es el OP_DONE
-    stz ev_activo               ; lo que haría `op_done`
+    bne seguir                  ; it is not the OP_DONE
+    stz ev_activo               ; what `op_done` would do
     jmp dar_el_paso
 desde_cero:
     ldy #0
@@ -1137,7 +1151,7 @@ corriendo:
 .a16
     lda par_ev
     and #$00FF
-    sta ev_corriendo            ; de quién es la página, para un MoveEvent suyo
+    sta ev_corriendo            ; whose page it is, for a MoveEvent of its own
     sep #$20
 .a8
     jsr correr_codigo
@@ -1154,21 +1168,21 @@ corriendo:
     sta f:FAR_LARGO + FAR_PAR_ESTADO + 4, x
 
 dar_el_paso:
-    ; Y el paso de **este** evento, acá mismo y no al final de la vuelta.
-    ; `Game_Event::Update` corre el intérprete paralelo y a continuación llama a
-    ; `Game_Character::Update()` —easyrpg, `game_event.cpp:580`—, y
-    ; `UpdateMapEvents` hace eso evento por evento. No es lo mismo que correr
-    ; todos los intérpretes y después mover a todos: se ve cuando una página
-    ; paralela le fuerza una ruta a **otro** evento. En Lashe City el `Car4` le
-    ; pisa la suya al `Car2` en cada cuadro —los dos apuntan al id 3 de RM2k, que
-    ; ahí es el `Car2`— y con los pasos todos al final el pisotón gana y el
-    ; `Car2` no camina nunca. taro lo vio, y en EasyRPG y en el RPG Maker
-    ; original los cuatro autos andan.
+    ; And the step of **this** event, right here and not at the end of the
+    ; round. `Game_Event::Update` runs the parallel interpreter and right after
+    ; calls `Game_Character::Update()` —easyrpg, `game_event.cpp:580`—, and
+    ; `UpdateMapEvents` does that event by event. It is not the same as running
+    ; all the interpreters and then moving everyone: it shows when a parallel
+    ; page forces a move route on **another** event. In Lashe City `Car4`
+    ; overwrites `Car2`'s route every frame —both point at RM2k id 3, which
+    ; there is `Car2`— and with all the steps at the end the overwrite wins and
+    ; `Car2` never walks. taro saw it, and in EasyRPG and in the original RPG
+    ; Maker the four cars move.
     ;
-    ; La ranura sale de la marca que deja `ranura_anotar`, y no de buscarla
-    ; con `ranura_del_evento`: la búsqueda recorría todas las ranuras usadas
-    ; por cada paralelo en cada cuadro, y en la carrera, con cinco autos que
-    ; andan y cuarenta paralelos, eran treinta líneas de las 262 del cuadro.
+    ; The slot comes from the mark `ranura_anotar` leaves, and not from
+    ; looking it up with `ranura_del_evento`: the lookup walked every used slot
+    ; for each parallel on every frame, and in the race, with five cars moving
+    ; and forty parallels, it was thirty lines of the frame's 262.
     ldx par_dir
     lda f:FAR_LARGO + FAR_PAR_ESTADO + PAR_RANURA, x
     beq sin_ranura
@@ -1180,7 +1194,7 @@ dar_el_paso:
     asl a
     asl a
     asl a
-    asl a                       ; por RUTA_EV_STRIDE
+    asl a                       ; times RUTA_EV_STRIDE
     tax
     sep #$20
 .a8
@@ -1194,65 +1208,69 @@ dar_el_paso:
     jsr refrescar_npc
     plx
     lda ruta_ev + 18, x
-    ora #$40                    ; ya dio su paso: `mover_eventos` lo saltea
+    ora #$40                    ; it already took its step: `mover_eventos` skips it
     sta ruta_ev + 18, x
 sin_ranura:
     rts
 .endproc
 
-; La ranura de ruta del evento cuyo índice trae A: X, o $FFFF si no tiene.
-; Lo que la página activa de un evento que cambia de gráfico dibuja, copiado a
-; su fila de NPC: el tile, los atributos —paleta y prioridad de su capa—, la
-; pose y hacia dónde mira, si se ve, y los bits de paso de su tile. Y la clave
-; de dibujado con la capa de la página, que puede cambiar —el ascensor del
-; mapa 2 pasa de la capa del héroe a la de abajo al abrirse—, así que la fila
-; se reacomoda como la de un evento que camina. Es `SetupFromPage` para el
-; gráfico, y es lo que abre las puertas de este juego: la página con el tile
-; de los escombros aparece donde antes no había nada. Entra con `pg_*` de la
-; página activa y el evento en `rp_ev`.
+; The move route slot of the event whose index comes in A: X, or $FFFF if it
+; has none.
+; What the active page of an event that changes graphic draws, copied to its
+; NPC row: the tile, the attributes —palette and its layer's priority—, the
+; pose and which way it faces, whether it is visible, and its tile's
+; passability bits. And the draw key with the page's layer, which can change
+; —the elevator on map 2 moves from the hero's layer to the one below when it
+; opens—, so the row is re-sorted like that of an event that walks. It is
+; `SetupFromPage` for the graphic, and it is what opens this game's doors:
+; the page with the rubble tile appears where there was nothing before.
+; Enters with the active page's `pg_*` and the event in `rp_ev`.
 .proc grafico_de_pagina
 .a8
 .i16
-    ; El bit 5 dice que la fila sigue a la página, y quiere decir dos cosas
-    ; según la fila:
+    ; Bit 5 says the row follows the page, and it means two things depending
+    ; on the row:
     ;
-    ; * **si no camina**, sale todo de la página activa: el tile, la paleta, la
-    ;   pose y si se ve. Es lo que abre las puertas de este juego.
-    ; * **si camina**, todo eso menos el tile y la paleta, que apuntan a su
-    ;   ranura de doce poses y pisarlos la dejaría quieta.
+    ; * **if it does not walk**, everything comes from the active page: the
+    ;   tile, the palette, the pose and whether it is visible. It is what opens
+    ;   this game's doors.
+    ; * **if it walks**, all of that except the tile and the palette, which
+    ;   point at its slot of twelve poses, and overwriting them would leave it
+    ;   still.
     ;
-    ; La distinción existe porque un evento puede caminar **y** aparecer con la
-    ; página, y antes del 2026-09-08 el conversor tenía que elegir: elegía
-    ; caminar, y entonces la fila —que nace escondida cuando al cargar el mapa
-    ; ninguna página cumple— no aparecía nunca. taro lo encontró con el `Bum` y
-    ; el `Mechanic` de Lashe City; RM2k los dibuja y la ROM no, 245 y 191
-    ; pixeles.
+    ; The distinction exists because an event can walk **and** appear with
+    ; the page, and before 2026-09-08 the converter had to choose: it chose
+    ; walking, and then the row —which is born hidden when no page qualifies
+    ; on loading the map— never appeared. taro found it with the `Bum` and the
+    ; `Mechanic` of Lashe City; RM2k draws them and the ROM does not, 245 and
+    ; 191 pixels.
     ;
-    ; No es un bit nuevo porque en +13 no queda ninguno: con ruta propia los
-    ; cinco de abajo son las banderas de la ruta. Y no hace falta, porque
-    ; **la fila ya lo dice**: +9 vale NPC_QUIETO o el banco de sus poses.
+    ; It is not a new bit because there is none left in +13: with a route of
+    ; its own the five low ones are the route's flags. And it is not needed,
+    ; because **the row already says it**: +9 holds NPC_QUIETO or the bank of
+    ; its poses.
     lda pg_flags
     and #$20
     bne hay_algo
-    rts                         ; su fila no sigue a la página
+    rts                         ; its row does not follow the page
 hay_algo:
     lda rp_ev
     jsr npc_de_evento
     cpy #$FFFF
     bne hay_fila
-    rts                         ; sin fila: nada que dibujar
+    rts                         ; no row: nothing to draw
 hay_fila:
     sty npc_fila
     lda pg_pose
     bmi con_grafico
-    lda #0                      ; la página no dibuja nada: escondido
+    lda #0                      ; the page draws nothing: hidden
     sta npc_buf + 14, y
     lda #$FF
     sta npc_buf + 15, y
     rts
 con_grafico:
     and #$0F
-    sta npc_buf + 12, y         ; la pose que hay en VRAM es ésta
+    sta npc_buf + 12, y         ; the pose in VRAM is this one
     rep #$20
 .a16
     and #$00FF
@@ -1261,9 +1279,10 @@ con_grafico:
 .a8
     lda f:dir_de_pose, x
     sta npc_buf + 10, y
-    ; El tile y la paleta sólo si la fila no camina. Si camina, apuntan a su
-    ; ranura de doce poses y pisarlos la dejarían quieta; la pose de arriba sí
-    ; va, que es la que la página declara y la que el refresco sube del banco.
+    ; The tile and the palette only if the row does not walk. If it walks,
+    ; they point at its slot of twelve poses and overwriting them would leave
+    ; it still; the pose above does go, as it is the one the page declares and
+    ; the one the refresh uploads from the bank.
     lda npc_buf + 9, y
     cmp #NPC_QUIETO
     bne sin_tocar_el_tile
@@ -1278,9 +1297,9 @@ sin_tocar_el_tile:
     sta npc_buf + 15, y
     cmp #$FF
     beq :+
-    sta pasa_hay                ; impone: `pasa_con_evento` tiene que mirar
+    sta pasa_hay                ; it imposes: `pasa_con_evento` has to look
 :
-    ; La clave: la capa de la página, con la Y de la fila.
+    ; The key: the page's layer, with the row's Y.
     rep #$20
 .a16
     lda npc_buf + 4, y
@@ -1298,15 +1317,15 @@ sin_tocar_el_tile:
     sep #$20
 .a8
     phy
-    jsr giro_reponer            ; si es la que gira, gira de nuevo
+    jsr giro_reponer            ; if it is the turning one, it turns again
     ply
     jmp acomodar_npc
 listo:
     rts
 .endproc
 
-; Esconde la fila del evento en A, si tiene una: no se dibuja y su tile no le
-; impone nada a la celda.
+; Hides the row of the event in A, if it has one: it is not drawn and its tile
+; imposes nothing on the cell.
 .proc esconder_npc
 .a8
 .i16
@@ -1325,11 +1344,11 @@ listo:
 .a8
 .i16
     sta otro_ev
-    ; De la más alta usada para abajo, y no de cero para arriba: así el corte
-    ; es `X == 0`, que el `tax` deja en Z gratis, y no hace falta un límite de
-    ; dieciséis bits en RAM —que no hay—. Un evento tiene a lo sumo una ranura
-    ; —sólo se le da una cuando `ranura_del_evento` no le encontró ninguna— así
-    ; que el orden no cambia la respuesta.
+    ; From the highest one used downward, and not from zero upward: that way
+    ; the stop is `X == 0`, which `tax` leaves in Z for free, and there is no
+    ; need for a sixteen-bit limit in RAM —there is none—. An event has at
+    ; most one slot —it is only given one when `ranura_del_evento` found none
+    ; for it— so the order does not change the answer.
     lda ruta_ev_tope
     rep #$20
 .a16
@@ -1338,7 +1357,7 @@ listo:
     asl a
     asl a
     asl a
-    asl a                       ; por RUTA_EV_STRIDE
+    asl a                       ; times RUTA_EV_STRIDE
     tax
     sep #$20
 .a8
@@ -1356,13 +1375,13 @@ buscar:
     lda ruta_ev, x
     cmp otro_ev
     bne buscar
-    rts                         ; X = su ranura
+    rts                         ; X = its slot
 no_tiene:
     ldx #$FFFF
     rts
 .endproc
 
-; Una ranura de ruta libre: X, o $FFFF si no queda ninguna.
+; A free move route slot: X, or $FFFF if none is left.
 .proc ranura_libre
 .a8
 .i16
@@ -1382,11 +1401,11 @@ buscar:
 .a8
     bcc buscar
     ldx #$FFFF
-    rts                         ; sin lugar: el tope no se toca
+    rts                         ; no room: the limit is not touched
 listo:
-    ; La ranura pasa a tener dueño, así que el tope sube si quedó más arriba
-    ; del que había. Es el único lugar por donde se toma una: las dos —la
-    ; página propia y la ruta forzada— piden acá.
+    ; The slot now has an owner, so the limit goes up if it ended up above the
+    ; one there was. It is the only place a slot is taken through: both —the
+    ; page's own route and the forced one— ask here.
     rep #$20
 .a16
     txa
@@ -1394,7 +1413,7 @@ listo:
     lsr a
     lsr a
     lsr a
-    lsr a                       ; de bytes a número de ranura
+    lsr a                       ; from bytes to slot number
     inc a
     sep #$20
 .a8
@@ -1405,9 +1424,9 @@ ya_estaba:
     rts
 .endproc
 
-; La ruta propia de la página recién leída, a la ranura X, desde el principio.
-; Queda guardada también aparte —+24 a +29— para volver a ella cuando una
-; ruta forzada sobre el mismo evento termine.
+; The move route of the page just read, into slot X, from the start. It is
+; also saved separately —+24 to +29— to go back to it when a forced move
+; route on the same event ends.
 .proc cargar_pagina_en_ranura
 .a8
 .i16
@@ -1432,10 +1451,10 @@ ya_estaba:
     sta ruta_ev + 29, x
     lda pg_flags
     and #$1E
-    ora #$01                    ; de página
+    ora #$01                    ; a page one
     sta ruta_ev + 18, x
     lda pg_capa
-    sta ruta_ev + 31, x         ; su capa, para chocar con los demás
+    sta ruta_ev + 31, x         ; its layer, for colliding with the others
     rep #$20
 .a16
     lda pag_ofs
@@ -1443,19 +1462,19 @@ ya_estaba:
     sep #$20
 .a8
     lda pg_frec
-    jsr tras_giro               ; `SetMaxStopCountForTurn` antes de la primera
+    jsr tras_giro               ; `SetMaxStopCountForTurn` before the first one
     sta ruta_ev + 9, x
     rts
 .endproc
 
-; La página nueva del evento de la ranura X no tiene ruta: se queda sin
-; órdenes y sin página a la que volver.
+; The new page of the event in slot X has no route: it is left with no
+; commands and no page to go back to.
 .proc quitar_pagina_de_ranura
 .a8
 .i16
     lda ruta_ev + 18, x
     and #$01
-    beq listo                   ; corría una forzada: no se toca
+    beq listo                   ; a forced one was running: leave it alone
     stz ruta_ev + 4, x
     stz ruta_ev + 5, x
     stz ruta_ev + 9, x
@@ -1473,7 +1492,7 @@ listo:
     rts
 .endproc
 
-; Cuánto avanza el paso de la ranura X por cuadro, a `temp`, de dieciséis bits.
+; How much the step of slot X advances per frame, into `temp`, sixteen bits.
 .proc paso_de_ranura
 .a8
 .i16
@@ -1484,7 +1503,7 @@ listo:
 .a16
     and #$00FF
     tay
-    phx                         ; X trae la ranura y el que llama cuenta con ella
+    phx                         ; X holds the slot and the caller counts on it
     tyx
     lda f:paso_por_vel, x
     plx
@@ -1494,7 +1513,7 @@ listo:
     rts
 .endproc
 
-; Cuánto avanza el salto de la ranura X por cuadro, en A.
+; How much the jump of slot X advances per frame, in A.
 .proc salto_de_ranura
 .a8
 .i16
@@ -1506,15 +1525,16 @@ listo:
     tay
     sep #$20
 .a8
-    phx                         ; X trae la ranura y el que llama cuenta con ella
+    phx                         ; X holds the slot and the caller counts on it
     tyx
     lda f:salto_por_vel, x
     plx
     rts
 .endproc
 
-; Cuánto avanza el salto del héroe por cuadro, en A: `jump_speed[move_speed - 1]`
-; de RM2k, con la velocidad que le dejó la última ruta. Conserva X.
+; How much the hero's jump advances per frame, in A: RM2k's
+; `jump_speed[move_speed - 1]`, with the speed the last route left him. Keeps
+; X.
 .proc salto_del_heroe
 .a8
 .i16
@@ -1532,11 +1552,11 @@ listo:
     rts
 .endproc
 
-; La capa de la página activa del evento cuyo índice trae A, o $FF si no tiene
-; ninguna. Es la misma pasada que `encolar_por_accion`: gana la última página
-; cuyas condiciones se cumplen. Conserva X e Y; pisa `pag_*` y `pg_*`, que
-; nadie tiene a medio usar cuando esto corre —se llama desde un paso, no desde
-; adentro de una búsqueda de página—.
+; The layer of the active page of the event whose index comes in A, or $FF if
+; it has none. It is the same pass as `encolar_por_accion`: the last page
+; whose conditions are met wins. Keeps X and Y; clobbers `pag_*` and `pg_*`,
+; which nobody has half used when this runs —it is called from a step, not
+; from inside a page search—.
 .proc capa_activa
 .a8
 .i16
@@ -1564,13 +1584,13 @@ listo:
     lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
     sta pag_ptr + 2
 recorrer:
-    ; Sólo el evento que se busca: de las demás páginas se lee el evento y
-    ; nada más. Leerlas enteras costaba, con un droide empujando contra el
-    ; héroe cuadro por cuadro, más de un cuadro cada tanto.
+    ; Only the event being looked for: of the other pages only the event is
+    ; read and nothing else. Reading them whole cost, with a droid pushing
+    ; against the hero frame after frame, more than a frame every so often.
     rep #$20
 .a16
     ldy pag_ofs
-    lda [pag_ptr], y            ; +0 a qué evento pertenece
+    lda [pag_ptr], y            ; +0 which event it belongs to
     cmp capa_ev
     sep #$20
 .a8
@@ -1605,8 +1625,9 @@ sin_paginas:
     rts
 .endproc
 
-; Si el evento cuyo índice trae A está atravesando paredes: tiene ranura de
-; ruta y la ranura lleva el bit. Devuelve A distinto de cero si sí. Pisa X.
+; Whether the event whose index comes in A is walking through walls: it has a
+; move route slot and the slot carries the bit. Returns A nonzero if so.
+; Clobbers X.
 .proc atraviesa_el_evento
 .a8
 .i16
@@ -1634,24 +1655,25 @@ siguiente:
     rts
 .endproc
 
-; ¿Hay alguien parado en `dest_x`/`dest_y` que le cierre el paso a `movil`?
-; Devuelve A distinto de cero si sí.
+; Is someone standing on `dest_x`/`dest_y` who blocks `movil`'s way? Returns
+; A nonzero if so.
 ;
-; Es `WouldCollide` de `game_map.cpp` con lo que este repo modela: dos
-; personajes chocan si están en la misma capa —la del héroe es CAPA_HEROE— y
-; no chocan si alguno de los dos atraviesa paredes. Un evento sin página
-; activa no está y no choca. La celda de cada evento es la de `ev_pos_buf`,
-; que se mueve al **empezar** el paso: es `IsInPosition` sobre `GetX()`, o sea
-; la de destino mientras camina; y la del héroe es `tile_x`/`tile_y`, que
-; `begin_step` mueve igual. Lo que no se modela es `overlap_forbidden` —17
-; páginas del juego— y el conflicto de un evento con gráfico de tile contra su
-; propio bloque. Pisa X e Y.
+; It is `WouldCollide` from `game_map.cpp` with what this repo models: two
+; characters collide if they are on the same layer —the hero's is
+; CAPA_HEROE— and do not collide if either of them walks through walls. An
+; event with no active page is not there and does not collide. Each event's
+; cell is the one in `ev_pos_buf`, which moves at the **start** of the step:
+; it is `IsInPosition` on `GetX()`, that is, the destination while it walks;
+; and the hero's is `tile_x`/`tile_y`, which `begin_step` moves the same way.
+; What is not modeled is `overlap_forbidden` —17 pages in the game— and the
+; conflict of an event with a tile graphic against its own block. Clobbers X
+; and Y.
 .proc celda_bloqueada
 .a8
 .i16
     lda movil_capa
     cmp #$FF
-    beq libre_cerca             ; sin página activa no choca con nadie
+    beq libre_cerca             ; with no active page it collides with nobody
     lda movil
     cmp #MOVIL_HEROE
     beq es_heroe
@@ -1659,33 +1681,33 @@ siguiente:
     bne libre_cerca
     bra recorrer
 es_heroe:
-    ; **`atravesando` y no `ruta_atraviesa`**, que es la divergencia declarada
-    ; en workflow/divergencias/atravesar-paredes-vale-mientras-dura-la-ruta.md:
-    ; la bandera que deja la orden 36 vale mientras el paso lo dé la ruta forzada —ahí
-    ; `paso_de_ruta` la copia a `atravesando`— y no para la caminata con el
-    ; pad, que la deja en cero. Leyendo la pegajosa, cualquier página que
-    ; prendiera el 36 y no lo apagara dejaba al héroe caminando por encima de
-    ; **todos** los eventos para el resto de la partida, y las paredes lo
-    ; seguían frenando porque `can_leave` y `can_enter` ya miraban
-    ; `atravesando`: el mismo héroe atravesaba eventos y no paredes. Lo vio
-    ; taro jugando, con los cofres del Sector 30, y el culpable es el
-    ; Hover-Tram (mapa 13, EV0028), que prende la 36 y nunca la apaga.
+    ; **`atravesando` and not `ruta_atraviesa`**, which is the divergence
+    ; declared in workflow/divergencias/atravesar-paredes-vale-mientras-dura-la-ruta.md:
+    ; the flag command 36 leaves holds while the step is given by the forced
+    ; move route —there `paso_de_ruta` copies it to `atravesando`— and not for
+    ; walking with the pad, which leaves it at zero. Reading the sticky one,
+    ; any page that turned on 36 and did not turn it off left the hero walking
+    ; over **every** event for the rest of the game, and walls still stopped
+    ; him because `can_leave` and `can_enter` already looked at
+    ; `atravesando`: the same hero went through events and not walls. taro saw
+    ; it playing, with the chests in Sector 30, and the culprit is the
+    ; Hover-Tram (map 13, EV0028), which turns on 36 and never turns it off.
     lda atravesando
     beq recorrer
 libre_cerca:
-    jmp libre                   ; `libre` queda lejos para un salto corto
+    jmp libre                   ; `libre` is too far for a short branch
 recorrer:
-    ; De atrás para adelante y en dieciséis bits, con Y en la celda de cada
-    ; evento: la respuesta es un sí o un no, así que el orden no la cambia, y
-    ; así la vuelta es la mitad de larga. Corre en cada paso que empieza
-    ; —tres de éstas y de `pasa_con_evento` por paso—, y en la carrera, con
-    ; cuarenta autos, eran nueve líneas cada una: ver
+    ; Back to front and in sixteen bits, with Y on each event's cell: the
+    ; answer is a yes or a no, so the order does not change it, and that way
+    ; the loop is half as long. It runs on every step that starts —three of
+    ; these and of `pasa_con_evento` per step—, and in the race, with forty
+    ; cars, it was nine lines each: see
     ; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
     rep #$20
 .a16
     lda ev_total
     asl a
-    asl a                       ; por EV_STRIDE
+    asl a                       ; times EV_STRIDE
     tay
     bra siguiente
 otro:
@@ -1708,11 +1730,11 @@ misma_x:
     bne siguiente
     tya
     lsr a
-    lsr a                       ; el índice cabe en un byte: EV_MAX es 128
+    lsr a                       ; the index fits in a byte: EV_MAX is 128
     sep #$20
 .a8
     cmp movil
-    beq siguiente8              ; consigo mismo no
+    beq siguiente8              ; not with itself
     sta otro_ev
     phy
     jsr atraviesa_el_evento
@@ -1732,7 +1754,7 @@ siguiente8:
     bra siguiente
 .a8
 eventos_listos:
-    ; Y el héroe, cuando quien se mueve es un evento de su capa.
+    ; And the hero, when whoever is moving is an event on his layer.
     lda movil
     cmp #MOVIL_HEROE
     beq libre
@@ -1762,7 +1784,7 @@ libre:
     rts
 .endproc
 
-; `celda_bloqueada` para el héroe: la celda de destino ya está en dest_x/dest_y.
+; `celda_bloqueada` for the hero: the destination cell is already in dest_x/dest_y.
 .proc heroe_bloqueado
 .a8
 .i16
@@ -1773,19 +1795,19 @@ libre:
     jmp celda_bloqueada
 .endproc
 
-; `movil` y `movil_capa` desde la ranura de ruta que apunta X. Conserva X.
+; `movil` and `movil_capa` from the move route slot X points at. Keeps X.
 .proc preparar_movil
 .a8
 .i16
     lda ruta_ev + 0, x
     sta movil
-    lda ruta_ev + 31, x         ; la capa que la ranura trae desde que se cargó
+    lda ruta_ev + 31, x         ; the layer the slot has carried since it was loaded
     sta movil_capa
     rts
 .endproc
 
-; ¿Se cumplen las condiciones de la página leída? Vuelve con Z=0 si sí.
-; Un switch en 0 quiere decir "esta página no lo pide".
+; Are the conditions of the page just read met? Returns with Z=0 if so.
+; A switch at 0 means "this page does not require it".
 .proc condiciones_ok
 .a8
 .i16
@@ -1803,19 +1825,19 @@ mirar_b:
 cumple:
     sep #$20
 .a8
-    ; Y la condición de grupo: un 0 quiere decir "esta página no pide a nadie".
+    ; And the party condition: a 0 means "this page requires nobody".
     lda pg_actor
     beq mirar_var
     jsr en_el_grupo
     beq falla8
 mirar_var:
-    ; Y el ítem y la variable, que se leen de la tabla y no de una copia —la
-    ; BSS está llena—: +28 el ítem o 0, y +24 la ranura o $FF por "no pide
-    ; ninguna", +25 cómo se compara y +26 contra qué. Es la misma comparación
-    ; con signo de
-    ; `ConditionalBranch`, `comparar_var`, con los mismos seis códigos: RM2k
-    ; usa `CheckOperator` para las dos. Pisa X e Y, como ya lo hacía
-    ; `switch_encendido`.
+    ; And the item and the variable, which are read from the table and not
+    ; from a copy —the BSS is full—: +28 the item or 0, and +24 the slot or $FF
+    ; for "requires none", +25 how it compares and +26 against what. It is the
+    ; same signed comparison as
+    ; `ConditionalBranch`, `comparar_var`, with the same six codes: RM2k uses
+    ; `CheckOperator` for both. Clobbers X and Y, as `switch_encendido`
+    ; already did.
     ldy pag_ofs
     rep #$20
 .a16
@@ -1823,10 +1845,11 @@ mirar_var:
     clc
     adc #28
     tay
-    lda [pag_ptr], y            ; +28 el ítem que pide, o 0
+    lda [pag_ptr], y            ; +28 the item it requires, or 0
     beq sin_item
-    ; Con el inventario en la RAM lejana: la cuenta del ítem, y con cero no
-    ; está. Es `GetItemCount(id) + GetEquippedItemCount(id)` sin equipo.
+    ; With the inventory in far RAM: the item's count, and at zero it is not
+    ; there. It is `GetItemCount(id) + GetEquippedItemCount(id)` without
+    ; equipment.
     clc
     adc #FAR_ITEMS
     sta WMADDL
@@ -1844,22 +1867,22 @@ sin_item:
     tay                         ; +24
     sep #$20
 .a8
-    lda [pag_ptr], y            ; +24 la ranura
+    lda [pag_ptr], y            ; +24 the slot
     cmp #$FF
     beq cumple8
     pha
     iny
-    lda [pag_ptr], y            ; +25 la comparación
+    lda [pag_ptr], y            ; +25 the comparison
     sta temp + 1
     iny
     rep #$20
 .a16
-    lda [pag_ptr], y            ; +26 contra qué, con signo
+    lda [pag_ptr], y            ; +26 against what, signed
     sta temp + 2
     sep #$20
 .a8
     pla
-    jsr var_leer                ; A = la variable, de dieciséis
+    jsr var_leer                ; A = the variable, sixteen bits
 .a16
     jsr comparar_var
 .a8
@@ -1877,39 +1900,39 @@ sin_usar:
     rts
 falla:
 .a16
-    ; se llega en dieciséis; el `sep` de abajo lo achica
+    ; it arrives at sixteen; the `sep` below shrinks it
     sep #$20
 .a8
     lda #0                      ; Z=1
     rts
 .endproc
 
-; ¿Está encendido el switch cuyo número viene en A? Vuelve con Z=0 si sí.
+; Is the switch whose number comes in A on? Returns with Z=0 if so.
 .proc switch_encendido
 .a16
 .i16
     pha
     and #$0007
-    tax                         ; el bit dentro del byte
+    tax                         ; the bit within the byte
     pla
     lsr a
     lsr a
     lsr a
-    tay                         ; y qué byte del bitmap
+    tay                         ; and which byte of the bitmap
     sep #$20
 .a8
     lda switches, y
     and f:mascara, x
     rep #$20
 .a16
-    rts                         ; rep no toca Z, así que el and sigue valiendo
+    rts                         ; rep does not touch Z, so the and still holds
 .endproc
 
-; La parte de encolar, que comparten los automáticos y la tecla de acción.
-; Ningún evento esperando y ninguno automático: al entrar a un mapa las marcas
-; del anterior no valen nada, y sus índices de evento apuntarían a otros
-; eventos. La llama la carga del mapa **antes** del refresco, que es quien
-; vuelve a prender el `FLAG_AUTO` de los que corresponda.
+; The queuing part, shared by the autostart ones and the action button.
+; No event waiting and none autostart: on entering a map the previous one's
+; marks are worth nothing, and their event indexes would point at other
+; events. The map load calls it **before** the refresh, which is what turns
+; `FLAG_AUTO` back on for the ones it applies to.
 .proc limpiar_esperas
 .a8
 .i16
@@ -1921,8 +1944,8 @@ falla:
     stz esperando_n
     stz auto_n
     stz refresco_cuadro
-    ; Y de quién era la página que corre: si sobrevivió a un teletransporte, su
-    ; índice ya no significa nada en el mapa nuevo.
+    ; And whose page is running: if it survived a teleport, its index no
+    ; longer means anything on the new map.
     rep #$20
 .a16
     lda #$FFFF
@@ -1932,10 +1955,10 @@ falla:
     rts
 .endproc
 
-; Todo evento con una automática activa vuelve a quedar esperando. Es
-; `Game_Event::CheckEventAutostart`, que corre una vez por cuadro y para todos.
-; Lo llama `eventos_tick` antes del intérprete, y sólo si `auto_n` dice que hay
-; alguna.
+; Every event with an active autostart page goes back to waiting. It is
+; `Game_Event::CheckEventAutostart`, which runs once per frame and for all of
+; them. `eventos_tick` calls it before the interpreter, and only if `auto_n`
+; says there is one.
 .proc esperar_automaticas
 .a8
 .i16
@@ -1952,12 +1975,12 @@ siguiente:
     rts
 .endproc
 
-; La página activa que anotó el refresco para el evento X, a `elegida`. Z=1 si
-; no hay ninguna anotada y hay que salir a buscarla.
+; The active page the refresh noted for event X, into `elegida`. Z=1 if none
+; is noted and it has to be searched for.
 ;
-; Existe para que arrancar una página no cueste una recorrida de todas las del
-; mapa. El refresco ya la resolvió; volver a resolverla acá era hacer dos veces
-; el mismo trabajo, y el segundo caía en un cuadro cualquiera.
+; It exists so that starting a page does not cost a walk through all the
+; map's pages. The refresh already resolved it; resolving it again here was
+; doing the same work twice, and the second time landed on any old frame.
 .proc pagina_desde_eleg
 .a8
 .i16
@@ -1970,7 +1993,7 @@ siguiente:
     asl a
     tay
     lda eleg_por_ev, y
-    cmp #$FFFD                  ; $FFFD, $FFFE y $FFFF son centinelas
+    cmp #$FFFD                  ; $FFFD, $FFFE and $FFFF are sentinels
     bcc anotada
     sep #$20
 .a8
@@ -1980,11 +2003,11 @@ no:
 .a16
 anotada:
     sta pag_ofs
-    ; Con X, y no con Y como hasta que `mapa_tabla` se mudó a RODATA: el
-    ; direccionamiento absoluto largo indexado del 65816 sólo existe con X. X
-    ; trae el evento y el llamador cuenta con él, así que va y vuelve por la
-    ; pila; el `plx` deja N y Z del valor que saca, y por eso lo que sigue es
-    ; un `jsr` y no una rama.
+    ; With X, and not with Y as until `mapa_tabla` moved to RODATA: the
+    ; 65816's long absolute indexed addressing only exists with X. X holds
+    ; the event and the caller counts on it, so it goes out and back through
+    ; the stack; the `plx` leaves N and Z of the value it pulls, and that is
+    ; why what follows is a `jsr` and not a branch.
     phx
     ldx mapa_ofs
     lda f:mapa_tabla + M_PTR_PAGINAS, x
@@ -2010,12 +2033,13 @@ anotada:
     rts
 .endproc
 
-; Arranca la página del primer evento que esté esperando. Devuelve 0 si no
-; arrancó ninguna. El orden es por número de evento, que es el mismo en que
-; `Game_Map::Update` recorre `events`.
+; Starts the page of the first event that is waiting. Returns 0 if none
+; started. The order is by event number, which is the same one in which
+; `Game_Map::Update` walks `events`.
 ;
-; La página se resuelve **acá**, no cuando se marcó el evento: entre una cosa y
-; la otra puede haber pasado un refresco y ser otra la activa.
+; The page is resolved **here**, not when the event was marked: between the
+; one and the other a refresh may have happened and another one may be
+; active.
 .proc arrancar_esperando
 .a8
 .i16
@@ -2030,12 +2054,12 @@ buscar:
     lda #0
     rts
 encontrado:
-    ; Se desmarca antes de saber si hay con qué correr, igual que el
-    ; `ClearWaitingForegroundExecution` de `Game_Map::Update`, que corre
-    ; siempre. Si la página no compiló, el evento pierde el turno; y si es
-    ; automática, el barrido del cuadro que viene lo vuelve a marcar.
+    ; It is unmarked before knowing whether there is anything to run, just
+    ; like the `ClearWaitingForegroundExecution` in `Game_Map::Update`, which
+    ; always runs. If the page did not compile, the event loses its turn; and
+    ; if it is autostart, the next frame's sweep marks it again.
     lda ev_flags, x
-    and #(FLAG_AUTO)            ; deja sólo el de automática
+    and #(FLAG_AUTO)            ; keeps only the autostart one
     sta ev_flags, x
     dec esperando_n
     phx
@@ -2055,7 +2079,7 @@ con_pagina:
     lda elegida
     ora elegida + 1
     ora elegida + 2
-    beq buscar_mas              ; la página activa no se pudo compilar
+    beq buscar_mas              ; the active page could not be compiled
     rep #$20
 .a16
     lda elegida
@@ -2068,7 +2092,7 @@ con_pagina:
     rep #$20
 .a16
     txa
-    sta ev_corriendo            ; para poder remarcarlo cuando termine
+    sta ev_corriendo            ; so it can be re-marked when it ends
     sep #$20
 .a8
     lda #1
@@ -2082,7 +2106,7 @@ buscar_mas:
     rts
 .endproc
 
-; Lo contrario de `marcar_esperando`, con la misma cuenta.
+; The opposite of `marcar_esperando`, with the same count.
 .proc desmarcar_esperando
 .a8
 .i16
@@ -2090,19 +2114,19 @@ buscar_mas:
     bcs no
     lda ev_flags, x
     and #FLAG_ESPERA
-    beq no                      ; no estaba: no se descuenta de nuevo
+    beq no                      ; it was not: not discounted again
     lda ev_flags, x
-    and #(FLAG_AUTO)            ; deja sólo el de automática
+    and #(FLAG_AUTO)            ; keeps only the autostart one
     sta ev_flags, x
     dec esperando_n
 no:
     rts
 .endproc
 
-; Marca al evento X como que tiene una página esperando turno. Es
-; `Game_Event::ScheduleForegroundExecution`: un bit por evento, no una cola.
-; Marcarlo dos veces no lo encola dos veces, que es lo que hacía falta para que
-; el barrido de cada cuadro pueda remarcar sin miedo.
+; Marks event X as having a page waiting its turn. It is
+; `Game_Event::ScheduleForegroundExecution`: one bit per event, not a queue.
+; Marking it twice does not queue it twice, which is what was needed so that
+; each frame's sweep can re-mark without fear.
 .proc marcar_esperando
 .a8
 .i16
@@ -2110,7 +2134,7 @@ no:
     bcs no
     lda ev_flags, x
     and #FLAG_ESPERA
-    bne no                      ; ya estaba: no se cuenta de nuevo
+    bne no                      ; it already was: not counted again
     lda ev_flags, x
     ora #FLAG_ESPERA
     sta ev_flags, x

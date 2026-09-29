@@ -1,36 +1,36 @@
 .segment "FAR"
 
-; Los renglones de la ventana: los del grupo, que es lo que tapa.
+; The window's lines: the party's, which is what it covers.
 BA_VIC_RENGLONES = BA_GRUPO_MAX
 
-; --- lo que la victoria cuenta ------------------------------------------------
+; --- what the victory tells ---------------------------------------------------
 ;
-; `ProcessSceneActionVictory` de `Scene_Battle_Rpg2k`: al ganar, la ventana de
-; mensaje dice el término de la victoria y la experiencia ganada, y después
-; una página por cada actor que subió de nivel, con "<nombre> LEVEL <n>
-; achieved!" y lo que aprendió. Cada página espera a A, como un mensaje del
-; mapa. Todas las palabras son del LDB —`victory`, `exp_received`, `level`,
-; `level_up`, `skill_learned`— y el armado es el de `game_message_terms.cpp`
-; para RM2k en inglés, sin placeholders: ver `pantallas.renglon_de_nivel` y
-; sus hermanas, que son las que el conversor usa para cobrar que entren.
+; `ProcessSceneActionVictory` from `Scene_Battle_Rpg2k`: on winning, the
+; message window says the victory term and the experience gained, and then one
+; page for each actor who leveled up, with "<name> LEVEL <n> achieved!" and
+; what they learned. Each page waits for A, like a map message. All the words
+; come from the LDB —`victory`, `exp_received`, `level`, `level_up`,
+; `skill_learned`— and the assembly is the one in `game_message_terms.cpp` for
+; English RM2k, without placeholders: see `pantallas.renglon_de_nivel` and its
+; sisters, which are what the converter uses to enforce that they fit.
 ;
-; En RM2k es la ventana de mensaje de siempre, abajo, **tapando al grupo**; acá
-; son los cuatro renglones del grupo, igual que el mensaje de una página de
-; tropa (`ba_pag_mensaje`), y el renglón de abajo queda vacío.
+; In RM2k it is the usual message window, at the bottom, **covering the
+; party**; here it is the party's four lines, like the message of a troop page
+; (`ba_pag_mensaje`), and the bottom line is left empty.
 ;
-; Desde el 2026-09-27 la primera página cuenta también el oro —"<gold_recieved_a>
-; <n><gold><gold_recieved_b>"— y un renglón por ítem que soltaron los enemigos
-; —"<ítem><item_recieved>"—, como `PushGoldReceivedMessage` y
-; `PushItemRecievedMessages`. Son renglones del mismo mensaje que la victoria y
-; la experiencia, así que lo que no entra en los cuatro sigue en otra página,
-; igual que las habilidades de un actor.
+; Since 2026-09-27 the first page also tells the gold —"<gold_recieved_a>
+; <n><gold><gold_recieved_b>"— and one line per item the enemies dropped
+; —"<item><item_recieved>"—, like `PushGoldReceivedMessage` and
+; `PushItemRecievedMessages`. They are lines of the same message as the
+; victory and the experience, so whatever does not fit in the four goes on to
+; another page, just like an actor's skills.
 
-; Al ganar, antes de mostrar nada: anota el nivel de cada uno, reparte la
-; experiencia —que sube de nivel y enseña, ver `exp_sumar`—, da el oro y tira
-; el botín, y deja lista la primera página. Es el orden de
-; `ProcessSceneActionVictory`, que arma el mensaje y le da todo al grupo en el
-; mismo sub-estado; de los tres, sólo el botín tira azar. Se lleva `BA_S0` a
-; `BA_S2`, `BA_T*`, A, X e Y.
+; On winning, before showing anything: notes each one's level, hands out the
+; experience —which levels up and teaches, see `exp_sumar`—, gives the gold
+; and rolls the loot, and leaves the first page ready. It is the order of
+; `ProcessSceneActionVictory`, which builds the message and gives everything
+; to the party in the same sub-state; of the three, only the loot rolls
+; randomness. Clobbers `BA_S0` to `BA_S2`, `BA_T*`, A, X and Y.
 .proc ba_vic_empezar
 .a8
 .i16
@@ -58,21 +58,21 @@ anotadas:
     rts
 .endproc
 
-; El oro de la tropa, al grupo: `Game_Party::GainGold`, topado en ORO_MAX.
-; No mira si la tropa da cero: sumar cero no cambia nada.
+; The troop's gold, to the party: `Game_Party::GainGold`, capped at ORO_MAX.
+; It does not check whether the troop gives zero: adding zero changes nothing.
 .proc ba_vic_oro
 .a8
 .i16
     lda BA_TROPA_K
     cmp #$FF
-    beq listo                   ; una tropa que el cartucho no lleva
+    beq listo                   ; a troop the cartridge does not carry
     rep #$20
 .a16
     and #$00FF
     asl a
     tax
     lda f:tropa_oro, x
-    ldy #2                      ; el oro: ver `ba_sin_ocultos`
+    ldy #2                      ; the gold: see `ba_sin_ocultos`
     jsr ba_sin_ocultos
     sta comp_or01
     sep #$20
@@ -83,18 +83,18 @@ listo:
     rts
 .endproc
 
-; La suma de la tropa en A16 sin lo de los enemigos que siguen ocultos: una
-; victoria con alguno que nunca apareció —el Rat King que cae antes de llamar
-; a sus ratas— no da su experiencia ni su oro, porque `GetExp` y `GetMoney`
-; suman **los muertos** y un oculto no murió. Y = 0 la experiencia, 2 el oro.
-; Vuelve con A16. Se lleva `BA_T0`, `BA_T2`, X e Y.
+; The troop's total in A16 minus that of the enemies still hidden: a victory
+; with one that never appeared —the Rat King falling before calling its rats—
+; does not give its experience or its gold, because `GetExp` and `GetMoney`
+; add up **the dead** and a hidden one did not die. Y = 0 the experience, 2
+; the gold. Returns with A16. Clobbers `BA_T0`, `BA_T2`, X and Y.
 .proc ba_sin_ocultos
 .a16
 .i16
     sta BA_T2
     sep #$20
 .a8
-    stz BA_T0                   ; el lugar en la tropa
+    stz BA_T0                   ; the place in the troop
 otro:
     lda BA_T0
     cmp BA_NENE
@@ -111,7 +111,7 @@ otro:
     clc
     adc BA_T0
     jsr ba_ax
-    lda f:tropa_miembro, x      ; el enemigo, como lugar en las tablas
+    lda f:tropa_miembro, x      ; the enemy, as a place in the tables
     rep #$20
 .a16
     and #$00FF
@@ -141,27 +141,27 @@ listo:
     rts
 .endproc
 
-; Lo que sueltan los enemigos: `Game_EnemyParty::GenerateDrops`. Por cada uno,
-; en el orden de la tropa, si tiene ítem **tira** `ba_pct` con su chance —el de
-; cien también, que es lo que hace `Rand::ChanceOf`—, y si sale el ítem va al
-; inventario, topado en ITEM_MAX como `Game_Party::AddItem`, y su `k` a
-; `BA_BOTIN_K` para que la página lo cuente. El orden de los tiros es el de
-; `batalla.tirar_el_botin`. Todos los de la tropa están muertos —que es lo que
-; pide `IsDead`— menos los que siguen ocultos. Se lleva `BA_S0` a `BA_S2`,
-; `BA_T*`, A, X e Y.
+; What the enemies drop: `Game_EnemyParty::GenerateDrops`. For each one, in
+; troop order, if it has an item it **rolls** `ba_pct` with its chance —the
+; hundred percent one too, which is what `Rand::ChanceOf` does—, and if it
+; comes up the item goes to the inventory, capped at ITEM_MAX like
+; `Game_Party::AddItem`, and its `k` to `BA_BOTIN_K` so the page can tell it.
+; The order of the rolls is that of `batalla.tirar_el_botin`. Everyone in the
+; troop is dead —which is what `IsDead` asks for— except those still hidden.
+; Clobbers `BA_S0` to `BA_S2`, `BA_T*`, A, X and Y.
 .proc ba_vic_botin
 .a8
 .i16
     stz BA_BOTIN_N
-    stz BA_S0                   ; el lugar en la tropa
+    stz BA_S0                   ; the place in the troop
 otro:
     lda BA_S0
     cmp BA_NENE
     bcc hay
     rts
 hay:
-    ; Uno que sigue oculto no murió, y `GenerateDrops` sólo tira por los
-    ; muertos: no tira.
+    ; One that is still hidden did not die, and `GenerateDrops` only rolls for
+    ; the dead: no roll.
     lda BA_S0
     clc
     adc #BA_GRUPO_MAX
@@ -171,7 +171,7 @@ hay:
     beq a_la_vista
     jmp siguiente
 a_la_vista:
-    ; El enemigo, como lugar en las tablas: el mismo camino que `ba_armar`.
+    ; The enemy, as a place in the tables: the same path as `ba_armar`.
     lda BA_TROPA_K
     jsr ba_ax
     lda f:tropa_ini, x
@@ -186,10 +186,10 @@ a_la_vista:
     asl a
     tax
     lda f:enemigo_botin, x
-    sta BA_S1                   ; el ítem del LDB, o 0
+    sta BA_S1                   ; the LDB item, or 0
     sep #$20
 .a8
-    beq siguiente               ; no deja nada: no tira
+    beq siguiente               ; leaves nothing: no roll
     lda BA_S2
     jsr ba_ax
     lda f:enemigo_botin_pct, x
@@ -202,7 +202,7 @@ a_la_vista:
     inc a
     sta FAR_ITEMS, x
 lleno:
-    lda f:item_k, x             ; el conversor cobra que lo lleve
+    lda f:item_k, x             ; the converter enforces that it is carried
     pha
     lda BA_BOTIN_N
     jsr ba_ax
@@ -214,8 +214,8 @@ siguiente:
     bra otro
 .endproc
 
-; El nivel de ahora del actor de la ranura A8 del grupo, o 0 si la ranura
-; está vacía o su actor no tiene experiencia. Se lleva X.
+; The current level of the actor in party slot A8, or 0 if the slot is empty
+; or its actor has no experience. Clobbers X.
 .proc ba_vic_nivel
 .a8
 .i16
@@ -245,8 +245,8 @@ nada:
     rts
 .endproc
 
-; A8 distinto de cero —y Z en 0— si el actor de la ranura A8 subió de nivel en
-; esta victoria. Se lleva X y `BA_T0`.
+; A8 nonzero —and Z at 0— if the actor in slot A8 leveled up in this victory.
+; Clobbers X and `BA_T0`.
 .proc ba_vic_subio
 .a8
 .i16
@@ -256,9 +256,9 @@ nada:
     pla
     jsr ba_ax
     lda BA_VIC_ANTES, x
-    beq no                      ; sin experiencia, o sin nadie
+    beq no                      ; no experience, or nobody
     cmp BA_T0
-    bcs no                      ; el mismo nivel de antes
+    bcs no                      ; the same level as before
     lda #1
     rts
 no:
@@ -266,9 +266,9 @@ no:
     rts
 .endproc
 
-; A en la pantalla del fin: si queda otra página, la deja puesta y devuelve A8
-; distinto de cero; si no, 0, y la pelea se cierra. Una derrota o una huida no
-; tienen páginas. Se lleva X y `BA_T0`.
+; A on the end screen: if another page is left, it sets it up and returns A8
+; nonzero; if not, 0, and the battle closes. A defeat or an escape have no
+; pages. Clobbers X and `BA_T0`.
 .proc ba_vic_siguiente
 .a8
 .i16
@@ -277,9 +277,8 @@ no:
     bne ninguna
     lda BA_VIC_MAS
     beq otro_actor
-    ; Las habilidades que no entraron siguen en otra página del mismo actor,
-    ; que es lo que hace la ventana de RM2k con un mensaje de más de cuatro
-    ; renglones.
+    ; The skills that did not fit go on in another page of the same actor,
+    ; which is what RM2k's window does with a message of more than four lines.
     lda BA_VIC_SIG
     sta BA_VIC_SALTEAR
     lda #1
@@ -288,12 +287,12 @@ otro_actor:
     stz BA_VIC_SALTEAR
     lda BA_VIC_ACTOR
 busca:
-    inc a                       ; de $FF, la primera página, pasa a la ranura 0
+    inc a                       ; from $FF, the first page, it goes to slot 0
     cmp BA_NACT
     bcs ninguna
     sta BA_VIC_ACTOR
     jsr ba_vic_subio
-    cmp #0                      ; `jsr` no deja las banderas del `lda` de adentro
+    cmp #0                      ; `jsr` does not keep the flags from the `lda` inside
     bne hay
     lda BA_VIC_ACTOR
     bra busca
@@ -305,8 +304,8 @@ ninguna:
     rts
 .endproc
 
-; Z en 0 si lo que la pantalla muestra es una victoria: la pelea terminó ganada
-; y el mensaje es el suyo. Lo pregunta `ba_componer` antes de dibujar al grupo.
+; Z at 0 if what the screen shows is a victory: the battle ended won and the
+; message is the victory's. `ba_componer` asks it before drawing the party.
 .proc ba_vic_en_pantalla
 .a8
 .i16
@@ -326,14 +325,13 @@ si:
     rts
 .endproc
 
-; La página de ahora en los renglones del grupo. La llama `ba_componer` con
-; `jmp`, así que su `rts` es el del compositor: el renglón de abajo, el del
-; mensaje de la pelea, queda vacío. Se lleva `BA_S0` a `BA_S4`, `BA_T*`, A, X
-; e Y.
+; The current page on the party's lines. `ba_componer` calls it with `jmp`, so
+; its `rts` is the composer's: the bottom line, the battle message's, is left
+; empty. Clobbers `BA_S0` to `BA_S4`, `BA_T*`, A, X and Y.
 .proc ba_vic_mensaje
 .a8
 .i16
-    stz temp + 1                ; en blanco
+    stz temp + 1                ; white
     rep #$20
 .a16
     lda #BA_PAG_MSG_POS0
@@ -347,21 +345,21 @@ si:
     beq primera
     jmp de_un_actor
 primera:
-    ; Los renglones del mensaje de la victoria, de a cuatro por página: ver
-    ; `ba_vic_linea`, que cuenta los que ya salieron.
+    ; The lines of the victory message, four per page: see `ba_vic_linea`,
+    ; which counts the ones already shown.
     stz BA_VIC_MAS
     lda BA_VIC_SALTEAR
     sta BA_VIC_SIG
     stz BA_S3
     stz BA_S4
-    ; El término de la victoria, en los renglones en que lo partió el
-    ; conversor —ver `pantallas.renglones_de_la_victoria`—.
+    ; The victory term, on the lines the converter split it into —see
+    ; `pantallas.renglones_de_la_victoria`—.
     jsr ba_vic_linea
     bcc sin_v1
     ldx #BA_TXT_VICTORIA
     jsr ba_termino
 sin_v1:
-    lda #BA_VIC_TERMINO_N       ; no con `.if`: la constante llega después
+    lda #BA_VIC_TERMINO_N       ; not with `.if`: the constant comes later
     cmp #2
     bcc un_renglon
     jsr ba_vic_linea
@@ -369,8 +367,8 @@ sin_v1:
     ldx #BA_TXT_VICTORIA2
     jsr ba_termino
 un_renglon:
-    ; Y la experiencia, si la hay: `if (exp > 0)` de easyrpg. El oro va igual,
-    ; `if (money > 0)`.
+    ; And the experience, if any: easyrpg's `if (exp > 0)`. The gold goes the
+    ; same way, `if (money > 0)`.
     lda BA_TROPA_K
     cmp #$FF
     bne con_tropa
@@ -380,12 +378,12 @@ con_tropa:
 .a16
     and #$00FF
     asl a
-    sta BA_S1                   ; el lugar de la tropa en las de palabras
+    sta BA_S1                   ; the troop's place in the word-sized tables
     tax
     lda f:tropa_exp, x
-    ldy #0                      ; sin los que siguieron ocultos
+    ldy #0                      ; without those that stayed hidden
     jsr ba_sin_ocultos
-    sep #$20                    ; `sep` no toca Z
+    sep #$20                    ; `sep` does not touch Z
 .a8
     beq sin_exp
     jsr ba_vic_linea
@@ -433,7 +431,7 @@ sin_exp:
     ldx #BA_TXT_ORO_B
     jsr ba_termino
 sin_oro:
-    ; Y un renglón por ítem, en el orden en que salieron.
+    ; And one line per item, in the order they came up.
     stz BA_S0
 item:
     lda BA_S0
@@ -450,7 +448,7 @@ item:
     sta BA_T0
     asl a
     clc
-    adc BA_T0                   ; por tres: `3k` es el nombre del ítem
+    adc BA_T0                   ; times three: `3k` is the item's name
     tax
     sep #$20
 .a8
@@ -467,9 +465,9 @@ listos:
     rts
 
 de_un_actor:
-    ; "<nombre> LEVEL <n> achieved!", sólo en su primera página.
+    ; "<name> LEVEL <n> achieved!", only on its first page.
     lda #1
-    sta BA_S3                   ; renglones escritos, el de arriba ya contado
+    sta BA_S3                   ; lines written, the top one already counted
     lda BA_VIC_SALTEAR
     bne sin_nivel
     lda BA_VIC_ACTOR
@@ -493,40 +491,40 @@ de_un_actor:
     jsr ba_termino
     bra habilidades
 sin_nivel:
-    stz BA_S3                   ; la continuación arranca en el de arriba
+    stz BA_S3                   ; the continuation starts on the top one
 habilidades:
-    ; Y "<habilidad> acquired!" por cada una que enseñan los niveles que pasó,
-    ; nivel por nivel como `LearnLevelSkills(old_level + 1, new_level)`.
-    ; `BA_VIC_SALTEAR` son las que ya salieron en páginas anteriores.
+    ; And "<skill> acquired!" for each one taught by the levels it went
+    ; through, level by level like `LearnLevelSkills(old_level + 1,
+    ; new_level)`. `BA_VIC_SALTEAR` is the ones already shown on earlier pages.
     ;
-    ; **Dice todas las que la tabla enseña en esos niveles**, y RM2k sólo las
-    ; que no sabía —`LearnSkill` no avisa si ya estaba—: las dos cosas
-    ; difieren sólo si un `ChangeSkills` le enseñó antes una que después
-    ; enseña un nivel, y en el ABL ninguno lo hace. `exp_sumar` ya prendió los
-    ; bits, así que acá no hay cómo saber cuáles estaban.
+    ; **It says every one the table teaches at those levels**, and RM2k only
+    ; the ones it did not know —`LearnSkill` does not announce it if it was
+    ; already there—: the two differ only if a `ChangeSkills` taught it one
+    ; earlier that a level teaches later, and in ABL none does. `exp_sumar`
+    ; already set the bits, so here there is no way to know which were there.
     stz BA_VIC_MAS
     lda BA_VIC_SALTEAR
     sta BA_VIC_SIG
-    stz BA_S4                   ; las que ya se vieron, escritas o salteadas
+    stz BA_S4                   ; the ones already seen, written or skipped
     lda BA_VIC_ACTOR
     jsr ba_vic_nivel
-    sta BA_S2                   ; hasta qué nivel
+    sta BA_S2                   ; up to which level
     lda BA_VIC_ACTOR
     jsr ba_ax
     lda BA_VIC_ANTES, x
-    sta BA_S0                   ; el nivel que se mira, desde el de antes + 1
+    sta BA_S0                   ; the level being looked at, from the previous one + 1
     lda BA_VIC_ACTOR
     jsr ba_x
     lda BA_UNO + BA_NUMERO, x
-    sta BA_S0 + 1               ; el actor del LDB
+    sta BA_S0 + 1               ; the LDB actor
 nivel:
     lda BA_S0
     cmp BA_S2
     bcc otro_nivel
-    rts                         ; ya se miró el de ahora
+    rts                         ; the current one has been looked at already
 otro_nivel:
     inc BA_S0
-    ; Los pares del actor: `hab_par_ini` y `hab_par_n`, como `aprender_del_nivel`.
+    ; The actor's pairs: `hab_par_ini` and `hab_par_n`, like `aprender_del_nivel`.
     lda BA_S0 + 1
     rep #$20
 .a16
@@ -534,13 +532,13 @@ otro_nivel:
     asl a
     tax
     lda f:hab_par_ini, x
-    sta BA_S1                   ; el par que se mira
+    sta BA_S1                   ; the pair being looked at
     sep #$20
 .a8
     lda BA_S0 + 1
     jsr ba_ax
     lda f:hab_par_n, x
-    sta BA_S2 + 1               ; cuántos le quedan
+    sta BA_S2 + 1               ; how many it has left
     beq nivel
 par:
     ldx BA_S1
@@ -550,12 +548,12 @@ par:
     inc BA_S4
     lda BA_S4
     cmp BA_VIC_SALTEAR
-    beq siguiente               ; salió en una página anterior
+    beq siguiente               ; shown on an earlier page
     bcc siguiente
     lda BA_S3
     cmp #BA_VIC_RENGLONES
     bcc entra
-    lda #1                      ; no entra: sigue en otra página
+    lda #1                      ; does not fit: goes on in another page
     sta BA_VIC_MAS
     bra listo
 entra:
@@ -563,7 +561,7 @@ entra:
     inc BA_VIC_SIG
     lda BA_S3
     cmp #1
-    beq arriba                  ; el primero de una continuación
+    beq arriba                  ; the first one of a continuation
     jsr ba_vic_renglon
 arriba:
     rep #$20
@@ -593,23 +591,24 @@ listo:
     rts
 .endproc
 
-; El renglón que sigue de la primera página, si le toca a ésta: C en 1 y la
-; posición puesta, o C en 0 si salió en una página anterior —los primeros
-; `BA_VIC_SALTEAR`— o no entra, y entonces queda `BA_VIC_MAS`. Lleva la cuenta
-; en `BA_S4`, los vistos, y `BA_S3`, los escritos, que `ba_vic_mensaje` pone en
-; cero. Es la misma cuenta que las habilidades de un actor, más abajo.
+; The next line of the first page, if it belongs on this one: C at 1 and the
+; position set, or C at 0 if it was shown on an earlier page —the first
+; `BA_VIC_SALTEAR`— or it does not fit, and then `BA_VIC_MAS` is left set. It
+; keeps the count in `BA_S4`, the ones seen, and `BA_S3`, the ones written,
+; which `ba_vic_mensaje` zeroes. It is the same count as an actor's skills,
+; further down.
 .proc ba_vic_linea
 .a8
 .i16
     inc BA_S4
     lda BA_S4
     cmp BA_VIC_SALTEAR
-    beq no                      ; salió en una página anterior
+    beq no                      ; shown on an earlier page
     bcc no
     lda BA_S3
     cmp #BA_VIC_RENGLONES
     bcc entra
-    lda #1                      ; no entra: sigue en otra página
+    lda #1                      ; does not fit: goes on in another page
     sta BA_VIC_MAS
 no:
     clc
@@ -617,7 +616,7 @@ no:
 entra:
     inc BA_VIC_SIG
     lda BA_S3
-    beq arriba                  ; el primero de la página ya está puesto
+    beq arriba                  ; the page's first one is already set
     jsr ba_vic_renglon
 arriba:
     inc BA_S3
@@ -625,7 +624,7 @@ arriba:
     rts
 .endproc
 
-; El renglón de abajo del que se está escribiendo, desde su principio.
+; The line below the one being written, from its start.
 .proc ba_vic_renglon
 .a8
 .i16
@@ -642,22 +641,22 @@ arriba:
     rts
 .endproc
 
-; `BA_T0` sin espacios adelante, de hasta cinco cifras: la experiencia de una
-; tropa no entra en las tres de `pant_numero`. Se lleva A, X, Y y `BA_T0`.
+; `BA_T0` without leading spaces, up to five digits: a troop's experience does
+; not fit in `pant_numero`'s three. Clobbers A, X, Y and `BA_T0`.
 .proc ba_vic_numero
 .a8
 .i16
-    stz BA_T2                   ; si ya salió una cifra
-    ldx #0                      ; qué potencia de diez
+    stz BA_T2                   ; whether a digit has been written already
+    ldx #0                      ; which power of ten
 potencia:
-    ldy #0                      ; la cifra
+    ldy #0                      ; the digit
     rep #$20
 .a16
 resta:
     lda BA_T0
-    cmp f:potencias, x          ; con `f:`: el banco de datos es $7E
+    cmp f:potencias, x          ; with `f:`: the data bank is $7E
     bcc cifra
-    sbc f:potencias, x          ; C viene de la comparación
+    sbc f:potencias, x          ; C comes from the comparison
     sta BA_T0
     iny
     bra resta
@@ -679,7 +678,7 @@ cero_adelante:
     inx
     cpx #8
     bcc potencia
-    lda BA_T0                   ; las unidades, siempre
+    lda BA_T0                   ; the units, always
     clc
     adc #$30
     jsl f:ba_t_glifo

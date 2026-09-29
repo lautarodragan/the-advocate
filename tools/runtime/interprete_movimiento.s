@@ -2,54 +2,54 @@
 .a8
 .i16
 
-; --- el intérprete: rutas y lugares ----------------------------------------
+; --- the interpreter: move routes and places --------------------------------
 ;
-; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
-; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
-; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps to
+; each one with Y on its first operand, and each one goes back to the loop
+; with `jmp correr_codigo::otro` or ends the frame with `rts`.
 
-; Una ruta forzada de MoveEvent. El primer operando dice sobre quién: 0 es el
-; héroe, y cualquier otro número es el índice del evento en la tabla del mapa
-; más uno. **No es el id de RM2k**: 39 mapas de este juego tienen huecos en la
-; numeración de eventos, y traducir es cosa del conversor.
+; A forced move route from MoveEvent. The first operand says on whom: 0 is the
+; hero, and any other number is the event's index in the map's table plus
+; one. **It is not the RM2k id**: 39 maps of this game have gaps in their
+; event numbering, and translating is the converter's job.
 ;
-; De todos los comandos de ruta de RM2k acá se aceptan los cuatro de girar, los
-; cuatro de mover y la espera: el conversor no emite ningún otro.
+; Of all of RM2k's move commands, the four turns, the four moves and the wait
+; are accepted here: the converter emits no other.
 ;
-; face_up/right/down/left son 12, 13, 14 y 15, y nuestras direcciones son
-; 0, 1, 2 y 3 en el mismo orden, así que restar doce alcanza.
+; face_up/right/down/left are 12, 13, 14 and 15, and our directions are
+; 0, 1, 2 and 3 in the same order, so subtracting twelve is enough.
 ;
-; Las dos se guardan como puntero al bytecode, que vive en la ROM y no se va a
-; ningún lado. La del héroe se copiaba a RAM, con un tope de 32 bytes, hasta el
-; 2026-09-27: ver `ruta_heroe`.
+; Both are kept as a pointer into the bytecode, which lives in the ROM and
+; goes nowhere. The hero's was copied to RAM, with a 32-byte cap, until
+; 2026-09-27: see `ruta_heroe`.
 .proc op_route
-    lda [cod_ptr], y            ; sobre quién
+    lda [cod_ptr], y            ; on whom
     sta ruta_blanco
     iny
-    lda [cod_ptr], y            ; con qué frecuencia
+    lda [cod_ptr], y            ; at what frequency
     sta ruta_frec_op
     iny
-    lda [cod_ptr], y            ; cuántos comandos trae
+    lda [cod_ptr], y            ; how many commands it carries
     sta ruta_cuantas
     stz ruta_cuantas + 1
     iny
     lda ruta_blanco
     bne op_route_event
 
-    ; --- el héroe: la ruta se copia a RAM y la camina `move_hero`, no el
-    ; intérprete: en RM2k `ForceMoveRoute` es asincrónico y la página sigue.
-    ; Lo que se corta es la espera —`SetStopCount(0xFFFF)`: la primera orden
-    ; corre ya— y nada más: el paso o el salto en curso se terminan, como
-    ; allá. Acá se cortaba también el salto, y RM2k no lo corta.
+    ; --- the hero: the route is copied to RAM and `move_hero` walks it, not
+    ; the interpreter: in RM2k `ForceMoveRoute` is asynchronous and the page
+    ; goes on. What gets cut is the wait —`SetStopCount(0xFFFF)`: the first
+    ; command runs right away— and nothing else: the step or jump in progress
+    ; finishes, as there. Here the jump used to be cut too, and RM2k does not
+    ; cut it.
     lda ruta_cuantas
     sta ruta_n
     stz ruta_i
     stz ruta_espera
     lda ruta_frec_op
     sta ruta_frec
-    ; El puntero, como el de un evento en `ruta_para_evento`: la suma no se
-    ; lleva nada al byte de banco porque el bloque de código entra entero en
-    ; uno.
+    ; The pointer, like an event's in `ruta_para_evento`: the addition carries
+    ; nothing into the bank byte because the code block fits whole in one.
     rep #$20
 .a16
     tya
@@ -62,8 +62,8 @@
     sta ruta_heroe + 2
     bra saltear_ruta
 
-    ; --- un evento: se anota dónde empieza la ruta dentro del bytecode y en
-    ; qué orden va, y el cursor de la página saltea las órdenes.
+    ; --- an event: note where the route starts inside the bytecode and which
+    ; command it is on, and the page's cursor skips over the commands.
 op_route_event:
     phy
     jsr ruta_para_evento
@@ -81,14 +81,14 @@ saltear_ruta:
 
 .endproc
 
-; Planta a un evento en una celda: ChangeEventLocation. Es `MoveTo`, y nada
-; más que `MoveTo`: la celda cambia ya y el paso o el salto en curso se cortan
-; —`SetRemainingStep(0)`—, la ruta que tuviera sigue con la orden siguiente
-; desde acá, y hacia dónde mira no cambia; la dirección la toca sólo RM2k3. La
-; cinemática de apertura lo usa seis veces para traer a Core, a Manta y al
-; droide a escena.
+; Plants an event on a cell: ChangeEventLocation. It is `MoveTo`, and nothing
+; but `MoveTo`: the cell changes right away and the step or jump in progress
+; is cut —`SetRemainingStep(0)`—, whatever route it had goes on with the next
+; command from here, and which way it faces does not change; only RM2k3
+; touches the direction. The opening cutscene uses it six times to bring
+; Core, Manta and the droid into the scene.
 .proc op_place
-    lda [cod_ptr], y            ; el blanco: el índice del evento más uno
+    lda [cod_ptr], y            ; the target: the event's index plus one
     dec a
     sta temp
     iny
@@ -97,11 +97,11 @@ saltear_ruta:
     lda temp
     and #$00FF
     asl a
-    asl a                       ; EV_STRIDE bytes por evento
+    asl a                       ; EV_STRIDE bytes per event
     tax
     lda [cod_ptr], y
-    sta ev_pos_buf + 0, x       ; la celda, que es lo que miran las rutas, la
-    iny                         ; tecla de acción y el contacto
+    sta ev_pos_buf + 0, x       ; the cell, which is what the routes, the
+    iny                         ; action button and touch look at
     iny
     lda [cod_ptr], y
     sta ev_pos_buf + 2, x
@@ -110,37 +110,38 @@ saltear_ruta:
     sep #$20
 .a8
     phy
-lugar_plantar:                  ; con Y ya en la pila: ver `op_place_var`
+lugar_plantar:                  ; with Y already on the stack: see `op_place_var`
     jsr plantar_evento
     ply
     jmp correr_codigo::otro
 
 .endproc
 
-; `ChangeEventLocation` con la celda en **dos variables**, que es la otra rama
-; de `CommandChangeEventLocation`. Lo demás es idéntico a `op_place`: el mismo
-; `MoveTo`, o sea la celda cambia ya, el paso en curso se corta y ni la ruta ni
-; hacia dónde mira se tocan. Ver OP_PLACE_VAR en eventos.py.
+; `ChangeEventLocation` with the cell in **two variables**, which is the other
+; branch of `CommandChangeEventLocation`. The rest is identical to
+; `op_place`: the same `MoveTo`, that is, the cell changes right away, the
+; step in progress is cut, and neither the route nor the facing is touched.
+; See OP_PLACE_VAR in eventos.py.
 ;
-; Las dos lecturas van **antes** de escribir ninguna de las dos palabras, como
-; en `op_swap`: una variable que se leyera después de haber movido al evento
-; ya podría valer otra cosa si es una de las de coordenadas de `ControlVars`.
-; En este juego no pasa —el minijuego del mapa 11 las calcula antes— pero es la
-; misma regla y no cuesta nada.
+; Both reads go **before** writing either of the two words, as in `op_swap`:
+; a variable read after moving the event could already hold something else if
+; it is one of `ControlVars`' coordinate ones. In this game it does not happen
+; —the minigame on map 11 computes them beforehand— but it is the same rule
+; and costs nothing.
 ;
-; `var_leer` no toca X ni `temp`, así que el desplazamiento de la fila se
-; calcula una sola vez y sobrevive a las dos lecturas.
+; `var_leer` does not touch X or `temp`, so the row offset is computed only
+; once and survives both reads.
 .proc op_place_var
 .a8
 .i16
-    lda [cod_ptr], y            ; el blanco: el índice del evento más uno
+    lda [cod_ptr], y            ; the target: the event's index plus one
     dec a
     sta temp
     iny
-    lda [cod_ptr], y            ; la ranura de la x
+    lda [cod_ptr], y            ; the slot for x
     sta temp + 1
     iny
-    lda [cod_ptr], y            ; y la de la y
+    lda [cod_ptr], y            ; and the one for y
     sta temp + 2
     iny
     phy
@@ -149,12 +150,12 @@ lugar_plantar:                  ; con Y ya en la pila: ver `op_place_var`
     lda temp
     and #$00FF
     asl a
-    asl a                       ; EV_STRIDE bytes por evento
+    asl a                       ; EV_STRIDE bytes per event
     tax
     sep #$20
 .a8
     lda temp + 1
-    jsr var_leer                ; vuelve con M en dieciséis
+    jsr var_leer                ; returns with M at sixteen
 .a16
     pha
     sep #$20
@@ -171,15 +172,15 @@ lugar_plantar:                  ; con Y ya en la pila: ver `op_place_var`
 
 .endproc
 
-; `TradeEventLocations`: los dos eventos se cambian de celda, y cada uno es un
-; `MoveTo` como el de `op_place` —la celda, el corte del paso, y el dibujo que
-; la sigue—. Las dos celdas se leen antes de escribir ninguna.
+; `TradeEventLocations`: the two events swap cells, and each one is a
+; `MoveTo` like the one in `op_place` —the cell, cutting the step, and the
+; drawing that follows it—. Both cells are read before writing either.
 .proc op_swap
-    lda [cod_ptr], y            ; el primero: el índice más uno
+    lda [cod_ptr], y            ; the first: the index plus one
     dec a
     sta trueque_a
     iny
-    lda [cod_ptr], y            ; y el segundo
+    lda [cod_ptr], y            ; and the second
     dec a
     sta trueque_b
     iny
@@ -189,7 +190,7 @@ lugar_plantar:                  ; con Y ya en la pila: ver `op_place_var`
     lda trueque_a
     and #$00FF
     asl a
-    asl a                       ; EV_STRIDE bytes por evento
+    asl a                       ; EV_STRIDE bytes per event
     tax
     lda trueque_b
     and #$00FF
@@ -221,16 +222,16 @@ lugar_plantar:                  ; con Y ya en la pila: ver `op_place_var`
 
 .endproc
 
-; "Esperá a que terminen las rutas". Si no queda ninguna corriendo no cuesta ni
-; un cuadro, que es lo que hace el `while` de `Game_Interpreter::Update`; y si
-; queda, el cursor se deja **en el opcode** y se corta el cuadro, así que el
-; siguiente vuelve a preguntar. Espera a que no quede **ninguna**, ni la del
-; héroe ni la de ningún evento: es `Game_Map::IsAnyMovePending`, y no una espera
-; por el evento que se acaba de mandar a caminar.
+; "Wait for the move routes to finish". If none is left running it does not
+; cost even one frame, which is what the `while` in `Game_Interpreter::Update`
+; does; and if one is, the cursor is left **on the opcode** and the frame
+; ends, so the next one asks again. It waits until **none** is left, neither
+; the hero's nor any event's: it is `Game_Map::IsAnyMovePending`, and not a
+; wait for the event that was just sent walking.
 .proc op_wait_routes
     jsr hay_rutas
     beq op_wait_routes_next
-    dey                         ; el cursor vuelve al opcode
+    dey                         ; the cursor goes back to the opcode
     sty ev_cur
     rts
 op_wait_routes_next:
@@ -238,28 +239,29 @@ op_wait_routes_next:
 
 .endproc
 
-; `HaltAllMovement`: todas las rutas forzadas del mapa se abandonan de golpe.
-; Es `Game_Map::RemoveAllPendingMoves`, o sea un `CancelMoveRoute` sobre el
-; héroe y sobre cada evento. No cuesta un cuadro: la página sigue en el mismo
-; tick, que es el `return true` de `CommandHaltAllMovement`.
+; `HaltAllMovement`: every forced move route on the map is dropped at once.
+; It is `Game_Map::RemoveAllPendingMoves`, that is, a `CancelMoveRoute` on the
+; hero and on each event. It does not cost a frame: the page goes on in the
+; same tick, which is the `return true` of `CommandHaltAllMovement`.
 ;
-; Lo que **no** hace, y es lo que lo separa de `MoveTo`: el paso y el salto en
-; curso se terminan, y hacia dónde mira cada uno queda donde la ruta lo dejó.
-; `hay_rutas` los sigue mirando, así que un `ProceedWithMovement` pegado atrás
-; espera los cuadros que le falten al paso.
+; What it does **not** do, and it is what sets it apart from `MoveTo`: the
+; step and the jump in progress finish, and which way each one faces stays
+; where the route left it. `hay_rutas` still watches them, so a
+; `ProceedWithMovement` right after it waits the frames the step has left.
 ;
-; Y quien tenía ruta propia de página vuelve a la suya con `retomar_pagina`,
-; que es la misma rutina que corre cuando una forzada termina sola: cancelarla
-; y terminarla no se pueden separar, que es justo la clase de diferencia que
-; nadie ve hasta que la escena sale distinta.
+; And whoever had its page's own route goes back to it with
+; `retomar_pagina`, which is the same routine that runs when a forced one
+; ends by itself: cancelling it and finishing it cannot be told apart, which
+; is exactly the kind of difference nobody sees until the scene comes out
+; different.
 .proc op_stop_routes
 .a8
 .i16
-    ; El héroe. Se le vacían las órdenes y la espera; el paso en curso no.
+    ; The hero. Its commands and wait are emptied; the step in progress is not.
     stz ruta_n
     stz ruta_i
     stz ruta_espera
-    phy                         ; Y es el cursor del bytecode
+    phy                         ; Y is the bytecode cursor
     ldx #$0000
 parar_otra:
     lda ruta_ev, x
@@ -267,8 +269,8 @@ parar_otra:
     beq parar_siguiente
     lda ruta_ev + 18, x
     and #$01
-    bne parar_siguiente         ; la de la página no es forzada
-    lda ruta_ev + 27, x         ; ¿tiene ruta propia a la que volver?
+    bne parar_siguiente         ; the page's one is not forced
+    lda ruta_ev + 27, x         ; does it have its own route to go back to?
     beq parar_sin_pagina
     jsr retomar_pagina
     bra parar_siguiente

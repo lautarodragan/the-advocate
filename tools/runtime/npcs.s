@@ -1,43 +1,43 @@
 .segment "CODE"
 
-; Sube la pose A del NPC de la fila Y, si no es la que ya está en la VRAM.
+; Uploads pose A of the NPC in row Y, unless it is the one already in VRAM.
 ;
-; Salió de adentro de `refrescar_npc`, que era el único que la necesitaba, el
-; día que hubo un segundo: `animar_quietos`. `npc_fila` tiene que traer la misma
-; fila que Y, que es como venía.
+; It came out of `refrescar_npc`, which was the only one that needed it, the
+; day there was a second one: `animar_quietos`. `npc_fila` has to hold the
+; same row as Y, which is how it came in.
 .proc subir_pose_npc
 .a8
 .i16
-    ; El tile de la fila es fijo —es su ranura— y lo que cambia son los tiles de
-    ; la ranura, que se encolan acá y suben en el vblank que viene con la OAM.
+    ; The row's tile is fixed —it is its slot— and what changes are the slot's
+    ; tiles, which are queued here and go up in the next vblank with the OAM.
     cmp npc_buf + 12, y
     bne cambia
     rts
 cambia:
     sta npc_buf + 12, y
-    sta temp                    ; la pose
+    sta temp                    ; the pose
 
-    ; El puntero a la pose, de `npc_poses`: doce punteros de tres bytes por
-    ; personaje animado, o sea (k * 12 + pose) * 3.
+    ; The pointer to the pose, from `npc_poses`: twelve three-byte pointers per
+    ; animated character, that is (k * 12 + pose) * 3.
     lda npc_buf + 9, y
     rep #$20
 .a16
     and #$00FF
     asl a
-    asl a                       ; por cuatro
+    asl a                       ; times four
     sta temp + 2
     asl a
     asl a
-    asl a                       ; por treinta y dos
+    asl a                       ; times thirty-two
     clc
-    adc temp + 2                ; treinta y seis por personaje
+    adc temp + 2                ; thirty-six per character
     sta temp + 2
     lda temp
     and #$00FF
     sta temp
     asl a
     clc
-    adc temp                    ; la pose por tres
+    adc temp                    ; the pose times three
     clc
     adc temp + 2
     tay
@@ -50,11 +50,11 @@ cambia:
     lda [poses_ptr], y
     sta vq_src + 2
 
-    ; El destino: su ranura, que es el tile de la fila por dieciséis palabras
-    ; desde donde arranca el banco de sprites.
+    ; The destination: its slot, which is the row's tile times sixteen words
+    ; from where the sprite bank starts.
     ldy npc_fila
     lda npc_buf + 7, y
-    and #$01                    ; el bit 8 del tile vive en los atributos
+    and #$01                    ; bit 8 of the tile lives in the attributes
     xba
     lda npc_buf + 6, y
     rep #$20
@@ -62,7 +62,7 @@ cambia:
     asl a
     asl a
     asl a
-    asl a                       ; dieciséis palabras por tile
+    asl a                       ; sixteen words per tile
     ldx mapa_ofs
     clc
     adc f:mapa_tabla + M_VRAM_SPRITE, x
@@ -71,7 +71,7 @@ cambia:
 .a8
     jsr vram_encolar
     bne listo
-    ; La cola estaba llena: se vuelve a pedir el cuadro que viene.
+    ; The queue was full: it is asked for again next frame.
     ldy npc_fila
     lda #$FF
     sta npc_buf + 12, y
@@ -79,21 +79,22 @@ listo:
     rts
 .endproc
 
-; La cola de poses en caliente después de reponer el banco: cada ranura tiene
-; ahora la pose que el conversor dejó en el cartucho, y no la que su NPC venía
-; mostrando. `load_sprite` arregla la del héroe —deja `hero_pose_vram` en $FF—
-; y las de los NPC viven en `npc_buf + 12`, que es la única parte de esa tabla
-; que esto toca: es una sombra de lo que hay en la VRAM, no estado del juego.
+; What hot-swapped poses leave behind after the bank is restored: each slot
+; now holds the pose the converter left in the cartridge, not the one its NPC
+; had been showing. `load_sprite` fixes the hero's —it leaves
+; `hero_pose_vram` at $FF— and the NPCs' live in `npc_buf + 12`, which is the
+; only part of that table this touches: it is a shadow of what is in VRAM,
+; not game state.
 ;
-; Con $FF ninguna pose coincide, así que el próximo `subir_pose_npc` de cada
-; fila la vuelve a encolar. Sin esto la sombra mentiría y un NPC que ya
-; estuviera en su pose se quedaría con la del cartucho para siempre.
+; With $FF no pose matches, so each row's next `subir_pose_npc` queues it
+; again. Without this the shadow would lie and an NPC that was already in its
+; pose would keep the cartridge's forever.
 .proc poses_npc_olvidar
 .a8
 .i16
     ldy #$0000
 otra:
-    cpy npc_total               ; viene en bytes, no en filas
+    cpy npc_total               ; comes in bytes, not rows
     beq listo
     lda #$FF
     sta npc_buf + 12, y
@@ -110,24 +111,25 @@ listo:
     rts
 .endproc
 
-; Deja la fila del NPC de la ranura X donde el evento está ahora: la posición en
-; pixeles, la clave con la que se ordena, y el tile de la pose que le toca.
+; Sets the row of the NPC in slot X to where the event is now: the position in
+; pixels, the key it is sorted by, and the tile of the pose that is due.
 ;
-; Lo primero que hace es copiarse de la ranura lo que necesita, y recién después
-; usa X para otra cosa. Es más largo de leer y mucho más difícil de romper:
-; adentro se llaman tres rutinas y todas usan índices.
+; The first thing it does is copy what it needs out of the slot, and only
+; after that does it use X for something else. It is longer to read and much
+; harder to break: three routines are called inside and all of them use
+; indexes.
 .proc refrescar_npc
 .a8
 .i16
     stz salto_alto
     stz salto_alto + 1
-    jsr celda_del_evento        ; deja su celda en celda_x/celda_y, y usa X
+    jsr celda_del_evento        ; leaves its cell in celda_x/celda_y, and uses X
     lda ruta_ev + 7, x
-    sta slot_cuadros            ; si hay un paso en curso
+    sta slot_cuadros            ; whether there is a step in progress
     rep #$20
 .a16
-    lda ruta_ev + 22, x         ; y cuánto le falta, de 256 por celda: a
-    lsr a                       ; pixeles, tirando los dieciseisavos
+    lda ruta_ev + 22, x         ; and how much it has left, at 256 per cell: to
+    lsr a                       ; pixels, dropping the sixteenths
     lsr a
     lsr a
     lsr a
@@ -137,18 +139,18 @@ listo:
     lda ruta_ev + 8, x
     sta slot_mira
     lda ruta_ev + 30, x
-    sta slot_dir                ; la dirección del paso en curso
+    sta slot_dir                ; the direction of the step in progress
     lda ruta_ev + 10, x
     sta slot_paso
-    jsl f:npc_de_ranura + RAPIDO  ; `npc_de_evento`, recordada en la ranura
+    jsl f:npc_de_ranura + RAPIDO  ; `npc_de_evento`, remembered in the slot
     sty npc_fila
     cpy #$FFFF
     bne hay_fila
-    rts                         ; el evento no tiene gráfico: no hay qué mover
+    rts                         ; the event has no graphic: nothing to move
 hay_fila:
 
-    ; Dónde está, en pixeles: la celda por dieciséis, menos lo que le falte al
-    ; paso en curso a WALK_SPEED por cuadro.
+    ; Where it is, in pixels: the cell times sixteen, minus what the step in
+    ; progress has left at WALK_SPEED per frame.
     rep #$20
 .a16
     lda celda_x
@@ -163,17 +165,18 @@ hay_fila:
     asl a
     asl a
     sta npc_py
-    lda slot_px                 ; los pixeles que faltan del paso
+    lda slot_px                 ; the pixels left in the step
     sta temp
     sep #$20
 .a8
     lda slot_cuadros
-    beq sin_paso_npc            ; sin paso en curso, ya está en su celda
+    beq sin_paso_npc            ; no step in progress, it is already on its cell
     bra con_paso_npc
 sin_paso_npc:
-    ; ¿Está saltando? Entonces la celda es la de destino y el dibujo va detrás,
-    ; con el arco encima. La clave de orden sale de la posición **sin** el arco:
-    ; es `GetScreenY(false)`, así que quien está en el aire no se adelanta.
+    ; Is it jumping? Then the cell is the destination and the drawing lags
+    ; behind, with the arc on top. The sort key comes from the position
+    ; **without** the arc: it is `GetScreenY(false)`, so whoever is in the air
+    ; does not move ahead.
     lda ruta_ev + 13, x
     beq puesto
     sta salto_resta
@@ -188,12 +191,12 @@ sin_paso_npc:
     bra puesto
 con_paso_npc:
 
-    ; La dirección del paso, que va aparte de hacia dónde mira: con la mirada
-    ; fija —los droides del mapa 2— sube mirando abajo. Por tabla, porque en
-    ; diagonal hay que descontar en los dos ejes: los pixeles que faltan se le
-    ; restan al sentido del paso, o sea que quien va hacia la derecha se dibuja
-    ; todavía a la izquierda de su celda. X se pisa y no lo necesita nadie
-    ; más: de acá en adelante el índice es `npc_fila`.
+    ; The direction of the step, which is separate from which way it faces:
+    ; with its facing locked —the droids on map 2— it goes up facing down. By
+    ; table, because diagonally both axes have to be discounted: the pixels
+    ; left are subtracted along the step's direction, so whoever is going
+    ; right is still drawn to the left of its cell. X is clobbered and nobody
+    ; else needs it: from here on the index is `npc_fila`.
     lda slot_dir
     rep #$20
 .a16
@@ -203,7 +206,7 @@ con_paso_npc:
 .a8
     lda f:paso_dx, x
     beq sin_dx_npc
-    bmi mas_px                  ; $FF, o sea hacia la izquierda
+    bmi mas_px                  ; $FF, that is, to the left
     jsr restar_a_px
     bra sin_dx_npc
 mas_px:
@@ -211,14 +214,14 @@ mas_px:
 sin_dx_npc:
     lda f:paso_dy, x
     beq puesto
-    bmi mas_py                  ; venía de abajo: todavía le falta subir
+    bmi mas_py                  ; it came from below: it still has to go up
     jsr restar_a_py
     bra puesto
 mas_py:
     jsr sumar_a_py
 
 puesto:
-    ; A la fila: la posición, y la clave con la capa que ya traía.
+    ; Into the row: the position, and the key with the layer it already had.
     ldy npc_fila
     rep #$20
 .a16
@@ -229,11 +232,11 @@ puesto:
     sep #$20
 .a8
     lda salto_alto
-    sta npc_buf + 11, y         ; cuánto levantar el dibujo, sin tocar la clave
+    sta npc_buf + 11, y         ; how much to raise the drawing, without touching the key
     rep #$20
 .a16
     lda npc_buf + 4, y
-    and #$F000                  ; la capa se queda; la Y se reemplaza
+    and #$F000                  ; the layer stays; the Y is replaced
     sta temp
     lda npc_py
     and #$0FFF
@@ -242,16 +245,17 @@ puesto:
     sep #$20
 .a8
 
-    ; La pose: hacia dónde mira por tres, más la columna del ciclo. La columna 3
-    ; dibuja la misma que la 1, que es como RM2k arma un ciclo de cuatro con
-    ; tres columnas.
+    ; The pose: which way it faces times three, plus the cycle's column.
+    ; Column 3 draws the same as column 1, which is how RM2k builds a cycle of
+    ; four out of three columns.
     lda slot_mira
     cmp #RUTA_EV_SIN_MIRAR
     bne tiene_dir
-    lda npc_buf + 10, y         ; todavía no giró: mira adonde dice su página
+    lda npc_buf + 10, y         ; has not turned yet: faces where its page says
 tiene_dir:
-    ; Y si es el que mira al héroe, adonde dice el giro: su ranura está
-    ; libre, porque con una ruta andando no gira. Ver `giro_disparar`.
+    ; And if it is the one facing the hero, where the turn says: its slot is
+    ; free, because with a route running it does not turn. See
+    ; `giro_disparar`.
     pha
     lda f:GIRO_EV
     cmp npc_buf + 8, y
@@ -264,7 +268,7 @@ sin_giro:
     sta temp
     asl a
     clc
-    adc temp                    ; por tres
+    adc temp                    ; times three
     sta temp
     lda slot_paso
     cmp #$03
@@ -272,24 +276,24 @@ sin_giro:
     lda #$01
 sin_ajuste:
     clc
-    adc temp                    ; la pose, de 0 a 11
+    adc temp                    ; the pose, 0 to 11
     jsr subir_pose_npc
 acomodar:
-    jmp acomodar_npc            ; y la fila, a donde le toque ahora
+    jmp acomodar_npc            ; and the row, to wherever it belongs now
 .endproc
 
-; Deja la fila `npc_fila` donde le toca ahora, con la tabla ya ordenada: ver
-; `acomodar_lejos`, en el banco 1.
+; Puts row `npc_fila` where it belongs now, with the table already sorted:
+; see `acomodar_lejos`, in bank 1.
 .proc acomodar_npc
 .a8
 .i16
-    jsl f:acomodar_lejos + RAPIDO   ; ver MEMSEL
+    jsl f:acomodar_lejos + RAPIDO   ; see MEMSEL
     rts
 .endproc
 
-; Las cuatro sumas del paso en curso, con `temp` trayendo los pixeles que
-; faltan. Están aparte porque el `rep`/`sep` de cada una adentro del `cmp`
-; alargaba el procedimiento hasta que los saltos no llegaban.
+; The four additions for the step in progress, with `temp` holding the pixels
+; left. They are separate because the `rep`/`sep` of each one inside the `cmp`
+; made the procedure so long that the branches did not reach.
 .proc sumar_a_py
 .a8
 .i16
