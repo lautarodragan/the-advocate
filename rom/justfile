@@ -329,6 +329,9 @@ entregar que_mirar *args: _herramientas_del_checkout (build "release")
 #     just video release /shared/apertura.mp4 quieto:6000 apertura
 #     just video release /shared/textos.mp4 apertura talan --leer 150
 #
-# Un video con sonido de una ROM ya armada, jugando las jugadas del recorrido.
-video cual salida +jugadas: _herramientas_del_checkout
-  pruebas/arnes/video.py build/{{cual}} {{salida}} {{jugadas}}
+# Arma el cartucho antes si hace falta, como `entregar`: las jugadas son las del
+# checkout, y el arnés se niega a correrlas contra una ROM de otros fuentes.
+#
+# Un video con sonido de una ROM, jugando las jugadas del recorrido.
+video cual salida +jugadas: _herramientas_del_checkout (build cual)
+  pruebas/arnes/video.py {{cual}} {{salida}} {{jugadas}}

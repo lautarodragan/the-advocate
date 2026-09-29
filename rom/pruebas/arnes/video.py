@@ -3,12 +3,14 @@
 
 No trae una jugada propia: juega **las del recorrido**, llamando a las funciones
 de `pruebas/abl/test_recorrido_golden.py` tal cual, con una fábrica de `recorrido` que
-apunta a la ROM que se le pida. Así la jugada es una sola y
-esperan por RAM, no por cuadros contados: ver `recorrido.py`. Lo que se graba
+apunta al cartucho que se le pida. Así la jugada es una sola y
+esperan por RAM, no por cuadros contados: ver `recorrido.py`. La fábrica
+tiene que aceptar lo mismo que el fixture `recorrido` del conftest y arrancar
+en la misma página, y lo cobra `pruebas/abl/test_video.py`: ver `fabrica`. Lo que se graba
 se toma de `retro.Consola.correr`, parcheado desde acá: cada cuadro de hardware
 va a ffmpeg y su audio a un wav, y al final se juntan.
 
-    pruebas/arnes/video.py build/release salida.mp4 apertura talan
+    pruebas/arnes/video.py release salida.mp4 apertura talan
 
 Las jugadas se nombran por lo que tienen después de `test_`, sin tener que
 escribir el nombre entero: `apertura` es `test_la_apertura_termina_...`.
@@ -29,7 +31,6 @@ suena en una consola sin la extensión y lo que miden las pruebas.
 """
 
 import argparse
-import glob
 import os
 import subprocess
 import sys
@@ -43,8 +44,8 @@ for ruta in (os.path.join(os.pardir, "tools"), "pruebas",
 
 import lugares                                         # noqa: E402,F401
 from emulador import retro                              # noqa: E402
-import consola                                          # noqa: E402
 from recorrido import Mundo, Recorrido                  # noqa: E402
+import tanda                                            # noqa: E402
 import test_recorrido_golden                            # noqa: E402
 
 # Los cuadros por segundo de la SNES NTSC: si no coinciden con los de la
@@ -81,16 +82,31 @@ def leer_despacio(ticks):
     Recorrido.esperar = esperar
 
 
-def grabar(build, salida, jugadas, leer=None, msu=True):
-    # El único `.sfc` del directorio: el nombre no se deduce del directorio,
-    # porque la de release se llama `abl.sfc` adentro de `release/`.
-    sfcs = glob.glob(os.path.join(build, "*.sfc"))
-    if len(sfcs) != 1:
-        raise SystemExit("en %s tiene que haber un .sfc y hay %d"
-                         % (build, len(sfcs)))
-    sfc = sfcs[0]
-    simbolos = consola.Simbolos(sfc + ".sym")
-    mapas = consola.mapas_de(os.path.join(build, "mapdata.inc"))
+def fabrica(cartucho, msu=True):
+    """La fábrica de `recorrido` que reciben las jugadas: la del fixture
+    `recorrido` del conftest, sobre `cartucho` y sin fotos.
+
+    **La página la elige `tanda.partida`, igual que en el conftest**, y no
+    una cuenta propia: hasta el 2026-09-29 ésta armaba la `Partida` a mano
+    en la página 0, que desde el mapa de debug (`991bf935`) es la entrada a
+    él y no la partida de verdad, así que `talan` se trababa en el 900; y no
+    aceptaba `caso`, que la apertura empezó a pedir ese día. Nadie se enteró
+    porque ninguna prueba corría esto: ahora lo cobra `test_video.py`.
+    """
+    mundo = []
+
+    def recorrido(nombre, switch=(), caso=None):
+        if not mundo:
+            mundo.append(Mundo())
+        return Recorrido(tanda.partida(caso, en=cartucho, switches=switch,
+                                       msu=msu),
+                         mundo[0], fotos=None)
+    return recorrido
+
+
+def grabar(cartucho, salida, jugadas, leer=None, msu=True):
+    # Leerlo antes de abrir nada: si está viejo, `tanda.cartucho` corta.
+    tanda.cartucho(cartucho)
     if leer:
         leer_despacio(leer)
 
@@ -127,10 +143,7 @@ def grabar(build, salida, jugadas, leer=None, msu=True):
             cuadros[0] += 1
     retro.Consola.correr = correr_grabando
 
-    def recorrido(_nombre, switch=()):
-        partida = consola.Partida(sfc, simbolos, mapas, switches=switch,
-                                  titulo=consola.EMPEZAR, msu=msu)
-        return Recorrido(partida, Mundo(), fotos=None)
+    recorrido = fabrica(cartucho, msu)
 
     try:
         for pedido in jugadas:
@@ -160,7 +173,7 @@ def grabar(build, salida, jugadas, leer=None, msu=True):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("build", help="el directorio de la ROM: build/release")
+    parser.add_argument("cartucho", help="el nombre del cartucho: release")
     parser.add_argument("salida", help="el .mp4")
     parser.add_argument("jugadas", nargs="+",
                         help="parte del nombre de una jugada de "
@@ -175,7 +188,7 @@ def main():
     if __debug__:
         raise SystemExit("corré esto con python3 -O: ver el comentario de "
                          "arriba de video.py")
-    grabar(args.build, args.salida, args.jugadas, args.leer,
+    grabar(args.cartucho, args.salida, args.jugadas, args.leer,
            msu=not args.sin_msu)
 
 

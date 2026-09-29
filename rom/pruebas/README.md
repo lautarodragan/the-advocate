@@ -248,6 +248,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `abl/test_mapa_de_debug.py`: el mapa de debug —la llegada por "Begin the
   Story", cada puerta con el estado de la rama del compañero elegido y Talan
   de líder, y los NPC, que suman uno a la vez—
+* `abl/test_video.py`: que la fábrica de `recorrido` de `arnes/video.py`
+  acepte lo mismo que la del conftest y arranque en la misma página, que es
+  lo que deja a `just video` jugar las jugadas del recorrido
 * `abl/test_lider_sin_grafico.py`: con DummyHero de líder, cada mapa del
   juego carga las paletas de sprite del cartucho —antes la 0 quedaba en negro,
   y era Talan en el barril del 14 y en la guarida de Wick—

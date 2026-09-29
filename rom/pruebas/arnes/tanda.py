@@ -109,7 +109,8 @@ def rom(caso, en=None):
     return uno, uno.casos.index(caso)
 
 
-def partida(caso, nucleo=None, en=None, switches=(), titulo=None, pila=False):
+def partida(caso, nucleo=None, en=None, switches=(), titulo=None, pila=False,
+            msu=False):
     """El caso corriendo, con el arranque ya pasado y, si empieza con un
     `Teleport`, con la llegada ya esperada.
 
@@ -120,7 +121,8 @@ def partida(caso, nucleo=None, en=None, switches=(), titulo=None, pila=False):
     `nucleo` pisa el core; lo usa `test_cores.py`, que corre la misma partida
     en snes9x y en bsnes. `en` elige el cartucho: ver `rom`. `pila` marca la
     zona de la pila antes del primer cuadro, y lo usa una sola prueba: ver
-    `consola.marcar_la_pila`.
+    `consola.marcar_la_pila`. `msu` deja sonar las pistas de MSU-1: lo pide
+    sólo `video.py`, ver `Partida`.
 
     En un cartucho con pantalla de título, `titulo` dice qué se elige ahí, y
     sin él es "Begin the Story": el caso se elige después, como al encender
@@ -150,7 +152,7 @@ def partida(caso, nucleo=None, en=None, switches=(), titulo=None, pila=False):
         titulo = uno.titulo
     return Partida(uno.sfc, uno.simbolos, uno.mapas, switches=switches,
                    titulo=titulo, nucleo=nucleo, caso=k, salta=salta,
-                   pila=pila)
+                   pila=pila, msu=msu)
 
 
 def consola_cruda(caso, en=None, pila=False):
