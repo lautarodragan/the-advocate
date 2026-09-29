@@ -211,6 +211,11 @@ corpus no mide nada, así que se niega. Hasta el 2026-09-29 las dos recetas
 caían en `ABL_GAME_DIR`, que es cómo llama al juego el lado de ABL: eso ataba
 las herramientas a un juego.
 
+Que **el juego de ABL** vuelva entero lo pregunta el lado de ABL, con el
+`ditto` del PATH y sin compilar nada: `just datos-vuelta` hace `unpack`,
+`pack` desde el volcado exacto, y compara byte por byte cada `.lmu`, `.ldb`
+y `.lmt` con el original.
+
 ### El corpus que Ditto se escribe solo
 
 `tools/ditto/tests/synthetic.rs` no necesita juego: arma los archivos él mismo. Está

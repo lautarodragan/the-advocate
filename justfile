@@ -127,7 +127,8 @@ pruebas *args: _herramientas_del_checkout _xdist cartuchos
 
 # Las mismas, de a una carpeta: `rpgmaker` —lo que el motor tiene que hacer
 # igual que RM2k—, `abl` —lo propio del juego— y `herramientas` —las que no
-# corren ninguna ROM—. Todas dependen de `cartuchos` porque una de
+# corren ninguna ROM pero miran el juego o un cartucho armado; las que no
+# necesitan nada del juego son de las herramientas, y no corren acá—. Todas dependen de `cartuchos` porque una de
 # herramientas, la de bancos, lee la tabla de símbolos del cartucho armado.
 # Van en paralelo igual que `pruebas`: hasta `herramientas`, que no corre
 # ninguna ROM, gana.

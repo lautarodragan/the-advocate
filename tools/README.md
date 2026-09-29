@@ -90,7 +90,9 @@ de Rust. El `justfile` los llama por su nombre y no sabe dónde están:
 El porqué de los nombres está en `tools/justfile`. Uno nuevo se agrega en
 `_instalar`, y el `.py` busca sus paquetes resolviendo el symlink con
 `realpath`, porque `__file__` es la ruta del PATH. Las pruebas ponen `tools/`
-en el camino ellas mismas, desde `pytest.ini`.
+en el camino ellas mismas, desde `pytest.ini`: las de A Blurred Line, desde el
+de la raíz, y las de las herramientas —`pruebas/`, las que no necesitan el
+juego—, desde el de acá. Ver `pruebas/README.md`.
 
 Un worktree que modifica las herramientas usa las suyas con `just -f
 tools/justfile herramientas-locales`, que arma un `bin/` propio en la raíz
@@ -99,8 +101,8 @@ receta, y "Sub-agentes" en AGENTS.md.
 
 ## `tools/justfile`
 
-Las recetas de las herramientas —generar el bytecode, correr las pruebas de
-los proyectos de Rust, instalar— viven en `tools/justfile`, y las de A
+Las recetas de las herramientas —generar el bytecode, correr sus pruebas,
+instalar— viven en `tools/justfile`, y las de A
 Blurred Line en el de la raíz, que nombra este directorio una sola vez: para
 decir cómo se instalan las herramientas de un worktree. Desde la raíz
 se corren con `just -f tools/justfile <receta>`; parado acá, con `just

@@ -15,7 +15,10 @@ Cuántas son y cuántas pasan lo dice la corrida; `pytest pruebas
     pruebas/rpgmaker/      lo que el motor tiene que hacer igual que RM2k
     pruebas/abl/           lo propio del juego: el recorrido, las piedras,
                            el recuerdo, el cartel, las escenas y cinemáticas
-    pruebas/herramientas/  las que no corren ninguna ROM
+    pruebas/herramientas/  las que no corren ninguna ROM, pero leen el
+                           juego, `data/`, `parches/` o un cartucho armado.
+                           Las que no leen nada de eso son de las
+                           herramientas, y tienen su índice aparte
     pruebas/arnes/         consola, tanda, recorrido y video; y lo que
                            comparten varias pruebas: menu, batalla, datos,
                            dibujo y piedras. Ninguna prueba importa de otra

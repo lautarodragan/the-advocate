@@ -1,5 +1,5 @@
-# Las recetas de las herramientas: generar el bytecode, correr las pruebas de
-# los proyectos de Rust e instalar la suite. Las de A Blurred Line están en el
+# Las recetas de las herramientas: generar el bytecode, correr sus pruebas
+# —las de Python y las de cada proyecto de Rust— e instalar la suite. Las de A Blurred Line están en el
 # `justfile` de la raíz, que no sabe que este directorio existe.
 #
 # Desde la raíz se llama con `just -f tools/justfile <receta>`; desde adentro
