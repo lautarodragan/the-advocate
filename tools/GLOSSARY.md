@@ -153,3 +153,35 @@ way. When a term is missing, pick one, use it consistently, and add it here.
 | vuelta (de `techos`) | round | not "tick" |
 | vuelta (de la carrera) | lap | |
 | testigo | token, marker | by context |
+| ambiente | environment | the machine: game, RTP, SoundFont |
+| recursos | resources | |
+| consola (libretro) | console | |
+| apretar | hold | a button |
+| tasa | sample rate | |
+| comandos escritos | handwritten commands | |
+| reajustar (textos) | refit | |
+| insumos | inputs | layer inputs |
+| receta de ChipSet | chipset recipe | |
+| carpeta | folder | |
+| tipo (argumento) | kind | |
+| fijar (proyecto, ambiente) | use, configure | |
+| aire de medida | measuring headroom | |
+| lugar (del directorio de muestras) | place | |
+| copia | copy | |
+| restricción | constraint | |
+| sustitución | substitution | |
+| materiales | materials | |
+| temas heredados | inherited songs | |
+| hondo | depth | |
+| llevo / tengo | carried / owned | |
+| azar (la clase) | Rng | |
+| fin del juego | end game | |
+| pantalla completa | fullscreen | |
+| móvil (lo que se mueve) | walker | |
+| listo | ready | "done" was taken |
+| trueque | swap | |
+| acuse | ack | |
+| cebar | prime | |
+| estampar | stamp | |
+| tramo | stretch | |
+| `.bloque` / `.cruza` | `.block` / `.crossbank` | the bank directives |
