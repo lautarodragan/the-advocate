@@ -32,6 +32,10 @@ ejecutables `rm2k-snes-*` andando desde `/tmp`.
 4. `escena` → `scene`. `snes_convert` la usa también por un alias local
    (`E = escena_mod`), que ningún renombre por import ve: sólo lo cobró el
    build.
+5. `parches` → `patches`, el de `rm2k-snes-patches`: su symlink en
+   `tools/justfile`, y la namedtuple `Clase` → `Kind` con sus campos. Sus
+   flags ya estaban en inglés. Los TOML que escribe no cambian: `just
+   parches` los reescribe iguales.
 
 Lo que el conversor escribe al `.inc` cita rutas de `tools/port/` en sus
 comentarios (`; See tools/port/imagen.py.`): esas quedan con el nombre

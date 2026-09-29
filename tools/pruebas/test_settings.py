@@ -63,7 +63,7 @@ def test_the_tools_import_without_a_game(tmp_path):
     import sys
     codigo = (
         "import port.snes_convert, port.eventos, port.scene, port.msu_data\n"
-        "import port.parches, audio.snes_music, audio.msu, rpgmaker.rm2k\n"
+        "import port.patches, audio.snes_music, audio.msu, rpgmaker.rm2k\n"
         "import render.render_map, render.chipset_recipe\n"
         "from common import project\n"
         "project.directory()\n")

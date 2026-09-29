@@ -74,7 +74,7 @@ lcf.REFIT_TEXTS = textos.reajustar_comandos
 from port import animacion as animacion_mod
 from port import picture
 from port import allocator
-from port import parches as parches_mod
+from port import patches as parches_mod
 from port import title as titulo_mod
 from port import menus as menus_mod
 from port import fullscreen
@@ -1975,7 +1975,7 @@ def _convert_layers(base, above_img, variantes=None):
                     {"colores": antes, "presupuesto": presupuesto,
                      "fusionados": len(merged)})
     # Which color was merged with which, in the order it was decided, for
-    # `port/parches.py` to write it. It goes **with the background's summary
+    # `port/patches.py` to write it. It goes **with the background's summary
     # and not inside the upper layer's tuple** even though half of it is the
     # upper layer's: `_mismo_reparto_de_cgram` compares that whole tuple, so
     # adding a field would change the criterion baking is decided by, and this
@@ -3786,7 +3786,7 @@ def usos_de_los_parches(mapas, db, tree):
     whose page or random encounter asks for it, or `"caso"` if a test page
     asks for it.
 
-    It is what lets `parches.revisar` know what isn't the game's in the ROM
+    It is what lets `patches.check` know what isn't the game's in the ROM
     that is played, which also carries the suite's maps and pages: an
     animation only a case asks for, or a battler that only shows up in a test
     map, isn't versioned. The bytecode is walked, as in
@@ -8124,17 +8124,17 @@ def main():
     # from the same decision, but it is something else: the images are for
     # looking at and this is for reading back and for the diff to warn. What
     # is versioned is in `rom/parches/`, and `just parches --check` compares.
-    # See tools/port/parches.py.
+    # See tools/port/patches.py.
     destino_parches = os.path.dirname(os.path.abspath(args.output))
-    cuantos, pesan = parches_mod.escribir(destino_parches, mapas)
+    cuantos, pesan = parches_mod.write_maps(destino_parches, mapas)
     print("patches of %d map(s) -> %s (%d B)"
-          % (cuantos, parches_mod.EN_BUILD, pesan))
+          % (cuantos, parches_mod.MAPS_IN_BUILD, pesan))
     # And the other decision that is already written down: **at what size
     # each battle animation is drawn**. It comes from the same round above;
     # here it is joined with the name and the sheet the animation has in the
     # LDB, which nobody looks at to draw and are there so that the diff says
     # which one it is about.
-    cuantos, pesan = parches_mod.escribir_animaciones(
+    cuantos, pesan = parches_mod.write_animations(
         destino_parches,
         [dict(animacion_mod.informe(numero, animaciones[numero]),
               nombre=eventos.ANIMACIONES[numero].get("nombre", ""),
@@ -8142,18 +8142,18 @@ def main():
               lado=animacion_mod.CAJA)
          for numero in sorted(animaciones)])
     print("patches of %d animation(s) -> %s (%d B)"
-          % (cuantos, parches_mod.EN_BUILD_ANIM, pesan))
+          % (cuantos, parches_mod.ANIMS_IN_BUILD, pesan))
     # And **which fifteen colors each battler is reduced to**, which is the
     # decision the scene composed on the console brought: see
     # tools/port/scene.py.
-    cuantos, pesan = parches_mod.escribir_battlers(destino_parches,
-                                                   escenas["battlers"])
+    cuantos, pesan = parches_mod.write_battlers(destino_parches,
+                                                escenas["battlers"])
     print("patches of %d battler(s) -> %s (%d B)"
-          % (cuantos, parches_mod.EN_BUILD_BAT, pesan))
+          % (cuantos, parches_mod.BATTLERS_IN_BUILD, pesan))
     # And who asked for each one, which isn't versioned: it is what separates,
     # in the ROM that is played, what belongs to the game from what only
     # exists because of the suite.
-    parches_mod.escribir_usos(destino_parches, usos_de_los_parches(
+    parches_mod.write_uses(destino_parches, usos_de_los_parches(
         mapas, renderer.database, renderer.tree))
     if informe:
         print("material compressed and shared between maps:")

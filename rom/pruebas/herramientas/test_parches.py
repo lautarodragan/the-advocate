@@ -8,7 +8,7 @@ mapa perdiera dos colores más, la única forma de enterarse era mirar la ROM.
 
 Esto es a las decisiones lo que las goldens son a los pixeles, y por eso falla
 diciendo **qué decisión cambió** y no "el archivo difiere": ver `diferencias`
-en `port/parches.py`. Cuando el cambio es el buscado, se corre `just parches`
+en `port/patches.py`. Cuando el cambio es el buscado, se corre `just parches`
 y el diff va al commit, que es donde alguien lo mira.
 
 No arranca ninguna ROM: compara lo que dejaron escrito los cartuchos que armó
@@ -28,7 +28,7 @@ import os
 
 from common import project                                    # noqa: E402
 from port import animacion                                    # noqa: E402
-from port import parches                                      # noqa: E402
+from port import patches                                      # noqa: E402
 
 from assembly import cartridges                             # noqa: E402
 
@@ -37,14 +37,14 @@ def _armados():
     """Los cartuchos que dejó `just cartuchos`, con sus parches adentro.
 
     `release` también, y es el que más importa: es el único del que
-    `parches.revisar` exige que todo lo que convierte esté versionado. Salen
+    `patches.check` exige que todo lo que convierte esté versionado. Salen
     de `CARTRIDGES` y no de listar los de prueba: ahí puede quedar el directorio
     de un cartucho que ya no existe —`main`, hasta el 2026-09-25— con
     decisiones de otro día.
     """
     candidatos = [cartridges.directory(n) for n in sorted(cartridges.CARTRIDGES)]
     return [c for c in candidatos
-            if os.path.isdir(os.path.join(c, parches.EN_BUILD))]
+            if os.path.isdir(os.path.join(c, patches.MAPS_IN_BUILD))]
 
 
 def test_los_parches_versionados_son_los_que_decide_el_conversor():
@@ -53,7 +53,7 @@ def test_los_parches_versionados_son_los_que_decide_el_conversor():
         "`release` no dejó parches en %s: se arma con `just cartuchos`, y sin "
         "él nada mira que lo que el juego convierte esté versionado"
         % cartridges.directory(cartridges.RELEASE))
-    quejas, _propios = parches.revisar(project.auto_patches(), armados)
+    quejas, _propios = patches.check(project.auto_patches(), armados)
     assert not quejas, "\n\n".join(quejas)
 
 
@@ -66,11 +66,11 @@ def test_el_tamano_de_cada_animacion_versionada_sale_de_su_caja_y_de_nada_mas():
     dependiera del mapa —de la VRAM que le quede—, dos cartuchos con los
     mismos mapas podrían decidir distinto y esta cuenta dejaría de dar.
     """
-    clase = dict((c.clave, c) for c in parches.CLASES)["animacion"]
-    numeros = parches.versionados(project.auto_patches(), clase)
-    assert numeros, "no hay ninguna animación versionada en %s" % clase.directorio
+    clase = dict((c.key, c) for c in patches.KINDS)["animacion"]
+    numeros = patches.versioned(project.auto_patches(), clase)
+    assert numeros, "no hay ninguna animación versionada en %s" % clase.directory
     for numero in numeros:
-        doc = parches.leer_animacion(project.auto_patches(), numero)
+        doc = patches.read_animation(project.auto_patches(), numero)
         assert doc["animacion"] == numero
         assert tuple(doc["tamano"]) == animacion.tamano(*doc["original"]), (
             "la animación %d dice que se dibuja a %s y su caja de %s da %s"
@@ -86,14 +86,14 @@ def test_armar_otra_vez_no_deja_los_parches_de_la_corrida_anterior(tmp_path):
     sacar los mapas de prueba de `release`: el `0052.toml` de la corrida
     anterior hacía caer la prueba de arriba."""
     viejos = []
-    for clase in parches.CLASES:
-        carpeta = tmp_path / clase.en_build
+    for clase in patches.KINDS:
+        carpeta = tmp_path / clase.in_build
         carpeta.mkdir(parents=True)
         viejos.append(carpeta / "9999.toml")
         viejos[-1].write_text("de la corrida anterior\n")
-    parches.escribir(str(tmp_path), [])
-    parches.escribir_animaciones(str(tmp_path), [])
-    parches.escribir_battlers(str(tmp_path), [])
+    patches.write_maps(str(tmp_path), [])
+    patches.write_animations(str(tmp_path), [])
+    patches.write_battlers(str(tmp_path), [])
     quedan = [str(v) for v in viejos if v.exists()]
     assert not quedan, "quedaron parches de una corrida anterior: %s" % quedan
 
@@ -103,18 +103,18 @@ def test_lo_que_sale_solo_por_la_tanda_no_pide_parche(tmp_path):
     y eso no se versiona: un mapa de prueba, y una animación o un battler que
     sólo piden los mapas de prueba o los casos. Lo que pide también un mapa
     del juego, o lo que no dice quién lo pidió, sí."""
-    clases = dict((c.clave, c) for c in parches.CLASES)
-    prueba = parches.mapas_de_prueba()
+    clases = dict((c.key, c) for c in patches.KINDS)
+    prueba = patches.test_maps()
     uno = min(prueba)
     del_juego = min(cartridges.GAME_MAPS)
     assert not prueba & set(cartridges.GAME_MAPS)
     (tmp_path / "parches").mkdir()
-    parches.escribir_usos(str(tmp_path), {
+    patches.write_uses(str(tmp_path), {
         "animacion": {91: {"caso"}, 92: {uno, "caso"}, 93: {uno, del_juego}},
         "battler": {"solo-prueba": {uno}, "de-los-dos": {"caso", del_juego}}})
 
     def de_prueba(clase, cual):
-        return parches.de_prueba(str(tmp_path), clases[clase], cual, prueba)
+        return patches.only_for_tests(str(tmp_path), clases[clase], cual, prueba)
     assert de_prueba("mapa", uno)
     assert not de_prueba("mapa", del_juego)
     assert de_prueba("animacion", 91) and de_prueba("animacion", 92)
@@ -122,5 +122,5 @@ def test_lo_que_sale_solo_por_la_tanda_no_pide_parche(tmp_path):
     assert not de_prueba("animacion", 94), "sin origen conocido es del juego"
     assert de_prueba("battler", "solo-prueba")
     assert not de_prueba("battler", "de-los-dos")
-    assert not parches.de_prueba(str(tmp_path / "sin-usos"),
-                                 clases["animacion"], 91, prueba)
+    assert not patches.only_for_tests(str(tmp_path / "sin-usos"),
+                                      clases["animacion"], 91, prueba)

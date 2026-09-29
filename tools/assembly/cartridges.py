@@ -107,7 +107,7 @@ def rule_maps(below=MAPS_BELOW, excluded=EXCLUDED_MAPS,
 
 GAME_MAPS = rule_maps()
 
-# And the ones that only exist for the suite. `parches.revisar` reads them
+# And the ones that only exist for the suite. `patches.check` reads them
 # from here so as not to require a versioned patch for them.
 TEST_MAPS = tuple(settings.value("maps", "test", kind=list))
 

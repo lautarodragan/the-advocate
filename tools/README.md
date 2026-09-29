@@ -73,7 +73,7 @@ any cycle.
 
 The only exception is `assembly/cartridges.py`, which is the orchestrator
 and lives at the bottom: it imports from `port/` and `audio/`, runs
-`port/snes_convert.py` as a subprocess, and `port/parches.py` imports it
+`port/snes_convert.py` as a subprocess, and `port/patches.py` imports it
 back: the only cycle, if the subprocess counts. These are the only layer
 violations, and they stay on purpose: what to do with it is an open
 question, see `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
@@ -111,7 +111,7 @@ are:
     rm2k-snes-assemble          assembly/assemble.py
     rm2k-snes-space             assembly/space.py
     rm2k-snes-convert           port/snes_convert.py
-    rm2k-snes-patches           port/parches.py
+    rm2k-snes-patches           port/patches.py
     rm2k-snes-msu               audio/msu.py
     rm2k-snes-volume-ceilings   audio/ceilings.py
     abl-entregar                assembly/entregar.py
