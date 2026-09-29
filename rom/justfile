@@ -7,7 +7,11 @@
 # adentro del checkout, ignorado por git. Si existe, su `bin/` va **adelante
 # en el PATH de toda receta**, y lo que no esté ahí sale del global. En el
 # checkout principal no existe.
-locales := justfile_directory() / ".herramientas-locales"
+#
+# `source_directory()` y no `justfile_directory()`: cuando la receta se llama
+# desde la raíz del repo, este archivo entra importado por el `justfile` de
+# ahí, y `justfile_directory()` sería la raíz y no `rom/`.
+locales := source_directory() / ".herramientas-locales"
 export PATH := if path_exists(locales / "bin") == "true" { locales / "bin" + ":" + env_var("PATH") } else { env_var("PATH") }
 
 # **Regenera `data/`**: el juego entero como árbol de archivos, que es lo que
@@ -32,7 +36,7 @@ export PATH := if path_exists(locales / "bin") == "true" { locales / "bin" + ":"
 #
 # Después de correrlo, lo que manda es el diff: si el juego no cambió, tiene
 # que dar vacío.
-datos DIR="data" EXACTO="rom/build/ditto-exacto":
+datos DIR="data" EXACTO="build/ditto-exacto":
   ditto unpack "${ABL_GAME_DIR:-/extras/abl-rm}" {{EXACTO}} {{DIR}}
 
 # Lo mismo pero a otro lado, para mirarlo sin tocar el del repo.
@@ -53,7 +57,7 @@ datos-vuelta:
   #!/usr/bin/env sh
   set -eu
   juego="${ABL_GAME_DIR:-/extras/abl-rm}"
-  aca=rom/build/ditto-vuelta
+  aca=build/ditto-vuelta
   rm -rf "$aca"
   mkdir -p "$aca"
   ditto unpack "$juego" "$aca/exacto" "$aca/resuelto"
@@ -91,8 +95,9 @@ _herramientas_del_checkout:
   #!/usr/bin/env sh
   [ "$(git rev-parse --git-dir)" = "$(git rev-parse --git-common-dir)" ] && exit 0
   [ -d "{{locales}}/bin" ] && exit 0
-  echo "este worktree no tiene sus herramientas: corré 'just -f tools/justfile herramientas-locales' primero." >&2
-  echo "sin eso, los scripts serían los del checkout principal, y armarían en su rom/build/." >&2
+  echo "este worktree no tiene sus herramientas. Corré primero, desde cualquier directorio:" >&2
+  echo "  just -f $(git rev-parse --show-toplevel)/tools/justfile herramientas-locales {{locales}}" >&2
+  echo "sin eso, los scripts serían los del checkout principal, y armarían en su build/." >&2
   exit 1
 
 # --- Super Nintendo --------------------------------------------------------
@@ -207,7 +212,7 @@ espacio *args: _herramientas_del_checkout
 # Regenerarlos es deliberado, igual que con las goldens: si fuera automático o
 # lo hiciera la tanda, dejarían de avisar nada. Lo que se mira es el diff.
 parches: _herramientas_del_checkout (build "release")
-  rm2k-snes-patches rom/build/release
+  rm2k-snes-patches build/release
 
 # Y la verificación, que es lo que corre la tanda: falla diciendo **qué
 # decisión cambió** —"la animación 82 se dibujaba a 64x50 y ahora se dibuja a
@@ -294,4 +299,4 @@ entregar que_mirar *args: _herramientas_del_checkout (build "release")
 #
 # Un video con sonido de una ROM ya armada, jugando las jugadas del recorrido.
 video cual salida +jugadas: _herramientas_del_checkout
-  pruebas/arnes/video.py rom/build/{{cual}} {{salida}} {{jugadas}}
+  pruebas/arnes/video.py build/{{cual}} {{salida}} {{jugadas}}

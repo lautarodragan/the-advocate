@@ -10,11 +10,13 @@
 # PATH; desde el host conviene `CARGO_ROOT=~/.cargo`, el default de cargo.
 cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
 
-# Dónde instala `just herramientas-locales`: en la raíz del checkout, ignorado
-# por git, porque es el `justfile` de la raíz el que lo pone adelante en el
-# PATH de sus recetas. Éste también, para que `protocolo` use el `protocol`
-# del worktree si el agente lo está modificando.
-locales := parent_directory(justfile_directory()) / ".herramientas-locales"
+# Las herramientas de un worktree que usan las recetas de este archivo:
+# `protocolo` y `pruebas` corren el `protocol` del worktree si el agente lo
+# está modificando y lo instaló acá, con `just herramientas-locales
+# <este directorio>/.herramientas-locales protocol`. Las del juego las pone
+# cada juego donde quiere y le dice a `herramientas-locales` dónde: este
+# archivo no sabe dónde vive ninguno.
+locales := justfile_directory() / ".herramientas-locales"
 export PATH := if path_exists(locales / "bin") == "true" { locales / "bin" + ":" + env_var("PATH") } else { env_var("PATH") }
 
 # Los proyectos de Rust, en el orden en que se instalan.
@@ -33,10 +35,10 @@ proyectos_de_rust := "protocol gunter ditto voodoo lz2"
 # `--check` es lo que corre la tanda: falla si alguno quedó viejo.
 protocolo *args:
   protocol protocol/events.toml \
-      --python port/event_opcodes.py --asm ../rom/src/event_opcodes.inc \
+      --python port/event_opcodes.py --asm runtime/event_opcodes.inc \
       --jump-table {{args}}
   protocol protocol/music.toml \
-      --python audio/music_opcodes.py --asm ../rom/src/music_opcodes.inc {{args}}
+      --python audio/music_opcodes.py --asm runtime/music_opcodes.inc {{args}}
 
 # Las pruebas de Python de las herramientas, las de `pruebas/`: las que no
 # necesitan el juego, ni sus datos, ni un cartucho armado. Las que sí están en
@@ -132,16 +134,22 @@ herramientas *proyectos: (_instalar (cargo_root) (if proyectos == "" { proyectos
 # **Las herramientas de un worktree**, para el sub-agente que las modifica.
 # Un symlink del global apunta a un solo checkout —el principal—, así que un
 # worktree que cambia un script de las herramientas o un proyecto de Rust no
-# correría su cambio. Esto arma `.herramientas-locales/bin/`, en la raíz del
-# worktree, con los ocho scripts del worktree, siempre, y con los proyectos
-# de Rust que se le nombren, **sólo ésos**: compilar Rust cuesta, y sólo tiene
-# sentido si el agente va a modificar ese proyecto. Sin nombres no compila
-# nada. Es de taro, el 2026-09-29.
+# correría su cambio. Esto arma `<destino>/bin/` con los ocho scripts del
+# worktree, siempre, y con los proyectos de Rust que se le nombren, **sólo
+# ésos**: compilar Rust cuesta, y sólo tiene sentido si el agente va a
+# modificar ese proyecto. Sin nombres no compila nada. Es de taro, el
+# 2026-09-29.
+#
+# **El destino lo dice el que consume**, y es obligatorio: este archivo no
+# sabe dónde vive el juego, y el juego no sabe dónde vive éste. El `justfile`
+# del juego busca su `bin/` en un directorio suyo y, si no está, se niega
+# dando este comando con el destino ya escrito. Un destino relativo es
+# relativo a donde se corrió `just`, no a `tools/`.
 #
 # Vale sólo para lo que corre por `just`, que es el que pone el `bin/`
 # adelante en el PATH: un comando suelto usa el global. Se niega en el
 # checkout principal, donde taparía al global con lo mismo.
-herramientas-locales *proyectos: _no_en_el_principal (_instalar locales proyectos)
+herramientas-locales destino *proyectos: _no_en_el_principal (_instalar (join(invocation_directory(), destino)) proyectos)
 
 _no_en_el_principal:
   #!/usr/bin/env sh

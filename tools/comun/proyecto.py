@@ -1,12 +1,11 @@
 """Dónde está cada cosa: el único lugar que lo sabe.
 
 Una función por lugar, y los valores por omisión del ambiente, que antes
-calculaban por su cuenta once módulos y armaban a mano otros tantos. El día
-que una carpeta se mude —el motor a `tools/runtime/`, y `data/`, `parches/` y
-`pruebas/` adentro de `rom/`: ver
-`workflow/decisiones/las-herramientas-se-separan-de-abl.md`—, se cambia la
-línea de acá y nada más. Por eso el motor ya se llama `runtime()` aunque siga
-en `rom/src/`: la mudanza no tiene que renombrar llamadas.
+calculaban por su cuenta once módulos y armaban a mano otros tantos. El
+2026-09-29 el motor se mudó a `tools/runtime/`, y `data/`, `parches/` y
+`pruebas/` adentro de `rom/` —ver
+`workflow/decisiones/las-herramientas-se-separan-de-abl.md`—, y eso fue
+cambiar las líneas de acá y nada más.
 
 Son funciones y no constantes para que un lugar pueda depender de otro sin
 que importe el orden en que se escriben, y para que las de ambiente lean la
@@ -39,23 +38,29 @@ def raiz():
 
 
 def runtime():
-    """El motor en ensamblador. Hoy es `rom/src/`."""
-    return os.path.join(raiz(), "rom", "src")
+    """El motor en ensamblador: viaja con las herramientas, y se arma junto
+    con los `.inc` de cada juego."""
+    return os.path.join(herramientas(), "runtime")
+
+
+def abl():
+    """`rom/`: la raíz de A Blurred Line. Lo que sigue cuelga de acá."""
+    return os.path.join(raiz(), "rom")
 
 
 def build():
     """`rom/build/`: todo lo que se arma, y nada versionado."""
-    return os.path.join(raiz(), "rom", "build")
+    return os.path.join(abl(), "build")
 
 
 def data():
     """El juego volcado a JSON."""
-    return os.path.join(raiz(), "data")
+    return os.path.join(abl(), "data")
 
 
 def parches():
     """Lo que se decidió sobre el juego: `manual/` y `auto/`."""
-    return os.path.join(raiz(), "parches")
+    return os.path.join(abl(), "parches")
 
 
 def parches_manual():
@@ -69,7 +74,7 @@ def parches_auto():
 
 
 def pruebas():
-    return os.path.join(raiz(), "pruebas")
+    return os.path.join(abl(), "pruebas")
 
 
 def casos():
