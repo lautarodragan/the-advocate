@@ -39,6 +39,7 @@ import sys
 # como symlink, y lo que importa es dónde está el archivo de verdad.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
+from comun import ambiente                              # noqa: E402
 from comun import proyecto                              # noqa: E402
 from ensamblado import bancos                           # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
@@ -138,10 +139,12 @@ def main():
     from ensamblado import cartuchos
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     proyecto.argumento(parser)
+    ambiente.argumentos(parser, "test_cartridges")
     parser.add_argument("cuales", nargs="*", metavar="CARTUCHO",
                         help="un cartucho de cartuchos.py o la ruta de una "
                              "ROM armada; sin nada, todos los cartuchos")
     args = parser.parse_args()
+    ambiente.desde_argumentos(args, "test_cartridges")
     primero = True
     for cual in args.cuales or list(cartuchos.CARTUCHOS):
         if cual in cartuchos.CARTUCHOS:

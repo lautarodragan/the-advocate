@@ -31,6 +31,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import muestras_brr                          # noqa: E402
+from comun import ambiente                              # noqa: E402
 from comun import perillas                              # noqa: E402
 from comun import proyecto                              # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
@@ -45,8 +46,6 @@ if __name__ == "__main__":
 RAIZ = proyecto.raiz()
 CASOS = proyecto.casos()
 FUENTE = proyecto.runtime()
-
-DESTINO = proyecto.cartuchos_de_prueba()
 
 # **Qué lleva cada cartucho es del juego, y está en su archivo de proyecto**
 # —`proyecto.archivo_de_proyecto()`, con los porqués de cada valor como
@@ -284,7 +283,8 @@ def directorio(nombre):
     """Lo que las pruebas escriben no va acá sino a `rom/pruebas/snapshots/`."""
     if nombre == RELEASE:
         return os.path.join(proyecto.build(), RELEASE)
-    return os.path.join(DESTINO, nombre.replace("test-", "", 1))
+    return os.path.join(ambiente.cartuchos_de_prueba(),
+                        nombre.replace("test-", "", 1))
 
 
 def rom_de(nombre):
@@ -367,6 +367,7 @@ def convertir(nombre, destino, sfc, extra=()):
     orden = ([sys.executable, os.path.join(proyecto.herramientas(), "port",
                                            "snes_convert.py"),
               "--proyecto", proyecto.directorio(),
+              *ambiente.como_flags(*AL_CONVERSOR),
               "-o", os.path.join(destino, "mapdata.inc"),
               "--msu", os.path.splitext(sfc)[0] + ".msu"]
              + flags + list(extra) + de_casos)
@@ -380,15 +381,24 @@ def convertir(nombre, destino, sfc, extra=()):
                         destino, sfc, sfc + ".sym")
 
 
+# Lo de la máquina que necesita el conversor, que corre en otro proceso y lo
+# recibe por flags; y lo que suma éste: dónde van los cartuchos de prueba, y
+# los reemplazos de las pistas de MSU-1.
+AL_CONVERSOR = ("game_dir", "rtp_dir", "soundfont", "cache")
+DEL_AMBIENTE = AL_CONVERSOR + ("test_cartridges", "reemplazos")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     proyecto.argumento(parser)
+    ambiente.argumentos(parser, *DEL_AMBIENTE)
     parser.add_argument("--lista", action="store_true",
                         help="qué caso va en qué cartucho, sin armar nada")
     parser.add_argument("nombres", nargs="*", metavar="CARTUCHO",
                         help="sólo éstos; sin nombres, todos. Es lo que usa "
                              "`just build release`")
     args = parser.parse_args()
+    ambiente.desde_argumentos(args, *DEL_AMBIENTE)
     for nombre in args.nombres:
         if nombre not in CARTUCHOS:
             sys.exit("no hay un cartucho %r: los que hay son %s"

@@ -79,3 +79,48 @@ los `.dbg` sin `mtime`—.
      de carpeta, y las herramientas usan `parches/auto/` como forma del
      directorio de cada cartucho. Armar a mano una ruta del juego con esas
      palabras lo cobra `test_proyecto.py`, que mira rutas.
+3. **El ambiente por flags**, con el plan de Molle: `comun/ambiente.py` es
+   **un solo lugar que se configura**. Cada ejecutable suma los flags de lo
+   que usa (`ambiente.argumentos`) y los fija (`desde_argumentos`); el resto
+   de las herramientas lee de ahí. `recursos.GAME_DIR`, `recursos.RTP_DIR` y
+   `snes_samples.SOUNDFONT` siguen existiendo, pero se resuelven al leerlos
+   con un `__getattr__` de módulo, y sin fijar fallan con
+   `FaltaElAmbiente`, que dice qué flag falta. Se eligió esto y no pasar el
+   valor por parámetro porque se leen adentro de unas cuarenta funciones
+   —lo que contó Molle—: con esto cambiaron las doce firmas que los tenían
+   de default (`game_dir=GAME_DIR` pasa a `None`, que se resuelve adentro),
+   y ninguna más.
+   - Los flags: `--game-dir`, `--rtp-dir`, `--soundfont`, `--reemplazos`
+     (el de `rm2k-snes-msu`, que ya existía), `--cache` y
+     `--test-cartridges` en la suite; `--compartido` en `abl-entregar`.
+     Los valores se guardan absolutos, porque el conversor corre parado en
+     otro directorio que el que lo llamó.
+   - **Sin valor por omisión**, salvo el caché y los cartuchos de prueba,
+     que tienen su lugar adentro del `build` del proyecto y el flag sólo los
+     mueve. Los reemplazos de MSU-1 son opcionales: sin `--reemplazos`,
+     cada pista sale de su MIDI.
+   - `rm2k-snes-cartridges` le pasa al conversor lo suyo con
+     `ambiente.como_flags` (`AL_CONVERSOR`), y `rm2k-snes-volume-ceilings`
+     toma esos mismos.
+   - **`rom/justfile` traduce.** Exporta `ABL_GAME_DIR`, `ABL_RTP_DIR`,
+     `ABL_SOUNDFONT` y `SHARED` con los mismos valores por omisión de
+     antes, y `ABL_CACHE` y `CARTUCHOS` vacías si no están; arma
+     `al_conversor` y `al_armar` y se los pasa a cada receta que corre una
+     herramienta. Los reemplazos, que no tenían variable, quedan como
+     `reemplazos_msu` del `justfile`. `datos` y `datos-vuelta` usan la
+     exportada en vez de repetir el valor.
+   - **Las pruebas de ABL leen las variables ellas**, en
+     `pruebas/arnes/lugares.py`, y fijan `ambiente` con eso: son las que
+     exporta el `justfile`. Sin ellas —un `pytest` suelto sin las
+     variables— cortan diciendo cuál falta, en vez de tener una segunda
+     copia de los valores de la máquina. `test_hover_tram.py` dejó de
+     repetir el suyo.
+   - **Dos pruebas de las herramientas leen un SoundFont de verdad**
+     (`test_musica_stream.py`, las envolventes): antes caían en el de
+     `ABL_SOUNDFONT` por omisión. Ahora lo reciben en `SOUNDFONT`, como
+     Ditto su corpus en `DITTO_CORPUS`, y sin la variable se saltean con un
+     mensaje. `just -f tools/justfile pruebas` da 120 y 2 salteadas; con
+     `SOUNDFONT=…`, 122.
+   - `snes_convert.args_game_dir` arranca en `None` y `_juego()` cae en el
+     del ambiente: las pruebas llaman a `lideres_posibles` sin pasar por
+     `main`.

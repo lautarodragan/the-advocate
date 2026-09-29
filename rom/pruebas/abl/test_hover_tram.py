@@ -57,7 +57,7 @@ def _silueta():
     """
     from PIL import Image
 
-    pic = Image.open(os.path.join(os.environ.get("ABL_GAME_DIR", "/extras/abl-rm"),
+    pic = Image.open(os.path.join(os.environ["ABL_GAME_DIR"],
                                   "Picture", "hovertram2.png"))
     pic.load()
     paleta = pic.getpalette()
@@ -99,8 +99,7 @@ def silueta():
     celdas = _silueta()
     assert celdas, "el tram no tapa ninguna celda entera de la pantalla"
 
-    pic = Image.open(os.path.join(os.environ.get("ABL_GAME_DIR",
-                                                 "/extras/abl-rm"),
+    pic = Image.open(os.path.join(os.environ["ABL_GAME_DIR"],
                                   "Picture", "hovertram2.png"))
     ancho = pic.width * ESCALA // 100
     alto = pic.height * ESCALA // 100

@@ -25,6 +25,7 @@ import textwrap
 # como symlink, y lo que importa es dónde está el archivo de verdad.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
+from comun import ambiente                              # noqa: E402
 from comun import perillas                              # noqa: E402
 from comun import proyecto                              # noqa: E402
 
@@ -35,9 +36,16 @@ if __name__ == "__main__":
 
 RAIZ = proyecto.raiz()
 RELEASE = os.path.join(proyecto.build(), "release")
-SHARED = proyecto.compartido()
-BUILDS = os.path.join(SHARED, "builds")
-MSU = os.path.join(SHARED, "msu")
+
+def _builds():
+    """Donde van los builds: `--compartido` y adentro `builds/`."""
+    return os.path.join(ambiente.compartido(), "builds")
+
+
+def _msu():
+    """Donde van las pistas de MSU-1: `--compartido` y adentro `msu/`."""
+    return os.path.join(ambiente.compartido(), "msu")
+
 
 # Cómo se llaman los archivos de la ROM: `abl.sfc`, `abl.msu`, `abl-N.pcm`.
 # Lo dice el archivo de proyecto; en la prosa de acá se lee "abl".
@@ -99,7 +107,7 @@ def huella_msu_entregada():
     """La huella que dice `/shared/msu/LEEME.txt`: la línea de 64 hexa que va
     después del comando. None si no hay LEEME o no se reconoce."""
     try:
-        with open(os.path.join(MSU, "LEEME.txt"), encoding="utf-8") as f:
+        with open(os.path.join(_msu(), "LEEME.txt"), encoding="utf-8") as f:
             texto = f.read()
     except FileNotFoundError:
         return None
@@ -112,14 +120,14 @@ def actualizar_msu(commit, fecha, huella):
     cambia al LEEME el commit y la huella. No toca el `abl.sfc` ni la partida
     que taro tenga ahí. El `abl.msu` no va acá: se copia con cada build, ver
     `MSU_DEL_BUILD`."""
-    os.makedirs(MSU, exist_ok=True)
+    os.makedirs(_msu(), exist_ok=True)
     nuevas = {os.path.basename(p) for p in glob.glob(os.path.join(RELEASE, PISTAS))}
-    for vieja in glob.glob(os.path.join(MSU, PISTAS)):
+    for vieja in glob.glob(os.path.join(_msu(), PISTAS)):
         if os.path.basename(vieja) not in nuevas:
             os.remove(vieja)
     for nombre in sorted(nuevas):
-        shutil.copyfile(os.path.join(RELEASE, nombre), os.path.join(MSU, nombre))
-    leeme = os.path.join(MSU, "LEEME.txt")
+        shutil.copyfile(os.path.join(RELEASE, nombre), os.path.join(_msu(), nombre))
+    leeme = os.path.join(_msu(), "LEEME.txt")
     with open(leeme, encoding="utf-8") as f:
         texto = f.read()
     texto = re.sub(r"en el commit\s+[0-9a-f]{7,40} \(\d{4}-\d{2}-\d{2}\)",
@@ -165,13 +173,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("que_mirar", help="qué cambió y qué mirar: va al LEEME")
     proyecto.argumento(parser)
+    ambiente.argumentos(parser, "compartido")
     parser.add_argument("--actualizar-msu", action="store_true",
                         help="copiar las pistas a /shared/msu/ si cambiaron")
     args = parser.parse_args()
+    ambiente.desde_argumentos(args, "compartido")
 
-    if not os.path.isdir(SHARED):
+    if not os.path.isdir(ambiente.compartido()):
         fallar("no existe %s: esto corre adentro del contenedor, donde /shared "
-               "es la carpeta que taro ve desde el host." % SHARED)
+               "es la carpeta que taro ve desde el host."
+               % ambiente.compartido())
 
     sucio = git("status", "--porcelain", "--", *LO_QUE_ENTRA)
     if sucio:
@@ -188,11 +199,11 @@ def main():
     hoy = datetime.date.today().isoformat()
 
     # Si el commit ya tiene su directorio, aunque sea de otro día, se usa ése.
-    existentes = [n for n in os.listdir(BUILDS)
-                  if BUILD.match(n) and os.path.isdir(os.path.join(BUILDS, n))] \
-        if os.path.isdir(BUILDS) else []
+    existentes = [n for n in os.listdir(_builds())
+                  if BUILD.match(n) and os.path.isdir(os.path.join(_builds(), n))] \
+        if os.path.isdir(_builds()) else []
     mismos = [n for n in existentes if BUILD.match(n).group(2) == commit]
-    destino = os.path.join(BUILDS, mismos[0] if mismos else "%s-%s" % (hoy, commit))
+    destino = os.path.join(_builds(), mismos[0] if mismos else "%s-%s" % (hoy, commit))
     if mismos:
         print("entregar: %s ya existía; se pisa sólo %s"
               % (destino, ", ".join(LO_NUESTRO)))
@@ -200,9 +211,9 @@ def main():
 
     for nombre in (SFC, DBG, MSU_DEL_BUILD):
         shutil.copyfile(os.path.join(RELEASE, nombre), os.path.join(destino, nombre))
-    os.makedirs(MSU, exist_ok=True)
+    os.makedirs(_msu(), exist_ok=True)
     shutil.copyfile(os.path.join(RELEASE, MSU_DEL_BUILD),
-                    os.path.join(MSU, MSU_DEL_BUILD))
+                    os.path.join(_msu(), MSU_DEL_BUILD))
 
     # `git archive` y no una copia del árbol: así es el del commit, sin nada
     # sin trackear que haya quedado en tools/runtime/.
@@ -237,14 +248,14 @@ def main():
     # commit. Éste se queda siempre, aunque su nombre lleve una fecha vieja
     # porque el commit ya se había entregado otro día. Entre los del mismo día
     # desempata la fecha de modificación.
-    otros = sorted((n for n in os.listdir(BUILDS)
-                    if BUILD.match(n) and os.path.isdir(os.path.join(BUILDS, n))
+    otros = sorted((n for n in os.listdir(_builds())
+                    if BUILD.match(n) and os.path.isdir(os.path.join(_builds(), n))
                     and n != os.path.basename(destino)),
                    key=lambda n: (BUILD.match(n).group(1),
-                                  os.path.getmtime(os.path.join(BUILDS, n))))
+                                  os.path.getmtime(os.path.join(_builds(), n))))
     for viejo in otros[:-1]:
-        print("entregar: se borra %s" % os.path.join(BUILDS, viejo))
-        shutil.rmtree(os.path.join(BUILDS, viejo))
+        print("entregar: se borra %s" % os.path.join(_builds(), viejo))
+        shutil.rmtree(os.path.join(_builds(), viejo))
 
     print("entregar: %s" % destino)
     # Al final, para que sea lo último que se lee.

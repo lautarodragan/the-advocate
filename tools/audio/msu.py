@@ -75,9 +75,10 @@ if __name__ == "__main__":
 
 from audio import snes_music                                # noqa: E402
 from audio import snes_samples                              # noqa: E402
+from comun import ambiente                                  # noqa: E402
 from comun import cache_disco                               # noqa: E402
 from comun import proyecto                                  # noqa: E402
-from rpgmaker.recursos import GAME_DIR                      # noqa: E402
+from rpgmaker import recursos                               # noqa: E402
 
 # La ganancia de fluidsynth. Con 1.0 los temas con muchas voces saturan, así
 # que se renderiza bajo y después se normaliza: el pico de la pista queda en
@@ -90,8 +91,8 @@ PICO = 0.97
 _fluidsynth = None
 _ffmpeg = None
 
-# Dónde se buscan los reemplazos, y con qué extensiones, en este orden.
-REEMPLAZOS = proyecto.reemplazos_msu()
+# Con qué extensiones se buscan los reemplazos, en este orden. Dónde, lo dice
+# `--reemplazos`: ver `comun/ambiente.py`.
 EXTENSIONES = (".mp3", ".ogg", ".flac", ".wav")
 
 
@@ -147,7 +148,10 @@ def huella_de_ffmpeg():
 
 
 def reemplazo(directorio, nombre):
-    """El archivo de audio que reemplaza al MIDI de este tema, o None."""
+    """El archivo de audio que reemplaza al MIDI de este tema, o None. Sin
+    directorio de reemplazos, ninguno."""
+    if directorio is None:
+        return None
     for extension in EXTENSIONES:
         ruta = os.path.join(directorio, nombre + extension)
         if os.path.isfile(ruta):
@@ -247,14 +251,17 @@ def pistas_del_cartucho(rom):
     return [(por_numero[n], n) for n in sorted(por_numero)]
 
 
-def armar(rom, game_dir=GAME_DIR, soundfont=snes_samples.SOUNDFONT,
-          ganancia=GANANCIA, reemplazos=REEMPLAZOS, charlar=True):
+def armar(rom, game_dir=None, soundfont=None, ganancia=GANANCIA,
+          reemplazos=None, charlar=True):
     """Deja al lado de `rom` el `.msu` y una pista por tema del cartucho, y
     borra las que ya no son de ningún tema.
 
     Devuelve cuántas pistas rehízo y cuántas ya estaban. `charlar` en falso
     calla las que ya estaban: `cartuchos.py` la llama en cada `just pruebas`.
     """
+    game_dir = game_dir or recursos.GAME_DIR
+    soundfont = soundfont or snes_samples.SOUNDFONT
+    reemplazos = reemplazos or ambiente.reemplazos_msu()
     base = os.path.splitext(rom)[0]
     # El archivo que enciende el MSU-1. Lo escribe el conversor con sus datos,
     # así que acá se crea sólo si falta —una ROM suelta, armada a mano—, y
@@ -338,6 +345,11 @@ def _una_pista(base, nombre, numero, game_dir, soundfont, ganancia,
                "  (de %s)" % audio if audio else ""))
 
 
+# Lo de la máquina que usa: el RTP, porque un tema puede salir de ahí; y el
+# caché, donde se recuerda qué pistas ya están.
+DEL_AMBIENTE = ("game_dir", "rtp_dir", "soundfont", "reemplazos", "cache")
+
+
 def main():
     proyecto.desde_la_linea_de_comandos()
     parser = argparse.ArgumentParser(description=__doc__,
@@ -345,15 +357,11 @@ def main():
     parser.add_argument("rom", help="la ROM: las pistas van al lado, con su "
                                     "nombre y el número de pista")
     proyecto.argumento(parser)
-    parser.add_argument("--game-dir", default=GAME_DIR)
-    parser.add_argument("--soundfont", default=snes_samples.SOUNDFONT)
+    ambiente.argumentos(parser, *DEL_AMBIENTE)
     parser.add_argument("--ganancia", type=float, default=GANANCIA)
-    parser.add_argument("--reemplazos", default=REEMPLAZOS,
-                        help="dónde buscar un <tema>.mp3 —u .ogg, .flac, "
-                             ".wav— que reemplace al MIDI de ese tema")
     args = parser.parse_args()
-    armar(args.rom, args.game_dir, args.soundfont, args.ganancia,
-          args.reemplazos)
+    ambiente.desde_argumentos(args, *DEL_AMBIENTE)
+    armar(args.rom, ganancia=args.ganancia)
 
 
 if __name__ == "__main__":

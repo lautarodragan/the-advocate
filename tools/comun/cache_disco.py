@@ -21,7 +21,7 @@ caché contesta ahí no es "tomá esto" sino "lo que hay es lo que yo haría".
 
 Vive en `rom/build/cache/`, que git ignora y que existe de los dos lados —el
 host y el contenedor—, porque las recetas se corren desde los dos. Se puede
-mover con `ABL_CACHE` y apagar con `SIN_CACHE=1`, que es lo que se usa para
+mover con `--cache` y apagar con `SIN_CACHE=1`, que es lo que se usa para
 comprobar que con caché y sin caché sale **el mismo `.sfc` byte por byte**: la
 única verificación honesta de un caché es ésa.
 
@@ -34,6 +34,7 @@ import os
 import pickle
 import tempfile
 
+from comun import ambiente
 from comun import proyecto
 
 APAGADO = os.environ.get("SIN_CACHE") == "1"
@@ -41,8 +42,8 @@ APAGADO = os.environ.get("SIN_CACHE") == "1"
 
 def donde():
     """El directorio del caché. Se pide al usarlo y no al importar: sale del
-    proyecto, que se encuentra al usarlo."""
-    return proyecto.cache()
+    proyecto, que se encuentra al usarlo, o de `--cache`."""
+    return ambiente.cache()
 
 
 def version_de(*archivos):

@@ -131,6 +131,7 @@ import tomllib
 if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
+from comun import ambiente                                  # noqa: E402
 from comun import proyecto                                  # noqa: E402
 
 # Dónde viven los versionados, relativo a lo que el conversor decidió y se
@@ -671,6 +672,7 @@ def main(argv=None):
     auto = proyecto.parches_auto()
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     proyecto.argumento(parser)
+    ambiente.argumentos(parser, "test_cartridges")
     parser.add_argument(
         "builds", nargs="*",
         help="los directorios de los cartuchos armados. Sin --check tiene que "
@@ -680,6 +682,7 @@ def main(argv=None):
     parser.add_argument("--check", action="store_true",
                         help="no escribe: falla si lo versionado quedó viejo")
     args = parser.parse_args(argv)
+    ambiente.desde_argumentos(args, "test_cartridges")
     if not args.builds and args.check:
         from ensamblado import cartuchos
         args.builds = [cartuchos.directorio(n) for n in cartuchos.CARTUCHOS]

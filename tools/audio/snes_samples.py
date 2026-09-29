@@ -33,8 +33,8 @@ import hashlib
 import math
 
 from audio import muestras_brr
+from comun import ambiente
 from comun import cache_disco
-from comun import proyecto
 
 # El sintetizador por software de Windows, que es con el que se compuso y se
 # escuchó este juego. Microsoft le licenció a Roland un subconjunto reducido del
@@ -45,8 +45,17 @@ from comun import proyecto
 # en ARAM sin remuestrear nada — y remuestrear era, por lejos, lo que más
 # calidad costaba. Y de paso dejamos de aproximarnos a un banco parecido para
 # muestrear del que produjo el sonido original.
-# Se cambia con `ABL_SOUNDFONT`: ver `comun/proyecto.py`.
-SOUNDFONT = proyecto.soundfont()
+#
+# `SOUNDFONT` lo fija el ejecutable desde `--soundfont`, y se lee al usarlo:
+# ver `__getattr__` y `comun/ambiente.py`.
+
+
+def __getattr__(nombre):
+    if nombre == "SOUNDFONT":
+        return ambiente.soundfont()
+    raise AttributeError("module %r has no attribute %r" % (__name__, nombre))
+
+
 BLOCK = muestras_brr.BLOQUE_MUESTRAS   # 16 muestras por bloque de BRR
 REFERENCE_KEY = 60                 # do central: con qué nota se elige la zona
 PEAK = 0x6800                      # a cuánto se normaliza cada muestra
@@ -119,7 +128,7 @@ def _version_de_la_preparacion():
 def huella_del_soundfont(ruta):
     """El contenido del SoundFont, no su ruta.
 
-    `ABL_SOUNDFONT` puede apuntar a otro banco, y un banco puede cambiar sin
+    `--soundfont` puede apuntar a otro banco, y un banco puede cambiar sin
     cambiar de nombre: la clave tiene que caducar con cualquiera de las dos.
     Se lee una vez por proceso porque el archivo pesa megas.
 

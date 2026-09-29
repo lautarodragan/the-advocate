@@ -43,6 +43,7 @@ from multiprocessing import Pool
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import sdsp, snes_music                      # noqa: E402
+from comun import ambiente                              # noqa: E402
 from comun import perillas                              # noqa: E402
 from comun import proyecto                              # noqa: E402
 
@@ -258,13 +259,15 @@ def imprimir(medido, techos=None):
 
 def main():
     proyecto.desde_la_linea_de_comandos()
+    from ensamblado import cartuchos
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     proyecto.argumento(parser)
+    ambiente.argumentos(parser, *cartuchos.AL_CONVERSOR)
     parser.add_argument("--medir", action="store_true",
                         help="sólo medir el `release` armado: recortes, pico "
                              "y LUFS de cada tema")
     args = parser.parse_args()
-    from ensamblado import cartuchos
+    ambiente.desde_argumentos(args, *cartuchos.AL_CONVERSOR)
     release = cartuchos.directorio(cartuchos.RELEASE)
     if args.medir:
         imprimir(medir(release, lufs=True))
