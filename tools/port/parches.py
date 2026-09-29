@@ -150,7 +150,7 @@ DIRECTORIO = "mapas"
 
 # Where each cartridge leaves them when it is built, relative to the build
 # directory. It is the shape of the build, not where `rom/parches/` is in the
-# repo: that is why it does not come from `proyecto`, and does not move with
+# repo: that is why it does not come from `project`, and does not move with
 # it.
 EN_BUILD = os.path.join("parches", "auto", "mapas")
 

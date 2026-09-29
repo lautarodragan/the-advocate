@@ -845,7 +845,7 @@ def eventos_horneables(renderer, game_map):
         # event **can end up** drawing. Half of
         # `test_hornear_no_cambia_la_pasabilidad_de_la_celda` comes for free
         # from this: with the same graphic and the same layer on all of them,
-        # `pasabilidad_del_tile` gives the same on all of them.
+        # `rm2k.event_tile_passability` gives the same on all of them.
         if set(npc["graficos"]) != {npc["graficos"][0]} \
                 or npc["graficos"][0] is None:
             continue
