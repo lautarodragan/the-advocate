@@ -64,20 +64,28 @@ gunter-pruebas:
 # ata a Ditto con el port; adentro de `ditto/` no hay ni una referencia a
 # nosotros, a propósito.
 #
-# El juego con el que se mide **se lo pasa el que corre**, no lo sabe la
-# herramienta: sin DITTO_CORPUS las pruebas que lo necesitan se saltean con
-# un mensaje. Si no está, se usa `ABL_GAME_DIR`, que es cómo lo llama el
-# resto del repo mientras las herramientas vivan acá.
+# El juego con el que se mide **se lo pasa el que corre**, en DITTO_CORPUS:
+# las herramientas no saben de ningún juego, así que no caen en el de nadie.
+# Sin la variable, las pruebas que lo necesitan se saltean con un mensaje y
+# las demás —los defaults del esquema, el corpus sintético— corren igual.
 #
 # La tanda corta va sobre una muestra de mapas; `ditto-vuelta-entera` son todos
 # los mapas, el LDB y el árbol, y mide lo único que hace útil a la herramienta:
 # que el binario vuelva **byte por byte**. Va aparte porque es la que uno quiere
-# ver con el número, no la que corre callada.
+# ver con el número, no la que corre callada; y sin corpus no mide nada, así
+# que en vez de saltearse se niega.
 ditto-pruebas:
-  cd ditto && DITTO_CORPUS="${DITTO_CORPUS:-${ABL_GAME_DIR:-/extras/abl-rm}}" cargo test
+  cd ditto && cargo test
 
 ditto-vuelta-entera:
-  cd ditto && DITTO_CORPUS="${DITTO_CORPUS:-${ABL_GAME_DIR:-/extras/abl-rm}}" cargo test --release -- --include-ignored --nocapture
+  #!/usr/bin/env sh
+  set -eu
+  if [ -z "${DITTO_CORPUS:-}" ]; then
+    echo "ditto-vuelta-entera necesita un juego: DITTO_CORPUS=<carpeta con RPG_RT.ldb, RPG_RT.lmt y los Map*.lmu>." >&2
+    exit 1
+  fi
+  cd ditto
+  cargo test --release -- --include-ignored --nocapture
 
 # Voodoo: de un PNG indexado a tiles, tilemap y CGRAM, en Rust. Es el que
 # convierte las capas de los mapas, desde las imágenes que deja el asignador.
