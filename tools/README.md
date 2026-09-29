@@ -35,16 +35,22 @@ one in its own row or above.
                  music itself —from MIDI to the SPC700— is
                  `rm2k-snes-audio`'s, below; uses rpgmaker and common
 
-    port/        the converter to SNES —snes_convert— and everything only it
-                 uses: events, event_opcodes, battle, experience,
-                 screens, menus, title, picture, window, font, scene,
-                 animation, texts, allocator, tiles_bin, compress,
-                 fullscreen, end_game, msu_data, patches; and
-                 beneath all of them, because they import nothing from the
-                 port, rules (from Game_Actor and the LDB), constants, color
-                 (the screen tint), palette (an image down to N colors) and
-                 snes_format (a tile, a color and a cell as the PPU reads
-                 them)
+    port/        the converter to SNES —snes_convert, which is `main`— and
+                 everything only it uses: the parts it was split into on
+                 2026-09-29 (options, cases, game_scan, map_convert,
+                 map_layers, baking, sprites, obj_extras, vram, blocks,
+                 message_window, battle_scenes, battle_animations,
+                 battle_tables, music, mapdata, map_record, materials; the
+                 docstring of snes_convert says what each one is), and
+                 events, event_opcodes, battle, experience, screens, menus,
+                 title, picture, window, font, scene, animation, texts,
+                 allocator, tiles_bin, compress, fullscreen, end_game,
+                 msu_data, patches; and beneath all of them, because they
+                 import nothing from the port, rules (from Game_Actor and
+                 the LDB), constants, color (the screen tint), palette (an
+                 image down to N colors), snes_format (a tile, a color and a
+                 cell as the PPU reads them) and asm (a data block and a
+                 pointer, as ca65 reads them)
 
 And the Rust projects, which are not layers of the port but separate tools,
 in English and without a single mention of this game (see AGENTS.md):
@@ -76,8 +82,10 @@ files of `tools/`. Inside `port/`, the ones at the bottom are those that
 import nothing from the port; above them, those that ask another for
 something —`battle` from `events`, `screens` from `menus` and `events`,
 `title` and `menus` from `palette`—; and on top of everything `snes_convert`,
-which uses all of them. The imports still inside a function no longer hide
-any cycle.
+which uses all of them. The parts `snes_convert` was split into import
+from each other in one direction —`map_convert` and `mapdata` on top,
+`asm` at the bottom— and none imports from `snes_convert`. The imports
+still inside a function no longer hide any cycle.
 
 Until 2026-09-29 there was one exception, `assembly/cartridges.py`, the
 orchestrator: it lived at the bottom, imported from `port/` and `audio/`,

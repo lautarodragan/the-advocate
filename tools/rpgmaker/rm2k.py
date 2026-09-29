@@ -154,7 +154,7 @@ def hero_start(passable, width, height, blocked=()):
 # does not take the same time; what has to match is the cadence and that both
 # sides look at the same tick.
 # The two families, with how many drawings each one has. The order is that of
-# the tile runs in VRAM; see `convert` in snes_convert.py.
+# the tile runs in VRAM; see `convert` in port/map_layers.py.
 ANIMATED_FAMILIES = (("agua", 3), ("animado", 4))
 # The ROM's clock is `ticks`, sixteen bits, so it wraps around every 65536
 # ticks —eighteen minutes— and there the cycle skips a drawing; RM2k's is
@@ -246,7 +246,7 @@ DITHER_SUFFIX = "~trama"
 # graphic**: the allocator gives it its own palette. It exists because of
 # the hero's flash, which on the console is done on the character's palette:
 # an NPC drawn with the graphic of a possible leader shared its palette and
-# flashed too. See `convertir` in snes_convert.py.
+# flashed too. See `separate_from_hero` in port/sprites.py.
 COPY_SUFFIX = "~aparte"
 
 # Which dither. The options are in `render_map.DITHERS`; it is chosen by

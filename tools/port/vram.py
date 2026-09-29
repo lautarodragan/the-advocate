@@ -11,22 +11,13 @@ from port import screens as screens_mod
 from port.snes_format import BYTES_PER_TILE
 
 
-# --- the map as 16x16 blocks ------------------------------------------------
+# --- the tilemap window -----------------------------------------------------
 # The PPU tilemap doesn't go beyond 64x64 cells, and on top of that VRAM has to
 # be shared with the tiles, so the window left for it is 64x32: 512x256 pixels
 # against the 256x224 of the screen. The game's maps reach 1000x80 cells, so
 # the whole map is never in VRAM: the ROM keeps redrawing the column and the
-# row that come in while the camera moves.
-#
-# What is stored in the ROM isn't the expanded tilemap either. An RM2k 16x16
-# cell is four SNES 8x8 cells, and it is the unit the game was drawn with: it
-# repeats a lot. Storing an index into a table of blocks, the heaviest map
-# goes from 175 KB —more than the whole ROM— to 40.
-#
-# The block carries both layers together and the passability. Passability
-# going into the block isn't free: two cells that are drawn the same could
-# have different permissions if they came from different ChipSet tiles, so it
-# goes in the key and they separate by themselves.
+# row that come in while the camera moves. What the ROM stores instead of the
+# expanded tilemap is in `blocks.py`.
 WINDOW_W, WINDOW_H = 64, 32     # the tilemap window that lives in VRAM
 MAP_LAYOUT = 1                  # two 32x32 screens side by side, which is 64x32
 

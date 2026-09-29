@@ -68,11 +68,11 @@ later means adding entries, without changing the format.
 Each backdrop is two entries, in this order: its 512 tiles at 8bpp —32,768
 bytes, exactly as they go to WRAM— and its 96 15-bit colors —192 bytes,
 exactly as they go to CGRAM from entry 32—. `backdrop_bytes` in
-snes_convert.py builds them, and the ROM knows where each one is from
+battle_scenes.py builds them, and the ROM knows where each one is from
 `msu_backdrop_pos`, which `write_msu` emits.
 
 After the backdrops come the quality sound effects, one entry per effect of
-each audio pack, in BRR: `write_msu` in snes_convert.py orders them, and
+each audio pack, in BRR: `write_msu` in music.py orders them, and
 which version of each goes in each pack, and why, is `rm2k-snes-audio`'s
 (`msu.rs`).
 """

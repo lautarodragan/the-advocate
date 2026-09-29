@@ -1,26 +1,29 @@
 #!/usr/bin/env python3
 """Converts an A Blurred Line map into data the SNES PPU consumes.
 
-Splitting colors into palettes, and merging the least used ones when they
-don't fit, lives in `allocator.py`, and reusing mirrored tiles in Voodoo.
-What is left here is what depends on the hardware:
+This is `main`: it reads the command line, asks the game what it needs to
+know, converts each map and hands everything to the emission. Each part lives
+in its own module of `port/`, one per piece that can be replaced alone:
 
-  * **Color is 15 bits, five per channel.** Of the 72 colors in the render of
-    Map0007, 60 survive.
-  * **The background goes in mode 3, at 8 bits per pixel.** There each pixel is
-    a direct index into CGRAM and there is no per-tile palette, so the problem
-    of splitting the colors into groups simply does not exist. With 4 bits and
-    8 palettes, Map0007 lost 32 of its 60 colors; with 8 bits it loses none.
-
-    It costs twice the VRAM per tile, 64 bytes instead of 32. With 92 tiles
-    that is 5.8 KB of the 64 available, so it is not a real constraint.
-  * **The tile format is planar**, not packed in nibbles: each bit of a pixel
-    lives in a different bitmap, in pairs and 16 bytes at a time. That is why
-    a 4-bit tile is exactly the first half of an 8-bit one.
-
-Indices are kept to the lower half of CGRAM. Sprites always use palettes 8 to
-15, that is indices 128 to 255, and at 8 bits the background reaches up to
-255: staying low avoids stepping on them.
+    options             the flags, and the ROM's maps in table order
+    cases               the test cases, split at each `--case`
+    game_scan           what is deduced from the whole game: leaders, items
+    map_convert         a whole map, gathered into its `map_info`
+      map_layers        the two background layers and how CGRAM is split
+      baking            the events baked into the upper layer
+      sprites           the characters as objects, and the sprite bank
+      obj_extras        timer, rain, picture and battle animation box
+      vram              the VRAM layouts
+      blocks            the map as 16x16 blocks
+    message_window      the message window and the font
+    battle_scenes       backdrops and battlers
+    battle_animations   the battle animations
+    battle_tables       experience and encounters
+    music               the job for `rm2k-snes-audio`, and the `.msu`
+    mapdata             `emit`: the whole `mapdata.inc`
+      map_record        the tables of each map
+      materials         the data blocks and their LZ2 streams
+      asm               `block` and `pointer`
 
 Usage:
     rm2k-snes-convert --map-id 7 -o rom/build/inc/mapdata.inc

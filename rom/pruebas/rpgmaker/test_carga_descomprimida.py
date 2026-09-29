@@ -122,7 +122,7 @@ def _mirar_la_vram(p, indice):
     for k, (vram, largo, cero) in enumerate(corridas):
         desde = (vram - base) * 2
         # Sus dibujos van seguidos desde el 0 hasta donde empieza la familia
-        # que sigue: ver `anim_bytes` en snes_convert.py.
+        # que sigue: ver `anim_bytes` en map_record.py.
         hasta = corridas[k + 1][2] if k + 1 < len(corridas) else len(anim)
         dibujos = [anim[d:d + largo] for d in range(cero, hasta, largo)]
         puesto = bytes(visto[desde:desde + largo])

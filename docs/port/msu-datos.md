@@ -166,12 +166,12 @@ enteros y a la tasa que le entra a ese paquete con la ARAM libre de música
 tabla, y adentro de cada uno en orden de SRCN, que es como los sube
 `upload_placed`. Así la ROM **busca una vez por paquete** y lee de corrido;
 un efecto que está en dos paquetes va dos veces. Lo escribe `write_msu`
-en snes_convert.py, que también emite lo que la ROM necesita: `se_msu_pkg` y
-`se_msu_rows` —dónde está cada efecto de cada paquete y cuánto mide— y
-`se_msu_pitch_pkg` y `se_msu_pitch` —la altura de cada sonido con la
-versión de cada paquete, sólo de los sonidos cuyo efecto es de ahí, y dos
-paquetes con la misma lista la comparten—, y al lado un `efectos.json`
-legible.
+en `tools/port/music.py`, que también emite lo que la ROM necesita:
+`se_msu_pkg` y `se_msu_rows` —dónde está cada efecto de cada paquete y
+cuánto mide— y `se_msu_pitch_pkg` y `se_msu_pitch` —la altura de cada
+sonido con la versión de cada paquete, sólo de los sonidos cuyo efecto es
+de ahí, y dos paquetes con la misma lista la comparten—, y al lado un
+`efectos.json` legible.
 
 La firma es la misma de los fondos y se mira una vez por encendido, en la
 primera carga de paquete (`se_msu_prepare`, en `tools/runtime/msu_effects.s`).

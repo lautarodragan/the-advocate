@@ -7,6 +7,16 @@ from port import events
 from rpgmaker import rm2k
 
 
+# What is stored in the ROM isn't the expanded tilemap: the ROM redraws the
+# tilemap window of `vram.py` from something smaller. An RM2k 16x16
+# cell is four SNES 8x8 cells, and it is the unit the game was drawn with: it
+# repeats a lot. Storing an index into a table of blocks, the heaviest map
+# goes from 175 KB —more than the whole ROM— to 40.
+#
+# The block carries both layers together and the passability. Passability
+# going into the block isn't free: two cells that are drawn the same could
+# have different permissions if they came from different ChipSet tiles, so it
+# goes in the key and they separate by themselves.
 BLOCK_BYTES = 16                # four BG1 cells and four BG2 cells
 
 

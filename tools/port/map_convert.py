@@ -43,7 +43,8 @@ def precompute_layers(renderer, map_ids, args):
     for them.
 
     It is the most expensive part of a cold build —or of a warm one after
-    touching this file, which invalidates the stored layers— and each map is
+    touching a source of `map_layers._layers_version`, which invalidates the
+    stored layers— and each map is
     independent, so there is one process per map. The processes fork with all
     the state already built, prepare the map like `convert_map` does and return
     what they computed with its key; `convert_map` then asks for the same key.

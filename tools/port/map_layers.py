@@ -5,6 +5,27 @@ of what comes out.
 The input is the two layers already drawn —by `rm2k-render`, through
 `render_map`— and the output, per layer, its tiles, its CGRAM words and its
 tilemap.
+
+Splitting colors into palettes, and merging the least used ones when they
+don't fit, lives in `allocator.py`, and reusing mirrored tiles in Voodoo.
+What is left here is what depends on the hardware:
+
+  * **Color is 15 bits, five per channel.** Of the 72 colors in the render of
+    Map0007, 60 survive.
+  * **The background goes in mode 3, at 8 bits per pixel.** There each pixel is
+    a direct index into CGRAM and there is no per-tile palette, so the problem
+    of splitting the colors into groups simply does not exist. With 4 bits and
+    8 palettes, Map0007 lost 32 of its 60 colors; with 8 bits it loses none.
+
+    It costs twice the VRAM per tile, 64 bytes instead of 32. With 92 tiles
+    that is 5.8 KB of the 64 available, so it is not a real constraint.
+  * **The tile format is planar**, not packed in nibbles: each bit of a pixel
+    lives in a different bitmap, in pairs and 16 bytes at a time. That is why
+    a 4-bit tile is exactly the first half of an 8-bit one.
+
+Indices are kept to the lower half of CGRAM. Sprites always use palettes 8 to
+15, that is indices 128 to 255, and at 8 bits the background reaches up to
+255: staying low avoids stepping on them.
 """
 
 import collections
@@ -300,7 +321,7 @@ _LAYERS_VERSION = None
 def _layers_version():
     """Which version of the code produced whatever is stored under `layers`.
 
-    It is the six pieces that take part in drawing or converting, plus the
+    It is the sources that take part in drawing or converting, plus the
     three programs that aren't sources of this tree:
 
     * **the `rm2k-render` binary** draws the layers and expands the
@@ -314,8 +335,12 @@ def _layers_version():
       gets how it finds the ChipSet, and `common/project.py` because it is
       where the directories it searches in come from;
     * `port/allocator.py` decides which colors are lost, `rpgmaker/rm2k.py`
-      has the constants of the split and of the animated families, and this
-      file does the rest;
+      has the constants of the split and of the animated families,
+      `port/snes_format.py` the sizes of a tile and of a palette, and this
+      file does the rest. `port/snes_convert.py` is still in the list
+      from before 2026-09-29, when all of this lived there: taking it out
+      is a decision of its own, and it would stop a change in `main` from
+      invalidating what is stored;
     * **the Voodoo binary**, which is the one that emits the tiles:
       recompiling it without touching any `.py` has to invalidate what is
       stored;

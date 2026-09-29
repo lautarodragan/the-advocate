@@ -285,7 +285,7 @@ def test_msu_la_rom_sabe_donde_esta_cada_fondo():
                           len(juego)))
         pos = en_la_rom(s["msu_backdrop_pos"])
         # Los fondos van primero, dos entradas cada uno, y detrás los efectos
-        # de sonido de calidad: ver `write_msu` en snes_convert.py.
+        # de sonido de calidad: ver `write_msu` en music.py.
         assert len(indice) == 2 * s["MSU_BACKDROPS_N"] + s["MSU_EFFECTS_N"], (
             "%s: el .msu tiene %d entradas y la ROM cuenta con %d fondos y %d "
             "efectos" % (nombre, len(indice), s["MSU_BACKDROPS_N"],

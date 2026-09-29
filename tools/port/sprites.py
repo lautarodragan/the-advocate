@@ -20,9 +20,10 @@ from port.allocator import CELL
 from rpgmaker.rm2k import collect_npcs
 
 
-# And the ones for objects, already shifted into place in the vhoopppN byte:
-# the priority is bits 5 and 4, not 0 and 1: writing $20 thinking it is
-# priority 1 gives priority 2, and in the order above that one extra place
+# The priorities for objects, already shifted into place in the vhoopppN
+# byte: the priority is bits 5 and 4, not 0 and 1: writing $20 thinking it
+# is priority 1 gives priority 2, and in the order of mode 3 —see
+# `PRIORITY_ABOVE` in map_layers.py— that one extra place
 # crosses exactly the upper layer. Nothing fails and the sprite is still
 # visible: only on the wrong side of a layer, that is covering the roof it
 # should be walking under.

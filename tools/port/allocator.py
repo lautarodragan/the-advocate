@@ -8,8 +8,8 @@ pipeline, and that is why it is not in `tools/voodoo/`, which only converts
 what already fits and never touches a pixel: see "`tools/voodoo/` no decide
 colores" in `AGENTS.md`.
 
-Its users are still spread across `snes_convert.py` —`split_above`,
-`build_palette`, `drawable_npcs`— and `menus.py`. The day the allocator
+Its users are `map_layers.py` —`split_above`, `build_palette`—,
+`sprites.py` —`drawable_npcs`— and `menus.py`. The day the allocator
 moves to Rust, this is what goes first.
 
 Until 2026-09-17 it was called `pixeles.py` and also did the part that

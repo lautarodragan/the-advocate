@@ -2,7 +2,7 @@
 siga pasándose igual.
 
 Un evento dibujado con un tile opaco del ChipSet deja de dibujarse y su tile se
-mete en la capa alta del mapa —ver `bakeable_events` en snes_convert.py—. Lo
+mete en la capa alta del mapa —ver `bakeable_events` en baking.py—. Lo
 que sostiene que eso no cambie nada son dos invariantes, y las dos se miran acá
 porque ninguna se ve en una captura:
 

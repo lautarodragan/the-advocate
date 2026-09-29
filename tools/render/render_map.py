@@ -353,7 +353,7 @@ class Renderer:
         Returns `(base, above, variants)`: `base` is what goes behind the
         hero, opaque; `above` carries only the tiles marked "above the hero"
         and is transparent everywhere else; and `variants` is in the shape
-        `snes_convert._convert_layers` asks for: per family, the drawings
+        `map_layers._convert_layers` asks for: per family, the drawings
         that are **not** 0, which is `base`.
 
         `rm2k-render` draws them, from the map **as it is here** —with the
