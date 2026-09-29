@@ -91,7 +91,8 @@ from common import settings
 from common import project
 from common.parallel import in_parallel
 from port.allocator import CELL, tile_colors
-from port.snes_format import cgram_word, entry, pack_tile
+from port.snes_format import (BYTES_PER_TILE, COLORS_PER_PALETTE, cgram_word,
+                               entry, pack_tile)
 from rpgmaker.rm2k import TILE, collect_npcs, hero_start, passability_map
 from render import render_map
 from render.render_map import Renderer, build_passability, load_image
@@ -118,7 +119,6 @@ MAX_TILES = 1024
 # takes comes from what the background doesn't need.
 BG_PALETTES = 8                          # the lower half of CGRAM, in palettes
 MAX_ABOVE_PALETTES = BG_PALETTES - 1
-BYTES_PER_TILE = 64                      # 8 bit planes, 8 rows each
 
 
 def above_split(palettes):
@@ -400,7 +400,6 @@ def convert_above(grid, palettes, above_first, merged=0):
 SPRITE_W, SPRITE_H = 24, 32
 OBJ_W = OBJ_H = 32                 # the real size of the object on screen
 OBJ_COLORS = 15                    # 4 bits per pixel, and 0 is transparent
-COLORS_PER_PALETTE = 16            # what each sprite palette takes in CGRAM
 SPRITE_POSES = 12
 INITIAL_POSE = 2 * 3 + 1           # facing down, the middle frame
 OBJ_PALETTES = 8                   # 8 to 15, with or without the timer
@@ -1785,6 +1784,7 @@ def _layers_version():
         import PIL
         from common import disk_cache
         _LAYERS_VERSION = (disk_cache.version_of("port/snes_convert.py",
+                                                 "port/snes_format.py",
                                                  "port/allocator.py",
                                                  "rpgmaker/rm2k.py",
                                                  "render/render_map.py",

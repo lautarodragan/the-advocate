@@ -2,6 +2,9 @@
 as bytes or words ready for the console.
 """
 
+BYTES_PER_TILE = 64                      # 8 bit planes, 8 rows each
+COLORS_PER_PALETTE = 16            # what each sprite palette takes in CGRAM
+
 
 def pack_tile(indices, planes=8):
     """The PPU format: bitplanes, not two pixels per byte.
