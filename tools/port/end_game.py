@@ -28,7 +28,7 @@ vblank. That way there is no second tilemap and no extra tiles.
 """
 
 from port import constants
-from port import window as ventana_mod
+from port import window as window_mod
 
 WIDTH, HEIGHT = constants.WIDTH, constants.HEIGHT
 CELL = constants.CELL
@@ -91,8 +91,8 @@ def draw(sys_img, db, chosen, font_id=None, width=WIDTH, height=HEIGHT,
     # the text at (0, 2) of its contents.
     w = _width_of(question) + 2 * BORDER
     x, y = width // 2 - w // 2, Y_QUESTION - y_shift
-    paste(ventana_mod.window(sys_img, w, 2 * LINE), x, y)
-    ventana_mod.draw_line(outside, sys_img, x + BORDER, y + BORDER + 2,
+    paste(window_mod.window(sys_img, w, 2 * LINE), x, y)
+    window_mod.draw_line(outside, sys_img, x + BORDER, y + BORDER + 2,
                           question, font_id=font_id)
 
     # The commands: `Window_Command`, as wide as the longest plus the borders
@@ -101,12 +101,12 @@ def draw(sys_img, db, chosen, font_id=None, width=WIDTH, height=HEIGHT,
     commands = (yes, no)
     w = max(_width_of(o) for o in commands) + 2 * BORDER
     x, y = width // 2 - w // 2, Y_COMMANDS - y_shift
-    paste(ventana_mod.window(sys_img, w, len(commands) * LINE + 2 * BORDER),
+    paste(window_mod.window(sys_img, w, len(commands) * LINE + 2 * BORDER),
           x, y)
-    paste(ventana_mod.cursor(sys_img, w - 2 * BORDER + 8, LINE),
+    paste(window_mod.cursor(sys_img, w - 2 * BORDER + 8, LINE),
           x + BORDER - 4, y + BORDER + chosen * LINE)
     for n, command in enumerate(commands):
-        ventana_mod.draw_line(outside, sys_img, x + BORDER,
+        window_mod.draw_line(outside, sys_img, x + BORDER,
                               y + BORDER + n * LINE + LINE // 8, command,
                               font_id=font_id)
     return outside.convert("RGB")

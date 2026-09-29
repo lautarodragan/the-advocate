@@ -173,7 +173,7 @@ def reserved_tiles(info):
     """How many 8x8 tiles of the sprite bank the picture takes.
 
     Whole rows of blocks, not the 96 it uses: the arithmetic above needs them
-    whole, and `digitos_del_timer` already rounds to the same thing for the
+    whole, and `timer_digits` already rounds to the same thing for the
     same reason. With six objects that is two rows, 128 tiles, of which 96
     are used.
     """

@@ -92,7 +92,7 @@ def rule_maps(below=MAPS_BELOW, excluded=EXCLUDED_MAPS,
               added=ADDED_MAPS):
     """The game's maps in the order they go to `--maps`: the ones from the
     rule in ascending order, and then the added ones. **The order is that of
-    the ROM's table**, so changing it moves the table: see `orden_de_mapas`
+    the ROM's table**, so changing it moves the table: see `map_order`
     in snes_convert.py.
 
     The tree is the one in the `rom/data/` dump, which is what the converter

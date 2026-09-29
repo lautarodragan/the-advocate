@@ -3,7 +3,7 @@ descomprime al cargar un mapa, en todos los cartuchos.
 
 `tools/lz2/` tiene sus propias pruebas, en inglés y sin nada de este juego;
 éstas son las del port: que cada bloque que el conversor dejó en `crudos/` —ver
-`escribir_crudos` en snes_convert.py— vuelva igual pasando por el binario y por
+`write_raw` en snes_convert.py— vuelva igual pasando por el binario y por
 `pruebas/arnes/lz2.py`, que está escrita aparte a propósito. Lo que la ROM hace
 con esos flujos lo mira `test_carga_descomprimida.py`.
 """
@@ -17,8 +17,8 @@ import tanda
 from assembly import cartridges
 from lz2 import descomprimir
 from port import compress
-from port.snes_convert import (CLASES_COMPRIMIDAS, LZ2_TOPE_FONDO,
-                               controlar_flujos, partes_comprimidas)
+from port.snes_convert import (COMPRESSED_KINDS, LZ2_CAP_BACKDROP,
+                               check_streams, compressed_parts)
 
 
 def _crudos(nombre):
@@ -32,15 +32,15 @@ def _crudos(nombre):
 def test_cada_bloque_vuelve_igual_por_la_referencia(nombre):
     crudos = _crudos(nombre)
     clases = {r.split(".")[1] for r in crudos}
-    assert clases == set(CLASES_COMPRIMIDAS), (
+    assert clases == set(COMPRESSED_KINDS), (
         "crudos/ trae %s y las clases que se comprimen son %s"
-        % (sorted(clases), sorted(CLASES_COMPRIMIDAS)))
+        % (sorted(clases), sorted(COMPRESSED_KINDS)))
     # La ida y vuelta se hace sobre lo mismo que va al cartucho: las grillas
     # van en dos flujos, y los fondos de más de un buffer también. Ver
-    # `partes_comprimidas`.
+    # `compressed_parts`.
     trozos = []
     for archivo, datos in crudos.items():
-        partes = partes_comprimidas(archivo.split(".")[1], datos)
+        partes = compressed_parts(archivo.split(".")[1], datos)
         trozos += [(archivo, k, parte) for k, parte in enumerate(partes)]
     flujos = compress.compress_many([t[2] for t in trozos])
     mal = []
@@ -72,23 +72,23 @@ def test_la_referencia_lee_los_cinco_comandos_y_los_encabezados_largos():
 
 
 def test_un_fondo_de_mas_de_un_buffer_va_en_dos_flujos_y_de_tres_no_arma():
-    """El fondo se parte en tramos de `LZ2_TOPE_FONDO` exactos, que es lo que
+    """El fondo se parte en tramos de `LZ2_CAP_BACKDROP` exactos, que es lo que
     `lz2_fondo` supone para saber cuántos tiles trae cada flujo; uno que entra
     en el buffer va entero, como antes. Y la ROM lee dos: con tres, el
     conversor se niega en vez de dejar un fondo a medias."""
-    tope = LZ2_TOPE_FONDO
-    assert partes_comprimidas("map_tiles", bytes(tope)) == [bytes(tope)]
+    tope = LZ2_CAP_BACKDROP
+    assert compressed_parts("map_tiles", bytes(tope)) == [bytes(tope)]
     dos = bytes(range(256)) * ((tope + 960) // 256) + bytes(192)
-    partes = partes_comprimidas("map_tiles", dos)
+    partes = compressed_parts("map_tiles", dos)
     assert [len(t) for t in partes] == [tope, len(dos) - tope]
     assert b"".join(partes) == dos
-    controlar_flujos(66, "map_tiles", dos)
+    check_streams(66, "map_tiles", dos)
     with pytest.raises(SystemExit, match="3 streams"):
-        controlar_flujos(66, "map_tiles", bytes(2 * tope + 64))
+        check_streams(66, "map_tiles", bytes(2 * tope + 64))
 
 
 def test_un_flujo_que_no_entra_en_su_lugar_de_la_wram_no_arma():
     """La capa de encima y los sprites van en un solo flujo, y más grande que
     su lugar pisaría los dibujos de la animación."""
     with pytest.raises(SystemExit, match="a stream of sprite_tiles"):
-        controlar_flujos(1, "sprite_tiles", bytes(0x6000 + 32))
+        check_streams(1, "sprite_tiles", bytes(0x6000 + 32))

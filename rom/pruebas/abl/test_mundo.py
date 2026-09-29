@@ -1,5 +1,5 @@
 """El mundo, el mapa 66: el que estrena el quinto reparto de VRAM
-(`LAYOUT_VENTANA_FONDO_TECHO`, 544 tiles de fondo) y el único de `release`
+(`LAYOUT_WINDOW_BG_CEILING`, 544 tiles de fondo) y el único de `release`
 con el fondo en dos flujos de LZ2 —527 tiles de 8bpp son más que el buffer de
 carga: ver `lz2_fondo` en runtime/descomprimir.s—.
 

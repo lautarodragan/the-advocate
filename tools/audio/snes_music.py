@@ -334,7 +334,7 @@ def separate_songs():
     songs of their map's package, their `PlayBGM` uploads them alone with the
     package's sound effects —see `extra_aparte` in
     tools/runtime/paquete_de_audio.s—, and they are not inherited by the maps
-    you exit to —see `temas_heredados` in snes_convert.py—. From
+    you exit to —see `inherited_songs` in snes_convert.py—. From
     `[music] apart_themes`."""
     return {m["map"]: set(m["themes"])
             for m in settings.value("music", "apart_themes", kind=list)}
@@ -2329,7 +2329,7 @@ def boot_frames_estimate(driver, voices, songs, package, decompress=0.0,
     The exit ones count: they are uploaded if there is room, and with an
     empty ARAM there is. `decompress` is the frames that decompressing the
     boot map's LZ2 blocks takes, which `MAP_FRAMES` does not count:
-    see `cuadros_de_descomprimir` in snes_convert.py. `directory` is (music
+    see `decompress_frames` in snes_convert.py. `directory` is (music
     samples, sound effect places), `emit`'s: the sound effects go by number,
     with their row after the music's.
     Returns (frames, package bytes)."""

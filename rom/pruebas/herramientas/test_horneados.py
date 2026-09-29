@@ -2,7 +2,7 @@
 siga pasándose igual.
 
 Un evento dibujado con un tile opaco del ChipSet deja de dibujarse y su tile se
-mete en la capa alta del mapa —ver `eventos_horneables` en snes_convert.py—. Lo
+mete en la capa alta del mapa —ver `bakeable_events` en snes_convert.py—. Lo
 que sostiene que eso no cambie nada son dos invariantes, y las dos se miran acá
 porque ninguna se ve en una captura:
 
@@ -35,7 +35,7 @@ MAPAS = cartridges.MAPS
 def horneados_de(renderer, map_id):
     game_map = renderer.load_map(
         os.path.join(GAME_DIR, "Map%04d.lmu" % map_id))
-    return game_map, snes_convert.eventos_horneables(renderer, game_map)
+    return game_map, snes_convert.bakeable_events(renderer, game_map)
 
 
 def test_la_regla_sigue_alcanzando_a_algun_mapa_del_cartucho():
@@ -58,11 +58,11 @@ def test_lo_que_se_hornea_tapa_la_celda_entera():
         if not horneados:
             continue
         atlas = renderer.atlas_by_name(game_map.chipset_filename)
-        assert not any(snes_convert._alfas_del_tile(atlas, 0)), \
+        assert not any(snes_convert._tile_alphas(atlas, 0)), \
             "mapa %d: el tile 0 de la capa alta dibuja algo, así que la celda " \
             "vacía donde se hornea no estaba vacía" % map_id
         for evento, (_celda, tile) in horneados.items():
-            alfas = snes_convert._alfas_del_tile(atlas, tile - rm2k.UPPER_BASE)
+            alfas = snes_convert._tile_alphas(atlas, tile - rm2k.UPPER_BASE)
             assert all(a == 255 for a in alfas), \
                 "mapa %d: el evento %d se hornea con un tile que tiene " \
                 "pixeles transparentes" % (map_id, evento + 1)
@@ -87,7 +87,7 @@ def test_hornear_no_cambia_la_pasabilidad_de_la_celda():
             if npc["evento"] in horneados:
                 antes[npc["evento"]] = rm2k.event_tile_passability(
                     game_map, npc["charset"], npc["layer"])
-        snes_convert.hornear_en_el_mapa(game_map, horneados)
+        snes_convert.bake_into_map(game_map, horneados)
         pasable = rm2k.passability_map(game_map, flags)
         for evento, (celda, _tile) in horneados.items():
             assert antes[evento] is not None, \

@@ -82,7 +82,7 @@ def pagina_de(map_id, evento_id, numero):
 @functools.lru_cache(maxsize=None)
 def comandos_de_los_casos(cartucho=cartridges.RELEASE):
     """Los comandos de todos los casos del cartucho, seguidos: lo que barre
-    `comandos_de_casos` en el conversor."""
+    `case_commands` en el conversor."""
     from rpgmaker import lcf
     comandos = []
     for nombre in cartridges.cases_of(cartucho):

@@ -347,7 +347,7 @@ def rom_de(una):
 def ranura_exp(una, actor):
     """La ranura de `FAR_EXP` del actor, leída de `actor_exp_k`, o None.
 
-    Se lee del cartucho y no se recalcula con `experiencia_ranuras`: depende
+    Se lee del cartucho y no se recalcula con `experience_slots`: depende
     de qué actores pueden entrar al grupo en **este** cartucho, y rehacer esa
     cuenta acá sería una segunda manera de contestar lo mismo.
     """

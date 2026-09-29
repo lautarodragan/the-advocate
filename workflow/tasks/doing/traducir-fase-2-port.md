@@ -76,6 +76,14 @@ ejecutables `rm2k-snes-*` andando desde `/tmp`.
     y el separador `--caso` → `--case`, con quien los pasa: `cartridges.py`,
     `ceilings.py` y los `flags` de `rom/rm2k-snes.toml`. La clave
     `aire_de_medida` de `techos.toml` es del TOML y queda.
+12. `snes_convert`: sus ~750 nombres, las clases `Sustituciones` →
+    `Substitutions` y `Materiales` → `Materials`, los atributos que le
+    cuelga a `args` (`imagenes` → `pictures`, `casos` → `cases`…) y los
+    alias de los módulos (`escena_mod` → `scene_mod`…). Lo que cobraron el
+    build y la tanda, y que ningún renombre mecánico ve: un `dict(nombre=…)`
+    cuya clave es un dato de los TOML de parches, y el atributo `mapa` de
+    cada caso, que es una copia de `args` y que al llamarse `map_id` pisaba
+    el `--map-id` del cartucho: se llama `run_map`.
 
 Lo que el conversor escribe al `.inc` cita rutas de `tools/port/` en sus
 comentarios (`; See tools/port/imagen.py.`): esas quedan con el nombre

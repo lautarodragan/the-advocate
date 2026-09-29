@@ -43,9 +43,9 @@ MAPAS = [3, 2, 1]
 @pytest.mark.parametrize("map_id", MAPAS)
 def test_ningun_tile_entra_en_la_paleta_de_un_lider(map_id):
     ren = render_map.Renderer(JUEGO)
-    lideres = snes_convert.lideres_posibles(ren, DEMO, GRUPO)
+    lideres = snes_convert.possible_leaders(ren, DEMO, GRUPO)
     game_map = ren.load_map(os.path.join(JUEGO, "Map%04d.lmu" % map_id))
-    _npcs, _fuera, reparto = snes_convert.npcs_dibujables(
+    _npcs, _fuera, reparto = snes_convert.drawable_npcs(
         ren, game_map, lideres, snes_convert.OBJ_PALETTES, [])
     paletas, paleta_de = reparto[0], reparto[1]
 

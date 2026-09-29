@@ -551,7 +551,7 @@ def borders(sys_img, first_tile, screens, cgram=None, cap=256):
 
     The tiles are also deduplicated mirrored, with the tilemap's flip bits:
     the frame is symmetric, and without that the windows and the cursor did
-    not fit in what is left of VRAM —see `_controlar_marco_de_items`—.
+    not fit in what is left of VRAM —see `_check_items_border`—.
     """
     cgram = ITEM_BORDER_CGRAM if cgram is None else cgram
     pictures = [image for background, bars in screens
@@ -1067,7 +1067,7 @@ def render_menu(sys_img, db, slots, party, gold, chosen=0,
     `party` are the actors in order, `gold` the gold, `chosen` the command
     with the cursor and `save_allowed` what `ChangeSaveAccess` left.
     `actors` is the ROM's list —those who can join the party,
-    `miembros_posibles` in the converter—, which decides the tile bank;
+    `possible_members` in the converter—, which decides the tile bank;
     without it, the party. It is built with the same blocks the ROM uploads,
     like `render_slots`.
 
@@ -1165,7 +1165,7 @@ TARGET_COLORS_MAX = 16
 # BG1's tiles and tilemap, after the menu's tilemap ($3C00..$4000): BG1 has
 # its own base at $4000, so they do not touch BG2's bank. What matters is that
 # everything stays in the layouts' BG1 bank, which is what `load_map`
-# restores on the way back: see `_controlar_objetivo` in the converter.
+# restores on the way back: see `_check_target` in the converter.
 TARGET_VRAM = 0x4000
 TARGET_MAP = 0x4800
 

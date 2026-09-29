@@ -85,7 +85,7 @@ def test_la_capa_de_encima_tambien_se_sustituye():
     El mapa y los tiles no son los de arriba por dos razones medidas. Una: en
     el mapa 6 **no hay dos tiles altos que se dibujen en BG2**, y un tile alto
     sin el bit `Above` no va a BG2 sino horneado en el fondo, así que la
-    sustitución no se puede armar —ver `Sustituciones._hornea`—. La otra: el
+    sustitución no se puede armar —ver `Substitutions._bakes`—. La otra: el
     tile 49 se combina con **tres** tiles de abajo y por lo tanto usa tres
     entradas de la tabla de la RAM, que lleva `SUB_MAX`.
 

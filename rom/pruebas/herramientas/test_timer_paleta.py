@@ -2,7 +2,7 @@
 
 Sus dígitos son **dos colores** —negro y rojo puro— y entran en la paleta de
 cualquier personaje que tenga trece o menos. Reservarle una de las ocho paletas
-de sprite no era contabilidad: `npcs_dibujables` decide con ese número **qué
+de sprite no era contabilidad: `drawable_npcs` decide con ese número **qué
 eventos se dibujan**, y un evento que no se dibuja igual ocupa, así que la
 pérdida no es visual sino jugable.
 
@@ -28,7 +28,7 @@ from datos import DEMO
 # El juego original, del mismo lugar que el conversor: `ABL_GAME_DIR`.
 JUEGO = resources.GAME_DIR
 MAPA = 2
-PUERTA = 30 - 1          # `npcs_dibujables` numera los eventos desde cero
+PUERTA = 30 - 1          # `drawable_npcs` numera los eventos desde cero
 
 # Los mapas son `DEMO`, los de la apertura, con el mismo grupo inicial. Los
 # líderes posibles no son un detalle: cada uno se lleva su paleta de sprite,
@@ -41,9 +41,9 @@ GRUPO = [10]
 def descartados(paletas):
     """Qué eventos del mapa 2 no se dibujan con tantas paletas de sprite."""
     ren = render_map.Renderer(JUEGO)
-    lideres = snes_convert.lideres_posibles(ren, DEMO, GRUPO)
+    lideres = snes_convert.possible_leaders(ren, DEMO, GRUPO)
     game_map = ren.load_map(os.path.join(JUEGO, "Map%04d.lmu" % MAPA))
-    _npcs, fuera, _reparto = snes_convert.npcs_dibujables(
+    _npcs, fuera, _reparto = snes_convert.drawable_npcs(
         ren, game_map, lideres, paletas, [])
     return {evento for evento, _tile in fuera}
 
@@ -67,9 +67,9 @@ def test_no_se_descarta_ningun_grafico(partida=None):
 def test_la_puerta_que_core_rompe_tiene_paleta(partida=None):
     """Y en particular la del evento 30, que es la que taro perdió jugando."""
     ren = render_map.Renderer(JUEGO)
-    lideres = snes_convert.lideres_posibles(ren, DEMO, GRUPO)
+    lideres = snes_convert.possible_leaders(ren, DEMO, GRUPO)
     game_map = ren.load_map(os.path.join(JUEGO, "Map%04d.lmu" % MAPA))
-    npcs, _fuera, reparto = snes_convert.npcs_dibujables(
+    npcs, _fuera, reparto = snes_convert.drawable_npcs(
         ren, game_map, lideres, snes_convert.OBJ_PALETTES - 2, [])
     paleta_de = reparto[1]
     suyos = [n for n in npcs if n["evento"] == PUERTA]
@@ -90,7 +90,7 @@ def test_los_digitos_entran_en_una_paleta_que_ya_existe():
     ren = render_map.Renderer(JUEGO)
     sys_img = ventana_mod.skin(JUEGO, ren.database.system_name)
     palettes = paletas_de(13)
-    _tiles, _base, cual = snes_convert.digitos_del_timer(
+    _tiles, _base, cual = snes_convert.timer_digits(
         sys_img, bytes(32 * 64), palettes)
     assert len(palettes) == snes_convert.OBJ_PALETTES, \
         "el cronómetro se agregó una paleta teniendo dónde entrar"
@@ -104,7 +104,7 @@ def test_si_de_verdad_no_entra_lo_dice():
     ren = render_map.Renderer(JUEGO)
     sys_img = ventana_mod.skin(JUEGO, ren.database.system_name)
     with pytest.raises(SystemExit):
-        snes_convert.digitos_del_timer(sys_img, bytes(32 * 64), paletas_de(15))
+        snes_convert.timer_digits(sys_img, bytes(32 * 64), paletas_de(15))
 
 
 def test_el_cronometro_no_cae_en_la_ranura_de_un_lider():
@@ -127,8 +127,8 @@ def test_el_cronometro_no_cae_en_la_ranura_de_un_lider():
     sys_img = ventana_mod.skin(JUEGO, ren.database.system_name)
     # Dos paletas con lugar de sobra; la primera es la del líder.
     palettes = [[(1, 1, k) for k in range(4)], [(2, 2, k) for k in range(4)]]
-    _tiles, _base, cual = snes_convert.digitos_del_timer(
-        sys_img, bytes(32 * 64), palettes, de_lider={0})
+    _tiles, _base, cual = snes_convert.timer_digits(
+        sys_img, bytes(32 * 64), palettes, leader_owned={0})
     assert cual == 1, \
         "el cronómetro se metió en la paleta %d, que es de un líder: la ROM " \
         "se la pisa al subir los colores del que lidera" % cual
@@ -149,7 +149,7 @@ def test_las_gotas_no_caen_en_la_paleta_del_cronometro():
     lo que se prueba es el mecanismo.
     """
     palettes = [[(1, 1, k) for k in range(4)], [(2, 2, k) for k in range(4)]]
-    _tiles, base, cual = snes_convert.gotas_de_lluvia(
+    _tiles, base, cual = snes_convert.rain_drops(
         bytes(32 * 64), palettes, timer_base=64, timer_pal=0)
     assert base, "las gotas no entraron en ninguna paleta"
     assert cual != 0, \

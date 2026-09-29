@@ -364,7 +364,7 @@ TI_BAR_COUNT = (TI_COUNT_COL * CELL - 4, 2 * CELL + 8)
 # room left in the font's —items and equipment reach exactly $3800—, and
 # `$4000..$4C00` is always in the BG1 bank that `load_map` restores on
 # closing; the actor choice uses the same, but it is never open at the same
-# time. The tilemap, where the items' and equipment's is. `_controlar_tienda`
+# time. The tilemap, where the items' and equipment's is. `_check_shop`
 # checks it, in the converter.
 TI_VRAM = 0x4000
 TI_MAP = menus.ITEM_BORDER_MAP

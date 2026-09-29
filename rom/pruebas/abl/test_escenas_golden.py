@@ -168,7 +168,7 @@ CINEMATICAS = (
     # que cobra la interpolación cuadro a cuadro.
     ("cartel", (470, 550, 660, 800, 880), (), (21,), "release"),
     # Delcentric Factory con ventana, el único mapa que toma el tercer reparto
-    # de VRAM —`LAYOUT_VENTANA_SPRITE`, 512 tiles de sprite y 384 de fondo—. Va
+    # de VRAM —`LAYOUT_WINDOW_SPRITE`, 512 tiles de sprite y 384 de fondo—. Va
     # con el mapa 1 al lado **a propósito**: es el que pone lluvia, y sin las
     # 19 gotas el 17 entra en el reparto de siempre y el caso no miraría el
     # camino nuevo. Verificado que da rojo —33% de los pixeles— moviéndole el

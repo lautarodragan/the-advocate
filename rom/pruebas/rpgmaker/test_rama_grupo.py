@@ -15,7 +15,7 @@ toca el grupo, y es a propósito**: la primera versión sumaba y sacaba a Arden
 con `ChangePartyMembers` y movió cinco goldens de escenas que no tenían nada que
 ver —`autos9`, `mecanico`, `puerta-8-9` y dos del `tram`—. Eso está medido: sin
 el cambio de grupo no se mueve ninguna. **Por qué, no**: la explicación probable
-es que `lideres_posibles` mira también las páginas de los casos, así que Arden
+es que `possible_leaders` mira también las páginas de los casos, así que Arden
 pasa a ser un líder posible y se le reserva sprite y paleta en cada mapa.
 
 La rama prende el switch 709, que ningún comando del juego toca. Sin el

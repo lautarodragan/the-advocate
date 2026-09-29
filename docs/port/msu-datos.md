@@ -165,7 +165,7 @@ enteros y a la tasa que le entra a ese paquete con la ARAM libre de música
 —el reparto es `tools/audio/msu_effects.py`—: por paquete, en el orden de la
 tabla, y adentro de cada uno en orden de SRCN, que es como los sube
 `subir_colocadas`. Así la ROM **busca una vez por paquete** y lee de corrido;
-un efecto que está en dos paquetes va dos veces. Lo escribe `escribir_msu`
+un efecto que está en dos paquetes va dos veces. Lo escribe `write_msu`
 en snes_convert.py, que también emite lo que la ROM necesita: `se_msu_paq` y
 `se_msu_filas` —dónde está cada efecto de cada paquete y cuánto mide— y
 `se_msu_altura_paq` y `se_msu_altura` —la altura de cada sonido con la

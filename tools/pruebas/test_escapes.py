@@ -66,7 +66,7 @@ def test_an_escape_in_the_middle_does_not_either():
 
 def test_the_header_carries_lines_close_and_pauses():
     """The byte `msg_empezar` reads, with the same masks as the ROM."""
-    cabecera = events.message_bytes(("a", "b"), pauses=3, autocierre=True)[0]
+    cabecera = events.message_bytes(("a", "b"), pauses=3, auto_close=True)[0]
     assert cabecera & events.HEADER_LINES == 2
     assert cabecera & events.HEADER_AUTO_CLOSE
     assert cabecera >> 4 == 3

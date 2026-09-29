@@ -142,7 +142,7 @@ doubles the small one with the CPU: each pixel twice across and each row
 twice down. From there on everything is the same —compositing, erasing a
 dead one, uploading to VRAM—, because what is left in WRAM is an 8bpp
 backdrop like the `.msu` one. See `esc_llenar` and `esc_doblar` in
-tools/runtime/batalla_escena.s, and `respaldo_bytes` in snes_convert.py for
+tools/runtime/batalla_escena.s, and `fallback_bytes` in snes_convert.py for
 the order the bytes travel in, which is the one that saves the ROM math.
 
 The other way out was for the `.msu` to carry 4bpp too, "more quality within

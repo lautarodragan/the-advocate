@@ -37,14 +37,14 @@ one in its own row or above.
                  common
 
     port/        the converter to SNES —snes_convert— and everything only it
-                 uses: eventos, event_opcodes, batalla, experiencia,
-                 pantallas, menus, titulo, imagen, ventana, fuente, escena,
-                 animacion, textos, asignador, tiles_bin, comprimir,
-                 pantalla_completa, fin_del_juego, msu_datos, parches; and
+                 uses: events, event_opcodes, battle, experience,
+                 screens, menus, title, picture, window, font, scene,
+                 animation, texts, allocator, tiles_bin, compress,
+                 fullscreen, end_game, msu_data, patches; and
                  beneath all of them, because they import nothing from the
-                 port, reglas (from Game_Actor and the LDB), constantes, color
-                 (the screen tint), paleta (an image down to N colors) and
-                 formato_snes (a tile, a color and a cell as the PPU reads
+                 port, rules (from Game_Actor and the LDB), constants, color
+                 (the screen tint), palette (an image down to N colors) and
+                 snes_format (a tile, a color and a cell as the PPU reads
                  them)
 
 And the Rust projects, which are not layers of the port but separate tools,
@@ -66,8 +66,8 @@ Counting the imports inside functions, which Python does not see at load
 time but are still dependencies, there is no import cycle among the `.py`
 files of `tools/`. Inside `port/`, the ones at the bottom are those that
 import nothing from the port; above them, those that ask another for
-something —`batalla` from `eventos`, `pantallas` from `menus` and `eventos`,
-`titulo` and `menus` from `paleta`—; and on top of everything `snes_convert`,
+something —`battle` from `events`, `screens` from `menus` and `events`,
+`title` and `menus` from `palette`—; and on top of everything `snes_convert`,
 which uses all of them. The imports still inside a function no longer hide
 any cycle.
 

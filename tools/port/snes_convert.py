@@ -28,7 +28,7 @@ Usage:
 With a test page, which is the list of RM2k commands from a file in
 `rom/pruebas/casos/`; several in one cartridge, each one after a `--case`, and
 the cartridge flags before the first. The harness picks which one runs with
-`Partida(caso=k)`:
+`Partida(case=k)`:
     rm2k-snes-convert -o … --map-id 6 \
         --test-commands rom/pruebas/casos/pan.json \
         --case --test-commands rom/pruebas/casos/pan-vuelve.json
@@ -71,18 +71,18 @@ lcf.DECORATE_TRANSLUCENT = rm2k.decorate_translucent
 # `lcf.REFIT_TEXTS` and `port/texts.py`.
 from port import texts
 lcf.REFIT_TEXTS = texts.refit_commands
-from port import animation as animacion_mod
+from port import animation as animation_mod
 from port import picture
 from port import allocator
-from port import patches as parches_mod
-from port import title as titulo_mod
+from port import patches as patches_mod
+from port import title as title_mod
 from port import menus as menus_mod
 from port import fullscreen
-from port import end_game as fin_mod
-from port import screens as pantallas_mod
-from port import battle as batalla_mod
+from port import end_game as end_game_mod
+from port import screens as screens_mod
+from port import battle as battle_mod
 from port import experience as X
-from port import scene as escena_mod
+from port import scene as scene_mod
 from port import color as color_mod
 from port import constants
 from port import rules
@@ -151,18 +151,18 @@ def above_split(palettes):
 # seven because one of the window colors is pure black and its CGRAM word is
 # zero. With seven, the ROM drew the text with a color nobody had uploaded and
 # the suite caught 79 pixels in the text lines. What rules is the highest
-# index the window uses, and `convert_ventana` makes sure of that.
-VENTANA_COLORES = 8
-CGRAM_RESERVADAS = 1 + VENTANA_COLORES
+# index the window uses, and `convert_window` makes sure of that.
+WINDOW_COLORS = 8
+CGRAM_RESERVED = 1 + WINDOW_COLORS
 
 
 def bg_budget(first):
     """The colors left for the background below the upper layer.
 
     The ones at the very bottom don't count: the screen's backdrop color and
-    the ones of the message window. See `CGRAM_RESERVADAS`.
+    the ones of the message window. See `CGRAM_RESERVED`.
     """
-    return first * COLORS_PER_PALETTE - CGRAM_RESERVADAS
+    return first * COLORS_PER_PALETTE - CGRAM_RESERVED
 
 
 # The priority order of mode 3, from front to back, is:
@@ -181,11 +181,11 @@ PRIORITY_ABOVE = 1                       # for the BG2 cells
 
 # The window size in cells. It is fixed: 256x80 stuck to the bottom of the
 # screen, the same numbers as `tools/port/window.py`.
-VENTANA_COLS_INC, VENTANA_FILAS_INC = 32, 10
+WINDOW_COLS_INC, WINDOW_ROWS_INC = 32, 10
 
 # The glyph, which is what the ROM composes. The same numbers as
 # `tools/port/font.py`, which is generated from easyrpg-player.
-FUENTE_ANCHO, FUENTE_ALTO = 6, 12
+FONT_WIDTH, FONT_HEIGHT = 6, 12
 
 # And the ones for objects, already shifted into place in the vhoopppN byte:
 # the priority is bits 5 and 4, not 0 and 1: writing $20 thinking it is
@@ -209,7 +209,7 @@ OBJ_PRIORITY_ABOVE = 0x20                # priority 2: above it
 BACKDROP = (0, 0, 0)
 
 
-def tiles_cuantizados(image):
+def quantized_tiles(image):
     """The image split into 8x8 cells of 15-bit colors, which is what the PPU
     shows: a grid of rows of cells, each cell a tuple of eight rows of eight
     colors. A transparent pixel stays as None and ends up at index 0 of the
@@ -219,35 +219,35 @@ def tiles_cuantizados(image):
     cell is built as a tuple **only once** —the same object at every place of
     the map where it repeats—. Large maps are millions of pixels and a few
     thousand distinct cells, and building it pixel by pixel in Python was the
-    most expensive part of converting their layers. `_colores_de` relies on
+    most expensive part of converting their layers. `_colors_of` relies on
     repeated cells being the same object.
     """
-    pixeles = numpy.asarray(image.convert("RGBA"))
-    alto, ancho = len(pixeles) // CELL, len(pixeles[0]) // CELL
-    pixeles = pixeles[:alto * CELL, :ancho * CELL].astype(numpy.int32)
-    codigos = numpy.where(pixeles[:, :, 3] == 0, -1,
-                          ((pixeles[:, :, 0] >> 3) << 10)
-                          | ((pixeles[:, :, 1] >> 3) << 5)
-                          | (pixeles[:, :, 2] >> 3)).astype(numpy.int32)
-    celdas = numpy.ascontiguousarray(
-        codigos.reshape(alto, CELL, ancho, CELL).transpose(0, 2, 1, 3)
-    ).reshape(alto * ancho, CELL * CELL)
-    unicas, cual = numpy.unique(
-        celdas.view(numpy.dtype((numpy.void, celdas.itemsize * CELL * CELL))),
+    pixels = numpy.asarray(image.convert("RGBA"))
+    height, width = len(pixels) // CELL, len(pixels[0]) // CELL
+    pixels = pixels[:height * CELL, :width * CELL].astype(numpy.int32)
+    codes = numpy.where(pixels[:, :, 3] == 0, -1,
+                        ((pixels[:, :, 0] >> 3) << 10)
+                        | ((pixels[:, :, 1] >> 3) << 5)
+                        | (pixels[:, :, 2] >> 3)).astype(numpy.int32)
+    cells = numpy.ascontiguousarray(
+        codes.reshape(height, CELL, width, CELL).transpose(0, 2, 1, 3)
+    ).reshape(height * width, CELL * CELL)
+    unique, which = numpy.unique(
+        cells.view(numpy.dtype((numpy.void, cells.itemsize * CELL * CELL))),
         return_inverse=True)
-    unicas = unicas.view(numpy.int32).reshape(-1, CELL * CELL)
-    colores = {-1: None}
-    for c in numpy.unique(unicas).tolist():
+    unique = unique.view(numpy.int32).reshape(-1, CELL * CELL)
+    colors = {-1: None}
+    for c in numpy.unique(unique).tolist():
         if c >= 0:
-            colores[c] = (c >> 10, (c >> 5) & 31, c & 31)
-    armadas = [tuple(tuple(colores[c] for c in fila[y * CELL:(y + 1) * CELL])
-                     for y in range(CELL))
-               for fila in unicas.tolist()]
-    return [[armadas[k] for k in fila]
-            for fila in cual.reshape(alto, ancho).tolist()]
+            colors[c] = (c >> 10, (c >> 5) & 31, c & 31)
+    built = [tuple(tuple(colors[c] for c in row[y * CELL:(y + 1) * CELL])
+                   for y in range(CELL))
+             for row in unique.tolist()]
+    return [[built[k] for k in row]
+            for row in which.reshape(height, width).tolist()]
 
 
-def _colores_de(grillas):
+def _colors_of(grids):
     """How many pixels of each color there are in these grids, without the
     transparent ones: a `Counter` with the colors **in the order in which
     they appear**, walking cell by cell and row by row, which is the order it
@@ -255,22 +255,22 @@ def _colores_de(grillas):
 
     It counts each distinct cell once and multiplies it by how many times it
     occurs, and "distinct" is by identity: the repeated cells from
-    `tiles_cuantizados` are the same object. With other grids it gives the
+    `quantized_tiles` are the same object. With other grids it gives the
     same result, slower.
     """
-    veces = {}
-    for grilla in grillas:
-        for fila in grilla:
-            for celda in fila:
-                visto = veces.get(id(celda))
-                if visto is None:
-                    veces[id(celda)] = [celda, 1]
+    times = {}
+    for grid in grids:
+        for row in grid:
+            for cell in row:
+                seen = times.get(id(cell))
+                if seen is None:
+                    times[id(cell)] = [cell, 1]
                 else:
-                    visto[1] += 1
+                    seen[1] += 1
     counts = collections.Counter()
-    for celda, n in veces.values():
-        for linea in celda:
-            for p in linea:
+    for cell, n in times.values():
+        for line in cell:
+            for p in line:
                 if p is not None:
                     counts[p] += n
     return counts
@@ -283,14 +283,14 @@ def pack_tiles(tiles, planes=8):
     # (n, y, x, plane) -> one byte per row and plane, the leftmost pixel in
     # the high bit; and from there to the PPU order: pairs of planes, and
     # within each pair row by row.
-    filas = numpy.packbits(bits, axis=2, bitorder="big")[:, :, 0, :]
-    ppu = filas.reshape(-1, CELL, planes // 2, 2).transpose(0, 2, 1, 3)
-    datos = numpy.ascontiguousarray(ppu).reshape(len(tiles), planes * 8)
-    return [bytes(fila) for fila in datos]
+    rows = numpy.packbits(bits, axis=2, bitorder="big")[:, :, 0, :]
+    ppu = rows.reshape(-1, CELL, planes // 2, 2).transpose(0, 2, 1, 3)
+    data = numpy.ascontiguousarray(ppu).reshape(len(tiles), planes * 8)
+    return [bytes(row) for row in data]
 
 
-def repartir_encima(grid, limite):
-    """Which palettes the upper layer takes, with `limite` as the cap.
+def split_above(grid, limit):
+    """Which palettes the upper layer takes, with `limit` as the cap.
 
     It is the decision, separate from the emission: how many palettes this
     layer uses is what decides where it starts in CGRAM, and that in turn
@@ -303,7 +303,7 @@ def repartir_encima(grid, limite):
     """
     sets = {tile_colors(t) for row in grid for t in row}
     sets = {s for s in sets if s}
-    groups = allocator.try_pack(sets, limite) if sets else []
+    groups = allocator.try_pack(sets, limit) if sets else []
     merged = []
     if sets and groups is None:
         # Splitting doesn't fit. There are two reasons and they used to be
@@ -313,11 +313,11 @@ def repartir_encima(grid, limite):
         #
         # Both are fixed by the same thing: merging the least used color with
         # its nearest neighbor and retrying.
-        grid, groups, merged, _ = allocator.reduce_colors(grid, limite)
+        grid, groups, merged, _ = allocator.reduce_colors(grid, limit)
     return grid, [sorted(g) for g in groups], merged
 
 
-def imagen_encima(grid, palettes, above_first):
+def above_image(grid, palettes, above_first):
     """The upper layer as the allocator leaves it: an indexed PNG.
 
     Its indices are **CGRAM entries**: color `k` of palette `i` of this layer
@@ -326,32 +326,32 @@ def imagen_encima(grid, palettes, above_first):
     starts— is written in the image, and can be looked at without building the
     ROM.
     """
-    columnas, filas = len(grid[0]), len(grid)
-    ancho = columnas * CELL
-    pixeles = [0] * (ancho * filas * CELL)
-    posicion = [{color: k + 1 for k, color in enumerate(p)} for p in palettes]
+    columns, rows = len(grid[0]), len(grid)
+    width = columns * CELL
+    pixels = [0] * (width * rows * CELL)
+    position = [{color: k + 1 for k, color in enumerate(p)} for p in palettes]
     for cy, row in enumerate(grid):
         for cx, tile in enumerate(row):
             colors = tile_colors(tile)
             if not colors:
                 continue
             # The first palette that has all its colors, which is the same
-            # count `repartir_encima` did when building them.
+            # count `split_above` did when building them.
             i = next(i for i, pal in enumerate(palettes) if colors <= set(pal))
             base = (above_first + i) * COLORS_PER_PALETTE
             for y, line in enumerate(tile):
-                fila = (cy * CELL + y) * ancho + cx * CELL
+                offset = (cy * CELL + y) * width + cx * CELL
                 for x, color in enumerate(line):
                     if color is not None:
-                        pixeles[fila + x] = base + posicion[i][color]
-    colores = [None] * 256
+                        pixels[offset + x] = base + position[i][color]
+    colors_out = [None] * 256
     for i, palette in enumerate(palettes):
         base = (above_first + i) * COLORS_PER_PALETTE
-        colores[base] = BACKDROP
+        colors_out[base] = BACKDROP
         for k in range(COLORS_PER_PALETTE - 1):
-            colores[base + k + 1] = palette[k] if k < len(palette) else (0, 0, 0)
+            colors_out[base + k + 1] = palette[k] if k < len(palette) else (0, 0, 0)
     return tiles_bin.indexed_png(
-        ancho, filas * CELL, pixeles, colores,
+        width, rows * CELL, pixels, colors_out,
         [e % COLORS_PER_PALETTE == 0 for e in range(256)])
 
 
@@ -362,7 +362,7 @@ def convert_above(grid, palettes, above_first, merged=0):
     with seven colors— so it almost always fits in one or two palettes. Empty
     cells point to tile 0, which is left transparent on purpose.
 
-    **It decides nothing**: the palettes were chosen by `repartir_encima`, and
+    **It decides nothing**: the palettes were chosen by `split_above`, and
     which CGRAM palette it starts at, `above_first`, was chosen by
     `_convert_layers`. With that it writes the indexed image and `tiles`
     converts it.
@@ -370,7 +370,7 @@ def convert_above(grid, palettes, above_first, merged=0):
     Returns (tiles, CGRAM words, tilemap, first palette, merged, the
     allocator's image).
     """
-    png = imagen_encima(grid, palettes, above_first)
+    png = above_image(grid, palettes, above_first)
     tiles, cgram, tilemap, _ = tiles_bin.convert(
         png, 4, len(grid[0]), priority=PRIORITY_ABOVE)
     # The palettes of this layer, and nothing else: the rest of the image's
@@ -403,7 +403,7 @@ OBJ_W = OBJ_H = 32                 # the real size of the object on screen
 OBJ_COLORS = 15                    # 4 bits per pixel, and 0 is transparent
 COLORS_PER_PALETTE = 16            # what each sprite palette takes in CGRAM
 SPRITE_POSES = 12
-POSE_INICIAL = 2 * 3 + 1           # facing down, the middle frame
+INITIAL_POSE = 2 * 3 + 1           # facing down, the middle frame
 OBJ_PALETTES = 8                   # 8 to 15, with or without the timer
 
 # The OAM name table is 16 tiles wide, so a 32x32 object doesn't take 16 tiles
@@ -417,7 +417,7 @@ def pose_origin(index, pose):
             (index // 4) * SPRITE_H * 4 + (pose // 3) * SPRITE_H)
 
 
-TODAS_LAS_POSES = frozenset(range(SPRITE_POSES))
+ALL_POSES = frozenset(range(SPRITE_POSES))
 
 
 def sprite_colors(image, index, poses=None):
@@ -430,7 +430,7 @@ def sprite_colors(image, index, poses=None):
     all merged, and the first to go were the blue and white of the glow —few
     pixels each— against the grays that cover the rest of the block.
 
-    Who can show what is decided by `poses_del_mapa`, which is the same pass
+    Who can show what is decided by `map_poses`, which is the same pass
     that already chose who gets all twelve poses in the cartridge: the
     optimization existed in tiles and in VRAM since 2026-09-05 and had never
     reached the color count. `None` is "all twelve", which is what fits
@@ -442,33 +442,33 @@ def sprite_colors(image, index, poses=None):
     # With numpy and not pixel by pixel: the character's block to an array,
     # the poses by slicing, and each 15-bit color as a single integer to
     # count them with `unique`. Millions of pixels are read per ROM.
-    bloque = numpy.asarray(image.crop((base_x, base_y,
-                                       base_x + SPRITE_W * 3,
-                                       base_y + SPRITE_H * 4)))
-    vistos = numpy.concatenate([
-        bloque[(pose // 3) * SPRITE_H:(pose // 3 + 1) * SPRITE_H,
-               (pose % 3) * SPRITE_W:(pose % 3 + 1) * SPRITE_W].reshape(-1, 4)
-        for pose in (sorted(TODAS_LAS_POSES) if poses is None
+    block = numpy.asarray(image.crop((base_x, base_y,
+                                      base_x + SPRITE_W * 3,
+                                      base_y + SPRITE_H * 4)))
+    seen = numpy.concatenate([
+        block[(pose // 3) * SPRITE_H:(pose // 3 + 1) * SPRITE_H,
+              (pose % 3) * SPRITE_W:(pose % 3 + 1) * SPRITE_W].reshape(-1, 4)
+        for pose in (sorted(ALL_POSES) if poses is None
                      else sorted(poses))])
-    return _contar_colores(vistos)
+    return _count_colors(seen)
 
 
-def _contar_colores(pixeles):
+def _count_colors(pixels):
     """A Counter of the 15-bit colors of the opaque RGBA pixels.
 
     **The keys come in the order in which they appear**, which is the one the
     `Counter` built pixel by pixel had: whoever walks it
     —`merge_least_visible` breaks ties by that order— has to see the same.
     """
-    opacos = pixeles[pixeles[:, 3] != 0, :3] >> 3
-    codigos = ((opacos[:, 0].astype(numpy.int32) << 10)
-               | (opacos[:, 1].astype(numpy.int32) << 5) | opacos[:, 2])
-    unicos, primero, cuantos = numpy.unique(codigos, return_index=True,
-                                            return_counts=True)
+    opaque = pixels[pixels[:, 3] != 0, :3] >> 3
+    codes = ((opaque[:, 0].astype(numpy.int32) << 10)
+             | (opaque[:, 1].astype(numpy.int32) << 5) | opaque[:, 2])
+    unique, first, count = numpy.unique(codes, return_index=True,
+                                        return_counts=True)
     counts = collections.Counter()
-    for k in numpy.argsort(primero, kind="stable").tolist():
-        c = int(unicos[k])
-        counts[(c >> 10, (c >> 5) & 31, c & 31)] = int(cuantos[k])
+    for k in numpy.argsort(first, kind="stable").tolist():
+        c = int(unique[k])
+        counts[(c >> 10, (c >> 5) & 31, c & 31)] = int(count[k])
     return counts
 
 
@@ -492,24 +492,24 @@ def block_tile(block):
     return (block // BLOCKS_PER_ROW) * 64 + (block % BLOCKS_PER_ROW) * 4
 
 
-def paleta_del_personaje(image, index, tope=None, poses=None):
+def character_palette(image, index, cap=None, poses=None):
     """A character's palette, and how to map each color to its index.
 
     It is the same computation for the image that goes to VRAM and for the
     cartridge's pose bank, and it has to be: a pose uploaded on the fly is
     drawn with the palette already in CGRAM.
 
-    `tope` lowers the number of colors below fifteen, and exists to make room
+    `cap` lowers the number of colors below fifteen, and exists to make room
     for the timer: its digits are two colors and black is usually already
     there, so one entry is enough. **Who pays for it and how much is decided
-    by `npcs_dibujables`**, which is the only one that sees all the palettes
+    by `drawable_npcs`**, which is the only one that sees all the palettes
     of the map; here it is only obeyed. If the converter chose it here, two
     calls for the same character could give different palettes and the
     cartridge's poses wouldn't match the CGRAM.
 
     `poses` are the ones the event can show: **the fifteen colors are chosen
     looking only at those**, which is where almost all of the save point's
-    color gain comes from. Same as `tope`, `npcs_dibujables` decides it and
+    color gain comes from. Same as `cap`, `drawable_npcs` decides it and
     here it is only obeyed.
 
     The returned `mapping` still covers **all** the colors of the twelve-pose
@@ -518,12 +518,12 @@ def paleta_del_personaje(image, index, tope=None, poses=None):
     keeps `pose_tiles` from dying with a KeyError if someone asks for one pose
     too many—, and it costs one computation per color.
     """
-    tope = OBJ_COLORS if tope is None else tope
+    cap = OBJ_COLORS if cap is None else cap
     counts = sprite_colors(image, index, poses)
-    if len(counts) <= tope:
+    if len(counts) <= cap:
         mapping = {c: c for c in counts}
     else:
-        mapping, _ = allocator.merge_least_visible(counts, tope)
+        mapping, _ = allocator.merge_least_visible(counts, cap)
     palette = sorted(set(mapping.values()))
     if poses is not None and palette:
         for color in sprite_colors(image, index):
@@ -545,27 +545,27 @@ def pose_tiles(image, index, pose, lookup, mapping):
     # With numpy, like `sprite_colors`: the pose to an array, each distinct
     # color translated only once, and the bit planes of the sixteen tiles
     # together.
-    pixeles = numpy.asarray(image.crop((ox, oy, ox + SPRITE_W,
-                                        oy + SPRITE_H)))
-    rgb = pixeles[:, :, :3] >> 3
-    codigos = ((rgb[:, :, 0].astype(numpy.int32) << 10)
-               | (rgb[:, :, 1].astype(numpy.int32) << 5) | rgb[:, :, 2])
-    opaco = pixeles[:, :, 3] != 0
-    unicos, cual = numpy.unique(codigos[opaco], return_inverse=True)
+    pixels = numpy.asarray(image.crop((ox, oy, ox + SPRITE_W,
+                                       oy + SPRITE_H)))
+    rgb = pixels[:, :, :3] >> 3
+    codes = ((rgb[:, :, 0].astype(numpy.int32) << 10)
+             | (rgb[:, :, 1].astype(numpy.int32) << 5) | rgb[:, :, 2])
+    opaque = pixels[:, :, 3] != 0
+    unique, which = numpy.unique(codes[opaque], return_inverse=True)
     indices = numpy.array(
         [lookup[mapping[(c >> 10, (c >> 5) & 31, c & 31)]]
-         for c in unicos.tolist()], dtype=numpy.uint8)
-    pose_entera = numpy.zeros((OBJ_H, OBJ_W), dtype=numpy.uint8)
-    margen = (OBJ_W - SPRITE_W) // 2
-    centro = numpy.zeros((SPRITE_H, SPRITE_W), dtype=numpy.uint8)
-    centro[opaco] = indices[cual]
-    pose_entera[:SPRITE_H, margen:margen + SPRITE_W] = centro
-    tiles = pose_entera.reshape(4, CELL, 4, CELL).swapaxes(1, 2).reshape(
+         for c in unique.tolist()], dtype=numpy.uint8)
+    whole_pose = numpy.zeros((OBJ_H, OBJ_W), dtype=numpy.uint8)
+    margin = (OBJ_W - SPRITE_W) // 2
+    center = numpy.zeros((SPRITE_H, SPRITE_W), dtype=numpy.uint8)
+    center[opaque] = indices[which]
+    whole_pose[:SPRITE_H, margin:margin + SPRITE_W] = center
+    tiles = whole_pose.reshape(4, CELL, 4, CELL).swapaxes(1, 2).reshape(
         16, CELL, CELL)
     return pack_tiles(tiles, planes=4)
 
 
-def cambia_de_grafico(evento):
+def changes_graphic(event):
     """Whether some page of the event draws something different from another.
 
     It is what separates an annoying discard from one that breaks the game. A
@@ -575,12 +575,12 @@ def cambia_de_grafico(evento):
     the change is never seen, and since the event still blocks the way, what is
     left is an invisible wall the player expected to open.
     """
-    graficos = {((getattr(p, "character_name", "") or "").strip(),
-                 p.character_index) for p in evento.pages}
-    return len(graficos) > 1
+    graphics = {((getattr(p, "character_name", "") or "").strip(),
+                 p.character_index) for p in event.pages}
+    return len(graphics) > 1
 
 
-def aviso_de_descarte(texto, peligroso):
+def discard_warning(text, dangerous):
     """An event that isn't drawn. If it is one of those that break, it stops
     the conversion.
 
@@ -601,38 +601,38 @@ def aviso_de_descarte(texto, peligroso):
     Stopping on **all** discards doesn't work either: today there are
     decorative ones that don't fit in several maps, so every recipe would have
     to ask to continue and the stop wouldn't protect against anything. That is
-    why the cap is `cambia_de_grafico`, which is exactly the class event 30
+    why the cap is `changes_graphic`, which is exactly the class event 30
     belonged to.
 
     There is no way to ask it to continue: there was a `--descartar-eventos`,
     and it went away in step 9e, when no cartridge discarded anything that
     needed it anymore.
     """
-    if not peligroso:
-        print("  " + texto)
+    if not dangerous:
+        print("  " + text)
         return
     sys.exit(
         "%s\n\n"
         "The ROM is not built: that event **changes graphic between its pages**,\n"
         "that is, it is a mechanism and not decoration. Without being drawn, the\n"
         "change is never seen, and since the event still blocks the way and\n"
-        "triggers, what is left is an invisible wall where the game expected a door." % texto)
+        "triggers, what is left is an invisible wall where the game expected a door." % text)
 
 
 # --- the weight of a graphic ------------------------------------------------
 #
-def peso_de_grafico(charset):
+def graphic_weight(charset):
     """How much a CharSet weighs when splitting the sprite palettes: the one
     that weighs is served first, and the one that doesn't arrives in map order
     and may end up with someone else's palette. The game decides it, in
     `[graphics.palette_weight]` of the project file, with its reasons. The
     `~trama` suffix of translucent ones doesn't count: the weight belongs to
     the drawing."""
-    pesos = settings.value("graphics", "palette_weight", kind=dict)
-    return pesos.get((charset or "").split(rm2k.DITHER_SUFFIX)[0], 0)
+    weights = settings.value("graphics", "palette_weight", kind=dict)
+    return weights.get((charset or "").split(rm2k.DITHER_SUFFIX)[0], 0)
 
 
-def fila_de_pose(pose):
+def pose_row(pose):
     """The three frames of the walking cycle for the direction of `pose`.
 
     An event that animates standing still changes column and **never row**: the
@@ -642,22 +642,22 @@ def fila_de_pose(pose):
     return frozenset(range(pose // 3 * 3, pose // 3 * 3 + 3))
 
 
-def poses_del_mapa(renderer, game_map, lideres, movibles=(), giran=(),
-                   graficos_de_ruta=(), anima_quieto=()):
+def map_poses(renderer, game_map, leaders, movable=(), turning=(),
+              route_graphics=(), animates_still=()):
     """Which poses each (CharSet, index) can end up showing in this map.
 
     Each character's palette comes from here: fifteen colors chosen over what
     is seen and not over the twelve poses of the block. The list of who needs
     all twelve is **the same** that already decided which poses go to the
-    cartridge and to VRAM —see `eventos_movibles` and how `ranuras` is built in
-    `convertir`—, and it has to be: a pose the ROM uploads and the palette
+    cartridge and to VRAM —see `movable_events` and how `slots` is built in
+    `convert_map`—, and it has to be: a pose the ROM uploads and the palette
     didn't count is drawn with colors that aren't its own.
 
     These take all twelve:
 
     * the leader candidates, because the hero walks;
-    * the events in `movibles` that **walk**;
-    * the graphics in `giran`, because one that turns toward the hero can end
+    * the events in `movable` that **walk**;
+    * the graphics in `turning`, because one that turns toward the hero can end
       up in any of the four directions;
     * the graphics of command 34, which keep walking after the change.
 
@@ -680,45 +680,45 @@ def poses_del_mapa(renderer, game_map, lideres, movibles=(), giran=(),
     """
     poses = {}
 
-    def sumar(clave, cuales):
-        anterior = poses.get(clave)
-        poses[clave] = TODAS_LAS_POSES if (anterior is TODAS_LAS_POSES
-                                           or cuales is TODAS_LAS_POSES) \
-            else frozenset(anterior or ()) | frozenset(cuales)
+    def add(key, which_ones):
+        previous = poses.get(key)
+        poses[key] = ALL_POSES if (previous is ALL_POSES
+                                   or which_ones is ALL_POSES) \
+            else frozenset(previous or ()) | frozenset(which_ones)
 
-    for actor in lideres:
+    for actor in leaders:
         a = renderer.database.actors[actor]
-        sumar((a.charset, a.charset_index), TODAS_LAS_POSES)
-    for pares in (giran.values() if hasattr(giran, "values") else giran):
-        for par in pares:
-            sumar(tuple(par), TODAS_LAS_POSES)
-    for par in graficos_de_ruta:
-        sumar(tuple(par), TODAS_LAS_POSES)
+        add((a.charset, a.charset_index), ALL_POSES)
+    for pairs in (turning.values() if hasattr(turning, "values") else turning):
+        for pair in pairs:
+            add(tuple(pair), ALL_POSES)
+    for pair in route_graphics:
+        add(tuple(pair), ALL_POSES)
     for npc in collect_npcs(game_map):
-        clave = (npc["charset"], npc["index"])
+        key = (npc["charset"], npc["index"])
         # Animates standing still and doesn't walk: the three frames of its
-        # row. If it is also in `giran` it already took all twelve above, so
+        # row. If it is also in `turning` it already took all twelve above, so
         # the turn doesn't run out of colors.
-        quieto_animado = (npc["evento"] in anima_quieto
-                          and npc["evento"] in movibles)
-        if quieto_animado:
-            propias = fila_de_pose(npc["pose"])
-        elif npc["evento"] in movibles:
-            propias = TODAS_LAS_POSES
+        still_animated = (npc["evento"] in animates_still
+                          and npc["evento"] in movable)
+        if still_animated:
+            own = pose_row(npc["pose"])
+        elif npc["evento"] in movable:
+            own = ALL_POSES
         else:
-            propias = frozenset((npc["pose"],))
-        sumar(clave, propias)
+            own = frozenset((npc["pose"],))
+        add(key, own)
         if npc["cambia"]:
-            for grafico in npc["graficos"]:
-                if grafico is not None:
+            for graphic in npc["graficos"]:
+                if graphic is not None:
                     # An event that walks and also changes graphic loses the
-                    # change —walking wins, see `convertir`—, but the page's
+                    # change —walking wins, see `convert_map`—, but the page's
                     # graphic still asks for a palette here, so the pose it
                     # declares is counted.
-                    sumar(grafico[:2],
-                          fila_de_pose(grafico[2]) if quieto_animado
-                          else TODAS_LAS_POSES if npc["evento"] in movibles
-                          else (grafico[2],))
+                    add(graphic[:2],
+                        pose_row(graphic[2]) if still_animated
+                        else ALL_POSES if npc["evento"] in movable
+                        else (graphic[2],))
     return poses
 
 
@@ -739,7 +739,7 @@ def poses_del_mapa(renderer, game_map, lideres, movibles=(), giran=(),
 # is guarded by `rom/pruebas/herramientas/test_horneados.py`.
 #
 # What is **not** saved yet: its sprite palette and its VRAM slot. The event
-# still enters the `npcs_dibujables` split as if it were drawn, on purpose:
+# still enters the `drawable_npcs` split as if it were drawn, on purpose:
 # taking it out of there frees a palette for the map and that changes what is
 # seen —the tiles that today are drawn with someone else's palette would get
 # their own, and map 11 has one—, and that is a separate decision from this
@@ -751,19 +751,19 @@ def poses_del_mapa(renderer, game_map, lideres, movibles=(), giran=(),
 # it is more conservative —it also counts the pages this port doesn't
 # compile— and nothing needs compiling to ask, which is what lets the decision
 # be made before drawing the layers.
-COMANDOS_QUE_MUEVEN = (events.MOVE_EVENT, events.CHANGE_EVENT_LOCATION,
-                       events.TRADE_EVENT_LOCATIONS, events.FLASH_SPRITE)
+MOVING_COMMANDS = (events.MOVE_EVENT, events.CHANGE_EVENT_LOCATION,
+                   events.TRADE_EVENT_LOCATIONS, events.FLASH_SPRITE)
 
 
-def _alfas_del_tile(atlas, indice):
-    """The alpha of the 16x16 pixels of upper-layer tile `indice`."""
+def _tile_alphas(atlas, index):
+    """The alpha of the 16x16 pixels of upper-layer tile `index`."""
     from PIL import Image
     tile = Image.new("RGBA", (TILE, TILE), (0, 0, 0, 0))
-    atlas.render_tile(tile, 0, 0, rm2k.UPPER_BASE + indice)
+    atlas.render_tile(tile, 0, 0, rm2k.UPPER_BASE + index)
     return tile.getchannel("A").tobytes()
 
 
-def eventos_horneables(renderer, game_map):
+def bakeable_events(renderer, game_map):
     """The map's events that can be baked, as {event: map tile}.
 
     The rule is deliberately small, because what holds it up is that **it
@@ -780,7 +780,7 @@ def eventos_horneables(renderer, game_map):
       same thing;
     * **the event doesn't move or change**: no `move_type`, no own route on any
       page, no continuous animation on any, and no page of the map moves it or
-      makes it flash (see `COMANDOS_QUE_MUEVEN`);
+      makes it flash (see `MOVING_COMMANDS`);
     * **the tile covers the whole cell**: opaque in all 16x16, and without the
       "above the hero" bit —with it, placed in the upper layer it would be
       drawn above the hero and not below, which is where the sprite of a
@@ -808,36 +808,36 @@ def eventos_horneables(renderer, game_map):
     # tile there cover nothing. The ChipSets of this game satisfy it; one that
     # doesn't leaves the map without baked events instead of changing what is
     # seen.
-    if any(_alfas_del_tile(atlas, 0)):
+    if any(_tile_alphas(atlas, 0)):
         return {}
     # The events that some page moves, flashes or sends walking. It goes by
     # the RM2k id, which is what the commands carry, and it is translated by
     # the same `events.MapEvents` the compilation uses.
-    del_mapa = events.MapEvents(game_map)
-    tocados = set()
-    for evento in game_map.events:
-        for page in evento.pages:
+    map_events = events.MapEvents(game_map)
+    touched = set()
+    for event in game_map.events:
+        for page in event.pages:
             for cmd in page.commands:
-                if cmd.code in COMANDOS_QUE_MUEVEN and cmd.parameters:
-                    blanco = del_mapa.route_target(cmd.parameters[0])
-                    if blanco:
-                        tocados.add(blanco - 1)
+                if cmd.code in MOVING_COMMANDS and cmd.parameters:
+                    target = map_events.route_target(cmd.parameters[0])
+                    if target:
+                        touched.add(target - 1)
     # And the ones that walk on their own: `move_type` set to anything other
     # than still, or an own route on some page.
-    caminan = {numero for numero, evento in enumerate(game_map.events)
+    walking = {number for number, event in enumerate(game_map.events)
                if any(p.move_type or p.move_route.commands
-                      for p in evento.pages)}
-    opacos = {}
-    horneables = {}
+                      for p in event.pages)}
+    opaque = {}
+    bakeable = {}
     for npc in collect_npcs(game_map):
-        numero = npc["evento"]
+        number = npc["evento"]
         base = rm2k.unbaked(npc["charset"])
         if not base.startswith(rm2k.TILE_PREFIX) or not npc["visible"]:
             continue
-        if npc["cambia"] or numero in caminan or numero in tocados:
+        if npc["cambia"] or number in walking or number in touched:
             continue
-        paginas = game_map.events[numero].pages
-        if paginas[0].condition.active:
+        pages = game_map.events[number].pages
+        if pages[0].condition.active:
             continue
         # All its pages have to draw the same thing, on the same layer and
         # without continuous animation, and not only the active one: the row
@@ -851,16 +851,16 @@ def eventos_horneables(renderer, game_map):
             continue
         if set(npc["capas"]) != {rm2k.LAYER_BELOW}:
             continue
-        if any(p.animation_type in rm2k.CONTINUOUS_ANIMATION for p in paginas):
+        if any(p.animation_type in rm2k.CONTINUOUS_ANIMATION for p in pages):
             continue
-        indice = int(base.rsplit(":", 1)[1])
-        if not indice:
+        index = int(base.rsplit(":", 1)[1])
+        if not index:
             continue                    # tile 0 is "no graphic"
-        tile = rm2k.UPPER_BASE + indice
+        tile = rm2k.UPPER_BASE + index
         if flags[tile] & rm2k.PASS_ABOVE:
             continue                    # it would go above the hero
-        celda = npc["y"] * game_map.width + npc["x"]
-        if game_map.upper_layer[celda] != rm2k.UPPER_BASE:
+        cell = npc["y"] * game_map.width + npc["x"]
+        if game_map.upper_layer[cell] != rm2k.UPPER_BASE:
             continue                    # the cell's upper layer is taken
         # **And baking cannot open the cell.** Baking puts the tile in the
         # upper layer, so the map's table starts declaring the tile's bits
@@ -878,18 +878,18 @@ def eventos_horneables(renderer, game_map):
         # that this baking is the only thing that changes between the two
         # ROMs.
         if npc["tile_pasa"] & ~rm2k.cell_passability(
-                flags, game_map.lower_layer[celda],
-                game_map.upper_layer[celda]):
+                flags, game_map.lower_layer[cell],
+                game_map.upper_layer[cell]):
             continue
-        if indice not in opacos:
-            opacos[indice] = all(a == 255 for a in _alfas_del_tile(atlas, indice))
-        if not opacos[indice]:
+        if index not in opaque:
+            opaque[index] = all(a == 255 for a in _tile_alphas(atlas, index))
+        if not opaque[index]:
             continue
-        horneables[numero] = (celda, tile)
-    return horneables
+        bakeable[number] = (cell, tile)
+    return bakeable
 
 
-def _mismo_reparto_de_cgram(sin, con):
+def _same_cgram_split(without_it, with_it):
     """Whether baking didn't move anyone else's colors they are drawn with.
 
     What baking adds to the map are the tile's colors, and the background's
@@ -902,32 +902,32 @@ def _mismo_reparto_de_cgram(sin, con):
     order, is not a change: the tilemap comes out with the indices of that
     same palette.
     """
-    if con is None:
+    if with_it is None:
         return False
-    (_, _, _, antes), encima_antes = sin
-    (_, _, _, ahora), encima_ahora = con
-    return (encima_antes == encima_ahora
-            and antes["presupuesto"] == ahora["presupuesto"]
-            and antes["fusionados"] == ahora["fusionados"])
+    (_, _, _, before), above_before = without_it
+    (_, _, _, now), above_now = with_it
+    return (above_before == above_now
+            and before["presupuesto"] == now["presupuesto"]
+            and before["fusionados"] == now["fusionados"])
 
 
-def _hornear_si_no_mueve_la_cgram(renderer, game_map, map_id, sin_horneado,
-                                  horneados):
-    """Bakes `horneados` and returns (layers, baked): the baked ones if the
-    CGRAM split didn't move, and otherwise those of `sin_horneado`, with none.
-    See `_mismo_reparto_de_cgram`."""
-    hornear_en_el_mapa(game_map, horneados)
-    con_horneado = capas_convertidas(renderer, game_map)
-    if _mismo_reparto_de_cgram(sin_horneado, con_horneado):
-        return con_horneado, horneados
+def _bake_unless_cgram_moves(renderer, game_map, map_id, without_baked,
+                             baked):
+    """Bakes `baked` and returns (layers, baked): the baked ones if the
+    CGRAM split didn't move, and otherwise those of `without_baked`, with none.
+    See `_same_cgram_split`."""
+    bake_into_map(game_map, baked)
+    with_baked = converted_layers(renderer, game_map)
+    if _same_cgram_split(without_baked, with_baked):
+        return with_baked, baked
     print("  map %d: baking %d event(s) moved its CGRAM split, "
-          "so they are drawn" % (map_id, len(horneados)))
-    for celda, _tile in horneados.values():
-        game_map.upper_layer[celda] = rm2k.UPPER_BASE
-    return sin_horneado, {}
+          "so they are drawn" % (map_id, len(baked)))
+    for cell, _tile in baked.values():
+        game_map.upper_layer[cell] = rm2k.UPPER_BASE
+    return without_baked, {}
 
 
-def hornear_en_el_mapa(game_map, horneables):
+def bake_into_map(game_map, bakeable):
     """Puts the tile of each baked event into the map's upper layer.
 
     It is done on the `game_map` and not on the drawn image, and that solves
@@ -937,12 +937,12 @@ def hornear_en_el_mapa(game_map, horneables):
     resolved by `passability_map` with the tile's bits, which are the same the
     event's row imposed.
     """
-    for celda, tile in horneables.values():
-        game_map.upper_layer[celda] = tile
+    for cell, tile in bakeable.values():
+        game_map.upper_layer[cell] = tile
 
 
-def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
-                    timer_colores=(), solo_aqui=None, poses=None):
+def drawable_npcs(renderer, game_map, leaders, cap, route_graphics=(),
+                  timer_colors=(), only_here=None, poses=None):
     """The map's NPCs that are drawn: all the ones with a CharSet, and the ones
     drawn with a chipset tile **that fit** in the sprite palettes.
 
@@ -964,12 +964,12 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
     A tile left out isn't drawn, but its event is still there: it blocks the
     way and triggers all the same.
     """
-    paletas = []
-    paleta_de = {}
+    palettes = []
+    palette_of = {}
     # Who had to be lent someone else's palette. They show up in the
     # converter's report: they don't break anything, but they are seen with
     # colors that aren't their own.
-    prestadas = set()
+    lent = set()
     # The palettes of the possible leaders. **Nobody else goes in there**, and
     # not for tidiness: an event's flash —`FlashSprite`— on the console is a
     # CGRAM tint, so it tints the whole palette and with it everything sharing
@@ -985,28 +985,28 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
     # of a flash can be any event and is decided at run time; the hero is the
     # one that flashes in this game and is the only one that can be known here.
     # If a flash on another event shows up, it will leak all the same.
-    de_lider = set()
+    leader_owned = set()
     # Which poses each graphic can show, which is what its fifteen colors are
     # chosen over. Without it they are the usual twelve.
     poses = dict(poses or {})
 
-    def cabe(charset, index, forzar, lider=False):
-        palette, _, _ = paleta_del_personaje(renderer.charsets.get(charset),
-                                             index,
-                                             poses=poses.get((charset, index)))
-        for numero, existente in enumerate(paletas):
-            if numero in de_lider and not lider:
+    def fits(charset, index, force, leader=False):
+        palette, _, _ = character_palette(renderer.charsets.get(charset),
+                                          index,
+                                          poses=poses.get((charset, index)))
+        for number, existing in enumerate(palettes):
+            if number in leader_owned and not leader:
                 continue
-            union = existente + [c for c in palette if c not in existente]
+            union = existing + [c for c in palette if c not in existing]
             if len(union) <= OBJ_COLORS:
-                paletas[numero] = union
-                paleta_de[(charset, index)] = numero
+                palettes[number] = union
+                palette_of[(charset, index)] = number
                 return True
-        if forzar or len(paletas) < tope:
-            if lider:
-                de_lider.add(len(paletas))
-            paleta_de[(charset, index)] = len(paletas)
-            paletas.append(list(palette))
+        if force or len(palettes) < cap:
+            if leader:
+                leader_owned.add(len(palettes))
+            palette_of[(charset, index)] = len(palettes)
+            palettes.append(list(palette))
             return True
         # There is no palette for it, so **one is lent to it**: each color goes
         # to the nearest of the ones there are. It looks bad, but it shows.
@@ -1021,29 +1021,29 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
         # change: the pad's door changes 42% of its own with a jump of 1 out
         # of 31 and stays almost the same, while `Future3:1` changes 49% with
         # jumps of 17 and it does show.
-        cuenta = sprite_colors(renderer.charsets.get(charset), index)
-        mejor = None
-        for numero, existente in enumerate(paletas):
-            if numero in de_lider:
+        counts = sprite_colors(renderer.charsets.get(charset), index)
+        best = None
+        for number, existing in enumerate(palettes):
+            if number in leader_owned:
                 continue        # the ROM overwrites those with the leader's colors
-            costo = sum(v for c, v in cuenta.items() if c not in existente)
-            if mejor is None or costo < mejor[0]:
-                mejor = (costo, numero)
-        if mejor is None:
+            cost = sum(v for c, v in counts.items() if c not in existing)
+            if best is None or cost < best[0]:
+                best = (cost, number)
+        if best is None:
             return False        # there isn't a single non-leader palette
-        paleta_de[(charset, index)] = mejor[1]
-        prestadas.add((charset, index))
+        palette_of[(charset, index)] = best[1]
+        lent.add((charset, index))
         return True
 
     npcs = collect_npcs(game_map)
 
-    def claves(npc):
+    def keys(npc):
         """The (CharSet, index) pairs the NPC can end up drawing: its row's
         and, if the graphic follows the page, those of all its pages."""
-        salida = [(npc["charset"], npc["index"])]
+        out = [(npc["charset"], npc["index"])]
         if npc["cambia"]:
-            salida += [g[:2] for g in npc["graficos"] if g is not None]
-        return salida
+            out += [g[:2] for g in npc["graficos"] if g is not None]
+        return out
 
     # The possible leaders, which are the ones the hero can end up drawing.
     #
@@ -1060,42 +1060,42 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
     # drawn with Talan's colors. It happens in maps 1 and 6 with Kersh and in 3
     # with Talan; in the other six of the PoC it doesn't, and that is where the
     # gain is.
-    de_npc = {c for npc in npcs for c in claves(npc)}
-    vistos, ranura_lider, propios = set(), None, set()
-    for actor in lideres:
+    npc_keys = {c for npc in npcs for c in keys(npc)}
+    seen, slot_leader, own = set(), None, set()
+    for actor in leaders:
         a = renderer.database.actors[actor]
-        clave = (a.charset, a.charset_index)
-        if clave in vistos or not sprite_colors(
+        key = (a.charset, a.charset_index)
+        if key in seen or not sprite_colors(
                 renderer.charsets.get(a.charset), a.charset_index):
             continue
-        vistos.add(clave)
-        if clave in de_npc or ranura_lider is None:
-            cabe(a.charset, a.charset_index, True, lider=True)
-            if clave not in de_npc:
-                ranura_lider = paleta_de[clave]
+        seen.add(key)
+        if key in npc_keys or slot_leader is None:
+            fits(a.charset, a.charset_index, True, leader=True)
+            if key not in npc_keys:
+                slot_leader = palette_of[key]
         else:
             # To the shared slot, and with **its own** colors: its poses are
             # packed with its sorted palette, which is the one the ROM uploads
             # when its turn to lead comes.
-            paleta_de[clave] = ranura_lider
-            propios.add(clave)
+            palette_of[key] = slot_leader
+            own.add(key)
 
     # The CharSets of the pages **are no longer forced**. They were forced so
     # that a character never ran out of palette, and the price was that a map
     # with more characters than palettes didn't convert: map 8 asked for nine
     # out of eight and the Hover-Tram asks for eleven. With the lending in
-    # `cabe` that is no longer needed —whoever doesn't fit is drawn with
+    # `fits` that is no longer needed —whoever doesn't fit is drawn with
     # someone else's— and no map fails because of this.
     #
     # The only one still forced is the leader: the hero is on screen all the
     # time and is the one where it would show the most.
     #
-    # The order is the map's, **except the ones with weight**: see `peso_de_grafico`.
-    for npc in sorted(npcs, key=lambda n: -peso_de_grafico(n["charset"])):
-        for clave in claves(npc):
-            if clave not in vistos and not clave[0].startswith(rm2k.TILE_PREFIX):
-                vistos.add(clave)
-                cabe(clave[0], clave[1], False)
+    # The order is the map's, **except the ones with weight**: see `graphic_weight`.
+    for npc in sorted(npcs, key=lambda n: -graphic_weight(n["charset"])):
+        for key in keys(npc):
+            if key not in seen and not key[0].startswith(rm2k.TILE_PREFIX):
+                seen.add(key)
+                fits(key[0], key[1], False)
     # And the ones from command 34, after the NPCs and before the tiles.
     # **While they fit**, like the tiles and not like a page's CharSets: forcing
     # them broke three maps of the game —108, 114 and 207 asked for nine
@@ -1103,14 +1103,14 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
     # than not drawing a graphic change. The one that doesn't fit isn't drawn,
     # which is the same that already happens with a page whose graphic didn't
     # fit. Transparent ones don't even ask for a palette.
-    for clave in graficos_de_ruta:
-        if clave not in vistos and sprite_colors(
-                renderer.charsets.get(clave[0]), clave[1]):
-            vistos.add(clave)
-            cabe(clave[0], clave[1], False)
+    for key in route_graphics:
+        if key not in seen and sprite_colors(
+                renderer.charsets.get(key[0]), key[1]):
+            seen.add(key)
+            fits(key[0], key[1], False)
     # The timer **before the events drawn with a chipset tile**. Its two colors
     # go to the first palette with room and are reserved there;
-    # `digitos_del_timer` later finds them in place and adds nothing.
+    # `timer_digits` later finds them in place and adds nothing.
     #
     # The order matters and until now it was reversed by accident. A tile event
     # goes in "while it fits" —that is how it is written a few lines below, and
@@ -1120,30 +1120,30 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
     # anywhere and a whole character had to lose a color to make room for it.
     # Serving it first, nothing is merged and the tile settles in another
     # palette.
-    if timer_colores:
-        for numero, existente in enumerate(paletas):
-            if numero in de_lider:
+    if timer_colors:
+        for number, existing in enumerate(palettes):
+            if number in leader_owned:
                 continue        # the ROM overwrites those with the leader's colors
-            union = existente + [c for c in timer_colores if c not in existente]
+            union = existing + [c for c in timer_colors if c not in existing]
             if len(union) <= OBJ_COLORS:
-                paletas[numero] = union
+                palettes[number] = union
                 break
 
-    entran, afuera, salida, descartados = set(), set(), [], []
+    fit, outside, out, discarded = set(), set(), [], []
     for npc in npcs:
-        for clave in claves(npc):
-            if clave in vistos or clave in entran or clave in afuera:
+        for key in keys(npc):
+            if key in seen or key in fit or key in outside:
                 continue
-            if cabe(clave[0], clave[1], False):
-                entran.add(clave)
+            if fits(key[0], key[1], False):
+                fit.add(key)
             else:
-                afuera.add(clave)
+                outside.add(key)
         # The ones left out aren't drawn, from anywhere: the row is hidden if
         # it is its own, and the page that asks for it comes out with no
         # graphic.
-        npc["afuera"] = {c for c in claves(npc) if c in afuera}
-        descartados += [(npc["evento"], c[0]) for c in sorted(npc["afuera"])]
-        if (npc["charset"], npc["index"]) in afuera:
+        npc["afuera"] = {c for c in keys(npc) if c in outside}
+        discarded += [(npc["evento"], c[0]) for c in sorted(npc["afuera"])]
+        if (npc["charset"], npc["index"]) in outside:
             npc["visible"] = False
             npc["tile_pasa"] = None
             if not npc["cambia"]:
@@ -1151,12 +1151,12 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
             # The row stays for the other pages, hidden, and its fields move to
             # the first of them that fits: it is the slot it starts with. If
             # none fits, the event is never drawn.
-            otra = next((g for g in npc["graficos"]
-                         if g is not None and g[:2] not in afuera), None)
-            if otra is None:
+            other = next((g for g in npc["graficos"]
+                          if g is not None and g[:2] not in outside), None)
+            if other is None:
                 continue
-            npc["charset"], npc["index"], npc["pose"] = otra
-        salida.append(npc)
+            npc["charset"], npc["index"], npc["pose"] = other
+        out.append(npc)
     # And last, the timer. Its digits are two colors and black is usually
     # already in almost all of them, so **one free entry** is enough; the
     # problem shows up in a map that fills the eight palettes to fifteen, which
@@ -1171,21 +1171,21 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
     #
     # Measured in map 8: `BLVehicles:5` moves 105 pixels of 4648, 2.26%, with a
     # jump of 4 out of 31. The next candidate costs 11.84%.
-    topes = {}
+    caps = {}
     # Only if it really has nowhere to go: not a palette with room **nor a free
     # slot**. Without looking at the free slots, this took two colors off
     # `People4:5` in map 5 —16.85% of its pixels— when the map uses four
     # palettes of the eight and the timer had a whole one to spare.
-    if timer_colores and len(paletas) >= OBJ_PALETTES and not any(
-            n not in de_lider
-            and len(set(p) | set(timer_colores)) <= OBJ_COLORS
-            for n, p in enumerate(paletas)):
-        solos = collections.Counter()
-        for clave, n in paleta_de.items():
-            solos[n] += 1
-        mejor = None
-        for clave, n in paleta_de.items():
-            if n in de_lider or solos[n] != 1 or clave[0].startswith(
+    if timer_colors and len(palettes) >= OBJ_PALETTES and not any(
+            n not in leader_owned
+            and len(set(p) | set(timer_colors)) <= OBJ_COLORS
+            for n, p in enumerate(palettes)):
+        singles = collections.Counter()
+        for key, n in palette_of.items():
+            singles[n] += 1
+        best = None
+        for key, n in palette_of.items():
+            if n in leader_owned or singles[n] != 1 or key[0].startswith(
                     rm2k.TILE_PREFIX):
                 continue
             # The ones in another map of the ROM go **last**, not out: the pose
@@ -1197,47 +1197,47 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
             # itself, none was left, and the ROM with the timer stopped
             # building. Six kilobytes is worse than nothing and better than not
             # having a timer.
-            ajeno = solo_aqui is not None and clave not in solo_aqui
-            cuenta = sprite_colors(renderer.charsets.get(clave[0]), clave[1],
-                                   poses.get(clave))
-            if not cuenta:
+            foreign = only_here is not None and key not in only_here
+            counts = sprite_colors(renderer.charsets.get(key[0]), key[1],
+                                   poses.get(key))
+            if not counts:
                 continue
-            faltan = len([c for c in timer_colores if c not in paletas[n]])
-            nuevo_tope = OBJ_COLORS - faltan
-            m, _ = allocator.merge_least_visible(cuenta, nuevo_tope)
-            movidos = sum(v for c, v in cuenta.items() if m[c] != c)
-            costo = (ajeno, movidos / float(sum(cuenta.values())), clave)
-            if mejor is None or costo < mejor[0]:
-                mejor = (costo, clave, n, nuevo_tope, sorted(set(m.values())))
-        if mejor is not None:
-            _costo, clave, n, nuevo_tope, paleta_nueva = mejor
+            missing = len([c for c in timer_colors if c not in palettes[n]])
+            new_cap = OBJ_COLORS - missing
+            m, _ = allocator.merge_least_visible(counts, new_cap)
+            moved = sum(v for c, v in counts.items() if m[c] != c)
+            cost = (foreign, moved / float(sum(counts.values())), key)
+            if best is None or cost < best[0]:
+                best = (cost, key, n, new_cap, sorted(set(m.values())))
+        if best is not None:
+            _cost, key, n, new_cap, new_palette = best
             print("  to make room for the timer, %s:%d drops to %d colors "
                   "(%.2f%% of its pixels)%s"
-                  % (clave[0], clave[1], nuevo_tope, 100 * _costo[1],
-                     ", and with a pose bank of its own" if _costo[0] else ""))
-            paletas[n] = paleta_nueva
-            topes[clave] = nuevo_tope
+                  % (key[0], key[1], new_cap, 100 * _cost[1],
+                     ", and with a pose bank of its own" if _cost[0] else ""))
+            palettes[n] = new_palette
+            caps[key] = new_cap
 
     # The split is returned so `build_characters` uses it as is: a second
     # first-place-that-fits in another order can give a different count, and
     # it did: map 8 fit here in eight palettes and there asked for nine.
-    return salida, descartados, (paletas, paleta_de, propios, de_lider,
-                                 topes, prestadas, poses)
+    return out, discarded, (palettes, palette_of, own, leader_owned,
+                            caps, lent, poses)
 
 
-def build_characters(images, personajes, ranuras, reparto):
+def build_characters(images, characters, slots, split):
     """The sprite bank that goes to VRAM: one pose per slot.
 
-    `personajes` is the list of (charset, index) that need a palette, in the
-    order they are handed out; `ranuras` that of (key, charset, index, pose), a
+    `characters` is the list of (charset, index) that need a palette, in the
+    order they are handed out; `slots` that of (key, charset, index, pose), a
     block of 16 tiles for each one and in that order. Since 2026-09-05 what
     goes here is **one pose per slot** and nothing else: the twelve of the
-    walkers live in the cartridge —see `banco_de_poses`— and are uploaded on
+    walkers live in the cartridge —see `pose_bank`— and are uploaded on
     the fly. They all used to go here, and the opening scene asked for 768
     tiles of the 512 the PPU addresses.
 
-    **Palettes are not decided here**: they arrive in `reparto`, which is what
-    `npcs_dibujables` decided for the whole map. Here only the index of each
+    **Palettes are not decided here**: they arrive in `split`, which is what
+    `drawable_npcs` decided for the whole map. Here only the index of each
     color inside its own is built. Until 2026-09-17 there was also a split of
     its own, first-that-fits, for when none arrived; nobody used it, and a
     second split in another order had already given a different count —map 8
@@ -1248,52 +1248,52 @@ def build_characters(images, personajes, ranuras, reparto):
     palette.
     """
     tiles = bytearray()
-    colores = {}
-    palettes = [list(p) for p in reparto[0]]
-    paleta_de = dict(reparto[1])
+    colors = {}
+    palettes = [list(p) for p in split[0]]
+    palette_of = dict(split[1])
     # The ones that share the leader's slot: their `lookup` comes from **their**
     # palette and not from the slot's, because the ROM will upload their colors
-    # there when their turn to lead comes. See `npcs_dibujables`.
-    propios = set(reparto[2])
+    # there when their turn to lead comes. See `drawable_npcs`.
+    own = set(split[2])
     # And who had their number of colors lowered so the timer would fit. It has
-    # to be the same number `npcs_dibujables` used: if here it were quantized
+    # to be the same number `drawable_npcs` used: if here it were quantized
     # with fifteen, the cartridge's poses wouldn't match the palette the ROM
     # uploads to CGRAM.
-    topes = dict(reparto[4])
+    caps = dict(split[4])
     # And which poses each one can show, which is what their fifteen colors
     # were chosen over there. It has to be the same set: with another one, the
     # palette the ROM uploads to CGRAM and the tiles packed here would come
     # from two different computations.
-    poses_de = dict(reparto[6])
-    for charset, index in personajes:
-        if (charset, index) in colores:
+    poses_of = dict(split[6])
+    for charset, index in characters:
+        if (charset, index) in colors:
             continue
-        palette, lookup, mapping = paleta_del_personaje(
-            images[charset], index, topes.get((charset, index)),
-            poses=poses_de.get((charset, index)))
-        if (charset, index) not in paleta_de:
+        palette, lookup, mapping = character_palette(
+            images[charset], index, caps.get((charset, index)),
+            poses=poses_of.get((charset, index)))
+        if (charset, index) not in palette_of:
             sys.exit("%s:%d is not in the palette split" % (charset, index))
-        if (charset, index) in propios:
-            colores[(charset, index)] = (lookup, mapping)
+        if (charset, index) in own:
+            colors[(charset, index)] = (lookup, mapping)
             continue
-        union = palettes[paleta_de[(charset, index)]]
+        union = palettes[palette_of[(charset, index)]]
         # The colors that aren't in the palette it got go to the nearest of the
         # ones there are. It happens when the map ran out of palettes and
-        # `npcs_dibujables` lent it someone else's: it looks bad, but it shows.
+        # `drawable_npcs` lent it someone else's: it looks bad, but it shows.
         lookup = {}
         for color in palette:
             if color in union:
                 lookup[color] = union.index(color) + 1
             else:
-                cerca = min(union,
-                            key=lambda p, c=color: allocator.luma_distance(p, c))
-                lookup[color] = union.index(cerca) + 1
-        colores[(charset, index)] = (lookup, mapping)
+                near = min(union,
+                           key=lambda p, c=color: allocator.luma_distance(p, c))
+                lookup[color] = union.index(near) + 1
+        colors[(charset, index)] = (lookup, mapping)
 
     where = {}
-    for block, (clave, charset, index, pose) in enumerate(ranuras):
-        lookup, mapping = colores[(charset, index)]
-        where[clave] = (block, paleta_de[(charset, index)])
+    for block, (key, charset, index, pose) in enumerate(slots):
+        lookup, mapping = colors[(charset, index)]
+        where[key] = (block, palette_of[(charset, index)])
         first = block_tile(block)
         # The block doesn't take 16 consecutive tiles: it is a 4x4 square inside
         # a grid 16 wide, so the gap has to be left.
@@ -1304,14 +1304,14 @@ def build_characters(images, personajes, ranuras, reparto):
                                             lookup, mapping)):
             number = first + (i // 4) * OBJ_ROW + (i % 4)
             tiles[number * 32:(number + 1) * 32] = tile
-    return bytes(tiles), palettes, where, paleta_de, colores
+    return bytes(tiles), palettes, where, palette_of, colors
 
 
 # A pose in the cartridge: the 16 tiles in a row, by rows.
 POSE_BYTES = 16 * 32
 
 
-def banco_de_poses(images, personajes, colores):
+def pose_bank(images, characters, colors):
     """The twelve poses of each character that changes pose, for the cartridge.
 
     One block per character —twelve poses of 512 bytes, 6 KB— and not one for
@@ -1323,32 +1323,32 @@ def banco_de_poses(images, personajes, colores):
     `emit` translates.
     """
     banks = {}
-    for charset, index in personajes:
+    for charset, index in characters:
         # With the lookup from `build_characters`, which is that of the palette
         # it ended up packed in: a pose uploaded on the fly is drawn with the
         # palette already in CGRAM.
-        lookup, mapping = colores[(charset, index)]
-        datos = bytearray()
+        lookup, mapping = colors[(charset, index)]
+        data = bytearray()
         for pose in range(SPRITE_POSES):
             for tile in pose_tiles(images[charset], index, pose, lookup,
                                    mapping):
-                datos += tile
-        banks[(charset, index)] = bytes(datos)
+                data += tile
+        banks[(charset, index)] = bytes(data)
     return banks
 
 
 # The timer: eleven 8x16 glyphs in the System, starting at (32, 32). Ten digits
 # and the colon, which is all `Sprite_Timer::Draw` draws.
-TIMER_GLIFOS = 11
-TIMER_GLIFO_W, TIMER_GLIFO_H = 8, 16
-TIMER_ORIGEN = (32, 32)
+TIMER_GLYPHS = 11
+TIMER_GLYPH_W, TIMER_GLYPH_H = 8, 16
+TIMER_ORIGIN = (32, 32)
 # Where it is drawn on screen. `Sprite_Timer` puts it at `menu_offset_x + 4`
 # and `menu_offset_y + 4`, and with a screen narrower than the menu both
 # offsets come out zero.
 TIMER_X, TIMER_Y = 4, 4
 
 
-def colores_del_timer(sys_img):
+def timer_colors_of(sys_img):
     """The colors the timer's eleven glyphs use.
 
     It is needed **before** splitting the palettes and not only when packing
@@ -1356,19 +1356,19 @@ def colores_del_timer(sys_img):
     color to make room for it, and that decision changes how that character is
     quantized.
     """
-    colores = collections.Counter()
-    for i in range(TIMER_GLIFOS):
-        for y in range(TIMER_GLIFO_H):
-            for x in range(TIMER_GLIFO_W):
-                r, g, b, a = sys_img.getpixel((TIMER_ORIGEN[0] + i * 8 + x,
-                                               TIMER_ORIGEN[1] + y))
+    colors = collections.Counter()
+    for i in range(TIMER_GLYPHS):
+        for y in range(TIMER_GLYPH_H):
+            for x in range(TIMER_GLYPH_W):
+                r, g, b, a = sys_img.getpixel((TIMER_ORIGIN[0] + i * 8 + x,
+                                               TIMER_ORIGIN[1] + y))
                 if a:
-                    colores[(r >> 3, g >> 3, b >> 3)] += 1
-    return colores
+                    colors[(r >> 3, g >> 3, b >> 3)] += 1
+    return colors
 
 
-def digitos_del_timer(sys_img, tiles, palettes, de_lider=(),
-                     tope=OBJ_PALETTES):
+def timer_digits(sys_img, tiles, palettes, leader_owned=(),
+                     cap=OBJ_PALETTES):
     """The timer's eleven glyphs, at the end of the sprite bank.
 
     Each goes as two stacked 8x8 tiles, and all eleven fit in a row of
@@ -1381,18 +1381,18 @@ def digitos_del_timer(sys_img, tiles, palettes, de_lider=(),
     events drawn with a chipset tile fit. One is added only if none has room.
 
     Reserving it up front cost one palette of the eight, and that is not
-    bookkeeping: `npcs_dibujables` decides with that number **which events are
+    bookkeeping: `drawable_npcs` decides with that number **which events are
     drawn**. On 2026-09-07, when building `demo-apertura` with the timer, map 2
     lost two events, and one was the middle one of the door Core breaks: taro
     reached the cutscene, the door didn't change tile and he couldn't get
     through. An event that isn't drawn **still takes space**, so the loss is
     not only visual.
     """
-    colores = colores_del_timer(sys_img)
-    if len(colores) > OBJ_COLORS:
+    colors = timer_colors_of(sys_img)
+    if len(colors) > OBJ_COLORS:
         raise SystemExit("the timer digits use %d colors and %d fit"
-                         % (len(colores), OBJ_COLORS))
-    quiere = sorted(colores)
+                         % (len(colors), OBJ_COLORS))
+    wanted = sorted(colors)
     # The first palette its colors fit in without merging anything. It is the
     # same first-fit as `build_characters` and for the same reason.
     #
@@ -1401,23 +1401,23 @@ def digitos_del_timer(sys_img, tiles, palettes, de_lider=(),
     # loads, so a digit put there would lose its red as soon as Talan hands
     # the lead to Kersh. In the seven maps of `demo-apertura` it doesn't land
     # in any today, which is exactly what made the error invisible.
-    for numero, existente in enumerate(palettes):
-        if numero in de_lider:
+    for number, existing in enumerate(palettes):
+        if number in leader_owned:
             continue
-        union = list(existente) + [c for c in quiere if c not in existente]
+        union = list(existing) + [c for c in wanted if c not in existing]
         if len(union) <= OBJ_COLORS:
-            palettes[numero] = union
-            paleta, cual = union, numero
+            palettes[number] = union
+            palette, which = union, number
             break
     else:
-        if len(palettes) >= tope:
+        if len(palettes) >= cap:
             raise SystemExit(
                 "the timer doesn't fit: the map already uses the %d sprite "
                 "palettes it gets and none has room for its %d colors"
-                % (tope, len(quiere)))
-        paleta, cual = list(quiere), len(palettes)
-        palettes.append(paleta)
-    indice = {color: paleta.index(color) + 1 for color in quiere}
+                % (cap, len(wanted)))
+        palette, which = list(wanted), len(palettes)
+        palettes.append(palette)
+    index = {color: palette.index(color) + 1 for color in wanted}
 
     tiles = bytearray(tiles)
     # The base is rounded up to a **row of blocks**, 64 tiles, and not to a
@@ -1427,31 +1427,31 @@ def digitos_del_timer(sys_img, tiles, palettes, de_lider=(),
     # block. Nothing showed there until the hero's pose was uploaded and
     # overwrote the 0 and the colon.
     base = -(-(len(tiles) // 32) // 64) * 64
-    if (base + 16 + TIMER_GLIFOS) * 32 > len(tiles):
-        tiles += bytes((base + 16 + TIMER_GLIFOS) * 32 - len(tiles))
-    for i in range(TIMER_GLIFOS):
-        for mitad in (0, 1):
-            celda = []
+    if (base + 16 + TIMER_GLYPHS) * 32 > len(tiles):
+        tiles += bytes((base + 16 + TIMER_GLYPHS) * 32 - len(tiles))
+    for i in range(TIMER_GLYPHS):
+        for half in (0, 1):
+            cell = []
             for y in range(CELL):
-                fila = []
+                row = []
                 for x in range(CELL):
                     r, g, b, a = sys_img.getpixel(
-                        (TIMER_ORIGEN[0] + i * 8 + x,
-                         TIMER_ORIGEN[1] + mitad * CELL + y))
-                    fila.append(indice[(r >> 3, g >> 3, b >> 3)] if a else 0)
-                celda.append(tuple(fila))
-            numero = base + mitad * 16 + i
-            tiles[numero * 32:(numero + 1) * 32] = pack_tile(tuple(celda),
+                        (TIMER_ORIGIN[0] + i * 8 + x,
+                         TIMER_ORIGIN[1] + half * CELL + y))
+                    row.append(index[(r >> 3, g >> 3, b >> 3)] if a else 0)
+                cell.append(tuple(row))
+            number = base + half * 16 + i
+            tiles[number * 32:(number + 1) * 32] = pack_tile(tuple(cell),
                                                              planes=4)
-    return bytes(tiles), base, cual
+    return bytes(tiles), base, which
 
 
-def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
-                   tope=OBJ_PALETTES, timer_pal=None):
+def rain_drops(tiles, palettes, leader_owned=(), timer_base=None,
+                   cap=OBJ_PALETTES, timer_pal=None):
     """The six raindrop tiles —above and below the streak, in the three
     grays— and the palette their colors go in. See OP_WEATHER in events.py.
 
-    It is the same as `digitos_del_timer`: the colors go in the first
+    It is the same as `timer_digits`: the colors go in the first
     character palette with room, except the leader ones, and the tiles at the
     end of the bank. If the timer is there, in its same row of sixteen, which
     has five places to spare; if not, in a row of blocks of its own. Tone `t`
@@ -1467,36 +1467,36 @@ def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
     with them. It is still avoided because removing it can move where the
     drops land, and that wasn't measured.
     """
-    quiere = [c for c in events.RAIN_COLORS]
-    evitar = set(de_lider)
+    wanted = [c for c in events.RAIN_COLORS]
+    avoid = set(leader_owned)
     if timer_pal is not None:
-        evitar.add(timer_pal)
-    cual = _primer_lugar(palettes, evitar, quiere, tope)
-    if cual is None:
+        avoid.add(timer_pal)
+    which = _first_place(palettes, avoid, wanted, cap)
+    if which is None:
         # No room: this map doesn't draw rain. Nobody loses a color to make
         # room for it, unlike the timer: that would change the split, and the
         # split is what decides which colors each map has.
         return bytes(tiles), 0, 0
-    paleta = palettes[cual]
+    palette = palettes[which]
     tiles = bytearray(tiles)
     if timer_base:
-        base = timer_base + TIMER_GLIFOS
+        base = timer_base + TIMER_GLYPHS
     else:
         base = -(-(len(tiles) // 32) // 64) * 64
     if (base + 16 + 3) * 32 > len(tiles):
         tiles += bytes((base + 16 + 3) * 32 - len(tiles))
-    raya = set(events.rain_pixels(0, 0))
-    for tono, color in enumerate(quiere):
-        indice = paleta.index(color) + 1
-        for mitad in (0, 1):
-            celda = tuple(tuple(indice if (x, mitad * CELL + y) in raya else 0
-                                for x in range(CELL)) for y in range(CELL))
-            numero = base + mitad * 16 + tono
-            tiles[numero * 32:(numero + 1) * 32] = pack_tile(celda, planes=4)
-    return bytes(tiles), base, cual
+    streak = set(events.rain_pixels(0, 0))
+    for hue, color in enumerate(wanted):
+        index = palette.index(color) + 1
+        for half in (0, 1):
+            cell = tuple(tuple(index if (x, half * CELL + y) in streak else 0
+                               for x in range(CELL)) for y in range(CELL))
+            number = base + half * 16 + hue
+            tiles[number * 32:(number + 1) * 32] = pack_tile(cell, planes=4)
+    return bytes(tiles), base, which
 
 
-def cartel_de_imagen(info, tiles, palettes, base_previa=None):
+def picture_of_image(info, tiles, palettes, previous_base=None):
     """The `ShowPicture` picture at the end of the sprite bank: its tiles and **a
     whole palette just for it**.
 
@@ -1517,22 +1517,22 @@ def cartel_de_imagen(info, tiles, palettes, base_previa=None):
     """
     if len(palettes) >= OBJ_PALETTES:
         return bytes(tiles), 0, 0
-    cual = len(palettes)        # the first free one, without adding it to the list
+    which = len(palettes)        # the first free one, without adding it to the list
     tiles = bytearray(tiles)
-    if base_previa:
-        base = -(-(base_previa + 2 * 16) // 64) * 64
+    if previous_base:
+        base = -(-(previous_base + 2 * 16) // 64) * 64
     else:
         base = -(-(len(tiles) // 32) // 64) * 64
-    cuantos = picture.reserved_tiles(info)
-    if (base + cuantos) * 32 > len(tiles):
-        tiles += bytes((base + cuantos) * 32 - len(tiles))
-    for numero, celda in picture.cells(info).items():
-        tiles[(base + numero) * 32:(base + numero + 1) * 32] = pack_tile(
-            celda, planes=4)
-    return bytes(tiles), base, cual
+    count = picture.reserved_tiles(info)
+    if (base + count) * 32 > len(tiles):
+        tiles += bytes((base + count) * 32 - len(tiles))
+    for number, cell in picture.cells(info).items():
+        tiles[(base + number) * 32:(base + number + 1) * 32] = pack_tile(
+            cell, planes=4)
+    return bytes(tiles), base, which
 
 
-def mapa_muestra_animacion(game_map, renderer, comandos=()):
+def map_shows_animation(game_map, renderer, commands=()):
     """Whether some page of this map can draw a battle animation.
 
     It is looked at on the raw commands and not on the already compiled
@@ -1542,20 +1542,20 @@ def mapa_muestra_animacion(game_map, renderer, comandos=()):
     if the bytecode showed an animation the map didn't reserve, the ROM would
     write the tiles on top of a character's.
 
-    `comandos` are those of the test pages, which don't come from the map.
+    `commands` are those of the test pages, which don't come from the map.
     """
-    numeros = set()
-    for cmd in list(comandos) + [cmd for evento in game_map.events
-                                 for page in evento.pages
+    numbers = set()
+    for cmd in list(commands) + [cmd for event in game_map.events
+                                 for page in event.pages
                                  for cmd in page.commands]:
         if (cmd.code == events.SHOW_BATTLE_ANIMATION
                 and len(cmd.parameters) >= 3):
-            numeros.add(cmd.parameters[0])
-    return any(animacion_mod.by_number(renderer, n) is not None
-               for n in numeros)
+            numbers.add(cmd.parameters[0])
+    return any(animation_mod.by_number(renderer, n) is not None
+               for n in numbers)
 
 
-def animacion_de_mapa(tiles, palettes, usadas=0):
+def map_animation(tiles, palettes, used=0):
     """The battle animation box at the end of the sprite bank: its 64 tiles
     and **a whole palette just for it**.
 
@@ -1571,11 +1571,11 @@ def animacion_de_mapa(tiles, palettes, usadas=0):
     via DMA frame by frame, from the cartridge. See `animation.py`.
 
     Returns (tiles, base, palette number), or (tiles, 0, 0) if the map already
-    uses the eight sprite palettes. `usadas` are the ones the picture already
+    uses the eight sprite palettes. `used` are the ones the picture already
     took.
     """
-    cual = len(palettes) + usadas
-    if cual >= OBJ_PALETTES:
+    which = len(palettes) + used
+    if which >= OBJ_PALETTES:
         return bytes(tiles), 0, 0
     tiles = bytearray(tiles)
     # After everything else: the timer, the drops and the picture already grew
@@ -1583,13 +1583,13 @@ def animacion_de_mapa(tiles, palettes, usadas=0):
     # to a **row of blocks**, which is what the arithmetic of 32x32 objects
     # needs whole.
     base = -(-(len(tiles) // 32) // 64) * 64
-    if (base + animacion_mod.TILES) * 32 > len(tiles):
-        tiles += bytes((base + animacion_mod.TILES) * 32 - len(tiles))
-    return bytes(tiles), base, cual
+    if (base + animation_mod.TILES) * 32 > len(tiles):
+        tiles += bytes((base + animation_mod.TILES) * 32 - len(tiles))
+    return bytes(tiles), base, which
 
 
-def tope_de_paletas_del_mapa(renderer, game_map, lideres, graficos,
-                             timer_colores, solos, poses, muestra_animacion):
+def map_palette_cap(renderer, game_map, leaders, graphics,
+                    timer_colors, singles, poses, sample_animation):
     """How many sprite palettes this map can split among its characters: all
     eight, or **seven** if it shows battle animations.
 
@@ -1603,81 +1603,81 @@ def tope_de_paletas_del_mapa(renderer, game_map, lideres, graficos,
     back to eight and this map doesn't draw animations, which is what happens
     to map 9.
 
-    It lives on its own and not inside `convertir` because it is a split
-    decision and not a detail of `convertir`.
+    It lives on its own and not inside `convert_map` because it is a split
+    decision and not a detail of `convert_map`.
     """
-    if not muestra_animacion:
+    if not sample_animation:
         return OBJ_PALETTES
-    menos = OBJ_PALETTES - 1
-    if timer_colores:
-        reparto = npcs_dibujables(renderer, game_map, lideres, menos, graficos,
-                                  timer_colores, solos, poses)[2]
-        copia = [list(p) for p in reparto[0]]
-        if _primer_lugar(copia, reparto[3], list(timer_colores),
-                         menos) is None:
+    minus = OBJ_PALETTES - 1
+    if timer_colors:
+        split = drawable_npcs(renderer, game_map, leaders, minus, graphics,
+                              timer_colors, singles, poses)[2]
+        clone = [list(p) for p in split[0]]
+        if _first_place(clone, split[3], list(timer_colors),
+                        minus) is None:
             return OBJ_PALETTES
-    return menos
+    return minus
 
 
-def _primer_lugar(palettes, de_lider, colores, tope=OBJ_PALETTES):
-    """The first palette —except the leader ones— where `colores` fit without
+def _first_place(palettes, leader_owned, colors, cap=OBJ_PALETTES):
+    """The first palette —except the leader ones— where `colors` fit without
     merging anything, or a new one if a slot is left; it adds or grows it and
     returns its number, or None if there is no room.
 
-    `tope` is how many sprite palettes this map can use, which **isn't always
+    `cap` is how many sprite palettes this map can use, which **isn't always
     all eight**: a map that shows battle animations reserves one for the
     animation box, and neither the timer nor the drops can take it. See
-    `tope_de_paletas` in `convertir`.
+    `palette_cap` in `convert_map`.
     """
-    for numero, existente in enumerate(palettes):
-        if numero in de_lider:
+    for number, existing in enumerate(palettes):
+        if number in leader_owned:
             continue
-        union = list(existente) + [c for c in colores if c not in existente]
+        union = list(existing) + [c for c in colors if c not in existing]
         if len(union) <= OBJ_COLORS:
-            palettes[numero] = union
-            return numero
-    if len(palettes) < tope:
-        palettes.append(list(colores))
+            palettes[number] = union
+            return number
+    if len(palettes) < cap:
+        palettes.append(list(colors))
         return len(palettes) - 1
     return None
 
 
-def mapas_por_personaje(renderer, map_ids, game_dir):
+def maps_per_character(renderer, map_ids, game_dir):
     """How many maps of the ROM each (CharSet, index) appears in."""
-    cuenta = collections.Counter()
-    for otro in map_ids:
-        gm = renderer.load_map(os.path.join(game_dir, "Map%04d.lmu" % otro))
-        suyos = set()
-        for evento in gm.events:
-            for pagina in evento.pages:
-                nombre = (getattr(pagina, "character_name", "") or "").strip()
-                if nombre:
-                    suyos.add((nombre, pagina.character_index))
-        cuenta.update(suyos)
-    return cuenta
+    counts = collections.Counter()
+    for other in map_ids:
+        gm = renderer.load_map(os.path.join(game_dir, "Map%04d.lmu" % other))
+        theirs = set()
+        for event in gm.events:
+            for page in event.pages:
+                name = (getattr(page, "character_name", "") or "").strip()
+                if name:
+                    theirs.add((name, page.character_index))
+        counts.update(theirs)
+    return counts
 
 
-def hay_lluvia(map_ids, extra=()):
+def has_rain(map_ids, extra=()):
     """Whether some page of these maps sets rain: then every map of the ROM
     carries the drops, because the weather persists across map changes.
     `extra` are the commands of the test pages."""
-    def llueve(cmd):
+    def rains(cmd):
         return (cmd.code == events.WEATHER_EFFECTS
                 and cmd.parameters[:1] == [events.WEATHER_RAIN])
-    if any(llueve(cmd) for cmd in extra):
+    if any(rains(cmd) for cmd in extra):
         return True
     for map_id in map_ids:
-        game_map = lcf.Map(os.path.join(_juego(),
+        game_map = lcf.Map(os.path.join(_game(),
                                         "Map%04d.lmu" % map_id))
-        for evento in game_map.events:
-            for page in evento.pages:
+        for event in game_map.events:
+            for page in event.pages:
                 for cmd in page.commands:
-                    if llueve(cmd):
+                    if rains(cmd):
                         return True
     return False
 
 
-def npc_table(npcs, where, movibles=(), indice_animado=None, anima_quieto=()):
+def npc_table(npcs, where, movable=(), animated_index=None, animates_still=()):
     """The NPCs ready for the ROM, already sorted the way RM2k draws them.
 
     The drawing order is first by layer and only then by Y: a "below" one stays
@@ -1690,28 +1690,28 @@ def npc_table(npcs, where, movibles=(), indice_animado=None, anima_quieto=()):
     the order of ties: between two tied ones the order of this list still
     holds.
 
-    The ones in `movibles` also carry which cartridge pose bank their twelve
+    The ones in `movable` also carry which cartridge pose bank their twelve
     are in, so the ROM uploads them on the fly while they walk.
     """
     rows = []
-    for npc in sorted(npcs, key=orden_de_dibujo, reverse=True):
-        camina = npc["evento"] in movibles
-        clave = (("ev", npc["evento"]) if camina
-                 else (npc["charset"], npc["index"], npc["pose"]))
-        block, slot = where[clave]
+    for npc in sorted(npcs, key=drawing_order, reverse=True):
+        walks = npc["evento"] in movable
+        key = (("ev", npc["evento"]) if walks
+               else (npc["charset"], npc["index"], npc["pose"]))
+        block, slot = where[key]
         rows.append({
             "x": npc["x"] * 16, "y": npc["y"] * 16,
             "tile": block_tile(block), "palette": slot,
             "layer": npc["layer"], "blocks": npc["blocks"],
             "evento": npc["evento"], "dir": npc["pose"] // 3,
             "pose": npc["pose"],
-            "poses": (indice_animado[(npc["charset"], npc["index"])]
-                      if camina else None),
+            "poses": (animated_index[(npc["charset"], npc["index"])]
+                      if walks else None),
             "velocidad": npc.get("velocidad", 3),
             # The still ones with continuous animation: their column comes from
             # the game clock. The walking ones carry it in their route slot, so
             # the flag doesn't apply to them even if their page asks for it too.
-            "anima": npc["evento"] in anima_quieto,
+            "anima": npc["evento"] in animates_still,
             "visible": npc.get("visible", True),
             "tile_pasa": npc.get("tile_pasa"),
         })
@@ -1720,38 +1720,38 @@ def npc_table(npcs, where, movibles=(), indice_animado=None, anima_quieto=()):
 
 # --- conversion -------------------------------------------------------------
 
-def build_palette(grid, bg_colors, otras=()):
+def build_palette(grid, bg_colors, others=()):
     """The map's colors, in a single table, merging only if there are too many.
 
     At 8 bits per pixel the only limit is how many CGRAM entries are left free
     below the upper layer. Map0007 uses 60, so nothing is merged; the merge
     path exists for more loaded maps and is `allocator.reduce_colors`.
 
-    `otras` are the grids of the other drawings of the ChipSet animation. They
+    `others` are the grids of the other drawings of the ChipSet animation. They
     count for the palette like the usual drawing —the water of map 5 brings
     three colors that aren't in its step 0, and without them step 1 couldn't
     be written with this palette— and come out merged with the same
     `mapping`, which is what keeps them comparable with each other.
     """
-    counts = _colores_de((grid,) + tuple(otras))
+    counts = _colors_of((grid,) + tuple(others))
     if len(counts) <= bg_colors:
-        return sorted(counts), grid, list(otras), []
+        return sorted(counts), grid, list(others), []
 
     mapping, merged = allocator.merge_least_visible(counts, bg_colors)
 
-    def fusionar(g):
+    def merge(g):
         return [[tuple(tuple(mapping.get(p) for p in line) for line in tile)
                  for tile in row] for row in g]
 
-    return (sorted({c for c in mapping.values()}), fusionar(grid),
-            [fusionar(g) for g in otras], merged)
+    return (sorted({c for c in mapping.values()}), merge(grid),
+            [merge(g) for g in others], merged)
 
 
-_VERSION_CAPAS = None
+_LAYERS_VERSION = None
 
 
-def _version_capas():
-    """Which version of the code produced whatever is stored under `capas`.
+def _layers_version():
+    """Which version of the code produced whatever is stored under `layers`.
 
     It is the seven pieces that take part in drawing or converting, plus the
     two programs that aren't sources of this tree:
@@ -1779,23 +1779,23 @@ def _version_capas():
     its value in `layer_inputs`, so a change in how it is read only
     matters if what is read changes, and then the key changes by itself.
     """
-    global _VERSION_CAPAS
-    if _VERSION_CAPAS is None:
+    global _LAYERS_VERSION
+    if _LAYERS_VERSION is None:
         import PIL
         from common import disk_cache
-        _VERSION_CAPAS = (disk_cache.version_of("port/snes_convert.py",
-                                                "port/allocator.py",
-                                                "rpgmaker/rm2k.py",
-                                                "render/render_map.py",
-                                                "rpgmaker/resources.py",
-                                                "common/project.py",
-                                                "render/chipset.py")
-                          + tiles_bin.version()
-                          + " Pillow " + PIL.__version__)
-    return _VERSION_CAPAS
+        _LAYERS_VERSION = (disk_cache.version_of("port/snes_convert.py",
+                                                 "port/allocator.py",
+                                                 "rpgmaker/rm2k.py",
+                                                 "render/render_map.py",
+                                                 "rpgmaker/resources.py",
+                                                 "common/project.py",
+                                                 "render/chipset.py")
+                           + tiles_bin.version()
+                           + " Pillow " + PIL.__version__)
+    return _LAYERS_VERSION
 
 
-def capas_convertidas(renderer, game_map):
+def converted_layers(renderer, game_map):
     """The map's layers converted, remembered on disk. `None` if there is no
     ChipSet.
 
@@ -1820,81 +1820,81 @@ def capas_convertidas(renderer, game_map):
     same byte for byte.
     """
     from common import disk_cache
-    insumos = renderer.layer_inputs(game_map)
-    en_disco = None
-    if insumos is not None:
-        en_disco = disk_cache.key(_version_capas(), *insumos)
-        if en_disco in _capas_en_memoria:
-            return _capas_en_memoria[en_disco]
-        hecho = disk_cache.read("capas", en_disco)
-        if hecho is not None:
-            _capas_en_memoria[en_disco] = hecho
-            return hecho
-    base, above_img, variantes = renderer.animated_layers(game_map)
+    inputs = renderer.layer_inputs(game_map)
+    on_disk = None
+    if inputs is not None:
+        on_disk = disk_cache.key(_layers_version(), *inputs)
+        if on_disk in _layers_in_memory:
+            return _layers_in_memory[on_disk]
+        done = disk_cache.read("capas", on_disk)
+        if done is not None:
+            _layers_in_memory[on_disk] = done
+            return done
+    base, above_img, variants = renderer.animated_layers(game_map)
     if base is None:
         return None
-    hecho = _convert_layers(base, above_img, variantes)
-    if en_disco is not None:
-        disk_cache.write("capas", en_disco, hecho)
-        _capas_en_memoria[en_disco] = hecho
-    return hecho
+    done = _convert_layers(base, above_img, variants)
+    if on_disk is not None:
+        disk_cache.write("capas", on_disk, done)
+        _layers_in_memory[on_disk] = done
+    return done
 
 
 # The layers already converted in this run, keyed by the disk cache key.
-# `precalcular_capas` fills it and it also works with `SIN_CACHE=1`: it is not
+# `precompute_layers` fills it and it also works with `SIN_CACHE=1`: it is not
 # a cache between runs but the same computation done earlier and in parallel.
-_capas_en_memoria = {}
+_layers_in_memory = {}
 
 
-def precalcular_capas(renderer, map_ids, args):
-    """The layers of all maps, converted in parallel before `convertir` asks
+def precompute_layers(renderer, map_ids, args):
+    """The layers of all maps, converted in parallel before `convert_map` asks
     for them.
 
     It is the most expensive part of a cold build —or of a warm one after
     touching this file, which invalidates the stored layers— and each map is
     independent, so there is one process per map. The processes fork with all
-    the state already built, prepare the map like `convertir` does and return
-    what they computed with its key; `convertir` then asks for the same key.
+    the state already built, prepare the map like `convert_map` does and return
+    what they computed with its key; `convert_map` then asks for the same key.
     **A map prepared differently here than there doesn't give a different
-    ROM**: it gives another key, and `convertir` computes it as always.
+    ROM**: it gives another key, and `convert_map` computes it as always.
     """
     if len(map_ids) < 2:
         return
-    global _para_precalcular
-    _para_precalcular = (renderer, args)
-    procesos = min(len(map_ids), os.cpu_count() or 1)
-    with multiprocessing.get_context("fork").Pool(procesos) as pool:
-        for hechas in pool.map(_capas_de_un_mapa, map_ids, chunksize=1):
-            _capas_en_memoria.update(hechas)
-    _para_precalcular = None
+    global _to_precompute
+    _to_precompute = (renderer, args)
+    processes = min(len(map_ids), os.cpu_count() or 1)
+    with multiprocessing.get_context("fork").Pool(processes) as pool:
+        for done_ones in pool.map(_map_layers, map_ids, chunksize=1):
+            _layers_in_memory.update(done_ones)
+    _to_precompute = None
 
 
-_para_precalcular = None
+_to_precompute = None
 
 
-def _capas_de_un_mapa(map_id):
-    """What `precalcular_capas` does in each process: the same steps as
-    `convertir` up to its two calls to `capas_convertidas`."""
-    renderer, args = _para_precalcular
+def _map_layers(map_id):
+    """What `precompute_layers` does in each process: the same steps as
+    `convert_map` up to its two calls to `converted_layers`."""
+    renderer, args = _to_precompute
     try:
-        # Quiet: whatever it has to say, `convertir` says it, in order.
-        with open(os.devnull, "w") as nulo, contextlib.redirect_stdout(nulo):
+        # Quiet: whatever it has to say, `convert_map` says it, in order.
+        with open(os.devnull, "w") as null, contextlib.redirect_stdout(null):
             game_map = renderer.load_map(
                 os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
-            separar_del_heroe(renderer, game_map, args,
-                              comandos_de_casos(args, map_id))
-            capas_convertidas(renderer, game_map)
-            horneados = eventos_horneables(renderer, game_map)
-            if horneados:
-                hornear_en_el_mapa(game_map, horneados)
-                capas_convertidas(renderer, game_map)
+            separate_from_hero(renderer, game_map, args,
+                               case_commands(args, map_id))
+            converted_layers(renderer, game_map)
+            baked = bakeable_events(renderer, game_map)
+            if baked:
+                bake_into_map(game_map, baked)
+                converted_layers(renderer, game_map)
     except BaseException:
-        # If it fails, let it fail in `convertir`, which can say why.
+        # If it fails, let it fail in `convert_map`, which can say why.
         pass
-    return _capas_en_memoria
+    return _layers_in_memory
 
 
-def _convert_layers(base, above_img, variantes=None):
+def _convert_layers(base, above_img, variants=None):
     """Both layers together, which is the only way to split CGRAM well.
 
     The split between the background and the upper layer can't be decided by
@@ -1923,16 +1923,16 @@ def _convert_layers(base, above_img, variantes=None):
     colors, and taking it from the upper layer would require merging 16.
 
     Today the window lives in palette 0, at the very bottom —see
-    `paleta_de_la_ventana`—, so it charges neither layer.
+    `window_palette`—, so it charges neither layer.
 
     Returns (what convert() returns, what convert_above() returns).
     """
-    base_grid = tiles_cuantizados(base)
-    above_grid = tiles_cuantizados(above_img)
+    base_grid = quantized_tiles(base)
+    above_grid = quantized_tiles(above_img)
     # The other drawings of the ChipSet animation, cut the same as the
     # background. See `convert`.
-    grillas = {familia: [tiles_cuantizados(img) for img in imagenes]
-               for familia, imagenes in (variantes or {}).items()}
+    grids = {family: [quantized_tiles(img) for img in pictures]
+             for family, pictures in (variants or {}).items()}
 
     # What the background uses, and therefore the palettes of 16 it needs. The
     # +1 is the screen's backdrop color, which takes entry 0.
@@ -1940,23 +1940,23 @@ def _convert_layers(base, above_img, variantes=None):
     # **All the drawings** count: the water of map 5 brings three colors that
     # aren't in the drawing seen on entering, and if the split were decided
     # without them there would be nowhere to put them when the water moves.
-    usados = len(_colores_de([base_grid] + [g for gs in grillas.values()
-                                            for g in gs]))
-    pide = -(-(usados + CGRAM_RESERVADAS) // COLORS_PER_PALETTE)
-    libres = max(1, min(MAX_ABOVE_PALETTES, BG_PALETTES - pide))
+    used = len(_colors_of([base_grid] + [g for gs in grids.values()
+                                         for g in gs]))
+    palettes_needed = -(-(used + CGRAM_RESERVED) // COLORS_PER_PALETTE)
+    free = max(1, min(MAX_ABOVE_PALETTES, BG_PALETTES - palettes_needed))
 
-    above_grid, paletas_encima, fusionados = repartir_encima(above_grid, libres)
+    above_grid, above_palettes, merged_colors = split_above(above_grid, free)
     # Without an upper layer nothing is reserved, but the DMA still sends an
     # empty palette —see `convert_above`—, so the split is counted as if there
     # were one.
-    primera = above_split(max(1, len(paletas_encima)))
-    above = convert_above(above_grid, paletas_encima, primera, len(fusionados))
+    first = above_split(max(1, len(above_palettes)))
+    above = convert_above(above_grid, above_palettes, first, len(merged_colors))
     # The background reaches **up to where the upper layer starts**, without
     # leaving palettes in between: it goes at 8 bits and needs no alignment.
     # The window doesn't charge it a palette because it lives at the very
-    # bottom, inside `CGRAM_RESERVADAS`.
-    tope = primera
-    if tope < 1:
+    # bottom, inside `CGRAM_RESERVED`.
+    cap = first
+    if cap < 1:
         # Unreachable with the game's data —it would take an upper layer that
         # asks for all eight palettes— but if it happens, the background would
         # be left with none and `bg_budget` would give a negative budget.
@@ -1966,27 +1966,27 @@ def _convert_layers(base, above_img, variantes=None):
     # And the background palette, with that budget and over **all** its
     # drawings. It is decided here and `convert` gets it, same as the upper
     # layer.
-    presupuesto = bg_budget(tope)
-    otras = [g for familia, _ in FAMILIAS for g in grillas.get(familia, ())]
-    antes = len(_colores_de([base_grid]))
-    palette, base_grid, otras, merged = build_palette(base_grid, presupuesto,
-                                                      otras)
-    fondo = convert(base_grid, palette, grillas, otras,
-                    {"colores": antes, "presupuesto": presupuesto,
-                     "fusionados": len(merged)})
+    budget = bg_budget(cap)
+    others = [g for family, _ in FAMILIES for g in grids.get(family, ())]
+    before = len(_colors_of([base_grid]))
+    palette, base_grid, others, merged = build_palette(base_grid, budget,
+                                                       others)
+    background = convert(base_grid, palette, grids, others,
+                         {"colores": before, "presupuesto": budget,
+                          "fusionados": len(merged)})
     # Which color was merged with which, in the order it was decided, for
     # `port/patches.py` to write it. It goes **with the background's summary
     # and not inside the upper layer's tuple** even though half of it is the
-    # upper layer's: `_mismo_reparto_de_cgram` compares that whole tuple, so
+    # upper layer's: `_same_cgram_split` compares that whole tuple, so
     # adding a field would change the criterion baking is decided by, and this
     # can't change a single byte of the ROM. The summary, instead, it compares
-    # field by field, so one more key is inert —and `fusionados`, which is one
+    # field by field, so one more key is inert —and `merged_colors`, which is one
     # of the ones it compares, is still the usual number—.
-    fondo[3]["fusiones"] = {"fondo": list(merged), "encima": list(fusionados)}
-    return fondo, above
+    background[3]["fusiones"] = {"fondo": list(merged), "encima": list(merged_colors)}
+    return background, above
 
 
-def paleta_de_la_ventana(primeras=None):
+def window_palette(first_ones=None):
     """Which palette the message window goes in: **0**, always.
 
     The window cells are emitted only once with the three palette bits
@@ -1998,7 +1998,7 @@ def paleta_de_la_ventana(primeras=None):
     Putting it in 0 makes the problem go away: the window takes entries 1 to 7
     —0 is the screen's backdrop color, which in a BG2 palette is transparent
     and the window doesn't draw—, and the background is contiguous from 8 up
-    to where each map's upper layer starts. `primeras` is no longer used and
+    to where each map's upper layer starts. `first_ones` is no longer used and
     stays so as not to break callers.
     """
     return 0
@@ -2007,20 +2007,20 @@ def paleta_de_la_ventana(primeras=None):
 # The two tile families the ChipSet animates, with how many drawings each one
 # has and in the order their runs go to VRAM. It lives in rm2k.py together with
 # each one's cadence, which is what says which drawing is due.
-FAMILIAS = rm2k.ANIMATED_FAMILIES
+FAMILIES = rm2k.ANIMATED_FAMILIES
 
 
-def convert(grid, palette, variantes, otras, resumen):
+def convert(grid, palette, variants, others, summary):
     """The map grid to tiles, palette and tilemap.
 
     **It doesn't decide the palette**: it comes from `build_palette`, which
     chooses it in `_convert_layers` with the budget the upper layer left.
-    `grid` and `otras` are the grids already merged with that same palette;
-    `variantes` the original ones, which are only used to know how many
-    drawings each family brings. `resumen` carries what was measured before
+    `grid` and `others` are the grids already merged with that same palette;
+    `variants` the original ones, which are only used to know how many
+    drawings each family brings. `summary` carries what was measured before
     merging.
 
-    `variantes` are the grids of the **other** drawings of the ChipSet
+    `variants` are the grids of the **other** drawings of the ChipSet
     animation, per family: `{"agua": [g1, g2], "animado": [g1, g2, g3]}`.
     Drawing 0 is `grid`.
 
@@ -2035,87 +2035,87 @@ def convert(grid, palette, variantes, otras, resumen):
     """
     # Back to their family, already merged with the same mapping as `grid`, and
     # with drawing 0 first: `dibujos[familia][d]` is the grid of drawing `d`.
-    dibujos, resto = {None: [grid]}, list(otras)
-    for familia, _ in FAMILIAS:
-        cuantas = len(variantes.get(familia, ()))
-        dibujos[familia] = [grid] + resto[:cuantas]
-        resto = resto[cuantas:]
+    drawings, rest = {None: [grid]}, list(others)
+    for family, _ in FAMILIES:
+        how_many = len(variants.get(family, ()))
+        drawings[family] = [grid] + rest[:how_many]
+        rest = rest[how_many:]
 
     # What the allocator decided, as indexed images: color `k` of the palette
-    # is entry `CGRAM_RESERVADAS + k`, and transparent is 0. One per drawing,
+    # is entry `CGRAM_RESERVED + k`, and transparent is 0. One per drawing,
     # all with the same CGRAM: `tiles` stops if two give a different color to
     # an entry that any of them draws.
-    posicion = {color: CGRAM_RESERVADAS + k for k, color in enumerate(palette)}
-    colores = [None] * 256
-    for color, entrada in posicion.items():
-        colores[entrada] = color
-    transparentes = [e == 0 for e in range(256)]
-    ancho, alto = len(grid[0]) * CELL, len(grid) * CELL
+    position = {color: CGRAM_RESERVED + k for k, color in enumerate(palette)}
+    colors = [None] * 256
+    for color, cg_entry in position.items():
+        colors[cg_entry] = color
+    transparent = [e == 0 for e in range(256)]
+    width, height = len(grid[0]) * CELL, len(grid) * CELL
 
     def picture(g):
-        pixeles = [0] * (ancho * alto)
+        pixels = [0] * (width * height)
         for cy, row in enumerate(g):
             for cx, tile in enumerate(row):
                 for y, line in enumerate(tile):
-                    fila = (cy * CELL + y) * ancho + cx * CELL
+                    offset = (cy * CELL + y) * width + cx * CELL
                     for x, color in enumerate(line):
                         if color is not None:
-                            pixeles[fila + x] = posicion[color]
-        return tiles_bin.indexed_png(ancho, alto, pixeles, colores,
-                                     transparentes)
+                            pixels[offset + x] = position[color]
+        return tiles_bin.indexed_png(width, height, pixels, colors,
+                                     transparent)
 
-    imagenes = [("fondo", picture(grid))]
-    familias, animaciones = [], []
-    for familia, _ in FAMILIAS:
-        if len(dibujos[familia]) < 2:
+    pictures = [("fondo", picture(grid))]
+    families, animations = [], []
+    for family, _ in FAMILIES:
+        if len(drawings[family]) < 2:
             continue
-        pngs = [picture(g) for g in dibujos[familia][1:]]
-        imagenes += [("%s-%d" % (familia, d + 1), png)
+        pngs = [picture(g) for g in drawings[family][1:]]
+        pictures += [("%s-%d" % (family, d + 1), png)
                      for d, png in enumerate(pngs)]
-        familias.append(familia)
-        animaciones.append(pngs)
+        families.append(family)
+        animations.append(pngs)
 
     # The cells that change from one drawing to another get their own tiles in
     # one contiguous run per family, after the still ones: Voodoo does that,
     # since it is the one that numbers them. See "Animations" in
     # tools/voodoo/README.md.
-    tile_data, cgram, tilemap, corridas = tiles_bin.convert(
-        imagenes[0][1], 8, len(grid[0]), animations=animaciones,
+    tile_data, cgram, tilemap, runs = tiles_bin.convert(
+        pictures[0][1], 8, len(grid[0]), animations=animations,
         max_tiles=MAX_TILES)
-    siguiente = len(tile_data) // BYTES_PER_TILE
+    next_tile = len(tile_data) // BYTES_PER_TILE
 
     # And the other drawings of each run, one after the other and in VRAM
     # order: that way uploading them is writing the address and firing the
     # DMA.
-    animacion = {}
-    for familia, (inicio, largo, bytes_de) in zip(familias, corridas):
-        if not largo:
+    animation = {}
+    for family, (start, length, drawing_bytes) in zip(families, runs):
+        if not length:
             continue
-        cuantos = dict(FAMILIAS)[familia]
-        if len(bytes_de) != cuantos:
+        count = dict(FAMILIES)[family]
+        if len(drawing_bytes) != count:
             raise SystemExit("family %r asks for %d drawings and %d arrived"
-                             % (familia, cuantos, len(bytes_de)))
-        animacion[familia] = {"base": inicio, "tiles": largo,
-                              "dibujos": list(bytes_de)}
+                             % (family, count, len(drawing_bytes)))
+        animation[family] = {"base": start, "tiles": length,
+                             "dibujos": list(drawing_bytes)}
 
     # CGRAM: the map's block carries **only its colors** and is uploaded
-    # starting at `CGRAM_RESERVADAS`. What is below —the screen's backdrop
+    # starting at `CGRAM_RESERVED`. What is below —the screen's backdrop
     # color and the window palette— belongs to the whole ROM and `cgram_base`
     # uploads it.
     cram = [int.from_bytes(cgram[2 * e:2 * e + 2], "little")
-            for e in range(CGRAM_RESERVADAS, CGRAM_RESERVADAS + len(palette))]
+            for e in range(CGRAM_RESERVED, CGRAM_RESERVED + len(palette))]
 
-    summary = {
-        "colores": resumen["colores"],
+    stats = {
+        "colores": summary["colores"],
         "usados": len(palette),
-        "presupuesto": resumen["presupuesto"],
-        "fusionados": resumen["fusionados"],
-        "tiles": siguiente,
+        "presupuesto": summary["presupuesto"],
+        "fusionados": summary["fusionados"],
+        "tiles": next_tile,
         "celdas": sum(len(row) for row in tilemap),
-        "animacion": animacion,
-        "imagenes": imagenes,
+        "animacion": animation,
+        "imagenes": pictures,
     }
-    return bytes(tile_data), cram, tilemap, summary
+    return bytes(tile_data), cram, tilemap, stats
 
 
 # --- the map as 16x16 blocks ------------------------------------------------
@@ -2152,7 +2152,7 @@ BLOCK_BYTES = 16                # four BG1 cells and four BG2 cells
 # 8-pixel cells and it has to be composed pixel by pixel— plus **2 KB of its
 # own tilemap**, and the 64 KB were already 100% allocated.
 #
-# What makes the tiles part possible is that `encima` and `ventana` end up
+# What makes the tiles part possible is that `above` and `window` end up
 # **adjacent**: BG2 has a single base and its tile indices are 10 bits, so 0
 # to 255 fall in the first 8 KB bank and 256 to 511 in the next. That forces
 # putting the sprites first, because the OBJ base goes in steps of 16 KB and
@@ -2201,7 +2201,7 @@ BLOCK_BYTES = 16                # four BG1 cells and four BG2 cells
 # **1 tile** and 326 fit in 128. Lowering it to 128 frees 4 KB, which at 8bpp
 # is 64 more background tiles.
 #
-# It was needed on 2026-09-07, when drawing all the events —see `cabe`— took
+# It was needed on 2026-09-07, when drawing all the events —see `fits`— took
 # map 8 to 400 background tiles and 347 sprite ones, and there was no layout
 # that gave it both.
 #
@@ -2209,12 +2209,12 @@ BLOCK_BYTES = 16                # four BG1 cells and four BG2 cells
 # BG2 bases at multiples of 8 KB, `OBSEL` that of the objects at multiples of
 # 16 KB, and the tilemaps at multiples of 1 KB. The tilemaps moved to $5800
 # and $7800, which are the only two gaps left aligned in the four layouts.
-LAYOUT_VENTANA = {"sprites": (0x0000, 448), "ventana_map": (0x1C00, 1),
-                  "tiles": (0x2000, 448), "mapa": (0x5800, 1),
-                  "encima": (0x6000, 128), "ventana": (0x6800, 256)}
-LAYOUT_VENTANA_FONDO = {"sprites": (0x0000, 256), "tiles": (0x1000, 480),
-                        "ventana_map": (0x4C00, 1), "mapa": (0x5800, 1),
-                        "encima": (0x6000, 128), "ventana": (0x6800, 256)}
+LAYOUT_WINDOW = {"sprites": (0x0000, 448), "ventana_map": (0x1C00, 1),
+                 "tiles": (0x2000, 448), "mapa": (0x5800, 1),
+                 "encima": (0x6000, 128), "ventana": (0x6800, 256)}
+LAYOUT_WINDOW_BG = {"sprites": (0x0000, 256), "tiles": (0x1000, 480),
+                    "ventana_map": (0x4C00, 1), "mapa": (0x5800, 1),
+                    "encima": (0x6000, 128), "ventana": (0x6800, 256)}
 
 # And the third, which does the opposite of the second: it trades background
 # tiles for sprite tiles. Delcentric Factory asked for it —map 17, the road to
@@ -2247,9 +2247,9 @@ LAYOUT_VENTANA_FONDO = {"sprites": (0x0000, 256), "tiles": (0x1000, 480),
 # **It goes last on purpose.** `vram_layout` returns the first one that fits,
 # so no map that already had a layout changes layout because of this: only
 # the ones that didn't fit in the other two take it.
-LAYOUT_VENTANA_SPRITE = {"sprites": (0x0000, 512), "tiles": (0x2000, 384),
-                         "ventana_map": (0x5000, 1), "mapa": (0x5800, 1),
-                         "encima": (0x6000, 128), "ventana": (0x6800, 256)}
+LAYOUT_WINDOW_SPRITE = {"sprites": (0x0000, 512), "tiles": (0x2000, 384),
+                        "ventana_map": (0x5000, 1), "mapa": (0x5800, 1),
+                        "encima": (0x6000, 128), "ventana": (0x6800, 256)}
 
 # And the fourth, the only one that **moves the map's tilemap**: `Sector 34
 # With Car` asked for it, map 38, which spends **476 background tiles and 347
@@ -2276,13 +2276,13 @@ LAYOUT_VENTANA_SPRITE = {"sprites": (0x0000, 512), "tiles": (0x2000, 384),
 # `FAR_VRAM_MAPA` instead of a constant, and by the step to the upper layer in
 # `push_strips`, which masks instead of adding a fixed distance. That is why
 # **both bases have to be multiples of 2048 words**, and the map's can't be
-# zero: `col_addr` at zero means "no column". `_controlar_repartos` checks it.
+# zero: `col_addr` at zero means "no column". `_check_splits` checks it.
 #
 # **It goes last on purpose**, for the same reason as the previous one: no
 # map that already fit changes layout.
-LAYOUT_VENTANA_AMBOS = {"sprites": (0x0000, 384), "mapa": (0x1800, 1),
-                        "tiles": (0x2000, 480), "ventana_map": (0x5C00, 1),
-                        "encima": (0x6000, 128), "ventana": (0x6800, 256)}
+LAYOUT_WINDOW_BOTH = {"sprites": (0x0000, 384), "mapa": (0x1800, 1),
+                      "tiles": (0x2000, 480), "ventana_map": (0x5C00, 1),
+                      "encima": (0x6000, 128), "ventana": (0x6800, 256)}
 
 # And the fifth, the ceiling of "+fondo": the world asked for it, map 66,
 # which spends **527 background tiles and 222 sprite ones** and didn't fit in
@@ -2302,12 +2302,12 @@ LAYOUT_VENTANA_AMBOS = {"sprites": (0x0000, 384), "mapa": (0x1800, 1),
 #   tilemap     $7800   4 KB
 #
 # 544 8bpp tiles are 34 KB, more than the LZ2 buffer: that is why the
-# background goes in two streams —see `partes_comprimidas`—.
+# background goes in two streams —see `compressed_parts`—.
 #
 # **It goes last on purpose**, for the same reason as the two previous ones.
-LAYOUT_VENTANA_FONDO_TECHO = {"sprites": (0x0000, 256), "tiles": (0x1000, 544),
-                              "ventana_map": (0x5400, 1), "mapa": (0x5800, 1),
-                              "encima": (0x6000, 128), "ventana": (0x6800, 256)}
+LAYOUT_WINDOW_BG_CEILING = {"sprites": (0x0000, 256), "tiles": (0x1000, 544),
+                            "ventana_map": (0x5400, 1), "mapa": (0x5800, 1),
+                            "encima": (0x6000, 128), "ventana": (0x6800, 256)}
 
 # And the sixth, the only one that **moves the BG2 base**: Sorbe Village asked
 # for it, map 69, which spends **329 background tiles, 157 upper ones and 283
@@ -2333,23 +2333,23 @@ LAYOUT_VENTANA_FONDO_TECHO = {"sprites": (0x0000, 256), "tiles": (0x1000, 544),
 # **It goes last on purpose**, for the same reason as the previous ones:
 # `vram_layout` now also looks at the upper layer, and since all the maps that
 # already converted fit in 128, none changes layout.
-LAYOUT_VENTANA_ENCIMA = {"sprites": (0x0000, 384), "mapa": (0x1800, 1),
-                         "tiles": (0x2000, 384), "encima": (0x5000, 256),
-                         "ventana": (0x6000, 256), "ventana_map": (0x7000, 1)}
+LAYOUT_WINDOW_ABOVE = {"sprites": (0x0000, 384), "mapa": (0x1800, 1),
+                       "tiles": (0x2000, 384), "encima": (0x5000, 256),
+                       "ventana": (0x6000, 256), "ventana_map": (0x7000, 1)}
 
 # In the order `vram_layout` tries them. **New ones are added at the end**,
 # never in the middle: that way a new layout doesn't change any map's.
-LAYOUTS = (("VENTANA", LAYOUT_VENTANA),
-           ("VENTANA_FONDO", LAYOUT_VENTANA_FONDO),
-           ("VENTANA_SPRITE", LAYOUT_VENTANA_SPRITE),
-           ("VENTANA_AMBOS", LAYOUT_VENTANA_AMBOS),
-           ("VENTANA_FONDO_TECHO", LAYOUT_VENTANA_FONDO_TECHO),
-           ("VENTANA_ENCIMA", LAYOUT_VENTANA_ENCIMA))
+LAYOUTS = (("VENTANA", LAYOUT_WINDOW),
+           ("VENTANA_FONDO", LAYOUT_WINDOW_BG),
+           ("VENTANA_SPRITE", LAYOUT_WINDOW_SPRITE),
+           ("VENTANA_AMBOS", LAYOUT_WINDOW_BOTH),
+           ("VENTANA_FONDO_TECHO", LAYOUT_WINDOW_BG_CEILING),
+           ("VENTANA_ENCIMA", LAYOUT_WINDOW_ABOVE))
 # How many save slots the cartridge has. The same number is in
 # `tools/runtime/partida.s` as `SRAM_RANURAS`, and the ROM checks it: if they
 # didn't match, the screen would show one number of slots and the SRAM would
 # have another.
-RANURAS = 4
+SLOTS = 4
 
 # Where the tilemap and the tiles of the slots screen live, in words. The same
 # numbers are in the `.inc` as RANURA_MAP and RANURA_VRAM.
@@ -2363,31 +2363,31 @@ RANURAS = 4
 # poses and the hero too if it wasn't the one in block 0. The ones here are in
 # the intersection of the BG1 bank of the five layouts, which is $2000..$4000:
 #
-#   LAYOUT_VENTANA        $2000..$5800
-#   LAYOUT_VENTANA_FONDO  $1000..$4C00
-#   LAYOUT_VENTANA_SPRITE $2000..$5000
-#   LAYOUT_VENTANA_AMBOS  $2000..$5C00
-#   LAYOUT_VENTANA_FONDO_TECHO $1000..$5400
+#   LAYOUT_WINDOW        $2000..$5800
+#   LAYOUT_WINDOW_BG  $1000..$4C00
+#   LAYOUT_WINDOW_SPRITE $2000..$5000
+#   LAYOUT_WINDOW_BOTH  $2000..$5C00
+#   LAYOUT_WINDOW_BG_CEILING $1000..$5400
 #
 # A BG's tile base goes in steps of 4096 words and the tilemap in steps of
 # 1024: the tiles at $2000, which with the party's faces are about 300 and can
 # reach 448 —up to $3C00—, and the tilemap at $3C00. The title screen
 # overwrites them —its image reaches $3E00— and it doesn't matter: coming back
-# from the slots the title is uploaded whole. `_controlar_ranuras` checks it
+# from the slots the title is uploaded whole. `_check_slots` checks it
 # against the real layouts, so that moving one doesn't leave this written
 # wrong.
-RANURA_VRAM = 0x2000
+SLOT_VRAM = 0x2000
 # The row of `ranura_actor_texto`: an actor's name, the two digits of the
 # level and max HP, one after the other. Its size is a power of two even if
 # bytes are left over, so that the actor's index comes out of five `asl` and
 # not of a multiplication written in assembly.
-RANURA_TEXTO_ANCHO = 32
-RANURA_TEXTO_NIVEL = 16         # the name fits in thirteen, and three are left over
-RANURA_TEXTO_MAX = RANURA_TEXTO_NIVEL + menus_mod.LEVEL_DIGITS
-RANURA_MAP = 0x3C00
+SLOT_TEXT_WIDTH = 32
+SLOT_TEXT_LEVEL = 16         # the name fits in thirteen, and three are left over
+SLOT_TEXT_MAX = SLOT_TEXT_LEVEL + menus_mod.LEVEL_DIGITS
+SLOT_MAP = 0x3C00
 
 # The upper layer's tilemap is fixed: the background's is chosen by the layout
-# —see LAYOUT_VENTANA_AMBOS—.
+# —see LAYOUT_WINDOW_BOTH—.
 VRAM_ABOVE_MAP = 0x7800
 
 # Where the window's bank starts **counted from the BG2 base**, which is where
@@ -2395,7 +2395,7 @@ VRAM_ABOVE_MAP = 0x7800
 # number: with the upper layer at 128 tiles, the window starts at index 128
 # and not 256, and writing it by hand was the first thing that broke when the
 # layout moved.
-def ventana_base(layout):
+def window_base(layout):
     """The BG2 index of the window's first tile in that layout."""
     return (layout["ventana"][0] - layout["encima"][0]) // 16
 
@@ -2404,16 +2404,16 @@ def ventana_base(layout):
 # first one's is `ventana_celdas` —the usual one— and the second's,
 # `ventana_celdas_256`. The ROM picks between the two by the distance between
 # the window and the BG2 base, so **there can't be a third** without touching
-# `estampar_ventana`; `_controlar_repartos` enforces it.
-VENTANA_TILE_BASE = ventana_base(LAYOUT_VENTANA)
-VENTANA_BASES = (VENTANA_TILE_BASE, 256)
+# `estampar_ventana`; `_check_splits` enforces it.
+WINDOW_TILE_BASE = window_base(LAYOUT_WINDOW)
+WINDOW_BASES = (WINDOW_TILE_BASE, 256)
 
 # The block table is read with `lda tabla, x`, that is it lives in bank 0
 # together with the code.
 MAX_BLOCKS = 1024
 
 
-def vram_layout(tiles, sprites=0, encima=0):
+def vram_layout(tiles, sprites=0, above=0):
     """Which VRAM layout a map gets, according to what it spends.
 
     The three numbers are checked in every layout, and the first one that
@@ -2424,131 +2424,131 @@ def vram_layout(tiles, sprites=0, encima=0):
     # The two numbers are checked in both layouts. The background used to be
     # checked in one and the sprites in the other, and that let a map with 620
     # background tiles into a bank of 512: see the comment on
-    # LAYOUT_VENTANA_FONDO.
-    for _nombre, layout in LAYOUTS:
+    # LAYOUT_WINDOW_BG.
+    for _name, layout in LAYOUTS:
         if (tiles <= layout["tiles"][1] and sprites <= layout["sprites"][1]
-                and encima <= layout["encima"][1]):
+                and above <= layout["encima"][1]):
             return layout
     raise SystemExit(
         "this map can't carry a message window: it spends %d background tiles, "
         "%d sprite tiles and %d upper tiles, and there is no layout that leaves "
-        "8 KB of tiles plus 2 KB of tilemap for the window" % (tiles, sprites, encima))
+        "8 KB of tiles plus 2 KB of tilemap for the window" % (tiles, sprites, above))
 
 
-def _controlar_ranuras(ranura_tiles):
+def _check_slots(slot_tiles):
     """That the slots screen lands in the BG1 bank of every layout.
 
     It is what lets `volver_al_mapa` restore the map with `load_map` and
     nothing else; see the comment on RANURA_MAP.
     """
-    fin_tiles = RANURA_VRAM + ranura_tiles * 16
-    fin_map = RANURA_MAP + 32 * 32
-    if not (fin_tiles <= RANURA_MAP or fin_map <= RANURA_VRAM):
+    end_tiles = SLOT_VRAM + slot_tiles * 16
+    end_map = SLOT_MAP + 32 * 32
+    if not (end_tiles <= SLOT_MAP or end_map <= SLOT_VRAM):
         raise SystemExit(
             "the %d tiles of the slots screen reach $%04X and overwrite its "
-            "tilemap at $%04X" % (ranura_tiles, fin_tiles, RANURA_MAP))
-    for nombre, layout in LAYOUTS:
-        base, cuantos = layout["tiles"]
-        tope = base + cuantos * (BYTES_PER_TILE // 2)
-        for que, desde, hasta in (("the tiles", RANURA_VRAM, fin_tiles),
-                                  ("the tilemap", RANURA_MAP, fin_map)):
-            if desde < base or hasta > tope:
+            "tilemap at $%04X" % (slot_tiles, end_tiles, SLOT_MAP))
+    for name, layout in LAYOUTS:
+        base, count = layout["tiles"]
+        cap = base + count * (BYTES_PER_TILE // 2)
+        for what, first, last in (("the tiles", SLOT_VRAM, end_tiles),
+                                  ("the tilemap", SLOT_MAP, end_map)):
+            if first < base or last > cap:
                 raise SystemExit(
                     "the slots screen puts %s at $%04X..$%04X and the "
                     "BG1 bank of LAYOUT_%s is $%04X..$%04X: when coming back "
                     "from the menu `load_map` wouldn't restore it"
-                    % (que, desde, hasta, nombre, base, tope))
+                    % (what, first, last, name, base, cap))
 
 
-def items_marco_primero(fuente):
+def items_border_first(source):
     """The first 8bpp tile of the item and equipment windows, counted from
-    `RANURA_VRAM`, which is the BG1 base and the BG2 one: the first free one
-    after the `fuente` tiles of the font, which are 4bpp and half the size."""
-    return (fuente + 1) // 2
+    `SLOT_VRAM`, which is the BG1 base and the BG2 one: the first free one
+    after the `source` tiles of the font, which are 4bpp and half the size."""
+    return (source + 1) // 2
 
 
-def _controlar_marco_de_items(fuente, marco):
+def _check_items_border(source, border):
     """That the font and the windows of the item and equipment screens, one
     after the other, don't reach the BG1 tilemap, and that everything stays
     in the BG1 bank of the layouts, like the rest of the screen —see
-    `_controlar_ranuras`—."""
-    fin = RANURA_VRAM + (items_marco_primero(fuente) + marco) * 32
-    if fin > menus_mod.ITEM_BORDER_MAP:
+    `_check_slots`—."""
+    end = SLOT_VRAM + (items_border_first(source) + border) * 32
+    if end > menus_mod.ITEM_BORDER_MAP:
         raise SystemExit(
             "the item screen's font (%d 4bpp tiles) and the item and "
             "equipment windows (%d 8bpp ones) reach $%04X and the windows' "
-            "tilemap is at $%04X" % (fuente, marco, fin, menus_mod.ITEM_BORDER_MAP))
-    fin_map = menus_mod.ITEM_BORDER_MAP + 32 * 32
-    for nombre, layout in LAYOUTS:
-        base, cuantos = layout["tiles"]
-        tope = base + cuantos * (BYTES_PER_TILE // 2)
-        if RANURA_VRAM < base or fin_map > tope:
+            "tilemap is at $%04X" % (source, border, end, menus_mod.ITEM_BORDER_MAP))
+    end_map = menus_mod.ITEM_BORDER_MAP + 32 * 32
+    for name, layout in LAYOUTS:
+        base, count = layout["tiles"]
+        cap = base + count * (BYTES_PER_TILE // 2)
+        if SLOT_VRAM < base or end_map > cap:
             raise SystemExit(
                 "the item and equipment windows reach $%04X and the BG1 "
-                "bank of LAYOUT_%s is $%04X..$%04X" % (fin_map, nombre, base,
-                                                       tope))
+                "bank of LAYOUT_%s is $%04X..$%04X" % (end_map, name, base,
+                                                       cap))
 
 
-def _controlar_objetivo(tiles):
+def _check_target(tiles):
     """That the tiles and the tilemap of the actor-choice windows fit between
     their BG1 base and their tilemap, and that everything lands in the BG1
     bank of every layout, which is what `load_map` restores when closing the
-    menu —like `_controlar_ranuras`—, and outside what the menu already uses:
-    its tiles and its tilemap end at `RANURA_MAP` + 1024."""
+    menu —like `_check_slots`—, and outside what the menu already uses:
+    its tiles and its tilemap end at `SLOT_MAP` + 1024."""
     T = menus_mod
-    fin_tiles = T.TARGET_VRAM + tiles * 32
-    fin_map = T.TARGET_MAP + 32 * 32
-    if fin_tiles > T.TARGET_MAP:
+    end_tiles = T.TARGET_VRAM + tiles * 32
+    end_map = T.TARGET_MAP + 32 * 32
+    if end_tiles > T.TARGET_MAP:
         raise SystemExit(
             "the actor-choice windows are %d 8bpp tiles and "
             "reach $%04X, and their tilemap is at $%04X"
-            % (tiles, fin_tiles, T.TARGET_MAP))
-    if T.TARGET_VRAM < RANURA_MAP + 32 * 32:
+            % (tiles, end_tiles, T.TARGET_MAP))
+    if T.TARGET_VRAM < SLOT_MAP + 32 * 32:
         raise SystemExit("the actor-choice windows overwrite the "
                          "menu's tilemap")
-    for nombre, layout in LAYOUTS:
-        base, cuantos = layout["tiles"]
-        tope = base + cuantos * (BYTES_PER_TILE // 2)
-        if T.TARGET_VRAM < base or fin_map > tope:
+    for name, layout in LAYOUTS:
+        base, count = layout["tiles"]
+        cap = base + count * (BYTES_PER_TILE // 2)
+        if T.TARGET_VRAM < base or end_map > cap:
             raise SystemExit(
                 "the actor-choice windows go at $%04X..$%04X and "
                 "the BG1 bank of LAYOUT_%s is $%04X..$%04X: when closing the "
                 "menu `load_map` wouldn't restore them"
-                % (T.TARGET_VRAM, fin_map, nombre, base, tope))
+                % (T.TARGET_VRAM, end_map, name, base, cap))
 
 
-def _controlar_tienda(tiles):
+def _check_shop(tiles):
     """That the tiles of the shop windows, from their BG1 base, don't reach
     beyond what `load_map` restores when closing in any layout —like
-    `_controlar_objetivo`—, nor what the screen uses: the font and the BG2
-    tilemap end at `RANURA_MAP` + 1024. The tilemap is the item and equipment
-    one, which `_controlar_marco_de_items` already checks."""
-    P = pantallas_mod
-    fin_tiles = P.TI_VRAM + tiles * 32
-    if P.TI_VRAM < RANURA_MAP + 32 * 32:
+    `_check_target`—, nor what the screen uses: the font and the BG2
+    tilemap end at `SLOT_MAP` + 1024. The tilemap is the item and equipment
+    one, which `_check_items_border` already checks."""
+    P = screens_mod
+    end_tiles = P.TI_VRAM + tiles * 32
+    if P.TI_VRAM < SLOT_MAP + 32 * 32:
         raise SystemExit("the shop windows overwrite the text "
                          "tilemap")
-    for nombre, layout in LAYOUTS:
-        base, cuantos = layout["tiles"]
-        tope = base + cuantos * (BYTES_PER_TILE // 2)
-        if P.TI_VRAM < base or fin_tiles > tope:
+    for name, layout in LAYOUTS:
+        base, count = layout["tiles"]
+        cap = base + count * (BYTES_PER_TILE // 2)
+        if P.TI_VRAM < base or end_tiles > cap:
             raise SystemExit(
                 "the shop windows are %d 8bpp tiles, at "
                 "$%04X..$%04X, and the BG1 bank of LAYOUT_%s is "
                 "$%04X..$%04X: when closing the shop `load_map` wouldn't "
-                "restore them" % (tiles, P.TI_VRAM, fin_tiles, nombre, base,
-                                  tope))
+                "restore them" % (tiles, P.TI_VRAM, end_tiles, name, base,
+                                  cap))
 
 
-def _controlar_repartos():
+def _check_splits():
     """That each layout respects the hardware and what the ROM assumes of it.
 
     None of this depends on the map, so it is checked once per conversion.
     """
-    for nombre, layout in LAYOUTS:
+    for name, layout in LAYOUTS:
         # In words: what each thing takes, and the step its base goes in. The
         # sprite and upper-layer tiles are 4bpp, 16 words.
-        piezas = {
+        pieces = {
             "sprites": (layout["sprites"][1] * 16, 0x2000),
             "tiles": (layout["tiles"][1] * (BYTES_PER_TILE // 2), 0x1000),
             "encima": (layout["encima"][1] * 16, 0x1000),
@@ -2559,34 +2559,34 @@ def _controlar_repartos():
             # `push_una_columna`.
             "mapa": (WINDOW_W * WINDOW_H, 0x800),
         }
-        tramos = [("upper map", VRAM_ABOVE_MAP, VRAM_ABOVE_MAP
-                   + WINDOW_W * WINDOW_H)]
-        for pieza, (largo, paso) in piezas.items():
-            base = layout[pieza][0]
-            if base % paso:
+        stretches = [("upper map", VRAM_ABOVE_MAP, VRAM_ABOVE_MAP
+                      + WINDOW_W * WINDOW_H)]
+        for piece, (length, step) in pieces.items():
+            base = layout[piece][0]
+            if base % step:
                 raise SystemExit("LAYOUT_%s: %s at $%04X, and its base goes in "
-                                 "steps of $%X words" % (nombre, pieza, base, paso))
-            tramos.append((pieza, base, base + largo))
+                                 "steps of $%X words" % (name, piece, base, step))
+            stretches.append((piece, base, base + length))
         if layout["mapa"][0] == 0:
             raise SystemExit("LAYOUT_%s: the tilemap at $0000, and `col_addr` "
-                             "at zero means there is no column" % nombre)
-        if ventana_base(layout) not in VENTANA_BASES:
+                             "at zero means there is no column" % name)
+        if window_base(layout) not in WINDOW_BASES:
             raise SystemExit("LAYOUT_%s: the window starts at BG2 tile %d, "
                              "and there are layouts for %s: see VENTANA_BASES"
-                             % (nombre, ventana_base(layout), VENTANA_BASES))
+                             % (name, window_base(layout), WINDOW_BASES))
         # And the window has to land inside what BG2 reaches from its base: the
         # tilemap index is ten bits.
-        if ventana_base(layout) + layout["ventana"][1] > 1024:
+        if window_base(layout) + layout["ventana"][1] > 1024:
             raise SystemExit("LAYOUT_%s: the window goes past BG2 index "
-                             "1023" % nombre)
-        tramos.sort(key=lambda t: t[1])
-        for (a, _, fin), (b, desde, _) in zip(tramos, tramos[1:]):
-            if fin > desde:
+                             "1023" % name)
+        stretches.sort(key=lambda t: t[1])
+        for (a, _, end), (b, first, _) in zip(stretches, stretches[1:]):
+            if end > first:
                 raise SystemExit("LAYOUT_%s: %s ends at $%04X and %s starts "
-                                 "at $%04X" % (nombre, a, fin, b, desde))
-        if tramos[-1][2] > 0x8000:
+                                 "at $%04X" % (name, a, end, b, first))
+        if stretches[-1][2] > 0x8000:
             raise SystemExit("LAYOUT_%s: %s goes past VRAM"
-                             % (nombre, tramos[-1][0]))
+                             % (name, stretches[-1][0]))
 
 
 # The message window, split in two: what the ROM carries ready-made and what
@@ -2609,28 +2609,28 @@ def _controlar_repartos():
 # 40 the shadow of the last one spills into column 31 and 8 more tiles than
 # there are would be needed. Truncating to 39 loses 1.58% of the game's
 # characters against 1.09% for truncating to 40.
-VENTANA_TEXTO_FILA = 1           # the first row of cells that carries text
-VENTANA_TEXTO_FILAS = 8
-VENTANA_TEXTO_COL = 1
-VENTANA_TEXTO_COLS = 30
+WINDOW_TEXT_ROW = 1           # the first row of cells that carries text
+WINDOW_TEXT_ROWS = 8
+WINDOW_TEXT_COL = 1
+WINDOW_TEXT_COLS = 30
 
 
-def _columnas():
+def _columns():
     """How many characters fit on a line. It lives in `ventana.py` with the
     rest of the geometry, and the reason for the number is there."""
-    from port import window as ventana_mod
+    from port import window as window_mod
     return constants.COLUMNS
 
 
-def _quince(picture):
+def _to_15_bits(picture):
     """The pixels of an RGBA image as 15-bit colors, over black."""
     from PIL import Image
-    llana = Image.alpha_composite(
+    plain = Image.alpha_composite(
         Image.new("RGBA", picture.size, (0, 0, 0, 255)), picture).convert("RGB")
-    return [tuple(v >> 3 for v in p) for p in llana.get_flattened_data()]
+    return [tuple(v >> 3 for v in p) for p in plain.get_flattened_data()]
 
 
-def convert_ventana(sys_img, font_id=None):
+def convert_window(sys_img, font_id=None):
     """The message window: tiles, palette, cells and what the font needs.
 
     The image is built by `ventana.py`, which follows easyrpg-player's rules
@@ -2652,93 +2652,93 @@ def convert_ventana(sys_img, font_id=None):
         color     the palette index of each of the glyph's 12 rows
         sombra    the index of the shadow
     """
-    from port import font as fuente_mod
-    from port import window as ventana_mod
+    from port import font as font_mod
+    from port import window as window_mod
 
     if font_id is None:
-        font_id = fuente_mod.MINCHO
-    vacia = ventana_mod.window(sys_img)
-    pixeles = _quince(vacia)
-    ancho, alto = vacia.width, vacia.height
+        font_id = font_mod.MINCHO
+    empty = window_mod.window(sys_img)
+    pixels = _to_15_bits(empty)
+    width, height = empty.width, empty.height
 
     # The text colors come from the System's 16x16 block, and they are the
     # ones `Font::Render` uses as a mask. Each row of the glyph takes a single
     # one —it is measured: the gradient is horizontally uniform— so they are
     # twelve colors, not a block, and the shadow is a single one.
-    bloque = ventana_mod.text_color(sys_img, 0)
-    sombra_img = ventana_mod.shadow_color(sys_img)
-    ox, oy = ventana_mod.TEXT_OFFSET
-    color_fila = []
-    for py in range(fuente_mod.HEIGHT):
-        fila = {tuple(v >> 3 for v in bloque.getpixel((ox + px, oy + py))[:3])
-                for px in range(fuente_mod.WIDTH)}
-        if len(fila) != 1:
+    block = window_mod.text_color(sys_img, 0)
+    shadow_img = window_mod.shadow_color(sys_img)
+    ox, oy = window_mod.TEXT_OFFSET
+    color_row = []
+    for py in range(font_mod.HEIGHT):
+        row = {tuple(v >> 3 for v in block.getpixel((ox + px, oy + py))[:3])
+               for px in range(font_mod.WIDTH)}
+        if len(row) != 1:
             raise SystemExit(
                 "row %d of the text color has %d distinct colors; the "
-                "ROM composes it with a single one" % (py, len(fila)))
-        color_fila.append(fila.pop())
-    sombra = tuple(v >> 3 for v in sombra_img.getpixel((0, 0))[:3])
+                "ROM composes it with a single one" % (py, len(row)))
+        color_row.append(row.pop())
+    shadow = tuple(v >> 3 for v in shadow_img.getpixel((0, 0))[:3])
 
-    colores = sorted(set(pixeles) | set(color_fila) | {sombra})
-    if len(colores) > COLORS_PER_PALETTE - 1:
+    colors = sorted(set(pixels) | set(color_row) | {shadow})
+    if len(colors) > COLORS_PER_PALETTE - 1:
         raise SystemExit("the window uses %d colors and %d fit"
-                         % (len(colores), COLORS_PER_PALETTE - 1))
-    indice = {c: i + 1 for i, c in enumerate(colores)}
+                         % (len(colors), COLORS_PER_PALETTE - 1))
+    index = {c: i + 1 for i, c in enumerate(colors)}
 
-    def celda_de(tx, ty):
-        return tuple(tuple(indice[pixeles[(ty * 8 + y) * ancho + tx * 8 + x]]
+    def cell_at(tx, ty):
+        return tuple(tuple(index[pixels[(ty * 8 + y) * width + tx * 8 + x]]
                            for x in range(8)) for y in range(8))
 
     # The cells without text are deduplicated as always; the ones in the text
     # area are numbered consecutively from there.
-    tiles, celdas = {}, []
-    for ty in range(alto // 8):
-        fila = []
-        for tx in range(ancho // 8):
-            if (VENTANA_TEXTO_FILA <= ty < VENTANA_TEXTO_FILA + VENTANA_TEXTO_FILAS
-                    and VENTANA_TEXTO_COL <= tx < VENTANA_TEXTO_COL + VENTANA_TEXTO_COLS):
-                fila.append(None)       # numbered below, once it is known how many
+    tiles, cells = {}, []
+    for ty in range(height // 8):
+        row = []
+        for tx in range(width // 8):
+            if (WINDOW_TEXT_ROW <= ty < WINDOW_TEXT_ROW + WINDOW_TEXT_ROWS
+                    and WINDOW_TEXT_COL <= tx < WINDOW_TEXT_COL + WINDOW_TEXT_COLS):
+                row.append(None)       # numbered below, once it is known how many
                 continue
-            celda = celda_de(tx, ty)
-            if celda not in tiles:
-                tiles[celda] = len(tiles)
-            fila.append(tiles[celda])
-        celdas.append(fila)
+            cell = cell_at(tx, ty)
+            if cell not in tiles:
+                tiles[cell] = len(tiles)
+            row.append(tiles[cell])
+        cells.append(row)
 
     base = len(tiles)
-    fondo = []
-    for n, ty in enumerate(range(VENTANA_TEXTO_FILA,
-                                VENTANA_TEXTO_FILA + VENTANA_TEXTO_FILAS)):
-        for m, tx in enumerate(range(VENTANA_TEXTO_COL,
-                                     VENTANA_TEXTO_COL + VENTANA_TEXTO_COLS)):
-            celdas[ty][tx] = base + n * VENTANA_TEXTO_COLS + m
-            fondo.append(celda_de(tx, ty))
-    if base + len(fondo) > 256:
+    background = []
+    for n, ty in enumerate(range(WINDOW_TEXT_ROW,
+                                WINDOW_TEXT_ROW + WINDOW_TEXT_ROWS)):
+        for m, tx in enumerate(range(WINDOW_TEXT_COL,
+                                     WINDOW_TEXT_COL + WINDOW_TEXT_COLS)):
+            cells[ty][tx] = base + n * WINDOW_TEXT_COLS + m
+            background.append(cell_at(tx, ty))
+    if base + len(background) > 256:
         raise SystemExit("the window needs %d tiles and the bank has 256"
-                         % (base + len(fondo)))
+                         % (base + len(background)))
 
-    datos = b"".join(pack_tile(celda, planes=4)
-                     for celda, _ in sorted(tiles.items(), key=lambda kv: kv[1]))
-    cram = [0] + [cgram_word(c) for c in colores]
+    data = b"".join(pack_tile(cell, planes=4)
+                    for cell, _ in sorted(tiles.items(), key=lambda kv: kv[1]))
+    cram = [0] + [cgram_word(c) for c in colors]
     cram += [0] * (COLORS_PER_PALETTE - len(cram))
     # The background starts where this ends, so if the window grew it would
     # step on it and the ROM would draw the text with a map color. The highest
     # index really used is checked —the shadow's or that of some row of the
     # glyph— and not how many words are nonzero: a black color has word zero
     # and wouldn't be counted.
-    alto = max([indice[c] for c in color_fila] + [indice[sombra]])
-    if alto >= CGRAM_RESERVADAS:
+    height = max([index[c] for c in color_row] + [index[shadow]])
+    if height >= CGRAM_RESERVED:
         raise SystemExit(
             "the message window uses CGRAM entry %d and the background "
-            "starts at %d: raise CGRAM_RESERVADAS" % (alto, CGRAM_RESERVADAS))
-    return {"tiles": datos, "cram": cram, "celdas": celdas,
+            "starts at %d: raise CGRAM_RESERVADAS" % (height, CGRAM_RESERVED))
+    return {"tiles": data, "cram": cram, "celdas": cells,
             "base": base,
-            "fondo": b"".join(pack_tile(c, planes=4) for c in fondo),
-            "color": [indice[c] for c in color_fila],
-            "sombra": indice[sombra]}
+            "fondo": b"".join(pack_tile(c, planes=4) for c in background),
+            "color": [index[c] for c in color_row],
+            "sombra": index[shadow]}
 
 
-def fuente_bytes(font_id):
+def font_bytes(font_id):
     """The 95 ASCII glyphs, twelve rows of six bits each.
 
     It is the same table as `tools/port/font.py`, which is generated from
@@ -2747,22 +2747,22 @@ def fuente_bytes(font_id):
     Reversing them here and not in the ROM comes for free: it is a 1140-byte
     table generated once.
     """
-    from port import font as fuente_mod
+    from port import font as font_mod
     out = bytearray()
     for code in range(32, 127):
-        for fila in fuente_mod.rows(chr(code), font_id):
-            invertida = 0
-            for px in range(FUENTE_ANCHO):
-                if fila >> px & 1:
-                    invertida |= 1 << (7 - px)
-            out.append(invertida)
+        for row in font_mod.rows(chr(code), font_id):
+            inverted = 0
+            for px in range(FONT_WIDTH):
+                if row >> px & 1:
+                    inverted |= 1 << (7 - px)
+            out.append(inverted)
     return bytes(out)
 
 
 # The window glyphs already composed, for each of the four phases a character
 # can land on: x is `VENTANA_BORDE + 6 * column`, so modulo 8 it gives 0, 6, 4
 # or 2 and never anything else. Per glyph and phase go the cell rows of
-# `FUENTE_PRE_FILAS` it touches —the glyph's twelve from `TEXTO_OFS_Y`, and
+# `FONT_PRE_ROWS` it touches —the glyph's twelve from `TEXTO_OFS_Y`, and
 # one more of shadow— and per row the two cells it can step on, each with
 # three words: what is kept from the buffer, and what is set in planes 0-1
 # and in 2-3. The ROM does `buf = buf & conservar | prender`, which is what it
@@ -2772,41 +2772,41 @@ def fuente_bytes(font_id):
 # The shadow and the glyph come already combined, with the ordering rule of
 # `Font::Render`: on a row lands the glyph from two rows up and the shadow
 # from three, shifted one pixel, and where they overlap the glyph wins.
-FUENTE_PRE_FILAS = FUENTE_ALTO + 1
-FUENTE_PRE_CHAR = FUENTE_PRE_FILAS * 2 * 6
+FONT_PRE_ROWS = FONT_HEIGHT + 1
+FONT_PRE_CHAR = FONT_PRE_ROWS * 2 * 6
 
 
-def fuente_prerender(fuente, colores, sombra):
+def font_prerender(source, colors, shadow):
     """The four tables, one per phase (0, 2, 4 and 6), in that order."""
-    n = len(fuente) // FUENTE_ALTO
-    tablas = []
-    for fase in (0, 2, 4, 6):
+    n = len(source) // FONT_HEIGHT
+    tables = []
+    for phase in (0, 2, 4, 6):
         out = bytearray()
         for c in range(n):
-            filas = fuente[c * FUENTE_ALTO:(c + 1) * FUENTE_ALTO]
-            corrida = [(f << 8) >> fase for f in filas]
-            for k in range(FUENTE_PRE_FILAS):
-                glifo = corrida[k] if k < FUENTE_ALTO else 0
-                color = colores[k] if k < FUENTE_ALTO else 0
-                sombra_m = (corrida[k - 1] >> 1) if k >= 1 else 0
-                sombra_m &= ~glifo & 0xFFFF
-                for celda in (0, 1):
-                    g = (glifo >> (8 if celda == 0 else 0)) & 0xFF
-                    s = (sombra_m >> (8 if celda == 0 else 0)) & 0xFF
-                    conservar = ~((g | s) * 0x0101) & 0xFFFF
-                    prender = []
+            rows = source[c * FONT_HEIGHT:(c + 1) * FONT_HEIGHT]
+            run = [(f << 8) >> phase for f in rows]
+            for k in range(FONT_PRE_ROWS):
+                glyph = run[k] if k < FONT_HEIGHT else 0
+                color = colors[k] if k < FONT_HEIGHT else 0
+                shadow_m = (run[k - 1] >> 1) if k >= 1 else 0
+                shadow_m &= ~glyph & 0xFFFF
+                for cell in (0, 1):
+                    g = (glyph >> (8 if cell == 0 else 0)) & 0xFF
+                    s = (shadow_m >> (8 if cell == 0 else 0)) & 0xFF
+                    keep = ~((g | s) * 0x0101) & 0xFFFF
+                    turn_on = []
                     for bits in (0, 2):
-                        palabra = 0
-                        for m, col in ((g, color), (s, sombra)):
+                        word = 0
+                        for m, col in ((g, color), (s, shadow)):
                             if col >> bits & 1:
-                                palabra |= m
+                                word |= m
                             if col >> (bits + 1) & 1:
-                                palabra |= m << 8
-                        prender.append(palabra)
-                    for palabra in [conservar] + prender:
-                        out += bytes([palabra & 0xFF, palabra >> 8])
-        tablas.append(bytes(out))
-    return tablas
+                                word |= m << 8
+                        turn_on.append(word)
+                    for word in [keep] + turn_on:
+                        out += bytes([word & 0xFF, word >> 8])
+        tables.append(bytes(out))
+    return tables
 
 
 def build_blocks(game_map, tilemap, above_tilemap, passable, width, height,
@@ -2827,7 +2827,7 @@ def build_blocks(game_map, tilemap, above_tilemap, passable, width, height,
     blocks, cells, combos = {}, [], {}
     for by in range(height):
         for bx in range(width):
-            abajo = game_map.lower_layer[by * width + bx]
+            bottom = game_map.lower_layer[by * width + bx]
             key = (tuple(tilemap[by * 2 + dy][bx * 2 + dx]
                          for dy in (0, 1) for dx in (0, 1)),
                    tuple(above_tilemap[by * 2 + dy][bx * 2 + dx]
@@ -2838,11 +2838,11 @@ def build_blocks(game_map, tilemap, above_tilemap, passable, width, height,
                    # with different terrain, and the ROM reads it per block.
                    # It doesn't split any extra block in this game, where the
                    # terrain of every ChipSet is 1.
-                   rm2k.terrain_of(chipset, abajo) if chipset else 1)
+                   rm2k.terrain_of(chipset, bottom) if chipset else 1)
             if key not in blocks:
                 blocks[key] = len(blocks)
             cells.append(blocks[key])
-            combos.setdefault((abajo,
+            combos.setdefault((bottom,
                                game_map.upper_layer[by * width + bx]),
                               blocks[key])
 
@@ -2852,18 +2852,18 @@ def build_blocks(game_map, tilemap, above_tilemap, passable, width, height,
 
     table = bytearray(BLOCK_BYTES * len(blocks))
     pass_bytes = bytearray(len(blocks))
-    terreno_bytes = bytearray(len(blocks))
-    for (base, above, permisos, terreno), number in blocks.items():
+    terrain_bytes = bytearray(len(blocks))
+    for (base, above, permissions, terrain), number in blocks.items():
         entries = list(base) + list(above)
         for i, cell in enumerate(entries):
             table[number * BLOCK_BYTES + i * 2:
                   number * BLOCK_BYTES + i * 2 + 2] = cell.to_bytes(2, "little")
-        pass_bytes[number] = permisos
-        if not 0 <= terreno <= 0xFF:
+        pass_bytes[number] = permissions
+        if not 0 <= terrain <= 0xFF:
             raise SystemExit("a tile with terrain %d and the ROM's table "
-                             "carries one byte per block" % terreno)
-        terreno_bytes[number] = terreno
-    return cells, table, pass_bytes, terreno_bytes, combos
+                             "carries one byte per block" % terrain)
+        terrain_bytes[number] = terrain
+    return cells, table, pass_bytes, terrain_bytes, combos
 
 
 # How many block pairs the ROM's substitution table can hold at once. It is
@@ -2873,7 +2873,7 @@ def build_blocks(game_map, tilemap, above_tilemap, passable, width, height,
 SUB_MAX = 8
 
 
-class Sustituciones:
+class Substitutions:
     """`TileSubstitution` translated from RM2k tiles to ROM blocks.
 
     RM2k substitutes by **tile number**: every cell of the map that draws the
@@ -2898,16 +2898,16 @@ class Sustituciones:
     order the pages are compiled in can't decide what compiles.
     """
 
-    def __init__(self, mapa, flags, chipset):
-        self.mapa = mapa
+    def __init__(self, map_info, flags, chipset):
+        self.map_info = map_info
         self.flags = flags
         self.chipset = chipset
-        self.combos = mapa["combos"]
+        self.combos = map_info["combos"]
         # The four 8x8 cells each RM2k tile is drawn with, per layer. They come
         # from the blocks that already exist: a tile the map doesn't draw
         # anywhere isn't here and can't be substituted into.
-        self.celdas = ({}, {})
-        for (bajo, alto), bloque in self.combos.items():
+        self.cells = ({}, {})
+        for (low, height), block in self.combos.items():
             # **The lower half is only usable if the upper tile of that block
             # isn't baked into it.** An upper-layer tile **without** the
             # "Above" bit isn't drawn on BG2 but over the background —that is
@@ -2916,23 +2916,23 @@ class Sustituciones:
             # is the composition of the two and not the lower tile alone.
             # Copying it to build another combination would draw the
             # neighbor's upper tile.
-            if not self._hornea(alto):
-                self.celdas[0].setdefault(bajo, self._mitad(bloque, 0))
-            self.celdas[1].setdefault(alto, self._mitad(bloque, 1))
+            if not self._bakes(height):
+                self.cells[0].setdefault(low, self._half(block, 0))
+            self.cells[1].setdefault(height, self._half(block, 1))
         # The blocks some substitution of the map uses as a key, which is what
         # is going to take room in the RAM table.
-        self.claves = set()
+        self.known_keys = set()
         # And the blocks by content, to deduplicate the ones built the same way
         # `build_blocks` deduplicates the map's. It isn't to save room: two
         # combinations that already share a block —the two water autotiles of
         # map 6 draw the same thing— have to keep sharing it after
         # substituting, or the substitution would send a single block to two
         # places and couldn't be expressed.
-        self.por_bytes = {}
-        for bloque in range(len(mapa["pass"])):
-            self.por_bytes.setdefault(self._huella(bloque), bloque)
+        self.by_bytes = {}
+        for block in range(len(map_info["pass"])):
+            self.by_bytes.setdefault(self._fingerprint(block), block)
 
-    def _hornea(self, alto):
+    def _bakes(self, height):
         """Whether that upper-layer tile is baked into the background instead
         of going to BG2.
 
@@ -2941,44 +2941,44 @@ class Sustituciones:
         drawn stuck to the background. The empty tile draws nothing and bakes
         nothing.
         """
-        return (alto != rm2k.UPPER_BASE
-                and not self.flags[alto] & rm2k.PASS_ABOVE)
+        return (height != rm2k.UPPER_BASE
+                and not self.flags[height] & rm2k.PASS_ABOVE)
 
-    def _mitad(self, bloque, capa):
-        desde = bloque * BLOCK_BYTES + capa * 8
-        return bytes(self.mapa["bloques"][desde:desde + 8])
+    def _half(self, block, layer):
+        first = block * BLOCK_BYTES + layer * 8
+        return bytes(self.map_info["bloques"][first:first + 8])
 
-    def _huella(self, bloque):
-        desde = bloque * BLOCK_BYTES
-        return (bytes(self.mapa["bloques"][desde:desde + BLOCK_BYTES]),
-                self.mapa["pass"][bloque], self.mapa["terreno"][bloque])
+    def _fingerprint(self, block):
+        first = block * BLOCK_BYTES
+        return (bytes(self.map_info["bloques"][first:first + BLOCK_BYTES]),
+                self.map_info["pass"][block], self.map_info["terreno"][block])
 
-    def _combo(self, capa_alta, viejo, nuevo):
+    def _combo(self, high_layer, old, new):
         """The RM2k ids of the tile that goes out and the one that comes in."""
-        base = rm2k.UPPER_BASE if capa_alta else rm2k.LOWER_BASE
-        return base + viejo, base + nuevo
+        base = rm2k.UPPER_BASE if high_layer else rm2k.LOWER_BASE
+        return base + old, base + new
 
-    def pares(self, capa_alta, viejo, nuevo):
+    def pairs(self, high_layer, old, new):
         """The `(old block, new block)` pairs of a substitution, or None.
 
         None is "this page doesn't compile", which is what `events.py`
         expects from a command that can't be done.
         """
-        if not (0 <= viejo < rm2k.TILES_PER_LAYER
-                and 0 <= nuevo < rm2k.TILES_PER_LAYER):
+        if not (0 <= old < rm2k.TILES_PER_LAYER
+                and 0 <= new < rm2k.TILES_PER_LAYER):
             return None
-        capa = 1 if capa_alta else 0
-        viejo_id, nuevo_id = self._combo(capa_alta, viejo, nuevo)
-        salida, vistos = [], {}
-        for combinacion, bloque in sorted(self.combos.items()):
-            if combinacion[capa] != viejo_id:
+        layer = 1 if high_layer else 0
+        old_id, new_id = self._combo(high_layer, old, new)
+        out, seen = [], {}
+        for combination, block in sorted(self.combos.items()):
+            if combination[layer] != old_id:
                 continue
-            destino = list(combinacion)
-            destino[capa] = nuevo_id
-            nuevo_bloque = self.combos.get(tuple(destino))
-            if nuevo_bloque is None:
-                return None     # `cerrar` should have created it
-            if vistos.setdefault(bloque, nuevo_bloque) != nuevo_bloque:
+            dest = list(combination)
+            dest[layer] = new_id
+            new_block = self.combos.get(tuple(dest))
+            if new_block is None:
+                return None     # `close` should have created it
+            if seen.setdefault(block, new_block) != new_block:
                 # Two distinct combinations that draw the same and have the
                 # same permissions share a block, and there the substitution
                 # can't be expressed: the block would have to go two ways. It
@@ -2986,13 +2986,13 @@ class Sustituciones:
                 # same means being the same tile— but if it did, substituting
                 # would change cells RM2k doesn't touch.
                 return None
-            salida.append((bloque, nuevo_bloque))
-        if len(salida) > 0xFF:
+            out.append((block, new_block))
+        if len(out) > 0xFF:
             return None         # the count operand is one byte
-        self.claves.update(par[0] for par in salida)
-        return salida
+        self.known_keys.update(pair[0] for pair in out)
+        return out
 
-    def cerrar(self, triples):
+    def close(self, triples):
         """Builds the blocks that are going to be needed, and returns what
         couldn't be done.
 
@@ -3000,74 +3000,74 @@ class Sustituciones:
         `TileSubstitution`s. It repeats until none creates a new block,
         because the block one creates is the source of the next.
         """
-        faltan = []
+        missing = []
         while True:
-            antes = len(self.combos)
-            for capa_alta, viejo, nuevo in triples:
-                if not (0 <= viejo < rm2k.TILES_PER_LAYER
-                        and 0 <= nuevo < rm2k.TILES_PER_LAYER):
+            before = len(self.combos)
+            for high_layer, old, new in triples:
+                if not (0 <= old < rm2k.TILES_PER_LAYER
+                        and 0 <= new < rm2k.TILES_PER_LAYER):
                     continue
-                capa = 1 if capa_alta else 0
-                viejo_id, nuevo_id = self._combo(capa_alta, viejo, nuevo)
-                if nuevo_id not in self.celdas[capa]:
-                    if (capa_alta, viejo, nuevo) not in faltan:
-                        faltan.append((capa_alta, viejo, nuevo))
+                layer = 1 if high_layer else 0
+                old_id, new_id = self._combo(high_layer, old, new)
+                if new_id not in self.cells[layer]:
+                    if (high_layer, old, new) not in missing:
+                        missing.append((high_layer, old, new))
                     continue
-                for combinacion in sorted(self.combos):
-                    if combinacion[capa] != viejo_id:
+                for combination in sorted(self.combos):
+                    if combination[layer] != old_id:
                         continue
-                    destino = list(combinacion)
-                    destino[capa] = nuevo_id
-                    if self._crear(tuple(destino)) is None \
-                            and (capa_alta, viejo, nuevo) not in faltan:
-                        faltan.append((capa_alta, viejo, nuevo))
-            if len(self.combos) == antes:
-                return faltan
+                    dest = list(combination)
+                    dest[layer] = new_id
+                    if self._create(tuple(dest)) is None \
+                            and (high_layer, old, new) not in missing:
+                        missing.append((high_layer, old, new))
+            if len(self.combos) == before:
+                return missing
 
-    def _crear(self, combinacion):
+    def _create(self, combination):
         """The block of a combination the map doesn't draw anywhere.
 
         None is "this combination can't be built without drawing the map
         again". It happens when the upper tile is baked into the background:
         then the two halves of the block aren't independent and there is
-        nowhere to take the lower one from. See `_hornea`.
+        nowhere to take the lower one from. See `_bakes`.
         """
-        if combinacion in self.combos:
-            return self.combos[combinacion]
-        bajo, alto = combinacion
-        if self._hornea(alto) or bajo not in self.celdas[0] \
-                or alto not in self.celdas[1]:
+        if combination in self.combos:
+            return self.combos[combination]
+        low, height = combination
+        if self._bakes(height) or low not in self.cells[0] \
+                or height not in self.cells[1]:
             return None
-        huella = (self.celdas[0][bajo] + self.celdas[1][alto],
-                  rm2k.cell_passability(self.flags, bajo, alto),
-                  rm2k.terrain_of(self.chipset, bajo))
-        numero = self.por_bytes.get(huella)
-        if numero is None:
-            numero = len(self.mapa["pass"])
-            if numero >= MAX_BLOCKS:
+        fingerprint = (self.cells[0][low] + self.cells[1][height],
+                       rm2k.cell_passability(self.flags, low, height),
+                       rm2k.terrain_of(self.chipset, low))
+        number = self.by_bytes.get(fingerprint)
+        if number is None:
+            number = len(self.map_info["pass"])
+            if number >= MAX_BLOCKS:
                 raise SystemExit(
                     "map %d goes over %d blocks building the ones "
                     "`TileSubstitution` needs"
-                    % (self.mapa["id"], MAX_BLOCKS))
-            self.mapa["bloques"] += huella[0]
-            self.mapa["pass"].append(huella[1])
-            self.mapa["terreno"].append(huella[2])
-            self.por_bytes[huella] = numero
-        self.combos[combinacion] = numero
-        return numero
+                    % (self.map_info["id"], MAX_BLOCKS))
+            self.map_info["bloques"] += fingerprint[0]
+            self.map_info["pass"].append(fingerprint[1])
+            self.map_info["terreno"].append(fingerprint[2])
+            self.by_bytes[fingerprint] = number
+        self.combos[combination] = number
+        return number
 
 
-def triples_de_sustitucion(game_map, casos, map_id):
+def substitution_triples(game_map, cases, map_id):
     """The `(upper layer, old, new)` of all the `TileSubstitution`s that can
     end up running in this map: those of its events and those of the test
     cases that start here —which live in the boot map but are compiled with
-    this one's context, see `mapa_del_caso`—."""
+    this one's context, see `case_map`—."""
     triples = []
-    listas = [pagina.commands
-              for evento in game_map.events for pagina in evento.pages]
-    listas += [caso.comandos for caso in casos if caso.mapa == map_id]
-    for comandos in listas:
-        for cmd in comandos:
+    lists = [page.commands
+             for event in game_map.events for page in event.pages]
+    lists += [case.commands for case in cases if case.run_map == map_id]
+    for commands in lists:
+        for cmd in commands:
             if cmd.code != events.TILE_SUBSTITUTION or len(cmd.parameters) < 3:
                 continue
             triple = (bool(cmd.parameters[0]),
@@ -3085,8 +3085,8 @@ def triples_de_sustitucion(game_map, casos, map_id):
 # byte is unused; what is gained is that the low part of each pointer always
 # lands on an even address, which is how it is read with the accumulator in 16
 # bits.
-MAPA_STRIDE = 128
-MAPA_ESCALARES = [
+MAP_STRIDE = 128
+MAP_SCALARS = [
     ("MAP_BW", "width in 16x16 cells"),
     ("MAP_BH", "height in 16x16 cells"),
     ("CAM_MAX_X", "how far the camera reaches without going out"),
@@ -3116,7 +3116,7 @@ MAPA_ESCALARES = [
     ("PAGINA_COUNT", "how many event pages have to be resolved"),
     ("RUTA_GRAFICO_COUNT", "how many distinct graphics command 34 asks for"),
 ]
-MAPA_BYTES = [
+MAP_BYTES = [
     ("OBSEL_VALUE", "8x8 and 32x32 objects, and the page of their tiles"),
     ("BG12NBA_VALUE", "the tile pages of BG1 and BG2"),
     ("ABOVE_FIRST", "which CGRAM entry the upper layer starts at"),
@@ -3131,14 +3131,14 @@ MAPA_BYTES = [
     ("TERRENO_FUERA", "the terrain of a cell outside the map"),
     ("TERRENO_PLANO", "the terrain of the whole map, or 0 if there is a table"),
 ]
-MAPA_PUNTEROS = ["map_tiles", "map_cgram", "above_tiles", "above_cgram",
-                 "sprite_tiles", "sprite_cgram", "map_celdas", "map_bloques",
-                 "bloque_pass", "bloque_terreno", "npc_table", "actor_table",
-                 "paginas", "ev_pos", "npc_poses", "ruta_grafico",
-                 # The ChipSet animation: the two tile runs and their
-                 # drawings. See `anim_bytes`.
-                 "anim_tiles"]
-MAPA_PTR_PASO = 4
+MAP_POINTERS = ["map_tiles", "map_cgram", "above_tiles", "above_cgram",
+                "sprite_tiles", "sprite_cgram", "map_celdas", "map_bloques",
+                "bloque_pass", "bloque_terreno", "npc_table", "actor_table",
+                "paginas", "ev_pos", "npc_poses", "ruta_grafico",
+                # The ChipSet animation: the two tile runs and their
+                # drawings. See `anim_bytes`.
+                "anim_tiles"]
+MAP_PTR_STEP = 4
 # Where the pointers start: right after the scalars and the bytes, rounded up
 # to the stride. **It is computed and not written by hand**, because written by
 # hand it already failed: adding one more scalar left `ABOVE_FIRST` and the
@@ -3149,18 +3149,18 @@ MAPA_PTR_PASO = 4
 # names with the same value, which is legal, and the pixel-by-pixel comparison
 # says "all wrong" without saying where. The only defense is for the number to
 # come from the data.
-MAPA_PTR_BASE = (-(-(len(MAPA_ESCALARES) * 2 + len(MAPA_BYTES))
-                   // MAPA_PTR_PASO) * MAPA_PTR_PASO)
-assert MAPA_PTR_BASE + len(MAPA_PUNTEROS) * MAPA_PTR_PASO <= MAPA_STRIDE, \
-    "the map record doesn't fit in %d bytes" % MAPA_STRIDE
+MAP_PTR_BASE = (-(-(len(MAP_SCALARS) * 2 + len(MAP_BYTES))
+                  // MAP_PTR_STEP) * MAP_PTR_STEP)
+assert MAP_PTR_BASE + len(MAP_POINTERS) * MAP_PTR_STEP <= MAP_STRIDE, \
+    "the map record doesn't fit in %d bytes" % MAP_STRIDE
 
 # An event page: which event it belongs to, what activates it, and where its
 # code is. The pages of one event go together and in order, which is what lets
 # the ROM choose the last one that meets its conditions in a single pass,
 # without carrying a table per event.
-PAGINA_BYTES = 32
+PAGE_BYTES = 32
 # No turn slot: the map has no still event that turns around.
-GIRO_NINGUNO = 0xFFFF
+TURN_NONE = 0xFFFF
 # A leader candidate: id, palette, **its fifteen colors** and twelve 24-bit
 # pointers to its poses. The colors go inside the table and not in a separate
 # block because there are few actors per map and that way the ROM uploads them
@@ -3169,9 +3169,9 @@ GIRO_NINGUNO = 0xFFFF
 # They are there because leaders **share a CGRAM slot**: one leads at a time,
 # so reserving a palette for each is having it taken by someone who isn't on
 # screen. The ROM uploads the leader's when the party changes and when the map
-# loads. See `npcs_dibujables`.
-ACTOR_COLORES = 2 * OBJ_COLORS
-ACTOR_BYTES = 2 + ACTOR_COLORES + 3 * 12
+# loads. See `drawable_npcs`.
+ACTOR_COLORS = 2 * OBJ_COLORS
+ACTOR_BYTES = 2 + ACTOR_COLORS + 3 * 12
 
 # One bit per switch. The game checks up to 1003 in page conditions, so 1024
 # is more than enough: it is 128 bytes of RAM.
@@ -3183,13 +3183,13 @@ SWITCH_BYTES = 128
 # because. **The map that asks for the most in the whole game asks for six**,
 # measured over the 328; eight leaves two of slack and is sixteen bytes. The
 # converter stops if any map goes over, so it can't fall short silently.
-RUTA_GRAF_MAX = 8
+ROUTE_GFX_MAX = 8
 
 
-def campos_del_mapa(mapa):
+def map_fields(map_info):
     """The values of a map's record, in the order they are emitted."""
-    tilemap, above, sprite = mapa["tilemap"], mapa["above"], mapa["sprite"]
-    collision, layout = mapa["collision"], mapa["layout"]
+    tilemap, above, sprite = map_info["tilemap"], map_info["above"], map_info["sprite"]
+    collision, layout = map_info["collision"], map_info["layout"]
     height, width = len(tilemap), len(tilemap[0])
     return {
         "MAP_BW": collision[3], "MAP_BH": collision[4],
@@ -3201,8 +3201,8 @@ def campos_del_mapa(mapa):
         "VRAM_SPRITE": layout["sprites"][0],
         "VRAM_VENTANA": layout.get("ventana", (0, 0))[0],
         "VRAM_VENTANA_MAP": layout.get("ventana_map", (0, 0))[0],
-        "MAP_TILES": len(mapa["tiles"]) // BYTES_PER_TILE,
-        "MAP_CGRAM": len(mapa["cram"]) // 2,
+        "MAP_TILES": len(map_info["tiles"]) // BYTES_PER_TILE,
+        "MAP_CGRAM": len(map_info["cram"]) // 2,
         "ABOVE_TILES": len(above[0]) // 32,
         "ABOVE_CGRAM": len(above[1]) // 2,
         "SPRITE_TILES": len(sprite[0]) // 32 if sprite else 0,
@@ -3210,11 +3210,11 @@ def campos_del_mapa(mapa):
         # takes its place in CGRAM.
         "SPRITE_CGRAM": COLORS_PER_PALETTE * len(sprite[1]) if sprite else 0,
         "NPC_COUNT": len(sprite[3]) if sprite else 0,
-        "EV_COUNT": len(mapa["ev_pos"]) // EV_STRIDE,
+        "EV_COUNT": len(map_info["ev_pos"]) // EV_STRIDE,
         "TIMER_BASE": sprite[5] if sprite else 0,
         "LLUVIA_BASE": sprite[10] if sprite else 0,
         "ACTOR_COUNT": len(sprite[4]) if sprite else 0,
-        "PAGINA_COUNT": len(mapa["paginas"]),
+        "PAGINA_COUNT": len(map_info["paginas"]),
         "RUTA_GRAFICO_COUNT": len(sprite[9]) if sprite else 0,
         "OBSEL_VALUE": 0x20 | (layout["sprites"][0] // 0x2000),
         "BG12NBA_VALUE": ((layout["encima"][0] // 0x1000) << 4)
@@ -3222,14 +3222,14 @@ def campos_del_mapa(mapa):
         "ABOVE_FIRST": above[3] * COLORS_PER_PALETTE,
         "TIMER_PAL": (sprite[6] if sprite and sprite[6] is not None else 0),
         "LLUVIA_PAL": sprite[11] if sprite else 0,
-        "GIRO_TILE4": (sprite[12] // 4 if sprite and sprite[12] != GIRO_NINGUNO
+        "GIRO_TILE4": (sprite[12] // 4 if sprite and sprite[12] != TURN_NONE
                        else 0xFF),
-        "TERRENO_FUERA": mapa["terreno_fuera"],
-        "TERRENO_PLANO": terreno_plano(mapa),
+        "TERRENO_FUERA": map_info["terreno_fuera"],
+        "TERRENO_PLANO": terrain_plane(map_info),
     }
 
 
-def desplazamientos():
+def offsets():
     """The names of the record's fields, so that tools/runtime/ doesn't repeat
     them.
 
@@ -3238,23 +3238,23 @@ def desplazamientos():
     there is no number to update there.
     """
     out = ["; Where each field falls inside a map's record."]
-    usado = 0
-    for nombre, _ in MAPA_ESCALARES:
-        out.append("M_%-14s = %d" % (nombre, usado))
-        usado += 2
-    for nombre, _ in MAPA_BYTES:
-        out.append("M_%-14s = %d" % (nombre, usado))
-        usado += 1
-    for numero, nombre in enumerate(MAPA_PUNTEROS):
+    used = 0
+    for name, _ in MAP_SCALARS:
+        out.append("M_%-14s = %d" % (name, used))
+        used += 2
+    for name, _ in MAP_BYTES:
+        out.append("M_%-14s = %d" % (name, used))
+        used += 1
+    for number, name in enumerate(MAP_POINTERS):
         out.append("M_PTR_%-10s = %d"
-                   % (nombre.upper(), MAPA_PTR_BASE + numero * MAPA_PTR_PASO))
+                   % (name.upper(), MAP_PTR_BASE + number * MAP_PTR_STEP))
     return "\n".join(out)
 
 
-def tabla_de_mapas(mapas, etiquetas):
+def map_table(maps, labels):
     """The table the ROM walks to know what to load.
 
-    `etiquetas` says, per map, which block each pointer points to. This didn't
+    `labels` says, per map, which block each pointer points to. This didn't
     exist before and the name was rebuilt here with `"%s_%d" % (nombre,
     numero)`, that is with the same computation that had emitted it: two
     places computing the same name and no way for a block to belong to more
@@ -3262,7 +3262,7 @@ def tabla_de_mapas(mapas, etiquetas):
     """
     out = ['.segment "RODATA"',
            "; The map table: one record of %d bytes per map, with everything"
-           % MAPA_STRIDE,
+           % MAP_STRIDE,
            "; the ROM needs to load it. The pointers are 24 bits because the",
            "; data lives spread over all the banks.",
            ";",
@@ -3282,39 +3282,39 @@ def tabla_de_mapas(mapas, etiquetas):
            "; of the suite didn't see it because their table landed somewhere",
            "; else, which is exactly the kind of error that shows up when adding",
            "; a byte anywhere else.",
-           ".bloque %d" % (MAPA_STRIDE * len(mapas)),
+           ".bloque %d" % (MAP_STRIDE * len(maps)),
            "mapa_tabla:"]
-    for numero, mapa in enumerate(mapas):
-        campos = campos_del_mapa(mapa)
+    for number, map_info in enumerate(maps):
+        fields = map_fields(map_info)
         # Stays in Spanish: `mapas_de` in rom/pruebas/arnes/consola.py reads
         # the table order from this line with a regex that expects "mapa".
-        out.append("    ; --- %d: mapa %d %r ---" % (numero, mapa["id"],
-                                                     mapa["nombre"]))
-        usado = 0
-        for nombre, comentario in MAPA_ESCALARES:
+        out.append("    ; --- %d: mapa %d %r ---" % (number, map_info["id"],
+                                                     map_info["nombre"]))
+        used = 0
+        for name, comment in MAP_SCALARS:
             out.append("    .word %-6d ; +%-3d %s%s"
-                       % (campos[nombre], usado, nombre,
-                          "  " + comentario if comentario else ""))
-            usado += 2
-        for nombre, comentario in MAPA_BYTES:
+                       % (fields[name], used, name,
+                          "  " + comment if comment else ""))
+            used += 2
+        for name, comment in MAP_BYTES:
             out.append("    .byte $%02X    ; +%-3d %s  %s"
-                       % (campos[nombre], usado, nombre, comentario))
-            usado += 1
-        relleno = MAPA_PTR_BASE - usado
+                       % (fields[name], used, name, comment))
+            used += 1
+        padding = MAP_PTR_BASE - used
         # Without padding the line doesn't go: a `.byte` without operands is an
         # error for `ca65`.
-        if relleno:
+        if padding:
             out.append("    .byte %s ; +%d  padding up to the pointers"
-                       % (",".join(["$00"] * relleno), usado))
-        usado += relleno
-        for nombre in MAPA_PUNTEROS:
-            etiqueta = etiquetas[numero][nombre]
+                       % (",".join(["$00"] * padding), used))
+        used += padding
+        for name in MAP_POINTERS:
+            label = labels[number][name]
             out.append("    .byte <(%s), >(%s), ^(%s), $00 ; +%d  %s"
-                       % (etiqueta, etiqueta, etiqueta, usado, nombre))
-            usado += MAPA_PTR_PASO
-        assert usado <= MAPA_STRIDE, usado
-        if usado < MAPA_STRIDE:
-            out.append("    .byte " + ",".join(["$00"] * (MAPA_STRIDE - usado)))
+                       % (label, label, label, used, name))
+            used += MAP_PTR_STEP
+        assert used <= MAP_STRIDE, used
+        if used < MAP_STRIDE:
+            out.append("    .byte " + ",".join(["$00"] * (MAP_STRIDE - used)))
     # And each map's RM2k id, by index: `MemorizeLocation` writes it into a
     # variable and `RecallToLocation` looks it up, because in variables the map
     # is RM2k's —any other page reads them—. It goes separately and not as a
@@ -3322,9 +3322,9 @@ def tabla_de_mapas(mapas, etiquetas):
     # `op_location`.
     out += ["",
             "; Each map's RM2k id, in the order of `mapa_tabla`.",
-            ".bloque %d" % (2 * len(mapas)),
+            ".bloque %d" % (2 * len(maps)),
             "mapa_rm2k:",
-            "    .word " + ", ".join(str(m["id"]) for m in mapas)]
+            "    .word " + ", ".join(str(m["id"]) for m in maps)]
     return "\n".join(out)
 
 
@@ -3332,7 +3332,7 @@ def tabla_de_mapas(mapas, etiquetas):
 # order —water 0, 1, 2; animated 0 to 3—, with no header.
 #
 # Where each one lands and which VRAM address it goes to isn't inside the
-# block but in `anim_tabla`, one entry per map. It is so the ROM doesn't have
+# block but in `anim_table`, one entry per map. It is so the ROM doesn't have
 # to read anything from the cartridge to animate: the direct page is full, so
 # an `lda [puntero], y` had nowhere to live, and the alternative —bringing the
 # header into WRAM by DMA— asked for forty bytes of BSS that weren't there
@@ -3341,18 +3341,18 @@ ANIM_STRIDE = 16
 ANIM_FAM_STRIDE = ANIM_STRIDE // 2
 
 
-def anim_bytes(animacion):
+def anim_bytes(animation):
     """The map's drawings, one after the other. Empty if nothing animates."""
-    datos = bytearray()
-    for familia, _ in FAMILIAS:
-        corrida = animacion.get(familia)
-        if corrida:
-            for dibujo in corrida["dibujos"]:
-                datos += dibujo
-    return bytes(datos)
+    data = bytearray()
+    for family, _ in FAMILIES:
+        run = animation.get(family)
+        if run:
+            for drawing in run["dibujos"]:
+                data += drawing
+    return bytes(data)
 
 
-def anim_tabla(mapas):
+def anim_table(maps):
     """One entry per map, with both runs already resolved.
 
     Per family, and in the order the ROM looks at them:
@@ -3385,36 +3385,36 @@ def anim_tabla(mapas):
            "; for the same reason as `mapa_tabla`: it is 16 bytes per map, and",
            "; with the maps the tests ask for bank 0 went over by 361. Whole",
            "; within one bank, because what follows $xxFFFF isn't the next one's ROM.",
-           ".bloque %d" % (ANIM_STRIDE * len(mapas)),
+           ".bloque %d" % (ANIM_STRIDE * len(maps)),
            "anim_tabla:"]
-    for mapa in mapas:
-        animacion = mapa["resumen"]["animacion"]
-        out.append("    ; --- map %d %r ---" % (mapa["id"], mapa["nombre"]))
-        desplazamiento = 0
-        for familia, cuantos in FAMILIAS:
-            corrida = animacion.get(familia)
-            tiles = corrida["tiles"] if corrida else 0
-            vram = (mapa["layout"]["tiles"][0]
-                    + (corrida["base"] if corrida else 0) * BYTES_PER_TILE // 2)
-            out.append("    .word %-6d ; VRAM of %s" % (vram, familia))
+    for map_info in maps:
+        animation = map_info["resumen"]["animacion"]
+        out.append("    ; --- map %d %r ---" % (map_info["id"], map_info["nombre"]))
+        offset = 0
+        for family, count in FAMILIES:
+            run = animation.get(family)
+            tiles = run["tiles"] if run else 0
+            vram = (map_info["layout"]["tiles"][0]
+                    + (run["base"] if run else 0) * BYTES_PER_TILE // 2)
+            out.append("    .word %-6d ; VRAM of %s" % (vram, family))
             out.append("    .word %-6d ; drawing 0, inside the block"
-                       % desplazamiento)
+                       % offset)
             out.append("    .word %-6d ; bytes per drawing"
                        % (tiles * BYTES_PER_TILE))
-            relleno = 0
-            if familia == FAMILIAS[-1][0]:
-                relleno = 1 if any(n.get("anima")
-                                   for n in (mapa["sprite"][3]
-                                             if mapa["sprite"] else ())) else 0
+            padding = 0
+            if family == FAMILIES[-1][0]:
+                padding = 1 if any(n.get("anima")
+                                   for n in (map_info["sprite"][3]
+                                             if map_info["sprite"] else ())) else 0
             out.append("    .byte %d, %d   ; %d tile(s)%s"
-                       % (tiles, relleno, tiles,
+                       % (tiles, padding, tiles,
                           ", and the map has still events that animate"
-                          if relleno else ""))
-            desplazamiento += tiles * BYTES_PER_TILE * cuantos
+                          if padding else ""))
+            offset += tiles * BYTES_PER_TILE * count
     return "\n".join(out)
 
 
-def animaciones_de_la_rom(mapas, renderer):
+def rom_animations(maps, renderer):
     """The battle animations the already emitted bytecode shows, by RM2k
     number, each one converted by `animation.py`.
 
@@ -3423,39 +3423,39 @@ def animaciones_de_la_rom(mapas, renderer):
     page filter decided which ones go in. It is the same rule as
     `events.route_targets`.
     """
-    numeros = set()
-    for mapa in mapas:
-        for pagina in mapa.get("paginas", ()):
-            codigo = pagina.get("codigo") or b""
-            for i, c in events.walk_code(codigo):
+    numbers = set()
+    for map_info in maps:
+        for page in map_info.get("paginas", ()):
+            code = page.get("codigo") or b""
+            for i, c in events.walk_code(code):
                 if (c[i] == events.OP_ANIMATION
                         and c[i + 1] != events.ANIM_NO_DRAWING):
-                    numeros.add(c[i + 1])
-    salida = {}
-    for numero in sorted(numeros):
-        info = animacion_mod.by_number(renderer, numero)
+                    numbers.add(c[i + 1])
+    out = {}
+    for number in sorted(numbers):
+        info = animation_mod.by_number(renderer, number)
         if info is not None:
-            salida[numero] = info
-    return salida
+            out[number] = info
+    return out
 
 
-def cuadro_de_animacion(cuadro):
+def animation_frame(frame):
     """The 2 KB of a battle animation frame as they end up in VRAM: the box's
     64 4bpp tiles, in order."""
-    datos = bytearray(animacion_mod.TILES * 32)
-    for tile, celda in animacion_mod.cells(cuadro).items():
-        datos[tile * 32:(tile + 1) * 32] = pack_tile(celda, planes=4)
-    return bytes(datos)
+    data = bytearray(animation_mod.TILES * 32)
+    for tile, cell in animation_mod.cells(frame).items():
+        data[tile * 32:(tile + 1) * 32] = pack_tile(cell, planes=4)
+    return bytes(data)
 
 
 # The end of a frame without its empty tiles: no tile of the box reaches 64.
-CUADRO_FIN = 0xFF
+FRAME_END = 0xFF
 
 
-def cuadro_sin_vacios(datos):
-    """A frame from `cuadro_de_animacion` as the cartridge stores it: only its
+def frame_without_gaps(data):
+    """A frame from `animation_frame` as the cartridge stores it: only its
     tiles that aren't all zero, each with its number in front, and
-    `CUADRO_FIN`.
+    `FRAME_END`.
 
     The frames are **almost all transparency**, so storing them whole was
     paying for zeros: what was measured is in the task
@@ -3464,16 +3464,16 @@ def cuadro_sin_vacios(datos):
     uploads them whole, as before.
     """
     out = bytearray()
-    for tile in range(animacion_mod.TILES):
-        uno = datos[tile * 32:(tile + 1) * 32]
-        if any(uno):
+    for tile in range(animation_mod.TILES):
+        one = data[tile * 32:(tile + 1) * 32]
+        if any(one):
             out.append(tile)
-            out += uno
-    out.append(CUADRO_FIN)
+            out += one
+    out.append(FRAME_END)
     return bytes(out)
 
 
-def animaciones_asm(animaciones, mapas):
+def animations_asm(animations, maps):
     """The cartridge's battle animations, ready for the `.inc`.
 
     Four things:
@@ -3485,7 +3485,7 @@ def animaciones_asm(animaciones, mapas):
       `anim_batalla_tabla`   per entry: how many frames, where its anchor
                              falls inside the box and which frame it starts at.
       `anim_batalla_cuadros` per frame, the 24-bit pointer to its tiles
-                             without the empty ones: see `cuadro_sin_vacios`.
+                             without the empty ones: see `frame_without_gaps`.
                              One per frame and not a contiguous block per
                              animation, which dates from when each frame was
                              2 KB and 28 didn't fit in a bank.
@@ -3494,9 +3494,9 @@ def animaciones_asm(animaciones, mapas):
       `anim_batalla_reparto` per map, where and with which palette it is drawn
                              here, or 0 if this map doesn't draw animations.
     """
-    orden = sorted(animaciones)
-    entrada = {numero: k for k, numero in enumerate(orden)}
-    tope = (max(orden) + 1) if orden else 1
+    order = sorted(animations)
+    slot_of = {number: k for k, number in enumerate(order)}
+    cap = (max(order) + 1) if order else 1
     out = [
         "\n; --- the drawing of the battle animations ---",
         ";",
@@ -3506,70 +3506,70 @@ def animaciones_asm(animaciones, mapas):
         "; map 2 has left free. What changes per map is where that row lands",
         "; and with which palette, and that goes in `anim_batalla_reparto`,",
         "; one byte per map.",
-        "ANIM_B_CAJA   = %d" % animacion_mod.BOX,
-        "ANIM_B_OBJ    = %d" % animacion_mod.OBJ,
-        "ANIM_B_OBJETOS = %d" % animacion_mod.OBJECTS,
-        "ANIM_B_TILES  = %d" % animacion_mod.TILES,
-        "ANIM_B_BYTES  = %d" % (animacion_mod.TILES * 32),
+        "ANIM_B_CAJA   = %d" % animation_mod.BOX,
+        "ANIM_B_OBJ    = %d" % animation_mod.OBJ,
+        "ANIM_B_OBJETOS = %d" % animation_mod.OBJECTS,
+        "ANIM_B_TILES  = %d" % animation_mod.TILES,
+        "ANIM_B_BYTES  = %d" % (animation_mod.TILES * 32),
         "ANIM_B_STRIDE = 8",
         "; How high an animation number `anim_batalla_de` reaches: the bytecode",
         "; carries the RM2k number as is and a larger one isn't in the table,",
         "; so the ROM compares it before reading it.",
-        "ANIM_B_MAX    = %d" % tope,
+        "ANIM_B_MAX    = %d" % cap,
         "; The center of the screen, which is where the ones with scope",
         "; `Scope_screen` land: `DrawAt(screen_width / 2, screen_height / 2)`.",
-        "ANIM_B_CENTRO_X = %d" % (animacion_mod.SCREEN[0] // 2),
-        "ANIM_B_CENTRO_Y = %d" % (animacion_mod.SCREEN[1] // 2),
+        "ANIM_B_CENTRO_X = %d" % (animation_mod.SCREEN[0] // 2),
+        "ANIM_B_CENTRO_Y = %d" % (animation_mod.SCREEN[1] // 2),
         "ANIM_B_SIN      = $%02X" % events.ANIM_NO_DRAWING,
         "ANIM_B_PANTALLA = $%02X" % events.ANIM_TARGET_SCREEN,
     ]
-    out.append(bloque("anim_batalla_de",
-                      bytes(entrada.get(n, 0xFF) for n in range(tope))))
-    tabla = bytearray()
-    primero = 0
-    for numero in orden:
-        info = animaciones[numero]
+    out.append(block("anim_batalla_de",
+                     bytes(slot_of.get(n, 0xFF) for n in range(cap))))
+    table = bytearray()
+    first = 0
+    for number in order:
+        info = animations[number]
         # The anchor **as the ROM wants it**: with the shift of
         # `Animation::Position` already baked in, so the console only
         # subtracts.
-        ax, ay = animacion_mod.rom_anchor(info)
-        tabla += bytes([len(info["cuadros"]), ax & 0xFF, ay & 0xFF, 0,
-                        primero & 0xFF, primero >> 8, 0, 0])
-        primero += len(info["cuadros"])
-    out.append(bloque("anim_batalla_tabla", bytes(tabla)))
+        ax, ay = animation_mod.rom_anchor(info)
+        table += bytes([len(info["cuadros"]), ax & 0xFF, ay & 0xFF, 0,
+                        first & 0xFF, first >> 8, 0, 0])
+        first += len(info["cuadros"])
+    out.append(block("anim_batalla_tabla", bytes(table)))
     cgram = bytearray()
-    for numero in orden:
-        colores = [(0, 0, 0)] + list(animaciones[numero]["paleta"])
-        colores += [(0, 0, 0)] * (COLORS_PER_PALETTE - len(colores))
-        for color in colores:
+    for number in order:
+        colors = [(0, 0, 0)] + list(animations[number]["paleta"])
+        colors += [(0, 0, 0)] * (COLORS_PER_PALETTE - len(colors))
+        for color in colors:
             cgram += cgram_word(color).to_bytes(2, "little")
-    out.append(bloque("anim_batalla_cgram", bytes(cgram)))
-    # The pointer table, with labels: it can't come from `bloque()`, but it
+    out.append(block("anim_batalla_cgram", bytes(cgram)))
+    # The pointer table, with labels: it can't come from `block()`, but it
     # **is declared** with `.bloque` for the same reason as the page one —the
     # ROM reads it with a 24-bit pointer and it can't straddle two banks—.
-    punteros = [".bloque %d" % (4 * primero), "anim_batalla_cuadros:"]
-    for numero in orden:
-        for k in range(len(animaciones[numero]["cuadros"])):
-            punteros.append("    .dword anim_batalla_%d_%d" % (numero, k))
-    out.append("\n".join(punteros))
-    for numero in orden:
-        info = animaciones[numero]
-        for k, cuadro in enumerate(info["cuadros"]):
-            out.append(bloque("anim_batalla_%d_%d" % (numero, k),
-                              cuadro_sin_vacios(cuadro_de_animacion(cuadro))))
-    reparto = bytearray()
-    for mapa in mapas:
-        sprite = mapa["sprite"]
+    pointers = [".bloque %d" % (4 * first), "anim_batalla_cuadros:"]
+    for number in order:
+        for k in range(len(animations[number]["cuadros"])):
+            pointers.append("    .dword anim_batalla_%d_%d" % (number, k))
+    out.append("\n".join(pointers))
+    for number in order:
+        info = animations[number]
+        for k, frame in enumerate(info["cuadros"]):
+            out.append(block("anim_batalla_%d_%d" % (number, k),
+                             frame_without_gaps(animation_frame(frame))))
+    split = bytearray()
+    for map_info in maps:
+        sprite = map_info["sprite"]
         base, pal = (sprite[15], sprite[16]) if sprite else (0, 0)
         # Bit 7 is "drawn here", and below go the 64-tile block and the
         # palette, three bits each. In one byte because the map record is at
         # exactly its 128: see MAPA_STRIDE.
-        reparto.append((0x80 | ((base // 64) << 3) | pal) if base else 0)
-    out.append(bloque("anim_batalla_reparto", bytes(reparto)))
+        split.append((0x80 | ((base // 64) << 3) | pal) if base else 0)
+    out.append(block("anim_batalla_reparto", bytes(split)))
     return "\n".join(out) + "\n"
 
 
-def experiencia_ranuras(db, actores):
+def experience_slots(db, actors):
     """The actors that carry experience and level, in the order of their slot.
 
     They are the ones that can join the party —`ranuras["actores"]`—, because
@@ -3580,15 +3580,15 @@ def experiencia_ranuras(db, actores):
     least one**, even if it belongs to nobody: with zero the reset DMA would
     copy 64 KB.
     """
-    return sorted(a for a in actores if a in db.actors) or [None]
+    return sorted(a for a in actors if a in db.actors) or [None]
 
 
-def experiencia_asm(db, actores, actores_n):
+def experience_asm(db, actors, n_actors):
     """The experience and level tables: see `port.experience`.
 
     It leaves the segment in RODATA, which is where its caller finds it.
 
-    Per slot of `experiencia_ranuras`:
+    Per slot of `experience_slots`:
 
         exp_inicial    four bytes: the starting experience, 24 bits, and the
                        level. It is what the reset copies to `FAR_EXP`.
@@ -3603,59 +3603,59 @@ def experiencia_asm(db, actores, actores_n):
     winning a battle, when setting it up and on the equipment screen, never
     per frame.
     """
-    ranuras_exp = experiencia_ranuras(db, actores)
-    k_de = {a: k for k, a in enumerate(ranuras_exp) if a is not None}
-    curvas, curva_de, inicial, maximo, filas, params = [], [], [], [], [], []
-    for a in ranuras_exp:
+    slots_exp = experience_slots(db, actors)
+    k_of = {a: k for k, a in enumerate(slots_exp) if a is not None}
+    curves, curve_of, initial, max_levels, rows, params = [], [], [], [], [], []
+    for a in slots_exp:
         actor = db.actors[a] if a is not None else None
-        lista = (X.exp_list(actor) if actor else [0])
-        lista = lista + [0] * (X.LEVEL_MAX - len(lista))
-        if lista not in curvas:
-            curvas.append(lista)
-        curva_de.append(4 * X.LEVEL_MAX * curvas.index(lista))
+        exp_curve = (X.exp_list(actor) if actor else [0])
+        exp_curve = exp_curve + [0] * (X.LEVEL_MAX - len(exp_curve))
+        if exp_curve not in curves:
+            curves.append(exp_curve)
+        curve_of.append(4 * X.LEVEL_MAX * curves.index(exp_curve))
         exp = X.initial_exp(actor) if actor else 0
-        inicial += [exp & 0xFF, (exp >> 8) & 0xFF, exp >> 16,
+        initial += [exp & 0xFF, (exp >> 8) & 0xFF, exp >> 16,
                     X.initial_level(actor) if actor else 1]
-        maximo.append(X.max_level(actor) if actor else 1)
-        for curva in lcf.CURVES:
-            filas.append(2 * len(params))
-            valores = list(actor.params.get(curva) or []) if actor else []
-            valores = (valores + [0] * X.LEVEL_MAX)[:X.LEVEL_MAX]
-            params += [v & 0xFFFF for v in valores]
-    if 4 * len(ranuras_exp) > 0x200:
+        max_levels.append(X.max_level(actor) if actor else 1)
+        for curve in lcf.CURVES:
+            rows.append(2 * len(params))
+            values = list(actor.params.get(curve) or []) if actor else []
+            values = (values + [0] * X.LEVEL_MAX)[:X.LEVEL_MAX]
+            params += [v & 0xFFFF for v in values]
+    if 4 * len(slots_exp) > 0x200:
         raise SystemExit("%d actors with experience don't fit in the 512 "
-                         "bytes of FAR_EXP" % len(ranuras_exp))
+                         "bytes of FAR_EXP" % len(slots_exp))
     out = ['.segment "RODATA"',
-           "EXP_K = %d" % len(ranuras_exp),
+           "EXP_K = %d" % len(slots_exp),
            "EXP_NIVEL_MAX = %d" % X.LEVEL_MAX]
 
-    def tabla(etiqueta, directiva, valores, ancho):
-        out.append(".bloque %d" % max(ancho, ancho * len(valores)))
-        out.append("%s:" % etiqueta)
-        for i in range(0, len(valores), 16):
-            out.append("    %s %s" % (directiva, ", ".join(
-                str(v) for v in valores[i:i + 16])))
+    def table(label, directive, values, width):
+        out.append(".bloque %d" % max(width, width * len(values)))
+        out.append("%s:" % label)
+        for i in range(0, len(values), 16):
+            out.append("    %s %s" % (directive, ", ".join(
+                str(v) for v in values[i:i + 16])))
 
-    tabla("actor_exp_k", ".byte",
-          [k_de.get(a, 0xFF) for a in range(actores_n)], 1)
-    tabla("exp_inicial", ".byte", inicial, 1)
-    tabla("exp_nivel_max", ".byte", maximo, 1)
-    tabla("exp_curva", ".word", curva_de, 2)
-    tabla("exp_tabla", ".dword", [v for c in curvas for v in c], 4)
-    tabla("nivel_fila", ".word", filas, 2)
-    tabla("nivel_params", ".word", params, 2)
+    table("actor_exp_k", ".byte",
+          [k_of.get(a, 0xFF) for a in range(n_actors)], 1)
+    table("exp_inicial", ".byte", initial, 1)
+    table("exp_nivel_max", ".byte", max_levels, 1)
+    table("exp_curva", ".word", curve_of, 2)
+    table("exp_tabla", ".dword", [v for c in curves for v in c], 4)
+    table("nivel_fila", ".word", rows, 2)
+    table("nivel_params", ".word", params, 2)
     return "\n".join(out) + "\n"
 
 
 # What goes in the backdrop tables instead of a backdrop number: the plain one
 # —no backdrop, which is zeros— and "the one of the place", which the ROM
 # resolves when the battle starts with the map and the terrain. See
-# `escena_de_la_rom`.
-FONDO_LISO = 0xFF
-FONDO_DEL_LUGAR = 0xFE
+# `rom_scene`.
+FLAT_BACKDROP = 0xFF
+PLACE_BACKDROP = 0xFE
 
 
-def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
+def rom_scene(db, troops, maps, tree, encounters, game_dir):
     """Which backdrops and which battlers the cartridge carries, and who uses
     each one.
 
@@ -3673,7 +3673,7 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
     * **the one of the terrain the hero is standing on**, if the map names
       none: the world, 66. The ROM resolves that one when the battle starts,
       with `fondo_terreno`. And an `EnemyEncounter` with the backdrop "of the
-      place" does the same as a random encounter: `FONDO_DEL_LUGAR`.
+      place" does the same as a random encounter: `PLACE_BACKDROP`.
 
     A backdrop goes **into the ROM**, light, if some battle of the cartridge
     asks for it; if some can land on one that isn't there —a troop of the
@@ -3685,42 +3685,42 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
     four use it, and it is the image with its hue: the GiantRat and the
     HairyVermin are the same `BLmouse` and two battlers.
     """
-    E = escena_mod
-    juego = E.game_backdrops(events.named_backdrops(game_dir), tree,
-                             db.terrain_backdrops, game_dir)
-    numero_de = {nombre.lower(): k for k, nombre in enumerate(juego)}
-    if len(juego) >= FONDO_DEL_LUGAR:
+    E = scene_mod
+    names_in_game = E.game_backdrops(events.named_backdrops(game_dir), tree,
+                                     db.terrain_backdrops, game_dir)
+    number_of = {name.lower(): k for k, name in enumerate(names_in_game)}
+    if len(names_in_game) >= PLACE_BACKDROP:
         raise SystemExit("the game has %d battle backdrops and the number of "
                          "one is a byte, with $%02X and $FF reserved"
-                         % (len(juego), FONDO_DEL_LUGAR))
-    datos = {"juego": juego, "fondos": [], "battlers": [], "battler_de": {},
-             "tropa_fondo": {}, "mapa_fondo": [], "respaldo_de": [],
-             "terreno_fondo": [], "calidad": []}
+                         % (len(names_in_game), PLACE_BACKDROP))
+    data = {"juego": names_in_game, "fondos": [], "battlers": [], "battler_de": {},
+            "tropa_fondo": {}, "mapa_fondo": [], "respaldo_de": [],
+            "terreno_fondo": [], "calidad": []}
 
-    def numero(nombre):
-        if nombre is None or nombre is events.PLACE_BACKDROP:
-            return FONDO_DEL_LUGAR
-        return numero_de.get(nombre.lower(), FONDO_LISO) if nombre \
-            else FONDO_LISO
+    def number(name):
+        if name is None or name is events.PLACE_BACKDROP:
+            return PLACE_BACKDROP
+        return number_of.get(name.lower(), FLAT_BACKDROP) if name \
+            else FLAT_BACKDROP
 
-    for n in tropas.ids:
-        fondo = tropas.backdrops.get(n)
-        datos["tropa_fondo"][n] = numero(fondo) if fondo else FONDO_LISO
+    for n in troops.ids:
+        background = troops.backdrops.get(n)
+        data["tropa_fondo"][n] = number(background) if background else FLAT_BACKDROP
     # The map's, for random encounters and for the troops that fight with the
     # one of the place. Only in the maps where some battle can look at it:
     # without that, any cartridge would ask for the replacement.
-    por_mapa = (encuentros or {}).get("por_mapa") or [0xFF] * len(mapas)
-    del_lugar = FONDO_DEL_LUGAR in datos["tropa_fondo"].values()
-    for mapa, registro in zip(mapas, por_mapa):
-        if registro != 0xFF or del_lugar:
-            datos["mapa_fondo"].append(
-                numero(tree.map_background(mapa["id"])))
+    per_map = (encounters or {}).get("por_mapa") or [0xFF] * len(maps)
+    place_ones = PLACE_BACKDROP in data["tropa_fondo"].values()
+    for map_info, record in zip(maps, per_map):
+        if record != 0xFF or place_ones:
+            data["mapa_fondo"].append(
+                number(tree.map_background(map_info["id"])))
         else:
-            datos["mapa_fondo"].append(FONDO_LISO)
-    terrenos = db.terrain_backdrops
-    datos["terreno_fondo"] = [numero(terrenos.get(t, "")) if terrenos.get(t)
-                              else FONDO_LISO
-                              for t in range(max(terrenos, default=0) + 1)]
+            data["mapa_fondo"].append(FLAT_BACKDROP)
+    terrains = db.terrain_backdrops
+    data["terreno_fondo"] = [number(terrains.get(t, "")) if terrains.get(t)
+                             else FLAT_BACKDROP
+                             for t in range(max(terrains, default=0) + 1)]
 
     # The ROM's: all the ones asked for, in the order they are asked for —see
     # "Which backdrops there are" in escena.py—. A map with encounters that asks for the
@@ -3729,58 +3729,58 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
     # without encounters that asks for it anyway —because some troop fights
     # with the one of the place, and it isn't known where— doesn't: if its
     # terrain isn't there, the replacement goes.
-    def de_los_terrenos(mapa):
-        return [datos["terreno_fondo"][t]
-                if t < len(datos["terreno_fondo"]) else FONDO_LISO
-                for t in sorted(set(mapa["terreno"]))]
-    pedidos = list(datos["tropa_fondo"].values()) + datos["mapa_fondo"]
-    posibles = []
-    for mapa, registro, k in zip(mapas, por_mapa, datos["mapa_fondo"]):
-        if k != FONDO_DEL_LUGAR:
+    def of_terrains(map_info):
+        return [data["terreno_fondo"][t]
+                if t < len(data["terreno_fondo"]) else FLAT_BACKDROP
+                for t in sorted(set(map_info["terreno"]))]
+    requested = list(data["tropa_fondo"].values()) + data["mapa_fondo"]
+    possible = []
+    for map_info, record, k in zip(maps, per_map, data["mapa_fondo"]):
+        if k != PLACE_BACKDROP:
             continue
-        if registro != 0xFF:
-            pedidos += de_los_terrenos(mapa)
+        if record != 0xFF:
+            requested += of_terrains(map_info)
         else:
-            posibles += de_los_terrenos(mapa)
-    suyos = []
-    for k in pedidos:
-        if k < FONDO_DEL_LUGAR and k not in suyos:
-            suyos.append(k)
-    if any(k < FONDO_DEL_LUGAR and k not in suyos for k in posibles):
-        reemplazo = numero_de[E.replacement().lower()]
-        if reemplazo not in suyos:
-            suyos.append(reemplazo)
-    for k in suyos:
-        info = E.light_backdrop(juego[k], game_dir)
-        datos["fondos"].append({"nombre": juego[k], "numero": k,
-                                "respaldo": info})
-    lugar = {k: i for i, k in enumerate(suyos)}
-    reemplazo = lugar.get(numero_de[E.replacement().lower()], 0)
-    datos["respaldo_de"] = [lugar.get(k, reemplazo) for k in range(len(juego))]
+            possible += of_terrains(map_info)
+    theirs = []
+    for k in requested:
+        if k < PLACE_BACKDROP and k not in theirs:
+            theirs.append(k)
+    if any(k < PLACE_BACKDROP and k not in theirs for k in possible):
+        replacement = number_of[E.replacement().lower()]
+        if replacement not in theirs:
+            theirs.append(replacement)
+    for k in theirs:
+        info = E.light_backdrop(names_in_game[k], game_dir)
+        data["fondos"].append({"nombre": names_in_game[k], "numero": k,
+                               "respaldo": info})
+    place = {k: i for i, k in enumerate(theirs)}
+    replacement = place.get(number_of[E.replacement().lower()], 0)
+    data["respaldo_de"] = [place.get(k, replacement) for k in range(len(names_in_game))]
     # The quality ones, for the `.msu`: all of them, whether in the ROM or not.
-    datos["calidad"] = in_parallel(
-        lambda nombre: fondo_bytes(E.backdrop(nombre, game_dir)), juego)
+    data["calidad"] = in_parallel(
+        lambda name: backdrop_bytes(E.backdrop(name, game_dir)), names_in_game)
     battler_k = {}
-    for numero in tropas.ids:
-        if numero not in db.troops:
+    for number in troops.ids:
+        if number not in db.troops:
             continue
-        for enemigo in db.troops[numero].members[:constants.ENEMIES_MAX]:
-            if enemigo in datos["battler_de"] or enemigo not in db.enemies:
+        for enemy in db.troops[number].members[:constants.ENEMIES_MAX]:
+            if enemy in data["battler_de"] or enemy not in db.enemies:
                 continue
-            e = db.enemies[enemigo]
-            nombre = e.battler_name or ""
-            tono = getattr(e, "battler_hue", 0) or 0
-            k = E.key(nombre, tono)
+            e = db.enemies[enemy]
+            name = e.battler_name or ""
+            hue = getattr(e, "battler_hue", 0) or 0
+            k = E.key(name, hue)
             if k not in battler_k:
-                info = E.battler(nombre, tono, game_dir) if nombre else None
-                battler_k[k] = 0xFF if info is None else len(datos["battlers"])
+                info = E.battler(name, hue, game_dir) if name else None
+                battler_k[k] = 0xFF if info is None else len(data["battlers"])
                 if info is not None:
-                    datos["battlers"].append(info)
-            datos["battler_de"][enemigo] = battler_k[k]
-    return datos
+                    data["battlers"].append(info)
+            data["battler_de"][enemy] = battler_k[k]
+    return data
 
 
-def usos_de_los_parches(mapas, db, tree):
+def patch_uses(maps, db, tree):
     """Who asks for each animation and each battler of the cartridge: per
     patch class, `{key: [origin, ...]}`, where the origin is the id of the map
     whose page or random encounter asks for it, or `"caso"` if a test page
@@ -3790,64 +3790,64 @@ def usos_de_los_parches(mapas, db, tree):
     that is played, which also carries the suite's maps and pages: an
     animation only a case asks for, or a battler that only shows up in a test
     map, isn't versioned. The bytecode is walked, as in
-    `animaciones_de_la_rom`, so it counts what ended up emitted. A troop
+    `rom_animations`, so it counts what ended up emitted. A troop
     someone asked for and no emitted page names —a page that fell out after
     asking for it— has no origin, and `revisar` treats it as the game's: the
     doubt leans toward asking for the patch.
     """
-    E = escena_mod
-    animaciones = collections.defaultdict(set)
-    tropas = collections.defaultdict(set)
-    for mapa in mapas:
-        for pagina in mapa.get("paginas", ()):
-            origen = "caso" if pagina.get("prueba") else mapa["id"]
-            codigo = pagina.get("codigo") or b""
-            for i, c in events.walk_code(codigo):
+    E = scene_mod
+    animations = collections.defaultdict(set)
+    troops = collections.defaultdict(set)
+    for map_info in maps:
+        for page in map_info.get("paginas", ()):
+            origin = "caso" if page.get("prueba") else map_info["id"]
+            code = page.get("codigo") or b""
+            for i, c in events.walk_code(code):
                 if (c[i] == events.OP_ANIMATION
                         and c[i + 1] != events.ANIM_NO_DRAWING):
-                    animaciones[c[i + 1]].add(origen)
+                    animations[c[i + 1]].add(origin)
                 elif c[i] == events.OP_BATTLE:
-                    tropas[c[i + 1] | (c[i + 2] << 8)].add(origen)
-        game_map = mapa["game_map"]
-        for *_rect, cuales in events.encounter_zones(
-                tree, mapa["id"], game_map.width, game_map.height):
-            for numero in cuales:
-                tropas[numero].add(mapa["id"])
+                    troops[c[i + 1] | (c[i + 2] << 8)].add(origin)
+        game_map = map_info["game_map"]
+        for *_rect, which_ones in events.encounter_zones(
+                tree, map_info["id"], game_map.width, game_map.height):
+            for number in which_ones:
+                troops[number].add(map_info["id"])
     battlers = collections.defaultdict(set)
-    for numero, origenes in tropas.items():
-        if numero not in db.troops:
+    for number, origins in troops.items():
+        if number not in db.troops:
             continue
-        for enemigo in db.troops[numero].members[:constants.ENEMIES_MAX]:
-            if enemigo not in db.enemies:
+        for enemy in db.troops[number].members[:constants.ENEMIES_MAX]:
+            if enemy not in db.enemies:
                 continue
-            e = db.enemies[enemigo]
+            e = db.enemies[enemy]
             if e.battler_name:
                 battlers[E.key(e.battler_name,
-                               getattr(e, "battler_hue", 0) or 0)] |= origenes
-    return {"animacion": animaciones, "battler": battlers}
+                               getattr(e, "battler_hue", 0) or 0)] |= origins
+    return {"animacion": animations, "battler": battlers}
 
 
-def fondo_bytes(info):
+def backdrop_bytes(info):
     """A battle backdrop as the console reads it: `(tiles, colors)`, its 512
     8bpp tiles in tilemap order and its `COLORS` 15-bit colors, padded with
     black."""
-    E = escena_mod
+    E = scene_mod
     tiles_ = bytearray()
-    for celda in E.tiles(info["indices"]):
-        tiles_ += pack_tile(celda, planes=8)
-    colores = list(info["paleta"])
-    colores += [(0, 0, 0)] * (E.COLORS - len(colores))
+    for cell in E.tiles(info["indices"]):
+        tiles_ += pack_tile(cell, planes=8)
+    colors = list(info["paleta"])
+    colors += [(0, 0, 0)] * (E.COLORS - len(colors))
     cgram = bytearray()
-    for color in colores:
+    for color in colors:
         cgram += cgram_word(color).to_bytes(2, "little")
     return bytes(tiles_), bytes(cgram)
 
 
-def respaldo_bytes(info):
+def fallback_bytes(info):
     """The light fallback of a backdrop, as the ROM carries it: `(bytes,
     colors)`, its 4 KB of 128x64 at 4bpp and its `RESPALDO_COLORES` colors.
     They store the index **within their palette**: the ROM adds the planes of
-    `CGRAM_BASE` separately, see `respaldo_alto`.
+    `CGRAM_BASE` separately, see `fallback_height`.
 
     **The bytes don't go in tile order**, but in the one `esc_doblar` enlarges
     them in without doing any arithmetic. Each small tile becomes four large
@@ -3860,56 +3860,56 @@ def respaldo_bytes(info):
     small row that gives planes `p` and `p+1`, the first carries the high
     nibble of both —the four leftmost pixels, which go to the left large
     tile— and the second the two low nibbles. That way each byte, duplicated
-    bit by bit with `respaldo_doble`, is already the two-plane word of a row
+    bit by bit with `fallback_double`, is already the two-plane word of a row
     of a large tile, and the ROM writes it whole without separating the planes.
     """
-    E = escena_mod
-    liviano = info["respaldo"]
-    chicos = [pack_tile([[v - E.CGRAM_BASE for v in fila] for fila in celda],
+    E = scene_mod
+    light = info["respaldo"]
+    smalls = [pack_tile([[v - E.CGRAM_BASE for v in row] for row in cell],
                         planes=E.FALLBACK_PLANES)
-              for celda in E.tiles(liviano["chico"])]
-    columnas = E.FALLBACK_WIDTH // E.CELL
+              for cell in E.tiles(light["chico"])]
+    columns = E.FALLBACK_WIDTH // E.CELL
     tiles_ = bytearray()
-    for fila_grande in range(E.TILES_Y):
-        mitad = fila_grande % E.FALLBACK_SCALE     # above or below the small one
-        for columna in range(columnas):
-            chico = chicos[(fila_grande // E.FALLBACK_SCALE) * columnas
-                           + columna]
-            for par in (0, 16):                     # planes 0/1 and 2/3
+    for big_row in range(E.TILES_Y):
+        half = big_row % E.FALLBACK_SCALE     # above or below the small one
+        for column in range(columns):
+            small = smalls[(big_row // E.FALLBACK_SCALE) * columns
+                           + column]
+            for pair in (0, 16):                     # planes 0/1 and 2/3
                 for k in range(4):                  # the large rows 2k, 2k+1
-                    fila = mitad * 4 + k            # the small row
-                    p0, p1 = chico[par + 2 * fila], chico[par + 2 * fila + 1]
+                    row = half * 4 + k            # the small row
+                    p0, p1 = small[pair + 2 * row], small[pair + 2 * row + 1]
                     tiles_.append((p0 & 0xF0) | (p1 >> 4))
                     tiles_.append(((p0 & 0x0F) << 4) | (p1 & 0x0F))
-    colores = list(liviano["paleta"])
-    colores += [(0, 0, 0)] * (E.FALLBACK_COLORS - len(colores))
+    colors = list(light["paleta"])
+    colors += [(0, 0, 0)] * (E.FALLBACK_COLORS - len(colors))
     cgram = bytearray()
-    for color in colores:
+    for color in colors:
         cgram += cgram_word(color).to_bytes(2, "little")
     return bytes(tiles_), bytes(cgram)
 
 
-def respaldo_alto():
+def fallback_height():
     """The upper half of an 8bpp tile of the fallback: planes 4 to 7, which
     are those of `CGRAM_BASE` in every pixel. It is what the ROM appends
     after each 4bpp tile."""
-    E = escena_mod
-    lleno = [[E.CGRAM_BASE] * E.CELL for _ in range(E.CELL)]
-    return pack_tile(lleno, planes=8)[E.FALLBACK_PLANES * 8:]
+    E = scene_mod
+    full = [[E.CGRAM_BASE] * E.CELL for _ in range(E.CELL)]
+    return pack_tile(full, planes=8)[E.FALLBACK_PLANES * 8:]
 
 
-def respaldo_doble():
+def fallback_double():
     """The table `esc_doblar` enlarges the fallback with: for each byte of
-    `respaldo_bytes`, a word with its two nibbles duplicated bit by bit, the
+    `fallback_bytes`, a word with its two nibbles duplicated bit by bit, the
     high one in the low byte. Each nibble is four pixels of one plane, and
     duplicated they are the eight of a row of that plane in a large tile."""
-    def doble(nibble):
+    def double(nibble):
         return sum(0b11 << (2 * b) for b in range(4) if nibble >> b & 1)
-    return b"".join((doble(s >> 4) | doble(s & 0xF) << 8).to_bytes(2, "little")
+    return b"".join((double(s >> 4) | double(s & 0xF) << 8).to_bytes(2, "little")
                     for s in range(256))
 
 
-def escenas_asm(datos, tropas, db):
+def scenes_asm(data, troops, db):
     """The cartridge's battle scene, ready for the `.inc`.
 
     The backdrops and the battlers **separately**, which the ROM composes when
@@ -3918,23 +3918,23 @@ def escenas_asm(datos, tropas, db):
 
       `escena_tropa_fondo`  per troop index —the order of `tropa_id`—, the
                             number of the backdrop its `EnemyEncounter` names,
-                            `FONDO_DEL_LUGAR` or `FONDO_LISO`.
+                            `PLACE_BACKDROP` or `FLAT_BACKDROP`.
       `escena_mapa_fondo`   per map index, that of its random encounters: a
-                            number, `FONDO_DEL_LUGAR` —the terrain's— or
-                            `FONDO_LISO`.
+                            number, `PLACE_BACKDROP` —the terrain's— or
+                            `FLAT_BACKDROP`.
       `fondo_terreno`       per terrain, the number of its backdrop or
-                            `FONDO_LISO`.
+                            `FLAT_BACKDROP`.
       `fondo_respaldo`      per backdrop number, which one of the ROM replaces
                             it without MSU-1: its own, or that of
                             `scene.replacement()`.
       `fondo_dir`           per ROM backdrop, the 24-bit pointer to the 4 KB
                             of its light fallback, in the order of
-                            `respaldo_bytes`.
+                            `fallback_bytes`.
       `fondo_cgram`         its 16 colors, which go to CGRAM from 32 on.
 
-    Where each backdrop is in the `.msu` is emitted by `escribir_msu`, by
+    Where each backdrop is in the `.msu` is emitted by `write_msu`, by
     number.
-      `respaldo_alto`       planes 4 to 7, which the ROM appends to each tile.
+      `fallback_height`       planes 4 to 7, which the ROM appends to each tile.
       `battler_*`           per battler: how many bytes a row of one plane is,
                             how many rows, how big a plane is, where its bytes
                             are and its fifteen colors.
@@ -3946,8 +3946,8 @@ def escenas_asm(datos, tropas, db):
     The tilemap isn't emitted: it is the 512 tiles in order and the ROM builds
     it with a loop. Emitting it would be 2 KB of cartridge to write 0, 1, 2...
     """
-    E = escena_mod
-    fondos, battlers = datos["fondos"], datos["battlers"]
+    E = scene_mod
+    backdrops, battlers = data["fondos"], data["battlers"]
     out = [
         "\n; --- the battle scene: the backdrops and the battlers ---",
         ";",
@@ -3955,11 +3955,11 @@ def escenas_asm(datos, tropas, db):
         "; 256x128, which is the seven text lines at the top. The reason is",
         "; in tools/port/escena.py; only the bytes travel here.",
         "; The game's backdrops, which the .msu carries all of, and the ROM's.",
-        "FONDOS_JUEGO    = %d" % len(datos.get("juego", ())),
-        "ESCENA_FONDOS   = %d" % len(fondos),
-        "FONDO_LISO      = $%02X" % FONDO_LISO,
-        "FONDO_DEL_LUGAR = $%02X" % FONDO_DEL_LUGAR,
-        "FONDO_TERRENOS  = %d" % len(datos.get("terreno_fondo") or [0]),
+        "FONDOS_JUEGO    = %d" % len(data.get("juego", ())),
+        "ESCENA_FONDOS   = %d" % len(backdrops),
+        "FONDO_LISO      = $%02X" % FLAT_BACKDROP,
+        "FONDO_DEL_LUGAR = $%02X" % PLACE_BACKDROP,
+        "FONDO_TERRENOS  = %d" % len(data.get("terreno_fondo") or [0]),
         "ESCENA_BATTLERS = %d" % len(battlers),
         "ESCENA_ANCHO    = %d" % E.WIDTH,
         "ESCENA_ALTO     = %d" % E.HEIGHT,
@@ -3985,26 +3985,26 @@ def escenas_asm(datos, tropas, db):
         "; nobody uses.",
         "ESCENA_BLANCO   = %d" % E.TILES,
     ]
-    usadas = [n for n in tropas if n in db.troops]
-    out.append(bloque("escena_tropa_fondo", bytes(
-        datos["tropa_fondo"].get(n, 0xFF) for n in usadas) or b"\xFF"))
-    out.append(bloque("escena_mapa_fondo",
-                      bytes(datos["mapa_fondo"]) or b"\xFF"))
-    out.append(bloque("fondo_terreno",
-                      bytes(datos.get("terreno_fondo") or [FONDO_LISO])))
-    out.append(bloque("fondo_respaldo",
-                      bytes(datos.get("respaldo_de") or [0])))
-    punteros = [".bloque %d" % (4 * max(1, len(fondos))), "fondo_dir:"]
-    for k in range(len(fondos)):
-        punteros.append("    .dword fondo_%d" % k)
-    if not fondos:
-        punteros.append("    .dword 0")
-    out.append("\n".join(punteros))
-    bytes_de = [respaldo_bytes(info) for info in fondos]
-    cgram = b"".join(colores for _tiles, colores in bytes_de)
-    out.append(bloque("fondo_cgram", cgram or b"\x00\x00"))
-    out.append(bloque("respaldo_alto", respaldo_alto()))
-    out.append(bloque("respaldo_doble", respaldo_doble()))
+    used = [n for n in troops if n in db.troops]
+    out.append(block("escena_tropa_fondo", bytes(
+        data["tropa_fondo"].get(n, 0xFF) for n in used) or b"\xFF"))
+    out.append(block("escena_mapa_fondo",
+                     bytes(data["mapa_fondo"]) or b"\xFF"))
+    out.append(block("fondo_terreno",
+                     bytes(data.get("terreno_fondo") or [FLAT_BACKDROP])))
+    out.append(block("fondo_respaldo",
+                     bytes(data.get("respaldo_de") or [0])))
+    pointers = [".bloque %d" % (4 * max(1, len(backdrops))), "fondo_dir:"]
+    for k in range(len(backdrops)):
+        pointers.append("    .dword fondo_%d" % k)
+    if not backdrops:
+        pointers.append("    .dword 0")
+    out.append("\n".join(pointers))
+    drawing_bytes = [fallback_bytes(info) for info in backdrops]
+    cgram = b"".join(colors for _tiles, colors in drawing_bytes)
+    out.append(block("fondo_cgram", cgram or b"\x00\x00"))
+    out.append(block("respaldo_alto", fallback_height()))
+    out.append(block("respaldo_doble", fallback_double()))
     # Where each quality backdrop is in the `.msu` and the signature the ROM
     # expects to find at the start don't go here: the `.msu` also carries the
     # sound effects, which come from the audio, and that is built later. See
@@ -4012,61 +4012,61 @@ def escenas_asm(datos, tropas, db):
     # Sixty-four zeros: the transparent tile that covers what is left below
     # the scene, and incidentally the fixed source of the DMA that fills the
     # plain backdrop with zero.
-    out.append(bloque("escena_cero", bytes(64)))
+    out.append(block("escena_cero", bytes(64)))
     # Each fallback in a block, which doesn't cross a bank because the ROM
     # reads it with `[puntero]` and adds to the pointer only the low sixteen
     # bits.
-    for k, (tiles_, _colores) in enumerate(bytes_de):
-        out.append(bloque("fondo_%d" % k, tiles_))
+    for k, (tiles_, _colors) in enumerate(drawing_bytes):
+        out.append(block("fondo_%d" % k, tiles_))
     # The battlers: their tables and then their bytes, each in a block that
     # doesn't cross a bank because the ROM reads it with `[puntero], y`.
-    out.append(bloque("battler_n", bytes(
+    out.append(block("battler_n", bytes(
         E.columns(b) for b in battlers) or b"\x00"))
-    out.append(bloque("battler_alto", bytes(
+    out.append(block("battler_alto", bytes(
         b["alto"] for b in battlers) or b"\x00"))
-    planos = bytearray()
+    planes = bytearray()
     for b in battlers:
-        planos += ((E.columns(b) + 1) * b["alto"]).to_bytes(2, "little")
-    out.append(bloque("battler_plano", bytes(planos) or b"\x00\x00"))
-    punteros = [".bloque %d" % (4 * max(1, len(battlers))), "battler_dir:"]
-    punteros += ["    .dword battler_%d" % k for k in range(len(battlers))]
+        planes += ((E.columns(b) + 1) * b["alto"]).to_bytes(2, "little")
+    out.append(block("battler_plano", bytes(planes) or b"\x00\x00"))
+    pointers = [".bloque %d" % (4 * max(1, len(battlers))), "battler_dir:"]
+    pointers += ["    .dword battler_%d" % k for k in range(len(battlers))]
     if not battlers:
-        punteros.append("    .dword 0")
-    out.append("\n".join(punteros))
+        pointers.append("    .dword 0")
+    out.append("\n".join(pointers))
     cgram = bytearray()
     for b in battlers:
-        colores = [(0, 0, 0)] + list(b["paleta"])
-        colores += [(0, 0, 0)] * (16 - len(colores))
-        for color in colores:
+        colors = [(0, 0, 0)] + list(b["paleta"])
+        colors += [(0, 0, 0)] * (16 - len(colors))
+        for color in colors:
             cgram += cgram_word(color).to_bytes(2, "little")
-    out.append(bloque("battler_cgram", bytes(cgram) or b"\x00\x00"))
-    miembro_b, miembro_x, miembro_y, miembro_orden = [], [], [], []
-    for numero in usadas:
-        tropa = db.troops[numero]
-        suyos = list(zip(tropa.members,
-                         tropa.positions))[:constants.ENEMIES_MAX]
+    out.append(block("battler_cgram", bytes(cgram) or b"\x00\x00"))
+    member_b, member_x, member_y, member_command = [], [], [], []
+    for number in used:
+        troop = db.troops[number]
+        theirs = list(zip(troop.members,
+                          troop.positions))[:constants.ENEMIES_MAX]
         infos = []
-        for enemigo, centro in suyos:
-            k = datos["battler_de"].get(enemigo, 0xFF)
-            miembro_b.append(k)
+        for enemy, center in theirs:
+            k = data["battler_de"].get(enemy, 0xFF)
+            member_b.append(k)
             infos.append(battlers[k] if k != 0xFF else None)
-            x, y = (E.position(centro, battlers[k]) if k != 0xFF else (0, 0))
-            miembro_x.append(x)
-            miembro_y.append(y)
+            x, y = (E.position(center, battlers[k]) if k != 0xFF else (0, 0))
+            member_x.append(x)
+            member_y.append(y)
         # And the order they are drawn in, which isn't the troop's: see
         # `scene.drawing_order`. It goes per member, with the place in the
         # troop.
-        miembro_orden += E.drawing_order([c for _e, c in suyos], infos)
-    out.append(bloque("miembro_battler", bytes(miembro_b) or b"\xFF"))
-    out.append(bloque("miembro_x", bytes(miembro_x) or b"\x00"))
-    out.append(bloque("miembro_y", bytes(miembro_y) or b"\x00"))
-    out.append(bloque("miembro_orden", bytes(miembro_orden) or b"\x00"))
+        member_command += E.drawing_order([c for _e, c in theirs], infos)
+    out.append(block("miembro_battler", bytes(member_b) or b"\xFF"))
+    out.append(block("miembro_x", bytes(member_x) or b"\x00"))
+    out.append(block("miembro_y", bytes(member_y) or b"\x00"))
+    out.append(block("miembro_orden", bytes(member_command) or b"\x00"))
     for k, b in enumerate(battlers):
-        out.append(bloque("battler_%d" % k, E.battler_bytes(b)))
+        out.append(block("battler_%d" % k, E.battler_bytes(b)))
     return "\n".join(out) + "\n"
 
 
-def bloque(label, data, per_line=16, alinear=None, acomodar=True):
+def block(label, data, per_line=16, align=None, fit=True):
     """A data block with its placement declaration.
 
     Each block is declared before emitting it: almost all are uploaded by DMA,
@@ -4087,8 +4087,8 @@ def bloque(label, data, per_line=16, alinear=None, acomodar=True):
     inside bank 0 —it ends at $7FC0—, so nothing that falls there can cross,
     and declaring it emitted a computation that always came out zero.
     """
-    out = ([".align %d" % alinear if alinear else ".bloque %d" % len(data)]
-           if acomodar else [])
+    out = ([".align %d" % align if align else ".bloque %d" % len(data)]
+           if fit else [])
     out.append("%s:" % label)
     for i in range(0, len(data), per_line):
         out.append("    .byte " + ",".join("$%02X" % b
@@ -4096,17 +4096,17 @@ def bloque(label, data, per_line=16, alinear=None, acomodar=True):
     return "\n".join(out)
 
 
-def tabla_de_paginas(mapa, numero, evcodigo):
+def page_table(map_info, number, evcode):
     """The map's event pages, with the pointer to their code.
 
-    `evcodigo` is the **label** of the code block, which can no longer be
+    `evcode` is the **label** of the code block, which can no longer be
     rebuilt here: two maps whose events compile to the same bytes share the
     block and the label doesn't carry this map's number. Rebuilding it is what
     it did —`"evcodigo_%d" % numero`— and when deduplication was turned on the
     suite caught it right away: `varios` didn't assemble because it named an
     `evcodigo_2` that no longer existed.
 
-    It doesn't go through `bloque()` because its pointers are symbolic: they
+    It doesn't go through `block()` because its pointers are symbolic: they
     point inside the code block, which the linker places. But it **is
     declared** with `.bloque`: the ROM walks it with `[pag_ptr], y`, and a
     table that crosses a bank continues at `$03:0000`, which in LoROM isn't
@@ -4117,14 +4117,14 @@ def tabla_de_paginas(mapa, numero, evcodigo):
     started. The suite caught it in pixels without saying why; the
     emulator's RAM said it.
     """
-    out = [".bloque %d" % (PAGINA_BYTES * len(mapa["paginas"])),
-           "paginas_%d:" % numero]
+    out = [".bloque %d" % (PAGE_BYTES * len(map_info["paginas"])),
+           "paginas_%d:" % number]
     # Which events have some page with its own route: the ROM's refresh only
     # looks at the pages of those, and doesn't spend a single read on the rest.
-    con_ruta = {p["evento"] for p in mapa["paginas"] if p.get("ruta_propia")}
+    with_route = {p["evento"] for p in map_info["paginas"] if p.get("ruta_propia")}
     # And which ones change graphic with the page: the refresh also looks at
     # those, bit 5, and copies to the row what the active page draws.
-    cambian = mapa.get("cambian", set())
+    changing = map_info.get("cambian", set())
     # And which ones only appear and disappear with it: the ones that walk.
     # They go by the **same** bit 5, because none is left free in +13 —with an
     # own route the five low ones are the route's flags, and 4 is "the
@@ -4132,7 +4132,7 @@ def tabla_de_paginas(mapa, numero, evcodigo):
     # ROM, which already knows whether the row walks: `npc_buf + 9` holds
     # NPC_QUIETO or the bank of its twelve poses. See `grafico_de_pagina` in
     # tools/runtime/paginas_de_eventos.s.
-    aparecen = mapa.get("aparecen", set())
+    appear = map_info.get("aparecen", set())
     # And which ones have some automatic page that compiled: bit 7. The ROM's
     # refresh has to know whether an event's active page is automatic —that
     # is where what starts on its own comes from— and with this it saves
@@ -4145,66 +4145,66 @@ def tabla_de_paginas(mapa, numero, evcodigo):
     # parallel is said by the trigger of the one that wins. Without this,
     # `elegir_paginas` doesn't even note which one is active —it filters by
     # $E0— and `paralelos_tick` would have nowhere to get its code from.
-    con_auto = {p["evento"] for p in mapa["paginas"]
-                if p["trigger"] in (events.TRIGGER_AUTOSTART,
-                                    events.TRIGGER_PARALLEL) and p["codigo"]}
-    for pagina in mapa["paginas"]:
-        if pagina["codigo"]:
-            destino = "%s + %d" % (evcodigo, pagina["offset"])
-            puntero = "<(%s), >(%s), ^(%s)" % (destino, destino, destino)
+    with_autostart = {p["evento"] for p in map_info["paginas"]
+                      if p["trigger"] in (events.TRIGGER_AUTOSTART,
+                                          events.TRIGGER_PARALLEL) and p["codigo"]}
+    for page in map_info["paginas"]:
+        if page["codigo"]:
+            dest = "%s + %d" % (evcode, page["offset"])
+            pointer = "<(%s), >(%s), ^(%s)" % (dest, dest, dest)
         else:
-            puntero = "$00, $00, $00"   # no code: nothing to run
+            pointer = "$00, $00, $00"   # no code: nothing to run
         out.append("    .word %-4d ; +0  the event it belongs to"
-                   % pagina["evento"])
-        out.append("    .byte %-4d ; +2  its page number" % pagina["pagina"])
-        out.append("    .byte %-4d ; +3  what triggers it" % pagina["trigger"])
-        out.append("    .word %-4d ; +4  switch it asks for, or 0" % pagina["switch_a"])
-        out.append("    .word %-4d ; +6  the second, or 0" % pagina["switch_b"])
-        out.append("    .byte %s ; +8  its code" % puntero)
+                   % page["evento"])
+        out.append("    .byte %-4d ; +2  its page number" % page["pagina"])
+        out.append("    .byte %-4d ; +3  what triggers it" % page["trigger"])
+        out.append("    .word %-4d ; +4  switch it asks for, or 0" % page["switch_a"])
+        out.append("    .word %-4d ; +6  the second, or 0" % page["switch_b"])
+        out.append("    .byte %s ; +8  its code" % pointer)
         out.append("    .byte %-4d ; +11 the actor it asks for in the party, or 0"
-                   % pagina["actor"])
+                   % page["actor"])
         out.append("    .byte %-4d ; +12 its layer: 1 is the hero's, the one "
-                   "that blocks its way" % pagina["capa"])
-        propia = pagina.get("ruta_propia")
-        if propia:
+                   "that blocks its way" % page["capa"])
+        own = page.get("ruta_propia")
+        if own:
             # The page's own route, the one it walks by itself: see
             # `events.own_route`. The flags: bit 0 it has one, 1 it
             # repeats, 2 it skips what is blocked, 3 it always faces the same
             # way, 4 the animation continues while still.
-            banderas = (1 | (2 if propia["repite"] else 0)
-                        | (4 if propia["saltable"] else 0)
-                        | (8 if propia["dir_fija"] else 0)
-                        | (16 if propia["anim_continua"] else 0) | 64
-                        | (32 if pagina["evento"] in cambian
-                                 or pagina["evento"] in aparecen else 0)
-                        | (128 if pagina["evento"] in con_auto else 0))
-            destino = "%s + %d" % (evcodigo, pagina["ruta_offset"])
+            flags = (1 | (2 if own["repite"] else 0)
+                     | (4 if own["saltable"] else 0)
+                     | (8 if own["dir_fija"] else 0)
+                     | (16 if own["anim_continua"] else 0) | 64
+                     | (32 if page["evento"] in changing
+                                 or page["evento"] in appear else 0)
+                     | (128 if page["evento"] in with_autostart else 0))
+            dest = "%s + %d" % (evcode, page["ruta_offset"])
             out.append("    .byte %-4d ; +13 the flags of its own route"
-                       % banderas)
-            out.append("    .byte %-4d ; +14 its frequency" % propia["frecuencia"])
-            out.append("    .byte %-4d ; +15 and its speed" % propia["velocidad"])
+                       % flags)
+            out.append("    .byte %-4d ; +14 its frequency" % own["frecuencia"])
+            out.append("    .byte %-4d ; +15 and its speed" % own["velocidad"])
             out.append("    .byte <(%s), >(%s), ^(%s) ; +16 its commands"
-                       % (destino, destino, destino))
-            out.append("    .byte %-4d ; +19 how many" % len(propia["ordenes"]))
+                       % (dest, dest, dest))
+            out.append("    .byte %-4d ; +19 how many" % len(own["ordenes"]))
         else:
             out.append("    .byte %-4d ; +13 no own route; bit 6 says whether "
                        "another page of the event has one, 5 whether the "
                        "graphic follows the page, 7 whether the event has some "
                        "automatic one"
-                       % ((64 if pagina["evento"] in con_ruta else 0)
-                          | (32 if pagina["evento"] in cambian
-                                   or pagina["evento"] in aparecen else 0)
-                          | (128 if pagina["evento"] in con_auto else 0)))
-            out.append("    .byte %-4d ; +14 its frequency" % pagina["frecuencia"])
+                       % ((64 if page["evento"] in with_route else 0)
+                          | (32 if page["evento"] in changing
+                                   or page["evento"] in appear else 0)
+                          | (128 if page["evento"] in with_autostart else 0)))
+            out.append("    .byte %-4d ; +14 its frequency" % page["frecuencia"])
             out.append("    .byte %-4d ; +15 and its speed, that of a route "
-                       "forced on the event" % pagina["velocidad"])
+                       "forced on the event" % page["velocidad"])
             out.append("    .byte 0,0,0,0")
         # +20..+23: what the page draws, for the events that change graphic:
         # the tile, the attributes with the palette and the priority of its
         # layer, the pose with bit 7 set if there is a graphic, and the
         # passage bits of its tile or $FF. It is what the refresh copies to
         # the row.
-        oam = pagina.get("oam")
+        oam = page.get("oam")
         if oam is None:
             out.append("    .byte $00, $00, $00, $FF ; +20 no graphic")
         else:
@@ -4213,36 +4213,36 @@ def tabla_de_paginas(mapa, numero, evcodigo):
         # +24..+27: the variable condition: the slot or $FF, how it is
         # compared —==, >=, <=, >, <, !=— and against what, signed. It is what
         # `condiciones_ok` passes to `comparar_var`.
-        variable = pagina.get("variable")
+        variable = page.get("variable")
         if variable is None:
             out.append("    .byte $FF, 0 ; +24 no variable condition")
             out.append("    .word 0")
         else:
-            ranura, comparacion, contra = variable
+            slot, comparison, against = variable
             out.append("    .byte %d, %d ; +24 the variable it asks for and the "
-                       "comparison" % (ranura, comparacion))
-            out.append("    .word %d ; +26 against what" % (contra & 0xFFFF))
+                       "comparison" % (slot, comparison))
+            out.append("    .word %d ; +26 against what" % (against & 0xFFFF))
         # +28: the item it asks to have, or 0: `condiciones_ok` looks at its
         # count in `FAR_ITEMS`.
-        out.append("    .word %-4d ; +28 the item it asks for, or 0" % pagina["item"])
+        out.append("    .word %-4d ; +28 the item it asks for, or 0" % page["item"])
         # +30 and +31: the turn toward the hero. Which entry of `npc_poses`
         # the poses of its graphic are in, or $FF if the page doesn't turn,
         # and its pose. When triggered, the ROM uploads the one facing the
         # hero; on a refresh, a change to a page that doesn't turn or has
         # another graphic undoes the turn. See TURN in events.py.
-        grafico = pagina.get("grafico")
-        k = (mapa.get("giro_k", {}).get(tuple(grafico[:2]))
-             if pagina.get("gira") and grafico and pagina["evento"] in
-             mapa.get("giran", ()) else None)
+        graphic = page.get("grafico")
+        k = (map_info.get("giro_k", {}).get(tuple(graphic[:2]))
+             if page.get("gira") and graphic and page["evento"] in
+             map_info.get("giran", ()) else None)
         out.append("    .byte $%02X, %d ; +30 the turn: its poses and its pose"
-                   % (0xFF if k is None else k, grafico[2] if k is not None else 0))
-        assert PAGINA_BYTES == 32
-    if not mapa["paginas"]:
+                   % (0xFF if k is None else k, graphic[2] if k is not None else 0))
+        assert PAGE_BYTES == 32
+    if not map_info["paginas"]:
         out.append("    .byte $00")     # a label can't be left empty
     return "\n".join(out)
 
 
-class Materiales:
+class Materials:
     """The ROM's data blocks, with an identity of their own and not the map's.
 
     Each map used to emit its blocks with its number attached —`map_tiles_0`,
@@ -4258,38 +4258,38 @@ class Materiales:
     same: it is on purpose, so that this step can be verified without
     depending on the suite.
 
-    The poses already worked this way from before —`indice_global` in `emit`—
+    The poses already worked this way from before —`global_index` in `emit`—
     and that is where the shape comes from.
     """
 
-    def __init__(self, deduplicar=False, comprimidos=None):
-        self.deduplicar = deduplicar
-        self.donde = {}
-        self.cuantos = collections.Counter()
-        self.ahorro = collections.Counter()
-        self.repetidos = collections.Counter()
+    def __init__(self, dedupe=False, compressed=None):
+        self.dedupe = dedupe
+        self.where = {}
+        self.counts = collections.Counter()
+        self.saved = collections.Counter()
+        self.repeated = collections.Counter()
         # {raw bytes: their LZ2 stream}, already compressed in one go: see
-        # `comprimir_los_bloques`. And how much each class weighed and weighs,
+        # `compress_blocks`. And how much each class weighed and weighs,
         # of the blocks that were emitted.
-        self.comprimidos = comprimidos or {}
-        self.crudo = collections.Counter()
+        self.compressed = compressed or {}
+        self.raw = collections.Counter()
         self.lz2 = collections.Counter()
 
-    def guardar_comprimido(self, clase, datos):
-        """Like `guardar`, but what goes to the cartridge is its LZ2 stream, or
+    def store_compressed(self, kind, data):
+        """Like `store`, but what goes to the cartridge is its LZ2 stream, or
         its streams stuck together if the block goes in pieces: see
-        `partes_comprimidas`. It is deduplicated by the raw content, which is
+        `compressed_parts`. It is deduplicated by the raw content, which is
         the same as by the stream."""
-        datos = bytes(datos)
-        flujo = b"".join(self.comprimidos[parte]
-                         for parte in partes_comprimidas(clase, datos))
-        etiqueta, texto = self.guardar(clase, flujo)
-        if texto:
-            self.crudo[clase] += len(datos)
-            self.lz2[clase] += len(flujo)
-        return etiqueta, texto
+        data = bytes(data)
+        stream = b"".join(self.compressed[part]
+                          for part in compressed_parts(kind, data))
+        label, text = self.store(kind, stream)
+        if text:
+            self.raw[kind] += len(data)
+            self.lz2[kind] += len(stream)
+        return label, text
 
-    def guardar(self, clase, datos, alinear=None):
+    def store(self, kind, data, align=None):
         """(label, the asm to emit). The asm is empty if the block was already
         there.
 
@@ -4297,42 +4297,42 @@ class Materiales:
         two blocks with the same bytes but a different `.bloque` or `.align`
         aren't the same block for the linker.
         """
-        datos = bytes(datos)
-        clave = (clase, alinear, datos)
-        if clave in self.donde:
-            if self.deduplicar:
-                self.ahorro[clase] += len(datos)
-                self.repetidos[clase] += 1
-                return self.donde[clave], ""
-        etiqueta = "%s_%d" % (clase, self.cuantos[clase])
-        self.cuantos[clase] += 1
-        self.donde.setdefault(clave, etiqueta)
-        return etiqueta, bloque(etiqueta, datos, alinear=alinear)
+        data = bytes(data)
+        key = (kind, align, data)
+        if key in self.where:
+            if self.dedupe:
+                self.saved[kind] += len(data)
+                self.repeated[kind] += 1
+                return self.where[key], ""
+        label = "%s_%d" % (kind, self.counts[kind])
+        self.counts[kind] += 1
+        self.where.setdefault(key, label)
+        return label, block(label, data, align=align)
 
-    def informe(self):
+    def report(self):
         """What was shared and how much was compressed, so that the saving is a
         number and not an idea."""
-        lineas = ["  %-14s %6.1f KB in LZ2, was %6.1f"
-                  % (clase, self.lz2[clase] / 1024.0,
-                     self.crudo[clase] / 1024.0)
-                  for clase in CLASES_COMPRIMIDAS if self.crudo[clase]]
-        if self.crudo:
-            lineas.append("  %-14s %6.1f KB in LZ2, was %6.1f: %.1f KB less"
-                          % ("", sum(self.lz2.values()) / 1024.0,
-                             sum(self.crudo.values()) / 1024.0,
-                             (sum(self.crudo.values())
-                              - sum(self.lz2.values())) / 1024.0))
-        if not self.deduplicar or not self.ahorro:
-            return lineas
-        return lineas + ["  %-14s %2d shared block(s), %6.1f KB"
-                % (clase, self.repetidos[clase], self.ahorro[clase] / 1024.0)
-                for clase, _ in self.ahorro.most_common()] + [
+        lines = ["  %-14s %6.1f KB in LZ2, was %6.1f"
+                 % (kind, self.lz2[kind] / 1024.0,
+                    self.raw[kind] / 1024.0)
+                 for kind in COMPRESSED_KINDS if self.raw[kind]]
+        if self.raw:
+            lines.append("  %-14s %6.1f KB in LZ2, was %6.1f: %.1f KB less"
+                         % ("", sum(self.lz2.values()) / 1024.0,
+                            sum(self.raw.values()) / 1024.0,
+                            (sum(self.raw.values())
+                             - sum(self.lz2.values())) / 1024.0))
+        if not self.dedupe or not self.saved:
+            return lines
+        return lines + ["  %-14s %2d shared block(s), %6.1f KB"
+                % (kind, self.repeated[kind], self.saved[kind] / 1024.0)
+                for kind, _ in self.saved.most_common()] + [
             "  %-14s %2d              %6.1f KB in total"
-            % ("", sum(self.repetidos.values()),
-               sum(self.ahorro.values()) / 1024.0)]
+            % ("", sum(self.repeated.values()),
+               sum(self.saved.values()) / 1024.0)]
 
 
-def terreno_plano(mapa):
+def terrain_plane(map_info):
     """The terrain the whole map has, or 0 if it has more than one.
 
     0 isn't a terrain: RM2k's are indices into `Data.terrains` and start at 1,
@@ -4340,19 +4340,19 @@ def terreno_plano(mapa):
     map with terrain 0 —which doesn't exist— falls into the table branch,
     which answers the same.
     """
-    unicos = set(mapa["terreno"])
-    return unicos.pop() if len(unicos) == 1 else 0
+    unique = set(map_info["terreno"])
+    return unique.pop() if len(unique) == 1 else 0
 
 
-def terreno_del_mapa(mapa):
-    return (bytes([terreno_plano(mapa)]) if terreno_plano(mapa)
-            else bytes(mapa["terreno"]))
+def map_terrain(map_info):
+    return (bytes([terrain_plane(map_info)]) if terrain_plane(map_info)
+            else bytes(map_info["terreno"]))
 
 
 # What the ROM decompresses when loading a map, per block class. See
 # `lz2_descomprimir` in tools/runtime/descomprimir.s.
-CLASES_COMPRIMIDAS = ("map_tiles", "above_tiles", "sprite_tiles", "anim_tiles",
-                      "map_celdas")
+COMPRESSED_KINDS = ("map_tiles", "above_tiles", "sprite_tiles", "anim_tiles",
+                    "map_celdas")
 
 # The largest each decompressed stream can be, by where it lands in WRAM: see
 # the LZ2 reservation in tools/runtime/ram_lejana.s, which is where they come
@@ -4365,10 +4365,10 @@ CLASES_COMPRIMIDAS = ("map_tiles", "above_tiles", "sprite_tiles", "anim_tiles",
 # than 32 KB —that of map 66, with the 544-tile layout— goes in two, and the
 # ROM decompresses and uploads the first before decompressing the second on
 # top of it: see `lz2_fondo`.
-LZ2_TOPE_FONDO = 0x8000
-LZ2_TOPE_ENCIMA_Y_SPRITES = 0x6000
-LZ2_TOPE_ANIM = 0x2000
-LZ2_TOPE_GRILLA = 0x10000       # two halves of GRILLA_MITAD
+LZ2_CAP_BACKDROP = 0x8000
+LZ2_CAP_ABOVE_AND_SPRITES = 0x6000
+LZ2_CAP_ANIM = 0x2000
+LZ2_CAP_GRID = 0x10000       # two halves of HALF_GRID
 
 
 # What decompressing costs in the ROM, in master cycles, **on the high side**:
@@ -4376,103 +4376,103 @@ LZ2_TOPE_GRILLA = 0x10000       # two halves of GRILLA_MITAD
 # uncompressed, what was measured doesn't exceed this model by more than half
 # a frame. An NTSC frame is 357,954 master cycles. The boot computation uses
 # it.
-LZ2_CICLOS_POR_COMANDO = 700
-LZ2_CICLOS_POR_BYTE = 60
-CICLOS_POR_CUADRO = 357954
+LZ2_CYCLES_PER_COMMAND = 700
+LZ2_CYCLES_PER_BYTE = 60
+CYCLES_PER_FRAME = 357954
 
 
-def cuadros_de_descomprimir(mapa, comprimidos):
+def decompress_frames(map_info, compressed):
     """How many frames decompressing a map's blocks takes."""
-    ciclos = 0
-    for clase, datos in crudos_del_mapa(mapa).items():
-        if clase not in CLASES_COMPRIMIDAS:
+    cycles = 0
+    for kind, data in map_raw(map_info).items():
+        if kind not in COMPRESSED_KINDS:
             continue
-        for parte in partes_comprimidas(clase, datos):
-            ciclos += (compress.commands(comprimidos[parte])
-                       * LZ2_CICLOS_POR_COMANDO
-                       + len(parte) * LZ2_CICLOS_POR_BYTE)
-    return ciclos / float(CICLOS_POR_CUADRO)
+        for part in compressed_parts(kind, data):
+            cycles += (compress.commands(compressed[part])
+                       * LZ2_CYCLES_PER_COMMAND
+                       + len(part) * LZ2_CYCLES_PER_BYTE)
+    return cycles / float(CYCLES_PER_FRAME)
 
 
-def comprimir_los_bloques(mapas):
+def compress_blocks(maps):
     """{raw bytes: LZ2 stream} of everything the cartridge carries
     compressed, with a single `lz2` process. Along the way it enforces the
     WRAM caps."""
-    partes = []
-    for mapa in mapas:
-        for clase, datos in crudos_del_mapa(mapa).items():
-            if clase not in CLASES_COMPRIMIDAS:
+    parts = []
+    for map_info in maps:
+        for kind, data in map_raw(map_info).items():
+            if kind not in COMPRESSED_KINDS:
                 continue
-            controlar_flujos(mapa["id"], clase, datos)
-            partes += partes_comprimidas(clase, datos)
-    partes = list(dict.fromkeys(partes))
-    return dict(zip(partes, compress.compress_many(partes)))
+            check_streams(map_info["id"], kind, data)
+            parts += compressed_parts(kind, data)
+    parts = list(dict.fromkeys(parts))
+    return dict(zip(parts, compress.compress_many(parts)))
 
 
 # The grid goes to the upper half of the two WRAM banks —see `lz2_grilla`—, so
 # it is compressed in two streams of up to 32 KB: each one lands whole in one
 # bank, and the decompressor doesn't have to know how to cross.
-GRILLA_MITAD = 0x8000
+HALF_GRID = 0x8000
 
 
 # And the background tiles, in streams of whatever fits in the load buffer:
 # the ROM decompresses one, uploads it by DMA and only then decompresses the
 # next in the same place —see `lz2_fondo`—. A background that fits in one
 # goes in one, and that leaves the usual maps with the usual stream.
-FONDO_FLUJOS_MAX = 2            # the ones `lz2_fondo` reads
+BACKDROP_STREAMS_MAX = 2            # the ones `lz2_fondo` reads
 
 
-def partes_comprimidas(clase, datos):
+def compressed_parts(kind, data):
     """The pieces of a block that are each compressed in their own stream."""
-    if clase == "map_celdas":
-        return [datos[:GRILLA_MITAD], datos[GRILLA_MITAD:]]
-    if clase == "map_tiles" and len(datos) > LZ2_TOPE_FONDO:
-        return [datos[k:k + LZ2_TOPE_FONDO]
-                for k in range(0, len(datos), LZ2_TOPE_FONDO)]
-    return [datos]
+    if kind == "map_celdas":
+        return [data[:HALF_GRID], data[HALF_GRID:]]
+    if kind == "map_tiles" and len(data) > LZ2_CAP_BACKDROP:
+        return [data[k:k + LZ2_CAP_BACKDROP]
+                for k in range(0, len(data), LZ2_CAP_BACKDROP)]
+    return [data]
 
 
 # How much of each stream fits in WRAM, and how many streams the ROM reads per
 # block. The grid always goes in two, one per half; the rest in one, except
 # the background.
-TOPES_POR_FLUJO = {"map_tiles": (LZ2_TOPE_FONDO, FONDO_FLUJOS_MAX),
-                   "above_tiles": (LZ2_TOPE_ENCIMA_Y_SPRITES, 1),
-                   "sprite_tiles": (LZ2_TOPE_ENCIMA_Y_SPRITES, 1),
-                   "anim_tiles": (LZ2_TOPE_ANIM, 1),
-                   "map_celdas": (GRILLA_MITAD, 2)}
+CAPS_PER_STREAM = {"map_tiles": (LZ2_CAP_BACKDROP, BACKDROP_STREAMS_MAX),
+                   "above_tiles": (LZ2_CAP_ABOVE_AND_SPRITES, 1),
+                   "sprite_tiles": (LZ2_CAP_ABOVE_AND_SPRITES, 1),
+                   "anim_tiles": (LZ2_CAP_ANIM, 1),
+                   "map_celdas": (HALF_GRID, 2)}
 
 
-def controlar_flujos(map_id, clase, datos):
+def check_streams(map_id, kind, data):
     """That each stream of the block fits in its WRAM place, and that there
     aren't more streams than the ROM reads. A stream that goes over breaks
     nothing when building: the ROM decompresses it anyway and steps on
     whatever is behind —with map 66's background, the upper half of the
     grid—, and it shows or not depending on the map."""
-    tope, cuantos = TOPES_POR_FLUJO[clase]
-    partes = partes_comprimidas(clase, datos)
-    for parte in partes:
-        if len(parte) > tope:
+    cap, count = CAPS_PER_STREAM[kind]
+    parts = compressed_parts(kind, data)
+    for part in parts:
+        if len(part) > cap:
             raise SystemExit(
                 "map %d: a stream of %s is %d bytes and %d fit in WRAM: "
                 "see the LZ2 reservation in tools/runtime/ram_lejana.s"
-                % (map_id, clase, len(parte), tope))
-    if len(partes) > cuantos:
+                % (map_id, kind, len(part), cap))
+    if len(parts) > count:
         raise SystemExit(
             "map %d: %s is %d bytes, which is %d streams, and the ROM reads %d"
-            % (map_id, clase, len(datos), len(partes), cuantos))
+            % (map_id, kind, len(data), len(parts), count))
 
 
-def crudos_del_mapa(mapa):
-    """{class: the uncompressed bytes} of a map, for `CLASES_COMPRIMIDAS`."""
-    above, sprite = mapa["above"], mapa["sprite"]
-    return {"map_tiles": bytes(mapa["tiles"]),
+def map_raw(map_info):
+    """{class: the uncompressed bytes} of a map, for `COMPRESSED_KINDS`."""
+    above, sprite = map_info["above"], map_info["sprite"]
+    return {"map_tiles": bytes(map_info["tiles"]),
             "above_tiles": bytes(above[0]),
             "sprite_tiles": bytes(sprite[0]) if sprite else b"",
-            "anim_tiles": bytes(mapa["anim"]),
-            "map_celdas": bytes(mapa["celdas"])}
+            "anim_tiles": bytes(map_info["anim"]),
+            "map_celdas": bytes(map_info["celdas"])}
 
 
-def escribir_crudos(directorio, mapas):
+def write_raw(directory, maps):
     """Leaves in `directorio/crudos/` what the ROM has to have in VRAM and in
     WRAM after loading each map, uncompressed: `<index>.<class>.bin`, with the
     map's index in the ROM.
@@ -4485,80 +4485,80 @@ def escribir_crudos(directorio, mapas):
     It is deleted entirely before writing: a map that left the cartridge would
     leave its file, and a test that walks the directory would look at it.
     """
-    donde = os.path.join(directorio, "crudos")
-    if os.path.isdir(donde):
-        shutil.rmtree(donde)
-    os.makedirs(donde)
-    for numero, mapa in enumerate(mapas):
-        for clase, datos in crudos_del_mapa(mapa).items():
-            with open(os.path.join(donde, "%d.%s.bin" % (numero, clase)),
+    offset = os.path.join(directory, "crudos")
+    if os.path.isdir(offset):
+        shutil.rmtree(offset)
+    os.makedirs(offset)
+    for number, map_info in enumerate(maps):
+        for kind, data in map_raw(map_info).items():
+            with open(os.path.join(offset, "%d.%s.bin" % (number, kind)),
                       "wb") as f:
-                f.write(datos)
+                f.write(data)
 
 
-def datos_del_mapa(mapa, numero, indice_global, materiales):
+def map_data(map_info, number, global_index, materials):
     """A map's data blocks, with the number attached to each label.
 
-    `indice_global` are the labels of the twelve poses of each (CharSet,
-    index) **as this map quantized it**: see `banco_de_poses`, and the pose
+    `global_index` are the labels of the twelve poses of each (CharSet,
+    index) **as this map quantized it**: see `pose_bank`, and the pose
     split in `emit`.
     """
-    above, sprite = mapa["above"], mapa["sprite"]
-    pares = [
-        ("map_tiles", mapa["tiles"]),
-        ("map_cgram", mapa["cram"]),
+    above, sprite = map_info["above"], map_info["sprite"]
+    pairs = [
+        ("map_tiles", map_info["tiles"]),
+        ("map_cgram", map_info["cram"]),
         ("above_tiles", above[0]),
         ("above_cgram", above[1]),
         ("sprite_tiles", sprite[0] if sprite else b""),
         ("sprite_cgram", sprite_colors_bytes(sprite)),
-        ("map_bloques", mapa["bloques"]),
-        ("bloque_pass", mapa["pass"]),
+        ("map_bloques", map_info["bloques"]),
+        ("bloque_pass", map_info["pass"]),
         # The terrain per block. A map whose terrain is the same everywhere
         # —the 328 of this game, which have it at 1— emits **one byte** and
         # `TERRENO_PLANO` says which: the whole table would be about eight
         # kilobytes of nothing spread over the forty maps. The byte is
-        # deduplicated by `materiales`, so all flat maps with the same terrain
+        # deduplicated by `materials`, so all flat maps with the same terrain
         # share the same one.
-        ("bloque_terreno", terreno_del_mapa(mapa)),
+        ("bloque_terreno", map_terrain(map_info)),
         ("npc_table", npc_bytes(sprite[3]) if sprite else b""),
         # Two bytes per graphic of command 34: its entry in `npc_poses` —or
         # $FF, which is hiding— and its palette. See `Graphics` in events.py.
         ("ruta_grafico",
-         bytes(b for par in (sprite[9] if sprite else []) for b in par)),
-        ("ev_pos", mapa["ev_pos"]),
-        ("evcodigo", mapa["evcodigo"]),
-        ("anim_tiles", mapa["anim"]),
+         bytes(b for pair in (sprite[9] if sprite else []) for b in pair)),
+        ("ev_pos", map_info["ev_pos"]),
+        ("evcodigo", map_info["evcodigo"]),
+        ("anim_tiles", map_info["anim"]),
     ]
-    etiquetas, out = {}, []
-    for nombre, datos in pares:
-        if nombre in CLASES_COMPRIMIDAS:
-            etiquetas[nombre], texto = materiales.guardar_comprimido(nombre, datos)
+    labels, out = {}, []
+    for name, data in pairs:
+        if name in COMPRESSED_KINDS:
+            labels[name], text = materials.store_compressed(name, data)
         else:
-            etiquetas[nombre], texto = materiales.guardar(nombre, datos)
-        if texto:
-            out.append(texto)
+            labels[name], text = materials.store(name, data)
+        if text:
+            out.append(text)
     # The two tables of pointers to the ROM's poses: that of the NPCs that
     # walk and that of the leader candidates.
-    animados = sprite[7] if sprite else []
-    out.append(npc_poses_asm(numero, animados, indice_global))
-    out.append(actor_table_asm(numero, sprite[4] if sprite else [],
-                               animados, indice_global))
+    animated = sprite[7] if sprite else []
+    out.append(npc_poses_asm(number, animated, global_index))
+    out.append(actor_table_asm(number, sprite[4] if sprite else [],
+                               animated, global_index))
     # The grid, in its two streams: see `lz2_grilla`. Whole within one bank,
     # like everything compressed, because the decompressor doesn't cross.
-    etiquetas["map_celdas"], texto = materiales.guardar_comprimido(
-        "map_celdas", mapa["celdas"])
-    if texto:
-        out.append(texto)
-    out.append(tabla_de_paginas(mapa, numero, etiquetas["evcodigo"]))
+    labels["map_celdas"], text = materials.store_compressed(
+        "map_celdas", map_info["celdas"])
+    if text:
+        out.append(text)
+    out.append(page_table(map_info, number, labels["evcodigo"]))
     # The three that aren't shared are the ones that carry **symbolic
     # pointers** inside —to the ROM's poses, to the events' code—: their bytes
     # are set by the linker, so here there is no content to compare them by.
-    for nombre in ("npc_poses", "actor_table", "paginas"):
-        etiquetas[nombre] = "%s_%d" % (nombre, numero)
-    return "\n".join(out), etiquetas
+    for name in ("npc_poses", "actor_table", "paginas"):
+        labels[name] = "%s_%d" % (name, number)
+    return "\n".join(out), labels
 
 
-def encuentros_de_la_rom(mapas, tree, pasos_de_prueba, tropas):
+def rom_encounters(maps, tree, test_steps, troops):
     """The random encounters of each map of the cartridge, ready to emit.
 
     The data lives in the tree and not in the `.lmu`: each node brings its
@@ -4570,109 +4570,109 @@ def encuentros_de_la_rom(mapas, tree, pasos_de_prueba, tropas):
     that an encounter would start a battle against a troop that isn't in any
     table.
 
-    `pasos_de_prueba` replaces the `encounter_steps` of every map. It is for
+    `test_steps` replaces the `encounter_steps` of every map. It is for
     the test ROMs: with the game's —from 25 to 85— an encounter takes more than
     a hundred steps, which is what is wanted when playing and not what is
     wanted in a case of the suite.
     """
-    registros, zonas, tropas_de_zona, por_mapa = [], [], [], []
-    for mapa in mapas:
-        game_map = mapa["game_map"]
-        suyas = events.encounter_zones(tree, mapa["id"],
-                                       game_map.width, game_map.height)
-        pasos = (pasos_de_prueba if pasos_de_prueba is not None
-                 else tree.encounter_steps.get(mapa["id"],
+    records, zones, zone_troops, per_map = [], [], [], []
+    for map_info in maps:
+        game_map = map_info["game_map"]
+        theirs = events.encounter_zones(tree, map_info["id"],
+                                        game_map.width, game_map.height)
+        steps = (test_steps if test_steps is not None
+                 else tree.encounter_steps.get(map_info["id"],
                                                events.ENC_DEFAULT_STEPS))
-        if not suyas or not events.enc_base(pasos):
-            por_mapa.append(0xFF)
+        if not theirs or not events.enc_base(steps):
+            per_map.append(0xFF)
             continue
-        por_mapa.append(len(registros))
-        registro = {"base": events.enc_base(pasos),
-                    "umbrales": events.enc_step_thresholds(pasos),
-                    "zona_ini": len(zonas), "zona_n": len(suyas)}
-        for izq, arr, der, aba, cuales in suyas:
-            zonas.append({"rect": (izq, arr, der, aba),
-                          "tropa_ini": len(tropas_de_zona),
-                          "tropa_n": len(cuales)})
-            for numero in cuales:
-                tropas.request(numero)
-            tropas_de_zona += cuales
-        registros.append(registro)
-    if len(registros) > 0xFF or len(zonas) > 0xFF or len(tropas_de_zona) > 0xFF:
+        per_map.append(len(records))
+        record = {"base": events.enc_base(steps),
+                  "umbrales": events.enc_step_thresholds(steps),
+                  "zona_ini": len(zones), "zona_n": len(theirs)}
+        for left, top, right, bottom, which_ones in theirs:
+            zones.append({"rect": (left, top, right, bottom),
+                          "tropa_ini": len(zone_troops),
+                          "tropa_n": len(which_ones)})
+            for number in which_ones:
+                troops.request(number)
+            zone_troops += which_ones
+        records.append(record)
+    if len(records) > 0xFF or len(zones) > 0xFF or len(zone_troops) > 0xFF:
         # The three tables are indexed with one byte. With the 53 maps of the
         # whole game it is 53 records, 56 zones and 322 troops, so the one
         # that can go over is the last —and today only in a cartridge that
         # carries all of them—.
         sys.exit("the encounters don't fit in one-byte tables: %d "
                  "record(s), %d zone(s), %d troop(s)"
-                 % (len(registros), len(zonas), len(tropas_de_zona)))
-    return {"por_mapa": por_mapa, "registros": registros, "zonas": zonas,
-            "tropas": tropas_de_zona}
+                 % (len(records), len(zones), len(zone_troops)))
+    return {"por_mapa": per_map, "registros": records, "zonas": zones,
+            "tropas": zone_troops}
 
 
 # The header title of a SNES ROM: 21 bytes, at `$FFC0`.
-TITULO_CABECERA = 21
+TITLE_HEADER = 21
 
 
-def identidad_de_la_rom():
+def rom_identity():
     """What the ROM says about itself, from the `[rom]` of the project file:
     the header title, already padded with blanks, and the save signature in
     SRAM. They are `.define`s because they are text: `cabecera.s` and
     `partida.s` use them, and until 2026-09-29 they had them written in."""
-    titulo = settings.ascii("rom", "title", max_length=TITULO_CABECERA)
-    firma = settings.ascii("rom", "sram_signature", length=4)
+    title = settings.ascii("rom", "title", max_length=TITLE_HEADER)
+    signature = settings.ascii("rom", "sram_signature", length=4)
     return ("; Who the ROM is, from the project file: the header title and\n"
             "; the signature with which the SRAM says a slot holds a save of\n"
             "; this game.\n"
             '.define ROM_TITULO "%s"\n'
             '.define SRAM_MAGIA_TEXTO "%s"\n\n'
-            % (titulo.ljust(TITULO_CABECERA), firma))
+            % (title.ljust(TITLE_HEADER), signature))
 
 
-def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
-         ventana=None, titulo=None, ranuras=None, cartel=None,
-         animaciones=None, tropas=(), audio_batalla=None, escenas=None,
-         encuentros=None, paginas_tropa=None, comprimidos=None,
-         hp_de_enemigos=False, game_over=None):
+def emit(path, maps, initial=0, hero_above=False, initial_party=(),
+         window=None, title=None, slots=None, picture_info=None,
+         animations=None, troops=(), battle_audio=None, scenes=None,
+         encounters=None, troop_pages=None, compressed=None,
+         enemy_hp=False, game_over=None):
     """The .inc that is assembled together with main.s.
 
-    `hp_de_enemigos` is `--enemy-hp`: whether the battle draws the
+    `enemy_hp` is `--enemy-hp`: whether the battle draws the
     enemies' HP, which RM2k doesn't show.
 
-    `comprimidos` is what `comprimir_los_bloques` returns; if missing it is
+    `compressed` is what `compress_blocks` returns; if missing it is
     compressed here.
 
-    `titulo` is the title screen —the image and its menu— and may be missing;
+    `title` is the title screen —the image and its menu— and may be missing;
     `game_over`, the Game Over one, too: it is what
     `fullscreen.compressed` returns.
-    `ranuras` is the slots screen and **always goes**: the save point opens it
+    `slots` is the slots screen and **always goes**: the save point opens it
     from inside the game, whether the ROM has a title or not. See
     `slots_screen` in menus.py.
     """
-    for numero, mapa in enumerate(mapas):
-        layout = mapa["layout"]
-        for cuantos, nombre in (
-                (len(mapa["tiles"]) // BYTES_PER_TILE, "tiles"),
-                (len(mapa["above"][0]) // 32, "encima"),
-                (len(mapa["sprite"][0]) // 32 if mapa["sprite"] else 0,
+    for number, map_info in enumerate(maps):
+        layout = map_info["layout"]
+        for count, name in (
+                (len(map_info["tiles"]) // BYTES_PER_TILE, "tiles"),
+                (len(map_info["above"][0]) // 32, "encima"),
+                (len(map_info["sprite"][0]) // 32 if map_info["sprite"] else 0,
                  "sprites")):
-            if cuantos > layout[nombre][1]:
+            if count > layout[name][1]:
                 raise SystemExit(
                     "map %d: with this VRAM layout, %s needs %d tiles and "
-                    "%d fit" % (mapa["id"], nombre, cuantos,
-                                layout[nombre][1]))
+                    "%d fit" % (map_info["id"], name, count,
+                                layout[name][1]))
 
     # Where the picture ended up: the map of the table that took its tiles, and
     # at which tile and with which palette. It comes from the already
     # converted maps and not from a variable that has to be passed around: the
-    # one that has it is the only one with a nonzero `imagen_base`.
-    cartel_base, cartel_pal = 0, 0
-    for mapa in mapas:
-        if mapa["sprite"] and mapa["sprite"][13]:
-            cartel_base, cartel_pal = mapa["sprite"][13], mapa["sprite"][14]
+    # one that has it is the only one with a nonzero `image_base`.
+    picture_base, picture_pal = 0, 0
+    for map_info in maps:
+        if map_info["sprite"] and map_info["sprite"][13]:
+            picture_base, picture_pal = map_info["sprite"][13], map_info["sprite"][14]
             break
 
-    cabecera = (
+    header = (
         "; Generated by tools/port/snes_convert.py. Do not edit.\n"
         "; Maps: %s\n\n"
         "MAPA_COUNT   = %d\n"
@@ -5030,12 +5030,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; sixteen, number 0. It is already defined above, with the title\n"
         "; screen; this confirms both computations give the same.\n"
         ".assert TITULO_MENU_CGRAM = %d, error, \"two computations of the menu's CGRAM\"\n\n"
-        % (", ".join("%d %s" % (m["id"], m["nombre"]) for m in mapas),
-           len(mapas), MAPA_STRIDE, inicial,
+        % (", ".join("%d %s" % (m["id"], m["nombre"]) for m in maps),
+           len(maps), MAP_STRIDE, initial,
            VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
-           NPC_QUIETO,
-           EV_STRIDE, EV_MAX, RUTA_EV_MAX,
-           PAGINA_BYTES, GIRO_NINGUNO, RUTA_GRAF_MAX,
+           NPC_STILL,
+           EV_STRIDE, EV_MAX, ROUTE_EV_MAX,
+           PAGE_BYTES, TURN_NONE, ROUTE_GFX_MAX,
            events.HEADER_LINES, events.HEADER_AUTO_CLOSE,
            events.PAUSE_FRAMES, events.VAR_REFRESH, events.VAR_SLOT_MAX,
            events.ANIM_ENTRY_BYTES, events.ANIM_SOUND, events.ANIM_SCREEN_FLASH, events.KEY_WAIT,
@@ -5044,9 +5044,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            events.KEY_VALUE_DECISION, events.KEY_VALUE_CANCEL,
            events.KEY_VALUE_DIR[0], events.KEY_VALUE_DIR[1],
            events.KEY_VALUE_DIR[3], events.KEY_VALUE_DIR[2],
-           cartel_base, cartel_pal,
-           cartel["x"] if cartel else 0, cartel["y"] if cartel else 0,
-           cartel["objetos"] if cartel else 0,
+           picture_base, picture_pal,
+           picture_info["x"] if picture_info else 0, picture_info["y"] if picture_info else 0,
+           picture_info["objetos"] if picture_info else 0,
            picture.OBJ_SIDE, 4 * picture.GRID,
            max(events.RAIN_DROPS),
            events.RAIN_DROPS[0], events.RAIN_DROPS[1],
@@ -5068,9 +5068,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            events.GOLD_MAX,
            events.PAN_SHIFT, events.PAN_RETURN,
            events.TIMER_SET, events.TIMER_START,
-           TIMER_X, TIMER_Y, TIMER_GLIFO_W, TIMER_GLIFOS - 1,
+           TIMER_X, TIMER_Y, TIMER_GLYPH_W, TIMER_GLYPHS - 1,
            events.FRAMES_PER_SECOND, events.TIMER_EXTRA_FRAMES,
-           FLASH_MAX, PARALELO_MAX,
+           FLASH_MAX, PARALLEL_MAX,
            events.TRIGGER_AUTOSTART, events.TRIGGER_ACTION,
            events.TRIGGER_TOUCH_HERO, events.TRIGGER_PARALLEL,
            events.FRAMES_PER_CELL, events.ROUTE_FREQUENCY,
@@ -5083,32 +5083,32 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            events.FADE_RAMP, events.BRIGHTNESS_MAX,
            events.TRANSITION_MOSAIC, events.TRANSITION_CUT,
            color_mod.LUMA_R, color_mod.LUMA_G, color_mod.LUMA_B, SWITCH_BYTES,
-           events.PARTY_MAX, len(grupo_inicial), ACTOR_BYTES,
-           ACTOR_COLORES, OBJ_COLORS,
+           events.PARTY_MAX, len(initial_party), ACTOR_BYTES,
+           ACTOR_COLORS, OBJ_COLORS,
            rm2k.LAYER_SAME,
-           OBJ_PRIORITY_ABOVE if heroe_encima else OBJ_PRIORITY,
-           CGRAM_RESERVADAS,
-           paleta_de_la_ventana() * COLORS_PER_PALETTE,
-           len(ventana["tiles"]) // 32,
-           VENTANA_FILAS_INC, VENTANA_COLS_INC,
-           ventana["base"],
-           VENTANA_TEXTO_FILA, VENTANA_TEXTO_FILAS,
-           VENTANA_TEXTO_COL, VENTANA_TEXTO_COLS, _columnas(),
-           FUENTE_ALTO, FUENTE_ANCHO,
-           ventana["sombra"],
-           FUENTE_PRE_FILAS, FUENTE_PRE_CHAR,
-           len(FAMILIAS), ANIM_STRIDE, ANIM_FAM_STRIDE,
+           OBJ_PRIORITY_ABOVE if hero_above else OBJ_PRIORITY,
+           CGRAM_RESERVED,
+           window_palette() * COLORS_PER_PALETTE,
+           len(window["tiles"]) // 32,
+           WINDOW_ROWS_INC, WINDOW_COLS_INC,
+           window["base"],
+           WINDOW_TEXT_ROW, WINDOW_TEXT_ROWS,
+           WINDOW_TEXT_COL, WINDOW_TEXT_COLS, _columns(),
+           FONT_HEIGHT, FONT_WIDTH,
+           window["sombra"],
+           FONT_PRE_ROWS, FONT_PRE_CHAR,
+           len(FAMILIES), ANIM_STRIDE, ANIM_FAM_STRIDE,
            rm2k.WATER_FRAMES_SLOW,
-           FAMILIAS[0][1],
+           FAMILIES[0][1],
            len(rm2k.WATER_CYCLE), rm2k.ANIMATED_FRAMES, rm2k.ANIMATED_STEPS,
            BYTES_PER_TILE,
-           0 if titulo is None else titulo["pantalla"]["tiles"],
+           0 if title is None else title["pantalla"]["tiles"],
            constants.MENU_CGRAM,
-           0 if titulo is None else len(titulo["menu_tiles"]),
-           0 if titulo is None else len(titulo["menu_tilemaps"]),
-           RANURA_VRAM, RANURA_MAP,
-           len(ranuras["filas"]),
-           len(ranuras["tiles"]),
+           0 if title is None else len(title["menu_tiles"]),
+           0 if title is None else len(title["menu_tilemaps"]),
+           SLOT_VRAM, SLOT_MAP,
+           len(slots["filas"]),
+           len(slots["tiles"]),
            menus_mod.HEADER_Y // constants.CELL,
            menus_mod.HEADER_ROWS,
            menus_mod.HEADER_ROWS * constants.COLS,
@@ -5119,20 +5119,20 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            menus_mod.HEADER_Y // constants.CELL * 32,
            menus_mod.FACES_MAX, menus_mod.FACE_CELLS,
            menus_mod.FACE_CELLS, menus_mod.NAME_COLS,
-           RANURA_TEXTO_ANCHO, RANURA_TEXTO_NIVEL, RANURA_TEXTO_MAX,
+           SLOT_TEXT_WIDTH, SLOT_TEXT_LEVEL, SLOT_TEXT_MAX,
            menus_mod.LEVEL_DIGITS,
            ((menus_mod.LEVEL_ROW - menus_mod.NAME_ROW) * 32
             + menus_mod.LEVEL_COL - menus_mod.NAME_COL),
            (ord("0") - menus_mod.ITEM_FIRST_CHAR) * 4,
-           (max(list(ranuras["caras"]) + list(ranuras["actores"]) + [-1])
+           (max(list(slots["caras"]) + list(slots["actores"]) + [-1])
             + 1),
-           len(ranuras["paletas"]) * constants.MENU_CGRAM,
+           len(slots["paletas"]) * constants.MENU_CGRAM,
            constants.MENU_CGRAM))
 
     with open(path, "w") as handle:
-        handle.write(cabecera)
-        handle.write(identidad_de_la_rom())
-        handle.write(desplazamientos())
+        handle.write(header)
+        handle.write(rom_identity())
+        handle.write(offsets())
         handle.write("\n\n")
         # The fade ramp, in bank 0 because `fundido_tick` reads it with
         # `lda fundido_rampa, x`. It comes from `events.fade_ramp()`:
@@ -5146,7 +5146,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # The data goes in RODATA, which the linker spreads over the upper
         # banks. What stays in TABLAS —that is, in bank 0— is what the ROM
         # walks with a bare `lda tabla, x`, which addresses the data bank.
-        # `mapa_tabla` is no longer among those: see `tabla_de_mapas`.
+        # `mapa_tabla` is no longer among those: see `map_table`.
         handle.write('.segment "RODATA"\n')
         # The twelve poses of each character that changes pose, **once per
         # quantization** and not once per ROM: two maps that draw the same
@@ -5157,21 +5157,21 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # dodge it that the lending didn't look at: adding Lashe City 33,36 to
         # the demo stopped there. One extra bank is 6 KB of cartridge; a stop
         # is a map that doesn't fit.
-        indice_global, banks, indice_por_mapa = {}, [], []
-        for mapa in mapas:
-            propio = {}
-            for par, datos in (mapa["sprite"][8].items()
-                               if mapa["sprite"] else ()):
-                clave = (par, datos)
-                if clave not in indice_global:
-                    if any(k[0] == par for k in indice_global):
+        global_index, banks, index_per_map = {}, [], []
+        for map_info in maps:
+            own = {}
+            for pair, data in (map_info["sprite"][8].items()
+                               if map_info["sprite"] else ()):
+                key = (pair, data)
+                if key not in global_index:
+                    if any(k[0] == pair for k in global_index):
                         print("  map %d: %s:%d goes with a pose bank of its "
                               "own, quantized differently than in another map"
-                              % (mapa["id"], par[0], par[1]))
-                    indice_global[clave] = len(banks)
-                    banks.append(datos)
-                propio[par] = indice_global[clave]
-            indice_por_mapa.append(propio)
+                              % (map_info["id"], pair[0], pair[1]))
+                    global_index[key] = len(banks)
+                    banks.append(data)
+                own[pair] = global_index[key]
+            index_per_map.append(own)
         handle.write("; --- the poses of the characters that change pose, "
                      "for the whole ROM ---\n")
         # **Each pose once**, even if several characters or the same one
@@ -5181,45 +5181,45 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # equal walking frames of the same CharSet, and the characters that
         # repeat across maps with another quantization that didn't change a
         # pose. Each one with its `.bloque`, because it is uploaded by DMA.
-        etiqueta_de_pose, poses_de_banco = {}, []
-        for datos in banks:
-            suyas = []
+        pose_label, bank_poses = {}, []
+        for data in banks:
+            theirs = []
             for pose in range(SPRITE_POSES):
-                bytes_ = datos[pose * POSE_BYTES:(pose + 1) * POSE_BYTES]
-                if bytes_ not in etiqueta_de_pose:
-                    etiqueta_de_pose[bytes_] = "pose_%d" % len(etiqueta_de_pose)
-                    handle.write(bloque(etiqueta_de_pose[bytes_], bytes_) + "\n")
-                suyas.append(etiqueta_de_pose[bytes_])
-            poses_de_banco.append(suyas)
+                bytes_ = data[pose * POSE_BYTES:(pose + 1) * POSE_BYTES]
+                if bytes_ not in pose_label:
+                    pose_label[bytes_] = "pose_%d" % len(pose_label)
+                    handle.write(block(pose_label[bytes_], bytes_) + "\n")
+                theirs.append(pose_label[bytes_])
+            bank_poses.append(theirs)
         handle.write("\n")
         print("  poses: %d distinct out of %d, %.1f KB less"
-              % (len(etiqueta_de_pose), SPRITE_POSES * len(banks),
-                 (SPRITE_POSES * len(banks) - len(etiqueta_de_pose))
+              % (len(pose_label), SPRITE_POSES * len(banks),
+                 (SPRITE_POSES * len(banks) - len(pose_label))
                  * POSE_BYTES / 1024.0))
-        indice_por_mapa = [{par: poses_de_banco[g] for par, g in propio.items()}
-                           for propio in indice_por_mapa]
-        escribir_crudos(os.path.dirname(os.path.abspath(path)), mapas)
-        materiales = Materiales(deduplicar=True,
-                                comprimidos=comprimidos
-                                or comprimir_los_bloques(mapas))
+        index_per_map = [{pair: bank_poses[g] for pair, g in own.items()}
+                         for own in index_per_map]
+        write_raw(os.path.dirname(os.path.abspath(path)), maps)
+        materials = Materials(dedupe=True,
+                              compressed=compressed
+                              or compress_blocks(maps))
         handle.write("; The LZ2 caps, which descomprimir.s enforces\n"
                      "LZ2_TOPE_FONDO = $%04X\n"
                      "LZ2_TOPE_ENCIMA_Y_SPRITES = $%04X\n"
                      "LZ2_TOPE_ANIM = $%04X\n"
                      "LZ2_TOPE_GRILLA = $%05X\n\n"
-                     % (LZ2_TOPE_FONDO, LZ2_TOPE_ENCIMA_Y_SPRITES,
-                        LZ2_TOPE_ANIM, LZ2_TOPE_GRILLA))
-        etiquetas = []
-        for numero, mapa in enumerate(mapas):
+                     % (LZ2_CAP_BACKDROP, LZ2_CAP_ABOVE_AND_SPRITES,
+                        LZ2_CAP_ANIM, LZ2_CAP_GRID))
+        labels = []
+        for number, map_info in enumerate(maps):
             # Stays in Spanish: `mapas_de` in rom/pruebas/arnes/consola.py
             # reads the table order from this line with a regex that expects
             # "mapa".
             handle.write("; --- %d: mapa %d %r ---\n"
-                         % (numero, mapa["id"], mapa["nombre"]))
-            texto, suyas = datos_del_mapa(mapa, numero,
-                                          indice_por_mapa[numero], materiales)
-            etiquetas.append(suyas)
-            handle.write(texto)
+                         % (number, map_info["id"], map_info["nombre"]))
+            text, theirs = map_data(map_info, number,
+                                    index_per_map[number], materials)
+            labels.append(theirs)
+            handle.write(text)
             handle.write("\n")
         if True:
             # The message window is a single one for the whole ROM —the same
@@ -5232,61 +5232,61 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             # bits —unlike the background, which goes at 8 and ignores them—.
             # The window goes in 0 and is the same for every map: its cells
             # are emitted only once. That the background doesn't step on it
-            # comes from the split —it starts at `CGRAM_RESERVADAS`— but it is
+            # comes from the split —it starts at `CGRAM_RESERVED`— but it is
             # checked anyway: if it stepped on it, the window would come out
             # with the map's colors and no single-map comparison would see it.
-            paleta = paleta_de_la_ventana()
-            for m in mapas:
-                if len(m["cram_words"]) + CGRAM_RESERVADAS > \
+            palette = window_palette()
+            for m in maps:
+                if len(m["cram_words"]) + CGRAM_RESERVED > \
                         m["above"][3] * COLORS_PER_PALETTE:
                     raise SystemExit(
                         "the background of map %d uses %d CGRAM entries from "
                         "%d and steps on the upper layer, which starts at %d"
-                        % (m["id"], len(m["cram_words"]), CGRAM_RESERVADAS,
+                        % (m["id"], len(m["cram_words"]), CGRAM_RESERVED,
                            m["above"][3] * COLORS_PER_PALETTE))
             handle.write("\n; --- the message window ---\n")
-            handle.write(bloque("ventana_tiles", ventana["tiles"]) + "\n")
-            # Only the `CGRAM_RESERVADAS` at the bottom: from 8 up it belongs
+            handle.write(block("ventana_tiles", window["tiles"]) + "\n")
+            # Only the `CGRAM_RESERVED` at the bottom: from 8 up it belongs
             # to the background, and uploading all sixteen would erase it.
-            handle.write(bloque("ventana_cgram",
-                                b"".join(w.to_bytes(2, "little")
-                                         for w in ventana["cram"]
-                                         [:CGRAM_RESERVADAS])) + "\n")
+            handle.write(block("ventana_cgram",
+                               b"".join(w.to_bytes(2, "little")
+                                        for w in window["cram"]
+                                        [:CGRAM_RESERVED])) + "\n")
             # One layout for each window base the VRAM layouts use: the tile
             # index goes shifted behind the upper layer, and the upper layer
             # measures 128 or 256 depending on the layout. See
-            # `VENTANA_BASES` and `estampar_ventana`.
-            for base, etiqueta in zip(VENTANA_BASES, ("ventana_celdas",
-                                                      "ventana_celdas_256")):
-                plano = bytearray()
-                for fila in ventana["celdas"]:
-                    for celda in fila:
+            # `WINDOW_BASES` and `estampar_ventana`.
+            for base, label in zip(WINDOW_BASES, ("ventana_celdas",
+                                                  "ventana_celdas_256")):
+                plane = bytearray()
+                for row in window["celdas"]:
+                    for cell in row:
                         # With the upper layer's priority so that it covers
                         # the hero and the NPCs.
-                        plano += (entry(base + celda, False, False,
+                        plane += (entry(base + cell, False, False,
                                         PRIORITY_ABOVE)
-                                  | (paleta << 10)).to_bytes(2, "little")
-                handle.write(bloque(etiqueta, bytes(plano)) + "\n")
+                                  | (palette << 10)).to_bytes(2, "little")
+                handle.write(block(label, bytes(plane)) + "\n")
             # The text area without text: the 240 tiles the ROM copies to the
             # buffer before drawing on top. They go in the order the ROM needs
             # them, that is the cells' order.
-            handle.write(bloque("ventana_fondo", ventana["fondo"]) + "\n")
+            handle.write(block("ventana_fondo", window["fondo"]) + "\n")
             # The font and the colors. `fuente_color` is the palette index of
             # each of the glyph's twelve rows: RM2k's gradient comes from a
             # 16x16 mask, but each row is a single color, so twelve bytes are
             # enough and the ROM doesn't have to sample anything.
-            handle.write(bloque("fuente_tabla", ventana["fuente"]) + "\n")
-            pre = fuente_prerender(ventana["fuente"], ventana["color"],
-                                   ventana["sombra"])
-            for fase, datos in enumerate(pre):
-                handle.write(bloque("fuente_pre%d" % fase, datos) + "\n")
-            handle.write(bloque("mensajes", ventana["mensajes"]) + "\n")
+            handle.write(block("fuente_tabla", window["fuente"]) + "\n")
+            pre = font_prerender(window["fuente"], window["color"],
+                                 window["sombra"])
+            for phase, data in enumerate(pre):
+                handle.write(block("fuente_pre%d" % phase, data) + "\n")
+            handle.write(block("mensajes", window["mensajes"]) + "\n")
             # How big it is and how big it can be: the ROM doesn't use them,
             # `just espacio` reads them from the symbol table. The cap is what
             # the operand of `OP_MESSAGE` reaches, 16 bits and in steps of
             # `MENSAJES_PASO` bytes.
             handle.write("MENSAJES_BYTES = %d\nMENSAJES_TOPE = %d\n"
-                         % (len(ventana["mensajes"]),
+                         % (len(window["mensajes"]),
                             0x10000 * events.MESSAGES_STEP))
         # --- the ShowPicture picture ---
         #
@@ -5302,18 +5302,18 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # subtracting one here is exactly the kind of computation that is
         # written right on one side and wrong on the other.
         handle.write("\n; --- the ShowPicture picture ---\n")
-        colores = ([(0, 0, 0)] + list(cartel["paleta"])) if cartel else [(0, 0, 0)]
-        handle.write(bloque("imagen_cgram",
-                            b"".join(cgram_word(c).to_bytes(2, "little")
-                                     for c in colores)) + "\n")
+        colors = ([(0, 0, 0)] + list(picture_info["paleta"])) if picture_info else [(0, 0, 0)]
+        handle.write(block("imagen_cgram",
+                           b"".join(cgram_word(c).to_bytes(2, "little")
+                                    for c in colors)) + "\n")
         # The screen flash products: `d * nivel // 31` for d and level from 0
         # to 31, in the level's row. It is `destellar_canal`'s computation, and
         # the ROM read it from the multiplier and the divider for each of the
         # 96 entries of its tables on every odd frame: see
         # `una_tabla_de_destello`.
-        handle.write(bloque("prod31_tabla", bytes(
+        handle.write(block("prod31_tabla", bytes(
             d * n // 31 for n in range(32) for d in range(32))) + "\n")
-        handle.write(animaciones_asm(animaciones or {}, mapas))
+        handle.write(animations_asm(animations or {}, maps))
         # --- the title screen ---
         #
         # It goes entirely on BG1, which in mode 3 has eight bits per pixel:
@@ -5329,24 +5329,24 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # row of `pantallas_tabla`: see "the full screens", below. What stays
         # here is the menu, which isn't part of the image.
         handle.write("\n; --- the title screen ---\n")
-        if titulo is None:
-            handle.write(bloque("titulo_menu_tiles", b"\x00") + "\n")
-            handle.write(bloque("titulo_menu_celdas", b"\x00") + "\n")
+        if title is None:
+            handle.write(block("titulo_menu_tiles", b"\x00") + "\n")
+            handle.write(block("titulo_menu_celdas", b"\x00") + "\n")
         else:
             # The menu: a 4-bit tile bank and one tilemap per selected option.
             # Moving the cursor is uploading the other tilemap, and that is why
             # they go one after the other and the same size: the ROM indexes
             # them by multiplying.
             menu = bytearray()
-            for celda in titulo["menu_tiles"]:
-                menu += pack_tile(celda, planes=4)
-            handle.write(bloque("titulo_menu_tiles", bytes(menu)) + "\n")
-            plano = bytearray()
-            for mapa_menu in titulo["menu_tilemaps"]:
-                for indice in mapa_menu:
-                    plano += entry(indice, False, False,
+            for cell in title["menu_tiles"]:
+                menu += pack_tile(cell, planes=4)
+            handle.write(block("titulo_menu_tiles", bytes(menu)) + "\n")
+            plane = bytearray()
+            for menu_map in title["menu_tilemaps"]:
+                for index in menu_map:
+                    plane += entry(index, False, False,
                                    PRIORITY_ABOVE).to_bytes(2, "little")
-            handle.write(bloque("titulo_menu_celdas", bytes(plano)) + "\n")
+            handle.write(block("titulo_menu_celdas", bytes(plane)) + "\n")
 
         # --- the full screens: Game Over and the title ---
         #
@@ -5360,32 +5360,32 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write("\n; --- the full screens ---\n")
         handle.write("GAME_OVER_TILES = %d\n"
                      % (0 if game_over is None else game_over["tiles"]))
-        filas = []
+        rows = []
         if game_over is not None:
-            filas.append(("GAME_OVER", "game_over_lz2", game_over))
-        if titulo is not None:
-            filas.append(("TITULO", "titulo_lz2", titulo["pantalla"]))
-        if not filas:
-            handle.write(bloque("pantallas_tabla", b"\x00") + "\n")
+            rows.append(("GAME_OVER", "game_over_lz2", game_over))
+        if title is not None:
+            rows.append(("TITULO", "titulo_lz2", title["pantalla"]))
+        if not rows:
+            handle.write(block("pantallas_tabla", b"\x00") + "\n")
         else:
             handle.write(
                 "; Each screen's row in `pantallas_tabla`: where its stream is,\n"
                 "; how many bytes of tiles and colors it brings, and from which\n"
                 "; CGRAM color they go. See `pantalla_subir`.\n"
                 "PANTALLA_FILA = 8\n")
-            for numero, (nombre, _, _) in enumerate(filas):
-                handle.write("PANTALLA_%s = %d\n" % (nombre, numero))
-            handle.write(".bloque %d\npantallas_tabla:\n" % (8 * len(filas)))
-            for _, etiqueta, datos in filas:
+            for number, (name, _, _) in enumerate(rows):
+                handle.write("PANTALLA_%s = %d\n" % (name, number))
+            handle.write(".bloque %d\npantallas_tabla:\n" % (8 * len(rows)))
+            for _, label, data in rows:
                 handle.write("    .word .loword(%s)\n"
                              "    .byte ^%s\n"
                              "    .word %d, %d\n"
                              "    .byte %d\n"
-                             % (etiqueta, etiqueta, datos["tiles"] * 64,
-                                datos["colores"] * 2, datos["primer_color"]))
+                             % (label, label, data["tiles"] * 64,
+                                data["colores"] * 2, data["primer_color"]))
             handle.write("\n")
-            for _, etiqueta, datos in filas:
-                handle.write(bloque(etiqueta, datos["flujo"]) + "\n")
+            for _, label, data in rows:
+                handle.write(block(label, data["flujo"]) + "\n")
 
         # The slots screen, which **goes in every ROM** and not only in the
         # ones that carry a title: the save point opens it from inside the
@@ -5400,10 +5400,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # menu's, but not the tiles, because both screens are uploaded whole
         # every time one is entered.
         handle.write("\n; --- the slots screen ---\n")
-        datos = bytearray()
-        for celda in ranuras["tiles"]:
-            datos += pack_tile(celda, planes=4)
-        handle.write(bloque("ranura_tiles", bytes(datos)) + "\n")
+        data = bytearray()
+        for cell in slots["tiles"]:
+            data += pack_tile(cell, planes=4)
+        handle.write(block("ranura_tiles", bytes(data)) + "\n")
 
         # The bank of the slots and the menu goes **with the priority bit
         # set**, like the item glyphs: the actor choice turns on BG1 with its
@@ -5411,13 +5411,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # 0 —the red bar would cover the row—. In the other screens of this
         # bank BG1 is off and the bit doesn't change a pixel; the experience
         # sprites discard it.
-        def celdas_asm(bloques):
-            plano = bytearray()
-            for celdas in bloques:
-                for indice in celdas:
-                    plano += entry(indice, False, False,
+        def cells_asm(blocks):
+            plane = bytearray()
+            for cells in blocks:
+                for index in cells:
+                    plane += entry(index, False, False,
                                    priority=1).to_bytes(2, "little")
-            return bytes(plano)
+            return bytes(plane)
 
         # Each cell block goes with its own label and is named by a pointer
         # table, just like the music songs. It is more ROM than computing the
@@ -5428,19 +5428,19 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         #
         # The order: first the two headers —load and save— and then, per slot,
         # the four variants as full * 2 + cursor.
-        bloques_ranura = []
-        for modo, celdas in enumerate(ranuras["cabeceras"]):
-            nombre = "ranura_cab_%d" % modo
-            handle.write(bloque(nombre, celdas_asm([celdas])) + "\n")
-            bloques_ranura.append(nombre)
-        for numero, fila in enumerate(ranuras["filas"]):
-            for llena in (0, 1):
+        slot_blocks = []
+        for mode, cells in enumerate(slots["cabeceras"]):
+            name = "ranura_cab_%d" % mode
+            handle.write(block(name, cells_asm([cells])) + "\n")
+            slot_blocks.append(name)
+        for number, row in enumerate(slots["filas"]):
+            for full in (0, 1):
                 for cursor in (0, 1):
-                    nombre = "ranura_%d_%d%d" % (numero, llena, cursor)
+                    name = "ranura_%d_%d%d" % (number, full, cursor)
                     handle.write(
-                        bloque(nombre, celdas_asm([fila[llena][cursor]]))
+                        block(name, cells_asm([row[full][cursor]]))
                         + "\n")
-                    bloques_ranura.append(nombre)
+                    slot_blocks.append(name)
         # And behind, per actor that can join the party, its face: the ROM
         # writes it over the row according to what the save stored. The face
         # cells carry the palette in their three bits, which are used here: it
@@ -5449,120 +5449,120 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # Its name and its level are **not** blocks: the ROM composes them with
         # glyphs, see "what depends on the actor" in menus.py. That is what
         # keeps the bank from growing with the number of actors.
-        bloque_de_cara = {}
-        for actor in sorted(ranuras["caras"]):
-            nombre = "ranura_cara_%d" % actor
-            handle.write(bloque(nombre, celdas_asm([ranuras["caras"][actor]]))
+        face_block = {}
+        for actor in sorted(slots["caras"]):
+            name = "ranura_cara_%d" % actor
+            handle.write(block(name, cells_asm([slots["caras"][actor]]))
                          + "\n")
-            bloque_de_cara[actor] = len(bloques_ranura)
-            bloques_ranura.append(nombre)
+            face_block[actor] = len(slot_blocks)
+            slot_blocks.append(name)
         # And the pause menu's, which live in the same tile bank: each command
         # in its two variants —1 is disabled, in the gray palette—, the coin,
         # and the text of a party row, which is a single one for the four and
         # for every actor. The cursor and the glyphs don't go as blocks: they
         # are two cells each and the ROM writes them word by word, see
         # `ranura_glifo_celdas`.
-        menu = ranuras["menu"]
-        bloque_menu_opcion = len(bloques_ranura)
-        for orden, variantes in enumerate(menu["opciones"]):
-            for deshabilitada, celdas in enumerate(variantes):
-                nombre = "menu_opcion_%d_%d" % (orden, deshabilitada)
-                handle.write(bloque(nombre, celdas_asm([celdas])) + "\n")
-                bloques_ranura.append(nombre)
-        bloque_menu_moneda = len(bloques_ranura)
-        handle.write(bloque("menu_moneda", celdas_asm([menu["moneda"]]))
+        menu = slots["menu"]
+        menu_option_block = len(slot_blocks)
+        for order, variants in enumerate(menu["opciones"]):
+            for disabled, cells in enumerate(variants):
+                name = "menu_opcion_%d_%d" % (order, disabled)
+                handle.write(block(name, cells_asm([cells])) + "\n")
+                slot_blocks.append(name)
+        menu_currency_block = len(slot_blocks)
+        handle.write(block("menu_moneda", cells_asm([menu["moneda"]]))
                      + "\n")
-        bloques_ranura.append("menu_moneda")
-        bloque_menu_fila = len(bloques_ranura)
-        handle.write(bloque("menu_fila", celdas_asm([menu["fila"]])) + "\n")
-        bloques_ranura.append("menu_fila")
+        slot_blocks.append("menu_moneda")
+        menu_row_block = len(slot_blocks)
+        handle.write(block("menu_fila", cells_asm([menu["fila"]])) + "\n")
+        slot_blocks.append("menu_fila")
         # And the item screen, which has a bank of its own: the font one
         # letter per cell, its two palettes, and the text of each item the ROM
         # knows —name and two lines of description—, in ASCII.
-        datos = bytearray()
-        for celda in ranuras["items_tiles"]:
-            datos += pack_tile(celda, planes=4)
-        handle.write(bloque("items_tiles", bytes(datos)) + "\n")
-        def paletas_cgram(paletas):
+        data = bytearray()
+        for cell in slots["items_tiles"]:
+            data += pack_tile(cell, planes=4)
+        handle.write(block("items_tiles", bytes(data)) + "\n")
+        def palettes_cgram(palettes):
             return b"".join(
-                cgram_word(c).to_bytes(2, "little") for paleta in paletas
-                for c in list(paleta) + [(0, 0, 0)] * (constants.MENU_CGRAM
-                                                       - len(paleta)))
+                cgram_word(c).to_bytes(2, "little") for palette in palettes
+                for c in list(palette) + [(0, 0, 0)] * (constants.MENU_CGRAM
+                                                        - len(palette)))
 
         # The first two, which are uploaded with the bank on every screen that
         # uses it; the "goes up" one and the red one go separately and only
         # the equipment screen uploads them, because in battle the entries
         # from the third palette on are the backdrop's —`scene.CGRAM_BASE`—
         # and uploading them there wouldn't help anyone.
-        handle.write(bloque("items_cgram", paletas_cgram(
-            ranuras["items_paletas"][:menus_mod.ITEM_UP])) + "\n")
-        handle.write(bloque("item_cgram_sube", paletas_cgram(
-            ranuras["items_paletas"][menus_mod.ITEM_UP:])) + "\n")
+        handle.write(block("items_cgram", palettes_cgram(
+            slots["items_paletas"][:menus_mod.ITEM_UP])) + "\n")
+        handle.write(block("item_cgram_sube", palettes_cgram(
+            slots["items_paletas"][menus_mod.ITEM_UP:])) + "\n")
         # The windows of the item and equipment screens, on BG1: see
         # `ITEM_WINDOWS` and `screens.EQ_WINDOWS`. The tiles and the
         # colors are the same for both. Each tilemap goes without the bottom
         # rows the screen doesn't show, and each cursor as the two rows of
         # cells it takes, which the ROM copies on top: 128 bytes.
-        marco_tiles, marco_colores, ((marco_mapa, marco_barras),
-                                     (eq_mapa, eq_barras)) = \
-            ranuras["items_marco"]
-        handle.write(bloque("items_marco_tiles", b"".join(
-            pack_tile(celda, planes=8) for celda in marco_tiles)) + "\n")
-        handle.write(bloque("items_marco_mapa", b"".join(
-            palabra.to_bytes(2, "little") for palabra in marco_mapa)) + "\n")
-        handle.write(bloque("items_marco_barras", b"".join(
-            palabra.to_bytes(2, "little") for barra in marco_barras
-            for palabra in barra)) + "\n")
-        handle.write(bloque("eq_marco_mapa", b"".join(
-            palabra.to_bytes(2, "little") for palabra in eq_mapa)) + "\n")
-        handle.write(bloque("eq_marco_barras", b"".join(
-            palabra.to_bytes(2, "little") for barra in eq_barras
-            for palabra in barra)) + "\n")
-        handle.write(bloque("items_marco_cgram", b"".join(
+        border_tiles, border_colors, ((border_map, border_bars),
+                                      (eq_map, eq_bars)) = \
+            slots["items_marco"]
+        handle.write(block("items_marco_tiles", b"".join(
+            pack_tile(cell, planes=8) for cell in border_tiles)) + "\n")
+        handle.write(block("items_marco_mapa", b"".join(
+            word.to_bytes(2, "little") for word in border_map)) + "\n")
+        handle.write(block("items_marco_barras", b"".join(
+            word.to_bytes(2, "little") for bar in border_bars
+            for word in bar)) + "\n")
+        handle.write(block("eq_marco_mapa", b"".join(
+            word.to_bytes(2, "little") for word in eq_map)) + "\n")
+        handle.write(block("eq_marco_barras", b"".join(
+            word.to_bytes(2, "little") for bar in eq_bars
+            for word in bar)) + "\n")
+        handle.write(block("items_marco_cgram", b"".join(
             cgram_word(c).to_bytes(2, "little")
-            for c in marco_colores)) + "\n")
+            for c in border_colors)) + "\n")
         # The shop windows, on BG1 with their own base: see
         # `screens.TI_WINDOWS` and `compact_shop`, which says what is
         # stored. The stretches of each layer are `(VRAM word, source byte in
         # `ti_marco_filas`, bytes)`, terminated by three zeros; the bars,
         # `(VRAM word, source byte in `ti_marco_parches`, bytes per row,
         # rows)`.
-        PM = pantallas_mod
-        ti_tiles, ti_colores, ti_mapas = ranuras["tienda_marco"]
-        ti_filas, ti_arriba, ti_capas, ti_parches, ti_barras = \
-            PM.compact_shop(ti_mapas)
+        PM = screens_mod
+        ti_tiles, ti_colors, ti_maps = slots["tienda_marco"]
+        ti_rows, ti_top, ti_layers, ti_patches, ti_bars = \
+            PM.compact_shop(ti_maps)
 
-        def palabras_le(valores):
-            return b"".join(v.to_bytes(2, "little") for v in valores)
+        def le_words(values):
+            return b"".join(v.to_bytes(2, "little") for v in values)
 
-        handle.write(bloque("ti_marco_tiles", b"".join(
-            pack_tile(celda, planes=8) for celda in ti_tiles)) + "\n")
-        handle.write(bloque("ti_marco_cgram", b"".join(
-            cgram_word(c).to_bytes(2, "little") for c in ti_colores)) + "\n")
-        handle.write(bloque("ti_marco_filas", palabras_le(
-            p for f in ti_filas for p in f)) + "\n")
-        handle.write(bloque("ti_marco_parches", palabras_le(ti_parches))
+        handle.write(block("ti_marco_tiles", b"".join(
+            pack_tile(cell, planes=8) for cell in ti_tiles)) + "\n")
+        handle.write(block("ti_marco_cgram", b"".join(
+            cgram_word(c).to_bytes(2, "little") for c in ti_colors)) + "\n")
+        handle.write(block("ti_marco_filas", le_words(
+            p for f in ti_rows for p in f)) + "\n")
+        handle.write(block("ti_marco_parches", le_words(ti_patches))
                      + "\n")
         cols = constants.COLS
-        tramos, capa_tramos = [], []
-        for capa in ti_capas:
-            capa_tramos.append(2 * len(tramos))
-            for fila, origen, cuantas in capa:
-                tramos += [PM.TI_MAP + fila * cols, origen * 2 * cols,
-                           cuantas * 2 * cols]
-            tramos += [0, 0, 0]
-        handle.write(bloque("ti_tramos", palabras_le(tramos)) + "\n")
-        handle.write(bloque("ti_capa_tramos", palabras_le(capa_tramos))
+        stretches, layer_stretches = [], []
+        for layer in ti_layers:
+            layer_stretches.append(2 * len(stretches))
+            for row, origin, how_many in layer:
+                stretches += [PM.TI_MAP + row * cols, origin * 2 * cols,
+                              how_many * 2 * cols]
+            stretches += [0, 0, 0]
+        handle.write(block("ti_tramos", le_words(stretches)) + "\n")
+        handle.write(block("ti_capa_tramos", le_words(layer_stretches))
                      + "\n")
-        handle.write(bloque("ti_barras", palabras_le(
-            v for capa in ti_barras for fila, col, filas, ancho, origen in capa
-            for v in (PM.TI_MAP + fila * cols + col, 2 * origen, 2 * ancho,
-                      filas))) + "\n")
-        base_barras = [0]
-        for capa in ti_barras:
-            base_barras.append(base_barras[-1] + len(capa))
-        handle.write(bloque("ti_barra_base", bytes(base_barras[:-1])) + "\n")
-        handle.write(bloque("ti_capa_de_modo", bytes(PM.TI_LAYER_OF_MODE))
+        handle.write(block("ti_barras", le_words(
+            v for layer in ti_bars for row, col, rows, width, origin in layer
+            for v in (PM.TI_MAP + row * cols + col, 2 * origin, 2 * width,
+                      rows))) + "\n")
+        base_bars = [0]
+        for layer in ti_bars:
+            base_bars.append(base_bars[-1] + len(layer))
+        handle.write(block("ti_barra_base", bytes(base_bars[:-1])) + "\n")
+        handle.write(block("ti_capa_de_modo", bytes(PM.TI_LAYER_OF_MODE))
                      + "\n")
         handle.write(
             "TI_MARCO_VRAM     = $%04X\n"
@@ -5570,18 +5570,18 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "TI_MARCO_TILES    = %d\n"
             "TI_MARCO_COLORES  = %d\n"
             "TI_MARCO_ARRIBA   = %d\n"
-            % (PM.TI_VRAM, PM.TI_MAP, len(ti_tiles), len(ti_colores),
-               ti_arriba))
+            % (PM.TI_VRAM, PM.TI_MAP, len(ti_tiles), len(ti_colors),
+               ti_top))
         # The End Game screen, whole: see tools/port/end_game.py. The two
         # palettes go one after the other, the "Yes" one first: the ROM picks
         # one by multiplying.
-        fin_tiles, fin_filas, fin_fila0, fin_paletas = ranuras["fin"]
-        handle.write(bloque("fin_tiles", b"".join(
-            pack_tile(celda, planes=4) for celda in fin_tiles)) + "\n")
-        handle.write(bloque("fin_mapa", b"".join(
-            palabra.to_bytes(2, "little") for palabra in fin_filas)) + "\n")
-        handle.write(bloque("fin_cgram", paletas_cgram(fin_paletas)) + "\n")
-        handle.write(bloque("fin_rampa", bytes(fin_mod.ramp())) + "\n")
+        end_tiles, end_rows, end_row0, end_palettes = slots["fin"]
+        handle.write(block("fin_tiles", b"".join(
+            pack_tile(cell, planes=4) for cell in end_tiles)) + "\n")
+        handle.write(block("fin_mapa", b"".join(
+            word.to_bytes(2, "little") for word in end_rows)) + "\n")
+        handle.write(block("fin_cgram", palettes_cgram(end_palettes)) + "\n")
+        handle.write(block("fin_rampa", bytes(end_game_mod.ramp())) + "\n")
         handle.write(
             "FIN_TILES   = %d\n"
             "FIN_FILA0   = %d\n"
@@ -5590,23 +5590,23 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "FIN_NO      = %d\n"
             "FIN_CUADROS = %d\n"
             "FIN_PASO_TEMA = %d\n"
-            % (len(fin_tiles), fin_fila0, len(fin_filas) // constants.COLS,
-               fin_mod.DEFAULT_CHOICE, fin_mod.NO, fin_mod.FADE_FRAMES,
-               events.fade_step(fin_mod.SONG_FADE_MS)))
-        item_textos, item_textos_ofs = bytearray(), []
+            % (len(end_tiles), end_row0, len(end_rows) // constants.COLS,
+               end_game_mod.DEFAULT_CHOICE, end_game_mod.NO, end_game_mod.FADE_FRAMES,
+               events.fade_step(end_game_mod.SONG_FADE_MS)))
+        item_texts, item_texts_ofs = bytearray(), []
 
-        def texto_nuevo(texto):
-            texto = menus_mod.item_text(texto, 255)
-            item_textos_ofs.append((len(item_textos), len(texto)))
-            item_textos.extend(texto.encode("ascii"))
-            return len(item_textos_ofs) - 1
+        def new_text(text):
+            text = menus_mod.item_text(text, 255)
+            item_texts_ofs.append((len(item_texts), len(text)))
+            item_texts.extend(text.encode("ascii"))
+            return len(item_texts_ofs) - 1
 
-        for numero in ranuras["items"]:
-            item = ranuras["items_db"][numero]
-            for texto in ([menus_mod.item_text(
+        for number in slots["items"]:
+            item = slots["items_db"][number]
+            for text in ([menus_mod.item_text(
                     item.name, menus_mod.ITEM_NAME_WIDTH)]
                     + menus_mod.split_description(item.description)):
-                texto_nuevo(texto)
+                new_text(text)
         # Dead texts **after the item ones and before all the others**, so
         # that the battle's indices go past 255 in a one-map cartridge:
         # reproducing it for real takes the fifty-seven items of `abl`, that
@@ -5626,76 +5626,76 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # and the quantities and without a single name. With the padding here
         # the flag goes back to doing what it promises, which is not changing
         # a pixel.
-        for _ in range(ranuras.get("relleno_textos") or 0):
-            item_textos_ofs.append((0, 0))
+        for _ in range(slots.get("relleno_textos") or 0):
+            item_texts_ofs.append((0, 0))
         # And the fixed ones, behind: the parameters and the equipment slots,
         # and the name of each actor that can join the party. See screens.py.
-        P = pantallas_mod
-        B = batalla_mod
-        db = ranuras["db"]
-        texto_param = [texto_nuevo(t[:P.EQ_PARAM_VALUE - 1])
-                       for t in db.term_params]
-        texto_ranura = [texto_nuevo(t[:P.EQ_SLOT_TERM_WIDTH])
-                        for t in db.term_equipment]
-        texto_actor = {a: texto_nuevo(db.actors[a].name)
-                       for a in ranuras["actores"]}
+        P = screens_mod
+        B = battle_mod
+        db = slots["db"]
+        param_text = [new_text(t[:P.EQ_PARAM_VALUE - 1])
+                      for t in db.term_params]
+        slot_text = [new_text(t[:P.EQ_SLOT_TERM_WIDTH])
+                     for t in db.term_equipment]
+        actor_text = {a: new_text(db.actors[a].name)
+                      for a in slots["actores"]}
         # The shop's: the eleven messages of each of the three sets, two lines
         # each —`split_description`, as in screens.py—, and "Owned Items",
         # "Equipped Items" and the currency.
-        texto_tienda = None
-        for juego in range(3):
-            term = P.shop_terms(db, juego)
-            for nombre, _termino in P.TI_TERMS:
-                renglones = menus_mod.split_description(term[nombre])
+        shop_text = None
+        for names_in_game in range(3):
+            term = P.shop_terms(db, names_in_game)
+            for name, _term in P.TI_TERMS:
+                lines = menus_mod.split_description(term[name])
                 # Outside the main one, the message goes in a one-line window:
                 # `ti_mensaje` writes only the first.
-                if renglones[1] and nombre not in ("saludo", "resaludo"):
+                if lines[1] and name not in ("saludo", "resaludo"):
                     raise SystemExit(
                         "the shop message %r, of set %d, takes two "
                         "lines and its window has one"
-                        % (term[nombre], juego))
-                for renglon in renglones:
-                    t = texto_nuevo(renglon)
-                    if texto_tienda is None:
-                        texto_tienda = t
-        texto_tengo = texto_nuevo(P.lcf_term(db, P.TI_TERM_OWNED))
-        texto_llevo = texto_nuevo(P.lcf_term(db, P.TI_TERM_CARRIED))
-        texto_moneda = texto_nuevo(db.term_gold)
+                        % (term[name], names_in_game))
+                for line in lines:
+                    t = new_text(line)
+                    if shop_text is None:
+                        shop_text = t
+        owned_text = new_text(P.lcf_term(db, P.TI_TERM_OWNED))
+        carried_text = new_text(P.lcf_term(db, P.TI_TERM_CARRIED))
+        currency_text = new_text(db.term_gold)
         # And the battle's: the fifteen LDB terms the screen uses —in the order
         # of `rules.BATTLE_TERMS`, which is the one the ROM indexes— and the
         # name of each enemy some troop of the cartridge brings. The three
         # commands go **already trimmed**, by `screens.command_text`: the
         # LDB brings them with leading spaces and that would shift the text of
         # their column.
-        term_batalla = rules.battle_terms(db)
-        texto_batalla = None
-        victoria = P.victory_lines(term_batalla["victoria"])
-        if len(victoria) > P.BA_VICTORY_TERM_MAX:
+        battle_term = rules.battle_terms(db)
+        battle_text = None
+        victory = P.victory_lines(battle_term["victoria"])
+        if len(victory) > P.BA_VICTORY_TERM_MAX:
             raise SystemExit("the victory term takes %d lines and "
                              "the window leaves it %d: %r"
-                             % (len(victoria), P.BA_VICTORY_TERM_MAX, victoria))
-        for nombre, _termino in rules.BATTLE_TERMS:
-            texto = term_batalla[nombre]
-            if nombre in ("atacar", "defender", "huir"):
-                texto = P.command_text(texto)
-            if nombre == "victoria":
-                texto = victoria[0]
-            t = texto_nuevo(texto)
-            if texto_batalla is None:
-                texto_batalla = t
+                             % (len(victory), P.BA_VICTORY_TERM_MAX, victory))
+        for name, _term in rules.BATTLE_TERMS:
+            text = battle_term[name]
+            if name in ("atacar", "defender", "huir"):
+                text = P.command_text(text)
+            if name == "victoria":
+                text = victory[0]
+            t = new_text(text)
+            if battle_text is None:
+                battle_text = t
         # And the line for a fallen one an item revived: the dead state's
         # `message_recovery`, which goes stuck to the name —"Core has
         # revived!"—. It isn't a term but a piece of the state's data, so it
         # goes separately and with its own index. See `ba_mensaje`.
-        texto_revivio = texto_nuevo(P.revived_text(db))
+        revived_text = new_text(P.revived_text(db))
         # The second line of the victory, empty if it fits in one: it goes
         # separately so as not to shift the indices of `BA_TERMINOS`.
-        texto_victoria2 = texto_nuevo((victoria + [""])[1])
-        enemigos_rom = sorted({e for numero in tropas
-                               if numero in db.troops
-                               for e in db.troops[numero].members})
-        texto_enemigo = {e: texto_nuevo(menus_mod.item_text(
-            db.enemies[e].name, P.BA_NAME_WIDTH)) for e in enemigos_rom}
+        victory2_text = new_text((victory + [""])[1])
+        rom_enemies = sorted({e for number in troops
+                              if number in db.troops
+                              for e in db.troops[number].members})
+        enemy_text = {e: new_text(menus_mod.item_text(
+            db.enemies[e].name, P.BA_NAME_WIDTH)) for e in rom_enemies}
         # And the skills': the ones some actor that can join the party knows,
         # **at their LDB level** —see `battle.skills_of`—, sorted by
         # number, which is the order the menu puts them in. With the intro's
@@ -5710,49 +5710,49 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # And the ones some enemy of the cartridge's troops uses, since
         # 2026-09-27: `ShortCircuit`, from the ones at the recycling plant. See
         # `battle.actions_of_enemy`.
-        acciones_rom = {e: B.actions_of_enemy(db, e) for e in enemigos_rom}
-        habilidades_rom = sorted(
+        rom_actions = {e: B.actions_of_enemy(db, e) for e in rom_enemies}
+        rom_skills = sorted(
             {h for (a, h) in events.SKILL_SLOT
-             if a in ranuras["actores"] and B.skill_usable(db.skills[h])}
-            | {skill.id for lista in acciones_rom.values()
-               for _r, skill, _ef in lista if skill is not None})
-        texto_hab = {h: texto_nuevo(menus_mod.item_text(
+             if a in slots["actores"] and B.skill_usable(db.skills[h])}
+            | {skill.id for values in rom_actions.values()
+               for _r, skill, _ef in values if skill is not None})
+        skill_text = {h: new_text(menus_mod.item_text(
             db.skills[h].name, P.BA_SKILL_NAME_WIDTH))
-            for h in habilidades_rom}
-        texto_hab_desc = {h: texto_nuevo(menus_mod.item_text(
+            for h in rom_skills}
+        skill_desc_text = {h: new_text(menus_mod.item_text(
             db.skills[h].description, P.BA_SKILL_DESC_WIDTH))
-            for h in habilidades_rom}
+            for h in rom_skills}
         # And the **whole** name of the ones learned on leveling up, which is
         # what "<skill> acquired!" says at the victory: the list's is cut to
         # its column, and some of these the battle doesn't know how to offer
         # —Lurk In Shadows, Arden's— and aren't in the list. See
         # `hab_par_aprende_txt`.
-        ensenadas = {h for (a, h) in events.SKILL_SLOT
-                     if a in ranuras["actores"] and a in db.actors
-                     and B.level_learned(db, a, h)
-                     > X.initial_level(db.actors[a])}
-        texto_hab_entero = {
-            h: texto_nuevo(menus_mod.item_text(db.skills[h].name, 255))
-            for h in sorted(ensenadas)}
+        taught = {h for (a, h) in events.SKILL_SLOT
+                  if a in slots["actores"] and a in db.actors
+                  and B.level_learned(db, a, h)
+                  > X.initial_level(db.actors[a])}
+        whole_skill_text = {
+            h: new_text(menus_mod.item_text(db.skills[h].name, 255))
+            for h in sorted(taught)}
         # The two lines RM2k says when using it: `using_message1` goes after
         # the name of the one using it and `using_message2` alone, on the line
         # below. `GetSkillFirstStartMessage2k` and its sibling.
-        texto_hab_msg1 = {h: texto_nuevo(db.skills[h].using_message1)
-                          for h in habilidades_rom}
-        texto_hab_msg2 = {h: texto_nuevo(db.skills[h].using_message2)
-                          for h in habilidades_rom}
+        skill_msg1_text = {h: new_text(db.skills[h].using_message1)
+                           for h in rom_skills}
+        skill_msg2_text = {h: new_text(db.skills[h].using_message2)
+                           for h in rom_skills}
         # And what each actor's command is called: `Game_Actor::GetSkillName`,
         # that is its `skill_name` —"AgentTrain", "Telepathy", "Slicing"— and
         # not the LDB's `command_skill`. It goes trimmed like the other four
         # commands.
-        texto_hab_orden = {a: texto_nuevo(P.command_text(
-            B.skill_command_name(db, a))) for a in ranuras["actores"]}
-        handle.write(bloque("item_textos", bytes(item_textos) or b"\x00")
+        skill_command_text = {a: new_text(P.command_text(
+            B.skill_command_name(db, a))) for a in slots["actores"]}
+        handle.write(block("item_textos", bytes(item_texts) or b"\x00")
                      + "\n")
-        if len(bloques_ranura) > 255:
+        if len(slot_blocks) > 255:
             raise SystemExit("the slots screen has %d blocks and the "
                              "tables that name them are one byte"
-                             % len(bloques_ranura))
+                             % len(slot_blocks))
         # The tables that name them **don't go here**: the ROM reads them with
         # `lda ranura_bloque_lo, x`, which addresses the data bank, so they
         # have to live in bank 0 together with the code. They are emitted
@@ -5761,14 +5761,14 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # The palette goes padded up to the TITULO_MENU_CGRAM entries, which
         # is what the ROM uploads at once: if the text uses fewer colors, the
         # DMA would read whatever follows in the cartridge.
-        colores = []
-        for paleta in ranuras["paletas"]:
-            paleta = list(paleta)
-            colores += paleta + [(0, 0, 0)] * (constants.MENU_CGRAM
-                                               - len(paleta))
-        handle.write(bloque("ranura_cgram",
-                            b"".join(cgram_word(c).to_bytes(2, "little")
-                                     for c in colores)) + "\n")
+        colors = []
+        for palette in slots["paletas"]:
+            palette = list(palette)
+            colors += palette + [(0, 0, 0)] * (constants.MENU_CGRAM
+                                               - len(palette))
+        handle.write(block("ranura_cgram",
+                           b"".join(cgram_word(c).to_bytes(2, "little")
+                                    for c in colors)) + "\n")
 
         handle.write('\n.segment "TABLAS"\n')
         # The cell blocks of the slots screen are named by pointers, and the
@@ -5777,42 +5777,42 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # which tilemap address each row goes to: the computation comes from
         # the same geometry that drew the text and that is why it lives in a
         # single place.
-        for campo, prefijo in (("lo", "<"), ("hi", ">"), ("bk", "^")):
+        for field, prefix in (("lo", "<"), ("hi", ">"), ("bk", "^")):
             handle.write("ranura_bloque_%s:\n    .byte %s\n"
-                         % (campo, ", ".join(prefijo + e
-                                             for e in bloques_ranura)))
-        fila_de = [RANURA_MAP + (menus_mod.SLOT_Y
-                                 + n * menus_mod.SLOT_STEP)
-                   // constants.CELL * 32 for n in range(RANURAS)]
+                         % (field, ", ".join(prefix + e
+                                             for e in slot_blocks)))
+        row_of = [SLOT_MAP + (menus_mod.SLOT_Y
+                              + n * menus_mod.SLOT_STEP)
+                  // constants.CELL * 32 for n in range(SLOTS)]
         handle.write("ranura_vram:\n    .word %s\n" % ", ".join(
-            str(v) for v in fila_de))
+            str(v) for v in row_of))
         # Where the faces go —four entries per slot, so that the index is the
         # slot times four plus the place, without multiplying by three— and
         # the leader's name.
         handle.write("ranura_cara_vram:\n    .word %s\n" % ", ".join(
-            str(fila_de[n] + menus_mod.FACE_COL
-                + lugar * menus_mod.FACE_STEP if lugar < menus_mod.FACES_MAX
+            str(row_of[n] + menus_mod.FACE_COL
+                + place * menus_mod.FACE_STEP if place < menus_mod.FACES_MAX
                 else 0)
-            for n in range(RANURAS) for lugar in range(4)))
+            for n in range(SLOTS) for place in range(4)))
         handle.write("ranura_nombre_vram:\n    .word %s\n" % ", ".join(
-            str(fila_de[n] + menus_mod.NAME_ROW * 32
-                + menus_mod.NAME_COL) for n in range(RANURAS)))
-        actores_n = max(list(bloque_de_cara) + list(ranuras["actores"])
-                        + [-1]) + 1
+            str(row_of[n] + menus_mod.NAME_ROW * 32
+                + menus_mod.NAME_COL) for n in range(SLOTS)))
+        n_actors = max(list(face_block) + list(slots["actores"])
+                       + [-1]) + 1
         handle.write("ranura_cara_bloque:\n    .byte %s\n" % (", ".join(
-            str(bloque_de_cara.get(actor, 0xFF))
-            for actor in range(actores_n)) or "$FF"))
+            str(face_block.get(actor, 0xFF))
+            for actor in range(n_actors)) or "$FF"))
         # The pause menu: its blocks, and where each thing goes in the
         # tilemap, in words. The geometry is `menus.py`'s and comes from
         # there.
         T = menus_mod
-        from port import font as fuente_mod
+        from port import font as font_mod
 
-        def celda_vram(fila, col):
-            return RANURA_MAP + fila * 32 + col
+        def vram_cell(row, col):
+            return SLOT_MAP + row * 32 + col
 
-        filas_opcion = [(T.MENU_OPT_Y + n * T.MENU_OPT_STEP)
-                        // constants.CELL for n in range(T.MENU_OPTIONS)]
+        option_rows = [(T.MENU_OPT_Y + n * T.MENU_OPT_STEP)
+                       // constants.CELL for n in range(T.MENU_OPTIONS)]
         handle.write(
             "MENU_OPCIONES     = %d\n"
             "MENU_GUARDAR      = %d\n"
@@ -5835,12 +5835,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "MENU_NIVEL_DESPL  = %d\n"
             "MENU_MAX_CIFRAS   = %d\n"
             "MENU_MAX_DESPL    = %d\n"
-            % (T.MENU_OPTIONS, T.MENU_SAVE, T.MENU_END, bloque_menu_opcion,
-               bloque_menu_moneda, bloque_menu_fila,
+            % (T.MENU_OPTIONS, T.MENU_SAVE, T.MENU_END, menu_option_block,
+               menu_currency_block, menu_row_block,
                T.MENU_OPT_COLS, T.MENU_CURRENCY_COLS,
-               celda_vram(T.MENU_GOLD_Y // constants.CELL, T.MENU_CURRENCY_COL),
+               vram_cell(T.MENU_GOLD_Y // constants.CELL, T.MENU_CURRENCY_COL),
                T.MENU_ACTOR_COLS, T.MENU_ACTOR_ROWS, T.MENU_PARTY_ROWS,
-               actores_n,
+               n_actors,
                # And how many cells from the first of the actor's block the
                # hundreds of its HP fall, which is what `menu_hp_escribir`
                # adds to `menu_fila_vram`.
@@ -5860,11 +5860,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "1" if n in T.MENU_DONE else "0"
             for n in range(T.MENU_OPTIONS)))
         handle.write("menu_opcion_vram:\n    .word %s\n" % ", ".join(
-            str(celda_vram(f, T.MENU_OPT_COL)) for f in filas_opcion))
+            str(vram_cell(f, T.MENU_OPT_COL)) for f in option_rows))
         handle.write("menu_cursor_vram:\n    .word %s\n" % ", ".join(
-            str(celda_vram(f, T.MENU_CURSOR_COL)) for f in filas_opcion))
+            str(vram_cell(f, T.MENU_CURSOR_COL)) for f in option_rows))
         handle.write("menu_fila_vram:\n    .word %s\n" % ", ".join(
-            str(celda_vram(r * T.MENU_ACTOR_ROWS, T.MENU_ACTOR_COL))
+            str(vram_cell(r * T.MENU_ACTOR_ROWS, T.MENU_ACTOR_COL))
             for r in range(T.MENU_PARTY_ROWS)))
         # The cursor's two cells, top and bottom: the ROM writes them one word
         # at a time.
@@ -5879,15 +5879,15 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # them, and a complete table is indexed without subtracting anything
         # else.
         handle.write('.segment "RODATA"\n')
-        vacio = "$%04X, $%04X" % (entry(0, False, False),
+        empty = "$%04X, $%04X" % (entry(0, False, False),
                                   entry(0, False, False))
         handle.write(".bloque %d\nranura_glifo_celdas:\n    .word %s\n"
                      % (menus_mod.ITEM_CHARS * 4, ", ".join(
                          ", ".join("$%04X" % entry(c, False, False,
                                                    priority=1)
-                                   for c in menu["glifos"][letra])
-                         if letra in menu["glifos"] else vacio
-                         for letra in map(
+                                   for c in menu["glifos"][letter])
+                         if letter in menu["glifos"] else empty
+                         for letter in map(
                              chr, range(menus_mod.ITEM_FIRST_CHAR,
                                         menus_mod.ITEM_FIRST_CHAR
                                         + menus_mod.ITEM_CHARS)))))
@@ -5904,29 +5904,29 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # the name of each medicine on two lines, in ASCII, with a table of
         # one byte per `k` that says which one it is —$FF if it isn't a
         # medicine—: only medicines open this screen.
-        obj_tiles, obj_colores, obj_mapas = ranuras["objetivo"]
-        (obj_mapa, obj_barras, obj_fila0, obj_filas, obj_col0, obj_cols,
-         obj_borrar_filas, obj_borrar_cols) = T.compact_target(obj_mapas)
-        handle.write(bloque("objetivo_tiles", b"".join(
-            pack_tile(celda, planes=8) for celda in obj_tiles)) + "\n")
-        handle.write(bloque("objetivo_mapa", b"".join(
-            palabra.to_bytes(2, "little") for palabra in obj_mapa)) + "\n")
-        handle.write(bloque("objetivo_barras", b"".join(
-            palabra.to_bytes(2, "little") for barra in obj_barras
-            for palabra in barra)) + "\n")
-        handle.write(bloque("objetivo_cgram", b"".join(
-            cgram_word(c).to_bytes(2, "little") for c in obj_colores)) + "\n")
-        medicinas = [n for n in ranuras["items"]
-                     if ranuras["items_db"][n].type == lcf.ITEM_TYPE_MEDICINE]
-        if len(medicinas) > 255:
+        obj_tiles, obj_colors, obj_maps = slots["objetivo"]
+        (obj_map, obj_bars, obj_row0, obj_rows, obj_col0, obj_cols,
+         obj_erase_rows, obj_erase_cols) = T.compact_target(obj_maps)
+        handle.write(block("objetivo_tiles", b"".join(
+            pack_tile(cell, planes=8) for cell in obj_tiles)) + "\n")
+        handle.write(block("objetivo_mapa", b"".join(
+            word.to_bytes(2, "little") for word in obj_map)) + "\n")
+        handle.write(block("objetivo_barras", b"".join(
+            word.to_bytes(2, "little") for bar in obj_bars
+            for word in bar)) + "\n")
+        handle.write(block("objetivo_cgram", b"".join(
+            cgram_word(c).to_bytes(2, "little") for c in obj_colors)) + "\n")
+        medicines = [n for n in slots["items"]
+                     if slots["items_db"][n].type == lcf.ITEM_TYPE_MEDICINE]
+        if len(medicines) > 255:
             raise SystemExit("%d medicines don't fit in `objetivo_nombre_de`"
-                             % len(medicinas))
-        handle.write(bloque("objetivo_nombre_de", bytes(
-            medicinas.index(n) if n in medicinas else 0xFF
-            for n in ranuras["items"])) + "\n")
-        handle.write(bloque("objetivo_nombres", b"".join(
-            "".join(T.name_in_lines(ranuras["items_db"][n].name))
-            .encode("ascii", "replace") for n in medicinas)) + "\n")
+                             % len(medicines))
+        handle.write(block("objetivo_nombre_de", bytes(
+            medicines.index(n) if n in medicines else 0xFF
+            for n in slots["items"])) + "\n")
+        handle.write(block("objetivo_nombres", b"".join(
+            "".join(T.name_in_lines(slots["items_db"][n].name))
+            .encode("ascii", "replace") for n in medicines)) + "\n")
         handle.write(
             "OBJETIVO_VRAM     = $%04X\n"
             "OBJETIVO_MAPA     = $%04X\n"
@@ -5943,11 +5943,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "OBJETIVO_BORRAR_FILAS = %d\n"
             "OBJETIVO_BORRAR_COLS = %d\n"
             % (T.TARGET_VRAM, T.TARGET_MAP, len(obj_tiles),
-               T.TARGET_CGRAM, len(obj_colores), T.TARGET_NAME_WIDTH,
-               celda_vram(T.TARGET_NAME_ROW, T.TARGET_NAME_COL),
-               celda_vram(T.TARGET_COUNT_ROW, T.TARGET_COUNT_COL),
-               obj_fila0, obj_filas, obj_col0, obj_cols, obj_borrar_filas,
-               obj_borrar_cols))
+               T.TARGET_CGRAM, len(obj_colors), T.TARGET_NAME_WIDTH,
+               vram_cell(T.TARGET_NAME_ROW, T.TARGET_NAME_COL),
+               vram_cell(T.TARGET_COUNT_ROW, T.TARGET_COUNT_COL),
+               obj_row0, obj_rows, obj_col0, obj_cols, obj_erase_rows,
+               obj_erase_cols))
         handle.write(
             "MENU_EXP_X        = %d\n"
             "MENU_EXP_NUM_X    = %d\n"
@@ -5958,29 +5958,29 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "MENU_ACTOR_ALTO   = %d\n"
             % (T.MENU_EXP_X,
                T.MENU_EXP_X + T.MENU_EXP_NUM_DX - T.GLYPH_DX,
-               T.MENU_EXP_Y - T.GLYPH_DY, fuente_mod.WIDTH, T.MENU_EXP_DIGITS,
+               T.MENU_EXP_Y - T.GLYPH_DY, font_mod.WIDTH, T.MENU_EXP_DIGITS,
                T.MENU_EXP_LETTERS, T.MENU_ACTOR_ROWS * constants.CELL))
         # Each actor's text, in ASCII: the name —with trailing spaces, which
         # are what erase whatever was there—, the two digits of the level and
         # max HP after its bar. **The three together, in one row per actor**,
         # so the ROM has a single address to compute and three offsets that
         # are constants.
-        db_ranuras = ranuras["db"]
-        if (RANURA_TEXTO_NIVEL < menus_mod.MENU_NAME_COLS
-                or RANURA_TEXTO_MAX + menus_mod.MENU_MAX_DIGITS
-                > RANURA_TEXTO_ANCHO):
+        db_slots = slots["db"]
+        if (SLOT_TEXT_LEVEL < menus_mod.MENU_NAME_COLS
+                or SLOT_TEXT_MAX + menus_mod.MENU_MAX_DIGITS
+                > SLOT_TEXT_WIDTH):
             raise SystemExit("the actor's three strips don't fit in the %d "
-                             "bytes of its row" % RANURA_TEXTO_ANCHO)
-        tira = bytearray()
-        for a in range(actores_n):
-            fila = (menus_mod.name_text(db_ranuras, a)
-                    .ljust(RANURA_TEXTO_NIVEL)
-                    + menus_mod.level_text(db_ranuras, a)
-                    + menus_mod.max_text(db_ranuras, a))
-            tira += fila.ljust(RANURA_TEXTO_ANCHO).encode("ascii")
+                             "bytes of its row" % SLOT_TEXT_WIDTH)
+        strip = bytearray()
+        for a in range(n_actors):
+            row = (menus_mod.name_text(db_slots, a)
+                   .ljust(SLOT_TEXT_LEVEL)
+                   + menus_mod.level_text(db_slots, a)
+                   + menus_mod.max_text(db_slots, a))
+            strip += row.ljust(SLOT_TEXT_WIDTH).encode("ascii")
         handle.write(".bloque %d\nranura_actor_texto:\n    .byte %s\n"
-                     % (max(1, len(tira)),
-                        ", ".join(str(b) for b in tira) or "0"))
+                     % (max(1, len(strip)),
+                        ", ".join(str(b) for b in strip) or "0"))
         handle.write('.segment "TABLAS"\n')
         # The item screen. `item_k` goes from the RM2k number to its place in
         # the ROM's tables, $FF if this ROM doesn't know it; the rest is per
@@ -5989,12 +5989,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # opens the actor choice —the medicines—, bit 3 if it is a two-handed
         # weapon. The texts go three per item —the name and the two lines of
         # the description—: text `t` is `3k + field`.
-        items = ranuras["items"]
-        db_items = ranuras["items_db"]
+        items = slots["items"]
+        db_items = slots["items_db"]
         if len(items) > 255:
             raise SystemExit("%d items don't fit in one-byte tables"
                              % len(items))
-        k_de = {numero: k for k, numero in enumerate(items)}
+        k_of = {number: k for k, number in enumerate(items)}
         handle.write(
             "ITEMS_ROM         = %d\n"
             "ITEMS_TILES       = %d\n"
@@ -6015,37 +6015,37 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "ITEM_MARCO_COLORES = %d\n"
             "ITEM_MARCO_FILAS  = %d\n"
             "ITEM_MARCO_LISTA  = %d\n"
-            % (len(items), len(ranuras["items_tiles"]),
+            % (len(items), len(slots["items_tiles"]),
                menus_mod.ITEM_UP * constants.MENU_CGRAM,
                T.ITEM_ROWS, T.ITEM_CURSOR_COL, T.ITEM_NAME_COL,
                T.ITEM_COLON_COL, T.ITEM_DIGITS_COL,
-               celda_vram(T.ITEM_DESC_Y // constants.CELL, T.ITEM_DESC_COL),
+               vram_cell(T.ITEM_DESC_Y // constants.CELL, T.ITEM_DESC_COL),
                T.ITEM_DESC_COL,
                T.ITEM_FIRST_CHAR, T.ITEM_CHARS * 4,
-               RANURA_VRAM
-               + items_marco_primero(len(ranuras["items_tiles"])) * 32,
-               len(marco_tiles), T.ITEM_BORDER_MAP, T.ITEM_BORDER_CGRAM,
-               len(marco_colores), constants.ROWS,
+               SLOT_VRAM
+               + items_border_first(len(slots["items_tiles"])) * 32,
+               len(border_tiles), T.ITEM_BORDER_MAP, T.ITEM_BORDER_CGRAM,
+               len(border_colors), constants.ROWS,
                T.ITEM_LIST_Y // constants.CELL))
 
-        def bytes_asm(etiqueta, valores, formato="%d", declarar=False):
-            if declarar:
-                handle.write(".bloque %d\n" % max(1, len(valores)))
-            handle.write("%s:\n    .byte %s\n" % (etiqueta, ", ".join(
-                formato % v for v in valores) or "$FF"))
+        def bytes_asm(label, values, fmt="%d", declare=False):
+            if declare:
+                handle.write(".bloque %d\n" % max(1, len(values)))
+            handle.write("%s:\n    .byte %s\n" % (label, ", ".join(
+                fmt % v for v in values) or "$FF"))
 
-        def words_asm(etiqueta, valores, formato="%d", declarar=False):
-            if declarar:
-                handle.write(".bloque %d\n" % max(2, 2 * len(valores)))
-            handle.write("%s:\n    .word %s\n" % (etiqueta, ", ".join(
-                formato % v for v in valores) or "0"))
+        def words_asm(label, values, fmt="%d", declare=False):
+            if declare:
+                handle.write(".bloque %d\n" % max(2, 2 * len(values)))
+            handle.write("%s:\n    .word %s\n" % (label, ", ".join(
+                fmt % v for v in values) or "0"))
 
         # `item_k` goes outside bank 0 —it is read with `lda f:item_k, x`—:
         # the code's bank filled up with the audio package.
         handle.write('.segment "RODATA"\n')
-        bytes_asm("item_k", [k_de.get(n, 0xFF)
+        bytes_asm("item_k", [k_of.get(n, 0xFF)
                              for n in range(events.ITEMS_N)],
-                  declarar=True)
+                  declare=True)
         handle.write('.segment "TABLAS"\n')
         words_asm("item_id", items)
         bytes_asm("item_uso", [
@@ -6063,7 +6063,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # per-frame loop.
         handle.write('.segment "RODATA"\n')
         words_asm("item_switch", [db_items[n].switch_id for n in items],
-                  declarar=True)
+                  declare=True)
         handle.write('.segment "TABLAS"\n')
         # What each item does in a battle: whether it goes in the list that is
         # offered and how much it heals. The rule for which ones go in is
@@ -6077,11 +6077,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write('.segment "RODATA"\n')
         bytes_asm("item_batalla", [
             1 if B.item_usable_in_battle(db_items[n]) else 0 for n in items],
-            declarar=True)
+            declare=True)
         bytes_asm("item_cura_rate", [db_items[n].recover_hp_rate
-                                     for n in items], declarar=True)
+                                     for n in items], declare=True)
         words_asm("item_cura_hp", [min(db_items[n].recover_hp, 0xFFFF)
-                                   for n in items], declarar=True)
+                                   for n in items], declare=True)
         # And what a medicine does outside battle, which is the whole of
         # `Game_Battler::UseItem`: the SP, like the HP, and `item_medicina`
         # with three bits —1 if it is `ko_only`, 2 if it removes the dead
@@ -6090,14 +6090,14 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # states of `state_set` don't go: outside battle this port has no
         # states, so removing them is never useful. See `medicina_usar`.
         bytes_asm("item_cura_sp_rate", [db_items[n].recover_sp_rate
-                                        for n in items], declarar=True)
+                                        for n in items], declare=True)
         words_asm("item_cura_sp", [min(db_items[n].recover_sp, 0xFFFF)
-                                   for n in items], declarar=True)
+                                   for n in items], declare=True)
         bytes_asm("item_medicina", [
             (1 if db_items[n].ko_only else 0)
             | (2 if db_items[n].state_set[:1] == [True] else 0)
             | (4 if db_items[n].uses else 0)
-            for n in items], declarar=True)
+            for n in items], declare=True)
         handle.write('.segment "TABLAS"\n')
         # The four text ones go **outside bank 0**, like `item_k` and for the
         # same reason: they don't fit there. With the ten maps of `abl` the
@@ -6106,16 +6106,16 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # `lda f:item_txt_lo, x`, which costs one byte and one cycle per read
         # in thirteen places, none inside a per-frame loop.
         handle.write('.segment "RODATA"\n')
-        for campo, prefijo in (("lo", "<"), ("hi", ">"), ("bk", "^")):
-            handle.write(".bloque %d\n" % max(1, len(item_textos_ofs)))
-            handle.write("item_txt_%s:\n    .byte %s\n" % (campo, ", ".join(
-                "%s(item_textos + %d)" % (prefijo, ofs)
-                for ofs, _ in item_textos_ofs) or "0"))
-        bytes_asm("item_txt_n", [n for _, n in item_textos_ofs],
-                  declarar=True)
+        for field, prefix in (("lo", "<"), ("hi", ">"), ("bk", "^")):
+            handle.write(".bloque %d\n" % max(1, len(item_texts_ofs)))
+            handle.write("item_txt_%s:\n    .byte %s\n" % (field, ", ".join(
+                "%s(item_textos + %d)" % (prefix, ofs)
+                for ofs, _ in item_texts_ofs) or "0"))
+        bytes_asm("item_txt_n", [n for _, n in item_texts_ofs],
+                  declare=True)
         handle.write('.segment "TABLAS"\n')
         words_asm("item_fila_vram", [
-            celda_vram(T.ITEM_LIST_Y // constants.CELL + 2 * f, 0)
+            vram_cell(T.ITEM_LIST_Y // constants.CELL + 2 * f, 0)
             for f in range(T.ITEM_ROWS)])
         # The two cells of each character, top and bottom: first the 95 in
         # white, then in gray and then in the "goes up" color. Character `c`
@@ -6127,22 +6127,22 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # from 0 to the LDB's last: its level parameters and its initial
         # equipment, which the ROM copies to `FAR_EQUIPO` on reset. And where
         # each thing goes in the screen's buffer, in bytes: row * 64 + col * 2.
-        actores_n = max(db.actors) + 1
+        n_actors = max(db.actors) + 1
 
-        def pos(fila, col):
-            return fila * 64 + col * 2
+        def pos(row, col):
+            return row * 64 + col * 2
 
         bytes_asm("item_tipo", [db_items[n].type for n in items])
         handle.write('.segment "RODATA"\n')     # same: see `item_txt_lo`
         words_asm("item_puntos", [p & 0xFFFF for n in items
                                   for p in db_items[n].points],
-                  declarar=True)
+                  declare=True)
         # And what attacking with each one costs: the weapons' `sp_cost`, zero
         # for the rest —`battle.weapon_sp_of`—. The battle reads it once per
         # actor when it is set up.
         bytes_asm("item_sp", [db_items[n].sp_cost
                               if db_items[n].type == lcf.ITEM_TYPE_WEAPON
-                              else 0 for n in items], declarar=True)
+                              else 0 for n in items], declare=True)
         # `item_actores` also goes outside bank 0 —it is read with
         # `lda f:item_actores, x`—: it is 496 bytes, the fattest ones `TABLAS`
         # had left, and bank 0 overflowed. It isn't a precaution: on
@@ -6152,9 +6152,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # so the extra cycle of long addressing doesn't show.
         bytes_asm("item_actores", [
             sum(1 << b for b in range(8)
-                if 8 * byte + b + 1 < actores_n
+                if 8 * byte + b + 1 < n_actors
                 and db_items[n].equippable_by(8 * byte + b + 1))
-            for n in items for byte in range(8)], declarar=True)
+            for n in items for byte in range(8)], declare=True)
         # `actor_params` goes outside bank 0 —it is read with
         # `lda f:actor_params, x`, only once per equipment screen— for the same
         # reason as `item_k`: it is 488 bytes and the code's bank filled up,
@@ -6163,20 +6163,20 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         words_asm("actor_params", [
             (rules.param_of(db.actors[a], k)
              if a in db.actors else 0) & 0xFFFF
-            for a in range(actores_n)
+            for a in range(n_actors)
             for k in ("attack", "defense", "spirit", "agility")],
-            declarar=True)
+            declare=True)
         handle.write('.segment "TABLAS"\n')
         handle.write('\n.segment "RODATA"\n')
         handle.write(".bloque %d\n"
-                     % (2 * actores_n * constants.EQUIPMENT_SLOTS))
+                     % (2 * n_actors * constants.EQUIPMENT_SLOTS))
         handle.write("equipo_inicial:\n    .word %s\n" % ", ".join(
             str(db.actors[a].initial_equipment[r] if a in db.actors else 0)
-            for a in range(actores_n)
+            for a in range(n_actors)
             for r in range(constants.EQUIPMENT_SLOTS)))
         handle.write('\n.segment "TABLAS"\n')
-        words_asm("actor_txt", [texto_actor.get(a, 0xFFFF)
-                                for a in range(actores_n)], "$%04X")
+        words_asm("actor_txt", [actor_text.get(a, 0xFFFF)
+                                for a in range(n_actors)], "$%04X")
         words_asm("eq_param_pos", [pos(f, c) for f, c in P.EQ_PARAMS])
         words_asm("item_precio", [db_items[n].price for n in items])
         handle.write(
@@ -6203,7 +6203,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "TI_CUANTOS_NUM_POS = %d\n"
             "TI_TOTAL_POS      = %d\n"
             "TI_ROJO           = %d\n"
-            % (texto_tienda, texto_tengo, texto_llevo, texto_moneda,
+            % (shop_text, owned_text, carried_text, currency_text,
                P.TI_SECOND,
                pos(P.TI_MAIN_MSG_ROW, T.ITEM_DESC_COL),
                pos(P.TI_MSG_ROW, T.ITEM_DESC_COL),
@@ -6246,8 +6246,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "EQ_LISTA_NOMBRE   = %d\n"
             "PANT_DOS_PUNTOS   = %d\n"
             "PANT_DESC_POS     = %d\n"
-            % (actores_n, constants.EQUIPMENT_SLOTS, texto_param[0],
-               texto_ranura[0],
+            % (n_actors, constants.EQUIPMENT_SLOTS, param_text[0],
+               slot_text[0],
                pos(P.EQ_ACTOR_ROW, P.EQ_ACTOR_COL), P.EQ_SLOT_ROW0,
                P.EQ_SLOT_ROW0,
                max(constants.EQUIPMENT_SLOTS, P.EQ_LIST_ROWS) * 2,
@@ -6267,19 +6267,19 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         words_asm("actor_hpmax", [
             (rules.param_of(db.actors[a], "maxhp")
              if a in db.actors else 0) & 0xFFFF
-            for a in range(actores_n)], declarar=True)
+            for a in range(n_actors)], declare=True)
         # And the SP, which are state since 2026-09-13 for the same reason as
         # the HP: the skills spend them. See `hp_inicial_poner` in
         # tools/runtime/banco1.s.
         words_asm("actor_spmax", [
             (rules.param_of(db.actors[a], "maxsp")
              if a in db.actors else 0) & 0xFFFF
-            for a in range(actores_n)], declarar=True)
-        handle.write(experiencia_asm(db, ranuras["actores"], actores_n))
+            for a in range(n_actors)], declare=True)
+        handle.write(experience_asm(db, slots["actores"], n_actors))
         # --- the skills ---
         #
         # One row per skill the cartridge carries, in the order of
-        # `habilidades_rom`, which is by RM2k number. The fields are those of
+        # `rom_skills`, which is by RM2k number. The fields are those of
         # `lcf.Skill` and the computations that use them are in `battle.py`:
         # `skill_effect` is `Algo::CalcSkillEffect` and `cost_of` is
         # `CalcSkillCost`.
@@ -6288,47 +6288,47 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # everything the battle reads with `lda f:`: the code's bank is full,
         # and a table split between two banks would be read wrong from the
         # middle on.
-        lugar_hab = {h: k for k, h in enumerate(habilidades_rom)}
+        skill_place = {h: k for k, h in enumerate(rom_skills)}
         # That all the ones that reach here are of the kind the battle knows
         # how to offer is guaranteed by `battle.skill_usable`, which is
         # the filter `skills_of` applies on both sides. It is checked
         # again in case they were ever emitted from somewhere else: a
         # multi-target scope or a three-digit cost would be drawn wrong
         # silently.
-        for h in habilidades_rom:
+        for h in rom_skills:
             if not B.skill_usable(db.skills[h]):
                 raise SystemExit(
                     "skill %d —type %d, scope %d, %d SP— isn't one of the "
                     "ones this battle knows how to offer" % (h, db.skills[h].type,
                                                              db.skills[h].scope,
                                                              db.skills[h].sp_cost))
-        words_asm("hab_id", habilidades_rom, declarar=True)
-        words_asm("hab_txt", [texto_hab[h] for h in habilidades_rom],
-                  declarar=True)
-        words_asm("hab_desc", [texto_hab_desc[h] for h in habilidades_rom],
-                  declarar=True)
-        words_asm("hab_msg1", [texto_hab_msg1[h] for h in habilidades_rom],
-                  declarar=True)
-        words_asm("hab_msg2", [texto_hab_msg2[h] for h in habilidades_rom],
-                  declarar=True)
-        words_asm("hab_power", [db.skills[h].power for h in habilidades_rom],
-                  declarar=True)
+        words_asm("hab_id", rom_skills, declare=True)
+        words_asm("hab_txt", [skill_text[h] for h in rom_skills],
+                  declare=True)
+        words_asm("hab_desc", [skill_desc_text[h] for h in rom_skills],
+                  declare=True)
+        words_asm("hab_msg1", [skill_msg1_text[h] for h in rom_skills],
+                  declare=True)
+        words_asm("hab_msg2", [skill_msg2_text[h] for h in rom_skills],
+                  declare=True)
+        words_asm("hab_power", [db.skills[h].power for h in rom_skills],
+                  declare=True)
         words_asm("hab_switch", [db.skills[h].switch_id
-                                 for h in habilidades_rom], declarar=True)
-        bytes_asm("hab_sp", [db.skills[h].sp_cost for h in habilidades_rom],
-                  declarar=True)
+                                 for h in rom_skills], declare=True)
+        bytes_asm("hab_sp", [db.skills[h].sp_cost for h in rom_skills],
+                  declare=True)
         # The type: 0 is `normal` and 3 is `switch`, which is the one that
         # turns on a switch and does nothing else. See `Skill::vExecute`.
-        bytes_asm("hab_tipo", [db.skills[h].type for h in habilidades_rom],
-                  declarar=True)
+        bytes_asm("hab_tipo", [db.skills[h].type for h in rom_skills],
+                  declare=True)
         bytes_asm("hab_fis", [db.skills[h].physical_rate
-                              for h in habilidades_rom], declarar=True)
+                              for h in rom_skills], declare=True)
         bytes_asm("hab_mag", [db.skills[h].magical_rate
-                              for h in habilidades_rom], declarar=True)
+                              for h in rom_skills], declare=True)
         bytes_asm("hab_var", [db.skills[h].variance
-                              for h in habilidades_rom], declarar=True)
-        bytes_asm("hab_hit", [db.skills[h].hit for h in habilidades_rom],
-                  declarar=True)
+                              for h in rom_skills], declare=True)
+        bytes_asm("hab_hit", [db.skills[h].hit for h in rom_skills],
+                  declare=True)
         # What it touches, one bit per thing, in the order `Skill::vExecute`
         # looks at them —which is the order it consumes randomness in and
         # that is why it matters—: HP, SP, attack, defense, spirit and
@@ -6343,40 +6343,40 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             | (32 if db.skills[h].affect_agility else 0)
             | (64 if db.skills[h].targets_enemies else 0)
             | (128 if db.skills[h].ignore_defense else 0)
-            for h in habilidades_rom], "$%02X", declarar=True)
+            for h in rom_skills], "$%02X", declare=True)
         # And the scope as is, `rpg::Skill::Scope`: 0 one enemy, 1 all, 2
         # oneself, 3 one ally, 4 the whole party. Since 2026-09-27 the battle
         # knows all five: see `battle.skill_targets`.
-        bytes_asm("hab_alcance", [db.skills[h].scope for h in habilidades_rom],
-                  declarar=True)
+        bytes_asm("hab_alcance", [db.skills[h].scope for h in rom_skills],
+                  declare=True)
         # The parallel common events that only look at the equipment,
         # compiled: the ROM runs them when closing the menu if their switch is
         # on. For each one, where its switch is in the bitmap —byte and mask—
         # and its code. See `events.PARTY_COMMON_EVENTS`.
-        del_equipo = sorted(events.PARTY_COMMON_EVENTS.items())
-        handle.write("COMEQ_N = %d\n" % len(del_equipo))
-        words_asm("comeq_byte", [sw >> 3 for sw, _n in del_equipo],
-                  declarar=True)
+        party_ones = sorted(events.PARTY_COMMON_EVENTS.items())
+        handle.write("COMEQ_N = %d\n" % len(party_ones))
+        words_asm("comeq_byte", [sw >> 3 for sw, _n in party_ones],
+                  declare=True)
         bytes_asm("comeq_mascara", ["$%02X" % (1 << (sw & 7))
-                                    for sw, _n in del_equipo], "%s",
-                  declarar=True)
+                                    for sw, _n in party_ones], "%s",
+                  declare=True)
         words_asm("comeq_cod", [".loword(comun_equipo_%d)" % n
-                                for _sw, n in del_equipo], "%s",
-                  declarar=True)
+                                for _sw, n in party_ones], "%s",
+                  declare=True)
         # The bank goes as a word —its high byte isn't read— so that the ROM
         # indexes it with the same X as `comeq_cod`.
         words_asm("comeq_banco", ["^comun_equipo_%d" % n
-                                  for _sw, n in del_equipo], "%s",
-                  declarar=True)
-        for _sw, n in del_equipo:
-            handle.write(bloque("comun_equipo_%d" % n,
-                                events.compile_party_common_event(n)) + "\n")
+                                  for _sw, n in party_ones], "%s",
+                  declare=True)
+        for _sw, n in party_ones:
+            handle.write(block("comun_equipo_%d" % n,
+                               events.compile_party_common_event(n)) + "\n")
         # And what each actor knows, which since 2026-09-21 is state: one bit
         # per (actor, skill) pair in `FAR_HAB`, with the slots of
         # `events.SKILL_SLOT`. It is answered by branch 4 of
         # `ConditionalBranch` —which already brings the slot in the bytecode—
         # and by the battle's list, which walks the actor's pairs: where they
-        # start —`hab_par_ini`, as words because there are more than 255—,
+        # start —`skill_pair_start`, as words because there are more than 255—,
         # how many there are, and the `k` of each one in the `hab_*` tables
         # above, or $FF if this one doesn't know how to offer it. Since an
         # actor's pairs go together and by number, the list comes out sorted
@@ -6384,115 +6384,115 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         #
         # The bits start with `rules.learned_skills`, which is what the LDB
         # says at its initial level: `hab_inicial_poner` copies them on reset.
-        pares = sorted(events.SKILL_SLOT.items(), key=lambda x: x[1])
-        hab_par_ini, hab_par_n = [], []
-        for a in range(actores_n):
-            suyos = [r for (actor, _s), r in pares if actor == a]
-            hab_par_ini.append(suyos[0] if suyos else 0)
-            hab_par_n.append(len(suyos))
-            if suyos and suyos != list(range(suyos[0], suyos[0] + len(suyos))):
+        pairs = sorted(events.SKILL_SLOT.items(), key=lambda x: x[1])
+        skill_pair_start, skill_pair_n = [], []
+        for a in range(n_actors):
+            own_ones = [r for (actor, _s), r in pairs if actor == a]
+            skill_pair_start.append(own_ones[0] if own_ones else 0)
+            skill_pair_n.append(len(own_ones))
+            if own_ones and own_ones != list(range(own_ones[0], own_ones[0] + len(own_ones))):
                 raise SystemExit("the skill pairs of actor %d aren't "
                                  "contiguous" % a)
-        if max(hab_par_n, default=0) > 255:
+        if max(skill_pair_n, default=0) > 255:
             raise SystemExit("an actor has more than 255 skill pairs and "
                              "`hab_par_n` is one byte")
-        hab_bytes = max(1, (len(pares) + 7) // 8)
-        sabe_de = {a: set(rules.learned_skills(db, a)) for a in db.actors}
-        bits = [0] * hab_bytes
-        for (a, h), r in pares:
-            if h in sabe_de.get(a, ()):
+        skill_bytes = max(1, (len(pairs) + 7) // 8)
+        knows = {a: set(rules.learned_skills(db, a)) for a in db.actors}
+        bits = [0] * skill_bytes
+        for (a, h), r in pairs:
+            if h in knows.get(a, ()):
                 bits[r >> 3] |= 1 << (r & 7)
         handle.write("; How many bytes the skill bits take in `FAR_HAB`.\n"
-                     "HAB_BYTES = %d\n" % hab_bytes)
+                     "HAB_BYTES = %d\n" % skill_bytes)
         handle.write("; The signature of the save format: see `SRAM_FIRMA`.\n"
-                     "PARTIDA_FIRMA = $%04X\n" % firma_de_la_partida(
-                         pares, experiencia_ranuras(db, ranuras["actores"]),
-                         actores_n))
-        words_asm("hab_par_ini", hab_par_ini, declarar=True)
-        bytes_asm("hab_par_n", hab_par_n, declarar=True)
-        bytes_asm("hab_par_k", [lugar_hab.get(h, 0xFF)
-                                if a in ranuras["actores"] else 0xFF
-                                for (a, h), _r in pares], declarar=True)
-        bytes_asm("hab_inicial", bits, "$%02X", declarar=True)
+                     "PARTIDA_FIRMA = $%04X\n" % save_signature(
+                         pairs, experience_slots(db, slots["actores"]),
+                         n_actors))
+        words_asm("hab_par_ini", skill_pair_start, declare=True)
+        bytes_asm("hab_par_n", skill_pair_n, declare=True)
+        bytes_asm("hab_par_k", [skill_place.get(h, 0xFF)
+                                if a in slots["actores"] else 0xFF
+                                for (a, h), _r in pairs], declare=True)
+        bytes_asm("hab_inicial", bits, "$%02X", declare=True)
         # And at which level the LDB's learning table teaches each pair, or 0
         # if it doesn't —the ones only a `ChangeSkills` gives—: on leveling
         # up, `exp_sumar` sets the bits of the pairs whose level it just
         # passed, which is `LearnLevelSkills(old_level + 1, new_level)`.
         bytes_asm("hab_par_nivel", [B.level_learned(db, a, h)
                                     if a in db.actors else 0
-                                    for (a, h), _r in pares], declarar=True)
+                                    for (a, h), _r in pairs], declare=True)
         # And the name the victory tells it by —"<skill> acquired!"—, or $FFFF
         # if it isn't learned by leveling up from the starting one.
         words_asm("hab_par_aprende_txt", [
-            texto_hab_entero[h] if a in ranuras["actores"]
-            and B.level_learned(db, a, h) > 0 and h in texto_hab_entero
-            else 0xFFFF for (a, h), _r in pares], "$%04X", declarar=True)
-        # 254 and not 256: `eacc_hab` uses $FF for the attack and
+            whole_skill_text[h] if a in slots["actores"]
+            and B.level_learned(db, a, h) > 0 and h in whole_skill_text
+            else 0xFFFF for (a, h), _r in pairs], "$%04X", declare=True)
+        # 254 and not 256: `eacc_skill` uses $FF for the attack and
         # `ba_accion_enemiga` answers $FE when it has none left.
-        if len(habilidades_rom) > 254:
+        if len(rom_skills) > 254:
             raise SystemExit("the cartridge's skills are %d and `hab_par_k` "
-                             "is one byte" % len(habilidades_rom))
+                             "is one byte" % len(rom_skills))
         # And what each actor's skills command is called in the menu.
-        words_asm("actor_hab_txt", [texto_hab_orden.get(a, 0xFFFF)
-                                    for a in range(actores_n)], "$%04X",
-                  declarar=True)
+        words_asm("actor_hab_txt", [skill_command_text.get(a, 0xFFFF)
+                                    for a in range(n_actors)], "$%04X",
+                  declare=True)
         # The troops some battle of the cartridge asks for, and the enemies
         # that form them. The bytecode carries the troop's **RM2k number**, so
         # `tropa_id` is what the ROM looks up; the list being only that of the
         # used troops doesn't change a byte of any page. See
         # `events.Troops`.
-        usadas = [n for n in tropas if n in db.troops]
-        lugar_de = {e: k for k, e in enumerate(enemigos_rom)}
-        miembros, inicios = [], []
-        for numero in usadas:
-            lista = db.troops[numero].members[:constants.ENEMIES_MAX]
-            inicios.append(len(miembros))
-            miembros += [lugar_de[e] for e in lista]
-        if len(miembros) > 255 or len(usadas) > 255:
+        used = [n for n in troops if n in db.troops]
+        place_of = {e: k for k, e in enumerate(rom_enemies)}
+        members, starts = [], []
+        for number in used:
+            values = db.troops[number].members[:constants.ENEMIES_MAX]
+            starts.append(len(members))
+            members += [place_of[e] for e in values]
+        if len(members) > 255 or len(used) > 255:
             raise SystemExit("the cartridge's troops don't fit in one-byte "
                              "tables: %d troops, %d members"
-                             % (len(usadas), len(miembros)))
-        words_asm("tropa_id", usadas, declarar=True)
+                             % (len(used), len(members)))
+        words_asm("tropa_id", used, declare=True)
         # The experience beating each one gives, already added up: see
         # `experience.troop_exp`. It goes outside bank 0, like
         # everything here, because it is read once per battle.
-        exp_tropa = [X.troop_exp(db, n) for n in usadas]
-        for n, exp in zip(usadas, exp_tropa):
+        troop_exp = [X.troop_exp(db, n) for n in used]
+        for n, exp in zip(used, troop_exp):
             if exp > 0xFFFF:
                 raise SystemExit("troop %d gives %d experience and the ROM "
                                  "adds it in sixteen bits" % (n, exp))
-        words_asm("tropa_exp", exp_tropa, declarar=True)
+        words_asm("tropa_exp", troop_exp, declare=True)
         # And the gold, the same: `battle.troop_gold`. The victory tells
         # it with `ba_vic_numero`, which reaches five digits.
-        oro_tropa = [B.troop_gold(db, n) for n in usadas]
-        for n, oro in zip(usadas, oro_tropa):
-            if oro > 0xFFFF:
+        troop_gold = [B.troop_gold(db, n) for n in used]
+        for n, gold in zip(used, troop_gold):
+            if gold > 0xFFFF:
                 raise SystemExit("troop %d gives %d gold and the ROM adds it "
-                                 "in sixteen bits" % (n, oro))
-        words_asm("tropa_oro", oro_tropa, declarar=True)
+                                 "in sixteen bits" % (n, gold))
+        words_asm("tropa_oro", troop_gold, declare=True)
         # What the victory writes has to fit on its line: the ROM builds it
         # with a number or a name in the middle and doesn't split it.
         P.collect_victory(
-            term_batalla, max(exp_tropa, default=0),
-            [db.actors[a].name for a in ranuras["actores"] if a in db.actors],
-            [db.skills[h].name for h in sorted(ensenadas)],
-            max(oro_tropa, default=0),
+            battle_term, max(troop_exp, default=0),
+            [db.actors[a].name for a in slots["actores"] if a in db.actors],
+            [db.skills[h].name for h in sorted(taught)],
+            max(troop_gold, default=0),
             [db_items[i].name for i in sorted({db.enemies[e].drop_id
-                                               for e in enemigos_rom}
+                                               for e in rom_enemies}
                                               - {0})])
-        bytes_asm("tropa_ini", inicios, declarar=True)
+        bytes_asm("tropa_ini", starts, declare=True)
         # Which members of each troop start **hidden** —the troop's
         # `invisible`—, one bit per place: a page with `ShowHiddenMonster`
         # makes them appear. It is the Rat King, who calls his rats. See
         # `BAF_OCULTO`.
         bytes_asm("tropa_ocultos", [
-            sum(1 << k for k, oculto in enumerate(
-                db.troops[n].hidden[:constants.ENEMIES_MAX]) if oculto)
-            for n in usadas], "$%02X", declarar=True)
+            sum(1 << k for k, hidden in enumerate(
+                db.troops[n].hidden[:constants.ENEMIES_MAX]) if hidden)
+            for n in used], "$%02X", declare=True)
         bytes_asm("tropa_n",
                   [len(db.troops[n].members[:constants.ENEMIES_MAX])
-                   for n in usadas], declarar=True)
-        bytes_asm("tropa_miembro", miembros, declarar=True)
+                   for n in used], declare=True)
+        bytes_asm("tropa_miembro", members, declare=True)
         # And the event pages of each troop, in LDB order —which is the order
         # `ScheduleNextPage` tries them in—, without the ones that didn't
         # compile: skipping them doesn't change the order of the others. Per
@@ -6503,161 +6503,161 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         #
         # **The small tables go to bank 1, `FAR`; the two big blocks —the code
         # and the messages—, to RODATA.** Until 2026-09-27 all four went to
-        # bank 1, because with them in RODATA the `juego` cartridge went over
+        # bank 1, because with them in RODATA the `names_in_game` cartridge went over
         # 4 MB (measured on 2026-09-21); that cartridge no longer exists,
         # `release` is around 71%, and in bank 1 the two blocks were almost
         # eleven KB of which the battle's hand-written code didn't have even
         # four hundred bytes. Both are read with a long pointer whose bank
         # comes from `^tropa_codigo` and `^mensajes_tropa`, so it is enough
-        # for each to fit whole in one bank, which is what `bloque` asks for.
-        pt = paginas_tropa or events.TroopPages()
-        entradas, pag_ini, pag_n = [], [], []
-        for numero in usadas:
-            suyas = pt.per_troop.get(numero, [])
-            pag_ini.append(len(entradas))
-            pag_n.append(len(suyas))
-            entradas += suyas
-        if max(pag_n, default=0) > events.TROOP_PAGES_MAX:
+        # for each to fit whole in one bank, which is what `block` asks for.
+        pt = troop_pages or events.TroopPages()
+        entries, page_start, page_n = [], [], []
+        for number in used:
+            theirs = pt.per_troop.get(number, [])
+            page_start.append(len(entries))
+            page_n.append(len(theirs))
+            entries += theirs
+        if max(page_n, default=0) > events.TROOP_PAGES_MAX:
             raise SystemExit("a troop brings %d pages and the battle tracks %d"
-                             % (max(pag_n), events.TROOP_PAGES_MAX))
+                             % (max(page_n), events.TROOP_PAGES_MAX))
         handle.write('.segment "FAR"\n')
-        words_asm("tropa_pag_ini", pag_ini)
-        bytes_asm("tropa_pag_n", pag_n)
-        bytes_asm("tpag_flags", [d.flags for d, _ofs in entradas], "$%02X")
-        words_asm("tpag_sw_a", [d.switch_a for d, _ofs in entradas])
+        words_asm("tropa_pag_ini", page_start)
+        bytes_asm("tropa_pag_n", page_n)
+        bytes_asm("tpag_flags", [d.flags for d, _ofs in entries], "$%02X")
+        words_asm("tpag_sw_a", [d.switch_a for d, _ofs in entries])
         words_asm("tpag_cod", [".loword(tropa_codigo + %d)" % ofs
-                               for _d, ofs in entradas], "%s")
+                               for _d, ofs in entries], "%s")
         # The three for `switch_b` and the variable only if some page uses
         # them: the characters' 32 systems only look at `switch_a`, and with
         # none the ROM never reads them —the bit in `tpag_flags` is zero—, so
         # the label is enough. The turn and the HP have no table: they go in
         # front of the code, see `events.troop_header`.
-        for nombre, campo, bit in (
+        for name, field, bit in (
                 ("tpag_sw_b", "switch_b", events.TROOP_TRIGGER_SWITCH_B),
                 ("tpag_var", "ranura", events.TROOP_TRIGGER_VARIABLE),
                 ("tpag_valor", "valor", events.TROOP_TRIGGER_VARIABLE)):
-            usa = any(d.flags & bit for d, _ofs in entradas)
-            words_asm(nombre, [getattr(d, campo) & 0xFFFF
-                               for d, _ofs in entradas] if usa else [])
+            uses_it = any(d.flags & bit for d, _ofs in entries)
+            words_asm(name, [getattr(d, field) & 0xFFFF
+                             for d, _ofs in entries] if uses_it else [])
         handle.write('.segment "RODATA"\n')
-        handle.write(bloque("tropa_codigo", bytes(pt.bodies) or b"\x00")
+        handle.write(block("tropa_codigo", bytes(pt.bodies) or b"\x00")
                      + "\n")
-        handle.write(bloque("mensajes_tropa", pt.messages.bytes())
+        handle.write(block("mensajes_tropa", pt.messages.bytes())
                      + "\n")
         # And the random encounters, which also talk about troops by their
         # RM2k number. They go here outside bank 0 —they are read with
         # `lda f:tabla, x`— because eighty-five bytes were left there and this
-        # is about two hundred. See `encuentros_de_la_rom` and
+        # is about two hundred. See `rom_encounters` and
         # `tools/runtime/encuentros.s`.
-        enc = encuentros or {"por_mapa": [0xFF] * len(mapas), "registros": [],
+        enc = encounters or {"por_mapa": [0xFF] * len(maps), "registros": [],
                              "zonas": [], "tropas": []}
-        bytes_asm("enc_mapa", enc["por_mapa"], declarar=True)
+        bytes_asm("enc_mapa", enc["por_mapa"], declare=True)
         words_asm("enc_base", [r["base"] for r in enc["registros"]],
-                  declarar=True)
-        umbrales = []
+                  declare=True)
+        thresholds = []
         for r in enc["registros"]:
             # Seven thresholds and one of padding: with eight the record's
             # index is a shift and not a multiplication. See ENC_STRIDE.
-            umbrales += list(r["umbrales"]) + [0xFF]
-        bytes_asm("enc_umbral_n", umbrales, declarar=True)
+            thresholds += list(r["umbrales"]) + [0xFF]
+        bytes_asm("enc_umbral_n", thresholds, declare=True)
         bytes_asm("enc_zona_ini", [r["zona_ini"] for r in enc["registros"]],
-                  declarar=True)
+                  declare=True)
         bytes_asm("enc_zona_n", [r["zona_n"] for r in enc["registros"]],
-                  declarar=True)
-        for k, etiqueta in enumerate(("enc_izq", "enc_arr", "enc_der",
-                                      "enc_aba")):
-            words_asm(etiqueta, [z["rect"][k] for z in enc["zonas"]],
-                      declarar=True)
+                  declare=True)
+        for k, label in enumerate(("enc_izq", "enc_arr", "enc_der",
+                                   "enc_aba")):
+            words_asm(label, [z["rect"][k] for z in enc["zonas"]],
+                      declare=True)
         bytes_asm("enc_tropa_ini", [z["tropa_ini"] for z in enc["zonas"]],
-                  declarar=True)
+                  declare=True)
         bytes_asm("enc_tropa_n", [z["tropa_n"] for z in enc["zonas"]],
-                  declarar=True)
-        words_asm("enc_tropa", enc["tropas"], declarar=True)
-        words_asm("enemigo_hp", [db.enemies[e].max_hp for e in enemigos_rom],
-                  declarar=True)
-        words_asm("enemigo_atk", [db.enemies[e].attack for e in enemigos_rom],
-                  declarar=True)
-        words_asm("enemigo_def", [db.enemies[e].defense for e in enemigos_rom],
-                  declarar=True)
-        words_asm("enemigo_agi", [db.enemies[e].agility for e in enemigos_rom],
-                  declarar=True)
+                  declare=True)
+        words_asm("enc_tropa", enc["tropas"], declare=True)
+        words_asm("enemigo_hp", [db.enemies[e].max_hp for e in rom_enemies],
+                  declare=True)
+        words_asm("enemigo_atk", [db.enemies[e].attack for e in rom_enemies],
+                  declare=True)
+        words_asm("enemigo_def", [db.enemies[e].defense for e in rom_enemies],
+                  declare=True)
+        words_asm("enemigo_agi", [db.enemies[e].agility for e in rom_enemies],
+                  declare=True)
         # The spirit and the SP: `CalcSkillEffect` asks for them, subtracting
         # `magical_rate * spi_del_blanco / 80` from the effect. Until
         # 2026-09-13 nobody read them because no computation of the battle
         # used them.
-        words_asm("enemigo_spi", [db.enemies[e].spirit for e in enemigos_rom],
-                  declarar=True)
-        words_asm("enemigo_sp", [db.enemies[e].max_sp for e in enemigos_rom],
-                  declarar=True)
-        bytes_asm("enemigo_hit", [db.enemies[e].hit for e in enemigos_rom],
-                  declarar=True)
+        words_asm("enemigo_spi", [db.enemies[e].spirit for e in rom_enemies],
+                  declare=True)
+        words_asm("enemigo_sp", [db.enemies[e].max_sp for e in rom_enemies],
+                  declare=True)
+        bytes_asm("enemigo_hit", [db.enemies[e].hit for e in rom_enemies],
+                  declare=True)
         # The critical hit, already as a whole percentage:
         # `CalcCriticalHitChance` computes it as `1 / critical_hit_chance`
         # times a hundred and truncates it.
         bytes_asm("enemigo_crit", [
             (100 // (db.enemies[e].critical_hit_chance or 30))
-            if db.enemies[e].critical_hit else 0 for e in enemigos_rom],
-            declarar=True)
-        words_asm("enemigo_txt", [texto_enemigo[e] for e in enemigos_rom],
-                  declarar=True)
+            if db.enemies[e].critical_hit else 0 for e in rom_enemies],
+            declare=True)
+        words_asm("enemigo_txt", [enemy_text[e] for e in rom_enemies],
+                  declare=True)
         # Each one's experience and gold, which the victory subtracts from the
         # troop's for each enemy that stayed hidden: see `ba_sin_ocultos`.
-        words_asm("enemigo_exp", [db.enemies[e].exp for e in enemigos_rom],
-                  declarar=True)
-        words_asm("enemigo_oro", [db.enemies[e].gold for e in enemigos_rom],
-                  declarar=True)
+        words_asm("enemigo_exp", [db.enemies[e].exp for e in rom_enemies],
+                  declare=True)
+        words_asm("enemigo_oro", [db.enemies[e].gold for e in rom_enemies],
+                  declare=True)
         # What it drops on dying: the LDB item, or 0 if it drops nothing, and
         # the chance as a percentage. See `ba_vic_botin` and
         # `battle.roll_drops`. Every item that can be dropped is in
-        # `items`: see `items_del_botin`, which adds it.
-        for e in enemigos_rom:
-            if db.enemies[e].drop_id and db.enemies[e].drop_id not in k_de:
+        # `items`: see `drop_items`, which adds it.
+        for e in rom_enemies:
+            if db.enemies[e].drop_id and db.enemies[e].drop_id not in k_of:
                 raise SystemExit("enemy %d drops item %d and the "
                                  "cartridge doesn't carry it"
                                  % (e, db.enemies[e].drop_id))
         words_asm("enemigo_botin", [db.enemies[e].drop_id
-                                    for e in enemigos_rom], declarar=True)
+                                    for e in rom_enemies], declare=True)
         bytes_asm("enemigo_botin_pct", [db.enemies[e].drop_prob
-                                        for e in enemigos_rom], declarar=True)
+                                        for e in rom_enemies], declare=True)
         # What each enemy can do on its turn: its list from
         # `battle.actions_of_enemy`, contiguous in `eacc_*` —where it
         # starts and how many there are—. Per action, the skill as a `k` of the
         # `hab_*` tables or $FF for the attack, and its `rating` with bit 7 set
-        # if it isn't `efectiva`: it counts for the maximum and then weighs
+        # if it isn't `effective`: it counts for the maximum and then weighs
         # zero. See `ba_accion_enemiga` in tools/runtime/batalla.s.
-        eacc_ini, eacc_hab, eacc_peso = [], [], []
-        for e in enemigos_rom:
-            if len(acciones_rom[e]) > B.ACTIONS_MAX:
+        eacc_start, eacc_skill, eacc_weight = [], [], []
+        for e in rom_enemies:
+            if len(rom_actions[e]) > B.ACTIONS_MAX:
                 raise SystemExit("enemy %d brings %d actions and the ROM "
                                  "weighs %d: see `batalla.ACCIONES_MAX`"
-                                 % (e, len(acciones_rom[e]), B.ACTIONS_MAX))
-            eacc_ini.append(len(eacc_hab))
-            for rating, skill, efectiva in acciones_rom[e]:
+                                 % (e, len(rom_actions[e]), B.ACTIONS_MAX))
+            eacc_start.append(len(eacc_skill))
+            for rating, skill, effective in rom_actions[e]:
                 if not 0 < rating < 0x80:
                     raise SystemExit("enemy %d brings an action with rating "
                                      "%d and the ROM carries it in seven bits"
                                      % (e, rating))
-                eacc_hab.append(0xFF if skill is None
-                                else lugar_hab[skill.id])
-                eacc_peso.append(rating | (0 if efectiva else 0x80))
-        if len(eacc_hab) > 255:
+                eacc_skill.append(0xFF if skill is None
+                                  else skill_place[skill.id])
+                eacc_weight.append(rating | (0 if effective else 0x80))
+        if len(eacc_skill) > 255:
             raise SystemExit("the actions of the cartridge's enemies are %d "
                              "and `enemigo_acc_ini` is one byte"
-                             % len(eacc_hab))
+                             % len(eacc_skill))
         handle.write("ACCIONES_MAX = %d\n" % B.ACTIONS_MAX)
-        bytes_asm("enemigo_acc_ini", eacc_ini, declarar=True)
-        bytes_asm("enemigo_acc_n", [len(acciones_rom[e]) for e in enemigos_rom],
-                  declarar=True)
-        bytes_asm("eacc_hab", eacc_hab, declarar=True)
-        bytes_asm("eacc_peso", eacc_peso, declarar=True)
+        bytes_asm("enemigo_acc_ini", eacc_start, declare=True)
+        bytes_asm("enemigo_acc_n", [len(rom_actions[e]) for e in rom_enemies],
+                  declare=True)
+        bytes_asm("eacc_hab", eacc_skill, declare=True)
+        bytes_asm("eacc_peso", eacc_weight, declare=True)
         # And the battle scene: the backdrops and the battlers separately.
-        # `usadas` is the same order as `tropa_id`, which is what
+        # `used` is the same order as `tropa_id`, which is what
         # `escena_tropa_fondo` indexes, and that of `tropa_miembro`.
-        handle.write(escenas_asm(escenas or {"fondos": [], "battlers": [],
-                                             "battler_de": {},
-                                             "tropa_fondo": {},
-                                             "mapa_fondo": [0xFF] * len(mapas)},
-                                 usadas, db))
+        handle.write(scenes_asm(scenes or {"fondos": [], "battlers": [],
+                                           "battler_de": {},
+                                           "tropa_fondo": {},
+                                           "mapa_fondo": [0xFF] * len(maps)},
+                                used, db))
         handle.write('.segment "TABLAS"\n')
         # The product of the hit computation has to fit in sixteen bits:
         # (100 - hit rate) times the sum of both agilities. With the minimum
@@ -6669,14 +6669,14 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # percentage capped at 100 that is hp_max of up to 655, and this
         # game's actors are around 40. A fatter actor would overflow without
         # warning, so it stops here.
-        for a in range(actores_n):
-            maximo = (rules.param_of(db.actors[a], "maxhp")
-                      if a in db.actors else 0)
-            if maximo * 100 > 0xFFFF:
+        for a in range(n_actors):
+            max_levels = (rules.param_of(db.actors[a], "maxhp")
+                          if a in db.actors else 0)
+            if max_levels * 100 > 0xFFFF:
                 raise SystemExit(
                     "actor %d has %d HP and the ROM's healing computation "
-                    "is sized for 655" % (a, maximo))
-        for e in enemigos_rom:
+                    "is sized for 655" % (a, max_levels))
+        for e in rom_enemies:
             if db.enemies[e].hit < 70:
                 raise SystemExit("enemy %d has a hit rate of %d, and the ROM's "
                                  "hit computation is sized for 70"
@@ -6711,11 +6711,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "TPAG_ACTOR        = $%02X\n"
             "TPAG_CON_CABECERA = $%02X\n"
             "TPAG_CABECERA     = %d\n"
-            % (len(usadas), B.BATTLE_SEED, texto_batalla,
+            % (len(used), B.BATTLE_SEED, battle_text,
                pos(P.BA_ENEMY_ROW0, 0), pos(P.BA_PARTY_ROW0, 0),
                pos(P.BA_MSG_ROW1, 0), pos(P.BA_MSG_ROW2, 0), 2 * 64,
                P.BA_CURSOR_COL * 2, P.BA_NAME_COL * 2, P.BA_NAME_WIDTH,
-               P.BA_HP_COL * 2, P.BA_HP_NUM * 2, int(hp_de_enemigos),
+               P.BA_HP_COL * 2, P.BA_HP_NUM * 2, int(enemy_hp),
                P.BA_BAR_COL * 2,
                P.BA_HP_MAX_NUM * 2, 1 * 2,
                pos(P.BA_PAGE_MSG_ROW0, 0), P.BA_PAGE_MSG_COL * 2,
@@ -6729,7 +6729,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # "the LDB has it turned off", which is the case of `battle_se` in
         # this game. Who sounds at which moment is in `events.BATTLE_AUDIO`,
         # taken from easyrpg-player; only the numbers travel here.
-        audio = audio_batalla or {}
+        audio = battle_audio or {}
         # The battle's audio package goes after the maps' ones, so its index
         # is how many maps the ROM carries. It is emitted here and checked by
         # the music section, which is the one that builds the list.
@@ -6743,24 +6743,24 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "BA_PAQUETE        = $%04X\n"
             % (audio.get("battle_music", 0xFF),
                audio.get("battle_end_music", 0xFF),
-               len(mapas) if audio else 0xFFFF))
-        for nombre, constante in (("dodge_se", "BA_SE_ERRAR"),
-                                  ("enemy_attack_se", "BA_SE_ATAQUE"),
-                                  ("enemy_damaged_se", "BA_SE_DANO_ENEMIGO"),
-                                  ("actor_damaged_se", "BA_SE_DANO_ACTOR"),
-                                  ("enemy_death_se", "BA_SE_MUERTE"),
-                                  ("escape_se", "BA_SE_HUIR"),
-                                  ("item_se", "BA_SE_ITEM")):
+               len(maps) if audio else 0xFFFF))
+        for name, constant in (("dodge_se", "BA_SE_ERRAR"),
+                               ("enemy_attack_se", "BA_SE_ATAQUE"),
+                               ("enemy_damaged_se", "BA_SE_DANO_ENEMIGO"),
+                               ("actor_damaged_se", "BA_SE_DANO_ACTOR"),
+                               ("enemy_death_se", "BA_SE_MUERTE"),
+                               ("escape_se", "BA_SE_HUIR"),
+                               ("item_se", "BA_SE_ITEM")):
             handle.write("%-18s= $%04X\n"
-                         % (constante, audio.get(nombre, 0xFFFF)))
+                         % (constant, audio.get(name, 0xFFFF)))
         handle.write("BA_TXT_VICTORIA2  = %d\n"
                      "BA_VIC_TERMINO_N  = %d\n"
-                     % (texto_victoria2, len(victoria)))
+                     % (victory2_text, len(victory)))
         # The terms, by their place in `rules.BATTLE_TERMS`.
-        for k, (nombre, _termino) in enumerate(rules.BATTLE_TERMS):
+        for k, (name, _term) in enumerate(rules.BATTLE_TERMS):
             handle.write("BA_TXT_%-11s= BA_TXT_BASE + %d\n"
-                         % (nombre.upper(), k))
-        handle.write("BA_TXT_REVIVIO    = %d\n" % texto_revivio)
+                         % (name.upper(), k))
+        handle.write("BA_TXT_REVIVIO    = %d\n" % revived_text)
         # The menu's five commands, with what the ROM needs of each one: which
         # line and which column it goes in, which term names it and whether it
         # always goes in gray. They go in tables and not in a computation
@@ -6789,7 +6789,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "BA_HAB_GUION_DX   = %d\n"
             "BA_HAB_COSTO_DX   = %d\n"
             "BA_HAB_COSTO_CIFRAS = %d\n"
-            % (len(habilidades_rom),
+            % (len(rom_skills),
                pos(P.BA_SKILL_DESC_ROW, P.BA_SKILL_DESC_COL),
                pos(P.BA_SKILL_ROW0, 0), P.BA_SKILL_ROWS, P.BA_SKILL_COLUMNS,
                P.BA_SKILL_COLUMN_DX * 2, P.BA_SKILL_NAME_COL * 2,
@@ -6798,22 +6798,22 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write('.segment "RODATA"\n')
         words_asm("ba_orden_fila", [
             pos((P.BA_MSG_ROW1, P.BA_MSG_ROW2)[f], 0)
-            for _n, f, _c in P.BA_COMMANDS], declarar=True)
+            for _n, f, _c in P.BA_COMMANDS], declare=True)
         words_asm("ba_orden_dx", [c * 2 for _n, _f, c in P.BA_COMMANDS],
-                  declarar=True)
+                  declare=True)
         # **Two bytes.** A text index doesn't fit in one: with the 29 maps of
         # `abl` the battle's start at 273, and the one-byte table that was here
         # until 2026-09-14 emitted them anyway —`.byte 273`— for the assembler
         # to truncate them without saying anything.
         words_asm("ba_orden_txt", [
-            texto_batalla + [n for n, _c in rules.BATTLE_TERMS].index(nombre)
-            for nombre, _f, _c in P.BA_COMMANDS], declarar=True)
+            battle_text + [n for n, _c in rules.BATTLE_TERMS].index(name)
+            for name, _f, _c in P.BA_COMMANDS], declare=True)
         bytes_asm("ba_orden_gris", [
             1 if k in P.BA_COMMAND_UNDONE else 0
-            for k in range(len(P.BA_COMMANDS))], declarar=True)
+            for k in range(len(P.BA_COMMANDS))], declare=True)
         handle.write('.segment "TABLAS"\n')
 
-        glifos = ranuras["items_glifos"]
+        glyphs = slots["items_glifos"]
         # Outside bank 0, like `item_k`: it is read with `lda f:`.
         handle.write('.segment "RODATA"\n')
         # **With the priority bit set**, since the battle draws the scene on
@@ -6826,25 +6826,25 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # ones, which nobody asks for in that color but that way the table is
         # indexed the same as the others.
         words_asm("item_glifo_celdas", [
-            entry(celda, False, False, priority=1)
-            for gris in (T.ITEM_WHITE, T.ITEM_GRAY, T.ITEM_UP,
+            entry(cell, False, False, priority=1)
+            for gray in (T.ITEM_WHITE, T.ITEM_GRAY, T.ITEM_UP,
                          T.ITEM_RED)
             for n in range(T.ITEM_CHARS)
-            for celda in glifos[gris].get(
+            for cell in glyphs[gray].get(
                 chr(T.ITEM_FIRST_CHAR + n),
-                glifos[T.ITEM_WHITE][chr(T.ITEM_FIRST_CHAR + n)])],
-            "$%04X", declarar=True)
+                glyphs[T.ITEM_WHITE][chr(T.ITEM_FIRST_CHAR + n)])],
+            "$%04X", declare=True)
         handle.write('.segment "TABLAS"\n')
         handle.write("\n")
         # `fuente_color` goes in bank 0 and not with the rest of the window:
         # the ROM reads it with `lda fuente_color, y`, and that mode addresses
         # the data bank. With it in RODATA it read garbage, and the text came
         # out black.
-        handle.write(bloque("fuente_color", bytes(ventana["color"]),
-                            acomodar=False) + "\n")
+        handle.write(block("fuente_color", bytes(window["color"]),
+                           fit=False) + "\n")
         handle.write("grupo_inicial:\n    .byte %s\n\n"
-                     % ",".join("%d" % a for a in grupo_inicial) or "0")
-        handle.write(tabla_de_senos() + "\n")
+                     % ",".join("%d" % a for a in initial_party) or "0")
+        handle.write(sine_table() + "\n")
         # How many frames a character stays still after a step and after a
         # turn, per route frequency: RM2k's stop counter, in two tables of
         # nine to index with the frequency as is. They come from
@@ -6858,12 +6858,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "%d" % (events.wait_after_turn(f)
                     if f >= events.ROUTE_FREQUENCY_MIN else 0)
             for f in range(events.ROUTE_FREQUENCY + 1)))
-        handle.write(tabla_de_mapas(mapas, etiquetas))
+        handle.write(map_table(maps, labels))
         handle.write("\n\n")
         # After the map one, which already left the segment in RODATA.
-        handle.write(anim_tabla(mapas))
+        handle.write(anim_table(maps))
         handle.write("\n")
-    return materiales.informe()
+    return materials.report()
 
 
 def sprite_colors_bytes(sprite):
@@ -6896,7 +6896,7 @@ EV_MAX = 120
 # the most walking in this game moves four distinct events, and a route
 # survives the end of its page, so there can be another running on top. Eight
 # gives margin and costs 88 bytes of RAM.
-RUTA_EV_MAX = 12
+ROUTE_EV_MAX = 12
 # How many flashes can be running at once. This game's pages chain them one at
 # a time —almost all wait for it to finish— so four is plenty; the converter
 # can't check it because it depends on what runs when, and a missing slot
@@ -6922,7 +6922,7 @@ FLASH_MAX = 4
 #
 # 48 times eight is 384 bytes, and from `FAR_PAR_LISTA` to `FAR_AZAR` there
 # are 508.
-PARALELO_MAX = 48
+PARALLEL_MAX = 48
 # An NPC in the ROM's RAM. It was eight bytes; the four extra are for the ones
 # that walk: which event they correspond to and where their pose table is.
 #
@@ -6934,7 +6934,7 @@ PARALELO_MAX = 48
 #   +10 dir      where its page faces, for the first pose of a route
 #   +11 padding, so that the slot is indexed with two shifts
 NPC_STRIDE = 16
-NPC_QUIETO = 0xFF        # in +9: this NPC doesn't walk
+NPC_STILL = 0xFF        # in +9: this NPC doesn't walk
 
 # The table of NPCs of the loaded map is copied to RAM, because build_oam walks
 # it with an index and that addresses the data bank. The ceiling above is set
@@ -6950,7 +6950,7 @@ NPC_QUIETO = 0xFF        # in +9: this NPC doesn't walk
 NPC_MAX = 104
 
 
-def orden_de_dibujo(npc):
+def drawing_order(npc):
     """What an event is sorted by to draw it, from front to back.
 
     RM2k sorts by **highest Y, then highest X, and then highest id**. It comes
@@ -6984,10 +6984,10 @@ def sort_key(layer, y):
 # variable-length ones go with None and are measured separately.
 # The bytecode walk lives in events.py, with the length table: there was a
 # copy here and the one there went stale without anyone seeing it.
-recorrer_codigo = events.walk_code
+walk_code = events.walk_code
 
 
-def orden_de_mapas(args):
+def map_order(args):
     """The ROM's maps, in table order and without repeats.
 
     It is in a function and not written three times because **the order is
@@ -6999,13 +6999,13 @@ def orden_de_mapas(args):
 
 
 # How many still events with continuous animation a map animates. See the
-# reason —and the measured number— inside `eventos_movibles`.
+# reason —and the measured number— inside `movable_events`.
 # Measured against A Blurred Line: an assumption of the engine, not a piece of
 # the game's data. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
-ANIMA_QUIETO_MAX = 4
+ANIMATES_STILL_MAX = 4
 
 
-def eventos_movibles(game_map, indice_de_mapa, asociaciones=()):
+def movable_events(game_map, map_index, associations=()):
     """The events with a graphic that some compilable page sends walking, and
     the graphics some route changes to with command 34.
 
@@ -7029,59 +7029,59 @@ def eventos_movibles(game_map, indice_de_mapa, asociaciones=()):
     block— but it isn't a repeated **rule**: the decision of what compiles is
     made by the same function both times.
     """
-    graficos = events.Graphics(asociaciones)
-    paginas = events.map_pages(
-        game_map, indice_de_mapa,
-        events.Messages(), graphics=graficos)
+    graphics = events.Graphics(associations)
+    pages = events.map_pages(
+        game_map, map_index,
+        events.Messages(), graphics=graphics)
     npcs = rm2k.collect_npcs(game_map)
-    visibles = {npc["evento"] for npc in npcs}
+    visible = {npc["evento"] for npc in npcs}
     # And the ones that walk on their own with some page's own route, which
     # need the twelve poses just like the ones a MoveEvent sends walking.
-    propios = {p["evento"] for p in paginas if p.get("ruta_propia")}
+    own = {p["evento"] for p in pages if p.get("ruta_propia")}
     # And the still ones with continuous animation —the save point in Lashe
     # City—, which don't walk but **change column all the same**. Without the
     # twelve poses their VRAM slot would carry a single one and there would be
     # nothing to animate them with: the still ones share a slot by (CharSet,
     # index, pose) and don't have one of their own.
-    con_ruta = (events.route_targets(paginas) | propios) & visibles
-    animados = {npc["evento"] for npc in npcs
-                if npc.get("anima")} & visibles - con_ruta
+    with_route = (events.route_targets(pages) | own) & visible
+    animated = {npc["evento"] for npc in npcs
+                if npc.get("anima")} & visible - with_route
     # And the cap: a still event that animates **costs a whole VRAM slot**
     # —twelve tiles— because it stops sharing that of its (CharSet, index,
     # pose) and gets the twelve poses of its own, like the walking ones. A map
     # with thirty —52 has thirty— asks for 572 sprite tiles and 384 fit.
     #
-    # So a map with more than `ANIMA_QUIETO_MAX` animates **none**, and not
+    # So a map with more than `ANIMATES_STILL_MAX` animates **none**, and not
     # some yes and some no: two equal fountains, one moving and the other
     # frozen, looks worse than both still. Measured over the 328 maps of the
     # game: 312 have four or fewer, and of the maps the ROMs carry today the
     # only one that goes over is 52.
-    if len(animados) > ANIMA_QUIETO_MAX:
-        animados = set()
+    if len(animated) > ANIMATES_STILL_MAX:
+        animated = set()
     # And the ones that turn toward the hero when it talks to them: the events
     # with some action or touch page that compiled and turns —see TURN in
     # events.py—, with the graphics of **all** their pages that turn. The
     # twelve poses of each go to the cartridge, which is where the ROM takes
     # the one facing the hero from; the refresh compares the pages' graphics
     # to know whether the turn survives a page change.
-    giran = {}
-    for p in paginas:
+    turning = {}
+    for p in pages:
         if (p["codigo"] and p.get("gira")
                 and p["trigger"] in (events.TRIGGER_ACTION,
                                      events.TRIGGER_TOUCH_HERO)):
-            giran[p["evento"]] = set()
-    for p in paginas:
-        if p["evento"] in giran and p.get("gira") and p["grafico"]:
-            giran[p["evento"]].add(tuple(p["grafico"][:2]))
-    return con_ruta | animados, list(graficos.pairs), animados, giran
+            turning[p["evento"]] = set()
+    for p in pages:
+        if p["evento"] in turning and p.get("gira") and p["grafico"]:
+            turning[p["evento"]].add(tuple(p["grafico"][:2]))
+    return with_route | animated, list(graphics.pairs), animated, turning
 
 
-def graficos_de_prueba(argumento):
+def test_graphics(argument):
     """The (CharSet, index) pairs of `--test-graphic`, or () if none."""
-    return tuple((charset, int(indice)) for charset, indice in argumento or ())
+    return tuple((charset, int(index)) for charset, index in argument or ())
 
 
-def firma_de_la_partida(pares, ranuras_exp, actores_n):
+def save_signature(pairs, slots_exp, n_actors):
     """Sixteen bits that change when **what each byte of the saved game
     means** changes, so that the ROM rejects one from another build.
 
@@ -7096,15 +7096,15 @@ def firma_de_la_partida(pares, ranuras_exp, actores_n):
     save reads the same have to be able to share it, even if everything else
     changes.
     """
-    forma = {
+    shape = {
         "variables": sorted(events.VARIABLE_SLOT.items(), key=lambda x: x[1]),
         "items": events.ITEMS_N,
         "switches": SWITCH_BYTES,
-        "actores": actores_n,
-        "habilidades": [[a, h, r] for (a, h), r in pares],
-        "experiencia": ranuras_exp,
+        "actores": n_actors,
+        "habilidades": [[a, h, r] for (a, h), r in pairs],
+        "experiencia": slots_exp,
     }
-    return zlib.crc32(json.dumps(forma).encode()) & 0xFFFF
+    return zlib.crc32(json.dumps(shape).encode()) & 0xFFFF
 
 
 def variables_n():
@@ -7118,7 +7118,7 @@ def variables_n():
     return n
 
 
-def tabla_de_senos():
+def sine_table():
     """The sine the screen shake reads by index, for the bank."""
     out = ["; The sine at scale 127, for the screen shake: it is the same",
            "; list `SENO_SACUDIDA` builds in eventos.py.",
@@ -7129,10 +7129,10 @@ def tabla_de_senos():
            '.segment "RODATA"',
            ".bloque 256",
            "seno_sacudida:"]
-    valores = events.SHAKE_SINE
+    values = events.SHAKE_SINE
     for i in range(0, 256, 16):
         out.append("    .byte " + ",".join("$%02X" % (v & 0xFF)
-                                            for v in valores[i:i + 16]))
+                                            for v in values[i:i + 16]))
     # And back to bank 0: what follows —`ruta_tras_paso` and company— is read
     # with absolute indexed addressing and has to stay here.
     out.append('.segment "TABLAS"')
@@ -7194,16 +7194,16 @@ def npc_bytes(table):
         # four places. The events marked "above" go at priority 2, which is
         # the only thing left above BG2 1; the rest share priority 1 with the
         # hero, and since that layer covers them, they walk underneath.
-        prioridad = (OBJ_PRIORITY_ABOVE
-                     if npc["layer"] == rm2k.LAYER_ABOVE
-                     else OBJ_PRIORITY)
-        out.append(prioridad | ((npc["palette"] & 0x07) << 1)
+        priority = (OBJ_PRIORITY_ABOVE
+                    if npc["layer"] == rm2k.LAYER_ABOVE
+                    else OBJ_PRIORITY)
+        out.append(priority | ((npc["palette"] & 0x07) << 1)
                    | ((npc["tile"] >> 8) & 0x01))
         # The event's index goes **always**, even if the NPC doesn't walk: it
         # is the last tie-breaker of the drawing order, and it applies to all.
         # What sets the walking ones apart is the pose table.
         out.append(npc["evento"])
-        out.append(NPC_QUIETO if npc["poses"] is None else npc["poses"])
+        out.append(NPC_STILL if npc["poses"] is None else npc["poses"])
         # Where its page faces. A forced route that hasn't given any turning
         # command yet leaves it facing here, which is where the first pose
         # drawn comes from.
@@ -7230,12 +7230,12 @@ def npc_bytes(table):
     return bytes(out)
 
 
-def puntero(destino):
+def pointer(dest):
     """The three bytes of a symbolic pointer, for `.byte`."""
-    return "<(%s), >(%s), ^(%s)" % (destino, destino, destino)
+    return "<(%s), >(%s), ^(%s)" % (dest, dest, dest)
 
 
-def npc_poses_asm(numero, animados, indice_global):
+def npc_poses_asm(number, animated, global_index):
     """The pointers to the twelve poses of each character that changes pose.
 
     One entry per animated character —`k`, the same index the NPC's row
@@ -7244,17 +7244,17 @@ def npc_poses_asm(numero, animados, indice_global):
     blocks the linker places, like the pages' ones; two equal poses are the
     same block.
     """
-    out = [".bloque %d" % (3 * SPRITE_POSES * max(1, len(animados))),
-           "npc_poses_%d:" % numero]
-    for par in animados:
+    out = [".bloque %d" % (3 * SPRITE_POSES * max(1, len(animated))),
+           "npc_poses_%d:" % number]
+    for pair in animated:
         for pose in range(SPRITE_POSES):
-            out.append("    .byte " + puntero(indice_global[par][pose]))
-    if not animados:
+            out.append("    .byte " + pointer(global_index[pair][pose]))
+    if not animated:
         out.append("    .byte $00")     # a label can't be left empty
     return "\n".join(out)
 
 
-def actor_table_asm(numero, actores, animados, indice_global):
+def actor_table_asm(number, actors, animated, global_index):
     """The leader candidates: id, palette, and the pointer to each of their
     poses.
 
@@ -7264,33 +7264,33 @@ def actor_table_asm(numero, actores, animados, indice_global):
     a graphic carries twelve pointers at $FFFFFF, which is the sentinel
     `place_hero` looks at.
     """
-    out = [".bloque %d" % (ACTOR_BYTES * max(1, len(actores))),
-           "actor_table_%d:" % numero]
-    for actor, paleta, k, colores in actores:
-        out.append("    .byte $%02X, $%02X" % (actor & 0xFF, paleta & 0x07))
+    out = [".bloque %d" % (ACTOR_BYTES * max(1, len(actors))),
+           "actor_table_%d:" % number]
+    for actor, palette, k, colors in actors:
+        out.append("    .byte $%02X, $%02X" % (actor & 0xFF, palette & 0x07))
         # Its fifteen colors, in the order its poses index them. An actor
         # without a graphic carries them at zero and the ROM doesn't upload
         # them: it isn't drawn.
-        palabras = list(colores) + [0] * (OBJ_COLORS - len(colores))
+        words = list(colors) + [0] * (OBJ_COLORS - len(colors))
         out.append("    .byte " + ",".join(
-            "$%02X,$%02X" % (w & 0xFF, w >> 8) for w in palabras))
+            "$%02X,$%02X" % (w & 0xFF, w >> 8) for w in words))
         for pose in range(SPRITE_POSES):
             if k is None:
                 out.append("    .byte $FF, $FF, $FF")
             else:
-                out.append("    .byte " + puntero(
-                    indice_global[animados[k]][pose]))
-    if not actores:
+                out.append("    .byte " + pointer(
+                    global_index[animated[k]][pose]))
+    if not actors:
         out.append("    .byte $00")
     return "\n".join(out)
 
 
-def parser_de_flags():
+def flags_parser():
     """The converter's flags. Separate from `main` for whoever needs to read a
     command line without converting anything."""
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    # Mandatory, but without `required`: `casos_de_prueba` reads the flags of
+    # Mandatory, but without `required`: `test_cases` reads the flags of
     # each `--case` again with this same parser, and there it doesn't go.
     # `main` enforces it.
     parser.add_argument("--map-id", type=int, default=None,
@@ -7395,21 +7395,21 @@ def parser_de_flags():
 
 def main():
     project.from_command_line()
-    parser = parser_de_flags()
-    argv, tramos = partir_en_casos(sys.argv[1:])
+    parser = flags_parser()
+    argv, stretches = split_cases(sys.argv[1:])
     args = parser.parse_args(argv)
     if args.map_id is None:
         parser.error("--map-id is missing, the boot map")
     environment.from_arguments(args, "game_dir", "rtp_dir", "soundfont",
                                "cache")
     args.game_dir = environment.game()
-    args.casos = casos_de_prueba(parser, args, tramos)
-    orden = orden_de_mapas(args)
-    if not 0 <= args.start_index < len(orden):
-        sys.exit("--start-index %d but there are %d maps" % (args.start_index, len(orden)))
-    for caso in args.casos:
-        caso.mapa = mapa_del_caso(caso, orden, args.start_index)
-    de_archivo = comandos_de_casos(args)
+    args.cases = test_cases(parser, args, stretches)
+    order = map_order(args)
+    if not 0 <= args.start_index < len(order):
+        sys.exit("--start-index %d but there are %d maps" % (args.start_index, len(order)))
+    for case in args.cases:
+        case.run_map = case_map(case, order, args.start_index)
+    file_commands = case_commands(args)
     # Which maps carry the timer digits, which cost a sprite palette.
     # Normally, all: it is what the game asks for, where the countdown starts
     # in one map and is seen in the following ones. With `--no-timer`, the
@@ -7418,9 +7418,9 @@ def main():
     # 9f that took the palette away from every map —measured, fifteen goldens
     # moved—. A map without digits doesn't draw them: `TIMER_BASE` at zero,
     # see `timer_oam`.
-    args.timer_en = set(orden) if not args.no_timer else {
-        caso.mapa for caso in args.casos
-        if any(cmd.code == events.TIMER_OPERATION for cmd in caso.comandos)}
+    args.timer_maps = set(order) if not args.no_timer else {
+        case.run_map for case in args.cases
+        if any(cmd.code == events.TIMER_OPERATION for cmd in case.commands)}
 
     renderer = Renderer(args.game_dir)
 
@@ -7429,11 +7429,11 @@ def main():
     # —'DummyHero', which is Chubby2[2]—. Until now there was a hand-set
     # default that gave Future1[0], that is another character's sprite.
     # --charset stays to force it by hand when needed.
-    grupo = args.party if args.party else renderer.database.party
+    party = args.party if args.party else renderer.database.party
     if args.charset is None:
-        args.charset, indice = renderer.database.leader(grupo)
+        args.charset, table_index = renderer.database.leader(party)
         if args.charset_index is None:
-            args.charset_index = indice
+            args.charset_index = table_index
     if args.charset_index is None:
         args.charset_index = 0
 
@@ -7441,9 +7441,9 @@ def main():
     # because the party is global state: a page of map A can add someone who
     # then walks around map B.
     args_game_dir[0] = args.game_dir
-    todos = orden_de_mapas(args)
+    every = map_order(args)
     # **The indices go before anything that compiles a page**, and
-    # `lideres_posibles` compiles pages. They were after, and the price was
+    # `possible_leaders` compiles pages. They were after, and the price was
     # concrete: without `index_variables`, no `ControlVars` compiles, so
     # `RaceController1` of map 49 —which starts with a `PlayBGM` and goes on
     # with two `ControlVars`— didn't compile **in that pass** and did in the
@@ -7453,8 +7453,8 @@ def main():
     # already noted for the page counts, in another place.
     #
     # The variables of the whole game, with their slot.
-    extra = events.command_variables(de_archivo)
-    if len(args.casos) > 1:
+    extra = events.command_variables(file_commands)
+    if len(args.cases) > 1:
         # The one that picks the case: see `events.CASE_VARIABLE`. With a
         # single one it isn't needed, and that way that cartridge comes out
         # the same as before `--case`.
@@ -7470,25 +7470,25 @@ def main():
     events.index_terms(args.game_dir)
     # And the equipment and skills of each actor of the LDB: it is what the
     # two actor branches with two operands answer. **Before
-    # `lideres_posibles`**, which compiles pages: see its comment.
+    # `possible_leaders`**, which compiles pages: see its comment.
     events.index_actors(args.game_dir)
     # And the (actor, skill) pairs of the whole game, with those of the test
     # pages: it is the operand of `ChangeSkills` and of the branch that asks
     # whether it knows one, so it goes before compiling anything, same as the
     # variables.
     events.index_skills(
-        args.game_dir, events.command_skill_pairs(de_archivo))
-    args.lideres = lideres_posibles(renderer, todos, grupo)
+        args.game_dir, events.command_skill_pairs(file_commands))
+    args.leaders = possible_leaders(renderer, every, party)
     # And those of the party each test page continues with, behind: the test
     # can start with it in any map of the cartridge.
-    for caso in args.casos:
-        de_prueba = grupo_de_la_pagina(caso, grupo)
-        if de_prueba:
-            for actor in lideres_posibles(renderer, todos, de_prueba):
-                if actor not in args.lideres:
-                    args.lideres.append(actor)
-    # If some map sets rain, all of them carry the drops: see `hay_lluvia`.
-    args.con_lluvia = hay_lluvia(todos, de_archivo)
+    for case in args.cases:
+        test_party = page_party(case, party)
+        if test_party:
+            for actor in possible_leaders(renderer, every, test_party):
+                if actor not in args.leaders:
+                    args.leaders.append(actor)
+    # If some map sets rain, all of them carry the drops: see `has_rain`.
+    args.with_rain = has_rain(every, file_commands)
     # How many maps of this ROM each character appears in. The palette split
     # uses it to choose who can lose a color without breaking anything: the
     # pose bank is **the whole ROM's**, so a character that is in two maps has
@@ -7496,13 +7496,13 @@ def main():
     # an ugly image but a `sys.exit` when emitting, which is what happened the
     # first time this was written: `Future1:4` dropped in one map and not in
     # the other.
-    args.mapas_por_personaje = mapas_por_personaje(renderer, todos,
-                                                   args.game_dir)
+    args.maps_per_character = maps_per_character(renderer, every,
+                                                 args.game_dir)
     # The `ShowPicture` picture, one per ROM: see `events.Pictures`. The first
-    # map of the table that shows it keeps it, which is the order `convertir`
+    # map of the table that shows it keeps it, which is the order `convert_map`
     # walks them in.
-    args.imagenes = events.Pictures(args.game_dir)
-    args.imagenes.mapa = None
+    args.pictures = events.Pictures(args.game_dir)
+    args.pictures.map_id = None
     # And the slots `ChangeSpriteAssociation` reserves in the graphics table
     # of **all** maps, for the same reason as the picture: the graphic it gives
     # an actor crosses the teleport, so its index has to mean the same in both
@@ -7512,35 +7512,35 @@ def main():
     # `--test-graphic` they would have an index only in the maps where a
     # case runs, and what the command does —crossing the teleport— couldn't
     # be tested.
-    args.asociaciones = events.sprite_associations(
+    args.associations = events.sprite_associations(
         [lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % m))
-         for m in todos], de_archivo)
+         for m in every], file_commands)
 
-    precalcular_capas(renderer, todos, args)
-    mapas = [convertir(renderer, map_id, args) for map_id in todos]
+    precompute_layers(renderer, every, args)
+    maps = [convert_map(renderer, map_id, args) for map_id in every]
     # The maps whose upper layer started higher than the window's palette used
     # to be reconverted here, to squeeze their background below it. With the
     # window in palette 0 there is nothing to squeeze: each map's background
-    # starts at `CGRAM_RESERVADAS` and reaches up to its own upper layer,
+    # starts at `CGRAM_RESERVED` and reaches up to its own upper layer,
     # without depending on what the other maps of the ROM need.
     # Teleports are resolved when all the maps are there: one can lead to any
     # other, so the destination index isn't known until the end.
-    indices = {mapa["id"]: numero for numero, mapa in enumerate(mapas)}
+    indices = {map_info["id"]: number for number, map_info in enumerate(maps)}
 
     # The blocks the map's `TileSubstitution`s are going to need, built
-    # **before** compiling any page: see `Sustituciones`. A map without that
+    # **before** compiling any page: see `Substitutions`. A map without that
     # command builds nothing and doesn't grow a byte, which is the case of the
     # game's 328 maps as of today.
-    for mapa in mapas:
-        chipset = renderer.database.chipsets[mapa["game_map"].chipset_id]
-        mapa["sustituciones"] = Sustituciones(
-            mapa, build_passability(chipset), chipset)
+    for map_info in maps:
+        chipset = renderer.database.chipsets[map_info["game_map"].chipset_id]
+        map_info["sustituciones"] = Substitutions(
+            map_info, build_passability(chipset), chipset)
         # It hangs from the map so it reaches `events.MapEvents`, which is what
         # the compiler already passes around.
-        mapa["game_map"].substitutions = mapa["sustituciones"]
-        triples = triples_de_sustitucion(mapa["game_map"], args.casos,
-                                         mapa["id"])
-        for faltante in mapa["sustituciones"].cerrar(triples):
+        map_info["game_map"].substitutions = map_info["sustituciones"]
+        triples = substitution_triples(map_info["game_map"], args.cases,
+                                       map_info["id"])
+        for absent in map_info["sustituciones"].close(triples):
             # It doesn't stop the conversion: the page that asks for it
             # doesn't compile, which is what any command that can't be run
             # does. But it is said, because from outside it looks like an
@@ -7552,66 +7552,66 @@ def main():
             # combination that would be needed carries an upper tile **without
             # the "Above" bit**, which isn't drawn on BG2 but baked into the
             # background, and then the block's two layers stop being
-            # independent. See `Sustituciones._hornea`.
+            # independent. See `Substitutions._bakes`.
             print("  map %d: TileSubstitution %d -> %d on the %s layer: the "
                   "block that would be needed can't be built. Either the new "
                   "tile isn't drawn in any cell of the map, or one of the two "
                   "is an upper tile without 'Above' and is baked into the "
                   "background. The page doesn't compile."
-                  % (mapa["id"], faltante[1], faltante[2],
-                     "upper" if faltante[0] else "lower"))
+                  % (map_info["id"], absent[1], absent[2],
+                     "upper" if absent[0] else "lower"))
 
     # The text block belongs to the whole ROM and is built while the pages
     # are compiled: each `ShowMessage` leaves its text here and takes an
     # offset, which is what goes in the bytecode.
-    mensajes = events.Messages(step=events.MESSAGES_STEP)
+    messages = events.Messages(step=events.MESSAGES_STEP)
     # The songs the pages' PlayBGMs ask for, numbered in the order they
     # appear. The ROM carries a single one —see `Songs`— and picks it further
     # down, when all are compiled and it is known which ones are asked for.
-    temas = events.Songs()
+    songs = events.Songs()
     # And the troops the EnemyEncounters ask for. It doesn't number anything
     # —the bytecode carries the RM2k id— so it only says which enemy tables
     # have to be emitted. See `events.Troops`.
-    tropas = events.Troops()
+    troops = events.Troops()
     # The test pages' texts go **first**, before all the maps, and that isn't
     # aesthetic: that way their offset doesn't depend on how many texts the
     # map the ROM boots in brings nor on the order they are compiled in —the
     # first is 0—. They are stored here and the page's compilation, further
     # down, finds them stored, because the block deduplicates by content.
-    for cmd, extra_lineas in events.group_boxes(de_archivo):
+    for cmd, extra_lines in events.group_boxes(file_commands):
         if cmd.code == events.SHOW_MESSAGE:
-            mensajes.add([cmd.string] + extra_lineas)
+            messages.add([cmd.string] + extra_lines)
     # The test pages already compiled, per case: see the second round.
-    de_prueba = {}
+    test_party = {}
 
-    for mapa in mapas:
+    for map_info in maps:
         # The automatic events: their pages with the conditions, and the code
         # of the ones that can be run, all together in a single block.
         # One graphics registry per map: command 34 carries the index and the
         # map's `ruta_grafico` table resolves it. See `events.Graphics`.
-        graficos = events.Graphics(args.asociaciones)
-        temas.current_map = mapas.index(mapa)      # for its audio package
-        paginas = events.map_pages(mapa["game_map"], indices.get,
-                                   mensajes, temas, graficos,
-                                   args.imagenes, tropas)
-        temas.current_map = None
+        graphics = events.Graphics(args.associations)
+        songs.current_map = maps.index(map_info)      # for its audio package
+        pages = events.map_pages(map_info["game_map"], indices.get,
+                                 messages, songs, graphics,
+                                 args.pictures, troops)
+        songs.current_map = None
         # One interpreter per event with some parallel page that compiles. The
         # ROM carries them in a fixed-cap list and **doesn't warn** if it goes
         # over —the extra ones wouldn't run and nothing would say so—, so the
         # stop goes here.
-        con_paralela = {p["evento"] for p in paginas
-                        if p["trigger"] == events.TRIGGER_PARALLEL
-                        and p["codigo"]}
-        if len(con_paralela) > PARALELO_MAX:
+        with_parallel = {p["evento"] for p in pages
+                         if p["trigger"] == events.TRIGGER_PARALLEL
+                         and p["codigo"]}
+        if len(with_parallel) > PARALLEL_MAX:
             sys.exit("map %d has %d events with a parallel page and %d "
                      "fit: see PARALELO_MAX"
-                     % (mapa["id"], len(con_paralela), PARALELO_MAX))
-        if con_paralela:
+                     % (map_info["id"], len(with_parallel), PARALLEL_MAX))
+        if with_parallel:
             print("  map %d: %d event(s) with a parallel page"
-                  % (mapa["id"], len(con_paralela)))
-        if args.test_graphic and mapa["id"] in mapas_de_prueba(args):
-            for charset, index in graficos_de_prueba(args.test_graphic):
-                graficos.index(charset, index)
+                  % (map_info["id"], len(with_parallel)))
+        if args.test_graphic and map_info["id"] in test_maps(args):
+            for charset, index in test_graphics(args.test_graphic):
+                graphics.index(charset, index)
         # **Only the map that took its tiles can show the picture.** The sprite
         # bank belongs to each map, so from another one the six objects would
         # read whatever was in those tiles. It doesn't happen today —the "1
@@ -7619,72 +7619,72 @@ def main():
         # stops instead of choosing: the day two maps show the same one, it
         # has to be decided whether its tiles go in both, and the converter
         # can't make that decision alone.
-        if (args.imagenes.name is not None
-                and mapa["id"] != args.imagenes.mapa):
-            for pagina in paginas:
-                codigo = pagina["codigo"]
-                if codigo and any(codigo[i] == events.OP_PICTURE
-                                  for i, _c in events.walk_code(codigo)):
+        if (args.pictures.name is not None
+                and map_info["id"] != args.pictures.map_id):
+            for test_page in pages:
+                code = test_page["codigo"]
+                if code and any(code[i] == events.OP_PICTURE
+                                for i, _c in events.walk_code(code)):
                     sys.exit(
                         "map %d: shows the picture %r and its tiles ended up in "
                         "map %d; the ROM carries it in a single one. See "
                         "`cartel_de_imagen`."
-                        % (mapa["id"], args.imagenes.name,
-                           args.imagenes.mapa))
-        if graficos.pairs != mapa["graficos_de_ruta"]:
+                        % (map_info["id"], args.pictures.name,
+                           args.pictures.map_id))
+        if graphics.pairs != map_info["graficos_de_ruta"]:
             # The two passes compiled different things. It can't happen —both
             # use `map_pages` with the same text block— and if it did,
             # the bytecode would end up pointing at the wrong table without
             # anything saying so.
             sys.exit("map %d: the two passes numbered the route graphics "
                      "differently: %s against %s"
-                     % (mapa["id"], graficos.pairs, mapa["graficos_de_ruta"]))
+                     % (map_info["id"], graphics.pairs, map_info["graficos_de_ruta"]))
         # The pages of the cases that run in this map, compiled with its
         # context even though they will live in the boot map: see
-        # `mapa_del_caso`. They are put there in the second round, when all
+        # `case_map`. They are put there in the second round, when all
         # are done.
-        for k, caso in enumerate(args.casos):
-            if caso.mapa == mapa["id"]:
-                de_prueba[k] = pagina_de_caso(caso, mapa, temas, graficos,
-                                              mensajes, indices,
-                                              args.imagenes)
-        mapa["paginas"] = paginas
+        for k, case in enumerate(args.cases):
+            if case.run_map == map_info["id"]:
+                test_party[k] = case_page(case, map_info, songs, graphics,
+                                          messages, indices,
+                                          args.pictures)
+        map_info["paginas"] = pages
         # And which maps outside the ROM the ones that don't compile point to.
         #
         # A `Teleport` to a map that didn't make it cuts the whole page, and a
         # page that doesn't compile does **nothing**: neither the teleport nor
-        # what came before. `evento` has always said so in its comment, but
+        # what came before. `event` has always said so in its comment, but
         # the count above doesn't tell this reason apart from the others a
         # page falls out for, and it is the only one that is fixed from
         # outside —adding the map— and not by touching the compiler. That is
         # how the elevator page of map 2 was overlooked, which was seen
         # opening and led nowhere because it ends up jumping to map 3.
-        afuera_de, cuantas = set(), 0
-        for pagina in paginas:
-            if pagina["codigo"] or pagina["trigger"] not in events.TRIGGERS \
-                    or pagina.get("prueba"):
+        outside_of, how_many = set(), 0
+        for test_page in pages:
+            if test_page["codigo"] or test_page["trigger"] not in events.TRIGGERS \
+                    or test_page.get("prueba"):
                 continue        # the test page doesn't come from the game
-            evento = mapa["game_map"].events[pagina["evento"]]
-            faltan = {cmd.parameters[0]
-                      for cmd in evento.pages[pagina["pagina"]].commands
-                      if cmd.code == events.TELEPORT and cmd.parameters
-                      and indices.get(cmd.parameters[0]) is None}
-            if faltan:
-                afuera_de |= faltan
-                cuantas += 1
-        if afuera_de:
+            event = map_info["game_map"].events[test_page["evento"]]
+            missing = {cmd.parameters[0]
+                       for cmd in event.pages[test_page["pagina"]].commands
+                       if cmd.code == events.TELEPORT and cmd.parameters
+                       and indices.get(cmd.parameters[0]) is None}
+            if missing:
+                outside_of |= missing
+                how_many += 1
+        if outside_of:
             print("  map %d: %d of those %s because of a teleport to a map "
                   "that didn't make it into the ROM: %s"
-                  % (mapa["id"], cuantas,
-                     "doesn't compile" if cuantas == 1 else "don't compile",
-                     ", ".join(str(m) for m in sorted(afuera_de))))
+                  % (map_info["id"], how_many,
+                     "doesn't compile" if how_many == 1 else "don't compile",
+                     ", ".join(str(m) for m in sorted(outside_of))))
         # Debts are warned about. A page that is accepted without doing
         # everything it asks for is a difference from the original game, and
         # keeping quiet about it is how it becomes invisible: here the command
         # and what is lost are named.
-        deudas = set()
-        for evento in mapa["game_map"].events:
-            for page in evento.pages:
+        debts = set()
+        for event in map_info["game_map"].events:
+            for page in event.pages:
                 if page.trigger != events.TRIGGER_AUTOSTART:
                     continue
                 # With the same text block as above: if it were None here, a
@@ -7693,28 +7693,28 @@ def main():
                 # it. Adding a text that is already there again doesn't grow
                 # the block: the key is the content.
                 if events.compile_page(page, indices.get,
-                                       mensajes) is None:
+                                       messages) is None:
                     continue
-                deudas |= set(events.page_debts(page,
-                                                args.imagenes))
-        for codigo_cmd in sorted(deudas):
+                debts |= set(events.page_debts(page,
+                                               args.pictures))
+        for cmd_code in sorted(debts):
             print("  map %d: WARNING, a page uses %s and the ROM doesn't do it; "
                   "see ACCEPTED_UNDONE in tools/port/events.py"
-                  % (mapa["id"], event_codes.EVENT_CODES.get(codigo_cmd,
-                                                             codigo_cmd)))
+                  % (map_info["id"], event_codes.EVENT_CODES.get(cmd_code,
+                                                                 cmd_code)))
 
 
     # The second round: with the pages of all the cases compiled, they are
     # put in the boot map and each map's block is built.
-    for mapa in mapas:
-        paginas = mapa["paginas"]
-        if args.casos and mapa is mapas[args.start_index]:
+    for map_info in maps:
+        pages = map_info["paginas"]
+        if args.cases and map_info is maps[args.start_index]:
             # The test pages, only in the map the ROM boots in. They don't come
             # from the game but from `rom/pruebas/casos/`: they exist because
             # there are interpreter paths no page of the game that compiles
             # exercises —the first was a wait—.
             #
-            # It goes at **index 0**, that of the empty event `convertir` put
+            # It goes at **index 0**, that of the empty event `convert_map` put
             # at the start of the map: the ROM walks the events from lowest to
             # highest, and this page has to run before the game's. Until
             # 2026-09-17 it went at the first free index, at the end.
@@ -7722,7 +7722,7 @@ def main():
             # **One page per case**, and page k asks for `CASE_VARIABLE` to
             # be at least k: see its comment. Page 0 asks for nothing, so a
             # single-case cartridge is the usual one.
-            paginas = paginas + [{
+            pages = pages + [{
                 "evento": 0, "pagina": k, "prueba": True,
                 "trigger": events.TRIGGER_AUTOSTART,
                 "switch_a": 0, "switch_b": 0, "actor": 0,
@@ -7731,59 +7731,59 @@ def main():
                     events.COMPARE_AT_LEAST, k) if k else None),
                 "item": 0, "capa": 0,
                 "frecuencia": events.ROUTE_FREQUENCY, "velocidad": 4,
-                "codigo": de_prueba[k]} for k in range(len(args.casos))] + [{
+                "codigo": test_party[k]} for k in range(len(args.cases))] + [{
                 # And the one that turns it off: it asks for
                 # `TEST_SWITCH` and has no code, so as soon as it wins,
                 # the invented event no longer has an automatic page to run and
                 # the first one doesn't repeat.
-                "evento": 0, "pagina": len(args.casos), "prueba": True,
+                "evento": 0, "pagina": len(args.cases), "prueba": True,
                 "trigger": events.TRIGGER_AUTOSTART,
                 "switch_a": events.TEST_SWITCH, "switch_b": 0,
                 "actor": 0, "variable": None, "item": 0, "capa": 0,
                 "frecuencia": events.ROUTE_FREQUENCY, "velocidad": 4,
                 "codigo": b""}]
-        codigo = bytearray()
-        for pagina in paginas:
-            pagina["offset"] = len(codigo)
-            if pagina["codigo"]:
-                codigo += pagina["codigo"]
+        code = bytearray()
+        for test_page in pages:
+            test_page["offset"] = len(code)
+            if test_page["codigo"]:
+                code += test_page["codigo"]
             # And the commands of the own route, behind, one byte per command.
-            propia = pagina.get("ruta_propia")
-            if propia:
-                pagina["ruta_offset"] = len(codigo)
-                codigo += bytes(propia["ordenes"])
-        mapa["paginas"] = paginas
+            own = test_page.get("ruta_propia")
+            if own:
+                test_page["ruta_offset"] = len(code)
+                code += bytes(own["ordenes"])
+        map_info["paginas"] = pages
         # What each page of the events that change graphic draws, already as
         # OAM wants it: it is what the ROM copies to the NPC's row when the
-        # active page changes. See `tabla_de_paginas`, +20.
-        for pagina in paginas:
-            sigue = pagina["evento"] in mapa["cambian"]
-            if not sigue and pagina["evento"] not in mapa["aparecen"]:
+        # active page changes. See `page_table`, +20.
+        for test_page in pages:
+            continues = test_page["evento"] in map_info["cambian"]
+            if not continues and test_page["evento"] not in map_info["aparecen"]:
                 continue
-            grafico = pagina.get("grafico")
-            if grafico is None \
-                    or grafico[:2] in mapa["afuera"].get(pagina["evento"], ()):
+            graphic = test_page.get("grafico")
+            if graphic is None \
+                    or graphic[:2] in map_info["afuera"].get(test_page["evento"], ()):
                 continue
-            if not sigue:
+            if not continues:
                 # The one that only appears carries no tile or attributes: its
                 # own point to its slot of twelve poses and the ROM doesn't
                 # touch them. The pose goes —with bit 7, which is "this page
                 # draws something"— and what its tile imposes on the cell.
-                pagina["oam"] = (0, 0, grafico[2] | 0x80,
-                                 0xFF if pagina.get("tile_pasa") is None
-                                 else pagina["tile_pasa"])
+                test_page["oam"] = (0, 0, graphic[2] | 0x80,
+                                 0xFF if test_page.get("tile_pasa") is None
+                                 else test_page["tile_pasa"])
                 continue
-            block, slot = mapa["where"][grafico]
+            block, slot = map_info["where"][graphic]
             tile = block_tile(block)
-            prioridad = (OBJ_PRIORITY_ABOVE
-                         if pagina["capa"] == rm2k.LAYER_ABOVE
-                         else OBJ_PRIORITY)
-            pagina["oam"] = (tile & 0xFF,
-                             prioridad | ((slot & 0x07) << 1) | ((tile >> 8) & 1),
-                             grafico[2] | 0x80,
-                             0xFF if pagina.get("tile_pasa") is None
-                             else pagina["tile_pasa"])
-        mapa["evcodigo"] = bytes(codigo)
+            priority = (OBJ_PRIORITY_ABOVE
+                        if test_page["capa"] == rm2k.LAYER_ABOVE
+                        else OBJ_PRIORITY)
+            test_page["oam"] = (tile & 0xFF,
+                             priority | ((slot & 0x07) << 1) | ((tile >> 8) & 1),
+                             graphic[2] | 0x80,
+                             0xFF if test_page.get("tile_pasa") is None
+                             else test_page["tile_pasa"])
+        map_info["evcodigo"] = bytes(code)
         # The ROM's substitution table has a fixed cap and **doesn't warn** if
         # it goes over: the pairs that don't fit wouldn't be applied and the
         # map would draw too much. How many entries it can end up having is
@@ -7791,11 +7791,11 @@ def main():
         # of the map uses as a key, because a key is never overwritten: the
         # second round changes its value. See `op_tile_sub` in
         # tools/runtime/interprete_mapa.s.
-        claves = len(mapa["sustituciones"].claves)
-        if claves > SUB_MAX:
+        keys = len(map_info["sustituciones"].known_keys)
+        if keys > SUB_MAX:
             sys.exit("map %d substitutes %d distinct blocks and the RAM "
                      "table carries %d: see SUB_MAX"
-                     % (mapa["id"], claves, SUB_MAX))
+                     % (map_info["id"], keys, SUB_MAX))
         # How many distinct events this map can end up sending walking. The
         # ROM has RUTA_EV_MAX slots and a route that finds no room is
         # discarded **without saying anything**: the NPC stays still and, if
@@ -7804,13 +7804,13 @@ def main():
         # is there so that a future change doesn't throw them away silently.
         #
         # The pages that **run** here: the map's and those of the cases that
-        # jump to it, which live in the boot one. See `mapa_del_caso`.
-        corren_aca = [p["codigo"] for p in paginas
-                      if p["codigo"] and not p.get("prueba")]
-        corren_aca += [de_prueba[k] for k, caso in enumerate(args.casos)
-                       if caso.mapa == mapa["id"]]
-        blancos = {c[i + 1] for codigo in corren_aca
-                   for i, c in recorrer_codigo(codigo)
+        # jump to it, which live in the boot one. See `case_map`.
+        run_here = [p["codigo"] for p in pages
+                    if p["codigo"] and not p.get("prueba")]
+        run_here += [test_party[k] for k, case in enumerate(args.cases)
+                     if case.run_map == map_info["id"]]
+        targets = {c[i + 1] for code in run_here
+                   for i, c in walk_code(code)
                    if c[i] == events.OP_ROUTE and c[i + 1]}
         # And that nobody flashes someone who shares a graphic with another.
         # On the console the flash is done on the character's palette, so two
@@ -7819,55 +7819,55 @@ def main():
         # covered, which is the hero's: which graphic it has depends on the
         # party, and the converter knows that and the compiler doesn't.
         #
-        # `separar_del_heroe` already avoids this in the maps whose pages flash
+        # `separate_from_hero` already avoids this in the maps whose pages flash
         # the hero. This stays for what that one doesn't see: a `FlashSprite`
         # that arrives inside a common event, which is compiled in place from
         # any `CallEvent` and isn't in the map's pages.
-        graficos = collections.Counter(
+        graphics = collections.Counter(
             (npc["charset"], npc["index"])
-            for npc in rm2k.collect_npcs(mapa["game_map"]))
-        for actor in args.lideres:
+            for npc in rm2k.collect_npcs(map_info["game_map"]))
+        for actor in args.leaders:
             a = renderer.database.actors[actor]
-            graficos[(a.charset, a.charset_index)] += 1
-        for codigo in corren_aca:
-            for i, c in recorrer_codigo(codigo):
+            graphics[(a.charset, a.charset_index)] += 1
+        for code in run_here:
+            for i, c in walk_code(code):
                 if c[i] != events.OP_FLASH or c[i + 1] != 0:
                     continue
-                for actor in args.lideres:
+                for actor in args.leaders:
                     a = renderer.database.actors[actor]
-                    if graficos[(a.charset, a.charset_index)] > 1:
+                    if graphics[(a.charset, a.charset_index)] > 1:
                         raise SystemExit(
                             "map %d: a page makes the hero flash, and "
                             "actor %d is drawn with %s[%d], which an NPC of "
                             "the map also uses. On the console they share a "
                             "palette and both would flash"
-                            % (mapa["id"], actor, a.charset, a.charset_index))
+                            % (map_info["id"], actor, a.charset, a.charset_index))
 
-        if len(blancos) > RUTA_EV_MAX:
+        if len(targets) > ROUTE_EV_MAX:
             raise SystemExit(
                 "map %d: its pages send %d distinct events walking and "
                 "the ROM has %d route slots"
-                % (mapa["id"], len(blancos), RUTA_EV_MAX))
-        corribles = sum(1 for p in paginas if p["codigo"])
-        if paginas:
+                % (map_info["id"], len(targets), ROUTE_EV_MAX))
+        runnable = sum(1 for p in pages if p["codigo"])
+        if pages:
             print("  map %d: %d automatic event page(s), %d runnable"
-                  % (mapa["id"], len(paginas), corribles))
+                  % (map_info["id"], len(pages), runnable))
 
-    if not 0 <= args.start_index < len(mapas):
-        sys.exit("--start-index %d but there are %d maps" % (args.start_index, len(mapas)))
-    from port import window as ventana_mod
-    skin = ventana_mod.skin(args.game_dir, renderer.database.system_name)
+    if not 0 <= args.start_index < len(maps):
+        sys.exit("--start-index %d but there are %d maps" % (args.start_index, len(maps)))
+    from port import window as window_mod
+    skin = window_mod.skin(args.game_dir, renderer.database.system_name)
     font_id = renderer.database.font_id
-    ventana_datos = convert_ventana(skin, font_id)
-    ventana_datos["fuente"] = fuente_bytes(font_id)
-    ventana_datos["mensajes"] = mensajes.bytes()
+    window_data = convert_window(skin, font_id)
+    window_data["fuente"] = font_bytes(font_id)
+    window_data["mensajes"] = messages.bytes()
     print("  message window: %d fixed tiles + %d of text, %d colors; "
           "font %d B, %d text box(es) in %d B"
-          % (len(ventana_datos["tiles"]) // 32,
-             len(ventana_datos["fondo"]) // 32,
-             sum(1 for w in ventana_datos["cram"] if w),
-             len(ventana_datos["fuente"]), len(mensajes.texts),
-             len(ventana_datos["mensajes"])))
+          % (len(window_data["tiles"]) // 32,
+             len(window_data["fondo"]) // 32,
+             sum(1 for w in window_data["cram"] if w),
+             len(window_data["fuente"]), len(messages.texts),
+             len(window_data["mensajes"])))
     # The slots screen goes in every ROM: the save point opens it from inside
     # the game, and "Resume the Story" from the title when there is one. It is
     # drawn with the same font and the same skin as the message window, and
@@ -7877,235 +7877,235 @@ def main():
     # `ChangePartyMembers` of these maps adds, whether their pages compile or
     # not. It is a superset on purpose: one face too many costs 36 tiles and
     # one too few leaves a hole in the menu.
-    miembros = miembros_posibles(todos, grupo, de_archivo)
+    members = possible_members(every, party, file_commands)
     # And the items that can be in the inventory, to carry their name and
     # their description: see "la pantalla de ítems" in menus.py.
-    items_rom = items_posibles(todos, miembros, renderer.database,
-                               de_archivo)
+    items_rom = possible_items(every, members, renderer.database,
+                               file_commands)
     # With the letters of the medicines, which the actor choice writes with
     # the bank's glyphs: see `TARGET_WINDOWS`.
-    letras_medicinas = "".join(
+    medicine_letters = "".join(
         renderer.database.items[n].name for n in items_rom
         if renderer.database.items[n].type == lcf.ITEM_TYPE_MEDICINE)
-    (ranura_tiles, ranura_paletas, ranura_cabs, ranura_filas, ranura_caras,
-     ranura_menu) = menus_mod.slots_screen(
-        skin, renderer.database, RANURAS, renderer.database.font_id,
-        miembros, args.game_dir, letras_medicinas)
-    objetivo = menus_mod.borders(
+    (slot_tiles, slot_palettes, slot_headers, slot_rows, slot_faces,
+     slot_menu) = menus_mod.slots_screen(
+        skin, renderer.database, SLOTS, renderer.database.font_id,
+        members, args.game_dir, medicine_letters)
+    target = menus_mod.borders(
         skin, 0, menus_mod.target_layers(skin, renderer.database,
                                            renderer.database.font_id),
         menus_mod.TARGET_CGRAM,
         menus_mod.TARGET_CGRAM + menus_mod.TARGET_COLORS_MAX)
-    _controlar_objetivo(len(objetivo[0]))
-    items_tiles, items_paletas, items_glifos = menus_mod.items_screen(
+    _check_target(len(target[0]))
+    items_tiles, items_palettes, items_glyphs = menus_mod.items_screen(
         skin, renderer.database.font_id)
     # The item and equipment windows share tiles and colors: see
     # `menus.borders`.
-    items_marco = menus_mod.borders(
-        skin, items_marco_primero(len(items_tiles)),
-        [menus_mod.item_layers(skin), pantallas_mod.equipment_layers(skin)])
-    _controlar_marco_de_items(len(items_tiles), len(items_marco[0]))
+    items_border = menus_mod.borders(
+        skin, items_border_first(len(items_tiles)),
+        [menus_mod.item_layers(skin), screens_mod.equipment_layers(skin)])
+    _check_items_border(len(items_tiles), len(items_border[0]))
     # The shop's, with their own tiles and colors: see
     # `screens.TI_WINDOWS`.
-    tienda_marco = menus_mod.borders(
-        skin, 0, pantallas_mod.shop_layers(skin),
+    shop_border = menus_mod.borders(
+        skin, 0, screens_mod.shop_layers(skin),
         menus_mod.ITEM_BORDER_CGRAM, menus_mod.TARGET_CGRAM)
-    _controlar_tienda(len(tienda_marco[0]))
+    _check_shop(len(shop_border[0]))
     # The End Game screen's tiles go where the slots' do, so what is checked
     # is the same.
-    fin = fin_mod.convert(skin, renderer.database, renderer.database.font_id)
-    _controlar_ranuras(len(fin[0]))
-    ranuras_datos = {"tiles": ranura_tiles, "paletas": ranura_paletas,
-                     "cabeceras": ranura_cabs, "filas": ranura_filas,
-                     "caras": ranura_caras,
-                     "menu": ranura_menu, "items": items_rom,
-                     "db": renderer.database, "actores": miembros,
-                     "relleno_textos": args.text_padding,
-                     "items_db": renderer.database.items,
-                     "items_tiles": items_tiles,
-                     "items_paletas": items_paletas,
-                     "items_glifos": items_glifos,
-                     "items_marco": items_marco, "fin": fin,
-                     "tienda_marco": tienda_marco,
-                     "objetivo": objetivo}
-    _controlar_ranuras(len(ranura_tiles))
-    _controlar_repartos()
+    end = end_game_mod.convert(skin, renderer.database, renderer.database.font_id)
+    _check_slots(len(end[0]))
+    slots_data = {"tiles": slot_tiles, "paletas": slot_palettes,
+                  "cabeceras": slot_headers, "filas": slot_rows,
+                  "caras": slot_faces,
+                  "menu": slot_menu, "items": items_rom,
+                  "db": renderer.database, "actores": members,
+                  "relleno_textos": args.text_padding,
+                  "items_db": renderer.database.items,
+                  "items_tiles": items_tiles,
+                  "items_paletas": items_palettes,
+                  "items_glifos": items_glyphs,
+                  "items_marco": items_border, "fin": end,
+                  "tienda_marco": shop_border,
+                  "objetivo": target}
+    _check_slots(len(slot_tiles))
+    _check_splits()
     print("  slots screen: %d, %d 4bpp tiles (%d B) + %d palettes, "
           "%d B of cells; %d actors with a face: %s"
-          % (RANURAS, len(ranura_tiles), len(ranura_tiles) * 32,
-             len(ranura_paletas),
-             (len(ranura_cabs) * len(ranura_cabs[0])
-              + RANURAS * 4 * len(ranura_filas[0][0][0])) * 2,
-             len(ranura_caras),
+          % (SLOTS, len(slot_tiles), len(slot_tiles) * 32,
+             len(slot_palettes),
+             (len(slot_headers) * len(slot_headers[0])
+              + SLOTS * 4 * len(slot_rows[0][0][0])) * 2,
+             len(slot_faces),
              ", ".join("%d %s" % (a, renderer.database.actors[a].name)
-                       for a in sorted(ranura_caras)) or "none"))
-    titulo_datos = None
+                       for a in sorted(slot_faces)) or "none"))
+    title_data = None
     if not args.no_title:
         from PIL import Image
-        nombre = renderer.database.title_name
+        name = renderer.database.title_name
         picture = Image.open(os.path.join(args.game_dir, "Title",
-                                          nombre + ".png"))
-        texts = titulo_mod.options(renderer.database)
-        menu_tiles, menu_paleta, menu_mapas = titulo_mod.menu(
+                                          name + ".png"))
+        texts = title_mod.options(renderer.database)
+        menu_tiles, menu_palette, menu_maps = title_mod.menu(
             skin, texts, renderer.database.font_id)
         # The image, compressed like the Game Over one, and with the menu's
         # colors below its own in the same stream: the whole CGRAM at once,
         # the menu's palette at the bottom because a 4-bit BG only reaches
         # those. The tiles' indices already come shifted from
         # `palette.convert`.
-        debajo = list(menu_paleta)
-        debajo += [(0, 0, 0)] * (constants.MENU_CGRAM - len(debajo))
-        pantalla = fullscreen.compressed(
-            picture, constants.MENU_CGRAM, constants.COLORS, debajo)
-        titulo_datos = {"pantalla": pantalla,
-                        "menu_tiles": menu_tiles, "menu_paleta": menu_paleta,
-                        "menu_tilemaps": menu_mapas}
+        below = list(menu_palette)
+        below += [(0, 0, 0)] * (constants.MENU_CGRAM - len(below))
+        screen = fullscreen.compressed(
+            picture, constants.MENU_CGRAM, constants.COLORS, below)
+        title_data = {"pantalla": screen,
+                      "menu_tiles": menu_tiles, "menu_paleta": menu_palette,
+                      "menu_tilemaps": menu_maps}
         print("  title screen %r: %d 8bpp tiles + %d colors, "
               "%d B in an LZ2 stream of %d B"
-              % (nombre, pantalla["tiles"],
-                 pantalla["colores"] - len(debajo), pantalla["crudo"],
-                 len(pantalla["flujo"])))
+              % (name, screen["tiles"],
+                 screen["colores"] - len(below), screen["crudo"],
+                 len(screen["flujo"])))
         print("    menu (%s): %d 4bpp tiles (%d B) + %d colors, %d tilemap(s)"
               % (", ".join(repr(t) for t in texts), len(menu_tiles),
-                 len(menu_tiles) * 32, len(menu_paleta), len(menu_mapas)))
+                 len(menu_tiles) * 32, len(menu_palette), len(menu_maps)))
     # The Game Over screen: the image the LDB's `System` names, in the game's
     # or the RTP's `GameOver/` —as RM2k looks for it—, compressed. It goes in
     # every ROM that finds it: any cartridge can lose a battle or run a
     # `GameOver`. See tools/port/fullscreen.py.
-    game_over_datos = None
-    ruta = find_resource([args.game_dir, resources.RTP_DIR], "GameOver",
+    game_over_data = None
+    path = find_resource([args.game_dir, resources.RTP_DIR], "GameOver",
                          renderer.database.gameover_name)
-    if renderer.database.gameover_name and ruta:
+    if renderer.database.gameover_name and path:
         from PIL import Image
-        game_over_datos = fullscreen.compressed(Image.open(ruta))
+        game_over_data = fullscreen.compressed(Image.open(path))
         print("  Game Over screen %r: %d 8bpp tiles + %d colors, "
               "%d B in an LZ2 stream of %d B"
-              % (os.path.basename(ruta), game_over_datos["tiles"],
-                 game_over_datos["colores"], game_over_datos["crudo"],
-                 len(game_over_datos["flujo"])))
+              % (os.path.basename(path), game_over_data["tiles"],
+                 game_over_data["colores"], game_over_data["crudo"],
+                 len(game_over_data["flujo"])))
     # The battle animations the already emitted bytecode shows: their
     # prerendered frames go to the cartridge and the ROM uploads them by DMA.
-    animaciones = animaciones_de_la_rom(mapas, renderer)
-    for numero in sorted(animaciones):
-        datos = animacion_mod.report(numero, animaciones[numero])
+    animations = rom_animations(maps, renderer)
+    for number in sorted(animations):
+        data = animation_mod.report(number, animations[number])
         print("  animation %d: %d frames of %dx%d, shrunk from %dx%d to %d%%,"
               " %d colors, %d B"
-              % (datos["animacion"], datos["cuadros"], datos["caja"][0],
-                 datos["caja"][1], datos["original"][0], datos["original"][1],
-                 datos["porciento"], datos["colores"], datos["bytes"]))
+              % (data["animacion"], data["cuadros"], data["caja"][0],
+                 data["caja"][1], data["original"][0], data["original"][1],
+                 data["porciento"], data["colores"], data["bytes"]))
     # The random encounters of each map, which ask for their troops. They go
     # **before** those of the test pages, which go at the end: that way the
     # cartridge's troops are numbered by the maps and the invented one goes
-    # last, which is the same `temas_de_la_rom` does with the map's song.
+    # last, which is the same `rom_songs` does with the map's song.
     # Asking for it first always gave it index 0, and with that no case of the
     # suite exercised that `escena_tropa_fondo` and `tropa_id` are really
-    # indexed. That is why `pagina_de_caso` compiles without `Troops`.
-    encuentros = encuentros_de_la_rom(mapas, renderer.tree,
-                                      args.test_encounters, tropas)
-    cuantas = sum(z["tropa_n"] for z in encuentros["zonas"])
-    if encuentros["registros"]:
+    # indexed. That is why `case_page` compiles without `Troops`.
+    encounters = rom_encounters(maps, renderer.tree,
+                                args.test_encounters, troops)
+    how_many = sum(z["tropa_n"] for z in encounters["zonas"])
+    if encounters["registros"]:
         print("  random encounters: %d map(s), %d zone(s), %d troop(s)"
-              % (len(encuentros["registros"]), len(encuentros["zonas"]),
-                 cuantas))
-    for cmd in de_archivo:
+              % (len(encounters["registros"]), len(encounters["zonas"]),
+                 how_many))
+    for cmd in file_commands:
         if cmd.code == events.ENEMY_ENCOUNTER:
-            tropas.request(events.encounter_troop(cmd),
+            troops.request(events.encounter_troop(cmd),
                            events.encounter_backdrop(cmd))
-    # The battle's audio, with the indices it already got from `temas` while
+    # The battle's audio, with the indices it already got from `songs` while
     # the pages compiled. It is asked for again only to read them: `Songs`
     # numbers once and returns the same, and what was noted goes to the
     # battle's package and not to any map's.
-    audio_batalla = events.battle_audio(temas) if tropas.ids else None
+    battle_audio = events.battle_audio(songs) if troops.ids else None
     # The backdrops and the battlers the cartridge's battles ask for, each one
     # once: the ROM composes them when each battle starts. See
     # tools/port/scene.py, which is where the reason and the budget are.
-    escenas = escena_de_la_rom(renderer.database, tropas, mapas, renderer.tree,
-                               encuentros, args.game_dir)
+    scenes = rom_scene(renderer.database, troops, maps, renderer.tree,
+                       encounters, args.game_dir)
     # The `.msu` is written after the audio, because it also carries the
     # quality sound effects: see `msu_asm`.
-    for info in escenas["fondos"]:
-        rom_tiles, rom_colores = respaldo_bytes(info)
-        msu_tiles, msu_colores = escenas["calidad"][info["numero"]]
+    for info in scenes["fondos"]:
+        rom_tiles, rom_colors = fallback_bytes(info)
+        msu_tiles, msu_colors = scenes["calidad"][info["numero"]]
         print("  battle backdrop %d %r: %dx%d, %d tiles from CGRAM entry %d; "
               "in the ROM %dx%d at 4bpp and %d colors (%d B), in "
               "the .msu 8bpp and %d colors (%d B)"
-              % (info["numero"], info["nombre"], escena_mod.WIDTH,
-                 escena_mod.HEIGHT, escena_mod.TILES, escena_mod.CGRAM_BASE,
-                 escena_mod.FALLBACK_WIDTH, escena_mod.FALLBACK_HEIGHT,
+              % (info["numero"], info["nombre"], scene_mod.WIDTH,
+                 scene_mod.HEIGHT, scene_mod.TILES, scene_mod.CGRAM_BASE,
+                 scene_mod.FALLBACK_WIDTH, scene_mod.FALLBACK_HEIGHT,
                  len(info["respaldo"]["paleta"]),
-                 len(rom_tiles) + len(rom_colores), escena_mod.COLORS,
-                 len(msu_tiles) + len(msu_colores)))
+                 len(rom_tiles) + len(rom_colors), scene_mod.COLORS,
+                 len(msu_tiles) + len(msu_colors)))
     # And the ones that aren't in the ROM, with which one replaces them
     # without MSU-1.
-    en_rom = {info["numero"] for info in escenas["fondos"]}
-    fuera = [k for k in range(len(escenas["juego"])) if k not in en_rom]
-    if fuera and escenas["fondos"]:
+    in_rom = {info["numero"] for info in scenes["fondos"]}
+    outside = [k for k in range(len(scenes["juego"])) if k not in in_rom]
+    if outside and scenes["fondos"]:
         print("  battle backdrops only in the .msu, which without MSU-1 fall "
-              "back to %r: %s" % (escenas["fondos"][escenas["respaldo_de"][fuera[0]]]
+              "back to %r: %s" % (scenes["fondos"][scenes["respaldo_de"][outside[0]]]
                                   ["nombre"], ", ".join(
-                                      "%d %s" % (k, escenas["juego"][k])
-                                      for k in fuera)))
-    for info in escenas["battlers"]:
-        d = escena_mod.battler_report(info)
+                                      "%d %s" % (k, scenes["juego"][k])
+                                      for k in outside)))
+    for info in scenes["battlers"]:
+        d = scene_mod.battler_report(info)
         print("  battler %r: %dx%d, %d B, %d colors of %d"
               % (d["clave"], d["ancho"], d["alto"], d["bytes"], d["quedan"],
                  d["colores"]))
     # The event pages of the troops some battle of the cartridge asks for,
     # with **all** the troops already asked for: the maps', the random
     # encounters' and the test pages'. See `events.TroopPages`, which is
-    # also why their messages go to a separate block. With `temas`, because a
+    # also why their messages go to a separate block. With `songs`, because a
     # page's `PlaySound` sounds in the battle's package, which isn't built
     # yet: it is built further down.
-    paginas_tropa = events.TroopPages()
-    for numero in tropas.ids:
-        if numero in renderer.database.troops:
-            paginas_tropa.compile(numero, renderer.database.troops[numero],
-                                  temas)
+    troop_pages = events.TroopPages()
+    for number in troops.ids:
+        if number in renderer.database.troops:
+            troop_pages.compile(number, renderer.database.troops[number],
+                                songs)
     print("  troop pages: %d of %d in %d distinct body(ies), %d B of "
           "code and %d B in %d message(s)"
-          % (paginas_tropa.pages - paginas_tropa.left_out,
-             paginas_tropa.pages, len(paginas_tropa.where),
-             len(paginas_tropa.bodies), len(paginas_tropa.messages.data),
-             len(paginas_tropa.messages.texts)))
+          % (troop_pages.pages - troop_pages.left_out,
+             troop_pages.pages, len(troop_pages.where),
+             len(troop_pages.bodies), len(troop_pages.messages.data),
+             len(troop_pages.messages.texts)))
     # The items the enemies of those troops drop can also reach the
-    # inventory: see `items_del_botin`.
-    ranuras_datos["items"] = sorted(
-        set(items_rom) | items_del_botin(renderer.database, tropas.ids))
-    comprimidos = comprimir_los_bloques(mapas)
-    informe = emit(args.output, mapas, args.start_index, args.hero_above, grupo,
-                   ventana_datos, titulo_datos, ranuras_datos,
-                   args.imagenes.info, animaciones, tropas.ids, audio_batalla,
-                   escenas, encuentros, paginas_tropa, comprimidos,
-                   hp_de_enemigos=args.enemy_hp,
-                   game_over=game_over_datos)
+    # inventory: see `drop_items`.
+    slots_data["items"] = sorted(
+        set(items_rom) | drop_items(renderer.database, troops.ids))
+    compressed = compress_blocks(maps)
+    report = emit(args.output, maps, args.start_index, args.hero_above, party,
+                  window_data, title_data, slots_data,
+                  args.pictures.info, animations, troops.ids, battle_audio,
+                  scenes, encounters, troop_pages, compressed,
+                  enemy_hp=args.enemy_hp,
+                  game_over=game_over_data)
     # Which entries of their palette the timer digits use, one bit per entry
     # and one word per map, in the order of `mapa_tabla`. `subir_timer_pal`
     # uploads **those** again untinted and not the whole palette, because the
     # palette belongs to a character that is tinted. It goes separately and
     # not as a record field because the record is at exactly its 128. The
-    # index is the same `index + 1` `digitos_del_timer` painted the glyphs
+    # index is the same `index + 1` `timer_digits` painted the glyphs
     # with: the first one that has that color.
-    colores_timer = sorted(colores_del_timer(skin))
-    mascaras = []
-    for mapa in mapas:
-        sprite, mascara = mapa["sprite"], 0
+    timer_color_list = sorted(timer_colors_of(skin))
+    masks = []
+    for map_info in maps:
+        sprite, mask = map_info["sprite"], 0
         if sprite and sprite[5]:
-            paleta = sprite[1][sprite[6]]
-            for color in colores_timer:
-                mascara |= 1 << (paleta.index(color) + 1)
-        mascaras.append(mascara)
+            palette = sprite[1][sprite[6]]
+            for color in timer_color_list:
+                mask |= 1 << (palette.index(color) + 1)
+        masks.append(mask)
     with open(args.output, "a") as handle:
         handle.write('\n.segment "RODATA"\n.bloque %d\ntimer_mascara:\n'
                      '    .word %s\n'
-                     % (2 * len(mascaras),
-                        ", ".join("$%04X" % m for m in mascaras)))
-    if len(args.casos) > 1:
+                     % (2 * len(masks),
+                        ", ".join("$%04X" % m for m in masks)))
+    if len(args.cases) > 1:
         # Where the harness writes the case number: see `--case`.
         with open(args.output, "a") as handle:
             handle.write("\nCASO_RANURA = %d\n" % events.variable_slot(
                 events.CASE_VARIABLE))
     print("%d map(s) -> %s, boots at %d (map %d)"
-          % (len(mapas), args.output, args.start_index, mapas[args.start_index]["id"]))
+          % (len(maps), args.output, args.start_index, maps[args.start_index]["id"]))
     # What the allocator decided, as images: to look at which colors were lost
     # and which palette each cell ended up in without building or running the
     # ROM. They are indexed and their indices are CGRAM entries, so an editor
@@ -8113,11 +8113,11 @@ def main():
     allocator = os.path.join(os.path.dirname(os.path.abspath(args.output)),
                              "asignador")
     os.makedirs(allocator, exist_ok=True)
-    for mapa in mapas:
-        imagenes = list(mapa["imagenes_fondo"]) + [("encima", mapa["above"][5])]
-        for nombre, png in imagenes:
+    for map_info in maps:
+        pictures = list(map_info["imagenes_fondo"]) + [("encima", map_info["above"][5])]
+        for name, png in pictures:
             with open(os.path.join(allocator, "%04d-%s.png"
-                                   % (mapa["id"], nombre)), "wb") as handle:
+                                   % (map_info["id"], name)), "wb") as handle:
                 handle.write(png)
     # And **what it decided to lose**, written down: which color was merged
     # with which in each layer. It goes next to the images because it comes
@@ -8125,40 +8125,40 @@ def main():
     # looking at and this is for reading back and for the diff to warn. What
     # is versioned is in `rom/parches/`, and `just parches --check` compares.
     # See tools/port/patches.py.
-    destino_parches = os.path.dirname(os.path.abspath(args.output))
-    cuantos, pesan = parches_mod.write_maps(destino_parches, mapas)
+    patches_dest = os.path.dirname(os.path.abspath(args.output))
+    count, weigh = patches_mod.write_maps(patches_dest, maps)
     print("patches of %d map(s) -> %s (%d B)"
-          % (cuantos, parches_mod.MAPS_IN_BUILD, pesan))
+          % (count, patches_mod.MAPS_IN_BUILD, weigh))
     # And the other decision that is already written down: **at what size
     # each battle animation is drawn**. It comes from the same round above;
     # here it is joined with the name and the sheet the animation has in the
     # LDB, which nobody looks at to draw and are there so that the diff says
     # which one it is about.
-    cuantos, pesan = parches_mod.write_animations(
-        destino_parches,
-        [dict(animacion_mod.report(numero, animaciones[numero]),
-              nombre=events.ANIMATIONS[numero].get("nombre", ""),
-              hoja=events.ANIMATIONS[numero].get("imagen", ""),
-              lado=animacion_mod.BOX)
-         for numero in sorted(animaciones)])
+    count, weigh = patches_mod.write_animations(
+        patches_dest,
+        [dict(animation_mod.report(number, animations[number]),
+              nombre=events.ANIMATIONS[number].get("nombre", ""),
+              hoja=events.ANIMATIONS[number].get("imagen", ""),
+              lado=animation_mod.BOX)
+         for number in sorted(animations)])
     print("patches of %d animation(s) -> %s (%d B)"
-          % (cuantos, parches_mod.ANIMS_IN_BUILD, pesan))
+          % (count, patches_mod.ANIMS_IN_BUILD, weigh))
     # And **which fifteen colors each battler is reduced to**, which is the
     # decision the scene composed on the console brought: see
     # tools/port/scene.py.
-    cuantos, pesan = parches_mod.write_battlers(destino_parches,
-                                                escenas["battlers"])
+    count, weigh = patches_mod.write_battlers(patches_dest,
+                                              scenes["battlers"])
     print("patches of %d battler(s) -> %s (%d B)"
-          % (cuantos, parches_mod.BATTLERS_IN_BUILD, pesan))
+          % (count, patches_mod.BATTLERS_IN_BUILD, weigh))
     # And who asked for each one, which isn't versioned: it is what separates,
     # in the ROM that is played, what belongs to the game from what only
     # exists because of the suite.
-    parches_mod.write_uses(destino_parches, usos_de_los_parches(
-        mapas, renderer.database, renderer.tree))
-    if informe:
+    patches_mod.write_uses(patches_dest, patch_uses(
+        maps, renderer.database, renderer.tree))
+    if report:
         print("material compressed and shared between maps:")
-        for linea in informe:
-            print(linea)
+        for line in report:
+            print(line)
 
     # The music comes from here and not from a separate recipe.
     # `musicdata.inc` was global state as `mapdata.inc` was, with the
@@ -8172,14 +8172,14 @@ def main():
     # by the map that is entered if it brings its own —see `mapa_tema_callar`
     # in tools/runtime/cargar_mapa.s—. What rate each sample ends up at is
     # decided by the ARAM, package by package: see `Bank` in snes_music.py.
-    musica = os.path.join(os.path.dirname(os.path.abspath(args.output)),
-                          "musicdata.inc")
-    pedidos, arranque, tema_titulo, tema_de_mapa, tema_game_over = (
-        temas_de_la_rom(
-            mapas[args.start_index]["id"], temas, args.game_dir,
+    music = os.path.join(os.path.dirname(os.path.abspath(args.output)),
+                         "musicdata.inc")
+    requested, boot, title_song, map_song, game_over_song = (
+        rom_songs(
+            maps[args.start_index]["id"], songs, args.game_dir,
             renderer.database.title_music if not args.no_title else None,
-            [m["id"] for m in mapas],
-            renderer.database.gameover_music if game_over_datos else None))
+            [m["id"] for m in maps],
+            renderer.database.gameover_music if game_over_data else None))
     # The sound effects, in the order the compiled pages ask for them: the
     # maps are compiled in ROM order, so those of the map where it boots go
     # first —in the demo, the rain and the thunder of the opening—. Only the
@@ -8188,12 +8188,12 @@ def main():
     # cost the music, because `snes_music.copies` counts the cartridge's
     # sound effects. It happens with the route ones of
     # `se_route_left_out`.
-    empaquetados = {n for pide in temas.per_map.values()
-                    for n in pide["sonidos"]}
-    pedidos_se = []
-    for nombre, _v, _t, _b in temas.sounds:
-        if nombre not in pedidos_se and nombre in empaquetados:
-            pedidos_se.append(nombre)
+    packed = {n for palettes_needed in songs.per_map.values()
+              for n in palettes_needed["sonidos"]}
+    requested_se = []
+    for name, _v, _t, _b in songs.sounds:
+        if name not in requested_se and name in packed:
+            requested_se.append(name)
     # Each map's audio package, in the order of the map table: the songs its
     # pages can start —plus, in the boot one, the one that plays from the
     # start, and in all the map's own— and its sound effects, in the order
@@ -8201,48 +8201,48 @@ def main():
     # don't all fit. See `paquete_cargar` in tools/runtime/paquete_de_audio.s.
     # They are built **before** the bank, by name, because each sample's
     # budget comes from them: see `snes_music.Bank`.
-    paquetes, apartes = [], []
-    for i, _mapa in enumerate(mapas):
-        pide = temas.per_map.get(i, {"temas": [], "sonidos": []})
-        suyos = list(pide["temas"])
-        if i == args.start_index and arranque != 0xFF and arranque not in suyos:
-            suyos.insert(0, arranque)
+    packages, separate_ones = [], []
+    for i, _map in enumerate(maps):
+        palettes_needed = songs.per_map.get(i, {"temas": [], "sonidos": []})
+        owned = list(palettes_needed["temas"])
+        if i == args.start_index and boot != 0xFF and boot not in owned:
+            owned.insert(0, boot)
         # And the map's own song, **in front**: it is the only one on the list
         # that surely plays on entering, so if the ARAM isn't enough for
         # everything it is the last one that has to fall. Without it in the
         # package, its samples would have to be uploaded by `tema_asegurar`
         # when starting it, rebuilding the whole package a second time.
-        if tema_de_mapa[i] != 0xFF:
-            if tema_de_mapa[i] in suyos:
-                suyos.remove(tema_de_mapa[i])
-            suyos.insert(0, tema_de_mapa[i])
+        if map_song[i] != 0xFF:
+            if map_song[i] in owned:
+                owned.remove(map_song[i])
+            owned.insert(0, map_song[i])
         # And the exit ones, separate and after the sound effects: the ones
         # the map starts only to leave have no reason to go in with its sound
         # effects. See `Songs.exit_songs`. Not the map's own nor the boot one:
         # those play on entering.
-        salida = [t for t in temas.exit_songs(i)
-                  if t in suyos and t != tema_de_mapa[i]
-                  and not (i == args.start_index and t == arranque)]
-        suyos = [t for t in suyos if t not in salida]
+        out = [t for t in songs.exit_songs(i)
+               if t in owned and t != map_song[i]
+               and not (i == args.start_index and t == boot)]
+        owned = [t for t in owned if t not in out]
         # And the separate ones, which don't go with the other songs either:
         # their `PlayBGM` uploads them with the package's sound effects. See
         # `separate_songs`.
-        aparte = [t for t in suyos if pedidos[t] in snes_music.separate_songs().get(
-                      _mapa["id"], ()) and t != tema_de_mapa[i]
-                  and not (i == args.start_index and t == arranque)]
-        suyos = [t for t in suyos if t not in aparte]
-        apartes.append(aparte)
-        paquetes.append((suyos, list(pide["sonidos"]), salida))
+        separate = [t for t in owned if requested[t] in snes_music.separate_songs().get(
+                      _map["id"], ()) and t != map_song[i]
+                    and not (i == args.start_index and t == boot)]
+        owned = [t for t in owned if t not in separate]
+        separate_ones.append(separate)
+        packages.append((owned, list(palettes_needed["sonidos"]), out))
     # And the battle's package, after the maps: the battle song and its sound
     # effects, which the ROM uploads when opening the battle and unloads when
     # closing it. It goes separately and not inside the map's package because
     # the battle song alone fills the ARAM; see `events.BATTLE_PACKAGE`.
-    pide = temas.per_map.get(events.BATTLE_PACKAGE)
-    if pide:
-        paquetes.append((list(pide["temas"]), list(pide["sonidos"]), []))
-        apartes.append([])
-    nombres_de_paquete = ([str(m["id"]) for m in mapas]
-                          + (["pelea"] if pide else []))
+    palettes_needed = songs.per_map.get(events.BATTLE_PACKAGE)
+    if palettes_needed:
+        packages.append((list(palettes_needed["temas"]), list(palettes_needed["sonidos"]), []))
+        separate_ones.append([])
+    package_names = ([str(m["id"]) for m in maps]
+                     + (["pelea"] if palettes_needed else []))
     # And the Game Over screen's, last: its song alone and no sound effects.
     # The ROM uploads it with the screen black, before the fade in —see
     # `game_over_negro` in tools/runtime/game_over.s—, and with a package of
@@ -8250,34 +8250,34 @@ def main():
     # rebuild the whole map package behind it, which is one more second of
     # black. For the allocation it is a one-song package, which doesn't lower
     # anyone's rate: its samples fit alone in the ARAM.
-    paquete_game_over = 0xFFFF
-    if tema_game_over != 0xFF:
-        paquete_game_over = len(paquetes)
-        paquetes.append(([tema_game_over], [], []))
-        apartes.append([])
-        nombres_de_paquete.append("gameover")
-    por_nombre = [(nombre, suyos, suyas, salida, aparte)
-                  for nombre, (suyos, suyas, salida), aparte
-                  in zip(nombres_de_paquete, paquetes, apartes)]
+    game_over_package = 0xFFFF
+    if game_over_song != 0xFF:
+        game_over_package = len(packages)
+        packages.append(([game_over_song], [], []))
+        separate_ones.append([])
+        package_names.append("gameover")
+    per_name = [(name, owned, theirs, out, separate)
+                for name, (owned, theirs, out), separate
+                in zip(package_names, packages, separate_ones)]
     # And the title screen's, which isn't in the table: `tema_asegurar`
     # uploads its song with the boot map's package behind.
-    if tema_titulo != 0xFF:
-        suyos, suyas, _salida = paquetes[args.start_index]
-        por_nombre.append(("titulo", [tema_titulo] + suyos, suyas))
-    herencia = temas_heredados(temas, tema_de_mapa, args.start_index,
-                               tema_titulo, nombres_de_paquete,
-                               [suyos for suyos, _e, _s in paquetes],
-                               apartes, no_se_dan=settings.value(
+    if title_song != 0xFF:
+        owned, theirs, _out = packages[args.start_index]
+        per_name.append(("titulo", [title_song] + owned, theirs))
+    inheritance = inherited_songs(songs, map_song, args.start_index,
+                                  title_song, package_names,
+                                  [owned for owned, _e, _s in packages],
+                                  separate_ones, not_given=settings.value(
                                    "music", "jumps_that_never_happen",
                                    kind=list))
-    driver, muestras, hechos, banco = snes_music.build_all(
-        pedidos, args.game_dir, pedidos_se, por_nombre, herencia,
+    driver, samples, done_ones, bank = snes_music.build_all(
+        requested, args.game_dir, requested_se, per_name, inheritance,
         measuring_headroom=args.measure_headroom)
     # And what `tools/audio/ceilings.py` needs from each song —how long it lasts
     # and the fingerprint of its mix—, written next to it: the bank can no
     # longer be rebuilt without compiling the pages, which is where the
     # packages come from.
-    with open(os.path.join(os.path.dirname(musica), "musica.json"),
+    with open(os.path.join(os.path.dirname(music), "musica.json"),
               "w") as handle:
         json.dump({"temas": [
             {"nombre": t["nombre"],
@@ -8285,143 +8285,143 @@ def main():
              "huella": t.get("huella", ""),
              # `tools/audio/msu.py` reads it from here, which builds only the
              # tracks of the cartridge's songs.
-             "pista": t["pista"]} for t in hechos]},
+             "pista": t["pista"]} for t in done_ones]},
             handle, indent=1)
     # Each package's sound effects go by number and not by SRCN: several share
     # the directory's place. See `snes_music.effect_places`.
-    efectos = getattr(banco, "effects", {})
-    efecto_id = getattr(banco, "effect_id", {})
-    paquetes = [(suyos, [efecto_id[n] for n in suyas if n in efectos], salida)
-                for suyos, suyas, salida in paquetes]
-    directorio = (len(banco.voices), getattr(banco, "places", 0))
-    efecto_lugar = [srcn - directorio[0] for srcn, _e in sorted(
-        efectos.values(), key=lambda v: efecto_id[v[1].name])]
-    if pide:
-        assert nombres_de_paquete[len(mapas)] == "pelea", (
+    effects = getattr(bank, "effects", {})
+    effect_id = getattr(bank, "effect_id", {})
+    packages = [(owned, [effect_id[n] for n in theirs if n in effects], out)
+                for owned, theirs, out in packages]
+    directory = (len(bank.voices), getattr(bank, "places", 0))
+    effect_place = [srcn - directory[0] for srcn, _e in sorted(
+        effects.values(), key=lambda v: effect_id[v[1].name])]
+    if palettes_needed:
+        assert package_names[len(maps)] == "pelea", (
             "the battle's package has to end up at the index `emit` emitted "
             "as PAQUETE_BATALLA")
         print("  battle audio package: %d song(s), %d sound effect(s)"
-              % (len(pide["temas"]), len(paquetes[-1][1])))
+              % (len(palettes_needed["temas"]), len(packages[-1][1])))
     # **And that the boot fits in `BOOT_CUADROS`**: the ROM waits until that
     # frame so that the loop always starts on the same one, and if uploading
     # the boot map's package took longer, it would come out later and the
     # tests —which count from there— would count wrong. See the comment on
     # `BOOT_CUADROS` in tools/runtime/ram_lejana.s.
-    cuadros, del_paquete = snes_music.boot_frames_estimate(
-        driver, muestras, hechos, paquetes[args.start_index],
-        cuadros_de_descomprimir(mapas[args.start_index], comprimidos),
-        directorio)
-    tope = snes_music.boot_frames()
-    if cuadros > tope:
+    frames, in_package = snes_music.boot_frames_estimate(
+        driver, samples, done_ones, packages[args.start_index],
+        decompress_frames(maps[args.start_index], compressed),
+        directory)
+    cap = snes_music.boot_frames()
+    if frames > cap:
         raise SystemExit(
             "the boot doesn't fit in BOOT_CUADROS: the boot map's package is "
             "%d B and with the map, the driver and the directory the "
             "computation gives %.0f frames, against %d. Raise BOOT_CUADROS in "
             "tools/runtime/ram_lejana.s, or shrink that package"
-            % (del_paquete, cuadros, tope))
+            % (in_package, frames, cap))
     print("  boot: the boot map's package is %d B, %.0f of "
-          "the %d frames of BOOT_CUADROS" % (del_paquete, cuadros, tope))
-    snes_music.emit(musica, hechos, driver, muestras, arranque, tema_titulo,
-                    snes_music.sound_table(temas.sounds, banco),
-                    [p + (aparte,) for p, aparte in zip(paquetes, apartes)],
-                    tema_de_mapa, directorio, efecto_lugar,
-                    game_over=(tema_game_over, paquete_game_over))
+          "the %d frames of BOOT_CUADROS" % (in_package, frames, cap))
+    snes_music.emit(music, done_ones, driver, samples, boot, title_song,
+                    snes_music.sound_table(songs.sounds, bank),
+                    [p + (separate,) for p, separate in zip(packages, separate_ones)],
+                    map_song, directory, effect_place,
+                    game_over=(game_over_song, game_over_package))
     # The `.msu`: the quality backdrops and the quality sound effects, to read
     # them through the MSU-1 when it is there. It is always written, even if
     # the cartridge carries neither backdrops nor sound effects, because it is
     # also the file that turns on the MSU-1 for the tracks.
-    escribir_msu(args.msu or os.path.join(os.path.dirname(os.path.abspath(
-        args.output)), "datos.msu"), musica, escenas["calidad"],
-        por_nombre[:len(paquetes)], paquetes, hechos, muestras, banco,
-        temas.sounds, args.game_dir)
-    for i, (suyos, suyas, salida) in enumerate(paquetes[:len(mapas)]):
-        if suyos or suyas or salida or apartes[i]:
+    write_msu(args.msu or os.path.join(os.path.dirname(os.path.abspath(
+        args.output)), "datos.msu"), music, scenes["calidad"],
+        per_name[:len(packages)], packages, done_ones, samples, bank,
+        songs.sounds, args.game_dir)
+    for i, (owned, theirs, out) in enumerate(packages[:len(maps)]):
+        if owned or theirs or out or separate_ones[i]:
             print("  audio package of map %d: %d song(s), %d sound effect(s)%s%s"
-                  % (mapas[i]["id"], len(suyos), len(suyas),
-                     ", and for exit %s" % ", ".join(hechos[t]["nombre"]
-                                                     for t in salida)
-                     if salida else "",
-                     ", and separate %s" % ", ".join(hechos[t]["nombre"]
-                                                     for t in apartes[i])
-                     if apartes[i] else ""))
-    if pedidos_se:
+                  % (maps[i]["id"], len(owned), len(theirs),
+                     ", and for exit %s" % ", ".join(done_ones[t]["nombre"]
+                                                     for t in out)
+                     if out else "",
+                     ", and separate %s" % ", ".join(done_ones[t]["nombre"]
+                                                     for t in separate_ones[i])
+                     if separate_ones[i] else ""))
+    if requested_se:
         print("  sound effects: %d, %d B in the cartridge"
-              % (len(efectos), sum(len(e.data) for _s, e in efectos.values())))
+              % (len(effects), sum(len(e.data) for _s, e in effects.values())))
     print("music -> %s: %s"
-          % (musica, ", ".join(t["nombre"] for t in hechos)
+          % (music, ", ".join(t["nombre"] for t in done_ones)
              or "none, it comes out silent"))
 
     # **And only here is the bank packing decided**, with both files already
     # written: it spreads everything both send to RODATA, and the banks end up
     # at the end of the last one. See `tools/assembly/banks.py`.
-    piezas, usados = banks.resolve([musica, args.output])
-    print("bank packing: %d piece(s) in %d bank(s)" % (piezas, usados))
+    pieces, used = banks.resolve([music, args.output])
+    print("bank packing: %d piece(s) in %d bank(s)" % (pieces, used))
     # And the memory map for `ld65`, next to it: it comes from here and not
     # from a hand-written file so that which bank the data starts at is
     # written only once, in `banks.FIRST_BANK`.
     with open(os.path.join(os.path.dirname(os.path.abspath(args.output)),
                            "memoria.cfg"), "w") as handle:
         handle.write(banks.cfg())
-    for i, tema in enumerate(hechos):
+    for i, song in enumerate(done_ones):
         # The percentage of notes that reach the stream goes here and not
         # hidden: it is what is heard as "it's missing voices", and until
         # 2026-09-14 nobody said it. See
         # workflow/decisiones/un-solo-banco-de-muestras.md.
-        suenan = tema["resumen"].get("notas")
+        sound = song["resumen"].get("notas")
         # And how much of what does have a sample is lost for lack of voices,
         # against what would be lost with no remedy with eight: it is what
         # the allocation of `snes_music.assign` measures.
-        perdido, piso = tema["resumen"].get("perdido", (0.0, 0.0))
+        lost, floor = song["resumen"].get("perdido", (0.0, 0.0))
         print("  %d. %-16s %4.0f s, %6d B of stream and %4d of sounds, "
               "%s of the notes, %.0f%% of note-time without a voice (floor %.0f%%)%s"
-              % (i, tema["nombre"], tema["segundos"], len(tema["stream"]),
-                 6 * len(tema["sonidos"]),
-                 "all" if suenan is None or suenan > 0.999
-                 else "%.0f%%" % (100 * suenan), 100 * perdido, 100 * piso,
-                 ", plays from boot" if i == arranque else ""))
-    if hechos:
+              % (i, song["nombre"], song["segundos"], len(song["stream"]),
+                 6 * len(song["sonidos"]),
+                 "all" if sound is None or sound > 0.999
+                 else "%.0f%%" % (100 * sound), 100 * lost, 100 * floor,
+                 ", plays from boot" if i == boot else ""))
+    if done_ones:
         print("  shared bank: %d samples, %d B in the cartridge; each "
               "package has %d B of ARAM for its samples"
-              % (len(banco.voices), sum(len(v.data) for v in banco.voices),
-                 banco.free))
+              % (len(bank.voices), sum(len(v.data) for v in bank.voices),
+                 bank.free))
         # What rate each sample ended up at and which package limited it: it
         # is what is heard, and what says where to look for room if needed. A
         # key with copies comes out once per copy, with the songs that use it:
         # see `snes_music.copies`.
-        usan = collections.defaultdict(list)
-        for tema, suya in zip(hechos, banco.assignment):
-            for muestra in suya.values():
-                usan[muestra].append(tema["nombre"])
-        for clave, voz in zip(banco.keys, banco.voices):
+        use = collections.defaultdict(list)
+        for song, its in zip(done_ones, bank.assignment):
+            for sample in its.values():
+                use[sample].append(song["nombre"])
+        for key, voice in zip(bank.keys, bank.voices):
             print("    %s %3d %-10s %5.1f kHz, %5d B%s%s%s"
-                  % ("program " if clave[0] == "p" else "hit     ", clave[1],
-                     voz.name.strip()[:10], voz.rate / 1000.0, len(voz.data),
-                     ", root %d" % voz.root if clave[0] == "p" else "",
-                     ", limited by " + banco.limited_by[clave]
-                     if clave in banco.limited_by else "",
-                     ", for " + " ".join(usan[clave])
-                     if len(clave) > (3 if clave[0] == "p" else 2)
-                     or any(len(k) > len(clave) and k[:len(clave)] == clave
-                            for k in banco.keys) else ""))
+                  % ("program " if key[0] == "p" else "hit     ", key[1],
+                     voice.name.strip()[:10], voice.rate / 1000.0, len(voice.data),
+                     ", root %d" % voice.root if key[0] == "p" else "",
+                     ", limited by " + bank.limited_by[key]
+                     if key in bank.limited_by else "",
+                     ", for " + " ".join(use[key])
+                     if len(key) > (3 if key[0] == "p" else 2)
+                     or any(len(k) > len(key) and k[:len(key)] == key
+                            for k in bank.keys) else ""))
         # And how much each package has left over, with its sound effects: the
         # whole ones with what they really take, not with what the music
         # budgeted for them. The bank's constraints already bring them that way
         # —they are those of `reales`, see `snes_music.copies`—: subtracting
         # the extra again gave packages that didn't fit and did fit.
-        for r in banco.constraints:
+        for r in bank.constraints:
             print("    package %-28s %5d B of samples, %5d left over"
-                  % (r.name[:28], banco.takes(r.keys),
-                     r.free - banco.takes(r.keys)))
+                  % (r.name[:28], bank.takes(r.keys),
+                     r.free - bank.takes(r.keys)))
 
 
-def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
-                 banco, sonidos, game_dir):
-    """Writes the `.msu` to `ruta` and appends to `musica` —the
+def write_msu(path, music, backdrops, per_name, packages, done_ones, samples,
+              bank, sounds, game_dir):
+    """Writes the `.msu` to `path` and appends to `music` —the
     `musicdata.inc`— what the ROM needs to read it: the signature, where each
     backdrop is and, per package, where each sound effect is and at which
     pitch each sound plays.
 
-    The backdrops go first —`fondos` are the `(tiles, colors)` of **all the
+    The backdrops go first —`backdrops` are the `(tiles, colors)` of **all the
     game's**, by number, each in its fixed place: see `msu_data.backdrop_offset`—
     and behind them the quality sound effects of each package, in the order
     of the package table and each package with its own in order of place in
@@ -8430,70 +8430,70 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
     sound effect that is in two packages goes twice even if at the same rate:
     a seek costs Mednafen one or two frames, and the file has no cap.
 
-    `por_nombre` are the ROM's packages as `build_all` sees them —with the
-    names of their sound effects— and `paquetes` the same as `emit` emits them
+    `per_name` are the ROM's packages as `build_all` sees them —with the
+    names of their sound effects— and `packages` the same as `emit` emits them
     —with their sound effect numbers—, in the same order. See
     tools/audio/msu_effects.py.
     """
-    efectos = getattr(banco, "effects", {})
-    de_numero = {i: n for n, i in getattr(banco, "effect_id", {}).items()}
+    effects = getattr(bank, "effects", {})
+    by_number = {i: n for n, i in getattr(bank, "effect_id", {}).items()}
     # What the music takes with MSU-1 in each package: only the songs without
     # a track, which `tema_por_msu` doesn't skip.
-    pesa = {}
+    weighs = {}
 
-    def musica_de(temas):
-        suyas = set()
-        for t in temas:
-            if hechos[t]["pista"] is None:
-                if t not in pesa:
-                    pesa[t] = snes_music.song_samples(hechos[t])
-                suyas |= set(pesa[t])
-        return sum(len(muestras[i].data) for i in suyas)
-    pedidos = [(str(p[0]), list(p[2]), musica_de(p[1]))
-               for p in por_nombre]
-    tasas = msu_effects.rates_per_package(pedidos, efectos, banco.free, game_dir)
-    unicas = sorted({(e, t) for suyas in tasas.values()
-                     for e, t in suyas.items()})
-    hechas = dict(zip(unicas, in_parallel(
-        lambda par: msu_effects.build(par[0], par[1], game_dir), unicas)))
+    def music_of(songs):
+        theirs = set()
+        for t in songs:
+            if done_ones[t]["pista"] is None:
+                if t not in weighs:
+                    weighs[t] = snes_music.song_samples(done_ones[t])
+                theirs |= set(weighs[t])
+        return sum(len(samples[i].data) for i in theirs)
+    requested = [(str(p[0]), list(p[2]), music_of(p[1]))
+                 for p in per_name]
+    rates = msu_effects.rates_per_package(requested, effects, bank.free, game_dir)
+    unique = sorted({(e, t) for theirs in rates.values()
+                     for e, t in theirs.items()})
+    done_tracks = dict(zip(unique, in_parallel(
+        lambda pair: msu_effects.build(pair[0], pair[1], game_dir), unique)))
 
-    entradas = [parte for par in fondos for parte in par]
+    entries = [part for pair in backdrops for part in pair]
     # Which entry each sound effect of each package is, in SRCN order: two of
     # the same package never share a place.
-    del_paquete = []
-    for (nombre, _t, _e, *_s), (_temas, numeros, _salida) in zip(por_nombre,
-                                                                 paquetes):
-        suyas = tasas.get(str(nombre), {})
-        lista = []
-        for e in sorted({de_numero[i] for i in numeros},
-                        key=lambda e: efectos[e][0]):
-            lista.append((e, len(entradas), hechas[e, suyas[e]]))
-            entradas.append(hechas[e, suyas[e]].data)
-        del_paquete.append(lista)
-    archivo, donde = msu_data.build(entradas, backdrops=len(fondos))
-    firma = archivo[:msu_data.SIGNATURE_SIZE]
-    with open(ruta + ".nuevo", "wb") as handle:
-        handle.write(archivo)
-    os.replace(ruta + ".nuevo", ruta)
+    in_package = []
+    for (name, _t, _e, *_s), (_songs, numbers, _out) in zip(per_name,
+                                                            packages):
+        theirs = rates.get(str(name), {})
+        values = []
+        for e in sorted({by_number[i] for i in numbers},
+                        key=lambda e: effects[e][0]):
+            values.append((e, len(entries), done_tracks[e, theirs[e]]))
+            entries.append(done_tracks[e, theirs[e]].data)
+        in_package.append(values)
+    blob, offset = msu_data.build(entries, backdrops=len(backdrops))
+    signature = blob[:msu_data.SIGNATURE_SIZE]
+    with open(path + ".nuevo", "wb") as handle:
+        handle.write(blob)
+    os.replace(path + ".nuevo", path)
     print("  .msu: %d backdrop(s) and %d sound effect(s) in %d B, signature %s -> %s"
-          % (len(fondos), sum(len(l) for l in del_paquete), len(archivo),
-             firma.hex(), ruta))
+          % (len(backdrops), sum(len(l) for l in in_package), len(blob),
+             signature.hex(), path))
 
-    # Per package, one row per sound effect of its list —that of `paquetes`,
+    # Per package, one row per sound effect of its list —that of `packages`,
     # in the order the ROM walks it—: where it is in the `.msu`, how long it
     # is and where it loops back, which is always to the start because they
     # go whole.
-    filas, desde_filas = bytearray(), bytearray()
-    alturas, desde_alturas, ya_listas = bytearray(), bytearray(), {}
-    for (nombre, *_r), (_temas, numeros, _salida), lista in zip(
-            por_nombre, paquetes, del_paquete):
-        desde_filas += (len(filas)).to_bytes(2, "little")
-        de_efecto = {e: (donde[k], v) for e, k, v in lista}
-        for i in numeros:
-            pos, version = de_efecto[de_numero[i]]
-            filas += (pos.to_bytes(4, "little")
-                      + len(version.data).to_bytes(2, "little")
-                      + bytes(2))
+    rows, from_rows = bytearray(), bytearray()
+    heights, from_heights, already_done = bytearray(), bytearray(), {}
+    for (name, *_r), (_songs, numbers, _out), values in zip(
+            per_name, packages, in_package):
+        from_rows += (len(rows)).to_bytes(2, "little")
+        by_effect = {e: (offset[k], v) for e, k, v in values}
+        for i in numbers:
+            pos, version = by_effect[by_number[i]]
+            rows += (pos.to_bytes(4, "little")
+                     + len(version.data).to_bytes(2, "little")
+                     + bytes(2))
         # And the pitch of each sound of `sonido_tabla` with this package's
         # version: with that the ROM does no arithmetic, not even in the
         # interrupt. **Only the sounds whose sound effect is from here**, as
@@ -8501,30 +8501,30 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
         # `altura_msu` walks: until 2026-09-27 it was one row per package with
         # all the sounds, almost all zeros, and with the whole world chapter
         # it went over a bank. Two packages with the same list share it.
-        suyas = tasas.get(str(nombre), {})
-        lista = bytearray()
-        for k, (efecto, _volumen, tempo, _balance) in enumerate(sonidos):
-            altura = 0
-            if efecto in suyas:
-                altura = snes_music.effect_pitch(
-                    hechas[efecto, suyas[efecto]], tempo)
+        theirs = rates.get(str(name), {})
+        values = bytearray()
+        for k, (effect, _volume, tempo, _balance) in enumerate(sounds):
+            height = 0
+            if effect in theirs:
+                height = snes_music.effect_pitch(
+                    done_tracks[effect, theirs[effect]], tempo)
             # Zero is "not from here" for the ROM, so it isn't stored.
-            if altura:
-                lista += k.to_bytes(2, "little") + altura.to_bytes(2, "little")
-        lista += b"\xFF\xFF"
-        lista = bytes(lista)
-        if lista not in ya_listas:
-            ya_listas[lista] = len(alturas)
-            alturas += lista
-        desde_alturas += ya_listas[lista].to_bytes(2, "little")
-    for tabla in (filas, alturas):
-        if len(tabla) > 0x8000:
+            if height:
+                values += k.to_bytes(2, "little") + height.to_bytes(2, "little")
+        values += b"\xFF\xFF"
+        values = bytes(values)
+        if values not in already_done:
+            already_done[values] = len(heights)
+            heights += values
+        from_heights += already_done[values].to_bytes(2, "little")
+    for table in (rows, heights):
+        if len(table) > 0x8000:
             raise SystemExit("the .msu sound effect tables go over a "
-                             "bank: %d B" % len(tabla))
-    posiciones = [(donde[2 * k], donde[2 * k + 1]) for k in range(len(fondos))]
-    fondo_pos = b"".join(a.to_bytes(4, "little") + b.to_bytes(4, "little")
-                         for a, b in posiciones) or bytes(8)
-    with open(musica, "a") as handle:
+                             "bank: %d B" % len(table))
+    positions = [(offset[2 * k], offset[2 * k + 1]) for k in range(len(backdrops))]
+    backdrop_pos = b"".join(a.to_bytes(4, "little") + b.to_bytes(4, "little")
+                            for a, b in positions) or bytes(8)
+    with open(music, "a") as handle:
         handle.write(
             "\n; The `.msu`: see `escribir_msu` in tools/port/snes_convert.py.\n"
             "; How many entries of the .msu are backdrops —two per backdrop,\n"
@@ -8533,37 +8533,37 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
             "MSU_FONDOS_N = %d\n"
             "MSU_EFECTOS_N = %d\n"
             '.segment "RODATA"\n%s\n'
-            % (len(fondos),
-               sum(len(lista) for lista in del_paquete),
-               "\n".join(bloque(etiqueta, datos or bytes(2)) for etiqueta, datos
-                         in (("msu_datos_firma", firma),
-                             ("msu_fondo_pos", fondo_pos),
-                             ("se_msu_paq", desde_filas),
-                             ("se_msu_filas", filas),
-                             ("se_msu_altura_paq", desde_alturas),
-                             ("se_msu_altura", alturas)))))
+            % (len(backdrops),
+               sum(len(values) for values in in_package),
+               "\n".join(block(label, data or bytes(2)) for label, data
+                         in (("msu_datos_firma", signature),
+                             ("msu_fondo_pos", backdrop_pos),
+                             ("se_msu_paq", from_rows),
+                             ("se_msu_filas", rows),
+                             ("se_msu_altura_paq", from_heights),
+                             ("se_msu_altura", heights)))))
     # And the same, readable, next to it: which sound each row of
     # `sonido_tabla` is and at which rate each sound effect of each package
     # goes in the `.msu`. The ROM doesn't read it; it is for the tools that
     # touch a sound effect from outside and to look at what the allocation
     # decided.
-    with open(os.path.join(os.path.dirname(musica), "efectos.json"),
+    with open(os.path.join(os.path.dirname(music), "efectos.json"),
               "w") as handle:
-        json.dump({"sonidos": [list(s) for s in sonidos],
-                   "srcn": {e: srcn for e, (srcn, _v) in efectos.items()},
-                   "tasas": tasas}, handle, indent=1)
-    for (nombre, *_r) in por_nombre:
-        suyas = tasas.get(str(nombre), {})
-        if suyas:
+        json.dump({"sonidos": [list(s) for s in sounds],
+                   "srcn": {e: srcn for e, (srcn, _v) in effects.items()},
+                   "tasas": rates}, handle, indent=1)
+    for (name, *_r) in per_name:
+        theirs = rates.get(str(name), {})
+        if theirs:
             print("  quality sound effects of package %s: %s"
-                  % (nombre, ", ".join(
-                      "%d Hz: %d" % (t, sum(1 for v in suyas.values()
+                  % (name, ", ".join(
+                      "%d Hz: %d" % (t, sum(1 for v in theirs.values()
                                             if v == t))
-                      for t in sorted(set(suyas.values()), reverse=True))))
+                      for t in sorted(set(theirs.values()), reverse=True))))
 
 
-def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,
-                    del_paquete=None, apartes=None, no_se_dan=()):
+def inherited_songs(songs, map_song, initial, title, package_names,
+                    in_package=None, separate_ones=None, not_given=()):
     """[(package name, index of a song that can be already playing when it
     loads)], for `snes_music.build_all`.
 
@@ -8583,7 +8583,7 @@ def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,
     `workflow/tasks/todo/la-calidad-de-la-musica.md` measured with a separate
     script.
 
-    `del_paquete` are the songs each map's package uploads on entering
+    `in_package` are the songs each map's package uploads on entering
     —without the exit ones, see `Songs.exit_songs`—: a song that arrives
     playing and isn't there has to fit next to it. Without it, the ones its
     pages start. What leaves a map is still any of the ones they start, exit
@@ -8597,66 +8597,66 @@ def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,
     through 40, 42, 43, 44 and 45, while `golden_axe-turtlevillage2` and
     `tsmedit` play only to leave. From 2026-09-27; until then those maps
     inherited only their exit songs. The boot one keeps the rule above: see
-    `lleva`.
+    `carries`.
 
-    `apartes` are the separate songs of each package —see
+    `separate_ones` are the separate songs of each package —see
     `snes_music.separate_songs()`—: they don't leave the map, so they don't
     count in what goes out.
 
-    `no_se_dan` are the jumps of compiled pages that can't happen, as
+    `not_given` are the jumps of compiled pages that can't happen, as
     [map, destination] pairs: a jump that never happens makes it reserve room
     for a song that never arrives, at the expense of the ones that do. The
     game declares them, in `[music] jumps_that_never_happen` of the project
     file.
     """
-    n = len(tema_de_mapa)
-    pide = [temas.per_map.get(i, {}) for i in range(n)]
-    apartes = apartes or [()] * n
-    indice = {nombre: i for i, nombre in enumerate(nombres_de_paquete[:n])}
-    no_se_dan = {(indice[str(a)], indice[str(b)])
-                 for a, b in no_se_dan
-                 if str(a) in indice and str(b) in indice}
-    saltos = getattr(temas, "jumps", {})
-    entra = [set() for _ in range(n)]
-    if titulo != 0xFF:
-        entra[inicial].add(titulo)
+    n = len(map_song)
+    palettes_needed = [songs.per_map.get(i, {}) for i in range(n)]
+    separate_ones = separate_ones or [()] * n
+    index = {name: i for i, name in enumerate(package_names[:n])}
+    not_given = {(index[str(a)], index[str(b)])
+                 for a, b in not_given
+                 if str(a) in index and str(b) in index}
+    jumps = getattr(songs, "jumps", {})
+    fits = [set() for _ in range(n)]
+    if title != 0xFF:
+        fits[initial].add(title)
 
-    def lleva(i, destino):
-        if tema_de_mapa[i] != 0xFF:
-            return {tema_de_mapa[i]}
-        suyos = set(pide[i].get("temas", ())) - set(apartes[i])
+    def carries(i, dest):
+        if map_song[i] != 0xFF:
+            return {map_song[i]}
+        theirs = set(palettes_needed[i].get("temas", ())) - set(separate_ones[i])
         # Not the boot one: it is the router, which jumps to mid-game
         # according to variables, and without looking at conditions whatever
         # comes in there would go out anywhere.
-        if suyos and suyos <= set(temas.exit_songs(i)) and i != inicial:
+        if theirs and theirs <= set(songs.exit_songs(i)) and i != initial:
             # A destination no noted jump names —that of a page that didn't
             # compile whole— carries what came in.
-            con = saltos.get(i, {}).get(destino, {None})
-            return ({t for t in con if t is not None}
-                    | (entra[i] if None in con else set()))
-        return suyos or entra[i]
+            with_it = jumps.get(i, {}).get(dest, {None})
+            return ({t for t in with_it if t is not None}
+                    | (fits[i] if None in with_it else set()))
+        return theirs or fits[i]
 
-    cambio = True
-    while cambio:
-        cambio = False
+    change = True
+    while change:
+        change = False
         for i in range(n):
-            for destino in pide[i].get("destinos", ()):
-                if (i, destino) in no_se_dan:
+            for dest in palettes_needed[i].get("destinos", ()):
+                if (i, dest) in not_given:
                     continue
-                sale = lleva(i, destino)
-                if (destino != i and tema_de_mapa[destino] == 0xFF
-                        and not sale <= entra[destino]):
-                    entra[destino] |= sale
-                    cambio = True
-    if del_paquete is None:
-        del_paquete = [pide[i].get("temas", ()) for i in range(n)]
-    return [(nombres_de_paquete[i], t) for i in range(n)
-            for t in sorted(entra[i])
-            if t not in del_paquete[i] and t != tema_de_mapa[i]]
+                leaves = carries(i, dest)
+                if (dest != i and map_song[dest] == 0xFF
+                        and not leaves <= fits[dest]):
+                    fits[dest] |= leaves
+                    change = True
+    if in_package is None:
+        in_package = [palettes_needed[i].get("temas", ()) for i in range(n)]
+    return [(package_names[i], t) for i in range(n)
+            for t in sorted(fits[i])
+            if t not in in_package[i] and t != map_song[i]]
 
 
-def temas_de_la_rom(map_id, temas, game_dir, titulo=None, map_ids=(),
-                    game_over=None):
+def rom_songs(map_id, songs, game_dir, title=None, map_ids=(),
+              game_over=None):
     """Which songs the cartridge asks for, which one plays at boot and which
     one each map starts on entering.
 
@@ -8678,36 +8678,36 @@ def temas_de_la_rom(map_id, temas, game_dir, titulo=None, map_ids=(),
     through a teleport. They go behind all, for the same reason, and as each
     one's index or $FF, which is "entering doesn't change the music".
     """
-    propio = snes_music.song_of_map(map_id, game_dir)
-    if propio:
-        temas.index(propio)            # adds it at the end if it wasn't there
+    own = snes_music.song_of_map(map_id, game_dir)
+    if own:
+        songs.index(own)            # adds it at the end if it wasn't there
     # The title screen's goes after, for the same reason: adding at the end is
     # the only thing that doesn't renumber the ones the bytecode already
     # names. It comes from the LDB —`title_music`, which in ABL is
     # Fantasia_Of_The_Wind— and not from the command line: it is a piece of
     # the game's data, not a choice of ours.
-    if titulo:
-        temas.index(titulo)
+    if title:
+        songs.index(title)
     # And the Game Over screen's, for the same reason: `gameover_music`,
     # which in ABL is `GameOver3` and comes from the RTP. See
     # `PAQUETE_GAME_OVER`.
     if game_over:
-        temas.index(game_over)
-    de_cada_mapa = []
-    for nombre in snes_music.songs_of_maps(map_ids, game_dir):
-        indice = temas.index(nombre) if nombre else 0xFF
+        songs.index(game_over)
+    each_map = []
+    for name in snes_music.songs_of_maps(map_ids, game_dir):
+        index = songs.index(name) if name else 0xFF
         # $FF is "doesn't change": a song with that number couldn't be
         # started. A `PlayBGM`, which carries the index in one byte, wouldn't
         # start it either.
-        assert indice <= 0xFF, "song %r doesn't fit in a byte" % nombre
-        de_cada_mapa.append(indice)
-    nombres = list(temas.names)
-    return (nombres, (nombres.index(propio) if propio else 0xFF),
-            (nombres.index(titulo) if titulo else 0xFF), de_cada_mapa,
-            (nombres.index(game_over) if game_over else 0xFF))
+        assert index <= 0xFF, "song %r doesn't fit in a byte" % name
+        each_map.append(index)
+    names = list(songs.names)
+    return (names, (names.index(own) if own else 0xFF),
+            (names.index(title) if title else 0xFF), each_map,
+            (names.index(game_over) if game_over else 0xFF))
 
 
-def inicio_del_mapa(renderer, map_id, passable, width, height, ocupadas=()):
+def map_start(renderer, map_id, passable, width, height, used=()):
     """Where the hero stands on entering this map, in 16x16 cells.
 
     In the map where the game really starts, the LCF says it and there is
@@ -8733,12 +8733,12 @@ def inicio_del_mapa(renderer, map_id, passable, width, height, ocupadas=()):
     if map_id == renderer.tree.start_map_id:
         return renderer.tree.start_x, renderer.tree.start_y
     try:
-        return hero_start(passable, width, height, ocupadas)
+        return hero_start(passable, width, height, used)
     except ValueError:
         return width // 2, height // 2
 
 
-def images_de(renderer, args, charset):
+def images_of(renderer, args, charset):
     """An actor's CharSet, loaded and cached."""
     if charset not in _charsets:
         _charsets[charset] = renderer.charsets.get(charset)
@@ -8750,7 +8750,7 @@ def images_de(renderer, args, charset):
 _charsets = {}
 
 
-def lideres_posibles(renderer, map_ids, grupo):
+def possible_leaders(renderer, map_ids, party):
     """The actors that can end up drawn as the hero in this ROM.
 
     The party it starts with, plus all the ones some `ChangePartyMembers` of
@@ -8795,46 +8795,46 @@ def lideres_posibles(renderer, map_ids, grupo):
     while that map is loaded, and not what happened in the directory's
     previous maps.
     """
-    actores = list(grupo[:1])
-    for cambios in _cambios_de_grupo(map_ids):
-        estado = events.PartyState(grupo)
-        for tanda in cambios:
-            for quien, operacion in tanda:
-                estado.change_party(quien, operacion)
-            lider = estado.leader()
-            if lider is not None and lider not in actores:
-                actores.append(lider)
-    return actores
+    actors = list(party[:1])
+    for changes in _party_changes(map_ids):
+        state = events.PartyState(party)
+        for batch in changes:
+            for who, operation in batch:
+                state.change_party(who, operation)
+            leader = state.leader()
+            if leader is not None and leader not in actors:
+                actors.append(leader)
+    return actors
 
 
-def _cambios_de_grupo(map_ids):
+def _party_changes(map_ids):
     """The `ChangePartyMembers` of the pages that compile, map by map and in
-    order: the only thing of each map `lideres_posibles` looks at.
+    order: the only thing of each map `possible_leaders` looks at.
 
     **It is computed once per conversion**, because it doesn't depend on the
-    party: `lideres_posibles` runs again for each test case that touches the
+    party: `possible_leaders` runs again for each test case that touches the
     party, and each run loaded and compiled all the maps again. The
     compilation only reads the global indices of `events`, which are filled
     before the first call and don't change afterwards.
     """
-    clave = (_juego(), tuple(map_ids))
-    if clave not in _cambios_por_mapas:
-        _cambios_por_mapas[clave] = [_cambios_del_mapa(map_id, map_ids)
-                                     for map_id in map_ids]
-    return _cambios_por_mapas[clave]
+    key = (_game(), tuple(map_ids))
+    if key not in _changes_by_map:
+        _changes_by_map[key] = [_map_changes(map_id, map_ids)
+                                for map_id in map_ids]
+    return _changes_by_map[key]
 
 
-_cambios_por_mapas = {}
+_changes_by_map = {}
 
 
-def _cambios_del_mapa(map_id, map_ids):
+def _map_changes(map_id, map_ids):
     indices = {m: i for i, m in enumerate(map_ids)}
-    cambios = []
-    game_map = lcf.Map(os.path.join(_juego(),
+    changes = []
+    game_map = lcf.Map(os.path.join(_game(),
                                     "Map%04d.lmu" % map_id))
-    del_mapa = events.MapEvents(game_map)
-    for evento in game_map.events:
-        for page in evento.pages:
+    map_events = events.MapEvents(game_map)
+    for event in game_map.events:
+        for page in event.pages:
             # With the map's context, which is the same the real filter uses.
             # Without it, a page that sends another event walking doesn't
             # compile here even though it does compile there, and the actors
@@ -8853,9 +8853,9 @@ def _cambios_del_mapa(map_id, map_ids):
             if events.compile_page(
                     page, indices.get,
                     events.Messages(),
-                    del_mapa.for_event(evento.id), events.Songs(),
+                    map_events.for_event(event.id), events.Songs(),
                     events.Graphics(), events.Pictures(
-                        _juego())) is None:
+                        _game())) is None:
                 continue
             # **In batches of consecutive commands**, and the leader is looked
             # at the end of each one: `ChangePartyMembers` stuck together run
@@ -8866,50 +8866,50 @@ def _cambios_del_mapa(map_id, map_ids):
             # leaders, with their poses and their colors in every map of the
             # cartridge, and moved the palettes of maps that have nothing to
             # do with it.
-            tanda = None
+            batch = None
             for cmd in page.commands:
                 if cmd.code != events.CHANGE_PARTY_MEMBERS:
-                    tanda = None
+                    batch = None
                     continue
                 p = cmd.parameters
                 if len(p) < 3 or p[1] != events.PARTY_FIXED_ID:
-                    tanda = None
+                    batch = None
                     continue
-                if tanda is None:
-                    tanda = []
-                    cambios.append(tanda)
-                tanda.append((p[0], p[2]))
-    return cambios
+                if batch is None:
+                    batch = []
+                    changes.append(batch)
+                batch.append((p[0], p[2]))
+    return changes
 
 
-# The game directory, for `lideres_posibles`. It is ugly but it is a single
+# The game directory, for `possible_leaders`. It is ugly but it is a single
 # place: the alternative was passing it through three functions that don't
 # use it. `main` sets it, from `--game-dir`.
 args_game_dir = [None]
 
 
-def _juego():
+def _game():
     """`main`'s or, if it didn't go through there —a test that calls these
     functions on their own—, the environment's, which is the same
     `--game-dir`."""
     return args_game_dir[0] or resources.GAME_DIR
 
 
-def items_posibles(map_ids, actores=(), db=None, extra=()):
+def possible_items(map_ids, actors=(), db=None, extra=()):
     """The items that can be in the inventory with these maps in the ROM: the
     ones some `ChangeItems` of any page gives, whether it compiles or not,
-    the ones some `OpenShop` sells, the equipment the `actores` start with
+    the ones some `OpenShop` sells, the equipment the `actors` start with
     and the ones the test page gives. It is a superset, like
-    `miembros_posibles`, and for the same reason: one item too many costs its
+    `possible_members`, and for the same reason: one item too many costs its
     text in the cartridge, one too few isn't seen in the list. `extra` are
     the commands of the test pages, which are swept the same as the maps'."""
     items = set()
-    for actor in actores:
+    for actor in actors:
         if db is not None and actor in db.actors:
             items.update(i for i in db.actors[actor].initial_equipment if i)
 
-    def barrer(comandos):
-        for cmd in comandos:
+    def sweep(commands):
+        for cmd in commands:
             p = cmd.parameters
             if (cmd.code == events.CHANGE_ITEMS and len(p) >= 5
                     and p[0] == 0 and p[1] == 0):
@@ -8918,26 +8918,26 @@ def items_posibles(map_ids, actores=(), db=None, extra=()):
                 items.update(p[4:])
 
     for map_id in map_ids:
-        game_map = lcf.Map(os.path.join(_juego(),
+        game_map = lcf.Map(os.path.join(_game(),
                                         "Map%04d.lmu" % map_id))
-        for evento in game_map.events:
-            for page in evento.pages:
-                barrer(page.commands)
-    barrer(extra)
+        for event in game_map.events:
+            for page in event.pages:
+                sweep(page.commands)
+    sweep(extra)
     return sorted(i for i in items if 0 < i < events.ITEMS_N)
 
 
-def items_del_botin(db, tropas):
+def drop_items(db, troops):
     """The items some enemy of these troops can drop on losing a battle —its
     `drop_id`—, so that the cartridge carries their name: the victory tells
-    it and the menu's list shows it. The ones `items_posibles` doesn't find
-    in any page. All the members, like `enemigos_rom`."""
-    return {db.enemies[e].drop_id for n in tropas if n in db.troops
+    it and the menu's list shows it. The ones `possible_items` doesn't find
+    in any page. All the members, like `rom_enemies`."""
+    return {db.enemies[e].drop_id for n in troops if n in db.troops
             for e in db.troops[n].members
             if 0 < db.enemies[e].drop_id < events.ITEMS_N}
 
 
-def miembros_posibles(map_ids, grupo, extra=()):
+def possible_members(map_ids, party, extra=()):
     """The actors that can be in the party with these maps in the ROM.
 
     The starting ones plus the ones any `ChangePartyMembers` of any page of
@@ -8946,49 +8946,49 @@ def miembros_posibles(map_ids, grupo, extra=()):
     a saved game, and one face too many costs nothing that matters. `extra`
     are the commands of the test pages.
 
-    `grupo` can bring repeats —the cartridge's plus that of each test case,
+    `party` can bring repeats —the cartridge's plus that of each test case,
     which is usually the same— and they are counted once: repeated, an actor
     took one face for each case that asked for it.
     """
-    actores = list(dict.fromkeys(grupo))
+    actors = list(dict.fromkeys(party))
 
-    def barrer(comandos):
-        for cmd in comandos:
+    def sweep(commands):
+        for cmd in commands:
             if cmd.code != events.CHANGE_PARTY_MEMBERS:
                 continue
             p = cmd.parameters
             if len(p) < 3 or p[1] != events.PARTY_FIXED_ID:
                 continue
-            if p[0] == 0 and p[2] not in actores:
-                actores.append(p[2])
+            if p[0] == 0 and p[2] not in actors:
+                actors.append(p[2])
 
     for map_id in map_ids:
-        game_map = lcf.Map(os.path.join(_juego(),
+        game_map = lcf.Map(os.path.join(_game(),
                                         "Map%04d.lmu" % map_id))
-        for evento in game_map.events:
-            for page in evento.pages:
-                barrer(page.commands)
-    barrer(extra)
-    return sorted(actores)
+        for event in game_map.events:
+            for page in event.pages:
+                sweep(page.commands)
+    sweep(extra)
+    return sorted(actors)
 
 
-def grupo_de_la_pagina(caso, grupo):
+def page_party(case, party):
     """Which party the test continues with after its page, if the page
     touches it: the case's `ChangePartyMembers` applied to the cartridge's
     party, with the same rules as the interpreter. None if it doesn't touch
     it."""
-    estado = events.PartyState(grupo)
-    toca = False
-    for cmd in caso.comandos:
+    state = events.PartyState(party)
+    touches = False
+    for cmd in case.commands:
         p = cmd.parameters
         if (cmd.code == events.CHANGE_PARTY_MEMBERS and len(p) >= 3
                 and p[1] == events.PARTY_FIXED_ID):
-            estado.change_party(p[0], p[2])
-            toca = True
-    return estado.party if toca else None
+            state.change_party(p[0], p[2])
+            touches = True
+    return state.party if touches else None
 
 
-def separar_del_heroe(renderer, game_map, args, comandos=()):
+def separate_from_hero(renderer, game_map, args, commands=()):
     """If something flashes the hero, the NPCs with its graphic go with
     another palette.
 
@@ -8998,23 +8998,23 @@ def separar_del_heroe(renderer, game_map, args, comandos=()):
     solved by counting those NPCs' graphic as another one, with the suffix
     `rm2k.COPY_SUFFIX`: the same drawing, with its own palette. It costs one
     palette per graphic, and only in the maps where something flashes the
-    hero. `comandos` are those of the test pages.
+    hero. `commands` are those of the test pages.
     """
-    destella = any(
+    flashes = any(
         cmd.code == events.FLASH_SPRITE and cmd.parameters
         and cmd.parameters[0] == events.ROUTE_HERO
-        for cmd in list(comandos) + [cmd for ev in game_map.events
+        for cmd in list(commands) + [cmd for ev in game_map.events
                                      for page in ev.pages
                                      for cmd in page.commands])
-    if not destella:
+    if not flashes:
         return
-    de_lider = set()
-    for actor in args.lideres:
+    leader_owned = set()
+    for actor in args.leaders:
         a = renderer.database.actors[actor]
-        de_lider.add((a.charset, a.charset_index))
+        leader_owned.add((a.charset, a.charset_index))
     for ev in game_map.events:
         for page in ev.pages:
-            if (page.character_name, page.character_index) in de_lider:
+            if (page.character_name, page.character_index) in leader_owned:
                 page.character_name += rm2k.COPY_SUFFIX
 
 
@@ -9025,52 +9025,52 @@ def separar_del_heroe(renderer, game_map, args, comandos=()):
 # data, not flags. `--test-graphic` belongs to the cartridge on purpose:
 # it says which graphics are in the sprite bank of the maps where the cases
 # run, not what the page does. And where a case runs isn't a flag either: the
-# `Teleport` it starts with says so, see `mapa_del_caso`.
-FLAGS_DE_CASO = ("test_commands",)
+# `Teleport` it starts with says so, see `case_map`.
+CASE_FLAGS = ("test_commands",)
 
 
-def partir_en_casos(argv):
+def split_cases(argv):
     """The command line split at `--case`: the cartridge's part, and the
     flags of each case that goes after."""
-    tramos = [[]]
+    stretches = [[]]
     for token in argv:
         if token == "--case":
-            tramos.append([])
+            stretches.append([])
         else:
-            tramos[-1].append(token)
-    return tramos[0], tramos[1:]
+            stretches[-1].append(token)
+    return stretches[0], stretches[1:]
 
 
-def casos_de_prueba(parser, args, tramos):
+def test_cases(parser, args, stretches):
     """The cartridge's test pages, one per case, in the order of their pages.
     Each one is a copy of `args` with its case's flags.
 
     Case 0 is the flags before the first `--case`, so a single-case cartridge
     is built as before this existed. If there are none, the first `--case`
-    becomes 0. Each case takes the commands of its file in `comandos`.
+    becomes 0. Each case takes the commands of its file in `commands`.
     """
     import copy
-    casos = [args] if pide_pagina_de_prueba(args) else []
-    defecto = parser.parse_args([])
-    for tramo in tramos:
-        suelto = parser.parse_args(tramo)
-        for dest, valor in vars(suelto).items():
-            if dest not in FLAGS_DE_CASO and valor != getattr(defecto, dest):
+    cases = [args] if asks_test_page(args) else []
+    default_args = parser.parse_args([])
+    for stretch in stretches:
+        loose = parser.parse_args(stretch)
+        for dest, value in vars(loose).items():
+            if dest not in CASE_FLAGS and value != getattr(default_args, dest):
                 sys.exit("--%s belongs to the cartridge and not to a case: it "
                          "goes before the first --case" % dest.replace("_", "-"))
-        caso = copy.copy(args)
-        for dest in FLAGS_DE_CASO:
-            setattr(caso, dest, getattr(suelto, dest))
-        if not pide_pagina_de_prueba(caso):
+        case = copy.copy(args)
+        for dest in CASE_FLAGS:
+            setattr(case, dest, getattr(loose, dest))
+        if not asks_test_page(case):
             sys.exit("a --case with nothing for the test page to do")
-        casos.append(caso)
-    for caso in casos:
-        with open(caso.test_commands, encoding="utf-8") as archivo:
-            caso.comandos = lcf.handwritten_commands(json.load(archivo))
-    return casos
+        cases.append(case)
+    for case in cases:
+        with open(case.test_commands, encoding="utf-8") as fh:
+            case.commands = lcf.handwritten_commands(json.load(fh))
+    return cases
 
 
-def comandos_de_casos(args, map_id=None):
+def case_commands(args, map_id=None):
     """The commands of all the test pages, one after the other.
 
     It is what the functions that look at the map's pages to decide what the
@@ -9078,15 +9078,15 @@ def comandos_de_casos(args, map_id=None):
     one more page.
 
     With `map_id`, only those of the cases that **run** in that map —see
-    `mapa_del_caso`—: they are the ones that decide what belongs to each map,
+    `case_map`—: they are the ones that decide what belongs to each map,
     like who walks or which graphics go in its sprite bank.
     """
-    return [cmd for caso in args.casos
-            if map_id is None or caso.mapa == map_id
-            for cmd in caso.comandos]
+    return [cmd for case in args.cases
+            if map_id is None or case.run_map == map_id
+            for cmd in case.commands]
 
 
-def mapa_del_caso(caso, orden, inicial):
+def case_map(case, order, initial):
     """The map where a case runs: that of its `Teleport`, if it starts with
     one, and otherwise the map where the ROM boots.
 
@@ -9100,57 +9100,57 @@ def mapa_del_caso(caso, orden, inicial):
     looks at didn't ask for a refresh, and the chest of map 133 didn't appear
     even though the variable already held what its page asks for.
     """
-    primero = caso.comandos[0] if caso.comandos else None
-    if primero is None or primero.code != events.TELEPORT:
-        return orden[inicial]
-    destino = primero.parameters[0]
-    if destino not in orden:
+    first = case.commands[0] if case.commands else None
+    if first is None or first.code != events.TELEPORT:
+        return order[initial]
+    dest = first.parameters[0]
+    if dest not in order:
         sys.exit("%s: the case jumps to map %d, which isn't in the cartridge "
-                 "(it carries %s)" % (caso.test_commands, destino,
-                                      " ".join(str(m) for m in orden)))
-    return destino
+                 "(it carries %s)" % (case.test_commands, dest,
+                                      " ".join(str(m) for m in order)))
+    return dest
 
 
-def mapas_de_prueba(args):
+def test_maps(args):
     """The maps where some case runs, which are the ones that carry the
     graphics of `--test-graphic` in their bank."""
-    if args.casos:
-        return {caso.mapa for caso in args.casos}
-    return {orden_de_mapas(args)[args.start_index]}
+    if args.cases:
+        return {case.run_map for case in args.cases}
+    return {map_order(args)[args.start_index]}
 
 
-def pagina_de_caso(caso, mapa, temas, graficos, mensajes, indices, imagenes):
+def case_page(case, map_info, songs, graphics, messages, indices, pictures):
     """The bytecode of a case's test page.
 
     It is compiled like any page of the game, with the context of the map
-    where it runs —see `mapa_del_caso`—; the only thing the converter puts in
+    where it runs —see `case_map`—; the only thing the converter puts in
     front of it is the `ControlSwitches` that turns it off, which is a
     convention of the harness and not of the case —see
     `events.TEST_SWITCH`—. The troops aren't noted here but at the end,
     in `main`: the test's goes last.
     """
-    apagar = lcf.EventCommand(
+    turn_off = lcf.EventCommand(
         events.CONTROL_SWITCHES, 0, "",
         [events.SWITCH_SINGLE, events.TEST_SWITCH,
          events.TEST_SWITCH, events.SWITCH_ON])
-    codigo = events.compile_page(
-        events._Commands([apagar] + list(caso.comandos)), indices.get,
-        mensajes, events.MapEvents(mapa["game_map"]).for_event(0), temas,
-        graficos, imagenes)
-    if codigo is None:
+    code = events.compile_page(
+        events._Commands([turn_off] + list(case.commands)), indices.get,
+        messages, events.MapEvents(map_info["game_map"]).for_event(0), songs,
+        graphics, pictures)
+    if code is None:
         sys.exit("%s: the test page doesn't compile"
-                 % caso.test_commands)
-    return codigo
+                 % case.test_commands)
+    return code
 
-def pide_pagina_de_prueba(args):
+def asks_test_page(args):
     """Whether there is a test page before the first `--case`."""
     return bool(args.test_commands)
 
-def convertir(renderer, map_id, args):
+def convert_map(renderer, map_id, args):
     """A whole map: tiles, colors, sprites, collision and blocks."""
     game_map = renderer.load_map(
         os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
-    if args.casos and map_id == orden_de_mapas(args)[args.start_index]:
+    if args.cases and map_id == map_order(args)[args.start_index]:
         # The test page's event goes **first**: the ROM walks the events from
         # lowest to highest, and the test page has to run before the game's.
         # It builds the party the test starts with, and a map whose page
@@ -9158,16 +9158,16 @@ def convertir(renderer, map_id, args):
         # changed. It is an event without pages: nothing is drawn or compiled,
         # it only takes index 0 so that everything that numbers events after
         # reading the map numbers the same.
-        vacio = lcf.Event.__new__(lcf.Event)
-        vacio.id, vacio.name, vacio.x, vacio.y, vacio.pages = (
+        empty = lcf.Event.__new__(lcf.Event)
+        empty.id, empty.name, empty.x, empty.y, empty.pages = (
             0, "prueba", 0, 0, [])
-        game_map.events.insert(0, vacio)
-    separar_del_heroe(renderer, game_map, args,
-                      comandos_de_casos(args, map_id))
+        game_map.events.insert(0, empty)
+    separate_from_hero(renderer, game_map, args,
+                       case_commands(args, map_id))
     name = renderer.tree.map_names.get(map_id, "?")
 
-    capas = capas_convertidas(renderer, game_map)
-    if capas is None:
+    layers = converted_layers(renderer, game_map)
+    if layers is None:
         sys.exit("can't find the chipset of map %d" % map_id)
 
     # And the layers again, with the opaque events baked into the map. **Both**
@@ -9177,11 +9177,11 @@ def convertir(renderer, map_id, args):
     # baking would change. In that case the map goes unbaked, which is the
     # usual. The second conversion isn't paid twice in a warm build: both stay
     # in the disk cache, with their key.
-    sin_horneado = capas
-    horneados = eventos_horneables(renderer, game_map)
-    if horneados:
-        capas, horneados = _hornear_si_no_mueve_la_cgram(
-            renderer, game_map, map_id, sin_horneado, horneados)
+    without_baked = layers
+    baked = bakeable_events(renderer, game_map)
+    if baked:
+        layers, baked = _bake_unless_cgram_moves(
+            renderer, game_map, map_id, without_baked, baked)
 
     # The characters: the hero with its 12 poses because it walks, and each
     # NPC with the one its page declares. If an NPC uses the same character as
@@ -9195,19 +9195,19 @@ def convertir(renderer, map_id, args):
     # **before** the palette split because a graphic of command 34 is one
     # more character and asks for a palette like anyone: splitting without
     # counting it, it would come in later and there might be no room.
-    orden = orden_de_mapas(args)
-    movibles, graficos_de_ruta, anima_quieto, giran = eventos_movibles(
-        game_map, {m: i for i, m in enumerate(orden)}.get,
-        asociaciones=args.asociaciones)
+    order = map_order(args)
+    movable, route_graphics, animates_still, turning = movable_events(
+        game_map, {m: i for i, m in enumerate(order)}.get,
+        associations=args.associations)
     # And the ones from `--test-graphic`, which go only in the maps where
     # some case runs, and for the same reason their pages are compiled with
     # that map's context. They are added **after** the game's, which is the
     # order the real compilation numbers them in.
-    if args.test_graphic and map_id in mapas_de_prueba(args):
-        for charset, index in graficos_de_prueba(args.test_graphic):
-            if (charset, index) not in graficos_de_ruta:
-                graficos_de_ruta.append((charset, index))
-    if comandos_de_casos(args, map_id):
+    if args.test_graphic and map_id in test_maps(args):
+        for charset, index in test_graphics(args.test_graphic):
+            if (charset, index) not in route_graphics:
+                route_graphics.append((charset, index))
+    if case_commands(args, map_id):
         # And the ones the test pages send walking, which don't come from
         # `map_pages`: they have to be added by hand or the NPC would
         # walk with a single pose. It goes **before** the palette split: since
@@ -9215,18 +9215,18 @@ def convertir(renderer, map_id, args):
         # is part of choosing the colors and not only of splitting the VRAM.
         # The event goes by its RM2k id and the same `MapEvents` the compilation
         # uses translates it.
-        del_mapa = events.MapEvents(game_map)
-        for cmd in comandos_de_casos(args, map_id):
+        map_events = events.MapEvents(game_map)
+        for cmd in case_commands(args, map_id):
             if cmd.code == events.MOVE_EVENT and cmd.parameters \
                     and cmd.parameters[0] != events.ROUTE_HERO:
-                blanco = del_mapa.route_target(cmd.parameters[0])
-                if blanco:
-                    movibles = movibles | {blanco - 1}
+                target = map_events.route_target(cmd.parameters[0])
+                if target:
+                    movable = movable | {target - 1}
     # And with that, which poses each graphic can show: it is what decides
-    # over which pixels its fifteen colors are chosen. See `poses_del_mapa`.
-    poses_por_grafico = poses_del_mapa(renderer, game_map, args.lideres,
-                                       movibles, giran, graficos_de_ruta,
-                                       anima_quieto)
+    # over which pixels its fifteen colors are chosen. See `map_poses`.
+    poses_by_graphic = map_poses(renderer, game_map, args.leaders,
+                                 movable, turning, route_graphics,
+                                 animates_still)
 
     # All eight, with or without the timer: its two colors fit in some
     # character's palette. Reserving one for it here took events away from
@@ -9240,93 +9240,93 @@ def convertir(renderer, map_id, args):
     # Room scene was left without its drawing, which is exactly what was
     # being done. What it costs —which characters merge more colors— is said
     # by each map's report.
-    muestra_animacion = mapa_muestra_animacion(
+    sample_animation = map_shows_animation(
         game_map, renderer,
-        comandos_de_casos(args, map_id))
+        case_commands(args, map_id))
     # The timer's colors are passed to the split and not only to the packing:
     # in a map that fills the eight palettes someone has to be chosen to lose
     # a color to make room for it, and that changes how that character is
     # quantized.
-    timer_colores = ()
-    if map_id in args.timer_en:
-        from port import window as ventana_mod
-        timer_colores = sorted(colores_del_timer(ventana_mod.skin(
+    timer_colors = ()
+    if map_id in args.timer_maps:
+        from port import window as window_mod
+        timer_colors = sorted(timer_colors_of(window_mod.skin(
             args.game_dir, renderer.database.system_name)))
-    solos = {c for c, n in getattr(args, "mapas_por_personaje", {}).items()
-             if n == 1}
-    tope_de_paletas = tope_de_paletas_del_mapa(
-        renderer, game_map, args.lideres, graficos_de_ruta, timer_colores,
-        solos, poses_por_grafico, muestra_animacion)
+    singles = {c for c, n in getattr(args, "maps_per_character", {}).items()
+               if n == 1}
+    palette_cap = map_palette_cap(
+        renderer, game_map, args.leaders, route_graphics, timer_colors,
+        singles, poses_by_graphic, sample_animation)
 
-    npcs, descartados, reparto = npcs_dibujables(renderer, game_map,
-                                                 args.lideres, tope_de_paletas,
-                                                 graficos_de_ruta,
-                                                 timer_colores,
-                                                 solos,
-                                                 poses_por_grafico)
-    prestadas = reparto[5]
-    if prestadas:
+    npcs, discarded, split = drawable_npcs(renderer, game_map,
+                                           args.leaders, palette_cap,
+                                           route_graphics,
+                                           timer_colors,
+                                           singles,
+                                           poses_by_graphic)
+    lent = split[5]
+    if lent:
         print("  map %d: %d graphic(s) without a palette of their own, drawn "
-              "with someone else's: %s" % (map_id, len(prestadas),
-                                          ", ".join(sorted("%s:%d" % k for k in prestadas))))
+              "with someone else's: %s" % (map_id, len(lent),
+                                          ", ".join(sorted("%s:%d" % k for k in lent))))
     # A baked event that was drawn with someone else's palette can't be
     # hidden: the sprite and the background tile would show different colors
     # —the lent ones and the real ones— and covering it with the second
     # changes what is seen. So that one is unbaked and goes back to being a
     # sprite, with the lent colors: it looks as it would without the baking.
-    # It is asked here and not in `eventos_horneables` because the lent ones
+    # It is asked here and not in `bakeable_events` because the lent ones
     # come from the split, which runs after drawing the layers. The first was
     # `PawnDoorTop`, event 11 of map 37: until 2026-09-26 this was a
     # `sys.exit`.
-    horneado_prestado = sorted(
-        evento for evento in horneados
+    lent_baked = sorted(
+        event for event in baked
         for npc in npcs
-        if npc["evento"] == evento and (npc["charset"], npc["index"]) in prestadas)
-    if horneado_prestado:
+        if npc["evento"] == event and (npc["charset"], npc["index"]) in lent)
+    if lent_baked:
         print("  map %d: event %s is drawn with someone else's palette, so "
               "it isn't baked" % (map_id, ", ".join(str(e + 1)
-                                                    for e in horneado_prestado)))
-        for evento in horneado_prestado:
-            celda, _tile = horneados.pop(evento)
-            game_map.upper_layer[celda] = rm2k.UPPER_BASE
-        capas = sin_horneado
-        if horneados:
-            capas, horneados = _hornear_si_no_mueve_la_cgram(
-                renderer, game_map, map_id, sin_horneado, horneados)
-    (tile_data, cram, tilemap, summary), above_data = capas
-    if horneados:
+                                                    for e in lent_baked)))
+        for event in lent_baked:
+            cell_idx, _tile = baked.pop(event)
+            game_map.upper_layer[cell_idx] = rm2k.UPPER_BASE
+        layers = without_baked
+        if baked:
+            layers, baked = _bake_unless_cgram_moves(
+                renderer, game_map, map_id, without_baked, baked)
+    (tile_data, cram, tilemap, summary), above_data = layers
+    if baked:
         print("  map %d: %d opaque event(s) baked into the map: %s"
-              % (map_id, len(horneados),
-                 ", ".join(str(e + 1) for e in sorted(horneados))))
-    for evento, tile in descartados:
-        aviso_de_descarte(
+              % (map_id, len(baked),
+                 ", ".join(str(e + 1) for e in sorted(baked))))
+    for event, tile in discarded:
+        discard_warning(
             "map %d: event %d, drawn with tile %s, doesn't fit in "
             "the %d sprite palettes and isn't drawn"
-            % (map_id, evento + 1, tile[len(rm2k.TILE_PREFIX):],
-               tope_de_paletas),
-            cambia_de_grafico(game_map.events[evento]))
+            % (map_id, event + 1, tile[len(rm2k.TILE_PREFIX):],
+               palette_cap),
+            changes_graphic(game_map.events[event]))
     # Who changes pose and therefore carries their twelve to the cartridge:
     # the leader candidates with a graphic and the NPCs that walk. In that
     # order, with the initial leader first, which is the order the rest
     # expects.
-    actores_con_grafico = []
-    for actor in args.lideres:
+    actors_with_graphic = []
+    for actor in args.leaders:
         a = renderer.database.actors[actor]
-        if not sprite_colors(images_de(renderer, args, a.charset),
+        if not sprite_colors(images_of(renderer, args, a.charset),
                              a.charset_index):
             continue            # not a single opaque pixel: it isn't drawn
-        actores_con_grafico.append(actor)
-    primero = renderer.database.leader(args.lideres)   # (CharSet, index)
-    animados = []
-    for actor in actores_con_grafico:
+        actors_with_graphic.append(actor)
+    first = renderer.database.leader(args.leaders)   # (CharSet, index)
+    animated = []
+    for actor in actors_with_graphic:
         a = renderer.database.actors[actor]
-        if (a.charset, a.charset_index) not in animados:
-            animados.append((a.charset, a.charset_index))
-    animados.sort(key=lambda par: par != primero)   # the initial leader first
+        if (a.charset, a.charset_index) not in animated:
+            animated.append((a.charset, a.charset_index))
+    animated.sort(key=lambda pair: pair != first)   # the initial leader first
     for npc in npcs:
-        if npc["evento"] in movibles \
-                and (npc["charset"], npc["index"]) not in animados:
-            animados.append((npc["charset"], npc["index"]))
+        if npc["evento"] in movable \
+                and (npc["charset"], npc["index"]) not in animated:
+            animated.append((npc["charset"], npc["index"]))
     # And the graphics a command 34 changes to. They go to the bank for the
     # same reason as the ones that walk: after changing, the event keeps
     # walking, so it needs the twelve poses of the new graphic and not the one
@@ -9338,32 +9338,32 @@ def convertir(renderer, map_id, args):
     # bank; and it isn't needed, because what the command does there is hide
     # the row. It is the same `sprite_colors` an actor without a graphic is
     # discarded with.
-    grafico_se_ve = []
-    for charset, index in graficos_de_ruta:
+    graphic_visible = []
+    for charset, index in route_graphics:
         # It is drawn if it has an opaque pixel **and** it made it into the
         # palette split. The second is almost always yes; when not, the
         # command hides it just like a transparent one, which is what the ROM
         # does with any graphic that didn't make it.
-        grafico_se_ve.append(
-            bool(sprite_colors(images_de(renderer, args, charset), index))
-            and (charset, index) in reparto[1])
-        if grafico_se_ve[-1] and (charset, index) not in animados:
-            animados.append((charset, index))
+        graphic_visible.append(
+            bool(sprite_colors(images_of(renderer, args, charset), index))
+            and (charset, index) in split[1])
+        if graphic_visible[-1] and (charset, index) not in animated:
+            animated.append((charset, index))
     # And the ones that turn toward the hero: their twelve poses, to upload
     # the one facing it. They go at the end so as not to move anyone else's
     # index.
-    for pares in giran.values():
-        for par in sorted(pares):
-            if par in reparto[1] and par not in animados:
-                animados.append(par)
-    afuera_de_ruta = [par for par, se_ve in zip(graficos_de_ruta, grafico_se_ve)
-                      if not se_ve and sprite_colors(
-                          images_de(renderer, args, par[0]), par[1])]
-    for charset, index in afuera_de_ruta:
-        aviso_de_descarte(
+    for pairs in turning.values():
+        for pair in sorted(pairs):
+            if pair in split[1] and pair not in animated:
+                animated.append(pair)
+    off_route = [pair for pair, visible in zip(route_graphics, graphic_visible)
+                 if not visible and sprite_colors(
+                          images_of(renderer, args, pair[0]), pair[1])]
+    for charset, index in off_route:
+        discard_warning(
             "map %d: graphic %s:%d, which a route changes to, doesn't fit "
             "in the %d sprite palettes: that command hides the event instead "
-            "of changing it" % (map_id, charset, index, tope_de_paletas),
+            "of changing it" % (map_id, charset, index, palette_cap),
             # A command 34 **is** a graphic change, so it always counts.
             True)
 
@@ -9372,12 +9372,12 @@ def convertir(renderer, map_id, args):
     # and the still ones shared by (CharSet, index, pose), which never change.
     # An NPC that walks doesn't share even with an identical one: each changes
     # pose on its own.
-    ranuras = []
-    if actores_con_grafico:
-        charset, index = animados[0]
-        ranuras.append(("heroe", charset, index, POSE_INICIAL))
+    slots = []
+    if actors_with_graphic:
+        charset, index = animated[0]
+        slots.append(("heroe", charset, index, INITIAL_POSE))
     for npc in npcs:
-        if npc["evento"] in movibles:
+        if npc["evento"] in movable:
             if npc["cambia"]:
                 # Two mechanisms on the same row: the cartridge's twelve poses
                 # and the page's graphic. The ROM doesn't know both at once, so
@@ -9398,8 +9398,8 @@ def convertir(renderer, map_id, args):
                 # tools/runtime/paginas_de_eventos.s.
                 npc["aparece"] = True
                 npc["cambia"] = False
-            ranuras.append((("ev", npc["evento"]), npc["charset"],
-                            npc["index"], npc["pose"]))
+            slots.append((("ev", npc["evento"]), npc["charset"],
+                          npc["index"], npc["pose"]))
         else:
             # The pose of its row and, if the graphic follows the page, that of
             # each page: the ROM's refresh chooses between slots that are
@@ -9408,9 +9408,9 @@ def convertir(renderer, map_id, args):
             if npc["cambia"]:
                 poses += [g for g in npc["graficos"]
                           if g is not None and g[:2] not in npc["afuera"]]
-            for clave in poses:
-                if clave not in {r[0] for r in ranuras}:
-                    ranuras.append((clave,) + clave)
+            for key in poses:
+                if key not in {r[0] for r in slots}:
+                    slots.append((key,) + key)
     # The turn slot: one more pose, for the still one that turns toward the
     # hero. The still ones share a slot by (CharSet, index, pose), so turning
     # its own would also turn the others that use it; the one that turns
@@ -9418,21 +9418,21 @@ def convertir(renderer, map_id, args):
     # the event the hero triggered turns, and there is one at a time. The
     # ones that walk or animate don't need it: they have their own. See TURN
     # in events.py.
-    quietos_que_giran = [npc for npc in npcs
-                         if npc["evento"] in giran
-                         and npc["evento"] not in movibles
-                         and any(par in reparto[1]
-                                 for par in giran[npc["evento"]])]
-    if quietos_que_giran:
-        npc = quietos_que_giran[0]
-        ranuras.append(("giro", npc["charset"], npc["index"], npc["pose"]))
-    personajes = list(animados)
-    for _clave, charset, index, _pose in ranuras:
-        if (charset, index) not in personajes:
-            personajes.append((charset, index))
+    still_turning = [npc for npc in npcs
+                     if npc["evento"] in turning
+                     and npc["evento"] not in movable
+                     and any(pair in split[1]
+                             for pair in turning[npc["evento"]])]
+    if still_turning:
+        npc = still_turning[0]
+        slots.append(("giro", npc["charset"], npc["index"], npc["pose"]))
+    characters = list(animated)
+    for _key, charset, index, _pose in slots:
+        if (charset, index) not in characters:
+            characters.append((charset, index))
 
     images = {}
-    for charset, _index in personajes:
+    for charset, _index in characters:
         if charset not in images:
             # Through the renderer's loader, which also builds the CharSet of
             # an event drawn with a chipset tile.
@@ -9440,72 +9440,72 @@ def convertir(renderer, map_id, args):
             if images[charset] is None:
                 sys.exit("can't find CharSet %r" % charset)
 
-    tiles, palettes, where, paleta_de, colores = build_characters(
-        images, personajes, ranuras, reparto)
+    tiles, palettes, where, palette_of, char_colors = build_characters(
+        images, characters, slots, split)
     # It is counted here and not inside because the message has to name the
-    # culprit, which is the map. With `npcs_dibujables` above this shouldn't
+    # culprit, which is the map. With `drawable_npcs` above this shouldn't
     # fail because of a tile anymore; if it fails it is because of the
     # CharSets.
-    if len(palettes) > tope_de_paletas:
+    if len(palettes) > palette_cap:
         sys.exit("the map uses %d characters in %d palettes and there are %d "
-                 "sprite ones" % (len(personajes), len(palettes), tope_de_paletas))
-    banks = banco_de_poses(images, animados, colores)
-    indice_animado = {p: k for k, p in enumerate(animados)}
+                 "sprite ones" % (len(characters), len(palettes), palette_cap))
+    banks = pose_bank(images, animated, char_colors)
+    animated_index = {p: k for k, p in enumerate(animated)}
     # The table of command 34: for each graphic a route asks for, which entry
     # of `npc_poses` it is in and with which palette. $FF in the entry is
     # "hide the row", which is what a transparent CharSet does.
-    ruta_graficos = [
-        (indice_animado[par], paleta_de[par]) if se_ve else (0xFF, 0)
-        for par, se_ve in zip(graficos_de_ruta, grafico_se_ve)]
+    route_gfx = [
+        (animated_index[pair], palette_of[pair]) if visible else (0xFF, 0)
+        for pair, visible in zip(route_graphics, graphic_visible)]
     # The timer, if this ROM carries it: its glyphs go at the end of the bank
     # and share a palette with whoever has room, which there almost always is.
     timer_base, timer_pal = 0, None
-    if map_id in args.timer_en:
-        from port import window as ventana_mod
-        sys_img = ventana_mod.skin(args.game_dir, renderer.database.system_name)
-        tiles, timer_base, timer_pal = digitos_del_timer(
-            sys_img, tiles, palettes, reparto[3],
-            tope_de_paletas)
-    lluvia_base, lluvia_pal = 0, 0
-    if args.con_lluvia:
-        tiles, lluvia_base, lluvia_pal = gotas_de_lluvia(
-            tiles, palettes, reparto[3],
-            timer_base, tope_de_paletas, timer_pal)
-        if not lluvia_base:
+    if map_id in args.timer_maps:
+        from port import window as window_mod
+        sys_img = window_mod.skin(args.game_dir, renderer.database.system_name)
+        tiles, timer_base, timer_pal = timer_digits(
+            sys_img, tiles, palettes, split[3],
+            palette_cap)
+    rain_base, rain_pal = 0, 0
+    if args.with_rain:
+        tiles, rain_base, rain_pal = rain_drops(
+            tiles, palettes, split[3],
+            timer_base, palette_cap, timer_pal)
+        if not rain_base:
             print("  map %d: WARNING, the raindrops don't fit in the "
                   "sprite palettes and it doesn't rain here" % map_id)
     # The `ShowPicture` picture, if its own belongs to this map. The slot is
     # chosen by `Pictures.choose` **in the order of the map table**, which is
     # this same loop.
-    imagen_base, imagen_pal = 0, 0
-    registro = getattr(args, "imagenes", None)
-    if registro is not None:
-        info = registro.choose([game_map])
-        if info is not None and registro.mapa is None:
-            registro.mapa = map_id
-        if info is not None and registro.mapa == map_id:
-            tiles, imagen_base, imagen_pal = cartel_de_imagen(
-                info, tiles, palettes, lluvia_base or timer_base)
-            if not imagen_base:
+    image_base, image_pal = 0, 0
+    record = getattr(args, "pictures", None)
+    if record is not None:
+        info = record.choose([game_map])
+        if info is not None and record.map_id is None:
+            record.map_id = map_id
+        if info is not None and record.map_id == map_id:
+            tiles, image_base, image_pal = picture_of_image(
+                info, tiles, palettes, rain_base or timer_base)
+            if not image_base:
                 sys.exit("map %d: the picture %r doesn't fit: the map already uses "
                          "the %d sprite palettes and the fade needs a whole "
                          "one. See `cartel_de_imagen`."
-                         % (map_id, registro.name, OBJ_PALETTES))
+                         % (map_id, record.name, OBJ_PALETTES))
             print("  map %d: the picture %r, %d objects in %d tiles from "
-                  "%d, palette %d" % (map_id, registro.name,
+                  "%d, palette %d" % (map_id, record.name,
                                       info["objetos"],
                                       picture.reserved_tiles(info),
-                                      imagen_base, imagen_pal))
+                                      image_base, image_pal))
     # And the battle animation box, if some page of this map can show one that
     # is drawn. It goes last because it takes the end of the bank and the
     # palette left free after the picture. The criterion for it to fit is a
     # computation and the converter emits it: if there is no palette or no
     # VRAM, **this map doesn't draw animations** and says so.
     anim_base, anim_pal = 0, 0
-    if muestra_animacion:
-        probando, probando_base, probando_pal = animacion_de_mapa(
-            tiles, palettes, 1 if imagen_base else 0)
-        if not probando_base:
+    if sample_animation:
+        trial, trial_base, trial_pal = map_animation(
+            tiles, palettes, 1 if image_base else 0)
+        if not trial_base:
             # Without a palette this map doesn't draw animations. It is the
             # same that is done with the raindrops: it is declared and it goes
             # on.
@@ -9517,23 +9517,23 @@ def convertir(renderer, map_id, args):
             # tile layout and not on the palettes. It stopped because the
             # Python reference couldn't recompute it without redoing the whole
             # bank; without it, it could warn and go on, as with the palettes.
-            cuantos = len(probando) // 32
+            count = len(trial) // 32
             try:
-                layout = vram_layout(len(tile_data) // BYTES_PER_TILE, cuantos,
+                layout = vram_layout(len(tile_data) // BYTES_PER_TILE, count,
                                      len(above_data[0]) // 32)
             except SystemExit:
                 layout = None
-            if layout is None or cuantos > layout["sprites"][1]:
+            if layout is None or count > layout["sprites"][1]:
                 sys.exit(
                     "map %d: shows battle animations and the %d tiles of its "
                     "box don't fit in the sprite bank: it spends %d of %d. "
                     "See `animacion_de_mapa`."
-                    % (map_id, animacion_mod.TILES, cuantos,
+                    % (map_id, animation_mod.TILES, count,
                        layout["sprites"][1] if layout else 0))
-            tiles, anim_base, anim_pal = probando, probando_base, probando_pal
+            tiles, anim_base, anim_pal = trial, trial_base, trial_pal
             print("  map %d: battle animations are drawn in %d "
                   "tiles from %d, palette %d"
-                  % (map_id, animacion_mod.TILES, anim_base, anim_pal))
+                  % (map_id, animation_mod.TILES, anim_base, anim_pal))
     # And the rows of the baked events start hidden: their tile is already
     # drawn in the map. The row is still whole —the event triggers, blocks the
     # way and is the target of a route like any other—, and `build_oam` skips
@@ -9542,36 +9542,36 @@ def convertir(renderer, map_id, args):
     # map's table with the same bits, and if a page ever showed this row
     # again, the data it needs is there.
     for npc in npcs:
-        if npc["evento"] in horneados:
+        if npc["evento"] in baked:
             npc["visible"] = False
-    table = npc_table(npcs, where, movibles, indice_animado, anima_quieto)
+    table = npc_table(npcs, where, movable, animated_index, animates_still)
     # For each leader candidate, its palette and which pose bank its twelve
     # are in. The ROM computes nothing from the pose: it looks up the pointer
     # here and queues it.
-    actores = []
-    for actor in args.lideres:
+    actors = []
+    for actor in args.leaders:
         a = renderer.database.actors[actor]
-        if actor not in actores_con_grafico:
+        if actor not in actors_with_graphic:
             # An actor with an empty graphic. `DummyHero`, 10, is like that:
             # its eight poses don't have an opaque pixel, and RM2k draws
             # nothing. It goes with the sentinel pointer and the ROM skips the
             # object.
-            actores.append((actor, 0, None, []))
+            actors.append((actor, 0, None, []))
             continue
         # Its colors, in the same order as the `lookup` its poses were packed
-        # with: `paleta_del_personaje` returns the sorted palette and
+        # with: `character_palette` returns the sorted palette and
         # `build_characters` indexes 1..15 over it. If the two orders drifted
         # apart, the hero would come out with its colors swapped around.
-        propia, _, _ = paleta_del_personaje(
+        own, _, _ = character_palette(
             images[a.charset], a.charset_index)
-        actores.append((actor, paleta_de[(a.charset, a.charset_index)],
-                        indice_animado[(a.charset, a.charset_index)],
-                        [cgram_word(c) for c in propia]))
-    giro_tile = (block_tile(where["giro"][0]) if "giro" in where
-                 else GIRO_NINGUNO)
-    sprite = (tiles, palettes, where, table, actores, timer_base, timer_pal,
-              animados, banks, ruta_graficos, lluvia_base, lluvia_pal,
-              giro_tile, imagen_base, imagen_pal, anim_base, anim_pal)
+        actors.append((actor, palette_of[(a.charset, a.charset_index)],
+                       animated_index[(a.charset, a.charset_index)],
+                       [cgram_word(c) for c in own]))
+    turn_tile = (block_tile(where["giro"][0]) if "giro" in where
+                 else TURN_NONE)
+    sprite = (tiles, palettes, where, table, actors, timer_base, timer_pal,
+              animated, banks, route_gfx, rain_base, rain_pal,
+              turn_tile, image_base, image_pal, anim_base, anim_pal)
 
     # The collision: one byte per 16x16 cell with the four direction bits
     # already resolved. All of RM2k's logic —that the upper layer rules unless
@@ -9585,17 +9585,17 @@ def convertir(renderer, map_id, args):
     # a tie-breaker that has no reason to match between the console and the
     # render. With **all** the ones drawn on some page: a tile left out of the
     # palettes still takes space.
-    ocupadas = {(n["x"], n["y"]) for n in collect_npcs(game_map)}
-    start_x, start_y = inicio_del_mapa(
-        renderer, map_id, passable, game_map.width, game_map.height, ocupadas)
+    used = {(n["x"], n["y"]) for n in collect_npcs(game_map)}
+    start_x, start_y = map_start(
+        renderer, map_id, passable, game_map.width, game_map.height, used)
     collision = (passable, start_x, start_y, game_map.width, game_map.height)
 
     if len(table) > NPC_MAX:
         sys.exit("map %d has %d NPCs and %d fit in OAM"
                  % (map_id, len(table), NPC_MAX))
-    if len(ruta_graficos) > RUTA_GRAF_MAX:
+    if len(route_gfx) > ROUTE_GFX_MAX:
         sys.exit("map %d has %d graphics of command 34 and %d fit: see "
-                 "RUTA_GRAF_MAX" % (map_id, len(ruta_graficos), RUTA_GRAF_MAX))
+                 "RUTA_GRAF_MAX" % (map_id, len(route_gfx), ROUTE_GFX_MAX))
 
     print("Map %d %r: %dx%d cells of %dx%d px"
           % (map_id, name, len(tilemap[0]), len(tilemap),
@@ -9609,14 +9609,14 @@ def convertir(renderer, map_id, args):
 
     print("  sprites: %d characters, %d slots, %d tiles in VRAM, %d palettes; "
           "%d with their twelve poses in the cartridge"
-          % (len(personajes), len(where), len(tiles) // 32, len(palettes),
-             len(animados)))
+          % (len(characters), len(where), len(tiles) // 32, len(palettes),
+             len(animated)))
     print("  %d NPCs with a CharSet out of %d events" % (len(table), len(game_map.events)))
 
-    abiertos = sum(1 for b in passable if b == 0x0F)
+    open_ones = sum(1 for b in passable if b == 0x0F)
     print("  collision: %d cells, %d open on all four sides (%.0f%%), "
           "the hero starts at (%d,%d)"
-          % (len(passable), abiertos, 100.0 * abiertos / len(passable),
+          % (len(passable), open_ones, 100.0 * open_ones / len(passable),
              start_x, start_y))
 
     print("  layer above the hero: %d tiles, %d colors in %d palette(s) "
@@ -9624,21 +9624,21 @@ def convertir(renderer, map_id, args):
           % (len(above_data[0]) // 32, len(above_data[1]) // 2,
              BG_PALETTES - above_data[3], above_data[3], above_data[4]))
 
-    celdas, bloques, block_pass, block_terreno, combos = build_blocks(
+    cells, blocks, block_pass, block_terrain, combos = build_blocks(
         game_map, tilemap, above_data[2], passable,
         game_map.width, game_map.height, chipset)
     print("  the map fits in %d 16x16 blocks for %d cells: %d B of "
           "grid plus %d B of table, against the %d B of the expanded tilemap"
-          % (len(bloques) // BLOCK_BYTES, len(celdas), 2 * len(celdas),
-             len(bloques), 2 * summary["celdas"]))
-    ventanas_x = (len(tilemap[0]) + WINDOW_W - 1) // WINDOW_W
-    ventanas_y = (len(tilemap) + WINDOW_H - 1) // WINDOW_H
-    if ventanas_x > 1 or ventanas_y > 1:
+          % (len(blocks) // BLOCK_BYTES, len(cells), 2 * len(cells),
+             len(blocks), 2 * summary["celdas"]))
+    windows_x = (len(tilemap[0]) + WINDOW_W - 1) // WINDOW_W
+    windows_y = (len(tilemap) + WINDOW_H - 1) // WINDOW_H
+    if windows_x > 1 or windows_y > 1:
         print("  it doesn't fit in the %dx%d window: the ROM is going to redraw"
               % (WINDOW_W, WINDOW_H))
 
     words = bytearray()
-    for cell in celdas:
+    for cell in cells:
         words += cell.to_bytes(2, "little")
     colors = bytearray()
     for word in cram:
@@ -9652,13 +9652,13 @@ def convertir(renderer, map_id, args):
         # them. `main()` compares against the ones it gathers compiling for
         # real: if the two passes drifted apart, the bytecode would carry
         # indices of a table that says something else.
-        "graficos_de_ruta": graficos_de_ruta,
+        "graficos_de_ruta": route_graphics,
         "collision": collision, "celdas": bytes(words),
         "ev_pos": ev_pos_bytes(game_map),
         # Both grow while the pages are compiled, if some substitutes tiles:
-        # see `Sustituciones`. That is why they are mutable and are frozen
+        # see `Substitutions`. That is why they are mutable and are frozen
         # only when emitted.
-        "bloques": bloques, "pass": block_pass, "terreno": block_terreno,
+        "bloques": blocks, "pass": block_pass, "terreno": block_terrain,
         "combos": combos,
         # The terrain of a cell **outside the map**: `GetTerrainTag` uses the
         # ChipSet's index 0, that is the first autotile, and not that of any
@@ -9681,8 +9681,8 @@ def convertir(renderer, map_id, args):
         "where": where,
         # For the turn toward the hero: which entry of `npc_poses` the twelve
         # poses of each graphic are in, which is the page's +30.
-        "giro_k": {par: indice_animado[par] for par in animados},
-        "giran": set(giran),
+        "giro_k": {pair: animated_index[pair] for pair in animated},
+        "giran": set(turning),
         "cambian": {npc["evento"] for npc in npcs if npc["cambia"]},
         # And the ones that only appear and disappear with it: the ones that
         # walk, whose graphic was pinned further up.

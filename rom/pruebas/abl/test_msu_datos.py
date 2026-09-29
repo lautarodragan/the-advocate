@@ -114,10 +114,10 @@ def _fondo_8bpp(liviano, nombre=FONDO_SECTOR_27):
     """Los 32 KB que la ROM deja en la WRAM para un fondo —el de Sector 27, si
     no—: el de calidad tal cual, o el liviano agrandado al doble. El liviano
     se arma de sus índices ya duplicados y en 8bpp, sin pasar por
-    `respaldo_bytes`: así lo que se compara es lo que hace la ROM contra la
+    `fallback_bytes`: así lo que se compara es lo que hace la ROM contra la
     imagen, y no contra el mismo orden de bytes del que ella lee."""
     if not liviano:
-        return snes_convert.fondo_bytes(scene.backdrop(nombre, GAME_DIR))[0]
+        return snes_convert.backdrop_bytes(scene.backdrop(nombre, GAME_DIR))[0]
     grande = scene.light_backdrop(nombre, GAME_DIR)["indices"]
     return b"".join(snes_format.pack_tile(celda, planes=8)
                     for celda in scene.tiles(grande))
@@ -281,7 +281,7 @@ def test_msu_la_rom_sabe_donde_esta_cada_fondo():
                           len(juego)))
         pos = en_la_rom(s["msu_fondo_pos"])
         # Los fondos van primero, dos entradas cada uno, y detrás los efectos
-        # de sonido de calidad: ver `escribir_msu` en snes_convert.py.
+        # de sonido de calidad: ver `write_msu` en snes_convert.py.
         assert len(indice) == 2 * s["MSU_FONDOS_N"] + s["MSU_EFECTOS_N"], (
             "%s: el .msu tiene %d entradas y la ROM cuenta con %d fondos y %d "
             "efectos" % (nombre, len(indice), s["MSU_FONDOS_N"],

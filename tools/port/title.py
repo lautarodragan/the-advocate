@@ -131,11 +131,11 @@ def _text_layer(sys_img, texts, chosen, font_id=None):
     detail: it is what means there is no second font to maintain.
     """
     from PIL import Image
-    from port import window as ventana_mod
+    from port import window as window_mod
     layer = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     for n, text in enumerate(texts):
         mark = CURSOR if n == chosen else NO_CURSOR
-        ventana_mod.draw_line(layer, sys_img, MENU_X, MENU_Y + n * MENU_STEP,
+        window_mod.draw_line(layer, sys_img, MENU_X, MENU_Y + n * MENU_STEP,
                               mark + text, font_id=font_id)
     return layer
 

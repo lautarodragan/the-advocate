@@ -78,14 +78,14 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 | Las diagonales, y hacia dónde dejan mirando | `puede_celda_diag`, `encarar_diagonal` | — |
 | Cambiar el gráfico a mitad de una ruta (la orden 34) | `load_ruta_graficos`, `refrescar_npc` | `Graphics` |
 | La colisión con los eventos | `celda_bloqueada`, `atraviesa_el_evento` | — |
-| El gráfico sigue a la página, y el tile manda sobre el terreno | `grafico_de_pagina`, `pasa_con_evento`, `acomodar_npc` | `npcs_dibujables` |
-| Los eventos dibujados con un tile del chipset | `load_npcs` | `npcs_dibujables`, `Charsets` en `tools/render/render_map.py` |
-| Los que además son opacos y fijos: horneados en el mapa y sin fila que dibujar | `build_oam` saltea la fila escondida | `eventos_horneables` |
-| El fundido de los teletransportes, con el mapa cargando adentro del negro | `empezar_fundido`, `fundido_tick` | `fade_ramp`, y las constantes `FUNDIDO_*` |
+| El gráfico sigue a la página, y el tile manda sobre el terreno | `grafico_de_pagina`, `pasa_con_evento`, `acomodar_npc` | `drawable_npcs` |
+| Los eventos dibujados con un tile del chipset | `load_npcs` | `drawable_npcs`, `Charsets` en `tools/render/render_map.py` |
+| Los que además son opacos y fijos: horneados en el mapa y sin fila que dibujar | `build_oam` saltea la fila escondida | `bakeable_events` |
+| El fundido de los teletransportes, con el mapa cargando adentro del negro | `empezar_fundido`, `fundido_tick` | `fade_ramp`, y las constantes `FADE_*` |
 | El tope de teletransportes encadenados | `SALTOS_MAX` y sus usos | lo cobra `rom/pruebas/rpgmaker/test_saltos.py` |
 | La pantalla se prende en el vblank y en ningún otro lado | `flush_video` | — |
 | La ventana de mensaje, clavada abajo por HDMA | `armar_hdma`, `msg_empezar`, `msg_ptr_sig` | `tools/port/window.py`, `Messages` |
-| El texto compuesto en caliente, con los glifos ya pre-renderizados | `mensaje_tick`, `componer_char`, `cebar_linea` | `fuente_prerender` en `tools/port/snes_convert.py` |
+| El texto compuesto en caliente, con los glifos ya pre-renderizados | `mensaje_tick`, `componer_char`, `cebar_linea` | `font_prerender` en `tools/port/snes_convert.py` |
 | El arranque dura siempre lo mismo | `BOOT_CUADROS` | lo corre `Partida` en `rom/pruebas/arnes/consola.py` |
 | Los cuadros perdidos se cuentan | `contar_perdidos` | los lee `Partida.cuadros_perdidos` de la WRAM |
 | La música no espera al lazo: va en una IRQ vertical | `irq_musica`, `IRQ_LINEA` | — |

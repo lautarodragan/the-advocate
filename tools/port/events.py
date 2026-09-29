@@ -20,7 +20,7 @@ import collections
 import math
 import os
 
-from port import picture as imagen_mod
+from port import picture as picture_mod
 from port import rules
 from port.constants import COLUMNS, LINES, EQUIPMENT_SLOTS
 from rpgmaker import rm2k
@@ -69,7 +69,7 @@ TRADE_EVENT_LOCATIONS = 10870
 # that is why in the ROM it is a small table that translates blocks while
 # drawing, and not a write to the grid —which lives in ROM and cannot be
 # written—. The converter resolves which block goes to which: see
-# `Sustituciones`.
+# `Substitutions`.
 TILE_SUBSTITUTION = 11750
 # A cell's terrain into a variable: `CommandStoreTerrainID`. The terrain comes
 # from the tile of the **lower** layer —"RPG_RT always uses the terrain of the
@@ -185,7 +185,7 @@ def escape_tail(lines):
     """
     lines = list(lines)
     pauses = 0
-    autocierre = False
+    auto_close = False
     if lines:
         text = lines[-1]
         i = cut = len(text)
@@ -203,11 +203,11 @@ def escape_tail(lines):
         if escapes:
             tail = text[cut:]
             pauses = tail.count(ESCAPE + ESCAPE_PAUSE)
-            autocierre = ESCAPE + ESCAPE_CLOSE in tail
+            auto_close = ESCAPE + ESCAPE_CLOSE in tail
             lines[-1] = text[:cut]
     if any(ESCAPE in t for t in lines) or pauses > PAUSES_MAX:
         raise CannotCompile()
-    return tuple(lines), pauses, autocierre
+    return tuple(lines), pauses, auto_close
 
 
 # A forced MoveEvent route. The parameters are (whom, frequency, a repeat
@@ -736,7 +736,7 @@ class Songs:
         # package: see `paquete_cargar` in tools/runtime/paquete_de_audio.s.
         # And which ROM maps each one jumps to —`destinos`, indices into the
         # map table—, which is where it comes from which song may be playing
-        # when a package is loaded: see `temas_heredados` in snes_convert.py.
+        # when a package is loaded: see `inherited_songs` in snes_convert.py.
         self.current_map = None
         self.per_map = {}
         # And which `PlayBGM`s of each map are **exit ones**: see `output`.
@@ -770,7 +770,7 @@ class Songs:
         effects in between —the one it surely carries—, or with None if it
         carries whatever is playing. The page notes it when it compiles, and
         `_recalled_destination` that of a `RecallToLocation`, always with None.
-        See `temas_heredados` in snes_convert.py."""
+        See `inherited_songs` in snes_convert.py."""
         if self.current_map is None:
             return
         self.jumps.setdefault(self.current_map, {}).setdefault(dest, set()).add(
@@ -868,7 +868,7 @@ def sprite_associations(game_maps, extra=()):
 
     **All** the pages are looked at and not only the ones that compile, on
     purpose: if it depended on what compiles, the list would depend on
-    whether the ROM carries a message window —same as `lideres_posibles`—
+    whether the ROM carries a message window —same as `possible_leaders`—
     and the converter's two passes would number differently. Reserving one
     slot too many costs the twelve poses of a CharSet in the sprite bank and
     nothing else.
@@ -1391,15 +1391,15 @@ class Messages:
         boxes —one waits for the player and the other does not— and sharing
         an offset would make them last the same.
         """
-        lines, pauses, autocierre = escape_tail(lines)
+        lines, pauses, auto_close = escape_tail(lines)
         lines = tuple(t[:COLUMNS]
                       for t in list(lines)[:LINES])
-        key = (lines, pauses, autocierre)
+        key = (lines, pauses, auto_close)
         if key not in self.where:
             while len(self.data) % self.step:
                 self.data.append(0)
             where = len(self.data)
-            self.data += message_bytes(lines, pauses, autocierre)
+            self.data += message_bytes(lines, pauses, auto_close)
             if where // self.step > 0xFFFF:
                 raise SystemExit(
                     "this ROM's messages are %d bytes and the OP_MESSAGE "
@@ -1479,7 +1479,7 @@ HEADER_AUTO_CLOSE = 0x08
 MESSAGES_STEP = 4
 
 
-def message_bytes(lines, pauses=0, autocierre=False):
+def message_bytes(lines, pauses=0, auto_close=False):
     """A text box as the ROM reads it: the header, and each line with its
     length.
 
@@ -1489,7 +1489,7 @@ def message_bytes(lines, pauses=0, autocierre=False):
     """
     assert 0 <= pauses <= PAUSES_MAX
     out = bytearray([min(len(lines), LINES)
-                     | (HEADER_AUTO_CLOSE if autocierre else 0)
+                     | (HEADER_AUTO_CLOSE if auto_close else 0)
                      | (pauses << 4)])
     for text in list(lines)[:LINES]:
         text = text[:COLUMNS]
@@ -2300,8 +2300,8 @@ class Pictures:
                         if im is None:
                             continue
                         p = cmd.parameters
-                        info = imagen_mod.convert(im, p[2], p[3])
-                        if not imagen_mod.fits(info):
+                        info = picture_mod.convert(im, p[2], p[3])
+                        if not picture_mod.fits(info):
                             continue
                         self.name, self.info = cmd.string, info
                         self.number, self.where = p[0], (p[2], p[3])
@@ -3235,7 +3235,7 @@ class TroopPages:
     `cuerpos` is the code of all of them, one after the other and **each
     distinct body only once**: the game copies its systems' pages into every
     troop —4588 pages and 295 distinct bodies—, so the key is the already
-    compiled bytecode, same as `Materiales` with the map's blocks.
+    compiled bytecode, same as `Materials` with the map's blocks.
 
     The messages go to **their own block**, `mensajes_tropa`, and not to the
     maps': `OP_MESSAGE` carries a sixteen-bit offset and the maps' block of
@@ -4731,7 +4731,7 @@ def _compile(cmd, map_index, messages=None, extra=(),
 
     if cmd.code == CHANGE_ENCOUNTER_STEPS:
         # The `1 / pasos` and the rows' seven thresholds, computed here as for
-        # the map's registry —`encuentros_de_la_rom`—, so a change of steps
+        # the map's registry —`rom_encounters`—, so a change of steps
         # changes the chance and the rows together, same as
         # `Encounters.set_steps`. It lasts until the next map load: the ROM
         # sets the map's again, which is what RM2k does.
@@ -5070,9 +5070,9 @@ def _compile(cmd, map_index, messages=None, extra=(),
             raise CannotCompile("TileSubstitution with no operands")
         if map_events is None or map_events.substitutions is None:
             # Without the converter in between there are no blocks to
-            # translate against. See `Sustituciones` in snes_convert.py.
+            # translate against. See `Substitutions` in snes_convert.py.
             raise CannotCompile("TileSubstitution without the map's blocks")
-        pairs = map_events.substitutions.pares(bool(p[0]), p[1], p[2])
+        pairs = map_events.substitutions.pairs(bool(p[0]), p[1], p[2])
         if pairs is None:
             raise CannotCompile("TileSubstitution that cannot be translated to "
                                 "blocks: see `Sustituciones`")
@@ -5244,7 +5244,7 @@ def _compile(cmd, map_index, messages=None, extra=(),
 
 class PartyState:
     """The party, to simulate its changes when converting:
-    `lideres_posibles` and `grupo_de_la_pagina` in snes_convert.py. It is
+    `possible_leaders` and `page_party` in snes_convert.py. It is
     what is left of the Python interpreter's state, which went away with the
     reference; the ROM is the only one that runs the bytecode."""
 

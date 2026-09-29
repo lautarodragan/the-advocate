@@ -29,7 +29,7 @@ def test_kersh_puede_liderar_en_la_apertura():
     del "1 year earlier" del mapa 4 pone a Talan, y con el grupo compartido
     Kersh entraba **detrás** de él y no era líder nunca.
     """
-    lideres = snes_convert.lideres_posibles(None, DEMO, [DUMMY_HERO])
+    lideres = snes_convert.possible_leaders(None, DEMO, [DUMMY_HERO])
     assert KERSH in lideres, \
         "Kersh no quedó como líder posible, así que el héroe se va a dibujar " \
         "sin gráfico en la apertura; los líderes fueron %s" % lideres
@@ -41,8 +41,8 @@ def test_el_orden_de_los_mapas_no_cambia_el_resultado():
     Es la propiedad que faltaba: el orden del directorio no es el orden en que
     se juega, así que no puede decidir quién se dibuja.
     """
-    derecho = snes_convert.lideres_posibles(None, DEMO, [DUMMY_HERO])
-    revés = snes_convert.lideres_posibles(
+    derecho = snes_convert.possible_leaders(None, DEMO, [DUMMY_HERO])
+    revés = snes_convert.possible_leaders(
         None, list(reversed(DEMO)), [DUMMY_HERO])
     assert set(derecho) == set(revés), \
         "los líderes dependen del orden de los mapas: %s contra %s" % (

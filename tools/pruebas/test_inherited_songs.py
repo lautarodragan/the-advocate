@@ -1,6 +1,6 @@
 """Which song may be playing when each map's package is loaded.
 
-`temas_heredados`, in tools/port/snes_convert.py, follows the jumps of the
+`inherited_songs`, in tools/port/snes_convert.py, follows the jumps of the
 compiled pages without looking at conditions, and what it does not see gets
 no room reserved: the song that arrives playing at a map whose package does
 not count it leaves the sound effects waiting for the next `PlayBGM`, and on
@@ -16,7 +16,7 @@ covered by `test_a_teleport_notes_the_song_it_carries`.
 """
 
 from port import events                                      # noqa: E402
-from port.snes_convert import temas_heredados                 # noqa: E402
+from port.snes_convert import inherited_songs                 # noqa: E402
 
 K, G, T, V = 0, 1, 2, 3            # Kfmus5, golden_axe, tsmedit, vswar
 SIN = 0xFF
@@ -33,8 +33,8 @@ def _songs(por_mapa, salidas, saltos):
 
 def _inheritance(temas, n, inicial=0, apartes=None):
     nombres = [str(i) for i in range(n)]
-    return {(int(nombre), t) for nombre, t in temas_heredados(
-        temas, [SIN] * n, inicial, SIN, nombres, apartes=apartes)}
+    return {(int(nombre), t) for nombre, t in inherited_songs(
+        temas, [SIN] * n, inicial, SIN, nombres, separate_ones=apartes)}
 
 
 def test_a_map_that_only_starts_exit_songs_lets_the_previous_through():
@@ -89,7 +89,7 @@ def test_a_separate_song_does_not_leave_its_map():
 
 
 def test_a_teleport_notes_the_song_it_carries():
-    """What `temas_heredados` reads is noted by the page when it compiles: the
+    """What `inherited_songs` reads is noted by the page when it compiles: the
     jump right after a `PlayBGM` takes that song along, and the one that is
     not, None."""
     temas = events.Songs()

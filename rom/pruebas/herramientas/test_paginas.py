@@ -184,8 +184,8 @@ def test_sin_saltar_la_escritura_mira_las_variables_del_mapa():
 def test_la_ruta_propia_apunta_al_bloque_que_recibe():
     """Una página con ruta propia lleva dos punteros adentro del código de
     eventos del mapa —+8 su código, +16 las órdenes de su ruta— y los dos
-    tienen que salir de la etiqueta que `tabla_de_paginas` recibe, no del
-    número del mapa. La etiqueta la pone `Materiales`, que numera por clase y
+    tienen que salir de la etiqueta que `page_table` recibe, no del
+    número del mapa. La etiqueta la pone `Materials`, que numera por clase y
     comparte los bloques iguales: con un bloque de código compartido antes
     que el de este mapa, `evcodigo_<mapa>` es el de **otro** mapa, o no
     existe y `ca65` se cae con "Symbol 'evcodigo_82' is undefined".
@@ -205,8 +205,8 @@ def test_la_ruta_propia_apunta_al_bloque_que_recibe():
                         "anim_continua": False, "frecuencia": 3,
                         "velocidad": 4, "ordenes": [0]},
     }
-    tabla = snes_convert.tabla_de_paginas({"paginas": [pagina]}, 7,
-                                          "evcodigo_3")
+    tabla = snes_convert.page_table({"paginas": [pagina]}, 7,
+                                    "evcodigo_3")
     nombrados = set(re.findall(r"evcodigo_\d+", tabla))
     assert nombrados == {"evcodigo_3"}, (
         "la tabla del mapa 7, cuyo código es el bloque evcodigo_3, nombra %s"

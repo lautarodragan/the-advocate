@@ -3,7 +3,7 @@
 
 Going from RPG Maker to the console there are two kinds of transformation
 and only one is a patch. Baking opaque events, reusing mirrored tiles or
-`separar_del_heroe` require no judgment and do not change what is seen: they
+`separate_from_hero` require no judgment and do not change what is seen: they
 are optimizations and are not here. Merging two colors because CGRAM does
 not have room for both, on the other hand, **loses something and someone
 chose what**, and that is a patch.
@@ -68,7 +68,7 @@ its own, writes what it decided next to its ROM —in
 `rom/build/<cartucho>/parches/`, which is not versioned— and `--check` asks
 nothing of it. In this kind of decision, moreover, the question never even
 comes up: the layer merges depend on the map and its ChipSet and nothing
-else —it is the same reason `capas_convertidas` can cache them with a key
+else —it is the same reason `converted_layers` can cache them with a key
 that does not know which cartridge is being built—. That this is true **is
 not assumed**: `--check` compares against what is versioned **every**
 cartridge that carries a versioned map, so if any decided differently, the
@@ -104,7 +104,7 @@ a versioned animation, and
 redoes the math from what is written.
 
 What **does** depend on the map is something else and is not here: whether
-the animation is drawn, which is what `animacion_de_mapa` decides when the
+the animation is drawn, which is what `map_animation` decides when the
 map already took the eight sprite palettes. It is another decision —and
 another kind—, and putting it in this file would mix the cartridge with the
 game again.
@@ -122,7 +122,7 @@ already shrunk drawing and nothing else.
 
 What **is not here yet**, and is left for later: the character palettes
 —which do depend on the cartridge, because who pays the timer's entry is
-decided by `npcs_dibujables` looking at the whole map—, the voices dropped
+decided by `drawable_npcs` looking at the whole map—, the voices dropped
 from a MIDI, the trimmed samples, the fifteen colors each animation is
 reduced to, and `DECORATE_TRANSLUCENT`.
 """
@@ -419,7 +419,7 @@ def battler_diff(old, new):
 # --- what is not the game's -------------------------------------------------
 
 # Who asked for each of the cartridge's patches, next to its patches and **not
-# versioned**: the converter writes it —see `usos_de_los_parches` in
+# versioned**: the converter writes it —see `patch_uses` in
 # snes_convert.py— and `only_for_tests` reads it. It is needed since the ROM that
 # is played also carries the suite's maps and pages.
 USES_FILE = os.path.join("parches", "usos.json")
