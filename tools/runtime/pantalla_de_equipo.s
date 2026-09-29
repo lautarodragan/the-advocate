@@ -16,7 +16,7 @@
 ; only one, `mensaje_de`, and it goes with `f:`; it cost an afternoon of a shop
 ; with no greeting.
 ;
-; It costs no frames: both block inside the page, `vueltas` does not advance
+; It costs no frames: both block inside the page, `ticks` does not advance
 ; while they are shown, and the two extra cycles of each `jsl` fall on a screen
 ; waiting for the pad.
 ;
@@ -30,8 +30,8 @@
 ;   eq_actor     is comp_char      ; the actor number
 ;   eq_ranura    is comp_col       ; the highlighted slot, 0 to 4
 ;   eq_eligiendo is comp_col + 1   ; whether the list is shown
-;   eq_elegido   is comp_fase      ; the cursor's place in the list
-;   eq_arriba    is comp_fase + 1  ; and the first one visible
+;   eq_elegido   is comp_phase      ; the cursor's place in the list
+;   eq_arriba    is comp_phase + 1  ; and the first one visible
 ;   eq_n         is comp_base      ; how many are in the list, with the empty one
 ;   eq_cand      is comp_mask      ; the item under the cursor, 0 if none
 ;   eq_suma      is comp_or01      ; a parameter, while being added up
@@ -41,7 +41,7 @@
 ;   eq_tmp       is comp_and       ; `eq_point`'s scratch, four bytes
 
 ; A: the slot. Leaves the WRAM window pointing at that slot of the actor:
-; `FAR_EQUIPO` + actor * 10 + slot * 2.
+; `FAR_EQUIPMENT` + actor * 10 + slot * 2.
 .proc eq_point
 .a8
 .i16
@@ -61,7 +61,7 @@
     clc
     adc comp_and
     clc
-    adc #FAR_EQUIPO
+    adc #FAR_EQUIPMENT
     sta WMADDL
     sep #$20
 .a8
@@ -269,7 +269,7 @@ ninguno:
     stx comp_or01
     ply
     lda #0
-ranura:
+slot:
     pha
     jsr eq_effective
     jsr eq_k
@@ -297,7 +297,7 @@ sin_puntos:
     pla
     inc a
     cmp #5
-    bcc ranura
+    bcc slot
     rep #$20
 .a16
     lda comp_or01
@@ -464,7 +464,7 @@ empty:
     rts
 .endproc
 
-; Writes to `eleg_tabla` the name of item `eq_id`, if the ROM knows it, with
+; Writes to `pick_table` the name of item `eq_id`, if the ROM knows it, with
 ; no more than A letters.
 .proc eq_name
 .a8
@@ -507,7 +507,7 @@ nothing:
     inc a                       ; 3k + 1
     pha
     lda #PANT_DESC_POS
-    sta eleg_tabla
+    sta pick_table
     plx
     phx
     sep #$20
@@ -517,7 +517,7 @@ nothing:
     rep #$20
 .a16
     lda #(PANT_DESC_POS + 128)
-    sta eleg_tabla
+    sta pick_table
     plx
     inx
     sep #$20
@@ -541,7 +541,7 @@ nothing:
     rep #$20
 .a16
     lda #EQ_ACTOR_POS
-    sta eleg_tabla
+    sta pick_table
     lda comp_char
     and #$00FF
     asl a
@@ -557,7 +557,7 @@ sin_nombre:
     ; --- the description ---
     lda comp_col + 1
     beq la_puesta
-    lda comp_fase
+    lda comp_phase
     jsr eq_from_list
     rep #$20
 .a16
@@ -581,7 +581,7 @@ param:
     asl a
     tax
     lda eq_param_pos, x
-    sta eleg_tabla
+    sta pick_table
     lda comp_or01 + 2
     and #$00FF
     clc
@@ -610,7 +610,7 @@ param:
 .a16
     clc
     adc #EQ_PARAM_VALOR
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     lda #3
@@ -623,7 +623,7 @@ param:
 .a16
     clc
     adc #EQ_PARAM_FLECHA
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     lda #3                      ; in red, like `Window_EquipStatus`
@@ -673,14 +673,14 @@ params_listos:
     bne lista
     ; --- the slots ---
     lda #0
-ranura:
+slot:
     pha                         ; the cursor is the bar: see `eq_bar`
     jsr fila_pos
     rep #$20
 .a16
     clc
     adc #EQ_RANURA_TERM
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     pla
@@ -703,7 +703,7 @@ ranura:
 .a16
     clc
     adc #EQ_RANURA_NOMBRE
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     pla
@@ -714,7 +714,7 @@ ranura:
     pla
     inc a
     cmp #5
-    bcc ranura
+    bcc slot
     rts
 
     ; --- the list ---
@@ -723,13 +723,13 @@ lista:
 lista_fila:
     pha
     clc
-    adc comp_fase + 1
+    adc comp_phase + 1
     cmp comp_base
     bcs lista_listo
     pla
     pha
     clc
-    adc comp_fase + 1
+    adc comp_phase + 1
     jsr eq_from_list
     rep #$20
 .a16
@@ -744,7 +744,7 @@ lista_fila:
 .a16
     clc
     adc #EQ_LISTA_NOMBRE
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     lda #255
@@ -756,7 +756,7 @@ lista_fila:
 .a16
     clc
     adc #PANT_DOS_PUNTOS
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     stz temp + 1
@@ -820,7 +820,7 @@ fila_pos_lista:
 .proc eq_equip
 .a8
 .i16
-    lda comp_fase
+    lda comp_phase
     jsr eq_from_list
     rep #$20
 .a16
@@ -925,9 +925,9 @@ empty:
     ; Which one: the slot, or the visible list row.
     lda comp_col + 1
     beq en_ranuras
-    lda comp_fase
+    lda comp_phase
     sec
-    sbc comp_fase + 1
+    sbc comp_phase + 1
     ldx #(RANURAS_EQUIPO * 128) ; the list's, after the slots'
     bra row
 en_ranuras:
@@ -988,14 +988,14 @@ espera:
     jsl f:bt_t_upload
     jsr eq_bar
     lda pad
-    eor pad_ant
+    eor pad_prev
     and pad
-    sta titulo_flancos
+    sta title_edges
     lda comp_col + 1
     beq en_ranuras
     jmp en_lista
 en_ranuras:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_UP
     beq r_no_arriba
     lda comp_col
@@ -1003,7 +1003,7 @@ en_ranuras:
     dec comp_col
     jmp recomponer
 r_no_arriba:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_DOWN
     beq r_no_abajo
     lda comp_col
@@ -1012,50 +1012,50 @@ r_no_arriba:
     inc comp_col
     jmp recomponer
 r_no_abajo:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_B
     beq r_mira_a
     rtl
 r_mira_a:
     lda pad_a
     beq espera
-    lda pad_a_ant
+    lda pad_a_prev
     bne espera
     jsr eq_list_build
-    stz comp_fase
-    stz comp_fase + 1
+    stz comp_phase
+    stz comp_phase + 1
     lda #1
     sta comp_col + 1
     jmp recomponer
 en_lista:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_UP
     beq l_no_arriba
-    lda comp_fase
+    lda comp_phase
     beq espera2
-    dec comp_fase
-    lda comp_fase
-    cmp comp_fase + 1
+    dec comp_phase
+    lda comp_phase
+    cmp comp_phase + 1
     bcs recomponer
-    sta comp_fase + 1
+    sta comp_phase + 1
     bra recomponer
 l_no_arriba:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_DOWN
     beq l_no_abajo
-    lda comp_fase
+    lda comp_phase
     inc a
     cmp comp_base
     bcs espera2
-    sta comp_fase
+    sta comp_phase
     sec
-    sbc comp_fase + 1
+    sbc comp_phase + 1
     cmp #EQ_LISTA_FILAS
     bcc recomponer
-    inc comp_fase + 1
+    inc comp_phase + 1
     bra recomponer
 l_no_abajo:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_B
     beq l_mira_a
     stz comp_col + 1
@@ -1063,7 +1063,7 @@ l_no_abajo:
 l_mira_a:
     lda pad_a
     beq espera2
-    lda pad_a_ant
+    lda pad_a_prev
     bne espera2
     jsr eq_equip
     stz comp_col + 1

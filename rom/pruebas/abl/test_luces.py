@@ -55,12 +55,12 @@ def test_pararse_en_una_baldosa_iluminada_atrapa(partida, celdas_del_cono_b):
     assert celdas_del_cono_b, "el mapa no dibuja el cono B en ninguna celda"
     una = partida(caso=MAPAS)
     una.correr(30)
-    assert not una.byte("msg_abierto"), "algo abrió un mensaje antes de empezar"
+    assert not una.byte("msg_open"), "algo abrió un mensaje antes de empezar"
 
     x, y = celdas_del_cono_b[len(celdas_del_cono_b) // 2]
     una.ir_al_mapa(11, x, y)
     una.correr(60)
-    assert una.byte("msg_abierto"), (
+    assert una.byte("msg_open"), (
         "parado en (%d,%d), que es una baldosa iluminada del cono B, el "
         "paralelo tendría que haber abierto el mensaje del 'me atraparon'"
         % (x, y))

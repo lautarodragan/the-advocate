@@ -14,16 +14,16 @@
 ; The scratch space, borrowed from the message compositor:
 ;   ti_modo      is comp_col       ; SHOP_MAIN ... SHOP_SOLD
 ;   ti_tipo      is comp_col + 1   ; 0 buys and sells, 1 buys, 2 sells
-;   ti_juego     is comp_fase      ; the message set, 0 to 2
-;   ti_resaludo  is comp_fase + 1  ; whether it already went back to the main one
+;   ti_juego     is comp_phase      ; the message set, 0 to 2
+;   ti_resaludo  is comp_phase + 1  ; whether it already went back to the main one
 ;   ti_elegido   is comp_base      ; the cursor
 ;   ti_arriba    is comp_base + 1  ; the first visible one of the list
 ;   ti_n         is comp_mask      ; how many there are in the mode's list
 ;   ti_nt        is comp_mask + 1  ; how many the shop sells
 ;   ti_cuantos   is comp_color     ; the quantity being chosen
-;   ti_max       is comp_fila      ; and up to how many
-;   ti_timer     is comp_glifo     ; the frames of the "done"
-;   ti_pos       is comp_glifo + 1 ; two bytes: where the digit goes
+;   ti_max       is comp_row      ; and up to how many
+;   ti_timer     is comp_glyph     ; the frames of the "done"
+;   ti_pos       is comp_glyph + 1 ; two bytes: where the digit goes
 ;   ti_num       is comp_or01      ; three bytes: a 24-bit number
 FAR_SHOP = $2B00
 SHOP_MAIN = 0
@@ -114,11 +114,11 @@ ready:
     jsr shop_price
     plx
     ; gold >= price, 24 bits
-    lda oro + 2
+    lda gold + 2
     bne alcanza
     rep #$20
 .a16
-    lda oro
+    lda gold
     cmp comp_or01
     sep #$20
 .a8
@@ -176,11 +176,11 @@ dividir:
     bpl dividir
     rep #$20
 .a16
-    lda comp_glifo + 1
-    sta eleg_tabla
+    lda comp_glyph + 1
+    sta pick_table
     dec a
     dec a
-    sta comp_glifo + 1
+    sta comp_glyph + 1
     sep #$20
 .a8
     lda temp + 3
@@ -212,7 +212,7 @@ dividir:
 .a8
     lda #0
 miembro:
-    cmp grupo_n
+    cmp party_n
     bcs ready
     pha
     rep #$20
@@ -221,10 +221,10 @@ miembro:
     tax
     sep #$20
 .a8
-    lda grupo, x
+    lda party, x
     sta comp_char
     lda #0
-ranura:
+slot:
     pha
     jsr eq_read
     rep #$20
@@ -239,7 +239,7 @@ otra:
     pla
     inc a
     cmp #5
-    bcc ranura
+    bcc slot
     pla
     inc a
     bra miembro
@@ -259,14 +259,14 @@ ready:
 .a8
 .i16
     sta temp + 3
-    lda comp_fase
+    lda comp_phase
     asl a
     asl a
     asl a                       ; times 8
     clc
-    adc comp_fase
-    adc comp_fase
-    adc comp_fase                ; times 11
+    adc comp_phase
+    adc comp_phase
+    adc comp_phase                ; times 11
     clc
     adc temp + 3
     rep #$20
@@ -287,7 +287,7 @@ ready:
 .proc shop_two_lines
 .a8
 .i16
-    lda comp_fase + 1
+    lda comp_phase + 1
     jsr shop_text_of
     inx
     lda f:item_txt_n, x
@@ -305,7 +305,7 @@ ready:
     rep #$20
 .a16
     lda #TI_MSG_POS
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     lda comp_col
@@ -313,7 +313,7 @@ ready:
     rep #$20
 .a16
     lda #TI_PRINCIPAL_MSG_POS
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     phx
@@ -322,7 +322,7 @@ ready:
     rep #$20
 .a16
     lda #(TI_PRINCIPAL_MSG_POS + 128)
-    sta eleg_tabla
+    sta pick_table
     plx
     inx
     sep #$20
@@ -333,7 +333,7 @@ uno:
     rts
 .endproc
 
-; The currency in `eleg_tabla`, in red as in RM2k.
+; The currency in `pick_table`, in red as in RM2k.
 .proc shop_currency
 .a8
 .i16
@@ -379,7 +379,7 @@ venta:
     ; data bank is still 0: without the long form, the absolute would read bank 0.
     lda f:mensaje_de, x
     bne con_mensaje
-    lda comp_fase + 1             ; the main mode: greeting or re-greeting
+    lda comp_phase + 1             ; the main mode: greeting or re-greeting
 con_mensaje:
     jsr shop_message
     lda comp_col
@@ -401,23 +401,23 @@ sin_ayuda:
 cerca_12209:
     rep #$20
 .a16
-    lda oro
+    lda gold
     sta comp_or01
     lda #TI_ORO_POS
-    sta comp_glifo + 1
+    sta comp_glyph + 1
     clc
     adc #2
     pha
     sep #$20
 .a8
-    lda oro + 2
+    lda gold + 2
     sta comp_or01 + 2
     stz temp + 1
     jsr scr_number24
     rep #$20
 .a16
     pla
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     jsr shop_currency
@@ -426,7 +426,7 @@ cerca_12209:
     rep #$20
 .a16
     lda #TI_TENGO_POS
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     lda #TI_ROJO
@@ -441,7 +441,7 @@ cerca_12209:
     rep #$20
 .a16
     lda #TI_TENGO_NUM
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     lda #2
@@ -451,7 +451,7 @@ cerca_12209:
     rep #$20
 .a16
     lda #TI_LLEVO_POS
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     lda #TI_ROJO
@@ -463,7 +463,7 @@ cerca_12209:
     rep #$20
 .a16
     lda #TI_LLEVO_NUM
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     lda #2
@@ -491,7 +491,7 @@ cuantos:
     rep #$20
 .a16
     lda #TI_CUANTOS_POS
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     lda #255
@@ -499,7 +499,7 @@ cuantos:
     rep #$20
 .a16
     lda #TI_CUANTOS_X_POS
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     stz temp + 1
@@ -508,7 +508,7 @@ cuantos:
     rep #$20
 .a16
     lda #TI_CUANTOS_NUM_POS
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     lda comp_color
@@ -523,7 +523,7 @@ cuantos:
     rep #$20
 .a16
     lda #TI_TOTAL_POS
-    sta comp_glifo + 1
+    sta comp_glyph + 1
     sep #$20
 .a8
     stz temp + 1
@@ -531,7 +531,7 @@ cuantos:
     rep #$20
 .a16
     lda #(TI_TOTAL_POS + 2)
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     jmp shop_currency
@@ -544,7 +544,7 @@ orden:
     jsr orden_pos
     rep #$20
 .a16
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     pla
@@ -576,8 +576,8 @@ cerca_12382:
     jsr fila_pos
     rep #$20
 .a16
-    sta eleg_tabla
-    sta comp_glifo + 1                  ; the row, for the positions below
+    sta pick_table
+    sta comp_glyph + 1                  ; the row, for the positions below
     sep #$20
 .a8
     pla
@@ -620,10 +620,10 @@ color_listo:
     plx
     rep #$20
 .a16
-    lda comp_glifo + 1
+    lda comp_glyph + 1
     clc
     adc #TI_NOMBRE
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     phx
@@ -655,7 +655,7 @@ color_listo:
     ; buying: the price, right-aligned
     rep #$20
 .a16
-    lda comp_glifo + 1
+    lda comp_glyph + 1
     clc
     adc #TI_PRECIO
     pha
@@ -665,7 +665,7 @@ color_listo:
     rep #$20
 .a16
     pla
-    sta comp_glifo + 1
+    sta comp_glyph + 1
     sep #$20
 .a8
     jsr scr_number24
@@ -674,10 +674,10 @@ cuenta:
     ; selling: how many it has
     rep #$20
 .a16
-    lda comp_glifo + 1
+    lda comp_glyph + 1
     clc
     adc #PANT_DOS_PUNTOS
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
     lda #$3A
@@ -755,7 +755,7 @@ tres:
     adc #2
     rts
 
-; A: the message number. Its first line, in `eleg_tabla`, in white.
+; A: the message number. Its first line, in `pick_table`, in white.
 ti_renglon1:
     jsr shop_text_of
     stz temp + 1
@@ -822,7 +822,7 @@ ready:
     cmp #SHOP_SELL
     bcc comprando
     lda temp + 3
-    sta comp_fila
+    sta comp_row
     rts
 comprando:
     lda #ITEM_MAX
@@ -832,15 +832,15 @@ comprando:
     jsr shop_price
     rep #$20
 .a16
-    lda oro
+    lda gold
     sta comp_and
     sep #$20
 .a8
-    lda oro + 2
+    lda gold + 2
     sta comp_and + 2
-    stz comp_fila
+    stz comp_row
 otro:
-    lda comp_fila
+    lda comp_row
     cmp temp + 3
     bcs ready
     ; eq_tmp >= price? If the price is zero, always.
@@ -862,7 +862,7 @@ otro:
     sta comp_and
     sep #$20
 .a8
-    inc comp_fila
+    inc comp_row
     bra otro
 ready:
     rts
@@ -882,15 +882,15 @@ ready:
     ; --- buy: the gold goes down and the items go up ---
     rep #$20
 .a16
-    lda oro
+    lda gold
     sec
     sbc comp_or01
-    sta oro
+    sta gold
     sep #$20
 .a8
-    lda oro + 2
+    lda gold + 2
     sbc comp_or01 + 2
-    sta oro + 2
+    sta gold + 2
     lda comp_color
     rep #$20
 .a16
@@ -928,7 +928,7 @@ quita:
     rts
 .endproc
 
-; `oro` plus the 24 bits of `comp_or01`, capped at ORO_MAX: the adding half of
+; `gold` plus the 24 bits of `comp_or01`, capped at ORO_MAX: the adding half of
 ; `Game_Party::GainGold`. The shop's selling and the victory use it
 ; —`bt_vic_start`—; `op_gold` has its own because it lives in bank 0.
 .proc gold_add
@@ -936,21 +936,21 @@ quita:
 .i16
     rep #$20
 .a16
-    lda oro
+    lda gold
     clc
     adc comp_or01
-    sta oro
+    sta gold
     sep #$20
 .a8
-    lda oro + 2
+    lda gold + 2
     adc comp_or01 + 2
-    sta oro + 2
+    sta gold + 2
     cmp #^ORO_MAX
     bcc ready
     bne tope
     rep #$20
 .a16
-    lda oro
+    lda gold
     cmp #.loword(ORO_MAX)
     sep #$20
 .a8
@@ -960,11 +960,11 @@ tope:
     rep #$20
 .a16
     lda #.loword(ORO_MAX)
-    sta oro
+    sta gold
     sep #$20
 .a8
     lda #^ORO_MAX
-    sta oro + 2
+    sta gold + 2
 ready:
     rts
 .endproc
@@ -974,15 +974,15 @@ ready:
 .a8
 .i16
     jsl f:bt_t_build
-    lda eleg_n
+    lda pick_n
     sta comp_mask
     lda comp_base
     cmp comp_mask
     bcc ready
     lda comp_mask                    ; the last one was sold: the cursor goes up
-    beq cero
+    beq zero
     dec a
-cero:
+zero:
     sta comp_base
 ready:
     rts
@@ -1279,7 +1279,7 @@ capa:
 .proc shop_screen
 .a8
 .i16
-    stz comp_fase + 1
+    stz comp_phase + 1
     stz comp_base
     stz comp_base + 1
     lda comp_col + 1
@@ -1307,16 +1307,16 @@ empieza:
     lda #(RANURA_VRAM / 4096 * 16 + TI_MARCO_VRAM / 4096)
     jsl f:screen_ppu_on  ; BG2 and BG1, the windows with their base
     lda #1
-    sta menu_abierto
+    sta menu_open
 espera:
     jsl f:bt_t_vblank
     jsl f:bt_t_pad                ; the controller before the DMA: see the equipment screen
     jsl f:bt_t_upload
     jsr shop_windows
     lda pad
-    eor pad_ant
+    eor pad_prev
     and pad
-    sta titulo_flancos
+    sta title_edges
     ; By mode. Without `jmp (tabla, x)` in the assembler, a chain.
     lda comp_col
     bne no_es_principal
@@ -1338,7 +1338,7 @@ no_es_principal:
 
     ; --- the main mode ---
 principal:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_UP
     beq p_no_arriba
     lda comp_base
@@ -1346,7 +1346,7 @@ principal:
     dec comp_base
     jmp recomponer
 p_no_arriba:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_DOWN
     beq p_no_abajo
     lda comp_base
@@ -1356,7 +1356,7 @@ p_no_arriba:
     sta comp_base
     jmp recomponer
 p_no_abajo:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_B
     beq p_mira_a
     jmp salir
@@ -1383,7 +1383,7 @@ p_entrar:
     ; --- the lists ---
 comprar:
 vender:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_UP
     beq l_no_arriba
     lda comp_base
@@ -1392,7 +1392,7 @@ vender:
     jsr shop_move
     jmp recomponer
 l_no_arriba:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_DOWN
     beq l_no_abajo
     lda comp_base
@@ -1402,7 +1402,7 @@ l_no_arriba:
     jsr shop_move
     jmp recomponer
 l_no_abajo:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_B
     beq l_mira_a
     ; B: to the main mode, with the re-greeting; without a main mode, out.
@@ -1418,7 +1418,7 @@ a_la_principal:
 cursor_listo:
     sta comp_base
     lda #1
-    sta comp_fase + 1
+    sta comp_phase + 1
     lda #SHOP_MAIN
     jsr shop_mode_set
     jmp recomponer
@@ -1458,25 +1458,25 @@ espera2:
 
     ; --- the quantity ---
 cuantos:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_RIGHT
     beq c_no_derecha
     lda #1
     bra c_sumar
 c_no_derecha:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_LEFT
     beq c_no_izquierda
     lda #$FF
     bra c_sumar
 c_no_izquierda:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_UP
     beq c_no_arriba
     lda #10
     bra c_sumar
 c_no_arriba:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_DOWN
     beq c_no_abajo
     lda #$F6                    ; -10
@@ -1486,10 +1486,10 @@ c_sumar:
     adc comp_color
     bmi c_uno                   ; went below zero: it is 99 at most
     beq c_uno
-    cmp comp_fila
+    cmp comp_row
     bcc c_poner
     beq c_poner
-    lda comp_fila
+    lda comp_row
     bra c_poner
 c_uno:
     lda #1
@@ -1497,7 +1497,7 @@ c_poner:
     sta comp_color
     jmp recomponer
 c_no_abajo:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_B
     beq c_mira_a
     lda comp_col
@@ -1515,7 +1515,7 @@ c_mira_a:
     beq espera2
     jsr shop_close_deal
     lda #TI_SEGUNDO
-    sta comp_glifo
+    sta comp_glyph
     lda comp_col
     inc a                       ; CUANTOS_COMPRA -> COMPRADO, and the selling the same
     sta comp_col
@@ -1526,7 +1526,7 @@ c_mira_a:
 
     ; --- the "done", one second ---
 listo_trato:
-    dec comp_glifo
+    dec comp_glyph
     bne espera2
     lda comp_col
     dec a
@@ -1543,7 +1543,7 @@ salir:
 flanco_a:
     lda pad_a
     beq no_a
-    lda pad_a_ant
+    lda pad_a_prev
     beq si_a
 no_a:
     lda #0

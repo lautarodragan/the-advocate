@@ -21,7 +21,7 @@
 .i16
     rep #$20
 .a16
-    lda #FAR_ACCESO
+    lda #FAR_ACCESS
     sta WMADDL
     sep #$20
 .a8
@@ -32,8 +32,8 @@
 
 ; --- the sprite a `ChangeSpriteAssociation` gave an actor --------------------
 ;
-; One byte per actor number in `FAR_ACTOR_GRAF`, with the index into the map's
-; graphics table or `ACTOR_GRAF_NINGUNO`. It lives far away, so WMADD is
+; One byte per actor number in `FAR_ACTOR_GFX`, with the index into the map's
+; graphics table or `ACTOR_GFX_NONE`. It lives far away, so WMADD is
 ; pointed at it and it goes through the port, like the variables.
 
 ; A: the actor. Leaves WMADD pointing at its byte.
@@ -44,7 +44,7 @@
 .a16
     and #$00FF
     clc
-    adc #FAR_ACTOR_GRAF
+    adc #FAR_ACTOR_GFX
     sta WMADDL
     sep #$20
 .a8
@@ -52,7 +52,7 @@
     rts
 .endproc
 
-; A: the actor. Returns with its graphic in A, or `ACTOR_GRAF_NINGUNO`.
+; A: the actor. Returns with its graphic in A, or `ACTOR_GFX_NONE`.
 .proc actor_gfx_read
 .a8
 .i16
@@ -78,13 +78,13 @@
 .i16
     rep #$20
 .a16
-    lda #FAR_ACTOR_GRAF
+    lda #FAR_ACTOR_GFX
     sta WMADDL
     ldx #ACTORES_N
     sep #$20
 .a8
     stz WMADDH
-    lda #ACTOR_GRAF_NINGUNO
+    lda #ACTOR_GFX_NONE
 otro:
     sta WMDATA
     dex
@@ -107,8 +107,8 @@ otro:
 ; boot, so no case could produce a D-pad edge. Now `--tocar` produces it, and
 ; the suite's `tecla-dir` case checks it.
 ;
-; The edge is `Input::IsTriggered`: `pad` against `pad_ant` for B and the
-; directions, `pad_a` against `pad_a_ant` for A —A lives in the other byte of
+; The edge is `Input::IsTriggered`: `pad` against `pad_prev` for B and the
+; directions, `pad_a` against `pad_a_prev` for A —A lives in the other byte of
 ; the controller—, which is the same thing a message is closed with.
 ;
 ; `temp + 3` is the only one of the four that is free here: `temp` carries the
@@ -131,13 +131,13 @@ otro:
     lsr a                       ; TECLA_ESPERA is bit 0: into the carry
     lda pad
     bcc joy_listo               ; no wait: what is held, as is
-    eor pad_ant
+    eor pad_prev
     and pad
     ; Without the arrows that `arrows_repeat` made repeat this frame: here
     ; RM2k looks at `IsTriggered`, not `IsRepeated`. The `ora` and the `eor`
     ; are an `and` with the complement, and neither touches the carry.
-    ora flechas_repetidas
-    eor flechas_repetidas
+    ora arrows_repeated
+    eor arrows_repeated
 joy_listo:
     sta temp + 3                ; JOY1H: B and the four arrows
     lda temp + 1
@@ -154,7 +154,7 @@ sin_cancelar:
     beq sin_decision
     lda pad_a
     bcc a_lista                 ; the carry from above, still intact
-    eor pad_a_ant
+    eor pad_a_prev
     and pad_a
 a_lista:
     beq sin_decision
@@ -169,14 +169,14 @@ sin_decision:
     ; them. The table ends in zero, which is no button.
     ldx #$0000
 dir_otra:
-    lda f:tecla_dir_bit, x
+    lda f:key_dir_bit, x
     beq ninguna
     and temp + 3
     bne dir_hay
     inx
     bra dir_otra
 dir_hay:
-    lda f:tecla_dir_val, x
+    lda f:key_dir_val, x
     rts
 ninguna:
     lda #0
@@ -190,7 +190,7 @@ ninguna:
     pha
     rep #$20
 .a16
-    lda #FAR_ACCESO
+    lda #FAR_ACCESS
     sta WMADDL
     sep #$20
 .a8
@@ -220,18 +220,18 @@ ready:
 .a8
 .i16
     lda pad
-    eor pad_ant
+    eor pad_prev
     and pad
     and #PAD_B
     beq ready
-    lda msg_abierto
+    lda msg_open
     bne ready
-    lda ev_activo
+    lda ev_active
     bne ready
     jsr access_read
-    bit #ACCESO_SIN_MENU
+    bit #ACCESS_NO_MENU
     bne ready
-    ora #ACCESO_PEDIDO
+    ora #ACCESS_REQUESTED
     jsr access_write
 ready:
     rts
@@ -252,8 +252,8 @@ ready:
     cpx #MENU_GUARDAR
     bne ready
     jsr access_read
-    and #ACCESO_SIN_GUARDAR
-    eor #ACCESO_SIN_GUARDAR     ; 1 if allowed
+    and #ACCESS_NO_SAVE
+    eor #ACCESS_NO_SAVE     ; 1 if allowed
 ready:
     rts
 .endproc
@@ -313,11 +313,11 @@ borra:
 .i16
     rep #$20
 .a16
-    lda oro
+    lda gold
     sta temp
     sep #$20
 .a8
-    lda oro + 2
+    lda gold + 2
     sta temp + 2
     lda #$80
     sta VMAIN
@@ -378,7 +378,7 @@ otra:
 .endproc
 
 ; The whole screen, with the screen off: the bank, the five options, the
-; cursor on `titulo_sel`, the gold and the party. At the end it turns it on.
+; cursor on `title_sel`, the gold and the party. At the end it turns it on.
 .proc menu_upload
 .a8
 .i16
@@ -429,7 +429,7 @@ otra_opcion:
     ; --- the cursor ---
     lda #1
     sta temp + 3
-    lda titulo_sel
+    lda title_sel
     jsr menu_cursor_write
 
     ; --- the gold and the coin ---
@@ -449,7 +449,7 @@ otra_opcion:
     jsr menu_party_paint
     jsl f:menu_exp_paint       ; the experience, which goes in sprites, and turns on
     lda #1
-    sta menu_abierto
+    sta menu_open
     rts
 .endproc
 
@@ -472,7 +472,7 @@ otra_opcion:
 .i16
     lda #0
 otro_miembro:
-    cmp grupo_n
+    cmp party_n
     bcs grupo_listo
     cmp #MENU_FILAS_GRUPO
     bcc entra
@@ -605,7 +605,7 @@ actor_de:
     tax
     sep #$20
 .a8
-    lda grupo, x
+    lda party, x
     rts
 
 fila_vram:
@@ -631,19 +631,19 @@ fila_vram:
     plb
     sep #$20
     rep #$10
-    stz titulo_sel              ; RM2k opens with the cursor on the first
+    stz title_sel              ; RM2k opens with the cursor on the first
 armar:
     jsr menu_upload
 espera:
     jsr wait_vblank
     jsr read_pad
     lda pad
-    eor pad_ant
+    eor pad_prev
     and pad
-    sta titulo_flancos
+    sta title_edges
     and #PAD_UP
     beq no_arriba
-    lda titulo_sel
+    lda title_sel
     bne sube
     lda #MENU_OPCIONES          ; from the first, up wraps around
 sube:
@@ -651,10 +651,10 @@ sube:
     jsr mover
     bra espera
 no_arriba:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_DOWN
     beq no_abajo
-    lda titulo_sel
+    lda title_sel
     inc a
     cmp #MENU_OPCIONES
     bcc baja
@@ -663,22 +663,22 @@ baja:
     jsr mover
     bra espera
 no_abajo:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_B
     bne cerrar
     lda pad_a
     beq espera
-    lda pad_a_ant
+    lda pad_a_prev
     bne espera                  ; it was already held: not an edge
-    lda titulo_sel
+    lda title_sel
     jsr menu_enabled
     beq espera                  ; in gray: RM2k plays a sound and does nothing
-    lda titulo_sel
+    lda title_sel
     cmp #2
     bne no_equipo
     ; Equipment: whom, and their screen. Both return to the menu.
     lda #1
-    sta eleg_cancel             ; for choosing
+    sta pick_cancel             ; for choosing
     jsr target_screen
     cmp #$FF
     beq volver_de_equipo
@@ -688,14 +688,14 @@ no_abajo:
     tax
     sep #$20
 .a8
-    lda grupo, x
+    lda party, x
     jsl f:equipment_screen
 volver_de_equipo:
     lda #2
-    sta titulo_sel
+    sta title_sel
     jmp armar
 no_equipo:
-    lda titulo_sel
+    lda title_sel
     bne no_items
     ; Items: B returns to the menu, and using one goes straight back to the
     ; map.
@@ -703,7 +703,7 @@ no_equipo:
     beq volver_de_items
     jmp cerrar
 volver_de_items:
-    stz titulo_sel
+    stz title_sel
     jmp armar
 no_items:
     cmp #MENU_FIN
@@ -713,7 +713,7 @@ no_items:
     ; option, like `Scene::Pop`.
     jsl f:ending_screen
     lda #MENU_FIN
-    sta titulo_sel
+    sta title_sel
     jmp armar
 guardar:
     ; Save: the slot screen and, whether a slot is chosen or it is canceled,
@@ -727,19 +727,19 @@ guardar:
     jsr save_game
 guardar_listo:
     lda #MENU_GUARDAR
-    sta titulo_sel
+    sta title_sel
     jmp armar
 cerrar:
     ; The B that closes and the earlier A are consumed: without this
     ; `request_menu` would see the edge in this same pass and the menu would
     ; open again.
     lda pad
-    sta pad_ant
+    sta pad_prev
     lda pad_a
-    sta pad_a_ant
-    stz menu_abierto
-    lda boot_cuadros
-    sta nmi_visto
+    sta pad_a_prev
+    stz menu_open
+    lda boot_frames
+    sta nmi_seen
     ; The equipment may have changed: the common events that only look at it
     ; run now, with the data bank still at 0. See `COMUNES_DEL_EQUIPO` in
     ; eventos.py.
@@ -754,22 +754,22 @@ cerrar:
 mover:
     pha
     stz temp + 3
-    lda titulo_sel
+    lda title_sel
     jsr menu_cursor_write
     pla
-    sta titulo_sel
+    sta title_sel
     lda #1
     sta temp + 3
-    lda titulo_sel
+    lda title_sel
     jmp menu_cursor_write
 .endproc
 
 ; --- the actor choice --------------------------------------------------------
 ;
 ; `Scene_ActorTarget`, over the menu's bank: the party panel, and the System
-; windows and bar on BG1, which belong to `eleccion_de_actor.s`. `eleg_cancel`
+; windows and bar on BG1, which belong to `eleccion_de_actor.s`. `pick_cancel`
 ; says what for: at 1, to choose whom to equip, and A returns with the row; at
-; 0, for the medicine `k` in `eleg_flancos`, and A uses it on the row
+; 0, for the medicine `k` in `pick_edges`, and A uses it on the row
 ; —`medicine_use`— and **stays**, with that row's HP repainted, which is what
 ; `UpdateItem` does. B returns with $FF. `render_objetivo` in titulo.py is the
 ; reference.
@@ -789,7 +789,7 @@ mover:
     jsr slot_bank_upload
     jsr menu_party_paint
     jsl f:target_upload
-    stz titulo_sel
+    stz title_sel
     lda #1
     sta temp + 3
     lda #0
@@ -799,30 +799,30 @@ espera:
     jsr wait_vblank
     jsr read_pad
     lda pad
-    eor pad_ant
+    eor pad_prev
     and pad
-    sta titulo_flancos
+    sta title_edges
     and #PAD_UP
     beq no_arriba
-    lda titulo_sel
+    lda title_sel
     beq espera
     dec a
     jsr mover
     bra espera
 no_arriba:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_DOWN
     beq no_abajo
-    lda titulo_sel
+    lda title_sel
     inc a
-    cmp grupo_n
+    cmp party_n
     bcs espera
     cmp #MENU_FILAS_GRUPO
     bcs espera
     jsr mover
     bra espera
 no_abajo:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_B
     beq mira_a
     lda #$FF                    ; B: nothing chosen
@@ -830,11 +830,11 @@ no_abajo:
 mira_a:
     lda pad_a
     beq espera
-    lda pad_a_ant
+    lda pad_a_prev
     bne espera                  ; it was already held: not an edge
-    lda eleg_cancel
+    lda pick_cancel
     beq medicina
-    lda titulo_sel              ; choosing: the chosen row
+    lda title_sel              ; choosing: the chosen row
     rts
 medicina:
     jsr actor_de_la_fila
@@ -844,7 +844,7 @@ medicina:
     jsr wait_vblank
     jsr actor_de_la_fila
     sta temp
-    lda titulo_sel
+    lda title_sel
     sta temp + 2
     jsl f:menu_hp_write
     jsl f:target_count      ; and how many are left
@@ -853,24 +853,24 @@ medicina:
 actor_de_la_fila:
     rep #$20
 .a16
-    lda titulo_sel
+    lda title_sel
     and #$00FF
     tax
     sep #$20
 .a8
-    lda grupo, x
+    lda party, x
     rts
 
 mover:
     pha
     stz temp + 3
-    lda titulo_sel
+    lda title_sel
     jsl f:target_bar
     pla
-    sta titulo_sel
+    sta title_sel
     lda #1
     sta temp + 3
-    lda titulo_sel
+    lda title_sel
     jsl f:target_bar
     rts
 .endproc

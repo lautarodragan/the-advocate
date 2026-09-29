@@ -14,7 +14,7 @@
 .proc enter_map_no_events
 .a16
 .i16
-    sta mapa_actual             ; to know whether the next jump changes map
+    sta map_current             ; to know whether the next jump changes map
     sep #$20
 .a8
     jsr turn_clear            ; the rows are going to be different
@@ -22,7 +22,7 @@
     rep #$20
 .a16
     stz sub_n                   ; and the tile substitutions are lost when
-    stz sub_refresco            ; loading a map, as in RM2k: see `sub_n`
+    stz sub_refresh            ; loading a map, as in RM2k: see `sub_n`
     sep #$20
 .a8
     lda #0                      ; and the picture is erased: it is the
@@ -31,7 +31,7 @@
     jsr package_load          ; the map's audio, during the fade
     rep #$20
 .a16
-    lda mapa_actual
+    lda map_current
     asl a
     asl a
     asl a
@@ -39,12 +39,12 @@
     asl a
     asl a
     asl a                       ; times MAPA_STRIDE, which is 128
-    sta mapa_ofs
+    sta map_ofs
     tax
 
     ; The battle animation's layout on this map: which tile its box falls on
     ; and with which palette, or that it is not drawn here. It needs
-    ; `mapa_actual` and `mapa_ofs`, which have just been set.
+    ; `map_current` and `map_ofs`, which have just been set.
     phx
     sep #$20
 .a8
@@ -56,13 +56,13 @@
 
     ; What is looked at often is copied; what is used once is read in place.
     lda f:mapa_tabla + M_MAP_BW, x
-    sta mapa_ancho
+    sta map_width
     asl a
-    sta mapa_cw                 ; the width in 8x8 cells is double
+    sta map_cw                 ; the width in 8x8 cells is double
     lda f:mapa_tabla + M_MAP_BH, x
-    sta mapa_alto
+    sta map_height
     asl a
-    sta mapa_ch
+    sta map_ch
     lda f:mapa_tabla + M_CAM_MAX_X, x
     sta cam_max_x
     lda f:mapa_tabla + M_CAM_MAX_Y, x
@@ -87,17 +87,17 @@
     lda f:mapa_tabla + M_PTR_NPC_POSES, x
     sta poses_ptr
     lda f:mapa_tabla + M_PTR_MAP_BLOQUES, x
-    sta bloques_ptr
+    sta blocks_ptr
     clc
     adc #8
-    sta bloques8_ptr
+    sta blocks8_ptr
     lda f:mapa_tabla + M_PTR_BLOQUE_PASS, x
     sta pass_ptr
     sep #$20
 .a8
     lda f:mapa_tabla + M_PTR_MAP_BLOQUES + 2, x
-    sta bloques_ptr + 2
-    sta bloques8_ptr + 2
+    sta blocks_ptr + 2
+    sta blocks8_ptr + 2
     lda f:mapa_tabla + M_PTR_BLOQUE_PASS + 2, x
     sta pass_ptr + 2
     lda f:mapa_tabla + M_PTR_NPC_POSES + 2, x
@@ -108,7 +108,7 @@
     ; filling the window, because the window is filled around it.
     rep #$20
 .a16
-    lda entrada_x
+    lda entry_x
     cmp #$FFFF
     bne desde_puerta
     lda f:mapa_tabla + M_HERO_START_X, x
@@ -134,7 +134,7 @@ desde_puerta:
     asl a
     asl a                       ; the cell is 16 pixels
     sta hero_x
-    lda entrada_y
+    lda entry_y
     sta tile_y
     asl a
     asl a
@@ -142,7 +142,7 @@ desde_puerta:
     asl a
     sta hero_y
     lda #$FFFF
-    sta entrada_x               ; consumed: the next load goes back to the record
+    sta entry_x               ; consumed: the next load goes back to the record
 
 puesto:
     sep #$20
@@ -156,7 +156,7 @@ puesto:
     rep #$20
 .a16
     lda f:mapa_tabla + M_VRAM_MAP, x
-    sta f:FAR_VRAM_MAPA
+    sta f:FAR_VRAM_MAP
     sep #$20
 .a8
     xba
@@ -180,8 +180,8 @@ puesto:
 .a8
 
     ; The grid, to WRAM, before anyone asks about a cell: it comes compressed.
-    ; See `GRILLA`.
-    jsl f:lz2_grid + RAPIDO
+    ; See `GRID`.
+    jsl f:lz2_grid + FAST
     jsr follow_camera
     jsr load_map
     jsr load_above
@@ -189,7 +189,7 @@ puesto:
     jsr load_npcs
     jsr load_route_graphics
     jsr load_ev_pos             ; and where each event starts, with or without a graphic
-    stz refresco
+    stz refresh
     ; Before the refresh, not after: the previous map's marks are worth
     ; nothing here —their event indices would point at other events— and the
     ; refresh is the one that turns `FLAG_AUTO` back on for the ones it
@@ -201,7 +201,7 @@ puesto:
     ; changes when changing map even if the party is the same.
     jsr pick_hero_graphic
     jsr clear_tilemaps        ; what `fill_window` does not overwrite, from the map before
-    jsr fill_window             ; leaves tira_paso_col ready, which the other one uses
+    jsr fill_window             ; leaves strip_step_col ready, which the other one uses
     jsr load_window            ; tiles, palette, its own tilemap and HDMA tables
     jsr init_hero_ptr
 
@@ -211,7 +211,7 @@ puesto:
     ; the colors where they were, so there is no need to ask whether there is
     ; a tint: the path is always the same.
     jsr apply_tint
-    stz destello_listo          ; whatever was in `pal_buf` no longer
+    stz flash_ready          ; whatever was in `pal_buf` no longer
                                 ; belongs to this map; the next frame
                                 ; builds it again if the flash goes on
     jsr upload_tint             ; the screen is off: it goes now
@@ -233,8 +233,8 @@ puesto:
     pha                         ; the map index, which what follows would clobber
     sep #$20
 .a8
-    lda #SALTOS_MAX
-    sta saltos_restantes        ; with stx it would be two bytes and clobber the next one
+    lda #JUMPS_MAX
+    sta jumps_left        ; with stx it would be two bytes and clobber the next one
     rep #$20
 .a16
     pla
@@ -265,12 +265,12 @@ puesto:
 ; would restart the game.
 ;
 ; The screen is turned off by hand and **is not turned back on here**:
-; `flush_video` writes `brillo` in the next vblank, and so the map appears on
+; `flush_video` writes `brightness` in the next vblank, and so the map appears on
 ; a whole frame and not halfway through one. We get here just after a vblank
 ; starts —the slot screen leaves right after its `read_pad`—, so the
 ; turn-off also lands on a frame boundary. Measured: **two** black frames
 ; show and then the map, because `load_map`'s 30 KB do not fit in one vblank
-; and that tick lasts two frames —`cuadros_perdidos` counts one—. In RM2k
+; and that tick lasts two frames —`lost_frames` counts one—. In RM2k
 ; closing the scene takes a transition, so it does not look out of place.
 .proc back_to_map
 .a8
@@ -278,7 +278,7 @@ puesto:
     lda #$80
     sta INIDISP
     jsr ppu_init
-    ldx mapa_ofs
+    ldx map_ofs
     lda f:mapa_tabla + M_BG12NBA_VALUE, x
     sta BG12NBA
     lda f:mapa_tabla + M_VRAM_MAP + 1, x
@@ -291,7 +291,7 @@ puesto:
     ; which can fall in there.
     jsr load_above
     jsr apply_tint
-    stz destello_listo          ; `pal_buf` was from before; if the flash goes on,
+    stz flash_ready          ; `pal_buf` was from before; if the flash goes on,
                                 ; the next frame builds it again
     jsr upload_tint
     rts
@@ -342,32 +342,32 @@ puesto:
     ; decompressed again in full, which is simpler than tracking where the
     ; second stream starts and costs the same as entering the map. Before
     ; `fill_window`, which reads it.
-    jsl f:lz2_grid + RAPIDO
+    jsl f:lz2_grid + FAST
     jsr fill_window
     jmp back_to_map
 .endproc
 
 ; Starts a teleport fade. A carries what has to be done when the screen
-; reaches black; the map, if needed, is already in `fundido_mapa`.
+; reaches black; the map, if needed, is already in `fade_map`.
 .proc start_fade
 .a8
 .i16
-    sta fundido_que
+    sta fade_kind
     lda #1
-    sta fundido
+    sta fade
     ; The fade's clock is **loop iterations**, that is ticks, and not hardware
     ; frames: that way the fade lasts FUNDIDO_TOTAL ticks however long the
     ; map load inside the black takes.
     ;
-    ; It was counting `boot_cuadros` —hardware frames— since the load started
+    ; It was counting `boot_frames` —hardware frames— since the load started
     ; taking six or seven frames inside a single iteration: counting
     ; iterations the fade lasted that much longer **in frames**, and the
     ; harness, which counted frames, ended up offset. Since 2026-09-08 the
-    ; harness counts ticks —see `vueltas`— so the clock is the same on both
+    ; harness counts ticks —see `ticks`— so the clock is the same on both
     ; sides again and the one that absorbs the delay is the wall clock.
     ;
     ; The start is set by `fade_from`, in bank 1, because with the cut it
-    ; is not `vueltas`: see `transicion_del_teletransporte.s`.
+    ; is not `ticks`: see `transicion_del_teletransporte.s`.
     jsl f:fade_from
     rts
 .endproc
@@ -384,11 +384,11 @@ puesto:
 .proc fade_tick
 .a8
 .i16
-    lda fundido
+    lda fade
     beq no_hay
-    lda vueltas                 ; the low byte is enough: the fade lasts 70
+    lda ticks                 ; the low byte is enough: the fade lasts 70
     sec
-    sbc fundido_base
+    sbc fade_base
     cmp #FUNDIDO_TOTAL
     bcs terminar
     cmp #FUNDIDO_CARGA
@@ -409,7 +409,7 @@ subiendo:
     sbc #(FUNDIDO_CUADROS + FUNDIDO_NEGRO)
     bcs en_la_rampa             ; past the load: the ramp back up
     lda #0                      ; the black in the middle
-    sta brillo
+    sta brightness
     bra sigue
 en_la_rampa:
     rep #$20
@@ -419,14 +419,14 @@ en_la_rampa:
     sep #$20
 .a8
     lda fundido_rampa, x
-    sta brillo
+    sta brightness
 sigue:
     lda #1                      ; the game stays frozen
     rts
 terminar:
-    stz fundido
+    stz fade
     lda #BRILLO_MAX
-    sta brillo
+    sta brightness
 no_hay:
     lda #0
     rts
@@ -453,8 +453,8 @@ MAP_SONG = $7E6100
 ;   theirs too: if it was fading out because of a `FadeOutBGM` —their
 ;   `music_stopping`— it does start from zero.
 ;
-; "Is playing" is not only `music_apagada` at zero: with an MSU-1 track the
-; SPC700 is silent on purpose and `music_apagada` is 1. That is why
+; "Is playing" is not only `music_off` at zero: with an MSU-1 track the
+; SPC700 is silent on purpose and `music_off` is 1. That is why
 ; `MSU_PLAYING` is checked first, which is the same thing `op_fade_bgm` does.
 ;
 ; If it has to change, it is silenced here, with the screen already black: the
@@ -462,22 +462,22 @@ MAP_SONG = $7E6100
 .proc map_song_mute
 .a8
 .i16
-    ldx fundido_mapa
+    ldx fade_map
     lda f:mapa_tema, x
     cmp #TEMA_TOTAL
     bcs nothing                    ; $FF, or one the cartridge does not carry
     pha
-    lda bgm_fundido
+    lda bgm_fade
     bne cambia                  ; it was fading out: it starts over
     lda f:MSU_PLAYING
     bne suena
-    lda music_apagada
+    lda music_off
     bne cambia
 suena:
-    lda tema_actual + 1
+    lda song_current + 1
     bne cambia
     pla
-    cmp tema_actual
+    cmp song_current
     bne cambia_ya
 nothing:
     lda #$FF
@@ -502,14 +502,14 @@ cambia_ya:
 .proc load_requested
 .a8
 .i16
-    lda fundido_que
+    lda fade_kind
     beq ready
     pha
     lda #$80
     sta INIDISP
-    stz brillo                  ; and let the next vblank leave it black
+    stz brightness                  ; and let the next vblank leave it black
     pla
-    cmp #FUNDIDO_MISMO
+    cmp #FADE_SAME
     bne carga
     jsr move_hero_to
     bra hecho
@@ -523,11 +523,11 @@ carga:
     jsr map_song_mute
     sta f:MAP_SONG
     pla
-    cmp #FUNDIDO_PUERTA
+    cmp #FADE_DOOR
     bne salto
     rep #$20
 .a16
-    lda fundido_mapa            ; the index goes in sixteen bits
+    lda fade_map            ; the index goes in sixteen bits
     jsr enter_map             ; the harness's: resets the jump cap
     sep #$20
 .a8
@@ -542,7 +542,7 @@ carga:
 salto:
     rep #$20
 .a16
-    lda fundido_mapa            ; the index goes in sixteen bits
+    lda fade_map            ; the index goes in sixteen bits
     jsr enter_map_no_events
     sep #$20
 .a8
@@ -567,7 +567,7 @@ prender:
     beq hecho
     jsr music_start
 hecho:
-    stz fundido_que
+    stz fade_kind
     ; And OAM, which otherwise keeps the one of the map that was left. The
     ; loop does not rebuild it while the fade lasts —`build_oam` is one of the
     ; things it skips— so the ramp back up would draw the new map with the old
@@ -577,7 +577,7 @@ ready:
     rts
 .endproc
 
-; Moves the hero to (entrada_x, entrada_y) without touching the map. It is
+; Moves the hero to (entry_x, entry_y) without touching the map. It is
 ; what a teleport that does not change map does: the event table, their
 ; positions, the routes that are running and the queued pages stay as they
 ; were.
@@ -586,14 +586,14 @@ ready:
 .i16
     rep #$20
 .a16
-    lda entrada_x
+    lda entry_x
     sta tile_x
     asl a
     asl a
     asl a
     asl a                       ; the cell is 16 pixels
     sta hero_x
-    lda entrada_y
+    lda entry_y
     sta tile_y
     asl a
     asl a
@@ -601,7 +601,7 @@ ready:
     asl a
     sta hero_y
     lda #$FFFF
-    sta entrada_x               ; consumed
+    sta entry_x               ; consumed
     sep #$20
 .a8
     stz step_left               ; a step halfway along is cut short

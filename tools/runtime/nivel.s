@@ -4,7 +4,7 @@
 ;
 ; Until 2026-09-21 both were cartridge strips, composed at conversion time with
 ; the starting level: they never changed, so nothing more was needed. Since
-; leveling up exists, they are composed here in `EXP_TEXTO` with the same
+; leveling up exists, they are composed here in `EXP_TEXT` with the same
 ; thing they used to say —`titulo.texto_de_nivel` and
 ; `titulo.texto_de_maximo`— and the menu writes them with
 ; `slot_text_write` as before: all that changes is where `msg_ptr`
@@ -16,7 +16,7 @@
 ; An actor without an experience slot keeps its cartridge strip.
 
 ; A16 —less than a thousand— into three digits from 0 to 9, at
-; `EXP_TEXTO + 5`, `+ 6` and `+ 7`. Clobbers A and X; enters and leaves with a
+; `EXP_TEXT + 5`, `+ 6` and `+ 7`. Clobbers A and X; enters and leaves with a
 ; 16-bit A.
 .proc three_digits
 .a16
@@ -33,7 +33,7 @@ hay_centenas:
     txa
     sep #$20
 .a8
-    sta f:EXP_TEXTO + 5
+    sta f:EXP_TEXT + 5
     rep #$20
 .a16
     pla
@@ -47,9 +47,9 @@ decenas:
 unidades:
     sep #$20
 .a8
-    sta f:EXP_TEXTO + 7
+    sta f:EXP_TEXT + 7
     txa
-    sta f:EXP_TEXTO + 6
+    sta f:EXP_TEXT + 6
     rep #$20
 .a16
     rts
@@ -82,22 +82,22 @@ unidades:
     rtl
 .endproc
 
-; `msg_ptr` to `EXP_TEXTO`.
+; `msg_ptr` to `EXP_TEXT`.
 .proc point_text
 .a8
 .i16
     rep #$20
 .a16
-    lda #.loword(EXP_TEXTO)
+    lda #.loword(EXP_TEXT)
     sta msg_ptr
     sep #$20
 .a8
-    lda #^EXP_TEXTO
+    lda #^EXP_TEXT
     sta msg_ptr + 2
     rtl
 .endproc
 
-; Level A8 as "%2d" in `EXP_TEXTO`: the tens digit or a space, and the units.
+; Level A8 as "%2d" in `EXP_TEXT`: the tens digit or a space, and the units.
 .proc level_to_text
 .a8
 .i16
@@ -107,17 +107,17 @@ unidades:
     jsr three_digits
     sep #$20
 .a8
-    lda f:EXP_TEXTO + 6
+    lda f:EXP_TEXT + 6
     beq sin_decena
     ora #'0'
     bra decena
 sin_decena:
     lda #' '
 decena:
-    sta f:EXP_TEXTO
-    lda f:EXP_TEXTO + 7
+    sta f:EXP_TEXT
+    lda f:EXP_TEXT + 7
     ora #'0'
-    sta f:EXP_TEXTO + 1
+    sta f:EXP_TEXT + 1
     rts
 .endproc
 
@@ -138,11 +138,11 @@ tiene:
     jmp point_text
 .endproc
 
-EXP_LEVEL_IN_SRAM = SRAM_BANK * $10000 + SRAM_DATA + SAVE_BYTES - EXP_K * 4 + EXP_NIVEL
+EXP_LEVEL_IN_SRAM = SRAM_BANK * $10000 + SRAM_DATA + SAVE_BYTES - EXP_K * 4 + EXP_LEVEL
 
-; The level actor A had **in the saved game in slot `ranura`**, read from its
+; The level actor A had **in the saved game in slot `slot`**, read from its
 ; SRAM: the slots screen shows each save as it was left, not as the current
-; one is. `FAR_EXP` is the last line of `partida_tabla`, so in the slot it
+; one is. `FAR_EXP` is the last line of `save_table`, so in the slot it
 ; falls `EXP_K * 4` bytes before the end.
 .proc text_level_saved
 .a8
@@ -167,7 +167,7 @@ tiene:
     asl a
     asl a
     pha                         ; the experience slot times four
-    lda ranura
+    lda slot
     and #$00FF
     xba
     asl a
@@ -210,32 +210,32 @@ tiene:
 .a8
     ldx #0
     lda #'/'
-    sta f:EXP_TEXTO, x
+    sta f:EXP_TEXT, x
     inx
-    lda f:EXP_TEXTO + 5
+    lda f:EXP_TEXT + 5
     beq sin_centena
     ora #'0'
-    sta f:EXP_TEXTO, x
+    sta f:EXP_TEXT, x
     inx
-    lda f:EXP_TEXTO + 6
+    lda f:EXP_TEXT + 6
     bra con_decena              ; with hundreds the tens digit goes in even if zero
 sin_centena:
-    lda f:EXP_TEXTO + 6
+    lda f:EXP_TEXT + 6
     beq sin_decena
 con_decena:
     ora #'0'
-    sta f:EXP_TEXTO, x
+    sta f:EXP_TEXT, x
     inx
 sin_decena:
-    lda f:EXP_TEXTO + 7
+    lda f:EXP_TEXT + 7
     ora #'0'
-    sta f:EXP_TEXTO, x
+    sta f:EXP_TEXT, x
     inx
 padding:
     cpx #MENU_MAX_CIFRAS
     bcs completo
     lda #' '
-    sta f:EXP_TEXTO, x
+    sta f:EXP_TEXT, x
     inx
     bra padding
 completo:
@@ -290,7 +290,7 @@ completo:
     and #$00FF
     asl a
     tax
-    lda f:FAR_LARGO + FAR_HP, x
+    lda f:FAR_LENGTH + FAR_HP, x
     sta temp
     sep #$20
 .a8
@@ -387,7 +387,7 @@ ready:
     tax
     sep #$20
 .a8
-    lda f:FAR_LARGO + FAR_EXP + EXP_NIVEL, x
+    lda f:FAR_LENGTH + FAR_EXP + EXP_LEVEL, x
 ready:
     rts
 .endproc
@@ -425,7 +425,7 @@ ready:
     asl a
     asl a
     tax
-    lda f:FAR_LARGO + FAR_EXP + 2, x    ; the high byte is the level
+    lda f:FAR_LENGTH + FAR_EXP + 2, x    ; the high byte is the level
     xba
     and #$00FF
     dec a
@@ -597,12 +597,12 @@ ready:
 .proc heal
 .a8
 .i16
-    lda [cod_ptr], y            ; the actor
+    lda [code_ptr], y            ; the actor
     iny
     sta temp + 2
     rep #$20
 .a16
-    lda [cod_ptr], y            ; and the amount
+    lda [code_ptr], y            ; and the amount
     sta temp
     sep #$20
 .a8
@@ -611,19 +611,19 @@ ready:
     phy
     lda temp + 2
     bne uno
-    ; Up to `grupo_n` and not all four slots: the extra ones are not cleared
+    ; Up to `party_n` and not all four slots: the extra ones are not cleared
     ; when someone is removed, and in the test suite one showed up with 85
     ; —healing it meant writing into actor 21's SP—.
     ldx #0
-ranura:
-    cpx grupo_n
+slot:
+    cpx party_n
     bcs ready
-    lda grupo, x
+    lda party, x
     phx
     jsr heal_actor
     plx
     inx
-    bra ranura
+    bra slot
 ready:
     ply
     rtl
@@ -664,12 +664,12 @@ uno:
     lda temp
     bne sumar
     lda 3, s
-    sta f:FAR_LARGO + FAR_HP, x
+    sta f:FAR_LENGTH + FAR_HP, x
     lda 1, s
-    sta f:FAR_LARGO + FAR_SP, x
+    sta f:FAR_LENGTH + FAR_SP, x
     bra ready
 sumar:
-    lda f:FAR_LARGO + FAR_HP, x
+    lda f:FAR_LENGTH + FAR_HP, x
     beq ready                   ; fallen: `ChangeHp` does not revive it
     clc
     adc temp
@@ -679,7 +679,7 @@ sumar:
 topar:
     lda 3, s
 put:
-    sta f:FAR_LARGO + FAR_HP, x
+    sta f:FAR_LENGTH + FAR_HP, x
 ready:
     pla
     pla
@@ -689,10 +689,10 @@ ready:
     rts
 .endproc
 
-; `Game_Actor::ChangeExp(GetExp() + BA_T1)` for actor A: adds, caps at
+; `Game_Actor::ChangeExp(GetExp() + BT_T1)` for actor A: adds, caps at
 ; `MaxExpValue()` and levels up while it is enough. An actor with no
 ; experience slot gains nothing. Runs with the data bank at $7E, like the
-; whole battle. Clobbers A, X, Y, `BA_T0` and `BA_T2`; `BA_T1` stays as it
+; whole battle. Clobbers A, X, Y, `BT_T0` and `BT_T2`; `BT_T1` stays as it
 ; was, so whoever hands it out can add it to several.
 ;
 ; And for each level gained, `LearnLevelSkills` for that level: see
@@ -715,38 +715,38 @@ tiene:
     rep #$20
 .a16
     and #$00FF
-    sta BA_T2                   ; the slot
+    sta BT_T2                   ; the slot
     asl a
     asl a
-    sta BA_T0                   ; and its offset in `FAR_EXP`
+    sta BT_T0                   ; and its offset in `FAR_EXP`
     tax
     lda FAR_EXP, x
     clc
-    adc BA_T1
+    adc BT_T1
     sta FAR_EXP, x
     sep #$20
 .a8
     lda FAR_EXP + 2, x          ; the carry from the addition above is still in C
     adc #0
     sta FAR_EXP + 2, x
-    cmp #EXP_TOPE_HI
+    cmp #EXP_CAP_HI
     bcc sin_tope
     bne topar
     rep #$20
 .a16
     lda FAR_EXP, x
-    cmp #(EXP_TOPE_LO + 1)
+    cmp #(EXP_CAP_LO + 1)
     sep #$20
 .a8
     bcc sin_tope
 topar:
     rep #$20
 .a16
-    lda #EXP_TOPE_LO
+    lda #EXP_CAP_LO
     sta FAR_EXP, x
     sep #$20
 .a8
-    lda #EXP_TOPE_HI
+    lda #EXP_CAP_HI
     sta FAR_EXP + 2, x
 sin_tope:
     ; And it levels up while it is enough: the `ChangeExp` loop, which looks at
@@ -755,20 +755,20 @@ sin_tope:
     ; level at once, and that is RM2k's. HP and SP are not touched: leveling
     ; up does not heal, it only raises the maximum.
 subir:
-    ldx BA_T2
+    ldx BT_T2
     lda f:exp_nivel_max, x
-    ldx BA_T0
-    cmp FAR_EXP + EXP_NIVEL, x
+    ldx BT_T0
+    cmp FAR_EXP + EXP_LEVEL, x
     beq ready                   ; at the cap
     bcc ready                   ; above the cap: does not happen, but no level up
-    lda FAR_EXP + EXP_NIVEL, x
+    lda FAR_EXP + EXP_LEVEL, x
     rep #$20
 .a16
     and #$00FF
     asl a
     asl a
     pha                         ; the level times four: its row in the curve
-    lda BA_T2
+    lda BT_T2
     asl a
     tax
     lda f:exp_curva, x
@@ -781,7 +781,7 @@ subir:
     lda f:exp_tabla, x
     pha
     lda f:exp_tabla + 2, x
-    ldx BA_T0
+    ldx BT_T0
     sep #$20
 .a8
     cmp FAR_EXP + 2, x          ; the high byte first
@@ -799,8 +799,8 @@ alto_distinto:
     ply
     bcs ready                   ; C: the high byte required is more than there is
 sube:
-    inc FAR_EXP + EXP_NIVEL, x
-    lda FAR_EXP + EXP_NIVEL, x
+    inc FAR_EXP + EXP_LEVEL, x
+    lda FAR_EXP + EXP_LEVEL, x
     ply                         ; the actor, without taking it off the stack
     phy
     jsr learn_from_level
@@ -810,7 +810,7 @@ ready:
     rts
 .endproc
 
-; `LearnLevelSkills` for a single level, A, for actor Y: sets in `FAR_HAB` the
+; `LearnLevelSkills` for a single level, A, for actor Y: sets in `FAR_SKILL` the
 ; bit of each of its pairs that the LDB's learning table teaches at that level
 ; —`hab_par_nivel`—. If it already knew it nothing changes, which is
 ; `LearnSkill`; and what a `ChangeSkills` made it forget comes back only if it
@@ -848,7 +848,7 @@ otro:
     tax
     sep #$20
 .a8
-    lda f:mascara, x
+    lda f:mask, x
     pha                         ; its bit: stack = bit, slot, level
     rep #$20
 .a16
@@ -860,8 +860,8 @@ otro:
     sep #$20
 .a8
     pla
-    ora f:FAR_LARGO + FAR_HAB, x
-    sta f:FAR_LARGO + FAR_HAB, x
+    ora f:FAR_LENGTH + FAR_SKILL, x
+    sta f:FAR_LENGTH + FAR_SKILL, x
 siguiente:
     rep #$20
 .a16

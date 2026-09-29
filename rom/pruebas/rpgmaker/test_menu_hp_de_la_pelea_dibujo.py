@@ -39,30 +39,30 @@ MAXIMOS = {11: 168, 12: 127}
 def pelear(una, tope=20000):
     """Abre la pelea de la página y la juega a fuerza de A.
 
-    Todo en cuadros de hardware: la pelea corre su propio lazo y `vueltas` no
+    Todo en cuadros de hardware: la pelea corre su propio lazo y `ticks` no
     avanza mientras dura, así que contar ticks se quedaría esperando. Se sabe
-    que empezó y que terminó por `menu_abierto`, que es lo que la ROM prende
+    que empezó y que terminó por `menu_open`, que es lo que la ROM prende
     mientras una pantalla propia está a la vista.
     """
     for _ in range(600):
         una.consola.run(1)
-        if una.byte("menu_abierto"):
+        if una.byte("menu_open"):
             break
     else:
         raise AssertionError("la página no abrió la pelea")
     for n in range(tope):
         una.consola.hold(*(("a",) if n % 6 < 2 else ()))
         una.consola.run(1)
-        if not una.byte("menu_abierto"):
+        if not una.byte("menu_open"):
             una.consola.hold()
             # Y hasta que el lazo del mapa vuelva a correr: la vuelta de la
             # pelea descomprime los tiles del mapa y dura unos cuadros, y un B
             # apretado mientras tanto no lo ve nadie. Eran diez cuadros fijos
             # hasta que la carga creció, el 2026-09-26.
-            antes = una.palabra("vueltas")
+            antes = una.palabra("ticks")
             for _ in range(240):
                 una.consola.run(1)
-                if una.palabra("vueltas") - antes >= 2:
+                if una.palabra("ticks") - antes >= 2:
                     break
             una.consola.run(10)
             return una
@@ -126,7 +126,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
 #
 # Lo que taro vio es de los datos del juego: las tropas de Rat Tracks B1 son
 # GiantRat (20 HP), MutantMouse (25) y HairyVermin (40), y la pantalla de la
-# pelea muestra el HP de cada enemigo —el máximo no, `BA_CONMAX` en cero—. O
+# pelea muestra el HP de cada enemigo —el máximo no, `BT_CONMAX` en cero—. O
 # sea que un GiantRat dice "20" porque tiene 20, y no porque le haya quedado
 # eso de la pelea anterior.
 
@@ -137,14 +137,14 @@ def enemigos_de(una):
     """Los enemigos armados: (número, HP de ahora, HP máximo)."""
     sim = una.simbolos
     salida = []
-    for ranura in range(sim["BA_COMB_MAX"]):
-        base = sim["BA_UNO"] + ranura * sim["BA_BYTES"]
-        banderas = una.consola.ram(base + sim["BA_FLAGS"], 1)[0]
-        if not banderas & sim["BAF_HAY"] or banderas & sim["BAF_ACTOR"]:
+    for ranura in range(sim["BT_COMB_MAX"]):
+        base = sim["BT_ONE"] + ranura * sim["BT_BYTES"]
+        banderas = una.consola.ram(base + sim["BT_FLAGS"], 1)[0]
+        if not banderas & sim["BAF_HAS"] or banderas & sim["BAF_ACTOR"]:
             continue
         hp, hpmax = (una.consola.ram(base + campo, 2)
-                     for campo in (sim["BA_HP"], sim["BA_HPMAX"]))
-        salida.append((una.consola.ram(base + sim["BA_NUMERO"], 1)[0],
+                     for campo in (sim["BT_HP"], sim["BT_HPMAX"]))
+        salida.append((una.consola.ram(base + sim["BT_NUMBER"], 1)[0],
                        hp[0] | (hp[1] << 8), hpmax[0] | (hpmax[1] << 8)))
     return salida
 
@@ -154,7 +154,7 @@ def hasta_que_se_abra(una, cuadros=900):
     for n in range(cuadros):
         una.consola.hold(("up", "down", "left", "right")[(n // 40) % 4])
         una.consola.run(1)
-        if una.byte("menu_abierto"):
+        if una.byte("menu_open"):
             una.consola.hold()
             return una
     raise AssertionError("no salió ningún encuentro en %d cuadros" % cuadros)
@@ -164,7 +164,7 @@ def ganarla(una, tope=20000):
     for n in range(tope):
         una.consola.hold(*(("a",) if n % 6 < 2 else ()))
         una.consola.run(1)
-        if not una.byte("menu_abierto"):
+        if not una.byte("menu_open"):
             una.consola.hold()
             return una
     raise AssertionError("la pelea no terminó")

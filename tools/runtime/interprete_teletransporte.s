@@ -11,23 +11,23 @@
 .proc op_teleport
     rep #$20
 .a16
-    lda [cod_ptr], y            ; the map, as a word since the format has
-    sta salto_mapa              ; to be able to name all 328 in the game
+    lda [code_ptr], y            ; the map, as a word since the format has
+    sta jump_map              ; to be able to name all 328 in the game
     iny
     iny
-    lda [cod_ptr], y
-    sta salto_x
+    lda [code_ptr], y
+    sta jump_x
     iny
     iny
-    lda [cod_ptr], y
-    sta salto_y
+    lda [code_ptr], y
+    sta jump_y
     sep #$20
 .a8
     iny                         ; the two bytes of the Y, which were read
     iny                         ; without advancing the cursor
 saltar:
     lda #1
-    sta salto_hay
+    sta jump_has
     ; And it ends the frame, which is exactly what
     ; `Game_Interpreter_Map::CommandTeleport` does in easyrpg-player: it queues
     ; the transfer, does `index++` and returns false. The map loads between

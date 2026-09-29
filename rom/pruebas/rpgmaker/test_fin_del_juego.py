@@ -56,12 +56,12 @@ def test_no_vuelve_al_menu_como_estaba(partida):
     """"No" vuelve al menú con el cursor en End Game, y el menú se cierra
     después como siempre."""
     una = entrar(con_grupo(partida()))
-    antes = una.palabra("vueltas")
+    antes = una.palabra("ticks")
     una.tocar_cuadros("down")
     una.tocar_cuadros("a", TITULO_AIRE)
     assert una.menu_abierto(), "\"No\" cerró el menú"
     comparar_menu(una, MENU_FIN, nombre="menu-fin-no")
-    assert una.palabra("vueltas") == antes, "el reloj corrió en End Game"
+    assert una.palabra("ticks") == antes, "el reloj corrió en End Game"
     una.tocar_cuadros("b", 10)
     assert not una.menu_abierto()
 
@@ -85,15 +85,15 @@ def test_si_vuelve_al_titulo(partida):
     juego de nuevo, en el mapa de arranque."""
     una = partida(caso=CON_TEMA)
     una.correr(30)
-    assert not una.byte("music_apagada"), (
+    assert not una.byte("music_off"), (
         "el caso no tiene tema sonando: no mira el fundido")
     entrar(una)
     una.tocar_cuadros("a", 2)
-    assert una.byte("bgm_fundido"), "\"Yes\" no fundió el tema"
+    assert una.byte("bgm_fade"), "\"Yes\" no fundió el tema"
     assert cuadros_hasta_reiniciar(una, 120) is not None, (
         "\"Yes\" no reinició la ROM")
     una.consola.run(TITULO_QUIETO)
     golden("titulo", una.imagen())
     assert cuadros_hasta_volver(una) is not None, (
         "después de End Game el arranque no volvió a correr")
-    assert una.palabra("mapa_actual") == 0
+    assert una.palabra("map_current") == 0

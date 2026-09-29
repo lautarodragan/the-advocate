@@ -11,7 +11,7 @@
 ; fire on touch— is not here yet, and neither is the loop of up to three
 ; counters.
 
-; Is there an event at (celda_x, celda_y)? Returns its index in A, or $FF.
+; Is there an event at (cell_x, cell_y)? Returns its index in A, or $FF.
 .proc event_in_cell
 .a8
 .i16
@@ -23,10 +23,10 @@ buscar:
     rep #$20
 .a16
     lda ev_pos_buf, y
-    cmp celda_x
+    cmp cell_x
     bne siguiente
     lda ev_pos_buf + 2, y
-    cmp celda_y
+    cmp cell_y
     bne siguiente
     sep #$20
 .a8
@@ -47,13 +47,13 @@ no_hay:
     rts
 .endproc
 
-; Queues the active page of event `ev_buscado` if the action button fires it.
+; Queues the active page of event `ev_sought` if the action button fires it.
 ; Returns A nonzero if it queued something.
 ;
 ; It is the same selection rule as `encolar_eventos` —the highest-numbered one
 ; whose conditions hold wins— but for a single event, and without touching the
 ; cursor of the autostart queue.
-; The active page of event `ev_buscado`, into `elegida`. Without looking at
+; The active page of event `ev_sought`, into `chosen`. Without looking at
 ; the trigger: the caller decides what to do with it. It is the usual rule
 ; —the highest-numbered one whose conditions hold wins— and it is resolved
 ; **at the moment of using it**, not when the event was flagged, which is what
@@ -61,69 +61,69 @@ no_hay:
 .proc seek_event_page
 .a8
 .i16
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_PAGINA_COUNT, x
     beq sin_paginas
-    sta pag_restan
+    sta pages_left
     lda f:mapa_tabla + M_PTR_PAGINAS, x
-    sta pag_ptr
-    stz pag_ofs
+    sta page_ptr
+    stz page_ofs
     sep #$20
 .a8
     lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
-    sta pag_ptr + 2
-    stz elegida_hay
+    sta page_ptr + 2
+    stz chosen_any
 
 recorrer:
     jsr read_page
     rep #$20
 .a16
-    lda pg_evento
-    cmp ev_buscado
+    lda pg_event
+    cmp ev_sought
     sep #$20
 .a8
     bne siguiente               ; not the event we are looking at
     jsr conditions_ok
     beq siguiente
     lda pg_trigger
-    sta elegida_trigger
-    lda pg_capa
-    sta elegida_capa
+    sta chosen_trigger
+    lda pg_layer
+    sta chosen_layer
     rep #$20
 .a16
-    lda pg_cod
-    sta elegida
+    lda pg_code
+    sta chosen
     sep #$20
 .a8
-    lda pg_cod + 2
-    sta elegida + 2
+    lda pg_code + 2
+    sta chosen + 2
     lda #1
-    sta elegida_hay
+    sta chosen_any
     ; And its turn, +30 and +31: see `turn_fire` and `turn_check`.
     rep #$20
 .a16
-    lda pag_ofs
+    lda page_ofs
     clc
     adc #30
     tay
     sep #$20
 .a8
-    lda [pag_ptr], y
+    lda [page_ptr], y
     sta f:PICK_K
     iny
-    lda [pag_ptr], y
+    lda [page_ptr], y
     sta f:PICK_POSE
 
 siguiente:
     rep #$20
 .a16
-    lda pag_ofs
+    lda page_ofs
     clc
     adc #PAGINA_BYTES
-    sta pag_ofs
-    dec pag_restan
+    sta page_ofs
+    dec pages_left
     sep #$20
 .a8
     bne recorrer
@@ -133,7 +133,7 @@ sin_paginas:
 .a16                            ; reached in sixteen bits; the `sep` narrows it
     sep #$20
 .a8
-    stz elegida_hay
+    stz chosen_any
     rts
 .endproc
 
@@ -143,10 +143,10 @@ sin_paginas:
 .a8
 .i16
     jsr seek_event_page
-    lda elegida_hay
+    lda chosen_any
     beq no
-    lda elegida_trigger
-    cmp trigger_buscado
+    lda chosen_trigger
+    cmp trigger_sought
     bne no
     ; The layer rule, opposite depending on which cell is looked at: the one
     ; in front only fires events on the hero's layer —`CheckEventTriggerThere`
@@ -157,24 +157,24 @@ sin_paginas:
     ;
     ; Only for the action button; touch has its own rule and is resolved at
     ; compile time.
-    lda trigger_buscado
+    lda trigger_sought
     cmp #TRIGGER_ACCION
     bne sin_capa
-    lda elegida_capa
+    lda chosen_layer
     cmp #HERO_LAYER
     beq era_del_heroe
-    lda accion_propia
+    lda own_action
     beq no                      ; another layer, but we are looking ahead
     bra sin_capa
 era_del_heroe:
-    lda accion_propia
+    lda own_action
     bne no                      ; the hero's layer, but we are looking at our own cell
 sin_capa:
-    lda elegida
-    ora elegida + 1
-    ora elegida + 2
+    lda chosen
+    ora chosen + 1
+    ora chosen + 2
     beq no                      ; the active page could not be compiled
-    ldx ev_buscado
+    ldx ev_sought
     jsr mark_waiting
     jsr turn_fire           ; and it turns toward the hero, if it turns
     lda #1
@@ -184,7 +184,7 @@ no:
     rts
 .endproc
 
-; The cell given in (celda_x, celda_y): if there is an event and its active
+; The cell given in (cell_x, cell_y): if there is an event and its active
 ; page is fired by the button, it gets queued. Returns A nonzero if it queued.
 .proc action_in_cell
 .a8
@@ -195,7 +195,7 @@ no:
     rep #$20
 .a16
     and #$00FF
-    sta ev_buscado
+    sta ev_sought
     sep #$20
 .a8
     jmp queue_by_action
@@ -230,16 +230,16 @@ no:
     rep #$20
 .a16
     lda tile_x
-    sta celda_x
+    sta cell_x
     lda tile_y
-    sta celda_y
+    sta cell_y
     sep #$20
 .a8
     lda #TRIGGER_TOCA_HEROE
-    sta trigger_buscado
+    sta trigger_sought
     jsr action_in_cell
     ldx #TRIGGER_ACCION
-    stx trigger_buscado         ; left as the action button expects it
+    stx trigger_sought         ; left as the action button expects it
     rts
 .endproc
 
@@ -264,12 +264,12 @@ no:
     ; from the left— and sent him back up. With an emulator's autofire, which
     ; presses every two frames, it always happened. Caught by
     ; `test_accion_con_ruta.py`.
-    lda ruta_salto
+    lda route_jump
     bne con_ruta                ; in the air
-    lda ruta_espera
+    lda route_wait
     bne con_ruta                ; in a route `wait`
-    lda ruta_i
-    cmp ruta_n
+    lda route_i
+    cmp route_n
     bcc con_ruta                ; it has move commands left
     ; The two cells, in the order of `Game_Player::CheckActionEvent`: first the
     ; hero's own —`CheckEventTriggerHere`, which asks for a layer different
@@ -279,28 +279,28 @@ no:
     ; `TalDoorTop`, action-triggered and on layer 2, and it opens by standing
     ; on it.
     lda #TRIGGER_ACCION
-    sta trigger_buscado
+    sta trigger_sought
     lda #1
-    sta accion_propia
+    sta own_action
     rep #$20
 .a16
     lda tile_x
-    sta celda_x
+    sta cell_x
     lda tile_y
-    sta celda_y
+    sta cell_y
     sep #$20
 .a8
     jsr action_in_cell
     beq mirar_adelante
     rts                         ; queued the one under the hero
 mirar_adelante:
-    stz accion_propia
+    stz own_action
     rep #$20
 .a16
     lda tile_x
-    sta celda_x
+    sta cell_x
     lda tile_y
-    sta celda_y
+    sta cell_y
     sep #$20
 .a8
     lda hero_dir
@@ -308,7 +308,7 @@ mirar_adelante:
     bne no_arriba
     rep #$20
 .a16
-    dec celda_y
+    dec cell_y
     sep #$20
 .a8
     bra mirar
@@ -317,7 +317,7 @@ no_arriba:
     bne no_abajo
     rep #$20
 .a16
-    inc celda_y
+    inc cell_y
     sep #$20
 .a8
     bra mirar
@@ -326,14 +326,14 @@ no_abajo:
     bne no_izquierda
     rep #$20
 .a16
-    dec celda_x
+    dec cell_x
     sep #$20
 .a8
     bra mirar
 no_izquierda:
     rep #$20
 .a16
-    inc celda_x
+    inc cell_x
     sep #$20
 .a8
 mirar:

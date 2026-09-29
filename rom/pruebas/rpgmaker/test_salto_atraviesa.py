@@ -26,7 +26,7 @@ def test_core_salta_a_la_segunda_piedra(partida):
     una = partida(switch=[ESCENA])
     visto = []
     for _ in range(2000):
-        if una.byte("msg_abierto"):
+        if una.byte("msg_open"):
             una.tocar_ticks("a")
         else:
             una.correr(1)

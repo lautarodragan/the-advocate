@@ -148,7 +148,7 @@ def hero_start(passable, width, height, blocked=()):
 # GetAnimationSpeed`— and it is also at the default throughout the game.
 #
 # The clock is the system's frame counter, which is not reset when changing
-# maps. Here that clock is the tick, which in the ROM is `vueltas` —see
+# maps. Here that clock is the tick, which in the ROM is `ticks` —see
 # `Partida` in rom/pruebas/arnes/consola.py, which is what reads it—. The
 # absolute phase against the original game means nothing, because our boot
 # does not take the same time; what has to match is the cadence and that both
@@ -156,7 +156,7 @@ def hero_start(passable, width, height, blocked=()):
 # The two families, with how many drawings each one has. The order is that of
 # the tile runs in VRAM; see `convert` in snes_convert.py.
 ANIMATED_FAMILIES = (("agua", 3), ("animado", 4))
-# The ROM's clock is `vueltas`, sixteen bits, so it wraps around every 65536
+# The ROM's clock is `ticks`, sixteen bits, so it wraps around every 65536
 # ticks —eighteen minutes— and there the cycle skips a drawing; RM2k's is
 # thirty-two bits. The reference wraps around the same way on purpose: what
 # has to match is what both sides draw, and losing one water step once every

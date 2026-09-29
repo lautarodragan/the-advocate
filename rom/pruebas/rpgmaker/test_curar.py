@@ -68,17 +68,17 @@ def test_el_encuentro_de_despues_no_reinicia(partida):
     2026-09-28, pasando por la pantalla de Game Over, que no reinicia hasta
     que se aprieta: por eso se miran las dos cosas—.
 
-    `ENC_PIDE` es lo que `encounter_step` prende cuando sale uno; se lo prende
+    `ENC_ASKS` es lo que `encounter_step` prende cuando sale uno; se lo prende
     a mano para no depender de caminar ni de un tiro de dado. Visto en rojo
     antes del arreglo: la ROM se reiniciaba a los pocos cuadros.
     """
     una = perdida_y_curada(partida)
-    una.consola.write_ram(una.simbolos["ENC_PIDE"], [1])
+    una.consola.write_ram(una.simbolos["ENC_ASKS"], [1])
     assert cuadros_hasta_el_game_over(una, tope=300) is None, (
         "el grupo perdió una pelea, el manejador llamó a FullHeal, y el "
         "encuentro siguiente igual fue Game Over: los HP no se curaron")
     assert cuadros_hasta_reiniciar(una, tope=60) is None
-    assert una.byte("menu_abierto"), (
+    assert una.byte("menu_open"), (
         "el encuentro no abrió la pelea: sin eso, que no se reinicie no dice "
         "nada")
 

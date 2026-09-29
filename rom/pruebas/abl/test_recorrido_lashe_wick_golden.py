@@ -96,7 +96,7 @@ def hasta_el_favor(r, companero):
 
     r.empezar("el mosaico de los vidcasts")
     r.esperar("que el 42 salte al 43",
-              lambda p: p.byte("fundido") and p.byte("fundido_que"),
+              lambda p: p.byte("fade") and p.byte("fade_kind"),
               tope=6000)
     assert transiciones(p) == (MOSAICO, MOSAICO), (
         "la página 1 del 42 pide el mosaico para borrar y para mostrar: %s. %s"

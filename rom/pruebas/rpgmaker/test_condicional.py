@@ -59,7 +59,7 @@ def test_la_pagina_del_juego_sigue_despues_del_end(partida):
 def test_la_rama_del_juego_se_saltea(partida):
     una = partida(caso="en-%d" % MAPA)
     hasta_el_final(una)
-    grupo = una.consola.ram(una.simbolos["grupo"], una.byte("grupo_n"))
+    grupo = una.consola.ram(una.simbolos["party"], una.byte("party_n"))
     assert QUE_VUELVE not in grupo, \
         "corrió la rama de adentro con el switch apagado: el %d volvió al " \
         "grupo" % QUE_VUELVE

@@ -22,8 +22,8 @@
 ; The scratch space is variables borrowed from the message composer, which
 ; does not exist with the menu open:
 ;   comp_char       the party row
-;   comp_fase       the top y of the row's sprites
-;   comp_fase + 1   the y of the sprite being placed
+;   comp_phase       the top y of the row's sprites
+;   comp_phase + 1   the y of the sprite being placed
 ;   comp_mask       its x
 ;   comp_base       how many sprites have been placed
 ;   comp_dup        the actor's level
@@ -36,7 +36,7 @@ MENU_EXP_TERM_TILES = 4         ; the term: two wide, top and bottom
 MENU_EXP_HIDDEN = 224           ; a y below the last visible line
 MENU_EXP_SPRITES = 128
 
-.assert MENU_EXP_TEXTO + MENU_EXP_LETRAS <= MENU_EXP_TEXTO_FIN, error, "the experience line does not fit in its place"
+.assert MENU_EXP_TEXT + MENU_EXP_LETRAS <= MENU_EXP_TEXT_END, error, "the experience line does not fit in its place"
 .assert MENU_FILAS_GRUPO * (MENU_EXP_TERM_TILES + 2 * MENU_EXP_LETRAS) <= MENU_EXP_SPRITES, error, "the party's experience does not fit in the sprites"
 
 ; From `menu_upload`, instead of `slot_ppu_on`: the sprites, and then
@@ -75,18 +75,18 @@ MENU_EXP_SPRITES = 128
     stz comp_base               ; no sprite yet
     stz comp_char
     lda #MENU_EXP_Y
-    sta comp_fase
+    sta comp_phase
 row:
     lda comp_char
-    cmp grupo_n
+    cmp party_n
     bcs filas_listas
     cmp #MENU_FILAS_GRUPO
     bcs filas_listas
     jsr one_row
-    lda comp_fase
+    lda comp_phase
     clc
     adc #MENU_ACTOR_ALTO
-    sta comp_fase
+    sta comp_phase
     inc comp_char
     bra row
 filas_listas:
@@ -124,7 +124,7 @@ one_row:
     tax
     sep #$20
 .a8
-    lda grupo, x
+    lda party, x
     cmp #MENU_ACTORES_N
     bcc conocido
     rts                         ; one this ROM does not know
@@ -149,7 +149,7 @@ con_exp:
     tax                         ; its slot in `FAR_EXP`
     sep #$20
 .a8
-    lda f:FAR_LARGO + FAR_EXP + EXP_NIVEL, x
+    lda f:FAR_LENGTH + FAR_EXP + EXP_LEVEL, x
     sta comp_dup
     ; At the cap? Dashes, like RPG_RT.
     rep #$20
@@ -167,17 +167,17 @@ con_exp:
     ; The current one.
     rep #$20
 .a16
-    lda f:FAR_LARGO + FAR_EXP, x
+    lda f:FAR_LENGTH + FAR_EXP, x
     sta comp_or01
     sep #$20
 .a8
-    lda f:FAR_LARGO + FAR_EXP + 2, x
+    lda f:FAR_LENGTH + FAR_EXP + 2, x
     sta comp_or01 + 2
     ldy #0
     jsr seis_cifras
     lda #'/'
     tyx
-    sta f:MENU_EXP_TEXTO, x
+    sta f:MENU_EXP_TEXT, x
     iny
     ; And the next level's: its curve's row in `exp_tabla`, at the current
     ; level, which is `GetNextExp(level)`.
@@ -214,7 +214,7 @@ guion:
     bne no_barra
     lda #'/'
 no_barra:
-    sta f:MENU_EXP_TEXTO, x
+    sta f:MENU_EXP_TEXT, x
     inx
     cpx #MENU_EXP_LETRAS
     bcc guion
@@ -232,13 +232,13 @@ term_der:
     lda #(MENU_EXP_X + 8)
 term_x:
     sta comp_mask
-    lda comp_fase
+    lda comp_phase
     cpx #2
     bcc term_y
     clc
     adc #8
 term_y:
-    sta comp_fase + 1
+    sta comp_phase + 1
     phx
     rep #$20
 .a16
@@ -258,7 +258,7 @@ term_y:
     sta comp_mask
     ldx #0
 letra:
-    lda f:MENU_EXP_TEXTO, x
+    lda f:MENU_EXP_TEXT, x
     cmp #' '
     beq siguiente
     phx
@@ -272,17 +272,17 @@ letra:
     tax
     sep #$20
 .a8
-    lda comp_fase
-    sta comp_fase + 1
+    lda comp_phase
+    sta comp_phase + 1
     rep #$20
 .a16
     lda f:ranura_glifo_celdas, x
     jsr put                   ; the top cell
 .a8
-    lda comp_fase
+    lda comp_phase
     clc
     adc #8
-    sta comp_fase + 1
+    sta comp_phase + 1
     rep #$20
 .a16
     lda f:ranura_glifo_celdas + 2, x
@@ -300,7 +300,7 @@ siguiente:
     rts
 
 ; One sprite: A16 the glyph's tilemap word —tile and palette—, at
-; `comp_mask`, `comp_fase + 1`. Returns with an 8-bit A, and touches neither
+; `comp_mask`, `comp_phase + 1`. Returns with an 8-bit A, and touches neither
 ; X nor Y.
 .a16
 put:
@@ -309,7 +309,7 @@ put:
     pha                         ; the tile's low byte
     lda comp_mask
     sta OAMDATA
-    lda comp_fase + 1
+    lda comp_phase + 1
     sta OAMDATA
     pla
     sta OAMDATA
@@ -321,7 +321,7 @@ put:
     rts
 
 ; `comp_or01`: a 24-bit number, less than a million. Writes its six digits
-; into `MENU_EXP_TEXTO` from Y, right-aligned with spaces, and leaves Y past
+; into `MENU_EXP_TEXT` from Y, right-aligned with spaces, and leaves Y past
 ; them. It clobbers X.
 seis_cifras:
     stz comp_col + 1
@@ -366,7 +366,7 @@ cifra:
 escribir:
     phx
     tyx
-    sta f:MENU_EXP_TEXTO, x
+    sta f:MENU_EXP_TEXT, x
     plx
     iny
     inx
@@ -383,7 +383,7 @@ potencias:
 ; When closing the menu, before `back_to_map`: what `menu_exp_paint`
 ; changed on the map and the map does not restore by itself. OBSEL, which
 ; `back_to_map` does not touch, and the colors of sprite palette 0, from
-; `cgram_sombra`, which has the map's even if the tint or a picture changed
+; `cgram_shadow`, which has the map's even if the tint or a picture changed
 ; them. It turns the screen off, which `back_to_map` turns off anyway.
 .proc menu_exp_close
 .a8
@@ -394,14 +394,14 @@ potencias:
     plb
     lda #$80
     sta INIDISP
-    ldx mapa_ofs
+    ldx map_ofs
     lda f:mapa_tabla + M_OBSEL_VALUE, x
     sta OBSEL
     lda #128
     sta CGADD
     rep #$20
 .a16
-    lda #.loword(cgram_sombra + 2 * 128)
+    lda #.loword(cgram_shadow + 2 * 128)
     sta A1T0L
     lda #(16 * 2)
     sta DAS0L

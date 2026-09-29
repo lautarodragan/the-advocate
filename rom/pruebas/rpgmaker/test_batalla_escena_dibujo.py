@@ -138,7 +138,7 @@ def _distintos(a, b):
 
 def _esperar(una, tope=400):
     for _ in range(tope):
-        if una.byte("menu_abierto"):
+        if una.byte("menu_open"):
             return
         una.consola.run(1)
     raise AssertionError("la pelea no se abrió")
@@ -161,16 +161,16 @@ def _hasta_subido(una, enemigo, tope=60):
 
 def en_sector_27(partida):
     """El encuentro al azar de la tropa 100, forzado: la celda adentro del área
-    y el pedido de `ENC_PIDE`, que es lo que deja el contador de pasos."""
+    y el pedido de `ENC_ASKS`, que es lo que deja el contador de pasos."""
     una = partida()
     una.ir_al_mapa(*SECTOR_27)
     s = una.simbolos
-    una.consola.write_ram(en_la_wram(s["ENC_SEM"]),
+    una.consola.write_ram(en_la_wram(s["ENC_RNG"]),
                           [SEMILLA_TROPA_100 & 0xFF, SEMILLA_TROPA_100 >> 8])
-    una.consola.write_ram(en_la_wram(s["ENC_PIDE"]), [1])
+    una.consola.write_ram(en_la_wram(s["ENC_ASKS"]), [1])
     _esperar(una)
     una.consola.run(3)
-    tropa = una.palabra("BA_TROPA")
+    tropa = una.palabra("BT_TROOP")
     assert tropa == TROPA_100, (
         "con la semilla %d el encuentro de Sector 27 tenía que ser la tropa %d "
         "y fue la %d: la prueba no mide lo que dice" % (
@@ -229,7 +229,7 @@ def test_escena_un_enemigo_muerto_desaparece(partida):
     n = len(base.troops[TROPA_100].members)
     muerto = 1
     s = una.simbolos
-    donde = s["BA_UNO"] + (s["BA_GRUPO_MAX"] + muerto) * s["BA_BYTES"]
+    donde = s["BT_ONE"] + (s["BT_PARTY_MAX"] + muerto) * s["BT_BYTES"]
     una.consola.write_ram(en_la_wram(donde), [0, 0])
     _hasta_subido(una, muerto)
     limpio, esperada = _esperada(una, base, TROPA_100,
@@ -261,7 +261,7 @@ def test_escena_el_droide_muerto_peleando_desaparece(partida):
         pelea.turno(len(esperado.living(esperado.actors)))
         esperado.play_turn(
             [(modelo.COMMAND_ATTACK, 0)] * len(esperado.living(esperado.actors)))
-    assert pelea.byte("BA_RESULT") == modelo.VICTORY
+    assert pelea.byte("BT_RESULT") == modelo.VICTORY
     _hasta_subido(una, 0)
     limpio = _bufer(una, "SCN_CLEAN")
     assert _distintos(_bufer(una, "SCN_SCENE"), limpio) == 0, \

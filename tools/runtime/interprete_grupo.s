@@ -11,10 +11,10 @@
 ; Gold and items are in interprete_oro_e_items.s.
 
 .proc op_party
-    lda [cod_ptr], y            ; 0 = add, 1 = remove
+    lda [code_ptr], y            ; 0 = add, 1 = remove
     sta temp
     iny
-    lda [cod_ptr], y            ; the actor
+    lda [code_ptr], y            ; the actor
     iny
     phy
     jsr change_party
@@ -39,17 +39,17 @@
 .proc op_actor_sprite
 .a8
 .i16
-    lda [cod_ptr], y            ; the actor
+    lda [code_ptr], y            ; the actor
     iny
     sta temp
-    lda [cod_ptr], y            ; the graphic
+    lda [code_ptr], y            ; the graphic
     iny
     sta temp + 1
     phy
     lda temp
     jsr actor_gfx_write
     lda temp
-    cmp grupo                   ; is it the leader?
+    cmp party                   ; is it the leader?
     bne graf_no_lidera
     jsr pick_hero_graphic
     jsr apply_tint

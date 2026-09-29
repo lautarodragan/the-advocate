@@ -32,12 +32,12 @@
 .proc op_game_over
     lda #1
     xba
-    lda par_ev
+    lda pair_ev
     cmp #$FF
     beq game_over_ya            ; foreground
-    lda msg_abierto
-    ora msg_estado
-    ora eleg_activo
+    lda msg_open
+    ora msg_state
+    ora pick_active
     beq game_over_ya
     dey                         ; the cursor goes back to this same opcode
     sty ev_cur

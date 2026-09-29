@@ -51,8 +51,8 @@ PICK_POSE  = TURN_EV + 10
     rts
 .endproc
 
-; The page of `ev_buscado` has just been queued by the hero: if it turns, make
-; it face him. The event's cell is (celda_x, celda_y) and the hero's
+; The page of `ev_sought` has just been queued by the hero: if it turns, make
+; it face him. The event's cell is (cell_x, cell_y) and the hero's
 ; (tile_x, tile_y). Enters with PICK_K and PICK_POSE from its page.
 .proc turn_fire
 .a8
@@ -62,7 +62,7 @@ PICK_POSE  = TURN_EV + 10
     bne gira
     rts                         ; the page does not turn
 gira:
-    lda ev_buscado
+    lda ev_sought
     jsr event_slot
     cpx #$FFFF
     beq sin_ruta
@@ -72,7 +72,7 @@ gira:
     ; it is checked before `route_busy`: it is the dead director of
     ; `RunDirectorScene`, which does `26` and never a `27` (maps 19, 46 and
     ; 96).
-    lda ruta_ev + 18, x
+    lda route_ev + 18, x
     and #$08
     bne fija
     jsr route_busy
@@ -80,7 +80,7 @@ gira:
 fija:
     rts                         ; a route running: it decides where it faces
 sin_ruta:
-    lda ev_buscado
+    lda ev_sought
     jsr event_npc
     cpy #$FFFF
     bne con_fila
@@ -89,7 +89,7 @@ con_fila:
     lda npc_buf + 9, y
     cmp #NPC_QUIETO
     bne puede
-    ldx mapa_ofs
+    ldx map_ofs
     lda f:mapa_tabla + M_GIRO_TILE4, x
     cmp #$FF
     bne puede
@@ -104,7 +104,7 @@ puede:
     ; vertical.
     rep #$20
 .a16
-    lda celda_x
+    lda cell_x
     sec
     sbc tile_x
     pha                         ; sx
@@ -113,7 +113,7 @@ puede:
     inc a
 sx_pos:
     sta temp                    ; |sx|
-    lda celda_y
+    lda cell_y
     sec
     sbc tile_y
     sta temp + 2                ; sy
@@ -144,7 +144,7 @@ dir_lista:
 .a8
     sta f:TURN_DIR
 
-    lda ev_buscado
+    lda ev_sought
     sta f:TURN_EV
     lda f:PICK_K
     sta f:TURN_K
@@ -184,14 +184,14 @@ con_columna:
     beq quieto
     lda npc_buf + 13, y
     bmi ready                   ; animates in place: `animate_still` uploads it
-    sty npc_fila
+    sty npc_row
     lda temp
     jmp upload_npc_pose
 quieto:
     ; To the turn slot: its tile, with bit 8 in the attributes.
     lda temp
     sta npc_buf + 12, y
-    ldx mapa_ofs
+    ldx map_ofs
     lda f:mapa_tabla + M_GIRO_TILE4, x
     asl a
     asl a                       ; the tile: the byte times four, and bit 8
@@ -235,7 +235,7 @@ quieto:
     iny
     lda [poses_ptr], y
     sta vq_src + 2
-    ldx mapa_ofs
+    ldx map_ofs
     lda f:mapa_tabla + M_GIRO_TILE4, x
     rep #$20
 .a16
@@ -267,15 +267,15 @@ ready:
 .proc route_busy
 .a8
 .i16
-    lda ruta_ev + 18, x
+    lda route_ev + 18, x
     and #$01
     bne si
-    lda ruta_ev + 5, x
-    cmp ruta_ev + 4, x
+    lda route_ev + 5, x
+    cmp route_ev + 4, x
     bcc si
-    lda ruta_ev + 7, x
-    ora ruta_ev + 9, x
-    ora ruta_ev + 13, x
+    lda route_ev + 7, x
+    ora route_ev + 9, x
+    ora route_ev + 13, x
     bne si
     lda #0
     rts
@@ -310,7 +310,7 @@ si:
 propia:
     lda npc_buf + 13, y
     bmi nothing                    ; animates in place: goes back by itself, next frame
-    sty npc_fila
+    sty npc_row
     lda f:TURN_POSE_PREV
     jmp upload_npc_pose
 nothing:
@@ -342,11 +342,11 @@ nothing:
     rep #$20
 .a16
     and #$00FF
-    sta ev_buscado
+    sta ev_sought
     sep #$20
 .a8
     jsr seek_event_page
-    lda elegida_hay
+    lda chosen_any
     beq deshacer                ; it was left without a page
     lda f:PICK_K
     cmp #$FF

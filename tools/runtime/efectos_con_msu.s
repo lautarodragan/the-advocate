@@ -9,7 +9,7 @@
 ; sound effects—.
 ;
 ; **Voices 0 to 5.** While the SPC700 plays no music —there is MSU-1 and
-; `music_apagada` is set: a track plays, or nothing—, a sound effect that
+; `music_off` is set: a track plays, or nothing—, a sound effect that
 ; does not fit in 7 or in 6 takes one of those. In RM2k sound effects add up,
 ; and `evilrhys`'s scene on map 3 has a moment with three at once. Their state
 ; lives in `EX_*` (ram_lejana.s), smaller than that of 7 and 6: instead of the
@@ -19,7 +19,7 @@
 ; If a song starts playing through the SPC700 while a sound effect plays on
 ; one of those —a missing track, or a `PlayBGM` of a song with no track—,
 ; **the sound effect goes on**: what the music writes to that voice stays in
-; MUS_SOMBRA and is not sent (`dsp_music`), and when the sound effect ends it
+; MUS_SHADOW and is not sent (`dsp_music`), and when the sound effect ends it
 ; is given back from there (`se_extras_before`). It is the same as what happens
 ; with 7 and 6, only the shadow is the music's and not one of its own: there
 ; was no RAM for six more.
@@ -65,9 +65,9 @@ ex_register_bit:
     ldx #0
     lda #0
 otro:
-    sta f:EX_CUADROS, x
+    sta f:EX_FRAMES, x
     inx
-    cpx #(EX_FIN - EX_CUADROS)
+    cpx #(EX_END - EX_FRAMES)
     bcc otro
     rtl
 .endproc
@@ -79,7 +79,7 @@ otro:
 .i16
     lda f:MSU_HAS
     beq no
-    lda f:music_apagada
+    lda f:music_off
     beq no
     sec
     rts
@@ -128,14 +128,14 @@ no:
     ora f:EX_PEND
     sta f:EX_PEND
     lda 1, s
-    ora f:EX_OCUP
-    sta f:EX_OCUP
+    ora f:EX_BUSY
+    sta f:EX_BUSY
     ; If it was being given back, not anymore: it goes straight to the new
     ; sound effect.
     pla
     eor #$FF
-    and f:EX_DEVOLVER
-    sta f:EX_DEVOLVER
+    and f:EX_RETURN
+    sta f:EX_RETURN
     rts
 .endproc
 
@@ -158,7 +158,7 @@ no:
 otra:
     tyx
     lda f:ex_bit, x
-    and f:EX_OCUP
+    and f:EX_BUSY
     beq sigue
     rep #$20
 .a16
@@ -210,7 +210,7 @@ tomar:
 otra:
     tyx
     lda f:ex_bit, x
-    and f:EX_OCUP
+    and f:EX_BUSY
     beq tomar
     iny
     cpy #EX_VOICES
@@ -310,18 +310,18 @@ ready:
 
 ; Before the music: the voices whose sound effect ended on the previous frame
 ; go back to it. KOF as the music had it, except whatever is still busy, and
-; their eight registers from MUS_SOMBRA, which is what the stream wrote to
+; their eight registers from MUS_SHADOW, which is what the stream wrote to
 ; them in the meantime.
 .proc se_extras_before
 .a8
 .i16
-    lda f:EX_DEVOLVER
+    lda f:EX_RETURN
     bne hay
     rtl
 hay:
     eor #$FF
-    and f:EX_OCUP
-    sta f:EX_OCUP
+    and f:EX_BUSY
+    sta f:EX_BUSY
     jsl se_kof_music_l
     ldx #SE_KOF
     jsl dsp_pair_l
@@ -329,7 +329,7 @@ hay:
 voz:
     tyx
     lda f:ex_bit, x
-    and f:EX_DEVOLVER
+    and f:EX_RETURN
     beq sigue
     tya
     asl a
@@ -343,7 +343,7 @@ voz:
     sep #$20
 .a8
 register:
-    lda f:MUS_SOMBRA, x
+    lda f:MUS_SHADOW, x
     jsl dsp_pair_l
     inx
     txa
@@ -354,7 +354,7 @@ sigue:
     cpy #EX_VOICES
     bcc voz
     lda #0
-    sta f:EX_DEVOLVER
+    sta f:EX_RETURN
     rtl
 .endproc
 
@@ -370,7 +370,7 @@ sigue:
 .proc se_extras_after
 .a8
 .i16
-    lda f:EX_OCUP
+    lda f:EX_BUSY
     bne hay
     rtl                         ; A at zero: nothing to key on
 hay:
@@ -409,10 +409,10 @@ count_up:
     tya
     asl a
     tax
-    lda f:EX_CUADROS, x
+    lda f:EX_FRAMES, x
     beq nothing
     dec a
-    sta f:EX_CUADROS, x
+    sta f:EX_FRAMES, x
     bne nothing
     sep #$20
 .a8
@@ -432,8 +432,8 @@ sigue:
     pla                         ; the ones ending
     beq ninguno
     pha
-    ora f:EX_DEVOLVER
-    sta f:EX_DEVOLVER
+    ora f:EX_RETURN
+    sta f:EX_RETURN
     jsl se_kof_music_l
     ora 1, s
     ldx #SE_KOF
@@ -532,7 +532,7 @@ tengo:
     and #$00FF
     tax
     pla
-    sta f:EX_CUADROS, x
+    sta f:EX_FRAMES, x
     pla                         ; the pitch
     sep #$20
 .a8
@@ -570,9 +570,9 @@ olvidar:
     bra olvidar
 olvidados:
     lda #$FF                    ; the stream, nowhere: the first one seeks
-    sta f:MSU_SE_SIG
-    sta f:MSU_SE_SIG + 1
-    sta f:MSU_SE_SIG + 2
+    sta f:MSU_SE_NEXT
+    sta f:MSU_SE_NEXT + 1
+    sta f:MSU_SE_NEXT + 2
 ready:
     rtl
 .endproc
@@ -695,13 +695,13 @@ no:
     rtl
 hay:
     lda f:se_msu_filas, x
-    cmp f:MSU_SE_SIG
+    cmp f:MSU_SE_NEXT
     bne buscar
     lda f:se_msu_filas + 1, x
-    cmp f:MSU_SE_SIG + 1
+    cmp f:MSU_SE_NEXT + 1
     bne buscar
     lda f:se_msu_filas + 2, x
-    cmp f:MSU_SE_SIG + 2
+    cmp f:MSU_SE_NEXT + 2
     beq en_su_lugar
 buscar:
     phx
@@ -715,9 +715,9 @@ buscar:
     plx
     bcc en_su_lugar
     lda #$FF
-    sta f:MSU_SE_SIG
-    sta f:MSU_SE_SIG + 1
-    sta f:MSU_SE_SIG + 2
+    sta f:MSU_SE_NEXT
+    sta f:MSU_SE_NEXT + 1
+    sta f:MSU_SE_NEXT + 2
     rep #$20
 .a16
     lda f:PKG_S
@@ -737,12 +737,12 @@ en_su_lugar:
     sta f:PKG_LENGTH
     clc
     adc f:se_msu_filas, x
-    sta f:MSU_SE_SIG            ; where it will be left
+    sta f:MSU_SE_NEXT            ; where it will be left
     sep #$20
 .a8
     lda f:se_msu_filas + 2, x
     adc #0
-    sta f:MSU_SE_SIG + 2
+    sta f:MSU_SE_NEXT + 2
     phx
     jsr msu_a_aram
     plx
@@ -863,7 +863,7 @@ ready:
 .endproc
 
 ; The number of the sound effect noted in directory entry A, which is a sound
-; effect place —SE_PRIMERA or above—, in A: see `FAR_EFECTO_EN`. Clobbers X.
+; effect place —SE_PRIMERA or above—, in A: see `FAR_EFFECT_IN`. Clobbers X.
 .proc place_effect
 .a8
 .i16
@@ -873,7 +873,7 @@ ready:
     tax
     sep #$20
 .a8
-    lda f:FAR_EFECTO_EN - SE_PRIMERA, x
+    lda f:FAR_EFFECT_IN - SE_PRIMERA, x
     rts
 .endproc
 
@@ -965,12 +965,12 @@ espera:
     sta f:EX_PEND
     ldx #0
 frames:
-    sta f:EX_CUADROS, x
+    sta f:EX_FRAMES, x
     inx
     cpx #(2 * EX_VOICES)
     bcc frames
-    lda f:EX_OCUP
-    ora f:EX_DEVOLVER
-    sta f:EX_DEVOLVER
+    lda f:EX_BUSY
+    ora f:EX_RETURN
+    sta f:EX_RETURN
     rtl
 .endproc

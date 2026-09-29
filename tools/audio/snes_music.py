@@ -802,7 +802,7 @@ def constraints_for(assignment, groups, free):
 # —see `effect_places`— together.
 DIRECTORY_MAX = 255
 # How many directory places can belong to sound effects: the ROM records
-# which sound effect is in each one in `FAR_EFECTO_EN`, which has that size.
+# which sound effect is in each one in `FAR_EFFECT_IN`, which has that size.
 SE_PLACES_MAX = 48
 # No copy is made for a sample that already plays at nearly its rate: a
 # directory entry is worth more than that.
@@ -981,7 +981,7 @@ def effect_places(packages, names):
     many places as the most loaded package has sound effects are enough.
 
     The ROM cannot tell from the entry which sound effect is there: it
-    records it when uploading it (`FAR_EFECTO_EN`, in
+    records it when uploading it (`FAR_EFFECT_IN`, in
     tools/runtime/paquete_de_audio.s).
     """
     touches = {n: set() for n in names}
@@ -2317,7 +2317,7 @@ def song_samples(song):
 FRAMES_PER_KB_PACKAGE = 1.45
 FRAMES_PER_KB_IPL = 1.5
 MAP_FRAMES = 10
-# Where `BOOT_CUADROS` lives, which belongs to the ROM and not here.
+# Where `BOOT_FRAMES` lives, which belongs to the ROM and not here.
 FAR_RAM = os.path.join(project.runtime(), "ram_lejana.s")
 
 
@@ -2348,10 +2348,10 @@ def boot_frames_estimate(driver, voices, songs, package, decompress=0.0,
 
 
 def boot_frames(path=FAR_RAM):
-    """The ROM's `BOOT_CUADROS`, read from the source."""
+    """The ROM's `BOOT_FRAMES`, read from the source."""
     import re
     with open(path) as handle:
-        return int(re.search(r"^BOOT_CUADROS\s*=\s*(\d+)", handle.read(),
+        return int(re.search(r"^BOOT_FRAMES\s*=\s*(\d+)", handle.read(),
                              re.M).group(1))
 
 
@@ -2479,7 +2479,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
                          % (len(voices) - music_n))
     if places > SE_PLACES_MAX:
         raise SystemExit("the sound effects ask for %d directory places and the ROM "
-                         "records %d: see FAR_EFECTO_EN" % (places,
+                         "records %d: see FAR_EFFECT_IN" % (places,
                                                             SE_PLACES_MAX))
     silence = SAMPLES_ADDR + 4 * n
     data = silence + len(SILENCE)

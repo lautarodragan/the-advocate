@@ -1,7 +1,7 @@
 """El presupuesto de teletransportes encadenados: que se reponga, y que no se
 gaste en silencio.
 
-`saltos_restantes` existe para que dos mapas que se teletransporten entre sí no
+`jumps_left` existe para que dos mapas que se teletransporten entre sí no
 cuelguen a la consola. Lo que cuenta son los saltos **encadenados**, o sea los
 que pasan sin que el jugador recupere el control; los de una partida son todos
 los que quieran ser.
@@ -24,13 +24,13 @@ def test_el_presupuesto_vuelve_cuando_el_jugador_tiene_el_control(partida):
     una = partida()
     for _ in range(3000):
         una.correr(1)
-        if not una.corriendo_una_pagina() and not una.byte("esperando_n"):
+        if not una.corriendo_una_pagina() and not una.byte("waiting_n"):
             break
     else:
         raise AssertionError("la partida nunca soltó el control")
-    una.poner_byte("saltos_restantes", 0)
+    una.poner_byte("jumps_left", 0)
     una.correr(1)
-    assert una.byte("saltos_restantes") == una.simbolos["SALTOS_MAX"], \
+    assert una.byte("jumps_left") == una.simbolos["JUMPS_MAX"], \
         "el presupuesto no se repuso con el jugador en control: una partida " \
         "larga se queda sin teletransportes"
 
@@ -67,5 +67,5 @@ def test_nadie_entra_en_panico(partida):
     """El tope no se alcanza jugando. Si esto falla, la ROM se paró sola."""
     una = partida()
     una.correr(600)
-    assert not una.byte("panico"), \
-        "la ROM entró en pánico con el código %d" % una.byte("panico")
+    assert not una.byte("panic"), \
+        "la ROM entró en pánico con el código %d" % una.byte("panic")

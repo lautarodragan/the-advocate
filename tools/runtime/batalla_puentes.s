@@ -3,7 +3,7 @@
 ; --- the battle -----------------------------------------------------------------
 ;
 ; `EnemyEncounter`, opened by `OP_BATTLE` from the interpreter: like the shop
-; and like saving, the screen blocks inside the page, `vueltas` does not
+; and like saving, the screen blocks inside the page, `ticks` does not
 ; advance while it is up and **it costs no tick**. What sets it apart from the
 ; other two is that the result **chooses where the page continues**: the
 ; opcode carries the three destinations and here the cursor is given the one
@@ -168,11 +168,11 @@ run_code_long:
 ; The map's is saved on the stack and restored at the end, as in
 ; `parallel_tick`, and it is not a precaution: a battle is opened from
 ; **inside** the interpreter —`op_battle`— and on return it keeps reading the
-; map's page with the `cod_ptr` and the Y it had. The troop's lives in far RAM
+; map's page with the `code_ptr` and the Y it had. The troop's lives in far RAM
 ; between one stretch and the next, because a message holds it up for several
 ; frames.
 ;
-; `par_ev` at `PAR_PELEA` is what tells `op_message` that the message belongs
+; `pair_ev` at `PAIR_BATTLE` is what tells `op_message` that the message belongs
 ; to the battle. The opcodes that run here are only those in
 ; `TROPA_COMANDOS`, in eventos.py: no other one knows there is no map.
 bt_t_page:
@@ -183,45 +183,45 @@ bt_t_page:
 .a16
     lda ev_cur
     pha
-    lda cod_ptr
+    lda code_ptr
     pha
-    lda f:BAT_LARGO + BA_PAG_CUR
+    lda f:BAT_LENGTH + BT_PAGE_CUR
     sta ev_cur
-    lda f:BAT_LARGO + BA_PAG_COD
-    sta cod_ptr
+    lda f:BAT_LENGTH + BT_PAGE_CODE
+    sta code_ptr
     sep #$20
 .a8
-    lda cod_ptr + 2
+    lda code_ptr + 2
     pha
-    lda ev_activo
+    lda ev_active
     pha
-    lda par_ev
+    lda pair_ev
     pha
     lda #^tropa_codigo
-    sta cod_ptr + 2
-    lda #PAR_PELEA
-    sta par_ev
+    sta code_ptr + 2
+    lda #PAIR_BATTLE
+    sta pair_ev
     lda #1
-    sta ev_activo
+    sta ev_active
     jsr run_code
-    lda ev_activo
-    sta f:BAT_LARGO + BA_PAG_ACT
+    lda ev_active
+    sta f:BAT_LENGTH + BT_PAGE_ACT
     rep #$20
 .a16
     lda ev_cur
-    sta f:BAT_LARGO + BA_PAG_CUR
+    sta f:BAT_LENGTH + BT_PAGE_CUR
     sep #$20
 .a8
     pla
-    sta par_ev
+    sta pair_ev
     pla
-    sta ev_activo
+    sta ev_active
     pla
-    sta cod_ptr + 2
+    sta code_ptr + 2
     rep #$20
 .a16
     pla
-    sta cod_ptr
+    sta code_ptr
     pla
     sta ev_cur
     sep #$20
@@ -239,7 +239,7 @@ bt_t_page:
 ;
 ; The index comes in **X and 16 bits wide**, not in A: the battle package goes
 ; after the maps' ones, so with all 328 of the whole game it does not fit in a
-; byte —and neither does `mapa_actual`, which is what is passed on leaving—.
+; byte —and neither does `map_current`, which is what is passed on leaving—.
 ;
 ; With `BA_PAQUETE` at $FFFF —a ROM with no battles— there is nothing to load;
 ; it cannot happen, because this is reached from `op_battle`, but the opcode
@@ -270,7 +270,7 @@ ready:
 ;
 ; Silencing is not `FadeOutBGM`: it is the same thing `song_ensure` does
 ; before rebuilding the package, that is, releasing all eight voices and
-; setting `music_apagada`. A map with no music is normal in this game —the
+; setting `music_off`. A map with no music is normal in this game —the
 ; first ones have none and a `PlayBGM` turns it on—, so coming back from a
 ; battle to a silent map has to really silence it and not leave the battle
 ; song playing.
@@ -284,7 +284,7 @@ callar:
     php
     sei
     lda #1
-    sta music_apagada
+    sta music_off
     lda #$FF
     ldx #SE_KOF
     jsr dsp_pair                 ; all eight voices release

@@ -2,7 +2,7 @@
 
 `pick_with_filter` hace las dos pasadas del refresco: la corta, que mira sólo
 los eventos con automáticas, y la completa, que mira además los que tienen ruta
-propia o gráfico por página. Decidía cuál era con un `ldx solo_auto` con X en
+propia o gráfico por página. Decidía cuál era con un `ldx only_auto` con X en
 16 bits, que se llevaba también `auto_n`, el byte de al lado. Con alguna
 automática activa `auto_n` no es cero, así que la completa filtraba como la
 corta, y los eventos sin automáticas no elegían página mientras la automática
@@ -22,7 +22,7 @@ def test_el_auto_elegido_aparece_en_la_huida(partida):
 
     Las filas se buscan por la X —el byte +0 de `npc_buf`, en pixeles— porque
     el conversor no las ordena como los eventos. El +14 es si se dibuja. Sin
-    el arreglo las dos quedan en cero, y `eleg_por_ev` de los dos eventos en
+    el arreglo las dos quedan en cero, y `pick_by_ev` de los dos eventos en
     $FFFF: ninguna pasada miró sus páginas.
     """
     una = partida(switch=[130, 132], caso="en-4")

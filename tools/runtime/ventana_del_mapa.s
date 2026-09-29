@@ -19,7 +19,7 @@
 
 ; The grid reaches 40 KB and does not fit in a bank, so it is walked with a
 ; 24-bit pointer. It lives in the upper half of the two WRAM banks —see
-; `GRILLA`—, which has the same shape as a LoROM bank: going past $FFFF does
+; `GRID`—, which has the same shape as a LoROM bank: going past $FFFF does
 ; not lead to the next bank's $0000 but to its $8000, and these two routines
 ; are the only ones that know that. It was like this when the grid was read
 ; from the cartridge, and that is why moving it to WRAM touched nobody else.
@@ -27,17 +27,17 @@
 .a16
 .i16
     clc
-    adc celdas_ptr
-    sta celdas_ptr
+    adc cells_ptr
+    sta cells_ptr
     bcc ready
     clc
     adc #$8000
-    sta celdas_ptr
+    sta cells_ptr
     sep #$20
 .a8
-    lda celdas_ptr + 2
+    lda cells_ptr + 2
     inc a
-    sta celdas_ptr + 2
+    sta cells_ptr + 2
     rep #$20
 .a16
 ready:
@@ -49,34 +49,34 @@ ready:
 .i16
     eor #$FFFF                  ; subtracting is adding the complement
     sec
-    adc celdas_ptr
+    adc cells_ptr
     cmp #$8000
     bcs guarda                  ; still inside the bank's upper half
     clc
     adc #$8000
-    sta celdas_ptr
+    sta cells_ptr
     sep #$20
 .a8
-    lda celdas_ptr + 2
+    lda cells_ptr + 2
     dec a
-    sta celdas_ptr + 2
+    sta cells_ptr + 2
     rep #$20
 .a16
     rts
 guarda:
-    sta celdas_ptr
+    sta cells_ptr
     rts
 .endproc
 
 .proc ptr_from_cells
 .a16
 .i16
-    lda celdas
-    sta celdas_ptr
+    lda cells
+    sta cells_ptr
     sep #$20
 .a8
-    lda celdas + 2
-    sta celdas_ptr + 2
+    lda cells + 2
+    sta cells_ptr + 2
     rep #$20
 .a16
     rts
@@ -85,12 +85,12 @@ guarda:
 .proc ptr_to_cells
 .a16
 .i16
-    lda celdas_ptr
-    sta celdas
+    lda cells_ptr
+    sta cells
     sep #$20
 .a8
-    lda celdas_ptr + 2
-    sta celdas + 2
+    lda cells_ptr + 2
+    sta cells + 2
     rep #$20
 .a16
     rts
@@ -117,13 +117,13 @@ guarda:
 buscar:
     dey
     dey
-    cmp sub_clave, y
+    cmp sub_key, y
     beq hallado
     cpy #$0000
     bne buscar
     rts
 hallado:
-    lda sub_valor, y
+    lda sub_value, y
 ready:
     rts
 .endproc
@@ -139,7 +139,7 @@ ready:
 .a16
 .i16
     stz col_addr
-    cpx mapa_cw
+    cpx map_cw
     bcc dentro
     rts                         ; past the edge: nothing to draw
 dentro:
@@ -151,7 +151,7 @@ dentro:
     sta temp
     and #$001F
     clc
-    adc f:FAR_VRAM_MAPA         ; the layout picks it: see LAYOUT_VENTANA_AMBOS
+    adc f:FAR_VRAM_MAP         ; the layout picks it: see LAYOUT_VENTANA_AMBOS
     sta col_addr
     lda temp
     and #$0020
@@ -167,7 +167,7 @@ izquierda:
     txa
     and #$0001
     asl a                       ; 0 the left half, 2 the right
-    sta tira_ofs
+    sta strip_ofs
     txa
     lsr a
     asl a                       ; the block column, in bytes
@@ -182,9 +182,9 @@ izquierda:
     lda win_row
     and #$0001
     beq desde_arriba
-    lda tira_ofs
+    lda strip_ofs
     ora #$0004                  ; starts at the block's bottom half
-    sta tira_ofs
+    sta strip_ofs
 desde_arriba:
     lda win_row
     and #(WINDOW_ROWS - 1)
@@ -193,33 +193,33 @@ desde_arriba:
 
     ; How many rows lie ahead: the whole window, or whatever is left of the
     ; map.
-    lda mapa_ch
+    lda map_ch
     sec
     sbc win_row
     cmp #WINDOW_ROWS
     bcc corta
     lda #WINDOW_ROWS
 corta:
-    sta tira_resta
+    sta strip_left
 
     ; The block index goes in Y and the slot in X, and not the other way
     ; around: the block table no longer lives in bank 0 —with several maps it
     ; does not fit— so it is read with a 24-bit pointer, and that mode only
     ; indexes by Y.
 row:
-    lda [celdas_ptr]            ; this cell's block
+    lda [cells_ptr]            ; this cell's block
     jsr cell_replaced
     asl a
     asl a
     asl a
     asl a                       ; its record is 16 bytes
     clc
-    adc tira_ofs
+    adc strip_ofs
     tay
-    lda [bloques_ptr], y
-    sta tira_col, x             ; the background cell
-    lda [bloques8_ptr], y
-    sta tira_col2, x            ; and the upper layer's
+    lda [blocks_ptr], y
+    sta strip_col, x             ; the background cell
+    lda [blocks8_ptr], y
+    sta strip_col2, x            ; and the upper layer's
 
     inx
     inx
@@ -227,27 +227,27 @@ row:
     and #(WINDOW_ROWS * 2 - 1)  ; the window wraps
     tax
 
-    lda tira_ofs
+    lda strip_ofs
     eor #$0004                  ; the other half of the block
-    sta tira_ofs
+    sta strip_ofs
     and #$0004
     bne misma                   ; still in the same block
-    lda tira_paso_col
+    lda strip_step_col
     jsr ptr_more                 ; to the next block row
 misma:
-    dec tira_resta
+    dec strip_left
     bne row
     rts
 .endproc
 
-; The mirror image of the previous one: builds row X of the map in tira_row.
+; The mirror image of the previous one: builds row X of the map in strip_row.
 ; All that changes is which of the two axes alternates inside the block and
 ; how far the pointer advances when going from one to the next.
 .proc build_row
 .a16
 .i16
     stz row_addr
-    cpx mapa_ch
+    cpx map_ch
     bcc dentro
     rts                         ; past the bottom edge
 dentro:
@@ -259,14 +259,14 @@ dentro:
     asl a
     asl a                       ; each screen row is 32 words
     clc
-    adc f:FAR_VRAM_MAPA
+    adc f:FAR_VRAM_MAP
     sta row_addr
 
     txa
     and #$0001
     asl a
     asl a                       ; 0 the block's top half, 4 the bottom
-    sta tira_ofs
+    sta strip_ofs
     txa
     lsr a
     sta temp                    ; the block row coming in
@@ -281,13 +281,13 @@ dentro:
     beq en_la_fila
     tax
 baja:
-    lda tira_paso_col
+    lda strip_step_col
     jsr ptr_more
     dex
     bne baja
 en_la_fila:
-    ; The row starts MARGEN_COLS columns before the window, which is the same
-    ; range `fill_window` and `stream_map` load: [win_col - MARGEN_COLS,
+    ; The row starts MARGIN_COLS columns before the window, which is the same
+    ; range `fill_window` and `stream_map` load: [win_col - MARGIN_COLS,
     ; win_col + 60). If it started at win_col, the row's last four columns
     ; —win_col + 60 to 63— would overwrite, on the torus, the slots of the left
     ; margin, and that was seen: the corner of the screen on map 2 showed
@@ -295,62 +295,62 @@ en_la_fila:
     ; edge go empty, as in `build_column`.
     lda win_col
     sec
-    sbc #MARGEN_COLS
-    sta fila_col
+    sbc #MARGIN_COLS
+    sta row_col
     and #(WINDOW_COLS - 1)
     asl a
     tax                         ; the first column's slot, in bytes
     lda #WINDOW_COLS
-    sta tira_total
+    sta strip_total
 vacias_izq:
-    lda fila_col
+    lda row_col
     bpl con_mapa
-    stz tira_row, x
-    stz tira_row2, x
+    stz strip_row, x
+    stz strip_row2, x
     inx
     inx
     txa
     and #(WINDOW_COLS * 2 - 1)
     tax
-    inc fila_col
-    dec tira_total
+    inc row_col
+    dec strip_total
     bra vacias_izq
 con_mapa:
-    lda fila_col
+    lda row_col
     and #$0001
     beq desde_izquierda
-    lda tira_ofs
+    lda strip_ofs
     ora #$0002
-    sta tira_ofs
+    sta strip_ofs
 desde_izquierda:
-    lda fila_col
+    lda row_col
     lsr a
     asl a                       ; the leftmost block column, in bytes
     jsr ptr_more
-    lda mapa_cw
+    lda map_cw
     sec
-    sbc fila_col
-    cmp tira_total
+    sbc row_col
+    cmp strip_total
     bcc corta
-    lda tira_total
+    lda strip_total
 corta:
-    sta tira_resta
-    lda tira_resta
+    sta strip_left
+    lda strip_left
     beq vacias_der              ; the whole row falls outside the map
 columna:
-    lda [celdas_ptr]
+    lda [cells_ptr]
     jsr cell_replaced
     asl a
     asl a
     asl a
     asl a
     clc
-    adc tira_ofs
+    adc strip_ofs
     tay
-    lda [bloques_ptr], y
-    sta tira_row, x
-    lda [bloques8_ptr], y
-    sta tira_row2, x
+    lda [blocks_ptr], y
+    sta strip_row, x
+    lda [blocks8_ptr], y
+    sta strip_row2, x
 
     inx
     inx
@@ -358,28 +358,28 @@ columna:
     and #(WINDOW_COLS * 2 - 1)
     tax
 
-    lda tira_ofs
+    lda strip_ofs
     eor #$0002                  ; the other half of the block, now across
-    sta tira_ofs
+    sta strip_ofs
     and #$0002
     bne mismo
     lda #2
     jsr ptr_more                 ; to the next block over
 mismo:
-    dec tira_total
-    dec tira_resta
+    dec strip_total
+    dec strip_left
     bne columna
 vacias_der:
-    lda tira_total
+    lda strip_total
     beq ready
-    stz tira_row, x
-    stz tira_row2, x
+    stz strip_row, x
+    stz strip_row2, x
     inx
     inx
     txa
     and #(WINDOW_COLS * 2 - 1)
     tax
-    dec tira_total
+    dec strip_total
     bra vacias_der
 ready:
     rts
@@ -425,18 +425,18 @@ ready:
     jsr one_column
     ; What a `TileSubstitution` left pending: one column of the window, and
     ; only if the camera did not take any this frame —both addresses at zero
-    ; means none is built—. See `sub_refresco`.
-    lda sub_refresco
+    ; means none is built—. See `sub_refresh`.
+    lda sub_refresh
     beq sin_refresco
     lda col_addr
     ora col_addr_b
     bne sin_refresco
-    dec sub_refresco
+    dec sub_refresh
     lda win_col
     sec
-    sbc #MARGEN_COLS            ; the same range `fill_window` builds
+    sbc #MARGIN_COLS            ; the same range `fill_window` builds
     clc
-    adc sub_refresco
+    adc sub_refresh
     tax
     jsr build_column
 sin_refresco:
@@ -452,7 +452,7 @@ sin_refresco:
 .proc one_row
 .a16
 .i16
-    lda camara_y
+    lda camera_y
     lsr a
     lsr a
     lsr a
@@ -486,13 +486,13 @@ con_fila:
     pha
     bcs baja_bloque
     jsr ptr_from_cells
-    lda tira_paso_col
+    lda strip_step_col
     jsr ptr_minus
     jsr ptr_to_cells
     bra guarda_bloque
 baja_bloque:
     jsr ptr_from_cells
-    lda tira_paso_col
+    lda strip_step_col
     jsr ptr_more
     jsr ptr_to_cells
 guarda_bloque:
@@ -509,7 +509,7 @@ ready:
 .proc one_column
 .a16
 .i16
-    lda camara_x
+    lda camera_x
     lsr a
     lsr a
     lsr a
@@ -521,7 +521,7 @@ ready:
     dec a
     sta win_col
     sec
-    sbc #MARGEN_COLS            ; going up: the left margin's comes in
+    sbc #MARGIN_COLS            ; going up: the left margin's comes in
     tax
     bra armar
 derecha:
@@ -530,7 +530,7 @@ derecha:
     inc a
     sta win_col
     clc
-    adc #(VIEW_COLS - 1 + MARGEN_COLS)
+    adc #(VIEW_COLS - 1 + MARGIN_COLS)
     tax
 armar:
     jsr build_column
@@ -542,8 +542,8 @@ ready:
 ; reuse the buffer in this same tick.
 ;
 ; It is copied instead of having two sets of strips and letting `build_row`
-; choose: `build_row`'s loop writes with `sta tira_row, x` and
-; `stz tira_row, x`, and `stz` has no long indexed mode, so moving them to far
+; choose: `build_row`'s loop writes with `sta strip_row, x` and
+; `stz strip_row, x`, and `stz` has no long indexed mode, so moving them to far
 ; RAM would cost it an `lda #0` per cell in the hot loop. The `mvn` is 256
 ; bytes at seven cycles and is paid **only** when the camera jumped two rows,
 ; which is rare.
@@ -556,11 +556,11 @@ ready:
     ; The row's two strips are contiguous —see their `.res`—, so they go in a
     ; single `mvn`, which copies A + 1 bytes and leaves the data bank at the
     ; destination.
-    ldx #.loword(tira_row)
-    ldy #.loword(FAR_TIRA_ROW)
+    ldx #.loword(strip_row)
+    ldy #.loword(FAR_STRIP_ROW)
     lda #(WINDOW_COLS * 2 * 2 - 1)
     phb
-    mvn #$00, #^FAR_TIRA_ROW    ; the BSS is visible from bank 0: it is the
+    mvn #$00, #^FAR_STRIP_ROW    ; the BSS is visible from bank 0: it is the
     plb                         ; mirror of the WRAM below $2000
     stz row_addr                ; the buffer is free
 ready:
@@ -573,11 +573,11 @@ ready:
     lda col_addr
     beq ready
     sta col_addr_b
-    ldx #.loword(tira_col)
-    ldy #.loword(FAR_TIRA_COL)
+    ldx #.loword(strip_col)
+    ldy #.loword(FAR_STRIP_COL)
     lda #(WINDOW_ROWS * 2 * 2 - 1)
     phb
-    mvn #$00, #^FAR_TIRA_COL
+    mvn #$00, #^FAR_STRIP_COL
     plb
     stz col_addr
 ready:
@@ -608,7 +608,7 @@ ready:
     sta VMAIN                   ; advance one word after the high byte
     rep #$20
 .a16
-    lda f:FAR_VRAM_MAPA
+    lda f:FAR_VRAM_MAP
     tax
     sep #$20
 .a8
@@ -617,7 +617,7 @@ ready:
     jsr zero_to_tilemap
     ldx #$0000
 tiras:
-    stz tira_col, x             ; all four are contiguous: see their .res
+    stz strip_col, x             ; all four are contiguous: see their .res
     inx
     cpx #(WINDOW_ROWS * 2 * 2 + WINDOW_COLS * 2 * 2)
     bne tiras
@@ -629,9 +629,9 @@ tiras:
 .a8
 .i16
     stx VMADDL
-    ldx #.loword(cero)
+    ldx #.loword(zero)
     stx A1T0L
-    lda #^cero
+    lda #^zero
     sta A1B0
     ldx #(32 * 32 * 2 * 2)      ; two screens, in words
     stx DAS0L
@@ -653,16 +653,16 @@ tiras:
     stz row_addr
     stz col_addr_b              ; and the spare ones: everything is filled from
     stz row_addr_b              ; scratch here, so anything half built is useless
-    lda mapa_ancho
+    lda map_width
     asl a
-    sta tira_paso_col           ; the size of a block row, in bytes
+    sta strip_step_col           ; the size of a block row, in bytes
 
-    lda camara_x
+    lda camera_x
     lsr a
     lsr a
     lsr a
     sta win_col
-    lda camara_y
+    lda camera_y
     lsr a
     lsr a
     lsr a
@@ -674,18 +674,18 @@ tiras:
     ; instead of multiplying: it happens only once and the 65816 does not
     ; multiply. The grid is in WRAM, where `lz2_grid` decompressed it when
     ; the map loaded.
-    lda #.loword(GRILLA)
-    sta celdas_ptr
+    lda #.loword(GRID)
+    sta cells_ptr
     sep #$20
 .a8
-    lda #^GRILLA
-    sta celdas_ptr + 2
+    lda #^GRID
+    sta cells_ptr + 2
     rep #$20
 .a16
     ldx win_block
     beq sin_filas
 suma:
-    lda tira_paso_col
+    lda strip_step_col
     jsr ptr_more
     dex
     bne suma
@@ -694,7 +694,7 @@ sin_filas:
 
     lda win_col
     sec
-    sbc #MARGEN_COLS            ; with the left margin; `build_column` skips
+    sbc #MARGIN_COLS            ; with the left margin; `build_column` skips
     sta temp + 2                ; the negative columns
     ldy #WINDOW_COLS
 columna:
@@ -715,7 +715,7 @@ columna:
     rts
 .endproc
 
-; `hdma_mascara` and `tabla_fila_buf` **used to live here** and moved down to
+; `hdma_mask` and `row_buf_table` **used to live here** and moved down to
 ; RODATA on 2026-09-13, each separately and on the same day: see `banco1.s`.
 ; The HDMA reads from wherever `A1B3` says, so it does not need bank 0, and the
 ; compositor indexes it with X, which does have a long mode.

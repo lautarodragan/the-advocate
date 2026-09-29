@@ -32,7 +32,7 @@ Three things are **not** RM2k's, and all three are on purpose:
 * **The randomness.** RPG_RT draws from a generator we cannot reproduce.
   Here the randomness is the same sixteen-bit xorshift the port already uses
   for `ControlVars` —`events.next_random`—, but with **its own seed**:
-  `BATTLE_SEED`. Having its own and not sharing `FAR_AZAR` is what keeps
+  `BATTLE_SEED`. Having its own and not sharing `FAR_RANDOM` is what keeps
   a battle from advancing the map's randomness: a random `ControlVars` gives
   the same with or without a battle in between.
 
@@ -121,7 +121,7 @@ def item_usable_in_battle(item):
 
 def revives(item):
     """Whether the item removes the dead state: the first of its
-    `state_set`, which is state 1. It is the `MED_LEVANTA` bit of
+    `state_set`, which is state 1. It is the `MED_RAISES` bit of
     `item_medicina`."""
     return item.state_set[:1] == [True]
 
@@ -237,7 +237,7 @@ def skill_works_alone(skill):
 ACTION_KIND_BASIC, ACTION_KIND_SKILL = 0, 1
 ACTION_BASIC_ATTACK = 0
 ACTION_CONDITION_ALWAYS = 0
-# How many actions an enemy can carry: the ROM weighs them in `BA_HAB_LISTA`,
+# How many actions an enemy can carry: the ROM weighs them in `BT_SKILL_LIST`,
 # which is that long. The converter stops if one carries more.
 ACTIONS_MAX = 16
 # The rating of the action set when the enemy has none left: with a single
@@ -514,7 +514,7 @@ class Combatant:
         """`Exists()`: it has HP left and is not hidden. Everything that
         chooses a target, hands out actions or decides victory looks at
         this, so a hidden one counts for nothing until it appears —which is
-        what the ROM does by leaving it without `BAF_HAY`—."""
+        what the ROM does by leaving it without `BAF_HAS`—."""
         return self.hp > 0 and not self.hidden
 
     # The four parameters as a computation sees them: `AdjustParam` from

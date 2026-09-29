@@ -28,8 +28,8 @@ def test_el_tema_del_titulo_tiene_sus_muestras_en_la_aram(partida):
     """La pantalla de título, sin MSU-1: el tema arranca y sus muestras están.
 
     Es el caso que cobra el defecto del 2026-09-12. Con él puesto la ROM decía
-    estar tocando `Fantasia_Of_The_Wind` —`tema_actual` con el tema del título
-    y `music_apagada` en cero— y las muestras que ese tema pide seguían sin
+    estar tocando `Fantasia_Of_The_Wind` —`song_current` con el tema del título
+    y `music_off` en cero— y las muestras que ese tema pide seguían sin
     subir, así que las ocho voces atacaban el silencio.
 
     No hace falta apagar el MSU-1 para probar esto, aunque `release` lleve sus
@@ -43,10 +43,10 @@ def test_el_tema_del_titulo_tiene_sus_muestras_en_la_aram(partida):
     tema = una.simbolos["TEMA_TITULO"]
     assert tema != 0xFF, (
         "esta ROM no lleva tema de título, así que el caso no compara nada")
-    assert una.palabra("tema_actual") == tema, (
+    assert una.palabra("song_current") == tema, (
         "la pantalla de título dice estar tocando el tema %d y el suyo es el "
-        "%d" % (una.palabra("tema_actual"), tema))
-    assert not una.byte("music_apagada"), (
+        "%d" % (una.palabra("song_current"), tema))
+    assert not una.byte("music_off"), (
         "la pantalla de título quedó callada: `music_start` no llegó a "
         "prender el tema")
 
@@ -83,8 +83,8 @@ def test_entrar_al_juego_devuelve_las_muestras_del_tema_del_mapa(con_musica):
     # Un tick, para que el mapa arranque su tema.
     una.correr(1)
 
-    del_mapa = una.palabra("tema_actual")
-    assert not una.byte("music_apagada"), (
+    del_mapa = una.palabra("song_current")
+    assert not una.byte("music_off"), (
         "esta ROM tenía que entrar al juego con el tema del mapa sonando")
     assert del_mapa != una.simbolos["TEMA_TITULO"], (
         "el tema del mapa y el del título son el mismo: no hay desalojo que "
@@ -260,7 +260,7 @@ def test_cada_paquete_entra_entero_aunque_la_aram_quede_partida(partida):
     for mapa in (18, 2, 19, 3, 26, 9, 121, 2, 18, 3, 19, 26, 2):
         if mapa not in una.mapas:
             continue
-        una.poner_byte("music_apagada", 1)
+        una.poner_byte("music_off", 1)
         una.ir_al_mapa(mapa, 5, 5, cuadros=60)
         temas, efectos = una.muestras_del_paquete(una.mapas.index(mapa))
         quiere = set(efectos)
@@ -300,7 +300,7 @@ def test_el_paquete_que_no_entro_con_otro_tema_sonando_se_completa(partida):
         una.correr(1)
         if una.mapa() != 3:
             continue
-        sonando = None if una.byte("music_apagada") else una.palabra("tema_actual")
+        sonando = None if una.byte("music_off") else una.palabra("song_current")
         if tema_del_3 is None and sonando is not None:
             # El primero que suena en el 3 es el que venía del 2.
             tema_del_3 = sonando
@@ -397,9 +397,9 @@ def test_el_tema_de_salida_sube_solo(partida):
     antes = None
     for _ in range(900):
         una.correr(1)
-        if una.mapa() != 3 or una.byte("music_apagada"):
+        if una.mapa() != 3 or una.byte("music_off"):
             continue
-        sonando = una.palabra("tema_actual")
+        sonando = una.palabra("song_current")
         if sonando != lufsorr:
             # El tema del mapa: el paquete entero, y lo de salida afuera.
             antes = una.muestras_en_la_aram()
@@ -449,9 +449,9 @@ def test_el_tema_aparte_sube_con_los_efectos_del_paquete(partida):
     antes = None
     for _ in range(900):
         una.correr(1)
-        if una.mapa() != 38 or una.byte("music_apagada"):
+        if una.mapa() != 38 or una.byte("music_off"):
             continue
-        if una.palabra("tema_actual") != vswar:
+        if una.palabra("song_current") != vswar:
             antes = una.muestras_en_la_aram()
             continue
         break
@@ -549,7 +549,7 @@ def test_un_efecto_no_suena_con_la_muestra_de_otro(partida):
     —el de un evento común, que no es de ningún mapa—: su lugar tiene la
     muestra de un vecino, y sin la pregunta sonaría ésa. En el juego no hay
     una página que lo haga, así que se lo fuerza: `Success2` en el mapa 10,
-    con `FAR_EFECTO_EN` cambiado a otro efecto justo al llegar. El control,
+    con `FAR_EFFECT_IN` cambiado a otro efecto justo al llegar. El control,
     sin cambiarlo, tiene que sonar.
     """
     def suena(cambiar):
@@ -562,7 +562,7 @@ def test_un_efecto_no_suena_con_la_muestra_de_otro(partida):
                 continue
             if cambiar and not cambiado:
                 lugares = max(1, s["SE_LUGARES"])
-                direccion = en_la_wram(s["FAR_EFECTO_EN"])
+                direccion = en_la_wram(s["FAR_EFFECT_IN"])
                 anotados = una.consola.ram(direccion, lugares)
                 una.consola.write_ram(
                     direccion,
@@ -578,5 +578,5 @@ def test_un_efecto_no_suena_con_la_muestra_de_otro(partida):
         "Success2 no sonó en el mapa 10 sin tocar nada: el caso no mira nada")
     assert not suena(True), (
         "con otro efecto anotado en su lugar, Success2 sonó igual: "
-        "`sound_play` no mira `FAR_EFECTO_EN` y tocaría la muestra del "
+        "`sound_play` no mira `FAR_EFFECT_IN` y tocaría la muestra del "
         "vecino")

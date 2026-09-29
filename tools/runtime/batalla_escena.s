@@ -10,7 +10,7 @@
 ;
 ; It runs from `battle_run` with the data bank at $7E, so the PPU
 ; registers and the cartridge's tables all go with `f:`, and the state here
-; is named with a sixteen-bit address, like `FAR_BATALLA`.
+; is named with a sixteen-bit address, like `FAR_BATTLE`.
 ;
 ; **$7E6600 to $7E67FF belongs to this**: the range was reserved in advance
 ; on 2026-09-21, when splitting work among tasks that touched far RAM.
@@ -32,7 +32,7 @@ SCN_SUB_N    = $6630    ; word: how many tile rows are left; 0 is none
 SCN_SUB_ROW = $6632    ; word: the next one
 SCN_SUB_COL  = $6634    ; word: the first tile column
 SCN_SUB_LENGTH = $6636   ; word: how many bytes each row is
-; How many frames composing took, counted with `boot_cuadros`: the ROM does
+; How many frames composing took, counted with `boot_frames`: the ROM does
 ; not read it; the tests read it, and so does whoever wants to measure it with
 ; the emulator.
 SCN_FRAMES  = $6638
@@ -548,12 +548,12 @@ afuera:
 ; With the screen off. Fills both buffers with the background —or with
 ; zeros—, places the troop's battlers in order and uploads everything: the
 ; 32 KB of tiles, the tilemap, the background's colors and one palette per
-; distinct battler. Leaves in `BA_ESCENA` a 0 if there is something to show
+; distinct battler. Leaves in `BT_SCENE` a 0 if there is something to show
 ; and $FF if not.
 .proc scene_upload
 .a8
 .i16
-    lda f:boot_cuadros
+    lda f:boot_frames
     sta SCN_FRAMES
     lda #0
     sta SCN_FRAMES + 1
@@ -578,7 +578,7 @@ afuera:
 del_lugar:
     rep #$20
 .a16
-    lda mapa_actual
+    lda map_current
     tax
     sep #$20
 .a8
@@ -597,7 +597,7 @@ del_lugar:
     lda f:fondo_terreno, x
     bra fondo_elegido
 de_la_tropa:
-    lda BA_TROPA_K
+    lda BT_TROOP_K
     cmp #$FF
     beq sin_fondo
     rep #$20
@@ -628,7 +628,7 @@ sin_fondo:
     ; --- the troop's battlers, and one palette for each distinct one ---
     lda #0
     sta SCN_E
-    lda BA_TROPA_K
+    lda BT_TROOP_K
     cmp #$FF
     bne con_tropa
     jmp repartidos
@@ -644,7 +644,7 @@ con_tropa:
     sta SCN_INIT                 ; and again, for `scn_by_command`
 otro_enemigo:
     lda SCN_E
-    cmp BA_NENE
+    cmp BT_KID
     bcc :+
     jmp repartidos
 :   rep #$20
@@ -695,10 +695,10 @@ pal_lista:
     ; appears.
     lda SCN_E
     clc
-    adc #BA_GRUPO_MAX
+    adc #BT_PARTY_MAX
     jsr bt_x
-    lda BA_UNO + BA_FLAGS, x
-    and #BAF_OCULTO
+    lda BT_ONE + BT_FLAGS, x
+    and #BAF_HIDDEN
     bne siguiente
     jsr scn_bit
     ora SCN_VIS
@@ -715,7 +715,7 @@ repartidos:
     jmp sin_escena              ; neither background nor battlers: on black, as before
 hay_escena:
     lda #0
-    sta BA_ESCENA
+    sta BT_SCENE
 
     ; --- where the background comes from: the MSU-1 if present and it is this cartridge's ---
     sta SCN_MSU
@@ -759,7 +759,7 @@ fondo_listo:
     sta SCN_K
 put:
     lda SCN_K
-    cmp BA_NENE
+    cmp BT_KID
     bcs puestos
     jsr scn_by_command
     jsr scn_bit                 ; only the visible ones: not a hidden one
@@ -881,7 +881,7 @@ otra_paleta:
     inc SCN_I
     bra otra_paleta
 ready:
-    lda f:boot_cuadros
+    lda f:boot_frames
     sec
     sbc SCN_FRAMES
     sta SCN_FRAMES
@@ -889,7 +889,7 @@ ready:
 sin_escena:
 .a8
     lda #$FF
-    sta BA_ESCENA
+    sta BT_SCENE
     rts
 .endproc
 
@@ -902,7 +902,7 @@ sin_escena:
 .proc scn_terrain
 .a8
 .i16
-    ldx mapa_ofs
+    ldx map_ofs
     lda f:mapa_tabla + M_TERRENO_PLANO, x
     bne ready                   ; a single terrain on the whole map
     rep #$20
@@ -913,23 +913,23 @@ sin_escena:
 buscar:
     dey
     dey
-    cmp sub_clave, y
+    cmp sub_key, y
     beq hallada
     cpy #$0000
     bne buscar
     bra sustituida
 hallada:
-    lda sub_valor, y
+    lda sub_value, y
 sustituida:
     sta SCN_T0
     lda f:mapa_tabla + M_PTR_BLOQUE_TERRENO, x
-    sta celdas_ptr
+    sta cells_ptr
     sep #$20
 .a8
     lda f:mapa_tabla + M_PTR_BLOQUE_TERRENO + 2, x
-    sta celdas_ptr + 2
+    sta cells_ptr + 2
     ldy SCN_T0
-    lda [celdas_ptr], y
+    lda [cells_ptr], y
 ready:
     rts
 .endproc
@@ -956,7 +956,7 @@ ready:
     lda SCN_BACKDROP
     cmp #$FF
     beq ready                   ; the plain one is already there: it is zeros
-    jsl f:scn_double + RAPIDO   ; from the fast mirror: see MEMSEL
+    jsl f:scn_double + FAST   ; from the fast mirror: see MEMSEL
 ready:
     rts
 .endproc
@@ -1205,7 +1205,7 @@ tile:
     sep #$20
 .a8
     lda f:fondo_dir + 2, x
-    ora #^RAPIDO                ; the fallback, through the fast mirror
+    ora #^FAST                ; the fallback, through the fast mirror
     sta ED_FONT + 2
     phb
     lda #^SCN_CLEAN
@@ -1226,7 +1226,7 @@ word:
     and #$00FF
     asl a
     tax
-    lda f:respaldo_doble + RAPIDO, x
+    lda f:respaldo_doble + FAST, x
     sta a:.loword(SCN_CLEAN), y
     sta a:.loword(SCN_CLEAN) + 2, y
     sta a:.loword(SCN_SCENE), y
@@ -1236,7 +1236,7 @@ word:
     and #$00FF
     asl a
     tax
-    lda f:respaldo_doble + RAPIDO, x
+    lda f:respaldo_doble + FAST, x
     sta a:.loword(SCN_CLEAN) + 64, y
     sta a:.loword(SCN_CLEAN) + 66, y
     sta a:.loword(SCN_SCENE) + 64, y
@@ -1285,7 +1285,7 @@ word:
 .proc scene_tick
 .a8
 .i16
-    lda BA_ESCENA
+    lda BT_SCENE
     cmp #$FF
     bne hay
     rts
@@ -1302,7 +1302,7 @@ buscar:
     sta SCN_E
 otro:
     lda SCN_E
-    cmp BA_NENE
+    cmp BT_KID
     bcc :+
     rts
 :   ; Is it drawn?
@@ -1313,11 +1313,11 @@ otro:
     ; And dead?
     lda SCN_E
     clc
-    adc #BA_GRUPO_MAX
+    adc #BT_PARTY_MAX
     jsr bt_x
     rep #$20
 .a16
-    lda BA_UNO + BA_HP, x
+    lda BT_ONE + BT_HP, x
     sep #$20
 .a8
     beq borrar
@@ -1342,7 +1342,7 @@ no_dibujado:
     beq siguiente
     lda SCN_E
     clc
-    adc #BA_GRUPO_MAX
+    adc #BT_PARTY_MAX
     jsr bt_alive
     beq siguiente
     lda SCN_T0
@@ -1470,7 +1470,7 @@ copia:
     sta SCN_K
 reponer:
     lda SCN_K
-    cmp BA_NENE
+    cmp BT_KID
     bcs repuestos
     jsr scn_by_command
     jsr scn_bit
@@ -1553,7 +1553,7 @@ ready:
 .proc scene_on
 .a8
 .i16
-    lda BA_ESCENA
+    lda BT_SCENE
     cmp #$FF
     beq ready
     lda #((ESCENA_MAPA / 1024) * 4)
@@ -1572,7 +1572,7 @@ ready:
     rts
 .endproc
 
-; When returning to the map, the upper eight palettes from `cgram_sombra`,
+; When returning to the map, the upper eight palettes from `cgram_shadow`,
 ; before anything else: the battlers took them, and what the map restores by
 ; itself is only its objects' ones —`SPRITE_CGRAM` colors— and the timer's.
 ; The banner and the battle animation upload their palette only when it
@@ -1586,7 +1586,7 @@ ready:
     sta CGADD
     rep #$20
 .a16
-    lda #.loword(cgram_sombra + 2 * 128)
+    lda #.loword(cgram_shadow + 2 * 128)
     sta A1T0L
     lda #256
     sta DAS0L

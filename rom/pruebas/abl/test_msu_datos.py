@@ -88,11 +88,11 @@ def _pelea(tmp_path, nombre, nucleo, msu, lugar=SECTOR_27, antes=0,
     if antes:
         una.correr(antes)
     s = uno.simbolos
-    una.consola.write_ram(en_la_wram(s["ENC_SEM"]),
+    una.consola.write_ram(en_la_wram(s["ENC_RNG"]),
                           [semilla & 0xFF, semilla >> 8])
-    una.consola.write_ram(en_la_wram(s["ENC_PIDE"]), [1])
+    una.consola.write_ram(en_la_wram(s["ENC_ASKS"]), [1])
     for _ in range(400):
-        if una.byte("menu_abierto"):
+        if una.byte("menu_open"):
             break
         una.consola.run(1)
     else:

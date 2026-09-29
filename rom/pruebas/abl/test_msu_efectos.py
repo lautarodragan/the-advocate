@@ -247,25 +247,25 @@ def test_con_msu_tres_efectos_suenan_a_la_vez(tmp_path):
         estado = None
         for _ in range(600):
             antes = len(una.consola.audio)
-            if apagar and una.palabra("tema_actual") == _tema(una, "evilrhys"):
+            if apagar and una.palabra("song_current") == _tema(una, "evilrhys"):
                 una.consola.write_ram(
                     en_la_wram(una.simbolos["MSU_HAS"]), [0])
             una.correr(1)
             siete = _lejano(una, "SE_FRAMES", 12)
             if siete[0] or siete[1]:
                 estado = (siete, _lejano(una, "SE2_FRAMES", 12),
-                          _lejano(una, "EX_CUADROS", 26))
+                          _lejano(una, "EX_FRAMES", 26))
                 break
         assert estado is not None, "los efectos del caso no arrancaron"
         una.correr(60)
         grabados.append(array("h", bytes(una.consola.audio[antes:])))
         if apagar:
             continue
-        assert _lejano(una, "MSU_PLAYING")[0] and una.byte("music_apagada"), (
+        assert _lejano(una, "MSU_PLAYING")[0] and una.byte("music_off"), (
             "evilrhys no sonó por la pista: el SPC700 tenía la música y las "
             "voces 0 a 5 no son de los efectos")
         siete, seis, extras = estado
-        ocupadas = extras[25]           # EX_OCUP, detrás de EX_CUADROS y EX_IDX
+        ocupadas = extras[25]           # EX_BUSY, detrás de EX_FRAMES y EX_IDX
         assert seis[0] or seis[1], "el segundo efecto no tomó la voz 6"
         assert ocupadas, (
             "con MSU-1 y la pista sonando, el tercer efecto no tomó ninguna de "

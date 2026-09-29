@@ -10,7 +10,7 @@ escenas, porque su `Future1:0` es el primer gráfico que reparte el conversor.
 Lo vio taro jugando en la SNES el 2026-09-27; cambiar de mapa lo arreglaba
 porque en los dos casos el mapa siguiente se carga con Talan de líder.
 
-Se mira contra `cgram_sombra`, que es lo que `upload_tint` copia a la CGRAM en
+Se mira contra `cgram_shadow`, que es lo que `upload_tint` copia a la CGRAM en
 el vblank, y con el tinte neutro que pone `ir_al_mapa`: así lo que tiene que
 haber es, color por color, el bloque de sprites que el conversor dejó en el
 cartucho para ese mapa.
@@ -56,7 +56,7 @@ def _sprites_del_cartucho(p):
 
 
 def _sprites_en_la_sombra(p, cuantos):
-    b = p.consola.ram(en_la_wram(p.simbolos["cgram_sombra"])
+    b = p.consola.ram(en_la_wram(p.simbolos["cgram_shadow"])
                       + 2 * PRIMER_COLOR_DE_SPRITE, 2 * cuantos)
     return [b[2 * i] | b[2 * i + 1] << 8 for i in range(cuantos)]
 
@@ -71,7 +71,7 @@ def _cargar(p, map_id, x, y):
     p.ir_al_mapa(map_id, x, y, cuadros=0)
     for _ in range(400):
         p.consola.run(1)
-        if not p.byte("fundido_que"):
+        if not p.byte("fade_kind"):
             assert p.mapa() == map_id, (
                 "pedí el mapa %d y la ROM cargó el %d" % (map_id, p.mapa()))
             return
@@ -105,7 +105,7 @@ def test_el_lider_sin_grafico_no_pisa_ninguna_paleta(partida, map_id):
     y = _palabra(rom, base + p.simbolos["M_HERO_START_Y"]) // 16
     p.poner_grupo(DUMMY_HERO)
     _cargar(p, map_id, x, y)
-    assert p.byte("grupo") == DUMMY_HERO
+    assert p.byte("party") == DUMMY_HERO
     distintas = _paletas_distintas(p)
     assert not distintas, (
         "con DummyHero de líder en el mapa %d, las paletas de sprite %s no son "
@@ -119,7 +119,7 @@ def test_con_talan_de_lider_su_ranura_lleva_sus_colores(partida):
     p = partida(titulo=EMPEZAR)
     p.poner_grupo(TALAN)
     _cargar(p, EL_MAPA_14, 1, 1)
-    assert p.byte("grupo") == TALAN
+    assert p.byte("party") == TALAN
     fila = p.byte("hero_pal") // 2
     desde = en_la_wram(p.simbolos["hero_cgram"])
     puntero = p.consola.ram(desde, 3)

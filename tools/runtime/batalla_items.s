@@ -15,24 +15,24 @@
 ; absolute addressing**: `FAR_ITEMS` lives in that bank and in it the
 ; addresses are the same. The cartridge's tables go with `f:`.
 
-; The list of what can be used: one `k` per byte in `BA_ITEM_LISTA` and how
-; many in `BA_ITEM_N`. It walks the items the ROM knows in the converter's
+; The list of what can be used: one `k` per byte in `BT_ITEM_LIST` and how
+; many in `BT_ITEM_N`. It walks the items the ROM knows in the converter's
 ; order, which is RM2k's number order, like `Game_Party`.
 .proc bt_items_list
 .a8
 .i16
     lda #0
-    sta BA_ITEM_N
-    sta BA_S0                   ; the `k` being looked at
+    sta BT_ITEM_N
+    sta BT_S0                   ; the `k` being looked at
 otro:
-    lda BA_S0
+    lda BT_S0
     cmp #ITEMS_ROM
     bcs ready
-    lda BA_S0
+    lda BT_S0
     jsr bt_ax
     lda f:item_batalla, x
     beq siguiente
-    lda BA_S0
+    lda BT_S0
     rep #$20
 .a16
     and #$00FF
@@ -44,16 +44,16 @@ otro:
 .a8
     lda FAR_ITEMS, x            ; how many there are in the inventory
     beq siguiente
-    lda BA_ITEM_N
+    lda BT_ITEM_N
     jsr bt_ax
-    lda BA_S0
-    sta BA_ITEM_LISTA, x
-    inc BA_ITEM_N
-    lda BA_ITEM_N
-    cmp #BA_ITEM_MAX
+    lda BT_S0
+    sta BT_ITEM_LIST, x
+    inc BT_ITEM_N
+    lda BT_ITEM_N
+    cmp #BT_ITEM_MAX
     bcs ready
 siguiente:
-    inc BA_S0
+    inc BT_S0
     bra otro
 ready:
     rts
@@ -64,7 +64,7 @@ ready:
 .a8
 .i16
     jsr bt_ax
-    lda BA_ITEM_LISTA, x
+    lda BT_ITEM_LIST, x
     rts
 .endproc
 
@@ -91,7 +91,7 @@ ready:
     rts
 .endproc
 
-; How much the `k` in A heals the combatant `BA_MBLA`. It enters with an
+; How much the `k` in A heals the combatant `BT_MBLA`. It enters with an
 ; 8-bit A and leaves with a 16-bit A.
 ;
 ;     hp = recover_hp_rate * GetMaxHp() / 100 + recover_hp
@@ -102,52 +102,52 @@ ready:
 .proc bt_item_heal
 .a8
 .i16
-    sta BA_S3                   ; the `k`
-    lda BA_MBLA
+    sta BT_S3                   ; the `k`
+    lda BT_MBLA
     jsr bt_x
     rep #$20
 .a16
     txa
-    sta BA_S4                   ; the target's offset
+    sta BT_S4                   ; the target's offset
     sep #$20
 .a8
-    lda BA_S3
+    lda BT_S3
     jsr bt_ax
     lda f:item_cura_rate, x
-    sta BA_T2                   ; the product's byte
-    ldx BA_S4
+    sta BT_T2                   ; the product's byte
+    ldx BT_S4
     rep #$20
 .a16
-    lda BA_UNO + BA_HPMAX, x
+    lda BT_ONE + BT_HPMAX, x
     jsr bt_mul                  ; rate * hp_max, in a word
     sta temp
     lda #100
     sta temp + 2
     jsr bt_div
-    sta BA_S5
-    lda BA_S3
+    sta BT_S5
+    lda BT_S3
     and #$00FF
     asl a
     tax
     lda f:item_cura_hp, x
     clc
-    adc BA_S5
-    sta BA_S5                   ; what it would heal
+    adc BT_S5
+    sta BT_S5                   ; what it would heal
     ; and what the target is missing, which is the cap
-    ldx BA_S4
-    lda BA_UNO + BA_HPMAX, x
+    ldx BT_S4
+    lda BT_ONE + BT_HPMAX, x
     sec
-    sbc BA_UNO + BA_HP, x
-    cmp BA_S5
+    sbc BT_ONE + BT_HP, x
+    cmp BT_S5
     bcc topado
-    lda BA_S5
+    lda BT_S5
 topado:
 .a16
     rts
 .endproc
 
 ; Whether the cursor for who gets it can stop on actor A8, with the item that
-; `BA_ITEM_SEL` marks: Z=0 if yes. The actor has to be in the party and the
+; `BT_ITEM_SEL` marks: Z=0 if yes. The actor has to be in the party and the
 ; item has to be of use to them —on a fallen one, only one that removes the
 ; death state; on one standing, any that is not `ko_only`—, which are the two
 ; exits of `Game_BattleAlgorithm::Item::vExecute` with no effect.
@@ -157,24 +157,24 @@ topado:
 ; them, which is what it already did with the fallen before reviving them
 ; existed: spending a potion on a dead actor is not something anybody wants
 ; to do. If it is of use to nobody —an elixir with everyone standing—, A does
-; not get past the list, like an empty command. It clobbers `BA_S0` and X.
+; not get past the list, like an empty command. It clobbers `BT_S0` and X.
 .proc bt_item_usable_on
 .a8
 .i16
-    sta BA_S0
-    cmp BA_NACT
+    sta BT_S0
+    cmp BT_NACT
     bcs no
     jsr bt_x
-    lda BA_UNO + BA_FLAGS, x
-    and #BAF_HAY
+    lda BT_ONE + BT_FLAGS, x
+    and #BAF_HAS
     beq no
     rep #$20
 .a16
-    lda BA_UNO + BA_HP, x
+    lda BT_ONE + BT_HP, x
     sep #$20
 .a8
     beq caido
-    lda BA_ITEM_SEL
+    lda BT_ITEM_SEL
     jsr bt_item_from_list
     jsr bt_ax
     lda f:item_medicina, x
@@ -184,18 +184,18 @@ no:
     lda #0
     rts
 caido:
-    lda BA_ITEM_SEL
+    lda BT_ITEM_SEL
     jsr bt_item_from_list
     jsr bt_ax
     lda f:item_medicina, x
-    and #MED_LEVANTA
+    and #MED_RAISES
     beq no
 si:
     lda #1
     rts
 .endproc
 
-; The item actor `BA_MQUIEN` chose, on `BA_MBLA`: heals or revives, records
+; The item actor `BT_MQUIEN` chose, on `BT_MBLA`: heals or revives, records
 ; how much, and leaves the message ready. It rolls no dice: an item does not
 ; miss and nobody dodges it, and **the target is not re-aimed**, which is the
 ; opposite of an attack: if it changed between being chosen and its turn
@@ -213,66 +213,66 @@ si:
 ;   heal capped against the whole maximum. It is the same thing
 ;   `medicine_use` does from the menu.
 ;
-; `BA_MREVIVIO` tells the message which of the two lines below goes.
+; `BT_MREVIVIO` tells the message which of the two lines below goes.
 .proc bt_item_use
 .a8
 .i16
-    stz BA_MREVIVIO
-    lda BA_MQUIEN
+    stz BT_MREVIVIO
+    lda BT_MQUIEN
     jsr bt_ax
-    lda BA_ACC_ITEM, x
-    sta BA_MITEM
+    lda BT_ACC_ITEM, x
+    sta BT_MITEM
     jsr bt_ax
     lda f:item_medicina, x
-    sta BA_S2                   ; its flags
-    lda BA_MBLA
+    sta BT_S2                   ; its flags
+    lda BT_MBLA
     jsr bt_x
     rep #$20
 .a16
-    lda BA_UNO + BA_HP, x
+    lda BT_ONE + BT_HP, x
     sep #$20
 .a8
     beq caido
-    lda BA_S2
+    lda BT_S2
     and #MED_KO_ONLY
     bne nothing
-    lda BA_MITEM
+    lda BT_MITEM
     jsr bt_item_heal
 .a16
-    sta BA_MCURA
-    ldx BA_S4                   ; the target's offset, from `bt_item_heal`
-    lda BA_UNO + BA_HP, x
+    sta BT_MCURA
+    ldx BT_S4                   ; the target's offset, from `bt_item_heal`
+    lda BT_ONE + BT_HP, x
     clc
-    adc BA_MCURA
-    sta BA_UNO + BA_HP, x
+    adc BT_MCURA
+    sta BT_ONE + BT_HP, x
     sep #$20
 .a8
     rts
 caido:
 .a8
-    lda BA_S2
-    and #MED_LEVANTA
+    lda BT_S2
+    and #MED_RAISES
     beq nothing
-    lda BA_MITEM
+    lda BT_MITEM
     jsr bt_item_heal            ; with zero HP, the cap is the whole maximum
 .a16
     cmp #0
     bne levanta
     lda #1                      ; the `SetHp(1)`, even if the item heals nothing
 levanta:
-    sta BA_MCURA
-    ldx BA_S4
-    sta BA_UNO + BA_HP, x
+    sta BT_MCURA
+    ldx BT_S4
+    sta BT_ONE + BT_HP, x
     sep #$20
 .a8
     lda #1
-    sta BA_MREVIVIO
+    sta BT_MREVIVIO
     rts
 nothing:
 .a8
     rep #$20
 .a16
-    stz BA_MCURA
+    stz BT_MCURA
     sep #$20
 .a8
     rts

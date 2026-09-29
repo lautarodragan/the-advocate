@@ -1,9 +1,9 @@
 .segment "CODE"
 
 ; The next command of the hero's move route, in A, and the cursor already
-; advanced. Clobbers Y and overwrites `ruta_ptr`, which belongs to the events'
+; advanced. Clobbers Y and overwrites `route_ptr`, which belongs to the events'
 ; pass and is not live while the hero walks: `lda [ptr], y` only reads from the
-; direct page, and `ruta_heroe` does not fit there.
+; direct page, and `hero_route` does not fit there.
 ;
 ; The index goes to Y through a sixteen-bit A with the high byte cleared: `tay`
 ; transfers both bytes of the accumulator even when A is eight-bit. It is the
@@ -14,17 +14,17 @@
 .i16
     rep #$20
 .a16
-    lda ruta_heroe
-    sta ruta_ptr
-    lda ruta_i
+    lda hero_route
+    sta route_ptr
+    lda route_i
     and #$00FF
     tay
     sep #$20
 .a8
-    lda ruta_heroe + 2
-    sta ruta_ptr + 2
-    lda [ruta_ptr], y
-    inc ruta_i
+    lda hero_route + 2
+    sta route_ptr + 2
+    lda [route_ptr], y
+    inc route_i
     rts
 .endproc
 
@@ -45,14 +45,14 @@
     ; `SetMaxStopCountForWait`, which with frequency 8 gives twenty.
     ; The jump in progress is not looked at here but in `move_hero`: see
     ; `jump_advance_hero`.
-    lda ruta_espera
+    lda route_wait
     beq sin_espera
-    dec ruta_espera
+    dec route_wait
     rts
 sin_espera:
 otra_orden:
-    lda ruta_i
-    cmp ruta_n
+    lda route_i
+    cmp route_n
     bcc hay_orden
     jmp ready                   ; the move route is over; `bcs` no longer reaches
 hay_orden:
@@ -60,11 +60,11 @@ hay_orden:
 
     cmp #23                     ; wait: this one and the RUTA_ESPERA - 1 after it,
     bne no_es_wait              ; plus the turn's if the frequency is low
-    lda ruta_frec
+    lda route_freq
     jsr after_turn
     clc
     adc #(RUTA_ESPERA - 1)
-    sta ruta_espera
+    sta route_wait
     jmp ready
 no_es_wait:
     cmp #12
@@ -81,7 +81,7 @@ no_es_mover:
     cmp #24
     bne no_es_salto
     jsr build_hero_jump
-    lda ruta_salto
+    lda route_jump
     bne salto_arranco
     jmp otra_orden              ; it could not land there: skipped
 salto_arranco:
@@ -119,18 +119,18 @@ no_es_sonido_heroe:
     sec
     sbc #38
     eor #$01
-    sta ruta_anim_para
+    sta route_anim_for
     jmp otra_orden
 atravesar:
     ; 36 turns it on and 37 off, so the low bit inverted is the value.
     and #$01
     eor #$01
-    sta ruta_atraviesa
+    sta route_crosses
     jmp otra_orden
 frecuencia:
     ; 30 raises the move route's frequency and 31 lowers it, capped at 8 and
     ; at 1: it is `increase/decrease_movement_frequence`. The frames standing
-    ; still after each command come from it, so it is read from `ruta_frec`
+    ; still after each command come from it, so it is read from `route_freq`
     ; and not from anywhere else.
     ;
     ; With 1 the wait after a step is 256 frames and does not fit in
@@ -139,29 +139,29 @@ frecuencia:
     ; like RM2k, in case that guard ever fails.
     and #$01
     bne frec_menos
-    lda ruta_frec
+    lda route_freq
     cmp #RUTA_FRECUENCIA
     bcs frec_listo
-    inc ruta_frec
+    inc route_freq
     bra frec_listo
 frec_menos:
-    lda ruta_frec
+    lda route_freq
     cmp #2
     bcc frec_listo
-    dec ruta_frec
+    dec route_freq
 frec_listo:
     jmp otra_orden
 face:
     sec
     sbc #12
     sta hero_dir                ; face_*: with frequency 8 it is instant and the
-    lda ruta_frec               ; next one follows; with another, it stands
+    lda route_freq               ; next one follows; with another, it stands
     jsr after_turn               ; still for the turn's frames
     bne giro_espera
     jmp otra_orden
 giro_espera:
     dec a
-    sta ruta_espera
+    sta route_wait
     jmp ready
 
 ; `change_graphic` **on the hero**: 34 with its operand, the graphic's index in
@@ -208,11 +208,11 @@ heroe_sin_grafico:
 ; it sounds the same as a `PlaySound`'s, with MSU-1 or without. It does not
 ; cost a frame: the next command runs in this one.
 sonido_heroe:
-    jsr hero_command         ; the low byte: leaves Y there and `ruta_ptr` set
-    inc ruta_i                  ; and the cursor, past the high one
+    jsr hero_command         ; the low byte: leaves Y there and `route_ptr` set
+    inc route_i                  ; and the cursor, past the high one
     rep #$20
 .a16
-    lda [ruta_ptr], y
+    lda [route_ptr], y
     jsr sound_play            ; with 16-bit A; returns with 8-bit A
 .a8
     jmp otra_orden
@@ -229,12 +229,12 @@ mover:
     ; `Game_Map::CheckOrMakeWayEx`'s `if (self.GetThrough()) return true;`,
     ; and it is turned on only around this step: `can_leave` and `can_enter`
     ; are also used by the pad walking, which does not look at it.
-    lda ruta_atraviesa
+    lda route_crosses
     beq sin_atravesar
     lda #1
 sin_atravesar:
-    sta atravesando
-    stz atravesando + 1
+    sta crossing
+    stz crossing + 1
     lda hero_dir
     cmp #DIR_UP
     bne no_es_arriba
@@ -253,8 +253,8 @@ no_es_derecha:
 no_es_abajo:
     jsr try_left
 ver_si_arranco:
-    stz atravesando
-    stz atravesando + 1
+    stz crossing
+    stz crossing + 1
     lda step_left
     bne arranco                 ; blocked: skipped and the next one is tried
     jmp otra_orden
@@ -263,7 +263,7 @@ arranco:
     ; `any_routes` needs this to know the last step of a move route still
     ; counts.
     lda #1
-    sta ruta_paso
+    sta route_step
 ready:
     rts
 velocidad:
@@ -302,7 +302,7 @@ vel_guardar:
 ; pending move route.
 ;
 ; The jump does not need that care and that is why it is looked at bare: the
-; only one that sets `ruta_salto` to something other than zero is
+; only one that sets `route_jump` to something other than zero is
 ; `build_hero_jump`, and only `step_route` calls it, so a hero's jump is
 ; always from a move route. None comes from the pad. It was missing, and a
 ; `ProceedWithMovement` right after a jump let the page go with the hero still
@@ -311,14 +311,14 @@ vel_guardar:
 .proc any_routes
 .a8
 .i16
-    lda ruta_espera
+    lda route_wait
     bne si                      ; the hero is in the middle of a `wait`
-    lda ruta_salto
+    lda route_jump
     bne si                      ; or is in the air
-    lda ruta_i
-    cmp ruta_n
+    lda route_i
+    cmp route_n
     bcc si                      ; the hero has commands left
-    lda ruta_paso
+    lda route_step
     beq de_eventos
     lda step_left
     bne si                      ; and the step it is taking is the move route's
@@ -326,29 +326,29 @@ vel_guardar:
 de_eventos:
     ldx #$0000
 otra:
-    lda ruta_ev, x
-    cmp #RUTA_EV_LIBRE
+    lda route_ev, x
+    cmp #ROUTE_EV_FREE
     beq siguiente
-    lda ruta_ev + 18, x
+    lda route_ev + 18, x
     and #$01
     bne siguiente               ; the page's own move route is not waited for
-    lda ruta_ev + 7, x          ; a step in progress
+    lda route_ev + 7, x          ; a step in progress
     bne si
-    lda ruta_ev + 9, x          ; or a wait
+    lda route_ev + 9, x          ; or a wait
     bne si
-    lda ruta_ev + 13, x         ; or a jump
+    lda route_ev + 13, x         ; or a jump
     bne si
-    lda ruta_ev + 5, x
-    cmp ruta_ev + 4, x
+    lda route_ev + 5, x
+    cmp route_ev + 4, x
     bcc si                      ; it has commands left
 siguiente:
     rep #$20
 .a16
     txa
     clc
-    adc #RUTA_EV_STRIDE
+    adc #ROUTE_EV_STRIDE
     tax
-    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
+    cmp #RUTA_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
     bcc otra

@@ -52,9 +52,9 @@ MSU_FACTOR  = $7E30EA
     sta f:MSU_PLAYING
     ldx #$0000
 limpiar:
-    sta f:MSU_FALTA, x          ; no track has been missing yet
+    sta f:MSU_MISSING, x          ; no track has been missing yet
     inx
-    cpx #MSU_FALTA_BYTES
+    cpx #MSU_MISSING_BYTES
     bcc limpiar
     ldx #$0000
 mirar:
@@ -205,8 +205,8 @@ correr:
     asl a
     bra correr
 corrido:
-    ora f:MSU_FALTA, x
-    sta f:MSU_FALTA, x
+    ora f:MSU_MISSING, x
+    sta f:MSU_MISSING, x
     bra no
 sin_msu1:
     pla
@@ -214,7 +214,7 @@ no:
     lda #0
     rts
 .endproc
-.assert TEMA_TOTAL <= 8 * MSU_FALTA_BYTES, error, "MSU_FALTA does not have a bit for every song"
+.assert TEMA_TOTAL <= 8 * MSU_MISSING_BYTES, error, "MSU_MISSING does not have a bit for every song"
 
 
 ; --- the data port ----------------------------------------------------------

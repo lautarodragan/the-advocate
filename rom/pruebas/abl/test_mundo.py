@@ -49,7 +49,7 @@ def test_el_mundo_recien_llegado():
 
 
 def test_una_pelea_en_el_mundo_vuelve_al_mapa_bien_dibujado():
-    """`mundo-66-despues-de-pelear`: un encuentro pedido con `ENC_PIDE`, que
+    """`mundo-66-despues-de-pelear`: un encuentro pedido con `ENC_ASKS`, que
     Kersh gana a fuerza de A, y la vuelta al mapa.
 
     Es el camino de `back_from_battle`: la escena de la pelea pisa el banco de
@@ -57,14 +57,14 @@ def test_una_pelea_en_el_mundo_vuelve_al_mapa_bien_dibujado():
     —de a dos flujos— y `lz2_grid` la grilla."""
     p = llegar(KERSH)
     s = p.simbolos
-    p.consola.write_ram(en_la_wram(s["ENC_PIDE"]), [1])
+    p.consola.write_ram(en_la_wram(s["ENC_ASKS"]), [1])
     abierta = False
     # En cuadros de hardware: la pelea no cuenta ticks. A cada nueve cuadros,
     # que es lo que pasa los mensajes y elige atacar.
     for cuadros in range(1, 4000):
         p.consola.hold(*(("a",) if cuadros % 9 < 2 else ()))
         p.consola.run(1)
-        if p.byte("menu_abierto"):
+        if p.byte("menu_open"):
             abierta = True
         elif abierta:
             break

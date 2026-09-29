@@ -16,7 +16,7 @@
 ; directory, from SE_PRIMERA on, because two that are never in the same
 ; package can go in the same place —see `lugares_de_efectos` in
 ; snes_music.py—. The package lists carry them by number, `efecto_lugar` says
-; each one's place and `FAR_EFECTO_EN` which one was noted down in each place.
+; each one's place and `FAR_EFFECT_IN` which one was noted down in each place.
 ; An entry that is not in ARAM points to silence. `FAR_ARAM_OF` says where
 ; each one is, or 0, and is indexed by directory entry.
 ;
@@ -65,7 +65,7 @@ otra:
     lda #$FF
     bra ninguno_mas
 ninguno:
-    sta f:FAR_EFECTO_EN, x      ; no sound effect noted down
+    sta f:FAR_EFFECT_IN, x      ; no sound effect noted down
     inx
 ninguno_mas:
     cpx #SE_LUGARES
@@ -133,13 +133,13 @@ espera:
     lda f:PKG_X7
     tax
     lda f:muestra_tabla, x
-    sta comp_glifo
+    sta comp_glyph
     lda f:muestra_tabla + 3, x
     sta f:PKG_LENGTH
     sep #$20
 .a8
     lda f:muestra_tabla + 2, x
-    sta comp_glifo + 2
+    sta comp_glyph + 2
     ldy #0
 tanda:
     ; The pointer, to where the next triplet goes: the block does not advance
@@ -205,13 +205,13 @@ acuse_bloque:
     ; SPC700 stores the previous one, which is what takes longest. Never one
     ; too many: past the end of the block there may be registers that change
     ; when read.
-    lda [comp_glifo], y
+    lda [comp_glyph], y
     sta temp
     iny
-    lda [comp_glifo], y
+    lda [comp_glyph], y
     sta temp + 1
     iny
-    lda [comp_glifo], y
+    lda [comp_glyph], y
     sta temp + 3
     iny
 terna:
@@ -226,13 +226,13 @@ terna:
     sta APUIO3
     dex
     beq ultima
-    lda [comp_glifo], y
+    lda [comp_glyph], y
     sta temp
     iny
-    lda [comp_glifo], y
+    lda [comp_glyph], y
     sta temp + 1
     iny
-    lda [comp_glifo], y
+    lda [comp_glyph], y
     sta temp + 3
     iny
     lda token
@@ -258,7 +258,7 @@ resto:
     beq ready
     sta temp
 un_byte:
-    lda [comp_glifo], y
+    lda [comp_glyph], y
     iny
     jsr aram_byte
     dec temp
@@ -306,7 +306,7 @@ ready:
 
 ; X7 of directory entry A: its row in `muestra_tabla` times 7, in PKG_X7 and
 ; in X. For a music sample it is the entry itself; for a sound effect place,
-; that of the effect noted down there —`FAR_EFECTO_EN`—, which goes after the
+; that of the effect noted down there —`FAR_EFFECT_IN`—, which goes after the
 ; music: SE_PRIMERA plus its number. That row can go past 255, so the
 ; arithmetic is sixteen bits.
 .proc sample_row
@@ -318,7 +318,7 @@ ready:
     cmp #SE_PRIMERA
     bcc de_musica
     tax
-    lda f:FAR_EFECTO_EN - SE_PRIMERA, x
+    lda f:FAR_EFFECT_IN - SE_PRIMERA, x
     and #$00FF
     clc
     adc #SE_PRIMERA
@@ -528,7 +528,7 @@ ready:
 ;
 ; **Counting on the track is a bet**, because the ROM does not know whether it
 ; is on the card until it asks for it. If it is missing, `msu_start` sets
-; its bit in MSU_FALTA and `music_start` falls back to `song_ensure`, which
+; its bit in MSU_MISSING and `music_start` falls back to `song_ensure`, which
 ; sees the samples not uploaded and rebuilds the package with the song first:
 ; that time it freezes for however long the upload takes, and from then on
 ; this song is no longer skipped. For the same reason, the extra song of
@@ -562,13 +562,13 @@ ready:
     lsr a
     lsr a
     lsr a
-    tax                         ; its byte in MSU_FALTA
+    tax                         ; its byte in MSU_MISSING
     lda 5, s                    ; the song, behind Y and X
     and #$0007
     tay                         ; and its bit
     sep #$20
 .a8
-    lda f:MSU_FALTA, x
+    lda f:MSU_MISSING, x
 correr:
     dey
     bmi corrido
@@ -640,18 +640,18 @@ ready:
     rts
 .endproc
 
-; The package of `mapa_actual`: see above. PKG_EXTRA is a song that goes
+; The package of `map_current`: see above. PKG_EXTRA is a song that goes
 ; before the map's —the one a `PlayBGM` asks for and was not there—, or $FF.
 ;
-; The map comes from `mapa_actual` and not from A since the index is sixteen
-; bits: the three callers passed `mapa_actual` in A, so no case was lost and
+; The map comes from `map_current` and not from A since the index is sixteen
+; bits: the three callers passed `map_current` in A, so no case was lost and
 ; the caller does not have to remember the width.
 .proc package_load
 .a8
 .i16
     rep #$20
 .a16
-    lda mapa_actual
+    lda map_current
     sta f:PKG_MAP
     sep #$20
 .a8
@@ -660,11 +660,11 @@ ready:
 
 ; And the package whose index is already written in `PKG_MAP`, which is how
 ; the battle comes in: its package is not any map's —it goes after all of
-; them, see `BA_PAQUETE`— so it cannot come from `mapa_actual`.
+; them, see `BA_PAQUETE`— so it cannot come from `map_current`.
 ;
 ; It exists because there was a bug here that no git conflict flagged: when
 ; the index became sixteen bits, `package_load` stopped reading the package
-; from A to read it from `mapa_actual`, and `battle_audio_load` —which came
+; from A to read it from `map_current`, and `battle_audio_load` —which came
 ; from the other branch— kept passing it in A. The two branches merged clean
 ; because they touched different lines, and from then on the battle loaded
 ; the map's package: the battle song played with six samples not uploaded and
@@ -691,9 +691,9 @@ limpiar:
     cpx #MUESTRAS_N
     bcc limpiar
     ; The ones of the song playing do not move: 2.
-    lda music_apagada
+    lda music_off
     bne sin_fijas
-    lda tema_actual
+    lda song_current
     cmp #TEMA_TOTAL
     bcs sin_fijas
     ldy #2
@@ -1054,9 +1054,9 @@ no:
     sep #$20
 .a8
     pla
-    cmp f:FAR_EFECTO_EN, x
+    cmp f:FAR_EFFECT_IN, x
     beq anotado
-    sta f:FAR_EFECTO_EN, x
+    sta f:FAR_EFFECT_IN, x
     rep #$20
 .a16
     txa
@@ -1218,7 +1218,7 @@ falta:
     php
     sei
     lda #1
-    sta music_apagada
+    sta music_off
     lda #$FF
     ldx #SE_KOF
     jsr dsp_pair                 ; all voices release

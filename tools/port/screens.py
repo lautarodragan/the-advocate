@@ -4,7 +4,7 @@ They are pure text screens, so they carry no blocks drawn in advance like
 the slots or the menu: they use the item screen's font —each character in
 two cells, in white and in gray, see `menus.items_screen`— and are
 composed **whole**. The ROM builds the complete tilemap, 32 by 28 cells, in
-`texto_buf` and uploads it with one DMA per frame: it is 1792 bytes and fits
+`text_buf` and uploads it with one DMA per frame: it is 1792 bytes and fits
 in vblank, so there is no need to be careful about what is written when.
 Here `TextGrid` is the same: a grid of (character, gray) painted with the same
 cells.

@@ -26,56 +26,56 @@
 .proc op_tile_sub
 .a8
 .i16
-    lda [cod_ptr], y            ; how many pairs the instruction carries
+    lda [code_ptr], y            ; how many pairs the instruction carries
     iny
-    sta sub_quedan
+    sta sub_remain
 otro_par:
     sep #$20
 .a8
-    lda sub_quedan
+    lda sub_remain
     beq sub_listo
     dec a
-    sta sub_quedan
+    sta sub_remain
     rep #$20
 .a16
-    lda [cod_ptr], y            ; the outgoing block
-    sta sub_de
+    lda [code_ptr], y            ; the outgoing block
+    sta sub_of
     iny
     iny
-    lda [cod_ptr], y            ; and the incoming one
+    lda [code_ptr], y            ; and the incoming one
     sta sub_a
     iny
     iny
-    stz sub_hay
+    stz sub_has
     ldx #$0000
 recorrer_sub:
     cpx sub_n
     beq agregar_sub
-    lda sub_clave, x
-    cmp sub_de
+    lda sub_key, x
+    cmp sub_of
     bne no_es_clave
-    inc sub_hay
+    inc sub_has
 no_es_clave:
-    lda sub_valor, x
-    cmp sub_de
+    lda sub_value, x
+    cmp sub_of
     bne sigue_sub
     lda sub_a
-    sta sub_valor, x
+    sta sub_value, x
 sigue_sub:
     inx
     inx
     bra recorrer_sub
 agregar_sub:
-    lda sub_hay
+    lda sub_has
     bne otro_par                ; the key was already there, and the loop set its value
     lda sub_n
     cmp #(SUB_MAX * 2)
     bcs otro_par                ; it does not fit. The converter refuses to emit
     tax                         ; a map that could get here: see SUB_MAX
-    lda sub_de
-    sta sub_clave, x
+    lda sub_of
+    sta sub_key, x
     lda sub_a
-    sta sub_valor, x
+    sta sub_value, x
     txa
     inc a
     inc a
@@ -85,7 +85,7 @@ sub_listo:
     rep #$20
 .a16
     lda #WINDOW_COLS            ; and the window is redrawn one column per
-    sta sub_refresco            ; frame: see `sub_refresco`
+    sta sub_refresh            ; frame: see `sub_refresh`
     sep #$20
 .a8
     jmp run_code::otro
@@ -107,22 +107,22 @@ sub_listo:
 .proc op_terrain
 .a8
 .i16
-    lda [cod_ptr], y            ; the mode: 0 the written cell, 1 by variable,
+    lda [code_ptr], y            ; the mode: 0 the written cell, 1 by variable,
     iny                         ; with VAR_REFRESCO on top
     sta temp
     rep #$20
 .a16
-    lda [cod_ptr], y
-    sta celda_x
+    lda [code_ptr], y
+    sta cell_x
     iny
     iny
-    lda [cod_ptr], y
-    sta celda_y
+    lda [code_ptr], y
+    sta cell_y
     iny
     iny
     sep #$20
 .a8
-    lda [cod_ptr], y            ; the slot where it is stored
+    lda [code_ptr], y            ; the slot where it is stored
     iny
     sta temp + 1
     phy
@@ -131,57 +131,57 @@ sub_listo:
     beq terreno_celda
     ; By variable: what came in the opcode is two slots, and they are read now
     ; —it is the `ValueOrVariable` of `CommandStoreTerrainID`—.
-    lda celda_x
+    lda cell_x
     jsr var_read                ; returns with M at sixteen
 .a16
-    sta celda_x
+    sta cell_x
     sep #$20
 .a8
-    lda celda_y
+    lda cell_y
     jsr var_read
 .a16
-    sta celda_y
+    sta cell_y
     sep #$20
 .a8
 terreno_celda:
     rep #$20
 .a16
-    lda celda_x                 ; `IsValid`: outside the map it answers the
+    lda cell_x                 ; `IsValid`: outside the map it answers the
     bmi terreno_afuera          ; first tile's, not the neighboring cell's
-    cmp mapa_ancho
+    cmp map_width
     bcs terreno_afuera
-    lda celda_y
+    lda cell_y
     bmi terreno_afuera
-    cmp mapa_alto
+    cmp map_height
     bcs terreno_afuera
     sep #$20
 .a8
-    ldx mapa_ofs
+    ldx map_ofs
     lda f:mapa_tabla + M_TERRENO_PLANO, x
     bne terreno_puesto          ; a single terrain in the whole map
     jsr cell_ptr
     rep #$20
 .a16
-    lda [celdas_ptr]            ; which block the cell is, already substituted
+    lda [cells_ptr]            ; which block the cell is, already substituted
     jsr cell_replaced
     sta temp + 2
     ; The table lives outside bank 0, so it is read with a 24-bit pointer, and
-    ; the only free one here is `celdas_ptr` —which has already been used and
+    ; the only free one here is `cells_ptr` —which has already been used and
     ; is temporary anyway: everyone repositions it before reading—.
-    ldx mapa_ofs
+    ldx map_ofs
     lda f:mapa_tabla + M_PTR_BLOQUE_TERRENO, x
-    sta celdas_ptr
+    sta cells_ptr
     sep #$20
 .a8
     lda f:mapa_tabla + M_PTR_BLOQUE_TERRENO + 2, x
-    sta celdas_ptr + 2
+    sta cells_ptr + 2
     ldy temp + 2
-    lda [celdas_ptr], y
+    lda [cells_ptr], y
     bra terreno_puesto
 terreno_afuera:
     sep #$20
 .a8
-    ldx mapa_ofs
+    ldx map_ofs
     lda f:mapa_tabla + M_TERRENO_FUERA, x
 terreno_puesto:
     sta temp + 2                ; `var_write` takes it from here

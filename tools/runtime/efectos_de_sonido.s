@@ -45,7 +45,7 @@ SE_NEW     = SE_FRAMES + 5
 SE_SHADOW    = $7E0000 + $30B0
 SE_KOF_SHADOW = SE_SHADOW + 8
 ; The second voice, at $3D00: the far RAM map above ends at the battle,
-; which does not go past $3CFF, and the next thing is `FAR_HAB`, at $6000. It
+; which does not go past $3CFF, and the next thing is `FAR_SKILL`, at $6000. It
 ; uses $3D00 to $3D17.
 SE2_OFS    = $3D00 - FAR_SE
 SE2_FRAMES  = SE_FRAMES + SE2_OFS
@@ -97,7 +97,7 @@ sin_7:
     lda #SE2_BIT
 sin_6:
     ora 1, s
-    ora f:EX_OCUP               ; and those of voices 0 to 5: see efectos_con_msu.s
+    ora f:EX_BUSY               ; and those of voices 0 to 5: see efectos_con_msu.s
     sta 1, s
     pla                         ; Z from the whole mask
     rts
@@ -154,7 +154,7 @@ espera:
 .a8
 .i16
     xba                         ; B = the value
-    lda f:MUS_BITACORA_SI
+    lda f:MUS_LOG_YES
     beq sin_bitacora
     jsr log
 sin_bitacora:
@@ -196,11 +196,11 @@ voz_6:
     rts
 no_voz:
     ; Voices 0 to 5, if they have an effect —only with MSU-1, see
-    ; efectos_con_msu.s—: what is written stays in MUS_SOMBRA and is not
+    ; efectos_con_msu.s—: what is written stays in MUS_SHADOW and is not
     ; sent, and when the effect ends it is given back from there. With no
     ; effects on them, one `lda` and one branch: the table holds zero for
     ; everything that is not theirs.
-    lda f:EX_OCUP
+    lda f:EX_BUSY
     beq no_extra
     and f:ex_register_bit, x
     beq no_extra
@@ -213,11 +213,11 @@ no_extra:
     xba
     sta f:SE_KOF_SHADOW
     xba
-    bra mascara
+    bra mask
 no_kof:
     cmp #SE_KON
     bne enviar
-mascara:
+mask:
     jsr se_mask
     beq enviar
     eor #$FF
@@ -231,7 +231,7 @@ enviar:
     jmp dsp_pair
 .endproc
 
-; Records in MUS_BITACORA the pair `dsp_music` is about to send: X the
+; Records in MUS_LOG the pair `dsp_music` is about to send: X the
 ; register, B the value. Does not touch X, Y, B or V.
 .proc log
 .a8
@@ -246,21 +246,21 @@ enviar:
     ; —it happened on 2026-09-26 with the battle one, when the code shifted—.
     rep #$20
 .a16
-    lda f:MUS_BITACORA_I
+    lda f:MUS_LOG_I
     tax
     sep #$20
 .a8
     lda 1, s                    ; the register's low byte
-    sta f:MUS_BITACORA, x
+    sta f:MUS_LOG, x
     lda 3, s                    ; the value
-    sta f:MUS_BITACORA + 1, x
+    sta f:MUS_LOG + 1, x
     rep #$20
 .a16
     txa
     inc a
     inc a
-    and #MUS_BITACORA_LARGO - 1
-    sta f:MUS_BITACORA_I
+    and #MUS_LOG_LENGTH - 1
+    sta f:MUS_LOG_I
     sep #$20
 .a8
     plx
@@ -275,7 +275,7 @@ enviar:
 .i16
     lda #0
     xba
-    ldx #MUS_BITACORA_MARCA
+    ldx #MUS_LOG_MARK
     jmp log
 .endproc
 
@@ -448,7 +448,7 @@ otro:
 .i16
     rep #$20
 .a16
-    lda [cod_ptr], y            ; the index
+    lda [code_ptr], y            ; the index
     iny
     iny
     phy
@@ -522,7 +522,7 @@ hay_efecto:
 esta:
     ; And that it is **its own**: the place is shared by effects from
     ; different packages —see `lugares_de_efectos` in snes_music.py—, and
-    ; the one there is the one recorded in `FAR_EFECTO_EN`. Without this, an
+    ; the one there is the one recorded in `FAR_EFFECT_IN`. Without this, an
     ; effect from another map —a common event's— would play with the
     ; neighbor's sample.
     lda f:sonido_tabla, x
@@ -538,7 +538,7 @@ esta:
     sta temp
     sep #$20
 .a8
-    lda f:FAR_EFECTO_EN, x
+    lda f:FAR_EFFECT_IN, x
     ldx temp
     eor f:sonido_efecto, x      ; zero if it is its own
     plx
@@ -562,14 +562,14 @@ es_suyo:
     cmp f:sonido_tabla, x
     bne no_misma_7
     jsr se_busy
-    bne elegida
+    bne chosen
 no_misma_7:
     ldy #SE2_OFS
     lda f:SE2_NEW
     cmp f:sonido_tabla, x
     bne no_misma_6
     jsr se2_busy
-    bne elegida
+    bne chosen
 no_misma_6:
     ; With MSU-1 and the SPC700 without music, voices 0 to 5: the one already
     ; playing this sample, and then, if 7 and 6 are not free, one of those.
@@ -582,10 +582,10 @@ no_misma_6:
     bcs puesto
     ldy #0
     jsr se_busy
-    beq elegida
+    beq chosen
     ldy #SE2_OFS
     jsr se2_busy
-    beq elegida
+    beq chosen
     rep #$20
 .a16
     lda 2, s
@@ -594,7 +594,7 @@ no_misma_6:
     bcs puesto
     ldy #0
     lda f:SE2_PENDING
-    bne elegida
+    bne chosen
     lda f:SE_PENDING
     bne la_6
     rep #$20
@@ -603,11 +603,11 @@ no_misma_6:
     cmp f:SE2_FRAMES
     sep #$20                    ; does not touch C
 .a8
-    bcc elegida
-    beq elegida
+    bcc chosen
+    beq chosen
 la_6:
     ldy #SE2_OFS
-elegida:
+chosen:
     rep #$20
 .a16
     tya

@@ -5,7 +5,7 @@
     sei
     clc
     xce                         ; into the 65816's native mode
-    jml f:rapido + RAPIDO       ; to the fast mirror: see MEMSEL
+    jml f:rapido + FAST       ; to the fast mirror: see MEMSEL
 rapido:
     rep #$30                    ; 16-bit A, X and Y
 .a16
@@ -29,7 +29,7 @@ rapido:
     ; correcting it the song plays 17% slow.
     lda STAT78
     and #$10
-    sta es_pal
+    sta is_pal
     stz pal_tick
 
     jsr ppu_reset               ; the console does not boot clean; the emulator does
@@ -41,13 +41,13 @@ rapido:
     ; everything else, so enabling it first would be no use.
     lda #$01
     sta NMITIMEN                ; let the console read the pads by itself
-    stz boot_cuadros
-    stz vueltas                 ; RAM starts with garbage and the harness
-    stz vueltas + 1             ; reads it from frame zero
+    stz boot_frames
+    stz ticks                 ; RAM starts with garbage and the harness
+    stz ticks + 1             ; reads it from frame zero
     rep #$20
 .a16
     lda #0
-    sta f:vueltas_congeladas    ; and this one, which the animations subtract
+    sta f:frozen_ticks    ; and this one, which the animations subtract
     sep #$20
 .a8
     lda #$81
@@ -59,7 +59,7 @@ rapido:
     rep #$20
 .a16
     lda #$FFFF
-    sta entrada_x
+    sta entry_x
     sep #$20
 .a8
 
@@ -72,18 +72,18 @@ borrar_switches:
     cpx #SWITCH_BYTES
     bne borrar_switches
     lda #TINTE_NEUTRO
-    sta tinte_r
-    sta tinte_g
-    sta tinte_b
-    sta tinte_s
-    stz salto_hay
+    sta tint_r
+    sta tint_g
+    sta tint_b
+    sta tint_s
+    stz jump_has
     lda #$FF                    ; no song remembered, like a new
-    sta f:TEMA_RECORDADO        ; game: see `op_memorized_bgm`
+    sta f:REMEMBERED_SONG        ; game: see `op_memorized_bgm`
     stz anim_pend               ; RAM starts with garbage and this triggers DMAs
-    stz panico                  ; RAM starts with garbage, and 85 is not a code
-    stz oro
-    stz oro + 1
-    stz oro + 2
+    stz panic                  ; RAM starts with garbage, and 85 is not a code
+    stz gold
+    stz gold + 1
+    stz gold + 2
     ; The party goes before loading the first map: `enter_map` picks what
     ; the hero is drawn with, and without this it would read the garbage RAM
     ; starts with. The party the game starts with, from the game's database.
@@ -95,28 +95,28 @@ copiar_grupo:
     cpx #GRUPO_INICIAL_N
     beq grupo_listo
     lda grupo_inicial, x
-    sta grupo, x
+    sta party, x
     inx
     bra copiar_grupo
 grupo_listo:
     rep #$20
 .a16
     lda #GRUPO_INICIAL_N
-    sta grupo_n                 ; 16 bits: X and Y compare it whole
+    sta party_n                 ; 16 bits: X and Y compare it whole
     sep #$20
 .a8
 
     ; The interpreter and the route, at zero before loading anything. RAM
     ; starts with garbage and this reads it on the first frame: with
-    ; `ev_esperando` at anything it stays counting down forever and no page
-    ; runs, and with `ruta_i` less than `ruta_n` `move_hero` believes there is
+    ; `ev_waiting` at anything it stays counting down forever and no page
+    ; runs, and with `route_i` less than `route_n` `move_hero` believes there is
     ; a forced move route pending and never reads the pad —the hero does not
     ; move—.
     ;
     ; The route one was found by taro playing in mednafen, not by the suite,
     ; and that is the part that matters: **what snes9x leaves in RAM is always
     ; the same**, so it hides exactly the errors a fixed pattern hides. With
-    ; these two uninitialized, `ruta_i < ruta_n` is false on all ten snes9x
+    ; these two uninitialized, `route_i < route_n` is false on all ten snes9x
     ; runs and the error disappears; on bsnes with high entropy it shows. The
     ; whole suite was green with this inside, and on real hardware it would
     ; have failed just like in mednafen. It is measured: with these two
@@ -126,43 +126,43 @@ grupo_listo:
     ; and on bsnes —the latter with `bsnes_entropy=High`— and compares the two
     ; screens with each other; that file has the rest of the numbers. Verified
     ; on 2026-09-16 by removing these two lines: of five runs, four red.
-    stz ev_activo
+    stz ev_active
     jsr clear_waits
-    stz ruta_n                  ; no forced move route pending
-    stz ruta_i
-    stz ruta_espera
+    stz route_n                  ; no forced move route pending
+    stz route_i
+    stz route_wait
     lda #8
-    sta ruta_frec               ; the usual one, until an OP_ROUTE says otherwise
+    sta route_freq               ; the usual one, until an OP_ROUTE says otherwise
     ; And the rest of what a route leaves on. RAM starts with garbage —snes9x
     ; fills it with $55— so without this the hero would start walking through
     ; walls and with the animation stopped.
-    stz ruta_salto
-    stz ruta_atraviesa
-    stz ruta_anim_para
-    stz atravesando
-    stz atravesando + 1
-    stz tinte_pendiente
-    ; And the message window. `msg_abierto` with garbage leaves the page
+    stz route_jump
+    stz route_crosses
+    stz route_anim_for
+    stz crossing
+    stz crossing + 1
+    stz tint_pending
+    ; And the message window. `msg_open` with garbage leaves the page
     ; blocked forever: `events_tick` believes there is a message on screen
     ; and waits for an A that no longer closes anything. It is measured
     ; —without this `stz`, `snes-cerrar` fails on all twelve runs, and on
     ; snes9x as well as on bsnes—.
-    stz msg_abierto
-    stz eleg_activo
-    stz msg_estado
-    stz msg_subir
-    ; The two that say who opened the message. With garbage, `par_ev` would
+    stz msg_open
+    stz pick_active
+    stz msg_state
+    stz msg_upload
+    ; The two that say who opened the message. With garbage, `pair_ev` would
     ; make the foreground record any owner at all and `one_parallel` would skip
     ; forever the event that had that number: it is one of the errors
     ; `test_cores.py` sees and a golden does not, because bsnes starts WRAM
     ; with garbage and snes9x at zero.
     lda #$FF
-    sta msg_duenio
-    sta par_ev
+    sta msg_owner
+    sta pair_ev
     ; And its escape queue, for the same reason: a pause with garbage would
-    ; stop the page just like `msg_abierto`. Today they are not read without
+    ; stop the page just like `msg_open`. Today they are not read without
     ; `msg_start` having written them, but that holds only as long as the
-    ; guard above stays `msg_abierto | msg_estado`.
+    ; guard above stays `msg_open | msg_state`.
     rep #$20
 .a16
     lda #0
@@ -174,28 +174,28 @@ grupo_listo:
     ; `read_pad` rewrites them before anyone looks at them. They cost two
     ; instructions.
     stz pad_a
-    stz pad_a_ant
+    stz pad_a_prev
     stz autofire
-    stz flechas_cuadros         ; with an arrow held since power-on
-    stz flechas_repetidas
-    lda #MOVIL_HEROE
-    sta movil
-    lda #CAPA_HEROE
-    sta movil_capa
-    stz sacudida_pos
-    stz sacudida_pos + 1
-    stz tinte_listo
-    lda #VQ_POR_CUADRO
-    sta vq_tope
-    stz sacudida_resta
-    stz sacudida_resta + 1
-    stz destello_nivel          ; RAM starts with garbage: without this the
-    stz destello_nivel + 1      ; first frame comes out flashed
-    stz destello_resta
-    stz destello_listo
+    stz arrows_frames         ; with an arrow held since power-on
+    stz arrows_repeated
+    lda #HERO_WALKER
+    sta walker
+    lda #HERO_LAYER_INDEX
+    sta walker_layer
+    stz shake_pos
+    stz shake_pos + 1
+    stz tint_ready
+    lda #VQ_PER_FRAME
+    sta vq_cap
+    stz shake_remain
+    stz shake_remain + 1
+    stz flash_level          ; RAM starts with garbage: without this the
+    stz flash_level + 1      ; first frame comes out flashed
+    stz flash_remain
+    stz flash_ready
     rep #$20
 .a16
-    stz ev_esperando
+    stz ev_waiting
     stz ev_cur
     sep #$20
 .a8
@@ -210,12 +210,12 @@ grupo_listo:
     ; because in RM2k it lives in `Game_Party`: it survives maps, which is
     ; exactly what the game uses it for. RAM starts with garbage —snes9x fills
     ; it with $55— so without this it would be seen running by itself.
-    stz timer_activo
+    stz timer_active
     stz timer_visible
     stz timer_sub
     rep #$20
 .a16
-    stz timer_seg
+    stz timer_sec
     sep #$20
 .a8
     jsr timer_digits
@@ -224,10 +224,10 @@ grupo_listo:
     ; looks at both: without this the first vblank would turn the screen on
     ; with whatever brightness was left, and the loop would start believing
     ; it was inside a fade.
-    stz fundido
+    stz fade
     lda #BRILLO_MAX
-    sta brillo
-    stz bgm_fundido             ; and the same with the song's
+    sta brightness
+    stz bgm_fade             ; and the same with the song's
     jsl f:boot_transition    ; and the teleport, with fade
     jsl f:encounter_boot    ; the encounters' random seed
 
@@ -236,7 +236,7 @@ grupo_listo:
     ; set **before** loading the map. And the entry is built from the saved
     ; cell, which is how a door tells `enter_map` where to plant the hero.
     lda #$FF
-    sta ranura                  ; none loaded; RAM starts with garbage
+    sta slot                  ; none loaded; RAM starts with garbage
     ; The random seed, and the variables at zero: far RAM also starts with
     ; garbage, and a loaded save overwrites them afterwards.
     jsr clear_variables
@@ -253,11 +253,11 @@ grupo_listo:
     lda #0                      ; RAM starts with garbage
     sta f:PICTURE_ACTIVE
     sta f:PICTURE_READY
-    sta f:GO_ESPERA             ; the harness looks at it: see game_over.s
+    sta f:GO_WAIT             ; the harness looks at it: see game_over.s
     ; The slot screen's flag too: with $55 the harness would see it open from
     ; the reset. That is what happened on 2026-09-10 with the two counters
     ; that "gave 85": they were reading the emulator's garbage.
-    stz menu_abierto
+    stz menu_open
     ; With a title screen this is not done here: loading or starting over is
     ; decided by the menu, and until the player picks it the saved game is not
     ; touched. Without a title screen —which is the whole suite— the usual
@@ -272,7 +272,7 @@ grupo_listo:
     jsr save_entry
     rep #$20
 .a16
-    lda mapa_actual             ; the index goes in sixteen bits
+    lda map_current             ; the index goes in sixteen bits
     bra cargar
 .a8
 nueva:
@@ -335,7 +335,7 @@ cargar:
     ; The title image, decompressed to WRAM **before** the wait, which is
     ; where there are frames to spare: decompressing it when showing it was
     ; nine more frames of black before the title. `title_upload` uploads it.
-    ; A ROM with a title can go past BOOT_CUADROS because of this, and it does
+    ; A ROM with a title can go past BOOT_FRAMES because of this, and it does
     ; not matter: what counts frames from the reset is the loop, and that is
     ; reached after the title.
 .ifdef PANTALLA_TITULO
@@ -343,31 +343,31 @@ cargar:
     jsl f:screen_decompress
 .endif
 
-    ; And we wait for boot to last what it always lasts: BOOT_CUADROS.
+    ; And we wait for boot to last what it always lasts: BOOT_FRAMES.
 espera_boot:
-    lda boot_cuadros
-    cmp #BOOT_CUADROS
+    lda boot_frames
+    cmp #BOOT_FRAMES
     bcc espera_boot
     ; The NMI keeps counting after boot: it is the only way to know whether a
     ; loop iteration overran the frame. See `count_lost`.
-    lda boot_cuadros
-    sta nmi_visto
-    stz cuadros_perdidos
+    lda boot_frames
+    sta nmi_seen
+    stz lost_frames
 
     ; And from here the music runs by itself, in `irq_music`: once per frame
-    ; on line IRQ_LINEA, however long the loop takes. It goes after the wait
+    ; on line IRQ_LINE, however long the loop takes. It goes after the wait
     ; and not before so that the song starts on the same frame as when the
     ; loop played it.
-    lda #<IRQ_LINEA
+    lda #<IRQ_LINE
     sta VTIMEL
-    lda #>IRQ_LINEA
+    lda #>IRQ_LINE
     sta VTIMEH
     lda #$A1
     sta NMITIMEN                ; the NMI, the pads and the vertical IRQ
     cli
 
     ; The title screen, if this ROM has one. It goes **after** boot has
-    ; finished counting its BOOT_CUADROS and not before: that way a ROM
+    ; finished counting its BOOT_FRAMES and not before: that way a ROM
     ; without a title reaches the loop on exactly the usual frame, and the 96
     ; cases of the suite —which count frames from the reset— never learn that
     ; this exists.
@@ -432,13 +432,13 @@ loop:
     ; when `advance_step` filled it.
     jsr events_tick
     ; And the `Teleport` a parallel may have requested, if the foreground did
-    ; not handle it: `events_tick` looks at `salto_hay` only after running
+    ; not handle it: `events_tick` looks at `jump_has` only after running
     ; one of its pages, and with the foreground idle it leaves earlier. In
     ; RM2k the pending jump is handled after `Game_Map::Update`, whatever runs
     ; (`Scene_Map::UpdateStage2`). They are the race's 126 exits —each car,
     ; each finish line and the bridge—, and until it went in no `release`
     ; page jumped from a parallel.
-    lda salto_hay
+    lda jump_has
     beq sin_salto_pendiente
     jsr events_handle_jump
 sin_salto_pendiente:
@@ -470,18 +470,18 @@ sin_salto_pendiente:
 congelado:
     ; A fade iteration: the tick runs —the fade and the harness count it—
     ; but the world does not, and neither do the map animations. See
-    ; `vueltas_congeladas`.
+    ; `frozen_ticks`.
     rep #$20
 .a16
-    lda f:vueltas_congeladas
+    lda f:frozen_ticks
     inc a
-    sta f:vueltas_congeladas
+    sta f:frozen_ticks
     sep #$20
 .a8
 contada:
     rep #$20
 .a16
-    inc vueltas
+    inc ticks
     sep #$20
 .a8
     jsr anim_tick               ; which ChipSet drawing is due on the next
@@ -502,25 +502,25 @@ contada:
 .proc count_lost
 .a8
 .i16
-    lda boot_cuadros
+    lda boot_frames
     sec
-    sbc nmi_visto
+    sbc nmi_seen
     dec a                       ; the vblank that was this iteration's due
     beq al_dia
     clc
-    adc cuadros_perdidos
+    adc lost_frames
     bcc cabe
     lda #255
 cabe:
-    sta cuadros_perdidos
+    sta lost_frames
 al_dia:
-    lda boot_cuadros
-    sta nmi_visto
+    lda boot_frames
+    sta nmi_seen
     rts
 .endproc
 
 ; It is over: something that cannot happen happened. A carries the code, which
-; stays in `panico` so that a state test can say which one it was.
+; stays in `panic` so that a state test can say which one it was.
 ;
 ; There is no `printf` on a SNES and returning from here makes no sense —the
 ; state is already inconsistent—, so what is left is to make it visible: the
@@ -531,7 +531,7 @@ al_dia:
 .proc enter_panic
 .a8
 .i16
-    sta panico
+    sta panic
     sei                         ; not even the vblank: nothing else is going to happen
 lazo:
     ldx #$2000
@@ -560,18 +560,18 @@ espera_apagado:
     sep #$20
 .a8
     pha
-    ; **The data bank, set here and not inherited.** `boot_cuadros` and
+    ; **The data bank, set here and not inherited.** `boot_frames` and
     ; `RDNMI` are read with absolute addressing, so they go to whatever data
     ; bank the code the NMI interrupted had. Save and load run with the bank
     ; in SRAM, and an NMI landing there added one to `$70:1C07` —byte 769 of
-    ; the fourth slot— instead of to `boot_cuadros`: the checksum stopped
+    ; the fourth slot— instead of to `boot_frames`: the checksum stopped
     ; matching and slot 4 loaded as empty. The other three do not go through
     ; that address, which is why only one failed. `phk` gives bank 0, because
     ; the vectors run there, and bank 0 has low WRAM and the registers.
     phb
     phk
     plb
-    inc boot_cuadros
+    inc boot_frames
     lda RDNMI
     plb
     pla
@@ -616,18 +616,18 @@ in:
     ; in the middle and need different handling.
     ldx #$0000
 bajos:
-    lda f:ppu_bajos, x
+    lda f:ppu_low, x
     sta $2101, x
     inx
-    cpx #(ppu_bajos_end - ppu_bajos)
+    cpx #(ppu_low_end - ppu_low)
     bne bajos
 
     ldx #$0000
 altos:
-    lda f:ppu_altos, x
+    lda f:ppu_high, x
     sta $2115, x
     inx
-    cpx #(ppu_altos_end - ppu_altos)
+    cpx #(ppu_high_end - ppu_high)
     bne altos
 
     ; The eight scroll registers: each one is written twice, low byte and
@@ -646,9 +646,9 @@ scrolls:
     sta VMAIN
     ldx #$0000
     stx VMADDL
-    ldx #.loword(cero)
+    ldx #.loword(zero)
     stx A1T0L
-    lda #^cero
+    lda #^zero
     sta A1B0
     ldx #$0000                  ; 0 means 65536: the whole VRAM
     stx DAS0L
@@ -662,9 +662,9 @@ scrolls:
     ; And CGRAM, which otherwise leaves the menu's palette in the colors we
     ; do not use.
     stz CGADD
-    ldx #.loword(cero)
+    ldx #.loword(zero)
     stx A1T0L
-    lda #^cero
+    lda #^zero
     sta A1B0
     ldx #512
     stx DAS0L
@@ -689,7 +689,7 @@ scrolls:
 ; the same reason: making room. `banco1.s` has the reason for each one and
 ; what could still be moved down.
 
-; `salto_por_vel` moved down to RODATA on 2026-09-14: a single access, and
+; `jump_per_speed` moved down to RODATA on 2026-09-14: a single access, and
 ; going through X costs four bytes against the table's six. See `banco1.s`.
 ; Every how many frames the walk frame changes, per speed: walking and
 ; standing with continuous animation: `GetStationaryAnimFrames` and

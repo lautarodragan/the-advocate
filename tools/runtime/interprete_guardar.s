@@ -14,7 +14,7 @@
 ; **It blocks inside the interpreter and costs no tick**, which is what RM2k
 ; does: `OpenSaveMenu` pushes `Scene_Save`, the map stops updating until it
 ; closes, and the page goes on with the next command. Here `slots_screen`
-; runs its own frame loop —as it does from the title— and `vueltas` does not
+; runs its own frame loop —as it does from the title— and `ticks` does not
 ; advance while it is shown, so both interpreters are still on the same tick
 ; when it returns. Cancelling with B goes back to the map without saving,
 ; which is also what RM2k does; picking a slot saves and returns, without
@@ -48,7 +48,7 @@ cancelado:
 
 ; `ChangeSaveAccess`, `ChangeMainMenuAccess` and `ChangeEscapeAccess`: **the
 ; bit** of the permission and whether it ends up allowed. Sets or clears that
-; "forbidden" bit of `FAR_ACCESO`.
+; "forbidden" bit of `FAR_ACCESS`.
 ;
 ; The converter sets the bit and it is not computed here, and that is what
 ; lets permissions be added without touching this opcode: the operand used to
@@ -58,10 +58,10 @@ cancelado:
 .proc op_access
 .a8
 .i16
-    lda [cod_ptr], y            ; the bit: $01 save, $02 the menu, $04 escape
+    lda [code_ptr], y            ; the bit: $01 save, $02 the menu, $04 escape
     sta temp
     iny
-    lda [cod_ptr], y            ; allowed
+    lda [code_ptr], y            ; allowed
     iny
     sta temp + 1
     phy

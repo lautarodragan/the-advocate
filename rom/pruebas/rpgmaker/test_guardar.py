@@ -3,7 +3,7 @@
 El save point de Lashe City —`SaveByTalansPad0`, el evento 67 del mapa 8— pide
 `OpenSaveMenu`, y eso abre la pantalla de ranuras adentro del intérprete: se
 elige una con el cursor, se guarda ahí y la página sigue. Lo que se guarda lo
-dice `partida_tabla` en `runtime/banco1.s`; cómo se ve la pantalla lo cobra
+dice `save_table` en `runtime/banco1.s`; cómo se ve la pantalla lo cobra
 `test_guardar_golden.py`.
 
 Esto no lo puede cubrir la tanda de pixeles: guardar no cambia un pixel. Lo que
@@ -116,10 +116,10 @@ def test_cancelar_no_guarda_ni_cambia_la_ranura(partida):
     """
     una = partida(caso="guardar-198")
     una.guardar_en(cancelar=True)
-    assert una.byte("menu_abierto") == 0, "la pantalla sigue abierta"
-    assert una.byte("ranura") == 0xFF, (
+    assert una.byte("menu_open") == 0, "la pantalla sigue abierta"
+    assert una.byte("slot") == 0xFF, (
         "cancelar dejó `ranura` en %d y la partida no venía de ninguna"
-        % una.byte("ranura"))
+        % una.byte("slot"))
     for n in range(una.simbolos["SRAM_SLOTS"]):
         assert not una.hay_partida(n), (
             "se canceló y la ranura %d quedó escrita igual" % n)

@@ -3,7 +3,7 @@
 ; --- the text screens -----------------------------------------------------------
 ;
 ; The equipment and shop screens are pure text on top of the item screen's
-; font. They are composed **whole** in `texto_buf` —the 32 by 28 cell
+; font. They are composed **whole** in `text_buf` —the 32 by 28 cell
 ; tilemap, 1792 bytes— and go up in one DMA at the start of each vblank, so
 ; composing is in no hurry. `pantallas.py` is the reference. A position is a
 ; byte of the buffer: row * 64 + column * 2; the cell below each letter is 64
@@ -11,7 +11,7 @@
 ;
 ; The scratch space is borrowed variables: the message composer's, `comp_*`,
 ; which are recomputed with each character, and with the menu open there is
-; no message; and `eleg_tabla`, which is the position being written to.
+; no message; and `pick_table`, which is the position being written to.
 SCR_BYTES = 32 * 28 * 2
 ;   pant_valor   is comp_dup       ; the number being written, two bytes
 ;   pant_ancho   is comp_dup + 2   ; in how many digits
@@ -25,7 +25,7 @@ SCR_BYTES = 32 * 28 * 2
 .a16
     ldx #0
 otra:
-    stz texto_buf, x
+    stz text_buf, x
     inx
     inx
     cpx #SCR_BYTES
@@ -45,7 +45,7 @@ otra:
 .a16
     lda #RANURA_MAP
     sta VMADDL
-    lda #.loword(texto_buf)
+    lda #.loword(text_buf)
     sta A1T0L
     lda #SCR_BYTES
     sta DAS0L
@@ -63,7 +63,7 @@ otra:
 
 ; One letter: A the character, `temp + 1` the variant —0 white, 1 gray, 2 the
 ; "goes up" color, which only has digits, and 3 red: see `ITEM_SUBE` in
-; titulo.py—. It goes at `eleg_tabla`, which advances one cell. Clobbers X
+; titulo.py—. It goes at `pick_table`, which advances one cell. Clobbers X
 ; and Y.
 .proc scr_glyph
 .a8
@@ -88,20 +88,20 @@ otra_tabla:
     dey
     bne otra_tabla
 blanco:
-    ldy eleg_tabla
+    ldy pick_table
     lda f:item_glifo_celdas, x
-    sta texto_buf, y
+    sta text_buf, y
     lda f:item_glifo_celdas + 2, x
-    sta texto_buf + 64, y
+    sta text_buf + 64, y
     iny
     iny
-    sty eleg_tabla
+    sty pick_table
     sep #$20
 .a8
     rts
 .endproc
 
-; A text: X its number —see `item_txt_*`—, at `eleg_tabla` and with the
+; A text: X its number —see `item_txt_*`—, at `pick_table` and with the
 ; variant in `temp + 1`, and no more than `pant_tope` letters.
 .proc scr_text
 .a8
@@ -140,7 +140,7 @@ ready:
 .endproc
 
 ; A number from `pant_valor`, 0 to 999, in `pant_ancho` digits —2 or 3— with
-; leading spaces, at `eleg_tabla` and with the variant in `temp + 1`.
+; leading spaces, at `pick_table` and with the variant in `temp + 1`.
 .proc scr_number
 .a8
 .i16

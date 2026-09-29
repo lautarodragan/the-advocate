@@ -44,26 +44,26 @@
 .segment "FAR"
 
 ; The body of `op_transition`: with Y at the first operand, and it returns with
-; Y past the last one. The bytecode is read with `[cod_ptr], y`, which does not
+; Y past the last one. The bytecode is read with `[code_ptr], y`, which does not
 ; depend on the data bank, and far RAM with `f:`.
 .proc transition_set
 .a8
 .i16
-    lda [cod_ptr], y            ; which: 0 erase, 1 show
+    lda [code_ptr], y            ; which: 0 erase, 1 show
     iny
     lsr a                       ; into the carry
-    lda [cod_ptr], y            ; the transition
+    lda [code_ptr], y            ; the transition
     iny
     bcs mostrar
-    sta f:TRANSICION_BORRAR
+    sta f:TRANSITION_ERASE
     rtl
 mostrar:
-    sta f:TRANSICION_MOSTRAR
+    sta f:TRANSITION_SHOW
     rtl
 .endproc
 
-; The byte of `vueltas` from which the fade being started counts, into
-; `fundido_base`. From `start_fade`.
+; The byte of `ticks` from which the fade being started counts, into
+; `fade_base`. From `start_fade`.
 ;
 ; With the cut for erasing it starts `FUNDIDO_CUADROS - 1` ticks back: the
 ; first `fade_tick` lands on the last frame of the outgoing half, which is
@@ -74,17 +74,17 @@ mostrar:
 .proc fade_from
 .a8
 .i16
-    lda f:TRANSICION_BORRAR
+    lda f:TRANSITION_ERASE
     cmp #TRANSICION_CORTE
     beq corte
-    lda vueltas
+    lda ticks
     bra put
 corte:
-    lda vueltas
+    lda ticks
     sec
     sbc #(FUNDIDO_CUADROS - 1)
 put:
-    sta f:fundido_base
+    sta f:fade_base
     rtl
 .endproc
 
@@ -98,34 +98,34 @@ put:
 .a8
 .i16
     lda #0
-    sta f:TRANSICION_BORRAR
-    sta f:TRANSICION_MOSTRAR
+    sta f:TRANSITION_ERASE
+    sta f:TRANSITION_SHOW
     rtl
 .endproc
 
 ; This frame's mosaic. From `flush_video`, in the vblank and right before
 ; writing the brightness, so both change on the same frame.
 ;
-; While the map load is pending —`fundido_que` nonzero— the fade is erasing the
+; While the map load is pending —`fade_kind` nonzero— the fade is erasing the
 ; screen; afterwards it is showing it. With no fade, or with one that is not a
 ; mosaic, it turns it off: it is written every frame, so nobody else has to
-; remember to turn it off. `fundido`, `fundido_que` and `brillo` live in bank
+; remember to turn it off. `fade`, `fade_kind` and `brightness` live in bank
 ; 0's BSS, and are read with `f:` so as not to depend on the data bank.
 .proc fade_mosaic
 .a8
 .i16
-    lda f:fundido
+    lda f:fade
     beq apagado
-    lda f:fundido_que
+    lda f:fade_kind
     beq mostrando
-    lda f:TRANSICION_BORRAR
+    lda f:TRANSITION_ERASE
     bra mirar
 mostrando:
-    lda f:TRANSICION_MOSTRAR
+    lda f:TRANSITION_SHOW
 mirar:
     cmp #TRANSICION_MOSAICO
     bne apagado
-    lda f:brillo
+    lda f:brightness
     eor #$0F                    ; the size, the reverse of the brightness
     asl a
     asl a

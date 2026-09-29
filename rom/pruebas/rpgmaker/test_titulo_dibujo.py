@@ -56,7 +56,7 @@ def test_empezar_la_historia_arranca_en_el_mapa_inicial(partida):
 
 
 def test_el_reloj_del_juego_no_corre_en_el_titulo(partida):
-    """`vueltas` arranca en cero después de elegir, no en los cuadros que la
+    """`ticks` arranca en cero después de elegir, no en los cuadros que la
     pantalla de título estuvo puesta.
 
     No es un detalle interno: es lo que hace que una ROM con título corra el
@@ -66,9 +66,9 @@ def test_el_reloj_del_juego_no_corre_en_el_titulo(partida):
     se moverían.
     """
     una = partida(titulo=EMPEZAR)
-    assert una.palabra("vueltas") <= 3, (
+    assert una.palabra("ticks") <= 3, (
         "el reloj del juego contó %d vueltas en la pantalla de título"
-        % una.palabra("vueltas"))
+        % una.palabra("ticks"))
 
 
 def test_seguir_la_historia_carga_la_partida(partida):
@@ -127,22 +127,22 @@ def test_la_musica_viaja_en_la_partida(con_musica):
     **Lo que se mira son los bytes de la SRAM y no el estado después de
     cargar**, y la razón vale la pena: al cargar, las páginas del mapa corren
     sus propios `PlayBGM` y reponen la música en un par de cuadros, así que un
-    caso que mirara `tema_actual` después de cargar **pasa igual con el campo
-    sacado de `partida_tabla`** —se comprobó, y pasa—. Mirar la SRAM no depende
+    caso que mirara `song_current` después de cargar **pasa igual con el campo
+    sacado de `save_table`** —se comprobó, y pasa—. Mirar la SRAM no depende
     de eso: si el campo no se guarda, los bytes no están.
 
     Se guarda al final de la apertura, que es donde hay música y control:
     ver `con_musica` en conftest.py.
     """
     una = con_musica()
-    assert not una.byte("music_apagada"), (
+    assert not una.byte("music_off"), (
         "esta ROM tenía que arrancar con un tema sonando y arrancó callada: "
         "sin eso el caso no compara nada")
     una.guardar_por_el_menu()
     assert una.hay_partida(), "la partida no llegó a guardarse"
 
-    # Las dos entradas de la música en `partida_tabla`, en su orden:
-    # `music_apagada` y después `tema_actual`, que es de dos bytes con el alto
+    # Las dos entradas de la música en `save_table`, en su orden:
+    # `music_off` y después `song_current`, que es de dos bytes con el alto
     # en cero. Están al final de la partida, **antes de las variables**, que
     # siguen con VARIABLES_N palabras; después vienen la velocidad del héroe,
     # un byte; el inventario, ITEMS_N bytes; los permisos del menú, un byte;
@@ -152,7 +152,7 @@ def test_la_musica_viaja_en_la_partida(con_musica):
     # experiencia y el nivel, cuatro bytes por cada actor que puede pelear,
     # que es lo que cierra la tabla.
     #
-    # Esta resta es un duplicado de `partida_tabla` y lo sabe: agregarle un
+    # Esta resta es un duplicado de `save_table` y lo sabe: agregarle un
     # campo a la partida la deja mal, y lo que se ve es este caso en rojo. Es
     # lo que pasó con los HP, y lo que volvió a pasar con los SP y con las
     # habilidades.
@@ -165,12 +165,12 @@ def test_la_musica_viaja_en_la_partida(con_musica):
              - una.simbolos["HAB_BYTES"]
              - 4 * una.simbolos["EXP_K"])
     cola = una.sram(una.simbolos["SRAM_DATA"] + largo - 3, 3)
-    assert cola[0] == una.byte("music_apagada"), (
-        "la SRAM guardó music_apagada = %d y la consola lo tenía en %d"
-        % (cola[0], una.byte("music_apagada")))
-    assert cola[1] | (cola[2] << 8) == una.palabra("tema_actual"), (
+    assert cola[0] == una.byte("music_off"), (
+        "la SRAM guardó music_off = %d y la consola lo tenía en %d"
+        % (cola[0], una.byte("music_off")))
+    assert cola[1] | (cola[2] << 8) == una.palabra("song_current"), (
         "la SRAM guardó el tema %d y estaba sonando el %d"
-        % (cola[1] | (cola[2] << 8), una.palabra("tema_actual")))
+        % (cola[1] | (cola[2] << 8), una.palabra("song_current")))
 
 
 def test_la_partida_cargada_arranca_con_su_musica(con_musica):
@@ -185,22 +185,22 @@ def test_la_partida_cargada_arranca_con_su_musica(con_musica):
     una = con_musica()
     una.guardar_por_el_menu()
     assert una.hay_partida(), "la partida no llegó a guardarse"
-    sonaba = una.palabra("tema_actual")
+    sonaba = una.palabra("song_current")
 
     una._resetear()
-    una.poner_byte("tema_actual", (sonaba + 1) % una.simbolos["TEMA_TOTAL"])
-    una.poner_byte("music_apagada", 1)
+    una.poner_byte("song_current", (sonaba + 1) % una.simbolos["TEMA_TOTAL"])
+    una.poner_byte("music_off", 1)
     una.pasar_el_titulo(SEGUIR)
     # Un tick y no unos cuadros: mientras se carga el mapa el título está
-    # callado —`music_apagada` en 1, ver `title_loop`— y la música de la
+    # callado —`music_off` en 1, ver `title_loop`— y la música de la
     # partida recién se repone en `music_boot`, con el mapa ya cargado.
     una.correr(1)
 
-    assert not una.byte("music_apagada"), (
+    assert not una.byte("music_off"), (
         "la partida cargada arrancó callada y se había guardado con música")
-    assert una.palabra("tema_actual") == sonaba, (
+    assert una.palabra("song_current") == sonaba, (
         "volvió sonando el tema %d en vez del %d que estaba guardado"
-        % (una.palabra("tema_actual"), sonaba))
+        % (una.palabra("song_current"), sonaba))
 
 
 def test_la_pantalla_de_ranuras_carga_la_que_se_elige(partida):
@@ -232,7 +232,7 @@ def test_cada_ranura_carga_lo_que_se_guardo_en_ella(partida, ranura):
     """Las cuatro, una por una: guardar en ella y cargarla desde el título.
 
     Hasta el 2026-09-21 las pruebas guardaban sólo en la 0 y la 1, y la cuarta
-    no cargaba nunca —taro la encontró jugando—. La NMI escribía `boot_cuadros`
+    no cargaba nunca —taro la encontró jugando—. La NMI escribía `boot_frames`
     en el banco de datos que tuviera el código interrumpido, y guardar corre con
     el banco en la SRAM: le sumaba uno a un byte que sólo cae adentro de la
     cuarta ranura, y la suma de control dejaba de dar. Ver `nmi_boot`.

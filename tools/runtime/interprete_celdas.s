@@ -28,7 +28,7 @@
 ; its y. Enters and leaves with a 16-bit A.
 .macro CELL_WRITE
 .local do_refresh, already, is_y, put
-    lda [cod_ptr], y
+    lda [code_ptr], y
     iny
     iny
     bmi do_refresh               ; CELDA_REFRESCO, bit 15
@@ -43,7 +43,7 @@ do_refresh:
     pha
     sep #$20
     lda #1
-    sta f:refresco
+    sta f:refresh
     rep #$20
     pla
     bra already
@@ -52,22 +52,22 @@ is_y:
     tax
     lda temp + 2
 put:
-    sta f:FAR_LARGO + FAR_VARIABLES, x
+    sta f:FAR_LENGTH + FAR_VARIABLES, x
 .endmacro
 
 ; One of the two comparisons: two variables, as offsets, and the target if
 ; they are not equal. If it fails, it leaves Y on the target and jumps to `end`.
 .macro CELL_TEST end
 .local fails
-    lda [cod_ptr], y            ; the left one
+    lda [code_ptr], y            ; the left one
     tax
-    lda f:FAR_LARGO + FAR_VARIABLES, x
+    lda f:FAR_LENGTH + FAR_VARIABLES, x
     sta temp                    ; the character's cell is no longer needed
     iny
     iny
-    lda [cod_ptr], y            ; and the right one
+    lda [code_ptr], y            ; and the right one
     tax
-    lda f:FAR_LARGO + FAR_VARIABLES, x
+    lda f:FAR_LENGTH + FAR_VARIABLES, x
     cmp temp
     bne fails
     iny                         ; it holds: skip the right one and the target
@@ -78,7 +78,7 @@ put:
 fails:
     iny
     iny
-    lda [cod_ptr], y            ; the target, absolute within the page
+    lda [code_ptr], y            ; the target, absolute within the page
     tay
     bra end
 :
@@ -102,7 +102,7 @@ CELL_VARIABLE = $01FF
 .i16
     rep #$20
 .a16
-    lda [cod_ptr], y            ; the target: 0 the hero, or the event plus one
+    lda [code_ptr], y            ; the target: 0 the hero, or the event plus one
     iny
     and #$00FF
     asl a
@@ -138,7 +138,7 @@ ready:
 ; for finding its state, saving it and returning: almost one line per page.
 ; But most of the race's —forty per lap— start with `OP_CELL_TEST`, are not
 ; in the middle of anything, fail the condition and end there. Those are run
-; here back to back, from `par_i`, up to the first one that is not like that;
+; here back to back, from `pair_i`, up to the first one that is not like that;
 ; what each one does is exactly the shortcut of `one_parallel`: its condition,
 ; and since what follows is the `OP_DONE`, nothing else.
 ;
@@ -148,77 +148,77 @@ ready:
 ;   * moves —has a move route slot—: its step is taken by `one_parallel`;
 ; and before starting if there is a message or a choice on screen, because
 ; then it matters whose it is (see `one_parallel`). Returns with carry at 0 and
-; `par_i` on that one, or on `par_n` if it reached the end.
+; `pair_i` on that one, or on `pair_n` if it reached the end.
 ;
 ; If one's condition holds —or what follows is not the `OP_DONE`— it has
 ; already run its first instruction, with whatever it writes: it returns with
-; carry at 1, Y on the next one and `cod_ptr`, `pag_ofs`, `par_dir` and
-; `par_ev` set, so that `one_parallel_continue` continues with its interpreter.
+; carry at 1, Y on the next one and `code_ptr`, `page_ofs`, `pair_dir` and
+; `pair_ev` set, so that `one_parallel_continue` continues with its interpreter.
 .proc parallel_cell
 .a8
 .i16
-    lda f:msg_abierto
-    ora f:msg_estado
-    ora eleg_activo
+    lda f:msg_open
+    ora f:msg_state
+    ora pick_active
     bne no
 otro:
-    lda par_i
-    cmp par_n
+    lda pair_i
+    cmp pair_n
     bcs no
     rep #$20
 .a16
     and #$00FF
     asl a
     asl a
-    asl a                       ; times PAR_LISTA_BYTES
+    asl a                       ; times PAIR_LIST_BYTES
     tax
-    lda f:FAR_LARGO + FAR_PAR_LISTA + 1, x
-    sta cod_ptr
+    lda f:FAR_LENGTH + FAR_PAIR_LIST + 1, x
+    sta code_ptr
     sep #$20
 .a8
-    lda f:FAR_LARGO + FAR_PAR_LISTA + 3, x
-    sta cod_ptr + 2
-    lda [cod_ptr]               ; the first opcode
+    lda f:FAR_LENGTH + FAR_PAIR_LIST + 3, x
+    sta code_ptr + 2
+    lda [code_ptr]               ; the first opcode
     cmp #OP_CELL_TEST
     bne no
     rep #$20
 .a16
-    lda f:FAR_LARGO + FAR_PAR_LISTA + 4, x
-    sta pag_ofs
-    lda f:FAR_LARGO + FAR_PAR_LISTA + 0, x
+    lda f:FAR_LENGTH + FAR_PAIR_LIST + 4, x
+    sta page_ofs
+    lda f:FAR_LENGTH + FAR_PAIR_LIST + 0, x
     and #$00FF
     asl a
     asl a
-    asl a                       ; times PAR_BYTES
-    sta par_dir
+    asl a                       ; times PAIR_BYTES
+    sta pair_dir
     tax
-    lda f:FAR_LARGO + FAR_PAR_ESTADO + 5, x
-    cmp pag_ofs
+    lda f:FAR_LENGTH + FAR_PAIR_STATE + 5, x
+    cmp page_ofs
     bne no16                    ; the state is another page's
-    lda f:FAR_LARGO + FAR_PAR_ESTADO + 2, x
+    lda f:FAR_LENGTH + FAR_PAIR_STATE + 2, x
     bne no16                    ; waiting
     sep #$20
 .a8
-    lda f:FAR_LARGO + FAR_PAR_ESTADO + 4, x
+    lda f:FAR_LENGTH + FAR_PAIR_STATE + 4, x
     bne no                      ; half run
-    lda f:FAR_LARGO + FAR_PAR_ESTADO + PAR_RANURA, x
+    lda f:FAR_LENGTH + FAR_PAIR_STATE + PAIR_SLOT, x
     bne no                      ; it moves
     ldy #1
     jsr cell_test_near
-    lda [cod_ptr], y
+    lda [code_ptr], y
     bne sigue                   ; did not end at its `OP_DONE`
-    inc par_i
+    inc pair_i
     bra otro
 sigue:
     rep #$20
 .a16
-    lda par_dir
+    lda pair_dir
     lsr a
     lsr a
     lsr a
     sep #$20
 .a8
-    sta par_ev
+    sta pair_ev
     sec
     rtl
 .a16

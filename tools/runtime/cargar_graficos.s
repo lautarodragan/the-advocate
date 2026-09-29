@@ -15,7 +15,7 @@
 .a16
     tya                         ; the field's offset
     clc
-    adc mapa_ofs
+    adc map_ofs
     tax
     lda f:mapa_tabla, x
     sta A1T0L
@@ -29,7 +29,7 @@
 .proc load_map
 .a8
 .i16
-    ldx mapa_ofs
+    ldx map_ofs
     ; --- the tiles ---
     lda #$80
     sta VMAIN                   ; increment one word after the high byte
@@ -39,7 +39,7 @@
     sta VMADDL
     sep #$20
 .a8
-    jsl f:lz2_backdrop + RAPIDO    ; compressed, in streams: see descomprimir.s
+    jsl f:lz2_backdrop + FAST    ; compressed, in streams: see descomprimir.s
 
     ; --- the ChipSet animation ---
     ; The map brings drawing 0 of each run into VRAM, and the clock can be on
@@ -47,8 +47,8 @@
     ; due is uploaded here, with no vblank budget because the screen is off.
     ; Its drawings come compressed and are decompressed to WRAM, from where
     ; `anim_upload` uploads them for as long as the map lasts. They go after
-    ; the background tiles, which use the same WRAM bank: see `ANIM_DIBUJOS`.
-    jsl f:lz2_anim + RAPIDO
+    ; the background tiles, which use the same WRAM bank: see `ANIM_DRAWINGS`.
+    jsl f:lz2_anim + FAST
     jsr anim_load
 
     ; --- the colors ---
@@ -81,7 +81,7 @@
     sta CGADD
     ldy #M_PTR_MAP_CGRAM
     jsr dma_origin
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_MAP_CGRAM, x
@@ -113,7 +113,7 @@
     stz vq_n
     lda #$FF
     sta hero_pose_vram
-    ldx mapa_ofs
+    ldx map_ofs
     lda #$80
     sta VMAIN
     rep #$20
@@ -123,8 +123,8 @@
     sep #$20
 .a8
     ldy #M_PTR_SPRITE_TILES
-    jsl f:lz2_field + RAPIDO
-    ldx mapa_ofs
+    jsl f:lz2_field + FAST
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_SPRITE_TILES, x
@@ -149,7 +149,7 @@
     sta CGADD
     ldy #M_PTR_SPRITE_CGRAM
     jsr dma_origin
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_SPRITE_CGRAM, x
@@ -174,7 +174,7 @@
 .proc clear_oam
 .a8
 .i16
-    jsl f:oam_hide + RAPIDO ; see MEMSEL
+    jsl f:oam_hide + FAST ; see MEMSEL
     rts
 .endproc
 
@@ -245,7 +245,7 @@ hay_lugar:
     rts
 .endproc
 
-; Uploads up to VQ_POR_CUADRO poses from the queue and leaves the rest at the
+; Uploads up to VQ_PER_FRAME poses from the queue and leaves the rest at the
 ; start. Each pose is four DMAs of 128 bytes: the four rows of the 4x4 block,
 ; which in the name grid are 256 words apart from each other.
 .proc vram_drain
@@ -261,13 +261,13 @@ hay:
     sta DMAP0                   ; two registers, word by word
     lda #$18
     sta BBAD0                   ; destination: VMDATAL
-    stz vq_hechas
+    stz vq_done
     ldx #$0000                  ; the entry, in bytes
 otra:
-    lda vq_hechas
+    lda vq_done
     cmp vq_n
     beq end
-    cmp vq_tope
+    cmp vq_cap
     beq end
     lda vq + 2, x
     sta A1B0                    ; the source's bank
@@ -280,7 +280,7 @@ otra:
     sep #$20
 .a8
     lda #4
-    sta vq_filas
+    sta vq_rows
 row:
     rep #$20
 .a16
@@ -306,9 +306,9 @@ row:
     sta vq_dest
     sep #$20
 .a8
-    dec vq_filas
+    dec vq_rows
     bne row
-    inc vq_hechas
+    inc vq_done
     rep #$20
 .a16
     txa
@@ -323,7 +323,7 @@ end:
     ; entry left.
     lda vq_n
     sec
-    sbc vq_hechas
+    sbc vq_done
     sta vq_n
     beq ready
     sta temp + 2
@@ -351,7 +351,7 @@ ready:
 .proc load_above
 .a8
 .i16
-    ldx mapa_ofs
+    ldx map_ofs
     lda #$80
     sta VMAIN
     rep #$20
@@ -366,8 +366,8 @@ ready:
     sep #$20
 .a8
     ldy #M_PTR_ABOVE_TILES
-    jsl f:lz2_field + RAPIDO
-    ldx mapa_ofs
+    jsl f:lz2_field + FAST
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_ABOVE_TILES, x
@@ -393,7 +393,7 @@ ready:
     sta CGADD
     ldy #M_PTR_ABOVE_CGRAM
     jsr dma_origin
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_ABOVE_CGRAM, x
@@ -424,7 +424,7 @@ ready:
 .a16
     lda #M_PTR_NPC_TABLE
     clc
-    adc mapa_ofs
+    adc map_ofs
     tax
     lda f:mapa_tabla, x           ; the low 16 bits of the pointer
     sta npc_ptr
@@ -433,7 +433,7 @@ ready:
     lda f:mapa_tabla + 2, x       ; and its bank
     sta npc_ptr + 2
 
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_NPC_COUNT, x
@@ -454,7 +454,7 @@ copiar:
     iny
     bra copiar
 ready:
-    jsl f:pass_look + RAPIDO   ; ver `pasa_hay`
+    jsl f:pass_look + FAST   ; ver `pass_has`
     rts
 .endproc
 
@@ -467,7 +467,7 @@ ready:
 .a16
     lda #M_PTR_RUTA_GRAFICO
     clc
-    adc mapa_ofs
+    adc map_ofs
     tax
     lda f:mapa_tabla, x
     sta npc_ptr
@@ -476,7 +476,7 @@ ready:
     lda f:mapa_tabla + 2, x
     sta npc_ptr + 2
 
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_RUTA_GRAFICO_COUNT, x
@@ -489,7 +489,7 @@ copiar:
     cpy temp
     beq ready
     lda [npc_ptr], y
-    sta ruta_graf_buf, y
+    sta route_gfx_buf, y
     iny
     bra copiar
 ready:
@@ -512,7 +512,7 @@ ready:
 .a16
     lda #M_PTR_EV_POS
     clc
-    adc mapa_ofs
+    adc map_ofs
     tax
     lda f:mapa_tabla, x           ; the low 16 bits of the pointer
     sta npc_ptr
@@ -521,7 +521,7 @@ ready:
     lda f:mapa_tabla + 2, x       ; and its bank
     sta npc_ptr + 2
 
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_EV_COUNT, x
@@ -540,18 +540,18 @@ copiar:
     bra copiar
 
 tablas:
-    stz ruta_ev_tope            ; no slot used yet on this map
+    stz route_ev_cap            ; no slot used yet on this map
     ldx #$0000
 libre:
-    lda #RUTA_EV_LIBRE
-    sta ruta_ev, x
+    lda #ROUTE_EV_FREE
+    sta route_ev, x
     rep #$20
 .a16
     txa
     clc
-    adc #RUTA_EV_STRIDE
+    adc #ROUTE_EV_STRIDE
     tax
-    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
+    cmp #RUTA_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
     bcc libre
@@ -559,7 +559,7 @@ libre:
     ; And the flashes, which also belong to the events of the map being left.
     ldx #$0000
 sin_flash:
-    lda #FLASH_LIBRE
+    lda #FLASH_FREE
     sta flash_ev, x
     stz flash_ev + 7, x         ; no pending palette: RAM starts with
                                 ; garbage and the vblank reads this
@@ -573,7 +573,7 @@ sin_flash:
     sep #$20
 .a8
     bcc sin_flash
-    stz ruta_paso
+    stz route_step
     rts
 .endproc
 

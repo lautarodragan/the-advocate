@@ -112,7 +112,7 @@ def test_la_experiencia_se_topa_en_la_de_rm2k(partida):
 
 
 def test_la_experiencia_viaja_en_la_partida(partida):
-    """`FAR_EXP` en `partida_tabla`, al final. Resetea la consola de verdad
+    """`FAR_EXP` en `save_table`, al final. Resetea la consola de verdad
     —la SRAM sobrevive— y pisa la RAM antes, porque snes9x no la borra."""
     una = partida(caso="guardar-198")
     actor = GRUPO[1]
@@ -190,10 +190,10 @@ def test_la_pelea_usa_los_parametros_del_nivel_de_ahora(partida):
     poner_exp(una, kersh, experience.exp_list(base.actors[kersh])[29], 30)
     pelea = Pelea(una).abrir()
     s = una.simbolos
-    d = s["BA_UNO"]
-    campos = {"hp_max": d + s["BA_HPMAX"], "sp_max": d + s["BA_SPMAX"],
-              "attack": d + s["BA_ATK"], "defense": d + s["BA_DEF"],
-              "spirit": d + s["BA_SPI"], "agility": d + s["BA_AGI"]}
+    d = s["BT_ONE"]
+    campos = {"hp_max": d + s["BT_HPMAX"], "sp_max": d + s["BT_SPMAX"],
+              "attack": d + s["BT_ATK"], "defense": d + s["BT_DEF"],
+              "spirit": d + s["BT_SPI"], "agility": d + s["BT_AGI"]}
     de_la_rom = {k: pelea.palabra(v) for k, v in campos.items()}
     en_30 = modelo.actor_of(base, kersh, level=30)
     en_20 = modelo.actor_of(base, kersh)
@@ -222,7 +222,7 @@ def test_full_heal_llena_hasta_el_maximo_del_nivel_de_ahora(partida):
 
 # --- las habilidades del nivel ----------------------------------------------
 #
-# Lo que un actor sabe es un bit por par (actor, habilidad) en `FAR_HAB` —ver
+# Lo que un actor sabe es un bit por par (actor, habilidad) en `FAR_SKILL` —ver
 # `test_equipo_y_habilidades.py`—, y subir de nivel prende los de los pares que
 # la tabla de aprendizaje del LDB enseña en cada nivel que pasa:
 # `LearnLevelSkills(old_level + 1, new_level)`.

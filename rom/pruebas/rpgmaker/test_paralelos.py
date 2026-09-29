@@ -24,7 +24,7 @@ no está, así que esto es lo único que lo cuida.
 HQ = "en-11"
 
 # Dónde vive la lista, para leerla: la RAM lejana se direcciona igual que el
-# banco $7E, así que el offset de `FAR_PAR_LISTA` es el de la WRAM.
+# banco $7E, así que el offset de `FAR_PAIR_LIST` es el de la WRAM.
 #
 # Lo que la lista lleva son **índices de evento**, o sea la posición en la tabla
 # del mapa y no el id de RM2k. Lo que esta prueba cuida no es cuántos son sino
@@ -37,10 +37,10 @@ NVSPY = "NVSpy"
 
 def lista_de(una):
     """Los índices de evento que la ROM tiene anotados como paralelos."""
-    n = una.byte("par_n")
-    datos = una.consola.ram(una.simbolos["FAR_PAR_LISTA"],
-                            n * una.simbolos["PAR_LISTA_BYTES"])
-    return [datos[i * una.simbolos["PAR_LISTA_BYTES"]] for i in range(n)]
+    n = una.byte("pair_n")
+    datos = una.consola.ram(una.simbolos["FAR_PAIR_LIST"],
+                            n * una.simbolos["PAIR_LIST_BYTES"])
+    return [datos[i * una.simbolos["PAIR_LIST_BYTES"]] for i in range(n)]
 
 
 def indice_de(nombre):
@@ -99,16 +99,16 @@ def test_el_hq_de_los_lazer_teeth_entra_en_el_cuadro(partida):
     """El mapa 11 no puede volver a caer a la mitad del cuadro.
 
     Se cuentan vueltas del lazo contra cuadros de hardware, que es lo que
-    `vueltas` permite preguntar: con la página resuelta en cada cuadro daban 90
+    `ticks` permite preguntar: con la página resuelta en cada cuadro daban 90
     de 180 —30,00 fps clavados—, y con la lista dan 173. El piso está puesto en
     150 y no en 173 para que un cuadro de más no pinte de rojo lo que anda: lo
     que esta prueba cuida es la caída a la mitad, que es la que se ve jugando.
     """
     una = partida(caso=HQ)
     una.correr(30)
-    antes = una.palabra("vueltas")
+    antes = una.palabra("ticks")
     una.consola.run(180)
-    vueltas = una.palabra("vueltas") - antes
+    vueltas = una.palabra("ticks") - antes
     assert vueltas > 150, (
         "el mapa 11 dio %d vueltas en 180 cuadros (%.2f fps): volvió a "
         "perder el cuadro" % (vueltas, vueltas * 60.0 / 180))

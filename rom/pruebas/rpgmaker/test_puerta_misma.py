@@ -15,7 +15,7 @@ las franjas amarillas de arriba.
 Los dos cuartos que uno percibe como mapas distintos son el mismo mapa 2,
 separados lo suficiente como para que jugando no se note; se cruzan con
 teletransportes internos. El de ida sale de un `Teleport` y andaba: `hubo_salto`
-comparaba con `mapa_actual`. El de vuelta es una **puerta** —el evento 20, una
+comparaba con `map_current`. El de vuelta es una **puerta** —el evento 20, una
 página de contacto cuyo único comando es el teletransporte— y ése recargaba
 siempre. Al volver, las franjas reaparecían.
 """
@@ -39,7 +39,7 @@ def caminar(una, tecla, destino, vueltas=80):
         una.consola.hold()
         una.consola.run(2)
         una.cuadro += 2
-        if una.byte("msg_abierto"):
+        if una.byte("msg_open"):
             una.tocar_ticks("a")
     return una.heroe() == destino
 
@@ -54,7 +54,7 @@ def abierta(partida):
             break
         una.tocar_ticks("a")
         for _ in range(60):
-            if una.byte("msg_abierto"):
+            if una.byte("msg_open"):
                 break
             una.correr(1)
     else:

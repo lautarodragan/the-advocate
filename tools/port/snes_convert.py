@@ -2273,7 +2273,7 @@ LAYOUT_WINDOW_SPRITE = {"sprites": (0x0000, 512), "tiles": (0x2000, 384),
 # needs a base that is a multiple of 1024 words after the background.
 #
 # The tilemap moving is paid for by `build_column` and `build_row`, which add
-# `FAR_VRAM_MAPA` instead of a constant, and by the step to the upper layer in
+# `FAR_VRAM_MAP` instead of a constant, and by the step to the upper layer in
 # `push_strips`, which masks instead of adding a fixed distance. That is why
 # **both bases have to be multiples of 2048 words**, and the map's can't be
 # zero: `col_addr` at zero means "no column". `_check_splits` checks it.
@@ -4108,7 +4108,7 @@ def page_table(map_info, number, evcode):
 
     It doesn't go through `block()` because its pointers are symbolic: they
     point inside the code block, which the linker places. But it **is
-    declared** with `.bloque`: the ROM walks it with `[pag_ptr], y`, and a
+    declared** with `.bloque`: the ROM walks it with `[page_ptr], y`, and a
     table that crosses a bank continues at `$03:0000`, which in LoROM isn't
     ROM but the WRAM mirror. Without the declaration it really happened: when
     map 2's sprites grew with the events drawn with a tile, the table ended up
@@ -4840,7 +4840,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "; one the converter lets through— it is twenty.\n"
         "RUTA_ESPERA = %d\n"
         "; And the jump: how much is left when it starts. How much it drops\n"
-        "; per frame depends on the speed —`salto_por_vel`— and not on the\n"
+        "; per frame depends on the speed —`jump_per_speed`— and not on the\n"
         "; distance.\n"
         "SALTO_PASO = %d\n"
         "TINTE_NEUTRO = %d\n"
@@ -4895,7 +4895,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "CGRAM_BASE     = %d\n"
 "VENTANA_CGADD  = %d\n"
         "VENTANA_TILES  = %d\n"
-        "VENTANA_FILAS_ = %d\n"
+        "WINDOW_ROWS_ = %d\n"
         "VENTANA_COLS   = %d\n"
         "; The text area: where it starts in the window's tile bank and\n"
         "; which cells it takes. Its tiles aren't deduplicated —the ROM\n"
@@ -5436,7 +5436,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         for number, row in enumerate(slots["filas"]):
             for full in (0, 1):
                 for cursor in (0, 1):
-                    name = "ranura_%d_%d%d" % (number, full, cursor)
+                    name = "slot_%d_%d%d" % (number, full, cursor)
                     handle.write(
                         block(name, cells_asm([row[full][cursor]]))
                         + "\n")
@@ -6125,7 +6125,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # Per known item: its type, what it adds —attack, defense, spirit,
         # agility, signed— and who can equip it, one bit per actor. Per actor,
         # from 0 to the LDB's last: its level parameters and its initial
-        # equipment, which the ROM copies to `FAR_EQUIPO` on reset. And where
+        # equipment, which the ROM copies to `FAR_EQUIPMENT` on reset. And where
         # each thing goes in the screen's buffer, in bytes: row * 64 + col * 2.
         n_actors = max(db.actors) + 1
 
@@ -6372,7 +6372,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             handle.write(block("comun_equipo_%d" % n,
                                events.compile_party_common_event(n)) + "\n")
         # And what each actor knows, which since 2026-09-21 is state: one bit
-        # per (actor, skill) pair in `FAR_HAB`, with the slots of
+        # per (actor, skill) pair in `FAR_SKILL`, with the slots of
         # `events.SKILL_SLOT`. It is answered by branch 4 of
         # `ConditionalBranch` —which already brings the slot in the bytecode—
         # and by the battle's list, which walks the actor's pairs: where they
@@ -6402,7 +6402,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         for (a, h), r in pairs:
             if h in knows.get(a, ()):
                 bits[r >> 3] |= 1 << (r & 7)
-        handle.write("; How many bytes the skill bits take in `FAR_HAB`.\n"
+        handle.write("; How many bytes the skill bits take in `FAR_SKILL`.\n"
                      "HAB_BYTES = %d\n" % skill_bytes)
         handle.write("; The signature of the save format: see `SRAM_SIGNATURE`.\n"
                      "PARTIDA_FIRMA = $%04X\n" % save_signature(
@@ -6484,7 +6484,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # Which members of each troop start **hidden** —the troop's
         # `invisible`—, one bit per place: a page with `ShowHiddenMonster`
         # makes them appear. It is the Rat King, who calls his rats. See
-        # `BAF_OCULTO`.
+        # `BAF_HIDDEN`.
         bytes_asm("tropa_ocultos", [
             sum(1 << k for k, hidden in enumerate(
                 db.troops[n].hidden[:constants.ENEMIES_MAX]) if hidden)
@@ -6662,7 +6662,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # The product of the hit computation has to fit in sixteen bits:
         # (100 - hit rate) times the sum of both agilities. With the minimum
         # hit rate of 70 that is 30 times 1998, and the agility cap is guarded
-        # by `BA_AGI_TOPE`; an enemy with a lower hit rate would overflow it
+        # by `BT_AGI_CAP`; an enemy with a lower hit rate would overflow it
         # without warning, so it stops here.
         # `recover_hp_rate * hp_max` has to fit in sixteen bits: the ROM does
         # it with the hardware multiplier, which gives a word. With the
@@ -6735,7 +6735,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # the music section, which is the one that builds the list.
         #
         # Sixteen bits, and "there is none" is $FFFF: with the 328 maps of the
-        # whole game the index doesn't fit in a byte, same as `mapa_actual`.
+        # whole game the index doesn't fit in a byte, same as `map_current`.
         # See `battle_audio_load`.
         handle.write(
             "BA_TEMA           = $%02X\n"
@@ -6890,7 +6890,7 @@ EV_STRIDE = 4
 # How many events the RAM holds. The most populated map of this game has 114
 # —measured over the 328—; the converter stops if any goes over, so the number
 # can't fall short silently. Each one costs six bytes of RAM between
-# `ev_pos_buf` and `eleg_por_ev`.
+# `ev_pos_buf` and `pick_by_ev`.
 EV_MAX = 120
 # How many forced routes can be running at once on events. The page that sends
 # the most walking in this game moves four distinct events, and a route
@@ -6913,14 +6913,14 @@ FLASH_MAX = 4
 # the 328 maps with everything that is done today; the converter stops if any
 # goes over.
 #
-# What it costs: eight bytes of `FAR_PAR_LISTA` per slot —far RAM, not the
-# BSS; see `PAR_LISTA_BYTES` in `tools/runtime/ram_lejana.s`, which besides the
+# What it costs: eight bytes of `FAR_PAIR_LIST` per slot —far RAM, not the
+# BSS; see `PAIR_LIST_BYTES` in `tools/runtime/ram_lejana.s`, which besides the
 # event stores the page the refresh chose for it— and **one interpreter pass
 # per frame for each one**. It is the second that has to be watched if the
 # race gets slow: the first is gone, because the page stopped being resolved
 # every frame.
 #
-# 48 times eight is 384 bytes, and from `FAR_PAR_LISTA` to `FAR_AZAR` there
+# 48 times eight is 384 bytes, and from `FAR_PAIR_LIST` to `FAR_RANDOM` there
 # are 508.
 PARALLEL_MAX = 48
 # An NPC in the ROM's RAM. It was eight bytes; the four extra are for the ones
@@ -8302,11 +8302,11 @@ def main():
             "as PAQUETE_BATALLA")
         print("  battle audio package: %d song(s), %d sound effect(s)"
               % (len(palettes_needed["temas"]), len(packages[-1][1])))
-    # **And that the boot fits in `BOOT_CUADROS`**: the ROM waits until that
+    # **And that the boot fits in `BOOT_FRAMES`**: the ROM waits until that
     # frame so that the loop always starts on the same one, and if uploading
     # the boot map's package took longer, it would come out later and the
     # tests —which count from there— would count wrong. See the comment on
-    # `BOOT_CUADROS` in tools/runtime/ram_lejana.s.
+    # `BOOT_FRAMES` in tools/runtime/ram_lejana.s.
     frames, in_package = snes_music.boot_frames_estimate(
         driver, samples, done_ones, packages[args.start_index],
         decompress_frames(maps[args.start_index], compressed),
@@ -8314,13 +8314,13 @@ def main():
     cap = snes_music.boot_frames()
     if frames > cap:
         raise SystemExit(
-            "the boot doesn't fit in BOOT_CUADROS: the boot map's package is "
+            "the boot doesn't fit in BOOT_FRAMES: the boot map's package is "
             "%d B and with the map, the driver and the directory the "
-            "computation gives %.0f frames, against %d. Raise BOOT_CUADROS in "
+            "computation gives %.0f frames, against %d. Raise BOOT_FRAMES in "
             "tools/runtime/ram_lejana.s, or shrink that package"
             % (in_package, frames, cap))
     print("  boot: the boot map's package is %d B, %.0f of "
-          "the %d frames of BOOT_CUADROS" % (in_package, frames, cap))
+          "the %d frames of BOOT_FRAMES" % (in_package, frames, cap))
     snes_music.emit(music, done_ones, driver, samples, boot, title_song,
                     snes_music.sound_table(songs.sounds, bank),
                     [p + (separate,) for p, separate in zip(packages, separate_ones)],

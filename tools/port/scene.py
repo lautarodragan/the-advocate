@@ -74,7 +74,7 @@ does not go past because it has another eighty pixels of screen below.
   128 to 255. Those are the map objects' ones, and the battle draws no
   objects; returning to the map did not restore them whole —the picture and
   the battle animation are uploaded only when they change—, so now
-  `back_from_battle` uploads the 128 from `cgram_sombra` before anything
+  `back_from_battle` uploads the 128 from `cgram_shadow` before anything
   else.
 * **WRAM**: the clean backdrop at `$7F0000` and the composited scene at
   `$7F8000`, 32 KB each. The clean one is what allows recompositing the

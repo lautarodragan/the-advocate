@@ -6,7 +6,7 @@ y `test_titulo_golden.py`: lo que los junta no es de qué habla cada caso sino
 cómo hay que correrlo.
 
 En todos los demás, un tick de la ROM es una vuelta del lazo principal y
-`vueltas` lo cuenta; acá no: la pantalla de batalla corre su propio lazo, y el
+`ticks` lo cuenta; acá no: la pantalla de batalla corre su propio lazo, y el
 menú de pausa, la lista de ranuras y la de título no son el juego. Esperar un
 tick ahí adentro no termina nunca —el 2026-09-10 una captura sin ese cuidado se
 comió una hora de CPU y 42 GiB antes de que alguien la viera en `ps`—.
@@ -109,7 +109,7 @@ def test_batalla(nombre, caso, cuantos, toques, en):
     """`batalla`: la pantalla de la pelea.
 
     **La pelea no cuesta ningún tick**: `battle_run` corre su propio lazo y
-    `vueltas` no avanza mientras dura, así que todo acá va en cuadros de
+    `ticks` no avanza mientras dura, así que todo acá va en cuadros de
     hardware, los toques incluidos.
 
     El grupo son tres actores y no el de los demás casos: la pantalla muestra

@@ -40,7 +40,7 @@
 ; `FUNDIDO_RAMPA` and the rest is the black of the load, which is always
 ; longer.
 ;
-; All of this **blocks**, like the battle itself: `vueltas` does not advance,
+; All of this **blocks**, like the battle itself: `ticks` does not advance,
 ; so the transition costs no tick —see `test_la_pelea_no_gasta_ningun_tick`—.
 ; RM2k also freezes the scene while a transition lasts.
 
@@ -59,7 +59,7 @@
     ldx #0
 subir:
     lda fundido_rampa, x
-    sta brillo
+    sta brightness
     phx
     jsr wait_vblank
     jsr flush_video
@@ -67,7 +67,7 @@ subir:
     inx
     cpx #FUNDIDO_RAMPA
     bcc subir
-    rts                         ; and `brillo` is left at full, as it was
+    rts                         ; and `brightness` is left at full, as it was
 .endproc
 
 .segment "FAR"
@@ -86,7 +86,7 @@ subir:
     ; the previous battle to have left it at zero: the first one finds the RAM
     ; as power-on left it, which on a console —and in bsnes— is garbage.
     lda #0
-    sta f:PELEA_PRENDIDA
+    sta f:BATTLE_ON
     ; The fixed color is added on every layer and on the backdrop. Sprites
     ; with palettes 0 to 3 get no color math —that is the hardware—, so the
     ; hero flashes less than the map.
@@ -141,10 +141,10 @@ battle_flash:
 .proc battle_fade_out
 .a8
 .i16
-    lda f:PELEA_PRENDIDA
+    lda f:BATTLE_ON
     beq ready
     lda #0
-    sta f:PELEA_PRENDIDA
+    sta f:BATTLE_ON
     ldx #(FUNDIDO_RAMPA - 2)
 lower:
     jsl f:bt_t_vblank
@@ -171,7 +171,7 @@ ready:
 .a8
 .i16
     lda #1
-    sta f:PELEA_PRENDIDA
+    sta f:BATTLE_ON
     ldx #0
 subir:
     jsl f:bt_t_vblank           ; `wait_vblank`, which does not touch X

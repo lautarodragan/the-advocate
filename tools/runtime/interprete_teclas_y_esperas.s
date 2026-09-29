@@ -19,10 +19,10 @@
 .proc op_key
 .a8
 .i16
-    lda [cod_ptr], y            ; the variable's slot
+    lda [code_ptr], y            ; the variable's slot
     iny
     sta temp
-    lda [cod_ptr], y            ; the flags
+    lda [code_ptr], y            ; the flags
     iny
     sta temp + 1
     and #TECLA_ARRANCA
@@ -41,9 +41,9 @@
     ; facing. It is covered by `test_con_a_y_una_direccion_la_piedra_sale_
     ; volando`.
     lda pad
-    sta pad_ant
+    sta pad_prev
     lda pad_a
-    sta pad_a_ant
+    sta pad_a_prev
     stz temp + 2
     stz temp + 3
     lda temp + 1                ; the flags, which carry the refresh bit
@@ -64,9 +64,9 @@ tecla_mirar:
     lda temp + 1
     and #TECLA_ESPERA
     beq tecla_leer
-    lda msg_abierto
-    ora msg_estado              ; also while it is being composed
-    ora eleg_activo
+    lda msg_open
+    ora msg_state              ; also while it is being composed
+    ora pick_active
     bne tecla_rebobinar
 tecla_leer:
     phy
@@ -102,8 +102,8 @@ tecla_guardar:
     ; player watches go by.
     rep #$20
 .a16
-    lda [cod_ptr], y            ; how many frames, sixteen bits
-    sta ev_esperando
+    lda [code_ptr], y            ; how many frames, sixteen bits
+    sta ev_waiting
     sep #$20
 .a8
     iny

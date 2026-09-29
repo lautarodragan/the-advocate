@@ -114,10 +114,10 @@ def test_cancelar_guarda_seis(partida):
     **El mismo B abre además el menú de pausa, y está bien que lo abra**: el
     comando no se come nada, y `Game_Player::Update` mira `IsTriggered(CANCEL)`
     igual. Lo único que lo frena es que haya una página corriendo —el
-    `ev_activo` de `request_menu`, que es el
+    `ev_active` de `request_menu`, que es el
     `Game_Map::GetInterpreter().IsRunning()` de allá— y en este cuadro la
     página **termina**: el comando era su último. Por eso el toque es un tick y
-    no `tocar_ticks`, que son dos: con la pantalla de pausa abierta `vueltas` no
+    no `tocar_ticks`, que son dos: con la pantalla de pausa abierta `ticks` no
     avanza y el segundo tick no llega nunca.
     """
     una = partida(caso="tecla-esperar-todo")

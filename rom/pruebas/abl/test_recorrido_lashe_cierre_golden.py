@@ -53,9 +53,9 @@ def no_pregunta(r):
     # La primera elección que se abre, pasando los mensajes del compañero, y
     # sin confirmar: la de irse tiene dos opciones y la de sectores cuatro.
     r.marcar(0)
-    assert r.p.byte("eleg_n") == len(SECTORES), (
+    assert r.p.byte("pick_n") == len(SECTORES), (
         "la primera elección del 36 tendría que ser la de sectores, y tiene "
-        "%d opciones. %s" % (r.p.byte("eleg_n"), r.estado()))
+        "%d opciones. %s" % (r.p.byte("pick_n"), r.estado()))
     assert not r.p.switch(LOS_SIGUE_LA_AGENCY), (
         "sin la condición de la rama la página 2 del 36 no nota el auto de "
         "la Agency. %s" % r.estado())

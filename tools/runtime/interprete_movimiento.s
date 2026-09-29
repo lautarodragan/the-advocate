@@ -21,19 +21,19 @@
 ;
 ; Both are kept as a pointer into the bytecode, which lives in the ROM and
 ; goes nowhere. The hero's was copied to RAM, with a 32-byte cap, until
-; 2026-09-27: see `ruta_heroe`.
+; 2026-09-27: see `hero_route`.
 .proc op_route
-    lda [cod_ptr], y            ; on whom
-    sta ruta_blanco
+    lda [code_ptr], y            ; on whom
+    sta route_target
     iny
-    lda [cod_ptr], y            ; at what frequency
-    sta ruta_frec_op
+    lda [code_ptr], y            ; at what frequency
+    sta route_freq_op
     iny
-    lda [cod_ptr], y            ; how many commands it carries
-    sta ruta_cuantas
-    stz ruta_cuantas + 1
+    lda [code_ptr], y            ; how many commands it carries
+    sta route_count
+    stz route_count + 1
     iny
-    lda ruta_blanco
+    lda route_target
     bne op_route_event
 
     ; --- the hero: the route is copied to RAM and `move_hero` walks it, not
@@ -42,24 +42,24 @@
     ; command runs right away— and nothing else: the step or jump in progress
     ; finishes, as there. Here the jump used to be cut too, and RM2k does not
     ; cut it.
-    lda ruta_cuantas
-    sta ruta_n
-    stz ruta_i
-    stz ruta_espera
-    lda ruta_frec_op
-    sta ruta_frec
+    lda route_count
+    sta route_n
+    stz route_i
+    stz route_wait
+    lda route_freq_op
+    sta route_freq
     ; The pointer, like an event's in `route_for_event`: the addition carries
     ; nothing into the bank byte because the code block fits whole in one.
     rep #$20
 .a16
     tya
     clc
-    adc cod_ptr
-    sta ruta_heroe
+    adc code_ptr
+    sta hero_route
     sep #$20
 .a8
-    lda cod_ptr + 2
-    sta ruta_heroe + 2
+    lda code_ptr + 2
+    sta hero_route + 2
     bra saltear_ruta
 
     ; --- an event: note where the route starts inside the bytecode and which
@@ -73,7 +73,7 @@ saltear_ruta:
 .a16
     tya
     clc
-    adc ruta_cuantas
+    adc route_count
     tay
     sep #$20
 .a8
@@ -88,7 +88,7 @@ saltear_ruta:
 ; touches the direction. The opening cutscene uses it six times to bring
 ; Core, Manta and the droid into the scene.
 .proc op_place
-    lda [cod_ptr], y            ; the target: the event's index plus one
+    lda [code_ptr], y            ; the target: the event's index plus one
     dec a
     sta temp
     iny
@@ -99,11 +99,11 @@ saltear_ruta:
     asl a
     asl a                       ; EV_STRIDE bytes per event
     tax
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta ev_pos_buf + 0, x       ; the cell, which is what the routes, the
     iny                         ; action button and touch look at
     iny
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta ev_pos_buf + 2, x
     iny
     iny
@@ -134,14 +134,14 @@ lugar_plantar:                  ; with Y already on the stack: see `op_place_var
 .proc op_place_var
 .a8
 .i16
-    lda [cod_ptr], y            ; the target: the event's index plus one
+    lda [code_ptr], y            ; the target: the event's index plus one
     dec a
     sta temp
     iny
-    lda [cod_ptr], y            ; the slot for x
+    lda [code_ptr], y            ; the slot for x
     sta temp + 1
     iny
-    lda [cod_ptr], y            ; and the one for y
+    lda [code_ptr], y            ; and the one for y
     sta temp + 2
     iny
     phy
@@ -176,45 +176,45 @@ lugar_plantar:                  ; with Y already on the stack: see `op_place_var
 ; `MoveTo` like the one in `op_place` —the cell, cutting the step, and the
 ; drawing that follows it—. Both cells are read before writing either.
 .proc op_swap
-    lda [cod_ptr], y            ; the first: the index plus one
+    lda [code_ptr], y            ; the first: the index plus one
     dec a
-    sta trueque_a
+    sta swap_a
     iny
-    lda [cod_ptr], y            ; and the second
+    lda [code_ptr], y            ; and the second
     dec a
-    sta trueque_b
+    sta swap_b
     iny
     phy
     rep #$20
 .a16
-    lda trueque_a
+    lda swap_a
     and #$00FF
     asl a
     asl a                       ; EV_STRIDE bytes per event
     tax
-    lda trueque_b
+    lda swap_b
     and #$00FF
     asl a
     asl a
     tay
     lda ev_pos_buf + 0, x
-    sta celda_x
+    sta cell_x
     lda ev_pos_buf + 2, x
-    sta celda_y
+    sta cell_y
     lda ev_pos_buf + 0, y
     sta ev_pos_buf + 0, x
     lda ev_pos_buf + 2, y
     sta ev_pos_buf + 2, x
-    lda celda_x
+    lda cell_x
     sta ev_pos_buf + 0, y
-    lda celda_y
+    lda cell_y
     sta ev_pos_buf + 2, y
     sep #$20
 .a8
-    lda trueque_a
+    lda swap_a
     sta temp
     jsr plant_event
-    lda trueque_b
+    lda swap_b
     sta temp
     jsr plant_event
     ply
@@ -258,34 +258,34 @@ op_wait_routes_next:
 .a8
 .i16
     ; The hero. Its commands and wait are emptied; the step in progress is not.
-    stz ruta_n
-    stz ruta_i
-    stz ruta_espera
+    stz route_n
+    stz route_i
+    stz route_wait
     phy                         ; Y is the bytecode cursor
     ldx #$0000
 parar_otra:
-    lda ruta_ev, x
-    cmp #RUTA_EV_LIBRE
+    lda route_ev, x
+    cmp #ROUTE_EV_FREE
     beq parar_siguiente
-    lda ruta_ev + 18, x
+    lda route_ev + 18, x
     and #$01
     bne parar_siguiente         ; the page's one is not forced
-    lda ruta_ev + 27, x         ; does it have its own route to go back to?
+    lda route_ev + 27, x         ; does it have its own route to go back to?
     beq parar_sin_pagina
     jsr resume_page
     bra parar_siguiente
 parar_sin_pagina:
-    stz ruta_ev + 4, x
-    stz ruta_ev + 5, x
-    stz ruta_ev + 9, x
+    stz route_ev + 4, x
+    stz route_ev + 5, x
+    stz route_ev + 9, x
 parar_siguiente:
     rep #$20
 .a16
     txa
     clc
-    adc #RUTA_EV_STRIDE
+    adc #ROUTE_EV_STRIDE
     tax
-    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
+    cmp #RUTA_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
     bcc parar_otra

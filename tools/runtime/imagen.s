@@ -121,15 +121,15 @@ igual:
 .endproc
 
 ; The picture's sixteen colors tinted with its tone, in their place in
-; `cgram_sombra`. `flush_video` uploads them in the vblank with a DMA of its
+; `cgram_shadow`. `flush_video` uploads them in the vblank with a DMA of its
 ; own.
 ;
 ; It reuses `channel_table` and `build_palette`, which is what the screen tint
 ; already did: the only difference is where the three values come from and
 ; that the picture's saturation is always neutral —`imagen_aceptable` accepts no
-; other—, so `tinte_s` is set to neutral while this runs and then given back.
+; other—, so `tint_s` is set to neutral while this runs and then given back.
 ; The three work tables are left with the picture's tint; `restore_tables` puts
-; them back as the screen tint's, copying `puro`, which is much cheaper than
+; them back as the screen tint's, copying `pure`, which is much cheaper than
 ; rebuilding them.
 .proc picture_palette
 .a8
@@ -141,42 +141,42 @@ igual:
     ; red, and one of the kind you cannot see: the page kept running, just a
     ; different one.
     phy
-    lda tinte_s
+    lda tint_s
     pha
     lda #TINTE_NEUTRO
-    sta tinte_s
+    sta tint_s
     lda f:PICTURE_TONE + 0
-    ldx #.loword(tabla_r)
+    ldx #.loword(table_r)
     jsr channel_table
     lda f:PICTURE_TONE + 1
-    ldx #.loword(tabla_g)
+    ldx #.loword(table_g)
     jsr channel_table
     lda f:PICTURE_TONE + 2
-    ldx #.loword(tabla_b)
+    ldx #.loword(table_b)
     jsr channel_table
     rep #$20
 .a16
     lda #.loword(imagen_cgram)
-    sta tin_ptr
+    sta tint_ptr
     lda #16
-    sta tin_count
+    sta tint_count
     sep #$20
 .a8
     lda #^imagen_cgram
-    sta tin_ptr + 2
+    sta tint_ptr + 2
     jsr build_palette            ; the sixteen, tinted, in `pal_buf`
-    ; And from there to the shadow, **without touching `tinte_listo`**:
+    ; And from there to the shadow, **without touching `tint_ready`**:
     ; setting it would send the map's three palettes up on every frame of the
     ; ramp, and that eats the vblank's pose budget.
     ldx #$0000
 copia:
     lda pal_buf, x
-    sta cgram_sombra + 2 * (128 + 16 * IMAGEN_PAL), x
+    sta cgram_shadow + 2 * (128 + 16 * IMAGEN_PAL), x
     inx
     cpx #32
     bne copia
     pla
-    sta tinte_s
+    sta tint_s
     lda #1
     sta f:PICTURE_READY
     jsr restore_tables
@@ -201,7 +201,7 @@ copia:
     rts
 hay:
     lda #$02
-    sta obj_grande              ; the picture's objects are 32x32
+    sta obj_big              ; the picture's objects are 32x32
     lda #0
     sta f:PICTURE_I
 cada:

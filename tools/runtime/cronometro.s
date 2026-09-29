@@ -8,7 +8,7 @@
 .proc timer_tick
 .a8
 .i16
-    lda timer_activo
+    lda timer_active
     bne corre
     rts
 corre:
@@ -21,15 +21,15 @@ otro_segundo:
     sta timer_sub
     rep #$20
 .a16
-    lda timer_seg
+    lda timer_sec
     beq apagar_16               ; it was already at zero: nothing to decrement
     dec a
-    sta timer_seg
+    sta timer_sec
     sep #$20
 .a8
     jsr timer_digits
-    lda timer_seg
-    ora timer_seg + 1
+    lda timer_sec
+    ora timer_sec + 1
     beq apagar
     rts
 .a16
@@ -37,7 +37,7 @@ apagar_16:
     sep #$20
 .a8
 apagar:
-    stz timer_activo
+    stz timer_active
     lda timer_visible
     stz timer_visible           ; `stz` does not touch Z: the branch looks at the `lda`
     beq ya_no_se_veia
@@ -46,7 +46,7 @@ ya_no_se_veia:
     rts
 .endproc
 
-; The four digits of `timer_seg`, from minutes to seconds. It is called when
+; The four digits of `timer_sec`, from minutes to seconds. It is called when
 ; the second changes and not every frame: it is two divisions by repeated
 ; subtraction, and at 60 hertz that would be the same result sixty times.
 ;
@@ -58,7 +58,7 @@ ya_no_se_veia:
 .i16
     rep #$20
 .a16
-    lda timer_seg
+    lda timer_sec
     ldx #0
 menos_60:
     cmp #60
@@ -119,13 +119,13 @@ listo_10b:
     bne hay
     rts
 hay:
-    ldx mapa_ofs
+    ldx map_ofs
     lda f:mapa_tabla + M_TIMER_BASE, x
     ora f:mapa_tabla + M_TIMER_BASE + 1, x
     bne dibujar
     rts                         ; this ROM does not carry the glyphs
 dibujar:
-    stz obj_grande              ; the digits are 8x8
+    stz obj_big              ; the digits are 8x8
     stz timer_i
 cada_glifo:
     lda timer_i
@@ -156,8 +156,8 @@ sin_ajuste:
 .a8
     lda timer_dig, x
 con_glifo:
-    sta timer_glifo
-    stz timer_mitad
+    sta timer_glyph
+    stz timer_half
 cada_mitad:
     ; Where it lands on screen. The X does not carry the characters' offset:
     ; the digits are 8x8 and their corner is their corner.
@@ -172,7 +172,7 @@ cada_mitad:
     clc
     adc #TIMER_X
     sta obj_x
-    lda timer_mitad
+    lda timer_half
     and #$00FF
     asl a
     asl a
@@ -183,16 +183,16 @@ cada_mitad:
 
     ; And which tile: the eleven glyphs fit in a row of sixteen, so the lower
     ; half is exactly sixteen further on.
-    lda timer_mitad
+    lda timer_half
     and #$00FF
     asl a
     asl a
     asl a
     asl a
     clc
-    adc timer_glifo             ; in sixteen bits it carries into the next
+    adc timer_glyph             ; in sixteen bits it carries into the next
     and #$00FF                  ; byte, and hence the `and`
-    ldx mapa_ofs
+    ldx map_ofs
     clc
     adc f:mapa_tabla + M_TIMER_BASE, x
     sta temp
@@ -213,8 +213,8 @@ cada_mitad:
     sta obj_attr
     jsr emit_object
 
-    inc timer_mitad
-    lda timer_mitad
+    inc timer_half
+    lda timer_half
     cmp #2
     bcc cada_mitad
 siguiente:
@@ -222,7 +222,7 @@ siguiente:
     jmp cada_glifo
 end:
     lda #$02                    ; and whatever follows is 32x32 again
-    sta obj_grande
+    sta obj_big
     rts
 .endproc
 

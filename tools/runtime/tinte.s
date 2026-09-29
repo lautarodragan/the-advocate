@@ -40,14 +40,14 @@
     ; to two: it showed as `snes-timer` losing one timer tick.
     sta temp                    ; the channel's value
     stx temp + 2                ; where the table goes
-    stz tinte_espejo
+    stz tint_mirror
     cmp #(TINTE_NEUTRO + 1)
     bcc start
     lda #(2 * TINTE_NEUTRO)
     sec
     sbc temp
     sta temp                    ; 200 - value
-    inc tinte_espejo
+    inc tint_mirror
 start:
     ldy #$0000
 cada:
@@ -85,7 +85,7 @@ cabe:
     cpy #32
     bne cada
 
-    lda tinte_espejo
+    lda tint_mirror
     bne espejar
     rts
 
@@ -96,7 +96,7 @@ espejar:
     ldy #$0000
 copiar:
     lda (temp + 2), y
-    sta tinte_tmp, y
+    sta tint_tmp, y
     iny
     cpy #32
     bne copiar
@@ -111,7 +111,7 @@ volver:
 .a8
     lda #31
     sec
-    sbc tinte_tmp, x
+    sbc tint_tmp, x
     sta (temp + 2), y
     iny
     cpy #32
@@ -126,12 +126,12 @@ volver:
     jsr build_palette
     jmp copy_to_shadow
 .endproc
-; Copies the palette just built in `pal_buf` to its place in `cgram_sombra`,
+; Copies the palette just built in `pal_buf` to its place in `cgram_shadow`,
 ; and leaves the tint ready for `flush_video` to upload in the vblank.
 .proc copy_to_shadow
 .a8
 .i16
-    lda tin_cgadd
+    lda tint_cgadd
     rep #$20
 .a16
     and #$00FF
@@ -140,18 +140,18 @@ volver:
     sep #$20
 .a8
     ldx #$0000
-    cpx tin_fin
+    cpx tint_end
     beq ready                   ; a palette with no colors
 copia:
     lda pal_buf, x
-    sta cgram_sombra, y
+    sta cgram_shadow, y
     inx
     iny
-    cpx tin_fin
+    cpx tint_end
     bne copia
 ready:
     lda #1
-    sta tinte_listo
+    sta tint_ready
     rts
 .endproc
 
@@ -165,9 +165,9 @@ ready:
     ; palette's cursor.
     rep #$20
 .a16
-    lda tin_count
+    lda tint_count
     asl a                       ; two bytes per color
-    sta tin_fin
+    sta tint_end
     sep #$20
 .a8
     ; Neither `sta` nor `sep` touch Z, so this looks at the `asl`. A palette
@@ -187,7 +187,7 @@ hay_colores:
     ; line 224 of 262: **one** of margin. The first extra event that asked for
     ; a palette blew it, and the screen stayed untinted for a frame. Measured
     ; with the `count_lost` probe.
-    lda tinte_s
+    lda tint_s
     cmp #TINTE_NEUTRO
     bne cada_color
     rep #$20
@@ -196,13 +196,13 @@ hay_colores:
 
 cada_color:
 .a8
-    cpy tin_fin
+    cpy tint_end
     bne sigue_color
     rts
 sigue_color:
     rep #$20
 .a16
-    lda [tin_ptr], y
+    lda [tint_ptr], y
     sta temp                    ; the original color, 15 bits
     and #$001F
     sta sat_r
@@ -239,19 +239,19 @@ sigue_color:
     ; channel by channel —it needs the gray of the whole color, that is, all
     ; three at once— so it does not go into the tables and it is the expensive
     ; part of all this.
-    lda tinte_s
+    lda tint_s
     cmp #TINTE_NEUTRO
     beq sin_saturar
     jsr saturate_color
 sin_saturar:
     ldx sat_r
-    lda tabla_r, x
+    lda table_r, x
     sta temp + 2
     ldx sat_g
-    lda tabla_g, x
+    lda table_g, x
     sta temp + 3
     ldx sat_b
-    lda tabla_b, x
+    lda table_b, x
     rep #$20
 .a16
     and #$001F
@@ -282,16 +282,16 @@ sin_saturar:
 
     ; The same color, without saturation and without leaving sixteen bits. The
     ; `lda tabla_x, x` also read the byte next to it —the three tables are
-    ; contiguous and `puro` comes after—; the `and` throws it away.
+    ; contiguous and `pure` comes after—; the `and` throws it away.
 cada_color_neutro:
 .a16
-    cpy tin_fin
+    cpy tint_end
     beq subir_neutro
-    lda [tin_ptr], y
+    lda [tint_ptr], y
     sta temp
     and #$001F                  ; the red
     tax
-    lda tabla_r, x
+    lda table_r, x
     and #$001F
     sta temp + 2
     lda temp
@@ -302,7 +302,7 @@ cada_color_neutro:
     lsr a
     and #$001F                  ; the green
     tax
-    lda tabla_g, x
+    lda table_g, x
     and #$001F
     xba                         ; times eight
     lsr a
@@ -316,7 +316,7 @@ cada_color_neutro:
     lsr a
     and #$001F                  ; the blue, which was in bits 10 to 14
     tax
-    lda tabla_b, x
+    lda table_b, x
     and #$001F
     xba                         ; times eight
     asl a
@@ -350,28 +350,28 @@ subir:
     stz sat_acc + 1
     stz sat_acc + 2
     lda sat_r
-    sta peso_ch
+    sta weight_ch
     lda #<LUZ_R
-    sta peso_lo
+    sta weight_lo
     lda #>LUZ_R
-    sta peso_hi
+    sta weight_hi
     jsr add_weight
     lda sat_g
-    sta peso_ch
+    sta weight_ch
     lda #<LUZ_G
-    sta peso_lo
+    sta weight_lo
     lda #>LUZ_G
-    sta peso_hi
+    sta weight_hi
     jsr add_weight
     lda sat_b
-    sta peso_ch
+    sta weight_ch
     lda #<LUZ_B
-    sta peso_lo
+    sta weight_lo
     lda #>LUZ_B
-    sta peso_hi
+    sta weight_hi
     jsr add_weight
     lda sat_acc + 2             ; the sum divided by 65536
-    sta sat_luz
+    sta sat_light
 
     lda sat_r
     jsr saturate_channel
@@ -400,15 +400,15 @@ subir:
     rts
 .endproc
 
-; `sat_acc += weight * peso_ch`, in 24 bits. The weight is sixteen bits and the
+; `sat_acc += weight * weight_ch`, in 24 bits. The weight is sixteen bits and the
 ; console's unit multiplies eight at a time, so it goes in two products: the
 ; low one as is and the high one shifted a byte.
 .proc add_weight
 .a8
 .i16
-    lda peso_lo
+    lda weight_lo
     sta WRMPYA
-    lda peso_ch
+    lda weight_ch
     sta WRMPYB                  ; starts: the product takes eight cycles
     nop
     nop
@@ -426,9 +426,9 @@ subir:
     adc #0                      ; neither `sta` nor `sep` touch the carry
     sta sat_acc + 2
 
-    lda peso_hi
+    lda weight_hi
     sta WRMPYA
-    lda peso_ch
+    lda weight_ch
     sta WRMPYB
     nop
     nop
@@ -451,12 +451,12 @@ subir:
     rts
 .endproc
 
-; A channel moved toward or away from `sat_luz`. Enters and leaves in A.
+; A channel moved toward or away from `sat_light`. Enters and leaves in A.
 .proc saturate_channel
 .a8
 .i16
     sta sat_ch
-    lda tinte_s
+    lda tint_s
     cmp #(TINTE_NEUTRO + 1)
     bcs sobre
 
@@ -466,9 +466,9 @@ subir:
     ;     (luma * (100 - s) + channel * s) / 100
     lda #TINTE_NEUTRO
     sec
-    sbc tinte_s
+    sbc tint_s
     sta WRMPYA
-    lda sat_luz
+    lda sat_light
     sta WRMPYB
     nop
     nop
@@ -480,7 +480,7 @@ subir:
     sta temp + 2
     sep #$20
 .a8
-    lda tinte_s
+    lda tint_s
     sta WRMPYA
     lda sat_ch
     sta WRMPYB
@@ -504,20 +504,20 @@ subir:
     ; rounds down also with negatives; here it truncates. The difference is
     ; one value out of 31 and only when oversaturating.
 sobre:
-    lda tinte_s
+    lda tint_s
     sec
     sbc #TINTE_NEUTRO
     sta WRMPYA
     lda sat_ch
-    cmp sat_luz
+    cmp sat_light
     bcc baja
-    inc sat_sube_marca
+    inc sat_upload_mark
     sec
-    sbc sat_luz
+    sbc sat_light
     bra multiplicar
 baja:
-    stz sat_sube_marca
-    lda sat_luz
+    stz sat_upload_mark
+    lda sat_light
     sec
     sbc sat_ch
 multiplicar:
@@ -544,7 +544,7 @@ multiplicar:
     nop
     lda RDDIVL
     sta temp + 2
-    lda sat_sube_marca
+    lda sat_upload_mark
     beq restar
     lda sat_ch
     clc
@@ -585,7 +585,7 @@ cabe:
     rts
 .endproc
 
-; And uploads it from `pal_buf` to CGRAM entry `tin_cgadd`.
+; And uploads it from `pal_buf` to CGRAM entry `tint_cgadd`.
 
 ; The tint the event left, applied to the map's three palettes.
 .proc apply_tint
@@ -605,7 +605,7 @@ cabe:
     ; The upper layer, at whatever entry this map got. It has to be read from
     ; the record before loading X with the field, because the record is
     ; addressed precisely with X.
-    ldx mapa_ofs
+    ldx map_ofs
     lda f:mapa_tabla + M_ABOVE_FIRST, x
     pha
     ldx #M_PTR_ABOVE_CGRAM
@@ -630,20 +630,20 @@ cabe:
     rep #$20
 .a16
     lda hero_cgram
-    sta tin_ptr
+    sta tint_ptr
     lda #OBJ_COLORS
-    sta tin_count
+    sta tint_count
     sep #$20
 .a8
     lda hero_cgram + 2
-    sta tin_ptr + 2
+    sta tint_ptr + 2
     lda hero_pal                ; it comes shifted one place, that is palette times two
     asl a
     asl a
     asl a                       ; and this takes it to palette times sixteen
     clc
     adc #129                    ; the sprite half, plus index 0 which is not
-    sta tin_cgadd               ; drawn
+    sta tint_cgadd               ; drawn
     jsr tint_palette
 sin_lider_pal:
 
@@ -661,7 +661,7 @@ sin_lider_pal:
     ; window— and here it used to say it could not be done.
     ;
     ; None of this touched CGRAM: the three palettes were left in
-    ; `cgram_sombra` and `upload_tint` uploads them, in the vblank.
+    ; `cgram_shadow` and `upload_tint` uploads them, in the vblank.
     rts
 .endproc
 
@@ -692,26 +692,26 @@ sin_lider_pal:
 .proc event_tint
 .a8
 .i16
-    lda tinte_pendiente
+    lda tint_pending
     beq nothing
-    stz tinte_pendiente
+    stz tint_pending
     jsr apply_tint           ; to the shadow; CGRAM is written in the vblank
 nothing:
     rts
 .endproc
 
-; Uploads to CGRAM the three tinted palettes from `cgram_sombra`, and the
+; Uploads to CGRAM the three tinted palettes from `cgram_shadow`, and the
 ; untinted timer entries after them. It is for the vblank, or for
 ; `enter_map` with the screen off. The three DMAs together are 544 bytes at
 ; most.
 .proc upload_tint
 .a8
 .i16
-    stz tinte_listo
+    stz tint_ready
     rep #$20
 .a16
-    lda #.loword(cgram_sombra)
-    sta sombra_origen
+    lda #.loword(cgram_shadow)
+    sta shadow_origin
     sep #$20
 .a8
     jmp upload_palettes
@@ -722,12 +722,12 @@ nothing:
 .proc upload_flash
 .a8
 .i16
-    stz destello_listo
-    stz tinte_listo
+    stz flash_ready
+    stz tint_ready
     rep #$20
 .a16
     lda #.loword(pal_buf)
-    sta sombra_origen
+    sta shadow_origin
     sep #$20
 .a8
     jmp upload_palettes
@@ -735,36 +735,36 @@ nothing:
 .proc upload_palettes
 .a8
 .i16
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_MAP_CGRAM, x
-    sta tin_count
+    sta tint_count
     sep #$20
 .a8
     lda #CGRAM_BASE             ; the background starts shifted: below is the
     jsr dma_shadow              ; window, which is neither tinted nor re-uploaded
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_ABOVE_CGRAM, x
-    sta tin_count
+    sta tint_count
     sep #$20
 .a8
     lda f:mapa_tabla + M_ABOVE_FIRST, x
     jsr dma_shadow
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_SPRITE_CGRAM, x
-    sta tin_count
+    sta tint_count
     sep #$20
 .a8
     lda #128
     jsr dma_shadow
     jmp upload_timer_pal
 .endproc
-; A DMA of `tin_count` colors from `sombra_origen` to CGRAM entry A.
+; A DMA of `tint_count` colors from `shadow_origin` to CGRAM entry A.
 .proc dma_shadow
 .a8
 .i16
@@ -774,9 +774,9 @@ nothing:
     and #$00FF
     asl a
     clc
-    adc sombra_origen
+    adc shadow_origin
     sta A1T0L
-    lda tin_count
+    lda tint_count
     asl a                       ; two bytes per color
     beq nothing                    ; zero bytes would be 64 KB
     sta DAS0L
@@ -823,7 +823,7 @@ nothing:
 visible:
     rep #$20
 .a16
-    lda mapa_ofs
+    lda map_ofs
     lsr a
     lsr a
     lsr a
@@ -838,10 +838,10 @@ visible:
     rts                         ; this map does not carry the digits
 .a16
 hay:
-    sta tin_count               ; the bits left: not `temp`, which in the
+    sta tint_count               ; the bits left: not `temp`, which in the
                                 ; vblank may be busy
     ; The palette in ROM, and the CGRAM entry 0 it gets.
-    ldx mapa_ofs
+    ldx map_ofs
     lda f:mapa_tabla + M_TIMER_PAL, x
     and #$0007
     asl a
@@ -851,11 +851,11 @@ hay:
     asl a                       ; 32 bytes per palette
     clc
     adc f:mapa_tabla + M_PTR_SPRITE_CGRAM, x
-    sta tin_ptr                 ; the block fits whole in one bank: one
+    sta tint_ptr                 ; the block fits whole in one bank: one
     sep #$20                    ; DMA uploads it
 .a8
     lda f:mapa_tabla + M_PTR_SPRITE_CGRAM + 2, x
-    sta tin_ptr + 2
+    sta tint_ptr + 2
     lda f:mapa_tabla + M_TIMER_PAL, x
     asl a
     asl a
@@ -863,29 +863,29 @@ hay:
     asl a                       ; sixteen colors per palette
     clc
     adc #128
-    sta tin_cgadd
+    sta tint_cgadd
     ldy #$0000
 cada:
     rep #$20
 .a16
-    lsr tin_count
+    lsr tint_count
     sep #$20
 .a8
     bcc siguiente
-    lda tin_cgadd
+    lda tint_cgadd
     sta CGADD
-    lda [tin_ptr], y
+    lda [tint_ptr], y
     sta CGDATA                  ; low byte first
     iny
-    lda [tin_ptr], y
+    lda [tint_ptr], y
     sta CGDATA
     dey
 siguiente:
-    inc tin_cgadd
+    inc tint_cgadd
     iny
     iny
-    lda tin_count
-    ora tin_count + 1
+    lda tint_count
+    ora tint_count + 1
     bne cada                    ; with no more bits, the rest is already tinted
     rts
 .endproc
@@ -901,22 +901,22 @@ siguiente:
 .proc timer_repaint
 .a8
 .i16
-    lda tinte_r
+    lda tint_r
     cmp #TINTE_NEUTRO
     bne pedir
-    lda tinte_g
+    lda tint_g
     cmp #TINTE_NEUTRO
     bne pedir
-    lda tinte_b
+    lda tint_b
     cmp #TINTE_NEUTRO
     bne pedir
-    lda tinte_s
+    lda tint_s
     cmp #TINTE_NEUTRO
     bne pedir
     rts
 pedir:
     lda #1
-    sta tinte_listo
+    sta tint_ready
     rts
 .endproc
 
@@ -925,7 +925,7 @@ pedir:
 .proc one_palette
 .a8
 .i16
-    sta tin_cgadd
+    sta tint_cgadd
     stx temp
     sty temp + 2
 
@@ -933,23 +933,23 @@ pedir:
 .a16
     lda temp
     clc
-    adc mapa_ofs
+    adc map_ofs
     tax
     lda f:mapa_tabla, x
-    sta tin_ptr
+    sta tint_ptr
     sep #$20
 .a8
     lda f:mapa_tabla + 2, x
-    sta tin_ptr + 2
+    sta tint_ptr + 2
 
     rep #$20
 .a16
     lda temp + 2
     clc
-    adc mapa_ofs
+    adc map_ofs
     tax
     lda f:mapa_tabla, x
-    sta tin_count
+    sta tint_count
     sep #$20
 .a8
     jsr tint_palette

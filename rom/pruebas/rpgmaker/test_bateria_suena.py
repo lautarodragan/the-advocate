@@ -47,8 +47,8 @@ def test_las_voces_de_la_bateria_reciben_lo_que_la_musica_les_manda(partida):
     una = partida(titulo=EMPEZAR).quedarse_en_el_titulo()
     s = una.simbolos
     tema = s["TEMA_TITULO"]
-    assert una.palabra("tema_actual") == tema and not una.byte(
-        "music_apagada"), "la pantalla de título no está tocando su tema"
+    assert una.palabra("song_current") == tema and not una.byte(
+        "music_off"), "la pantalla de título no está tocando su tema"
 
     voces = {7: (s["SE_REG"], s["SE_SHADOW"]), 6: (s["SE2_REG"], s["SE2_SHADOW"])}
 

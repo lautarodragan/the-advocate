@@ -11,7 +11,7 @@
 ; hundred—.
 ;
 ; Variables are read and written **directly in far RAM**, with
-; `f:FAR_LARGO + FAR_VARIABLES`, and not with `var_read` and `var_write`:
+; `f:FAR_LENGTH + FAR_VARIABLES`, and not with `var_read` and `var_write`:
 ; those are called with `jsr` and do not cross banks. Writing this way is the
 ; same as through the window —it is the same RAM— and the refresh is flagged
 ; the same way as in `var_write`.
@@ -28,7 +28,7 @@
 ; load 61 with a ControlVars—, so both directions go through `mapa_rm2k`, the
 ; table of ids the converter emits.
 ;
-; Jumping returns with carry set and `salto_mapa`, `salto_x` and `salto_y`
+; Jumping returns with carry set and `jump_map`, `jump_x` and `jump_y`
 ; set, and `op_location` ends like a `Teleport`: it ends the frame and the
 ; page continues on the new map. It is `CommandRecallToLocation`, which sets
 ; up the same `ReserveTeleport`. To a map the cartridge does not carry **it
@@ -37,7 +37,7 @@
 .proc remembered_place
 .a8
 .i16
-    lda [cod_ptr], y            ; the mode
+    lda [code_ptr], y            ; the mode
     iny
     sta temp + 1
     lsr a
@@ -46,7 +46,7 @@
     ; class 6 of ControlVars.
     rep #$20
 .a16
-    lda mapa_actual
+    lda map_current
     asl a
     tax
     lda f:mapa_rm2k, x
@@ -65,13 +65,13 @@
 ; refresh if the top bit of `temp + 1` asks for it, then shifts it.
 escribir:
     pha
-    lda [cod_ptr], y            ; the slot, and the neighboring byte
+    lda [code_ptr], y            ; the slot, and the neighboring byte
     iny
     and #$00FF
     asl a                       ; two bytes per variable
     tax
     pla
-    sta f:FAR_LARGO + FAR_VARIABLES, x
+    sta f:FAR_LENGTH + FAR_VARIABLES, x
     sep #$20
 .a8
     lda temp + 1
@@ -79,7 +79,7 @@ escribir:
     and #VAR_REFRESCO
     beq sin_refresco
     lda #1
-    sta refresco
+    sta refresh
 sin_refresco:
     rep #$20
 .a16
@@ -108,11 +108,11 @@ buscar:
 hallado:
     txa
     lsr a
-    sta salto_mapa
+    sta jump_map
     jsr leer
-    sta salto_x
+    sta jump_x
     jsr leer
-    sta salto_y
+    sta jump_y
     sep #$20
 .a8
     sec
@@ -121,18 +121,18 @@ hallado:
 .a16
 ; The variable in the operand's slot, in a 16-bit A.
 leer:
-    lda [cod_ptr], y
+    lda [code_ptr], y
     iny
     and #$00FF
     asl a
     tax
-    lda f:FAR_LARGO + FAR_VARIABLES, x
+    lda f:FAR_LENGTH + FAR_VARIABLES, x
     rts
 
 .endproc
 
 ; `MemorizeBGM` (operand 0) and `PlayMemorizedBGM` (operand 1): note down
-; which song is playing in `TEMA_RECORDADO`, and put it back on. Putting it on
+; which song is playing in `REMEMBERED_SONG`, and put it back on. Putting it on
 ; returns with carry set and the song in A, and `op_memorized_bgm` plays it
 ; like a `PlayBGM`.
 ;
@@ -146,37 +146,37 @@ leer:
 .proc remembered_song
 .a8
 .i16
-    lda [cod_ptr], y
+    lda [code_ptr], y
     iny
     cmp #0                      ; explicit: so it is written down what is being tested
     bne put
-    lda tema_actual + 1
+    lda song_current + 1
     beq recordar
     lda #$FF                    ; none is playing
     bra anotar
 recordar:
-    lda tema_actual
+    lda song_current
 anotar:
-    sta f:TEMA_RECORDADO
+    sta f:REMEMBERED_SONG
     clc
     rtl
 put:
-    lda f:TEMA_RECORDADO
+    lda f:REMEMBERED_SONG
     cmp #TEMA_TOTAL
     bcs nothing                    ; none, or one the cartridge does not carry
     ; Is it the one playing? The same question as `map_song_mute`.
     pha
-    lda bgm_fundido
+    lda bgm_fade
     bne distinto                ; it was fading out: start over
     lda f:MSU_PLAYING
     bne suena
-    lda music_apagada
+    lda music_off
     bne distinto
 suena:
-    lda tema_actual + 1
+    lda song_current + 1
     bne distinto
     pla
-    cmp tema_actual
+    cmp song_current
     bne tocar
 nothing:
     clc

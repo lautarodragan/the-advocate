@@ -15,18 +15,18 @@
 ; There is nowhere to show it —the menu does not exist— but there is someone
 ; who asks for it: the gold branch of `ConditionalBranch`.
 .proc op_gold
-    lda [cod_ptr], y            ; the sign: 0 adds, 1 subtracts
+    lda [code_ptr], y            ; the sign: 0 adds, 1 subtracts
     sta temp
     iny
     rep #$20
 .a16
-    lda [cod_ptr], y            ; the low 16 bits of the amount
+    lda [code_ptr], y            ; the low 16 bits of the amount
     sta temp + 2
     sep #$20
 .a8
     iny
     iny
-    lda [cod_ptr], y            ; and the high byte
+    lda [code_ptr], y            ; and the high byte
     sta temp + 1                ; the high byte of the amount
     iny
     phy
@@ -36,46 +36,46 @@
     ; Add: 24 bits, and if it goes past ORO_MAX it stays at ORO_MAX.
     rep #$20
 .a16
-    lda oro
+    lda gold
     clc
     adc temp + 2
-    sta oro
+    sta gold
     sep #$20
 .a8
-    lda oro + 2
+    lda gold + 2
     adc temp + 1
-    sta oro + 2
+    sta gold + 2
     bra oro_recorta
 oro_resta:
     rep #$20
 .a16
-    lda oro
+    lda gold
     sec
     sbc temp + 2
-    sta oro
+    sta gold
     sep #$20
 .a8
-    lda oro + 2
+    lda gold + 2
     sbc temp + 1
-    sta oro + 2
+    sta gold + 2
     bcs oro_recorta
     ; It went below zero: it stays at zero.
     rep #$20
 .a16
-    stz oro
+    stz gold
     sep #$20
 .a8
-    stz oro + 2
+    stz gold + 2
     bra oro_listo
 oro_recorta:
     ; Did it go past ORO_MAX? Compared as 24 bits, high byte first.
-    lda oro + 2
+    lda gold + 2
     cmp #^ORO_MAX
     bcc oro_listo
     bne oro_tope
     rep #$20
 .a16
-    lda oro
+    lda gold
     cmp #.loword(ORO_MAX)
     sep #$20
 .a8
@@ -85,11 +85,11 @@ oro_tope:
     rep #$20
 .a16
     lda #.loword(ORO_MAX)
-    sta oro
+    sta gold
     sep #$20
 .a8
     lda #^ORO_MAX
-    sta oro + 2
+    sta gold + 2
 oro_listo:
     ply
     jmp run_code::otro
@@ -105,7 +105,7 @@ oro_listo:
 .i16
     rep #$20
 .a16
-    lda [cod_ptr], y            ; the item
+    lda [code_ptr], y            ; the item
     clc
     adc #FAR_ITEMS
     sta WMADDL
@@ -115,7 +115,7 @@ oro_listo:
     sep #$20
 .a8
     stz WMADDH
-    lda [cod_ptr], y            ; how much, signed
+    lda [code_ptr], y            ; how much, signed
     iny
     sta temp
     lda WMDATA                  ; the count there was
@@ -145,7 +145,7 @@ item_guardar:
     pla
     sta WMDATA
     lda #1
-    sta refresco
+    sta refresh
     jmp run_code::otro
 
 .endproc

@@ -6,7 +6,7 @@ cambia de mapa: el tema del mapa —`music_type` 2—, o el del padre si es 0, o
 entraba con el tema del mapa de antes.
 
 Como todo lo de la música, esto **no cambia un pixel**, así que la tanda no lo
-ve: se pregunta por la RAM. Y no alcanza con `tema_actual`, por lo mismo que en
+ve: se pregunta por la RAM. Y no alcanza con `song_current`, por lo mismo que en
 `test_musica_paquete.py`: el tema tiene que llegar con sus muestras, que son
 las que el conversor le agrega al paquete del mapa.
 
@@ -50,15 +50,15 @@ def test_entrar_a_los_rat_tracks_prende_su_tema(en_el_21):
     """El `Teleport` al 21 cambia el tema, y el tema llega con sus muestras.
 
     El caso arranca en el mapa de arranque del cartucho, que no trae tema, y
-    salta con un `Teleport` de verdad: es el camino de `FUNDIDO_SALTO`, el de
+    salta con un `Teleport` de verdad: es el camino de `FADE_JUMP`, el de
     cualquier puerta del juego.
     """
     una = en_el_21
     tema = indice_del_tema(una, TEMA)
-    assert una.palabra("tema_actual") == tema, (
+    assert una.palabra("song_current") == tema, (
         "se entró al 21 y suena el tema %d; el del mapa es %s, el %d"
-        % (una.palabra("tema_actual"), TEMA, tema))
-    assert not una.byte("music_apagada"), (
+        % (una.palabra("song_current"), TEMA, tema))
+    assert not una.byte("music_off"), (
         "se entró al 21 y la música quedó callada: `music_start` no llegó a "
         "prender el tema del mapa")
     faltan = sorted(set(una.muestras_del_tema(tema))
@@ -81,7 +81,7 @@ def test_pasar_al_otro_mapa_con_el_mismo_tema_no_lo_reinicia(en_el_21):
     antes = puntero_del_stream(una)
     una.ir_al_mapa(*AL_26)
     assert una.mapa() == 26
-    assert una.palabra("tema_actual") == indice_del_tema(una, TEMA)
+    assert una.palabra("song_current") == indice_del_tema(una, TEMA)
     despues = puntero_del_stream(una)
     assert despues > antes, (
         "al pasar del 21 al 26 el stream volvió de $%06X a $%06X: el tema se "
@@ -95,9 +95,9 @@ def test_un_mapa_que_lo_deja_a_un_evento_no_cambia_lo_que_suena(en_el_21):
     antes = puntero_del_stream(una)
     una.ir_al_mapa(*AL_23)
     assert una.mapa() == 23
-    assert una.palabra("tema_actual") == indice_del_tema(una, TEMA), (
+    assert una.palabra("song_current") == indice_del_tema(una, TEMA), (
         "el 23 no trae tema propio y la música cambió al entrar")
-    assert not una.byte("music_apagada"), (
+    assert not una.byte("music_off"), (
         "el 23 no trae tema propio y la música se calló al entrar")
     assert puntero_del_stream(una) > antes, (
         "el 23 no trae tema propio y el de antes se reinició")

@@ -16,7 +16,7 @@
 ;
 ; Running the three palettes —two hundred-odd entries, at over a hundred
 ; cycles each— does not fit in a frame together with everything else: measured
-; with `cuadros_perdidos`, one was lost per frame, and the rest of the scene
+; with `lost_frames`, one was lost per frame, and the rest of the scene
 ; ended up thirty frames behind. So it takes two frames:
 ; with an odd countdown the tables are built and the background and the upper
 ; layer are run; with an even countdown the sprites are run and everything is
@@ -33,7 +33,7 @@
 .i16
     rep #$20
 .a16
-    lda destello_nivel
+    lda flash_level
     bne hay
     sep #$20
 .a8
@@ -42,17 +42,17 @@
 hay:
     sep #$20
 .a8
-    lda destello_resta
+    lda flash_remain
     beq apagar
     rep #$20
 .a16
-    lda destello_nivel
+    lda flash_level
     sta WRDIVL                  ; the dividend, 16 bits
     sep #$20
 .a8
-    lda destello_resta
+    lda flash_remain
     sta WRDIVB                  ; starts it: the quotient takes sixteen cycles
-    dec destello_resta          ; six cycles, and the nops still needed
+    dec flash_remain          ; six cycles, and the nops still needed
     nop
     nop
     nop
@@ -61,62 +61,62 @@ hay:
     nop
     rep #$20
 .a16
-    lda destello_nivel
+    lda flash_level
     sec
     sbc RDDIVL
-    sta destello_nivel
+    sta flash_level
     sep #$20
 .a8
-    lda destello_resta
+    lda flash_remain
     beq apagar
     and #$01
     beq fase_par
     jsr flash_tables
     jsr flash_backdrop
-    lda tinte_listo
+    lda tint_ready
     beq ready                   ; the usual case: the sprites go next frame
     jsr flash_sprites
     bra subir
 fase_par:
-    lda tinte_listo
+    lda tint_ready
     beq sprites
     jsr flash_backdrop         ; the new tint overwrote the background already run
 sprites:
     jsr flash_sprites
 subir:
     lda #1
-    sta destello_listo
+    sta flash_ready
 ready:
     rts
 apagar:
     ; It is over: the level falls to zero and the unflashed shadow goes back
     ; to CGRAM.
-    stz destello_nivel
-    stz destello_nivel + 1
-    stz destello_resta
+    stz flash_level
+    stz flash_level + 1
+    stz flash_remain
     lda #1
-    sta tinte_listo
+    sta tint_ready
     rts
 .endproc
 
 .proc flash_from_code
 .a8
 .i16
-    lda [cod_ptr], y            ; r
-    sta destello_rgb
+    lda [code_ptr], y            ; r
+    sta flash_rgb
     iny
-    lda [cod_ptr], y            ; g
-    sta destello_rgb + 1
+    lda [code_ptr], y            ; g
+    sta flash_rgb + 1
     iny
-    lda [cod_ptr], y            ; b
-    sta destello_rgb + 2
+    lda [code_ptr], y            ; b
+    sta flash_rgb + 2
     iny
-    lda [cod_ptr], y            ; the strength, which is the starting level
-    sta destello_nivel + 1
-    stz destello_nivel
+    lda [code_ptr], y            ; the strength, which is the starting level
+    sta flash_level + 1
+    stz flash_level
     iny
-    lda [cod_ptr], y            ; frames
-    sta destello_resta
+    lda [code_ptr], y            ; frames
+    sta flash_remain
     iny
     rts
 .endproc
@@ -128,15 +128,15 @@ apagar:
 .proc flash_tables
 .a8
 .i16
-    lda destello_nivel + 1      ; the integer part of the level, 0 to 31
-    sta dest_nivel
+    lda flash_level + 1      ; the integer part of the level, 0 to 31
+    sta dest_level
     rep #$20
 .a16
     lda #.loword(dest_tab_r)
     sta temp
     sep #$20
 .a8
-    lda destello_rgb
+    lda flash_rgb
     jsr one_flash_table
     rep #$20
 .a16
@@ -144,7 +144,7 @@ apagar:
     sta temp
     sep #$20
 .a8
-    lda destello_rgb + 1
+    lda flash_rgb + 1
     jsr one_flash_table
     rep #$20
 .a16
@@ -152,7 +152,7 @@ apagar:
     sta temp
     sep #$20
 .a8
-    lda destello_rgb + 2
+    lda flash_rgb + 2
     jmp one_flash_table
 .endproc
 
@@ -179,9 +179,9 @@ apagar:
 .proc one_flash_table
 .a8
 .i16
-    sta dest_hacia
-    stz dest_hacia + 1
-    lda dest_nivel
+    sta dest_toward
+    stz dest_toward + 1
+    lda dest_level
     rep #$20
 .a16
     and #$001F
@@ -192,11 +192,11 @@ apagar:
     asl a
     sta temp + 2                ; the level's row
     clc
-    adc dest_hacia
+    adc dest_toward
     tax                         ; X: the row, at channel 0's distance
-    lda dest_hacia
+    lda dest_toward
     inc a
-    sta dest_fin                ; the first channel above the target
+    sta dest_end                ; the first channel above the target
     sep #$20
 .a8
     ldy #0
@@ -207,7 +207,7 @@ sube:
     sta (temp), y
     dex
     iny
-    cpy dest_fin
+    cpy dest_end
     bne sube
     cpy #32
     beq ready
@@ -237,11 +237,11 @@ ready:
 .proc flash_backdrop
 .a8
 .i16
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_MAP_CGRAM, x
-    sta tin_count
+    sta tint_count
     sep #$20
 .a8
     ; From `CGRAM_BASE`, the same as `apply_tint` and `upload_palettes`: the
@@ -258,11 +258,11 @@ ready:
     ; screen, so nobody ran this path.
     lda #CGRAM_BASE
     jsr flash_range
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_ABOVE_CGRAM, x
-    sta tin_count
+    sta tint_count
     sep #$20
 .a8
     lda f:mapa_tabla + M_ABOVE_FIRST, x
@@ -273,18 +273,18 @@ ready:
 .proc flash_sprites
 .a8
 .i16
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_SPRITE_CGRAM, x
-    sta tin_count
+    sta tint_count
     sep #$20
 .a8
     lda #128
     jmp flash_range
 .endproc
 
-; `tin_count` colors from entry A: each one is split into its three channels,
+; `tint_count` colors from entry A: each one is split into its three channels,
 ; each channel goes through its table, and the three words are joined.
 .proc flash_range
 .a8
@@ -294,16 +294,16 @@ ready:
     and #$00FF
     asl a                       ; two bytes per color
     tax
-    lda tin_count
+    lda tint_count
     asl a
     beq nothing
-    sta dest_fin
+    sta dest_end
     txa
     clc
-    adc dest_fin
-    sta dest_fin
+    adc dest_end
+    sta dest_end
 color:
-    lda cgram_sombra, x
+    lda cgram_shadow, x
     sta temp                    ; the color, and in temp + 2 what is being built
     and #$001F
     tay
@@ -342,7 +342,7 @@ color:
     sta pal_buf, x
     inx
     inx
-    cpx dest_fin
+    cpx dest_end
     bne color
 nothing:
     sep #$20

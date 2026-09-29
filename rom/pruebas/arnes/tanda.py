@@ -22,8 +22,8 @@ Tres cosas que este archivo hace y conviene tener a la vista:
   `grupo-11-en-<mapa>` para el mismo grupo en otro lugar. Con el 10 el líder
   es otro, el sprite es otro, y las goldens no dan.
 * **El arranque de `Partida` es el `--arranque 115` del corredor**, que era
-  `tools/snes_correr.py` y es con lo que se sacaron las goldens: `BOOT_CUADROS`
-  más tres, y de ahí en más se cuentan ticks de `vueltas` con la misma
+  `tools/snes_correr.py` y es con lo que se sacaron las goldens: `BOOT_FRAMES`
+  más tres, y de ahí en más se cuentan ticks de `ticks` con la misma
   convención —el cuadro N de aquella referencia es el tick N+1— y se aprieta A un
   tick antes por `RETRASO_DE_PANTALLA`. O sea que para un caso de caminata con
   toques de A, `Partida.correr` **es** el lazo de aquel corredor, y por eso las
@@ -158,7 +158,7 @@ def partida(caso, nucleo=None, en=None, switches=(), titulo=None, pila=False,
 def consola_cruda(caso, en=None, pila=False):
     """La ROM con el arranque pasado y **sin reloj de juego**.
 
-    Es el `--sin-contador` del corredor: hace falta donde `vueltas` no avanza
+    Es el `--sin-contador` del corredor: hace falta donde `ticks` no avanza
     —la pantalla de ranuras, el menú de pausa, la de batalla—, que no son el
     juego. Ahí un `Partida.correr` no termina nunca, porque espera un tick que
     no va a llegar.

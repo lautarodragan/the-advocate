@@ -10,13 +10,13 @@
 ; on every step that starts. In the race —forty cars, five of them moving—
 ; this took almost a hundred lines of the frame's 262, and bank 0 had no room
 ; to make it faster: it lives here, in the fast mirror, and the callers over
-; there come in with `jsl f:... + RAPIDO`. See
+; there come in with `jsl f:... + FAST`. See
 ; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
 
 ; --- an NPC row that changed, into its place --------------------------------
 ;
-; Leaves row `npc_fila` where it now belongs, with the table already sorted,
-; and `npc_fila` at its new place. The order is RM2k's: greater Y —which goes
+; Leaves row `npc_row` where it now belongs, with the table already sorted,
+; and `npc_row` at its new place. The order is RM2k's: greater Y —which goes
 ; inside the key, together with the layer—, then greater X, and then greater
 ; id. The three tie-breakers are needed because an event that walks changes
 ; row all the time and ties with anyone; with still NPCs it was hardly ever
@@ -38,7 +38,7 @@
 .i16
     rep #$20
 .a16
-    ldx npc_fila
+    ldx npc_row
     lda npc_buf + 4, x
     sta temp                    ; its key: the layer and the Y
     lda npc_buf + 0, x
@@ -71,26 +71,26 @@ s_pasa:
     tay
     bra subir
 tope_arriba:
-    cpy npc_fila
+    cpy npc_row
     beq no_sube
     ; It goes up to Y: the row, set aside; the ones from Y to its own, one
     ; place down; and the row at Y.
     sty cmp_a                   ; where it goes (its event is no longer needed)
     jsr apartar
     phb
-    lda npc_fila
+    lda npc_row
     sec
     sbc cmp_a                   ; how many bytes are shifted
     dec a
     pha
-    lda npc_fila
+    lda npc_row
     clc
     adc #.loword(npc_buf) - 1
     tax                         ; the last of the ones shifted
     adc #NPC_STRIDE             ; carry was left at zero
     tay                         ; and where it goes
     pla
-    mvp #^FAR_LARGO, #^FAR_LARGO
+    mvp #^FAR_LENGTH, #^FAR_LENGTH
     plb
     ldx cmp_a
     jsr volver
@@ -125,24 +125,24 @@ b_pasa:
     txy
     bra lower
 tope_abajo:
-    cpy npc_fila
+    cpy npc_row
     beq ready
     sty cmp_a
     jsr apartar
     phb
     tya
     sec
-    sbc npc_fila                ; how many bytes are shifted
+    sbc npc_row                ; how many bytes are shifted
     dec a
     pha
-    lda npc_fila
+    lda npc_row
     clc
     adc #.loword(npc_buf)
     tay                         ; where they go: where it was
     adc #NPC_STRIDE
     tax                         ; and from where: the one after it
     pla
-    mvn #^FAR_LARGO, #^FAR_LARGO
+    mvn #^FAR_LENGTH, #^FAR_LENGTH
     plb
     ldx cmp_a
     jsr volver
@@ -151,33 +151,33 @@ ready:
 .a8
     rtl
 
-; Row `npc_fila`, set aside in `NPC_FILA_APARTE`; and back at X.
+; Row `npc_row`, set aside in `NPC_ROW_SEPARATE`; and back at X.
 .a16
 apartar:
-    ldx npc_fila
+    ldx npc_row
     .repeat ::NPC_STRIDE / 2, k
     lda npc_buf + k * 2, x
-    sta f:NPC_FILA_APARTE + k * 2
+    sta f:NPC_ROW_SEPARATE + k * 2
     .endrepeat
     rts
 volver:
     .repeat ::NPC_STRIDE / 2, k
-    lda f:NPC_FILA_APARTE + k * 2
+    lda f:NPC_ROW_SEPARATE + k * 2
     sta npc_buf + k * 2, x
     .endrepeat
-    stx npc_fila
+    stx npc_row
     rts
 .endproc
 .assert .bankbyte(npc_buf) = 0 && .loword(npc_buf) < $2000, error, "fit_far shifts the rows in bank $7E: npc_buf has to be in low RAM"
 
 ; --- whether some row imposes its passability bits --------------------------
 ;
-; `pasa_hay` right after the NPC table is loaded: one if some row has a +15
+; `pass_has` right after the NPC table is loaded: one if some row has a +15
 ; other than $FF. Runs once per map.
 .proc pass_look
 .a8
 .i16
-    stz pasa_hay
+    stz pass_has
     ldy #$0000
 otra:
     cpy npc_total
@@ -185,7 +185,7 @@ otra:
     lda npc_buf + 15, y
     cmp #$FF
     beq :+
-    sta pasa_hay
+    sta pass_has
 :
     rep #$21
 .a16
@@ -243,8 +243,8 @@ grande:
 
 ; --- the move route slots -----------------------------------------------------
 
-; Move route slot X —in bytes, times RUTA_EV_STRIDE— has just become event
-; A's: it is noted in its parallel state, `PAR_RANURA`, so that `one_parallel`
+; Move route slot X —in bytes, times ROUTE_EV_STRIDE— has just become event
+; A's: it is noted in its parallel state, `PAIR_SLOT`, so that `one_parallel`
 ; does not have to search for it. It belongs to the two places that hand out
 ; a slot —`route_for_event` and `apply_pages`—, and lives here because
 ; of bank 0. Does not touch A, X or Y.
@@ -259,7 +259,7 @@ grande:
     and #$00FF
     asl a
     asl a
-    asl a                       ; times PAR_BYTES
+    asl a                       ; times PAIR_BYTES
     tay
     txa
     lsr a
@@ -271,7 +271,7 @@ grande:
     tyx
     sep #$20
 .a8
-    sta f:FAR_LARGO + FAR_PAR_ESTADO + PAR_RANURA, x
+    sta f:FAR_LENGTH + FAR_PAIR_STATE + PAIR_SLOT, x
     rep #$20
 .a16
     ply
@@ -280,7 +280,7 @@ grande:
     plp
     rtl
 .endproc
-.assert RUTA_EV_STRIDE = 32, error, "slot_record divides by RUTA_EV_STRIDE with five lsr"
+.assert ROUTE_EV_STRIDE = 32, error, "slot_record divides by ROUTE_EV_STRIDE with five lsr"
 
 ; The `npc_buf` row of the event of move route slot X, in Y, or $FFFF if it
 ; has none. It is `event_npc` for `refresh_npc`, which asks for it for
@@ -294,7 +294,7 @@ grande:
 .proc slot_npc
 .a8
 .i16
-    lda ruta_ev + 19, x
+    lda route_ev + 19, x
     beq buscar
     dec a
     rep #$20
@@ -310,10 +310,10 @@ grande:
     cpy npc_total
     bcs buscar                  ; outside the table: a leftover
     lda npc_buf + 8, y
-    cmp ruta_ev + 0, x
+    cmp route_ev + 0, x
     beq ready
 buscar:
-    lda ruta_ev + 0, x
+    lda route_ev + 0, x
     sta temp
     ldy #$0000
 otra:
@@ -342,7 +342,7 @@ hallada:
     inc a
     sep #$20
 .a8
-    sta ruta_ev + 19, x
+    sta route_ev + 19, x
 ready:
     rtl
 no_hay:

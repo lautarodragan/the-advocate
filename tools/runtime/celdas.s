@@ -14,7 +14,7 @@
     bne prueba_abajo
     rep #$20
 .a16
-    lda celda_y
+    lda cell_y
     sep #$20
 .a8
     beq no                      ; already on the top row
@@ -24,9 +24,9 @@ prueba_abajo:
     bne prueba_izquierda
     rep #$20
 .a16
-    lda celda_y
+    lda cell_y
     inc a
-    cmp mapa_alto
+    cmp map_height
     sep #$20
 .a8
     bcs no
@@ -36,7 +36,7 @@ prueba_izquierda:
     bne prueba_derecha
     rep #$20
 .a16
-    lda celda_x
+    lda cell_x
     sep #$20
 .a8
     beq no
@@ -44,9 +44,9 @@ prueba_izquierda:
 prueba_derecha:
     rep #$20
 .a16
-    lda celda_x
+    lda cell_x
     inc a
-    cmp mapa_ancho
+    cmp map_width
     sep #$20
 .a8
     bcs no
@@ -58,7 +58,7 @@ no:
     rts
 .endproc
 
-; Whether a step can be taken from (celda_x, celda_y) in the direction A
+; Whether a step can be taken from (cell_x, cell_y) in the direction A
 ; carries. Returns A nonzero if it can.
 ;
 ; It is the same rule as the hero's —both faces are checked, the one being
@@ -73,8 +73,8 @@ no:
 .proc cell_allowed
 .a8
 .i16
-    sta celda_dir
-    stz celda_dir + 1
+    sta cell_dir
+    stz cell_dir + 1
     jsr cell_neighbor_exists
     bne :+
     jmp no                      ; too far for a short branch
@@ -82,7 +82,7 @@ no:
     ; Walking through walls both faces say yes, but the cell has to exist: it
     ; is the `if (self.GetThrough()) return true;` of
     ; `Game_Map::CheckOrMakeWayEx`, which comes after the `IsValid`.
-    lda atravesando
+    lda crossing
     beq con_colision
     lda #1
     rts
@@ -92,27 +92,27 @@ con_colision:
     jsr cell_ptr
     rep #$20
 .a16
-    lda celda_x                 ; the cell being left, for whatever a tile
-    sta pasa_x                  ; event imposes on it
-    lda celda_y
-    sta pasa_y
+    lda cell_x                 ; the cell being left, for whatever a tile
+    sta pass_x                  ; event imposes on it
+    lda cell_y
+    sta pass_y
     jsr pass_of_ptr
     jsr pass_with_event
     sep #$20
 .a8
-    ldx celda_dir
-    and f:pass_salir, x
+    ldx cell_dir
+    and f:pass_exit, x
     bne :+
     jmp no                      ; too far for a short branch
 :
 
     ; And the target's face, which is the neighboring cell.
-    lda celda_dir
+    lda cell_dir
     cmp #DIR_UP
     bne baja
     rep #$20
 .a16
-    lda tira_paso_col
+    lda strip_step_col
     jsr ptr_minus
     bra entra
     ; The three labels that follow are reached with the accumulator **in
@@ -126,7 +126,7 @@ baja:
     bne izquierda
     rep #$20
 .a16
-    lda tira_paso_col
+    lda strip_step_col
     jsr ptr_more
     bra entra
 izquierda:
@@ -146,16 +146,16 @@ derecha:
     jsr ptr_more
 entra:
 .a16
-    lda celda_x                 ; and the cell being entered
-    sta pasa_x
-    lda celda_y
-    sta pasa_y
+    lda cell_x                 ; and the cell being entered
+    sta pass_x
+    lda cell_y
+    sta pass_y
     sep #$20
 .a8
-    ldx celda_dir
-    lda f:paso_dx, x
+    ldx cell_dir
+    lda f:step_dx_table, x
     jsr add_a_to_pass_x
-    lda f:paso_dy, x
+    lda f:step_dy_table, x
     jsr add_a_to_pass_y
     rep #$20
 .a16
@@ -163,24 +163,24 @@ entra:
     jsr pass_with_event
     sep #$20
 .a8
-    ldx celda_dir
-    and f:pass_entrar, x
+    ldx cell_dir
+    and f:pass_enter, x
     bne :+
     jmp no
 :
-    ; And that nobody is standing on the neighboring cell. With `atravesando`
+    ; And that nobody is standing on the neighboring cell. With `crossing`
     ; this is never reached: it is the `GetThrough()` above.
     rep #$20
 .a16
-    lda celda_x
+    lda cell_x
     sta dest_x
-    lda celda_y
+    lda cell_y
     sta dest_y
     sep #$20
 .a8
-    lda f:paso_dx, x
+    lda f:step_dx_table, x
     jsr add_a_to_dest_x
-    lda f:paso_dy, x
+    lda f:step_dy_table, x
     jsr add_a_to_dest_y
     jsr cell_blocked
     bne no
@@ -191,8 +191,8 @@ no:
     rts
 .endproc
 
-; Whether the diagonal step A carries, 4 to 7, can be taken from (celda_x,
-; celda_y). Returns A nonzero if it can, and leaves the cell where it found
+; Whether the diagonal step A carries, 4 to 7, can be taken from (cell_x,
+; cell_y). Returns A nonzero if it can, and leaves the cell where it found
 ; it.
 ;
 ; RM2k **does not look at the diagonal cell**: it is `Game_Character::Move`,
@@ -221,9 +221,9 @@ no:
     sta diag_h
     rep #$20
 .a16
-    lda celda_x                 ; where it starts from, to go back between L and L
+    lda cell_x                 ; where it starts from, to go back between L and L
     sta diag_x
-    lda celda_y
+    lda cell_y
     sta diag_y
     sep #$20
 .a8
@@ -266,12 +266,12 @@ si:
     and #$00FF
     tax
     lda diag_x
-    sta celda_x
+    sta cell_x
     lda diag_y
-    sta celda_y
+    sta cell_y
     sep #$20
 .a8
-    lda f:paso_dx, x
+    lda f:step_dx_table, x
     beq sin_x
     rep #$20
 .a16
@@ -281,12 +281,12 @@ si:
     ora #$FF00
 mas_x:
     clc
-    adc celda_x
-    sta celda_x
+    adc cell_x
+    sta cell_x
     sep #$20
 .a8
 sin_x:
-    lda f:paso_dy, x
+    lda f:step_dy_table, x
     beq sin_y
     rep #$20
 .a16
@@ -296,8 +296,8 @@ sin_x:
     ora #$FF00
 mas_y:
     clc
-    adc celda_y
-    sta celda_y
+    adc cell_y
+    sta cell_y
     sep #$20
 .a8
 sin_y:
@@ -311,16 +311,16 @@ sin_y:
     rep #$20
 .a16
     lda diag_x
-    sta celda_x
+    sta cell_x
     lda diag_y
-    sta celda_y
+    sta cell_y
     sep #$20
 .a8
     rts
 .endproc
 
 ; Which way the event in slot X ends up facing after a step along the
-; diagonal in `ruta_dir`. The new pose comes out in A.
+; diagonal in `route_dir`. The new pose comes out in A.
 ;
 ; It is `Game_Character::UpdateFacing`, and the answer is not "toward the
 ; diagonal": the charset has four poses and none points at a corner. The one
@@ -329,16 +329,16 @@ sin_y:
 ;
 ; The first thing is where the turn starts from, and it is not just reading
 ; +8: twenty of the twenty-six move routes with diagonals in this game start
-; **with** the diagonal, without turning first, so RUTA_EV_SIN_MIRAR is still
+; **with** the diagonal, without turning first, so ROUTE_EV_NO_FACE is still
 ; there and the real pose is its page's, which lives in the NPC's row.
 .proc face_diagonal
 .a8
 .i16
-    lda ruta_ev + 8, x
-    cmp #RUTA_EV_SIN_MIRAR
+    lda route_ev + 8, x
+    cmp #ROUTE_EV_NO_FACE
     bne con_pose
     phx
-    lda ruta_ev + 0, x
+    lda route_ev + 0, x
     jsr event_npc
     plx
     cpy #$FFFF
@@ -348,8 +348,8 @@ sin_y:
 sin_fila:
     lda #DIR_DOWN               ; no graphic: nobody's pose can be seen
 con_pose:
-    sta diag_mira
-    lda ruta_dir
+    sta diag_facing
+    lda route_dir
     sec
     sbc #4
     phx
@@ -363,18 +363,18 @@ con_pose:
     sta diag_v
     lda f:diag_horiz, x
     plx
-    cmp diag_mira
+    cmp diag_facing
     beq queda
     lda diag_v
-    cmp diag_mira
+    cmp diag_facing
     beq queda
-    lda diag_mira               ; neither of the two: 180°
+    lda diag_facing               ; neither of the two: 180°
     clc
     adc #2
     and #$03
     rts
 queda:
-    lda diag_mira
+    lda diag_facing
     rts
 .endproc
 

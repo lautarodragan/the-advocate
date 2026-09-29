@@ -14,7 +14,7 @@
 .proc load_window
 .a8
 .i16
-    ldx mapa_ofs
+    ldx map_ofs
     lda #$80
     sta VMAIN
     rep #$20
@@ -65,7 +65,7 @@
 .i16
     lda #$80
     sta VMAIN
-    ldx mapa_ofs
+    ldx map_ofs
     ; Which plane: the one that has baked in the index where the window
     ; starts, which is the distance between it and BG2's base —the high
     ; nibble of BG12NBA—. The layouts put it 128 tiles behind or, the one with
@@ -82,7 +82,7 @@
 .a16
     lda f:mapa_tabla + M_VRAM_VENTANA_MAP, x
     sta VMADDL
-    lda #(VENTANA_FILAS * VENTANA_COLS * 2)
+    lda #(TEXT_WINDOW_ROWS * VENTANA_COLS * 2)
     sta DAS0L
     bcs plano_256
     lda #.loword(ventana_celdas)
@@ -128,10 +128,10 @@ con_plano:
     lda #127
     sta hdma_sc
     sta hdma_ofs
-    lda #(VENTANA_LINEA - 127)
+    lda #(WINDOW_LINE - 127)
     sta hdma_sc + 2
     sta hdma_ofs + 5
-    lda #(LINEAS - VENTANA_LINEA)
+    lda #(LINES - WINDOW_LINE)
     sta hdma_sc + 4
     sta hdma_ofs + 10
 
@@ -140,7 +140,7 @@ con_plano:
     lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
     sta hdma_sc + 1
     sta hdma_sc + 3
-    ldx mapa_ofs
+    ldx map_ofs
     lda f:mapa_tabla + M_VRAM_VENTANA_MAP + 1, x
     sta hdma_sc + 5
     stz hdma_sc + 6             ; end of table
@@ -149,9 +149,9 @@ con_plano:
     ; filled by `flush_video` with each frame's camera.
     stz hdma_ofs + 11
     stz hdma_ofs + 12
-    lda #<VENTANA_VOFS
+    lda #<WINDOW_VOFS
     sta hdma_ofs + 13
-    lda #>VENTANA_VOFS
+    lda #>WINDOW_VOFS
     sta hdma_ofs + 14
     stz hdma_ofs + 15           ; end of table
 
@@ -178,15 +178,15 @@ con_plano:
     ; sits *in front* of BG2: it showed through the window. The suite caught
     ; it with the door on map 7 as soon as events drawn with a tile moved to
     ; sprites. The mask is the PPU's window 1, edge to edge, enabled for
-    ; objects only on the lines of the message window: `hdma_mascara`, which
+    ; objects only on the lines of the message window: `hdma_mask`, which
     ; never changes and lives in the ROM.
     lda #$00
     sta DMAP3
     lda #<WOBJSEL
     sta BBAD3
-    ldx #.loword(hdma_mascara)
+    ldx #.loword(hdma_mask)
     stx A1T3L
-    lda #^hdma_mascara          ; no longer bank 0: it lives in RODATA
+    lda #^hdma_mask          ; no longer bank 0: it lives in RODATA
     sta A1B3
     rts
 .endproc
@@ -328,13 +328,13 @@ en_el_banco:
     sta f:FAR_MSG_AUTO
     ldy #0
     lda [msg_ptr], y            ; the header: the lines in the bottom three
-    sta msg_lineas              ; bits, the auto-close in bit 3 and the pauses
+    sta msg_lines              ; bits, the auto-close in bit 3 and the pauses
                                 ; in the top nibble. It is stored whole and
                                 ; whoever reads it masks it; one more byte in
                                 ; bank 0 is exactly what there is not.
     and #CABECERA_AUTOCIERRE
     sta f:FAR_MSG_AUTO
-    lda msg_lineas
+    lda msg_lines
     lsr
     lsr
     lsr
@@ -362,11 +362,11 @@ sin_pausa:
     jsr msg_ptr_next
     sep #$20
 .a8
-    stz msg_linea
-    stz msg_cebada
-    stz msg_subir
+    stz msg_line
+    stz msg_primed
+    stz msg_upload
     lda #1
-    sta msg_estado
+    sta msg_state
     rts
 .endproc
 
@@ -374,32 +374,32 @@ sin_pausa:
 .proc message_tick
 .a8
 .i16
-    lda msg_estado
+    lda msg_state
     cmp #1
     beq trabajando
     rts
 trabajando:
-    lda msg_subir
+    lda msg_upload
     beq sin_subir
     rts                         ; the previous line has not been uploaded yet
 sin_subir:
-    lda msg_cebada
+    lda msg_primed
     bne componiendo
 
     ; New line: the background is copied into it and its length is read. The
     ; lines the message does not carry are primed and uploaded anyway: VRAM
     ; holds the previous message's text and it has to be covered.
     jsr prime_line
-    stz msg_largo
-    lda msg_lineas
+    stz msg_length
+    lda msg_lines
     and #CABECERA_LINEAS        ; the header also carries the escape queue
     sta temp
-    lda msg_linea
+    lda msg_line
     cmp temp
     bcs vacio
     ldy #0
     lda [msg_ptr], y
-    sta msg_largo
+    sta msg_length
     rep #$20
 .a16
     jsr msg_ptr_next
@@ -408,13 +408,13 @@ sin_subir:
 vacio:
     stz msg_col
     lda #1
-    sta msg_cebada
+    sta msg_primed
 
 componiendo:
     ldx #MSG_CHARS
 otro:
     lda msg_col
-    cmp msg_largo
+    cmp msg_length
     bcs fin_linea
     ldy #0
     lda [msg_ptr], y
@@ -431,7 +431,7 @@ otro:
     inc msg_col
     ; The column cap. The byte is consumed anyway —otherwise the pointer
     ; would be out of step and the next line would read from the middle of
-    ; this one— but it is not drawn: `compose_char` writes into `texto_buf`
+    ; this one— but it is not drawn: `compose_char` writes into `text_buf`
     ; with an offset that comes from the column, and from 39 on that lands
     ; **outside** the buffer, on top of the window's HDMA, the OAM image and
     ; `vq_n`. See the comment on `compose_char`, further down.
@@ -457,14 +457,14 @@ fin_linea:
     ; next one. The next one's background is not primed in this same frame on
     ; purpose: the buffer still holds what has to be uploaded.
     lda #1
-    sta msg_subir
-    stz msg_cebada
-    inc msg_linea
-    lda msg_linea
-    cmp #VENTANA_LINEAS_TEXTO
+    sta msg_upload
+    stz msg_primed
+    inc msg_line
+    lda msg_line
+    cmp #WINDOW_TEXT_LINES
     bcc mas
     lda #2
-    sta msg_estado              ; done: `flush_video` turns on the HDMA
+    sta msg_state              ; done: `flush_video` turns on the HDMA
 mas:
     rts
 .endproc
@@ -478,7 +478,7 @@ mas:
     rep #$20
 .a16
     ; The destination: always the start of the buffer.
-    lda #.loword(texto_buf)
+    lda #.loword(text_buf)
     sta WMADDL
     sep #$20
 .a8
@@ -487,7 +487,7 @@ mas:
     rep #$20
 .a16
     ; The source: two cell rows per line, 60 tiles of 32 bytes.
-    lda msg_linea
+    lda msg_line
     and #$00FF
     sta temp
     asl a
@@ -509,7 +509,7 @@ mas:
     clc
     adc #.loword(ventana_fondo)
     sta A1T0L
-    lda #TEXTO_BUF_BYTES
+    lda #TEXT_BUF_BYTES
     sta DAS0L
     sep #$20
 .a8
@@ -529,15 +529,15 @@ mas:
 .proc upload_line
 .a8
 .i16
-    stz msg_subir
+    stz msg_upload
     lda #$80
     sta VMAIN
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     ; The tile where this line starts, in VRAM words. The line to upload is
     ; the previous one: `message_tick` already moved on to the next.
-    lda msg_linea
+    lda msg_line
     and #$00FF
     dec a
     sta temp
@@ -561,9 +561,9 @@ mas:
     clc
     adc f:mapa_tabla + M_VRAM_VENTANA, x
     sta VMADDL
-    lda #.loword(texto_buf)
+    lda #.loword(text_buf)
     sta A1T0L
-    lda #TEXTO_BUF_BYTES
+    lda #TEXT_BUF_BYTES
     sta DAS0L
     sep #$20
 .a8
@@ -619,7 +619,7 @@ mas:
     adc #WINDOW_BORDER
     sta temp                    ; x inside the window
     and #$0007
-    sta comp_fase               ; 0, 2, 4 or 6
+    sta comp_phase               ; 0, 2, 4 or 6
     lda temp
     lsr a
     lsr a
@@ -634,45 +634,45 @@ mas:
     sta comp_base
 
     ; Its data: its phase's table, plus the character times FUENTE_PRE_CHAR.
-    ldx comp_fase
-    lda f:fuente_pre_lo, x
+    ldx comp_phase
+    lda f:font_pre_lo, x
     clc
     adc RDMPYL
-    sta comp_glifo
+    sta comp_glyph
     sep #$20
 .a8
-    lda f:fuente_pre_bk, x
-    sta comp_glifo + 2
+    lda f:font_pre_bk, x
+    sta comp_glyph + 2
 
     ldy #0
     lda #(TEXT_OFS_Y * 2)
-    sta comp_fila               ; two at a time: it is the index into `tabla_fila_buf`
+    sta comp_row               ; two at a time: it is the index into `row_buf_table`
 row:
     rep #$20
 .a16
-    lda comp_fila
+    lda comp_row
     and #$00FF
     tax
-    lda f:tabla_fila_buf, x
+    lda f:row_buf_table, x
     clc
     adc comp_base
     tax                         ; X = the buffer byte where the row starts
-    lda [comp_glifo], y
+    lda [comp_glyph], y
     cmp #$FFFF
     beq sin_primera
     sta comp_and
     iny
     iny
-    lda texto_buf, x            ; planes 0 and 1 of the first cell
+    lda text_buf, x            ; planes 0 and 1 of the first cell
     and comp_and
-    ora [comp_glifo], y
-    sta texto_buf, x
+    ora [comp_glyph], y
+    sta text_buf, x
     iny
     iny
-    lda texto_buf + 16, x       ; planes 2 and 3
+    lda text_buf + 16, x       ; planes 2 and 3
     and comp_and
-    ora [comp_glifo], y
-    sta texto_buf + 16, x
+    ora [comp_glyph], y
+    sta text_buf + 16, x
     iny
     iny
     bra segunda
@@ -682,22 +682,22 @@ sin_primera:
     adc #6
     tay
 segunda:
-    lda [comp_glifo], y
+    lda [comp_glyph], y
     cmp #$FFFF
     beq sin_segunda
     sta comp_and
     iny
     iny
-    lda texto_buf + 32, x       ; the neighboring cell, one tile further
+    lda text_buf + 32, x       ; the neighboring cell, one tile further
     and comp_and
-    ora [comp_glifo], y
-    sta texto_buf + 32, x
+    ora [comp_glyph], y
+    sta text_buf + 32, x
     iny
     iny
-    lda texto_buf + 48, x
+    lda text_buf + 48, x
     and comp_and
-    ora [comp_glifo], y
-    sta texto_buf + 48, x
+    ora [comp_glyph], y
+    sta text_buf + 48, x
     iny
     iny
     bra otra_fila
@@ -709,10 +709,10 @@ sin_segunda:
 otra_fila:
     sep #$20
 .a8
-    lda comp_fila
+    lda comp_row
     clc
     adc #2
-    sta comp_fila
+    sta comp_row
     cmp #((TEXT_OFS_Y + FUENTE_PRE_FILAS) * 2)
     bcc row
     rts

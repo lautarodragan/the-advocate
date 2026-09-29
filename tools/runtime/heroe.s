@@ -33,15 +33,15 @@ quieto:
     ; With no step in progress there is no move route step to record. It is
     ; cleared here and not when the route ends because what matters is the
     ; step, not the route.
-    stz ruta_paso
+    stz route_step
     ; A jump in the air takes the whole frame, and it is checked **before**
     ; the move command counter: in RM2k jumping is not standing still
     ; —`IsStopping()` is `!(IsMoving() || IsJumping())`— so `Update` brings
     ; the jump down without going through `UpdateNextMovementAction`. With
     ; this inside `step_route`, which is only called with
-    ; `ruta_i < ruta_n`, a jump that was the route's last command was brought
+    ; `route_i < route_n`, a jump that was the route's last command was brought
     ; down by nobody. See `jump_advance_hero`.
-    lda ruta_salto
+    lda route_jump
     beq sin_salto
     jsr jump_advance_hero
     rts
@@ -52,16 +52,16 @@ sin_salto:
     ;
     ; A pending `wait` is also route, even when no commands are left: a route
     ; that **ends** in `wait` —there are 21 in the game, the first on map 1—
-    ; leaves `ruta_i` equal to `ruta_n` with `ruta_espera` loaded, and without
+    ; leaves `route_i` equal to `route_n` with `route_wait` loaded, and without
     ; this nobody brought it down: `step_route` is the only one that counts
     ; it down. In RM2k the `wait` is one more command and the route still
     ; belongs to the hero until it is done. It stayed stuck forever, and
     ; `any_routes` and the action button, which look at it, answered "there is
     ; a route" until the next one.
-    lda ruta_espera
+    lda route_wait
     bne con_ruta
-    lda ruta_i
-    cmp ruta_n
+    lda route_i
+    cmp route_n
     bcs sin_ruta
 con_ruta:
     jsr step_route
@@ -70,19 +70,19 @@ sin_ruta:
     ; The menu request, in the order of `UpdateNextMovementAction`: with a
     ; page running it is thrown away; with a message open it waits; and
     ; otherwise the menu opens and the hero does not walk this frame. It goes
-    ; before looking at `esperando_n` because RM2k looks at
+    ; before looking at `waiting_n` because RM2k looks at
     ; `IsAnyEventStarting` afterwards.
-    lda ev_activo
+    lda ev_active
     beq menu_sin_pagina
     jsr menu_forget
     rts
 menu_sin_pagina:
-    lda msg_abierto
+    lda msg_open
     bne no_derecha
     ; The encounter left pending is collected here: with no page running, no
     ; message open and no forced move route, which is the order of
     ; `Game_Player::UpdateNextMovementAction` —the encounter goes **before**
-    ; the menu request—. `encounter_test` leaves the troop in `BA_TROPA`.
+    ; the menu request—. `encounter_test` leaves the troop in `BT_TROOP`.
     jsl f:encounter_test
     cmp #0                      ; the `plx` over there left its own flags
     beq sin_encuentro
@@ -110,7 +110,7 @@ menu_sin_pedido:
     ; top on purpose: the forced move route **does** walk with the message
     ; open —`UpdateMoveRoute` runs before the guard— and a step already begun
     ; is finished, because in RM2k you do not stop halfway through a cell.
-    lda msg_abierto
+    lda msg_open
     bne no_derecha
     ; And a page running also rules over the pad. It is the
     ; `if (Game_Map::IsAnyEventStarting()) return;` of
@@ -119,10 +119,10 @@ menu_sin_pedido:
     ;
     ; Without this, a touch event fired and the hero took **one more step**
     ; while the message was being composed: the message takes a few frames to
-    ; open and `msg_abierto` only gets set at the end.
-    lda ev_activo
+    ; open and `msg_open` only gets set at the end.
+    lda ev_active
     bne no_derecha
-    lda esperando_n
+    lda waiting_n
     bne no_derecha
     lda pad
     and #PAD_UP
@@ -183,7 +183,7 @@ no_derecha:
     jsr can_leave
     beq no
     jsr ptr_from_hero
-    lda tira_paso_col
+    lda strip_step_col
     jsr ptr_minus               ; the destination: one row of blocks up
     lda #PASS_DOWN              ; and that cell has to allow entering
     jsr can_enter
@@ -224,13 +224,13 @@ no8:
 .a16
     lda tile_y
     inc a
-    cmp mapa_alto
+    cmp map_height
     bcs no
     lda #PASS_DOWN
     jsr can_leave
     beq no
     jsr ptr_from_hero
-    lda tira_paso_col
+    lda strip_step_col
     jsr ptr_more                 ; one row of blocks down
     lda #PASS_UP
     jsr can_enter
@@ -316,7 +316,7 @@ no8:
 .a16
     lda tile_x
     inc a
-    cmp mapa_ancho
+    cmp map_width
     bcs no
     lda #PASS_RIGHT
     jsr can_leave
@@ -375,18 +375,18 @@ no8:
 .i16
     sta temp
     lda tile_x                  ; the cell being left, for whatever a tile
-    sta pasa_x                  ; event imposes on it
+    sta pass_x                  ; event imposes on it
     lda tile_y
-    sta pasa_y
+    sta pass_y
     jsr ptr_from_hero
     jsr pass_of_ptr
     jsr pass_with_event
     and temp
-    ora atravesando             ; with walk_everywhere the answer is yes
+    ora crossing             ; with walk_everywhere the answer is yes
     rts
 .endproc
 
-; The same, but on the cell celdas_ptr was left pointing at: each direction
+; The same, but on the cell cells_ptr was left pointing at: each direction
 ; moves it on its own before calling, and if the step is accepted
 ; begin_step copies it to hero_ptr. That way the destination is computed only
 ; once.
@@ -397,9 +397,9 @@ no8:
     ; The destination cell: the hero's plus the step in `hero_dir`, which is
     ; always the step's direction, also in a forced move route.
     lda tile_x
-    sta pasa_x
+    sta pass_x
     lda tile_y
-    sta pasa_y
+    sta pass_y
     sep #$20
 .a8
     lda hero_dir
@@ -409,20 +409,20 @@ no8:
     tax
     sep #$20
 .a8
-    lda f:paso_dx, x
+    lda f:step_dx_table, x
     jsr add_a_to_pass_x
-    lda f:paso_dy, x
+    lda f:step_dy_table, x
     jsr add_a_to_pass_y
     rep #$20
 .a16
     jsr pass_of_ptr
     jsr pass_with_event
     and temp
-    ora atravesando
+    ora crossing
     rts
 .endproc
 
-; The passage bits of cell `pasa_x`/`pasa_y`: the ones A brings —the
+; The passage bits of cell `pass_x`/`pass_y`: the ones A brings —the
 ; terrain's, from `pass_of_ptr`— unless a tile event on the lower layer
 ; imposes its own. It is `Game_Map::IsPassableTile`: of the events standing
 ; there with an active page and a tile graphic on that layer the one with the
@@ -440,7 +440,7 @@ no8:
     ; per row it was nine lines each time in the race, with forty cars: see
     ; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
     sta temp + 2
-    lda pasa_hay
+    lda pass_has
     and #$00FF
     beq ninguno                 ; no row on this map imposes anything
     ldy npc_total
@@ -458,10 +458,10 @@ otra:
 .assert EV_STRIDE = 4, error, "the arithmetic above multiplies by four by hand"
     tax
     lda ev_pos_buf, x
-    cmp pasa_x
+    cmp pass_x
     bne siguiente
     lda ev_pos_buf + 2, x
-    cmp pasa_y
+    cmp pass_y
     bne siguiente
     lda npc_buf + 14, y
     xba
@@ -489,8 +489,8 @@ ninguno:
     ora #$FF00
 positivo:
     clc
-    adc pasa_x
-    sta pasa_x
+    adc pass_x
+    sta pass_x
     sep #$20
 .a8
     rts
@@ -506,8 +506,8 @@ positivo:
     ora #$FF00
 positivo:
     clc
-    adc pasa_y
-    sta pasa_y
+    adc pass_y
+    sta pass_y
     sep #$20
 .a8
     rts
@@ -516,7 +516,7 @@ positivo:
 .proc pass_of_ptr
 .a16
 .i16
-    lda [celdas_ptr]            ; which block this cell is
+    lda [cells_ptr]            ; which block this cell is
     jsr cell_replaced
     tay
     sep #$20
@@ -532,11 +532,11 @@ positivo:
 .a16
 .i16
     lda hero_ptr
-    sta celdas_ptr
+    sta cells_ptr
     sep #$20
 .a8
     lda hero_ptr + 2
-    sta celdas_ptr + 2
+    sta cells_ptr + 2
     rep #$20
 .a16
     rts
@@ -545,24 +545,24 @@ positivo:
 .proc ptr_a_hero
 .a16
 .i16
-    lda celdas_ptr
+    lda cells_ptr
     sta hero_ptr
     sep #$20
 .a8
-    lda celdas_ptr + 2
+    lda cells_ptr + 2
     sta hero_ptr + 2
     rep #$20
 .a16
     rts
 .endproc
 
-; The pointer to cell (celda_x, celda_y) of the grid.
+; The pointer to cell (cell_x, cell_y) of the grid.
 ;
 ; It is separate from `init_hero_ptr` because now more than one thing walks:
 ; the events' forced move routes query cells that are not the hero's, and
 ; having the arithmetic written twice is how they drift apart.
 ;
-; The offset is `celda_y * tira_paso_col + celda_x * 2`, with the CPU's
+; The offset is `cell_y * strip_step_col + cell_x * 2`, with the CPU's
 ; multiplier —eight by eight bits, so in three products: the one of the two
 ; low bytes and the two cross ones, which land shifted by a byte; the one of
 ; the two high bytes falls outside the sixteen— and not by adding one row for
@@ -578,22 +578,22 @@ positivo:
 .proc cell_ptr
 .a8
 .i16
-    lda celda_y
+    lda cell_y
     sta WRMPYA
-    lda tira_paso_col
+    lda strip_step_col
     sta WRMPYB                  ; eight cycles: what follows pays for them
     rep #$20
 .a16
-    lda celda_x
+    lda cell_x
     asl a                       ; each cell takes two bytes
-    sta celdas_ptr
+    sta cells_ptr
     lda RDMPYL                  ; y low times stride low
     clc
-    adc celdas_ptr
-    sta celdas_ptr
+    adc cells_ptr
+    sta cells_ptr
     sep #$20
 .a8
-    lda tira_paso_col + 1
+    lda strip_step_col + 1
     beq sin_paso_alto
     sta WRMPYB                  ; y low times stride high: WRMPYA is still y
     nop
@@ -602,13 +602,13 @@ positivo:
     nop
     lda RDMPYL
     clc
-    adc celdas_ptr + 1
-    sta celdas_ptr + 1
+    adc cells_ptr + 1
+    sta cells_ptr + 1
 sin_paso_alto:
-    lda celda_y + 1
+    lda cell_y + 1
     beq sin_y_alta
     sta WRMPYA
-    lda tira_paso_col
+    lda strip_step_col
     sta WRMPYB                  ; y high times stride low
     nop
     nop
@@ -616,22 +616,22 @@ sin_paso_alto:
     nop
     lda RDMPYL
     clc
-    adc celdas_ptr + 1
-    sta celdas_ptr + 1
+    adc cells_ptr + 1
+    sta cells_ptr + 1
 sin_y_alta:
-    lda celdas_ptr + 1
+    lda cells_ptr + 1
     bmi alta
     ora #>$8000
-    sta celdas_ptr + 1
-    lda #^GRILLA
-    sta celdas_ptr + 2
+    sta cells_ptr + 1
+    lda #^GRID
+    sta cells_ptr + 2
     rts
 alta:
-    lda #^GRILLA_ALTA
-    sta celdas_ptr + 2
+    lda #^GRID_HIGH
+    sta cells_ptr + 2
     rts
 .endproc
-.assert .loword(GRILLA) = $8000 && .loword(GRILLA_ALTA) = $8000 && ^GRILLA_ALTA = ^GRILLA + 1, error, "cell_ptr builds the pointer with the grid in the two upper halves"
+.assert .loword(GRID) = $8000 && .loword(GRID_HIGH) = $8000 && ^GRID_HIGH = ^GRID + 1, error, "cell_ptr builds the pointer with the grid in the two upper halves"
 
 ; Where the hero starts inside the grid.
 .proc init_hero_ptr
@@ -640,9 +640,9 @@ alta:
     rep #$20
 .a16
     lda tile_x
-    sta celda_x
+    sta cell_x
     lda tile_y
-    sta celda_y
+    sta cell_y
     sep #$20
 .a8
     jsr cell_ptr
@@ -739,21 +739,21 @@ y_listo:
     ; `Game_Character::UpdateMovement` a movement that is the last command
     ; cancels the whole route **before** the check —it is commented there:
     ; "If the last command of a move route is a move or jump, RPG_RT cancels
-    ; the entire move route immediately"—. With `ruta_i` already past the
+    ; the entire move route immediately"—. With `route_i` already past the
     ; last command, the route is cancelled; with commands left to read, it is
     ; not. It is what lets the opening cutscene step on the event that turns
     ; the tint off: it is three cells up and the event is on the third.
-    lda ruta_i
-    cmp ruta_n
+    lda route_i
+    cmp route_n
     bcs sin_ruta                ; no commands left: door and touch
     ; Some are left: the step is a middle one, and the frequency says how
     ; many frames to stand still before reading the next. It holds even if
     ; the pad started the step: in RM2k `UpdateMovement` sets the counter to
     ; zero when any step ends, and `ForceMoveRoute` already set the route's
     ; limit.
-    lda ruta_frec
+    lda route_freq
     jsr after_step
-    sta ruta_espera
+    sta route_wait
     bra sigue
 sin_ruta:
     ; Just stopped on the cell: is there a touch event? A door is one of
@@ -776,7 +776,7 @@ sigue:
     ; one, walking or not: RM2k calls `ResetAnimation` on every frame while
     ; `IsAnimPaused()`, which leaves the middle frame and the counter at
     ; zero.
-    lda ruta_anim_para
+    lda route_anim_for
     bne quieto
     lda moving
     bne caminando

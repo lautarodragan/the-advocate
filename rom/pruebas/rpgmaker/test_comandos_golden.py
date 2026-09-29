@@ -106,7 +106,7 @@ def test_texto(nombre, caso, en, cuadros, renglon, donde):
     switch** son dos cuadros de texto seguidos y un switch, y de ahí salen tres
     cosas que ningún otro caso mira. Los **desplazamientos**: el segundo
     mensaje no empieza en cero, así que si el operando se ignorara se vería el
-    primero dos veces. Los **cuatro renglones**, que ejercitan `msg_lineas`
+    primero dos veces. Los **cuatro renglones**, que ejercitan `msg_lines`
     entero. Y el **encadenado**: al apretar A el primero se cierra y el segundo
     se abre en el mismo tick.
 
@@ -421,7 +421,7 @@ def test_cerrar(direccion, cuadro):
     """`cerrar`: la ventana de mensaje abierta, y cerrada con A.
 
     Dos ticks, y el segundo es el único que ejercita el cierre: `flush_video`
-    apaga el HDMA de la ventana cuando `msg_abierto` vuelve a cero.
+    apaga el HDMA de la ventana cuando `msg_open` vuelve a cero.
 
         60    la ventana en pantalla y la página frenada: el tinte que viene
               después del mensaje todavía no se aplicó
@@ -569,12 +569,12 @@ def _el_borrar(nombre, desde=25, hasta=60):
     p.correr(desde)
     arranco = llego = cargo = None
     for tick in range(desde, hasta):
-        if arranco is None and p.byte("fundido"):
+        if arranco is None and p.byte("fade"):
             arranco = tick
         if arranco is not None:
-            if llego is None and p.byte("brillo") == 0:
+            if llego is None and p.byte("brightness") == 0:
                 llego = tick - arranco
-            if cargo is None and not p.byte("fundido_que"):
+            if cargo is None and not p.byte("fade_kind"):
                 cargo = tick - arranco
         if cargo is not None and llego is not None:
             break

@@ -4,7 +4,7 @@
 ;
 ; The cartridge carries battery-backed SRAM, with `SRAM_SLOTS` slots.
 ;
-; What gets saved is said by `partida_tabla` and nothing else: pairs of
+; What gets saved is said by `save_table` and nothing else: pairs of
 ; (address in bank 0 WRAM, how many bytes), terminated by a zero length.
 ; Having it in a table and not in code is what keeps saving and loading from
 ; drifting apart —both walk it— and makes adding a field one line.
@@ -55,15 +55,15 @@ SRAM_CHECKSUM  = $0104          ; the sum of the saved game's bytes
 ; `slot_of_this_format`.
 ;
 ; They are two words and neither is written by hand: the length comes from the
-; same constants as `partida_tabla`, and the signature is computed by the
+; same constants as `save_table`, and the signature is computed by the
 ; converter from which variable, actor and skill goes in each slot
 ; —`firma_de_la_partida`—, which is what the length does not see.
 SRAM_BYTES = $0106          ; SAVE_BYTES
 SRAM_SIGNATURE = $0108          ; PARTIDA_FIRMA
 SRAM_DATA = $010A
 
-; `partida_tabla` lives in RODATA —see "what does not need to live in bank 0"
-; in `banco1.s`— and is read with `lda f:partida_tabla, x`.
+; `save_table` lives in RODATA —see "what does not need to live in bank 0"
+; in `banco1.s`— and is read with `lda f:save_table, x`.
 ; The same lengths, added up, so the saved game in the SRAM can be walked
 ; without looking at the table again. It is duplicated on purpose and **the
 ; ROM checks it**: `save_game` compares against what `save_copy`
@@ -73,7 +73,7 @@ SAVE_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + 
 ; Where the party lands inside the saved game: after the position, the
 ; direction, the cell and the map. The slot screen reads it from the SRAM to
 ; show the leader's name and the faces. It is the same sum as above, cut at the
-; table's sixth line; if `partida_tabla` changes order, this changes with it.
+; table's sixth line; if `save_table` changes order, this changes with it.
 SAVE_PARTY   = 2 + 2 + 1 + 2 + 2 + 2   ; the map takes two since its
                                           ; index is sixteen bits
 SAVE_PARTY_N = SAVE_PARTY + 4
@@ -92,12 +92,12 @@ SAVE_PARTY_N = SAVE_PARTY + 4
 .proc set_slot
 .a8
 .i16
-    sta ranura
+    sta slot
     rts
 .endproc
 
 ; The slot's offset in the SRAM, in X. **It needs the normal data bank**: it
-; reads `ranura`, which lives in WRAM.
+; reads `slot`, which lives in WRAM.
 ;
 ; It is the slot times 2048, that is one `xba` and three `asl`: see
 ; `set_slot`.
@@ -106,7 +106,7 @@ SAVE_PARTY_N = SAVE_PARTY + 4
 .i16
     rep #$20
 .a16
-    lda ranura
+    lda slot
     and #$00FF
     xba                         ; times 256...
     asl a
@@ -118,7 +118,7 @@ SAVE_PARTY_N = SAVE_PARTY + 4
     rts
 .endproc
 
-; Walks `partida_tabla` copying each stretch. A brings the DMAP: $80 saves
+; Walks `save_table` copying each stretch. A brings the DMAP: $80 saves
 ; —from the WRAM window to the SRAM— and $00 loads. Leaves in `temp` where the
 ; saved game ended inside the SRAM.
 .proc save_copy
@@ -148,7 +148,7 @@ SAVE_PARTY_N = SAVE_PARTY + 4
 otra:
     rep #$20
 .a16
-    lda f:partida_tabla + 2, x
+    lda f:save_table + 2, x
     beq ready                   ; zero length: the table is over
     sta DAS0L
     lda temp
@@ -156,7 +156,7 @@ otra:
     clc
     adc DAS0L
     sta temp
-    lda f:partida_tabla, x
+    lda f:save_table, x
     sta WMADDL                  ; the WRAM, which is always in bank 0
     sep #$20
 .a8
@@ -232,9 +232,9 @@ suma:
 .proc save_game
 .a8
 .i16
-    ; **The `music_apagada` that gets saved is "is it playing?", and not the
+    ; **The `music_off` that gets saved is "is it playing?", and not the
     ; one in RAM.** With an MSU-1 track playing the SPC700 is silent on
-    ; purpose and `music_apagada` is 1, so saved as is the game loaded mute:
+    ; purpose and `music_off` is 1, so saved as is the game loaded mute:
     ; `music_boot_done` reads it as "saved without music". It is set to zero
     ; while the copy lasts —the same question as `map_song_mute`— and so
     ; the saved game does not say where it was playing from: on loading it,
@@ -244,16 +244,16 @@ suma:
     ; `test_la_partida_guardada_vuelve_con_su_tema`.
     php
     sei
-    lda music_apagada
+    lda music_off
     pha
     lda f:MSU_PLAYING
     beq copiar
-    stz music_apagada
+    stz music_off
 copiar:
     lda #$80                    ; from the WRAM window to the SRAM
     jsr save_copy
     pla
-    sta music_apagada
+    sta music_off
     plp
     ; What was copied has to be what `SAVE_BYTES` says. Otherwise the sum
     ; would look at another stretch and the slot would stay invalid forever
@@ -342,7 +342,7 @@ cuadra:
 no_hay:
     plb
     lda #$FF
-    sta ranura                  ; the sentinel: no saved game loaded
+    sta slot                  ; the sentinel: no saved game loaded
     lda #$00
     rts
 .endproc
@@ -409,9 +409,9 @@ no:
     rep #$20
 .a16
     lda tile_x
-    sta entrada_x
+    sta entry_x
     lda tile_y
-    sta entrada_y
+    sta entry_y
     sep #$20
 .a8
     rts

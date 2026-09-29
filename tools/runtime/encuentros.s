@@ -26,7 +26,7 @@
 ; there: all that remains on the other side are the four `jsl` and the bridge
 ; to the battle. **The data bank is $7E while this runs**, as in battle: that
 ; way the state at $3900 is read with absolute addressing and low RAM —`temp`,
-; `tile_x`, `mapa_actual`— is still read the same, because in bank $7E the
+; `tile_x`, `map_current`— is still read the same, because in bank $7E the
 ; addresses from $0000 to $1FFF **are** bank 0's.
 
 ; The seed for the encounters' randomness, at reset. It is a different one from
@@ -41,7 +41,7 @@
     rep #$20
 .a16
     lda #ENC_SEMILLA
-    sta ENC_SEM
+    sta ENC_RNG
     sep #$20
 .a8
     plb
@@ -58,10 +58,10 @@
     lda #$7E
     pha
     plb
-    ldx mapa_actual
+    ldx map_current
     lda f:enc_mapa, x
     sta ENC_REG
-    cmp #ENC_SIN
+    cmp #ENC_NONE
     beq sin_encuentros
     rep #$20
 .a16
@@ -76,7 +76,7 @@
 copiar:
 .a16
     lda f:enc_umbral_n, x
-    sta ENC_UMB, y
+    sta ENC_THR, y
     inx
     inx
     iny
@@ -102,7 +102,7 @@ con_base:
     ; one.
     stz ENC_N
     stz ENC_IDX
-    stz ENC_PIDE
+    stz ENC_ASKS
     plb
     ply
     plx
@@ -131,19 +131,19 @@ con_base:
     pha
     plb
     lda ENC_REG
-    cmp #ENC_SIN
+    cmp #ENC_NONE
     beq saltear
     rep #$20
 .a16
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta ENC_BASE
     iny
     iny
     ldx #0
 umbral:
 .a16
-    lda [cod_ptr], y            ; two at a time: the seven and the padding
-    sta ENC_UMB, x
+    lda [code_ptr], y            ; two at a time: the seven and the padding
+    sta ENC_THR, x
     iny
     iny
     inx
@@ -180,7 +180,7 @@ saltear:
     plb
     stz ENC_N
     stz ENC_IDX
-    stz ENC_PIDE
+    stz ENC_ASKS
     plb
     rtl
 .endproc
@@ -215,7 +215,7 @@ hay:
 sigue_arriba:
 .a8
     ; The table row, which **never goes down**: it is the `last_encounter_idx`
-    ; over there. X points at the next row's threshold, in `ENC_UMB`.
+    ; over there. X points at the next row's threshold, in `ENC_THR`.
     rep #$20
 .a16
     lda ENC_IDX
@@ -226,10 +226,10 @@ sigue_arriba:
 sube:
 .a8
     lda ENC_IDX
-    cmp #(ENC_FILAS - 1)
+    cmp #(ENC_ROWS - 1)
     bcs con_fila                ; the last row goes no higher
     lda ENC_N
-    cmp ENC_UMB, x              ; did it reach the next one's threshold?
+    cmp ENC_THR, x              ; did it reach the next one's threshold?
     bcc con_fila
     inx
     lda ENC_IDX
@@ -284,7 +284,7 @@ salio:
     stz ENC_N
     stz ENC_IDX
     lda #1
-    sta ENC_PIDE
+    sta ENC_ASKS
 end:
 .a8
     plb
@@ -293,7 +293,7 @@ end:
 .endproc
 
 ; Is there a pending encounter to fight here? Returns with 8-bit A: 1 if there
-; is a battle, with the troop already set in `BA_TROPA`.
+; is a battle, with the troop already set in `BT_TROOP`.
 ;
 ; It is `PrepareEncounter`: if no zone covers the cell, the pending one is
 ; consumed and nothing happens, which is what it does over there by returning
@@ -307,14 +307,14 @@ end:
     lda #$7E
     pha
     plb
-    lda ENC_PIDE
+    lda ENC_ASKS
     bne pending
     jmp no_hay
 pending:
 .a8
-    stz ENC_PIDE
+    stz ENC_ASKS
     lda ENC_REG
-    cmp #ENC_SIN
+    cmp #ENC_NONE
     bne con_registro
     jmp no_hay
 con_registro:
@@ -424,7 +424,7 @@ es_de_esta:
     asl a
     tax
     lda f:enc_tropa, x
-    sta BA_TROPA
+    sta BT_TROOP
     sep #$20
 .a8
     lda #1
@@ -508,13 +508,13 @@ afuera:
 .endproc
 
 ; The encounters' xorshift step: the same as `random_next` and `bt_random`,
-; on `ENC_SEM`, which has **its own seed**. Walking does not advance the
+; on `ENC_RNG`, which has **its own seed**. Walking does not advance the
 ; map's randomness: a random `ControlVars` has to give the same result with
 ; and without encounters. It is `eventos.Encuentros._azar`.
 .proc enc_random
 .a16
 .i16
-    lda ENC_SEM
+    lda ENC_RNG
     asl a
     asl a
     asl a
@@ -522,8 +522,8 @@ afuera:
     asl a
     asl a
     asl a
-    eor ENC_SEM
-    sta ENC_SEM
+    eor ENC_RNG
+    sta ENC_RNG
     lsr a
     lsr a
     lsr a
@@ -533,12 +533,12 @@ afuera:
     lsr a
     lsr a
     lsr a
-    eor ENC_SEM
-    sta ENC_SEM
+    eor ENC_RNG
+    sta ENC_RNG
     xba
     and #$FF00
-    eor ENC_SEM
-    sta ENC_SEM
+    eor ENC_RNG
+    sta ENC_RNG
     rts
 .endproc
 

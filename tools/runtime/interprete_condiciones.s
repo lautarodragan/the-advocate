@@ -23,7 +23,7 @@
     ; and Y pointing at the polarity byte; from there on there is a single
     ; path. The switch is the only one that uses the polarity to decide: for
     ; the gold it is already inside the comparison and the actor has none.
-    lda [cod_ptr], y
+    lda [code_ptr], y
     iny                         ; Y -> the operand
     cmp #COND_ORO
     beq si_oro
@@ -38,7 +38,7 @@
     rep #$20
 .a16
     phy                         ; the cursor: `switch_on` clobbers X and Y
-    lda [cod_ptr], y            ; the number, 16 bits
+    lda [code_ptr], y            ; the number, 16 bits
     jsr switch_on        ; Z=1 off, Z=0 on
     beq si_apagado
     lda #$0001
@@ -58,7 +58,7 @@ si_polaridad:
     iny
     iny                         ; Y -> the polarity
     sta temp
-    lda [cod_ptr], y
+    lda [code_ptr], y
     eor temp
     bra si_decide
 
@@ -66,7 +66,7 @@ si_polaridad:
     ; It carries no polarity: the lower branch is the `else`, so the converter
     ; emits zero there and it is not looked at here.
 si_actor:
-    lda [cod_ptr], y            ; the id, which fits in a byte
+    lda [code_ptr], y            ; the id, which fits in a byte
     phy
     jsr in_party             ; A=1 if present, A=0 if not
     ply
@@ -89,18 +89,18 @@ si_actor:
 si_oro:
     rep #$20
 .a16
-    lda [cod_ptr], y            ; against how much, 16 bits
+    lda [code_ptr], y            ; against how much, 16 bits
     sta temp + 2
     sep #$20
 .a8
     iny
     iny                         ; Y -> the polarity
-    lda oro + 2
+    lda gold + 2
     bne si_oro_grande           ; the gold is past 65535: greater than any
                                 ; operand, which fits in a word
     rep #$20
 .a16
-    lda oro
+    lda gold
     cmp temp + 2                ; C=1 if gold >= operand
     sep #$20
 .a8
@@ -112,7 +112,7 @@ si_oro_ge:
     rep #$20
 .a16
     lda temp + 2
-    cmp oro                     ; C=1 if operand >= gold, i.e. gold <= operand
+    cmp gold                     ; C=1 if operand >= gold, i.e. gold <= operand
     sep #$20
 .a8
     lda #$01
@@ -126,7 +126,7 @@ si_oro_grande:
     sta temp                    ; the >= holds
     stz temp + 1                ; and the <= does not
 si_oro_elige:
-    lda [cod_ptr], y            ; the polarity
+    lda [code_ptr], y            ; the polarity
     beq si_oro_usa_ge
     lda temp + 1
     bra si_decide
@@ -145,7 +145,7 @@ si_oro_usa_ge:
 si_item:
     rep #$20
 .a16
-    lda [cod_ptr], y            ; the item number, 16 bits
+    lda [code_ptr], y            ; the item number, 16 bits
     clc
     adc #FAR_ITEMS
     sta WMADDL
@@ -171,7 +171,7 @@ si_no_cumple:
     iny                         ; Y -> the target
     rep #$20
 .a16
-    lda [cod_ptr], y
+    lda [code_ptr], y
     tay
     sep #$20
 .a8
@@ -185,18 +185,18 @@ si_no_cumple:
 .proc op_if_var
 .a8
 .i16
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta temp                    ; the slot
     iny
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta temp + 1                ; the class: constant or another variable
     iny
-    lda [cod_ptr], y            ; the comparison
+    lda [code_ptr], y            ; the comparison
     pha
     iny
     rep #$20
 .a16
-    lda [cod_ptr], y            ; the value, or the slot
+    lda [code_ptr], y            ; the value, or the slot
     sta temp + 2
     sep #$20
 .a8
@@ -238,7 +238,7 @@ si_var_otra:
 si_var_no:
     rep #$20
 .a16
-    lda [cod_ptr], y            ; it does not hold: to the target
+    lda [code_ptr], y            ; it does not hold: to the target
     tay
     sep #$20
 .a8
@@ -261,15 +261,15 @@ si_var_sigue:
 ; On entry, Y points at the sub. Both paths end at `sia_si` or at `sia_no`
 ; with Y already pointing at the target.
 .proc op_if_actor
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta temp                    ; the sub
     iny
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta temp + 1                ; the actor, which fits in a byte
     iny
     rep #$20
 .a16
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta temp + 2                ; the item or the skill, 16 bits
     sep #$20
 .a8
@@ -282,7 +282,7 @@ si_var_sigue:
     ; --- the equipped equipment ---
     ; easyrpg's five `Get*Id()` compared against the item: it is enough for it
     ; to be in one slot. They are read from the same place the equipment
-    ; screen reads them —`FAR_EQUIPO` + actor * 10, see `eq_point`— through
+    ; screen reads them —`FAR_EQUIPMENT` + actor * 10, see `eq_point`— through
     ; the WRAM port, which auto-increments: one word per slot, byte by byte,
     ; because `WMDATA` is an eight-bit port and reading it two at a time would
     ; read the register next to it.
@@ -297,7 +297,7 @@ si_var_sigue:
     clc
     adc temp                    ; times ten, which is how long a row is
     clc
-    adc #FAR_EQUIPO
+    adc #FAR_EQUIPMENT
     sta WMADDL
     sep #$20
 .a8
@@ -321,7 +321,7 @@ sia_eq_otra:
 
     ; --- the skill ---
     ; `Game_Actor::IsSkillLearned`: the bit of the (actor, skill) pair in
-    ; `FAR_HAB`. The converter already put the pair's slot where the other
+    ; `FAR_SKILL`. The converter already put the pair's slot where the other
     ; questions carry the item, so `temp + 2` brings it and the actor is not
     ; needed. See `HABILIDAD_RANURA` in eventos.py.
 sia_habilidad:
@@ -330,7 +330,7 @@ sia_habilidad:
 sia_no:
     rep #$20
 .a16
-    lda [cod_ptr], y            ; the target, absolute inside the page
+    lda [code_ptr], y            ; the target, absolute inside the page
     tay
     sep #$20
 .a8
@@ -347,7 +347,7 @@ sia_si:
 .proc op_goto
     rep #$20
 .a16
-    lda [cod_ptr], y
+    lda [code_ptr], y
     tay
     sep #$20
 .a8

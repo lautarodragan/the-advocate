@@ -8,7 +8,7 @@ VTIMEH   = $420A
 ; The music IRQ's line: far from vblank, which is where the loop does its DMA
 ; on a tight time budget, and in the middle of the visible part, where
 ; whatever is running can wait as long as a music frame takes.
-IRQ_LINEA = 112
+IRQ_LINE = 112
 HVBJOY   = $4212        ; bit 7: we are in vblank
 MEMSEL   = $420D        ; bit 0: the ROM from bank $80 onwards, fast
 ; The code runs from the bank $80 mirror, not from bank 0. Banks $80 to $BF
@@ -21,7 +21,7 @@ MEMSEL   = $420D        ; bit 0: the ROM from bank $80 onwards, fast
 ; there on every `jsr` and every `rts` stays in the bank it is in. Since
 ; 2026-09-11, because the opening with rain, thunder and text dropped one
 ; frame out of three.
-RAPIDO   = $800000
+FAST   = $800000
 STAT78   = $213F        ; bit 4: 0 = NTSC console, 1 = PAL
 HDMAEN   = $420C        ; per-scanline DMA channels
 APUIO0   = $2140        ; the four ports to the SPC700
@@ -151,7 +151,7 @@ DMAP3    = $4330
 BBAD3    = $4331
 A1T3L    = $4332
 A1B3     = $4334
-HDMA_VENTANA = $0E      ; channels 1, 2 and 3 on at once
+HDMA_WINDOW = $0E      ; channels 1, 2 and 3 on at once
 ; PPU window 1, which is not the message window: it is the mask that hides
 ; the objects under it. See `build_hdma`.
 WOBJSEL  = $2125        ; which PPU windows mask objects

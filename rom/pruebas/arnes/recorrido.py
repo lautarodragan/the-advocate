@@ -46,7 +46,7 @@ def puede_pasar(passable, width, height, x, y, dx, dy, blocked=()):
     """Si desde (x,y) se puede dar un paso en (dx,dy).
 
     Las dos caras se consultan, la que se deja y la que se entra, que es la
-    regla de RM2k —la misma que `pass_salir`/`pass_entrar` de `runtime/banco1.s`—. Es una
+    regla de RM2k —la misma que `pass_exit`/`pass_enter` de `runtime/banco1.s`—. Es una
     función y no está escrita en cada lugar porque acá se camina de dos maneras
     —el BFS que arma la ruta y el paso a paso que la recorre mirando si la
     celda tiene una puerta— y las reglas tienen que ser las mismas, no una
@@ -459,12 +459,12 @@ class Recorrido:
             # sería tapar el error de verdad con otro: lo que se está armando
             # es el mensaje que explica qué pasó.
             mapa = "índice %d, que no está en la tabla" % p.palabra(
-                "mapa_actual")
+                "map_current")
         return ("hito %r: tick %d, mapa %s, celda (%d,%d), mirando %d, "
                 "página %s, mensaje %s, perdidos %d"
                 % (self.hito, p.cuadro, mapa, p.palabra("tile_x"),
                    p.palabra("tile_y"), p.byte("hero_dir"),
-                   p.byte("ev_activo"), p.byte("msg_abierto"),
+                   p.byte("ev_active"), p.byte("msg_open"),
                    p.cuadros_perdidos()))
 
     def celda(self):
@@ -481,7 +481,7 @@ class Recorrido:
         un hito que acaba de cruzar una puerta sale **negra**: el fundido de
         la puerta dura decenas de ticks y el hito se cumple en el primero."""
         for _ in range(tope):
-            if not self.p.byte("fundido"):
+            if not self.p.byte("fade"):
                 return self
             self.p.correr(1)
         return self
@@ -735,7 +735,7 @@ class Recorrido:
         while gastado < tope:
             if hasta is not None and hasta(self.p):
                 return self
-            if self.p.byte("fundido"):
+            if self.p.byte("fade"):
                 self.p.correr(4)
                 gastado += 4
                 continue
@@ -921,7 +921,7 @@ class Recorrido:
     # que bajar el cursor, y eso tiene tres trampas, las tres de tiempo:
     #
     # * **la ventana no mira el pad mientras se compone**: `choice_tick`
-    #   contesta cero mientras `msg_abierto` esté apagado, que son de nueve a
+    #   contesta cero mientras `msg_open` esté apagado, que son de nueve a
     #   diecinueve vueltas según el texto. Un toque ahí no pasa;
     # * **un toque se puede perder** aunque caiga con la ventana lista: la ROM
     #   lee el pad una vez por vuelta —ver `mirar_a`—;
@@ -932,9 +932,9 @@ class Recorrido:
 
     def _eleccion_lista(self):
         """La elección está en pantalla y mira el pad. Los dos bytes, igual
-        que `abierta` de `pruebas/rpgmaker/test_elegir.py`: `eleg_activo` se
+        que `abierta` de `pruebas/rpgmaker/test_elegir.py`: `pick_active` se
         prende en `op_choice`, antes de que la ventana termine de componerse."""
-        return bool(self.p.byte("eleg_activo") and self.p.byte("msg_abierto"))
+        return bool(self.p.byte("pick_active") and self.p.byte("msg_open"))
 
     def marcar(self, opcion, tope=4000):
         """Espera a que se abra el próximo `ShowChoice` y le deja el cursor en
@@ -954,12 +954,12 @@ class Recorrido:
                 raise Trabado("esperando un ShowChoice no se abrió ninguno en "
                               "%d ticks. %s" % (tope, self.estado()))
             antes = p.cuadro
-            if p.byte("msg_abierto") and not p.byte("eleg_activo"):
+            if p.byte("msg_open") and not p.byte("pick_active"):
                 p.tocar_ticks("a")
             else:
                 p._un_tick()
             gastado += p.cuadro - antes
-        n = p.byte("eleg_n")
+        n = p.byte("pick_n")
         if not 0 <= opcion < n:
             raise Trabado("la elección tiene %d opciones y se pidió la %d. %s"
                           % (n, opcion, self.estado()))
@@ -969,22 +969,22 @@ class Recorrido:
         # generoso a propósito: con `INSISTIR` toques perdidos por renglón
         # también llega.
         for _ in range(n * INSISTIR):
-            if p.byte("eleg_sel") == opcion:
+            if p.byte("pick_sel") == opcion:
                 break
-            if not p.byte("eleg_activo"):
+            if not p.byte("pick_active"):
                 raise Trabado("la elección se cerró mientras se bajaba el "
                               "cursor. %s" % self.estado())
             p.tocar_ticks("down")
         else:
             raise Trabado("el cursor no llegó a la opción %d en %d toques de "
                           "abajo: quedó en %d. %s"
-                          % (opcion, n * INSISTIR, p.byte("eleg_sel"),
+                          % (opcion, n * INSISTIR, p.byte("pick_sel"),
                              self.estado()))
         # Mover el cursor recompone la ventana —ver `pick_open`—, y una foto
-        # sacada a mitad de eso muestra el renglón viejo. `msg_estado` en 1 es
+        # sacada a mitad de eso muestra el renglón viejo. `msg_state` en 1 es
         # "componiendo". No hace falta para elegir: sólo para mirar.
         for _ in range(PASO_TOPE):
-            if p.byte("msg_estado") != 1:
+            if p.byte("msg_state") != 1:
                 break
             p._un_tick()
         return self
@@ -994,8 +994,8 @@ class Recorrido:
         comprueba que se eligió la opción marcada.
 
         Resuelta es que la ventana deje de estar lista: al elegir,
-        `choice_tick` apaga `eleg_activo` y `msg_abierto` en la misma vuelta.
-        Si la rama empieza con **otra** elección, `eleg_activo` se vuelve a
+        `choice_tick` apaga `pick_active` y `msg_open` en la misma vuelta.
+        Si la rama empieza con **otra** elección, `pick_active` se vuelve a
         prender enseguida, pero esa no está compuesta todavía, así que no se la
         confunde con la de antes ni se la contesta de paso.
         """
@@ -1003,13 +1003,13 @@ class Recorrido:
         if not self._eleccion_lista():
             raise Trabado("no hay ninguna elección abierta para confirmar. %s"
                           % self.estado())
-        marcada = p.byte("eleg_sel")
+        marcada = p.byte("pick_sel")
         for _ in range(INSISTIR * 2):
             if not self._eleccion_lista():
                 break
-            if p.byte("eleg_sel") != marcada:
+            if p.byte("pick_sel") != marcada:
                 raise Trabado("el cursor se movió de %d a %d mientras se "
-                              "confirmaba. %s" % (marcada, p.byte("eleg_sel"),
+                              "confirmaba. %s" % (marcada, p.byte("pick_sel"),
                                                   self.estado()))
             p.tocar_ticks("a")
         else:
@@ -1017,9 +1017,9 @@ class Recorrido:
                           % (INSISTIR * 2, self.estado()))
         # Si ya se abrió la elección siguiente, `op_choice` volvió a poner el
         # cursor en cero y lo que eligió ésta no se puede leer más.
-        if not p.byte("eleg_activo") and p.byte("eleg_sel") != marcada:
+        if not p.byte("pick_active") and p.byte("pick_sel") != marcada:
             raise Trabado("se confirmó con el cursor en %d y se eligió la %d. "
-                          "%s" % (marcada, p.byte("eleg_sel"), self.estado()))
+                          "%s" % (marcada, p.byte("pick_sel"), self.estado()))
         return self
 
     def elegir(self, opcion, tope=4000):
@@ -1045,13 +1045,13 @@ class Recorrido:
         """
         p = self.p
         for _ in range(toques):
-            if p.byte("menu_abierto"):
+            if p.byte("menu_open"):
                 break
             p.consola.hold("a")
             p.consola.run(2)
             p.consola.hold()
             p.consola.run(8)
-        if not p.byte("menu_abierto"):
+        if not p.byte("menu_open"):
             raise Trabado(
                 "el save point no abrió la pantalla de ranuras en %d toques "
                 "de A. %s" % (toques, self.estado()))
@@ -1069,7 +1069,7 @@ class Recorrido:
 
         **Todo por cuadros de hardware, y ésa es la parte que hay que saber.**
         `OpenSaveMenu` bloquea adentro del intérprete —como `Scene_Save` en
-        RM2k— así que mientras la pantalla de ranuras se ve `vueltas` no
+        RM2k— así que mientras la pantalla de ranuras se ve `ticks` no
         avanza: cualquier espera por ticks se planta con "la ROM no llegó al
         tick N", y ese error es el **éxito** disfrazado. Por lo mismo no sirve
         `activar`, que le toca A al evento con `Partida.correr`.

@@ -96,7 +96,7 @@ def test_hablar(nombre, caso, apretar, cuadros):
     Del arnés, dos cosas:
 
     * **un toque de A que cae adentro de los primeros ticks de un mensaje no
-      hace nada.** La ROM ignora el botón mientras `msg_abierto` esté en cero,
+      hace nada.** La ROM ignora el botón mientras `msg_open` esté en cero,
       y componer la ventana le lleva de nueve a diecinueve ticks según el
       texto. Al armar una lista de toques hay que dejar treinta ticks desde que
       el mensaje abre, no veinte: con veinte, un toque llegó **uno** antes de

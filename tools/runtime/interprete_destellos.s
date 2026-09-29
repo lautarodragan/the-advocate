@@ -13,18 +13,18 @@
 ; end the frame: if the page waits, the converter puts an OP_DELAY after it,
 ; as with the flashes.
 .proc op_shake
-    lda [cod_ptr], y            ; strength
-    sta sacudida_fuerza
+    lda [code_ptr], y            ; strength
+    sta shake_force
     iny
-    lda [cod_ptr], y            ; speed
-    sta sacudida_vel
+    lda [code_ptr], y            ; speed
+    sta shake_speed
     iny
     rep #$20
 .a16
-    lda [cod_ptr], y            ; frames
-    sta sacudida_resta
+    lda [code_ptr], y            ; frames
+    sta shake_remain
     bne con_cuadros
-    stz sacudida_pos            ; ShakeEnd: the screen goes back to its place
+    stz shake_pos            ; ShakeEnd: the screen goes back to its place
 con_cuadros:
     iny
     iny

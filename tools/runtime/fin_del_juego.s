@@ -23,7 +23,7 @@
 ;              screen's, and for the same reason it does not care about the
 ;              stack or VRAM: the boot restores everything.
 ;
-; `titulo_sel` is the highlighted command while it is shown: the menu puts it
+; `title_sel` is the highlighted command while it is shown: the menu puts it
 ; back on End Game on return, as it does with the other screens.
 .proc ending_screen
 .a8
@@ -35,7 +35,7 @@
     sta INIDISP                 ; forced blank: VRAM is only touched this way
     stz HDMAEN
     lda #FIN_ENTRA
-    sta titulo_sel
+    sta title_sel
 
     ; --- the tiles, from RANURA_VRAM ---
     lda #$80
@@ -112,23 +112,23 @@ espera:
     ; Up and down switch commands, and with two it does not matter which: there
     ; is no cap, as in `Window_Selectable`, which wraps around.
     lda pad
-    eor pad_ant
+    eor pad_prev
     and pad
     bit #PAD_B
     bne volver
     and #(PAD_UP | PAD_DOWN)
     beq mira_a
-    lda titulo_sel
+    lda title_sel
     eor #1
-    sta titulo_sel
+    sta title_sel
     jsr ending_palette              ; still in the vblank
     bra espera
 mira_a:
     lda pad_a
     beq espera
-    lda pad_a_ant
+    lda pad_a_prev
     bne espera                  ; it was already held: not an edge
-    lda titulo_sel
+    lda title_sel
     cmp #FIN_NO
     bne salir
 volver:
@@ -143,7 +143,7 @@ salir:
     ; there is nothing to fade, and with an MSU-1 track there is.
     lda f:MSU_PLAYING
     bne fundir
-    lda music_apagada
+    lda music_off
     bne pantalla
 fundir:
     php
@@ -151,13 +151,13 @@ fundir:
     rep #$20
 .a16
     lda #FIN_PASO_TEMA
-    sta bgm_paso
+    sta bgm_step
     lda #$FFFF
-    sta bgm_nivel               ; full volume, which is where it goes down from
+    sta bgm_level               ; full volume, which is where it goes down from
     sep #$20
 .a8
     lda #1
-    sta bgm_fundido
+    sta bgm_fade
     plp
 pantalla:
     ; And the screen, to black along the converter's ramp.
@@ -174,12 +174,12 @@ baja:
     lda #$80
     sta INIDISP
     ; The song finishes fading with the screen black: the screen fade is
-    ; shorter. `bgm_fundido` goes back to zero on its own, in `irq_music`; if
+    ; shorter. `bgm_fade` goes back to zero on its own, in `irq_music`; if
     ; there was no song, it already is. The cap is just in case: the song only
     ; has a few frames left, and FIN_CUADROS is more than enough.
     ldx #FIN_CUADROS
 tema:
-    lda bgm_fundido
+    lda bgm_fade
     beq callado
     phx
     jsl f:bt_t_vblank
@@ -198,13 +198,13 @@ callado:
     jml f:reset
 .endproc
 
-; The palette for command `titulo_sel` into entries 0 to 15. With the screen
+; The palette for command `title_sel` into entries 0 to 15. With the screen
 ; off or inside the vblank.
 .proc ending_palette
 .a8
 .i16
     stz CGADD
-    lda titulo_sel
+    lda title_sel
     rep #$20
 .a16
     and #$00FF

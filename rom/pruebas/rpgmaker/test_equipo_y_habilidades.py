@@ -5,7 +5,7 @@ Los dos traban páginas del juego que la tanda no corre —el `Craftsman` del
 mapa 30 y la cinemática del techo del mapa 32— y los dos cambian estado que no
 se ve en ningún pixel del cuadro en que pasa, así que esto le pregunta a la RAM.
 
-**Las habilidades son un bit por par (actor, habilidad)** en `FAR_HAB`, con la
+**Las habilidades son un bit por par (actor, habilidad)** en `FAR_SKILL`, con la
 ranura que les da `events.SKILL_SLOT`: el juego entero **más los pares
 que nombren las páginas de prueba del cartucho**, así que la prueba rearma el
 índice con los mismos casos. La página `habilidades-cambiar` le enseña a Arden
@@ -34,7 +34,7 @@ def ranura(actor, habilidad):
 
 def poner(una, actor, habilidad, valor):
     r = ranura(actor, habilidad)
-    donde = una.simbolos["FAR_HAB"] + (r >> 3)
+    donde = una.simbolos["FAR_SKILL"] + (r >> 3)
     octeto = una.consola.ram(donde, 1)[0]
     octeto = octeto | (1 << (r & 7)) if valor else octeto & ~(1 << (r & 7))
     una.consola.write_ram(donde, [octeto])
@@ -44,7 +44,7 @@ def poner(una, actor, habilidad, valor):
 
 def test_los_bits_arrancan_con_lo_que_dice_el_ldb(partida):
     """`initial_skills_set`: el control de las dos de abajo. Sin él, una ROM
-    que no copiara nada y dejara `FAR_HAB` en cero daría "no la sabe" para la
+    que no copiara nada y dejara `FAR_SKILL` en cero daría "no la sabe" para la
     147 por el motivo equivocado."""
     una = partida(caso="habilidades-cambiar")
     pares = len(datos.ranuras_de_habilidad())

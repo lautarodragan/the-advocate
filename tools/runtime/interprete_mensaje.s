@@ -25,29 +25,29 @@
     ; `window_message.h:216`); returning false leaves the cursor where it was,
     ; so the opcode is retried the next frame. The foreground does not need the
     ; check —with a message open `events_tick` does not even call it— and
-    ; that is why `par_ev` decides.
-    lda par_ev
+    ; that is why `pair_ev` decides.
+    lda pair_ev
     cmp #$FF
     beq abrir                   ; foreground
-    cmp #PAR_PELEA
+    cmp #PAIR_BATTLE
     beq en_la_pelea
-    lda msg_abierto
-    ora msg_estado
-    ora eleg_activo
+    lda msg_open
+    ora msg_state
+    ora pick_active
     beq abrir
     dey                         ; the cursor goes back to this same opcode
     sty ev_cur
     rts
 en_la_pelea:
     ; A troop page: the message does not go to the map's window —the screen
-    ; is the battle's, and `texto_buf` is the battle's— but is left noted for
+    ; is the battle's, and `text_buf` is the battle's— but is left noted for
     ; the battle, which draws it on its lines and waits for A. The page stays
-    ; held behind it just as on the map: `ev_activo` stays at one and the
+    ; held behind it just as on the map: `ev_active` stays at one and the
     ; cursor, on the next command. See `bt_page_step`.
     rep #$20
 .a16
-    lda [cod_ptr], y
-    sta f:BAT_LARGO + BA_PAG_MSG
+    lda [code_ptr], y
+    sta f:BAT_LENGTH + BT_PAGE_MSG
     iny
     iny
     sep #$20
@@ -55,16 +55,16 @@ en_la_pelea:
     sty ev_cur
     rts
 abrir:
-    lda par_ev
-    sta msg_duenio              ; $FF if the foreground opens it
+    lda pair_ev
+    sta msg_owner              ; $FF if the foreground opens it
     ; The message does not appear this frame: its text has to be composed,
     ; and that takes quite a few. The window turns itself on when the composer
     ; finishes; meanwhile the page is already blocked.
-    stz msg_abierto
-    stz eleg_activo
+    stz msg_open
+    stz pick_active
     rep #$20
 .a16
-    lda [cod_ptr], y            ; the offset, which goes in A to msg_start
+    lda [code_ptr], y            ; the offset, which goes in A to msg_start
     iny
     iny
     phy
@@ -84,17 +84,17 @@ abrir:
 ; here: what is saved is where the table is, which is where both come from,
 ; the box that is drawn and the destination.
 .proc op_choice
-    lda [cod_ptr], y            ; how many options
-    sta eleg_n
+    lda [code_ptr], y            ; how many options
+    sta pick_n
     iny
-    lda [cod_ptr], y            ; which option cancel picks, plus one
-    sta eleg_cancel
+    lda [code_ptr], y            ; which option cancel picks, plus one
+    sta pick_cancel
     iny
-    sty eleg_tabla
-    stz eleg_sel                ; `Window_Selectable` starts with the index at
+    sty pick_table
+    stz pick_sel                ; `Window_Selectable` starts with the index at
                                 ; zero, and the first option is highlighted
     lda #1
-    sta eleg_activo
+    sta pick_active
     jsr pick_open
     rts
 

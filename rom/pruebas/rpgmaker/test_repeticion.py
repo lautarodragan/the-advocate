@@ -23,7 +23,7 @@ CADA = 4
 
 
 def cursor(una):
-    return una.byte("titulo_sel")
+    return una.byte("title_sel")
 
 
 def cuadros_en_que_se_mueve(una, cuadros, *botones):

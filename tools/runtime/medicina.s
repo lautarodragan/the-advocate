@@ -8,7 +8,7 @@
 ; if it was of use and, before everything, the "is there any left?" of
 ; `Scene_ActorTarget`. The actor choice calls it on each A over a medicine.
 ;
-; It enters with the actor in A8 and the item's `k` in `eleg_flancos`, where
+; It enters with the actor in A8 and the item's `k` in `pick_edges`, where
 ; `items_screen` leaves it. It returns with A8 at 1 if it was of use and at
 ; 0 if not, and Z to match. It is entered with `jsl`, with any data bank: it
 ; sets $7E and restores it. It clobbers X, Y and `temp`.
@@ -29,14 +29,14 @@
     plb
     pla
     sta MED_ACTOR
-    stz MED_USADO
-    stz MED_REVIVIO
-    stz MED_REVIVIO + 1
+    stz MED_USED
+    stz MED_REVIVED
+    stz MED_REVIVED + 1
     ; Is there any left? With the choice open the last one can be spent and
     ; A still pressed.
     jsr k_en_x
     lda f:item_medicina, x
-    sta MED_BANDERAS
+    sta MED_FLAGS
     rep #$20
 .a16
     txa
@@ -147,7 +147,7 @@ sp_listo:
 .a8
     bne vivo
     ; Dead: it is only of use if it removes the death state, and removing it is 1 HP.
-    lda MED_BANDERAS
+    lda MED_FLAGS
     and #2
     bne levantar
     jmp no_sirve
@@ -156,13 +156,13 @@ levantar:
 .a16
     lda #1
     sta FAR_HP, x
-    sta MED_REVIVIO
+    sta MED_REVIVED
     sep #$20
 .a8
-    sta MED_USADO
+    sta MED_USED
     bra curar_hp
 vivo:
-    lda MED_BANDERAS
+    lda MED_FLAGS
     and #1
     beq curar_hp
     jmp no_sirve                ; `ko_only` on one standing
@@ -179,7 +179,7 @@ curar_hp:
     bcs curar_sp                ; full
     lda MED_HP
     sec
-    sbc MED_REVIVIO
+    sbc MED_REVIVED
     clc
     adc FAR_HP, x
     bcs hp_topado
@@ -192,7 +192,7 @@ hp_poner:
     sep #$20
 .a8
     lda #1
-    sta MED_USADO
+    sta MED_USED
     rep #$20
 .a16
 curar_sp:
@@ -214,16 +214,16 @@ sp_poner:
     sep #$20
 .a8
     lda #1
-    sta MED_USADO
+    sta MED_USED
 gastar:
     ; `ConsumeItemUse`, if it was of use and the item has uses. One at a
     ; time: RM2k counts the uses of a multi-use item, and this port does not,
     ; but this game's medicines are all single-use.
     sep #$20
 .a8
-    lda MED_USADO
+    lda MED_USED
     beq ready
-    lda MED_BANDERAS
+    lda MED_FLAGS
     and #4
     beq ready
     ldx MED_ID
@@ -232,17 +232,17 @@ gastar:
     sta FAR_ITEMS, x
     bra ready
 no_sirve:
-    stz MED_USADO
+    stz MED_USED
 ready:
     plb
-    lda f:FAR_LARGO + MED_USADO ; after the `plb`: the flags come from this
+    lda f:FAR_LENGTH + MED_USED ; after the `plb`: the flags come from this
     rtl
 
-; The item's `k`, from `eleg_flancos` to X. Only A and X.
+; The item's `k`, from `pick_edges` to X. Only A and X.
 k_en_x:
     rep #$20
 .a16
-    lda eleg_flancos
+    lda pick_edges
     and #$00FF
     tax
     sep #$20

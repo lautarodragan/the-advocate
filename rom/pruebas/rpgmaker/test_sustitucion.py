@@ -11,14 +11,14 @@ comparación es en **cero pixeles**, como cualquier golden.
 **Contra un control y no contra el tick de antes**, y eso costó un rojo: en la
 misma corrida dos ticks distintos no dibujan lo mismo aunque el mapa no haya
 cambiado, porque los NPCs caminan y los tiles animados del ChipSet cambian de
-dibujo con `vueltas`. Con el control las dos corridas están en el mismo tick.
+dibujo con `ticks`. Con el control las dos corridas están en el mismo tick.
 
 **Y las dos corridas van una después de la otra, nunca a la vez.** Eso costó
 el segundo rojo, y no se ve leyendo el código: el core de libretro es **uno
 solo por proceso**, así que dos `Partida` vivas a la vez comparten la consola
 y la segunda se lleva puesta a la primera. Lo que se veía era una diferencia
 de 28 pixeles de 57.344 entre dos corridas que tenían la misma OAM, la misma
-CGRAM y el mismo `vueltas` —o sea, imposible— y tablas de sustitución que no
+CGRAM y el mismo `ticks` —o sea, imposible— y tablas de sustitución que no
 eran las suyas. Por eso `capturas` corre una partida entera, se guarda las
 imágenes, y recién después arranca la otra.
 """

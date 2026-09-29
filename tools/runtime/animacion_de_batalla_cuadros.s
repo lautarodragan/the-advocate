@@ -55,7 +55,7 @@ borra:
     phb
     lda f:ANIMB_PREV + 2
     beq sin_anterior
-    ora #^RAPIDO                ; its fast mirror: see MEMSEL
+    ora #^FAST                ; its fast mirror: see MEMSEL
     pha
     plb                         ; the previous frame's bank
     rep #$20
@@ -110,7 +110,7 @@ sin_anterior:
 .a8
     lda f:anim_batalla_cuadros + 2, x
     sta f:ANIMB_PREV + 2
-    ora #^RAPIDO
+    ora #^FAST
     pha
     plb                         ; the new frame's bank
 copiar:

@@ -36,7 +36,7 @@ def secuencia(p, cuadros, *botones):
     prendido, flancos = [], []
     for _ in range(cuadros):
         p._un_cuadro()
-        a, antes = p.byte("pad_a"), p.byte("pad_a_ant")
+        a, antes = p.byte("pad_a"), p.byte("pad_a_prev")
         prendido.append(bool(a))
         flancos.append(bool(a and not antes))
     return prendido, flancos

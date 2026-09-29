@@ -30,7 +30,7 @@ def test_pararse_encima_de_la_puerta_y_apretar_a_la_abre(partida):
             break
         una.tocar_ticks("a")
         for _ in range(90):
-            if una.mapa() == DESTINO or una.byte("msg_abierto"):
+            if una.mapa() == DESTINO or una.byte("msg_open"):
                 break
             una.correr(1)
     assert una.mapa() == DESTINO, \

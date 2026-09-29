@@ -219,7 +219,7 @@ def pasar_mensajes(r, cuantos, fotos=None, tope=3000):
     for _ in range(tope):
         if visto >= cuantos:
             return
-        if p.byte("msg_abierto") and p.byte("msg_estado") != 1:
+        if p.byte("msg_open") and p.byte("msg_state") != 1:
             visto += 1
             if visto in fotos:
                 r.foto(fotos[visto], asentar=False)
@@ -228,7 +228,7 @@ def pasar_mensajes(r, cuantos, fotos=None, tope=3000):
             p.consola.hold()
             # Hasta que se cierra: el cuadro siguiente puede tardar en abrir.
             for _ in range(60):
-                if not p.byte("msg_abierto"):
+                if not p.byte("msg_open"):
                     break
                 p.consola.run(1)
         else:
@@ -284,23 +284,23 @@ def manejar(r, mundo, hasta, tope=6000, sin_volante=False, choques=None,
             if m == EL_CHOQUE and choques is not None:
                 choques.append(p.cuadro)
         antes = p.cuadro
-        if m in LAS_VUELTAS + (EL_PUENTE_MAPA,) and not p.byte("msg_abierto"):
+        if m in LAS_VUELTAS + (EL_PUENTE_MAPA,) and not p.byte("msg_open"):
             if m not in cache:
                 cache[m] = autos(mundo, m)
             tecla = None if sin_volante else piloto(p, cache[m])
-            manejando = (p.switch(CORRIENDO) and not p.byte("fundido")
-                         and not p.byte("msg_estado")
+            manejando = (p.switch(CORRIENDO) and not p.byte("fade")
+                         and not p.byte("msg_state")
                          and p.heroe()[0] >= LA_LARGADA_X)
             hardware = p.hardware
             p.correr(1, sosteniendo=(tecla,) if tecla else ())
             if (cuadros is not None and manejando and p.mapa() == m
-                    and p.switch(CORRIENDO) and not p.byte("fundido")):
+                    and p.switch(CORRIENDO) and not p.byte("fade")):
                 cuenta = cuadros.setdefault(m, [0, 0])
                 cuenta[0] += p.cuadro - antes
                 cuenta[1] += p.hardware - hardware
         else:
             p.correr(4, apretar_a=(p.cuadro + 3,)
-                     if p.byte("msg_abierto") else ())
+                     if p.byte("msg_open") else ())
         gastado += p.cuadro - antes
         if mirando is not None:
             mirando(p)

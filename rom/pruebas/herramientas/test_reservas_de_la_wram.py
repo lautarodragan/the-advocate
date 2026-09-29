@@ -11,7 +11,7 @@ para leer la decisión.
 
 Mira la tabla de símbolos del cartucho armado, que tiene las constantes del
 ensamblador con su banco. Lo que no ve: una dirección escrita de dieciséis
-bits y usada con el banco de datos en `$7E` —como `FAR_BATALLA`—, que en la
+bits y usada con el banco de datos en `$7E` —como `FAR_BATTLE`—, que en la
 tabla es un número chico. Para ésas queda `test_carga_descomprimida.py`, que
 compara la grilla entera en cada carga y a la vuelta de una pelea.
 """
@@ -23,9 +23,9 @@ from assembly import cartridges
 
 # Cada rango con los símbolos que tienen derecho a caer adentro.
 RESERVAS = (
-    ((0x7E8000, 0x7F0000), {"GRILLA"}),
-    ((0x7F0000, 0x800000), {"GRILLA_FIN", "GRILLA_ALTA", "LZ2_BUFFER",
-                            "ANIM_DIBUJOS", "ANIM_DIBUJOS_FIN",
+    ((0x7E8000, 0x7F0000), {"GRID"}),
+    ((0x7F0000, 0x800000), {"GRID_END", "GRID_HIGH", "LZ2_BUFFER",
+                            "ANIM_DRAWINGS", "ANIM_DRAWINGS_END",
                             "SCN_CLEAN", "SCN_SCENE",
                             # Las pantallas de Game Over y de título: pisan
                             # el banco, grilla incluida, porque de ahí no se

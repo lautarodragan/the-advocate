@@ -71,8 +71,8 @@ SCREEN_MAP = $7C00
     iny
     iny
     iny
-    lda [cod_ptr], y
-    sta f:GO_PIERDE
+    lda [code_ptr], y
+    sta f:GO_LOSES
     ply
     sep #$20
 .a8
@@ -85,8 +85,8 @@ SCREEN_MAP = $7C00
 .a8
 .i16
     lda #$FF
-    sta f:GO_PIERDE
-    sta f:GO_PIERDE + 1
+    sta f:GO_LOSES
+    sta f:GO_LOSES + 1
     rtl
 .endproc
 
@@ -96,12 +96,12 @@ SCREEN_MAP = $7C00
 .proc game_over_if_lost
 .a8
 .i16
-    lda f:BAT_LARGO + BA_RESULT
-    cmp #BA_DERROTA
+    lda f:BAT_LENGTH + BT_RESULT
+    cmp #BT_DEFEAT
     bne sigue
     rep #$20
 .a16
-    lda f:GO_PIERDE
+    lda f:GO_LOSES
     inc a                       ; $FFFF gives zero, and `sep` does not touch Z
     sep #$20
 .a8
@@ -122,15 +122,15 @@ sigue:
     phk
     plb
     lda #GO_FRAMES_MAP
-    sta f:GO_CUADROS
-    lda brillo
-    sta f:GO_NIVEL
+    sta f:GO_FRAMES
+    lda brightness
+    sta f:GO_LEVEL
 baja:
     jsr go_wait
-    lda f:GO_NIVEL
+    lda f:GO_LEVEL
     beq negro
     dec a
-    sta f:GO_NIVEL
+    sta f:GO_LEVEL
     sta INIDISP
     bra baja
 negro:
@@ -151,7 +151,7 @@ negro:
     sta INIDISP                 ; forced blanking: VRAM is only touched this way
     stz HDMAEN                  ; without the message window
     lda #0
-    sta f:GO_ESPERA
+    sta f:GO_WAIT
     ; The song, first: its package —the song alone, see PAQUETE_GAME_OVER in
     ; snes_convert.py— is uploaded with the screen black, and so it plays from
     ; the first frame of the fade, as in RM2k. With an MSU-1 track the package
@@ -167,18 +167,18 @@ negro:
 
     ; The fade in.
     lda #GO_FRAMES_SCREEN
-    sta f:GO_CUADROS
+    sta f:GO_FRAMES
     lda #0
-    sta f:GO_NIVEL
+    sta f:GO_LEVEL
 sube:
-    lda f:GO_NIVEL
+    lda f:GO_LEVEL
     sta INIDISP
     jsr go_wait
-    lda f:GO_NIVEL
+    lda f:GO_LEVEL
     cmp #$0F
     beq arriba
     inc a
-    sta f:GO_NIVEL
+    sta f:GO_LEVEL
     bra sube
 arriba:
     ; And the button, which in RM2k is `Input::DECISION`: A, on the edge.
@@ -186,31 +186,31 @@ arriba:
     ; during the fade does not count, because `go_wait` read the
     ; controller on every frame and the edge has already passed.
     lda #1
-    sta f:GO_ESPERA
+    sta f:GO_WAIT
 espera:
     jsl f:bt_t_vblank
     jsl f:bt_t_pad
     lda pad_a
     beq mira_start
-    lda pad_a_ant
+    lda pad_a_prev
     beq cierra
 mira_start:
     lda pad
-    eor pad_ant
+    eor pad_prev
     and pad
     and #PAD_START
     beq espera
 cierra:
     lda #0
-    sta f:GO_ESPERA
+    sta f:GO_WAIT
     ; The fade out, with the song still playing: in RM2k only the title
     ; changes it.
 baja:
     jsr go_wait
-    lda f:GO_NIVEL
+    lda f:GO_LEVEL
     beq negro
     dec a
-    sta f:GO_NIVEL
+    sta f:GO_LEVEL
     sta INIDISP
     bra baja
 negro:
@@ -228,11 +228,11 @@ negro:
 .endif
 .endproc
 
-; The GO_CUADROS frames, reading the controller on each one. Clobbers A.
+; The GO_FRAMES frames, reading the controller on each one. Clobbers A.
 .proc go_wait
 .a8
 .i16
-    lda f:GO_CUADROS
+    lda f:GO_FRAMES
 cuadro:
     pha
     jsl f:bt_t_vblank
@@ -254,7 +254,7 @@ cuadro:
 ;
 ; Both the Game Over screen and the title use it: that is why it does not know
 ; which one it is uploading. It is two steps because of the title, which is
-; decompressed during boot, while the BOOT_CUADROS are waited out, and only
+; decompressed during boot, while the BOOT_FRAMES are waited out, and only
 ; uploaded when shown: see `title_upload`.
 ;
 ; Decompressing does not touch VRAM, so it can be done with the screen on.
@@ -268,7 +268,7 @@ cuadro:
     plb
     phx                         ; the row
     lda #^SCREEN_BUFFER
-    sta f:LZ2_BANCO
+    sta f:LZ2_BANK
     lda f:pantallas_tabla + 2, x
     pha                         ; the stream's bank
     rep #$20
@@ -279,7 +279,7 @@ cuadro:
 .a8
     pla
     ldy #.loword(SCREEN_BUFFER)
-    jsl f:lz2_decompress + RAPIDO
+    jsl f:lz2_decompress + FAST
     plx
     plb
 .endif
@@ -369,7 +369,7 @@ cuadro:
     sta BG1VOFS
     lda #$01
     sta TM                      ; the image alone: no sprites, no other layer
-    ; Everything as `ppu_reset` leaves it —see `ppu_altos` in banco1.s—, and
+    ; Everything as `ppu_reset` leaves it —see `ppu_high` in banco1.s—, and
     ; not zero: TMW and CGWSEL are set only by the reset, and the map expects
     ; them that way. Game Over is followed by the reset, but the title is
     ; followed by the map: with TMW at zero the message window stopped

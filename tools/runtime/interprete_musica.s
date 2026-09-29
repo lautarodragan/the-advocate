@@ -13,7 +13,7 @@
 ; a song that did not fit and does not play, which is what happened to all but
 ; one of them until 2026-09-06. See `temas_de_la_rom` in the converter.
 .proc op_bgm
-    lda [cod_ptr], y
+    lda [code_ptr], y
     iny
 tocar:
     cmp #TEMA_TOTAL
@@ -47,28 +47,28 @@ tocar:
 ; `PlayBGM` that comes next.
 ;
 ; With an MSU-1 track playing, on the other hand, there is something to fade:
-; `music_apagada` is 1 —the SPC700 is silent on purpose— and what drops is the
+; `music_off` is 1 —the SPC700 is silent on purpose— and what drops is the
 ; MSU-1 volume. Without this exit, a `FadeOutBGM` did nothing and the track
 ; kept playing forever.
 .proc op_fade_bgm
     lda f:MSU_PLAYING
     bne fundir
-    lda music_apagada
+    lda music_off
     bne fundir_nada
 fundir:
     php
     sei                         ; `irq_music` reads it: all at once or nothing
-    lda [cod_ptr], y
-    sta bgm_paso
+    lda [code_ptr], y
+    sta bgm_step
     iny
-    lda [cod_ptr], y
-    sta bgm_paso + 1
+    lda [code_ptr], y
+    sta bgm_step + 1
     iny
     lda #$FF
-    sta bgm_nivel               ; full volume, which is where it drops from
-    sta bgm_nivel + 1
+    sta bgm_level               ; full volume, which is where it drops from
+    sta bgm_level + 1
     lda #1
-    sta bgm_fundido
+    sta bgm_fade
     plp
     jmp run_code::otro
 fundir_nada:

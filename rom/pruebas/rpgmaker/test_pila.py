@@ -179,7 +179,7 @@ def _tropa():
     corrio = False
     for boton in ("right", "a", "a") + ("a",) * 40:
         _tocar_cuadros(consola, boton)
-        corrio = corrio or any(consola.ram(una.simbolos["BA_PAG_HECHA"],
+        corrio = corrio or any(consola.ram(una.simbolos["BT_PAGE_DONE"],
                                            una.simbolos["TROPA_PAG_MAX"]))
     assert corrio, (
         "no corrió ninguna página de la tropa, así que esto mediría la pelea "

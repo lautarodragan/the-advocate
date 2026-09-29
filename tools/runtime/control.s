@@ -34,7 +34,7 @@ termina:
     and #$01
     bne termina                 ; still reading
     lda pad
-    sta pad_ant                 ; the previous one, for the edges below
+    sta pad_prev                 ; the previous one, for the edges below
     lda JOY1H
     sta pad
     jsl arrows_repeat         ; holding an arrow presses it again
@@ -43,7 +43,7 @@ termina:
     ; released to pressed. Holding it fires nothing again, and that is why the
     ; test can press it and leave it pressed until the end.
     lda pad_a
-    sta pad_a_ant
+    sta pad_a_prev
     lda JOY1L
     bit #PAD_X
     bne con_x
@@ -87,15 +87,15 @@ apagado:
 ; after that.
 ;
 ; **It does not change any screen: it fakes their previous frame.** They all
-; compute the edge the same way, `pad` against `pad_ant`, so on the repeat
-; frame the held arrows are cleared from `pad_ant` and each screen sees it as a
+; compute the edge the same way, `pad` against `pad_prev`, so on the repeat
+; frame the held arrows are cleared from `pad_prev` and each screen sees it as a
 ; new press. That is what gives it to everything that in easyrpg is
 ; `Window_Selectable` —the menu, the items, the equipment, the slots, the
 ; title, a message's choices, the shop, the battle, the game end—, which moves
 ; the cursor with `IsRepeated`. B is not touched, and A and X live in the
 ; other byte of the controller.
 ;
-; For what has to tell a press from a repeat, `flechas_repetidas` holds which
+; For what has to tell a press from a repeat, `arrows_repeated` holds which
 ; bits were faked this frame. There are two: key input **with wait**, which in
 ; RM2k is plain `IsTriggered` and drops them (`key_value`), and the slots
 ; screen, which is `Scene_File` and does not wrap around when repeating
@@ -119,30 +119,30 @@ ARROWS = PAD_UP | PAD_DOWN | PAD_LEFT | PAD_RIGHT
 .proc arrows_repeat
 .a8
 .i16
-    stz flechas_repetidas
+    stz arrows_repeated
     lda pad
-    eor pad_ant
+    eor pad_prev
     and pad
     and #ARROWS
     bne de_cero                 ; an arrow just pressed: its edge is enough
     lda pad
     and #ARROWS
     beq de_cero                 ; none held
-    inc flechas_cuadros
-    lda flechas_cuadros
+    inc arrows_frames
+    lda arrows_frames
     cmp #REPEAT_WAIT
     bcc ready
     ; It steps back REPEAT_EVERY, so the next one falls at that distance and
     ; the counter never goes past REPEAT_WAIT.
     lda #REPEAT_WAIT - REPEAT_EVERY
-    sta flechas_cuadros
+    sta arrows_frames
     lda pad
     and #ARROWS
-    sta flechas_repetidas
-    trb pad_ant                 ; to the screens, just pressed
+    sta arrows_repeated
+    trb pad_prev                 ; to the screens, just pressed
     rtl
 de_cero:
-    stz flechas_cuadros
+    stz arrows_frames
 ready:
     rtl
 .endproc

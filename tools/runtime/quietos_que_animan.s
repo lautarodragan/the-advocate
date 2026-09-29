@@ -10,7 +10,7 @@
 ; and `.proc animate_ev_route` advances it. The still ones have no slot, and there
 ; is nowhere to keep a counter for them: the NPC's row has no free byte —+11 is
 ; the jump height— and the BSS is full. So the column comes from the game
-; clock, the same as the ChipSet animation: `vueltas` divided by how many
+; clock, the same as the ChipSet animation: `ticks` divided by how many
 ; frames between changes, which is `anim_continues` for the speed, and the
 ; four-step cycle with the third step repeating the first.
 ;
@@ -48,14 +48,14 @@ otra:
 .a16
     and #$00FF
     tax
-    ; The tick being drawn is `vueltas + 1` as seen from here, which is the
+    ; The tick being drawn is `ticks + 1` as seen from here, which is the
     ; same number the ChipSet animation looks at —it reads it after the `inc
     ; vueltas`—. Measured: without the `inc`, the save point on map 8 stays
     ; one column behind and that is 76 pixels. Without the frozen ticks, like
-    ; it: see `vueltas_congeladas`.
-    lda vueltas
+    ; it: see `frozen_ticks`.
+    lda ticks
     sec
-    sbc f:vueltas_congeladas
+    sbc f:frozen_ticks
     inc a
     sta WRDIVL                  ; the dividend, in a single 16-bit write
     sep #$20
@@ -90,9 +90,9 @@ otra:
     adc temp + 2
     clc
     adc temp + 3
-    sty npc_fila
+    sty npc_row
     jsr upload_npc_pose
-    ldy npc_fila
+    ldy npc_row
 siguiente:
     rep #$20
 .a16

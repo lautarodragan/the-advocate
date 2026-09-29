@@ -357,7 +357,7 @@ STEP_PER_SPEED = (4, 8, 16, 32, 64, 128)
 # `jump_speed[move_speed - 1]` per frame. At speed 4 —the hero's at the
 # start— that is 24 per frame, that is eleven frames, and **it does not
 # depend on the distance**: jumping five cells costs the same as jumping in
-# place. The ROM has the same table in `salto_por_vel`; this is the one the
+# place. The ROM has the same table in `jump_per_speed`; this is the one the
 # tests look at.
 JUMP_STEP = 256
 JUMP_PER_SPEED = (8, 12, 16, 24, 32, 64)
@@ -980,7 +980,7 @@ def sprite_associations(game_maps, extra=()):
 # OP_SAVE: no operands: the save to the cartridge's SRAM.
 #     It is `OpenSaveMenu`, but without a menu: there is
 #     a single slot and the event overwrites it. What is
-#     saved is said by `partida_tabla` in
+#     saved is said by `save_table` in
 #     tools/runtime/banco1.s, which is the only place
 #     where it is written. It costs no frame: in RM2k the
 #     menu blocks, and here there is nothing to look at.
@@ -1625,13 +1625,13 @@ COND_ACTOR = 5
 # game, the four together cut **zero** pages.
 COND_ACTOR_IN_PARTY = 0
 # `actor->IsSkillLearned(p[3])`. Since 2026-09-21 it is state: the bit of the
-# (actor, skill) pair in `FAR_HAB`, which starts with what
+# (actor, skill) pair in `FAR_SKILL`, which starts with what
 # `rules.learned_skills` says from the LDB and which `ChangeSkills` turns on
 # and off. The operand that travels is the pair's slot and not the skill; see
 # `SKILL_SLOT`.
 COND_ACTOR_SKILL = 4
 # easyrpg's five `Get*Id()`s compared against `p[3]`: weapon, shield, armor,
-# helmet and accessory. This **is** real state —`FAR_EQUIPO`, which the
+# helmet and accessory. This **is** real state —`FAR_EQUIPMENT`, which the
 # equipment screen writes and which travels in the save— and it starts from
 # the LDB's `initial_equipment`. Asking about item 0 says yes as soon as there
 # is an empty slot, which is what RM2k does; no page of the game does it.
@@ -1713,7 +1713,7 @@ ITEMS_N = 451       # the LDB's 450 items plus 0, which is not used;
 ITEM_MAX = 99
 # `ChangeSaveAccess`, `ChangeMainMenuAccess` and `ChangeEscapeAccess`, since
 # there is a pause menu: **the bit** of the permission and whether it stays
-# allowed. The ROM stores it in `FAR_ACCESO`. Saving from the save point does
+# allowed. The ROM stores it in `FAR_ACCESS`. Saving from the save point does
 # not look at it, like `OpenSaveMenu` in RM2k.
 #
 # The operand is the bit and not the permission's number, and that is from the
@@ -1722,7 +1722,7 @@ ITEM_MAX = 99
 # other two things at once. With the bit set by the converter the opcode has
 # no math to do and accepts whatever permissions are needed.
 #
-# OP_ACCESS: the bit in FAR_ACCESO (byte), allowed (byte)
+# OP_ACCESS: the bit in FAR_ACCESS (byte), allowed (byte)
 # HP, SP and states. Until 2026-09-12 outside battle they never went down
 # —measured over the 328 maps: the 11 `ChangeHP`s add, the 16
 # `ChangeCondition`s remove a state and the 54 `FullHeal`s fill up— so the
@@ -2366,7 +2366,7 @@ FULL_HEAL = 10490
 CHANGE_MENU_ACCESS = 11960
 CHANGE_ESCAPE_ACCESS = 11840
 ACCESS_SAVE, ACCESS_MENU, ACCESS_ESCAPE = 0, 1, 2
-# Each one's bit in `FAR_ACCESO`, and the bits mean "forbidden" so that the
+# Each one's bit in `FAR_ACCESS`, and the bits mean "forbidden" so that the
 # reset's zero is "everything allowed", which is how RM2k starts. $80 is the
 # menu request —`menu_calling`— and it is not a permission.
 ACCESS_BIT = (0x01, 0x02, 0x04)
@@ -2724,7 +2724,7 @@ def index_terms(game_dir):
 #
 # OP_SKILL: pair slot (word), learns (byte: 1 learns, 0 forgets)
 SKILL_SLOT = {}   # (actor, skill) -> slot
-# The ceiling: the bits live in `FAR_HAB`, which has 256 bytes in the far RAM
+# The ceiling: the bits live in `FAR_SKILL`, which has 256 bytes in the far RAM
 # map. Today the game uses far fewer; if some day they are not enough, the
 # converter stops instead of overwriting the neighbor.
 SKILL_SLOTS_MAX = 256 * 8
@@ -2797,7 +2797,7 @@ def index_skills(game_dir, extra=()):
     SKILL_SLOT.clear()
     SKILL_SLOT.update(skill_pairs(game_dir, extra))
     if len(SKILL_SLOT) > SKILL_SLOTS_MAX:
-        raise SystemExit("there are %d skill pairs and `FAR_HAB` holds %d"
+        raise SystemExit("there are %d skill pairs and `FAR_SKILL` holds %d"
                          % (len(SKILL_SLOT), SKILL_SLOTS_MAX))
     return dict(SKILL_SLOT)
 
@@ -3082,7 +3082,7 @@ SHOW_HIDDEN_MONSTER = 13150
 # `bt_shake`. Its wait, an OP_DELAY, is counted by `bt_page_step`.
 #
 # The ones left out that the game uses, in case someone wants to add them:
-# `ChangeHP` and `FullHeal` —in battle HP lives in `BA_UNO` and `FAR_HP` is
+# `ChangeHP` and `FullHeal` —in battle HP lives in `BT_ONE` and `FAR_HP` is
 # overwritten when closing it—, `ChangePartyMembers`, `ChangeEquipment`,
 # `Wait`, `TintScreen` and five of the six that only exist in battle.
 TROOP_COMMANDS = ({END, SHOW_MESSAGE, SHOW_MESSAGE_2, CONTROL_SWITCHES,
@@ -3107,7 +3107,7 @@ TROOP_TRIGGERS = {"switch_a": TROOP_TRIGGER_SWITCH_A,
                   "enemy_hp": TROOP_TRIGGER_ENEMY,
                   "actor_hp": TROOP_TRIGGER_ACTOR}
 # How many pages of a troop the battle notes as "already ran this turn", one
-# byte each in `BA_PAG_HECHA`. It is a far RAM cap and not the game's: the
+# byte each in `BT_PAGE_DONE`. It is a far RAM cap and not the game's: the
 # converter stops if any troop goes over.
 TROOP_PAGES_MAX = 32
 
@@ -3124,7 +3124,7 @@ def troop_header(trigger):
     """The ten bytes that go in front of the code of a page that looks at
     the turn or the HP: the turn's base and multiple, a word each, and the
     enemy's place, the actor and their ranges, a byte each. Empty if it looks
-    at none of that. The order is `BA_COND`'s in
+    at none of that. The order is `BT_COND`'s in
     tools/runtime/ram_lejana.s."""
     if not trigger.flags & TROOP_WITH_HEADER:
         return b""
@@ -5108,7 +5108,7 @@ def _compile(cmd, map_index, messages=None, extra=(),
     if cmd.code == SHOW_HIDDEN_MONSTER:
         # It only arrives from a troop page: see `TROOP_COMMANDS`. A place
         # the troop does not have does nothing in easyrpg —`GetEnemy` gives
-        # null—, and the ROM checks it against `BA_NENE`.
+        # null—, and the ROM checks it against `BT_KID`.
         if len(p) < 1 or not 0 <= p[0] < 256:
             raise CannotCompile("ShowHiddenMonster without a place")
         return bytes([OP_SHOW_ENEMY, p[0]])

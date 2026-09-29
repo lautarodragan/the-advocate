@@ -56,8 +56,8 @@ def test_los_efectos_suenan_durante_y_despues_del_fundido(partida):
     ticks = []
     for _ in range(900):
         antes = len(una.consola.audio)
-        fundiendo = una.byte("bgm_fundido")
-        callado = una.byte("music_apagada")
+        fundiendo = una.byte("bgm_fade")
+        callado = una.byte("music_off")
         una.correr(1)
         ticks.append((antes, len(una.consola.audio), _ocupadas(una),
                       fundiendo, callado))

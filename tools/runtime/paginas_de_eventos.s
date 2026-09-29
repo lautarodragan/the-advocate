@@ -10,80 +10,80 @@
 ; Only the autostart ones are run. The touch ones are already covered by the
 ; doors, and the button ones need a button to press.
 
-; The fields of the page at pag_ofs, into variables.
+; The fields of the page at page_ofs, into variables.
 .proc read_page
 .a8
 .i16
-    ldy pag_ofs
+    ldy page_ofs
     rep #$20
 .a16
-    lda [pag_ptr], y            ; +0  which event it belongs to
-    sta pg_evento
+    lda [page_ptr], y            ; +0  which event it belongs to
+    sta pg_event
     sep #$20
 .a8
     iny
     iny
     iny
-    lda [pag_ptr], y            ; +3  what triggers it. One byte at a time: reading it two
+    lda [page_ptr], y            ; +3  what triggers it. One byte at a time: reading it two
     sta pg_trigger              ;     at a time would take the next switch along with it
     iny
     rep #$20
 .a16
-    lda [pag_ptr], y            ; +4  the switch it requires, or 0
+    lda [page_ptr], y            ; +4  the switch it requires, or 0
     sta pg_sa
     iny
     iny
-    lda [pag_ptr], y            ; +6  the second one, or 0
+    lda [page_ptr], y            ; +6  the second one, or 0
     sta pg_sb
     iny
     iny
-    lda [pag_ptr], y            ; +8  its code: the low 16 bits
-    sta pg_cod
+    lda [page_ptr], y            ; +8  its code: the low 16 bits
+    sta pg_code
     sep #$20
 .a8
     iny
     iny
-    lda [pag_ptr], y            ; +10 and its bank
-    sta pg_cod + 2
+    lda [page_ptr], y            ; +10 and its bank
+    sta pg_code + 2
     iny
-    lda [pag_ptr], y            ; +11 the actor it requires in the party, or 0
+    lda [page_ptr], y            ; +11 the actor it requires in the party, or 0
     sta pg_actor
     iny
-    lda [pag_ptr], y            ; +12 its layer
-    sta pg_capa
+    lda [page_ptr], y            ; +12 its layer
+    sta pg_layer
     iny
-    lda [pag_ptr], y            ; +13 the flags of its own move route
+    lda [page_ptr], y            ; +13 the flags of its own move route
     sta pg_flags
     iny
-    lda [pag_ptr], y            ; +14 its frequency
-    sta pg_frec
+    lda [page_ptr], y            ; +14 its frequency
+    sta pg_freq
     iny
-    lda [pag_ptr], y            ; +15 the page's speed
-    sta pg_vel
+    lda [page_ptr], y            ; +15 the page's speed
+    sta pg_speed
     iny
-    lda [pag_ptr], y            ; +16 the commands of its own move route
-    sta pg_ruta
+    lda [page_ptr], y            ; +16 the commands of its own move route
+    sta pg_route
     iny
-    lda [pag_ptr], y
-    sta pg_ruta + 1
+    lda [page_ptr], y
+    sta pg_route + 1
     iny
-    lda [pag_ptr], y
-    sta pg_ruta + 2
+    lda [page_ptr], y
+    sta pg_route + 2
     iny
-    lda [pag_ptr], y            ; +19 how many
-    sta pg_ruta_n
+    lda [page_ptr], y            ; +19 how many
+    sta pg_route_n
     iny
-    lda [pag_ptr], y            ; +20 what the page draws, for events that
+    lda [page_ptr], y            ; +20 what the page draws, for events that
     sta pg_tile                 ;     change graphic: the tile,
     iny
-    lda [pag_ptr], y            ; +21 the attributes with palette and priority,
+    lda [page_ptr], y            ; +21 the attributes with palette and priority,
     sta pg_attr
     iny
-    lda [pag_ptr], y            ; +22 the pose, with bit 7 if there is a graphic,
+    lda [page_ptr], y            ; +22 the pose, with bit 7 if there is a graphic,
     sta pg_pose
     iny
-    lda [pag_ptr], y            ; +23 and its tile's passability bits, or $FF
-    sta pg_pasa
+    lda [page_ptr], y            ; +23 and its tile's passability bits, or $FF
+    sta pg_pass
     rts
 .endproc
 
@@ -119,7 +119,7 @@
 .a8
 .i16
     lda #1
-    sta solo_auto
+    sta only_auto
     jmp pick_with_filter
 .endproc
 
@@ -128,23 +128,23 @@
 .proc pick_pages
 .a8
 .i16
-    stz solo_auto
+    stz only_auto
     jmp pick_with_filter
 .endproc
 
-; The body of both, with `solo_auto` saying which one it is.
+; The body of both, with `only_auto` saying which one it is.
 .proc pick_with_filter
 .a8
 .i16
     ; `FLAG_AUTO` is not cleared with a separate loop but on each event's first
     ; page, further down: a hundred and twenty iterations on every refresh
     ; cost the whole frame when the refresh landed on something expensive.
-    lda solo_auto
+    lda only_auto
     beq vaciar_todo
     rep #$20
 .a16
     lda #$FFFF
-    sta rp_ev_ant
+    sta rp_ev_prev
     bra sin_vaciar              ; the short pass does not clobber the routes' data
 .a8
 vaciar_todo:
@@ -153,31 +153,31 @@ vaciar_todo:
     ldx #$0000
     lda ev_total
     asl a
-    sta rp_ev_ant               ; the limit in bytes, borrowed for a moment
+    sta rp_ev_prev               ; the limit in bytes, borrowed for a moment
 vaciar:
     lda #$FFFF
-    sta eleg_por_ev, x
+    sta pick_by_ev, x
     inx
     inx
-    cpx rp_ev_ant
+    cpx rp_ev_prev
     bne vaciar
     lda #$FFFF
-    sta rp_ev_ant               ; and now, "no event seen yet"
+    sta rp_ev_prev               ; and now, "no event seen yet"
 .a16
 sin_vaciar:
-    ldx mapa_ofs
+    ldx map_ofs
     lda f:mapa_tabla + M_PAGINA_COUNT, x
     bne hay_paginas
     jmp sin_paginas             ; too far for a short branch
 hay_paginas:
-    sta pag_restan
+    sta pages_left
     lda f:mapa_tabla + M_PTR_PAGINAS, x
-    sta pag_ptr
-    stz pag_ofs
+    sta page_ptr
+    stz page_ofs
     sep #$20
 .a8
     lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
-    sta pag_ptr + 2
+    sta page_ptr + 2
 recorrer:
     ; Only the pages of events that have some page with its own route, or a
     ; graphic that follows the page, or some autostart: bits 5, 6 and 7 of +13
@@ -190,7 +190,7 @@ recorrer:
     ; arriving one late.
     rep #$20
 .a16
-    lda pag_ofs
+    lda page_ofs
     clc
     adc #13
     tay
@@ -199,13 +199,13 @@ recorrer:
     ; With A and not with an `ldx`: X is 16 bits and would also take
     ; `auto_n`, the next byte, so with an autostart running the full pass
     ; would filter like the short one.
-    lda solo_auto
+    lda only_auto
     beq filtro_completo
-    lda [pag_ptr], y
+    lda [page_ptr], y
     and #$80                    ; the short pass: only autostart pages
     bra con_filtro
 filtro_completo:
-    lda [pag_ptr], y
+    lda [page_ptr], y
     and #$E0
 con_filtro:
     bne mirar_pagina
@@ -221,10 +221,10 @@ mirar_pagina:
     beq no_es_auto
     rep #$20
 .a16
-    lda pg_evento
-    cmp rp_ev_ant
+    lda pg_event
+    cmp rp_ev_prev
     beq mismo_ev16
-    sta rp_ev_ant
+    sta rp_ev_prev
     tax
     sep #$20
 .a8
@@ -258,7 +258,7 @@ no_es_auto:
     lda pg_flags
     and #$80
     beq sin_auto
-    ldx pg_evento
+    ldx pg_event
     cpx #EV_MAX
     bcs sin_auto
     lda ev_flags, x
@@ -267,14 +267,14 @@ no_es_auto:
     dec auto_n
 sigue_apagada:
     lda ev_flags, x
-    and #FLAG_ESPERA            ; cleared, and set again below if due
+    and #FLAG_WAIT            ; cleared, and set again below if due
     sta ev_flags, x
     lda pg_trigger
     cmp #TRIGGER_AUTOMATICO
     bne no_gana_una_auto
-    lda pg_cod
-    ora pg_cod + 1
-    ora pg_cod + 2
+    lda pg_code
+    ora pg_code + 1
+    ora pg_code + 2
     beq no_gana_una_auto        ; did not compile: nothing to start
     lda ev_flags, x
     ora #FLAG_AUTO
@@ -297,11 +297,11 @@ sin_auto:
     ; that touches routes and graphics, skips the ones without those bits.
     rep #$20
 .a16
-    lda pg_evento
+    lda pg_event
     asl a
     tax
-    lda pag_ofs
-    sta eleg_por_ev, x          ; the last one that qualifies wins
+    lda page_ofs
+    sta pick_by_ev, x          ; the last one that qualifies wins
     sep #$20
 .a8
     bra siguiente
@@ -315,16 +315,16 @@ con_rutas:
     ; pass can tell it apart from those without routes.
     rep #$20
 .a16
-    lda pg_evento
+    lda pg_event
     asl a
     tax
-    lda eleg_por_ev, x
+    lda pick_by_ev, x
     cmp #$FFFF
     bne ya_tiene
     ; No qualifying page, for now: $FFFE, or $FFFD if the graphic follows
     ; the page, which is the one that has to be hidden.
     lda #$FFFE
-    sta eleg_por_ev, x
+    sta pick_by_ev, x
     sep #$20
 .a8
     lda pg_flags
@@ -333,7 +333,7 @@ con_rutas:
     rep #$20
 .a16
     lda #$FFFD
-    sta eleg_por_ev, x
+    sta pick_by_ev, x
     sep #$20
 .a8
 ya_tiene8:
@@ -345,11 +345,11 @@ ya_tiene:
 siguiente:
     rep #$20
 .a16
-    lda pag_ofs
+    lda page_ofs
     clc
     adc #PAGINA_BYTES
-    sta pag_ofs
-    dec pag_restan
+    sta page_ofs
+    dec pages_left
     sep #$20
 .a8
     beq listo_eligiendo
@@ -376,16 +376,16 @@ sin_paginas:
     jsr turn_check
     ; The pointer to the pages is rebuilt here and not inherited from
     ; `pick_pages`: a whole frame may have passed between the two.
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_PTR_PAGINAS, x
-    sta pag_ptr
+    sta page_ptr
     sep #$20
 .a8
     lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
-    sta pag_ptr + 2
-    stz par_n                   ; the list of parallels is rebuilt from scratch
+    sta page_ptr + 2
+    stz pair_n                   ; the list of parallels is rebuilt from scratch
     stz rp_ev
     stz rp_ev + 1
 cada_evento:
@@ -398,7 +398,7 @@ cada_evento:
 :
     asl a
     tax
-    lda eleg_por_ev, x
+    lda pick_by_ev, x
     cmp #$FFFF
     bne :+
     jmp proximo                 ; no routes of its own: nothing to look at
@@ -411,7 +411,7 @@ cada_evento:
     bne :+
     jmp esconder16              ; with a page graphic, and none: it is hidden
 :
-    sta pag_ofs
+    sta page_ofs
     sep #$20
 .a8
     jsr read_page
@@ -423,9 +423,9 @@ cada_evento:
     lda pg_trigger
     cmp #TRIGGER_PARALELO
     bne no_es_paralela
-    lda pg_cod
-    ora pg_cod + 1
-    ora pg_cod + 2
+    lda pg_code
+    ora pg_code + 1
+    ora pg_code + 2
     beq no_es_paralela          ; did not compile: nothing to run
     jsr record_parallel
 no_es_paralela:
@@ -444,8 +444,8 @@ con_ruta_o_grafico:
     beq nueva
     rep #$20
 .a16
-    lda ruta_ev + 20, x
-    cmp pag_ofs
+    lda route_ev + 20, x
+    cmp page_ofs
     sep #$20
 .a8
     bne :+
@@ -461,19 +461,19 @@ nueva:
     jmp proximo                 ; no room: it stays still
 :
     lda rp_ev
-    sta ruta_ev + 0, x
-    jsl f:slot_record + RAPIDO
-    stz ruta_ev + 6, x
-    stz ruta_ev + 7, x
-    lda #RUTA_EV_SIN_MIRAR
-    sta ruta_ev + 8, x
-    stz ruta_ev + 12, x
-    stz ruta_ev + 13, x
+    sta route_ev + 0, x
+    jsl f:slot_record + FAST
+    stz route_ev + 6, x
+    stz route_ev + 7, x
+    lda #ROUTE_EV_NO_FACE
+    sta route_ev + 8, x
+    stz route_ev + 12, x
+    stz route_ev + 13, x
     lda #1
-    sta ruta_ev + 10, x
-    stz ruta_ev + 11, x
-    stz ruta_ev + 22, x
-    stz ruta_ev + 23, x
+    sta route_ev + 10, x
+    stz route_ev + 11, x
+    stz route_ev + 22, x
+    stz route_ev + 23, x
 cargar:
     phx
     lda rp_ev
@@ -533,11 +533,11 @@ sin_paginas:
 .i16
     ; The pending refresh, before everything: it is when `Game_Map::Update`
     ; looks at `GetNeedRefresh`.
-    lda refresco
-    ora refresco_cuadro         ; or one from inside the command loop, which
+    lda refresh
+    ora refresh_frame         ; or one from inside the command loop, which
     beq sin_refresco            ; did the short pass and left this one owed
-    stz refresco
-    stz refresco_cuadro
+    stz refresh
+    stz refresh_frame
     jsr page_routes         ; which also rebuilds each event's `FLAG_AUTO`:
                                 ; the active page changed
 sin_refresco:
@@ -580,10 +580,10 @@ sin_automaticas:
 .i16
     rep #$20
 .a16
-    lda ev_esperando
+    lda ev_waiting
     beq sin_espera
     dec a
-    sta ev_esperando
+    sta ev_waiting
     sep #$20
 .a8
     rts
@@ -601,14 +601,14 @@ sin_espera:
     ; happens, and the first one is on map 1.
     ; An open choice overrides the message: the window is the same but A does
     ; not close it, it resolves it.
-    lda eleg_activo
+    lda pick_active
     beq sin_eleccion
     jsr choice_tick
     bne sin_mensaje             ; it chose: the page goes on this same frame
     rts
 sin_eleccion:
-    lda msg_abierto
-    ora msg_estado              ; also while it is being composed
+    lda msg_open
+    ora msg_state              ; also while it is being composed
     beq sin_mensaje
     ; The `\|` pause, if the box has one. It is counted **from when the page
     ; asked for the message** and not from when the window finished composing:
@@ -640,18 +640,18 @@ sin_pausa:
     ; `flush_video` would turn on the window of a message already closed.
     lda #0
     sta f:FAR_MSG_AUTO
-    stz msg_estado
-    stz msg_subir
-    stz msg_abierto
+    stz msg_state
+    stz msg_upload
+    stz msg_open
     bra sigue
 espera_boton:
-    lda msg_abierto
+    lda msg_open
     beq no_avanza               ; has not finished composing yet
     lda pad_a
     beq no_avanza               ; nobody pressed: the message stays
-    lda pad_a_ant
+    lda pad_a_prev
     bne no_avanza               ; it was already held: not an edge
-    stz msg_abierto             ; and with that `flush_video` turns off the HDMA: closing
+    stz msg_open             ; and with that `flush_video` turns off the HDMA: closing
                                 ; the window does not write a single byte of VRAM
     ; And the edge is consumed, like B's in the choice. If the message was a
     ; parallel's there is no page to go on, so this same frame falls into
@@ -663,7 +663,7 @@ espera_boton:
     ; `test_la_a_que_cierra_el_
     ; mensaje_no_le_habla_al_de_enfrente`.
     lda pad_a
-    sta pad_a_ant
+    sta pad_a_prev
 sigue:
     ; And the page goes on **in this same frame**, falling into the usual
     ; `jsr run_code`. Closing here and resuming the next frame would cost
@@ -673,10 +673,10 @@ no_avanza:
     rts
 sin_mensaje:
 
-    lda ev_activo
+    lda ev_active
     bne corriendo
     ; No page half run: take the one of the first event that is waiting.
-    lda esperando_n
+    lda waiting_n
     bne hay_esperando
 
     ; Nothing running and nothing waiting: the player has control, so the
@@ -692,10 +692,10 @@ sin_mensaje:
     ; left, the jump was lost, and since its page is autostart and its switch
     ; stays on it started again by itself forever. taro saw it on 2026-09-07
     ; as an empty map there was no way out of, with the music fading out and
-    ; starting again in a loop; the RAM dump said `mapa_actual` = 4 with event
+    ; starting again in a loop; the RAM dump said `map_current` = 4 with event
     ; 1 running.
-    lda #SALTOS_MAX
-    sta saltos_restantes
+    lda #JUMPS_MAX
+    sta jumps_left
 
     ; The queue is empty, so the edge on A is for talking. In RM2k it is the
     ; same button that closes a message and that confirms, and the order
@@ -706,7 +706,7 @@ sin_mensaje:
     ; `if (IsStopping())` in `Game_Player::UpdateNextMovementAction`.
     lda pad_a
     beq nothing
-    lda pad_a_ant
+    lda pad_a_prev
     bne nothing                    ; it was already held: not an edge
     lda step_left
     bne nothing                    ; no talking in the middle of a step
@@ -723,16 +723,16 @@ corriendo:
     ; if the page ends, the next one waiting starts **in this same frame** and
     ; not the next one. Chaining them to the next frame added one frame of
     ; difference per page, and a cutscene is dozens.
-    lda #ARRANQUES_MAX
-    sta arranques
+    lda #STARTS_MAX
+    sta boots
 seguir_corriendo:
     jsr run_code
     ; If the page ended and it was the turning event's, it goes back to its
     ; pose: the `UpdateFacing` of `OnFinishForegroundEvent`.
-    lda ev_activo
+    lda ev_active
     bne sin_fin_de_giro
     lda f:TURN_EV
-    cmp ev_corriendo
+    cmp ev_running
     bne sin_fin_de_giro
     jsr turn_undo
 sin_fin_de_giro:
@@ -742,7 +742,7 @@ sin_fin_de_giro:
     ; page that turns on the switch that deactivates it stops being the active
     ; one before deciding what runs next; without this, on ending it still
     ; looked autostart and started again in the same frame, over and over
-    ; until the `ARRANQUES_MAX` budget ran out.
+    ; until the `STARTS_MAX` budget ran out.
     ;
     ; EasyRPG also refreshes **before each command**, at the top of the loop.
     ; Here it is not needed and it is expensive: none of the existing opcodes
@@ -751,37 +751,37 @@ sin_fin_de_giro:
     ; command, the opening cutscene lost five frames: its pages turn on
     ; switches by the heap. The day an opcode appears that does read it, this
     ; goes back into the loop.
-    lda refresco
+    lda refresh
     beq sin_refresco_aca
-    stz refresco
+    stz refresh
     lda #1
-    sta refresco_cuadro         ; the full one, at the start of the next frame
+    sta refresh_frame         ; the full one, at the start of the next frame
     jsr pick_autostart
 sin_refresco_aca:
-    lda salto_hay
+    lda jump_has
     bne hubo_salto
-    lda ev_activo
+    lda ev_active
     bne nothing                    ; still running: the frame is over
-    lda esperando_n
+    lda waiting_n
     beq nothing
-    dec arranques
+    dec boots
     beq nothing                    ; the frame's budget ran out
     jsr start_waiting
     bne seguir_corriendo
     rts
 hubo_salto:
-    stz salto_hay
+    stz jump_has
     rep #$20
 .a16
-    lda salto_x
-    sta entrada_x
-    lda salto_y
-    sta entrada_y
+    lda jump_x
+    sta entry_x
+    lda jump_y
+    sta entry_y
     sep #$20
 .a8
     ; Nothing is loaded from here: the fade is requested and the map is loaded
     ; inside it, on the first black frame. See `fade_tick`. What does get
-    ; decided here is **which** of the two cases it is, because `mapa_actual`
+    ; decided here is **which** of the two cases it is, because `map_current`
     ; will have changed by the time it is due.
     ;
     ; A jump **to the same map** reloads nothing: it only moves the hero. It is
@@ -791,17 +791,17 @@ hubo_salto:
     ; 1— restarted by itself forever. Fading, on the other hand, fades all
     ; the same: in RM2k the `TeleportParams` always goes out with
     ; `erase_screen = true`, wherever the jump points.
-    ; The map index is sixteen bits —see `mapa_actual`— and this goes through
+    ; The map index is sixteen bits —see `map_current`— and this goes through
     ; X and not A precisely for that: X is already sixteen, so copying and
     ; comparing does not cost the `rep`/`sep` it would through the
     ; accumulator. And it is not a matter of elegance: with the four extra
     ; bytes, the `beq nada` in `events_tick` went past the 128 a relative
     ; branch reaches.
-    ldx salto_mapa
-    stx fundido_mapa
-    cpx mapa_actual
+    ldx jump_map
+    stx fade_map
+    cpx map_current
     bne otro_mapa
-    lda #FUNDIDO_MISMO          ; a jump to the same map reloads nothing
+    lda #FADE_SAME          ; a jump to the same map reloads nothing
     bra pedir_fundido
 otro_mapa:
     ; The jump budget is spent **here and not before**, that is, only when the
@@ -818,13 +818,13 @@ otro_mapa:
     ; And it is checked before decrementing, not after: with `dec` on zero the
     ; byte wrapped to 255 and the cap failed **only once** and then let two
     ; hundred and fifty-five more through.
-    lda saltos_restantes
+    lda jumps_left
     bne hay_presupuesto
-    lda #PANICO_SALTOS
+    lda #PANIC_JUMPS
     jmp enter_panic        ; and there is no coming back from there
 hay_presupuesto:
-    dec saltos_restantes
-    lda #FUNDIDO_SALTO
+    dec jumps_left
+    lda #FADE_JUMP
 pedir_fundido:
     jsr start_fade
     ; The page that asked for the jump keeps running on the other side: its
@@ -849,8 +849,8 @@ events_handle_jump = events_tick::hubo_salto
 ; restarts forever. It is what makes the four cars of Lashe City go, whose
 ; whole page is a `MoveEvent`.
 ;
-; They run with the **same** globals as the foreground —`cod_ptr`, `ev_cur`,
-; `ev_esperando`, `ev_activo`, `ev_corriendo`— so that context is saved on
+; They run with the **same** globals as the foreground —`code_ptr`, `ev_cur`,
+; `ev_waiting`, `ev_active`, `ev_running`— so that context is saved on
 ; the stack and given back at the end. Twelve bytes, and how much stack is
 ; left below is measured by `rom/pruebas/rpgmaker/test_pila.py`: this path is
 ; one of the ones it runs.
@@ -863,15 +863,15 @@ events_handle_jump = events_tick::hubo_salto
 .proc clear_parallel
 .a8
 .i16
-    stz par_n
+    stz pair_n
     rep #$20
 .a16
-    lda #FAR_PAR_ESTADO
+    lda #FAR_PAIR_STATE
     sta WMADDL                  ; the two low bytes of the address
     sep #$20
 .a8
     stz WMADDH
-    ldx #(EV_MAX * PAR_BYTES)
+    ldx #(EV_MAX * PAIR_BYTES)
 borrar:
     stz WMDATA                  ; the port auto-increments
     dex
@@ -890,9 +890,9 @@ borrar:
     and #$00FF
     asl a
     asl a
-    asl a                       ; times PAR_LISTA_BYTES
+    asl a                       ; times PAIR_LIST_BYTES
     clc
-    adc #FAR_PAR_LISTA
+    adc #FAR_PAIR_LIST
     sta WMADDL
     sep #$20
 .a8
@@ -901,12 +901,12 @@ borrar:
 .endproc
 
 ; Notes event `rp_ev` in the map's list of parallels, with the page that just
-; won: it enters with that page's `pg_*` and with `pag_ofs` at its offset,
+; won: it enters with that page's `pg_*` and with `page_ofs` at its offset,
 ; which is how `apply_pages` has it read.
 .proc record_parallel
 .a8
 .i16
-    lda par_n
+    lda pair_n
     cmp #PARALELO_MAX
     bcc hay_lugar
     rts                         ; the converter cuts off before this happens
@@ -914,17 +914,17 @@ hay_lugar:
     jsr pair_list_point
     lda rp_ev
     sta WMDATA
-    lda pg_cod
+    lda pg_code
     sta WMDATA
-    lda pg_cod + 1
+    lda pg_code + 1
     sta WMDATA
-    lda pg_cod + 2
+    lda pg_code + 2
     sta WMDATA
-    lda pag_ofs
+    lda page_ofs
     sta WMDATA
-    lda pag_ofs + 1
+    lda page_ofs + 1
     sta WMDATA
-    inc par_n
+    inc pair_n
     rts
 .endproc
 
@@ -932,7 +932,7 @@ hay_lugar:
 .proc parallel_tick
 .a8
 .i16
-    lda par_n
+    lda pair_n
     bne hay
     rts
 hay:
@@ -940,66 +940,66 @@ hay:
 .a16
     lda ev_cur
     pha
-    lda ev_esperando
+    lda ev_waiting
     pha
-    lda ev_corriendo
+    lda ev_running
     pha
-    lda cod_ptr
+    lda code_ptr
     pha
     sep #$20
 .a8
-    lda cod_ptr + 2
+    lda code_ptr + 2
     pha
-    lda ev_activo
+    lda ev_active
     pha
 
-    stz par_i
+    stz pair_i
 lazo:
     ; First the ones that are resolved without an interpreter:
     ; `parallel_cell`, in bank 1, runs straight through the ones that start
     ; with `OP_CELL_TEST` and go no further, and stops at the first one that
     ; is not like that. With carry at 1 it stopped at one whose condition was
     ; met: it goes on from Y, with its interpreter.
-    jsl f:parallel_cell + RAPIDO  ; see MEMSEL
+    jsl f:parallel_cell + FAST  ; see MEMSEL
     bcc lento
     jsr one_parallel_continue
     bra siguiente
 lento:
-    lda par_i
-    cmp par_n
+    lda pair_i
+    cmp pair_n
     bcs listos
     ; The list entry, with long indexed addressing and not through the WMADD
     ; window: pointing the port cost more than reading, and this runs for each
     ; parallel on every frame —forty-one on each lap of the race—.
     rep #$20
 .a16
-    lda par_i
+    lda pair_i
     and #$00FF
     asl a
     asl a
-    asl a                       ; times PAR_LISTA_BYTES
+    asl a                       ; times PAIR_LIST_BYTES
     tax
-    lda f:FAR_LARGO + FAR_PAR_LISTA + 1, x
-    sta cod_ptr                 ; its page, already resolved by the refresh:
-    lda f:FAR_LARGO + FAR_PAR_LISTA + 4, x
-    sta pag_ofs                 ; straight to the interpreter's cursor, which is
-    lda f:FAR_LARGO + FAR_PAR_LISTA + 0, x
+    lda f:FAR_LENGTH + FAR_PAIR_LIST + 1, x
+    sta code_ptr                 ; its page, already resolved by the refresh:
+    lda f:FAR_LENGTH + FAR_PAIR_LIST + 4, x
+    sta page_ofs                 ; straight to the interpreter's cursor, which is
+    lda f:FAR_LENGTH + FAR_PAIR_LIST + 0, x
     and #$00FF                  ; all `one_parallel` was going to do with it
     asl a
     asl a
-    asl a                       ; times PAR_BYTES: where its state lands
-    sta par_dir
+    asl a                       ; times PAIR_BYTES: where its state lands
+    sta pair_dir
     sep #$20
 .a8
-    lda f:FAR_LARGO + FAR_PAR_LISTA + 0, x
-    sta par_ev                  ; which event it belongs to
-    lda f:FAR_LARGO + FAR_PAR_LISTA + 3, x
-    sta cod_ptr + 2
+    lda f:FAR_LENGTH + FAR_PAIR_LIST + 0, x
+    sta pair_ev                  ; which event it belongs to
+    lda f:FAR_LENGTH + FAR_PAIR_LIST + 3, x
+    sta code_ptr + 2
     jsr one_parallel
 siguiente:
-    inc par_i
-    lda par_i
-    cmp par_n
+    inc pair_i
+    lda pair_i
+    cmp pair_n
     bcc lazo
 listos:
 
@@ -1007,20 +1007,20 @@ listos:
     ; looks at to know whether the message it opens is a parallel's or the
     ; foreground's.
     lda #$FF
-    sta par_ev
+    sta pair_ev
 
     pla
-    sta ev_activo
+    sta ev_active
     pla
-    sta cod_ptr + 2
+    sta code_ptr + 2
     rep #$20
 .a16
     pla
-    sta cod_ptr
+    sta code_ptr
     pla
-    sta ev_corriendo
+    sta ev_running
     pla
-    sta ev_esperando
+    sta ev_waiting
     pla
     sta ev_cur
     sep #$20
@@ -1028,7 +1028,7 @@ listos:
     rts
 .endproc
 
-; One frame of event `par_ev`, with `cod_ptr`, `pag_ofs` and `par_dir` —where
+; One frame of event `pair_ev`, with `code_ptr`, `page_ofs` and `pair_dir` —where
 ; its state lands— already set by the loop from the list of parallels.
 ;
 ; Here the page is **not** chosen again nor read from the cartridge. That was
@@ -1051,37 +1051,37 @@ listos:
     ; Its state is neither read nor saved: this frame does not touch it. The
     ; event's step does happen, because `Game_Event::Update` calls
     ; `Game_Character::Update()` whatever happens with the interpreter.
-    lda msg_abierto
-    ora msg_estado              ; also while it is being composed
-    ora eleg_activo
+    lda msg_open
+    ora msg_state              ; also while it is being composed
+    ora pick_active
     beq no_es_mio
-    lda msg_duenio
-    cmp par_ev
+    lda msg_owner
+    cmp pair_ev
     bne no_es_mio
     jmp dar_el_paso             ; `beq` does not reach: the body is in between
 no_es_mio:
-    ; Its state, at `FAR_PAR_ESTADO` + `par_dir`, with long indexed
+    ; Its state, at `FAR_PAIR_STATE` + `pair_dir`, with long indexed
     ; addressing: like the list, and for the same reason. Only what is needed
     ; is read and written: with a wait in progress the wait changes and
     ; nothing else.
     rep #$20
 .a16
-    ldx par_dir
-    lda f:FAR_LARGO + FAR_PAR_ESTADO + 5, x
-    cmp pag_ofs                 ; which page this state belonged to
+    ldx pair_dir
+    lda f:FAR_LENGTH + FAR_PAIR_STATE + 5, x
+    cmp page_ofs                 ; which page this state belonged to
     bne otra_pagina
     ; The wait, same as the foreground's.
-    lda f:FAR_LARGO + FAR_PAR_ESTADO + 2, x
+    lda f:FAR_LENGTH + FAR_PAIR_STATE + 2, x
     bne esperando
     sep #$20
 .a8
-    lda f:FAR_LARGO + FAR_PAR_ESTADO + 4, x
+    lda f:FAR_LENGTH + FAR_PAIR_STATE + 4, x
     beq empezar                 ; it was not running
-    sta ev_activo               ; it was: it goes on where it left off
+    sta ev_active               ; it was: it goes on where it left off
     rep #$20
 .a16
-    stz ev_esperando
-    lda f:FAR_LARGO + FAR_PAR_ESTADO + 0, x
+    stz ev_waiting
+    lda f:FAR_LENGTH + FAR_PAIR_STATE + 0, x
     sta ev_cur
     sep #$20
 .a8
@@ -1089,14 +1089,14 @@ no_es_mio:
 .a16
 esperando:
     dec a
-    sta f:FAR_LARGO + FAR_PAR_ESTADO + 2, x
+    sta f:FAR_LENGTH + FAR_PAIR_STATE + 2, x
     sep #$20
 .a8
     ; And whether it is running, which is what its step looks at: a route of
     ; its own does not read new commands with the page in progress
     ; (`ev_route_frame`).
-    lda f:FAR_LARGO + FAR_PAR_ESTADO + 4, x
-    sta ev_activo
+    lda f:FAR_LENGTH + FAR_PAIR_STATE + 4, x
+    sta ev_active
     jmp dar_el_paso             ; this frame goes by waiting
 .a16
 otra_pagina:
@@ -1104,13 +1104,13 @@ otra_pagina:
     ; rebuilds it in `Game_Event::Setup`, so it starts from zero. The wait and
     ; whether it was running are written now, as zero, and not when saving:
     ; the shortcut below does not save.
-    lda pag_ofs
-    sta f:FAR_LARGO + FAR_PAR_ESTADO + 5, x
+    lda page_ofs
+    sta f:FAR_LENGTH + FAR_PAIR_STATE + 5, x
     lda #0
-    sta f:FAR_LARGO + FAR_PAR_ESTADO + 2, x
+    sta f:FAR_LENGTH + FAR_PAIR_STATE + 2, x
     sep #$20
 .a8
-    sta f:FAR_LARGO + FAR_PAR_ESTADO + 4, x
+    sta f:FAR_LENGTH + FAR_PAIR_STATE + 4, x
 empezar:
     ; It was not running: the page starts over. It is the `Push` RPG_RT does
     ; before each `Update`, and that is why it does not restart when it ends
@@ -1125,14 +1125,14 @@ empezar:
     ; round and its second; if what follows is something else, the
     ; interpreter goes on from there. It is almost two lines of the frame's
     ; 262 per page: see workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
-    lda [cod_ptr]               ; the first opcode
+    lda [code_ptr]               ; the first opcode
     cmp #OP_CELL_TEST
     bne desde_cero
     ldy #1
-    jsl f:cell_test + RAPIDO   ; see MEMSEL
-    lda [cod_ptr], y
+    jsl f:cell_test + FAST   ; see MEMSEL
+    lda [code_ptr], y
     bne seguir                  ; it is not the OP_DONE
-    stz ev_activo               ; what `op_done` would do
+    stz ev_active               ; what `op_done` would do
     jmp dar_el_paso
 desde_cero:
     ldy #0
@@ -1141,31 +1141,31 @@ seguir:
     rep #$20
 .a16
     sty ev_cur
-    stz ev_esperando
+    stz ev_waiting
     sep #$20
 .a8
     lda #1
-    sta ev_activo
+    sta ev_active
 corriendo:
     rep #$20
 .a16
-    lda par_ev
+    lda pair_ev
     and #$00FF
-    sta ev_corriendo            ; whose page it is, for a MoveEvent of its own
+    sta ev_running            ; whose page it is, for a MoveEvent of its own
     sep #$20
 .a8
     jsr run_code
     rep #$20
 .a16
-    ldx par_dir
+    ldx pair_dir
     lda ev_cur
-    sta f:FAR_LARGO + FAR_PAR_ESTADO + 0, x
-    lda ev_esperando
-    sta f:FAR_LARGO + FAR_PAR_ESTADO + 2, x
+    sta f:FAR_LENGTH + FAR_PAIR_STATE + 0, x
+    lda ev_waiting
+    sta f:FAR_LENGTH + FAR_PAIR_STATE + 2, x
     sep #$20
 .a8
-    lda ev_activo
-    sta f:FAR_LARGO + FAR_PAR_ESTADO + 4, x
+    lda ev_active
+    sta f:FAR_LENGTH + FAR_PAIR_STATE + 4, x
 
 dar_el_paso:
     ; And the step of **this** event, right here and not at the end of the
@@ -1183,8 +1183,8 @@ dar_el_paso:
     ; looking it up with `event_slot`: the lookup walked every used slot
     ; for each parallel on every frame, and in the race, with five cars moving
     ; and forty parallels, it was thirty lines of the frame's 262.
-    ldx par_dir
-    lda f:FAR_LARGO + FAR_PAR_ESTADO + PAR_RANURA, x
+    ldx pair_dir
+    lda f:FAR_LENGTH + FAR_PAIR_STATE + PAIR_SLOT, x
     beq sin_ranura
     dec a
     rep #$20
@@ -1194,7 +1194,7 @@ dar_el_paso:
     asl a
     asl a
     asl a
-    asl a                       ; times RUTA_EV_STRIDE
+    asl a                       ; times ROUTE_EV_STRIDE
     tax
     sep #$20
 .a8
@@ -1207,9 +1207,9 @@ dar_el_paso:
     phx
     jsr refresh_npc
     plx
-    lda ruta_ev + 18, x
+    lda route_ev + 18, x
     ora #$40                    ; it already took its step: `move_events` skips it
-    sta ruta_ev + 18, x
+    sta route_ev + 18, x
 sin_ranura:
     rts
 .endproc
@@ -1260,7 +1260,7 @@ hay_algo:
     bne hay_fila
     rts                         ; no row: nothing to draw
 hay_fila:
-    sty npc_fila
+    sty npc_row
     lda pg_pose
     bmi con_grafico
     lda #0                      ; the page draws nothing: hidden
@@ -1277,7 +1277,7 @@ con_grafico:
     tax
     sep #$20
 .a8
-    lda f:dir_de_pose, x
+    lda f:pose_dir, x
     sta npc_buf + 10, y
     ; The tile and the palette only if the row does not walk. If it walks,
     ; they point at its slot of twelve poses and overwriting them would leave
@@ -1293,11 +1293,11 @@ con_grafico:
 sin_tocar_el_tile:
     lda #1
     sta npc_buf + 14, y
-    lda pg_pasa
+    lda pg_pass
     sta npc_buf + 15, y
     cmp #$FF
     beq :+
-    sta pasa_hay                ; it imposes: `pass_with_event` has to look
+    sta pass_has                ; it imposes: `pass_with_event` has to look
 :
     ; The key: the page's layer, with the row's Y.
     rep #$20
@@ -1305,7 +1305,7 @@ sin_tocar_el_tile:
     lda npc_buf + 4, y
     and #$0FFF
     sta temp
-    lda pg_capa
+    lda pg_layer
     and #$00FF
     xba
     asl a
@@ -1343,13 +1343,13 @@ ready:
 .proc event_slot
 .a8
 .i16
-    sta otro_ev
+    sta other_ev
     ; From the highest one used downward, and not from zero upward: that way
     ; the stop is `X == 0`, which `tax` leaves in Z for free, and there is no
     ; need for a sixteen-bit limit in RAM —there is none—. An event has at
     ; most one slot —it is only given one when `event_slot` found none
     ; for it— so the order does not change the answer.
-    lda ruta_ev_tope
+    lda route_ev_cap
     rep #$20
 .a16
     and #$00FF
@@ -1357,7 +1357,7 @@ ready:
     asl a
     asl a
     asl a
-    asl a                       ; times RUTA_EV_STRIDE
+    asl a                       ; times ROUTE_EV_STRIDE
     tax
     sep #$20
 .a8
@@ -1368,12 +1368,12 @@ buscar:
 .a16
     txa
     sec
-    sbc #RUTA_EV_STRIDE
+    sbc #ROUTE_EV_STRIDE
     tax
     sep #$20
 .a8
-    lda ruta_ev, x
-    cmp otro_ev
+    lda route_ev, x
+    cmp other_ev
     bne buscar
     rts                         ; X = its slot
 no_tiene:
@@ -1387,16 +1387,16 @@ no_tiene:
 .i16
     ldx #$0000
 buscar:
-    lda ruta_ev, x
-    cmp #RUTA_EV_LIBRE
+    lda route_ev, x
+    cmp #ROUTE_EV_FREE
     beq ready
     rep #$20
 .a16
     txa
     clc
-    adc #RUTA_EV_STRIDE
+    adc #ROUTE_EV_STRIDE
     tax
-    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
+    cmp #RUTA_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
     bcc buscar
@@ -1417,9 +1417,9 @@ ready:
     inc a
     sep #$20
 .a8
-    cmp ruta_ev_tope
+    cmp route_ev_cap
     bcc ya_estaba
-    sta ruta_ev_tope
+    sta route_ev_cap
 ya_estaba:
     rts
 .endproc
@@ -1430,40 +1430,40 @@ ya_estaba:
 .proc load_page_into_slot
 .a8
 .i16
-    lda pg_ruta
-    sta ruta_ev + 1, x
-    sta ruta_ev + 24, x
-    lda pg_ruta + 1
-    sta ruta_ev + 2, x
-    sta ruta_ev + 25, x
-    lda pg_ruta + 2
-    sta ruta_ev + 3, x
-    sta ruta_ev + 26, x
-    lda pg_ruta_n
-    sta ruta_ev + 4, x
-    sta ruta_ev + 27, x
-    stz ruta_ev + 5, x
-    lda pg_frec
-    sta ruta_ev + 16, x
-    sta ruta_ev + 28, x
-    lda pg_vel
-    sta ruta_ev + 17, x
-    sta ruta_ev + 29, x
+    lda pg_route
+    sta route_ev + 1, x
+    sta route_ev + 24, x
+    lda pg_route + 1
+    sta route_ev + 2, x
+    sta route_ev + 25, x
+    lda pg_route + 2
+    sta route_ev + 3, x
+    sta route_ev + 26, x
+    lda pg_route_n
+    sta route_ev + 4, x
+    sta route_ev + 27, x
+    stz route_ev + 5, x
+    lda pg_freq
+    sta route_ev + 16, x
+    sta route_ev + 28, x
+    lda pg_speed
+    sta route_ev + 17, x
+    sta route_ev + 29, x
     lda pg_flags
     and #$1E
     ora #$01                    ; a page one
-    sta ruta_ev + 18, x
-    lda pg_capa
-    sta ruta_ev + 31, x         ; its layer, for colliding with the others
+    sta route_ev + 18, x
+    lda pg_layer
+    sta route_ev + 31, x         ; its layer, for colliding with the others
     rep #$20
 .a16
-    lda pag_ofs
-    sta ruta_ev + 20, x
+    lda page_ofs
+    sta route_ev + 20, x
     sep #$20
 .a8
-    lda pg_frec
+    lda pg_freq
     jsr after_turn               ; `SetMaxStopCountForTurn` before the first one
-    sta ruta_ev + 9, x
+    sta route_ev + 9, x
     rts
 .endproc
 
@@ -1472,21 +1472,21 @@ ya_estaba:
 .proc remove_page_from_slot
 .a8
 .i16
-    lda ruta_ev + 18, x
+    lda route_ev + 18, x
     and #$01
     beq ready                   ; a forced one was running: leave it alone
-    stz ruta_ev + 4, x
-    stz ruta_ev + 5, x
-    stz ruta_ev + 9, x
-    lda ruta_ev + 18, x
+    stz route_ev + 4, x
+    stz route_ev + 5, x
+    stz route_ev + 9, x
+    lda route_ev + 18, x
     and #$FE
-    sta ruta_ev + 18, x
+    sta route_ev + 18, x
 ready:
-    stz ruta_ev + 27, x
+    stz route_ev + 27, x
     rep #$20
 .a16
     lda #$FFFF
-    sta ruta_ev + 20, x
+    sta route_ev + 20, x
     sep #$20
 .a8
     rts
@@ -1496,7 +1496,7 @@ ready:
 .proc step_slot
 .a8
 .i16
-    lda ruta_ev + 17, x
+    lda route_ev + 17, x
     dec a
     asl a
     rep #$20
@@ -1505,7 +1505,7 @@ ready:
     tay
     phx                         ; X holds the slot and the caller counts on it
     tyx
-    lda f:paso_por_vel, x
+    lda f:step_per_speed, x
     plx
     sta temp
     sep #$20
@@ -1517,7 +1517,7 @@ ready:
 .proc slot_jump
 .a8
 .i16
-    lda ruta_ev + 17, x
+    lda route_ev + 17, x
     dec a
     rep #$20
 .a16
@@ -1527,7 +1527,7 @@ ready:
 .a8
     phx                         ; X holds the slot and the caller counts on it
     tyx
-    lda f:salto_por_vel, x
+    lda f:jump_per_speed, x
     plx
     rts
 .endproc
@@ -1547,7 +1547,7 @@ ready:
     tax
     sep #$20
 .a8
-    lda f:salto_por_vel, x
+    lda f:jump_per_speed, x
     plx
     rts
 .endproc
@@ -1565,53 +1565,53 @@ ready:
     rep #$20
 .a16
     and #$00FF
-    sta capa_ev
+    sta layer_ev
     sep #$20
 .a8
     lda #$FF
-    sta capa_hallada
-    ldx mapa_ofs
+    sta found_layer
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_PAGINA_COUNT, x
     beq sin_paginas
-    sta pag_restan
+    sta pages_left
     lda f:mapa_tabla + M_PTR_PAGINAS, x
-    sta pag_ptr
-    stz pag_ofs
+    sta page_ptr
+    stz page_ofs
     sep #$20
 .a8
     lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
-    sta pag_ptr + 2
+    sta page_ptr + 2
 recorrer:
     ; Only the event being looked for: of the other pages only the event is
     ; read and nothing else. Reading them whole cost, with a droid pushing
     ; against the hero frame after frame, more than a frame every so often.
     rep #$20
 .a16
-    ldy pag_ofs
-    lda [pag_ptr], y            ; +0 which event it belongs to
-    cmp capa_ev
+    ldy page_ofs
+    lda [page_ptr], y            ; +0 which event it belongs to
+    cmp layer_ev
     sep #$20
 .a8
     bne siguiente
     jsr read_page
     jsr conditions_ok
     beq siguiente
-    lda pg_capa
-    sta capa_hallada
+    lda pg_layer
+    sta found_layer
 siguiente:
     rep #$20
 .a16
-    lda pag_ofs
+    lda page_ofs
     clc
     adc #PAGINA_BYTES
-    sta pag_ofs
-    dec pag_restan
+    sta page_ofs
+    dec pages_left
     sep #$20
 .a8
     bne recorrer
-    lda capa_hallada
+    lda found_layer
     ply
     plx
     rts
@@ -1631,13 +1631,13 @@ sin_paginas:
 .proc event_crossable
 .a8
 .i16
-    sta otro_ev
+    sta other_ev
     ldx #$0000
 buscar:
-    lda ruta_ev, x
-    cmp otro_ev
+    lda route_ev, x
+    cmp other_ev
     bne siguiente
-    lda ruta_ev + 12, x
+    lda route_ev + 12, x
     and #$01
     rts
 siguiente:
@@ -1645,9 +1645,9 @@ siguiente:
 .a16
     txa
     clc
-    adc #RUTA_EV_STRIDE
+    adc #ROUTE_EV_STRIDE
     tax
-    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
+    cmp #RUTA_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
     bcc buscar
@@ -1655,12 +1655,12 @@ siguiente:
     rts
 .endproc
 
-; Is someone standing on `dest_x`/`dest_y` who blocks `movil`'s way? Returns
+; Is someone standing on `dest_x`/`dest_y` who blocks `walker`'s way? Returns
 ; A nonzero if so.
 ;
 ; It is `WouldCollide` from `game_map.cpp` with what this repo models: two
 ; characters collide if they are on the same layer —the hero's is
-; CAPA_HEROE— and do not collide if either of them walks through walls. An
+; HERO_LAYER_INDEX— and do not collide if either of them walks through walls. An
 ; event with no active page is not there and does not collide. Each event's
 ; cell is the one in `ev_pos_buf`, which moves at the **start** of the step:
 ; it is `IsInPosition` on `GetX()`, that is, the destination while it walks;
@@ -1671,28 +1671,28 @@ siguiente:
 .proc cell_blocked
 .a8
 .i16
-    lda movil_capa
+    lda walker_layer
     cmp #$FF
     beq libre_cerca             ; with no active page it collides with nobody
-    lda movil
-    cmp #MOVIL_HEROE
+    lda walker
+    cmp #HERO_WALKER
     beq es_heroe
     jsr event_crossable
     bne libre_cerca
     bra recorrer
 es_heroe:
-    ; **`atravesando` and not `ruta_atraviesa`**, which is the divergence
+    ; **`crossing` and not `route_crosses`**, which is the divergence
     ; declared in workflow/divergencias/atravesar-paredes-vale-mientras-dura-la-ruta.md:
     ; the flag command 36 leaves holds while the step is given by the forced
-    ; move route —there `step_route` copies it to `atravesando`— and not for
+    ; move route —there `step_route` copies it to `crossing`— and not for
     ; walking with the pad, which leaves it at zero. Reading the sticky one,
     ; any page that turned on 36 and did not turn it off left the hero walking
     ; over **every** event for the rest of the game, and walls still stopped
     ; him because `can_leave` and `can_enter` already looked at
-    ; `atravesando`: the same hero went through events and not walls. taro saw
+    ; `crossing`: the same hero went through events and not walls. taro saw
     ; it playing, with the chests in Sector 30, and the culprit is the
     ; Hover-Tram (map 13, EV0028), which turns on 36 and never turns it off.
-    lda atravesando
+    lda crossing
     beq recorrer
 libre_cerca:
     jmp libre                   ; `libre` is too far for a short branch
@@ -1733,15 +1733,15 @@ misma_x:
     lsr a                       ; the index fits in a byte: EV_MAX is 128
     sep #$20
 .a8
-    cmp movil
+    cmp walker
     beq siguiente8              ; not with itself
-    sta otro_ev
+    sta other_ev
     phy
     jsr event_crossable
     bne no_choca
-    lda otro_ev
+    lda other_ev
     jsr active_layer
-    cmp movil_capa
+    cmp walker_layer
     bne no_choca
     ply
     lda #1
@@ -1755,13 +1755,13 @@ siguiente8:
 .a8
 eventos_listos:
     ; And the hero, when whoever is moving is an event on his layer.
-    lda movil
-    cmp #MOVIL_HEROE
+    lda walker
+    cmp #HERO_WALKER
     beq libre
-    lda movil_capa
-    cmp #CAPA_HEROE
+    lda walker_layer
+    cmp #HERO_LAYER_INDEX
     bne libre
-    lda ruta_atraviesa
+    lda route_crosses
     bne libre
     rep #$20
 .a16
@@ -1788,21 +1788,21 @@ libre:
 .proc hero_blocked
 .a8
 .i16
-    lda #MOVIL_HEROE
-    sta movil
-    lda #CAPA_HEROE
-    sta movil_capa
+    lda #HERO_WALKER
+    sta walker
+    lda #HERO_LAYER_INDEX
+    sta walker_layer
     jmp cell_blocked
 .endproc
 
-; `movil` and `movil_capa` from the move route slot X points at. Keeps X.
-.proc prepare_mover
+; `walker` and `walker_layer` from the move route slot X points at. Keeps X.
+.proc prepare_walker
 .a8
 .i16
-    lda ruta_ev + 0, x
-    sta movil
-    lda ruta_ev + 31, x         ; the layer the slot has carried since it was loaded
-    sta movil_capa
+    lda route_ev + 0, x
+    sta walker
+    lda route_ev + 31, x         ; the layer the slot has carried since it was loaded
+    sta walker_layer
     rts
 .endproc
 
@@ -1838,14 +1838,14 @@ mirar_var:
     ; `ConditionalBranch`, `compare_var`, with the same six codes: RM2k uses
     ; `CheckOperator` for both. Clobbers X and Y, as `switch_on`
     ; already did.
-    ldy pag_ofs
+    ldy page_ofs
     rep #$20
 .a16
     tya
     clc
     adc #28
     tay
-    lda [pag_ptr], y            ; +28 the item it requires, or 0
+    lda [page_ptr], y            ; +28 the item it requires, or 0
     beq sin_item
     ; With the inventory in far RAM: the item's count, and at zero it is not
     ; there. It is `GetItemCount(id) + GetEquippedItemCount(id)` without
@@ -1867,17 +1867,17 @@ sin_item:
     tay                         ; +24
     sep #$20
 .a8
-    lda [pag_ptr], y            ; +24 the slot
+    lda [page_ptr], y            ; +24 the slot
     cmp #$FF
     beq cumple8
     pha
     iny
-    lda [pag_ptr], y            ; +25 the comparison
+    lda [page_ptr], y            ; +25 the comparison
     sta temp + 1
     iny
     rep #$20
 .a16
-    lda [pag_ptr], y            ; +26 against what, signed
+    lda [page_ptr], y            ; +26 against what, signed
     sta temp + 2
     sep #$20
 .a8
@@ -1922,7 +1922,7 @@ fails:
     sep #$20
 .a8
     lda switches, y
-    and f:mascara, x
+    and f:mask, x
     rep #$20
 .a16
     rts                         ; rep does not touch Z, so the and still holds
@@ -1941,15 +1941,15 @@ fails:
     inx
     cpx #EV_MAX
     bne :-
-    stz esperando_n
+    stz waiting_n
     stz auto_n
-    stz refresco_cuadro
+    stz refresh_frame
     ; And whose page is running: if it survived a teleport, its index no
     ; longer means anything on the new map.
     rep #$20
 .a16
     lda #$FFFF
-    sta ev_corriendo
+    sta ev_running
     sep #$20
 .a8
     rts
@@ -1975,7 +1975,7 @@ siguiente:
     rts
 .endproc
 
-; The active page the refresh noted for event X, into `elegida`. Z=1 if none
+; The active page the refresh noted for event X, into `chosen`. Z=1 if none
 ; is noted and it has to be searched for.
 ;
 ; It exists so that starting a page does not cost a walk through all the
@@ -1984,7 +1984,7 @@ siguiente:
 .proc page_from_pick
 .a8
 .i16
-    stz elegida_hay
+    stz chosen_any
     cpx #EV_MAX
     bcs no
     rep #$20
@@ -1992,7 +1992,7 @@ siguiente:
     txa
     asl a
     tay
-    lda eleg_por_ev, y
+    lda pick_by_ev, y
     cmp #$FFFD                  ; $FFFD, $FFFE and $FFFF are sentinels
     bcc anotada
     sep #$20
@@ -2002,34 +2002,34 @@ no:
     rts
 .a16
 anotada:
-    sta pag_ofs
+    sta page_ofs
     ; With X, and not with Y as until `mapa_tabla` moved to RODATA: the
     ; 65816's long absolute indexed addressing only exists with X. X holds
     ; the event and the caller counts on it, so it goes out and back through
     ; the stack; the `plx` leaves N and Z of the value it pulls, and that is
     ; why what follows is a `jsr` and not a branch.
     phx
-    ldx mapa_ofs
+    ldx map_ofs
     lda f:mapa_tabla + M_PTR_PAGINAS, x
-    sta pag_ptr
+    sta page_ptr
     sep #$20
 .a8
     lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
-    sta pag_ptr + 2
+    sta page_ptr + 2
     plx
     jsr read_page
     lda pg_trigger
-    sta elegida_trigger
+    sta chosen_trigger
     rep #$20
 .a16
-    lda pg_cod
-    sta elegida
+    lda pg_code
+    sta chosen
     sep #$20
 .a8
-    lda pg_cod + 2
-    sta elegida + 2
+    lda pg_code + 2
+    sta chosen + 2
     lda #1
-    sta elegida_hay
+    sta chosen_any
     rts
 .endproc
 
@@ -2046,7 +2046,7 @@ anotada:
     ldx #$0000
 buscar:
     lda ev_flags, x
-    and #FLAG_ESPERA
+    and #FLAG_WAIT
     bne encontrado
     inx
     cpx ev_total
@@ -2061,42 +2061,42 @@ encontrado:
     lda ev_flags, x
     and #(FLAG_AUTO)            ; keeps only the autostart one
     sta ev_flags, x
-    dec esperando_n
+    dec waiting_n
     phx
     jsr page_from_pick
     bne con_pagina
     rep #$20
 .a16
     txa
-    sta ev_buscado
+    sta ev_sought
     sep #$20
 .a8
     jsr seek_event_page
 con_pagina:
     plx
-    lda elegida_hay
+    lda chosen_any
     beq buscar_mas
-    lda elegida
-    ora elegida + 1
-    ora elegida + 2
+    lda chosen
+    ora chosen + 1
+    ora chosen + 2
     beq buscar_mas              ; the active page could not be compiled
     rep #$20
 .a16
-    lda elegida
-    sta cod_ptr
+    lda chosen
+    sta code_ptr
     stz ev_cur
     sep #$20
 .a8
-    lda elegida + 2
-    sta cod_ptr + 2
+    lda chosen + 2
+    sta code_ptr + 2
     rep #$20
 .a16
     txa
-    sta ev_corriendo            ; so it can be re-marked when it ends
+    sta ev_running            ; so it can be re-marked when it ends
     sep #$20
 .a8
     lda #1
-    sta ev_activo
+    sta ev_active
     rts
 buscar_mas:
     inx
@@ -2113,12 +2113,12 @@ buscar_mas:
     cpx #EV_MAX
     bcs no
     lda ev_flags, x
-    and #FLAG_ESPERA
+    and #FLAG_WAIT
     beq no                      ; it was not: not discounted again
     lda ev_flags, x
     and #(FLAG_AUTO)            ; keeps only the autostart one
     sta ev_flags, x
-    dec esperando_n
+    dec waiting_n
 no:
     rts
 .endproc
@@ -2133,12 +2133,12 @@ no:
     cpx #EV_MAX
     bcs no
     lda ev_flags, x
-    and #FLAG_ESPERA
+    and #FLAG_WAIT
     bne no                      ; it already was: not counted again
     lda ev_flags, x
-    ora #FLAG_ESPERA
+    ora #FLAG_WAIT
     sta ev_flags, x
-    inc esperando_n
+    inc waiting_n
 no:
     rts
 .endproc

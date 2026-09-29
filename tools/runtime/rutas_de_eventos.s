@@ -9,7 +9,7 @@
 ; that compile are on events without a graphic. The only visible thing about
 ; them is how long they take, which is what `ProceedWithMovement` waits for.
 
-; Gives a move route to event `ruta_blanco - 1`: looks for its slot, and if it
+; Gives a move route to event `route_target - 1`: looks for its slot, and if it
 ; does not have one it takes a free one. Overwriting the one it already had is
 ; correct —RM2k overwrites the previous forced move route, it does not chain
 ; it— and if there is no free one the move route is dropped, which is preferable
@@ -27,18 +27,18 @@
 .a8
 .i16
     phy
-    lda ruta_blanco
+    lda route_target
     dec a
     jsr turn_per_route           ; with a move route, the move route decides where it faces
     ply
-    lda ruta_blanco
+    lda route_target
     dec a
     sta temp                    ; the event's index
 
     ; First the slot that is already its own, and if not a free one. The two
     ; searches were copied here and are exactly `event_slot` and
     ; `free_slot`: calling them saves bank 0 and, the first one, brings along
-    ; the `ruta_ev_tope` cap as a bonus.
+    ; the `route_ev_cap` cap as a bonus.
     lda temp
     jsr event_slot
     cpx #$FFFF
@@ -50,25 +50,25 @@
 
 set2:
     lda temp
-    sta ruta_ev + 0, x
-    jsl f:slot_record + RAPIDO
-    stz ruta_ev + 6, x
-    stz ruta_ev + 7, x          ; no step in progress
-    stz ruta_ev + 22, x
-    stz ruta_ev + 23, x
-    lda #RUTA_EV_SIN_MIRAR
-    sta ruta_ev + 8, x          ; faces wherever its page says until it turns
-    stz ruta_ev + 12, x         ; no flags
-    stz ruta_ev + 13, x         ; nor jump
+    sta route_ev + 0, x
+    jsl f:slot_record + FAST
+    stz route_ev + 6, x
+    stz route_ev + 7, x          ; no step in progress
+    stz route_ev + 22, x
+    stz route_ev + 23, x
+    lda #ROUTE_EV_NO_FACE
+    sta route_ev + 8, x          ; faces wherever its page says until it turns
+    stz route_ev + 12, x         ; no flags
+    stz route_ev + 13, x         ; nor jump
     lda #1
-    sta ruta_ev + 10, x         ; the middle frame, like `animate_hero`
-    stz ruta_ev + 11, x
-    stz ruta_ev + 18, x
-    stz ruta_ev + 27, x         ; no page to go back to
+    sta route_ev + 10, x         ; the middle frame, like `animate_hero`
+    stz route_ev + 11, x
+    stz route_ev + 18, x
+    stz route_ev + 27, x         ; no page to go back to
     rep #$20
 .a16
     lda #$FFFF
-    sta ruta_ev + 20, x
+    sta route_ev + 20, x
     sep #$20
 .a8
     ; At the speed of the page it is drawn with, which the NPC row carries at +13:
@@ -85,15 +85,15 @@ sin_fila:
     lda #3
 con_velocidad:
     ply
-    sta ruta_ev + 17, x
+    sta route_ev + 17, x
     lda temp
     jsr active_layer             ; its layer, once and not on every step
-    sta ruta_ev + 31, x
+    sta route_ev + 31, x
 reusada:
-    lda ruta_ev + 18, x
+    lda route_ev + 18, x
     and #$FE                    ; the forced one overrides the page's, if there was one
     ora #$04                    ; and what is blocked is skipped
-    sta ruta_ev + 18, x
+    sta route_ev + 18, x
     ; The pointer to the first command: the code's plus however far Y had gone.
     ; The sum does not carry anything into the bank byte because the map's code
     ; block fits whole in one —the converter's bank layout guarantees it,
@@ -102,18 +102,18 @@ reusada:
 .a16
     tya
     clc
-    adc cod_ptr
-    sta ruta_ev + 1, x
+    adc code_ptr
+    sta route_ev + 1, x
     sep #$20
 .a8
-    lda cod_ptr + 2
-    sta ruta_ev + 3, x
-    lda ruta_cuantas
-    sta ruta_ev + 4, x
-    stz ruta_ev + 5, x          ; just starting
-    stz ruta_ev + 9, x          ; and no wait in progress: the first command runs right away
-    lda ruta_frec_op
-    sta ruta_ev + 16, x
+    lda code_ptr + 2
+    sta route_ev + 3, x
+    lda route_count
+    sta route_ev + 4, x
+    stz route_ev + 5, x          ; just starting
+    stz route_ev + 9, x          ; and no wait in progress: the first command runs right away
+    lda route_freq_op
+    sta route_ev + 16, x
     rts
 .endproc
 
@@ -149,7 +149,7 @@ reusada:
     rts
 .endproc
 
-; Which way whoever is at (celda_x, celda_y) faces to face the hero. It is
+; Which way whoever is at (cell_x, cell_y) faces to face the hero. It is
 ; `GetDirectionToCharacter`: the axis with more distance wins and on a tie the
 ; vertical; on the same cell, or with the hero further down, it faces down.
 ; Returns the direction in A.
@@ -158,7 +158,7 @@ reusada:
 .i16
     rep #$20
 .a16
-    lda celda_x
+    lda cell_x
     sec
     sbc tile_x
     sta temp                    ; sx, signed: positive is "the hero is to the left"
@@ -166,7 +166,7 @@ reusada:
     eor #$FFFF
     inc a
 :   sta cmp_a                   ; |sx|
-    lda celda_y
+    lda cell_y
     sec
     sbc tile_y
     sta temp + 2                ; sy: positive is "the hero is further up"
@@ -207,21 +207,21 @@ abajo:
 .proc move_events
 .a8
 .i16
-    stz rutas_movieron
+    stz routes_moved
     ldx #$0000
 otra:
-    lda ruta_ev, x
-    cmp #RUTA_EV_LIBRE
+    lda route_ev, x
+    cmp #ROUTE_EV_FREE
     beq siguiente
     ; The one that already took its step tied to its parallel interpreter does not
     ; take it again: the mark is consumed here, so it lasts one frame. See
     ; `one_parallel`.
-    lda ruta_ev + 18, x
+    lda route_ev + 18, x
     and #$40
     beq no_movido
-    lda ruta_ev + 18, x
+    lda route_ev + 18, x
     and #$BF
-    sta ruta_ev + 18, x
+    sta route_ev + 18, x
     bra siguiente
 no_movido:
     phx
@@ -234,23 +234,23 @@ no_movido:
     jsr refresh_npc
     plx
     lda #1
-    sta rutas_movieron
+    sta routes_moved
 siguiente:
     rep #$20
 .a16
     txa
     clc
-    adc #RUTA_EV_STRIDE
+    adc #ROUTE_EV_STRIDE
     tax
-    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
+    cmp #RUTA_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
     bcc otra
     ; From here on the one that moves is the hero again.
-    lda #MOVIL_HEROE
-    sta movil
-    lda #CAPA_HEROE
-    sta movil_capa
+    lda #HERO_WALKER
+    sta walker
+    lda #HERO_LAYER_INDEX
+    sta walker_layer
     rts
 .endproc
 
@@ -264,108 +264,108 @@ siguiente:
 .proc ev_route_frame
 .a8
 .i16
-    stz ruta_ev + 6, x
-    lda ruta_ev + 18, x
+    stz route_ev + 6, x
+    lda route_ev + 18, x
     and #$DF                    ; `repeat`'s reload, one per frame
-    sta ruta_ev + 18, x
-    lda ruta_ev + 7, x
+    sta route_ev + 18, x
+    lda route_ev + 7, x
     beq sin_paso
     ; The step advances by what the speed says, out of 256 per cell; +7 only says
     ; there is one in progress.
     jsr step_slot
     rep #$20
 .a16
-    lda ruta_ev + 22, x
+    lda route_ev + 22, x
     sec
     sbc temp
     bcs no_negativo
     lda #0
 no_negativo:
-    sta ruta_ev + 22, x
+    sta route_ev + 22, x
     sep #$20
 .a8
     bne moviendo
-    stz ruta_ev + 7, x          ; the step ended on this frame
-    lda ruta_ev + 5, x
-    cmp ruta_ev + 4, x
+    stz route_ev + 7, x          ; the step ended on this frame
+    lda route_ev + 5, x
+    cmp route_ev + 4, x
     bcc con_ordenes
-    lda ruta_ev + 18, x         ; no commands: only the repeating page one
+    lda route_ev + 18, x         ; no commands: only the repeating page one
     and #$03                    ; keeps waiting
     cmp #$03
     bne moviendo
 con_ordenes:
-    lda ruta_ev + 16, x
+    lda route_ev + 16, x
     jsr after_step
-    sta ruta_ev + 9, x
+    sta route_ev + 9, x
 moviendo:
     lda #1
-    sta ruta_ev + 6, x
+    sta route_ev + 6, x
     rts
 sin_paso:
-    lda ruta_ev + 13, x
+    lda route_ev + 13, x
     beq sin_salto
     jsr slot_jump
     sta temp
-    lda ruta_ev + 13, x
+    lda route_ev + 13, x
     sec
     sbc temp
     bcs guardar_salto
     lda #0
 guardar_salto:
-    sta ruta_ev + 13, x
+    sta route_ev + 13, x
     rts
 sin_salto:
     ; And a `wait` in progress takes the whole frame, same as the hero's.
-    lda ruta_ev + 9, x
+    lda route_ev + 9, x
     beq sin_espera
     dec a
-    sta ruta_ev + 9, x
+    sta route_ev + 9, x
     rts
 sin_espera:
     ; The page's own move route does not read new commands while the interpreter
     ; has a page running: it is `UpdateNextMovementAction`'s `IsRunning()`. The
     ; step in progress already finished above and the waits keep counting.
-    lda ruta_ev + 18, x
+    lda route_ev + 18, x
     and #$01
     beq no_congelada
-    lda ev_activo
+    lda ev_active
     bne congelada
-    lda esperando_n
+    lda waiting_n
     bne congelada
 no_congelada:
     ; The move route's pointer to the direct page, which is where it can be read
     ; from with `[ptr], y`.
     rep #$20
 .a16
-    lda ruta_ev + 1, x
-    sta ruta_ptr
+    lda route_ev + 1, x
+    sta route_ptr
     sep #$20
 .a8
-    lda ruta_ev + 3, x
-    sta ruta_ptr + 2
+    lda route_ev + 3, x
+    sta route_ptr + 2
 
 otra_orden:
-    lda ruta_ev + 5, x          ; which one it is on
-    cmp ruta_ev + 4, x          ; how many it has
+    lda route_ev + 5, x          ; which one it is on
+    cmp route_ev + 4, x          ; how many it has
     bcc hay_orden
     ; The commands ran out. The repeating page one goes back to the start on the
     ; same frame, and only once per frame —`UpdateMoveRoute`'s `current_index ==
     ; start_index`—; and a forced one that ends on an event with its own move route
     ; gives it back its own, from the start.
-    lda ruta_ev + 18, x
+    lda route_ev + 18, x
     and #$23
     cmp #$03
     bne no_repite
-    stz ruta_ev + 5, x
-    lda ruta_ev + 18, x
+    stz route_ev + 5, x
+    lda route_ev + 18, x
     ora #$20
-    sta ruta_ev + 18, x
+    sta route_ev + 18, x
     jmp otra_orden
 no_repite:
-    lda ruta_ev + 18, x
+    lda route_ev + 18, x
     and #$01
     bne congelada               ; the page one, finished: done
-    lda ruta_ev + 27, x
+    lda route_ev + 27, x
     beq congelada               ; no page to go back to
     jsr resume_page
 congelada:
@@ -377,16 +377,16 @@ hay_orden:
     tay
     sep #$20
 .a8
-    lda [ruta_ptr], y
-    inc ruta_ev + 5, x
+    lda [route_ptr], y
+    inc route_ev + 5, x
 
     cmp #23                     ; wait: this one and the RUTA_ESPERA - 1 after it,
     bne no_es_wait              ; plus the turn's if the frequency is low
-    lda ruta_ev + 16, x
+    lda route_ev + 16, x
     jsr after_turn
     clc
     adc #(RUTA_ESPERA - 1)
-    sta ruta_ev + 9, x
+    sta route_ev + 9, x
     jmp ready
 no_es_wait:
     cmp #12
@@ -418,25 +418,25 @@ no_encara:
     ; Turning without moving is not compiled: it does not get here.
     cmp #24
     bne no_es_salto
-    jsr prepare_mover          ; who jumps, to collide with the others
-    lda ruta_ev + 5, x
+    jsr prepare_walker          ; who jumps, to collide with the others
+    lda route_ev + 5, x
     dec a
-    sta salto_orden             ; where the 24 is, in case it has to go back
+    sta jump_command             ; where the 24 is, in case it has to go back
     jsr build_ev_jump
-    lda ruta_ev + 13, x
+    lda route_ev + 13, x
     bne salto_arranco
     ; It could not land there. With the move route skippable the jump is skipped;
     ; without that RM2k moves the cursor back to the `begin_jump` and cuts the frame
     ; —`current_index = saved_index`—, and the jump is retried frame by frame until
     ; the cell frees up. Without `end_jump` there is nothing to go back to: it is
     ; always skipped.
-    lda salto_trabado
+    lda jump_stuck
     beq saltear
-    lda ruta_ev + 18, x
+    lda route_ev + 18, x
     and #$04
     bne saltear
-    lda salto_orden
-    sta ruta_ev + 5, x
+    lda jump_command
+    sta route_ev + 5, x
     jmp ready
 saltear:
     jmp otra_orden
@@ -465,11 +465,11 @@ no_es_sonido:
     and #$01
     eor #$01
     beq apagar_atraviesa
-    lda ruta_ev + 12, x
+    lda route_ev + 12, x
     ora #$01
     bra guardar_banderas
 apagar_atraviesa:
-    lda ruta_ev + 12, x
+    lda route_ev + 12, x
     and #$FE
     bra guardar_banderas
 anim:
@@ -478,14 +478,14 @@ anim:
     ; 38 stops the animation and 39 resumes it.
     cmp #38
     bne seguir_anim
-    lda ruta_ev + 12, x
+    lda route_ev + 12, x
     ora #$02
     bra guardar_banderas
 seguir_anim:
-    lda ruta_ev + 12, x
+    lda route_ev + 12, x
     and #$FD
 guardar_banderas:
-    sta ruta_ev + 12, x
+    sta route_ev + 12, x
 seguir:
     jmp otra_orden
 fijar_o_velocidad:
@@ -496,27 +496,27 @@ fijar_o_velocidad:
     ; 26 locks the facing, 27 releases it: `lock_facing`.
     and #$01
     beq fijar
-    lda ruta_ev + 18, x
+    lda route_ev + 18, x
     and #$F7
     bra guardar_18
 fijar:
-    lda ruta_ev + 18, x
+    lda route_ev + 18, x
     ora #$08
     bra guardar_18
 velocidad:
     ; 28 raises the speed and 29 lowers it, between 1 and 6.
     and #$01
     bne mas_lenta
-    lda ruta_ev + 17, x
+    lda route_ev + 17, x
     cmp #6
     bcs seguir
-    inc ruta_ev + 17, x
+    inc route_ev + 17, x
     bra seguir
 mas_lenta:
-    lda ruta_ev + 17, x
+    lda route_ev + 17, x
     cmp #2
     bcc seguir
-    dec ruta_ev + 17, x
+    dec route_ev + 17, x
     bra seguir
 ev_frecuencia:
     ; 30 raises the frequency and 31 lowers it, between 1 and 8. See `frecuencia`
@@ -524,19 +524,19 @@ ev_frecuencia:
     ; after each command come from here, and the converter rejects 1.
     and #$01
     bne menos_frec
-    lda ruta_ev + 16, x
+    lda route_ev + 16, x
     cmp #RUTA_FRECUENCIA
     bcs seguir
-    inc ruta_ev + 16, x
+    inc route_ev + 16, x
     bra seguir
 menos_frec:
-    lda ruta_ev + 16, x
+    lda route_ev + 16, x
     cmp #2
     bcc seguir
-    dec ruta_ev + 16, x
+    dec route_ev + 16, x
     bra seguir
 guardar_18:
-    sta ruta_ev + 18, x
+    sta route_ev + 18, x
     bra seguir
 
 ; `change_graphic`: the only command with an operand. After the 34 comes the
@@ -549,15 +549,15 @@ guardar_18:
 ; It does not touch the pose either: the walk cycle stays where it was, which is
 ; what `SetSpriteGraphic` does.
 cambiar_grafico:
-    lda ruta_ev + 5, x          ; the cursor already advanced when reading the command
+    lda route_ev + 5, x          ; the cursor already advanced when reading the command
     rep #$20
 .a16
     and #$00FF
     tay
     sep #$20
 .a8
-    lda [ruta_ptr], y
-    inc ruta_ev + 5, x          ; and now past the operand
+    lda [route_ptr], y
+    inc route_ev + 5, x          ; and now past the operand
     asl a                       ; two bytes per entry
     rep #$20
 .a16
@@ -565,12 +565,12 @@ cambiar_grafico:
     tay
     sep #$20
 .a8
-    lda ruta_graf_buf, y
-    sta graf_k                  ; its entry in `npc_poses`, or $FF
-    lda ruta_graf_buf + 1, y
-    sta graf_pal
+    lda route_gfx_buf, y
+    sta gfx_k                  ; its entry in `npc_poses`, or $FF
+    lda route_gfx_buf + 1, y
+    sta gfx_pal
 
-    lda ruta_ev + 0, x
+    lda route_ev + 0, x
     phx
     jsr event_npc           ; its row, which is what has to change
     plx
@@ -578,7 +578,7 @@ cambiar_grafico:
     beq listo_graf              ; an event without a graphic has no row
     lda #$FF
     sta npc_buf + 15, y         ; a CharSet imposes nothing on the cell
-    lda graf_k
+    lda gfx_k
     cmp #$FF
     bne con_grafico
     ; A CharSet without a single opaque pixel: the event disappears. It is the same
@@ -592,7 +592,7 @@ con_grafico:
     lda npc_buf + 7, y
     and #$F1                    ; the palette lives in bits 1 to 3 of vhoopppN
     sta temp
-    lda graf_pal
+    lda gfx_pal
     asl a
     and #$0E
     ora temp
@@ -608,17 +608,17 @@ listo_graf:
 ; Same as on the hero —see `sonido_heroe`—: `sound_play`, `OP_SOUND`'s path,
 ; and without costing a frame. X is the slot, and `sound_play` overwrites it.
 sonido_ev:
-    lda ruta_ev + 5, x          ; the cursor is already on the operand
+    lda route_ev + 5, x          ; the cursor is already on the operand
     inc a
     inc a
-    sta ruta_ev + 5, x          ; and moves past it
+    sta route_ev + 5, x          ; and moves past it
     dec a
     dec a
     rep #$20
 .a16
     and #$00FF
     tay
-    lda [ruta_ptr], y
+    lda [route_ptr], y
     phx
     jsr sound_play            ; returns with 8-bit A
 .a8
@@ -628,39 +628,39 @@ face:
     sec
     sbc #12
 mirar:
-    sta ruta_ev + 8, x          ; face_*: with frequency 8 it is instant and the
-    lda ruta_ev + 16, x         ; next one follows; with another, it stands
+    sta route_ev + 8, x          ; face_*: with frequency 8 it is instant and the
+    lda route_ev + 16, x         ; next one follows; with another, it stands
     jsr after_turn               ; still for the turn's frames
     bne giro_espera
     jmp otra_orden
 giro_espera:
     dec a
-    sta ruta_ev + 9, x
+    sta route_ev + 9, x
     jmp ready
 
 
 mover:
-    sta ruta_dir
-    stz ruta_dir + 1
-    lda ruta_ev + 18, x
+    sta route_dir
+    stz route_dir + 1
+    lda route_ev + 18, x
     and #$08
     bne sin_girar               ; always faces the same way: `lock_facing` or the
                                 ; page's animation type
-    lda ruta_dir
+    lda route_dir
     cmp #4
     bcc derecho                 ; the usual four face where they go
     jsr face_diagonal        ; a diagonal has no pose of its own: see there
 derecho:
-    sta ruta_ev + 8, x          ; move_* faces where it goes
+    sta route_ev + 8, x          ; move_* faces where it goes
 sin_girar:
     phx
     jsr event_cell        ; leaves its position in celda_x/celda_y
-    jsr prepare_mover          ; and who it is, to collide with the others
-    lda ruta_ev + 12, x
+    jsr prepare_walker          ; and who it is, to collide with the others
+    lda route_ev + 12, x
     and #$01
-    sta atravesando             ; walk_everywhere: `cell_allowed` looks at it
-    stz atravesando + 1
-    lda ruta_dir
+    sta crossing             ; walk_everywhere: `cell_allowed` looks at it
+    stz crossing + 1
+    lda route_dir
     cmp #4
     bcc recto
     jsr cell_allowed_diag        ; the two L's: nobody looks at the diagonal cell
@@ -669,8 +669,8 @@ recto:
     jsr cell_allowed
 probado:
     plx
-    stz atravesando
-    stz atravesando + 1
+    stz crossing
+    stz crossing + 1
     ; `plx` sets Z from what it pulls off the stack, so the answer has to be
     ; looked at again: with the `beq` right after the `plx`, slot 0 —which is X = 0—
     ; always said "blocked" and no move route ever moved.
@@ -679,33 +679,33 @@ probado:
     ; Blocked. With `skippable` —the forced ones, and the page ones that ask for
     ; it— it is skipped and the next one is tried; without it, the command is
     ; retried on the coming frame, and so on until the step goes through.
-    lda ruta_ev + 18, x
+    lda route_ev + 18, x
     and #$04
     beq reintenta
     jmp otra_orden
 reintenta:
-    dec ruta_ev + 5, x
+    dec route_ev + 5, x
     jmp ready
 no_bloqueado:
     phx
-    lda ruta_dir
+    lda route_dir
     jsr move_event_cell
     plx
-    lda ruta_dir
-    sta ruta_ev + 30, x         ; which way the step goes, which with the facing
+    lda route_dir
+    sta route_ev + 30, x         ; which way the step goes, which with the facing
     lda #1                      ; locked is not where it faces
-    sta ruta_ev + 7, x          ; there is a step in progress
+    sta route_ev + 7, x          ; there is a step in progress
     jsr step_slot
     rep #$20
 .a16
     lda #SALTO_PASO
     sec
     sbc temp
-    sta ruta_ev + 22, x         ; and this frame's part already advanced
+    sta route_ev + 22, x         ; and this frame's part already advanced
     sep #$20
 .a8
     lda #1
-    sta ruta_ev + 6, x
+    sta route_ev + 6, x
 ready:
     rts
 .endproc
@@ -716,25 +716,25 @@ ready:
 .proc resume_page
 .a8
 .i16
-    lda ruta_ev + 24, x
-    sta ruta_ev + 1, x
-    lda ruta_ev + 25, x
-    sta ruta_ev + 2, x
-    lda ruta_ev + 26, x
-    sta ruta_ev + 3, x
-    lda ruta_ev + 27, x
-    sta ruta_ev + 4, x
-    stz ruta_ev + 5, x
-    lda ruta_ev + 28, x
-    sta ruta_ev + 16, x
-    lda ruta_ev + 29, x
-    sta ruta_ev + 17, x
-    lda ruta_ev + 18, x
+    lda route_ev + 24, x
+    sta route_ev + 1, x
+    lda route_ev + 25, x
+    sta route_ev + 2, x
+    lda route_ev + 26, x
+    sta route_ev + 3, x
+    lda route_ev + 27, x
+    sta route_ev + 4, x
+    stz route_ev + 5, x
+    lda route_ev + 28, x
+    sta route_ev + 16, x
+    lda route_ev + 29, x
+    sta route_ev + 17, x
+    lda route_ev + 18, x
     ora #$01
-    sta ruta_ev + 18, x
-    lda ruta_ev + 28, x
+    sta route_ev + 18, x
+    lda route_ev + 28, x
     jsr after_turn
-    sta ruta_ev + 9, x
+    sta route_ev + 9, x
     rts
 .endproc
 
@@ -742,7 +742,7 @@ ready:
 .proc event_cell
 .a8
 .i16
-    lda ruta_ev + 0, x
+    lda route_ev + 0, x
     rep #$20
 .a16
     and #$00FF
@@ -750,9 +750,9 @@ ready:
     asl a                       ; EV_STRIDE bytes per event
     tay
     lda ev_pos_buf, y
-    sta celda_x
+    sta cell_x
     lda ev_pos_buf + 2, y
-    sta celda_y
+    sta cell_y
     sep #$20
 .a8
     rts
@@ -762,21 +762,21 @@ ready:
 ; of the step, not at its end: it is what `begin_step` does with the hero, and
 ; counting it differently would leave the hero and the events with the cell
 ; changed on different frames.
-; Puts the cell of slot X's event in `celda_x`, `celda_y`. The jump uses it,
+; Puts the cell of slot X's event in `cell_x`, `cell_y`. The jump uses it,
 ; which moves it all at once instead of one step at a time.
 .proc move_cell_to_event
 .a8
 .i16
-    lda ruta_ev + 0, x
+    lda route_ev + 0, x
     rep #$20
 .a16
     and #$00FF
     asl a
     asl a
     tay
-    lda celda_x
+    lda cell_x
     sta ev_pos_buf + 0, y
-    lda celda_y
+    lda cell_y
     sta ev_pos_buf + 2, y
     sep #$20
 .a8
@@ -786,9 +786,9 @@ ready:
 .proc move_event_cell
 .a8
 .i16
-    sta ruta_dir
-    stz ruta_dir + 1            ; it is used as a sixteen-bit index
-    lda ruta_ev + 0, x
+    sta route_dir
+    stz route_dir + 1            ; it is used as a sixteen-bit index
+    lda route_ev + 0, x
     rep #$20
 .a16
     and #$00FF
@@ -800,8 +800,8 @@ ready:
     ; By table and not by four comparisons: with the diagonals the cell moves on
     ; both axes at once, and this way the straight case is the one with a zero on
     ; one side. X is left overwritten; the caller already saved it.
-    ldx ruta_dir
-    lda f:paso_dx, x
+    ldx route_dir
+    lda f:step_dx_table, x
     beq sin_dx
     jsr with_sign_16
 .a16
@@ -811,7 +811,7 @@ ready:
     sep #$20
 .a8
 sin_dx:
-    lda f:paso_dy, x
+    lda f:step_dy_table, x
     beq sin_dy
     jsr with_sign_16
 .a16

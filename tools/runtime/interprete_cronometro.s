@@ -11,16 +11,16 @@
 ; The timer: set, start or stop. The five operand bytes are fixed even though
 ; each operation uses two, so the cursor advances the same in all three.
 .proc op_timer
-    lda [cod_ptr], y            ; the operation
+    lda [code_ptr], y            ; the operation
     sta temp
     iny
     cmp #TIMER_PONER
     bne no_pone
     rep #$20
 .a16
-    lda [cod_ptr], y            ; the seconds, sixteen bits
+    lda [code_ptr], y            ; the seconds, sixteen bits
 timer_poner_16:
-    sta timer_seg
+    sta timer_sec
     sep #$20
 .a8
     ; `Game_Party::SetTimer` stores `seconds * 60 + 59`: the extra 59 are what
@@ -37,7 +37,7 @@ no_pone:
     ; The seconds from a variable, which is what the Tram Officer on map 9
     ; does: "what the timer has left, minus sixty". A negative variable sets
     ; zero, like `Game_Party::SetTimer`.
-    lda [cod_ptr], y            ; the slot
+    lda [code_ptr], y            ; the slot
     phy
     jsr var_read                ; 16-bit A
 .a16
@@ -52,10 +52,10 @@ no_pone_var:
     cmp #TIMER_ARRANCAR
     bne timer_para
     lda #1
-    sta timer_activo
+    sta timer_active
     iny
     iny
-    lda [cod_ptr], y            ; whether it shows
+    lda [code_ptr], y            ; whether it shows
     dey
     dey
     cmp timer_visible
@@ -67,7 +67,7 @@ no_pone_var:
 timer_para:
     ; `StopTimer` turns off both things, not just the count.
     lda timer_visible
-    stz timer_activo
+    stz timer_active
     stz timer_visible           ; `stz` does not touch Z: the branch looks at
                                 ; the `lda`
     beq timer_fin

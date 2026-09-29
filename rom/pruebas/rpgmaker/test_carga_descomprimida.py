@@ -10,7 +10,7 @@ mapas de `release`: contra `crudos/`, que el conversor deja al lado del
 cartucho sin comprimir —ver `write_raw`— y no contra nada que salga de la
 ROM.
 
-Se mira justo después de la carga, en el primer cuadro en que `fundido_que`
+Se mira justo después de la carga, en el primer cuadro en que `fade_kind`
 volvió a cero: el fundido congela el juego, así que hasta que termine nadie
 pisa lo que se subió. Dos cosas sí cambian y se miran por su lado: la corrida
 animada del ChipSet, que `anim_load` pisa con el dibujo que le toca al reloj
@@ -87,13 +87,13 @@ def _cargar(p, map_id):
     x = registro.palabra("M_HERO_START_X") // 16
     y = registro.palabra("M_HERO_START_Y") // 16
     p.ir_al_mapa(map_id, x, y, cuadros=0)
-    antes = p.palabra("vueltas")
+    antes = p.palabra("ticks")
     for cuadros in range(1, 400):
         p.consola.run(1)
-        if not p.byte("fundido_que"):
+        if not p.byte("fade_kind"):
             assert p.mapa() == map_id, (
                 "pedí el mapa %d y la ROM cargó el %d" % (map_id, p.mapa()))
-            return cuadros - (p.palabra("vueltas") - antes) + 1
+            return cuadros - (p.palabra("ticks") - antes) + 1
     raise AssertionError("el mapa %d no terminó de cargar en 400 cuadros" % map_id)
 
 
@@ -164,12 +164,12 @@ def _mirar_la_vram(p, indice):
 
 def _grilla(p):
     """La grilla que hay en la WRAM, con el largo de la del mapa: la mitad
-    alta del banco $7E y, si pasa de 32 KB, la del $7F. Ver `GRILLA`."""
+    alta del banco $7E y, si pasa de 32 KB, la del $7F. Ver `GRID`."""
     s = p.simbolos
-    largo = p.palabra("mapa_ancho") * p.palabra("mapa_alto") * 2
-    mitad = s["GRILLA_FIN"] - s["GRILLA"]
-    baja = p.consola.ram(en_la_wram(s["GRILLA"]), min(largo, mitad))
-    alta = (p.consola.ram(en_la_wram(s["GRILLA_ALTA"]), largo - mitad)
+    largo = p.palabra("map_width") * p.palabra("map_height") * 2
+    mitad = s["GRID_END"] - s["GRID"]
+    baja = p.consola.ram(en_la_wram(s["GRID"]), min(largo, mitad))
+    alta = (p.consola.ram(en_la_wram(s["GRID_HIGH"]), largo - mitad)
             if largo > mitad else b"")
     return bytes(baja) + bytes(alta)
 
@@ -192,7 +192,7 @@ def _mirar_la_wram(p, indice):
     último que se descomprimió —los sprites: ver `enter_map_no_events`—."""
     s = p.simbolos
     mal = _mirar_la_grilla(p, indice)
-    for simbolo, clase in (("ANIM_DIBUJOS", "anim_tiles"),
+    for simbolo, clase in (("ANIM_DRAWINGS", "anim_tiles"),
                            ("LZ2_BUFFER", "sprite_tiles")):
         crudo = _crudo(p, indice, clase)
         visto = p.consola.ram(en_la_wram(s[simbolo]), len(crudo))
@@ -242,19 +242,19 @@ def test_la_grilla_vuelve_entera_de_una_pelea(nucleo):
     s = p.simbolos
     indice = p.mapas.index(52)
     crudo = _crudo(p, indice, "map_celdas")
-    mitad = s["GRILLA_FIN"] - s["GRILLA"]
+    mitad = s["GRID_END"] - s["GRID"]
     assert len(crudo) > mitad, (
         "la grilla del mapa 52 mide %d: no llega a la mitad del $7F y esto no "
         "prueba nada" % len(crudo))
     assert _grilla(p) == crudo, "la grilla ya estaba mal antes de pelear"
-    alta = en_la_wram(s["GRILLA_ALTA"])
+    alta = en_la_wram(s["GRID_HIGH"])
     pisada, cuadros = False, 0
     # Todo en cuadros de hardware: la pelea no cuenta ticks. A cada nueve
     # cuadros, que es lo que pasa los mensajes y elige atacar.
     for cuadros in range(1, 4000):
         p.consola.hold(*(("a",) if cuadros % 9 < 2 else ()))
         p.consola.run(1)
-        if p.byte("menu_abierto"):
+        if p.byte("menu_open"):
             pisada = pisada or (bytes(p.consola.ram(alta, len(crudo) - mitad))
                                 != crudo[mitad:])
         elif pisada:
@@ -265,10 +265,10 @@ def test_la_grilla_vuelve_entera_de_una_pelea(nucleo):
     assert pisada, (
         "la pelea no pisó la mitad alta del $7F: si la escena se mudó, esta "
         "prueba ya no mira el camino de `back_from_battle`")
-    antes = p.palabra("vueltas")
+    antes = p.palabra("ticks")
     for _ in range(240):
         p.consola.run(1)
-        if p.palabra("vueltas") - antes >= 2:
+        if p.palabra("ticks") - antes >= 2:
             break
     assert p.mapa() == 52, "la pelea no volvió al mapa 52: volvió al %d" % p.mapa()
     mal = _mirar_la_grilla(p, indice)
@@ -280,9 +280,9 @@ def test_la_grilla_vuelve_entera_de_una_pelea(nucleo):
 # Un fondo de más de `LZ2_TOPE_FONDO` bytes va en dos flujos, y `lz2_backdrop`
 # sube el primero antes de descomprimir el segundo en el mismo lugar. Antes de
 # eso el fondo del 66 se descomprimía entero y lo que no entraba en el buffer
-# de carga caía en `GRILLA_ALTA`: en el 66, que usa sólo la mitad baja, andaba
+# de carga caía en `GRID_HIGH`: en el 66, que usa sólo la mitad baja, andaba
 # de casualidad. La prueba de arriba mira que llegue entero a la VRAM; ésta,
-# con un testigo escrito en `GRILLA_ALTA`, que no se salga del buffer.
+# con un testigo escrito en `GRID_HIGH`, que no se salga del buffer.
 
 
 def test_un_fondo_de_dos_flujos_no_se_sale_del_buffer():
@@ -297,16 +297,16 @@ def test_un_fondo_de_dos_flujos_no_se_sale_del_buffer():
         "no mira el camino de dos de `lz2_backdrop`")
     map_id = grandes[0]
     indice = p.mapas.index(map_id)
-    mitad = s["GRILLA_FIN"] - s["GRILLA"]
+    mitad = s["GRID_END"] - s["GRID"]
     assert len(_crudo(p, indice, "map_celdas")) <= mitad, (
         "la grilla del mapa %d usa la mitad alta, y ahí el testigo lo pisaría "
         "ella: hace falta otro mapa" % map_id)
-    alta = en_la_wram(s["GRILLA_ALTA"])
+    alta = en_la_wram(s["GRID_HIGH"])
     testigo = bytes(range(256)) * 16
     p.consola.write_ram(alta, list(testigo))
     _cargar(p, map_id)
     assert bytes(p.consola.ram(alta, len(testigo))) == testigo, (
-        "cargar el mapa %d pisó `GRILLA_ALTA`: el fondo se salió del buffer "
+        "cargar el mapa %d pisó `GRID_HIGH`: el fondo se salió del buffer "
         "de carga" % map_id)
     mal = _mirar_la_vram(p, indice)
     assert not mal, "el mapa %d: %s" % (map_id, "; ".join(mal))

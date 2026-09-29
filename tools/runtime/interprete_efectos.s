@@ -17,7 +17,7 @@
 .proc op_picture
     ldx #$0000
 img_poner:
-    lda [cod_ptr], y
+    lda [code_ptr], y
     cpx #3
     bcs img_poner_sat           ; the fourth operand is the saturation, which
     sta f:PICTURE_TONE, x        ; is not stored: the picture's is always neutral
@@ -41,7 +41,7 @@ img_poner_sat:
 .proc op_picture_move
     ldx #$0000
 img_mover:
-    lda [cod_ptr], y
+    lda [code_ptr], y
     cpx #3
     bcs img_mover_sat           ; the saturation, again
     sta f:PICTURE_TO, x
@@ -50,7 +50,7 @@ img_mover_sat:
     inx
     cpx #4
     bne img_mover
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta f:PICTURE_STEPS
     iny
     ; A `Move` on a picture that was not shown writes the target to something
@@ -102,27 +102,27 @@ img_mover_fin:
 ; The first two bytes are for the **drawing**, which runs on its own and lasts
 ; longer than the timeline: see `anim_drawing_start`.
 .proc op_animation
-    lda [cod_ptr], y            ; the RM2k animation number
+    lda [code_ptr], y            ; the RM2k animation number
     sta temp
     iny
-    lda [cod_ptr], y            ; and what it goes on: $FF is the screen
+    lda [code_ptr], y            ; and what it goes on: $FF is the screen
     sta temp + 1
     iny
     phy
     jsr anim_drawing_start
     ply
-    lda [cod_ptr], y            ; how many
+    lda [code_ptr], y            ; how many
     sta f:ANIM_N
     iny
     rep #$20
 .a16
     tya
     clc
-    adc cod_ptr
+    adc code_ptr
     sta f:ANIM_PTR              ; the first one, in the bytecode's bank
     sep #$20
 .a8
-    lda cod_ptr + 2
+    lda code_ptr + 2
     sta f:ANIM_PTR + 2
     lda #0
     sta f:ANIM_T
@@ -148,10 +148,10 @@ img_mover_fin:
 .proc op_weather
 .a8
 .i16
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta temp
     iny
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta temp + 1
     iny
     phy

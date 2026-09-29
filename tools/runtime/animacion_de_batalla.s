@@ -20,7 +20,7 @@ ANIM_T     = $7E30E6
 ;
 ; The tone is **three** bytes and not four: a picture's saturation is always
 ; the neutral one —`imagen_aceptable` accepts no other— so there is nothing to
-; interpolate there and `picture_palette` sets `tinte_s` to `TINTE_NEUTRO`.
+; interpolate there and `picture_palette` sets `tint_s` to `TINTE_NEUTRO`.
 ; **$30E8 to $30EB belong to the MSU-1** —`MSU_HAS`, `MSU_PLAYING` and
 ; `MSU_FACTOR`—, so this starts at $30EC and goes up to $30FA; the next block
 ; is `FAR_ARAM_OF`, at $3100. It started at $30E8 and overwrote them: the ROM
@@ -69,27 +69,27 @@ FAR_MSG_AUTO  = $7E30FD
     bne hay
     rts
 hay:
-    ; `cod_ptr` borrowed: the opcode routines read their operands from there,
+    ; `code_ptr` borrowed: the opcode routines read their operands from there,
     ; and whatever page is running needs it back.
-    lda cod_ptr + 2
+    lda code_ptr + 2
     pha
     rep #$20
 .a16
-    lda cod_ptr
+    lda code_ptr
     pha
     lda f:ANIM_PTR
-    sta cod_ptr
+    sta code_ptr
     sep #$20
 .a8
     lda f:ANIM_PTR + 2
-    sta cod_ptr + 2
+    sta code_ptr + 2
 otra:
     ldy #0
-    lda [cod_ptr], y            ; its tick
+    lda [code_ptr], y            ; its tick
     cmp f:ANIM_T
     bne ready
     iny
-    lda [cod_ptr], y            ; its type
+    lda [code_ptr], y            ; its type
     iny                         ; and the data, from the third byte
     cmp #ANIM_SONIDO
     bne no_sonido
@@ -105,10 +105,10 @@ no_destello:
 hecha:
     rep #$20
 .a16
-    lda cod_ptr
+    lda code_ptr
     clc
     adc #ANIM_ENTRADA
-    sta cod_ptr
+    sta code_ptr
     sep #$20
 .a8
     lda f:ANIM_N
@@ -118,7 +118,7 @@ hecha:
 ready:
     rep #$20
 .a16
-    lda cod_ptr
+    lda code_ptr
     sta f:ANIM_PTR
     sep #$20
 .a8
@@ -128,11 +128,11 @@ ready:
     rep #$20
 .a16
     pla
-    sta cod_ptr
+    sta code_ptr
     sep #$20
 .a8
     pla
-    sta cod_ptr + 2
+    sta code_ptr + 2
     rts
 .endproc
 
@@ -159,7 +159,7 @@ ANIMB_TILE   = $7E3601          ; the box's first tile, word
 ANIMB_ATTR   = $7E3603          ; vhoopppN already built for the four objects
 ANIMB_VRAM   = $7E3604          ; where the frame's DMA goes, in words
 ANIMB_CGADD  = $7E3606          ; its palette's CGRAM entry
-ANIMB_SHADOW = $7E3607          ; and its offset in `cgram_sombra`, word
+ANIMB_SHADOW = $7E3607          ; and its offset in `cgram_shadow`, word
 ANIMB_ACTIVE = $7E3609          ; one is being drawn
 ANIMB_ROW   = $7E360A          ; its row in `anim_batalla_tabla`, word
 ANIMB_TARGET = $7E360C          ; what it goes on; $FF is the screen
@@ -186,7 +186,7 @@ ANIMB_PREV   = $7E3616          ; three bytes: the last frame built in
     sta f:ANIMB_HAS
     rep #$20
 .a16
-    lda mapa_actual
+    lda map_current
     tax
     sep #$20
 .a8
@@ -201,7 +201,7 @@ hay:
     asl a
     asl a
     asl a
-    asl a                       ; times 32: its place in `cgram_sombra`
+    asl a                       ; times 32: its place in `cgram_shadow`
     rep #$20
 .a16
     and #$00FF
@@ -247,7 +247,7 @@ hay:
     sta f:ANIMB_ATTR
     ; And where the DMA goes: the map's sprite base plus the tile times sixteen
     ; words, which is the size of a 4bpp tile.
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     lda f:ANIMB_TILE
@@ -335,7 +335,7 @@ copia:
     sep #$20
 .a8
     lda f:anim_batalla_cgram, x
-    sta cgram_sombra, y
+    sta cgram_shadow, y
     rep #$20
 .a16
     inx
@@ -385,7 +385,7 @@ sigue:
     ; And it is built now, out here: the vblank only copies. There is no race
     ; with the DMA because the loop uploads what is pending before calling
     ; this again.
-    jsl f:anim_frame_build + RAPIDO   ; from the fast mirror: see MEMSEL
+    jsl f:anim_frame_build + FAST   ; from the fast mirror: see MEMSEL
     rep #$20
 .a16
 igual:
@@ -428,7 +428,7 @@ igual:
     sta MDMAEN
     ; What it took, in 512-byte poses, subtracted and not set: that way it
     ; adds to whatever the tint or a line of the window already took.
-    lda vq_tope
+    lda vq_cap
     sec
     sbc #(ANIM_B_BYTES / 512)
     bcc una
@@ -436,7 +436,7 @@ igual:
 una:
     lda #1                      ; there is always room left for one pose
 queda:
-    sta vq_tope
+    sta vq_cap
     rts
 .endproc
 
@@ -498,13 +498,13 @@ con_celda:
     clc
     adc #8                      ; the center of the cell
     sec
-    sbc pantalla_x
+    sbc screen_x
     sta obj_x
     lda temp + 2
     clc
     adc #16                     ; its feet
     sec
-    sbc camara_y
+    sbc camera_y
     sta obj_y
     bra restar_ancla
 pantalla:
@@ -538,7 +538,7 @@ restar_ancla:
     sep #$20
 .a8
     lda #$02
-    sta obj_grande              ; all four objects are 32x32
+    sta obj_big              ; all four objects are 32x32
     lda f:ANIMB_ATTR
     sta obj_attr
     lda #0

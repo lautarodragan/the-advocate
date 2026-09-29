@@ -21,7 +21,7 @@ def test_el_menu_se_ve_como_la_referencia_y_no_cuenta_ticks(partida):
     tick."""
     una = con_grupo(partida())
     abrir(una)
-    antes = una.palabra("vueltas")
+    antes = una.palabra("ticks")
     comparar(una, 0)
     una.tocar_cuadros("down")
     una.tocar_cuadros("down")
@@ -29,7 +29,7 @@ def test_el_menu_se_ve_como_la_referencia_y_no_cuenta_ticks(partida):
     for _ in range(3):
         una.tocar_cuadros("up")
     comparar(una, 4)                    # desde la primera, arriba da la vuelta
-    assert una.palabra("vueltas") == antes, "el reloj corrió con el menú"
+    assert una.palabra("ticks") == antes, "el reloj corrió con el menú"
     una.tocar_cuadros("b", 10)
     assert not una.menu_abierto()
     una.correr(30)
@@ -127,7 +127,7 @@ def test_escapar_prohibido_es_su_bit_y_nada_más(partida):
 def test_el_permiso_de_escapar_viaja_en_la_partida(partida):
     """Va en el mismo byte que los otros dos, así que la partida ya lo lleva;
     lo que esto cuida es que siga siendo cierto el día que alguien mude
-    `FAR_ACCESO`."""
+    `FAR_ACCESS`."""
     una = partida(caso="sin-escapar-guardar-198")
     una.guardar_en(0)
     assert una.acceso() & 4

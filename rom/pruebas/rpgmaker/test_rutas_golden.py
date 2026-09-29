@@ -288,7 +288,7 @@ def test_anclada(cuadro):
 
     **Los ticks están elegidos por el resto de la cámara contra 8**, que es lo
     que hundió al intento anterior: estampando la ventana en celdas del tilemap
-    del mapa, sólo puede caer bien cuando `camara_x` y `camara_y` son múltiplos
+    del mapa, sólo puede caer bien cuando `camera_x` y `camera_y` son múltiplos
     de 8.
     """
     p = partida("anclada")
@@ -356,7 +356,7 @@ def test_pisar(nombre, direccion):
         atravesar-savept  el SaveInSector30 en (88,27), capa "below": **no**
                           tiene que frenarlo, y el héroe le camina quince
                           celdas por encima. Es el control del par, y no es de
-                          adorno: sacándole el `cmp movil_capa` a
+                          adorno: sacándole el `cmp walker_layer` a
                           `cell_blocked` —o sea haciendo que toda capa
                           frene— da 29959 pixeles, 52,24%
 

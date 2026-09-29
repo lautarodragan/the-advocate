@@ -1,13 +1,13 @@
 .segment "FAR"
 
 ; The battle's xorshift, the same as `eventos.azar_siguiente` and
-; `rain_random`, but on `BA_SEM`, which has **its own seed**: fighting does
+; `rain_random`, but on `BT_SEED`, which has **its own seed**: fighting does
 ; not advance the map's randomness, so a random `ControlVars` gives the same
 ; with a battle in between and without one.
 .proc bt_random
 .a16
 .i16
-    lda BA_SEM
+    lda BT_SEED
     asl a
     asl a
     asl a
@@ -15,8 +15,8 @@
     asl a
     asl a
     asl a
-    eor BA_SEM
-    sta BA_SEM
+    eor BT_SEED
+    sta BT_SEED
     lsr a
     lsr a
     lsr a
@@ -26,12 +26,12 @@
     lsr a
     lsr a
     lsr a
-    eor BA_SEM
-    sta BA_SEM
+    eor BT_SEED
+    sta BT_SEED
     xba
     and #$FF00
-    eor BA_SEM
-    sta BA_SEM
+    eor BT_SEED
+    sta BT_SEED
     rts
 .endproc
 
@@ -90,15 +90,15 @@ no_entra:
 .proc bt_pct
 .a8
 .i16
-    sta BA_T2
+    sta BT_T2
     rep #$20
 .a16
     lda #99
     jsr bt_until
-    sta BA_T0
-    lda BA_T2
+    sta BT_T0
+    lda BT_T2
     and #$00FF
-    cmp BA_T0                 ; C=1 if the percentage >= the roll
+    cmp BT_T0                 ; C=1 if the percentage >= the roll
     sep #$20
 .a8
     beq no                      ; equal: the roll is not less
@@ -110,7 +110,7 @@ no:
     rts
 .endproc
 
-; A16 times the byte in `BA_T2`, in A16. Two hardware products, since it is
+; A16 times the byte in `BT_T2`, in A16. Two hardware products, since it is
 ; eight by eight.
 ;
 ; The registers go through `f:` and not absolute: here the data bank is $7E,
@@ -125,7 +125,7 @@ no:
 .a8
     lda temp
     sta f:WRMPYA
-    lda BA_T2
+    lda BT_T2
     sta f:WRMPYB                  ; starts it: the product takes eight cycles
     nop
     nop
@@ -139,7 +139,7 @@ no:
 .a8
     lda temp + 1
     sta f:WRMPYA
-    lda BA_T2
+    lda BT_T2
     sta f:WRMPYB
     nop
     nop
@@ -170,7 +170,7 @@ no:
     rts
 .endproc
 
-; A8 = the combatant; X = its offset inside `BA_UNO`. It is 40 bytes, that is
+; A8 = the combatant; X = its offset inside `BT_ONE`. It is 40 bytes, that is
 ; thirty-two plus eight: two shifts and an add, no table.
 .proc bt_x
 .a8
@@ -198,12 +198,12 @@ no:
 .a8
 .i16
     jsr bt_x
-    lda BA_UNO + BA_FLAGS, x
-    and #BAF_HAY
+    lda BT_ONE + BT_FLAGS, x
+    and #BAF_HAS
     beq no
     rep #$20
 .a16
-    lda BA_UNO + BA_HP, x
+    lda BT_ONE + BT_HP, x
     sep #$20
 .a8
     beq no
@@ -221,8 +221,8 @@ no:
 ; and not a compacted list is what keeps a dead one showing in its line, as on
 ; the screen.
 
-; Parameter `A` —0 attack, 1 defense, 3 agility— of the actor in `BA_S0`, in
-; `BA_T2`. It goes through memory and not the accumulator on purpose: a
+; Parameter `A` —0 attack, 1 defense, 3 agility— of the actor in `BT_S0`, in
+; `BT_T2`. It goes through memory and not the accumulator on purpose: a
 ; routine that enters with 8-bit A and leaves with 16-bit A leaves the
 ; assembler believing something else, and an `lda #1` coming after would eat
 ; the next opcode. It already happened, and what showed was an attack of 999.
@@ -236,39 +236,39 @@ no:
     sta comp_or01 + 2
     stz comp_or01 + 3
     stz comp_col + 1
-    lda BA_S0
+    lda BT_S0
     sta comp_char
     stz comp_char + 1
     jsl f:bt_t_param
     rep #$20
 .a16
     lda comp_dup
-    sta BA_T2
+    sta BT_T2
     sep #$20
 .a8
     rts
 .endproc
 
-; The `sp_cost` of the weapon the actor in `BA_S0` has equipped, in A8, or
-; zero: `batalla.sp_del_arma`. The weapon is slot 0 of `FAR_EQUIPO`, which is
+; The `sp_cost` of the weapon the actor in `BT_S0` has equipped, in A8, or
+; zero: `batalla.sp_del_arma`. The weapon is slot 0 of `FAR_EQUIPMENT`, which is
 ; read directly because the battle runs with the data bank at $7E, and the cost
 ; comes from `item_sp`, which is zero for anything that is not a weapon.
-; Clobbers X and `BA_T0`.
+; Clobbers X and `BT_T0`.
 .proc bt_weapon_sp
 .a8
 .i16
     rep #$20
 .a16
-    lda BA_S0
+    lda BT_S0
     and #$00FF
     asl a
-    sta BA_T0
+    sta BT_T0
     asl a
     asl a
     clc
-    adc BA_T0                   ; the actor times ten: five slots of two
+    adc BT_T0                   ; the actor times ten: five slots of two
     tax
-    lda FAR_EQUIPO, x
+    lda FAR_EQUIPMENT, x
     beq nothing
     cmp #ITEMS_N
     bcs nothing
@@ -293,118 +293,118 @@ nada8:
 .proc bt_build
 .a8
 .i16
-    ; All slots empty: the screen and the sweeps look at `BAF_HAY`.
+    ; All slots empty: the screen and the sweeps look at `BAF_HAS`.
     lda #0
 otra_ranura:
     pha
     jsr bt_x
     lda #0
-    sta BA_UNO + BA_FLAGS, x
+    sta BT_ONE + BT_FLAGS, x
     pla
     inc a
-    cmp #BA_COMB_MAX
+    cmp #BT_COMB_MAX
     bcc otra_ranura
-    stz BA_NACT
-    stz BA_NENE
+    stz BT_NACT
+    stz BT_KID
 
     ; --- the party ---
     lda #0
-    sta BA_S1                 ; the place in the party
+    sta BT_S1                 ; the place in the party
 otro_actor:
     rep #$20
 .a16
-    lda BA_S1
+    lda BT_S1
     and #$00FF
-    cmp grupo_n
+    cmp party_n
     sep #$20
 .a8
     bcc hay_lugar
     jmp grupo_listo
 hay_lugar:
-    lda BA_S1
-    cmp #BA_GRUPO_MAX
+    lda BT_S1
+    cmp #BT_PARTY_MAX
     bcc hay_ranura
     jmp grupo_listo
 hay_ranura:
     rep #$20
 .a16
-    lda BA_S1
+    lda BT_S1
     and #$00FF
     tax
     sep #$20
 .a8
-    lda grupo, x
+    lda party, x
     bne con_actor
     jmp siguiente_actor         ; a party slot with nobody in it
 con_actor:
-    sta BA_S0                 ; the actor from the LDB
+    sta BT_S0                 ; the actor from the LDB
     ldy #0
     jsl f:level_param
-    stx BA_S2                 ; the max HP for its level
+    stx BT_S2                 ; the max HP for its level
     ; All of its data into the scratch words: `bt_param` clobbers X, so first
     ; it is gathered and then written with X set, all at once.
     rep #$20
 .a16
-    lda BA_S0
+    lda BT_S0
     and #$00FF
     asl a
     tax
     lda f:actor_txt, x
-    sta BA_S3                 ; and the text number of its name
+    sta BT_S3                 ; and the text number of its name
     lda FAR_HP, x
-    sta BA_S4                 ; the HP the saved game brings
+    sta BT_S4                 ; the HP the saved game brings
     sep #$20
 .a8
     lda #0
     jsr bt_param
     rep #$20
 .a16
-    lda BA_T2
-    sta BA_S5                   ; the attack
+    lda BT_T2
+    sta BT_S5                   ; the attack
     sep #$20
 .a8
     lda #1
     jsr bt_param
     rep #$20
 .a16
-    lda BA_T2
-    sta BA_S6                   ; the defense
+    lda BT_T2
+    sta BT_S6                   ; the defense
     sep #$20
 .a8
     lda #3
     jsr bt_param
     rep #$20
 .a16
-    lda BA_T2
-    sta BA_T0                   ; the agility
+    lda BT_T2
+    sta BT_T0                   ; the agility
     sep #$20
 .a8
-    lda BA_S1
+    lda BT_S1
     jsr bt_x
     rep #$20
 .a16
-    lda BA_S2
-    sta BA_UNO + BA_HPMAX, x
-    lda BA_S4
-    sta BA_UNO + BA_HP, x
-    lda BA_S5
-    sta BA_UNO + BA_ATK, x
-    lda BA_S6
-    sta BA_UNO + BA_DEF, x
-    lda BA_T0
-    sta BA_UNO + BA_AGI, x
-    lda BA_S3
-    sta BA_UNO + BA_TXT, x
+    lda BT_S2
+    sta BT_ONE + BT_HPMAX, x
+    lda BT_S4
+    sta BT_ONE + BT_HP, x
+    lda BT_S5
+    sta BT_ONE + BT_ATK, x
+    lda BT_S6
+    sta BT_ONE + BT_DEF, x
+    lda BT_T0
+    sta BT_ONE + BT_AGI, x
+    lda BT_S3
+    sta BT_ONE + BT_TXT, x
     sep #$20
 .a8
-    lda #BA_ACIERTO_ACTOR
-    sta BA_UNO + BA_HIT, x
+    lda #BT_HIT_ACTOR
+    sta BT_ONE + BT_HIT, x
     lda #0
-    sta BA_UNO + BA_CRIT, x   ; no actor in ABL has a critical hit
-    lda BA_S0
-    sta BA_UNO + BA_NUMERO, x
-    lda #(BAF_HAY | BAF_ACTOR)
-    sta BA_UNO + BA_FLAGS, x
+    sta BT_ONE + BT_CRIT, x   ; no actor in ABL has a critical hit
+    lda BT_S0
+    sta BT_ONE + BT_NUMBER, x
+    lda #(BAF_HAS | BAF_ACTOR)
+    sta BT_ONE + BT_FLAGS, x
     ; And what the skills need: the SP —which come from the saved game, like
     ; the HP— and the spirit, which until 2026-09-13 was not read because no
     ; formula asked for it. It goes in a second pass because `bt_param`
@@ -415,55 +415,55 @@ con_actor:
 .a16
     sep #$20
 .a8
-    lda BA_S0
+    lda BT_S0
     ldy #1
     jsl f:level_param
-    stx BA_S3                 ; the max SP for its level
+    stx BT_S3                 ; the max SP for its level
     rep #$20
 .a16
-    lda BA_S0
+    lda BT_S0
     and #$00FF
     asl a
     tax
     lda FAR_SP, x
-    sta BA_S4
+    sta BT_S4
     sep #$20
 .a8
-    lda BA_S1
+    lda BT_S1
     jsr bt_x
     rep #$20
 .a16
-    lda BA_S4
-    sta BA_UNO + BA_SP, x
-    lda BA_S3
-    sta BA_UNO + BA_SPMAX, x
-    lda BA_T2
-    sta BA_UNO + BA_SPI, x
-    sta BA_UNO + BA_BSPI, x
-    lda BA_S5
-    sta BA_UNO + BA_BATK, x
-    lda BA_S6
-    sta BA_UNO + BA_BDEF, x
-    lda BA_T0
-    sta BA_UNO + BA_BAGI, x
+    lda BT_S4
+    sta BT_ONE + BT_SP, x
+    lda BT_S3
+    sta BT_ONE + BT_SPMAX, x
+    lda BT_T2
+    sta BT_ONE + BT_SPI, x
+    sta BT_ONE + BT_BSPI, x
+    lda BT_S5
+    sta BT_ONE + BT_BATK, x
+    lda BT_S6
+    sta BT_ONE + BT_BDEF, x
+    lda BT_T0
+    sta BT_ONE + BT_BAGI, x
     lda #0                      ; no modifiers: the battle has just started
-    sta BA_UNO + BA_MATK, x
-    sta BA_UNO + BA_MDEF, x
-    sta BA_UNO + BA_MSPI, x
-    sta BA_UNO + BA_MAGI, x
+    sta BT_ONE + BT_MATK, x
+    sta BT_ONE + BT_MDEF, x
+    sta BT_ONE + BT_MSPI, x
+    sta BT_ONE + BT_MAGI, x
     sep #$20
 .a8
     ; And what attacking costs it, which does not change in the equipment
     ; while the battle lasts: `batalla.sp_del_arma`.
     jsr bt_weapon_sp
     pha
-    lda BA_S1
+    lda BT_S1
     jsr bt_ax
     pla
-    sta f:BA_ARMA_SP, x
-    inc BA_NACT
+    sta f:BT_WEAPON_SP, x
+    inc BT_NACT
 siguiente_actor:
-    inc BA_S1
+    inc BT_S1
     jmp otro_actor
 grupo_listo:
 
@@ -473,178 +473,178 @@ grupo_listo:
     ; `battle_run` wins it by itself: it is the same thing the converter
     ; does with a song that did not fit.
     lda #$FF
-    sta BA_TROPA_K
+    sta BT_TROOP_K
     lda #0
-    sta BA_S1
+    sta BT_S1
 busca:
-    lda BA_S1
+    lda BT_S1
     cmp #TROPAS_N
     bcs sin_tropa
     rep #$20
 .a16
-    lda BA_S1
+    lda BT_S1
     and #$00FF
     asl a
     tax
     lda f:tropa_id, x
-    cmp BA_TROPA
+    cmp BT_TROOP
     sep #$20
 .a8
     beq la_tengo
-    inc BA_S1
+    inc BT_S1
     bra busca
 sin_tropa:
     rts
 la_tengo:
-    lda BA_S1
-    sta BA_TROPA_K              ; for `escena_tropa_fondo`
+    lda BT_S1
+    sta BT_TROOP_K              ; for `escena_tropa_fondo`
     rep #$20
 .a16
-    lda BA_S1
+    lda BT_S1
     and #$00FF
     tax
     sep #$20
 .a8
     lda f:tropa_n, x
-    sta BA_S2                 ; how many members
+    sta BT_S2                 ; how many members
     lda f:tropa_ini, x
-    sta BA_S3                 ; where its list starts
+    sta BT_S3                 ; where its list starts
     lda #0
-    sta BA_S1                 ; the place in the troop
+    sta BT_S1                 ; the place in the troop
 otro_enemigo:
-    lda BA_S1
-    cmp BA_S2
+    lda BT_S1
+    cmp BT_S2
     bcc hay_miembro
     jmp tropa_lista
 hay_miembro:
-    cmp #BA_ENEMIGOS_MAX
+    cmp #BT_ENEMIES_MAX
     bcc hay_ranura_ene
     jmp tropa_lista
 hay_ranura_ene:
     rep #$20
 .a16
-    lda BA_S1
+    lda BT_S1
     clc
-    adc BA_S3
+    adc BT_S3
     and #$00FF
     tax
     sep #$20
 .a8
     lda f:tropa_miembro, x      ; the enemy, as a place in the tables
-    sta BA_S0
+    sta BT_S0
     ; As with the actor: first everything is gathered and then written,
     ; because the long index is X and there are two tables to walk with it.
     rep #$20
 .a16
-    lda BA_S0
+    lda BT_S0
     and #$00FF
     asl a
     tax
     lda f:enemigo_hp, x
-    sta BA_S4
+    sta BT_S4
     lda f:enemigo_atk, x
-    sta BA_S5
+    sta BT_S5
     lda f:enemigo_def, x
-    sta BA_S6
+    sta BT_S6
     lda f:enemigo_agi, x
-    sta BA_T0
+    sta BT_T0
     lda f:enemigo_txt, x
-    sta BA_T1
+    sta BT_T1
     sep #$20
 .a8
     rep #$20
 .a16
-    lda BA_S0
+    lda BT_S0
     and #$00FF
     tax
     sep #$20
 .a8
     lda f:enemigo_hit, x
-    sta BA_T2
+    sta BT_T2
     lda f:enemigo_crit, x
-    sta BA_T2 + 1
-    lda BA_S1
+    sta BT_T2 + 1
+    lda BT_S1
     clc
-    adc #BA_GRUPO_MAX
+    adc #BT_PARTY_MAX
     jsr bt_x
     rep #$20
 .a16
-    lda BA_S4
-    sta BA_UNO + BA_HP, x
-    sta BA_UNO + BA_HPMAX, x
-    lda BA_S5
-    sta BA_UNO + BA_ATK, x
-    lda BA_S6
-    sta BA_UNO + BA_DEF, x
-    lda BA_T0
-    sta BA_UNO + BA_AGI, x
-    lda BA_T1
-    sta BA_UNO + BA_TXT, x
+    lda BT_S4
+    sta BT_ONE + BT_HP, x
+    sta BT_ONE + BT_HPMAX, x
+    lda BT_S5
+    sta BT_ONE + BT_ATK, x
+    lda BT_S6
+    sta BT_ONE + BT_DEF, x
+    lda BT_T0
+    sta BT_ONE + BT_AGI, x
+    lda BT_T1
+    sta BT_ONE + BT_TXT, x
     sep #$20
 .a8
-    lda BA_T2
-    sta BA_UNO + BA_HIT, x
-    lda BA_T2 + 1
-    sta BA_UNO + BA_CRIT, x
-    lda BA_S1
-    sta BA_UNO + BA_NUMERO, x
+    lda BT_T2
+    sta BT_ONE + BT_HIT, x
+    lda BT_T2 + 1
+    sta BT_ONE + BT_CRIT, x
+    lda BT_S1
+    sta BT_ONE + BT_NUMBER, x
     ; Hidden or not, by the bit of its place in `tropa_ocultos`: the troop's
     ; `invisible`, which `Game_Enemy` copies in `SetHidden` when set up.
     phx
-    lda BA_TROPA_K
+    lda BT_TROOP_K
     jsr bt_ax
     lda f:tropa_ocultos, x
-    sta BA_T0
-    lda BA_S1
+    sta BT_T0
+    lda BT_S1
     jsr bt_ax
     lda f:scn_bits, x
-    and BA_T0
+    and BT_T0
     plx
     cmp #0                      ; `plx` overwrote Z: the AGENTS.md trap
     beq a_la_vista
-    lda #BAF_OCULTO
+    lda #BAF_HIDDEN
     bra con_flags
 a_la_vista:
-    lda #BAF_HAY
+    lda #BAF_HAS
 con_flags:
-    sta BA_UNO + BA_FLAGS, x
+    sta BT_ONE + BT_FLAGS, x
     ; The skill data: the SP, the spirit and the four bases. It uses them
     ; —since 2026-09-27, see `bt_enemy_action`— and **receives them**:
     ; Mental Hack lowers its defense and spirit, and that needs the base and
     ; the modifier.
     rep #$20
 .a16
-    lda BA_S0
+    lda BT_S0
     and #$00FF
     asl a
     phx
     tax
     lda f:enemigo_sp, x
-    sta BA_T0
+    sta BT_T0
     lda f:enemigo_spi, x
-    sta BA_T1
+    sta BT_T1
     plx
-    lda BA_T0
-    sta BA_UNO + BA_SP, x
-    sta BA_UNO + BA_SPMAX, x
-    lda BA_T1
-    sta BA_UNO + BA_SPI, x
-    sta BA_UNO + BA_BSPI, x
-    lda BA_UNO + BA_ATK, x
-    sta BA_UNO + BA_BATK, x
-    lda BA_UNO + BA_DEF, x
-    sta BA_UNO + BA_BDEF, x
-    lda BA_UNO + BA_AGI, x
-    sta BA_UNO + BA_BAGI, x
+    lda BT_T0
+    sta BT_ONE + BT_SP, x
+    sta BT_ONE + BT_SPMAX, x
+    lda BT_T1
+    sta BT_ONE + BT_SPI, x
+    sta BT_ONE + BT_BSPI, x
+    lda BT_ONE + BT_ATK, x
+    sta BT_ONE + BT_BATK, x
+    lda BT_ONE + BT_DEF, x
+    sta BT_ONE + BT_BDEF, x
+    lda BT_ONE + BT_AGI, x
+    sta BT_ONE + BT_BAGI, x
     lda #0
-    sta BA_UNO + BA_MATK, x
-    sta BA_UNO + BA_MDEF, x
-    sta BA_UNO + BA_MSPI, x
-    sta BA_UNO + BA_MAGI, x
+    sta BT_ONE + BT_MATK, x
+    sta BT_ONE + BT_MDEF, x
+    sta BT_ONE + BT_MSPI, x
+    sta BT_ONE + BT_MAGI, x
     sep #$20
 .a8
-    inc BA_NENE
-    inc BA_S1
+    inc BT_KID
+    inc BT_S1
     jmp otro_enemigo
 tropa_lista:
     rts
@@ -658,8 +658,8 @@ tropa_lista:
 ; side throws the other side's randomness out of step and it does not show
 ; until a hit comes out different.
 ;
-; The source in `BA_MQUIEN` and the target in `BA_MBLA`. Leaves the damage in
-; `BA_MDANO`, with $FFFF if the hit missed, and lowers the target's HP.
+; The source in `BT_MQUIEN` and the target in `BT_MBLA`. Leaves the damage in
+; `BT_MDANO`, with $FFFF if the hit missed, and lowers the target's HP.
 .proc bt_attack
 .a8
 .i16
@@ -667,102 +667,102 @@ tropa_lista:
     ; rolling, even if it then misses. With SP at zero it attacks anyway —RM2k
     ; does not grey out `Attack`— and they stay at zero. An enemy carries no
     ; weapon.
-    lda BA_MQUIEN
-    cmp #BA_GRUPO_MAX
+    lda BT_MQUIEN
+    cmp #BT_PARTY_MAX
     bcs sin_arma
     jsr bt_ax
-    lda f:BA_ARMA_SP, x
-    sta BA_T2
-    stz BA_T2 + 1
-    lda BA_MQUIEN
+    lda f:BT_WEAPON_SP, x
+    sta BT_T2
+    stz BT_T2 + 1
+    lda BT_MQUIEN
     jsr bt_x
     rep #$20
 .a16
-    lda BA_UNO + BA_SP, x
+    lda BT_ONE + BT_SP, x
     sec
-    sbc BA_T2
+    sbc BT_T2
     bpl sp_cobrado
     lda #0
 sp_cobrado:
-    sta BA_UNO + BA_SP, x
+    sta BT_ONE + BT_SP, x
     sep #$20
 .a8
 sin_arma:
-    lda BA_MQUIEN
+    lda BT_MQUIEN
     jsr bt_x
     rep #$20
 .a16
     txa
-    sta BA_S0                   ; the source's offset
+    sta BT_S0                   ; the source's offset
     sep #$20
 .a8
-    lda BA_MBLA
+    lda BT_MBLA
     jsr bt_x
     rep #$20
 .a16
     txa
-    sta BA_S1                   ; and the target's
+    sta BT_S1                   ; and the target's
     sep #$20
 .a8
 
     ; --- the hit chance, with the agility adjustment ---
-    ldx BA_S0
+    ldx BT_S0
     lda #100
     sec
-    sbc BA_UNO + BA_HIT, x      ; X is the offset, already sixteen bits
-    sta BA_T2                   ; 100 - hit, which is the product's byte
+    sbc BT_ONE + BT_HIT, x      ; X is the offset, already sixteen bits
+    sta BT_T2                   ; 100 - hit, which is the product's byte
     rep #$20
 .a16
-    lda BA_UNO + BA_AGI, x
+    lda BT_ONE + BT_AGI, x
     bne agi_hay
     lda #1                      ; `max(1, GetAgi())` from
                                 ; CalcToHitAgiAdjustment
 agi_hay:
-    sta BA_S2                   ; the source's agility
-    ldx BA_S1
-    lda BA_UNO + BA_AGI, x
+    sta BT_S2                   ; the source's agility
+    ldx BT_S1
+    lda BT_ONE + BT_AGI, x
     clc
-    adc BA_S2
+    adc BT_S2
     jsr bt_mul                  ; (100 - hit) * (agiF + agiB)
-    sta BA_S3
-    lda BA_S2
+    sta BT_S3
+    lda BT_S2
     asl a
     sta temp + 2                ; the divisor: twice the agility
     ; Rounding up, which is what easyrpg's truncation on `100 - x` does:
     ; see `batalla.acierto_por_agilidad`.
-    lda BA_S3
+    lda BT_S3
     clc
     adc temp + 2
     dec a
     sta temp
     jsr bt_div
-    sta BA_S3
+    sta BT_S3
     lda #100
     sec
-    sbc BA_S3
+    sbc BT_S3
     bpl acierto_listo
     lda #0
 acierto_listo:
     sep #$20
 .a8
     jsr bt_pct
-    sta BA_S4                   ; 1 if it hit
+    sta BT_S4                   ; 1 if it hit
     beq crit_cero
-    lda BA_S0
+    lda BT_S0
     jsr bt_ax
-    lda BA_UNO + BA_CRIT, x
+    lda BT_ONE + BT_CRIT, x
     bra crit_tira
 crit_cero:
     lda #0
 crit_tira:
     jsr bt_pct
-    sta BA_S5                   ; 1 if it was critical
-    lda BA_S4
+    sta BT_S5                   ; 1 if it was critical
+    lda BT_S4
     bne pega
     rep #$20
 .a16
     lda #$FFFF
-    sta BA_MDANO
+    sta BT_MDANO
     sep #$20
 .a8
     rts
@@ -771,37 +771,37 @@ crit_tira:
 pega:
     rep #$20
 .a16
-    ldx BA_S0
-    lda BA_UNO + BA_ATK, x
+    ldx BT_S0
+    lda BT_ONE + BT_ATK, x
     lsr a
-    sta BA_S2
-    ldx BA_S1
-    lda BA_UNO + BA_DEF, x
+    sta BT_S2
+    ldx BT_S1
+    lda BT_ONE + BT_DEF, x
     lsr a
     lsr a
-    cmp BA_S2
+    cmp BT_S2
     bcc hay_dano
     lda #0
-    sta BA_S2
+    sta BT_S2
     bra sin_varianza
 hay_dano:
-    sta BA_S3
-    lda BA_S2
+    sta BT_S3
+    lda BT_S2
     sec
-    sbc BA_S3
-    sta BA_S2
+    sbc BT_S3
+    sta BT_S2
     sep #$20
 .a8
-    lda BA_S5
+    lda BT_S5
     beq sin_critico
     rep #$20
 .a16
     ; A critical triples it: `dmg *= 3`.
-    lda BA_S2
+    lda BT_S2
     asl a
     clc
-    adc BA_S2
-    sta BA_S2
+    adc BT_S2
+    sta BT_S2
     sep #$20
 .a8
 sin_critico:
@@ -809,7 +809,7 @@ sin_critico:
 .a16
     ; The variance of `VarianceAdjustEffect` with var = 4:
     ;     adj = max(1, 4 * dmg / 10); dmg += rand(0, adj) - adj / 2
-    lda BA_S2
+    lda BT_S2
     asl a
     asl a
     sta temp
@@ -819,54 +819,54 @@ sin_critico:
     bne ajuste_listo
     lda #1
 ajuste_listo:
-    sta BA_S3
+    sta BT_S3
     jsr bt_until                ; A16 is still the adjustment
     clc
-    adc BA_S2
-    sta BA_S2
-    lda BA_S3
+    adc BT_S2
+    sta BT_S2
+    lda BT_S3
     lsr a
-    sta BA_S3
-    lda BA_S2
+    sta BT_S3
+    lda BT_S2
     sec
-    sbc BA_S3
+    sbc BT_S3
     bpl varianza_listo
     lda #0                      ; cannot happen: 0.8 times the damage is
                                 ; positive
 varianza_listo:
-    sta BA_S2
+    sta BT_S2
 sin_varianza:
     sep #$20
 .a8
     ; Whoever is defending takes half: `AdjustDamageForDefend`.
-    ldx BA_S1
-    lda BA_UNO + BA_FLAGS, x
+    ldx BT_S1
+    lda BT_ONE + BT_FLAGS, x
     and #BAF_DEF
     beq sin_defensa
     rep #$20
 .a16
-    lda BA_S2
+    lda BT_S2
     lsr a
-    sta BA_S2
+    sta BT_S2
     sep #$20
 .a8
 sin_defensa:
     rep #$20
 .a16
-    lda BA_S2
-    cmp #(BA_DANO_MAX + 1)
+    lda BT_S2
+    cmp #(BT_DAMAGE_MAX + 1)
     bcc dano_listo
-    lda #BA_DANO_MAX
+    lda #BT_DAMAGE_MAX
 dano_listo:
-    sta BA_MDANO
-    ldx BA_S1
-    lda BA_UNO + BA_HP, x
+    sta BT_MDANO
+    ldx BT_S1
+    lda BT_ONE + BT_HP, x
     sec
-    sbc BA_MDANO
+    sbc BT_MDANO
     bpl hp_listo
     lda #0
 hp_listo:
-    sta BA_UNO + BA_HP, x
+    sta BT_ONE + BT_HP, x
     sep #$20
 .a8
     rts
@@ -892,15 +892,15 @@ hp_listo:
 .proc bt_enemy_actions
 .a8
 .i16
-    lda #BA_GRUPO_MAX
-    sta BA_S0
+    lda #BT_PARTY_MAX
+    sta BT_S0
 otro:
-    lda BA_S0
-    cmp #BA_COMB_MAX
+    lda BT_S0
+    cmp #BT_COMB_MAX
     bcc sigue
     rts
 sigue:
-    lda BA_S0
+    lda BT_S0
     jsr bt_alive
     bne vive
     jmp siguiente
@@ -908,98 +908,98 @@ vive:
     ; The living actors, in a list, to pick one.
     lda #0
     jsr bt_alive_on_side
-    lda BA_S1
+    lda BT_S1
     bne hay_actores
     rts                         ; nobody left to hit
 hay_actores:
-    lda BA_S0
+    lda BT_S0
     jsr bt_enemy_action
-    sta BA_T1                   ; the action: a `k`, or attack, or nothing
-    cmp #BA_EACC_NADA
+    sta BT_T1                   ; the action: a `k`, or attack, or nothing
+    cmp #BT_EACC_NOTHING
     bne con_accion
     jmp siguiente
 con_accion:
-    cmp #BA_EACC_ATACAR
+    cmp #BT_EACC_ATTACK
     beq a_un_actor
     jsr bt_ax
     lda f:hab_alcance, x
-    cmp #BA_ALCANCE_ENEMIGO
+    cmp #BT_SCOPE_ENEMY
     beq a_un_actor
-    cmp #BA_ALCANCE_ALIADO
+    cmp #BT_SCOPE_ALLY
     beq a_uno_suyo
-    lda BA_S0                   ; `self`, `enemies`, `party`: its user
+    lda BT_S0                   ; `self`, `enemies`, `party`: its user
     bra anotar
 a_uno_suyo:
-    lda #BA_GRUPO_MAX
+    lda #BT_PARTY_MAX
     jsr bt_alive_on_side
 a_un_actor:
     rep #$20
 .a16
-    lda BA_S1
+    lda BT_S1
     and #$00FF
     dec a
     jsr bt_until
     tax
     sep #$20
 .a8
-    lda BA_CAND, x
+    lda BT_CAND, x
 anotar:
-    sta BA_T0                   ; the chosen target
-    lda BA_S0
+    sta BT_T0                   ; the chosen target
+    lda BT_S0
     jsr bt_ax
-    lda BA_T1
-    sta BA_ACC_HAB, x           ; the `k`, which `bt_skill_use` reads from here
-    lda BA_S0
+    lda BT_T1
+    sta BT_ACC_SKILL, x           ; the `k`, which `bt_skill_use` reads from here
+    lda BT_S0
     asl a
     jsr bt_ax                   ; two bytes of action per combatant
-    lda BA_T1
-    cmp #BA_EACC_ATACAR
+    lda BT_T1
+    cmp #BT_EACC_ATTACK
     beq es_ataque
-    lda #BA_HABILIDAD
+    lda #BT_SKILL
     bra orden_lista
 es_ataque:
-    lda #BA_ATACAR
+    lda #BT_ATTACK
 orden_lista:
-    sta BA_ACC, x
-    lda BA_T0
-    sta BA_ACC + 1, x
-    lda BA_NACC
+    sta BT_ACC, x
+    lda BT_T0
+    sta BT_ACC + 1, x
+    lda BT_NACC
     jsr bt_ax
-    lda BA_S0
-    sta BA_EJEC, x
-    inc BA_NACC
+    lda BT_S0
+    sta BT_EXEC, x
+    inc BT_NACC
 siguiente:
-    inc BA_S0
+    inc BT_S0
     jmp otro
 .endproc
 
-; The living ones of a side —A8 = 0 the party, `BA_GRUPO_MAX` the troop— in
-; `BA_CAND`, and how many in `BA_S1`. Clobbers `BA_S2`, A and X.
+; The living ones of a side —A8 = 0 the party, `BT_PARTY_MAX` the troop— in
+; `BT_CAND`, and how many in `BT_S1`. Clobbers `BT_S2`, A and X.
 .proc bt_alive_on_side
 .a8
 .i16
-    sta BA_S2
+    sta BT_S2
     clc
-    adc #BA_GRUPO_MAX           ; the party is four places
-    cmp #BA_GRUPO_MAX + 1
+    adc #BT_PARTY_MAX           ; the party is four places
+    cmp #BT_PARTY_MAX + 1
     bcc tope_listo
-    lda #BA_COMB_MAX            ; and the troop, eight
+    lda #BT_COMB_MAX            ; and the troop, eight
 tope_listo:
-    sta BA_S2 + 1
-    stz BA_S1
+    sta BT_S2 + 1
+    stz BT_S1
 busca:
-    lda BA_S2
-    cmp BA_S2 + 1
+    lda BT_S2
+    cmp BT_S2 + 1
     bcs ready
     jsr bt_alive
     beq no_vive
-    lda BA_S1
+    lda BT_S1
     jsr bt_ax
-    lda BA_S2
-    sta BA_CAND, x
-    inc BA_S1
+    lda BT_S2
+    sta BT_CAND, x
+    inc BT_S1
 no_vive:
-    inc BA_S2
+    inc BT_S2
     bra busca
 ready:
     rts
@@ -1007,7 +1007,7 @@ ready:
 
 ; What enemy A8 does: `batalla.accion_del_enemigo`, which is
 ; `SelectEnemyAiActionRpgRtCompat` with its list of `eacc_*`. Answers in A8
-; the skill's `k`, `BA_EACC_ATACAR` or `BA_EACC_NADA`.
+; the skill's `k`, `BT_EACC_ATTACK` or `BT_EACC_NOTHING`.
 ;
 ; 1. The possible ones are the attack and the skills its SP can pay for.
 ; 2. Each possible one weighs `max(0, rating - maximum + 10)`, and zero the one
@@ -1016,149 +1016,149 @@ ready:
 ; 3. **With only one that has weight, no roll**; with more, `rand(0, sum - 1)`
 ;    and it is chosen by weight in list order.
 ;
-; The weights go in `BA_HAB_LISTA`, which belongs to the skill-choosing screen
+; The weights go in `BT_SKILL_LIST`, which belongs to the skill-choosing screen
 ; and is rebuilt each time it opens: here the commands are already given.
-; Clobbers `BA_S3` to `BA_S6`, `BA_T0`, `BA_T2`, A and X; not `BA_S0` or
-; `BA_S1`.
-.assert ACCIONES_MAX <= BA_HAB_MAX, error, "an enemy's actions do not fit in BA_HAB_LISTA"
+; Clobbers `BT_S3` to `BT_S6`, `BT_T0`, `BT_T2`, A and X; not `BT_S0` or
+; `BT_S1`.
+.assert ACCIONES_MAX <= BT_SKILL_MAX, error, "an enemy's actions do not fit in BT_SKILL_LIST"
 .proc bt_enemy_action
 .a8
 .i16
     ; --- which enemy of the tables it is: `tropa_miembro` of its place ---
-    sta BA_S3
+    sta BT_S3
     jsr bt_x
-    lda BA_UNO + BA_NUMERO, x
-    sta BA_T0                   ; its place in the troop
+    lda BT_ONE + BT_NUMBER, x
+    sta BT_T0                   ; its place in the troop
     rep #$20
 .a16
-    lda BA_UNO + BA_SP, x
-    sta BA_S4                   ; the SP it has left
+    lda BT_ONE + BT_SP, x
+    sta BT_S4                   ; the SP it has left
     sep #$20
 .a8
-    lda BA_TROPA_K
+    lda BT_TROOP_K
     jsr bt_ax
     lda f:tropa_ini, x
     clc
-    adc BA_T0
+    adc BT_T0
     jsr bt_ax
     lda f:tropa_miembro, x
     jsr bt_ax
     lda f:enemigo_acc_n, x
-    sta BA_S5                   ; how many actions
+    sta BT_S5                   ; how many actions
     lda f:enemigo_acc_ini, x
-    sta BA_S5 + 1               ; where they start
+    sta BT_S5 + 1               ; where they start
     ; --- 1: the possible ones, with their raw weight, and the maximum ---
-    stz BA_S6                   ; the maximum
-    stz BA_T2                   ; which one it is at
+    stz BT_S6                   ; the maximum
+    stz BT_T2                   ; which one it is at
 posibles:
-    lda BA_T2
-    cmp BA_S5
+    lda BT_T2
+    cmp BT_S5
     bcs vistas
     clc
-    adc BA_S5 + 1
+    adc BT_S5 + 1
     jsr bt_ax
     lda f:eacc_peso, x
-    sta BA_T0
+    sta BT_T0
     lda f:eacc_hab, x
-    cmp #BA_EACC_ATACAR
+    cmp #BT_EACC_ATTACK
     beq posible
     jsr bt_skill_cost            ; can its SP pay for it?
-    sta BA_T0 + 1
+    sta BT_T0 + 1
     rep #$20
 .a16
-    lda BA_T0 + 1
+    lda BT_T0 + 1
     and #$00FF
-    cmp BA_S4
+    cmp BT_S4
     sep #$20
 .a8
     beq posible
     bcc posible
-    stz BA_T0                   ; they cannot: it weighs zero
+    stz BT_T0                   ; they cannot: it weighs zero
     bra anotar_peso
 posible:
-    lda BA_T0
+    lda BT_T0
     and #$7F
-    cmp BA_S6
+    cmp BT_S6
     bcc anotar_peso
-    sta BA_S6
+    sta BT_S6
 anotar_peso:
-    lda BA_T2
+    lda BT_T2
     jsr bt_ax
-    lda BA_T0
-    sta BA_HAB_LISTA, x
-    inc BA_T2
+    lda BT_T0
+    sta BT_SKILL_LIST, x
+    inc BT_T2
     bra posibles
 vistas:
     ; --- 2: the real weights, the sum, how many and the last one ---
-    stz BA_S4                   ; the sum
-    stz BA_S4 + 1               ; how many have weight
-    stz BA_T2
+    stz BT_S4                   ; the sum
+    stz BT_S4 + 1               ; how many have weight
+    stz BT_T2
 pesos:
-    lda BA_T2
-    cmp BA_S5
+    lda BT_T2
+    cmp BT_S5
     bcs pesadas
     jsr bt_ax
-    lda BA_HAB_LISTA, x
+    lda BT_SKILL_LIST, x
     beq sin_peso                ; impossible
     bmi sin_peso8               ; not effective
     clc
     adc #10
     sec
-    sbc BA_S6                   ; rating + 10 - maximum, which does not go
+    sbc BT_S6                   ; rating + 10 - maximum, which does not go
                                 ; below 10 - 127
     bmi sin_peso8
     beq sin_peso8
-    sta BA_HAB_LISTA, x
+    sta BT_SKILL_LIST, x
     clc
-    adc BA_S4
-    sta BA_S4
-    inc BA_S4 + 1
-    lda BA_T2
-    sta BA_S3 + 1               ; the last one with weight
+    adc BT_S4
+    sta BT_S4
+    inc BT_S4 + 1
+    lda BT_T2
+    sta BT_S3 + 1               ; the last one with weight
     bra siguiente_peso
 sin_peso8:
     lda #0
-    sta BA_HAB_LISTA, x
+    sta BT_SKILL_LIST, x
 sin_peso:
 siguiente_peso:
-    inc BA_T2
+    inc BT_T2
     bra pesos
 pesadas:
-    lda BA_S4 + 1
+    lda BT_S4 + 1
     bne alguna
-    lda #BA_EACC_NADA
+    lda #BT_EACC_NOTHING
     rts
 alguna:
     cmp #1
-    beq elegida                 ; only one: no roll
+    beq chosen                 ; only one: no roll
     ; --- 3: by weight ---
     rep #$20
 .a16
-    lda BA_S4
+    lda BT_S4
     and #$00FF
     dec a
     jsr bt_until
     sep #$20
 .a8
-    sta BA_T0                   ; `which`, less than the sum
-    stz BA_T2
+    sta BT_T0                   ; `which`, less than the sum
+    stz BT_T2
 por_peso:
-    lda BA_T2
+    lda BT_T2
     jsr bt_ax
-    lda BA_T0
+    lda BT_T0
     sec
-    sbc BA_HAB_LISTA, x
+    sbc BT_SKILL_LIST, x
     bcc cae_aca                 ; `which` went negative
-    sta BA_T0
-    inc BA_T2
+    sta BT_T0
+    inc BT_T2
     bra por_peso
 cae_aca:
-    lda BA_T2
-    sta BA_S3 + 1
-elegida:
-    lda BA_S3 + 1
+    lda BT_T2
+    sta BT_S3 + 1
+chosen:
+    lda BT_S3 + 1
     clc
-    adc BA_S5 + 1
+    adc BT_S5 + 1
     jsr bt_ax
     lda f:eacc_hab, x
     rts
@@ -1173,87 +1173,87 @@ elegida:
 .a8
 .i16
     lda #0
-    sta BA_S0
+    sta BT_S0
 tira:
-    lda BA_S0
-    cmp BA_NACC
+    lda BT_S0
+    cmp BT_NACC
     bcs tirados
-    lda BA_S0
+    lda BT_S0
     jsr bt_ax
-    lda BA_EJEC, x
+    lda BT_EXEC, x
     jsr bt_x
     rep #$20
 .a16
     txa
-    sta BA_S1                   ; its offset
-    lda BA_UNO + BA_AGI, x
+    sta BT_S1                   ; its offset
+    lda BT_ONE + BT_AGI, x
     lsr a
     lsr a
     clc
     adc #3
     jsr bt_until
-    sta BA_T0
-    ldx BA_S1
-    lda BA_UNO + BA_AGI, x
+    sta BT_T0
+    ldx BT_S1
+    lda BT_ONE + BT_AGI, x
     clc
-    adc BA_T0
-    sta BA_UNO + BA_SORT, x
+    adc BT_T0
+    sta BT_ONE + BT_SORT, x
     sep #$20
 .a8
-    inc BA_S0
+    inc BT_S0
     bra tira
 tirados:
     ; And the ordering, by insertion: there are twelve at most, and it stays
     ; **stable** if one only moves past the one above it when that one is
     ; strictly less.
     lda #1
-    sta BA_S0
+    sta BT_S0
 afuera:
-    lda BA_S0
-    cmp BA_NACC
+    lda BT_S0
+    cmp BT_NACC
     bcs ordenado
-    lda BA_S0
+    lda BT_S0
     jsr bt_ax
-    lda BA_EJEC, x
-    sta BA_S2                   ; the one being placed
+    lda BT_EXEC, x
+    sta BT_S2                   ; the one being placed
     jsr bt_x
     rep #$20
 .a16
-    lda BA_UNO + BA_SORT, x
-    sta BA_S3
+    lda BT_ONE + BT_SORT, x
+    sta BT_S3
     sep #$20
 .a8
-    lda BA_S0
-    sta BA_S1
+    lda BT_S0
+    sta BT_S1
 adentro:
-    lda BA_S1
+    lda BT_S1
     beq put
     dec a
     jsr bt_ax
-    lda BA_EJEC, x
+    lda BT_EXEC, x
     jsr bt_x
     rep #$20
 .a16
-    lda BA_UNO + BA_SORT, x
-    cmp BA_S3
+    lda BT_ONE + BT_SORT, x
+    cmp BT_S3
     sep #$20
 .a8
     bcs put                   ; the one above is greater or equal: it stays
                                 ; there
-    lda BA_S1
+    lda BT_S1
     dec a
     jsr bt_ax
-    lda BA_EJEC, x
+    lda BT_EXEC, x
     inx
-    sta BA_EJEC, x
-    dec BA_S1
+    sta BT_EXEC, x
+    dec BT_S1
     bra adentro
 put:
-    lda BA_S1
+    lda BT_S1
     jsr bt_ax
-    lda BA_S2
-    sta BA_EJEC, x
-    inc BA_S0
+    lda BT_S2
+    sta BT_EXEC, x
+    inc BT_S0
     bra afuera
 ordenado:
     rts
@@ -1267,13 +1267,13 @@ ordenado:
 ; sides**. The enemies at the top, the party at the bottom, and the last line
 ; is either the command menu or the message's two lines.
 
-; `BA_T1` = A16 + `BA_S0` times what a line measures: where line number
-; `BA_S0` of the list starting at A16 begins.
+; `BT_T1` = A16 + `BT_S0` times what a line measures: where line number
+; `BT_S0` of the list starting at A16 begins.
 .proc bt_row
 .a16
 .i16
-    sta BA_T2
-    lda BA_S0
+    sta BT_T2
+    lda BT_S0
     and #$00FF
     asl a
     asl a
@@ -1283,39 +1283,39 @@ ordenado:
     asl a
     asl a
     clc
-    adc BA_T2
-    sta BA_T1
+    adc BT_T2
+    sta BT_T1
     rts
 .endproc
 
-; The write cursor at column A16 of line `BA_T1`.
+; The write cursor at column A16 of line `BT_T1`.
 .proc bt_go
 .a16
 .i16
     clc
-    adc BA_T1
-    sta eleg_tabla
+    adc BT_T1
+    sta pick_table
     rts
 .endproc
 
 ; A combatant's line: its name and its HP —an enemy's, only with
 ; `BA_HP_ENEMIGOS`—, in grey if it is dead.
-; A8 = the combatant, `BA_T1` = where its line starts, and bit 0 of
-; `BA_CONMAX` says whether the max HP go too —that is, whether it belongs to
+; A8 = the combatant, `BT_T1` = where its line starts, and bit 0 of
+; `BT_CONMAX` says whether the max HP go too —that is, whether it belongs to
 ; the party—.
 .proc bt_line
 .a8
 .i16
-    sta BA_S4
+    sta BT_S4
     ; A hidden enemy has no line until it appears: in RM2k it is not on the
     ; screen, and here its line is what says it is there.
     jsr bt_x
-    lda BA_UNO + BA_FLAGS, x
-    and #BAF_OCULTO
+    lda BT_ONE + BT_FLAGS, x
+    and #BAF_HIDDEN
     beq a_la_vista
     rts
 a_la_vista:
-    lda BA_S4
+    lda BT_S4
     jsr bt_alive
     beq muerto
     lda #0
@@ -1324,22 +1324,22 @@ muerto:
     lda #1
 variante:
     sta temp + 1
-    lda BA_S4
+    lda BT_S4
     jsr bt_x
     rep #$20
 .a16
     txa
-    sta BA_S5                   ; its offset, which `scr_text` overwrites
+    sta BT_S5                   ; its offset, which `scr_text` overwrites
     lda #BA_NOMBRE_DX
     jsr bt_go
     sep #$20
 .a8
     lda #BA_NOMBRE_ANCHO
     sta comp_dup + 3
-    ldx BA_S5
+    ldx BT_S5
     rep #$20
 .a16
-    lda BA_UNO + BA_TXT, x
+    lda BT_ONE + BT_TXT, x
     tax
     sep #$20
 .a8
@@ -1350,7 +1350,7 @@ variante:
     ; The `::` is not redundant: inside a `.proc`, `ca65` does not give a
     ; constant value to a bare name, which could be defined further down in
     ; the same `.proc`.
-    lda BA_CONMAX
+    lda BT_CONMAX
     and #$01
     bne con_hp
     rts
@@ -1370,8 +1370,8 @@ con_hp:
 .a16
     lda #BA_HP_NUM_DX
     jsr bt_go
-    ldx BA_S5
-    lda BA_UNO + BA_HP, x
+    ldx BT_S5
+    lda BT_ONE + BT_HP, x
     cmp #1000
     bcc hp_cabe
     lda #999
@@ -1382,7 +1382,7 @@ hp_cabe:
     lda #3
     sta comp_dup + 2
     jsl f:bt_t_number
-    lda BA_CONMAX
+    lda BT_CONMAX
     and #$01
     bne con_maximo
     rts
@@ -1399,8 +1399,8 @@ con_maximo:
 .a16
     lda #BA_HPMAX_DX
     jsr bt_go
-    ldx BA_S5
-    lda BA_UNO + BA_HPMAX, x
+    ldx BT_S5
+    lda BT_ONE + BT_HPMAX, x
     cmp #1000
     bcc max_cabe
     lda #999
@@ -1414,7 +1414,7 @@ max_cabe:
     rts
 .endproc
 
-; The ">" cursor at the start of line `BA_T1`.
+; The ">" cursor at the start of line `BT_T1`.
 .proc bt_cursor
 .a8
 .i16
@@ -1430,7 +1430,7 @@ max_cabe:
     rts
 .endproc
 
-; A number with no leading spaces, in `BA_T0`, wherever `eleg_tabla` says. It
+; A number with no leading spaces, in `BT_T0`, wherever `pick_table` says. It
 ; is what easyrpg does when building the damage message, which sticks the
 ; number to the name without padding; `scr_number` pads, so it has to be told
 ; the exact width.
@@ -1439,7 +1439,7 @@ max_cabe:
 .i16
     rep #$20
 .a16
-    lda BA_T0
+    lda BT_T0
     sta comp_dup
     ldx #1
     cmp #10
@@ -1459,14 +1459,14 @@ ancho_listo:
     rts
 .endproc
 
-; The name of combatant A8 wherever `eleg_tabla` says, in full.
+; The name of combatant A8 wherever `pick_table` says, in full.
 .proc bt_name
 .a8
 .i16
     jsr bt_x
     rep #$20
 .a16
-    lda BA_UNO + BA_TXT, x
+    lda BT_ONE + BT_TXT, x
     tax
     sep #$20
 .a8
@@ -1477,7 +1477,7 @@ ancho_listo:
     rts
 .endproc
 
-; A game term —X already set— wherever `eleg_tabla` says, in full.
+; A game term —X already set— wherever `pick_table` says, in full.
 .proc bt_finished
 .a8
 .i16
@@ -1488,7 +1488,7 @@ ancho_listo:
     rts
 .endproc
 
-; The message's two lines, according to `BA_MTIPO`. Victory does not go
+; The message's two lines, according to `BT_MTIPO`. Victory does not go
 ; through here: it goes in the party's lines, see `bt_vic_message`. All the
 ; words come from the LDB —`attacking`, `enemy_damaged`, `defeat`...— and are
 ; put together as in `game_message_terms.cpp`: the name stuck to the term, and
@@ -1499,25 +1499,25 @@ ancho_listo:
     rep #$20
 .a16
     lda #0
-    sta BA_T1
+    sta BT_T1
     lda #BA_MSG_POS1
-    sta BA_T1
+    sta BT_T1
     lda #BA_MSG_DX
     jsr bt_go
     sep #$20
 .a8
-    lda BA_MTIPO
-    cmp #BA_MSG_ATAQUE
+    lda BT_MTIPO
+    cmp #BT_MSG_ATTACK
     beq ataque
-    cmp #BA_MSG_DEFIENDE
+    cmp #BT_MSG_DEFENDS
     beq defiende
-    cmp #BA_MSG_NO_HUYO
+    cmp #BT_MSG_NO_FLED
     beq no_huyo
-    cmp #BA_MSG_HUYO
+    cmp #BT_MSG_FLED
     beq huyo
-    cmp #BA_MSG_ITEM
+    cmp #BT_MSG_ITEM
     beq usa_item
-    cmp #BA_MSG_HAB
+    cmp #BT_MSG_SKILL
     beq usa_hab
     ldx #BA_TXT_DERROTA
     jmp solo
@@ -1534,13 +1534,13 @@ solo:
     jsr bt_finished
     rts
 defiende:
-    lda BA_MQUIEN
+    lda BT_MQUIEN
     jsr bt_name
     ldx #BA_TXT_DEFIENDE
     jsr bt_finished
     rts
 ataque:
-    lda BA_MQUIEN
+    lda BT_MQUIEN
     jsr bt_name
     ldx #BA_TXT_ATACA
     jsr bt_finished
@@ -1548,16 +1548,16 @@ ataque:
     rep #$20
 .a16
     lda #BA_MSG_POS2
-    sta BA_T1
+    sta BT_T1
     lda #BA_MSG_DX
     jsr bt_go
     sep #$20
 .a8
-    lda BA_MBLA
+    lda BT_MBLA
     jsr bt_name
     rep #$20
 .a16
-    lda BA_MDANO
+    lda BT_MDANO
     cmp #$FFFF
     sep #$20
 .a8
@@ -1569,13 +1569,13 @@ pego:
     jsl f:bt_t_glyph
     rep #$20
 .a16
-    lda BA_MDANO
-    sta BA_T0
+    lda BT_MDANO
+    sta BT_T0
     sep #$20
 .a8
     jsr bt_number_exact
-    lda BA_MBLA
-    cmp #BA_GRUPO_MAX
+    lda BT_MBLA
+    cmp #BT_PARTY_MAX
     bcs es_enemigo
     ldx #BA_TXT_DANO_ACTOR
     bra dice
@@ -1588,7 +1588,7 @@ item:
     ; `<who> <item> used.`, which is
     ; `source.GetName() + " " + item.name + terms.use_item` from
     ; `GetItemStartMessage2k`.
-    lda BA_MQUIEN
+    lda BT_MQUIEN
     jsr bt_name
     lda #$20
     jsl f:bt_t_glyph
@@ -1597,12 +1597,12 @@ item:
     stz temp + 1
     rep #$20
 .a16
-    lda BA_MITEM
+    lda BT_MITEM
     and #$00FF
-    sta BA_T0
+    sta BT_T0
     asl a
     clc
-    adc BA_T0                   ; times three: `3k` is the item's name
+    adc BT_T0                   ; times three: `3k` is the item's name
     tax
     sep #$20
 .a8
@@ -1613,14 +1613,14 @@ item:
     rep #$20
 .a16
     lda #BA_MSG_POS2
-    sta BA_T1
+    sta BT_T1
     lda #BA_MSG_DX
     jsr bt_go
     sep #$20
 .a8
-    lda BA_MBLA
+    lda BT_MBLA
     jsr bt_name
-    lda BA_MREVIVIO
+    lda BT_MREVIVIO
     beq recupero
     ; Revived: `<target> has revived!`, the dead state's `message_recovery`,
     ; stuck to the name. RM2k does not show the HP one when it revives
@@ -1639,8 +1639,8 @@ recupero:
     jsl f:bt_t_glyph
     rep #$20
 .a16
-    lda BA_MCURA
-    sta BA_T0
+    lda BT_MCURA
+    sta BT_T0
     sep #$20
 .a8
     jsr bt_number_exact
@@ -1651,14 +1651,14 @@ habilidad:
     ; `<who><using_message1>` on top and `<using_message2>` below, which is
     ; `GetSkillFirstStartMessage2k` and its sibling. Both lines come from the
     ; LDB, like everything this screen writes.
-    lda BA_MQUIEN
+    lda BT_MQUIEN
     jsr bt_name
     lda #255
     sta comp_dup + 3
     stz temp + 1
     rep #$20
 .a16
-    lda BA_MHAB
+    lda BT_MHAB
     and #$00FF
     asl a
     tax
@@ -1670,10 +1670,10 @@ habilidad:
     rep #$20
 .a16
     lda #BA_MSG_POS2
-    sta BA_T1
+    sta BT_T1
     lda #BA_MSG_DX
     jsr bt_go
-    lda BA_MHAB
+    lda BT_MHAB
     and #$00FF
     asl a
     tax
@@ -1684,8 +1684,8 @@ habilidad:
     jsr bt_finished
     rts
 fallo:
-    lda BA_MBLA
-    cmp #BA_GRUPO_MAX
+    lda BT_MBLA
+    cmp #BT_PARTY_MAX
     bcs falla_enemigo
     ldx #BA_TXT_SIN_DANO_ACTOR
     bra falla_dice

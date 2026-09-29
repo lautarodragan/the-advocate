@@ -14,26 +14,26 @@
 .proc equipment_remove
 .a8
 .i16
-    lda [cod_ptr], y            ; the actor
+    lda [code_ptr], y            ; the actor
     iny
     sta temp + 2
-    lda [cod_ptr], y            ; the slot
+    lda [code_ptr], y            ; the slot
     iny
     sta temp + 3
     phy
     lda temp + 2
     bne uno
-    ; Up to `grupo_n`: see `heal`, which took the same care.
+    ; Up to `party_n`: see `heal`, which took the same care.
     ldx #0
-ranura:
-    cpx grupo_n
+slot:
+    cpx party_n
     bcs ready
-    lda grupo, x
+    lda party, x
     phx
     jsr equipment_remove_actor
     plx
     inx
-    bra ranura
+    bra slot
 uno:
     jsr equipment_remove_actor
 ready:
@@ -65,22 +65,22 @@ ready:
     clc
     adc temp
     tax
-    lda f:FAR_LARGO + FAR_EQUIPO, x
+    lda f:FAR_LENGTH + FAR_EQUIPMENT, x
     beq ready                   ; it held nothing
     sta temp
     lda #0
-    sta f:FAR_LARGO + FAR_EQUIPO, x
+    sta f:FAR_LENGTH + FAR_EQUIPMENT, x
     lda temp
     cmp #ITEMS_N
     bcs ready                   ; an item the inventory does not carry
     tax
     sep #$20
 .a8
-    lda f:FAR_LARGO + FAR_ITEMS, x
+    lda f:FAR_LENGTH + FAR_ITEMS, x
     cmp #ITEM_MAX
     bcs listo8
     inc a
-    sta f:FAR_LARGO + FAR_ITEMS, x
+    sta f:FAR_LENGTH + FAR_ITEMS, x
 listo8:
     rts
 .a16
@@ -91,7 +91,7 @@ ready:
 .endproc
 
 ; `ChangeSkills`: the slot of the (actor, skill) pair and whether it is
-; learned. It is setting or clearing its bit in `FAR_HAB`: `LearnSkill` does
+; learned. It is setting or clearing its bit in `FAR_SKILL`: `LearnSkill` does
 ; nothing if it was already known and `UnlearnSkill` nothing if it was not,
 ; and with a bit both come for free. Returns with Y past the operands.
 ; Clobbers A, X and `temp`.
@@ -100,26 +100,26 @@ ready:
 .i16
     rep #$20
 .a16
-    lda [cod_ptr], y            ; the pair's slot
+    lda [code_ptr], y            ; the pair's slot
     iny
     iny
     sta temp + 2
     jsr skill_point
     sep #$20
 .a8
-    lda [cod_ptr], y            ; 1 learns, 0 forgets
+    lda [code_ptr], y            ; 1 learns, 0 forgets
     iny
     cmp #0
     beq olvidar
-    lda f:FAR_LARGO + FAR_HAB, x
+    lda f:FAR_LENGTH + FAR_SKILL, x
     ora temp
     bra put
 olvidar:
     lda temp
     eor #$FF
-    and f:FAR_LARGO + FAR_HAB, x
+    and f:FAR_LENGTH + FAR_SKILL, x
 put:
-    sta f:FAR_LARGO + FAR_HAB, x
+    sta f:FAR_LENGTH + FAR_SKILL, x
     rtl
 .endproc
 
@@ -129,13 +129,13 @@ put:
 .a8
 .i16
     jsr skill_point
-    lda f:FAR_LARGO + FAR_HAB, x
+    lda f:FAR_LENGTH + FAR_SKILL, x
     and temp
     rtl                         ; `rtl` does not touch the flags: the `and`
                                 ; holds
 .endproc
 
-; The pair's slot in `temp + 2` → X at its byte of `FAR_HAB`, and its bit in
+; The pair's slot in `temp + 2` → X at its byte of `FAR_SKILL`, and its bit in
 ; `temp`. Returns with 8-bit A.
 .proc skill_point
 .a8
@@ -147,7 +147,7 @@ put:
     tax
     sep #$20
 .a8
-    lda f:mascara, x
+    lda f:mask, x
     sta temp
     rep #$20
 .a16
@@ -203,45 +203,45 @@ hay:
 .a16
     lda ev_cur
     pha
-    lda ev_esperando
+    lda ev_waiting
     pha
-    lda ev_corriendo
+    lda ev_running
     pha
-    lda cod_ptr
+    lda code_ptr
     pha
     lda f:comeq_cod, x
-    sta cod_ptr
+    sta code_ptr
     stz ev_cur
     sep #$20
 .a8
-    lda cod_ptr + 2
+    lda code_ptr + 2
     pha
-    lda ev_activo
+    lda ev_active
     pha
-    lda par_ev
+    lda pair_ev
     pha
     lda f:comeq_banco, x
-    sta cod_ptr + 2
+    sta code_ptr + 2
     lda #1
-    sta ev_activo
+    sta ev_active
     lda #$FF
-    sta par_ev                  ; neither a map's parallel event nor a
+    sta pair_ev                  ; neither a map's parallel event nor a
                                 ; battle page
     jsl f:run_code_long
     pla
-    sta par_ev
+    sta pair_ev
     pla
-    sta ev_activo
+    sta ev_active
     pla
-    sta cod_ptr + 2
+    sta code_ptr + 2
     rep #$20
 .a16
     pla
-    sta cod_ptr
+    sta code_ptr
     pla
-    sta ev_corriendo
+    sta ev_running
     pla
-    sta ev_esperando
+    sta ev_waiting
     pla
     sta ev_cur
     sep #$20
@@ -253,7 +253,7 @@ apagado:
 .endproc
 
 ; The skill bits set to what the LDB says each actor knows at their initial
-; level: the converter's `hab_inicial` table copied into `FAR_HAB`. It runs at
+; level: the converter's `hab_inicial` table copied into `FAR_SKILL`. It runs at
 ; reset, before loading the saved game, which overwrites it. It is few bytes
 ; and goes one at a time: a DMA would cost more code than the loop.
 .proc initial_skills_set
@@ -262,7 +262,7 @@ apagado:
     ldx #0
 otro:
     lda f:hab_inicial, x
-    sta f:FAR_LARGO + FAR_HAB, x
+    sta f:FAR_LENGTH + FAR_SKILL, x
     inx
     cpx #HAB_BYTES
     bne otro

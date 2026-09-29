@@ -14,7 +14,7 @@
 ; page waits, which come from **what is left** after moving the target and
 ; not from what this command asked for. See `GetPanWait`.
 .proc op_pan
-    lda [cod_ptr], y            ; the operation
+    lda [code_ptr], y            ; the operation
     iny
     cmp #PAN_VOLVER
     bne pan_correr
@@ -28,13 +28,13 @@
 pan_correr:
     rep #$20
 .a16
-    lda [cod_ptr], y            ; the x offset, signed
+    lda [code_ptr], y            ; the x offset, signed
     clc
     adc pan_dest_x
     sta pan_dest_x
     iny
     iny
-    lda [cod_ptr], y            ; and the y one
+    lda [code_ptr], y            ; and the y one
     clc
     adc pan_dest_y
     sta pan_dest_y
@@ -49,21 +49,21 @@ pan_saltear_desp:
     iny
     iny
 pan_leer_paso:
-    lda [cod_ptr], y            ; the per-frame step
+    lda [code_ptr], y            ; the per-frame step
     iny
     rep #$20
 .a16
     and #$00FF
-    sta pan_paso
+    sta pan_step
     sep #$20
 .a8
-    lda [cod_ptr], y            ; whether the page waits
+    lda [code_ptr], y            ; whether the page waits
     iny
     beq pan_sin_espera
     jsr pan_frames
     rep #$20
 .a16
-    sta ev_esperando
+    sta ev_waiting
     ora #$0000                  ; `sta` does not touch the flags
     sep #$20
 .a8
@@ -83,17 +83,17 @@ pan_sin_espera:
 .endproc
 
 .proc op_tint
-    lda [cod_ptr], y
-    sta tinte_r
+    lda [code_ptr], y
+    sta tint_r
     iny
-    lda [cod_ptr], y
-    sta tinte_g
+    lda [code_ptr], y
+    sta tint_g
     iny
-    lda [cod_ptr], y
-    sta tinte_b
+    lda [code_ptr], y
+    sta tint_b
     iny
-    lda [cod_ptr], y
-    sta tinte_s
+    lda [code_ptr], y
+    sta tint_s
     iny
     ; The tint is not applied here: it is requested, and `flush_video` does it
     ; in the next vblank. `apply_tint` uploads three palettes to CGRAM by
@@ -104,7 +104,7 @@ pan_sin_espera:
     ; were tinted and the rest not, depending on which write the vblank
     ; caught—.
     lda #1
-    sta tinte_pendiente
+    sta tint_pending
     jmp run_code::otro     ; `bra` does not reach: the loop is far away
 
 .endproc

@@ -13,5 +13,5 @@ FUNDIDO = 0
 
 def transiciones(p):
     borrar, mostrar = (p.consola.ram(en_la_wram(p.simbolos[n]), 1)[0]
-                       for n in ("TRANSICION_BORRAR", "TRANSICION_MOSTRAR"))
+                       for n in ("TRANSITION_ERASE", "TRANSITION_SHOW"))
     return borrar, mostrar

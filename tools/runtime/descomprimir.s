@@ -32,7 +32,7 @@
 ; through —the tiles and even more so the grid are mostly repeats and fills—
 ; and this way it is read from the ROM's fast mirror. The stream's changes from
 ; block to block, so the literal's `mvn` is built in RAM at the start
-; —`LZ2_TRAMPA_LIT`— and called with `jsl`; running from WRAM costs it a few
+; —`LZ2_TRAMPOLINE_LIT`— and called with `jsl`; running from WRAM costs it a few
 ; cycles per byte, because `mvn` reads its code again for each one.
 ;
 ; The stream is read with the data bank set to its own and `lda a:0, x`, through
@@ -42,7 +42,7 @@
 
 ; Decompresses a stream. Enters with an 8-bit A and 16-bit X and Y: X and A
 ; where the stream is —address and bank—, Y where the output goes inside bank
-; `LZ2_BANCO`, which the caller sets and is $7E or $7F. Leaves with X on the
+; `LZ2_BANK`, which the caller sets and is $7E or $7F. Leaves with X on the
 ; byte after the $FF —the next stream starts there, if another one follows
 ; right after— and Y on the byte after the last one it wrote. Clobbers A;
 ; leaves P and the data bank as they were.
@@ -54,17 +54,17 @@
 .i16
     php
     phb
-    ora #^RAPIDO                ; the stream, through the fast mirror
+    ora #^FAST                ; the stream, through the fast mirror
     pha
     ; The literal's trampoline. In `mvn`'s machine code the destination bank
     ; goes first and the source bank after.
-    sta f:LZ2_TRAMPA_LIT + 2
+    sta f:LZ2_TRAMPOLINE_LIT + 2
     lda #$54                    ; mvn
-    sta f:LZ2_TRAMPA_LIT
+    sta f:LZ2_TRAMPOLINE_LIT
     lda #$6B                    ; rtl
-    sta f:LZ2_TRAMPA_LIT + 3
-    lda f:LZ2_BANCO
-    sta f:LZ2_TRAMPA_LIT + 1
+    sta f:LZ2_TRAMPOLINE_LIT + 3
+    lda f:LZ2_BANK
+    sta f:LZ2_TRAMPOLINE_LIT + 1
     plb                         ; the stream's bank
     rep #$20
 .a16
@@ -73,8 +73,8 @@
     pha                         ; 1,s: the command's length, minus one
     sep #$20
 .a8
-    lda f:LZ2_BANCO
-    cmp #^GRILLA_ALTA
+    lda f:LZ2_BANK
+    cmp #^GRID_HIGH
     bne en_el_7e
     jmp lz2_body_7f
 en_el_7e:
@@ -132,7 +132,7 @@ dispatch:
 .a16
     lda 1, s
     phb
-    jsl f:LZ2_TRAMPA_LIT
+    jsl f:LZ2_TRAMPOLINE_LIT
     plb
     bra cmd
 
@@ -210,11 +210,11 @@ ready:
 .endmacro
 
 .proc lz2_body_7e
-    LZ2_BODY ^GRILLA
+    LZ2_BODY ^GRID
 .endproc
 
 .proc lz2_body_7f
-    LZ2_BODY ^GRILLA_ALTA
+    LZ2_BODY ^GRID_HIGH
 .endproc
 
 ; X and A of the stream that field Y of the map record points to: its address
@@ -226,7 +226,7 @@ ready:
 .a16
     tya
     clc
-    adc mapa_ofs
+    adc map_ofs
     tax
     sep #$20
 .a8
@@ -254,10 +254,10 @@ ready:
     jsr lz2_from_field
     pha
     lda #^LZ2_BUFFER
-    sta f:LZ2_BANCO
+    sta f:LZ2_BANK
     pla
     ldy #.loword(LZ2_BUFFER)
-    jsl f:lz2_decompress + RAPIDO
+    jsl f:lz2_decompress + FAST
     rep #$20
 .a16
     lda #.loword(LZ2_BUFFER)
@@ -285,7 +285,7 @@ BACKDROP_TILES_PER_STREAM = LZ2_TOPE_FONDO / 64     ; 64 bytes per 8-bit tile
 .proc lz2_backdrop
 .a8
 .i16
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_MAP_TILES, x
@@ -297,10 +297,10 @@ BACKDROP_TILES_PER_STREAM = LZ2_TOPE_FONDO / 64     ; 64 bytes per 8-bit tile
     pha                         ; 1,s: the stream's bank; 2,s: the ones left
 flujo:
     lda #^LZ2_BUFFER
-    sta f:LZ2_BANCO
+    sta f:LZ2_BANK
     lda 1, s
     ldy #.loword(LZ2_BUFFER)
-    jsl f:lz2_decompress + RAPIDO     ; leaves X on the next stream
+    jsl f:lz2_decompress + FAST     ; leaves X on the next stream
     rep #$20
 .a16
     ; The ones that will be left after this one: zero if this is the last.
@@ -349,7 +349,7 @@ flujo:
     rtl
 .endproc
 
-; The drawings of the map's ChipSet animation, into `ANIM_DIBUJOS`, from where
+; The drawings of the map's ChipSet animation, into `ANIM_DRAWINGS`, from where
 ; `anim_upload` uploads them each time the clock changes. They have to stay
 ; there while on the map, so they go in a place of their own and not in
 ; `LZ2_BUFFER`, which the upper layer and the sprites overwrite afterwards: see
@@ -360,15 +360,15 @@ flujo:
     ldy #M_PTR_ANIM_TILES
     jsr lz2_from_field
     pha
-    lda #^ANIM_DIBUJOS
-    sta f:LZ2_BANCO
+    lda #^ANIM_DRAWINGS
+    sta f:LZ2_BANK
     pla
-    ldy #.loword(ANIM_DIBUJOS)
-    jsl f:lz2_decompress + RAPIDO
+    ldy #.loword(ANIM_DRAWINGS)
+    jsl f:lz2_decompress + FAST
     rtl
 .endproc
 
-; The map's grid, decompressed into `GRILLA`: its first 32 KB in the upper half
+; The map's grid, decompressed into `GRID`: its first 32 KB in the upper half
 ; of bank $7E and the rest in $7F's, which is the shape `ptr_more` and
 ; `ptr_minus` expect. The converter splits it into two streams, one per half,
 ; so no output crosses a bank; the second comes right after the first, and may
@@ -383,25 +383,25 @@ flujo:
     ldy #M_PTR_MAP_CELDAS
     jsr lz2_from_field
     pha                         ; the stream's bank, for the second one
-    lda #^GRILLA
-    sta f:LZ2_BANCO
+    lda #^GRID
+    sta f:LZ2_BANK
     pla
     pha
-    ldy #.loword(GRILLA)
-    jsl f:lz2_decompress + RAPIDO     ; leaves X on the second stream
-    lda #^GRILLA_ALTA
-    sta f:LZ2_BANCO
+    ldy #.loword(GRID)
+    jsl f:lz2_decompress + FAST     ; leaves X on the second stream
+    lda #^GRID_HIGH
+    sta f:LZ2_BANK
     pla
-    ldy #.loword(GRILLA_ALTA)
-    jsl f:lz2_decompress + RAPIDO
+    ldy #.loword(GRID_HIGH)
+    jsl f:lz2_decompress + FAST
     rtl
 .endproc
 
 ; Each block's caps come from the reservation in ram_lejana.s and the converter
 ; enforces them when compressing: if either side moves on its own, the build
 ; must fail.
-.assert LZ2_BUFFER + LZ2_TOPE_FONDO <= ANIM_DIBUJOS_FIN, error, "the background tiles do not fit in the load buffer"
-.assert LZ2_BUFFER + LZ2_TOPE_ENCIMA_Y_SPRITES <= ANIM_DIBUJOS, error, "the upper layer or the sprites would overwrite the animation drawings"
-.assert ANIM_DIBUJOS + LZ2_TOPE_ANIM <= ANIM_DIBUJOS_FIN, error, "the animation drawings do not fit in their place"
-.assert GRILLA_ALTA = GRILLA + $10000, error, "the two halves of the grid must be the same address in two consecutive banks: that is how `ptr_more` walks them"
-.assert LZ2_TOPE_GRILLA <= 2 * (GRILLA_FIN - GRILLA), error, "the largest grid does not fit in the two upper halves of WRAM"
+.assert LZ2_BUFFER + LZ2_TOPE_FONDO <= ANIM_DRAWINGS_END, error, "the background tiles do not fit in the load buffer"
+.assert LZ2_BUFFER + LZ2_TOPE_ENCIMA_Y_SPRITES <= ANIM_DRAWINGS, error, "the upper layer or the sprites would overwrite the animation drawings"
+.assert ANIM_DRAWINGS + LZ2_TOPE_ANIM <= ANIM_DRAWINGS_END, error, "the animation drawings do not fit in their place"
+.assert GRID_HIGH = GRID + $10000, error, "the two halves of the grid must be the same address in two consecutive banks: that is how `ptr_more` walks them"
+.assert LZ2_TOPE_GRILLA <= 2 * (GRID_END - GRID), error, "the largest grid does not fit in the two upper halves of WRAM"

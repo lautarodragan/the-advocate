@@ -3,7 +3,7 @@
 ; --- the variables ---------------------------------------------------------
 ;
 ; They live in far RAM, and are read and written with long indexed addressing
-; —`lda f:FAR_LARGO + FAR_VARIABLES, x`—, which does not depend on the data
+; —`lda f:FAR_LENGTH + FAR_VARIABLES, x`—, which does not depend on the data
 ; bank. `var_read` returns in a 16-bit A **and leaves M at sixteen**;
 ; `var_write` takes the value from `temp + 2`. Neither of them touches X, Y
 ; or `temp`: callers count on that —see `op_place_var`—, and that is why the
@@ -24,7 +24,7 @@
     and #VAR_RANURA             ; the slot byte, without whatever B carries
     asl a                       ; two bytes per variable
     tax
-    lda f:FAR_LARGO + FAR_VARIABLES, x
+    lda f:FAR_LENGTH + FAR_VARIABLES, x
     plx
     rts
 .endproc
@@ -48,7 +48,7 @@
     xba                         ; the flags
     bpl sin_refresco            ; VAR_REFRESCO is bit 7: see the .assert
     lda #1                      ; the flags are no longer needed: the `and`
-    sta refresco                ; below drops whatever is left in B
+    sta refresh                ; below drops whatever is left in B
 sin_refresco:
     xba                         ; and the slot back
     phx
@@ -58,7 +58,7 @@ sin_refresco:
     asl a
     tax
     lda temp + 2
-    sta f:FAR_LARGO + FAR_VARIABLES, x
+    sta f:FAR_LENGTH + FAR_VARIABLES, x
     sep #$20
 .a8
     plx
@@ -95,18 +95,18 @@ sin_refresco:
     pla
     beq apagar
     lda switches, y
-    ora f:mascara, x
+    ora f:mask, x
     sta switches, y
     lda #1
-    sta refresco                ; the pages that ask for it may change
+    sta refresh                ; the pages that ask for it may change
     rts
 apagar:
-    lda f:mascara, x
+    lda f:mask, x
     eor #$FF
     and switches, y
     sta switches, y
     lda #1
-    sta refresco
+    sta refresh
     rts
 .endproc
 
@@ -119,11 +119,11 @@ apagar:
 .i16
     rep #$20
 .a16
-    lda #FAR_ACCESO
+    lda #FAR_ACCESS
     sta WMADDL
     ; Up to the end of the inventory, with whatever gap there is between the
     ; variables and it: it is one pass at reset and it does not matter.
-    ldx #(FAR_ITEMS + ITEMS_N - FAR_ACCESO - 4)
+    ldx #(FAR_ITEMS + ITEMS_N - FAR_ACCESS - 4)
     sep #$20
 .a8
     stz WMADDH
@@ -141,7 +141,7 @@ otra:
     rts
 .endproc
 
-; Every actor's initial equipment into `FAR_EQUIPO`: a DMA from the
+; Every actor's initial equipment into `FAR_EQUIPMENT`: a DMA from the
 ; converter's table to the WRAM window. Runs at reset, before loading the
 ; saved game, which overwrites it.
 .proc initial_equipment_set
@@ -149,7 +149,7 @@ otra:
 .i16
     rep #$20
 .a16
-    lda #FAR_EQUIPO
+    lda #FAR_EQUIPMENT
     sta WMADDL
     lda #<(equipo_inicial)
     ora #(>(equipo_inicial) * 256)
@@ -177,7 +177,7 @@ otra:
 .i16
     rep #$20
 .a16
-    lda #FAR_HERO_VEL
+    lda #FAR_HERO_SPEED
     sta WMADDL
     sep #$20
 .a8
@@ -193,7 +193,7 @@ otra:
     pha
     rep #$20
 .a16
-    lda #FAR_HERO_VEL
+    lda #FAR_HERO_SPEED
     sta WMADDL
     sep #$20
 .a8
@@ -296,7 +296,7 @@ menor:
 .i16
     rep #$20
 .a16
-    lda #FAR_AZAR
+    lda #FAR_RANDOM
     sta WMADDL
     sep #$20
 .a8
@@ -339,7 +339,7 @@ menor:
     asl a
     eor temp + 2
     sta temp + 2
-    lda #FAR_AZAR
+    lda #FAR_RANDOM
     sta WMADDL
     sep #$20
 .a8
@@ -359,27 +359,27 @@ menor:
 
 
 ; Composes the window for the highlighted option. The box comes from the
-; table, at `eleg_tabla + eleg_sel * 4`; the destination is two bytes further
+; table, at `pick_table + pick_sel * 4`; the destination is two bytes further
 ; on and `choice_tick` reads it.
 ;
 ; Calling `msg_start` again with the window already open is what moves the
-; cursor: `msg_abierto` is not cleared, so the window does not flicker, and the
+; cursor: `msg_open` is not cleared, so the window does not flicker, and the
 ; composer overwrites what was there line by line. One option's line is five
 ; or six characters, that is, a couple of frames: it looks like a cursor
 ; moving, not like a window being rebuilt.
 .proc pick_open
 .a8
 .i16
-    lda eleg_sel
+    lda pick_sel
     asl
     asl                         ; four bytes per option
     rep #$20
 .a16
     and #$00FF
     clc
-    adc eleg_tabla
+    adc pick_table
     tay
-    lda [cod_ptr], y            ; the box's offset, 16 bits
+    lda [code_ptr], y            ; the box's offset, 16 bits
     jsr msg_start             ; which expects it in A and in 16-bit mode
     sep #$20
 .a8
@@ -400,79 +400,79 @@ menor:
 .proc choice_tick
 .a8
 .i16
-    lda msg_abierto
+    lda msg_open
     bne abierta
     lda #0                      ; still being composed: nobody chooses
     rts
 abierta:
     lda pad
-    eor pad_ant
+    eor pad_prev
     and pad                     ; what was pressed **on this frame**
-    sta eleg_flancos
+    sta pick_edges
     and #PAD_UP
     beq no_arriba
-    lda eleg_sel
+    lda pick_sel
     bne sube_una
-    lda eleg_n                  ; from the first one, up wraps around
+    lda pick_n                  ; from the first one, up wraps around
 sube_una:
     dec a
-    sta eleg_sel
+    sta pick_sel
     jsr pick_open
     lda #0
     rts
 no_arriba:
-    lda eleg_flancos
+    lda pick_edges
     and #PAD_DOWN
     beq no_abajo
-    lda eleg_sel
+    lda pick_sel
     inc a
-    cmp eleg_n
+    cmp pick_n
     bcc baja_una
     lda #0                      ; and from the last one, down does too
 baja_una:
-    sta eleg_sel
+    sta pick_sel
     jsr pick_open
     lda #0
     rts
 no_abajo:
-    lda eleg_flancos
+    lda pick_edges
     and #PAD_B
     beq mira_a
-    lda eleg_cancel
+    lda pick_cancel
     beq mira_a                  ; this choice cannot be cancelled
     dec a                       ; `choice_result = cancel_type - 1`
-    sta eleg_sel
+    sta pick_sel
     ; And the B is consumed here: in RM2k the window processes the button
     ; **after** the hero, who saw it with the message open and did not ask for
     ; the menu. Here the choice runs before `request_menu`, so its edge is
     ; cleared.
-    lda pad_ant
+    lda pad_prev
     ora #PAD_B
-    sta pad_ant
+    sta pad_prev
     bra elige
 mira_a:
     lda pad_a
     beq nothing
-    lda pad_a_ant
+    lda pad_a_prev
     bne nothing                    ; it was already held: not an edge
 elige:
-    lda eleg_sel
+    lda pick_sel
     asl
     asl
     rep #$20
 .a16
     and #$00FF
     clc
-    adc eleg_tabla
+    adc pick_table
     inc a
     inc a                       ; the destination comes after the box
     tay
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta ev_cur
     sep #$20
 .a8
-    stz eleg_activo
-    stz msg_abierto             ; and with that `flush_video` turns HDMA off
+    stz pick_active
+    stz msg_open             ; and with that `flush_video` turns HDMA off
     lda #1
     rts
 nothing:

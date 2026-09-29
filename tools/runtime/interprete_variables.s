@@ -17,13 +17,13 @@
 .proc op_var
 .a8
 .i16
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta temp                    ; the slot
     iny
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta temp + 1                ; the operation, with VAR_REFRESCO on top
     iny
-    lda [cod_ptr], y            ; the operand class
+    lda [code_ptr], y            ; the operand class
     iny
     phy                         ; Y -> a; restored at the end
     ; Class 6 first: it is the one that the parallel pages comparing cells run
@@ -40,13 +40,13 @@
     beq var_de_otro
     rep #$20
 .a16
-    lda [cod_ptr], y            ; a constant
+    lda [code_ptr], y            ; a constant
     sta temp + 2
     sep #$20
 .a8
     bra var_aplicar
 var_de_variable:
-    lda [cod_ptr], y            ; the slot it comes from
+    lda [code_ptr], y            ; the slot it comes from
     jsr var_read
 .a16
     sta temp + 2
@@ -54,14 +54,14 @@ var_de_variable:
 .a8
     bra var_aplicar
 var_de_otro:
-    lda [cod_ptr], y
+    lda [code_ptr], y
     bne var_del_timer
     ; The gold, capped at 32767: the variable is sixteen bits signed.
-    lda oro + 2
+    lda gold + 2
     bne var_oro_tope
     rep #$20
 .a16
-    lda oro
+    lda gold
     bmi var_oro_tope_16
     sta temp + 2
     sep #$20
@@ -80,7 +80,7 @@ var_oro_tope:
 var_del_timer:
     rep #$20
 .a16
-    lda timer_seg               ; the seconds the timer has left
+    lda timer_sec               ; the seconds the timer has left
     sta temp + 2
     sep #$20
 .a8
@@ -91,11 +91,11 @@ var_al_azar:
     ; not let through a range wider than 255.
     jsr random_next
     sta WRDIVL                  ; the dividend, sixteen bits
-    lda [cod_ptr], y            ; a
+    lda [code_ptr], y            ; a
     sta temp + 2
     iny
     iny
-    lda [cod_ptr], y            ; b
+    lda [code_ptr], y            ; b
     sec
     sbc temp + 2
     inc a                       ; b - a + 1
@@ -179,7 +179,7 @@ var_de_personaje:
     ; **times** EV_STRIDE is carried in X, which nobody uses here, with the
     ; offset folded into the address: that way the hero ends up with X at zero
     ; and telling it apart is a `cpx`, which does not touch the accumulator.
-    lda [cod_ptr], y            ; a: the target
+    lda [code_ptr], y            ; a: the target
     rep #$20
 .a16
     and #$00FF
@@ -190,7 +190,7 @@ var_de_personaje:
 .a8
     iny
     iny
-    lda [cod_ptr], y            ; b: which coordinate
+    lda [code_ptr], y            ; b: which coordinate
     cpx #$0000
     beq var_personaje_heroe
     ; An event: its cell is in `ev_pos_buf`, indexed by the index in the
@@ -231,20 +231,20 @@ var_personaje_listo:
 ; Two class-6 `ControlVars` and two `ConditionalBranch` on variable equality,
 ; fused into one: see `cell_test`, which lives in bank 1.
 .proc op_cell_test
-    jsl f:cell_test + RAPIDO   ; see MEMSEL
+    jsl f:cell_test + FAST   ; see MEMSEL
     jmp run_code::otro
 .endproc
 
 .proc op_switch
     rep #$20
 .a16
-    lda [cod_ptr], y            ; the number, 16 bits
+    lda [code_ptr], y            ; the number, 16 bits
     sta temp
     sep #$20
 .a8
     iny
     iny
-    lda [cod_ptr], y            ; and whether it goes on or off
+    lda [code_ptr], y            ; and whether it goes on or off
     iny
     phy
     jsr set_switch

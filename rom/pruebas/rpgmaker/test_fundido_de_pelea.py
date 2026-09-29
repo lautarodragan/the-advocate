@@ -62,9 +62,9 @@ def _entrar(una, tope=2000):
     grabador = Grabador(una)
     grabador.tocar_cuadros("a")         # hablarle al droide
     for _ in range(tope):
-        if una.byte("menu_abierto"):
+        if una.byte("menu_open"):
             return grabador
-        if una.byte("msg_abierto"):
+        if una.byte("msg_open"):
             grabador.tocar_cuadros("a")
         else:
             grabador.cuadro()
@@ -74,15 +74,15 @@ def _entrar(una, tope=2000):
 def _salir(una, tope=600):
     pelea = Pelea(una)
     for _ in range(6):
-        if pelea.modo() == "FIN":
+        if pelea.modo() == "END":
             break
         pelea.turno(3)
-    pelea.esperar("FIN")
-    vueltas = una.palabra("vueltas")
+    pelea.esperar("END")
+    vueltas = una.palabra("ticks")
     grabador = Grabador(una)
     grabador.tocar_cuadros("a")         # el mensaje de la victoria
     for _ in range(tope):
-        if una.palabra("vueltas") != vueltas:
+        if una.palabra("ticks") != vueltas:
             return grabador             # el mapa volvió a correr
         grabador.cuadro()
     raise AssertionError("el mapa no volvió a correr")

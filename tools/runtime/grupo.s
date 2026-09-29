@@ -6,9 +6,9 @@
 .i16
     ldx #$0000
 busca:
-    cpx grupo_n                 ; grupo_n is 16 bits on purpose: with .i16
+    cpx party_n                 ; party_n is 16 bits on purpose: with .i16
     beq no_esta                 ; this comparison reads two bytes anyway
-    cmp grupo, x
+    cmp party, x
     beq esta
     inx
     bra busca
@@ -32,9 +32,9 @@ no_esta:
 .i16
     ldx #$0000
 buscar:
-    cpx grupo_n
+    cpx party_n
     beq no_estaba
-    cmp grupo, x
+    cmp party, x
     beq estaba
     inx
     bra buscar
@@ -51,15 +51,15 @@ estaba:
     ; Removing it: the ones behind move up one place.
 correr:
     inx
-    cpx grupo_n
+    cpx party_n
     beq acortar
-    lda grupo, x
-    sta grupo - 1, x
+    lda party, x
+    sta party - 1, x
     bra correr
 acortar:
     rep #$20
 .a16
-    dec grupo_n
+    dec party_n
     sep #$20
 .a8
     bra ready
@@ -74,10 +74,10 @@ no_estaba:
     pla
     cpx #GRUPO_MAX
     beq ready                   ; full: RM2k does not add it either
-    sta grupo, x
+    sta party, x
     rep #$20
 .a16
-    inc grupo_n
+    inc party_n
     sep #$20
 .a8
     bra ready
@@ -88,16 +88,16 @@ ready:
     jsr pick_hero_graphic
     ; The new leader has other colors and shares the slot with the previous
     ; one, so the palettes have to be rebuilt. It does not touch CGRAM: it
-    ; leaves everything in `cgram_sombra` and `upload_tint` uploads it in the
+    ; leaves everything in `cgram_shadow` and `upload_tint` uploads it in the
     ; vblank.
     jsr apply_tint
     lda #1
-    sta refresco                ; the pages that ask for an actor may change
+    sta refresh                ; the pages that ask for an actor may change
     rts
 .endproc
 
 ; A: an index into the map's graphics table —the one `ruta_grafico` builds and
-; `load_route_graphics` copies to `ruta_graf_buf`—. Leaves `hero_poses`,
+; `load_route_graphics` copies to `route_gfx_buf`—. Leaves `hero_poses`,
 ; `hero_pal` and `hero_cgram` pointing at that graphic and returns with C=1;
 ; if the graphic is not in this map's sprite bank it returns with C=0 and
 ; without touching anything.
@@ -123,18 +123,18 @@ ready:
 .proc hero_poses_of_graphic
 .a8
 .i16
-    asl a                       ; two bytes per entry in `ruta_graf_buf`
+    asl a                       ; two bytes per entry in `route_gfx_buf`
     rep #$20
 .a16
     and #$00FF
     tax
     sep #$20
 .a8
-    lda ruta_graf_buf, x        ; its entry in `npc_poses`, or $FF
+    lda route_gfx_buf, x        ; its entry in `npc_poses`, or $FF
     cmp #$FF
     beq no_esta
     sta temp
-    lda ruta_graf_buf + 1, x
+    lda route_gfx_buf + 1, x
     asl a
     and #$0E                    ; the palette, shifted into place in vhoopppN
     sta hero_pal
@@ -188,12 +188,12 @@ no_esta:
 .a8
     stz hero_poses + 2
     stz hero_cgram + 2
-    lda grupo_n
+    lda party_n
     bne con_grupo               ; `beq sin_lider` no longer reaches
     rts                         ; empty party: nothing is drawn
 con_grupo:
 
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
     lda f:mapa_tabla + M_ACTOR_COUNT, x
@@ -207,7 +207,7 @@ con_grupo:
     sta act_ptr + 2
 
     ldy #$0000
-    lda grupo                   ; the leader
+    lda party                   ; the leader
     sta temp
 cada_actor:
     lda [act_ptr], y
@@ -234,7 +234,7 @@ lo_encontre:
     phy                         ; the actor's entry, in case there is no change
     lda temp                    ; the leader
     jsr actor_gfx_read
-    cmp #ACTOR_GRAF_NINGUNO
+    cmp #ACTOR_GFX_NONE
     beq sin_cambio_de_sprite
     jsr hero_poses_of_graphic
     bcc sin_cambio_de_sprite

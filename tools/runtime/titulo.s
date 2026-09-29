@@ -66,7 +66,7 @@ mudo:
     ; math at zero.
     ;
     ; **It does not decompress it**: the boot did that, while waiting out its
-    ; BOOT_CUADROS, and `SCREEN_BUFFER` has held it since. Decompressing it
+    ; BOOT_FRAMES, and `SCREEN_BUFFER` has held it since. Decompressing it
     ; here is nine more frames of black before the title, and another nine
     ; when coming back from the slot screen —measured on 2026-09-28—. It works
     ; because nothing that runs on the title writes bank $7F: not its loop,
@@ -120,8 +120,8 @@ mudo:
     lda #$03
     sta TM                      ; the image and the menu; there are no sprites
 
-    stz titulo_sel              ; it opens with the first option selected
-    jsl f:titulo_subir_menu
+    stz title_sel              ; it opens with the first option selected
+    jsl f:title_upload_menu
 
     lda #$0F
     sta INIDISP                 ; and the screen on, at full brightness
@@ -145,31 +145,31 @@ espera:
     jsr read_pad
 
     lda pad
-    eor pad_ant
+    eor pad_prev
     and pad                     ; what was pressed this frame
-    sta titulo_flancos
+    sta title_edges
     and #PAD_UP
     beq no_arriba
-    lda titulo_sel
+    lda title_sel
     bne sube_una
     lda #TITULO_MENU_N          ; from the first one, up wraps around
 sube_una:
     dec a
-    sta titulo_sel
-    jsl f:titulo_subir_menu
+    sta title_sel
+    jsl f:title_upload_menu
     bra espera
 no_arriba:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_DOWN
     beq no_abajo
-    lda titulo_sel
+    lda title_sel
     inc a
     cmp #TITULO_MENU_N
     bcc baja_una
     lda #0                      ; and from the last one, so does down
 baja_una:
-    sta titulo_sel
-    jsl f:titulo_subir_menu
+    sta title_sel
+    jsl f:title_upload_menu
     bra espera
 no_abajo:
     ; Selecting is A or START. RM2k does not look at START —there the menu
@@ -177,10 +177,10 @@ no_abajo:
     ; is passed with START and not having it feels broken.
     lda pad_a
     beq mira_start
-    lda pad_a_ant
+    lda pad_a_prev
     beq elige                   ; edge, not state
 mira_start:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_START
     beq espera
 elige:
@@ -188,7 +188,7 @@ elige:
     ; there is one, the map and the cell come from it. If there is none, it
     ; starts the same as the first, which is what RM2k does when there is
     ; nothing to load.
-    lda titulo_sel
+    lda title_sel
     beq salir
     ; 'Resume the Story': the slot screen, in load mode. If the player cancels
     ; with B it goes back to the title, and since that screen overwrote VRAM
@@ -206,7 +206,7 @@ la_elegida:
     jsr save_entry
     rep #$20
 .a16
-    lda mapa_actual             ; the index goes in sixteen bits
+    lda map_current             ; the index goes in sixteen bits
     bra cargar_el_mapa
 .a8
 salir:
@@ -239,36 +239,36 @@ cargar_el_mapa:
     ; **The title song is silenced before loading the map**, and not after
     ; with `music_boot`: `package_load` leaves in place the samples of the
     ; song it says is playing, and here that one is not playing. With a save
-    ; loaded, `tema_actual` is already the save's, and its samples that the
+    ; loaded, `song_current` is already the save's, and its samples that the
     ; title's package had uploaded stayed fixed where they were, splitting the
     ; ARAM: the map's package did not fit, and the map's `PlayBGM` uploaded
     ; it all again —loading into map 1 took twice as long—.
-    ; `music_apagada` is restored right before `music_boot`, which reads it:
+    ; `music_off` is restored right before `music_boot`, which reads it:
     ; it is the save's.
-    lda music_apagada
+    lda music_off
     pha
     php
     sei                         ; the SPC700 serves one at a time: see `irq_music`
     lda #1
-    sta music_apagada
+    sta music_off
     lda #$FF
     ldx #SE_KOF
     jsr dsp_music              ; as below: without touching the sound effect voices
     plp
     rep #$20
 .a16
-    lda 2, s                    ; the map index, behind music_apagada
+    lda 2, s                    ; the map index, behind music_off
     jsr enter_map
     sep #$20
 .a8
-    pla                         ; the save's music_apagada
+    pla                         ; the save's music_off
     plx                         ; the index, no longer needed
     pha
     jsr clear_oam
     jsr build_oam
     jsr flush_video
     pla
-    sta music_apagada
+    sta music_off
 
     ; The music. Without this the title song keeps playing inside the game,
     ; which is what taro saw on 2026-09-10: `Fantasia_Of_The_Wind` in the
@@ -276,7 +276,7 @@ cargar_el_mapa:
     ; title screen does at boot —the starting map's song, or silence if it has
     ; none—, so both keep sounding the same.
     jsr music_boot
-    lda music_apagada
+    lda music_off
     beq listo_musica
     ; `TEMA_ARRANQUE` at $FF means the map starts silent and a `PlayBGM` turns
     ; the music on, which is the usual case in this game. `music_boot` writes

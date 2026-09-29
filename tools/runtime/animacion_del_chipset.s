@@ -17,7 +17,7 @@
 ; decide**, and both things were mandatory, not elegance: the BSS was at 7680
 ; of 7680 and the direct page at 255 of 256, so there was nowhere to put
 ; either a counter or a pointer for `lda [puntero], y`. Where in the cycle each
-; family is comes from dividing `vueltas` —minus `vueltas_congeladas`, the
+; family is comes from dividing `ticks` —minus `frozen_ticks`, the
 ; fade's ticks— by its rate with the hardware divider; where its tiles and its
 ; drawings are comes from `anim_tabla`, which the converter builds.
 ;
@@ -51,13 +51,13 @@ anim_per_speed:
     .byte 12, 10, 8, 6, 5, 4
 
 ; Leaves in X the entry of family Y inside `anim_tabla`. Which map it is comes
-; from `mapa_ofs` without storing anything: both strides are powers of two.
+; from `map_ofs` without storing anything: both strides are powers of two.
 .proc anim_where
 .a8
 .i16
     rep #$20
 .a16
-    lda mapa_ofs
+    lda map_ofs
     lsr a
     lsr a
     lsr a
@@ -81,7 +81,7 @@ anim_per_speed:
 ; and in `temp + 3` a 1 if **this** tick is the one where it changes, that is,
 ; if the clock landed right on the edge.
 ;
-; The tick is `vueltas`. Since it is sixteen bits, every 65536 ticks
+; The tick is `ticks`. Since it is sixteen bits, every 65536 ticks
 ; —eighteen minutes— it wraps around and the cycle skips a drawing; RM2k
 ; counts in thirty-two. What is lost is declared in
 ; workflow/divergencias/el-chipset-se-saltea-un-dibujo-cada-18-minutos.md.
@@ -177,13 +177,13 @@ saltar:
 puesto:
     ; The drawings are in WRAM, where `lz2_anim` left them when loading the
     ; map: the cartridge carries them compressed.
-    lda #.loword(ANIM_DIBUJOS)
+    lda #.loword(ANIM_DRAWINGS)
     clc
     adc temp + 2
     sta A1T0L
     sep #$20
 .a8
-    lda #^ANIM_DIBUJOS
+    lda #^ANIM_DRAWINGS
     sta A1B0
     lda #$01
     sta MDMAEN
@@ -217,9 +217,9 @@ otra:
     phy
     rep #$20
 .a16
-    lda vueltas
+    lda ticks
     sec
-    sbc f:vueltas_congeladas    ; the animations' clock: see there
+    sbc f:frozen_ticks    ; the animations' clock: see there
     tax
     sep #$20
 .a8
@@ -251,9 +251,9 @@ otra:
     phy
     rep #$20
 .a16
-    lda vueltas
+    lda ticks
     sec
-    sbc f:vueltas_congeladas    ; the animations' clock: see there
+    sbc f:frozen_ticks    ; the animations' clock: see there
     tax
     sep #$20
 .a8
@@ -293,9 +293,9 @@ siguiente:
 
 ; The step that is due, in the vblank, and only on the tick where it changes.
 ;
-; The tick looked at is `vueltas` as is, without correcting anything for the
+; The tick looked at is `ticks` as is, without correcting anything for the
 ; frame the video lags behind. It is measured, not reasoned: with
-; `vueltas - 1` the test suite goes red on **one tick in every 24** —the one of
+; `ticks - 1` the test suite goes red on **one tick in every 24** —the one of
 ; the change— and on no other, which is 32% of the screen on map 5. The case
 ; that catches it is `snes-caminando 5 left` with advance 46, that is, exactly
 ; tick 24.
@@ -342,7 +342,7 @@ baja:
 .assert BYTES_POR_TILE = 64, error, "eight background tiles fit in a 512-byte pose"
     inc a
     sta temp + 2
-    lda vq_tope
+    lda vq_cap
     sec
     sbc temp + 2
     bcc una
@@ -350,7 +350,7 @@ baja:
 una:
     lda #1                      ; there is always room for one pose
 queda:
-    sta vq_tope
+    sta vq_cap
     ply
 siguiente:
     iny

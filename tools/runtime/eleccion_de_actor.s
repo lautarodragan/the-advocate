@@ -15,7 +15,7 @@
 ; —`_controlar_objetivo` checks it—, and the colors go in 128..143, which are
 ; the menu sprites' and are restored by `menu_exp_close`.
 ;
-; `eleg_cancel` says which one: at 0, for the medicine in `eleg_flancos`, with
+; `pick_cancel` says which one: at 0, for the medicine in `pick_edges`, with
 ; the two windows on the left; otherwise, for choosing whom to equip, without
 ; them. Entered with `jsl`, with the data bank at 0: the registers and
 ; `item_id` are addressed absolute.
@@ -62,7 +62,7 @@
     sta A1B0
     lda #$01
     sta MDMAEN
-    lda eleg_cancel
+    lda pick_cancel
     beq colores
     rep #$20
 .a16
@@ -99,7 +99,7 @@ colores:
     sta BBAD0
     lda #$01
     sta MDMAEN
-    lda eleg_cancel
+    lda pick_cancel
     beq nombre
     rtl
 nombre:
@@ -108,7 +108,7 @@ nombre:
     ; says which one belongs to `k`.
     rep #$20
 .a16
-    lda eleg_flancos
+    lda pick_edges
     and #$00FF
     tax
     lda f:objetivo_nombre_de, x
@@ -187,19 +187,19 @@ letra:
     rts
 .endproc
 
-; How many are left of the medicine in `eleg_flancos`, in two digits —the tens
+; How many are left of the medicine in `pick_edges`, in two digits —the tens
 ; digit blank if it is zero—, next to "Owned Items". In the vblank after using
 ; it, or with the screen off when opening. Without a medicine, nothing.
 .proc target_count
 .a8
 .i16
-    lda eleg_cancel
+    lda pick_cancel
     beq medicina
     rtl
 medicina:
     rep #$20
 .a16
-    lda eleg_flancos
+    lda pick_edges
     and #$00FF
     asl a
     tax

@@ -33,7 +33,7 @@ def pisar_la_puerta(una):
         una.correr(2)
         if una.mapa() != MAPA or una.heroe() == PUERTA:
             break
-    # Y los ticks del fundido, por si la pisada disparó uno: `mapa_actual`
+    # Y los ticks del fundido, por si la pisada disparó uno: `map_current`
     # cambia recién en el cuadro negro, decenas de ticks después.
     una.correr(90)
     return una

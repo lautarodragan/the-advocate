@@ -225,7 +225,7 @@ siguiente:
 .proc rain_oam
 .a8
 .i16
-    ldx mapa_ofs
+    ldx map_ofs
     lda f:mapa_tabla + M_LLUVIA_BASE, x
     ora f:mapa_tabla + M_LLUVIA_BASE + 1, x
     bne con_gotas
@@ -272,13 +272,13 @@ tono:
     ; On screen: minus the map's scroll, in eight bits.
     lda f:RAIN_L, x
     sec
-    sbc pantalla_x
+    sbc screen_x
     sta comp_dup
     lda f:RAIN_L + 1, x
     sec
-    sbc camara_y
+    sbc camera_y
     sta comp_dup + 1
-    stz comp_fila               ; the half: 0 top, 1 bottom
+    stz comp_row               ; the half: 0 top, 1 bottom
 mitad:
     lda comp_dup + 1
     cmp #224
@@ -301,7 +301,7 @@ queda_lugar:
     asl a
     tay
     ; The tile: base + 16 * half + shade, nine bits.
-    lda comp_fila
+    lda comp_row
     and #$00FF
     asl a
     asl a
@@ -345,8 +345,8 @@ otra_mitad:
     clc
     adc #8
     sta comp_dup + 1
-    inc comp_fila
-    lda comp_fila
+    inc comp_row
+    lda comp_row
     cmp #2
     bcs siguiente
     jmp mitad

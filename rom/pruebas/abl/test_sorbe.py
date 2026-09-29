@@ -52,7 +52,7 @@ def test_la_ventana_en_sorbe():
     plano de la capa de encima de 256."""
     p = partida("sorbe-mensaje")
     for _ in range(600):
-        if p.byte("msg_abierto") and p.byte("msg_estado") != 1:
+        if p.byte("msg_open") and p.byte("msg_state") != 1:
             break
         p.correr(1)
     else:

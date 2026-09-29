@@ -17,7 +17,7 @@
 ; Moving the cursor rewrites **two rows** of 96 cells, not the whole tilemap.
 
 ; Whether the slot in A has a save. Returns A nonzero, and **clobbers
-; `ranura`**: `slots_screen` saves it on entry and restores it on exit.
+; `slot`**: `slots_screen` saves it on entry and restores it on exit.
 ;
 ; It looks at the magic and the format —a save from another build looks
 ; empty, see `slot_of_this_format`— but not at the checksum: it is for
@@ -79,12 +79,12 @@ no:
     rts
 .endproc
 
-; Paints the row of the slot in A: with the cursor if `titulo_sel` points at
+; Paints the row of the slot in A: with the cursor if `title_sel` points at
 ; it, and full if the SRAM says it is.
 ;
 ; Whether it is full is asked again on every repaint instead of being stored:
 ; it is four bytes of SRAM and it only happens when the cursor moves. Storing
-; it would need RAM that is not there —see `ranura`— and a way to invalidate
+; it would need RAM that is not there —see `slot`— and a way to invalidate
 ; it after saving.
 .proc slot_paint
 .a8
@@ -95,7 +95,7 @@ no:
     sta temp + 2
     pla
     pha
-    cmp titulo_sel
+    cmp title_sel
     bne sin_cursor
     inc temp + 2                ; and the cursor, 1
 sin_cursor:
@@ -301,7 +301,7 @@ letra:
     rts
 .endproc
 
-; The party of the save in the slot held in `ranura`: the faces of the first
+; The party of the save in the slot held in `slot`: the faces of the first
 ; RANURA_CARAS_MAX, and the name of the first one. It is what
 ; `Window_SaveFile::Refresh` draws per file, minus the hit points, which this
 ; port does not have.
@@ -318,7 +318,7 @@ letra:
 ; composed with glyphs, see `slot_text_write`.
 ;
 ; The scratch space, which is tight: `temp` and `temp + 2` belong to the
-; rectangle, `temp + 3` keeps how many there are, and **`titulo_flancos`
+; rectangle, `temp + 3` keeps how many there are, and **`title_edges`
 ; serves as the member index**. There is no other byte in the direct page,
 ; and the edges have already been looked at by the time this is reached.
 .proc slot_party_paint
@@ -336,9 +336,9 @@ letra:
     lda #RANURA_CARAS_MAX
 caben:
     sta temp + 3
-    stz titulo_flancos
+    stz title_edges
 otro_miembro:
-    lda titulo_flancos
+    lda title_edges
     cmp temp + 3
     bcs las_caras_listas
     jsr actor_del_miembro
@@ -355,10 +355,10 @@ otro_miembro:
     beq siguiente               ; no face
     pha                         ; the block, while the destination is built
     ; The table goes four per slot: the slot times four plus the place.
-    lda ranura
+    lda slot
     asl a
     asl a
-    ora titulo_flancos
+    ora title_edges
     rep #$20
 .a16
     and #$00FF
@@ -381,7 +381,7 @@ otro_miembro:
 .a8
     jsr slot_rect_upload
 siguiente:
-    inc titulo_flancos
+    inc title_edges
     bra otro_miembro
 las_caras_listas:
     ; The name of the leader, who is the first, and its level: both composed
@@ -389,12 +389,12 @@ las_caras_listas:
     ; `slot_text_write` can use `temp`.
     lda temp + 3
     beq ready                   ; an empty party has no leader
-    stz titulo_flancos
+    stz title_edges
     jsr actor_del_miembro
     cmp #RANURA_ACTORES_N
     bcs ready                   ; an actor this ROM does not know
     pha                         ; the actor, for both strips
-    lda ranura
+    lda slot
     rep #$20
 .a16
     and #$00FF
@@ -427,16 +427,16 @@ las_caras_listas:
 ready:
     rts
 
-; The actor in place `titulo_flancos` of the slot's party, read from SRAM.
+; The actor in place `title_edges` of the slot's party, read from SRAM.
 ; Returns A and clobbers X. The offset is the slot times 1024 —`SRAM_STRIDE`—
 ; plus the place, built with two `xba` and without touching the neighbors in
-; the direct page: reading `titulo_flancos` as sixteen bits would take
-; `menu_abierto` along. The high byte is the slot times four, which fits:
+; the direct page: reading `title_edges` as sixteen bits would take
+; `menu_open` along. The high byte is the slot times four, which fits:
 ; there are four slots.
 actor_del_miembro:
-    lda titulo_flancos
+    lda title_edges
     xba
-    lda ranura
+    lda slot
     asl a
     asl a
     asl a
@@ -510,21 +510,21 @@ actor_del_miembro:
     ; here, with no dates, the one in use. With no save loaded, the first.
     pla
     beq primera
-    lda ranura
+    lda slot
     cmp #$FF
     bne arranca_ahi
 primera:
     lda #0
 arranca_ahi:
-    sta titulo_sel
+    sta title_sel
 
-    ; `ranura` onto the stack. Painting a row overwrites it —`slot_full`
+    ; `slot` onto the stack. Painting a row overwrites it —`slot_full`
     ; writes it to address the SRAM— and on exit it has to hold what it held,
     ; whether the player picks or cancels: whoever picks sets it afterwards
     ; with `set_slot`. From the title it did not matter because it held
     ; $FF and was set on picking; from the save point, cancelling would leave
     ; the save of the last painted row as the "loaded" one.
-    lda ranura
+    lda slot
     pha
 
     ; --- and the four rows ---
@@ -539,25 +539,25 @@ pintar_todas:
 
     jsr slot_ppu_on
     lda #1
-    sta menu_abierto
+    sta menu_open
 
 espera:
     jsr wait_vblank
     jsr read_pad
 
     lda pad
-    eor pad_ant
+    eor pad_prev
     and pad
-    sta titulo_flancos
+    sta title_edges
     and #PAD_UP
     beq no_arriba
-    lda titulo_sel
+    lda title_sel
     bne sube
     ; From the first, up wraps around, but only on a single press: the repeat
     ; stops at the end. It is easyrpg's `Scene_File::Update`, which unlike
     ; `Window_Selectable` asks for `IsTriggered` to wrap around; see
     ; `arrows_repeat`.
-    lda flechas_repetidas
+    lda arrows_repeated
     and #PAD_UP
     bne espera
     lda #SRAM_RANURAS_N
@@ -566,14 +566,14 @@ sube:
     jsr mover_cursor
     bra espera
 no_arriba:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_DOWN
     beq no_abajo
-    lda titulo_sel
+    lda title_sel
     inc a
     cmp #SRAM_RANURAS_N
     bcc baja
-    lda flechas_repetidas       ; the same going down: repeating does not wrap
+    lda arrows_repeated       ; the same going down: repeating does not wrap
     and #PAD_DOWN
     bne espera
     lda #0
@@ -581,7 +581,7 @@ baja:
     jsr mover_cursor
     bra espera
 no_abajo:
-    lda titulo_flancos
+    lda title_edges
     and #PAD_B
     beq mira_a
     jsr cerrar
@@ -590,24 +590,24 @@ no_abajo:
 mira_a:
     lda pad_a
     beq espera
-    lda pad_a_ant
+    lda pad_a_prev
     bne espera                  ; it was already held: not an edge
     jsr cerrar
-    lda titulo_sel
+    lda title_sel
     rts
 
-; What the two exits have in common: `ranura` as it was, the data bank as it
-; was, the marker down. And `nmi_visto` up to date, so that `count_lost`
+; What the two exits have in common: `slot` as it was, the data bank as it
+; was, the marker down. And `nmi_seen` up to date, so that `count_lost`
 ; does not count as lost the frames the player spent choosing: from the save
 ; point this runs inside one tick of the loop, and without this the tick
 ; would measure hundreds of frames and saturate the counter.
 ;
-; The stack holds, top to bottom: this `jsr`'s return address, `ranura` and
+; The stack holds, top to bottom: this `jsr`'s return address, `slot` and
 ; the bank. The return address is pulled first to get at the other two.
 cerrar:
     plx                         ; the return address, set aside
     pla
-    sta ranura
+    sta slot
     plb
     phx
     ; And the B and A edges, consumed: the one that closed the screen belongs
@@ -615,12 +615,12 @@ cerrar:
     ; `request_menu` in the same tick —if the page ended there— and opened the
     ; pause menu; and the A for picking could talk to an event.
     lda pad
-    sta pad_ant
+    sta pad_prev
     lda pad_a
-    sta pad_a_ant
-    stz menu_abierto
-    lda boot_cuadros
-    sta nmi_visto
+    sta pad_a_prev
+    stz menu_open
+    lda boot_frames
+    sta nmi_seen
     rts
 
 ; The cursor to the slot in A: **the two rows that change** are repainted and
@@ -628,13 +628,13 @@ cerrar:
 ; `wait_vblank`.
 mover_cursor:
     sta temp + 3                ; the new one
-    lda titulo_sel
+    lda title_sel
     pha                         ; and the old one, onto the stack
     lda temp + 3
-    sta titulo_sel
+    sta title_sel
     pla
     jsr slot_paint           ; the cursor is erased from where it was
-    lda titulo_sel
+    lda title_sel
     jmp slot_paint           ; and painted where it goes
 .endproc
 

@@ -2,7 +2,7 @@
 
 ; --- the camera panned away from the hero ----------------------------------
 ; `Game_Player::UpdatePan`: each axis approaches its destination by
-; `pan_paso` sixteenths of a pixel, without overshooting. And along the way it
+; `pan_step` sixteenths of a pixel, without overshooting. And along the way it
 ; is brought down to whole pixels, which is what `follow_camera` adds: the
 ; division is **floored** and signed, which is what `Spriteset_Map` does by
 ; dividing `GetDisplayX()` by 16.
@@ -26,17 +26,17 @@ otro_eje:
     ; that is less.
     eor #$FFFF
     inc a                       ; the absolute value of what is left
-    cmp pan_paso
+    cmp pan_step
     bcc corto
-    lda pan_paso
+    lda pan_step
 corto:
     eor #$FFFF
     inc a                       ; and back to signed
     bra sumar
 hacia_adelante:
-    cmp pan_paso
+    cmp pan_step
     bcc sumar
-    lda pan_paso
+    lda pan_step
 sumar:
     clc
     adc pan_x, x
@@ -95,13 +95,13 @@ falta_y:
 mayor:
     ; Rounding up is adding the step minus one before dividing.
     clc
-    adc pan_paso
+    adc pan_step
     sec
     sbc #1
     sta WRDIVL                  ; the dividend, in one 16-bit write
     sep #$20
 .a8
-    lda pan_paso
+    lda pan_step
     sta WRDIVB                  ; starts it: the quotient takes sixteen cycles
     nop
     nop
@@ -143,12 +143,12 @@ mayor:
 .i16
     rep #$20
 .a16
-    lda sacudida_resta
+    lda shake_remain
     beq nada16
     dec a
-    sta sacudida_resta
+    sta shake_remain
     bne sigue
-    stz sacudida_pos            ; the last frame: the screen goes back
+    stz shake_pos            ; the last frame: the screen goes back
 nada16:
     sep #$20
 .a8
@@ -162,14 +162,14 @@ sigue:
     sep #$20
 .a8
     sta WRMPYA
-    lda sacudida_vel
+    lda shake_speed
     inc a
     inc a
     sta WRMPYB                  ; starts it: the product takes eight cycles
-    lda sacudida_fuerza         ; meanwhile, the amplitude
+    lda shake_force         ; meanwhile, the amplitude
     asl a
     inc a
-    sta sac_amp
+    sta shake_amp
     nop
     nop
     lda RDMPYL                  ; the low byte of the product is t
@@ -180,13 +180,13 @@ sigue:
     sep #$20
 .a8
     lda f:seno_sacudida, x      ; outside bank 0: see `tabla_de_senos`
-    sta sac_seno
+    sta shake_sine
     bpl positivo
     eor #$FF
     inc a                       ; |sine|
 positivo:
     sta WRMPYA
-    lda sac_amp
+    lda shake_amp
     sta WRMPYB                  ; |sine| * amplitude
     nop
     nop
@@ -211,24 +211,24 @@ positivo:
     rep #$20
 .a16
     lda RDDIVL
-    sta sac_nuevo               ; |new|
+    sta shake_new               ; |new|
     sep #$20
 .a8
-    lda sac_seno
+    lda shake_sine
     bmi con_signo               ; negative sine: new stays positive
     rep #$20
 .a16
-    lda sac_nuevo
+    lda shake_new
     eor #$FFFF
     inc a
-    sta sac_nuevo               ; positive sine: new is negative
+    sta shake_new               ; positive sine: new is negative
     sep #$20
 .a8
 con_signo:
     ; cut = speed * amplitude / 8 + 1
-    lda sacudida_vel
+    lda shake_speed
     sta WRMPYA
-    lda sac_amp
+    lda shake_amp
     sta WRMPYB
     nop
     nop
@@ -241,34 +241,34 @@ con_signo:
     lsr a
     lsr a
     inc a
-    sta sac_corte
-    lda sacudida_pos
+    sta shake_cutoff
+    lda shake_pos
     sec
-    sbc sac_corte
-    sta sac_lo
-    lda sacudida_pos
+    sbc shake_cutoff
+    sta shake_lo
+    lda shake_pos
     clc
-    adc sac_corte
-    sta sac_hi
+    adc shake_cutoff
+    sta shake_hi
     ; The numbers are small —the amplitude does not go past 19— so the sign
     ; of the subtraction is enough for a signed comparison.
-    lda sac_nuevo
+    lda shake_new
     sec
-    sbc sac_lo
+    sbc shake_lo
     bmi usar_lo
-    lda sac_hi
+    lda shake_hi
     sec
-    sbc sac_nuevo
+    sbc shake_new
     bmi usar_hi
-    lda sac_nuevo
+    lda shake_new
     bra guardar
 usar_lo:
-    lda sac_lo
+    lda shake_lo
     bra guardar
 usar_hi:
-    lda sac_hi
+    lda shake_hi
 guardar:
-    sta sacudida_pos
+    sta shake_pos
     sep #$20
 .a8
     rts
@@ -300,7 +300,7 @@ limite_x:
     bcc guarda_x
     lda cam_max_x
 guarda_x:
-    sta camara_x
+    sta camera_x
 
     lda hero_y
     clc
@@ -316,17 +316,17 @@ limite_y:
     bcc guarda_y
     lda cam_max_y
 guarda_y:
-    sta camara_y
+    sta camera_y
 
     ; The PPU shows line vofs+1 on the first scanline, so what gets written
     ; to it is always one less than where we want to look.
     dec a
     sta scroll_y
     ; And what the drawing sees: the camera plus the screen shake.
-    lda camara_x
+    lda camera_x
     clc
-    adc sacudida_pos
-    sta pantalla_x
+    adc shake_pos
+    sta screen_x
     sep #$20
 .a8
     rts

@@ -3,7 +3,7 @@ contra `screens.equipment_screen`, y lo que equipar cambia en la RAM.
 
 El inventario lo da la página de prueba con `ChangeItems` de verdad. Talan
 arranca con su ropa de trabajo, que es el equipo inicial del LDB copiado a
-`FAR_EQUIPO` en el reset.
+`FAR_EQUIPMENT` en el reset.
 """
 
 from port import screens
@@ -104,7 +104,7 @@ def test_la_linea_vacia_saca_lo_puesto(partida):
 
 def test_el_equipo_viaja_en_la_partida(partida):
     una = partida(caso="guardar-198")
-    una.consola.write_ram(una.simbolos["FAR_EQUIPO"] + TALAN * 10,
+    una.consola.write_ram(una.simbolos["FAR_EQUIPMENT"] + TALAN * 10,
                           [PALO, 0])
     una.guardar_en(0)
     una.reiniciar()

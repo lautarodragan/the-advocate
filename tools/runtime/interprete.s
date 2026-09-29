@@ -31,7 +31,7 @@
 .i16
     ldy ev_cur                  ; where the previous frame left off
 otro:
-    lda [cod_ptr], y
+    lda [code_ptr], y
     iny
     ; A number that is not an opcode ends the page, just like OP_DONE and just
     ; like the chain of `cmp` that was the dispatch until 2026-09-25 did, which
@@ -71,7 +71,7 @@ otro:
 .proc op_done
 .a8
 .i16
-    stz ev_activo
+    stz ev_active
     rts
 .endproc
 

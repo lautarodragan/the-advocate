@@ -3,7 +3,7 @@ pelea comparten: el droide del mapa 2, el grupo de la intro, el modelo de
 `port.battle`, perder sin pelear, la experiencia, los textos de la pantalla y
 volver del Game Over.
 
-**Todo en cuadros de hardware**: la pelea corre su propio lazo y `vueltas` no
+**Todo en cuadros de hardware**: la pelea corre su propio lazo y `ticks` no
 avanza mientras dura.
 """
 
@@ -23,8 +23,8 @@ TROPA_DROIDE = 82
 GRUPO = (11, 12, 13)
 
 # Los modos de la pantalla y las cinco órdenes del menú **se leen de la tabla
-# de símbolos**: `Pelea.modo()` contesta el nombre de la constante `BA_M_*` de
-# la ROM sin el prefijo —"ORDEN", "BLANCO", "FIN"...— y las órdenes son
+# de símbolos**: `Pelea.modo()` contesta el nombre de la constante `BT_M_*` de
+# la ROM sin el prefijo —"COMMAND", "TARGET", "END"...— y las órdenes son
 # `BA_ORDEN_ATACAR` y compañía. El orden es el del original —Attack /
 # <habilidad> / Defend / Use Item— y `Escape` va quinta, que es la
 # simplificación que `port/battle.py` declara.
@@ -41,9 +41,9 @@ class Pelea:
     def __init__(self, una):
         self.una = una
         self.s = una.simbolos
-        self._modos = {int(valor): nombre[len("BA_M_"):]
+        self._modos = {int(valor): nombre[len("BT_M_"):]
                        for nombre, valor in self.s.tabla.items()
-                       if nombre.startswith("BA_M_")}
+                       if nombre.startswith("BT_M_")}
 
     def byte(self, nombre):
         return self.una.consola.ram(self.s[nombre], 1)[0]
@@ -52,22 +52,22 @@ class Pelea:
         bajo, alto = self.una.consola.ram(direccion, 2)
         return bajo | (alto << 8)
 
-    # Los HP y SP **de la pelea**: la ranura `BA_UNO` del combatiente `k`, que
-    # es el puesto en la pantalla —0 a 2 los actores, desde `BA_GRUPO_MAX` los
+    # Los HP y SP **de la pelea**: la ranura `BT_ONE` del combatiente `k`, que
+    # es el puesto en la pantalla —0 a 2 los actores, desde `BT_PARTY_MAX` los
     # enemigos— y no el número de actor. Los de la partida son
     # `Partida.hp(actor)`, y la pelea los copia ahí recién al terminar.
 
     def hp_del_combatiente(self, k):
-        return self.palabra(self.s["BA_UNO"] + k * self.s["BA_BYTES"])
+        return self.palabra(self.s["BT_ONE"] + k * self.s["BT_BYTES"])
 
     def sp_del_combatiente(self, k):
-        return self.palabra(self.s["BA_UNO"] + k * self.s["BA_BYTES"]
-                            + self.s["BA_SP"])
+        return self.palabra(self.s["BT_ONE"] + k * self.s["BT_BYTES"]
+                            + self.s["BT_SP"])
 
     def modo(self):
-        """El nombre del modo de la pantalla: el de su `BA_M_*` sin el
+        """El nombre del modo de la pantalla: el de su `BT_M_*` sin el
         prefijo. Un valor que no es de ninguno vuelve como número."""
-        valor = self.byte("BA_MODO")
+        valor = self.byte("BT_MODE")
         return self._modos.get(valor, valor)
 
     def orden(self, nombre):
@@ -75,7 +75,7 @@ class Pelea:
         return self.s["BA_ORDEN_" + nombre]
 
     def abierta(self):
-        return bool(self.una.byte("menu_abierto"))
+        return bool(self.una.byte("menu_open"))
 
     def tocar_cuadros(self, boton="a", aire=3):
         """`Partida.tocar_cuadros`, con A y tres de aire por omisión: la pelea
@@ -88,7 +88,7 @@ class Pelea:
         for _ in range(tope):
             if self.abierta():
                 return self
-            if self.una.byte("msg_abierto"):
+            if self.una.byte("msg_open"):
                 self.tocar_cuadros("a", 2)
             else:
                 self.una.consola.run(1)
@@ -118,7 +118,7 @@ class Pelea:
         `blanco` el lugar del enemigo o del actor al que apunta, según su
         `scope`. Una de switch va sin blanco, `("habilidad", k)`: no lo pide.
         """
-        self.esperar("ORDEN", tope)
+        self.esperar("COMMAND", tope)
         cual = que[0]
         pasos = self.orden({"atacar": "ATACAR", "defender": "DEFENDER",
                             "habilidad": "HABILIDAD"}[cual])
@@ -129,29 +129,29 @@ class Pelea:
             self.tocar_cuadros("left")
         for _ in range(pasos):
             self.tocar_cuadros("right")
-        assert self.byte("BA_ORDEN") == pasos, (
+        assert self.byte("BT_COMMAND") == pasos, (
             "el cursor tenía que quedar en la orden %d y quedó en %d"
-            % (pasos, self.byte("BA_ORDEN")))
+            % (pasos, self.byte("BT_COMMAND")))
         self.tocar_cuadros()
         if cual == "defender":
             return self
         if cual == "habilidad":
-            self.esperar("HAB", tope)
+            self.esperar("SKILL", tope)
             for _ in range(que[1]):
                 self.tocar_cuadros("right")
-            assert self.byte("BA_HAB_SEL") == que[1]
+            assert self.byte("BT_SKILL_SEL") == que[1]
             self.tocar_cuadros()
             if len(que) == 2:
                 # Una de switch no pide blanco: `Scene_Battle::AssignSkill`
                 # la anota sobre el que la usa. El cursor ya está en el que
                 # sigue, o el turno ya arrancó.
-                assert self.modo() not in ("BLANCO", "ACTOR"), \
+                assert self.modo() not in ("TARGET", "ACTOR"), \
                     "una habilidad de switch pidió blanco"
                 return self
         # El blanco: los enemigos se eligen con el cursor hacia abajo desde el
         # primero vivo, y el grupo igual.
         for _ in range(tope):
-            if self.modo() in ("BLANCO", "ACTOR"):
+            if self.modo() in ("TARGET", "ACTOR"):
                 break
             self.una.consola.run(1)
         else:
@@ -166,7 +166,7 @@ class Pelea:
         """Con las órdenes ya dadas, pasa los mensajes hasta que el turno
         termina."""
         for _ in range(tope):
-            if self.modo() in ("ORDEN", "FIN"):
+            if self.modo() in ("COMMAND", "END"):
                 return self
             self.tocar_cuadros()
         raise AssertionError("el turno no terminó")
@@ -175,15 +175,15 @@ class Pelea:
         """Un turno entero con `cuantos` actores atacando al primer enemigo."""
         for _ in range(cuantos):
             for _ in range(tope):
-                if self.modo() != "ORDEN":
+                if self.modo() != "COMMAND":
                     break
                 self.tocar_cuadros()
             for _ in range(tope):
-                if self.modo() != "BLANCO":
+                if self.modo() != "TARGET":
                     break
                 self.tocar_cuadros()
         for _ in range(tope):
-            if self.modo() in ("ORDEN", "FIN"):
+            if self.modo() in ("COMMAND", "END"):
                 return self
             self.tocar_cuadros()
         raise AssertionError("el turno no terminó")
@@ -204,9 +204,9 @@ class Pelea:
             self.tocar_cuadros()
         else:
             raise AssertionError("la batalla no se cerró")
-        vueltas = self.una.palabra("vueltas")
+        vueltas = self.una.palabra("ticks")
         for _ in range(transicion):
-            if self.una.palabra("vueltas") != vueltas:
+            if self.una.palabra("ticks") != vueltas:
                 return self
             self.una.consola.run(1)
         raise AssertionError("el mapa no volvió a correr después de la pelea")
@@ -265,16 +265,16 @@ def sin_hp(una):
 
 
 def cuadros_hasta_reiniciar(una, tope=900):
-    """Cuántos cuadros de hardware pasan hasta que `vueltas` se va para atrás.
+    """Cuántos cuadros de hardware pasan hasta que `ticks` se va para atrás.
 
     Se cuenta en cuadros y no en ticks a propósito: `Partida.correr` avanza
-    hasta que `vueltas` **suba**, y un reinicio la pone en cero, así que
+    hasta que `ticks` **suba**, y un reinicio la pone en cero, así que
     esperar un tick después del Game Over no terminaría nunca.
     """
-    alto = una.palabra("vueltas")
+    alto = una.palabra("ticks")
     for n in range(tope):
         una.consola.run(1)
-        ahora = una.palabra("vueltas")
+        ahora = una.palabra("ticks")
         if ahora < alto:
             return n
         alto = ahora
@@ -283,15 +283,15 @@ def cuadros_hasta_reiniciar(una, tope=900):
 
 def en_el_game_over(una):
     """Si la pantalla de Game Over está a la vista, esperando la tecla: es
-    `GO_ESPERA`, que la ROM prende al terminar el fundido de entrada. Ver
+    `GO_WAIT`, que la ROM prende al terminar el fundido de entrada. Ver
     runtime/game_over.s."""
-    return una.consola.ram(en_la_wram(una.simbolos["GO_ESPERA"]), 1)[0] != 0
+    return una.consola.ram(en_la_wram(una.simbolos["GO_WAIT"]), 1)[0] != 0
 
 
 def cuadros_hasta_el_game_over(una, tope=900):
     """Cuántos cuadros de hardware pasan hasta que la pantalla de Game Over
     espera la tecla, o `None`. Desde el 2026-09-28 perder no reinicia la ROM
-    hasta que se aprieta: mirar `vueltas` sola ya no alcanza."""
+    hasta que se aprieta: mirar `ticks` sola ya no alcanza."""
     for n in range(tope):
         if en_el_game_over(una):
             return n
@@ -321,15 +321,15 @@ def con_encuentros(partida):
 # --- el grupo, leído de la RAM ------------------------------------------------
 
 def grupo_de(una):
-    """Hasta `grupo_n`: las ranuras de más no se limpian y traen basura."""
-    return list(una.consola.ram(una.simbolos["grupo"], una.palabra("grupo_n")))
+    """Hasta `party_n`: las ranuras de más no se limpian y traen basura."""
+    return list(una.consola.ram(una.simbolos["party"], una.palabra("party_n")))
 
 
 def sabe(una, actor, habilidad):
-    """Si el actor sabe la habilidad: su bit en `FAR_HAB`, con el índice de
+    """Si el actor sabe la habilidad: su bit en `FAR_SKILL`, con el índice de
     pares del cartucho de pruebas."""
     r = datos.ranuras_de_habilidad()[(actor, habilidad)]
-    octeto = una.consola.ram(una.simbolos["FAR_HAB"] + (r >> 3), 1)[0]
+    octeto = una.consola.ram(una.simbolos["FAR_SKILL"] + (r >> 3), 1)[0]
     return bool(octeto & (1 << (r & 7)))
 
 
@@ -387,7 +387,7 @@ ARDEN = 15
 def mensaje_en_pantalla(una, pelea):
     """Los renglones del mensaje de página que la ROM tiene puesto, leídos del
     cartucho en el desplazamiento que dejó `op_message`."""
-    desplazamiento = pelea.palabra(una.simbolos["BA_PAG_MSG"])
+    desplazamiento = pelea.palabra(una.simbolos["BT_PAGE_MSG"])
     assert desplazamiento != 0xFFFF, "no hay ningún mensaje de página"
     with open(una.sfc, "rb") as archivo:
         rom = archivo.read()
@@ -422,7 +422,7 @@ def renglones(una, fila0, cuantos):
     `fila0` del tilemap, de a dos filas cada uno, sin los espacios del final.
     Una celda que no es ninguna letra sale como '#'."""
     de = glifos(una)
-    buf = una.consola.ram(en_la_wram(una.simbolos["texto_buf"]), 64 * 28)
+    buf = una.consola.ram(en_la_wram(una.simbolos["text_buf"]), 64 * 28)
     salida = []
     for r in range(cuantos):
         fila = fila0 + 2 * r
@@ -454,7 +454,7 @@ def paginas(una, pelea, tope=10):
     for _ in range(tope):
         if not pelea.abierta():
             return vistas
-        assert pelea.modo() == "FIN"
+        assert pelea.modo() == "END"
         arriba, abajo = ventana(una)
         assert abajo == ["", ""], \
             "el renglón del mensaje de la pelea tendría que estar vacío: %r" \
@@ -480,7 +480,7 @@ def primera_pagina(term, exp):
 # End Game, que termina en el mismo reinicio.
 
 # Cuántos cuadros de hardware se le dan al arranque de después del Game Over
-# para volver al lazo. El arranque son BOOT_CUADROS y encima la subida al
+# para volver al lazo. El arranque son BOOT_FRAMES y encima la subida al
 # SPC700, que no se cuenta en cuadros: el doble es paciencia de sobra.
 VOLVER_TOPE = 600
 
@@ -490,14 +490,14 @@ TITULO_QUIETO = 170
 
 
 def pasar_el_titulo(una):
-    """`BOOT_CUADROS` y, con pantalla de título, "Begin the Story".
+    """`BOOT_FRAMES` y, con pantalla de título, "Begin the Story".
 
     **El Game Over vuelve al título**, que es lo que hace RM2k
     —`Scene_Gameover` termina en `Scene_Title`—, y ahí el juego no corre
     hasta que alguien elige. En un cartucho sin título el arranque va directo
     al mapa y esto es sólo esperar el arranque.
     """
-    una.consola.run(una.simbolos["BOOT_CUADROS"])
+    una.consola.run(una.simbolos["BOOT_FRAMES"])
     if una.titulo is not None:
         una.pasar_el_titulo(EMPEZAR)
 
@@ -506,20 +506,20 @@ def cuadros_hasta_volver(una, tope=VOLVER_TOPE):
     """Cuántos cuadros pasan, desde el reinicio, hasta que el lazo vuelve a
     correr. `None` si no volvió: eso es el cuelgue.
 
-    Se mira que `vueltas` **suba**, que es lo único que dice que el arranque
-    terminó: `mapa_actual` ya vale lo suyo mucho antes —`load_map` corre
+    Se mira que `ticks` **suba**, que es lo único que dice que el arranque
+    terminó: `map_current` ya vale lo suyo mucho antes —`load_map` corre
     antes de la subida al SPC700— así que preguntarle a él da verde con la ROM
     clavada. Es exactamente lo que pasaba acá hasta el 2026-09-13.
 
     Con pantalla de título se la pasa primero —ver `pasar_el_titulo`—: si el
-    arranque se colgara antes, los toques caen en nada y `vueltas` no sube
+    arranque se colgara antes, los toques caen en nada y `ticks` no sube
     igual.
     """
     if una.titulo is not None:
         pasar_el_titulo(una)
     for n in range(tope):
-        antes = una.palabra("vueltas")
+        antes = una.palabra("ticks")
         una.consola.run(1)
-        if una.palabra("vueltas") > antes:
+        if una.palabra("ticks") > antes:
             return n
     return None

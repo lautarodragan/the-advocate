@@ -72,7 +72,7 @@ MARGIN = 10 ** (-0.5 / 20)
 # MVOL/128.
 CAP = 32767 * sdsp.MASTER >> 7
 
-# How many frames before the end of boot —`BOOT_CUADROS`, read from the ROM—
+# How many frames before the end of boot —`BOOT_FRAMES`, read from the ROM—
 # recording starts: the title screen starts its song afterwards, so it is
 # slack. It used to be a fixed 90 frames from power-on, with boot at 112,
 # which is what the script that measured step 5 expected; since boot got
@@ -128,7 +128,7 @@ def play(sfc, song, n_frames):
             handle.write(rom)
         console = retro.Console(path, msu=False)
         rate = console.sample_rate()
-        console.run(symbols["BOOT_CUADROS"] - BEFORE_TITLE)
+        console.run(symbols["BOOT_FRAMES"] - BEFORE_TITLE)
         console.audio = bytearray()
         parts = []
         for _ in range(n_frames):

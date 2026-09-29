@@ -170,7 +170,7 @@ def de_stash_a_ag7(r):
     # El primer texto del tutorial, sin tocar A: la paciencia de `esperar`
     # lo cerraría antes de la foto.
     r.esperar("el primer texto del tutorial",
-              lambda p: p.byte("msg_abierto") and p.byte("msg_estado") != 1,
+              lambda p: p.byte("msg_open") and p.byte("msg_state") != 1,
               tope=600, a_cada=None)
     r.foto("el-tutorial", asentar=False)
     llegar(r, 48, DESPUES_DEL_TUTORIAL, "la vuelta del tutorial", tope=20000)
@@ -178,7 +178,7 @@ def de_stash_a_ag7(r):
         "AG7-17 entra al grupo detrás de Talan, y el grupo es %s. %s"
         % (grupo_de(r.p), r.estado()))
     assert r.p.item(EL_CHIP) == 0, "Stash se queda con el chip. %s" % r.estado()
-    assert r.p.palabra("tema_actual") == indice_del_tema(
+    assert r.p.palabra("song_current") == indice_del_tema(
         r.p, "golden_axe-turtlevillage2"), (
         "el tutorial vuelve a poner el tema con el que llegó. %s" % r.estado())
     r.foto("ag7-en-el-grupo")

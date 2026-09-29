@@ -19,7 +19,7 @@
     ldx #$0000
 buscar:
     lda flash_ev, x
-    cmp #FLASH_LIBRE
+    cmp #FLASH_FREE
     beq set2
     rep #$20
 .a16
@@ -34,22 +34,22 @@ buscar:
     rts                         ; no slot: this flash is lost
 
 set2:
-    lda [cod_ptr], y            ; the target
+    lda [code_ptr], y            ; the target
     sta flash_ev + 0, x
     iny
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta flash_ev + 1, x         ; r
     iny
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta flash_ev + 2, x         ; g
     iny
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta flash_ev + 3, x         ; b
     iny
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta flash_ev + 4, x         ; strength
     iny
-    lda [cod_ptr], y
+    lda [code_ptr], y
     sta flash_ev + 5, x         ; how many frames
     stz flash_ev + 6, x         ; just starting
     rts
@@ -88,7 +88,7 @@ hay:
     ldx #$0000
 otra:
     lda flash_ev, x
-    cmp #FLASH_LIBRE
+    cmp #FLASH_FREE
     beq siguiente
     phx
     jsr one_flash
@@ -120,7 +120,7 @@ siguiente:
     cmp flash_ev + 5, x
     bcc todavia
     beq todavia                 ; the last frame goes with zero strength
-    lda #FLASH_LIBRE
+    lda #FLASH_FREE
     sta flash_ev + 0, x
     rts
 
@@ -157,12 +157,12 @@ todavia:
     asl a
     asl a
     asl a                       ; easyrpg's alpha is the strength times eight
-    sta flash_alfa
+    sta flash_alpha
     jmp paint_flash
 .endproc
 
 ; Uploads the palette of the target of slot X with the strength already in
-; `flash_alfa`.
+; `flash_alpha`.
 .proc paint_flash
 .a8
 .i16
@@ -186,17 +186,17 @@ ready:
 .proc palette_with_flash
 .a8
 .i16
-    stx flash_ranura            ; `flash_channel_table` uses X for the table
+    stx flash_slot_ofs            ; `flash_channel_table` uses X for the table
     lda flash_ev + 1, x
     sta flash_dest
-    ldy #0                      ; the red of `puro` and of the working ones
+    ldy #0                      ; the red of `pure` and of the working ones
     jsr flash_channel_table
-    ldx flash_ranura
+    ldx flash_slot_ofs
     lda flash_ev + 2, x
     sta flash_dest
     ldy #32                     ; the green
     jsr flash_channel_table
-    ldx flash_ranura
+    ldx flash_slot_ofs
     lda flash_ev + 3, x
     sta flash_dest
     ldy #64                     ; the blue
@@ -213,19 +213,19 @@ ready:
     asl a
     asl a                       ; thirty-two bytes per palette
     sta temp
-    ldx mapa_ofs
+    ldx map_ofs
     lda f:mapa_tabla + M_PTR_SPRITE_CGRAM, x
     clc
     adc temp
-    sta tin_ptr
+    sta tint_ptr
     sep #$20
 .a8
     lda f:mapa_tabla + M_PTR_SPRITE_CGRAM + 2, x
-    sta tin_ptr + 2
+    sta tint_ptr + 2
     rep #$20
 .a16
     lda #16
-    sta tin_count
+    sta tint_count
     lda flash_slot
     asl a
     asl a
@@ -235,7 +235,7 @@ ready:
     adc #128
     sep #$20
 .a8
-    sta tin_cgadd
+    sta tint_cgadd
     jsr build_palette
 
     ; The built palette is stored aside and uploaded in the next vblank, not
@@ -246,7 +246,7 @@ ready:
     ; place in FAR_FLASH_PAL: see there.
     rep #$20
 .a16
-    lda flash_ranura
+    lda flash_slot_ofs
     asl a
     asl a                       ; from eight bytes per slot to thirty-two
     tax
@@ -260,8 +260,8 @@ copiar:
     iny
     cpy #32
     bne copiar
-    ldx flash_ranura
-    lda tin_cgadd
+    ldx flash_slot_ofs
+    lda tint_cgadd
     sta flash_ev + 7, x         ; and it is left waiting for the vblank
 
     ; And the tables go back to being the tint-only ones, which is what
@@ -270,7 +270,7 @@ copiar:
     jmp restore_tables
 .endproc
 
-; The tint's three channel tables, without flash, and their copy in `puro`.
+; The tint's three channel tables, without flash, and their copy in `pure`.
 ;
 ; The copy exists because of the frame budget. `palette_with_flash` runs on
 ; every frame while a flash lasts and it used to end by rebuilding these
@@ -281,14 +281,14 @@ copiar:
 .proc tint_tables
 .a8
 .i16
-    lda tinte_r
-    ldx #.loword(puro)
+    lda tint_r
+    ldx #.loword(pure)
     jsr channel_table
-    lda tinte_g
-    ldx #.loword(puro) + 32
+    lda tint_g
+    ldx #.loword(pure) + 32
     jsr channel_table
-    lda tinte_b
-    ldx #.loword(puro) + 64
+    lda tint_b
+    ldx #.loword(pure) + 64
     jsr channel_table
     ; fallthrough
 .endproc
@@ -299,12 +299,12 @@ copiar:
 .i16
     ldx #$0000
 copiar:
-    lda puro + 0, x
-    sta tabla_r, x
-    lda puro + 32, x
-    sta tabla_g, x
-    lda puro + 64, x
-    sta tabla_b, x
+    lda pure + 0, x
+    sta table_r, x
+    lda pure + 32, x
+    sta table_g, x
+    lda pure + 64, x
+    sta table_b, x
     inx
     cpx #32
     bne copiar
@@ -312,9 +312,9 @@ copiar:
 .endproc
 
 ; Like `channel_table`, but blending toward the flash color first. Y carries
-; which channel: 0, 32 or 64, which is both the offset into `puro` and into
-; the working tables —`tabla_r`, `tabla_g` and `tabla_b` are contiguous, like
-; the three of `puro`—; `flash_dest` the flash channel and `flash_alfa` how
+; which channel: 0, 32 or 64, which is both the offset into `pure` and into
+; the working tables —`table_r`, `table_g` and `table_b` are contiguous, like
+; the three of `pure`—; `flash_dest` the flash channel and `flash_alpha` how
 ; strong.
 ;
 ; The blend is easyrpg's put into five bits: `dest * a + channel * (255 - a)`
@@ -360,14 +360,14 @@ copiar:
     ; animations—, so the blend does not overflow either.
     lda flash_dest
     sta WRMPYA
-    lda flash_alfa
+    lda flash_alpha
     sta WRMPYB                  ; the product takes eight cycles
     rep #$20
 .a16
     tya
     clc
     adc #32
-    sta puro_ofs                ; where this channel ends
+    sta pure_ofs                ; where this channel ends
     lda RDMPYL
     sta WRDIVL
     sep #$20
@@ -375,8 +375,8 @@ copiar:
     lda #255
     sta WRDIVB                  ; the quotient takes sixteen
     sec
-    sbc flash_alfa
-    sta flash_parcial           ; the numerator's step, 255 - a
+    sbc flash_alpha
+    sta flash_partial           ; the numerator's step, 255 - a
     nop
     nop
     nop
@@ -385,14 +385,14 @@ copiar:
 .a16
     tya
     clc
-    adc RDDIVL                  ; X: the quotient, in `puro`'s channel
+    adc RDDIVL                  ; X: the quotient, in `pure`'s channel
     tax
     sep #$20
 .a8
     ; The remainder is shifted up by one —from 1 to 255 instead of 0 to 254—
     ; so that "went past 254" is the carry of the eight-bit add; and when it
     ; goes past, subtracting 255 is keeping the byte and adding one. It lives
-    ; in B while A reads `puro`.
+    ; in B while A reads `pure`.
     lda RDMPYL
     inc a
 cada:
@@ -400,18 +400,18 @@ cada:
     ; And the tint, which is already resolved: looking up the blended channel
     ; in the tint-only table **is** the hard light, and it takes a product and
     ; a division per entry out of the loop.
-    lda puro, x
-    sta tabla_r, y
+    lda pure, x
+    sta table_r, y
     xba
     clc
-    adc flash_parcial
+    adc flash_partial
     bcc :+
     inc a
     inx
 :   iny
-    cpy puro_ofs
+    cpy pure_ofs
     bne cada
     rts
 .endproc
-.assert tabla_g = tabla_r + 32 && tabla_b = tabla_r + 64, error, "flash_channel_table indexes all three from tabla_r"
+.assert table_g = table_r + 32 && table_b = table_r + 64, error, "flash_channel_table indexes all three from table_r"
 

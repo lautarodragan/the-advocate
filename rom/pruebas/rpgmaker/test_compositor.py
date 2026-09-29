@@ -2,7 +2,7 @@
 
 Ésta es la red que faltó dos veces. Un cuadro de texto trae, por renglón, un
 byte con cuántos caracteres tiene, y ese byte sale del cartucho.
-`compose_char` escribe en `texto_buf` con
+`compose_char` escribe en `text_buf` con
 un desplazamiento que sale de la columna, así que un largo mayor que
 `MENSAJE_COLS` escribe **fuera del buffer**, y lo que hay del otro lado es la
 tabla del HDMA de la ventana, la imagen de OAM y `vq_n`, el contador de la cola
@@ -19,7 +19,7 @@ largo malo —venga de donde venga— corte el renglón en vez de romper la pant
 
 # Un largo que no puede existir: el tope real son 39 columnas. Con 70 se pasan
 # 31, y alcanzan para llegar hasta la cola de VRAM: la columna 64 escribe una
-# palabra en `texto_buf` + 2534, y `vq_n` cae justo en el 2535 —el buffer mide
+# palabra en `text_buf` + 2534, y `vq_n` cae justo en el 2535 —el buffer mide
 # 1968—.
 LARGO_INVENTADO = 70
 
@@ -33,7 +33,7 @@ def _componer(p, largo, ticks=TICKS):
     correr.
 
     Es el estado en el que `message_tick` se deja a sí mismo después de leer el
-    byte de largo del cartucho, salteando esa lectura: `msg_cebada` en 1 dice
+    byte de largo del cartucho, salteando esa lectura: `msg_primed` en 1 dice
     que el fondo del renglón ya está en el buffer, así que lo próximo que hace
     es componer. `msg_ptr` apunta al bloque de textos, que es ROM legible: qué
     caracteres salgan de ahí no importa, importa dónde se escriben.
@@ -42,10 +42,10 @@ def _componer(p, largo, ticks=TICKS):
     p.consola.write_ram(p.simbolos["msg_ptr"],
                         [mensajes & 0xFF, (mensajes >> 8) & 0xFF,
                          (mensajes >> 16) & 0xFF])
-    for nombre, valor in (("msg_lineas", 1), ("msg_linea", 0),
-                          ("msg_col", 0), ("msg_largo", largo),
-                          ("msg_cebada", 1), ("msg_subir", 0),
-                          ("msg_estado", 1)):
+    for nombre, valor in (("msg_lines", 1), ("msg_line", 0),
+                          ("msg_col", 0), ("msg_length", largo),
+                          ("msg_primed", 1), ("msg_upload", 0),
+                          ("msg_state", 1)):
         p.poner_byte(nombre, valor)
     for _ in range(ticks):
         p.correr(1)
@@ -53,7 +53,7 @@ def _componer(p, largo, ticks=TICKS):
 
 
 def _cola_de_la_ram(p):
-    """Todo lo que vive entre el final de `texto_buf` y el final de la cola de
+    """Todo lo que vive entre el final de `text_buf` y el final de la cola de
     VRAM, que es exactamente lo que un desborde del compositor pisa."""
     desde = p.simbolos["hdma_sc"]
     hasta = (p.simbolos["vq_n"] + 1
@@ -86,7 +86,7 @@ def test_un_largo_inventado_no_escribe_fuera_del_buffer(partida):
     distintos = [desde + i for i in range(len(antes))
                  if antes[i] != despues[i]]
     assert not distintos, (
-        "un renglón de %d caracteres escribió %d bytes fuera de `texto_buf`, "
+        "un renglón de %d caracteres escribió %d bytes fuera de `text_buf`, "
         "encima del HDMA de la ventana, de la imagen de OAM y de la cola de "
         "VRAM: %s..." % (LARGO_INVENTADO, len(distintos), distintos[:8]))
 

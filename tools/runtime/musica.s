@@ -11,7 +11,7 @@
 ; One music frame per video frame, plus an extra one every five if the console
 ; is PAL: six every five is exactly 60 per 50.
 .proc irq_music
-    jml f:rapida + RAPIDO       ; the vector lands in bank 0: see MEMSEL
+    jml f:rapida + FAST       ; the vector lands in bank 0: see MEMSEL
 rapida:
     ; Everything touched is saved, B and D included: this lands in the middle
     ; of anything, among them the interpreter with B pointing at the bytecode.
@@ -46,19 +46,19 @@ rapida:
 .proc music_tick
 .a8
 .i16
-    ; The `FadeOutBGM` first, and **outside** the `music_apagada` guard: it is
+    ; The `FadeOutBGM` first, and **outside** the `music_off` guard: it is
     ; what will set it when the volume reaches zero.
-    lda bgm_fundido
+    lda bgm_fade
     beq sin_fundido
     jsr bgm_fade_tick
 sin_fundido:
     ; The sound effects wrap around the music, and run even when it is silent:
     ; see "sound effects" in `efectos_de_sonido.s`.
     jsr se_before
-    lda music_apagada
+    lda music_off
     bne ready
     jsr music_frame
-    lda es_pal
+    lda is_pal
     beq ready
     inc pal_tick
     lda pal_tick
@@ -79,7 +79,7 @@ ready:
 ; changing stream and nothing else, so it does not cost even a frame. Hence
 ; there is nothing to upload here. See `Banco` in tools/audio/snes_music.py.
 ;
-; Which index is playing stays in `tema_actual`, which is what `music_frame`
+; Which index is playing stays in `song_current`, which is what `music_frame`
 ; needs to start over when the stream ends: without it the loop always went
 ; back to the first one.
 .proc music_start
@@ -97,13 +97,13 @@ ready:
     ; With a track, the SPC700 goes silent: the stream does not run and the
     ; voices release.
     pla
-    sta tema_actual
-    stz tema_actual + 1
+    sta song_current
+    stz song_current + 1
     php
     sei
     lda #1
-    sta music_apagada
-    stz bgm_fundido
+    sta music_off
+    stz bgm_fade
     lda #$FF
     ldx #SE_KOF
     jsr dsp_pair                 ; the eight voices release, and KOF stays set
@@ -145,7 +145,7 @@ sin_pista:
     ; in the middle of a `FadeOutBGM` keeps fading out, as in RM2k. Until
     ; 2026-09-26 the loop cancelled it, because the start of the stream
     ; restored the master volume, which was what the fade lowered.
-    stz bgm_fundido
+    stz bgm_fade
     jsr music_start_done
     plp
     rts
@@ -154,9 +154,9 @@ sin_pista:
 .proc music_start_done
 .a8
 .i16
-    sta tema_actual
-    stz tema_actual + 1
-    ldx tema_actual
+    sta song_current
+    stz song_current + 1
+    ldx song_current
     lda tema_lo, x
     sta music
     lda tema_hi, x
@@ -169,21 +169,21 @@ sin_pista:
     ; the second time around write the same as the first.
     lda #0
     sta f:MUS_KON
-    sta f:MUS_SONANDO
-    sta f:MUS_VISTAS
+    sta f:MUS_PLAYING
+    sta f:MUS_VIEWS
     sta f:MUS_GAINS
     rep #$20
 .a16
     lda #0                      ; again: the 8-bit `lda #0` did not
-    sta f:MUS_ESPERA            ; clear B, and the wait is sixteen bits
-    lda tema_actual
+    sta f:MUS_WAIT            ; clear B, and the wait is sixteen bits
+    lda song_current
     asl a
     tax
     lda f:tema_sonidos, x
     sta f:MUS_BASE
     sep #$20
 .a8
-    stz music_apagada
+    stz music_off
     rts
 .endproc
 
@@ -206,26 +206,26 @@ sin_pista:
 .i16
     rep #$20
 .a16
-    lda bgm_nivel
+    lda bgm_level
     jsr level_factor
-    sta f:FUNDIDO_ANTES         ; the one the DSP has
-    lda bgm_nivel
+    sta f:FADE_BEFORE         ; the one the DSP has
+    lda bgm_level
     sec
-    sbc bgm_paso
+    sbc bgm_step
     bcs baja                    ; still some left
     lda #0
 baja:
-    sta bgm_nivel
+    sta bgm_level
     jsr level_factor
-    sta f:FUNDIDO_N             ; this frame's
+    sta f:FADE_N             ; this frame's
     sep #$20
 .a8
-    lda bgm_nivel
-    ora bgm_nivel + 1
+    lda bgm_level
+    ora bgm_level + 1
     bne sigue
-    stz bgm_fundido
+    stz bgm_fade
     lda #1
-    sta music_apagada           ; the song is cut, like `BgmFade`
+    sta music_off           ; the song is cut, like `BgmFade`
 sigue:
     lda f:MSU_PLAYING
     bne pista
@@ -237,15 +237,15 @@ pista:
     ; shares the result register—; an interrupt between its write and its read
     ; would change its result. Not with the PPU's either, which is eight-bit
     ; signed and MSU_VOLUME_MAX does not fit. So by hand, one bit of the level
-    ; at a time, with `dsp_valor` as scratch: it belongs to the music only.
+    ; at a time, with `dsp_value` as scratch: it belongs to the music only.
     rep #$20
 .a16
     lda #MSU_VOLUME_MAX
     sta f:MSU_FACTOR            ; the loop adds it with `adc f:`: there is
     sep #$20                    ; nowhere to keep a partial, and no `,s` here
 .a8
-    lda bgm_nivel + 1
-    sta dsp_valor
+    lda bgm_level + 1
+    sta dsp_value
     ldx #8
     rep #$20
 .a16
@@ -254,7 +254,7 @@ bit_del_nivel:
     asl a
     sep #$20
 .a8
-    asl dsp_valor               ; sep and rep do not touch carry
+    asl dsp_value               ; sep and rep do not touch carry
     rep #$20
 .a16
     bcc sin_sumar
@@ -292,8 +292,8 @@ ready:
 
 ; The volume of the music's voices, kept up to date with the fade: VOL_L and
 ; VOL_R of each voice that has already played in this song, scaled by
-; FUNDIDO_N. Only the ones that changed since the previous frame are rewritten
-; —the one scaled by FUNDIDO_ANTES is what the DSP already has—: a
+; FADE_N. Only the ones that changed since the previous frame are rewritten
+; —the one scaled by FADE_BEFORE is what the DSP already has—: a
 ; three-hundred-frame fade moves each volume once every so many frames, and
 ; each write waits on the SPC700.
 ;
@@ -306,7 +306,7 @@ ready:
     ldx #0                      ; the voice's VOL_L: the DSP register
     ldy #0                      ; the voice
 otra_voz:
-    lda f:MUS_VISTAS
+    lda f:MUS_VIEWS
     and voice_bit, y
     beq siguiente               ; did not play in this song: not sounding
     jsr volume_refresh
@@ -327,25 +327,25 @@ siguiente:
     rts
 .endproc
 
-; A voice's volume register X, with what the stream wrote to it —MUS_SOMBRA—
-; times FUNDIDO_N, over 256, if that changed with respect to FUNDIDO_ANTES.
+; A voice's volume register X, with what the stream wrote to it —MUS_SHADOW—
+; times FADE_N, over 256, if that changed with respect to FADE_BEFORE.
 ; The product is done by the PPU's multiplier, which belongs to `irq_music`
 ; —see M7A—: signed, which is what a DSP volume is, and without waiting.
 ; Does not touch X or Y.
 .proc volume_refresh
 .a8
 .i16
-    lda f:MUS_SOMBRA, x
+    lda f:MUS_SHADOW, x
     sta M7B
-    lda f:FUNDIDO_ANTES
+    lda f:FADE_BEFORE
     sta M7A
-    lda f:FUNDIDO_ANTES + 1
+    lda f:FADE_BEFORE + 1
     sta M7A
     lda MPYM
     pha                         ; what the DSP has
-    lda f:FUNDIDO_N
+    lda f:FADE_N
     sta M7A
-    lda f:FUNDIDO_N + 1
+    lda f:FADE_N + 1
     sta M7A
     lda MPYM                    ; what it should have
     cmp 1, s
@@ -357,16 +357,16 @@ igual:
 .endproc
 
 ; A: a voice volume the stream is about to write to the DSP. Returns with it
-; times FUNDIDO_N, over 256. It is the same computation as `volume_refresh`,
+; times FADE_N, over 256. It is the same computation as `volume_refresh`,
 ; so what the music writes in the middle of a fade and what the fade rewrites
 ; afterwards match. Does not touch X, Y or V.
 .proc volume_fade
 .a8
 .i16
     sta M7B
-    lda f:FUNDIDO_N
+    lda f:FADE_N
     sta M7A
-    lda f:FUNDIDO_N + 1
+    lda f:FADE_N + 1
     sta M7A
     lda MPYM
     rts
@@ -390,16 +390,16 @@ igual:
 .a8
 .i16
     ; A loaded save brings its own song —the one the event's `PlayBGM` turned
-    ; on— and `load_game` already left it in `tema_actual` and
-    ; `music_apagada`. Without this the save would start with the song of the
+    ; on— and `load_game` already left it in `song_current` and
+    ; `music_off`. Without this the save would start with the song of the
     ; ROM's starting map, which is the opening's and not the one of the place
     ; where the player saved.
-    lda ranura
+    lda slot
     cmp #$FF
     beq del_mapa                ; no slot loaded: the map's song
-    lda music_apagada
+    lda music_off
     bne callado                 ; saved at a moment without music
-    lda tema_actual
+    lda song_current
     jmp music_start
 del_mapa:
     lda #TEMA_ARRANQUE
@@ -407,8 +407,8 @@ del_mapa:
     bne suena
 callado:
     lda #1
-    sta music_apagada
-    ; And the MSU-1 track, which `music_apagada` does not silence: coming from
+    sta music_off
+    ; And the MSU-1 track, which `music_off` does not silence: coming from
     ; the title its track kept playing inside the game until the first
     ; `PlayBGM`, and a battle in between recorded it as the song to restore.
     ; `test_con_msu_la_pista_del_titulo_no_sigue_en_la_partida` catches it.
@@ -476,17 +476,17 @@ ready:
 .proc music_frame
 .a8
 .i16
-    stz reinicio
-    lda f:MUS_BITACORA_SI
+    stz restart
+    lda f:MUS_LOG_YES
     beq sin_marca
     jsr log_frame
 sin_marca:
     rep #$20
 .a16
-    lda f:MUS_ESPERA
+    lda f:MUS_WAIT
     beq abrir
     dec a
-    sta f:MUS_ESPERA
+    sta f:MUS_WAIT
     sep #$20
 .a8
     rts
@@ -495,10 +495,10 @@ abrir:
 .a16
     sep #$20
 .a8
-    lda f:MUS_SONANDO           ; clear the previous frame's key-on
+    lda f:MUS_PLAYING           ; clear the previous frame's key-on
     beq leer
     lda #0
-    sta f:MUS_SONANDO
+    sta f:MUS_PLAYING
     ldx #SE_KON
     jsr dsp_music
 
@@ -520,10 +520,10 @@ no_init:
     cmp #OP_END
     bne mudo                    ; an opcode that does not exist: go silent
                                 ; rather than write anything to the DSP
-    lda reinicio
+    lda restart
     bne mudo
-    inc reinicio
-    lda tema_actual             ; it ended: the same one, again from the top
+    inc restart
+    lda song_current             ; it ended: the same one, again from the top
     jsr music_start_done          ; inside the IRQ: no `sei` and no package
     bra leer
 mudo:
@@ -537,7 +537,7 @@ mudo:
     ; in the suite gave it away with a repeated frame, and a scanline probe at
     ; the end of each phase of the loop.
     lda #1
-    sta music_apagada
+    sta music_off
     rts
 
 cruda:
@@ -579,7 +579,7 @@ cerrar:
 .a8
     lda f:MUS_KON
     beq sin_kon
-    sta f:MUS_SONANDO
+    sta f:MUS_PLAYING
     ldx #SE_KON
     jsr dsp_music
     lda #0
@@ -593,7 +593,7 @@ sin_kon:
     pla
     beq sigue
     dec a
-    sta f:MUS_ESPERA
+    sta f:MUS_WAIT
     sep #$20
 .a8
     rts
@@ -688,16 +688,16 @@ voice_bit:
     phx
     tyx
     bvs escribir
-    cmp f:MUS_SOMBRA, x
+    cmp f:MUS_SHADOW, x
     beq igual
 escribir:
-    sta f:MUS_SOMBRA, x
+    sta f:MUS_SHADOW, x
     ; In the middle of a `FadeOutBGM`, the volume goes scaled: the shadow keeps
     ; the stream's, which is what the cache compares against and what
     ; `volume_refresh` derives each frame's from. VOL_L and VOL_R are the
     ; voice's first two registers.
     pha
-    lda bgm_fundido
+    lda bgm_fade
     beq tal_cual
     txa
     and #$0E
@@ -721,11 +721,11 @@ igual:
 .i16
     clv
     lda f:MUS_BIT
-    and f:MUS_VISTAS
+    and f:MUS_VIEWS
     bne already
     lda f:MUS_BIT
-    ora f:MUS_VISTAS
-    sta f:MUS_VISTAS
+    ora f:MUS_VIEWS
+    sta f:MUS_VIEWS
     sep #$40                    ; V
 already:
     rts
@@ -793,7 +793,7 @@ already:
     .endrepeat
     lda f:musica_sonidos + 5, x
     tyx                         ; the voice's register 8, which is ENVX
-    sta f:MUS_SOMBRA + 1, x
+    sta f:MUS_SHADOW + 1, x
     lda f:MUS_BIT
     ora f:MUS_KON
     sta f:MUS_KON
@@ -834,7 +834,7 @@ con_gain:
 .a8
 .i16
     tyx
-    lda f:MUS_SOMBRA + 8, x     ; the GAIN of the voice's sound
+    lda f:MUS_SHADOW + 8, x     ; the GAIN of the voice's sound
     bra ev_release_gain::soltar
 .endproc
 
@@ -890,12 +890,12 @@ con_gain:
     ldx #0
     lda #0
 otro:
-    sta f:MUS_ESPERA, x
+    sta f:MUS_WAIT, x
     inx
-    cpx #MUS_ESTADO_BYTES
+    cpx #MUS_STATE_BYTES
     bcc otro
-    sta f:MUS_BITACORA_SI
-    sta f:MUS_BITACORA_I
-    sta f:MUS_BITACORA_I + 1
+    sta f:MUS_LOG_YES
+    sta f:MUS_LOG_I
+    sta f:MUS_LOG_I + 1
     rts
 .endproc

@@ -13,7 +13,7 @@
 ; use absolute addressing on its state: `inc`, `stz`, `ldx` and `cpy` have no
 ; long mode, so with `f:` each one would have to go through the accumulator.
 ; And it costs the rest nothing: in bank $7E the addresses from $0000 to $1FFF
-; **are** bank 0's low RAM, so `temp`, `comp_*` and `grupo` read the same as
+; **are** bank 0's low RAM, so `temp`, `comp_*` and `party` read the same as
 ; always.
 ;
 ; What does change are **the ROM tables**, which go with `f:`: the ones here
@@ -41,7 +41,7 @@
 ; adds X over the 24 bits and does not depend on the data bank register—, so
 ; they can live out here. They cost a byte and a cycle per access, and none of
 ; the three is in a loop that runs every frame: the PPU registers are written
-; once at power-on and `partida_tabla` is walked when saving and loading.
+; once at power-on and `save_table` is walked when saving and loading.
 ;
 ; They moved down from bank 0 on 2026-09-13, when `HaltAllMovement` and the
 ; per-item branch pushed it over by 128 bytes. Bank 0 holds the code and the
@@ -55,7 +55,7 @@
 ; that is why these moved down and not the route speed ones, which are read
 ; with Y.
 ;
-; None of them is in a per-frame loop. The hottest is `tabla_fila_buf`, which
+; None of them is in a per-frame loop. The hottest is `row_buf_table`, which
 ; the text composer reads **once per glyph row**: sixteen per letter and only
 ; while a message window is being built, that is one extra cycle per row on
 ; top of the hundreds it takes to compose it.
@@ -63,18 +63,18 @@
 ; Which byte of the text buffer each of its sixteen rows starts at. The buffer
 ; is two cell rows, so row Y falls in tile (Y/8) times 30 columns of 32 bytes,
 ; plus (Y mod 8) times 2 within the tile.
-tabla_fila_buf:
+row_buf_table:
     .word 0, 2, 4, 6, 8, 10, 12, 14
     .word 960, 962, 964, 966, 968, 970, 972, 974
 
 ; How far each direction moves, in cells: up, right, down, left, and the four
 ; diagonals. Signed, which is how `armar_salto` adds them.
-paso_dx:
+step_dx_table:
     .byte 0, 1, 0, $FF, 1, 1, $FF, $FF
-paso_dy:
+step_dy_table:
     .byte $FF, 0, 1, 0, $FF, 1, 1, $FF
 
-; `paso_dx`, `paso_dy` and `paso_por_vel` moved down to RODATA on 2026-09-13,
+; `step_dx_table`, `step_dy_table` and `step_per_speed` moved down to RODATA on 2026-09-13,
 ; while resolving the merge of two branches that had each moved tables down on
 ; their own and still did not fit together: ten bytes were missing. The twelve
 ; accesses to the first two are with X, which has a long mode; the third has a
@@ -84,12 +84,12 @@ paso_dy:
 ; and how far the jump: PASO_POR_VELOCIDAD in eventos.py and
 ; `jump_speed[move_speed - 1]` in RM2k. 4 is the hero's: 32 per frame, two
 ; pixels.
-paso_por_vel:
+step_per_speed:
     .word 4, 8, 16, 32, 64, 128
 
-; `paso_por_vel` moved down to RODATA on 2026-09-13: it has a single access,
+; `step_per_speed` moved down to RODATA on 2026-09-13: it has a single access,
 ; and going through X costs four bytes against the table's twelve.
-salto_por_vel:
+jump_per_speed:
     .byte 8, 12, 16, 24, 32, 64
 
 ; The menu tilemap that goes with the selected option. There is one per
@@ -101,10 +101,10 @@ salto_por_vel:
 ; It runs with the screen off the first time and inside the vblank the rest:
 ; it is 2048 bytes per DMA, which fit with room to spare in a vblank that has
 ; nothing else to do.
-; `titulo_subir_menu` lives in RODATA since 2026-09-14: the demo with a title
+; `title_upload_menu` lives in RODATA since 2026-09-14: the demo with a title
 ; screen overflowed bank 0 by four bytes. It calls no one, so moving it only
 ; costs the `jsl` of its three callers.
-.proc titulo_subir_menu
+.proc title_upload_menu
 .a8
 .i16
     lda #$80
@@ -116,7 +116,7 @@ salto_por_vel:
     lda #(32 * 32 * 2)
     sta DAS0L
     ; The source: the start of the block plus 2048 per option.
-    lda titulo_sel
+    lda title_sel
     and #$00FF
     xba                         ; times 256
     asl a
@@ -147,7 +147,7 @@ salto_por_vel:
 
 ; One bit per position, for the switch bitmap. It comes out cheaper than eight
 ; shifts and is read with the index we already have.
-mascara:
+mask:
     .byte $01,$02,$04,$08,$10,$20,$40,$80
 
 ; The HDMA table that masks the objects under the message window: nothing in
@@ -156,10 +156,10 @@ mascara:
 ;
 ; **Outside bank 0**: HDMA reads from wherever `A1B3` says, so an eight-byte
 ; table that never changes has no reason to spend it.
-hdma_mascara:
+hdma_mask:
     .byte 127, $00
-    .byte (VENTANA_LINEA - 127), $00
-    .byte (LINEAS - VENTANA_LINEA), $02
+    .byte (WINDOW_LINE - 127), $00
+    .byte (LINES - WINDOW_LINE), $02
     .byte 0
 
 ; Which passability is needed to leave a cell and to enter the neighboring
@@ -168,9 +168,9 @@ hdma_mascara:
 ; The pairs are crossed on purpose: to go up you have to be able to leave the
 ; source cell through the top and enter the destination cell through the
 ; bottom. It is RM2k's rule.
-pass_salir:
+pass_exit:
     .byte PASS_UP, PASS_RIGHT, PASS_DOWN, PASS_LEFT
-pass_entrar:
+pass_enter:
     .byte PASS_DOWN, PASS_LEFT, PASS_UP, PASS_RIGHT
 
 ; The two components of each diagonal, indexed by the direction minus four:
@@ -185,19 +185,19 @@ diag_horiz:
 ; Where the composed glyphs of each phase start, indexed by the phase itself
 ; —0, 2, 4 or 6—: that is why the banks go with a padding byte between them.
 ; See `compose_char`. They are read **once per glyph**, not per row.
-fuente_pre_lo:
+font_pre_lo:
     .word .loword(fuente_pre0), .loword(fuente_pre1)
     .word .loword(fuente_pre2), .loword(fuente_pre3)
-fuente_pre_bk:
+font_pre_bk:
     .byte ^fuente_pre0, 0, ^fuente_pre1, 0, ^fuente_pre2, 0, ^fuente_pre3
 
 ; Which JOY1H bit each `KeyInputProc` direction looks at and which number it
 ; stores in the variable, in the order of `CheckInput` —from highest value to
 ; lowest—. The same order `eventos.tecla_de` walks on the model's side; the
 ; numbers are emitted by the converter, so they are not written twice.
-tecla_dir_bit:
+key_dir_bit:
     .byte PAD_UP, PAD_RIGHT, PAD_LEFT, PAD_DOWN, 0
-tecla_dir_val:
+key_dir_val:
     .byte TECLA_VALOR_ARRIBA, TECLA_VALOR_DERECHA
     .byte TECLA_VALOR_IZQUIERDA, TECLA_VALOR_ABAJO
 
@@ -207,45 +207,45 @@ tecla_dir_val:
 ; unseen**: the header comes out the same and an old save would load shifted.
 ; The converter's signature does not look at this table, which is hand-written
 ; source.
-partida_tabla:
+save_table:
     .word hero_x, 2
     .word hero_y, 2
     .word hero_dir, 1
     .word tile_x, 2
     .word tile_y, 2
-    .word mapa_actual, 2
-    .word grupo, 6              ; the party and how many there are, which are contiguous
-    .word tinte_r, 3            ; the tint, minus the saturation, which lives far away
-    .word tinte_s, 1
-    .word timer_seg, 5          ; seconds, sub, whether it runs and whether it shows
-    .word oro, 3
+    .word map_current, 2
+    .word party, 6              ; the party and how many there are, which are contiguous
+    .word tint_r, 3            ; the tint, minus the saturation, which lives far away
+    .word tint_s, 1
+    .word timer_sec, 5          ; seconds, sub, whether it runs and whether it shows
+    .word gold, 3
     .word switches, SWITCH_BYTES
     ; Which song is playing and whether it is muted. An event's `PlayBGM`
     ; turns it on, so it is world state like a switch: without this a loaded
     ; save starts with the song of the ROM's initial map instead of the one
-    ; that was playing. They are contiguous in BSS —`music_apagada` and then
-    ; `tema_actual`— but they are listed separately anyway, because being
+    ; that was playing. They are contiguous in BSS —`music_off` and then
+    ; `song_current`— but they are listed separately anyway, because being
     ; adjacent is a detail of the order they were declared in and not a
     ; promise.
-    .word music_apagada, 1
-    .word tema_actual, 2
+    .word music_off, 1
+    .word song_current, 2
     ; And the variables, from far RAM. VARIABLES_N is at least 1 —the
     ; converter guarantees it— because a zero length would end the table here.
     .word FAR_VARIABLES, VARIABLES_N * 2
-    .word FAR_HERO_VEL, 1       ; the hero's speed, which routes change
+    .word FAR_HERO_SPEED, 1       ; the hero's speed, which routes change
     .word FAR_ITEMS, ITEMS_N    ; the inventory
-    .word FAR_ACCESO, 1         ; the save and menu permissions
-    .word FAR_EQUIPO, ACTORES_N * 10    ; each actor's equipment
+    .word FAR_ACCESS, 1         ; the save and menu permissions
+    .word FAR_EQUIPMENT, ACTORES_N * 10    ; each actor's equipment
     ; And each actor's HP, which since there are battles is real state.
     .word FAR_HP, ACTORES_N * 2
     ; And the SP, for the same reason since there are skills to spend them.
     .word FAR_SP, ACTORES_N * 2
     ; And which graphic a `ChangeSpriteAssociation` changed the sprite to: one
     ; byte per actor. It travels in the save as in RM2k, and survives teleport.
-    .word FAR_ACTOR_GRAF, ACTORES_N
+    .word FAR_ACTOR_GFX, ACTORES_N
     ; And which skills each actor knows: one bit per (actor, skill) pair, which
-    ; `ChangeSkills` sets and clears. See `FAR_HAB`.
-    .word FAR_HAB, HAB_BYTES
+    ; `ChangeSkills` sets and clears. See `FAR_SKILL`.
+    .word FAR_SKILL, HAB_BYTES
     ; And the experience and level of each actor that can fight. **It goes
     ; last on purpose**: the slot screen reads the leader's level from SRAM
     ; counting from the end of the save —`EXP_LEVEL_IN_SRAM`—, and a line
@@ -257,23 +257,23 @@ partida_tabla:
 ; `op_battle`'s Game Over. The three that are indexed are read with
 ; `lda f:tabla, x` —absolute long, which does not depend on the data bank— and
 ; that is why they go with X and not Y: the 65816 has no `long,Y`.
-; `hdma_mascara` is not indexed: `build_hdma` hands its address and bank to
+; `hdma_mask` is not indexed: `build_hdma` hands its address and bank to
 ; the HDMA channel.
 
 ; Which way each pose faces, 0 to 11: the direction is the pose divided by
 ; three.
-dir_de_pose:
+pose_dir:
     .byte 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3
 
-ppu_bajos:
+ppu_low:
     .byte $00,$00,$00,$00       ; $2101 OBSEL, $2102-3 OAMADD, $2104 OAMDATA
     .byte $00,$00,$00,$00       ; $2105 BGMODE, $2106 MOSAIC, $2107-8 BG1-2SC
     .byte $00,$00,$00,$00       ; $2109-A BG3-4SC, $210B-C BGxNBA
-ppu_bajos_end:
+ppu_low_end:
 
 ; From $2115 to $2133: VRAM, mode 7, CGRAM, windows, visible layers and color
 ; math. The three that are not zero are the ones that matter.
-ppu_altos:
+ppu_high:
     .byte $80,$00,$00           ; $2115 VMAIN: increment after the high byte
     .byte $00,$00               ; $2118-9 VMDATA
     .byte $00,$00,$00,$00,$00   ; $211A-E mode 7
@@ -290,7 +290,7 @@ ppu_altos:
                                 ; of the main screen. $212F TSW
     .byte $30,$00               ; $2130 CGWSEL: color math off. $2131
     .byte $E0,$00               ; $2132 COLDATA: black fixed color. $2133
-ppu_altos_end:
-cero:
+ppu_high_end:
+zero:
     .byte $00,$00
 

@@ -15,13 +15,13 @@
     ; `Game_Character::UpdateAnimation`, without the turn in place. +10 is the
     ; frame of the cycle, 0 to 3 —3 draws column 1—, and +11 how many frames
     ; it has been in it. With the animation stopped or jumping, the middle frame.
-    lda ruta_ev + 12, x
+    lda route_ev + 12, x
     and #$02
     bne quieta
-    lda ruta_ev + 13, x
+    lda route_ev + 13, x
     bne quieta
     ; The limits, by speed.
-    lda ruta_ev + 17, x
+    lda route_ev + 17, x
     dec a
     rep #$20
 .a16
@@ -35,42 +35,42 @@
     sta temp + 1
     ; The count goes up while walking, always with continuous animation, and
     ; while still only until it reaches the middle frame.
-    lda ruta_ev + 18, x
+    lda route_ev + 18, x
     and #$10
     bne suma
-    lda ruta_ev + 6, x
+    lda route_ev + 6, x
     bne suma
-    lda ruta_ev + 10, x
+    lda route_ev + 10, x
     and #$01
     beq suma                    ; on frame 0 or 2 it goes on to the middle one
-    lda ruta_ev + 11, x
+    lda route_ev + 11, x
     inc a
     cmp temp
     bcc suma                    ; count < stopped - 1
     bra ver_cambio
 suma:
-    inc ruta_ev + 11, x
+    inc route_ev + 11, x
 ver_cambio:
-    lda ruta_ev + 11, x
+    lda route_ev + 11, x
     cmp temp + 1
     bcs cambia                  ; reached the continuous one
-    lda ruta_ev + 6, x
+    lda route_ev + 6, x
     beq ready
-    lda ruta_ev + 11, x
+    lda route_ev + 11, x
     cmp temp
     bcc ready                   ; walking, to the stopped one
 cambia:
-    lda ruta_ev + 10, x
+    lda route_ev + 10, x
     inc a
     and #$03                    ; the cycle is four steps
-    sta ruta_ev + 10, x
-    stz ruta_ev + 11, x
+    sta route_ev + 10, x
+    stz route_ev + 11, x
 ready:
     rts
 quieta:
     lda #1
-    sta ruta_ev + 10, x
-    stz ruta_ev + 11, x
+    sta route_ev + 10, x
+    stz route_ev + 11, x
     rts
 .endproc
 
@@ -116,16 +116,16 @@ ready:
 .i16
     ldx #$0000
 buscar:
-    lda ruta_ev, x
+    lda route_ev, x
     cmp temp
     beq con_ranura
     rep #$20
 .a16
     txa
     clc
-    adc #RUTA_EV_STRIDE
+    adc #ROUTE_EV_STRIDE
     tax
-    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
+    cmp #RUTA_EV_MAX * ROUTE_EV_STRIDE
     sep #$20
 .a8
     bcc buscar
@@ -135,7 +135,7 @@ buscar:
     jsr event_npc
     cpy #$FFFF
     beq ready
-    sty npc_fila
+    sty npc_row
     lda temp
     rep #$20
 .a16
@@ -171,10 +171,10 @@ buscar:
 
 con_ranura:
     lda #0
-    sta ruta_ev + 7, x          ; no step in progress
-    sta ruta_ev + 22, x
-    sta ruta_ev + 23, x
-    sta ruta_ev + 13, x         ; nor jump
+    sta route_ev + 7, x          ; no step in progress
+    sta route_ev + 22, x
+    sta route_ev + 23, x
+    sta route_ev + 13, x         ; nor jump
 ready:
     rts
 .endproc
