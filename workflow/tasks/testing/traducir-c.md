@@ -2,7 +2,7 @@
 name: "Traducir las herramientas al inglés, fase 1: las capas de abajo y la prosa"
 description: "Comentarios, docstrings, mensajes y prosa al inglés, sin tocar nombres de código: tools/audio, rpgmaker, render, comun, ensamblado, emulador, pruebas, justfile, README.md y los README de cada carpeta"
 type: refactor
-assignee: Coronillo
+assignee: taro
 ---
 
 De taro, el 2026-09-29: "traducir las herramientas a inglés". Es la regla de
@@ -39,3 +39,8 @@ Alcance de esta parte: tools/audio, rpgmaker, render, comun, ensamblado, emulado
 - Menciones del ambiente que ya estaban y sólo se tradujeron (fuera de la
   fase 1): `/extras/...` en `retro.py`, `ensamblar.py`, `msu.py` y
   `chipset_del_fork.py`.
+- Mergeado `main` (`106484ea`, sólo un doc). Sobre el árbol mergeado:
+  `just -f tools/justfile pruebas` 132 y 2 salteadas; `just pruebas` 874.
+
+Para taro: mirar el diff por carpeta; lo que no verifica ninguna prueba es la
+calidad del inglés. Y decidir si `entregar.py` entra en la traducción.
