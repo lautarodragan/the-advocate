@@ -1,82 +1,17 @@
-//! Experience and level of the actors, as RM2k does them, and the tables
-//! the cartridge carries them in.
+//! The tables the cartridge carries the actors' experience and level in.
 //!
-//! **None of the numbers here are ours.** They are easyrpg-player's:
-//! `Game_Actor::CalculateExp`, `MakeExpList`, `GetNextExp`, `GetMaxLevel`
-//! and `SetLevel` in `src/game_actor.cpp`, and `MaxExpValue` and `MaxLevel`
-//! in `src/game_constants.cpp`.
-//!
-//! The console does no floating point: the curve is computed here and
-//! travels as a table per level. easyrpg's `double` is `f64`, and the
-//! truncation of C++'s `(int)` is `as i64`, so there is no approximation to
-//! declare.
+//! The console does no floating point: RM2k's curve —`rm2k_rules::actor`,
+//! which is easyrpg's `Game_Actor`— is computed here and travels as a table
+//! per level.
 
 use crate::asm;
 use crate::fail::{Bad, Result};
-use crate::game::{Actor, Game, CURVES};
+use crate::game::Game;
+use rm2k_rules::actor::{self, exp_list, initial_exp, initial_level, max_level, CURVES, LEVEL_MAX};
 use std::collections::BTreeMap;
 
-/// RM2k's `MaxExpValue()`.
-pub const EXP_MAX: i64 = 999_999;
-/// RM2k's `MaxLevel()`.
-pub const LEVEL_MAX: i64 = 50;
 /// The bytes of the save that hold the experience: four per slot.
 pub const SAVE_BYTES: usize = 0x200;
-
-/// `Game_Actor::GetMaxLevel`: RM2k's, capped by `final_level`.
-pub fn max_level(actor: &Actor) -> i64 {
-    actor.final_level.clamp(1, LEVEL_MAX)
-}
-
-/// `Game_Actor::CalculateExp` with RM2k's curve: the **accumulated**
-/// experience it takes to go from `level` to the next.
-///
-/// The loop runs from the level downward, and the inflation is recomputed
-/// with a fixed `level + 1` —the argument's, not the loop's—: that is what
-/// easyrpg does, and not a typo here.
-pub fn exp_for(actor: &Actor, level: i64) -> i64 {
-    let mut base = actor.exp_base as f64;
-    let mut inflation = 1.5 + actor.exp_inflation as f64 * 0.01;
-    let correction = actor.exp_correction as f64;
-    let mut result: i64 = 0;
-    for _ in 0..level.max(0) {
-        result = result.saturating_add((correction + base) as i64);
-        base *= inflation;
-        inflation = ((level + 1) as f64 * 0.002 + 0.8) * (inflation - 1.0) + 1.0;
-    }
-    result.min(EXP_MAX)
-}
-
-/// `Game_Actor::MakeExpList`: `list[n]` is what it takes to go from `n` to
-/// `n + 1`, and `list[0]` is zero. Its length is [`max_level`].
-pub fn exp_list(actor: &Actor) -> Vec<i64> {
-    std::iter::once(0)
-        .chain((1..max_level(actor)).map(|n| exp_for(actor, n)))
-        .collect()
-}
-
-/// `Game_Actor::GetNextExp(level)`: -1 at the cap.
-pub fn next_exp(actor: &Actor, level: i64) -> i64 {
-    if level >= max_level(actor) || level <= -1 {
-        -1
-    } else if level == 0 {
-        0
-    } else {
-        exp_list(actor)[level as usize]
-    }
-}
-
-/// `SetLevel` clamps the initial level between 1 and the maximum.
-pub fn initial_level(actor: &Actor) -> i64 {
-    actor.initial_level.clamp(1, max_level(actor))
-}
-
-/// The experience it starts with: the `Game_Actor` constructor sets the
-/// level to 0 and calls `ChangeLevel(initial_level)`, which leaves it at
-/// `GetBaseExp()`, that is `GetNextExp(level - 1)`.
-pub fn initial_exp(actor: &Actor) -> i64 {
-    next_exp(actor, initial_level(actor) - 1).max(0)
-}
 
 /// The actors that carry experience and level, in the order of their slot:
 /// those of `party` the game has, sorted. `None` is a slot nobody owns:
@@ -158,9 +93,10 @@ pub fn tables(game: &Game, party: &[i64]) -> Result<String> {
         max_levels.push(actor.map(max_level).unwrap_or(1));
         for c in 0..CURVES.len() {
             rows.push(2 * params.len() as i64);
-            let values = actor.map(|a| a.params[c].as_slice()).unwrap_or(&[]);
-            params
-                .extend((0..levels).map(|level| values.get(level).copied().unwrap_or(0) & 0xFFFF));
+            let values = actor.map(|a| actor::curves(a)[c]).unwrap_or(&[]);
+            params.extend(
+                (0..levels).map(|level| values.get(level).map_or(0, |&v| v as i64) & 0xFFFF),
+            );
         }
     }
     if 4 * slots.len() > SAVE_BYTES {

@@ -379,6 +379,8 @@ name = "rm2k-snes-battle"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "ditto",
+ "rm2k-rules",
  "serde_json",
  "sha2",
 ]

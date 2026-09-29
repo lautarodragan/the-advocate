@@ -128,6 +128,7 @@ fn write(path: &Path, value: &Value) {
 fn tables(name: &str, party: &[i64], steps: Option<i64>) -> Tables {
     let dir = scratch(name);
     let dump = dir.join("dump");
+    write(&dump.join("ditto.json"), &json!({"ditto": 2, "view": "resolved"}));
     write(
         &dump.join("db").join("actors.json"),
         &Value::Array(ACTORS.iter().map(actor).collect()),

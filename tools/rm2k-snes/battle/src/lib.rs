@@ -54,28 +54,44 @@ impl Request {
     /// over the dump's: it is how a project that adds maps the game does not
     /// have gives them their encounters. They go into `game`.
     pub fn read(path: &Path, game: &mut Game) -> Result<Request> {
-        let data = game::read_json(path)?;
+        let text = std::fs::read_to_string(path)
+            .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
         let whose = path.display().to_string();
-        let ids = |name: &str| -> Result<Vec<i64>> {
-            game::list(&data, name, &whose)?
-                .iter()
-                .map(|v| {
-                    v.as_i64()
-                        .ok_or_else(|| Bad::answer(format!("{whose}: `{name}` has {v}")))
-                })
-                .collect()
+        let data: Value = serde_json::from_str(&text)
+            .map_err(|e| Bad::answer(format!("{whose}: {e}")))?;
+        let field = |data: &'_ Value, name: &str, whose: &str| -> Result<Value> {
+            data.get(name)
+                .cloned()
+                .ok_or_else(|| Bad::answer(format!("{whose}: no `{name}`")))
         };
-        let party = ids("party")?;
+        let list = |data: &Value, name: &str, whose: &str| -> Result<Vec<Value>> {
+            match field(data, name, whose)? {
+                Value::Array(list) => Ok(list),
+                _ => Err(Bad::answer(format!("{whose}: `{name}` is not a list"))),
+            }
+        };
+        let number = |data: &Value, name: &str, whose: &str| -> Result<i64> {
+            field(data, name, whose)?
+                .as_i64()
+                .ok_or_else(|| Bad::answer(format!("{whose}: `{name}` is not a whole number")))
+        };
+        let party = list(&data, "party", &whose)?
+            .iter()
+            .map(|v| {
+                v.as_i64()
+                    .ok_or_else(|| Bad::answer(format!("{whose}: `party` has {v}")))
+            })
+            .collect::<Result<Vec<i64>>>()?;
         let mut maps = Vec::new();
-        for m in game::list(&data, "maps", &whose)? {
+        for m in list(&data, "maps", &whose)? {
             let whose = format!("{whose}: a map");
             maps.push(Map {
-                id: game::number(m, "id", &whose)?,
-                width: game::number(m, "width", &whose)?,
-                height: game::number(m, "height", &whose)?,
+                id: number(&m, "id", &whose)?,
+                width: number(&m, "width", &whose)?,
+                height: number(&m, "height", &whose)?,
             });
         }
-        let steps = game::field(&data, "encounter_steps", &whose)?;
+        let steps = field(&data, "encounter_steps", &whose)?;
         let encounter_steps = if steps.is_null() {
             None
         } else {
@@ -83,8 +99,11 @@ impl Request {
                 Bad::answer(format!("{whose}: `encounter_steps` is not a whole number"))
             })?)
         };
-        for node in game::list(&data, "tree_nodes", &whose)? {
-            game.add_node(node, &format!("{whose}: tree_nodes"))?;
+        // Nodes of the tree in the dump's shape: Ditto's type reads them.
+        for node in list(&data, "tree_nodes", &whose)? {
+            let node = serde_json::from_value(node)
+                .map_err(|e| Bad::answer(format!("{whose}: tree_nodes: {e}")))?;
+            game.add_node(node);
         }
         Ok(Request {
             party,

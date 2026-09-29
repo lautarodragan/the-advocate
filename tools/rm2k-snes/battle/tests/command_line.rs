@@ -20,7 +20,7 @@ fn write(path: &Path, value: &Value) {
 }
 
 fn curves() -> Value {
-    json!({"maxhp": [10, 20], "maxsp": [], "attack": null, "defense": [1],
+    json!({"maxhp": [10, 20], "maxsp": [], "attack": [], "defense": [1],
            "spirit": [2], "agility": [3]})
 }
 
@@ -33,6 +33,8 @@ fn game(dir: &Path, actors: i64) {
                    "exp_correction": 0})
         })
         .collect();
+    // What makes the directory a Ditto dump, and which view it is.
+    write(&dir.join("dump/ditto.json"), &json!({"ditto": 2, "view": "resolved"}));
     write(&dir.join("dump/db/actors.json"), &Value::Array(actors));
     write(
         &dir.join("dump/maps.json"),
@@ -113,14 +115,18 @@ fn a_missing_request_is_a_bad_call() {
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
+/// A field the dump leaves out holds the format's default, as Ditto reads
+/// it; one that cannot be what the format says is a no, and the message
+/// says which file.
 #[test]
-fn a_dump_without_a_field_is_a_no_that_names_it() {
+fn a_broken_dump_is_a_no_that_says_where() {
     let dir = scratch("broken");
     game(&dir, 1);
-    write(&dir.join("dump/db/actors.json"), &json!([{"id": 1}]));
+    write(&dir.join("dump/db/actors.json"), &json!([{"id": 1, "parameters": "none"}]));
     request(&dir, &[1]);
     let out = run(&dir);
     assert_eq!(out.status.code(), Some(1));
-    assert!(String::from_utf8_lossy(&out.stderr).contains("no `parameters`"));
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("actors.json"), "{stderr}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
