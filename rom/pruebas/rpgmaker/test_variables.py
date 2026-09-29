@@ -6,8 +6,9 @@ donde viven, y por los switches que una rama por variable prendió.
 
 La página de prueba las escribe con los mismos números que RM2k: variable,
 operación (0 pone, 1 suma, 2 resta), clase del operando (0 constante, 1 otra
-variable, 3 azar, 7 otro) y dos números. Las ranuras las da
-`events.index_variables`, que es el índice del juego entero.
+variable, 3 azar, 7 otro) y dos números. Las ranuras las da el compilador
+de eventos, que arma el índice del juego entero: ver
+`datos.ranuras_de_variable`.
 """
 
 import pytest

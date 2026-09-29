@@ -1949,8 +1949,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # compile: skipping them doesn't change the order of the others. Per
         # troop, where they start and how many there are; per page, its
         # trigger and where its code is inside `troop_code`, which
-        # deduplicates them. See `events.TroopPages` and `ba_page_test`
-        # in tools/runtime/battle_troop.s.
+        # deduplicates them. See `TroopPages` in the compiler's `troops.rs`
+        # and `ba_page_test` in tools/runtime/battle_troop.s.
         #
         # **The small tables go to bank 1, `FAR`; the two big blocks —the code
         # and the messages—, to RODATA.** Until 2026-09-27 all four went to
@@ -1982,7 +1982,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # them: the characters' 32 systems only look at `switch_a`, and with
         # none the ROM never reads them —the bit in `tpage_flags` is zero—, so
         # the label is enough. The turn and the HP have no table: they go in
-        # front of the code, see `events.troop_header`.
+        # front of the code, see `Trigger::header` in the compiler.
         for name, field, bit in (
                 ("tpage_sw_b", "switch_b", events.TROOP_TRIGGER_SWITCH_B),
                 ("tpage_var", "ranura", events.TROOP_TRIGGER_VARIABLE),
@@ -2155,8 +2155,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # The audio: the battle song, the victory one and the five sound
         # effects, with the index they got from `Songs`. $FF and $FFFF mean
         # "the LDB has it turned off", which is the case of `battle_se` in
-        # this game. Who sounds at which moment is in `events.BATTLE_AUDIO`,
-        # taken from easyrpg-player; only the numbers travel here.
+        # this game. Who sounds at which moment is in `battle_audio`, in the
+        # compiler, taken from easyrpg-player; only the numbers travel here.
         audio = battle_audio or {}
         # The battle's audio package goes after the maps' ones, so its index
         # is how many maps the ROM carries. It is emitted here and checked by

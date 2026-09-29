@@ -136,8 +136,9 @@ No se escribe acá, porque acá envejecía sin que nadie lo notara:
   gustaría y nadie está haciendo en `workflow/tasks/wishlist/`;
 * dónde la ROM no hace lo que RM2k hace, en `workflow/divergencias/`;
 * qué comandos de evento se aceptan sin hacerse lo dice
-  `ACCEPTED_UNDONE`, en `tools/port/events.py`, que es una lista
-  ejecutable y no puede desincronizarse;
+  `ACCEPTED_UNDONE`, en el compilador de eventos
+  (`tools/rm2k-snes/events/`), que es una lista ejecutable y no puede
+  desincronizarse;
 * y lo que ninguna prueba mira, en `rom/pruebas/UNTESTED.md`.
 
 ## Referencias

@@ -189,7 +189,7 @@ def _tropa():
 
 # Los caminos hondos, cada uno con lo que baja. Un `CallEvent` anidado **no está
 # acá y no falta**: se compila en línea —ver
-# `_compile_call`, en los eventos del conversor— así que el cuerpo del llamado
+# `compile_call`, en el compilador de eventos— así que el cuerpo del llamado
 # es bytecode del llamador y no cuesta un solo byte de pila.
 CAMINOS = (
     ("pelea", _pelea),

@@ -670,8 +670,7 @@ SECTIONS = ("actors", "skills", "items", "enemies", "troops", "terrains",
 # a single object.
 LIST_SECTIONS = tuple(s for s in SECTIONS if s not in ("system", "terms"))
 
-# The sound effects `Game_System::GetSystemSE` hands out, in the order
-# `events.BATTLE_AUDIO_SE` walks.
+# The sound effects `Game_System::GetSystemSE` hands out.
 SYSTEM_SE = ("battle_se", "escape_se", "enemy_attack_se", "enemy_damaged_se",
              "actor_damaged_se", "dodge_se", "enemy_death_se", "item_se")
 

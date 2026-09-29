@@ -1,15 +1,24 @@
 #!/usr/bin/env python3
-"""Compiles RM2k's event pages into something the ROM can run.
+"""What the converter keeps of the event compiler.
 
-RM2k has about 130 event commands. The ROM understands a handful, and will
-understand more over time. The rule that makes that safe is a single one:
+The compiler —RM2k's event pages to the bytecode the ROM runs— is
+`rm2k-snes-events` since 2026-09-29, in Rust: `port/compiler.py` says what
+goes into its two calls and puts what comes back where the rest of the
+converter reads it. The rule it keeps is the one this module had:
 
     **a page is emitted only if all its commands can be run.**
 
-If one we do not model shows up, the page is not emitted and the event does
-nothing. Running half a script would be worse than not running it: it would
-leave the game in a state that does not exist, and a golden captured there
-would defend it as good from day one.
+What stays here is what others read and is not the compiler: the numbers
+the ROM's tables are emitted with (`mapdata.py`), the command codes a few
+scans look for (`game_scan.py`, `baking.py`, `cases.py`), the registries the
+compiler's answer is read into (`Songs`, `Troops`, `Trigger`), the indices it
+answers (`VARIABLE_SLOT`, `SKILL_SLOT`, `PARTY_COMMON_EVENTS`), which picture
+takes the cartridge's place (`Pictures`), the escape tail `texts.py`
+rebuilds boxes around, and the models the game's tests predict the ROM with
+(`Encounters`, `key_value`, `PartyState`).
+
+The comments next to each command's constant still say what the ROM does
+with it and why; the code that does it is the crate's.
 
 The command codes come from tools/rpgmaker/event_codes.py, which is
 generated from liblcf. Never from memory: the first version of the door
@@ -53,8 +62,6 @@ SHAKE_SCREEN = 11050
 
 PAN_LOCK, PAN_UNLOCK, PAN_SHIFT, PAN_RETURN = 0, 1, 2, 3
 
-                            # has two branches and nothing else
-
 # A text box. RM2k emits a `ShowMessage` with the first line and a
 # `ShowMessage_2` for each of the following lines of the same box: they are a
 # single command —one window, one wait for the player— and whoever counts them
@@ -66,8 +73,7 @@ SHOW_MESSAGE_2 = 20110
 # The escape codes this game's text uses: `\|` is a pause and `\^` closes the
 # box without waiting for the player to press anything. Both are time and not
 # text, and since 2026-09-13 both are done: they travel in the box's header
-# —see `message_bytes`— and the ROM's interpreter and the one below read them
-# the same way.
+# —see `HEADER_LINES`— and the ROM's interpreter reads them from there.
 #
 # They are done for real and not by quietly deleting them, which was the cheap
 # temptation: with `\^` the box closes on its own, so the ROM would be left
@@ -110,6 +116,10 @@ def escape_tail(lines):
     `RunDirectorScene`, which writes `\| \| \| \^`— and it eats them: a space
     at the end of a line does not draw a single pixel, so removing it does not
     change the screen.
+
+    The compiler has the same rule, in its `messages.rs`: this copy is the
+    one `texts.py` rebuilds the boxes around, before the compiler sees them.
+    `rm2k-snes/events/tests/escapes.json` holds the two together.
     """
     lines = list(lines)
     pauses = 0
@@ -210,13 +220,6 @@ JUMP_PER_SPEED = (8, 12, 16, 24, 32, 64)
 # time comes for free: it is an OP_DELAY after it.
 FLASH_SPRITE = 11320
 
-# How a forced route consumes time, and it is a modeling decision both sides
-# have to share: turning is instantaneous —it goes to the next command on the
-# same frame—, waiting consumes a frame, and moving starts a one-cell step,
-# which the ROM walks at WALK_SPEED = 2 pixels per frame like any other step.
-# A blocked move is skipped: RM2k's alternative is to retry forever, and a
-# hung test tells nobody anything.
-
 # ChangePartyMembers: the first parameter says whether it adds or removes, the
 # second where the actor's id comes from, and the third the id. From liblcf
 # and `Game_Interpreter::CommandChangePartyMember` in easyrpg-player.
@@ -224,23 +227,6 @@ PARTY_ADD, PARTY_REMOVE = 0, 1
 PARTY_FIXED_ID = 0
 PARTY_MAX = 4           # `Game_Party::AddActor` does not add if there are four
 
-# And this is something else, and the difference matters. The ones above do
-# nothing because there is nothing to do: the save menu does not exist and
-# neither do the message windows. The ones here **do** do something and we do
-# not do it; they are accepted anyway because what they leave undone does not
-# appear on the screen being compared, and in exchange they let pages run that
-# would otherwise be left out whole.
-#
-# It is a debt, not an equivalence, and that is why it is in a separate list
-# with its own name: whoever adds something here has to be able to say what
-# breaks.
-#
-# PlayBGM changes the song that plays, and it is no longer one of these: it is
-# done, see OP_BGM. Each map uploads its audio package to ARAM, with the songs
-# its pages can turn on —`package_load`, in tools/runtime/audio_package.s—,
-# and each sample's budget is that of its worst pack: see
-# `workflow/decisiones/un-solo-banco-de-muestras.md`. It is accepted without
-# being done only when compiling without a song registry.
 # WeatherEffects turns the rain on or off. It is accepted without drawing it,
 # and the debt is one of the big ones, so it is spelled out.
 #
@@ -343,8 +329,9 @@ class Songs:
     """The songs the game's `PlayBGM`s ask for, numbered in the order they
     appear.
 
-    It is the sibling of `Messages`: the bytecode carries an index and not a
-    name, and the converter is the one that resolves the index. The ROM
+    The compiler numbers them —the bytecode carries an index and not a
+    name— and the answer is read into this, over which the music numbers
+    what it adds after: see `compiler.songs`. The ROM
     carries **the first `SONG_TOTAL`**, which are the ones that fit in ARAM:
     all of them share the samples and the shared bank lives in the SPC700's
     64 KB, which are uploaded only once at boot. A higher index is a song
@@ -372,12 +359,14 @@ class Songs:
         # when a package is loaded: see `inherited_songs` in music.py.
         self.current_map = None
         self.per_map = {}
-        # And which `PlayBGM`s of each map are **exit ones**: see `output`.
+        # And which `PlayBGM`s of each map are **exit ones**: see
+        # `exit_songs`.
         self.exits = {}
-        # And with which song each `Teleport` of each map jumps: see `jump`.
+        # And with which song each `Teleport` of each map jumps —None is
+        # whatever is playing—: see `inherited_songs` in music.py.
         self.jumps = {}
-        # How many times an effect was asked for, so the page can see whether
-        # a command made one sound: see `_follow_exit`.
+        # How many effects went into a package, which the compiler counts to
+        # know whether a command made one sound.
         self.requested = 0
 
     def _note(self, what, value):
@@ -674,6 +663,38 @@ TRIGGER_PARALLEL = 4
 TRIGGERS = (TRIGGER_ACTION, TRIGGER_TOUCH_HERO, TRIGGER_AUTOSTART,
             TRIGGER_PARALLEL)
 
+# TURN. An event with a graphic **turns toward the hero** when he triggers it,
+# unless it has a fixed direction: it is the
+# `SetFacing(GetDirectionToCharacter(GetPlayer()))` of
+# `Game_Event::ScheduleForegroundExecution`. Since 2026-09-11 it is done, on
+# both sides —before, it answered facing wherever it was—. The rules, which
+# the ROM follows in `turn_fire` and company:
+#
+# * It turns if its page turns —a CharSet and an animation that does not fix
+#   the direction, `pagina["gira"]`, which the compiler answers: see `turns`
+#   in its `pages.rs`— and it has no route: with a route, the route decides
+#   where it looks. The ones that walk on their own always have a route, so
+#   they do not turn; in RM2k they pause while their page runs and they do,
+#   and that is not modeled.
+# * It looks toward the hero while **that event's page** lasts, and at the end
+#   it goes back to its pose: `OnFinishForegroundEvent`'s `UpdateFacing`.
+# * A refresh that changes its page undoes it if the new one does not turn or
+#   draws something else; with the same graphic it stays turned, as in
+#   `RefreshPage`. If the new one brings another CharSet with the same
+#   direction and column, RM2k leaves it turned with the new drawing and here
+#   it is undone: declared.
+# * A route that grabs it undoes it, and so does loading a map.
+#
+# On the console a still one shares its VRAM slot with the other still ones
+# of the same pose, so to turn it moves to **the map's turn slot** —a single
+# one, because one turns at a time— and there the pose is uploaded from the
+# twelve of its graphic, which is why they go into the cartridge. The one that
+# walks or animates while still turns in its own slot.
+#
+# The animation types with a fixed direction are the `fixed_*` of
+# `rpg::EventPage::AnimType`, plus `spin`, which turns on its own and does not
+# obey either.
+
 
 class CannotCompile(Exception):
     """This page has something the ROM does not know how to do yet."""
@@ -794,7 +815,8 @@ COND_VARIABLE = 1
 # the pages **of every map in the game** name and gives each one a **slot**,
 # from zero up —`VARIABLE_SLOT`—, and the bytecode talks in slots. That way
 # the RAM it costs is 162 bytes, they live in bank 1's RAM (`FAR_VARIABLES`)
-# and travel in the saved game. `index_variables` builds the index. Until
+# and travel in the saved game. The compiler builds the index, and
+# `compiler.apply_indices` leaves it in `VARIABLE_SLOT`. Until
 # the night of 2026-09-10 the index was of each ROM's maps —six variables on
 # maps 1 to 10— and with that a game saved with one ROM was not valid for
 # another with more maps: the slots shifted. With the whole game's index a
@@ -963,7 +985,7 @@ def rain_pixels(x, y):
 # The flash is not exactly RM2k's: there the power is
 # `min((7 - (d + 1) / 2) * potencia / 6, 31)` for ten frames, in steps; here
 # it is a `FlashScreen` or a `FlashSprite` that starts at the first and goes
-# down linearly over `ANIM_FLASH_FRAMES`. It is the same light and it
+# down linearly over ten frames. It is the same light and it
 # lasts the same.
 #
 # OP_ANIMATION: n, and n entries of ANIM_ENTRY_BYTES bytes
@@ -1016,8 +1038,9 @@ BATTLE_LOSE = 0xFFFF
 # two differences come from there:
 #
 # * **It survives the map change**, because in RM2k it belongs to the actor
-#   and not to `Game_Player`. That is why its index comes from `Graphics`'
-#   reserved slots —see `sprite_associations`— and not from the map's free
+#   and not to `Game_Player`. That is why its index comes from the slots
+#   the graphics table of every map reserves for it —see `associations` in
+#   the compiler's indices— and not from the map's free
 #   numbering.
 # * **It is stored per actor and shows only if that actor leads.** The one
 #   that does not lead is not drawn, so the change stays waiting; the ROM
@@ -1166,8 +1189,10 @@ class Pictures:
     """The only picture that goes into the cartridge, and which commands
     move it.
 
-    It is the sibling of `Songs` and `Graphics`: the converter builds one,
-    and the decision is here and not there.
+    The converter builds one, and the decision is here and not in the
+    compiler: to know whether a picture fits it has to be converted, which
+    is the images' business. The compiler is told which `ShowPicture` took
+    the place.
 
     **A single one per ROM**, and that is the decision that bounds the
     scope. It takes a whole sprite palette —fifteen colors that cannot be
@@ -1327,10 +1352,10 @@ def game_map_ids(game_dir):
 def sweep_maps(game_dir, map_ids, sweep):
     """The union of `sweep(game_map)` —a set— over those maps.
 
-    The sweeps of `variables_named` and `skill_pairs` each load the
-    game's 328 maps, and loading them is almost all they cost: they run in
-    parallel, in batches, and each batch returns the union of its own. The
-    result is a set, so the order does not matter.
+    The sweep of `named_backdrops` loads the game's 328 maps, and loading
+    them is almost all it costs: they run in parallel, in batches, and each
+    batch returns the union of its own. The result is a set, so the order
+    does not matter.
     """
     from rpgmaker import lcf
     from common.parallel import in_parallel
@@ -1475,7 +1500,8 @@ TROOP_PAGES_MAX = 32
 # The triggers that carry a **header**: the turn and HP numbers do not go in
 # per-page tables in bank 1 —which no longer has room for ten bytes for each
 # of the five hundred— but in front of the page's code, in `troop_code`,
-# which is in RODATA. See `troop_header` and `ba_page_header`.
+# which is in RODATA. See `Trigger::header` in the compiler's `troops.rs`,
+# and `ba_page_header`.
 TROOP_WITH_HEADER = (TROOP_TRIGGER_TURN | TROOP_TRIGGER_ENEMY
                      | TROOP_TRIGGER_ACTOR)
 TROOP_HEADER_BYTES = 10

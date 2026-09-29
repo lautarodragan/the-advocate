@@ -463,8 +463,8 @@ def page_table(map_info, number, evcode):
                    "that blocks its way" % page["capa"])
         own = page.get("ruta_propia")
         if own:
-            # The page's own route, the one it walks by itself: see
-            # `events.own_route`. The flags: bit 0 it has one, 1 it
+            # The page's own route, the one it walks by itself: see `own`
+            # in the compiler's `route.rs`. The flags: bit 0 it has one, 1 it
             # repeats, 2 it skips what is blocked, 3 it always faces the same
             # way, 4 the animation continues while still.
             flags = (1 | (2 if own["repite"] else 0)

@@ -148,7 +148,7 @@ def convert_map(renderer, map_id, args):
                 route_graphics.append((charset, index))
     if case_commands(args, map_id):
         # And the ones the test pages send walking, which don't come from
-        # `map_pages`: they have to be added by hand or the NPC would
+        # the map's pages: they have to be added by hand or the NPC would
         # walk with a single pose. It goes **before** the palette split: since
         # the palette is chosen over the poses that are seen, knowing who walks
         # is part of choosing the colors and not only of splitting the VRAM.

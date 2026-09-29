@@ -20,6 +20,8 @@ in its own module of `port/`, one per piece that can be replaced alone:
     battle_animations   the battle animations
     stage               runs a part that is a program of its own:
                         `rm2k-snes-battle`, experience and encounters
+    compiler            the event compiler, `rm2k-snes-events`: what goes
+                        into its two calls and what comes back
     music               the job for `rm2k-snes-audio`, and the `.msu`
     mapdata             `emit`: the whole `mapdata.inc`
       map_record        the tables of each map
@@ -891,7 +893,7 @@ def main():
     # anywhere —its row of `sound_table` stays at $FF— and building it would
     # cost the music, because the copies of `rm2k-snes-audio` count the
     # cartridge's sound effects. It happens with the route ones of
-    # `se_route_left_out`.
+    # `[sound_effects] route_effects_left_out`.
     packed = {n for palettes_needed in songs.per_map.values()
               for n in palettes_needed["sonidos"]}
     requested_se = []

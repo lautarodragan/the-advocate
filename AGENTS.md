@@ -107,6 +107,7 @@ port —ver `tools/README.md`—:
       cartridge/       los cartuchos: el reparto en bancos, ca65 + ld65, el espacio
       rm2k-snes-audio/ la música: del MIDI y el SoundFont a musicdata.inc
       battle/          las tablas de la pelea: experiencia y encuentros
+      events/          el compilador de eventos: de las páginas de RM2k al bytecode
 
 Las capas sólo dependen hacia abajo —`rm2k-snes/` de las otras dos, y
 ésas de nada de las demás—, y lo cuida `tools/tests/test_layers.py`. Todos
@@ -146,8 +147,8 @@ Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 `DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
 mensaje; `tools/rm2k-snes/rm2k-snes-audio/` recibe el SoundFont por `SOUNDFONT`, igual;
 y `tools/snes/protocol/`, `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/snes/lz2/`,
-`tools/rm2k/rules/`, `tools/rm2k/rm2k-render/` y `tools/rm2k-snes/battle/`
-no necesitan nada.
+`tools/rm2k/rules/`, `tools/rm2k/rm2k-render/`, `tools/rm2k-snes/battle/` y
+`tools/rm2k-snes/events/` no necesitan nada.
 
 ### `tools/snes/voodoo/` no decide colores, y eso no se arregla
 

@@ -168,7 +168,8 @@ def test_el_cofre_trampa_compila():
     `ChangeEscapeAccess` con la huida prohibida, así que perder es la única
     salida que la página tiene. Está acá para que se sepa **cuál** es el cofre
     del que habla `test_el_game_over_vuelve_al_juego`: sin esto, el día que
-    alguien toque `encounter_troop` el cuelgue vuelve por un camino que
+    alguien toque `encounter_troop`, en el compilador, el cuelgue vuelve
+    por un camino que
     ninguna prueba nombra.
     """
     assert pagina_de(RAT_TRACKS_B1, COFRE_TRAMPA, 0) is not None
