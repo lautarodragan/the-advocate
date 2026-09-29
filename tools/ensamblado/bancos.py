@@ -1,37 +1,37 @@
-"""El acomodo de bancos, que lo decide el conversor y no el ensamblador.
+"""The bank packing, which the converter decides and not the assembler.
 
-Un DMA que cruza de banco no lee la ROM del banco siguiente: lee la WRAM. Por
-eso todo lo que la ROM sube por DMA —una pose, un tilemap, un bloque de
-muestras— tiene que entrar **entero** en un banco, y cuando no entra en lo que
-queda del que corre hay que rellenar hasta el próximo.
+A DMA that crosses a bank does not read the next bank's ROM: it reads the
+WRAM. That is why everything the ROM uploads by DMA —a pose, a tilemap, a
+block of samples— has to fit **whole** in a bank, and when it does not fit in
+what is left of the current one, it has to be padded up to the next.
 
-Hasta el 2026-09-16 esa decisión la tomaba el ensamblador, con una directiva
-nuestra: `.bloque N` quería decir "lo que sigue mide N bytes, rellená si no
-entra". Funcionaba, pero ataba el port a tener un ensamblador propio: `ld65` no
-sabe acomodar bloques de tamaño variable, y ésa es la única razón por la que la
-directiva existía. Quien sí conoce los tamaños es el conversor, porque los
-emite, así que el reparto se hace acá: lo que llega al ensamblador es un
-segmento por banco, `BANKnn`, que es lo que espera un `.cfg` de `ld65` con un
-área por banco.
+Until 2026-09-16 that decision was taken by the assembler, with a directive of
+ours: `.bloque N` meant "what follows is N bytes long, pad if it does not
+fit". It worked, but it tied the port to having an assembler of its own:
+`ld65` cannot pack variable-size blocks, and that is the only reason the
+directive existed. Whoever does know the sizes is the converter, because it
+emits them, so the split is done here: what reaches the assembler is one
+segment per bank, `BANKnn`, which is what an `ld65` `.cfg` with one area per
+bank expects.
 
-**Lo único que este módulo asume del mapa de memoria es en qué banco arrancan
-los datos generados**, `PRIMER_BANCO`. El resto lo sabe el `.cfg`.
+**The only thing this module assumes about the memory map is which bank the
+generated data starts in**, `PRIMER_BANCO`. The `.cfg` knows the rest.
 """
 
 import re
 
 BANCO = 0x8000
 
-# Cuánto ocupa cada operando de las directivas que emiten bytes.
+# How much each operand of the byte-emitting directives takes.
 ANCHOS = {".byte": 1, ".word": 2, ".addr": 2, ".dword": 4}
 
 
 def _operandos(resto):
-    """Cuántos operandos tiene una lista separada por comas.
+    """How many operands a comma-separated list has.
 
-    Las comas de adentro de una cadena no separan. El conversor no emite
-    cadenas hoy, pero la regla es la del ensamblador y sale más barato
-    respetarla que descubrir el día que las emita.
+    Commas inside a string do not separate. The converter does not emit
+    strings today, but the rule is the assembler's and it is cheaper to
+    respect it than to find out the day it emits them.
     """
     resto = resto.split(";")[0].strip()
     if not resto:
@@ -46,12 +46,12 @@ def _operandos(resto):
 
 
 def _tamano(linea):
-    """Cuántos bytes ocupa una línea, o None si no ocupa ninguno."""
+    """How many bytes a line takes, or None if it takes none."""
     partes = linea.strip().split(None, 1)
     if not partes:
         return 0
     if partes[0] == ".res":
-        # Las que deja este mismo módulo, por si alguien lo corre dos veces.
+        # The ones this very module leaves, in case someone runs it twice.
         return int(partes[1].split(";")[0].strip())
     ancho = ANCHOS.get(partes[0])
     if ancho is None:
@@ -59,28 +59,28 @@ def _tamano(linea):
     return ancho * _operandos(partes[1] if len(partes) > 1 else "")
 
 
-# El banco donde arrancan los datos generados. El 0 es el código y las tablas,
-# y el 1 es `FAR`, el código a mano que vive afuera del banco 0.
+# The bank where the generated data starts. Bank 0 is the code and the
+# tables, and bank 1 is `FAR`, the hand-written code that lives outside bank 0.
 PRIMER_BANCO = 2
 
 
 def segmento_de(banco):
-    """El nombre del segmento que va fijo al principio de `banco`."""
+    """The name of the segment pinned at the start of `banco`."""
     return "BANK%02X" % banco
 
 
 def _partir(linea, entran):
-    """Parte una línea de datos en los primeros `entran` bytes y el resto.
+    """Splits a data line into the first `entran` bytes and the rest.
 
-    Sólo se puede entre operandos: una palabra partida entre dos bancos no es
-    una palabra. Si el corte cae en el medio de una, es un error.
+    It can only be done between operands: a word split across two banks is
+    not a word. If the cut falls in the middle of one, it is an error.
     """
     codigo, _, comentario = linea.partition(";")
     directiva, resto = codigo.strip().split(None, 1)
     ancho = ANCHOS[directiva]
     if entran % ancho:
-        raise ValueError("el final del banco cae en el medio de un operando "
-                         "de %d bytes: %r" % (ancho, linea.strip()))
+        raise ValueError("the end of the bank falls in the middle of a "
+                         "%d-byte operand: %r" % (ancho, linea.strip()))
     operandos = [o.strip() for o in resto.split(",")]
     cuantos = entran // ancho
     cola = ("  ; " + comentario.strip()) if comentario.strip() else ""
@@ -91,11 +91,11 @@ def _partir(linea, entran):
 
 
 class _Unidad:
-    """Lo que el acomodo mueve de una pieza: un `.bloque`, un `.cruza` o lo
-    que empieza sin ninguno de los dos, con todas sus líneas hasta el
-    siguiente. `medida` es lo que ocupa a efectos de entrar —lo que declara
-    el `.bloque` si es más que lo emitido—, y `orden` el lugar en el texto,
-    que desempata para que el acomodo salga siempre igual."""
+    """What the packing moves as one piece: a `.bloque`, a `.cruza` or what
+    starts with neither, with all its lines up to the next one. `medida` is
+    what it takes for the purpose of fitting —what the `.bloque` declares if
+    it is more than what was emitted—, and `orden` its place in the text,
+    which breaks ties so that the packing always comes out the same."""
 
     def __init__(self, orden, cruza=False, pide=0):
         self.orden, self.cruza, self.pide = orden, cruza, pide
@@ -107,59 +107,60 @@ class _Unidad:
 
 
 def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
-    """Reparte en bancos lo que esos archivos mandan a `segmento`.
+    """Splits into banks what those files send to `segmento`.
 
-    **Es first-fit decreasing**, desde el 2026-09-27: cada pieza va al primer
-    banco donde entra, de la más grande a la más chica. Hasta ese día era
-    secuencial —cada pieza detrás de la anterior, y la que no entraba saltaba
-    al banco siguiente dejando el hueco sin usar—, y los huecos llegaban a
-    diez bancos en `release`. Las piezas no las elige este módulo: las
-    declara el conversor, y hay tres clases.
+    **It is first-fit decreasing**, since 2026-09-27: each piece goes to the
+    first bank where it fits, from the largest to the smallest. Until that day
+    it was sequential —each piece after the previous one, and the one that
+    did not fit jumped to the next bank leaving the gap unused—, and the gaps
+    added up to ten banks in `release`. The pieces are not chosen by this
+    module: the converter declares them, and there are three kinds.
 
-    * **Un `.bloque N` de hasta un banco** entra entero en uno: casi todos se
-      suben por DMA, y un DMA que cruza de banco lee la WRAM. Es la pieza que
-      se acomoda, y lleva todo lo que sigue hasta la próxima directiva —las
-      tablas que el `.bloque` mide juntas, y las etiquetas de un byte detrás—.
-    * **Uno de más de un banco** —el bloque de textos— arranca un banco y
-      sigue en los siguientes, partido entre operandos, como lo decidía el
-      acomodo secuencial: lo recorre código que salta de banco a mano. Lo
-      que sobra en su último banco lo usan las demás.
-    * **Un `.cruza`** —el driver del SPC700, sus muestras, los streams de
-      la música— se puede partir en cualquier lado **entre dos bancos
-      seguidos**: `spc_block` y `advance` saltan del `$FFFF` al `$8000` del
-      banco siguiente, no a cualquiera. Primero se prueba meterlo entero en
-      un hueco; los que no entran van al final, uno detrás del otro, como
-      una cadena que empieza en lo que quede del último banco y sigue en
-      bancos nuevos. Es lo único que llena un banco sin dejar hueco.
+    * **A `.bloque N` of up to one bank** fits whole in one: almost all of
+      them are uploaded by DMA, and a DMA that crosses a bank reads the WRAM.
+      It is the piece that gets packed, and it carries everything that
+      follows up to the next directive —the tables the `.bloque` measures
+      together, and the one-byte labels after them—.
+    * **One of more than a bank** —the text block— starts a bank and goes on
+      into the following ones, split between operands, as the sequential
+      packing used to decide: it is walked by code that jumps banks by hand.
+      What is left over in its last bank is used by the others.
+    * **A `.cruza`** —the SPC700 driver, its samples, the music streams— can
+      be split anywhere **between two consecutive banks**: `spc_block` and
+      `advance` jump from `$FFFF` to the next bank's `$8000`, not to any
+      bank. First it is tried whole in a gap; the ones that do not fit go at
+      the end, one after the other, as a chain that starts in whatever is
+      left of the last bank and continues in new banks. It is the only thing
+      that fills a bank without leaving a gap.
 
-    **Para mover las piezas hay que sacarlas de su lugar**, porque en `ca65`
-    un segmento se llena en el orden del texto: lo que queda de `segmento` en
-    cada archivo se borra, y todos los bancos se escriben al final del último
-    de `rutas`, en orden. Se puede porque `musicdata.inc` y `mapdata.inc` van
-    antes que todo el código en `main.s`, y nada de lo que se mueve depende
-    del lugar: no hay restas entre etiquetas de piezas distintas, ni `*`, ni
-    constantes que las usen. Las constantes (`X = …`) se quedan donde
-    estaban. Si algún día la ROM leyera una pieza suponiendo que es vecina de
-    otra, eso tendría que ir en un solo `.bloque`: separadas, el acomodo las
-    reparte por donde entren.
+    **To move the pieces they have to be taken out of their place**, because
+    in `ca65` a segment is filled in the order of the text: what is left of
+    `segmento` in each file is deleted, and all the banks are written at the
+    end of the last of `rutas`, in order. It can be done because
+    `musicdata.inc` and `mapdata.inc` come before all the code in `main.s`,
+    and nothing that moves depends on its place: there are no subtractions
+    between labels of different pieces, no `*`, no constants that use them.
+    The constants (`X = …`) stay where they were. If some day the ROM read a
+    piece assuming it is next to another, that would have to go in a single
+    `.bloque`: separate, the packing spreads them wherever they fit.
 
-    `rutas` va en el orden en que el ensamblador las lee, que es el de los
-    `.include`. Lo que un archivo mande a otro segmento —las tablas del banco
-    0— no cuenta.
+    `rutas` comes in the order the assembler reads them, which is that of
+    the `.include`s. What a file sends to another segment —the bank 0
+    tables— does not count.
 
-    **Toda etiqueta de más de un byte tiene que estar cubierta por un
-    `.bloque`**, o llevar `.cruza` delante si la recorre código que salta de
-    banco a mano. Lo que se lee con `lda f:tabla, x` o con `[ptr], y` no salta:
-    partida, la segunda mitad se lee del `$0000` del banco siguiente, que en
-    LoROM no es ROM. La regla se cobra acá, en cada armado, y no el día que el
-    corte cae encima de una: ver `sin_declarar`.
+    **Every label of more than one byte has to be covered by a `.bloque`**,
+    or carry `.cruza` in front if it is walked by code that jumps banks by
+    hand. What is read with `lda f:tabla, x` or with `[ptr], y` does not
+    jump: split, the second half is read from the next bank's `$0000`, which
+    in LoROM is not ROM. The rule is enforced here, on every build, and not
+    on the day the cut lands on one: see `sin_declarar`.
 
-    Devuelve cuántas piezas acomodó y en cuántos bancos.
+    Returns how many pieces it packed and into how many banks.
     """
     unidades, quedan = [], []
-    # Las etiquetas que el acomodo podría partir: [nombre, cuánto mide, cuánto
-    # de eso cubre un `.bloque`, si lleva `.cruza`]. La última es la que está
-    # juntando sus bytes.
+    # The labels the packing could split: [name, how long it is, how much of
+    # that a `.bloque` covers, whether it carries `.cruza`]. The last one is
+    # the one gathering its bytes.
     etiquetas, cubre, cruza = [], 0, False
     for ruta in rutas:
         with open(ruta) as handle:
@@ -176,8 +177,8 @@ def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
             if actual != segmento or _CONSTANTE.match(directiva):
                 suyas.append(linea)
                 continue
-            # Un `.align` pegado a un `.bloque` o a un `.cruza` es de la misma
-            # pieza: la alineación es de lo que sigue.
+            # An `.align` right after a `.bloque` or a `.cruza` belongs to the
+            # same piece: the alignment is of what follows.
             recien = unidad is not None and unidad.alinear > 1 \
                 and len(unidad.lineas) == 1
             if directiva.startswith(".bloque "):
@@ -195,9 +196,10 @@ def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
                 unidad.cruza = True
                 continue
             if directiva.startswith(".align "):
-                # Ésta se queda: alinear no es acomodar bancos, y `ca65` la
-                # sabe hacer. Acá sólo hay que contarla, y como el segmento
-                # es el banco, el relleno depende de lo que haya antes en él.
+                # This one stays: aligning is not packing banks, and `ca65`
+                # knows how to do it. Here it only has to be counted, and since
+                # the segment is the bank, the padding depends on what comes
+                # before it in the bank.
                 if unidad is None or unidad.lineas:
                     unidad = _Unidad(len(unidades))
                     unidades.append(unidad)
@@ -223,27 +225,29 @@ def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
         colados = [l for l in suyas if l.split(";")[0].strip()
                    .startswith((".bloque", ".cruza"))]
         if colados:
-            # Un `.bloque` que llegue al ensamblador es un error de `ca65`
-            # lejos de acá, que no dice qué bloque ni por qué. `.cruza`, igual.
+            # A `.bloque` that reaches the assembler is a `ca65` error far
+            # from here, which does not say which block or why. Same for
+            # `.cruza`.
             raise ValueError(
-                "%s dejó %d `.bloque` sin resolver, el primero %r: está fuera "
-                "de %s, y ahí el acomodo no se puede calcular"
+                "%s left %d `.bloque` unresolved, the first one %r: it is outside "
+                "%s, and there the packing cannot be computed"
                 % (ruta, len(colados), colados[0].strip(), segmento))
         quedan.append(suyas)
     sueltas = sin_declarar(etiquetas)
     if sueltas:
         raise ValueError(
-            "%d etiqueta(s) de %s sin `.bloque` que las cubra, y el acomodo "
-            "las puede partir entre dos bancos: %s. Si la ROM la recorre "
-            "saltando de banco a mano, va `.cruza` delante"
+            "%d label(s) in %s without a `.bloque` covering them, and the packing "
+            "may split them across two banks: %s. If the ROM walks one "
+            "jumping banks by hand, put `.cruza` in front of it"
             % (len(sueltas), segmento, ", ".join(sueltas)))
 
     bancos = _acomodar(unidades)
     entran = BANCOS - BANCOS_RESERVADOS - primer_banco
     if len(bancos) > entran:
-        # Sin esto el que se queja es `ld65`, con un "Internal error: Invalid
-        # file offset for memory area HEAD", que no dice que falta lugar.
-        raise ValueError("los datos piden %d bancos y entran %d: del $%02X al "
+        # Without this the one complaining is `ld65`, with an "Internal error:
+        # Invalid file offset for memory area HEAD", which does not say that
+        # space ran out.
+        raise ValueError("the data needs %d banks and %d fit: from $%02X to "
                          "$%02X" % (len(bancos), entran, primer_banco,
                                     primer_banco + entran - 1))
     for k, (_usado, lineas) in enumerate(bancos):
@@ -260,16 +264,16 @@ def _relleno(usado, alinear):
 
 
 def _acomodar(unidades):
-    """Los bancos, como [usado, líneas], con las piezas adentro. Ver
-    `resolver`, que dice qué es cada clase."""
+    """The banks, as [used, lines], with the pieces inside. See `resolver`,
+    which says what each kind is."""
     bancos = []
     grandes = [u for u in unidades if not u.cruza and u.medida > BANCO]
     enteras = [u for u in unidades if not u.cruza and u.medida <= BANCO]
     cruzan = [u for u in unidades if u.cruza]
 
     def cabe(banco, u):
-        # Una etiqueta sola también ocupa: en el final de un banco apuntaría a
-        # la dirección que sigue a `$FFFF`, que no es la ROM.
+        # A lone label takes space too: at the end of a bank it would point
+        # to the address after `$FFFF`, which is not the ROM.
         return (banco[0] + _relleno(banco[0], u.alinear) + max(1, u.medida)
                 <= BANCO)
 
@@ -281,8 +285,8 @@ def _acomodar(unidades):
                 return True
         return False
 
-    # Las grandes primero, cada una desde un banco nuevo: lo que les sobra en
-    # el último lo aprovechan las demás.
+    # The large ones first, each from a new bank: what is left over in their
+    # last bank is used by the others.
     for u in grandes:
         bancos.append([0, []])
         _volcar(bancos, u.lineas)
@@ -301,15 +305,15 @@ def _acomodar(unidades):
 
 
 def _volcar(bancos, lineas):
-    """Escribe `lineas` a partir del final del último banco, partiendo entre
-    operandos y siguiendo en bancos nuevos: es el acomodo secuencial de antes,
-    para lo que puede o tiene que cruzar."""
+    """Writes `lineas` from the end of the last bank, splitting between
+    operands and continuing in new banks: it is the old sequential packing,
+    for what can or has to cross."""
     for linea in lineas:
         banco = bancos[-1]
         directiva = linea.split(";")[0].strip()
-        # Un banco lleno se deja antes de escribir nada más, etiquetas
-        # incluidas: una etiqueta al final de un banco apuntaría a la
-        # dirección que sigue a `$FFFF`, que no es la ROM.
+        # A full bank is left behind before writing anything else, labels
+        # included: a label at the end of a bank would point to the address
+        # after `$FFFF`, which is not the ROM.
         if banco[0] == BANCO and directiva:
             bancos.append([0, []])
             banco = bancos[-1]
@@ -335,63 +339,67 @@ _ETIQUETA = re.compile(r"^[A-Za-z_]\w*:")
 
 
 def sin_declarar(etiquetas):
-    """Las que se pueden partir sin que nadie lo haya pedido.
+    """The ones that can be split without anyone having asked for it.
 
-    Una de un solo byte no se parte nunca, y por eso se deja pasar: las
-    tablas vacías el conversor las emite con un byte de relleno, y la que
-    crezca se cobra el día que crece.
+    A single-byte one is never split, and that is why it is let through: the
+    converter emits empty tables with one byte of padding, and one that grows
+    is caught the day it grows.
     """
     return [nombre for nombre, mide, cubierto, cruza in etiquetas
             if mide > 1 and cubierto < mide and not cruza]
 
 
-# --- el mapa de memoria, para `ld65` -----------------------------------------
+# --- the memory map, for `ld65` ----------------------------------------------
 #
-# LoROM de 4 MB: 128 bancos de 32 KB, cada uno visto en `$8000-$FFFF` de su
-# número. Los dos últimos del archivo no se usan: en la consola, los bancos
-# `$7E` y `$7F` **son** la WRAM, y un dato ahí se leería como RAM.
+# 4 MB LoROM: 128 banks of 32 KB, each seen at `$8000-$FFFF` of its number.
+# The last two in the file are not used: on the console, banks `$7E` and `$7F`
+# **are** the WRAM, and data there would be read as RAM.
 BANCOS = 128
 BANCOS_RESERVADOS = 2
 
-# La pila arranca en `$1FFF` y crece hacia abajo, hacia el BSS: los dos
-# comparten los 8 KB bajos. Esto es lo que se le deja, y el byte más bajo que le
-# toca es `$2000 - PILA`.
+# The stack starts at `$1FFF` and grows downwards, towards the BSS: the two
+# share the low 8 KB. This is what it is given, and the lowest byte it gets is
+# `$2000 - PILA`.
 #
-# **Bajó de 256 a 128 el 2026-09-20, por decisión de taro**, para darle esos 128
-# bytes a la BSS, que está llena. Lo que hace que el margen deje de ser ciego es
-# `rom/pruebas/rpgmaker/test_pila.py`: marca la zona de la pila **antes del
-# primer cuadro** y mide hasta dónde bajó de verdad en los caminos más hondos,
-# con el umbral en la mitad de acá. Sin esa prueba bajar el número sería gastar
-# un margen que no ve nadie —el modo de falla es la pila comiéndose la BSS, y
-# las goldens no lo distinguen ni `test_cores.py` tampoco, porque los dos
-# emuladores se corromperían igual—.
+# **It went down from 256 to 128 on 2026-09-20, by taro's decision**, to give
+# those 128 bytes to the BSS, which is full. What keeps the margin from being
+# blind is `rom/pruebas/rpgmaker/test_pila.py`: it marks the stack area
+# **before the first frame** and measures how far down it really went on the
+# deepest paths, with the threshold at half of this value. Without that test,
+# lowering the number would be spending a margin nobody sees —the failure mode
+# is the stack eating into the BSS, and the goldens do not tell it apart, nor
+# does `test_cores.py`, because both emulators would get corrupted the same
+# way—.
 #
-# Cuánto se usa **no se escribe acá**: lo imprime esa prueba, y el número que
-# había escrito envejeció dos veces (decía 24 cuando ya eran 49). Lo que sí es
-# de acá es de dónde sale el tope: la cadena más honda son las peleas, que
-# cruzan al banco 1 con `jsl` y vuelven por los puentes.
+# How much is used **is not written here**: that test prints it, and the
+# number that was written went stale twice (it said 24 when it was already
+# 49). What does belong here is where the cap comes from: the deepest chain is
+# the battles, which cross into bank 1 with `jsl` and come back through the
+# bridges.
 PILA = 128
 
 
 def cfg():
-    """El `.cfg` de `ld65`: un área por banco, y cada segmento en la suya.
+    """The `ld65` `.cfg`: one area per bank, and each segment in its own.
 
-    Un área con `fill = yes` se rellena hasta el final, así que cada banco
-    ocupa sus 32 KB en el archivo aunque su segmento no los llene, y un
-    segmento que se pase hace fallar el link en vez de invadir el siguiente.
-    Los `BANKnn` son opcionales porque cuántos se usan depende del cartucho.
+    An area with `fill = yes` is padded to the end, so each bank takes its
+    32 KB in the file even if its segment does not fill them, and a segment
+    that overflows makes the link fail instead of spilling into the next one.
+    The `BANKnn` are optional because how many are used depends on the
+    cartridge.
 
-    El `align = $8000` no mueve nada —cada segmento arranca al principio de su
-    área, que ya está alineado a eso—, pero `ld65` exige que un segmento
-    declare al menos la alineación de los `.align` que lleva adentro.
+    The `align = $8000` moves nothing —each segment starts at the beginning
+    of its area, which is already aligned to that—, but `ld65` requires a
+    segment to declare at least the alignment of the `.align`s it carries.
     """
     memoria = [
-        # La RAM no va al archivo: se reparte por dirección, no por offset.
+        # The RAM does not go into the file: it is laid out by address, not
+        # by offset.
         'ZP:   start = $0000, size = $0100, type = rw, file = "";',
         'RAM:  start = $0100, size = $%04X, type = rw, file = "";'
         % (0x1F00 - PILA),
-        # El banco 0: el código y las tablas, y la cabecera y los vectores
-        # al final, donde los busca la consola.
+        # Bank 0: the code and the tables, and the header and the vectors at
+        # the end, where the console looks for them.
         "ROM:  start = $008000, size = $7FC0, fill = yes;",
         "HEAD: start = $00FFC0, size = $0020, fill = yes;",
         "VECT: start = $00FFE0, size = $0020, fill = yes;",
@@ -403,7 +411,7 @@ def cfg():
         "TABLAS:   load = ROM,  type = ro;",
         "HEADER:   load = HEAD, type = ro;",
         "VECTORS:  load = VECT, type = ro;",
-        # El código a mano que vive afuera del banco 0.
+        # The hand-written code that lives outside bank 0.
         "FAR:      load = %s, type = ro, align = $8000;" % segmento_de(1),
     ]
     for banco in range(1, BANCOS - BANCOS_RESERVADOS):
@@ -413,11 +421,11 @@ def cfg():
             segmentos.append("%s: load = %s, type = ro, align = $8000, "
                              "optional = yes;"
                              % (segmento_de(banco), segmento_de(banco)))
-    # Los dos reservados van igual al archivo, en cero: el cartucho mide 4 MB,
-    # que es lo que dice la cabecera y lo que esperan los flash carts.
+    # The two reserved ones go into the file anyway, as zeros: the cartridge
+    # is 4 MB, which is what the header says and what flash carts expect.
     memoria.append("RESERVADO: start = $%02X8000, size = $%X, fill = yes;"
                    % (BANCOS - BANCOS_RESERVADOS, 0x8000 * BANCOS_RESERVADOS))
-    return ("# Generado por tools/ensamblado/bancos.py: el mapa de memoria de la ROM.\n"
+    return ("# Generated by tools/ensamblado/bancos.py: the ROM's memory map.\n"
             "MEMORY {\n%s\n}\nSEGMENTS {\n%s\n}\n"
             % ("\n".join("    " + m for m in memoria),
                "\n".join("    " + s for s in segmentos)))

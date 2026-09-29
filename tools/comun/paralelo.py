@@ -1,29 +1,31 @@
-"""Lo puro y caro del conversor, repartido en procesos.
+"""The converter's pure and expensive work, spread across processes.
 
-El conversor es un solo proceso de Python y la máquina tiene varios núcleos:
-lo que es puro —el mismo resultado para el mismo argumento, sin tocar nada
-de afuera— y cuesta, se reparte con `en_paralelo`. Los procesos se
-**bifurcan**, así que nacen con todo el estado del conversor ya armado; lo
-único que viaja entre procesos son los argumentos y los resultados.
+The converter is a single Python process and the machine has several cores:
+what is pure —the same result for the same argument, without touching
+anything outside— and costly is spread with `en_paralelo`. The processes are
+**forked**, so they are born with all of the converter's state already built;
+the only things that travel between processes are the arguments and the
+results.
 """
 
 import os
 
 
 def en_paralelo(funcion, argumentos):
-    """`[funcion(a) for a in argumentos]`, en procesos bifurcados.
+    """`[funcion(a) for a in argumentos]`, in forked processes.
 
-    Por bifurcar, la función puede ser una lambda o un cierre: no viaja, la
-    hereda cada proceso. Los resultados vuelven en el orden de los
-    argumentos. Una excepción vuelve como valor y se relanza acá: un
-    `SystemExit` que se escapa de un proceso del pool lo mata sin avisar, y
-    el conversor tiene que cortar con el mismo mensaje que cortaba en serie.
+    Because it forks, the function can be a lambda or a closure: it does not
+    travel, each process inherits it. The results come back in the order of
+    the arguments. An exception comes back as a value and is re-raised here:
+    a `SystemExit` that escapes from a pool process kills it silently, and
+    the converter has to stop with the same message it stopped with serially.
 
-    Con un solo argumento o un solo núcleo, en serie y en este proceso. Y
-    también si este proceso ya tiene otros hilos —un worker de pytest con un
-    core de libretro cargado, por ejemplo—: bifurcar un proceso con hilos
-    puede dejar al hijo trabado en un lock que otro hilo tenía tomado, y
-    Python lo avisa. El conversor corre en un proceso propio y de un hilo.
+    With a single argument or a single core, serially and in this process.
+    And also if this process already has other threads —a pytest worker with
+    a libretro core loaded, for example—: forking a process with threads can
+    leave the child stuck on a lock another thread was holding, and Python
+    warns about it. The converter runs in a process of its own with a single
+    thread.
     """
     argumentos = list(argumentos)
     procesos = min(len(argumentos), os.cpu_count() or 1)
@@ -49,13 +51,13 @@ _funcion = None
 def _uno(argumento):
     try:
         return _funcion(argumento), None
-    except BaseException as e:      # noqa: B036 — ver `en_paralelo`
+    except BaseException as e:      # noqa: B036 — see `en_paralelo`
         return None, e
 
 
 def _un_solo_hilo():
-    """Si este proceso tiene un solo hilo, contando los que no son de
-    Python: es lo mismo que mira Python para avisar."""
+    """Whether this process has a single thread, counting the ones that are
+    not Python's: it is the same thing Python looks at to warn."""
     try:
         return len(os.listdir("/proc/self/task")) == 1
     except OSError:

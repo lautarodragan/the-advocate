@@ -1,32 +1,33 @@
-"""Un caché en disco para lo que el conversor calcula igual en cada build.
+"""A disk cache for what the converter computes the same way on every build.
 
-Casi nada de lo que cuesta una conversión depende de algo que cambie entre un
-build y el siguiente: las muestras del soundfont son las mismas y los mapas
-también. Lo que sí cambia —el código— entra en la clave: cada categoría lleva
-el hash de los fuentes de los que sale, así que tocar el codificador o el
-conversor invalida lo suyo solo, sin que nadie tenga que acordarse de borrar
-nada.
+Almost nothing of what a conversion costs depends on something that changes
+between one build and the next: the soundfont's samples are the same and so
+are the maps. What does change —the code— goes into the key: each category
+carries the hash of the sources it comes from, so touching the encoder or the
+converter invalidates only its own part, without anyone having to remember to
+delete anything.
 
-Hoy son cuatro categorías: `capas` —los mapas convertidos a tiles—, `brr` —lo
-que devuelve el codificador—, `muestras` —la voz ya preparada, que es el
-remuestreo y la normalización que van antes de codificar— y `msu` —las pistas
-de MSU-1—. Las dos del SPC700 son categorías separadas a propósito: una sola,
-más arriba, ahorraría claves pero se caería entera cada vez que se toque
-cualquiera de los dos lados.
+Today there are four categories: `capas` —the maps converted to tiles—, `brr`
+—what the encoder returns—, `muestras` —the voice already prepared, which is
+the resampling and normalization that come before encoding— and `msu` —the
+MSU-1 tracks—. The two SPC700 ones are separate categories on purpose: a
+single one, further up, would save keys but would be dropped entirely every
+time either side is touched.
 
-`msu` es la rara y conviene saber por qué: **no guarda el valor sino su
-sha256**, porque el valor es un archivo de decenas de megas que ya está
-escrito al lado de la ROM, que es donde el MSU-1 lo va a buscar. Lo que el
-caché contesta ahí no es "tomá esto" sino "lo que hay es lo que yo haría".
+`msu` is the odd one and it is worth knowing why: **it does not store the
+value but its sha256**, because the value is a file of tens of megabytes that
+is already written next to the ROM, which is where the MSU-1 will look for
+it. What the cache answers there is not "take this" but "what is there is
+what I would make".
 
-Vive en `rom/build/cache/`, que git ignora y que existe de los dos lados —el
-host y el contenedor—, porque las recetas se corren desde los dos. Se puede
-mover con `--cache` y apagar con `SIN_CACHE=1`, que es lo que se usa para
-comprobar que con caché y sin caché sale **el mismo `.sfc` byte por byte**: la
-única verificación honesta de un caché es ésa.
+It lives in `rom/build/cache/`, which git ignores and which exists on both
+sides —the host and the container—, because the recipes are run from both.
+It can be moved with `--cache` and turned off with `SIN_CACHE=1`, which is
+what is used to check that with and without the cache **the same `.sfc` comes
+out byte for byte**: that is the only honest verification of a cache.
 
-Un valor que no se pueda serializar no se guarda y no rompe nada: el caché es
-un atajo, no una dependencia.
+A value that cannot be serialized is not stored and breaks nothing: the
+cache is a shortcut, not a dependency.
 """
 
 import hashlib
@@ -41,14 +42,14 @@ APAGADO = os.environ.get("SIN_CACHE") == "1"
 
 
 def donde():
-    """El directorio del caché. Se pide al usarlo y no al importar: sale del
-    proyecto, que se encuentra al usarlo, o de `--cache`."""
+    """The cache directory. It is asked for when used and not at import: it
+    comes from the project, which is found when used, or from `--cache`."""
     return ambiente.cache()
 
 
 def version_de(*archivos):
-    """El hash de los fuentes de los que sale un valor, para meterlo en la
-    clave: rutas relativas a `tools/`."""
+    """The hash of the sources a value comes from, to put it into the key:
+    paths relative to `tools/`."""
     h = hashlib.sha256()
     for nombre in archivos:
         with open(os.path.join(proyecto.herramientas(), nombre), "rb") as f:
@@ -57,8 +58,8 @@ def version_de(*archivos):
 
 
 def clave(*partes):
-    """Una clave a partir de sus partes, cada una bytes o texto, con el largo
-    delante para que dos particiones distintas no den lo mismo."""
+    """A key from its parts, each bytes or text, with the length in front so
+    that two different partitions do not give the same thing."""
     h = hashlib.sha256()
     for parte in partes:
         if isinstance(parte, str):
@@ -69,7 +70,7 @@ def clave(*partes):
 
 
 def leer(categoria, clave):
-    """Lo guardado bajo esa clave, o None."""
+    """What is stored under that key, or None."""
     if APAGADO:
         return None
     ruta = os.path.join(donde(), categoria, clave)
@@ -81,8 +82,9 @@ def leer(categoria, clave):
 
 
 def guardar(categoria, clave, valor):
-    """Guarda el valor, entero o nada: se escribe aparte y se renombra, así una
-    corrida cortada a la mitad no deja un archivo a medias que otra lea."""
+    """Stores the value, whole or not at all: it is written aside and renamed,
+    so a run cut halfway does not leave a half-written file for another to
+    read."""
     if APAGADO:
         return
     carpeta = os.path.join(donde(), categoria)

@@ -1,68 +1,69 @@
-"""Dónde está cada cosa: el único lugar que lo sabe.
+"""Where everything is: the only place that knows.
 
-Una función por lugar, y los valores por omisión del ambiente, que antes
-calculaban por su cuenta once módulos y armaban a mano otros tantos. Ver
+One function per place, and the environment's default values, which eleven
+modules used to compute on their own and as many again built by hand. See
 `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 
-**Las herramientas no saben dónde vive el juego: lo encuentran.** Buscan
-`rm2k-snes.toml` desde el directorio actual hacia arriba, como cargo busca
-su `Cargo.toml`, o lo reciben por `--proyecto`. Lo del repo —las
-herramientas, el runtime, la raíz— sale de dónde está este archivo.
+**The tools do not know where the game lives: they find it.** They look for
+`rm2k-snes.toml` from the current directory upwards, the way cargo looks for
+its `Cargo.toml`, or receive it through `--proyecto`. What belongs to the
+repo —the tools, the runtime, the root— comes from where this file is.
 
-Son funciones y no constantes para que un lugar pueda depender de otro sin
-que importe el orden en que se escriben, y para que nada se calcule al
-importar: el proyecto se busca la primera vez que alguien pregunta por él,
-así que importar las herramientas no pide un juego.
+They are functions and not constants so that one place can depend on another
+regardless of the order they are written in, and so that nothing is computed
+at import: the project is looked up the first time someone asks for it, so
+importing the tools does not require a game.
 
-No importa nada de `tools/`: está en la capa de más abajo, y la usan todas.
+It imports nothing from `tools/`: it is in the lowest layer, and all of them
+use it.
 """
 
 import os
 
-# `realpath` y no `abspath`: los scripts que se ejecutan se instalan en el
-# PATH como symlinks, y lo que importa es dónde está el archivo de verdad.
+# `realpath` and not `abspath`: the scripts that get executed are installed
+# on the PATH as symlinks, and what matters is where the real file is.
 _HERRAMIENTAS = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 
-# Lo que es del repo.
+# What belongs to the repo.
 
 def herramientas():
-    """`tools/`: los paquetes de Python, que es donde vive este archivo."""
+    """`tools/`: the Python packages, which is where this file lives."""
     return _HERRAMIENTAS
 
 
 def raiz():
-    """La raíz del repo: donde corren `ca65` y `ld65`, y contra la que se
-    escriben las rutas relativas que terminan adentro de un `.dbg` o de un
-    `.inc`. Es para lo que es del repo, como `.git`: el juego no se busca
-    desde acá."""
+    """The repo root: where `ca65` and `ld65` run, and what the relative
+    paths that end up inside a `.dbg` or a `.inc` are written against. It is
+    for what belongs to the repo, like `.git`: the game is not looked up from
+    here."""
     return os.path.dirname(_HERRAMIENTAS)
 
 
 def runtime():
-    """El motor en ensamblador: viaja con las herramientas, y se arma junto
-    con los `.inc` de cada juego."""
+    """The runtime in assembly: it travels with the tools, and is assembled
+    together with each game's `.inc` files."""
     return os.path.join(herramientas(), "runtime")
 
 
-# El proyecto: el juego que se arma. Las herramientas no saben dónde vive;
-# lo encuentran.
+# The project: the game being built. The tools do not know where it lives;
+# they find it.
 
 ARCHIVO = "rm2k-snes.toml"
 
 
 class NoHayProyecto(SystemExit):
-    """No se encontró el archivo de proyecto. Es un `SystemExit` y no un error
-    cualquiera porque lo que lo arregla es cómo se corrió la herramienta, no
-    su código: un ejecutable corta con el mensaje y sin traza."""
+    """The project file was not found. It is a `SystemExit` and not just any
+    error because what fixes it is how the tool was run, not its code: an
+    executable stops with the message and no traceback."""
 
 
 _directorio = None
 
 
 def buscar(desde):
-    """El directorio más cercano, `desde` o uno de más arriba, que tiene un
-    `rm2k-snes.toml`; o None. Es cómo cargo encuentra su `Cargo.toml`."""
+    """The nearest directory, `desde` or one above it, that has a
+    `rm2k-snes.toml`; or None. It is how cargo finds its `Cargo.toml`."""
     actual = os.path.abspath(desde)
     while True:
         if os.path.isfile(os.path.join(actual, ARCHIVO)):
@@ -74,49 +75,51 @@ def buscar(desde):
 
 
 def fijar(directorio):
-    """Usa el proyecto de `directorio`, sin buscar: es `--proyecto`, y lo que
-    hacen las pruebas de un juego, que saben dónde están."""
+    """Uses the project in `directorio`, without searching: it is
+    `--proyecto`, and what a game's tests do, since they know where they
+    are."""
     global _directorio
     directorio = os.path.abspath(directorio)
     if not os.path.isfile(os.path.join(directorio, ARCHIVO)):
-        raise NoHayProyecto("%s no tiene un %s: --proyecto es el directorio "
-                            "donde está ese archivo" % (directorio, ARCHIVO))
+        raise NoHayProyecto("%s has no %s: --proyecto is the directory "
+                            "where that file is" % (directorio, ARCHIVO))
     _directorio = directorio
 
 
 def directorio():
-    """La raíz del proyecto: donde está `rm2k-snes.toml`. Si nadie la fijó,
-    se busca desde el directorio actual hacia arriba, la primera vez que se
-    pide y no al importar: importar las herramientas no pide un juego."""
+    """The project root: where `rm2k-snes.toml` is. If nobody set it, it is
+    looked up from the current directory upwards, the first time it is asked
+    for and not at import: importing the tools does not require a game."""
     global _directorio
     if _directorio is None:
         desde = os.getcwd()
         encontrado = buscar(desde)
         if encontrado is None:
             raise NoHayProyecto(
-                "no encontré un %s en %s ni en ninguna carpeta de más arriba: "
-                "corré esto desde adentro del proyecto, o pasale "
-                "--proyecto <directorio>" % (ARCHIVO, desde))
+                "found no %s in %s nor in any folder above it: run this "
+                "from inside the project, or pass it "
+                "--proyecto <directory>" % (ARCHIVO, desde))
         _directorio = encontrado
     return _directorio
 
 
 def argumento(parser):
-    """Suma `--proyecto` al parser de un ejecutable, para que figure en su
-    `--help` y no lo rechace. Quien lo usa es `desde_la_linea_de_comandos`."""
+    """Adds `--proyecto` to an executable's parser, so that it shows up in
+    its `--help` and is not rejected. What uses it is
+    `desde_la_linea_de_comandos`."""
     parser.add_argument(
-        "--proyecto", metavar="DIRECTORIO",
-        help="el directorio donde está %s. Sin esto, se busca desde el "
-             "directorio actual hacia arriba" % ARCHIVO)
+        "--proyecto", metavar="DIRECTORY",
+        help="the directory where %s is. Without this, it is looked up from "
+             "the current directory upwards" % ARCHIVO)
 
 
 def desde_la_linea_de_comandos(argv=None):
-    """Toma `--proyecto` de la línea de comandos, si está.
+    """Takes `--proyecto` from the command line, if it is there.
 
-    Va en el arranque de cada ejecutable, antes de importar nada que lea el
-    archivo de proyecto —`cartuchos` lo lee al importarse—, así que no puede
-    esperar al `parse_args` de su `main`: lee sólo este flag y deja los demás
-    para él."""
+    It goes at the start of each executable, before importing anything that
+    reads the project file —`cartuchos` reads it when imported—, so it cannot
+    wait for its `main`'s `parse_args`: it reads only this flag and leaves
+    the rest to it."""
     import argparse
     previo = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
     previo.add_argument("--proyecto")
@@ -126,45 +129,45 @@ def desde_la_linea_de_comandos(argv=None):
 
 
 def archivo_de_proyecto():
-    """`rm2k-snes.toml`: las perillas del juego. Lo lee `comun/perillas.py`."""
+    """`rm2k-snes.toml`: the game's settings. `comun/perillas.py` reads it."""
     return os.path.join(directorio(), ARCHIVO)
 
 
 def _ruta(clave):
-    """Una ruta de `[paths]`: la declara el archivo, relativa a él. Cómo está
-    armado el juego por dentro es del juego, no de las herramientas."""
-    from comun import perillas      # adentro: `perillas` importa éste
+    """A path from `[paths]`: the file declares it, relative to itself. How
+    the game is laid out inside belongs to the game, not to the tools."""
+    from comun import perillas      # inside: `perillas` imports this one
     return os.path.normpath(os.path.join(
         directorio(), perillas.valor("paths", clave, tipo=str)))
 
 
 def build():
-    """`[paths] build`: todo lo que se arma, y nada versionado."""
+    """`[paths] build`: everything that gets built, and nothing versioned."""
     return _ruta("build")
 
 
 def data():
-    """`[paths] data`: el juego volcado a JSON."""
+    """`[paths] data`: the game dumped to JSON."""
     return _ruta("data")
 
 
 def parches():
-    """`[paths] patches`: lo que se decidió sobre el juego, `manual/` y
-    `auto/`. Lo de adentro tiene la forma que le dan las herramientas."""
+    """`[paths] patches`: what was decided about the game, `manual/` and
+    `auto/`. What goes inside has the shape the tools give it."""
     return _ruta("patches")
 
 
 def parches_manual():
-    """Lo rediseñado a mano: los forks, los mapas nuevos, los ChipSets."""
+    """What was redesigned by hand: the forks, the new maps, the ChipSets."""
     return os.path.join(parches(), "manual")
 
 
 def parches_auto():
-    """Lo que decidió el conversor y se versiona."""
+    """What the converter decided and is versioned."""
     return os.path.join(parches(), "auto")
 
 
 def casos():
-    """`[paths] cases`: los casos de la tanda, un JSON por caso. Los lee
-    `cartuchos.py`, que los mete en las páginas de prueba."""
+    """`[paths] cases`: the suite's cases, one JSON per case. `cartuchos.py`
+    reads them and puts them into the test pages."""
     return _ruta("cases")
