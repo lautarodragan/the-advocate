@@ -2,7 +2,7 @@
 name: "El workspace de Rust"
 description: "Los nueve crates de tools/ en un workspace de Cargo: un Cargo.lock y un target/, sin cambiar lo que hace ningún binario"
 type: refactor
-assignee: Pirincho
+assignee: taro
 ---
 
 De taro, el 2026-09-29: "dale, armá el workspace". Charlado antes: los
@@ -136,3 +136,17 @@ comparten, porque `cargo install --path` compila un paquete por vez y las
 features se unifican por paquete: `clap` con y sin `derive`, `toml` y
 `serde_json` con y sin `preserve_order`. Recompilar después de tocar un
 crate es lo que más baja: las dependencias ya están en `tools/target/`.
+
+Con eso, sobre la rama antes de mergear `main` (lo que trajo `main` fue
+sólo prosa de `workflow/`): `just pruebas`, 874 en verde.
+
+## Al mergear, en el checkout principal
+
+- `just -f tools/justfile install`, todo: cambian los perfiles de `ditto`
+  y `protocol`, el lock de todos, y `rm2k-render` cambia su interfaz; y
+  los binarios de `cartridge` buscan el runtime por la ruta del crate, que
+  se mudó.
+- Borrar los `target/` viejos de cada crate, que quedan sin trackear y ya
+  no los usa nadie: `tools/*/target`. El nuevo es `tools/target/`.
+- Mirar que no quede nada suelto en `tools/` con el nombre de un crate:
+  un directorio vacío o un `.idea/` sin trackear no los mueve el merge.
