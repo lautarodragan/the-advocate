@@ -33,7 +33,7 @@
 ; `animation_step_ab`— and a character's walk cycle, which has three columns
 ; and draws column 1 when the step is 3. It is `CYCLE_OF_THREE` in
 ; tools/rpgmaker/rm2k.py.
-ciclo_tres:
+cycle_three:
     .byte 0, 1, 2, 1
 
 ; How far the hero advances per frame according to its speed, in **half
@@ -43,16 +43,16 @@ ciclo_tres:
 ; each step. The pixels left are `step_left >> 3`: integer division drops the
 ; sixteenths, and at the speeds with half a pixel per frame that is the same as
 ; counting the frames by two.
-paso_medio_por_vel:
+half_step_per_speed:
     .byte 2, 4, 8, 16, 32, 64
 ; And every how many frames the walk frame changes:
-; `GetStationaryAnimFrames`, the same numbers as `anim_parado`.
-anim_por_vel:
+; `GetStationaryAnimFrames`, the same numbers as `anim_idle`.
+anim_per_speed:
     .byte 12, 10, 8, 6, 5, 4
 
 ; Leaves in X the entry of family Y inside `anim_tabla`. Which map it is comes
 ; from `mapa_ofs` without storing anything: both strides are powers of two.
-.proc anim_donde
+.proc anim_where
 .a8
 .i16
     rep #$20
@@ -85,7 +85,7 @@ anim_por_vel:
 ; —eighteen minutes— it wraps around and the cycle skips a drawing; RM2k
 ; counts in thirty-two. What is lost is declared in
 ; workflow/divergencias/el-chipset-se-saltea-un-dibujo-cada-18-minutos.md.
-.proc anim_paso
+.proc anim_advance
 .a8
 .i16
     rep #$20
@@ -119,7 +119,7 @@ no_cambia:
 .assert AGUA_CICLO_N = 4, error, "the cycle is trimmed with a two-bit and"
 .assert ANIMADO_PASOS = 4, error, "and both cycles have the same length"
     cpy #$0000
-    bne listo                   ; the animated tiles just wrap around
+    bne ready                   ; the animated tiles just wrap around
     phx
     rep #$20
 .a16
@@ -127,15 +127,15 @@ no_cambia:
     tax
     sep #$20
 .a8
-    lda ciclo_tres, x
+    lda cycle_three, x
     plx
-listo:
+ready:
     rts
 .endproc
 
 ; The DMA of one family: X its entry in `anim_tabla` and Y the drawing. The DMA
 ; mode is left set by the caller, which always asks for the same one.
-.proc anim_subir
+.proc anim_upload
 .a8
 .i16
     pha                         ; the drawing, which the arithmetic below
@@ -191,7 +191,7 @@ puesto:
 .endproc
 
 ; The DMA mode the two below ask for: background tiles to VRAM.
-.proc anim_modo
+.proc anim_mode
 .a8
 .i16
     lda #$80
@@ -207,11 +207,11 @@ puesto:
 ; the screen off. The new map brings drawing 0 of each run in VRAM and the
 ; clock may be at any other, because it belongs to the saved game and not to
 ; the map.
-.proc anim_cargar
+.proc anim_load
 .a8
 .i16
     stz anim_pend               ; whatever was pending gets uploaded here
-    jsr anim_modo
+    jsr anim_mode
     ldy #$0000
 otra:
     phy
@@ -223,13 +223,13 @@ otra:
     tax
     sep #$20
 .a8
-    jsr anim_paso               ; Y is still the family
+    jsr anim_advance               ; Y is still the family
     ply
     phy
     pha
-    jsr anim_donde
+    jsr anim_where
     pla
-    jsr anim_subir
+    jsr anim_upload
     ply
     iny
     cpy #ANIM_FAMILIAS
@@ -257,7 +257,7 @@ otra:
     tax
     sep #$20
 .a8
-    jsr anim_paso
+    jsr anim_advance
     inc a                       ; the drawing, plus one: zero is "nothing"
     sta temp + 2
     ; And whether this tick is the one where it changes. It is checked with
@@ -270,7 +270,7 @@ otra:
     beq siguiente
     ply
     phy
-    jsr anim_donde
+    jsr anim_where
     lda f:anim_tabla + 6, x
     beq siguiente               ; this family does not animate on this map
     lda temp + 2
@@ -309,11 +309,11 @@ siguiente:
     bne hay
     rts                         ; the usual case: an lda and a beq
 hay:
-    jsr anim_modo
+    jsr anim_mode
     ldy #$0000
 otra:
     ; This family's three bits, read from `anim_pend` on each pass and not
-    ; from a copy in `temp`: `anim_subir` stores a word there and used to wipe
+    ; from a copy in `temp`: `anim_upload` stores a word there and used to wipe
     ; out the copy. When both families changed on the same tick —every 24,
     ; which is a multiple of 6— the second was lost and kept the old drawing
     ; until the next change. It showed in 8 pixels of map 2.
@@ -329,9 +329,9 @@ baja:
     dec a                       ; the drawing `anim_tick` asked for
     phy
     pha
-    jsr anim_donde
+    jsr anim_where
     pla
-    jsr anim_subir
+    jsr anim_upload
     ; What it took, in poses: a pose is 512 bytes and a background tile 64.
     ; It is subtracted from the budget instead of setting it, so that it adds
     ; to whatever the tint or a line of the window already took.

@@ -177,7 +177,7 @@ SALTOS_MAX = 32
 panico:      .res 1
 PANICO_SALTOS = 1       ; the teleport budget ran out
 ; The interpreter runs one frame at a time, not in a single pass. Before,
-; `cargar_mapa` ran all the pages in one go with the screen off and the waits
+; `enter_map` ran all the pages in one go with the screen off and the waits
 ; were skipped: that collapsed time, and everything that in RM2k happens
 ; *during* a page did not exist. Now the chosen pages are queued when the map
 ; loads and the main loop consumes them.
@@ -257,7 +257,7 @@ hero_pal:    .res 1
 ;
 ; The possible leaders **share a CGRAM slot**: one leads at a time, so giving
 ; each one a palette is having it occupied by someone who is not on screen.
-; `aplicar_tinte` uploads the leader's on top of that slot, tinted like the
+; `apply_tint` uploads the leader's on top of that slot, tinted like the
 ; rest. At zero, there is no leader with a graphic and nothing is uploaded.
 hero_cgram:  .res 3
 ; The page being looked at, already read from the table. It is copied instead

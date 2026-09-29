@@ -116,7 +116,7 @@ def draw(sys_img, db, chosen, font_id=None, width=WIDTH, height=HEIGHT,
 #
 # BG2, at 4bpp and with palette 0: the tiles from `RANURA_VRAM` and the tilemap
 # at `RANURA_MAP`, which are the VRAM places the menu and the slot screen
-# already write —see `volver_al_mapa`—, so the map comes back without anything
+# already write —see `back_to_map`—, so the map comes back without anything
 # else having to be restored. The palette is entries 0 to 15, which the menu
 # also restores on the way back.
 COLORS_MAX = 16

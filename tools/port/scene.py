@@ -74,14 +74,14 @@ does not go past because it has another eighty pixels of screen below.
   128 to 255. Those are the map objects' ones, and the battle draws no
   objects; returning to the map did not restore them whole —the picture and
   the battle animation are uploaded only when they change—, so now
-  `volver_de_batalla` uploads the 128 from `cgram_sombra` before anything
+  `back_from_battle` uploads the 128 from `cgram_sombra` before anything
   else.
 * **WRAM**: the clean backdrop at `$7F0000` and the composited scene at
   `$7F8000`, 32 KB each. The clean one is what allows recompositing the
   cells of a dead enemy without reading anything from the cartridge again:
   see `scene_tick`.
 * In the battle's VRAM everything fits without fighting anything: the battle
-  screen **does not share VRAM with the map**, because `volver_de_batalla`
+  screen **does not share VRAM with the map**, because `back_from_battle`
   redoes it entirely on the way out. The text tiles live at $2000, their
   tilemap at $3C00, the scene's at $3800 and the scene's tiles at $4000.
 

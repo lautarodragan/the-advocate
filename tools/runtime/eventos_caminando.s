@@ -29,9 +29,9 @@
     tay
     sep #$20
 .a8
-    lda anim_parado, y
+    lda anim_idle, y
     sta temp
-    lda anim_continua, y
+    lda anim_continues, y
     sta temp + 1
     ; The count goes up while walking, always with continuous animation, and
     ; while still only until it reaches the middle frame.
@@ -55,17 +55,17 @@ ver_cambio:
     cmp temp + 1
     bcs cambia                  ; reached the continuous one
     lda ruta_ev + 6, x
-    beq listo
+    beq ready
     lda ruta_ev + 11, x
     cmp temp
-    bcc listo                   ; walking, to the stopped one
+    bcc ready                   ; walking, to the stopped one
 cambia:
     lda ruta_ev + 10, x
     inc a
     and #$03                    ; the cycle is four steps
     sta ruta_ev + 10, x
     stz ruta_ev + 11, x
-listo:
+ready:
     rts
 quieta:
     lda #1
@@ -87,7 +87,7 @@ buscar:
     beq no_hay
     lda npc_buf + 8, y
     cmp temp
-    beq listo
+    beq ready
     rep #$20
 .a16
     tya
@@ -99,7 +99,7 @@ buscar:
     bra buscar
 no_hay:
     ldy #$FFFF
-listo:
+ready:
     rts
 .endproc
 
@@ -107,7 +107,7 @@ listo:
 ; follow it. Enters with the event index in `temp`.
 ;
 ; If the event has a move route slot it is enough to cut its step and its jump:
-; `move_events` runs later in this same frame and `refrescar_npc` leaves it
+; `move_events` runs later in this same frame and `refresh_npc` leaves it
 ; on the new cell, with the pose it had. If it has none —an event nobody sent
 ; walking— it is not given one: no slot is taken for this, and its row is moved
 ; by hand, without touching its tile, which is its page's pose.
@@ -134,7 +134,7 @@ buscar:
     lda temp
     jsr event_npc
     cpy #$FFFF
-    beq listo
+    beq ready
     sty npc_fila
     lda temp
     rep #$20
@@ -167,7 +167,7 @@ buscar:
 .a8
     lda #0
     sta npc_buf + 11, y         ; no jump: nothing to lift
-    jmp acomodar_npc            ; and the row, to wherever it belongs now
+    jmp fit_npc            ; and the row, to wherever it belongs now
 
 con_ranura:
     lda #0
@@ -175,7 +175,7 @@ con_ranura:
     sta ruta_ev + 22, x
     sta ruta_ev + 23, x
     sta ruta_ev + 13, x         ; nor jump
-listo:
+ready:
     rts
 .endproc
 

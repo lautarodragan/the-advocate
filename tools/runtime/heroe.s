@@ -40,10 +40,10 @@ quieto:
     ; the jump down without going through `UpdateNextMovementAction`. With
     ; this inside `step_route`, which is only called with
     ; `ruta_i < ruta_n`, a jump that was the route's last command was brought
-    ; down by nobody. See `salto_avanzar_heroe`.
+    ; down by nobody. See `jump_advance_hero`.
     lda ruta_salto
     beq sin_salto
-    jsr salto_avanzar_heroe
+    jsr jump_advance_hero
     rts
 sin_salto:
     ; A forced move route rules over the pad: while any of it is left, the
@@ -182,9 +182,9 @@ no_derecha:
     lda #PASS_UP
     jsr can_leave
     beq no
-    jsr ptr_desde_hero
+    jsr ptr_from_hero
     lda tira_paso_col
-    jsr ptr_menos               ; the destination: one row of blocks up
+    jsr ptr_minus               ; the destination: one row of blocks up
     lda #PASS_DOWN              ; and that cell has to allow entering
     jsr can_enter
     beq no
@@ -229,9 +229,9 @@ no8:
     lda #PASS_DOWN
     jsr can_leave
     beq no
-    jsr ptr_desde_hero
+    jsr ptr_from_hero
     lda tira_paso_col
-    jsr ptr_mas                 ; one row of blocks down
+    jsr ptr_more                 ; one row of blocks down
     lda #PASS_UP
     jsr can_enter
     beq no
@@ -274,9 +274,9 @@ no8:
     lda #PASS_LEFT
     jsr can_leave
     beq no
-    jsr ptr_desde_hero
+    jsr ptr_from_hero
     lda #2
-    jsr ptr_menos               ; the cell next to it
+    jsr ptr_minus               ; the cell next to it
     lda #PASS_RIGHT
     jsr can_enter
     beq no
@@ -321,9 +321,9 @@ no8:
     lda #PASS_RIGHT
     jsr can_leave
     beq no
-    jsr ptr_desde_hero
+    jsr ptr_from_hero
     lda #2
-    jsr ptr_mas
+    jsr ptr_more
     lda #PASS_LEFT
     jsr can_enter
     beq no
@@ -378,9 +378,9 @@ no8:
     sta pasa_x                  ; event imposes on it
     lda tile_y
     sta pasa_y
-    jsr ptr_desde_hero
-    jsr pass_del_ptr
-    jsr pasa_con_evento
+    jsr ptr_from_hero
+    jsr pass_of_ptr
+    jsr pass_with_event
     and temp
     ora atravesando             ; with walk_everywhere the answer is yes
     rts
@@ -410,20 +410,20 @@ no8:
     sep #$20
 .a8
     lda f:paso_dx, x
-    jsr sumar_a_pasa_x
+    jsr add_a_to_pass_x
     lda f:paso_dy, x
-    jsr sumar_a_pasa_y
+    jsr add_a_to_pass_y
     rep #$20
 .a16
-    jsr pass_del_ptr
-    jsr pasa_con_evento
+    jsr pass_of_ptr
+    jsr pass_with_event
     and temp
     ora atravesando
     rts
 .endproc
 
 ; The passage bits of cell `pasa_x`/`pasa_y`: the ones A brings —the
-; terrain's, from `pass_del_ptr`— unless a tile event on the lower layer
+; terrain's, from `pass_of_ptr`— unless a tile event on the lower layer
 ; imposes its own. It is `Game_Map::IsPassableTile`: of the events standing
 ; there with an active page and a tile graphic on that layer the one with the
 ; highest id wins, and if its tile is not one that goes above, it rules. The
@@ -431,7 +431,7 @@ no8:
 ; so this is one walk of the NPC table per step and not a pass over the
 ; pages. What is not modeled: the "conflict with itself" of a tile event that
 ; walks, because none walks. It enters and leaves in sixteen bits.
-.proc pasa_con_evento
+.proc pass_with_event
 .a16
 .i16
     ; From the last row backwards and in sixteen bits: the last one that
@@ -478,7 +478,7 @@ ninguno:
     rts
 .endproc
 
-.proc sumar_a_pasa_x
+.proc add_a_to_pass_x
 .a8
 .i16
     rep #$20
@@ -495,7 +495,7 @@ positivo:
 .a8
     rts
 .endproc
-.proc sumar_a_pasa_y
+.proc add_a_to_pass_y
 .a8
 .i16
     rep #$20
@@ -513,11 +513,11 @@ positivo:
     rts
 .endproc
 
-.proc pass_del_ptr
+.proc pass_of_ptr
 .a16
 .i16
     lda [celdas_ptr]            ; which block this cell is
-    jsr celda_sustituida
+    jsr cell_replaced
     tay
     sep #$20
 .a8
@@ -528,7 +528,7 @@ positivo:
     rts
 .endproc
 
-.proc ptr_desde_hero
+.proc ptr_from_hero
 .a16
 .i16
     lda hero_ptr
@@ -572,10 +572,10 @@ positivo:
 ; `irq_music`.
 ;
 ; The grid fits in 64 KB and lives in the upper half of the two banks —see
-; `ptr_mas`—, so the offset fits in sixteen bits and its bit 15 tells the
+; `ptr_more`—, so the offset fits in sixteen bits and its bit 15 tells the
 ; bank: without it, the upper half of $7E (the bit gets set), and with it
 ; that of $7F (it already has it).
-.proc ptr_de_celda
+.proc cell_ptr
 .a8
 .i16
     lda celda_y
@@ -631,7 +631,7 @@ alta:
     sta celdas_ptr + 2
     rts
 .endproc
-.assert .loword(GRILLA) = $8000 && .loword(GRILLA_ALTA) = $8000 && ^GRILLA_ALTA = ^GRILLA + 1, error, "ptr_de_celda builds the pointer with the grid in the two upper halves"
+.assert .loword(GRILLA) = $8000 && .loword(GRILLA_ALTA) = $8000 && ^GRILLA_ALTA = ^GRILLA + 1, error, "cell_ptr builds the pointer with the grid in the two upper halves"
 
 ; Where the hero starts inside the grid.
 .proc init_hero_ptr
@@ -645,7 +645,7 @@ alta:
     sta celda_y
     sep #$20
 .a8
-    jsr ptr_de_celda
+    jsr cell_ptr
     rep #$20
 .a16
     jsr ptr_a_hero
@@ -655,7 +655,7 @@ alta:
 .endproc
 
 ; Starts the step: a whole cell to cover —128 half units, see
-; `paso_medio_por_vel`— and the index already on the new cell, which is how
+; `half_step_per_speed`— and the index already on the new cell, which is how
 ; RM2k keeps count.
 .proc begin_step
 .a8
@@ -685,7 +685,7 @@ alta:
     jsr hero_anim_frames  ; incidentally leaves X at the speed minus one
     lda step_left
     sec
-    sbc paso_medio_por_vel, x
+    sbc half_step_per_speed, x
     bcs no_negativo
     lda #0
 no_negativo:
@@ -796,14 +796,14 @@ caminando:
     jsr hero_anim_frames
     cmp anim_timer
     beq cambia
-    bcs listo                   ; the count has not reached the limit yet
+    bcs ready                   ; the count has not reached the limit yet
 cambia:
     stz anim_timer
     lda anim_step
     inc a
     and #$03                    ; the cycle is four steps
     sta anim_step
-listo:
+ready:
     rts
 .endproc
 

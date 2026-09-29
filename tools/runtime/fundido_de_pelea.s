@@ -47,11 +47,11 @@
 .segment "CODE"
 
 ; And the map coming back, from black, already restored by
-; `volver_de_batalla`. With `flush_video` on every frame, like the main loop
+; `back_from_battle`. With `flush_video` on every frame, like the main loop
 ; while a fade freezes it: the scroll, the OAM and the brightness are written
 ; there and only there —see the end of `flush_video`—. The OAM is built once
 ; before, because the one in the PPU is the battle's; it is the same thing
-; `cargar_lo_pedido` does.
+; `load_requested` does.
 .proc battle_fade_to_map
 .a8
 .i16
@@ -142,7 +142,7 @@ battle_flash:
 .a8
 .i16
     lda f:PELEA_PRENDIDA
-    beq listo
+    beq ready
     lda #0
     sta f:PELEA_PRENDIDA
     ldx #(FUNDIDO_RAMPA - 2)
@@ -161,7 +161,7 @@ lower:
     bpl lower
     lda #0
     sta f:MOSAIC                ; already black: nobody else turns it off
-listo:
+ready:
     rtl
 .endproc
 

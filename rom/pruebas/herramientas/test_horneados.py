@@ -7,7 +7,7 @@ que sostiene que eso no cambie nada son dos invariantes, y las dos se miran acá
 porque ninguna se ve en una captura:
 
 * **la pasabilidad de la celda no cambia.** La fila del evento imponía los bits
-  de su tile (`rm2k.event_tile_passability`) y `pasa_con_evento` saltea las
+  de su tile (`rm2k.event_tile_passability`) y `pass_with_event` saltea las
   filas escondidas, así que si la tabla del mapa no llegara al mismo valor, la
   celda pasaría a pasarse distinto y no habría un pixel que lo delatara;
 * **el tile tapa las 16x16.** Un pixel transparente deja ver el tile de abajo,
@@ -71,7 +71,7 @@ def test_lo_que_se_hornea_tapa_la_celda_entera():
 def test_hornear_no_cambia_la_pasabilidad_de_la_celda():
     """La tabla del mapa tiene que dar lo mismo que imponía la fila del evento.
 
-    Es la invariante que permite esconder la fila: `pasa_con_evento` no mira las
+    Es la invariante que permite esconder la fila: `pass_with_event` no mira las
     escondidas, así que el valor tiene que estar en la tabla.
     """
     renderer = Renderer()

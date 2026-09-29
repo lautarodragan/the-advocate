@@ -54,7 +54,7 @@ def test_el_heroe_aterriza_cuando_el_salto_es_la_ultima_orden(partida):
     Sin el arreglo `ruta_salto` se queda en 232 —`SALTO_PASO` menos el primer
     descuento— y `hero_y` en 323 con la celda de destino ya en `tile_y = 22`,
     indefinidamente. El número de aterrizaje no se escribe: en reposo
-    `salto_posicion_heroe` deja `hero_y = tile_y * 16`, porque el descuento que
+    `jump_hero_position` deja `hero_y = tile_y * 16`, porque el descuento que
     le resta es cero.
     """
     una = partida(caso="camara-salto-colgado")
@@ -106,7 +106,7 @@ def test_un_teleport_al_mismo_mapa_no_deja_al_heroe_con_arco(partida):
     Es la única forma que tiene el héroe de cambiar de celda sin pasar por el
     salto: el atajo del teletransporte al mismo mapa escribe `hero_x`/`hero_y`
     desde `entrada_x`/`entrada_y` y llama a `fill_window`, pero **no** toca
-    `ruta_salto`. Si quedara arco, `salto_avanzar_heroe` volvería a correr al
+    `ruta_salto`. Si quedara arco, `jump_advance_hero` volvería a correr al
     héroe hasta 29 px desde donde el teletransporte lo puso —dy por lo que
     quedaba, sobre 16— con la ventana recién llena. En RM2k eso no pasa porque
     `MoveTo` hace `SetRemainingStep(0)` y `GetSpriteY` deja de restar el arco en

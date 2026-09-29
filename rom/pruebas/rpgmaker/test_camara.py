@@ -22,7 +22,7 @@ def test_la_camara_llega_a_dos_filas_por_vuelta(partida):
     """El peor caso del juego son **dos** filas o columnas por vuelta.
 
     Se suman dos cosas en el mismo eje: el héroe a velocidad 6 camina 8 px por
-    cuadro —`paso_medio_por_vel` llega a 64 octavos— y un `PanScreen` a
+    cuadro —`half_step_per_speed` llega a 64 octavos— y un `PanScreen` a
     velocidad 6 corre la cámara otros 8 —`2 << 6` dieciseisavos—. Son 16 px, o
     sea dos celdas de 8. El salto del héroe no llega: el más largo del juego es
     de 5 celdas en 11 cuadros, 7,3 px por cuadro.

@@ -21,7 +21,7 @@
 ; Y is the bytecode cursor and has to survive the whole loop, so every `jsr`
 ; that leaves from here saves it before going. The routines it calls use X and
 ; Y for their own purposes —set_switch indexes the switch bitmap,
-; aplicar_tinte walks three palettes— and none of them has any reason to know
+; apply_tint walks three palettes— and none of them has any reason to know
 ; they mean something else here. Without this, the first OP_SWITCH left Y
 ; holding the switch number divided by eight, and what got read as the next
 ; opcode was some byte from the middle of the page: the loop stopped there and

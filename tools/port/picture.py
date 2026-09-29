@@ -11,7 +11,7 @@ Three decisions, and all three are paid for:
 **It goes in OAM objects, not in a layer.** In mode 3 both layers belong to
 the map, and the alternative —lending one to the picture while it lasts—
 forces reloading the map when erasing it: 30 KB of DMA and two black frames,
-which is what `volver_al_mapa` costs. With objects the picture is put up and
+which is what `back_to_map` costs. With objects the picture is put up and
 taken down without touching anything underneath, which is also what RM2k
 does: the image is composited on top. The price is **fifteen colors**, those
 of a sprite palette, against the PNG's 226; and the per-line object budget,

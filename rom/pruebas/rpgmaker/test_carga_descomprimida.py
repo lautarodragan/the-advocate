@@ -3,7 +3,7 @@ por byte, lo que el conversor dice que tiene que haber.
 
 Desde el 2026-09-26 los tiles del mapa, de los sprites, de la capa de encima y
 de la animación del ChipSet viajan en el cartucho comprimidos en LZ2, y la ROM
-los descomprime al cargar el mapa —ver `lz2_descomprimir` en
+los descomprime al cargar el mapa —ver `lz2_decompress` en
 runtime/descomprimir.s—. La propiedad que hace verificable ese cambio es que
 **lo que llega a la VRAM no cambió**, y eso es lo que se mira acá, en todos los
 mapas de `release`: contra `crudos/`, que el conversor deja al lado del
@@ -13,7 +13,7 @@ ROM.
 Se mira justo después de la carga, en el primer cuadro en que `fundido_que`
 volvió a cero: el fundido congela el juego, así que hasta que termine nadie
 pisa lo que se subió. Dos cosas sí cambian y se miran por su lado: la corrida
-animada del ChipSet, que `anim_cargar` pisa con el dibujo que le toca al reloj
+animada del ChipSet, que `anim_load` pisa con el dibujo que le toca al reloj
 —tiene que ser **uno** de los dibujos del bloque—, y la pose del héroe, que
 `place_hero` puede cambiar ya en ese cuadro si no mira hacia abajo.
 
@@ -189,7 +189,7 @@ def _mirar_la_grilla(p, indice):
 def _mirar_la_wram(p, indice):
     """Lo que no coincide en la WRAM: la grilla, los dibujos de la animación,
     que quedan todo lo que dure el mapa, y el buffer de carga, que tiene lo
-    último que se descomprimió —los sprites: ver `cargar_mapa_sin_eventos`—."""
+    último que se descomprimió —los sprites: ver `enter_map_no_events`—."""
     s = p.simbolos
     mal = _mirar_la_grilla(p, indice)
     for simbolo, clase in (("ANIM_DIBUJOS", "anim_tiles"),
@@ -229,7 +229,7 @@ def test_lo_cargado_es_lo_que_el_conversor_dice_en_cada_mapa(nucleo):
 #
 # La mitad alta del banco $7F es a la vez el final de las grillas de más de 32
 # KB y `SCN_SCENE`, la escena compuesta de la pelea: pelear la pisa, y
-# `volver_de_batalla` vuelve a descomprimir la grilla. El mapa 52 es el de la
+# `back_from_battle` vuelve a descomprimir la grilla. El mapa 52 es el de la
 # grilla más grande, 40.000 B, y el caso `pelea-en-52` pelea ahí contra el
 # droide con Kersh, que lo gana.
 
@@ -264,7 +264,7 @@ def test_la_grilla_vuelve_entera_de_una_pelea(nucleo):
     p.consola.hold()
     assert pisada, (
         "la pelea no pisó la mitad alta del $7F: si la escena se mudó, esta "
-        "prueba ya no mira el camino de `volver_de_batalla`")
+        "prueba ya no mira el camino de `back_from_battle`")
     antes = p.palabra("vueltas")
     for _ in range(240):
         p.consola.run(1)
@@ -277,7 +277,7 @@ def test_la_grilla_vuelve_entera_de_una_pelea(nucleo):
 
 # --- el fondo de dos flujos ----------------------------------------------------
 #
-# Un fondo de más de `LZ2_TOPE_FONDO` bytes va en dos flujos, y `lz2_fondo`
+# Un fondo de más de `LZ2_TOPE_FONDO` bytes va en dos flujos, y `lz2_backdrop`
 # sube el primero antes de descomprimir el segundo en el mismo lugar. Antes de
 # eso el fondo del 66 se descomprimía entero y lo que no entraba en el buffer
 # de carga caía en `GRILLA_ALTA`: en el 66, que usa sólo la mitad baja, andaba
@@ -294,7 +294,7 @@ def test_un_fondo_de_dos_flujos_no_se_sale_del_buffer():
                if len(_crudo(p, k, "map_tiles")) > s["LZ2_TOPE_FONDO"]]
     assert grandes, (
         "ningún mapa de `release` tiene el fondo en dos flujos: esta prueba "
-        "no mira el camino de dos de `lz2_fondo`")
+        "no mira el camino de dos de `lz2_backdrop`")
     map_id = grandes[0]
     indice = p.mapas.index(map_id)
     mitad = s["GRILLA_FIN"] - s["GRILLA"]

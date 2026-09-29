@@ -282,7 +282,7 @@ enviar:
 ; Before the music, on every frame: lower the trigger an effect left, and
 ; give the music back its voice if the effect ended on the previous frame.
 .macro SE_BEFORE_VOICE lower, return, shadow, reg
-    .local no_lower, listo, register
+    .local no_lower, ready, register
     lda f:lower
     beq no_lower
     lda #0
@@ -291,7 +291,7 @@ enviar:
     jsr dsp_pair
 no_lower:
     lda f:return
-    beq listo
+    beq ready
     lda #0
     sta f:return
     ; KOF as the music had it, except for the other voice if it still has
@@ -317,7 +317,7 @@ register:
     iny
     cpy #8
     bcc register
-listo:
+ready:
 .endmacro
 
 .proc se_before
@@ -335,7 +335,7 @@ listo:
 ; both, because two KON writes in a row can land in the same DSP sample and
 ; the second erase the first.
 .macro SE_AFTER_VOICE frames, pending, return, lower, new, bit, reg
-    .local start, count_up, nothing, fin
+    .local start, count_up, nothing, end
     lda f:pending
     bne start
     jmp count_up
@@ -378,7 +378,7 @@ start:
     lda #1
     sta f:lower                 ; the next frame lowers the trigger
     lda #bit
-    bra fin
+    bra end
 count_up:
     rep #$20
 .a16
@@ -399,13 +399,13 @@ count_up:
     lda #1
     sta f:return
     lda #0
-    bra fin
+    bra end
 .a16
 nothing:
     sep #$20
 .a8
     lda #0
-fin:
+end:
 .endmacro
 
 .proc se_after
@@ -420,10 +420,10 @@ fin:
     ora 1, s
     sta 1, s
     pla
-    beq listo
+    beq ready
     ldx #SE_KON
     jsr dsp_pair                 ; and the trigger, for both together
-listo:
+ready:
     rts
 .endproc
 
@@ -478,7 +478,7 @@ otro:
 hay:
 .a16
     phb
-    pha                         ; the index, on the stack until `listo`:
+    pha                         ; the index, on the stack until `ready`:
                                 ; efectos_con_msu.s needs it
     sep #$20
 .a8
@@ -499,7 +499,7 @@ hay:
     lda f:sonido_tabla, x
     cmp #$FF
     bne hay_efecto
-    jmp listo         ; there is no effect
+    jmp ready         ; there is no effect
 hay_efecto:
     ; And only if its sample is in ARAM: the map's package may not have
     ; uploaded it. See `package_load`.
@@ -518,7 +518,7 @@ hay_efecto:
     xba
     cmp #0
     bne esta
-    jmp listo
+    jmp ready
 esta:
     ; And that it is **its own**: the place is shared by effects from
     ; different packages —see `lugares_de_efectos` in snes_music.py—, and
@@ -544,7 +544,7 @@ esta:
     plx
     cmp #0                      ; `plx`'s Z is X's, not the `eor`'s
     beq es_suyo
-    jmp listo
+    jmp ready
 es_suyo:
     ; No interrupts while copying: `irq_music` reads the pending one, and
     ; one half written would start with one's sample and another's pitch.
@@ -645,7 +645,7 @@ copiar:
 .a8
 puesto:
     plp
-listo:
+ready:
     rep #$20
 .a16
     pla                         ; the index: with A and not with Y, which the

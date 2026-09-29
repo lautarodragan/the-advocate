@@ -156,7 +156,7 @@ blanco:
     sta msg_ptr + 2
     lda f:item_txt_n, x
     sta temp                    ; how many letters
-    beq listo
+    beq ready
     lda #$80
     sta VMAIN
     rep #$20
@@ -179,7 +179,7 @@ blanco:
     sep #$20
 .a8
     jsr renglon
-listo:
+ready:
     rts
 
 renglon:
@@ -234,7 +234,7 @@ borrar:
     cpx #ITEM_DESC_BYTES
     bcc borrar
     lda eleg_n
-    beq listo
+    beq ready
     lda titulo_sel
     jsr item_from_list
     rep #$20
@@ -261,7 +261,7 @@ borrar:
     sep #$20
 .a8
     jsr renglon
-listo:
+ready:
     rts
 
 ; Text X into the buffer, starting at byte `eleg_tabla`: each letter's upper
@@ -275,7 +275,7 @@ renglon:
     sta msg_ptr + 2
     lda f:item_txt_n, x
     sta temp                    ; how many letters
-    beq fin
+    beq end
     ldy #0
 letra:
     lda [msg_ptr], y
@@ -303,7 +303,7 @@ letra:
     tya                         ; one letter at a time: there are fewer than 256
     cmp temp
     bcc letra
-fin:
+end:
     rts
 .endproc
 

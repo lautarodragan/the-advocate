@@ -56,8 +56,8 @@ put:
 .endmacro
 
 ; One of the two comparisons: two variables, as offsets, and the target if
-; they are not equal. If it fails, it leaves Y on the target and jumps to `fin`.
-.macro CELL_TEST fin
+; they are not equal. If it fails, it leaves Y on the target and jumps to `end`.
+.macro CELL_TEST end
 .local fails
     lda [cod_ptr], y            ; the left one
     tax
@@ -80,7 +80,7 @@ fails:
     iny
     lda [cod_ptr], y            ; the target, absolute within the page
     tay
-    bra fin
+    bra end
 :
 .endmacro
 
@@ -124,9 +124,9 @@ escribir:
     ; All inline and without `jsr`: it runs forty times per frame.
     CELL_WRITE
     CELL_WRITE
-    CELL_TEST listo
-    CELL_TEST listo
-listo:
+    CELL_TEST ready
+    CELL_TEST ready
+ready:
     sep #$20
 .a8
     rts

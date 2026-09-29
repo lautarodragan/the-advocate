@@ -10,7 +10,7 @@ escenas, porque su `Future1:0` es el primer gráfico que reparte el conversor.
 Lo vio taro jugando en la SNES el 2026-09-27; cambiar de mapa lo arreglaba
 porque en los dos casos el mapa siguiente se carga con Talan de líder.
 
-Se mira contra `cgram_sombra`, que es lo que `subir_tinte` copia a la CGRAM en
+Se mira contra `cgram_sombra`, que es lo que `upload_tint` copia a la CGRAM en
 el vblank, y con el tinte neutro que pone `ir_al_mapa`: así lo que tiene que
 haber es, color por color, el bloque de sprites que el conversor dejó en el
 cartucho para ese mapa.

@@ -726,7 +726,7 @@ nothing:
     rts
 .endproc
 
-; The screen shake in battle: one frame of `sacudida_tick` and its position in
+; The screen shake in battle: one frame of `shake_tick` and its position in
 ; the scene's scroll. It belongs to `Game_Screen` and not to the map, so in
 ; RM2k it carries on into the battle, and it is started by the `ShakeScreen`
 ; of a troop page —the takeoff in the agents' battle—. It moves the background
@@ -739,11 +739,11 @@ nothing:
     jsl f:bt_t_shake
     lda BA_ESCENA
     cmp #$FF
-    beq listo
+    beq ready
     lda sacudida_pos
     sta f:BG1HOFS               ; absolute `stz` and `sta` would land in WRAM
     lda sacudida_pos + 1
     sta f:BG1HOFS
-listo:
+ready:
     rts
 .endproc

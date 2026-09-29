@@ -84,7 +84,7 @@ borrar_switches:
     stz oro
     stz oro + 1
     stz oro + 2
-    ; The party goes before loading the first map: `cargar_mapa` picks what
+    ; The party goes before loading the first map: `enter_map` picks what
     ; the hero is drawn with, and without this it would read the garbage RAM
     ; starts with. The party the game starts with, from the game's database.
     ; The hero's graphic comes from the first one, so this decides which
@@ -206,7 +206,7 @@ grupo_listo:
     lda #DIR_DOWN
     sta hero_dir
 
-    ; The timer starts off and at zero. It goes here and not in `cargar_mapa`
+    ; The timer starts off and at zero. It goes here and not in `enter_map`
     ; because in RM2k it lives in `Game_Party`: it survives maps, which is
     ; exactly what the game uses it for. RAM starts with garbage —snes9x fills
     ; it with $55— so without this it would be seen running by itself.
@@ -228,13 +228,13 @@ grupo_listo:
     lda #BRILLO_MAX
     sta brillo
     stz bgm_fundido             ; and the same with the song's
-    jsl f:transicion_de_arranque    ; and the teleport, with fade
+    jsl f:boot_transition    ; and the teleport, with fade
     jsl f:encounter_boot    ; the encounters' random seed
 
     ; If the cartridge has a saved game, it is loaded here: the switches it
     ; carries decide which page is active on each event, so they have to be
     ; set **before** loading the map. And the entry is built from the saved
-    ; cell, which is how a door tells `cargar_mapa` where to plant the hero.
+    ; cell, which is how a door tells `enter_map` where to plant the hero.
     lda #$FF
     sta ranura                  ; none loaded; RAM starts with garbage
     ; The random seed, and the variables at zero: far RAM also starts with
@@ -244,7 +244,7 @@ grupo_listo:
     jsl f:hp_initial_set
     jsl f:initial_skills_set
     jsr actor_gfx_clear
-    jsr clima_limpiar
+    jsr weather_clear
     jsr se_clear
     jsr music_clear
     jsr turn_clear
@@ -280,7 +280,7 @@ nueva:
 .a16
     lda #MAPA_INICIAL
 cargar:
-    jsr cargar_mapa
+    jsr enter_map
     sep #$20
 .a8
     jsr clear_oam
@@ -325,7 +325,7 @@ cargar:
     ; Port 2 is the driver's command, and `spc_upload` leaves it with whatever
     ; it sent last: at zero, the driver reads DSP pairs.
     stz APUIO2
-    ; And the boot map's audio package: `cargar_mapa` could not upload it
+    ; And the boot map's audio package: `enter_map` could not upload it
     ; because the driver was not running yet. See `package_load`.
     lda #1
     sta f:APU_READY
@@ -349,7 +349,7 @@ espera_boot:
     cmp #BOOT_CUADROS
     bcc espera_boot
     ; The NMI keeps counting after boot: it is the only way to know whether a
-    ; loop iteration overran the frame. See `contar_perdidos`.
+    ; loop iteration overran the frame. See `count_lost`.
     lda boot_cuadros
     sta nmi_visto
     stz cuadros_perdidos
@@ -383,8 +383,8 @@ loop:
     jsr read_pad
     jsr flush_video             ; the previous frame's, still in vblank
     ; A teleport's fade freezes the whole game while it lasts, like RM2k: the
-    ; only thing that keeps running is the music. See `fundido_tick`.
-    jsr fundido_tick
+    ; only thing that keeps running is the music. See `fade_tick`.
+    jsr fade_tick
     bne congelado
     ; From here down the frame follows the order of `Game_Map::Update`
     ; —easyrpg's `game_map.cpp:1256-1318`—, and what rules is **where the
@@ -402,7 +402,7 @@ loop:
     ; another change, with its goldens.
     jsr map_events         ; `UpdateMapEvents`: refresh, automatic and
                                 ; parallels, **before** the hero
-    jsr animar_quietos          ; the ones that animate without moving, before
+    jsr animate_still          ; the ones that animate without moving, before
                                 ; the routes: if one grabs one, it wins the slot
     jsr move_events           ; and the events' forced move routes, which are
                                 ; the part of `UpdateMapEvents` that walks
@@ -442,24 +442,24 @@ loop:
     beq sin_salto_pendiente
     jsr events_handle_jump
 sin_salto_pendiente:
-    jsr tinte_de_evento        ; the tint the interpreter may have requested, right
+    jsr event_tint        ; the tint the interpreter may have requested, right
                                 ; after it: otherwise it would apply a frame late
     jsr battle_anim_tick          ; the battle animation, before the
                                 ; flashes it triggers
     jsr anim_drawing_tick   ; and its drawing, right after: both advance the
                                 ; same RM2k clock and the drawing lasts longer
     jsr flashes_tick            ; and the flashes, in the same place
-    jsr sacudida_tick           ; and one of the screen shake
+    jsr shake_tick           ; and one of the screen shake
     jsr pan_tick                ; and one of the camera panned away from the hero
-    jsr imagen_tick             ; and one of the picture's fade. It goes **before**
+    jsr picture_tick             ; and one of the picture's fade. It goes **before**
                                 ; the flash and not after: both build their
                                 ; palette in `pal_buf`, and the flash leaves
                                 ; its own there waiting for the vblank. The
                                 ; other way round, the picture overwrote the
                                 ; background's first sixteen colors on the
                                 ; frame where both run.
-    jsr destello_tick           ; and one of the screen flash
-    jsr lluvia_tick             ; and one of the rain
+    jsr flash_tick           ; and one of the screen flash
+    jsr rain_tick             ; and one of the rain
     jsr animate_hero
     jsr follow_camera
     jsr stream_map              ; the column or row the camera uncovered
@@ -486,7 +486,7 @@ contada:
 .a8
     jsr anim_tick               ; which ChipSet drawing is due on the next
                                 ; iteration, so the vblank only has to upload it
-    jsr contar_perdidos
+    jsr count_lost
     bra loop
 .endproc
 
@@ -499,7 +499,7 @@ contada:
 ; saying why; this counter says why. The tests read it through the emulator's
 ; WRAM —`Partida.cuadros_perdidos`—, and on the console nobody reads it.
 ; Saturates at 255.
-.proc contar_perdidos
+.proc count_lost
 .a8
 .i16
     lda boot_cuadros
@@ -528,7 +528,7 @@ al_dia:
 ; we want to avoid is the opposite, the game carrying on as if nothing
 ; happened and the error showing up half an hour later turned into something
 ; else.
-.proc entrar_en_panico
+.proc enter_panic
 .a8
 .i16
     sta panico
@@ -555,7 +555,7 @@ espera_apagado:
 ; The NMI: adds a frame and clears the flag. It touches nothing else, and
 ; leaves P as it was because `rti` pulls it from the stack. It runs during
 ; boot, so that boot always lasts the same, and afterwards too: see
-; `contar_perdidos`.
+; `count_lost`.
 .proc nmi_boot
     sep #$20
 .a8
@@ -694,9 +694,9 @@ scrolls:
 ; Every how many frames the walk frame changes, per speed: walking and
 ; standing with continuous animation: `GetStationaryAnimFrames` and
 ; `GetContinuousAnimFrames` of `Game_Character::UpdateAnimation`.
-anim_parado:
+anim_idle:
     .byte 12, 10, 8, 6, 5, 4
-anim_continua:
+anim_continues:
     .byte 16, 12, 10, 8, 7, 6
 
 
@@ -717,8 +717,8 @@ anim_continua:
     ; side by side, that is 64x32— it comes to $79.
     lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
     sta BG2SC                   ; the upper layer's window
-    ; BG12NBA and BG1SC come from the map, so cargar_mapa sets them —and
-    ; `volver_al_mapa`—. Here they would keep the previous map's value as soon
+    ; BG12NBA and BG1SC come from the map, so enter_map sets them —and
+    ; `back_to_map`—. Here they would keep the previous map's value as soon
     ; as there is more than one: the background's tilemap is not in the same
     ; place in every layout, see LAYOUT_VENTANA_AMBOS.
     stz BG1HOFS                 ; the scroll takes two writes, low byte

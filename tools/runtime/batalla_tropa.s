@@ -31,7 +31,7 @@
 .a8
     lda BA_TROPA_K
     cmp #$FF
-    beq listo
+    beq ready
     jsr bt_ax
     lda f:tropa_pag_n, x
     sta BA_PAG_N
@@ -45,7 +45,7 @@
     sep #$20
 .a8
     jsr bt_page_turn
-listo:
+ready:
     rts
 .endproc
 
@@ -449,17 +449,17 @@ no:
     plb
     pla
     cmp BA_NENE
-    bcs listo
+    bcs ready
     clc
     adc #BA_GRUPO_MAX
     jsr bt_x
     lda BA_UNO + BA_FLAGS, x
     bit #BAF_OCULTO
-    beq listo
+    beq ready
     and #<~BAF_OCULTO
     ora #BAF_HAY
     sta BA_UNO + BA_FLAGS, x
-listo:
+ready:
     plb
     rtl
 .endproc
@@ -573,7 +573,7 @@ a_la_pantalla:
     ldy #1
 renglon:
     lda BA_PAG_I
-    beq listo
+    beq ready
     rep #$20
 .a16
     lda #BA_PAG_MSG_DX
@@ -612,6 +612,6 @@ fin_renglon:
 .a8
     dec BA_PAG_I
     bra renglon
-listo:
+ready:
     rts
 .endproc

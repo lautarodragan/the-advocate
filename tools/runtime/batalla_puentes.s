@@ -132,7 +132,7 @@ bt_t_shake:
     phb
     phk
     plb
-    jsr sacudida_tick
+    jsr shake_tick
     plb
     rtl
 
@@ -248,7 +248,7 @@ bt_t_page:
 .a8
 .i16
     cpx #$FFFF
-    beq listo
+    beq ready
     phx
     lda #$FF
     jsr battle_bgm             ; silence, so nothing stays pinned
@@ -260,7 +260,7 @@ bt_t_page:
     sep #$20
 .a8
     jsr package_load_done
-listo:
+ready:
     rts
 .endproc
 

@@ -203,7 +203,7 @@ saltear:
 .a8
     stz ENC_N
     stz ENC_IDX
-    bra fin
+    bra end
 hay:
 .a16
     sep #$20
@@ -274,7 +274,7 @@ con_umbral:
     bcc salio
     sep #$20
 .a8
-    bra fin
+    bra end
 siempre:
 .a16
 salio:
@@ -285,7 +285,7 @@ salio:
     stz ENC_IDX
     lda #1
     sta ENC_PIDE
-fin:
+end:
 .a8
     plb
     plx
@@ -429,7 +429,7 @@ es_de_esta:
 .a8
     lda #1
     sta SCN_ORIGIN              ; the battle background, the map's
-    bra fin
+    bra end
 no_hay16:
 .a16
     sep #$20
@@ -437,7 +437,7 @@ no_hay16:
 no_hay:
 .a8
     lda #0
-fin:
+end:
 .a8
     plb
     ply

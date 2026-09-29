@@ -9,7 +9,7 @@
 ; `stamp_window` picks one.
 ;
 ; Its palette is palette **0**, that is the entries below the background, and
-; `cargar_mapa_sin_eventos` uploads it together with the screen's backdrop
+; `enter_map_no_events` uploads it together with the screen's backdrop
 ; color.
 .proc load_window
 .a8
@@ -37,7 +37,7 @@
     sta MDMAEN
 
     ; The window's palette is not uploaded here: it is palette **0**, that is
-    ; the entries `cargar_mapa_sin_eventos` already uploaded together with the
+    ; the entries `enter_map_no_events` already uploaded together with the
     ; backdrop color. It used to float below the lowest layer above in the
     ; ROM and got uploaded on its own; with that, every map's background was
     ; squeezed below it —47 colors— even when they had half of CGRAM free
@@ -238,7 +238,7 @@ TEXT_OFS_Y = 2
 ; `msg_ptr` is a long pointer but the composer advanced it with a 16-bit
 ; `inc`, so on going past $FFFF it went back to $0000 of the **same** bank.
 ; In LoROM there is no ROM there: what follows $FFFF is $8000 of the next
-; bank, which is what `ptr_mas` and `msg_start` already knew.
+; bank, which is what `ptr_more` and `msg_start` already knew.
 ;
 ; It is not theoretical and fixing `msg_start` was not enough: `abl`'s text
 ; block is 56 KB, so it crosses, and **a box whose bytes fall across the
@@ -250,7 +250,7 @@ TEXT_OFS_Y = 2
 .a16
 .i16
     inc msg_ptr
-    bne listo
+    bne ready
     lda #$8000
     sta msg_ptr
     sep #$20
@@ -258,7 +258,7 @@ TEXT_OFS_Y = 2
     inc msg_ptr + 2
     rep #$20
 .a16
-listo:
+ready:
     rts
 .endproc
 
@@ -277,7 +277,7 @@ listo:
     ; LoROM bank's window**: with the 29 maps of `abl` it is 48972 bytes and
     ; starts at $46:8000, so from offset $8000 on the sum goes past $FFFF.
     ; What follows $FFFF is not $0000 of the next bank but its $8000, which
-    ; is the same thing `ptr_mas` already knew for the map grid; here it was
+    ; is the same thing `ptr_more` already knew for the map grid; here it was
     ; added sixteen bits at a time and the carry was lost, so **every text box
     ; past the first bank read from somewhere else**: the header and the line
     ; lengths came out of anything. The loop adds one bank per pass because a
@@ -438,7 +438,7 @@ otro:
     ;
     ; And the cap goes here even though the converter never emits a longer
     ; line, because **the symptom does not point at the text**: with `vq_n`
-    ; overwritten, `vram_drenar` uploads 128-byte blocks to arbitrary VRAM
+    ; overwritten, `vram_drain` uploads 128-byte blocks to arbitrary VRAM
     ; addresses, so a bad line length shows up as the whole screen turned to
     ; garbage a few frames later and on another map.
     lda comp_col

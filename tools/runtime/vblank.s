@@ -15,14 +15,14 @@
     jsr push_oam
     lda destello_listo
     beq sin_destello
-    jsr subir_destello          ; the flash, or the tint, go before the
+    jsr upload_flash          ; the flash, or the tint, go before the
     lda #2                      ; poses and eat into their budget in this
     sta vq_tope                 ; same vblank
     bra sin_tinte
 sin_destello:
     lda tinte_listo
     beq sin_tinte
-    jsr subir_tinte
+    jsr upload_tint
     lda #2
     sta vq_tope
 sin_tinte:
@@ -66,7 +66,7 @@ sin_tira:
     ; And the 2 KB of the battle animation's frame, if the tick asked for a
     ; new one. It is the most expensive thing uploaded in a vblank —four poses
     ; of the five— and it happens once every two frames. It goes **before**
-    ; `vram_drenar` for the same reason as `anim_flush`: what it takes has to
+    ; `vram_drain` for the same reason as `anim_flush`: what it takes has to
     ; come out of this vblank's budget, and three lines further down `vq_tope`
     ; is already reset for the next one. See `anim_drawing_dma`.
     lda f:ANIMB_UPLOAD
@@ -75,7 +75,7 @@ sin_tira:
     sta f:ANIMB_UPLOAD
     jsr anim_drawing_dma
 sin_anim_cuadro:
-    jsr vram_drenar             ; the poses this OAM already takes as uploaded
+    jsr vram_drain             ; the poses this OAM already takes as uploaded
     lda #VQ_POR_CUADRO
     sta vq_tope                 ; the coming vblank starts with everything
 
@@ -121,7 +121,7 @@ sin_flash:
 
     ; And the picture's palette, if the ramp rebuilt it this frame. It is
     ; thirty-two bytes and goes separately from the map's three: the picture's
-    ; entry falls above `SPRITE_CGRAM`, that is, outside what `subir_paletas`
+    ; entry falls above `SPRITE_CGRAM`, that is, outside what `upload_palettes`
     ; uploads.
     lda f:PICTURE_READY
     beq sin_imagen
@@ -148,7 +148,7 @@ sin_imagen:
 
     ; And the battle animation's palette, if one just started. It is the same
     ; thirty-two bytes as the picture's and for the same reason: its entry falls
-    ; above `SPRITE_CGRAM` and `subir_paletas` does not touch it.
+    ; above `SPRITE_CGRAM` and `upload_palettes` does not touch it.
     lda f:ANIMB_PAL
     beq sin_anim_pal
     lda #0
@@ -262,10 +262,10 @@ sin_ventana:
     ;
     ; Whoever wants to change the brightness writes `brillo` and waits for the
     ; next vblank, just as whoever moves a sprite writes OAM and waits. The only
-    ; exception is a load's forced blank, which `fundido_tick` writes by hand:
+    ; exception is a load's forced blank, which `fade_tick` writes by hand:
     ; there the screen is already black and the change does not show.
 prender:
-    jsl f:fundido_mosaico       ; the teleport's, if it asks for it
+    jsl f:fade_mosaic       ; the teleport's, if it asks for it
     lda brillo
     sta INIDISP
     rts
@@ -304,7 +304,7 @@ prender:
     stx tira_de
     lda #^FAR_TIRA_COL
     sta tira_banco
-    jsr push_una_columna
+    jsr push_one_column
 sin_columna_b:
     ldx col_addr
     beq sin_columna
@@ -312,7 +312,7 @@ sin_columna_b:
     ldx #.loword(tira_col)
     stx tira_de
     stz tira_banco
-    jsr push_una_columna
+    jsr push_one_column
 sin_columna:
 
     ldx row_addr_b
@@ -322,7 +322,7 @@ sin_columna:
     stx tira_de
     lda #^FAR_TIRA_ROW
     sta tira_banco
-    jsr push_una_fila
+    jsr push_one_row
 sin_fila_b:
     ldx row_addr
     beq sin_fila
@@ -330,7 +330,7 @@ sin_fila_b:
     ldx #.loword(tira_row)
     stx tira_de
     stz tira_banco
-    jsr push_una_fila
+    jsr push_one_row
 sin_fila:
     ; All four consumed, also discarding the ones that were not uploaded for
     ; being at zero: what was not built this pass is not built on the next.
@@ -354,7 +354,7 @@ sin_fila:
 ; column number it is on and reads it **after** calling `push_strips`, so
 ; overwriting it breaks its loop. It cost a whole suite run with all 957
 ; visible cells different, on 2026-09-22.
-.proc push_una_columna
+.proc push_one_column
 .a8
 .i16
     lda #$81                    ; advance 32 words after the high byte
@@ -396,10 +396,10 @@ sin_fila:
 ; right, and each step advances both variables.
 ;
 ; The upper layer is reached by masking the address, here and in
-; `push_una_columna`, and that requires its tilemap to start at a multiple of
+; `push_one_column`, and that requires its tilemap to start at a multiple of
 ; the window's size.
 .assert VRAM_ABOVE_MAP .mod (WINDOW_COLS * WINDOW_ROWS) = 0, error, "the upper tilemap cannot be masked"
-.proc push_una_fila
+.proc push_one_row
 .a8
 .i16
     lda #$80                    ; advance one word: the row is contiguous
@@ -412,16 +412,16 @@ sin_fila:
     rep #$20
 .a16
     lda #1024                   ; the right screen lives here
-    jsr fila_siguiente
+    jsr row_next
     ; And the upper layer: the same row on its tilemap's left screen. It is
     ; masked with ten bits and not eleven to take off the 1024 the previous
     ; step already added.
     lda tira_vram
     and #(WINDOW_COLS * WINDOW_ROWS / 2 - 1)
     ora #VRAM_ABOVE_MAP
-    jsr fila_en_a
+    jsr row_in_a
     lda #1024                   ; and its right half
-    jsr fila_siguiente
+    jsr row_next
     sep #$20
 .a8
     rts
@@ -430,15 +430,15 @@ sin_fila:
 ; The next half row: moves VRAM by what A says —in words— and the source by the
 ; 64 bytes half a row measures, and uploads it. It enters and leaves with a
 ; sixteen-bit A, which is what lets the three calls above be chained.
-.proc fila_siguiente
+.proc row_next
 .a16
 .i16
     clc
     adc tira_vram
-    ; And it falls through into `fila_en_a`, which is the same step with the
+    ; And it falls through into `row_in_a`, which is the same step with the
     ; address already done.
 .endproc
-.proc fila_en_a
+.proc row_in_a
 .a16
 .i16
     sta tira_vram

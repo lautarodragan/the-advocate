@@ -20,7 +20,7 @@ ANIM_T     = $7E30E6
 ;
 ; The tone is **three** bytes and not four: a picture's saturation is always
 ; the neutral one —`imagen_aceptable` accepts no other— so there is nothing to
-; interpolate there and `imagen_paleta` sets `tinte_s` to `TINTE_NEUTRO`.
+; interpolate there and `picture_palette` sets `tinte_s` to `TINTE_NEUTRO`.
 ; **$30E8 to $30EB belong to the MSU-1** —`MSU_HAS`, `MSU_PLAYING` and
 ; `MSU_FACTOR`—, so this starts at $30EC and goes up to $30FA; the next block
 ; is `FAR_ARAM_OF`, at $3100. It started at $30E8 and overwrote them: the ROM
@@ -58,7 +58,7 @@ FAR_MSG_AUTO  = $7E30FD
     sta f:ANIMB_ACTIVE          ; and the drawing, which goes on its own
     sta f:ANIMB_UPLOAD
     sta f:ANIMB_PAL
-    sta f:ANIMB_HAS             ; until `cargar_mapa` says otherwise
+    sta f:ANIMB_HAS             ; until `enter_map` says otherwise
     rts
 .endproc
 
@@ -87,7 +87,7 @@ otra:
     ldy #0
     lda [cod_ptr], y            ; its tick
     cmp f:ANIM_T
-    bne listo
+    bne ready
     iny
     lda [cod_ptr], y            ; its type
     iny                         ; and the data, from the third byte
@@ -98,10 +98,10 @@ otra:
 no_sonido:
     cmp #ANIM_DESTELLO
     bne no_destello
-    jsr destello_de_codigo
+    jsr flash_from_code
     bra hecha
 no_destello:
-    jsr flash_empezar           ; the target's
+    jsr flash_start           ; the target's
 hecha:
     rep #$20
 .a16
@@ -115,7 +115,7 @@ hecha:
     dec a
     sta f:ANIM_N
     bne otra
-listo:
+ready:
     rep #$20
 .a16
     lda cod_ptr

@@ -133,7 +133,7 @@ otro:
     bcc joy_listo               ; no wait: what is held, as is
     eor pad_ant
     and pad
-    ; Without the arrows that `flechas_repetir` made repeat this frame: here
+    ; Without the arrows that `arrows_repeat` made repeat this frame: here
     ; RM2k looks at `IsTriggered`, not `IsRepeated`. The `ora` and the `eor`
     ; are an `and` with the complement, and neither touches the carry.
     ora flechas_repetidas
@@ -205,10 +205,10 @@ ninguna:
 .a8
 .i16
     jsr access_read
-    bpl listo
+    bpl ready
     and #$7F
     jsr access_write
-listo:
+ready:
     rts
 .endproc
 
@@ -223,17 +223,17 @@ listo:
     eor pad_ant
     and pad
     and #PAD_B
-    beq listo
+    beq ready
     lda msg_abierto
-    bne listo
+    bne ready
     lda ev_activo
-    bne listo
+    bne ready
     jsr access_read
     bit #ACCESO_SIN_MENU
-    bne listo
+    bne ready
     ora #ACCESO_PEDIDO
     jsr access_write
-listo:
+ready:
     rts
 .endproc
 
@@ -248,13 +248,13 @@ listo:
     sep #$20
 .a8
     lda menu_hecha, x
-    beq listo
+    beq ready
     cpx #MENU_GUARDAR
-    bne listo
+    bne ready
     jsr access_read
     and #ACCESO_SIN_GUARDAR
     eor #ACCESO_SIN_GUARDAR     ; 1 if allowed
-listo:
+ready:
     rts
 .endproc
 
@@ -746,7 +746,7 @@ cerrar:
     jsl f:equipment_commons
     plb
     jsl f:menu_exp_close       ; what the menu sprites changed
-    jsr volver_al_mapa
+    jsr back_to_map
     rts
 
 ; The cursor to the option given in A: erased from where it was and painted

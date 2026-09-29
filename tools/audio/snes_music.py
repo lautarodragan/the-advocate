@@ -2373,7 +2373,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
 
     `map_song` is the song each map turns on when entered, in the same
     order, or $FF if entering does not change what is playing. See
-    `mapa_tema_callar`.
+    `map_song_mute`.
 
     `directory` is (music samples, sound effect places): the directory's
     entries are those and not one per voice, because sound effects share

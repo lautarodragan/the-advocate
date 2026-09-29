@@ -27,7 +27,7 @@
     ldx #0
 ranura:
     cpx grupo_n
-    bcs listo
+    bcs ready
     lda grupo, x
     phx
     jsr equipment_remove_actor
@@ -36,7 +36,7 @@ ranura:
     bra ranura
 uno:
     jsr equipment_remove_actor
-listo:
+ready:
     ply
     rtl
 .endproc
@@ -66,13 +66,13 @@ listo:
     adc temp
     tax
     lda f:FAR_LARGO + FAR_EQUIPO, x
-    beq listo                   ; it held nothing
+    beq ready                   ; it held nothing
     sta temp
     lda #0
     sta f:FAR_LARGO + FAR_EQUIPO, x
     lda temp
     cmp #ITEMS_N
-    bcs listo                   ; an item the inventory does not carry
+    bcs ready                   ; an item the inventory does not carry
     tax
     sep #$20
 .a8
@@ -84,7 +84,7 @@ listo:
 listo8:
     rts
 .a16
-listo:
+ready:
     sep #$20
 .a8
     rts

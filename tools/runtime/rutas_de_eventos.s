@@ -51,7 +51,7 @@
 set2:
     lda temp
     sta ruta_ev + 0, x
-    jsl f:ranura_anotar + RAPIDO
+    jsl f:slot_record + RAPIDO
     stz ruta_ev + 6, x
     stz ruta_ev + 7, x          ; no step in progress
     stz ruta_ev + 22, x
@@ -231,7 +231,7 @@ no_movido:
     jsr animate_ev_route
     plx
     phx
-    jsr refrescar_npc
+    jsr refresh_npc
     plx
     lda #1
     sta rutas_movieron
@@ -369,7 +369,7 @@ no_repite:
     beq congelada               ; no page to go back to
     jsr resume_page
 congelada:
-    jmp listo
+    jmp ready
 hay_orden:
     rep #$20
 .a16
@@ -387,7 +387,7 @@ hay_orden:
     clc
     adc #(RUTA_ESPERA - 1)
     sta ruta_ev + 9, x
-    jmp listo
+    jmp ready
 no_es_wait:
     cmp #12
     bcs no_mueve
@@ -422,7 +422,7 @@ no_encara:
     lda ruta_ev + 5, x
     dec a
     sta salto_orden             ; where the 24 is, in case it has to go back
-    jsr armar_salto_ev
+    jsr build_ev_jump
     lda ruta_ev + 13, x
     bne salto_arranco
     ; It could not land there. With the move route skippable the jump is skipped;
@@ -437,11 +437,11 @@ no_encara:
     bne saltear
     lda salto_orden
     sta ruta_ev + 5, x
-    jmp listo
+    jmp ready
 saltear:
     jmp otra_orden
 salto_arranco:
-    jmp listo
+    jmp ready
 no_es_salto:
     cmp #25
     beq seguir
@@ -541,7 +541,7 @@ guardar_18:
 
 ; `change_graphic`: the only command with an operand. After the 34 comes the
 ; graphic's index in the map's table —two bytes per graphic, see
-; `load_ruta_graficos`— and from there comes which character to take the twelve
+; `load_route_graphics`— and from there comes which character to take the twelve
 ; poses from and which palette to draw them with.
 ;
 ; It does not cost a frame: in `UpdateMoveRoute` it falls into the branch that
@@ -636,7 +636,7 @@ mirar:
 giro_espera:
     dec a
     sta ruta_ev + 9, x
-    jmp listo
+    jmp ready
 
 
 mover:
@@ -685,7 +685,7 @@ probado:
     jmp otra_orden
 reintenta:
     dec ruta_ev + 5, x
-    jmp listo
+    jmp ready
 no_bloqueado:
     phx
     lda ruta_dir
@@ -706,7 +706,7 @@ no_bloqueado:
 .a8
     lda #1
     sta ruta_ev + 6, x
-listo:
+ready:
     rts
 .endproc
 
@@ -833,9 +833,9 @@ sin_dy:
 .a16
     and #$00FF
     cmp #$0080
-    bcc listo
+    bcc ready
     ora #$FF00
-listo:
+ready:
     rts
 .endproc
 

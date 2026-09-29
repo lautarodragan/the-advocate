@@ -68,7 +68,7 @@ si_polaridad:
 si_actor:
     lda [cod_ptr], y            ; the id, which fits in a byte
     phy
-    jsr en_el_grupo             ; A=1 if present, A=0 if not
+    jsr in_party             ; A=1 if present, A=0 if not
     ply
     iny
     iny                         ; Y -> the polarity, which is zero

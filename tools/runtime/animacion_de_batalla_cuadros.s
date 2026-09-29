@@ -24,7 +24,7 @@
 ; each loop ends in a `jmp`: the unrolled body leaves a `bra` without enough
 ; reach.
 
-; The whole buffer at zero and no frame built. Called by `cargar_mapa`, with
+; The whole buffer at zero and no frame built. Called by `enter_map`, with
 ; the screen off; it is needed at least once after power-on, because WRAM
 ; starts out with garbage on the console —and in bsnes—.
 .proc anim_buf_clear

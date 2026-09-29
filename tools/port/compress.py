@@ -4,7 +4,7 @@ The format is Nintendo's LC_LZ2, and taro chose it on 2026-09-26 with what
 was measured in `workflow/tasks/*/la-compresion-de-mapas-y-graficos.md`: it
 stays within 20% of zlib on the tiles and within 10 KB on the grids, and its
 repeat with an absolute address into the output is what an `mvn` does in one
-go. The decompressor is `lz2_descomprimir`, in `tools/runtime/descomprimir.s`.
+go. The decompressor is `lz2_decompress`, in `tools/runtime/descomprimir.s`.
 
 The compressor is a separate project, `tools/lz2/`, in Rust and in English,
 by the rule in AGENTS.md: it does not need to know anything about this game.
@@ -72,7 +72,7 @@ def compress_many(blocks):
                 stream = f.read()
             missing = what_the_rom_does_not_read(stream)
             if missing:
-                raise SystemExit("lz2 emitted %s, which `lz2_descomprimir` does not read"
+                raise SystemExit("lz2 emitted %s, which `lz2_decompress` does not read"
                                  % missing)
             out.append(stream)
         return out
@@ -105,7 +105,7 @@ def commands(stream):
     return sum(1 for _ in walk(stream))
 
 
-# The two commands the format has and `lz2_descomprimir` does not read, on
+# The two commands the format has and `lz2_decompress` does not read, on
 # purpose: no block used them, and a path no test runs is the one that has
 # bitten this repo the most times. The compressor does not emit the
 # increasing one (3) with `--no-increasing`, and it costs almost nothing; it

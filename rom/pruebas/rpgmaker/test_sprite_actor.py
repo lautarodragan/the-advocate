@@ -56,7 +56,7 @@ def test_sobrevive_al_teletransporte(partida):
     """Un mapa nuevo no lo repone, a diferencia de la orden 34 sobre el héroe.
 
     Es la diferencia que justifica todo esto. La orden 34 la repone
-    `elegir_grafico_heroe` porque el gráfico vive en el banco de sprites del
+    `pick_hero_graphic` porque el gráfico vive en el banco de sprites del
     mapa; esto vive en el actor, como en RM2k, y el juego lo usa justamente
     para cruzar.
     """

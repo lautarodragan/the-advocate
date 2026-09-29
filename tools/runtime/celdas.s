@@ -89,15 +89,15 @@ no:
 con_colision:
 
     ; The face being left.
-    jsr ptr_de_celda
+    jsr cell_ptr
     rep #$20
 .a16
     lda celda_x                 ; the cell being left, for whatever a tile
     sta pasa_x                  ; event imposes on it
     lda celda_y
     sta pasa_y
-    jsr pass_del_ptr
-    jsr pasa_con_evento
+    jsr pass_of_ptr
+    jsr pass_with_event
     sep #$20
 .a8
     ldx celda_dir
@@ -113,7 +113,7 @@ con_colision:
     rep #$20
 .a16
     lda tira_paso_col
-    jsr ptr_menos
+    jsr ptr_minus
     bra entra
     ; The three labels that follow are reached with the accumulator **in
     ; eight bits**, even though the last thing the assembler read was an
@@ -127,7 +127,7 @@ baja:
     rep #$20
 .a16
     lda tira_paso_col
-    jsr ptr_mas
+    jsr ptr_more
     bra entra
 izquierda:
 .a8
@@ -136,14 +136,14 @@ izquierda:
     rep #$20
 .a16
     lda #2
-    jsr ptr_menos
+    jsr ptr_minus
     bra entra
 derecha:
 .a8
     rep #$20
 .a16
     lda #2
-    jsr ptr_mas
+    jsr ptr_more
 entra:
 .a16
     lda celda_x                 ; and the cell being entered
@@ -154,13 +154,13 @@ entra:
 .a8
     ldx celda_dir
     lda f:paso_dx, x
-    jsr sumar_a_pasa_x
+    jsr add_a_to_pass_x
     lda f:paso_dy, x
-    jsr sumar_a_pasa_y
+    jsr add_a_to_pass_y
     rep #$20
 .a16
-    jsr pass_del_ptr
-    jsr pasa_con_evento
+    jsr pass_of_ptr
+    jsr pass_with_event
     sep #$20
 .a8
     ldx celda_dir

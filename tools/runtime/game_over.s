@@ -47,7 +47,7 @@ GO_SETINI = $2133
 ; that bank, and both are rebuilt afterwards—, just like `LZ2_BUFFER`. The
 ; 64 KB an LZ2 stream can produce fit, and it overwrites the upper half of the
 ; grid: Game Over is followed by the boot, and the title screen by
-; `cargar_mapa`, and both decompress it again. `test_reservas_de_la_wram.py`
+; `enter_map`, and both decompress it again. `test_reservas_de_la_wram.py`
 ; lets it through.
 SCREEN_BUFFER = $7F0000
 ; The screen's tilemap, in VRAM words. The tiles go from $0000 and the
@@ -279,7 +279,7 @@ cuadro:
 .a8
     pla
     ldy #.loword(SCREEN_BUFFER)
-    jsl f:lz2_descomprimir + RAPIDO
+    jsl f:lz2_decompress + RAPIDO
     plx
     plb
 .endif

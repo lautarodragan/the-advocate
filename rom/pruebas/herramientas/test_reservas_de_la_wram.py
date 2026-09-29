@@ -30,7 +30,7 @@ RESERVAS = (
                             # Las pantallas de Game Over y de título: pisan
                             # el banco, grilla incluida, porque de ahí no se
                             # vuelve al mapa sino al arranque, o a
-                            # `cargar_mapa`. Ver runtime/game_over.s.
+                            # `enter_map`. Ver runtime/game_over.s.
                             "SCREEN_BUFFER"}),
 )
 

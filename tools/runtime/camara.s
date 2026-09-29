@@ -69,7 +69,7 @@ en_su_lugar:
 ; What is left goes up to fifteen cells —3840 sixteenths— and the step does
 ; not go past 128, so they fit exactly in the hardware's 16-bit dividend and
 ; 8-bit divisor.
-.proc pan_cuadros
+.proc pan_frames
 .a8
 .i16
     rep #$20
@@ -134,11 +134,11 @@ mayor:
 ;     position  = clamp(new, position - cut, position + cut)
 ;
 ; The products go through the hardware multiplier and the division through
-; the divider, which are the ones `aplicar_tinte` already uses. The sine is
+; the divider, which are the ones `apply_tint` already uses. The sine is
 ; `seno_sacudida`, in bank 0, signed and scaled to 127; the sign is taken off
 ; before multiplying and put back afterwards, which is truncating toward zero
 ; like `int` does.
-.proc sacudida_tick
+.proc shake_tick
 .a8
 .i16
     rep #$20

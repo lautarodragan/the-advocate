@@ -41,7 +41,7 @@ apagar:
     lda timer_visible
     stz timer_visible           ; `stz` does not touch Z: the branch looks at the `lda`
     beq ya_no_se_veia
-    jsr timer_repintar          ; its entries get tinted again
+    jsr timer_repaint          ; its entries get tinted again
 ya_no_se_veia:
     rts
 .endproc
@@ -131,7 +131,7 @@ cada_glifo:
     lda timer_i
     cmp #5
     bcc hay_glifo
-    jmp fin
+    jmp end
 hay_glifo:
     cmp #2
     bne es_digito
@@ -220,7 +220,7 @@ cada_mitad:
 siguiente:
     inc timer_i
     jmp cada_glifo
-fin:
+end:
     lda #$02                    ; and whatever follows is 32x32 again
     sta obj_grande
     rts

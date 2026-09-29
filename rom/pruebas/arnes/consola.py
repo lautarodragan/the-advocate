@@ -491,7 +491,7 @@ class Partida:
                               menú: los menús miran **flancos**, así que
                               sostener abajo mueve el cursor una sola vez
                               —hasta los 23 cuadros, cuando empieza la
-                              repetición de `flechas_repetir`—.
+                              repetición de `arrows_repeat`—.
             tocar             en ticks, un tick antes por `RETRASO_DE_PANTALLA`,
                               igual que `apretar_a`. Existe porque la forma de
                               `KeyInputProc` que espera la cruceta necesita un
@@ -812,7 +812,7 @@ class Partida:
         """Teletransporta a la partida, como lo haría una puerta del juego.
 
         No hay atajo acá: se le pide a la ROM el mismo fundido que pide una
-        puerta —`empezar_fundido` con `FUNDIDO_PUERTA`— y la carga del mapa la
+        puerta —`start_fade` con `FUNDIDO_PUERTA`— y la carga del mapa la
         hace ella, por su camino. Lo único que se escribe desde afuera es el
         pedido: a dónde, a qué celda, y la bandera.
 
@@ -833,7 +833,7 @@ class Partida:
         for nombre, valor in (("entrada_x", x), ("entrada_y", y)):
             self.consola.write_ram(self.simbolos[nombre],
                                    [valor & 0xFF, valor >> 8])
-        # `empezar_fundido`, desde afuera: qué fundido es, que hay uno, y el
+        # `start_fade`, desde afuera: qué fundido es, que hay uno, y el
         # reloj, que son **vueltas del lazo** —ticks— desde el 2026-09-08. Con
         # `boot_cuadros`, que es lo que decía antes, la resta daba cualquier
         # cosa y el fundido no terminaba nunca: la partida se quedaba en el

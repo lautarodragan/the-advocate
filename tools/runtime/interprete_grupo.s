@@ -17,7 +17,7 @@
     lda [cod_ptr], y            ; the actor
     iny
     phy
-    jsr cambiar_grupo
+    jsr change_party
     ply
     jmp run_code::otro     ; `bra` does not reach: the loop ended up far away
 
@@ -28,12 +28,12 @@
 ; OP_ACTOR_SPRITE in eventos.py.
 ;
 ; The `ResetGraphic()` that RM2k does to the `Game_Player` is the `jsr
-; elegir_grafico_heroe` down here, and it only runs if the one that changed is
+; pick_hero_graphic` down here, and it only runs if the one that changed is
 ; the one leading: the one not leading is not drawn, and what was saved will
-; be read by `elegir_grafico_heroe` when its turn comes —when the party
+; be read by `pick_hero_graphic` when its turn comes —when the party
 ; changes or when another map loads—.
 ;
-; `aplicar_tinte` afterwards for the same reason as in `cambiar_grupo`: the
+; `apply_tint` afterwards for the same reason as in `change_party`: the
 ; CGRAM row the leader had borrowed is left with its fifteen colors on top of
 ; the map's, and it has to be restored from the cartridge.
 .proc op_actor_sprite
@@ -51,8 +51,8 @@
     lda temp
     cmp grupo                   ; is it the leader?
     bne graf_no_lidera
-    jsr elegir_grafico_heroe
-    jsr aplicar_tinte
+    jsr pick_hero_graphic
+    jsr apply_tint
 graf_no_lidera:
     ply
     jmp run_code::otro

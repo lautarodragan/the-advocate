@@ -4,9 +4,9 @@
 ; four make 7.5 presses per second. It is there to be tuned by playing, but it
 ; has to be a power of two, because the phase is one bit of the counter; and
 ; that way the counter also wraps at 256 without cutting a half cycle short.
-AUTOFIRE_CUADROS = 4
-.assert AUTOFIRE_CUADROS & (AUTOFIRE_CUADROS - 1) = 0, error, "AUTOFIRE_CUADROS has to be a power of two"
-.assert AUTOFIRE_CUADROS > 0 && AUTOFIRE_CUADROS < $100, error, "AUTOFIRE_CUADROS has to fit in the one-byte counter"
+AUTOFIRE_FRAMES = 4
+.assert AUTOFIRE_FRAMES & (AUTOFIRE_FRAMES - 1) = 0, error, "AUTOFIRE_FRAMES has to be a power of two"
+.assert AUTOFIRE_FRAMES > 0 && AUTOFIRE_FRAMES < $100, error, "AUTOFIRE_FRAMES has to fit in the one-byte counter"
 
 ; --- reading the controller ------------------------------------------------
 ; The console reads the controllers on its own when vblank starts, but it
@@ -37,7 +37,7 @@ termina:
     sta pad_ant                 ; the previous one, for the edges below
     lda JOY1H
     sta pad
-    jsl flechas_repetir         ; holding an arrow presses it again
+    jsl arrows_repeat         ; holding an arrow presses it again
     ; For A what matters is not the state but the edge: RM2k closes the
     ; message with `Input::IsTriggered`, that is, with the transition from
     ; released to pressed. Holding it fires nothing again, and that is why the
@@ -51,7 +51,7 @@ termina:
     and #PAD_A
     sta pad_a
     rts
-    ; X is autofire for A: while it is held, `pad_a` spends AUTOFIRE_CUADROS
+    ; X is autofire for A: while it is held, `pad_a` spends AUTOFIRE_FRAMES
     ; ticks pressed and as many released, and each return to pressed is a new
     ; edge, that is, a press. RM2k does not have it: see
     ; `workflow/divergencias/autofire-de-a-con-x.md`.
@@ -67,7 +67,7 @@ con_x:
     sta pad_a
     lda autofire
     inc autofire
-    and #AUTOFIRE_CUADROS       ; tick 0 falls in the pressed phase: X presses now
+    and #AUTOFIRE_FRAMES       ; tick 0 falls in the pressed phase: X presses now
     bne apagado
     lda #PAD_A
     tsb pad_a
@@ -78,7 +78,7 @@ apagado:
 
 ; --- arrow repeat -----------------------------------------------------------
 ; It is RM2k's `Input::IsRepeated`: a held arrow fires again on its own, first
-; REPETIR_ESPERA frames after pressing it and then every REPETIR_CADA, so
+; REPEAT_WAIT frames after pressing it and then every REPEAT_EVERY, so
 ; holding down in a menu scrolls down by itself. The numbers are easyrpg's,
 ; `src/input.cpp`: `start_repeat_time = 23` and `repeat_time = 4`, with
 ; `press_time == 1 || (press_time >= 23 && press_time % 4 == 0)`, and
@@ -110,39 +110,39 @@ apagado:
 ; It lives in bank 1 because there is no room in bank 0; it enters with A8 and
 ; I16 and a data bank that sees low RAM, which is what `read_pad` already
 ; asks for.
-REPETIR_ESPERA = 23
-REPETIR_CADA   = 4
-FLECHAS = PAD_UP | PAD_DOWN | PAD_LEFT | PAD_RIGHT
-.assert FLECHAS = $0F, error, "the arrows are the low nibble of JOY1H"
+REPEAT_WAIT = 23
+REPEAT_EVERY   = 4
+ARROWS = PAD_UP | PAD_DOWN | PAD_LEFT | PAD_RIGHT
+.assert ARROWS = $0F, error, "the arrows are the low nibble of JOY1H"
 
 .segment "FAR"
-.proc flechas_repetir
+.proc arrows_repeat
 .a8
 .i16
     stz flechas_repetidas
     lda pad
     eor pad_ant
     and pad
-    and #FLECHAS
+    and #ARROWS
     bne de_cero                 ; an arrow just pressed: its edge is enough
     lda pad
-    and #FLECHAS
+    and #ARROWS
     beq de_cero                 ; none held
     inc flechas_cuadros
     lda flechas_cuadros
-    cmp #REPETIR_ESPERA
-    bcc listo
-    ; It steps back REPETIR_CADA, so the next one falls at that distance and
-    ; the counter never goes past REPETIR_ESPERA.
-    lda #REPETIR_ESPERA - REPETIR_CADA
+    cmp #REPEAT_WAIT
+    bcc ready
+    ; It steps back REPEAT_EVERY, so the next one falls at that distance and
+    ; the counter never goes past REPEAT_WAIT.
+    lda #REPEAT_WAIT - REPEAT_EVERY
     sta flechas_cuadros
     lda pad
-    and #FLECHAS
+    and #ARROWS
     sta flechas_repetidas
     trb pad_ant                 ; to the screens, just pressed
     rtl
 de_cero:
     stz flechas_cuadros
-listo:
+ready:
     rtl
 .endproc

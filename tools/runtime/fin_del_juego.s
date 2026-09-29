@@ -11,7 +11,7 @@
 ;
 ; Everything goes on BG2, over `RANURA_VRAM` and `RANURA_MAP`, which are the
 ; places the menu and the slot screen already write: on the way back,
-; `menu_upload` rebuilds them and `volver_al_mapa` has nothing else to restore.
+; `menu_upload` rebuilds them and `back_to_map` has nothing else to restore.
 ;
 ; It is entered with `jsl` from `menu_screen`, with the screen on or not,
 ; and:

@@ -149,7 +149,7 @@ otra:
     rep #$20
 .a16
     lda f:partida_tabla + 2, x
-    beq listo                   ; zero length: the table is over
+    beq ready                   ; zero length: the table is over
     sta DAS0L
     lda temp
     sta A1T0L
@@ -172,7 +172,7 @@ otra:
     sep #$20
 .a8
     bra otra
-listo:
+ready:
 .a16
     sep #$20
 .a8
@@ -236,7 +236,7 @@ suma:
     ; one in RAM.** With an MSU-1 track playing the SPC700 is silent on
     ; purpose and `music_apagada` is 1, so saved as is the game loaded mute:
     ; `music_boot_done` reads it as "saved without music". It is set to zero
-    ; while the copy lasts —the same question as `mapa_tema_callar`— and so
+    ; while the copy lasts —the same question as `map_song_mute`— and so
     ; the saved game does not say where it was playing from: on loading it,
     ; `music_start` picks the track or the SPC700 depending on whether there
     ; is an MSU-1. With interrupts disabled, because `irq_music` would run the
@@ -272,7 +272,7 @@ copiar:
     sep #$20
 .a8
     beq cuadra
-    jmp entrar_en_panico
+    jmp enter_panic
 cuadra:
     ; The magic and the sum are what say the slot is valid. The data bank moves
     ; to the SRAM: it is the only way to address it without a pointer on the
@@ -398,7 +398,7 @@ no:
 .endproc
 
 ; The cell where the saved game was left, set as the map's entry: it is how a
-; door tells `cargar_mapa` where to place the hero. It is used by startup
+; door tells `enter_map` where to place the hero. It is used by startup
 ; —when the ROM carries no title and the saved game loads by itself— and by
 ; the title menu when the player chooses to continue. It used to be written
 ; only in startup, and copying it to the menu would have been the second place

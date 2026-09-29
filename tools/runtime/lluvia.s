@@ -6,27 +6,27 @@
 ; to the 256x224 screen: see OP_WEATHER in eventos.py, which has the why. The
 ; state lives in far RAM: the weather's type and strength, how many drops
 ; there are and the rain's randomness —its own xorshift, seeded every time
-; the weather changes— in `FAR_CLIMA`, and three bytes per drop —x, y and its
-; life— in `FAR_LLUVIA`. The x and the y are on the 256x256 surface stuck to
+; the weather changes— in `FAR_WEATHER`, and three bytes per drop —x, y and its
+; life— in `FAR_RAIN`. The x and the y are on the 256x256 surface stuck to
 ; the map, so one byte is enough and each frame's step wraps around by
 ; itself; on screen it is that minus the scroll. The weather does not travel
 ; in the save: after loading it does not rain.
 ;
-; `lluvia_tick` and `lluvia_oam` run on every frame it rains and read with
+; `rain_tick` and `rain_oam` run on every frame it rains and read with
 ; long addressing, which is one instruction per byte: with the WMADD window
 ; every drop paid for pointing at it.
-FAR_CLIMA  = $2EF0
-FAR_LLUVIA = $2F00
-CLIMA_L    = $7E0000 + FAR_CLIMA
-LLUVIA_L   = $7E0000 + FAR_LLUVIA
+FAR_WEATHER  = $2EF0
+FAR_RAIN = $2F00
+WEATHER_L    = $7E0000 + FAR_WEATHER
+RAIN_L   = $7E0000 + FAR_RAIN
 
 ; The weather at zero: no rain. On reset.
-.proc clima_limpiar
+.proc weather_clear
 .a8
 .i16
     rep #$20
 .a16
-    lda #FAR_CLIMA
+    lda #FAR_WEATHER
     sta WMADDL
     sep #$20
 .a8
@@ -44,12 +44,12 @@ otro:
 ; randomness goes back to its seed. It is called from the interpreter, with
 ; the data bank wherever the bytecode is: it only touches registers and low
 ; RAM.
-.proc clima_poner
+.proc weather_set
 .a8
 .i16
     rep #$20
 .a16
-    lda #FAR_CLIMA
+    lda #FAR_WEATHER
     sta WMADDL
     sep #$20
 .a8
@@ -64,7 +64,7 @@ otro:
 cambia:
     rep #$20
 .a16
-    lda #FAR_CLIMA
+    lda #FAR_WEATHER
     sta WMADDL
     sep #$20
 .a8
@@ -98,7 +98,7 @@ cuantas:
     ; All off.
     rep #$20
 .a16
-    lda #FAR_LLUVIA
+    lda #FAR_RAIN
     sta WMADDL
     sep #$20
 .a8
@@ -112,7 +112,7 @@ apagar:
 
 ; The rain's randomness, in `comp_mask`: the same xorshift as
 ; `eventos.azar_siguiente`. Returns with the new number in A, sixteen bits.
-.proc lluvia_azar
+.proc rain_random
 .a8
 .i16
     rep #$20
@@ -150,53 +150,53 @@ apagar:
 ; says. `comp_col` counts the drops and `comp_mask` carries the randomness;
 ; they belong to the message composer, which recomputes them on every
 ; character. X is the drop, three bytes at a time.
-.proc lluvia_tick
+.proc rain_tick
 .a8
 .i16
-    lda f:CLIMA_L + 2
+    lda f:WEATHER_L + 2
     bne hay
     rts
 hay:
     sta comp_col                ; how many
     rep #$20
 .a16
-    lda f:CLIMA_L + 3
+    lda f:WEATHER_L + 3
     sta comp_mask
     sep #$20
 .a8
     ldx #0
 gota:
-    lda f:LLUVIA_L + 2, x       ; its life
+    lda f:RAIN_L + 2, x       ; its life
     beq apagada
     ; Alive: down four, one to the left, and one less life left.
     dec a
-    sta f:LLUVIA_L + 2, x
-    lda f:LLUVIA_L, x
+    sta f:RAIN_L + 2, x
+    lda f:RAIN_L, x
     dec a
-    sta f:LLUVIA_L, x
-    lda f:LLUVIA_L + 1, x
+    sta f:RAIN_L, x
+    lda f:RAIN_L + 1, x
     clc
     adc #4
-    sta f:LLUVIA_L + 1, x
+    sta f:RAIN_L + 1, x
     bra siguiente
 apagada:
     ; It is born with a LLUVIA_NACE in 256 chance, at a random place.
-    ; `lluvia_azar` returns with a 16-bit A and does not touch X.
-    jsr lluvia_azar
+    ; `rain_random` returns with a 16-bit A and does not touch X.
+    jsr rain_random
     sep #$20
 .a8
     cmp #LLUVIA_NACE
     bcs siguiente
     lda #LLUVIA_VIDA
-    sta f:LLUVIA_L + 2, x
-    jsr lluvia_azar
+    sta f:RAIN_L + 2, x
+    jsr rain_random
     sep #$20
 .a8
-    sta f:LLUVIA_L, x
-    jsr lluvia_azar
+    sta f:RAIN_L, x
+    jsr rain_random
     sep #$20
 .a8
-    sta f:LLUVIA_L + 1, x
+    sta f:RAIN_L + 1, x
 siguiente:
     inx
     inx
@@ -206,7 +206,7 @@ siguiente:
     rep #$20
 .a16
     lda comp_mask
-    sta f:CLIMA_L + 3           ; the randomness, back in its place
+    sta f:WEATHER_L + 3           ; the randomness, back in its place
     sep #$20
 .a8
     rts
@@ -222,7 +222,7 @@ siguiente:
 ; half a screen: a drop's X always stays between 0 and 255 —the ninth bit and
 ; the size are zero—, so it is written directly. X is the drop and Y the
 ; object.
-.proc lluvia_oam
+.proc rain_oam
 .a8
 .i16
     ldx mapa_ofs
@@ -231,7 +231,7 @@ siguiente:
     bne con_gotas
     rts
 con_gotas:
-    lda f:CLIMA_L + 2
+    lda f:WEATHER_L + 2
     bne hay
     rts
 hay:
@@ -251,7 +251,7 @@ hay:
     stz comp_dup + 3
     ldx #0
 gota:
-    lda f:LLUVIA_L + 2, x
+    lda f:RAIN_L + 2, x
     bne viva
     jmp siguiente
 viva:
@@ -270,11 +270,11 @@ tono1:
 tono:
     sta comp_dup + 2
     ; On screen: minus the map's scroll, in eight bits.
-    lda f:LLUVIA_L, x
+    lda f:RAIN_L, x
     sec
     sbc pantalla_x
     sta comp_dup
-    lda f:LLUVIA_L + 1, x
+    lda f:RAIN_L + 1, x
     sec
     sbc camara_y
     sta comp_dup + 1
@@ -355,9 +355,9 @@ siguiente:
     inx
     inx
     dec comp_col
-    beq listo
+    beq ready
     jmp gota
-listo:
+ready:
     rts
 .endproc
 

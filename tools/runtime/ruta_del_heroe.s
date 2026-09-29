@@ -44,7 +44,7 @@
     ; route. It is RUTA_ESPERA frames and not one: it is RM2k's
     ; `SetMaxStopCountForWait`, which with frequency 8 gives twenty.
     ; The jump in progress is not looked at here but in `move_hero`: see
-    ; `salto_avanzar_heroe`.
+    ; `jump_advance_hero`.
     lda ruta_espera
     beq sin_espera
     dec ruta_espera
@@ -54,7 +54,7 @@ otra_orden:
     lda ruta_i
     cmp ruta_n
     bcc hay_orden
-    jmp listo                   ; the move route is over; `bcs` no longer reaches
+    jmp ready                   ; the move route is over; `bcs` no longer reaches
 hay_orden:
     jsr hero_command
 
@@ -65,7 +65,7 @@ hay_orden:
     clc
     adc #(RUTA_ESPERA - 1)
     sta ruta_espera
-    jmp listo
+    jmp ready
 no_es_wait:
     cmp #12
     bcs no_es_mover
@@ -80,12 +80,12 @@ no_es_mover:
     ; hero left by elimination, which is the same trap as the diagonals.
     cmp #24
     bne no_es_salto
-    jsr armar_salto_heroe
+    jsr build_hero_jump
     lda ruta_salto
     bne salto_arranco
     jmp otra_orden              ; it could not land there: skipped
 salto_arranco:
-    jmp listo
+    jmp ready
 no_es_salto:
     cmp #25
     bne no_es_fin
@@ -162,7 +162,7 @@ face:
 giro_espera:
     dec a
     sta ruta_espera
-    jmp listo
+    jmp ready
 
 ; `change_graphic` **on the hero**: 34 with its operand, the graphic's index in
 ; the map's table, same as on an event.
@@ -176,12 +176,12 @@ giro_espera:
 ; Two things that are **not** done and that are what it would cost extra:
 ;
 ; * `hero_cgram` is turned off. The leader's fifteen colors are uploaded by
-;   `aplicar_tinte` **into the row `hero_pal` says**, so leaving it set with
+;   `apply_tint` **into the row `hero_pal` says**, so leaving it set with
 ;   the new palette would write Talan's colors over the palette of the graphic
 ;   it changed to. While the change is in place, the hero is drawn with the new
 ;   graphic's palette, which already lives in CGRAM with the rest of the map's
 ;   sprites.
-; * It does not survive a map change: `elegir_grafico_heroe` runs on load and
+; * It does not survive a map change: `pick_hero_graphic` runs on load and
 ;   restores it. It is not laziness —the poses live in **the map's** sprite
 ;   bank, so the graphic from there does not exist here—.
 ;   The page of map 8's `EV0047`, which is the one that asked for all this,
@@ -191,7 +191,7 @@ grafico_heroe:
     lda #$FF
     sta hero_pose_vram          ; the pose in VRAM is no longer its own
     jsr hero_command         ; the operand, which is left consumed
-    jsr hero_poses_de_grafico
+    jsr hero_poses_of_graphic
     bcc heroe_sin_grafico
     jmp otra_orden
 heroe_sin_grafico:
@@ -264,7 +264,7 @@ arranco:
     ; counts.
     lda #1
     sta ruta_paso
-listo:
+ready:
     rts
 velocidad:
     ; `increase_movement_speed` and `decrease_movement_speed`, capped at 6 and
@@ -303,7 +303,7 @@ vel_guardar:
 ;
 ; The jump does not need that care and that is why it is looked at bare: the
 ; only one that sets `ruta_salto` to something other than zero is
-; `armar_salto_heroe`, and only `step_route` calls it, so a hero's jump is
+; `build_hero_jump`, and only `step_route` calls it, so a hero's jump is
 ; always from a move route. None comes from the pad. It was missing, and a
 ; `ProceedWithMovement` right after a jump let the page go with the hero still
 ; up in the air: there, `MoveRouteFinished` gets set inside `UpdateMovement`,

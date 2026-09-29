@@ -13,7 +13,7 @@
 ; and the previous one finished its page before. Its state lives in far RAM:
 ;
 ;   TURN_EV     the event, or $FF. **Its row is not saved**: rows get
-;               reordered when someone walks —`acomodar_npc`—, and the saved
+;               reordered when someone walks —`fit_npc`—, and the saved
 ;               row ended up belonging to someone else. The first version gave
 ;               the Bum of Lashe City's tile back to the event that had ended
 ;               up in its place; `bum-vuelve` found it. The row is looked up
@@ -183,10 +183,10 @@ con_columna:
     cmp #NPC_QUIETO
     beq quieto
     lda npc_buf + 13, y
-    bmi listo                   ; animates in place: `animar_quietos` uploads it
+    bmi ready                   ; animates in place: `animate_still` uploads it
     sty npc_fila
     lda temp
-    jmp subir_pose_npc
+    jmp upload_npc_pose
 quieto:
     ; To the turn slot: its tile, with bit 8 in the attributes.
     lda temp
@@ -251,10 +251,10 @@ quieto:
     sta vq_dest
     sep #$20
 .a8
-    jsr vram_encolar
-    bne listo
+    jsr vram_queue
+    bne ready
     jsr turn_undo           ; the queue was full: it does not turn
-listo:
+ready:
     rts
 .endproc
 
@@ -312,7 +312,7 @@ propia:
     bmi nothing                    ; animates in place: goes back by itself, next frame
     sty npc_fila
     lda f:TURN_POSE_PREV
-    jmp subir_pose_npc
+    jmp upload_npc_pose
 nothing:
     rts
 .endproc
@@ -383,7 +383,7 @@ nothing:
     rts
 .endproc
 
-; Which way row Y faces, for `animar_quietos`: its page's, or the turn's if it
+; Which way row Y faces, for `animate_still`: its page's, or the turn's if it
 ; is the one turning. Returns A.
 .proc facing_of_row
 .a8

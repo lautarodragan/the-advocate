@@ -13,7 +13,7 @@
 ; places that can differ.
 
 ; Stores the flash carried by the six operands that follow Y.
-.proc flash_empezar
+.proc flash_start
 .a8
 .i16
     ldx #$0000
@@ -58,7 +58,7 @@ set2:
 ; Which sprite palette the target in A is drawn with, or $FF if it is not
 ; drawn. The hero carries it in `hero_pal`, already shifted; an event, in the
 ; attribute byte of its row.
-.proc paleta_del_blanco
+.proc target_palette
 .a8
 .i16
     cmp #$00
@@ -91,7 +91,7 @@ otra:
     cmp #FLASH_LIBRE
     beq siguiente
     phx
-    jsr un_flash
+    jsr one_flash
     plx
 siguiente:
     rep #$20
@@ -111,7 +111,7 @@ siguiente:
 ; and uploads the palette. When it goes past the frames it lasts, the slot is
 ; freed: the previous frame already uploaded it with zero strength, that is,
 ; as it was.
-.proc un_flash
+.proc one_flash
 .a8
 .i16
     lda flash_ev + 6, x
@@ -158,49 +158,49 @@ todavia:
     asl a
     asl a                       ; easyrpg's alpha is the strength times eight
     sta flash_alfa
-    jmp pintar_flash
+    jmp paint_flash
 .endproc
 
 ; Uploads the palette of the target of slot X with the strength already in
 ; `flash_alfa`.
-.proc pintar_flash
+.proc paint_flash
 .a8
 .i16
     lda flash_ev + 0, x
-    jsr paleta_del_blanco
+    jsr target_palette
     cmp #$FF
-    beq listo                   ; not drawn: no palette to touch
+    beq ready                   ; not drawn: no palette to touch
     rep #$20
 .a16
     and #$00FF
     sta flash_slot
     sep #$20
 .a8
-    jsr paleta_con_destello
-listo:
+    jsr palette_with_flash
+ready:
     rts
 .endproc
 
 ; Uploads the palette of character `flash_slot` with the tint and the flash
 ; applied. The flash colors come from slot X.
-.proc paleta_con_destello
+.proc palette_with_flash
 .a8
 .i16
-    stx flash_ranura            ; `tabla_canal_flash` uses X for the table
+    stx flash_ranura            ; `flash_channel_table` uses X for the table
     lda flash_ev + 1, x
     sta flash_dest
     ldy #0                      ; the red of `puro` and of the working ones
-    jsr tabla_canal_flash
+    jsr flash_channel_table
     ldx flash_ranura
     lda flash_ev + 2, x
     sta flash_dest
     ldy #32                     ; the green
-    jsr tabla_canal_flash
+    jsr flash_channel_table
     ldx flash_ranura
     lda flash_ev + 3, x
     sta flash_dest
     ldy #64                     ; the blue
-    jsr tabla_canal_flash
+    jsr flash_channel_table
 
     ; The character's palette: sixteen two-byte colors, and in CGRAM the upper
     ; half starts at color 128.
@@ -236,7 +236,7 @@ listo:
     sep #$20
 .a8
     sta tin_cgadd
-    jsr armar_paleta
+    jsr build_palette
 
     ; The built palette is stored aside and uploaded in the next vblank, not
     ; here. Writing CGRAM in the middle of the frame leaves the top half of
@@ -266,35 +266,35 @@ copiar:
 
     ; And the tables go back to being the tint-only ones, which is what
     ; everything else expects. By copying, not rebuilding them: see
-    ; `tablas_de_tinte`.
-    jmp restaurar_tablas
+    ; `tint_tables`.
+    jmp restore_tables
 .endproc
 
 ; The tint's three channel tables, without flash, and their copy in `puro`.
 ;
-; The copy exists because of the frame budget. `paleta_con_destello` runs on
+; The copy exists because of the frame budget. `palette_with_flash` runs on
 ; every frame while a flash lasts and it used to end by rebuilding these
 ; three tables —ninety-six products and ninety-six divisions—; now
-; `restaurar_tablas` copies ninety-six bytes. And on the way
-; `tabla_canal_flash` saves the tint computation per entry: it looks it up
+; `restore_tables` copies ninety-six bytes. And on the way
+; `flash_channel_table` saves the tint computation per entry: it looks it up
 ; here.
-.proc tablas_de_tinte
+.proc tint_tables
 .a8
 .i16
     lda tinte_r
     ldx #.loword(puro)
-    jsr tabla_canal
+    jsr channel_table
     lda tinte_g
     ldx #.loword(puro) + 32
-    jsr tabla_canal
+    jsr channel_table
     lda tinte_b
     ldx #.loword(puro) + 64
-    jsr tabla_canal
+    jsr channel_table
     ; fallthrough
 .endproc
 
 ; The working tables, exactly as the tint-only ones were left.
-.proc restaurar_tablas
+.proc restore_tables
 .a8
 .i16
     ldx #$0000
@@ -311,7 +311,7 @@ copiar:
     rts
 .endproc
 
-; Like `tabla_canal`, but blending toward the flash color first. Y carries
+; Like `channel_table`, but blending toward the flash color first. Y carries
 ; which channel: 0, 32 or 64, which is both the offset into `puro` and into
 ; the working tables —`tabla_r`, `tabla_g` and `tabla_b` are contiguous, like
 ; the three of `puro`—; `flash_dest` the flash channel and `flash_alfa` how
@@ -333,11 +333,11 @@ copiar:
 ; five-bit one, and the only place it shows is in a page that tints and
 ; flashes at the same time.
 ;
-; **Saturation goes before this blend**: `armar_paleta` saturates the raw
+; **Saturation goes before this blend**: `build_palette` saturates the raw
 ; color, because saturation needs the three channels together and this table
 ; is one at a time. It is RM2k's order, where saturating is part of
 ; `ToneBlit`.
-.proc tabla_canal_flash
+.proc flash_channel_table
 .a8
 .i16
     ; The blend of entry c is `(dest * a + c * (255 - a)) / 255`, and from one
@@ -413,5 +413,5 @@ cada:
     bne cada
     rts
 .endproc
-.assert tabla_g = tabla_r + 32 && tabla_b = tabla_r + 64, error, "tabla_canal_flash indexes all three from tabla_r"
+.assert tabla_g = tabla_r + 32 && tabla_b = tabla_r + 64, error, "flash_channel_table indexes all three from tabla_r"
 

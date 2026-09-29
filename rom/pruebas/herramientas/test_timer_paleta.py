@@ -137,7 +137,7 @@ def test_el_cronometro_no_cae_en_la_ranura_de_un_lider():
 def test_las_gotas_no_caen_en_la_paleta_del_cronometro():
     """La otra ranura que la ROM pisa: la del cronómetro, y sin teñir.
 
-    `subir_timer_pal` vuelve a subir esos dieciséis colores tal cual están en
+    `upload_timer_pal` vuelve a subir esos dieciséis colores tal cual están en
     la ROM, a propósito —en RM2k los dígitos van **encima** del tinte de
     pantalla: `Priority_Timer` es 140 y `Priority_Screen` 90—. La lluvia va
     debajo —`Priority_Weather`, 80—, así que una gota metida en esa paleta se

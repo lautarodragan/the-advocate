@@ -1,7 +1,7 @@
 """Una flecha sostenida en el menú mueve el cursor sola: `Input::IsRepeated`.
 
 RM2k —y easyrpg, `src/input.cpp`— la dispara en el cuadro en que se aprieta,
-otra vez 23 cuadros después, y de ahí cada 4. Lo hace `flechas_repetir` en
+otra vez 23 cuadros después, y de ahí cada 4. Lo hace `arrows_repeat` en
 `control.s`, adentro de `read_pad`, así que lo lleva toda pantalla que mira el
 flanco de las flechas; acá se prueba en el menú de pausa, que es donde lo pidió
 taro. La otra mitad, que la entrada de teclas con espera **no** la lleve, es
@@ -16,7 +16,7 @@ dejaría de ser exacta y hay que mirar por qué antes de aflojarla.
 from consola import TITULO_AIRE
 from menu import abrir, con_grupo
 
-# `REPETIR_ESPERA` y `REPETIR_CADA` de `control.s`, que son los de easyrpg y
+# `REPEAT_WAIT` y `REPEAT_EVERY` de `control.s`, que son los de easyrpg y
 # los que se midieron en el RPG_RT: ver la tarea en `workflow/tasks/`.
 ESPERA = 23
 CADA = 4

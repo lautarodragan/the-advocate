@@ -28,7 +28,7 @@
 ; The message window and the timer do not get the flash, and they don't there
 ; either: `Priority_Screen` is 90 against 130 for the window and 140 for the
 ; timer.
-.proc destello_tick
+.proc flash_tick
 .a8
 .i16
     rep #$20
@@ -71,22 +71,22 @@ hay:
     beq apagar
     and #$01
     beq fase_par
-    jsr tablas_de_destello
-    jsr destellar_fondo
+    jsr flash_tables
+    jsr flash_backdrop
     lda tinte_listo
-    beq listo                   ; the usual case: the sprites go next frame
-    jsr destellar_sprites
+    beq ready                   ; the usual case: the sprites go next frame
+    jsr flash_sprites
     bra subir
 fase_par:
     lda tinte_listo
     beq sprites
-    jsr destellar_fondo         ; the new tint overwrote the background already run
+    jsr flash_backdrop         ; the new tint overwrote the background already run
 sprites:
-    jsr destellar_sprites
+    jsr flash_sprites
 subir:
     lda #1
     sta destello_listo
-listo:
+ready:
     rts
 apagar:
     ; It is over: the level falls to zero and the unflashed shadow goes back
@@ -99,7 +99,7 @@ apagar:
     rts
 .endproc
 
-.proc destello_de_codigo
+.proc flash_from_code
 .a8
 .i16
     lda [cod_ptr], y            ; r
@@ -123,9 +123,9 @@ apagar:
 
 ; The three flash tables, one per channel: what each five-bit value becomes
 ; at this frame's level. They are bytes and not words already shifted into
-; their place in the color, which would save `destellar_rango` the shifts:
+; their place in the color, which would save `flash_range` the shifts:
 ; bank 0's RAM did not have room for the extra 96 bytes.
-.proc tablas_de_destello
+.proc flash_tables
 .a8
 .i16
     lda destello_nivel + 1      ; the integer part of the level, 0 to 31
@@ -137,7 +137,7 @@ apagar:
     sep #$20
 .a8
     lda destello_rgb
-    jsr una_tabla_de_destello
+    jsr one_flash_table
     rep #$20
 .a16
     lda #.loword(dest_tab_g)
@@ -145,7 +145,7 @@ apagar:
     sep #$20
 .a8
     lda destello_rgb + 1
-    jsr una_tabla_de_destello
+    jsr one_flash_table
     rep #$20
 .a16
     lda #.loword(dest_tab_b)
@@ -153,7 +153,7 @@ apagar:
     sep #$20
 .a8
     lda destello_rgb + 2
-    jmp una_tabla_de_destello
+    jmp one_flash_table
 .endproc
 
 ; One table: A is the flash color's channel and `temp` points to the table.
@@ -176,7 +176,7 @@ apagar:
 ;
 ; The target is five bits: the converter lets nothing else through, neither
 ; in `FlashScreen` nor in the battle animations.
-.proc una_tabla_de_destello
+.proc one_flash_table
 .a8
 .i16
     sta dest_hacia
@@ -210,7 +210,7 @@ sube:
     cpy dest_fin
     bne sube
     cpy #32
-    beq listo
+    beq ready
     rep #$20
 .a16
     lda temp + 2
@@ -227,14 +227,14 @@ baja:
     iny
     cpy #32
     bne baja
-listo:
+ready:
     rts
 .endproc
 
 
 ; The palettes of the background and the upper layer, from the shadow to
-; `pal_buf` through the tables. Same entries and counts as `subir_tinte`.
-.proc destellar_fondo
+; `pal_buf` through the tables. Same entries and counts as `upload_tint`.
+.proc flash_backdrop
 .a8
 .i16
     ldx mapa_ofs
@@ -244,7 +244,7 @@ listo:
     sta tin_count
     sep #$20
 .a8
-    ; From `CGRAM_BASE`, the same as `aplicar_tinte` and `subir_paletas`: the
+    ; From `CGRAM_BASE`, the same as `apply_tint` and `upload_palettes`: the
     ; background does not start at entry 0 but above the message window.
     ; This said 0, which was right until the window moved to palette 0 and the
     ; background shifted by nine entries —see commit 5015868, which fixed the
@@ -257,7 +257,7 @@ listo:
     ; the `destello` test page flashes a sprite —`FlashSprite`—, never the
     ; screen, so nobody ran this path.
     lda #CGRAM_BASE
-    jsr destellar_rango
+    jsr flash_range
     ldx mapa_ofs
     rep #$20
 .a16
@@ -266,11 +266,11 @@ listo:
     sep #$20
 .a8
     lda f:mapa_tabla + M_ABOVE_FIRST, x
-    jmp destellar_rango
+    jmp flash_range
 .endproc
 
 ; And the sprites' ones.
-.proc destellar_sprites
+.proc flash_sprites
 .a8
 .i16
     ldx mapa_ofs
@@ -281,12 +281,12 @@ listo:
     sep #$20
 .a8
     lda #128
-    jmp destellar_rango
+    jmp flash_range
 .endproc
 
 ; `tin_count` colors from entry A: each one is split into its three channels,
 ; each channel goes through its table, and the three words are joined.
-.proc destellar_rango
+.proc flash_range
 .a8
 .i16
     rep #$20

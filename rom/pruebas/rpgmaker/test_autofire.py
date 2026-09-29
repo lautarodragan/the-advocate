@@ -21,7 +21,7 @@ CASO = "autofire"
 VARIABLE = 17
 MENSAJES = 5
 
-# `AUTOFIRE_CUADROS` de `control.s`: vueltas prendido y vueltas apagado.
+# `AUTOFIRE_FRAMES` de `control.s`: vueltas prendido y vueltas apagado.
 CUADROS = 4
 
 

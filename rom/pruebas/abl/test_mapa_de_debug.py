@@ -102,7 +102,7 @@ def cruzar(r, puerta):
 
 def talan_se_ve(r):
     """Talan de líder, y con las poses de su gráfico: sin entrada en la tabla
-    de actores del cartucho, `elegir_grafico_heroe` deja `hero_poses` en
+    de actores del cartucho, `pick_hero_graphic` deja `hero_poses` en
     cero y el héroe no se dibuja."""
     grupo = grupo_de(r.p)
     assert grupo and grupo[0] == TALAN, (

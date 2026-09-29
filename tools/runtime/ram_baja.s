@@ -57,7 +57,7 @@ pan_paso:   .res 2
 pan_px:     .res 2
 pan_py:     .res 2
 
-; A teleport's fade. See `fundido_tick`.
+; A teleport's fade. See `fade_tick`.
 fundido:      .res 1    ; whether one is running
 fundido_base: .res 1    ; the low byte of `vueltas` when it started
 fundido_que:  .res 1    ; what has to be done on the black frame, and is no longer
@@ -65,13 +65,13 @@ fundido_mapa: .res 2    ; to which map, for the two cases that load
 FUNDIDO_NADA   = 0      ; already done
 ; `FUNDIDO_PUERTA` is the only one that **no path in the ROM asks for**: the
 ; harness writes it from outside —`Partida.ir_al_mapa`— to plant the game on
-; any map, and that is why it wants the whole `cargar_mapa`, with the jump
+; any map, and that is why it wants the whole `enter_map`, with the jump
 ; budget restored, and not the path of a chained jump. It is called that
 ; because it was what a door asked for when doors had a table of their own;
 ; today they go through the interpreter and ask for `FUNDIDO_SALTO` like any
 ; other teleport. Deleting it takes away the tests' way of starting on a map
 ; that is not the cartridge's.
-FUNDIDO_PUERTA = 1      ; the harness's: `cargar_mapa`, with its jump cap
+FUNDIDO_PUERTA = 1      ; the harness's: `enter_map`, with its jump cap
 FUNDIDO_SALTO  = 2      ; a Teleport to another map
 FUNDIDO_MISMO  = 3      ; a Teleport to the same one: just move the hero
 
@@ -150,7 +150,7 @@ oam_high: .res 32
 ; pose: 512 bytes in four rows of 128, because a 32x32 object is four rows of
 ; the name grid. Up to VQ_POR_CUADRO per vblank; the rest waits for the next,
 ; and whoever queued it learns it did not fit and asks again. See
-; `vram_encolar` and `vram_drenar`.
+; `vram_queue` and `vram_drain`.
 VQ_MAX = 8
 VQ_POR_CUADRO = 5
 VQ_STRIDE = 5
@@ -171,8 +171,8 @@ pose_heroe:     .res 1
 ; A column is the window's 32 cells; a row, the 64. They are indexed by slot,
 ; not by map cell: that way the buffer's order is exactly the order VRAM wants
 ; them in and each strip comes out of one DMA.
-; The four in a row and in this order: `limpiar_tilemaps` clears them in one
-; go, and `push_una_fila` and `push_una_columna` reach the upper layer's by
+; The four in a row and in this order: `clear_tilemaps` clears them in one
+; go, and `push_one_row` and `push_one_column` reach the upper layer's by
 ; adding the other's length, instead of carrying two pointers.
 tira_col:   .res WINDOW_ROWS * 2
 tira_col2:  .res WINDOW_ROWS * 2
@@ -196,7 +196,7 @@ row_addr_b: .res 2
 ; The `TileSubstitution` table: which block is drawn in place of which. It is
 ; the only part of the map that can change while running —the grid lives in
 ; the cartridge— and that is why the substitution is not written anywhere but
-; looked up when reading each cell: see `celda_sustituida`.
+; looked up when reading each cell: see `cell_replaced`.
 ;
 ; **It lives as long as the loaded map lives, not as long as the tilemap
 ; window.** It is cleared when loading a map and not when refilling the
@@ -289,7 +289,7 @@ ev_pos_buf: .res EV_MAX * EV_STRIDE
 ; how many, +5 which one it is on, +6 whether it moved this frame, +7 what the
 ; step has left, +8 which way it faces, +9 the wait, +10 and +11 the animation,
 ; +12 the flags, +13 what the jump has left and +14/+15 where it started, +16
-; the frequency, +19 its row in `npc_buf` plus one, remembered by `npc_de_ranura`. The stride is a power of two out of habit; there is room to spare.
+; the frequency, +19 its row in `npc_buf` plus one, remembered by `slot_npc`. The stride is a power of two out of habit; there is room to spare.
 RUTA_EV_STRIDE = 32
 RUTA_EV_LIBRE = $FF
 RUTA_EV_SIN_MIRAR = $FF     ; in +8: the move route has not turned it yet
@@ -319,14 +319,14 @@ ruta_ev_tope: .res 1
 FLASH_STRIDE = 8
 FLASH_LIBRE = $FF
 flash_ev:  .res FLASH_MAX * FLASH_STRIDE
-; What `paleta_con_destello` needs while it builds the tables.
+; What `palette_with_flash` needs while it builds the tables.
 flash_dest: .res 1
 flash_alfa: .res 1
 flash_slot: .res 2
 flash_ranura: .res 2
 flash_parcial: .res 2
 
-; The cell being queried, for `ptr_de_celda` and `cell_allowed`. It goes here
+; The cell being queried, for `cell_ptr` and `cell_allowed`. It goes here
 ; and not in the direct page because it is read with absolute addressing,
 ; which is enough: only what is used as a pointer with `[dp], y` has to be in
 ; the direct page, and there are twelve bytes left there, counted.
@@ -345,7 +345,7 @@ trigger_buscado: .res 2
 npc_fila: .res 2
 npc_px:   .res 2
 npc_py:   .res 2
-; What `refrescar_npc` copies from the slot before using X for something else.
+; What `refresh_npc` copies from the slot before using X for something else.
 ; Whether any move route slot did something this frame. It is what decides
 ; whether the NPC table has to be sorted again, which otherwise costs every
 ; frame.
@@ -455,14 +455,14 @@ pg_tile:     .res 1     ; +20..+23: what the page draws, see read_page
 pg_attr:     .res 1
 pg_pose:     .res 1
 pg_pasa:     .res 1
-; The cell `pasa_con_evento` looks at.
+; The cell `pass_with_event` looks at.
 pasa_x:      .res 2
 pasa_y:      .res 2
 ; Whether any NPC row on this map can impose its passability bits (+15 other
-; than $FF). `pasa_mirar` sets it when the map loads, and the refresh does when
+; than $FF). `pass_look` sets it when the map loads, and the refresh does when
 ; a page with a tile graphic brings them; it is not cleared until the next map,
 ; so it can say yes too often, never no too often. With zero,
-; `pasa_con_evento` does not walk the table.
+; `pass_with_event` does not walk the table.
 pasa_hay:    .res 1
 pg_frec:     .res 1
 pg_vel:      .res 1
@@ -499,13 +499,13 @@ trueque_b:   .res 1
 ; a shift of the drawing and not of what has to be loaded.
 ; The tint is built here during the frame —the map's three palettes, tinted,
 ; in their CGRAM place— and uploaded by DMA in the next vblank. Before,
-; `tinte_de_evento` turned the screen off in the middle of the frame to write
+; `event_tint` turned the screen off in the middle of the frame to write
 ; CGRAM directly, and that is a half-tinted frame in the emulator and a black
 ; band on hardware; the shake gave it away, since it compares frame by frame.
 cgram_sombra: .res 512
 tinte_listo:  .res 1
 ; And the screen flash: whether there is one built in `pal_buf` to upload,
-; where `dma_sombra` uploads from, and the flash itself.
+; where `dma_shadow` uploads from, and the flash itself.
 destello_listo: .res 1
 sombra_origen:  .res 2
 destello_rgb:   .res 3
@@ -517,11 +517,11 @@ dest_tab_b:  .res 32
 dest_nivel:  .res 1
 dest_hacia:  .res 2    ; sixteen-bit: it is added to an index
 dest_fin:    .res 2
-; How many poses `vram_drenar` can upload this vblank: VQ_POR_CUADRO, unless
+; How many poses `vram_drain` can upload this vblank: VQ_POR_CUADRO, unless
 ; the tint has already taken part of the budget.
 vq_tope:      .res 1
 ; The frames since reset, counted by the NMI: the boot waits for them to be
-; BOOT_CUADROS, and afterwards it keeps counting for `contar_perdidos`.
+; BOOT_CUADROS, and afterwards it keeps counting for `count_lost`.
 boot_cuadros: .res 1
 nmi_visto:        .res 1  ; what it was at the end of the previous pass
 cuadros_perdidos: .res 1  ; the ones the main loop let go by, saturated
@@ -545,7 +545,7 @@ salto_trabado: .res 1  ; 1 if the jump did not start because the cell is occupie
 ; moves in cells —signed— and which way it ends up facing.
 salto_dx:  .res 1
 salto_dy:  .res 1
-; And the absolute value `direccion_del_salto` compares the two axes with.
+; And the absolute value `jump_direction` compares the two axes with.
 mirar_abs: .res 2
 
 
@@ -585,9 +585,9 @@ peso_lo:  .res 1
 peso_hi:  .res 1
 peso_ch:  .res 1
 ; Whether the table being built is the upper half of the hard light, that is,
-; the one that lightens. See `tabla_canal`.
+; the one that lightens. See `channel_table`.
 tinte_espejo: .res 1
-; Where a table is copied while it is mirrored. See `tabla_canal`.
+; Where a table is copied while it is mirrored. See `channel_table`.
 tinte_tmp: .res 32
 
 tabla_r:  .res 32
@@ -603,14 +603,14 @@ puro_ofs: .res 2
 ; CGRAM by reading it and writing it back: a second tint would compound with
 ; the first. It always starts from the original palette, which is in the ROM.
 pal_buf:  .res 512
-; The shadow with the screen flash on top —what `destellar_rango` builds and
-; `subir_destello` uploads— lives in this same place: the tinted palette is
-; built and copied to the shadow in the same frame, before `destello_tick`
+; The shadow with the screen flash on top —what `flash_range` builds and
+; `upload_flash` uploads— lives in this same place: the tinted palette is
+; built and copied to the shadow in the same frame, before `flash_tick`
 ; writes here, and whatever is there is uploaded in the following vblank. Bank
 ; 0's RAM did not have room for another 512 bytes.
 
 ; How many passes X has been held, modulo 256: the autofire phase comes from
-; its bit `AUTOFIRE_CUADROS`, see `read_pad`. It is not in the zero page, next
+; its bit `AUTOFIRE_FRAMES`, see `read_pad`. It is not in the zero page, next
 ; to `pad_a`, because there were three bytes left there and this costs only
 ; four more bytes of code in absolute addressing; and absolute is safe because
 ; `read_pad` already reads `JOY1L` that way, so all its callers have a data
@@ -621,7 +621,7 @@ pal_buf:  .res 512
 autofire: .res 1
 
 ; How many frames some arrow has been held, and which ones were made to repeat
-; on this one: see `flechas_repetir`. At the end for the same reason as
+; on this one: see `arrows_repeat`. At the end for the same reason as
 ; `autofire`.
 flechas_cuadros:   .res 1
 flechas_repetidas: .res 1

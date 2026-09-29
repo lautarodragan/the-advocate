@@ -462,7 +462,7 @@ nueva:
 :
     lda rp_ev
     sta ruta_ev + 0, x
-    jsl f:ranura_anotar + RAPIDO
+    jsl f:slot_record + RAPIDO
     stz ruta_ev + 6, x
     stz ruta_ev + 7, x
     lda #RUTA_EV_SIN_MIRAR
@@ -567,13 +567,13 @@ sin_automaticas:
 ; `Game_Map::UpdateForegroundEvents` —`game_map.cpp:1310`— with the
 ; `UpdateMessage` at `:1297` stuck in front.
 ;
-; This is where the fundamental change was: before, `cargar_mapa` ran all the
+; This is where the fundamental change was: before, `enter_map` ran all the
 ; pages in one go, with the screen off, and came back with everything done.
 ; Time was collapsed —waits were skipped, and what happened before a teleport
 ; was never seen— and that is why none of it could be verified.
 ;
 ; A teleport is handled here and not inside the interpreter: calling
-; `cargar_mapa` from there would be recursion, and two maps pointing at each
+; `enter_map` from there would be recursion, and two maps pointing at each
 ; other would make it infinite. The jump cap stays for the same reason.
 .proc events_tick
 .a8
@@ -682,9 +682,9 @@ sin_mensaje:
     ; Nothing running and nothing waiting: the player has control, so the
     ; chain of teleports is over and the budget is replenished.
     ;
-    ; Before, only `cargar_mapa` replenished it, and by then the only thing
+    ; Before, only `enter_map` replenished it, and by then the only thing
     ; calling it was a **door**: a `Teleport` command loads the map through
-    ; `cargar_mapa_sin_eventos`, which does not touch it. So eight teleports
+    ; `enter_map_no_events`, which does not touch it. So eight teleports
     ; spent the budget for the whole game and from the ninth on the
     ; `beq nada` below dropped them **silently**. The whole opening is
     ; chained teleports and has almost no doors: by the time map 4's
@@ -780,7 +780,7 @@ hubo_salto:
     sep #$20
 .a8
     ; Nothing is loaded from here: the fade is requested and the map is loaded
-    ; inside it, on the first black frame. See `fundido_tick`. What does get
+    ; inside it, on the first black frame. See `fade_tick`. What does get
     ; decided here is **which** of the two cases it is, because `mapa_actual`
     ; will have changed by the time it is due.
     ;
@@ -809,7 +809,7 @@ otro_mapa:
     ;
     ; Charging it to jumps to the same map —which is what it did— drained the
     ; budget without ever replenishing it, because a jump to the same map does
-    ; not call `cargar_mapa`, which is what replenishes it. Talan's scene jumps
+    ; not call `enter_map`, which is what replenishes it. Talan's scene jumps
     ; three times inside map 3 and the opening twice inside map 1: after eight,
     ; **every teleport was silently dropped**. taro saw it as doors that open
     ; and lead nowhere, and as something that "sometimes happens and sometimes
@@ -821,12 +821,12 @@ otro_mapa:
     lda saltos_restantes
     bne hay_presupuesto
     lda #PANICO_SALTOS
-    jmp entrar_en_panico        ; and there is no coming back from there
+    jmp enter_panic        ; and there is no coming back from there
 hay_presupuesto:
     dec saltos_restantes
     lda #FUNDIDO_SALTO
 pedir_fundido:
-    jsr empezar_fundido
+    jsr start_fade
     ; The page that asked for the jump keeps running on the other side: its
     ; code is in the ROM and the cursor was saved. The new map's pages are
     ; queued only when this one ends.
@@ -1179,7 +1179,7 @@ dar_el_paso:
     ; `Car2` never walks. taro saw it, and in EasyRPG and in the original RPG
     ; Maker the four cars move.
     ;
-    ; The slot comes from the mark `ranura_anotar` leaves, and not from
+    ; The slot comes from the mark `slot_record` leaves, and not from
     ; looking it up with `event_slot`: the lookup walked every used slot
     ; for each parallel on every frame, and in the race, with five cars moving
     ; and forty parallels, it was thirty lines of the frame's 262.
@@ -1205,7 +1205,7 @@ dar_el_paso:
     jsr animate_ev_route
     plx
     phx
-    jsr refrescar_npc
+    jsr refresh_npc
     plx
     lda ruta_ev + 18, x
     ora #$40                    ; it already took its step: `move_events` skips it
@@ -1297,7 +1297,7 @@ sin_tocar_el_tile:
     sta npc_buf + 15, y
     cmp #$FF
     beq :+
-    sta pasa_hay                ; it imposes: `pasa_con_evento` has to look
+    sta pasa_hay                ; it imposes: `pass_with_event` has to look
 :
     ; The key: the page's layer, with the row's Y.
     rep #$20
@@ -1319,8 +1319,8 @@ sin_tocar_el_tile:
     phy
     jsr turn_restore            ; if it is the turning one, it turns again
     ply
-    jmp acomodar_npc
-listo:
+    jmp fit_npc
+ready:
     rts
 .endproc
 
@@ -1331,12 +1331,12 @@ listo:
 .i16
     jsr event_npc
     cpy #$FFFF
-    beq listo
+    beq ready
     lda #0
     sta npc_buf + 14, y
     lda #$FF
     sta npc_buf + 15, y
-listo:
+ready:
     rts
 .endproc
 
@@ -1389,7 +1389,7 @@ no_tiene:
 buscar:
     lda ruta_ev, x
     cmp #RUTA_EV_LIBRE
-    beq listo
+    beq ready
     rep #$20
 .a16
     txa
@@ -1402,7 +1402,7 @@ buscar:
     bcc buscar
     ldx #$FFFF
     rts                         ; no room: the limit is not touched
-listo:
+ready:
     ; The slot now has an owner, so the limit goes up if it ended up above the
     ; one there was. It is the only place a slot is taken through: both —the
     ; page's own route and the forced one— ask here.
@@ -1474,14 +1474,14 @@ ya_estaba:
 .i16
     lda ruta_ev + 18, x
     and #$01
-    beq listo                   ; a forced one was running: leave it alone
+    beq ready                   ; a forced one was running: leave it alone
     stz ruta_ev + 4, x
     stz ruta_ev + 5, x
     stz ruta_ev + 9, x
     lda ruta_ev + 18, x
     and #$FE
     sta ruta_ev + 18, x
-listo:
+ready:
     stz ruta_ev + 27, x
     rep #$20
 .a16
@@ -1700,7 +1700,7 @@ recorrer:
     ; Back to front and in sixteen bits, with Y on each event's cell: the
     ; answer is a yes or a no, so the order does not change it, and that way
     ; the loop is half as long. It runs on every step that starts —three of
-    ; these and of `pasa_con_evento` per step—, and in the race, with forty
+    ; these and of `pass_with_event` per step—, and in the race, with forty
     ; cars, it was nine lines each: see
     ; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
     rep #$20
@@ -1828,7 +1828,7 @@ cumple:
     ; And the party condition: a 0 means "this page requires nobody".
     lda pg_actor
     beq mirar_var
-    jsr en_el_grupo
+    jsr in_party
     beq falla8
 mirar_var:
     ; And the item and the variable, which are read from the table and not

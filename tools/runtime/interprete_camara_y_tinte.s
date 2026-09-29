@@ -60,7 +60,7 @@ pan_leer_paso:
     lda [cod_ptr], y            ; whether the page waits
     iny
     beq pan_sin_espera
-    jsr pan_cuadros
+    jsr pan_frames
     rep #$20
 .a16
     sta ev_esperando
@@ -96,9 +96,9 @@ pan_sin_espera:
     sta tinte_s
     iny
     ; The tint is not applied here: it is requested, and `flush_video` does it
-    ; in the next vblank. `aplicar_tinte` uploads three palettes to CGRAM by
+    ; in the next vblank. `apply_tint` uploads three palettes to CGRAM by
     ; DMA, and with the PPU drawing those writes are lost. While the
-    ; interpreter ran inside `cargar_mapa`, with the screen off, it did not
+    ; interpreter ran inside `enter_map`, with the screen off, it did not
     ; matter; when it moved to the main loop it started running with the
     ; screen on and the tint came in halfway —the upper layer and one sprite
     ; were tinted and the rest not, depending on which write the vblank

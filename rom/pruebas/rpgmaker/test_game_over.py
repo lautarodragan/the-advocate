@@ -186,7 +186,7 @@ def test_el_game_over_vuelve_al_juego(partida):
     el mapa dibujado y el juego muerto, que es lo que taro reportó del cofre
     trampa de los Rat Tracks como "pantalla en negro, softlock o crash".
 
-    `mapa_actual` no lo ve: `cargar_mapa` corre **antes** de la subida al
+    `mapa_actual` no lo ve: `enter_map` corre **antes** de la subida al
     SPC700. Lo único que dice que el arranque terminó es que el lazo vuelva a
     contar vueltas.
     """

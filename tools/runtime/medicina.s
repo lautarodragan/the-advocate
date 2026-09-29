@@ -222,18 +222,18 @@ gastar:
     sep #$20
 .a8
     lda MED_USADO
-    beq listo
+    beq ready
     lda MED_BANDERAS
     and #4
-    beq listo
+    beq ready
     ldx MED_ID
     lda FAR_ITEMS, x
     dec a
     sta FAR_ITEMS, x
-    bra listo
+    bra ready
 no_sirve:
     stz MED_USADO
-listo:
+ready:
     plb
     lda f:FAR_LARGO + MED_USADO ; after the `plb`: the flags come from this
     rtl

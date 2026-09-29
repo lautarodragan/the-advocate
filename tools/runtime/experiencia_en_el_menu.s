@@ -82,7 +82,7 @@ row:
     bcs filas_listas
     cmp #MENU_FILAS_GRUPO
     bcs filas_listas
-    jsr una_fila
+    jsr one_row
     lda comp_fase
     clc
     adc #MENU_ACTOR_ALTO
@@ -116,7 +116,7 @@ tabla_chica:
     rtl
 
 ; The line for row `comp_char`, if its actor has experience.
-una_fila:
+one_row:
     rep #$20
 .a16
     lda comp_char
@@ -380,11 +380,11 @@ potencias:
     .faraddr 100000, 10000, 1000, 100, 10, 1
 .endproc
 
-; When closing the menu, before `volver_al_mapa`: what `menu_exp_paint`
+; When closing the menu, before `back_to_map`: what `menu_exp_paint`
 ; changed on the map and the map does not restore by itself. OBSEL, which
-; `volver_al_mapa` does not touch, and the colors of sprite palette 0, from
+; `back_to_map` does not touch, and the colors of sprite palette 0, from
 ; `cgram_sombra`, which has the map's even if the tint or a picture changed
-; them. It turns the screen off, which `volver_al_mapa` turns off anyway.
+; them. It turns the screen off, which `back_to_map` turns off anyway.
 .proc menu_exp_close
 .a8
 .i16

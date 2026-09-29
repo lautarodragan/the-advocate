@@ -27,7 +27,7 @@
 otro:
     lda BA_S0
     cmp #ITEMS_ROM
-    bcs listo
+    bcs ready
     lda BA_S0
     jsr bt_ax
     lda f:item_batalla, x
@@ -51,11 +51,11 @@ otro:
     inc BA_ITEM_N
     lda BA_ITEM_N
     cmp #BA_ITEM_MAX
-    bcs listo
+    bcs ready
 siguiente:
     inc BA_S0
     bra otro
-listo:
+ready:
     rts
 .endproc
 
@@ -84,10 +84,10 @@ listo:
     sep #$20
 .a8
     lda FAR_ITEMS, x
-    beq listo
+    beq ready
     dec a
     sta FAR_ITEMS, x
-listo:
+ready:
     rts
 .endproc
 

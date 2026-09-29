@@ -231,13 +231,13 @@ sin_decena:
     ora #'0'
     sta f:EXP_TEXTO, x
     inx
-relleno:
+padding:
     cpx #MENU_MAX_CIFRAS
     bcs completo
     lda #' '
     sta f:EXP_TEXTO, x
     inx
-    bra relleno
+    bra padding
 completo:
     ply
     jmp point_text
@@ -337,7 +337,7 @@ cifra:
 .a8
     dey
     dec temp + 3
-    beq listo
+    beq ready
     lda temp
     ora temp + 1
     bne cifra
@@ -358,7 +358,7 @@ blanco:
     dey
     dec temp + 3
     bne blanco
-listo:
+ready:
     plb
     rtl
 .endproc
@@ -378,7 +378,7 @@ listo:
 .a8
     lda f:actor_exp_k, x
     cmp #$FF
-    beq listo
+    beq ready
     rep #$20
 .a16
     and #$00FF
@@ -388,7 +388,7 @@ listo:
     sep #$20
 .a8
     lda f:FAR_LARGO + FAR_EXP + EXP_NIVEL, x
-listo:
+ready:
     rts
 .endproc
 
@@ -463,10 +463,10 @@ sin_ranura:
     cpy #1
     beq los_sp
     lda f:actor_hpmax, x
-    bra listo
+    bra ready
 los_sp:
     lda f:actor_spmax, x
-    bra listo
+    bra ready
 de_los_cuatro:
     txa
     asl a
@@ -479,7 +479,7 @@ de_los_cuatro:
     tax
     pla
     lda f:actor_params - 4, x   ; `actor_params` starts at attack, number 2
-listo:
+ready:
     tax
     sep #$20
 .a8
@@ -617,14 +617,14 @@ listo:
     ldx #0
 ranura:
     cpx grupo_n
-    bcs listo
+    bcs ready
     lda grupo, x
     phx
     jsr heal_actor
     plx
     inx
     bra ranura
-listo:
+ready:
     ply
     rtl
 uno:
@@ -667,10 +667,10 @@ uno:
     sta f:FAR_LARGO + FAR_HP, x
     lda 1, s
     sta f:FAR_LARGO + FAR_SP, x
-    bra listo
+    bra ready
 sumar:
     lda f:FAR_LARGO + FAR_HP, x
-    beq listo                   ; fallen: `ChangeHp` does not revive it
+    beq ready                   ; fallen: `ChangeHp` does not revive it
     clc
     adc temp
     bcs topar                   ; it wrapped around: the amount reaches $FFFF
@@ -680,7 +680,7 @@ topar:
     lda 3, s
 put:
     sta f:FAR_LARGO + FAR_HP, x
-listo:
+ready:
     pla
     pla
     sep #$20
@@ -759,8 +759,8 @@ subir:
     lda f:exp_nivel_max, x
     ldx BA_T0
     cmp FAR_EXP + EXP_NIVEL, x
-    beq listo                   ; at the cap
-    bcc listo                   ; above the cap: does not happen, but no level up
+    beq ready                   ; at the cap
+    bcc ready                   ; above the cap: does not happen, but no level up
     lda FAR_EXP + EXP_NIVEL, x
     rep #$20
 .a16
@@ -793,11 +793,11 @@ subir:
     sep #$20
 .a8
     ply                         ; `ply` does not touch C
-    bcc listo
+    bcc ready
     bra sube
 alto_distinto:
     ply
-    bcs listo                   ; C: the high byte required is more than there is
+    bcs ready                   ; C: the high byte required is more than there is
 sube:
     inc FAR_EXP + EXP_NIVEL, x
     lda FAR_EXP + EXP_NIVEL, x
@@ -805,7 +805,7 @@ sube:
     phy
     jsr learn_from_level
     bra subir
-listo:
+ready:
     plx
     rts
 .endproc
@@ -831,7 +831,7 @@ listo:
     tyx
     lda f:hab_par_n, x
     and #$00FF
-    beq fin
+    beq end
     tay                         ; how many pairs it has left
 otro:
     lda 1, s
@@ -870,7 +870,7 @@ siguiente:
     sta 1, s
     dey
     bne otro
-fin:
+end:
     pla
     sep #$20
 .a8

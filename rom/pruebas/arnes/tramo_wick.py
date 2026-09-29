@@ -6,7 +6,7 @@ Vivía en `abl/test_recorrido_lashe_wick_golden.py` hasta el 2026-09-29.
 
 from consola import en_la_wram
 
-# Lo que la ROM guarda de `ChangeScreenTransitions`: ver `transicion_poner`.
+# Lo que la ROM guarda de `ChangeScreenTransitions`: ver `transition_set`.
 MOSAICO = 1
 FUNDIDO = 0
 

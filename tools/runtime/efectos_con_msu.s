@@ -289,16 +289,16 @@ no_esta:
     cmp #1
     rep #$20
 .a16
-    bne listo
+    bne ready
     lda 1, s
     jsr msu_pitch
-    beq listo
+    beq ready
     tay
     lda 3, s
     tax
     tya
     sta f:SE_NEW + 1, x       ; the low pitch and the high one
-listo:
+ready:
     pla
     plx
     sep #$20
@@ -559,7 +559,7 @@ valido:
     sta f:MSU_SE
 mirado:
     cmp #1
-    bne listo
+    bne ready
     ldx #(2 * SE_PRIMERA)
     lda #0
 olvidar:
@@ -573,7 +573,7 @@ olvidados:
     sta f:MSU_SE_SIG
     sta f:MSU_SE_SIG + 1
     sta f:MSU_SE_SIG + 2
-listo:
+ready:
     rtl
 .endproc
 
@@ -851,14 +851,14 @@ resto:
     sta temp
     cmp #0                      ; `sta` does not touch Z, and a sound effect is nine
                                 ; bytes per block: it is almost always zero
-    beq listo
+    beq ready
     jsr msu_point
 un_byte:
     lda f:MSU_DATA
     jsr msu_byte
     dec temp
     bne un_byte
-listo:
+ready:
     rts
 .endproc
 

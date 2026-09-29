@@ -255,7 +255,7 @@ resto:
     ; What is left, 0, 1 or 2, one byte at a time: the pointer is already
     ; where it goes.
     lda temp + 2
-    beq listo
+    beq ready
     sta temp
 un_byte:
     lda [comp_glifo], y
@@ -263,7 +263,7 @@ un_byte:
     jsr aram_byte
     dec temp
     bne un_byte
-listo:
+ready:
     rts
 .endproc
 
@@ -509,13 +509,13 @@ sigue:
 otra:
     lda f:tema_muestras, x
     cmp #$FF
-    beq listo
+    beq ready
     phx
     jsr place_sample
     plx
     inx
     bra otra
-listo:
+ready:
     rts
 .endproc
 
@@ -597,9 +597,9 @@ no:
 .a8
 .i16
     jsr song_per_msu
-    bcs listo
+    bcs ready
     jmp mark_song
-listo:
+ready:
     rts
 .endproc
 
@@ -607,9 +607,9 @@ listo:
 .a8
 .i16
     jsr song_per_msu
-    bcs listo
+    bcs ready
     jmp place_song
-listo:
+ready:
     rts
 .endproc
 
@@ -927,11 +927,11 @@ subir:
     jsr exit_extra
     bcs incompleto
     jsr extra_separate
-    bcc listo
+    bcc ready
 incompleto:
     lda #1
     sta f:PKG_PARTIAL
-listo:
+ready:
     rts
 .endproc
 
@@ -1090,9 +1090,9 @@ anotado:
 .a8
     tya
     cmp f:FAR_WANTS, x
-    bcc listo
+    bcc ready
     sta f:FAR_WANTS, x
-listo:
+ready:
     rts
 .endproc
 
@@ -1106,13 +1106,13 @@ listo:
 otra:
     lda f:tema_muestras, x
     cmp #$FF
-    beq listo
+    beq ready
     phx
     jsr mark_sample
     plx
     inx
     bra otra
-listo:
+ready:
     rts
 .endproc
 
@@ -1181,10 +1181,10 @@ corrido:
 .i16
     sta temp + 1
     lda f:APU_READY
-    beq listo
+    beq ready
     lda temp + 1
     cmp #TEMA_TOTAL
-    bcs listo
+    bcs ready
     lda f:PKG_PARTIAL
     bne falta                   ; even if the song is missing nothing
     lda temp + 1                ; the song: `song_list` reads it from A
@@ -1192,7 +1192,7 @@ corrido:
 mirar:
     lda f:tema_muestras, x
     cmp #$FF
-    beq listo                   ; they are all there
+    beq ready                   ; they are all there
     phx
     rep #$20
 .a16
@@ -1228,7 +1228,7 @@ falta:
     jsr package_load
     lda #$FF
     sta f:PKG_EXTRA
-listo:
+ready:
     rts
 .endproc
 

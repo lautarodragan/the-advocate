@@ -5,7 +5,7 @@ apenas pasa el chequeo de límites del mapa, **antes** de mirar la pasabilidad d
 la celda. Y el salto de una ruta forzada pasa por ahí: `BeginMoveRouteJump`
 llama a `MakeWay(begin_x, begin_y, x, y)`.
 
-Nuestro `puede_caer` miraba la pasabilidad y nada más, así que un salto a una
+Nuestro `can_fall` miraba la pasabilidad y nada más, así que un salto a una
 celda cerrada se saltaba aunque el personaje viniera con `walk_everywhere`
 puesto.
 

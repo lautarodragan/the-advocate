@@ -33,7 +33,7 @@ img_poner_sat:
     lda #0
     sta f:PICTURE_STEP
     sta f:PICTURE_STEPS
-    jsr imagen_paleta
+    jsr picture_palette
     jmp run_code::otro
 
 .endproc
@@ -70,7 +70,7 @@ img_mover_ya:
     bne img_mover_ya
     lda #0
     sta f:PICTURE_STEP
-    jsr imagen_paleta
+    jsr picture_palette
     jmp run_code::otro
 img_mover_rampa:
     ldx #$0000
@@ -155,7 +155,7 @@ img_mover_fin:
     sta temp + 1
     iny
     phy
-    jsr clima_poner
+    jsr weather_set
     ply
     jmp run_code::otro
 

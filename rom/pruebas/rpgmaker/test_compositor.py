@@ -6,7 +6,7 @@ byte con cuántos caracteres tiene, y ese byte sale del cartucho.
 un desplazamiento que sale de la columna, así que un largo mayor que
 `MENSAJE_COLS` escribe **fuera del buffer**, y lo que hay del otro lado es la
 tabla del HDMA de la ventana, la imagen de OAM y `vq_n`, el contador de la cola
-de poses. Con `vq_n` alto, `vram_drenar` sube bloques de 128 bytes a direcciones
+de poses. Con `vq_n` alto, `vram_drain` sube bloques de 128 bytes a direcciones
 cualquiera de la VRAM y la pantalla se hace basura unos cuadros después, en
 cualquier otro lado. Es lo que taro reportó dos veces —la fábrica de Delcentric
 el 2026-09-13 y la cinemática de los Neon Vipers el 2026-09-14— y las dos veces

@@ -724,7 +724,7 @@ sin_agi:
     jsr bt_actor_ldb
     jsr bt_ax
     lda f:hab_par_n, x
-    beq listo
+    beq ready
     sta BA_S1                   ; how many pairs it has left to look at
     rep #$20
 .a16
@@ -738,7 +738,7 @@ sin_agi:
 otro:
     lda BA_HAB_N
     cmp #BA_HAB_MAX
-    bcs listo
+    bcs ready
     rep #$20
 .a16
     lda BA_S2
@@ -778,7 +778,7 @@ siguiente:
 .a8
     dec BA_S1
     bne otro
-listo:
+ready:
     rts
 .endproc
 

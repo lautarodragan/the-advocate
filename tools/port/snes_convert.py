@@ -144,7 +144,7 @@ def above_split(palettes):
 # among them and now they merge 8.
 #
 # And there is a property that comes for free from putting it at the bottom:
-# `aplicar_tinte` tints from where the background starts, so the window is
+# `apply_tint` tints from where the background starts, so the window is
 # outside the range without anyone having to remember. In RM2k the tone is
 # applied to the map and not to the window.
 # **Eight and not seven.** Counting them with `sum(1 for w in cram if w)` gives
@@ -590,7 +590,7 @@ def discard_warning(text, dangerous):
     warning went by unnoticed in the build output. taro reached the cutscene,
     the door didn't change tile and he couldn't get through.
 
-    It is the same criterion as `entrar_en_panico` in the ROM: something that
+    It is the same criterion as `enter_panic` in the ROM: something that
     shouldn't happen is not discarded silently. The difference is where the
     noise is made. A discard is decided **when converting**, and by the time
     the ROM runs the event is no longer in any table: there is nothing left
@@ -636,7 +636,7 @@ def pose_row(pose):
     """The three frames of the walking cycle for the direction of `pose`.
 
     An event that animates standing still changes column and **never row**: the
-    ROM builds its pose as `facing_of_row * 3 + columna` in `animar_quietos`,
+    ROM builds its pose as `facing_of_row * 3 + columna` in `animate_still`,
     so of the twelve it can only show these three.
     """
     return frozenset(range(pose // 3 * 3, pose // 3 * 3 + 3))
@@ -662,7 +662,7 @@ def map_poses(renderer, game_map, leaders, movable=(), turning=(),
     * the graphics of command 34, which keep walking after the change.
 
     One that **animates standing still** keeps the three frames of its
-    direction, which is all `animar_quietos` can put on screen: it changes
+    direction, which is all `animate_still` can put on screen: it changes
     column and not row. That is where the save point in Lashe City is, the one
     taro saw gray: its twelve poses have 41 colors and the three frames it
     shows, 13. `savept` is an **edited** CharSet —the original RPG Maker
@@ -734,7 +734,7 @@ def map_poses(renderer, game_map, leaders, movable=(), turning=(),
 # an upper-layer tile without the "above the hero" bit,
 # `rm2k.passability_map` resolves the cell with that tile's bits, which are
 # exactly the ones `rm2k.event_tile_passability` made the event's row
-# impose; and `pasa_con_evento`, in tools/runtime/heroe.s, skips hidden
+# impose; and `pass_with_event`, in tools/runtime/heroe.s, skips hidden
 # rows. That is, the baking hands the same table answer over to the map. It
 # is guarded by `rom/pruebas/herramientas/test_horneados.py`.
 #
@@ -1458,7 +1458,7 @@ def rain_drops(tiles, palettes, leader_owned=(), timer_base=None,
     above is tile `base + t` and below `base + 16 + t`. Returns (tiles, base,
     palette number).
 
-    **And not in the timer's either.** The reason was that `subir_timer_pal`
+    **And not in the timer's either.** The reason was that `upload_timer_pal`
     uploaded that whole palette again **untinted** —the digits go above the
     tint, `Priority_Timer` is 140 and `Priority_Screen` 90—, and a drop put
     there stayed gray on a tinted screen; rain is tinted in RM2k,
@@ -1506,7 +1506,7 @@ def picture_of_image(info, tiles, palettes, previous_base=None):
     in with it.
 
     And it goes **above `SPRITE_CGRAM`**, that is outside the range
-    `aplicar_tinte` and `subir_paletas` walk. That is not shuffling numbers: in
+    `apply_tint` and `upload_palettes` walk. That is not shuffling numbers: in
     RM2k pictures have `affected_by_tint` off by default
     —`Priority_PictureOld` is 120 and `Priority_Screen` 90—, so the screen tint
     doesn't touch them. Being outside the range, nobody has to remember to
@@ -1563,7 +1563,7 @@ def map_animation(tiles, palettes, used=0):
     fifteen colors belong to the animation, are uploaded when it starts and
     overwritten when another starts, and a character put there would change
     color with it. And it goes **above `SPRITE_CGRAM`**, that is outside the
-    range `aplicar_tinte` and `subir_paletas` walk, which is also the faithful
+    range `apply_tint` and `upload_palettes` walk, which is also the faithful
     thing: in `Spriteset_Map::Update` the map's tone goes to the tilemap, the
     characters, the panorama and the shadows, and not to the animations.
 
@@ -2438,7 +2438,7 @@ def vram_layout(tiles, sprites=0, above=0):
 def _check_slots(slot_tiles):
     """That the slots screen lands in the BG1 bank of every layout.
 
-    It is what lets `volver_al_mapa` restore the map with `load_map` and
+    It is what lets `back_to_map` restore the map with `load_map` and
     nothing else; see the comment on RANURA_MAP.
     """
     end_tiles = SLOT_VRAM + slot_tiles * 16
@@ -2556,7 +2556,7 @@ def _check_splits():
             "ventana_map": (32 * 32, 0x400),
             # 2048 and not 1024, which is what `BG1SC` asks for: `push_strips`
             # steps to the upper layer by masking eleven bits. See
-            # `push_una_columna`.
+            # `push_one_column`.
             "mapa": (WINDOW_W * WINDOW_H, 0x800),
         }
         stretches = [("upper map", VRAM_ABOVE_MAP, VRAM_ABOVE_MAP
@@ -3164,7 +3164,7 @@ TURN_NONE = 0xFFFF
 # A leader candidate: id, palette, **its fifteen colors** and twelve 24-bit
 # pointers to its poses. The colors go inside the table and not in a separate
 # block because there are few actors per map and that way the ROM uploads them
-# with one DMA from where it already is; see `elegir_grafico_heroe`.
+# with one DMA from where it already is; see `pick_hero_graphic`.
 #
 # They are there because leaders **share a CGRAM slot**: one leads at a time,
 # so reserving a palette for each is having it taken by someone who isn't on
@@ -3371,7 +3371,7 @@ def anim_table(maps):
     the map has some still event with continuous animation**. It goes here
     because it is the same as the rest: something per map that the ROM looks
     at once per frame and that no longer fit in the map record. Without it,
-    `animar_quietos` would have to walk the forty NPC rows in every map.
+    `animate_still` would have to walk the forty NPC rows in every map.
     """
     out = ['.segment "RODATA"',
            "; The ChipSet animation, one entry of %d bytes per map."
@@ -4174,7 +4174,7 @@ def page_table(map_info, number, evcode):
             flags = (1 | (2 if own["repite"] else 0)
                      | (4 if own["saltable"] else 0)
                      | (8 if own["dir_fija"] else 0)
-                     | (16 if own["anim_continua"] else 0) | 64
+                     | (16 if own["anim_continues"] else 0) | 64
                      | (32 if page["evento"] in changing
                                  or page["evento"] in appear else 0)
                      | (128 if page["evento"] in with_autostart else 0))
@@ -4350,7 +4350,7 @@ def map_terrain(map_info):
 
 
 # What the ROM decompresses when loading a map, per block class. See
-# `lz2_descomprimir` in tools/runtime/descomprimir.s.
+# `lz2_decompress` in tools/runtime/descomprimir.s.
 COMPRESSED_KINDS = ("map_tiles", "above_tiles", "sprite_tiles", "anim_tiles",
                     "map_celdas")
 
@@ -4364,7 +4364,7 @@ COMPRESSED_KINDS = ("map_tiles", "above_tiles", "sprite_tiles", "anim_tiles",
 # The background's is **per stream**, not per block: a background of more
 # than 32 KB —that of map 66, with the 544-tile layout— goes in two, and the
 # ROM decompresses and uploads the first before decompressing the second on
-# top of it: see `lz2_fondo`.
+# top of it: see `lz2_backdrop`.
 LZ2_CAP_BACKDROP = 0x8000
 LZ2_CAP_ABOVE_AND_SPRITES = 0x6000
 LZ2_CAP_ANIM = 0x2000
@@ -4409,7 +4409,7 @@ def compress_blocks(maps):
     return dict(zip(parts, compress.compress_many(parts)))
 
 
-# The grid goes to the upper half of the two WRAM banks —see `lz2_grilla`—, so
+# The grid goes to the upper half of the two WRAM banks —see `lz2_grid`—, so
 # it is compressed in two streams of up to 32 KB: each one lands whole in one
 # bank, and the decompressor doesn't have to know how to cross.
 HALF_GRID = 0x8000
@@ -4417,9 +4417,9 @@ HALF_GRID = 0x8000
 
 # And the background tiles, in streams of whatever fits in the load buffer:
 # the ROM decompresses one, uploads it by DMA and only then decompresses the
-# next in the same place —see `lz2_fondo`—. A background that fits in one
+# next in the same place —see `lz2_backdrop`—. A background that fits in one
 # goes in one, and that leaves the usual maps with the usual stream.
-BACKDROP_STREAMS_MAX = 2            # the ones `lz2_fondo` reads
+BACKDROP_STREAMS_MAX = 2            # the ones `lz2_backdrop` reads
 
 
 def compressed_parts(kind, data):
@@ -4543,7 +4543,7 @@ def map_data(map_info, number, global_index, materials):
     out.append(npc_poses_asm(number, animated, global_index))
     out.append(actor_table_asm(number, sprite[4] if sprite else [],
                                animated, global_index))
-    # The grid, in its two streams: see `lz2_grilla`. Whole within one bank,
+    # The grid, in its two streams: see `lz2_grid`. Whole within one bank,
     # like everything compressed, because the decompressor doesn't cross.
     labels["map_celdas"], text = materials.store_compressed(
         "map_celdas", map_info["celdas"])
@@ -4875,7 +4875,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "ACTOR_BYTES    = %d\n"
         "; How many bytes of that entry are the actor's fifteen colors: the\n"
         "; ROM uploads them to the slot the leaders share. See\n"
-        "; `elegir_grafico_heroe`.\n"
+        "; `pick_hero_graphic`.\n"
         "ACTOR_COLORES  = %d\n"
         "OBJ_COLORS     = %d\n"
         "; The hero's layer, to sort it against the NPCs.\n"
@@ -4965,7 +4965,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "; ROM**, with a title or without: the save point opens it from\n"
         "; inside the game, and that is why its VRAM addresses are its own\n"
         "; and not the menu's: they fall in the BG1 tile bank of every\n"
-        "; layout, which is what `volver_al_mapa` restores with `load_map`.\n"
+        "; layout, which is what `back_to_map` restores with `load_map`.\n"
         "; See RANURA_MAP in the converter.\n"
         "RANURA_VRAM       = $%04X\n"
         "RANURA_MAP        = $%04X\n"
@@ -5134,7 +5134,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         handle.write(rom_identity())
         handle.write(offsets())
         handle.write("\n\n")
-        # The fade ramp, in bank 0 because `fundido_tick` reads it with
+        # The fade ramp, in bank 0 because `fade_tick` reads it with
         # `lda fundido_rampa, x`. It comes from `events.fade_ramp()`:
         # writing it in tools/runtime/ too would be having two copies that can
         # get out of sync without anything noticing.
@@ -5310,7 +5310,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # to 31, in the level's row. It is `destellar_canal`'s computation, and
         # the ROM read it from the multiplier and the divider for each of the
         # 96 entries of its tables on every odd frame: see
-        # `una_tabla_de_destello`.
+        # `one_flash_table`.
         handle.write(block("prod31_tabla", bytes(
             d * n // 31 for n in range(32) for d in range(32))) + "\n")
         handle.write(animations_asm(animations or {}, maps))
@@ -7218,7 +7218,7 @@ def npc_bytes(table):
         # together because the row has no free byte —+11 is used by the
         # jump— and because both are read by the same computation: how many
         # frames between column changes comes from the speed. See
-        # `animar_quietos` in tools/runtime/quietos_que_animan.s.
+        # `animate_still` in tools/runtime/quietos_que_animan.s.
         out.append(npc["velocidad"] | (0x80 if npc.get("anima") else 0))
         # +14: whether it is drawn. An event whose active page has no graphic
         # is in the table hidden, to appear when another page wins.
@@ -8079,7 +8079,7 @@ def main():
                   enemy_hp=args.enemy_hp,
                   game_over=game_over_data)
     # Which entries of their palette the timer digits use, one bit per entry
-    # and one word per map, in the order of `mapa_tabla`. `subir_timer_pal`
+    # and one word per map, in the order of `mapa_tabla`. `upload_timer_pal`
     # uploads **those** again untinted and not the whole palette, because the
     # palette belongs to a character that is tinted. It goes separately and
     # not as a record field because the record is at exactly its 128. The
@@ -8169,7 +8169,7 @@ def main():
     #
     # **All the songs** go, sharing a single sample bank, and the one of the
     # map the ROM boots in plays; the others are started by a `PlayBGM`, or
-    # by the map that is entered if it brings its own —see `mapa_tema_callar`
+    # by the map that is entered if it brings its own —see `map_song_mute`
     # in tools/runtime/cargar_mapa.s—. What rate each sample ends up at is
     # decided by the ARAM, package by package: see `Bank` in snes_music.py.
     music = os.path.join(os.path.dirname(os.path.abspath(args.output)),
@@ -8578,7 +8578,7 @@ def inherited_songs(songs, map_song, initial, title, package_names,
     router): **a map with `PlayBGM` leaves with one of its own**, because the
     page that jumps is almost always the one that started the song before. A
     map with its own song silences what plays before loading its own
-    —`mapa_tema_callar`—, so it inherits nothing; and the boot map is reached
+    —`map_song_mute`—, so it inherits nothing; and the boot map is reached
     with the title's playing. It is what step 6 of
     `workflow/tasks/todo/la-calidad-de-la-musica.md` measured with a separate
     script.

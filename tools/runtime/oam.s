@@ -37,7 +37,7 @@
     lda #$02
     sta obj_grande
     jsr timer_oam
-    jsr imagen_oam              ; and the picture behind it: see `imagen_oam`
+    jsr picture_oam              ; and the picture behind it: see `picture_oam`
     jsr anim_drawing_oam    ; and the battle animation behind the picture:
                                 ; `Priority_BattleAnimation` is 110 against
                                 ; `Priority_PictureOld`'s 120
@@ -106,7 +106,7 @@ ultimos:
     bne cerrar
     jsr place_hero
 cerrar:
-    jsr lluvia_oam              ; the drops, at the very end
+    jsr rain_oam              ; the drops, at the very end
     jsr flush_high
     rts
 .endproc
@@ -116,7 +116,7 @@ cerrar:
 ; does not depend on the distance: `remaining_step` goes down from 256 to 0 by
 ; `hero_jump` per frame, whether it jumps one cell or five; at speed 4
 ; it is eleven frames.
-.proc armar_salto_heroe
+.proc build_hero_jump
 .a8
 .i16
     stz salto_dx
@@ -128,7 +128,7 @@ buscar:
     jsr hero_command
     cmp #25
     beq con_fin
-    jsr acumular_salto
+    jsr accumulate_jump
     bra buscar
 sin_fin:
     ; Without `end_jump` the jump is skipped and whatever was left of the move
@@ -137,7 +137,7 @@ sin_fin:
     rts
 
 con_fin:
-    jsr salto_a_celdas          ; the offset, signed and in sixteen bits
+    jsr jump_to_cells          ; the offset, signed and in sixteen bits
     rep #$20
 .a16
     lda tile_x
@@ -152,7 +152,7 @@ con_fin:
 .a8
     ; Walking through walls it lands on any cell: it is the same
     ; `if (self.GetThrough()) return true;` that a step looks at, and
-    ; `puede_caer` reads it from `atravesando`, which nobody was setting here.
+    ; `can_fall` reads it from `atravesando`, which nobody was setting here.
     ; The move route of EV0041 on map 8 —`through`, a one-cell jump over the
     ; fence, four steps— jumps in RM2k and walked in the ROM: the jump was
     ; skipped because of the fence and the steps after it did go through.
@@ -163,7 +163,7 @@ con_fin:
 sin_atravesar:
     sta atravesando
     stz atravesando + 1
-    jsr puede_caer
+    jsr can_fall
     php
     stz atravesando
     stz atravesando + 1
@@ -186,7 +186,7 @@ se_puede:
     lda salto_dx
     ora salto_dy
     beq sin_girar
-    jsr direccion_del_salto
+    jsr jump_direction
     sta hero_dir
 sin_girar:
     ; The first decrement goes in the same frame that builds the jump, as in
@@ -201,7 +201,7 @@ sin_girar:
     ; The cell is already the target one and the pixels trail behind, same as
     ; in a step: that way the camera follows the arc instead of jumping at
     ; once.
-    jsr salto_posicion_heroe
+    jsr jump_hero_position
     rts
 .endproc
 
@@ -223,7 +223,7 @@ sin_girar:
 ; which calls `GetMoveSpeed()` every time. Until 2026-09-26 it was the
 ; constant for speed 4 and an `increase_movement_speed` on the hero changed
 ; its step and not its jump. See `test_salto_velocidad.py`.
-.proc salto_avanzar_heroe
+.proc jump_advance_hero
 .a8
 .i16
     ; `ruta_salto - s` without storing `s` anywhere: `~s + 1` with the carry
@@ -237,17 +237,17 @@ sin_girar:
     lda #0
 guardar:
     sta ruta_salto
-    jmp salto_posicion_heroe
+    jmp jump_hero_position
 .endproc
 
 ; `hero_x` and `hero_y` from the target cell and what is left of the jump. It
 ; is RM2k's `GetSpriteX`: `x * 256 - dx * remaining` and **then** the division
 ; by sixteen, which is what avoids the pixel too many or too few every time
 ; the decrement is not a multiple of sixteen.
-.proc salto_posicion_heroe
+.proc jump_hero_position
 .a8
 .i16
-    jsr salto_a_celdas
+    jsr jump_to_cells
     lda ruta_salto
     sta salto_resta
     rep #$20
@@ -256,7 +256,7 @@ guardar:
     sta salto_val
     sep #$20
 .a8
-    jsr producto_salto
+    jsr jump_product
     rep #$20
 .a16
     lda tile_x
@@ -279,7 +279,7 @@ guardar:
     sta salto_val
     sep #$20
 .a8
-    jsr producto_salto
+    jsr jump_product
     rep #$20
 .a16
     lda tile_y
@@ -304,7 +304,7 @@ guardar:
 .endproc
 
 ; `salto_dx` and `salto_dy` sign-extended to sixteen bits.
-.proc salto_a_celdas
+.proc jump_to_cells
 .a8
 .i16
     rep #$20
@@ -331,7 +331,7 @@ dy_positivo:
 ; Which way the jumper ends up facing: the axis with the longer travel wins,
 ; and on a tie the vertical. It is the `if (abs(dy) >= abs(dx))` of
 ; `Game_Character::Jump`.
-.proc direccion_del_salto
+.proc jump_direction
 .a8
 .i16
     rep #$20
@@ -378,7 +378,7 @@ izquierda:
 ; the curve is not linear but RM2k's table. It only moves the **drawing**:
 ; the order against the others comes from `GetScreenY(false)`, that is,
 ; without the jump, so whoever is in the air does not move ahead.
-.proc alto_del_salto
+.proc jump_height_of
 .a8
 .i16
     stz salto_alto
@@ -420,7 +420,7 @@ guardar:
 ; `salto_val` times `salto_resta`, signed, into `salto_prod`. The console's
 ; unit multiplies unsigned and eight bits at a time, so it is done on the
 ; absolute value and the sign is given back at the end.
-.proc producto_salto
+.proc jump_product
 .a8
 .i16
     rep #$20
@@ -447,12 +447,12 @@ positivo:
     lda RDMPYL
     sta salto_prod
     lda salto_signo
-    bpl listo
+    bpl ready
     lda #0
     sec
     sbc salto_prod
     sta salto_prod
-listo:
+ready:
     sep #$20
 .a8
     rts
@@ -461,7 +461,7 @@ listo:
 ; An event's jump. Same as the hero's, but reading the move route from the
 ; cartridge and keeping the state in the slot. X is the slot and it has to be
 ; returned intact.
-.proc armar_salto_ev
+.proc build_ev_jump
 .a8
 .i16
     stz salto_dx
@@ -482,7 +482,7 @@ buscar:
     cmp #25
     beq con_fin
     phx
-    jsr acumular_salto
+    jsr accumulate_jump
     plx
     bra buscar
 sin_fin:
@@ -503,8 +503,8 @@ con_fin:
     sta atravesando
     stz atravesando + 1
     phx
-    jsr event_cell        ; its cell, which `puede_caer` needs
-    jsr salto_a_celdas
+    jsr event_cell        ; its cell, which `can_fall` needs
+    jsr jump_to_cells
     rep #$20
 .a16
     lda celda_x
@@ -517,7 +517,7 @@ con_fin:
     sta celda_y
     sep #$20
 .a8
-    jsr puede_caer
+    jsr can_fall
     plx
     stz atravesando
     stz atravesando + 1
@@ -540,7 +540,7 @@ se_puede:
     ora salto_dy
     beq sin_girar
     phx
-    jsr direccion_del_salto
+    jsr jump_direction
     plx
     sta ruta_ev + 8, x
 sin_girar:
@@ -554,19 +554,19 @@ sin_girar:
 .endproc
 
 ; `npc_px` and `npc_py` from the target cell and what is left of the jump. It
-; is the same computation as `salto_posicion_heroe`, with the division at the
+; is the same computation as `jump_hero_position`, with the division at the
 ; end.
-.proc salto_posicion_npc
+.proc jump_npc_position
 .a8
 .i16
-    jsr salto_a_celdas
+    jsr jump_to_cells
     rep #$20
 .a16
     lda salto_dx16
     sta salto_val
     sep #$20
 .a8
-    jsr producto_salto
+    jsr jump_product
     rep #$20
 .a16
     lda celda_x
@@ -589,7 +589,7 @@ sin_girar:
     sta salto_val
     sep #$20
 .a8
-    jsr producto_salto
+    jsr jump_product
     rep #$20
 .a16
     lda celda_y
@@ -621,7 +621,7 @@ sin_girar:
 ; consumes in there without doing anything, and the game puts in all three.
 ;
 ; A comes in with the move command's code; leaves `salto_dx` and `salto_dy`.
-.proc acumular_salto
+.proc accumulate_jump
 .a8
 .i16
     cmp #8                      ; the four straight ones and the four diagonals:
@@ -656,7 +656,7 @@ no_mueve:
 ; left** —hence one can jump from a place one could not walk out of— and asks
 ; for the target to be passable from all four sides, not only from the one
 ; being entered.
-.proc puede_caer
+.proc can_fall
 .a8
 .i16
     rep #$20
@@ -679,10 +679,10 @@ no_mueve:
     lda #1
     rts
 mira_el_paso:
-    jsr ptr_de_celda
+    jsr cell_ptr
     rep #$20
 .a16
-    jsr pass_del_ptr
+    jsr pass_of_ptr
     sep #$20
 .a8
     and #(PASS_UP | PASS_DOWN | PASS_LEFT | PASS_RIGHT)
@@ -838,7 +838,7 @@ sin_ajuste:
     sta vq_dest
     sep #$20
 .a8
-    jsr vram_encolar
+    jsr vram_queue
     bne misma_pose
     lda #$FF
     sta hero_pose_vram          ; the queue was full: next frame
@@ -850,7 +850,7 @@ misma_pose:
     ; few every time it is not a multiple of 16, that is, half of the frames.
     lda ruta_salto
     sta salto_resta
-    jsr alto_del_salto
+    jsr jump_height_of
     rep #$20
 .a16
     lda hero_x
@@ -968,9 +968,9 @@ fuera:
     lda oam_slot
     and #$03
     cmp #$03
-    bne listo                   ; the byte is not complete yet
+    bne ready                   ; the byte is not complete yet
     jsr store_high
-listo:
+ready:
     rts
 .endproc
 
@@ -997,7 +997,7 @@ listo:
 completar:
     lda oam_slot
     and #$03
-    beq listo
+    beq ready
     lda #$02
     jsr push_high
     rep #$20
@@ -1006,7 +1006,7 @@ completar:
     sep #$20
 .a8
     bra completar
-listo:
+ready:
     rts
 .endproc
 

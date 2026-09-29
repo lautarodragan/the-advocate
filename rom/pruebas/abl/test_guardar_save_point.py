@@ -4,7 +4,7 @@ Las demás pruebas de guardar usan la *página de prueba* de los casos
 `guardar*`; ésta usa el `OpenSaveMenu` del juego, que es el que juega taro. Con
 pantalla de título se midió que la página de prueba no llegaba a guardar si la
 partida cambiaba de mapa —es una automática con espera, y el doble
-`cargar_mapa` del menú la reinicia—, y eso no decía nada del camino del juego.
+`enter_map` del menú la reinicia—, y eso no decía nada del camino del juego.
 
 El save point es `SaveByTalansPad0`, el evento de índice **66** del mapa 8 —el
 editor de RM2k lo numera 67, desde uno—, en la celda (9,56), con tres

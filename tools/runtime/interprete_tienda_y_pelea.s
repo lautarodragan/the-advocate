@@ -73,7 +73,7 @@ op_shop_done:
     stz menu_abierto
     lda boot_cuadros
     sta nmi_visto
-    jsr volver_al_mapa
+    jsr back_to_map
     ply
     plb
     jmp run_code::otro
@@ -173,7 +173,7 @@ op_shop_done:
     ; SPC700 silent on purpose —`music_apagada` at 1— and looking only at that
     ; recorded $FF: at the end of the battle `battle_bgm` silenced the map's
     ; music instead of restoring it. It is the same question as
-    ; `mapa_tema_callar`, and it is answered the same way.
+    ; `map_song_mute`, and it is answered the same way.
     lda f:MSU_PLAYING
     bne sonaba_antes
     lda music_apagada
@@ -234,7 +234,7 @@ anotado:
     lda f:BAT_LARGO + BA_TEMA_ANT
     jsr battle_bgm             ; the map's song, or the silence there was
     plb
-    jsr volver_de_batalla
+    jsr back_from_battle
     phb
     phk
     plb

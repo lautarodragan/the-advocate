@@ -204,7 +204,7 @@ DESTELLOS = ("destello", "destello-compartido")
 def test_destello(nombre):
     """`destello`: `FlashSprite`, el destello de un personaje.
 
-    En la consola es un tinte de CGRAM —`pintar_flash` sube la paleta entera
+    En la consola es un tinte de CGRAM —`paint_flash` sube la paleta entera
     del personaje— y en RM2k es sobre la **imagen** del sprite. Son dos cosas
     distintas, y la única razón por la que no se ven distintas es que ningún
     caso tiene un segundo sprite visible compartiendo la paleta del que
@@ -591,7 +591,7 @@ def test_borrar_con_el_corte(nombre):
     `RM2K_CUT_TRANSITIONS` en tools/port/events.py—: el primer tick del
     fundido ya es negro y ya cargó el mapa. Lo piden el 93 y el 95. "El
     primero" es el tick siguiente al que ve prendido `fundido`: el salto lo
-    pide al final de una vuelta y `fundido_tick` corre en la que sigue.
+    pide al final de una vuelta y `fade_tick` corre en la que sigue.
 
     No hay golden: lo que se ve es negro, y el mostrar es el fundido de
     siempre. Lo filoso es el contraste con el fundido del mismo salto, que

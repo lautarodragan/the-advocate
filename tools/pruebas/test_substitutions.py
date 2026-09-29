@@ -39,6 +39,6 @@ def test_the_table_cap_is_the_same_on_both_sides():
 
 def test_the_rom_table_is_as_long_as_the_cap_says():
     """Two words per pair, keys and values in parallel arrays: that is how
-    `celda_sustituida` walks them with a single index."""
+    `cell_replaced` walks them with a single index."""
     assert reservation("sub_clave") == "SUB_MAX * 2"
     assert reservation("sub_valor") == "SUB_MAX * 2"

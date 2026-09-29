@@ -65,7 +65,7 @@ anotadas:
 .i16
     lda BA_TROPA_K
     cmp #$FF
-    beq listo                   ; a troop the cartridge does not carry
+    beq ready                   ; a troop the cartridge does not carry
     rep #$20
 .a16
     and #$00FF
@@ -79,7 +79,7 @@ anotadas:
 .a8
     stz comp_or01 + 2
     jsr gold_add
-listo:
+ready:
     rts
 .endproc
 
@@ -98,7 +98,7 @@ listo:
 otro:
     lda BA_T0
     cmp BA_NENE
-    bcs listo
+    bcs ready
     clc
     adc #BA_GRUPO_MAX
     jsr bt_x
@@ -134,7 +134,7 @@ restado:
 siguiente:
     inc BA_T0
     bra otro
-listo:
+ready:
     rep #$20
 .a16
     lda BA_T2
@@ -555,7 +555,7 @@ par:
     bcc entra
     lda #1                      ; does not fit: goes on in another page
     sta BA_VIC_MAS
-    bra listo
+    bra ready
 entra:
     inc BA_S3
     inc BA_VIC_SIG
@@ -587,7 +587,7 @@ siguiente:
     jmp par
 otro:
     jmp nivel
-listo:
+ready:
     rts
 .endproc
 

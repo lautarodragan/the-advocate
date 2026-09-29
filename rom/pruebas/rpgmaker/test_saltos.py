@@ -6,8 +6,8 @@ cuelguen a la consola. Lo que cuenta son los saltos **encadenados**, o sea los
 que pasan sin que el jugador recupere el control; los de una partida son todos
 los que quieran ser.
 
-Estaba mal de las dos maneras posibles. Sólo lo reponía `cargar_mapa`, y a un
-comando `Teleport` lo atiende `cargar_mapa_sin_eventos`: el presupuesto se
+Estaba mal de las dos maneras posibles. Sólo lo reponía `enter_map`, y a un
+comando `Teleport` lo atiende `enter_map_no_events`: el presupuesto se
 gastaba para toda la partida. Y cuando se acababa, el salto se **descartaba**
 sin decir nada, así que el juego seguía andando en el mapa equivocado.
 

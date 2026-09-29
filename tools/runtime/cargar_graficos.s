@@ -8,7 +8,7 @@
 ; bits, and `tax` with a wide X transfers both bytes, including the high one
 ; left over from the previous operation. With map 7 it gave zero by chance for
 ; the tiles and garbage for the palette.
-.proc dma_origen
+.proc dma_origin
 .a8
 .i16
     rep #$20
@@ -39,17 +39,17 @@
     sta VMADDL
     sep #$20
 .a8
-    jsl f:lz2_fondo + RAPIDO    ; compressed, in streams: see descomprimir.s
+    jsl f:lz2_backdrop + RAPIDO    ; compressed, in streams: see descomprimir.s
 
     ; --- the ChipSet animation ---
     ; The map brings drawing 0 of each run into VRAM, and the clock can be on
     ; any other: it is a clock of the saved game and not of the map. The one
     ; due is uploaded here, with no vblank budget because the screen is off.
     ; Its drawings come compressed and are decompressed to WRAM, from where
-    ; `anim_subir` uploads them for as long as the map lasts. They go after
+    ; `anim_upload` uploads them for as long as the map lasts. They go after
     ; the background tiles, which use the same WRAM bank: see `ANIM_DIBUJOS`.
     jsl f:lz2_anim + RAPIDO
-    jsr anim_cargar
+    jsr anim_load
 
     ; --- the colors ---
     ;
@@ -80,7 +80,7 @@
     lda #CGRAM_BASE
     sta CGADD
     ldy #M_PTR_MAP_CGRAM
-    jsr dma_origen
+    jsr dma_origin
     ldx mapa_ofs
     rep #$20
 .a16
@@ -123,7 +123,7 @@
     sep #$20
 .a8
     ldy #M_PTR_SPRITE_TILES
-    jsl f:lz2_campo + RAPIDO
+    jsl f:lz2_field + RAPIDO
     ldx mapa_ofs
     rep #$20
 .a16
@@ -148,7 +148,7 @@
     lda #128
     sta CGADD
     ldy #M_PTR_SPRITE_CGRAM
-    jsr dma_origen
+    jsr dma_origin
     ldx mapa_ofs
     rep #$20
 .a16
@@ -170,11 +170,11 @@
 .endproc
 
 ; --- OAM -------------------------------------------------------------------
-; All objects start hidden: see `oam_esconder`, which lives in bank 1.
+; All objects start hidden: see `oam_hide`, which lives in bank 1.
 .proc clear_oam
 .a8
 .i16
-    jsl f:oam_esconder + RAPIDO ; see MEMSEL
+    jsl f:oam_hide + RAPIDO ; see MEMSEL
     rts
 .endproc
 
@@ -210,7 +210,7 @@
 ; Queues the pose at `vq_src` (24 bits, in the cartridge) for the slot that
 ; starts at word `vq_dest`. Returns A nonzero if it got in; if the queue is
 ; full, the caller has to ask for it again.
-.proc vram_encolar
+.proc vram_queue
 .a8
 .i16
     lda vq_n
@@ -248,7 +248,7 @@ hay_lugar:
 ; Uploads up to VQ_POR_CUADRO poses from the queue and leaves the rest at the
 ; start. Each pose is four DMAs of 128 bytes: the four rows of the 4x4 block,
 ; which in the name grid are 256 words apart from each other.
-.proc vram_drenar
+.proc vram_drain
 .a8
 .i16
     lda vq_n
@@ -266,9 +266,9 @@ hay:
 otra:
     lda vq_hechas
     cmp vq_n
-    beq fin
+    beq end
     cmp vq_tope
-    beq fin
+    beq end
     lda vq + 2, x
     sta A1B0                    ; the source's bank
     rep #$20
@@ -318,14 +318,14 @@ row:
     sep #$20
 .a8
     bra otra
-fin:
+end:
     ; What did not fit, to the start of the queue. X points to the first
     ; entry left.
     lda vq_n
     sec
     sbc vq_hechas
     sta vq_n
-    beq listo
+    beq ready
     sta temp + 2
     asl a
     asl a
@@ -340,7 +340,7 @@ mover:
     iny
     dec temp + 2
     bne mover
-listo:
+ready:
     rts
 .endproc
 
@@ -366,7 +366,7 @@ listo:
     sep #$20
 .a8
     ldy #M_PTR_ABOVE_TILES
-    jsl f:lz2_campo + RAPIDO
+    jsl f:lz2_field + RAPIDO
     ldx mapa_ofs
     rep #$20
 .a16
@@ -392,7 +392,7 @@ listo:
     lda f:mapa_tabla + M_ABOVE_FIRST, x
     sta CGADD
     ldy #M_PTR_ABOVE_CGRAM
-    jsr dma_origen
+    jsr dma_origin
     ldx mapa_ofs
     rep #$20
 .a16
@@ -448,19 +448,19 @@ listo:
     ldy #$0000
 copiar:
     cpy temp
-    beq listo
+    beq ready
     lda [npc_ptr], y
     sta npc_buf, y
     iny
     bra copiar
-listo:
-    jsl f:pasa_mirar + RAPIDO   ; ver `pasa_hay`
+ready:
+    jsl f:pass_look + RAPIDO   ; ver `pasa_hay`
     rts
 .endproc
 
 ; And the table of graphics for move command 34, with the same loop and the
 ; same borrowed pointer. It is sixteen bytes at most.
-.proc load_ruta_graficos
+.proc load_route_graphics
 .a8
 .i16
     rep #$20
@@ -487,12 +487,12 @@ listo:
     ldy #$0000
 copiar:
     cpy temp
-    beq listo
+    beq ready
     lda [npc_ptr], y
     sta ruta_graf_buf, y
     iny
     bra copiar
-listo:
+ready:
     rts
 .endproc
 

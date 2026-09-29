@@ -81,11 +81,11 @@ msu_signature:
 .a8
 .i16
     lda f:MSU_PLAYING
-    beq listo
+    beq ready
     lda #0
     sta f:MSU_PLAYING
     sta MSU_CONTROL
-listo:
+ready:
     rts
 .endproc
 
@@ -116,13 +116,13 @@ MSU_WAIT = $FFFF
 otra:
     lda MSU_STATE
     and #$40                    ; it is loading it
-    beq listo
+    beq ready
     inx
     cpx #MSU_WAIT
     bcc otra
     sec
     rts
-listo:
+ready:
     clc
     rts
 .endproc
@@ -274,13 +274,13 @@ MSU_DATA   = $2001             ; read: the next byte
     ldx #$0000
 otra:
     lda f:MSU_STATE
-    bpl listo                   ; bit 7: still seeking
+    bpl ready                   ; bit 7: still seeking
     inx
     cpx #MSU_WAIT
     bcc otra
     sec
     rts
-listo:
+ready:
     clc
     rts
 .endproc

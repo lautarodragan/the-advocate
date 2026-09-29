@@ -49,7 +49,7 @@
 ;
 ; The output cannot cross a bank: Y wraps at $FFFF and the converter watches
 ; for it, with streams of up to 32 KB.
-.proc lz2_descomprimir
+.proc lz2_decompress
 .a8
 .i16
     php
@@ -76,21 +76,21 @@
     lda f:LZ2_BANCO
     cmp #^GRILLA_ALTA
     bne en_el_7e
-    jmp lz2_cuerpo_7f
+    jmp lz2_body_7f
 en_el_7e:
-    jmp lz2_cuerpo_7e
+    jmp lz2_body_7e
 .endproc
 
-; The body, for output in bank `salida`. It is entered from
-; `lz2_descomprimir` with the stream's bank set and the length and base on the
+; The body, for output in bank `exit`. It is entered from
+; `lz2_decompress` with the stream's bank set and the length and base on the
 ; stack, and it returns from right there.
-.macro LZ2_CUERPO salida
-comando:
+.macro LZ2_BODY exit
+cmd:
     sep #$20
 .a8
     lda a:0, x
     cmp #$E0
-    bcs largo
+    bcs length
     ; `CCCLLLLL`: up to 32 bytes.
     rep #$20
 .a16
@@ -100,10 +100,10 @@ comando:
 .a8
     lda a:0, x                  ; and again, to dispatch
     inx
-    bra despachar
-largo:
+    bra dispatch
+length:
     cmp #$FF
-    beq fin
+    beq end
     ; `111CCCLL LLLLLLLL`: up to 1024. The command is shifted to the top three
     ; bits, which is where the short header has it.
     rep #$20
@@ -120,13 +120,13 @@ largo:
     asl a
     asl a
     asl a
-despachar:
+dispatch:
     asl a
-    bcs repeticion              ; 4: 5 and 6 do not exist
+    bcs repeat              ; 4: 5 and 6 do not exist
     asl a
-    bcs palabra                 ; 2; 3, the increasing fill, never arrives
+    bcs word                 ; 2; 3, the increasing fill, never arrives
     asl a
-    bcs relleno
+    bcs padding
     ; 0: the bytes, from the stream to the output.
     rep #$20
 .a16
@@ -134,9 +134,9 @@ despachar:
     phb
     jsl f:LZ2_TRAMPA_LIT
     plb
-    bra comando
+    bra cmd
 
-fin:
+end:
 .a8
     inx                         ; the $FF
     rep #$20
@@ -147,23 +147,23 @@ fin:
     plp
     rtl
 
-relleno:
+padding:
 .a8
     ; 1: the byte to the output, and it is repeated shifted by one.
     lda a:0, x
     inx
     phx                         ; the stream, while X points at the output
     tyx
-    sta f:salida << 16, x
+    sta f:exit << 16, x
     iny
     rep #$20
 .a16
     lda 3, s                    ; the length minus one, moved by the `phx`
-    beq listo                   ; it was just one
+    beq ready                   ; it was just one
     dec a                       ; the ones left, minus one
-    bra en_la_salida
+    bra in_output
 
-palabra:
+word:
 .a8
     ; 2: the two bytes to the output, and they are repeated shifted by two.
     ; It is always two or more: see above.
@@ -174,16 +174,16 @@ palabra:
     inx
     phx
     tyx
-    sta f:salida << 16, x
+    sta f:exit << 16, x
     iny
     iny
     lda 3, s                    ; the length minus one, moved by the `phx`
     dec a
-    beq listo                   ; it was two
+    beq ready                   ; it was two
     dec a
-    bra en_la_salida
+    bra in_output
 
-repeticion:
+repeat:
 .a8
     ; 4: from the output to the output. The address comes high byte first.
     rep #$20
@@ -197,29 +197,29 @@ repeticion:
     adc 5, s                    ; plus the base, which the `phx` moved to 5,s
     tax
     lda 3, s                    ; and the length minus one, to 3,s
-en_la_salida:
+in_output:
     ; With X inside the output, A the length minus one and the stream pointer
     ; on the stack. The `mvn` leaves the data bank at the output's.
     phb
-    mvn #salida, #salida
+    mvn #exit, #exit
     plb
-listo:
+ready:
     plx
-    jmp comando
+    jmp cmd
 
 .endmacro
 
-.proc lz2_cuerpo_7e
-    LZ2_CUERPO ^GRILLA
+.proc lz2_body_7e
+    LZ2_BODY ^GRILLA
 .endproc
 
-.proc lz2_cuerpo_7f
-    LZ2_CUERPO ^GRILLA_ALTA
+.proc lz2_body_7f
+    LZ2_BODY ^GRILLA_ALTA
 .endproc
 
 ; X and A of the stream that field Y of the map record points to: its address
-; and its bank, ready for `lz2_descomprimir`.
-.proc lz2_del_campo
+; and its bank, ready for `lz2_decompress`.
+.proc lz2_from_field
 .a8
 .i16
     rep #$20
@@ -243,21 +243,21 @@ listo:
 .endproc
 
 ; The block that field Y of the map record points to, decompressed into
-; `LZ2_BUFFER`, and DMA channel 0 pointing there: it replaces `dma_origen` in
+; `LZ2_BUFFER`, and DMA channel 0 pointing there: it replaces `dma_origin` in
 ; `load_map`, `load_above` and `load_sprite`, which still set the length and
 ; the destination as before. The length comes from the record and not from
 ; what the decompressor wrote, so what reaches VRAM is the same as when the
 ; cartridge carried the tiles whole.
-.proc lz2_campo
+.proc lz2_field
 .a8
 .i16
-    jsr lz2_del_campo
+    jsr lz2_from_field
     pha
     lda #^LZ2_BUFFER
     sta f:LZ2_BANCO
     pla
     ldy #.loword(LZ2_BUFFER)
-    jsl f:lz2_descomprimir + RAPIDO
+    jsl f:lz2_decompress + RAPIDO
     rep #$20
 .a16
     lda #.loword(LZ2_BUFFER)
@@ -281,8 +281,8 @@ listo:
 ;
 ; Enters with VMAIN and VMADD set; the DMA carries the VRAM address on from one
 ; stream to the next. Leaves the tile bank uploaded and clobbers A, X and Y.
-FONDO_TILES_POR_FLUJO = LZ2_TOPE_FONDO / 64     ; 64 bytes per 8-bit tile
-.proc lz2_fondo
+BACKDROP_TILES_PER_STREAM = LZ2_TOPE_FONDO / 64     ; 64 bytes per 8-bit tile
+.proc lz2_backdrop
 .a8
 .i16
     ldx mapa_ofs
@@ -293,20 +293,20 @@ FONDO_TILES_POR_FLUJO = LZ2_TOPE_FONDO / 64     ; 64 bytes per 8-bit tile
     sep #$20
 .a8
     ldy #M_PTR_MAP_TILES
-    jsr lz2_del_campo
+    jsr lz2_from_field
     pha                         ; 1,s: the stream's bank; 2,s: the ones left
 flujo:
     lda #^LZ2_BUFFER
     sta f:LZ2_BANCO
     lda 1, s
     ldy #.loword(LZ2_BUFFER)
-    jsl f:lz2_descomprimir + RAPIDO     ; leaves X on the next stream
+    jsl f:lz2_decompress + RAPIDO     ; leaves X on the next stream
     rep #$20
 .a16
     ; The ones that will be left after this one: zero if this is the last.
     lda 2, s
     sec
-    sbc #FONDO_TILES_POR_FLUJO
+    sbc #BACKDROP_TILES_PER_STREAM
     bcs :+
     lda #0
 :   pha                         ; 1,s: the ones that will be left; 3,s: the bank
@@ -350,7 +350,7 @@ flujo:
 .endproc
 
 ; The drawings of the map's ChipSet animation, into `ANIM_DIBUJOS`, from where
-; `anim_subir` uploads them each time the clock changes. They have to stay
+; `anim_upload` uploads them each time the clock changes. They have to stay
 ; there while on the map, so they go in a place of their own and not in
 ; `LZ2_BUFFER`, which the upper layer and the sprites overwrite afterwards: see
 ; the reservation in `ram_lejana.s`.
@@ -358,42 +358,42 @@ flujo:
 .a8
 .i16
     ldy #M_PTR_ANIM_TILES
-    jsr lz2_del_campo
+    jsr lz2_from_field
     pha
     lda #^ANIM_DIBUJOS
     sta f:LZ2_BANCO
     pla
     ldy #.loword(ANIM_DIBUJOS)
-    jsl f:lz2_descomprimir + RAPIDO
+    jsl f:lz2_decompress + RAPIDO
     rtl
 .endproc
 
 ; The map's grid, decompressed into `GRILLA`: its first 32 KB in the upper half
-; of bank $7E and the rest in $7F's, which is the shape `ptr_mas` and
-; `ptr_menos` expect. The converter splits it into two streams, one per half,
+; of bank $7E and the rest in $7F's, which is the shape `ptr_more` and
+; `ptr_minus` expect. The converter splits it into two streams, one per half,
 ; so no output crosses a bank; the second comes right after the first, and may
 ; have nothing more than its $FF.
 ;
-; Battle overwrites $7F's half —it is `SCN_SCENE`—, so `volver_de_batalla`
+; Battle overwrites $7F's half —it is `SCN_SCENE`—, so `back_from_battle`
 ; decompresses it again. See the decision in
 ; workflow/decisiones/la-grilla-vive-en-la-wram.md.
-.proc lz2_grilla
+.proc lz2_grid
 .a8
 .i16
     ldy #M_PTR_MAP_CELDAS
-    jsr lz2_del_campo
+    jsr lz2_from_field
     pha                         ; the stream's bank, for the second one
     lda #^GRILLA
     sta f:LZ2_BANCO
     pla
     pha
     ldy #.loword(GRILLA)
-    jsl f:lz2_descomprimir + RAPIDO     ; leaves X on the second stream
+    jsl f:lz2_decompress + RAPIDO     ; leaves X on the second stream
     lda #^GRILLA_ALTA
     sta f:LZ2_BANCO
     pla
     ldy #.loword(GRILLA_ALTA)
-    jsl f:lz2_descomprimir + RAPIDO
+    jsl f:lz2_decompress + RAPIDO
     rtl
 .endproc
 
@@ -403,5 +403,5 @@ flujo:
 .assert LZ2_BUFFER + LZ2_TOPE_FONDO <= ANIM_DIBUJOS_FIN, error, "the background tiles do not fit in the load buffer"
 .assert LZ2_BUFFER + LZ2_TOPE_ENCIMA_Y_SPRITES <= ANIM_DIBUJOS, error, "the upper layer or the sprites would overwrite the animation drawings"
 .assert ANIM_DIBUJOS + LZ2_TOPE_ANIM <= ANIM_DIBUJOS_FIN, error, "the animation drawings do not fit in their place"
-.assert GRILLA_ALTA = GRILLA + $10000, error, "the two halves of the grid must be the same address in two consecutive banks: that is how `ptr_mas` walks them"
+.assert GRILLA_ALTA = GRILLA + $10000, error, "the two halves of the grid must be the same address in two consecutive banks: that is how `ptr_more` walks them"
 .assert LZ2_TOPE_GRILLA <= 2 * (GRILLA_FIN - GRILLA), error, "the largest grid does not fit in the two upper halves of WRAM"

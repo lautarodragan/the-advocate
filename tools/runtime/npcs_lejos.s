@@ -33,7 +33,7 @@
 ; the one-by-one swaps left.
 ;
 ; Clobbers `temp` and `cmp_a`, and X and Y.
-.proc acomodar_lejos
+.proc fit_far
 .a8
 .i16
     rep #$20
@@ -126,7 +126,7 @@ b_pasa:
     bra lower
 tope_abajo:
     cpy npc_fila
-    beq listo
+    beq ready
     sty cmp_a
     jsr apartar
     phb
@@ -146,7 +146,7 @@ tope_abajo:
     plb
     ldx cmp_a
     jsr volver
-listo:
+ready:
     sep #$20
 .a8
     rtl
@@ -168,20 +168,20 @@ volver:
     stx npc_fila
     rts
 .endproc
-.assert .bankbyte(npc_buf) = 0 && .loword(npc_buf) < $2000, error, "acomodar_lejos shifts the rows in bank $7E: npc_buf has to be in low RAM"
+.assert .bankbyte(npc_buf) = 0 && .loword(npc_buf) < $2000, error, "fit_far shifts the rows in bank $7E: npc_buf has to be in low RAM"
 
 ; --- whether some row imposes its passability bits --------------------------
 ;
 ; `pasa_hay` right after the NPC table is loaded: one if some row has a +15
 ; other than $FF. Runs once per map.
-.proc pasa_mirar
+.proc pass_look
 .a8
 .i16
     stz pasa_hay
     ldy #$0000
 otra:
     cpy npc_total
-    beq listo
+    beq ready
     lda npc_buf + 15, y
     cmp #$FF
     beq :+
@@ -195,7 +195,7 @@ otra:
     sep #$20
 .a8
     bra otra
-listo:
+ready:
     rtl
 .endproc
 
@@ -209,7 +209,7 @@ listo:
 ; loop that was in bank 0 took fifteen lines of every frame, on every map: a
 ; quarter of what the race had to spare. This way it is about four. See
 ; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
-.proc oam_esconder
+.proc oam_hide
 .a8
 .i16
     ldx #$0000
@@ -248,7 +248,7 @@ grande:
 ; does not have to search for it. It belongs to the two places that hand out
 ; a slot —`route_for_event` and `apply_pages`—, and lives here because
 ; of bank 0. Does not touch A, X or Y.
-.proc ranura_anotar
+.proc slot_record
     php
     rep #$30
 .a16
@@ -280,18 +280,18 @@ grande:
     plp
     rtl
 .endproc
-.assert RUTA_EV_STRIDE = 32, error, "ranura_anotar divides by RUTA_EV_STRIDE with five lsr"
+.assert RUTA_EV_STRIDE = 32, error, "slot_record divides by RUTA_EV_STRIDE with five lsr"
 
 ; The `npc_buf` row of the event of move route slot X, in Y, or $FFFF if it
-; has none. It is `event_npc` for `refrescar_npc`, which asks for it for
+; has none. It is `event_npc` for `refresh_npc`, which asks for it for
 ; every event that moves and on every frame: the search walks the rows from
 ; the first one, and on a map with forty events it was four lines for each.
 ;
 ; The row is remembered in the slot's +19, plus one, and is trusted only if
 ; it still belongs to that event: the rows are reordered when two events
-; cross in Y (`acomodar_npc`), and a slot just taken carries whatever was left
+; cross in Y (`fit_npc`), and a slot just taken carries whatever was left
 ; in it. Otherwise, it is searched for and noted. Does not touch X; A is lost.
-.proc npc_de_ranura
+.proc slot_npc
 .a8
 .i16
     lda ruta_ev + 19, x
@@ -311,7 +311,7 @@ grande:
     bcs buscar                  ; outside the table: a leftover
     lda npc_buf + 8, y
     cmp ruta_ev + 0, x
-    beq listo
+    beq ready
 buscar:
     lda ruta_ev + 0, x
     sta temp
@@ -343,11 +343,11 @@ hallada:
     sep #$20
 .a8
     sta ruta_ev + 19, x
-listo:
+ready:
     rtl
 no_hay:
     ldy #$FFFF
     rtl
 .endproc
-.assert NPC_STRIDE = 16, error, "npc_de_ranura multiplies by NPC_STRIDE with four asl"
-.assert NPC_MAX < 255, error, "npc_de_ranura stores the row plus one in a byte"
+.assert NPC_STRIDE = 16, error, "slot_npc multiplies by NPC_STRIDE with four asl"
+.assert NPC_MAX < 255, error, "slot_npc stores the row plus one in a byte"

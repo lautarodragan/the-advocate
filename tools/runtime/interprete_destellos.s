@@ -38,7 +38,7 @@ con_cuadros:
 ; not end the frame: if the page waits, the converter puts an OP_DELAY after
 ; it.
 .proc op_flash_screen
-    jsr destello_de_codigo
+    jsr flash_from_code
     jmp run_code::otro
 
 .endproc
@@ -48,7 +48,7 @@ con_cuadros:
 ; `CommandFlashSprite` does with `SetupWait(tenths)`.
 .proc op_flash
     phy
-    jsr flash_empezar
+    jsr flash_start
     ply
     rep #$20
 .a16

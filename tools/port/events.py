@@ -951,11 +951,11 @@ def sprite_associations(game_maps, extra=()):
 # OP_SHAKE: power (byte), speed (byte), frames (word):
 #     `ShakeOnce`. With zero frames it is `ShakeEnd`: the
 #     screen goes back to its place. The math is
-#     `sacudida_tick` in tools/runtime/camara.s.
+#     `shake_tick` in tools/runtime/camara.s.
 #
 # OP_FLASH_SCREEN: r, g, b, power (a byte each, 0..31) and frames
 #     (byte): `FlashOnce`, the whole-screen flash. The
-#     math is `destello_tick` in
+#     math is `flash_tick` in
 #     tools/runtime/destello_de_pantalla.s.
 #
 # OP_IF: kind (byte), operand (word), polarity (byte),
@@ -1827,7 +1827,7 @@ ANIM_ENTRY_BYTES = 8
 ANIM_SOUND, ANIM_SCREEN_FLASH, ANIM_FLASH = 0, 1, 2
 # Ten, which is how long RM2k's lasts, and **even** on purpose: the screen
 # flash works in two phases according to the parity of what it has left —see
-# `destello_tick`—, and a `FlashScreen` of the game always lasts tenths times
+# `flash_tick`—, and a `FlashScreen` of the game always lasts tenths times
 # six. With eleven the first phase was the even one, a path no page takes and
 # that therefore tests nothing: `animacion` showed it.
 ANIM_FLASH_FRAMES = 10
@@ -1970,7 +1970,7 @@ CHANGE_PBG = 11720
 #   numbering.
 # * **It is stored per actor and shows only if that actor leads.** The one
 #   that does not lead is not drawn, so the change stays waiting; the ROM
-#   resolves it in `elegir_grafico_heroe`, which is the only one that decides
+#   resolves it in `pick_hero_graphic`, which is the only one that decides
 #   what the hero is drawn with.
 #
 # And one thing that **is not** done: if the graphic is not in the map's
@@ -4832,7 +4832,7 @@ def _compile(cmd, map_index, messages=None, extra=(),
             if target is None:
                 raise CannotCompile()   # a vehicle, or an event that does not exist
             # **A flash on an event that shares a palette is emitted anyway.**
-            # On the console the flash is a CGRAM tint —`pintar_flash`
+            # On the console the flash is a CGRAM tint —`paint_flash`
             # uploads the whole row— so two events with the same graphic
             # flash together. Until 2026-09-13 that cut the page, and the cut
             # cost **51 pages**, measured, and one of them is map 20's
@@ -5484,7 +5484,7 @@ def map_pages(game_map, map_index, messages=None, songs=None,
                 "codigo": code,
                 "ruta_propia": own_route(page),
                 # What the page draws and what its tile imposes on the cell:
-                # see `rm2k.collect_npcs`, and `pasa_con_evento` in
+                # see `rm2k.collect_npcs`, and `pass_with_event` in
                 # tools/runtime/heroe.s, which is the one that applies them.
                 "grafico": graphic,
                 "tile_pasa": (rm2k.event_tile_passability(game_map, graphic[0],
@@ -5561,6 +5561,6 @@ def own_route(page):
         "dir_fija": page.animation_type in (ANIM_FIXED_NOT_CONTINUOUS,
                                            ANIM_FIXED_CONTINUOUS,
                                            ANIM_FIXED_GRAPHIC),
-        "anim_continua": page.animation_type in (ANIM_CONTINUOUS_KIND,
+        "anim_continues": page.animation_type in (ANIM_CONTINUOUS_KIND,
                                                 ANIM_FIXED_CONTINUOUS),
     }

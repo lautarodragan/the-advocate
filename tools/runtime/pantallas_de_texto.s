@@ -122,7 +122,7 @@ cabe:
 letra:
     lda temp + 2
     cmp temp
-    bcs listo
+    bcs ready
     rep #$20
 .a16
     and #$00FF
@@ -133,7 +133,7 @@ letra:
     jsr scr_glyph
     inc temp + 2
     bra letra
-listo:
+ready:
     lda #255
     sta comp_dup + 3               ; the cap is for one text only
     rts

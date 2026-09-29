@@ -18,7 +18,7 @@ cosas de la misma zona, y las tres necesitan `Recorrido.elegir`:
                 página 2 es automática y termina en un `Teleport` al 14. La
                 cinemática del 14 corre sola y termina en el 16
 
-Los saltos largos son el caso extremo de `salto_avanzar_heroe`, y el salto
+Los saltos largos son el caso extremo de `jump_advance_hero`, y el salto
 colgado de la semana del 2026-09-22 vivía justo ahí: cada salto se cobra con el
 vigilante de `sin_quedarse_en_el_aire` y con `ruta_salto` en cero al final. El
 de cinco celdas, medido tick por tick el 2026-09-26 a la velocidad 4, que es la
@@ -32,7 +32,7 @@ medido"—.
 **adentro** del salto: RM2k lo ignora ahí —`Game_Character` sólo suma los
 movimientos y los giros entre el par, y el resto se consume sin efecto—, así
 que salta sin atravesar, a (1,49), que no es pisable, y el salto falla. La ROM
-lo saltea igual —`acumular_salto` no mira la 36—, el héroe se queda en (1,47) y
+lo saltea igual —`accumulate_jump` no mira la 36—, el héroe se queda en (1,47) y
 el `Teleport` lo saca de ahí. Por eso no se le cobra la celda.
 
 **No se arranca desde la calle.** El camino del caño y los techos ya lo juega

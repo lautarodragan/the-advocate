@@ -164,7 +164,7 @@ put:
     lda f:TEMA_RECORDADO
     cmp #TEMA_TOTAL
     bcs nothing                    ; none, or one the cartridge does not carry
-    ; Is it the one playing? The same question as `mapa_tema_callar`.
+    ; Is it the one playing? The same question as `map_song_mute`.
     pha
     lda bgm_fundido
     bne distinto                ; it was fading out: start over

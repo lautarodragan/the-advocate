@@ -202,7 +202,7 @@ def test_la_ruta_propia_apunta_al_bloque_que_recibe():
         "codigo": b"\x00", "offset": 0, "ruta_offset": 1,
         "frecuencia": 3, "velocidad": 4,
         "ruta_propia": {"repite": True, "saltable": False, "dir_fija": False,
-                        "anim_continua": False, "frecuencia": 3,
+                        "anim_continues": False, "frecuencia": 3,
                         "velocidad": 4, "ordenes": [0]},
     }
     tabla = snes_convert.page_table({"paginas": [pagina]}, 7,

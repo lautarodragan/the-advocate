@@ -204,7 +204,7 @@ otra:
 .endproc
 
 ; How many frames each frame of the walk animation lasts at the hero's speed:
-; `anim_por_vel`, which is `GetStationaryAnimFrames`. At speed 4 it is the
+; `anim_per_speed`, which is `GetStationaryAnimFrames`. At speed 4 it is the
 ; usual six.
 .proc hero_anim_frames
 .a8
@@ -217,7 +217,7 @@ otra:
     tax
     sep #$20
 .a8
-    lda anim_por_vel, x
+    lda anim_per_speed, x
     rts
 .endproc
 

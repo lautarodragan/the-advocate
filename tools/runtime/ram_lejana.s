@@ -473,7 +473,7 @@ BA_EACC_NO_EFECTIVA = $80       ; the `eacc_peso` bit
 ; below `FAR_PAR_LISTA`.
 PAR_BYTES = 8
 ; And the eighth, which was spare, is the event's move route slot plus one,
-; or zero if it has none: `ranura_anotar` sets it when one is given, and
+; or zero if it has none: `slot_record` sets it when one is given, and
 ; `clear_parallel` clears it when loading the map, next to `load_npcs`,
 ; which is where they are all freed. Within a map a slot is never released.
 ; It is what saves each parallel from looking for its own every frame: see
@@ -537,9 +537,9 @@ DIR_LEFT  = 3
 ; At speed 4, which is the hero's, it moves two pixels per frame and the
 ; animation changes frame every six.
 ; WALK_SPEED no longer exists: the hero moves according to its speed, see
-; `paso_medio_por_vel`. The line stays so nobody goes looking for it.
+; `half_step_per_speed`. The line stays so nobody goes looking for it.
 ; ANIM_FRAMES = 6 was how many frames the walking frame changed every; now it
-; depends on the hero's speed: see `anim_por_vel`.
+; depends on the hero's speed: see `anim_per_speed`.
 
 ; The sprite is drawn centered over its 16x16 cell and resting on its feet.
 ; From the 32 object the 4 spare on each side have to be subtracted as well.
@@ -583,7 +583,7 @@ FAR_TIRA_ROW  = $7E6A00         ; WINDOW_COLS * 2
 FAR_TIRA_ROW2 = $7E6A80         ; and the upper layer, adjacent as in bank 0
 FAR_TIRA_COL  = $7E6B00         ; WINDOW_ROWS * 2
 FAR_TIRA_COL2 = $7E6B40
-; Adjacent, which is what `push_una_fila` takes advantage of to reach the
+; Adjacent, which is what `push_one_row` takes advantage of to reach the
 ; upper layer's by adding the length of the other, same as with the bank 0
 ; ones.
 .assert FAR_TIRA_ROW2 = FAR_TIRA_ROW + WINDOW_COLS * 2, error, "row strips not adjacent"
@@ -591,7 +591,7 @@ FAR_TIRA_COL2 = $7E6B40
 
 ; --- where the background tilemap is, in far RAM ----------------------------
 ;
-; The VRAM word of the loaded map's BG1 tilemap. `cargar_mapa` copies it from
+; The VRAM word of the loaded map's BG1 tilemap. `enter_map` copies it from
 ; `M_VRAM_MAP` and `build_column` and `build_row` add it, since they cannot
 ; read the table because X is in use. It is $5800 in every layout but one:
 ; see LAYOUT_VENTANA_AMBOS. It does not fit in the BSS.
@@ -687,7 +687,7 @@ ANIMB_BUF = $7E7000
 
 ; --- LZ2: what the cartridge carries compressed, in WRAM --------------------
 ;
-; See `lz2_descomprimir` in descomprimir.s. Reserved on 2026-09-26:
+; See `lz2_decompress` in descomprimir.s. Reserved on 2026-09-26:
 ;
 ;   $7E7800  the literal's `mvn` trampoline, four bytes built with each
 ;            call's banks, and the output bank
@@ -695,12 +695,12 @@ ANIMB_BUF = $7E7000
 ;            uploaded to VRAM with the same DMA as before. It is valid only
 ;            while loading; the battle scene uses all of bank $7F —see
 ;            `SCN_CLEAN`—, and nothing here has to outlive it
-;   $7F6000  the drawings of the map's ChipSet animation, which `anim_subir`
+;   $7F6000  the drawings of the map's ChipSet animation, which `anim_upload`
 ;            uploads every time the clock changes: **they live as long as
 ;            one is on the map**, and that is why they go above the buffer
 ;            and are decompressed after the background tiles and before the
 ;            upper layer and the sprites. What does take them away is the
-;            battle, and `volver_al_mapa` decompresses them again
+;            battle, and `back_to_map` decompresses them again
 ;
 ; The limits of each block are enforced by `descomprimir.s` against the ones
 ; the converter emits.
@@ -801,11 +801,11 @@ PELEA_PRENDIDA = $7E7840        ; 1 if the battle got to turn its screen on
 ;
 ; $7E7920 to $7E793F, reserved on 2026-09-27: the transition with which the
 ; teleport erases the screen and the one with which it shows it again, which
-; `ChangeScreenTransitions` changes —`op_transition`— and `fundido_mosaico`
-; and `fundido_desde` read: TRANSICION_MOSAICO, TRANSICION_CORTE (only for
+; `ChangeScreenTransitions` changes —`op_transition`— and `fade_mosaic`
+; and `fade_from` read: TRANSICION_MOSAICO, TRANSICION_CORTE (only for
 ; erasing), or anything else for the fade.
 ;
-; `transicion_de_arranque` sets them to the fade, on reset: bsnes starts WRAM
+; `boot_transition` sets them to the fade, on reset: bsnes starts WRAM
 ; with garbage, and without that the first teleport could come out as mosaic.
 ; **It does not travel in the save**, and in RM2k it does. That is on
 ; purpose: the two places in the game that change it are chains of autorun
@@ -851,7 +851,7 @@ BA_HAB_I   = $7E7964            ; which combatant a multi-target skill is on:
 ; --- an NPC row, set aside ---------------------------------------------------
 ;
 ; $7E7980 to $7E799F, reserved on 2026-09-27 for the race's milestone 2.
-; `acomodar_lejos` keeps here the row that changes place while it moves the
+; `fit_far` keeps here the row that changes place while it moves the
 ; others; it lasts as long as that routine.
 NPC_FILA_APARTE = $7E7980           ; NPC_STRIDE bytes
 
@@ -869,7 +869,7 @@ GO_CUADROS = $7E7A34            ; how many frames each fade level lasts
 ;
 ; **$7E8000 to $7EFFFF belongs to the grid**, and it continues at $7F8000 if
 ; it goes past 32 KB: the upper half of the two banks, which has the shape of
-; two consecutive LoROM banks —see `ptr_mas`—. `lz2_grilla` decompresses it
+; two consecutive LoROM banks —see `ptr_more`—. `lz2_grid` decompresses it
 ; when loading the map and everyone who asks about a cell reads it. Reserved
 ; on 2026-09-26, and it is a decision with a cost: it was half of the far RAM
 ; that was still free. What is lost, how it is reverted and what catches it,
@@ -877,7 +877,7 @@ GO_CUADROS = $7E7A34            ; how many frames each fade level lasts
 ; `test_reservas_de_la_wram.py` fails if another symbol lands inside.
 ;
 ; It shares the $7F half with `SCN_SCENE`: the battle overwrites it, and
-; `volver_de_batalla` decompresses the whole grid again.
+; `back_from_battle` decompresses the whole grid again.
 GRILLA      = $7E8000
 GRILLA_FIN  = $7F0000
 GRILLA_ALTA = $7F8000

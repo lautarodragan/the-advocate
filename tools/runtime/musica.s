@@ -56,17 +56,17 @@ sin_fundido:
     ; see "sound effects" in `efectos_de_sonido.s`.
     jsr se_before
     lda music_apagada
-    bne listo
+    bne ready
     jsr music_frame
     lda es_pal
-    beq listo
+    beq ready
     inc pal_tick
     lda pal_tick
     cmp #5
-    bcc listo
+    bcc ready
     stz pal_tick
     jsr music_frame             ; the frame PAL is missing
-listo:
+ready:
     jmp se_after
 .endproc
 
@@ -282,11 +282,11 @@ listo_msu:
 .a16
 .i16
     cmp #0
-    beq listo
+    beq ready
     xba
     and #$00FF
     inc a
-listo:
+ready:
     rts
 .endproc
 
@@ -446,12 +446,12 @@ done:
 ; what repeats the most per event, and the pointer's low byte wraps once every
 ; 256.
 .macro READ
-    .local listo
+    .local ready
     lda [music]
     inc music
-    bne listo
+    bne ready
     jsr advance::alto
-listo:
+ready:
 .endmacro
 
 ; One frame of music. The stream is per note —see "el formato por nota" in

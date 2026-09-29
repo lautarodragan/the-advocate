@@ -1,7 +1,7 @@
 .segment "FAR"
 
 ; The battle's xorshift, the same as `eventos.azar_siguiente` and
-; `lluvia_azar`, but on `BA_SEM`, which has **its own seed**: fighting does
+; `rain_random`, but on `BA_SEM`, which has **its own seed**: fighting does
 ; not advance the map's randomness, so a random `ControlVars` gives the same
 ; with a battle in between and without one.
 .proc bt_random
@@ -990,7 +990,7 @@ tope_listo:
 busca:
     lda BA_S2
     cmp BA_S2 + 1
-    bcs listo
+    bcs ready
     jsr bt_alive
     beq no_vive
     lda BA_S1
@@ -1001,7 +1001,7 @@ busca:
 no_vive:
     inc BA_S2
     bra busca
-listo:
+ready:
     rts
 .endproc
 

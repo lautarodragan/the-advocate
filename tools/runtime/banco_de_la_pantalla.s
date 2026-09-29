@@ -2,7 +2,7 @@
 
 ; --- the screen's bank, also outside bank 0 ---------------------------------
 ;
-; It moved here on 2026-09-13, when `volver_de_batalla` asked for forty-six
+; It moved here on 2026-09-13, when `back_from_battle` asked for forty-six
 ; bytes that bank 0 no longer had: `abl` ended up at 32748 of 32704, and
 ; before that it had **two** to spare. This is the cheapest one to move of
 ; everything that measures more than a hundred bytes: it calls nobody —they are

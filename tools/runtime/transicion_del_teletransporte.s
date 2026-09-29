@@ -9,7 +9,7 @@
 ; then on. The ROM does three, and the converter has already decided which one
 ; goes —see `CHANGE_SCREEN_TRANSITIONS` in tools/port/events.py—:
 ;
-;   the fade     the usual one, `fundido_tick`: the master brightness over
+;   the fade     the usual one, `fade_tick`: the master brightness over
 ;                `fundido_rampa`. It is also what goes for the ones the
 ;                console does not do, like the zoom
 ;   the mosaic   the same fade, plus the MOSAIC register tied to the
@@ -19,7 +19,7 @@
 ;                does not: the load has to fall inside the black—
 ;   the cut      only for erasing: the fade started at its last outgoing
 ;                frame, so the first frame is already black and loads the
-;                map, and the way back is the usual one. `fundido_desde` sets
+;                map, and the way back is the usual one. `fade_from` sets
 ;                it
 ;
 ; The PPU's mosaic is for the backgrounds and nothing else: **sprites do not
@@ -28,16 +28,16 @@
 ; noticeable; it is in
 ; workflow/divergencias/las-transiciones-del-teletransporte.md.
 ;
-; `fundido_tick` does not need to be touched for this: the mosaic is deduced
+; `fade_tick` does not need to be touched for this: the mosaic is deduced
 ; from what the fade already carries —whether there is one, whether the load is
 ; still pending, and this frame's brightness— and written in the vblank, next
-; to the brightness, in `fundido_mosaico`.
+; to the brightness, in `fade_mosaic`.
 
 ; `ChangeScreenTransitions`: which one —0 erase, 1 show— and the transition.
 ; Only the jump stays in bank 0, because the dispatch wants the handler here and
 ; bank 0 has no room to spare.
 .proc op_transition
-    jsl f:transicion_poner
+    jsl f:transition_set
     jmp run_code::otro
 .endproc
 
@@ -46,7 +46,7 @@
 ; The body of `op_transition`: with Y at the first operand, and it returns with
 ; Y past the last one. The bytecode is read with `[cod_ptr], y`, which does not
 ; depend on the data bank, and far RAM with `f:`.
-.proc transicion_poner
+.proc transition_set
 .a8
 .i16
     lda [cod_ptr], y            ; which: 0 erase, 1 show
@@ -63,15 +63,15 @@ mostrar:
 .endproc
 
 ; The byte of `vueltas` from which the fade being started counts, into
-; `fundido_base`. From `empezar_fundido`.
+; `fundido_base`. From `start_fade`.
 ;
 ; With the cut for erasing it starts `FUNDIDO_CUADROS - 1` ticks back: the
-; first `fundido_tick` lands on the last frame of the outgoing half, which is
+; first `fade_tick` lands on the last frame of the outgoing half, which is
 ; already past `FUNDIDO_CARGA` —so it loads the map right there— and in the
 ; black in the middle. It is `TransitionCutOut`, which lasts one frame in RM2k,
-; followed by the usual show. `fundido_tick` knows nothing about it.
+; followed by the usual show. `fade_tick` knows nothing about it.
 .assert FUNDIDO_CARGA < FUNDIDO_CUADROS, error, "the cut has to land past the load"
-.proc fundido_desde
+.proc fade_from
 .a8
 .i16
     lda f:TRANSICION_BORRAR
@@ -94,7 +94,7 @@ put:
 ; fade.
 .assert TRANSICION_MOSAICO <> 0, error, "zero has to be the fade"
 .assert TRANSICION_CORTE <> 0, error, "zero has to be the fade"
-.proc transicion_de_arranque
+.proc boot_transition
 .a8
 .i16
     lda #0
@@ -111,7 +111,7 @@ put:
 ; mosaic, it turns it off: it is written every frame, so nobody else has to
 ; remember to turn it off. `fundido`, `fundido_que` and `brillo` live in bank
 ; 0's BSS, and are read with `f:` so as not to depend on the data bank.
-.proc fundido_mosaico
+.proc fade_mosaic
 .a8
 .i16
     lda f:fundido

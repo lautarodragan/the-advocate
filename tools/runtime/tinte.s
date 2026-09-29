@@ -13,7 +13,7 @@
 ; comparison is pixel by pixel.
 
 ; t[i] = i * value / 100 for i from 0 to 31, capped at 31. A = value, X = table.
-.proc tabla_canal
+.proc channel_table
 .a8
 .i16
     ; RM2k's tint does not scale the channel: it composes it with a *hard
@@ -36,7 +36,7 @@
     ;
     ; The mirror goes outside the loop on purpose. Doing it per entry —with
     ; the computation put in a subroutine— is ninety-six extra `jsr` and `rts`
-    ; per tint, and that was enough for `aplicar_tinte` to go from one frame
+    ; per tint, and that was enough for `apply_tint` to go from one frame
     ; to two: it showed as `snes-timer` losing one timer tick.
     sta temp                    ; the channel's value
     stx temp + 2                ; where the table goes
@@ -120,15 +120,15 @@ volver:
 .endproc
 
 ; Reads a palette from ROM, tints it color by color and uploads it to CGRAM.
-.proc tenir_paleta
+.proc tint_palette
 .a8
 .i16
-    jsr armar_paleta
-    jmp copiar_a_sombra
+    jsr build_palette
+    jmp copy_to_shadow
 .endproc
 ; Copies the palette just built in `pal_buf` to its place in `cgram_sombra`,
 ; and leaves the tint ready for `flush_video` to upload in the vblank.
-.proc copiar_a_sombra
+.proc copy_to_shadow
 .a8
 .i16
     lda tin_cgadd
@@ -141,7 +141,7 @@ volver:
 .a8
     ldx #$0000
     cpx tin_fin
-    beq listo                   ; a palette with no colors
+    beq ready                   ; a palette with no colors
 copia:
     lda pal_buf, x
     sta cgram_sombra, y
@@ -149,14 +149,14 @@ copia:
     iny
     cpx tin_fin
     bne copia
-listo:
+ready:
     lda #1
     sta tinte_listo
     rts
 .endproc
 
 ; Builds the tinted palette in `pal_buf`, without uploading it.
-.proc armar_paleta
+.proc build_palette
 .a8
 .i16
     ; The count goes in Y and not in X: inside the loop X is the index into the
@@ -180,13 +180,13 @@ hay_colores:
     ldy #$0000
     ; With neutral saturation —which is almost always— the color needs neither
     ; the three channels together nor to leave sixteen bits, and there the
-    ; short loop pays for itself. The numbers: `aplicar_tinte` walks the map's
+    ; short loop pays for itself. The numbers: `apply_tint` walks the map's
     ; colors, the upper layer's, those of the eight sprite palettes and the
     ; leader's —in CoreRetro II that is 151— and the long loop cost 205 cycles
     ; each. With that the iteration of the frame where the tint runs ended on
     ; line 224 of 262: **one** of margin. The first extra event that asked for
     ; a palette blew it, and the screen stayed untinted for a frame. Measured
-    ; with the `contar_perdidos` probe.
+    ; with the `count_lost` probe.
     lda tinte_s
     cmp #TINTE_NEUTRO
     bne cada_color
@@ -242,7 +242,7 @@ sigue_color:
     lda tinte_s
     cmp #TINTE_NEUTRO
     beq sin_saturar
-    jsr saturar_color
+    jsr saturate_color
 sin_saturar:
     ldx sat_r
     lda tabla_r, x
@@ -340,7 +340,7 @@ subir:
 ; `gray * 8` or `1024 + (gray - 128) * 16` over 1024, which worked out is
 ; `s / 100` below 100 and `(2s - 100) / 100` above. That is, 0 takes
 ; everything to gray, 100 does nothing and 200 triples the distance.
-.proc saturar_color
+.proc saturate_color
 .a8
 .i16
     ; First the gray. The weights are those of Y' in Y'CbCr and add up to
@@ -355,26 +355,26 @@ subir:
     sta peso_lo
     lda #>LUZ_R
     sta peso_hi
-    jsr sumar_peso
+    jsr add_weight
     lda sat_g
     sta peso_ch
     lda #<LUZ_G
     sta peso_lo
     lda #>LUZ_G
     sta peso_hi
-    jsr sumar_peso
+    jsr add_weight
     lda sat_b
     sta peso_ch
     lda #<LUZ_B
     sta peso_lo
     lda #>LUZ_B
     sta peso_hi
-    jsr sumar_peso
+    jsr add_weight
     lda sat_acc + 2             ; the sum divided by 65536
     sta sat_luz
 
     lda sat_r
-    jsr saturar_canal
+    jsr saturate_channel
     rep #$20
 .a16
     and #$00FF
@@ -382,7 +382,7 @@ subir:
     sep #$20
 .a8
     lda sat_g
-    jsr saturar_canal
+    jsr saturate_channel
     rep #$20
 .a16
     and #$00FF
@@ -390,7 +390,7 @@ subir:
     sep #$20
 .a8
     lda sat_b
-    jsr saturar_canal
+    jsr saturate_channel
     rep #$20
 .a16
     and #$00FF
@@ -403,7 +403,7 @@ subir:
 ; `sat_acc += weight * peso_ch`, in 24 bits. The weight is sixteen bits and the
 ; console's unit multiplies eight at a time, so it goes in two products: the
 ; low one as is and the high one shifted a byte.
-.proc sumar_peso
+.proc add_weight
 .a8
 .i16
     lda peso_lo
@@ -452,7 +452,7 @@ subir:
 .endproc
 
 ; A channel moved toward or away from `sat_luz`. Enters and leaves in A.
-.proc saturar_canal
+.proc saturate_channel
 .a8
 .i16
     sta sat_ch
@@ -496,7 +496,7 @@ subir:
     sta WRDIVL
     sep #$20
 .a8
-    jmp dividir_y_topar
+    jmp divide_and_cap
 
     ; Above 100 the channel moves away from gray: `channel +- |channel - luma|
     ; * (s - 100) / 100`, with the sign kept apart so as not to have to do a
@@ -564,7 +564,7 @@ restar:
 .endproc
 
 ; The divisor and the wait, which are the same on both paths.
-.proc dividir_y_topar
+.proc divide_and_cap
 .a8
 .i16
     lda #TINTE_NEUTRO
@@ -588,10 +588,10 @@ cabe:
 ; And uploads it from `pal_buf` to CGRAM entry `tin_cgadd`.
 
 ; The tint the event left, applied to the map's three palettes.
-.proc aplicar_tinte
+.proc apply_tint
 .a8
 .i16
-    jsr tablas_de_tinte
+    jsr tint_tables
 
     ; The background, from where it starts: below it are the screen's
     ; backdrop color and the window's palette, which **are not tinted**. That
@@ -600,7 +600,7 @@ cabe:
     ldx #M_PTR_MAP_CGRAM
     ldy #M_MAP_CGRAM
     lda #CGRAM_BASE
-    jsr una_paleta
+    jsr one_palette
 
     ; The upper layer, at whatever entry this map got. It has to be read from
     ; the record before loading X with the field, because the record is
@@ -611,13 +611,13 @@ cabe:
     ldx #M_PTR_ABOVE_CGRAM
     ldy #M_ABOVE_CGRAM
     pla
-    jsr una_paleta
+    jsr one_palette
 
     ; And the sprites, in the upper half of CGRAM.
     ldx #M_PTR_SPRITE_CGRAM
     ldy #M_SPRITE_CGRAM
     lda #128
-    jsr una_paleta
+    jsr one_palette
 
     ; On top, the leader's colors in its slot. The possible leaders share one,
     ; so the block that came from the cartridge carries those of the one the
@@ -644,14 +644,14 @@ cabe:
     clc
     adc #129                    ; the sprite half, plus index 0 which is not
     sta tin_cgadd               ; drawn
-    jsr tenir_paleta
+    jsr tint_palette
 sin_lider_pal:
 
     ; The timer goes **untinted**, on top of what was just uploaded. In RM2k
     ; the tint is a property of the map's drawables —`Priority_Screen` is 90
     ; and `Priority_Timer` 140—, so the screen darkens and the digits do not.
     ; Here the tint is a CGRAM transformation and runs over everything it
-    ; touches, so `subir_timer_pal` uploads the digits' entries again from
+    ; touches, so `upload_timer_pal` uploads the digits' entries again from
     ; ROM, and only those: they share the palette with a character.
     ;
     ; The message window is not tinted either, and without doing anything: it
@@ -661,7 +661,7 @@ sin_lider_pal:
     ; window— and here it used to say it could not be done.
     ;
     ; None of this touched CGRAM: the three palettes were left in
-    ; `cgram_sombra` and `subir_tinte` uploads them, in the vblank.
+    ; `cgram_sombra` and `upload_tint` uploads them, in the vblank.
     rts
 .endproc
 
@@ -669,7 +669,7 @@ sin_lider_pal:
 ;
 ; CGRAM does not accept writes with the PPU drawing, so this cannot run at
 ; just any moment. It was first tried inside `flush_video`, which runs in
-; vblank, and it does not fit: `aplicar_tinte` builds three channel tables of
+; vblank, and it does not fit: `apply_tint` builds three channel tables of
 ; thirty-two entries and uploads three palettes by DMA. What overran the
 ; vblank landed with the PPU drawing, and the result was a half-done tint
 ; different each time —once the upper layer and a sprite, another time the
@@ -686,25 +686,25 @@ sin_lider_pal:
 ; lasts, and on the emulator a frame tinted from the middle down. The screen
 ; shake saw it, being the first recipe that compares frame by frame.
 ;
-; Turning the screen off is what the teleport already does —`cargar_lo_pedido`—
+; Turning the screen off is what the teleport already does —`load_requested`—
 ; for the same reason. It costs one black frame, which does not look out of
 ; place in RM2k either: the original engine fades to black on transitions.
-.proc tinte_de_evento
+.proc event_tint
 .a8
 .i16
     lda tinte_pendiente
     beq nothing
     stz tinte_pendiente
-    jsr aplicar_tinte           ; to the shadow; CGRAM is written in the vblank
+    jsr apply_tint           ; to the shadow; CGRAM is written in the vblank
 nothing:
     rts
 .endproc
 
 ; Uploads to CGRAM the three tinted palettes from `cgram_sombra`, and the
 ; untinted timer entries after them. It is for the vblank, or for
-; `cargar_mapa` with the screen off. The three DMAs together are 544 bytes at
+; `enter_map` with the screen off. The three DMAs together are 544 bytes at
 ; most.
-.proc subir_tinte
+.proc upload_tint
 .a8
 .i16
     stz tinte_listo
@@ -714,12 +714,12 @@ nothing:
     sta sombra_origen
     sep #$20
 .a8
-    jmp subir_paletas
+    jmp upload_palettes
 .endproc
 ; The same from `pal_buf`, which is where the shadow sits with the screen
 ; flash on top. It takes the pending tint along, if there was one: the flash
 ; was already built on the freshly tinted shadow.
-.proc subir_destello
+.proc upload_flash
 .a8
 .i16
     stz destello_listo
@@ -730,9 +730,9 @@ nothing:
     sta sombra_origen
     sep #$20
 .a8
-    jmp subir_paletas
+    jmp upload_palettes
 .endproc
-.proc subir_paletas
+.proc upload_palettes
 .a8
 .i16
     ldx mapa_ofs
@@ -743,7 +743,7 @@ nothing:
     sep #$20
 .a8
     lda #CGRAM_BASE             ; the background starts shifted: below is the
-    jsr dma_sombra              ; window, which is neither tinted nor re-uploaded
+    jsr dma_shadow              ; window, which is neither tinted nor re-uploaded
     ldx mapa_ofs
     rep #$20
 .a16
@@ -752,7 +752,7 @@ nothing:
     sep #$20
 .a8
     lda f:mapa_tabla + M_ABOVE_FIRST, x
-    jsr dma_sombra
+    jsr dma_shadow
     ldx mapa_ofs
     rep #$20
 .a16
@@ -761,11 +761,11 @@ nothing:
     sep #$20
 .a8
     lda #128
-    jsr dma_sombra
-    jmp subir_timer_pal
+    jsr dma_shadow
+    jmp upload_timer_pal
 .endproc
 ; A DMA of `tin_count` colors from `sombra_origen` to CGRAM entry A.
-.proc dma_sombra
+.proc dma_shadow
 .a8
 .i16
     sta CGADD
@@ -806,7 +806,7 @@ nothing:
 ;
 ; And only **with the timer on screen**. With no digits to draw those entries
 ; belong to the character alone and are tinted like the others; when it is
-; turned on or off, `timer_repintar` asks for a re-upload. What stays unfixed
+; turned on or off, `timer_repaint` asks for a re-upload. What stays unfixed
 ; is an entry the character and the digits share —black, almost always, and
 ; the save point's red—: while the timer is visible, that one stays untinted
 ; for both, because the digits win. The black only shows with a tint that
@@ -814,7 +814,7 @@ nothing:
 ;
 ; Which entries they are is said by `timer_mascara`, one bit per entry and one
 ; word per map, which the converter emits.
-.proc subir_timer_pal
+.proc upload_timer_pal
 .a8
 .i16
     lda timer_visible
@@ -898,7 +898,7 @@ siguiente:
 ; And asking is not to save the DMA but the budget: the frame that uploads
 ; the tint uploads fewer poses —see `flush_video`—, and that would move
 ; whoever is walking right when a timer starts with no tint.
-.proc timer_repintar
+.proc timer_repaint
 .a8
 .i16
     lda tinte_r
@@ -922,7 +922,7 @@ pedir:
 
 ; Tints and uploads one of the map's palettes. X = the pointer's field, Y = the
 ; count's field, A = which CGRAM entry it starts at.
-.proc una_paleta
+.proc one_palette
 .a8
 .i16
     sta tin_cgadd
@@ -952,6 +952,6 @@ pedir:
     sta tin_count
     sep #$20
 .a8
-    jsr tenir_paleta
+    jsr tint_palette
     rts
 .endproc

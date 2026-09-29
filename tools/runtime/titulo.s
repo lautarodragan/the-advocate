@@ -14,7 +14,7 @@
 ; The image comes compressed, and `screen_upload` uploads it, the same routine
 ; as the Game Over one: the tiles from $0000 and its tilemap at SCREEN_MAP.
 ; The VRAM layout is in mapdata.inc, next to TITULO_MENU_VRAM. On the way out,
-; `cargar_mapa` restores the bases and overwrites everything.
+; `enter_map` restores the bases and overwrites everything.
 ;
 ; **It runs with its own loop and not the main one.** The main loop moves the
 ; hero, runs the interpreter and builds the OAM, and there is none of that
@@ -72,7 +72,7 @@ mudo:
     ; because nothing that runs on the title writes bank $7F: not its loop,
     ; not the music, not the slot screen. The buffer overwrites the grid and
     ; the ChipSet animation drawings of the boot map, and that is allowed
-    ; because this screen is always left through `cargar_mapa`, which
+    ; because this screen is always left through `enter_map`, which
     ; rebuilds them.
 .ifdef ::PANTALLA_TITULO        ; no title screen, no row
     ldx #(PANTALLA_TITULO * PANTALLA_FILA)
@@ -216,7 +216,7 @@ salir:
 cargar_el_mapa:
     ; VRAM was left with the title image, so the map has to be loaded again in
     ; full. But VRAM is not the only thing this screen moved: the **PPU
-    ; registers** too, and `cargar_mapa` does not restore those.
+    ; registers** too, and `enter_map` does not restore those.
     ;
     ; `BG1SC`, `BG2SC`, the scrolls and `TM` are written by `ppu_init`, which
     ; until now ran only once at boot because nobody touched them afterwards.
@@ -258,7 +258,7 @@ cargar_el_mapa:
     rep #$20
 .a16
     lda 2, s                    ; the map index, behind music_apagada
-    jsr cargar_mapa
+    jsr enter_map
     sep #$20
 .a8
     pla                         ; the save's music_apagada

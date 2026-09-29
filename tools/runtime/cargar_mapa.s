@@ -11,7 +11,7 @@
 ;
 ; This cannot be called with the screen on: it writes VRAM and CGRAM by DMA,
 ; which the PPU does not allow outside vblank.
-.proc cargar_mapa_sin_eventos
+.proc enter_map_no_events
 .a16
 .i16
     sta mapa_actual             ; to know whether the next jump changes map
@@ -181,13 +181,13 @@ puesto:
 
     ; The grid, to WRAM, before anyone asks about a cell: it comes compressed.
     ; See `GRILLA`.
-    jsl f:lz2_grilla + RAPIDO
+    jsl f:lz2_grid + RAPIDO
     jsr follow_camera
     jsr load_map
     jsr load_above
     jsr load_sprite
     jsr load_npcs
-    jsr load_ruta_graficos
+    jsr load_route_graphics
     jsr load_ev_pos             ; and where each event starts, with or without a graphic
     stz refresco
     ; Before the refresh, not after: the previous map's marks are worth
@@ -199,8 +199,8 @@ puesto:
     jsr page_routes         ; and the move routes of the active pages themselves
     ; The actor table belongs to this map, so where the leader's poses fall
     ; changes when changing map even if the party is the same.
-    jsr elegir_grafico_heroe
-    jsr limpiar_tilemaps        ; what `fill_window` does not overwrite, from the map before
+    jsr pick_hero_graphic
+    jsr clear_tilemaps        ; what `fill_window` does not overwrite, from the map before
     jsr fill_window             ; leaves tira_paso_col ready, which the other one uses
     jsr load_window            ; tiles, palette, its own tilemap and HDMA tables
     jsr init_hero_ptr
@@ -210,11 +210,11 @@ puesto:
     ; again here. With a neutral tint the computation is i*100/100 and leaves
     ; the colors where they were, so there is no need to ask whether there is
     ; a tint: the path is always the same.
-    jsr aplicar_tinte
+    jsr apply_tint
     stz destello_listo          ; whatever was in `pal_buf` no longer
                                 ; belongs to this map; the next frame
                                 ; builds it again if the flash goes on
-    jsr subir_tinte             ; the screen is off: it goes now
+    jsr upload_tint             ; the screen is off: it goes now
     rts
 .endproc
 
@@ -222,12 +222,12 @@ puesto:
 ; events.
 ;
 ; If an event requests a teleport, the cycle repeats here and not inside the
-; interpreter. Calling cargar_mapa from the interpreter would be recursion,
+; interpreter. Calling enter_map from the interpreter would be recursion,
 ; and two maps that point at each other would make it infinite: the stack
 ; sinks to the bottom and the console does anything at all. The cap on
 ; iterations is there for the same reason, for the case where they point at
 ; each other through a longer cycle.
-.proc cargar_mapa
+.proc enter_map
 .a16
 .i16
     pha                         ; the map index, which what follows would clobber
@@ -238,7 +238,7 @@ puesto:
     rep #$20
 .a16
     pla
-    jsr cargar_mapa_sin_eventos
+    jsr enter_map_no_events
     rts
 .endproc
 
@@ -260,7 +260,7 @@ puesto:
 ; lower CGRAM and the map's, and the drawing of the animation that applies—,
 ; it is tinted again because what was uploaded comes untinted, and the
 ; registers are set by `ppu_init` plus the map's BG12NBA and BG1SC. It is a
-; subset of `cargar_mapa_sin_eventos`, chosen by hand: what is missing from
+; subset of `enter_map_no_events`, chosen by hand: what is missing from
 ; there is state —events, routes, poses, the VRAM queue— and restoring it
 ; would restart the game.
 ;
@@ -272,7 +272,7 @@ puesto:
 ; show and then the map, because `load_map`'s 30 KB do not fit in one vblank
 ; and that tick lasts two frames —`cuadros_perdidos` counts one—. In RM2k
 ; closing the scene takes a transition, so it does not look out of place.
-.proc volver_al_mapa
+.proc back_to_map
 .a8
 .i16
     lda #$80
@@ -290,17 +290,17 @@ puesto:
     ; restores only the background's. The upper ones start at ABOVE_FIRST,
     ; which can fall in there.
     jsr load_above
-    jsr aplicar_tinte
+    jsr apply_tint
     stz destello_listo          ; `pal_buf` was from before; if the flash goes on,
                                 ; the next frame builds it again
-    jsr subir_tinte
+    jsr upload_tint
     rts
 .endproc
 
 ; And coming back from a **battle**, which overwrites much more than the slot
 ; screen.
 ;
-; `volver_al_mapa` is enough for the shop, the menu and the slots because all
+; `back_to_map` is enough for the shop, the menu and the slots because all
 ; three write nothing but `RANURA_VRAM` and `RANURA_MAP`, chosen to fall
 ; inside BG1's tile bank in every layout. The battle scene is not:
 ; `scene_upload` uploads **32 KB**, that is words $4000 to $8000, plus its
@@ -319,37 +319,37 @@ puesto:
 ;
 ; None of that is restored by `load_map`, so until 2026-09-13 the map came
 ; back from battle with the background turned to garbage. What does **not**
-; go here is `load_npcs` or `load_ruta_graficos`: they copy tables from the
+; go here is `load_npcs` or `load_route_graphics`: they copy tables from the
 ; cartridge to RAM, the battle does not touch them, and restoring them would
 ; erase whatever the events had moved before the battle.
 ;
-; It goes apart from `volver_al_mapa` and not inside it so as not to charge
+; It goes apart from `back_to_map` and not inside it so as not to charge
 ; the shop, the menu and the slots for the 64 columns of `fill_window`, which
 ; are the only moment when that much tilemap is written at once: they do not
 ; need it, and one more lost frame would be eaten by the suite cases that
 ; look at them.
-.proc volver_de_batalla
+.proc back_from_battle
 .a8
 .i16
     lda #$80
     sta INIDISP                 ; what follows writes VRAM by DMA
     jsl f:scene_cgram_restore  ; the palettes the battlers took
     jsr load_sprite             ; the pose bank, the object palette and OBSEL
-    jsr poses_npc_olvidar
+    jsr npc_poses_forget
     jsr load_window
     ; The grid, which the scene overwrote in the middle of bank $7F —it is
     ; `SCN_SCENE`— if the map has more than 32 KB of grid. It is
     ; decompressed again in full, which is simpler than tracking where the
     ; second stream starts and costs the same as entering the map. Before
     ; `fill_window`, which reads it.
-    jsl f:lz2_grilla + RAPIDO
+    jsl f:lz2_grid + RAPIDO
     jsr fill_window
-    jmp volver_al_mapa
+    jmp back_to_map
 .endproc
 
 ; Starts a teleport fade. A carries what has to be done when the screen
 ; reaches black; the map, if needed, is already in `fundido_mapa`.
-.proc empezar_fundido
+.proc start_fade
 .a8
 .i16
     sta fundido_que
@@ -366,9 +366,9 @@ puesto:
     ; harness counts ticks —see `vueltas`— so the clock is the same on both
     ; sides again and the one that absorbs the delay is the wall clock.
     ;
-    ; The start is set by `fundido_desde`, in bank 1, because with the cut it
+    ; The start is set by `fade_from`, in bank 1, because with the cut it
     ; is not `vueltas`: see `transicion_del_teletransporte.s`.
-    jsl f:fundido_desde
+    jsl f:fade_from
     rts
 .endproc
 
@@ -381,7 +381,7 @@ puesto:
 ; interpreter, the hero, the events, the timer and everything that moves
 ; anything. What keeps running is the music, which in RM2k does not stop
 ; either.
-.proc fundido_tick
+.proc fade_tick
 .a8
 .i16
     lda fundido
@@ -394,7 +394,7 @@ puesto:
     cmp #FUNDIDO_CARGA
     bcc rampa                   ; still going dark
     pha
-    jsr cargar_lo_pedido        ; only once: it turns itself off
+    jsr load_requested        ; only once: it turns itself off
     pla
 rampa:
     ; This frame's brightness. Going down, the ramp is read backwards.
@@ -432,10 +432,10 @@ no_hay:
     rts
 .endproc
 
-; The song the map being entered turns on, between `mapa_tema_callar` and the
+; The song the map being entered turns on, between `map_song_mute` and the
 ; end of the load, or $FF if nothing has to be turned on. In far RAM because
 ; bank 0's BSS is full.
-TEMA_DEL_MAPA = $7E6100
+MAP_SONG = $7E6100
 
 ; What the map being entered does to the music, which is easyrpg's
 ; `Game_Map::PlayBgm`: its song, if it has one —`mapa_tema`, which already
@@ -459,7 +459,7 @@ TEMA_DEL_MAPA = $7E6100
 ;
 ; If it has to change, it is silenced here, with the screen already black: the
 ; MSU-1 stops and the SPC700 releases the voices, as in `battle_bgm`.
-.proc mapa_tema_callar
+.proc map_song_mute
 .a8
 .i16
     ldx fundido_mapa
@@ -497,13 +497,13 @@ cambia_ya:
 ; hero if the jump was to the same one. It is done once and turns itself off.
 ;
 ; The screen is put in forced blanking by hand instead of waiting for vblank:
-; `cargar_mapa` writes VRAM and CGRAM by DMA and with the PPU drawing those
+; `enter_map` writes VRAM and CGRAM by DMA and with the PPU drawing those
 ; writes are lost. It does not show, because the brightness is already zero.
-.proc cargar_lo_pedido
+.proc load_requested
 .a8
 .i16
     lda fundido_que
-    beq listo
+    beq ready
     pha
     lda #$80
     sta INIDISP
@@ -511,24 +511,24 @@ cambia_ya:
     pla
     cmp #FUNDIDO_MISMO
     bne carga
-    jsr mover_heroe_a
+    jsr move_hero_to
     bra hecho
 carga:
     ; The new map's song is decided **before** loading it, because if it
     ; changes the playing one has to be silenced before `package_load`
     ; builds the package: that one leaves in place the samples of the song it
     ; says is playing, and the one about to be turned on needs them in their
-    ; place. See `mapa_tema_callar`.
+    ; place. See `map_song_mute`.
     pha
-    jsr mapa_tema_callar
-    sta f:TEMA_DEL_MAPA
+    jsr map_song_mute
+    sta f:MAP_SONG
     pla
     cmp #FUNDIDO_PUERTA
     bne salto
     rep #$20
 .a16
     lda fundido_mapa            ; the index goes in sixteen bits
-    jsr cargar_mapa             ; the harness's: resets the jump cap
+    jsr enter_map             ; the harness's: resets the jump cap
     sep #$20
 .a8
     ; The hero appears standing still on the entry cell. No jump in the game
@@ -543,7 +543,7 @@ salto:
     rep #$20
 .a16
     lda fundido_mapa            ; the index goes in sixteen bits
-    jsr cargar_mapa_sin_eventos
+    jsr enter_map_no_events
     sep #$20
 .a8
     ; And the new map's automatic events, to the queue. The page that
@@ -556,13 +556,13 @@ salto:
     ; this one ends" and nobody did it: after a teleport, the destination
     ; map's events never ran. Nothing saw it because the only test that
     ; teleported looked at the tint, which is set by the origin map.
-    ; Today `cargar_mapa_sin_eventos` does it, inside its refresh.
+    ; Today `enter_map_no_events` does it, inside its refresh.
 prender:
     ; And the map's song, with the package already uploaded: its samples came in
     ; it. It goes before any page of the new map runs, so a `PlayBGM` from an
     ; automatic event wins over it, which is RM2k's order: `Game_Map::PlayBgm`
     ; runs when the map is set up, before its events.
-    lda f:TEMA_DEL_MAPA
+    lda f:MAP_SONG
     cmp #$FF
     beq hecho
     jsr music_start
@@ -573,7 +573,7 @@ hecho:
     ; things it skips— so the ramp back up would draw the new map with the old
     ; sprites.
     jsr build_oam
-listo:
+ready:
     rts
 .endproc
 
@@ -581,7 +581,7 @@ listo:
 ; what a teleport that does not change map does: the event table, their
 ; positions, the routes that are running and the queued pages stay as they
 ; were.
-.proc mover_heroe_a
+.proc move_hero_to
 .a8
 .i16
     rep #$20

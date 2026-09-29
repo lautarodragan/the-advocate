@@ -30,7 +30,7 @@ it!"— y ese salto es la última orden de su ruta. Sin el arreglo nadie baja el
 descuento: `ruta_salto` se queda en 232 con `ruta_i == ruta_n` durante **49
 muestras seguidas** del vigilante, seis de ellas con un mensaje en pantalla;
 con el arreglo la racha más larga es de **una**. Ojo con que ese salto no se
-**ve**: sin desplazamiento, `salto_posicion_heroe` deja `hero_y` en su lugar, así
+**ve**: sin desplazamiento, `jump_hero_position` deja `hero_y` en su lugar, así
 que lo único que lo delata es el estado.
 
 **Y lo que no caza, medido también**: el mapa dibujado corrido —el arreglo de

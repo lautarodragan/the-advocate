@@ -95,13 +95,13 @@ de_venta:
     stz comp_or01 + 2
     lda comp_col
     cmp #SHOP_SELL
-    bcc listo
+    bcc ready
     rep #$20
 .a16
     lsr comp_or01
     sep #$20
 .a8
-listo:
+ready:
     rts
 .endproc
 
@@ -213,7 +213,7 @@ dividir:
     lda #0
 miembro:
     cmp grupo_n
-    bcs listo
+    bcs ready
     pha
     rep #$20
 .a16
@@ -243,7 +243,7 @@ otra:
     pla
     inc a
     bra miembro
-listo:
+ready:
     rep #$20
 .a16
     lda comp_or01
@@ -782,7 +782,7 @@ mensaje_de:
     sta comp_and + 2
     stz comp_or01 + 2
     lda comp_color
-    beq listo
+    beq ready
     rep #$20
 .a16
     and #$00FF
@@ -803,7 +803,7 @@ otra:
     sta comp_or01 + 2
     dex
     bne otra
-listo:
+ready:
     rts
 .endproc
 
@@ -842,7 +842,7 @@ comprando:
 otro:
     lda comp_fila
     cmp temp + 3
-    bcs listo
+    bcs ready
     ; eq_tmp >= price? If the price is zero, always.
     rep #$20
 .a16
@@ -854,7 +854,7 @@ otro:
 .a8
     lda comp_and + 2
     sbc comp_or01 + 2
-    bcc listo
+    bcc ready
     sta comp_and + 2
     rep #$20
 .a16
@@ -864,7 +864,7 @@ otro:
 .a8
     inc comp_fila
     bra otro
-listo:
+ready:
     rts
 .endproc
 
@@ -946,7 +946,7 @@ quita:
     adc comp_or01 + 2
     sta oro + 2
     cmp #^ORO_MAX
-    bcc listo
+    bcc ready
     bne tope
     rep #$20
 .a16
@@ -954,8 +954,8 @@ quita:
     cmp #.loword(ORO_MAX)
     sep #$20
 .a8
-    bcc listo
-    beq listo
+    bcc ready
+    beq ready
 tope:
     rep #$20
 .a16
@@ -965,7 +965,7 @@ tope:
 .a8
     lda #^ORO_MAX
     sta oro + 2
-listo:
+ready:
     rts
 .endproc
 
@@ -978,13 +978,13 @@ listo:
     sta comp_mask
     lda comp_base
     cmp comp_mask
-    bcc listo
+    bcc ready
     lda comp_mask                    ; the last one was sold: the cursor goes up
     beq cero
     dec a
 cero:
     sta comp_base
-listo:
+ready:
     rts
 .endproc
 
@@ -1012,9 +1012,9 @@ no_principal:
     rts
 no_comprar:
     cmp #SHOP_SELL
-    bne listo
+    bne ready
     jmp shop_sell_list
-listo:
+ready:
     rts
 .endproc
 
@@ -1034,13 +1034,13 @@ no_arriba:
     sec
     sbc comp_base + 1
     cmp temp + 3
-    bcc listo
+    bcc ready
     lda comp_base
     sec
     sbc temp + 3
     inc a                       ; the cursor, on the last visible row
     sta comp_base + 1
-listo:
+ready:
     rts
 .endproc
 

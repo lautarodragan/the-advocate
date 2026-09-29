@@ -2,10 +2,10 @@
 
 ; Uploads pose A of the NPC in row Y, unless it is the one already in VRAM.
 ;
-; It came out of `refrescar_npc`, which was the only one that needed it, the
-; day there was a second one: `animar_quietos`. `npc_fila` has to hold the
+; It came out of `refresh_npc`, which was the only one that needed it, the
+; day there was a second one: `animate_still`. `npc_fila` has to hold the
 ; same row as Y, which is how it came in.
-.proc subir_pose_npc
+.proc upload_npc_pose
 .a8
 .i16
     ; The row's tile is fixed —it is its slot— and what changes are the slot's
@@ -69,13 +69,13 @@ cambia:
     sta vq_dest
     sep #$20
 .a8
-    jsr vram_encolar
-    bne listo
+    jsr vram_queue
+    bne ready
     ; The queue was full: it is asked for again next frame.
     ldy npc_fila
     lda #$FF
     sta npc_buf + 12, y
-listo:
+ready:
     rts
 .endproc
 
@@ -86,16 +86,16 @@ listo:
 ; only part of that table this touches: it is a shadow of what is in VRAM,
 ; not game state.
 ;
-; With $FF no pose matches, so each row's next `subir_pose_npc` queues it
+; With $FF no pose matches, so each row's next `upload_npc_pose` queues it
 ; again. Without this the shadow would lie and an NPC that was already in its
 ; pose would keep the cartridge's forever.
-.proc poses_npc_olvidar
+.proc npc_poses_forget
 .a8
 .i16
     ldy #$0000
 otra:
     cpy npc_total               ; comes in bytes, not rows
-    beq listo
+    beq ready
     lda #$FF
     sta npc_buf + 12, y
     rep #$20
@@ -107,7 +107,7 @@ otra:
     sep #$20
 .a8
     bra otra
-listo:
+ready:
     rts
 .endproc
 
@@ -118,7 +118,7 @@ listo:
 ; after that does it use X for something else. It is longer to read and much
 ; harder to break: three routines are called inside and all of them use
 ; indexes.
-.proc refrescar_npc
+.proc refresh_npc
 .a8
 .i16
     stz salto_alto
@@ -142,7 +142,7 @@ listo:
     sta slot_dir                ; the direction of the step in progress
     lda ruta_ev + 10, x
     sta slot_paso
-    jsl f:npc_de_ranura + RAPIDO  ; `event_npc`, remembered in the slot
+    jsl f:slot_npc + RAPIDO  ; `event_npc`, remembered in the slot
     sty npc_fila
     cpy #$FFFF
     bne hay_fila
@@ -185,8 +185,8 @@ sin_paso_npc:
     lda ruta_ev + 15, x
     sta salto_dy
     phx
-    jsr salto_posicion_npc
-    jsr alto_del_salto
+    jsr jump_npc_position
+    jsr jump_height_of
     plx
     bra puesto
 con_paso_npc:
@@ -207,18 +207,18 @@ con_paso_npc:
     lda f:paso_dx, x
     beq sin_dx_npc
     bmi mas_px                  ; $FF, that is, to the left
-    jsr restar_a_px
+    jsr sub_a_from_px
     bra sin_dx_npc
 mas_px:
-    jsr sumar_a_px
+    jsr add_a_to_px
 sin_dx_npc:
     lda f:paso_dy, x
     beq puesto
     bmi mas_py                  ; it came from below: it still has to go up
-    jsr restar_a_py
+    jsr sub_a_from_py
     bra puesto
 mas_py:
-    jsr sumar_a_py
+    jsr add_a_to_py
 
 puesto:
     ; Into the row: the position, and the key with the layer it already had.
@@ -277,24 +277,24 @@ sin_giro:
 sin_ajuste:
     clc
     adc temp                    ; the pose, 0 to 11
-    jsr subir_pose_npc
+    jsr upload_npc_pose
 acomodar:
-    jmp acomodar_npc            ; and the row, to wherever it belongs now
+    jmp fit_npc            ; and the row, to wherever it belongs now
 .endproc
 
 ; Puts row `npc_fila` where it belongs now, with the table already sorted:
-; see `acomodar_lejos`, in bank 1.
-.proc acomodar_npc
+; see `fit_far`, in bank 1.
+.proc fit_npc
 .a8
 .i16
-    jsl f:acomodar_lejos + RAPIDO   ; see MEMSEL
+    jsl f:fit_far + RAPIDO   ; see MEMSEL
     rts
 .endproc
 
 ; The four additions for the step in progress, with `temp` holding the pixels
 ; left. They are separate because the `rep`/`sep` of each one inside the `cmp`
 ; made the procedure so long that the branches did not reach.
-.proc sumar_a_py
+.proc add_a_to_py
 .a8
 .i16
     rep #$20
@@ -308,7 +308,7 @@ acomodar:
     rts
 .endproc
 
-.proc restar_a_py
+.proc sub_a_from_py
 .a8
 .i16
     rep #$20
@@ -322,7 +322,7 @@ acomodar:
     rts
 .endproc
 
-.proc sumar_a_px
+.proc add_a_to_px
 .a8
 .i16
     rep #$20
@@ -336,7 +336,7 @@ acomodar:
     rts
 .endproc
 
-.proc restar_a_px
+.proc sub_a_from_px
 .a8
 .i16
     rep #$20

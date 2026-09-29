@@ -156,16 +156,16 @@ ninguno8:
     beq resta
     lda comp_and
     cmp #ITEM_MAX
-    bcs listo
+    bcs ready
     inc a
     bra escribir
 resta:
     lda comp_and
-    beq listo
+    beq ready
     dec a
 escribir:
     sta WMDATA
-listo:
+ready:
     rts
 .endproc
 
@@ -304,12 +304,12 @@ sin_puntos:
     bmi uno                     ; signed: equipment can subtract
     beq uno
     cmp #1000
-    bcc listo
+    bcc ready
     lda #999
-    bra listo
+    bra ready
 uno:
     lda #1
-listo:
+ready:
     sta comp_dup
     sep #$20
 .a8
@@ -835,7 +835,7 @@ fila_pos_lista:
     lda comp_mask
     sep #$20
 .a8
-    beq listo
+    beq ready
     rep #$20
 .a16
     lda comp_mask
@@ -856,19 +856,19 @@ fila_pos_lista:
     lda comp_col
     bne no_arma
     jsr eq_two_handed            ; `eq_id` is the new weapon
-    beq listo
+    beq ready
     lda #1
     jmp sacar
 no_arma:
     cmp #1
-    bne listo
+    bne ready
     lda #0
     jsr eq_read
     jsr eq_two_handed
-    beq listo
+    beq ready
     lda #0
     jmp sacar
-listo:
+ready:
     rts
 
 ; A: the slot. What it has goes back to the inventory and it is left empty.

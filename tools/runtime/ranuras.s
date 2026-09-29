@@ -388,11 +388,11 @@ las_caras_listas:
     ; with glyphs on top of the row. `temp + 3` is no longer needed, so
     ; `slot_text_write` can use `temp`.
     lda temp + 3
-    beq listo                   ; an empty party has no leader
+    beq ready                   ; an empty party has no leader
     stz titulo_flancos
     jsr actor_del_miembro
     cmp #RANURA_ACTORES_N
-    bcs listo                   ; an actor this ROM does not know
+    bcs ready                   ; an actor this ROM does not know
     pha                         ; the actor, for both strips
     lda ranura
     rep #$20
@@ -424,7 +424,7 @@ las_caras_listas:
     jsl f:text_level_saved  ; the one from the slot's save, not the current one
     lda #RANURA_NIVEL_CIFRAS
     jsr slot_text_write
-listo:
+ready:
     rts
 
 ; The actor in place `titulo_flancos` of the slot's party, read from SRAM.
@@ -556,7 +556,7 @@ espera:
     ; From the first, up wraps around, but only on a single press: the repeat
     ; stops at the end. It is easyrpg's `Scene_File::Update`, which unlike
     ; `Window_Selectable` asks for `IsTriggered` to wrap around; see
-    ; `flechas_repetir`.
+    ; `arrows_repeat`.
     lda flechas_repetidas
     and #PAD_UP
     bne espera
@@ -597,7 +597,7 @@ mira_a:
     rts
 
 ; What the two exits have in common: `ranura` as it was, the data bank as it
-; was, the marker down. And `nmi_visto` up to date, so that `contar_perdidos`
+; was, the marker down. And `nmi_visto` up to date, so that `count_lost`
 ; does not count as lost the frames the player spent choosing: from the save
 ; point this runs inside one tick of the loop, and without this the tick
 ; would measure hundreds of frames and saturate the counter.

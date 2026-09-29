@@ -159,11 +159,11 @@ terreno_celda:
     ldx mapa_ofs
     lda f:mapa_tabla + M_TERRENO_PLANO, x
     bne terreno_puesto          ; a single terrain in the whole map
-    jsr ptr_de_celda
+    jsr cell_ptr
     rep #$20
 .a16
     lda [celdas_ptr]            ; which block the cell is, already substituted
-    jsr celda_sustituida
+    jsr cell_replaced
     sta temp + 2
     ; The table lives outside bank 0, so it is read with a 24-bit pointer, and
     ; the only free one here is `celdas_ptr` —which has already been used and
@@ -187,7 +187,7 @@ terreno_puesto:
     sta temp + 2                ; `var_write` takes it from here
     stz temp + 3
     lda temp                    ; the mode, which carries the refresh bit:
-    xba                         ; `ptr_de_celda` and `celda_sustituida` do
+    xba                         ; `cell_ptr` and `cell_replaced` do
     lda temp + 1                ; not touch `temp`
     jsr var_write            ; with its refresh, if the mode asks for it
     ply

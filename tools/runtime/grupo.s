@@ -1,7 +1,7 @@
 .segment "CODE"
 
 ; Is the actor in A in the party? Returns with Z=0 if so.
-.proc en_el_grupo
+.proc in_party
 .a8
 .i16
     ldx #$0000
@@ -27,7 +27,7 @@ no_esta:
 ; someone who is already there neither duplicates them nor moves them, adding
 ; with the party full does nothing, and neither does removing someone who is
 ; not there. The order matters because the first one is the one drawn.
-.proc cambiar_grupo
+.proc change_party
 .a8
 .i16
     ldx #$0000
@@ -62,10 +62,10 @@ acortar:
     dec grupo_n
     sep #$20
 .a8
-    bra listo
+    bra ready
 era_agregar:
     pla
-    bra listo
+    bra ready
 
 no_estaba:
     pha
@@ -73,31 +73,31 @@ no_estaba:
     bne era_sacar               ; removing one who is not there: nothing to do
     pla
     cpx #GRUPO_MAX
-    beq listo                   ; full: RM2k does not add it either
+    beq ready                   ; full: RM2k does not add it either
     sta grupo, x
     rep #$20
 .a16
     inc grupo_n
     sep #$20
 .a8
-    bra listo
+    bra ready
 era_sacar:
     pla
 
-listo:
-    jsr elegir_grafico_heroe
+ready:
+    jsr pick_hero_graphic
     ; The new leader has other colors and shares the slot with the previous
     ; one, so the palettes have to be rebuilt. It does not touch CGRAM: it
-    ; leaves everything in `cgram_sombra` and `subir_tinte` uploads it in the
+    ; leaves everything in `cgram_sombra` and `upload_tint` uploads it in the
     ; vblank.
-    jsr aplicar_tinte
+    jsr apply_tint
     lda #1
     sta refresco                ; the pages that ask for an actor may change
     rts
 .endproc
 
 ; A: an index into the map's graphics table —the one `ruta_grafico` builds and
-; `load_ruta_graficos` copies to `ruta_graf_buf`—. Leaves `hero_poses`,
+; `load_route_graphics` copies to `ruta_graf_buf`—. Leaves `hero_poses`,
 ; `hero_pal` and `hero_cgram` pointing at that graphic and returns with C=1;
 ; if the graphic is not in this map's sprite bank it returns with C=0 and
 ; without touching anything.
@@ -109,7 +109,7 @@ listo:
 ; `place_hero` still does not notice.
 ;
 ; `hero_cgram` is turned off: the leader's fifteen colors are uploaded by
-; `aplicar_tinte` **into the row `hero_pal` names**, so leaving it on with the
+; `apply_tint` **into the row `hero_pal` names**, so leaving it on with the
 ; new palette would write Talan's colors over the palette of the graphic it
 ; changed to. While the change is in effect, the hero is drawn with the new
 ; graphic's palette, which already lives in CGRAM with the rest of the map's
@@ -117,10 +117,10 @@ listo:
 ;
 ; It is used by the two things that change the hero's graphic: move command
 ; 34 of a move route —`grafico_heroe`— and the `ChangeSpriteAssociation` on
-; the actor who leads —`elegir_grafico_heroe`—. What each one does with C=0 is
+; the actor who leads —`pick_hero_graphic`—. What each one does with C=0 is
 ; different and that is why it stays outside: command 34 hides the hero and
 ; the actor change leaves it with the LDB graphic.
-.proc hero_poses_de_grafico
+.proc hero_poses_of_graphic
 .a8
 .i16
     asl a                       ; two bytes per entry in `ruta_graf_buf`
@@ -174,7 +174,7 @@ no_esta:
 ; changing on the fly that is no longer enough, and besides the tile can go
 ; past eight bits when there are several characters, so it is read from a
 ; table.
-.proc elegir_grafico_heroe
+.proc pick_hero_graphic
 .a8
 .i16
     lda #$FF
@@ -236,7 +236,7 @@ lo_encontre:
     jsr actor_gfx_read
     cmp #ACTOR_GRAF_NINGUNO
     beq sin_cambio_de_sprite
-    jsr hero_poses_de_grafico
+    jsr hero_poses_of_graphic
     bcc sin_cambio_de_sprite
     ply
     rts
@@ -278,7 +278,7 @@ sin_cambio_de_sprite:
     ; the converter handed out, and in the cutscenes where it leads it tends
     ; to be Talan's, standing as an event. Uploading them left it black until
     ; the next map. It is recognized by the same sentinel `place_hero` looks
-    ; at, the pose at $FFFF, and with `hero_cgram` off `aplicar_tinte` uploads
+    ; at, the pose at $FFFF, and with `hero_cgram` off `apply_tint` uploads
     ; nothing.
     rep #$20
 .a16

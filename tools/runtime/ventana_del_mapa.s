@@ -23,13 +23,13 @@
 ; not lead to the next bank's $0000 but to its $8000, and these two routines
 ; are the only ones that know that. It was like this when the grid was read
 ; from the cartridge, and that is why moving it to WRAM touched nobody else.
-.proc ptr_mas
+.proc ptr_more
 .a16
 .i16
     clc
     adc celdas_ptr
     sta celdas_ptr
-    bcc listo
+    bcc ready
     clc
     adc #$8000
     sta celdas_ptr
@@ -40,11 +40,11 @@
     sta celdas_ptr + 2
     rep #$20
 .a16
-listo:
+ready:
     rts
 .endproc
 
-.proc ptr_menos
+.proc ptr_minus
 .a16
 .i16
     eor #$FFFF                  ; subtracting is adding the complement
@@ -68,7 +68,7 @@ guarda:
     rts
 .endproc
 
-.proc ptr_desde_celdas
+.proc ptr_from_cells
 .a16
 .i16
     lda celdas
@@ -82,7 +82,7 @@ guarda:
     rts
 .endproc
 
-.proc ptr_a_celdas
+.proc ptr_to_cells
 .a16
 .i16
     lda celdas_ptr
@@ -104,16 +104,16 @@ guarda:
 ; `passages_down`.
 ;
 ; It uses Y, which is free in all three callers: the two that build strips load
-; it right after with the block's offset, and `pass_del_ptr` too. X is not
+; it right after with the block's offset, and `pass_of_ptr` too. X is not
 ; touched, and there it does matter: it is the strip's slot.
 ;
 ; With no substitutions set —the 328 maps of today's game— it is four cycles
 ; and a branch, which is what it cost to put it on the hot path.
-.proc celda_sustituida
+.proc cell_replaced
 .a16
 .i16
     ldy sub_n
-    beq listo
+    beq ready
 buscar:
     dey
     dey
@@ -124,7 +124,7 @@ buscar:
     rts
 hallado:
     lda sub_valor, y
-listo:
+ready:
     rts
 .endproc
 
@@ -173,9 +173,9 @@ izquierda:
     asl a                       ; the block column, in bytes
     sta temp
 
-    jsr ptr_desde_celdas
+    jsr ptr_from_cells
     lda temp
-    jsr ptr_mas
+    jsr ptr_more
 
     ; The window's top row decides the slot where it starts and which half of
     ; the block it lands in.
@@ -208,7 +208,7 @@ corta:
     ; indexes by Y.
 row:
     lda [celdas_ptr]            ; this cell's block
-    jsr celda_sustituida
+    jsr cell_replaced
     asl a
     asl a
     asl a
@@ -233,7 +233,7 @@ row:
     and #$0004
     bne misma                   ; still in the same block
     lda tira_paso_col
-    jsr ptr_mas                 ; to the next block row
+    jsr ptr_more                 ; to the next block row
 misma:
     dec tira_resta
     bne row
@@ -274,7 +274,7 @@ dentro:
     ; The anchor points at the window's top block row; the one coming in may be
     ; up to fourteen rows further down, if it is the one at the foot of the
     ; screen.
-    jsr ptr_desde_celdas
+    jsr ptr_from_cells
     lda temp
     sec
     sbc win_block
@@ -282,7 +282,7 @@ dentro:
     tax
 baja:
     lda tira_paso_col
-    jsr ptr_mas
+    jsr ptr_more
     dex
     bne baja
 en_la_fila:
@@ -326,7 +326,7 @@ desde_izquierda:
     lda fila_col
     lsr a
     asl a                       ; the leftmost block column, in bytes
-    jsr ptr_mas
+    jsr ptr_more
     lda mapa_cw
     sec
     sbc fila_col
@@ -339,7 +339,7 @@ corta:
     beq vacias_der              ; the whole row falls outside the map
 columna:
     lda [celdas_ptr]
-    jsr celda_sustituida
+    jsr cell_replaced
     asl a
     asl a
     asl a
@@ -364,14 +364,14 @@ columna:
     and #$0002
     bne mismo
     lda #2
-    jsr ptr_mas                 ; to the next block over
+    jsr ptr_more                 ; to the next block over
 mismo:
     dec tira_total
     dec tira_resta
     bne columna
 vacias_der:
     lda tira_total
-    beq listo
+    beq ready
     stz tira_row, x
     stz tira_row2, x
     inx
@@ -381,7 +381,7 @@ vacias_der:
     tax
     dec tira_total
     bra vacias_der
-listo:
+ready:
     rts
 .endproc
 
@@ -390,7 +390,7 @@ listo:
 ;
 ; **It is up to two per axis per tick, and that is measured.** On the same axis
 ; two things add up: the hero at speed 6 walks 8 px per frame
-; —`paso_medio_por_vel` goes up to 64 eighths— and a `PanScreen` at speed 6
+; —`half_step_per_speed` goes up to 64 eighths— and a `PanScreen` at speed 6
 ; moves the camera another 8 —`2 << 6` sixteenths—. Sixteen pixels are two
 ; 8-pixel cells. The hero's jump does not get there: the longest in the game is
 ; five cells in eleven frames, 7.3 px per frame.
@@ -419,10 +419,10 @@ listo:
     ; Two calls and not a loop with a counter: `build_row` and `build_column`
     ; use Y to read the blocks, so the counter would have to live in RAM, and
     ; "two per tick" reads better here than in a constant.
-    jsr una_fila
-    jsr una_fila
-    jsr una_columna
-    jsr una_columna
+    jsr one_row
+    jsr one_row
+    jsr one_column
+    jsr one_column
     ; What a `TileSubstitution` left pending: one column of the window, and
     ; only if the camera did not take any this frame —both addresses at zero
     ; means none is built—. See `sub_refresco`.
@@ -449,7 +449,7 @@ sin_refresco:
 ; **one at a time** even if the camera jumped further: that way `build_row`'s
 ; block anchor stays valid step by step, and what could not be drawn in time
 ; stays pending instead of getting lost.
-.proc una_fila
+.proc one_row
 .a16
 .i16
     lda camara_y
@@ -457,19 +457,19 @@ sin_refresco:
     lsr a
     lsr a
     cmp win_row
-    beq listo
+    beq ready
     ; The `jsr` goes **after** the `bcs` and on both branches: placed before,
     ; the branch would look at a carry that went through a call. It is cheap
-    ; not to have to prove that `guardar_fila` does not touch it.
+    ; not to have to prove that `save_row` does not touch it.
     bcs bajando
-    jsr guardar_fila            ; the previous strip, if any, to the spare
+    jsr save_row            ; the previous strip, if any, to the spare
     lda win_row
     dec a
     sta win_row
     tax                         ; going up: the screen's top row comes in
     bra con_fila
 bajando:
-    jsr guardar_fila
+    jsr save_row
     lda win_row
     inc a
     sta win_row
@@ -485,28 +485,28 @@ con_fila:
     beq mismo_bloque
     pha
     bcs baja_bloque
-    jsr ptr_desde_celdas
+    jsr ptr_from_cells
     lda tira_paso_col
-    jsr ptr_menos
-    jsr ptr_a_celdas
+    jsr ptr_minus
+    jsr ptr_to_cells
     bra guarda_bloque
 baja_bloque:
-    jsr ptr_desde_celdas
+    jsr ptr_from_cells
     lda tira_paso_col
-    jsr ptr_mas
-    jsr ptr_a_celdas
+    jsr ptr_more
+    jsr ptr_to_cells
 guarda_bloque:
     pla
     sta win_block
 mismo_bloque:
     plx
     jsr build_row               ; X is the row coming in
-listo:
+ready:
     rts
 .endproc
 
 ; The mirror image, for the other axis.
-.proc una_columna
+.proc one_column
 .a16
 .i16
     lda camara_x
@@ -514,9 +514,9 @@ listo:
     lsr a
     lsr a
     cmp win_col
-    beq listo
-    bcs derecha                 ; the `jsr` after the branch: see `una_fila`
-    jsr guardar_columna
+    beq ready
+    bcs derecha                 ; the `jsr` after the branch: see `one_row`
+    jsr save_column
     lda win_col
     dec a
     sta win_col
@@ -525,7 +525,7 @@ listo:
     tax
     bra armar
 derecha:
-    jsr guardar_columna
+    jsr save_column
     lda win_col
     inc a
     sta win_col
@@ -534,7 +534,7 @@ derecha:
     tax
 armar:
     jsr build_column
-listo:
+ready:
     rts
 .endproc
 
@@ -547,11 +547,11 @@ listo:
 ; RAM would cost it an `lda #0` per cell in the hot loop. The `mvn` is 256
 ; bytes at seven cycles and is paid **only** when the camera jumped two rows,
 ; which is rare.
-.proc guardar_fila
+.proc save_row
 .a16
 .i16
     lda row_addr
-    beq listo                   ; none is built
+    beq ready                   ; none is built
     sta row_addr_b
     ; The row's two strips are contiguous —see their `.res`—, so they go in a
     ; single `mvn`, which copies A + 1 bytes and leaves the data bank at the
@@ -563,15 +563,15 @@ listo:
     mvn #$00, #^FAR_TIRA_ROW    ; the BSS is visible from bank 0: it is the
     plb                         ; mirror of the WRAM below $2000
     stz row_addr                ; the buffer is free
-listo:
+ready:
     rts
 .endproc
 
-.proc guardar_columna
+.proc save_column
 .a16
 .i16
     lda col_addr
-    beq listo
+    beq ready
     sta col_addr_b
     ldx #.loword(tira_col)
     ldy #.loword(FAR_TIRA_COL)
@@ -580,7 +580,7 @@ listo:
     mvn #$00, #^FAR_TIRA_COL
     plb
     stz col_addr
-listo:
+ready:
     rts
 .endproc
 
@@ -601,7 +601,7 @@ listo:
 ;
 ; It runs with the screen in forced blanking, which is how every map load
 ; runs: it is two 4 KB DMAs to VRAM.
-.proc limpiar_tilemaps
+.proc clear_tilemaps
 .a8
 .i16
     lda #$80
@@ -612,9 +612,9 @@ listo:
     tax
     sep #$20
 .a8
-    jsr cero_a_tilemap
+    jsr zero_to_tilemap
     ldx #VRAM_ABOVE_MAP
-    jsr cero_a_tilemap
+    jsr zero_to_tilemap
     ldx #$0000
 tiras:
     stz tira_col, x             ; all four are contiguous: see their .res
@@ -625,7 +625,7 @@ tiras:
 .endproc
 
 ; A tilemap of two 32x32 screens, from VRAM word X, to zero.
-.proc cero_a_tilemap
+.proc zero_to_tilemap
 .a8
 .i16
     stx VMADDL
@@ -672,7 +672,7 @@ tiras:
 
     ; celdas = the map's grid + win_block rows. It is added one at a time
     ; instead of multiplying: it happens only once and the 65816 does not
-    ; multiply. The grid is in WRAM, where `lz2_grilla` decompressed it when
+    ; multiply. The grid is in WRAM, where `lz2_grid` decompressed it when
     ; the map loaded.
     lda #.loword(GRILLA)
     sta celdas_ptr
@@ -686,11 +686,11 @@ tiras:
     beq sin_filas
 suma:
     lda tira_paso_col
-    jsr ptr_mas
+    jsr ptr_more
     dex
     bne suma
 sin_filas:
-    jsr ptr_a_celdas
+    jsr ptr_to_cells
 
     lda win_col
     sec

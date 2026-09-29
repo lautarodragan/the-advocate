@@ -82,9 +82,9 @@ hay:
     sta temp
     jsr bt_div
     cmp #(BA_AGI_TOPE + 1)
-    bcc listo
+    bcc ready
     lda #BA_AGI_TOPE
-listo:
+ready:
     sta BA_T1
     sep #$20
 .a8
@@ -383,10 +383,10 @@ limpia:
 .i16
     lda BA_RESULT
     cmp #BA_VICTORIA
-    bne listo
+    bne ready
     lda BA_TROPA_K
     cmp #$FF
-    beq listo                   ; a troop the cartridge does not carry
+    beq ready                   ; a troop the cartridge does not carry
     rep #$20
 .a16
     and #$00FF
@@ -402,7 +402,7 @@ limpia:
 otro:
     lda BA_S0
     cmp BA_NACT
-    bcs listo
+    bcs ready
     jsr bt_x
     lda BA_UNO + BA_FLAGS, x
     and #BAF_HAY
@@ -418,7 +418,7 @@ otro:
 siguiente:
     inc BA_S0
     bra otro
-listo:
+ready:
     rts
 .endproc
 

@@ -11,7 +11,7 @@
 ; is nowhere to keep a counter for them: the NPC's row has no free byte —+11 is
 ; the jump height— and the BSS is full. So the column comes from the game
 ; clock, the same as the ChipSet animation: `vueltas` divided by how many
-; frames between changes, which is `anim_continua` for the speed, and the
+; frames between changes, which is `anim_continues` for the speed, and the
 ; four-step cycle with the third step repeating the first.
 ;
 ; **The phase is not RM2k's**, which starts each character's counter when the
@@ -22,13 +22,13 @@
 ; It runs before `move_events` on purpose: if a forced move route grabs one of
 ; these, the slot overwrites its pose afterwards and wins, since it is the one
 ; that carries the real counter.
-.proc animar_quietos
+.proc animate_still
 .a8
 .i16
     ; Does this map have any? The padding of the last family in `anim_tabla`
     ; says so; without this we would have to walk the forty rows every time.
     ldy #(ANIM_FAMILIAS - 1)
-    jsr anim_donde
+    jsr anim_where
     lda f:anim_tabla + 7, x
     bne hay
     rts
@@ -36,7 +36,7 @@ hay:
     ldy #$0000
 otra:
     cpy npc_total
-    beq listo
+    beq ready
     lda npc_buf + 14, y
     beq siguiente               ; hidden: not drawn
     lda npc_buf + 13, y
@@ -60,7 +60,7 @@ otra:
     sta WRDIVL                  ; the dividend, in a single 16-bit write
     sep #$20
 .a8
-    lda anim_continua, x        ; how many frames between column changes
+    lda anim_continues, x        ; how many frames between column changes
     sta WRDIVB                  ; starts it: the quotient takes sixteen cycles
     nop
     nop
@@ -78,7 +78,7 @@ otra:
     tax
     sep #$20
 .a8
-    lda ciclo_tres, x           ; the column: 0, 1, 2 or back to 1
+    lda cycle_three, x           ; the column: 0, 1, 2 or back to 1
     ply
     sta temp + 3
     ; The pose: where its page faces times three, plus the column. With a
@@ -91,7 +91,7 @@ otra:
     clc
     adc temp + 3
     sty npc_fila
-    jsr subir_pose_npc
+    jsr upload_npc_pose
     ldy npc_fila
 siguiente:
     rep #$20
@@ -103,6 +103,6 @@ siguiente:
     sep #$20
 .a8
     bra otra
-listo:
+ready:
     rts
 .endproc

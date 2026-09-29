@@ -849,7 +849,7 @@ colores_battlers:
 otra_paleta:
     lda SCN_I
     cmp SCN_PAL_N
-    bcs listo
+    bcs ready
     asl a
     asl a
     asl a
@@ -880,7 +880,7 @@ otra_paleta:
     jsr scn_dma_cgram
     inc SCN_I
     bra otra_paleta
-listo:
+ready:
     lda f:boot_cuadros
     sec
     sbc SCN_FRAMES
@@ -897,14 +897,14 @@ sin_escena:
 ; answer —see `op_terrain`, which is where this comes from—, for the
 ; background of a battle on a map that does not name its own. It runs when
 ; the battle starts, before `scn_fill` overwrites the upper half of $7F,
-; which may belong to the grid. `celda_sustituida` is in bank 0, so its
+; which may belong to the grid. `cell_replaced` is in bank 0, so its
 ; lookup is copied here.
 .proc scn_terrain
 .a8
 .i16
     ldx mapa_ofs
     lda f:mapa_tabla + M_TERRENO_PLANO, x
-    bne listo                   ; a single terrain on the whole map
+    bne ready                   ; a single terrain on the whole map
     rep #$20
 .a16
     lda [hero_ptr]              ; which block the hero's cell is
@@ -930,7 +930,7 @@ sustituida:
     sta celdas_ptr + 2
     ldy SCN_T0
     lda [celdas_ptr], y
-listo:
+ready:
     rts
 .endproc
 
@@ -952,12 +952,12 @@ listo:
     lda #$80
     jsr scn_fill
     lda SCN_MSU
-    bne listo
+    bne ready
     lda SCN_BACKDROP
     cmp #$FF
-    beq listo                   ; the plain one is already there: it is zeros
+    beq ready                   ; the plain one is already there: it is zeros
     jsl f:scn_double + RAPIDO   ; from the fast mirror: see MEMSEL
-listo:
+ready:
     rts
 .endproc
 
@@ -1219,7 +1219,7 @@ tile:
 par:
     lda #8
     sta ED_WORDS
-palabra:
+word:
     ; The front byte gives the left tile's row; the back one, the right
     ; one's. Each, through the table, is the whole two-plane word.
     lda [ED_FONT]
@@ -1252,7 +1252,7 @@ palabra:
     iny
     iny
     dec ED_WORDS
-    bne palabra
+    bne word
     ; The next pair: the 128 bytes of the two tiles, minus the 32 already
     ; advanced.
     tya
@@ -1497,7 +1497,7 @@ row:
     cmp #(SCN_SUB_BUDGET + 1)
     bcc :+
     lda SCN_T0
-    bne listo                   ; one was already uploaded and the next does not fit
+    bne ready                   ; one was already uploaded and the next does not fit
     lda SCN_SUB_LENGTH
 :   sta SCN_T0
     ; The tile row: `(row * 32 + column)` tiles from the base.
@@ -1541,7 +1541,7 @@ row:
     inc SCN_SUB_ROW
     dec SCN_SUB_N
     bne row
-listo:
+ready:
     sep #$20
 .a8
     rts
@@ -1555,7 +1555,7 @@ listo:
 .i16
     lda BA_ESCENA
     cmp #$FF
-    beq listo
+    beq ready
     lda #((ESCENA_MAPA / 1024) * 4)
     sta f:BG1SC                 ; 32x32, which is what covers the whole screen
     lda #((RANURA_VRAM / 4096) * 16 + (ESCENA_VRAM / 4096))
@@ -1568,7 +1568,7 @@ listo:
     sta f:BG1VOFS
     lda #$03
     sta f:TM                    ; BG1 and BG2
-listo:
+ready:
     rts
 .endproc
 
@@ -1577,7 +1577,7 @@ listo:
 ; itself is only its objects' ones —`SPRITE_CGRAM` colors— and the timer's.
 ; The banner and the battle animation upload their palette only when it
 ; changes, so without this they would come back with a battler's colors.
-; With the screen off: `volver_de_batalla`, in bank 0, calls it with the
+; With the screen off: `back_from_battle`, in bank 0, calls it with the
 ; data bank at 0.
 .proc scene_cgram_restore
 .a8

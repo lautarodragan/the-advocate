@@ -62,7 +62,7 @@ no_pone_var:
     beq timer_fin               ; it already showed, or already didn't:
                                 ; nothing to repaint
     sta timer_visible
-    jsr timer_repintar          ; its palette entries change owner
+    jsr timer_repaint          ; its palette entries change owner
     bra timer_fin
 timer_para:
     ; `StopTimer` turns off both things, not just the count.
@@ -71,7 +71,7 @@ timer_para:
     stz timer_visible           ; `stz` does not touch Z: the branch looks at
                                 ; the `lda`
     beq timer_fin
-    jsr timer_repintar
+    jsr timer_repaint
 timer_fin:
     rep #$20
 .a16
