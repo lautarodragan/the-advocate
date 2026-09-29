@@ -9,7 +9,10 @@ import os
 import re
 
 from port import events
-from port import snes_convert
+# Por los ganchos que pone en `lcf` al importarse: los mapas se leen como
+# los lee el conversor.
+from port import snes_convert                            # noqa: F401
+from port import map_record
 from rpgmaker import lcf
 from rpgmaker import rm2k
 from rpgmaker.resources import GAME_DIR
@@ -205,7 +208,7 @@ def test_la_ruta_propia_apunta_al_bloque_que_recibe():
                         "anim_continues": False, "frecuencia": 3,
                         "speed": 4, "ordenes": [0]},
     }
-    tabla = snes_convert.page_table({"pages": [pagina]}, 7,
+    tabla = map_record.page_table({"pages": [pagina]}, 7,
                                     "evcode_3")
     nombrados = set(re.findall(r"evcode_\d+", tabla))
     assert nombrados == {"evcode_3"}, (
