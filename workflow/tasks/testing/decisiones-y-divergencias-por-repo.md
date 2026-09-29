@@ -2,7 +2,7 @@
 name: "Decisiones y divergencias, por repo"
 description: "Clasificar cada archivo de workflow/decisiones/ y workflow/divergencias/ según vaya al repo de las herramientas o al de ABL, para el corte"
 type: docs
-assignee: Guayabo
+assignee: taro
 ---
 
 Pregunta 8 del research de las herramientas, que taro dejó abierta el
