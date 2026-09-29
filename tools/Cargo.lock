@@ -350,6 +350,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rm2k-rules"
+version = "0.1.0"
+dependencies = [
+ "ditto",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "rm2k-snes-audio"
 version = "0.1.0"
 dependencies = [
