@@ -9,10 +9,12 @@ cada cosa está en la carpeta de su responsabilidad.
 De abajo hacia arriba. Una carpeta importa sólo de las que tiene abajo, nunca de
 una de su misma fila ni de más arriba.
 
-    rpgmaker/    el juego como datos: el volcado a JSON de data/ (lcf), los
-                 códigos de comando de RM2k (event_codes) y sus reglas
-                 (rm2k). Ninguna regla del formato vive acá: data/ viene
-                 resuelto. Tiene su propio README
+    rpgmaker/    el juego como datos: el volcado a JSON de data/ (lcf), lo
+                 nuestro que manda sobre él (fork), los códigos de comando de
+                 RM2k (event_codes), sus reglas y la geometría de sus imágenes
+                 (rm2k), y dónde están el juego y el RTP (recursos). Ninguna
+                 regla del formato vive acá: data/ viene resuelto. Tiene su
+                 propio README
     comun/       el caché en disco del conversor (cache_disco) y el reparto de
                  lo puro en procesos bifurcados (paralelo)
     ensamblado/  el mapa de memoria (bancos), el que arma la ROM (ensamblar) y
@@ -20,16 +22,23 @@ una de su misma fila ni de más arriba.
     emulador/    el core de libretro desde Python (retro), y el parche de
                  bsnes-libretro que le expone la WRAM
 
-    render/      un mapa, un chipset y un charset como imágenes; usa rpgmaker
+    render/      un mapa y un chipset como imágenes, con los CharSets encima,
+                 y la imagen de los ChipSets del fork (chipset_del_fork); usa
+                 rpgmaker
 
     audio/       del MIDI al SPC700: snes_music, midi, musica, sdsp, spc700,
                  muestras_brr, snes_samples, music_opcodes, y las pistas de
-                 MSU-1 (msu); usa rpgmaker, render y comun
+                 MSU-1 (msu); usa rpgmaker y comun
 
     port/        el conversor a SNES —snes_convert— y todo lo que sólo él usa:
-                 eventos, event_opcodes, batalla, pantallas, imagen, titulo,
-                 ventana, fuente, escena, animacion, asignador, tiles_bin,
-                 comprimir
+                 eventos, event_opcodes, batalla, experiencia, pantallas,
+                 menus, titulo, imagen, ventana, fuente, escena, animacion,
+                 textos, asignador, tiles_bin, comprimir, pantalla_completa,
+                 fin_del_juego, msu_datos, parches; y abajo de todos ellos,
+                 porque no importan nada del port, reglas (de Game_Actor y del
+                 LDB), constantes, color (el tinte de pantalla), paleta (una
+                 imagen a N colores) y formato_snes (un tile, un color y una
+                 celda como los lee el PPU)
 
 Y los proyectos de Rust, que no son capas del port sino herramientas aparte,
 en inglés y sin una mención a este juego (ver AGENTS.md):
@@ -44,20 +53,24 @@ Se instalan con `just -f tools/justfile herramientas` y se usan desde el
 PATH: ningún `.py` de acá los compila ni los busca en `target/`. Los scripts de Python que se
 ejecutan también: ver "Los que se ejecutan".
 
-## `port/` no está partido todavía
+## Los ciclos, y la violación que queda
 
-Es un bloque a propósito: seis de sus módulos —`eventos`, `batalla`,
-`pantallas`, `imagen`, `titulo` y `experiencia`— forman un solo ciclo de
-imports, y `snes_convert` ↔ `pantalla_completa` otro. Todos los cierra un
-import adentro de una función, que es con lo que se los esquivó. `titulo`,
-además, tiene adentro la reducción de color, los menús y la fuente de los
-menús, que usan varios. Separarlo pide decidir quién es dueño de qué, y eso
-es trabajo de criterio que no entró en la mudanza.
+Contando los imports que están adentro de funciones, que Python no ve al
+cargar pero siguen siendo dependencias, entre los `.py` de `tools/` no hay
+ningún ciclo de imports. Adentro de `port/`, los de abajo son los que no
+importan nada del port; encima, los que piden algo a otro —`batalla` a
+`eventos`, `pantallas` a `menus` y a `eventos`, `titulo` y `menus` a
+`paleta`—; y arriba de todo `snes_convert`, que usa a todos. Los imports que
+siguen adentro de una función ya no esconden ningún ciclo.
 
-Las capas tampoco se cumplen del todo: `ensamblado/cartuchos.py` importa de
-`port/` y de `audio/`, y `rpgmaker/fork.py` de `render/`, además de
-cerrar un ciclo con `lcf`. Qué usa cada uno,
-cómo sacar las dos cosas y el script que imprime el grafo están en
+La única excepción es `ensamblado/cartuchos.py`, que es el que orquesta y vive
+abajo: importa de `port/` y de `audio/`, corre `port/snes_convert.py` como
+subproceso, y `port/parches.py` lo importa de vuelta: el único ciclo, si se
+cuenta el subproceso. Son las únicas violaciones de capa, y siguen a
+propósito: qué hacer con él es una pregunta abierta, ver
+`workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
+
+El grafo, por archivo y por paquete, lo imprime el script del apéndice D de
 `docs/research/el-mapa-de-las-herramientas-de-python.md`.
 
 ## Cómo se importa
@@ -66,7 +79,7 @@ Cada carpeta es un paquete de Python, y se importa por su nombre, con `tools/`
 —y sólo `tools/`— en el `sys.path`:
 
     from rpgmaker import lcf
-    from render.render_map import GAME_DIR
+    from rpgmaker.recursos import GAME_DIR
 
 Un `import lcf` suelto falla, y es a propósito: si también anduviera, el mismo
 módulo se podría cargar dos veces con dos nombres, y lo que uno le cambia al
