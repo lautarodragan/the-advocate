@@ -164,7 +164,7 @@ def menu(sys_img, texts, font_id=None):
     if len(seen) > 15:
         raise SystemExit(
             "the title menu uses %d colors and 4bpp fits 15. The skin's "
-            "gradient is the suspect: look at `color_de_texto` in ventana.py"
+            "gradient is the suspect: look at `text_color` in window.py"
             % len(seen))
     palette = [BLACK] + sorted(seen, key=lambda c: (-seen[c], c))
     index = {color: i for i, color in enumerate(palette)}

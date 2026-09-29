@@ -546,7 +546,7 @@ to_screen:
 .endproc
 
 ; The page's message, in the party's lines: see `BA_PAG_MSG_FILA0` in
-; pantallas.py. It reads it from `messages_troop` in the usual format —the
+; screens.py. It reads it from `messages_troop` in the usual format —the
 ; header with the lines and each line with its length, one byte per letter
 ; with the ASCII minus 32— and writes it with the screen's glyphs, cut at
 ; `BA_PAGE_MSG_WIDTH`. The block fits in one bank —the converter guarantees

@@ -5,7 +5,7 @@
 ; Six 32x32 objects with a sprite palette all to themselves, and a fade that is
 ; a tint of those fifteen colors frame by frame. See `tools/port/picture.py`,
 ; which is where it is written where each pixel lands and what color it is,
-; and OP_PICTURE in eventos.py.
+; and OP_PICTURE in events.py.
 ;
 ; The picture lives in **a single map** of the ROM —the one that took its tiles
 ; into the sprite bank; the converter stops if another one shows it— and is

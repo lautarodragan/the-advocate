@@ -83,7 +83,7 @@
     ; The pointers to the two tables that are read from ROM. The second points
     ; eight bytes further, which is where each block stores its upper layer;
     ; adding eight cannot overflow the bank because the placement in
-    ; `tools/ensamblado/bancos.py` guarantees the whole table fits in one.
+    ; `tools/ensamblado/banks.py` guarantees the whole table fits in one.
     lda f:map_table + M_PTR_NPC_POSES, x
     sta poses_ptr
     lda f:map_table + M_PTR_MAP_BLOCKS, x
@@ -367,7 +367,7 @@ set:
     ; sides again and the one that absorbs the delay is the wall clock.
     ;
     ; The start is set by `fade_from`, in bank 1, because with the cut it
-    ; is not `ticks`: see `transicion_del_teletransporte.s`.
+    ; is not `ticks`: see `teleport_transition.s`.
     jsl f:fade_from
     rts
 .endproc

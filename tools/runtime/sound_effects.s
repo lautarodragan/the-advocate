@@ -8,7 +8,7 @@
 ; there. In RM2k sound effects add up —EasyRPG has 31 channels—, and with a
 ; single voice the opening's rain cut the thunder in half: measured, 73 of
 ; its 144 frames, and once 7. With MSU-1 and the SPC700 without music, voices
-; 0 to 5 as well: see efectos_con_msu.s.
+; 0 to 5 as well: see msu_effects.s.
 ;
 ; Each voice's state lives in far RAM, because the direct page and the BSS
 ; are full. The second one's is SE2_OFS higher up, with the same shape, so
@@ -97,13 +97,13 @@ no_7:
     lda #SE2_BIT
 no_6:
     ora 1, s
-    ora f:EX_BUSY               ; and those of voices 0 to 5: see efectos_con_msu.s
+    ora f:EX_BUSY               ; and those of voices 0 to 5: see msu_effects.s
     sta 1, s
     pla                         ; Z from the whole mask
     rts
 .endproc
 
-; `dsp_pair` and `se_kof_music` for `efectos_con_msu.s`, which lives in bank
+; `dsp_pair` and `se_kof_music` for `msu_effects.s`, which lives in bank
 ; 1 and cannot reach them with `jsr`.
 .proc dsp_pair_l
     jsr dsp_pair
@@ -196,7 +196,7 @@ voice_6:
     rts
 no_voice:
     ; Voices 0 to 5, if they have an effect —only with MSU-1, see
-    ; efectos_con_msu.s—: what is written stays in MUS_SHADOW and is not
+    ; msu_effects.s—: what is written stays in MUS_SHADOW and is not
     ; sent, and when the effect ends it is given back from there. With no
     ; effects on them, one `lda` and one branch: the table holds zero for
     ; everything that is not theirs.
@@ -325,7 +325,7 @@ ready:
 .i16
     SE_BEFORE_VOICE SE_LOWER, SE_RETURN, SE_SHADOW, SE_REG
     SE_BEFORE_VOICE SE2_LOWER, SE2_RETURN, SE2_SHADOW, SE2_REG
-    jsl se_extras_before         ; and voices 0 to 5: see efectos_con_msu.s
+    jsl se_extras_before         ; and voices 0 to 5: see msu_effects.s
     rts
 .endproc
 
@@ -439,7 +439,7 @@ other:
     inx
     cpx #SE_BYTES
     bcc other
-    jsl se_extras_clear       ; and the efectos_con_msu.s part
+    jsl se_extras_clear       ; and the msu_effects.s part
     rts
 .endproc
 
@@ -479,7 +479,7 @@ has:
 .a16
     phb
     pha                         ; the index, on the stack until `ready`:
-                                ; efectos_con_msu.s needs it
+                                ; msu_effects.s needs it
     sep #$20
 .a8
     phk
@@ -573,7 +573,7 @@ no_same_7:
 no_same_6:
     ; With MSU-1 and the SPC700 without music, voices 0 to 5: the one already
     ; playing this sample, and then, if 7 and 6 are not free, one of those.
-    ; See efectos_con_msu.s. Without MSU-1 they take nothing.
+    ; See msu_effects.s. Without MSU-1 they take nothing.
     rep #$20
 .a16
     lda 2, s                    ; the index, behind P

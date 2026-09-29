@@ -7,7 +7,7 @@
 ; already drawn, from tools/port/end_game.py: the tiles, the tilemap rows
 ; that have something in them, and two palettes, one per highlighted command.
 ; Moving the cursor means uploading the other palette; the why is in the header
-; of fin_del_juego.py.
+; of end_game.py.
 ;
 ; Everything goes on BG2, over `SLOT_VRAM` and `SLOT_MAP`, which are the
 ; places the menu and the slot screen already write: on the way back,

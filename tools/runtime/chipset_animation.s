@@ -38,7 +38,7 @@ cycle_three:
 
 ; How far the hero advances per frame according to its speed, in **half
 ; units** of RM2k: RM2k counts 256 per cell and advances `1 << (1 + speed)`,
-; that is 4, 8, 16, 32, 64 and 128 —`PASO_POR_VELOCIDAD` in eventos.py—, and
+; that is 4, 8, 16, 32, 64 and 128 —`PASO_POR_VELOCIDAD` in events.py—, and
 ; here `step_left` is a byte, so it counts by twos: 128 per cell and half of
 ; each step. The pixels left are `step_left >> 3`: integer division drops the
 ; sixteenths, and at the speeds with half a pixel per frame that is the same as

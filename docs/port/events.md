@@ -3,9 +3,9 @@
 Cada página de evento que se puede compilar viaja en el cartucho como
 **bytecode**, y ese bytecode tiene tres dueños que no se pisan:
 
-    tools/protocol/events.toml  lo declara: cada opcode, su número y los bytes que lleva
-    tools/port/events.py       lo emite: `_compilar`, un caso por comando de RM2k
-    tools/runtime/interprete*.s       lo ejecuta: `correr_codigo` y un `.proc op_*` por opcode
+    tools/protocol/events.toml    lo declara: cada opcode, su número y los bytes que lleva
+    tools/port/events.py          lo emite: `_compilar`, un caso por comando de RM2k
+    tools/runtime/interpreter*.s  lo ejecuta: `correr_codigo` y un `.proc op_*` por opcode
 
 De `tools/protocol/events.toml` salen generados `tools/port/event_opcodes.py` y
 `tools/runtime/event_opcodes.inc`; ver `tools/protocol/README.md`, que está en inglés porque

@@ -53,7 +53,7 @@ fast:
     jsr bgm_fade_tick
 no_fade:
     ; The sound effects wrap around the music, and run even when it is silent:
-    ; see "sound effects" in `efectos_de_sonido.s`.
+    ; see "sound effects" in `sound_effects.s`.
     jsr se_before
     lda music_off
     bne ready

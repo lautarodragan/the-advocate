@@ -97,7 +97,7 @@ reused:
     ; The pointer to the first command: the code's plus however far Y had gone.
     ; The sum does not carry anything into the bank byte because the map's code
     ; block fits whole in one —the converter's bank layout guarantees it,
-    ; `tools/ensamblado/bancos.py`—, which is the same argument as for the message block.
+    ; `tools/ensamblado/banks.py`—, which is the same argument as for the message block.
     rep #$20
 .a16
     tya

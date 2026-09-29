@@ -734,7 +734,7 @@ def map_poses(renderer, game_map, leaders, movable=(), turning=(),
 # an upper-layer tile without the "above the hero" bit,
 # `rm2k.passability_map` resolves the cell with that tile's bits, which are
 # exactly the ones `rm2k.event_tile_passability` made the event's row
-# impose; and `pass_with_event`, in tools/runtime/heroe.s, skips hidden
+# impose; and `pass_with_event`, in tools/runtime/hero.s, skips hidden
 # rows. That is, the baking hands the same table answer over to the map. It
 # is guarded by `rom/pruebas/herramientas/test_horneados.py`.
 #
@@ -2346,7 +2346,7 @@ LAYOUTS = (("VENTANA", LAYOUT_WINDOW),
            ("VENTANA_FONDO_TECHO", LAYOUT_WINDOW_BG_CEILING),
            ("VENTANA_ENCIMA", LAYOUT_WINDOW_ABOVE))
 # How many save slots the cartridge has. The same number is in
-# `tools/runtime/partida.s` as `SRAM_SLOTS`, and the ROM checks it: if they
+# `tools/runtime/save_game.s` as `SRAM_SLOTS`, and the ROM checks it: if they
 # didn't match, the screen would show one number of slots and the SRAM would
 # have another.
 SLOTS = 4
@@ -2867,7 +2867,7 @@ def build_blocks(game_map, tilemap, above_tilemap, passable, width, height,
 
 
 # How many block pairs the ROM's substitution table can hold at once. It is
-# `SUB_MAX` in tools/runtime/ram_baja.s and it is written on both sides on
+# `SUB_MAX` in tools/runtime/low_ram.s and it is written on both sides on
 # purpose —the converter has to be able to refuse **before** emitting a map
 # that doesn't fit—; the test `test_sustitucion.py` compares the two.
 SUB_MAX = 8
@@ -3501,7 +3501,7 @@ def animations_asm(animations, maps):
         "\n; --- the drawing of the battle animations ---",
         ";",
         "; The box is a single one for the whole ROM and the reason is in",
-        "; tools/port/animacion.py: four 32x32 objects in one row of blocks",
+        "; tools/port/animation.py: four 32x32 objects in one row of blocks",
         "; of the name grid, which is the most that fits in the sprite VRAM",
         "; map 2 has left free. What changes per map is where that row lands",
         "; and with which palette, and that goes in `anim_battle_split`,",
@@ -3953,7 +3953,7 @@ def scenes_asm(data, troops, db):
         ";",
         "; They go separately and the ROM composes them in an 8bpp layer of",
         "; 256x128, which is the seven text lines at the top. The reason is",
-        "; in tools/port/escena.py; only the bytes travel here.",
+        "; in tools/port/scene.py; only the bytes travel here.",
         "; The game's backdrops, which the .msu carries all of, and the ROM's.",
         "BACKDROPS_GAME    = %d" % len(data.get("juego", ())),
         "SCENE_BACKDROPS   = %d" % len(backdrops),
@@ -3971,7 +3971,7 @@ def scenes_asm(data, troops, db):
         "SCENE_VRAM     = $%04X" % E.VRAM_TILES,
         "SCENE_MAP     = $%04X" % E.VRAM_MAP,
         "; The ROM's light fallback: 4bpp and a single palette. See",
-        "; tools/port/escena.py.",
+        "; tools/port/scene.py.",
         "FALLBACK_COLORS = %d" % E.FALLBACK_COLORS,
         "FALLBACK_TILE   = %d" % (E.FALLBACK_PLANES * 8),
         "FALLBACK_BYTES  = %d" % (E.FALLBACK_WIDTH * E.FALLBACK_HEIGHT
@@ -4131,7 +4131,7 @@ def page_table(map_info, number, evcode):
     # animation continues while still"—. The one telling them apart is the
     # ROM, which already knows whether the row walks: `npc_buf + 9` holds
     # NPC_STILL or the bank of its twelve poses. See `page_graphic` in
-    # tools/runtime/paginas_de_eventos.s.
+    # tools/runtime/event_pages.s.
     appear = map_info.get("aparecen", set())
     # And which ones have some automatic page that compiled: bit 7. The ROM's
     # refresh has to know whether an event's active page is automatic —that
@@ -4350,13 +4350,13 @@ def map_terrain(map_info):
 
 
 # What the ROM decompresses when loading a map, per block class. See
-# `lz2_decompress` in tools/runtime/descomprimir.s.
+# `lz2_decompress` in tools/runtime/decompress.s.
 COMPRESSED_KINDS = ("map_tiles", "above_tiles", "sprite_tiles", "anim_tiles",
                     "map_cells")
 
 # The largest each decompressed stream can be, by where it lands in WRAM: see
-# the LZ2 reservation in tools/runtime/ram_lejana.s, which is where they come
-# from, and the `.assert` in descomprimir.s, which checks them against the
+# the LZ2 reservation in tools/runtime/far_ram.s, which is where they come
+# from, and the `.assert` in decompress.s, which checks them against the
 # ones here. The background tiles are decompressed before the animation
 # drawings and can step on their place; the upper layer and the sprites go
 # after and can't.
@@ -4700,7 +4700,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "; `OP_MESSAGE` names: the lines in the low three bits, the\n"
         "; auto-close of `\\^` in bit 3 and how many `\\|` pauses it carries in\n"
         "; the high nibble. And how long each pause lasts, which is 61 frames\n"
-        "; and not 60: see PAUSE_FRAMES in eventos.py.\n"
+        "; and not 60: see PAUSE_FRAMES in events.py.\n"
         "HEADER_LINES     = $%02X\n"
         "HEADER_AUTOCLOSE = $%02X\n"
         "PAUSE_FRAMES    = %d\n"
@@ -4708,7 +4708,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "; variable: whether the write asks for the page refresh. The\n"
         "; converter resolves it by looking at which variables this map's\n"
         "; page conditions look at; `var_apuntar` masks the slot with\n"
-        "; VAR_SLOT. See VAR_REFRESH in eventos.py: without this half of\n"
+        "; VAR_SLOT. See VAR_REFRESH in events.py: without this half of\n"
         "; Lashe City ran at 30 frames.\n"
         "VAR_REFRESH = $%02X\n"
         "VAR_SLOT   = $%02X\n"
@@ -4719,7 +4719,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "; screen and how many 32x32 objects it measures.\n"
         "; The coordinates already come scaled from 320x240 to 256x224 and X\n"
         "; can be negative: the \"1 year earlier\" picture goes off the left\n"
-        "; edge, which is what RM2k shows. See tools/port/imagen.py.\n"
+        "; edge, which is what RM2k shows. See tools/port/picture.py.\n"
         "; The flags of `KeyInputProc`, which go in the second byte of\n"
         # `rom/src/` on purpose: it goes into the `.inc`, which isn't touched
         # yet.
@@ -4754,7 +4754,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "; object to the next, and from a row of four to the following one.\n"
         "PICTURE_OBJ_STRIDE = %d\n"
         "PICTURE_ROW_STRIDE = %d\n"
-        "; The rain: see OP_WEATHER in eventos.py.\n"
+        "; The rain: see OP_WEATHER in events.py.\n"
         "RAIN_DROPS_MAX = %d\n"
         "RAIN_DROPS_0 = %d\n"
         "RAIN_DROPS_1 = %d\n"
@@ -4764,13 +4764,13 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "RAIN_SEED = $%04X\n"
         "WEATHER_RAIN  = %d\n"
         "; The inventory: one byte per item of the LDB and RM2k's cap. See\n"
-        "; OP_ITEM in eventos.py.\n"
+        "; OP_ITEM in events.py.\n"
         "ITEMS_N       = %d\n"
         "ITEM_MAX      = %d\n"
         "; The variables: how many slots this ROM carries —at least one,\n"
         "; because a zero length would close the save table—, the ControlVars\n"
         "; operand classes the ROM distinguishes, the sum, and the random\n"
-        "; seed. See 'RM2k's variables' in eventos.py.\n"
+        "; seed. See 'RM2k's variables' in events.py.\n"
         "VARIABLES_N   = %d\n"
         "VAR_ADD     = %d\n"
         "VAR_VARIABLE  = %d\n"
@@ -4778,18 +4778,18 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "VAR_OTHER      = %d\n"
         "; Class 6, a character's coordinates: the target goes like that of\n"
         "; OP_ROUTE —0 the hero, the event's index plus one— and the other\n"
-        "; operand says which coordinate. See VAR_CHARACTER in eventos.py.\n"
+        "; operand says which coordinate. See VAR_CHARACTER in events.py.\n"
         "VAR_CHARACTER = %d\n"
         "CHARACTER_X   = %d\n"
         "CHARACTER_Y   = %d\n"
         "; The high bits of each OP_CELL_TEST write. See CELL_Y in\n"
-        "; eventos.py.\n"
+        "; events.py.\n"
         "CELL_Y       = $%04X\n"
         "CELL_REFRESH = $%04X\n"
         "RANDOM_SEED  = $%04X\n"
         "; And the one for the encounters' randomness, which is a different\n"
         "; one on purpose: walking doesn't advance the map's randomness. See\n"
-        "; ENC_SEED in eventos.py.\n"
+        "; ENC_SEED in events.py.\n"
         "ENC_SEED   = $%04X\n"
         "TIMER_SET_VAR = %d\n"
         "; The ConditionalBranch condition classes we know, with the RM2k\n"
@@ -4798,7 +4798,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "COND_ITEM   = %d\n"
         "COND_ACTOR  = %d\n"
         "; And the two actor questions that carry two operands, with their\n"
-        "; own opcode: see OP_IF_ACTOR in eventos.py.\n"
+        "; own opcode: see OP_IF_ACTOR in events.py.\n"
         "COND_ACTOR_SKILL = %d\n"
         "COND_ACTOR_EQUIPMENT    = %d\n"
         "GOLD_MAX     = %d\n"
@@ -4826,7 +4826,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "TRIGGER_ACTION     = %d\n"
         "TRIGGER_TOUCHES_HERO = %d\n"
         "TRIGGER_PARALLEL   = %d\n"
-        "; How many frames a one-cell step lasts. It comes from eventos.py and\n"
+        "; How many frames a one-cell step lasts. It comes from events.py and\n"
         "; not from a computation in the ROM.\n"
         "FRAMES_PER_CELL = %d\n"
         "; A route's highest frequency, which is where commands 30 and 31\n"
@@ -4847,7 +4847,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "; The teleport fade: 35 frames out and 35 back, like RM2k, and of\n"
         "; each 35 the ramp is 24. The map is loaded on the first black\n"
         "; frame, which is number %d. These numbers and the table below come\n"
-        "; from the fade constants of tools/port/eventos.py.\n"
+        "; from the fade constants of tools/port/events.py.\n"
         "FADE_FRAMES = %d\n"
         "FADE_TOTAL   = %d\n"
         "FADE_RAMP   = %d\n"
@@ -4856,7 +4856,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "BRIGHTNESS_MAX      = %d\n"
         "; The teleport transitions the ROM does with the mosaic and with\n"
         "; the cut; any other is the fade. See `ChangeScreenTransitions` in\n"
-        "; tools/port/eventos.py.\n"
+        "; tools/port/events.py.\n"
         "TRANSITION_MOSAIC = %d\n"
         "TRANSITION_CUTOFF   = %d\n"
         "; The Y'CbCr luminance weights, which are the ones RM2k saturates\n"
@@ -5001,7 +5001,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "; per cell with `slot_glyph_cells`, and each actor's text comes\n"
         "; from its row of `slot_actor_text` —the name, the two digits of\n"
         "; the level and max HP, one after the other—. See 'lo que depende\n"
-        "; del actor' in titulo.py: it is what keeps the tile bank from\n"
+        "; del actor' in menus.py: it is what keeps the tile bank from\n"
         "; growing with the number of actors.\n"
         "SLOT_FACES_MAX  = %d\n"
         "SLOT_FACE_COLS  = %d\n"
@@ -6270,7 +6270,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             for a in range(n_actors)], declare=True)
         # And the SP, which are state since 2026-09-13 for the same reason as
         # the HP: the skills spend them. See `hp_initial_set` in
-        # tools/runtime/banco1.s.
+        # tools/runtime/bank1.s.
         words_asm("actor_spmax", [
             (rules.param_of(db.actors[a], "maxsp")
              if a in db.actors else 0) & 0xFFFF
@@ -6499,7 +6499,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # troop, where they start and how many there are; per page, its
         # trigger and where its code is inside `troop_code`, which
         # deduplicates them. See `events.TroopPages` and `ba_page_test`
-        # in tools/runtime/batalla_tropa.s.
+        # in tools/runtime/battle_troop.s.
         #
         # **The small tables go to bank 1, `FAR`; the two big blocks —the code
         # and the messages—, to RODATA.** Until 2026-09-27 all four went to
@@ -6548,7 +6548,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # RM2k number. They go here outside bank 0 —they are read with
         # `lda f:tabla, x`— because eighty-five bytes were left there and this
         # is about two hundred. See `rom_encounters` and
-        # `tools/runtime/encuentros.s`.
+        # `tools/runtime/encounters.s`.
         enc = encounters or {"por_mapa": [0xFF] * len(maps), "registros": [],
                              "zonas": [], "tropas": []}
         bytes_asm("enc_map", enc["por_mapa"], declare=True)
@@ -6624,7 +6624,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # starts and how many there are—. Per action, the skill as a `k` of the
         # `hab_*` tables or $FF for the attack, and its `rating` with bit 7 set
         # if it isn't `effective`: it counts for the maximum and then weighs
-        # zero. See `ba_enemy_action` in tools/runtime/batalla.s.
+        # zero. See `ba_enemy_action` in tools/runtime/battle.s.
         eacc_start, eacc_skill, eacc_weight = [], [], []
         for e in rom_enemies:
             if len(rom_actions[e]) > B.ACTIONS_MAX:
@@ -6914,7 +6914,7 @@ FLASH_MAX = 4
 # goes over.
 #
 # What it costs: eight bytes of `FAR_PAIR_LIST` per slot —far RAM, not the
-# BSS; see `PAIR_LIST_BYTES` in `tools/runtime/ram_lejana.s`, which besides the
+# BSS; see `PAIR_LIST_BYTES` in `tools/runtime/far_ram.s`, which besides the
 # event stores the page the refresh chose for it— and **one interpreter pass
 # per frame for each one**. It is the second that has to be watched if the
 # race gets slow: the first is gone, because the page stopped being resolved
@@ -7121,7 +7121,7 @@ def variables_n():
 def sine_table():
     """The sine the screen shake reads by index, for the bank."""
     out = ["; The sine at scale 127, for the screen shake: it is the same",
-           "; list `SENO_SACUDIDA` builds in eventos.py.",
+           "; list `SENO_SACUDIDA` builds in events.py.",
            ";",
            "; It goes outside bank 0 —`lda f:sine_shake, x`, one read per",
            "; shake frame— for the same reason as `item_k`: it is 256 bytes",
@@ -7218,7 +7218,7 @@ def npc_bytes(table):
         # together because the row has no free byte —+11 is used by the
         # jump— and because both are read by the same computation: how many
         # frames between column changes comes from the speed. See
-        # `animate_still` in tools/runtime/quietos_que_animan.s.
+        # `animate_still` in tools/runtime/animated_stills.s.
         out.append(npc["velocidad"] | (0x80 if npc.get("anima") else 0))
         # +14: whether it is drawn. An event whose active page has no graphic
         # is in the table hidden, to appear when another page wins.
@@ -7790,7 +7790,7 @@ def main():
         # known here, and it is the number of distinct blocks some substitution
         # of the map uses as a key, because a key is never overwritten: the
         # second round changes its value. See `op_tile_sub` in
-        # tools/runtime/interprete_mapa.s.
+        # tools/runtime/interpreter_map.s.
         keys = len(map_info["sustituciones"].known_keys)
         if keys > SUB_MAX:
             sys.exit("map %d substitutes %d distinct blocks and the RAM "
@@ -8170,7 +8170,7 @@ def main():
     # **All the songs** go, sharing a single sample bank, and the one of the
     # map the ROM boots in plays; the others are started by a `PlayBGM`, or
     # by the map that is entered if it brings its own —see `map_song_mute`
-    # in tools/runtime/cargar_mapa.s—. What rate each sample ends up at is
+    # in tools/runtime/enter_map.s—. What rate each sample ends up at is
     # decided by the ARAM, package by package: see `Bank` in snes_music.py.
     music = os.path.join(os.path.dirname(os.path.abspath(args.output)),
                          "musicdata.inc")
@@ -8198,7 +8198,7 @@ def main():
     # pages can start —plus, in the boot one, the one that plays from the
     # start, and in all the map's own— and its sound effects, in the order
     # they appear, which is the priority the ROM uploads them with if they
-    # don't all fit. See `package_load` in tools/runtime/paquete_de_audio.s.
+    # don't all fit. See `package_load` in tools/runtime/audio_package.s.
     # They are built **before** the bank, by name, because each sample's
     # budget comes from them: see `snes_music.Bank`.
     packages, separate_ones = [], []
@@ -8306,7 +8306,7 @@ def main():
     # frame so that the loop always starts on the same one, and if uploading
     # the boot map's package took longer, it would come out later and the
     # tests —which count from there— would count wrong. See the comment on
-    # `BOOT_FRAMES` in tools/runtime/ram_lejana.s.
+    # `BOOT_FRAMES` in tools/runtime/far_ram.s.
     frames, in_package = snes_music.boot_frames_estimate(
         driver, samples, done_ones, packages[args.start_index],
         decompress_frames(maps[args.start_index], compressed),
@@ -9395,7 +9395,7 @@ def convert_map(renderer, map_id, args):
                 # separating them, an event that walks and appears with the
                 # page never appeared, because the row starts hidden when on
                 # loading the map no page qualifies. See `page_graphic` in
-                # tools/runtime/paginas_de_eventos.s.
+                # tools/runtime/event_pages.s.
                 npc["aparece"] = True
                 npc["cambia"] = False
             slots.append((("ev", npc["evento"]), npc["charset"],

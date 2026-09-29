@@ -43,7 +43,7 @@ NUCLEO = os.environ.get(
 # El cuadro que se ve en pantalla muestra el estado de la vuelta ANTERIOR del
 # lazo principal: `flush_video` sube el OAM que armó `build_oam` la vuelta
 # pasada, y por eso está al principio del lazo y no al final. De ahí sale este
-# +1, que no es un ajuste sino una consecuencia del orden del lazo, en runtime/arranque.s.
+# +1, que no es un ajuste sino una consecuencia del orden del lazo, en runtime/boot.s.
 #
 # Con eso, para ver al héroe con N pixeles de avance hay que correr N/2 + 1
 # cuadros desde que se aprieta: se mueve WALK_SPEED = 2 por cuadro. Medido en el

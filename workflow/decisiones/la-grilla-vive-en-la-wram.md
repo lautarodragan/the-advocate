@@ -2,9 +2,9 @@
 
 **La grilla del mapa se descomprime entera a la WRAM al cargar el mapa, y
 vive en `$7E8000-$7EFFFF`**, siguiendo en `$7F8000` si pasa de 32 KB: la
-mitad alta de los dos bancos (`GRILLA` en `tools/runtime/ram_lejana.s`). El
+mitad alta de los dos bancos (`GRILLA` en `tools/runtime/far_ram.s`). El
 cartucho la trae en LZ2, en dos flujos, uno por mitad (`lz2_grilla` en
-`tools/runtime/descomprimir.s`).
+`tools/runtime/decompress.s`).
 
 Decidido con taro el 2026-09-26, **como prueba y sabiendo que quizás haya que
 revertirlo**.
@@ -67,11 +67,11 @@ La grilla vuelve al cartucho, en LZ2 no: sin comprimir, o en trozos de 4×4.
 1. En `tools/port/snes_convert.py`, sacar `map_celdas` de
    `CLASES_COMPRIMIDAS` y volver a emitirla con `materiales.guardar(...,
    alinear=2)`: entera no hace falta en un banco, la recorre `ptr_mas`.
-2. En la ROM, las dos lecturas de `GRILLA` —`ptr_de_celda` en `heroe.s` y
-   `fill_window` en `ventana_del_mapa.s`— vuelven a leer
+2. En la ROM, las dos lecturas de `GRILLA` —`ptr_de_celda` en `hero.s` y
+   `fill_window` en `map_window.s`— vuelven a leer
    `mapa_tabla + M_PTR_MAP_CELDAS`, y se sacan las dos llamadas a
    `lz2_grilla` —en `cargar_mapa_sin_eventos` y en `volver_de_batalla`—.
-3. Se borran `GRILLA` y su reserva de `ram_lejana.s`, `lz2_grilla` y lo de la
+3. Se borran `GRILLA` y su reserva de `far_ram.s`, `lz2_grilla` y lo de la
    grilla en `test_carga_descomprimida.py` y `test_reservas_de_la_wram.py`.
 
 Son 246 KB de cartucho de vuelta. El resto de la compresión —los tiles— no

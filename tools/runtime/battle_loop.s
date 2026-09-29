@@ -269,7 +269,7 @@ none:
 ; BA_SE2_FRAMES` frames. When the one hitting is in the party there is no
 ; first one, so the result's plays right away. (When this was written sound
 ; effects had a single voice and the two together would have been just one;
-; since 8c9c182 they are two, see `efectos_de_sonido.s`.)
+; since 8c9c182 they are two, see `sound_effects.s`.)
 ;
 ; The result's comes from easyrpg and not from memory: missing is
 ; `GetFailureSe` —dodge_se—, hitting an actor is actor_damaged_se and an

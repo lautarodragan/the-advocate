@@ -106,7 +106,7 @@ BATTLE_TERMS = (
     ("uses", "use_item"),                 # " used."
     ("recovered", "hp_recovery"),         # " Recovered"
     # The four of what the victory reports, since 2026-09-26: see
-    # `ba_vic_message` in batalla_victoria.s.
+    # `ba_vic_message` in battle_victory.s.
     ("exp_received", "exp_received"),    # " EXP"
     ("level", "level"),                  # "LEVEL"
     ("level_up", "level_up"),               # " achieved!"

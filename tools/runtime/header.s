@@ -1,7 +1,7 @@
 .segment "FAR"
 
 ; Up to the next bank: the generated data starts flush against one, which is
-; the only thing `tools/ensamblado/bancos.py` assumes about the memory map.
+; the only thing `tools/ensamblado/banks.py` assumes about the memory map.
 .align $8000
 
 ; --- header and vectors ----------------------------------------------------

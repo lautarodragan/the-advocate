@@ -248,7 +248,7 @@ def test_escena_de_la_pelea():
         una.consola.write_ram(en_la_wram(s["ENC_RNG"]), [22, 0])
         una.consola.write_ram(en_la_wram(s["ENC_ASKS"]), [1])
         # Con la transición de entrada adelante: los destellos, el fundido, la
-        # carga en negro y el mosaico. Ver `fundido_de_pelea.s`.
+        # carga en negro y el mosaico. Ver `battle_fade.s`.
         una.consola.run(200)
         assert una.byte("menu_open"), "la pelea no se abrió"
         donde = s["BA_ONE"] + (s["BA_PARTY_MAX"] + 1) * s["BA_BYTES"]

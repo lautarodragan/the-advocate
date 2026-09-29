@@ -87,7 +87,7 @@
 ;
 ; The only two of the ones using this bank that have windows: the System's
 ; frame and background, on BG1, behind BG2's text —see `ITEM_VENTANAS` in
-; titulo.py and `EQ_VENTANAS` in pantallas.py—. BG1 reads its tiles from the
+; menus.py and `EQ_WINDOWS` in screens.py—. BG1 reads its tiles from the
 ; same base as BG2, and the windows' tiles go after the font. The tiles and the
 ; colors are **the same for both** —see `titulo.marcos`—; what changes is the
 ; tilemap.

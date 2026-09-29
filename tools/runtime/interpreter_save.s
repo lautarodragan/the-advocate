@@ -4,7 +4,7 @@
 
 ; --- the interpreter: saving and the permissions ---------------------------
 ;
-; Opcode handlers: the `run_code` dispatch, in interprete.s, jumps to
+; Opcode handlers: the `run_code` dispatch, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one returns to the loop
 ; with `jmp run_code::otro` or ends the frame with `rts`.
 

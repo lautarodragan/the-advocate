@@ -81,7 +81,7 @@ step_dy_table:
 ; single one and goes through X saving the slot, four bytes against the
 ; table's twelve.
 ; How far a step advances per frame by speed, 1 to 6, out of 256 per cell,
-; and how far the jump: PASO_POR_VELOCIDAD in eventos.py and
+; and how far the jump: PASO_POR_VELOCIDAD in events.py and
 ; `jump_speed[move_speed - 1]` in RM2k. 4 is the hero's: 32 per frame, two
 ; pixels.
 step_per_speed:
@@ -128,7 +128,7 @@ jump_per_speed:
     clc
     adc temp
     ; The sum can overflow the 16 bits of the offset, so the bank is taken
-    ; from the carry: the placement in `tools/ensamblado/bancos.py` guarantees
+    ; from the carry: the placement in `tools/ensamblado/banks.py` guarantees
     ; that the block does not cross a bank, not which bank it starts in.
     sta A1T0L
     sep #$20
@@ -176,7 +176,7 @@ pass_enter:
 ; The two components of each diagonal, indexed by the direction minus four:
 ; first the vertical and then the horizontal. From here come the two L shapes
 ; that `cell_allowed_diag` tests and the two poses `face_diagonal` compares.
-; They are RUTA_DIAGONALES in eventos.py.
+; They are RUTA_DIAGONALES in events.py.
 diag_vert:
     .byte DIR_UP, DIR_DOWN, DIR_DOWN, DIR_UP
 diag_horiz:

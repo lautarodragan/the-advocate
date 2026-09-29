@@ -4,11 +4,11 @@
 
 ; --- the interpreter: the party --------------------------------------------
 ;
-; Opcode handlers: the dispatch in `run_code`, in interprete.s, jumps to
+; Opcode handlers: the dispatch in `run_code`, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
 ; with `jmp run_code::otro` or ends the frame with `rts`.
 ;
-; Gold and items are in interprete_oro_e_items.s.
+; Gold and items are in interpreter_gold_and_items.s.
 
 .proc op_party
     lda [code_ptr], y            ; 0 = add, 1 = remove
@@ -25,7 +25,7 @@
 
 ; `ChangeSpriteAssociation`: the actor and the index of the graphic in the
 ; map's table, the same one that move command 34 of a route resolves. See
-; OP_ACTOR_SPRITE in eventos.py.
+; OP_ACTOR_SPRITE in events.py.
 ;
 ; The `ResetGraphic()` that RM2k does to the `Game_Player` is the `jsr
 ; pick_hero_graphic` down here, and it only runs if the one that changed is

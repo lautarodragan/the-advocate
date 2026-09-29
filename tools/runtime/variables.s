@@ -38,10 +38,10 @@
 ; `Game_Map::SetNeedRefreshForVarChange`, which does not flag on just any
 ; write either: it asks `map_cache` whether any page condition on the map
 ; looks at that variable. Here that question was answered by the converter;
-; see VAR_REFRESH in eventos.py.
+; see VAR_REFRESH in events.py.
 ;
 ; Until 2026-09-27 the bit came in the slot, and that capped the variables at
-; 128: see VAR_RANURA_MAX in eventos.py.
+; 128: see VAR_RANURA_MAX in events.py.
 .proc var_write
 .a8
 .i16
@@ -289,7 +289,7 @@ less:
 
 ; The xorshift step: x ^= x << 7; x ^= x >> 9; x ^= x << 8. Returns with the
 ; new value in a 16-bit A, and M at sixteen. It is `random_next` from
-; eventos.py, instruction by instruction. Uses `temp + 2` as scratch: its
+; events.py, instruction by instruction. Uses `temp + 2` as scratch: its
 ; caller —`op_var`— has not loaded it yet.
 .proc random_next
 .a8

@@ -836,7 +836,7 @@ nothing:
 
 ; The half of `events_tick` that handles a pending jump, for the main loop:
 ; the `Teleport` of a parallel with the foreground idle. With a global name
-; because `arranque.s` comes earlier in the assembly, and `ca65` does not
+; because `boot.s` comes earlier in the assembly, and `ca65` does not
 ; resolve `events_tick::was_jump` forward.
 events_handle_jump = events_tick::was_jump
 

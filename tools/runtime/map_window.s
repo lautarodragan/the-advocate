@@ -716,7 +716,7 @@ column:
 .endproc
 
 ; `hdma_mask` and `row_buf_table` **used to live here** and moved down to
-; RODATA on 2026-09-13, each separately and on the same day: see `banco1.s`.
+; RODATA on 2026-09-13, each separately and on the same day: see `bank1.s`.
 ; The HDMA reads from wherever `A1B3` says, so it does not need bank 0, and the
 ; compositor indexes it with X, which does have a long mode.
 

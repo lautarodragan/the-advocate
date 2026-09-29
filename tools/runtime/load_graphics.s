@@ -39,7 +39,7 @@
     sta VMADDL
     sep #$20
 .a8
-    jsl f:lz2_backdrop + FAST    ; compressed, in streams: see descomprimir.s
+    jsl f:lz2_backdrop + FAST    ; compressed, in streams: see decompress.s
 
     ; --- the ChipSet animation ---
     ; The map brings drawing 0 of each run into VRAM, and the clock can be on

@@ -72,7 +72,7 @@ no_page_start:
     ; Turn the screen on **in black**, which the entry transition shows:
     ; `slot_ppu_on` writes full brightness, so it is called inside a
     ; vblank and in the same vblank it is brought down to zero —not a single
-    ; line gets drawn—. See `fundido_de_pelea.s`.
+    ; line gets drawn—. See `battle_fade.s`.
     jsl f:ba_t_vblank
     jsl f:ba_t_ppu
     lda #0

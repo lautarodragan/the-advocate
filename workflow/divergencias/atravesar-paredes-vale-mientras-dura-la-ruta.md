@@ -9,7 +9,7 @@ final de la partida.
 
 Acá la bandera vale **sólo mientras el paso lo dé la ruta forzada**. El
 porqué, con el síntoma que lo delató, está en `celda_bloqueada`
-(`tools/runtime/paginas_de_eventos.s`), que es donde se lee `atravesando` y no la
+(`tools/runtime/event_pages.s`), que es donde se lee `atravesando` y no la
 pegajosa `ruta_atraviesa`.
 
 Para la pregunta al revés —un evento que camina contra el héroe— se sigue

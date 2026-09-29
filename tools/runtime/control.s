@@ -99,7 +99,7 @@ off:
 ; bits were faked this frame. There are two: key input **with wait**, which in
 ; RM2k is plain `IsTriggered` and drops them (`key_value`), and the slots
 ; screen, which is `Scene_File` and does not wrap around when repeating
-; (`ranuras.s`).
+; (`slots.s`).
 ;
 ; There is **a single counter for all four**, and not one per button like
 ; easyrpg: pressing a new arrow resets it to zero even if another one is still

@@ -201,8 +201,8 @@ archivos.
 nada**: fue un commit de `git mv` solo, sin tocar una línea, y `blame` sigue
 los renombres sin opciones. Con las de arriba, cada línea de
 `tools/runtime/` sale con el mismo commit que daba en `rom/src/` antes de
-mudarse: medido sobre `main.s`, `heroe.s`, `interprete.s`, `batalla.s`,
-`registros.s`, `paquete_de_audio.s` y `event_opcodes.inc`, cuatro mil
+mudarse: medido sobre `main.s`, `hero.s`, `interpreter.s`, `battle.s`,
+`registers.s`, `audio_package.s` y `event_opcodes.inc`, cuatro mil
 líneas. Con `data/`, `parches/` y `pruebas/`, que se mudaron adentro de
 `rom/` en el mismo commit, alcanza el `blame` sin opciones: medido sobre
 `rom/pruebas/arnes/consola.py`.

@@ -7,7 +7,7 @@
 ; It is the pattern RM2k's parallel pages use to check whether two characters
 ; touch: two class-6 `ControlVars` that copy one's cell into two variables, and
 ; two nested `ConditionalBranch` that compare them with two others. The
-; converter fuses the four into one —see `fundir_celdas` in eventos.py— and it
+; converter fuses the four into one —see `fundir_celdas` in events.py— and it
 ; does **exactly the same**: the two writes, with their refresh, and the two
 ; comparisons, each with its target.
 ;

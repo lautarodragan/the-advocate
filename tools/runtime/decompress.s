@@ -353,7 +353,7 @@ stream:
 ; `anim_upload` uploads them each time the clock changes. They have to stay
 ; there while on the map, so they go in a place of their own and not in
 ; `LZ2_BUFFER`, which the upper layer and the sprites overwrite afterwards: see
-; the reservation in `ram_lejana.s`.
+; the reservation in `far_ram.s`.
 .proc lz2_anim
 .a8
 .i16
@@ -397,7 +397,7 @@ stream:
     rtl
 .endproc
 
-; Each block's caps come from the reservation in ram_lejana.s and the converter
+; Each block's caps come from the reservation in far_ram.s and the converter
 ; enforces them when compressing: if either side moves on its own, the build
 ; must fail.
 .assert LZ2_BUFFER + LZ2_CAP_BACKDROP <= ANIM_DRAWINGS_END, error, "the background tiles do not fit in the load buffer"

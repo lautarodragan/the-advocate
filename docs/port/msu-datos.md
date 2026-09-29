@@ -74,7 +74,7 @@ arriba, en una tabla para que la ROM no multiplique). Al empezar una pelea
 con fondo,
 `msu_datos_validos` —en `tools/runtime/msu1.s`— busca la posición 0 y compara los 8
 bytes; si coinciden, `esc_llenar` y los colores de `escena_subir` —en
-`tools/runtime/batalla_escena.s`— leen del `.msu`, y `ESC_MSU` queda en 1.
+`tools/runtime/battle_scene.s`— leen del `.msu`, y `ESC_MSU` queda en 1.
 
 **La firma es del contenido, no del commit**: un `.msu` de otro build con los
 mismos fondos se acepta, y está bien, porque son los mismos bytes en las
@@ -102,7 +102,7 @@ Qué fondo pide una pelea es lo de RM2k —`Game_Map::SetupBattle` y
 si es un encuentro al azar o el comando pide "el del lugar", el del mapa
 subiendo por el árbol; y si el mapa no nombra ninguno, **el del terreno de la
 celda que pisa el héroe**. Ése lo resuelve la ROM al empezar la pelea
-(`esc_terreno`, en `tools/runtime/batalla_escena.s`), con `fondo_terreno`. Así
+(`esc_terreno`, en `tools/runtime/battle_scene.s`), con `fondo_terreno`. Así
 salen las peleas del mundo.
 
 **La ROM lleva todos los que las peleas del cartucho pueden pedir**: los que
@@ -174,7 +174,7 @@ paquetes con la misma lista la comparten—, y al lado un `efectos.json`
 legible.
 
 La firma es la misma de los fondos y se mira una vez por encendido, en la
-primera carga de paquete (`se_msu_preparar`, en `tools/runtime/efectos_con_msu.s`).
+primera carga de paquete (`se_msu_preparar`, en `tools/runtime/msu_effects.s`).
 Sin firma, los efectos salen de la ROM como siempre. Una búsqueda que no llega
 a tiempo deja ese efecto sin subir: no suena, porque la versión de la ROM
 tiene otra altura. Lo cubre `rom/pruebas/abl/test_msu_efectos.py`, menos esa

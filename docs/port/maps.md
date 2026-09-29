@@ -27,7 +27,7 @@ porque la grilla cruza de banco y los bancos no son contiguos: pasarse del
 
 Desde el 2026-09-26 la grilla viaja en el cartucho en LZ2 y se descomprime
 entera al cargar el mapa en `$7E8000`, siguiendo en `$7F8000` si pasa de 32 KB
-(`GRILLA` en `tools/runtime/ram_lejana.s`, `lz2_grilla` en `descomprimir.s`). La
+(`GRILLA` en `tools/runtime/far_ram.s`, `lz2_grilla` en `decompress.s`). La
 mitad alta de dos bancos seguidos de la WRAM tiene la forma de dos bancos de
 LoROM, así que los lectores no cambiaron: antes el puntero apuntaba al
 cartucho, ahora a la WRAM. La pelea pisa la mitad del `$7F`, y

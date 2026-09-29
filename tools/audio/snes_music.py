@@ -186,7 +186,7 @@ def msu_track(name, game_dir=None):
 # The three ARAM ones exist because of each map's audio package: the samples
 # are uploaded while the music plays, so the driver has to be able to receive
 # them without stopping serving the DSP. See `package_load` in
-# tools/runtime/paquete_de_audio.s. The pointer and the count live at $00-$03
+# tools/runtime/audio_package.s. The pointer and the count live at $00-$03
 # of the zero page, which the boot ROM uses and leaves free.
 #
 # The music keeps sending 0 commands without touching port 2: whoever
@@ -2110,7 +2110,7 @@ def build_all(names, game_dir=None, effects=(), packages=None,
         packages = [(name, [i], []) for i, name in enumerate(names)]
     # What has to fit together: each package with its sound effects; each
     # exit song alone —its `PlayBGM` uploads it, silencing the rest: see
-    # `exit_extra` in tools/runtime/paquete_de_audio.s—; and each
+    # `exit_extra` in tools/runtime/audio_package.s—; and each
     # package with the song that may be playing when it loads, without its
     # sound effects.
     # And the same ones with what the sound effects really take, which is
@@ -2307,7 +2307,7 @@ def song_samples(song):
 
 # What uploading to the SPC700 costs, in frames, for the boot count. A
 # package's samples go in triplets through the driver's command 3 —see
-# `upload_sample` in tools/runtime/paquete_de_audio.s—: measured in the ROM
+# `upload_sample` in tools/runtime/audio_package.s—: measured in the ROM
 # on 2026-09-26, from 1.33 to 1.42 frames per KB across eighteen packages,
 # and a bit more goes here. The driver and the directory go byte by byte
 # through the IPL, which measured 1.4. And loading the map, without audio
@@ -2457,7 +2457,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
             srcn, pitch, pitch, left, right, n_frames, n_frames)
         for srcn, pitch, left, right, n_frames, _e in rows)
     # And which sound effect each row is, separately so as not to touch the
-    # seven columns `sound_play` and efectos_con_msu.s walk: the row's
+    # seven columns `sound_play` and msu_effects.s walk: the row's
     # sample is a place several sound effects share, and `sound_play` asks
     # with this whether the one in the ARAM is its own. And each sound
     # effect's place, which is what the package uses to upload it.
@@ -2510,7 +2510,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
                                  range(len(songs)))] or [[[]]])
     # Each package, four lists: its songs, its sound effects' samples, its
     # exit songs and its separate songs —see `exit_extra` and
-    # `extra_separate` in tools/runtime/paquete_de_audio.s—.
+    # `extra_separate` in tools/runtime/audio_package.s—.
     packages = [tuple(p) + ((),) * (4 - len(p)) for p in packages] or \
         [([], [], [], [])]
     packages_block = lists("packages", [[list(t), list(m), list(s),
@@ -2526,7 +2526,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
             # `test_msu_efectos.py` look for "; Temas: ".
             "; Temas: %s\n\n"
             "; How many songs the cartridge carries and which one plays from boot.\n"
-            "; The indices are those of `Temas` in eventos.py, that is, the ones\n"
+            "; The indices are those of `Temas` in events.py, that is, the ones\n"
             "; the PlayBGM bytecode already has emitted.\n"
             "; $FF in SONG_BOOT means 'the ROM boots silent': the song of the\n"
             "; map it boots in does not exist, so an event has to turn it on.\n"

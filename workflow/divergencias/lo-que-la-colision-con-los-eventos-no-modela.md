@@ -21,6 +21,6 @@ medido, pero **el droide del mapa 2 vive de eso**.
 
 No se ve: ninguna prueba falla por esto, y ninguna página que hoy compile
 ejercita las tres primeras. Los dos primeros puntos están además anotados en el
-comentario de `celda_bloqueada`, en `tools/runtime/paginas_de_eventos.s`, que es donde vive la
+comentario de `celda_bloqueada`, en `tools/runtime/event_pages.s`, que es donde vive la
 mecánica: el campo `overlap_forbidden` se lee y se ignora, no es que la página
 no compile.

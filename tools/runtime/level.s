@@ -586,7 +586,7 @@ ready:
 ;
 ; Entered from `op_heal` with Y on the operand: the actor, or 0 for the whole
 ; party —the `GetActors` of `game_interpreter.cpp:1539`, see `actor_de_blanco`
-; in eventos.py— and the amount, 16 bits. Returns with Y after it. It lives
+; in events.py— and the amount, 16 bits. Returns with Y after it. It lives
 ; **outside bank 0** for the same reason as `hp_initial_set`, and that is
 ; why everything it touches goes with `f:` or is in the direct page. Clobbers
 ; A, X and `temp`.

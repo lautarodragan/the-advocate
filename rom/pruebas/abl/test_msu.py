@@ -113,7 +113,7 @@ def test_todo_tema_tiene_su_pista():
 
 # --- con MSU-1, el paquete no sube las muestras de los temas con pista -------
 #
-# Ver `song_per_msu` en runtime/paquete_de_audio.s. Estas corren **con** el
+# Ver `song_per_msu` en runtime/audio_package.s. Estas corren **con** el
 # MSU-1, al revés que la tanda: sobre una copia de `release` en un directorio
 # propio, con enlaces a sus pistas —a todas o a todas menos una— y, para el
 # tema sin pista, con su entrada de `song_msu` borrada en la copia.

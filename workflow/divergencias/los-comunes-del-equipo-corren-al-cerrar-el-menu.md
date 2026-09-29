@@ -9,7 +9,7 @@ que su resultado puede cambiar**:
 * al prenderse el switch: el conversor pega el cuerpo detrás del
   `ControlSwitches` que lo prende, como si le siguiera un `CallEvent`;
 * al cerrar el menú de pausa, que es donde se cambia el equipo:
-  `comunes_del_equipo`, en `tools/runtime/equipo_desde_eventos.s`, desde
+  `comunes_del_equipo`, en `tools/runtime/equipment_from_events.s`, desde
   `menu_pantalla`.
 
 Vale para cualquier evento común paralelo, con switch, que no tenga más que

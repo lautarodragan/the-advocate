@@ -43,7 +43,7 @@ from tanda import (consola_cruda, correr_hardware, golden, partida,
 #
 # La pelea de `batalla` recién toma el control en el cuadro 186: antes van la
 # transición de entrada —dos destellos, el fundido del mapa, la carga del
-# paquete de audio en negro y el mosaico, ver `fundido_de_pelea.s`— y un toque
+# paquete de audio en negro y el mosaico, ver `battle_fade.s`— y un toque
 # que caiga ahí se pierde. Hasta el 2026-09-26 la tomaba en el 118, y todos
 # los números de acá se corrieron 68 cuadros sin que cambiara ninguna golden.
 BATALLAS = (

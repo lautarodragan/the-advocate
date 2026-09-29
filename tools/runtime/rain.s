@@ -3,7 +3,7 @@
 ; --- the rain -------------------------------------------------------------------
 ;
 ; `Game_Screen::UpdateRain` and `Weather::DrawRain`, with RM2k's rule applied
-; to the 256x224 screen: see OP_WEATHER in eventos.py, which has the why. The
+; to the 256x224 screen: see OP_WEATHER in events.py, which has the why. The
 ; state lives in far RAM: the weather's type and strength, how many drops
 ; there are and the rain's randomness —its own xorshift, seeded every time
 ; the weather changes— in `FAR_WEATHER`, and three bytes per drop —x, y and its

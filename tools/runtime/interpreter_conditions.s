@@ -4,7 +4,7 @@
 
 ; --- the interpreter: conditions and the jump ------------------------------
 ;
-; Opcode handlers: the dispatch in `run_code`, in interprete.s, jumps to
+; Opcode handlers: the dispatch in `run_code`, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
 ; with `jmp run_code::otro` or ends the frame with `rts`.
 
@@ -253,7 +253,7 @@ if_var_continues:
 ; `ConditionalBranch` case 5 with two operands: "knows this skill" —sub 4—
 ; and "has this item equipped" —sub 5—. They go in a separate opcode and not
 ; in `OP_IF` because they carry **two** operands, the actor and the item or
-; the skill; see OP_IF_ACTOR in eventos.py.
+; the skill; see OP_IF_ACTOR in events.py.
 ;
 ; Neither has a polarity: RM2k does not give them one, same as "is in the
 ; party", so the lower branch is the `else`.
@@ -323,7 +323,7 @@ sia_eq_other:
     ; `Game_Actor::IsSkillLearned`: the bit of the (actor, skill) pair in
     ; `FAR_SKILL`. The converter already put the pair's slot where the other
     ; questions carry the item, so `temp + 2` brings it and the actor is not
-    ; needed. See `HABILIDAD_RANURA` in eventos.py.
+    ; needed. See `HABILIDAD_RANURA` in events.py.
 sia_skill:
     jsl f:skill_known
     bne sia_yes

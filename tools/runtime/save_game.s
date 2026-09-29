@@ -63,7 +63,7 @@ SRAM_SIGNATURE = $0108          ; GAME_SIGNATURE
 SRAM_DATA = $010A
 
 ; `save_table` lives in RODATA —see "what does not need to live in bank 0"
-; in `banco1.s`— and is read with `lda f:save_table, x`.
+; in `bank1.s`— and is read with `lda f:save_table, x`.
 ; The same lengths, added up, so the saved game in the SRAM can be walked
 ; without looking at the table again. It is duplicated on purpose and **the
 ; ROM checks it**: `save_game` compares against what `save_copy`

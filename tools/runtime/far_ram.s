@@ -30,7 +30,7 @@ FAR_ITEMS      = $2800
 ; reset, and travels in the save.
 FAR_EQUIPMENT     = $2C00
 ; And the random state, two bytes before: a sixteen-bit xorshift, the same as
-; `random_next` in eventos.py, seeded on reset. It goes here and not in the
+; `random_next` in events.py, seeded on reset. It goes here and not in the
 ; direct page because the direct page ended up at 258 of 256 when that was
 ; tried; randomness is asked for rarely and the port does not notice.
 FAR_RANDOM       = $25FE
@@ -50,7 +50,7 @@ FAR_HERO_SPEED   = $25FD
 ; The escape one is stored and **nobody reads it yet**: escaping belongs to
 ; the battle. It is here because it is one bit and because without it 30 of
 ; the game's 39 pages with `EnemyEncounter` that fail today do not compile;
-; see ACCESO_BIT in eventos.py.
+; see ACCESO_BIT in events.py.
 FAR_ACCESS     = $25FC
 ACCESS_NO_SAVE = $01
 ACCESS_NO_MENU    = $02
@@ -101,7 +101,7 @@ ACTOR_GFX_NONE = $FF
 
 ; And which skills each actor knows, since 2026-09-21: one bit per (actor,
 ; skill) pair, with the slot the converter gave each pair —see
-; `HABILIDAD_RANURA` in eventos.py—. It starts with what the LDB says for the
+; `HABILIDAD_RANURA` in events.py—. It starts with what the LDB says for the
 ; initial level, which `initial_skills_set` copies on reset, `ChangeSkills`
 ; sets and clears it, and it travels in the save. How many bytes it takes is
 ; said by `SKILL_BYTES`, and the converter stops if they go past 256.
@@ -430,7 +430,7 @@ BA_MSG_FRAMES = 120
 ; and the second sound effect goes out twenty-four frames later. The
 ; twenty-four were chosen when sound effects had a single voice and the new
 ; one cut off the previous one's voice, so they had to stay apart by ear;
-; since 8c9c182 they are two voices —see `efectos_de_sonido.s`— and two
+; since 8c9c182 they are two voices —see `sound_effects.s`— and two
 ; different sound effects no longer cut each other off; the same sound effect
 ; twice does, because `sound_play` fires it again on the voice that is
 ; already playing it.
@@ -687,7 +687,7 @@ ANIMB_BUF = $7E7000
 
 ; --- LZ2: what the cartridge carries compressed, in WRAM --------------------
 ;
-; See `lz2_decompress` in descomprimir.s. Reserved on 2026-09-26:
+; See `lz2_decompress` in decompress.s. Reserved on 2026-09-26:
 ;
 ;   $7E7800  the literal's `mvn` trampoline, four bytes built with each
 ;            call's banks, and the output bank
@@ -702,7 +702,7 @@ ANIMB_BUF = $7E7000
 ;            upper layer and the sprites. What does take them away is the
 ;            battle, and `back_to_map` decompresses them again
 ;
-; The limits of each block are enforced by `descomprimir.s` against the ones
+; The limits of each block are enforced by `decompress.s` against the ones
 ; the converter emits.
 LZ2_TRAMPOLINE_LIT = $7E7800        ; mvn output, stream; rtl
 LZ2_BANK      = $7E7804        ; the output bank
@@ -710,7 +710,7 @@ LZ2_BANK      = $7E7804        ; the output bank
 ; --- what the victory counts -------------------------------------------------
 ;
 ; $7E7810 to $7E781F, reserved on 2026-09-26: the "N EXP" and "Level up!"
-; pages of `batalla_victoria.s`. Like `FAR_BATTLE`, they are named with a
+; pages of `battle_victory.s`. Like `FAR_BATTLE`, they are named with a
 ; sixteen-bit address because the battle reads them, with the data bank at
 ; $7E. `ba_vic_start` writes all of them on winning and nobody reads them
 ; before, so there is no need to set them to anything at startup.
@@ -751,7 +751,7 @@ MENU_EXP_TEXT_END = $7E7A50
 ; $7E7820 to $7E782F, reserved on 2026-09-26: one bit per song, set when the
 ; song had a track and the MSU-1 could not play it —it was not on the card,
 ; or it did not finish opening it in time— and it played through the SPC700.
-; See `song_per_msu` in paquete_de_audio.s. `msu_detect` clears it on
+; See `song_per_msu` in audio_package.s. `msu_detect` clears it on
 ; reset; it does not travel in the save, because what it says is about the
 ; card and not about the game.
 MSU_MISSING      = $7E7820
@@ -762,7 +762,7 @@ ANIM_DRAWINGS_END = $7F8000
 
 ; --- sound effects with MSU-1 ------------------------------------------------
 ;
-; $7E78B0 to $7E78CF, reserved on 2026-09-26. See `efectos_con_msu.s`: voices
+; $7E78B0 to $7E78CF, reserved on 2026-09-26. See `msu_effects.s`: voices
 ; 0 to 5 when the SPC700 is not playing music, and the `.msu`'s quality sound
 ; effects. `se_clear` zeroes it, on reset; it does not travel in the save.
 EX_FRAMES  = $7E78B0           ; six words: how many frames the sound effect
@@ -787,14 +787,14 @@ EX_END      = $7E78CF
 ; number of the sound effect recorded there, or $FF. Several sound effects go
 ; to the same place —the ones that are never in the same package: see
 ; `lugares_de_efectos` in tools/audio/snes_music.py— and the directory does
-; not say which one is there. See `record_effect` in paquete_de_audio.s.
+; not say which one is there. See `record_effect` in audio_package.s.
 ; `aram_clear` sets it to $FF; it does not travel in the save.
 FAR_EFFECT_IN = $7E78D0
 .assert FAR_EFFECT_IN + SE_PLACES <= $7E7900, error, "the sound effect places do not fit in FAR_EFFECT_IN: see SE_LUGARES_MAX in snes_music.py"
 
 ; --- the battle transition ---------------------------------------------------
 ;
-; $7E7840 to $7E784F, reserved on 2026-09-26. See `fundido_de_pelea.s`.
+; $7E7840 to $7E784F, reserved on 2026-09-26. See `battle_fade.s`.
 BATTLE_ON = $7E7840        ; 1 if the battle got to turn its screen on
 
 ; --- the teleport transition ------------------------------------------------

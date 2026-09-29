@@ -1134,7 +1134,7 @@ def render_menu(sys_img, db, slots, party, gold, chosen=0,
 #
 # A uses the medicine on the marked row and the screen stays, with that row's
 # HP and the quantity up to date: see `medicine_use` in
-# tools/runtime/medicina.s. This draws the HP passed in `hp`, so after healing
+# tools/runtime/medicine.s. This draws the HP passed in `hp`, so after healing
 # it is enough to pass the new ones.
 TARGET_LEFT = 104
 TARGET_NAME_HEIGHT = 48

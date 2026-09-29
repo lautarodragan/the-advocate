@@ -3,7 +3,7 @@
 ; --- the event interpreter: the loop and the dispatch ------------------------
 ;
 ; `run_code` reads one opcode per pass and jumps to its handler. Each
-; handler is its own `.proc op_*` and lives in one of the `interprete_*.s`
+; handler is its own `.proc op_*` and lives in one of the `interpreter_*.s`
 ; files that main.s includes after this one, one per family. Since the dispatch
 ; goes through a table, the code does not care where each one is, with one
 ; condition: it has to stay in `run_code`'s bank, because `jmp (tabla, x)`

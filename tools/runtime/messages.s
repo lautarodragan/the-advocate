@@ -269,7 +269,7 @@ ready:
 ; be added to a long pointer crossing banks: see the loop below and
 ; `msg_ptr_next`, which is the same arithmetic for advancing one byte at a
 ; time.
-.assert MESSAGES_CAP = 4 * $10000, error, "msg_start multiplies the offset by four: it is MENSAJES_PASO in eventos.py"
+.assert MESSAGES_CAP = 4 * $10000, error, "msg_start multiplies the offset by four: it is MENSAJES_PASO in events.py"
 .proc msg_start
 .a16
 .i16
@@ -284,7 +284,7 @@ ready:
     ; 64 KB block crosses up to twice.
     ;
     ; And the offset counts in steps of four bytes —`MENSAJES_PASO` in
-    ; eventos.py—, so the block reaches 256 KB: the two bits that fall out of
+    ; events.py—, so the block reaches 256 KB: the two bits that fall out of
     ; the `asl`s go to `temp`, and each unit of what it gathers is 64 KB, that
     ; is two LoROM banks. With `rol` and not with a branch per bit on purpose:
     ; that way the top bit —more than 128 KB, which no cartridge in the suite

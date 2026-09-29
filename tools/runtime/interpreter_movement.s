@@ -4,7 +4,7 @@
 
 ; --- the interpreter: move routes and places --------------------------------
 ;
-; Opcode handlers: the dispatch in `run_code`, in interprete.s, jumps to
+; Opcode handlers: the dispatch in `run_code`, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
 ; with `jmp run_code::otro` or ends the frame with `rts`.
 
@@ -121,7 +121,7 @@ place_plant:                  ; with Y already on the stack: see `op_place_var`
 ; branch of `CommandChangeEventLocation`. The rest is identical to
 ; `op_place`: the same `MoveTo`, that is, the cell changes right away, the
 ; step in progress is cut, and neither the route nor the facing is touched.
-; See OP_PLACE_VAR in eventos.py.
+; See OP_PLACE_VAR in events.py.
 ;
 ; Both reads go **before** writing either of the two words, as in `op_swap`:
 ; a variable read after moving the event could already hold something else if

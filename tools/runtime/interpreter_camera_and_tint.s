@@ -4,7 +4,7 @@
 
 ; --- the interpreter: the camera and the tint ------------------------------
 ;
-; Opcode handlers: the dispatch in `run_code`, in interprete.s, jumps to
+; Opcode handlers: the dispatch in `run_code`, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
 ; with `jmp run_code::otro` or ends the frame with `rts`.
 

@@ -4,12 +4,12 @@
 
 ; --- the interpreter: the button and the wait -------------------------------
 ;
-; Opcode handlers: the dispatch of `run_code`, in interprete.s, jumps to
+; Opcode handlers: the dispatch of `run_code`, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
 ; with `jmp run_code::otro` or cuts the frame short with `rts`.
 
 ; `KeyInputProc`: which button the player pressed, stored in a variable. See
-; OP_KEY in eventos.py, which is where the reason lives for why the waiting
+; OP_KEY in events.py, which is where the reason lives for why the waiting
 ; form is emitted twice.
 ;
 ; The one that **waits** and finds nothing rewinds its own cursor to this same

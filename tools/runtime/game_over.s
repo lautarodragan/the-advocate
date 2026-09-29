@@ -34,7 +34,7 @@ GO_FRAMES_SCREEN = 5
 GO_FRAMES_MAP     = 2
 
 ; The PPU registers that only this screen sets to zero: the rest are named by
-; registros.s. The map can come with the message window, a tint or a mosaic,
+; registers.s. The map can come with the message window, a tint or a mosaic,
 ; and the battle with its own: without this they would show on top.
 GO_W12SEL = $2123
 GO_W34SEL = $2124
@@ -369,7 +369,7 @@ frame:
     sta BG1VOFS
     lda #$01
     sta TM                      ; the image alone: no sprites, no other layer
-    ; Everything as `ppu_reset` leaves it —see `ppu_high` in banco1.s—, and
+    ; Everything as `ppu_reset` leaves it —see `ppu_high` in bank1.s—, and
     ; not zero: TMW and CGWSEL are set only by the reset, and the map expects
     ; them that way. Game Over is followed by the reset, but the title is
     ; followed by the map: with TMW at zero the message window stopped

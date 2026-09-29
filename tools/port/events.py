@@ -27,7 +27,7 @@ from rpgmaker import rm2k
 
 # The opcodes' numbers, lengths and layout. **They are not declared here**:
 # they come from `tools/protocol/events.toml`, which belongs to both sides —this
-# one and the interpreter in tools/runtime/interprete*.s— and to neither. See
+# one and the interpreter in tools/runtime/interpreter*.s— and to neither. See
 # tools/protocol/README.md.
 from port.event_opcodes import *   # noqa: F401,F403
 from port.event_opcodes import OPCODE_SIZE, opcode_size  # noqa: F401
@@ -523,7 +523,7 @@ IGNORABLE = {
 #
 # PlayBGM changes the song that plays, and it is no longer one of these: it is
 # done, see OP_BGM. Each map uploads its audio package to ARAM, with the songs
-# its pages can turn on —`package_load`, in tools/runtime/paquete_de_audio.s—,
+# its pages can turn on —`package_load`, in tools/runtime/audio_package.s—,
 # and each sample's budget is that of its worst pack: see
 # `workflow/decisiones/un-solo-banco-de-muestras.md`. It is accepted without
 # being done only when compiling without a song registry.
@@ -562,7 +562,7 @@ WEATHER_EFFECTS = 11070
 #
 # What made it costly was ARAM. The effects go in each map's audio package,
 # together with its songs —`package_load`, in
-# tools/runtime/paquete_de_audio.s—, with the same per-pack budget as the
+# tools/runtime/audio_package.s—, with the same per-pack budget as the
 # music's samples: `workflow/decisiones/un-solo-banco-de-muestras.md`. One
 # that does not fit in its pack does not sound.
 #
@@ -686,7 +686,7 @@ CHANGE_HERO_TITLE = 10620
 # encounter. Nineteen occurrences on nine maps, and thirteen of them set it to
 # **zero**, which in RM2k is turning them off. Until 2026-09-27 it was left out
 # because "there are no random encounters"; there are since 2026-09-13 —see
-# `tools/runtime/encuentros.s`— and Dalia's trip to Tasgarde asked for it, the
+# `tools/runtime/encounters.s`— and Dalia's trip to Tasgarde asked for it, the
 # automatic `DaliaGoingToTasgarde` on map 66, which turns them off before
 # forcing the hero's route. It compiles to OP_ENCOUNTER_STEPS: see
 # `encounter_steps`.
@@ -733,7 +733,7 @@ class Songs:
         # And who asks for what: the converter puts in `game_map` the index of the
         # map it is compiling, and each song and each effect is noted in its
         # own, in the order they appear. It is what builds each map's audio
-        # package: see `package_load` in tools/runtime/paquete_de_audio.s.
+        # package: see `package_load` in tools/runtime/audio_package.s.
         # And which ROM maps each one jumps to —`destinos`, indices into the
         # map table—, which is where it comes from which song may be playing
         # when a package is loaded: see `inherited_songs` in snes_convert.py.
@@ -951,12 +951,12 @@ def sprite_associations(game_maps, extra=()):
 # OP_SHAKE: power (byte), speed (byte), frames (word):
 #     `ShakeOnce`. With zero frames it is `ShakeEnd`: the
 #     screen goes back to its place. The math is
-#     `shake_tick` in tools/runtime/camara.s.
+#     `shake_tick` in tools/runtime/camera.s.
 #
 # OP_FLASH_SCREEN: r, g, b, power (a byte each, 0..31) and frames
 #     (byte): `FlashOnce`, the whole-screen flash. The
 #     math is `flash_tick` in
-#     tools/runtime/destello_de_pantalla.s.
+#     tools/runtime/screen_flash.s.
 #
 # OP_IF: kind (byte), operand (word), polarity (byte),
 #     destination (word):
@@ -981,7 +981,7 @@ def sprite_associations(game_maps, extra=()):
 #     It is `OpenSaveMenu`, but without a menu: there is
 #     a single slot and the event overwrites it. What is
 #     saved is said by `save_table` in
-#     tools/runtime/banco1.s, which is the only place
+#     tools/runtime/bank1.s, which is the only place
 #     where it is written. It costs no frame: in RM2k the
 #     menu blocks, and here there is nothing to look at.
 #
@@ -1129,10 +1129,10 @@ BRIGHTNESS_MAX = 15
 # Wick's hideout: zoom (16) to go to the vidcasts, mosaic (17) inside, and fade
 # (0) on the way back. It is state that crosses the teleport, and in RM2k it
 # travels in the save; here it does not —see `TRANSITION_ERASE` in
-# tools/runtime/ram_lejana.s—.
+# tools/runtime/far_ram.s—.
 #
 # The ROM does two: **the mosaic**, with the PPU's MOSAIC register tied to the
-# brightness ramp —like the battle's, `fundido_de_pelea.s`, and for the same
+# brightness ramp —like the battle's, `battle_fade.s`, and for the same
 # reason: the map load has to fall inside the black—, and **the fade**, which
 # is what goes for the ones the console does not do (the zoom is mode 7, and
 # the map is in mode 3): taro decided it on 2026-09-26. See
@@ -1814,7 +1814,7 @@ def rain_pixels(x, y):
 # previous one— and it advances once per frame **before** the flashes, which
 # is where `Game_Screen::Update` puts it. With "wait", the page waits for as
 # long as it lasts: two frames per animation frame. See `battle_anim_tick` in
-# tools/runtime/animacion_de_batalla.s.
+# tools/runtime/battle_animation.s.
 #
 # The flash is not exactly RM2k's: there the power is
 # `min((7 - (d + 1) / 2) * potencia / 6, 31)` for ten frames, in steps; here
@@ -2577,7 +2577,7 @@ COMMON_EVENTS = {}            # RM2k common event -> its commands
 # converter pastes the body after the `ControlSwitches` that turns it on, like
 # a `CallEvent`— and when closing the menu, which is where the equipment is
 # changed —the ROM runs it from `menu_screen`, see `equipment_commons` in
-# tools/runtime/equipo_desde_eventos.s—. It is what the droid tutorial says:
+# tools/runtime/equipment_from_events.s—. It is what the droid tutorial says:
 # "these abilities become available once you equip a particular component and
 # exit the menu".
 #
@@ -3053,7 +3053,7 @@ class Troops:
 # what is accepted: see `TROOP_COMMANDS`.
 #
 # When each one runs is decided by the ROM and it is copied from
-# `Scene_Battle_Rpg2k`; see `ba_page_test` in tools/runtime/batalla_tropa.s.
+# `Scene_Battle_Rpg2k`; see `ba_page_test` in tools/runtime/battle_troop.s.
 
 # The battle's three branch commands, with their map twin. Of the six
 # questions of `CommandConditionalBranchBattle` the game uses **only two** —the
@@ -3655,7 +3655,7 @@ CELL_DEST_A = 10
 CELL_DEST_B = 16
 # The top two bits of each `OP_CELL_TEST` write, over the variable's offset:
 # y instead of x, and the refresh. See `cell_test` in
-# tools/runtime/interprete_celdas.s.
+# tools/runtime/interpreter_cells.s.
 CELL_Y = 0x4000
 CELL_REFRESH = 0x8000
 
@@ -5013,7 +5013,7 @@ def _compile(cmd, map_index, messages=None, extra=(),
                 # from the actor table, but the actor's twelve poses are
                 # written with the same shape as an `npc_poses` entry, so the
                 # ROM changes the pointer and that is it: see `graphic_hero`
-                # in tools/runtime/ruta_del_heroe.s. They are +29 pages of the
+                # in tools/runtime/hero_route.s. They are +29 pages of the
                 # game, and among them the three of map 8's `EV0047`, which
                 # could not be interacted with.
                 if graphics is None or len(extras) < 2:
@@ -5485,7 +5485,7 @@ def map_pages(game_map, map_index, messages=None, songs=None,
                 "ruta_propia": own_route(page),
                 # What the page draws and what its tile imposes on the cell:
                 # see `rm2k.collect_npcs`, and `pass_with_event` in
-                # tools/runtime/heroe.s, which is the one that applies them.
+                # tools/runtime/hero.s, which is the one that applies them.
                 "grafico": graphic,
                 "tile_pasa": (rm2k.event_tile_passability(game_map, graphic[0],
                                                           page.layer)

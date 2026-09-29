@@ -4,7 +4,7 @@
 
 ; --- the interpreter: the shop and the battle ------------------------------
 ;
-; Opcode handlers: the dispatch of `run_code`, in interprete.s, jumps to
+; Opcode handlers: the dispatch of `run_code`, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
 ; with `jmp run_code::otro` or cuts the frame short with `rts`.
 ;
@@ -195,7 +195,7 @@ recorded:
     ;
     ; **With the map already black**: the load takes from half a second to a
     ; second and a half, and it is the entry transition that hides it. See
-    ; `fundido_de_pelea.s`.
+    ; `battle_fade.s`.
     jsl f:battle_fade_in
     ldx #BA_PACKAGE
     jsr battle_audio_load

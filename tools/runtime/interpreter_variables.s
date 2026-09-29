@@ -4,15 +4,15 @@
 
 ; --- the interpreter: switches and variables -------------------------------
 ;
-; Opcode handlers: the dispatch in `run_code`, in interprete.s, jumps to
+; Opcode handlers: the dispatch in `run_code`, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
 ; with `jmp run_code::otro` or ends the frame with `rts`.
 ;
-; The timer is in interprete_cronometro.s, and the conditions on a variable
-; in interprete_condiciones.s.
+; The timer is in interpreter_timer.s, and the conditions on a variable
+; in interpreter_conditions.s.
 
 ; `ControlVars`, one variable at a time: slot, operation, operand class, and
-; sixteen-bit a and b. See OP_VAR in eventos.py. Sixteen bits signed,
+; sixteen-bit a and b. See OP_VAR in events.py. Sixteen bits signed,
 ; wrapping around.
 .proc op_var
 .a8

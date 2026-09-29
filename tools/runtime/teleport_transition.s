@@ -14,7 +14,7 @@
 ;                console does not do, like the zoom
 ;   the mosaic   the same fade, plus the MOSAIC register tied to the
 ;                brightness: size 16 at brightness 0, size 1 at brightness
-;                15, which is what the battle does —see `fundido_de_pelea.s`,
+;                15, which is what the battle does —see `battle_fade.s`,
 ;                which explains why the mosaic also darkens, and in RM2k it
 ;                does not: the load has to fall inside the black—
 ;   the cut      only for erasing: the fade started at its last outgoing

@@ -686,11 +686,11 @@ scrolls:
 ; with so many different indices that the extra byte per access would cost
 ; more than the table. The ones read with X and rarely read were moved down
 ; to RODATA over the course of 2026-09-13, in three separate rounds and for
-; the same reason: making room. `banco1.s` has the reason for each one and
+; the same reason: making room. `bank1.s` has the reason for each one and
 ; what could still be moved down.
 
 ; `jump_per_speed` moved down to RODATA on 2026-09-14: a single access, and
-; going through X costs four bytes against the table's six. See `banco1.s`.
+; going through X costs four bytes against the table's six. See `bank1.s`.
 ; Every how many frames the walk frame changes, per speed: walking and
 ; standing with continuous animation: `GetStationaryAnimFrames` and
 ; `GetContinuousAnimFrames` of `Game_Character::UpdateAnimation`.

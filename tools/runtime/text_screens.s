@@ -5,7 +5,7 @@
 ; The equipment and shop screens are pure text on top of the item screen's
 ; font. They are composed **whole** in `text_buf` —the 32 by 28 cell
 ; tilemap, 1792 bytes— and go up in one DMA at the start of each vblank, so
-; composing is in no hurry. `pantallas.py` is the reference. A position is a
+; composing is in no hurry. `screens.py` is the reference. A position is a
 ; byte of the buffer: row * 64 + column * 2; the cell below each letter is 64
 ; bytes further on.
 ;
@@ -63,7 +63,7 @@ other:
 
 ; One letter: A the character, `temp + 1` the variant —0 white, 1 gray, 2 the
 ; "goes up" color, which only has digits, and 3 red: see `ITEM_SUBE` in
-; titulo.py—. It goes at `pick_table`, which advances one cell. Clobbers X
+; menus.py—. It goes at `pick_table`, which advances one cell. Clobbers X
 ; and Y.
 .proc scr_glyph
 .a8

@@ -6,7 +6,7 @@ la pantalla y con cuál la vuelve a mostrar. En RM2k son las veinte de la tabla
 conversor —`CHANGE_SCREEN_TRANSITIONS` en `tools/port/eventos.py`—:
 
 * **el mosaico** (17), con el registro MOSAIC del PPU, atado a la rampa del
-  brillo. Ver `tools/runtime/transicion_del_teletransporte.s`;
+  brillo. Ver `tools/runtime/teleport_transition.s`;
 * **el fundido**, que es también lo que va para **las que la consola no
   hace**, como el zoom (16): acercar el mapa es modo 7, y el mapa está en modo
   3. Lo decidió taro el 2026-09-26, igual que para la pelea;
@@ -18,12 +18,12 @@ Lo que queda distinto del original:
 
 * **El mosaico oscurece.** En RM2k los bloques crecen sobre la imagen entera y
   al final se borra; acá el brillo baja a la vez, como en la pelea, porque la
-  carga del mapa tiene que caer adentro del negro (ver `fundido_de_pelea.s`).
+  carga del mapa tiene que caer adentro del negro (ver `battle_fade.s`).
 * **Los sprites no se pixelan.** El mosaico del PPU es de los fondos: el
   héroe y los eventos se ven enteros mientras el mapa se hace bloques.
 * **El zoom es el fundido de siempre.**
 * **La transición no viaja en la partida**, y en RM2k sí: ver
-  `TRANSICION_BORRAR` en `tools/runtime/ram_lejana.s`.
+  `TRANSICION_BORRAR` en `tools/runtime/far_ram.s`.
 * **Borrar con "ninguna" es el corte.** En RM2k no toca la pantalla, así que
   el fundido de vuelta funde del mapa viejo al nuevo (`screen1` y `screen2`
   de `Transition`); la consola no tiene con qué mezclar dos cuadros, y la

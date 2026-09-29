@@ -8,7 +8,7 @@ en cero cuando el mapa lo crea.
 Acá el contador es **global**: la columna sale de dividir el tick del juego por
 `ANIM_CONTINUA` de la velocidad. Un evento que aparece a mitad de la partida
 entra con el ciclo empezado en cualquier punto. El porqué —no hay byte por
-evento para guardarlo— está en `animar_quietos` de `tools/runtime/quietos_que_animan.s`.
+evento para guardarlo— está en `animar_quietos` de `tools/runtime/animated_stills.s`.
 
 # Medido
 

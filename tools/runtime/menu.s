@@ -3,7 +3,7 @@
 ; --- the pause menu ----------------------------------------------------------
 ;
 ; `Scene_Menu`, over the bank of the slot screen: the geometry and the blocks
-; come from `titulo.py`, and `render_menu` is the reference. It opens with B,
+; come from `menus.py`, and `render_menu` is the reference. It opens with B,
 ; when the hero is standing still: `request_menu` notes the request and
 ; `move_hero` serves it, which is how RM2k does it with `menu_calling`. The
 ; game clock does not run while it is shown —as on the slot screen— so the
@@ -11,7 +11,7 @@
 ;
 ; Today the things that do something are using items —the item screen, in
 ; `items.s`—, equipment, saving, which opens the slot screen and returns to
-; the menu, and End Game, which opens its own —`fin_del_juego.s`—. Skills is
+; the menu, and End Game, which opens its own —`end_game.s`—. Skills is
 ; drawn in gray and A does nothing with it.
 
 ; The permissions byte, in A. Only A, and the `lda`'s flags: bit 7 ends up in
@@ -708,7 +708,7 @@ items_return:
 no_items:
     cmp #MENU_END
     bne save
-    ; End Game: its screen, in `fin_del_juego.s`. "Yes" does not return —it
+    ; End Game: its screen, in `end_game.s`. "Yes" does not return —it
     ; ends in the reset—; "No" and B return to the menu with the cursor on the
     ; option, like `Scene::Pop`.
     jsl f:ending_screen
@@ -742,7 +742,7 @@ close:
     sta nmi_seen
     ; The equipment may have changed: the common events that only look at it
     ; run now, with the data bank still at 0. See `COMUNES_DEL_EQUIPO` in
-    ; eventos.py.
+    ; events.py.
     jsl f:equipment_commons
     plb
     jsl f:menu_exp_close       ; what the menu sprites changed
@@ -767,11 +767,11 @@ move:
 ; --- the actor choice --------------------------------------------------------
 ;
 ; `Scene_ActorTarget`, over the menu's bank: the party panel, and the System
-; windows and bar on BG1, which belong to `eleccion_de_actor.s`. `pick_cancel`
+; windows and bar on BG1, which belong to `actor_choice.s`. `pick_cancel`
 ; says what for: at 1, to choose whom to equip, and A returns with the row; at
 ; 0, for the medicine `k` in `pick_edges`, and A uses it on the row
 ; —`medicine_use`— and **stays**, with that row's HP repainted, which is what
-; `UpdateItem` does. B returns with $FF. `render_objetivo` in titulo.py is the
+; `UpdateItem` does. B returns with $FF. `render_target` in menus.py is the
 ; reference.
 ;
 ; Until 2026-09-21 A did nothing with a medicine: it was written when outside

@@ -12,7 +12,7 @@
 ; `music_off` is set: a track plays, or nothing—, a sound effect that
 ; does not fit in 7 or in 6 takes one of those. In RM2k sound effects add up,
 ; and `evilrhys`'s scene on map 3 has a moment with three at once. Their state
-; lives in `EX_*` (ram_lejana.s), smaller than that of 7 and 6: instead of the
+; lives in `EX_*` (far_ram.s), smaller than that of 7 and 6: instead of the
 ; copy of the `sound_table` row, its index, and the interrupt reads it when
 ; starting it.
 ;
@@ -29,7 +29,7 @@
 ; are uploaded to ARAM from there and not from ROM: whole, and at the rate
 ; they fit at now that the music takes no room. Each package has its version of
 ; each sound effect —the rate depends on how heavy the package is, see
-; tools/audio/efectos_msu.py— and the ROM does not keep which version was
+; tools/audio/msu_effects.py— and the ROM does not keep which version was
 ; left in ARAM, so **on every package they are all uploaded again**, even if they
 ; were already there. Each sound's pitch comes from `se_msu_pitch`, which the
 ; converter builds per package, and not from `sound_table`. With another
@@ -39,7 +39,7 @@
 ; and what is read or written goes with `f:`, so the data bank does not
 ; matter. What runs inside `irq_music` —`se_extras_before` and
 ; `se_extras_after`— does not use `temp`, for the same reason
-; `efectos_de_sonido.s` does not.
+; `sound_effects.s` does not.
 
 EX_VOICES = 6                    ; from 0 to 5
 .assert SE_BIT = $80 && SE2_BIT = $40, error, "the usual sound effect voices are no longer 7 and 6"

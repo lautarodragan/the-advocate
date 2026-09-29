@@ -230,7 +230,7 @@ lo_found:
     ; actor: it is RM2k's `actor->SetSprite`, and it lives in the actor, so it
     ; **survives the teleport**. If its graphic is not in this map's sprite
     ; bank it falls back to the LDB one, which is what the path below points
-    ; at. See OP_ACTOR_SPRITE in eventos.py.
+    ; at. See OP_ACTOR_SPRITE in events.py.
     phy                         ; the actor's entry, in case there is no change
     lda temp                    ; the leader
     jsr actor_gfx_read

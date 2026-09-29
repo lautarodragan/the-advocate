@@ -75,7 +75,7 @@ not_move:
     bcc face                    ; 12..15 are the face_*
     ; Turning without moving is not compiled, and facing the hero —21— and
     ; going toward him —9— are not compiled **on the hero**: see
-    ; `RUTA_ORDENES` in eventos.py. They do not get here. 9 would also fall
+    ; `RUTA_ORDENES` in events.py. They do not get here. 9 would also fall
     ; into `move` above, which with a direction that is not 0..3 sends the
     ; hero left by elimination, which is the same trap as the diagonals.
     cmp #24

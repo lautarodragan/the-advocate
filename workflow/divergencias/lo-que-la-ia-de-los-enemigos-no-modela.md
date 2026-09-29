@@ -5,7 +5,7 @@ lista de acciones del LDB, el `rating` de cada una y
 `SelectEnemyAiActionRpgRtCompat` de easyrpg —cada posible pesa
 `max(0, rating - máximo + 10)`— y usan habilidades. Lo decide
 `batalla.accion_del_enemigo` y lo copia `ba_accion_enemiga`
-(`tools/runtime/batalla.s`). Lo que queda distinto:
+(`tools/runtime/battle.s`). Lo que queda distinto:
 
 * **Con una sola acción de peso no se tira el dado.** RM2k tira
   `rand(0, suma - 1)` igual. Es la misma distribución, y deja el azar de las

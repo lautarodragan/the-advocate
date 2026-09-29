@@ -6,7 +6,7 @@
 ; one the next level asks for, `"%6d/%6d"`. **It goes in sprites**, twelve
 ; pixels below the HP and at the font's six-pixel pitch: in the cell grid
 ; there was no room. The why and the geometry are in `MENU_EXP_X`, in
-; titulo.py, and `render_menu` is the reference.
+; menus.py, and `render_menu` is the reference.
 ;
 ; Sprites read their tiles from `SLOT_VRAM`, so a glyph's tile in the bank
 ; is the same number, and their palette 0 is a copy of the text's. No other

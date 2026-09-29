@@ -4,7 +4,7 @@
 
 ; --- the interpreter: pictures, animation and weather ----------------------
 ;
-; Opcode handlers: the dispatch in `run_code`, in interprete.s, jumps to
+; Opcode handlers: the dispatch in `run_code`, in interpreter.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
 ; with `jmp run_code::otro` or ends the frame with `rts`.
 
@@ -96,7 +96,7 @@ img_move_end:
 
 ; `OP_ANIMATION`: the RM2k animation number, what it is drawn on, how many
 ; entries, and the entries, which stay in the bytecode. See OP_ANIMATION in
-; eventos.py and `battle_anim_tick`. The new one replaces whatever was running,
+; events.py and `battle_anim_tick`. The new one replaces whatever was running,
 ; and it costs no tick.
 ;
 ; The first two bytes are for the **drawing**, which runs on its own and lasts

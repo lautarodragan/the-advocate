@@ -363,7 +363,7 @@ no_is:
 .a16
     lda f:sample_table + 3, x
     sta f:PKG_LENGTH
-    jsl se_msu_length            ; or what the one in the `.msu` measures: efectos_con_msu.s
+    jsl se_msu_length            ; or what the one in the `.msu` measures: msu_effects.s
 .a16
     ; The first gap where it fits: the occupied ones are walked in order,
     ; with PKG_A at the start of the gap being looked at.
@@ -472,7 +472,7 @@ other:
 .a8
     lda f:PKG_S
     jsr sample_row
-    jsl se_msu_upload            ; a sound effect from the `.msu`: see efectos_con_msu.s
+    jsl se_msu_upload            ; a sound effect from the `.msu`: see msu_effects.s
     bcs upload
     jsr upload_sample
     jsr write_directory
@@ -682,7 +682,7 @@ ready_apu:
     sta f:PKG_COMPACT
     jsr se_mute
     jsl se_msu_prepare         ; with the `.msu` sound effects, all are
-                                ; uploaded again: see efectos_con_msu.s
+                                ; uploaded again: see msu_effects.s
     ldx #0
 clear:
     lda #0
