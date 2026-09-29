@@ -147,7 +147,7 @@ def _pagina_del_bum():
 
     from port import eventos
     from rpgmaker import lcf
-    from rpgmaker.recursos import GAME_DIR
+    from rpgmaker.resources import GAME_DIR
 
     todos = sorted(int(os.path.basename(f)[3:7])
                    for f in glob.glob(os.path.join(GAME_DIR, "Map*.lmu")))

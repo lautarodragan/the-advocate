@@ -21,7 +21,7 @@ import pytest
 
 from audio import snes_music
 from emulador import retro
-from rpgmaker.recursos import GAME_DIR
+from rpgmaker.resources import GAME_DIR
 
 import tanda
 from consola import (EMPEZAR, NUCLEO, SEGUIR, TITULO_AIRE, Partida,

@@ -7,7 +7,7 @@ import os
 
 from port import eventos
 from rpgmaker import lcf
-from rpgmaker.recursos import GAME_DIR
+from rpgmaker.resources import GAME_DIR
 
 import datos
 

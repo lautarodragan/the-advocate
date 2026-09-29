@@ -97,8 +97,8 @@ from port.formato_snes import cgram_word, entry, pack_tile
 from rpgmaker.rm2k import TILE, collect_npcs, hero_start, passability_map
 from render.render_map import Renderer, build_passability, load_image
 from common import environment
-from rpgmaker import recursos
-from rpgmaker.recursos import find_resource
+from rpgmaker import resources
+from rpgmaker.resources import find_resource
 
 # The PPU addresses 1024 tiles per layer: ten bits in each tilemap cell.
 MAX_TILES = 1024
@@ -1760,7 +1760,7 @@ def _version_capas():
       key was the already drawn pixels: changing the drawing changed the key
       by itself. Since the key comes from the inputs, the only way for a change
       in the drawing to invalidate what is stored is this one.
-      `rpgmaker/recursos.py` goes with them because it is where `render_map`
+      `rpgmaker/resources.py` goes with them because it is where `render_map`
       gets how it finds the ChipSet, and `common/project.py` because it is
       where the directories it searches in come from;
     * `port/asignador.py` decides which colors are lost, `rpgmaker/rm2k.py`
@@ -1786,7 +1786,7 @@ def _version_capas():
                                                 "port/asignador.py",
                                                 "rpgmaker/rm2k.py",
                                                 "render/render_map.py",
-                                                "rpgmaker/recursos.py",
+                                                "rpgmaker/resources.py",
                                                 "common/project.py",
                                                 "render/chipset.py")
                           + tiles_bin.version()
@@ -7972,7 +7972,7 @@ def main():
     # every ROM that finds it: any cartridge can lose a battle or run a
     # `GameOver`. See tools/port/pantalla_completa.py.
     game_over_datos = None
-    ruta = find_resource([args.game_dir, recursos.RTP_DIR], "GameOver",
+    ruta = find_resource([args.game_dir, resources.RTP_DIR], "GameOver",
                          renderer.database.gameover_name)
     if renderer.database.gameover_name and ruta:
         from PIL import Image
@@ -8891,7 +8891,7 @@ def _juego():
     """`main`'s or, if it didn't go through there —a test that calls these
     functions on their own—, the environment's, which is the same
     `--game-dir`."""
-    return args_game_dir[0] or recursos.GAME_DIR
+    return args_game_dir[0] or resources.GAME_DIR
 
 
 def items_posibles(map_ids, actores=(), db=None, extra=()):

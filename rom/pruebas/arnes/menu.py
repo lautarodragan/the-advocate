@@ -41,7 +41,7 @@ def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
     y el cursor en `elegida`. Vivía en `test_menu_dibujo.py` hasta el
     2026-09-29; lo usa también End Game, que vuelve al menú."""
     from port import menus
-    from rpgmaker.recursos import GAME_DIR
+    from rpgmaker.resources import GAME_DIR
     db, skin = datos.base(), datos.skin()
     esperada = menus.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
                                   GRUPO, ORO, elegida, guardar, db.font_id,

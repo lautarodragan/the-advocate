@@ -20,13 +20,13 @@ import os
 import pytest
 
 from render import render_map
-from rpgmaker import recursos
+from rpgmaker import resources
 from port import snes_convert
 
 from datos import DEMO
 
 # El juego original, del mismo lugar que el conversor: `ABL_GAME_DIR`.
-JUEGO = recursos.GAME_DIR
+JUEGO = resources.GAME_DIR
 MAPA = 2
 PUERTA = 30 - 1          # `npcs_dibujables` numera los eventos desde cero
 

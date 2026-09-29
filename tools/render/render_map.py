@@ -16,8 +16,8 @@ from PIL import Image
 from common import project
 from rpgmaker import lcf
 from rpgmaker import rm2k
-from rpgmaker import recursos
-from rpgmaker.recursos import find_resource
+from rpgmaker import resources
+from rpgmaker.resources import find_resource
 from rpgmaker.rm2k import TILE
 from render import chipset_del_fork
 from render.chipset import ANIMATED, ChipsetAtlas, TERRAIN, UPPER
@@ -207,8 +207,8 @@ class Renderer:
     """Everything shared between maps: the game, the RTP and the caches."""
 
     def __init__(self, game_dir=None, rtp_dir=None):
-        game_dir = game_dir or recursos.GAME_DIR
-        rtp_dir = rtp_dir or recursos.RTP_DIR
+        game_dir = game_dir or resources.GAME_DIR
+        rtp_dir = rtp_dir or resources.RTP_DIR
         self.database = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
         self.tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
         self.game_dir = game_dir

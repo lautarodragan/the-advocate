@@ -173,7 +173,7 @@ def test_los_hp_del_menu_cambian_de_verdad():
     sostiene todo".
     """
     from port import menus
-    from rpgmaker.recursos import GAME_DIR
+    from rpgmaker.resources import GAME_DIR
     db, skin = datos.base(), datos.skin()
     llena = menus.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
                                None, GAME_DIR)

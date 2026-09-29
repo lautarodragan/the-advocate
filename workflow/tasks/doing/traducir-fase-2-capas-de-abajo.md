@@ -30,3 +30,4 @@ un `-c`) se buscan aparte con grep.
 4. `ambiente.py` → `environment.py`, con `--reemplazos` → `--replacements` y `--compartido` → `--shared`.
 5. `cache_disco.py` → `disk_cache.py`.
 6. `paralelo.py` → `parallel.py`.
+7. `rpgmaker/recursos.py` → `rpgmaker/resources.py`.

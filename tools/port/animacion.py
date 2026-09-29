@@ -92,12 +92,12 @@ def hoja_de(renderer, anim):
     """The `Battle` sheet of this animation, or None if it has none or it is
     not there."""
     from render import render_map
-    from rpgmaker import recursos
+    from rpgmaker import resources
     nombre = anim.get("imagen") or ""
     if not nombre:
         return None
     carpeta = "Battle2" if anim.get("grande") else "Battle"
-    path = recursos.find_resource(renderer.search_dirs, carpeta, nombre)
+    path = resources.find_resource(renderer.search_dirs, carpeta, nombre)
     return render_map.load_image(path) if path else None
 
 

@@ -21,13 +21,13 @@ from common import environment
 # repo: they are not ours to redistribute. The RTP used to be `RTP/` inside
 # the repo, excluded by .gitignore, which is the worst combination —it took up
 # space, was not versioned, and looked like part of the project—.
-_DEL_AMBIENTE = {"GAME_DIR": environment.game, "RTP_DIR": environment.rtp}
+_FROM_ENVIRONMENT = {"GAME_DIR": environment.game, "RTP_DIR": environment.rtp}
 
 
-def __getattr__(nombre):
-    if nombre in _DEL_AMBIENTE:
-        return _DEL_AMBIENTE[nombre]()
-    raise AttributeError("module %r has no attribute %r" % (__name__, nombre))
+def __getattr__(name):
+    if name in _FROM_ENVIRONMENT:
+        return _FROM_ENVIRONMENT[name]()
+    raise AttributeError("module %r has no attribute %r" % (__name__, name))
 
 
 def find_resource(dirs, folder, name, extensions=(".png", ".bmp")):

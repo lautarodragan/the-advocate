@@ -80,7 +80,7 @@ from audio import snes_samples                              # noqa: E402
 from common import environment                                  # noqa: E402
 from common import disk_cache                               # noqa: E402
 from common import project                                  # noqa: E402
-from rpgmaker import recursos                               # noqa: E402
+from rpgmaker import resources                               # noqa: E402
 
 # fluidsynth's gain. With 1.0 the songs with many voices saturate, so it is
 # rendered low and then normalized: the track's peak ends up at `PICO`, which
@@ -264,7 +264,7 @@ def armar(rom, game_dir=None, soundfont=None, ganancia=GANANCIA,
     `charlar` false silences the ones already there: `cartuchos.py` calls it
     on every `just pruebas`.
     """
-    game_dir = game_dir or recursos.GAME_DIR
+    game_dir = game_dir or resources.GAME_DIR
     soundfont = soundfont or snes_samples.SOUNDFONT
     reemplazos = reemplazos or environment.msu_replacements()
     base = os.path.splitext(rom)[0]

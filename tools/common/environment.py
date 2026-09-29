@@ -15,7 +15,7 @@ hang off the project —the cache and the test cartridges, inside its
 `build`—: a machine default would be one machine's.
 
 It is a single place that gets configured, and not a parameter in every
-function, on purpose: `recursos.GAME_DIR`, `recursos.RTP_DIR` and
+function, on purpose: `resources.GAME_DIR`, `resources.RTP_DIR` and
 `snes_samples.SOUNDFONT` are read inside some forty functions of the
 converter and the music, and passing them as parameters touched all those
 signatures. Those names still exist, but they are resolved here when read
@@ -103,12 +103,12 @@ def _require(name):
 
 
 def game():
-    """The original RM2k project: see `rpgmaker/recursos.py`."""
+    """The original RM2k project: see `rpgmaker/resources.py`."""
     return _require("game_dir")
 
 
 def rtp():
-    """Don Miguel's RTP: see `rpgmaker/recursos.py`."""
+    """Don Miguel's RTP: see `rpgmaker/resources.py`."""
     return _require("rtp_dir")
 
 

@@ -47,7 +47,7 @@ def _de_la_maquina(variable):
     return valor
 
 
-# `rpgmaker.recursos.GAME_DIR` y los demás, que las pruebas leen igual que el
+# `rpgmaker.resources.GAME_DIR` y los demás, que las pruebas leen igual que el
 # conversor. El caché y los cartuchos de prueba tienen su lugar en el
 # `build` del proyecto; las variables sólo los mueven.
 environment.configure(game_dir=_de_la_maquina("ABL_GAME_DIR"),

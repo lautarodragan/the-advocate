@@ -231,10 +231,10 @@ def _abrir(game_dir, carpeta, nombre, rtp=False):
     do not look there, so as not to change which ones get in without looking
     at it."""
     from render import render_map
-    from rpgmaker import recursos
-    lugares = [game_dir] + ([recursos.RTP_DIR] if rtp else [])
-    camino = recursos.find_resource(lugares, carpeta, nombre,
-                                    (".png", ".bmp", ".xyz"))
+    from rpgmaker import resources
+    lugares = [game_dir] + ([resources.RTP_DIR] if rtp else [])
+    camino = resources.find_resource(lugares, carpeta, nombre,
+                                     (".png", ".bmp", ".xyz"))
     if camino is None:
         return None
     return render_map.load_image(camino)
@@ -341,7 +341,7 @@ def fondos_del_juego(nombrados, tree, terrenos, game_dir):
     nor in the RTP is left out: in RM2k that battle has no backdrop. Returns
     the names as the game writes them the first time, in that order.
     """
-    from rpgmaker import recursos
+    from rpgmaker import resources
     todos = set(nombrados)
     todos |= {nombre for tipo, nombre in tree.background.values()
               if tipo == 2 and nombre}
@@ -352,9 +352,9 @@ def fondos_del_juego(nombrados, tree, terrenos, game_dir):
     salida = []
     for clave in sorted(por_clave):
         nombre = por_clave[clave]
-        if recursos.find_resource([game_dir, recursos.RTP_DIR],
-                                  "Backdrop", nombre,
-                                  (".png", ".bmp", ".xyz")) is None:
+        if resources.find_resource([game_dir, resources.RTP_DIR],
+                                   "Backdrop", nombre,
+                                   (".png", ".bmp", ".xyz")) is None:
             print("  backdrop %r is neither in the game nor in the RTP" % nombre)
             continue
         salida.append(nombre)

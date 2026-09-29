@@ -17,7 +17,7 @@ one in its own row or above.
     rpgmaker/    the game as data: the JSON dump of rom/data/ (lcf), what is
                  ours and overrides it (fork), the RM2k command codes
                  (event_codes), its rules and the geometry of its images
-                 (rm2k), and where the game and the RTP are (recursos). No
+                 (rm2k), and where the game and the RTP are (resources). No
                  rule of the format lives here: rom/data/ comes resolved. It
                  has its own README
     ensamblado/  the memory map (bancos), what builds the ROM (ensamblar), and
@@ -88,7 +88,7 @@ Each folder is a Python package, and is imported by its name, with `tools/`
 —and only `tools/`— on `sys.path`:
 
     from rpgmaker import lcf
-    from rpgmaker.recursos import find_resource
+    from rpgmaker.resources import find_resource
 
 A bare `import lcf` fails, on purpose: if it worked too, the same module
 could be loaded twice under two names, and what one changes on the other
@@ -181,7 +181,7 @@ their location.
 and not from the MIDI), `--cache`, `--test-cartridges` and, in
 `abl-entregar`, `--shared`. Each executable adds the ones it uses and
 sets them in `common/environment.py`, where the rest read them from;
-`recursos.GAME_DIR` and `snes_samples.SOUNDFONT` are resolved there when
+`resources.GAME_DIR` and `snes_samples.SOUNDFONT` are resolved there when
 read. **None has a default value**, except the cache and the test
 cartridges, which have their place in the project's `build`: a machine's
 value belongs to the caller. In A Blurred Line, `rom/justfile` translates its

@@ -82,7 +82,7 @@ def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
     HP llenos, así que A no le sirve a nadie y la poción no se gasta —curar de
     verdad es `test_menu_curar_dibujo.py`—; B vuelve a la lista con el cursor
     donde estaba."""
-    from rpgmaker.recursos import GAME_DIR
+    from rpgmaker.resources import GAME_DIR
     una = partida(caso="items-pantalla")
     una.correr(5)
     una.poner_grupo(14, 11)
