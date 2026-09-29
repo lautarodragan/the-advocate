@@ -69,7 +69,7 @@ def test_fork_a_medias_no_arma(fork_de_mentira):
                 str(fork_de_mentira / "Map0011.json"))
     with pytest.raises(fork.ForkRoto) as roto:
         fork.mapas()
-    assert "a medias" in str(roto.value)
+    assert "incomplete" in str(roto.value)
 
 
 def test_fork_con_las_capas_solas_tampoco_arma(fork_de_mentira):
@@ -91,7 +91,7 @@ def test_fork_que_dice_ser_otro_mapa_no_arma(fork_de_mentira):
                 str(fork_de_mentira / "Map0011.tiles"))
     with pytest.raises(fork.ForkRoto) as roto:
         fork.mapas()
-    assert "el mapa 12" in str(roto.value)
+    assert "map 12" in str(roto.value)
 
 
 def test_fork_de_un_mapa_que_no_existe_no_arma(fork_de_mentira):
@@ -134,7 +134,7 @@ def test_un_mapa_nuevo_no_pisa_uno_del_juego(nuevos_de_mentira):
     _un_mapa_nuevo(nuevos_de_mentira, 11)
     with pytest.raises(fork.ForkRoto) as roto:
         fork.nuevos()
-    assert "ya existe" in str(roto.value)
+    assert "already exists" in str(roto.value)
 
 
 def test_un_mapa_nuevo_trae_su_nodo_con_su_id(nuevos_de_mentira):
@@ -150,7 +150,7 @@ def test_un_mapa_nuevo_a_medias_no_arma(nuevos_de_mentira):
     os.remove(str(nuevos_de_mentira / "Map9998.tiles"))
     with pytest.raises(fork.ForkRoto) as roto:
         fork.nuevos()
-    assert "a medias" in str(roto.value)
+    assert "incomplete" in str(roto.value)
 
 
 def test_un_mapa_nuevo_se_lee_como_cualquiera(nuevos_de_mentira):

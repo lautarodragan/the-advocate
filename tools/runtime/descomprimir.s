@@ -1,63 +1,63 @@
 .segment "FAR"
 
-; --- LZ2: lo que el cartucho trae comprimido --------------------------------
+; --- LZ2: what the cartridge carries compressed -------------------------------
 ;
-; Los tiles del mapa, de los sprites, de la capa de encima, de la animación del
-; ChipSet y la grilla viajan en el cartucho en LC_LZ2, el formato de Nintendo,
-; y se descomprimen a la WRAM al cargar el mapa, con la pantalla apagada
-; adentro del fundido. El formato y el porqué de éste y no otro están en
-; tools/port/comprimir.py; el compresor es `tools/lz2/`.
+; The tiles of the map, of the sprites, of the upper layer, of the ChipSet
+; animation, and the grid travel in the cartridge in LC_LZ2, Nintendo's format,
+; and are decompressed into WRAM when the map loads, with the screen off inside
+; the fade. The format and the reason for this one and not another are in
+; tools/port/comprimir.py; the compressor is `tools/lz2/`.
 ;
-; Cada comando del flujo es un encabezado —qué es y cuántos bytes hace— y su
-; operando. Casi todo se resuelve con `mvn`:
+; Each command in the stream is a header —what it is and how many bytes it
+; makes— and its operand. Almost everything is done with `mvn`:
 ;
-;   literal      `mvn` del flujo a la salida
-;   relleno      el byte a la salida, y un `mvn` de la salida sobre sí misma
-;                corrido en uno, que lo repite: `mvn` copia de a un byte hacia
-;                adelante, así que cada byte que lee es el que acaba de escribir
-;   palabra      lo mismo con los dos bytes, corrido en dos
-;   repetición   `mvn` de la salida a la salida: la dirección que trae es
-;                absoluta —cuenta desde el principio de la salida— y se le suma
-;                la base
+;   literal      `mvn` from the stream to the output
+;   fill         the byte to the output, and an `mvn` of the output onto
+;                itself shifted by one, which repeats it: `mvn` copies one byte
+;                at a time forward, so each byte it reads is the one it just
+;                wrote
+;   word         the same with the two bytes, shifted by two
+;   repeat       `mvn` from the output to the output: the address it carries
+;                is absolute —it counts from the start of the output— and the
+;                base is added to it
 ;
-; El creciente (3), que es el único que un `mvn` no hace, y la palabra de un
-; solo byte **no se leen**: el conversor no los emite y lo cobra —ver
-; `lo_que_la_rom_no_lee` en tools/port/comprimir.py—. Leerlos sería un camino
-; que ninguna prueba ejecuta.
+; The increasing fill (3), which is the only one an `mvn` does not do, and the
+; one-byte word **are not read**: the converter does not emit them and checks
+; it —see `lo_que_la_rom_no_lee` in tools/port/comprimir.py—. Reading them
+; would be a path no test runs.
 ;
-; `mvn` lleva los dos bancos **adentro de la instrucción**. El de la salida es
-; uno de dos —$7E o $7F—, así que el cuerpo está escrito dos veces, una por
-; banco, con el `mvn` de la salida sobre sí misma adentro: es por donde pasan
-; casi todos los bytes —los tiles y más todavía la grilla son sobre todo
-; repeticiones y rellenos— y así se leen del espejo rápido de la ROM. El del
-; flujo cambia de bloque a bloque, así que el `mvn` del literal se arma en la
-; RAM al empezar —`LZ2_TRAMPA_LIT`— y se llama con `jsl`; correr desde la WRAM
-; le cuesta unos ciclos por byte, porque `mvn` vuelve a leer su código en cada
-; uno.
+; `mvn` carries both banks **inside the instruction**. The output's is one of
+; two —$7E or $7F—, so the body is written twice, once per bank, with the
+; output-onto-itself `mvn` inside: that is where almost all the bytes go
+; through —the tiles and even more so the grid are mostly repeats and fills—
+; and this way it is read from the ROM's fast mirror. The stream's changes from
+; block to block, so the literal's `mvn` is built in RAM at the start
+; —`LZ2_TRAMPA_LIT`— and called with `jsl`; running from WRAM costs it a few
+; cycles per byte, because `mvn` reads its code again for each one.
 ;
-; El flujo se lee con el banco de datos puesto en el suyo y `lda a:0, x`, por el
-; espejo rápido: la página directa está llena y no hay dónde poner un puntero
-; de 24 bits. Por eso cada bloque comprimido entra entero en un banco —lo
-; declara el conversor con `.bloque`—: X no puede pasar de $FFFF.
+; The stream is read with the data bank set to its own and `lda a:0, x`, through
+; the fast mirror: the direct page is full and there is nowhere to put a 24-bit
+; pointer. That is why each compressed block fits whole in one bank —the
+; converter declares it with `.bloque`—: X cannot go past $FFFF.
 
-; Descomprime un flujo. Entra con A en ocho bits y X e Y en dieciséis: X y A
-; dónde está el flujo —dirección y banco—, Y dónde va la salida adentro del
-; banco `LZ2_BANCO`, que pone quien llama y es $7E o $7F. Sale con X en el
-; byte que sigue al $FF —ahí empieza el flujo siguiente, si hay otro pegado— e
-; Y en el que sigue al último que escribió. Pisa A; deja P y el banco de datos
-; como estaban.
+; Decompresses a stream. Enters with an 8-bit A and 16-bit X and Y: X and A
+; where the stream is —address and bank—, Y where the output goes inside bank
+; `LZ2_BANCO`, which the caller sets and is $7E or $7F. Leaves with X on the
+; byte after the $FF —the next stream starts there, if another one follows
+; right after— and Y on the byte after the last one it wrote. Clobbers A;
+; leaves P and the data bank as they were.
 ;
-; La salida no puede cruzar de banco: Y da la vuelta en $FFFF y el conversor lo
-; cuida, con flujos de hasta 32 KB.
+; The output cannot cross a bank: Y wraps at $FFFF and the converter watches
+; for it, with streams of up to 32 KB.
 .proc lz2_descomprimir
 .a8
 .i16
     php
     phb
-    ora #^RAPIDO                ; el flujo, por el espejo rápido
+    ora #^RAPIDO                ; the stream, through the fast mirror
     pha
-    ; La trampa del literal. En el código de máquina de `mvn` el banco de
-    ; destino va primero y el de origen después.
+    ; The literal's trampoline. In `mvn`'s machine code the destination bank
+    ; goes first and the source bank after.
     sta f:LZ2_TRAMPA_LIT + 2
     lda #$54                    ; mvn
     sta f:LZ2_TRAMPA_LIT
@@ -65,12 +65,12 @@
     sta f:LZ2_TRAMPA_LIT + 3
     lda f:LZ2_BANCO
     sta f:LZ2_TRAMPA_LIT + 1
-    plb                         ; el banco del flujo
+    plb                         ; the stream's bank
     rep #$20
 .a16
     tya
-    pha                         ; 3,s: la base de la salida
-    pha                         ; 1,s: el largo del comando, menos uno
+    pha                         ; 3,s: the output's base
+    pha                         ; 1,s: the command's length, minus one
     sep #$20
 .a8
     lda f:LZ2_BANCO
@@ -81,9 +81,9 @@ en_el_7e:
     jmp lz2_cuerpo_7e
 .endproc
 
-; El cuerpo, para la salida en el banco `salida`. Se entra de
-; `lz2_descomprimir` con el banco del flujo puesto y el largo y la base en la
-; pila, y se vuelve de ahí mismo.
+; The body, for output in bank `salida`. It is entered from
+; `lz2_descomprimir` with the stream's bank set and the length and base on the
+; stack, and it returns from right there.
 .macro LZ2_CUERPO salida
 comando:
     sep #$20
@@ -91,21 +91,21 @@ comando:
     lda a:0, x
     cmp #$E0
     bcs largo
-    ; `CCCLLLLL`: hasta 32 bytes.
+    ; `CCCLLLLL`: up to 32 bytes.
     rep #$20
 .a16
     and #$001F
     sta 1, s
     sep #$20
 .a8
-    lda a:0, x                  ; y otra vez, para despachar
+    lda a:0, x                  ; and again, to dispatch
     inx
     bra despachar
 largo:
     cmp #$FF
     beq fin
-    ; `111CCCLL LLLLLLLL`: hasta 1024. Se corre el comando a los tres bits de
-    ; arriba, que es donde lo tiene el encabezado corto.
+    ; `111CCCLL LLLLLLLL`: up to 1024. The command is shifted to the top three
+    ; bits, which is where the short header has it.
     rep #$20
 .a16
     lda a:0, x
@@ -122,12 +122,12 @@ largo:
     asl a
 despachar:
     asl a
-    bcs repeticion              ; 4: el 5 y el 6 no existen
+    bcs repeticion              ; 4: 5 and 6 do not exist
     asl a
-    bcs palabra                 ; 2; el 3, el creciente, no llega nunca
+    bcs palabra                 ; 2; 3, the increasing fill, never arrives
     asl a
     bcs relleno
-    ; 0: los bytes, del flujo a la salida.
+    ; 0: the bytes, from the stream to the output.
     rep #$20
 .a16
     lda 1, s
@@ -138,7 +138,7 @@ despachar:
 
 fin:
 .a8
-    inx                         ; el $FF
+    inx                         ; the $FF
     rep #$20
 .a16
     pla
@@ -149,24 +149,24 @@ fin:
 
 relleno:
 .a8
-    ; 1: el byte a la salida, y se repite corrido en uno.
+    ; 1: the byte to the output, and it is repeated shifted by one.
     lda a:0, x
     inx
-    phx                         ; el flujo, mientras X apunta a la salida
+    phx                         ; the stream, while X points at the output
     tyx
     sta f:salida << 16, x
     iny
     rep #$20
 .a16
-    lda 3, s                    ; el largo menos uno, corrido por el `phx`
-    beq listo                   ; era uno solo
-    dec a                       ; los que faltan, menos uno
+    lda 3, s                    ; the length minus one, moved by the `phx`
+    beq listo                   ; it was just one
+    dec a                       ; the ones left, minus one
     bra en_la_salida
 
 palabra:
 .a8
-    ; 2: los dos bytes a la salida, y se repiten corridos en dos. Siempre son
-    ; dos o más: ver arriba.
+    ; 2: the two bytes to the output, and they are repeated shifted by two.
+    ; It is always two or more: see above.
     rep #$20
 .a16
     lda a:0, x
@@ -177,15 +177,15 @@ palabra:
     sta f:salida << 16, x
     iny
     iny
-    lda 3, s                    ; el largo menos uno, corrido por el `phx`
+    lda 3, s                    ; the length minus one, moved by the `phx`
     dec a
-    beq listo                   ; eran dos
+    beq listo                   ; it was two
     dec a
     bra en_la_salida
 
 repeticion:
 .a8
-    ; 4: de la salida a la salida. La dirección viene con el byte alto primero.
+    ; 4: from the output to the output. The address comes high byte first.
     rep #$20
 .a16
     lda a:0, x
@@ -194,12 +194,12 @@ repeticion:
     inx
     phx
     clc
-    adc 5, s                    ; más la base, que el `phx` corrió a 5,s
+    adc 5, s                    ; plus the base, which the `phx` moved to 5,s
     tax
-    lda 3, s                    ; y el largo menos uno, a 3,s
+    lda 3, s                    ; and the length minus one, to 3,s
 en_la_salida:
-    ; Con X adentro de la salida, A el largo menos uno y el puntero del flujo
-    ; en la pila. El `mvn` deja el banco de datos en el de la salida.
+    ; With X inside the output, A the length minus one and the stream pointer
+    ; on the stack. The `mvn` leaves the data bank at the output's.
     phb
     mvn #salida, #salida
     plb
@@ -217,8 +217,8 @@ listo:
     LZ2_CUERPO ^GRILLA_ALTA
 .endproc
 
-; X y A del flujo que apunta el campo Y del registro del mapa: su dirección y
-; su banco, listos para `lz2_descomprimir`.
+; X and A of the stream that field Y of the map record points to: its address
+; and its bank, ready for `lz2_descomprimir`.
 .proc lz2_del_campo
 .a8
 .i16
@@ -242,12 +242,12 @@ listo:
     rts
 .endproc
 
-; El bloque que apunta el campo Y del registro del mapa, descomprimido en
-; `LZ2_BUFFER`, y el canal 0 del DMA apuntando ahí: reemplaza a `dma_origen`
-; en `load_map`, `load_above` y `load_sprite`, que siguen poniendo el largo y
-; el destino como antes. El largo sale del registro y no de lo que escribió el
-; descompresor, así que lo que llega a la VRAM es lo mismo que cuando el
-; cartucho traía los tiles enteros.
+; The block that field Y of the map record points to, decompressed into
+; `LZ2_BUFFER`, and DMA channel 0 pointing there: it replaces `dma_origen` in
+; `load_map`, `load_above` and `load_sprite`, which still set the length and
+; the destination as before. The length comes from the record and not from
+; what the decompressor wrote, so what reaches VRAM is the same as when the
+; cartridge carried the tiles whole.
 .proc lz2_campo
 .a8
 .i16
@@ -269,18 +269,19 @@ listo:
     rtl
 .endproc
 
-; Los tiles del fondo del mapa, a la VRAM: se descomprimen en `LZ2_BUFFER` y
-; se suben por DMA de a un flujo. Un fondo de más de `LZ2_TOPE_FONDO` bytes —el
-; del mapa 66, con el reparto de 544 tiles— viene en dos flujos pegados, y el
-; segundo se descomprime **después** de subir el primero, en el mismo lugar:
-; descomprimido entero no entra en el buffer, y lo que se pasaba caía en la
-; mitad alta de la grilla. El conversor parte en tramos de `LZ2_TOPE_FONDO`
-; exactos —ver `partes_comprimidas`—, así que cuántos tiles trae cada flujo
-; sale de cuántos tiles tiene el mapa y no hace falta anotarlo.
+; The map's background tiles, to VRAM: they are decompressed into `LZ2_BUFFER`
+; and uploaded by DMA one stream at a time. A background of more than
+; `LZ2_TOPE_FONDO` bytes —map 66's, with the 544-tile layout— comes in two
+; streams back to back, and the second is decompressed **after** uploading the
+; first, in the same place: decompressed whole it does not fit in the buffer,
+; and whatever overflowed landed in the upper half of the grid. The converter
+; splits into stretches of exactly `LZ2_TOPE_FONDO` —see `partes_comprimidas`—,
+; so how many tiles each stream carries follows from how many tiles the map has
+; and there is no need to record it.
 ;
-; Entra con VMAIN y VMADD puestos; el DMA sigue la dirección de la VRAM de un
-; flujo al otro. Deja el banco de tiles subido y pisa A, X e Y.
-FONDO_TILES_POR_FLUJO = LZ2_TOPE_FONDO / 64     ; 64 bytes por tile de 8 bits
+; Enters with VMAIN and VMADD set; the DMA carries the VRAM address on from one
+; stream to the next. Leaves the tile bank uploaded and clobbers A, X and Y.
+FONDO_TILES_POR_FLUJO = LZ2_TOPE_FONDO / 64     ; 64 bytes per 8-bit tile
 .proc lz2_fondo
 .a8
 .i16
@@ -288,36 +289,36 @@ FONDO_TILES_POR_FLUJO = LZ2_TOPE_FONDO / 64     ; 64 bytes por tile de 8 bits
     rep #$20
 .a16
     lda f:mapa_tabla + M_MAP_TILES, x
-    pha                         ; los tiles que faltan subir
+    pha                         ; the tiles still to upload
     sep #$20
 .a8
     ldy #M_PTR_MAP_TILES
     jsr lz2_del_campo
-    pha                         ; 1,s: el banco del flujo; 2,s: los que faltan
+    pha                         ; 1,s: the stream's bank; 2,s: the ones left
 flujo:
     lda #^LZ2_BUFFER
     sta f:LZ2_BANCO
     lda 1, s
     ldy #.loword(LZ2_BUFFER)
-    jsl f:lz2_descomprimir + RAPIDO     ; deja X en el flujo que sigue
+    jsl f:lz2_descomprimir + RAPIDO     ; leaves X on the next stream
     rep #$20
 .a16
-    ; Los que van a faltar después de éste: cero si éste es el último.
+    ; The ones that will be left after this one: zero if this is the last.
     lda 2, s
     sec
     sbc #FONDO_TILES_POR_FLUJO
     bcs :+
     lda #0
-:   pha                         ; 1,s: los que van a faltar; 3,s: el banco
+:   pha                         ; 1,s: the ones that will be left; 3,s: the bank
     lda 4, s
     sec
-    sbc 1, s                    ; los de este flujo
+    sbc 1, s                    ; this stream's
     asl a
     asl a
     asl a
     asl a
     asl a
-    asl a                       ; 64 bytes por tile de 8 bits
+    asl a                       ; 64 bytes per 8-bit tile
     sta f:DAS0L
     pla
     sta 2, s
@@ -328,14 +329,14 @@ flujo:
     lda #^LZ2_BUFFER
     sta f:A1B0
     lda #$01
-    sta f:DMAP0                 ; dos registros, de a palabras
+    sta f:DMAP0                 ; two registers, word at a time
     lda #$18
-    sta f:BBAD0                 ; destino: VMDATAL
+    sta f:BBAD0                 ; destination: VMDATAL
     lda #$01
     sta f:MDMAEN
     rep #$20
 .a16
-    lda 2, s                    ; `sep` no toca Z: el `bne` mira esto
+    lda 2, s                    ; `sep` does not touch Z: the `bne` looks at this
     sep #$20
 .a8
     bne flujo
@@ -348,11 +349,11 @@ flujo:
     rtl
 .endproc
 
-; Los dibujos de la animación del ChipSet del mapa, en `ANIM_DIBUJOS`, de
-; donde los sube `anim_subir` cada vez que cambia el reloj. Tienen que quedar
-; ahí mientras se esté en el mapa, así que van en un lugar propio y no en
-; `LZ2_BUFFER`, que la capa de encima y los sprites pisan después: ver la
-; reserva en `ram_lejana.s`.
+; The drawings of the map's ChipSet animation, into `ANIM_DIBUJOS`, from where
+; `anim_subir` uploads them each time the clock changes. They have to stay
+; there while on the map, so they go in a place of their own and not in
+; `LZ2_BUFFER`, which the upper layer and the sprites overwrite afterwards: see
+; the reservation in `ram_lejana.s`.
 .proc lz2_anim
 .a8
 .i16
@@ -367,27 +368,27 @@ flujo:
     rtl
 .endproc
 
-; La grilla del mapa, descomprimida en `GRILLA`: sus primeros 32 KB en la
-; mitad alta del banco $7E y el resto en la del $7F, que es la forma que
-; esperan `ptr_mas` y `ptr_menos`. El conversor la parte en dos flujos, uno por
-; mitad, así que ninguna salida cruza de banco; el segundo va pegado al
-; primero, y puede no tener nada más que su $FF.
+; The map's grid, decompressed into `GRILLA`: its first 32 KB in the upper half
+; of bank $7E and the rest in $7F's, which is the shape `ptr_mas` and
+; `ptr_menos` expect. The converter splits it into two streams, one per half,
+; so no output crosses a bank; the second comes right after the first, and may
+; have nothing more than its $FF.
 ;
-; La pelea pisa la mitad del $7F —es `ESC_ESCENA`—, así que `volver_de_batalla`
-; la vuelve a descomprimir. Ver la decisión en
+; Battle overwrites $7F's half —it is `ESC_ESCENA`—, so `volver_de_batalla`
+; decompresses it again. See the decision in
 ; workflow/decisiones/la-grilla-vive-en-la-wram.md.
 .proc lz2_grilla
 .a8
 .i16
     ldy #M_PTR_MAP_CELDAS
     jsr lz2_del_campo
-    pha                         ; el banco del flujo, para el segundo
+    pha                         ; the stream's bank, for the second one
     lda #^GRILLA
     sta f:LZ2_BANCO
     pla
     pha
     ldy #.loword(GRILLA)
-    jsl f:lz2_descomprimir + RAPIDO     ; deja X en el segundo flujo
+    jsl f:lz2_descomprimir + RAPIDO     ; leaves X on the second stream
     lda #^GRILLA_ALTA
     sta f:LZ2_BANCO
     pla
@@ -396,11 +397,11 @@ flujo:
     rtl
 .endproc
 
-; Los topes de cada bloque salen de la reserva de ram_lejana.s y el conversor
-; los cobra al comprimir: si alguno de los dos lados se mueve solo, que no
-; arme.
-.assert LZ2_BUFFER + LZ2_TOPE_FONDO <= ANIM_DIBUJOS_FIN, error, "los tiles del fondo no entran en el buffer de carga"
-.assert LZ2_BUFFER + LZ2_TOPE_ENCIMA_Y_SPRITES <= ANIM_DIBUJOS, error, "la capa de encima o los sprites pisarían los dibujos de la animación"
-.assert ANIM_DIBUJOS + LZ2_TOPE_ANIM <= ANIM_DIBUJOS_FIN, error, "los dibujos de la animación no entran en su lugar"
-.assert GRILLA_ALTA = GRILLA + $10000, error, "las dos mitades de la grilla tienen que ser la misma dirección en dos bancos seguidos: así las recorre `ptr_mas`"
-.assert LZ2_TOPE_GRILLA <= 2 * (GRILLA_FIN - GRILLA), error, "la grilla más grande no entra en las dos mitades altas de la WRAM"
+; Each block's caps come from the reservation in ram_lejana.s and the converter
+; enforces them when compressing: if either side moves on its own, the build
+; must fail.
+.assert LZ2_BUFFER + LZ2_TOPE_FONDO <= ANIM_DIBUJOS_FIN, error, "the background tiles do not fit in the load buffer"
+.assert LZ2_BUFFER + LZ2_TOPE_ENCIMA_Y_SPRITES <= ANIM_DIBUJOS, error, "the upper layer or the sprites would overwrite the animation drawings"
+.assert ANIM_DIBUJOS + LZ2_TOPE_ANIM <= ANIM_DIBUJOS_FIN, error, "the animation drawings do not fit in their place"
+.assert GRILLA_ALTA = GRILLA + $10000, error, "the two halves of the grid must be the same address in two consecutive banks: that is how `ptr_mas` walks them"
+.assert LZ2_TOPE_GRILLA <= 2 * (GRILLA_FIN - GRILLA), error, "the largest grid does not fit in the two upper halves of WRAM"

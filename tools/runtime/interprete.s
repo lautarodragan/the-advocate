@@ -1,72 +1,73 @@
 .segment "CODE"
 
-; --- el intérprete de eventos: el lazo y el despacho -------------------------
+; --- the event interpreter: the loop and the dispatch ------------------------
 ;
-; `correr_codigo` lee un opcode por vuelta y salta a su manejador. Cada
-; manejador es su propio `.proc op_*` y está en uno de los `interprete_*.s`
-; que main.s incluye detrás de éste, uno por familia. Como el despacho es por
-; tabla, dónde está cada uno no le importa al código, con una condición: tiene
-; que quedar en el banco de `correr_codigo`, porque `jmp (tabla, x)` salta
-; adentro del banco del programa. Mientras todos estén en `CODE` se cumple, y
-; lo cuida `test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k`.
+; `correr_codigo` reads one opcode per pass and jumps to its handler. Each
+; handler is its own `.proc op_*` and lives in one of the `interprete_*.s`
+; files that main.s includes after this one, one per family. Since the dispatch
+; goes through a table, the code does not care where each one is, with one
+; condition: it has to stay in `correr_codigo`'s bank, because `jmp (tabla, x)`
+; jumps within the program bank. As long as they are all in `CODE` that holds,
+; and `test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k` guards it.
 ;
-; Un opcode nuevo toca dos lugares: su número en tools/protocol/events.toml
-; —de donde sale, al regenerar con `just protocolo`, su entrada en la tabla del
-; despacho— y su `.proc op_x` en el archivo que le toque, con el nombre del
-; opcode en minúsculas. El despacho no se toca: si el manejador falta, la tabla
-; no ensambla.
+; A new opcode touches two places: its number in tools/protocol/events.toml
+; —which, when regenerated with `just protocolo`, yields its entry in the
+; dispatch table— and its `.proc op_x` in whichever file it belongs to, named
+; after the opcode in lowercase. The dispatch is not touched: if the handler is
+; missing, the table does not assemble.
 
-; El bucle del intérprete: un opcode por vuelta hasta el FIN.
+; The interpreter loop: one opcode per pass until the DONE.
 ;
-; Y es el cursor del bytecode y tiene que sobrevivir a todo el bucle, así que
-; cada `jsr` que sale de acá lo guarda antes de irse. Las rutinas que se llaman
-; usan X e Y para lo suyo —poner_switch indexa el bitmap de switches,
-; aplicar_tinte recorre tres paletas— y ninguna tiene por qué saber que acá
-; significan otra cosa. Sin esto, el primer OP_SWITCH dejaba a Y valiendo el
-; número del switch dividido ocho, y lo que se leía como opcode siguiente era
-; un byte cualquiera del medio de la página: el bucle cortaba ahí y el resto no
-; corría.
+; Y is the bytecode cursor and has to survive the whole loop, so every `jsr`
+; that leaves from here saves it before going. The routines it calls use X and
+; Y for their own purposes —poner_switch indexes the switch bitmap,
+; aplicar_tinte walks three palettes— and none of them has any reason to know
+; they mean something else here. Without this, the first OP_SWITCH left Y
+; holding the switch number divided by eight, and what got read as the next
+; opcode was some byte from the middle of the page: the loop stopped there and
+; the rest did not run.
 .proc correr_codigo
 .a8
 .i16
-    ldy ev_cur                  ; donde quedó el cuadro anterior
+    ldy ev_cur                  ; where the previous frame left off
 otro:
     lda [cod_ptr], y
     iny
-    ; Un número que no es un opcode corta la página, igual que OP_DONE y igual
-    ; que hacía la cadena de `cmp` que era el despacho hasta el 2026-09-25, que
-    ; terminaba en el `stz`. No
-    ; debería llegar nunca —el bytecode lo emite el conversor con los mismos
-    ; números—, pero llega en cuanto un manejador cuenta mal sus operandos y
-    ; Y queda en el medio de una instrucción; sin el tope, ese byte indexaría
-    ; más allá de la tabla y saltaría a cualquier lado.
+    ; A number that is not an opcode ends the page, just like OP_DONE and just
+    ; like the chain of `cmp` that was the dispatch until 2026-09-25 did, which
+    ; ended in the `stz`. It
+    ; should never happen —the converter emits the bytecode with the same
+    ; numbers—, but it happens as soon as a handler miscounts its operands and
+    ; Y ends up in the middle of an instruction; without the cap, that byte
+    ; would index past the table and jump anywhere.
     cmp #EVENT_OPCODE_COUNT
     bcs op_done
-    ; `tax` con índices de dieciséis bits copia los dieciséis de C aunque A sea
-    ; de ocho, así que el byte de arriba tiene que ser cero: es lo que quedó
-    ; del manejador anterior. `xba` / `lda #0` / `xba` lo limpia sin tocar
-    ; los anchos, un ciclo y tres bytes menos que `rep` / `and #$00FF` /
-    ; `sep`. El `asl` va antes, en ocho bits: el tope de arriba deja el opcode
-    ; por debajo de 128 y no se pierde nada.
+    ; `tax` with sixteen-bit indexes copies all sixteen bits of C even when A
+    ; is eight-bit, so the high byte has to be zero: it holds whatever the
+    ; previous handler left. `xba` / `lda #0` / `xba` clears it without
+    ; touching the widths, one cycle and three bytes less than `rep` /
+    ; `and #$00FF` / `sep`. The `asl` goes first, in eight bits: the cap above
+    ; keeps the opcode below 128 and nothing is lost.
     ;
-    ; X llega pisado a cada manejador —vale el opcode por dos— y A también,
-    ; con B en cero; ninguno los lee antes de escribirlos. La cadena no los
-    ; tocaba, y eso se revisó siguiendo saltos y `jsr` desde cada manejador y
-    ; desde los tres llamadores de `correr_codigo` al volver.
+    ; X reaches each handler clobbered —it holds the opcode times two— and so
+    ; does A, with B at zero; none of them reads them before writing them. The
+    ; chain did not touch them, and that was checked by following branches and
+    ; `jsr`s from each handler and from the three callers of `correr_codigo`
+    ; on return.
     asl a
     xba
     lda #0
     xba
     tax
-    ; `jmp (abs, x)` lee la tabla del banco del programa, que es donde está: el
-    ; de datos es el del bytecode (ver `op_shop`) y un `lda tabla, x` leería
-    ; otra cosa.
+    ; `jmp (abs, x)` reads the table from the program bank, which is where it
+    ; is: the data bank is the bytecode's (see `op_shop`) and an
+    ; `lda tabla, x` would read something else.
     jmp (manejadores_de_opcode, x)
 .endproc
 
-.assert EVENT_OPCODE_COUNT <= 128, error, "el asl de correr_codigo va en 8 bits"
+.assert EVENT_OPCODE_COUNT <= 128, error, "correr_codigo's asl is done in 8 bits"
 
-; OP_DONE, y cualquier número que no sea un opcode: se corta la página.
+; OP_DONE, and any number that is not an opcode: the page ends.
 .proc op_done
 .a8
 .i16
@@ -74,10 +75,10 @@ otro:
     rts
 .endproc
 
-; La entrada k es el manejador del opcode k. La emite tools/protocol/ desde
-; events.toml, así que un opcode nuevo no toca esto: el manejador de `OP_X`
-; tiene que llamarse `op_x`, y si falta no ensambla. Tiene que estar en el
-; banco de `correr_codigo`, que es de donde la lee el `jmp`, y cada manejador
-; también: un `.addr` es de dieciséis bits.
+; Entry k is the handler for opcode k. tools/protocol/ emits it from
+; events.toml, so a new opcode does not touch this: the handler for `OP_X`
+; has to be called `op_x`, and if it is missing it does not assemble. It has to
+; be in `correr_codigo`'s bank, which is where the `jmp` reads it from, and so
+; does each handler: an `.addr` is sixteen bits.
 manejadores_de_opcode:
     EVENT_HANDLERS

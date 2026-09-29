@@ -2,16 +2,16 @@
 .a8
 .i16
 
-; --- el intérprete: la música y los efectos de sonido ----------------------
+; --- the interpreter: music and sound effects ------------------------------
 ;
-; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
-; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
-; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps
+; to each one with Y on its first operand, and each one returns to the loop
+; with `jmp correr_codigo::otro` or ends the frame with `rts`.
 
-; `PlayBGM`. El operando es el índice del tema en `Temas`, y el cartucho lleva
-; los que hayan entrado en la ARAM: los primeros `TEMA_TOTAL`. Un índice más
-; alto es un tema que no entró y no suena, que es lo que pasaba con todos menos
-; uno hasta el 2026-09-06. Ver `temas_de_la_rom` en el conversor.
+; `PlayBGM`. The operand is the song's index in `Temas`, and the cartridge
+; carries the ones that fit in ARAM: the first `TEMA_TOTAL`. A higher index is
+; a song that did not fit and does not play, which is what happened to all but
+; one of them until 2026-09-06. See `temas_de_la_rom` in the converter.
 .proc op_bgm
     lda [cod_ptr], y
     iny
@@ -26,9 +26,9 @@ otro_tema:
 
 .endproc
 
-; `MemorizeBGM` y `PlayMemorizedBGM`: sólo la entrada. El cuerpo es
-; `tema_recordado`, fuera del banco 0, y vuelve con el acarreo prendido y el
-; tema en A si hay que tocarlo, que es lo mismo que haría un `PlayBGM`.
+; `MemorizeBGM` and `PlayMemorizedBGM`: only the entry point. The body is
+; `tema_recordado`, outside bank 0, and it returns with carry set and the song
+; in A if it has to be played, which is the same thing a `PlayBGM` would do.
 .proc op_memorized_bgm
     jsl f:tema_recordado
     bcs tocar
@@ -38,17 +38,18 @@ tocar:
 
 .endproc
 
-; `FadeOutBGM`. El operando es cuánto baja el volumen por cuadro; lo baja
-; `bgm_fundido_tick`, no acá, y la página sigue de largo en este mismo cuadro,
-; que es lo que hace `CommandFadeOutBGM` devolviendo true.
+; `FadeOutBGM`. The operand is how much the volume drops per frame; it is
+; lowered by `bgm_fundido_tick`, not here, and the page carries on in this same
+; frame, which is what `CommandFadeOutBGM` does by returning true.
 ;
-; Con el tema apagado no se arranca nada: el fundido escribiría el volumen de un
-; tema que no suena, y encima lo dejaría en cero para el `PlayBGM` que venga.
+; With the song off nothing is started: the fade would write the volume of a
+; song that is not playing, and on top of that leave it at zero for the
+; `PlayBGM` that comes next.
 ;
-; Con una pista del MSU-1 sonando, en cambio, sí hay qué fundir: `music_apagada`
-; vale 1 —el SPC700 está callado a propósito— y el que baja es el volumen del
-; MSU-1. Sin esta salida, un `FadeOutBGM` no hacía nada y la pista seguía
-; sonando para siempre.
+; With an MSU-1 track playing, on the other hand, there is something to fade:
+; `music_apagada` is 1 —the SPC700 is silent on purpose— and what drops is the
+; MSU-1 volume. Without this exit, a `FadeOutBGM` did nothing and the track
+; kept playing forever.
 .proc op_fade_bgm
     lda f:MSU_SUENA
     bne fundir
@@ -56,7 +57,7 @@ tocar:
     bne fundir_nada
 fundir:
     php
-    sei                         ; lo lee `irq_musica`: todo junto o nada
+    sei                         ; `irq_musica` reads it: all at once or nothing
     lda [cod_ptr], y
     sta bgm_paso
     iny
@@ -64,7 +65,7 @@ fundir:
     sta bgm_paso + 1
     iny
     lda #$FF
-    sta bgm_nivel               ; el volumen entero, que es de donde baja
+    sta bgm_nivel               ; full volume, which is where it drops from
     sta bgm_nivel + 1
     lda #1
     sta bgm_fundido
@@ -77,11 +78,10 @@ fundir_nada:
 
 .endproc
 
-; `OP_SOUND`: el índice en `sonido_tabla`. Queda pendiente y arranca al
-; final de `music_tick`, detrás de lo que la música escriba en el cuadro.
+; `OP_SOUND`: the index into `sonido_tabla`. It stays pending and starts at the
+; end of `music_tick`, after whatever the music writes in the frame.
 .proc op_sound
     jsr sonido_de_codigo
     jmp correr_codigo::otro
 
 .endproc
-

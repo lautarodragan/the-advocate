@@ -2,17 +2,17 @@
 .a8
 .i16
 
-; --- el intérprete: la tienda y la pelea -----------------------------------
+; --- the interpreter: the shop and the battle ------------------------------
 ;
-; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
-; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
-; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+; Opcode handlers: the dispatch of `correr_codigo`, in interprete.s, jumps to
+; each one with Y on its first operand, and each one goes back to the loop
+; with `jmp correr_codigo::otro` or cuts the frame short with `rts`.
 ;
-; Al final va `pelea_arrancar`, que no es un manejador: es la pelea de punta a
-; punta que llaman `op_battle` y los encuentros al azar.
+; At the end goes `pelea_arrancar`, which is not a handler: it is the battle
+; from start to finish, called by `op_battle` and by random encounters.
 
-; `OpenShop`: tipo, juego, cuántos y la lista, de a dos bytes cada ítem. La
-; tienda se abre acá adentro y, al salir, el mapa vuelve y la página sigue.
+; `OpenShop`: type, set, how many and the list, two bytes per item. The shop
+; opens in here and, on leaving, the map comes back and the page continues.
 .proc op_shop
 .a8
 .i16
@@ -24,10 +24,10 @@
     iny
     lda [cod_ptr], y
     iny
-    sta eleg_cancel             ; cuántos vienen
+    sta eleg_cancel             ; how many follow
     stz comp_mask + 1
-    ; `item_k` vive en el banco del código y el intérprete corre con el banco
-    ; de datos donde está el bytecode: se cambia hasta volver.
+    ; `item_k` lives in the code's bank and the interpreter runs with the data
+    ; bank where the bytecode is: it is switched until we come back.
     phb
     phk
     plb
@@ -36,7 +36,7 @@ op_shop_other:
     beq op_shop_done
     rep #$20
 .a16
-    lda [cod_ptr], y            ; el ítem
+    lda [cod_ptr], y            ; the item
     iny
     iny
     tax
@@ -44,7 +44,7 @@ op_shop_other:
 .a8
     lda f:item_k, x
     cmp #$FF
-    beq op_shop_next         ; uno que esta ROM no conoce
+    beq op_shop_next         ; one this ROM does not know
     pha
     rep #$20
 .a16
@@ -65,7 +65,7 @@ op_shop_next:
 op_shop_done:
     phy
     jsl f:tienda_pantalla
-    ; Los flancos que cerraron la tienda son de ella, como en el menú.
+    ; The edges that closed the shop belong to it, as in the menu.
     lda pad
     sta pad_ant
     lda pad_a
@@ -80,26 +80,27 @@ op_shop_done:
 
 .endproc
 
-; `EnemyEncounter`: la tropa y los tres destinos, todos de dieciséis bits. La
-; pelea se juega acá adentro y, al salir, el mapa vuelve —como en la tienda— y
-; la página sigue por el destino que le tocó al resultado.
+; `EnemyEncounter`: the troop and the three destinations, all sixteen bits.
+; The battle is played in here and, on leaving, the map comes back —as with
+; the shop— and the page continues at the destination the result picked.
 .proc op_battle
 .a8
 .i16
     rep #$20
 .a16
-    lda [cod_ptr], y            ; la tropa, como número de RM2k
+    lda [cod_ptr], y            ; the troop, as an RM2k number
     sta f:BAT_LARGO + BA_TROPA
     sep #$20
 .a8
     lda #0
-    sta f:BAT_LARGO + ESC_ORIGEN ; el fondo, el de la tropa y no el del mapa
-    jsl f:game_over_anotar      ; si perder es Game Over: ver game_over.s
-    phy                         ; el cursor: los destinos se leen al volver
+    sta f:BAT_LARGO + ESC_ORIGEN ; the background, the troop's and not the map's
+    jsl f:game_over_anotar      ; whether losing is Game Over: see game_over.s
+    phy                         ; the cursor: the destinations are read on return
     jsr pelea_arrancar
     ply
-    ; Y apunta a la tropa; los tres destinos vienen detrás, de a palabra, en el
-    ; orden victoria, huida, derrota, que es el de `BATALLA_HANDLERS`.
+    ; Y points at the troop; the three destinations come after it, one word
+    ; each, in the order victory, escape, defeat, which is that of
+    ; `BATALLA_HANDLERS`.
     lda f:BAT_LARGO + BA_RESULT
     jmp op_battle_destination
 
@@ -118,12 +119,13 @@ op_shop_done:
     inc a
     inc a
     tay
-    lda [cod_ptr], y            ; el destino, absoluto dentro de la página
+    lda [cod_ptr], y            ; the destination, absolute within the page
     tay
-    ; `BATALLA_PERDER`, o sea $FFFF —la pelea no traía manejador de derrota,
-    ; porque en RM2k perderla es `Scene_Gameover`— no llega nunca acá: lo
-    ; anota `game_over_anotar` antes de pelear, y `pelea_arrancar` se va a la
-    ; pantalla de Game Over sin volver. Ver tools/runtime/game_over.s.
+    ; `BATALLA_PERDER`, that is $FFFF —the battle had no defeat handler,
+    ; because in RM2k losing it is `Scene_Gameover`— never gets here:
+    ; `game_over_anotar` records it before fighting, and `pelea_arrancar` goes
+    ; to the Game Over screen without coming back. See
+    ; tools/runtime/game_over.s.
     sep #$20
 .a8
     jmp correr_codigo::otro
@@ -131,9 +133,9 @@ op_shop_done:
 
 .endproc
 
-; `ShowHiddenMonster`, que sólo existe en una página de tropa: el miembro de
-; ese lugar deja de estar oculto. Lo hace `ba_mostrar_oculto`, en el banco de
-; la pelea, que es donde vive su estado.
+; `ShowHiddenMonster`, which only exists in a troop page: the member in that
+; position stops being hidden. `ba_mostrar_oculto` does it, in the battle's
+; bank, which is where its state lives.
 .proc op_show_enemy
 .a8
 .i16
@@ -145,31 +147,33 @@ op_shop_done:
     jmp correr_codigo::otro
 .endproc
 
-; Una pelea de punta a punta, con la tropa ya puesta en `BA_TROPA`: guardar el
-; tema del mapa, cargar el audio de la pelea, pelearla y volver al mapa.
+; A battle from start to finish, with the troop already set in `BA_TROPA`:
+; save the map's song, load the battle's audio, fight it and go back to the
+; map.
 ;
-; Está separada de `op_battle` desde que hay encuentros al azar, que la
-; arrancan **sin bytecode**: allá no hay cursor que guardar ni manejadores a
-; los que saltar. Lo de adentro no cambió de lugar.
+; It has been separate from `op_battle` since there are random encounters,
+; which start it **without bytecode**: there, there is no cursor to save and
+; no handlers to jump to. What is inside did not move.
 .proc pelea_arrancar
 .a8
 .i16
-    ; El tema del mapa se guarda y vuelve al terminar, que es el
-    ; `before_battle_music` de RM2k —`Scene_Battle` lo anota al construirse y
-    ; `Game_Map` lo repone al volver—. $FF quiere decir "no sonaba nada", y es
-    ; un caso real: los primeros mapas del juego no traen música.
-    ; **Con el banco de datos en el 0**, que acá todavía es el del bytecode:
-    ; `music_apagada` y `tema_actual` son absolutos de la BSS y sin esto se
-    ; leerían del banco del cartucho donde está la página. Es la misma trampa
-    ; que los puentes `ba_t_*` del otro lado, y costó exactamente lo mismo.
+    ; The map's song is saved and comes back at the end, which is RM2k's
+    ; `before_battle_music` —`Scene_Battle` records it when constructed and
+    ; `Game_Map` restores it on return—. $FF means "nothing was playing", and
+    ; it is a real case: the game's first maps have no music.
+    ; **With the data bank at 0**, which here is still the bytecode's:
+    ; `music_apagada` and `tema_actual` are absolute BSS addresses and without
+    ; this they would be read from the cartridge bank where the page is. It is
+    ; the same trap as the `ba_t_*` bridges on the other side, and it cost
+    ; exactly the same.
     phb
     phk
     plb
-    ; **El MSU-1 primero.** Con una pista de CD sonando, `music_start` deja el
-    ; SPC700 callado a propósito —`music_apagada` en 1— y mirar sólo eso
-    ; anotaba $FF: al terminar la pelea `batalla_bgm` callaba la música del
-    ; mapa en vez de reponerla. Es la misma pregunta que `mapa_tema_callar`, y
-    ; se contesta igual.
+    ; **The MSU-1 first.** With a CD track playing, `music_start` leaves the
+    ; SPC700 silent on purpose —`music_apagada` at 1— and looking only at that
+    ; recorded $FF: at the end of the battle `batalla_bgm` silenced the map's
+    ; music instead of restoring it. It is the same question as
+    ; `mapa_tema_callar`, and it is answered the same way.
     lda f:MSU_SUENA
     bne sonaba_antes
     lda music_apagada
@@ -181,16 +185,16 @@ callado_antes:
     lda #$FF
 anotado:
     sta f:BAT_LARGO + BA_TEMA_ANT
-    ; El paquete de audio de la pelea: su tema y sus efectos. Va aparte del
-    ; paquete del mapa y no adentro, y está medido: el tema de batalla son 18
-    ; muestras y 51.480 B de los 64.512 de ARAM, o sea que metiéndolo en el
-    ; paquete del mapa 2 los 24 efectos de ese mapa se caían casi enteros.
-    ; Se calla antes de rearmar, como hace `tema_asegurar`: `paquete_cargar`
-    ; deja quietas las muestras del tema que suena, y las del mapa no tienen
-    ; por qué ocupar lugar adentro de la pelea.
+    ; The battle's audio package: its song and its sound effects. It goes apart
+    ; from the map's package and not inside it, and that is measured: the battle
+    ; song is 18 samples and 51,480 B of the 64,512 of ARAM, which means that
+    ; putting it in map 2's package dropped almost all of that map's 24 sound
+    ; effects. It is silenced before rebuilding, as `tema_asegurar` does:
+    ; `paquete_cargar` leaves the playing song's samples in place, and the
+    ; map's have no reason to take up room inside the battle.
     ;
-    ; **Con el mapa ya en negro**: la carga tarda de medio segundo a uno y
-    ; medio, y es la transición de entrada la que la tapa. Ver
+    ; **With the map already black**: the load takes from half a second to a
+    ; second and a half, and it is the entry transition that hides it. See
     ; `fundido_de_pelea.s`.
     jsl f:pelea_fundir_entrando
     ldx #BA_PAQUETE
@@ -198,19 +202,18 @@ anotado:
     lda #BA_TEMA
     jsr batalla_bgm
     plb
-    ; El banco de datos, en $7E: es lo que le deja al código de la pelea usar
-    ; direccionamiento absoluto sobre su estado sin perder la RAM baja, que en
-    ; ese banco está en las mismas direcciones. Ver el comentario de
-    ; `FAR_BATALLA`.
+    ; The data bank, at $7E: that is what lets the battle code use absolute
+    ; addressing on its state without losing low RAM, which in that bank is at
+    ; the same addresses. See the comment on `FAR_BATALLA`.
     phb
     lda #$7E
     pha
     plb
     jsl f:batalla_correr
     plb
-    ; Los flancos que cerraron la pelea son de ella, como en la tienda y en el
-    ; menú: si no, el A con el que se cerró el último mensaje abriría lo que
-    ; haya en el mapa.
+    ; The edges that closed the battle belong to it, as in the shop and the
+    ; menu: otherwise, the A that closed the last message would open whatever
+    ; is on the map.
     lda pad
     sta pad_ant
     lda pad_a
@@ -220,22 +223,22 @@ anotado:
     sta nmi_visto
     phb
     phk
-    plb                         ; el banco 0, por lo mismo que al entrar
-    jsl f:pelea_fundir_saliendo ; la pelea hasta negro, que tapa la carga
-    ; Y si se perdió y perder es Game Over, de acá no se vuelve: la pantalla
-    ; aparece desde el negro de la pelea, sin pasar por el mapa, como en RM2k.
+    plb                         ; bank 0, for the same reason as on entry
+    jsl f:pelea_fundir_saliendo ; the battle to black, which hides the load
+    ; And if it was lost and losing is Game Over, there is no coming back from
+    ; here: the screen appears from the battle's black, without going through
+    ; the map, as in RM2k.
     jsl f:game_over_si_perdio
-    ldx mapa_actual             ; y el audio del mapa vuelve al SPC700
+    ldx mapa_actual             ; and the map's audio goes back to the SPC700
     jsr batalla_audio_cargar
     lda f:BAT_LARGO + BA_TEMA_ANT
-    jsr batalla_bgm             ; el tema del mapa, o el silencio que había
+    jsr batalla_bgm             ; the map's song, or the silence there was
     plb
     jsr volver_de_batalla
     phb
     phk
     plb
-    jsr pelea_fundir_al_mapa    ; y el mapa desde negro, con `flush_video`
+    jsr pelea_fundir_al_mapa    ; and the map from black, with `flush_video`
     plb
     rts
 .endproc
-

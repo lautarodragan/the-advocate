@@ -2,47 +2,48 @@
 .a8
 .i16
 
-; --- el intérprete: Game Over ----------------------------------------------
+; --- the interpreter: Game Over --------------------------------------------
 ;
-; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
-; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
-; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps to
+; each one with Y on its first operand, and each one goes back to the loop
+; with `jmp correr_codigo::otro` or ends the frame with `rts`.
 
-; `ReturntoTitleScreen` y `GameOver`: el primero vuelve al arranque —la
-; pantalla de título, si la ROM la lleva— y el segundo pasa antes por la
-; pantalla de Game Over, que es lo mismo que perder una pelea sin manejador de
-; derrota: ver tools/runtime/game_over.s. Los dos con `jml`: no hay a dónde volver.
+; `ReturntoTitleScreen` and `GameOver`: the first goes back to boot —the
+; title screen, if the ROM has one— and the second goes through the Game Over
+; screen first, which is the same as losing a battle with no defeat handler:
+; see tools/runtime/game_over.s. Both with `jml`: there is nowhere to return
+; to.
 ;
-; Comparten todo menos el final, y A alto dice cuál es: `op_return_to_title`
-; carga 0 y se saltea el `lda #1` con el byte de un `bit` absoluto, que se
-; come los dos bytes que siguen sin tocar A. Es un truco, y está porque en el
-; banco 0 cada byte cuenta. `xba` lo guarda en B mientras el resto mira sólo
-; el byte bajo.
+; They share everything but the ending, and the high byte of A says which one
+; it is: `op_return_to_title` loads 0 and skips the `lda #1` with the byte of
+; an absolute `bit`, which swallows the next two bytes without touching A. It
+; is a trick, and it is there because in bank 0 every byte counts. `xba` keeps
+; it in B while the rest looks only at the low byte.
 ;
-; Antes, lo que `CommandGameOver` y `CommandReturnToTitleScreen` piden: **que
-; no haya un mensaje abierto**. Si lo hay, esperan, como `op_message` con el
-; de otro. El primer plano no llega acá con uno abierto —`eventos_tick` no lo
-; llama—; un paralelo sí, y sin esto el reinicio se comería el mensaje que
-; otro está mostrando.
+; Before that, what `CommandGameOver` and `CommandReturnToTitleScreen` ask
+; for: **that no message is open**. If one is, they wait, like `op_message`
+; does with someone else's. The foreground never gets here with one open
+; —`eventos_tick` does not call it—; a parallel one does, and without this the
+; restart would swallow the message another one is showing.
 .proc op_return_to_title
     lda #0
-    .byte $2C                   ; bit abs: se come el `lda #1` de abajo
+    .byte $2C                   ; bit abs: swallows the `lda #1` below
 .endproc
 .proc op_game_over
     lda #1
     xba
     lda par_ev
     cmp #$FF
-    beq game_over_ya            ; primer plano
+    beq game_over_ya            ; foreground
     lda msg_abierto
     ora msg_estado
     ora eleg_activo
     beq game_over_ya
-    dey                         ; el cursor vuelve a este mismo opcode
+    dey                         ; the cursor goes back to this same opcode
     sty ev_cur
     rts
 game_over_ya:
-    xba                         ; y la Z, del que era: 0 es volver al título
+    xba                         ; and Z, from whichever it was: 0 is back to the title
     beq al_titulo
     jml f:game_over_desde_el_mapa
 al_titulo:

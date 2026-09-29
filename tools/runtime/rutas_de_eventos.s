@@ -1,43 +1,44 @@
 .segment "CODE"
 
-; --- las rutas forzadas de los eventos --------------------------------------
+; --- the events' forced move routes -----------------------------------------
 ;
-; Un evento con ruta forzada camina como el héroe: girar no consume cuadro,
-; esperar sí, y moverse arranca un paso de una celda que dura CUADROS_POR_CELDA.
-; La diferencia con el héroe es que su posición vive en celdas y no en pixeles,
-; y que —por ahora— no se dibuja: las rutas que compilan son sobre eventos sin
-; gráfico. Lo único que se ve de ellas es cuánto tardan, que es lo que espera
-; `ProceedWithMovement`.
+; An event with a forced move route walks like the hero: turning does not use up
+; a frame, waiting does, and moving starts a one-cell step that lasts
+; CUADROS_POR_CELDA. The difference with the hero is that its position lives in
+; cells and not in pixels, and that —for now— it is not drawn: the move routes
+; that compile are on events without a graphic. The only visible thing about
+; them is how long they take, which is what `ProceedWithMovement` waits for.
 
-; Le da una ruta al evento `ruta_blanco - 1`: busca su ranura, y si no la tiene
-; agarra una libre. Pisar la que ya tenía es lo correcto —RM2k sobrescribe la
-; ruta forzada anterior, no la encadena— y si no hay ninguna libre la ruta se
-; descarta, que es preferible a escribir al lado de la tabla.
+; Gives a move route to event `ruta_blanco - 1`: looks for its slot, and if it
+; does not have one it takes a free one. Overwriting the one it already had is
+; correct —RM2k overwrites the previous forced move route, it does not chain
+; it— and if there is no free one the move route is dropped, which is preferable
+; to writing next to the table.
 ;
-; Lo que se conserva al pisarla es lo que `ForceMoveRoute` conserva: el paso o
-; el salto en curso se terminan, hacia dónde mira queda, y atravesar paredes y
-; la animación parada siguen como estaban. Se cortan la espera —la primera
-; orden corre ya— y las órdenes. Antes se reseteaba la ranura entera, y el
-; evento volvía a mirar adonde decía su página hasta que la ruta nueva lo
-; girara: era el centinela que dejaba afuera a `face_hero`.
+; What is kept when overwriting it is what `ForceMoveRoute` keeps: the step or
+; jump in progress finish, the facing stays, and going through walls and the
+; stopped animation remain as they were. The wait —the first command runs right
+; away— and the commands are cut. Before, the whole slot was reset, and the
+; event went back to facing wherever its page said until the new move route
+; turned it: it was the sentinel that left `face_hero` out.
 ;
-; Entra con Y apuntando a la primera orden dentro del bytecode.
+; Enters with Y pointing to the first command inside the bytecode.
 .proc ruta_para_evento
 .a8
 .i16
     phy
     lda ruta_blanco
     dec a
-    jsr giro_por_ruta           ; con ruta, adónde mira lo decide ella
+    jsr giro_por_ruta           ; with a move route, the move route decides where it faces
     ply
     lda ruta_blanco
     dec a
-    sta temp                    ; el índice del evento
+    sta temp                    ; the event's index
 
-    ; Primero la ranura que ya sea suya, y si no una libre. Las dos búsquedas
-    ; estaban copiadas acá y son exactamente `ranura_del_evento` y
-    ; `ranura_libre`: llamarlas ahorra banco 0 y, la primera, se lleva de
-    ; regalo el tope de `ruta_ev_tope`.
+    ; First the slot that is already its own, and if not a free one. The two
+    ; searches were copied here and are exactly `ranura_del_evento` and
+    ; `ranura_libre`: calling them saves bank 0 and, the first one, brings along
+    ; the `ruta_ev_tope` cap as a bonus.
     lda temp
     jsr ranura_del_evento
     cpx #$FFFF
@@ -45,37 +46,37 @@
     jsr ranura_libre
     cpx #$FFFF
     bne puesta
-    rts                         ; no hay lugar: la ruta se pierde
+    rts                         ; no room: the move route is lost
 
 puesta:
     lda temp
     sta ruta_ev + 0, x
     jsl f:ranura_anotar + RAPIDO
     stz ruta_ev + 6, x
-    stz ruta_ev + 7, x          ; sin paso en curso
+    stz ruta_ev + 7, x          ; no step in progress
     stz ruta_ev + 22, x
     stz ruta_ev + 23, x
     lda #RUTA_EV_SIN_MIRAR
-    sta ruta_ev + 8, x          ; mira adonde diga su página hasta que gire
-    stz ruta_ev + 12, x         ; sin banderas
-    stz ruta_ev + 13, x         ; ni salto
+    sta ruta_ev + 8, x          ; faces wherever its page says until it turns
+    stz ruta_ev + 12, x         ; no flags
+    stz ruta_ev + 13, x         ; nor jump
     lda #1
-    sta ruta_ev + 10, x         ; el frame del medio, como `animate_hero`
+    sta ruta_ev + 10, x         ; the middle frame, like `animate_hero`
     stz ruta_ev + 11, x
     stz ruta_ev + 18, x
-    stz ruta_ev + 27, x         ; sin página a la que volver
+    stz ruta_ev + 27, x         ; no page to go back to
     rep #$20
 .a16
     lda #$FFFF
     sta ruta_ev + 20, x
     sep #$20
 .a8
-    ; A la velocidad de la página con que se dibuja, que la fila del NPC trae
-    ; en +13: es la que RM2k le deja a una ruta forzada. Un evento sin fila
-    ; —sin gráfico— va a la 3, la de una página por defecto.
-    phy                         ; Y es el cursor del bytecode, y se necesita
-    lda temp                    ; después: `npc_de_evento` lo pisa
-    jsr npc_de_evento           ; Y = su fila, o $FFFF; A se pierde
+    ; At the speed of the page it is drawn with, which the NPC row carries at +13:
+    ; it is the one RM2k leaves to a forced move route. An event without a row
+    ; —without a graphic— goes at 3, a default page's.
+    phy                         ; Y is the bytecode cursor, and it is needed
+    lda temp                    ; afterwards: `npc_de_evento` overwrites it
+    jsr npc_de_evento           ; Y = its row, or $FFFF; A is lost
     cpy #$FFFF
     beq sin_fila
     lda npc_buf + 13, y
@@ -86,17 +87,17 @@ con_velocidad:
     ply
     sta ruta_ev + 17, x
     lda temp
-    jsr capa_activa             ; su capa, una vez y no en cada paso
+    jsr capa_activa             ; its layer, once and not on every step
     sta ruta_ev + 31, x
 reusada:
     lda ruta_ev + 18, x
-    and #$FE                    ; la forzada pisa a la de página, si había
-    ora #$04                    ; y lo bloqueado se saltea
+    and #$FE                    ; the forced one overrides the page's, if there was one
+    ora #$04                    ; and what is blocked is skipped
     sta ruta_ev + 18, x
-    ; El puntero a la primera orden: el del código más lo que Y llevaba andado.
-    ; La suma no se lleva nada al byte de banco porque el bloque de código del
-    ; mapa entra entero en uno —lo garantiza el acomodo de bancos del
-    ; conversor, `tools/ensamblado/bancos.py`—, que es el mismo argumento que el del bloque de mensajes.
+    ; The pointer to the first command: the code's plus however far Y had gone.
+    ; The sum does not carry anything into the bank byte because the map's code
+    ; block fits whole in one —the converter's bank layout guarantees it,
+    ; `tools/ensamblado/bancos.py`—, which is the same argument as for the message block.
     rep #$20
 .a16
     tya
@@ -109,19 +110,19 @@ reusada:
     sta ruta_ev + 3, x
     lda ruta_cuantas
     sta ruta_ev + 4, x
-    stz ruta_ev + 5, x          ; recién empieza
-    stz ruta_ev + 9, x          ; y sin espera en curso: la primera orden corre ya
+    stz ruta_ev + 5, x          ; just starting
+    stz ruta_ev + 9, x          ; and no wait in progress: the first command runs right away
     lda ruta_frec_op
     sta ruta_ev + 16, x
     rts
 .endproc
 
-; Cuántos cuadros se queda quieto un personaje después de un paso y después de
-; un giro con la frecuencia que trae A. Es el contador de parada de RM2k
-; —`SetMaxStopCountForStep` y `ForTurn`— y con la 8 los dos dan cero, que es
-; por lo que "girar es gratis y los pasos van seguidos" era exacto sin saberlo.
-; Las tablas las emite el conversor desde `eventos.espera_tras_paso` y
-; `espera_tras_giro`. Usan Y y no X, porque X es la ranura de quien pregunta.
+; How many frames a character stands still after a step and after a turn with
+; the frequency A carries. It is RM2k's stop counter —`SetMaxStopCountForStep`
+; and `ForTurn`— and with 8 both give zero, which is why "turning is free and
+; the steps go back to back" was exact without knowing it. The converter emits
+; the tables from `eventos.espera_tras_paso` and `espera_tras_giro`. They use Y
+; and not X, because X is the slot of whoever asks.
 .proc tras_paso
 .a8
 .i16
@@ -148,10 +149,10 @@ reusada:
     rts
 .endproc
 
-; Hacia dónde mira quien está en (celda_x, celda_y) para encarar al héroe. Es
-; `GetDirectionToCharacter`: manda el eje con más distancia y en empate el
-; vertical; sobre la misma celda, o con el héroe más abajo, mira abajo.
-; Devuelve la dirección en A.
+; Which way whoever is at (celda_x, celda_y) faces to face the hero. It is
+; `GetDirectionToCharacter`: the axis with more distance wins and on a tie the
+; vertical; on the same cell, or with the hero further down, it faces down.
+; Returns the direction in A.
 .proc hacia_el_heroe
 .a8
 .i16
@@ -160,7 +161,7 @@ reusada:
     lda celda_x
     sec
     sbc tile_x
-    sta temp                    ; sx, con signo: positivo es "el héroe está a la izquierda"
+    sta temp                    ; sx, signed: positive is "the hero is to the left"
     bpl :+
     eor #$FFFF
     inc a
@@ -168,7 +169,7 @@ reusada:
     lda celda_y
     sec
     sbc tile_y
-    sta temp + 2                ; sy: positivo es "el héroe está más arriba"
+    sta temp + 2                ; sy: positive is "the hero is further up"
     bpl :+
     eor #$FFFF
     inc a
@@ -176,10 +177,10 @@ reusada:
     lda cmp_a
     cmp cmp_b
     beq vertical
-    bcc vertical                ; |sx| <= |sy|: manda el eje vertical
+    bcc vertical                ; |sx| <= |sy|: the vertical axis wins
     sep #$20
 .a8
-    lda temp + 1                ; el signo de sx
+    lda temp + 1                ; the sign of sx
     bmi derecha
     lda #DIR_LEFT
     rts
@@ -190,11 +191,11 @@ vertical:
 .a16
     sep #$20
 .a8
-    lda temp + 3                ; el signo de sy
+    lda temp + 3                ; the sign of sy
     bmi abajo
     lda temp + 2
     ora temp + 3
-    beq abajo                   ; la misma celda: abajo
+    beq abajo                   ; the same cell: down
     lda #DIR_UP
     rts
 abajo:
@@ -202,7 +203,7 @@ abajo:
     rts
 .endproc
 
-; Un cuadro de todas las rutas de eventos que estén corriendo.
+; One frame of all the event move routes that are running.
 .proc mover_eventos
 .a8
 .i16
@@ -212,8 +213,9 @@ otra:
     lda ruta_ev, x
     cmp #RUTA_EV_LIBRE
     beq siguiente
-    ; El que ya dio su paso pegado a su intérprete paralelo no lo da otra vez:
-    ; la marca se consume acá, así que dura un cuadro. Ver `un_paralelo`.
+    ; The one that already took its step tied to its parallel interpreter does not
+    ; take it again: the mark is consumed here, so it lasts one frame. See
+    ; `un_paralelo`.
     lda ruta_ev + 18, x
     and #$40
     beq no_movido
@@ -244,7 +246,7 @@ siguiente:
     sep #$20
 .a8
     bcc otra
-    ; De acá en adelante el que se mueve es el héroe otra vez.
+    ; From here on the one that moves is the hero again.
     lda #MOVIL_HEROE
     sta movil
     lda #CAPA_HEROE
@@ -252,24 +254,24 @@ siguiente:
     rts
 .endproc
 
-; Un cuadro de la ruta de la ranura que apunta X. Es el mismo programa que
-; `paso_de_ruta` para el héroe, y por eso las dos hacen lo mismo con las mismas
-; órdenes: si acá se contara distinto, la ruta de un evento terminaría en otro
-; cuadro que la del héroe y `ProceedWithMovement` soltaría la página cuando no
-; toca.
-; Los saltos de acá adentro van con `jmp` y no con `bra`, por lo mismo que en
-; `paso_de_ruta`: el cuerpo creció y los 127 bytes de alcance se quedaron cortos.
+; One frame of the move route of the slot X points to. It is the same program as
+; `paso_de_ruta` for the hero, and that is why both do the same with the same
+; commands: if it were counted differently here, an event's move route would end
+; on a different frame than the hero's and `ProceedWithMovement` would let the
+; page go when it should not.
+; The jumps in here go with `jmp` and not `bra`, for the same reason as in
+; `paso_de_ruta`: the body grew and the 127 bytes of reach fell short.
 .proc cuadro_de_ruta_ev
 .a8
 .i16
     stz ruta_ev + 6, x
     lda ruta_ev + 18, x
-    and #$DF                    ; la recarga de `repeat`, una por cuadro
+    and #$DF                    ; `repeat`'s reload, one per frame
     sta ruta_ev + 18, x
     lda ruta_ev + 7, x
     beq sin_paso
-    ; El paso avanza lo que dice la velocidad, de 256 por celda; +7 sólo dice
-    ; que hay uno en curso.
+    ; The step advances by what the speed says, out of 256 per cell; +7 only says
+    ; there is one in progress.
     jsr paso_de_ranura
     rep #$20
 .a16
@@ -283,12 +285,12 @@ no_negativo:
     sep #$20
 .a8
     bne moviendo
-    stz ruta_ev + 7, x          ; el paso terminó en este cuadro
+    stz ruta_ev + 7, x          ; the step ended on this frame
     lda ruta_ev + 5, x
     cmp ruta_ev + 4, x
     bcc con_ordenes
-    lda ruta_ev + 18, x         ; sin órdenes: sólo la de página que se repite
-    and #$03                    ; sigue esperando
+    lda ruta_ev + 18, x         ; no commands: only the repeating page one
+    and #$03                    ; keeps waiting
     cmp #$03
     bne moviendo
 con_ordenes:
@@ -313,17 +315,16 @@ guardar_salto:
     sta ruta_ev + 13, x
     rts
 sin_salto:
-    ; Y un `wait` en curso se lleva el cuadro entero, igual que el del héroe.
+    ; And a `wait` in progress takes the whole frame, same as the hero's.
     lda ruta_ev + 9, x
     beq sin_espera
     dec a
     sta ruta_ev + 9, x
     rts
 sin_espera:
-    ; La ruta propia de la página no lee órdenes nuevas mientras el intérprete
-    ; tiene una página corriendo: es el `IsRunning()` de
-    ; `UpdateNextMovementAction`. El paso en curso ya se terminó arriba y las
-    ; esperas siguen contando.
+    ; The page's own move route does not read new commands while the interpreter
+    ; has a page running: it is `UpdateNextMovementAction`'s `IsRunning()`. The
+    ; step in progress already finished above and the waits keep counting.
     lda ruta_ev + 18, x
     and #$01
     beq no_congelada
@@ -332,8 +333,8 @@ sin_espera:
     lda esperando_n
     bne congelada
 no_congelada:
-    ; El puntero de la ruta a la página directa, que es de donde se puede leer
-    ; con `[ptr], y`.
+    ; The move route's pointer to the direct page, which is where it can be read
+    ; from with `[ptr], y`.
     rep #$20
 .a16
     lda ruta_ev + 1, x
@@ -344,13 +345,13 @@ no_congelada:
     sta ruta_ptr + 2
 
 otra_orden:
-    lda ruta_ev + 5, x          ; en cuál va
-    cmp ruta_ev + 4, x          ; cuántas trae
+    lda ruta_ev + 5, x          ; which one it is on
+    cmp ruta_ev + 4, x          ; how many it has
     bcc hay_orden
-    ; Se acabaron las órdenes. La de página que se repite vuelve al principio
-    ; en el mismo cuadro, y una sola vez por cuadro —el `current_index ==
-    ; start_index` de `UpdateMoveRoute`—; y una forzada que termina sobre un
-    ; evento con ruta propia le devuelve la suya, desde el principio.
+    ; The commands ran out. The repeating page one goes back to the start on the
+    ; same frame, and only once per frame —`UpdateMoveRoute`'s `current_index ==
+    ; start_index`—; and a forced one that ends on an event with its own move route
+    ; gives it back its own, from the start.
     lda ruta_ev + 18, x
     and #$23
     cmp #$03
@@ -363,9 +364,9 @@ otra_orden:
 no_repite:
     lda ruta_ev + 18, x
     and #$01
-    bne congelada               ; la de página, terminada: listo
+    bne congelada               ; the page one, finished: done
     lda ruta_ev + 27, x
-    beq congelada               ; sin página a la que volver
+    beq congelada               ; no page to go back to
     jsr retomar_pagina
 congelada:
     jmp listo
@@ -379,8 +380,8 @@ hay_orden:
     lda [ruta_ptr], y
     inc ruta_ev + 5, x
 
-    cmp #23                     ; wait: éste y los RUTA_ESPERA - 1 que siguen,
-    bne no_es_wait              ; más los del giro si la frecuencia es baja
+    cmp #23                     ; wait: this one and the RUTA_ESPERA - 1 after it,
+    bne no_es_wait              ; plus the turn's if the frequency is low
     lda ruta_ev + 16, x
     jsr tras_giro
     clc
@@ -392,42 +393,43 @@ no_es_wait:
     bcs no_mueve
     cmp #9
     bne :+
-    ; `move_towards_hero`. No es una orden aparte sino las dos que ya están
-    ; pegadas: `UpdateMoveRoute` hace `TurnTowardCharacter(hero)` y después
-    ; `Move(GetDirection())`, o sea la 21 y un `move_*` en el mismo cuadro.
-    ; Por eso sale la dirección de acá y cae en `mover` sin tocar nada más:
-    ; el giro, el paso y lo que cuesta son los de siempre.
-    ; `hacia_el_heroe` no pisa X, que es la ranura.
+    ; `move_towards_hero`. It is not a separate command but the two already there
+    ; put together: `UpdateMoveRoute` does `TurnTowardCharacter(hero)` and then
+    ; `Move(GetDirection())`, that is, 21 and a `move_*` on the same frame. That
+    ; is why the direction comes from here and it falls into `mover` without
+    ; touching anything else: the turn, the step and what it costs are the usual.
+    ; `hacia_el_heroe` does not overwrite X, which is the slot.
     jsr celda_del_evento
     jsr hacia_el_heroe
-:   jmp mover                   ; 0..3 son los move_*, y la 9 ya trae la suya
+:   jmp mover                   ; 0..3 are the move_*, and 9 already brings its own
 no_mueve:
     cmp #16
     bcs :+
-    jmp face                    ; 12..15 son los face_*; queda lejos
+    jmp face                    ; 12..15 are the face_*; it is far
 :
     cmp #21
     bne no_encara
-    ; face_hero: la celda del evento contra la del héroe, y a `mirar` con la
-    ; dirección en A.
+    ; face_hero: the event's cell against the hero's, and on to `mirar` with the
+    ; direction in A.
     jsr celda_del_evento
     jsr hacia_el_heroe
     jmp mirar
 no_encara:
-    ; Girar sin moverse no se compila: acá no llega.
+    ; Turning without moving is not compiled: it does not get here.
     cmp #24
     bne no_es_salto
-    jsr preparar_movil          ; quién salta, para chocar con los demás
+    jsr preparar_movil          ; who jumps, to collide with the others
     lda ruta_ev + 5, x
     dec a
-    sta salto_orden             ; dónde está el 24, por si hay que volver
+    sta salto_orden             ; where the 24 is, in case it has to go back
     jsr armar_salto_ev
     lda ruta_ev + 13, x
     bne salto_arranco
-    ; No se pudo caer ahí. Con la ruta salteable el salto se saltea; sin eso
-    ; RM2k vuelve el cursor al `begin_jump` y corta el cuadro —`current_index
-    ; = saved_index`—, y el salto se reintenta cuadro a cuadro hasta que la
-    ; celda se libere. Sin `end_jump` no hay a qué volver: se saltea siempre.
+    ; It could not land there. With the move route skippable the jump is skipped;
+    ; without that RM2k moves the cursor back to the `begin_jump` and cuts the frame
+    ; —`current_index = saved_index`—, and the jump is retried frame by frame until
+    ; the cell frees up. Without `end_jump` there is nothing to go back to: it is
+    ; always skipped.
     lda salto_trabado
     beq saltear
     lda ruta_ev + 18, x
@@ -444,22 +446,22 @@ no_es_salto:
     cmp #25
     beq seguir
     cmp #26
-    bcc seguir                  ; los demás no hacen nada
+    bcc seguir                  ; the others do nothing
     cmp #32
-    bcc fijar_o_velocidad       ; 26 y 27 la mirada, 28 y 29 la velocidad,
-    cmp #34                     ; 30 y 31 la frecuencia
-    bne no_es_grafico           ; y la 34 el gráfico, que lleva operando
-    jmp cambiar_grafico         ; queda lejos para un salto corto
+    bcc fijar_o_velocidad       ; 26 and 27 the facing, 28 and 29 the speed,
+    cmp #34                     ; 30 and 31 the frequency
+    bne no_es_grafico           ; and 34 the graphic, which carries an operand
+    jmp cambiar_grafico         ; it is too far for a short branch
 no_es_grafico:
     cmp #35
     bne no_es_sonido
-    jmp sonido_ev               ; la 35, con su operando
+    jmp sonido_ev               ; 35, with its operand
 no_es_sonido:
     cmp #36
-    bcc seguir                  ; 32 y 33, los switches, no llegan
+    bcc seguir                  ; 32 and 33, the switches, do not get here
     cmp #38
     bcs anim
-    ; 36 prende atravesar y 37 lo apaga.
+    ; 36 turns going through walls on and 37 turns it off.
     and #$01
     eor #$01
     beq apagar_atraviesa
@@ -473,7 +475,7 @@ apagar_atraviesa:
 anim:
     cmp #40
     bcs seguir
-    ; 38 para la animación y 39 la sigue.
+    ; 38 stops the animation and 39 resumes it.
     cmp #38
     bne seguir_anim
     lda ruta_ev + 12, x
@@ -491,7 +493,7 @@ fijar_o_velocidad:
     bcs ev_frecuencia
     cmp #28
     bcs velocidad
-    ; 26 fija hacia dónde mira, 27 lo suelta: `lock_facing`.
+    ; 26 locks the facing, 27 releases it: `lock_facing`.
     and #$01
     beq fijar
     lda ruta_ev + 18, x
@@ -502,7 +504,7 @@ fijar:
     ora #$08
     bra guardar_18
 velocidad:
-    ; 28 sube la velocidad y 29 la baja, entre 1 y 6.
+    ; 28 raises the speed and 29 lowers it, between 1 and 6.
     and #$01
     bne mas_lenta
     lda ruta_ev + 17, x
@@ -517,9 +519,9 @@ mas_lenta:
     dec ruta_ev + 17, x
     bra seguir
 ev_frecuencia:
-    ; 30 sube la frecuencia y 31 la baja, entre 1 y 8. Ver `frecuencia` en
-    ; `paso_de_ruta`, que es lo mismo para el héroe: de acá salen los cuadros
-    ; quieto tras cada orden, y la 1 la rechaza el conversor.
+    ; 30 raises the frequency and 31 lowers it, between 1 and 8. See `frecuencia`
+    ; in `paso_de_ruta`, which is the same for the hero: the frames standing still
+    ; after each command come from here, and the converter rejects 1.
     and #$01
     bne menos_frec
     lda ruta_ev + 16, x
@@ -537,17 +539,17 @@ guardar_18:
     sta ruta_ev + 18, x
     bra seguir
 
-; `change_graphic`: la única orden con operando. Detrás del 34 va el índice del
-; gráfico en la tabla del mapa —dos bytes por gráfico, ver `load_ruta_graficos`—
-; y de ahí salen de qué personaje sacar las doce poses y con qué paleta
-; dibujarlas.
+; `change_graphic`: the only command with an operand. After the 34 comes the
+; graphic's index in the map's table —two bytes per graphic, see
+; `load_ruta_graficos`— and from there comes which character to take the twelve
+; poses from and which palette to draw them with.
 ;
-; No cuesta un cuadro: en `UpdateMoveRoute` cae en la rama que no toca el
-; contador de parada, así que la orden que sigue corre en este mismo cuadro.
-; Tampoco toca la pose: el ciclo de caminata sigue donde estaba, que es lo que
-; hace `SetSpriteGraphic`.
+; It does not cost a frame: in `UpdateMoveRoute` it falls into the branch that
+; does not touch the stop counter, so the next command runs on this same frame.
+; It does not touch the pose either: the walk cycle stays where it was, which is
+; what `SetSpriteGraphic` does.
 cambiar_grafico:
-    lda ruta_ev + 5, x          ; el cursor ya avanzó al leer la orden
+    lda ruta_ev + 5, x          ; the cursor already advanced when reading the command
     rep #$20
 .a16
     and #$00FF
@@ -555,8 +557,8 @@ cambiar_grafico:
     sep #$20
 .a8
     lda [ruta_ptr], y
-    inc ruta_ev + 5, x          ; y ahora por el operando
-    asl a                       ; dos bytes por entrada
+    inc ruta_ev + 5, x          ; and now past the operand
+    asl a                       ; two bytes per entry
     rep #$20
 .a16
     and #$00FF
@@ -564,31 +566,31 @@ cambiar_grafico:
     sep #$20
 .a8
     lda ruta_graf_buf, y
-    sta graf_k                  ; su entrada en `npc_poses`, o $FF
+    sta graf_k                  ; its entry in `npc_poses`, or $FF
     lda ruta_graf_buf + 1, y
     sta graf_pal
 
     lda ruta_ev + 0, x
     phx
-    jsr npc_de_evento           ; su fila, que es lo que hay que cambiar
+    jsr npc_de_evento           ; its row, which is what has to change
     plx
     cpy #$FFFF
-    beq listo_graf              ; un evento sin gráfico no tiene fila
+    beq listo_graf              ; an event without a graphic has no row
     lda #$FF
-    sta npc_buf + 15, y         ; un CharSet no le impone nada a la celda
+    sta npc_buf + 15, y         ; a CharSet imposes nothing on the cell
     lda graf_k
     cmp #$FF
     bne con_grafico
-    ; Un CharSet sin un solo pixel opaco: el evento desaparece. Es lo mismo
-    ; que hace `esconder_npc`, y son 185 de las 437 órdenes 34 del juego
-    ; —`nobodyhere`—, así que no es el caso raro sino el más común.
+    ; A CharSet without a single opaque pixel: the event disappears. It is the same
+    ; thing `esconder_npc` does, and it is 185 of the game's 437 commands 34
+    ; —`nobodyhere`—, so it is not the rare case but the most common one.
     lda #0
     sta npc_buf + 14, y
     bra listo_graf
 con_grafico:
-    sta npc_buf + 9, y          ; de qué personaje salen sus poses
+    sta npc_buf + 9, y          ; which character its poses come from
     lda npc_buf + 7, y
-    and #$F1                    ; la paleta vive en los bits 1 a 3 de vhoopppN
+    and #$F1                    ; the palette lives in bits 1 to 3 of vhoopppN
     sta temp
     lda graf_pal
     asl a
@@ -596,20 +598,20 @@ con_grafico:
     ora temp
     sta npc_buf + 7, y
     lda #$FF
-    sta npc_buf + 12, y         ; la pose que hay en la VRAM ya no es la suya
+    sta npc_buf + 12, y         ; the pose in VRAM is no longer its own
     lda #1
-    sta npc_buf + 14, y         ; y se ve, por si venía escondido
+    sta npc_buf + 14, y         ; and it is visible, in case it was hidden
 listo_graf:
     jmp otra_orden
 
-; `play_sound_effect`: la 35, con el índice del efecto detrás, en dos bytes.
-; Igual que sobre el héroe —ver `sonido_heroe`—: `sonido_tocar`, el camino de
-; `OP_SOUND`, y sin costar un cuadro. X es la ranura, y `sonido_tocar` la pisa.
+; `play_sound_effect`: 35, with the sound effect's index after it, in two bytes.
+; Same as on the hero —see `sonido_heroe`—: `sonido_tocar`, `OP_SOUND`'s path,
+; and without costing a frame. X is the slot, and `sonido_tocar` overwrites it.
 sonido_ev:
-    lda ruta_ev + 5, x          ; el cursor ya está en el operando
+    lda ruta_ev + 5, x          ; the cursor is already on the operand
     inc a
     inc a
-    sta ruta_ev + 5, x          ; y lo pasa
+    sta ruta_ev + 5, x          ; and moves past it
     dec a
     dec a
     rep #$20
@@ -618,7 +620,7 @@ sonido_ev:
     tay
     lda [ruta_ptr], y
     phx
-    jsr sonido_tocar            ; vuelve con A de ocho
+    jsr sonido_tocar            ; returns with 8-bit A
 .a8
     plx
     jmp otra_orden
@@ -626,9 +628,9 @@ face:
     sec
     sbc #12
 mirar:
-    sta ruta_ev + 8, x          ; face_*: con la frecuencia 8 es instantáneo y
-    lda ruta_ev + 16, x         ; sigue el que viene; con otra, se queda
-    jsr tras_giro               ; quieto los cuadros del giro
+    sta ruta_ev + 8, x          ; face_*: with frequency 8 it is instant and the
+    lda ruta_ev + 16, x         ; next one follows; with another, it stands
+    jsr tras_giro               ; still for the turn's frames
     bne giro_espera
     jmp otra_orden
 giro_espera:
@@ -642,26 +644,26 @@ mover:
     stz ruta_dir + 1
     lda ruta_ev + 18, x
     and #$08
-    bne sin_girar               ; mira siempre igual: `lock_facing` o el tipo
-                                ; de animación de la página
+    bne sin_girar               ; always faces the same way: `lock_facing` or the
+                                ; page's animation type
     lda ruta_dir
     cmp #4
-    bcc derecho                 ; los cuatro de siempre miran hacia donde van
-    jsr encarar_diagonal        ; una diagonal no tiene pose propia: ver ahí
+    bcc derecho                 ; the usual four face where they go
+    jsr encarar_diagonal        ; a diagonal has no pose of its own: see there
 derecho:
-    sta ruta_ev + 8, x          ; move_* mira hacia donde va
+    sta ruta_ev + 8, x          ; move_* faces where it goes
 sin_girar:
     phx
-    jsr celda_del_evento        ; deja su posición en celda_x/celda_y
-    jsr preparar_movil          ; y quién es, para chocar con los demás
+    jsr celda_del_evento        ; leaves its position in celda_x/celda_y
+    jsr preparar_movil          ; and who it is, to collide with the others
     lda ruta_ev + 12, x
     and #$01
-    sta atravesando             ; walk_everywhere: `puede_celda` lo mira
+    sta atravesando             ; walk_everywhere: `puede_celda` looks at it
     stz atravesando + 1
     lda ruta_dir
     cmp #4
     bcc recto
-    jsr puede_celda_diag        ; las dos eles: nadie mira la celda diagonal
+    jsr puede_celda_diag        ; the two L's: nobody looks at the diagonal cell
     bra probado
 recto:
     jsr puede_celda
@@ -669,14 +671,14 @@ probado:
     plx
     stz atravesando
     stz atravesando + 1
-    ; `plx` pone Z según lo que saca de la pila, así que la respuesta hay que
-    ; volver a mirarla: con el `beq` pegado al `plx`, la ranura 0 —que es X = 0—
-    ; daba "bloqueado" siempre y ninguna ruta se movía nunca.
+    ; `plx` sets Z from what it pulls off the stack, so the answer has to be
+    ; looked at again: with the `beq` right after the `plx`, slot 0 —which is X = 0—
+    ; always said "blocked" and no move route ever moved.
     cmp #0
     bne no_bloqueado
-    ; Bloqueado. Con `skippable` —las forzadas, y las de página que lo pidan—
-    ; se saltea y se prueba la siguiente; sin él, la orden se reintenta el
-    ; cuadro que viene, y así hasta que el paso salga.
+    ; Blocked. With `skippable` —the forced ones, and the page ones that ask for
+    ; it— it is skipped and the next one is tried; without it, the command is
+    ; retried on the coming frame, and so on until the step goes through.
     lda ruta_ev + 18, x
     and #$04
     beq reintenta
@@ -690,16 +692,16 @@ no_bloqueado:
     jsr mover_celda_del_evento
     plx
     lda ruta_dir
-    sta ruta_ev + 30, x         ; hacia dónde va el paso, que con la mirada
-    lda #1                      ; fija no es hacia donde mira
-    sta ruta_ev + 7, x          ; hay un paso en curso
+    sta ruta_ev + 30, x         ; which way the step goes, which with the facing
+    lda #1                      ; locked is not where it faces
+    sta ruta_ev + 7, x          ; there is a step in progress
     jsr paso_de_ranura
     rep #$20
 .a16
     lda #SALTO_PASO
     sec
     sbc temp
-    sta ruta_ev + 22, x         ; y ya avanzó lo de este cuadro
+    sta ruta_ev + 22, x         ; and this frame's part already advanced
     sep #$20
 .a8
     lda #1
@@ -708,9 +710,9 @@ listo:
     rts
 .endproc
 
-; La ruta forzada terminó sobre un evento que tiene ruta propia: vuelve la de
-; la página, guardada en +24 a +29, desde el principio y con la espera del
-; giro. RM2k la retoma por donde iba; acá arranca de nuevo.
+; The forced move route ended on an event that has its own move route: the
+; page's comes back, saved at +24 to +29, from the start and with the turn's
+; wait. RM2k resumes it where it was; here it starts over.
 .proc retomar_pagina
 .a8
 .i16
@@ -736,7 +738,7 @@ listo:
     rts
 .endproc
 
-; La posición del evento de la ranura X, a celda_x/celda_y.
+; The position of slot X's event, into celda_x/celda_y.
 .proc celda_del_evento
 .a8
 .i16
@@ -745,7 +747,7 @@ listo:
 .a16
     and #$00FF
     asl a
-    asl a                       ; EV_STRIDE bytes por evento
+    asl a                       ; EV_STRIDE bytes per event
     tay
     lda ev_pos_buf, y
     sta celda_x
@@ -756,12 +758,12 @@ listo:
     rts
 .endproc
 
-; Y la mueve una celda en la dirección que trae A. Se hace al **empezar** el
-; paso, no al terminarlo: es lo que hace `begin_step` con el héroe, y contarlo
-; distinto dejaría al héroe y a los eventos con la celda cambiada en cuadros
-; distintos.
-; Pone la celda del evento de la ranura X en `celda_x`, `celda_y`. Lo usa el
-; salto, que la mueve de una en vez de de a un paso.
+; And moves it one cell in the direction A carries. It is done at the **start**
+; of the step, not at its end: it is what `begin_step` does with the hero, and
+; counting it differently would leave the hero and the events with the cell
+; changed on different frames.
+; Puts the cell of slot X's event in `celda_x`, `celda_y`. The jump uses it,
+; which moves it all at once instead of one step at a time.
 .proc mover_celda_a_evento
 .a8
 .i16
@@ -785,7 +787,7 @@ listo:
 .a8
 .i16
     sta ruta_dir
-    stz ruta_dir + 1            ; se usa como índice de dieciséis
+    stz ruta_dir + 1            ; it is used as a sixteen-bit index
     lda ruta_ev + 0, x
     rep #$20
 .a16
@@ -795,15 +797,15 @@ listo:
     tay
     sep #$20
 .a8
-    ; Por tabla y no por cuatro comparaciones: con las diagonales la celda se
-    ; corre en los dos ejes a la vez, y así el caso derecho es el que tiene un
-    ; cero de un lado. X queda pisado; el que llama ya lo guardó.
+    ; By table and not by four comparisons: with the diagonals the cell moves on
+    ; both axes at once, and this way the straight case is the one with a zero on
+    ; one side. X is left overwritten; the caller already saved it.
     ldx ruta_dir
     lda f:paso_dx, x
     beq sin_dx
     jsr con_signo_16
 .a16
-    clc                         ; vuelve con el acumulador en dieciséis
+    clc                         ; returns with the accumulator in sixteen
     adc ev_pos_buf + 0, y
     sta ev_pos_buf + 0, y
     sep #$20
@@ -822,8 +824,8 @@ sin_dy:
     rts
 .endproc
 
-; El byte con signo que trae A, extendido a dieciséis bits. Sale con el
-; acumulador **en dieciséis**, que es donde lo quieren los que suman celdas.
+; The signed byte A carries, extended to sixteen bits. It leaves with the
+; accumulator **in sixteen**, which is where the ones adding cells want it.
 .proc con_signo_16
 .a8
 .i16

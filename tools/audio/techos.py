@@ -1,31 +1,33 @@
 #!/usr/bin/env python3
-"""Mide el techo de cada tema y escribe `rom/parches/auto/musica/techos.toml`.
+"""Measures each song's volume ceiling and writes `rom/parches/auto/musica/techos.toml`.
 
-    rm2k-snes-volume-ceilings            mide, escribe la tabla y rearma
-                                         `release` con ella: `just techos`
-    rm2k-snes-volume-ceilings --medir    sólo mide el `release` que está
-                                         armado, y no escribe nada
+    rm2k-snes-volume-ceilings            measures, writes the table and
+                                         rebuilds `release` with it:
+                                         `just techos`
+    rm2k-snes-volume-ceilings --medir    only measures the `release` that
+                                         is built, and writes nothing
 
-El porqué de la tabla está en `leer_techos` (tools/audio/snes_music.py). Esto
-es cómo sale:
+The reason for the table is in `leer_techos` (tools/audio/snes_music.py).
+This is how it comes out:
 
-1. **Una copia de `release` con todos los temas a la mitad del aire**
-   (`AIRE_DE_MEDIDA`), en `rom/build/techos/`. Con eso no recorta ninguno,
-   así que el pico que se mide es el verdadero, y como el volumen de cada voz
-   es lineal en el techo, el de cada tema con el aire entero es el doble.
-2. **Cada tema entero en la pantalla de título**, en snes9x sin MSU-1, y su
-   pico. El aire de cada uno es el más alto que deja ese pico por debajo de
-   `MARGEN` del tope, sin pasar de `sdsp.AIRE`: los que no recortan quedan
-   como estaban.
-3. **Se escribe la tabla, se rearma `release` y se lo vuelve a medir**. El
-   volumen de cada voz se redondea a un entero, así que la cuenta es
-   aproximada: si algún tema recortara todavía, se lo baja lo que se pasó y
-   se repite.
+1. **A copy of `release` with every song at half the headroom**
+   (`AIRE_DE_MEDIDA`), in `rom/build/techos/`. With that none clips, so the
+   peak measured is the true one, and since each voice's volume is linear in
+   the ceiling, each song's with the full headroom is double.
+2. **Each whole song on the title screen**, in snes9x without MSU-1, and its
+   peak. Each one's headroom is the highest that keeps that peak `MARGEN`
+   below the cap, without going past `sdsp.AIRE`: the ones that do not clip
+   stay as they were.
+3. **The table is written, `release` is rebuilt and measured again**. Each
+   voice's volume is rounded to an integer, so the arithmetic is
+   approximate: if some song still clipped, it is lowered by as much as it
+   went over and the round repeats.
 
-Lo que queda en la tabla, además del aire: el pico y el nivel (LUFS) de cada
-tema con él, **hasta qué cuadro hay que tocarlo para pasar por su pico** —con
-eso la prueba no toca los temas enteros— y la huella de su mezcla, que es cómo
-la prueba sabe que la tabla quedó vieja. Ver `test_musica_techos.py`.
+What stays in the table, besides the headroom: each song's peak and level
+(LUFS) with it, **up to which frame it has to be played to go through its
+peak** —with that the test does not play the whole songs— and the
+fingerprint of its mix, which is how the test knows the table is stale. See
+`test_musica_techos.py`.
 """
 
 import argparse
@@ -38,8 +40,8 @@ import tempfile
 import wave
 from multiprocessing import Pool
 
-# `realpath` y no `abspath`: `just herramientas` instala este script en el PATH
-# como symlink, y lo que importa es dónde está el archivo de verdad.
+# `realpath` and not `abspath`: `just herramientas` installs this script on the
+# PATH as a symlink, and what matters is where the real file is.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import sdsp, snes_music                      # noqa: E402
@@ -47,35 +49,35 @@ from comun import ambiente                              # noqa: E402
 from comun import perillas                              # noqa: E402
 from comun import proyecto                              # noqa: E402
 
-# La mitad del aire de siempre: medido el 2026-09-26, con 0,25 no recorta
-# ninguno de los 32 temas del `release`, y el que más suma queda a 3,9 dB
-# del tope.
+# Half the usual headroom: measured on 2026-09-26, with 0.25 none of the 32
+# songs of `release` clips, and the loudest one stays 3.9 dB below the cap.
 AIRE_DE_MEDIDA = sdsp.AIRE / 2
 
-# Cómo se llama la ROM que se mide: la del juego, en su archivo de proyecto.
+# What the measured ROM is called: the game's, in its project file.
 NOMBRE_DE_LA_ROM = perillas.valor("rom", "name", tipo=str)
 
-# Hasta dónde se deja llegar el pico: 0,5 dB bajo el tope. Lo que absorbe es
-# el redondeo del volumen de cada voz a un entero, que hace que el pico no
-# escale exacto con el aire.
+# How far the peak is allowed to go: 0.5 dB below the cap. What it absorbs is
+# the rounding of each voice's volume to an integer, which makes the peak not
+# scale exactly with the headroom.
 MARGEN = 10 ** (-0.5 / 20)
 
-# Dónde queda el tope en lo que sale de la consola: el DSP satura la suma de
-# las voces a 16 bits y después la multiplica por el volumen general, MVOL/128.
+# Where the cap lies in what comes out of the console: the DSP saturates the
+# sum of the voices at 16 bits and then multiplies it by the master volume,
+# MVOL/128.
 TOPE = 32767 * sdsp.MASTER >> 7
 
-# Cuántos cuadros antes del fin del arranque —`BOOT_CUADROS`, que se lee de
-# la ROM— se empieza a grabar: la pantalla de título prende su tema después,
-# así que es aire. Eran 90 cuadros fijos desde el encendido, con el arranque
-# en 112, que es lo que esperaba el script que midió el paso 5; desde que el
-# arranque bajó, un número fijo cortaría el principio de cada tema.
+# How many frames before the end of boot —`BOOT_CUADROS`, read from the ROM—
+# recording starts: the title screen starts its song afterwards, so it is
+# slack. It used to be a fixed 90 frames from power-on, with boot at 112,
+# which is what the script that measured step 5 expected; since boot got
+# shorter, a fixed number would cut off the start of each song.
 ANTES_DEL_TITULO = 22
 
-# Cuántos cuadros más allá del pico toca la prueba.
+# How many frames past the peak the test plays.
 DESPUES_DEL_PICO = 60
 
 def temas_de(directorio):
-    """Los nombres de los temas del cartucho, en el orden de sus índices."""
+    """The names of the cartridge's songs, in the order of their indices."""
     with open(os.path.join(directorio, "musicdata.inc")) as archivo:
         inc = archivo.read()
     nombres = re.search(r"^; Temas: (.*)$", inc, re.M).group(1).split(", ")
@@ -92,22 +94,23 @@ def simbolos_de(sfc):
 
 
 def con_el_tema_en_el_titulo(rom, simbolos, tema):
-    """La ROM con la pantalla de título tocando `tema`: se le cambia el
-    inmediato del `lda #TEMA_TITULO` con que la prende. Es la única manera de
-    que un tema suene solo, con sus muestras subidas, sin jugar nada."""
+    """The ROM with the title screen playing `tema`: the immediate of the
+    `lda #TEMA_TITULO` it starts it with is changed. It is the only way for a
+    song to play on its own, with its samples uploaded, without playing
+    anything."""
     patron = bytes([0xA9, simbolos["TEMA_TITULO"], 0xC9, 0xFF, 0xF0])
     donde = rom.find(patron)
     assert donde >= 0 and rom.find(patron, donde + 1) < 0, (
-        "no encuentro el `lda #TEMA_TITULO` de la pantalla de título: "
-        "cambió cómo prende su tema, y hay que cambiar esto")
+        "cannot find the title screen's `lda #TEMA_TITULO`: how it starts "
+        "its song has changed, and this has to change too")
     parchada = bytearray(rom)
     parchada[donde + 1] = tema
     return bytes(parchada)
 
 
 def tocar(sfc, tema, cuadros):
-    """(las muestras, estéreo intercaladas, y la tasa): `cuadros` cuadros del
-    tema desde que el título lo prende, en snes9x sin MSU-1."""
+    """(the samples, interleaved stereo, and the rate): `cuadros` frames of
+    the song from when the title starts it, in snes9x without MSU-1."""
     import numpy as np
     from emulador import retro
     simbolos = simbolos_de(sfc)
@@ -132,13 +135,14 @@ def tocar(sfc, tema, cuadros):
 
 
 def recortes(muestras):
-    """Cuántas muestras quedaron en el tope."""
+    """How many samples ended up at the cap."""
     return int(((muestras >= TOPE) | (muestras <= -TOPE - 1)).sum())
 
 
 def cuadros_del_tema(directorio, tema):
-    """Cuánto dura una vuelta del tema, de las escrituras que emitió el
-    conversor —se miden en el mismo proceso que lo armó—, más un segundo."""
+    """How long one pass of the song lasts, from the writes the converter
+    emitted —they are measured in the same process that built it—, plus one
+    second."""
     return _largos[directorio][tema] + 60
 
 
@@ -152,7 +156,7 @@ def _medir_uno(trabajo):
                     tema, cuadros)
     absoluto = np.abs(x.astype(np.int32))
     pico = int(absoluto.max()) if len(x) else 0
-    # El cuadro del pico: las muestras son pares izquierda/derecha.
+    # The frame of the peak: the samples are left/right pairs.
     cuadro = int(absoluto.argmax()) // 2 * 60 // int(round(tasa))
     fila = {"recortes": recortes(x), "pico": pico, "cuadro": cuadro}
     if lufs:
@@ -176,7 +180,7 @@ def _lufs(x, tasa):
 
 
 def medir(directorio, lufs=False):
-    """{tema: {recortes, pico, cuadro[, lufs]}}: cada tema entero, una vez."""
+    """{song: {recortes, pico, cuadro[, lufs]}}: each whole song, once."""
     nombres = temas_de(directorio)
     hechos = temas_armados(directorio)
     _largos[directorio] = {i: t["largo"]
@@ -189,15 +193,16 @@ def medir(directorio, lufs=False):
 
 
 def temas_armados(directorio):
-    """Los temas del cartucho como los armó el conversor, en el orden de sus
-    índices: el nombre, el largo en cuadros y la huella de cada uno. Los
-    escribe el conversor en `musica.json`, al lado de `musicdata.inc`.
+    """The cartridge's songs as the converter built them, in the order of
+    their indices: the name, the length in frames and the fingerprint of
+    each. The converter writes them in `musica.json`, next to
+    `musicdata.inc`.
 
-    Hasta el 2026-09-26 se volvían a armar acá con `build_varios`, que daba
-    lo mismo porque el banco dependía sólo de los temas. Desde el
-    presupuesto por paquete depende también de los paquetes de cada mapa y
-    de qué tema puede venir sonando en cada uno, que salen de compilar las
-    páginas: rearmarlo acá sería una segunda manera de contestar lo mismo."""
+    Until 2026-09-26 they were rebuilt here with `build_varios`, which gave
+    the same result because the bank depended only on the songs. Since the
+    per-package budget it also depends on each map's packages and on which
+    song may be playing in each one, which come from compiling the pages:
+    rebuilding it here would be a second way of answering the same thing."""
     import json
     with open(os.path.join(directorio, "musica.json")) as archivo:
         return json.load(archivo)["temas"]
@@ -208,24 +213,25 @@ def db(pico):
 
 
 def escribir(techos, medido, huellas, ruta=None):
-    """La tabla, con su porqué arriba."""
+    """The table, with its reason on top."""
     ruta = ruta or snes_music.ruta_de_techos()
     lineas = [
-        "# El techo de volumen de cada tema del `release`: el aire con que",
-        "# `build_varios` le arma el stream, en vez de `sdsp.AIRE`.",
+        "# The volume ceiling of each song of `release`: the headroom",
+        "# `build_varios` builds its stream with, instead of `sdsp.AIRE`.",
         "#",
-        "# **No se edita a mano**: lo escribe `just techos`, que toca cada",
-        "# tema en la ROM y le da el aire más alto que no recorta. El porqué,",
-        "# en `leer_techos`, que es donde el conversor la lee; cómo se mide,",
-        "# en `rm2k-snes-volume-ceilings`. `test_musica_techos.py` falla si",
-        "# algún tema recorta o si la mezcla de alguno ya no es la que se",
-        "# midió: la huella. Cualquier cambio de la mezcla —las muestras, las",
-        "# envolventes, el reparto— pide volver a correr `just techos`.",
+        "# **Not edited by hand**: `just techos` writes it, playing each song",
+        "# in the ROM and giving it the highest headroom that does not clip.",
+        "# The reason, in `leer_techos`, which is where the converter reads it;",
+        "# how it is measured, in `rm2k-snes-volume-ceilings`.",
+        "# `test_musica_techos.py` fails if any song clips or if the mix of",
+        "# any of them is no longer the one measured: the fingerprint. Any",
+        "# change to the mix —the samples, the envelopes, the allocation—",
+        "# calls for running `just techos` again.",
         "#",
-        "# Por tema: `aire`, el techo; `pico`, en dB contra el tope, y `lufs`,",
-        "# el nivel, los dos medidos con ese aire; `hasta`, cuántos cuadros",
-        "# desde que arranca hay que tocarlo para pasar por su pico; y",
-        "# `huella`, la de `huella_de_la_mezcla`.",
+        "# Per song: `aire`, the ceiling; `pico`, in dB against the cap, and",
+        "# `lufs`, the level, both measured with that headroom; `hasta`, how",
+        "# many frames from the start it has to be played to go through its",
+        "# peak; and `huella`, that of `huella_de_la_mezcla`.",
         "",
         "[medida]",
         "aire_de_medida = %s" % AIRE_DE_MEDIDA,
@@ -251,8 +257,8 @@ def escribir(techos, medido, huellas, ruta=None):
 def imprimir(medido, techos=None):
     for nombre in sorted(medido):
         fila = medido[nombre]
-        print("  %-45s %s pico %+5.1f dB, %5d recortes%s" % (
-            nombre[:45], "aire %.3f," % techos[nombre] if techos else "",
+        print("  %-45s %s peak %+5.1f dB, %5d clipped%s" % (
+            nombre[:45], "headroom %.3f," % techos[nombre] if techos else "",
             db(fila["pico"]), fila["recortes"],
             ", %.1f LUFS" % fila["lufs"] if "lufs" in fila else ""))
 
@@ -264,8 +270,8 @@ def main():
     proyecto.argumento(parser)
     ambiente.argumentos(parser, *cartuchos.AL_CONVERSOR)
     parser.add_argument("--medir", action="store_true",
-                        help="sólo medir el `release` armado: recortes, pico "
-                             "y LUFS de cada tema")
+                        help="only measure the built `release`: clipping, "
+                             "peak and LUFS of each song")
     args = parser.parse_args()
     ambiente.desde_argumentos(args, *cartuchos.AL_CONVERSOR)
     release = cartuchos.directorio(cartuchos.RELEASE)
@@ -273,9 +279,9 @@ def main():
         imprimir(medir(release, lufs=True))
         return
 
-    # La copia a medio volumen, en su propio directorio del build.
+    # The half-volume copy, in its own build directory.
     medida = os.path.join(proyecto.build(), "techos")
-    print("una copia de release con el aire en %s, en %s"
+    print("a copy of release with the headroom at %s, in %s"
           % (AIRE_DE_MEDIDA, medida))
     cartuchos.convertir(cartuchos.RELEASE, medida,
                         os.path.join(medida, NOMBRE_DE_LA_ROM + ".sfc"),
@@ -283,7 +289,7 @@ def main():
     a_medias = medir(medida)
     recortan = [n for n, f in a_medias.items() if f["recortes"]]
     if recortan:
-        sys.exit("con el aire en %s recortan %s: bajar AIRE_DE_MEDIDA"
+        sys.exit("with the headroom at %s these clip: %s: lower AIRE_DE_MEDIDA"
                  % (AIRE_DE_MEDIDA, ", ".join(recortan)))
     techos = {}
     for nombre, fila in a_medias.items():
@@ -294,7 +300,7 @@ def main():
     for vuelta in range(4):
         escribir(techos, {n: dict(f, lufs=0.0) for n, f in a_medias.items()},
                  {n: "" for n in techos})
-        print("release con la tabla, vuelta %d" % (vuelta + 1))
+        print("release with the table, round %d" % (vuelta + 1))
         cartuchos.armar(cartuchos.RELEASE, cartuchos.huella())
         medido = medir(release, lufs=True)
         recortan = {n: f for n, f in medido.items() if f["recortes"]}
@@ -304,13 +310,13 @@ def main():
             techos[nombre] = math.floor(
                 1000 * techos[nombre] * TOPE * MARGEN / fila["pico"]) / 1000.0
     else:
-        sys.exit("después de cuatro vueltas siguen recortando: %s"
+        sys.exit("after four rounds these still clip: %s"
                  % ", ".join(recortan))
     huellas = {t["nombre"]: t["huella"]
                for t in temas_armados(release) if t["largo"]}
-    # Lo que se reescribe ahora —los picos, las huellas— no cambia los
-    # aires, así que el cartucho que se acaba de medir sigue al día: su sello
-    # mira sólo los aires de la tabla (ver `cartuchos.huella`).
+    # What is rewritten now —the peaks, the fingerprints— does not change the
+    # headrooms, so the cartridge just measured is still up to date: its
+    # stamp looks only at the table's headrooms (see `cartuchos.huella`).
     escribir(techos, medido, huellas)
     imprimir(medido, techos)
     print("-> %s" % os.path.relpath(snes_music.ruta_de_techos()))

@@ -1,34 +1,36 @@
-"""De dónde salen las muestras del port, y cómo llegan a BRR.
+"""Where the port's samples come from, and how they get to BRR.
 
-Acá no hay ni códec ni lector de SoundFont: los dos son Gunter —`tools/gunter/`,
-el binario de Rust—, y este módulo es el puente entre él y el conversor. Lo que
-sí hay es lo que el binario no puede tener, porque no sabe nada de este juego:
-el caché en disco del conversor y la memoria de lo ya pedido.
+There is neither a codec nor a SoundFont reader here: both are Gunter
+—`tools/gunter/`, the Rust binary—, and this module is the bridge between it
+and the converter. What there is here is what the binary cannot have,
+because it knows nothing about this game: the converter's disk cache and the
+memory of what has already been asked for.
 
-Lo que se cachea acá es **el BRR**. La muestra ya preparada —el remuestreo y la
-normalización que van antes— la cachea `snes_samples`, en otra categoría y con
-otra clave; las dos caducan juntas porque las dos llevan `version()`.
+What is cached here is **the BRR**. The already prepared sample —the
+resampling and normalization that come before— is cached by `snes_samples`,
+in another category and with another key; the two expire together because
+both carry `version()`.
 
-**Las dos memorias son lo que hace viable un proceso por muestra.** Medido el
-2026-09-15 sobre una conversión entera de `abl` con `SIN_CACHE=1`: el
-conversor pide 34.493 codificaciones para **608 muestras distintas** y 70.279
-zonas del SoundFont para **100 selectores distintos**. Sin memoria serían
-104.772 arranques de proceso; con ella son 708, y las 708 —binario, archivos
-temporales y todo— cuestan **1,33 s** de una conversión de 102 s.
+**The two memories are what make one process per sample viable.** Measured
+on 2026-09-15 over a whole conversion of `abl` with `SIN_CACHE=1`: the
+converter asks for 34,493 encodings for **608 distinct samples** and 70,279
+SoundFont zones for **100 distinct selectors**. Without memory that would be
+104,772 process launches; with it they are 708, and the 708 —binary,
+temporary files and all— cost **1.33 s** of a 102 s conversion.
 
-Por eso **no hay un modo por lotes**, que era la otra forma de hacer esto.
-Arrancar el binario cuesta 0,0005 s —0,30 s las 608, medidas sueltas—, así que
-juntar todas las muestras en una sola invocación ahorraría 0,35 s, a cambio de
-un modo más en Gunter. Y encima no se pueden juntar del todo:
-el `Banco` de `snes_music` rearma las muestras de un paquete que se pasó
-mirando cuánto ocuparon, así que los trabajos no existen todos juntos en
-ningún momento.
+That is why **there is no batch mode**, which was the other way to do this.
+Launching the binary costs 0.0005 s —0.30 s for the 608, measured one by
+one—, so gathering all the samples into a single invocation would save
+0.35 s, in exchange for one more mode in Gunter. And on top of that they
+cannot be gathered completely: `snes_music`'s `Banco` rebuilds the samples
+of a package that went over by looking at how much they took, so the jobs
+never all exist together at any point.
 
-Lo que sí cambió desde aquella medición es contra qué se compara ese 0,35 s: el
-caché de muestras preparadas del 2026-09-20 se llevó la mitad de la conversión,
-así que hoy pesa bastante más de lo que pesaba. Sigue sin alcanzar, pero si
-alguna vez se vuelve a mirar dónde se va el tiempo, éste ya no es un número
-despreciable.
+What has changed since that measurement is what those 0.35 s are compared
+against: the prepared-sample cache of 2026-09-20 took away half of the
+conversion, so today it weighs quite a bit more than it did. It is still not
+enough, but if anyone ever looks again at where the time goes, this is no
+longer a negligible number.
 """
 
 import hashlib
@@ -40,24 +42,24 @@ import wave
 
 from comun import cache_disco
 
-FALTA = """falta `gunter`, el códec de muestras del SPC700.
+FALTA = """`gunter`, the SPC700 sample codec, is missing.
 
-Es un binario de Rust que vive en `tools/gunter/` y se instala como herramienta
-del sistema, no se compila en cada corrida:
+It is a Rust binary that lives in `tools/gunter/` and is installed as a system
+tool, not built on every run:
 
     just -f tools/justfile herramientas
 
-Eso hace `cargo install --locked --path tools/gunter`. Si falta cargo, en Arch es
-`pacman -S rust`."""
+That does `cargo install --locked --path tools/gunter`. If cargo is missing, on
+Arch it is `pacman -S rust`."""
 
-# Propiedades del formato, no nuestras: el DSP lee bloques de nueve bytes que
-# guardan dieciséis muestras, y vuelve del loop al principio de uno.
+# Properties of the format, not ours: the DSP reads nine-byte blocks that
+# hold sixteen samples, and loops back to the start of one.
 BLOQUE_MUESTRAS = 16
 BLOQUE_BYTES = 9
 
 
 class Error(Exception):
-    """El binario contestó que no, o la llamada estaba mal."""
+    """The binary said no, or the call was wrong."""
 
 
 _version = None
@@ -66,11 +68,11 @@ _extraidas = {}
 
 
 def binario():
-    """La ruta del `gunter` del PATH, igual que `ensamblar.binarios()`.
+    """The path of the `gunter` on the PATH, like `ensamblar.binarios()`.
 
-    Levanta `SystemExit` si no está: que falte una herramienta del sistema no
-    es un error de programa, y un traceback de veinte líneas tapa la única
-    línea que dice cómo tenerla.
+    Raises `SystemExit` if it is not there: a missing system tool is not a
+    program error, and a twenty-line traceback buries the only line that says
+    how to get it.
     """
     ruta = shutil.which("gunter")
     if ruta is None:
@@ -79,17 +81,18 @@ def binario():
 
 
 def version():
-    """Qué versión de "el codificador" produjo lo que hay en el caché.
+    """Which version of "the encoder" produced what is in the cache.
 
-    Van este archivo y **el binario instalado**, no los fuentes de
-    `tools/gunter/`: el binario del PATH se instala aparte, así que un árbol con
-    `tools/gunter/src` tocado y sin `just herramientas` corrido sigue
-    codificando con el de antes. Lo que la clave tiene que describir es lo que
-    produjo los bytes.
+    It covers this file and **the installed binary**, not the sources in
+    `tools/gunter/`: the binary on the PATH is installed separately, so a tree
+    with `tools/gunter/src` touched and without `just herramientas` run keeps
+    encoding with the old one. What the key has to describe is what produced
+    the bytes.
 
-    Es pública porque `snes_samples` cachea **la muestra ya preparada** —el
-    resampleo y la normalización que van antes de codificar— y eso también sale
-    de este binario: su clave tiene que caducar cuando caduca la de acá.
+    It is public because `snes_samples` caches **the already prepared
+    sample** —the resampling and normalization that come before encoding— and
+    that also comes out of this binary: its key has to expire when this one's
+    does.
     """
     global _version
     if _version is None:
@@ -102,47 +105,47 @@ def version():
 
 
 def _correr(args):
-    """El binario, con sus dos códigos de salida separados del resto.
+    """The binary, with its two exit codes kept apart from the rest.
 
-    1 y 2 son respuestas suyas —"no hay nada que matchee" y "la llamada está
-    mal"—; cualquier otra cosa es que no se lo pudo correr.
+    1 and 2 are its own answers —"nothing matches" and "the call is wrong"—;
+    anything else means it could not be run.
     """
     try:
         hecho = subprocess.run([binario()] + args, capture_output=True)
     except OSError as e:
-        raise SystemExit("no se pudo correr `gunter`: %s\n\n%s" % (e, FALTA))
+        raise SystemExit("could not run `gunter`: %s\n\n%s" % (e, FALTA))
     if hecho.returncode:
-        raise Error("gunter %s salió con %d: %s"
+        raise Error("gunter %s exited with %d: %s"
                     % (" ".join(args), hecho.returncode,
                        hecho.stderr.decode("utf-8", "replace").strip()))
     return hecho.stdout.decode("utf-8", "replace")
 
 
 def _json(texto):
-    """La última línea que el binario imprimió con `--json`.
+    """The last line the binary printed with `--json`.
 
-    Es un objeto de escalares y nada más —así lo emite `gunter`—, así que el
-    módulo `json` alcanza y sobra.
+    It is an object of scalars and nothing else —that is how `gunter` emits
+    it—, so the `json` module is more than enough.
     """
     import json
     for linea in reversed(texto.strip().splitlines()):
         if linea.startswith("{"):
             return json.loads(linea)
-    raise Error("el binario no imprimió JSON: %r" % texto[:200])
+    raise Error("the binary printed no JSON: %r" % texto[:200])
 
 
 def codificar(muestras, loop_block=None):
-    """Una muestra entera a BRR, con el punto de loop en el bloque que se diga.
+    """A whole sample to BRR, with the loop point at the given block.
 
-    La entrada va cruda —enteros de 16 bits con signo, sin cabecera—, que es lo
-    que el binario lee cuando el archivo no empieza con `RIFF`: escribir un WAV
-    para algo que ya está en memoria sería cabecera de más.
+    The input goes raw —signed 16-bit integers, no header—, which is what the
+    binary reads when the file does not start with `RIFF`: writing a WAV for
+    something already in memory would be a needless header.
     """
     if not muestras:
-        # El conversor pide esto cuando un instrumento se quedó sin ataque, y
-        # la respuesta honesta es cero bloques; el binario, en cambio, rechaza
-        # una entrada vacía, que es lo correcto para alguien que le pasa un
-        # archivo.
+        # The converter asks for this when an instrument was left without an
+        # attack, and the honest answer is zero blocks; the binary, on the
+        # other hand, rejects an empty input, which is correct for someone
+        # passing it a file.
         return b""
 
     clave = (tuple(muestras), loop_block)
@@ -176,11 +179,11 @@ def _codificar(muestras, loop_block):
 
 
 class Muestra:
-    """Lo que el SoundFont trae de un instrumento, ya extraído.
+    """What the SoundFont has for an instrument, already extracted.
 
-    `pcm` son los cuadros crudos, y `loop_start`/`loop_end` están en cuadros y
-    relativos a ellos: afuera del archivo el loop no significa nada en las
-    coordenadas de adentro.
+    `pcm` are the raw frames, and `loop_start`/`loop_end` are in frames and
+    relative to them: outside the file the loop means nothing in the
+    coordinates inside it.
     """
 
     def __init__(self, campos, pcm):
@@ -195,15 +198,15 @@ class Muestra:
         self.pcm = pcm
 
     def __repr__(self):
-        return "<Muestra %r %d cuadros a %d Hz>" % (self.nombre, self.cuadros,
+        return "<Muestra %r %d frames at %d Hz>" % (self.nombre, self.cuadros,
                                                     self.tasa)
 
 
 _envolventes = {}
-# Los campos de la envolvente de volumen que devuelve `gunter sf2 --json`,
-# generadores 33 a 40 ya resueltos —la zona del instrumento más la del preset,
-# con los defaults y los topes de la especificación—. En las unidades del
-# SoundFont: timecents, y centibels el sostenido.
+# The volume envelope fields `gunter sf2 --json` returns, generators 33 to 40
+# already resolved —the instrument zone plus the preset's, with the
+# specification's defaults and caps—. In SoundFont units: timecents, and
+# centibels for the sustain.
 CAMPOS_ENVOLVENTE = ("env_delay_timecents", "env_attack_timecents",
                      "env_hold_timecents", "env_decay_timecents",
                      "env_sustain_centibels", "env_release_timecents",
@@ -211,11 +214,11 @@ CAMPOS_ENVOLVENTE = ("env_delay_timecents", "env_attack_timecents",
 
 
 def _contrato(selector, soundfont):
-    """Lo que `gunter sf2 --extract --json` dice de la zona que el selector
-    elige, sin extraer el PCM, o None si el banco no tiene nada ahí.
+    """What `gunter sf2 --extract --json` says about the zone the selector
+    picks, without extracting the PCM, or None if the bank has nothing there.
 
-    Es una llamada por zona y no se cachea en disco: sin `-o` el binario no
-    escribe nada y contesta en menos de un milisegundo.
+    It is one call per zone and is not cached on disk: without `-o` the
+    binary writes nothing and answers in under a millisecond.
     """
     clave = (selector, soundfont)
     if clave not in _contratos:
@@ -223,7 +226,7 @@ def _contrato(selector, soundfont):
             _contratos[clave] = _json(_correr(["sf2", soundfont, "--extract",
                                                selector, "--json"]))
         except Error as e:
-            if "salió con 1" not in str(e):
+            if "exited with 1" not in str(e):
                 raise
             _contratos[clave] = None
     return _contratos[clave]
@@ -233,12 +236,12 @@ _contratos = {}
 
 
 def precargar(selectores, soundfont):
-    """Pide a la vez los contratos de esos selectores que no estén pedidos.
+    """Asks at once for the contracts of those selectors not yet asked for.
 
-    Es la misma llamada de `_contrato`, una por zona, pero en hilos: cada una
-    es un proceso de menos de un milisegundo y el conversor pide una por
-    programa y tecla que suena, así que en serie lo que se pagaba era esperar
-    a que arranque el binario.
+    It is the same call as `_contrato`, one per zone, but in threads: each one
+    is a process of under a millisecond and the converter asks for one per
+    program and key that plays, so serially what was being paid for was
+    waiting for the binary to start.
     """
     import concurrent.futures
     faltan = [s for s in dict.fromkeys(selectores)
@@ -251,23 +254,23 @@ def precargar(selectores, soundfont):
 
 
 def zona(selector, soundfont):
-    """(nombre de la muestra, su nota raíz) de la zona que el selector elige,
-    o None. Es lo que distingue una zona de otra sin extraerla."""
+    """(sample name, its root key) of the zone the selector picks, or None.
+    It is what tells one zone from another without extracting it."""
     campos = _contrato(selector, soundfont)
     return (campos["name"], campos["root_key"]) if campos else None
 
 
 def envolvente(selector, soundfont):
-    """La envolvente de volumen de la zona que el selector elige, como dict
-    con `CAMPOS_ENVOLVENTE`, o None si el banco no tiene nada ahí."""
+    """The volume envelope of the zone the selector picks, as a dict with
+    `CAMPOS_ENVOLVENTE`, or None if the bank has nothing there."""
     clave = (selector, soundfont)
     if clave not in _envolventes:
         campos = _contrato(selector, soundfont)
         if campos is not None:
             if any(c not in campos for c in CAMPOS_ENVOLVENTE):
-                raise SystemExit("el `gunter` del PATH (%s) no devuelve la "
-                                 "envolvente del SoundFont: es anterior al "
-                                 "2026-09-25. Se reinstala con `just "
+                raise SystemExit("the `gunter` on the PATH (%s) does not "
+                                 "return the SoundFont envelope: it predates "
+                                 "2026-09-25. Reinstall it with `just "
                                  "herramientas`." % binario())
             campos = {c: campos[c] for c in CAMPOS_ENVOLVENTE}
         _envolventes[clave] = campos
@@ -275,11 +278,12 @@ def envolvente(selector, soundfont):
 
 
 def extraer(selector, soundfont):
-    """Un instrumento del SoundFont, o None si el banco no lo tiene.
+    """An instrument from the SoundFont, or None if the bank does not have it.
 
-    El selector es el del binario: `program:N`, `program:N@NOTA` o `drum:N`.
-    Que no haya nada es una respuesta y no un error —el binario sale con 1— y
-    acá se vuelve un None, que es lo que el conversor ya sabía manejar.
+    The selector is the binary's: `program:N`, `program:N@NOTE` or `drum:N`.
+    Nothing being there is an answer and not an error —the binary exits with
+    1— and here it becomes a None, which is what the converter already knew
+    how to handle.
     """
     clave = (selector, soundfont)
     if clave in _extraidas:
@@ -291,7 +295,7 @@ def extraer(selector, soundfont):
             texto = _correr(["sf2", soundfont, "--extract", selector,
                              "-o", salida, "--json"])
         except Error as e:
-            if "salió con 1" in str(e):
+            if "exited with 1" in str(e):
                 _extraidas[clave] = None
                 return None
             raise

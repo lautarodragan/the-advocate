@@ -1,36 +1,36 @@
 .segment "CODE"
 
-; --- el giro hacia el héroe ------------------------------------------------
+; --- turning toward the hero -----------------------------------------------
 ;
-; `Game_Event::ScheduleForegroundExecution`: el evento que el héroe dispara
-; —con la tecla de acción o por contacto— se da vuelta hacia él, salvo que su
-; animación fije la dirección. Mira para ahí mientras dura su página y al
-; terminar vuelve a su pose, que es el `UpdateFacing` de
-; `OnFinishForegroundEvent`. Las reglas —cuándo gira, cuándo se deshace— están
-; en `giro_disparar` y `giro_revisar`, acá abajo.
+; `Game_Event::ScheduleForegroundExecution`: the event the hero triggers
+; —with the action button or by touch— turns around toward him, unless its
+; animation locks the direction. It faces that way while its page lasts and,
+; when it ends, goes back to its pose, which is the `UpdateFacing` of
+; `OnFinishForegroundEvent`. The rules —when it turns, when it is undone— are
+; in `giro_disparar` and `giro_revisar`, below.
 ;
-; Hay un solo giro a la vez: sólo gira el evento que disparó el héroe, y el
-; anterior terminó su página antes. Su estado vive en la RAM lejana:
+; There is only one turn at a time: only the event the hero triggered turns,
+; and the previous one finished its page before. Its state lives in far RAM:
 ;
-;   GIRO_EV     el evento, o $FF. **No se guarda su fila**: las filas se
-;               reordenan cuando alguien camina —`acomodar_npc`—, y la fila
-;               guardada pasaba a ser de otro. La primera versión le devolvía
-;               el tile del Bum de Lashe City al evento que había quedado en su
-;               lugar; lo encontró `bum-vuelve`. Se la busca con
-;               `npc_de_evento` cada vez.
-;   GIRO_K      la entrada de `npc_poses` de su gráfico, y GIRO_PPOSE la pose
-;               de su página: con las dos, un refresco sabe si la página
-;               nueva trae el mismo gráfico
-;   GIRO_DIR    hacia dónde mira
-;   GIRO_*_ANT  el tile, los atributos y la pose de la fila antes de girar,
-;               para devolvérselos
-;   ELEG_K, ELEG_POSE   el +30 y el +31 de la página que ganó la última vez
-;               que corrió `buscar_pagina_de_evento`
+;   GIRO_EV     the event, or $FF. **Its row is not saved**: rows get
+;               reordered when someone walks —`acomodar_npc`—, and the saved
+;               row ended up belonging to someone else. The first version gave
+;               the Bum of Lashe City's tile back to the event that had ended
+;               up in its place; `bum-vuelve` found it. The row is looked up
+;               with `npc_de_evento` every time.
+;   GIRO_K      the `npc_poses` entry for its graphic, and GIRO_PPOSE the pose
+;               of its page: with the two, a refresh knows whether the new
+;               page brings the same graphic
+;   GIRO_DIR    which way it faces
+;   GIRO_*_ANT  the row's tile, attributes and pose before turning, to give
+;               them back
+;   ELEG_K, ELEG_POSE   the +30 and the +31 of the page that won the last time
+;               `buscar_pagina_de_evento` ran
 ;
-; Un quieto comparte su ranura de VRAM con los otros quietos de la misma pose,
-; así que para girar se muda a la ranura de giro del mapa, `M_GIRO_TILE4`, y
-; se le sube ahí la pose nueva. Uno que camina o que anima quieto tiene la
-; suya y gira en el lugar.
+; A still one shares its VRAM slot with the other still ones of the same pose,
+; so to turn it moves to the map's turn slot, `M_GIRO_TILE4`, and the new pose
+; is uploaded there. One that walks or animates in place has its own and turns
+; where it is.
 FAR_GIRO   = $30C0
 GIRO_EV    = $7E0000 + FAR_GIRO
 GIRO_K     = GIRO_EV + 3
@@ -42,7 +42,7 @@ GIRO_DIR   = GIRO_EV + 8
 ELEG_K     = GIRO_EV + 9
 ELEG_POSE  = GIRO_EV + 10
 
-; Sin giro. En el reset y al cargar un mapa: las filas son otras.
+; No turn. On reset and when loading a map: the rows are different ones.
 .proc giro_limpiar
 .a8
 .i16
@@ -51,33 +51,34 @@ ELEG_POSE  = GIRO_EV + 10
     rts
 .endproc
 
-; La página de `ev_buscado` acaba de encolarse por el héroe: si gira, que
-; mire hacia él. La celda del evento es (celda_x, celda_y) y la del héroe
-; (tile_x, tile_y). Entra con ELEG_K y ELEG_POSE de su página.
+; The page of `ev_buscado` has just been queued by the hero: if it turns, make
+; it face him. The event's cell is (celda_x, celda_y) and the hero's
+; (tile_x, tile_y). Enters with ELEG_K and ELEG_POSE from its page.
 .proc giro_disparar
 .a8
 .i16
     lda f:ELEG_K
     cmp #$FF
     bne gira
-    rts                         ; la página no gira
+    rts                         ; the page does not turn
 gira:
     lda ev_buscado
     jsr ranura_del_evento
     cpx #$FFFF
     beq sin_ruta
-    ; `IsFacingLocked`: la orden 26 de su ruta le fijó la mirada y sólo la 27
-    ; se la suelta, así que no gira ni con el héroe hablándole. La ruta puede
-    ; haber terminado hace rato —el bit queda en la ranura— y por eso se mira
-    ; antes que `ruta_ocupada`: es el director muerto de `RunDirectorScene`,
-    ; que hace `26` y nunca un `27` (mapas 19, 46 y 96).
+    ; `IsFacingLocked`: command 26 of its move route locked its facing and only
+    ; 27 releases it, so it does not turn even with the hero talking to it. The
+    ; route may have ended long ago —the bit stays in the slot— and that is why
+    ; it is checked before `ruta_ocupada`: it is the dead director of
+    ; `RunDirectorScene`, which does `26` and never a `27` (maps 19, 46 and
+    ; 96).
     lda ruta_ev + 18, x
     and #$08
     bne fija
     jsr ruta_ocupada
-    beq sin_ruta                ; la ranura quedó de una ruta que ya terminó
+    beq sin_ruta                ; the slot was left over from a finished route
 fija:
-    rts                         ; una ruta andando: ella decide adónde mira
+    rts                         ; a route running: it decides where it faces
 sin_ruta:
     lda ev_buscado
     jsr npc_de_evento
@@ -92,14 +93,15 @@ con_fila:
     lda f:mapa_tabla + M_GIRO_TILE4, x
     cmp #$FF
     bne puede
-    rts                         ; un quieto sin ranura de giro
+    rts                         ; a still one with no turn slot
 puede:
     phy
-    jsr giro_deshacer           ; si quedaba otro, vuelve a lo suyo
+    jsr giro_deshacer           ; if another one was left, it goes back to its own
     ply
 
-    ; Hacia dónde: `GetDirectionToCharacter`, con sx y sy del evento menos el
-    ; héroe. Si |sx| > |sy| gana el horizontal; si no, el vertical.
+    ; Which way: `GetDirectionToCharacter`, with sx and sy being the event
+    ; minus the hero. If |sx| > |sy| the horizontal wins; otherwise, the
+    ; vertical.
     rep #$20
 .a16
     lda celda_x
@@ -122,7 +124,7 @@ sy_pos:
     cmp temp
     bcs vertical                ; |sy| >= |sx|
     pla
-    bmi a_la_derecha            ; el evento a la izquierda del héroe
+    bmi a_la_derecha            ; the event to the left of the hero
     lda #DIR_LEFT
     bra dir_lista
 a_la_derecha:
@@ -132,7 +134,7 @@ vertical:
     pla
     lda temp + 2
     beq abajo
-    bmi abajo                   ; el evento arriba del héroe
+    bmi abajo                   ; the event above the hero
     lda #DIR_UP
     bra dir_lista
 abajo:
@@ -157,8 +159,8 @@ dir_lista:
     jmp giro_aplicar
 .endproc
 
-; La pose que mira hacia GIRO_DIR, en la fila Y: la columna de la de antes
-; y la fila de la dirección.
+; The pose that faces GIRO_DIR, in row Y: the column of the previous one and
+; the row of the direction.
 .proc giro_aplicar
 .a8
 .i16
@@ -166,7 +168,7 @@ dir_lista:
 columna:
     cmp #3
     bcc con_columna
-    sbc #3                      ; el carry quedó en 1
+    sbc #3                      ; carry was left at 1
     bra columna
 con_columna:
     sta temp
@@ -176,23 +178,23 @@ con_columna:
     adc f:GIRO_DIR
     clc
     adc temp
-    sta temp                    ; la pose nueva
+    sta temp                    ; the new pose
     lda npc_buf + 9, y
     cmp #NPC_QUIETO
     beq quieto
     lda npc_buf + 13, y
-    bmi listo                   ; anima quieto: `animar_quietos` la sube
+    bmi listo                   ; animates in place: `animar_quietos` uploads it
     sty npc_fila
     lda temp
     jmp subir_pose_npc
 quieto:
-    ; A la ranura de giro: su tile, con el bit 8 en los atributos.
+    ; To the turn slot: its tile, with bit 8 in the attributes.
     lda temp
     sta npc_buf + 12, y
     ldx mapa_ofs
     lda f:mapa_tabla + M_GIRO_TILE4, x
     asl a
-    asl a                       ; el tile: el byte por cuatro, y el bit 8
+    asl a                       ; the tile: the byte times four, and bit 8
     sta npc_buf + 6, y
     lda #0
     rol a
@@ -201,26 +203,27 @@ quieto:
     and #$FE
     ora temp + 1
     sta npc_buf + 7, y
-    ; Y la pose, de las doce de su gráfico: (k * 12 + pose) * 3 en `npc_poses`.
+    ; And the pose, out of its graphic's twelve: (k * 12 + pose) * 3 in
+    ; `npc_poses`.
     lda f:GIRO_K
     rep #$20
 .a16
     and #$00FF
     asl a
-    asl a                       ; por cuatro
+    asl a                       ; times four
     sta temp + 2
     asl a
     asl a
-    asl a                       ; por treinta y dos
+    asl a                       ; times thirty-two
     clc
-    adc temp + 2                ; treinta y seis por gráfico
+    adc temp + 2                ; thirty-six per graphic
     sta temp + 2
     lda temp
     and #$00FF
     sta temp
     asl a
     clc
-    adc temp                    ; la pose por tres
+    adc temp                    ; the pose times three
     clc
     adc temp + 2
     tay
@@ -238,11 +241,11 @@ quieto:
 .a16
     and #$00FF
     asl a
-    asl a                       ; el tile
+    asl a                       ; the tile
     asl a
     asl a
     asl a
-    asl a                       ; dieciséis palabras por tile
+    asl a                       ; sixteen words per tile
     clc
     adc f:mapa_tabla + M_VRAM_SPRITE, x
     sta vq_dest
@@ -250,17 +253,17 @@ quieto:
 .a8
     jsr vram_encolar
     bne listo
-    jsr giro_deshacer           ; la cola estaba llena: no gira
+    jsr giro_deshacer           ; the queue was full: it does not turn
 listo:
     rts
 .endproc
 
-; Si la ranura de ruta X tiene algo andando: la ruta propia de su página,
-; órdenes por dar, un paso, una espera o un salto. Z=1 si está libre. Una
-; ranura no se suelta hasta que se carga otro mapa, así que "tiene ranura" no
-; alcanzaba: el
-; `GangMember1` de Lashe City, al que una escena ya había movido, no giraba
-; nunca más. taro lo encontró jugando.
+; Whether move route slot X has something running: its page's own route,
+; commands still to give, a step, a wait or a jump. Z=1 if it is free. A
+; slot is not released until another map is loaded, so "has a slot" was not
+; enough: the
+; `GangMember1` of Lashe City, which a scene had already moved, never turned
+; again. taro found it playing.
 .proc ruta_ocupada
 .a8
 .i16
@@ -281,7 +284,8 @@ si:
     rts
 .endproc
 
-; Se terminó el giro: la fila vuelve a lo suyo. No toca nada si no hay.
+; The turn is over: the row goes back to its own. Touches nothing if there is
+; none.
 .proc giro_deshacer
 .a8
 .i16
@@ -305,7 +309,7 @@ si:
     rts
 propia:
     lda npc_buf + 13, y
-    bmi nada                    ; anima quieto: vuelve solo, el cuadro que viene
+    bmi nada                    ; animates in place: goes back by itself, next frame
     sty npc_fila
     lda f:GIRO_POSE_ANT
     jmp subir_pose_npc
@@ -313,8 +317,8 @@ nada:
     rts
 .endproc
 
-; A: un evento que se queda con una ranura de ruta. Si era el que giraba, el
-; giro se termina: desde ahora adónde mira lo decide la ruta.
+; A: an event that takes a move route slot. If it was the one turning, the
+; turn is over: from now on the route decides where it faces.
 .proc giro_por_ruta
 .a8
 .i16
@@ -325,10 +329,10 @@ nada:
     rts
 .endproc
 
-; Al empezar un refresco que aplica páginas: si el evento que gira cambió a
-; una página que no gira o con otro gráfico, el giro se termina. Es el
-; `SetFacing(page->character_direction)` de `Game_Event::RefreshPage`, que
-; sólo pasa si la página nueva es otra.
+; At the start of a refresh that applies pages: if the turning event changed
+; to a page that does not turn or has another graphic, the turn is over. It is
+; the `SetFacing(page->character_direction)` of `Game_Event::RefreshPage`,
+; which only happens if the new page is a different one.
 .proc giro_revisar
 .a8
 .i16
@@ -343,7 +347,7 @@ nada:
 .a8
     jsr buscar_pagina_de_evento
     lda elegida_hay
-    beq deshacer                ; se quedó sin página
+    beq deshacer                ; it was left without a page
     lda f:ELEG_K
     cmp #$FF
     beq deshacer
@@ -358,8 +362,8 @@ deshacer:
     jmp giro_deshacer
 .endproc
 
-; La fila Y acaba de recibir el gráfico de su página: si es la del evento que
-; gira y el giro sigue, se lo vuelve a poner encima.
+; Row Y has just received its page's graphic: if it is the turning event's and
+; the turn is still on, it is put back on top.
 .proc giro_reponer
 .a8
 .i16
@@ -379,8 +383,8 @@ nada:
     rts
 .endproc
 
-; Hacia dónde mira la fila Y para `animar_quietos`: la de su página, o la del
-; giro si es la que gira. Devuelve A.
+; Which way row Y faces, for `animar_quietos`: its page's, or the turn's if it
+; is the one turning. Returns A.
 .proc mirada_de_fila
 .a8
 .i16

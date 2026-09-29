@@ -1,62 +1,64 @@
 .segment "FAR"
 
-; --- la pantalla de Game Over ------------------------------------------------
+; --- the Game Over screen ----------------------------------------------------
 ;
-; Es `Scene_Gameover` de RM2k: la imagen que nombra el `System` del LDB, el tema
-; de Game Over del sistema, un fundido de entrada, y al apretar A —o START, como
-; en el título— un fundido de salida y la pantalla de título. Se llega por tres
-; caminos:
+; It is RM2k's `Scene_Gameover`: the image named by the LDB's `System`, the
+; system's Game Over song, a fade in, and on pressing A —or START, as on the
+; title— a fade out and the title screen. It is reached by three paths:
 ;
-;   perder una pelea sin manejador de derrota: `op_battle` anota el destino de
-;                la derrota con `game_over_anotar`, y `pelea_arrancar` pregunta
-;                con `game_over_si_perdio` apenas la pelea termina de fundirse
-;                a negro. El mapa no se vuelve a cargar: en RM2k la pelea se
-;                borra y aparece la imagen, sin pasar por el mapa
-;   perder un encuentro al azar, que es siempre Game Over: `game_over_siempre`
-;   el comando `GameOver`: `op_game_over` salta a `game_over_desde_el_mapa`,
-;                que funde el mapa a negro como `Scene_Map::TransitionOut`
+;   losing a battle with no defeat handler: `op_battle` records the defeat
+;                destination with `game_over_anotar`, and `pelea_arrancar`
+;                asks `game_over_si_perdio` as soon as the battle finishes
+;                fading to black. The map is not loaded again: in RM2k the
+;                battle is erased and the image appears, without going
+;                through the map
+;   losing a random encounter, which is always Game Over: `game_over_siempre`
+;   the `GameOver` command: `op_game_over` jumps to `game_over_desde_el_mapa`,
+;                which fades the map to black like `Scene_Map::TransitionOut`
 ;
-; **No vuelve**: termina en `reset`, que es la pantalla de título si el cartucho
-; la lleva, con la partida guardada esperando en la SRAM. Por eso tampoco
-; cuida la pila, ni la VRAM, ni la WRAM del $7F, ni el paquete de audio: el
-; arranque repone todo. Y por eso se entra con `jml`.
+; **It does not return**: it ends in `reset`, which is the title screen if
+; the cartridge has one, with the saved game waiting in SRAM. That is also why
+; it does not look after the stack, VRAM, the WRAM at $7F, or the audio
+; package: the boot restores everything. And that is why it is entered with
+; `jml`.
 ;
-; Vive en el banco 1 porque en el banco 0 no hay lugar: allá quedan sólo las
-; entradas —tres `jsl` y el `jml` de `op_game_over`— y el puente del audio,
-; `ba_t_audio`. Lo que necesita del banco 0 lo pide por los puentes de la
-; pelea, que reponen el banco de datos.
+; It lives in bank 1 because there is no room in bank 0: only the entry
+; points stay there —three `jsl` and the `jml` of `op_game_over`— and the
+; audio bridge, `ba_t_audio`. What it needs from bank 0 it asks for through
+; the battle's bridges, which restore the data bank.
 
-; Cuántos cuadros dura cada uno de los dieciséis niveles de brillo. Son los de
-; easyrpg-player: `Scene_Gameover` entra y sale en 80 cuadros, y el mapa se
-; borra con el fundido de siempre, que son 35 —acá 32, dos por nivel—.
+; How many frames each of the sixteen brightness levels lasts. They are
+; easyrpg-player's: `Scene_Gameover` fades in and out in 80 frames, and the
+; map is cleared with the usual fade, which is 35 —here 32, two per level—.
 GO_CUADROS_PANTALLA = 5
 GO_CUADROS_MAPA     = 2
 
-; Los registros del PPU que sólo pone en cero esta pantalla: los demás los
-; nombra registros.s. El mapa puede venir con la ventana de mensaje, un tinte
-; o un mosaico, y la pelea con los suyos: sin esto se verían encima.
+; The PPU registers that only this screen sets to zero: the rest are named by
+; registros.s. The map can come with the message window, a tint or a mosaic,
+; and the battle with its own: without this they would show on top.
 GO_W12SEL = $2123
 GO_W34SEL = $2124
 GO_TS     = $212D
 GO_TSW    = $212F
 GO_SETINI = $2133
 
-; Adónde descomprime `pantalla_subir`: la WRAM del $7F desde el principio. Vale
-; sólo mientras se sube —la pelea y la animación del ChipSet usan ese banco, y
-; los dos se rearman después—, igual que `LZ2_BUFFER`. Entran los 64 KB que un
-; flujo LZ2 puede dar, y pisa la mitad alta de la grilla: al Game Over le sigue
-; el arranque, y a la pantalla de título `cargar_mapa`, y los dos la vuelven a
-; descomprimir. `test_reservas_de_la_wram.py` lo deja pasar.
+; Where `pantalla_subir` decompresses to: the WRAM at $7F from the start. It
+; is valid only during the upload —the battle and the ChipSet animation use
+; that bank, and both are rebuilt afterwards—, just like `LZ2_BUFFER`. The
+; 64 KB an LZ2 stream can produce fit, and it overwrites the upper half of the
+; grid: Game Over is followed by the boot, and the title screen by
+; `cargar_mapa`, and both decompress it again. `test_reservas_de_la_wram.py`
+; lets it through.
 PANTALLA_BUFFER = $7F0000
-; El tilemap de la pantalla, en palabras de VRAM. Los tiles van desde $0000 y
-; la imagen más cargada son 896 tiles de 8bpp, o sea hasta $7000: arriba de
-; eso no llegan nunca. El título pone su menú en el medio: ver el `.assert`
-; de `titulo_subir`.
+; The screen's tilemap, in VRAM words. The tiles go from $0000 and the
+; heaviest image is 896 8bpp tiles, that is, up to $7000: they never get above
+; that. The title puts its menu in the middle: see the `.assert` in
+; `titulo_subir`.
 PANTALLA_MAPA = $7C00
 
-; `op_battle` antes de pelear: el destino de la derrota, que está seis bytes
-; detrás de la tropa —victoria, huida, derrota, de a palabra—. Entra con Y en
-; la tropa y lo deja como estaba.
+; `op_battle` before fighting: the defeat destination, which is six bytes
+; after the troop —victory, escape, defeat, one word each—. Enters with Y on
+; the troop and leaves it as it was.
 .proc game_over_anotar
 .a8
 .i16
@@ -77,8 +79,8 @@ PANTALLA_MAPA = $7C00
     rtl
 .endproc
 
-; Un encuentro al azar: perderlo es Game Over siempre, porque no hay página
-; que traiga manejador.
+; A random encounter: losing it is always Game Over, because there is no page
+; that carries a handler.
 .proc game_over_siempre
 .a8
 .i16
@@ -88,8 +90,9 @@ PANTALLA_MAPA = $7C00
     rtl
 .endproc
 
-; `pelea_arrancar`, con la pelea ya fundida a negro: si se perdió y el destino
-; de la derrota es `BATALLA_PERDER`, no vuelve. Si no, sigue como siempre.
+; `pelea_arrancar`, with the battle already faded to black: if it was lost and
+; the defeat destination is `BATALLA_PERDER`, it does not return. Otherwise it
+; carries on as usual.
 .proc game_over_si_perdio
 .a8
 .i16
@@ -99,7 +102,7 @@ PANTALLA_MAPA = $7C00
     rep #$20
 .a16
     lda f:GO_PIERDE
-    inc a                       ; $FFFF da cero, y `sep` no toca Z
+    inc a                       ; $FFFF gives zero, and `sep` does not touch Z
     sep #$20
 .a8
     bne sigue
@@ -108,13 +111,13 @@ sigue:
     rtl
 .endproc
 
-; `GameOver`: el mapa se funde a negro desde el brillo que tenga —puede estar
-; a mitad de un fundido— y de ahí, la pantalla.
+; `GameOver`: the map fades to black from whatever brightness it has —it can
+; be halfway through a fade— and from there, the screen.
 .proc game_over_desde_el_mapa
 .a8
 .i16
-.if ::GAME_OVER_TILES = 0     ; `::`: en un `.proc`, sin él no es constante
-    jml f:reset                 ; una ROM sin imagen vuelve al título directo
+.if ::GAME_OVER_TILES = 0     ; `::`: inside a `.proc`, without it it is not constant
+    jml f:reset                 ; a ROM with no image goes straight back to the title
 .else
     phk
     plb
@@ -135,34 +138,34 @@ negro:
 .endif
 .endproc
 
-; La pantalla, con la anterior ya en negro.
+; The screen, with the previous one already black.
 .proc game_over_negro
 .a8
 .i16
-.if ::GAME_OVER_TILES = 0     ; `::`: en un `.proc`, sin él no es constante
+.if ::GAME_OVER_TILES = 0     ; `::`: inside a `.proc`, without it it is not constant
     jml f:reset
 .else
     phk
     plb
     lda #$80
-    sta INIDISP                 ; blanking forzado: la VRAM sólo se toca así
-    stz HDMAEN                  ; sin la ventana de mensaje
+    sta INIDISP                 ; forced blanking: VRAM is only touched this way
+    stz HDMAEN                  ; without the message window
     lda #0
     sta f:GO_ESPERA
-    ; El tema, primero: su paquete —el tema solo, ver PAQUETE_GAME_OVER en
-    ; snes_convert.py— se sube con la pantalla en negro, y así suena desde el
-    ; primer cuadro del fundido, como en RM2k. Con pista de MSU-1 el paquete
-    ; no sube nada y suena la pista.
+    ; The song, first: its package —the song alone, see PAQUETE_GAME_OVER in
+    ; snes_convert.py— is uploaded with the screen black, and so it plays from
+    ; the first frame of the fade, as in RM2k. With an MSU-1 track the package
+    ; uploads nothing and the track plays.
     ldx #PAQUETE_GAME_OVER
     jsl f:ba_t_audio
     lda #TEMA_GAME_OVER
     jsl f:ba_t_bgm
     ldx #(PANTALLA_GAME_OVER * PANTALLA_FILA)
     jsl f:pantalla_descomprimir
-    jsl f:pantalla_subir        ; la misma fila: `pantalla_descomprimir` no
-                                ; toca X
+    jsl f:pantalla_subir        ; the same row: `pantalla_descomprimir` does
+                                ; not touch X
 
-    ; El fundido de entrada.
+    ; The fade in.
     lda #GO_CUADROS_PANTALLA
     sta f:GO_CUADROS
     lda #0
@@ -178,10 +181,10 @@ sube:
     sta f:GO_NIVEL
     bra sube
 arriba:
-    ; Y la tecla, que en RM2k es `Input::DECISION`: A, por flanco. START
-    ; también, como en la pantalla de título: ver `titulo_lazo`. Lo que se
-    ; apretó durante el fundido no cuenta, porque `go_esperar` leyó el
-    ; control en cada cuadro y el flanco ya pasó.
+    ; And the button, which in RM2k is `Input::DECISION`: A, on the edge.
+    ; START too, as on the title screen: see `titulo_lazo`. What was pressed
+    ; during the fade does not count, because `go_esperar` read the
+    ; controller on every frame and the edge has already passed.
     lda #1
     sta f:GO_ESPERA
 espera:
@@ -200,8 +203,8 @@ mira_start:
 cierra:
     lda #0
     sta f:GO_ESPERA
-    ; El fundido de salida, con el tema sonando todavía: en RM2k lo cambia
-    ; recién el título.
+    ; The fade out, with the song still playing: in RM2k only the title
+    ; changes it.
 baja:
     jsr go_esperar
     lda f:GO_NIVEL
@@ -213,9 +216,9 @@ baja:
 negro:
     lda #$80
     sta INIDISP
-    ; La música, callada antes del arranque: el reset vuelve a subir el driver
-    ; al SPC700, pero una pista de MSU-1 seguiría sonando durante todo el
-    ; arranque, hasta que el título pida la suya.
+    ; The music, silenced before the boot: the reset uploads the driver to the
+    ; SPC700 again, but an MSU-1 track would keep playing during the whole
+    ; boot, until the title asks for its own.
     lda #0
     sta f:MSU_SUENA
     sta MSU_CONTROL
@@ -225,7 +228,7 @@ negro:
 .endif
 .endproc
 
-; Los cuadros de GO_CUADROS, leyendo el control en cada uno. Pisa A.
+; The GO_CUADROS frames, reading the controller on each one. Clobbers A.
 .proc go_esperar
 .a8
 .i16
@@ -240,22 +243,22 @@ cuadro:
     rts
 .endproc
 
-; Una pantalla completa de `pantallas_tabla` —X es su fila, en bytes—, en dos
-; pasos: `pantalla_descomprimir` la deja en `PANTALLA_BUFFER`, y
-; `pantalla_subir` la lleva de ahí a la VRAM y a CGRAM.
+; A full screen from `pantallas_tabla` —X is its row, in bytes—, in two steps:
+; `pantalla_descomprimir` leaves it in `PANTALLA_BUFFER`, and
+; `pantalla_subir` takes it from there to VRAM and CGRAM.
 ;
-; La fila es: el flujo LZ2 (tres bytes), cuántos bytes de tiles y cuántos de
-; colores (una palabra cada uno) y desde qué color de CGRAM (un byte). El
-; flujo trae las tres partes seguidas: los tiles, el tilemap de 32x32 y los
-; colores. Ver tools/port/pantalla_completa.py.
+; The row is: the LZ2 stream (three bytes), how many bytes of tiles and how
+; many of colors (one word each) and starting at which CGRAM color (one byte).
+; The stream carries the three parts back to back: the tiles, the 32x32
+; tilemap and the colors. See tools/port/pantalla_completa.py.
 ;
-; La usan la de Game Over y la de título: por eso no sabe cuál está subiendo.
-; Son dos pasos por la de título, que se descomprime en el arranque, mientras
-; se esperan los BOOT_CUADROS, y se sube recién al mostrarse: ver
-; `titulo_subir`.
+; Both the Game Over screen and the title use it: that is why it does not know
+; which one it is uploading. It is two steps because of the title, which is
+; decompressed during boot, while the BOOT_CUADROS are waited out, and only
+; uploaded when shown: see `titulo_subir`.
 ;
-; Descomprimir no toca la VRAM, así que puede ser con la pantalla prendida.
-; Deja X como estaba.
+; Decompressing does not touch VRAM, so it can be done with the screen on.
+; Leaves X as it was.
 .proc pantalla_descomprimir
 .a8
 .i16
@@ -263,11 +266,11 @@ cuadro:
     phb
     phk
     plb
-    phx                         ; la fila
+    phx                         ; the row
     lda #^PANTALLA_BUFFER
     sta f:LZ2_BANCO
     lda f:pantallas_tabla + 2, x
-    pha                         ; el banco del flujo
+    pha                         ; the stream's bank
     rep #$20
 .a16
     lda f:pantallas_tabla, x
@@ -283,9 +286,9 @@ cuadro:
     rtl
 .endproc
 
-; La pantalla que `pantalla_descomprimir` dejó en `PANTALLA_BUFFER`, con X en
-; la misma fila, a la VRAM y a CGRAM, y el PPU puesto para mostrarla en BG1 de
-; modo 3, sola. La deja con la pantalla apagada: el brillo es de quien llama.
+; The screen that `pantalla_descomprimir` left in `PANTALLA_BUFFER`, with X on
+; the same row, to VRAM and CGRAM, and the PPU set to show it on BG1 in mode
+; 3, alone. Leaves the screen off: brightness is the caller's business.
 .proc pantalla_subir
 .a8
 .i16
@@ -296,7 +299,7 @@ cuadro:
     lda #$80
     sta INIDISP
 
-    ; --- los tiles ---
+    ; --- the tiles ---
     lda #$80
     sta VMAIN
     rep #$20
@@ -312,13 +315,13 @@ cuadro:
     lda #^PANTALLA_BUFFER
     sta A1B0
     lda #$01
-    sta DMAP0                   ; dos registros, de a palabras
+    sta DMAP0                   ; two registers, in words
     lda #$18
-    sta BBAD0                   ; destino: VMDATAL
+    sta BBAD0                   ; destination: VMDATAL
     lda #$01
     sta MDMAEN
 
-    ; --- el tilemap, detrás de los tiles ---
+    ; --- the tilemap, after the tiles ---
     rep #$20
 .a16
     lda #PANTALLA_MAPA
@@ -332,9 +335,9 @@ cuadro:
     sep #$20
 .a8
     lda #$01
-    sta MDMAEN                  ; el banco y el destino, los de arriba
+    sta MDMAEN                  ; the bank and destination, the ones above
 
-    ; --- los colores, detrás del tilemap ---
+    ; --- the colors, after the tilemap ---
     lda f:pantallas_tabla + 7, x
     sta CGADD
     rep #$20
@@ -347,39 +350,40 @@ cuadro:
     sta A1T0L
     sep #$20
 .a8
-    stz DMAP0                   ; un registro, de a bytes
+    stz DMAP0                   ; one register, in bytes
     lda #$22
-    sta BBAD0                   ; destino: CGDATA
+    sta BBAD0                   ; destination: CGDATA
     lda #$01
     sta MDMAEN
 
-    ; --- y el PPU, con todo lo que el mapa o la pelea pudieron dejar ---
+    ; --- and the PPU, with everything the map or the battle may have left ---
     lda #$03
     sta BGMODE
     lda #(PANTALLA_MAPA / 1024 * 4)
-    sta BG1SC                   ; tilemap de 32x32
-    stz BG12NBA                 ; los tiles de BG1 desde $0000
+    sta BG1SC                   ; 32x32 tilemap
+    stz BG12NBA                 ; BG1's tiles from $0000
     stz BG1HOFS
     stz BG1HOFS
-    lda #$FF                    ; la línea vofs+1 en el primer scanline: ver
+    lda #$FF                    ; line vofs+1 on the first scanline: see
     sta BG1VOFS                 ; `ppu_init`
     sta BG1VOFS
     lda #$01
-    sta TM                      ; la imagen sola: ni sprites ni la otra capa
-    ; Todo como lo deja `ppu_reset` —ver `ppu_altos` en banco1.s—, y no en
-    ; cero: TMW y CGWSEL los pone sólo el reset, y el mapa los espera así. Al
-    ; Game Over le sigue el reset, pero al título le sigue el mapa: con TMW en
-    ; cero la ventana de mensaje dejaba de tapar a los objetos.
+    sta TM                      ; the image alone: no sprites, no other layer
+    ; Everything as `ppu_reset` leaves it —see `ppu_altos` in banco1.s—, and
+    ; not zero: TMW and CGWSEL are set only by the reset, and the map expects
+    ; them that way. Game Over is followed by the reset, but the title is
+    ; followed by the map: with TMW at zero the message window stopped
+    ; covering the objects.
     stz GO_TS
     lda #$10
-    sta TMW                     ; la máscara, sólo para los objetos, que acá
-                                ; no se ven
+    sta TMW                     ; the mask, only for the objects, which are
+                                ; not visible here
     stz GO_TSW
     stz GO_W12SEL
     stz GO_W34SEL
     stz WOBJSEL
     lda #$30
-    sta CGWSEL                  ; sin color math: ni tinte ni destello
+    sta CGWSEL                  ; no color math: no tint, no flash
     stz CGADSUB
     stz MOSAIC
     stz GO_SETINI

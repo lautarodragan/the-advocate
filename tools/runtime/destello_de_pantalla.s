@@ -1,31 +1,33 @@
 .segment "CODE"
 
-; --- el destello de pantalla -------------------------------------------------
-; Un cuadro del destello de pantalla: `Flash::Update` de easyrpg, con la cuenta
-; entera que sigue. El nivel va a
-; escala 256 y baja en `nivel / cuadros_que_quedan` por cuadro, con el divisor
-; del hardware; en el último cuadro cae a cero.
+; --- the screen flash ---------------------------------------------------------
+; One frame of the screen flash: easyrpg's `Flash::Update`, with the integer
+; count that follows. The level is on a
+; 256 scale and drops by `level / frames_left` each frame, with the hardware
+; divider; on the last frame it falls to zero.
 ;
-; RM2k dibuja el destello como un rectángulo del color con alfa encima de la
-; pantalla compuesta. Acá es una transformación de CGRAM, como el tinte: cada
-; canal de cada color de las tres paletas del mapa se acerca al del destello en
-; `nivel / 31` del camino —`destellar_canal`—, y el resultado va a
-; `pal_buf`, que `flush_video` sube en el vblank en lugar de la sombra.
-; La sombra queda como está: es el mapa teñido sin destello, y cuando el
-; destello se apaga vuelve a subirse tal cual.
+; RM2k draws the flash as a rectangle of the color with alpha on top of the
+; composited screen. Here it is a CGRAM transform, like the tint: each channel
+; of each color in the map's three palettes moves toward the flash's by
+; `level / 31` of the way —`destellar_canal`—, and the result goes to
+; `pal_buf`, which `flush_video` uploads in vblank instead of the shadow.
+; The shadow stays as it is: it is the tinted map without the flash, and when
+; the flash goes off it is uploaded again as is.
 ;
-; Pasar las tres paletas —doscientas y pico entradas, a más de cien ciclos
-; cada una— no entra en un cuadro junto con todo lo demás: medido con
-; `cuadros_perdidos`, se perdía uno por cuadro, y el resto de la escena
-; quedaba treinta cuadros atrasado. Así que va en dos cuadros:
-; con la resta impar se arman las tablas y se pasan el fondo y la capa de
-; encima; con la resta par se pasan los sprites y se sube todo. Lo que se ve
-; cambia cuadro por medio. Un tinte que cambie en el cuadro impar pisa
-; `pal_buf` con la paleta recién teñida, y además no puede subirse sin
-; destello; en ese cuadro se hace todo de una, y en el par se rehace el fondo.
+; Running the three palettes —two hundred-odd entries, at over a hundred
+; cycles each— does not fit in a frame together with everything else: measured
+; with `cuadros_perdidos`, one was lost per frame, and the rest of the scene
+; ended up thirty frames behind. So it takes two frames:
+; with an odd countdown the tables are built and the background and the upper
+; layer are run; with an even countdown the sprites are run and everything is
+; uploaded. What is seen changes every other frame. A tint that changes on the
+; odd frame overwrites `pal_buf` with the freshly tinted palette, and besides
+; cannot be uploaded without the flash; on that frame everything is done at
+; once, and on the even one the background is redone.
 ;
-; La ventana de mensaje y el cronómetro no reciben el destello, y tampoco allá:
-; `Priority_Screen` es 90 contra 130 de la ventana y 140 del cronómetro.
+; The message window and the timer do not get the flash, and they don't there
+; either: `Priority_Screen` is 90 against 130 for the window and 140 for the
+; timer.
 .proc destello_tick
 .a8
 .i16
@@ -45,12 +47,12 @@ hay:
     rep #$20
 .a16
     lda destello_nivel
-    sta WRDIVL                  ; el dividendo, de 16 bits
+    sta WRDIVL                  ; the dividend, 16 bits
     sep #$20
 .a8
     lda destello_resta
-    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
-    dec destello_resta          ; seis ciclos, y los nops que faltan
+    sta WRDIVB                  ; starts it: the quotient takes sixteen cycles
+    dec destello_resta          ; six cycles, and the nops still needed
     nop
     nop
     nop
@@ -72,13 +74,13 @@ hay:
     jsr tablas_de_destello
     jsr destellar_fondo
     lda tinte_listo
-    beq listo                   ; lo normal: los sprites van el cuadro que viene
+    beq listo                   ; the usual case: the sprites go next frame
     jsr destellar_sprites
     bra subir
 fase_par:
     lda tinte_listo
     beq sprites
-    jsr destellar_fondo         ; el tinte nuevo pisó el fondo ya pasado
+    jsr destellar_fondo         ; the new tint overwrote the background already run
 sprites:
     jsr destellar_sprites
 subir:
@@ -87,7 +89,8 @@ subir:
 listo:
     rts
 apagar:
-    ; Se terminó: el nivel cae a cero y la sombra sin destello vuelve a CGRAM.
+    ; It is over: the level falls to zero and the unflashed shadow goes back
+    ; to CGRAM.
     stz destello_nivel
     stz destello_nivel + 1
     stz destello_resta
@@ -108,24 +111,24 @@ apagar:
     lda [cod_ptr], y            ; b
     sta destello_rgb + 2
     iny
-    lda [cod_ptr], y            ; la fuerza, que es el nivel de arranque
+    lda [cod_ptr], y            ; the strength, which is the starting level
     sta destello_nivel + 1
     stz destello_nivel
     iny
-    lda [cod_ptr], y            ; cuadros
+    lda [cod_ptr], y            ; frames
     sta destello_resta
     iny
     rts
 .endproc
 
-; Las tres tablas del destello, una por canal: qué queda de cada valor de
-; cinco bits con el nivel de este cuadro. Son bytes y no palabras ya corridas
-; a su lugar del color, que le ahorrarían los corrimientos a
-; `destellar_rango`: la RAM del banco 0 no daba para los 96 bytes de más.
+; The three flash tables, one per channel: what each five-bit value becomes
+; at this frame's level. They are bytes and not words already shifted into
+; their place in the color, which would save `destellar_rango` the shifts:
+; bank 0's RAM did not have room for the extra 96 bytes.
 .proc tablas_de_destello
 .a8
 .i16
-    lda destello_nivel + 1      ; la parte entera del nivel, de 0 a 31
+    lda destello_nivel + 1      ; the integer part of the level, 0 to 31
     sta dest_nivel
     rep #$20
 .a16
@@ -153,25 +156,26 @@ apagar:
     jmp una_tabla_de_destello
 .endproc
 
-; Una tabla: A es el canal del color del destello y `temp` apunta a la tabla.
-; Es `destellar_canal`:
+; One table: A is the flash color's channel and `temp` points to the table.
+; It is `destellar_canal`:
 ;
-;     hacia >= canal:  canal + (hacia - canal) * nivel / 31
-;     hacia <  canal:  canal - (canal - hacia) * nivel / 31
+;     toward >= channel:  channel + (toward - channel) * level / 31
+;     toward <  channel:  channel - (channel - toward) * level / 31
 ;
-; La resta va siempre del lado positivo, porque el divisor no tiene signo.
+; The subtraction is always on the positive side, because the divider is
+; unsigned.
 ;
-; Los productos salen de la fila del nivel en `prod31_tabla`, y la distancia
-; al destino baja de a uno hasta el destino y después sube de a uno, así que
-; en vez de calcular cada índice se lo camina: X baja por la fila en el
-; primer tramo y sube en el segundo. Hasta el 2026-09-26 cada entrada
-; comparaba, restaba y llamaba a una rutina que armaba el índice, a unos 70
-; ciclos cada una; en la terraza del mapa 32 el cuadro impar del destello
-; pasaba de las cien líneas y, junto con un `FlashSprite`, se pasaba del
-; cuadro. Así son menos de 30.
+; The products come from the level's row in `prod31_tabla`, and the distance
+; to the target drops by one down to the target and then rises by one, so
+; instead of computing each index it is walked: X goes down the row in the
+; first stretch and up in the second. Until 2026-09-26 each entry compared,
+; subtracted and called a routine that built the index, at about 70 cycles
+; each; on the terrace of map 32 the odd flash frame went past a hundred
+; lines and, together with a `FlashSprite`, ran over the frame. This way it
+; is under 30.
 ;
-; El destino es de cinco bits: el conversor no deja pasar otro, ni en
-; `FlashScreen` ni en las animaciones de batalla.
+; The target is five bits: the converter lets nothing else through, neither
+; in `FlashScreen` nor in the battle animations.
 .proc una_tabla_de_destello
 .a8
 .i16
@@ -186,18 +190,18 @@ apagar:
     asl a
     asl a
     asl a
-    sta temp + 2                ; la fila del nivel
+    sta temp + 2                ; the level's row
     clc
     adc dest_hacia
-    tax                         ; X: la fila, en la distancia del canal 0
+    tax                         ; X: the row, at channel 0's distance
     lda dest_hacia
     inc a
-    sta dest_fin                ; el primer canal que queda arriba del destino
+    sta dest_fin                ; the first channel above the target
     sep #$20
 .a8
     ldy #0
 sube:
-    tya                         ; el canal, que es Y
+    tya                         ; the channel, which is Y
     clc
     adc f:prod31_tabla, x
     sta (temp), y
@@ -211,7 +215,7 @@ sube:
 .a16
     lda temp + 2
     inc a
-    tax                         ; y del otro lado la distancia arranca en uno
+    tax                         ; and on the other side the distance starts at one
     sep #$20
 .a8
 baja:
@@ -228,8 +232,8 @@ listo:
 .endproc
 
 
-; Las paletas del fondo y de la capa de encima, de la sombra a `pal_buf`
-; pasadas por las tablas. Son las mismas entradas y cuentas que `subir_tinte`.
+; The palettes of the background and the upper layer, from the shadow to
+; `pal_buf` through the tables. Same entries and counts as `subir_tinte`.
 .proc destellar_fondo
 .a8
 .i16
@@ -240,19 +244,18 @@ listo:
     sta tin_count
     sep #$20
 .a8
-    ; Desde `CGRAM_BASE`, igual que `aplicar_tinte` y que `subir_paletas`: el
-    ; fondo no arranca en la entrada 0 sino arriba de la ventana de mensaje.
-    ; Acá decía 0, que era lo correcto hasta que la ventana se mudó a la paleta
-    ; 0 y el fondo se corrió nueve entradas —ver el commit 5015868, que arregló
-    ; los otros dos lugares y **se olvidó de éste**—. Con el 0, las últimas
-    ; nueve entradas del fondo no se destellaban: se subían con lo que hubiera
-    ; quedado en `pal_buf`, así que unos pocos tiles no se iluminaban y encima
-    ; cambiaban de color. taro lo vio el 2026-09-08 en los relámpagos de la
-    ; apertura —las vallas amarillas y negras, y los bordes del autotile 17 del
-    ; ChipSet3—, que son el **primer** `FlashScreen` que corrió este port.
-    ; Ninguna prueba lo cubría: la página de prueba de `destello` destella un
-    ; sprite —`FlashSprite`—, nunca la pantalla, así que este camino no lo
-    ; ejecutaba nadie.
+    ; From `CGRAM_BASE`, the same as `aplicar_tinte` and `subir_paletas`: the
+    ; background does not start at entry 0 but above the message window.
+    ; This said 0, which was right until the window moved to palette 0 and the
+    ; background shifted by nine entries —see commit 5015868, which fixed the
+    ; other two places and **forgot this one**—. With 0, the background's last
+    ; nine entries were not flashed: they were uploaded with whatever was left
+    ; in `pal_buf`, so a few tiles did not light up and changed color on top
+    ; of that. taro saw it on 2026-09-08 in the lightning of the opening —the
+    ; yellow and black fences, and the edges of autotile 17 in ChipSet3—,
+    ; which is the **first** `FlashScreen` this port ran. No test covered it:
+    ; the `destello` test page flashes a sprite —`FlashSprite`—, never the
+    ; screen, so nobody ran this path.
     lda #CGRAM_BASE
     jsr destellar_rango
     ldx mapa_ofs
@@ -266,7 +269,7 @@ listo:
     jmp destellar_rango
 .endproc
 
-; Y las de los sprites.
+; And the sprites' ones.
 .proc destellar_sprites
 .a8
 .i16
@@ -281,15 +284,15 @@ listo:
     jmp destellar_rango
 .endproc
 
-; `tin_count` colores desde la entrada A: cada uno se parte en sus tres
-; canales, cada canal pasa por su tabla, y las tres palabras se juntan.
+; `tin_count` colors from entry A: each one is split into its three channels,
+; each channel goes through its table, and the three words are joined.
 .proc destellar_rango
 .a8
 .i16
     rep #$20
 .a16
     and #$00FF
-    asl a                       ; dos bytes por color
+    asl a                       ; two bytes per color
     tax
     lda tin_count
     asl a
@@ -301,10 +304,10 @@ listo:
     sta dest_fin
 color:
     lda cgram_sombra, x
-    sta temp                    ; el color, y en temp + 2 lo que se va armando
+    sta temp                    ; the color, and in temp + 2 what is being built
     and #$001F
     tay
-    lda dest_tab_r, y           ; y el byte que sigue, que se enmascara
+    lda dest_tab_r, y           ; and the next byte, which gets masked
     and #$00FF
     sta temp + 2
     lda temp
@@ -325,14 +328,14 @@ color:
     ora temp + 2
     sta temp + 2
     lda temp
-    xba                         ; el azul queda en los bits 2 a 6
+    xba                         ; blue ends up in bits 2 to 6
     and #$007C
     lsr a
     lsr a
     tay
     lda dest_tab_b, y
     and #$00FF
-    xba                         ; por 256, y dos más son los diez bits
+    xba                         ; times 256, and two more make the ten bits
     asl a
     asl a
     ora temp + 2

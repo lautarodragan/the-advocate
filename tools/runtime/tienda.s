@@ -1,30 +1,30 @@
 .segment "FAR"
 
-; --- la tienda -----------------------------------------------------------------
+; --- the shop ------------------------------------------------------------------
 ;
-; `Scene_Shop`, abierta por `OP_SHOP` desde el intérprete, como guardar: la
-; pantalla bloquea adentro de la página, no cuesta ningún tick, y al salir el
-; mapa vuelve y la página sigue. Es una pantalla de texto —ver "las pantallas
-; de texto"— y `pantallas.pantalla_tienda` es la referencia de cada modo. Las
-; ventanas del System y la barra van en BG1, con su propia base: ver
-; `ti_pantalla_subir` y `ti_ventanas`, y `pantallas.TI_VENTANAS`. Lo
-; que vende va como `k` en `FAR_TIENDA`; la lista de vender, en
+; `Scene_Shop`, opened by `OP_SHOP` from the interpreter, like saving: the
+; screen blocks inside the page, it costs no tick, and on exit the map comes
+; back and the page goes on. It is a text screen —see "the text
+; screens"— and `pantallas.pantalla_tienda` is the reference for each mode. The
+; System's windows and the bar go on BG1, with their own base: see
+; `ti_pantalla_subir` and `ti_ventanas`, and `pantallas.TI_VENTANAS`. What
+; it sells goes as `k` in `FAR_TIENDA`; the selling list, in
 ; `FAR_ITEM_LISTA`.
 ;
-; El escritorio, prestado del compositor de mensajes:
-;   ti_modo      es comp_col       ; TI_PRINCIPAL ... TI_VENDIDO
-;   ti_tipo      es comp_col + 1   ; 0 compra y vende, 1 compra, 2 vende
-;   ti_juego     es comp_fase      ; el juego de mensajes, 0 a 2
-;   ti_resaludo  es comp_fase + 1  ; si ya se volvió a la principal
-;   ti_elegido   es comp_base      ; el cursor
-;   ti_arriba    es comp_base + 1  ; el primero que se ve de la lista
-;   ti_n         es comp_mask      ; cuántos hay en la lista del modo
-;   ti_nt        es comp_mask + 1  ; cuántos vende la tienda
-;   ti_cuantos   es comp_color     ; la cantidad que se elige
-;   ti_max       es comp_fila      ; y hasta cuánto
-;   ti_timer     es comp_glifo     ; los cuadros del "listo"
-;   ti_pos       es comp_glifo + 1 ; dos bytes: dónde va la cifra
-;   ti_num       es comp_or01      ; tres bytes: un número de 24 bits
+; The scratch space, borrowed from the message compositor:
+;   ti_modo      is comp_col       ; TI_PRINCIPAL ... TI_VENDIDO
+;   ti_tipo      is comp_col + 1   ; 0 buys and sells, 1 buys, 2 sells
+;   ti_juego     is comp_fase      ; the message set, 0 to 2
+;   ti_resaludo  is comp_fase + 1  ; whether it already went back to the main one
+;   ti_elegido   is comp_base      ; the cursor
+;   ti_arriba    is comp_base + 1  ; the first visible one of the list
+;   ti_n         is comp_mask      ; how many there are in the mode's list
+;   ti_nt        is comp_mask + 1  ; how many the shop sells
+;   ti_cuantos   is comp_color     ; the quantity being chosen
+;   ti_max       is comp_fila      ; and up to how many
+;   ti_timer     is comp_glifo     ; the frames of the "done"
+;   ti_pos       is comp_glifo + 1 ; two bytes: where the digit goes
+;   ti_num       is comp_or01      ; three bytes: a 24-bit number
 FAR_TIENDA = $2B00
 TI_PRINCIPAL = 0
 TI_COMPRAR = 1
@@ -34,7 +34,7 @@ TI_VENDER = 4
 TI_CUANTOS_VENTA = 5
 TI_VENDIDO = 6
 
-; A: un lugar de la lista del modo. Vuelve con A = su `k`.
+; A: a place in the mode's list. Returns with A = its `k`.
 .proc ti_k_de
 .a8
 .i16
@@ -60,7 +60,7 @@ de_venta:
     rts
 .endproc
 
-; El ítem que marca el cursor, en `eq_id`, y su `k` en X.
+; The item the cursor highlights, in `eq_id`, and its `k` in X.
 .proc ti_item
 .a8
 .i16
@@ -79,7 +79,7 @@ de_venta:
     rts
 .endproc
 
-; El precio del `k` de X, en `ti_num`, a la mitad si se vende.
+; The price of X's `k`, in `ti_num`, halved if selling.
 .proc ti_precio
 .a8
 .i16
@@ -105,15 +105,15 @@ listo:
     rts
 .endproc
 
-; ¿Alcanza el oro para el `k` de X, y tiene menos de 99? Z=0 si se puede
-; comprar. `Window_ShopBuy::CheckEnable`.
+; Is there enough gold for X's `k`, and does it have fewer than 99? Z=0 if it
+; can be bought. `Window_ShopBuy::CheckEnable`.
 .proc ti_puede
 .a8
 .i16
     phx
     jsr ti_precio
     plx
-    ; oro >= precio, de 24 bits
+    ; gold >= price, 24 bits
     lda oro + 2
     bne alcanza
     rep #$20
@@ -144,14 +144,14 @@ no:
     rts
 .endproc
 
-; Un número de 24 bits de `ti_num` —se pierde—, alineado a la derecha con su
-; última cifra en `ti_pos`, en la variante de `temp + 1`. Se divide por diez
-; de a un byte, como el oro del menú.
+; A 24-bit number from `ti_num` —it is lost—, right-aligned with its last digit
+; at `ti_pos`, in the variant from `temp + 1`. It is divided by ten one byte at
+; a time, like the menu's gold.
 .proc pant_numero24
 .a8
 .i16
 cifra:
-    stz temp + 3                ; el resto que se arrastra
+    stz temp + 3                ; the remainder carried along
     ldx #2
 dividir:
     lda comp_or01, x
@@ -198,15 +198,15 @@ dividir:
     rts
 .endproc
 
-; Cuántos del ítem `eq_id` lleva puestos el grupo: `GetEquippedItemCount`.
-; Vuelve en `pant_valor`.
+; How many of item `eq_id` the party has equipped: `GetEquippedItemCount`.
+; Returns in `pant_valor`.
 .proc ti_llevados
 .a8
 .i16
     rep #$20
 .a16
     lda comp_or23
-    sta comp_or01                  ; el que se busca
+    sta comp_or01                  ; the one being looked for
     stz comp_dup
     sep #$20
 .a8
@@ -253,8 +253,8 @@ listo:
     rts
 .endproc
 
-; A: el número de mensaje del juego de la tienda. X = el texto de su primer
-; renglón; el segundo es el que sigue.
+; A: the message number of the shop's set. X = the text of its first line; the
+; second is the next one.
 .proc ti_texto_de
 .a8
 .i16
@@ -262,17 +262,17 @@ listo:
     lda comp_fase
     asl a
     asl a
-    asl a                       ; por 8
+    asl a                       ; times 8
     clc
     adc comp_fase
     adc comp_fase
-    adc comp_fase                ; por 11
+    adc comp_fase                ; times 11
     clc
     adc temp + 3
     rep #$20
 .a16
     and #$00FF
-    asl a                       ; dos renglones cada uno
+    asl a                       ; two lines each
     clc
     adc #TI_TEXTO
     tax
@@ -281,9 +281,9 @@ listo:
     rts
 .endproc
 
-; A != 0 si el saludo de la principal —o el resaludo— ocupa dos renglones:
-; las órdenes van debajo, así que arrancan uno más abajo. Es el largo del
-; segundo renglón.
+; A != 0 if the main mode's greeting —or the re-greeting— takes two lines: the
+; commands go below, so they start one lower. It is the length of the second
+; line.
 .proc ti_dos_renglones
 .a8
 .i16
@@ -294,10 +294,10 @@ listo:
     rts
 .endproc
 
-; El mensaje A del juego de la tienda, en la ventana de abajo: en la
-; principal los dos renglones, arriba de las órdenes; en los demás modos,
-; uno solo, que es lo que entra en su ventana —los mensajes de esos modos
-; miden un renglón, y el conversor lo controla—.
+; Message A of the shop's set, in the bottom window: in the main mode both
+; lines, above the commands; in the other modes, just one, which is what fits
+; in their window —those modes' messages are one line long, and the converter
+; checks it—.
 .proc ti_mensaje
 .a8
 .i16
@@ -333,7 +333,7 @@ uno:
     rts
 .endproc
 
-; La moneda en `eleg_tabla`, en rojo como en RM2k.
+; The currency in `eleg_tabla`, in red as in RM2k.
 .proc ti_moneda
 .a8
 .i16
@@ -344,8 +344,8 @@ uno:
     rts
 .endproc
 
-; Cuántas filas tiene la lista del modo: la de comprar tiene debajo la
-; cuenta y el oro, y la de vender no.
+; How many rows the mode's list has: the buying one has the count and the gold
+; below it, and the selling one does not.
 .proc ti_filas
 .a8
 .i16
@@ -359,15 +359,15 @@ venta:
     rts
 .endproc
 
-; La pantalla entera, en el búfer: `pantallas.pantalla_tienda`. Las ventanas
-; y la barra no: van en BG1, y las pone `ti_ventanas` en cada cuadro.
+; The whole screen, in the buffer: `pantallas.pantalla_tienda`. The windows and
+; the bar are not: they go on BG1, and `ti_ventanas` puts them there every frame.
 .proc ti_componer
 .a8
 .i16
     lda #255
     sta comp_dup + 3
     jsl f:ba_t_limpiar
-    ; --- el mensaje: saludo, resaludo, o el del modo ---
+    ; --- the message: greeting, re-greeting, or the mode's ---
     lda comp_col
     rep #$20
 .a16
@@ -375,25 +375,25 @@ venta:
     tax
     sep #$20
 .a8
-    ; Con `f:` porque `mensaje_de` es de acá, o sea del banco 1, y el banco de
-    ; datos sigue siendo el 0: sin el largo, el absoluto leería el banco 0.
+    ; With `f:` because `mensaje_de` is from here, that is, from bank 1, and the
+    ; data bank is still 0: without the long form, the absolute would read bank 0.
     lda f:mensaje_de, x
     bne con_mensaje
-    lda comp_fase + 1             ; la principal: saludo o resaludo
+    lda comp_fase + 1             ; the main mode: greeting or re-greeting
 con_mensaje:
     jsr ti_mensaje
     lda comp_col
     bne no_principal
     jmp principal
 no_principal:
-    ; --- la ayuda: la descripción del que marca el cursor ---
+    ; --- the help: the description of the one the cursor highlights ---
     lda comp_mask
     beq sin_ayuda
     jsr ti_item
     jsr eq_desc
 sin_ayuda:
-    ; --- el oro, y cuántos tiene y lleva puestos del que marca el cursor:
-    ; en todos los modos de la capa de comprar, que son todos menos vender ---
+    ; --- the gold, and how many of the highlighted one it has and has equipped:
+    ; in all modes of the buying layer, which is all but selling ---
     lda comp_col
     cmp #TI_VENDER
     bne cerca_12209
@@ -476,7 +476,7 @@ sin_oro:
     beq cuantos
     cmp #TI_CUANTOS_VENTA
     beq cuantos
-    ; Los dos "listo" dejan la ventana del medio vacía, como RM2k.
+    ; The two "done" leave the middle window empty, like RM2k.
     cmp #TI_COMPRADO
     beq vacia
     cmp #TI_VENDIDO
@@ -485,7 +485,7 @@ sin_oro:
 vacia:
     rts
 
-    ; --- la cantidad: el ítem, "x" y cuántos, y el total ---
+    ; --- the quantity: the item, "x" and how many, and the total ---
 cuantos:
     jsr ti_item
     rep #$20
@@ -519,7 +519,7 @@ cuantos:
     jsl f:ba_t_numero
     jsr ti_item
     jsr ti_precio
-    jsr ti_por_cuantos          ; ti_num = precio * cuantos
+    jsr ti_por_cuantos          ; ti_num = price * quantity
     rep #$20
 .a16
     lda #TI_TOTAL_POS
@@ -536,7 +536,7 @@ cuantos:
 .a8
     jmp ti_moneda
 
-    ; --- la principal: las órdenes, debajo del saludo ---
+    ; --- the main mode: the commands, below the greeting ---
 principal:
     lda #0
 orden:
@@ -549,7 +549,7 @@ orden:
 .a8
     pla
     pha
-    jsr orden_mensaje           ; qué término: comprar, vender o salir
+    jsr orden_mensaje           ; which term: buy, sell or leave
     jsr ti_renglon1
     pla
     inc a
@@ -557,7 +557,7 @@ orden:
     bcc orden
     rts
 
-    ; --- la lista: comprar o vender ---
+    ; --- the list: buy or sell ---
 lista:
     lda #0
 lista_fila:
@@ -577,7 +577,7 @@ cerca_12382:
     rep #$20
 .a16
     sta eleg_tabla
-    sta comp_glifo + 1                  ; la fila, para las posiciones de abajo
+    sta comp_glifo + 1                  ; the row, for the positions below
     sep #$20
 .a8
     pla
@@ -596,7 +596,7 @@ cerca_12382:
     sep #$20
 .a8
     phx
-    ; el color: comprando, si alcanza; vendiendo, si vale algo
+    ; the color: buying, if there is enough; selling, if it is worth something
     lda comp_col
     cmp #TI_VENDER
     bcs color_venta
@@ -631,7 +631,7 @@ color_listo:
     pha
     lda #255
     sta comp_dup + 3
-    jsr eq_k                    ; el nombre, con la variante puesta
+    jsr eq_k                    ; the name, with the variant set
     rep #$20
 .a16
     txa
@@ -652,7 +652,7 @@ color_listo:
     lda comp_col
     cmp #TI_VENDER
     bcs cuenta
-    ; comprando: el precio, alineado a la derecha
+    ; buying: the price, right-aligned
     rep #$20
 .a16
     lda comp_glifo + 1
@@ -671,7 +671,7 @@ color_listo:
     jsr pant_numero24
     bra lista_siguiente
 cuenta:
-    ; vendiendo: cuántos tiene
+    ; selling: how many it has
     rep #$20
 .a16
     lda comp_glifo + 1
@@ -690,8 +690,8 @@ cuenta:
     sta comp_dup + 2
     jsl f:ba_t_numero
 lista_siguiente:
-    ; La fila que sigue, si la lista del modo la tiene: `ti_filas` no toca
-    ; la pila.
+    ; The next row, if the mode's list has it: `ti_filas` does not touch the
+    ; stack.
     jsr ti_filas
     sta temp + 3
     pla
@@ -705,8 +705,8 @@ lista_listo:
     pla
     rts
 
-; A: la orden de la principal. A16 = la posición de su fila: debajo del
-; saludo, uno más abajo si el saludo tiene dos renglones.
+; A: the main mode's command. A16 = the position of its row: below the
+; greeting, one lower if the greeting has two lines.
 orden_pos:
     pha
     jsr ti_dos_renglones
@@ -727,7 +727,7 @@ con_renglon:
     rts
 .a8
 
-; A: la fila de la lista. A16 = la posición de su fila.
+; A: the row of the list. A16 = the position of its row.
 fila_pos:
     rep #$20
 .a16
@@ -739,14 +739,14 @@ fila_pos:
     rts
 .a8
 
-; A: la orden. A = el número de mensaje: 2 comprar, 3 vender, 4 salir; con
-; una sola orden, la que dice el tipo.
+; A: the command. A = the message number: 2 buy, 3 sell, 4 leave; with a
+; single command, the one the type says.
 orden_mensaje:
     pha
     lda comp_col + 1
     beq tres
     pla
-    lda comp_col + 1                 ; 1 compra: 2; 2 vende: 3
+    lda comp_col + 1                 ; 1 buys: 2; 2 sells: 3
     inc a
     rts
 tres:
@@ -755,19 +755,19 @@ tres:
     adc #2
     rts
 
-; A: el número de mensaje. Su primer renglón, en `eleg_tabla`, en blanco.
+; A: the message number. Its first line, in `eleg_tabla`, in white.
 ti_renglon1:
     jsr ti_texto_de
     stz temp + 1
     jsl f:ba_t_texto
     rts
 
-; El mensaje de cada modo: 0 es "el saludo o el resaludo".
+; Each mode's message: 0 is "the greeting or the re-greeting".
 mensaje_de:
     .byte 0, 5, 6, 7, 8, 9, 10
 .endproc
 
-; `ti_num` por `ti_cuantos`, sumando: son 99 vueltas a lo sumo.
+; `ti_num` times `ti_cuantos`, by adding: it is 99 passes at most.
 .proc ti_por_cuantos
 .a8
 .i16
@@ -807,8 +807,8 @@ listo:
     rts
 .endproc
 
-; Hasta cuántos se pueden comprar del que marca el cursor: los que faltan para
-; 99, y no más de los que paga el oro. Vendiendo, los que tiene. En `ti_max`.
+; Up to how many of the highlighted one can be bought: the ones missing to 99,
+; and no more than the gold pays for. Selling, the ones it has. In `ti_max`.
 .proc ti_maximo
 .a8
 .i16
@@ -817,7 +817,7 @@ listo:
     jsr eq_inv_apuntar
     lda WMDATA
     plx
-    sta temp + 3                ; cuántos tiene
+    sta temp + 3                ; how many it has
     lda comp_col
     cmp #TI_VENDER
     bcc comprando
@@ -828,7 +828,7 @@ comprando:
     lda #ITEM_MAX
     sec
     sbc temp + 3
-    sta temp + 3                ; los que faltan
+    sta temp + 3                ; the ones missing
     jsr ti_precio
     rep #$20
 .a16
@@ -843,7 +843,7 @@ otro:
     lda comp_fila
     cmp temp + 3
     bcs listo
-    ; ¿eq_tmp >= precio? Si el precio es cero, siempre.
+    ; eq_tmp >= price? If the price is zero, always.
     rep #$20
 .a16
     lda comp_and
@@ -868,8 +868,8 @@ listo:
     rts
 .endproc
 
-; Comprar o vender `ti_cuantos` del que marca el cursor: el oro y el
-; inventario, como `UpdateNumberInput`.
+; Buy or sell `ti_cuantos` of the highlighted one: the gold and the inventory,
+; like `UpdateNumberInput`.
 .proc ti_cerrar_trato
 .a8
 .i16
@@ -879,7 +879,7 @@ listo:
     lda comp_col
     cmp #TI_CUANTOS_VENTA
     beq vender
-    ; --- comprar: el oro baja y los ítems suben ---
+    ; --- buy: the gold goes down and the items go up ---
     rep #$20
 .a16
     lda oro
@@ -908,7 +908,7 @@ suma:
     bne suma
     rts
 vender:
-    ; --- vender: el oro sube, topado en ORO_MAX, y los ítems bajan ---
+    ; --- sell: the gold goes up, capped at ORO_MAX, and the items go down ---
     jsr oro_sumar
     lda comp_color
     rep #$20
@@ -928,9 +928,9 @@ quita:
     rts
 .endproc
 
-; `oro` más los 24 bits de `comp_or01`, topado en ORO_MAX: la mitad de
-; `Game_Party::GainGold` que suma. La usan la venta de la tienda y la victoria
-; —`ba_vic_empezar`—; `op_gold` tiene la suya porque vive en el banco 0.
+; `oro` plus the 24 bits of `comp_or01`, capped at ORO_MAX: the adding half of
+; `Game_Party::GainGold`. The shop's selling and the victory use it
+; —`ba_vic_empezar`—; `op_gold` has its own because it lives in bank 0.
 .proc oro_sumar
 .a8
 .i16
@@ -969,7 +969,7 @@ listo:
     rts
 .endproc
 
-; La lista de vender: el inventario que la ROM conoce, en `FAR_ITEM_LISTA`.
+; The selling list: the inventory the ROM knows, in `FAR_ITEM_LISTA`.
 .proc ti_lista_venta
 .a8
 .i16
@@ -979,7 +979,7 @@ listo:
     lda comp_base
     cmp comp_mask
     bcc listo
-    lda comp_mask                    ; se vendió el último: el cursor sube
+    lda comp_mask                    ; the last one was sold: the cursor goes up
     beq cero
     dec a
 cero:
@@ -988,7 +988,7 @@ listo:
     rts
 .endproc
 
-; A: el modo nuevo. Pone lo que hace falta para entrar: la lista, el cursor.
+; A: the new mode. Sets what is needed to enter: the list, the cursor.
 .proc ti_modo_poner
 .a8
 .i16
@@ -1018,7 +1018,7 @@ listo:
     rts
 .endproc
 
-; El cursor de la lista, con la vista que lo sigue.
+; The list's cursor, with the view following it.
 .proc ti_mover
 .a8
 .i16
@@ -1028,7 +1028,7 @@ listo:
     sta comp_base + 1
     rts
 no_arriba:
-    jsr ti_filas                ; la de comprar y la de vender no miden igual
+    jsr ti_filas                ; the buying one and the selling one do not measure the same
     sta temp + 3
     lda comp_base
     sec
@@ -1038,16 +1038,16 @@ no_arriba:
     lda comp_base
     sec
     sbc temp + 3
-    inc a                       ; el cursor, en la última fila que se ve
+    inc a                       ; the cursor, on the last visible row
     sta comp_base + 1
 listo:
     rts
 .endproc
 
-; Las ventanas de la tienda, con la pantalla apagada y detrás del banco de la
-; pantalla: la paleta roja de los términos —va con la de "sube", como en el
-; equipo—, los colores y los tiles de las ventanas, y las filas de la ayuda,
-; que son las mismas en las tres capas. El resto lo pone `ti_ventanas`.
+; The shop's windows, with the screen off and after the screen's bank: the red
+; palette of the terms —it goes with the "goes up" one, as in the equipment
+; screen—, the colors and tiles of the windows, and the help rows, which are the
+; same in all three layers. `ti_ventanas` puts the rest.
 .proc ti_pantalla_subir
 .a8
 .i16
@@ -1119,13 +1119,13 @@ listo:
     rts
 .endproc
 
-; Las ventanas de BG1 debajo de la ayuda, y la barra: en el vblank de cada
-; cuadro, detrás del texto, como `eq_barra`. Se suben las filas de la capa
-; del modo —`ti_tramos`, de `ti_marco_filas`— y encima el rectángulo de la
-; barra, de `ti_marco_parches`. Sin acordarse de nada: cada cuadro repone
-; todo, así que ni la barra ni la capa anterior pueden quedar pintadas. Son
-; 1408 bytes, más los de la barra, que con los 1792 del texto entran en el
-; vblank —ver `pantallas.tienda_compacta`—.
+; BG1's windows below the help, and the bar: in each frame's vblank, behind the
+; text, like `eq_barra`. The rows of the mode's layer are uploaded
+; —`ti_tramos`, from `ti_marco_filas`— and on top the bar's rectangle, from
+; `ti_marco_parches`. Without remembering anything: every frame restores
+; everything, so neither the bar nor the previous layer can be left painted. It
+; is 1408 bytes, plus the bar's, which together with the text's 1792 fit in the
+; vblank —see `pantallas.tienda_compacta`—.
 .proc ti_ventanas
 .a8
 .i16
@@ -1168,8 +1168,8 @@ tramo:
 barra:
     sep #$20
 .a8
-    ; El lugar de la barra en su capa: la orden, la fila de la lista que se
-    ; ve, o la cantidad. Los dos "listo" no tienen.
+    ; The bar's place in its layer: the command, the visible list row, or the
+    ; quantity. The two "done" have none.
     lda comp_col
     beq en_principal
     cmp #TI_COMPRAR
@@ -1182,19 +1182,19 @@ barra:
     beq en_cuantos
     rts
 en_cuantos:
-    lda #TI_LISTA_FILAS_COMPRA  ; la de la cantidad, detrás de las de la lista
+    lda #TI_LISTA_FILAS_COMPRA  ; the quantity one, after the list's
     bra con_barra
 en_lista:
     lda comp_mask
-    beq sin_barra               ; la lista vacía no tiene cursor
+    beq sin_barra               ; the empty list has no cursor
     lda comp_base
     sec
     sbc comp_base + 1
     bra con_barra
 en_principal:
-    ; Con un saludo de dos renglones las órdenes bajan uno: ver `orden_pos`.
+    ; With a two-line greeting the commands go down one: see `orden_pos`.
     jsr ti_dos_renglones
-    beq un_renglon              ; y A quedó en cero
+    beq un_renglon              ; and A was left at zero
     lda #1
 un_renglon:
     clc
@@ -1215,16 +1215,16 @@ con_barra:
     and #$00FF
     asl a
     asl a
-    asl a                       ; ocho bytes por barra
+    asl a                       ; eight bytes per bar
     tax
     lda f:ti_barras, x
-    sta temp                    ; la palabra de la VRAM de la fila
+    sta temp                    ; the VRAM word of the row
     lda f:ti_barras + 2, x
     clc
     adc #.loword(ti_marco_parches)
-    sta temp + 2                ; y de dónde sale
+    sta temp + 2                ; and where it comes from
     lda f:ti_barras + 6, x
-    tay                         ; cuántas filas
+    tay                         ; how many rows
     sep #$20
 .a8
     lda #^ti_marco_parches
@@ -1257,7 +1257,7 @@ fila:
 sin_barra:
     rts
 
-; A16 = la capa del modo, `pantallas.TI_CAPA_DE_MODO`. Vuelve con A de 16.
+; A16 = the mode's layer, `pantallas.TI_CAPA_DE_MODO`. Returns with 16-bit A.
 capa:
     lda comp_col
     rep #$20
@@ -1274,8 +1274,8 @@ capa:
 .a8
 .endproc
 
-; La tienda: `ti_tipo`, `ti_juego` y `FAR_TIENDA` con `ti_nt` ítems, puestos
-; por `op_shop`. Vuelve cuando el jugador sale.
+; The shop: `ti_tipo`, `ti_juego` and `FAR_TIENDA` with `ti_nt` items, set by
+; `op_shop`. Returns when the player leaves.
 .proc tienda_pantalla
 .a8
 .i16
@@ -1305,19 +1305,19 @@ empieza:
     jsl f:ba_t_subir
     jsr ti_ventanas
     lda #(RANURA_VRAM / 4096 * 16 + TI_MARCO_VRAM / 4096)
-    jsl f:pantalla_ppu_prender  ; BG2 y BG1, las ventanas con su base
+    jsl f:pantalla_ppu_prender  ; BG2 and BG1, the windows with their base
     lda #1
     sta menu_abierto
 espera:
     jsl f:ba_t_vblank
-    jsl f:ba_t_pad                ; el control antes del DMA: ver el equipo
+    jsl f:ba_t_pad                ; the controller before the DMA: see the equipment screen
     jsl f:ba_t_subir
     jsr ti_ventanas
     lda pad
     eor pad_ant
     and pad
     sta titulo_flancos
-    ; Según el modo. Sin `jmp (tabla, x)` en el ensamblador, una cadena.
+    ; By mode. Without `jmp (tabla, x)` in the assembler, a chain.
     lda comp_col
     bne no_es_principal
     jmp principal
@@ -1334,9 +1334,9 @@ no_es_principal:
 :   cmp #TI_VENDIDO
     bne :+
     jmp listo_trato
-:   jmp comprar                 ; comprar y vender comparten el código
+:   jmp comprar                 ; buying and selling share the code
 
-    ; --- la principal ---
+    ; --- the main mode ---
 principal:
     lda titulo_flancos
     and #PAD_UP
@@ -1380,7 +1380,7 @@ p_entrar:
     jsr ti_modo_poner
     jmp recomponer
 
-    ; --- las listas ---
+    ; --- the lists ---
 comprar:
 vender:
     lda titulo_flancos
@@ -1405,7 +1405,7 @@ l_no_abajo:
     lda titulo_flancos
     and #PAD_B
     beq l_mira_a
-    ; B: a la principal, con el resaludo; sin principal, afuera.
+    ; B: to the main mode, with the re-greeting; without a main mode, out.
     lda comp_col + 1
     beq a_la_principal
     jmp salir
@@ -1414,7 +1414,7 @@ a_la_principal:
     cmp #TI_VENDER
     lda #0
     bcc cursor_listo
-    lda #1                      ; el cursor sobre la orden de donde se vuelve
+    lda #1                      ; the cursor on the command it is returning from
 cursor_listo:
     sta comp_base
     lda #1
@@ -1432,7 +1432,7 @@ l_mira_a:
     bcs l_vender
     jsr ti_item                 ; X = k
     jsr ti_puede
-    beq espera2                 ; en gris: suena y no hace nada
+    beq espera2                 ; grayed out: it plays a sound and does nothing
     lda #TI_CUANTOS_COMPRA
     bra l_cuantos
 l_vender:
@@ -1443,7 +1443,7 @@ l_vender:
     lda comp_or01
     sep #$20
 .a8
-    beq espera2                 ; no vale nada
+    beq espera2                 ; it is worth nothing
     lda #TI_CUANTOS_VENTA
 l_cuantos:
     pha
@@ -1456,7 +1456,7 @@ l_cuantos:
 espera2:
     jmp espera
 
-    ; --- la cantidad ---
+    ; --- the quantity ---
 cuantos:
     lda titulo_flancos
     and #PAD_RIGHT
@@ -1481,10 +1481,10 @@ c_no_arriba:
     beq c_no_abajo
     lda #$F6                    ; -10
 c_sumar:
-    ; Con signo, y topado en [1, ti_max].
+    ; Signed, and capped to [1, ti_max].
     clc
     adc comp_color
-    bmi c_uno                   ; bajó de cero: son 99 como mucho
+    bmi c_uno                   ; went below zero: it is 99 at most
     beq c_uno
     cmp comp_fila
     bcc c_poner
@@ -1517,14 +1517,14 @@ c_mira_a:
     lda #TI_SEGUNDO
     sta comp_glifo
     lda comp_col
-    inc a                       ; CUANTOS_COMPRA -> COMPRADO, y la venta igual
+    inc a                       ; CUANTOS_COMPRA -> COMPRADO, and the selling the same
     sta comp_col
     cmp #TI_VENDIDO
     bne recomponer
-    jsr ti_lista_venta          ; lo vendido puede no estar más
+    jsr ti_lista_venta          ; what was sold may no longer be there
     jmp recomponer
 
-    ; --- el "listo", un segundo ---
+    ; --- the "done", one second ---
 listo_trato:
     dec comp_glifo
     bne espera2
@@ -1539,7 +1539,7 @@ recomponer:
 salir:
     rtl
 
-; Z=0 si A se acaba de apretar.
+; Z=0 if A was just pressed.
 flanco_a:
     lda pad_a
     beq no_a

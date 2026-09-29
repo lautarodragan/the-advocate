@@ -1,35 +1,36 @@
-"""El juego, leído del volcado a JSON de `rom/data/`.
+"""The game, read from the JSON dump in `rom/data/`.
 
-Hasta el 2026-09-14 esto parseaba los binarios de RPG Maker 2000 en cada build
-—ese lector se borró cuando dejó de tener quien lo usara—. Desde
-entonces el formato se lee **una sola vez**, en Ditto, y lo que hay en `rom/data/`
-es el resultado: `maps/MapNNNN.json` con su `.tiles` al lado, `maps.json` con el
-árbol y `db/*.json` con las quince secciones de la base. El porqué está en
-`DITTO.md`; lo que hay adentro de `rom/data/`, en `rom/data/README.md`.
+Until 2026-09-14 this parsed the RPG Maker 2000 binaries on every build
+—that reader was deleted when it no longer had anyone using it—. Since then
+the format is read **only once**, in Ditto, and what is in `rom/data/` is the
+result: `maps/MapNNNN.json` with its `.tiles` beside it, `maps.json` with the
+tree and `db/*.json` with the database's fifteen sections. The why is in
+`DITTO.md`; what is inside `rom/data/`, in `rom/data/README.md`.
 
-**Los consumidores no se enteraron.** Las clases de acá —`Map`, `Database`,
-`TreeMap` y todo lo que cuelga— tienen los mismos atributos que antes, con los
-mismos tipos, y siguen recibiendo la ruta a un `.lmu` o a un `RPG_RT.ldb`: de
-esa ruta sólo se usa **el nombre**, para saber qué mapa es, y el directorio
-sólo si tiene adentro un volcado propio (un `ditto.json`). Los gráficos y el
-audio siguen saliendo del juego de verdad, que es lo que `--game-dir` nombra.
+**The consumers did not notice.** The classes here —`Map`, `Database`,
+`TreeMap` and everything hanging off them— have the same attributes as
+before, with the same types, and still receive the path to a `.lmu` or to an
+`RPG_RT.ldb`: of that path only **the name** is used, to know which map it
+is, and the directory only if it has a dump of its own inside (a
+`ditto.json`). The graphics and the audio still come from the real game,
+which is what `--game-dir` names.
 
-**Y de este archivo no sale ninguna regla del formato.** Lo que hay en `rom/data/`
-es la *vista resuelta* que emite Ditto: **todos los campos escritos**, con su
-default ya aplicado, y los enums como el número que guarda el binario. Así que
-leer es leer: `datos["max_hp"]` y listo. Un campo que falte es un `KeyError`, y
-eso es lo que se quiere —quiere decir que `rom/data/` quedó viejo, no que valga
-cero—.
+**And no rule of the format comes out of this file.** What is in `rom/data/`
+is the *resolved view* Ditto emits: **every field written**, with its default
+already applied, and the enums as the number the binary stores. So reading
+is reading: `datos["max_hp"]` and that's it. A missing field is a
+`KeyError`, and that is what we want —it means `rom/data/` is stale, not that
+it is zero—.
 
-Hasta el 2026-09-20 acá se leía el *volcado exacto* —defaults omitidos, enums
-por nombre— y hacía falta el esquema del formato para entenderlo:
-`ditto_schema.py` y su JSON, que publicaba `ditto schema`. Los dos se fueron
-con este cambio. El volcado exacto se sigue generando, en la misma corrida,
-porque es de donde Ditto rearma el binario; lo que no se versiona más es él.
+Until 2026-09-20 this read the *exact dump* —defaults omitted, enums by
+name— and it needed the format's schema to understand it: `ditto_schema.py`
+and its JSON, published by `ditto schema`. Both went away with this change.
+The exact dump is still generated, in the same run, because it is what Ditto
+rebuilds the binary from; what is no longer versioned is that.
 
-Lo que sí sigue siendo de acá es **adivinar la codificación de un texto**: ver
-`texto`. Eso no es una regla del formato, es lo contrario —el formato no dice
-en qué juego de caracteres está una cadena—.
+What does still belong here is **guessing a text's encoding**: see `texto`.
+That is not a rule of the format, it is the opposite —the format does not
+say which character set a string is in—.
 """
 
 import json
@@ -43,12 +44,12 @@ MANIFIESTO = "ditto.json"
 
 
 def volcado(path):
-    """De dónde se lee: el volcado propio del directorio, o el del repo.
+    """Where to read from: the directory's own dump, or the repo's.
 
-    Los llamadores pasan una ruta adentro del juego original —`--game-dir`—,
-    que es de donde siguen saliendo los PNG y los MIDI. Si ese directorio
-    tiene un volcado de Ditto adentro se usa ése, que es como se lee un juego
-    que no es éste; si no, el de `rom/data/`, que es el del repo.
+    Callers pass a path inside the original game —`--game-dir`—, which is
+    where the PNGs and the MIDIs still come from. If that directory has a
+    Ditto dump inside, that one is used, which is how a game other than this
+    one is read; if not, the one in `rom/data/`, which is the repo's.
     """
     directorio = os.path.dirname(os.path.abspath(path))
     if os.path.isfile(os.path.join(directorio, MANIFIESTO)):
@@ -61,14 +62,14 @@ def leer(*partes):
         return json.load(handle)
 
 
-# --- Acceso a un campo ------------------------------------------------------
+# --- Access to a field ------------------------------------------------------
 #
-# Tres líneas, y ésa es la idea: la vista resuelta trae todos los campos, así
-# que no hay default que aplicar ni enum que traducir. Lo único que queda es el
-# texto, que no es del formato.
+# Three lines, and that is the idea: the resolved view brings every field, so
+# there is no default to apply and no enum to translate. The only thing left
+# is the text, which is not part of the format.
 
 def campo(datos, nombre):
-    """Un campo. Que no esté es un error, no un default."""
+    """A field. Its absence is an error, not a default."""
     valor = datos[nombre]
     return texto(valor) if isinstance(valor, str) else valor
 
@@ -82,29 +83,30 @@ def sub(datos, nombre):
 
 
 def por_id(elementos):
-    """Un array de structs como `{id: elemento}`, que es como se lo indexa.
+    """An array of structs as `{id: element}`, which is how it is indexed.
 
-    En el binario el id es la etiqueta con la que el array nombra a cada
-    elemento; en el JSON es un campo más del objeto.
+    In the binary the id is the tag with which the array names each element;
+    in the JSON it is one more field of the object.
     """
     return {elemento["id"]: elemento for elemento in elementos}
 
 
-# Los cinco bytes que cp1252 no define. Ditto los escribe como su control C1
-# para que la tabla sea una biyección y no se pierda ningún byte; acá son la
-# señal de que ese texto no es cp1252.
+# The five bytes cp1252 does not define. Ditto writes them as their C1 control
+# so the table is a bijection and no byte is lost; here they are the sign that
+# the text is not cp1252.
 C1 = {"\x81": 0x81, "\x8d": 0x8D, "\x8f": 0x8F, "\x90": 0x90, "\x9d": 0x9D}
 
 
 def texto(valor):
-    """Un texto del juego, con los restos del RTP japonés leídos como tales.
+    """A text from the game, with the leftovers of the Japanese RTP read as such.
 
-    ABL se hizo con el RPG Maker 2000 de Don Miguel, así que casi todo es
-    cp1252; un par de mensajes que el autor nunca tocó siguen en Shift-JIS.
-    Ditto los guarda tal cual vinieron —decodificar adivinando le costaría la
-    vuelta exacta, que es lo único que lo hace útil—, así que el que adivina es
-    éste: si el texto trae alguno de los cinco bytes que cp1252 no define, se
-    lo vuelve a armar y se lo lee en Shift-JIS. Son cuatro strings del LDB.
+    ABL was made with Don Miguel's RPG Maker 2000, so almost everything is
+    cp1252; a couple of messages the author never touched are still in
+    Shift-JIS. Ditto stores them as they came —decoding by guessing would
+    cost it the exact round trip, which is the only thing that makes it
+    useful—, so the one who guesses is this: if the text carries any of the
+    five bytes cp1252 does not define, it is reassembled and read as
+    Shift-JIS. They are four strings of the LDB.
     """
     if not any(c in valor for c in C1):
         return valor
@@ -124,17 +126,17 @@ def texto(valor):
 
 
 def to_string(payload):
-    """Lo que queda del lector de binarios: `db.terminos` sigue dando bytes."""
+    """What is left of the binary reader: `db.terminos` still gives bytes."""
     return texto(payload.decode("cp1252", errors="replace"))
 
 
 
-# --- Enums, para nombrarlos en un volcado o en un mensaje -------------------
+# --- Enums, to name them in a dump or in a message --------------------------
 #
-# Los nombres son los de liblcf y el orden es el de sus números. **No se usan
-# para leer nada**: `rom/data/` trae los enums en número, que es lo que el port
-# quiere. Éstas están para nombrarlos —un volcado, un mensaje de error— y para
-# los que hay que recorrer por índice.
+# The names are liblcf's and the order is that of their numbers. **They are
+# not used to read anything**: `rom/data/` brings the enums as numbers, which
+# is what the port wants. These are here to name them —a dump, an error
+# message— and for the ones that have to be walked by index.
 
 DIRECTIONS = ("up", "right", "down", "left")
 PATTERNS = ("left", "middle", "right", "middle2")
@@ -148,30 +150,30 @@ MOVE_SPEEDS = (None, "eighth", "quarter", "half", "normal", "double", "fourfold"
 COMPARISONS = ("equal", "greater_equal", "less_equal",
                "greater", "less", "not_equal")
 
-# Las condiciones de una página, en el orden de sus bits. `timer2` sólo existe
-# en RPG Maker 2003: en un archivo de 2000 no tiene bit y nunca está prendida.
+# A page's conditions, in the order of their bits. `timer2` only exists in
+# RPG Maker 2003: in a 2000 file it has no bit and is never on.
 CONDITION_NAMES = ("switch_a", "switch_b", "variable", "item",
                    "actor", "timer", "timer2")
-# Y con qué campo se contesta cada una. El de `timer` es su cantidad de
-# segundos, que es lo que el formato guarda; `timer2` es de 2003 y no está.
+# And which field answers each one. `timer`'s is its number of seconds,
+# which is what the format stores; `timer2` is from 2003 and is not there.
 CONDITION_CAMPOS = {"switch_a": "switch_a_id", "switch_b": "switch_b_id",
                     "variable": "variable_id", "item": "item_id",
                     "actor": "actor_id", "timer": "timer_sec"}
-# `compare_operator` es el chunk 0x0A de `EventPageCondition` y **es de RPG
-# Maker 2003** (liblcf, `generator/csv/fields.csv`: "Integer - RPG2003").
-# Ditto apunta a 2000 y no lo genera, así que en este juego nunca está escrito
-# y vale siempre su default, que esa misma línea da en 1.
+# `compare_operator` is chunk 0x0A of `EventPageCondition` and **belongs to
+# RPG Maker 2003** (liblcf, `generator/csv/fields.csv`: "Integer - RPG2003").
+# Ditto targets 2000 and does not generate it, so in this game it is never
+# written and always holds its default, which that same line gives as 1.
 CONDITION_OPERATOR_DEFAULT = 1
 
 
-# --- Los tipos del juego ---------------------------------------------------
+# --- The game's types -------------------------------------------------------
 
 class EventCommand:
-    """Una línea del script de una página.
+    """One line of a page's script.
 
-    El formato es uniforme para los ~130 comandos de RM2k, así que se pueden
-    leer todos sin saber qué hace cada código: código, sangría, un string y una
-    lista de enteros. Interpretarlos es harina de otro costal.
+    The format is uniform for RM2k's ~130 commands, so all of them can be
+    read without knowing what each code does: code, indent, a string and a
+    list of integers. Interpreting them is a different matter.
     """
 
     __slots__ = ("code", "indent", "string", "parameters")
@@ -183,23 +185,23 @@ class EventCommand:
         self.parameters = parameters
 
 
-# Los cuadros de texto rearmados para otra pantalla: una función que recibe
-# los comandos de una página tal como están en el JSON y devuelve otros. El
-# port pone `textos.reajustar_comandos`; el lector no sabe de pantallas, y
-# sin nadie que la ponga el juego se lee tal cual.
+# Text boxes rebuilt for another screen: a function that receives a page's
+# commands as they are in the JSON and returns different ones. The port sets
+# `textos.reajustar_comandos`; the reader knows nothing about screens, and
+# with nobody setting it the game is read as is.
 #
-# Es un paso aparte de `rom/parches/`, y corre después: lee lo que sea que haya
-# quedado, y un cuadro que ya entra lo deja como está. Así un texto corregido a
-# mano en un fork de `rom/parches/manual/` gana siempre.
+# It is a step separate from `rom/parches/`, and runs after it: it reads
+# whatever is left, and a box that already fits is left as it is. That way a
+# text corrected by hand in a fork under `rom/parches/manual/` always wins.
 #
-# Se aplica a las páginas de los mapas y a los eventos comunes, y no a las de
-# las tropas: la ventana de la pelea tiene otro ancho.
+# It applies to the maps' pages and to the common events, and not to the
+# troops': the battle window has a different width.
 REAJUSTAR_TEXTOS = None
 
 
 def comandos(datos, reajustar=False):
-    """La lista de comandos de una página o de un evento común. Con
-    `reajustar`, pasados por REAJUSTAR_TEXTOS si alguien la puso."""
+    """The command list of a page or a common event. With `reajustar`, run
+    through REAJUSTAR_TEXTOS if someone set it."""
     crudos = lista(datos, "event_commands")
     if reajustar and REAJUSTAR_TEXTOS:
         crudos = REAJUSTAR_TEXTOS(crudos)
@@ -211,18 +213,19 @@ def comandos(datos, reajustar=False):
 
 
 def comandos_escritos(datos):
-    """Lo mismo, pero de una lista **escrita a mano**: `rom/pruebas/casos/*.json`.
+    """The same, but from a list **written by hand**: `rom/pruebas/casos/*.json`.
 
-    Esos archivos no salen de `rom/data/`: los escribimos nosotros, y por eso
-    están en la taquigrafía que se puede escribir —el comando por su nombre,
-    `ShowMessage`, y sólo los campos que dicen algo—. Un caso convertido a la
-    vista resuelta sería ilegible y nadie lo editaría, así que la taquigrafía
-    se queda y lo que se le pone al lado es este lector, que son seis líneas.
+    Those files do not come from `rom/data/`: we write them, and that is why
+    they are in the shorthand that can be written —the command by its name,
+    `ShowMessage`, and only the fields that say something—. A case converted
+    to the resolved view would be unreadable and nobody would edit it, so the
+    shorthand stays and what goes beside it is this reader, which is six
+    lines.
 
-    Los tres campos que faltan valen lo obvio —sangría 0, sin texto, sin
-    parámetros— y no hay esquema que consultar: el único dato de afuera es el
-    número de cada nombre, que sale de `event_codes.json`, la tabla de liblcf
-    que se queda justamente para esto y para los mensajes de error.
+    The three missing fields take the obvious values —indent 0, no text, no
+    parameters— and there is no schema to consult: the only outside data is
+    each name's number, which comes from `event_codes.json`, the liblcf table
+    that stays precisely for this and for error messages.
     """
     numero = {nombre: codigo for codigo, nombre in EVENT_CODES.items()}
     return [EventCommand(numero[c["code"]] if isinstance(c["code"], str)
@@ -232,19 +235,19 @@ def comandos_escritos(datos):
             for c in datos["event_commands"]]
 
 
-# Si no es None, el nombre del CharSet de una página translúcida pasa por acá
-# y para quien lo lea es otro gráfico. Lo prende el port —ver
-# `rm2k.decorar_translucido`— y no el lector: el volcado a JSON tiene que
-# seguir viendo el nombre de verdad.
+# If not None, the CharSet name of a translucent page goes through here and,
+# for whoever reads it, it is a different graphic. The port turns it on —see
+# `rm2k.decorar_translucido`— and not the reader: the JSON dump has to keep
+# seeing the real name.
 #
-# Recibe también **dónde está parado el evento** (mapa, x, y), porque el
-# horneado necesita el fondo real de esa celda; por eso no se decora en la
-# página, que no lo sabe, sino en el evento.
+# It also receives **where the event stands** (map, x, y), because the baking
+# needs the real background of that cell; that is why it is decorated not on
+# the page, which does not know it, but on the event.
 DECORAR_TRANSLUCIDO = None
 
 
 class EventPageCondition:
-    """Lo que tiene que pasar para que esta página sea la activa."""
+    """What has to happen for this page to be the active one."""
 
     def __init__(self, datos):
         flags = sub(datos, "flags")
@@ -260,11 +263,11 @@ class EventPageCondition:
 
 
 class MoveRoute:
-    """La ruta propia de una página: las órdenes, si se repite y si una orden
-    bloqueada se saltea.
+    """A page's own route: the commands, whether it repeats and whether a
+    blocked command is skipped.
 
-    De cada orden se guarda sólo el código; ninguna de las cuatro que llevan
-    operandos se ejecuta.
+    Of each command only the code is kept; none of the four that take
+    operands is executed.
     """
 
     def __init__(self, datos):
@@ -275,7 +278,7 @@ class MoveRoute:
 
 
 class EventPage:
-    """Una de las versiones que puede adoptar un evento."""
+    """One of the versions an event can take."""
 
     def __init__(self, datos):
         self.character_name = campo(datos, "character_name")
@@ -305,19 +308,20 @@ class Event:
         self.pages = [EventPage(p) for _, p
                       in sorted(por_id(lista(datos, "pages")).items())]
         if DECORAR_TRANSLUCIDO:
-            # Ver DECORAR_TRANSLUCIDO: para el port, un CharSet translúcido es
-            # otro gráfico, y si va horneado también depende de dónde está.
+            # See DECORAR_TRANSLUCIDO: for the port, a translucent CharSet is
+            # a different graphic, and if it is baked it also depends on
+            # where it stands.
             for page in self.pages:
                 if page.translucent and page.character_name:
                     page.character_name = DECORAR_TRANSLUCIDO(
                         page.character_name, map_id, self.x, self.y)
 
     def active_page(self):
-        """La página que mostraría el motor en una partida recién empezada.
+        """The page the engine would show in a freshly started game.
 
-        RM2k usa la página de número más alto cuyas condiciones se cumplen
-        todas. Sin switches ni variables seteadas, eso es la última página que
-        no tiene ninguna condición. Puede no haber ninguna.
+        RM2k uses the highest-numbered page whose conditions are all met.
+        With no switches or variables set, that is the last page that has no
+        condition at all. There may be none.
         """
         for page in reversed(self.pages):
             if page.unconditional:
@@ -326,12 +330,12 @@ class Event:
 
 
 def capas(path, datos, ancho, alto):
-    """Las dos capas de tiles, del `.tiles` de al lado o del propio JSON.
+    """The two tile layers, from the `.tiles` beside it or from the JSON itself.
 
-    Ditto las saca del JSON y las escribe como una grilla de texto, una fila
-    por línea, para que un tile cambiado se vea en el diff donde está en el
-    mapa. Una capa que no entre en una grilla de `ancho * alto` se queda
-    adentro del JSON, así que hay que mirar los dos lados.
+    Ditto takes them out of the JSON and writes them as a text grid, one row
+    per line, so that a changed tile shows up in the diff where it is on the
+    map. A layer that does not fit in an `ancho * alto` grid stays inside the
+    JSON, so both sides have to be looked at.
     """
     if not os.path.isfile(path):
         return (campo(datos, "lower_layer") or [],
@@ -347,23 +351,24 @@ def capas(path, datos, ancho, alto):
             todas[-1].extend(int(t) for t in linea.split())
     esperado = ancho * alto
     if len(todas) != 2 or any(len(c) != esperado for c in todas):
-        raise ValueError("%s: %s tiles para un mapa de %dx%d"
+        raise ValueError("%s: %s tiles for a %dx%d map"
                          % (path, [len(c) for c in todas], ancho, alto))
     return todas[0], todas[1]
 
 
 class Map:
     def __init__(self, path):
-        # El número de mapa no está adentro del archivo: sale del nombre, que
-        # es de donde lo saca todo el resto del port. Lo necesitan los eventos
-        # translúcidos horneados, que llevan en el nombre de su gráfico dónde
-        # están parados.
+        # The map number is not inside the file: it comes from the name,
+        # which is where the whole rest of the port gets it from. The baked
+        # translucent events need it, since they carry in their graphic's
+        # name where they stand.
         base = os.path.basename(path)
         self.map_id = int(base[3:7]) if base[3:7].isdigit() else 0
         raiz = volcado(path)
-        # El fork es sólo de **este** juego: un juego ajeno se lee pasándole su
-        # propio volcado, y ahí `rom/parches/manual/` no pinta nada.
-        # Y lo mismo un mapa que el juego no tiene: ver `fork.nuevos`.
+        # The fork belongs only to **this** game: another game is read by
+        # passing it its own dump, and there `rom/parches/manual/` has no
+        # say. And the same for a map the game does not have: see
+        # `fork.nuevos`.
         forkeado = ((fork.mapa(self.map_id) or fork.nuevo(self.map_id))
                     if raiz == proyecto.data() else None)
         if forkeado:
@@ -394,11 +399,12 @@ class Map:
 
 
 def passability(datos, nombre):
-    """La transitabilidad de un chipset: un byte por tile.
+    """A chipset's passability: one byte per tile.
 
-    El chipset que no la trae la tiene igual —15 es transitable por los cuatro
-    lados y por debajo del héroe, y el 31 del primer tile alto lo pone por
-    encima—, y eso ya viene resuelto de `rom/data/`: acá no hay nada que completar.
+    A chipset that does not carry it has it anyway —15 is passable from all
+    four sides and below the hero, and the 31 of the first upper tile puts it
+    above—, and that already comes resolved from `rom/data/`: there is
+    nothing to fill in here.
     """
     return bytes(campo(datos, nombre))
 
@@ -414,15 +420,16 @@ class Chipset:
         self.animation_speed = campo(datos, "animation_speed")
 
 
-# Las cinco ranuras de equipo, en el orden en que las numera el port.
+# The five equipment slots, in the order the port numbers them.
 RANURAS_EQUIPO = ("weapon_id", "shield_id", "armor_id", "helmet_id",
                   "accessory_id")
-# Y las seis curvas de `Parameters`, en el orden del formato.
+# And the six curves of `Parameters`, in the format's order.
 CURVAS = ("maxhp", "maxsp", "attack", "defense", "spirit", "agility")
 
 
 class Actor:
-    """Un personaje de la base: de acá sale con qué gráfico se lo dibuja."""
+    """A character from the database: this is where the graphic it is drawn
+    with comes from."""
 
     def __init__(self, datos):
         self.name = campo(datos, "name")
@@ -430,56 +437,55 @@ class Actor:
         self.charset_index = campo(datos, "character_index")
         self.face_name = campo(datos, "face_name")
         self.face_index = campo(datos, "face_index")
-        # Los parámetros por nivel, desde el 1: `maxhp`, `attack`, `defense`,
-        # `spirit`, `agility`, cada uno una lista.
+        # The parameters per level, from 1: `maxhp`, `attack`, `defense`,
+        # `spirit`, `agility`, each one a list.
         parametros = sub(datos, "parameters")
         self.params = {c: campo(parametros, c) or []
                        for c in CURVAS}
         self.hp_max = self.params.get("maxhp", [])
         self.sp_max = self.params.get("maxsp", [])
-        # **El nivel con el que arranca**, que en el ABL no es el 1: Kersh
-        # arranca en 20 y Core y Manta en 15. Hasta el 2026-09-13 este port
-        # tenía a todos en 1 —una constante `titulo.NIVEL`— y de ahí salían los
-        # HP, los parámetros y la conclusión de que nadie sabía ninguna
-        # habilidad.
+        # **The level it starts at**, which in ABL is not 1: Kersh starts at
+        # 20 and Core and Manta at 15. Until 2026-09-13 this port had
+        # everyone at 1 —a constant `titulo.NIVEL`— and from that came the
+        # HP, the parameters and the conclusion that nobody knew any skill.
         self.initial_level = campo(datos, "initial_level") or 1
-        # Hasta dónde sube y con qué curva de experiencia: los tres números de
-        # `Game_Actor::CalculateExp`. Ver `port.experiencia`.
+        # How high it goes and with which experience curve: the three
+        # numbers of `Game_Actor::CalculateExp`. See `port.experiencia`.
         self.final_level = campo(datos, "final_level")
         self.exp_base = campo(datos, "exp_base")
         self.exp_inflation = campo(datos, "exp_inflation")
         self.exp_correction = campo(datos, "exp_correction")
-        # Qué habilidad aprende en cada nivel, en el orden del LDB:
-        # `Game_Actor::LearnLevelSkills` las recorre así.
-        # `skill_id` vale **1** cuando el archivo no lo trae, que es lo que
-        # dice el formato: es el único dato del juego que cambió al mudarse a
-        # Ditto. Alex —el actor 1, del RTP, que este juego no usa— aprende la
-        # habilidad 1 en el nivel 1, y antes eso llegaba como la 0 y se caía.
-        # Es un par más de `eventos.HABILIDAD_RANURA`; sin eso el `mapdata.inc`
-        # es idéntico.
+        # Which skill it learns at each level, in the LDB's order:
+        # `Game_Actor::LearnLevelSkills` walks them that way.
+        # `skill_id` is **1** when the file does not carry it, which is what
+        # the format says: it is the only game datum that changed when moving
+        # to Ditto. Alex —actor 1, from the RTP, which this game does not
+        # use— learns skill 1 at level 1, and before that arrived as skill 0
+        # and was dropped. It is one more pair in `eventos.HABILIDAD_RANURA`;
+        # other than that the `mapdata.inc` is identical.
         self.skills = [(campo(l, "level"),
                         campo(l, "skill_id"))
                        for _, l in sorted(por_id(lista(datos, "skills")).items())]
-        # Cómo se llama su orden de habilidades en el menú de batalla:
-        # `Game_Actor::GetSkillName` devuelve `skill_name` si `rename_skill`
-        # está puesto y si no el `command_skill` del LDB. Los cuatro actores de
-        # la intro lo tienen puesto: "AgentTrain", "Telepathy", "Slicing" y
+        # What its skill command is called in the battle menu:
+        # `Game_Actor::GetSkillName` returns `skill_name` if `rename_skill`
+        # is set and otherwise the LDB's `command_skill`. The four actors of
+        # the intro have it set: "AgentTrain", "Telepathy", "Slicing" and
         # "Special".
         self.rename_skill = campo(datos, "rename_skill")
         self.skill_name = campo(datos, "skill_name")
-        # El equipo con el que arranca: arma, escudo, armadura, casco y
-        # accesorio, por número de ítem, 0 si nada.
+        # The equipment it starts with: weapon, shield, armor, helmet and
+        # accessory, by item number, 0 if none.
         equipo = sub(datos, "initial_equipment")
         self.initial_equipment = [campo(equipo, r)
                                   for r in RANURAS_EQUIPO]
 
 
-# Los tipos de habilidad, en el orden de `rpg::Skill::Type`. Las siete que el
-# grupo de la intro sabe son `normal` o `switch`.
+# The skill types, in the order of `rpg::Skill::Type`. The seven the intro's
+# party knows are `normal` or `switch`.
 SKILL_TIPO_NORMAL, SKILL_TIPO_TELEPORT, SKILL_TIPO_ESCAPE, \
     SKILL_TIPO_SWITCH, SKILL_TIPO_SUBSKILL = range(5)
-# Y los alcances, `rpg::Skill::Scope`. `SkillTargetsEnemies` de algo.h es
-# "enemy o enemies"; todo lo demás apunta al propio bando.
+# And the scopes, `rpg::Skill::Scope`. `SkillTargetsEnemies` in algo.h is
+# "enemy or enemies"; everything else targets one's own side.
 SKILL_SCOPE_ENEMIGO, SKILL_SCOPE_ENEMIGOS, SKILL_SCOPE_UNO_MISMO, \
     SKILL_SCOPE_ALIADO, SKILL_SCOPE_GRUPO = range(5)
 
@@ -491,18 +497,18 @@ SKILL_CAMPOS = ("name", "description", "using_message1", "using_message2",
 
 
 class Skill:
-    """Una habilidad: lo que la pantalla muestra y lo que la cuenta necesita.
+    """A skill: what the screen shows and what the calculation needs.
 
-    Los defaults no son todos cero —`magical_rate` vale 3, `variance` 4, `hit`
-    100, `switch_id` y `animation_id` 1— y ya no están escritos acá: salen del
-    esquema, que es de donde tienen que salir.
+    The defaults are not all zero —`magical_rate` is 3, `variance` 4, `hit`
+    100, `switch_id` and `animation_id` 1— and they are no longer written
+    here: they come from the schema, which is where they have to come from.
     """
 
     def __init__(self, datos):
         for nombre in SKILL_CAMPOS:
             setattr(self, nombre, campo(datos, nombre))
-        # Su número, que la lista de acciones de un enemigo necesita para
-        # nombrarla: ver `batalla.acciones_de_enemigo`.
+        # Its number, which an enemy's action list needs to name it: see
+        # `batalla.acciones_de_enemigo`.
         self.id = campo(datos, "id")
 
     @property
@@ -511,7 +517,7 @@ class Skill:
         return self.scope in (SKILL_SCOPE_ENEMIGO, SKILL_SCOPE_ENEMIGOS)
 
 
-# Los tipos de ítem, en el orden de `rpg::Item::Type`.
+# The item types, in the order of `rpg::Item::Type`.
 ITEM_TIPO_COMUN, ITEM_TIPO_ARMA, ITEM_TIPO_ESCUDO, ITEM_TIPO_ARMADURA, \
     ITEM_TIPO_CASCO, ITEM_TIPO_ACCESORIO, ITEM_TIPO_MEDICINA, \
     ITEM_TIPO_LIBRO, ITEM_TIPO_MATERIAL, ITEM_TIPO_UNICO, \
@@ -521,19 +527,20 @@ ITEM_CAMPOS = ("name", "description", "type", "uses", "switch_id",
                "occasion_field2", "price", "two_handed", "recover_hp_rate",
                "recover_hp", "occasion_field1", "ko_only",
                "recover_sp_rate", "recover_sp", "sp_cost")
-# Lo que suma al equipárselo: ataque, defensa, espíritu, agilidad.
+# What it adds when equipped: attack, defense, spirit, agility.
 ITEM_PUNTOS = ("atk_points1", "def_points1", "spi_points1", "agi_points1")
 
 
 class Item:
-    """Un ítem: lo que el menú muestra de él y lo poco que hace hoy.
+    """An item: what the menu shows of it and the little it does today.
 
-    `recover_hp_rate` es por ciento del máximo y `recover_hp` es a secas, y
-    lo mismo los de SP; `occasion_field1` es "sólo fuera de batalla" y
-    `ko_only` "sólo sobre un muerto". `state_set` son los estados que saca,
-    uno por estado del LDB desde el 1, que es el de muerto: es lo que decide
-    si levanta a un caído. Ver `batalla.item_usable_en_batalla` y
-    `medicina_usar` en tools/runtime/medicina.s.
+    `recover_hp_rate` is a percentage of the maximum and `recover_hp` is
+    absolute, and the same for the SP ones; `occasion_field1` is "only
+    outside battle" and `ko_only` "only on a dead one". `state_set` are the
+    states it removes, one per LDB state from 1, which is the dead one: it is
+    what decides whether it revives a fallen one. See
+    `batalla.item_usable_en_batalla` and `medicina_usar` in
+    tools/runtime/medicina.s.
     """
 
     def __init__(self, datos):
@@ -544,8 +551,8 @@ class Item:
         self.state_set = campo(datos, "state_set") or []
 
     def equipable_por(self, actor):
-        """`actor_set`, con los que no alcanza la lista en sí: es lo que
-        hace RM2k con un ítem que se hizo antes de agregar actores."""
+        """`actor_set`, with the ones the list itself does not reach: that is
+        what RM2k does with an item made before actors were added."""
         return self.actor_set[actor - 1] if actor - 1 < len(self.actor_set) \
             else True
 
@@ -556,25 +563,26 @@ ENEMY_CAMPOS = ("name", "battler_name", "battler_hue", "max_hp", "max_sp", "atta
 
 
 class Enemy:
-    """Un enemigo: sus parámetros y con qué acierta.
+    """An enemy: its parameters and what it hits with.
 
-    `miss` y `critical_hit` salen de `Game_Enemy::GetHitChance` y
-    `Game_Enemy::GetCriticalHitChance` de easyrpg-player: el que falla acierta
-    70 de 100 y el que no, 90, y el crítico es una vez cada
-    `critical_hit_chance`.
+    `miss` and `critical_hit` come from easyrpg-player's
+    `Game_Enemy::GetHitChance` and `Game_Enemy::GetCriticalHitChance`: the
+    one that misses hits 70 out of 100 and the one that does not, 90, and the
+    critical is once every `critical_hit_chance`.
 
-    Los seis parámetros valen **10** cuando el archivo no los trae, que es lo
-    que dice el formato. Acá estaban escritos en 1 y 0, y no era una diferencia
-    teórica: taro encontró el 2026-09-14, jugando, que el DirtShadow moría de
-    un golpe. Son 24 enemigos de los 175, casi todos separadores del editor,
-    pero el DirtShadow es uno de verdad. Es el error que originó a Ditto.
+    The six parameters are **10** when the file does not carry them, which is
+    what the format says. Here they were written as 1 and 0, and it was not a
+    theoretical difference: taro found on 2026-09-14, playing, that the
+    DirtShadow died in one hit. They are 24 enemies out of 175, almost all
+    editor separators, but the DirtShadow is a real one. It is the error that
+    gave rise to Ditto.
     """
 
     def __init__(self, datos):
         for nombre in ENEMY_CAMPOS:
             setattr(self, nombre, campo(datos, nombre))
         self.critical_hit_chance = campo(datos, "critical_hit_chance") or 30
-        # Lo que puede hacer en su turno, en el orden del LDB: ver
+        # What it can do on its turn, in the LDB's order: see
         # `batalla.acciones_de_enemigo`.
         self.actions = [EnemyAction(a) for _, a in
                         sorted(por_id(lista(datos, "actions")).items())]
@@ -591,9 +599,9 @@ ENEMY_ACTION_CAMPOS = ("kind", "basic", "skill_id", "rating",
 
 
 class EnemyAction:
-    """Una acción de la lista de un enemigo: `lcf::rpg::EnemyAction`. `kind`
-    0 es básica —`basic` 0 es atacar—, 1 una habilidad y 2 transformarse; el
-    `rating` es el peso que `EnemyAi` le da al elegir."""
+    """An action from an enemy's list: `lcf::rpg::EnemyAction`. `kind` 0 is
+    basic —`basic` 0 is attack—, 1 a skill and 2 transform; the `rating` is
+    the weight `EnemyAi` gives it when choosing."""
 
     def __init__(self, datos):
         for nombre in ENEMY_ACTION_CAMPOS:
@@ -601,11 +609,11 @@ class EnemyAction:
 
 
 class Troop:
-    """Una tropa: qué enemigos la forman y dónde va cada uno.
+    """A troop: which enemies make it up and where each one goes.
 
-    Las posiciones (x, y) son del **centro** de cada battler en la pantalla de
-    320x240 de RM2k. Las páginas de evento de la tropa van en `pages`, en el
-    orden del LDB, que es el orden en que `ScheduleNextPage` las prueba.
+    The positions (x, y) are of the **center** of each battler on RM2k's
+    320x240 screen. The troop's event pages go in `pages`, in the LDB's
+    order, which is the order in which `ScheduleNextPage` tries them.
     """
 
     def __init__(self, datos):
@@ -616,26 +624,27 @@ class Troop:
         self.posiciones = [(campo(m, "x"),
                             campo(m, "y"))
                            for _, m in miembros]
-        # Los que empiezan ocultos, en el mismo orden: `invisible`, que
-        # `Game_Enemy` copia con `SetHidden` y saca `ShowHiddenMonster`.
+        # The ones that start hidden, in the same order: `invisible`, which
+        # `Game_Enemy` copies with `SetHidden` and `ShowHiddenMonster`
+        # removes.
         self.ocultos = [bool(campo(m, "invisible")) for _, m in miembros]
         self.pages = [TroopPage(p) for _, p in
                       sorted(por_id(lista(datos, "pages")).items())]
 
 
-# Los disparadores de una página de tropa, con los nombres de liblcf
-# (`TroopPageCondition::Flags`). Los de 2003 —`turn_enemy`, `turn_actor`,
-# `command_actor`— no están en el volcado de un juego de 2000.
+# The triggers of a troop page, with liblcf's names
+# (`TroopPageCondition::Flags`). The 2003 ones —`turn_enemy`, `turn_actor`,
+# `command_actor`— are not in the dump of a 2000 game.
 TROPA_DISPARADORES = ("switch_a", "switch_b", "variable", "turn", "fatigue",
                       "enemy_hp", "actor_hp")
 
 
 class TroopPage:
-    """Una página de evento de tropa: cuándo corre y qué hace.
+    """A troop event page: when it runs and what it does.
 
-    `activos` son los disparadores prendidos; los números con que se contesta
-    cada uno quedan en `condicion`, que es el objeto del volcado tal cual: son
-    muchos campos y cada uno lo lee sólo quien lo necesita.
+    `activos` are the triggers that are on; the numbers that answer each one
+    stay in `condicion`, which is the dump's object as is: they are many
+    fields and each is read only by whoever needs it.
     """
 
     def __init__(self, datos):
@@ -646,22 +655,22 @@ class TroopPage:
         self.commands = comandos(datos)
 
 
-# Las quince secciones del LDB, cada una en su archivo. Los nombres son los
-# campos de `Database`, que es como se llaman los archivos de `db/`.
+# The LDB's fifteen sections, each in its own file. The names are the fields
+# of `Database`, which is what the files in `db/` are called.
 SECCIONES = ("actors", "skills", "items", "enemies", "troops", "terrains",
              "attributes", "states", "animations", "chipsets", "terms",
              "system", "switches", "variables", "commonevents")
-# Y las que son una lista de elementos numerados; `system` y `terms` son un
-# objeto solo.
+# And the ones that are a list of numbered elements; `system` and `terms` are
+# a single object.
 SECCIONES_LISTA = tuple(s for s in SECCIONES if s not in ("system", "terms"))
 
-# Los efectos de sonido que `Game_System::GetSystemSE` reparte, en el orden que
-# recorre `eventos.AUDIO_BATALLA_SE`.
+# The sound effects `Game_System::GetSystemSE` hands out, in the order
+# `eventos.AUDIO_BATALLA_SE` walks.
 SYSTEM_SE = ("battle_se", "escape_se", "enemy_attack_se", "enemy_damaged_se",
              "actor_damaged_se", "dodge_se", "enemy_death_se", "item_se")
 
-# Los términos que el port usa por nombre. El resto sigue estando en
-# `db.terminos`, por chunk, que es como los pide la tienda.
+# The terms the port uses by name. The rest are still in `db.terminos`, by
+# chunk, which is how the shop asks for them.
 TERM_MENU = ("command_item", "command_skill", "menu_equipment", "menu_save",
              "menu_quit")
 TERM_PARAMS = ("attack", "defense", "spirit", "agility")
@@ -677,11 +686,11 @@ TERM_SUELTOS = {
 
 
 def temas_del_sistema(path):
-    """Los nombres de los temas del `System` del LDB en `path`: el del título,
-    el de la pelea, el de Game Over, los de los vehículos...
+    """The names of the songs in the LDB's `System` at `path`: the title's,
+    the battle's, Game Over's, the vehicles'...
 
-    Sin cargar la base entera, que es lo que necesita `snes_music`: numerar
-    las pistas de MSU-1 no tiene por qué leer los actores.
+    Without loading the whole database, which is what `snes_music` needs:
+    numbering the MSU-1 tracks has no reason to read the actors.
     """
     sistema = leer(volcado(path), "db", "system.json")
     return sorted({texto(valor["name"]) for nombre, valor in sistema.items()
@@ -689,16 +698,16 @@ def temas_del_sistema(path):
 
 
 def sonido(datos):
-    """Un `Music` o un `Sound` como la tupla que espera el port."""
+    """A `Music` or a `Sound` as the tuple the port expects."""
     return (campo(datos, "name"), campo(datos, "volume"),
             campo(datos, "tempo"), campo(datos, "balance"))
 
 
 class Database:
-    """RPG_RT.ldb: los chipsets, los personajes y el grupo con el que se arranca.
+    """RPG_RT.ldb: the chipsets, the characters and the starting party.
 
-    Del `path` sólo se usa el directorio, y sólo para saber si trae un volcado
-    propio: los datos salen de `db/` del volcado.
+    Of the `path` only the directory is used, and only to know whether it
+    carries a dump of its own: the data come from the dump's `db/`.
     """
 
     def __init__(self, path):
@@ -706,149 +715,155 @@ class Database:
         self.secciones = {s: leer(raiz, "%s.json" % s) for s in SECCIONES}
 
         crudas = {s: por_id(self.secciones[s]) for s in SECCIONES_LISTA}
-        # Los ChipSets que agrega `rom/parches/manual/`. Se **suman**: un id que ya
-        # esté en la base es un error, porque un fork que pisa una entrada
-        # envejece sin avisar el día que `just datos` la cambie. Ver `fork.py`.
+        # The ChipSets `rom/parches/manual/` adds. They **are added**: an id
+        # already in the database is an error, because a fork that overwrites
+        # an entry goes stale without warning the day `just datos` changes
+        # it. See `fork.py`.
         if raiz == os.path.join(proyecto.data(), "db"):
             for numero, datos in fork.chipsets().items():
                 if numero in crudas["chipsets"]:
                     raise ValueError(
-                        "el ChipSet %d ya está en rom/data/: el fork agrega, no "
-                        "reemplaza" % numero)
+                        "ChipSet %d is already in rom/data/: the fork adds, "
+                        "it does not replace" % numero)
                 crudas["chipsets"][numero] = datos["chipset"]
         self.chipsets = {i: Chipset(f) for i, f in crudas["chipsets"].items()}
         self.actors = {i: Actor(f) for i, f in crudas["actors"].items()}
-        # Los ítems, y el número más alto: `ITEMS_N` en eventos.py es éste
-        # más uno, y test_items.py lo comprueba.
+        # The items, and the highest number: `ITEMS_N` in eventos.py is this
+        # plus one, and test_items.py checks it.
         self.items = {i: Item(f) for i, f in crudas["items"].items()}
-        # Las habilidades, que `lcf.Actor.skills` nombra por número.
+        # The skills, which `lcf.Actor.skills` names by number.
         self.skills = {i: Skill(f) for i, f in crudas["skills"].items()}
         self.items_max = max(self.items, default=0)
-        # Los enemigos y las tropas: lo que una batalla necesita.
+        # The enemies and the troops: what a battle needs.
         self.enemies = {i: Enemy(f) for i, f in crudas["enemies"].items()}
         self.troops = {i: Troop(f) for i, f in crudas["troops"].items()}
-        # El fondo de batalla de cada terreno: el de una pelea en un mapa que
-        # no nombra el suyo. Ver `TreeMap.map_background`.
+        # Each terrain's battle background: the one for a battle on a map
+        # that does not name its own. See `TreeMap.map_background`.
         self.terrain_backdrops = {i: campo(f, "background_name") or ""
                                   for i, f in crudas["terrains"].items()}
-        # Los eventos comunes, que antes se leían del chunk crudo: acá ya son
-        # sus comandos, que es lo único que se les pide.
+        # The common events, which used to be read from the raw chunk: here
+        # they are already their commands, which is the only thing asked of
+        # them.
         self.common_events = {
             i: comandos(f, reajustar=True)
             for i, f in crudas["commonevents"].items()}
-        # Y cuándo corre cada uno por su cuenta: `(trigger, switch_flag,
-        # switch_id)`, con el `trigger` de `rpg::CommonEvent` —3 automático,
-        # 4 paralelo, 5 sólo por `CallEvent`—. Ver `eventos.COMUNES_DEL_EQUIPO`.
+        # And when each one runs on its own: `(trigger, switch_flag,
+        # switch_id)`, with the `trigger` of `rpg::CommonEvent` —3 automatic,
+        # 4 parallel, 5 only through `CallEvent`—. See
+        # `eventos.COMUNES_DEL_EQUIPO`.
         self.common_event_triggers = {
             i: (campo(f, "trigger"), campo(f, "switch_flag"),
                 campo(f, "switch_id"))
             for i, f in crudas["commonevents"].items()}
 
-        # El grupo con el que empieza la partida. En RM2k el gráfico del héroe
-        # es el del primero de la lista, así que este dato es el que decide con
-        # qué sprite se dibuja.
+        # The party the game starts with. In RM2k the hero's graphic is that
+        # of the first one in the list, so this datum is what decides which
+        # sprite it is drawn with.
         sistema = self.secciones["system"]
         self.party = campo(sistema, "party") or []
-        # El System del juego: el PNG con el marco de la ventana, los colores
-        # de texto y la sombra. Este juego usa `ablskin`.
+        # The game's System: the PNG with the window frame, the text colors
+        # and the shadow. This game uses `ablskin`.
         self.system_name = campo(sistema, "system_name")
-        # Con qué fuente dibuja el texto: 0 Gothic, 1 Mincho. easyrpg elige
-        # ttyp0 o rmg2000 con esto, y las letras salen distintas. Este juego
-        # pide Mincho.
+        # Which font it draws text with: 0 Gothic, 1 Mincho. easyrpg picks
+        # ttyp0 or rmg2000 with this, and the letters come out different.
+        # This game asks for Mincho.
         self.font_id = campo(sistema, "font_id")
-        # La imagen de la pantalla de título y su tema. En el ABL son
-        # 'ABL20Title' y 'Fantasia_Of_The_Wind'; el otro PNG que hay en Title/
-        # —'LineTitle'— es de una versión anterior y el juego no lo usa.
+        # The title screen image and its song. In ABL they are 'ABL20Title'
+        # and 'Fantasia_Of_The_Wind'; the other PNG in Title/ —'LineTitle'—
+        # is from an earlier version and the game does not use it.
         self.title_name = campo(sistema, "title_name")
         self.title_music = campo(sub(sistema, "title_music"), "name")
-        # Y la de Game Over y su tema. El ABL dice 'GameOver' y 'GameOver3',
-        # y **ninguno de los dos está en el juego**: salen del RTP, como en
-        # RM2k. El `ablgameover.png` que el juego trae en GameOver/ no lo
-        # nombra nadie, y el original con Wine muestra el del RTP.
+        # And the Game Over one and its song. ABL says 'GameOver' and
+        # 'GameOver3', and **neither of them is in the game**: they come from
+        # the RTP, as in RM2k. The `ablgameover.png` the game ships in
+        # GameOver/ is named by nobody, and the original under Wine shows the
+        # RTP's.
         self.gameover_name = campo(sistema, "gameover_name")
         self.gameover_music = campo(sub(sistema, "gameover_music"), "name")
-        # El audio de la pelea. Sale de acá y no de un literal nuestro por lo
-        # mismo que los términos: es un dato del juego. En el ABL el tema de
-        # batalla y el de victoria son **el mismo** —T_VGFighterMAX_Masako—, y
-        # `battle_se` está en "(OFF)", que es un nombre que no resuelve a
-        # ningún archivo y sale mudo sin que haya que tratarlo aparte.
+        # The battle audio. It comes from here and not from a literal of ours
+        # for the same reason as the terms: it is game data. In ABL the
+        # battle song and the victory song are **the same one**
+        # —T_VGFighterMAX_Masako—, and `battle_se` is "(OFF)", which is a
+        # name that resolves to no file and comes out silent without having
+        # to be handled separately.
         self.battle_music = campo(sub(sistema, "battle_music"), "name")
         self.battle_end_music = campo(sub(sistema, "battle_end_music"), "name")
         self.system_se = {n: sonido(sub(sistema, n)) for n in SYSTEM_SE}
 
-        # Los términos de la pantalla de título. En el ABL no son los de
-        # fábrica: dicen 'Begin the Story' y 'Resume the Story', que es lo que
-        # el juego eligió y por eso salen de acá y no de un literal nuestro.
+        # The title screen terms. In ABL they are not the stock ones: they
+        # say 'Begin the Story' and 'Resume the Story', which is what the
+        # game chose, and that is why they come from here and not from a
+        # literal of ours.
         terminos = self.secciones["terms"]
         for atributo, nombre in TERM_SUELTOS.items():
             setattr(self, atributo, campo(terminos, nombre))
         self.term_menu = [campo(terminos, t) for t in TERM_MENU]
         self.term_params = [campo(terminos, t) for t in TERM_PARAMS]
         self.term_equipo = [campo(terminos, t) for t in TERM_EQUIPO]
-        # Y todos los términos, por su nombre, que es lo que pide la tienda:
-        # ahí no se los nombra de a uno sino por bloques —los trece de cada
-        # juego de mensajes—. Hasta el 2026-09-20 la clave era el número de
-        # chunk, y eso pedía saber en qué chunk cae cada término, que es dato
-        # del formato: lo único que lo sabía era el esquema que Python ya no
-        # tiene.
+        # And all the terms, by name, which is what the shop asks for: there
+        # they are not named one by one but in blocks —the thirteen of each
+        # message set—. Until 2026-09-20 the key was the chunk number, and
+        # that required knowing which chunk each term falls in, which is
+        # format data: the only thing that knew it was the schema Python no
+        # longer has.
         self.terminos = {
             nombre: campo(terminos, nombre).encode("cp1252", "replace")
             for nombre in terminos}
 
     def lider(self, party=None):
-        """El CharSet del primero del grupo: (nombre, índice).
+        """The CharSet of the first one in the party: (name, index).
 
-        Un grupo vacío no tiene con qué dibujar al héroe. Pasa en RM2k —se
-        puede sacar a todos— y ahí el motor no dibuja nada; acá se corta, que es
-        más honesto que inventar un sprite.
+        An empty party has nothing to draw the hero with. It happens in RM2k
+        —everyone can be removed— and there the engine draws nothing; here it
+        stops, which is more honest than making up a sprite.
         """
         grupo = self.party if party is None else party
         if not grupo:
-            raise ValueError("el grupo está vacío: no hay con qué dibujar al héroe")
+            raise ValueError("the party is empty: there is nothing to draw the hero with")
         actor = self.actors[grupo[0]]
         return actor.charset, actor.charset_index
 
     def decode(self, unknown=None):
-        """La base entera como dicts, para el que la quiere campo por campo.
+        """The whole database as dicts, for whoever wants it field by field.
 
-        Es `rom/data/` tal cual, con dos retoques que no son del formato: los
-        arrays de structs pasan a estar indexados por id, que es como se los
-        busca, y los textos pasan por `texto`. Todo lo demás —los defaults
-        aplicados, los enums en número— ya viene así.
+        It is `rom/data/` as is, with two touch-ups that are not part of the
+        format: arrays of structs become indexed by id, which is how they are
+        looked up, and texts go through `texto`. Everything else —the
+        defaults applied, the enums as numbers— already comes that way.
         """
         return {seccion: normalizar(self.secciones[seccion])
                 for seccion in SECCIONES}
 
 
 def normalizar(datos):
-    """Un pedazo de `rom/data/` indexado por id y con los textos adivinados.
+    """A piece of `rom/data/` indexed by id and with the texts guessed.
 
-    Un array de structs vuelve a ser `{id: elemento}`, que es como se lo busca;
-    los que no tienen id —los comandos de un evento, que en el formato van uno
-    atrás del otro y sin numerar— se quedan como lista. La vista resuelta
-    escribe todos los campos, así que el `id` está siempre y no hay que saber
-    de antemano qué struct es cada cosa: se ve.
+    An array of structs becomes `{id: element}` again, which is how it is
+    looked up; those without an id —an event's commands, which in the format
+    go one after the other and unnumbered— stay as a list. The resolved view
+    writes every field, so the `id` is always there and there is no need to
+    know beforehand which struct each thing is: it shows.
     """
     if isinstance(datos, list):
         if not datos or not isinstance(datos[0], dict):
-            return datos        # una lista de números: los tiles, una curva
+            return datos        # a list of numbers: the tiles, a curve
         if "id" in datos[0]:
             return {e["id"]: normalizar(e) for e in datos}
         return [normalizar(e) for e in datos]
     if not isinstance(datos, dict):
         return texto(datos) if isinstance(datos, str) else datos
     return {nombre: normalizar(valor) for nombre, valor in datos.items()
-            if nombre != "id"}  # el id es la clave, no un campo
+            if nombre != "id"}  # the id is the key, not a field
 
 
 class TreeMap:
-    """RPG_RT.lmt: el árbol de mapas y la posición inicial del jugador."""
+    """RPG_RT.lmt: the map tree and the player's starting position."""
 
     def __init__(self, path):
         datos = leer(volcado(path), "maps.json")
         infos = por_id(lista(datos, "maps"))
-        # Los mapas que el juego no tiene traen su nodo: ver `fork.nuevos`.
-        # Sólo sobre el volcado de este juego, igual que los forks de `Map`.
+        # The maps the game does not have bring their node: see
+        # `fork.nuevos`. Only on this game's dump, same as `Map`'s forks.
         if volcado(path) == proyecto.data():
             for map_id, (_json, _tiles, nodo) in fork.nuevos().items():
                 infos[map_id] = nodo
@@ -857,16 +872,16 @@ class TreeMap:
                           for i, f in infos.items()}
         self.map_parents = {i: campo(f, "parent_map")
                             for i, f in infos.items()}
-        # Tipo 0 = raíz del árbol, 1 = mapa de verdad, 2 = **área**. Un área es
-        # un nodo sin `.lmu` que cuelga de un mapa y le tapa un rectángulo.
-        # Acá se usan para los encuentros al azar, que es lo único que ABL les
-        # pone.
+        # Type 0 = root of the tree, 1 = real map, 2 = **area**. An area is a
+        # node without a `.lmu` that hangs off a map and covers a rectangle
+        # of it. Here they are used for random encounters, which is the only
+        # thing ABL puts in them.
         self.map_types = {i: campo(f, "type")
                           for i, f in infos.items()}
 
-        # Los encuentros al azar, que viven en el árbol y no en el `.lmu`:
-        # la lista de tropas, cada cuántos pasos y —para las áreas— el
-        # rectángulo que cubren.
+        # The random encounters, which live in the tree and not in the
+        # `.lmu`: the list of troops, every how many steps and —for areas—
+        # the rectangle they cover.
         self.encounters = {}
         self.encounter_steps = {}
         self.area_rect = {}
@@ -874,13 +889,14 @@ class TreeMap:
             self.encounters[i] = [
                 campo(e, "troop_id")
                 for _, e in sorted(por_id(lista(f, "encounters")).items())]
-            # El default de RM2k son 25 pasos; 0 es "sin encuentros".
+            # RM2k's default is 25 steps; 0 is "no encounters".
             self.encounter_steps[i] = campo(f, "encounter_steps")
             rect = sub(f, "area_rect")
             self.area_rect[i] = tuple(campo(rect, c) for c in "ltrb")
 
-        # El fondo de batalla de cada nodo: `background_type` 0 es "el del
-        # padre", 1 "el del terreno" y 2 "éste", con el nombre al lado.
+        # Each node's battle background: `background_type` 0 is "the
+        # parent's", 1 "the terrain's" and 2 "this one", with the name beside
+        # it.
         self.background = {i: (campo(f, "background_type"),
                                campo(f, "background_name"))
                            for i, f in infos.items()}
@@ -901,16 +917,16 @@ class TreeMap:
         self.start_y = campo(start, "party_y")
 
     def map_background(self, map_id):
-        """El fondo de batalla de un encuentro en este mapa: su nombre, o None
-        si es el del terreno que pisa el héroe.
+        """The battle background of an encounter on this map: its name, or
+        None if it is that of the terrain the hero is standing on.
 
-        Es `Game_Map::SetupBattle` de easyrpg-player: se sube por el árbol
-        mientras el nodo diga "el del padre", y sólo el 2 trae nombre. Todo lo
-        demás —el 1, o llegar a la raíz sin ningún 2— deja el nombre vacío, y
-        `Spriteset_Battle` usa entonces el fondo del terreno de la celda
-        (`Database.terrain_backdrops`). Lo que se mira es **el mapa y no el
-        área**: las áreas de ABL son todas "el del padre", y easyrpg arranca de
-        `GetMapInfo()`.
+        It is easyrpg-player's `Game_Map::SetupBattle`: it climbs the tree
+        while the node says "the parent's", and only 2 carries a name.
+        Everything else —1, or reaching the root without any 2— leaves the
+        name empty, and `Spriteset_Battle` then uses the background of the
+        cell's terrain (`Database.terrain_backdrops`). What is looked at is
+        **the map and not the area**: ABL's areas are all "the parent's", and
+        easyrpg starts from `GetMapInfo()`.
         """
         seen = set()
         while map_id and map_id not in seen:
@@ -922,10 +938,11 @@ class TreeMap:
         return None
 
     def map_music(self, map_id):
-        """El tema de un mapa, siguiendo la herencia hacia el padre.
+        """A map's song, following the inheritance up to the parent.
 
-        music_type 0 significa "el del padre"; 2, el que trae el mapa. El 1 es
-        "lo pone un evento", que sin interpretar scripts es lo mismo que nada.
+        music_type 0 means "the parent's"; 2, the one the map carries. 1 is
+        "an event sets it", which without interpreting scripts is the same
+        as nothing.
         """
         seen = set()
         while map_id and map_id not in seen:

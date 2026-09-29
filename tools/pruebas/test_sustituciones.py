@@ -1,12 +1,12 @@
-"""El tope de la tabla de `TileSubstitution` está escrito de los dos lados.
+"""The cap of the `TileSubstitution` table is written on both sides.
 
-Y tiene que estarlo: la ROM **no puede avisar** que se le pasó —los pares que
-no entren simplemente no se aplicarían, y el mapa dibujaría de más sin que
-nada lo diga—, así que quien se niega a emitir un mapa que no entre es el
-conversor. Eso son dos números, y dos números escritos en dos lados es de lo
-que este repo ya se quemó con los opcodes; acá no se puede generar uno del
-otro —el `.res` de la BSS y el corte del conversor no comparten nada— así que
-lo que queda es compararlos.
+And it has to be: the ROM **cannot warn** that it was exceeded —the pairs
+that do not fit would simply not be applied, and the map would draw extra
+without anything saying so—, so the one that refuses to emit a map that does
+not fit is the converter. That makes two numbers, and two numbers written in
+two places is what this repo already got burned by with the opcodes; here one
+cannot be generated from the other —the BSS `.res` and the converter's
+cutoff share nothing— so what is left is comparing them.
 """
 
 import os
@@ -22,14 +22,14 @@ MAIN = os.path.join(proyecto.runtime(), "main.s")
 def de_main(nombre):
     fuente = ensamblar.texto_de_la_fuente(MAIN)
     hallado = re.search(r"^%s\s*=\s*(\d+)\s*$" % nombre, fuente, re.M)
-    assert hallado, "tools/runtime/ ya no declara %s" % nombre
+    assert hallado, "tools/runtime/ no longer declares %s" % nombre
     return int(hallado.group(1))
 
 
 def reserva(nombre):
     fuente = ensamblar.texto_de_la_fuente(MAIN)
     hallado = re.search(r"^%s:\s*\.res\s+([^;\n]+)" % nombre, fuente, re.M)
-    assert hallado, "tools/runtime/ ya no reserva %s" % nombre
+    assert hallado, "tools/runtime/ no longer reserves %s" % nombre
     return hallado.group(1).strip()
 
 
@@ -38,7 +38,7 @@ def test_el_tope_de_la_tabla_es_el_mismo_de_los_dos_lados():
 
 
 def test_la_tabla_de_la_rom_mide_lo_que_dice_el_tope():
-    """Dos palabras por par, claves y valores en arreglos paralelos: así los
-    recorre `celda_sustituida` con un solo índice."""
+    """Two words per pair, keys and values in parallel arrays: that is how
+    `celda_sustituida` walks them with a single index."""
     assert reserva("sub_clave") == "SUB_MAX * 2"
     assert reserva("sub_valor") == "SUB_MAX * 2"

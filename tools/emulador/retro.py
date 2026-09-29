@@ -1,46 +1,46 @@
-"""Maneja un core de libretro desde Python. Sin X, sin reloj, sin sleeps.
+"""Drives a libretro core from Python. No X, no clock, no sleeps.
 
-`retro_run()` avanza exactamente un cuadro, la cruceta entra cuadro por cuadro y
-el framebuffer sale por el callback de video. Un caso deja de ser "dormí 45
-segundos y sacale una foto a la pantalla" para ser "corré N cuadros con Right
-apretado y mirá el cuadro N". Eso arregla las dos cosas a la vez: la tanda deja
-de esperar en tiempo real, y deja de depender de cuántos cuadros alcanzó a
-emular la máquina mientras dormíamos.
+`retro_run()` advances exactly one frame, the D-pad goes in frame by frame and
+the framebuffer comes out through the video callback. A case stops being "sleep
+45 seconds and take a picture of the screen" and becomes "run N frames with
+Right held and look at frame N". That fixes two things at once: the suite stops
+waiting in real time, and stops depending on how many frames the machine
+managed to emulate while we slept.
 
-Andan los tres cores que hay instalados —snes9x, bsnes y mesen-s— y los tres
-dibujan **el mismo cuadro a 15 bits**, que es la precisión a la que comparan
-las pruebas: 0 pixeles de diferencia de 57344, medido en el mapa 7 a los
-180 cuadros. Que tres emuladores independientes coincidan es lo que vuelve
-creíble a cualquiera de ellos como segunda opinión.
+The three installed cores work —snes9x, bsnes and mesen-s— and all three draw
+**the same frame at 15 bits**, which is the precision the tests compare at: 0
+pixels of difference out of 57344, measured on map 7 at 180 frames. Three
+independent emulators agreeing is what makes any of them credible as a
+second opinion.
 
-Los tres tardaron en andar por errores de este archivo, no de ellos, y los tres
-fallaban en silencio o de una manera que no señalaba la causa. Vale la pena
-dejar escrito qué pedía cada uno, porque el contrato de libretro no lo dice tan
-claro:
+All three took a while to work because of bugs in this file, not in them, and
+all three failed silently or in a way that did not point at the cause. It is
+worth writing down what each one required, because the libretro contract does
+not say it that clearly:
 
-  * **El orden de las llamadas.** Los callbacks de video, audio e input van
-    DESPUÉS de `retro_init`, no antes; sólo el de entorno va antes. mesen-s
-    guarda el puntero adentro de un objeto que crea `retro_init`, así que
-    llamarlo antes escribe en la nada: segfault en `retro_set_video_refresh`,
-    sin un mensaje. Es el orden que usa RetroArch.
-  * **`need_fullpath`.** bsnes lo declara en `retro_get_system_info` y su
-    `retro_load_game` **ignora `game->data` por completo**: hace
-    `program->superFamicom.location = string(game->path)` y abre el archivo él
-    mismo. Con `path` en NULL cargaba "" y devolvía true igual, así que la ROM
-    nunca entraba: la pantalla quedaba negra, el audio sonaba —el APU corre sin
-    ROM— y nadie decía nada. Acá se le pasa siempre el path, y los datos sólo a
-    quien no pide el archivo.
-  * **El directorio del sistema.** mesen-s corta `retro_load_game` en la
-    primera línea si `GET_SYSTEM_DIRECTORY` contesta que no. Devolvía false y
-    listo.
-  * **Contestar "no hay variable" a `GET_VARIABLE` no es neutral.** El core se
-    queda con valores que uno no eligió. Acá se contesta el primer valor de cada
-    lista, que es el default por convención de libretro, y encima de eso van las
-    de OPCIONES.
+  * **The order of the calls.** The video, audio and input callbacks go AFTER
+    `retro_init`, not before; only the environment one goes before. mesen-s
+    keeps the pointer inside an object that `retro_init` creates, so calling
+    it before writes into nothing: segfault in `retro_set_video_refresh`,
+    without a message. It is the order RetroArch uses.
+  * **`need_fullpath`.** bsnes declares it in `retro_get_system_info` and its
+    `retro_load_game` **ignores `game->data` completely**: it does
+    `program->superFamicom.location = string(game->path)` and opens the file
+    itself. With `path` set to NULL it loaded "" and returned true anyway, so
+    the ROM never got in: the screen stayed black, the audio played —the APU
+    runs without a ROM— and nobody said anything. Here the path is always
+    passed, and the data only to whoever does not ask for the file.
+  * **The system directory.** mesen-s cuts `retro_load_game` short on the
+    first line if `GET_SYSTEM_DIRECTORY` answers no. It returned false and
+    that was it.
+  * **Answering "no such variable" to `GET_VARIABLE` is not neutral.** The core
+    keeps values nobody chose. Here the first value of each list is answered,
+    which is the default by libretro convention, and on top of that go the
+    ones in OPCIONES.
 
-Lo que queda afuera a propósito: `GET_LOG_INTERFACE` se contesta que no. El
-callback es un printf variádico y ctypes no los arma; los tres cores se lo
-bancan y sólo se pierden mensajes de diagnóstico.
+What is left out on purpose: `GET_LOG_INTERFACE` is answered no. The callback
+is a variadic printf and ctypes does not build those; the three cores put up
+with it and only diagnostic messages are lost.
 """
 import ctypes
 import os
@@ -51,12 +51,12 @@ import weakref
 
 from PIL import Image
 
-# El de la tanda. No es el más preciso —bsnes lo es— sino el más rápido por
-# lejos: 2747 cuadros por segundo contra 121. El justfile elige con CORE.
+# The suite's core. It is not the most accurate —bsnes is— but the fastest by
+# far: 2747 frames per second against 121. The justfile chooses with CORE.
 CORE = "/usr/lib/libretro/snes9x_libretro.so"
 
-# Los comandos de entorno que hacen falta. Al resto se le contesta que no, que
-# es legal: el core tiene que arreglarse con sus valores por defecto.
+# The environment commands that are needed. The rest are answered no, which
+# is legal: the core has to make do with its default values.
 ENV_GET_OVERSCAN = 2
 ENV_GET_CAN_DUPE = 3
 ENV_GET_SYSTEM_DIRECTORY = 9
@@ -66,33 +66,34 @@ ENV_SET_VARIABLES = 16
 ENV_GET_SAVE_DIRECTORY = 31
 FORMATOS = {0: "0RGB1555", 1: "XRGB8888", 2: "RGB565"}
 
-# Las líneas que compara el proyecto. Cada core devuelve el alto que quiere
-# —bsnes y snes9x 224, mesen-s 239— y lo de más se recorta al centro, que es
-# donde cae la ventana de siempre: con mesen-s el recorte da (239-224)/2 = 7 y
-# es exactamente el que hace coincidir los tres cores en 0 pixeles.
+# The lines the project compares. Each core returns the height it wants
+# —bsnes and snes9x 224, mesen-s 239— and the excess is cropped around the
+# center, which is where the usual window falls: with mesen-s the crop comes to
+# (239-224)/2 = 7 and it is exactly the one that makes the three cores agree
+# at 0 pixels.
 ALTO = 224
 
-# Lo que hay que forzarle a cada core para que dibuje lo mismo que los otros, y
-# para que la prueba mida lo que queremos. La clave es el `library_name` que
-# declara el core, no el nombre del archivo.
+# What has to be forced on each core so that it draws the same as the others,
+# and so that the test measures what we want. The key is the `library_name`
+# the core declares, not the file name.
 OPCIONES = {
-    # El gamma de 150% es el de un televisor, y acá se compara contra una
-    # referencia en Python que no lo modela: con el default, bsnes difiere de
-    # snes9x en 56189 pixeles de 57344; con 100 difiere en 0.
+    # The 150% gamma is a television's, and here the comparison is against a
+    # Python reference that does not model it: with the default, bsnes differs
+    # from snes9x in 56189 pixels out of 57344; with 100 it differs in 0.
     #
-    # Y la entropía va al máximo a propósito, que es la razón por la que este
-    # core vale la pena: bsnes llena la WRAM de basura al encender, como la
-    # consola de verdad, y snes9x la deja en cero. Comentando las dos líneas
-    # que inicializan `ruta_n`/`ruta_i` en tools/runtime/ —el error que taro encontró
-    # jugando y que la tanda no vio— sobre 20 corridas del mapa 7: con "None"
-    # difieren 0, con "Low" 3 y con "High" 11. Con la ROM sana, 20 corridas de
-    # 20 dan el mismo cuadro, así que esto no vuelve inestable a la tanda: sólo
-    # a un rojo que no siempre se repite, y un rojo así es un error de verdad.
-    # Para reproducirlo, `bsnes_entropy=None`.
+    # And the entropy goes to the maximum on purpose, which is the reason this
+    # core is worth it: bsnes fills the WRAM with garbage at power-on, like
+    # the real console, and snes9x leaves it at zero. Commenting out the two
+    # lines that initialize `ruta_n`/`ruta_i` in tools/runtime/ —the bug taro
+    # found while playing and the suite did not see— over 20 runs of map 7:
+    # with "None" they differ in 0, with "Low" in 3 and with "High" in 11. With
+    # the healthy ROM, 20 runs out of 20 give the same frame, so this does not
+    # make the suite flaky: only a red that does not always repeat, and a red
+    # like that is a real bug. To reproduce it, `bsnes_entropy=None`.
     "bsnes": {"bsnes_video_gamma": "100", "bsnes_entropy": "High"},
 }
 
-# RETRO_DEVICE_JOYPAD, en el orden en que los numera libretro.
+# RETRO_DEVICE_JOYPAD, in the order libretro numbers them.
 BOTONES = {"b": 0, "y": 1, "select": 2, "start": 3, "up": 4, "down": 5,
            "left": 6, "right": 7, "a": 8, "x": 9, "l": 10, "r": 11}
 
@@ -127,13 +128,13 @@ class Consola:
         self.lib = ctypes.CDLL(core)
         self._forzadas = dict(opciones or {})
         self.formato = 0
-        # Las opciones que el core declara, con su valor por defecto. Contestar
-        # "no hay variable" no es lo mismo que no tener opiniones: bsnes deja
-        # la luminancia en cero y devuelve una pantalla negra con el audio
-        # sonando igual. Un frontend de verdad contesta el primer valor de la
-        # lista, que es el default por convención de libretro.
+        # The options the core declares, with their default value. Answering
+        # "no such variable" is not the same as having no opinions: bsnes
+        # leaves the luminance at zero and returns a black screen with the
+        # audio playing anyway. A real frontend answers the first value of the
+        # list, which is the default by libretro convention.
         self.opciones = {}
-        self.cuadro = None          # (bytes, ancho, alto, pitch) del último
+        self.cuadro = None          # (bytes, width, height, pitch) of the last one
         self.cuadros = 0
         self.apretados = set()
         self.audio = bytearray()
@@ -142,42 +143,44 @@ class Consola:
         self.lib.retro_get_system_info(ctypes.byref(info))
         self.nombre = "%s %s" % (info.library_name.decode(),
                                  info.library_version.decode())
-        # bsnes abre el archivo él mismo y ni mira `data`. Ver el docstring.
+        # bsnes opens the file itself and does not even look at `data`. See
+        # the docstring.
         pide_archivo = info.need_fullpath
         self._forzadas = dict(OPCIONES.get(info.library_name.decode(), {}),
                               **self._forzadas)
 
         datos = open(rom, "rb").read()
-        # **El MSU-1 lo decide quien crea la consola, no el directorio.** Los
-        # cores buscan `<rom>.msu` y `<rom>-N.pcm` al lado del path que se les
-        # da —bsnes en `program.cpp`, con `Location::notsuffix` del path—, y
-        # ninguno tiene una opción de libretro para no hacerlo. Como `release/`
-        # lleva las pistas, cargar su `abl.sfc` tal cual hacía que la tanda
-        # corriera con el SPC700 callado o no según si estaban armadas: con
-        # ellas, 1200 cuadros del título dan otro audio en snes9x y en bsnes.
-        # Así que por omisión el core recibe una **copia** en un directorio
-        # propio, vacío. Una copia y no un symlink: snes9x y bsnes no siguen el
-        # enlace —medido—, pero la copia no depende de lo que haga cada core
-        # y sale gratis, porque los bytes ya están leídos.
+        # **Whoever creates the console decides the MSU-1, not the
+        # directory.** The cores look for `<rom>.msu` and `<rom>-N.pcm` next to
+        # the path they are given —bsnes in `program.cpp`, with the path's
+        # `Location::notsuffix`—, and none has a libretro option not to. Since
+        # `release/` carries the tracks, loading its `abl.sfc` as is made the
+        # suite run with the SPC700 silenced or not depending on whether they
+        # were built: with them, 1200 frames of the title screen give different
+        # audio in snes9x and in bsnes. So by default the core receives a
+        # **copy** in a directory of its own, empty. A copy and not a symlink:
+        # snes9x and bsnes do not follow the link —measured—, but the copy does
+        # not depend on what each core does and comes for free, because the
+        # bytes are already read.
         #
-        # Y el directorio de sistema y partidas —mesen-s no carga sin él— es
-        # ése mismo: si fuera el de la ROM, un core que buscara ahí también
-        # encontraría las pistas.
+        # And the system and save directory —mesen-s does not load without
+        # it— is that same one: if it were the ROM's, a core looking there
+        # would also find the tracks.
         if msu:
             ruta = os.path.abspath(rom)
         else:
             propio = tempfile.mkdtemp(prefix="retro-")
-            # Se borra cuando la consola se recolecta, o al salir: no hay un
-            # `retro_deinit` que marque el final. Cada consola tiene el suyo,
-            # así que dos a la vez no se pisan.
+            # It is deleted when the console is collected, or at exit: there
+            # is no `retro_deinit` marking the end. Each console has its own,
+            # so two at once do not step on each other.
             weakref.finalize(self, shutil.rmtree, propio, True)
             ruta = os.path.join(propio, os.path.basename(rom))
             with open(ruta, "wb") as archivo:
                 archivo.write(datos)
         self._directorio = ctypes.c_char_p(os.path.dirname(ruta).encode())
 
-        # Los callbacks se guardan en self: si se los deja como temporales, el
-        # recolector de Python los libera y el core llama a memoria muerta.
+        # The callbacks are kept on self: if they are left as temporaries,
+        # Python's collector frees them and the core calls into dead memory.
         self._env = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.c_uint,
                                      ctypes.c_void_p)(self._on_env)
         self._video = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_uint,
@@ -191,8 +194,9 @@ class Consola:
                                        ctypes.c_uint, ctypes.c_uint,
                                        ctypes.c_uint)(self._on_state)
 
-        # El de entorno antes de retro_init, el resto después: es el orden de
-        # RetroArch, y el único con el que mesen-s no se cae. Ver el docstring.
+        # The environment one before retro_init, the rest after: it is
+        # RetroArch's order, and the only one mesen-s does not crash with. See
+        # the docstring.
         self.lib.retro_set_environment(self._env)
         self.lib.retro_init()
         self.lib.retro_set_video_refresh(self._video)
@@ -206,12 +210,13 @@ class Consola:
                          None if pide_archivo
                          else ctypes.cast(self._buf, ctypes.c_void_p),
                          len(datos), None)
-        # snes9x escribe "Map_LoROMMap" en la salida estándar al cargar. Es un
-        # printf del core, no de Python, así que taparlo pide mover el descriptor
-        # y no redirigir sys.stdout. Ensuciaría el log de cada caso de la tanda.
-        # Y hay que vaciar el buffer de libc antes de devolver el descriptor:
-        # el printf no escribe al toque, se queda en el buffer y sale recién al
-        # terminar el proceso, o sea cuando la redirección ya no está.
+        # snes9x writes "Map_LoROMMap" to standard output when loading. It is a
+        # printf from the core, not from Python, so silencing it requires
+        # moving the descriptor and not redirecting sys.stdout. It would
+        # clutter the log of every case in the suite. And libc's buffer has to
+        # be flushed before restoring the descriptor: the printf does not write
+        # right away, it stays in the buffer and only comes out when the
+        # process ends, that is, when the redirection is no longer there.
         libc = ctypes.CDLL(None)
         guardado = os.dup(1)
         nulo = os.open(os.devnull, os.O_WRONLY)
@@ -225,7 +230,7 @@ class Consola:
             os.close(nulo)
             os.close(guardado)
         if not cargo:
-            raise SystemExit("el core no pudo cargar %s" % rom)
+            raise SystemExit("the core could not load %s" % rom)
 
     def _on_env(self, cmd, data):
         if cmd == ENV_SET_VARIABLES and data:
@@ -233,7 +238,7 @@ class Consola:
             i = 0
             while arr[i].key:
                 texto = arr[i].value.decode()
-                # "Descripción; uno|dos|tres" -> el default es el primero.
+                # "Description; one|two|three" -> the default is the first.
                 defecto = texto.split(";", 1)[-1].strip().split("|")[0].strip()
                 self.opciones[arr[i].key.decode()] = defecto
                 i += 1
@@ -245,8 +250,8 @@ class Consola:
             if clave not in self.opciones:
                 return False
             self._vivas = getattr(self, "_vivas", {})
-            # El core se queda con el puntero, así que el bytes tiene que
-            # sobrevivir a esta llamada.
+            # The core keeps the pointer, so the bytes object has to outlive
+            # this call.
             self._vivas[clave] = self.opciones[clave].encode()
             var[0].value = self._vivas[clave]
             return True
@@ -254,13 +259,14 @@ class Consola:
             self.formato = ctypes.cast(data, ctypes.POINTER(ctypes.c_int))[0]
             return self.formato in FORMATOS
         if cmd == ENV_GET_OVERSCAN:
-            # Que no recorte: queremos el framebuffer entero, que es lo que
-            # captura la consola, no lo que un televisor dejaría ver.
+            # No cropping: we want the whole framebuffer, which is what the
+            # console captures, not what a television would let through.
             ctypes.cast(data, ctypes.POINTER(ctypes.c_bool))[0] = True
             return True
         if cmd == ENV_GET_CAN_DUPE:
-            # Sí: un cuadro repetido llega con data en NULL y `_on_video` se
-            # queda con el anterior, que es justo lo que la consola muestra.
+            # Yes: a repeated frame arrives with data set to NULL and
+            # `_on_video` keeps the previous one, which is exactly what the
+            # console shows.
             ctypes.cast(data, ctypes.POINTER(ctypes.c_bool))[0] = True
             return True
         if cmd in (ENV_GET_SYSTEM_DIRECTORY, ENV_GET_SAVE_DIRECTORY) and data:
@@ -275,14 +281,14 @@ class Consola:
 
     def _on_audio(self, data, frames):
         if data:
-            self.audio += ctypes.string_at(data, frames * 4)   # 2 canales s16
+            self.audio += ctypes.string_at(data, frames * 4)   # 2 s16 channels
         return frames
 
     def _on_state(self, port, device, index, ident):
         return 1 if (port == 0 and ident in self.apretados) else 0
 
     def apretar(self, *nombres):
-        """Qué botones se mantienen apretados de acá en adelante."""
+        """Which buttons are held from now on."""
         self.apretados = {BOTONES[n] for n in nombres}
 
     def correr(self, cuadros=1):
@@ -290,144 +296,149 @@ class Consola:
             self.lib.retro_run()
 
     def tasa(self):
-        """A cuántas muestras por segundo entrega el audio el core.
+        """At how many samples per second the core delivers the audio.
 
-        No es una constante de la consola sino de cada core y de cada carga:
-        bsnes da 48000, y snes9x da 32040 sin MSU-1 y **44100 con él**, porque
-        entonces mezcla al ritmo de las pistas. Quien escriba `audio` a un wav
-        tiene que preguntarlo, o el sonido se corre del video.
+        It is not a constant of the console but of each core and each load:
+        bsnes gives 48000, and snes9x gives 32040 without MSU-1 and **44100
+        with it**, because then it mixes at the tracks' rate. Whoever writes
+        `audio` to a wav has to ask for it, or the sound drifts from the video.
         """
         info = AvInfo()
         self.lib.retro_get_system_av_info(ctypes.byref(info))
         return info.sample_rate
 
-    # La WRAM del emulador, que es la única forma de mirar adentro sin un
-    # depurador. libretro la expone con `retro_get_memory_data(2)`, que es
-    # RETRO_MEMORY_SYSTEM_RAM; los tres cores la implementan.
+    # The emulator's WRAM, which is the only way to look inside without a
+    # debugger. libretro exposes it with `retro_get_memory_data(2)`, which is
+    # RETRO_MEMORY_SYSTEM_RAM; the three cores implement it.
     #
-    # No es parte de ninguna prueba: sirve para depurar, y apareció haciendo el
-    # compositor de texto, cuando la pantalla decía "algo está mal" y no dónde.
+    # It is not part of any test: it is for debugging, and it showed up while
+    # building the text compositor, when the screen said "something is wrong"
+    # and not where.
     #
-    # **bsnes upstream no la expone**: `retro_get_memory_data` devuelve nulo
-    # para todos los ids —`bsnes/target-libretro/libretro.cpp:1039`— aunque el
-    # resto de la interfaz ande. Decía acá que los tres cores la implementaban y
-    # no es cierto; lo destapó el reloj de ticks, que la lee para saber en qué
-    # vuelta va la ROM. El core que hay instalado en este contenedor es un build
-    # propio con eso arreglado; ver `/extras/bsnes-wram/`. Sin ese arreglo el
-    # reloj cae al camino de contar cuadros, que sigue funcionando.
+    # **Upstream bsnes does not expose it**: `retro_get_memory_data` returns
+    # null for every id —`bsnes/target-libretro/libretro.cpp:1039`— even
+    # though the rest of the interface works. This used to say the three cores
+    # implemented it and that is not true; the tick clock uncovered it, since
+    # it reads it to know which tick the ROM is on. The core installed in this
+    # container is a custom build with that fixed; see `/extras/bsnes-wram/`.
+    # Without that fix the clock falls back to counting frames, which still
+    # works.
     MEMORIA_SISTEMA = 2
-    # Y la SRAM del cartucho, que es la que un frontend guarda a disco y la que
-    # el EverDrive tiene con batería. `RETRO_MEMORY_SAVE_RAM` es 0, y a ésta
-    # bsnes también la devuelve nula: la lee snes9x, que es el core de la tanda.
+    # And the cartridge's SRAM, which is what a frontend saves to disk and what
+    # the EverDrive keeps with a battery. `RETRO_MEMORY_SAVE_RAM` is 0, and bsnes
+    # returns this one as null too: snes9x reads it, which is the suite's core.
     MEMORIA_SRAM = 0
-    # Y la VRAM del PPU, `RETRO_MEMORY_VIDEO_RAM`: 64 KB. La expone snes9x, que
-    # es el core de la tanda; bsnes upstream la devuelve nula igual que la WRAM.
+    # And the PPU's VRAM, `RETRO_MEMORY_VIDEO_RAM`: 64 KB. snes9x exposes it,
+    # which is the suite's core; upstream bsnes returns it as null just like
+    # the WRAM.
     MEMORIA_VRAM = 3
 
     def sram(self, direccion=0, largo=None):
-        """Bytes de la SRAM del cartucho.
+        """Bytes of the cartridge's SRAM.
 
-        Es lo que hace que "persistir a disco" se pueda probar sin disco: el
-        frontend vuelca esto mismo a un `.srm`, así que lo que hay acá es lo que
-        sobrevive a apagar la consola.
+        It is what lets "persisting to disk" be tested without a disk: the
+        frontend dumps this very thing to a `.srm`, so what is here is what
+        survives turning the console off.
         """
         self.lib.retro_get_memory_data.restype = ctypes.c_void_p
         self.lib.retro_get_memory_size.restype = ctypes.c_size_t
         base = self.lib.retro_get_memory_data(self.MEMORIA_SRAM)
         total = self.lib.retro_get_memory_size(self.MEMORIA_SRAM)
         if not base or not total:
-            raise RuntimeError("este core no expone la SRAM del cartucho")
+            raise RuntimeError("this core does not expose the cartridge's SRAM")
         if largo is None:
             largo = total - direccion
         return ctypes.string_at(base + direccion, largo)
 
     def escribir_sram(self, direccion, datos):
-        """Escribe bytes en la SRAM del cartucho: es poner otro `.srm` en el
-        cartucho, como el que dejó un build anterior. Existe para probar que la
-        ROM rechaza una partida que no es de su formato."""
+        """Writes bytes into the cartridge's SRAM: it is putting another
+        `.srm` into the cartridge, like the one a previous build left. It
+        exists to test that the ROM rejects a save file that is not in its
+        format."""
         self.lib.retro_get_memory_data.restype = ctypes.c_void_p
         self.lib.retro_get_memory_size.restype = ctypes.c_size_t
         base = self.lib.retro_get_memory_data(self.MEMORIA_SRAM)
         total = self.lib.retro_get_memory_size(self.MEMORIA_SRAM)
         if not base or not total:
-            raise RuntimeError("este core no expone la SRAM del cartucho")
+            raise RuntimeError("this core does not expose the cartridge's SRAM")
         datos = bytes(datos)
         if direccion + len(datos) > total:
-            raise ValueError("escribir %d bytes en %d se pasa de la SRAM (%d)"
+            raise ValueError("writing %d bytes at %d goes past the SRAM (%d)"
                              % (len(datos), direccion, total))
         ctypes.memmove(base + direccion, datos, len(datos))
 
     def reset(self):
-        """El botón de reset de la consola: la SRAM sobrevive y la WRAM no.
+        """The console's reset button: the SRAM survives and the WRAM does not.
 
-        Es como se prueba que una partida guardada se carga de verdad: guardar,
-        resetear, y mirar dónde arranca el héroe.
+        It is how a saved game is tested to really load: save, reset, and look
+        at where the hero starts.
         """
         self.lib.retro_reset()
         self.cuadro = None
 
     def ram(self, direccion=0, largo=None):
-        """Bytes de la WRAM desde `direccion`, que es la del banco $7E."""
+        """Bytes of the WRAM from `direccion`, which is the one in bank $7E."""
         self.lib.retro_get_memory_data.restype = ctypes.c_void_p
         self.lib.retro_get_memory_size.restype = ctypes.c_size_t
         base = self.lib.retro_get_memory_data(self.MEMORIA_SISTEMA)
         total = self.lib.retro_get_memory_size(self.MEMORIA_SISTEMA)
         if not base or not total:
-            raise RuntimeError("este core no expone la WRAM")
+            raise RuntimeError("this core does not expose the WRAM")
         if largo is None:
             largo = total - direccion
         return ctypes.string_at(base + direccion, largo)
 
     def vram(self, palabra=0, palabras=None):
-        """Palabras de la VRAM, desde la **dirección de palabra** del PPU.
+        """Words of the VRAM, from the PPU's **word address**.
 
-        Se pide en palabras y no en bytes porque así es como el 65816 le habla
-        al PPU: `VMADDL` es una dirección de palabra, y los símbolos de `tools/runtime/`
-        —`VRAM_ABOVE_MAP`, `M_VRAM_MAP`— están escritos en esas unidades. Pedirla
-        en bytes obligaría a que cada quien se acuerde del por dos.
+        It is asked for in words and not in bytes because that is how the 65816
+        talks to the PPU: `VMADDL` is a word address, and the symbols of
+        `tools/runtime/` —`VRAM_ABOVE_MAP`, `M_VRAM_MAP`— are written in those
+        units. Asking for it in bytes would force everyone to remember the
+        times two.
 
-        Es lo único que deja comprobar el tilemap sin mirar la pantalla: la
-        ventana del mapa es un toro y de un PNG no se lee qué celda quedó en
-        qué ranura. `RETRO_MEMORY_VIDEO_RAM` es el id 3.
+        It is the only thing that lets the tilemap be checked without looking
+        at the screen: the map window is a torus and a PNG does not tell which
+        cell ended up in which slot. `RETRO_MEMORY_VIDEO_RAM` is id 3.
         """
         self.lib.retro_get_memory_data.restype = ctypes.c_void_p
         self.lib.retro_get_memory_size.restype = ctypes.c_size_t
         base = self.lib.retro_get_memory_data(self.MEMORIA_VRAM)
         total = self.lib.retro_get_memory_size(self.MEMORIA_VRAM)
         if not base or not total:
-            raise RuntimeError("este core no expone la VRAM")
+            raise RuntimeError("this core does not expose the VRAM")
         if palabras is None:
             palabras = total // 2 - palabra
         crudo = ctypes.string_at(base + palabra * 2, palabras * 2)
         return [crudo[i] | (crudo[i + 1] << 8) for i in range(0, len(crudo), 2)]
 
     def escribir_ram(self, direccion, datos):
-        """Escribe bytes en la WRAM, en la dirección del banco $7E.
+        """Writes bytes into the WRAM, at the bank $7E address.
 
-        El puntero que devuelve `retro_get_memory_data` es la memoria del core,
-        no una copia, así que escribirla es escribirle a la consola.
+        The pointer `retro_get_memory_data` returns is the core's memory, not a
+        copy, so writing to it is writing to the console.
 
-        Existe para las pruebas de estado, que ponen el mundo en una situación a
-        la que el juego llega más tarde —un switch prendido, por ejemplo— sin
-        tener que armar una ROM distinta para cada una. **La tanda de pixeles no
-        lo usa ni tiene que usarlo**: ahí se compara contra una referencia que
-        modela el camino de verdad, y saltearse ese camino sería comparar dos
-        cosas que no pasaron por lo mismo.
+        It exists for the state tests, which put the world in a situation the
+        game reaches later —a switch turned on, for example— without having to
+        build a different ROM for each one. **The pixel suite does not use it
+        and must not use it**: there the comparison is against a reference that
+        models the real path, and skipping that path would be comparing two
+        things that did not go through the same thing.
         """
         self.lib.retro_get_memory_data.restype = ctypes.c_void_p
         self.lib.retro_get_memory_size.restype = ctypes.c_size_t
         base = self.lib.retro_get_memory_data(self.MEMORIA_SISTEMA)
         total = self.lib.retro_get_memory_size(self.MEMORIA_SISTEMA)
         if not base or not total:
-            raise RuntimeError("este core no expone la WRAM")
+            raise RuntimeError("this core does not expose the WRAM")
         datos = bytes(datos)
         if direccion + len(datos) > total:
-            raise ValueError("escribir %d bytes en %d se pasa de la WRAM (%d)"
+            raise ValueError("writing %d bytes at %d goes past the WRAM (%d)"
                              % (len(datos), direccion, total))
         ctypes.memmove(base + direccion, datos, len(datos))
 
     def imagen(self):
-        """El último cuadro como PIL, a 8 bits por canal y recortado a ALTO."""
+        """The last frame as PIL, at 8 bits per channel and cropped to ALTO."""
         datos, w, h, pitch = self.cuadro
         if self.formato == 1:                      # XRGB8888
             img = Image.frombuffer("RGBX", (pitch // 4, h), datos,

@@ -1,56 +1,57 @@
 .segment "FAR"
 
-; --- la experiencia en el menú -----------------------------------------------
+; --- experience in the menu -------------------------------------------------
 ;
-; La tercera línea de `Window_MenuStatus`: "Ex", la experiencia de ahora y la
-; que pide el nivel que sigue, `"%6d/%6d"`. **Va en sprites**, doce pixeles
-; debajo de los HP y a los seis pixeles de la fuente: en la grilla de celdas
-; no había dónde. El porqué y la geometría están en `MENU_EXP_X`, en
-; titulo.py, y `render_menu` es la referencia.
+; The third line of `Window_MenuStatus`: "Ex", the current experience and the
+; one the next level asks for, `"%6d/%6d"`. **It goes in sprites**, twelve
+; pixels below the HP and at the font's six-pixel pitch: in the cell grid
+; there was no room. The why and the geometry are in `MENU_EXP_X`, in
+; titulo.py, and `render_menu` is the reference.
 ;
-; Los sprites leen sus tiles desde `RANURA_VRAM`, así que el tile de un glifo
-; del banco es el mismo número, y su paleta 0 es una copia de la del texto.
-; Ninguna otra pantalla prende los sprites —`ranura_ppu_prender` deja sólo
-; BG2—, así que la elección de actor, que comparte el panel, no la muestra, que
-; es lo de `Window_ActorTarget`. Lo que esto cambia del mapa —OBSEL y los
-; colores 128 a 143— lo repone `menu_exp_cerrar` al volver.
+; Sprites read their tiles from `RANURA_VRAM`, so a glyph's tile in the bank
+; is the same number, and their palette 0 is a copy of the text's. No other
+; screen turns sprites on —`ranura_ppu_prender` leaves only BG2—, so the
+; actor choice, which shares the panel, does not show it, which is what
+; `Window_ActorTarget` does. What this changes from the map —OBSEL and colors
+; 128 to 143— is restored by `menu_exp_cerrar` on the way back.
 ;
-; Corre con la pantalla apagada: la OAM se escribe derecho por el puerto, y
-; nada la pisa mientras el menú se ve porque `flush_video` no corre.
+; It runs with the screen off: the OAM is written straight through the port,
+; and nothing overwrites it while the menu is shown because `flush_video`
+; does not run.
 ;
-; El escritorio son variables prestadas del compositor de mensajes, que con el
-; menú abierto no hay:
-;   comp_char       la fila del grupo
-;   comp_fase       el y de arriba de los sprites de la fila
-;   comp_fase + 1   el y del sprite que se pone
-;   comp_mask       su x
-;   comp_base       cuántos sprites van puestos
-;   comp_dup        el nivel del actor
-;   comp_or01       el número que se escribe, de 24 bits
-;   comp_and        la resta de prueba
-;   comp_col        la cifra que se cuenta
-;   comp_col + 1    si ya salió una cifra
+; The scratch space is variables borrowed from the message composer, which
+; does not exist with the menu open:
+;   comp_char       the party row
+;   comp_fase       the top y of the row's sprites
+;   comp_fase + 1   the y of the sprite being placed
+;   comp_mask       its x
+;   comp_base       how many sprites have been placed
+;   comp_dup        the actor's level
+;   comp_or01       the number being written, 24 bits
+;   comp_and        the trial subtraction
+;   comp_col        the digit being counted
+;   comp_col + 1    whether a digit has already come out
 
-MENU_EXP_TERM_TILES = 4         ; el término: dos de ancho, arriba y abajo
-MENU_EXP_OCULTO = 224           ; un y debajo de la última línea que se ve
+MENU_EXP_TERM_TILES = 4         ; the term: two wide, top and bottom
+MENU_EXP_OCULTO = 224           ; a y below the last visible line
 MENU_EXP_SPRITES = 128
 
-.assert MENU_EXP_TEXTO + MENU_EXP_LETRAS <= MENU_EXP_TEXTO_FIN, error, "la línea de la experiencia no entra en su lugar"
-.assert MENU_FILAS_GRUPO * (MENU_EXP_TERM_TILES + 2 * MENU_EXP_LETRAS) <= MENU_EXP_SPRITES, error, "la experiencia del grupo no entra en los sprites"
+.assert MENU_EXP_TEXTO + MENU_EXP_LETRAS <= MENU_EXP_TEXTO_FIN, error, "the experience line does not fit in its place"
+.assert MENU_FILAS_GRUPO * (MENU_EXP_TERM_TILES + 2 * MENU_EXP_LETRAS) <= MENU_EXP_SPRITES, error, "the party's experience does not fit in the sprites"
 
-; Desde `menu_subir`, en lugar de `ranura_ppu_prender`: los sprites, y después
-; prende la pantalla con ellos. Con la pantalla apagada.
+; From `menu_subir`, instead of `ranura_ppu_prender`: the sprites, and then
+; it turns the screen on with them. With the screen off.
 .proc menu_exp_pintar
 .a8
 .i16
     phb
     lda #0
     pha
-    plb                         ; los registros y las tablas del banco 0
-    ; Sprites de 8x8 con los tiles desde `RANURA_VRAM`.
+    plb                         ; the registers and the tables in bank 0
+    ; 8x8 sprites with the tiles from `RANURA_VRAM`.
     lda #(RANURA_VRAM / $2000)
     sta OBSEL
-    ; La paleta 0 de los sprites, la del texto.
+    ; Sprite palette 0, the text's.
     lda #128
     sta CGADD
     rep #$20
@@ -71,7 +72,7 @@ MENU_EXP_SPRITES = 128
 
     stz OAMADDL
     stz OAMADDL + 1
-    stz comp_base               ; ningún sprite todavía
+    stz comp_base               ; no sprite yet
     stz comp_char
     lda #MENU_EXP_Y
     sta comp_fase
@@ -89,8 +90,8 @@ fila:
     inc comp_char
     bra fila
 filas_listas:
-    ; Los que sobran, debajo de la pantalla, y la tabla chica en cero: la x
-    ; de ocho bits y el tamaño chico para todos.
+    ; The leftover ones, below the screen, and the small table at zero: an
+    ; eight-bit x and the small size for all of them.
     lda comp_base
     cmp #MENU_EXP_SPRITES
     bcs ocultos_listos
@@ -108,13 +109,13 @@ tabla_chica:
     dex
     bne tabla_chica
 
-    jsl f:ba_t_ppu              ; la pantalla, prendida con BG2 solo
-    lda #$12                    ; y los sprites encima
+    jsl f:ba_t_ppu              ; the screen, on with BG2 alone
+    lda #$12                    ; and the sprites on top
     sta TM
     plb
     rtl
 
-; La línea de la fila `comp_char`, si su actor tiene experiencia.
+; The line for row `comp_char`, if its actor has experience.
 una_fila:
     rep #$20
 .a16
@@ -126,7 +127,7 @@ una_fila:
     lda grupo, x
     cmp #MENU_ACTORES_N
     bcc conocido
-    rts                         ; uno que esta ROM no conoce
+    rts                         ; one this ROM does not know
 conocido:
     rep #$20
 .a16
@@ -137,20 +138,20 @@ conocido:
     lda f:actor_exp_k, x
     cmp #$FF
     bne con_exp
-    rts                         ; uno que no pelea: no tiene experiencia
+    rts                         ; one who does not fight: has no experience
 con_exp:
     rep #$20
 .a16
     and #$00FF
-    pha                         ; k, hasta el final de la línea
+    pha                         ; k, until the end of the line
     asl a
     asl a
-    tax                         ; su ranura de `FAR_EXP`
+    tax                         ; its slot in `FAR_EXP`
     sep #$20
 .a8
     lda f:FAR_LARGO + FAR_EXP + EXP_NIVEL, x
     sta comp_dup
-    ; ¿En el tope? Guiones, como el RPG_RT.
+    ; At the cap? Dashes, like RPG_RT.
     rep #$20
 .a16
     lda 1, s                    ; k
@@ -163,7 +164,7 @@ con_exp:
     cmp comp_dup
     beq tope
     bcc tope
-    ; La de ahora.
+    ; The current one.
     rep #$20
 .a16
     lda f:FAR_LARGO + FAR_EXP, x
@@ -178,8 +179,8 @@ con_exp:
     tyx
     sta f:MENU_EXP_TEXTO, x
     iny
-    ; Y la del nivel que sigue: la fila de su curva en `exp_tabla`, en el
-    ; nivel de ahora, que es `GetNextExp(level)`.
+    ; And the next level's: its curve's row in `exp_tabla`, at the current
+    ; level, which is `GetNextExp(level)`.
     rep #$20
 .a16
     pla                         ; k
@@ -188,7 +189,7 @@ con_exp:
     lda comp_dup
     and #$00FF
     asl a
-    asl a                       ; cuatro bytes por nivel
+    asl a                       ; four bytes per level
     clc
     adc f:exp_curva, x
     tax
@@ -203,7 +204,7 @@ con_exp:
 tope:
     rep #$20
 .a16
-    pla                         ; k, que no hace falta
+    pla                         ; k, which is not needed
     sep #$20
 .a8
     ldx #0
@@ -219,7 +220,7 @@ no_barra:
     bcc guion
 
 sprites:
-    ; --- el término: cuatro tiles, dos arriba y dos abajo ---
+    ; --- the term: four tiles, two on top and two below ---
     ldx #0
 termino:
     lda #MENU_EXP_X
@@ -252,7 +253,7 @@ term_y:
     cpx #MENU_EXP_TERM_TILES
     bcc termino
 
-    ; --- las trece letras, a seis pixeles; un espacio no lleva sprite ---
+    ; --- the thirteen letters, six pixels apart; a space gets no sprite ---
     lda #MENU_EXP_NUM_X
     sta comp_mask
     ldx #0
@@ -267,7 +268,7 @@ letra:
     sec
     sbc #ITEM_PRIMER_CARACTER
     asl a
-    asl a                       ; dos palabras por letra
+    asl a                       ; two words per letter
     tax
     sep #$20
 .a8
@@ -276,7 +277,7 @@ letra:
     rep #$20
 .a16
     lda f:ranura_glifo_celdas, x
-    jsr poner                   ; la celda de arriba
+    jsr poner                   ; the top cell
 .a8
     lda comp_fase
     clc
@@ -285,7 +286,7 @@ letra:
     rep #$20
 .a16
     lda f:ranura_glifo_celdas + 2, x
-    jsr poner                   ; y la de abajo
+    jsr poner                   ; and the bottom one
 .a8
     plx
 siguiente:
@@ -298,29 +299,30 @@ siguiente:
     bcc letra
     rts
 
-; Un sprite: A16 la palabra del tilemap del glifo —tile y paleta—, en
-; `comp_mask`, `comp_fase + 1`. Vuelve con A en 8 bits, y no toca X ni Y.
+; One sprite: A16 the glyph's tilemap word —tile and palette—, at
+; `comp_mask`, `comp_fase + 1`. Returns with an 8-bit A, and touches neither
+; X nor Y.
 .a16
 poner:
     sep #$20
 .a8
-    pha                         ; el byte bajo del tile
+    pha                         ; the tile's low byte
     lda comp_mask
     sta OAMDATA
     lda comp_fase + 1
     sta OAMDATA
     pla
     sta OAMDATA
-    xba                         ; el byte alto de la palabra: el bit 8 del
-    and #$01                    ; tile, y la paleta de BG2 que es la 0
-    ora #$30                    ; prioridad 3, paleta 0 de los sprites
+    xba                         ; the word's high byte: bit 8 of the
+    and #$01                    ; tile, and the BG2 palette, which is 0
+    ora #$30                    ; priority 3, sprite palette 0
     sta OAMDATA
     inc comp_base
     rts
 
-; `comp_or01`: un número de 24 bits, menor que un millón. Escribe sus seis
-; cifras en `MENU_EXP_TEXTO` desde Y, alineadas a la derecha con espacios, y
-; deja Y detrás. Se lleva X.
+; `comp_or01`: a 24-bit number, less than a million. Writes its six digits
+; into `MENU_EXP_TEXTO` from Y, right-aligned with spaces, and leaves Y past
+; them. It clobbers X.
 seis_cifras:
     stz comp_col + 1
     ldx #0
@@ -333,7 +335,7 @@ resta:
     sec
     sbc f:potencias, x
     sta comp_and
-    sep #$20                    ; `sep` no toca el carry de la resta
+    sep #$20                    ; `sep` does not touch the subtraction's carry
 .a8
     lda comp_or01 + 2
     sbc f:potencias + 2, x
@@ -352,7 +354,7 @@ no_alcanza:
     ora comp_col + 1
     bne cifra
     cpx #(5 * 3)
-    beq cifra                   ; las unidades van siempre, aunque sean 0
+    beq cifra                   ; the units always go, even if 0
     lda #' '
     bra escribir
 cifra:
@@ -378,11 +380,11 @@ potencias:
     .faraddr 100000, 10000, 1000, 100, 10, 1
 .endproc
 
-; Al cerrar el menú, antes de `volver_al_mapa`: lo que `menu_exp_pintar` le
-; cambió al mapa y el mapa no repone solo. OBSEL, que `volver_al_mapa` no
-; toca, y los colores de la paleta 0 de los sprites, desde `cgram_sombra`, que
-; tiene los del mapa aunque el tinte o una imagen los hayan cambiado. Apaga la
-; pantalla, que `volver_al_mapa` apaga igual.
+; When closing the menu, before `volver_al_mapa`: what `menu_exp_pintar`
+; changed on the map and the map does not restore by itself. OBSEL, which
+; `volver_al_mapa` does not touch, and the colors of sprite palette 0, from
+; `cgram_sombra`, which has the map's even if the tint or a picture changed
+; them. It turns the screen off, which `volver_al_mapa` turns off anyway.
 .proc menu_exp_cerrar
 .a8
 .i16
@@ -405,7 +407,7 @@ potencias:
     sta DAS0L
     sep #$20
 .a8
-    stz A1B0                    ; la sombra vive en el banco 0
+    stz A1B0                    ; the shadow lives in bank 0
     stz DMAP0
     lda #$22
     sta BBAD0

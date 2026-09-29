@@ -2,32 +2,32 @@
 .a8
 .i16
 
-; --- el intérprete: los switches y las variables ---------------------------
+; --- the interpreter: switches and variables -------------------------------
 ;
-; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
-; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
-; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps to
+; each one with Y on its first operand, and each one goes back to the loop
+; with `jmp correr_codigo::otro` or ends the frame with `rts`.
 ;
-; El cronómetro está en interprete_cronometro.s, y las condiciones sobre una
-; variable en interprete_condiciones.s.
+; The timer is in interprete_cronometro.s, and the conditions on a variable
+; in interprete_condiciones.s.
 
-; `ControlVars`, de a una variable: ranura, operación, clase del operando, y
-; a y b de dieciséis bits. Ver OP_VAR en eventos.py. Dieciséis bits con signo,
-; dando la vuelta.
+; `ControlVars`, one variable at a time: slot, operation, operand class, and
+; sixteen-bit a and b. See OP_VAR in eventos.py. Sixteen bits signed,
+; wrapping around.
 .proc op_var
 .a8
 .i16
     lda [cod_ptr], y
-    sta temp                    ; la ranura
+    sta temp                    ; the slot
     iny
     lda [cod_ptr], y
-    sta temp + 1                ; la operación, con VAR_REFRESCO arriba
+    sta temp + 1                ; the operation, with VAR_REFRESCO on top
     iny
-    lda [cod_ptr], y            ; la clase del operando
+    lda [cod_ptr], y            ; the operand class
     iny
-    phy                         ; Y -> a; se repone al final
-    ; La clase 6 primero: es la que corren por cuadro las páginas paralelas
-    ; que comparan celdas —las de la carrera, las luces del mapa 11—.
+    phy                         ; Y -> a; restored at the end
+    ; Class 6 first: it is the one that the parallel pages comparing cells run
+    ; every frame —the ones for the race, the lights on map 11—.
     cmp #VAR_PERSONAJE
     bne :+
     jmp var_de_personaje
@@ -40,13 +40,13 @@
     beq var_de_otro
     rep #$20
 .a16
-    lda [cod_ptr], y            ; una constante
+    lda [cod_ptr], y            ; a constant
     sta temp + 2
     sep #$20
 .a8
     bra var_aplicar
 var_de_variable:
-    lda [cod_ptr], y            ; la ranura de donde sale
+    lda [cod_ptr], y            ; the slot it comes from
     jsr var_leer
 .a16
     sta temp + 2
@@ -56,7 +56,7 @@ var_de_variable:
 var_de_otro:
     lda [cod_ptr], y
     bne var_del_timer
-    ; El oro, topado en 32767: la variable es de dieciséis bits con signo.
+    ; The gold, capped at 32767: the variable is sixteen bits signed.
     lda oro + 2
     bne var_oro_tope
     rep #$20
@@ -80,17 +80,17 @@ var_oro_tope:
 var_del_timer:
     rep #$20
 .a16
-    lda timer_seg               ; los segundos que le quedan al cronómetro
+    lda timer_seg               ; the seconds the timer has left
     sta temp + 2
     sep #$20
 .a8
     bra var_aplicar
 var_al_azar:
-    ; a + x mod (b - a + 1), con x el paso siguiente del xorshift y el módulo
-    ; con el divisor de ocho bits del hardware: el conversor no deja pasar un
-    ; rango de más de 255.
+    ; a + x mod (b - a + 1), with x the next step of the xorshift and the
+    ; modulo done with the hardware's eight-bit divider: the converter does
+    ; not let through a range wider than 255.
     jsr azar_siguiente
-    sta WRDIVL                  ; el dividendo, de dieciséis
+    sta WRDIVL                  ; the dividend, sixteen bits
     lda [cod_ptr], y            ; a
     sta temp + 2
     iny
@@ -101,7 +101,7 @@ var_al_azar:
     inc a                       ; b - a + 1
     sep #$20
 .a8
-    sta WRDIVB                  ; arranca: dieciséis ciclos
+    sta WRDIVB                  ; starts it: sixteen cycles
     nop
     nop
     nop
@@ -112,20 +112,20 @@ var_al_azar:
     nop
     rep #$20
 .a16
-    lda RDMPYL                  ; el resto
+    lda RDMPYL                  ; the remainder
     clc
     adc temp + 2
     sta temp + 2
     sep #$20
 .a8
 var_aplicar:
-    ; `temp + 2` es el operando; según la operación, se pone tal cual o se
-    ; suma o resta a lo que la variable tenía.
+    ; `temp + 2` is the operand; depending on the operation, it is set as is
+    ; or added to or subtracted from what the variable had.
     lda temp + 1
     and #<~VAR_REFRESCO
     beq var_pone
     lda temp
-    jsr var_leer                ; A = lo que tenía, de dieciséis
+    jsr var_leer                ; A = what it had, sixteen bits
 .a16
     pha
     sep #$20
@@ -153,48 +153,48 @@ var_suma:
     sep #$20
 .a8
 var_pone:
-    lda temp + 1                ; la operación, que trae el bit del refresco
+    lda temp + 1                ; the operation, which carries the refresh bit
     xba
     lda temp
-    jsr var_escribir            ; y el refresco, si la operación lo pide: las
-                                ; páginas que miran esta variable pueden
-    ply                         ; cambiar. Ver `var_escribir`
-    iny                         ; a y b, cuatro bytes
+    jsr var_escribir            ; and the refresh, if the operation asks for
+                                ; it: the pages that look at this variable may
+    ply                         ; change. See `var_escribir`
+    iny                         ; a and b, four bytes
     iny
     iny
     iny
     jmp correr_codigo::otro
 
 var_de_personaje:
-    ; La clase 6: las coordenadas de un personaje, en celdas. `a` es el blanco
-    ; —0 el héroe, el índice del evento más uno, el mismo byte que OP_ROUTE— y
-    ; `b` dice cuál: PERSONAJE_X o PERSONAJE_Y.
+    ; Class 6: a character's coordinates, in cells. `a` is the target —0 the
+    ; hero, the event index plus one, the same byte as OP_ROUTE— and `b` says
+    ; which one: PERSONAJE_X or PERSONAJE_Y.
     ;
-    ; La celda que se lee es la **viva**: `tile_x`/`tile_y` para el héroe y
-    ; `ev_pos_buf` para un evento, que es adonde una ruta forzada, un
-    ; ChangeEventLocation o un TradeEventLocations la dejaron. En RM2k es
-    ; `character->GetX()`, o sea lo mismo.
-    ; No se guarda ninguno de los dos operandos en RAM: la BSS está llena
-    ; —dos bytes más y `ld65` avisa que no entra— y no hace falta. El blanco
-    ; **por** EV_STRIDE se lleva en X, que acá no la usa nadie, y con el
-    ; corrimiento puesto en la dirección: así el héroe queda con X en cero y
-    ; distinguirlo es un `cpx`, que no toca el acumulador.
-    lda [cod_ptr], y            ; a: el blanco
+    ; The cell read is the **live** one: `tile_x`/`tile_y` for the hero and
+    ; `ev_pos_buf` for an event, which is where a forced move route, a
+    ; ChangeEventLocation or a TradeEventLocations left it. In RM2k it is
+    ; `character->GetX()`, that is, the same thing.
+    ; Neither operand is stored in RAM: the BSS is full —two more bytes and
+    ; `ld65` warns that it does not fit— and there is no need. The target
+    ; **times** EV_STRIDE is carried in X, which nobody uses here, with the
+    ; offset folded into the address: that way the hero ends up with X at zero
+    ; and telling it apart is a `cpx`, which does not touch the accumulator.
+    lda [cod_ptr], y            ; a: the target
     rep #$20
 .a16
     and #$00FF
     asl a
-    asl a                       ; EV_STRIDE bytes por evento
+    asl a                       ; EV_STRIDE bytes per event
     tax
     sep #$20
 .a8
     iny
     iny
-    lda [cod_ptr], y            ; b: cuál coordenada
+    lda [cod_ptr], y            ; b: which coordinate
     cpx #$0000
     beq var_personaje_heroe
-    ; Un evento: su celda está en `ev_pos_buf`, indexada por el índice de la
-    ; tabla del mapa, que es el blanco menos uno; de ahí el - EV_STRIDE.
+    ; An event: its cell is in `ev_pos_buf`, indexed by the index in the
+    ; map's table, which is the target minus one; hence the - EV_STRIDE.
     cmp #PERSONAJE_X
     beq var_personaje_ev_x
     rep #$20
@@ -228,28 +228,28 @@ var_personaje_listo:
 
 .endproc
 
-; Dos `ControlVars` de clase 6 y dos `ConditionalBranch` por igualdad de
-; variables, fundidos en uno: ver `celda_probar`, que vive en el banco 1.
+; Two class-6 `ControlVars` and two `ConditionalBranch` on variable equality,
+; fused into one: see `celda_probar`, which lives in bank 1.
 .proc op_cell_test
-    jsl f:celda_probar + RAPIDO   ; ver MEMSEL
+    jsl f:celda_probar + RAPIDO   ; see MEMSEL
     jmp correr_codigo::otro
 .endproc
 
 .proc op_switch
     rep #$20
 .a16
-    lda [cod_ptr], y            ; el número, de 16 bits
+    lda [cod_ptr], y            ; the number, 16 bits
     sta temp
     sep #$20
 .a8
     iny
     iny
-    lda [cod_ptr], y            ; y si va encendido o apagado
+    lda [cod_ptr], y            ; and whether it goes on or off
     iny
     phy
     jsr poner_switch
     ply
-    jmp correr_codigo::otro     ; `bra` no llega: el lazo quedó lejos
+    jmp correr_codigo::otro     ; `bra` does not reach: the loop is far away
 
 .endproc
 

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Qué significan las cosas en RPG Maker 2000, sin ninguna consola de por medio.
+"""What things mean in RPG Maker 2000, with no console in between.
 
-Por dónde se puede caminar, qué capa tapa a cuál, qué gráfico le toca a un
-evento, cuáles de ellos se dibujan. Son las reglas del motor original, y valen
-igual para cualquier port —y para cualquier juego de RM2k—.
+Where one can walk, which layer covers which, which graphic an event gets,
+which of them are drawn. They are the original engine's rules, and they hold
+the same for any port —and for any RM2k game—.
 
-Lo que dicen estas reglas se contrasta contra liblcf y easyrpg-player; ninguno
-de estos números se escribió de memoria.
+What these rules say is checked against liblcf and easyrpg-player; none of
+these numbers was written from memory.
 """
 
 import os
@@ -16,23 +16,24 @@ from rpgmaker import lcf
 
 CELL = 8
 
-# --- la geometría del ChipSet ------------------------------------------------
+# --- the ChipSet's geometry --------------------------------------------------
 #
-# Dónde vive cada cosa en la imagen de un ChipSet, que es de 480x256. Los
-# offsets son los de lmu2png de EasyRPG Tools, igual que los de
-# `render/chipset.py`, que es quien expande el ChipSet con ellos.
+# Where each thing lives in a ChipSet's image, which is 480x256. The offsets
+# are those of EasyRPG Tools' lmu2png, same as those of `render/chipset.py`,
+# which is what expands the ChipSet with them.
 
 TILE = 16
 
 
 def caja_de_terreno(n):
-    """Dónde vive, en la imagen del ChipSet, el bloque del autotile de terreno
-    `n` —0 a 11, el que el mapa nombra con los ids 4000 + n * 50—.
+    """Where, in the ChipSet's image, the block of terrain autotile `n` lives
+    —0 to 11, the one the map names with ids 4000 + n * 50—.
 
-    Son 48x64 píxeles con las piezas que `ChipsetAtlas._terrain_tile`
-    combina. Está acá y no en quien lo use porque los offsets son de lmu2png y
-    no tienen por qué escribirse dos veces: `ChipsetAtlas._terrain_tile`
-    calcula su esquina con esta misma cuenta.
+    It is 48x64 pixels with the pieces `ChipsetAtlas._terrain_tile`
+    combines. It is here and not in whoever uses it because the offsets are
+    lmu2png's and have no reason to be written twice:
+    `ChipsetAtlas._terrain_tile` computes its corner with this same
+    calculation.
     """
     terrain = n + 4
     sx = (terrain % 2) * 48 + (terrain // 8) * 96
@@ -41,23 +42,24 @@ def caja_de_terreno(n):
 
 
 def caja_de_comun(i):
-    """Dónde vive el tile común `i` —0 a 287, las tres páginas de 96 de la
-    mitad derecha—. Los 144 primeros son la capa baja (ids 5000 + i) y los 144
-    de atrás la alta (ids 10000 + i - 144)."""
+    """Where common tile `i` lives —0 to 287, the three pages of 96 in the
+    right half—. The first 144 are the lower layer (ids 5000 + i) and the 144
+    after them the upper one (ids 10000 + i - 144)."""
     x = 192 + (i % 6) * TILE + (i // 96) * 96
     y = ((i // 6) % TILE) * TILE
     return (x, y, x + TILE, y + TILE)
 
 
-# --- colisión ---------------------------------------------------------------
+# --- collision ---------------------------------------------------------------
 #
-# Cada tile de RM2k tiene cuatro bits que dicen por qué lados se lo puede
-# cruzar. Moverse de un tile al de al lado pide permiso a los dos: el de origen
-# tiene que dejar salir por ese lado y el destino dejar entrar por el opuesto.
+# Each RM2k tile has four bits that say from which sides it can be crossed.
+# Moving from a tile to the next one asks both for permission: the origin has
+# to let you out on that side and the destination let you in on the opposite
+# one.
 #
-# La capa alta manda sobre la baja, salvo que tenga el bit "Above" —que
-# significa "se dibuja por encima del héroe", o sea decorado— en cuyo caso la
-# que decide es la baja. Puerto de Game_Map::IsPassableTile de EasyRPG.
+# The upper layer overrides the lower one, unless it has the "Above" bit
+# —which means "drawn above the hero", that is, decoration— in which case the
+# lower one decides. Port of EasyRPG's Game_Map::IsPassableTile.
 
 PASS_DOWN = 0x01
 PASS_LEFT = 0x02
@@ -67,8 +69,8 @@ PASS_ABOVE = 0x10
 PASS_WALL = 0x20
 PASS_ALL = PASS_DOWN | PASS_LEFT | PASS_RIGHT | PASS_UP
 
-# Las combinaciones de un autotile de terreno que son la cara de una pared.
-# Con el bit Wall puesto, esas se cruzan siempre.
+# The combinations of a terrain autotile that are the face of a wall. With
+# the Wall bit set, those can always be crossed.
 WALL_FACES = frozenset(list(range(20, 24)) + list(range(33, 38))
                        + [42, 43, 45, 46])
 
@@ -81,22 +83,22 @@ def lower_passable(flags, raw, bit):
 
 
 def pasa_de_celda(flags, lower, upper):
-    """Los cuatro bits de dirección de una celda, dados sus dos tiles."""
+    """A cell's four direction bits, given its two tiles."""
     byte = 0
     for bit in (PASS_DOWN, PASS_LEFT, PASS_RIGHT, PASS_UP):
         if not (flags[upper] & bit):
-            continue                       # la capa alta bloquea
+            continue                       # the upper layer blocks
         if not (flags[upper] & PASS_ABOVE):
-            byte |= bit                    # la capa alta manda, y deja
+            byte |= bit                    # the upper layer decides, and allows
         elif lower_passable(flags, lower, bit):
-            byte |= bit                    # es decorado: manda la baja
+            byte |= bit                    # it is decoration: the lower decides
     return byte
 
 
 def passability_map(game_map, flags):
-    """Un byte por tile del mapa con los cuatro bits de dirección ya resueltos.
+    """One byte per map tile with the four direction bits already resolved.
 
-    Toda la lógica de RM2k se resuelve acá; la ROM sólo mira la tabla.
+    All of RM2k's logic is resolved here; the ROM only looks at the table.
     """
     result = bytearray(game_map.width * game_map.height)
     for i in range(len(result)):
@@ -106,7 +108,7 @@ def passability_map(game_map, flags):
 
 
 def hero_start(passable, width, height, blocked=()):
-    """El tile abierto por los cuatro lados más cercano al centro del mapa."""
+    """The tile open on all four sides closest to the center of the map."""
     cx, cy = width // 2, height // 2
     best = None
     for y in range(height):
@@ -117,54 +119,56 @@ def hero_start(passable, width, height, blocked=()):
                 if best is None or distance < best[0]:
                     best = (distance, x, y)
     if best is None:
-        # `sys.exit` sin `import sys`, que es lo que había, convertía un mensaje
-        # escrito a propósito en un `NameError` que no dice nada. Y esta rama se
-        # alcanza de verdad: hay mapas del juego —el 44 entre ellos— donde
-        # ninguna celda está abierta por los cuatro lados, y el conversor tiene
-        # que poder decirlo.
+        # `sys.exit` without `import sys`, which is what was here, turned a
+        # message written on purpose into a `NameError` that says nothing.
+        # And this branch is really reached: there are maps in the game —44
+        # among them— where no cell is open on all four sides, and the
+        # converter has to be able to say so.
         raise ValueError(
-            "el mapa no tiene ninguna celda abierta por los cuatro lados, así "
-            "que no hay dónde poner al héroe")
+            "the map has no cell open on all four sides, so there is "
+            "nowhere to put the hero")
     return best[1], best[2]
 
 
-# --- la animación del ChipSet -----------------------------------------------
+# --- the ChipSet's animation -------------------------------------------------
 #
-# Dos animaciones que no tienen nada que ver entre sí y corren a la vez, las dos
-# en `TilemapLayer::Draw` de easyrpg (tilemap_layer.cpp:289):
+# Two animations that have nothing to do with each other and run at the same
+# time, both in easyrpg's `TilemapLayer::Draw` (tilemap_layer.cpp:289):
 #
-#   los autotiles de agua A/B/C   3 dibujos, uno cada `AGUA_CUADROS` cuadros
-#   los "tiles animados"          4 dibujos, uno cada `ANIMADO_CUADROS`
+#   the A/B/C water autotiles   3 drawings, one every `AGUA_CUADROS` frames
+#   the "animated tiles"        4 drawings, one every `ANIMADO_CUADROS`
 #
-# El agua no recorre sus tres dibujos en círculo: el paso va de 0 a 3 y el 3
-# **vuelve a dibujar el 1**, así que el ciclo es 0,1,2,1 y dura cuatro pasos.
-# Eso es con `animation_type` en 0, que es el default y lo que tienen todos los
-# chipsets de este juego salvo dos que no usa ninguno de los mapas del port;
-# con el otro tipo son tres pasos en círculo.
+# The water does not cycle through its three drawings in a circle: the step
+# goes from 0 to 3 and 3 **draws 1 again**, so the cycle is 0,1,2,1 and lasts
+# four steps. That is with `animation_type` at 0, which is the default and
+# what every chipset in this game has except two that none of the port's
+# maps use; with the other type it is three steps in a circle.
 #
-# `animation_speed` elige entre 24 y 12 cuadros por paso —`Game_Map::
-# GetAnimationSpeed`— y también está en el default en todo el juego.
+# `animation_speed` picks between 24 and 12 frames per step —`Game_Map::
+# GetAnimationSpeed`— and it is also at the default throughout the game.
 #
-# El reloj es el contador de cuadros del sistema, que no se reinicia al cambiar
-# de mapa. Acá ese reloj es el tick, que en la ROM es `vueltas` —ver
-# `Partida` en rom/pruebas/arnes/consola.py, que es quien lo lee—. La fase absoluta contra el juego
-# original no significa nada, porque nuestro arranque no dura lo mismo; lo que
-# tiene que coincidir es la cadencia y que los dos lados miren el mismo tick.
-# Las dos familias, con cuántos dibujos tiene cada una. El orden es el de las
-# corridas de tiles en la VRAM; ver `convert` en snes_convert.py.
+# The clock is the system's frame counter, which is not reset when changing
+# maps. Here that clock is the tick, which in the ROM is `vueltas` —see
+# `Partida` in rom/pruebas/arnes/consola.py, which is what reads it—. The
+# absolute phase against the original game means nothing, because our boot
+# does not take the same time; what has to match is the cadence and that both
+# sides look at the same tick.
+# The two families, with how many drawings each one has. The order is that of
+# the tile runs in VRAM; see `convert` in snes_convert.py.
 FAMILIAS_ANIMADAS = (("agua", 3), ("animado", 4))
-# El reloj de la ROM es `vueltas`, de dieciséis bits, así que da la vuelta cada
-# 65536 ticks —dieciocho minutos— y ahí el ciclo se saltea un dibujo; el de RM2k
-# es de treinta y dos. La referencia da la misma vuelta a propósito: lo que
-# tiene que coincidir es lo que dibujan los dos lados, y perder un paso de agua
-# una vez cada dieciocho minutos no lo ve nadie. Está declarado en
+# The ROM's clock is `vueltas`, sixteen bits, so it wraps around every 65536
+# ticks —eighteen minutes— and there the cycle skips a drawing; RM2k's is
+# thirty-two bits. The reference wraps around the same way on purpose: what
+# has to match is what both sides draw, and losing one water step once every
+# eighteen minutes is seen by nobody. It is declared in
 # workflow/divergencias/el-chipset-se-saltea-un-dibujo-cada-18-minutos.md.
 TICK_MASCARA = 0xFFFF
 AGUA_CUADROS_LENTO, AGUA_CUADROS_RAPIDO = 24, 12
-# Tres dibujos recorridos en cuatro pasos, con el cuarto repitiendo el segundo.
-# Es la misma forma en los dos lados de RM2k donde aparece: el agua del ChipSet
-# —`animation_step_ab`— y el ciclo de caminata de un personaje, que tiene tres
-# columnas y `Game_Character::columna` dibuja la 1 cuando el paso es el 3.
+# Three drawings walked in four steps, with the fourth repeating the second.
+# It is the same shape in both places of RM2k where it shows up: the
+# ChipSet's water —`animation_step_ab`— and a character's walk cycle, which
+# has three columns and `Game_Character::columna` draws column 1 when the
+# step is 3.
 CICLO_TRES = (0, 1, 2, 1)
 AGUA_CICLO = CICLO_TRES
 ANIMADO_CUADROS = 6
@@ -172,15 +176,15 @@ ANIMADO_PASOS = 4
 
 
 def paso_animado(tick):
-    """Cuál de los cuatro dibujos de los tiles animados toca en ese tick."""
+    """Which of the four drawings of the animated tiles is due at that tick."""
     return ((tick & TICK_MASCARA) // ANIMADO_CUADROS) % ANIMADO_PASOS
 
 
-# --- el sprite del personaje ----------------------------------------------
+# --- the character sprite ----------------------------------------------------
 #
-# Un CharSet de RM2k son 4 personajes de ancho por 2 de alto; cada uno ocupa
-# 72x128 y tiene 12 poses: 3 columnas de caminata por 4 direcciones. Cada pose
-# mide 24x32, o sea 3x4 celdas de 8x8.
+# An RM2k CharSet is 4 characters wide by 2 high; each one takes 72x128 and
+# has 12 poses: 3 walking columns by 4 directions. Each pose is 24x32, that
+# is, 3x4 cells of 8x8.
 
 SPRITE_CELLS_W = 3
 SPRITE_CELLS_H = 4
@@ -191,85 +195,87 @@ POSE_H = SPRITE_CELLS_H * CELL
 SPRITE_WIDTH = 24
 SPRITE_HEIGHT = 32
 
-# El sprite es más ancho y más alto que la celda de 16x16 sobre la que se para:
-# se centra horizontalmente y se apoya por los pies.
+# The sprite is wider and taller than the 16x16 cell it stands on: it is
+# centered horizontally and rests on its feet.
 OFFSET_X = -(SPRITE_WIDTH - TILE) // 2
 OFFSET_Y = -(SPRITE_HEIGHT - TILE)
 
 
-# --- los NPCs ---------------------------------------------------------------
+# --- the NPCs ----------------------------------------------------------------
 #
-# Son los eventos del mapa que tienen CharSet, en la página que el motor
-# mostraría al empezar una partida: la de número más alto sin condiciones. No se
-# evalúan sus scripts, así que cada uno se queda quieto en la pose que declara
-# su página. Los eventos sin CharSet —puertas, cofres, disparadores— quedan
-# afuera por ahora.
+# They are the map's events that have a CharSet, on the page the engine would
+# show when starting a game: the highest-numbered one without conditions.
+# Their scripts are not evaluated, so each one stays still in the pose its
+# page declares. Events without a CharSet —doors, chests, triggers— are left
+# out for now.
 
-# Las tres capas de un evento. El orden de dibujado de RM2k es primero por
-# capa y recién después por Y: un evento "below" queda debajo del héroe aunque
-# esté más adelante en la pantalla, y uno "above" lo tapa siempre. Sale de
-# Game_Character::GetScreenZ, donde el z es L- YY XX II con la capa en el byte
-# más alto.
-FACE_DOWN = 2      # la fila del CharSet con la que arranca el héroe
+# An event's three layers. RM2k's drawing order is first by layer and only
+# then by Y: a "below" event stays under the hero even if it is further down
+# the screen, and an "above" one always covers him. It comes from
+# Game_Character::GetScreenZ, where the z is L- YY XX II with the layer in
+# the highest byte.
+FACE_DOWN = 2      # the CharSet row the hero starts with
 
 LAYER_BELOW = 0
-LAYER_SAME = 1     # la del héroe, y la única que le choca
+LAYER_SAME = 1     # the hero's, and the only one that collides with him
 LAYER_ABOVE = 2
 
 
-# Un evento sin CharSet se dibuja con un tile de la página alta del chipset:
-# así están hechas las puertas, los cofres y buena parte del decorado. Para el
-# resto del programa es un CharSet más, con este nombre inventado, que lleva el
-# chipset y el índice del tile; `render_map.Charsets` sabe fabricar su imagen.
+# An event without a CharSet is drawn with a tile from the chipset's upper
+# page: that is how doors, chests and a good part of the decoration are
+# made. For the rest of the program it is one more CharSet, with this made-up
+# name, which carries the chipset and the tile's index;
+# `render_map.Charsets` knows how to build its image.
 TILE_PREFIX = "@tile:"
 
 
-# Un evento **translúcido** —el "Trans" de la página, `translucent`— se dibuja
-# en RM2k con opacidad 160 de 255. La consola tiene transparencia de verdad
-# —el color math— pero la aplica a todos los sprites de las paletas 4 a 7, y
-# un mapa como el 9, con once personajes en las ocho paletas, no puede dejar
-# cuatro para los translúcidos solos. Así que va **tramado**: la mitad de los
-# pixeles en damero, que es lo que hacían los juegos de la época y en un
-# televisor de tubo se ve como semitransparencia. Para el port es otro
-# CharSet, con este sufijo en el nombre: el lector lo pega en las páginas
-# translúcidas —ver `decorar_translucido`, que prende `snes_convert`— y
-# `render_map.Charsets` fabrica la imagen tramada. Todo lo demás —paletas,
-# ranuras, poses, la referencia— lo trata como a cualquier otro.
+# A **translucent** event —the page's "Trans", `translucent`— is drawn in
+# RM2k with opacity 160 out of 255. The console has real transparency —color
+# math— but applies it to every sprite of palettes 4 to 7, and a map like 9,
+# with eleven characters in the eight palettes, cannot leave four for the
+# translucent ones alone. So it goes **dithered**: half the pixels in a
+# checkerboard, which is what games of the era did and on a CRT TV looks
+# like semi-transparency. For the port it is another CharSet, with this
+# suffix in the name: the reader sticks it on translucent pages —see
+# `decorar_translucido`, which `snes_convert` turns on— and
+# `render_map.Charsets` builds the dithered image. Everything else —palettes,
+# slots, poses, the reference— treats it like any other.
 TRAMA_SUFIJO = "~trama"
 
-# Un CharSet con este sufijo es **el mismo dibujo, contado como otro gráfico**:
-# el asignador le da su propia paleta. Existe por el destello del héroe, que en
-# la consola se hace sobre la paleta del personaje: un NPC que dibuja con el
-# gráfico de un líder posible compartía paleta con él y destellaba también. Ver
-# `convertir` en snes_convert.py.
+# A CharSet with this suffix is **the same drawing, counted as another
+# graphic**: the allocator gives it its own palette. It exists because of
+# the hero's flash, which on the console is done on the character's palette:
+# an NPC drawn with the graphic of a possible leader shared its palette and
+# flashed too. See `convertir` in snes_convert.py.
 COPIA_SUFIJO = "~aparte"
 
-# Con qué trama. Las opciones están en `render_map.TRAMAS`; se elige mirando
-# un televisor de tubo, que es donde esto se ve.
+# Which dither. The options are in `render_map.TRAMAS`; it is chosen by
+# looking at a CRT TV, which is where this shows.
 TRAMA_PATRON = os.environ.get("TRAMA_PATRON", "cinco_de_ocho")
 
 
-# La opacidad con la que RM2k dibuja una página translúcida: 160 de 255.
+# The opacity RM2k draws a translucent page with: 160 out of 255.
 OPACIDAD_TRANSLUCIDO = 160
 
-# La otra salida, y la de hoy: **hornear la mezcla en el gráfico**. Los 70
-# translúcidos del juego son todos estáticos —`move_type` 0 y sin ruta propia,
-# medido sobre los 35 mapas—, así que ni el objeto ni el fondo se mueven y la
-# mezcla al 160/255 contra el fondo real se puede calcular una vez, en el
-# conversor, y quedar horneada en el sprite: exacta, sin trama y sin gastar
-# color math. Lo que se paga es que el sprite queda **opaco** —nadie se ve por
-# detrás— y que el gráfico deja de ser el mismo para dos eventos parados sobre
-# fondos distintos, así que cada uno se lleva su paleta.
+# The other way out, and today's: **bake the blend into the graphic**. The
+# game's 70 translucent events are all static —`move_type` 0 and no route of
+# their own, measured over the 35 maps—, so neither the object nor the
+# background moves and the 160/255 blend against the real background can be
+# computed once, in the converter, and stay baked into the sprite: exact, no
+# dither and no color math spent. The price is that the sprite becomes
+# **opaque** —nobody shows through from behind— and that the graphic is no
+# longer the same for two events standing on different backgrounds, so each
+# one gets its own palette.
 #
-# Para el resto del programa es, otra vez, otro CharSet: el nombre lleva este
-# sufijo con el mapa y la celda donde está parado el evento, que es todo lo que
-# hace falta para reconstruir el fondo. Lo pega el lector —ver
-# `lcf.DECORAR_TRANSLUCIDO`, que prende el conversor— y `render_map.Charsets`
-# fabrica la imagen.
+# For the rest of the program it is, again, another CharSet: the name carries
+# this suffix with the map and the cell where the event stands, which is all
+# that is needed to rebuild the background. The reader sticks it on —see
+# `lcf.DECORAR_TRANSLUCIDO`, which the converter turns on— and
+# `render_map.Charsets` builds the image.
 HORNEADO_SUFIJO = "~horneado"
 
-# Cuál de los dos caminos corre. Se cambia con MODO_TRANSLUCIDO=trama para
-# poder comparar los dos sobre el mismo árbol.
+# Which of the two paths runs. It is switched with MODO_TRANSLUCIDO=trama to
+# be able to compare both on the same tree.
 MODO_TRANSLUCIDO = os.environ.get("MODO_TRANSLUCIDO", "horneado")
 
 
@@ -278,11 +284,11 @@ def nombre_horneado(nombre, map_id, x, y):
 
 
 def parte_horneada(nombre):
-    """(nombre de base, (mapa, x, y)) de un CharSet horneado, o (nombre, None).
+    """(base name, (map, x, y)) of a baked CharSet, or (name, None).
 
-    Todo lo que mire *qué* gráfico es —la pasabilidad del tile, quién es un
-    tile y quién un CharSet de verdad— tiene que preguntar por la base: el
-    sufijo lleva dónde está parado, no qué dibuja.
+    Everything that looks at *which* graphic it is —the tile's passability,
+    which is a tile and which a real CharSet— has to ask about the base: the
+    suffix carries where it stands, not what it draws.
     """
     base, marca, resto = nombre.partition(HORNEADO_SUFIJO + ":")
     if not marca:
@@ -295,20 +301,21 @@ def sin_horneado(nombre):
 
 
 def sin_trama():
-    """Los CharSets que se dibujan **opacos aunque su página diga
-    translúcida**, en minúsculas: una divergencia deliberada de RM2k que
-    decide el juego, en `[graphics] opaque` del archivo de proyecto."""
+    """The CharSets that are drawn **opaque even though their page says
+    translucent**, lowercase: a deliberate divergence from RM2k that the game
+    decides, in `[graphics] opaque` of the project file."""
     return frozenset(n.lower() for n in perillas.valor(
         "graphics", "opaque", tipo=list))
 
 
 def decorar_translucido(nombre, map_id, x, y):
-    """El nombre que lleva el gráfico de una página translúcida.
+    """The name the graphic of a translucent page carries.
 
-    Tres salidas, y la primera manda: los de `sin_trama()` se dibujan **opacos**
-    aunque su página diga translúcida —decisión de taro, ver la lista—, el
-    resto va horneado contra el fondo de su celda, y `MODO_TRANSLUCIDO=trama`
-    vuelve al damero para poder comparar los dos sobre el mismo árbol.
+    Three ways out, and the first one wins: those in `sin_trama()` are drawn
+    **opaque** even though their page says translucent —taro's decision, see
+    the list—, the rest go baked against their cell's background, and
+    `MODO_TRANSLUCIDO=trama` goes back to the checkerboard to be able to
+    compare both on the same tree.
     """
     if nombre.lower() in sin_trama():
         return nombre
@@ -322,25 +329,26 @@ def nombre_de_tile(chipset, indice):
     return "%s%s:%d" % (TILE_PREFIX, chipset, indice)
 
 
-# Las condiciones de página que la ROM sabe mirar. Un evento con una página
-# que pida otra cosa queda afuera entero: sin sus páginas en la tabla, la ROM
-# no puede saber cuál está activa, así que no cambia de gráfico ni frena.
-# "variable" desde el 2026-09-10 a la noche: la página lleva la ranura, la
-# comparación y el valor, y la ROM los mira en `condiciones_ok`. Falta el
-# cronómetro, que pide una sola página del juego, la 81 del mapa 312.
+# The page conditions the ROM knows how to check. An event with a page that
+# asks for something else is left out entirely: without its pages in the
+# table, the ROM cannot know which one is active, so it neither changes
+# graphic nor blocks. "variable" since the night of 2026-09-10: the page
+# carries the slot, the comparison and the value, and the ROM checks them in
+# `condiciones_ok`. The timer is missing, which only one page of the game
+# asks for, page 81 of map 312.
 CONDICIONES_SOPORTADAS = ("switch_a", "switch_b", "actor", "variable", "item")
-# Y las que el port **no puede cumplir nunca**. Fue la de ítem durante un
-# día: sin inventario, `ChangeItems` se aceptaba sin hacer nada y el grupo no
-# tenía ningún ítem jamás, así que la página se emitía como una que no está
-# activa nunca —ver `SWITCH_IMPOSIBLE` en eventos.py— y las demás páginas del
-# evento corrían como corresponde. Desde el 2026-09-10 a la noche hay
-# inventario y la condición de ítem se evalúa; la máquina queda por si
-# aparece otra condición así.
+# And the ones the port **can never meet**. The item one was for a day:
+# without an inventory, `ChangeItems` was accepted doing nothing and the
+# party never had any item, so the page was emitted as one that is never
+# active —see `SWITCH_IMPOSIBLE` in eventos.py— and the event's other pages
+# ran as they should. Since the night of 2026-09-10 there is an inventory and
+# the item condition is evaluated; the machinery stays in case another
+# condition like that shows up.
 CONDICIONES_IMPOSIBLES = ()
 
 
 def pagina_imposible(page):
-    """Si la página pide algo que este port no cumple nunca."""
+    """Whether the page asks for something this port never meets."""
     return any(c in CONDICIONES_IMPOSIBLES for c in page.condition.active)
 
 
@@ -351,17 +359,17 @@ def condiciones_soportadas(event):
 
 
 def grafico_de_pagina(page, chipset):
-    """(CharSet, índice, pose) de lo que dibuja la página, o None si nada.
+    """(CharSet, index, pose) of what the page draws, or None if nothing.
 
-    Los que se dibujan con un tile del chipset van con un CharSet inventado
-    —ver `nombre_de_tile`—, siempre que quien cargó el mapa le haya puesto
-    `chipset_nombre`; el tile 0 es "sin gráfico".
+    Those drawn with a chipset tile go with a made-up CharSet —see
+    `nombre_de_tile`—, as long as whoever loaded the map set
+    `chipset_nombre` on it; tile 0 is "no graphic".
     """
     if not page.character_name and (page.character_index == 0
                                     or chipset is None):
         return None
-    # La caminata son cuatro fases sobre tres columnas: la del medio va dos
-    # veces, así que la cuarta dibuja la misma que la segunda.
+    # The walk is four phases over three columns: the middle one goes twice,
+    # so the fourth draws the same as the second.
     column = 1 if page.character_pattern == 3 else page.character_pattern
     return (page.character_name or nombre_de_tile(chipset, page.character_index),
             page.character_index if page.character_name else 0,
@@ -369,15 +377,15 @@ def grafico_de_pagina(page, chipset):
 
 
 def pasabilidad_del_tile(game_map, charset, layer):
-    """Los cuatro bits de paso que un evento dibujado con `charset` en la capa
-    `layer` le impone a su celda, o None si no impone nada.
+    """The four passage bits an event drawn with `charset` on layer `layer`
+    imposes on its cell, or None if it imposes nothing.
 
-    Es la regla de `Game_Map::IsPassableTile`: un evento de la capa de abajo
-    con gráfico de tile reemplaza la pasabilidad del terreno por la de su
-    tile, salvo que el tile sea de los que van por encima. Así "se abre" una
-    puerta en este juego: la celda es pared, y con el switch puesto la página
-    muestra el tile de los escombros, que se pisa. Los bits salen de la misma
-    tabla que la capa alta del mapa, que quien cargó el mapa deja en
+    It is `Game_Map::IsPassableTile`'s rule: an event on the lower layer with
+    a tile graphic replaces the terrain's passability with its tile's, unless
+    the tile is one of those that go above. That is how a door "opens" in
+    this game: the cell is wall, and with the switch on the page shows the
+    rubble tile, which can be stepped on. The bits come from the same table
+    as the map's upper layer, which whoever loaded the map leaves in
     `pasabilidad_tiles`.
     """
     flags = getattr(game_map, "pasabilidad_tiles", None)
@@ -391,28 +399,28 @@ def pasabilidad_del_tile(game_map, charset, layer):
     return valor & PASS_ALL
 
 
-UPPER_BASE = 10000      # el primer tile de la capa alta, en el mapa y en la tabla
-# Y el primero de los tiles sueltos de la capa de abajo: el "bloque E" del
-# formato, los 144 que la paleta del editor muestra debajo de los autotiles.
-# Son los dos rangos con los que habla `TileSubstitution`, que numera desde el
-# primero de cada uno. Los autotiles quedan afuera: no los sustituye ni RM2k.
+UPPER_BASE = 10000      # the first tile of the upper layer, in the map and in the table
+# And the first of the loose tiles of the lower layer: the format's "block
+# E", the 144 the editor's palette shows below the autotiles. They are the two
+# ranges `TileSubstitution` speaks in, numbering from the first of each. The
+# autotiles are left out: not even RM2k substitutes them.
 LOWER_BASE = 5000
 TILES_POR_CAPA = 144
 
-# Los seis bloques de ids de tile del formato, como `map_data.h` de easyrpg:
-# (primer id, cuántos, cuánto ocupa cada uno, primer índice). El **índice** es
-# con lo que se lee la tabla de terrenos y la de pasabilidad del ChipSet, y no
-# es el id: los autotiles ocupan 50 o 1000 ids cada uno —las combinaciones de
-# bordes— y un solo índice.
+# The format's six tile id blocks, as in easyrpg's `map_data.h`: (first id,
+# how many, how much each one takes, first index). The **index** is what the
+# ChipSet's terrain table and passability table are read with, and it is not
+# the id: autotiles take 50 or 1000 ids each —the edge combinations— and a
+# single index.
 BLOQUES_DE_CHIP = ((0, 2, 1000, 0), (2000, 1, 1000, 2), (3000, 3, 50, 3),
                    (4000, 12, 50, 6), (LOWER_BASE, 144, 1, 18),
                    (UPPER_BASE, 144, 1, 162))
-# Cuántas entradas tiene la tabla de terrenos: las de la capa de abajo.
+# How many entries the terrain table has: those of the lower layer.
 TERRENOS_POR_CHIPSET = 162
 
 
 def indice_de_chip(chip_id):
-    """`ChipIdToIndex`: de un id de tile del mapa a su entrada del ChipSet."""
+    """`ChipIdToIndex`: from a map tile id to its ChipSet entry."""
     for base, cuantos, paso, indice in BLOQUES_DE_CHIP:
         if base <= chip_id < base + cuantos * paso:
             return indice + (chip_id - base) // paso
@@ -420,50 +428,54 @@ def indice_de_chip(chip_id):
 
 
 def terreno_de(chipset, chip_id):
-    """El terreno de un tile de la capa de abajo, como `GetTerrainTag`.
+    """The terrain of a lower-layer tile, as `GetTerrainTag`.
 
-    Un ChipSet cuyo terreno es todo 1 **no guarda la tabla**: es una
-    optimización de RPG_RT que el formato deja ver, y la respuesta entonces es
-    1. Todos los ChipSets de este juego son así.
+    A ChipSet whose terrain is all 1 **does not store the table**: it is an
+    RPG_RT optimization the format lets show, and the answer then is 1. Every
+    ChipSet in this game is like that.
     """
     if not chipset.terrain:
         return 1
     return chipset.terrain[indice_de_chip(chip_id)]
 
-# Los `animation_type` que piden animación continua: "Continuous" y "Fixed
-# Dir/Continuous". El save point de Lashe City es del segundo tipo.
+# The `animation_type` values that ask for continuous animation:
+# "Continuous" and "Fixed Dir/Continuous". Lashe City's save point is of the
+# second type.
 ANIMA_CONTINUO = (1, 3)
 
 
 def collect_npcs(game_map):
-    """Los eventos que se dibujan, con su pose y si bloquean el paso.
+    """The events that are drawn, with their pose and whether they block the
+    way.
 
-    Entra todo evento con gráfico en **alguna** página, aunque la activa al
-    cargar no tenga: las puertas de este juego son eso, una página sin gráfico
-    y otra con el tile de los escombros. `visible` dice si se ve al cargar, y
-    `cambia` si el gráfico sigue a la página activa: es lo que la ROM refresca
-    con los switches, y vale sólo para eventos cuyas condiciones entiende.
-    `graficos` lleva el de cada página, o None, y `capas` la capa de cada una.
+    Every event with a graphic on **some** page gets in, even if the one
+    active at load has none: this game's doors are exactly that, a page
+    without a graphic and another with the rubble tile. `visible` says
+    whether it is seen at load, and `cambia` whether the graphic follows the
+    active page: it is what the ROM refreshes with the switches, and it only
+    applies to events whose conditions it understands. `graficos` carries
+    each page's graphic, or None, and `capas` each one's layer.
     """
     npcs = []
     chipset = getattr(game_map, "chipset_nombre", None)
     for numero, event in enumerate(game_map.events):
-        # Una página imposible no se dibuja nunca: su gráfico no cuenta.
+        # An impossible page is never drawn: its graphic does not count.
         graficos = [None if pagina_imposible(p) else grafico_de_pagina(p, chipset)
                     for p in event.pages]
         if not any(graficos):
             continue
-        # Qué puede llegar a dibujar este evento a lo largo de la partida. No
-        # es sólo el gráfico de cada página: si la **primera** tiene condición,
-        # puede no haber ninguna activa, y entonces no dibuja nada. Ese "nada"
-        # es un estado más.
+        # What this event may end up drawing over the course of the game. It
+        # is not only each page's graphic: if the **first** one has a
+        # condition, there may be none active, and then it draws nothing.
+        # That "nothing" is one more state.
         #
-        # Sin contarlo, un evento de una sola página condicionada queda con un
-        # solo gráfico posible, `cambia` da falso, y como al cargar el mapa
-        # tampoco es visible, se lo saltea entero: no hay fila que actualizar
-        # cuando el switch se prenda. taro lo vio el 2026-09-07 con el
-        # `TalDoorBottom` del mapa 8, que se puede usar y corre sus comandos
-        # pero no se dibuja nunca. Son **350 eventos en 68 mapas**.
+        # Without counting it, an event with a single conditioned page ends
+        # up with a single possible graphic, `cambia` comes out false, and
+        # since it is not visible when the map loads either, it is skipped
+        # entirely: there is no row to update when the switch turns on. taro
+        # saw it on 2026-09-07 with map 8's `TalDoorBottom`, which can be
+        # used and runs its commands but is never drawn. That is **350
+        # events in 68 maps**.
         posibles = set(graficos)
         if event.pages and event.pages[0].condition.active:
             posibles.add(None)
@@ -471,28 +483,29 @@ def collect_npcs(game_map):
         page = event.active_page()
         visible = page is not None and grafico_de_pagina(page, chipset) is not None
         if not visible and not cambia:
-            continue                # sin gráfico al cargar y sin cambio: no está
+            continue                # no graphic at load and no change: it is not there
         if not visible:
-            # La fila existe escondida: sus campos salen de la primera página
-            # con gráfico, que es de donde va a salir cuando aparezca.
+            # The row exists hidden: its fields come from the first page with
+            # a graphic, which is where it will come from when it appears.
             page = next(p for p, g in zip(event.pages, graficos)
                         if g is not None)
         charset, index, pose = grafico_de_pagina(page, chipset)
         npcs.append({
-            # El índice en la tabla de eventos del mapa, que es lo que lleva el
-            # bytecode de una ruta forzada. **No es el id de RM2k**: hay mapas
-            # con huecos en la numeración.
+            # The index in the map's event table, which is what the bytecode
+            # of a forced route carries. **It is not the RM2k id**: there are
+            # maps with gaps in the numbering.
             "evento": numero,
             "x": event.x, "y": event.y,
             "charset": charset, "index": index, "pose": pose,
             "layer": page.layer,
             "blocks": page.layer == LAYER_SAME,
-            # La velocidad de su página, que es la que lleva una ruta forzada
-            # sobre él: RM2k la pone en `SetupFromPage` y `ForceMoveRoute` no
-            # la toca. Por defecto es 3, dieciséis cuadros por celda.
+            # Its page's speed, which is what a forced route on it carries:
+            # RM2k sets it in `SetupFromPage` and `ForceMoveRoute` does not
+            # touch it. By default it is 3, sixteen frames per cell.
             "velocidad": page.move_speed,
-            # Si su página pide animación continua. Los que además caminan la
-            # llevan adentro de su ranura de ruta; esto es para los quietos.
+            # Whether its page asks for continuous animation. Those that also
+            # walk carry it inside their route slot; this is for the still
+            # ones.
             "anima": page.animation_type in ANIMA_CONTINUO,
             "visible": visible,
             "cambia": cambia,
@@ -504,6 +517,6 @@ def collect_npcs(game_map):
     return npcs
 
 
-# El código de comando de `Teleport`, de liblcf. Lo usa el planificador de
-# recorridos del arnés para saber a dónde lleva la página de un evento.
+# The `Teleport` command code, from liblcf. The harness's route planner uses
+# it to know where an event's page leads.
 TELEPORT = 10810

@@ -1,10 +1,10 @@
 .segment "CODE"
 
-; --- el cronómetro ---------------------------------------------------------
-; Un cuadro de la cuenta. Es `Game_Party::UpdateTimers`, y lo que importa es el
-; final: al llegar a cero segundos RM2k llama a `StopTimer`, que apaga la cuenta
-; **y la esconde**. O sea que el último valor que se ve es 00:01 y después no
-; queda nada dibujado, no un 00:00 congelado.
+; --- the timer -------------------------------------------------------------
+; One frame of the countdown. It is `Game_Party::UpdateTimers`, and what
+; matters is the end: on reaching zero seconds RM2k calls `StopTimer`, which
+; stops the count **and hides it**. So the last value shown is 00:01 and after
+; that nothing is left drawn, not a frozen 00:00.
 .proc timer_tick
 .a8
 .i16
@@ -22,7 +22,7 @@ otro_segundo:
     rep #$20
 .a16
     lda timer_seg
-    beq apagar_16               ; ya estaba en cero: no hay qué bajar
+    beq apagar_16               ; it was already at zero: nothing to decrement
     dec a
     sta timer_seg
     sep #$20
@@ -39,20 +39,20 @@ apagar_16:
 apagar:
     stz timer_activo
     lda timer_visible
-    stz timer_visible           ; `stz` no toca Z: el salto mira el `lda`
+    stz timer_visible           ; `stz` does not touch Z: the branch looks at the `lda`
     beq ya_no_se_veia
-    jsr timer_repintar          ; sus entradas vuelven a teñirse
+    jsr timer_repintar          ; its entries get tinted again
 ya_no_se_veia:
     rts
 .endproc
 
-; Los cuatro dígitos de `timer_seg`, de los minutos a los segundos. Se llama
-; cuando el segundo cambia y no en cada cuadro: son dos divisiones por restas
-; sucesivas, y a 60 hercios serían sesenta veces el mismo resultado.
+; The four digits of `timer_seg`, from minutes to seconds. It is called when
+; the second changes and not every frame: it is two divisions by repeated
+; subtraction, and at 60 hertz that would be the same result sixty times.
 ;
-; Los minutos entran en dos dígitos porque el conversor no deja pasar un
-; cronómetro de más de 1092 segundos: el tope se lo pone la cuenta de cuadros
-; en dieciséis bits, no la pantalla.
+; The minutes fit in two digits because the converter does not let through a
+; timer of more than 1092 seconds: the cap comes from the frame count in
+; sixteen bits, not from the screen.
 .proc timer_digitos
 .a8
 .i16
@@ -68,13 +68,13 @@ menos_60:
     inx
     bra menos_60
 listo_60:
-    sta temp                    ; los segundos sueltos
+    sta temp                    ; the leftover seconds
     txa
-    sta temp + 2                ; y los minutos
+    sta temp + 2                ; and the minutes
     sep #$20
 .a8
 
-    lda temp + 2                ; los minutos, en dos dígitos
+    lda temp + 2                ; the minutes, in two digits
     ldx #0
 menos_10a:
     cmp #10
@@ -85,10 +85,10 @@ menos_10a:
     bra menos_10a
 listo_10a:
     sta timer_dig + 1
-    txa                         ; con A de ocho bits es el byte bajo de X
+    txa                         ; with 8-bit A it is the low byte of X
     sta timer_dig + 0
 
-    lda temp                    ; y los segundos
+    lda temp                    ; and the seconds
     ldx #0
 menos_10b:
     cmp #10
@@ -104,14 +104,14 @@ listo_10b:
     rts
 .endproc
 
-; Los cinco glifos del cronómetro en OAM, cada uno como dos objetos de 8x8
-; apilados. Van **primero**, o sea en los objetos de índice más bajo, que son
-; los que la consola pone adelante: en RM2k el cronómetro es `Priority_Timer`,
-; que está por encima de todo lo demás, ventana de mensaje incluida. Acá eso lo
-; da la prioridad 3 de objeto, que gana contra las dos capas.
+; The timer's five glyphs in OAM, each one as two stacked 8x8 objects. They go
+; **first**, that is, in the lowest-index objects, which are the ones the
+; console puts in front: in RM2k the timer is `Priority_Timer`, which sits
+; above everything else, message window included. Here that comes from object
+; priority 3, which wins over both layers.
 ;
-; Los dos puntos parpadean: se dibujan sólo en la mitad de arriba del segundo,
-; que es el `frames % 60 < 30 -> continue` de `Sprite_Timer::Draw`.
+; The colon blinks: it is drawn only in the upper half of the second, which is
+; the `frames % 60 < 30 -> continue` of `Sprite_Timer::Draw`.
 .proc timer_oam
 .a8
 .i16
@@ -123,9 +123,9 @@ hay:
     lda f:mapa_tabla + M_TIMER_BASE, x
     ora f:mapa_tabla + M_TIMER_BASE + 1, x
     bne dibujar
-    rts                         ; esta ROM no lleva los glifos
+    rts                         ; this ROM does not carry the glyphs
 dibujar:
-    stz obj_grande              ; los dígitos son de 8x8
+    stz obj_grande              ; the digits are 8x8
     stz timer_i
 cada_glifo:
     lda timer_i
@@ -135,15 +135,15 @@ cada_glifo:
 hay_glifo:
     cmp #2
     bne es_digito
-    ; Los dos puntos, y sólo si toca.
+    ; The colon, and only when it is due.
     lda timer_sub
     cmp #(TIMER_CUADROS / 2)
     bcc siguiente
     lda #TIMER_DOS_PUNTOS
     bra con_glifo
 es_digito:
-    ; El índice en `timer_dig`: la posición, menos uno si va detrás de los dos
-    ; puntos, que no tienen dígito propio.
+    ; The index into `timer_dig`: the position, minus one if it comes after
+    ; the colon, which has no digit of its own.
     cmp #2
     bcc sin_ajuste
     dec a
@@ -159,13 +159,13 @@ con_glifo:
     sta timer_glifo
     stz timer_mitad
 cada_mitad:
-    ; Dónde cae en pantalla. La X no lleva el corrimiento de los personajes:
-    ; los dígitos son de 8x8 y su esquina es su esquina.
+    ; Where it lands on screen. The X does not carry the characters' offset:
+    ; the digits are 8x8 and their corner is their corner.
     rep #$20
 .a16
     lda timer_i
     and #$00FF
-    ; Ocho por glifo, que es un corrimiento y no una multiplicación.
+    ; Eight per glyph, which is a shift and not a multiplication.
     asl a
     asl a
     asl a
@@ -181,8 +181,8 @@ cada_mitad:
     adc #TIMER_Y
     sta obj_y
 
-    ; Y qué tile: los once glifos entran en una fila de dieciséis, así que la
-    ; mitad de abajo está justo dieciséis más adelante.
+    ; And which tile: the eleven glyphs fit in a row of sixteen, so the lower
+    ; half is exactly sixteen further on.
     lda timer_mitad
     and #$00FF
     asl a
@@ -190,8 +190,8 @@ cada_mitad:
     asl a
     asl a
     clc
-    adc timer_glifo             ; en dieciséis bits se lleva al byte de al
-    and #$00FF                  ; lado, y por eso el `and`
+    adc timer_glifo             ; in sixteen bits it carries into the next
+    and #$00FF                  ; byte, and hence the `and`
     ldx mapa_ofs
     clc
     adc f:mapa_tabla + M_TIMER_BASE, x
@@ -200,8 +200,8 @@ cada_mitad:
 .a8
     lda temp
     sta obj_tile
-    ; vhoopppN: prioridad 3 —adelante de las dos capas—, la paleta del
-    ; cronómetro, y el noveno bit del tile.
+    ; vhoopppN: priority 3 —in front of both layers—, the timer's palette,
+    ; and the ninth bit of the tile.
     lda temp + 1
     and #$01
     sta temp + 2
@@ -221,7 +221,7 @@ siguiente:
     inc timer_i
     jmp cada_glifo
 fin:
-    lda #$02                    ; y lo que siga vuelve a ser de 32x32
+    lda #$02                    ; and whatever follows is 32x32 again
     sta obj_grande
     rts
 .endproc

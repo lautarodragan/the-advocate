@@ -1,20 +1,20 @@
 .segment "CODE"
 
-; --- música ----------------------------------------------------------------
-; El stream es por nota: notas, releases, cambios de volumen o de altura de una
-; voz que suena, y esperas; `music_frame` lo expande a escrituras al DSP. Los
-; opcodes los declara `tools/protocol/music.toml` y el equate sale generado:
-; hasta el 2026-09-15 estaban escritos a mano acá **y** en
-; tools/audio/snes_music.py, que es el que escribe el stream, sin nada que atara
-; las dos copias.
+; --- music -------------------------------------------------------------------
+; The stream is per note: notes, releases, volume or pitch changes of a voice
+; that is playing, and waits; `music_frame` expands it into DSP writes. The
+; opcodes are declared by `tools/protocol/music.toml` and the equate comes out
+; generated: until 2026-09-15 they were written by hand here **and** in
+; tools/audio/snes_music.py, which is what writes the stream, with nothing tying
+; the two copies together.
 
-; Un cuadro de música por cuadro de video, más uno extra cada cinco si la
-; consola es PAL: seis cada cinco son exactamente 60 por cada 50.
+; One music frame per video frame, plus an extra one every five if the console
+; is PAL: six every five is exactly 60 per 50.
 .proc irq_musica
-    jml f:rapida + RAPIDO       ; el vector cae en el banco 0: ver MEMSEL
+    jml f:rapida + RAPIDO       ; the vector lands in bank 0: see MEMSEL
 rapida:
-    ; Todo lo que se toca se guarda, B y D incluidos: se cae en el medio de
-    ; cualquier cosa, el intérprete con B apuntando al bytecode entre ellas.
+    ; Everything touched is saved, B and D included: this lands in the middle
+    ; of anything, among them the interpreter with B pointing at the bytecode.
     rep #$30
 .a16
 .i16
@@ -25,12 +25,12 @@ rapida:
     phd
     lda #0
     pha
-    pld                         ; la página directa en cero
+    pld                         ; the direct page at zero
     sep #$20
 .a8
     phk
-    plb                         ; las tablas de la música, en el banco 0
-    lda TIMEUP                  ; baja la bandera: si no, vuelve a entrar
+    plb                         ; the music tables, in bank 0
+    lda TIMEUP                  ; clears the flag: otherwise it comes back in
     jsr music_tick
     rep #$30
 .a16
@@ -46,14 +46,14 @@ rapida:
 .proc music_tick
 .a8
 .i16
-    ; El `FadeOutBGM` primero, y **afuera** del guard de `music_apagada`: es lo
-    ; que lo va a prender cuando el volumen llegue a cero.
+    ; The `FadeOutBGM` first, and **outside** the `music_apagada` guard: it is
+    ; what will set it when the volume reaches zero.
     lda bgm_fundido
     beq sin_fundido
     jsr bgm_fundido_tick
 sin_fundido:
-    ; Los efectos de sonido rodean a la música, y corren aunque esté callada:
-    ; ver "los efectos de sonido".
+    ; The sound effects wrap around the music, and run even when it is silent:
+    ; see "sound effects" in `efectos_de_sonido.s`.
     jsr se_antes
     lda music_apagada
     bne listo
@@ -65,37 +65,37 @@ sin_fundido:
     cmp #5
     bcc listo
     stz pal_tick
-    jsr music_frame             ; el cuadro que le falta a PAL
+    jsr music_frame             ; the frame PAL is missing
 listo:
     jmp se_despues
 .endproc
 
-; Arranca desde el principio el tema cuyo índice trae A. El comienzo del stream
-; trae la puesta a punto del DSP —los volúmenes, el directorio de muestras— así
-; que volver a llamar acá es exactamente lo que hace un `PlayBGM`: empezar de
-; cero.
+; Starts from the beginning the song whose index is in A. The start of the
+; stream carries the DSP setup —the volumes, the sample directory— so calling
+; here again is exactly what a `PlayBGM` does: start from scratch.
 ;
-; El cartucho lleva varios temas desde el 2026-09-06 y **todos comparten el
-; banco de muestras**, que se sube una sola vez al arrancar: cambiar de tema es
-; cambiar de stream y nada más, o sea que no cuesta ni un cuadro. De ahí que
-; acá no haya nada que subir. Ver `Banco` en tools/audio/snes_music.py.
+; The cartridge has carried several songs since 2026-09-06 and **they all share
+; the sample bank**, which is uploaded only once at boot: changing song is
+; changing stream and nothing else, so it does not cost even a frame. Hence
+; there is nothing to upload here. See `Banco` in tools/audio/snes_music.py.
 ;
-; Qué índice está sonando queda en `tema_actual`, que es lo que `music_frame`
-; necesita para volver a empezar cuando el stream termina: sin eso el loop
-; volvía siempre al primero.
+; Which index is playing stays in `tema_actual`, which is what `music_frame`
+; needs to start over when the stream ends: without it the loop always went
+; back to the first one.
 .proc music_start
 .a8
 .i16
-    ; El código principal la llama con la música andando —`PlayBGM`, el
-    ; título—, y cambiar el puntero a medias con `irq_musica` leyéndolo sería
-    ; tocar un tema desde la mitad de otro.
+    ; The main code calls it with the music running —`PlayBGM`, the title—,
+    ; and changing the pointer halfway with `irq_musica` reading it would be
+    ; playing one song from the middle of another.
     pha
-    jsr msu_parar               ; la pista de antes, si había
+    jsr msu_parar               ; the previous track, if there was one
     pla
     pha
     jsr msu_arrancar
     beq sin_pista
-    ; Con pista, el SPC700 se calla: el stream no corre y las voces sueltan.
+    ; With a track, the SPC700 goes silent: the stream does not run and the
+    ; voices release.
     pla
     sta tema_actual
     stz tema_actual + 1
@@ -106,22 +106,22 @@ listo:
     stz bgm_fundido
     lda #$FF
     ldx #SE_KOF
-    jsr dsp_par                 ; las ocho voces sueltan, y KOF queda puesto
-    ; Y el DSP hay que ponerlo a punto acá, que es lo que no estaba: lo hace
-    ; el comienzo del stream —FLG sin el mute con que arranca el SPC700, el
-    ; volumen general, y dónde está el directorio de muestras— y con pista el
-    ; stream no corre nunca. Sin esto los efectos de sonido se disparan contra
-    ; un DSP mudo: medido en la apertura, correr con el efecto y con el efecto
-    ; suprimido daba **cero** muestras de diferencia.
+    jsr dsp_par                 ; the eight voices release, and KOF stays set
+    ; And the DSP has to be set up here, which is what was missing: the start
+    ; of the stream does it —FLG without the mute the SPC700 boots with, the
+    ; master volume, and where the sample directory is— and with a track the
+    ; stream never runs. Without this the sound effects fire against a mute
+    ; DSP: measured in the opening, running with the sound effect and with it
+    ; suppressed gave **zero** samples of difference.
     ;
-    ; KOF se queda en $FF, que es lo que mantiene calladas las voces de la
-    ; música; `se_despues` lo limpia solo cuando arranca un efecto.
+    ; KOF stays at $FF, which is what keeps the music's voices silent;
+    ; `se_despues` clears it by itself when a sound effect starts.
     ldy #0
 otro_init:
     lda dsp_init_reg, y
     cmp #$FF
     beq init_listo
-    tax                         ; dsp_par mira sólo el byte bajo de X
+    tax                         ; dsp_par looks only at X's low byte
     lda dsp_init_val, y
     jsr dsp_par
     iny
@@ -130,21 +130,21 @@ init_listo:
     plp
     rts
 sin_pista:
-    ; El tema se queda en la pila: `tema_asegurar` pisa el acumulador, y
-    ; `music_start_ya` lo necesita. Sacarlo antes dejaba el tema en $FF, el
-    ; puntero del stream fuera de su tabla y la ROM muda a los diez cuadros.
+    ; The song stays on the stack: `tema_asegurar` clobbers the accumulator,
+    ; and `music_start_ya` needs it. Pulling it earlier left the song at $FF,
+    ; the stream pointer outside its table and the ROM mute within ten frames.
     pla
     pha
-    jsr tema_asegurar           ; que sus muestras estén en la ARAM
+    jsr tema_asegurar           ; that its samples are in the ARAM
     pla
     php
     sei
-    ; Se cancela el fundido que hubiera, que si no seguiría bajando el tema que
-    ; el `PlayBGM` acaba de prender. Acá y no en `music_start_ya`, que es
-    ; también la vuelta al principio del tema: un tema que da la vuelta en
-    ; medio de un `FadeOutBGM` se sigue apagando, como en RM2k. Hasta el
-    ; 2026-09-26 la vuelta lo cancelaba, porque el comienzo del stream reponía
-    ; el volumen general, que era lo que el fundido bajaba.
+    ; Any fade in progress is cancelled, since otherwise it would keep lowering
+    ; the song the `PlayBGM` just started. Here and not in `music_start_ya`,
+    ; which is also the loop back to the start of the song: a song that loops
+    ; in the middle of a `FadeOutBGM` keeps fading out, as in RM2k. Until
+    ; 2026-09-26 the loop cancelled it, because the start of the stream
+    ; restored the master volume, which was what the fade lowered.
     stz bgm_fundido
     jsr music_start_ya
     plp
@@ -163,10 +163,10 @@ sin_pista:
     sta music + 1
     lda tema_bk, x
     sta music + 2
-    ; El decodificador de cero: sin espera, sin disparos pendientes, y con el
-    ; caché sin nada que valga —la primera nota de cada voz lo reescribe—.
-    ; Pasa también al volver al principio del tema, y es lo que hace que la
-    ; segunda vuelta escriba lo mismo que la primera.
+    ; The decoder from scratch: no wait, no pending key-ons, and with nothing
+    ; valid in the cache —each voice's first note rewrites it—. This also
+    ; happens when looping back to the start of the song, and it is what makes
+    ; the second time around write the same as the first.
     lda #0
     sta f:MUS_KON
     sta f:MUS_SONANDO
@@ -174,8 +174,8 @@ sin_pista:
     sta f:MUS_GAINS
     rep #$20
 .a16
-    lda #0                      ; de nuevo: el `lda #0` de ocho bits no
-    sta f:MUS_ESPERA            ; limpió B, y la espera es de dieciséis
+    lda #0                      ; again: the 8-bit `lda #0` did not
+    sta f:MUS_ESPERA            ; clear B, and the wait is sixteen bits
     lda tema_actual
     asl a
     tax
@@ -187,18 +187,20 @@ sin_pista:
     rts
 .endproc
 
-; Un cuadro del `FadeOutBGM`: baja el tema y, cuando llega a cero, lo corta. Es
-; `Game_System::BgmFade`, que en RM2k tampoco bloquea a la página que lo pidió.
+; One frame of `FadeOutBGM`: lowers the song and, when it reaches zero, cuts
+; it. It is `Game_System::BgmFade`, which in RM2k does not block the page that
+; asked for it either.
 ;
-; El nivel es de dieciséis bits y va de 65535 a cero. La alternativa —bajar un
-; registro de siete bits de a uno— daría noventa y seis escalones para un
-; fundido de trescientos cuadros y se oiría a escalones.
+; The level is sixteen bits and goes from 65535 to zero. The alternative
+; —lowering a seven-bit register one at a time— would give ninety-six steps
+; for a three-hundred-frame fade and it would be heard in steps.
 ;
-; **Lo que baja es el tema y nada más**: sin MSU-1, el volumen de cada voz de
-; la música —ver `volumen_al_dia`—, y con MSU-1, el de la pista. Hasta el
-; 2026-09-26 sin MSU-1 bajaba el volumen general del DSP, que es también el de
-; los efectos de sonido, y lo dejaba en cero hasta el próximo tema: el trueno
-; del final del mapa 3 sonaba mudo. Lo cobra `test_fundido_del_tema.py`.
+; **What gets lowered is the song and nothing else**: without MSU-1, the volume
+; of each music voice —see `volumen_al_dia`—, and with MSU-1, the track's.
+; Until 2026-09-26, without MSU-1 it lowered the DSP's master volume, which is
+; also the sound effects', and left it at zero until the next song: the
+; thunder at the end of map 3 played silent. `test_fundido_del_tema.py`
+; catches it.
 .proc bgm_fundido_tick
 .a8
 .i16
@@ -206,16 +208,16 @@ sin_pista:
 .a16
     lda bgm_nivel
     jsr factor_de_nivel
-    sta f:FUNDIDO_ANTES         ; el que el DSP tiene
+    sta f:FUNDIDO_ANTES         ; the one the DSP has
     lda bgm_nivel
     sec
     sbc bgm_paso
-    bcs baja                    ; todavía queda
+    bcs baja                    ; still some left
     lda #0
 baja:
     sta bgm_nivel
     jsr factor_de_nivel
-    sta f:FUNDIDO_N             ; el de este cuadro
+    sta f:FUNDIDO_N             ; this frame's
     sep #$20
 .a8
     lda bgm_nivel
@@ -223,24 +225,24 @@ baja:
     bne sigue
     stz bgm_fundido
     lda #1
-    sta music_apagada           ; el tema se corta, como `BgmFade`
+    sta music_apagada           ; the song is cut, like `BgmFade`
 sigue:
     lda f:MSU_SUENA
     bne pista
     jmp voces_al_dia
 pista:
-    ; Con pista, el fundido baja **su** volumen: MSU_VOLUMEN_MAX por el nivel,
-    ; entre 256. **No con el multiplicador de la CPU**: esto corre en
-    ; `irq_musica`, y el código principal lo usa en treinta lugares —el divisor
-    ; comparte el registro del resultado—; una interrupción entre su escritura
-    ; y su lectura le cambiaría la cuenta. Tampoco con el del PPU, que es de
-    ; ocho bits con signo y MSU_VOLUMEN_MAX no entra. Así que a mano, de a un
-    ; bit del nivel, con `dsp_valor` de lugar: es sólo de la música.
+    ; With a track, the fade lowers **its** volume: MSU_VOLUMEN_MAX times the
+    ; level, over 256. **Not with the CPU's multiplier**: this runs in
+    ; `irq_musica`, and the main code uses it in thirty places —the divider
+    ; shares the result register—; an interrupt between its write and its read
+    ; would change its result. Not with the PPU's either, which is eight-bit
+    ; signed and MSU_VOLUMEN_MAX does not fit. So by hand, one bit of the level
+    ; at a time, with `dsp_valor` as scratch: it belongs to the music only.
     rep #$20
 .a16
     lda #MSU_VOLUMEN_MAX
-    sta f:MSU_FACTOR            ; el lazo lo suma con `adc f:`: no hay dónde
-    sep #$20                    ; tener un parcial, y `,s` no existe acá
+    sta f:MSU_FACTOR            ; the loop adds it with `adc f:`: there is
+    sep #$20                    ; nowhere to keep a partial, and no `,s` here
 .a8
     lda bgm_nivel + 1
     sta dsp_valor
@@ -252,7 +254,7 @@ bit_del_nivel:
     asl a
     sep #$20
 .a8
-    asl dsp_valor               ; sep y rep no tocan el carry
+    asl dsp_valor               ; sep and rep do not touch carry
     rep #$20
 .a16
     bcc sin_sumar
@@ -261,21 +263,21 @@ bit_del_nivel:
 sin_sumar:
     dex
     bne bit_del_nivel
-    xba                         ; el byte alto del producto, o sea entre 256
+    xba                         ; the product's high byte, that is, over 256
     sep #$20
 .a8
     sta MSU_VOLUMEN
     cmp #0
     bne listo_msu
-    jsr msu_parar               ; llegó a cero: la pista se corta
+    jsr msu_parar               ; reached zero: the track is cut
 listo_msu:
     rts
 .endproc
 
-; A de dieciséis: el nivel del fundido. Vuelve con el factor que le toca, de 0
-; a 256: el byte alto más uno, salvo el cero. Así el nivel entero, $FFFF, es
-; 256, que es el volumen **sin tocar** —con 255 el primer cuadro ya bajaría
-; todas las voces un escalón—, y el cero es silencio.
+; 16-bit A: the fade level. Returns with its factor, from 0 to 256: the high
+; byte plus one, except for zero. That way the full level, $FFFF, is 256, which
+; is the volume **untouched** —with 255 the first frame would already lower
+; every voice by a step—, and zero is silence.
 .proc factor_de_nivel
 .a16
 .i16
@@ -288,30 +290,31 @@ listo:
     rts
 .endproc
 
-; El volumen de las voces de la música, al día con el fundido: VOL_L y VOL_R de
-; cada voz que ya tocó en este tema, escalados por FUNDIDO_N. Se reescribe sólo
-; el que cambió desde el cuadro anterior —el escalado por FUNDIDO_ANTES es lo
-; que el DSP ya tiene—: un fundido de trescientos cuadros mueve cada volumen
-; una vez cada tantos, y cada escritura espera al SPC700.
+; The volume of the music's voices, kept up to date with the fade: VOL_L and
+; VOL_R of each voice that has already played in this song, scaled by
+; FUNDIDO_N. Only the ones that changed since the previous frame are rewritten
+; —the one scaled by FUNDIDO_ANTES is what the DSP already has—: a
+; three-hundred-frame fade moves each volume once every so many frames, and
+; each write waits on the SPC700.
 ;
-; Van por `dsp_musica`, así que las voces que tienen un efecto sonando no se
-; tocan: el valor va a su sombra, y se les devuelve escalado cuando el efecto
-; termina.
+; They go through `dsp_musica`, so the voices that have a sound effect playing
+; are not touched: the value goes to their shadow, and they get it back scaled
+; when the sound effect ends.
 .proc voces_al_dia
 .a8
 .i16
-    ldx #0                      ; VOL_L de la voz: el registro del DSP
-    ldy #0                      ; la voz
+    ldx #0                      ; the voice's VOL_L: the DSP register
+    ldy #0                      ; the voice
 otra_voz:
     lda f:MUS_VISTAS
     and bit_de_voz, y
-    beq siguiente               ; no tocó en este tema: no suena
+    beq siguiente               ; did not play in this song: not sounding
     jsr volumen_al_dia
     inx
     jsr volumen_al_dia          ; VOL_R
     dex
 siguiente:
-    rep #$21                    ; y el carry en cero
+    rep #$21                    ; and carry at zero
 .a16
     txa
     adc #$10
@@ -324,11 +327,11 @@ siguiente:
     rts
 .endproc
 
-; El registro de volumen X de una voz, con lo que el stream le escribió
-; —MUS_SOMBRA— por FUNDIDO_N, entre 256, si eso cambió respecto de
-; FUNDIDO_ANTES. El producto lo hace el multiplicador del PPU, que es de
-; `irq_musica` —ver M7A—: con signo, que es lo que es un volumen del DSP, y
-; sin esperar. No toca X ni Y.
+; A voice's volume register X, with what the stream wrote to it —MUS_SOMBRA—
+; times FUNDIDO_N, over 256, if that changed with respect to FUNDIDO_ANTES.
+; The product is done by the PPU's multiplier, which belongs to `irq_musica`
+; —see M7A—: signed, which is what a DSP volume is, and without waiting.
+; Does not touch X or Y.
 .proc volumen_al_dia
 .a8
 .i16
@@ -339,12 +342,12 @@ siguiente:
     lda f:FUNDIDO_ANTES + 1
     sta M7A
     lda MPYM
-    pha                         ; lo que el DSP tiene
+    pha                         ; what the DSP has
     lda f:FUNDIDO_N
     sta M7A
     lda f:FUNDIDO_N + 1
     sta M7A
-    lda MPYM                    ; lo que tiene que tener
+    lda MPYM                    ; what it should have
     cmp 1, s
     beq igual
     jsr dsp_musica
@@ -353,10 +356,10 @@ igual:
     rts
 .endproc
 
-; A: un volumen de voz que el stream le va a escribir al DSP. Vuelve con él por
-; FUNDIDO_N, entre 256. Es la misma cuenta que `volumen_al_dia`, así que lo
-; que escribe la música en medio de un fundido y lo que el fundido reescribe
-; después coinciden. No toca X, Y ni V.
+; A: a voice volume the stream is about to write to the DSP. Returns with it
+; times FUNDIDO_N, over 256. It is the same computation as `volumen_al_dia`,
+; so what the music writes in the middle of a fade and what the fade rewrites
+; afterwards match. Does not touch X, Y or V.
 .proc volumen_fundido
 .a8
 .i16
@@ -369,10 +372,10 @@ igual:
     rts
 .endproc
 
-; La música al arrancar la ROM. `TEMA_ARRANQUE` es el tema del mapa donde la
-; ROM arranca, o $FF si ese mapa no tiene —que es lo normal en este juego: los
-; primeros mapas no traen música y la prende un `PlayBGM`—. Callado quiere
-; decir que al DSP no se le escribe nada, así que no hay nada que silenciar.
+; The music when the ROM boots. `TEMA_ARRANQUE` is the song of the map the ROM
+; boots into, or $FF if that map has none —which is the usual case in this
+; game: the first maps carry no music and a `PlayBGM` turns it on—. Silent
+; means nothing is written to the DSP, so there is nothing to silence.
 .proc music_boot
 .a8
 .i16
@@ -386,15 +389,16 @@ igual:
 .proc music_boot_ya
 .a8
 .i16
-    ; Una partida cargada trae su propio tema —el que prendió el `PlayBGM` del
-    ; evento— y `cargar_partida` ya lo dejó en `tema_actual` y `music_apagada`.
-    ; Sin esto la partida arrancaría con el tema del mapa inicial de la ROM,
-    ; que es el de la apertura y no el del lugar donde uno guardó.
+    ; A loaded save brings its own song —the one the event's `PlayBGM` turned
+    ; on— and `cargar_partida` already left it in `tema_actual` and
+    ; `music_apagada`. Without this the save would start with the song of the
+    ; ROM's starting map, which is the opening's and not the one of the place
+    ; where the player saved.
     lda ranura
     cmp #$FF
-    beq del_mapa                ; ninguna ranura cargada: el tema del mapa
+    beq del_mapa                ; no slot loaded: the map's song
     lda music_apagada
-    bne callado                 ; se guardó en un momento sin música
+    bne callado                 ; saved at a moment without music
     lda tema_actual
     jmp music_start
 del_mapa:
@@ -404,33 +408,33 @@ del_mapa:
 callado:
     lda #1
     sta music_apagada
-    ; Y la pista del MSU-1, que `music_apagada` no calla: viniendo del título
-    ; su pista seguía sonando adentro de la partida hasta el primer `PlayBGM`,
-    ; y una pelea en el medio la anotaba como el tema a reponer. Lo cobra
-    ; `test_con_msu_la_pista_del_titulo_no_sigue_en_la_partida`.
+    ; And the MSU-1 track, which `music_apagada` does not silence: coming from
+    ; the title its track kept playing inside the game until the first
+    ; `PlayBGM`, and a battle in between recorded it as the song to restore.
+    ; `test_con_msu_la_pista_del_titulo_no_sigue_en_la_partida` catches it.
     jmp msu_parar
 suena:
     jmp music_start
 .endproc
 
-; Avanza el puntero de música un byte, devolviendo en A lo que ya se leyó.
+; Advances the music pointer by one byte, returning in A what was already read.
 ;
-; En LoROM cada banco expone sólo su mitad alta, $8000-$FFFF, así que el byte
-; que sigue a $00FFFF no es $010000 sino $018000. Un incremento común de 24 bits
-; caería en la RAM del banco 1 y leería basura. Con el tema entero más las
-; muestras pasando los 64 KB, esto no es teórico: se cruza sí o sí.
+; In LoROM each bank exposes only its upper half, $8000-$FFFF, so the byte after
+; $00FFFF is not $010000 but $018000. A plain 24-bit increment would land in
+; bank 1's RAM and read garbage. With the whole song plus the samples going
+; past 64 KB, this is not theoretical: it is crossed for sure.
 .proc advance
 .a8
 .i16
-; El acumulador trae el byte que el llamador acaba de leer, así que hay que
-; devolverlo intacto: por eso el pha/pla en la rama del salto de banco.
+; The accumulator holds the byte the caller just read, so it has to be
+; returned intact: hence the pha/pla in the bank-crossing branch.
     inc music
     bne done
-alto:                           ; donde sigue `LEER` cuando el byte bajo dio la vuelta
+alto:                           ; where `LEER` continues when the low byte wrapped
     inc music + 1
-    bne done                    ; si la parte alta no dio la vuelta, listo
+    bne done                    ; if the high part did not wrap, done
     pha
-    lda #$80                    ; dio la vuelta: al banco siguiente, en $8000
+    lda #$80                    ; it wrapped: to the next bank, at $8000
     sta music + 1
     pla
     inc music + 2
@@ -438,9 +442,9 @@ done:
     rts
 .endproc
 
-; `lda [music]` y `jsr advance`, sin el `jsr` en el caso de siempre: es lo que
-; más se repite por evento, y el byte bajo del puntero da la vuelta una vez
-; cada 256.
+; `lda [music]` and `jsr advance`, without the `jsr` in the common case: it is
+; what repeats the most per event, and the pointer's low byte wraps once every
+; 256.
 .macro LEER
     .local listo
     lda [music]
@@ -450,25 +454,25 @@ done:
 listo:
 .endmacro
 
-; Un cuadro de música. El stream es por nota —ver "el formato por nota" en
-; tools/audio/snes_music.py y el encabezado de tools/protocol/music.toml— y
-; acá se expande a las escrituras al DSP que manda `dsp_musica`: exactamente
-; las de `escrituras`, cuadro por cuadro, y lo cobra
-; rom/pruebas/rpgmaker/test_musica_escrituras.py. Se lee hasta toparse con una
-; espera, que cierra el cuadro: dispara las voces que recibieron nota, y el
-; cuadro siguiente abre bajando ese disparo. Al llegar al final vuelve a
-; empezar.
+; One frame of music. The stream is per note —see "el formato por nota" in
+; tools/audio/snes_music.py and the header of tools/protocol/music.toml— and
+; here it is expanded into the DSP writes that `dsp_musica` sends: exactly
+; those of `escrituras`, frame by frame, and
+; rom/pruebas/rpgmaker/test_musica_escrituras.py checks it. It reads until it
+; hits a wait, which closes the frame: it keys on the voices that got a note,
+; and the next frame opens by clearing that key-on. On reaching the end it
+; starts over.
 ;
-; Volver a empezar tiene una trampa: un stream **vacío** es un OP_END solo, así
-; que reiniciar lleva a leer OP_END otra vez y el lazo no sale nunca. La ROM se
-; colgaba en el primer cuadro, con la pantalla ya encendida y el mapa dibujado
-; —o sea que parecía andar—. Estuvo escondido todo este tiempo porque
-; `musicdata.inc` lo generaba una receta aparte y siempre tenía un tema de
-; verdad; apareció apenas el conversor empezó a emitir la música del mapa, y la
-; mayoría de los mapas del juego no tienen ninguna.
+; Starting over has a trap: an **empty** stream is a lone OP_END, so restarting
+; leads to reading OP_END again and the loop never exits. The ROM hung on the
+; first frame, with the screen already on and the map drawn —so it seemed to
+; work—. It stayed hidden all this time because `musicdata.inc` was generated
+; by a separate recipe and always had a real song; it showed up as soon as the
+; converter started emitting the map's music, and most of the game's maps have
+; none.
 ;
-; La guarda es no reiniciar dos veces en el mismo cuadro: si después de volver
-; al principio lo primero que hay es otro final, no hay nada que tocar.
+; The guard is not restarting twice in the same frame: if after going back to
+; the start the first thing there is another end, there is nothing to play.
 .proc music_frame
 .a8
 .i16
@@ -491,7 +495,7 @@ abrir:
 .a16
     sep #$20
 .a8
-    lda f:MUS_SONANDO           ; bajar el disparo del cuadro anterior
+    lda f:MUS_SONANDO           ; clear the previous frame's key-on
     beq leer
     lda #0
     sta f:MUS_SONANDO
@@ -514,30 +518,30 @@ no_es_de_voz:
     jmp arranque
 no_init:
     cmp #OP_END
-    bne mudo                    ; un opcode que no existe: callar antes que
-                                ; escribirle cualquier cosa al DSP
+    bne mudo                    ; an opcode that does not exist: go silent
+                                ; rather than write anything to the DSP
     lda reinicio
     bne mudo
     inc reinicio
-    lda tema_actual             ; se terminó: el mismo, de nuevo desde arriba
-    jsr music_start_ya          ; adentro de la IRQ: sin `sei` y sin paquete
+    lda tema_actual             ; it ended: the same one, again from the top
+    jsr music_start_ya          ; inside the IRQ: no `sei` and no package
     bra leer
 mudo:
-    ; Un stream vacío: nada que tocar, ni en este cuadro ni en los que vienen.
-    ; Y hay que decirlo con la bandera, porque `advance` dejó el puntero **un
-    ; byte más allá del final** y volver acá al cuadro siguiente leía ese byte
-    ; como opcode. Era $FF de casualidad —el primer byte del bloque de al
-    ; lado— hasta que las poses en caliente cambiaron el reparto de la ROM y
-    ; pasó a ser $00: una escritura al DSP con su espera del SPC700, y otra, y
-    ; otra, media pantalla por cuadro, y el lazo a la mitad de velocidad. Lo
-    ; delataron tres casos de la tanda con un cuadro repetido, y una sonda de
-    ; la línea de barrido al final de cada fase del lazo.
+    ; An empty stream: nothing to play, neither this frame nor the ones to
+    ; come. And it has to be said with the flag, because `advance` left the
+    ; pointer **one byte past the end** and coming back here the next frame
+    ; read that byte as an opcode. It was $FF by chance —the first byte of the
+    ; neighboring block— until the on-the-fly poses changed the ROM's layout
+    ; and it became $00: a DSP write with its SPC700 wait, and another, and
+    ; another, half a screen per frame, and the loop at half speed. Three cases
+    ; in the suite gave it away with a repeated frame, and a scanline probe at
+    ; the end of each phase of the loop.
     lda #1
     sta music_apagada
     rts
 
 cruda:
-    ; Un registro que no es de una voz, así que no pasa por el caché.
+    ; A register that does not belong to a voice, so it skips the cache.
     lda [music]
     jsr advance
     rep #$20
@@ -553,7 +557,7 @@ cruda:
 
 espera_corta:
     sec
-    sbc #OP_WAIT_1 - 1          ; de 1 a ESPERA_CORTA
+    sbc #OP_WAIT_1 - 1          ; from 1 to ESPERA_CORTA
     rep #$20
 .a16
     and #$00FF
@@ -565,11 +569,11 @@ espera_larga:
     xba
     lda [music]
     jsr advance
-    xba                         ; A de dieciséis: los dos bytes, bajo primero
+    xba                         ; 16-bit A: the two bytes, low first
     rep #$20
 .a16
 cerrar:
-    ; Se cierra el cuadro: las voces que recibieron nota se disparan juntas.
+    ; The frame closes: the voices that got a note are keyed on together.
     pha
     sep #$20
 .a8
@@ -583,8 +587,9 @@ cerrar:
 sin_kon:
     rep #$20
 .a16
-    ; El `pla` deja Z del valor que saca, y es a propósito: una espera de
-    ; cero cuadros dispara y sigue leyendo en el mismo, sin abrir otro.
+    ; The `pla` leaves Z from the value it pulls, and that is on purpose: a
+    ; zero-frame wait keys on and keeps reading in the same frame, without
+    ; opening another.
     pla
     beq sigue
     dec a
@@ -599,8 +604,8 @@ sigue:
     jmp leer
 
 arranque:
-    ; El arranque del DSP: la misma tabla que usa el camino del MSU-1, y
-    ; detrás KON y KOF en cero. Ver `escrituras_del_arranque`.
+    ; The DSP setup: the same table the MSU-1 path uses, and after it KON and
+    ; KOF at zero. See `escrituras_del_arranque`.
     ldy #0
 otro_init:
     lda dsp_init_reg, y
@@ -613,7 +618,7 @@ otro_init:
     sep #$20
 .a8
     lda dsp_init_val, y
-    jsr dsp_musica              ; no toca Y
+    jsr dsp_musica              ; does not touch Y
     iny
     bra otro_init
 init_listo:
@@ -626,14 +631,14 @@ init_listo:
     jmp leer
 
 de_voz:
-    ; La voz en los tres bits bajos y la familia en los de arriba: ver el
-    ; encabezado de music.toml. Y queda con el registro VOL_L de la voz.
+    ; The voice in the three low bits and the family in the ones above: see
+    ; the header of music.toml. Y ends up with the voice's VOL_L register.
     rep #$20
 .a16
     and #$00FF
     pha
     and #$0007
-    tax                         ; la voz
+    tax                         ; the voice
     asl a
     asl a
     asl a
@@ -648,34 +653,35 @@ de_voz:
     pla
     and #$0038
     lsr a
-    lsr a                       ; la familia por dos
+    lsr a                       ; the family times two
     tax
     sep #$20
 .a8
     jmp (familias, x)
 .endproc
 
-; Una por familia, en el orden de sus números.
+; One per family, in the order of their numbers.
 familias:
     .addr ev_nota, ev_nota_vol, ev_nota_pan, ev_release, ev_release_gain
     .addr ev_set_vol, ev_set_pan, ev_set_pitch
-.assert OP_NOTE_V0 = 0, error, "music.toml: las familias empiezan en 0"
-.assert OP_NOTE_VOL_V0 = OP_NOTE_V0 + 8, error, "music.toml: familias fuera de orden"
-.assert OP_NOTE_PAN_V0 = OP_NOTE_VOL_V0 + 8, error, "music.toml: familias fuera de orden"
-.assert OP_RELEASE_V0 = OP_NOTE_PAN_V0 + 8, error, "music.toml: familias fuera de orden"
-.assert OP_RELEASE_GAIN_V0 = OP_RELEASE_V0 + 8, error, "music.toml: familias fuera de orden"
-.assert OP_SET_VOL_V0 = OP_RELEASE_GAIN_V0 + 8, error, "music.toml: familias fuera de orden"
-.assert OP_SET_PAN_V0 = OP_SET_VOL_V0 + 8, error, "music.toml: familias fuera de orden"
-.assert OP_SET_PITCH_V0 = OP_SET_PAN_V0 + 8, error, "music.toml: familias fuera de orden"
-.assert OP_WAIT_1 = OP_SET_PITCH_V0 + 8, error, "music.toml: las esperas van detrás"
+.assert OP_NOTE_V0 = 0, error, "music.toml: the families start at 0"
+.assert OP_NOTE_VOL_V0 = OP_NOTE_V0 + 8, error, "music.toml: families out of order"
+.assert OP_NOTE_PAN_V0 = OP_NOTE_VOL_V0 + 8, error, "music.toml: families out of order"
+.assert OP_RELEASE_V0 = OP_NOTE_PAN_V0 + 8, error, "music.toml: families out of order"
+.assert OP_RELEASE_GAIN_V0 = OP_RELEASE_V0 + 8, error, "music.toml: families out of order"
+.assert OP_SET_VOL_V0 = OP_RELEASE_GAIN_V0 + 8, error, "music.toml: families out of order"
+.assert OP_SET_PAN_V0 = OP_SET_VOL_V0 + 8, error, "music.toml: families out of order"
+.assert OP_SET_PITCH_V0 = OP_SET_PAN_V0 + 8, error, "music.toml: families out of order"
+.assert OP_WAIT_1 = OP_SET_PITCH_V0 + 8, error, "music.toml: the waits go after them"
 
 bit_de_voz:
     .byte $01, $02, $04, $08, $10, $20, $40, $80
 
-; Escribe A en el registro Y, salvo que el caché diga que ya lo tiene. Con V
-; prendido escribe sin mirar: así va la primera nota de cada voz desde que
-; arrancó el tema, y el primer GAIN, porque el caché arranca con lo que haya
-; quedado y no tiene manera de decir "no sé". No toca X, Y ni V.
+; Writes A to register Y, unless the cache says it already has it. With V set
+; it writes without looking: that is how the first note of each voice since
+; the song started goes, and the first GAIN, because the cache starts with
+; whatever was left and has no way of saying "I don't know". Does not touch
+; X, Y or V.
 .proc mus_escribir
 .a8
 .i16
@@ -686,10 +692,10 @@ bit_de_voz:
     beq igual
 escribir:
     sta f:MUS_SOMBRA, x
-    ; En medio de un `FadeOutBGM`, el volumen va escalado: la sombra guarda el
-    ; del stream, que es contra el que compara el caché y del que
-    ; `volumen_al_dia` saca el de cada cuadro. VOL_L y VOL_R son los dos
-    ; primeros registros de la voz.
+    ; In the middle of a `FadeOutBGM`, the volume goes scaled: the shadow keeps
+    ; the stream's, which is what the cache compares against and what
+    ; `volumen_al_dia` derives each frame's from. VOL_L and VOL_R are the
+    ; voice's first two registers.
     pha
     lda bgm_fundido
     beq tal_cual
@@ -708,8 +714,8 @@ igual:
     rts
 .endproc
 
-; V prendido si la voz del evento todavía no tuvo nota, y la marca. No toca
-; X ni Y.
+; V set if the event's voice has not had a note yet, and marks it. Does not
+; touch X or Y.
 .proc nota_primera
 .a8
 .i16
@@ -734,7 +740,7 @@ ya:
     jsr mus_escribir            ; VOL_L
     iny
     pla
-    jsr mus_escribir            ; VOL_R, el mismo
+    jsr mus_escribir            ; VOL_R, the same one
     iny
     jmp nota_sonido
 .endproc
@@ -758,24 +764,24 @@ ya:
     jsr nota_primera
     iny
     iny
-    ; sigue en nota_sonido
+    ; falls through into nota_sonido
 .endproc
 
-; El sonido de la nota: Y en PITCH_L de la voz y V como lo dejó
-; `nota_primera`. Sus cinco primeros bytes van a PITCH_L, PITCH_H, SRCN, ADSR1
-; y ADSR2, en ese orden, y el sexto es el GAIN con que se va a soltar.
+; The note's sound: Y on the voice's PITCH_L and V as `nota_primera` left it.
+; Its first five bytes go to PITCH_L, PITCH_H, SRCN, ADSR1 and ADSR2, in that
+; order, and the sixth is the GAIN it will be released with.
 .proc nota_sonido
 .a8
 .i16
     LEER
-    php                         ; las sumas pisan V
-    rep #$21                    ; A de dieciséis y el carry en cero
+    php                         ; the additions clobber V
+    rep #$21                    ; 16-bit A and carry at zero
 .a16
     and #$00FF
     sta f:MUS_T
     asl a
     adc f:MUS_T
-    asl a                       ; por seis
+    asl a                       ; times six
     adc f:MUS_BASE
     tax
     plp
@@ -786,7 +792,7 @@ ya:
     iny
     .endrepeat
     lda f:musica_sonidos + 5, x
-    tyx                         ; el registro 8 de la voz, que es ENVX
+    tyx                         ; the voice's register 8, which is ENVX
     sta f:MUS_SOMBRA + 1, x
     lda f:MUS_BIT
     ora f:MUS_KON
@@ -817,7 +823,7 @@ soltar:
     lda f:MUS_BIT
     ora f:MUS_GAINS
     sta f:MUS_GAINS
-    sep #$40                    ; el primero va sin mirar el caché
+    sep #$40                    ; the first one goes without looking at the cache
 con_gain:
     pla
     jsr mus_escribir
@@ -828,7 +834,7 @@ con_gain:
 .a8
 .i16
     tyx
-    lda f:MUS_SOMBRA + 8, x     ; el GAIN del sonido de la voz
+    lda f:MUS_SOMBRA + 8, x     ; the GAIN of the voice's sound
     bra ev_release_gain::soltar
 .endproc
 
@@ -876,8 +882,8 @@ con_gain:
     jmp music_frame::leer
 .endproc
 
-; El estado del decodificador en cero, y la bitácora apagada. En el reset: la
-; RAM lejana arranca con basura.
+; The decoder state at zero, and the log off. At reset: far RAM starts with
+; garbage.
 .proc musica_limpiar
 .a8
 .i16

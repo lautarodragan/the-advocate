@@ -1,46 +1,47 @@
 .segment "FAR"
 
-; --- el equipo y la tienda, fuera del banco 0 -------------------------------
+; --- equipment and the shop, outside bank 0 -----------------------------------
 ;
-; Las dos pantallas son tres kilobytes, y al banco 0 le quedaban doce bytes en
-; el cartucho de pruebas. Bajaron acá el 2026-09-19 por la misma razón que la
-; pelea y por el mismo camino: se entra con `jsl` a `equipo_pantalla` y a
-; `tienda_pantalla`, y lo que necesitan del banco 0 se llama por los puentes
-; `ba_t_*`, que ya estaban para la pelea —sólo hicieron falta dos nuevos,
-; `ba_t_lista` y `ba_t_armar`—.
+; The two screens are three kilobytes, and bank 0 had twelve bytes left in the
+; test cartridge. They moved down here on 2026-09-19 for the same reason as
+; battle and by the same route: they are entered with `jsl` to
+; `equipo_pantalla` and `tienda_pantalla`, and what they need from bank 0 is
+; called through the `ba_t_*` bridges, which were already there for battle
+; —only two new ones were needed, `ba_t_lista` and `ba_t_armar`—.
 ;
-; **El banco de datos sigue siendo el 0**, a diferencia de la pelea: estas dos
-; leen y escriben el escritorio y las tablas del banco 0 con direccionamiento
-; absoluto y así siguen funcionando sin tocar nada. Lo que sí cambió es al
-; revés: un dato **de acá** leído con absoluto caería en el banco 0. Hay uno
-; solo, `mensaje_de`, y va con `f:`; costó una tarde de tienda sin saludo.
+; **The data bank is still 0**, unlike battle: these two read and write the
+; scratch space and bank 0's tables with absolute addressing and so keep working
+; without touching anything. What did change is the other way around: a datum
+; **from here** read with absolute addressing would land in bank 0. There is
+; only one, `mensaje_de`, and it goes with `f:`; it cost an afternoon of a shop
+; with no greeting.
 ;
-; No cuesta cuadros: las dos bloquean adentro de la página, `vueltas` no
-; avanza mientras se ven, y los dos ciclos de más de cada `jsl` caen en una
-; pantalla que espera al control.
+; It costs no frames: both block inside the page, `vueltas` does not advance
+; while they are shown, and the two extra cycles of each `jsl` fall on a screen
+; waiting for the pad.
 ;
-; `Scene_Equip`: el actor, sus cuatro parámetros, las cinco ranuras con lo que
-; tiene puesto; A sobre una ranura muestra la lista de lo que puede ponerse
-; ahí —reemplaza a las ranuras mientras dura— con los parámetros que
-; quedarían. La línea vacía del final es sacarse lo de la ranura. B vuelve.
-; `pantallas.pantalla_equipo` es la referencia, y `pantallas.equipar` la regla.
-; Las ventanas y la barra del cursor van en BG1, que el texto de BG2 no toca:
-; ver `eq_pantalla_subir` y `eq_barra`.
-;   eq_actor     es comp_char      ; el número de actor
-;   eq_ranura    es comp_col       ; la ranura marcada, 0 a 4
-;   eq_eligiendo es comp_col + 1   ; si se muestra la lista
-;   eq_elegido   es comp_fase      ; el lugar del cursor en la lista
-;   eq_arriba    es comp_fase + 1  ; y el primero que se ve
-;   eq_n         es comp_base      ; cuántos hay en la lista, con la vacía
-;   eq_cand      es comp_mask      ; el ítem que marca el cursor, 0 si ninguno
-;   eq_suma      es comp_or01      ; un parámetro, mientras se suma
-;   eq_param     es comp_or01 + 2  ; cuál
-;   eq_s         es comp_or01 + 3  ; la ranura que se mira
-;   eq_id        es comp_or23      ; un ítem, dos bytes
-;   eq_tmp       es comp_and       ; escritorio de `eq_apuntar`, cuatro bytes
+; `Scene_Equip`: the actor, their four parameters, the five slots with what
+; they have on; A on a slot shows the list of what can be put on there —it
+; replaces the slots while it lasts— with the parameters that would result.
+; The empty line at the end is taking off what is in the slot. B goes back.
+; `pantallas.pantalla_equipo` is the reference, and `pantallas.equipar` the
+; rule. The windows and the cursor bar go on BG1, which BG2's text does not
+; touch: see `eq_pantalla_subir` and `eq_barra`.
+;   eq_actor     is comp_char      ; the actor number
+;   eq_ranura    is comp_col       ; the highlighted slot, 0 to 4
+;   eq_eligiendo is comp_col + 1   ; whether the list is shown
+;   eq_elegido   is comp_fase      ; the cursor's place in the list
+;   eq_arriba    is comp_fase + 1  ; and the first one visible
+;   eq_n         is comp_base      ; how many are in the list, with the empty one
+;   eq_cand      is comp_mask      ; the item under the cursor, 0 if none
+;   eq_suma      is comp_or01      ; a parameter, while being added up
+;   eq_param     is comp_or01 + 2  ; which one
+;   eq_s         is comp_or01 + 3  ; the slot being looked at
+;   eq_id        is comp_or23      ; an item, two bytes
+;   eq_tmp       is comp_and       ; `eq_apuntar`'s scratch, four bytes
 
-; A: la ranura. Deja apuntada la ventana de la WRAM a esa ranura del actor:
-; `FAR_EQUIPO` + actor * 10 + ranura * 2.
+; A: the slot. Leaves the WRAM window pointing at that slot of the actor:
+; `FAR_EQUIPO` + actor * 10 + slot * 2.
 .proc eq_apuntar
 .a8
 .i16
@@ -48,13 +49,13 @@
 .a16
     and #$00FF
     asl a
-    sta comp_and                  ; la ranura por dos
+    sta comp_and                  ; the slot times two
     lda comp_char
     and #$00FF
     asl a
-    sta comp_and + 2              ; el actor por dos
+    sta comp_and + 2              ; the actor times two
     asl a
-    asl a                       ; por ocho
+    asl a                       ; times eight
     clc
     adc comp_and + 2
     clc
@@ -68,7 +69,7 @@
     rts
 .endproc
 
-; A: la ranura. Vuelve con el ítem en `eq_id`.
+; A: the slot. Returns with the item in `eq_id`.
 .proc eq_leer
 .a8
 .i16
@@ -80,7 +81,7 @@
     rts
 .endproc
 
-; A: la ranura; `eq_id`: el ítem nuevo.
+; A: the slot; `eq_id`: the new item.
 .proc eq_escribir
 .a8
 .i16
@@ -92,8 +93,8 @@
     rts
 .endproc
 
-; El `k` del ítem de `eq_id`, en X, y Z=1 si es ninguno o uno que la ROM no
-; conoce.
+; The `k` of the item in `eq_id`, in X, and Z=1 if it is none or one the ROM
+; does not know.
 .proc eq_k
 .a8
 .i16
@@ -126,7 +127,7 @@ ninguno8:
     rts
 .endproc
 
-; Cuántos hay en el inventario del ítem `eq_id`, en A.
+; How many of item `eq_id` are in the inventory, in A.
 .proc eq_inv_apuntar
 .a8
 .i16
@@ -142,7 +143,7 @@ ninguno8:
     rts
 .endproc
 
-; Uno más —topado en 99— o uno menos del ítem `eq_id`. A: 1 suma, 0 resta.
+; One more —capped at 99— or one less of item `eq_id`. A: 1 adds, 0 subtracts.
 .proc eq_inv_mover
 .a8
 .i16
@@ -168,7 +169,7 @@ listo:
     rts
 .endproc
 
-; ¿El ítem `eq_id` es un arma a dos manos? Z=0 si sí.
+; Is item `eq_id` a two-handed weapon? Z=0 if so.
 .proc eq_dos_manos
 .a8
 .i16
@@ -182,9 +183,10 @@ no:
     rts
 .endproc
 
-; El ítem que tendría la ranura A: el que tiene, o —eligiendo— el que marca
-; el cursor si es la ranura elegida, y ninguno en la otra si el arma es a dos
-; manos. Es `pantallas.equipar` sin tocar nada. Vuelve en `eq_id`.
+; The item slot A would have: the one it has, or —while choosing— the one
+; under the cursor if it is the chosen slot, and none in the other if the
+; weapon is two-handed. It is `pantallas.equipar` without touching anything.
+; Returns in `eq_id`.
 .proc eq_efectivo
 .a8
 .i16
@@ -202,7 +204,8 @@ no:
 .a8
     rts
 otra:
-    ; Un arma a dos manos saca el escudo; un escudo saca el arma a dos manos.
+    ; A two-handed weapon removes the shield; a shield removes the two-handed
+    ; weapon.
     rep #$20
 .a16
     lda comp_mask
@@ -213,27 +216,27 @@ otra:
     cmp #1
     bne no_escudo
     lda comp_col
-    bne tiene                   ; no se está eligiendo el arma
+    bne tiene                   ; the weapon is not being chosen
     jsr eq_dos_manos
     bne ninguno
     bra tiene
 no_escudo:
     lda comp_or01 + 3
-    bne tiene                   ; ni escudo ni arma: la de siempre
+    bne tiene                   ; neither shield nor weapon: the usual one
     lda comp_col
     cmp #1
-    bne tiene                   ; no se está eligiendo el escudo
+    bne tiene                   ; the shield is not being chosen
     rep #$20
 .a16
     lda comp_mask
     sep #$20
 .a8
-    beq tiene                   ; sacarse el escudo no toca el arma
+    beq tiene                   ; taking off the shield does not touch the weapon
     lda #0
     jsr eq_leer
     jsr eq_dos_manos
     bne ninguno
-    rts                         ; `eq_id` ya es el arma
+    rts                         ; `eq_id` is already the weapon
 tiene:
     lda comp_or01 + 3
     jmp eq_leer
@@ -243,14 +246,14 @@ ninguno:
     rts
 .endproc
 
-; El parámetro `eq_param` —0 ataque, 1 defensa, 2 espíritu, 3 agilidad— con el
-; equipo que dice `eq_efectivo`, en `pant_valor`, topado en [1, 999].
+; Parameter `eq_param` —0 attack, 1 defense, 2 spirit, 3 agility— with the
+; equipment `eq_efectivo` says, in `pant_valor`, capped to [1, 999].
 .proc eq_parametro
 .a8
 .i16
-    ; El de su nivel de ahora: `nivel_param`, donde los cuatro de acá van del
-    ; 2 al 5. Y se guarda porque `nivel_param` se la lleva y el que llama a
-    ; esto no lo espera.
+    ; The one for their current level: `nivel_param`, where the four here go
+    ; from 2 to 5. And Y is saved because `nivel_param` clobbers it and the
+    ; caller of this does not expect that.
     phy
     rep #$20
 .a16
@@ -276,7 +279,7 @@ ranura:
     txa
     asl a
     asl a
-    asl a                       ; ocho bytes por ítem
+    asl a                       ; eight bytes per item
     sta comp_and
     lda comp_or01 + 2
     and #$00FF
@@ -298,7 +301,7 @@ sin_puntos:
     rep #$20
 .a16
     lda comp_or01
-    bmi uno                     ; con signo: el equipo puede restar
+    bmi uno                     ; signed: equipment can subtract
     beq uno
     cmp #1000
     bcc listo
@@ -313,9 +316,9 @@ listo:
     rtl
 .endproc
 
-; La lista de lo que el actor puede ponerse en `eq_ranura`, como `k` en
-; `FAR_ITEM_LISTA`, y al final un $FF que es la línea vacía. Cuántos en
-; `eq_n`. Es `pantallas.candidatos`.
+; The list of what the actor can put on in `eq_ranura`, as `k` in
+; `FAR_ITEM_LISTA`, and at the end an $FF which is the empty line. How many in
+; `eq_n`. It is `pantallas.candidatos`.
 .proc eq_lista_armar
 .a8
 .i16
@@ -347,7 +350,7 @@ otro:
     inc a
     cmp item_tipo, x
     bne no_va
-    ; ¿Lo puede usar el actor? Un bit por actor, ocho bytes por ítem.
+    ; Can the actor use it? One bit per actor, eight bytes per item.
     rep #$20
 .a16
     txa
@@ -364,26 +367,27 @@ otro:
     lsr a
     clc
     adc comp_and
-    sta comp_and                ; el byte; `comp_and` ya no lleva k por ocho
+    sta comp_and                ; the byte; `comp_and` no longer holds k times eight
     pla
     and #$0007
-    sta comp_and + 2              ; y el bit
+    sta comp_and + 2              ; and the bit
     sep #$20
 .a8
-    ; Con `f:` porque `item_actores` se mudó a RODATA el 2026-09-13: son 496
-    ; bytes y el área del banco 0 ya se pasaba por quince antes de las
-    ; habilidades. Cuesta un byte y un ciclo por lectura, y esto corre una vez
-    ; por ítem al abrir la pantalla de equipo.
+    ; With `f:` because `item_actores` moved to RODATA on 2026-09-13: it is 496
+    ; bytes and bank 0's area was already fifteen over before the skills. It
+    ; costs one byte and one cycle per read, and this runs once per item when
+    ; opening the equipment screen.
     ;
-    ; **Por X y no por Y**: el 65816 no tiene `lda long, y`, sólo `long, x`. X
-    ; trae el `k` del ítem y lo necesita más abajo, así que va y vuelve por la
-    ; pila. El `plx` no deja ninguna bandera mirada: lo que sigue es un `and`.
+    ; **Through X and not Y**: the 65816 has no `lda long, y`, only `long, x`.
+    ; X holds the item's `k` and it is needed further down, so it goes to the
+    ; stack and back. The `plx` leaves no flag being looked at: what follows
+    ; is an `and`.
     ;
-    ; El índice sale de `comp_and` y no de Y, y eso no es indistinto: dos ramas
-    ; mudaron este mismo código a RODATA por separado, una dejando el byte en Y
-    ; —`tay`— y la otra en `comp_and`. En el merge git se quedó con el `sta
-    ; comp_and` de una y dejó el `tyx` de la otra en conflicto: juntas
-    ; ensamblaban y leían un registro que ya nadie cargaba.
+    ; The index comes from `comp_and` and not from Y, and that is not
+    ; indifferent: two branches moved this same code to RODATA separately, one
+    ; leaving the byte in Y —`tay`— and the other in `comp_and`. In the merge
+    ; git kept one's `sta comp_and` and left the other's `tyx` in conflict:
+    ; together they assembled and read a register nobody loaded anymore.
     phx
     ldx comp_and
     lda f:item_actores, x
@@ -397,7 +401,7 @@ correr:
 bit_listo:
     and #1
     beq no_va
-    txa                         ; el k, que entra en un byte
+    txa                         ; the k, which fits in a byte
     pha
     rep #$20
 .a16
@@ -418,8 +422,8 @@ siguiente:
     inx
     cpx #ITEMS_N
     bcs lista_lista
-    jmp otro                    ; los 127 bytes de un `bcc` se quedaron cortos
-                                ; al leer `item_actores` larga
+    jmp otro                    ; a `bcc`'s 127 bytes fell short once
+                                ; `item_actores` was read long
 lista_lista:
     rep #$20
 .a16
@@ -431,13 +435,13 @@ lista_lista:
     sep #$20
 .a8
     stz WMADDH
-    lda #$FF                    ; la línea vacía
+    lda #$FF                    ; the empty line
     sta WMDATA
     inc comp_base
     rts
 .endproc
 
-; El ítem del lugar A de la lista, en `eq_id`: 0 si es la línea vacía.
+; The item at place A in the list, in `eq_id`: 0 if it is the empty line.
 .proc eq_de_lista
 .a8
 .i16
@@ -460,8 +464,8 @@ vacia:
     rts
 .endproc
 
-; Escribe en `eleg_tabla` el nombre del ítem `eq_id`, si la ROM lo conoce, con
-; no más de A letras.
+; Writes to `eleg_tabla` the name of item `eq_id`, if the ROM knows it, with
+; no more than A letters.
 .proc eq_nombre
 .a8
 .i16
@@ -475,7 +479,7 @@ vacia:
     asl a
     clc
     adc comp_and
-    tax                         ; 3k, el nombre
+    tax                         ; 3k, the name
     sep #$20
 .a8
     stz temp + 1
@@ -487,7 +491,7 @@ nada:
     rts
 .endproc
 
-; La descripción del ítem `eq_id`, en los dos renglones de arriba.
+; The description of item `eq_id`, on the top two lines.
 .proc eq_desc
 .a8
 .i16
@@ -525,7 +529,7 @@ nada:
     rts
 .endproc
 
-; La pantalla entera, en el búfer: `pantallas.pantalla_equipo`.
+; The whole screen, in the buffer: `pantallas.pantalla_equipo`.
 .proc eq_componer
 .a8
 .i16
@@ -533,7 +537,7 @@ nada:
     sta comp_dup + 3
     jsl f:ba_t_limpiar
     stz temp + 1
-    ; --- el nombre del actor ---
+    ; --- the actor's name ---
     rep #$20
 .a16
     lda #EQ_ACTOR_POS
@@ -544,13 +548,13 @@ nada:
     tax
     lda actor_txt, x
     tax
-    cmp #$FFFF                  ; un actor sin nombre en esta ROM
-    sep #$20                    ; `sep` no toca Z
+    cmp #$FFFF                  ; an actor with no name in this ROM
+    sep #$20                    ; `sep` does not touch Z
 .a8
     beq sin_nombre
     jsl f:ba_t_texto
 sin_nombre:
-    ; --- la descripción ---
+    ; --- the description ---
     lda comp_col + 1
     beq la_puesta
     lda comp_fase
@@ -567,7 +571,7 @@ la_puesta:
     jsr eq_leer
 desc:
     jsr eq_desc
-    ; --- los parámetros: ahora y, eligiendo, después ---
+    ; --- the parameters: now and, while choosing, after ---
     stz comp_or01 + 2
 param:
     lda comp_or01 + 2
@@ -585,20 +589,20 @@ param:
     tax
     sep #$20
 .a8
-    lda #3                      ; el término en rojo: `ITEM_ROJO`
+    lda #3                      ; the term in red: `ITEM_ROJO`
     sta temp + 1
     jsl f:ba_t_texto
     stz temp + 1
     lda comp_col + 1
     pha
-    stz comp_col + 1            ; ahora: lo puesto
+    stz comp_col + 1            ; now: what is on
     jsl f:eq_parametro
     pla
     sta comp_col + 1
     rep #$20
 .a16
-    lda comp_dup                ; `ba_t_numero` lo consume, y el valor nuevo
-    pha                         ; se colorea comparándolo con éste
+    lda comp_dup                ; `ba_t_numero` consumes it, and the new value
+    pha                         ; is colored by comparing it with this one
     sep #$20
 .a8
     jsr param_pos
@@ -622,23 +626,23 @@ param:
     sta eleg_tabla
     sep #$20
 .a8
-    lda #3                      ; en rojo, como `Window_EquipStatus`
+    lda #3                      ; in red, like `Window_EquipStatus`
     sta temp + 1
     lda #$3E                    ; '>'
     jsl f:ba_t_glifo
-    jsl f:eq_parametro            ; después: con lo que marca el cursor
-    ; Y su color, el de `Window_EquipStatus::GetNewParameterColor`: igual en
-    ; blanco, más en el de "sube" y menos en gris. Es `pantallas.
+    jsl f:eq_parametro            ; after: with what the cursor is on
+    ; And its color, `Window_EquipStatus::GetNewParameterColor`'s: equal in
+    ; white, more in the "goes up" one and less in gray. It is `pantallas.
     ; color_del_valor_nuevo`.
     rep #$20
 .a16
-    pla                         ; el de ahora
+    pla                         ; the current one
     cmp comp_dup
-    sep #$20                    ; `sep` no toca las banderas del `cmp`
+    sep #$20                    ; `sep` does not touch the `cmp`'s flags
 .a8
     beq igual
     bcc sube
-    lda #1                      ; baja: el gris
+    lda #1                      ; goes down: gray
     bra con_color
 sube:
     lda #2
@@ -650,12 +654,12 @@ con_color:
     lda #3
     sta comp_dup + 2
     jsl f:ba_t_numero
-    stz temp + 1                ; lo que sigue va en blanco
+    stz temp + 1                ; what follows goes in white
     bra param_listo
 sin_flecha:
     rep #$20
 .a16
-    pla                         ; el de ahora, que no hizo falta
+    pla                         ; the current one, which was not needed
     sep #$20
 .a8
 param_listo:
@@ -667,10 +671,10 @@ param_listo:
 params_listos:
     lda comp_col + 1
     bne lista
-    ; --- las ranuras ---
+    ; --- the slots ---
     lda #0
 ranura:
-    pha                         ; el cursor es la barra: ver `eq_barra`
+    pha                         ; the cursor is the bar: see `eq_barra`
     jsr fila_pos
     rep #$20
 .a16
@@ -689,8 +693,8 @@ ranura:
     tax
     sep #$20
 .a8
-    lda #3                      ; el término en rojo, y el nombre de lo
-    sta temp + 1                ; puesto en blanco: `eq_nombre` lo repone
+    lda #3                      ; the term in red, and the name of what
+    sta temp + 1                ; is on in white: `eq_nombre` restores it
     jsl f:ba_t_texto
     pla
     pha
@@ -713,7 +717,7 @@ ranura:
     bcc ranura
     rts
 
-    ; --- la lista ---
+    ; --- the list ---
 lista:
     lda #0
 lista_fila:
@@ -732,7 +736,7 @@ lista_fila:
     lda comp_or23
     sep #$20
 .a8
-    beq lista_siguiente         ; la línea vacía
+    beq lista_siguiente         ; the empty line
     pla
     pha
     jsr fila_pos_lista
@@ -775,7 +779,7 @@ lista_listo:
     pla
     rts
 
-; A16 = la posición del parámetro `eq_param`.
+; A16 = the position of parameter `eq_param`.
 param_pos:
     lda comp_or01 + 2
     rep #$20
@@ -787,19 +791,19 @@ param_pos:
     rts
 .a8
 
-; A: la ranura. A16 = la posición de su fila.
+; A: the slot. A16 = the position of its row.
 fila_pos:
     rep #$20
 .a16
     and #$00FF
     xba
-    lsr a                       ; por 128: dos filas de celdas
+    lsr a                       ; times 128: two rows of cells
     clc
     adc #EQ_RANURA_POS0
     rts
 .a8
 
-; A: la fila de la lista. A16 = la posición de su fila.
+; A: the list row. A16 = the position of its row.
 fila_pos_lista:
     rep #$20
 .a16
@@ -812,7 +816,7 @@ fila_pos_lista:
 .a8
 .endproc
 
-; A sobre la lista: `pantallas.equipar` con lo que marca el cursor.
+; A on the list: `pantallas.equipar` with what the cursor is on.
 .proc eq_equipar
 .a8
 .i16
@@ -839,7 +843,7 @@ fila_pos_lista:
     sep #$20
 .a8
     lda #0
-    jsr eq_inv_mover            ; uno menos en el inventario
+    jsr eq_inv_mover            ; one less in the inventory
     rep #$20
 .a16
     lda comp_mask
@@ -848,10 +852,10 @@ fila_pos_lista:
 .a8
     lda comp_col
     jsr eq_escribir
-    ; Las dos manos.
+    ; Two hands.
     lda comp_col
     bne no_arma
-    jsr eq_dos_manos            ; `eq_id` es el arma nueva
+    jsr eq_dos_manos            ; `eq_id` is the new weapon
     beq listo
     lda #1
     jmp sacar
@@ -867,7 +871,7 @@ no_arma:
 listo:
     rts
 
-; A: la ranura. Lo que tiene vuelve al inventario y queda vacía.
+; A: the slot. What it has goes back to the inventory and it is left empty.
 sacar:
     pha
     jsr eq_leer
@@ -888,13 +892,13 @@ vacia:
     rts
 .endproc
 
-; Las ventanas de BG1 debajo de la barra, y la barra: en el vblank de cada
-; cuadro, detrás del texto. Se suben las filas de la ventana de abajo sin
-; cursor —`EQ_MARCO_TEXTO_N` filas de celdas— y encima las dos del cursor con
-; la barra, de `eq_marco_barras`: primero las de las cinco ranuras y después
-; las de las filas de la lista. Sin acordarse de dónde estaba: cada cuadro
-; repone todo, así que la barra no puede quedar pintada en dos lados. Son 768
-; bytes, unas cinco líneas del vblank además de las diez del texto.
+; The BG1 windows under the bar, and the bar: in each frame's vblank, behind
+; the text. The rows of the bottom window are uploaded without the cursor
+; —`EQ_MARCO_TEXTO_N` rows of cells— and on top the cursor's two with the bar,
+; from `eq_marco_barras`: first those of the five slots and then those of the
+; list rows. Without remembering where it was: each frame restores everything,
+; so the bar cannot end up painted in two places. It is 768 bytes, some five
+; vblank lines on top of the text's ten.
 .proc eq_barra
 .a8
 .i16
@@ -918,13 +922,13 @@ vacia:
     sta BBAD0
     lda #$01
     sta MDMAEN
-    ; Cuál: la ranura, o la fila de la lista que se ve.
+    ; Which one: the slot, or the visible list row.
     lda comp_col + 1
     beq en_ranuras
     lda comp_fase
     sec
     sbc comp_fase + 1
-    ldx #(RANURAS_EQUIPO * 128) ; las de la lista, detrás de las ranuras
+    ldx #(RANURAS_EQUIPO * 128) ; the list's, after the slots'
     bra fila
 en_ranuras:
     lda comp_col
@@ -934,17 +938,17 @@ fila:
 .a16
     and #$00FF
     xba
-    lsr a                       ; 128 bytes por fila
+    lsr a                       ; 128 bytes per row
     pha
-    lsr a                       ; que son 64 palabras
+    lsr a                       ; which is 64 words
     clc
     adc #(ITEM_MARCO_MAPA + EQ_BARRA_FILA0 * 32)
     sta VMADDL
     txa
     clc
     adc 1, s
-    adc #.loword(eq_marco_barras) ; el carry quedó en cero: es una tabla
-    sta A1T0L                   ; de un solo banco
+    adc #.loword(eq_marco_barras) ; carry was left at zero: it is a
+    sta A1T0L                   ; single-bank table
     pla
     lda #128
     sta DAS0L
@@ -957,7 +961,7 @@ fila:
     rts
 .endproc
 
-; La pantalla de equipo del actor A, hasta que el jugador vuelve con B.
+; The equipment screen of actor A, until the player goes back with B.
 .proc equipo_pantalla
 .a8
 .i16
@@ -972,14 +976,14 @@ fila:
     jsr eq_componer
     jsl f:ba_t_subir
     jsr eq_barra
-    jsl f:items_ppu_prender     ; BG2 y BG1, las ventanas
+    jsl f:items_ppu_prender     ; BG2 and BG1, the windows
 espera:
     jsl f:ba_t_vblank
-    ; El control primero y el DMA después. Al revés, los 1792 bytes duran
-    ; unas diez líneas y `read_pad` llegaba con la lectura automática del
-    ; control ya terminada: esperaba la del cuadro siguiente, cada vuelta
-    ; duraba dos cuadros, y un toque de un cuadro se perdía la mitad de las
-    ; veces. Con el control leído, el DMA entra igual en el vblank.
+    ; The pad first and the DMA after. The other way around, the 1792 bytes
+    ; take some ten lines and `read_pad` arrived with the pad's auto-read
+    ; already over: it waited for the next frame's, each tick took two
+    ; frames, and a one-frame press was lost half the time. With the pad
+    ; read, the DMA still fits in vblank.
     jsl f:ba_t_pad
     jsl f:ba_t_subir
     jsr eq_barra

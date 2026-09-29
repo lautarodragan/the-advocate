@@ -1,23 +1,23 @@
-"""La imagen de un ChipSet de `rom/parches/manual/`: la receta aplicada al PNG.
+"""The image of a ChipSet from `rom/parches/manual/`: the recipe applied to the PNG.
 
-**La imagen del ChipSet no se versiona: se arma.** El arte del juego no es
-nuestro para redistribuir —vive en `/extras`, ver `docs/rpgmaker/rtp.md`—, así
-que el fork guarda la *receta* —qué bloque se copia adónde— y
+**The ChipSet's image is not versioned: it is built.** The game's art is not
+ours to redistribute —it lives in `/extras`, see `docs/rpgmaker/rtp.md`—, so
+the fork keeps the *recipe* —which block is copied where— and
 `imagen_del_chipset`
-la aplica sobre el PNG original dejando el resultado en
+applies it on the original PNG, leaving the result in
 `rom/build/parches-manual/`.
 
-La receta tiene cinco operaciones. Dos copian de adentro del propio ChipSet
-—`bloques_bajos` y `tiles_altos`— y dos **traen pixeles de afuera**:
-`desde_charset` mete una pose de un CharSet en dos tiles altos, que es cómo un
-NPC que no hace nada más que estar parado deja de ser un sprite y pasa a ser
-mapa —el público del Auditorio, el mapa 18—, y `desde_imagen` mete un PNG que
-no es ni ChipSet ni CharSet, escalado y cortado en celdas de 16x16.
+The recipe has five operations. Two copy from inside the ChipSet itself
+—`bloques_bajos` and `tiles_altos`— and two **bring pixels from outside**:
+`desde_charset` puts a CharSet pose into two upper tiles, which is how an NPC
+that does nothing but stand there stops being a sprite and becomes map —the
+Auditorium audience, map 18—, and `desde_imagen` puts in a PNG that is
+neither a ChipSet nor a CharSet, scaled and cut into 16x16 cells.
 
-La quinta, `podar`, no dibuja: **borra lo que el mapa no usa**. El ChipSet de
-un fork es privado de su mapa, y lo que se gana no son pixeles sino **índices
-de paleta**: el PNG es indexado y tiene 256, que es el techo contra el que
-choca `desde_imagen`.
+The fifth, `podar`, does not draw: **it erases what the map does not use**.
+A fork's ChipSet is private to its map, and what is gained is not pixels but
+**palette indices**: the PNG is indexed and has 256, which is the ceiling
+`desde_imagen` runs into.
 """
 
 import os
@@ -31,28 +31,29 @@ from rpgmaker.rm2k import (OFFSET_X, SPRITE_HEIGHT, SPRITE_WIDTH, TILE,
                            caja_de_comun, caja_de_terreno)
 
 def generado():
-    """Dónde caen las imágenes armadas. Es un directorio de build como
-    cualquier otro: se puede borrar, y se rehace solo."""
+    """Where the built images land. It is a build directory like any other:
+    it can be deleted, and it rebuilds itself."""
     return os.path.join(proyecto.build(), "parches-manual")
 
 
 def _paleta(imagen):
-    """Los colores de un PNG indexado, como tuplas RGB y por índice."""
+    """The colors of an indexed PNG, as RGB tuples and by index."""
     crudo = imagen.getpalette() or []
     return [tuple(crudo[i * 3:i * 3 + 3]) for i in range(len(crudo) // 3)]
 
 
-# El agua y los tiles animados comparten este rectángulo del ChipSet; el resto
-# de la mitad izquierda son los doce autotiles de terreno, y la derecha, los
-# tiles comunes. Ver `render/chipset.py`, que es de donde salen los offsets.
+# The water and the animated tiles share this rectangle of the ChipSet; the
+# rest of the left half is the twelve terrain autotiles, and the right half,
+# the common tiles. See `render/chipset.py`, which is where the offsets come
+# from.
 CAJA_AGUA = (0, 0, 96, 128)
 
 
-# Los comandos que eligen un tile **en tiempo de ejecución**: con uno de éstos
-# adentro, las capas del mapa dejan de decir qué se dibuja y el podado no puede
-# saber qué guardar. Ninguno de los dos mapas forkeados de hoy los usa, así que
-# `podar` se planta en vez de adivinar: perder arte en silencio es justo lo que
-# este archivo existe para evitar.
+# The commands that pick a tile **at run time**: with one of these inside,
+# the map's layers no longer say what is drawn and the pruning cannot know
+# what to keep. Neither of today's two forked maps uses them, so `podar`
+# stops instead of guessing: silently losing art is exactly what this file
+# exists to avoid.
 COMANDOS_QUE_ELIGEN_TILES = {
     11710: "ChangeMapTileset",
     11750: "TileSubstitution",
@@ -60,17 +61,20 @@ COMANDOS_QUE_ELIGEN_TILES = {
 
 
 def _lo_que_dibuja(map_id):
-    """Qué partes del ChipSet usa ese mapa: agua, autotiles y ranuras comunes.
+    """Which parts of the ChipSet that map uses: water, autotiles and common
+    slots.
 
-    Sale del mapa **ya forkeado**, que es lo que lo hace self-checking: si el
-    fork empieza a dibujar una ranura nueva, esta cuenta la ve sola y el podado
-    la respeta sin que haya que acordarse de anotarla en ningún lado.
+    It comes from the **already forked** map, which is what makes it
+    self-checking: if the fork starts drawing a new slot, this count sees it
+    by itself and the pruning respects it without anyone having to remember
+    to note it down anywhere.
 
-    Y no alcanza con las dos capas. **Un evento sin CharSet se dibuja con un
-    tile de la página alta** —ver `rm2k.nombre_de_tile`: así están hechas las
-    puertas y buena parte del decorado— y ese tile no aparece en ninguna capa.
-    Podando sin contarlos, el mapa 32 perdía la ranura 13 y la ROM salía con
-    78 bytes distintos: lo cobró la comparación byte por byte, no una prueba.
+    And the two layers are not enough. **An event without a CharSet is drawn
+    with a tile from the upper page** —see `rm2k.nombre_de_tile`: that is how
+    doors and a good part of the decoration are made— and that tile does not
+    appear on any layer. Pruning without counting them, map 32 lost slot 13
+    and the ROM came out with 78 different bytes: the byte-for-byte
+    comparison caught it, not a test.
     """
     mapa = lcf.Map(os.path.join(proyecto.data(), "maps", "Map%04d.json" % map_id))
     agua = False
@@ -78,7 +82,7 @@ def _lo_que_dibuja(map_id):
     for capa in (mapa.lower_layer, mapa.upper_layer):
         for tile in capa:
             if tile < 4000:
-                agua = True              # agua (0..2999) y animados (3000..)
+                agua = True              # water (0..2999) and animated (3000..)
             elif tile < 5000:
                 terrenos.add((tile - 4000) // 50)
             elif tile < 10000:
@@ -93,27 +97,28 @@ def _lo_que_dibuja(map_id):
                 nombre = COMANDOS_QUE_ELIGEN_TILES.get(comando.code)
                 if nombre:
                     raise ForkRoto(
-                        "el mapa %d usa %s, que elige un tile en tiempo de "
-                        "ejecución: con eso las capas no dicen qué se dibuja y "
-                        "podar el ChipSet le borraría arte que el mapa sí usa"
+                        "map %d uses %s, which picks a tile at run time: "
+                        "with that the layers do not say what is drawn and "
+                        "pruning the ChipSet would erase art the map does use"
                         % (map_id, nombre))
     return agua, terrenos, comunes
 
 
 def podar(imagen, map_id):
-    """Borra del ChipSet todo lo que ese mapa no dibuja.
+    """Erases from the ChipSet everything that map does not draw.
 
-    Un ChipSet del fork es **privado de su mapa** —ver
-    `rom/parches/manual/README.md`—, así que ningún otro puede pedirle un tile que
-    éste no use: lo que no se dibuja es peso muerto. Y el peso que importa no
-    son los pixeles sino los **índices de paleta**: el PNG es indexado y tiene
-    256, que es el techo contra el que choca `desde_imagen` al traer un dibujo
-    de afuera. Podando el ChipSet 1 se pasa de 122 índices libres a 174, y ésa
-    es la diferencia entre que el Hover Tram entre y no entre.
+    A fork's ChipSet is **private to its map** —see
+    `rom/parches/manual/README.md`—, so no other map can ask it for a tile this
+    one does not use: what is not drawn is dead weight. And the weight that
+    matters is not the pixels but the **palette indices**: the PNG is indexed
+    and has 256, which is the ceiling `desde_imagen` runs into when bringing
+    a drawing from outside. Pruning ChipSet 1 goes from 122 free indices to
+    174, and that is the difference between the Hover Tram fitting and not
+    fitting.
 
-    No puede cambiar lo que se ve —borra tiles que el mapa no nombra— y eso acá
-    se demuestra, no se supone: la ROM sale byte por byte igual con el ChipSet
-    podado mientras el mapa siga dibujando lo mismo.
+    It cannot change what is seen —it erases tiles the map does not name— and
+    here that is proven, not assumed: the ROM comes out byte for byte the
+    same with the pruned ChipSet as long as the map keeps drawing the same.
     """
     agua, terrenos, comunes = _lo_que_dibuja(map_id)
     if not agua:
@@ -128,16 +133,16 @@ def podar(imagen, map_id):
 
 
 class _Paleta:
-    """La paleta del ChipSet mientras se le agregan colores de un CharSet.
+    """The ChipSet's palette while colors from a CharSet are added to it.
 
-    Los dos PNG son indexados y **sus índices no quieren decir lo mismo**:
-    copiar los bytes de uno adentro del otro da un sprite con los colores del
-    ChipSet, que es basura que se ve. Así que se copia por color, y el que no
-    esté se agrega en un índice que el ChipSet no use.
+    Both PNGs are indexed and **their indices do not mean the same thing**:
+    copying the bytes of one into the other gives a sprite with the ChipSet's
+    colors, which is visible garbage. So it is copied by color, and a color
+    that is not there is added at an index the ChipSet does not use.
 
-    El índice 0 queda afuera de la búsqueda **en las dos puntas**: es el color
-    key, y un color del sprite que dé igual al del índice 0 del ChipSet tiene
-    que ocupar un índice propio o el sprite saldría con un agujero.
+    Index 0 is left out of the search **at both ends**: it is the color key,
+    and a sprite color that happens to equal the ChipSet's index 0 has to
+    take an index of its own or the sprite would come out with a hole.
     """
 
     def __init__(self, imagen):
@@ -155,10 +160,10 @@ class _Paleta:
         if color not in self.donde:
             if not self.libres:
                 raise ForkRoto(
-                    "el ChipSet se quedó sin índices de paleta: los 256 ya "
-                    "están usados y el dibujo que entra trae colores que no "
-                    "tiene. Si el ChipSet no se está podando, `podar` es lo "
-                    "que libera los índices que el mapa no usa")
+                    "the ChipSet ran out of palette indices: all 256 are "
+                    "already used and the incoming drawing brings colors it "
+                    "does not have. If the ChipSet is not being pruned, "
+                    "`podar` is what frees the indices the map does not use")
             self.donde[color] = self.libres.pop(0)
             self.colores[self.donde[color]] = color
         return self.donde[color]
@@ -168,26 +173,26 @@ class _Paleta:
 
 
 def _a_quince(color):
-    """El color redondeado a los 15 bits que la consola muestra de verdad.
+    """The color rounded to the 15 bits the console really shows.
 
-    No pierde nada que el cartucho pudiera dibujar —el asignador cuantiza con
-    `>>3` igual— y **es lo que hace entrar el dibujo**: los 206 colores del
-    Hover Tram son 148 a 15 bits, contra los 174 índices que el ChipSet podado
-    deja libres. Sin esto no entra.
+    It loses nothing the cartridge could draw —the allocator quantizes with
+    `>>3` anyway— and **it is what makes the drawing fit**: the Hover Tram's
+    206 colors are 148 at 15 bits, against the 174 indices the pruned ChipSet
+    leaves free. Without this it does not fit.
 
-    Que el PNG del ChipSet quede con colores que el arte original no tiene no
-    es un problema: esa imagen **no se versiona, se arma** —ver
-    `rom/parches/manual/README.md`—, así que es un intermedio del build y no el
-    arte del juego, que sigue intacto en su `Picture/`.
+    That the ChipSet's PNG ends up with colors the original art does not have
+    is not a problem: that image **is not versioned, it is built** —see
+    `rom/parches/manual/README.md`—, so it is a build intermediate and not the
+    game's art, which remains intact in its `Picture/`.
     """
     return tuple((canal >> 3) << 3 for canal in color)
 
 
 def _pose(imagen, receta):
-    """El cuadro de 24x32 de una pose, recortado del CharSet.
+    """A pose's 24x32 frame, cropped from the CharSet.
 
-    Un CharSet son 8 personajes de 4x2, cada uno con sus 12 poses: 3 patrones
-    de caminata por 4 direcciones. Ver `rm2k.SPRITE_WIDTH`.
+    A CharSet is 8 characters in 4x2, each with its 12 poses: 3 walking
+    patterns by 4 directions. See `rm2k.SPRITE_WIDTH`.
     """
     x = (receta["personaje"] % 4) * 72 + receta["patron"] * SPRITE_WIDTH
     y = (receta["personaje"] // 4) * 128 + receta["direccion"] * SPRITE_HEIGHT
@@ -195,55 +200,56 @@ def _pose(imagen, receta):
 
 
 def imagen_del_chipset(datos, buscar):
-    """Arma el PNG de un ChipSet forkeado y devuelve su ruta.
+    """Builds the PNG of a forked ChipSet and returns its path.
 
-    `buscar(carpeta, nombre)` es quien encuentra los originales —el ChipSet
-    del que sale, y los CharSets que se hornean—; el resultado cae en
-    `rom/build/parches-manual/ChipSet/` con el nombre que la entrada de la
-    base pide.
-    Se reescribe siempre —armarlo son copias de rectángulos— y se mueve al
-    lugar de una, así que dos builds a la vez no se dejan un PNG a medio
-    escribir.
+    `buscar(carpeta, nombre)` is what finds the originals —the ChipSet it
+    comes from, and the CharSets that are baked—; the result lands in
+    `rom/build/parches-manual/ChipSet/` with the name the database entry asks
+    for.
+    It is always rewritten —building it is copying rectangles— and moved into
+    place in one go, so two builds at once do not leave each other a
+    half-written PNG.
     """
     receta = datos["imagen"]
     origen = buscar("ChipSet", receta["base"])
     if origen is None:
-        raise ForkRoto("no está el ChipSet %r, del que sale el %d"
+        raise ForkRoto("ChipSet %r, which %d comes from, is missing"
                        % (receta["base"], datos["chipset"]["id"]))
-    # Sin convertir a RGBA: los ChipSets son PNG indexados y el color 0 es el
-    # color key. Convertirlos acá tiraba la paleta, y el PNG que salía tenía
-    # los tiles vacíos **opacos**: se ve, y se ve mal.
+    # Without converting to RGBA: the ChipSets are indexed PNGs and color 0
+    # is the color key. Converting them here threw away the palette, and the
+    # resulting PNG had the empty tiles **opaque**: it shows, and it looks
+    # bad.
     imagen = Image.open(origen)
     imagen.load()
-    # Primero el podado, porque libera índices de paleta que las operaciones
-    # de abajo van a necesitar, y porque lee el mapa **forkeado**: las ranuras
-    # que el fork estrena ya están en sus capas, así que las respeta.
+    # The pruning first, because it frees palette indices the operations
+    # below will need, and because it reads the **forked** map: the slots the
+    # fork introduces are already in its layers, so it respects them.
     if "podar" in receta:
         podar(imagen, receta["podar"])
     for desde, hasta in receta.get("bloques_bajos", []):
         imagen.paste(imagen.crop(caja_de_terreno(desde)),
                      caja_de_terreno(hasta)[:2])
     for desde, hasta in receta.get("tiles_altos", []):
-        # El tile alto `u` es el común 144 + u: los 144 primeros son la capa
-        # baja. Ver `caja_de_comun`.
+        # Upper tile `u` is common tile 144 + u: the first 144 are the lower
+        # layer. See `caja_de_comun`.
         imagen.paste(imagen.crop(caja_de_comun(144 + desde)),
                      caja_de_comun(144 + hasta)[:2])
 
-    # Las ranuras que `desde_imagen` va a pisar se vacían **antes** de mirar la
-    # paleta. Si no, sus colores de hoy siguen contando como usados y se quedan
-    # con los índices que el dibujo nuevo necesita: el podado las conserva
-    # porque el mapa forkeado las nombra, pero lo que el mapa dibuja ahí es el
-    # dibujo que está por entrar, no el que había. Sin esto el Hover Tram se
-    # queda sin índices y el build se planta.
+    # The slots `desde_imagen` is going to overwrite are emptied **before**
+    # looking at the palette. Otherwise their current colors still count as
+    # used and keep the indices the new drawing needs: the pruning keeps
+    # them because the forked map names them, but what the map draws there
+    # is the drawing about to come in, not the one that was there. Without
+    # this the Hover Tram runs out of indices and the build stops.
     for entrada in (receta.get("desde_imagen") or {}).get("celdas", []):
-        if len(entrada) <= 3:      # las que componen sobre otra ranura, no
+        if len(entrada) <= 3:      # not the ones that compose over another slot
             imagen.paste(Image.new("P", (TILE, TILE)),
                          caja_de_comun(144 + entrada[2])[:2])
 
-    # Las dos operaciones que traen pixeles de afuera comparten **una sola**
-    # paleta: cada `_Paleta` reparte los índices libres desde cero, así que dos
-    # se pisarían los índices y la segunda `aplicar` borraría los colores de la
-    # primera.
+    # The two operations that bring pixels from outside share **a single**
+    # palette: each `_Paleta` hands out the free indices from scratch, so two
+    # would overwrite each other's indices and the second `aplicar` would
+    # erase the first one's colors.
     paleta = (_Paleta(imagen)
               if receta.get("desde_charset") or receta.get("desde_imagen")
               else None)
@@ -252,16 +258,16 @@ def imagen_del_chipset(datos, buscar):
         for una in receta["desde_charset"]:
             hoja = buscar("CharSet", una["charset"])
             if hoja is None:
-                raise ForkRoto("no está el CharSet %r, que el ChipSet %d "
-                               "hornea" % (una["charset"],
-                                           datos["chipset"]["id"]))
+                raise ForkRoto("CharSet %r, which ChipSet %d bakes, "
+                               "is missing" % (una["charset"],
+                                               datos["chipset"]["id"]))
             fuente = Image.open(hoja)
             fuente.load()
             desde = _paleta(fuente)
             pose = list(_pose(fuente, una).tobytes())
-            # El sprite se dibuja en `(x*16 - 4, y*16 - 16)`, así que sus
-            # columnas 4 a 19 caen clavadas en la celda y su mitad de arriba
-            # cae en la celda de arriba: de ahí salen los dos tiles.
+            # The sprite is drawn at `(x*16 - 4, y*16 - 16)`, so its columns
+            # 4 to 19 land exactly on the cell and its upper half lands on the
+            # cell above: that is where the two tiles come from.
             columna = -OFFSET_X
             for mitad, ranura in (("cabeza", una["cabeza"]),
                                   ("cuerpo", una["cuerpo"])):
@@ -280,35 +286,36 @@ def imagen_del_chipset(datos, buscar):
         una = receta["desde_imagen"]
         ruta = buscar(una["carpeta"], una["imagen"])
         if ruta is None:
-            raise ForkRoto("no está %s/%s, que el ChipSet %d hornea"
+            raise ForkRoto("%s/%s, which ChipSet %d bakes, is missing"
                            % (una["carpeta"], una["imagen"],
                               datos["chipset"]["id"]))
         fuente = Image.open(ruta)
         fuente.load()
         desde = _paleta(fuente)
-        # RM2k escala las imágenes con **vecino más cercano**, y el 65% del
-        # Hover Tram calza así al 97,3% contra la captura del juego original:
-        # ahí se comprobó de una vez el escalado, el anclaje y la posición.
+        # RM2k scales images with **nearest neighbor**, and the Hover Tram's
+        # 65% matches that way at 97.3% against the original game's capture:
+        # that checked the scaling, the anchoring and the position in one go.
         escala = una.get("escala", 100)
         ancho = fuente.width * escala // 100
         alto = fuente.height * escala // 100
         chica = fuente.resize((ancho, alto), Image.NEAREST).load()
-        # Dónde cae el pixel (0,0) del dibujo adentro de su primera celda: la
-        # imagen no tiene por qué estar alineada a la grilla de 16, y la del
-        # tram no lo está.
+        # Where the drawing's pixel (0,0) lands inside its first cell: the
+        # image has no reason to be aligned to the 16 grid, and the tram's is
+        # not.
         dx, dy = una.get("desfase", (0, 0))
-        # Colores del dibujo que se tratan como transparentes además del
-        # índice 0. Existe para los defectos del arte original: un pixel
-        # pintado **casi** del color de la clave pero no igual, que RM2k dibuja
-        # y se ve como un punto suelto. Es una divergencia declarada, así que
-        # va escrita en la receta y no escondida acá.
+        # Colors of the drawing treated as transparent besides index 0. It
+        # exists for defects in the original art: a pixel painted **almost**
+        # the key color but not quite, which RM2k draws and shows as a stray
+        # dot. It is a declared divergence, so it is written in the recipe
+        # and not hidden here.
         transparentes = {tuple(c) for c in una.get("transparentes", [])}
         for entrada in una["celdas"]:
             columna, fila, ranura = entrada[:3]
-            # El cuarto elemento, si está, es la ranura de la que sale el
-            # fondo: el dibujo se compone **encima** de ella en vez de pisarla.
-            # Lo pide la pared de la terraza del mapa 32, donde nueve pixeles
-            # de la punta del tram caen sobre una celda que ya dibuja algo.
+            # The fourth element, if present, is the slot the background
+            # comes from: the drawing is composed **on top** of it instead of
+            # overwriting it. The terrace wall of map 32 asks for it, where
+            # nine pixels of the tip of the tram land on a cell that already
+            # draws something.
             tile = (imagen.crop(caja_de_comun(144 + entrada[3]))
                     if len(entrada) > 3 else Image.new("P", (TILE, TILE)))
             pixeles = tile.load()
@@ -335,8 +342,8 @@ def imagen_del_chipset(datos, buscar):
 
 
 def imagenes(buscar):
-    """Arma las imágenes de todos los ChipSets del fork. Devuelve el
-    directorio donde quedaron, para meterlo en la búsqueda de recursos."""
+    """Builds the images of all the fork's ChipSets. Returns the directory
+    where they ended up, to put it in the resource search."""
     for datos in chipsets().values():
         imagen_del_chipset(datos, buscar)
     return generado()

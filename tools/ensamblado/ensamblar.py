@@ -1,28 +1,29 @@
 #!/usr/bin/env python3
-"""Arma la ROM: `ca65` + `ld65`, el checksum de la cabecera y los símbolos.
+"""Builds the ROM: `ca65` + `ld65`, the header checksum and the symbols.
 
     rm2k-snes-assemble tools/runtime/main.s -I rom/build/release \\
         -o rom/build/release/abl.sfc --simbolos …/abl.sfc.sym
 
-Hasta el 2026-09-16 esto lo hacía `w65`, un ensamblador nuestro. `ca65` y `ld65`
-hacen lo mismo salvo tres cosas, y son las que viven acá:
+Until 2026-09-16 this was done by `w65`, an assembler of ours. `ca65` and
+`ld65` do the same except for three things, and those are what live here:
 
-* **El checksum de la cabecera.** Los emuladores no lo miran, pero los menús de
-  los flash carts leen la cabecera para saber el mapeo, y con basura pueden
-  adivinar mal.
-* **La tabla de símbolos, en el formato que leen las pruebas**: una línea por
-  símbolo, `nombre valor`, con el valor en decimal. `ld65` la da en su archivo
-  de depuración, que trae mucho más.
-* **Negarse a armar con un `.inc` generado en `tools/runtime/`.** `ca65` busca
-  los `.include` primero en el directorio del archivo que incluye y recién
-  después en los `-I`, así que uno viejo en `tools/runtime/` taparía al del cartucho
-  sin decir nada: la ROM saldría con los datos de otro.
+* **The header checksum.** Emulators do not look at it, but flash cart menus
+  read the header to learn the mapping, and with garbage they may guess
+  wrong.
+* **The symbol table, in the format the tests read**: one line per symbol,
+  `name value`, with the value in decimal. `ld65` gives it in its debug file,
+  which carries much more.
+* **Refusing to build with a generated `.inc` in `tools/runtime/`.** `ca65`
+  looks up `.include`s first in the directory of the including file and only
+  then in the `-I`s, so a stale one in `tools/runtime/` would shadow the
+  cartridge's without saying anything: the ROM would come out with another
+  one's data.
 
-Lo que **no** tiene equivalente es un control que hacía `w65`: que cada salto
-llegue a su etiqueta con los registros al ancho que ella declara.
+What has **no** equivalent is a check `w65` used to do: that each jump reaches
+its label with the registers at the width the label declares.
 
-El mapa de memoria no está acá: lo escribe el conversor, `memoria.cfg`, al lado
-de los `.inc`. Ver `tools/ensamblado/bancos.py`.
+The memory map is not here: the converter writes it, `memoria.cfg`, next to
+the `.inc` files. See `tools/ensamblado/bancos.py`.
 """
 
 import argparse
@@ -32,48 +33,49 @@ import shutil
 import subprocess
 import sys
 
-# Los que escribe el conversor. Si alguno aparece junto a la fuente, tapa al del
-# directorio que se pasa con -I.
+# The ones the converter writes. If any shows up next to the source, it
+# shadows the one in the directory passed with -I.
 GENERADOS = ("mapdata.inc", "musicdata.inc")
 
-# Dónde va el checksum en el archivo: `$FFDE` del banco 0, y su complemento en
+# Where the checksum goes in the file: bank 0's `$FFDE`, and its complement at
 # `$FFDC`.
 CHECKSUM = 0x7FDE
 COMPLEMENTO = 0x7FDC
 
-# Corrido como script, Python pone en el `sys.path` la carpeta de este archivo
-# y no `tools/`: ver el mismo arranque en `port/snes_convert.py`.
+# Run as a script, Python puts this file's folder on `sys.path` and not
+# `tools/`: see the same startup in `port/snes_convert.py`.
 if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 from comun import proyecto                                  # noqa: E402
 
-# La raíz del repo: `ca65` y `ld65` corren parados acá, con rutas relativas.
+# The repo root: `ca65` and `ld65` run from here, with relative paths.
 RAIZ = proyecto.raiz()
 
-FALTA = """falta `%s`, del proyecto cc65.
+FALTA = """`%s` is missing, from the cc65 project.
 
-No viene empaquetado en Arch; se compila una vez y queda en el PATH:
+It is not packaged in Arch; it is built once and stays on the PATH:
 
     git clone --depth 1 https://github.com/cc65/cc65.git /extras/ref/cc65
     make -C /extras/ref/cc65 -j8 bin
     ln -s /extras/ref/cc65/bin/ca65 /extras/ref/cc65/bin/ld65 /usr/local/bin/
 
-Ver "Dónde corre esto" en AGENTS.md."""
+See "Dónde corre esto" in AGENTS.md."""
 
 
-# Un `.include` de verdad, no uno citado en un comentario.
+# A real `.include`, not one quoted in a comment.
 INCLUDE = re.compile(r'^\s*\.include\s+"([^"]+)"', re.M)
 
 
 def fuentes(principal):
-    """`principal` y los `.s` que incluye, en el orden en que los lee `ca65`.
+    """`principal` and the `.s` files it includes, in the order `ca65` reads
+    them.
 
-    Es la fuente escrita a mano de la ROM: lo que una prueba tiene que leer
-    para preguntar "¿la ROM declara tal cosa?". Los `.inc` quedan afuera porque
-    son generados —los de `tools/protocol/` y los del cartucho—. Un `.include`
-    se busca al lado del archivo que lo hace, que es lo primero que prueba
-    `ca65`.
+    It is the ROM's hand-written source: what a test has to read to ask "does
+    the ROM declare such a thing?". The `.inc` files are left out because
+    they are generated —those of `tools/protocol/` and the cartridge's—. An
+    `.include` is looked up next to the file that does it, which is the first
+    thing `ca65` tries.
     """
     directorio = os.path.dirname(os.path.abspath(principal))
     rutas = [principal]
@@ -86,7 +88,7 @@ def fuentes(principal):
 
 
 def texto_de_la_fuente(principal):
-    """Todas las `fuentes` pegadas, como si fueran un solo archivo."""
+    """All the `fuentes` glued together, as if they were a single file."""
     partes = []
     for ruta in fuentes(principal):
         with open(ruta, encoding="utf-8") as archivo:
@@ -95,11 +97,11 @@ def texto_de_la_fuente(principal):
 
 
 class FaltaCc65(RuntimeError):
-    """No está `ca65` o `ld65`, con qué hacer para tenerlos."""
+    """`ca65` or `ld65` is missing, with what to do to get them."""
 
 
 def binarios():
-    """Las rutas de `ca65` y `ld65` del PATH."""
+    """The paths of `ca65` and `ld65` on the PATH."""
     rutas = []
     for nombre in ("ca65", "ld65"):
         ruta = shutil.which(nombre)
@@ -110,20 +112,21 @@ def binarios():
 
 
 def checksum(rom):
-    """Escribe el checksum de la cabecera, en el lugar.
+    """Writes the header checksum, in place.
 
-    Es la suma de todos los bytes módulo 65536, con su complemento al lado. La
-    fuente deja `$FFFF` y `$0000` en esos cuatro bytes a propósito: como el
-    complemento es el checksum invertido, los cuatro suman siempre 510, así que
-    la suma no cambia al escribirlos y no hace falta iterar.
+    It is the sum of all the bytes modulo 65536, with its complement next to
+    it. The source leaves `$FFFF` and `$0000` in those four bytes on purpose:
+    since the complement is the inverted checksum, the four always add up to
+    510, so the sum does not change when they are written and there is no
+    need to iterate.
     """
     antes = sum(rom) & 0xFFFF
     rom[CHECKSUM:CHECKSUM + 2] = antes.to_bytes(2, "little")
     rom[COMPLEMENTO:COMPLEMENTO + 2] = (antes ^ 0xFFFF).to_bytes(2, "little")
     despues = sum(rom) & 0xFFFF
     if despues != antes:
-        raise ValueError("el checksum no se asentó: $%04X contra $%04X, y eso "
-                         "quiere decir que la cabecera no traía $FFFF y $0000"
+        raise ValueError("the checksum did not settle: $%04X against $%04X, which "
+                         "means the header did not carry $FFFF and $0000"
                          % (despues, antes))
     return antes
 
@@ -138,11 +141,11 @@ def _campos(linea):
 
 
 def simbolos(dbg):
-    """Los símbolos del archivo de depuración de `ld65`, como {nombre: valor}.
+    """The symbols in `ld65`'s debug file, as {name: value}.
 
-    Las etiquetas de adentro de un `.proc` salen como `proc::etiqueta`, igual
-    que las daba `w65`. `ld65` escribe los valores en 32 bits sin signo, así que
-    una constante negativa —`IMAGEN_X`— se devuelve a su signo.
+    Labels inside a `.proc` come out as `proc::label`, the same as `w65` gave
+    them. `ld65` writes the values as unsigned 32 bits, so a negative
+    constant —`IMAGEN_X`— is given back its sign.
     """
     scopes, syms = {}, []
     with open(dbg) as archivo:
@@ -169,7 +172,8 @@ def simbolos(dbg):
 
 
 def _relativa(ruta):
-    """`ruta` relativa a `RAIZ` si está adentro del repo; si no, absoluta."""
+    """`ruta` relative to `RAIZ` if it is inside the repo; otherwise,
+    absolute."""
     absoluta = os.path.abspath(ruta)
     if os.path.commonpath([absoluta, RAIZ]) != RAIZ:
         return absoluta
@@ -177,21 +181,23 @@ def _relativa(ruta):
 
 
 def ensamblar(fuente, incluir, rom, tabla=None):
-    """Arma `rom` desde `fuente`, con los generados y el `.cfg` de `incluir`."""
+    """Builds `rom` from `fuente`, with the generated files and the `.cfg` in
+    `incluir`."""
     directorio = os.path.dirname(os.path.abspath(fuente))
     tapan = [n for n in GENERADOS if os.path.exists(os.path.join(directorio, n))]
     if tapan:
         raise RuntimeError(
-            "%s tiene %s al lado, y `ca65` lo leería antes que el de %s: la ROM "
-            "saldría con los datos de otro cartucho. Son generados; se pueden "
-            "borrar." % (fuente, " y ".join(tapan), incluir))
+            "%s has %s next to it, and `ca65` would read it before the one in %s: "
+            "the ROM would come out with another cartridge's data. They are "
+            "generated; they can be deleted." % (fuente, " and ".join(tapan), incluir))
     ca65, ld65 = binarios()
-    # Rutas relativas a la raíz y `cwd` ahí, porque `ca65` escribe en el
-    # archivo de depuración cada fuente tal como la abrió —el `.include` pegado
-    # al directorio del que incluye, o al `-I`—. Con rutas absolutas quedaría
-    # la del contenedor, y Mesen2 no encontraría el fuente en el clon del
-    # host: busca `file.Name` al lado del `.dbg` y va subiendo de carpeta.
-    # Ver "Depurar con Mesen2" en `docs/snes/emulators.md`.
+    # Paths relative to the root and `cwd` there, because `ca65` writes each
+    # source into the debug file just as it opened it —the `.include` joined
+    # to the including file's directory, or to the `-I`—. With absolute paths
+    # the container's would stay, and Mesen2 would not find the source in the
+    # host's clone: it looks for `file.Name` next to the `.dbg` and climbs up
+    # folder by folder. See "Debugging with Mesen2" in
+    # `docs/snes/emulators.md`.
     fuente_r, incluir_r = _relativa(fuente), _relativa(incluir)
     rom_r = _relativa(rom)
     objeto, dbg = rom_r + ".o", rom_r + ".dbg"
@@ -219,7 +225,7 @@ def main():
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("fuente")
     parser.add_argument("-I", dest="incluir", required=True,
-                        help="donde están los .inc generados y memoria.cfg")
+                        help="where the generated .inc files and memoria.cfg are")
     parser.add_argument("-o", dest="rom", required=True)
     parser.add_argument("--simbolos")
     args = parser.parse_args()
