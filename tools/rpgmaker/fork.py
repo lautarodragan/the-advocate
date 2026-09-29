@@ -39,7 +39,7 @@ The image of those ChipSets is built by `render/chipset_del_fork.py`.
 import json
 import os
 
-from comun import proyecto
+from common import proyecto
 
 # Where each part is. They are functions and not constants because they come
 # from the project, which is found when used and not when this module is

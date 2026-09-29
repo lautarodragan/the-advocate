@@ -1,9 +1,9 @@
 """That the project file reader fails clearly instead of falling back to a
-default: see `comun/perillas.py`. On files built here, not on the game's."""
+default: see `common/perillas.py`. On files built here, not on the game's."""
 
 import pytest
 
-from comun import perillas
+from common import perillas
 
 
 @pytest.fixture
@@ -64,7 +64,7 @@ def test_las_herramientas_se_importan_sin_un_juego(tmp_path):
         "import port.snes_convert, port.eventos, port.escena, port.msu_datos\n"
         "import port.parches, audio.snes_music, audio.msu, rpgmaker.rm2k\n"
         "import render.render_map, render.chipset_del_fork\n"
-        "from comun import proyecto\n"
+        "from common import proyecto\n"
         "proyecto.directorio()\n")
     vacio = tmp_path / "vacio"
     vacio.mkdir()

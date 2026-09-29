@@ -79,7 +79,7 @@ the reason is in tools/audio/efectos_msu.py.
 import hashlib
 import struct
 
-from comun import perillas
+from common import perillas
 
 VERSION = 2
 FIRMA = 8

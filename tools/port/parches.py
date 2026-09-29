@@ -138,8 +138,8 @@ import tomllib
 if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-from comun import ambiente                                  # noqa: E402
-from comun import proyecto                                  # noqa: E402
+from common import ambiente                                  # noqa: E402
+from common import proyecto                                  # noqa: E402
 
 # Where the versioned ones live, relative to what the converter decided and
 # is versioned: the functions receive that directory —`proyecto.parches_auto()`,

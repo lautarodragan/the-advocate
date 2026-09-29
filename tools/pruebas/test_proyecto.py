@@ -1,4 +1,4 @@
-"""That where each thing is is known by `comun/proyecto.py`, and nobody else.
+"""That where each thing is is known by `common/proyecto.py`, and nobody else.
 
 Before that module, eleven `.py` files computed the repo root by climbing
 three folders from `__file__`, and as many more built `data/`,
@@ -21,7 +21,7 @@ fails if any of them:
   `pruebas/` inside `tools/` is another folder;
 * **reads one of the environment variables that say where something is**, or
   writes the default value of one: since 2026-09-29 that arrives by flags
-  —see `comun/ambiente.py`—, and the machine's values belong to whoever
+  —see `common/ambiente.py`—, and the machine's values belong to whoever
   calls the tools.
 
 And separately, `test_ninguna_herramienta_sabe_de_abl`, because it is another
@@ -41,7 +41,7 @@ import os
 
 import pytest
 
-from comun import proyecto
+from common import proyecto
 
 HERRAMIENTAS = proyecto.herramientas()
 ESTE = os.path.realpath(__file__)
@@ -152,7 +152,7 @@ def violaciones(ruta, fuente=None):
                                  "proyecto.py" % (nodo.lineno, primero))
         variable = _es_lectura_de_ambiente(nodo)
         if variable in DE_AMBIENTE:
-            malas.append("%d: reads %s: it arrives by flag, see comun/ambiente.py"
+            malas.append("%d: reads %s: it arrives by flag, see common/ambiente.py"
                          % (nodo.lineno, variable))
         texto = _texto(nodo)
         if texto and texto.startswith(("/extras", "/shared")):
@@ -206,7 +206,7 @@ def test_nadie_mas_sabe_donde_esta_cada_cosa():
         malas += ["%s:%s" % (os.path.relpath(ruta, HERRAMIENTAS), v)
                   for v in violaciones(ruta)]
     assert not malas, (
-        "where each thing is is known by comun/proyecto.py and nobody else:\n  "
+        "where each thing is is known by common/proyecto.py and nobody else:\n  "
         + "\n  ".join(malas))
 
 

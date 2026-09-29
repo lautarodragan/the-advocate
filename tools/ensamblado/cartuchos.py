@@ -31,9 +31,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import muestras_brr                          # noqa: E402
-from comun import ambiente                              # noqa: E402
-from comun import perillas                              # noqa: E402
-from comun import proyecto                              # noqa: E402
+from common import ambiente                              # noqa: E402
+from common import perillas                              # noqa: E402
+from common import proyecto                              # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
 from port import tiles_bin                              # noqa: E402
 from port import comprimir                              # noqa: E402

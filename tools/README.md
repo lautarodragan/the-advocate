@@ -9,7 +9,7 @@ loose: each thing lives in the folder of its responsibility.
 From the bottom up. A folder imports only from the ones below it, never from
 one in its own row or above.
 
-    comun/       where everything is (proyecto), the converter's disk cache
+    common/       where everything is (proyecto), the converter's disk cache
                  (cache_disco), and spreading pure work across forked
                  processes (paralelo). It imports nothing from `tools/`, and
                  any of the ones above may import it
@@ -115,7 +115,7 @@ The reason for the names is in `tools/justfile`. A new one is added in
 `_instalar`, and the `.py` finds its packages by resolving the symlink with
 `realpath`, because `__file__` is the PATH location: it climbs up to
 `tools/` and no further. **Where everything else is** is answered by
-`comun/proyecto.py`, and by nobody else: `pruebas/test_proyecto.py` enforces
+`common/proyecto.py`, and by nobody else: `pruebas/test_proyecto.py` enforces
 it. What belongs to the repo —the root, the runtime— comes from where that
 file is; what belongs to the game, from its project file: see "How they find
 the game". The tests put `tools/` on the path themselves, from
@@ -137,7 +137,7 @@ cases each cartridge carries, what the ROM is called, the title in its
 header and the signatures of its save files, which sound effects go whole,
 which songs go separately, which CharSet weighs most when splitting
 palettes. The game declares it at its root, in `rm2k-snes.toml` —A Blurred
-Line's is `rom/rm2k-snes.toml`—, and it is read with `comun/perillas.py`:
+Line's is `rom/rm2k-snes.toml`—, and it is read with `common/perillas.py`:
 `perillas.valor("maps", "below", tipo=int)`.
 
 * **A missing key is an error**, with its name, and not a default value: a
@@ -180,7 +180,7 @@ their location.
 `--soundfont`, `--reemplazos` (the MSU-1 tracks that come from an audio file
 and not from the MIDI), `--cache`, `--test-cartridges` and, in
 `abl-entregar`, `--compartido`. Each executable adds the ones it uses and
-sets them in `comun/ambiente.py`, where the rest read them from;
+sets them in `common/ambiente.py`, where the rest read them from;
 `recursos.GAME_DIR` and `snes_samples.SOUNDFONT` are resolved there when
 read. **None has a default value**, except the cache and the test
 cartridges, which have their place in the project's `build`: a machine's

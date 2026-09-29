@@ -41,8 +41,8 @@ import sys
 # the PATH as a symlink, and what matters is where the real file is.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
-from comun import ambiente                              # noqa: E402
-from comun import proyecto                              # noqa: E402
+from common import ambiente                              # noqa: E402
+from common import proyecto                              # noqa: E402
 from ensamblado import bancos                           # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
 

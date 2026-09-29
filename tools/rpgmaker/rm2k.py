@@ -11,7 +11,7 @@ these numbers was written from memory.
 
 import os
 
-from comun import perillas
+from common import perillas
 from rpgmaker import lcf
 
 CELL = 8

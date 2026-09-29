@@ -34,8 +34,8 @@ import hashlib
 import math
 
 from audio import muestras_brr
-from comun import ambiente
-from comun import cache_disco
+from common import ambiente
+from common import cache_disco
 
 # The Windows software synthesizer, which is what this game was composed and
 # listened to with. Microsoft licensed a reduced subset of the Sound Canvas
@@ -48,7 +48,7 @@ from comun import cache_disco
 # sample from the one that produced the original sound.
 #
 # `SOUNDFONT` is set by the executable from `--soundfont`, and read when used:
-# see `__getattr__` and `comun/ambiente.py`.
+# see `__getattr__` and `common/ambiente.py`.
 
 
 def __getattr__(nombre):

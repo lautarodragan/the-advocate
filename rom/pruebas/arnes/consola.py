@@ -25,8 +25,8 @@ import os
 import re
 
 import lugares                                  # antes que nada
-from comun import perillas
-from comun import proyecto
+from common import perillas
+from common import proyecto
 from emulador import retro
 from ensamblado import bancos
 

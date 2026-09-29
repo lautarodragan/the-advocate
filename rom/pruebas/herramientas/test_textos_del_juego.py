@@ -10,7 +10,7 @@ import glob
 import json
 import os
 
-from comun import proyecto                               # noqa: E402
+from common import proyecto                               # noqa: E402
 from port import eventos                                # noqa: E402
 from port import textos                                 # noqa: E402
 from port import constantes                             # noqa: E402

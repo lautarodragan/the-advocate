@@ -22,9 +22,9 @@ from audio import muestras_brr
 from audio import sdsp
 from audio import snes_samples
 from audio import spc700
-from comun import perillas
-from comun import proyecto
-from comun.paralelo import en_paralelo
+from common import perillas
+from common import proyecto
+from common.paralelo import en_paralelo
 from rpgmaker import recursos
 from rpgmaker.recursos import find_resource
 

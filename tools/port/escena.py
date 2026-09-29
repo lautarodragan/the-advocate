@@ -161,7 +161,7 @@ signature.
 import collections
 import os
 
-from comun import perillas
+from common import perillas
 
 # The scene, in screen pixels: the top seven text lines.
 ANCHO, ALTO = 256, 128

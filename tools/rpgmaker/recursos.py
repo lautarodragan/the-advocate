@@ -6,11 +6,11 @@ lookup, used alike by the render, the audio and the converter.
 
 import os
 
-from comun import ambiente
+from common import ambiente
 
 # `GAME_DIR` is the original RM2k project, and `RTP_DIR` the RTP it was built
 # with. The executable sets them from `--game-dir` and `--rtp-dir` —see
-# `comun/ambiente.py`— and they are read when used: reading them unset fails
+# `common/ambiente.py`— and they are read when used: reading them unset fails
 # saying which flag is missing.
 #
 # For ABL, the RTP is Don Miguel's (June 2000), extracted from RTPE.EXE. It is

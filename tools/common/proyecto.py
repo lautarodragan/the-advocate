@@ -129,14 +129,14 @@ def desde_la_linea_de_comandos(argv=None):
 
 
 def archivo_de_proyecto():
-    """`rm2k-snes.toml`: the game's settings. `comun/perillas.py` reads it."""
+    """`rm2k-snes.toml`: the game's settings. `common/perillas.py` reads it."""
     return os.path.join(directorio(), ARCHIVO)
 
 
 def _ruta(clave):
     """A path from `[paths]`: the file declares it, relative to itself. How
     the game is laid out inside belongs to the game, not to the tools."""
-    from comun import perillas      # inside: `perillas` imports this one
+    from common import perillas      # inside: `perillas` imports this one
     return os.path.normpath(os.path.join(
         directorio(), perillas.valor("paths", clave, tipo=str)))
 

@@ -35,8 +35,8 @@ import os
 import pickle
 import tempfile
 
-from comun import ambiente
-from comun import proyecto
+from common import ambiente
+from common import proyecto
 
 APAGADO = os.environ.get("SIN_CACHE") == "1"
 

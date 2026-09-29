@@ -88,15 +88,15 @@ from port import constantes
 from port import reglas
 from port import msu_datos
 from audio import efectos_msu
-from comun import perillas
-from comun import proyecto
-from comun.paralelo import en_paralelo
+from common import perillas
+from common import proyecto
+from common.paralelo import en_paralelo
 from audio import snes_music
 from port.asignador import CELL, tile_colors
 from port.formato_snes import cgram_word, entry, pack_tile
 from rpgmaker.rm2k import TILE, collect_npcs, hero_start, passability_map
 from render.render_map import Renderer, build_passability, load_image
-from comun import ambiente
+from common import ambiente
 from rpgmaker import recursos
 from rpgmaker.recursos import find_resource
 
@@ -1761,7 +1761,7 @@ def _version_capas():
       by itself. Since the key comes from the inputs, the only way for a change
       in the drawing to invalidate what is stored is this one.
       `rpgmaker/recursos.py` goes with them because it is where `render_map`
-      gets how it finds the ChipSet, and `comun/proyecto.py` because it is
+      gets how it finds the ChipSet, and `common/proyecto.py` because it is
       where the directories it searches in come from;
     * `port/asignador.py` decides which colors are lost, `rpgmaker/rm2k.py`
       has the constants of the split and of the animated families, and this
@@ -1781,13 +1781,13 @@ def _version_capas():
     global _VERSION_CAPAS
     if _VERSION_CAPAS is None:
         import PIL
-        from comun import cache_disco
+        from common import cache_disco
         _VERSION_CAPAS = (cache_disco.version_de("port/snes_convert.py",
                                                  "port/asignador.py",
                                                  "rpgmaker/rm2k.py",
                                                  "render/render_map.py",
                                                  "rpgmaker/recursos.py",
-                                                 "comun/proyecto.py",
+                                                 "common/proyecto.py",
                                                  "render/chipset.py")
                           + tiles_bin.version()
                           + " Pillow " + PIL.__version__)
@@ -1818,7 +1818,7 @@ def capas_convertidas(renderer, game_map):
     Verified with `SIN_CACHE=1` and with the cache deleted: the `.sfc` is the
     same byte for byte.
     """
-    from comun import cache_disco
+    from common import cache_disco
     insumos = renderer.insumos_de_capas(game_map)
     en_disco = None
     if insumos is not None:

@@ -36,7 +36,7 @@ say which character set a string is in—.
 import json
 import os
 
-from comun import proyecto
+from common import proyecto
 from rpgmaker import fork
 from rpgmaker.event_codes import EVENT_CODES
 

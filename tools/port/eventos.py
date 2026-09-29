@@ -2487,7 +2487,7 @@ def barrer_los_mapas(game_dir, map_ids, barrido):
     result is a set, so the order does not matter.
     """
     from rpgmaker import lcf
-    from comun.paralelo import en_paralelo
+    from common.paralelo import en_paralelo
     rutas = [os.path.join(game_dir, "Map%04d.lmu" % m) for m in map_ids]
     tandas = max(1, min(len(rutas), os.cpu_count() or 1))
     hallado = set()

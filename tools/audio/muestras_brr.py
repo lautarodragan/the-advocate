@@ -40,7 +40,7 @@ import subprocess
 import tempfile
 import wave
 
-from comun import cache_disco
+from common import cache_disco
 
 FALTA = """`gunter`, the SPC700 sample codec, is missing.
 

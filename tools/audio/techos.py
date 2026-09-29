@@ -45,9 +45,9 @@ from multiprocessing import Pool
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import sdsp, snes_music                      # noqa: E402
-from comun import ambiente                              # noqa: E402
-from comun import perillas                              # noqa: E402
-from comun import proyecto                              # noqa: E402
+from common import ambiente                              # noqa: E402
+from common import perillas                              # noqa: E402
+from common import proyecto                              # noqa: E402
 
 # Half the usual headroom: measured on 2026-09-26, with 0.25 none of the 32
 # songs of `release` clips, and the loudest one stays 3.9 dB below the cap.

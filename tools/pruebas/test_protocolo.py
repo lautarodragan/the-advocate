@@ -26,7 +26,7 @@ from port import eventos  # noqa: E402
 from rpgmaker import lcf  # noqa: E402
 from ensamblado import ensamblar  # noqa: E402
 from audio import music_opcodes  # noqa: E402
-from comun import proyecto  # noqa: E402
+from common import proyecto  # noqa: E402
 
 
 def _relativa(ruta):

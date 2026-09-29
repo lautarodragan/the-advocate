@@ -18,7 +18,7 @@ el archivo sólo los usa.
 import ast
 import os
 
-from comun import perillas, proyecto
+from common import perillas, proyecto
 
 # Los que el archivo usa como palabra clave de su propio formato, y el nombre
 # del cartucho que se juega, que las herramientas exigen: es su contrato, no

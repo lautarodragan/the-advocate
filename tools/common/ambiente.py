@@ -25,7 +25,7 @@ being set.
 
 import os
 
-from comun import proyecto
+from common import proyecto
 
 
 class FaltaElAmbiente(SystemExit):
@@ -123,7 +123,7 @@ def reemplazos_msu():
 
 
 def cache():
-    """The converter's disk cache: see `comun/cache_disco.py`."""
+    """The converter's disk cache: see `common/cache_disco.py`."""
     return _fijados.get("cache") or os.path.join(proyecto.build(), "cache")
 
 

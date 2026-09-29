@@ -77,9 +77,9 @@ if __name__ == "__main__":
 
 from audio import snes_music                                # noqa: E402
 from audio import snes_samples                              # noqa: E402
-from comun import ambiente                                  # noqa: E402
-from comun import cache_disco                               # noqa: E402
-from comun import proyecto                                  # noqa: E402
+from common import ambiente                                  # noqa: E402
+from common import cache_disco                               # noqa: E402
+from common import proyecto                                  # noqa: E402
 from rpgmaker import recursos                               # noqa: E402
 
 # fluidsynth's gain. With 1.0 the songs with many voices saturate, so it is
@@ -94,7 +94,7 @@ _fluidsynth = None
 _ffmpeg = None
 
 # Which extensions the replacements are looked for with, in this order.
-# Where is set by `--reemplazos`: see `comun/ambiente.py`.
+# Where is set by `--reemplazos`: see `common/ambiente.py`.
 EXTENSIONES = (".mp3", ".ogg", ".flac", ".wav")
 
 

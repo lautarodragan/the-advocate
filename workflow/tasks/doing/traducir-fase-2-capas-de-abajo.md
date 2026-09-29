@@ -10,3 +10,18 @@ de código, de abajo hacia arriba, un área por vez. Ésta es la primera:
 `tools/comun/`, `tools/rpgmaker/`, `tools/render/` y `tools/emulador/`, con
 todos sus usos en `tools/` y en `rom/pruebas/`. Los nombres de las carpetas
 también: `comun` → `common`, `emulador` → `emulator`.
+
+## Cómo se hace
+
+De a un módulo por commit, y cada uno verificado solo: `SIN_CACHE=1 just
+cartuchos` con los `.sfc`, `.msu`, `.pcm`, `.inc` y `.dbg` (sin la fecha)
+iguales a los de `c60949e0`, `just pruebas`, `just -f tools/justfile
+pruebas`, pyflakes sin avisos nuevos, y un chequeo de que cada
+`modulo.nombre` de estos paquetes exista. Los renombres los hace un script
+por tokens —no por texto—, así que no entra en los strings: lo que es dato
+no se toca, y los strings que son código (una ruta, un `import` adentro de
+un `-c`) se buscan aparte con grep.
+
+## Hecho
+
+1. `comun/` → `common/`, la carpeta sola.

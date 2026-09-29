@@ -18,7 +18,7 @@
 [paths]
 # Relativas a este archivo. Las herramientas no saben cómo está armado el
 # juego por dentro: lo leen de acá. Hasta el 2026-09-29 las sabía
-# `comun/proyecto.py`, que es de las herramientas.
+# `common/proyecto.py`, que es de las herramientas.
 #
 # Lo que no va: el runtime, que viaja con las herramientas; y lo que es sólo
 # de las pruebas del juego —las goldens, lo que dejan para mirar—, que no lo

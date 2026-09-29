@@ -21,7 +21,7 @@ import struct
 import pytest
 
 from audio import midi, sdsp, snes_music                   # noqa: E402
-from comun import ambiente
+from common import ambiente
 
 PIANO, BAJO_SINTETICO, BOMBO, SIN_MUESTRA = 0, 38, 36, 35
 

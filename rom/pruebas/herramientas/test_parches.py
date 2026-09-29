@@ -26,7 +26,7 @@ convierte `release` tiene que estar versionado.
 
 import os
 
-from comun import proyecto                                    # noqa: E402
+from common import proyecto                                    # noqa: E402
 from port import animacion                                    # noqa: E402
 from port import parches                                      # noqa: E402
 

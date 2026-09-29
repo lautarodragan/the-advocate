@@ -18,7 +18,7 @@ comments, in the game's language.
 
 import tomllib
 
-from comun import proyecto
+from common import proyecto
 
 _leidos = {}
 

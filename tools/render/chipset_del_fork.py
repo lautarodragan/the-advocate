@@ -24,7 +24,7 @@ import os
 
 from PIL import Image
 
-from comun import proyecto
+from common import proyecto
 from rpgmaker import lcf
 from rpgmaker.fork import ForkRoto, chipsets
 from rpgmaker.rm2k import (OFFSET_X, SPRITE_HEIGHT, SPRITE_WIDTH, TILE,

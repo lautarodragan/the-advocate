@@ -25,9 +25,9 @@ import textwrap
 # como symlink, y lo que importa es dónde está el archivo de verdad.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
-from comun import ambiente                              # noqa: E402
-from comun import perillas                              # noqa: E402
-from comun import proyecto                              # noqa: E402
+from common import ambiente                              # noqa: E402
+from common import perillas                              # noqa: E402
+from common import proyecto                              # noqa: E402
 
 # `--proyecto` se lee antes que nada: este módulo lee el archivo de proyecto
 # al importarse, y el `parse_args` de `main` llega tarde.

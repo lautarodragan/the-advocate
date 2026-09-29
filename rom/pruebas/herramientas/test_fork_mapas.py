@@ -23,7 +23,7 @@ import shutil
 
 import pytest
 
-from comun import proyecto                                      # noqa: E402
+from common import proyecto                                      # noqa: E402
 from render import chipset_del_fork                             # noqa: E402
 from render.chipset import UPPER                               # noqa: E402
 from render.render_map import build_passability                # noqa: E402

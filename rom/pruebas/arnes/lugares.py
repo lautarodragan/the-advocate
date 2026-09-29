@@ -18,8 +18,8 @@ Se importa antes que nada que lea el archivo de proyecto al importarse
 
 import os
 
-from comun import ambiente
-from comun import proyecto
+from common import ambiente
+from common import proyecto
 
 # `pruebas/`, y la raíz del juego arriba: donde está su archivo de proyecto.
 PRUEBAS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
