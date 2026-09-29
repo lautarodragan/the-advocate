@@ -45,10 +45,19 @@ acá los compila ni los busca en `target/`.
 
 ## `port/` no está partido todavía
 
-Es un bloque a propósito: tiene tres ciclos de imports adentro —`eventos` ↔
-`batalla`, `batalla` ↔ `pantallas`, `eventos` ↔ `imagen`— y `titulo` tiene
-helpers de paleta que usan varios. Separarlo pide decidir quién es dueño de
-qué, y eso es trabajo de criterio que no entró en la mudanza.
+Es un bloque a propósito: seis de sus módulos —`eventos`, `batalla`,
+`pantallas`, `imagen`, `titulo` y `experiencia`— forman un solo ciclo de
+imports, y `snes_convert` ↔ `pantalla_completa` otro. Todos los cierra un
+import adentro de una función, que es con lo que se los esquivó. `titulo`,
+además, tiene adentro la reducción de color, los menús y la fuente de los
+menús, que usan varios. Separarlo pide decidir quién es dueño de qué, y eso
+es trabajo de criterio que no entró en la mudanza.
+
+Las capas tampoco se cumplen del todo: `ensamblado/cartuchos.py` importa de
+`port/` y de `audio/`, y `rpgmaker/fork.py` de `render/`, además de
+cerrar un ciclo con `lcf`. Qué usa cada uno,
+cómo sacar las dos cosas y el script que imprime el grafo están en
+`docs/research/el-mapa-de-las-herramientas-de-python.md`.
 
 ## Cómo se importa
 
