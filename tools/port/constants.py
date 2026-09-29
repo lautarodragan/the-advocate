@@ -1,9 +1,9 @@
 """Port numbers that several modules use and that belong to none of them.
 
 They live here so that whoever needs them does not have to import the module
-that uses them most, and with it everything that one imports: `eventos` used
-to ask `pantallas` how many equipment slots there are, and `pantallas` imports
-`eventos`.
+that uses them most, and with it everything that one imports: `events` used
+to ask `screens` how many equipment slots there are, and `screens` imports
+`events`.
 """
 
 # The console screen, in pixels and in 8x8 cells.
@@ -24,7 +24,7 @@ MENU_CGRAM = 16
 # ones that appear in a handful of pixels.
 COLORS = 256 - MENU_CGRAM
 
-# How many lines of text fit in the message window. See `ventana.py`.
+# How many lines of text fit in the message window. See `window.py`.
 LINES = 4
 
 # How many characters fit on a line, and where the number comes from. It is

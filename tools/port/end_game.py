@@ -7,7 +7,7 @@ easyrpg-player's `Scene_End::CreateCommandWindow` and `CreateHelpWindow`,
 and the measurements were compared against the 2015 RPG_RT running under
 Wine: with these same computations at 320x240, the windows, the text and the
 bar land on the same pixels as in the capture of the original. What differs
-are things of `ventana.py` and of the font, which apply to every window of
+are things of `window.py` and of the font, which apply to every window of
 the port: the light band of the stretched background lands a few rows off,
 and a couple of glyphs —the "g"— are not identical.
 

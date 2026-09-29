@@ -2,7 +2,7 @@
 """Converts an A Blurred Line map into data the SNES PPU consumes.
 
 Splitting colors into palettes, and merging the least used ones when they
-don't fit, lives in `asignador.py`, and reusing mirrored tiles in Voodoo.
+don't fit, lives in `allocator.py`, and reusing mirrored tiles in Voodoo.
 What is left here is what depends on the hardware:
 
   * **Color is 15 bits, five per channel.** Of the 72 colors in the render of
@@ -2572,7 +2572,7 @@ def _check_splits():
                              "at zero means there is no column" % name)
         if window_base(layout) not in WINDOW_BASES:
             raise SystemExit("LAYOUT_%s: the window starts at BG2 tile %d, "
-                             "and there are layouts for %s: see VENTANA_BASES"
+                             "and there are layouts for %s: see WINDOW_BASES"
                              % (name, window_base(layout), WINDOW_BASES))
         # And the window has to land inside what BG2 reaches from its base: the
         # tilemap index is ten bits.
@@ -2616,7 +2616,7 @@ WINDOW_TEXT_COLS = 30
 
 
 def _columns():
-    """How many characters fit on a line. It lives in `ventana.py` with the
+    """How many characters fit on a line. It lives in `window.py` with the
     rest of the geometry, and the reason for the number is there."""
     from port import window as window_mod
     return constants.COLUMNS
@@ -2633,7 +2633,7 @@ def _to_15_bits(picture):
 def convert_window(sys_img, font_id=None):
     """The message window: tiles, palette, cells and what the font needs.
 
-    The image is built by `ventana.py`, which follows easyrpg-player's rules
+    The image is built by `window.py`, which follows easyrpg-player's rules
     and is verified against a capture of the original game running in
     EasyRPG.
     Here it is cut into 8x8 cells and the fixed part is separated from what
@@ -2730,7 +2730,7 @@ def convert_window(sys_img, font_id=None):
     if height >= CGRAM_RESERVED:
         raise SystemExit(
             "the message window uses CGRAM entry %d and the background "
-            "starts at %d: raise CGRAM_RESERVADAS" % (height, CGRAM_RESERVED))
+            "starts at %d: raise CGRAM_RESERVED" % (height, CGRAM_RESERVED))
     return {"tiles": data, "cram": cram, "celdas": cells,
             "base": base,
             "fondo": b"".join(pack_tile(c, planes=4) for c in background),
@@ -3598,8 +3598,8 @@ def experience_asm(db, actors, n_actors):
                        `nivel_params`, in the order of `lcf.CURVES`.
 
     `exp_tabla` is `MakeExpList` of each distinct curve —four bytes per level,
-    `NIVEL_MAX` levels— and `nivel_params` the six curves of each slot,
-    `NIVEL_MAX` words each. Everything goes outside bank 0: it is read when
+    `LEVEL_MAX` levels— and `nivel_params` the six curves of each slot,
+    `LEVEL_MAX` words each. Everything goes outside bank 0: it is read when
     winning a battle, when setting it up and on the equipment screen, never
     per frame.
     """
@@ -3723,7 +3723,7 @@ def rom_scene(db, troops, maps, tree, encounters, game_dir):
                              for t in range(max(terrains, default=0) + 1)]
 
     # The ROM's: all the ones asked for, in the order they are asked for —see
-    # "Which backdrops there are" in escena.py—. A map with encounters that asks for the
+    # "Which backdrops there are" in scene.py—. A map with encounters that asks for the
     # one of the place asks for those of all the terrains of its blocks, which
     # are the ones the hero can stand on, substitutions included. A map
     # without encounters that asks for it anyway —because some troop fights
@@ -3792,7 +3792,7 @@ def patch_uses(maps, db, tree):
     map, isn't versioned. The bytecode is walked, as in
     `rom_animations`, so it counts what ended up emitted. A troop
     someone asked for and no emitted page names —a page that fell out after
-    asking for it— has no origin, and `revisar` treats it as the game's: the
+    asking for it— has no origin, and `patches.check` treats it as the game's: the
     doubt leans toward asking for the patch.
     """
     E = scene_mod
@@ -5689,7 +5689,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # goes separately and with its own index. See `ba_mensaje`.
         revived_text = new_text(P.revived_text(db))
         # The second line of the victory, empty if it fits in one: it goes
-        # separately so as not to shift the indices of `BA_TERMINOS`.
+        # separately so as not to shift the indices of `BATTLE_TERMS`.
         victory2_text = new_text((victory + [""])[1])
         rom_enemies = sorted({e for number in troops
                               if number in db.troops

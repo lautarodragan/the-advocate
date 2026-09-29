@@ -1361,7 +1361,7 @@ class Messages:
 
     def __init__(self, step=1):
         # How many bytes at a time the offset in the bytecode counts. The
-        # game's block goes by four —see MENSAJES_PASO— and each box starts
+        # game's block goes by four —see MESSAGES_STEP— and each box starts
         # at a multiple of four; the others, like the troops', by one.
         # Inside, everything is in bytes: the step is applied going in and
         # going out.
@@ -1822,7 +1822,7 @@ def rain_pixels(x, y):
 # down linearly over `ANIM_FLASH_FRAMES`. It is the same light and it
 # lasts the same.
 #
-# OP_ANIMATION: n, and n entries of ANIM_ENTRADA bytes
+# OP_ANIMATION: n, and n entries of ANIM_ENTRY_BYTES bytes
 ANIM_ENTRY_BYTES = 8
 ANIM_SOUND, ANIM_SCREEN_FLASH, ANIM_FLASH = 0, 1, 2
 # Ten, which is how long RM2k's lasts, and **even** on purpose: the screen
@@ -2053,7 +2053,7 @@ KEY_VALUE_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
 #     `MemorizeLocation` and `RecallToLocation` are the same opcode because
 #     they are the same location read or written: bit 0 of the mode says
 #     which —`PLACE_JUMP`—, and when recalling bits 7, 6 and 5 are the
-#     VAR_REFRESCO of each of the three writes. **The map in the variable is
+#     VAR_REFRESH of each of the three writes. **The map in the variable is
 #     the RM2k id**, which is what any other page reads and writes; the ROM
 #     translates it with `mapa_rm2k`. They unlock 55 pages of Lashe City's
 #     milestone 3 —the plant's floors, 28 on 60 and 26 on 62, and the droid
@@ -2824,7 +2824,7 @@ def variable_slot(number):
     slot = VARIABLE_SLOT[number]
     if slot > VAR_SLOT_MAX:
         # The slot is a byte, and far RAM has room for 256.
-        raise CannotCompile("slot %d does not fit in a byte: see VAR_RANURA_MAX"
+        raise CannotCompile("slot %d does not fit in a byte: see VAR_SLOT_MAX"
                             % slot)
     return slot
 
@@ -3041,7 +3041,7 @@ class Troops:
         if number not in self.ids:
             self.ids.append(number)
         if backdrop and number not in self.backdrops:
-            self.backdrops[number] = backdrop     # a name, or FONDO_DEL_LUGAR
+            self.backdrops[number] = backdrop     # a name, or PLACE_BACKDROP
         return number
 
 
@@ -3248,7 +3248,7 @@ class TroopPages:
         self.messages = Messages()
         self.bodies = bytearray()
         self.where = {}             # bytecode -> offset in `cuerpos`
-        self.per_troop = {}         # troop -> [(Disparo, ofs)]
+        self.per_troop = {}         # troop -> [(Trigger, ofs)]
         self.pages = 0            # how many were looked at
         self.left_out = 0             # and how many did not get in
 
@@ -3361,7 +3361,7 @@ ENC_TABLE = ((0, -4), (20, -3), (40, -2), (60, -1),
 ENC_RATE = 100
 
 # The seed of the encounters' randomness. It differs from `RANDOM_SEED` and
-# from `BATALLA_SEMILLA` on purpose, and for the same reason as that one:
+# from `BATTLE_SEED` on purpose, and for the same reason as that one:
 # walking does not advance the map's randomness —a random `ControlVars` has
 # to give the same with and without encounters—. All that is asked of it is
 # not to be zero —the xorshift gets stuck— and to be the same in
@@ -4308,7 +4308,7 @@ def _compile_inn(cmd, length, messages):
         raise CannotCompile("an inn with no window to put it in")
     if kind not in INN_TERMS:
         raise CannotCompile("inn of type %d, which is not in the terms: was "
-                            "indexar_terminos called?" % kind)
+                            "index_terms called?" % kind)
     if not price <= 0xFFFF:
         # The cap is the gold branch's operand, which goes in a word; the
         # game's most expensive is 100.
@@ -5075,7 +5075,7 @@ def _compile(cmd, map_index, messages=None, extra=(),
         pairs = map_events.substitutions.pairs(bool(p[0]), p[1], p[2])
         if pairs is None:
             raise CannotCompile("TileSubstitution that cannot be translated to "
-                                "blocks: see `Sustituciones`")
+                                "blocks: see `Substitutions`")
         if not pairs:
             # No cell of the map draws the old tile, so there is nothing to
             # change. In RM2k the substitution is still recorded, but nobody

@@ -27,8 +27,8 @@ All little-endian:
     $0E     2  how many entries there are, N
     $10     8N per entry: where it starts in the file and how long it is,
                4 and 4
-    ...        zeros, up to FONDOS_DESDE
-    $10000     the backdrops, one every FONDO_LUGAR bytes and in order of
+    ...        zeros, up to BACKDROPS_START
+    $10000     the backdrops, one every BACKDROP_SPAN bytes and in order of
                number: backdrop k at `backdrop_offset(k)`
     ...        after the last one, the other entries, one after the other
                and in the order of the index
@@ -39,7 +39,7 @@ many entries there were —and the sound effects belong to each cartridge— and
 on which backdrops the cartridge carried. Since 2026-09-27 the `.msu`
 carries all of the game's backdrops, each one with its number, and backdrop
 k is at the same byte in the `.msu` of any cartridge:
-`FONDOS_DESDE + k * FONDO_LUGAR` its tiles, and `COLORS_AT` further on its
+`BACKDROPS_START + k * BACKDROP_SPAN` its tiles, and `COLORS_AT` further on its
 colors. The index is still there, and says the same thing, for the tools. If
 the index were ever to go past `BACKDROPS_START` —more than eight thousand
 entries— `build` refuses.

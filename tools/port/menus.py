@@ -267,8 +267,8 @@ def _face_palette(face):
     screen's black background it makes no difference and does not spend an
     entry.
 
-    The reduction is `allocator.merge_least_visible` and **not** `reducir`,
-    which is what the title image uses. `reducir` keeps the fifteen most
+    The reduction is `allocator.merge_least_visible` and **not** `palette.reduce`,
+    which is what the title image uses. `palette.reduce` keeps the fifteen most
     used colors and sends the rest to the nearest, and at 48x48 pixels that
     flattens everything: a face has a handful of skin tones covering almost
     all of it and a dozen details of two or three pixels each —the glint of
@@ -278,7 +278,7 @@ def _face_palette(face):
 
     On the title the difference does not exist —it is 240 colors out of
     369, and the ones merged barely appear— and it costs the quadratic, so
-    `reducir` stays there.
+    `palette.reduce` stays there.
     """
     face_pixels = [(r >> 3, g >> 3, b >> 3) if a else BLACK
                    for r, g, b, a in face.get_flattened_data()]
@@ -305,7 +305,7 @@ def _lent_face(colors, face_index, palettes):
     The palette missing the fewest colors is chosen —counting distinct
     colors and not pixels, which is what can be known here without walking
     the image again— and each color goes to the nearest by luma, which is
-    exactly what `cabe` does in the converter with the sprites.
+    exactly what `picture.fits` does in the converter with the sprites.
 
     The first two palettes are the text's and are not touched: painting the
     face over the text would make it illegible, which is worse than a face
@@ -349,7 +349,7 @@ MENU_CURSOR_COL = 1             # the ">", x = 8
 # which is system color 3, the way RM2k draws "Save" when it is forbidden:
 # today that is only techniques. Using items opens the item screen since
 # 2026-09-11. Number 3, saving, depends on `ChangeSaveAccess`. Number 4, End
-# Game, opens the fin_del_juego.py screen since 2026-09-28: until then it was
+# Game, opens the end_game.py screen since 2026-09-28: until then it was
 # gray because "ending the game requires going back to the title without
 # resetting the SPC700", and that stopped being needed when Game Over started
 # going back to the title with a reset.
@@ -949,7 +949,7 @@ def slots_screen(sys_img, db, slots, font_id=None, actors=(),
         colors, face_index = _face_palette(face)
         if len(palettes) > FACE_PALETTES_MAX:
             # No BG2 palette left: **one is lent to it**, which is the same
-            # rule `cabe` runs with the sprites and the same reason of taro's
+            # rule `picture.fits` runs with the sprites and the same reason of taro's
             # —if we cannot include everyone, the whole project falls apart—.
             # Each color of the face goes to the nearest by luma in the
             # palette it is missing the fewest from, and the face shows with

@@ -319,7 +319,7 @@ def test_escena_una_pelea_cuyo_fondo_no_esta_usa_el_reemplazo(partida):
     un mapa sin encuentros, donde el fondo sale del terreno bajo el héroe y
     el conversor no puede saber cuál será. `ESC_FONDO` es el del terreno —el
     que se leería del `.msu`— y sin MSU-1 se dibuja el de
-    `scene.replacement()`, no negro. Ver "Qué fondos hay" en escena.py."""
+    `scene.replacement()`, no negro. Ver "Qué fondos hay" en scene.py."""
     from port import events
     from rpgmaker import lcf, rm2k
     _tree, juego = _fondos_del_juego()

@@ -52,7 +52,7 @@ BATALLAS = (
      None),
     # La tropa del droide del mapa 2 sobre su fondo: un enemigo y otro fondo,
     # o sea el otro camino de
-    # `escena.py`. Sin esto, el único fondo que la tanda miraría sería el de
+    # `scene.py`. Sin esto, el único fondo que la tanda miraría sería el de
     # los Lazer Teeth.
     ("batalla-droide", "batalla-droide", 268, (), None),
     # Los dos modos de `Use Item`: la lista de ítems donde iban los enemigos, y

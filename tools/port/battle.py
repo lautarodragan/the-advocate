@@ -59,7 +59,7 @@ from port import events
 from port import rules
 from port.constants import ENEMIES_MAX
 
-# The seed of the battle's randomness. It differs from `AZAR_SEMILLA` on
+# The seed of the battle's randomness. It differs from `RANDOM_SEED` on
 # purpose: see above. The value means nothing, it only has to be nonzero —the
 # xorshift gets stuck at zero— and be the same on both sides.
 BATTLE_SEED = 0x2B1D

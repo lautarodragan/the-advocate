@@ -304,7 +304,7 @@ def se_paid_by_music():
 
 def se_per_map():
     """{(name in RM2k, map id): the sample that plays there}. They are put in
-    by `_compilar`, in tools/port/events.py. Each one is one more sound
+    by `_compile`, in tools/port/events.py. Each one is one more sound
     effect, but not one more directory entry: it shares a place with those
     of the other packages —see `effect_places`—. From
     `[sound_effects] per_map`."""

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The battle scene: the backdrop and the monsters, **composited on the console**.
 
-It lives apart from `snes_convert.py` for the same reason as `imagen.py` and
+It lives apart from `snes_convert.py` for the same reason as `picture.py` and
 `animation.py`: it is not a map, it is a loose drawing. What the converter
 and the ROM have to share is exactly where each pixel lands and what color
 it is.
