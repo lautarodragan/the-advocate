@@ -2562,15 +2562,18 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
             "; Y el de la pantalla de título, que sale de `title_music` del\n"
             "; LDB. $FF quiere decir que esta ROM no lleva pantalla de título.\n"
             "TEMA_TITULO      = $%02X\n"
+            # `rom/src/` y no `tools/runtime/`, acá y seis líneas más abajo, a
+            # propósito: es texto que va al `.inc`, y lo que se emite no se
+            # toca todavía (workflow/decisiones/las-herramientas-se-separan-de-abl.md).
             "; Y el de la pantalla de Game Over —`gameover_music`— con su\n"
             "; paquete, que va detrás de todos: el tema solo. $FF y $FFFF si\n"
-            "; esta ROM no lleva la pantalla. Ver tools/runtime/game_over.s.\n"
+            "; esta ROM no lleva la pantalla. Ver rom/src/game_over.s.\n"
             "TEMA_GAME_OVER   = $%02X\n"
             "PAQUETE_GAME_OVER = $%04X\n"
             "; El volumen general con que suena el tema y los dos registros\n"
             "; del DSP donde va. Los emite `sdsp.py`, que es de donde salen:\n"
             "; el stream ya los escribe al arrancar, y un `FadeOutBGM` los\n"
-            "; vuelve a escribir bajándolos. Escribirlos también en tools/runtime/\n"
+            "; vuelve a escribir bajándolos. Escribirlos también en rom/src/\n"
             "; serían dos lados que se pueden equivocar igual.\n"
             "TEMA_VOLUMEN     = $%02X\n"
             "DSP_MVOL_L       = $%02X\n"

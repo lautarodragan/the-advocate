@@ -3351,7 +3351,9 @@ def anim_tabla(mapas):
     out = ['.segment "RODATA"',
            "; La animación del ChipSet, una entrada de %d bytes por mapa."
            % ANIM_STRIDE,
-           "; Ver `anim_tabla` en tools/port/snes_convert.py y `anim_flush` en tools/runtime/animacion_del_chipset.s.",
+           # `rom/src/` y no `tools/runtime/`, a propósito: va al `.inc`, y lo
+           # que se emite no se toca todavía. Ver las-herramientas-se-separan-de-abl.md.
+           "; Ver `anim_tabla` en tools/port/snes_convert.py y `anim_flush` en rom/src/animacion_del_chipset.s.",
            ";",
            "; **Vive en RODATA y se lee con `lda f:anim_tabla + campo, x`**, por",
            "; lo mismo que `mapa_tabla`: son 16 bytes por mapa, y con los mapas",
@@ -4649,7 +4651,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; puede ser negativa: el cartel del \"1 year earlier\" se sale por la\n"
         "; izquierda, que es lo que RM2k muestra. Ver tools/port/imagen.py.\n"
         "; Las banderas de `KeyInputProc`, que van en el segundo byte de\n"
-        "; OP_KEY. Ver `op_key` en tools/runtime/interprete_teclas_y_esperas.s.\n"
+        # `rom/src/` a propósito: va al `.inc`, que no se toca todavía.
+        "; OP_KEY. Ver `op_key` en rom/src/interprete_teclas_y_esperas.s.\n"
         "TECLA_ESPERA   = $%02X\n"
         "TECLA_DIRS     = $%02X\n"
         "TECLA_DECISION = $%02X\n"
@@ -4855,7 +4858,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "BYTES_POR_TILE = %d\n"
         "; La pantalla de título. TITULO_TILES en 0 quiere decir que esta ROM\n"
         "; no la lleva y que los bloques de abajo son un byte de relleno; el\n"
-        "; código de tools/runtime/ se apaga solo con eso. Vive sola en la VRAM —no\n"
+        # `rom/src/` a propósito: va al `.inc`, que no se toca todavía.
+        "; código de rom/src/ se apaga solo con eso. Vive sola en la VRAM —no\n"
         "; comparte con ningún mapa, porque mientras se ve no hay mapa\n"
         "; cargado— así que sus direcciones son fijas y no salen del reparto\n"
         "; de `vram_layout`. La imagen la sube `pantalla_subir`, desde su fila\n"
