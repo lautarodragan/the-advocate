@@ -2,7 +2,7 @@
 name: "Traducir las herramientas, fase 2: el runtime y lo que cruza"
 description: "Los símbolos, etiquetas y archivos del runtime al inglés, junto con lo que el conversor escribe en los .inc, las pruebas que leen símbolos por nombre, y los datos que quedaron en castellano"
 type: refactor
-assignee: Yacaré
+assignee: taro
 ---
 
 Última área de la fase 2 de la traducción de `tools/` al inglés. Es la más
@@ -71,8 +71,45 @@ Cada commit se verificó igual:
 8. Los símbolos que citan AGENTS.md, README.md, tools/README.md, docs/ y
    las decisiones y divergencias de workflow/.
 
+9. Los datos que eran interfaz: la línea `; Temas:` de musicdata.inc
+   (`; Songs:`, con `no music` y `none`) y quien la lee; la línea `; --- N:
+   mapa M` de mapdata.inc (`map`) y la regex de `consola.mapas_de`; las
+   claves del NPC de `rm2k.collect_npcs` (`event`, `speed`, `animates`,
+   `changes`, `graphics`, `layers`, `tile_pass`), que las páginas de
+   events.py comparten en tres de ellas.
+10. Los comentarios que `patches.py` escribe en `rom/parches/auto/`,
+    regenerados con `just parches`: los 137 TOML leídos con `tomllib` dan lo
+    mismo antes y después, y `just parches-check` pasa. `aire_de_medida` →
+    `measuring_headroom` a mano en `techos.toml`.
+11. `SIN_CACHE`, `TRAMA_PATRON`, `MODO_TRANSLUCIDO` → `NO_CACHE`,
+    `DITHER_PATTERN`, `TRANSLUCENT_MODE`, con sus valores (`baked`/`dither`;
+    `checkerboard`, `columns`, `rows`, `five_of_eight`, `three_of_four`).
+12. Las columnas que corrieron los renombres (sólo espacios; `git diff -w`
+    vacío), y las citas del runtime que apuntaban a nombres de Python de
+    antes de la fase 2 o a alias castellanos.
+
 Los protocolos (`events.toml`, `music.toml`) ya estaban en inglés: no hubo
-nada que regenerar.
+nada que regenerar. Ningún script cambió de nombre: no hace falta
+`install-scripts`.
+
+## Lo que queda en castellano, a propósito o para después
+
+* Las otras claves de las páginas de events.py y de `map_info` en el
+  conversor (`pagina`, `codigo`, `ruta_propia`, `grafico`, `gira`,
+  `frecuencia`, `ordenes`, `cambian`, `aparecen`, `afuera`, `celdas`…),
+  y las de los diccionarios de la música (`nombre`, `temas`, `escrituras`,
+  `largo`): son internas del Python, de las áreas anteriores.
+* Las claves de los TOML de `rom/parches/auto/` y de `techos.toml` (salvo
+  `measuring_headroom`), y el encabezado castellano de `techos.toml`, que
+  sale en inglés la próxima vez que corra `just techos`.
+* Los sufijos de los CharSet (`~trama`, `~horneado`, `~aparte`) y el nombre
+  `capas` del caché en disco.
+* Las tareas que dicen `SIN_CACHE=1` o nombran rutinas viejas: cuentan lo
+  que se corrió ese día.
+* Algunas etiquetas locales salieron palabra por palabra y se leen raro
+  (`a_faces_a`, `sia_yes`); son locales y no las ve nadie de afuera.
+* Los volcados `rom/build/*/crudos/N.map_celdas.bin` ahora se llaman
+  `N.map_cells.bin`: el nombre sale del mismo string que la etiqueta.
 
 ## `git blame`
 
