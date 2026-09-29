@@ -523,7 +523,7 @@ IGNORABLE = {
 #
 # PlayBGM changes the song that plays, and it is no longer one of these: it is
 # done, see OP_BGM. Each map uploads its audio package to ARAM, with the songs
-# its pages can turn on —`paquete_cargar`, in tools/runtime/paquete_de_audio.s—,
+# its pages can turn on —`package_load`, in tools/runtime/paquete_de_audio.s—,
 # and each sample's budget is that of its worst pack: see
 # `workflow/decisiones/un-solo-banco-de-muestras.md`. It is accepted without
 # being done only when compiling without a song registry.
@@ -561,7 +561,7 @@ WEATHER_EFFECTS = 11070
 # sound.
 #
 # What made it costly was ARAM. The effects go in each map's audio package,
-# together with its songs —`paquete_cargar`, in
+# together with its songs —`package_load`, in
 # tools/runtime/paquete_de_audio.s—, with the same per-pack budget as the
 # music's samples: `workflow/decisiones/un-solo-banco-de-muestras.md`. One
 # that does not fit in its pack does not sound.
@@ -733,7 +733,7 @@ class Songs:
         # And who asks for what: the converter puts in `game_map` the index of the
         # map it is compiling, and each song and each effect is noted in its
         # own, in the order they appear. It is what builds each map's audio
-        # package: see `paquete_cargar` in tools/runtime/paquete_de_audio.s.
+        # package: see `package_load` in tools/runtime/paquete_de_audio.s.
         # And which ROM maps each one jumps to —`destinos`, indices into the
         # map table—, which is where it comes from which song may be playing
         # when a package is loaded: see `inherited_songs` in snes_convert.py.
@@ -793,7 +793,7 @@ class Songs:
         sequence of effects, when none is left to play, and the map is left
         right away. So it has no reason to fit in ARAM with those effects: it
         goes in the **separate** package, it is uploaded if there is room,
-        and if not its `PlayBGM` uploads it —see `extra_de_salida` in
+        and if not its `PlayBGM` uploads it —see `exit_extra` in
         tools/runtime/paquete_de_audio.s—. It is from 2026-09-26."""
         return [t for t, is_exit in self.exits.get(game_map, {}).items() if is_exit]
 

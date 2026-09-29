@@ -4,7 +4,7 @@ En RM2k suena cuando la ruta llega a ese paso (`Game_Character::
 UpdateMoveRoute`, `play_sound_effect`), sin costar un cuadro: la orden que
 sigue corre en el mismo. Hasta el 2026-09-27 el conversor lo tiraba. Ahora va
 con el índice del efecto detrás —el mismo de `OP_SOUND`— y la ROM lo toca con
-`sonido_tocar`, sobre el héroe (`sonido_heroe`) y sobre un evento
+`sound_play`, sobre el héroe (`sonido_heroe`) y sobre un evento
 (`sonido_ev`): son dos caminos y cada uno tiene su caso.
 
 Los casos son del mapa 10 con `Close1`, que ya está en su paquete de audio
@@ -18,7 +18,7 @@ mueve el reparto de la música a nadie.
   suma los pasos hasta el `end_jump`— y el conversor lo tira.
 
 Lo que se mira es el estado de las dos voces de efectos en la RAM lejana
-(`SE_CUADROS` y `SE_NUEVO`, ver runtime/efectos_de_sonido.s): un efecto
+(`SE_FRAMES` y `SE_NEW`, ver runtime/efectos_de_sonido.s): un efecto
 arranca cuando los cuadros que le quedan a una voz suben.
 """
 
@@ -46,8 +46,8 @@ def fila(una, sonido=EFECTO):
 def _voces(una):
     """(cuadros que le quedan, muestra) de cada una de las dos voces."""
     voces = []
-    for cuadros, nuevo in (("SE_CUADROS", "SE_NUEVO"),
-                           ("SE2_CUADROS", "SE2_NUEVO")):
+    for cuadros, nuevo in (("SE_FRAMES", "SE_NEW"),
+                           ("SE2_FRAMES", "SE2_NEW")):
         c = una.consola.ram(en_la_wram(una.simbolos[cuadros]), 2)
         n = una.consola.ram(en_la_wram(una.simbolos[nuevo]), 1)
         voces.append((c[0] | (c[1] << 8), n[0]))

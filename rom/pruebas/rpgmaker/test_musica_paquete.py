@@ -9,16 +9,16 @@ eso, y encima tapado: con archivos de MSU-1 al lado de la ROM la pista suena y
 el SPC700 no toca nada, así que el único camino roto era justamente el que
 siempre tiene que andar.
 
-Lo que se pregunta es lo mismo que mira `tema_asegurar` en runtime/paquete_de_audio.s: para cada
+Lo que se pregunta es lo mismo que mira `song_ensure` en runtime/paquete_de_audio.s: para cada
 muestra que el stream del tema escribe en SRCN —`tema_muestras`, leída del
-cartucho—, que `FAR_ARAM_DE` diga dónde está. Una muestra que no está apunta al
+cartucho—, que `FAR_ARAM_OF` diga dónde está. Una muestra que no está apunta al
 bloque de silencio, o sea una nota que no se oye.
 
 La pantalla de título es el caso interesante y no un caso cualquiera: su tema
 sale de `title_music` del LDB y **no entra en el paquete de audio de ningún
 mapa**, porque los paquetes se arman con los temas que las páginas de cada mapa
 pueden prender. O sea que es el único tema de la ROM que depende de que
-`tema_asegurar` lo cargue en caliente, y por eso es el que delata el camino.
+`song_ensure` lo cargue en caliente, y por eso es el que delata el camino.
 """
 
 from consola import EMPEZAR, SEGUIR, en_la_rom, en_la_wram
@@ -34,7 +34,7 @@ def test_el_tema_del_titulo_tiene_sus_muestras_en_la_aram(partida):
 
     No hace falta apagar el MSU-1 para probar esto, aunque `release` lleve sus
     pistas: la consola de las pruebas no se las deja ver al core —ver
-    `retro.Console` y `test_msu.py`—, así que `msu_detectar` no encuentra la
+    `retro.Console` y `test_msu.py`—, así que `msu_detect` no encuentra la
     firma y `music_start` cae siempre por `sin_pista`, que es el camino que se
     quiere medir.
     """
@@ -55,7 +55,7 @@ def test_el_tema_del_titulo_tiene_sus_muestras_en_la_aram(partida):
     assert not faltan, (
         "el tema del título dice estar sonando y le faltan en la ARAM las "
         "muestras %s de las %s que usa: son notas contra el bloque de "
-        "silencio. Lo tenía que subir `tema_asegurar` al ver que el paquete "
+        "silencio. Lo tenía que subir `song_ensure` al ver que el paquete "
         "del mapa no las traía"
         % (faltan, sorted(una.muestras_del_tema(tema))))
 
@@ -64,7 +64,7 @@ def test_entrar_al_juego_devuelve_las_muestras_del_tema_del_mapa(con_musica):
     """Y al salir del título, el tema del mapa recupera las suyas.
 
     Es la otra punta del mismo camino: subir el tema del título **desaloja** lo
-    que había, porque la ARAM no alcanza para todo y `paquete_cargar` acomoda
+    que había, porque la ARAM no alcanza para todo y `package_load` acomoda
     desde cero lo que el paquete nuevo quiere. Si volver al juego no rehiciera
     el paquete del mapa, el jugador entraría a la partida con el tema del mapa
     sonando mudo, que es el mismo defecto una pantalla más tarde.
@@ -250,7 +250,7 @@ def test_cada_paquete_entra_entero_aunque_la_aram_quede_partida(partida):
     es que las muestras que el paquete nuevo comparte con el anterior se
     quedan donde estaban, y con el presupuesto por paquete cada uno llena la
     ARAM casi entera: los huecos que dejaban alcanzaban para que no entrara
-    una muestra, y pasaba en cinco de estos trece saltos. `paquete_cargar_ya`
+    una muestra, y pasaba en cinco de estos trece saltos. `package_load_done`
     decide primero dónde va cada una y, si algo no entra, vuelve a acomodar
     todo desde cero antes de subir nada. Es también lo que pasa al volver de
     una pelea, que calla la música antes de cargar el paquete del mapa.
@@ -305,7 +305,7 @@ def test_el_paquete_que_no_entro_con_otro_tema_sonando_se_completa(partida):
             # El primero que suena en el 3 es el que venía del 2.
             tema_del_3 = sonando
         if sonando == tema_del_3 and una.consola.ram(
-                en_la_wram(s["PAQ_INCOMPLETO"]), 1)[0]:
+                en_la_wram(s["PKG_PARTIAL"]), 1)[0]:
             incompleto_al_llegar = True
         if sonando is not None and sonando != tema_del_3:
             break
@@ -378,7 +378,7 @@ def test_el_tema_de_salida_sube_solo(partida):
     El caso es el final del mapa 3: el tema del mapa, con sus efectos, y
     después `lufsorr`, que es de salida ahí y no entra al lado —si entrara,
     el caso no ejercitaría nada, y se pide antes—. Rearmar el paquete con él
-    adelante, que es lo que hace `tema_asegurar` con un tema que falta, no
+    adelante, que es lo que hace `song_ensure` con un tema que falta, no
     entraría: se acomodaría todo desde cero y se subiría la ARAM entera.
     Así se sube lo suyo. El paquete queda incompleto para que, si la página
     no se fuera del mapa, el próximo `PlayBGM` lo complete.
@@ -417,7 +417,7 @@ def test_el_tema_de_salida_sube_solo(partida):
     ahora = una.muestras_en_la_aram()
     assert not suyas - ahora, (
         "el tema de salida suena sin las muestras %s" % sorted(suyas - ahora))
-    assert una.consola.ram(en_la_wram(s["PAQ_INCOMPLETO"]), 1)[0], (
+    assert una.consola.ram(en_la_wram(s["PKG_PARTIAL"]), 1)[0], (
         "el tema de salida se subió solo y el paquete no quedó anotado como "
         "incompleto")
 
@@ -470,7 +470,7 @@ def test_el_tema_aparte_sube_con_los_efectos_del_paquete(partida):
     assert del_paquete - suyas - ahora, (
         "los otros temas del paquete siguen enteros al lado del aparte: no "
         "se subió solo")
-    assert una.consola.ram(en_la_wram(una.simbolos["PAQ_INCOMPLETO"]), 1)[0], (
+    assert una.consola.ram(en_la_wram(una.simbolos["PKG_PARTIAL"]), 1)[0], (
         "el tema aparte se subió sin los otros temas y el paquete no quedó "
         "anotado como incompleto")
 
@@ -543,7 +543,7 @@ def test_los_efectos_comparten_lugares_del_directorio():
 
 def test_un_efecto_no_suena_con_la_muestra_de_otro(partida):
     """Un lugar del directorio lo comparten efectos de paquetes distintos, y
-    `sonido_tocar` no toca un efecto si el anotado en su lugar es otro.
+    `sound_play` no toca un efecto si el anotado en su lugar es otro.
 
     Es el caso de un efecto que se pide en un mapa cuyo paquete no lo trae
     —el de un evento común, que no es de ningún mapa—: su lugar tiene la
@@ -569,7 +569,7 @@ def test_un_efecto_no_suena_con_la_muestra_de_otro(partida):
                     [(e + 1) % s["EFECTOS_N"] if e != 0xFF else e
                      for e in anotados])
                 cambiado = True
-            for voz in ("SE_CUADROS", "SE2_CUADROS"):
+            for voz in ("SE_FRAMES", "SE2_FRAMES"):
                 if any(una.consola.ram(en_la_wram(s[voz]), 2)):
                     return True
         return False
@@ -578,5 +578,5 @@ def test_un_efecto_no_suena_con_la_muestra_de_otro(partida):
         "Success2 no sonó en el mapa 10 sin tocar nada: el caso no mira nada")
     assert not suena(True), (
         "con otro efecto anotado en su lugar, Success2 sonó igual: "
-        "`sonido_tocar` no mira `FAR_EFECTO_EN` y tocaría la muestra del "
+        "`sound_play` no mira `FAR_EFECTO_EN` y tocaría la muestra del "
         "vecino")

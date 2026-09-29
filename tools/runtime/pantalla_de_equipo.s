@@ -471,7 +471,7 @@ empty:
 .i16
     sta comp_dup + 3
     jsr eq_k
-    beq nada
+    beq nothing
     rep #$20
 .a16
     txa
@@ -485,7 +485,7 @@ empty:
     stz temp + 1
     jsl f:bt_t_text
     rts
-nada:
+nothing:
     lda #255
     sta comp_dup + 3
     rts
@@ -496,7 +496,7 @@ nada:
 .a8
 .i16
     jsr eq_k
-    beq nada
+    beq nothing
     rep #$20
 .a16
     txa
@@ -525,7 +525,7 @@ nada:
     stz temp + 1
     jsl f:bt_t_text
     rts
-nada:
+nothing:
     rts
 .endproc
 

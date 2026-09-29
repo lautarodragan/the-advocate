@@ -110,7 +110,7 @@ destello:
     ; same vblank; the ramp starts one step below full so as not to spend a
     ; frame on the brightness that was already there.
     ldx #(FUNDIDO_RAMPA - 2)
-bajar:
+lower:
     jsl f:bt_t_vblank
     lda #$30
     sta f:CGWSEL                ; color math off, as `ppu_reset` leaves it
@@ -121,7 +121,7 @@ bajar:
     lda f:fundido_rampa, x
     sta f:INIDISP
     dex
-    bpl bajar
+    bpl lower
     rtl
 .endproc
 
@@ -146,7 +146,7 @@ battle_flash:
     lda #0
     sta f:PELEA_PRENDIDA
     ldx #(FUNDIDO_RAMPA - 2)
-bajar:
+lower:
     jsl f:bt_t_vblank
     lda f:fundido_rampa, x
     sta f:INIDISP
@@ -158,7 +158,7 @@ bajar:
     ora #$03                    ; BG1 and BG2
     sta f:MOSAIC
     dex
-    bpl bajar
+    bpl lower
     lda #0
     sta f:MOSAIC                ; already black: nobody else turns it off
 listo:

@@ -882,9 +882,9 @@ class Partida:
     def muestras_en_la_aram(self):
         """Qué muestras dice la ROM tener subidas al SPC700.
 
-        Es `FAR_ARAM_DE`, una palabra por muestra con dónde quedó cada una en
-        la ARAM, o cero si no está: la lee `paquete_cargar` y la escribe
-        `colocar_muestra`. Un número que **no** está acá es una muestra cuya
+        Es `FAR_ARAM_OF`, una palabra por muestra con dónde quedó cada una en
+        la ARAM, o cero si no está: la lee `package_load` y la escribe
+        `place_sample`. Un número que **no** está acá es una muestra cuya
         entrada del directorio del SPC700 apunta al silencio, o sea una nota
         que no suena.
 
@@ -895,7 +895,7 @@ class Partida:
         """
         s = self.simbolos
         n = s["MUESTRAS_N"]
-        crudo = self.consola.ram(en_la_wram(s["FAR_ARAM_DE"]), 2 * n)
+        crudo = self.consola.ram(en_la_wram(s["FAR_ARAM_OF"]), 2 * n)
         anotados = self.consola.ram(en_la_wram(s["FAR_EFECTO_EN"]),
                                     max(1, s["SE_LUGARES"]))
         return {i if i < s["SE_PRIMERA"]
@@ -906,7 +906,7 @@ class Partida:
         """Qué muestras necesita el tema, leídas de `tema_muestras` **en el
         cartucho**.
 
-        Es la misma tabla que mira `tema_asegurar`, y se lee de la ROM en vez
+        Es la misma tabla que mira `song_ensure`, y se lee de la ROM en vez
         de recalcularla con `snes_music.song_samples`: recalcularla
         sería una segunda manera de contestar la pregunta, y las dos se pueden
         equivocar igual. Un índice de desplazamientos de dos bytes por tema
@@ -933,7 +933,7 @@ class Partida:
     def muestras_del_paquete(self, indice):
         """(los temas, las muestras de sus efectos) del paquete de audio
         `indice` —el de un mapa, en el orden de la tabla de mapas—, leídos de
-        `paquetes` en el cartucho, que es lo que recorre `paquete_cargar_ya`:
+        `paquetes` en el cartucho, que es lo que recorre `package_load_done`:
         un índice de desplazamientos de dos bytes y detrás, por paquete,
         cuatro listas cerradas con $FF. La tercera, los temas de salida, la
         da `temas_de_salida`, y la cuarta `temas_aparte`: ésos no tienen por
@@ -944,13 +944,13 @@ class Partida:
 
     def temas_de_salida(self, indice):
         """Los temas de salida del paquete `indice`: los que el mapa prende
-        sólo para irse, que se suben si hay lugar. Ver `extra_de_salida` en
+        sólo para irse, que se suben si hay lugar. Ver `exit_extra` en
         runtime/paquete_de_audio.s."""
         return self._listas_del_paquete(indice)[2]
 
     def temas_aparte(self, indice):
         """Los temas aparte del paquete `indice`: los que su `PlayBGM` sube
-        solos con los efectos del paquete. Ver `extra_aparte` en
+        solos con los efectos del paquete. Ver `extra_separate` en
         runtime/paquete_de_audio.s."""
         return self._listas_del_paquete(indice)[3]
 
@@ -972,7 +972,7 @@ class Partida:
 
     def stream_del_tema(self, indice):
         """(dirección del stream, sus sonidos) del tema, leídos **del
-        cartucho** con las mismas tablas que usa `music_start_ya`: `tema_lo`,
+        cartucho** con las mismas tablas que usa `music_start_done`: `tema_lo`,
         `tema_hi` y `tema_bk`, y `tema_sonidos` dentro de `musica_sonidos`."""
         s = self.simbolos
         with open(self.sfc, "rb") as archivo:

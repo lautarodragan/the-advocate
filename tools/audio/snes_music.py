@@ -185,7 +185,7 @@ def msu_track(name, game_dir=None):
 #
 # The three ARAM ones exist because of each map's audio package: the samples
 # are uploaded while the music plays, so the driver has to be able to receive
-# them without stopping serving the DSP. See `paquete_cargar` in
+# them without stopping serving the DSP. See `package_load` in
 # tools/runtime/paquete_de_audio.s. The pointer and the count live at $00-$03
 # of the zero page, which the boot ROM uses and leaves free.
 #
@@ -273,7 +273,7 @@ terna:
 # The ones that do not fit do not play, and the converter says so.
 SE_ARAM = 16 * 1024
 SE_RATE = 6000
-SE_MAX_SECONDS = 0.75           # since the per-map package: see `paquete_cargar`
+SE_MAX_SECONDS = 0.75           # since the per-map package: see `package_load`
 SE_LOOP_SECONDS = 0.4
 SE_VOICE = 7                      # the one stolen from the music
 # And the second, so two sound effects can play at once —the opening's rain
@@ -332,7 +332,7 @@ def se_troop_in_package():
 def separate_songs():
     """{map id: names} of the separate songs: they do not go with the other
     songs of their map's package, their `PlayBGM` uploads them alone with the
-    package's sound effects —see `extra_aparte` in
+    package's sound effects —see `extra_separate` in
     tools/runtime/paquete_de_audio.s—, and they are not inherited by the maps
     you exit to —see `inherited_songs` in snes_convert.py—. From
     `[music] apart_themes`."""
@@ -485,7 +485,7 @@ def assign(notes):
 
 # The voices that sound effects take from the music: `SE_VOICE` and
 # `SE_VOICE2`. While a sound effect plays, what the music writes to its voice
-# goes to the shadow and not to the DSP —see `dsp_musica`—, so whatever note
+# goes to the shadow and not to the DSP —see `dsp_music`—, so whatever note
 # was there goes silent. That is why percussion hits, which last half a
 # second, go there first, and melodic notes only if no other voice is free:
 # that is what happened when the drums had those two voices fixed.
@@ -1066,7 +1066,7 @@ class Bank:
     the SRCN the stream writes is the sample's index in the cartridge, so
     two songs that play piano point to the same one. But **it is not
     uploaded whole**: the ARAM gets packages, one per map —see
-    `paquete_cargar` in tools/runtime/paquete_de_audio.s—, so what has to
+    `package_load` in tools/runtime/paquete_de_audio.s—, so what has to
     fit in the 64 KB is not the bank but each package, with its sound
     effects.
 
@@ -2068,10 +2068,10 @@ def build_all(names, game_dir=None, effects=(), packages=None,
     sound effects.
 
     `inheritance` are pairs (name of a package, index of a song that may be
-    playing when it loads). `paquete_cargar_ya` does not move the samples of
+    playing when it loads). `package_load_done` does not move the samples of
     the song that is playing, so the package's have to fit alongside; **the
     sound effects do not**: if they do not fit, they wait for the next
-    `PlayBGM`, which completes the package —see `tema_asegurar`—. It is the
+    `PlayBGM`, which completes the package —see `song_ensure`—. It is the
     decision `workflow/decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`.
 
     `ceilings` is each song's headroom, by name —if not given, the versioned
@@ -2110,7 +2110,7 @@ def build_all(names, game_dir=None, effects=(), packages=None,
         packages = [(name, [i], []) for i, name in enumerate(names)]
     # What has to fit together: each package with its sound effects; each
     # exit song alone —its `PlayBGM` uploads it, silencing the rest: see
-    # `extra_de_salida` in tools/runtime/paquete_de_audio.s—; and each
+    # `exit_extra` in tools/runtime/paquete_de_audio.s—; and each
     # package with the song that may be playing when it loads, without its
     # sound effects.
     # And the same ones with what the sound effects really take, which is
@@ -2307,7 +2307,7 @@ def song_samples(song):
 
 # What uploading to the SPC700 costs, in frames, for the boot count. A
 # package's samples go in triplets through the driver's command 3 —see
-# `subir_muestra` in tools/runtime/paquete_de_audio.s—: measured in the ROM
+# `upload_sample` in tools/runtime/paquete_de_audio.s—: measured in the ROM
 # on 2026-09-26, from 1.33 to 1.42 frames per KB across eighteen packages,
 # and a bit more goes here. The driver and the directory go byte by byte
 # through the IPL, which measured 1.4. And loading the map, without audio
@@ -2368,7 +2368,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     by the sound effects. None is uploaded at boot: they go to the SPC700 in
     **packages**, one per map —`packages`, in map table order, each with its
     songs, its sound effects' samples and its exit songs—, and the directory
-    starts with all of them pointing to the silence. See `paquete_cargar` in
+    starts with all of them pointing to the silence. See `package_load` in
     tools/runtime/paquete_de_audio.s.
 
     `map_song` is the song each map turns on when entered, in the same
@@ -2410,7 +2410,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     # mute DSP and are not heard.
     #
     # KON and KOF are left out on purpose: with a track, the ROM leaves KOF
-    # at $FF so the music's voices do not play, and `se_despues` clears it
+    # at $FF so the music's voices do not play, and `se_after` clears it
     # only when a sound effect starts. Writing KOF as zero here would turn
     # back on the voices of a song that is not playing.
     #
@@ -2457,8 +2457,8 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
             srcn, pitch, pitch, left, right, n_frames, n_frames)
         for srcn, pitch, left, right, n_frames, _e in rows)
     # And which sound effect each row is, separately so as not to touch the
-    # seven columns `sonido_tocar` and efectos_con_msu.s walk: the row's
-    # sample is a place several sound effects share, and `sonido_tocar` asks
+    # seven columns `sound_play` and efectos_con_msu.s walk: the row's
+    # sample is a place several sound effects share, and `sound_play` asks
     # with this whether the one in the ARAM is its own. And each sound
     # effect's place, which is what the package uses to upload it.
     se_table += "\n.bloque %d\nsonido_efecto:\n    .byte " % len(rows) \
@@ -2509,8 +2509,8 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
         [m] for m in in_parallel(lambda i: song_samples(songs[i]),
                                  range(len(songs)))] or [[[]]])
     # Each package, four lists: its songs, its sound effects' samples, its
-    # exit songs and its separate songs —see `extra_de_salida` and
-    # `extra_aparte` in tools/runtime/paquete_de_audio.s—.
+    # exit songs and its separate songs —see `exit_extra` and
+    # `extra_separate` in tools/runtime/paquete_de_audio.s—.
     packages = [tuple(p) + ((),) * (4 - len(p)) for p in packages] or \
         [([], [], [], [])]
     packages_block = lists("paquetes", [[list(t), list(m), list(s),
@@ -2556,7 +2556,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
             "SPC_DRIVER_SIZE  = %d\n"
             "SPC_SAMPLES_ADDR = $%04X\n"
             "SPC_SAMPLES_SIZE = %d\n"
-            "; Samples go to the SPC700 in packages: see `paquete_cargar`.\n"
+            "; Samples go to the SPC700 in packages: see `package_load`.\n"
             "; The directory is at SPC_SAMPLES_ADDR, the silence after it, and\n"
             "; the samples are placed between ARAM_DATOS and ARAM_FIN.\n"
             "; MUESTRAS_N is the directory's entries: the music's, and from\n"

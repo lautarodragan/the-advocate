@@ -569,7 +569,7 @@ positivo:
 ; every row down, which is what it did until 2026-09-27: on row 26 that was
 ; four lines per step of every walking event, and in the race five steps
 ; start in the same frame. No interrupt uses the multiplier: see the fade in
-; `irq_musica`.
+; `irq_music`.
 ;
 ; The grid fits in 64 KB and lives in the upper half of the two banks —see
 ; `ptr_mas`—, so the offset fits in sixteen bits and its bit 15 tells the

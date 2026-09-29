@@ -42,7 +42,7 @@ brillo:      .res 1
 bgm_fundido: .res 1
 bgm_nivel:   .res 2
 bgm_paso:    .res 2
-dsp_valor:   .res 1     ; scratch for the track's fade: see `bgm_fundido_tick`
+dsp_valor:   .res 1     ; scratch for the track's fade: see `bgm_fade_tick`
 
 ; The camera moved without the hero: `PanScreen`. Where it is and where it is
 ; going, both in 1/16 pixel and signed, and how far it moves per frame.
@@ -382,9 +382,9 @@ diag_y: .res 2
 ; avoids dividing by 60 every frame. Counting one down is `sub - 1`, and when
 ; `sub` wraps around a second goes down; the timer being at zero is
 ; `timer_seg = 0`, which is the same as `Game_Party::UpdateTimers`'
-; `cuadros / 60 == 0`.
+; `frames / 60 == 0`.
 ;
-; The colon blinks with `sub`, which is `cuadros % 60`.
+; The colon blinks with `sub`, which is `frames % 60`.
 timer_seg:  .res 2
 timer_sub:  .res 1
 timer_activo:  .res 1

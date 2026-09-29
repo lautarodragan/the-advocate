@@ -39,7 +39,7 @@ tocar:
 .endproc
 
 ; `FadeOutBGM`. The operand is how much the volume drops per frame; it is
-; lowered by `bgm_fundido_tick`, not here, and the page carries on in this same
+; lowered by `bgm_fade_tick`, not here, and the page carries on in this same
 ; frame, which is what `CommandFadeOutBGM` does by returning true.
 ;
 ; With the song off nothing is started: the fade would write the volume of a
@@ -51,13 +51,13 @@ tocar:
 ; MSU-1 volume. Without this exit, a `FadeOutBGM` did nothing and the track
 ; kept playing forever.
 .proc op_fade_bgm
-    lda f:MSU_SUENA
+    lda f:MSU_PLAYING
     bne fundir
     lda music_apagada
     bne fundir_nada
 fundir:
     php
-    sei                         ; `irq_musica` reads it: all at once or nothing
+    sei                         ; `irq_music` reads it: all at once or nothing
     lda [cod_ptr], y
     sta bgm_paso
     iny
@@ -81,7 +81,7 @@ fundir_nada:
 ; `OP_SOUND`: the index into `sonido_tabla`. It stays pending and starts at the
 ; end of `music_tick`, after whatever the music writes in the frame.
 .proc op_sound
-    jsr sonido_de_codigo
+    jsr sound_from_code
     jmp run_code::otro
 
 .endproc

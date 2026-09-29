@@ -28,7 +28,7 @@
     lda #0                      ; and the picture is erased: it is the
     sta f:PICTURE_ACTIVE         ; `erase_on_map_change` of Game_Pictures, and
     sta f:PICTURE_READY          ; besides, its tiles belong to a single map
-    jsr paquete_cargar          ; the map's audio, during the fade
+    jsr package_load          ; the map's audio, during the fade
     rep #$20
 .a16
     lda mapa_actual
@@ -455,7 +455,7 @@ TEMA_DEL_MAPA = $7E6100
 ;
 ; "Is playing" is not only `music_apagada` at zero: with an MSU-1 track the
 ; SPC700 is silent on purpose and `music_apagada` is 1. That is why
-; `MSU_SUENA` is checked first, which is the same thing `op_fade_bgm` does.
+; `MSU_PLAYING` is checked first, which is the same thing `op_fade_bgm` does.
 ;
 ; If it has to change, it is silenced here, with the screen already black: the
 ; MSU-1 stops and the SPC700 releases the voices, as in `battle_bgm`.
@@ -465,11 +465,11 @@ TEMA_DEL_MAPA = $7E6100
     ldx fundido_mapa
     lda f:mapa_tema, x
     cmp #TEMA_TOTAL
-    bcs nada                    ; $FF, or one the cartridge does not carry
+    bcs nothing                    ; $FF, or one the cartridge does not carry
     pha
     lda bgm_fundido
     bne cambia                  ; it was fading out: it starts over
-    lda f:MSU_SUENA
+    lda f:MSU_PLAYING
     bne suena
     lda music_apagada
     bne cambia
@@ -479,14 +479,14 @@ suena:
     pla
     cmp tema_actual
     bne cambia_ya
-nada:
+nothing:
     lda #$FF
     rts
 cambia:
     pla
 cambia_ya:
     pha
-    jsr msu_parar
+    jsr msu_stop
     lda #$FF
     jsr battle_bgm             ; silence: the voices release
     pla
@@ -515,7 +515,7 @@ cambia_ya:
     bra hecho
 carga:
     ; The new map's song is decided **before** loading it, because if it
-    ; changes the playing one has to be silenced before `paquete_cargar`
+    ; changes the playing one has to be silenced before `package_load`
     ; builds the package: that one leaves in place the samples of the song it
     ; says is playing, and the one about to be turned on needs them in their
     ; place. See `mapa_tema_callar`.

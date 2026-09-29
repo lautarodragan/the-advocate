@@ -31,7 +31,7 @@
     .word $0000     ; $FFE8  native ABORT
     .word nmi_boot  ; $FFEA  native NMI: counts the frames during boot
     .word $0000     ; $FFEC  unused
-    .word irq_musica ; $FFEE  native IRQ: the music, see `irq_musica`
+    .word irq_music ; $FFEE  native IRQ: the music, see `irq_music`
     .word $0000     ; $FFF0  unused
     .word $0000     ; $FFF2  unused
     .word $0000     ; $FFF4  emulation COP

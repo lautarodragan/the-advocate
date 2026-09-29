@@ -141,13 +141,13 @@ salir:
     ; "Yes": the song fades like a 400 ms `FadeOutBGM` —`Scene_End`'s
     ; `BgmFade`—, with the same guard as `op_fade_bgm`: with the song off
     ; there is nothing to fade, and with an MSU-1 track there is.
-    lda f:MSU_SUENA
+    lda f:MSU_PLAYING
     bne fundir
     lda music_apagada
     bne pantalla
 fundir:
     php
-    sei                         ; `irq_musica` reads it: all at once or nothing
+    sei                         ; `irq_music` reads it: all at once or nothing
     rep #$20
 .a16
     lda #FIN_PASO_TEMA
@@ -174,7 +174,7 @@ baja:
     lda #$80
     sta INIDISP
     ; The song finishes fading with the screen black: the screen fade is
-    ; shorter. `bgm_fundido` goes back to zero on its own, in `irq_musica`; if
+    ; shorter. `bgm_fundido` goes back to zero on its own, in `irq_music`; if
     ; there was no song, it already is. The cap is just in case: the song only
     ; has a few frames left, and FIN_CUADROS is more than enough.
     ldx #FIN_CUADROS
@@ -191,7 +191,7 @@ callado:
     ; reset uploads the driver to the SPC700 again, but an MSU-1 track would
     ; keep playing through the whole boot.
     lda #0
-    sta f:MSU_SUENA
+    sta f:MSU_PLAYING
     sta MSU_CONTROL
     lda #$FF
     jsl f:bt_t_bgm

@@ -220,7 +220,7 @@ negro:
     ; SPC700 again, but an MSU-1 track would keep playing during the whole
     ; boot, until the title asks for its own.
     lda #0
-    sta f:MSU_SUENA
+    sta f:MSU_PLAYING
     sta MSU_CONTROL
     lda #$FF
     jsl f:bt_t_bgm

@@ -163,12 +163,12 @@ anotar:
 put:
     lda f:TEMA_RECORDADO
     cmp #TEMA_TOTAL
-    bcs nada                    ; none, or one the cartridge does not carry
+    bcs nothing                    ; none, or one the cartridge does not carry
     ; Is it the one playing? The same question as `mapa_tema_callar`.
     pha
     lda bgm_fundido
     bne distinto                ; it was fading out: start over
-    lda f:MSU_SUENA
+    lda f:MSU_PLAYING
     bne suena
     lda music_apagada
     bne distinto
@@ -178,7 +178,7 @@ suena:
     pla
     cmp tema_actual
     bne tocar
-nada:
+nothing:
     clc
     rtl
 distinto:

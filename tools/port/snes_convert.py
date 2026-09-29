@@ -8198,7 +8198,7 @@ def main():
     # pages can start —plus, in the boot one, the one that plays from the
     # start, and in all the map's own— and its sound effects, in the order
     # they appear, which is the priority the ROM uploads them with if they
-    # don't all fit. See `paquete_cargar` in tools/runtime/paquete_de_audio.s.
+    # don't all fit. See `package_load` in tools/runtime/paquete_de_audio.s.
     # They are built **before** the bank, by name, because each sample's
     # budget comes from them: see `snes_music.Bank`.
     packages, separate_ones = [], []
@@ -8210,7 +8210,7 @@ def main():
         # And the map's own song, **in front**: it is the only one on the list
         # that surely plays on entering, so if the ARAM isn't enough for
         # everything it is the last one that has to fall. Without it in the
-        # package, its samples would have to be uploaded by `tema_asegurar`
+        # package, its samples would have to be uploaded by `song_ensure`
         # when starting it, rebuilding the whole package a second time.
         if map_song[i] != 0xFF:
             if map_song[i] in owned:
@@ -8246,7 +8246,7 @@ def main():
     # And the Game Over screen's, last: its song alone and no sound effects.
     # The ROM uploads it with the screen black, before the fade in —see
     # `game_over_black` in tools/runtime/game_over.s—, and with a package of
-    # its own it uploads only that: arriving with `tema_asegurar` would
+    # its own it uploads only that: arriving with `song_ensure` would
     # rebuild the whole map package behind it, which is one more second of
     # black. For the allocation it is a one-song package, which doesn't lower
     # anyone's rate: its samples fit alone in the ARAM.
@@ -8259,7 +8259,7 @@ def main():
     per_name = [(name, owned, theirs, out, separate)
                 for name, (owned, theirs, out), separate
                 in zip(package_names, packages, separate_ones)]
-    # And the title screen's, which isn't in the table: `tema_asegurar`
+    # And the title screen's, which isn't in the table: `song_ensure`
     # uploads its song with the boot map's package behind.
     if title_song != 0xFF:
         owned, theirs, _out = packages[args.start_index]
@@ -8425,7 +8425,7 @@ def write_msu(path, music, backdrops, per_name, packages, done_ones, samples,
     game's**, by number, each in its fixed place: see `msu_data.backdrop_offset`—
     and behind them the quality sound effects of each package, in the order
     of the package table and each package with its own in order of place in
-    the directory —their SRCN—: it is the order `subir_colocadas` uploads them
+    the directory —their SRCN—: it is the order `upload_placed` uploads them
     in, so the ROM reads them in one go, with a single seek per package. A
     sound effect that is in two packages goes twice even if at the same rate:
     a seek costs Mednafen one or two frames, and the file has no cap.
@@ -8438,7 +8438,7 @@ def write_msu(path, music, backdrops, per_name, packages, done_ones, samples,
     effects = getattr(bank, "effects", {})
     by_number = {i: n for n, i in getattr(bank, "effect_id", {}).items()}
     # What the music takes with MSU-1 in each package: only the songs without
-    # a track, which `tema_por_msu` doesn't skip.
+    # a track, which `song_per_msu` doesn't skip.
     weighs = {}
 
     def music_of(songs):
@@ -8498,7 +8498,7 @@ def write_msu(path, music, backdrops, per_name, packages, done_ones, samples,
         # version: with that the ROM does no arithmetic, not even in the
         # interrupt. **Only the sounds whose sound effect is from here**, as
         # (index, pitch) pairs sorted by index and closed with $FFFF, which
-        # `altura_msu` walks: until 2026-09-27 it was one row per package with
+        # `msu_pitch` walks: until 2026-09-27 it was one row per package with
         # all the sounds, almost all zeros, and with the whole world chapter
         # it went over a bank. Two packages with the same list share it.
         theirs = rates.get(str(name), {})
@@ -8568,7 +8568,7 @@ def inherited_songs(songs, map_song, initial, title, package_names,
     loads)], for `snes_music.build_all`.
 
     Almost no map of the game brings its own song: a page starts it, and
-    until then the previous map's keeps going, and `paquete_cargar_ya`
+    until then the previous map's keeps going, and `package_load_done`
     doesn't move its samples. So the package of a map without its own song
     has to fit next to whatever can be already playing.
 

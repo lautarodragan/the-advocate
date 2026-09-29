@@ -139,8 +139,8 @@ class Oido:
 
     def _voces(self):
         voces = []
-        for cuadros, nuevo in (("SE_CUADROS", "SE_NUEVO"),
-                               ("SE2_CUADROS", "SE2_NUEVO")):
+        for cuadros, nuevo in (("SE_FRAMES", "SE_NEW"),
+                               ("SE2_FRAMES", "SE2_NEW")):
             c = self.p.consola.ram(en_la_wram(self.p.simbolos[cuadros]), 2)
             n = self.p.consola.ram(en_la_wram(self.p.simbolos[nuevo]), 1)
             voces.append((c[0] | (c[1] << 8), n[0]))

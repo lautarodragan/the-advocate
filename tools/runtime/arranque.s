@@ -35,7 +35,7 @@ rapido:
     jsr ppu_reset               ; the console does not boot clean; the emulator does
     lda #$01
     sta MEMSEL                  ; the mirror's ROM, fast
-    jsr msu_detectar            ; does the music come from a track?
+    jsr msu_detect            ; does the music come from a track?
 
     ; After the reset, not before: ppu_reset turns NMITIMEN off along with
     ; everything else, so enabling it first would be no use.
@@ -245,10 +245,10 @@ grupo_listo:
     jsl f:initial_skills_set
     jsr actor_graf_limpiar
     jsr clima_limpiar
-    jsr se_limpiar
-    jsr musica_limpiar
+    jsr se_clear
+    jsr music_clear
     jsr turn_clear
-    jsr aram_limpiar
+    jsr aram_clear
     jsr battle_anim_clear
     lda #0                      ; RAM starts with garbage
     sta f:PICTURE_ACTIVE
@@ -326,10 +326,10 @@ cargar:
     ; it sent last: at zero, the driver reads DSP pairs.
     stz APUIO2
     ; And the boot map's audio package: `cargar_mapa` could not upload it
-    ; because the driver was not running yet. See `paquete_cargar`.
+    ; because the driver was not running yet. See `package_load`.
     lda #1
-    sta f:APU_LISTO
-    jsr paquete_cargar
+    sta f:APU_READY
+    jsr package_load
     jsr music_boot
 
     ; The title image, decompressed to WRAM **before** the wait, which is
@@ -354,7 +354,7 @@ espera_boot:
     sta nmi_visto
     stz cuadros_perdidos
 
-    ; And from here the music runs by itself, in `irq_musica`: once per frame
+    ; And from here the music runs by itself, in `irq_music`: once per frame
     ; on line IRQ_LINEA, however long the loop takes. It goes after the wait
     ; and not before so that the song starts on the same frame as when the
     ; loop played it.

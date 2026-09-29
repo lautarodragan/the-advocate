@@ -535,22 +535,22 @@ def sonido_muestra(una, indice):
 def se_disparado(una):
     """La muestra del efecto que la ROM acaba de dejar pendiente.
 
-    `op_sound` y `sonido_tocar` copian los siete bytes de la fila a `SE_NUEVO`
-    y prenden `SE_PENDIENTE`; `irq_musica` lo levanta en el cuadro siguiente y
-    a partir de ahí lo que queda es `SE_CUADROS`. Acá se mira `SE_NUEVO`, que
+    `op_sound` y `sound_play` copian los siete bytes de la fila a `SE_NEW`
+    y prenden `SE_PENDING`; `irq_music` lo levanta en el cuadro siguiente y
+    a partir de ahí lo que queda es `SE_FRAMES`. Acá se mira `SE_NEW`, que
     es lo que sobrevive a leer la RAM entre cuadro y cuadro.
 
-    Hay dos voces de efectos, y el nuevo cae en la que `sonido_tocar` elija,
+    Hay dos voces de efectos, y el nuevo cae en la que `sound_play` elija,
     así que se mira el más reciente de las dos: el pendiente, o si no el que
-    lleva menos cuadros sonando —los que pide la fila, en `SE_NUEVO + 5`,
+    lleva menos cuadros sonando —los que pide la fila, en `SE_NEW + 5`,
     menos los que le quedan—. Mirar sólo la primera voz daba rojo cuando la
     tenía ocupada un efecto anterior.
     """
     def estado(prefijo):
         ram = una.consola.ram
-        nuevo = ram(en_la_wram(una.simbolos[prefijo + "NUEVO"]), 7)
-        quedan = ram(en_la_wram(una.simbolos[prefijo + "CUADROS"]), 2)
-        pendiente = ram(en_la_wram(una.simbolos[prefijo + "PENDIENTE"]), 1)[0]
+        nuevo = ram(en_la_wram(una.simbolos[prefijo + "NEW"]), 7)
+        quedan = ram(en_la_wram(una.simbolos[prefijo + "FRAMES"]), 2)
+        pendiente = ram(en_la_wram(una.simbolos[prefijo + "PENDING"]), 1)[0]
         quedan = quedan[0] | quedan[1] << 8
         sonando = (nuevo[5] | nuevo[6] << 8) - quedan
         # Una voz callada va última, sonara o no alguna vez; si las dos lo
@@ -1085,9 +1085,9 @@ def test_con_una_pista_de_msu_la_pelea_anota_el_tema_del_mapa(partida,
     una = en_el_droide(partida, con_musica)
     tema = una.palabra("tema_actual")
     assert tema < 0xFF, "el mapa tenía que arrancar con su tema: no mide nada"
-    # `MSU_SUENA` se declara con el banco adelante, y la RAM del core se
+    # `MSU_PLAYING` se declara con el banco adelante, y la RAM del core se
     # direcciona desde $7E:0000.
-    una.consola.write_ram(una.simbolos["MSU_SUENA"] & 0xFFFF, [1])
+    una.consola.write_ram(una.simbolos["MSU_PLAYING"] & 0xFFFF, [1])
     una.poner_byte("music_apagada", 1)
     pelea = Pelea(una).abrir()
     assert pelea.byte("BA_TEMA_ANT") == tema, (

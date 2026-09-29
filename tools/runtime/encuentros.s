@@ -308,9 +308,9 @@ fin:
     pha
     plb
     lda ENC_PIDE
-    bne pendiente
+    bne pending
     jmp no_hay
-pendiente:
+pending:
 .a8
     stz ENC_PIDE
     lda ENC_REG
@@ -326,7 +326,7 @@ con_registro:
 .a16
     lda #0
     sta comp_and
-contar:
+count_up:
 .a16
     lda temp
     cmp temp + 2
@@ -345,7 +345,7 @@ contar:
 sin_tapar:
 .a16
     inc temp
-    bra contar
+    bra count_up
 contadas:
 .a16
     lda comp_and

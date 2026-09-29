@@ -220,16 +220,16 @@ siguiente:
 .a8
 .i16
     cmp BA_NACT
-    bcs nada
+    bcs nothing
     jsr bt_x
     lda BA_UNO + BA_FLAGS, x
     and #BAF_HAY
-    beq nada
+    beq nothing
     lda BA_UNO + BA_NUMERO, x
     jsr bt_ax
     lda f:actor_exp_k, x
     cmp #$FF
-    beq nada
+    beq nothing
     rep #$20
 .a16
     and #$00FF
@@ -240,7 +240,7 @@ siguiente:
 .a8
     lda FAR_EXP + EXP_NIVEL, x
     rts
-nada:
+nothing:
     lda #0
     rts
 .endproc

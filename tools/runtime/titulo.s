@@ -237,7 +237,7 @@ cargar_el_mapa:
     stz TM                      ; and without the menu on top while everything is rebuilt
     jsr ppu_init                ; the PPU registers, as the reset left them
     ; **The title song is silenced before loading the map**, and not after
-    ; with `music_boot`: `paquete_cargar` leaves in place the samples of the
+    ; with `music_boot`: `package_load` leaves in place the samples of the
     ; song it says is playing, and here that one is not playing. With a save
     ; loaded, `tema_actual` is already the save's, and its samples that the
     ; title's package had uploaded stayed fixed where they were, splitting the
@@ -248,12 +248,12 @@ cargar_el_mapa:
     lda music_apagada
     pha
     php
-    sei                         ; the SPC700 serves one at a time: see `irq_musica`
+    sei                         ; the SPC700 serves one at a time: see `irq_music`
     lda #1
     sta music_apagada
     lda #$FF
     ldx #SE_KOF
-    jsr dsp_musica              ; as below: without touching the sound effect voices
+    jsr dsp_music              ; as below: without touching the sound effect voices
     plp
     rep #$20
 .a16
@@ -282,15 +282,15 @@ cargar_el_mapa:
     ; the music on, which is the usual case in this game. `music_boot` writes
     ; nothing to the DSP because at boot nothing is playing; **here something
     ; is**, so the title's voices are released by hand. With KOF and through
-    ; `dsp_musica`, which leaves out the ones that have a sound effect, and
+    ; `dsp_music`, which leaves out the ones that have a sound effect, and
     ; **not** with the master volume, which is also the sound effects': until
     ; 2026-09-26 that one was lowered, and the sound effects stayed mute until
     ; the first `PlayBGM`.
     php
-    sei                         ; the SPC700 serves one at a time: see `irq_musica`
+    sei                         ; the SPC700 serves one at a time: see `irq_music`
     lda #$FF
     ldx #SE_KOF
-    jsr dsp_musica
+    jsr dsp_music
     plp
 listo_musica:
     lda #$0F

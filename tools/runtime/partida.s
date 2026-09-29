@@ -235,18 +235,18 @@ suma:
     ; **The `music_apagada` that gets saved is "is it playing?", and not the
     ; one in RAM.** With an MSU-1 track playing the SPC700 is silent on
     ; purpose and `music_apagada` is 1, so saved as is the game loaded mute:
-    ; `music_boot_ya` reads it as "saved without music". It is set to zero
+    ; `music_boot_done` reads it as "saved without music". It is set to zero
     ; while the copy lasts —the same question as `mapa_tema_callar`— and so
     ; the saved game does not say where it was playing from: on loading it,
     ; `music_start` picks the track or the SPC700 depending on whether there
-    ; is an MSU-1. With interrupts disabled, because `irq_musica` would run the
+    ; is an MSU-1. With interrupts disabled, because `irq_music` would run the
     ; SPC700 stream on seeing it at zero. It is caught by
     ; `test_la_partida_guardada_vuelve_con_su_tema`.
     php
     sei
     lda music_apagada
     pha
-    lda f:MSU_SUENA
+    lda f:MSU_PLAYING
     beq copiar
     stz music_apagada
 copiar:

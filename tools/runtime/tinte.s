@@ -42,13 +42,13 @@
     stx temp + 2                ; where the table goes
     stz tinte_espejo
     cmp #(TINTE_NEUTRO + 1)
-    bcc arrancar
+    bcc start
     lda #(2 * TINTE_NEUTRO)
     sec
     sbc temp
     sta temp                    ; 200 - value
     inc tinte_espejo
-arrancar:
+start:
     ldy #$0000
 cada:
     tya
@@ -693,10 +693,10 @@ sin_lider_pal:
 .a8
 .i16
     lda tinte_pendiente
-    beq nada
+    beq nothing
     stz tinte_pendiente
     jsr aplicar_tinte           ; to the shadow; CGRAM is written in the vblank
-nada:
+nothing:
     rts
 .endproc
 
@@ -778,7 +778,7 @@ nada:
     sta A1T0L
     lda tin_count
     asl a                       ; two bytes per color
-    beq nada                    ; zero bytes would be 64 KB
+    beq nothing                    ; zero bytes would be 64 KB
     sta DAS0L
     sep #$20
 .a8
@@ -791,7 +791,7 @@ nada:
     sta MDMAEN
     rts
 .a16
-nada:
+nothing:
     sep #$20
 .a8
     rts

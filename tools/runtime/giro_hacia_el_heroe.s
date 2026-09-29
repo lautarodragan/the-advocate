@@ -291,12 +291,12 @@ si:
 .i16
     lda f:TURN_EV
     cmp #$FF
-    beq nada
+    beq nothing
     jsr event_npc
     lda #$FF
     sta f:TURN_EV
     cpy #$FFFF
-    beq nada
+    beq nothing
     lda npc_buf + 9, y
     cmp #NPC_QUIETO
     bne propia
@@ -309,11 +309,11 @@ si:
     rts
 propia:
     lda npc_buf + 13, y
-    bmi nada                    ; animates in place: goes back by itself, next frame
+    bmi nothing                    ; animates in place: goes back by itself, next frame
     sty npc_fila
     lda f:TURN_POSE_PREV
     jmp subir_pose_npc
-nada:
+nothing:
     rts
 .endproc
 
@@ -323,9 +323,9 @@ nada:
 .a8
 .i16
     cmp f:TURN_EV
-    bne nada
+    bne nothing
     jmp turn_undo
-nada:
+nothing:
     rts
 .endproc
 
@@ -338,7 +338,7 @@ nada:
 .i16
     lda f:TURN_EV
     cmp #$FF
-    beq nada
+    beq nothing
     rep #$20
 .a16
     and #$00FF
@@ -356,7 +356,7 @@ nada:
     lda f:PICK_POSE
     cmp f:TURN_PPOSE
     bne deshacer
-nada:
+nothing:
     rts
 deshacer:
     jmp turn_undo
@@ -369,9 +369,9 @@ deshacer:
 .i16
     lda f:TURN_EV
     cmp #$FF
-    beq nada
+    beq nothing
     cmp npc_buf + 8, y
-    bne nada
+    bne nothing
     lda npc_buf + 12, y
     sta f:TURN_POSE_PREV
     lda npc_buf + 6, y
@@ -379,7 +379,7 @@ deshacer:
     lda npc_buf + 7, y
     sta f:TURN_ATTR_PREV
     jmp turn_apply
-nada:
+nothing:
     rts
 .endproc
 

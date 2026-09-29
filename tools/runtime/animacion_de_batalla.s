@@ -21,9 +21,9 @@ ANIM_T     = $7E30E6
 ; The tone is **three** bytes and not four: a picture's saturation is always
 ; the neutral one —`imagen_aceptable` accepts no other— so there is nothing to
 ; interpolate there and `imagen_paleta` sets `tinte_s` to `TINTE_NEUTRO`.
-; **$30E8 to $30EB belong to the MSU-1** —`MSU_HAY`, `MSU_SUENA` and
+; **$30E8 to $30EB belong to the MSU-1** —`MSU_HAS`, `MSU_PLAYING` and
 ; `MSU_FACTOR`—, so this starts at $30EC and goes up to $30FA; the next block
-; is `FAR_ARAM_DE`, at $3100. It started at $30E8 and overwrote them: the ROM
+; is `FAR_ARAM_OF`, at $3100. It started at $30E8 and overwrote them: the ROM
 ; stopped detecting the MSU-1 and the title music went silent. No test saw it
 ; —the suite compares pixels— and taro found it by listening.
 FAR_PICTURE    = $7E30EC
@@ -45,7 +45,7 @@ PICTURE_CHANGE = FAR_PICTURE + 14
 ; **They go in far RAM for the same reason as the picture**: bank 0 has no
 ; room. The 7680 bytes of BSS were at 7679 when this was written, that is, one
 ; byte fit and three are needed. Here there are five spare, left between the
-; picture —which ends at $30FA— and `FAR_ARAM_DE`, at $3100. They are read
+; picture —which ends at $30FA— and `FAR_ARAM_OF`, at $3100. They are read
 ; once per frame and never indexed, so the long addressing does not show.
 FAR_MSG_PAUSE = $7E30FB         ; word: up to PAUSAS_MAX times CUADROS_DE_PAUSA
 FAR_MSG_AUTO  = $7E30FD
@@ -93,7 +93,7 @@ otra:
     iny                         ; and the data, from the third byte
     cmp #ANIM_SONIDO
     bne no_sonido
-    jsr sonido_de_codigo
+    jsr sound_from_code
     bra hecha
 no_sonido:
     cmp #ANIM_DESTELLO
@@ -477,10 +477,10 @@ evento:
     dec a                       ; the target is the event index plus one
     jsr event_npc
     cpy #$FFFF
-    beq nada                    ; without a row there is nowhere to draw it
+    beq nothing                    ; without a row there is nowhere to draw it
     lda npc_buf + 14, y
     bne con_fila
-nada:
+nothing:
     rts                         ; no row, or hidden: not drawn
 con_fila:
     rep #$20

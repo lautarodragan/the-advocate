@@ -17,13 +17,13 @@
 ;   $2004  write: which track, two bytes
 ;   $2006  the volume, 0 to 255
 ;   $2007  bit 0 play, bit 1 repeat
-MSU_ESTADO  = $2000
-MSU_FIRMA   = $2002
-MSU_PISTA   = $2004
-MSU_VOLUMEN = $2006
+MSU_STATE  = $2000
+MSU_SIGNATURE   = $2002
+MSU_TRACK   = $2004
+MSU_VOLUME = $2006
 MSU_CONTROL = $2007
-MSU_HAY     = $7E30E8           ; whether the signature is there
-MSU_SUENA   = $7E30E9           ; whether the track is playing right now
+MSU_HAS     = $7E30E8           ; whether the signature is there
+MSU_PLAYING   = $7E30E9           ; whether the track is playing right now
 
 ; The volume the track plays at, 0 to 255, and **it is not 255**: the MSU-1 is
 ; added to the SPC700's output instead of being mixed with it, so music at full
@@ -37,19 +37,19 @@ MSU_SUENA   = $7E30E9           ; whether the track is playing right now
 ; the headroom, without touching the tracks: normalizing them lower would mean
 ; 195 MB to redo per ROM, and on top of that it would lose the level reference
 ; between one song and another.
-MSU_VOLUMEN_MAX = $D8
+MSU_VOLUME_MAX = $D8
 
 ; And two bytes for the fade factor, in far RAM because bank 0's is full. The
 ; high byte always stays at zero: the loop adds it as sixteen bits. It lives
-; here and not in `temp` because the fade runs inside `irq_musica`.
+; here and not in `temp` because the fade runs inside `irq_music`.
 MSU_FACTOR  = $7E30EA
 
 ; The signature, once, at reset.
-.proc msu_detectar
+.proc msu_detect
 .a8
 .i16
     lda #0
-    sta f:MSU_SUENA
+    sta f:MSU_PLAYING
     ldx #$0000
 limpiar:
     sta f:MSU_FALTA, x          ; no track has been missing yet
@@ -58,32 +58,32 @@ limpiar:
     bcc limpiar
     ldx #$0000
 mirar:
-    lda MSU_FIRMA, x
-    cmp msu_firma, x
+    lda MSU_SIGNATURE, x
+    cmp msu_signature, x
     bne no_hay
     inx
     cpx #6
     bcc mirar
     lda #1
-    sta f:MSU_HAY
+    sta f:MSU_HAS
     rts
 no_hay:
     lda #0
-    sta f:MSU_HAY
+    sta f:MSU_HAS
     rts
 .endproc
 
-msu_firma:
+msu_signature:
     .byte "S-MSU1"
 
 ; Silences the track, if there was one.
-.proc msu_parar
+.proc msu_stop
 .a8
 .i16
-    lda f:MSU_SUENA
+    lda f:MSU_PLAYING
     beq listo
     lda #0
-    sta f:MSU_SUENA
+    sta f:MSU_PLAYING
     sta MSU_CONTROL
 listo:
     rts
@@ -107,18 +107,18 @@ listo:
 ; cycles —from the fast mirror—, about seventeen frames. It used to be $4000
 ; —seventy milliseconds— and the price of falling short is not a lost frame
 ; but the whole song playing through the SPC700.
-MSU_ESPERA = $FFFF
+MSU_WAIT = $FFFF
 
-.proc msu_esperar
+.proc msu_wait
 .a8
 .i16
     ldx #$0000
 otra:
-    lda MSU_ESTADO
+    lda MSU_STATE
     and #$40                    ; it is loading it
     beq listo
     inx
-    cpx #MSU_ESPERA
+    cpx #MSU_WAIT
     bcc otra
     sec
     rts
@@ -130,11 +130,11 @@ listo:
 ; Starts the track for song A, if it has one and if there is an MSU-1. Returns
 ; with A nonzero if the track was left playing, and then the SPC700 music does
 ; not go.
-.proc msu_arrancar
+.proc msu_start
 .a8
 .i16
     pha
-    lda f:MSU_HAY               ; one byte at a time: with `ldx` it read the
+    lda f:MSU_HAS               ; one byte at a time: with `ldx` it read the
                                 ; next byte too
     beq sin_msu1
     pla
@@ -161,28 +161,28 @@ listo:
     ; stack, to record it if the track fails.
     phx
     tay
-    jsr msu_esperar
+    jsr msu_wait
     bcs fails                   ; still busy: let the SPC700 play
     tya
-    sta MSU_PISTA
-    stz MSU_PISTA + 1
-    jsr msu_esperar             ; and now, for it to finish opening it
+    sta MSU_TRACK
+    stz MSU_TRACK + 1
+    jsr msu_wait             ; and now, for it to finish opening it
     bcs fails
-    lda MSU_ESTADO
+    lda MSU_STATE
     and #$08                    ; the track is not on the card
     bne fails
     plx
-    lda #MSU_VOLUMEN_MAX
-    sta MSU_VOLUMEN
+    lda #MSU_VOLUME_MAX
+    sta MSU_VOLUME
     lda #$03                    ; play and repeat
     sta MSU_CONTROL
     lda #1
-    sta f:MSU_SUENA
+    sta f:MSU_PLAYING
     rts
 fails:
     ; The song plays through the SPC700 and needs its samples, which the
     ; package did not upload because it counted on the track —see
-    ; `tema_por_msu`—: they are uploaded by `tema_asegurar`, which is what
+    ; `song_per_msu`—: they are uploaded by `song_ensure`, which is what
     ; `music_start` calls next, and from now on this song's packages upload
     ; them from the start.
     plx
@@ -236,8 +236,8 @@ no:
 ; It goes in bank 1 because it is called by the battle scene, which runs there
 ; with the data bank at $7E: that is why every register goes through `f:`. A
 ; bare `lda $2000` would read WRAM.
-MSU_BUSCAR  = $2000             ; write: the position, four bytes
-MSU_DATOS   = $2001             ; read: the next byte
+MSU_SEEK  = $2000             ; write: the position, four bytes
+MSU_DATA   = $2001             ; read: the next byte
 .segment "FAR"
 
 ; Seeks in the `.msu` to the 32-bit position given in A —the low sixteen, with
@@ -248,7 +248,7 @@ MSU_DATOS   = $2001             ; read: the next byte
 ; Sixteen-bit writes go to the low byte first, so $2003, the one that seeks,
 ; is the last: that is the order the MSU-1 asks for.
 ;
-; **No core in the test suite exercises the wait**, same as `msu_esperar`:
+; **No core in the test suite exercises the wait**, same as `msu_wait`:
 ; bsnes, snes9x, mesen-s and ares never set `dataBusy` —they seek on the
 ; spot—. **Mednafen does**: `MSU1_WriteDataSeek` sets bit 7 for 400,000 master
 ; cycles, and since `MSU1_ReadStatus` does not catch up, it clears at the end
@@ -263,20 +263,20 @@ MSU_DATOS   = $2001             ; read: the next byte
 ; 114 master cycles —this runs in bank 1, slow—, about twenty-one frames, ten
 ; times what Mednafen takes. Falling short does not cost a frame but makes the
 ; battle use the ROM's background.
-.proc msu_datos_buscar
+.proc msu_data_seek
 .a16
 .i16
-    sta f:MSU_BUSCAR
+    sta f:MSU_SEEK
     tya
-    sta f:MSU_BUSCAR + 2
+    sta f:MSU_SEEK + 2
     sep #$20
 .a8
     ldx #$0000
 otra:
-    lda f:MSU_ESTADO
+    lda f:MSU_STATE
     bpl listo                   ; bit 7: still seeking
     inx
-    cpx #MSU_ESPERA
+    cpx #MSU_WAIT
     bcc otra
     sec
     rts
@@ -292,21 +292,21 @@ listo:
 ; shorter than the signature also gives 0: the three emulators return zero
 ; past the end, and the signature is not eight zeros except by a one in 2^64
 ; chance.
-.proc msu_datos_validos
+.proc msu_data_valid
 .a8
 .i16
-    lda f:MSU_HAY
+    lda f:MSU_HAS
     beq no
     rep #$20
 .a16
     lda #0
     tay
-    jsr msu_datos_buscar
+    jsr msu_data_seek
 .a8
     bcs no
     ldx #0
 compara:
-    lda f:MSU_DATOS
+    lda f:MSU_DATA
     cmp f:msu_datos_firma, x
     bne no
     inx

@@ -432,7 +432,7 @@ BA_MSG_CUADROS = 120
 ; one cut off the previous one's voice, so they had to stay apart by ear;
 ; since 8c9c182 they are two voices —see `efectos_de_sonido.s`— and two
 ; different sound effects no longer cut each other off; the same sound effect
-; twice does, because `sonido_tocar` fires it again on the voice that is
+; twice does, because `sound_play` fires it again on the voice that is
 ; already playing it.
 BA_SE2_CUADROS = BA_MSG_CUADROS - 24
 ; The hit rate of an actor with no weapon that changes it:
@@ -617,7 +617,7 @@ FAR_FLASH_PAL = $7E6900         ; FLASH_MAX * 32
 ;
 ; The state of `music_frame`, which expands the per-note stream into DSP
 ; writes: see "el formato por nota" in tools/audio/snes_music.py. It is read
-; and written by `irq_musica`, which lands at any point in the main code, so
+; and written by `irq_music`, which lands at any point in the main code, so
 ; it is reached with long addressing and never through the WMADD window.
 ;
 ; $6C00 to $6FFF belongs to this, reserved on 2026-09-26. **It does not
@@ -645,9 +645,9 @@ MUS_VISTAS   = FAR_MUSICA + $86
 MUS_GAINS    = FAR_MUSICA + $87
 MUS_BIT      = FAR_MUSICA + $88
 MUS_T        = FAR_MUSICA + $89
-; The bytes from MUS_ESPERA to MUS_T, which `musica_limpiar` zeroes.
+; The bytes from MUS_ESPERA to MUS_T, which `music_clear` zeroes.
 MUS_ESTADO_BYTES = $0B
-; The log of what the stream asks of the DSP: `dsp_musica` records each
+; The log of what the stream asks of the DSP: `dsp_music` records each
 ; (register, value) pair here if MUS_BITACORA_SI is not zero, and
 ; MUS_BITACORA_I is where the next one goes, in bytes. It is the net of
 ; `test_musica_escrituras.py`: the test turns it on and reads it frame by
@@ -665,8 +665,8 @@ MUS_BITACORA_LARGO = $200
 
 ; The `FadeOutBGM` factor on the voices' volume, from 0 to 256 —256 is full
 ; volume—: this frame's and the previous one's, which is the one the DSP has.
-; `bgm_fundido_tick` writes them and the music reads them, both inside
-; `irq_musica`. See `volumen_al_dia`.
+; `bgm_fade_tick` writes them and the music reads them, both inside
+; `irq_music`. See `volume_refresh`.
 ;
 ; $7860 to $7863, out of what was allotted to this on 2026-09-26 —$7860 to
 ; $786F—: other agents were choosing RAM at the same time.
@@ -751,7 +751,7 @@ MENU_EXP_TEXTO_FIN = $7E7A50
 ; $7E7820 to $7E782F, reserved on 2026-09-26: one bit per song, set when the
 ; song had a track and the MSU-1 could not play it —it was not on the card,
 ; or it did not finish opening it in time— and it played through the SPC700.
-; See `tema_por_msu` in paquete_de_audio.s. `msu_detectar` clears it on
+; See `song_per_msu` in paquete_de_audio.s. `msu_detect` clears it on
 ; reset; it does not travel in the save, because what it says is about the
 ; card and not about the game.
 MSU_FALTA      = $7E7820
@@ -764,7 +764,7 @@ ANIM_DIBUJOS_FIN = $7F8000
 ;
 ; $7E78B0 to $7E78CF, reserved on 2026-09-26. See `efectos_con_msu.s`: voices
 ; 0 to 5 when the SPC700 is not playing music, and the `.msu`'s quality sound
-; effects. `se_limpiar` zeroes it, on reset; it does not travel in the save.
+; effects. `se_clear` zeroes it, on reset; it does not travel in the save.
 EX_CUADROS  = $7E78B0           ; six words: how many frames the sound effect
                                 ; on each voice has left, from 0 to 5
 EX_IDX      = $7E78BC           ; six words: its row in `sonido_tabla`
@@ -787,8 +787,8 @@ EX_FIN      = $7E78CF
 ; number of the sound effect recorded there, or $FF. Several sound effects go
 ; to the same place —the ones that are never in the same package: see
 ; `lugares_de_efectos` in tools/audio/snes_music.py— and the directory does
-; not say which one is there. See `anotar_efecto` in paquete_de_audio.s.
-; `aram_limpiar` sets it to $FF; it does not travel in the save.
+; not say which one is there. See `record_effect` in paquete_de_audio.s.
+; `aram_clear` sets it to $FF; it does not travel in the save.
 FAR_EFECTO_EN = $7E78D0
 .assert FAR_EFECTO_EN + SE_LUGARES <= $7E7900, error, "the sound effect places do not fit in FAR_EFECTO_EN: see SE_LUGARES_MAX in snes_music.py"
 

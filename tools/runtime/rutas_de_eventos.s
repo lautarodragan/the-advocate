@@ -605,8 +605,8 @@ listo_graf:
     jmp otra_orden
 
 ; `play_sound_effect`: 35, with the sound effect's index after it, in two bytes.
-; Same as on the hero —see `sonido_heroe`—: `sonido_tocar`, `OP_SOUND`'s path,
-; and without costing a frame. X is the slot, and `sonido_tocar` overwrites it.
+; Same as on the hero —see `sonido_heroe`—: `sound_play`, `OP_SOUND`'s path,
+; and without costing a frame. X is the slot, and `sound_play` overwrites it.
 sonido_ev:
     lda ruta_ev + 5, x          ; the cursor is already on the operand
     inc a
@@ -620,7 +620,7 @@ sonido_ev:
     tay
     lda [ruta_ptr], y
     phx
-    jsr sonido_tocar            ; returns with 8-bit A
+    jsr sound_play            ; returns with 8-bit A
 .a8
     plx
     jmp otra_orden

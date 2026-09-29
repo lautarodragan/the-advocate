@@ -2,9 +2,9 @@
 el 2026-09-26, y desde entonces las que el reparto le da primero— les llegue.
 
 Esas dos voces las comparte la música con los efectos de sonido, así que
-`dsp_musica` (runtime/efectos_de_sonido.s) no manda sus escrituras derecho al
-DSP: las guarda primero en la sombra de la voz —`SE_SOMBRA` para la 7,
-`SE2_SOMBRA` para la 6—, que es lo que se le devuelve cuando el efecto
+`dsp_music` (runtime/efectos_de_sonido.s) no manda sus escrituras derecho al
+DSP: las guarda primero en la sombra de la voz —`SE_SHADOW` para la 7,
+`SE2_SHADOW` para la 6—, que es lo que se le devuelve cuando el efecto
 termina, y recién después las manda si la voz no tiene efecto. El valor que va
 a la sombra y el que va al DSP son **el mismo registro B**, en la misma pasada.
 
@@ -50,7 +50,7 @@ def test_las_voces_de_la_bateria_reciben_lo_que_la_musica_les_manda(partida):
     assert una.palabra("tema_actual") == tema and not una.byte(
         "music_apagada"), "la pantalla de título no está tocando su tema"
 
-    voces = {7: (s["SE_REG"], s["SE_SOMBRA"]), 6: (s["SE2_REG"], s["SE2_SOMBRA"])}
+    voces = {7: (s["SE_REG"], s["SE_SHADOW"]), 6: (s["SE2_REG"], s["SE2_SHADOW"])}
 
     # Qué valores le escribe el stream a cada registro de las dos voces, y
     # para qué cuadro ya les escribió volumen y pitch distintos de cero.
@@ -97,7 +97,7 @@ def test_las_voces_de_la_bateria_reciben_lo_que_la_musica_les_manda(partida):
             assert vistos[voz][registro] - {0}, (
                 "la voz %d de la batería tuvo %s en cero durante %d cuadros "
                 "del título, y el stream le escribe %s desde el cuadro %d: "
-                "`dsp_musica` le está mandando ceros en vez de lo que la "
+                "`dsp_music` le está mandando ceros en vez de lo que la "
                 "música le escribe, o sea que la batería no suena"
                 % (voz, NOMBRE[registro], hasta + MARGEN,
                    sorted(posibles[voz][registro] - {0}), hasta))

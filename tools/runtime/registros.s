@@ -55,8 +55,8 @@ RDDIVL   = $4214        ; the 16-bit quotient
 ; to M7B —eight signed— and leaves the 24-bit product in $2134-$2136
 ; **instantly**. It works outside mode 7, and this port is fixed in mode 3.
 ;
-; **It belongs to `irq_musica` and nobody else**: the song fade scales each
-; voice's volume with it —see `volumen_al_dia`—. The one above cannot be used
+; **It belongs to `irq_music` and nobody else**: the song fade scales each
+; voice's volume with it —see `volume_refresh`—. The one above cannot be used
 ; there, because the main code uses it in thirty places and an interrupt
 ; between its write and its read would change its result. With this one the
 ; same happens the other way round: if the main code ever uses it, it has to

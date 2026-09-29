@@ -8,7 +8,7 @@
 ; and the sound effects they ask for, in the order they appear. It is the
 ; `paquetes` table the converter builds. The ones that do not fit do not
 ; play. With MSU-1, the songs that have a track are not uploaded: see
-; `tema_por_msu`.
+; `song_per_msu`.
 ;
 ; The music samples have a fixed number across the whole cartridge —the SRCN
 ; the stream already writes— and the SPC700's directory has one entry for
@@ -17,7 +17,7 @@
 ; package can go in the same place —see `lugares_de_efectos` in
 ; snes_music.py—. The package lists carry them by number, `efecto_lugar` says
 ; each one's place and `FAR_EFECTO_EN` which one was noted down in each place.
-; An entry that is not in ARAM points to silence. `FAR_ARAM_DE` says where
+; An entry that is not in ARAM points to silence. `FAR_ARAM_OF` says where
 ; each one is, or 0, and is indexed by directory entry.
 ;
 ; **The samples of the song that is playing do not move**: the music goes on
@@ -25,39 +25,39 @@
 ; be noise. Everything else is rearranged again from the start of ARAM,
 ; skipping those. See "El paquete de audio de cada mapa" in
 ; workflow/tasks/done/audio-bgm.md.
-FAR_ARAM_DE = $7E3100           ; one word per sample
-FAR_QUIERE  = $7E3300           ; one byte per sample: 2 for the ones that do not move
-APU_LISTO   = $7E30D0           ; whether the driver is already running
-PAQ_EXTRA   = $7E30D1           ; a song that goes first, or $FF
-PAQ_COMPACTAR = $7E30D2         ; 1 if the package is being rearranged again
-                                ; from scratch: see `paquete_cargar_ya`
-PAQ_LARGO   = $7E30D4
-PAQ_DEST    = $7E30D6
-PAQ_S       = $7E30D8           ; the sample being placed
-PAQ_X7      = $7E30DA           ; its row in `muestra_tabla`
-PAQ_A       = $7E30DC           ; where placing it is tried
-PAQ_MAPA    = $7E30DE           ; the package's map, in a word since the
+FAR_ARAM_OF = $7E3100           ; one word per sample
+FAR_WANTS  = $7E3300           ; one byte per sample: 2 for the ones that do not move
+APU_READY   = $7E30D0           ; whether the driver is already running
+PKG_EXTRA   = $7E30D1           ; a song that goes first, or $FF
+PKG_COMPACT = $7E30D2         ; 1 if the package is being rearranged again
+                                ; from scratch: see `package_load_done`
+PKG_LENGTH   = $7E30D4
+PKG_DEST    = $7E30D6
+PKG_S       = $7E30D8           ; the sample being placed
+PKG_X7      = $7E30DA           ; its row in `muestra_tabla`
+PKG_A       = $7E30DC           ; where placing it is tried
+PKG_MAP    = $7E30DE           ; the package's map, in a word since the
                                 ; map index does not fit in a byte
 INT_N       = $7E30E0           ; how many are occupied, in bytes: two for each
                                 ; $30E2 to $30E6 belong to the battle animation
-PAQ_INCOMPLETO = $7E30E7        ; 1 if something of the package did not fit: see
-                                ; `tema_asegurar`. What follows is MSU_HAY
-INT_INI     = $7E3400           ; what is occupied, in order: where it starts
-INT_FIN     = $7E3500           ; and where it ends
+PKG_PARTIAL = $7E30E7        ; 1 if something of the package did not fit: see
+                                ; `song_ensure`. What follows is MSU_HAS
+INT_INIT     = $7E3400           ; what is occupied, in order: where it starts
+INT_END     = $7E3500           ; and where it ends
 
 ; Nothing in ARAM. At reset: the driver is not running yet.
-.proc aram_limpiar
+.proc aram_clear
 .a8
 .i16
     lda #0
-    sta f:APU_LISTO
-    sta f:PAQ_INCOMPLETO
+    sta f:APU_READY
+    sta f:PKG_PARTIAL
     lda #$FF
-    sta f:PAQ_EXTRA
+    sta f:PKG_EXTRA
     ldx #0
 otra:
     lda #0
-    sta f:FAR_ARAM_DE, x
+    sta f:FAR_ARAM_OF, x
     inx
     cpx #(2 * MUESTRAS_N)
     bcc otra
@@ -75,7 +75,7 @@ ninguno_mas:
 
 ; The token: the command is already on the ports, and the driver takes it
 ; when it changes. The acknowledgment is awaited.
-.proc apu_testigo
+.proc apu_token
 .a8
 .i16
     inc token
@@ -87,20 +87,20 @@ espera:
     rts
 .endproc
 
-; The ARAM pointer, to PAQ_DEST. With interrupts disabled: the music uses the
+; The ARAM pointer, to PKG_DEST. With interrupts disabled: the music uses the
 ; same ports, and port 2 has to go back to 0 before it sends its next pair.
-.proc aram_apuntar
+.proc aram_point
 .a8
 .i16
     php
     sei
     lda #2
     sta APUIO2
-    lda f:PAQ_DEST
+    lda f:PKG_DEST
     sta APUIO0
-    lda f:PAQ_DEST + 1
+    lda f:PKG_DEST + 1
     sta APUIO1
-    jsr apu_testigo
+    jsr apu_token
     stz APUIO2
     plp
     rts
@@ -115,27 +115,27 @@ espera:
     sta APUIO0
     lda #1
     sta APUIO2
-    jsr apu_testigo
+    jsr apu_token
     stz APUIO2
     plp
     rts
 .endproc
 
-; The sample in row PAQ_X7 of `muestra_tabla`, to PAQ_DEST. In triplets via
+; The sample in row PKG_X7 of `muestra_tabla`, to PKG_DEST. In triplets via
 ; command 3, in batches of up to 128 with interrupts disabled —about five
 ; milliseconds: the music is delayed, not lost—, and whatever is left over
 ; one byte at a time.
-.proc subir_muestra
+.proc upload_sample
 .a8
 .i16
     rep #$30
 .a16
-    lda f:PAQ_X7
+    lda f:PKG_X7
     tax
     lda f:muestra_tabla, x
     sta comp_glifo
     lda f:muestra_tabla + 3, x
-    sta f:PAQ_LARGO
+    sta f:PKG_LENGTH
     sep #$20
 .a8
     lda f:muestra_tabla + 2, x
@@ -148,16 +148,16 @@ tanda:
 .a16
     tya
     clc
-    adc f:PAQ_A
-    sta f:PAQ_DEST
+    adc f:PKG_A
+    sta f:PKG_DEST
     sty temp
-    lda f:PAQ_LARGO
+    lda f:PKG_LENGTH
     sec
     sbc temp                    ; what is left
     sta temp + 2
     sep #$20
 .a8
-    jsr aram_apuntar
+    jsr aram_point
     rep #$20
 .a16
     lda temp + 2
@@ -267,34 +267,34 @@ listo:
     rts
 .endproc
 
-; Sample PAQ_S, already uploaded to PAQ_A: its directory entry, with where it
+; Sample PKG_S, already uploaded to PKG_A: its directory entry, with where it
 ; starts and where it loops.
-.proc escribir_directorio
+.proc write_directory
 .a8
 .i16
     rep #$20
 .a16
-    lda f:PAQ_S
+    lda f:PKG_S
     and #$00FF
     asl a
     asl a
     clc
     adc #SPC_SAMPLES_ADDR
-    sta f:PAQ_DEST
+    sta f:PKG_DEST
     sep #$20
 .a8
-    jsr aram_apuntar
-    lda f:PAQ_A
+    jsr aram_point
+    lda f:PKG_A
     jsr aram_byte
-    lda f:PAQ_A + 1
+    lda f:PKG_A + 1
     jsr aram_byte
     rep #$30
 .a16
-    lda f:PAQ_X7
+    lda f:PKG_X7
     tax
     lda f:muestra_tabla + 5, x  ; the loop, from the start
     clc
-    adc f:PAQ_A
+    adc f:PKG_A
     sta temp
     sep #$20
 .a8
@@ -304,12 +304,12 @@ listo:
     jmp aram_byte
 .endproc
 
-; X7 of directory entry A: its row in `muestra_tabla` times 7, in PAQ_X7 and
+; X7 of directory entry A: its row in `muestra_tabla` times 7, in PKG_X7 and
 ; in X. For a music sample it is the entry itself; for a sound effect place,
 ; that of the effect noted down there —`FAR_EFECTO_EN`—, which goes after the
 ; music: SE_PRIMERA plus its number. That row can go past 255, so the
 ; arithmetic is sixteen bits.
-.proc fila_de_muestra
+.proc sample_row
 .a8
 .i16
     rep #$20
@@ -329,7 +329,7 @@ de_musica:
     asl a
     sec
     sbc temp
-    sta f:PAQ_X7
+    sta f:PKG_X7
     tax
     sep #$20
 .a8
@@ -339,52 +339,52 @@ de_musica:
 ; Finds a place for sample A, if it is not there: the first gap from
 ; ARAM_DATOS on that does not overwrite any of the ones that already have a
 ; place. If it does not fit before ARAM_FIN, it is not uploaded and does not
-; play. **It does not upload it**: it marks it with 3 in FAR_QUIERE and
-; `subir_colocadas` uploads it, once it is known the package fits; see
-; `paquete_cargar_ya`.
-.proc colocar_muestra
+; play. **It does not upload it**: it marks it with 3 in FAR_WANTS and
+; `upload_placed` uploads it, once it is known the package fits; see
+; `package_load_done`.
+.proc place_sample
 .a8
 .i16
-    sta f:PAQ_S
+    sta f:PKG_S
     rep #$30
 .a16
     and #$00FF
     asl a
     tax
-    lda f:FAR_ARAM_DE, x
+    lda f:FAR_ARAM_OF, x
     sep #$20
 .a8
     beq no_esta
     rts                         ; already there
 no_esta:
-    lda f:PAQ_S
-    jsr fila_de_muestra
+    lda f:PKG_S
+    jsr sample_row
     rep #$30
 .a16
     lda f:muestra_tabla + 3, x
-    sta f:PAQ_LARGO
-    jsl se_msu_largo            ; or what the one in the `.msu` measures: efectos_con_msu.s
+    sta f:PKG_LENGTH
+    jsl se_msu_length            ; or what the one in the `.msu` measures: efectos_con_msu.s
 .a16
     ; The first gap where it fits: the occupied ones are walked in order,
-    ; with PAQ_A at the start of the gap being looked at.
+    ; with PKG_A at the start of the gap being looked at.
     lda #ARAM_DATOS
-    sta f:PAQ_A
+    sta f:PKG_A
     ldx #0
 hueco:
     txa
     cmp f:INT_N
     bcs al_final
-    lda f:INT_INI, x
+    lda f:INT_INIT, x
     sec
-    sbc f:PAQ_A                 ; how much there is before this occupied one
+    sbc f:PKG_A                 ; how much there is before this occupied one
     bcc sigue                   ; it starts before: no gap
-    cmp f:PAQ_LARGO
+    cmp f:PKG_LENGTH
     bcs aca                     ; it fits
 sigue:
-    lda f:INT_FIN, x
-    cmp f:PAQ_A
+    lda f:INT_END, x
+    cmp f:PKG_A
     bcc no_avanza
-    sta f:PAQ_A                 ; the next gap starts after it
+    sta f:PKG_A                 ; the next gap starts after it
 no_avanza:
     inx
     inx
@@ -392,19 +392,19 @@ no_avanza:
 al_final:
     lda #ARAM_FIN
     sec
-    sbc f:PAQ_A
+    sbc f:PKG_A
     bcc no_entra
-    cmp f:PAQ_LARGO
+    cmp f:PKG_LENGTH
     bcs aca
 no_entra:
     sep #$20
 .a8
     lda #1
-    sta f:PAQ_INCOMPLETO        ; so the next `PlayBGM` completes it
+    sta f:PKG_PARTIAL        ; so the next `PlayBGM` completes it
     rts                         ; does not fit: does not play
 .a16
 aca:
-    ; It fits at PAQ_A, before occupied X: room is made in the list.
+    ; It fits at PKG_A, before occupied X: room is made in the list.
     stx temp
     lda f:INT_N
     tax
@@ -413,69 +413,69 @@ correr:
     beq corrido
     dex
     dex
-    lda f:INT_INI, x
-    sta f:INT_INI + 2, x
-    lda f:INT_FIN, x
-    sta f:INT_FIN + 2, x
+    lda f:INT_INIT, x
+    sta f:INT_INIT + 2, x
+    lda f:INT_END, x
+    sta f:INT_END + 2, x
     bra correr
 corrido:
-    lda f:PAQ_A
-    sta f:INT_INI, x
+    lda f:PKG_A
+    sta f:INT_INIT, x
     clc
-    adc f:PAQ_LARGO
-    sta f:INT_FIN, x
+    adc f:PKG_LENGTH
+    sta f:INT_END, x
     lda f:INT_N
     clc
     adc #2
     sta f:INT_N
     ; And where it goes is noted down, and that it still has to be uploaded.
-    lda f:PAQ_S
+    lda f:PKG_S
     and #$00FF
     tax
     sep #$20
 .a8
     lda #3
-    sta f:FAR_QUIERE, x
+    sta f:FAR_WANTS, x
     rep #$20
 .a16
     txa
     asl a
     tax
-    lda f:PAQ_A
-    sta f:FAR_ARAM_DE, x
+    lda f:PKG_A
+    sta f:FAR_ARAM_OF, x
     sep #$20
 .a8
     rts
 .endproc
 
-; Uploads the samples `colocar_muestra` marked with 3, each to its place, and
+; Uploads the samples `place_sample` marked with 3, each to its place, and
 ; writes their directory entry.
-.proc subir_colocadas
+.proc upload_placed
 .a8
 .i16
     ldx #0
 otra:
-    lda f:FAR_QUIERE, x
+    lda f:FAR_WANTS, x
     cmp #3
     bne sigue
     phx
     txa
-    sta f:PAQ_S
+    sta f:PKG_S
     rep #$20
 .a16
     txa
     asl a
     tax
-    lda f:FAR_ARAM_DE, x
-    sta f:PAQ_A
+    lda f:FAR_ARAM_OF, x
+    sta f:PKG_A
     sep #$20
 .a8
-    lda f:PAQ_S
-    jsr fila_de_muestra
-    jsl se_msu_subir            ; a sound effect from the `.msu`: see efectos_con_msu.s
+    lda f:PKG_S
+    jsr sample_row
+    jsl se_msu_upload            ; a sound effect from the `.msu`: see efectos_con_msu.s
     bcs subida
-    jsr subir_muestra
-    jsr escribir_directorio
+    jsr upload_sample
+    jsr write_directory
 subida:
     plx
 sigue:
@@ -486,7 +486,7 @@ sigue:
 .endproc
 
 ; The samples of song A: X at the start of its list in `tema_muestras`.
-.proc lista_del_tema
+.proc song_list
 .a8
 .i16
     rep #$20
@@ -502,16 +502,16 @@ sigue:
 .endproc
 
 ; Places the samples of song A.
-.proc colocar_tema
+.proc place_song
 .a8
 .i16
-    jsr lista_del_tema
+    jsr song_list
 otra:
     lda f:tema_muestras, x
     cmp #$FF
     beq listo
     phx
-    jsr colocar_muestra
+    jsr place_sample
     plx
     inx
     bra otra
@@ -527,20 +527,20 @@ listo:
 ; the package is the usual one.
 ;
 ; **Counting on the track is a bet**, because the ROM does not know whether it
-; is on the card until it asks for it. If it is missing, `msu_arrancar` sets
-; its bit in MSU_FALTA and `music_start` falls back to `tema_asegurar`, which
+; is on the card until it asks for it. If it is missing, `msu_start` sets
+; its bit in MSU_FALTA and `music_start` falls back to `song_ensure`, which
 ; sees the samples not uploaded and rebuilds the package with the song first:
 ; that time it freezes for however long the upload takes, and from then on
 ; this song is no longer skipped. For the same reason, the extra song of
-; `paquete_cargar_ya` does not go through here: it is the one being asked for.
+; `package_load_done` does not go through here: it is the one being asked for.
 ;
-; Saves A, X and Y: the package loops carry the index in X and `marcar_tema`
+; Saves A, X and Y: the package loops carry the index in X and `mark_song`
 ; the mark in Y.
-.proc tema_por_msu
+.proc song_per_msu
 .a8
 .i16
     pha
-    lda f:MSU_HAY
+    lda f:MSU_HAS
     beq no
     lda 1, s
     cmp #TEMA_TOTAL
@@ -591,102 +591,102 @@ no:
     rts
 .endproc
 
-; `marcar_tema` and `colocar_tema` for the songs in the package list, which
+; `mark_song` and `place_song` for the songs in the package list, which
 ; skip the ones that will play through the MSU-1.
-.proc marcar_tema_del_paquete
+.proc mark_package_song
 .a8
 .i16
-    jsr tema_por_msu
+    jsr song_per_msu
     bcs listo
-    jmp marcar_tema
+    jmp mark_song
 listo:
     rts
 .endproc
 
-.proc colocar_tema_del_paquete
+.proc place_package_song
 .a8
 .i16
-    jsr tema_por_msu
+    jsr song_per_msu
     bcs listo
-    jmp colocar_tema
+    jmp place_song
 listo:
     rts
 .endproc
 
 ; Silences the sound effects that are playing: their samples are about to
 ; move.
-.proc se_callar
+.proc se_mute
 .a8
 .i16
     php
     sei
     lda #0
-    sta f:SE_CUADROS
-    sta f:SE_CUADROS + 1
-    sta f:SE_PENDIENTE
-    sta f:SE_BAJAR
-    sta f:SE2_CUADROS
-    sta f:SE2_CUADROS + 1
-    sta f:SE2_PENDIENTE
-    sta f:SE2_BAJAR
+    sta f:SE_FRAMES
+    sta f:SE_FRAMES + 1
+    sta f:SE_PENDING
+    sta f:SE_LOWER
+    sta f:SE2_FRAMES
+    sta f:SE2_FRAMES + 1
+    sta f:SE2_PENDING
+    sta f:SE2_LOWER
     lda #1
-    sta f:SE_DEVOLVER           ; the music gets its voices back
-    sta f:SE2_DEVOLVER
-    jsl se_extras_callar        ; and those of voices 0 to 5, in the same KOF
+    sta f:SE_RETURN           ; the music gets its voices back
+    sta f:SE2_RETURN
+    jsl se_extras_mute        ; and those of voices 0 to 5, in the same KOF
     ora #(SE_BIT | SE2_BIT)
     ldx #SE_KOF
-    jsr dsp_par
+    jsr dsp_pair
     plp
     rts
 .endproc
 
-; The package of `mapa_actual`: see above. PAQ_EXTRA is a song that goes
+; The package of `mapa_actual`: see above. PKG_EXTRA is a song that goes
 ; before the map's —the one a `PlayBGM` asks for and was not there—, or $FF.
 ;
 ; The map comes from `mapa_actual` and not from A since the index is sixteen
 ; bits: the three callers passed `mapa_actual` in A, so no case was lost and
 ; the caller does not have to remember the width.
-.proc paquete_cargar
+.proc package_load
 .a8
 .i16
     rep #$20
 .a16
     lda mapa_actual
-    sta f:PAQ_MAPA
+    sta f:PKG_MAP
     sep #$20
 .a8
-    jmp paquete_cargar_ya
+    jmp package_load_done
 .endproc
 
-; And the package whose index is already written in `PAQ_MAPA`, which is how
+; And the package whose index is already written in `PKG_MAP`, which is how
 ; the battle comes in: its package is not any map's —it goes after all of
 ; them, see `BA_PAQUETE`— so it cannot come from `mapa_actual`.
 ;
 ; It exists because there was a bug here that no git conflict flagged: when
-; the index became sixteen bits, `paquete_cargar` stopped reading the package
+; the index became sixteen bits, `package_load` stopped reading the package
 ; from A to read it from `mapa_actual`, and `battle_audio_load` —which came
 ; from the other branch— kept passing it in A. The two branches merged clean
 ; because they touched different lines, and from then on the battle loaded
 ; the map's package: the battle song played with six samples not uploaded and
 ; the hit missed with sample 0. The two audio tests in `test_batalla.py`
 ; caught it.
-.proc paquete_cargar_ya
+.proc package_load_done
 .a8
 .i16
-    lda f:APU_LISTO
+    lda f:APU_READY
     bne listo_apu
     rts                         ; at reset, before the driver runs
 listo_apu:
     lda #0
-    sta f:PAQ_INCOMPLETO
-    sta f:PAQ_COMPACTAR
-    jsr se_callar
-    jsl se_msu_preparar         ; with the `.msu` sound effects, all are
+    sta f:PKG_PARTIAL
+    sta f:PKG_COMPACT
+    jsr se_mute
+    jsl se_msu_prepare         ; with the `.msu` sound effects, all are
                                 ; uploaded again: see efectos_con_msu.s
     ldx #0
 limpiar:
     lda #0
-    sta f:FAR_QUIERE, x
+    sta f:FAR_WANTS, x
     inx
     cpx #MUESTRAS_N
     bcc limpiar
@@ -697,28 +697,28 @@ limpiar:
     cmp #TEMA_TOTAL
     bcs sin_fijas
     ldy #2
-    jsr marcar_tema
+    jsr mark_song
 sin_fijas:
     ; The ones the package wants: 1, if they were not already 2. The extra's
     ; **even if it has a track**: if it is asked for, it is because it will
     ; play through the SPC700. The ones of the package's songs, not if they
-    ; will play through the MSU-1: see `tema_por_msu`.
-    lda f:PAQ_EXTRA
+    ; will play through the MSU-1: see `song_per_msu`.
+    lda f:PKG_EXTRA
     cmp #$FF
     beq sin_extra
     ldy #1
-    jsr marcar_tema
+    jsr mark_song
 sin_extra:
     ; An exit song that its `PlayBGM` asks for goes alone: nothing else of the
-    ; package stays. See `extra_de_salida`.
-    jsr extra_de_salida
+    ; package stays. See `exit_extra`.
+    jsr exit_extra
     bcc con_paquete
     jmp marcadas
 con_paquete:
     ; A separate song that its `PlayBGM` asks for goes with the package's
-    ; sound effects and without the other songs: see `extra_aparte`.
-    jsr lista_del_paquete
-    jsr extra_aparte
+    ; sound effects and without the other songs: see `extra_separate`.
+    jsr package_list
+    jsr extra_separate
     bcc temas_q
 saltear_q:
     lda f:paquetes, x
@@ -732,7 +732,7 @@ temas_q:
     beq efectos_q
     phx
     ldy #1
-    jsr marcar_tema_del_paquete
+    jsr mark_package_song
     plx
     inx
     bra temas_q
@@ -743,16 +743,16 @@ otro_q:
     cmp #$FF
     beq salida_q
     phx
-    jsr anotar_efecto           ; from the sound effect's number to its place
+    jsr record_effect           ; from the sound effect's number to its place
     ldy #1
-    jsr marcar_muestra
+    jsr mark_sample
     plx
     inx
     bra otro_q
 salida_q:
     ; And the exit songs, which are wanted anyway: if they were already there,
     ; they stay. With a separate song, not.
-    jsr extra_aparte
+    jsr extra_separate
     bcs marcadas
     inx
 otro_s:
@@ -761,13 +761,13 @@ otro_s:
     beq marcadas
     phx
     ldy #1
-    jsr marcar_tema_del_paquete
+    jsr mark_package_song
     plx
     inx
     bra otro_s
 marcadas:
     ; The ones nobody wants are forgotten, and with the ones left the list of
-    ; what is occupied is built, in order: it is where `colocar_muestra` looks
+    ; what is occupied is built, in order: it is where `place_sample` looks
     ; for the gaps.
     rep #$20
 .a16
@@ -777,7 +777,7 @@ marcadas:
 .a8
     ldx #0
 olvidar:
-    lda f:FAR_QUIERE, x
+    lda f:FAR_WANTS, x
     phx
     rep #$20
 .a16
@@ -788,22 +788,22 @@ olvidar:
     pla
     and #$00FF
     bne quiere
-    sta f:FAR_ARAM_DE, x        ; nobody wants it: out
+    sta f:FAR_ARAM_OF, x        ; nobody wants it: out
     bra proxima
 quiere:
-    lda f:FAR_ARAM_DE, x
+    lda f:FAR_ARAM_OF, x
     beq proxima                 ; wanted but not there: the next step uploads it
-    sta f:PAQ_A
+    sta f:PKG_A
     txa
     lsr a
     sep #$20
 .a8
-    jsr fila_de_muestra
+    jsr sample_row
     rep #$20
 .a16
     lda f:muestra_tabla + 3, x
-    sta f:PAQ_LARGO
-    jsr intervalo_ordenado
+    sta f:PKG_LENGTH
+    jsr sorted_interval
 proxima:
     sep #$20
 .a8
@@ -813,17 +813,17 @@ proxima:
     bcc olvidar
     ; And the missing ones are placed, in order of priority: the extra song,
     ; the map's songs and its sound effects.
-    lda f:PAQ_EXTRA
+    lda f:PKG_EXTRA
     cmp #$FF
     beq sin_extra2
-    jsr colocar_tema
+    jsr place_song
 sin_extra2:
-    jsr extra_de_salida
+    jsr exit_extra
     bcc con_paquete2
     jmp colocadas
 con_paquete2:
-    jsr lista_del_paquete
-    jsr extra_aparte
+    jsr package_list
+    jsr extra_separate
     bcc temas
 saltear:
     lda f:paquetes, x
@@ -836,7 +836,7 @@ temas:
     cmp #$FF
     beq efectos
     phx
-    jsr colocar_tema_del_paquete
+    jsr place_package_song
     plx
     inx
     bra temas
@@ -847,8 +847,8 @@ otro_efecto:
     cmp #$FF
     beq de_salida
     phx
-    jsr anotar_efecto           ; already noted down: it only gives the place
-    jsr colocar_muestra
+    jsr record_effect           ; already noted down: it only gives the place
+    jsr place_sample
     plx
     inx
     bra otro_efecto
@@ -856,25 +856,25 @@ de_salida:
     ; The exit songs, after everything and **if there is room**: not fitting
     ; does not leave the package incomplete —their `PlayBGM` is not needed to
     ; complete it, nor to rebuild everything from scratch—, because their
-    ; `PlayBGM` uploads them on their own. That is why PAQ_INCOMPLETO is saved
+    ; `PlayBGM` uploads them on their own. That is why PKG_PARTIAL is saved
     ; and restored around this. With a separate song none is uploaded.
-    jsr extra_aparte
+    jsr extra_separate
     bcs colocadas
     inx
-    lda f:PAQ_INCOMPLETO
+    lda f:PKG_PARTIAL
     pha
 otro_de_salida:
     lda f:paquetes, x
     cmp #$FF
     beq salida_puesta
     phx
-    jsr colocar_tema_del_paquete
+    jsr place_package_song
     plx
     inx
     bra otro_de_salida
 salida_puesta:
     pla
-    sta f:PAQ_INCOMPLETO
+    sta f:PKG_PARTIAL
 colocadas:
     ; **If something did not fit, everything is placed again from scratch**,
     ; except the samples of the song playing, and only then uploaded. The
@@ -886,23 +886,23 @@ colocadas:
     ; with the music silenced. That is why where each one goes is decided
     ; first and the upload is done at the end: redoing the whole upload would
     ; cost twice the frames.
-    lda f:PAQ_INCOMPLETO
+    lda f:PKG_PARTIAL
     beq subir
-    lda f:PAQ_COMPACTAR
+    lda f:PKG_COMPACT
     bne subir                   ; already redone: it is the song playing
     lda #1
-    sta f:PAQ_COMPACTAR
+    sta f:PKG_COMPACT
     lda #0
-    sta f:PAQ_INCOMPLETO
+    sta f:PKG_PARTIAL
     ldx #0
 compactar:
-    lda f:FAR_QUIERE, x
+    lda f:FAR_WANTS, x
     cmp #2
     beq quieta                  ; the ones of the song playing do not move
     cmp #0
     beq quieta                  ; and the ones nobody wants were already forgotten
     lda #1
-    sta f:FAR_QUIERE, x
+    sta f:FAR_WANTS, x
     phx
     rep #$20
 .a16
@@ -910,7 +910,7 @@ compactar:
     asl a
     tax
     lda #0
-    sta f:FAR_ARAM_DE, x
+    sta f:FAR_ARAM_OF, x
     sep #$20
 .a8
     plx
@@ -920,22 +920,22 @@ quieta:
     bcc compactar
     jmp marcadas
 subir:
-    jsr subir_colocadas
+    jsr upload_placed
     ; With an exit song uploaded alone, the rest of the package was let go:
     ; if the page does not leave the map, the next `PlayBGM` completes it. The
     ; same with a separate song, which goes up without the other songs.
-    jsr extra_de_salida
+    jsr exit_extra
     bcs incompleto
-    jsr extra_aparte
+    jsr extra_separate
     bcc listo
 incompleto:
     lda #1
-    sta f:PAQ_INCOMPLETO
+    sta f:PKG_PARTIAL
 listo:
     rts
 .endproc
 
-; C at 1 if PAQ_EXTRA is one of the exit songs of PAQ_MAPA's package: the
+; C at 1 if PKG_EXTRA is one of the exit songs of PKG_MAP's package: the
 ; third list in `paquetes`. They are the ones the map starts only to leave
 ; —see `Temas.de_salida` in tools/port/events.py—, and the game's case is
 ; `lufsorr` on map 3: it plays after the sequence of sound effects, so it has
@@ -944,17 +944,17 @@ listo:
 ; uploaded **alone**, letting go of the rest, and not the whole package with
 ; it first: that would not fit, and rebuilding it from scratch would be
 ; uploading the whole ARAM.
-.proc extra_de_salida
+.proc exit_extra
 .a8
 .i16
     phy
     ldy #2
-    jsr extra_en_lista
+    jsr extra_in_list
     ply                         ; C survives the `ply`
     rts
 .endproc
 
-; C at 1 if PAQ_EXTRA is one of the separate songs of PAQ_MAPA's package: the
+; C at 1 if PKG_EXTRA is one of the separate songs of PKG_MAP's package: the
 ; fourth list in `paquetes`. They are the ones in `[music] apart_themes` of
 ; the project file, and the game's case is `vswar` on 38 and 47: it plays in
 ; a scene, never at the same time as the map's other songs, and with them it
@@ -964,28 +964,28 @@ listo:
 ; other songs are let go until the next `PlayBGM`, as with an exit one. The
 ; converter counts on that: a separate song has to fit with those sound
 ; effects.
-.proc extra_aparte
+.proc extra_separate
 .a8
 .i16
     phy
     ldy #3
-    jsr extra_en_lista
+    jsr extra_in_list
     ply
     rts
 .endproc
 
-; C at 1 if PAQ_EXTRA is in list Y of PAQ_MAPA's package: 2 the exit songs, 3
+; C at 1 if PKG_EXTRA is in list Y of PKG_MAP's package: 2 the exit songs, 3
 ; the separate ones. Saves X, which is the index of the loops in
-; `paquete_cargar_ya`: `extra_aparte` is asked in the middle of them. C
+; `package_load_done`: `extra_separate` is asked in the middle of them. C
 ; survives the `plx`.
-.proc extra_en_lista
+.proc extra_in_list
 .a8
 .i16
     phx
-    lda f:PAQ_EXTRA
+    lda f:PKG_EXTRA
     cmp #$FF
     beq no
-    jsr lista_del_paquete
+    jsr package_list
 saltar:
     dey
     bmi mirar
@@ -999,7 +999,7 @@ mirar:
     lda f:paquetes, x
     cmp #$FF
     beq no
-    cmp f:PAQ_EXTRA
+    cmp f:PKG_EXTRA
     beq si
     inx
     bra mirar
@@ -1013,13 +1013,13 @@ no:
     rts
 .endproc
 
-; X at the start of the list of PAQ_MAPA's package.
-.proc lista_del_paquete
+; X at the start of the list of PKG_MAP's package.
+.proc package_list
 .a8
 .i16
     rep #$20
 .a16
-    lda f:PAQ_MAPA
+    lda f:PKG_MAP
     asl a
     tax
     lda f:paquetes, x
@@ -1030,13 +1030,13 @@ no:
 .endproc
 
 ; Sound effect number A, noted down in its directory place: returns with the
-; place in A, which is what `marcar_muestra` and `colocar_muestra` use. If
+; place in A, which is what `mark_sample` and `place_sample` use. If
 ; another sound effect was noted down there, that one is forgotten —its
-; FAR_ARAM_DE to 0—, so its ARAM is freed and the new one is uploaded: with
-; `se_callar` nothing is playing anymore. It is called with each sound effect
+; FAR_ARAM_OF to 0—, so its ARAM is freed and the new one is uploaded: with
+; `se_mute` nothing is playing anymore. It is called with each sound effect
 ; of the package when marking and again when placing, and the second time
 ; changes nothing. Does not touch Y.
-.proc anotar_efecto
+.proc record_effect
 .a8
 .i16
     pha
@@ -1065,7 +1065,7 @@ no:
     asl a
     tax
     lda #0
-    sta f:FAR_ARAM_DE, x        ; the one that was there goes
+    sta f:FAR_ARAM_OF, x        ; the one that was there goes
     txa
     lsr a                       ; X was the entry times two
     sep #$20
@@ -1078,8 +1078,8 @@ anotado:
     rts
 .endproc
 
-; Sample A, marked with Y in FAR_QUIERE if it did not have something higher.
-.proc marcar_muestra
+; Sample A, marked with Y in FAR_WANTS if it did not have something higher.
+.proc mark_sample
 .a8
 .i16
     rep #$20
@@ -1089,26 +1089,26 @@ anotado:
     sep #$20
 .a8
     tya
-    cmp f:FAR_QUIERE, x
+    cmp f:FAR_WANTS, x
     bcc listo
-    sta f:FAR_QUIERE, x
+    sta f:FAR_WANTS, x
 listo:
     rts
 .endproc
 
 ; The samples of song A, marked with Y.
-.proc marcar_tema
+.proc mark_song
 .a8
 .i16
     phy
-    jsr lista_del_tema
+    jsr song_list
     ply
 otra:
     lda f:tema_muestras, x
     cmp #$FF
     beq listo
     phx
-    jsr marcar_muestra
+    jsr mark_sample
     plx
     inx
     bra otra
@@ -1116,9 +1116,9 @@ listo:
     rts
 .endproc
 
-; Adds the interval [PAQ_A, PAQ_A + PAQ_LARGO) to the list of what is
+; Adds the interval [PKG_A, PKG_A + PKG_LENGTH) to the list of what is
 ; occupied, in order. 16-bit A.
-.proc intervalo_ordenado
+.proc sorted_interval
 .a16
 .i16
     ldx #0
@@ -1126,8 +1126,8 @@ buscar:
     txa
     cmp f:INT_N
     bcs lugar
-    lda f:INT_INI, x
-    cmp f:PAQ_A
+    lda f:INT_INIT, x
+    cmp f:PKG_A
     bcs lugar                   ; this one starts later: it goes in front
     inx
     inx
@@ -1141,17 +1141,17 @@ correr:
     beq corrido
     dex
     dex
-    lda f:INT_INI, x
-    sta f:INT_INI + 2, x
-    lda f:INT_FIN, x
-    sta f:INT_FIN + 2, x
+    lda f:INT_INIT, x
+    sta f:INT_INIT + 2, x
+    lda f:INT_END, x
+    sta f:INT_END + 2, x
     bra correr
 corrido:
-    lda f:PAQ_A
-    sta f:INT_INI, x
+    lda f:PKG_A
+    sta f:INT_INIT, x
     clc
-    adc f:PAQ_LARGO
-    sta f:INT_FIN, x
+    adc f:PKG_LENGTH
+    sta f:INT_END, x
     lda f:INT_N
     clc
     adc #2
@@ -1167,7 +1167,7 @@ corrido:
 ;
 ; And the same if the map's package **was left incomplete**, even if the song
 ; is missing nothing. It happens when entering a map with another's song
-; playing: its samples do not move —see `paquete_cargar_ya`— and what does
+; playing: its samples do not move —see `package_load_done`— and what does
 ; not fit beside them is the last part of the package, the sound effects. The
 ; game's case is the passage from map 2 to 3, which happens with map 2's song
 ; playing and left out some of map 3's sound effects until the next map
@@ -1176,19 +1176,19 @@ corrido:
 ; moment those samples can be let go: it is rebuilt, and only what was
 ; missing is uploaded. If the package does not fit even so, the rebuild
 ; uploads nothing and costs less than a frame.
-.proc tema_asegurar
+.proc song_ensure
 .a8
 .i16
     sta temp + 1
-    lda f:APU_LISTO
+    lda f:APU_READY
     beq listo
     lda temp + 1
     cmp #TEMA_TOTAL
     bcs listo
-    lda f:PAQ_INCOMPLETO
+    lda f:PKG_PARTIAL
     bne falta                   ; even if the song is missing nothing
-    lda temp + 1                ; the song: `lista_del_tema` reads it from A
-    jsr lista_del_tema
+    lda temp + 1                ; the song: `song_list` reads it from A
+    jsr song_list
 mirar:
     lda f:tema_muestras, x
     cmp #$FF
@@ -1199,7 +1199,7 @@ mirar:
     and #$00FF
     asl a
     tax
-    lda f:FAR_ARAM_DE, x
+    lda f:FAR_ARAM_OF, x
     plx
     cmp #0                      ; **Z here is set by `plx`, not by the `lda`**:
                                 ; PLX leaves N and Z of the value it pulls from
@@ -1221,13 +1221,13 @@ falta:
     sta music_apagada
     lda #$FF
     ldx #SE_KOF
-    jsr dsp_par                 ; all voices release
+    jsr dsp_pair                 ; all voices release
     plp
     lda temp + 1
-    sta f:PAQ_EXTRA
-    jsr paquete_cargar
+    sta f:PKG_EXTRA
+    jsr package_load
     lda #$FF
-    sta f:PAQ_EXTRA
+    sta f:PKG_EXTRA
 listo:
     rts
 .endproc

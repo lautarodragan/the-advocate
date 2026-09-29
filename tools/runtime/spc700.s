@@ -7,7 +7,7 @@
 ;
 ; At power-on the SPC700 runs an internal ROM that implements an upload
 ; protocol. We use it to put a minimal driver and the sample directory into
-; its memory —the samples go later, in packages: see `paquete_cargar`—, and
+; its memory —the samples go later, in packages: see `package_load`—, and
 ; then that driver sits waiting for commands from the 65816, mostly DSP
 ; (register, value) pairs: see `DRIVER` in tools/audio/snes_music.py. In other
 ; words, all the music is still driven by the 65816.

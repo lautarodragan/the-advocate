@@ -52,7 +52,7 @@
 .include "ram_lejana.s"
 ; The two bytecodes this ROM reads, generated from tools/protocol/: the events
 ; one, which `run_code` interprets, and the music stream, which
-; `irq_musica` reads. Each one is declared by a file that belongs neither to
+; `irq_music` reads. Each one is declared by a file that belongs neither to
 ; the side that emits the bytes nor to the side that reads them.
 ;
 ; The events one came inside mapdata.inc until 2026-09-14, which means an

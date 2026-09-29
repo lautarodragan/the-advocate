@@ -43,7 +43,7 @@ no_pone:
 .a16
     ply
     cmp #0                      ; the variable's sign, which `ply` overwrote
-                                ; with the cursor: see `tema_asegurar`
+                                ; with the cursor: see `song_ensure`
     bpl timer_poner_16
     lda #0
     bra timer_poner_16

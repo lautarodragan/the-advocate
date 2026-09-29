@@ -10,12 +10,12 @@ mismo registro, mismo valor, mismo orden y mismo cuadro. Hay dos redes:
 * el conversor decodifica cada tema con `snes_music.decode`, el modelo
   del decodificador, y se corta si no da `writes` (`check_format`);
 * y ésta, que cobra lo que el modelo no ve: el 65816. Toca cada tema entero
-  en la ROM, anota lo que llega a `dsp_musica` —la bitácora, `MUS_BITACORA`,
+  en la ROM, anota lo que llega a `dsp_music` —la bitácora, `MUS_BITACORA`,
   que la prueba prende— y lo compara contra el modelo corriendo sobre los
   bytes **del cartucho**.
 
-Lo que se mira es la entrada de `dsp_musica` y no el DSP: el emulador no
-expone la memoria del SPC700, y lo que pasa después de `dsp_musica` —la
+Lo que se mira es la entrada de `dsp_music` y no el DSP: el emulador no
+expone la memoria del SPC700, y lo que pasa después de `dsp_music` —la
 sombra de las voces de los efectos, el acuse del SPC700— no cambió con el
 formato y lo cubre `test_bateria_suena.py`.
 
@@ -83,7 +83,7 @@ def _leer_bitacora(una, desde):
 
 
 def _cuadros_de_la_rom(una, hasta, j=0, cuadros=None):
-    """Lo que `dsp_musica` recibió, por cuadro de música, hasta tener
+    """Lo que `dsp_music` recibió, por cuadro de música, hasta tener
     `hasta` cuadros.
 
     Se parte por las marcas de cuadro y no por los cuadros del emulador: un
@@ -129,9 +129,9 @@ def _comparar(nombre, cuadros, vuelta):
 def test_la_rom_escribe_lo_que_el_stream_dice(partida, nombre):
     """Cada tema arranca por el camino del loop: se apunta el stream a su
     `OP_END` con el tema en `tema_actual`, así que en el cuadro siguiente
-    `music_frame` vuelve al principio con `music_start_ya`, que es lo mismo
+    `music_frame` vuelve al principio con `music_start_done`, que es lo mismo
     que hace al terminar cada vuelta. Las muestras no se suben
-    —`tema_asegurar` no corre—, así que no suena lo que se toca; las
+    —`song_ensure` no corre—, así que no suena lo que se toca; las
     escrituras son las mismas."""
     una = partida(titulo=EMPEZAR).quedarse_en_el_titulo()
     s = una.simbolos
@@ -158,7 +158,7 @@ def test_el_tema_del_titulo_desde_el_encendido(partida):
     """El otro camino: el tema lo prende el código principal —`music_start`
     desde la pantalla de título, como un `PlayBGM`—, y no la IRQ. Ahí los
     registros traen lo que dejó el juego, y así apareció el primer error del
-    decodificador: `music_start_ya` ponía la espera en cero con un `lda #0`
+    decodificador: `music_start_done` ponía la espera en cero con un `lda #0`
     de ocho bits y un `sta` de dieciséis, y B traía basura. El tema esperaba
     miles de cuadros antes de la primera nota, y el camino de la IRQ, donde B
     llega en cero, no lo veía.

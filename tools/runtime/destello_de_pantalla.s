@@ -296,7 +296,7 @@ listo:
     tax
     lda tin_count
     asl a
-    beq nada
+    beq nothing
     sta dest_fin
     txa
     clc
@@ -344,7 +344,7 @@ color:
     inx
     cpx dest_fin
     bne color
-nada:
+nothing:
     sep #$20
 .a8
     rts

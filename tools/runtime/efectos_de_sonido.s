@@ -11,50 +11,50 @@
 ; 0 to 5 as well: see efectos_con_msu.s.
 ;
 ; Each voice's state lives in far RAM, because the direct page and the BSS
-; are full. The second one's is SE2_DESPL higher up, with the same shape, so
-; `sonido_tocar` picks the voice with an offset:
+; are full. The second one's is SE2_OFS higher up, with the same shape, so
+; `sound_play` picks the voice with an offset:
 ;
-;   SE_CUADROS   how many frames the effect has left, two bytes
-;   SE_PENDIENTE there is one pending start
-;   SE_DEVOLVER  the voice has to be given back to the music this frame
-;   SE_BAJAR     the KON trigger has to be lowered this frame
-;   SE_NUEVO     the pending one: the sample, the pitch (two), the volume of
+;   SE_FRAMES   how many frames the effect has left, two bytes
+;   SE_PENDING there is one pending start
+;   SE_RETURN  the voice has to be given back to the music this frame
+;   SE_LOWER     the KON trigger has to be lowered this frame
+;   SE_NEW     the pending one: the sample, the pitch (two), the volume of
 ;                each side and the frames (two), seven bytes. After starting
 ;                it stays there, and that is how we know which sample is
 ;                playing
-;   SE_SOMBRA    the last thing the music wrote to the voice's eight
+;   SE_SHADOW    the last thing the music wrote to the voice's eight
 ;                registers: that is what it is given back with
-;   SE_KOF_SOMBRA  the last thing the music wrote to KOF, one for both
+;   SE_KOF_SHADOW  the last thing the music wrote to KOF, one for both
 ;
 ; The music keeps writing to each voice while its effect plays: it is kept
 ; in the shadow and not sent, and its KON and KOF get the bits of the voices
-; that have an effect removed (`se_mascara`).
+; that have an effect removed (`se_mask`).
 ;
-; All of this runs inside `irq_musica`, so **it uses neither the WMADD
+; All of this runs inside `irq_music`, so **it uses neither the WMADD
 ; window nor `temp`**: the interrupt lands at any point of the main code,
 ; and if that was walking far RAM or using `temp`, this would clobber it. It
 ; gets there with long addressing, which carries the bank in the
 ; instruction. The only thing the main code writes here is the pending one,
-; in `sonido_tocar`, and it does so with interrupts disabled.
+; in `sound_play`, and it does so with interrupts disabled.
 FAR_SE       = $30A0
-SE_CUADROS   = $7E0000 + FAR_SE
-SE_PENDIENTE = SE_CUADROS + 2
-SE_DEVOLVER  = SE_CUADROS + 3
-SE_BAJAR     = SE_CUADROS + 4
-SE_NUEVO     = SE_CUADROS + 5
-SE_SOMBRA    = $7E0000 + $30B0
-SE_KOF_SOMBRA = SE_SOMBRA + 8
+SE_FRAMES   = $7E0000 + FAR_SE
+SE_PENDING = SE_FRAMES + 2
+SE_RETURN  = SE_FRAMES + 3
+SE_LOWER     = SE_FRAMES + 4
+SE_NEW     = SE_FRAMES + 5
+SE_SHADOW    = $7E0000 + $30B0
+SE_KOF_SHADOW = SE_SHADOW + 8
 ; The second voice, at $3D00: the far RAM map above ends at the battle,
 ; which does not go past $3CFF, and the next thing is `FAR_HAB`, at $6000. It
 ; uses $3D00 to $3D17.
-SE2_DESPL    = $3D00 - FAR_SE
-SE2_CUADROS  = SE_CUADROS + SE2_DESPL
-SE2_PENDIENTE = SE_PENDIENTE + SE2_DESPL
-SE2_DEVOLVER = SE_DEVOLVER + SE2_DESPL
-SE2_BAJAR    = SE_BAJAR + SE2_DESPL
-SE2_NUEVO    = SE_NUEVO + SE2_DESPL
-SE2_SOMBRA   = SE_SOMBRA + SE2_DESPL
-SE_BYTES     = 12               ; from SE_CUADROS to SE_NUEVO, inclusive
+SE2_OFS    = $3D00 - FAR_SE
+SE2_FRAMES  = SE_FRAMES + SE2_OFS
+SE2_PENDING = SE_PENDING + SE2_OFS
+SE2_RETURN = SE_RETURN + SE2_OFS
+SE2_LOWER    = SE_LOWER + SE2_OFS
+SE2_NEW    = SE_NEW + SE2_OFS
+SE2_SHADOW   = SE_SHADOW + SE2_OFS
+SE_BYTES     = 12               ; from SE_FRAMES to SE_NEW, inclusive
 ; SE_BIT and SE_REG —the voice's bit in KON and KOF, and its first
 ; register— and the second one's are emitted by snes_music.py together with
 ; SE_VOZ.
@@ -63,36 +63,36 @@ SE_KOF     = $5C
 
 ; Z=0 if the voice has an effect playing, pending or being given back. Does
 ; not touch B.
-.proc se_ocupada
+.proc se_busy
 .a8
 .i16
-    lda f:SE_CUADROS
-    ora f:SE_CUADROS + 1
-    ora f:SE_PENDIENTE
-    ora f:SE_DEVOLVER
+    lda f:SE_FRAMES
+    ora f:SE_FRAMES + 1
+    ora f:SE_PENDING
+    ora f:SE_RETURN
     rts
 .endproc
 
-.proc se2_ocupada
+.proc se2_busy
 .a8
 .i16
-    lda f:SE2_CUADROS
-    ora f:SE2_CUADROS + 1
-    ora f:SE2_PENDIENTE
-    ora f:SE2_DEVOLVER
+    lda f:SE2_FRAMES
+    ora f:SE2_FRAMES + 1
+    ora f:SE2_PENDING
+    ora f:SE2_RETURN
     rts
 .endproc
 
 ; A: the KON and KOF bits of the busy voices. Touches neither B nor X.
-.proc se_mascara
+.proc se_mask
 .a8
 .i16
-    jsr se_ocupada
+    jsr se_busy
     beq sin_7                   ; A was left at zero
     lda #SE_BIT
 sin_7:
     pha
-    jsr se2_ocupada
+    jsr se2_busy
     beq sin_6
     lda #SE2_BIT
 sin_6:
@@ -103,31 +103,31 @@ sin_6:
     rts
 .endproc
 
-; `dsp_par` and `se_kof_musica` for `efectos_con_msu.s`, which lives in bank
+; `dsp_pair` and `se_kof_music` for `efectos_con_msu.s`, which lives in bank
 ; 1 and cannot reach them with `jsr`.
-.proc dsp_par_l
-    jsr dsp_par
+.proc dsp_pair_l
+    jsr dsp_pair
     rtl
 .endproc
 
-.proc se_kof_musica_l
-    jsr se_kof_musica
+.proc se_kof_music_l
+    jsr se_kof_music
     rtl
 .endproc
 
 ; A: what the music left in KOF, without the bits of the busy voices.
-.proc se_kof_musica
+.proc se_kof_music
 .a8
 .i16
-    jsr se_mascara
+    jsr se_mask
     eor #$FF
-    and f:SE_KOF_SOMBRA
+    and f:SE_KOF_SHADOW
     rts
 .endproc
 
 ; A pair to the DSP: X the register, A the value, and the wait for the
 ; SPC700's acknowledgment.
-.proc dsp_par
+.proc dsp_pair
 .a8
 .i16
     xba
@@ -150,13 +150,13 @@ espera:
 ; go out without the bits of the busy voices. Touches neither Y nor V:
 ; `music_frame` keeps the voice's register in Y and in V whether the note is
 ; written without looking at the cache.
-.proc dsp_musica
+.proc dsp_music
 .a8
 .i16
     xba                         ; B = the value
     lda f:MUS_BITACORA_SI
     beq sin_bitacora
-    jsr bitacora
+    jsr log
 sin_bitacora:
     txa
     and #$F0
@@ -178,9 +178,9 @@ voz_7:
     ; reached the DSP as zero. rom/pruebas/rpgmaker/test_bateria_suena.py
     ; catches it.
     xba
-    sta f:SE_SOMBRA - SE_REG, x ; to the shadow
+    sta f:SE_SHADOW - SE_REG, x ; to the shadow
     xba                         ; B = the value, for `enviar`
-    jsr se_ocupada
+    jsr se_busy
     beq enviar
     rts                         ; the voice belongs to the effect
 voz_6:
@@ -189,9 +189,9 @@ voz_6:
     cmp #8
     bcs no_voz
     xba                         ; as in voz_7
-    sta f:SE2_SOMBRA - SE2_REG, x
+    sta f:SE2_SHADOW - SE2_REG, x
     xba
-    jsr se2_ocupada
+    jsr se2_busy
     beq enviar
     rts
 no_voz:
@@ -202,7 +202,7 @@ no_voz:
     ; everything that is not theirs.
     lda f:EX_OCUP
     beq no_extra
-    and f:ex_bit_de_registro, x
+    and f:ex_register_bit, x
     beq no_extra
     rts                         ; the voice belongs to the effect
 no_extra:
@@ -211,14 +211,14 @@ no_extra:
     bne no_kof
     ; KOF: to the shadow always, and without the bits of the busy voices.
     xba
-    sta f:SE_KOF_SOMBRA
+    sta f:SE_KOF_SHADOW
     xba
     bra mascara
 no_kof:
     cmp #SE_KON
     bne enviar
 mascara:
-    jsr se_mascara
+    jsr se_mask
     beq enviar
     eor #$FF
     pha                         ; the inverted mask
@@ -228,12 +228,12 @@ mascara:
     pla
 enviar:
     xba                         ; A = the value, and X still holds the register
-    jmp dsp_par
+    jmp dsp_pair
 .endproc
 
-; Records in MUS_BITACORA the pair `dsp_musica` is about to send: X the
+; Records in MUS_BITACORA the pair `dsp_music` is about to send: X the
 ; register, B the value. Does not touch X, Y, B or V.
-.proc bitacora
+.proc log
 .a8
 .i16
     xba
@@ -270,39 +270,39 @@ enviar:
 .endproc
 
 ; The mark each music frame starts with in the log.
-.proc bitacora_cuadro
+.proc log_frame
 .a8
 .i16
     lda #0
     xba
     ldx #MUS_BITACORA_MARCA
-    jmp bitacora
+    jmp log
 .endproc
 
 ; Before the music, on every frame: lower the trigger an effect left, and
 ; give the music back its voice if the effect ended on the previous frame.
-.macro SE_ANTES_VOZ bajar, devolver, sombra, reg
-    .local sin_bajar, listo, registro
-    lda f:bajar
-    beq sin_bajar
+.macro SE_BEFORE_VOICE lower, return, shadow, reg
+    .local no_lower, listo, register
+    lda f:lower
+    beq no_lower
     lda #0
-    sta f:bajar
+    sta f:lower
     ldx #SE_KON
-    jsr dsp_par
-sin_bajar:
-    lda f:devolver
+    jsr dsp_pair
+no_lower:
+    lda f:return
     beq listo
     lda #0
-    sta f:devolver
+    sta f:return
     ; KOF as the music had it, except for the other voice if it still has
     ; its effect, and this one's eight registers.
-    jsr se_kof_musica
+    jsr se_kof_music
     ldx #SE_KOF
-    jsr dsp_par
+    jsr dsp_pair
     ldy #0
-registro:
+register:
     tyx
-    lda f:sombra, x
+    lda f:shadow, x
     pha
     rep #$20
 .a16
@@ -313,137 +313,137 @@ registro:
     sep #$20
 .a8
     pla
-    jsr dsp_par
+    jsr dsp_pair
     iny
     cpy #8
-    bcc registro
+    bcc register
 listo:
 .endmacro
 
-.proc se_antes
+.proc se_before
 .a8
 .i16
-    SE_ANTES_VOZ SE_BAJAR, SE_DEVOLVER, SE_SOMBRA, SE_REG
-    SE_ANTES_VOZ SE2_BAJAR, SE2_DEVOLVER, SE2_SOMBRA, SE2_REG
-    jsl se_extras_antes         ; and voices 0 to 5: see efectos_con_msu.s
+    SE_BEFORE_VOICE SE_LOWER, SE_RETURN, SE_SHADOW, SE_REG
+    SE_BEFORE_VOICE SE2_LOWER, SE2_RETURN, SE2_SHADOW, SE2_REG
+    jsl se_extras_before         ; and voices 0 to 5: see efectos_con_msu.s
     rts
 .endproc
 
 ; After the music, for one voice: start its pending one, or count down the
 ; one playing and turn it off when it ends. Leaves in A the voice's bit if it
-; has to be triggered, or zero: `se_despues` does the trigger only once for
+; has to be triggered, or zero: `se_after` does the trigger only once for
 ; both, because two KON writes in a row can land in the same DSP sample and
 ; the second erase the first.
-.macro SE_DESPUES_VOZ cuadros, pendiente, devolver, bajar, nuevo, bit, reg
-    .local arrancar, contar, nada, fin
-    lda f:pendiente
-    bne arrancar
-    jmp contar
-arrancar:
+.macro SE_AFTER_VOICE frames, pending, return, lower, new, bit, reg
+    .local start, count_up, nothing, fin
+    lda f:pending
+    bne start
+    jmp count_up
+start:
     ; KOF without the bits of the busy voices —this one included, since it
     ; is still pending—, which the music may have left set.
-    jsr se_kof_musica
+    jsr se_kof_music
     ldx #SE_KOF
-    jsr dsp_par
+    jsr dsp_pair
     lda #0
-    sta f:pendiente             ; no longer pending
+    sta f:pending             ; no longer pending
     ; The sample, the pitch, the volume and the envelope, from the pending one.
-    lda f:nuevo + 4
+    lda f:new + 4
     ldx #(reg + 1)
-    jsr dsp_par                 ; VOLR
-    lda f:nuevo + 3
+    jsr dsp_pair                 ; VOLR
+    lda f:new + 3
     ldx #(reg + 0)
-    jsr dsp_par                 ; VOLL
-    lda f:nuevo + 2
+    jsr dsp_pair                 ; VOLL
+    lda f:new + 2
     ldx #(reg + 3)
-    jsr dsp_par                 ; pitch high
-    lda f:nuevo + 1
+    jsr dsp_pair                 ; pitch high
+    lda f:new + 1
     ldx #(reg + 2)
-    jsr dsp_par                 ; and low
-    lda f:nuevo
+    jsr dsp_pair                 ; and low
+    lda f:new
     ldx #(reg + 4)
-    jsr dsp_par                 ; SRCN
+    jsr dsp_pair                 ; SRCN
     lda #$FF                    ; ADSR on, attack and decay at maximum
     ldx #(reg + 5)
-    jsr dsp_par
+    jsr dsp_pair
     lda #$E0                    ; sustain at maximum and no release
     ldx #(reg + 6)
-    jsr dsp_par
+    jsr dsp_pair
     rep #$20
 .a16
-    lda f:nuevo + 5
-    sta f:cuadros
+    lda f:new + 5
+    sta f:frames
     sep #$20
 .a8
     lda #1
-    sta f:bajar                 ; the next frame lowers the trigger
+    sta f:lower                 ; the next frame lowers the trigger
     lda #bit
     bra fin
-contar:
+count_up:
     rep #$20
 .a16
-    lda f:cuadros
-    beq nada
+    lda f:frames
+    beq nothing
     dec a
-    sta f:cuadros
-    bne nada
+    sta f:frames
+    bne nothing
     sep #$20
 .a8
     ; It ended: KOF with the voice's bit, and on the next frame the music
-    ; gets it back. This one no longer counts as busy, so `se_kof_musica`
+    ; gets it back. This one no longer counts as busy, so `se_kof_music`
     ; leaves out only the other one.
-    jsr se_kof_musica
+    jsr se_kof_music
     ora #bit
     ldx #SE_KOF
-    jsr dsp_par
+    jsr dsp_pair
     lda #1
-    sta f:devolver
+    sta f:return
     lda #0
     bra fin
 .a16
-nada:
+nothing:
     sep #$20
 .a8
     lda #0
 fin:
 .endmacro
 
-.proc se_despues
+.proc se_after
 .a8
 .i16
-    SE_DESPUES_VOZ SE_CUADROS, SE_PENDIENTE, SE_DEVOLVER, SE_BAJAR, SE_NUEVO, SE_BIT, SE_REG
+    SE_AFTER_VOICE SE_FRAMES, SE_PENDING, SE_RETURN, SE_LOWER, SE_NEW, SE_BIT, SE_REG
     pha
-    SE_DESPUES_VOZ SE2_CUADROS, SE2_PENDIENTE, SE2_DEVOLVER, SE2_BAJAR, SE2_NUEVO, SE2_BIT, SE2_REG
+    SE_AFTER_VOICE SE2_FRAMES, SE2_PENDING, SE2_RETURN, SE2_LOWER, SE2_NEW, SE2_BIT, SE2_REG
     ora 1, s
     sta 1, s
-    jsl se_extras_despues       ; those of voices 0 to 5, in the same trigger
+    jsl se_extras_after       ; those of voices 0 to 5, in the same trigger
     ora 1, s
     sta 1, s
     pla
     beq listo
     ldx #SE_KON
-    jsr dsp_par                 ; and the trigger, for both together
+    jsr dsp_pair                 ; and the trigger, for both together
 listo:
     rts
 .endproc
 
 ; The state at zero: nothing playing. On reset.
-.proc se_limpiar
+.proc se_clear
 .a8
 .i16
     ldx #0
     lda #0
 otro:
-    sta f:SE_CUADROS, x
-    sta f:SE2_CUADROS, x
+    sta f:SE_FRAMES, x
+    sta f:SE2_FRAMES, x
     inx
     cpx #SE_BYTES
     bcc otro
-    jsl se_extras_limpiar       ; and the efectos_con_msu.s part
+    jsl se_extras_clear       ; and the efectos_con_msu.s part
     rts
 .endproc
 
-.proc sonido_de_codigo
+.proc sound_from_code
 .a8
 .i16
     rep #$20
@@ -452,14 +452,14 @@ otro:
     iny
     iny
     phy
-    jsr sonido_tocar            ; with a 16-bit A; returns with an 8-bit A
+    jsr sound_play            ; with a 16-bit A; returns with an 8-bit A
 .a8
     ply
     rts
 .endproc
 
 ; The effect whose index in `sonido_tabla` comes in a 16-bit A, or nothing
-; if it is $FFFF. It was split from `sonido_de_codigo` when the battle
+; if it is $FFFF. It was split from `sound_from_code` when the battle
 ; started playing sound effects: its ones do not come from the bytecode but
 ; from the `BA_SE_*` constants the converter emits, so the index arrives in
 ; the accumulator.
@@ -467,7 +467,7 @@ otro:
 ; It enters with a 16-bit A and leaves with an 8-bit A, which is how it left
 ; it before. The data bank does not matter: everything it reads goes with
 ; `f:`.
-.proc sonido_tocar
+.proc sound_play
 .a16
 .i16
     cmp #$FFFF
@@ -502,14 +502,14 @@ hay:
     jmp listo         ; there is no effect
 hay_efecto:
     ; And only if its sample is in ARAM: the map's package may not have
-    ; uploaded it. See `paquete_cargar`.
+    ; uploaded it. See `package_load`.
     phx
     rep #$20
 .a16
     and #$00FF
     asl a
     tax
-    lda f:FAR_ARAM_DE, x
+    lda f:FAR_ARAM_OF, x
     sep #$20
 .a8
     plx
@@ -546,29 +546,29 @@ esta:
     beq es_suyo
     jmp listo
 es_suyo:
-    ; No interrupts while copying: `irq_musica` reads the pending one, and
+    ; No interrupts while copying: `irq_music` reads the pending one, and
     ; one half written would start with one's sample and another's pitch.
     ; The interrupt is not lost, it is delayed until the `plp`.
     php
     sei
-    ; The voice: Y ends up at 0 for SE_VOZ or at SE2_DESPL for the other.
+    ; The voice: Y ends up at 0 for SE_VOZ or at SE2_OFS for the other.
     ; First the one already playing this same sample —the rain triggers again
     ; before ending, and this way it does not steal the other voice from the
     ; thunder—, then a free one, and otherwise the one that ends sooner. A
     ; pending one is not overwritten if the other one can be: nothing of it
     ; has played yet.
     ldy #0
-    lda f:SE_NUEVO
+    lda f:SE_NEW
     cmp f:sonido_tabla, x
     bne no_misma_7
-    jsr se_ocupada
+    jsr se_busy
     bne elegida
 no_misma_7:
-    ldy #SE2_DESPL
-    lda f:SE2_NUEVO
+    ldy #SE2_OFS
+    lda f:SE2_NEW
     cmp f:sonido_tabla, x
     bne no_misma_6
-    jsr se2_ocupada
+    jsr se2_busy
     bne elegida
 no_misma_6:
     ; With MSU-1 and the SPC700 without music, voices 0 to 5: the one already
@@ -577,36 +577,36 @@ no_misma_6:
     rep #$20
 .a16
     lda 2, s                    ; the index, behind P
-    jsl se_extra_misma
+    jsl se_extra_same
 .a8
     bcs puesto
     ldy #0
-    jsr se_ocupada
+    jsr se_busy
     beq elegida
-    ldy #SE2_DESPL
-    jsr se2_ocupada
+    ldy #SE2_OFS
+    jsr se2_busy
     beq elegida
     rep #$20
 .a16
     lda 2, s
-    jsl se_extra_libre
+    jsl se_extra_free
 .a8
     bcs puesto
     ldy #0
-    lda f:SE2_PENDIENTE
+    lda f:SE2_PENDING
     bne elegida
-    lda f:SE_PENDIENTE
+    lda f:SE_PENDING
     bne la_6
     rep #$20
 .a16
-    lda f:SE_CUADROS
-    cmp f:SE2_CUADROS
+    lda f:SE_FRAMES
+    cmp f:SE2_FRAMES
     sep #$20                    ; does not touch C
 .a8
     bcc elegida
     beq elegida
 la_6:
-    ldy #SE2_DESPL
+    ldy #SE2_OFS
 elegida:
     rep #$20
 .a16
@@ -620,7 +620,7 @@ copiar:
     lda f:sonido_tabla, x
     phx
     tyx
-    sta f:SE_NUEVO, x
+    sta f:SE_NEW, x
     plx
     inx
     iny
@@ -635,13 +635,13 @@ copiar:
     sep #$20
 .a8
     lda #1
-    sta f:SE_PENDIENTE, x
+    sta f:SE_PENDING, x
     ; With the `.msu` sound effects, the pitch is that of its version in the
     ; package that is in ARAM.
     rep #$20
 .a16
     lda 2, s
-    jsl se_msu_altura_poner
+    jsl se_msu_pitch_set
 .a8
 puesto:
     plp

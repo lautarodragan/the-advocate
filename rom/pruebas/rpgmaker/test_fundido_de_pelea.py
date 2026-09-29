@@ -8,7 +8,7 @@ de RM2k apaga la pantalla antes de cargar y la prende después. Ver
 `runtime/fundido_de_pelea.s`.
 
 Lo que se cobra es exactamente eso: **cada cuadro en el que el paquete avanza
-se ve negro**. Que el paquete avanza lo dicen `PAQ_DEST` y `PAQ_S` —dónde va
+se ve negro**. Que el paquete avanza lo dicen `PKG_DEST` y `PKG_S` —dónde va
 la muestra que se sube y cuál es—, que cambian a lo largo de toda la carga y
 en ningún otro momento de la pelea. Negro es negro de verdad: ningún canal de
 ningún pixel por encima de cero.
@@ -33,8 +33,8 @@ class Grabador:
     def _leer_paquete(self):
         s = self.una.simbolos
         c = self.una.consola
-        return (bytes(c.ram(en_la_wram(s["PAQ_DEST"]), 2))
-                + bytes(c.ram(en_la_wram(s["PAQ_S"]), 2)))
+        return (bytes(c.ram(en_la_wram(s["PKG_DEST"]), 2))
+                + bytes(c.ram(en_la_wram(s["PKG_S"]), 2)))
 
     def cuadro(self, *botones):
         self.una.consola.hold(*botones)

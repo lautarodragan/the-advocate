@@ -204,7 +204,7 @@ heroe_sin_grafico:
     jmp otra_orden
 
 ; `play_sound_effect`: 35, with the sound effect's index after it, in two bytes.
-; It is the same index as `OP_SOUND` and goes the same way, `sonido_tocar`, so
+; It is the same index as `OP_SOUND` and goes the same way, `sound_play`, so
 ; it sounds the same as a `PlaySound`'s, with MSU-1 or without. It does not
 ; cost a frame: the next command runs in this one.
 sonido_heroe:
@@ -213,7 +213,7 @@ sonido_heroe:
     rep #$20
 .a16
     lda [ruta_ptr], y
-    jsr sonido_tocar            ; with 16-bit A; returns with 8-bit A
+    jsr sound_play            ; with 16-bit A; returns with 8-bit A
 .a8
     jmp otra_orden
 

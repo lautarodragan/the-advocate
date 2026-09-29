@@ -100,7 +100,7 @@ tope_arriba:
 .a16
 no_sube:
     ; Does it go down? As long as the one below goes before it.
-bajar:
+lower:
     tya
     clc
     adc #NPC_STRIDE
@@ -123,7 +123,7 @@ b_por_clave:
     bcc tope_abajo              ; the one below goes after
 b_pasa:
     txy
-    bra bajar
+    bra lower
 tope_abajo:
     cpy npc_fila
     beq listo

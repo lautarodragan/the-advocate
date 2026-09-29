@@ -697,7 +697,7 @@ sirve_hab:
 ba_blanco_arriba:
     lda BA_BLANCO
 mira_arriba:
-    beq nada
+    beq nothing
     dec a
     sta BA_S0
     clc
@@ -711,7 +711,7 @@ ba_blanco_abajo:
 mira_abajo:
     inc a
     cmp BA_NENE
-    bcs nada
+    bcs nothing
     sta BA_S0
     clc
     adc #BA_GRUPO_MAX
@@ -722,7 +722,7 @@ mira_abajo:
 pone:
     lda BA_S0
     sta BA_BLANCO
-nada:
+nothing:
     rts
 .endproc
 

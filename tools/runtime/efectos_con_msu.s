@@ -4,7 +4,7 @@
 ;
 ; With MSU-1 the song plays from its track and the SPC700 plays no music, so
 ; the sound effects can have what used to be the music's. There are two
-; things, and **without MSU-1 neither of them does anything**: `MSU_HAY` at
+; things, and **without MSU-1 neither of them does anything**: `MSU_HAS` at
 ; zero turns both off, and what is left is the usual —voices 7 and 6, the ROM's
 ; sound effects—.
 ;
@@ -19,13 +19,13 @@
 ; If a song starts playing through the SPC700 while a sound effect plays on
 ; one of those —a missing track, or a `PlayBGM` of a song with no track—,
 ; **the sound effect goes on**: what the music writes to that voice stays in
-; MUS_SOMBRA and is not sent (`dsp_musica`), and when the sound effect ends it
-; is given back from there (`se_extras_antes`). It is the same as what happens
+; MUS_SOMBRA and is not sent (`dsp_music`), and when the sound effect ends it
+; is given back from there (`se_extras_before`). It is the same as what happens
 ; with 7 and 6, only the shadow is the music's and not one of its own: there
 ; was no RAM for six more.
 ;
 ; **The quality sound effects from the `.msu`.** If the `.msu` is this
-; cartridge's —the signature, `msu_datos_validos`—, each package's sound effects
+; cartridge's —the signature, `msu_data_valid`—, each package's sound effects
 ; are uploaded to ARAM from there and not from ROM: whole, and at the rate
 ; they fit at now that the music takes no room. Each package has its version of
 ; each sound effect —the rate depends on how heavy the package is, see
@@ -37,21 +37,21 @@
 ;
 ; It lives in bank 1 because bank 0 has no room: it is reached with `jsl`,
 ; and what is read or written goes with `f:`, so the data bank does not
-; matter. What runs inside `irq_musica` —`se_extras_antes` and
-; `se_extras_despues`— does not use `temp`, for the same reason
+; matter. What runs inside `irq_music` —`se_extras_before` and
+; `se_extras_after`— does not use `temp`, for the same reason
 ; `efectos_de_sonido.s` does not.
 
-EX_VOCES = 6                    ; from 0 to 5
+EX_VOICES = 6                    ; from 0 to 5
 .assert SE_BIT = $80 && SE2_BIT = $40, error, "the usual sound effect voices are no longer 7 and 6"
 
 ; The bit of each voice, and that of the voice of each DSP register: that of
 ; voices 0 to 5 on their registers 0 to 7 and zero on the rest, so that
-; `dsp_musica` asks with a single `and`.
+; `dsp_music` asks with a single `and`.
 ex_bit:
     .byte $01, $02, $04, $08, $10, $20
-ex_bit_de_registro:
+ex_register_bit:
 .repeat 128, r
-  .if (r >> 4) < EX_VOCES && (r & $0F) < 8
+  .if (r >> 4) < EX_VOICES && (r & $0F) < 8
     .byte 1 << (r >> 4)
   .else
     .byte 0
@@ -59,7 +59,7 @@ ex_bit_de_registro:
 .endrepeat
 
 ; All at zero, on reset: far RAM starts with garbage on bsnes.
-.proc se_extras_limpiar
+.proc se_extras_clear
 .a8
 .i16
     ldx #0
@@ -74,10 +74,10 @@ otro:
 
 ; C at 1 if voices 0 to 5 belong to the sound effects: there is MSU-1 and the
 ; SPC700 plays no music.
-.proc ex_permitidas
+.proc ex_allowed
 .a8
 .i16
-    lda f:MSU_HAY
+    lda f:MSU_HAS
     beq no
     lda f:music_apagada
     beq no
@@ -111,7 +111,7 @@ no:
 .endproc
 
 ; The sound effect of index A, sixteen bits, to voice Y. Returns with 8-bit A.
-.proc ex_tomar
+.proc ex_take
 .a16
 .i16
     pha
@@ -139,18 +139,18 @@ no:
     rts
 .endproc
 
-; For `sonido_tocar`, with interrupts disabled: if one of voices 0 to 5 is
+; For `sound_play`, with interrupts disabled: if one of voices 0 to 5 is
 ; playing the same sample as the sound effect of index A —sixteen bits— and
 ; row X, it is given to that one, as 7 and 6 do with the rain. C at 1 if it
 ; took it. Returns with 8-bit A, and with X as it came.
-.proc se_extra_misma
+.proc se_extra_same
 .a16
 .i16
     phx
     pha                         ; [index][row]
     sep #$20
 .a8
-    jsr ex_permitidas
+    jsr ex_allowed
     bcc no
     lda f:sonido_tabla, x
     pha                         ; [srcn][index][row]
@@ -172,7 +172,7 @@ otra:
     beq tomar
 sigue:
     iny
-    cpy #EX_VOCES
+    cpy #EX_VOICES
     bcc otra
     pla
 no:
@@ -189,7 +189,7 @@ tomar:
     rep #$20
 .a16
     pla
-    jsr ex_tomar
+    jsr ex_take
 .a8
     plx
     sec
@@ -197,14 +197,14 @@ tomar:
 .endproc
 
 ; And if 7 and 6 are busy, one of voices 0 to 5 that is free.
-.proc se_extra_libre
+.proc se_extra_free
 .a16
 .i16
     phx
     pha
     sep #$20
 .a8
-    jsr ex_permitidas
+    jsr ex_allowed
     bcc no
     ldy #0
 otra:
@@ -213,7 +213,7 @@ otra:
     and f:EX_OCUP
     beq tomar
     iny
-    cpy #EX_VOCES
+    cpy #EX_VOICES
     bcc otra
 no:
     rep #$20
@@ -228,7 +228,7 @@ tomar:
     rep #$20
 .a16
     pla
-    jsr ex_tomar
+    jsr ex_take
 .a8
     plx
     sec
@@ -244,11 +244,11 @@ tomar:
 ; `escribir_msu` in tools/port/snes_convert.py. It is walked whole at most
 ; —a few dozen pairs—, and since they are sorted, it stops on going past; the
 ; $FFFF stops it too, because no index gets there.
-.proc altura_msu
+.proc msu_pitch
 .a16
 .i16
     pha                         ; the index being searched for
-    lda f:PAQ_MAPA
+    lda f:PKG_MAP
     asl a
     tax
     lda f:se_msu_altura_paq, x
@@ -275,10 +275,10 @@ no_esta:
     rts
 .endproc
 
-; For `sonido_tocar`, after copying the pending one of the voice whose offset
+; For `sound_play`, after copying the pending one of the voice whose offset
 ; X carries: with the `.msu` sound effects, the pitch of its version. A
 ; carries the index, sixteen bits. Returns with 8-bit A.
-.proc se_msu_altura_poner
+.proc se_msu_pitch_set
 .a16
 .i16
     phx
@@ -291,13 +291,13 @@ no_esta:
 .a16
     bne listo
     lda 1, s
-    jsr altura_msu
+    jsr msu_pitch
     beq listo
     tay
     lda 3, s
     tax
     tya
-    sta f:SE_NUEVO + 1, x       ; the low pitch and the high one
+    sta f:SE_NEW + 1, x       ; the low pitch and the high one
 listo:
     pla
     plx
@@ -306,13 +306,13 @@ listo:
     rtl
 .endproc
 
-; --- inside `irq_musica` -------------------------------------------------------
+; --- inside `irq_music` -------------------------------------------------------
 
 ; Before the music: the voices whose sound effect ended on the previous frame
 ; go back to it. KOF as the music had it, except whatever is still busy, and
 ; their eight registers from MUS_SOMBRA, which is what the stream wrote to
 ; them in the meantime.
-.proc se_extras_antes
+.proc se_extras_before
 .a8
 .i16
     lda f:EX_DEVOLVER
@@ -322,9 +322,9 @@ hay:
     eor #$FF
     and f:EX_OCUP
     sta f:EX_OCUP
-    jsl se_kof_musica_l
+    jsl se_kof_music_l
     ldx #SE_KOF
-    jsl dsp_par_l
+    jsl dsp_pair_l
     ldy #0
 voz:
     tyx
@@ -342,16 +342,16 @@ voz:
     tax                         ; its first register
     sep #$20
 .a8
-registro:
+register:
     lda f:MUS_SOMBRA, x
-    jsl dsp_par_l
+    jsl dsp_pair_l
     inx
     txa
     and #$07
-    bne registro
+    bne register
 sigue:
     iny
-    cpy #EX_VOCES
+    cpy #EX_VOICES
     bcc voz
     lda #0
     sta f:EX_DEVOLVER
@@ -360,14 +360,14 @@ sigue:
 
 ; After the music: start the pending ones, and count the ones playing and
 ; turn off the ones ending. Returns with A holding the bits of the voices to
-; key on: `se_despues` does the key-on, once for all of them.
+; key on: `se_after` does the key-on, once for all of them.
 ;
 ; **A single KOF for the ones ending, and after the ones starting**: each KOF
 ; overwrites the previous one, and if two land before the DSP reads it, the
 ; first one never existed. The one starting writes the music's without the
 ; busy voices; if the one ending wrote first, its own would be lost, and a
 ; looping ROM sound effect would keep playing.
-.proc se_extras_despues
+.proc se_extras_after
 .a8
 .i16
     lda f:EX_OCUP
@@ -379,27 +379,27 @@ hay:
     beq contar_todas
     lda #0
     sta f:EX_PEND
-    jsl se_kof_musica_l
+    jsl se_kof_music_l
     ldx #SE_KOF
-    jsl dsp_par_l
+    jsl dsp_pair_l
     ldy #0
-arrancar:
+start:
     tyx
     lda f:ex_bit, x
     and 1, s
     beq no_arranca
-    jsr ex_arrancar
+    jsr ex_start
 no_arranca:
     iny
-    cpy #EX_VOCES
-    bcc arrancar
+    cpy #EX_VOICES
+    bcc start
     lda #1
-    sta f:SE_BAJAR              ; the next frame the key-on is lowered
+    sta f:SE_LOWER              ; the next frame the key-on is lowered
 contar_todas:
     lda #0
     pha                         ; [the ones ending][the ones starting]
     ldy #0
-contar:
+count_up:
     tyx
     lda f:ex_bit, x
     and 2, s
@@ -410,10 +410,10 @@ contar:
     asl a
     tax
     lda f:EX_CUADROS, x
-    beq nada
+    beq nothing
     dec a
     sta f:EX_CUADROS, x
-    bne nada
+    bne nothing
     sep #$20
 .a8
     tyx
@@ -422,22 +422,22 @@ contar:
     sta 1, s
     bra sigue
 .a16
-nada:
+nothing:
     sep #$20
 .a8
 sigue:
     iny
-    cpy #EX_VOCES
-    bcc contar
+    cpy #EX_VOICES
+    bcc count_up
     pla                         ; the ones ending
     beq ninguno
     pha
     ora f:EX_DEVOLVER
     sta f:EX_DEVOLVER
-    jsl se_kof_musica_l
+    jsl se_kof_music_l
     ora 1, s
     ldx #SE_KOF
-    jsl dsp_par_l
+    jsl dsp_pair_l
     pla
 ninguno:
     pla                         ; the ones starting: the key-on
@@ -446,7 +446,7 @@ ninguno:
 
 ; Starts the sound effect of voice Y: its sample, its pitch, its volume and
 ; the envelope, and its frames. Does not touch Y.
-.proc ex_arrancar
+.proc ex_start
 .a8
 .i16
     phy
@@ -472,7 +472,7 @@ ninguno:
     bne de_la_tabla
     lda 1, s
     phx
-    jsr altura_msu
+    jsr msu_pitch
     plx
     cmp #0                      ; `plx` leaves Z from X, not from the pitch
     bne tengo
@@ -503,28 +503,28 @@ tengo:
 .a8
     pla
     inx
-    jsl dsp_par_l               ; VOLR
+    jsl dsp_pair_l               ; VOLR
     dex
     pla
-    jsl dsp_par_l               ; VOLL
+    jsl dsp_pair_l               ; VOLL
     inx
     inx
     inx
     lda 5, s
-    jsl dsp_par_l               ; the high pitch
+    jsl dsp_pair_l               ; the high pitch
     dex
     lda 4, s
-    jsl dsp_par_l               ; and the low
+    jsl dsp_pair_l               ; and the low
     inx
     inx
     pla
-    jsl dsp_par_l               ; SRCN
+    jsl dsp_pair_l               ; SRCN
     inx
     lda #$FF                    ; ADSR on, attack and decay at maximum
-    jsl dsp_par_l
+    jsl dsp_pair_l
     inx
     lda #$E0                    ; sustain at maximum and no release
-    jsl dsp_par_l
+    jsl dsp_pair_l
     lda 5, s                    ; the voice, behind [frames][pitch]
     asl a
     rep #$20
@@ -546,12 +546,12 @@ tengo:
 ; this cartridge's —once per power-on: the file does not change—; and if it
 ; is, the sound effects are all forgotten, so that the package uploads them again
 ; with its version. See above.
-.proc se_msu_preparar
+.proc se_msu_prepare
 .a8
 .i16
     lda f:MSU_SE
     bne mirado
-    jsr msu_datos_validos
+    jsr msu_data_valid
     cmp #1
     beq valido
     lda #2
@@ -565,7 +565,7 @@ mirado:
 olvidar:
     cpx #(2 * MUESTRAS_N)
     bcs olvidados
-    sta f:FAR_ARAM_DE, x
+    sta f:FAR_ARAM_OF, x
     inx
     bra olvidar
 olvidados:
@@ -577,20 +577,20 @@ listo:
     rtl
 .endproc
 
-; The `se_msu_filas` row of sound effect number A in PAQ_MAPA's package, in X,
+; The `se_msu_filas` row of sound effect number A in PKG_MAP's package, in X,
 ; and C at 1; C at 0 if the package does not carry it. Each package has one row per
 ; sound effect in its list in `paquetes`, in the same order. Does not touch Y.
-.proc se_msu_fila
+.proc se_msu_row
 .a8
 .i16
     phy
     pha                         ; [sound effect number]
     rep #$20
 .a16
-    lda f:PAQ_MAPA
+    lda f:PKG_MAP
     asl a
     tax
-    lda f:paquetes, x           ; like `lista_del_paquete`
+    lda f:paquetes, x           ; like `package_list`
     tax
     sep #$20
 .a8
@@ -619,7 +619,7 @@ efectos:
 si:
     rep #$20
 .a16
-    lda f:PAQ_MAPA
+    lda f:PKG_MAP
     asl a
     tax
     tya
@@ -639,9 +639,9 @@ no:
     rts
 .endproc
 
-; For `colocar_muestra`, with 16-bit A: if sample PAQ_S is a sound effect
-; that is going to come from the `.msu`, PAQ_LARGO is its size there.
-.proc se_msu_largo
+; For `place_sample`, with 16-bit A: if sample PKG_S is a sound effect
+; that is going to come from the `.msu`, PKG_LENGTH is its size there.
+.proc se_msu_length
 .a16
 .i16
     sep #$20
@@ -649,16 +649,16 @@ no:
     lda f:MSU_SE
     cmp #1
     bne no
-    lda f:PAQ_S
+    lda f:PKG_S
     cmp #SE_PRIMERA
     bcc no
-    jsr efecto_del_lugar
-    jsr se_msu_fila
+    jsr place_effect
+    jsr se_msu_row
     bcc no
     rep #$20
 .a16
     lda f:se_msu_filas + 4, x
-    sta f:PAQ_LARGO
+    sta f:PKG_LENGTH
     rtl
 no:
     rep #$20
@@ -666,29 +666,29 @@ no:
     rtl
 .endproc
 
-; For `subir_colocadas`: if sample PAQ_S is a sound effect that is going to
-; come from the `.msu`, uploads it from there to PAQ_A and writes its
+; For `upload_placed`: if sample PKG_S is a sound effect that is going to
+; come from the `.msu`, uploads it from there to PKG_A and writes its
 ; directory entry, and returns with C at 1. If not, C at 0 and the ROM
 ; uploads it.
 ;
 ; A package's sound effects are in the `.msu` one after the other, in the order
 ; they are uploaded, so a seek is done only if the stream was not already
 ; left where it goes: once per package. Seeking costs Mednafen one or two
-; frames; see `msu_datos_buscar`. If the seek does not arrive in time, the
+; frames; see `msu_data_seek`. If the seek does not arrive in time, the
 ; sound effect is not uploaded and does not play —its place stays reserved
 ; all the same—: the ROM has no way to fall back to its own version, which
 ; has another pitch.
-.proc se_msu_subir
+.proc se_msu_upload
 .a8
 .i16
     lda f:MSU_SE
     cmp #1
     bne no
-    lda f:PAQ_S
+    lda f:PKG_S
     cmp #SE_PRIMERA
     bcc no
-    jsr efecto_del_lugar
-    jsr se_msu_fila
+    jsr place_effect
+    jsr se_msu_row
     bcs hay
 no:
     clc
@@ -710,7 +710,7 @@ buscar:
     lda f:se_msu_filas + 2, x
     tay
     lda f:se_msu_filas, x
-    jsr msu_datos_buscar        ; returns with 8-bit A
+    jsr msu_data_seek        ; returns with 8-bit A
 .a8
     plx
     bcc en_su_lugar
@@ -720,12 +720,12 @@ buscar:
     sta f:MSU_SE_SIG + 2
     rep #$20
 .a16
-    lda f:PAQ_S
+    lda f:PKG_S
     and #$00FF
     asl a
     tax
     lda #0
-    sta f:FAR_ARAM_DE, x
+    sta f:FAR_ARAM_OF, x
     sep #$20
 .a8
     sec
@@ -734,7 +734,7 @@ en_su_lugar:
     rep #$20
 .a16
     lda f:se_msu_filas + 4, x
-    sta f:PAQ_LARGO
+    sta f:PKG_LENGTH
     clc
     adc f:se_msu_filas, x
     sta f:MSU_SE_SIG            ; where it will be left
@@ -746,13 +746,13 @@ en_su_lugar:
     phx
     jsr msu_a_aram
     plx
-    jsr msu_directorio
+    jsr msu_directory
     sec
     rtl
 .endproc
 
-; PAQ_LARGO bytes of the `.msu` stream to ARAM, from PAQ_A. It is
-; `subir_muestra` with another source: in triplets through the driver's
+; PKG_LENGTH bytes of the `.msu` stream to ARAM, from PKG_A. It is
+; `upload_sample` with another source: in triplets through the driver's
 ; command 3, in batches of up to 85 with interrupts disabled, and whatever is
 ; left one byte at a time. The next triplet is read while the SPC700 stores
 ; the previous one.
@@ -765,10 +765,10 @@ tanda:
 .a16
     tya
     clc
-    adc f:PAQ_A
-    sta f:PAQ_DEST
+    adc f:PKG_A
+    sta f:PKG_DEST
     sty temp
-    lda f:PAQ_LARGO
+    lda f:PKG_LENGTH
     sec
     sbc temp                    ; what is left
     cmp #3
@@ -788,7 +788,7 @@ dividir:
 cuantas:
     sep #$20
 .a8
-    jsr msu_apuntar
+    jsr msu_point
     php
     sei
     txa
@@ -801,11 +801,11 @@ cuantas:
 acuse_bloque:
     cmp f:APUIO3
     bne acuse_bloque
-    lda f:MSU_DATOS
+    lda f:MSU_DATA
     sta temp
-    lda f:MSU_DATOS
+    lda f:MSU_DATA
     sta temp + 1
-    lda f:MSU_DATOS
+    lda f:MSU_DATA
     sta temp + 3
 terna:
     lda temp
@@ -822,11 +822,11 @@ terna:
     iny
     dex
     beq ultima
-    lda f:MSU_DATOS
+    lda f:MSU_DATA
     sta temp
-    lda f:MSU_DATOS
+    lda f:MSU_DATA
     sta temp + 1
-    lda f:MSU_DATOS
+    lda f:MSU_DATA
     sta temp + 3
     lda token
 acuse:
@@ -852,9 +852,9 @@ resto:
     cmp #0                      ; `sta` does not touch Z, and a sound effect is nine
                                 ; bytes per block: it is almost always zero
     beq listo
-    jsr msu_apuntar
+    jsr msu_point
 un_byte:
-    lda f:MSU_DATOS
+    lda f:MSU_DATA
     jsr msu_byte
     dec temp
     bne un_byte
@@ -864,7 +864,7 @@ listo:
 
 ; The number of the sound effect noted in directory entry A, which is a sound
 ; effect place —SE_PRIMERA or above—, in A: see `FAR_EFECTO_EN`. Clobbers X.
-.proc efecto_del_lugar
+.proc place_effect
 .a8
 .i16
     rep #$20
@@ -877,31 +877,31 @@ listo:
     rts
 .endproc
 
-; The directory entry of sample PAQ_S, already uploaded to PAQ_A: the loop
+; The directory entry of sample PKG_S, already uploaded to PKG_A: the loop
 ; point is the start plus whatever its row X says, which for a whole sound
 ; effect is 0.
-.proc msu_directorio
+.proc msu_directory
 .a8
 .i16
     rep #$20
 .a16
-    lda f:PAQ_S
+    lda f:PKG_S
     and #$00FF
     asl a
     asl a
     clc
     adc #SPC_SAMPLES_ADDR
-    sta f:PAQ_DEST
+    sta f:PKG_DEST
     lda f:se_msu_filas + 6, x
     clc
-    adc f:PAQ_A
+    adc f:PKG_A
     sta temp
     sep #$20
 .a8
-    jsr msu_apuntar
-    lda f:PAQ_A
+    jsr msu_point
+    lda f:PKG_A
     jsr msu_byte
-    lda f:PAQ_A + 1
+    lda f:PKG_A + 1
     jsr msu_byte
     lda temp
     jsr msu_byte
@@ -909,19 +909,19 @@ listo:
     jmp msu_byte
 .endproc
 
-; `aram_apuntar`, `aram_byte` and `apu_testigo`, with the ports through `f:`.
-.proc msu_apuntar
+; `aram_point`, `aram_byte` and `apu_token`, with the ports through `f:`.
+.proc msu_point
 .a8
 .i16
     php
     sei
     lda #2
     sta f:APUIO2
-    lda f:PAQ_DEST
+    lda f:PKG_DEST
     sta f:APUIO0
-    lda f:PAQ_DEST + 1
+    lda f:PKG_DEST + 1
     sta f:APUIO1
-    jsr msu_testigo
+    jsr msu_token
     lda #0
     sta f:APUIO2
     plp
@@ -936,14 +936,14 @@ listo:
     sta f:APUIO0
     lda #1
     sta f:APUIO2
-    jsr msu_testigo
+    jsr msu_token
     lda #0
     sta f:APUIO2
     plp
     rts
 .endproc
 
-.proc msu_testigo
+.proc msu_token
 .a8
 .i16
     inc token
@@ -955,20 +955,20 @@ espera:
     rts
 .endproc
 
-; For `se_callar`, with interrupts disabled: nothing pending or playing on
+; For `se_mute`, with interrupts disabled: nothing pending or playing on
 ; voices 0 to 5, and on the next frame the music gets them back. Returns with
-; A holding their bits, for `se_callar`'s KOF.
-.proc se_extras_callar
+; A holding their bits, for `se_mute`'s KOF.
+.proc se_extras_mute
 .a8
 .i16
     lda #0
     sta f:EX_PEND
     ldx #0
-cuadros:
+frames:
     sta f:EX_CUADROS, x
     inx
-    cpx #(2 * EX_VOCES)
-    bcc cuadros
+    cpx #(2 * EX_VOICES)
+    bcc frames
     lda f:EX_OCUP
     ora f:EX_DEVOLVER
     sta f:EX_DEVOLVER

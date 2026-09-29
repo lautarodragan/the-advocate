@@ -174,7 +174,7 @@ op_shop_done:
     ; recorded $FF: at the end of the battle `battle_bgm` silenced the map's
     ; music instead of restoring it. It is the same question as
     ; `mapa_tema_callar`, and it is answered the same way.
-    lda f:MSU_SUENA
+    lda f:MSU_PLAYING
     bne sonaba_antes
     lda music_apagada
     bne callado_antes
@@ -189,8 +189,8 @@ anotado:
     ; from the map's package and not inside it, and that is measured: the battle
     ; song is 18 samples and 51,480 B of the 64,512 of ARAM, which means that
     ; putting it in map 2's package dropped almost all of that map's 24 sound
-    ; effects. It is silenced before rebuilding, as `tema_asegurar` does:
-    ; `paquete_cargar` leaves the playing song's samples in place, and the
+    ; effects. It is silenced before rebuilding, as `song_ensure` does:
+    ; `package_load` leaves the playing song's samples in place, and the
     ; map's have no reason to take up room inside the battle.
     ;
     ; **With the map already black**: the load takes from half a second to a

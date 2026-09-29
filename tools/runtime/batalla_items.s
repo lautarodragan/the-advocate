@@ -235,7 +235,7 @@ si:
     beq caido
     lda BA_S2
     and #MED_KO_ONLY
-    bne nada
+    bne nothing
     lda BA_MITEM
     jsr bt_item_heal
 .a16
@@ -252,7 +252,7 @@ caido:
 .a8
     lda BA_S2
     and #MED_LEVANTA
-    beq nada
+    beq nothing
     lda BA_MITEM
     jsr bt_item_heal            ; with zero HP, the cap is the whole maximum
 .a16
@@ -268,7 +268,7 @@ levanta:
     lda #1
     sta BA_MREVIVIO
     rts
-nada:
+nothing:
 .a8
     rep #$20
 .a16

@@ -80,7 +80,7 @@ SCN_SUB_BUDGET = 2048
 ; game's is full, so a page of `pal_buf`, which the battle does not use, is
 ; borrowed, and what it held **is saved and restored**: the battle does not
 ; touch it, but coming back from it with the flash half built has no reason
-; to find it overwritten. Neither the NMI nor `irq_musica` read `pal_buf`,
+; to find it overwritten. Neither the NMI nor `irq_music` read `pal_buf`,
 ; and the IRQ sets its own direct page to zero.
 ;
 ; The page is aligned to 256: an unaligned direct page costs one extra cycle
@@ -722,7 +722,7 @@ hay_escena:
     lda SCN_BACKDROP
     cmp #$FF
     beq sin_msu                 ; the plain one is not read from anywhere
-    jsr msu_datos_validos
+    jsr msu_data_valid
     sta SCN_MSU
 sin_msu:
 
@@ -988,7 +988,7 @@ hay:
     lda f:msu_fondo_pos + 6, x
     tay
     lda f:msu_fondo_pos + 4, x
-    jsr msu_datos_buscar
+    jsr msu_data_seek
 .a8
     bcs no_la_encontro
     rep #$20
@@ -1048,7 +1048,7 @@ de_la_rom:
     sta f:BBAD0
     rep #$20
 .a16
-    lda #MSU_DATOS
+    lda #MSU_DATA
     sta f:A1T0L
     sep #$20
 .a8
@@ -1115,7 +1115,7 @@ con_fondo:
     lda f:msu_fondo_pos + 2, x
     tay
     lda f:msu_fondo_pos, x
-    jsr msu_datos_buscar
+    jsr msu_data_seek
 .a8
     bcs no_la_encontro
     rep #$20

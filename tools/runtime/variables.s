@@ -452,9 +452,9 @@ no_abajo:
     bra elige
 mira_a:
     lda pad_a
-    beq nada
+    beq nothing
     lda pad_a_ant
-    bne nada                    ; it was already held: not an edge
+    bne nothing                    ; it was already held: not an edge
 elige:
     lda eleg_sel
     asl
@@ -475,7 +475,7 @@ elige:
     stz msg_abierto             ; and with that `flush_video` turns HDMA off
     lda #1
     rts
-nada:
+nothing:
     lda #0
     rts
 .endproc

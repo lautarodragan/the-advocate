@@ -269,9 +269,9 @@ no:
     adc BA_T0                   ; the actor times ten: five slots of two
     tax
     lda FAR_EQUIPO, x
-    beq nada
+    beq nothing
     cmp #ITEMS_N
-    bcs nada
+    bcs nothing
     tax
     sep #$20
 .a8
@@ -282,7 +282,7 @@ no:
     lda f:item_sp, x
     rts
 .a16
-nada:
+nothing:
     sep #$20
 .a8
 nada8:

@@ -107,7 +107,7 @@ bt_t_sound:
     phb
     phk
     plb
-    jsr sonido_tocar
+    jsr sound_play
     plb
     rtl
 bt_t_bgm:
@@ -232,10 +232,10 @@ bt_t_page:
 ; Audio package A —the battle's on entering, the map's on leaving—, with the
 ; music silenced first.
 ;
-; Silencing first is not a detail: `paquete_cargar` leaves **in place** the
+; Silencing first is not a detail: `package_load` leaves **in place** the
 ; samples of the song it says is playing, and those are exactly the ones that
 ; have to be evicted to make room for the new package. It is the same thing
-; `tema_asegurar` does before rebuilding.
+; `song_ensure` does before rebuilding.
 ;
 ; The index comes in **X and 16 bits wide**, not in A: the battle package goes
 ; after the maps' ones, so with all 328 of the whole game it does not fit in a
@@ -256,10 +256,10 @@ bt_t_page:
     rep #$20
 .a16
     txa
-    sta f:PAQ_MAPA
+    sta f:PKG_MAP
     sep #$20
 .a8
-    jsr paquete_cargar_ya
+    jsr package_load_done
 listo:
     rts
 .endproc
@@ -268,7 +268,7 @@ listo:
 ; `op_battle` —on entering and on leaving— and by the battle on winning,
 ; through the bridge above.
 ;
-; Silencing is not `FadeOutBGM`: it is the same thing `tema_asegurar` does
+; Silencing is not `FadeOutBGM`: it is the same thing `song_ensure` does
 ; before rebuilding the package, that is, releasing all eight voices and
 ; setting `music_apagada`. A map with no music is normal in this game —the
 ; first ones have none and a `PlayBGM` turns it on—, so coming back from a
@@ -287,7 +287,7 @@ callar:
     sta music_apagada
     lda #$FF
     ldx #SE_KOF
-    jsr dsp_par                 ; all eight voices release
+    jsr dsp_pair                 ; all eight voices release
     plp
     rts
 .endproc

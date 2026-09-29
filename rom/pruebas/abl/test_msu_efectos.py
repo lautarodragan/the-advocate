@@ -92,12 +92,12 @@ def _efectos_cambiados(msu, firma):
 
 def _el_efecto(una, cuadros=400):
     """Corre hasta que el efecto de la voz 7 arranca y termina. Devuelve (el
-    audio, en mono y en flotante, la tasa, y lo que quedó en SE_NUEVO)."""
+    audio, en mono y en flotante, la tasa, y lo que quedó en SE_NEW)."""
     inicio = nuevo = None
     for _ in range(cuadros):
         antes = len(una.consola.audio)
         una.correr(1)
-        estado = _lejano(una, "SE_CUADROS", 12)
+        estado = _lejano(una, "SE_FRAMES", 12)
         suena = estado[0] or estado[1]
         if inicio is None and suena:
             inicio, nuevo = antes, bytes(estado[5:12])
@@ -127,7 +127,7 @@ def test_con_msu_el_efecto_suena_entero_y_a_su_tasa(tmp_path):
     assert _lejano(una, "MSU_SE")[0] == 1, (
         "con MSU-1 y el .msu del cartucho, la ROM no lo aceptó para los "
         "efectos: o no encontró la firma, o no lo miró")
-    assert not _lejano(una, "MSU_SUENA")[0], (
+    assert not _lejano(una, "MSU_PLAYING")[0], (
         "en el mapa 10 no tenía que sonar ninguna pista: el audio del efecto "
         "no se puede mirar solo")
     altura = int.from_bytes(nuevo[1:3], "little")
@@ -166,7 +166,7 @@ def test_con_msu_el_efecto_suena_entero_y_a_su_tasa(tmp_path):
 
 def test_con_msu_el_efecto_de_una_ruta_suena_entero(tmp_path):
     """El efecto de una ruta forzada va por el mismo camino que el de un
-    `PlaySound` —`sonido_tocar`—, así que con el `.msu` del cartucho suena
+    `PlaySound` —`sound_play`—, así que con el `.msu` del cartucho suena
     igual: `Close1` en el mapa 10, a la altura de 22.050 Hz, con la
     envolvente del WAV."""
     una = _partida(tmp_path, "ruta", "sonido-en-ruta", _msu_del_cartucho())
@@ -202,7 +202,7 @@ def test_con_un_msu_de_otro_build_los_efectos_salen_de_la_rom(tmp_path):
     for nombre, archivo in (("vacio", b""), ("otro", otro)):
         una = _partida(tmp_path, nombre, "efecto-de-calidad", archivo)
         muestras, _tasa, nuevo = _el_efecto(una)
-        assert _lejano(una, "MSU_HAY")[0], "el MSU-1 no se encendió"
+        assert _lejano(una, "MSU_HAS")[0], "el MSU-1 no se encendió"
         assert _lejano(una, "MSU_SE")[0] == 2, (
             "con el .msu %s la ROM lo aceptó para los efectos: no está "
             "mirando la firma" % nombre)
@@ -238,8 +238,8 @@ def test_con_msu_tres_efectos_suenan_a_la_vez(tmp_path):
     """El mapa 3 con `evilrhys` por la pista y tres efectos en el mismo
     cuadro: la 7, la 6 y una de las voces 0 a 5, con las tres muestras
     distintas. Y el tercero se oye: la misma corrida con las voces 0 a 5
-    apagadas justo antes —`MSU_HAY` en cero, que es lo que mira
-    `ex_permitidas`— suena distinto, y la diferencia es audible."""
+    apagadas justo antes —`MSU_HAS` en cero, que es lo que mira
+    `ex_allowed`— suena distinto, y la diferencia es audible."""
     msu = _msu_del_cartucho()
     grabados = []
     for apagar in (False, True):
@@ -249,11 +249,11 @@ def test_con_msu_tres_efectos_suenan_a_la_vez(tmp_path):
             antes = len(una.consola.audio)
             if apagar and una.palabra("tema_actual") == _tema(una, "evilrhys"):
                 una.consola.write_ram(
-                    en_la_wram(una.simbolos["MSU_HAY"]), [0])
+                    en_la_wram(una.simbolos["MSU_HAS"]), [0])
             una.correr(1)
-            siete = _lejano(una, "SE_CUADROS", 12)
+            siete = _lejano(una, "SE_FRAMES", 12)
             if siete[0] or siete[1]:
-                estado = (siete, _lejano(una, "SE2_CUADROS", 12),
+                estado = (siete, _lejano(una, "SE2_FRAMES", 12),
                           _lejano(una, "EX_CUADROS", 26))
                 break
         assert estado is not None, "los efectos del caso no arrancaron"
@@ -261,7 +261,7 @@ def test_con_msu_tres_efectos_suenan_a_la_vez(tmp_path):
         grabados.append(array("h", bytes(una.consola.audio[antes:])))
         if apagar:
             continue
-        assert _lejano(una, "MSU_SUENA")[0] and una.byte("music_apagada"), (
+        assert _lejano(una, "MSU_PLAYING")[0] and una.byte("music_apagada"), (
             "evilrhys no sonó por la pista: el SPC700 tenía la música y las "
             "voces 0 a 5 no son de los efectos")
         siete, seis, extras = estado
@@ -300,9 +300,9 @@ def _tema(una, nombre):
 
 def test_con_msu_un_sonido_que_no_es_del_paquete_va_con_su_altura_de_la_rom(
         tmp_path):
-    """La otra salida de `altura_msu`: el sonido no está en la lista del
+    """La otra salida de `msu_pitch`: el sonido no está en la lista del
     paquete, y la altura queda la de `sonido_tabla`. Es `efecto-de-calidad`
-    con `PAQ_MAPA` cambiado, al llegar al 10, por un paquete cuya lista no
+    con `PKG_MAP` cambiado, al llegar al 10, por un paquete cuya lista no
     tiene a Success2 y sí algún sonido de índice mayor —para que la búsqueda
     corte por pasar de largo y no sólo en el $FFFF—: la ROM no guarda qué
     versión subió, así que la lista es lo único que mira."""
@@ -330,7 +330,7 @@ def test_con_msu_un_sonido_que_no_es_del_paquete_va_con_su_altura_de_la_rom(
     assert elegido is not None, "ningún paquete sirve para la prueba"
 
     una = _partida(tmp_path, "ajeno", "efecto-de-calidad", _msu_del_cartucho())
-    una.consola.write_ram(en_la_wram(rom.simbolos["PAQ_MAPA"]),
+    una.consola.write_ram(en_la_wram(rom.simbolos["PKG_MAP"]),
                           elegido.to_bytes(2, "little"))
     _muestras, _tasa, nuevo = _el_efecto(una)
     assert _lejano(una, "MSU_SE")[0] == 1

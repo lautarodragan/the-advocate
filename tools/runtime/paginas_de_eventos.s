@@ -705,18 +705,18 @@ sin_mensaje:
     ; And only with the hero standing still: `CheckActionEvent` hangs off the
     ; `if (IsStopping())` in `Game_Player::UpdateNextMovementAction`.
     lda pad_a
-    beq nada
+    beq nothing
     lda pad_a_ant
-    bne nada                    ; it was already held: not an edge
+    bne nothing                    ; it was already held: not an edge
     lda step_left
-    bne nada                    ; no talking in the middle of a step
+    bne nothing                    ; no talking in the middle of a step
     ; The hero's forced move route is checked inside: see `try_action`.
     jsr try_action
-    beq nada
+    beq nothing
     ; It marked an event: it starts this same frame.
 hay_esperando:
     jsr start_waiting
-    beq nada                    ; none had a page to run with
+    beq nothing                    ; none had a page to run with
 
 corriendo:
     ; The `while (!interp.IsRunning())` of `Game_Map::UpdateForegroundEvents`:
@@ -761,11 +761,11 @@ sin_refresco_aca:
     lda salto_hay
     bne hubo_salto
     lda ev_activo
-    bne nada                    ; still running: the frame is over
+    bne nothing                    ; still running: the frame is over
     lda esperando_n
-    beq nada
+    beq nothing
     dec arranques
-    beq nada                    ; the frame's budget ran out
+    beq nothing                    ; the frame's budget ran out
     jsr start_waiting
     bne seguir_corriendo
     rts
@@ -830,7 +830,7 @@ pedir_fundido:
     ; The page that asked for the jump keeps running on the other side: its
     ; code is in the ROM and the cursor was saved. The new map's pages are
     ; queued only when this one ends.
-nada:
+nothing:
     rts
 .endproc
 
