@@ -268,6 +268,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `herramientas/test_destello_paleta.py`: la paleta de sprite de los líderes
 * `herramientas/test_timer_paleta.py`: el cronómetro y sus paletas
 * `herramientas/test_indice.py`: que esta lista esté al día
+* `herramientas/test_perillas_repetidas.py`: que ninguna herramienta vuelva
+  a escribir un valor que ya declara `rm2k-snes.toml`
 * `herramientas/test_lado_de_abl.py`: que el lado de ABL —`justfile`,
   `parches/`, `data/` y las pruebas nuevas— no nombre `tools/`, y que el
   `justfile` no nombre Python
