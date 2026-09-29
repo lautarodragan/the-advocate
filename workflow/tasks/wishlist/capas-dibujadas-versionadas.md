@@ -69,8 +69,8 @@ uno tiene su camino propio:
     Monster        los battlers                    escena
     Battle/Battle2 las animaciones de batalla      animacion
     Picture        las de `ShowPicture`            eventos.Recortes
-    Music (.mid)   los temas, y las pistas MSU-1   snes_music, msu
-    Sound (.wav)   los efectos                     snes_music
+    Music (.mid)   los temas, y las pistas MSU-1   rm2k-snes-audio, msu
+    Sound (.wav)   los efectos                     rm2k-snes-audio
 
 Versionar las capas tacha **una sola línea** de esa lista, la primera. Las que
 quedarían afuera igual son todas las demás, y dos de ellas son las que más

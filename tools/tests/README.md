@@ -22,10 +22,8 @@ without xdist. ABL's suite does not run them, and they need nothing from
 ABL: that is why they do not ask `rm2k-snes-cartridges` anything either.
 
 What they do use from outside: `test_protocol.py` runs `protocol` from the
-PATH, and `test_music_stream.py` reads the samples' SoundFont with
-`gunter`, from the PATH, from wherever `ABL_SOUNDFONT` says. The SoundFont
-does not belong to the game but is material for the converter, even though
-the variable still carries ABL's name. `test_protocol.py` and
+PATH. The music stream's tests, which read a SoundFont, are in Rust, in
+`rm2k-snes-audio/`: `just audio-test`. `test_protocol.py` and
 `test_substitutions.py` also read the runtime, in `tools/runtime/`, which
 travels with the tools: the files it is made of are the ones
 `rm2k-snes-assemble --sources` lists, from the PATH, glued together by the

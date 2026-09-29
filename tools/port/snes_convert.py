@@ -7328,8 +7328,9 @@ def flags_parser():
                         help="the same headroom for every song, instead of "
                              "the volume ceiling table: it is what "
                              "`tools/audio/ceilings.py` builds the ROM where it "
-                             "measures each song's peak with. See "
-                             "`read_ceilings` in tools/audio/snes_music.py")
+                             "measures each song's peak with. It goes to "
+                             "`rm2k-snes-audio` as the job's "
+                             "`measuring_headroom`")
     parser.add_argument("--enemy-hp", action="store_true",
                         help="the battle shows the enemies' HP, which RM2k "
                              "never shows: for debugging. It is asked for by "
@@ -8172,7 +8173,8 @@ def main():
     # map the ROM boots in plays; the others are started by a `PlayBGM`, or
     # by the map that is entered if it brings its own —see `map_song_mute`
     # in tools/runtime/enter_map.s—. What rate each sample ends up at is
-    # decided by the ARAM, package by package: see `Bank` in snes_music.py.
+    # decided by the ARAM, package by package: see `Bank` in the `bank.rs`
+    # of `rm2k-snes-audio`.
     music = os.path.join(os.path.dirname(os.path.abspath(args.output)),
                          "musicdata.inc")
     requested, boot, title_song, map_song, game_over_song = (
@@ -8186,8 +8188,8 @@ def main():
     # first —in the demo, the rain and the thunder of the opening—. Only the
     # ones that are in some package: one that isn't in any doesn't sound
     # anywhere —its row of `sound_table` stays at $FF— and building it would
-    # cost the music, because `snes_music.copies` counts the cartridge's
-    # sound effects. It happens with the route ones of
+    # cost the music, because the copies of `rm2k-snes-audio` count the
+    # cartridge's sound effects. It happens with the route ones of
     # `se_route_left_out`.
     packed = {n for palettes_needed in songs.per_map.values()
               for n in palettes_needed["sonidos"]}
@@ -8201,7 +8203,7 @@ def main():
     # they appear, which is the priority the ROM uploads them with if they
     # don't all fit. See `package_load` in tools/runtime/audio_package.s.
     # They are built **before** the bank, by name, because each sample's
-    # budget comes from them: see `snes_music.Bank`.
+    # budget comes from them: see `Bank` in `rm2k-snes-audio`.
     packages, separate_ones = [], []
     for i, _map in enumerate(maps):
         palettes_needed = songs.per_map.get(i, {"temas": [], "sonidos": []})
@@ -8531,7 +8533,7 @@ def write_msu(path, music, backdrops, audio, sounds):
 def inherited_songs(songs, map_song, initial, title, package_names,
                     in_package=None, separate_ones=None, not_given=()):
     """[(package name, index of a song that can be already playing when it
-    loads)], for `snes_music.build_all`.
+    loads)], for the job of `rm2k-snes-audio`.
 
     Almost no map of the game brings its own song: a page starts it, and
     until then the previous map's keeps going, and `package_load_done`
@@ -8566,7 +8568,7 @@ def inherited_songs(songs, map_song, initial, title, package_names,
     `carries`.
 
     `separate_ones` are the separate songs of each package —see
-    `snes_music.separate_songs()`—: they don't leave the map, so they don't
+    `separate_songs()`—: they don't leave the map, so they don't
     count in what goes out.
 
     `not_given` are the jumps of compiled pages that can't happen, as
@@ -8647,7 +8649,7 @@ def rom_songs(map_id, songs, game_dir, title=None, map_ids=(),
     the map where the ROM boots, which is the one that plays without anything
     happening. **And all of them fit**: the index is given by the list and
     costs no ARAM. What the ARAM limits is the samples, and that is allocated
-    by `snes_music.build_all` per package: at the rate the worst package of
+    by `rm2k-snes-audio` per package: at the rate the worst package of
     each one gives, but all of them.
 
     The indices are those of `Songs` and aren't touched: the bytecode already

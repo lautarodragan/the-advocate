@@ -2,7 +2,7 @@
 
 There are two bytecodes in this port: the event one, which
 `tools/port/events.py` emits and the ROM interprets, and the music stream,
-which `tools/audio/snes_music.py` writes and `irq_music` reads. They are
+which `rm2k-snes-audio` writes and `irq_music` reads. They are
 declared by `tools/protocol/`, which belongs to neither side, and from there
 the files in `GENERADOS` are generated. The generator is a Rust binary
 installed with `just -f tools/justfile install` and used from the PATH,

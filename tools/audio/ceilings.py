@@ -7,8 +7,8 @@
     rm2k-snes-volume-ceilings --measure  only measures the `release` that
                                          is built, and writes nothing
 
-The reason for the table is in `read_ceilings` (tools/audio/snes_music.py).
-This is how it comes out:
+The reason for the table is in `ceilings`, in `rm2k-snes-audio`'s
+`game.rs`, which is what reads it. This is how it comes out:
 
 1. **A copy of `release` with every song at half the headroom**
    (`MEASURING_HEADROOM`), in `rom/build/techos/`. With that none clips, so
@@ -16,7 +16,7 @@ This is how it comes out:
    linear in the ceiling, each song's with the full headroom is double.
 2. **Each whole song on the title screen**, in snes9x without MSU-1, and its
    peak. Each one's headroom is the highest that keeps that peak `MARGIN`
-   below the cap, without going past `sdsp.HEADROOM`: the ones that do not
+   below the cap, without going past the usual `HEADROOM`: the ones that do not
    clip stay as they were.
 3. **The table is written, `release` is rebuilt and measured again**. Each
    voice's volume is rounded to an integer, so the arithmetic is

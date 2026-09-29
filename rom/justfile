@@ -134,8 +134,8 @@ _herramientas_del_checkout:
 
 # --- Super Nintendo --------------------------------------------------------
 # El port. El toolchain son dos cosas: un core de libretro y las herramientas
-# del PATH —las de la suite convierten el juego, `ca65` + `ld65` arman la ROM
-# y `gunter` sus muestras—. La ROM se corre cuadro a cuadro desde el arnés de
+# del PATH —las de la suite convierten el juego y compilan su música, y
+# `ca65` + `ld65` arman la ROM—. La ROM se corre cuadro a cuadro desde el arnés de
 # las pruebas, sin emulador con ventana ni servidor X.
 #
 # Las herramientas se instalan aparte y no se compilan acá; si falta alguna,

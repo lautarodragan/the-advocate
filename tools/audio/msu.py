@@ -3,7 +3,7 @@
 
 MSU-1 is not Super Nintendo hardware: it is an extension supported by the FX
 Pak Pro and by emulators, with the music in PCM files next to the ROM. Every
-song has a track —the number comes from `msu_track`, in snes_music.py—, and
+song has a track —the number comes from `rm2k-snes-audio`—, and
 with MSU-1 the ROM silences the SPC700 and plays the track; without MSU-1 the
 signature is not there and everything sounds as always. See
 `workflow/tasks/done/audio-msu-1.md`, and for the battle backgrounds that
@@ -18,7 +18,7 @@ tracks it can be empty.
 
 The audio comes from rendering the MIDI with fluidsynth and **the same
 soundfont the game sounded with on the PC**, which is the one
-`snes_samples.py` already uses to get the SPC700 samples: the idea is not to
+`rm2k-snes-audio` already uses to get the SPC700 samples: the idea is not to
 change the arrangement but to stop synthesizing it with eight voices and
 trimmed samples. A song that in the game is a WAV —the SPC700 does not play
 it: it comes out silent— gets a track anyway, decoded with ffmpeg like a
@@ -101,7 +101,8 @@ def fluidsynth_fingerprint():
     version.
 
     The binary goes in because it is what produces the bytes —the same reason
-    `brr_samples.version()` carries `gunter`'s— and the `--version` text goes
+    the cartridges' fingerprint carries every binary that builds them— and the
+    `--version` text goes
     in because the bulk of the synthesis lives in `libfluidsynth`, which the
     binary does not contain: updating the library without the executable
     changing has to expire the tracks all the same.

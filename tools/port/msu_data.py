@@ -73,7 +73,8 @@ snes_convert.py builds them, and the ROM knows where each one is from
 
 After the backdrops come the quality sound effects, one entry per effect of
 each audio pack, in BRR: `write_msu` in snes_convert.py orders them, and
-the reason is in tools/audio/msu_effects.py.
+which version of each goes in each pack, and why, is `rm2k-snes-audio`'s
+(`msu.rs`).
 """
 
 import hashlib

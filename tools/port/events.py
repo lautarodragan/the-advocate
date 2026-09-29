@@ -801,7 +801,7 @@ class Songs:
     def sound(self, name, volume, tempo, balance, in_package=True):
         """The effect's index. Without `in_package` it is not noted in the
         map's package: it only sounds if something else puts it there. See
-        `se_route_left_out` in snes_music.py. It does not count in
+        `se_route_left_out`. It does not count in
         `requested` either: one that is not in the package does not sound, so
         it does not keep a song from being an exit song."""
         key = (name, volume, tempo, balance)
@@ -1798,8 +1798,8 @@ def rain_pixels(x, y):
 # The sound effects, since 2026-09-11: `PlaySound` compiles to OP_SOUND with
 # the index of its entry in `Songs.sounds`, and the ROM's table says with
 # which sample, what pitch, what volume on each side and how many frames. The
-# samples go in ARAM next to the music's bank, with a budget of their own: see
-# `build_sound_effects` in snes_music.py. They play on voice 7, which is stolen from
+# samples go in ARAM next to the music's bank, in what it leaves free: see
+# `effects.rs` in `rm2k-snes-audio`. They play on voice 7, which is stolen from
 # the music while they last. They cost no tick, as in RM2k.
 #
 # OP_SOUND: index (word)
@@ -3257,8 +3257,8 @@ class TroopPages:
         """A troop's pages. With `songs`, a `PlaySound` is compiled with its
         effect, which counts for **the battle's audio package** —the one
         loaded when the page runs, see `BATTLE_PACKAGE`— and not for the
-        map's; and it goes into it only if it is in `se_troop_in_package`
-        (snes_music.py): otherwise it is asked for and does not sound, like a
+        map's; and it goes into it only if it is in `se_troop_in_package`:
+        otherwise it is asked for and does not sound, like a
         route one that does not fit. Without `songs` it is accepted and not
         done."""
         theirs = []

@@ -30,7 +30,7 @@ APUIO2   = $2142
 APUIO3   = $2143
 
 ; The SPC700 driver command that sends it back to the IPL ROM. See `DRIVER`
-; in tools/audio/snes_music.py and the `reset` loop that uses it.
+; in tools/rm2k-snes-audio/src/spc700.rs and the `reset` loop that uses it.
 APU_CMD_IPL = 4
 
 ; The console multiplies and divides in hardware, which is all the screen

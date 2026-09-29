@@ -58,7 +58,7 @@ WRAM = 0x20000
 # Cómo cuentan `muestras_en_la_aram` y `muestras_del_paquete` a un efecto de
 # sonido: este número más el del efecto. Una entrada del directorio no alcanza
 # para nombrarlo, porque varios efectos comparten lugar —ver
-# `effect_places` en snes_music.py—, y ninguna entrada llega a 256, así
+# `effect_places` en `rm2k-snes-audio`—, y ninguna entrada llega a 256, así
 # que no se confunde con una muestra de la música.
 EFECTO = 0x100
 

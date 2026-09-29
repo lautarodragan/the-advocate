@@ -99,6 +99,7 @@ port —ver `tools/README.md`—:
     tools/rm2k-render/  las capas de un mapa de RM2k, dibujadas desde su ChipSet
     tools/project/   la biblioteca: qué juego, sus perillas, los flags de la máquina
     tools/cartridge/ los cartuchos: el reparto en bancos, ca65 + ld65, el espacio
+    tools/rm2k-snes-audio/  la música: del MIDI y el SoundFont a musicdata.inc
 
 Hasta el 2026-09-16 hubo otro más, `w65/`, el ensamblador de 65816. Lo reemplazaron
 `ca65` y `ld65`, del proyecto cc65: ver "Dónde corre esto".
@@ -131,7 +132,8 @@ segundo bytecode quedó claro que hacerlo hablar castellano lo ata a este repo.
 
 Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 `DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
-mensaje; `tools/protocol/`, `tools/gunter/`, `tools/voodoo/`, `tools/lz2/` y
+mensaje; `tools/rm2k-snes-audio/` recibe el SoundFont por `SOUNDFONT`, igual;
+y `tools/protocol/`, `tools/gunter/`, `tools/voodoo/`, `tools/lz2/` y
 `tools/rm2k-render/` no necesitan nada.
 
 ### `tools/voodoo/` no decide colores, y eso no se arregla
@@ -303,11 +305,11 @@ ambiente cambia, se cambia ahí. `ABL_CACHE` y `CARTUCHOS` también se
 traducen, pero sin valor de la máquina: el caché y los cartuchos de prueba
 viven adentro de `rom/build/`, y las variables sólo los mueven.
 
-Las dos pruebas de las herramientas que leen un SoundFont de verdad lo
-reciben en `SOUNDFONT`, como Ditto su corpus en `DITTO_CORPUS`: sin la
-variable se saltean. Para correrlas acá,
+Las dos pruebas de las herramientas que leen un SoundFont de verdad —las
+de `rm2k-snes-audio`— lo reciben en `SOUNDFONT`, como Ditto su corpus en
+`DITTO_CORPUS`: sin la variable se saltean. Para correrlas acá,
 `SOUNDFONT="/extras/soundfonts/Microsoft GS Wavetable Synth.sf2" just -f
-tools/justfile test`.
+tools/justfile audio-test`.
 
 **`ca65` y `ld65` se compilan acá adentro, y eso fue una decisión.** No están
 empaquetados en Arch, y hasta el 2026-09-15 la regla era no compilar fuentes de
@@ -409,8 +411,8 @@ cuenta es **cuántos bancos quedan**, no un porcentaje: los bancos `$7E` y
 contra el `.o` de la receta; eso sigue sirviendo para lo único que la receta
 no puede, que es una ROM que no linkea: ahí `ld65` dice por cuánto se pasa.
 
-**`rom/build/cache/` es un caché en disco del conversor** —muestras BRR,
-muestras ya preparadas y capas convertidas— y su clave lleva el hash de los
+**`rom/build/cache/` es un caché en disco del conversor** —las capas
+convertidas, y qué pistas de MSU-1 ya están— y su clave lleva el hash de los
 fuentes **y el de los binarios que producen lo guardado**, así que no hay que
 borrarlo al tocar código. Lo único que pide es que cualquier cambio en lo que
 se cachea se verifique con `NO_CACHE=1`: las dos ROMs tienen que ser byte por

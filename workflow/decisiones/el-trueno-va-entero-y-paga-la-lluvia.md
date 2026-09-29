@@ -30,7 +30,7 @@ cada pocos segundos: ver "los efectos de sonido" en
 # Cómo quedó
 
 El trueno entero es un alias, `Thunder9@entero`, que `_compilar` pone sólo en
-el mapa 1 (`SE_DEL_MAPA` en `tools/audio/snes_music.py`): el 3, el 20 y el 32
+el mapa 1 (`per_map` en `[sound_effects]` del archivo de proyecto): el 3, el 20 y el 32
 también piden el trueno, y ésos llevan el de siempre, entero a 6 kHz. Los dos,
 y la lluvia, están en `SE_ENTEROS_PAGADOS`: los paga la música de su paquete
 si hace falta. Si el trueno o la lluvia cambian de tasa, el paquete del mapa 1

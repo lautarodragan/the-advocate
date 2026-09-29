@@ -19,7 +19,7 @@ que la ROM no hace es sacudir a los que se dibujan como objetos: en la pelea
 no hay ninguno.
 
 **Un `PlaySound` de página se pide y no suena**, salvo que su efecto esté en
-`SE_DE_TROPA_AL_PAQUETE` (tools/audio/snes_music.py): el paquete de la pelea
+`troop_effects_in_package` (`[sound_effects]` del archivo de proyecto): el paquete de la pelea
 no tiene lugar sin bajarle la tasa al tema de batalla, y ésa es la regla de
 taro para los efectos. Hoy es uno solo, el `Thunder9` del despegue de la pelea
 de los agentes; los números están al lado de la lista.

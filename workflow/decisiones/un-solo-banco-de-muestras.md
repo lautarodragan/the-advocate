@@ -35,7 +35,7 @@ oboe a 7. Una copia es la misma clave como otra muestra, sólo para los temas
 del grupo que la limita; se hacen la peor primero hasta llenar el
 directorio como era cuando cada efecto tenía su entrada, y con las entradas
 que los efectos liberaron, sólo las que no le bajan la tasa a nadie (ver
-`copias` en `tools/audio/snes_music.py`). Y los temas que un mapa prende sólo para irse —`lufsorr` en el 3,
+`copies` en `tools/rm2k-snes-audio/src/bank.rs`). Y los temas que un mapa prende sólo para irse —`lufsorr` en el 3,
 que suena cuando ya no quedan efectos— no cuentan en el paquete del mapa:
 ver `Temas.de_salida` en `tools/port/eventos.py`.
 
@@ -48,6 +48,6 @@ que antes sonaba a 22 kHz porque la batería estaba a 10 queda cerca de 16.
 Un tema de salida que no entra al lado de su paquete congela, al prenderlo,
 lo que tarda en subir él solo.
 
-Cómo se reparte, en `snes_music.repartir`, `copias` y `Banco`; qué grupo
+Cómo se reparte, en `allocate`, `copies` y `Bank` de `tools/rm2k-snes-audio/src/bank.rs`; qué grupo
 limita a cada muestra y qué temas usan cada copia, en el informe del
 conversor.
