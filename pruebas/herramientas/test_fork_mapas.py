@@ -25,6 +25,7 @@ import pytest
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from render import chipset_del_fork                             # noqa: E402
 from render.chipset import UPPER                               # noqa: E402
 from render.render_map import build_passability                # noqa: E402
 from rpgmaker import fork                                      # noqa: E402
@@ -391,7 +392,7 @@ def test_podar_conserva_las_ranuras_que_solo_nombra_un_evento():
         if "podar" not in receta:
             continue
         mirados += 1
-        _, _, comunes = fork._lo_que_dibuja(map_id)
+        _, _, comunes = chipset_del_fork._lo_que_dibuja(map_id)
         mapa = lcf.Map(os.path.join(RAIZ, "data", "maps",
                                     "Map%04d.json" % map_id))
         for evento in mapa.events:
@@ -415,7 +416,8 @@ def test_podar_se_planta_si_el_mapa_elige_tiles_en_caliente(tmp_path):
     map_id = next(iter(fork.mapas()))
     ruta_json, ruta_tiles = fork.mapas()[map_id]
     datos = json.load(open(ruta_json, encoding="utf-8"))
-    codigo, nombre = sorted(fork.COMANDOS_QUE_ELIGEN_TILES.items())[0]
+    codigo, nombre = sorted(
+        chipset_del_fork.COMANDOS_QUE_ELIGEN_TILES.items())[0]
     datos["events"][0]["pages"][0].setdefault("event_commands", []).append(
         {"code": codigo, "indent": 0, "string": "", "parameters": [0]})
 
@@ -428,7 +430,7 @@ def test_podar_se_planta_si_el_mapa_elige_tiles_en_caliente(tmp_path):
         shutil.copy(ruta_tiles, os.path.join(tmp_path,
                                              "Map%04d.tiles" % map_id))
         with pytest.raises(fork.ForkRoto) as caida:
-            fork._lo_que_dibuja(map_id)
+            chipset_del_fork._lo_que_dibuja(map_id)
     finally:
         fork.MAPAS = mapas_antes
     assert nombre in str(caida.value)
@@ -479,13 +481,14 @@ def test_desde_imagen_trae_el_png_a_quince_bits_y_compone_sobre_su_base(tmp_path
     def buscar(carpeta, nombre):
         return str(ruta_chip if carpeta == "ChipSet" else ruta_dibujo)
 
-    anterior = fork.GENERADO
-    fork.GENERADO = str(tmp_path / "build")
+    anterior = chipset_del_fork.GENERADO
+    chipset_del_fork.GENERADO = str(tmp_path / "build")
     try:
-        salida = Image.open(fork.imagen_del_chipset(datos, buscar))
+        salida = Image.open(
+            chipset_del_fork.imagen_del_chipset(datos, buscar))
         salida.load()
     finally:
-        fork.GENERADO = anterior
+        chipset_del_fork.GENERADO = anterior
     paleta = salida.getpalette()
 
     def color(ranura, x, y):
@@ -527,7 +530,7 @@ def test_los_colores_declarados_transparentes_no_llegan_al_chipset():
         if not declarados:
             continue
         mirados += 1
-        ruta = os.path.join(fork.GENERADO, "ChipSet",
+        ruta = os.path.join(chipset_del_fork.GENERADO, "ChipSet",
                             datos["chipset"]["chipset_name"] + ".png")
         if not os.path.isfile(ruta):
             pytest.skip("el PNG del ChipSet %d no está armado" % numero)
