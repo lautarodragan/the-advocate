@@ -13,7 +13,7 @@ import os
 
 from PIL import Image
 
-from common import proyecto
+from common import project
 from rpgmaker import lcf
 from rpgmaker import rm2k
 from rpgmaker import recursos
@@ -212,7 +212,7 @@ class Renderer:
         self.database = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
         self.tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
         self.game_dir = game_dir
-        self.search_dirs = [proyecto.raiz(), game_dir, rtp_dir]
+        self.search_dirs = [project.root(), game_dir, rtp_dir]
         # The images of the ChipSets `rom/parches/manual/` adds are **built**
         # —the game's art is not ours to version, see `chipset_del_fork.py`—
         # and go first in the search: they are the ones that win when they

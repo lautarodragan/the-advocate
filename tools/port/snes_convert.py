@@ -89,7 +89,7 @@ from port import reglas
 from port import msu_datos
 from audio import efectos_msu
 from common import perillas
-from common import proyecto
+from common import project
 from common.paralelo import en_paralelo
 from audio import snes_music
 from port.asignador import CELL, tile_colors
@@ -1761,7 +1761,7 @@ def _version_capas():
       by itself. Since the key comes from the inputs, the only way for a change
       in the drawing to invalidate what is stored is this one.
       `rpgmaker/recursos.py` goes with them because it is where `render_map`
-      gets how it finds the ChipSet, and `common/proyecto.py` because it is
+      gets how it finds the ChipSet, and `common/project.py` because it is
       where the directories it searches in come from;
     * `port/asignador.py` decides which colors are lost, `rpgmaker/rm2k.py`
       has the constants of the split and of the animated families, and this
@@ -1787,7 +1787,7 @@ def _version_capas():
                                                  "rpgmaker/rm2k.py",
                                                  "render/render_map.py",
                                                  "rpgmaker/recursos.py",
-                                                 "common/proyecto.py",
+                                                 "common/project.py",
                                                  "render/chipset.py")
                           + tiles_bin.version()
                           + " Pillow " + PIL.__version__)
@@ -7297,12 +7297,12 @@ def parser_de_flags():
                              "table. Mandatory and with no default: it "
                              "belongs to the game, and its project file "
                              "declares it")
-    proyecto.argumento(parser)
+    project.add_argument(parser)
     # No default, and no `required` for the same reason as `--map-id`:
     # `ambiente` enforces them when they are read.
     ambiente.argumentos(parser, "game_dir", "rtp_dir", "soundfont", "cache")
     parser.add_argument("-o", "--output",
-                        default=os.path.join(proyecto.build(), "inc", "mapdata.inc"))
+                        default=os.path.join(project.build(), "inc", "mapdata.inc"))
     parser.add_argument("--msu",
                         help="where to write the .msu with the data the\n"
                              "MSU-1 serves to the ROM: next to the .sfc and\n"
@@ -7392,7 +7392,7 @@ def parser_de_flags():
 
 
 def main():
-    proyecto.desde_la_linea_de_comandos()
+    project.from_command_line()
     parser = parser_de_flags()
     argv, tramos = partir_en_casos(sys.argv[1:])
     args = parser.parse_args(argv)

@@ -24,7 +24,7 @@ import os
 
 from PIL import Image
 
-from common import proyecto
+from common import project
 from rpgmaker import lcf
 from rpgmaker.fork import ForkRoto, chipsets
 from rpgmaker.rm2k import (OFFSET_X, SPRITE_HEIGHT, SPRITE_WIDTH, TILE,
@@ -33,7 +33,7 @@ from rpgmaker.rm2k import (OFFSET_X, SPRITE_HEIGHT, SPRITE_WIDTH, TILE,
 def generado():
     """Where the built images land. It is a build directory like any other:
     it can be deleted, and it rebuilds itself."""
-    return os.path.join(proyecto.build(), "parches-manual")
+    return os.path.join(project.build(), "parches-manual")
 
 
 def _paleta(imagen):
@@ -76,7 +76,7 @@ def _lo_que_dibuja(map_id):
     and the ROM came out with 78 different bytes: the byte-for-byte
     comparison caught it, not a test.
     """
-    mapa = lcf.Map(os.path.join(proyecto.data(), "maps", "Map%04d.json" % map_id))
+    mapa = lcf.Map(os.path.join(project.data(), "maps", "Map%04d.json" % map_id))
     agua = False
     terrenos, comunes = set(), set()
     for capa in (mapa.lower_layer, mapa.upper_layer):

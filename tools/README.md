@@ -115,7 +115,7 @@ The reason for the names is in `tools/justfile`. A new one is added in
 `_instalar`, and the `.py` finds its packages by resolving the symlink with
 `realpath`, because `__file__` is the PATH location: it climbs up to
 `tools/` and no further. **Where everything else is** is answered by
-`common/proyecto.py`, and by nobody else: `pruebas/test_proyecto.py` enforces
+`common/project.py`, and by nobody else: `pruebas/test_proyecto.py` enforces
 it. What belongs to the repo —the root, the runtime— comes from where that
 file is; what belongs to the game, from its project file: see "How they find
 the game". The tests put `tools/` on the path themselves, from
@@ -163,7 +163,7 @@ Line's is `rom/rm2k-snes.toml`—, and it is read with `common/perillas.py`:
 
 **The tools do not know where any game lives: they find it**, the way cargo
 finds its `Cargo.toml`. They look for `rm2k-snes.toml` from the current
-directory upwards, or receive it through `--proyecto <directory>`; if they do
+directory upwards, or receive it through `--project <directory>`; if they do
 not find it, they stop and say where they searched from. The search happens
 the first time someone asks, not at import: importing the converter does not
 require a game.

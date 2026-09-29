@@ -25,12 +25,12 @@ being set.
 
 import os
 
-from common import proyecto
+from common import project
 
 
 class FaltaElAmbiente(SystemExit):
     """A machine value nobody passed. It is a `SystemExit` for the same
-    reason as `proyecto.NoHayProyecto`: what fixes it is how it was run, not
+    reason as `project.NoProject`: what fixes it is how it was run, not
     the code."""
 
 
@@ -124,14 +124,14 @@ def reemplazos_msu():
 
 def cache():
     """The converter's disk cache: see `common/cache_disco.py`."""
-    return _fijados.get("cache") or os.path.join(proyecto.build(), "cache")
+    return _fijados.get("cache") or os.path.join(project.build(), "cache")
 
 
 def cartuchos_de_prueba():
     """Where the suite's cartridges are built, except `release`: see
     `cartuchos.directorio`."""
     return (_fijados.get("test_cartridges")
-            or os.path.join(proyecto.build(), "tests"))
+            or os.path.join(project.build(), "tests"))
 
 
 def compartido():

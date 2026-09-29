@@ -3,7 +3,7 @@
 Until 2026-09-29 A Blurred Line's choices —which maps go into the cartridge,
 what the ROM is called, which sound effects go whole— were written in the
 `.py` files of `tools/`, and each tool had them as a default. Now they live
-in a TOML at the game's root —`proyecto.archivo_de_proyecto()`—, and the
+in a TOML at the game's root —`project.project_file()`—, and the
 tools read them from here. See
 `workflow/decisiones/las-herramientas-se-separan-de-abl.md` and steps 3 and 4
 of `docs/research/el-mapa-de-las-herramientas-de-python.md`.
@@ -18,7 +18,7 @@ comments, in the game's language.
 
 import tomllib
 
-from common import proyecto
+from common import project
 
 _leidos = {}
 
@@ -33,7 +33,7 @@ class FaltaUnaClave(KeyError):
 def leer(ruta=None):
     """The whole file, as a dictionary. It is read once per path: the tools
     consult it when imported and on every map."""
-    ruta = ruta or proyecto.archivo_de_proyecto()
+    ruta = ruta or project.project_file()
     if ruta not in _leidos:
         with open(ruta, "rb") as archivo:
             _leidos[ruta] = tomllib.load(archivo)
@@ -44,7 +44,7 @@ def valor(*claves, tipo=None, ruta=None):
     """The setting at `claves` —`valor("rom", "name")` is `[rom] name`—.
     It fails with the key's name if it is missing, or if `tipo` is not its
     type: `bool` does not pass for `int`, even though Python says it does."""
-    ruta = ruta or proyecto.archivo_de_proyecto()
+    ruta = ruta or project.project_file()
     actual = leer(ruta)
     for k, clave in enumerate(claves):
         if not isinstance(actual, dict) or clave not in actual:
@@ -75,7 +75,7 @@ def ascii(*claves, largo=None, hasta=None, ruta=None):
     `largo` characters long or at most `hasta`."""
     texto = valor(*claves, tipo=str, ruta=ruta)
     nombre = ".".join(claves)
-    ruta = ruta or proyecto.archivo_de_proyecto()
+    ruta = ruta or project.project_file()
     if not all(" " <= c <= "~" and c != '"' for c in texto):
         raise FaltaUnaClave("%s: %s must be printable ASCII without "
                             "quotes, and is %r" % (ruta, nombre, texto))

@@ -36,7 +36,7 @@ say which character set a string is in—.
 import json
 import os
 
-from common import proyecto
+from common import project
 from rpgmaker import fork
 from rpgmaker.event_codes import EVENT_CODES
 
@@ -54,7 +54,7 @@ def volcado(path):
     directorio = os.path.dirname(os.path.abspath(path))
     if os.path.isfile(os.path.join(directorio, MANIFIESTO)):
         return directorio
-    return proyecto.data()
+    return project.data()
 
 
 def leer(*partes):
@@ -370,7 +370,7 @@ class Map:
         # say. And the same for a map the game does not have: see
         # `fork.nuevos`.
         forkeado = ((fork.mapa(self.map_id) or fork.nuevo(self.map_id))
-                    if raiz == proyecto.data() else None)
+                    if raiz == project.data() else None)
         if forkeado:
             ruta_json, ruta_tiles = forkeado
             datos = leer(ruta_json)
@@ -719,7 +719,7 @@ class Database:
         # already in the database is an error, because a fork that overwrites
         # an entry goes stale without warning the day `just datos` changes
         # it. See `fork.py`.
-        if raiz == os.path.join(proyecto.data(), "db"):
+        if raiz == os.path.join(project.data(), "db"):
             for numero, datos in fork.chipsets().items():
                 if numero in crudas["chipsets"]:
                     raise ValueError(
@@ -864,7 +864,7 @@ class TreeMap:
         infos = por_id(lista(datos, "maps"))
         # The maps the game does not have bring their node: see
         # `fork.nuevos`. Only on this game's dump, same as `Map`'s forks.
-        if volcado(path) == proyecto.data():
+        if volcado(path) == project.data():
             for map_id, (_json, _tiles, nodo) in fork.nuevos().items():
                 infos[map_id] = nodo
 

@@ -26,11 +26,11 @@ import re
 
 import lugares                                  # antes que nada
 from common import perillas
-from common import proyecto
+from common import project
 from emulador import retro
 from ensamblado import bancos
 
-RAIZ = proyecto.raiz()
+RAIZ = project.root()
 # Lo que las pruebas dejan para mirar. Lo toman de acá los pedazos del arnés
 # que no importan de las herramientas.
 SNAPSHOTS = lugares.SNAPSHOTS

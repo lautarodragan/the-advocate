@@ -39,29 +39,29 @@ The image of those ChipSets is built by `render/chipset_del_fork.py`.
 import json
 import os
 
-from common import proyecto
+from common import project
 
 # Where each part is. They are functions and not constants because they come
 # from the project, which is found when used and not when this module is
 # imported; the tests override them with a temporary directory.
 
 def carpeta_mapas():
-    return os.path.join(proyecto.parches_manual(), "mapas")
+    return os.path.join(project.manual_patches(), "mapas")
 
 
 def carpeta_chipsets():
-    return os.path.join(proyecto.parches_manual(), "chipsets")
+    return os.path.join(project.manual_patches(), "chipsets")
 
 
 def carpeta_nuevos():
     """The maps the game does not have: see `nuevos`."""
-    return os.path.join(proyecto.parches_manual(), "nuevos")
+    return os.path.join(project.manual_patches(), "nuevos")
 
 
 def carpeta_del_juego():
     """The game's maps, against which it is checked that a fork overwrites one
     and a new map does not."""
-    return os.path.join(proyecto.data(), "maps")
+    return os.path.join(project.data(), "maps")
 
 
 class ForkRoto(Exception):

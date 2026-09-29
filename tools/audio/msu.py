@@ -79,7 +79,7 @@ from audio import snes_music                                # noqa: E402
 from audio import snes_samples                              # noqa: E402
 from common import ambiente                                  # noqa: E402
 from common import cache_disco                               # noqa: E402
-from common import proyecto                                  # noqa: E402
+from common import project                                  # noqa: E402
 from rpgmaker import recursos                               # noqa: E402
 
 # fluidsynth's gain. With 1.0 the songs with many voices saturate, so it is
@@ -356,12 +356,12 @@ DEL_AMBIENTE = ("game_dir", "rtp_dir", "soundfont", "reemplazos", "cache")
 
 
 def main():
-    proyecto.desde_la_linea_de_comandos()
+    project.from_command_line()
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("rom", help="the ROM: the tracks go next to it, with "
                                     "its name and the track number")
-    proyecto.argumento(parser)
+    project.add_argument(parser)
     ambiente.argumentos(parser, *DEL_AMBIENTE)
     parser.add_argument("--ganancia", type=float, default=GANANCIA)
     args = parser.parse_args()

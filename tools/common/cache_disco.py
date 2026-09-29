@@ -36,7 +36,7 @@ import pickle
 import tempfile
 
 from common import ambiente
-from common import proyecto
+from common import project
 
 APAGADO = os.environ.get("SIN_CACHE") == "1"
 
@@ -52,7 +52,7 @@ def version_de(*archivos):
     paths relative to `tools/`."""
     h = hashlib.sha256()
     for nombre in archivos:
-        with open(os.path.join(proyecto.herramientas(), nombre), "rb") as f:
+        with open(os.path.join(project.tools(), nombre), "rb") as f:
             h.update(f.read())
     return h.hexdigest()
 

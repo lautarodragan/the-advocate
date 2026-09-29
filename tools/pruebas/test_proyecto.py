@@ -1,11 +1,11 @@
-"""That where each thing is is known by `common/proyecto.py`, and nobody else.
+"""That where each thing is is known by `common/project.py`, and nobody else.
 
 Before that module, eleven `.py` files computed the repo root by climbing
 three folders from `__file__`, and as many more built `data/`,
 `parches/manual/` or `rom/src/` by hand from it. On 2026-09-29 the runtime
 moved to `tools/runtime/`, and `data/`, `parches/` and `pruebas/` into
 `rom/`: each of those would have been one more place to search, and with
-this it took changing a few lines of `proyecto.py`. See
+this it took changing a few lines of `project.py`. See
 `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 
 It looks at the `.py` files of `tools/` —the packages and their tests—, and
@@ -14,10 +14,10 @@ fails if any of them:
 * **climbs up to the root from `__file__`**: three `dirname` or a `".."` in
   the same statement as `__file__`. Climbing two, up to `tools/`, is allowed:
   that is how an executed script puts its packages on `sys.path` before it
-  can import anything, and that includes `proyecto`;
+  can import anything, and that includes `project`;
 * **builds a repo path by hand**: an `os.path.join` that starts with a root
   folder —`"data"`, `"tools/runtime"`…—, or that sticks it after the root
-  —`RAIZ`, `proyecto.raiz()`—. After anything else it does not count:
+  —`RAIZ`, `project.root()`—. After anything else it does not count:
   `pruebas/` inside `tools/` is another folder;
 * **reads one of the environment variables that say where something is**, or
   writes the default value of one: since 2026-09-29 that arrives by flags
@@ -41,9 +41,9 @@ import os
 
 import pytest
 
-from common import proyecto
+from common import project
 
-HERRAMIENTAS = proyecto.herramientas()
+HERRAMIENTAS = project.tools()
 ESTE = os.path.realpath(__file__)
 
 # The root folders. A piece of a path that starts with one of these is a repo
@@ -51,7 +51,7 @@ ESTE = os.path.realpath(__file__)
 DE_LA_RAIZ = {"data", "parches", "rom", "pruebas", "tools"}
 
 # What the root is called when it is held in a variable.
-RAIZ = {"RAIZ", "REPO", "raiz"}
+RAIZ = {"RAIZ", "REPO", "raiz", "ROOT", "root"}
 
 # The variables that say where something is.
 DE_AMBIENTE = {"ABL_GAME_DIR", "ABL_RTP_DIR", "ABL_SOUNDFONT", "ABL_CACHE",
@@ -66,7 +66,7 @@ PERMITIDOS = {
 
 
 def _nuestros():
-    """The `.py` files of `tools/`, minus the Rust projects. `proyecto.py`
+    """The `.py` files of `tools/`, minus the Rust projects. `project.py`
     too: until 2026-09-29 it was the exception, because the machine's values
     lived there, and it no longer has them."""
     for raiz, subs, archivos in os.walk(HERRAMIENTAS):
@@ -93,11 +93,11 @@ def _es_join(nodo):
 
 
 def _es_la_raiz(nodo):
-    """`RAIZ`, `REPO`, `raiz` or `something.raiz()`."""
+    """`RAIZ`, `REPO`, `raiz`, `ROOT`, `root` or `something.root()`."""
     if isinstance(nodo, ast.Name):
         return nodo.id in RAIZ
     return (isinstance(nodo, ast.Call) and isinstance(nodo.func, ast.Attribute)
-            and nodo.func.attr == "raiz")
+            and nodo.func.attr == "root")
 
 
 def _es_lectura_de_ambiente(nodo):
@@ -138,7 +138,7 @@ def violaciones(ruta, fuente=None):
                            and n.attr == "dirname")
             if dirnames >= 3 or any(_texto(n) == ".." for n in nodos):
                 malas.append("%d: climbs up to the root from __file__: "
-                             "proyecto.raiz()" % sentencia.lineno)
+                             "project.root()" % sentencia.lineno)
     for nodo in ast.walk(arbol):
         if isinstance(nodo, ast.Call) and _es_join(nodo):
             for k, arg in enumerate(nodo.args):
@@ -149,7 +149,7 @@ def violaciones(ruta, fuente=None):
                 if (primero in DE_LA_RAIZ
                         and (relativo, primero) not in PERMITIDOS):
                     malas.append("%d: builds a path to %s/ by hand: it goes in "
-                                 "proyecto.py" % (nodo.lineno, primero))
+                                 "project.py" % (nodo.lineno, primero))
         variable = _es_lectura_de_ambiente(nodo)
         if variable in DE_AMBIENTE:
             malas.append("%d: reads %s: it arrives by flag, see common/ambiente.py"
@@ -206,7 +206,7 @@ def test_nadie_mas_sabe_donde_esta_cada_cosa():
         malas += ["%s:%s" % (os.path.relpath(ruta, HERRAMIENTAS), v)
                   for v in violaciones(ruta)]
     assert not malas, (
-        "where each thing is is known by common/proyecto.py and nobody else:\n  "
+        "where each thing is is known by common/project.py and nobody else:\n  "
         + "\n  ".join(malas))
 
 
@@ -256,14 +256,14 @@ def test_la_prosa_y_la_seccion_rom_no_son_abl(fuente):
     'REEMPLAZOS = "/extras/msu"\n',
 ])
 def test_la_red_ve_cada_forma(fuente):
-    """Every form that existed before `proyecto.py` has to give a violation:
+    """Every form that existed before `project.py` has to give a violation:
     otherwise the test above is not looking."""
     assert violaciones(os.path.join(HERRAMIENTAS, "x", "y.py"), fuente)
 
 
 def test_subir_hasta_tools_se_puede():
     """A script's startup, which puts `tools/` on `sys.path` before it can
-    import `proyecto`."""
+    import `project`."""
     assert not violaciones(os.path.join(HERRAMIENTAS, "x", "y.py"),
                            'sys.path.insert(0, os.path.dirname(os.path.dirname('
                            'os.path.realpath(__file__))))\n')

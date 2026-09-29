@@ -27,15 +27,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from common import ambiente                              # noqa: E402
 from common import perillas                              # noqa: E402
-from common import proyecto                              # noqa: E402
+from common import project                              # noqa: E402
 
-# `--proyecto` se lee antes que nada: este módulo lee el archivo de proyecto
+# `--project` se lee antes que nada: este módulo lee el archivo de proyecto
 # al importarse, y el `parse_args` de `main` llega tarde.
 if __name__ == "__main__":
-    proyecto.desde_la_linea_de_comandos()
+    project.from_command_line()
 
-RAIZ = proyecto.raiz()
-RELEASE = os.path.join(proyecto.build(), "release")
+RAIZ = project.root()
+RELEASE = os.path.join(project.build(), "release")
 
 def _builds():
     """Donde van los builds: `--compartido` y adentro `builds/`."""
@@ -58,10 +58,10 @@ PISTAS = NOMBRE + "-*.pcm"
 # conversor. Un cambio sin commitear ahí haría un build que no es el del commit
 # que lo nombra. `README.md`, `docs/` o un `.box.yml` suelto no entran.
 # Relativas a la raíz, porque son pathspecs de `git`.
-RUNTIME = os.path.relpath(proyecto.runtime(), RAIZ)
+RUNTIME = os.path.relpath(project.runtime(), RAIZ)
 LO_QUE_ENTRA = tuple(os.path.relpath(r, RAIZ) for r in (
-    proyecto.runtime(), proyecto.herramientas(), proyecto.parches(),
-    proyecto.data(), proyecto.archivo_de_proyecto()))
+    project.runtime(), project.tools(), project.patches(),
+    project.data(), project.project_file()))
 
 # `<fecha>-<commit>` y lo que siga. Sólo esos se cuentan y se borran: lo demás
 # que haya en /shared/builds/ es de taro.
@@ -172,7 +172,7 @@ def renglones(texto):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("que_mirar", help="qué cambió y qué mirar: va al LEEME")
-    proyecto.argumento(parser)
+    project.add_argument(parser)
     ambiente.argumentos(parser, "compartido")
     parser.add_argument("--actualizar-msu", action="store_true",
                         help="copiar las pistas a /shared/msu/ si cambiaron")

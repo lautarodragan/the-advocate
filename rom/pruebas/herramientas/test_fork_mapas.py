@@ -23,7 +23,7 @@ import shutil
 
 import pytest
 
-from common import proyecto                                      # noqa: E402
+from common import project                                      # noqa: E402
 from render import chipset_del_fork                             # noqa: E402
 from render.chipset import UPPER                               # noqa: E402
 from render.render_map import build_passability                # noqa: E402
@@ -60,7 +60,7 @@ def fork_de_mentira(tmp_path, monkeypatch):
 
 def _un_mapa_de_verdad():
     """Un mapa cualquiera de `data/`, para copiar de ahí y no inventar uno."""
-    return os.path.join(proyecto.data(), "maps", "Map0011")
+    return os.path.join(project.data(), "maps", "Map0011")
 
 
 def test_fork_a_medias_no_arma(fork_de_mentira):
@@ -118,7 +118,7 @@ def _un_mapa_nuevo(directorio, map_id, id_del_nodo=None):
     """Un mapa de `data/` copiado como si fuera nuevo, con el nodo del 11."""
     datos = json.load(open(_un_mapa_de_verdad() + ".json", encoding="utf-8"))
     datos["id"] = map_id
-    arbol = json.load(open(os.path.join(proyecto.data(), "maps.json"),
+    arbol = json.load(open(os.path.join(project.data(), "maps.json"),
                            encoding="utf-8"))["maps"]
     datos["arbol"] = dict(next(n for n in arbol if n["id"] == 11),
                           id=map_id if id_del_nodo is None else id_del_nodo)
@@ -173,7 +173,7 @@ def test_fork_no_le_cambia_el_tamano_al_mapa():
     """Un fork que redimensiona corre todas las celdas del juego un lugar."""
     for map_id, (ruta_json, _) in fork.mapas().items():
         nuestro = json.load(open(ruta_json, encoding="utf-8"))
-        suyo = json.load(open(os.path.join(proyecto.data(), "maps",
+        suyo = json.load(open(os.path.join(project.data(), "maps",
                                            "Map%04d.json" % map_id),
                               encoding="utf-8"))
         assert (nuestro["width"], nuestro["height"]) \
@@ -215,7 +215,7 @@ def test_fork_donde_borro_un_evento_del_piso_la_celda_sigue_cerrada():
         datos, _ = _original(map_id)
         game_map = lcf.Map("Map%04d.lmu" % map_id)
         vivos = {evento.id for evento in game_map.events}
-        base = lcf.Database(os.path.join(proyecto.data(), "db", "RPG_RT.ldb"))
+        base = lcf.Database(os.path.join(project.data(), "db", "RPG_RT.ldb"))
         pasa = rm2k.passability_map(
             game_map, build_passability(base.chipsets[game_map.chipset_id]))
         for evento in datos["events"]:
@@ -245,7 +245,7 @@ def _teleports_al(map_id):
             if cmd["code"] == TELEPORT and len(p) >= 3 and p[0] == map_id:
                 destinos.add((p[1], p[2]))
 
-    mapas = os.path.join(proyecto.data(), "maps")
+    mapas = os.path.join(project.data(), "maps")
     for nombre in sorted(os.listdir(mapas)):
         if not nombre.endswith(".json"):
             continue
@@ -253,7 +253,7 @@ def _teleports_al(map_id):
         for evento in datos["events"]:
             for pagina in evento["pages"]:
                 mirar(pagina["event_commands"])
-    comunes = json.load(open(os.path.join(proyecto.data(), "db",
+    comunes = json.load(open(os.path.join(project.data(), "db",
                                           "commonevents.json"),
                              encoding="utf-8"))
     for comun in comunes:
@@ -274,7 +274,7 @@ def test_fork_los_teleports_que_entran_siguen_cayendo_en_celdas_pisables():
     forkeados = fork.mapas()
     if not forkeados:
         pytest.skip("no hay ningún mapa forkeado")
-    base = lcf.Database(os.path.join(proyecto.data(), "db", "RPG_RT.ldb"))
+    base = lcf.Database(os.path.join(project.data(), "db", "RPG_RT.ldb"))
     for map_id in forkeados:
         game_map = lcf.Map("Map%04d.lmu" % map_id)
         flags = build_passability(base.chipsets[game_map.chipset_id])
@@ -300,7 +300,7 @@ def _original(map_id):
     Se lee a mano y no con `lcf.Map`, que es justamente quien aplica el fork:
     acá hace falta el de antes para compararlo contra el de después.
     """
-    base = os.path.join(proyecto.data(), "maps", "Map%04d" % map_id)
+    base = os.path.join(project.data(), "maps", "Map%04d" % map_id)
     datos = json.load(open(base + ".json", encoding="utf-8"))
     capas = lcf.capas(base + ".tiles", datos, datos["width"], datos["height"])
     return datos, capas
@@ -393,7 +393,7 @@ def test_podar_conserva_las_ranuras_que_solo_nombra_un_evento():
             continue
         mirados += 1
         _, _, comunes = chipset_del_fork._lo_que_dibuja(map_id)
-        mapa = lcf.Map(os.path.join(proyecto.data(), "maps",
+        mapa = lcf.Map(os.path.join(project.data(), "maps",
                                     "Map%04d.json" % map_id))
         for evento in mapa.events:
             for pagina in evento.pages:

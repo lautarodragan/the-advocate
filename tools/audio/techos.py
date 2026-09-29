@@ -47,7 +47,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from audio import sdsp, snes_music                      # noqa: E402
 from common import ambiente                              # noqa: E402
 from common import perillas                              # noqa: E402
-from common import proyecto                              # noqa: E402
+from common import project                              # noqa: E402
 
 # Half the usual headroom: measured on 2026-09-26, with 0.25 none of the 32
 # songs of `release` clips, and the loudest one stays 3.9 dB below the cap.
@@ -264,10 +264,10 @@ def imprimir(medido, techos=None):
 
 
 def main():
-    proyecto.desde_la_linea_de_comandos()
+    project.from_command_line()
     from ensamblado import cartuchos
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    proyecto.argumento(parser)
+    project.add_argument(parser)
     ambiente.argumentos(parser, *cartuchos.AL_CONVERSOR)
     parser.add_argument("--medir", action="store_true",
                         help="only measure the built `release`: clipping, "
@@ -280,7 +280,7 @@ def main():
         return
 
     # The half-volume copy, in its own build directory.
-    medida = os.path.join(proyecto.build(), "techos")
+    medida = os.path.join(project.build(), "techos")
     print("a copy of release with the headroom at %s, in %s"
           % (AIRE_DE_MEDIDA, medida))
     cartuchos.convertir(cartuchos.RELEASE, medida,

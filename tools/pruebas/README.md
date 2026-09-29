@@ -51,7 +51,7 @@ has to exist: `test_indice.py` enforces it.
 * `test_musica_stream.py`: the stream the converter builds: which voice each
   note goes to, when it is released and with which envelope
 * `test_proyecto.py`: that where each thing is —the root, the repo's
-  folders— is known only to `common/proyecto.py`, that no tool reads the
+  folders— is known only to `common/project.py`, that no tool reads the
   environment on its own, and that none knows about A Blurred Line: no
   `ABL_*` variable, no `rom/` as a path
 * `test_perillas.py`: that the project file reader, `common/perillas.py`,

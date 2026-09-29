@@ -42,7 +42,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from common import ambiente                              # noqa: E402
-from common import proyecto                              # noqa: E402
+from common import project                              # noqa: E402
 from ensamblado import bancos                           # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
 
@@ -68,7 +68,7 @@ def _areas(cfg):
 
 def _relleno_de_far(dbg):
     """How much the `.align $8000` in `cabecera.s` pads, in bytes."""
-    with open(os.path.join(proyecto.runtime(), "cabecera.s")) as archivo:
+    with open(os.path.join(project.runtime(), "cabecera.s")) as archivo:
         lineas = [n + 1 for n, l in enumerate(archivo)
                   if l.split(";")[0].strip().startswith(".align")]
     archivos = {f["id"] for f in _registros(dbg, "file")
@@ -118,7 +118,7 @@ def mostrar(nombre, sfc):
     m = medir(sfc)
     # A ROM built separately is named by its path; a cartridge, by its name.
     print(nombre if os.path.isfile(nombre)
-          else "%s  (%s)" % (nombre, os.path.relpath(sfc, proyecto.raiz())))
+          else "%s  (%s)" % (nombre, os.path.relpath(sfc, project.root())))
     print("  data banks       %d of %d used, $%02X-$%02X; %d free after them"
           % (m["ultimo"] - m["primero"] + 1, m["bancos"], m["primero"],
              m["ultimo"], m["libres"]))
@@ -137,10 +137,10 @@ def mostrar(nombre, sfc):
 
 
 def main():
-    proyecto.desde_la_linea_de_comandos()
+    project.from_command_line()
     from ensamblado import cartuchos
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    proyecto.argumento(parser)
+    project.add_argument(parser)
     ambiente.argumentos(parser, "test_cartridges")
     parser.add_argument("cuales", nargs="*", metavar="CARTRIDGE",
                         help="a cartridge from cartuchos.py or the path of a "

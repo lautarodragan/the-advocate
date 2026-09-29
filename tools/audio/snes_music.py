@@ -23,7 +23,7 @@ from audio import sdsp
 from audio import snes_samples
 from audio import spc700
 from common import perillas
-from common import proyecto
+from common import project
 from common.paralelo import en_paralelo
 from rpgmaker import recursos
 from rpgmaker.recursos import find_resource
@@ -1949,7 +1949,7 @@ def leer_tema(name, game_dir=None):
 def ruta_de_techos():
     """Where the table is: a function and not a constant, because it comes
     from the project, which is found when used and not at import."""
-    return os.path.join(proyecto.parches_auto(), "musica", "techos.toml")
+    return os.path.join(project.auto_patches(), "musica", "techos.toml")
 
 
 def leer_techos(ruta=None):
@@ -2318,7 +2318,7 @@ CUADROS_POR_KB_PAQUETE = 1.45
 CUADROS_POR_KB_IPL = 1.5
 CUADROS_DEL_MAPA = 10
 # Where `BOOT_CUADROS` lives, which belongs to the ROM and not here.
-RAM_LEJANA = os.path.join(proyecto.runtime(), "ram_lejana.s")
+RAM_LEJANA = os.path.join(project.runtime(), "ram_lejana.s")
 
 
 def cuadros_del_arranque(driver, voces, temas, paquete, descomprimir=0.0,

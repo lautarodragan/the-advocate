@@ -13,10 +13,10 @@ import os
 import re
 
 from port import snes_convert                            # noqa: E402
-from common import proyecto  # noqa: E402
+from common import project  # noqa: E402
 from ensamblado import ensamblar  # noqa: E402
 
-MAIN = os.path.join(proyecto.runtime(), "main.s")
+MAIN = os.path.join(project.runtime(), "main.s")
 
 
 def de_main(nombre):

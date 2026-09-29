@@ -19,13 +19,13 @@ Se importa antes que nada que lea el archivo de proyecto al importarse
 import os
 
 from common import ambiente
-from common import proyecto
+from common import project
 
 # `pruebas/`, y la raíz del juego arriba: donde está su archivo de proyecto.
 PRUEBAS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ABL = os.path.dirname(PRUEBAS)
 
-proyecto.fijar(ABL)
+project.use(ABL)
 
 # Lo que es sólo de las pruebas, y no lo lee ninguna herramienta: por eso no
 # está en el archivo de proyecto. Los casos sí, porque los lee

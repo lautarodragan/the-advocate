@@ -33,22 +33,22 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from audio import muestras_brr                          # noqa: E402
 from common import ambiente                              # noqa: E402
 from common import perillas                              # noqa: E402
-from common import proyecto                              # noqa: E402
+from common import project                              # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
 from port import tiles_bin                              # noqa: E402
 from port import comprimir                              # noqa: E402
 
-# `--proyecto` is read before anything else: this module reads the project
+# `--project` is read before anything else: this module reads the project
 # file when imported, and `main`'s `parse_args` comes too late.
 if __name__ == "__main__":
-    proyecto.desde_la_linea_de_comandos()
+    project.from_command_line()
 
-RAIZ = proyecto.raiz()
-CASOS = proyecto.casos()
-FUENTE = proyecto.runtime()
+RAIZ = project.root()
+CASOS = project.cases()
+FUENTE = project.runtime()
 
 # **What each cartridge carries belongs to the game, and is in its project
-# file** —`proyecto.archivo_de_proyecto()`, with the reasons for each value as
+# file** —`project.project_file()`, with the reasons for each value as
 # comments—: which maps go in, which are excluded, which cartridges exist and
 # which cases each one carries. Until 2026-09-29 it was written here. What
 # remains in this file is the mechanism that reads it and builds; the module
@@ -101,7 +101,7 @@ def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
     reads: that is why the path falls inside `rom/data/` and not inside the
     game —see `lcf.volcado`—."""
     from rpgmaker import lcf
-    arbol = lcf.TreeMap(os.path.join(proyecto.data(), "RPG_RT.lmt"))
+    arbol = lcf.TreeMap(os.path.join(project.data(), "RPG_RT.lmt"))
     de_la_regla = [m for m in range(1, menor_a)
                    if arbol.map_types.get(m) == 1 and m not in excluidos]
     return tuple(de_la_regla + [m for m in agregados if m not in de_la_regla])
@@ -137,13 +137,13 @@ def _cartucho(nombre):
     if isinstance(mapas, str):
         if mapas != "game":
             sys.exit("%s: maps of %s is a list or \"game\", and it is %r"
-                     % (proyecto.archivo_de_proyecto(), nombre, mapas))
+                     % (project.project_file(), nombre, mapas))
         mapas = MAPAS
     casos = clave("cases", (str, list))
     if isinstance(casos, str):
         if casos != "all":
             sys.exit("%s: cases of %s is a list or \"all\", and it is %r"
-                     % (proyecto.archivo_de_proyecto(), nombre, casos))
+                     % (project.project_file(), nombre, casos))
         casos = None
     flags = ((["--grupo"] + [str(a) for a in grupo] if grupo else [])
              + ["--map-id", str(arranque), "--mapas"]
@@ -158,7 +158,7 @@ CARTUCHOS = {nombre: _cartucho(nombre)
              for nombre in perillas.valor("cartridges", tipo=dict)}
 if RELEASE not in CARTUCHOS or CARTUCHOS[RELEASE][1] is not None:
     sys.exit("%s: missing [cartridges.%s], with cases = \"all\""
-             % (proyecto.archivo_de_proyecto(), RELEASE))
+             % (project.project_file(), RELEASE))
 
 # The cases `release` does not carry, because there they would change the
 # others' images.
@@ -224,15 +224,15 @@ def archivos_de_la_huella(fuente=FUENTE):
                  comprimir.binario()])
     # Except the tools' tests, which build nothing: with them inside, editing
     # a test made every cartridge stale.
-    pruebas = os.path.join(proyecto.herramientas(), "pruebas", "")
-    partes += sorted(r for r in glob.glob(os.path.join(proyecto.herramientas(),
+    pruebas = os.path.join(project.tools(), "pruebas", "")
+    partes += sorted(r for r in glob.glob(os.path.join(project.tools(),
                                                        "*", "*.py"))
                      if not r.startswith(pruebas))
-    partes += sorted(glob.glob(os.path.join(proyecto.parches_manual(), "*",
+    partes += sorted(glob.glob(os.path.join(project.manual_patches(), "*",
                                             "*")))
     # And the project file, whole: the converter and the music read it, and
     # not only what reaches the stamp's flags.
-    partes.append(proyecto.archivo_de_proyecto())
+    partes.append(project.project_file())
     return partes
 
 
@@ -290,7 +290,7 @@ def sello(nombre, fuentes=None):
 def directorio(nombre):
     """What the tests write does not go here but to `rom/pruebas/snapshots/`."""
     if nombre == RELEASE:
-        return os.path.join(proyecto.build(), RELEASE)
+        return os.path.join(project.build(), RELEASE)
     return os.path.join(ambiente.cartuchos_de_prueba(),
                         nombre.replace("test-", "", 1))
 
@@ -374,12 +374,12 @@ def convertir(nombre, destino, sfc, extra=()):
         de_casos += (["--caso"] if k else []) + [
             "--comandos-de-prueba",
             os.path.relpath(os.path.join(CASOS, caso + ".json"), RAIZ)]
-    # With `--proyecto`, because it runs standing in the repo root —see
+    # With `--project`, because it runs standing in the repo root —see
     # `ensamblar.RAIZ`— and from there it would not find the file by
     # searching.
-    orden = ([sys.executable, os.path.join(proyecto.herramientas(), "port",
+    orden = ([sys.executable, os.path.join(project.tools(), "port",
                                            "snes_convert.py"),
-              "--proyecto", proyecto.directorio(),
+              "--project", project.directory(),
               *ambiente.como_flags(*AL_CONVERSOR),
               "-o", os.path.join(destino, "mapdata.inc"),
               "--msu", os.path.splitext(sfc)[0] + ".msu"]
@@ -403,7 +403,7 @@ DEL_AMBIENTE = AL_CONVERSOR + ("test_cartridges", "reemplazos")
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    proyecto.argumento(parser)
+    project.add_argument(parser)
     ambiente.argumentos(parser, *DEL_AMBIENTE)
     parser.add_argument("--lista", action="store_true",
                         help="which case goes in which cartridge, without building anything")

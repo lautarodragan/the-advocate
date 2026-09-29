@@ -25,3 +25,4 @@ un `-c`) se buscan aparte con grep.
 ## Hecho
 
 1. `comun/` → `common/`, la carpeta sola.
+2. `proyecto.py` → `project.py`, con `--proyecto` → `--project`.

@@ -26,26 +26,26 @@ from port import eventos  # noqa: E402
 from rpgmaker import lcf  # noqa: E402
 from ensamblado import ensamblar  # noqa: E402
 from audio import music_opcodes  # noqa: E402
-from common import proyecto  # noqa: E402
+from common import project  # noqa: E402
 
 
 def _relativa(ruta):
-    return os.path.relpath(ruta, proyecto.raiz())
+    return os.path.relpath(ruta, project.root())
 
 
 # Each bytecode: its declaration, its Python module and its .inc. Relative to
 # the root, which is how they appear in each case's name.
 GENERADOS = [
     ("events", event_opcodes,
-     _relativa(os.path.join(proyecto.runtime(), "event_opcodes.inc")),
-     _relativa(os.path.join(proyecto.herramientas(), "port",
+     _relativa(os.path.join(project.runtime(), "event_opcodes.inc")),
+     _relativa(os.path.join(project.tools(), "port",
                             "event_opcodes.py"))),
     ("music", music_opcodes,
-     _relativa(os.path.join(proyecto.runtime(), "music_opcodes.inc")),
-     _relativa(os.path.join(proyecto.herramientas(), "audio",
+     _relativa(os.path.join(project.runtime(), "music_opcodes.inc")),
+     _relativa(os.path.join(project.tools(), "audio",
                             "music_opcodes.py"))),
 ]
-MAIN = os.path.join(proyecto.runtime(), "main.s")
+MAIN = os.path.join(project.runtime(), "main.s")
 # What each one needs on top, as in the `protocolo` recipe of tools/justfile:
 # without this `--check` compares against an `.inc` without the dispatch table
 # and reports it as stale.
@@ -62,9 +62,9 @@ def test_los_generados_estan_al_dia(nombre, modulo, inc, py):
     """Regenerating changes nothing: otherwise the tree has two truths."""
     hecho = subprocess.run(
         ["protocol",
-         os.path.join(proyecto.herramientas(), "protocol", nombre + ".toml"),
-         "--python", os.path.join(proyecto.raiz(), py),
-         "--asm", os.path.join(proyecto.raiz(), inc), "--check"]
+         os.path.join(project.tools(), "protocol", nombre + ".toml"),
+         "--python", os.path.join(project.root(), py),
+         "--asm", os.path.join(project.root(), inc), "--check"]
         + BANDERAS.get(nombre, []),
         capture_output=True, text=True)
     assert hecho.returncode != 2, (
@@ -82,7 +82,7 @@ def test_el_inc_y_el_py_dicen_los_mismos_numeros(nombre, modulo, inc, py):
     runs: the reader measures one opcode and the writer emits another.
     """
     del_inc = {}
-    for linea in open(os.path.join(proyecto.raiz(), inc), encoding="utf-8"):
+    for linea in open(os.path.join(project.root(), inc), encoding="utf-8"):
         m = re.match(r"^(OP_[A-Z0-9_]+)\s*=\s*\$([0-9A-Fa-f]+)\s*$", linea)
         if m:
             del_inc[m.group(1)] = int(m.group(2), 16)

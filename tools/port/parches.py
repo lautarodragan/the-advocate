@@ -28,7 +28,7 @@ Two examples of how it would be read back, which is what guided the format.
 The color mapping of a layer::
 
     mapping = {}
-    for f in parches.leer(proyecto.parches_auto(), 7)["capas"]["fondo"]["fusiones"]:
+    for f in parches.leer(project.auto_patches(), 7)["capas"]["fondo"]["fusiones"]:
         de, a = tuple(f["de"]), tuple(f["a"])
         for viejo, actual in mapping.items():
             if actual == de:
@@ -38,7 +38,7 @@ The color mapping of a layer::
 And the size a battle animation is drawn at, which is a single line because
 the decision is a rectangle::
 
-    ta, tal = parches.leer_animacion(proyecto.parches_auto(), 82)["tamano"]
+    ta, tal = parches.leer_animacion(project.auto_patches(), 82)["tamano"]
 
 The key
 -------
@@ -139,10 +139,10 @@ if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 from common import ambiente                                  # noqa: E402
-from common import proyecto                                  # noqa: E402
+from common import project                                  # noqa: E402
 
 # Where the versioned ones live, relative to what the converter decided and
-# is versioned: the functions receive that directory —`proyecto.parches_auto()`,
+# is versioned: the functions receive that directory —`project.auto_patches()`,
 # or a temporary one in the tests— and this is what is appended. Until
 # 2026-09-29 they received the repo root and appended `rom/parches/auto/`,
 # which is knowing where the game lives.
@@ -683,10 +683,10 @@ def _revisar_clase(clase, auto, builds, jugable):
 
 
 def main(argv=None):
-    proyecto.desde_la_linea_de_comandos(argv)
-    auto = proyecto.parches_auto()
+    project.from_command_line(argv)
+    auto = project.auto_patches()
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    proyecto.argumento(parser)
+    project.add_argument(parser)
     ambiente.argumentos(parser, "test_cartridges")
     parser.add_argument(
         "builds", nargs="*",
