@@ -51,7 +51,7 @@ Version = collections.namedtuple("Version", "nombre rate data")
 def armar(nombre, tasa, game_dir):
     """El efecto entero, sin bucle, a `tasa` —o a la de su WAV, si es menor—,
     en BRR. Es lo que hace `snes_music.build_efecto` con un efecto de
-    `SE_ENTEROS`, y la normalización es la misma: suena igual de fuerte que el
+    `se_enteros()`, y la normalización es la misma: suena igual de fuerte que el
     de la ROM."""
     crudo, fuente = snes_music.leer_wav(nombre.split("@")[0], game_dir)
     tasa = min(tasa, fuente)

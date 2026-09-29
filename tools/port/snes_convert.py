@@ -88,6 +88,7 @@ from port import constantes
 from port import reglas
 from port import msu_datos
 from audio import efectos_msu
+from comun import perillas
 from comun import proyecto
 from comun.paralelo import en_paralelo
 from audio import snes_music
@@ -606,36 +607,14 @@ def aviso_de_descarte(texto, peligroso):
 
 # --- el peso de un gráfico --------------------------------------------------
 #
-# Cuando un mapa tiene más personajes que paletas de sprite, el que llega
-# último **no se queda sin dibujar**: se le presta una ajena y se lo dibuja con
-# los colores de otro (ver `cabe`). Quién llega último era el orden de los
-# eventos del mapa, o sea el azar: en Lashe City el save point es el evento 66
-# de 68 y por eso salía con la paleta de otro. taro lo describió como "en
-# algún momento perdió uno o dos colores y pasó de azul/celeste/blanco a gris",
-# y no era la fusión: era que no tenía paleta propia.
-#
-# Así que un gráfico puede pesar, y el que pesa se sirve primero. Es una tabla
-# escrita a mano y corta a propósito: no hay una medida automática de "cuánto
-# se ve" que no sea inventarse una —un evento decorativo puede estar en pantalla
-# todo el juego y un personaje central aparecer un minuto—, y una tabla de dos
-# renglones se revisa de un vistazo. Lo que la llena es lo que taro reporta
-# jugando.
-#
-# El sufijo `~trama` de los translúcidos no cuenta: el peso es del dibujo.
-PESO_DE_GRAFICO = {
-    # El save point: está en cada ciudad, es con lo que se guarda la partida, y
-    # su azul contra el blanco del brillo es todo lo que tiene.
-    "savept": 2,
-    # Los cuatro de Future1 —Talan, Core, Manta, Kersh—. Casi siempre son
-    # líderes, y al líder ya se le fuerza paleta; esto los cubre en los mapas
-    # donde además andan como NPC.
-    "Future1": 1,
-}
-
-
 def peso_de_grafico(charset):
-    """Cuánto pesa un CharSet a la hora de repartir las paletas de sprite."""
-    return PESO_DE_GRAFICO.get((charset or "").split(rm2k.TRAMA_SUFIJO)[0], 0)
+    """Cuánto pesa un CharSet a la hora de repartir las paletas de sprite: el
+    que pesa se sirve primero, y el que no pesa llega en el orden del mapa y
+    puede quedarse con la paleta de otro. Lo decide el juego, en
+    `[graphics.palette_weight]` del archivo de proyecto, con sus porqués. El
+    sufijo `~trama` de los translúcidos no cuenta: el peso es del dibujo."""
+    pesos = perillas.valor("graphics", "palette_weight", tipo=dict)
+    return pesos.get((charset or "").split(rm2k.TRAMA_SUFIJO)[0], 0)
 
 
 def fila_de_pose(pose):
@@ -1090,7 +1069,7 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
     # El único que sigue forzado es el líder: el héroe está en pantalla todo el
     # tiempo y es a quien más se le notaría.
     #
-    # El orden es el del mapa, **salvo los que tienen peso**: ver `PESO_DE_GRAFICO`.
+    # El orden es el del mapa, **salvo los que tienen peso**: ver `peso_de_grafico`.
     for npc in sorted(npcs, key=lambda n: -peso_de_grafico(n["charset"])):
         for clave in claves(npc):
             if clave not in vistos and not clave[0].startswith(rm2k.TILE_PREFIX):
@@ -3646,7 +3625,7 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
 
     Un fondo entra **en la ROM**, liviano, si alguna pelea del cartucho lo
     pide; si alguna puede caer en uno que no está —una tropa del lugar en un
-    mapa sin encuentros—, entra también `escena.REEMPLAZO`, y `respaldo_de`
+    mapa sin encuentros—, entra también `escena.reemplazo()`, y `respaldo_de`
     dice cuál de la ROM usa cada fondo del juego. **En el `.msu` van todos**:
     `calidad` son sus bytes, por número.
 
@@ -3715,7 +3694,7 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
         if k < FONDO_DEL_LUGAR and k not in suyos:
             suyos.append(k)
     if any(k < FONDO_DEL_LUGAR and k not in suyos for k in posibles):
-        reemplazo = numero_de[E.REEMPLAZO.lower()]
+        reemplazo = numero_de[E.reemplazo().lower()]
         if reemplazo not in suyos:
             suyos.append(reemplazo)
     for k in suyos:
@@ -3723,7 +3702,7 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
         datos["fondos"].append({"nombre": juego[k], "numero": k,
                                 "respaldo": info})
     lugar = {k: i for i, k in enumerate(suyos)}
-    reemplazo = lugar.get(numero_de[E.REEMPLAZO.lower()], 0)
+    reemplazo = lugar.get(numero_de[E.reemplazo().lower()], 0)
     datos["respaldo_de"] = [lugar.get(k, reemplazo) for k in range(len(juego))]
     # Los de calidad, para el `.msu`: todos, estén o no en la ROM.
     datos["calidad"] = en_paralelo(
@@ -3892,7 +3871,7 @@ def escenas_asm(datos, tropas, db):
                             `FONDO_LISO`.
       `fondo_terreno`       por terreno, el número de su fondo o `FONDO_LISO`.
       `fondo_respaldo`      por número de fondo, cuál de la ROM lo reemplaza
-                            sin MSU-1: el suyo, o el de `escena.REEMPLAZO`.
+                            sin MSU-1: el suyo, o el de `escena.reemplazo()`.
       `fondo_dir`           por fondo de la ROM, el puntero de 24 bits a los
                             4 KB de su respaldo liviano, en el orden de
                             `respaldo_bytes`.
@@ -4560,6 +4539,25 @@ def encuentros_de_la_rom(mapas, tree, pasos_de_prueba, tropas):
             "tropas": tropas_de_zona}
 
 
+# El título de la cabecera de una ROM de SNES: 21 bytes, en `$FFC0`.
+TITULO_CABECERA = 21
+
+
+def identidad_de_la_rom():
+    """Lo que la ROM dice de sí misma, del `[rom]` del archivo de proyecto:
+    el título de la cabecera, ya rellenado con blancos, y la firma de la
+    partida en la SRAM. Son `.define` porque son texto: `cabecera.s` y
+    `partida.s` los usan, y hasta el 2026-09-29 los tenían escritos."""
+    titulo = perillas.ascii("rom", "title", hasta=TITULO_CABECERA)
+    firma = perillas.ascii("rom", "sram_signature", largo=4)
+    return ("; Quién es la ROM, del archivo de proyecto: el título de la\n"
+            "; cabecera y la firma con que la SRAM dice que una ranura tiene\n"
+            "; una partida de este juego.\n"
+            '.define ROM_TITULO "%s"\n'
+            '.define SRAM_MAGIA_TEXTO "%s"\n\n'
+            % (titulo.ljust(TITULO_CABECERA), firma))
+
+
 def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
          ventana=None, titulo=None, ranuras=None, cartel=None,
          animaciones=None, tropas=(), audio_batalla=None, escenas=None,
@@ -5056,6 +5054,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
 
     with open(path, "w") as handle:
         handle.write(cabecera)
+        handle.write(identidad_de_la_rom())
         handle.write(desplazamientos())
         handle.write("\n\n")
         # La rampa del fundido, en el banco 0 porque `fundido_tick` la lee con
@@ -5532,7 +5531,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # medio de conversor por caso. Tuvo un hermano, `--relleno-de-mensajes`,
         # que hacía lo mismo con el bloque de textos; ése se fue el 2026-09-20
         # porque el empujón lo puede dar un caso —ver el cartucho `test-special` en
-        # tools/ensamblado/cartuchos.py— y éste no, porque lo que corre no es un
+        # el archivo de proyecto— y éste no, porque lo que corre no es un
         # texto sino un índice.
         #
         # **Van acá y no al principio, que es donde estaban hasta el
@@ -6896,6 +6895,8 @@ def orden_de_mapas(args):
 
 # Cuántos eventos quietos con animación continua anima un mapa. Ver el porqué
 # —y el número medido— adentro de `eventos_movibles`.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 ANIMA_QUIETO_MAX = 4
 
 
@@ -7177,7 +7178,14 @@ def parser_de_flags():
     línea de comandos sin convertir nada."""
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--map-id", type=int, default=7)
+    # Obligatorio, pero sin `required`: `casos_de_prueba` vuelve a leer los
+    # flags de cada `--caso` con este mismo parser, y ahí no va. Lo cobra
+    # `main`.
+    parser.add_argument("--map-id", type=int, default=None,
+                        help="el mapa de arranque, que va primero en la "
+                             "tabla. Obligatorio y sin valor por omisión: "
+                             "es del juego, y lo declara su archivo de "
+                             "proyecto")
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("-o", "--output",
                         default=os.path.join(proyecto.build(), "inc", "mapdata.inc"))
@@ -7208,8 +7216,8 @@ def parser_de_flags():
     parser.add_argument("--hp-de-enemigos", action="store_true",
                         help="la pelea muestra los HP de los enemigos, que "
                              "RM2k no muestra nunca: para depurar. Lo pide "
-                             "`CON_HP_DE_ENEMIGOS` en "
-                             "tools/ensamblado/cartuchos.py")
+                             "`[debug] enemy_hp` del archivo de "
+                             "proyecto")
     parser.add_argument("--sin-timer", action="store_true",
                         help="los dígitos del cronómetro —once glifos de la "
                              "imagen de System al final del banco de sprites, "
@@ -7275,6 +7283,8 @@ def main():
     parser = parser_de_flags()
     argv, tramos = partir_en_casos(sys.argv[1:])
     args = parser.parse_args(argv)
+    if args.map_id is None:
+        parser.error("falta --map-id, el mapa de arranque")
     args.casos = casos_de_prueba(parser, args, tramos)
     orden = orden_de_mapas(args)
     if not 0 <= args.inicial < len(orden):
@@ -8051,7 +8061,7 @@ def main():
     # Sólo los que están en algún paquete: uno que no está en ninguno no
     # suena en ningún lado —su fila de `sonido_tabla` queda en $FF— y
     # armarlo le costaría a la música, porque `snes_music.copias` cuenta los
-    # efectos del cartucho. Pasa con los de ruta de `SE_DE_RUTA_SIN_PAQUETE`.
+    # efectos del cartucho. Pasa con los de ruta de `se_de_ruta_sin_paquete`.
     empaquetados = {n for pide in temas.por_mapa.values()
                     for n in pide["sonidos"]}
     pedidos_se = []
@@ -8089,8 +8099,8 @@ def main():
                   and not (i == args.inicial and t == arranque)]
         suyos = [t for t in suyos if t not in salida]
         # Y los aparte, que tampoco van con los otros temas: los sube su
-        # `PlayBGM` con los efectos del paquete. Ver `TEMAS_APARTE`.
-        aparte = [t for t in suyos if pedidos[t] in snes_music.TEMAS_APARTE.get(
+        # `PlayBGM` con los efectos del paquete. Ver `temas_aparte`.
+        aparte = [t for t in suyos if pedidos[t] in snes_music.temas_aparte().get(
                       _mapa["id"], ()) and t != tema_de_mapa[i]
                   and not (i == args.inicial and t == arranque)]
         suyos = [t for t in suyos if t not in aparte]
@@ -8130,7 +8140,9 @@ def main():
     herencia = temas_heredados(temas, tema_de_mapa, args.inicial,
                                tema_titulo, nombres_de_paquete,
                                [suyos for suyos, _e, _s in paquetes],
-                               apartes)
+                               apartes, no_se_dan=perillas.valor(
+                                   "music", "jumps_that_never_happen",
+                                   tipo=list))
     driver, muestras, hechos, banco = snes_music.build_varios(
         pedidos, args.game_dir, pedidos_se, por_nombre, herencia,
         aire_de_medida=args.aire_de_medida)
@@ -8418,21 +8430,8 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
                       for t in sorted(set(suyas.values()), reverse=True))))
 
 
-# Los saltos de páginas compiladas que no se pueden dar: {id del mapa: ids de
-# los destinos}. `temas_heredados` no mira condiciones, y un salto que nunca
-# pasa le hace reservar lugar a un tema que nunca llega, a costa de los que sí.
-#
-# El 45 es el video de seguridad: el 19 copiado entero, con sus eventos. Su
-# página automática corre la escena del director apenas se entra y se va al
-# 40; el evento 4, que salta al 20, es el del 19 que vino con la copia, y
-# cuando el jugador podría tocarlo ya prendió el switch que lo apaga. Contado,
-# `Kfmus5` —que llega sonando al 45 por los vidcasts— heredaba en el 20 y le
-# bajaba cuatro golpes a `Lunar_Pyramid` y `wb3shop`, de 22 a 14 kHz.
-SALTOS_QUE_NO_SE_DAN = {45: {20}}
-
-
 def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,
-                    del_paquete=None, apartes=None):
+                    del_paquete=None, apartes=None, no_se_dan=()):
     """[(nombre del paquete, índice de un tema que puede venir sonando al
     cargarlo)], para `snes_music.build_varios`.
 
@@ -8468,16 +8467,20 @@ def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,
     salida. El de arranque sigue con la regla de arriba: ver `lleva`.
 
     `apartes` son los temas aparte de cada paquete —ver
-    `snes_music.TEMAS_APARTE`—: no se van del mapa, así que no cuentan en lo
+    `snes_music.temas_aparte()`—: no se van del mapa, así que no cuentan en lo
     que sale.
+
+    `no_se_dan` son los saltos de páginas compiladas que no se pueden dar,
+    como pares [mapa, destino]: un salto que nunca pasa le hace reservar
+    lugar a un tema que nunca llega, a costa de los que sí. Los declara el
+    juego, en `[music] jumps_that_never_happen` del archivo de proyecto.
     """
     n = len(tema_de_mapa)
     pide = [temas.por_mapa.get(i, {}) for i in range(n)]
     apartes = apartes or [()] * n
     indice = {nombre: i for i, nombre in enumerate(nombres_de_paquete[:n])}
     no_se_dan = {(indice[str(a)], indice[str(b)])
-                 for a, destinos in SALTOS_QUE_NO_SE_DAN.items()
-                 for b in destinos
+                 for a, b in no_se_dan
                  if str(a) in indice and str(b) in indice}
     saltos = getattr(temas, "saltos", {})
     entra = [set() for _ in range(n)]

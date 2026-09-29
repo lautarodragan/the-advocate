@@ -34,6 +34,8 @@ LINEAS = 4
 #
 # Medido sobre las 18.808 líneas de mensaje del juego: truncar a 39 pierde el
 # 1,58% de los caracteres, contra el 1,09% de truncar a 40.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 COLUMNAS = 39
 
 # Cuántas ranuras de equipo tiene un actor de RM2k.

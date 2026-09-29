@@ -21,7 +21,7 @@ Todo en little-endian:
 
     $00     8  la firma: los primeros 8 bytes del sha256 de todo lo que
                sigue
-    $08     4  "ABLD"
+    $08     4  la firma del juego: `[rom] msu_data_signature`
     $0C     2  la versión del formato, hoy 2
     $0E     2  cuántas entradas hay, N
     $10     8N por entrada: dónde empieza en el archivo y cuánto mide, 4 y 4
@@ -75,7 +75,8 @@ snes_convert.py, y el porqué está en tools/audio/efectos_msu.py.
 import hashlib
 import struct
 
-MAGIA = b"ABLD"
+from comun import perillas
+
 VERSION = 2
 FIRMA = 8
 CABECERA = 16
@@ -126,7 +127,7 @@ def armar(entradas, fondos=0):
         donde += len(datos)
     indice = b"".join(struct.pack("<II", p, len(d))
                       for p, d in zip(posiciones, entradas))
-    cuerpo = bytearray(MAGIA + struct.pack("<HH", VERSION, len(entradas))
+    cuerpo = bytearray(magia() + struct.pack("<HH", VERSION, len(entradas))
                        + indice)
     for p, datos in zip(posiciones, entradas):
         # Relleno con ceros hasta donde va: la firma lo cubre como a todo.
@@ -134,6 +135,14 @@ def armar(entradas, fondos=0):
         cuerpo += datos
     cuerpo = bytes(cuerpo)
     return firma_de(cuerpo) + cuerpo, posiciones
+
+
+def magia():
+    """Los cuatro bytes que dicen de qué juego es el `.msu`: los del archivo
+    de proyecto, `[rom] msu_data_signature`. La ROM no los compara: compara
+    la firma de adelante, que los cubre. Se leen al usarlos y no al importar,
+    para que el conversor se pueda importar sin un juego."""
+    return perillas.ascii("rom", "msu_data_signature", largo=4).encode()
 
 
 def firma_de(cuerpo):
@@ -144,7 +153,7 @@ def firma_de(cuerpo):
 def indice(archivo):
     """El índice de un `.msu`: `(donde, largo)` por entrada, o `ValueError` si
     no es uno válido."""
-    if len(archivo) < CABECERA or archivo[FIRMA:FIRMA + 4] != MAGIA:
+    if len(archivo) < CABECERA or archivo[FIRMA:FIRMA + 4] != magia():
         raise ValueError("no es un .msu con datos de este port")
     if firma_de(archivo[FIRMA:]) != archivo[:FIRMA]:
         raise ValueError("la firma no coincide con el contenido")

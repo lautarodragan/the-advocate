@@ -50,12 +50,14 @@ muestra y con qué envolvente, y la consola sólo reproduce.
 * **Los efectos de sonido** —`PlaySound`— le roban dos voces a la música
   mientras duran, las que el reparto llena primero con la percusión:
   `tools/runtime/efectos_de_sonido.s` y `build_efectos` en `snes_music.py`. Los
-  que van enteros y a más tasa —`SE_ENTEROS`— se acomodan en lo que la música
+  que van enteros y a más tasa —`[sound_effects.whole]` del archivo de
+  proyecto, `rm2k-snes.toml`— se acomodan en lo que la música
   deja libre en cada paquete, así que no le bajan la tasa a ningún
-  instrumento. Los de `SE_ENTEROS_PAGADOS` —el trueno de la apertura y los
+  instrumento. Los de `paid_by_music` —el trueno de la apertura y los
   que taro eligió enteros aunque costaran— sí los paga la música de su
   paquete: `workflow/decisiones/el-trueno-va-entero-y-paga-la-lluvia.md`. Uno que en
-  un mapa suena con otra muestra es un alias: `SE_DEL_MAPA`.
+  un mapa suena con otra muestra es un alias: `per_map`. Las tres son del
+  juego, y cada entrada lleva su porqué en el archivo.
 * **El `FadeOutBGM` baja el tema y nada más**: el volumen de cada voz de la
   música, o el de la pista del MSU-1, y nunca el general del DSP, que es
   también el de los efectos. `bgm_fundido_tick`, en `tools/runtime/musica.s`.

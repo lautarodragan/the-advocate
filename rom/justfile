@@ -224,7 +224,7 @@ parches: _herramientas_del_checkout (build "release")
 # Y la verificación, que es lo que corre la tanda: falla diciendo **qué
 # decisión cambió** —"la animación 82 se dibujaba a 64x50 y ahora se dibuja a
 # 64x49"—, no que el archivo difiere. Sin argumentos mira todos los cartuchos
-# de `cartuchos.py`, porque lo versionado tiene que salir igual en todos.
+# de `rm2k-snes.toml`, porque lo versionado tiene que salir igual en todos.
 parches-check *builds: _herramientas_del_checkout
   rm2k-snes-patches {{builds}} --check
 

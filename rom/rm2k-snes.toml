@@ -1,0 +1,461 @@
+# El archivo de proyecto de A Blurred Line: lo que este juego decide y las
+# herramientas no. Qué mapas y qué casos lleva cada cartucho, cómo se llama la
+# ROM, qué efectos de sonido van enteros. Lo lee la suite `rm2k-snes-*`, y una
+# clave que falta es un error: ninguna herramienta tiene un valor por omisión
+# para lo que está acá.
+#
+# Las claves van en inglés, porque son la interfaz de las herramientas y van a
+# ser las de cualquier juego; los comentarios, en castellano, porque el archivo
+# es de ABL. Lo que protege un valor —por qué ese mapa sale, por qué ese efecto
+# va a esa tasa— va como comentario al lado del valor.
+#
+# Lo que **no** va: dónde está el juego en esta máquina —el RTP, el SoundFont—,
+# que es del ambiente y no del proyecto; y los límites del motor que se
+# midieron sobre ABL, que son supuestos del motor y se quedan en su código.
+
+
+# --- La ROM ------------------------------------------------------------------
+[rom]
+# El nombre de los archivos: `abl.sfc`, y al lado `abl.msu` y las pistas
+# `abl-N.pcm`, que el MSU-1 busca por el nombre del `.sfc`.
+name = "abl"
+
+# El título de la cabecera: lo que muestra el menú del FX Pak y lo que lee
+# cualquier base de datos de ROMs. Hasta 21 caracteres ASCII, y se rellena con
+# blancos. Decía "ABL SNES MUSIC POC" hasta el 2026-09-09, de cuando esto era
+# una prueba de audio; en hardware se ve, así que dejó de dar igual.
+title = "A BLURRED LINE"
+
+# La firma con que la SRAM dice que una ranura tiene una partida de este juego:
+# cuatro caracteres ASCII. **Cambiarla invalida las partidas guardadas**: una
+# ranura con otra firma se ve vacía.
+sram_signature = "ABLS"
+
+# La firma del `.msu` de datos —los fondos de batalla que la ROM lee por el
+# MSU-1—: cuatro caracteres ASCII al principio de la cabecera del archivo.
+msu_data_signature = "ABLD"
+
+# --- Los gráficos ------------------------------------------------------------
+[graphics]
+# Los que se dibujan **opacos aunque su página diga translúcida**. Es una
+# divergencia deliberada de RM2k, decidida por taro el 2026-09-12.
+#
+# Por ahora hay uno solo, el save point. Se probaron los dos caminos para
+# dibujarlo semitransparente y los dos se cayeron: con la trama en una pantalla
+# moderna se ve el damero, y con el color math de la consola —que es
+# transparencia de verdad— el objeto deja de animar y el héroe se ve **a
+# través** del save point. taro eligió el tercero: opaco, sprite, animando, y
+# con su paleta de verdad. Lo que hace que valga la pena es que ahora la tiene:
+# contando sólo las poses que muestra son trece colores y le sobra lugar en una
+# paleta propia, mientras que antes pedía prestada la de otro y salía gris.
+#
+# Por nombre de CharSet, sin distinguir mayúsculas.
+opaque = ["savept"]
+
+# Cuando un mapa tiene más personajes que paletas de sprite, el que llega
+# último **no se queda sin dibujar**: se le presta una ajena y se lo dibuja con
+# los colores de otro. Quién llega último era el orden de los eventos del mapa,
+# o sea el azar: en Lashe City el save point es el evento 66 de 68 y por eso
+# salía con la paleta de otro. taro lo describió como "en algún momento perdió
+# uno o dos colores y pasó de azul/celeste/blanco a gris", y no era la fusión:
+# era que no tenía paleta propia.
+#
+# Así que un CharSet puede pesar, y el que pesa se sirve primero; el que no
+# está, pesa 0. Es una tabla escrita a mano y corta a propósito: no hay una
+# medida automática de "cuánto se ve" que no sea inventarse una —un evento
+# decorativo puede estar en pantalla todo el juego y un personaje central
+# aparecer un minuto—, y una tabla de dos renglones se revisa de un vistazo. Lo
+# que la llena es lo que taro reporta jugando.
+[graphics.palette_weight]
+# El save point: está en cada ciudad, es con lo que se guarda la partida, y su
+# azul contra el blanco del brillo es todo lo que tiene.
+savept = 2
+# Los cuatro de Future1 —Talan, Core, Manta, Kersh—. Casi siempre son líderes,
+# y al líder ya se le fuerza paleta; esto los cubre en los mapas donde además
+# andan como NPC.
+Future1 = 1
+
+
+# --- La pelea ----------------------------------------------------------------
+[battle]
+# El fondo de las peleas cuyo fondo no está en la ROM: una tropa que pelea con
+# el fondo "del lugar" en un mapa sin encuentros al azar. Es el de los Rat
+# Tracks, una cueva de roca gris, porque no dice dónde se está: el del droide
+# es una sala con un monitor y la Tierra en una pantalla, y el de los Back
+# Alleys una calle con carteles. Una pelea en el bosque sobre roca se ve rara;
+# sobre una nave, equivocada. Lo piden los encuentros de los Rat Tracks, así
+# que en `release` no cuesta nada. No negro, porque "negro confunde", de taro.
+fallback_backdrop = "ABLBackdropSJ08"
+
+
+# --- La música ---------------------------------------------------------------
+[music]
+# Los saltos de páginas compiladas que no se pueden dar, como [mapa, destino].
+# La herencia de temas entre mapas no mira condiciones, y un salto que nunca
+# pasa le hace reservar lugar a un tema que nunca llega, a costa de los que sí.
+#
+# El 45 es el video de seguridad: el 19 copiado entero, con sus eventos. Su
+# página automática corre la escena del director apenas se entra y se va al
+# 40; el evento 4, que salta al 20, es el del 19 que vino con la copia, y
+# cuando el jugador podría tocarlo ya prendió el switch que lo apaga. Contado,
+# `Kfmus5` —que llega sonando al 45 por los vidcasts— heredaba en el 20 y le
+# bajaba cuatro golpes a `Lunar_Pyramid` y `wb3shop`, de 22 a 14 kHz.
+jumps_that_never_happen = [[45, 20]]
+
+# **Los temas aparte**: un tema aparte no va con los otros temas del paquete
+# de su mapa: lo sube su `PlayBGM`, **él solo con los efectos del paquete**, y
+# lo demás se suelta hasta el próximo `PlayBGM`. Tampoco se lo hereda a los
+# mapas a los que se sale de ahí. Es un tema de salida que no se va, y por eso
+# lo dice esta lista y no una regla: que nunca suene al mismo tiempo que los
+# otros temas del mapa, ni al salir, lo sabe quien leyó las páginas.
+apart_themes = [
+    # `vswar` en el 38 y el 47, del 2026-09-27: es el de las escenas del HQ y
+    # de los guardias, y solo ocupa 61 KB a la tasa que tenía antes de Lashe
+    # City, así que con `golden_axe-turtlevillage2` al lado —el otro tema de
+    # esos dos mapas— y `cd4`, que llega sonando del 10, el paquete pedía 82 KB
+    # y bajaban 47 pares (tema, instrumento), los de afuera por las copias que
+    # ya no se podían hacer. En los dos la escena lo cambia a `golden_axe`
+    # antes de irse: en el 47 en la misma página, y en el 38 se entra al
+    # basural por un `Teleport` y se sale por otro que antes prende
+    # `golden_axe` (los eventos 20, 21 y 26). Lo que cuesta es la carga: subir
+    # vswar al empezar la escena, un cuadro y medio por KB. Los cofres del
+    # basural (Bow2) suenan igual, porque los efectos del paquete se quedan.
+    { map = 38, themes = ["vswar"] },
+    { map = 47, themes = ["vswar"] },
+]
+
+# Hasta cuántas entradas del directorio de muestras llega la primera tanda de
+# copias —las que taro escuchó—: las que ocupaban los efectos cuando cada uno
+# tenía la suya, el 2026-09-26, los 92 de `release`. No son los efectos de hoy:
+# contarlos hacía que cada efecto nuevo le sacara una copia a la primera tanda
+# aunque no ocupara ninguna entrada, porque comparte lugar con los de otros
+# paquetes. Así quedaron afuera Flash1 en el 13 y Earth4 en el 21, del
+# 2026-09-27: con los dos, un golpe de `bubstix` bajaba de 19,3 a 13,9 kHz.
+effect_slots_of_first_copies = 92
+
+# --- Los efectos de sonido ---------------------------------------------------
+[sound_effects]
+# Los enteros que **sí** paga la música: los de `[sound_effects.whole]` que, si
+# no entran en lo que la música deja libre en su paquete, le bajan la tasa a
+# algún instrumento. Los demás enteros no pueden: si no entran, el conversor
+# se corta.
+paid_by_music = [
+    # El trueno de la apertura: ver su tasa, abajo.
+    "Thunder9@entero",
+    # **Los que sí paga la música**, del 2026-09-26. taro, escuchando los que
+    # no entraban en lo libre: *"tengo cero dudas de que tienen que tener su
+    # longitud completa (todos)"*. Y después, con los números de subirlos a 11
+    # kHz a la vista, que afectar tanto a la música no le agrada: van **enteros
+    # a la tasa de siempre**, y a más sólo donde fuera gratis —no hubo ninguno:
+    # cada uno está en algún paquete que limita muestras—. Los de tres cuartos
+    # de segundo o menos ya sonaban enteros y no están acá.
+    #
+    # Enteros sí le cuestan a la música de su paquete —los tres largos de la
+    # pelea al tema de batalla, los del mapa 3 a `evilrhys`; la lluvia no,
+    # porque la paga el trueno de la apertura, que bajó de tasa—: cuánto y a
+    # quién está en `tasks/*/efectos-de-sonido-sin-recortes.md`.
+    "Rain1", "Bite", "Item2", "Monster1", "Thunder9", "Darkness",
+    "Explosion4", "Glass", "Holy5",
+]
+
+# Los alias por mapa: el efecto que en ese mapa suena con otra muestra. Cada
+# uno es un efecto más, pero no una entrada más del directorio: comparte lugar
+# con los de los otros paquetes, así que sólo cuesta una si su paquete pasa a
+# ser el más cargado. El `sample` lleva una `@`: lo que va después es un nombre
+# aparte para la misma WAV.
+per_map = [
+    # El trueno de la apertura, entero: el 3, el 20 y el 32 también piden el
+    # trueno y llevan el de siempre.
+    { effect = "Thunder9", map = 1, sample = "Thunder9@entero" },
+    # Earth4 en el 21, del 2026-09-27: lo pide una ruta de ahí, y dura 1,36 s,
+    # así que sólo ahí va entero y a la tasa de su WAV —el del 3 sigue como
+    # estaba—.
+    { effect = "Earth4", map = 21, sample = "Earth4@entero" },
+]
+
+# Los mapas cuyos efectos de ruta —los que pide la orden 35 de una ruta
+# forzada— **no entran** en el paquete de audio del mapa: `effects` es "all", o
+# la lista de nombres. Un efecto de ruta suena igual si alguna página del mapa
+# lo pide con `PlaySound`, porque entonces ya está en el paquete; los que sólo
+# pide una ruta, no suenan.
+#
+# Es la regla de taro para los efectos —ningún instrumento pierde tasa por
+# ellos— aplicada mapa por mapa, medida el 2026-09-27 contra el reparto de
+# `release` (la tasa de cada par tema-instrumento, antes y después).
+route_effects_left_out = [
+    # Los nueve de la escena de `evilrhys` (Decision1, Blow1 a Blow6, Shot2) no
+    # entran en su paquete **ni con las muestras al mínimo**: el conversor se
+    # corta. Switch1 suena, porque las páginas también lo piden.
+    { map = 3, effects = "all" },
+    # Blow2 le baja un instrumento de `Deflector1` de 22,9 a 16,4 kHz.
+    { map = 7, effects = "all" },
+    # El `SceneDriver` pide cuatro, y con ellos `hzbreach` deja de ser tema de
+    # salida y el paquete no entra.
+    { map = 14, effects = "all" },
+    # Es de prueba: Earth8 le baja 25 pares.
+    { map = 121, effects = "all" },
+]
+
+# Los efectos de las páginas de tropa —su `PlaySound`— que **sí** entran en el
+# paquete de audio de la pelea. Los demás no entran, por la misma regla de
+# taro: ningún instrumento pierde tasa por un efecto. El paquete de la pelea
+# es el tema de batalla y los efectos del sistema, y ya limita muestras:
+# medido el 2026-09-28 contra el `release` de antes, el `Thunder9` del
+# despegue de la pelea de los agentes (tropas 102 y 104) le baja a
+# `T_VGFighterMAX_Masako` seis instrumentos de 13,6-14,1 a 11,5-11,7 kHz y el
+# BRASS64 de 16,3 a 10,8. Con MSU-1 el tema suena por su pista y eso no se
+# oye, pero el efecto tampoco: los efectos de calidad del `.msu` son los del
+# paquete. Sumarlo acá lo hace sonar con los dos. Es una decisión de oído, como
+# `paid_by_music`: ver `workflow/tasks/*/eventos-de-tropa-de-release.md`.
+#
+# El `Thunder9` entra, a los 6000 Hz de `[sound_effects.whole]`: taro escuchó
+# el tema de batalla con y sin él, y a 6000 y a 3000 Hz, y eligió 6000 el
+# 2026-09-28 (`tasks/*/el-hp-de-los-enemigos-y-el-trueno.md`). Además de lo de
+# arriba bajan ocho muestras de la batería, y con MSU-1 los efectos de calidad
+# de la pelea pasan de 14000 a 12000 Hz.
+troop_effects_in_package = ["Thunder9"]
+
+# Los que van enteros, sin tope ni bucle, a la tasa que dice cada uno, en Hz:
+# terminan cuando termina la muestra, que es lo que hacen en RM2k. Con el
+# tope, el trueno repetía sus 0,35–0,75 s hasta cumplir los cuadros y taro lo
+# oyó tartamudear: `decisiones/el-trueno-va-entero-y-paga-la-lluvia.md`.
+#
+# **Lo que un efecto entero ocupa de más no le cuesta nada a la música**: el
+# banco se reparte contando cada efecto como si no estuviera acá, y lo de más
+# tiene que entrar en lo que la música deja libre en cada paquete donde está
+# —si no, el conversor se corta—, salvo los de `paid_by_music`. Es de taro:
+# *"No me parece aceptable que instrumentos pierdan calidad por un solo mapa,
+# pero tampoco quiero perder calidad en los efectos de sonido."* Un efecto que
+# está en un paquete que limita muestras —cuál limita a cada una lo imprime
+# el conversor— no puede estar acá sin que algún instrumento lo pague, y eso
+# lo decide taro escuchando: ver la tarea `efectos-de-sonido-sin-recortes.md`.
+#
+# La tasa de cada uno se eligió el 2026-09-26: los que más se oyen primero, a
+# la más alta que entra —22.050 Hz es la de los WAV, así que no se
+# remuestrean—, y sin que los efectos de un paquete que hoy entran al lado de
+# un tema que puede venir sonando dejen de entrar (ver
+# `decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`).
+[sound_effects.whole]
+# El trueno de la apertura, que es un alias de `per_map`. **Sí** lo paga la
+# música, si hace falta. Va a 8,8 kHz y no a los 22 de su WAV para que la
+# lluvia entera entre en el paquete del mapa 1 sin bajarle la tasa a ningún
+# instrumento: taro, el 2026-09-26. Subirlo vuelve a costarle a
+# `escape_newyork`.
+"Thunder9@entero" = 8800
+Sword3 = 22050
+Monster2 = 22050
+Recovery4 = 22050
+Flame5 = 22050
+Explosion5 = 22050
+Dark5 = 22050
+Cold2 = 22050
+Thunder6 = 22050
+Thunder4 = 22050
+Decision2 = 22050
+Earth8 = 22050
+Fall2 = 22050
+Buzzer1 = 22050
+Blow7 = 22050
+Failure1 = 22050
+Holy6 = 16000
+Kill3 = 16000
+Sword2 = 11025
+Dark1 = 11025
+Sword1 = 11025
+Numbness3 = 6000
+"Refer Book" = 6000
+Earth1 = 6000
+Thunder5 = 6000
+# Los de `paid_by_music`, del 2026-09-26: enteros a la tasa de siempre.
+Rain1 = 6000
+Bite = 6000
+Item2 = 6000
+Monster1 = 6000
+Thunder9 = 6000
+Darkness = 6000
+Explosion4 = 6000
+Glass = 6000
+Holy5 = 6000
+# Annihilation2, del 2026-09-27: el golpe de la carrera cuando el volante
+# quiere salirse de los carriles, y el del final del puente. Está en los
+# paquetes de las tres vueltas y del puente, y sonaba recortado y con bucle. A
+# 8 kHz es lo más alto que entra sin bajarle a ningún instrumento y sin que
+# los efectos del 49 dejen de entrar al lado de `golden_axe-turtlevillage2`,
+# que puede venir sonando desde Lashe City: a 11 kHz ya esperan al `PlayBGM`.
+# Medido con el reparto de `release` antes y después.
+Annihilation2 = 8000
+# Earth4 en el 21, que es un alias de `per_map`, a la tasa de su WAV. Entra en
+# lo que la música deja libre en el paquete del 21 sin bajarle a nadie; sólo
+# alarga la carga.
+"Earth4@entero" = 22050
+
+# --- Los mapas ---------------------------------------------------------------
+#
+# Los mapas del juego que lleva `release`: **los de id menor a `below`, menos
+# `excluded`, más `added`**. Hoy es Lashe City entera y el camino principal del
+# capítulo del mundo, hasta el túnel a Paradise. Hasta el 2026-09-27 era una
+# lista escrita a mano; la regla y sus valores son de
+# `workflow/tasks/*/la-carrera-y-lo-que-sigue.md` y de
+# `workflow/tasks/*/el-mundo-y-lo-que-sigue.md` ("La regla de los mapas"), y
+# taro pidió que la exclusión se mantenga chica.
+#
+# "Mapa" es un nodo de tipo 1 del árbol de RM2k. Los ids que faltan entre los
+# de la regla sin estar excluidos —el 24, el 25, el 27, el 31 y el 35— son
+# áreas: nodos sin `.lmu` que le marcan los encuentros a un rectángulo del
+# padre.
+#
+# Los sectores con auto —37, 38, 47 y 48— entran los cuatro juntos: la elección
+# del 36 es una sola página que compila con sus cuatro destinos o con ninguno.
+# Una exclusión no los puede separar.
+#
+# La demo termina en el mundo, el 66, al entrar a Tangle Forest: el fork del
+# 66 cambia ese `Teleport` por el cartel del fin. Los lugares del mundo cuyo
+# destino no está —Yun Town, Drust Camp, el bosque en llamas— no hacen nada,
+# porque sus páginas no compilan.
+[maps]
+# El 105, Mountain Path, es el primero del capítulo siguiente, adonde lleva el
+# 66 ev18. La demo termina antes: al entrar a Tangle Forest (el 66 ev19, que
+# el fork del 66 cambia por el cartel del fin), porque el camino del puente
+# al túnel **cruza el bosque** —310, 311, 313 y 312, que sale al oeste del
+# 66— y el bosque todavía no entra.
+below = 105
+
+# Cada uno con su razón, que es lo que hay que revisar antes de sumarle otro.
+excluded = [
+    # Aura Tutorial: de otro capítulo, cuelga de `Tutorials` (161). Es el que
+    # cuesta: trae su tema y dos animaciones.
+    58,
+    # Overlook Memory: de otro capítulo, cuelga del 219.
+    104,
+    # Carpetas del árbol —Lashe City, The Rat Tracks, la de la carrera y
+    # Northern World—: mapas negros a los que nadie salta.
+    15, 22, 55, 65,
+    # Security Footage 2 y los tres `Backup`: respaldos de otros mapas a los
+    # que nada lleva. Battle Rink Ladder cuelga del 199 y ningún `Teleport`
+    # lleva a él. Inalcanzables.
+    46, 75, 96, 97, 98,
+    # Lo opcional del mundo, que no entra todavía: Yun Town (67, y su armería
+    # y su posada) y Drust Camp (68 y sus minas). El 70 y el 73, que también
+    # son de Yun Town, entran igual: ya estaban en la ROM como mapas de
+    # prueba, y sin el 67 nada lleva a ellos. Ver "Lo que sigue" en
+    # `el-mundo-y-lo-que-sigue.md`, el hito 5.
+    67, 71, 72,
+    68, 103,
+]
+
+# El tutorial del droide no cuelga de Lashe City sino de `Tutorials`, pero salta
+# ahí la página del 48 que mete a AG7-17 en el grupo. Y el puente del norte
+# (259) y lo que hay debajo (255), que es donde se prende el 849 que deja
+# cruzarlo: el final del camino principal antes del túnel.
+#
+# El mapa de debug no va acá: lo agrega `[debug] debug_map`.
+added = [164, 259, 255]
+
+# Y los que sólo existen por la tanda: situaciones que ningún mapa del juego
+# que entra ejercita. `rm2k-snes-patches` no les pide parche versionado.
+test = [119, 121, 133, 261, 269, 348]
+
+
+# --- Lo que es para depurar --------------------------------------------------
+[debug]
+# **El mapa de debug**: un cuarto con una puerta a cada punto clave del juego
+# —cada una deja el estado de alguien que jugó hasta ahí— y un NPC por
+# compañero que lo suma o lo saca del grupo. Lo pidió taro el 2026-09-27, y
+# "Begin the Story" arranca ahí. Es el único mapa nuevo de
+# `parches/manual/nuevos/`, con un id que el juego no usa, y lo que hace cada
+# puerta está en los comentarios de sus páginas.
+#
+# **Para una entrega limpia, `false`**: el mapa sale del cartucho y la página
+# 0 vuelve a ser `[cases] real_game`, o sea que "Begin the Story" arranca en
+# el mapa 4 como el juego. La tanda no depende de este valor: las pruebas que
+# juegan desde el título eligen `real_game`, que es la página 0 de la entrega
+# limpia, y las del mapa de debug se saltean sin él.
+debug_map = true
+
+# **Los HP de los enemigos en la pelea**: RM2k no los muestra nunca, y el ABL
+# no tiene cómo verlos —ni habilidad, ni ítem, ni mensaje—; lo midió Tero, en
+# `workflow/tasks/*/el-menu-como-rm2k.md`. Así que por omisión el renglón de un
+# enemigo es sólo su nombre, y esto los vuelve a dibujar para depurar, en todos
+# los cartuchos. Lo pidió taro el 2026-09-28. Las pruebas no dependen de este
+# valor: los HP que miran los leen de la RAM.
+enemy_hp = false
+
+
+# --- Los casos ---------------------------------------------------------------
+#
+# Un caso es un archivo de `pruebas/casos/`, y cada uno es una página de
+# prueba del cartucho. La página 0 **no pide nada** y corre siempre, en el mapa
+# de arranque, al empezar: es la que corre en la partida de verdad. La k pide
+# que la variable del caso valga al menos k, y el juego no toca esa variable,
+# así que con `real_game` —ningún comando: la página sólo prende el switch que
+# la apaga— los casos quedan apagados en la ROM que se juega. El arnés elige
+# los demás escribiendo la variable. Con cualquier otro caso ahí, el juego lo
+# correría al empezar: hasta el 2026-09-25 era `grupo-11`, que mete a Kersh en
+# el grupo y rompe la apertura.
+#
+# **Con el mapa de debug, la página 0 es `debug_map_entry`** —un `Teleport` y
+# Talan en el grupo, para que el héroe se vea—, y `real_game` pasa a ser una
+# página más, la que el arnés elige para jugar el juego como arranca sin él.
+[cases]
+real_game = "nada"
+debug_map_entry = "mapa-de-debug"
+
+
+# --- Los cartuchos -----------------------------------------------------------
+#
+# Cada uno es un directorio de `build/` con su ROM, y lo arma
+# `rm2k-snes-cartridges`. Lo que declara cada uno:
+#
+#   start_map      el mapa de arranque, primero en la tabla de la ROM
+#   party          el grupo con que arranca, por ids de actor; vacío, el de la
+#                  base de datos
+#   maps           los demás mapas, en el orden de la tabla; "game" son los
+#                  de `[maps]`: la regla, los agregados y los de prueba
+#   test_graphics  gráficos que los casos ponen con la orden 34 o
+#                  `ChangeSpriteAssociation`: (CharSet, índice)
+#   flags          lo demás, tal cual al conversor
+#   cases          los casos, en el orden de sus páginas; "all" es todos los
+#                  de `pruebas/casos/`, menos `excluded_cases`, con la página 0
+#                  de `[cases]` primero
+
+# La ROM que se juega, y la que corre la tanda: con título, cronómetro, todos
+# los mapas y todos los casos. Hasta el 2026-09-25 eran dos, `release` y
+# `test-main`, y se juntaron —ver `workflow/tasks/*/juntar-release-y-test-main.md`—:
+# lo que se entrega es lo que se prueba.
+#
+# **Los mapas y las páginas de prueba van en la ROM que se juega**, a
+# propósito, inalcanzables: los mapas porque ningún `Teleport` del juego lleva
+# a ellos, y las páginas por la página 0.
+[cartridges.release]
+start_map = 4
+# El 10 y no el 11 de las pruebas porque la apertura del mapa 1 no corre con
+# Kersh ya en el grupo; el 11 lo pone el caso `grupo-11`.
+party = [10]
+maps = "game"
+test_graphics = [["Future1", "0"], ["nobodyhere", "0"]]
+flags = []
+cases = "all"
+# Los que van en `test-special` y no acá, porque acá cambiarían las imágenes
+# de los demás.
+excluded_cases = [
+    "grupo-11-12-13", "batalla", "batalla-item", "batalla-droide",
+    "pelea-82-grupo-11-12",
+    # Acá correría el bloque de textos de todos los casos.
+    "empujon",
+]
+
+# Lo que en `release` cambiaría las imágenes de los demás: los sprites de los
+# actores 12 y 13, los flags y el relleno de textos. `empujon` tiene el tamaño
+# medido que deja el texto de `grupo-11-en-255` sobre el borde de banco —ver
+# `test_texto`—, y va último para no correrle la página a nadie.
+[cartridges.test-special]
+start_map = 6
+party = []
+maps = [74, 1, 2, 5, 21, 255]
+test_graphics = []
+flags = ["--sin-titulo", "--sin-timer",
+         "--heroe-encima", "--encuentros-de-prueba", "8",
+         "--relleno-de-textos", "200"]
+cases = ["parado-tapado", "grupo-11-12-13",
+         "grupo-11-en-255", "batalla", "batalla-item", "batalla-droide",
+         "pelea-82-grupo-11-12", "empujon"]

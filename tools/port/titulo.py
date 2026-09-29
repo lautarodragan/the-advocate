@@ -98,6 +98,8 @@ def render(imagen, sys_img=None, textos=None, elegida=0, font_id=None):
 # —escribir a mano las dos palabras del tilemap que cambian— ahorra 2 KB de
 # cartucho y pide saber en qué celda cae cada flecha, que es justo la clase de
 # número que se escribe mal en un lado y no en el otro.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 MENU_Y = 152                    # dónde arranca la primera opción, en pixeles
 MENU_ALTO = 24                  # y cada cuánto va la siguiente
 MENU_X = 72

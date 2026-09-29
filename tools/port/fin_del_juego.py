@@ -56,6 +56,8 @@ def textos(db):
     repuesto que easyrpg si el término está vacío."""
     t = db.terminos
     def uno(nombre, repuesto):
+        # Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+        # Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
         valor = t.get(nombre, b"").decode("cp1252")
         return valor or repuesto
     return (uno("exit_game_message", "Do you really want to quit?"),

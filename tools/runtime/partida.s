@@ -42,7 +42,7 @@ SRAM_STRIDE = 2048
 ; $0100 y no $0000 por lo de siempre: un operando que entra en un byte lo
 ; resuelve el ensamblador como página directa y leería la WRAM. Ese error costó
 ; que la partida no cargara en mednafen, en Mesen ni en la consola.
-SRAM_MAGIA = $0100          ; cuatro bytes: "ABLS", $41 $42 $4C $53
+SRAM_MAGIA = $0100          ; cuatro bytes: la firma del juego, `SRAM_MAGIA_TEXTO`
 SRAM_SUMA  = $0104          ; la suma de los bytes de la partida
 ; Y de qué formato es: la magia y la suma dicen que la ranura está entera, no
 ; que sea de este build. Desde que los casos de prueba viajan en la ROM que se
@@ -295,13 +295,13 @@ cuadra:
     sta SRAM_FIRMA, x
     sep #$20
 .a8
-    lda #$41
+    lda #.strat(SRAM_MAGIA_TEXTO, 0)
     sta SRAM_MAGIA, x
-    lda #$42
+    lda #.strat(SRAM_MAGIA_TEXTO, 1)
     sta SRAM_MAGIA + 1, x
-    lda #$4C
+    lda #.strat(SRAM_MAGIA_TEXTO, 2)
     sta SRAM_MAGIA + 2, x
-    lda #$53
+    lda #.strat(SRAM_MAGIA_TEXTO, 3)
     sta SRAM_MAGIA + 3, x
     plb
     rts
@@ -361,16 +361,16 @@ no_hay:
 .a8
 .i16
     lda SRAM_MAGIA, x
-    cmp #$41
+    cmp #.strat(SRAM_MAGIA_TEXTO, 0)
     bne no
     lda SRAM_MAGIA + 1, x
-    cmp #$42
+    cmp #.strat(SRAM_MAGIA_TEXTO, 1)
     bne no
     lda SRAM_MAGIA + 2, x
-    cmp #$4C
+    cmp #.strat(SRAM_MAGIA_TEXTO, 2)
     bne no
     lda SRAM_MAGIA + 3, x
-    cmp #$53
+    cmp #.strat(SRAM_MAGIA_TEXTO, 3)
     bne no
     rep #$20
 .a16

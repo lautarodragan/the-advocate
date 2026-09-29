@@ -7,9 +7,9 @@
 ; --- cabecera y vectores ---------------------------------------------------
 .segment "HEADER"
     ; Es lo que muestra el menú del FX Pak y lo que lee cualquier base de datos
-    ; de ROMs. Decía "ABL SNES MUSIC POC" hasta el 2026-09-09, de cuando esto era
-    ; una prueba de audio; en hardware se ve, así que dejó de dar igual.
-    .byte "A BLURRED LINE       "  ; 21 caracteres
+    ; de ROMs. Lo declara el juego en su archivo de proyecto, y el conversor lo
+    ; emite ya rellenado a 21 caracteres: ver `identidad_de_la_rom`.
+    .byte ROM_TITULO
     .byte $30                      ; LoROM, FastROM: ver MEMSEL
     .byte $02                      ; ROM y RAM con batería: la partida guardada
     .byte $0C                      ; tamaño: 4 MB (el byte es log2 de los KB)

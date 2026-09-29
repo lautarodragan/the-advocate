@@ -942,8 +942,8 @@ listo:
 .endproc
 
 ; C en 1 si PAQ_EXTRA es uno de los temas aparte del paquete de PAQ_MAPA: la
-; cuarta lista de `paquetes`. Son los de `TEMAS_APARTE` en
-; tools/audio/snes_music.py, y el caso del juego es `vswar` en el 38 y el 47:
+; cuarta lista de `paquetes`. Son los de `[music] apart_themes` del archivo
+; de proyecto, y el caso del juego es `vswar` en el 38 y el 47:
 ; suena en una escena, nunca al mismo tiempo que los otros temas del mapa, y
 ; con ellos no entraba a la tasa que tiene solo. Cuando su `PlayBGM` lo pide
 ; y no está, se sube **él con los efectos del paquete** —que pueden sonar

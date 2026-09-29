@@ -779,7 +779,7 @@ class Temas:
     def sonido(self, nombre, volumen, tempo, balance, al_paquete=True):
         """El índice del efecto. Sin `al_paquete` no se anota en el paquete
         del mapa: suena sólo si otra cosa lo mete ahí. Ver
-        `SE_DE_RUTA_SIN_PAQUETE` en snes_music.py. Tampoco cuenta en
+        `se_de_ruta_sin_paquete` en snes_music.py. Tampoco cuenta en
         `pedidos`: uno que no está en el paquete no suena, así que no le impide
         a un tema ser de salida."""
         clave = (nombre, volumen, tempo, balance)
@@ -1071,6 +1071,8 @@ CUADROS_POR_CELDA = CELDA_PX // WALK_SPEED
 # les da **35 cuadros** a cada una. Mientras la transición corre el juego está
 # congelado: `Scene::MainFunction` ve `IsAsyncPending()` y llama a
 # `Player::Update(false)`, que no actualiza la escena.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 FUNDIDO_CUADROS = 35
 FUNDIDO_TOTAL = FUNDIDO_CUADROS * 2
 
@@ -1429,6 +1431,8 @@ CABECERA_AUTOCIERRE = 0x08
 # ninguno ahorra lo que complica: ver `workflow/tasks/*/mundo-3-el-espacio.md`.
 # `msg_empezar` lo multiplica por cuatro, y un `.assert` de allá cobra que
 # los dos lados de la cuenta sean el mismo: `MENSAJES_TOPE`.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 MENSAJES_PASO = 4
 
 
@@ -1634,6 +1638,8 @@ COND_VARIABLE = 1
 # arriba libre, y la ranura quedó de ocho: 256, que es lo que reserva la RAM
 # lejana entre `FAR_VARIABLES` y `FAR_ITEMS`.
 VAR_REFRESCO = 0x80
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 VAR_RANURA_MAX = 0xFF
 #
 # OP_IF_VAR: ranura (byte), clase (byte), comparación (byte), valor (word),
@@ -1648,6 +1654,8 @@ VAR_RANURA_MAX = 0xFF
 # deja de ser "nunca activa". Cambiar un ítem pide el refresco de páginas.
 #
 # OP_ITEM: ítem (word), delta (byte con signo)
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 ITEMS_N = 451       # los 450 ítems del LDB más el 0, que no se usa; lo cobra
                     # test_items.py contra RPG_RT.ldb
 ITEM_MAX = 99
@@ -2766,6 +2774,8 @@ ORO_MAX = 999999
 
 # Cuántos switches entra el bitmap de la ROM: `SWITCH_BYTES` son 128, o sea del
 # 0 al 1023. Una rama sobre uno más alto escribiría fuera, así que no compila.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 SWITCH_MAX = 1024
 
 
@@ -3158,7 +3168,7 @@ class PaginasDeTropa:
         con su efecto, que cuenta para **el paquete de audio de la pelea** —el
         que está cargado cuando la página corre, ver `PAQUETE_BATALLA`— y no
         para el del mapa; y entra en él sólo si está en
-        `SE_DE_TROPA_AL_PAQUETE` (snes_music.py): si no, se pide y no suena,
+        `se_de_tropa_al_paquete` (snes_music.py): si no, se pide y no suena,
         como uno de ruta que no entra. Sin `temas` se acepta y no se hace."""
         suyas = []
         anterior = temas.mapa if temas is not None else None
@@ -3255,6 +3265,8 @@ ENC_TABLA = ((0, -4), (20, -3), (40, -2), (60, -1),
 
 # El `encounter_rate` con el que sube el acumulado: el del terreno, que en este
 # juego es 100 en los 53 mapas con encuentros. Ver arriba.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 ENC_RATE = 100
 
 # La semilla del azar de los encuentros. Es otra que `AZAR_SEMILLA` y otra que
@@ -4283,10 +4295,9 @@ def indice_de_sonido(temas, indice_de_mapa, nombre, volumen, tempo, balance,
 
     Los que en un mapa suenan con otra muestra —el trueno entero del mapa 1—
     llevan otro nombre para la misma WAV, para que los demás mapas sigan con
-    la suya. Ver `SE_DEL_MAPA` en snes_music.py. Y los de ruta de los mapas de
-    `SE_DE_RUTA_SIN_PAQUETE` no entran en el paquete: ver ahí."""
-    from audio.snes_music import (SE_DEL_MAPA, SE_DE_RUTA_SIN_PAQUETE,
-                                  SE_DE_TROPA_AL_PAQUETE)
+    la suya. Ver `se_del_mapa` en snes_music.py. Y los de ruta de los mapas de
+    `se_de_ruta_sin_paquete` no entran en el paquete: ver ahí."""
+    from audio import snes_music
 
     def es(mapa):
         try:
@@ -4296,17 +4307,17 @@ def indice_de_sonido(temas, indice_de_mapa, nombre, volumen, tempo, balance,
 
     al_paquete = True
     if temas.mapa is not None:
-        for (base, mapa), alias in SE_DEL_MAPA.items():
+        for (base, mapa), alias in snes_music.se_del_mapa().items():
             if nombre == base and es(mapa):
                 nombre = alias
                 break
         if de_ruta:
             al_paquete = not any(
                 es(m) and (cuales is None or nombre in cuales)
-                for m, cuales in SE_DE_RUTA_SIN_PAQUETE.items())
+                for m, cuales in snes_music.se_de_ruta_sin_paquete().items())
     if temas.mapa == PAQUETE_BATALLA:
-        # El de una página de tropa: ver `SE_DE_TROPA_AL_PAQUETE`.
-        al_paquete = nombre in SE_DE_TROPA_AL_PAQUETE
+        # El de una página de tropa: ver `se_de_tropa_al_paquete`.
+        al_paquete = nombre in snes_music.se_de_tropa_al_paquete()
     return temas.sonido(nombre, volumen, tempo, balance, al_paquete)
 
 
@@ -5194,6 +5205,8 @@ def blancos_de_ruta(paginas):
 # tienen ese problema porque terminan prendiendo el switch que las desactiva
 # —es el idioma de RM2k— así que la de prueba hace lo mismo, y de paso ejercita
 # ese idioma.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 SWITCH_DE_PRUEBA = 1023
 
 # La variable que elige cuál de las páginas de prueba corre, cuando un cartucho
@@ -5207,6 +5220,8 @@ SWITCH_DE_PRUEBA = 1023
 # El número no importa, porque la ROM habla de ranuras, y ninguna página del
 # juego nombra al 1000. Va más arriba que todas las del juego, así que su
 # ranura es la última y no corre la de ninguna otra.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 VARIABLE_DE_CASO = 1000
 COMPARAR_AL_MENOS = 1   # el `>=` de las condiciones de página de RM2k
 # El switch que no se prende nunca: es lo que lleva como `switch_a` una página
@@ -5214,6 +5229,8 @@ COMPARAR_AL_MENOS = 1   # el `>=` de las condiciones de página de RM2k
 # `rm2k.CONDICIONES_IMPOSIBLES`— para que la ROM no la elija jamás, y las
 # otras páginas del evento sí. El juego consulta switches hasta el
 # 1003 y el 1023 es el de la página de prueba.
+# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
+# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 SWITCH_IMPOSIBLE = 1021
 
 

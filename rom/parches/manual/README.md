@@ -51,7 +51,8 @@ De ahí salen su nombre, su padre, su música y sus encuentros; `lcf.TreeMap`
 lo suma a los del juego.
 
 Hoy es uno: el **900**, el mapa de debug, donde arranca "Begin the Story"
-mientras `CON_MAPA_DE_DEBUG` esté prendido en `rm2k-snes-cartridges`.
+mientras `[debug] debug_map` esté prendido en `rm2k-snes.toml`. Su id no
+está escrito en otro lado: el de debug es el único mapa nuevo.
 Un cuarto con el chipset del mapa 10, seis puertas con su cartel y un NPC por
 compañero, que elige la rama que aplican las puertas. Lo que pone cada puerta
 está en los `Comment` de su página, al lado de cada comando: es lo que hay que

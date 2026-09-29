@@ -21,6 +21,7 @@ from audio import muestras_brr
 from audio import sdsp
 from audio import snes_samples
 from audio import spc700
+from comun import perillas
 from comun import proyecto
 from comun.paralelo import en_paralelo
 from rpgmaker.recursos import GAME_DIR, find_resource
@@ -267,155 +268,62 @@ SE_VOZ = 7                      # la que se le roba a la música
 # la apertura—, como en RM2k. Las dos son las que el reparto de la música
 # llena primero con la percusión: ver `VOCES_DE_EFECTOS`.
 SE_VOZ2 = 6
-# Los que van enteros, sin tope ni bucle, a la tasa que dice cada uno:
-# terminan cuando termina la muestra, que es lo que hacen en RM2k. Con el
-# tope, el trueno repetía sus 0,35–0,75 s hasta cumplir los cuadros y taro lo
-# oyó tartamudear: `decisiones/el-trueno-va-entero-y-paga-la-lluvia.md`.
-#
-# **Lo que un efecto entero ocupa de más no le cuesta nada a la música**: el
-# banco se reparte contando cada efecto como si no estuviera acá, y lo de más
-# tiene que entrar en lo que la música deja libre en cada paquete donde está
-# —si no, el conversor se corta; ver `_enteros_entran`—. Es de taro: *"No me
-# parece aceptable que instrumentos pierdan calidad por un solo mapa, pero
-# tampoco quiero perder calidad en los efectos de sonido."* Un efecto que
-# está en un paquete que limita muestras —cuál limita a cada una lo imprime
-# el conversor— no puede estar acá sin que algún instrumento lo pague, y eso
-# lo decide taro escuchando: ver la tarea `efectos-de-sonido-sin-recortes.md`.
-#
-# La tasa de cada uno se eligió el 2026-09-26: los que más se oyen primero, a
-# la más alta que entra —22.050 Hz es la de los WAV, así que no se
-# remuestrean—, y sin que los efectos de un paquete que hoy entran al lado de
-# un tema que puede venir sonando dejen de entrar (ver
-# `decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`).
-#
-# El trueno de la apertura es un alias: lo que va después de la `@` es un
-# nombre aparte para la misma WAV, que `_compilar` pone sólo en el mapa 1
-# (ver `SE_DEL_MAPA`), porque el 3, el 20 y el 32 también piden el trueno y
-# llevan el de siempre.
-#
-# Y **sí** lo paga la música, si hace falta, como los de abajo en
-# `SE_ENTEROS_PAGADOS`. Va a 8,8 kHz y no a los 22 de su WAV para que la
-# lluvia entera entre en el paquete del mapa 1 sin bajarle la tasa a ningún
-# instrumento: taro, el 2026-09-26. Subirlo vuelve a costarle a
-# `escape_newyork`.
-SE_ENTEROS = {
-    "Thunder9@entero": 8800,
-    "Sword3": 22050, "Monster2": 22050, "Recovery4": 22050, "Flame5": 22050,
-    "Explosion5": 22050, "Dark5": 22050, "Cold2": 22050, "Thunder6": 22050,
-    "Thunder4": 22050, "Decision2": 22050, "Earth8": 22050, "Fall2": 22050,
-    "Buzzer1": 22050, "Blow7": 22050, "Failure1": 22050,
-    "Holy6": 16000, "Kill3": 16000,
-    "Sword2": 11025, "Dark1": 11025, "Sword1": 11025,
-    "Numbness3": 6000, "Refer Book": 6000, "Earth1": 6000, "Thunder5": 6000,
-}
-SE_ENTEROS_PAGADOS = {"Thunder9@entero"}
+# **Qué efectos van enteros, cuáles paga la música, qué alias hay por mapa y
+# qué temas van aparte son decisiones de oído del juego**, casi todas de taro
+# escuchando, y viven en su archivo de proyecto —`[sound_effects]` y
+# `[music]`— con el porqué de cada una. Hasta el 2026-09-29 eran tablas de
+# acá. Se leen al usarlas y no al importar, para que el conversor se pueda
+# importar sin un juego.
 
-# **Los que sí paga la música**, del 2026-09-26. taro, escuchando los que no
-# entraban en lo libre: *"tengo cero dudas de que tienen que tener su
-# longitud completa (todos)"*. Y después, con los números de subirlos a 11
-# kHz a la vista, que afectar tanto a la música no le agrada: van **enteros a
-# la tasa de siempre**, y a más sólo donde fuera gratis —no hubo ninguno: cada
-# uno está en algún paquete que limita muestras—. Los de tres cuartos de
-# segundo o menos ya sonaban enteros y no están acá.
-#
-# Enteros sí le cuestan a la música de su paquete —los tres largos de la
-# pelea al tema de batalla, los del mapa 3 a `evilrhys`; la lluvia no, porque
-# la paga el trueno de la apertura, que bajó de tasa—:
-# cuánto y a quién está en `tasks/*/efectos-de-sonido-sin-recortes.md`.
-SE_ENTEROS.update({
-    "Rain1": 6000, "Bite": 6000, "Item2": 6000, "Monster1": 6000,
-    "Thunder9": 6000, "Darkness": 6000, "Explosion4": 6000, "Glass": 6000,
-    "Holy5": 6000,
-})
-SE_ENTEROS_PAGADOS |= {
-    "Rain1", "Bite", "Item2", "Monster1", "Thunder9", "Darkness",
-    "Explosion4", "Glass", "Holy5",
-}
+def se_enteros():
+    """{efecto: tasa en Hz} de los que van enteros, sin tope ni bucle:
+    terminan cuando termina la muestra, que es lo que hacen en RM2k. Lo que
+    uno ocupa de más tiene que entrar en lo que la música deja libre en cada
+    paquete donde está, salvo los de `se_enteros_pagados`: ver
+    `_enteros_entran`. De `[sound_effects.whole]`."""
+    return dict(perillas.valor("sound_effects", "whole", tipo=dict))
 
-# Y Annihilation2, del 2026-09-27: el golpe de la carrera cuando el volante
-# quiere salirse de los carriles, y el del final del puente. Está en los
-# paquetes de las tres vueltas y del puente, y sonaba recortado y con bucle. A 8 kHz es lo más alto que entra sin bajarle a
-# ningún instrumento y sin que los efectos del 49 dejen de entrar al lado de
-# `golden_axe-turtlevillage2`, que puede venir sonando desde Lashe City: a 11
-# kHz ya esperan al `PlayBGM`. Medido con el reparto de `release` antes y
-# después.
-SE_ENTEROS.update({"Annihilation2": 8000})
 
-# Y Earth4 en el 21, del 2026-09-27: lo pide una ruta de ahí, y dura
-# 1,36 s, así que sólo ahí va entero y a la tasa de su WAV, con un alias —el
-# del 3 sigue como estaba—. Entra en lo que la música deja libre en el
-# paquete del 21 sin bajarle a nadie; sólo alarga la carga.
-SE_ENTEROS.update({"Earth4@entero": 22050})
+def se_enteros_pagados():
+    """Los enteros que, si no entran en lo libre, le bajan la tasa a la
+    música. De `[sound_effects] paid_by_music`."""
+    return set(perillas.valor("sound_effects", "paid_by_music", tipo=list))
 
-# Los alias por mapa: (nombre en RM2k, id del mapa) -> la muestra que suena
-# ahí. Los pone `_compilar`, en tools/port/eventos.py. Cada uno es un efecto
-# más, pero no una entrada más del directorio: comparte lugar con los de los
-# otros paquetes —ver `lugares_de_efectos`—, así que sólo cuesta una si su
-# paquete pasa a ser el más cargado.
-SE_DEL_MAPA = {
-    ("Thunder9", 1): "Thunder9@entero",
-    ("Earth4", 21): "Earth4@entero",
-}
 
-# Los efectos que piden las rutas forzadas —la orden 35, ver `RUTA_SONIDO` en
-# tools/port/eventos.py— que **no entran** en el paquete de audio de su mapa:
-# {id del mapa: None para todos, o los nombres}. Un efecto de ruta suena igual
-# si alguna página del mapa lo pide con `PlaySound`, porque entonces ya está
-# en el paquete; los que sólo pide una ruta, no suenan.
-#
-# Es la regla de taro para los efectos —ningún instrumento pierde tasa por
-# ellos— aplicada mapa por mapa, medida el 2026-09-27 contra el reparto de
-# `release` (la tasa de cada par tema-instrumento, antes y después):
-#
-# * el 3: los nueve de la escena de `evilrhys` (Decision1, Blow1 a Blow6,
-#   Shot2) no entran en su paquete **ni con las muestras al mínimo**: el
-#   conversor se corta. Switch1 suena, porque las páginas también lo piden.
-# * el 7: Blow2 le baja un instrumento de `Deflector1` de 22,9 a 16,4 kHz.
-# * el 14: el `SceneDriver` pide cuatro, y con ellos `hzbreach` deja de ser
-#   tema de salida (ver `Temas.de_salida`) y el paquete no entra.
-# * el 121, que es de prueba: Earth8 le baja 25 pares.
-SE_DE_RUTA_SIN_PAQUETE = {3: None, 7: None, 14: None, 121: None}
+def se_del_mapa():
+    """{(nombre en RM2k, id del mapa): la muestra que suena ahí}. Los pone
+    `_compilar`, en tools/port/eventos.py. Cada uno es un efecto más, pero no
+    una entrada más del directorio: comparte lugar con los de los otros
+    paquetes —ver `lugares_de_efectos`—. De `[sound_effects] per_map`."""
+    return {(a["effect"], a["map"]): a["sample"]
+            for a in perillas.valor("sound_effects", "per_map", tipo=list)}
 
-# Los efectos de las páginas de tropa —su `PlaySound`— que **sí** entran en el
-# paquete de audio de la pelea. Los demás no entran, por la misma regla de
-# taro: ningún instrumento pierde tasa por un efecto. El paquete de la pelea
-# es el tema de batalla y los efectos del sistema, y ya limita muestras:
-# medido el 2026-09-28 contra el `release` de antes, el `Thunder9` del
-# despegue de la pelea de los agentes (tropas 102 y 104) le baja a
-# `T_VGFighterMAX_Masako` seis instrumentos de 13,6-14,1 a 11,5-11,7 kHz y el
-# BRASS64 de 16,3 a 10,8. Con MSU-1 el tema suena por su pista y eso no se
-# oye, pero el efecto tampoco: los efectos de calidad del `.msu` son los del
-# paquete. Sumarlo acá lo hace sonar con los dos. Es una decisión de oído, como
-# `SE_ENTEROS_PAGADOS`: ver `workflow/tasks/*/eventos-de-tropa-de-release.md`.
-#
-# El `Thunder9` entra, a los 6000 Hz de `SE_ENTEROS`: taro escuchó el tema de
-# batalla con y sin él, y a 6000 y a 3000 Hz, y eligió 6000 el 2026-09-28
-# (`tasks/*/el-hp-de-los-enemigos-y-el-trueno.md`). Además de lo de arriba
-# bajan ocho muestras de la batería, y con MSU-1 los efectos de calidad de la
-# pelea pasan de 14000 a 12000 Hz.
-SE_DE_TROPA_AL_PAQUETE = {"Thunder9"}
 
-# **Los temas aparte**: {id del mapa: nombres}. Un tema aparte no va con los
-# otros temas del paquete de su mapa: lo sube su `PlayBGM`, **él solo con los
-# efectos del paquete**, y lo demás se suelta hasta el próximo `PlayBGM` —ver
-# `extra_aparte` en tools/runtime/paquete_de_audio.s—. Tampoco se lo hereda a los
-# mapas a los que se sale de ahí: ver `temas_heredados` en snes_convert.py.
-# Es un tema de salida que no se va, y por eso lo dice esta lista y no una
-# regla: que nunca suene al mismo tiempo que los otros temas del mapa, ni al
-# salir, lo sabe quien leyó las páginas.
-#
-# `vswar` en el 38 y el 47, del 2026-09-27: es el de las escenas del HQ y de
-# los guardias, y solo ocupa 61 KB a la tasa que tenía antes de Lashe City,
-# así que con `golden_axe-turtlevillage2` al lado —el otro tema de esos dos
-# mapas— y `cd4`, que llega sonando del 10, el paquete pedía 82 KB y bajaban
-# 47 pares (tema, instrumento), los de afuera por las copias que ya no se
-# podían hacer. En los dos la escena lo cambia a `golden_axe` antes de irse:
-# en el 47 en la misma página, y en el 38 se entra al basural por un
-# `Teleport` y se sale por otro que antes prende `golden_axe` (los eventos 20,
-# 21 y 26). Lo que cuesta es la carga: subir vswar al empezar la escena, un
-# cuadro y medio por KB. Los cofres del basural (Bow2) suenan igual, porque los
-# efectos del paquete se quedan.
-TEMAS_APARTE = {38: {"vswar"}, 47: {"vswar"}}
+def se_de_ruta_sin_paquete():
+    """{id del mapa: None para todos, o los nombres} de los efectos que piden
+    las rutas forzadas —la orden 35, ver `RUTA_SONIDO` en
+    tools/port/eventos.py— y **no entran** en el paquete de audio de su mapa.
+    De `[sound_effects] route_effects_left_out`."""
+    return {m["map"]: None if m["effects"] == "all" else set(m["effects"])
+            for m in perillas.valor("sound_effects", "route_effects_left_out",
+                                    tipo=list)}
+
+
+def se_de_tropa_al_paquete():
+    """Los efectos de las páginas de tropa que **sí** entran en el paquete de
+    audio de la pelea. De `[sound_effects] troop_effects_in_package`."""
+    return set(perillas.valor("sound_effects", "troop_effects_in_package",
+                              tipo=list))
+
+
+def temas_aparte():
+    """{id del mapa: nombres} de los temas aparte: no van con los otros temas
+    del paquete de su mapa, los sube su `PlayBGM` solos con los efectos del
+    paquete —ver `extra_aparte` en tools/runtime/paquete_de_audio.s—, y no se
+    heredan a los mapas a los que se sale —ver `temas_heredados` en
+    snes_convert.py—. De `[music] apart_themes`."""
+    return {m["map"]: set(m["themes"])
+            for m in perillas.valor("music", "apart_themes", tipo=list)}
 
 
 class Efecto:
@@ -460,9 +368,9 @@ def leer_wav(nombre, game_dir=GAME_DIR):
 
 
 def build_efecto(nombre, game_dir=GAME_DIR, tasa=SE_TASA, enteros=None):
-    """`enteros` es `SE_ENTEROS` si no viene; con {} sale el de siempre, que
-    es lo que la música le presupuesta: ver `SE_ENTEROS`."""
-    enteros = SE_ENTEROS if enteros is None else enteros
+    """`enteros` es `se_enteros()` si no viene; con {} sale el de siempre,
+    que es lo que la música le presupuesta: ver `se_enteros`."""
+    enteros = se_enteros() if enteros is None else enteros
     leido = leer_wav(nombre.split("@")[0], game_dir)
     if not leido or not leido[0]:
         return None
@@ -873,14 +781,11 @@ SE_LUGARES_MAX = 48
 # Una copia no se hace por una muestra que ya suena casi a su tasa: una
 # entrada del directorio vale más que eso.
 COPIA_HASTA = 0.9
-# Cuántas entradas ocupaban los efectos cuando cada uno tenía la suya, el
-# 2026-09-26: los 92 de `release`. Es hasta dónde llega la primera tanda de
-# `copias` —las que taro escuchó—, y no los efectos de hoy: contarlos hacía
-# que cada efecto nuevo le sacara una copia a la primera tanda aunque no
-# ocupara ninguna entrada, porque comparte lugar con los de otros paquetes.
-# Así quedaron afuera Flash1 en el 13 y Earth4 en el 21, del 2026-09-27: con
-# los dos, un golpe de `bubstix` bajaba de 19,3 a 13,9 kHz.
-SE_DE_SIEMPRE = 92
+def se_de_siempre():
+    """Hasta cuántas entradas del directorio llega la primera tanda de
+    `copias`: las que ocupaban los efectos cuando cada uno tenía la suya, y
+    no los de hoy. Lo midió el juego: `[music] effect_slots_of_first_copies`."""
+    return perillas.valor("music", "effect_slots_of_first_copies", tipo=int)
 
 
 def copias(claves_de, grupos, efectos, de_siempre, reales=None,
@@ -901,7 +806,7 @@ def copias(claves_de, grupos, efectos, de_siempre, reales=None,
 
     Se hacen en dos tandas. `efectos` es cuántas entradas del directorio
     ocupan hoy los efectos, y `de_siempre` cuántas ocupaban cuando cada uno
-    tenía la suya —ver `SE_DE_SIEMPRE`—.
+    tenía la suya —ver `se_de_siempre`—.
 
     **Las de siempre**, de a una y **la peor primero**: la muestra de
     fracción más baja de su tamaño nativo que tenga algún tema fuera del
@@ -925,7 +830,7 @@ def copias(claves_de, grupos, efectos, de_siempre, reales=None,
     llene: así ninguna copia le cuesta a nadie sus cuatro bytes, y el
     directorio que quede más corto sólo puede dejar más lugar. Y reparte con
     `reales`, los mismos grupos con lo que sus efectos ocupan de verdad: los
-    `SE_ENTEROS` que no paga la música van en lo que ella deja libre, y una
+    `se_enteros()` que no paga la música van en lo que ella deja libre, y una
     copia que sube a su tasa llenaría justo eso.
     """
     reales = grupos if reales is None else reales
@@ -2029,7 +1934,7 @@ def huella_de_la_mezcla(escrituras_del_tema, banco):
 
 def _enteros_entran(banco, paquetes, herencia, efectos, presupuestado,
                     nombres):
-    """Que lo que los `SE_ENTEROS` ocupan de más entre, en cada paquete, en
+    """Que lo que los `se_enteros()` ocupan de más entre, en cada paquete, en
     lo que la música dejó libre: el banco ya está repartido sin contarlo, así
     que si no entra no hay a quién sacárselo sin bajarle la tasa a un
     instrumento, y el conversor se corta diciendo cuál.
@@ -2038,6 +1943,7 @@ def _enteros_entran(banco, paquetes, herencia, efectos, presupuestado,
     un paquete entraban al lado con el tamaño de siempre y enteros ya no: ahí
     esperan al próximo `PlayBGM` (ver
     `decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`)."""
+    todos, pagados = se_enteros(), se_enteros_pagados()
     claves_de = {}
     for paquete in paquetes:
         nombre, suyos = paquete[0], paquete[1]
@@ -2048,14 +1954,14 @@ def _enteros_entran(banco, paquetes, herencia, efectos, presupuestado,
     for paquete in paquetes:
         nombre, suyas = paquete[0], set(paquete[2]) & set(efectos)
         enteros = sorted(e for e in suyas
-                         if e in SE_ENTEROS and e not in SE_ENTEROS_PAGADOS)
+                         if e in todos and e not in pagados)
         if not enteros:
             continue
         ocupan = sum(len(efectos[e].data) for e in suyas)
         banco.enteros_de_mas[str(nombre)] = ocupan - sum(presupuestado[e]
                                                          for e in suyas)
         # El paquete, y cada uno de sus temas aparte, que sube con los
-        # mismos efectos: ver `TEMAS_APARTE`.
+        # mismos efectos: ver `temas_aparte`.
         for suyos in [None] + [[t] for t in (paquete[4] if len(paquete) > 4
                                              else ())]:
             musica = banco.ocupa(claves_de[nombre] if suyos is None
@@ -2068,12 +1974,12 @@ def _enteros_entran(banco, paquetes, herencia, efectos, presupuestado,
     if no_entran:
         raise SystemExit(
             "los efectos enteros no entran sin bajarle la tasa a un "
-            "instrumento: %s. Bajarles la tasa en SE_ENTEROS, o sacarlos"
+            "instrumento: %s. Bajarles la tasa en [sound_effects.whole], o sacarlos"
             % "; ".join(no_entran))
     efectos_de = {p[0]: set(p[2]) & set(efectos) for p in paquetes}
     for nombre, heredado in herencia:
         suyas = efectos_de[nombre]
-        if not any(e in SE_ENTEROS and e not in SE_ENTEROS_PAGADOS
+        if not any(e in todos and e not in pagados
                    for e in suyas):
             continue
         musica = banco.ocupa(claves_de[nombre]
@@ -2105,7 +2011,7 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     temas aparte]]). Cada uno tiene que entrar solo en la ARAM, con sus
     efectos, y lo que ocupan sus efectos se resta antes de repartir; cada
     tema de salida —ver `Temas.de_salida` en tools/port/eventos.py— tiene
-    que entrar solo, y cada tema aparte —ver `TEMAS_APARTE`— solo con los
+    que entrar solo, y cada tema aparte —ver `temas_aparte`— solo con los
     efectos del paquete. Si no viene, cada tema es un paquete sin efectos.
 
     `herencia` son pares (nombre de un paquete, índice de un tema que puede
@@ -2133,10 +2039,11 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     lista = sorted(efectos_hechos.values(), key=lambda e: list(efectos).index(
         e.name) if e.name in efectos else 0)
     # Lo que la música le presupuesta a cada efecto: el de siempre, aunque
-    # vaya entero. Ver `SE_ENTEROS`.
+    # vaya entero. Ver `se_enteros`.
     presupuestado = {n: len(e.data) for n, e in efectos_hechos.items()}
+    todos, pagados = se_enteros(), se_enteros_pagados()
     for n in efectos_hechos:
-        if n in SE_ENTEROS and n not in SE_ENTEROS_PAGADOS:
+        if n in todos and n not in pagados:
             presupuestado[n] = len(build_efecto(n, game_dir, enteros={}).data)
 
     # Las claves que el SoundFont tiene; las demás no suenan en ningún lado.
@@ -2164,7 +2071,7 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
             grupos.append(Grupo("%s>%s" % (nombre, nombres[t]), (t,), 0))
             reales.append(grupos[-1])
         # Y cada tema aparte con los efectos del paquete, que se quedan
-        # cuando su `PlayBGM` lo sube: ver `TEMAS_APARTE`.
+        # cuando su `PlayBGM` lo sube: ver `temas_aparte`.
         for t in (paquete[4] if len(paquete) > 4 else ()):
             grupos.append(Grupo("%s>%s" % (nombre, nombres[t]), (t,), ocupan))
             reales.append(Grupo(grupos[-1].nombre, (t,), ocupan_real))
@@ -2176,7 +2083,7 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
                                [e.name for e in lista])
     lugares = max(lugar.values()) + 1 if lugar else 0
     asignacion = copias(claves_de, grupos, lugares,
-                        min(len(lista), SE_DE_SIEMPRE), reales)
+                        min(len(lista), se_de_siempre()), reales)
     todas = {k for a in asignacion for k in a.values()}
     libre = libre_para(len(todas), lugares)
     banco = Banco(todas, restricciones_de(asignacion, reales, libre))

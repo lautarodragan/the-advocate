@@ -96,7 +96,7 @@ pisan sus celdas. Lo pidió taro el 2026-09-27, con la calidad tan baja como
 hiciera falta para que entren: ver "El respaldo liviano". Hasta ese día
 llevaba tres, y las demás peleas usaban el de reemplazo.
 
-**El de reemplazo**, `REEMPLAZO`, queda para lo que la ROM no puede saber al
+**El de reemplazo**, `reemplazo()`, queda para lo que la ROM no puede saber al
 convertir: una tropa que pelea con el fondo "del lugar" en un mapa sin
 encuentros al azar, donde el fondo sale del terreno bajo el héroe y cualquier
 terreno del mapa es posible. En `release` eso lo hacen sólo páginas de
@@ -151,6 +151,8 @@ porque son los bytes del `.msu`, y con eso su firma.
 import collections
 import os
 
+from comun import perillas
+
 # La escena, en pixeles de pantalla: los siete renglones de texto de arriba.
 ANCHO, ALTO = 256, 128
 # El fondo de batalla de RM2k y la pantalla donde vive, de donde sale el 80%.
@@ -189,13 +191,11 @@ TILES = TILES_X * TILES_Y                       # 512, la grilla entera
 VRAM_MAPA = 0x3800
 VRAM_TILES = 0x4000
 
-# El fondo de las peleas cuyo fondo no está en la ROM: ver "Qué fondos hay".
-# Es el de los Rat Tracks, una cueva de roca gris, porque no dice dónde se
-# está: el del droide es una sala con un monitor y la Tierra en una pantalla,
-# y el de los Back Alleys una calle con carteles. Una pelea en el bosque sobre
-# roca se ve rara; sobre una nave, equivocada. Lo piden los encuentros de los
-# Rat Tracks, así que en `release` no cuesta nada.
-REEMPLAZO = "ABLBackdropSJ08"
+def reemplazo():
+    """El fondo de las peleas cuyo fondo no está en la ROM: ver "Qué fondos
+    hay". Lo elige el juego, en `[battle] fallback_backdrop` del archivo de
+    proyecto, con su porqué."""
+    return perillas.valor("battle", "fallback_backdrop", tipo=str)
 
 # Cuántos planos guarda el cartucho por fila de un battler: la máscara y los
 # cuatro de su dibujo. Los otros cuatro los pone la ROM según la paleta.

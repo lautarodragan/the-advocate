@@ -18,6 +18,7 @@ guardar desde una es otro camino que el del jugador—.
 
 import pytest
 
+import consola
 from consola import EMPEZAR, SEGUIR
 import datos
 from dibujo import comparar_pantalla
@@ -304,7 +305,7 @@ def _de_otro_build(simbolos, guardado, como):
     """
     mitad = len(guardado) // 2
     corrida = guardado[:mitad] + guardado[mitad + 2:] + bytes(2)
-    magia = b"ABLS"
+    magia = consola.MAGIA
     if como == "sin-cabecera":
         # Un build de antes de que la partida llevara su formato: la suma y
         # los datos pegados, sin nada en el medio.
