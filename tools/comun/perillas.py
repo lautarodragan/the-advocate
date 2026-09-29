@@ -1,19 +1,19 @@
-"""El archivo de proyecto: lo que un juego decide y las herramientas no.
+"""The project file: what a game decides and the tools do not.
 
-Hasta el 2026-09-29 lo de A Blurred Line —qué mapas entran en el cartucho,
-cómo se llama la ROM, qué efectos de sonido van enteros— estaba escrito en los
-`.py` de `tools/`, y cada herramienta lo tenía de default. Ahora vive en un
-TOML en la raíz del juego —`proyecto.archivo_de_proyecto()`—, y las
-herramientas lo leen de acá. Ver
-`workflow/decisiones/las-herramientas-se-separan-de-abl.md` y los pasos 3 y 4
-de `docs/research/el-mapa-de-las-herramientas-de-python.md`.
+Until 2026-09-29 A Blurred Line's choices —which maps go into the cartridge,
+what the ROM is called, which sound effects go whole— were written in the
+`.py` files of `tools/`, and each tool had them as a default. Now they live
+in a TOML at the game's root —`proyecto.archivo_de_proyecto()`—, and the
+tools read them from here. See
+`workflow/decisiones/las-herramientas-se-separan-de-abl.md` and steps 3 and 4
+of `docs/research/el-mapa-de-las-herramientas-de-python.md`.
 
-**Una clave que falta es un error, no un default.** Si una herramienta tuviera
-un valor por omisión para una perilla, ese valor sería el de ABL, y un juego
-que se olvidara de declararla se armaría con lo de otro sin avisar.
+**A missing key is an error, not a default.** If a tool had a default value
+for a setting, that value would be ABL's, and a game that forgot to declare
+it would be built with another game's without a warning.
 
-Las claves van en inglés, porque son la interfaz de las herramientas; los
-comentarios del archivo, en el idioma del juego.
+The keys are in English, because they are the tools' interface; the file's
+comments, in the game's language.
 """
 
 import tomllib
@@ -24,15 +24,15 @@ _leidos = {}
 
 
 class FaltaUnaClave(KeyError):
-    """Una perilla que el archivo no declara, o que declara con otro tipo."""
+    """A setting the file does not declare, or declares with another type."""
 
     def __str__(self):
         return self.args[0]
 
 
 def leer(ruta=None):
-    """El archivo entero, como diccionario. Se lee una vez por ruta: las
-    herramientas lo consultan al importarse y en cada mapa."""
+    """The whole file, as a dictionary. It is read once per path: the tools
+    consult it when imported and on every map."""
     ruta = ruta or proyecto.archivo_de_proyecto()
     if ruta not in _leidos:
         with open(ruta, "rb") as archivo:
@@ -41,20 +41,20 @@ def leer(ruta=None):
 
 
 def valor(*claves, tipo=None, ruta=None):
-    """La perilla en `claves` —`valor("rom", "name")` es `[rom] name`—.
-    Falla con el nombre de la clave si no está, o si `tipo` no es el suyo:
-    `bool` no pasa por `int`, aunque Python diga que sí."""
+    """The setting at `claves` —`valor("rom", "name")` is `[rom] name`—.
+    It fails with the key's name if it is missing, or if `tipo` is not its
+    type: `bool` does not pass for `int`, even though Python says it does."""
     ruta = ruta or proyecto.archivo_de_proyecto()
     actual = leer(ruta)
     for k, clave in enumerate(claves):
         if not isinstance(actual, dict) or clave not in actual:
-            raise FaltaUnaClave("%s: falta la clave %s" % (
+            raise FaltaUnaClave("%s: missing key %s" % (
                 ruta, ".".join(str(c) for c in claves[:k + 1])))
         actual = actual[clave]
     if tipo is not None and (not isinstance(actual, tipo)
                              or (isinstance(actual, bool)
                                  and not _admite_bool(tipo))):
-        raise FaltaUnaClave("%s: %s tiene que ser %s y es %r" % (
+        raise FaltaUnaClave("%s: %s must be %s and is %r" % (
             ruta, ".".join(claves), _nombre(tipo), actual))
     return actual
 
@@ -66,23 +66,23 @@ def _admite_bool(tipo):
 
 def _nombre(tipo):
     tipos = tipo if isinstance(tipo, tuple) else (tipo,)
-    return " o ".join(t.__name__ for t in tipos)
+    return " or ".join(t.__name__ for t in tipos)
 
 
 def ascii(*claves, largo=None, hasta=None, ruta=None):
-    """Una perilla de texto que termina en la ROM tal cual: ASCII imprimible,
-    sin comillas —va entre comillas en el `.inc`—, y de `largo` caracteres
-    exactos o de `hasta` como mucho."""
+    """A text setting that ends up in the ROM as is: printable ASCII,
+    without quotes —it goes between quotes in the `.inc`—, and exactly
+    `largo` characters long or at most `hasta`."""
     texto = valor(*claves, tipo=str, ruta=ruta)
     nombre = ".".join(claves)
     ruta = ruta or proyecto.archivo_de_proyecto()
     if not all(" " <= c <= "~" and c != '"' for c in texto):
-        raise FaltaUnaClave("%s: %s tiene que ser ASCII imprimible y sin "
-                            "comillas, y es %r" % (ruta, nombre, texto))
+        raise FaltaUnaClave("%s: %s must be printable ASCII without "
+                            "quotes, and is %r" % (ruta, nombre, texto))
     if largo is not None and len(texto) != largo:
-        raise FaltaUnaClave("%s: %s tiene que tener %d caracteres, y tiene %d"
+        raise FaltaUnaClave("%s: %s must have %d characters, and has %d"
                             % (ruta, nombre, largo, len(texto)))
     if hasta is not None and not 0 < len(texto) <= hasta:
-        raise FaltaUnaClave("%s: %s tiene que tener de 1 a %d caracteres, y "
-                            "tiene %d" % (ruta, nombre, hasta, len(texto)))
+        raise FaltaUnaClave("%s: %s must have 1 to %d characters, and "
+                            "has %d" % (ruta, nombre, hasta, len(texto)))
     return texto

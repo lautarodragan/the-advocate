@@ -1,32 +1,32 @@
 .segment "CODE"
 
-; --- los eventos quietos que animan igual ---------------------------------
+; --- the still events that animate anyway ---------------------------------
 ;
-; `animation_type` 1 y 3 de RM2k —"Continuous" y "Fixed Dir/Continuous"— hacen
-; que el evento recorra el ciclo de caminata **sin moverse**. El save point de
-; Lashe City es del segundo tipo, y taro lo pidió el 2026-09-07.
+; RM2k's `animation_type` 1 and 3 —"Continuous" and "Fixed Dir/Continuous"—
+; make the event run through its walk cycle **without moving**. The save point
+; in Lashe City is of the second kind, and taro asked for it on 2026-09-07.
 ;
-; Los que caminan ya lo hacen: su ranura de ruta lleva el contador y `.proc
-; animar_ruta_ev` lo avanza. Los quietos no tienen ranura, y no hay dónde
-; guardarles un contador: la fila del NPC no tiene un byte libre —el +11 es el
-; alto del salto— y la BSS está llena. Así que la columna sale del reloj del
-; juego, igual que la animación del ChipSet: `vueltas` dividido por cada cuántos
-; cuadros cambia, que es `anim_continua` por velocidad, y el ciclo de cuatro
-; pasos con el tercero repitiendo el primero.
+; The ones that walk already do this: their move route slot carries the counter
+; and `.proc animar_ruta_ev` advances it. The still ones have no slot, and there
+; is nowhere to keep a counter for them: the NPC's row has no free byte —+11 is
+; the jump height— and the BSS is full. So the column comes from the game
+; clock, the same as the ChipSet animation: `vueltas` divided by how many
+; frames between changes, which is `anim_continua` for the speed, and the
+; four-step cycle with the third step repeating the first.
 ;
-; **La fase no es la de RM2k**, que arranca el contador de cada personaje cuando
-; el mapa lo crea; acá es global. Está declarado en
-; workflow/divergencias/la-fase-de-los-quietos-que-animan.md, y lo único que
-; cambia es en cuál de los cuatro pasos del ciclo entra cada evento.
+; **The phase is not RM2k's**, which starts each character's counter when the
+; map creates it; here it is global. It is declared in
+; workflow/divergencias/la-fase-de-los-quietos-que-animan.md, and all it changes
+; is which of the four steps of the cycle each event enters on.
 ;
-; Va antes de `mover_eventos` a propósito: si una ruta forzada agarra a uno de
-; éstos, la ranura le pisa la pose después y gana ella, que es la que lleva el
-; contador de verdad.
+; It runs before `mover_eventos` on purpose: if a forced move route grabs one of
+; these, the slot overwrites its pose afterwards and wins, since it is the one
+; that carries the real counter.
 .proc animar_quietos
 .a8
 .i16
-    ; ¿Este mapa tiene alguno? Lo dice el relleno de la última familia de
-    ; `anim_tabla`; sin esto habría que recorrer las cuarenta filas siempre.
+    ; Does this map have any? The padding of the last family in `anim_tabla`
+    ; says so; without this we would have to walk the forty rows every time.
     ldy #(ANIM_FAMILIAS - 1)
     jsr anim_donde
     lda f:anim_tabla + 7, x
@@ -38,30 +38,30 @@ otra:
     cpy npc_total
     beq listo
     lda npc_buf + 14, y
-    beq siguiente               ; escondido: no se dibuja
+    beq siguiente               ; hidden: not drawn
     lda npc_buf + 13, y
-    bpl siguiente               ; el bit 7 es "quieto y animando"
+    bpl siguiente               ; bit 7 is "still and animating"
     and #$7F
-    dec a                       ; la velocidad, de 0 a 5
+    dec a                       ; the speed, 0 to 5
     phy
     rep #$20
 .a16
     and #$00FF
     tax
-    ; El tick que se dibuja es `vueltas + 1` visto desde acá, que es el mismo
-    ; número que mira la animación del ChipSet —ella lo lee después del `inc
-    ; vueltas`—. Medido: sin el `inc`, el save point del mapa 8 se
-    ; queda una columna atrás y son 76 pixeles. Sin los ticks congelados, como
-    ; ella: ver `vueltas_congeladas`.
+    ; The tick being drawn is `vueltas + 1` as seen from here, which is the
+    ; same number the ChipSet animation looks at —it reads it after the `inc
+    ; vueltas`—. Measured: without the `inc`, the save point on map 8 stays
+    ; one column behind and that is 76 pixels. Without the frozen ticks, like
+    ; it: see `vueltas_congeladas`.
     lda vueltas
     sec
     sbc f:vueltas_congeladas
     inc a
-    sta WRDIVL                  ; el dividendo, en una sola escritura de 16
+    sta WRDIVL                  ; the dividend, in a single 16-bit write
     sep #$20
 .a8
-    lda anim_continua, x        ; cada cuántos cuadros cambia de columna
-    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    lda anim_continua, x        ; how many frames between column changes
+    sta WRDIVB                  ; starts it: the quotient takes sixteen cycles
     nop
     nop
     nop
@@ -78,12 +78,12 @@ otra:
     tax
     sep #$20
 .a8
-    lda ciclo_tres, x           ; la columna: 0, 1, 2 o de vuelta la 1
+    lda ciclo_tres, x           ; the column: 0, 1, 2 or back to 1
     ply
     sta temp + 3
-    ; La pose: hacia dónde mira su página por tres, más la columna. Con la
-    ; mirada fija —que es lo que pide `animation_type` 3— nadie la gira.
-    jsr mirada_de_fila          ; la de su página, o la del giro
+    ; The pose: where its page faces times three, plus the column. With a
+    ; fixed facing —which is what `animation_type` 3 asks for— nobody turns it.
+    jsr mirada_de_fila          ; its page's, or the turn's
     sta temp + 2
     asl a
     clc
@@ -106,4 +106,3 @@ siguiente:
 listo:
     rts
 .endproc
-

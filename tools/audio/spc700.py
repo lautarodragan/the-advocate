@@ -1,48 +1,49 @@
-"""Ensamblador mínimo para el SPC700, el procesador de audio de la Super Nintendo.
+"""Minimal assembler for the SPC700, the Super Nintendo's audio processor.
 
-No hay ensamblador de SPC700 empaquetado en Debian y no vamos a compilar uno de
-fuentes sin revisar, así que va este. Cubre sólo las instrucciones que necesita
-el driver, que son pocas: el 65816 le manda pares (registro, valor) del DSP por
-los puertos y el SPC700 los copia. Toda la música la maneja el 65816.
+There is no SPC700 assembler packaged in Debian and we are not going to build
+one from unreviewed sources, so this one it is. It covers only the
+instructions the driver needs, which are few: the 65816 sends it DSP
+(register, value) pairs through the ports and the SPC700 copies them. All the
+music is handled by the 65816.
 
-Los opcodes salen del manual del SPC700. Cada uno está anotado con su
-codificación para que se pueda verificar sin ejecutar nada.
+The opcodes come from the SPC700 manual. Each one is annotated with its
+encoding so it can be checked without running anything.
 
-El mapa de memoria que importa:
-  $F1        control: reinicia los puertos
-  $F2/$F3    dirección y dato del DSP
-  $F4-$F7    los cuatro puertos hacia el 65816 (allá son $2140-$2143)
+The memory map that matters:
+  $F1        control: resets the ports
+  $F2/$F3    DSP address and data
+  $F4-$F7    the four ports to the 65816 (there they are $2140-$2143)
 """
 
-# (mnemónico, operandos) -> (opcode, cuántos bytes de operando)
+# (mnemonic, operands) -> (opcode, how many operand bytes)
 #
-# Los operandos son: dp = página cero, imm = inmediato, rel = salto relativo,
-# abs = una dirección de dieciséis bits, que se emite en little endian.
+# The operands are: dp = direct page, imm = immediate, rel = relative branch,
+# abs = a sixteen-bit address, emitted in little endian.
 OPCODES = {
     ("mov", "a,dp"):    (0xE4, 1),   # A <- (dp)
-    ("mov", "a,imm"):   (0xE8, 1),   # A <- inmediato
+    ("mov", "a,imm"):   (0xE8, 1),   # A <- immediate
     ("mov", "dp,a"):    (0xC4, 1),   # (dp) <- A
     ("mov", "x,dp"):    (0xF8, 1),   # X <- (dp)
-    ("mov", "x,imm"):   (0xCD, 1),   # X <- inmediato
+    ("mov", "x,imm"):   (0xCD, 1),   # X <- immediate
     ("mov", "dp,x"):    (0xD8, 1),   # (dp) <- X
-    ("mov", "y,imm"):   (0x8D, 1),   # Y <- inmediato
-    ("mov", "[dp]+y,a"): (0xD7, 1),  # (palabra en dp + Y) <- A
-    ("incw", "dp"):     (0x3A, 1),   # la palabra en dp, más uno
-    ("decw", "dp"):     (0x1A, 1),   # menos uno; Z si llegó a cero
-    ("dec", "dp"):      (0x8B, 1),   # el byte en dp, menos uno
-    ("inc", "y"):       (0xFC, 0),   # Y más uno
-    ("cmp", "x,dp"):    (0x3E, 1),   # compara X con (dp)
-    ("cmp", "a,imm"):   (0x68, 1),   # compara A con inmediato
-    ("beq", "rel"):     (0xF0, 1),   # salta si iguales
-    ("bne", "rel"):     (0xD0, 1),   # salta si distintos
-    ("bra", "rel"):     (0x2F, 1),   # salto incondicional
-    ("jmp", "abs"):     (0x5F, 2),   # salto largo, a cualquier dirección
+    ("mov", "y,imm"):   (0x8D, 1),   # Y <- immediate
+    ("mov", "[dp]+y,a"): (0xD7, 1),  # (word at dp + Y) <- A
+    ("incw", "dp"):     (0x3A, 1),   # the word at dp, plus one
+    ("decw", "dp"):     (0x1A, 1),   # minus one; Z if it reached zero
+    ("dec", "dp"):      (0x8B, 1),   # the byte at dp, minus one
+    ("inc", "y"):       (0xFC, 0),   # Y plus one
+    ("cmp", "x,dp"):    (0x3E, 1),   # compares X with (dp)
+    ("cmp", "a,imm"):   (0x68, 1),   # compares A with immediate
+    ("beq", "rel"):     (0xF0, 1),   # branches if equal
+    ("bne", "rel"):     (0xD0, 1),   # branches if not equal
+    ("bra", "rel"):     (0x2F, 1),   # unconditional branch
+    ("jmp", "abs"):     (0x5F, 2),   # long jump, to any address
     ("nop", ""):        (0x00, 0),
 }
 
 
 class Assembler:
-    """Ensambla en dos pasadas: la primera resuelve las etiquetas."""
+    """Assembles in two passes: the first resolves the labels."""
 
     def __init__(self, origin):
         self.origin = origin
@@ -80,40 +81,40 @@ class Assembler:
             if size == 0:
                 return bytes([opcode])
             if shape == "abs":
-                # La única de dos bytes, y va en little endian como todo lo
-                # demás del SPC700.
+                # The only two-byte one, and it goes in little endian like
+                # everything else on the SPC700.
                 return bytes([opcode, value & 0xFF, (value >> 8) & 0xFF])
             if shape == "rel":
-                # Los saltos son relativos al final de la instrucción.
+                # Branches are relative to the end of the instruction.
                 offset = value - (address + 2)
                 if not -128 <= offset <= 127:
-                    raise ValueError("salto fuera de rango: %s %s"
+                    raise ValueError("branch out of range: %s %s"
                                      % (mnemonic, operand))
                 return bytes([opcode, offset & 0xFF])
             return bytes([opcode, value & 0xFF])
-        raise ValueError("no sé ensamblar: %s %s" % (mnemonic, operand))
+        raise ValueError("cannot assemble: %s %s" % (mnemonic, operand))
 
     def _match(self, shape, operand):
-        """Si el operando encaja con la forma esperada, devuelve su valor."""
+        """If the operand matches the expected shape, returns its value."""
         if shape == "":
             return 0 if operand == "" else None
 
         if shape == "rel":
             return self.labels.get(operand, self.origin)
 
-        if shape == "y":                    # el registro Y
+        if shape == "y":                    # the Y register
             return 0 if operand == "y" else None
-        if shape == "abs":                  # una dirección entera: !$FFC0
+        if shape == "abs":                  # a full address: !$FFC0
             return self._number(operand, "!")
-        if shape == "dp":                   # un solo operando de página cero
+        if shape == "dp":                   # a single direct-page operand
             return self._number(operand, "$")
-        if shape == "[dp]+y,a":             # el indirecto indexado
+        if shape == "[dp]+y,a":             # indirect indexed
             if not (operand.startswith("[") and operand.endswith("]+y,a")):
                 return None
             return self._number(operand[1:-len("]+y,a")], "$")
 
         target, _, source = shape.partition(",")
-        if source:                          # formas de dos operandos
+        if source:                          # two-operand shapes
             left, _, right = operand.partition(",")
             if target in ("a", "x", "y") and left != target:
                 return None
@@ -129,7 +130,7 @@ class Assembler:
 
     @staticmethod
     def _number(text, prefix):
-        """Un operando como $F4 o #$10. None si no tiene el prefijo esperado."""
+        """An operand like $F4 or #$10. None if it lacks the expected prefix."""
         if not text.startswith(prefix):
             return None
         text = text[len(prefix):]

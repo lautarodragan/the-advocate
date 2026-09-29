@@ -1,23 +1,23 @@
 .segment "CODE"
 
-; --- lo que va sí o sí dentro del vblank -----------------------------------
-; OAM sólo se puede escribir mientras el PPU no la está leyendo, o sea en el
-; vblank. Armarla lleva su tiempo —con treinta y pico de personajes, más de un
-; milisegundo— así que armarla y subirla en el mismo vblank no entra: la subida
-; termina cayendo afuera y los objetos salen en cualquier lado.
+; --- what has to go inside the vblank, no matter what ----------------------
+; OAM can only be written while the PPU is not reading it, that is, in the
+; vblank. Building it takes its time —with thirty-odd characters, more than a
+; millisecond— so building it and uploading it in the same vblank does not fit:
+; the upload ends up falling outside and the objects show up anywhere.
 ;
-; Por eso se sube lo del cuadro anterior apenas empieza el vblank, y recién
-; después se arma la del siguiente. El scroll va junto, para que el fondo y los
-; sprites correspondan al mismo momento.
+; That is why the previous frame's is uploaded as soon as the vblank starts, and
+; only afterwards is the next one built. The scroll goes along with it, so the
+; background and the sprites correspond to the same moment.
 .proc flush_video
 .a8
 .i16
     jsr push_oam
     lda destello_listo
     beq sin_destello
-    jsr subir_destello          ; el destello, o el tinte, van antes que las
-    lda #2                      ; poses y les comen presupuesto en este
-    sta vq_tope                 ; mismo vblank
+    jsr subir_destello          ; the flash, or the tint, go before the
+    lda #2                      ; poses and eat into their budget in this
+    sta vq_tope                 ; same vblank
     bra sin_tinte
 sin_destello:
     lda tinte_listo
@@ -26,28 +26,28 @@ sin_destello:
     lda #2
     sta vq_tope
 sin_tinte:
-    ; Y un renglón de la ventana esperando también les come presupuesto: son
-    ; 1920 bytes de un solo DMA, casi cuatro poses. Con las cinco de siempre el
-    ; vblank se termina en el medio y lo que falta del renglón se escribe con
-    ; la pantalla encendida, o sea que no se escribe: queda una franja de
-    ; basura en la ventana, **fija**, y sólo en un mapa con muchos eventos
-    ; moviéndose. taro la vio en Lashe City el 2026-09-08 hablándole al
-    ; mecánico y al linyera; apareció con los eventos paralelos, que sumaron
-    ; nueve personajes que se mueven y por lo tanto nueve poses por subir.
+    ; And a window line waiting also eats into their budget: it is 1920 bytes
+    ; in a single DMA, almost four poses. With the usual five the vblank ends
+    ; in the middle and the rest of the line is written with the screen on,
+    ; that is, it is not written: a band of garbage is left in the window,
+    ; **fixed**, and only on a map with many events moving. taro saw it in
+    ; Lashe City on 2026-09-08 talking to the mechanic and the hobo; it showed
+    ; up with the parallel events, which added nine characters that move and
+    ; therefore nine poses to upload.
     lda msg_subir
     beq sin_renglon
     lda #1
     sta vq_tope
 sin_renglon:
-    ; Y una tira del mapa esperando —la fila o la columna que la cámara
-    ; destapó— también: `push_strips` corre después de las poses y hasta el
-    ; 2026-09-10 no descontaba nada, así que en un vblank con las cinco poses
-    ; sus DMA caían con la pantalla encendida y la VRAM los ignoraba. La fila
-    ; quedaba sin dibujar hasta que la cámara volviera a pasar por ahí. taro lo
-    ; vio jugando el 2026-09-09, "medio random", y lo reproduce EV0041 del
-    ; mapa 8: el salto del héroe encola poses nuevas justo cuando la cámara
-    ; cruza una fila. Una fila son cuatro DMA de 64 bytes, media pose: se le
-    ; descuenta una entera para no andar midiendo el borde.
+    ; And a map strip waiting —the row or column the camera uncovered— too:
+    ; `push_strips` runs after the poses and until 2026-09-10 it did not
+    ; subtract anything, so in a vblank with all five poses its DMAs landed
+    ; with the screen on and VRAM ignored them. The row was left undrawn until
+    ; the camera went over it again. taro saw it playing on 2026-09-09, "sort
+    ; of random", and EV0041 of map 8 reproduces it: the hero's jump queues new
+    ; poses right when the camera crosses a row. A row is four 64-byte DMAs,
+    ; half a pose: a whole one is subtracted so as not to go measuring the
+    ; edge.
     lda row_addr
     ora row_addr + 1
     ora col_addr
@@ -58,29 +58,29 @@ sin_renglon:
     dec a
     sta vq_tope
 sin_tira:
-    ; Y un paso de la animación del ChipSet, que también sale de este vblank:
-    ; hasta 26 tiles de fondo, o sea 1664 bytes, que es más de tres poses. Se lo
-    ; descuenta al presupuesto en vez de fijarlo, para que se sume a lo que ya
-    ; se hayan llevado el tinte o un renglón de la ventana.
+    ; And a step of the ChipSet animation, which also comes out of this vblank:
+    ; up to 26 background tiles, that is 1664 bytes, which is more than three
+    ; poses. It is subtracted from the budget instead of setting it, so it adds
+    ; to whatever the tint or a window line already took.
     jsr anim_flush
-    ; Y los 2 KB del cuadro de la animación de batalla, si el tick pidió uno
-    ; nuevo. Es lo más caro que se sube en un vblank —cuatro poses de las
-    ; cinco— y pasa una vez cada dos cuadros. Va **antes** de `vram_drenar` por
-    ; lo mismo que `anim_flush`: lo que se lleva tiene que salir del
-    ; presupuesto de este vblank, y tres líneas más abajo `vq_tope` ya se
-    ; resetea para el que viene. Ver `animacion_dibujo_dma`.
+    ; And the 2 KB of the battle animation's frame, if the tick asked for a
+    ; new one. It is the most expensive thing uploaded in a vblank —four poses
+    ; of the five— and it happens once every two frames. It goes **before**
+    ; `vram_drenar` for the same reason as `anim_flush`: what it takes has to
+    ; come out of this vblank's budget, and three lines further down `vq_tope`
+    ; is already reset for the next one. See `animacion_dibujo_dma`.
     lda f:ANIMB_SUBIR
     beq sin_anim_cuadro
     lda #0
     sta f:ANIMB_SUBIR
     jsr animacion_dibujo_dma
 sin_anim_cuadro:
-    jsr vram_drenar             ; las poses que esta OAM ya da por subidas
+    jsr vram_drenar             ; the poses this OAM already takes as uploaded
     lda #VQ_POR_CUADRO
-    sta vq_tope                 ; el vblank que viene arranca con todo
+    sta vq_tope                 ; the coming vblank starts with everything
 
-    ; Las paletas de los destellos que quedaron pendientes del cuadro
-    ; anterior, **todas**: una por ranura. Ver FAR_FLASH_PAL.
+    ; The flash palettes left pending from the previous frame, **all of
+    ; them**: one per slot. See FAR_FLASH_PAL.
     ldx #$0000
 otro_flash:
     lda flash_ev + 7, x
@@ -91,7 +91,7 @@ otro_flash:
 .a16
     txa
     asl a
-    asl a                       ; de ocho bytes por ranura a treinta y dos
+    asl a                       ; from eight bytes per slot to thirty-two
     clc
     adc #.loword(FAR_FLASH_PAL)
     sta A1T0L
@@ -119,9 +119,10 @@ sin_flash:
 .a8
     bcc otro_flash
 
-    ; Y la paleta del cartel, si la rampa la rehizo este cuadro. Son treinta y
-    ; dos bytes y van aparte de las tres del mapa: la entrada del cartel cae
-    ; arriba de `SPRITE_CGRAM`, o sea afuera de lo que sube `subir_paletas`.
+    ; And the sign's palette, if the ramp rebuilt it this frame. It is
+    ; thirty-two bytes and goes separately from the map's three: the sign's
+    ; entry falls above `SPRITE_CGRAM`, that is, outside what `subir_paletas`
+    ; uploads.
     lda f:CARTEL_LISTO
     beq sin_imagen
     lda #0
@@ -145,9 +146,9 @@ sin_flash:
     sta MDMAEN
 sin_imagen:
 
-    ; Y la paleta de la animación de batalla, si acaba de empezar una. Son los
-    ; mismos treinta y dos bytes que el cartel y por lo mismo: su entrada cae
-    ; arriba de `SPRITE_CGRAM` y `subir_paletas` no la toca.
+    ; And the battle animation's palette, if one just started. It is the same
+    ; thirty-two bytes as the sign's and for the same reason: its entry falls
+    ; above `SPRITE_CGRAM` and `subir_paletas` does not touch it.
     lda f:ANIMB_PAL
     beq sin_anim_pal
     lda #0
@@ -173,13 +174,13 @@ sin_imagen:
     sta MDMAEN
 sin_anim_pal:
 
-    ; Los dos registros de scroll son de escritura doble: primero el byte bajo
-    ; y después el alto.
-    ; Cada registro se completa antes de pasar al siguiente. Los de scroll
-    ; comparten un único latch entre todos los planos, así que intercalar las
-    ; escrituras —BG1 bajo, BG2 bajo, BG1 alto, BG2 alto— mezcla los valores y
-    ; el plano queda desplazado dentro de su celda, moviéndose en el lugar.
-    lda pantalla_x              ; la cámara más la sacudida, si la hay
+    ; The two scroll registers are write-twice: first the low byte and then
+    ; the high one.
+    ; Each register is completed before moving on to the next. The scroll ones
+    ; share a single latch among all planes, so interleaving the writes —BG1
+    ; low, BG2 low, BG1 high, BG2 high— mixes the values and the plane ends up
+    ; shifted within its cell, moving in place.
+    lda pantalla_x              ; the camera plus the shake, if any
     sta BG1HOFS
     lda pantalla_x + 1
     sta BG1HOFS
@@ -199,16 +200,15 @@ sin_anim_pal:
 
     jsr push_strips
 
-    ; Y el HDMA de la ventana de mensaje: prendido mientras haya una en
-    ; pantalla, apagado cuando no. Eso es **todo** lo que cuesta abrirla y
-    ; cerrarla; el tilemap propio ya está escrito desde que se cargó el mapa.
+    ; And the message window's HDMA: on while there is one on screen, off when
+    ; not. That is **all** it costs to open and close it; its own tilemap is
+    ; already written since the map was loaded.
     ;
-    ; Los dos tramos de arriba de la tabla de scroll llevan la cámara de este
-    ; cuadro, la misma que se acaba de escribir en los registros: el HDMA los
-    ; vuelve a escribir en la línea 0 y no cambia nada. Lo que cambia es la
-    ; línea 144 para abajo.
-    ; Primero el compositor: el renglón que dejó listo, y la ventana entera
-    ; cuando ya no queda ninguno.
+    ; The two top stretches of the scroll table carry this frame's camera, the
+    ; same one just written to the registers: the HDMA writes them again on
+    ; line 0 and nothing changes. What changes is from line 144 down.
+    ; First the compositor: the line it left ready, and the whole window when
+    ; none are left.
     lda msg_subir
     beq sin_subir
     jsr subir_linea
@@ -240,62 +240,63 @@ no_termino:
     bra prender
 sin_ventana:
     stz HDMAEN
-    ; Sin HDMA la máscara de objetos queda como la dejó la última línea, que
-    ; es prendida: se apaga a mano, como BG2SC acá abajo.
+    ; Without HDMA the object mask stays as the last line left it, which is
+    ; on: it is turned off by hand, like BG2SC down here.
     stz WOBJSEL
-    ; BG2SC hay que devolverlo a mano: el HDMA lo dejó con el tilemap de la
-    ; ventana en la última línea que escribió, y sin HDMA nadie lo vuelve a
-    ; tocar. Cuesta dos instrucciones y evita tener que acordarse de esto al
-    ; cerrar un mensaje.
+    ; BG2SC has to be restored by hand: the HDMA left it with the window's
+    ; tilemap on the last line it wrote, and without HDMA nobody touches it
+    ; again. It costs two instructions and saves having to remember this when
+    ; closing a message.
     lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
     sta BG2SC
 
-    ; Y último de todo, el brillo maestro.
+    ; And last of all, the master brightness.
     ;
-    ; **INIDISP se escribe únicamente acá**, y eso no es prolijidad: es lo que
-    ; hace que el brillo cambie entre dos cuadros y no a mitad de uno. Escribirlo
-    ; desde el lazo dibuja el cuadro partido —lo de arriba con el brillo viejo y
-    ; lo de abajo con el nuevo—, que es exactamente el defecto que se veía en
-    ; cada teletransporte: la pantalla volvía a prenderse cuando terminaba la
-    ; carga, o sea a mitad de cuadro, y encima con el scroll y OAM del mapa
-    ; viejo, porque esos también se escriben acá y sólo en el vblank.
+    ; **INIDISP is written only here**, and that is not neatness: it is what
+    ; makes the brightness change between two frames and not in the middle of
+    ; one. Writing it from the loop draws the frame split —the top with the old
+    ; brightness and the bottom with the new—, which is exactly the defect seen
+    ; on every teleport: the screen came back on when the load finished, that
+    ; is, mid-frame, and on top of that with the old map's scroll and OAM,
+    ; because those are also written here and only in the vblank.
     ;
-    ; Quien quiera cambiar el brillo escribe `brillo` y espera al vblank
-    ; siguiente, igual que quien mueve un sprite escribe OAM y espera. La única
-    ; excepción es el blanking forzado de una carga, que `fundido_tick` escribe
-    ; a mano: ahí la pantalla ya está en negro y el cambio no se ve.
+    ; Whoever wants to change the brightness writes `brillo` and waits for the
+    ; next vblank, just as whoever moves a sprite writes OAM and waits. The only
+    ; exception is a load's forced blank, which `fundido_tick` writes by hand:
+    ; there the screen is already black and the change does not show.
 prender:
-    jsl f:fundido_mosaico       ; el del teletransporte, si lo pide
+    jsl f:fundido_mosaico       ; the teleport's, if it asks for it
     lda brillo
     sta INIDISP
     rts
 .endproc
 
-; Sube Y bytes desde la dirección X de la RAM a la VRAM, que ya quedó apuntada.
+; Uploads Y bytes from RAM address X to VRAM, which has already been pointed.
 .proc dma_a_vram
 .a8
 .i16
     stx A1T0L
-    lda tira_banco              ; 0 la tira de esta vuelta, $7E la de repuesto
+    lda tira_banco              ; 0 this pass's strip, $7E the spare one
     sta A1B0
     sty DAS0L
     lda #$01
-    sta DMAP0                   ; dos registros, de a palabras
+    sta DMAP0                   ; two registers, word by word
     lda #$18
-    sta BBAD0                   ; destino: VMDATAL
+    sta BBAD0                   ; destination: VMDATAL
     lda #$01
     sta MDMAEN
     rts
 .endproc
 
-; Las tiras que dejó armadas stream_map. Van acá y no donde se arman porque la
-; VRAM sólo se puede escribir en el vblank; armarlas adentro no entraría.
+; The strips stream_map left built. They go here and not where they are built
+; because VRAM can only be written in the vblank; building them inside would
+; not fit.
 .proc push_strips
 .a8
 .i16
-    ; Cuatro tiras como mucho: la columna y la fila que armó esta vuelta, y las
-    ; de repuesto que dejó guardadas si la cámara destapó dos de un eje. Cada
-    ; una sube sola, y una dirección en cero es que no hay ninguna.
+    ; Four strips at most: the column and row this pass built, and the spare
+    ; ones it left saved if the camera uncovered two on one axis. Each one is
+    ; uploaded on its own, and an address at zero means there is none.
     ldx col_addr_b
     beq sin_columna_b
     stx tira_vram
@@ -331,8 +332,8 @@ sin_fila_b:
     stz tira_banco
     jsr push_una_fila
 sin_fila:
-    ; Las cuatro consumidas, tirando también las que no se subieron por estar
-    ; en cero: lo que no se armó en esta vuelta no se arma en la siguiente.
+    ; All four consumed, also discarding the ones that were not uploaded for
+    ; being at zero: what was not built this pass is not built on the next.
     rep #$20
 .a16
     stz col_addr
@@ -344,20 +345,19 @@ sin_fila:
     rts
 .endproc
 
-; Una columna del tilemap a la VRAM: a la palabra `tira_vram`, desde `tira_de`
-; en el banco `tira_banco`. Sale de un DMA por capa, porque el PPU puede
-; avanzar de a 32 palabras tras cada escritura, que es justo lo que mide una
-; fila del tilemap.
+; One tilemap column to VRAM: to word `tira_vram`, from `tira_de` in bank
+; `tira_banco`. It takes one DMA per layer, because the PPU can advance by 32
+; words after each write, which is exactly what a tilemap row measures.
 ;
-; Las dos variables **avanzan a medida que la tira se consume**, y no se usa
-; `temp` para eso aunque esté a mano: `fill_window` guarda ahí el número de
-; columna por la que va y lo lee **después** de llamar a `push_strips`, así que
-; pisarlo le rompe el lazo. Costó una tanda entera con las 957 celdas visibles
-; distintas, el 2026-09-22.
+; The two variables **advance as the strip is consumed**, and `temp` is not
+; used for that even though it is at hand: `fill_window` keeps there the
+; column number it is on and reads it **after** calling `push_strips`, so
+; overwriting it breaks its loop. It cost a whole suite run with all 957
+; visible cells different, on 2026-09-22.
 .proc push_una_columna
 .a8
 .i16
-    lda #$81                    ; avanzar 32 palabras tras el byte alto
+    lda #$81                    ; advance 32 words after the high byte
     sta VMAIN
     ldx tira_vram
     stx VMADDL
@@ -365,11 +365,11 @@ sin_fila:
     ldy #(WINDOW_ROWS * 2)
     jsr dma_a_vram
 
-    ; La capa de encima: la misma ranura en su tilemap, y su tira pegada a la
-    ; otra en la RAM. La ranura sale de enmascarar y no de sumar una distancia
-    ; fija porque el tilemap del fondo no está siempre en el mismo lugar —ver
-    ; LAYOUT_VENTANA_AMBOS—; alcanza con que los dos arranquen en múltiplos de
-    ; 2048 palabras, que el conversor comprueba para el del fondo.
+    ; The upper layer: the same slot in its tilemap, and its strip right after
+    ; the other in RAM. The slot comes from masking and not from adding a fixed
+    ; distance because the background's tilemap is not always in the same
+    ; place —see LAYOUT_VENTANA_AMBOS—; it is enough that both start at
+    ; multiples of 2048 words, which the converter checks for the background's.
     rep #$20
 .a16
     lda tira_vram
@@ -390,52 +390,53 @@ sin_fila:
     rts
 .endproc
 
-; Y una fila, que sale de cuatro: las dos pantallas de 32x32 no son contiguas
-; —la de la derecha vive 1024 palabras más adelante— y la capa de encima vive
-; en su propio tilemap. El orden es: fondo izquierda, fondo derecha, encima
-; izquierda, encima derecha, y cada paso avanza las dos variables.
+; And a row, which takes four: the two 32x32 screens are not contiguous —the
+; right one lives 1024 words further on— and the upper layer lives in its own
+; tilemap. The order is: background left, background right, upper left, upper
+; right, and each step advances both variables.
 ;
-; A la capa de encima se llega enmascarando la dirección, acá y en
-; `push_una_columna`, y eso pide que su tilemap arranque en un múltiplo del
-; tamaño de la ventana.
-.assert VRAM_ABOVE_MAP .mod (WINDOW_COLS * WINDOW_ROWS) = 0, error, "el tilemap de encima no se puede enmascarar"
+; The upper layer is reached by masking the address, here and in
+; `push_una_columna`, and that requires its tilemap to start at a multiple of
+; the window's size.
+.assert VRAM_ABOVE_MAP .mod (WINDOW_COLS * WINDOW_ROWS) = 0, error, "the upper tilemap cannot be masked"
 .proc push_una_fila
 .a8
 .i16
-    lda #$80                    ; avanzar una palabra: la fila es contigua
+    lda #$80                    ; advance one word: the row is contiguous
     sta VMAIN
     ldx tira_vram
     stx VMADDL
     ldx tira_de
-    ldy #WINDOW_COLS            ; las ranuras 0 a 31, la pantalla izquierda
+    ldy #WINDOW_COLS            ; slots 0 to 31, the left screen
     jsr dma_a_vram
     rep #$20
 .a16
-    lda #1024                   ; la pantalla de la derecha vive acá
+    lda #1024                   ; the right screen lives here
     jsr fila_siguiente
-    ; Y la capa de encima: la misma fila en la pantalla izquierda de su
-    ; tilemap. Se enmascara con diez bits y no con once para descontar el 1024
-    ; que el paso anterior ya sumó.
+    ; And the upper layer: the same row on its tilemap's left screen. It is
+    ; masked with ten bits and not eleven to take off the 1024 the previous
+    ; step already added.
     lda tira_vram
     and #(WINDOW_COLS * WINDOW_ROWS / 2 - 1)
     ora #VRAM_ABOVE_MAP
     jsr fila_en_a
-    lda #1024                   ; y su mitad derecha
+    lda #1024                   ; and its right half
     jsr fila_siguiente
     sep #$20
 .a8
     rts
 .endproc
 
-; La media fila que sigue: corre la VRAM lo que diga A —en palabras— y la
-; fuente los 64 bytes que mide media fila, y la sube. Entra y sale con A de
-; dieciséis bits, que es lo que deja encadenar las tres llamadas de arriba.
+; The next half row: moves VRAM by what A says —in words— and the source by the
+; 64 bytes half a row measures, and uploads it. It enters and leaves with a
+; sixteen-bit A, which is what lets the three calls above be chained.
 .proc fila_siguiente
 .a16
 .i16
     clc
     adc tira_vram
-    ; Y sigue en `fila_en_a`, que es el mismo paso con la dirección ya hecha.
+    ; And it falls through into `fila_en_a`, which is the same step with the
+    ; address already done.
 .endproc
 .proc fila_en_a
 .a16
@@ -456,4 +457,3 @@ sin_fila:
 .a16
     rts
 .endproc
-

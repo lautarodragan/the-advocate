@@ -1,21 +1,23 @@
 .segment "FAR"
 
-; --- el nivel y el máximo en el menú -------------------------------------------
+; --- level and maximum in the menu ---------------------------------------------
 ;
-; Hasta el 2026-09-21 los dos eran tiras del cartucho, compuestas al convertir
-; con el nivel de arranque: no cambiaban nunca, así que no hacía falta más.
-; Desde que se sube de nivel, se componen acá en `EXP_TEXTO` con lo mismo que
-; decían —`titulo.texto_de_nivel` y `titulo.texto_de_maximo`— y el menú los
-; escribe con `ranura_texto_escribir` igual que antes: sólo cambia a dónde
-; apunta `msg_ptr`. Con el nivel de arranque dan exactamente las mismas
-; letras que las tiras, que es lo que deja a las goldens del menú quietas.
+; Until 2026-09-21 both were cartridge strips, composed at conversion time with
+; the starting level: they never changed, so nothing more was needed. Since
+; leveling up exists, they are composed here in `EXP_TEXTO` with the same
+; thing they used to say —`titulo.texto_de_nivel` and
+; `titulo.texto_de_maximo`— and the menu writes them with
+; `ranura_texto_escribir` as before: all that changes is where `msg_ptr`
+; points. With the starting level they give exactly the same letters as the
+; strips, which is what keeps the menu goldens still.
 ;
-; Los tres entran con el actor en A, dejan `msg_ptr` apuntando al texto y
-; **dejan Y como estaba**, que es la celda donde el que llama va a escribir.
-; Un actor sin ranura de experiencia sigue con su tira del cartucho.
+; All three enter with the actor in A, leave `msg_ptr` pointing at the text and
+; **leave Y as it was**, which is the cell where the caller is going to write.
+; An actor without an experience slot keeps its cartridge strip.
 
-; A16 —menos de mil— en tres cifras de 0 a 9, en `EXP_TEXTO + 5`, `+ 6` y
-; `+ 7`. Se lleva A y X; entra y sale con A de dieciséis.
+; A16 —less than a thousand— into three digits from 0 to 9, at
+; `EXP_TEXTO + 5`, `+ 6` and `+ 7`. Clobbers A and X; enters and leaves with a
+; 16-bit A.
 .proc tres_cifras
 .a16
 .i16
@@ -23,7 +25,7 @@
 centenas:
     cmp #100
     bcc hay_centenas
-    sbc #100                    ; C viene de la comparación
+    sbc #100                    ; C comes from the comparison
     inx
     bra centenas
 hay_centenas:
@@ -53,8 +55,8 @@ unidades:
     rts
 .endproc
 
-; `msg_ptr` a la tira del cartucho del actor A, corrida X bytes: lo mismo que
-; `ranura_texto_de` del banco 0, para los que no tienen ranura. Se lleva A.
+; `msg_ptr` to actor A's cartridge strip, offset by X bytes: the same as bank
+; 0's `ranura_texto_de`, for those with no slot. Clobbers A.
 .proc tira_del_cartucho
 .a8
 .i16
@@ -65,7 +67,7 @@ unidades:
     asl a
     asl a
     asl a
-    asl a                       ; RANURA_TEXTO_ANCHO bytes por actor
+    asl a                       ; RANURA_TEXTO_ANCHO bytes per actor
     sta msg_ptr
     txa
     clc
@@ -80,7 +82,7 @@ unidades:
     rtl
 .endproc
 
-; `msg_ptr` a `EXP_TEXTO`.
+; `msg_ptr` to `EXP_TEXTO`.
 .proc apuntar_texto
 .a8
 .i16
@@ -95,7 +97,7 @@ unidades:
     rtl
 .endproc
 
-; El nivel A8 como "%2d" en `EXP_TEXTO`: la decena o un espacio, y la unidad.
+; Level A8 as "%2d" in `EXP_TEXTO`: the tens digit or a space, and the units.
 .proc nivel_a_texto
 .a8
 .i16
@@ -119,7 +121,7 @@ decena:
     rts
 .endproc
 
-; El nivel de ahora del actor A.
+; Actor A's current level.
 .proc texto_nivel
 .a8
 .i16
@@ -138,10 +140,10 @@ tiene:
 
 EXP_NIVEL_EN_SRAM = SRAM_BANCO * $10000 + SRAM_DATOS + PARTIDA_BYTES - EXP_K * 4 + EXP_NIVEL
 
-; El nivel que el actor A tenía **en la partida de la ranura `ranura`**, leído
-; de su SRAM: la pantalla de ranuras muestra cada partida como quedó, no como
-; está la de ahora. `FAR_EXP` es el último renglón de `partida_tabla`, así que
-; en la ranura cae `EXP_K * 4` bytes antes del final.
+; The level actor A had **in the saved game in slot `ranura`**, read from its
+; SRAM: the slots screen shows each save as it was left, not as the current
+; one is. `FAR_EXP` is the last line of `partida_tabla`, so in the slot it
+; falls `EXP_K * 4` bytes before the end.
 .proc texto_nivel_guardado
 .a8
 .i16
@@ -164,13 +166,13 @@ tiene:
     and #$00FF
     asl a
     asl a
-    pha                         ; la ranura de experiencia por cuatro
+    pha                         ; the experience slot times four
     lda ranura
     and #$00FF
     xba
     asl a
     asl a
-    asl a                       ; la ranura de SRAM por SRAM_STRIDE
+    asl a                       ; the SRAM slot times SRAM_STRIDE
     clc
     adc 1, s
     tax
@@ -183,8 +185,8 @@ tiene:
     jmp apuntar_texto
 .endproc
 
-; Los HP máximos del nivel de ahora del actor A, como "/%d" completado a
-; `MENU_MAX_CIFRAS` con espacios: `titulo.texto_de_maximo`.
+; The maximum HP for actor A's current level, as "/%d" padded to
+; `MENU_MAX_CIFRAS` with spaces: `titulo.texto_de_maximo`.
 .proc texto_maximo
 .a8
 .i16
@@ -216,7 +218,7 @@ tiene:
     sta f:EXP_TEXTO, x
     inx
     lda f:EXP_TEXTO + 6
-    bra con_decena              ; con centena la decena va aunque sea cero
+    bra con_decena              ; with hundreds the tens digit goes in even if zero
 sin_centena:
     lda f:EXP_TEXTO + 6
     beq sin_decena
@@ -241,26 +243,28 @@ completo:
     jmp apuntar_texto
 .endproc
 
-; Los HP de ahora de un actor, en su fila del panel del grupo: tres cifras
-; alineadas a la derecha y lo que sobre a la izquierda, en blanco. `temp` trae
-; el número de actor del LDB y `temp + 2` la fila; se lleva A, X, Y y `temp`.
+; An actor's current HP, in its row of the party panel: three right-aligned
+; digits and whatever is left over on the left, blank. `temp` carries the
+; actor's LDB number and `temp + 2` the row; clobbers A, X, Y and `temp`.
 ;
-; **Esto existe porque el bloque de la fila se hornea al convertir.** Hasta el
-; 2026-09-13 los HP iban adentro de ese bloque, así que el menú mostraba
-; siempre el máximo del nivel por más que la pelea los bajara: es lo que taro
-; reportó jugando —"en el menú siempre se muestra en 40", que es el máximo de
-; Talan—. El máximo y la barra siguen horneados, que ésos no cambian.
+; **This exists because the row's block is baked at conversion time.** Until
+; 2026-09-13 the HP went inside that block, so the menu always showed the
+; level's maximum no matter how much the battle lowered them: it is what taro
+; reported while playing —"en el menú siempre se muestra en 40" ("in the menu
+; it always shows 40"), which is Talan's maximum—. The maximum and the bar are
+; still baked, since those do not change.
 ;
-; Las cifras son los mismos glifos que el oro —`ranura_glifo_celdas`, una por
-; celda— y caen alineadas sin tocar nada porque las dos líneas se dibujan a
-; dos pixeles del borde de arriba de su celda. `titulo._pegar_hp` es la
-; referencia, con las mismas columnas.
+; The digits are the same glyphs as the gold —`ranura_glifo_celdas`, one per
+; cell— and they line up without touching anything because both lines are
+; drawn two pixels from the top edge of their cell. `titulo._pegar_hp` is the
+; reference, with the same columns.
 ;
-; Vive fuera del banco 0 por lo mismo que `hp_inicial_poner`: allá quedan
-; decenas de bytes y esto son más de cien. Se entra con `jsl` y con el banco de
-; datos en 0 —el menú corre así— pero se lo pone igual, porque todo lo que toca
-; —`temp`, las tablas de `TABLAS` y los registros del PPU— es absoluto del
-; banco 0 y depender del llamador para eso ya costó un error en este repo.
+; It lives outside bank 0 for the same reason as `hp_inicial_poner`: there are
+; tens of bytes left there and this is over a hundred. It is entered with
+; `jsl` and with the data bank at 0 —the menu runs that way— but it sets it
+; anyway, because everything it touches —`temp`, the `TABLAS` tables and the
+; PPU registers— is bank 0 absolute, and depending on the caller for that has
+; already cost one bug in this repo.
 .proc menu_hp_escribir
 .a8
 .i16
@@ -268,9 +272,8 @@ completo:
     lda #0
     pha
     plb
-    ; La celda de las unidades: la primera del bloque de la fila, más el
-    ; desplazamiento que emite el conversor, más las cifras que van a la
-    ; izquierda.
+    ; The units cell: the first of the row's block, plus the offset the
+    ; converter emits, plus the digits that go to the left.
     rep #$20
 .a16
     lda temp + 2
@@ -281,8 +284,8 @@ completo:
     clc
     adc #(MENU_HP_DESPL + MENU_HP_CIFRAS - 1)
     tay
-    ; Y los HP, de la RAM lejana. Un actor con más de 999 mostraría sus tres
-    ; cifras de abajo; ninguno del juego llega.
+    ; And the HP, from far RAM. An actor with more than 999 would show its
+    ; three lowest digits; nobody in the game gets there.
     lda temp
     and #$00FF
     asl a
@@ -299,11 +302,11 @@ cifra:
     rep #$20
 .a16
     lda temp
-    sta WRDIVL                  ; el dividendo, de dieciséis bits
+    sta WRDIVL                  ; the dividend, 16 bits
     sep #$20
 .a8
     lda #10
-    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    sta WRDIVB                  ; starts it: the quotient takes sixteen cycles
     nop
     nop
     nop
@@ -316,17 +319,17 @@ cifra:
 .a16
     lda RDDIVL
     sta temp
-    lda RDMPYL                  ; el resto, que es la cifra
+    lda RDMPYL                  ; the remainder, which is the digit
     and #$00FF
     asl a
-    asl a                       ; dos palabras por cifra
+    asl a                       ; two words per digit
     tax
     sty VMADDL
     lda f:ranura_glifo_celdas + GLIFO_CIFRA_0, x
     sta VMDATAL
     tya
     clc
-    adc #32                     ; la celda de abajo
+    adc #32                     ; the lower cell
     sta VMADDL
     lda f:ranura_glifo_celdas + GLIFO_CIFRA_0 + 2, x
     sta VMDATAL
@@ -338,8 +341,8 @@ cifra:
     lda temp
     ora temp + 1
     bne cifra
-    ; Lo que queda a la izquierda, en blanco: la celda 0, que en el bloque del
-    ; actor es la que ya hay debajo de las cifras.
+    ; What is left on the left, blank: cell 0, which in the actor's block is
+    ; the one already under the digits.
 blanco:
     rep #$20
 .a16
@@ -360,10 +363,10 @@ listo:
     rtl
 .endproc
 
-; El nivel de ahora del actor A, en A: el cuarto byte de su ranura de
-; `FAR_EXP`. Un actor sin ranura contesta $FF, y el que pregunta sabe que para
-; ése vale lo del cartucho, que es su nivel de arranque para siempre. Se lleva
-; X; lee con `f:`, así que el banco de datos da igual.
+; Actor A's current level, in A: the fourth byte of its `FAR_EXP` slot. An
+; actor with no slot answers $FF, and the one asking knows that for that actor
+; the cartridge's value holds, which is its starting level forever. Clobbers
+; X; reads with `f:`, so the data bank does not matter.
 .proc actor_nivel_de
 .a8
 .i16
@@ -389,19 +392,20 @@ listo:
     rts
 .endproc
 
-; El parámetro Y de un actor **a su nivel de ahora**: `GetBaseMaxHp` y sus
-; hermanas, sin el equipo —eso lo suma `eq_parametro`— y sin los `*_mod` de
-; `ChangeParameters`, que el juego no usa. Y es el orden de `lcf.CURVAS`: 0 los
-; HP, 1 los SP, 2 el ataque, 3 la defensa, 4 el espíritu y 5 la agilidad.
+; Parameter Y of an actor **at its current level**: `GetBaseMaxHp` and its
+; siblings, without the equipment —`eq_parametro` adds that— and without the
+; `*_mod` from `ChangeParameters`, which the game does not use. Y is the order
+; of `lcf.CURVAS`: 0 HP, 1 SP, 2 attack, 3 defense, 4 spirit and 5 agility.
 ;
-; Entra con el actor en A y devuelve el valor en X. **Se lleva A e Y**, y no
-; toca la página directa: los que la llaman —la pantalla de equipo, la pelea,
-; `FullHeal`— la tienen ocupada cada uno con otra cosa, así que las cuentas van
-; por la pila. Todo lo que lee va con `f:`, así que el banco de datos da igual.
+; Enters with the actor in A and returns the value in X. **Clobbers A and Y**,
+; and does not touch the direct page: its callers —the equipment screen, the
+; battle, `FullHeal`— each have it busy with something else, so the arithmetic
+; goes through the stack. Everything it reads goes with `f:`, so the data bank
+; does not matter.
 ;
-; Un actor sin ranura de experiencia —uno que no puede entrar al grupo— no
-; sube nunca, y lo suyo sale de las tablas de su nivel inicial, que son las de
-; siempre.
+; An actor with no experience slot —one that cannot join the party— never
+; levels up, and its values come from the tables for its initial level, which
+; are the usual ones.
 .proc nivel_param
 .a8
 .i16
@@ -417,21 +421,21 @@ listo:
     rep #$20
 .a16
     and #$00FF
-    pha                         ; la ranura
+    pha                         ; the slot
     asl a
     asl a
     tax
-    lda f:FAR_LARGO + FAR_EXP + 2, x    ; el byte alto es el nivel
+    lda f:FAR_LARGO + FAR_EXP + 2, x    ; the high byte is the level
     xba
     and #$00FF
     dec a
     asl a
-    pha                         ; (nivel - 1) * 2, con la ranura debajo
+    pha                         ; (level - 1) * 2, with the slot below it
     lda 3, s
     asl a
-    adc 3, s                    ; la ranura por tres: el `asl` dejó C en cero
+    adc 3, s                    ; the slot times three: the `asl` left C clear
     asl a
-    sta 3, s                    ; y por seis, que es su primera fila
+    sta 3, s                    ; and times six, which is its first row
     tya
     clc
     adc 3, s
@@ -453,7 +457,7 @@ sin_ranura:
 .a16
     txa
     asl a
-    tax                         ; el actor por dos
+    tax                         ; the actor times two
     cpy #2
     bcs de_los_cuatro
     cpy #1
@@ -466,7 +470,7 @@ los_sp:
 de_los_cuatro:
     txa
     asl a
-    asl a                       ; el actor por ocho: cuatro palabras cada uno
+    asl a                       ; the actor times eight: four words each
     pha
     tya
     asl a
@@ -474,7 +478,7 @@ de_los_cuatro:
     adc 1, s
     tax
     pla
-    lda f:actor_params - 4, x   ; `actor_params` arranca en el ataque, el 2
+    lda f:actor_params - 4, x   ; `actor_params` starts at attack, number 2
 listo:
     tax
     sep #$20
@@ -482,23 +486,23 @@ listo:
     rtl
 .endproc
 
-; Los HP de todos los actores llenos, a `FAR_HP`: el mismo DMA que el equipo,
-; desde `actor_hpmax`. Corre en el reset, antes de cargar la partida, que lo
-; pisa.
+; Every actor's HP full, into `FAR_HP`: the same DMA as the equipment, from
+; `actor_hpmax`. Runs at reset, before loading the saved game, which
+; overwrites it.
 ;
-; Vive **fuera del banco 0** —se la llama con `jsl`— y por eso sus registros
-; van con `f:`: en el banco 0 quedaban setenta bytes libres y ésta son
-; cuarenta. Es el mismo motivo por el que la batalla entera vive allá.
+; It lives **outside bank 0** —it is called with `jsl`— and that is why its
+; registers go with `f:`: bank 0 had seventy bytes free and this is forty. It
+; is the same reason the whole battle lives over there.
 ;
-; Existe desde que hay batallas. Hasta el 2026-09-12 los HP no eran estado —el
-; menú los mostraba llenos siempre y `ChangeHP` compilaba a nada— y ahora una
-; pelea los baja, así que tienen que arrancar en algún lado y viajar en la
-; partida. Que arranquen llenos es RM2k: `Game_Actor::Setup`.
+; It exists since there are battles. Until 2026-09-12 HP were not state —the
+; menu always showed them full and `ChangeHP` compiled to nothing— and now a
+; battle lowers them, so they have to start somewhere and travel in the saved
+; game. Starting full is RM2k: `Game_Actor::Setup`.
 ;
-; Desde el 2026-09-13 hace lo mismo con los SP, que son estado por el mismo
-; motivo: una habilidad cuesta su `sp_cost`. Son dos DMA iguales y no un lazo
-; porque escribirlo dos veces cuesta menos que un lazo con tabla, y esto vive
-; en RODATA, donde el cartucho sobra.
+; Since 2026-09-13 it does the same with SP, which are state for the same
+; reason: a skill costs its `sp_cost`. It is two identical DMAs and not a loop
+; because writing it twice costs less than a loop with a table, and this lives
+; in RODATA, where the cartridge has room to spare.
 .proc hp_inicial_poner
 .a8
 .i16
@@ -518,12 +522,12 @@ listo:
     lda #^(actor_hpmax)
     sta f:A1B0
     lda #0
-    sta f:DMAP0                 ; de A a B, de a un byte
+    sta f:DMAP0                 ; A to B, one byte at a time
     lda #$80                    ; WMDATA
     sta f:BBAD0
     lda #$01
     sta f:MDMAEN
-    ; y los SP, desde `actor_spmax`
+    ; and the SP, from `actor_spmax`
     rep #$20
 .a16
     lda #FAR_SP
@@ -545,8 +549,8 @@ listo:
     sta f:BBAD0
     lda #$01
     sta f:MDMAEN
-    ; y la experiencia y el nivel, desde `exp_inicial`: `Game_Actor` arranca
-    ; en el `initial_level` con la experiencia justa de ese nivel.
+    ; and the experience and level, from `exp_inicial`: `Game_Actor` starts
+    ; at `initial_level` with exactly the experience for that level.
     rep #$20
 .a16
     lda #FAR_EXP
@@ -571,32 +575,34 @@ listo:
     rtl
 .endproc
 
-; `FullHeal`, y `ChangeHP` cuando suma: los dos son OP_HEAL, y los separa la
-; cantidad. En 0 es `FullHeal`: los HP y los SP de cada actor del blanco a sus
-; máximos. Es `Game_Actor::FullHeal` de easyrpg (`game_actor.cpp:391`), que
-; además `RemoveAllStates` y repone los estados del equipo: acá no hay nada de
-; eso que limpiar, porque fuera de pelea los estados no existen —la pelea los
-; arma y los tira— y un caído es sólo un actor con cero HP, así que llenarlos
-; ya lo levanta. Con cantidad es `ChangeHP`; ver `curar_actor`.
+; `FullHeal`, and `ChangeHP` when it adds: both are OP_HEAL, and the amount
+; tells them apart. At 0 it is `FullHeal`: the HP and SP of each actor in the
+; target to their maximums. It is easyrpg's `Game_Actor::FullHeal`
+; (`game_actor.cpp:391`), which also does `RemoveAllStates` and restores the
+; equipment's states: here there is none of that to clear, because outside
+; battle states do not exist —the battle builds them and throws them away—
+; and a fallen actor is just an actor with zero HP, so filling them already
+; revives it. With an amount it is `ChangeHP`; see `curar_actor`.
 ;
-; Se entra desde `op_heal` con Y en el operando: el actor o 0 por todo el grupo
-; —el `GetActors` de `game_interpreter.cpp:1539`, ver `actor_de_blanco` en
-; eventos.py— y la cantidad, de 16 bits. Se vuelve con Y después de ella. Vive
-; **fuera del banco 0** por lo mismo que `hp_inicial_poner`, y por eso todo lo
-; que toca va con `f:` o es de la página directa. Se lleva A, X y `temp`.
+; Entered from `op_heal` with Y on the operand: the actor, or 0 for the whole
+; party —the `GetActors` of `game_interpreter.cpp:1539`, see `actor_de_blanco`
+; in eventos.py— and the amount, 16 bits. Returns with Y after it. It lives
+; **outside bank 0** for the same reason as `hp_inicial_poner`, and that is
+; why everything it touches goes with `f:` or is in the direct page. Clobbers
+; A, X and `temp`.
 ;
-; No reusa `hp_inicial_poner` a propósito: aquélla llena a los 61 actores de
-; una, y `FullHeal [0, 0]` es el grupo y nadie más. Lo cobra
-; `test_full_heal_del_grupo_no_cura_a_los_de_afuera`.
+; It does not reuse `hp_inicial_poner` on purpose: that one fills all 61
+; actors at once, and `FullHeal [0, 0]` is the party and nobody else.
+; `test_full_heal_del_grupo_no_cura_a_los_de_afuera` catches it.
 .proc curar
 .a8
 .i16
-    lda [cod_ptr], y            ; el actor
+    lda [cod_ptr], y            ; the actor
     iny
     sta temp + 2
     rep #$20
 .a16
-    lda [cod_ptr], y            ; y la cantidad
+    lda [cod_ptr], y            ; and the amount
     sta temp
     sep #$20
 .a8
@@ -605,9 +611,9 @@ listo:
     phy
     lda temp + 2
     bne uno
-    ; Hasta `grupo_n` y no las cuatro ranuras: las de más no se limpian al
-    ; sacar a alguien, y en la tanda se vio una con 85 —curarlo era escribir
-    ; en los SP del actor 21—.
+    ; Up to `grupo_n` and not all four slots: the extra ones are not cleared
+    ; when someone is removed, and in the test suite one showed up with 85
+    ; —healing it meant writing into actor 21's SP—.
     ldx #0
 ranura:
     cpx grupo_n
@@ -627,25 +633,28 @@ uno:
     rtl
 .endproc
 
-; El actor A: a sus máximos con `temp` en 0, o `temp` HP más. Se lleva X e Y.
+; Actor A: to its maximums with `temp` at 0, or `temp` more HP. Clobbers X
+; and Y.
 ;
-; Lo segundo es `Game_Battler::ChangeHp` (`game_battler.cpp:480`): a un caído
-; no lo toca —ahí es `IsDead`, acá cero HP, que fuera de pelea es lo mismo— y
-; lo que pase del máximo se topa, que es el `SetHp` de adentro. Los SP no.
+; The second is `Game_Battler::ChangeHp` (`game_battler.cpp:480`): it does not
+; touch a fallen actor —there it is `IsDead`, here zero HP, which outside
+; battle is the same— and whatever goes past the maximum is capped, which is
+; the `SetHp` inside. Not the SP.
 ;
-; Los máximos son los de su nivel de ahora, `nivel_param`, y viven en la pila
-; mientras tanto: `temp` es la cantidad y `temp + 2` el actor de `curar`.
+; The maximums are those of its current level, `nivel_param`, and they live on
+; the stack meanwhile: `temp` is the amount and `temp + 2` the actor from
+; `curar`.
 .proc curar_actor
 .a8
 .i16
-    pha                         ; el actor
+    pha                         ; the actor
     ldy #0
     jsl f:nivel_param
-    phx                         ; los HP máximos
+    phx                         ; the maximum HP
     lda 3, s
     ldy #1
     jsl f:nivel_param
-    phx                         ; y los SP: pila = SP, HP, actor
+    phx                         ; and the SP: stack = SP, HP, actor
     lda 5, s
     rep #$20
 .a16
@@ -661,10 +670,10 @@ uno:
     bra listo
 sumar:
     lda f:FAR_LARGO + FAR_HP, x
-    beq listo                   ; caído: `ChangeHp` no lo levanta
+    beq listo                   ; fallen: `ChangeHp` does not revive it
     clc
     adc temp
-    bcs topar                   ; dio la vuelta: la cantidad llega a $FFFF
+    bcs topar                   ; it wrapped around: the amount reaches $FFFF
     cmp 3, s
     bcc poner
 topar:
@@ -680,13 +689,13 @@ listo:
     rts
 .endproc
 
-; `Game_Actor::ChangeExp(GetExp() + BA_T1)` para el actor A: suma, topa en
-; `MaxExpValue()` y sube de nivel mientras alcance. Un actor sin ranura de
-; experiencia no gana nada. Corre con el banco de datos en $7E, como toda la
-; pelea. Se lleva A, X, Y, `BA_T0` y `BA_T2`; `BA_T1` queda como estaba, así
-; el que reparte la puede sumar a varios.
+; `Game_Actor::ChangeExp(GetExp() + BA_T1)` for actor A: adds, caps at
+; `MaxExpValue()` and levels up while it is enough. An actor with no
+; experience slot gains nothing. Runs with the data bank at $7E, like the
+; whole battle. Clobbers A, X, Y, `BA_T0` and `BA_T2`; `BA_T1` stays as it
+; was, so whoever hands it out can add it to several.
 ;
-; Y por cada nivel que sube, `LearnLevelSkills` de ese nivel: ver
+; And for each level gained, `LearnLevelSkills` for that level: see
 ; `aprender_del_nivel`.
 .proc exp_sumar
 .a8
@@ -702,14 +711,14 @@ listo:
     bne tiene
     rts
 tiene:
-    phx                         ; el actor, para lo que aprenda al subir
+    phx                         ; the actor, for what it learns on leveling up
     rep #$20
 .a16
     and #$00FF
-    sta BA_T2                   ; la ranura
+    sta BA_T2                   ; the slot
     asl a
     asl a
-    sta BA_T0                   ; y su desplazamiento en `FAR_EXP`
+    sta BA_T0                   ; and its offset in `FAR_EXP`
     tax
     lda FAR_EXP, x
     clc
@@ -717,7 +726,7 @@ tiene:
     sta FAR_EXP, x
     sep #$20
 .a8
-    lda FAR_EXP + 2, x          ; el acarreo de la suma de arriba sigue en C
+    lda FAR_EXP + 2, x          ; the carry from the addition above is still in C
     adc #0
     sta FAR_EXP + 2, x
     cmp #EXP_TOPE_HI
@@ -740,25 +749,25 @@ topar:
     lda #EXP_TOPE_HI
     sta FAR_EXP + 2, x
 sin_tope:
-    ; Y sube mientras alcance: el lazo de `ChangeExp`, que mira
-    ; `GetNextExp(nivel)` —la fila `nivel` de `exp_tabla`, lo que pide pasar
-    ; al siguiente— hasta el `GetMaxLevel()`. Una pelea puede subir más de un
-    ; nivel de una vez, y eso es de RM2k. Los HP y los SP no se tocan: subir
-    ; de nivel no cura, sólo sube el máximo.
+    ; And it levels up while it is enough: the `ChangeExp` loop, which looks at
+    ; `GetNextExp(level)` —row `level` of `exp_tabla`, what it takes to reach
+    ; the next one— up to `GetMaxLevel()`. A battle can raise more than one
+    ; level at once, and that is RM2k's. HP and SP are not touched: leveling
+    ; up does not heal, it only raises the maximum.
 subir:
     ldx BA_T2
     lda f:exp_nivel_max, x
     ldx BA_T0
     cmp FAR_EXP + EXP_NIVEL, x
-    beq listo                   ; en el tope
-    bcc listo                   ; más arriba del tope: no pasa, pero no sube
+    beq listo                   ; at the cap
+    bcc listo                   ; above the cap: does not happen, but no level up
     lda FAR_EXP + EXP_NIVEL, x
     rep #$20
 .a16
     and #$00FF
     asl a
     asl a
-    pha                         ; el nivel por cuatro: su fila en la curva
+    pha                         ; the level times four: its row in the curve
     lda BA_T2
     asl a
     tax
@@ -767,32 +776,32 @@ subir:
     adc 1, s
     tax
     pla
-    ; Lo que pide, en dos mitades: la baja a la pila —`BA_T*` están las tres
-    ; ocupadas— y la alta en A.
+    ; What it takes, in two halves: the low one to the stack —all three
+    ; `BA_T*` are in use— and the high one in A.
     lda f:exp_tabla, x
     pha
     lda f:exp_tabla + 2, x
     ldx BA_T0
     sep #$20
 .a8
-    cmp FAR_EXP + 2, x          ; primero el byte alto
+    cmp FAR_EXP + 2, x          ; the high byte first
     bne alto_distinto
     rep #$20
 .a16
     lda FAR_EXP, x
-    cmp 1, s                    ; C si la experiencia alcanza
+    cmp 1, s                    ; C if the experience is enough
     sep #$20
 .a8
-    ply                         ; `ply` no toca C
+    ply                         ; `ply` does not touch C
     bcc listo
     bra sube
 alto_distinto:
     ply
-    bcs listo                   ; C: el alto que pide es más que el que hay
+    bcs listo                   ; C: the high byte required is more than there is
 sube:
     inc FAR_EXP + EXP_NIVEL, x
     lda FAR_EXP + EXP_NIVEL, x
-    ply                         ; el actor, sin sacarlo de la pila
+    ply                         ; the actor, without taking it off the stack
     phy
     jsr aprender_del_nivel
     bra subir
@@ -801,28 +810,29 @@ listo:
     rts
 .endproc
 
-; `LearnLevelSkills` de un solo nivel, el A, para el actor Y: prende en
-; `FAR_HAB` el bit de cada par suyo que la tabla de aprendizaje del LDB enseña
-; en ese nivel —`hab_par_nivel`—. Si ya lo sabía no cambia nada, que es
-; `LearnSkill`; y lo que un `ChangeSkills` le hizo olvidar vuelve sólo si se
-; enseña en un nivel que recién pasa, como en RM2k. Corre en la pelea, pero
-; todo lo que toca va con `f:` o por la pila. Se lleva A, X e Y.
+; `LearnLevelSkills` for a single level, A, for actor Y: sets in `FAR_HAB` the
+; bit of each of its pairs that the LDB's learning table teaches at that level
+; —`hab_par_nivel`—. If it already knew it nothing changes, which is
+; `LearnSkill`; and what a `ChangeSkills` made it forget comes back only if it
+; is taught at a level just reached, as in RM2k. Runs in battle, but
+; everything it touches goes with `f:` or through the stack. Clobbers A, X
+; and Y.
 .proc aprender_del_nivel
 .a8
 .i16
-    pha                         ; el nivel
+    pha                         ; the level
     rep #$20
 .a16
     tya
     asl a
     tax
     lda f:hab_par_ini, x
-    pha                         ; la ranura del par que se mira: pila = ranura, nivel
+    pha                         ; the slot of the pair being looked at: stack = slot, level
     tyx
     lda f:hab_par_n, x
     and #$00FF
     beq fin
-    tay                         ; cuántos pares le quedan
+    tay                         ; how many pairs it has left
 otro:
     lda 1, s
     tax
@@ -839,7 +849,7 @@ otro:
     sep #$20
 .a8
     lda f:mascara, x
-    pha                         ; su bit: pila = bit, ranura, nivel
+    pha                         ; its bit: stack = bit, slot, level
     rep #$20
 .a16
     lda 2, s
@@ -867,4 +877,3 @@ fin:
     pla
     rts
 .endproc
-

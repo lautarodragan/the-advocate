@@ -1,264 +1,268 @@
 .segment "ZEROPAGE"
-source:     .res 3      ; puntero al bloque que estamos subiendo
-music:      .res 3      ; puntero dentro del stream de música
-camara_x:   .res 2      ; dónde está mirando la cámara, en pixeles
+source:     .res 3      ; pointer to the block we are uploading
+music:      .res 3      ; pointer into the music stream
+camara_x:   .res 2      ; where the camera is looking, in pixels
 camara_y:   .res 2
-scroll_y:   .res 2      ; lo mismo menos uno, que es lo que el PPU quiere
-pad:        .res 1      ; lo que el control tenía apretado este cuadro
-pad_a:      .res 1      ; y A, que vive en el otro byte del control
-pad_a_ant:  .res 1      ; cómo estaba el cuadro pasado, para ver el flanco
-; La elección abierta, si hay una: es `ShowChoice`. Mientras `eleg_activo` esté
-; puesto hay una ventana de mensaje en pantalla con las opciones y la página
-; está bloqueada, igual que con un mensaje común.
+scroll_y:   .res 2      ; the same minus one, which is what the PPU wants
+pad:        .res 1      ; what the pad had pressed this frame
+pad_a:      .res 1      ; and A, which lives in the pad's other byte
+pad_a_ant:  .res 1      ; how it was last frame, to see the edge
+; The open choice, if there is one: it is `ShowChoice`. While `eleg_activo` is
+; set there is a message window on screen with the options and the page is
+; blocked, same as with an ordinary message.
 ;
-; El cursor no es un sprite ni un dibujo: el conversor emitió **un cuadro de
-; texto por opción**, iguales salvo por dónde está el ">", así que moverlo es
-; recomponer la ventana con otro desplazamiento. Por eso acá no hay más estado
-; que cuál está marcada.
+; The cursor is not a sprite or a drawing: the converter emitted **one text
+; frame per option**, identical except for where the ">" is, so moving it is
+; recomposing the window with another offset. That is why there is no more
+; state here than which one is highlighted.
 eleg_activo: .res 1
-eleg_n:      .res 1     ; cuántas opciones
-eleg_sel:    .res 1     ; cuál está marcada, desde cero
-eleg_cancel: .res 1     ; qué opción elige el botón B, más uno; 0 es "no se
-                        ; puede cancelar". Es el `choice_cancel_type` de RM2k
-                        ; tal cual, que easyrpg usa como `type - 1`.
-eleg_tabla:  .res 2     ; dónde empieza la tabla de la elección, dentro de la
-                        ; página: por cada opción, el cuadro y el destino
-eleg_flancos: .res 1    ; los botones que se acaban de apretar este cuadro. No
-                        ; usa `temp` porque `eventos_tick` lo tiene ocupado.
-; El menú de la pantalla de título. Son dos bytes propios y no los de `eleg_`
-; aunque el movimiento del cursor sea el mismo: la elección del intérprete vive
-; adentro de una página de evento y ésta corre antes de que haya mapa, así que
-; compartirlos ataría dos cosas que no se tocan nunca.
-; 1 si el arranque —o el menú del título— cargó una partida de la SRAM. Lo mira
-; `music_boot`: una partida trae su propio tema y no el del mapa inicial.
-; En qué ranura se está trabajando, de 0 a SRAM_RANURAS - 1, o **$FF si no hay
-; ninguna partida cargada**. Ese centinela hace de las dos cosas —qué ranura y
-; si se cargó— porque la RAM del banco 0 está llena y guardar el dato aparte no
-; entraba.
+eleg_n:      .res 1     ; how many options
+eleg_sel:    .res 1     ; which one is highlighted, from zero
+eleg_cancel: .res 1     ; which option the B button picks, plus one; 0 is "cannot
+                        ; be cancelled". It is RM2k's `choice_cancel_type` as
+                        ; is, which easyrpg uses as `type - 1`.
+eleg_tabla:  .res 2     ; where the choice's table starts, inside the page:
+                        ; for each option, the frame and the destination
+eleg_flancos: .res 1    ; the buttons just pressed this frame. It does not
+                        ; use `temp` because `eventos_tick` has it busy.
+; The title screen menu. These are two bytes of its own and not the `eleg_`
+; ones even though the cursor movement is the same: the interpreter's choice
+; lives inside an event page and this one runs before there is a map, so
+; sharing them would tie together two things that never touch.
+; 1 if boot —or the title menu— loaded a save from SRAM. `music_boot` looks at
+; it: a save brings its own song and not the one of the starting map.
+; Which slot is being worked on, from 0 to SRAM_RANURAS - 1, or **$FF if no
+; save is loaded**. That sentinel does both jobs —which slot and whether one
+; was loaded— because bank 0 RAM is full and storing the fact separately did
+; not fit.
 ;
-; Vive en la **página directa** a propósito, y no por lugar sino por el banco:
-; las rutinas que trabajan con la SRAM tienen el banco de datos en $70, y una
-; variable de la BSS leída con direccionamiento absoluto les daría la SRAM. La
-; página directa apunta siempre al banco 0, así que desde ahí se lee bien esté
-; el banco donde esté.
+; It lives in the **direct page** on purpose, and not for room but for the
+; bank: the routines that work with SRAM have the data bank at $70, and a BSS
+; variable read with absolute addressing would give them SRAM. The direct page
+; always points to bank 0, so from there it reads correctly whatever the bank.
 ranura: .res 1
-titulo_sel:     .res 1  ; qué opción está elegida, desde cero
-titulo_flancos: .res 1  ; y los botones que se acaban de apretar
-; 1 mientras la pantalla de ranuras está a la vista. La ROM no lo lee: es para
-; el arnés, como `cuadros_perdidos`. `vueltas` no avanza mientras la pantalla
-; se ve, así que una prueba que espera por ticks se colgaría; con esto
-; `consola.py` sabe cuándo apretar. Ver `Partida.guardar_en`.
+titulo_sel:     .res 1  ; which option is selected, from zero
+titulo_flancos: .res 1  ; and the buttons just pressed
+; 1 while the slot screen is visible. The ROM does not read it: it is for the
+; harness, like `cuadros_perdidos`. `vueltas` does not advance while the
+; screen is showing, so a test that waits by ticks would hang; with this
+; `consola.py` knows when to press. See `Partida.guardar_en`.
 menu_abierto:   .res 1
-pad_ant:     .res 1     ; JOY1H del cuadro pasado, para mirar flancos de las
-                        ; direcciones y de B como ya se hacía con A
+pad_ant:     .res 1     ; last frame's JOY1H, to look at the edges of the
+                        ; directions and of B as was already done with A
 
-temp:       .res 4      ; cuentas intermedias
-hero_x:     .res 2      ; dónde está el héroe en el mapa, en pixeles
+temp:       .res 4      ; intermediate computations
+hero_x:     .res 2      ; where the hero is on the map, in pixels
 hero_y:     .res 2
-hero_dir:   .res 1      ; hacia dónde mira
-tile_x:     .res 2      ; y en qué celda de 16x16 está. Dos bytes: hay mapas de
-tile_y:     .res 2      ; 500 celdas de ancho y en uno no entrarían
-celdas:     .res 3      ; puntero a la fila de bloques donde arranca la ventana
-celdas_ptr: .res 3      ; el mismo, mientras se recorre para armar una tira
-; La ruta forzada del evento que se está caminando, mientras dura la vuelta.
-; Vive en la página directa y no en la ranura porque `lda [ptr], y` **sólo**
-; direcciona la página directa: con el puntero en BSS el ensamblador emitiría el
-; byte bajo y la ROM leería de otro lado. Ya pasó una vez, con `msg_ptr`.
+hero_dir:   .res 1      ; which way it faces
+tile_x:     .res 2      ; and which 16x16 cell it is in. Two bytes: there are maps
+tile_y:     .res 2      ; 500 cells wide and one would not fit
+celdas:     .res 3      ; pointer to the block row where the window starts
+celdas_ptr: .res 3      ; the same, while it is walked to build a strip
+; The forced move route of the event being walked, while the tick lasts. It
+; lives in the direct page and not in the slot because `lda [ptr], y`
+; **only** addresses the direct page: with the pointer in BSS the assembler
+; would emit the low byte and the ROM would read from somewhere else. It
+; already happened once, with `msg_ptr`.
 ruta_ptr:   .res 3
-; La tabla de poses de los NPCs que caminan, del mapa cargado.
+; The pose table of the walking NPCs, of the loaded map.
 poses_ptr:  .res 3
-win_col:    .res 2      ; la celda de 8x8 que quedó en el borde de la ventana
-win_row:    .res 2      ; el cuadro pasado, para saber si la cámara la cruzó
-win_block:  .res 2      ; y la fila de bloques a la que apunta `celdas`
-col_addr:   .res 2      ; dónde va en la VRAM la columna recién armada
-row_addr:   .res 2      ; ídem la fila; $0000 en las dos si no hay nada
-tira_ofs:   .res 2      ; desplazamiento dentro del bloque, mientras se arma
-tira_paso_col: .res 2   ; lo que mide una fila de bloques, en bytes
-tira_resta: .res 2      ; cuántas celdas faltan por armar
-hero_ptr:   .res 3      ; y en qué celda de la grilla, como puntero: se mueve
-                        ; con él en vez de recalcularse
-step_left:  .res 1      ; lo que falta del paso en curso, en medias unidades
-                        ; de RM2k —128 por celda—, 0 si no hay
-step_dx:    .res 2      ; el sentido del paso en x: -1, 0 o 1
+win_col:    .res 2      ; the 8x8 cell that was at the window's edge
+win_row:    .res 2      ; last frame, to know whether the camera crossed it
+win_block:  .res 2      ; and the block row `celdas` points to
+col_addr:   .res 2      ; where in VRAM the column just built goes
+row_addr:   .res 2      ; likewise the row; $0000 in both if there is nothing
+tira_ofs:   .res 2      ; offset inside the block, while it is built
+tira_paso_col: .res 2   ; the size of a block row, in bytes
+tira_resta: .res 2      ; how many cells are left to build
+hero_ptr:   .res 3      ; and which grid cell, as a pointer: it moves
+                        ; with it instead of being recomputed
+step_left:  .res 1      ; what is left of the step in progress, in RM2k half
+                        ; units —128 per cell—, 0 if there is none
+step_dx:    .res 2      ; the step's direction in x: -1, 0 or 1
 step_dy:    .res 2
-anim_step:  .res 1      ; en qué punto del ciclo de caminata va
-anim_timer: .res 1      ; cuántos cuadros lleva el frame de la caminata:
-                        ; `anim_count`, que sube y se compara con la velocidad
-moving:     .res 1      ; si se movió este cuadro
-oam_slot:   .res 2      ; en qué objeto de OAM vamos
-npc_ofs:    .res 2      ; desplazamiento dentro de la tabla de NPCs
-hero_key:   .res 2      ; la clave de orden del héroe
-hero_drawn: .res 1      ; si ya se lo intercaló
-high_acc:   .res 1      ; los bits de la tabla chica que se van juntando
-high_ptr:   .res 2      ; y en qué byte de ella van. Dos bytes porque se usa
-                        ; como índice, y `ldx` con X de 16 bits lee dos: con uno
-                        ; solo tomaría de basura el byte alto.
-obj_x:      .res 2      ; posición en pantalla del objeto que se está armando
+anim_step:  .res 1      ; which point of the walk cycle it is at
+anim_timer: .res 1      ; how many frames the walk frame has lasted:
+                        ; `anim_count`, which goes up and is compared with the speed
+moving:     .res 1      ; whether it moved this frame
+oam_slot:   .res 2      ; which OAM object we are on
+npc_ofs:    .res 2      ; offset inside the NPC table
+hero_key:   .res 2      ; the hero's sort key
+hero_drawn: .res 1      ; whether it has already been interleaved
+high_acc:   .res 1      ; the bits of the small table being gathered
+high_ptr:   .res 2      ; and which byte of it they are at. Two bytes because
+                        ; it is used as an index, and `ldx` with 16-bit X reads
+                        ; two: with one it would take garbage as the high byte.
+obj_x:      .res 2      ; on-screen position of the object being built
 obj_y:      .res 2
 obj_tile:   .res 1
 obj_attr:   .res 1
-token:      .res 1      ; testigo del handshake con el SPC700
-es_pal:     .res 1      ; 1 si la consola corre a 50 cuadros por segundo
-pal_tick:   .res 1      ; para meter el cuadro de música que falta
-reinicio:   .res 1      ; si el stream ya volvió al principio en este cuadro
+token:      .res 1      ; token for the handshake with the SPC700
+es_pal:     .res 1      ; 1 if the console runs at 50 frames per second
+pal_tick:   .res 1      ; to insert the missing music frame
+reinicio:   .res 1      ; whether the stream already looped this frame
 
-; El mapa que está cargado. Todo esto salía de constantes del .inc cuando había
-; un mapa solo; ahora sale de su registro en `mapa_tabla` —que vive en RODATA y
-; se lee con `lda f:`— y queda acá mientras
-; dure. Lo que se usa una sola vez —los tamaños de los DMA, las bases de VRAM—
-; no se copia: se lee del registro en el momento.
-mapa_ofs:    .res 2     ; el desplazamiento del registro del mapa actual
-; Y su índice, para saber si un salto cambia de mapa. Dos bytes desde que el
-; destino de OP_TELEPORT es un word: el juego tiene 328 mapas y en un byte
-; entran 256. El techo que queda es MAPA_STRIDE: `mapa_ofs` es de dieciséis
-; bits, así que son 512 mapas.
+; The loaded map. All of this came from constants in the .inc when there was
+; a single map; now it comes from its record in `mapa_tabla` —which lives in
+; RODATA and is read with `lda f:`— and stays here for as
+; long as it lasts. What is used only once —the DMA sizes, the VRAM bases—
+; is not copied: it is read from the record at the time.
+mapa_ofs:    .res 2     ; the offset of the current map's record
+; And its index, to know whether a jump changes map. Two bytes since
+; OP_TELEPORT's destination is a word: the game has 328 maps and a byte holds
+; 256. The ceiling left is MAPA_STRIDE: `mapa_ofs` is sixteen bits, so it is
+; 512 maps.
 mapa_actual: .res 2
-mapa_ancho:  .res 2     ; su ancho en celdas de 16x16
+mapa_ancho:  .res 2     ; its width in 16x16 cells
 mapa_alto:   .res 2
-mapa_cw:     .res 2     ; y en celdas de 8x8, que es el doble. Se guarda hecho
-mapa_ch:     .res 2     ; porque el redibujado lo mira en cada columna y fila
-npc_total:   .res 2     ; cuántos bytes ocupa la tabla de NPCs de este mapa
-cam_max_x:   .res 2     ; hasta dónde puede llegar la cámara sin salirse
+mapa_cw:     .res 2     ; and in 8x8 cells, which is double. It is stored ready
+mapa_ch:     .res 2     ; because the redraw looks at it on every column and row
+npc_total:   .res 2     ; how many bytes this map's NPC table takes
+cam_max_x:   .res 2     ; how far the camera can go without leaving the map
 cam_max_y:   .res 2
-bloques_ptr: .res 3     ; la tabla de bloques, que ya no entra en el banco 0
-bloques8_ptr: .res 3    ; la misma corrida ocho bytes, que es donde arranca la
-                        ; capa de encima dentro del bloque. Dos punteros salen
-                        ; más baratos que ocho `iny` en el lazo más caliente.
-pass_ptr:    .res 3     ; la pasabilidad, un byte por bloque
-npc_ptr:     .res 3     ; y la de NPCs, sólo mientras se la copia a la RAM
-entrada_x:   .res 2    ; por dónde entrar al mapa que se está por cargar, en
-entrada_y:   .res 2     ; celdas. $FFFF quiere decir "donde diga el registro"
+bloques_ptr: .res 3     ; the block table, which no longer fits in bank 0
+bloques8_ptr: .res 3    ; the same shifted eight bytes, which is where the upper
+                        ; layer starts inside the block. Two pointers come out
+                        ; cheaper than eight `iny` in the hottest loop.
+pass_ptr:    .res 3     ; passability, one byte per block
+npc_ptr:     .res 3     ; and the NPC table, only while it is copied to RAM
+entrada_x:   .res 2    ; where to enter the map about to be loaded, in
+entrada_y:   .res 2     ; cells. $FFFF means "wherever the record says"
 
-; El intérprete de eventos.
-pag_ptr:     .res 3     ; la tabla de páginas del mapa cargado
-cod_ptr:     .res 3     ; el código de la página que se está ejecutando
-elegida:     .res 3     ; el código de la página que ganó, mientras se decide
-elegida_hay: .res 1     ; si alguna página del evento en curso ganó
-elegida_trigger: .res 1 ; y qué la dispara, para correr sólo las automáticas
-; Y en qué capa está, que es lo que decide cuál de las dos celdas la dispara
-; con la tecla de acción: la de adelante pide la capa del héroe y la propia
-; pide cualquier otra. Ver `probar_accion`.
+; The event interpreter.
+pag_ptr:     .res 3     ; the page table of the loaded map
+cod_ptr:     .res 3     ; the code of the page being run
+elegida:     .res 3     ; the code of the page that won, while it is decided
+elegida_hay: .res 1     ; whether some page of the current event won
+elegida_trigger: .res 1 ; and what triggers it, to run only the automatic ones
+; And which layer it is on, which is what decides which of the two cells
+; triggers it with the action button: the one in front asks for the hero's
+; layer and its own asks for any other. See `probar_accion`.
 elegida_capa: .res 1
-; Cuál de las dos se está mirando: 1 la del héroe, 0 la de adelante.
+; Which of the two is being looked at: 1 the hero's, 0 the one in front.
 accion_propia: .res 1
-; `ev_actual` vivía acá y no lo leía nadie: sus dos bytes son los que pagan
-; el índice de mapa de dieciséis bits, que si no no entraba —la ZP estaba en
-; 256 de 256—.
-salto_mapa:  .res 2     ; un Teleport pedido por un evento: a qué mapa
-salto_x:     .res 2     ; y a qué celda. salto_hay dice si hay uno pendiente
+; `ev_actual` lived here and nobody read it: its two bytes are the ones that
+; pay for the sixteen-bit map index, which otherwise did not fit —the ZP was
+; at 256 of 256—.
+salto_mapa:  .res 2     ; a Teleport requested by an event: to which map
+salto_x:     .res 2     ; and to which cell. salto_hay says if one is pending
 salto_y:     .res 2
 salto_hay:   .res 1
-saltos_restantes: .res 1 ; cuántas cadenas de teletransporte quedan permitidas
-; Y cuántas son. Lo que cuenta el tope son los teletransportes **encadenados**,
-; o sea los que ocurren sin que el jugador recupere el control: dos mapas que se
-; apuntan entre sí se colgarían para siempre. No cuenta los de una partida, que
-; son todos los que quieran ser. Ver dónde se repone, en `eventos_tick`.
+saltos_restantes: .res 1 ; how many teleport chains are still allowed
+; And how many there are. What the cap counts is **chained** teleports, that
+; is, the ones that happen without the player getting control back: two maps
+; that point at each other would hang forever. It does not count the ones in
+; a save, which can be as many as they like. See where it is refilled, in
+; `eventos_tick`.
 ;
-; Fue 8 hasta el 2026-09-27, y la guarida de Boss Wick lo desmintió: de la
-; puerta del vecino en el 37 hasta volver ahí son doce saltos entre mapas sin
-; que el jugador toque el pad —el 41, el 40, los vidcasts, el video, el 40 otra
-; vez, el 43, el 42, el favor, el 41 y el 37—, y con 8 la ROM entraba en pánico
-; a mitad del segundo paso por el 43. 32 deja margen para otra escena así y
-; sigue cortando un par de mapas que se apuntan entre sí, sólo que medio
-; minuto más tarde.
+; It was 8 until 2026-09-27, and Boss Wick's lair proved it wrong: from the
+; neighbor's door on 37 back to there it is twelve jumps between maps without
+; the player touching the pad —41, 40, the vidcasts, the video, 40 again, 43,
+; 42, the favor, 41 and 37—, and with 8 the ROM panicked halfway through the
+; second pass through 43. 32 leaves room for another scene like that and
+; still cuts off a pair of maps that point at each other, only half a minute
+; later.
 SALTOS_MAX = 32
-; Y qué pasa cuando se acaba. **No se descarta el salto**: se para todo y se
-; avisa. Descartarlo en silencio fue lo que escondió el bug de arriba durante
-; semanas —la partida seguía andando, sólo que en el mapa equivocado— y es
-; exactamente la falla que el CLAUDE.md llama "un camino que ninguna prueba
-; ejecuta". Un tope que se alcanza es un error nuestro o del juego: o el tope
-; quedó corto para una escena de verdad —como pasó con la de Wick—, o dos
-; mapas se apuntan entre sí, y eso en RM2k cuelga el juego.
+; And what happens when it runs out. **The jump is not dropped**: everything
+; stops and it is reported. Dropping it silently is what hid the bug above for
+; weeks —the game kept going, only on the wrong map— and it is exactly the
+; failure CLAUDE.md calls "a path no test runs". A cap that is reached is a
+; mistake of ours or of the game: either the cap fell short for a real scene
+; —as happened with Wick's—, or two maps point at each other, and in RM2k that
+; hangs the game.
 ;
-; `panico` es el código de lo que pasó, cero mientras no pase nada. Lo lee la
-; prueba de estado; en la consola lo que se ve es la pantalla parpadeando, que
-; no se confunde con nada del juego.
+; `panico` is the code of what happened, zero as long as nothing happens. The
+; state test reads it; on the console what you see is the screen flashing,
+; which cannot be mistaken for anything in the game.
 panico:      .res 1
-PANICO_SALTOS = 1       ; se acabó el presupuesto de teletransportes
-; El intérprete corre de a un cuadro, no de una sola pasada. Antes `cargar_mapa`
-; ejecutaba todas las páginas del tirón con la pantalla apagada y las esperas se
-; salteaban: eso colapsaba el tiempo, y todo lo que en RM2k pasa *durante* una
-; página no existía. Ahora las páginas elegidas se encolan al cargar el mapa y
-; el lazo principal las va comiendo.
-; Cuántas páginas se pueden arrancar en un mismo cuadro, encadenadas. En RM2k
-; el tope no es de páginas sino de comandos —`loop_limit = 10000` en
-; `game_interpreter.h`— y se reparte entre todas las que arranquen en el
-; cuadro. Acá se cuenta por página, que es más grueso: sólo se nota con una
-; página que termine sin hacer nada y vuelva a activarse, o sea la que en RM2k
-; cuelga el juego. Ahí ésta no cuelga: gasta el cuadro y sigue.
+PANICO_SALTOS = 1       ; the teleport budget ran out
+; The interpreter runs one frame at a time, not in a single pass. Before,
+; `cargar_mapa` ran all the pages in one go with the screen off and the waits
+; were skipped: that collapsed time, and everything that in RM2k happens
+; *during* a page did not exist. Now the chosen pages are queued when the map
+; loads and the main loop consumes them.
+; How many pages can start in the same frame, chained. In RM2k the cap is not
+; on pages but on commands —`loop_limit = 10000` in `game_interpreter.h`— and
+; it is shared among all the ones that start in the frame. Here it is counted
+; per page, which is coarser: it only shows with a page that ends without
+; doing anything and activates again, that is, the one that hangs the game in
+; RM2k. There this one does not hang: it spends the frame and moves on.
 ARRANQUES_MAX = 8
 
-; Los dos bits de `ev_flags`, uno por evento.
+; The two bits of `ev_flags`, one per event.
 FLAG_ESPERA = $01
 FLAG_AUTO   = $02
-ev_cur:      .res 2     ; el cursor dentro de la página que corre
-; Los intérpretes paralelos. La lista de eventos y el estado de cada uno viven
-; en la RAM del banco 1; acá queda sólo lo que el lazo necesita en la mano.
-par_n:       .res 1     ; cuántos eventos con página paralela tiene el mapa
-par_i:       .res 1     ; por cuál va el lazo
-par_dir:     .res 2     ; dónde cae su estado, que hay que apuntar dos veces
-par_ev:      .res 1     ; de qué evento es, para moverlo detrás del intérprete
-; Cuántas vueltas dio el lazo principal, o sea **el tiempo del juego**. Un tick
-; es un paso de lógica de RM2k —el `while (Game_Clock::NextGameTimeStep())` de
-; easyrpg, `player.cpp:245`—, que allá también está separado del cuadro que se
-; dibuja: la lógica va a DEFAULT_FPS y el dibujo a lo que la máquina aguante.
-; Acá normalmente coinciden, y se separan cuando una vuelta se pasa del cuadro.
+ev_cur:      .res 2     ; the cursor inside the running page
+; The parallel interpreters. The event list and each one's state live in bank
+; 1 RAM; only what the loop needs at hand stays here.
+par_n:       .res 1     ; how many events with a parallel page the map has
+par_i:       .res 1     ; which one the loop is on
+par_dir:     .res 2     ; where its state falls, which has to be pointed at twice
+par_ev:      .res 1     ; which event it belongs to, to move it after the interpreter
+; How many ticks the main loop has run, that is, **game time**. A tick is an
+; RM2k logic step —easyrpg's `while (Game_Clock::NextGameTimeStep())`,
+; `player.cpp:245`—, which there too is separate from the frame that is
+; drawn: logic runs at DEFAULT_FPS and drawing at whatever the machine can
+; manage. Here they normally match, and they split when a tick overruns the
+; frame.
 ;
-; Lo leen las pruebas por la WRAM para saber **qué tick** están mirando —ver
-; `Partida` en rom/pruebas/arnes/consola.py—, así que con esto deja de importar si
-; la ROM llegó tarde. Lo tarde que llega lo dice
-; `cuadros_perdidos`, que es otra pregunta.
+; The tests read it through WRAM to know **which tick** they are looking at
+; —see `Partida` in rom/pruebas/arnes/consola.py—, so with this it no longer
+; matters whether the ROM was late. How late it is is told by
+; `cuadros_perdidos`, which is another question.
 vueltas:     .res 2
-; Lo único que la animación del ChipSet guarda: qué hay que subir en el vblank
-; que viene, tres bits por familia —cero es nada, y si no el dibujo más uno—.
+; The only thing the ChipSet animation stores: what has to be uploaded in the
+; next vblank, three bits per family —zero is nothing, otherwise the drawing
+; plus one—.
 ;
-; Que la **decisión** viva acá y no adentro del vblank no es gusto: el vblank
-; del mapa 8 no tiene un ciclo de sobra. Veinte `nop` puestos ahí a propósito le
-; cuestan 61 pixeles —la cola de poses se le va del vblank y las últimas
-; escrituras caen con la pantalla ya encendida— así que las dos divisiones van
-; en el cuerpo del lazo, donde sí sobra tiempo, y en el vblank queda un `lda` y
-; un `beq`. Es el último byte libre de la página directa.
+; That the **decision** lives here and not inside the vblank is not taste: map
+; 8's vblank does not have a cycle to spare. Twenty `nop` put there on purpose
+; cost it 61 pixels —the pose queue spills out of the vblank and the last
+; writes land with the screen already on— so the two divisions go in the body
+; of the loop, where there is time to spare, and the vblank keeps an `lda` and
+; a `beq`. It is the last free byte of the direct page.
 anim_pend:   .res 1
-ev_activo:   .res 1     ; si hay una página a medio correr
-ev_esperando: .res 2    ; cuántos cuadros faltan de la espera en curso
-; La ruta forzada del héroe. En RM2k `ForceMoveRoute` es asincrónico: la página
-; sigue corriendo y quien camina es el personaje, así que esto no vive en el
-; intérprete sino acá, y lo come `move_hero` en vez del pad. Las órdenes
-; están en el bytecode: ver `ruta_heroe`.
+ev_activo:   .res 1     ; whether there is a page halfway through running
+ev_esperando: .res 2    ; how many frames are left of the current wait
+; The hero's forced move route. In RM2k `ForceMoveRoute` is asynchronous: the
+; page keeps running and the one who walks is the character, so this does not
+; live in the interpreter but here, and `move_hero` consumes it instead of the
+; pad. The commands are in the bytecode: see `ruta_heroe`.
 ruta_n:      .res 1
 ruta_i:      .res 1
-; Si el paso que el héroe tiene en curso lo arrancó la ruta forzada y no el pad.
-; Hace falta para `hay_rutas`: el último paso de una ruta sigue contando como
-; ruta pendiente aunque ya no queden órdenes, y un paso del pad no cuenta nunca.
-; Sin esto, `ProceedWithMovement` dejaría de esperar ocho cuadros antes de
-; tiempo, o esperaría de más porque el jugador se puso a caminar.
+; Whether the step the hero has in progress was started by the forced route
+; and not by the pad. `hay_rutas` needs it: the last step of a route still
+; counts as a pending route even when no commands are left, and a pad step
+; never counts. Without this, `ProceedWithMovement` would stop waiting eight
+; frames early, or would wait too long because the player started walking.
 ruta_paso:   .res 1
-ruta_espera: .res 1     ; los cuadros que faltan de un `wait` de la ruta
-; El blanco y el largo de la ruta que se está leyendo del bytecode. El largo va
-; en dos bytes con el alto siempre en cero: se le suma a Y, que es de dieciséis.
+ruta_espera: .res 1     ; the frames left of a route `wait`
+; The target and the length of the route being read from the bytecode. The
+; length goes in two bytes with the high one always zero: it is added to Y,
+; which is sixteen.
 ruta_blanco: .res 1
 ruta_cuantas: .res 2
-; Un tinte pedido por un evento, para aplicarlo en el vblank siguiente.
+; A tint requested by an event, to apply in the next vblank.
 tinte_pendiente: .res 1
-; El grupo, en orden. El gráfico del héroe es el del primero —RM2k lo decide
-; así, y `AddActor`/`RemoveActor` llaman los dos a `ResetGraphic`—, o sea que
-; esto no es contabilidad: se ve en la pantalla. `hero_poses` apunta a las doce
-; palabras de la tabla de actores del mapa que dicen qué tile es cada pose, y
-; `hero_pal` a con qué paleta se dibuja.
+; The party, in order. The hero's graphic is the first one's —RM2k decides it
+; that way, and `AddActor`/`RemoveActor` both call `ResetGraphic`—, which
+; means this is not bookkeeping: it shows on screen. `hero_poses` points to
+; the twelve words of the map's actor table that say which tile each pose is,
+; and `hero_pal` to which palette it is drawn with.
 grupo:       .res 4
 grupo_n:     .res 2
 hero_poses:  .res 3
 hero_pal:    .res 1
-; Y dónde están sus quince colores, adentro de la tabla de actores del mapa.
+; And where its fifteen colors are, inside the map's actor table.
 ;
-; Los líderes posibles **comparten una ranura de CGRAM**: lidera uno a la vez,
-; así que darle una paleta a cada uno es tenerla ocupada por alguien que no está
-; en pantalla. `aplicar_tinte` sube los del que lidera encima de esa ranura,
-; teñidos como el resto. En cero, no hay líder con gráfico y no se sube nada.
+; The possible leaders **share a CGRAM slot**: one leads at a time, so giving
+; each one a palette is having it occupied by someone who is not on screen.
+; `aplicar_tinte` uploads the leader's on top of that slot, tinted like the
+; rest. At zero, there is no leader with a graphic and nothing is uploaded.
 hero_cgram:  .res 3
-; La página que se está mirando, ya leída de la tabla. Se copia en vez de
-; leerse en el lugar porque Y hace de cursor de la tabla, y usarlo además para
-; indexar el bitmap de switches vuelve el código imposible de seguir.
+; The page being looked at, already read from the table. It is copied instead
+; of read in place because Y is the table's cursor, and also using it to index
+; the switch bitmap makes the code impossible to follow.
 pag_ofs:     .res 2
 pag_restan:  .res 2
 pg_evento:   .res 2
@@ -266,32 +270,31 @@ pg_trigger:  .res 1
 pg_sa:       .res 2
 pg_sb:       .res 2
 pg_cod:      .res 3
-pg_actor:    .res 1     ; el actor que pide en el grupo, o 0
-act_ptr:     .res 3     ; cursor de la tabla de actores del mapa
-tinte_r:     .res 1     ; el tinte de pantalla, de 0 a 200 con 100 neutro
+pg_actor:    .res 1     ; the actor it requires in the party, or 0
+act_ptr:     .res 3     ; cursor into the map's actor table
+tinte_r:     .res 1     ; the screen tint, from 0 to 200 with 100 neutral
 tinte_g:     .res 1
 tinte_b:     .res 1
-tin_ptr:     .res 3     ; la paleta que se está tiñendo, en la ROM
-tin_count:   .res 2     ; cuántos colores tiene
-tin_cgadd:   .res 1     ; y en qué entrada de CGRAM va
-tin_fin:     .res 2     ; cuántos bytes mide, que es el tope del lazo
+tin_ptr:     .res 3     ; the palette being tinted, in ROM
+tin_count:   .res 2     ; how many colors it has
+tin_cgadd:   .res 1     ; and which CGRAM entry it goes to
+tin_fin:     .res 2     ; how many bytes it is, which is the loop's limit
 
-; --- el compositor de texto ------------------------------------------------
-; Todo esto se toca en el lazo más interno del repo —doce filas por caracter,
-; cuatro escrituras de dieciséis bits por fila— así que va en la página cero.
-msg_ptr:     .res 3     ; puntero al caracter que sigue, dentro de `mensajes`. Va
-                        ; acá y no con el resto del estado porque `[dp],y` sólo
-                        ; direcciona la página directa.
-comp_glifo:  .res 3     ; puntero a las doce filas del caracter, en la ROM
-comp_char:   .res 2     ; qué caracter, ya como índice en la fuente
-comp_col:    .res 2     ; en qué columna del renglón va
-comp_fase:   .res 2     ; y en qué pixel de la celda cae, o sea x mod 8
-comp_base:   .res 2     ; el byte del buffer donde arranca su columna de celda
-comp_mask:   .res 2     ; la fila del glifo ya corrida a su fase
-comp_color:  .res 1     ; con qué índice de paleta se pinta
-comp_fila:   .res 1     ; en qué fila del buffer, de 0 a 15
-comp_dup:    .res 4     ; la máscara duplicada a los dos planos de cada par
-comp_and:    .res 4     ; y las tres combinaciones que salen de ella
+; --- the text composer ------------------------------------------------------
+; All of this is touched in the innermost loop of the repo —twelve rows per
+; character, four sixteen-bit writes per row— so it goes in the zero page.
+msg_ptr:     .res 3     ; pointer to the next character, inside `mensajes`. It goes
+                        ; here and not with the rest of the state because `[dp],y`
+                        ; only addresses the direct page.
+comp_glifo:  .res 3     ; pointer to the character's twelve rows, in ROM
+comp_char:   .res 2     ; which character, already as an index into the font
+comp_col:    .res 2     ; which column of the line it is at
+comp_fase:   .res 2     ; and which pixel of the cell it falls on, that is x mod 8
+comp_base:   .res 2     ; the buffer byte where its cell column starts
+comp_mask:   .res 2     ; the glyph row already shifted to its phase
+comp_color:  .res 1     ; which palette index it is painted with
+comp_fila:   .res 1     ; which buffer row, from 0 to 15
+comp_dup:    .res 4     ; the mask duplicated to the two planes of each pair
+comp_and:    .res 4     ; and the three combinations that come out of it
 comp_or01:   .res 4
 comp_or23:   .res 4
-

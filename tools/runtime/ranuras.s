@@ -1,41 +1,40 @@
 .segment "CODE"
 
-; --- la pantalla de ranuras ------------------------------------------------
+; --- the slot screen -------------------------------------------------------
 ;
-; La usan las dos puntas: "Resume the Story" en el título, y el save point de
-; Lashe City. Es una pantalla propia y no una capa encima del título, así que
-; **comparte la VRAM del menú**: cuando una se ve la otra no, y las dos se
-; suben enteras cada vez que se entra.
+; It is used from both ends: "Resume the Story" on the title, and the save
+; point in Lashe City. It is a screen of its own and not a layer on top of the
+; title, so it **shares the menu's VRAM**: when one is visible the other is
+; not, and both are uploaded whole every time they are entered.
 ;
-; Todo el texto viene pre-renderizado del conversor, incluidas las dos
-; variantes de cada ranura —vacía y llena—. Lo único que se decide en caliente
-; es qué bloque de celdas le toca a cada fila, y **de qué bloque se trata lo
-; dice una tabla de punteros**, no una multiplicación: calcular el
-; desplazamiento con corrimientos habría puesto la misma cuenta acá y en el
-; conversor, que es la forma de error que este repo ya pagó tres veces.
+; All the text comes pre-rendered from the converter, including the two
+; variants of each slot —empty and full—. The only thing decided on the fly
+; is which block of cells each row gets, and **which block that is is said by
+; a table of pointers**, not a multiplication: computing the offset with
+; shifts would have put the same computation here and in the converter,
+; which is the kind of bug this repo has already paid for three times.
 ;
-; Mover el cursor reescribe **dos filas** de 96 celdas, no el tilemap entero.
+; Moving the cursor rewrites **two rows** of 96 cells, not the whole tilemap.
 
-; Si la ranura que viene en A tiene una partida. Devuelve A distinto de cero, y
-; **se lleva `ranura`**: `ranuras_pantalla` la guarda al entrar y la repone al
-; salir.
+; Whether the slot in A has a save. Returns A nonzero, and **clobbers
+; `ranura`**: `ranuras_pantalla` saves it on entry and restores it on exit.
 ;
-; Mira la magia y el formato —una partida de otro build se ve vacía, ver
-; `ranura_de_este_formato`— pero no la suma: es para pintar la lista, y
-; recorrer los bytes de cada ranura para dibujar una pantalla sería pagar de
-; más. La suma la comprueba `cargar_partida` cuando el jugador elige, que es
-; donde importa.
+; It looks at the magic and the format —a save from another build looks
+; empty, see `ranura_de_este_formato`— but not at the checksum: it is for
+; painting the list, and walking every slot's bytes to draw a screen would be
+; overpaying. The checksum is verified by `cargar_partida` when the player
+; picks, which is where it matters.
 .proc ranura_llena
 .a8
 .i16
     jsr poner_ranura
-    jsr ranura_en_x             ; con el banco de datos todavía normal
+    jsr ranura_en_x             ; with the data bank still normal
     phb
     lda #SRAM_BANCO
     pha
     plb
     jsr ranura_de_este_formato
-    beq no                      ; el `plb` de abajo pisa Z: se mira antes
+    beq no                      ; the `plb` below clobbers Z: it is checked first
     plb
     lda #$01
     rts
@@ -45,13 +44,13 @@ no:
     rts
 .endproc
 
-; Sube un bloque de celdas al tilemap. X trae el índice del bloque en
-; `ranura_bloque_lo/hi/bk`, Y la dirección de VRAM en palabras y `temp` cuántas
-; celdas son.
+; Uploads a block of cells to the tilemap. X carries the block's index in
+; `ranura_bloque_lo/hi/bk`, Y the VRAM address in words and `temp` how many
+; cells there are.
 ;
-; Con la pantalla apagada al entrar y adentro del vblank al mover el cursor:
-; 192 bytes por DMA entran de sobra en un vblank que no tiene nada más que
-; hacer.
+; With the screen off on entry and inside the vblank when moving the cursor:
+; 192 bytes by DMA fit with room to spare in a vblank that has nothing else
+; to do.
 .proc ranura_bloque_subir
 .a8
 .i16
@@ -67,7 +66,7 @@ no:
     rep #$20
 .a16
     lda temp
-    asl a                       ; celdas a bytes
+    asl a                       ; cells to bytes
     sta DAS0L
     sep #$20
 .a8
@@ -80,28 +79,28 @@ no:
     rts
 .endproc
 
-; Pinta la fila de la ranura que viene en A: con cursor si `titulo_sel` la
-; señala, y llena si la SRAM dice que lo está.
+; Paints the row of the slot in A: with the cursor if `titulo_sel` points at
+; it, and full if the SRAM says it is.
 ;
-; El estado de llenado se vuelve a preguntar en cada repintado en vez de
-; guardarse: son cuatro bytes de la SRAM y pasa sólo cuando el cursor se mueve.
-; Guardarlo pediría RAM que no hay —ver `ranura`— y una forma de invalidarlo
-; después de guardar.
+; Whether it is full is asked again on every repaint instead of being stored:
+; it is four bytes of SRAM and it only happens when the cursor moves. Storing
+; it would need RAM that is not there —see `ranura`— and a way to invalidate
+; it after saving.
 .proc ranura_pintar
 .a8
 .i16
     pha
     jsr ranura_llena
-    asl a                       ; llena vale 2 en el índice de variante
+    asl a                       ; full counts 2 in the variant index
     sta temp + 2
     pla
     pha
     cmp titulo_sel
     bne sin_cursor
-    inc temp + 2                ; y el cursor, 1
+    inc temp + 2                ; and the cursor, 1
 sin_cursor:
-    ; El índice del bloque: las dos cabeceras primero, y después cuatro
-    ; variantes por ranura.
+    ; The block's index: the two headers first, and then four variants per
+    ; slot.
     pla
     pha
     asl a
@@ -116,13 +115,13 @@ sin_cursor:
     tax
     sep #$20
 .a8
-    ; Y a dónde va, que lo dice la tabla y no una cuenta.
+    ; And where it goes, which the table says and not a computation.
     pla
-    pha                         ; la ranura, para el grupo de después
+    pha                         ; the slot, for the party afterwards
     rep #$20
 .a16
     and #$00FF
-    asl a                       ; dos bytes por entrada
+    asl a                       ; two bytes per entry
     tay
     lda ranura_vram, y
     tay
@@ -131,8 +130,9 @@ sin_cursor:
     sep #$20
 .a8
     jsr ranura_bloque_subir
-    ; Y encima de la fila, si tiene partida, el nombre del líder y las caras
-    ; del grupo que guardó. `temp + 2` quedó con la variante: llena vale 2 o 3.
+    ; And on top of the row, if it has a save, the leader's name and the faces
+    ; of the party it saved. `temp + 2` was left with the variant: full is 2
+    ; or 3.
     pla
     lda temp + 2
     cmp #2
@@ -142,22 +142,24 @@ sin_grupo:
     rts
 .endproc
 
-; Sube un rectángulo de celdas al tilemap, fila por fila. X trae el índice del
-; bloque en `ranura_bloque_lo/hi/bk`, Y la dirección de VRAM de su primera
-; celda, `temp` cuántos bytes tiene cada fila y `temp + 2` cuántas filas son.
+; Uploads a rectangle of cells to the tilemap, row by row. X carries the
+; block's index in `ranura_bloque_lo/hi/bk`, Y the VRAM address of its first
+; cell, `temp` how many bytes each row has and `temp + 2` how many rows there
+; are.
 ;
-; **`temp` es un byte**, y el alto del DMA se pone en cero acá: una fila del
-; tilemap son 32 celdas, 64 bytes. Hasta el 2026-09-21 se leía de a dieciséis
-; bits, y los dos llamadores de `menu_grupo_pintar` le escriben sólo el bajo:
-; el alto quedaba con lo que hubiera, que viniendo de la pantalla de ítems es
-; la variante de su última letra —`temp + 1`, 1 si es gris—. Con un ítem en
-; gris al final de la lista, la primera fila del panel subía 256 bytes de más
-; encima del tilemap: es el "se rompen los gráficos al volver a entrar" de
-; taro. Lo cobra `test_la_eleccion_se_ve_igual_al_volver_a_entrar`.
+; **`temp` is one byte**, and the high byte of the DMA size is set to zero
+; here: a tilemap row is 32 cells, 64 bytes. Until 2026-09-21 it was read as
+; sixteen bits, and the two callers of `menu_grupo_pintar` write only the low
+; byte: the high one kept whatever was there, which coming from the item
+; screen is the variant of its last letter —`temp + 1`, 1 if it is gray—.
+; With a gray item at the end of the list, the panel's first row uploaded 256
+; bytes too many over the tilemap: it is taro's "the graphics break when
+; entering again". `test_la_eleccion_se_ve_igual_al_volver_a_entrar` catches
+; it.
 ;
-; Un solo puntero de origen para todas las filas: el DMA deja `A1T0` apuntando
-; a donde terminó, así que la fila siguiente arranca de ahí sin volver a
-; cargarlo. Lo que cambia por fila es el destino, que baja 32 celdas.
+; A single source pointer for all rows: the DMA leaves `A1T0` pointing where
+; it ended, so the next row starts from there without reloading it. What
+; changes per row is the destination, which moves down 32 cells.
 .proc ranura_rect_subir
 .a8
 .i16
@@ -193,23 +195,24 @@ fila:
     rts
 .endproc
 
-; --- el texto que depende del actor -----------------------------------------
+; --- the text that depends on the actor ------------------------------------
 ;
-; El nombre, el nivel y los HP máximos **no vienen horneados** en un bloque de
-; celdas por actor: se componen de a una letra por celda, con los glifos de
-; `ranura_glifo_celdas`. El porqué está en "lo que depende del actor" de
-; titulo.py y es el mismo que ya vale para el oro y para la pantalla de
-; ítems: el banco de tiles es uno solo y está deduplicado, así que un bloque
-; por actor lo hacía crecer con cada uno que pudiera estar en el grupo.
+; The name, the level and the max HP **are not baked** into one block of
+; cells per actor: they are composed one letter per cell, with the glyphs in
+; `ranura_glifo_celdas`. The reason is in "lo que depende del actor" in
+; titulo.py and is the same one that already holds for the gold and for the
+; item screen: the tile bank is a single one and deduplicated, so a block per
+; actor made it grow with every one who could be in the party.
 
-; `msg_ptr` apuntando a una de las tiras del actor que trae A, corrida los X
-; bytes de `RANURA_TEXTO_NOMBRE`, `_NIVEL` o `_MAX`. Se lleva A y X, y **Y
-; queda como estaba**: el que llama la trae con la celda donde va a escribir.
+; `msg_ptr` pointing at one of the strips of the actor in A, offset by the X
+; bytes of `RANURA_TEXTO_NOMBRE`, `_NIVEL` or `_MAX`. Clobbers A and X, and
+; **Y stays as it was**: the caller brings it with the cell it is going to
+; write to.
 ;
-; Usa `msg_ptr` de puntero por lo mismo que la pantalla de ítems: ninguna de
-; estas pantallas se abre con un mensaje en pantalla, así que el compositor no
-; lo tiene ocupado. Y tiene que ser él o alguno de la página directa, porque
-; `lda [dp], y` sólo direcciona ahí.
+; It uses `msg_ptr` as the pointer for the same reason as the item screen:
+; none of these screens opens with a message on screen, so the composer does
+; not have it in use. And it has to be that one or another in the direct
+; page, because `lda [dp], y` only addresses there.
 .proc ranura_texto_de
 .a8
 .i16
@@ -220,7 +223,7 @@ fila:
     asl a
     asl a
     asl a
-    asl a                       ; RANURA_TEXTO_ANCHO bytes por actor
+    asl a                       ; RANURA_TEXTO_ANCHO bytes per actor
     sta msg_ptr
     txa
     clc
@@ -235,35 +238,35 @@ fila:
     rts
 .endproc
 
-; Un texto del banco de las ranuras, de a una letra por celda: `msg_ptr` la
-; primera letra, Y la celda de arriba de la primera y A cuántas letras. Se
-; lleva A, X, `temp` y `temp + 2`, y **deja Y como estaba**: el que llama
-; escribe varias tiras de la misma fila corriéndola.
+; A text from the slots' bank, one letter per cell: `msg_ptr` the first
+; letter, Y the upper cell of the first one and A how many letters. Clobbers
+; A, X, `temp` and `temp + 2`, and **leaves Y as it was**: the caller writes
+; several strips on the same row by moving it along.
 ;
-; Primero las celdas de arriba de todas las letras, que van seguidas en la
-; VRAM y aprovechan el autoincremento, y después las de abajo. Es
-; `texto_escribir` de la pantalla de ítems con la otra tabla de glifos: son
-; dos bancos distintos y cada uno tiene el suyo.
+; First the upper cells of all the letters, which are contiguous in VRAM and
+; make use of the auto-increment, and then the lower ones. It is the item
+; screen's `texto_escribir` with the other glyph table: they are two
+; different banks and each has its own.
 .proc ranura_texto_escribir
 .a8
 .i16
-    sta temp                    ; cuántas letras
+    sta temp                    ; how many letters
     lda #$80
     sta VMAIN
-    phy                         ; la celda, para la segunda pasada
+    phy                         ; the cell, for the second pass
     rep #$20
 .a16
     lda #0
-    sta temp + 2                ; las celdas de arriba
+    sta temp + 2                ; the upper cells
     sty VMADDL
     sep #$20
 .a8
     jsr renglon
     rep #$20
 .a16
-    lda 1, s                    ; la misma celda, que `renglon` se llevó Y
+    lda 1, s                    ; the same cell, since `renglon` clobbered Y
     clc
-    adc #32                     ; y las de abajo, una fila más abajo
+    adc #32                     ; and the lower ones, one row down
     sta VMADDL
     lda #2
     sta temp + 2
@@ -283,41 +286,41 @@ letra:
     sec
     sbc #ITEM_PRIMER_CARACTER
     asl a
-    asl a                       ; cuatro bytes por glifo
+    asl a                       ; four bytes per glyph
     clc
-    adc temp + 2                ; la celda de arriba o la de abajo
+    adc temp + 2                ; the upper or the lower cell
     tax
     lda f:ranura_glifo_celdas, x
-    sta VMDATAL                 ; y la VRAM avanza una palabra
+    sta VMDATAL                 ; and VRAM advances one word
     sep #$20
 .a8
     iny
-    tya                         ; de a una letra: son menos de 256
+    tya                         ; one letter at a time: there are fewer than 256
     cmp temp
     bcc letra
     rts
 .endproc
 
-; El grupo de la partida de la ranura que está en `ranura`: las caras de los
-; primeros RANURA_CARAS_MAX, y el nombre del primero. Es lo que
-; `Window_SaveFile::Refresh` dibuja por archivo, menos los puntos de vida, que
-; este port no tiene.
+; The party of the save in the slot held in `ranura`: the faces of the first
+; RANURA_CARAS_MAX, and the name of the first one. It is what
+; `Window_SaveFile::Refresh` draws per file, minus the hit points, which this
+; port does not have.
 ;
-; El grupo se lee de la SRAM de la ranura, con el banco de datos en $70 el
-; tiempo justo de leer un byte: las tablas de bloques y los registros del DMA
-; direccionan el banco 0. Un actor sin cara —DummyHero— no dibuja nada, que es
-; lo que hace `DrawFace` con un nombre vacío. Y a dónde va cada cara y cada
-; nombre lo dicen dos tablas del conversor, `ranura_cara_vram` y
-; `ranura_nombre_vram`, como `ranura_vram` para las filas: la cuenta vive en
-; un solo lado.
+; The party is read from the slot's SRAM, with the data bank at $70 just long
+; enough to read one byte: the block tables and the DMA registers address
+; bank 0. An actor with no face —DummyHero— draws nothing, which is what
+; `DrawFace` does with an empty name. And where each face and each name goes
+; is said by two converter tables, `ranura_cara_vram` and
+; `ranura_nombre_vram`, like `ranura_vram` for the rows: the computation lives
+; on a single side.
 ;
-; La cara es un bloque horneado y el nombre y el nivel **no**: ésos se
-; componen con glifos, ver `ranura_texto_escribir`.
+; The face is a baked block and the name and the level **are not**: those are
+; composed with glyphs, see `ranura_texto_escribir`.
 ;
-; El escritorio, que está justo: `temp` y `temp + 2` son del rectángulo,
-; `temp + 3` guarda cuántos son, y **`titulo_flancos` hace de índice de
-; miembro**. En la página directa no hay otro byte, y los flancos ya se miraron
-; cuando se llega acá.
+; The scratch space, which is tight: `temp` and `temp + 2` belong to the
+; rectangle, `temp + 3` keeps how many there are, and **`titulo_flancos`
+; serves as the member index**. There is no other byte in the direct page,
+; and the edges have already been looked at by the time this is reached.
 .proc ranura_grupo_pintar
 .a8
 .i16
@@ -340,7 +343,7 @@ otro_miembro:
     bcs las_caras_listas
     jsr actor_del_miembro
     cmp #RANURA_ACTORES_N
-    bcs siguiente               ; un actor que esta ROM no conoce
+    bcs siguiente               ; an actor this ROM does not know
     rep #$20
 .a16
     and #$00FF
@@ -349,9 +352,9 @@ otro_miembro:
 .a8
     lda ranura_cara_bloque, x
     cmp #$FF
-    beq siguiente               ; sin cara
-    pha                         ; el bloque, mientras se arma el destino
-    ; La tabla va de a cuatro por ranura: la ranura por cuatro más el lugar.
+    beq siguiente               ; no face
+    pha                         ; the block, while the destination is built
+    ; The table goes four per slot: the slot times four plus the place.
     lda ranura
     asl a
     asl a
@@ -359,7 +362,7 @@ otro_miembro:
     rep #$20
 .a16
     and #$00FF
-    asl a                       ; dos bytes por entrada
+    asl a                       ; two bytes per entry
     tax
     lda ranura_cara_vram, x
     tay
@@ -381,16 +384,16 @@ siguiente:
     inc titulo_flancos
     bra otro_miembro
 las_caras_listas:
-    ; El nombre del líder, que es el primero, y su nivel: los dos compuestos
-    ; con glifos encima de la fila. `temp + 3` ya no hace falta, así que
-    ; `ranura_texto_escribir` puede usar `temp`.
+    ; The name of the leader, who is the first, and its level: both composed
+    ; with glyphs on top of the row. `temp + 3` is no longer needed, so
+    ; `ranura_texto_escribir` can use `temp`.
     lda temp + 3
-    beq listo                   ; un grupo vacío no tiene líder
+    beq listo                   ; an empty party has no leader
     stz titulo_flancos
     jsr actor_del_miembro
     cmp #RANURA_ACTORES_N
-    bcs listo                   ; un actor que esta ROM no conoce
-    pha                         ; el actor, para las dos tiras
+    bcs listo                   ; an actor this ROM does not know
+    pha                         ; the actor, for both strips
     lda ranura
     rep #$20
 .a16
@@ -398,7 +401,7 @@ las_caras_listas:
     asl a
     tax
     lda ranura_nombre_vram, x
-    tay                         ; la celda del nombre
+    tay                         ; the name's cell
     sep #$20
 .a8
     pla
@@ -407,8 +410,8 @@ las_caras_listas:
     jsr ranura_texto_de
     lda #RANURA_NOMBRE_COLS
     jsr ranura_texto_escribir
-    ; Y el nivel, que cae unas celdas más abajo de la misma fila. Y quedó
-    ; donde estaba: `ranura_texto_escribir` la conserva.
+    ; And the level, which falls a few cells further along the same row. Y
+    ; stayed where it was: `ranura_texto_escribir` preserves it.
     rep #$20
 .a16
     tya
@@ -418,18 +421,18 @@ las_caras_listas:
     sep #$20
 .a8
     pla
-    jsl f:texto_nivel_guardado  ; el de la partida de la ranura, no el de ahora
+    jsl f:texto_nivel_guardado  ; the one from the slot's save, not the current one
     lda #RANURA_NIVEL_CIFRAS
     jsr ranura_texto_escribir
 listo:
     rts
 
-; El actor que está en el lugar `titulo_flancos` del grupo de la ranura, leído
-; de la SRAM. Devuelve A y se lleva X. El desplazamiento es la ranura por 1024
-; —`SRAM_STRIDE`— más el lugar, armado con dos `xba` y sin tocar los vecinos
-; de la página directa: leer `titulo_flancos` a dieciséis bits se llevaría
-; `menu_abierto`. El byte alto es la ranura por cuatro, que entra: son cuatro
-; ranuras.
+; The actor in place `titulo_flancos` of the slot's party, read from SRAM.
+; Returns A and clobbers X. The offset is the slot times 1024 —`SRAM_STRIDE`—
+; plus the place, built with two `xba` and without touching the neighbors in
+; the direct page: reading `titulo_flancos` as sixteen bits would take
+; `menu_abierto` along. The high byte is the slot times four, which fits:
+; there are four slots.
 actor_del_miembro:
     lda titulo_flancos
     xba
@@ -437,7 +440,7 @@ actor_del_miembro:
     asl a
     asl a
     asl a
-    xba                         ; C = ranura * 2048 + lugar
+    xba                         ; C = slot * 2048 + place
     rep #$20
 .a16
     tax
@@ -452,47 +455,47 @@ actor_del_miembro:
     rts
 .endproc
 
-; La pantalla entera: la sube, la muestra y la maneja hasta que el jugador
-; elija o cancele. A trae el modo —0 cargar, 1 guardar— y vuelve con la ranura
-; elegida, o **$FF si canceló con B**.
+; The whole screen: uploads it, shows it and runs it until the player picks
+; or cancels. A carries the mode —0 load, 1 save— and it returns with the
+; chosen slot, or **$FF if cancelled with B**.
 ;
-; Deja la VRAM y CGRAM pisadas, así que el llamador repone lo suyo: el título
-; vuelve a subir su imagen y su menú, y el save point recarga el mapa. Es lo
-; mismo que hace `pantalla_titulo` al salir, y por la misma razón: mientras esta
-; pantalla se ve no hay ni mapa ni título que preservar.
+; It leaves VRAM and CGRAM overwritten, so the caller restores its own: the
+; title uploads its image and its menu again, and the save point reloads the
+; map. It is the same thing `pantalla_titulo` does on exit, and for the same
+; reason: while this screen is up there is neither map nor title to preserve.
 .proc ranuras_pantalla
 .a8
 .i16
-    ; El banco de datos, al 0. **Desde el título ya lo es; desde el save point
-    ; no tiene por qué**: el intérprete corre con el banco puesto donde vive el
-    ; bytecode del evento. Y todo lo de acá abajo escribe los registros del PPU
-    ; y del DMA con direccionamiento absoluto, que usa el banco de datos, así
-    ; que con el banco corrido la pantalla se dibujaba en negro con basura
-    ; arriba.
+    ; The data bank, to 0. **From the title it already is; from the save point
+    ; there is no reason it should be**: the interpreter runs with the bank
+    ; set to where the event's bytecode lives. And everything below writes the
+    ; PPU and DMA registers with absolute addressing, which uses the data
+    ; bank, so with the bank shifted the screen was drawn black with garbage
+    ; on top.
     phb
     phk
     plb
-    ; Y el tamaño de los registros, explícito. Desde el título se llega con A
-    ; de ocho bits y X/Y de dieciséis; **desde el intérprete no hay tal
-    ; promesa**, y una `lda #$80` interpretada como de dieciséis bits se come el
-    ; byte siguiente y descoloca todo lo que sigue.
+    ; And the register sizes, explicit. From the title it is reached with
+    ; 8-bit A and 16-bit X/Y; **from the interpreter there is no such
+    ; promise**, and an `lda #$80` taken as sixteen bits eats the next byte
+    ; and throws off everything that follows.
     sep #$20
     rep #$10
-    pha                         ; el modo, hasta que se dibuje la cabecera
+    pha                         ; the mode, until the header is drawn
     lda #$80
     sta INIDISP
     stz HDMAEN
-    stz TM                      ; nada a la vista mientras se arma
+    stz TM                      ; nothing visible while it is built
 
     jsr ranura_banco_subir
 
-    ; --- la cabecera, según el modo ---
+    ; --- the header, according to the mode ---
     pla
-    pha                         ; el modo, otra vez: decide dónde arranca el cursor
+    pha                         ; the mode, again: it decides where the cursor starts
     rep #$20
 .a16
     and #$00FF
-    tax                         ; los dos primeros bloques son las cabeceras
+    tax                         ; the first two blocks are the headers
     lda #RANURA_CAB_CELDAS
     sta temp
     ldy #(RANURA_MAP + RANURA_CAB_VRAM)
@@ -500,12 +503,11 @@ actor_del_miembro:
 .a8
     jsr ranura_bloque_subir
 
-    ; --- dónde arranca el cursor ---
-    ; Cargando, en la primera. Guardando, en la ranura que se está usando —de
-    ; la que se cargó, o en la que se guardó la última vez—: es el
-    ; `index = latest_slot` de `Scene_File::Start`, que allá es la de fecha más
-    ; nueva y acá, sin fechas, la que está en uso. Sin partida cargada, la
-    ; primera.
+    ; --- where the cursor starts ---
+    ; Loading, on the first. Saving, on the slot in use —the one loaded from,
+    ; or the one saved to last time—: it is the `index = latest_slot` of
+    ; `Scene_File::Start`, which there is the one with the newest date and
+    ; here, with no dates, the one in use. With no save loaded, the first.
     pla
     beq primera
     lda ranura
@@ -516,16 +518,16 @@ primera:
 arranca_ahi:
     sta titulo_sel
 
-    ; `ranura` a la pila. Pintar una fila la pisa —`ranura_llena` la escribe
-    ; para direccionar la SRAM— y al salir tiene que valer lo que valía, elija
-    ; el jugador o cancele: quien elige la pone después con `poner_ranura`.
-    ; Desde el título daba lo mismo porque valía $FF y se ponía al elegir;
-    ; desde el save point, cancelar dejaría a la partida "cargada" de la última
-    ; fila pintada.
+    ; `ranura` onto the stack. Painting a row overwrites it —`ranura_llena`
+    ; writes it to address the SRAM— and on exit it has to hold what it held,
+    ; whether the player picks or cancels: whoever picks sets it afterwards
+    ; with `poner_ranura`. From the title it did not matter because it held
+    ; $FF and was set on picking; from the save point, cancelling would leave
+    ; the save of the last painted row as the "loaded" one.
     lda ranura
     pha
 
-    ; --- y las cuatro filas ---
+    ; --- and the four rows ---
     lda #0
 pintar_todas:
     pha
@@ -551,10 +553,10 @@ espera:
     beq no_arriba
     lda titulo_sel
     bne sube
-    ; Desde la primera, arriba da la vuelta, pero sólo con un toque: la
-    ; repetición se frena en la punta. Es `Scene_File::Update` de easyrpg,
-    ; que a diferencia de `Window_Selectable` pide `IsTriggered` para dar la
-    ; vuelta; ver `flechas_repetir`.
+    ; From the first, up wraps around, but only on a single press: the repeat
+    ; stops at the end. It is easyrpg's `Scene_File::Update`, which unlike
+    ; `Window_Selectable` asks for `IsTriggered` to wrap around; see
+    ; `flechas_repetir`.
     lda flechas_repetidas
     and #PAD_UP
     bne espera
@@ -571,7 +573,7 @@ no_arriba:
     inc a
     cmp #SRAM_RANURAS_N
     bcc baja
-    lda flechas_repetidas       ; lo mismo abajo: repitiendo no da la vuelta
+    lda flechas_repetidas       ; the same going down: repeating does not wrap
     and #PAD_DOWN
     bne espera
     lda #0
@@ -583,35 +585,35 @@ no_abajo:
     and #PAD_B
     beq mira_a
     jsr cerrar
-    lda #$FF                    ; cancelar
+    lda #$FF                    ; cancel
     rts
 mira_a:
     lda pad_a
     beq espera
     lda pad_a_ant
-    bne espera                  ; ya lo tenía apretado: no es un flanco
+    bne espera                  ; it was already held: not an edge
     jsr cerrar
     lda titulo_sel
     rts
 
-; Lo que las dos salidas tienen en común: `ranura` como estaba, el banco de
-; datos como estaba, el testigo abajo. Y `nmi_visto` al día, para que
-; `contar_perdidos` no cuente como perdidos los cuadros que el jugador pasó
-; eligiendo: desde el save point esto corre adentro de una vuelta del lazo, y
-; sin esto la vuelta mediría cientos de cuadros y saturaría el contador.
+; What the two exits have in common: `ranura` as it was, the data bank as it
+; was, the marker down. And `nmi_visto` up to date, so that `contar_perdidos`
+; does not count as lost the frames the player spent choosing: from the save
+; point this runs inside one tick of the loop, and without this the tick
+; would measure hundreds of frames and saturate the counter.
 ;
-; La pila trae, de arriba abajo: la dirección de vuelta de este `jsr`, `ranura`
-; y el banco. Se saca la de vuelta primero para llegar a los otros dos.
+; The stack holds, top to bottom: this `jsr`'s return address, `ranura` and
+; the bank. The return address is pulled first to get at the other two.
 cerrar:
-    plx                         ; la dirección de vuelta, aparte
+    plx                         ; the return address, set aside
     pla
     sta ranura
     plb
     phx
-    ; Y los flancos de B y de A, consumidos: el que cerró la pantalla es de
-    ; ella. Sin esto, desde el save point, el B de cancelar le llegaba a
-    ; `pedir_menu` en la misma vuelta —si la página terminaba ahí— y abría el
-    ; menú de pausa; y el A de elegir podía hablarle a un evento.
+    ; And the B and A edges, consumed: the one that closed the screen belongs
+    ; to it. Without this, from the save point, the B for cancelling reached
+    ; `pedir_menu` in the same tick —if the page ended there— and opened the
+    ; pause menu; and the A for picking could talk to an event.
     lda pad
     sta pad_ant
     lda pad_a
@@ -621,28 +623,28 @@ cerrar:
     sta nmi_visto
     rts
 
-; El cursor a la ranura que trae A: se repintan **las dos filas que cambian** y
-; ninguna más. Adentro del vblank, que es donde estamos al salir de
+; The cursor to the slot in A: **the two rows that change** are repainted and
+; no others. Inside the vblank, which is where we are on leaving
 ; `wait_vblank`.
 mover_cursor:
-    sta temp + 3                ; la nueva
+    sta temp + 3                ; the new one
     lda titulo_sel
-    pha                         ; y la vieja, a la pila
+    pha                         ; and the old one, onto the stack
     lda temp + 3
     sta titulo_sel
     pla
-    jsr ranura_pintar           ; se despinta el cursor de donde estaba
+    jsr ranura_pintar           ; the cursor is erased from where it was
     lda titulo_sel
-    jmp ranura_pintar           ; y se pinta donde va
+    jmp ranura_pintar           ; and painted where it goes
 .endproc
 
-; Sube el banco de tiles de la pantalla de ranuras y del menú, deja el tilemap
-; en blanco y sube sus colores. Con la pantalla apagada. Salió de
-; `ranuras_pantalla` el día que el menú de pausa empezó a usar el mismo banco.
+; Uploads the tile bank of the slot screen and the menu, blanks the tilemap
+; and uploads their colors. With the screen off. It came out of
+; `ranuras_pantalla` the day the pause menu started using the same bank.
 .proc ranura_banco_subir
 .a8
 .i16
-    ; --- los tiles ---
+    ; --- the tiles ---
     lda #$80
     sta VMAIN
     rep #$20
@@ -665,11 +667,11 @@ mover_cursor:
     lda #$01
     sta MDMAEN
 
-    ; --- el tilemap, en blanco ---
-    ; Un DMA con la dirección de origen **fija** —el bit 3 de DMAP— repitiendo
-    ; una palabra en cero. El origen es el primer tile del banco, que es el
-    ; transparente y por lo tanto son 32 bytes de cero: no hace falta un bloque
-    ; aparte para tener dos ceros a mano.
+    ; --- the tilemap, blank ---
+    ; A DMA with a **fixed** source address —bit 3 of DMAP— repeating a zero
+    ; word. The source is the bank's first tile, which is the transparent one
+    ; and therefore 32 bytes of zero: no separate block is needed to have two
+    ; zeros at hand.
     rep #$20
 .a16
     lda #RANURA_MAP
@@ -683,13 +685,13 @@ mover_cursor:
 .a8
     lda #^(ranura_tiles)
     sta A1B0
-    lda #$09                    ; dos registros, sin avanzar el origen
+    lda #$09                    ; two registers, without advancing the source
     sta DMAP0
     lda #$01
     sta MDMAEN
 
-    ; --- los colores ---
-    ; La paleta 0 del texto y una por cara: RANURA_CGRAM_N entradas, seguidas.
+    ; --- the colors ---
+    ; Palette 0 for the text and one per face: RANURA_CGRAM_N entries, in a row.
     stz CGADD
     rep #$20
 .a16
@@ -711,15 +713,15 @@ mover_cursor:
     rts
 .endproc
 
-; BG2 con el tilemap de la pantalla de ranuras, y la pantalla prendida.
+; BG2 with the slot screen's tilemap, and the screen on.
 .proc ranura_ppu_prender
 .a8
 .i16
-    ; --- el PPU ---
+    ; --- the PPU ---
     lda #(RANURA_MAP / 1024 * 4)
     sta BG2SC
     lda #(RANURA_VRAM / 4096 * 16)
-    sta BG12NBA                 ; sólo BG2; BG1 no se dibuja
+    sta BG12NBA                 ; only BG2; BG1 is not drawn
     stz BG2HOFS
     stz BG2HOFS
     lda #$FF

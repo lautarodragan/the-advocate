@@ -1,38 +1,38 @@
-# Las recetas de las herramientas: generar el bytecode, correr sus pruebas
-# —las de Python y las de cada proyecto de Rust— e instalar la suite. Las de A Blurred Line están en
-# su propio `justfile`, que no sabe que este directorio existe.
+# The tools' recipes: generating the bytecode, running their tests —the
+# Python ones and each Rust project's— and installing the suite. A Blurred
+# Line's are in its own `justfile`, which does not know this directory exists.
 #
-# Desde la raíz se llama con `just -f tools/justfile <receta>`; desde adentro
-# de `tools/`, con `just <receta>`, porque `just` usa el `justfile` más
-# cercano. En los dos casos las recetas corren paradas en `tools/`.
+# From the root it is called with `just -f tools/justfile <recipe>`; from
+# inside `tools/`, with `just <recipe>`, because `just` uses the nearest
+# `justfile`. Either way the recipes run standing in `tools/`.
 
-# Dónde instala `just herramientas`. En el contenedor `/usr/local` está en el
-# PATH; desde el host conviene `CARGO_ROOT=~/.cargo`, el default de cargo.
+# Where `just herramientas` installs. In the container `/usr/local` is on the
+# PATH; from the host `CARGO_ROOT=~/.cargo`, cargo's default, is better.
 cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
 
-# Las herramientas de un worktree que usan las recetas de este archivo:
-# `protocolo` y `pruebas` corren el `protocol` del worktree si el agente lo
-# está modificando y lo instaló acá, con `just herramientas-locales
-# <este directorio>/.herramientas-locales protocol`. Las del juego las pone
-# cada juego donde quiere y le dice a `herramientas-locales` dónde: este
-# archivo no sabe dónde vive ninguno.
+# A worktree's tools, used by the recipes in this file: `protocolo` and
+# `pruebas` run the worktree's `protocol` if the agent is modifying it and
+# installed it here, with `just herramientas-locales
+# <this directory>/.herramientas-locales protocol`. Each game puts its own
+# wherever it wants and tells `herramientas-locales` where: this file does
+# not know where any of them lives.
 locales := justfile_directory() / ".herramientas-locales"
 export PATH := if path_exists(locales / "bin") == "true" { locales / "bin" + ":" + env_var("PATH") } else { env_var("PATH") }
 
-# Los proyectos de Rust, en el orden en que se instalan.
+# The Rust projects, in the order they are installed.
 proyectos_de_rust := "protocol gunter ditto voodoo lz2"
 
-# Los opcodes de los eventos: su número y su layout. La declaración está en
-# `protocol/events.toml` y no es ni del compilador ni del intérprete; de ahí
-# salen generados los dos módulos de Python y los dos `.inc` de `tools/runtime/`,
-# todos commiteados. Hay dos declaraciones: el bytecode de los eventos y el
-# stream de música que lee el SPC700.
+# The event opcodes: their number and their layout. The declaration lives in
+# `protocol/events.toml` and belongs neither to the compiler nor to the
+# interpreter; from it the two Python modules and the two `.inc` files of
+# `tools/runtime/` are generated, all committed. There are two declarations:
+# the event bytecode and the music stream the SPC700 reads.
 #
-# La de eventos lleva `--jump-table`: de ahí sale la tabla del despacho de
-# `correr_codigo`, así que un opcode nuevo no toca el intérprete más que en su
-# `.proc op_x`. La de música no puede —termina en 0xFF— ni lo necesita.
+# The event one takes `--jump-table`: that produces `correr_codigo`'s dispatch
+# table, so a new opcode touches the interpreter only in its `.proc op_x`.
+# The music one cannot —it ends at 0xFF— and does not need it.
 #
-# `--check` es lo que corre la tanda: falla si alguno quedó viejo.
+# `--check` is what the suite runs: it fails if any of them is stale.
 protocolo *args:
   protocol protocol/events.toml \
       --python port/event_opcodes.py --asm runtime/event_opcodes.inc \
@@ -40,46 +40,48 @@ protocolo *args:
   protocol protocol/music.toml \
       --python audio/music_opcodes.py --asm runtime/music_opcodes.inc {{args}}
 
-# Las pruebas de Python de las herramientas, las de `pruebas/`: las que no
-# necesitan el juego, ni sus datos, ni un cartucho armado. Las que sí están en
-# las de A Blurred Line. Son rápidas, así que corren en serie y sin xdist.
+# The tools' Python tests, the ones in `pruebas/`: those that need neither the
+# game, nor its data, nor a built cartridge. Those that do are among A Blurred
+# Line's. They are fast, so they run serially and without xdist.
 #
-# Dos leen un SoundFont de verdad, y **se lo pasa el que corre**, en
-# `SOUNDFONT`, como a Ditto su corpus: este archivo no sabe dónde hay uno.
-# Sin la variable, esas dos se saltean con un mensaje.
-# `pytest` toma `pruebas/` de `pytest.ini`, así que lo que se le pase —un
-# archivo, `-k`— vale igual que en un `pytest` suelto.
+# Two read a real SoundFont, and **whoever runs them passes it**, in
+# `SOUNDFONT`, the way Ditto gets its corpus: this file does not know where
+# one is. Without the variable, those two are skipped with a message.
+# `pytest` takes `pruebas/` from `pytest.ini`, so whatever is passed to it —a
+# file, `-k`— works the same as in a plain `pytest`.
 pruebas *args:
   pytest {{args}}
 
-# Las pruebas del generador: los errores que tiene que dar ante una declaración
-# rota, y la forma exacta del texto que emite. No necesitan el juego ni la ROM.
+# The generator's tests: the errors it must give for a broken declaration,
+# and the exact shape of the text it emits. They need neither the game nor
+# the ROM.
 protocolo-pruebas:
   cd protocol && cargo test
 
-# Gunter: el códec BRR y el lector de SoundFont, y **el que arma las muestras
-# de la ROM**. Sus pruebas son muestras generadas adentro de la prueba —silencio,
-# rampa, cuadrada, impulso, saturación— más los mensajes de error, así que no
-# necesitan ni el juego ni un soundfont. Que las muestras de verdad salgan bien
-# lo cobra cualquier ROM, porque viajan adentro del `.sfc`.
+# Gunter: the BRR codec and the SoundFont reader, and **what builds the ROM's
+# samples**. Its tests are samples generated inside the test —silence, ramp,
+# square, impulse, clipping— plus the error messages, so they need neither
+# the game nor a soundfont. That the real samples come out right is enforced
+# by any ROM, because they travel inside the `.sfc`.
 gunter-pruebas:
   cd gunter && cargo test
 
-# El .ldb/.lmu/.lmt ⇄ JSON en Rust. Todavía no reemplaza a `rpgmaker/lcf.py`
-# ni al conversor: convive con ellos. Ver DITTO.md, en la raíz, que es lo que
-# ata a Ditto con el port; adentro de `ditto/` no hay ni una referencia a
-# nosotros, a propósito.
+# .ldb/.lmu/.lmt ⇄ JSON in Rust. It does not replace `rpgmaker/lcf.py` or the
+# converter yet: it lives alongside them. See DITTO.md, at the root, which is
+# what ties Ditto to the port; inside `ditto/` there is not a single reference
+# to us, on purpose.
 #
-# El juego con el que se mide **se lo pasa el que corre**, en DITTO_CORPUS:
-# las herramientas no saben de ningún juego, así que no caen en el de nadie.
-# Sin la variable, las pruebas que lo necesitan se saltean con un mensaje y
-# las demás —los defaults del esquema, el corpus sintético— corren igual.
+# The game it is measured against **is passed by whoever runs it**, in
+# DITTO_CORPUS: the tools know no game, so they do not fall into anyone's.
+# Without the variable, the tests that need it are skipped with a message and
+# the rest —the schema defaults, the synthetic corpus— run anyway.
 #
-# La tanda corta va sobre una muestra de mapas; `ditto-vuelta-entera` son todos
-# los mapas, el LDB y el árbol, y mide lo único que hace útil a la herramienta:
-# que el binario vuelva **byte por byte**. Va aparte porque es la que uno quiere
-# ver con el número, no la que corre callada; y sin corpus no mide nada, así
-# que en vez de saltearse se niega.
+# The short suite runs over a sample of maps; `ditto-vuelta-entera` is every
+# map, the LDB and the tree, and measures the only thing that makes the tool
+# useful: that the binary comes back **byte for byte**. It is separate
+# because it is the one you want to see with the number, not the one that
+# runs quietly; and without a corpus it measures nothing, so instead of
+# skipping it refuses.
 ditto-pruebas:
   cd ditto && cargo test
 
@@ -87,90 +89,92 @@ ditto-vuelta-entera:
   #!/usr/bin/env sh
   set -eu
   if [ -z "${DITTO_CORPUS:-}" ]; then
-    echo "ditto-vuelta-entera necesita un juego: DITTO_CORPUS=<carpeta con RPG_RT.ldb, RPG_RT.lmt y los Map*.lmu>." >&2
+    echo "ditto-vuelta-entera needs a game: DITTO_CORPUS=<folder with RPG_RT.ldb, RPG_RT.lmt and the Map*.lmu>." >&2
     exit 1
   fi
   cd ditto
   cargo test --release -- --include-ignored --nocapture
 
-# Voodoo: de un PNG indexado a tiles, tilemap y CGRAM, en Rust. Es el que
-# convierte las capas de los mapas, desde las imágenes que deja el asignador.
-# No decide colores; ver AGENTS.md.
+# Voodoo: from an indexed PNG to tiles, tilemap and CGRAM, in Rust. It is what
+# converts the map layers, from the images the allocator leaves. It does not
+# decide colors; see AGENTS.md.
 #
-# Sus pruebas son imágenes generadas adentro de la prueba, más los mensajes de
-# error, así que no necesitan el juego.
+# Its tests are images generated inside the test, plus the error messages,
+# so they do not need the game.
 voodoo-pruebas:
   cd voodoo && cargo test
 
-# LZ2: el LC_LZ2 de Nintendo, con el que el conversor comprime los tiles y las
-# grillas que la ROM descomprime al cargar un mapa —ver `port/comprimir.py`—.
-# Sus pruebas no necesitan el juego; las que pasan todos los bloques del
-# cartucho por la referencia son las del port.
+# LZ2: Nintendo's LC_LZ2, which the converter uses to compress the tiles and
+# grids the ROM decompresses when loading a map —see `port/comprimir.py`—.
+# Its tests do not need the game; the ones that run every block of the
+# cartridge through the reference are the port's.
 lz2-pruebas:
   cd lz2 && cargo test --release
 
-# --- La instalación --------------------------------------------------------
-# `protocol/`, `gunter/`, `ditto/`, `voodoo/` y `lz2/` son proyectos aparte, y
-# el port los consume **desde el PATH**, como consume un core de libretro:
-# ningún script ni prueba del juego llama a `cargo`. Se instalan una vez y
-# quedan.
+# --- Installation ----------------------------------------------------------
+# `protocol/`, `gunter/`, `ditto/`, `voodoo/` and `lz2/` are separate
+# projects, and the port consumes them **from the PATH**, the way it consumes
+# a libretro core: no script or test of the game calls `cargo`. They are
+# installed once and stay.
 #
-# Y los scripts de Python que se ejecutan, al mismo `bin/`, para que el
-# `justfile` del juego los llame por su nombre como a los de Rust. Van **como
-# symlinks y no como copias**: una copia quedaría vieja al editar el `.py`, y
-# la tanda correría otra versión que la del árbol. Apuntan al checkout desde
-# el que se corrió esto: si ése se borra, hay que volver a correrlo desde otro.
+# And the Python scripts that get executed, into the same `bin/`, so the
+# game's `justfile` calls them by name like the Rust ones. They go **as
+# symlinks and not as copies**: a copy would go stale when the `.py` is
+# edited, and the suite would run a different version from the tree's. They
+# point to the checkout this was run from: if that one is deleted, it has to
+# be run again from another.
 #
-# Con nombres de proyectos de Rust —`just herramientas lz2`— instala sólo
-# ésos, más los symlinks de Python, que no cuestan nada: es lo que corre el
-# que mergea una rama, con lo de Rust que la rama tocó. Sin nombres, todos.
+# With Rust project names —`just herramientas lz2`— it installs only those,
+# plus the Python symlinks, which cost nothing: that is what whoever merges a
+# branch runs, with the Rust the branch touched. Without names, all of them.
 #
-# Los nombres siguen al repo donde va a vivir cada programa cuando las
-# herramientas se separen de ABL: `rm2k-snes-` y en inglés los de la suite,
-# que va a ser un repo en inglés; `abl-` y en castellano el que se queda con
-# el juego. El prefijo es porque el `bin/` es compartido: un `espacio` o un
-# `parches` suelto no dice qué es y puede chocar con cualquier cosa.
+# The names follow the repo each program will live in once the tools split
+# from ABL: `rm2k-snes-` and in English for the suite's, which will be an
+# English repo; `abl-` and in Spanish for the one that stays with the game.
+# The prefix is because `bin/` is shared: a bare `espacio` or `parches` does
+# not say what it is and can clash with anything.
 #
-# `(cargo_root)` va entre paréntesis porque, pegado al paréntesis que sigue,
-# `just` lo leería como una llamada a una función `cargo_root`.
+# `(cargo_root)` goes in parentheses because, stuck to the parenthesis that
+# follows, `just` would read it as a call to a function `cargo_root`.
 herramientas *proyectos: (_instalar (cargo_root) (if proyectos == "" { proyectos_de_rust } else { proyectos }))
 
-# **Las herramientas de un worktree**, para el sub-agente que las modifica.
-# Un symlink del global apunta a un solo checkout —el principal—, así que un
-# worktree que cambia un script de las herramientas o un proyecto de Rust no
-# correría su cambio. Esto arma `<destino>/bin/` con los ocho scripts del
-# worktree, siempre, y con los proyectos de Rust que se le nombren, **sólo
-# ésos**: compilar Rust cuesta, y sólo tiene sentido si el agente va a
-# modificar ese proyecto. Sin nombres no compila nada. Es de taro, el
-# 2026-09-29.
+# **A worktree's tools**, for the sub-agent that modifies them. A symlink in
+# the global install points to a single checkout —the main one—, so a
+# worktree that changes a tools script or a Rust project would not run its
+# change. This builds `<destino>/bin/` with the worktree's eight scripts,
+# always, and with the Rust projects it is given, **only those**: compiling
+# Rust costs, and only makes sense if the agent is going to modify that
+# project. Without names it compiles nothing. From taro, 2026-09-29.
 #
-# **El destino lo dice el que consume**, y es obligatorio: este archivo no
-# sabe dónde vive el juego, y el juego no sabe dónde vive éste. El `justfile`
-# del juego busca su `bin/` en un directorio suyo y, si no está, se niega
-# dando este comando con el destino ya escrito. Un destino relativo es
-# relativo a donde se corrió `just`, no a `tools/`.
+# **The destination is set by the consumer**, and it is mandatory: this file
+# does not know where the game lives, and the game does not know where this
+# one lives. The game's `justfile` looks for its `bin/` in a directory of its
+# own and, if it is not there, refuses, giving this command with the
+# destination already filled in. A relative destination is relative to where
+# `just` was run, not to `tools/`.
 #
-# Vale sólo para lo que corre por `just`, que es el que pone el `bin/`
-# adelante en el PATH: un comando suelto usa el global. Se niega en el
-# checkout principal, donde taparía al global con lo mismo.
+# It only applies to what runs through `just`, which is what puts the `bin/`
+# first on the PATH: a plain command uses the global one. It refuses in the
+# main checkout, where it would shadow the global install with the same
+# thing.
 herramientas-locales destino *proyectos: _no_en_el_principal (_instalar (join(invocation_directory(), destino)) proyectos)
 
 _no_en_el_principal:
   #!/usr/bin/env sh
   [ "$(git rev-parse --git-dir)" != "$(git rev-parse --git-common-dir)" ] && exit 0
-  echo "esto es el checkout principal: acá las herramientas son las globales, las de 'just -f tools/justfile herramientas'." >&2
+  echo "this is the main checkout: here the tools are the global ones, from 'just -f tools/justfile herramientas'." >&2
   exit 1
 
-# Instala en `raiz`: `cargo install` de los proyectos de Rust nombrados, y los
-# symlinks de los ocho de Python. Un nombre que no es proyecto corta antes de
-# compilar nada.
+# Installs into `raiz`: `cargo install` of the named Rust projects, and the
+# symlinks of the eight Python ones. A name that is not a project stops
+# before compiling anything.
 _instalar raiz *proyectos:
   #!/usr/bin/env sh
   set -eu
   for p in {{proyectos}}; do
     case " {{proyectos_de_rust}} " in
       *" $p "*) ;;
-      *) echo "'$p' no es un proyecto de Rust: son {{proyectos_de_rust}}." >&2; exit 1 ;;
+      *) echo "'$p' is not a Rust project: they are {{proyectos_de_rust}}." >&2; exit 1 ;;
     esac
   done
   for p in {{proyectos}}; do
@@ -185,12 +189,12 @@ _instalar raiz *proyectos:
   ln -sfn "{{justfile_directory()}}/audio/msu.py" "{{raiz}}/bin/rm2k-snes-msu"
   ln -sfn "{{justfile_directory()}}/audio/techos.py" "{{raiz}}/bin/rm2k-snes-volume-ceilings"
   ln -sfn "{{justfile_directory()}}/ensamblado/entregar.py" "{{raiz}}/bin/abl-entregar"
-  echo "en {{raiz}}/bin: los ocho de Python, y de Rust: {{ if proyectos == "" { "ninguno" } else { proyectos } }}"
+  echo "in {{raiz}}/bin: the eight Python ones, and from Rust: {{ if proyectos == "" { "none" } else { proyectos } }}"
 
-# Qué ejecutable resuelve este checkout para cada herramienta: el de
-# `.herramientas-locales/bin/` si está, si no el global.
+# Which executable this checkout resolves for each tool: the one in
+# `.herramientas-locales/bin/` if it is there, otherwise the global one.
 cuales:
   #!/usr/bin/env sh
   for x in {{proyectos_de_rust}} rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings abl-entregar; do
-    printf '%-26s %s\n' "$x" "$(command -v "$x" || echo falta)"
+    printf '%-26s %s\n' "$x" "$(command -v "$x" || echo missing)"
   done

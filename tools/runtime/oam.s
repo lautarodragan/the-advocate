@@ -1,21 +1,22 @@
 .segment "CODE"
 
-; --- armado de OAM ---------------------------------------------------------
-; Un objeto por NPC más uno para el héroe, en el orden en que RM2k los dibuja:
-; primero por capa y recién después por Y. En la consola el objeto con índice
-; más bajo de OAM es el que se ve encima, así que se recorre del frente hacia el
-; fondo — que es como el conversor dejó ordenada la tabla.
+; --- building the OAM ------------------------------------------------------
+; One object per NPC plus one for the hero, in the order RM2k draws them:
+; first by layer and only then by Y. On the console the object with the
+; lowest OAM index is the one shown on top, so the walk goes from front to
+; back — which is how the converter left the table sorted.
 ;
-; El héroe se intercala donde le toca por su clave, no va siempre primero ni
-; siempre último: un evento "below" tiene que quedar debajo de él aunque esté
-; más adelante en pantalla, y uno "above" taparlo siempre.
+; The hero is slotted in where its key puts it, it does not always go first
+; nor always last: a "below" event has to stay under it even if it is further
+; forward on screen, and an "above" one always covers it.
 .proc build_oam
 .a8
 .i16
-    ; Todo escondido antes de empezar. Esconder sólo la cola al terminar deja
-    ; los objetos que este cuadro no usó con los datos del anterior, y basta con
-    ; que la cámara se mueva para que la cuenta cambie y alguno reaparezca donde
-    ; no va. Son 128 escrituras y sacan de encima toda esa clase de error.
+    ; Everything hidden before starting. Hiding only the tail at the end
+    ; leaves the objects this frame did not use with the previous one's data,
+    ; and all it takes is the camera moving for the count to change and one of
+    ; them to reappear where it does not belong. It is 128 writes and it gets
+    ; rid of that whole class of bug.
     jsr clear_oam
     stz high_acc
     stz hero_drawn
@@ -24,34 +25,34 @@
     stz high_ptr
     stz oam_slot
     stz npc_ofs
-    ; La clave del héroe: su capa arriba y su Y abajo, igual que en la tabla.
+    ; The hero's key: its layer on top and its Y below, same as in the table.
     lda hero_y
     and #$0FFF
     ora #(HERO_LAYER * 4096)
     sta hero_key
     sep #$20
 .a8
-    ; El cronómetro va antes que nadie: sus objetos son los de índice más bajo
-    ; y por eso los que se ven adelante. Deja `obj_grande` en 32x32.
+    ; The timer goes before anyone: its objects are the lowest-indexed and
+    ; therefore the ones shown in front. It leaves `obj_grande` at 32x32.
     lda #$02
     sta obj_grande
     jsr timer_oam
-    jsr imagen_oam              ; y el cartel detrás de él: ver `imagen_oam`
-    jsr animacion_dibujo_oam    ; y la animación de batalla detrás del cartel:
-                                ; `Priority_BattleAnimation` es 110 contra los
-                                ; 120 de `Priority_PictureOld`
+    jsr imagen_oam              ; and the sign behind it: see `imagen_oam`
+    jsr animacion_dibujo_oam    ; and the battle animation behind the sign:
+                                ; `Priority_BattleAnimation` is 110 against
+                                ; `Priority_PictureOld`'s 120
 
 recorrer:
-    ; Cada fila, con X en ella. `place_hero` y `place_npc` pisan X, así que se
-    ; recarga de `npc_ofs` en cada vuelta.
+    ; Each row, with X on it. `place_hero` and `place_npc` clobber X, so it is
+    ; reloaded from `npc_ofs` on every pass.
     ldx npc_ofs
     cpx npc_total
     beq ultimos
 
     lda hero_drawn
     bne toca_npc
-    ; ¿Va el héroe antes que este NPC? Sí si su clave es mayor o igual, porque
-    ; la tabla va de mayor a menor.
+    ; Does the hero go before this NPC? Yes if its key is greater or equal,
+    ; because the table goes from greater to smaller.
     rep #$20
 .a16
     lda hero_key
@@ -64,18 +65,19 @@ recorrer:
 
 toca_npc:
     lda npc_buf + 14, x
-    beq escondido               ; su página activa no dibuja nada
-    ; Lo que `emit_object` iba a descartar se descarta **acá**, con la misma
-    ; comparación y antes de armar el resto de la fila. Descarta lo mismo que
-    ; antes, objeto por objeto, así que la OAM sale idéntica; lo que cambia es
-    ; cuánto cuesta un NPC que no se ve. Un mapa como el 11 tiene cincuenta
-    ; filas dibujadas y treinta en pantalla, y las veinte de afuera pagaban la
-    ; Y, el salto y los dos bytes del tile para que `emit_object` las tirara.
-    ; La X va acá, en el lazo, y no en `place_npc`: la mitad sale por ella, y
-    ; así no paga ni el `jsr`. En la carrera son cuarenta autos y se ven diez.
+    beq escondido               ; its active page draws nothing
+    ; What `emit_object` was going to discard is discarded **here**, with the
+    ; same comparison and before building the rest of the row. It discards the
+    ; same as before, object by object, so the OAM comes out identical; what
+    ; changes is how much an NPC that is not visible costs. A map like 11 has
+    ; fifty drawn rows and thirty on screen, and the twenty outside paid for
+    ; the Y, the jump and the two tile bytes for `emit_object` to throw them
+    ; away. The X goes here, in the loop, and not in `place_npc`: half of them
+    ; go out through it, and that way they do not even pay for the `jsr`. In
+    ; the race there are forty cars and ten are visible.
     rep #$20
 .a16
-    lda npc_buf + 0, x          ; su posición en el mapa
+    lda npc_buf + 0, x          ; its position on the map
     sec
     sbc pantalla_x
     sec
@@ -86,7 +88,7 @@ toca_npc:
     cmp #(256 + 32)
     sep #$20
 .a8
-    bcs escondido               ; `sep` no toca el acarreo
+    bcs escondido               ; `sep` does not touch the carry
     jsr place_npc
 escondido:
     rep #$20
@@ -104,15 +106,16 @@ ultimos:
     bne cerrar
     jsr place_hero
 cerrar:
-    jsr lluvia_oam              ; las gotas, al final de todo
+    jsr lluvia_oam              ; the drops, at the very end
     jsr flush_high
     rts
 .endproc
 
-; El salto del héroe: consume las órdenes hasta `end_jump`, suma lo que aportan
-; y lo pone del otro lado de una. Lo que dura no depende de la distancia:
-; `remaining_step` baja de 256 a 0 a `salto_del_heroe` por cuadro, salte una
-; celda o cinco; a la velocidad 4 son once cuadros.
+; The hero's jump: consumes the move commands up to `end_jump`, adds up what
+; they contribute and puts it on the other side at once. How long it lasts
+; does not depend on the distance: `remaining_step` goes down from 256 to 0 by
+; `salto_del_heroe` per frame, whether it jumps one cell or five; at speed 4
+; it is eleven frames.
 .proc armar_salto_heroe
 .a8
 .i16
@@ -128,13 +131,13 @@ buscar:
     jsr acumular_salto
     bra buscar
 sin_fin:
-    ; Sin `end_jump` el salto se saltea y lo que quedaba de ruta se pierde, que
-    ; es lo que hace RM2k al llegar al final.
+    ; Without `end_jump` the jump is skipped and whatever was left of the move
+    ; route is lost, which is what RM2k does on reaching the end.
     stz ruta_salto
     rts
 
 con_fin:
-    jsr salto_a_celdas          ; el desplazamiento, con signo y en dieciséis
+    jsr salto_a_celdas          ; the offset, signed and in sixteen bits
     rep #$20
 .a16
     lda tile_x
@@ -147,13 +150,13 @@ con_fin:
     sta celda_y
     sep #$20
 .a8
-    ; Atravesando paredes se cae en cualquier celda: es el mismo
-    ; `if (self.GetThrough()) return true;` que mira un paso, y `puede_caer`
-    ; lo lee de `atravesando`, que acá nadie ponía. La ruta de EV0041 del mapa
-    ; 8 —`through`, salto de una celda sobre la reja, cuatro pasos— en RM2k
-    ; salta y en la ROM caminaba: el salto se salteaba por la reja y los pasos
-    ; de después sí atravesaban. Medido el 2026-09-10, 40840
-    ; pixeles en el cuadro 60.
+    ; Walking through walls it lands on any cell: it is the same
+    ; `if (self.GetThrough()) return true;` that a step looks at, and
+    ; `puede_caer` reads it from `atravesando`, which nobody was setting here.
+    ; The move route of EV0041 on map 8 —`through`, a one-cell jump over the
+    ; fence, four steps— jumps in RM2k and walked in the ROM: the jump was
+    ; skipped because of the fence and the steps after it did go through.
+    ; Measured on 2026-09-10, 40840 pixels on frame 60.
     lda ruta_atraviesa
     beq sin_atravesar
     lda #1
@@ -166,7 +169,7 @@ sin_atravesar:
     stz atravesando + 1
     plp
     bne se_puede
-    stz ruta_salto              ; no se puede caer ahí: el salto se saltea
+    stz ruta_salto              ; it cannot land there: the jump is skipped
     rts
 se_puede:
     rep #$20
@@ -178,51 +181,54 @@ se_puede:
     sep #$20
 .a8
     jsr init_hero_ptr
-    ; Hacia dónde queda mirando. En el lugar no cambia nada: RM2k sólo fija el
-    ; mirado cuando el salto se mueve.
+    ; Which way it ends up facing. In place nothing changes: RM2k only sets
+    ; the facing when the jump moves.
     lda salto_dx
     ora salto_dy
     beq sin_girar
     jsr direccion_del_salto
     sta hero_dir
 sin_girar:
-    ; El primer descuento va en el mismo cuadro que arma el salto, como en
-    ; `Game_Character::Update`, que después de `UpdateNextMovementAction` ya lo
-    ; ve saltando y llama a `UpdateMovement`. SALTO_PASO es 256 y no entra en
-    ; un byte: `256 - s` en ocho bits es el complemento a dos de `s`, que
-    ; nunca es cero.
+    ; The first decrement goes in the same frame that builds the jump, as in
+    ; `Game_Character::Update`, which after `UpdateNextMovementAction` already
+    ; sees it jumping and calls `UpdateMovement`. SALTO_PASO is 256 and does
+    ; not fit in a byte: `256 - s` in eight bits is the two's complement of
+    ; `s`, which is never zero.
     jsr salto_del_heroe
     eor #$FF
     inc a
     sta ruta_salto
-    ; La celda ya es la de destino y los pixeles van detrás, igual que en un
-    ; paso: así la cámara acompaña el arco en vez de saltar de una.
+    ; The cell is already the target one and the pixels trail behind, same as
+    ; in a step: that way the camera follows the arc instead of jumping at
+    ; once.
     jsr salto_posicion_heroe
     rts
 .endproc
 
-; Un cuadro de un salto del héroe que está en el aire: le baja el arco que le
-; queda y lo redibuja donde toque. La celda ya se movió al empezar, así que lo
-; único que pasa acá son los pixeles.
+; One frame of a hero jump that is in the air: lowers the arc it has left and
+; redraws it where it belongs. The cell already moved at the start, so the
+; only thing that happens here is the pixels.
 ;
-; Vive afuera de `paso_de_ruta` —y la llama `move_hero`— porque en RM2k el que
-; baja el salto es `Game_Character::Update`, que mira `IsJumping()` **antes** de
-; preguntar si quedan órdenes, y el que lo apaga es `UpdateMovement`. Mientras
-; estuvo adentro de `paso_de_ruta`, un salto que era la última orden de la ruta
-; no lo bajaba nadie: `move_hero` sólo entraba ahí con `ruta_i < ruta_n`, y con
-; el salto al final el contador ya estaba al tope en el cuadro siguiente. El
-; héroe quedaba flotando a mitad del arco para siempre, y 196 de las 410 rutas
-; con salto del juego terminan en el salto. Ver `test_salto_colgado.py`.
+; It lives outside `paso_de_ruta` —and `move_hero` calls it— because in RM2k
+; the one that lowers the jump is `Game_Character::Update`, which checks
+; `IsJumping()` **before** asking whether move commands are left, and the one
+; that turns it off is `UpdateMovement`. While it was inside `paso_de_ruta`,
+; a jump that was the last move command of the move route was lowered by
+; nobody: `move_hero` only went in there with `ruta_i < ruta_n`, and with the
+; jump at the end the counter was already at its limit on the next frame. The
+; hero stayed floating mid-arc forever, and 196 of the game's 410 move routes
+; with a jump end on the jump. See `test_salto_colgado.py`.
 ;
-; El descuento se lee de la velocidad cada cuadro, como `Update` de RM2k, que
-; llama a `GetMoveSpeed()` cada vez. Hasta el 2026-09-26 era la constante de la
-; velocidad 4 y un `increase_movement_speed` sobre el héroe le cambiaba el paso
-; y no el salto. Ver `test_salto_velocidad.py`.
+; The decrement is read from the speed every frame, like RM2k's `Update`,
+; which calls `GetMoveSpeed()` every time. Until 2026-09-26 it was the
+; constant for speed 4 and an `increase_movement_speed` on the hero changed
+; its step and not its jump. See `test_salto_velocidad.py`.
 .proc salto_avanzar_heroe
 .a8
 .i16
-    ; `ruta_salto - s` sin guardar `s` en ningún lado: `~s + 1` con el acarreo
-    ; en uno es la resta, y el acarreo sale en cero si hubo préstamo.
+    ; `ruta_salto - s` without storing `s` anywhere: `~s + 1` with the carry
+    ; set is the subtraction, and the carry comes out clear if there was a
+    ; borrow.
     jsr salto_del_heroe
     eor #$FF
     sec
@@ -234,10 +240,10 @@ guardar:
     jmp salto_posicion_heroe
 .endproc
 
-; `hero_x` y `hero_y` desde la celda de destino y lo que le queda al salto. Es
-; `GetSpriteX` de RM2k: `x * 256 - dx * restante` y **después** la división por
-; dieciséis, que es lo que evita el pixel de más o de menos cada vez que el
-; descuento no es múltiplo de dieciséis.
+; `hero_x` and `hero_y` from the target cell and what is left of the jump. It
+; is RM2k's `GetSpriteX`: `x * 256 - dx * remaining` and **then** the division
+; by sixteen, which is what avoids the pixel too many or too few every time
+; the decrement is not a multiple of sixteen.
 .proc salto_posicion_heroe
 .a8
 .i16
@@ -261,7 +267,7 @@ guardar:
     asl a
     asl a
     asl a
-    asl a                       ; la celda en las unidades de RM2k: por 256
+    asl a                       ; the cell in RM2k units: times 256
     sec
     sbc salto_prod
     lsr a
@@ -297,7 +303,7 @@ guardar:
     rts
 .endproc
 
-; `salto_dx` y `salto_dy` con el signo extendido a dieciséis bits.
+; `salto_dx` and `salto_dy` sign-extended to sixteen bits.
 .proc salto_a_celdas
 .a8
 .i16
@@ -322,8 +328,9 @@ dy_positivo:
     rts
 .endproc
 
-; Hacia dónde queda mirando quien salta: gana el eje de mayor recorrido y con
-; empate el vertical. Es el `if (abs(dy) >= abs(dx))` de `Game_Character::Jump`.
+; Which way the jumper ends up facing: the axis with the longer travel wins,
+; and on a tie the vertical. It is the `if (abs(dy) >= abs(dx))` of
+; `Game_Character::Jump`.
 .proc direccion_del_salto
 .a8
 .i16
@@ -364,13 +371,13 @@ izquierda:
     rts
 .endproc
 
-; Corre `salto_px`/`salto_py` hacia atrás por lo que le falta al salto y deja en
-; `salto_alto` cuánto hay que levantar el dibujo.
+; Moves `salto_px`/`salto_py` back by what the jump has left and leaves in
+; `salto_alto` how much the drawing has to be raised.
 ;
-; La altura es `GetJumpHeight`: sube y baja con lo que queda, y la curva no es
-; lineal sino la tabla de RM2k. Sólo mueve el **dibujo**: el orden contra los
-; demás sale de `GetScreenY(false)`, o sea sin el salto, así que quien está en
-; el aire no se adelanta.
+; The height is `GetJumpHeight`: it goes up and down with what is left, and
+; the curve is not linear but RM2k's table. It only moves the **drawing**:
+; the order against the others comes from `GetScreenY(false)`, that is,
+; without the jump, so whoever is in the air does not move ahead.
 .proc alto_del_salto
 .a8
 .i16
@@ -380,13 +387,14 @@ izquierda:
     bne hay
     rts
 hay:
-    ; Lo que queda o lo que se recorrió, el menor de los dos, sobre ocho; y
-    ; después la tabla de RM2k, que no es lineal. Es `GetJumpHeight`, y sólo
-    ; mueve el **dibujo**: el orden contra los demás sale de `GetScreenY(false)`,
-    ; o sea sin el salto, así que quien está en el aire no se adelanta.
+    ; What is left or what was traveled, the smaller of the two, over eight;
+    ; and then RM2k's table, which is not linear. It is `GetJumpHeight`, and it
+    ; only moves the **drawing**: the order against the others comes from
+    ; `GetScreenY(false)`, that is, without the jump, so whoever is in the air
+    ; does not move ahead.
     cmp #(SALTO_PASO / 2)
     bcc de_bajada
-    eor #$FF                    ; 256 - resta, con resta de un byte
+    eor #$FF                    ; 256 - remaining, with a one-byte remaining
     inc a
 de_bajada:
     lsr a
@@ -394,13 +402,13 @@ de_bajada:
     lsr a
     cmp #5
     bcs mediana
-    asl a                       ; menos de cinco: el doble
+    asl a                       ; less than five: double
     bra guardar
 mediana:
     cmp #13
     bcs tope
     clc
-    adc #4                      ; de cinco a doce: más cuatro
+    adc #4                      ; five to twelve: plus four
     bra guardar
 tope:
     lda #16
@@ -409,9 +417,9 @@ guardar:
     rts
 .endproc
 
-; `salto_val` por `salto_resta`, con signo, en `salto_prod`. La unidad de la
-; consola multiplica sin signo y de a ocho bits, así que se hace sobre el valor
-; absoluto y se le devuelve el signo al final.
+; `salto_val` times `salto_resta`, signed, into `salto_prod`. The console's
+; unit multiplies unsigned and eight bits at a time, so it is done on the
+; absolute value and the sign is given back at the end.
 .proc producto_salto
 .a8
 .i16
@@ -429,7 +437,7 @@ positivo:
     lda salto_val
     sta WRMPYA
     lda salto_resta
-    sta WRMPYB                  ; arranca: el producto tarda ocho ciclos
+    sta WRMPYB                  ; starts it: the product takes eight cycles
     nop
     nop
     nop
@@ -450,9 +458,9 @@ listo:
     rts
 .endproc
 
-; El salto de un evento. Igual que el del héroe, pero leyendo la ruta del
-; cartucho y guardando el estado en la ranura. X es la ranura y hay que
-; devolverla intacta.
+; An event's jump. Same as the hero's, but reading the move route from the
+; cartridge and keeping the state in the slot. X is the slot and it has to be
+; returned intact.
 .proc armar_salto_ev
 .a8
 .i16
@@ -478,23 +486,24 @@ buscar:
     plx
     bra buscar
 sin_fin:
-    ; Sin `end_jump` el salto se saltea y lo que quedaba de ruta se pierde.
+    ; Without `end_jump` the jump is skipped and whatever was left of the move
+    ; route is lost.
     stz ruta_ev + 13, x
     rts
 
 con_fin:
-    ; `walk_everywhere`: `CheckOrMakeWayEx` corta con `if (self.GetThrough())
-    ; return true;` apenas pasa el chequeo de límites, así que el que atraviesa
-    ; paredes cae donde sea. Sin esto, la piedra del recuerdo de Core es una
-    ; celda cerrada y el salto se saltea; taro lo vio como que Core se mueve
-    ; arriba de su islita y no salta nunca, y la ruta que lo mueve arranca
-    ; justamente con un `atravesar_on`.
+    ; `walk_everywhere`: `CheckOrMakeWayEx` returns early with
+    ; `if (self.GetThrough()) return true;` right after the bounds check, so
+    ; one walking through walls lands anywhere. Without this, the stone in
+    ; Core's memory is a closed cell and the jump is skipped; taro saw it as
+    ; Core moving on top of his little island and never jumping, and the move
+    ; route that moves him starts precisely with an `atravesar_on`.
     lda ruta_ev + 12, x
     and #$01
     sta atravesando
     stz atravesando + 1
     phx
-    jsr celda_del_evento        ; su celda, que `puede_caer` necesita
+    jsr celda_del_evento        ; its cell, which `puede_caer` needs
     jsr salto_a_celdas
     rep #$20
 .a16
@@ -512,13 +521,13 @@ con_fin:
     plx
     stz atravesando
     stz atravesando + 1
-    cmp #0                      ; `plx` pone Z según lo que saca de la pila
+    cmp #0                      ; `plx` sets Z from what it pulls off the stack
     bne se_puede
     stz ruta_ev + 13, x
-    inc salto_trabado           ; había `end_jump` y la celda está ocupada
+    inc salto_trabado           ; there was an `end_jump` and the cell is taken
     rts
 se_puede:
-    ; La celda de destino, que `celda_del_evento` dejó en celda_x/celda_y.
+    ; The target cell, which `celda_del_evento` left in celda_x/celda_y.
     phx
     jsr mover_celda_a_evento
     plx
@@ -526,7 +535,7 @@ se_puede:
     sta ruta_ev + 14, x
     lda salto_dy
     sta ruta_ev + 15, x
-    ; Hacia dónde queda mirando. En el lugar no cambia nada.
+    ; Which way it ends up facing. In place nothing changes.
     lda salto_dx
     ora salto_dy
     beq sin_girar
@@ -537,15 +546,16 @@ se_puede:
 sin_girar:
     jsr salto_de_ranura
     sta temp
-    lda #0                      ; 256 menos lo de este cuadro, en ocho bits
+    lda #0                      ; 256 minus this frame's, in eight bits
     sec
     sbc temp
     sta ruta_ev + 13, x
     rts
 .endproc
 
-; `npc_px` y `npc_py` desde la celda de destino y lo que le queda al salto. Es
-; la misma cuenta que `salto_posicion_heroe`, con la división al final.
+; `npc_px` and `npc_py` from the target cell and what is left of the jump. It
+; is the same computation as `salto_posicion_heroe`, with the division at the
+; end.
 .proc salto_posicion_npc
 .a8
 .i16
@@ -567,7 +577,7 @@ sin_girar:
     asl a
     asl a
     asl a
-    asl a                       ; la celda en las unidades de RM2k: por 256
+    asl a                       ; the cell in RM2k units: times 256
     sec
     sbc salto_prod
     lsr a
@@ -603,20 +613,20 @@ sin_girar:
     rts
 .endproc
 
-; --- el salto de una ruta --------------------------------------------------
-; Suma al salto lo que aporta una orden. Es el lazo de `BeginMoveRouteJump`: lo
-; que hay entre `begin_jump` y `end_jump` **no se camina**, se suma, y sólo
-; cuentan los `move_*` y los que giran. Todo lo demás —una espera, parar la
-; animación, cambiar la velocidad— RM2k lo consume ahí adentro sin hacer nada,
-; y el juego mete de las tres cosas.
+; --- a move route's jump ---------------------------------------------------
+; Adds to the jump what a move command contributes. It is the loop in
+; `BeginMoveRouteJump`: what lies between `begin_jump` and `end_jump` **is not
+; walked**, it is added up, and only the `move_*` and the turning ones count.
+; Everything else —a wait, stopping the animation, changing the speed— RM2k
+; consumes in there without doing anything, and the game puts in all three.
 ;
-; Entra en A el código de la orden; deja `salto_dx` y `salto_dy`.
+; A comes in with the move command's code; leaves `salto_dx` and `salto_dy`.
 .proc acumular_salto
 .a8
 .i16
-    cmp #8                      ; los cuatro derechos y las cuatro diagonales:
-    bcs no_mueve                ; adentro de un salto una diagonal aporta sus
-                                ; dos ejes, que es lo que suma RM2k
+    cmp #8                      ; the four straight ones and the four diagonals:
+    bcs no_mueve                ; inside a jump a diagonal contributes its
+                                ; two axes, which is what RM2k adds
     rep #$20
 .a16
     and #$00FF
@@ -633,18 +643,19 @@ sin_girar:
     sta salto_dy
     rts
 no_mueve:
-    ; Los `face_*` no aportan desplazamiento, y girar sin moverse no se
-    ; compila, así que adentro de un salto no queda nada más que hacer: RM2k
-    ; consume el resto sin tocar nada, ni siquiera un `wait`.
+    ; The `face_*` contribute no offset, and turning without moving is not
+    ; compiled, so inside a jump there is nothing else to do: RM2k consumes
+    ; the rest without touching anything, not even a `wait`.
     rts
 .endproc
 
-; ¿Se puede caer en la celda `celda_x`, `celda_y`? Vuelve con Z=0 si sí.
+; Can it land on cell `celda_x`, `celda_y`? Returns with Z=0 if so.
 ;
-; No es lo mismo que poder pisarla caminando: es `CheckOrMakeWayEx` con el
-; personaje saltando, que **saltea la cara que se deja** —de ahí que se pueda
-; saltar desde un lugar del que no se podría caminar— y pide que la de destino
-; sea pasable por los cuatro lados, no sólo por la que se entra.
+; It is not the same as being able to step on it walking: it is
+; `CheckOrMakeWayEx` with the character jumping, which **skips the face being
+; left** —hence one can jump from a place one could not walk out of— and asks
+; for the target to be passable from all four sides, not only from the one
+; being entered.
 .proc puede_caer
 .a8
 .i16
@@ -660,9 +671,9 @@ no_mueve:
     bcs no_16
     sep #$20
 .a8
-    ; El que atraviesa paredes cae en cualquier celda del mapa: es el
-    ; `if (self.GetThrough()) return true;` de `CheckOrMakeWayEx`, que va
-    ; **después** de mirar los límites y antes de todo lo demás.
+    ; One who walks through walls lands on any cell of the map: it is the
+    ; `if (self.GetThrough()) return true;` of `CheckOrMakeWayEx`, which comes
+    ; **after** checking the bounds and before everything else.
     lda atravesando
     beq mira_el_paso
     lda #1
@@ -677,8 +688,8 @@ mira_el_paso:
     and #(PASS_UP | PASS_DOWN | PASS_LEFT | PASS_RIGHT)
     cmp #(PASS_UP | PASS_DOWN | PASS_LEFT | PASS_RIGHT)
     bne no
-    ; Y que no haya nadie parado ahí: el salto también es `MakeWay`, y mira a
-    ; los demás igual que un paso.
+    ; And that nobody is standing there: the jump is also `MakeWay`, and it
+    ; looks at the others the same as a step does.
     rep #$20
 .a16
     lda celda_x
@@ -701,12 +712,12 @@ no:
 .endproc
 
 
-; --- un NPC ----------------------------------------------------------------
+; --- an NPC ----------------------------------------------------------------
 .proc place_npc
 .a8
 .i16
-    ; La X ya la puso —y la descartó si no se ve— el lazo de `build_oam`: ver
-    ; ahí. Queda la otra mitad del descarte, la Y.
+    ; The X was already set —and discarded if not visible— by the loop in
+    ; `build_oam`: see there. The other half of the discard is left, the Y.
     ldx npc_ofs
     rep #$20
 .a16
@@ -716,9 +727,9 @@ no:
     sec
     sbc #SPRITE_OFF_Y
     sta obj_y
-    ; Y el arco del salto, si está saltando. Va aparte y en ocho bits porque el
-    ; byte 11 de la fila es el último de la ranura: leerlo de a dos se llevaría
-    ; el primero de la siguiente.
+    ; And the jump's arc, if it is jumping. It goes separately and in eight
+    ; bits because byte 11 of the row is the last of the slot: reading it two
+    ; at a time would take the first one of the next along.
     sep #$20
 .a8
     stz temp + 1
@@ -730,8 +741,8 @@ no:
     sec
     sbc temp
     sta obj_y
-    ; La otra mitad del descarte, ya con el salto sumado: el mismo corte en 224
-    ; de `emit_object`, con el mismo porqué.
+    ; The other half of the discard, with the jump already added: the same
+    ; cut at 224 as `emit_object`, for the same reason.
     clc
     adc #32
     cmp #(224 + 32)
@@ -751,14 +762,14 @@ fuera:
     rts
 .endproc
 
-; --- el héroe --------------------------------------------------------------
+; --- the hero --------------------------------------------------------------
 .proc place_hero
 .a8
 .i16
     inc hero_drawn
 
-    ; El frame del CharSet: los pasos 0 y 2 son los de los costados, y los
-    ; pasos 1 y 3 son los dos la pose del medio.
+    ; The CharSet frame: steps 0 and 2 are the side ones, and steps 1 and 3
+    ; are both the middle pose.
     lda anim_step
     cmp #$03
     bne sin_ajuste
@@ -766,27 +777,28 @@ fuera:
 sin_ajuste:
     sta temp
 
-    ; La pose es dirección*3 + frame, y qué tile le toca lo dice la tabla del
-    ; actor que está al frente del grupo. Antes se calculaba —el héroe era
-    ; siempre el personaje 0 del banco, así que su bloque salía de una cuenta—,
-    ; y eso dejó de valer cuando `ChangePartyMembers` puede cambiar el líder en
-    ; caliente. La tabla además da lugar a tiles de más de ocho bits, que es lo
-    ; que pasa en cuanto hay unos cuantos personajes en el banco.
+    ; The pose is direction*3 + frame, and which tile it gets is said by the
+    ; table of the actor at the front of the party. It used to be computed
+    ; —the hero was always character 0 of the bank, so its block came out of a
+    ; computation—, and that stopped holding once `ChangePartyMembers` can
+    ; change the leader on the fly. The table also makes room for tiles wider
+    ; than eight bits, which is what happens as soon as there are a few
+    ; characters in the bank.
     lda hero_dir
     asl a
     clc
-    adc hero_dir                ; dirección * 3
+    adc hero_dir                ; direction * 3
     clc
-    adc temp                    ; más el frame
+    adc temp                    ; plus the frame
     sta pose_heroe
-    ; Sin grupo el puntero a la tabla queda en cero: no se dibuja nada.
+    ; With no party the pointer to the table stays at zero: nothing is drawn.
     lda hero_poses + 2
     beq sin_dibujar
-    ; El puntero a la pose: tres bytes por pose en la tabla del actor.
+    ; The pointer to the pose: three bytes per pose in the actor's table.
     lda pose_heroe
     asl a
     clc
-    adc pose_heroe              ; por tres
+    adc pose_heroe              ; times three
     rep #$20
 .a16
     and #$00FF
@@ -799,19 +811,20 @@ sin_ajuste:
     iny
     lda [hero_poses], y
     sta vq_src + 2
-    ; $FFFFFF es el centinela de "este actor no tiene gráfico". Le pasa al
-    ; actor 10, DummyHero, que es con el que el juego arranca: RM2k tampoco
-    ; dibuja nada.
+    ; $FFFFFF is the sentinel for "this actor has no graphic". It happens to
+    ; actor 10, DummyHero, which is the one the game starts with: RM2k does
+    ; not draw anything either.
     lda vq_src
     and vq_src + 1
     cmp #$FF
     beq sin_dibujar
 
-    ; El tile es fijo: el héroe vive en el bloque 0 del banco, y lo que cambia
-    ; son los tiles del bloque. Si la pose que hay en VRAM es otra, se encola
-    ; la nueva y sube en el vblank que viene, junto con esta OAM.
+    ; The tile is fixed: the hero lives in block 0 of the bank, and what
+    ; changes are the block's tiles. If the pose in VRAM is a different one,
+    ; the new one is queued and uploaded in the next vblank, along with this
+    ; OAM.
     stz obj_tile
-    lda #HERO_PRIORITY          ; por debajo de la capa que lo tapa
+    lda #HERO_PRIORITY          ; below the layer that covers it
     ora hero_pal
     sta obj_attr
     lda pose_heroe
@@ -828,13 +841,13 @@ sin_ajuste:
     jsr vram_encolar
     bne misma_pose
     lda #$FF
-    sta hero_pose_vram          ; la cola estaba llena: el cuadro que viene
+    sta hero_pose_vram          ; the queue was full: next frame
 misma_pose:
 
-    ; Un salto en curso corre el dibujo hacia atrás y lo levanta. La posición
-    ; es la de RM2k, con la división **al final**: `x * 256 - dx * restante`
-    ; sobre 16. Dividir el descuento por separado da un pixel de más o de menos
-    ; cada vez que no es múltiplo de 16, o sea la mitad de los cuadros.
+    ; A jump in progress moves the drawing back and raises it. The position is
+    ; RM2k's, with the division **at the end**: `x * 256 - dx * remaining`
+    ; over 16. Dividing the decrement separately gives a pixel too many or too
+    ; few every time it is not a multiple of 16, that is, half of the frames.
     lda ruta_salto
     sta salto_resta
     jsr alto_del_salto
@@ -852,7 +865,7 @@ misma_pose:
     sec
     sbc #SPRITE_OFF_Y
     sec
-    sbc salto_alto              ; el arco levanta el dibujo, no el orden
+    sbc salto_alto              ; the arc raises the drawing, not the order
     sta obj_y
     sep #$20
 .a8
@@ -861,14 +874,14 @@ sin_dibujar:
     rts
 .endproc
 
-; --- un objeto en OAM ------------------------------------------------------
-; Descarta lo que caiga fuera de la pantalla: la X del objeto tiene nueve bits y
-; la Y sólo ocho, así que un objeto lejano daría la vuelta y aparecería del otro
-; lado. Se corren los rangos 32 pixeles para poder compararlos sin signo.
-; El +32 de las dos comparaciones corre el origen para que un objeto que asoma
-; por arriba o por la izquierda —y que llega acá con la coordenada negativa— dé
-; un número chico en vez de uno gigante, y una sola comparación sin signo
-; resuelva los dos bordes.
+; --- one object in OAM -----------------------------------------------------
+; Discards whatever falls off screen: the object's X has nine bits and the Y
+; only eight, so a far-away object would wrap around and show up on the other
+; side. The ranges are shifted by 32 pixels so they can be compared unsigned.
+; The +32 in both comparisons shifts the origin so that an object peeking in
+; from the top or from the left —and that arrives here with a negative
+; coordinate— gives a small number instead of a huge one, and a single
+; unsigned comparison handles both edges.
 .proc emit_object
 .a8
 .i16
@@ -886,16 +899,16 @@ sin_dibujar:
     lda obj_y
     clc
     adc #32
-    ; El borde de abajo no se descarta en 256 sino en 224, y no es lo mismo. La
-    ; Y de OAM tiene 8 bits y la pantalla 224 líneas, así que los valores 224 a
-    ; 255 quedan ambiguos: el PPU los lee siempre como "un poco más arriba del
-    ; borde de arriba" y dibuja el objeto envuelto. Con el corte en 256, un NPC
-    ; que se iba por abajo se guardaba con una Y de esa banda y reaparecía
-    ; arriba, mostrando primero los pies y después entero.
+    ; The bottom edge is not discarded at 256 but at 224, and it is not the
+    ; same thing. The OAM Y has 8 bits and the screen 224 lines, so values 224
+    ; to 255 are ambiguous: the PPU always reads them as "a bit above the top
+    ; edge" and draws the object wrapped. With the cut at 256, an NPC leaving
+    ; through the bottom was stored with a Y in that band and reappeared at
+    ; the top, showing first its feet and then all of it.
     ;
-    ; La ambigüedad hace falta y no se puede sacar: es la que hace que un objeto
-    ; en y = -31 muestre su última línea en la línea 0. Lo que no puede pasar es
-    ; que le llegue un objeto que de verdad está abajo.
+    ; The ambiguity is needed and cannot be removed: it is what makes an
+    ; object at y = -31 show its last line on line 0. What must not happen is
+    ; that an object that really is at the bottom reaches it.
     cmp #(224 + 32)
     sep #$20
 .a8
@@ -906,7 +919,7 @@ sin_dibujar:
     lda oam_slot
     asl a
     asl a
-    tax                         ; cuatro bytes por objeto
+    tax                         ; four bytes per object
     sep #$20
 .a8
     lda obj_x
@@ -918,10 +931,10 @@ sin_dibujar:
     lda obj_attr
     sta oam + 3, x
 
-    ; Sus dos bits en la tabla chica: el noveno de la X y el tamaño.
+    ; Its two bits in the small table: X's ninth and the size.
     lda obj_x + 1
     and #$01
-    ora obj_grande              ; 32x32 los personajes, 8x8 los dígitos
+    ora obj_grande              ; 32x32 the characters, 8x8 the digits
     jsr push_high
     rep #$20
 .a16
@@ -932,8 +945,8 @@ fuera:
     rts
 .endproc
 
-; Mete dos bits arriba del acumulador y lo corre. Después de cuatro objetos el
-; byte queda armado en el orden que la consola espera.
+; Puts two bits on top of the accumulator and shifts it. After four objects
+; the byte ends up built in the order the console expects.
 .proc push_high
 .a8
 .i16
@@ -955,7 +968,7 @@ fuera:
     lda oam_slot
     and #$03
     cmp #$03
-    bne listo                   ; todavía no se completó el byte
+    bne listo                   ; the byte is not complete yet
     jsr store_high
 listo:
     rts
@@ -976,8 +989,8 @@ listo:
     rts
 .endproc
 
-; Al cerrar puede quedar un byte a medias. Se completa con objetos escondidos,
-; que igual van a quedar con la Y fuera de pantalla.
+; On closing a byte may be left half done. It is completed with hidden
+; objects, which will end up with the Y off screen anyway.
 .proc flush_high
 .a8
 .i16

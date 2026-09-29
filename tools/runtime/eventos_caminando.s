@@ -1,26 +1,26 @@
 .segment "CODE"
 
-; --- los eventos que se dibujan caminando ------------------------------------
+; --- the events that are drawn walking ---------------------------------------
 ;
-; Un evento con gráfico que camina cambia de tres cosas por cuadro: dónde está
-; en pixeles, qué pose le toca del ciclo, y con qué clave se ordena contra los
-; demás. Las tres se escriben en su fila de la tabla de NPCs, que es de donde
-; `build_oam` lee.
+; An event with a graphic that walks changes three things per frame: where it
+; is in pixels, which pose of the cycle it gets, and what key it is sorted by
+; against the others. All three are written to its row in the NPC table, which
+; is where `build_oam` reads from.
 
-; Un cuadro del ciclo de caminata de la ranura X. Es `animate_hero`, letra por
-; letra, a propósito: el héroe y los eventos caminan con la misma cuenta.
+; One frame of the walk cycle for slot X. It is `animate_hero`, letter for
+; letter, on purpose: the hero and the events walk with the same count.
 .proc animar_ruta_ev
 .a8
 .i16
-    ; `Game_Character::UpdateAnimation`, sin el giro en el lugar. +10 es el
-    ; frame del ciclo, 0 a 3 —el 3 dibuja la columna 1—, y +11 cuántos cuadros
-    ; lleva en él. Con la animación parada o saltando, el frame del medio.
+    ; `Game_Character::UpdateAnimation`, without the turn in place. +10 is the
+    ; frame of the cycle, 0 to 3 —3 draws column 1—, and +11 how many frames
+    ; it has been in it. With the animation stopped or jumping, the middle frame.
     lda ruta_ev + 12, x
     and #$02
     bne quieta
     lda ruta_ev + 13, x
     bne quieta
-    ; Los límites, por velocidad.
+    ; The limits, by speed.
     lda ruta_ev + 17, x
     dec a
     rep #$20
@@ -33,8 +33,8 @@
     sta temp
     lda anim_continua, y
     sta temp + 1
-    ; La cuenta sube caminando, siempre con la animación continua, y quieto
-    ; sólo hasta llegar al frame del medio.
+    ; The count goes up while walking, always with continuous animation, and
+    ; while still only until it reaches the middle frame.
     lda ruta_ev + 18, x
     and #$10
     bne suma
@@ -42,27 +42,27 @@
     bne suma
     lda ruta_ev + 10, x
     and #$01
-    beq suma                    ; en el frame 0 o 2 sigue hasta el del medio
+    beq suma                    ; on frame 0 or 2 it goes on to the middle one
     lda ruta_ev + 11, x
     inc a
     cmp temp
-    bcc suma                    ; cuenta < parado - 1
+    bcc suma                    ; count < stopped - 1
     bra ver_cambio
 suma:
     inc ruta_ev + 11, x
 ver_cambio:
     lda ruta_ev + 11, x
     cmp temp + 1
-    bcs cambia                  ; llegó a la de continua
+    bcs cambia                  ; reached the continuous one
     lda ruta_ev + 6, x
     beq listo
     lda ruta_ev + 11, x
     cmp temp
-    bcc listo                   ; caminando, a la de parado
+    bcc listo                   ; walking, to the stopped one
 cambia:
     lda ruta_ev + 10, x
     inc a
-    and #$03                    ; el ciclo son cuatro pasos
+    and #$03                    ; the cycle is four steps
     sta ruta_ev + 10, x
     stz ruta_ev + 11, x
 listo:
@@ -74,9 +74,9 @@ quieta:
     rts
 .endproc
 
-; La fila de la tabla de NPCs del evento que trae A, en Y, o $FFFF si no tiene.
-; Todas las filas llevan su índice de evento, y los índices son únicos, así que
-; a lo sumo matchea una. Un evento sin gráfico no tiene fila y devuelve $FFFF.
+; The NPC table row of the event in A, in Y, or $FFFF if it has none. Every
+; row carries its event index, and the indices are unique, so at most one
+; matches. An event without a graphic has no row and returns $FFFF.
 .proc npc_de_evento
 .a8
 .i16
@@ -103,14 +103,14 @@ listo:
     rts
 .endproc
 
-; Lo que le falta a `op_place` después de escribir la celda: que el dibujo la
-; siga. Entra con el índice del evento en `temp`.
+; What `op_place` still needs after writing the cell: for the drawing to
+; follow it. Enters with the event index in `temp`.
 ;
-; Si el evento tiene ranura de ruta alcanza con cortarle el paso y el salto:
-; `mover_eventos` corre después en este mismo cuadro y `refrescar_npc` lo deja
-; sobre la celda nueva, con la pose que venía. Si no la tiene —un evento que
-; nadie mandó a caminar— no se le da una: no se lleva ranura por esto, y su
-; fila se mueve a mano, sin tocarle el tile, que es la pose de su página.
+; If the event has a move route slot it is enough to cut its step and its jump:
+; `mover_eventos` runs later in this same frame and `refrescar_npc` leaves it
+; on the new cell, with the pose it had. If it has none —an event nobody sent
+; walking— it is not given one: no slot is taken for this, and its row is moved
+; by hand, without touching its tile, which is its page's pose.
 .proc plantar_evento
 .a8
 .i16
@@ -130,7 +130,7 @@ buscar:
 .a8
     bcc buscar
 
-    ; Sin ranura. Si tampoco tiene gráfico no hay nada que mover.
+    ; No slot. If it has no graphic either there is nothing to move.
     lda temp
     jsr npc_de_evento
     cpy #$FFFF
@@ -143,7 +143,7 @@ buscar:
     asl a
     asl a
     tax
-    lda ev_pos_buf + 0, x       ; la celda por dieciséis: está parado en ella
+    lda ev_pos_buf + 0, x       ; the cell times sixteen: it is standing on it
     asl a
     asl a
     asl a
@@ -157,7 +157,7 @@ buscar:
     sta npc_buf + 2, y
     sta npc_py
     lda npc_buf + 4, y
-    and #$F000                  ; la capa se queda; la Y se reemplaza
+    and #$F000                  ; the layer stays; the Y is replaced
     sta temp + 2
     lda npc_py
     and #$0FFF
@@ -166,15 +166,15 @@ buscar:
     sep #$20
 .a8
     lda #0
-    sta npc_buf + 11, y         ; sin salto: nada que levantar
-    jmp acomodar_npc            ; y la fila, a donde le toque ahora
+    sta npc_buf + 11, y         ; no jump: nothing to lift
+    jmp acomodar_npc            ; and the row, to wherever it belongs now
 
 con_ranura:
     lda #0
-    sta ruta_ev + 7, x          ; sin paso en curso
+    sta ruta_ev + 7, x          ; no step in progress
     sta ruta_ev + 22, x
     sta ruta_ev + 23, x
-    sta ruta_ev + 13, x         ; ni salto
+    sta ruta_ev + 13, x         ; nor jump
 listo:
     rts
 .endproc

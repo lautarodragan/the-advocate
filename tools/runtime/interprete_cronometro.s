@@ -2,30 +2,31 @@
 .a8
 .i16
 
-; --- el intérprete: el cronómetro ------------------------------------------
+; --- the interpreter: the timer --------------------------------------------
 ;
-; Manejadores de opcodes: el despacho de `correr_codigo`, en interprete.s,
-; salta a cada uno con Y en su primer operando, y cada uno vuelve al lazo
-; con `jmp correr_codigo::otro` o corta el cuadro con `rts`.
+; Opcode handlers: the dispatch of `correr_codigo`, in interprete.s, jumps to
+; each one with Y on its first operand, and each one goes back to the loop
+; with `jmp correr_codigo::otro` or ends the frame with `rts`.
 
-; El cronómetro: poner, arrancar o parar. Los cinco bytes de operando son fijos
-; aunque cada operación use dos, así que el cursor avanza igual en las tres.
+; The timer: set, start or stop. The five operand bytes are fixed even though
+; each operation uses two, so the cursor advances the same in all three.
 .proc op_timer
-    lda [cod_ptr], y            ; la operación
+    lda [cod_ptr], y            ; the operation
     sta temp
     iny
     cmp #TIMER_PONER
     bne no_pone
     rep #$20
 .a16
-    lda [cod_ptr], y            ; los segundos, de dieciséis bits
+    lda [cod_ptr], y            ; the seconds, sixteen bits
 timer_poner_16:
     sta timer_seg
     sep #$20
 .a8
-    ; `Game_Party::SetTimer` guarda `segundos * 60 + 59`: los 59 de más son lo
-    ; que hace que el valor pedido se vea un segundo entero y no un cuadro.
-    ; Acá los cuadros van partidos, así que son el resto y nada más.
+    ; `Game_Party::SetTimer` stores `seconds * 60 + 59`: the extra 59 are what
+    ; make the requested value show for a whole second and not a single frame.
+    ; Here the frames are kept separately, so they are the remainder and
+    ; nothing else.
     lda #TIMER_DE_MAS
     sta timer_sub
     jsr timer_digitos
@@ -33,16 +34,16 @@ timer_poner_16:
 no_pone:
     cmp #TIMER_PONER_VAR
     bne no_pone_var
-    ; Los segundos desde una variable, que es lo que hace el Tram Officer del
-    ; mapa 9: "lo que le queda al cronómetro, menos sesenta". Una variable
-    ; negativa pone cero, como `Game_Party::SetTimer`.
-    lda [cod_ptr], y            ; la ranura
+    ; The seconds from a variable, which is what the Tram Officer on map 9
+    ; does: "what the timer has left, minus sixty". A negative variable sets
+    ; zero, like `Game_Party::SetTimer`.
+    lda [cod_ptr], y            ; the slot
     phy
-    jsr var_leer                ; A de dieciséis bits
+    jsr var_leer                ; 16-bit A
 .a16
     ply
-    cmp #0                      ; el signo de la variable, que `ply` pisó con
-                                ; el cursor: ver `tema_asegurar`
+    cmp #0                      ; the variable's sign, which `ply` overwrote
+                                ; with the cursor: see `tema_asegurar`
     bpl timer_poner_16
     lda #0
     bra timer_poner_16
@@ -54,19 +55,21 @@ no_pone_var:
     sta timer_activo
     iny
     iny
-    lda [cod_ptr], y            ; si se ve
+    lda [cod_ptr], y            ; whether it shows
     dey
     dey
     cmp timer_visible
-    beq timer_fin               ; ya se veía, o ya no: nada que repintar
+    beq timer_fin               ; it already showed, or already didn't:
+                                ; nothing to repaint
     sta timer_visible
-    jsr timer_repintar          ; sus entradas de paleta cambian de dueño
+    jsr timer_repintar          ; its palette entries change owner
     bra timer_fin
 timer_para:
-    ; `StopTimer` apaga las dos cosas, no sólo la cuenta.
+    ; `StopTimer` turns off both things, not just the count.
     lda timer_visible
     stz timer_activo
-    stz timer_visible           ; `stz` no toca Z: el salto mira el `lda`
+    stz timer_visible           ; `stz` does not touch Z: the branch looks at
+                                ; the `lda`
     beq timer_fin
     jsr timer_repintar
 timer_fin:
@@ -74,11 +77,10 @@ timer_fin:
 .a16
     tya
     clc
-    adc #3                      ; los tres operandos que quedan: el primero ya
-    tay                         ; lo consumió el `iny` de la operación
+    adc #3                      ; the three remaining operands: the first one
+    tay                         ; was consumed by the operation's `iny`
     sep #$20
 .a8
     jmp correr_codigo::otro
 
 .endproc
-

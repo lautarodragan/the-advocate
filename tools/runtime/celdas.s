@@ -1,12 +1,12 @@
 .segment "CODE"
 
-; Si la celda de al lado en la dirección que trae A existe, o sea si no se cae
-; del mapa. Devuelve A distinto de cero si existe.
+; Whether the neighboring cell in the direction A carries exists, that is,
+; whether it does not fall off the map. Returns A nonzero if it exists.
 ;
-; Está separado de `puede_celda` por una razón de alcance y no de diseño: junto,
-; el `beq` del primer control quedaba a 130 bytes de la salida y el ensamblador
-; cortaba. `sep`/`rep` no tocan Z ni C, así que el resultado de la comparación
-; de dieciséis bits sobrevive al cambio de ancho.
+; It is split from `puede_celda` for a reason of reach and not of design:
+; together, the `beq` of the first check ended up 130 bytes from the exit and
+; the assembler balked. `sep`/`rep` do not touch Z or C, so the result of the
+; sixteen-bit comparison survives the width change.
 .proc celda_vecina_existe
 .a8
 .i16
@@ -17,7 +17,7 @@
     lda celda_y
     sep #$20
 .a8
-    beq no                      ; ya está en la fila de arriba
+    beq no                      ; already on the top row
     bra si
 prueba_abajo:
     cmp #DIR_DOWN
@@ -58,16 +58,18 @@ no:
     rts
 .endproc
 
-; Si desde (celda_x, celda_y) se puede dar un paso en la dirección que trae A.
-; Devuelve A distinto de cero si se puede.
+; Whether a step can be taken from (celda_x, celda_y) in the direction A
+; carries. Returns A nonzero if it can.
 ;
-; Es la misma regla que la del héroe —se consultan las dos caras, la que se deja
-; y la que se entra— pero desde una celda cualquiera, y sin mirar quién está
-; parado dónde, que es lo que hace también la ruta forzada del héroe.
+; It is the same rule as the hero's —both faces are checked, the one being
+; left and the one being entered— but from any cell, and without looking at
+; who is standing where, which is also what the hero's forced move route
+; does.
 ;
-; Un movimiento bloqueado se saltea. En las 26 rutas de eventos que este juego
-; compila eso pasa **una sola vez**, en el mapa 117, y por esa sola vez hay que
-; modelarlo: sin eso, esa ruta duraría ocho cuadros de más.
+; A blocked movement is skipped. In the 26 event move routes this game
+; compiles that happens **only once**, on map 117, and for that one time it
+; has to be modeled: without it, that move route would last eight frames too
+; long.
 .proc puede_celda
 .a8
 .i16
@@ -75,23 +77,23 @@ no:
     stz celda_dir + 1
     jsr celda_vecina_existe
     bne :+
-    jmp no                      ; queda lejos para un salto corto
+    jmp no                      ; too far for a short branch
 :
-    ; Atravesando paredes las dos caras dan que sí, pero la celda tiene que
-    ; existir: es el `if (self.GetThrough()) return true;` de
-    ; `Game_Map::CheckOrMakeWayEx`, que va después del `IsValid`.
+    ; Walking through walls both faces say yes, but the cell has to exist: it
+    ; is the `if (self.GetThrough()) return true;` of
+    ; `Game_Map::CheckOrMakeWayEx`, which comes after the `IsValid`.
     lda atravesando
     beq con_colision
     lda #1
     rts
 con_colision:
 
-    ; La cara que se deja.
+    ; The face being left.
     jsr ptr_de_celda
     rep #$20
 .a16
-    lda celda_x                 ; la celda que se deja, para lo que un evento
-    sta pasa_x                  ; de tile le imponga
+    lda celda_x                 ; the cell being left, for whatever a tile
+    sta pasa_x                  ; event imposes on it
     lda celda_y
     sta pasa_y
     jsr pass_del_ptr
@@ -101,10 +103,10 @@ con_colision:
     ldx celda_dir
     and f:pass_salir, x
     bne :+
-    jmp no                      ; queda lejos para un salto corto
+    jmp no                      ; too far for a short branch
 :
 
-    ; Y la cara del destino, que es la celda de al lado.
+    ; And the target's face, which is the neighboring cell.
     lda celda_dir
     cmp #DIR_UP
     bne baja
@@ -113,11 +115,11 @@ con_colision:
     lda tira_paso_col
     jsr ptr_menos
     bra entra
-    ; Las tres etiquetas que siguen se alcanzan con el acumulador **en ocho
-    ; bits**, aunque lo último que el ensamblador leyó fue un `.a16`: el `bra`
-    ; de arriba se saltea el cambio de ancho. Sin este `.a8` el `cmp` se emite
-    ; con un inmediato de dos bytes, la CPU lee sólo uno, y el segundo —un
-    ; $00— se ejecuta como BRK.
+    ; The three labels that follow are reached with the accumulator **in
+    ; eight bits**, even though the last thing the assembler read was an
+    ; `.a16`: the `bra` above skips the width change. Without this `.a8` the
+    ; `cmp` is emitted with a two-byte immediate, the CPU reads only one, and
+    ; the second —a $00— runs as BRK.
 baja:
 .a8
     cmp #DIR_DOWN
@@ -144,7 +146,7 @@ derecha:
     jsr ptr_mas
 entra:
 .a16
-    lda celda_x                 ; y la celda a la que se entra
+    lda celda_x                 ; and the cell being entered
     sta pasa_x
     lda celda_y
     sta pasa_y
@@ -166,8 +168,8 @@ entra:
     bne :+
     jmp no
 :
-    ; Y que no haya nadie parado en la celda de al lado. Con `atravesando`
-    ; no se llega acá: es el `GetThrough()` de arriba.
+    ; And that nobody is standing on the neighboring cell. With `atravesando`
+    ; this is never reached: it is the `GetThrough()` above.
     rep #$20
 .a16
     lda celda_x
@@ -189,17 +191,19 @@ no:
     rts
 .endproc
 
-; Si desde (celda_x, celda_y) se puede dar el paso diagonal que trae A, 4 a 7.
-; Devuelve A distinto de cero si se puede, y deja la celda donde la encontró.
+; Whether the diagonal step A carries, 4 to 7, can be taken from (celda_x,
+; celda_y). Returns A nonzero if it can, and leaves the cell where it found
+; it.
 ;
-; RM2k **no mira la celda diagonal**: es `Game_Character::Move`, que prueba las
-; dos eles. Primero la vertical y después la horizontal desde el codo, y si esa
-; no sale, la horizontal y después la vertical; alcanza con que una de las dos
-; esté libre entera. Por eso no se cruza el vértice de dos paredes en diagonal,
-; y sí se pasa si hay por dónde rodear.
+; RM2k **does not look at the diagonal cell**: it is `Game_Character::Move`,
+; which tries the two L-shapes. First the vertical and then the horizontal
+; from the elbow, and if that one fails, the horizontal and then the
+; vertical; it is enough for one of the two to be entirely free. That is why
+; the corner between two walls cannot be crossed diagonally, and it can be
+; passed if there is a way around.
 ;
-; Cada pata es una llamada a `puede_celda`, o sea las mismas dos caras y el
-; mismo chequeo de quién está parado dónde que un paso derecho.
+; Each leg is a call to `puede_celda`, that is, the same two faces and the
+; same check of who is standing where as a straight step.
 .proc puede_celda_diag
 .a8
 .i16
@@ -217,14 +221,14 @@ no:
     sta diag_h
     rep #$20
 .a16
-    lda celda_x                 ; de dónde sale, para volver entre ele y ele
+    lda celda_x                 ; where it starts from, to go back between L and L
     sta diag_x
     lda celda_y
     sta diag_y
     sep #$20
 .a8
 
-    lda diag_v                  ; la ele vertical: arriba y después al costado
+    lda diag_v                  ; the vertical L: up and then sideways
     jsr puede_celda
     beq otra_ele
     lda diag_v
@@ -233,7 +237,7 @@ no:
     jsr puede_celda
     bne si
 otra_ele:
-    jsr celda_al_origen         ; la ele horizontal: al costado y después arriba
+    jsr celda_al_origen         ; the horizontal L: sideways and then up
     lda diag_h
     jsr puede_celda
     beq no
@@ -252,8 +256,8 @@ si:
     rts
 .endproc
 
-; La celda pasa a ser la de origen más el paso de la dirección que trae A: el
-; codo de la ele, de donde arranca la segunda pata.
+; The cell becomes the origin plus the step of the direction A carries: the
+; elbow of the L, where the second leg starts.
 .proc celda_al_codo
 .a8
 .i16
@@ -300,7 +304,7 @@ sin_y:
     rts
 .endproc
 
-; Y la celda vuelve a ser la de origen.
+; And the cell goes back to being the origin.
 .proc celda_al_origen
 .a8
 .i16
@@ -315,18 +319,18 @@ sin_y:
     rts
 .endproc
 
-; Hacia dónde queda mirando el evento de la ranura X después de un paso en la
-; diagonal de `ruta_dir`. La pose nueva sale en A.
+; Which way the event in slot X ends up facing after a step along the
+; diagonal in `ruta_dir`. The new pose comes out in A.
 ;
-; Es `Game_Character::UpdateFacing`, y la respuesta no es "hacia la diagonal":
-; el charset tiene cuatro poses y ninguna apunta a un rincón. Se conserva la
-; que ya tenía si es una de las dos componentes del paso, y si no se da vuelta
-; 180°.
+; It is `Game_Character::UpdateFacing`, and the answer is not "toward the
+; diagonal": the charset has four poses and none points at a corner. The one
+; it already had is kept if it is one of the two components of the step, and
+; otherwise it turns 180°.
 ;
-; Lo primero es de dónde sale el giro, y no es sólo leer +8: veinte de las
-; veintiséis rutas con diagonales de este juego arrancan **con** la diagonal,
-; sin girar antes, así que ahí todavía está RUTA_EV_SIN_MIRAR y la pose de
-; verdad es la de su página, que vive en la fila del NPC.
+; The first thing is where the turn starts from, and it is not just reading
+; +8: twenty of the twenty-six move routes with diagonals in this game start
+; **with** the diagonal, without turning first, so RUTA_EV_SIN_MIRAR is still
+; there and the real pose is its page's, which lives in the NPC's row.
 .proc encarar_diagonal
 .a8
 .i16
@@ -342,7 +346,7 @@ sin_y:
     lda npc_buf + 10, y
     bra con_pose
 sin_fila:
-    lda #DIR_DOWN               ; sin gráfico: no se le ve la pose a nadie
+    lda #DIR_DOWN               ; no graphic: nobody's pose can be seen
 con_pose:
     sta diag_mira
     lda ruta_dir
@@ -364,7 +368,7 @@ con_pose:
     lda diag_v
     cmp diag_mira
     beq queda
-    lda diag_mira               ; ninguna de las dos: 180°
+    lda diag_mira               ; neither of the two: 180°
     clc
     adc #2
     and #$03
@@ -374,7 +378,7 @@ queda:
     rts
 .endproc
 
-; Le suman a dest_x / dest_y el byte con signo que trae A.
+; They add the signed byte A carries to dest_x / dest_y.
 .proc sumar_a_dest_x
 .a8
 .i16

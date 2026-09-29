@@ -1,18 +1,18 @@
-"""Las declaraciones del bytecode y sus generados no se pueden ir separando.
+"""The bytecode declarations and their generated files must not drift apart.
 
-Hay dos bytecodes en este port: el de eventos, que emite `tools/port/eventos.py`
-e interpreta la ROM, y el stream de música, que escribe
-`tools/audio/snes_music.py` y lee `irq_musica`. Los declara `tools/protocol/`,
-que no es de ninguno de los dos lados, y de ahí salen generados los archivos
-de `GENERADOS`. El
-generador es un binario de Rust que se instala con `just -f tools/justfile herramientas` y se usa
-desde el PATH, así que estos casos lo necesitan instalado; lo generado está
-commiteado, así que **compilar la ROM no necesita ni eso**.
+There are two bytecodes in this port: the event one, which
+`tools/port/eventos.py` emits and the ROM interprets, and the music stream,
+which `tools/audio/snes_music.py` writes and `irq_musica` reads. They are
+declared by `tools/protocol/`, which belongs to neither side, and from there
+the files in `GENERADOS` are generated. The generator is a Rust binary
+installed with `just -f tools/justfile herramientas` and used from the PATH,
+so these cases need it installed; the generated output is committed, so
+**building the ROM does not even need that**.
 
-Eso mueve el problema en vez de resolverlo si los generados se pueden quedar
-viejos, así que acá se exige que regenerar no cambie nada y que las dos puntas
-de cada bytecode digan lo mismo. Lo que **no** se puede generar es qué hace
-cada opcode: eso es 65816 escrito a mano.
+That moves the problem instead of solving it if the generated files can go
+stale, so here it is required that regenerating changes nothing and that
+both ends of each bytecode say the same. What **cannot** be generated is
+what each opcode does: that is hand-written 65816.
 """
 
 import os
@@ -33,8 +33,8 @@ def _relativa(ruta):
     return os.path.relpath(ruta, proyecto.raiz())
 
 
-# Cada bytecode: su declaración, su módulo de Python y su .inc. Relativos a la
-# raíz, que es como salen en el nombre de cada caso.
+# Each bytecode: its declaration, its Python module and its .inc. Relative to
+# the root, which is how they appear in each case's name.
 GENERADOS = [
     ("events", event_opcodes,
      _relativa(os.path.join(proyecto.runtime(), "event_opcodes.inc")),
@@ -46,9 +46,9 @@ GENERADOS = [
                             "music_opcodes.py"))),
 ]
 MAIN = os.path.join(proyecto.runtime(), "main.s")
-# Lo que cada uno pide de más, igual que en la receta `protocolo` de tools/justfile:
-# sin esto el `--check` compara contra un `.inc` sin la tabla del despacho y lo
-# da por viejo.
+# What each one needs on top, as in the `protocolo` recipe of tools/justfile:
+# without this `--check` compares against an `.inc` without the dispatch table
+# and reports it as stale.
 BANDERAS = {"events": ["--jump-table"]}
 
 
@@ -59,7 +59,7 @@ def declarados(modulo):
 
 @pytest.mark.parametrize("nombre,modulo,inc,py", GENERADOS)
 def test_los_generados_estan_al_dia(nombre, modulo, inc, py):
-    """Regenerar no cambia nada: si no, el árbol tiene dos verdades."""
+    """Regenerating changes nothing: otherwise the tree has two truths."""
     hecho = subprocess.run(
         ["protocol",
          os.path.join(proyecto.herramientas(), "protocol", nombre + ".toml"),
@@ -68,72 +68,72 @@ def test_los_generados_estan_al_dia(nombre, modulo, inc, py):
         + BANDERAS.get(nombre, []),
         capture_output=True, text=True)
     assert hecho.returncode != 2, (
-        "el generador no pudo correr —¿falta `just -f tools/justfile herramientas`?—:\n%s"
+        "the generator could not run —is `just -f tools/justfile herramientas` missing?—:\n%s"
         % hecho.stderr)
     assert hecho.returncode == 0, (
-        "hay un generado desactualizado:\n%s%s" % (hecho.stdout, hecho.stderr))
+        "a generated file is out of date:\n%s%s" % (hecho.stdout, hecho.stderr))
 
 
 @pytest.mark.parametrize("nombre,modulo,inc,py", GENERADOS)
 def test_el_inc_y_el_py_dicen_los_mismos_numeros(nombre, modulo, inc, py):
-    """Las dos puntas del contrato, leídas cada una por su lado.
+    """The two ends of the contract, each read on its own.
 
-    Un árbol donde se regeneró uno solo —y se commiteó uno solo— compila y
-    corre: el que lee mide un opcode y el que escribe emite otro.
+    A tree where only one was regenerated —and only one committed— builds and
+    runs: the reader measures one opcode and the writer emits another.
     """
     del_inc = {}
     for linea in open(os.path.join(proyecto.raiz(), inc), encoding="utf-8"):
         m = re.match(r"^(OP_[A-Z0-9_]+)\s*=\s*\$([0-9A-Fa-f]+)\s*$", linea)
         if m:
             del_inc[m.group(1)] = int(m.group(2), 16)
-    assert del_inc, "no se leyó un solo opcode de %s" % inc
+    assert del_inc, "not a single opcode was read from %s" % inc
     assert del_inc == declarados(modulo)
 
 
 def test_ningun_opcode_de_la_rom_quedo_sin_declarar():
-    """Un `cmp #OP_X` contra algo que nadie declara no ensambla...
+    """A `cmp #OP_X` against something nobody declares does not assemble...
 
-    ...hoy. Pero el día que alguien vuelva a meter equates a mano, o en un
-    archivo que genera el conversor, volvería a ensamblar leyendo un número
-    escrito dos veces, que es lo que esto deja atrás. Los dos bytecodes juntos:
-    para la ROM son un solo espacio de símbolos, y de hecho por eso `OP_FIN`
-    tuvo que llamarse `OP_DONE` —`OP_END` ya era del stream de música—.
+    ...today. But the day someone puts equates back by hand, or in a file the
+    converter generates, it would assemble again reading a number written
+    twice, which is what this leaves behind. Both bytecodes together: to the
+    ROM they are a single symbol space, and in fact that is why `OP_FIN` had
+    to be called `OP_DONE` —`OP_END` already belonged to the music stream—.
     """
     fuente = ensamblar.texto_de_la_fuente(MAIN)
-    # Sólo los usos como operando: los nombres sueltos de los comentarios no.
+    # Only the uses as an operand: bare names in comments do not count.
     usados = set(re.findall(r"#(OP_[A-Z0-9_]+)\b", fuente))
-    assert usados, "no se encontró un solo uso de un opcode en tools/runtime/"
+    assert usados, "not a single use of an opcode was found in tools/runtime/"
     todos = set()
     for _, modulo, _, _ in GENERADOS:
         todos |= set(declarados(modulo))
-    # Y que no haya vuelto a aparecer uno escrito a mano en la propia ROM.
+    # And that no hand-written one has reappeared in the ROM itself.
     propios = set(re.findall(r"^(OP_[A-Z0-9_]+)\s*=", fuente, re.M))
     assert not propios, (
-        "tools/runtime/ declara %s a mano: eso va en tools/protocol/"
+        "tools/runtime/ declares %s by hand: that goes in tools/protocol/"
         % ", ".join(sorted(propios)))
     sin_declarar = usados - todos
     assert not sin_declarar, (
-        "tools/runtime/ compara contra %s, que no está declarado en tools/protocol/"
+        "tools/runtime/ compares against %s, which is not declared in tools/protocol/"
         % ", ".join(sorted(sin_declarar)))
 
 
 def test_los_dos_bytecodes_no_comparten_un_nombre():
-    """Los dos caen en el mismo espacio de símbolos del ensamblador.
+    """Both land in the same assembler symbol space.
 
-    Los números sí pueden repetirse —`OP_DSP` y `OP_DONE` son los dos $00, y
-    son cosas distintas en streams distintos—; los nombres no.
+    The numbers may repeat —`OP_DSP` and `OP_DONE` are both $00, and they are
+    different things in different streams—; the names may not.
     """
     de_eventos = set(declarados(event_opcodes))
     de_musica = set(declarados(music_opcodes))
     compartidos = de_eventos & de_musica
     assert not compartidos, (
-        "%s está en los dos bytecodes: en la ROM son un solo símbolo"
+        "%s is in both bytecodes: in the ROM they are a single symbol"
         % ", ".join(sorted(compartidos)))
 
 
 @pytest.mark.parametrize("nombre,modulo,inc,py", GENERADOS)
 def test_los_largos_se_derivan_del_layout(nombre, modulo, inc, py):
-    """El largo no se escribe: es el opcode más sus argumentos."""
+    """The length is not written: it is the opcode plus its arguments."""
     for op_nombre, codigo in declarados(modulo).items():
         args = modulo.LAYOUT[codigo]
         cuenta = 1 + sum(bytes_ for _, bytes_, _ in args)
@@ -144,15 +144,15 @@ def test_los_largos_se_derivan_del_layout(nombre, modulo, inc, py):
             assert modulo.OPCODE_SIZE[codigo] == cuenta, op_nombre
 
 
-# --- el destino de un teletransporte entra en dos bytes --------------------
+# --- a teleport's destination fits in two bytes ---------------------------
 #
-# `OP_TELEPORT` guardaba el índice del mapa destino en **un byte**, así que el
-# formato no podía nombrar más de 256 mapas: era un techo escrito en el
-# bytecode, y esto lo saca. Que el emisor y el intérprete cuenten los mismos
-# bytes en todas las páginas de un juego lo mira la tanda del juego.
+# `OP_TELEPORT` stored the destination map's index in **one byte**, so the
+# format could not name more than 256 maps: it was a ceiling written into the
+# bytecode, and this removes it. That the emitter and the interpreter count
+# the same bytes in every page of a game is checked by the game's suite.
 
-# Un índice que **no entra en un byte**, que es de lo que se trata. El juego
-# tiene 328 mapas: el 300 es uno de los que el formato viejo no podía nombrar.
+# An index that **does not fit in a byte**, which is the point. The game has
+# 328 maps: 300 is one of those the old format could not name.
 LEJOS = 300
 
 
@@ -162,30 +162,31 @@ def compilar_un_teleport(destino):
 
 
 def test_un_destino_que_no_entra_en_un_byte_no_se_trunca():
-    """El caso que el formato viejo no podía: 300 & 0xFF es 44."""
+    """The case the old format could not handle: 300 & 0xFF is 44."""
     assert compilar_un_teleport(LEJOS) != compilar_un_teleport(LEJOS & 0xFF)
 
 
 def test_ningun_opcode_comparte_numero_con_otro():
-    """Dos `OP_*` con el mismo valor son dos programas distintos.
+    """Two `OP_*` with the same value are two different programs.
 
-    No es una precaución abstracta: el 2026-09-13 tres ramas de sub-agente
-    eligieron el siguiente número libre a la vez, sin verse, y salieron dos
-    colisiones —`OP_STOP_ROUTES` con `OP_ACTOR_SPRITE` en $23, `OP_IF_ACTOR` con
-    `OP_KEY` en $24—. Git las mergeó **sin un solo conflicto**, porque cada
-    una está en su línea, y lo que se rompía era el recorrido del bytecode: el
-    intérprete leía un opcode de tres bytes creyendo que medía siete.
+    It is not an abstract precaution: on 2026-09-13 three sub-agent branches
+    picked the next free number at the same time, without seeing each other,
+    and two collisions came out —`OP_STOP_ROUTES` with `OP_ACTOR_SPRITE` at
+    $23, `OP_IF_ACTOR` with `OP_KEY` at $24—. Git merged them **without a
+    single conflict**, because each is on its own line, and what broke was
+    walking the bytecode: the interpreter read a three-byte opcode believing
+    it was seven long.
 
-    Lo cazó `test_los_largos_de_opcode_cuadran_en_todo_el_juego`, pero de
-    rebote y sólo porque alguna página del juego usaba los dos. Esto lo dice
-    directamente y sin depender de que el juego los ejercite.
+    It was caught by `test_los_largos_de_opcode_cuadran_en_todo_el_juego`,
+    but indirectly and only because some page of the game used both. This
+    says it directly and without depending on the game exercising them.
     """
     numeros = {}
     for nombre, valor in sorted(vars(eventos).items()):
         if not nombre.startswith("OP_") or not isinstance(valor, int):
             continue
         assert valor not in numeros, (
-            "%s y %s son los dos $%02X: el bytecode no se puede recorrer"
+            "%s and %s are both $%02X: the bytecode cannot be walked"
             % (numeros[valor], nombre, valor))
         numeros[valor] = nombre
-    assert len(numeros) > 30, "no se miró ni un opcode"
+    assert len(numeros) > 30, "not a single opcode was looked at"

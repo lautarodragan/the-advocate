@@ -1,28 +1,28 @@
 .segment "CODE"
 
-; --- la pantalla de ítems -------------------------------------------------------
+; --- the items screen -----------------------------------------------------------
 ;
-; `Scene_Item`: arriba la descripción del ítem marcado, abajo la lista del
-; inventario con cuántos hay. Tiene **banco de tiles propio**, `items_tiles`:
-; cada carácter de la fuente en dos celdas, en blanco y en gris, y el texto
-; —nombre y dos renglones de descripción por ítem— va en ASCII en
-; `item_textos`. Escribir una letra son dos palabras del tilemap. La
-; geometría es de `titulo.py` y `render_items` es la referencia.
+; `Scene_Item`: at the top the description of the highlighted item, below the
+; inventory list with how many there are. It has **its own tile bank**,
+; `items_tiles`: each font character in two cells, in white and in gray, and
+; the text —name and two lines of description per item— goes in ASCII in
+; `item_textos`. Writing a letter is two tilemap words. The geometry comes
+; from `titulo.py` and `render_items` is the reference.
 ;
-; Las ventanas y el cursor —la barra del System— van en BG1, y son de
-; `banco_de_la_pantalla.s`: el texto de BG2 no sabe nada de ellas.
+; The windows and the cursor —the System's bar— go on BG1, and belong to
+; `banco_de_la_pantalla.s`: the BG2 text knows nothing about them.
 ;
-; La lista se arma al entrar: los ítems que hay y que esta ROM conoce, en
-; orden de número como `Game_Party`, guardados como su lugar `k` en las
-; tablas del conversor, en `FAR_ITEM_LISTA`. Cuántos son, el primero que se ve
-; y el cursor van en variables prestadas: `eleg_n`, `eleg_sel` y `titulo_sel`.
-; La elección no puede estar abierta con el menú —el menú no se abre con un
-; mensaje— así que sus bytes están libres; `eleg_cancel`, `eleg_flancos` y
-; `eleg_tabla` hacen de escritorio, y `msg_ptr` apunta al texto que se
-; escribe.
+; The list is built on entering: the items there are and that this ROM knows,
+; in number order like `Game_Party`, stored as their place `k` in the
+; converter's tables, in `FAR_ITEM_LISTA`. How many there are, the first one
+; visible and the cursor go in borrowed variables: `eleg_n`, `eleg_sel` and
+; `titulo_sel`. The choice cannot be open with the menu —the menu does not
+; open with a message up— so its bytes are free; `eleg_cancel`, `eleg_flancos`
+; and `eleg_tabla` serve as scratch, and `msg_ptr` points to the text being
+; written.
 FAR_ITEM_LISTA = $2A00
 
-; A: un lugar de la lista. Vuelve con A = su `k`. Sólo A.
+; A: a place in the list. Returns with A = its `k`. Only A.
 .proc item_de_lista
 .a8
 .i16
@@ -39,7 +39,7 @@ FAR_ITEM_LISTA = $2A00
     rts
 .endproc
 
-; A: un `k`. Vuelve con A = cuántos hay de ese ítem. Se lleva X.
+; A: a `k`. Returns with A = how many of that item there are. Clobbers X.
 .proc item_cuantos
 .a8
 .i16
@@ -59,7 +59,7 @@ FAR_ITEM_LISTA = $2A00
     rts
 .endproc
 
-; La lista, en `FAR_ITEM_LISTA`, y cuántos son en `eleg_n`.
+; The list, into `FAR_ITEM_LISTA`, and how many there are into `eleg_n`.
 .proc items_armar_lista
 .a8
 .i16
@@ -79,7 +79,7 @@ otro:
     beq siguiente
     lda f:item_k, x
     cmp #$FF
-    beq siguiente               ; uno que esta ROM no sabe mostrar
+    beq siguiente               ; one this ROM does not know how to show
     pha
     rep #$20
 .a16
@@ -100,8 +100,8 @@ siguiente:
     rts
 .endproc
 
-; Una letra: A el carácter, Y la dirección de la celda de arriba y `temp + 1`
-; la variante, 0 blanco y 1 gris. Se lleva X.
+; One letter: A the character, Y the address of the upper cell and `temp + 1`
+; the variant, 0 white and 1 gray. Clobbers X.
 .proc glifo_par
 .a8
 .i16
@@ -111,7 +111,7 @@ siguiente:
     sec
     sbc #ITEM_PRIMER_CARACTER
     asl a
-    asl a                       ; cuatro bytes por carácter
+    asl a                       ; four bytes per character
     tax
     lda temp + 1
     and #$00FF
@@ -141,11 +141,10 @@ blanco:
     rts
 .endproc
 
-; Un texto de un ítem: X el número de texto —`3k` el nombre, `3k + 1` y
-; `3k + 2` los renglones de la descripción—, `eleg_tabla` la dirección de la
-; celda de arriba de su primera letra y `temp + 1` la variante. Primero las
-; celdas de arriba de todas las letras, que van seguidas en la VRAM, y
-; después las de abajo.
+; One of an item's texts: X the text number —`3k` the name, `3k + 1` and
+; `3k + 2` the description lines—, `eleg_tabla` the address of the upper cell
+; of its first letter and `temp + 1` the variant. First the upper cells of all
+; the letters, which are contiguous in VRAM, and then the lower ones.
 .proc texto_escribir
 .a8
 .i16
@@ -156,13 +155,13 @@ blanco:
     lda f:item_txt_bk, x
     sta msg_ptr + 2
     lda f:item_txt_n, x
-    sta temp                    ; cuántas letras
+    sta temp                    ; how many letters
     beq listo
     lda #$80
     sta VMAIN
     rep #$20
 .a16
-    lda #0                      ; las celdas de arriba
+    lda #0                      ; the upper cells
     sta temp + 2
     lda eleg_tabla
     sta VMADDL
@@ -171,7 +170,7 @@ blanco:
     jsr renglon
     rep #$20
 .a16
-    lda #2                      ; y las de abajo
+    lda #2                      ; and the lower ones
     sta temp + 2
     lda eleg_tabla
     clc
@@ -195,7 +194,7 @@ letra:
     asl a
     asl a
     clc
-    adc temp + 2                ; arriba o abajo
+    adc temp + 2                ; upper or lower
     tax
     lda temp + 1
     and #$00FF
@@ -206,23 +205,23 @@ letra:
     tax
 en_blanco:
     lda f:item_glifo_celdas, x
-    sta VMDATAL                 ; y la VRAM avanza una palabra
+    sta VMDATAL                 ; and VRAM advances one word
     sep #$20
 .a8
     iny
-    tya                         ; de a una letra: son menos de 256
+    tya                         ; one letter at a time: there are fewer than 256
     cmp temp
     bcc letra
     rts
 .endproc
 
-; La descripción del ítem que marca el cursor, compuesta en `texto_buf` y no
-; en la VRAM: son cuatro filas de celdas enteras —256 bytes— que
-; `items_desc_subir` sube de un DMA. Escribirlas de a una palabra no entraba
-; en el vblank: al mover el cursor el segundo renglón salía cortado, porque la
-; VRAM ignora lo que se le escribe con la pantalla dibujando. El búfer es el
-; del compositor de mensajes, que con el menú abierto no hay. Con la lista
-; vacía queda en blanco.
+; The description of the item under the cursor, composed in `texto_buf` and
+; not in VRAM: it is four rows of whole cells —256 bytes— that
+; `items_desc_subir` uploads in one DMA. Writing them one word at a time did
+; not fit in vblank: when moving the cursor the second line came out cut off,
+; because VRAM ignores what is written to it while the screen is drawing. The
+; buffer is the message composer's, which does not exist with the menu open.
+; With the list empty it stays blank.
 ITEM_DESC_BYTES = 4 * 64
 
 .proc items_desc_pintar
@@ -245,16 +244,16 @@ borrar:
     asl a
     clc
     adc temp + 2
-    inc a                       ; 3k + 1, el primer renglón
+    inc a                       ; 3k + 1, the first line
     tax
     lda #(ITEM_DESC_COL * 2)
-    sta eleg_tabla              ; dónde va, en bytes del búfer
+    sta eleg_tabla              ; where it goes, in buffer bytes
     sep #$20
 .a8
     phx
     jsr renglon
     plx
-    inx                         ; 3k + 2, el segundo
+    inx                         ; 3k + 2, the second
     rep #$20
 .a16
     lda #(128 + ITEM_DESC_COL * 2)
@@ -265,8 +264,8 @@ borrar:
 listo:
     rts
 
-; El texto X al búfer, desde el byte `eleg_tabla`: la celda de arriba de cada
-; letra ahí y la de abajo 64 bytes más adelante.
+; Text X into the buffer, starting at byte `eleg_tabla`: each letter's upper
+; cell there and the lower one 64 bytes further on.
 renglon:
     lda f:item_txt_lo, x
     sta msg_ptr
@@ -275,7 +274,7 @@ renglon:
     lda f:item_txt_bk, x
     sta msg_ptr + 2
     lda f:item_txt_n, x
-    sta temp                    ; cuántas letras
+    sta temp                    ; how many letters
     beq fin
     ldy #0
 letra:
@@ -301,14 +300,14 @@ letra:
     sep #$20
 .a8
     iny
-    tya                         ; de a una letra: son menos de 256
+    tya                         ; one letter at a time: there are fewer than 256
     cmp temp
     bcc letra
 fin:
     rts
 .endproc
 
-; Sube la descripción compuesta: un DMA de 256 bytes, que entra en cualquier
+; Uploads the composed description: a 256-byte DMA, which fits in any
 ; vblank.
 .proc items_desc_subir
 .a8
@@ -325,7 +324,7 @@ fin:
     sta DAS0L
     sep #$20
 .a8
-    stz A1B0                    ; el búfer vive en el banco 0
+    stz A1B0                    ; the buffer lives in bank 0
     lda #$01
     sta DMAP0
     lda #$18
@@ -335,18 +334,18 @@ fin:
     rts
 .endproc
 
-; La fila A de la pantalla, que tiene que tener un ítem: el cursor si toca, el
-; nombre, los dos puntos y la cantidad, en gris si A no lo usa.
+; Screen row A, which has to have an item: the cursor if it applies, the
+; name, the colon and the quantity, in gray if A does not use it.
 .proc items_fila_pintar
 .a8
 .i16
-    sta eleg_cancel             ; la fila
+    sta eleg_cancel             ; the row
     lda eleg_cancel
     clc
-    adc eleg_sel                ; su lugar en la lista
+    adc eleg_sel                ; its place in the list
     pha
     jsr item_de_lista
-    sta eleg_flancos            ; su `k`
+    sta eleg_flancos            ; its `k`
     pla
     cmp titulo_sel
     bne sin_cursor
@@ -355,7 +354,7 @@ fin:
     lda eleg_cancel
     jsl f:items_barra
 sin_cursor:
-    ; --- el color: gris si A no lo usa ---
+    ; --- the color: gray if A does not use it ---
     lda eleg_flancos
     rep #$20
 .a16
@@ -367,7 +366,7 @@ sin_cursor:
     and #1
     eor #1
     sta temp + 1
-    ; --- el nombre ---
+    ; --- the name ---
     lda eleg_cancel
     rep #$20
 .a16
@@ -384,26 +383,26 @@ sin_cursor:
     asl a
     clc
     adc temp + 2
-    tax                         ; 3k, el nombre
+    tax                         ; 3k, the name
     sep #$20
 .a8
     jsr texto_escribir
-    ; --- los dos puntos y la cantidad ---
+    ; --- the colon and the quantity ---
     lda eleg_flancos
     jsr item_cuantos
     cmp #100
     bcc cabe
     lda #99
 cabe:
-    stz temp + 3                ; las decenas
+    stz temp + 3                ; the tens
 decenas:
     cmp #10
     bcc unidades
-    sbc #10                     ; el `cmp` dejó el acarreo puesto
+    sbc #10                     ; the `cmp` left carry set
     inc temp + 3
     bra decenas
 unidades:
-    pha                         ; las unidades
+    pha                         ; the units
     lda eleg_cancel
     rep #$20
 .a16
@@ -427,7 +426,7 @@ unidades:
     sep #$20
 .a8
     lda temp + 3
-    beq sin_decenas             ; un 7 es " 7", no "07"
+    beq sin_decenas             ; a 7 is " 7", not "07"
     clc
     adc #$30                    ; '0'
     jsr glifo_par
@@ -447,7 +446,7 @@ sin_decenas:
 .endproc
 
 
-; Las filas que se ven, sobre el tilemap en blanco.
+; The visible rows, over the blank tilemap.
 .proc items_filas_pintar
 .a8
 .i16
@@ -458,7 +457,7 @@ fila:
     adc eleg_sel
     bcs termina
     cmp eleg_n
-    bcs termina                 ; no hay más ítems
+    bcs termina                 ; no more items
     pla
     pha
     jsr items_fila_pintar
@@ -472,8 +471,9 @@ termina:
     rts
 .endproc
 
-; La pantalla de ítems, hasta que el jugador vuelve con B —A = 0, al menú— o
-; usa un ítem —A = 1: RM2k vuelve derecho al mapa, `PopUntil(Scene::Map)`—.
+; The items screen, until the player goes back with B —A = 0, to the menu— or
+; uses an item —A = 1: RM2k goes straight back to the map,
+; `PopUntil(Scene::Map)`—.
 .proc items_pantalla
 .a8
 .i16
@@ -493,7 +493,7 @@ termina:
     sta menu_abierto
 espera:
     jsr wait_vblank
-    jsr items_desc_subir        ; lo primero del vblank: la descripción
+    jsr items_desc_subir        ; first thing in vblank: the description
     jsr read_pad
     lda pad
     eor pad_ant
@@ -502,7 +502,7 @@ espera:
     and #PAD_UP
     beq no_arriba
     lda titulo_sel
-    beq espera                  ; RM2k no da la vuelta en una lista
+    beq espera                  ; RM2k does not wrap around in a list
     dec a
     jsr mover
     bra espera
@@ -526,12 +526,12 @@ mira_a:
     lda pad_a
     beq espera
     lda pad_a_ant
-    bne espera                  ; ya lo tenía apretado: no es un flanco
+    bne espera                  ; it was already held: not an edge
     lda eleg_n
-    beq espera                  ; la lista vacía
+    beq espera                  ; the list is empty
     lda titulo_sel
     jsr item_de_lista
-    sta eleg_flancos            ; su `k`
+    sta eleg_flancos            ; its `k`
     rep #$20
 .a16
     and #$00FF
@@ -540,25 +540,25 @@ mira_a:
 .a8
     lda item_uso, x
     and #1
-    beq espera                  ; en gris: RM2k suena y no hace nada
+    beq espera                  ; grayed out: RM2k plays a sound and does nothing
     lda item_uso, x
     and #4
     beq de_switch
-    ; Una medicina: la elección de actor, y de vuelta a la lista con el cursor
-    ; donde estaba. La elección usa `titulo_sel`, así que se guarda.
+    ; A medicine: the actor choice, and back to the list with the cursor where
+    ; it was. The choice uses `titulo_sel`, so it is saved.
     lda titulo_sel
     pha
     lda eleg_sel
     pha
-    stz eleg_cancel             ; para una medicina, la de `eleg_flancos`
+    stz eleg_cancel             ; for a medicine, the one in `eleg_flancos`
     jsr objetivo_pantalla
     pla
     sta eleg_sel
     pla
     sta titulo_sel
-    ; La lista de nuevo, que es `Scene_Item::Continue`: la medicina pudo
-    ; haberse gastado entera. El cursor que quedó afuera va al último, el
-    ; `SetIndex(min(index, item_max - 1))` de allá, y la vista lo sigue.
+    ; The list again, which is `Scene_Item::Continue`: the medicine may have
+    ; been used up entirely. A cursor left outside goes to the last one, the
+    ; `SetIndex(min(index, item_max - 1))` over there, and the view follows it.
     jsr items_armar_lista
     lda eleg_n
     beq vacia
@@ -586,9 +586,9 @@ vista_lista:
     jsl f:items_ppu_prender
     jmp espera
 de_switch:
-    ; Un ítem de switch: `ConsumeItemUse` si tiene usos, el switch prendido y
-    ; derecho al mapa. `poner_switch` pide el refresco de páginas, que es el
-    ; `SetNeedRefresh(true)` de allá.
+    ; A switch item: `ConsumeItemUse` if it has uses, the switch turned on and
+    ; straight to the map. `poner_switch` asks for the page refresh, which is
+    ; the `SetNeedRefresh(true)` over there.
     lda item_uso, x
     and #2
     beq sin_gastar
@@ -617,7 +617,7 @@ sin_gastar:
     and #$00FF
     asl a
     tax
-    lda f:item_switch, x        ; vive en RODATA: ver el conversor
+    lda f:item_switch, x        ; lives in RODATA: see the converter
     sta temp
     sep #$20
 .a8
@@ -626,9 +626,9 @@ sin_gastar:
     lda #1
     rts
 
-; El cursor al lugar que trae A. Si queda a la vista se mueve el cursor y se
-; cambia la descripción, adentro del vblank; si no, la lista se corre y se
-; repinta entera con la pantalla apagada, que es un cuadro en negro.
+; The cursor to the place given in A. If it stays in view the cursor moves and
+; the description changes, inside vblank; if not, the list scrolls and is
+; repainted whole with the screen off, which is one black frame.
 mover:
     pha
     stz temp + 3
@@ -663,7 +663,7 @@ baja_la_vista:
 repintar:
     lda #$80
     sta INIDISP
-    jsl f:items_pantalla_subir  ; el tilemap en blanco, y de paso el resto
+    jsl f:items_pantalla_subir  ; the blank tilemap, and the rest along with it
     jsr items_desc_pintar
     jsr items_desc_subir
     jsr items_filas_pintar
@@ -671,4 +671,3 @@ repintar:
     sta INIDISP
     rts
 .endproc
-

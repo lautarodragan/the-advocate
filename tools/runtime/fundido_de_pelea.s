@@ -1,54 +1,57 @@
-; --- la transición de la pelea ----------------------------------------------
+; --- the battle transition --------------------------------------------------
 ;
-; La base de datos de A Blurred Line pide, al empezar una pelea,
-; `battle_start_fadeout = 16` y `battle_start_fadein = 17`, y al terminarla
-; `battle_end_fadeout = 17` y `battle_end_fadein = 16`. En la tabla de
-; `Game_System::GetTransition` de easyrpg-player el 16 es `TransitionZoomIn`
-; al borrar y `TransitionZoomOut` al mostrar, y el 17 es `TransitionMosaicOut`
-; y `TransitionMosaicIn`. O sea: el mapa se acerca hasta desaparecer, la pelea
-; aparece desde un mosaico, la pelea se va en mosaico y el mapa vuelve
-; alejándose. Antes de todo, dos destellos blancos de diez cuadros cada uno:
-; `Scene_Map::TransitionOut` los antepone siempre que se entra a una pelea,
-; con `PrependFlashes(31, 31, 31, 31, 10, 2)`.
+; A Blurred Line's database asks for, when a battle starts,
+; `battle_start_fadeout = 16` and `battle_start_fadein = 17`, and when it ends
+; `battle_end_fadeout = 17` and `battle_end_fadein = 16`. In the table of
+; easyrpg-player's `Game_System::GetTransition`, 16 is `TransitionZoomIn`
+; when erasing and `TransitionZoomOut` when showing, and 17 is
+; `TransitionMosaicOut` and `TransitionMosaicIn`. That is: the map zooms in
+; until it disappears, the battle appears out of a mosaic, the battle leaves
+; in a mosaic, and the map comes back zooming out. Before all that, two white
+; flashes of ten frames each: `Scene_Map::TransitionOut` always prepends them
+; when entering a battle, with `PrependFlashes(31, 31, 31, 31, 10, 2)`.
 ;
-; Lo que se hace acá:
+; What is done here:
 ;
-;   los destellos      con el color fijo sumado a toda la pantalla: color math,
-;                      que el juego no usa para nada más
-;   el zoom            **como fundido**, que es lo que taro decidió para las
-;                      transiciones que la consola no hace: acercar el mapa es
-;                      modo 7, y el mapa está en modo 3
-;   el mosaico         con el mosaico del PPU, que es justamente eso, **y
-;                      fundiendo a la vez**. La pelea son dos fondos —BG1 la
-;                      escena, BG2 el texto— y al entrar y al salir no hay
-;                      ningún sprite, así que el mosaico le llega a todo.
+;   the flashes        with the fixed color added to the whole screen: color
+;                      math, which the game uses for nothing else
+;   the zoom           **as a fade**, which is what taro decided for the
+;                      transitions the console does not do: zooming the map
+;                      is mode 7, and the map is in mode 3
+;   the mosaic         with the PPU's mosaic, which is exactly that, **and
+;                      fading at the same time**. The battle is two
+;                      backgrounds —BG1 the scene, BG2 the text— and on the
+;                      way in and out there is no sprite, so the mosaic
+;                      reaches everything.
 ;
-; Fundir el mosaico no es de RM2k —allá el mosaico no oscurece—, y es a
-; propósito: **la carga del paquete de audio tiene que caer adentro del
-; negro**. Subir el de la pelea, o volver a subir el del mapa, tarda entre
-; medio segundo y un segundo y medio según el cartucho y el mapa, y sin esto se
-; veía la pantalla congelada todo ese rato. En RM2k la carga es instantánea y
-; no hay qué tapar. Así que cada lado se apaga hasta negro, carga, y recién
-; ahí prende el otro: tarde lo que tarde la carga —con MSU-1 no sube el tema—,
-; queda adentro.
+; Fading the mosaic is not from RM2k —there the mosaic does not darken—, and
+; it is on purpose: **the audio package load has to fall inside the black**.
+; Uploading the battle's, or uploading the map's again, takes between half a
+; second and a second and a half depending on the cartridge and the map, and
+; without this the screen was seen frozen all that time. In RM2k loading is
+; instant and there is nothing to cover. So each side goes down to black,
+; loads, and only then the other one comes up: however long the load takes
+; —with MSU-1 the song is not uploaded—, it stays inside.
 ;
-; Las rampas son las del teletransporte, `fundido_rampa`: el brillo maestro
-; tiene dieciséis pasos, y el mosaico va atado a él —tamaño 16 con brillo 0,
-; tamaño 1 con brillo 15—, que son también los dieciséis tamaños que tiene el
-; PPU. En RM2k el zoom y el mosaico duran 41 cuadros; acá cada rampa dura
-; `FUNDIDO_RAMPA` y el resto es el negro de la carga, que siempre es más largo.
+; The ramps are the teleport's, `fundido_rampa`: master brightness has
+; sixteen steps, and the mosaic is tied to it —size 16 at brightness 0, size
+; 1 at brightness 15—, which are also the sixteen sizes the PPU has. In RM2k
+; the zoom and the mosaic last 41 frames; here each ramp lasts
+; `FUNDIDO_RAMPA` and the rest is the black of the load, which is always
+; longer.
 ;
-; Todo esto **bloquea**, como la pelea misma: `vueltas` no avanza, así que la
-; transición no cuesta ningún tick —ver `test_la_pelea_no_gasta_ningun_tick`—.
-; RM2k también congela la escena mientras dura una transición.
+; All of this **blocks**, like the battle itself: `vueltas` does not advance,
+; so the transition costs no tick —see `test_la_pelea_no_gasta_ningun_tick`—.
+; RM2k also freezes the scene while a transition lasts.
 
 .segment "CODE"
 
-; Y el mapa de vuelta, desde negro, ya repuesto por `volver_de_batalla`. Con
-; `flush_video` en cada cuadro, como el lazo principal mientras un fundido lo
-; congela: el scroll, la OAM y el brillo se escriben ahí y sólo ahí —ver el
-; final de `flush_video`—. La OAM se arma una vez antes, porque la que hay en
-; el PPU es la de la pelea; es lo mismo que hace `cargar_lo_pedido`.
+; And the map coming back, from black, already restored by
+; `volver_de_batalla`. With `flush_video` on every frame, like the main loop
+; while a fade freezes it: the scroll, the OAM and the brightness are written
+; there and only there —see the end of `flush_video`—. The OAM is built once
+; before, because the one in the PPU is the battle's; it is the same thing
+; `cargar_lo_pedido` does.
 .proc pelea_fundir_al_mapa
 .a8
 .i16
@@ -64,38 +67,38 @@ subir:
     inx
     cpx #FUNDIDO_RAMPA
     bcc subir
-    rts                         ; y `brillo` queda en el lleno, como estaba
+    rts                         ; and `brillo` is left at full, as it was
 .endproc
 
 .segment "FAR"
 
-; Las que no llaman a nada del banco 0 más que a `wait_vblank`, por su puente,
-; viven acá: el banco 0 no tiene lugar de sobra. No dependen del banco de
-; datos —la de la pelea corre con $7E—, así que todo va con `f:`.
+; The ones that call nothing in bank 0 other than `wait_vblank`, through its
+; bridge, live here: bank 0 has no room to spare. They do not depend on the
+; data bank —the battle's runs with $7E—, so everything goes with `f:`.
 
-; Los dos destellos y el mapa hasta negro. Desde `pelea_arrancar`, con el mapa
-; en pantalla. Deja la pantalla prendida con brillo cero: la carga que viene
-; no escribe la VRAM.
+; The two flashes and the map down to black. From `pelea_arrancar`, with the
+; map on screen. It leaves the screen on with brightness zero: the load that
+; follows does not write VRAM.
 .proc pelea_fundir_entrando
 .a8
 .i16
-    ; Todavía no prendió nada. Se borra acá y no se confía en que lo haya
-    ; dejado en cero la pelea anterior: la primera encuentra la RAM como la
-    ; dejó el encendido, que en una consola —y en bsnes— es basura.
+    ; Nothing has been turned on yet. It is cleared here and we do not trust
+    ; the previous battle to have left it at zero: the first one finds the RAM
+    ; as power-on left it, which on a console —and in bsnes— is garbage.
     lda #0
     sta f:PELEA_PRENDIDA
-    ; El color fijo se suma en todas las capas y en el fondo. Los sprites de
-    ; las paletas 0 a 3 no reciben color math —es del hardware—, así que el
-    ; héroe destella menos que el mapa.
+    ; The fixed color is added on every layer and on the backdrop. Sprites
+    ; with palettes 0 to 3 get no color math —that is the hardware—, so the
+    ; hero flashes less than the map.
     lda #0
     sta f:CGWSEL
     lda #$3F
     sta f:CGADSUB
-    ldy #2                      ; dos destellos, con la misma curva
+    ldy #2                      ; two flashes, with the same curve
 otro_destello:
     ldx #0
 destello:
-    jsl f:ba_t_vblank           ; `wait_vblank`: no toca ni X ni Y
+    jsl f:ba_t_vblank           ; `wait_vblank`: touches neither X nor Y
     lda f:destello_de_pelea, x
     sta f:COLDATA
     inx
@@ -103,14 +106,14 @@ destello:
     bcc destello
     dey
     bne otro_destello
-    ; Y el mapa hasta negro. El primer cuadro apaga el destello, en el mismo
-    ; vblank; la rampa arranca un paso abajo del lleno para no gastar un cuadro
-    ; en el brillo que ya había.
+    ; And the map down to black. The first frame turns off the flash, in the
+    ; same vblank; the ramp starts one step below full so as not to spend a
+    ; frame on the brightness that was already there.
     ldx #(FUNDIDO_RAMPA - 2)
 bajar:
     jsl f:ba_t_vblank
     lda #$30
-    sta f:CGWSEL                ; color math apagado, como lo deja `ppu_reset`
+    sta f:CGWSEL                ; color math off, as `ppu_reset` leaves it
     lda #0
     sta f:CGADSUB
     lda #$E0
@@ -122,19 +125,19 @@ bajar:
     rtl
 .endproc
 
-; La intensidad del color fijo en cada cuadro de un destello, con los tres
-; canales prendidos. Es la curva de `Flash::Update`: el nivel arranca en 31 y
-; en cada cuadro pierde `nivel / cuadros_que_quedan`, o sea 31 * (10 - k) / 10,
-; truncado como lo trunca easyrpg al hacer el color.
+; The intensity of the fixed color on each frame of a flash, with all three
+; channels on. It is `Flash::Update`'s curve: the level starts at 31 and on
+; each frame loses `level / frames_left`, that is 31 * (10 - k) / 10,
+; truncated as easyrpg truncates it when making the color.
 destello_de_pelea:
     .byte $E0|31, $E0|27, $E0|24, $E0|21, $E0|18
     .byte $E0|15, $E0|12, $E0|9,  $E0|6,  $E0|3
 
-; La pelea hasta negro, en mosaico. Desde `pelea_arrancar`, con la pelea ya
-; terminada y todavía en pantalla. Si la pelea no llegó a prender nada —una
-; tropa que el cartucho no lleva, o un grupo sin nadie en pie, que pierde sin
-; pelear— la pantalla ya está en negro desde `pelea_fundir_entrando` y no hay
-; qué apagar.
+; The battle down to black, in a mosaic. From `pelea_arrancar`, with the
+; battle already over and still on screen. If the battle never turned
+; anything on —a troop the cartridge does not carry, or a party with nobody
+; standing, which loses without fighting— the screen is already black since
+; `pelea_fundir_entrando` and there is nothing to turn off.
 .proc pelea_fundir_saliendo
 .a8
 .i16
@@ -147,23 +150,23 @@ bajar:
     jsl f:ba_t_vblank
     lda f:fundido_rampa, x
     sta f:INIDISP
-    eor #$0F                    ; el mosaico, atado al brillo: ver arriba
+    eor #$0F                    ; the mosaic, tied to brightness: see above
     asl a
     asl a
     asl a
     asl a
-    ora #$03                    ; BG1 y BG2
+    ora #$03                    ; BG1 and BG2
     sta f:MOSAIC
     dex
     bpl bajar
     lda #0
-    sta f:MOSAIC                ; ya en negro: nadie más lo apaga
+    sta f:MOSAIC                ; already black: nobody else turns it off
 listo:
     rtl
 .endproc
 
-; La pelea desde negro, en mosaico. Desde `batalla_correr`, con la escena ya
-; subida y la pantalla prendida en brillo cero.
+; The battle from black, in a mosaic. From `batalla_correr`, with the scene
+; already uploaded and the screen on at brightness zero.
 .proc pelea_fundir_mostrando
 .a8
 .i16
@@ -171,7 +174,7 @@ listo:
     sta f:PELEA_PRENDIDA
     ldx #0
 subir:
-    jsl f:ba_t_vblank           ; `wait_vblank`, que no toca X
+    jsl f:ba_t_vblank           ; `wait_vblank`, which does not touch X
     lda f:fundido_rampa, x
     sta f:INIDISP
     eor #$0F
@@ -179,12 +182,12 @@ subir:
     asl a
     asl a
     asl a
-    ora #$03                    ; BG1 y BG2
+    ora #$03                    ; BG1 and BG2
     sta f:MOSAIC
     inx
     cpx #FUNDIDO_RAMPA
     bcc subir
     lda #0
-    sta f:MOSAIC                ; el último ya era de tamaño 1: lo mismo, apagado
+    sta f:MOSAIC                ; the last one was already size 1: same thing, off
     rts
 .endproc

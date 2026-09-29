@@ -1,21 +1,21 @@
 .segment "FAR"
 
-; La pelea entera. Se entra con `jsl` desde `op_battle`, con el banco de datos
-; ya en $7E, y se vuelve con el resultado en `BA_RESULT`.
+; The whole battle. It is entered with `jsl` from `op_battle`, with the data
+; bank already at $7E, and returns with the result in `BA_RESULT`.
 ;
-; Corre **su propio lazo de cuadros**, como `ranuras_pantalla` y como la
-; tienda: `vueltas` no avanza mientras se ve, así que la pelea no cuesta
-; ningún tick, tarde lo que tarde el jugador. Ver `OP_BATTLE`
-; en tools/port/eventos.py.
+; It runs **its own frame loop**, like `ranuras_pantalla` and like the shop:
+; `vueltas` does not advance while it is shown, so the battle costs no tick,
+; however long the player takes. See `OP_BATTLE`
+; in tools/port/eventos.py.
 .proc batalla_correr
 .a8
 .i16
     rep #$20
 .a16
     lda #BATALLA_SEMILLA
-    sta BA_SEM                  ; el azar arranca igual en toda pelea
+    sta BA_SEM                  ; randomness starts the same in every battle
     lda #$FFFF
-    sta BA_SE2                  ; sin efecto pendiente
+    sta BA_SE2                  ; no sound effect pending
     sep #$20
 .a8
     lda #BA_VICTORIA
@@ -28,39 +28,39 @@
     jsr ba_armar
     lda BA_NENE
     bne hay_tropa
-    rtl                         ; una tropa que este cartucho no lleva
+    rtl                         ; a troop this cartridge does not carry
 hay_tropa:
     lda #0
     sta BA_ACTOR
     jsr ba_actor_siguiente
     cmp #$FF
     bne hay_grupo
-    lda #BA_DERROTA             ; nadie en pie: se pierde sin pelear
+    lda #BA_DERROTA             ; nobody standing: lost without fighting
     sta BA_RESULT
     rtl
 hay_grupo:
     jsr ba_chance_huir
     jsr ba_pag_armar
-    ; Apagar la pantalla, desde acá: los tres registros van con `f:` porque el
-    ; banco de datos es $7E y absolutos caerían en la RAM.
+    ; Turn off the screen, from here: the three registers go through `f:`
+    ; because the data bank is $7E and absolute ones would land in RAM.
     lda #$80
     sta f:INIDISP
     lda #0
     sta f:HDMAEN
     sta f:TM
     jsl f:ba_t_banco
-    ; Y la escena: el fondo con los monstruos, compuesta acá y subida a BG1.
-    ; Va con la pantalla apagada porque son 32 KB de VRAM más el tilemap y
-    ; las paletas.
+    ; And the scene: the background with the monsters, composed here and
+    ; uploaded to BG1. It goes with the screen off because it is 32 KB of VRAM
+    ; plus the tilemap and the palettes.
     jsr escena_subir
     lda #BA_M_ORDEN
     sta BA_MODO
-    ; Antes de la primera orden, las páginas que ya se cumplen: es el
-    ; `eCheckEvents` de `ProcessSceneActionFightAutoEscape`. El primer tramo
-    ; corre **acá mismo** y no en el cuadro que viene: todas las tropas del
-    ; juego traen una página de turno 0 que sólo prende un switch, y así la
-    ; pelea abre ya pidiendo órdenes, como abría antes de que esas páginas
-    ; corrieran. Una que muestra un mensaje abre con el mensaje puesto.
+    ; Before the first command, the pages already met: it is the `eCheckEvents`
+    ; of `ProcessSceneActionFightAutoEscape`. The first stretch runs **right
+    ; here** and not on the next frame: every troop in the game brings a turn 0
+    ; page that only turns on a switch, and this way the battle opens already
+    ; asking for commands, as it opened before those pages ran. One that shows
+    ; a message opens with the message up.
     jsr ba_pag_probar
     beq sin_pagina_al_empezar
     lda #1
@@ -69,10 +69,10 @@ hay_grupo:
 sin_pagina_al_empezar:
     jsr ba_componer
     jsl f:ba_t_subir
-    ; Prender la pantalla **en negro**, que la muestra la transición de
-    ; entrada: `ranura_ppu_prender` escribe el brillo lleno, así que se la
-    ; llama adentro de un vblank y en el mismo vblank se baja a cero —no llega
-    ; a dibujarse ninguna línea—. Ver `fundido_de_pelea.s`.
+    ; Turn the screen on **in black**, which the entry transition shows:
+    ; `ranura_ppu_prender` writes full brightness, so it is called inside a
+    ; vblank and in the same vblank it is brought down to zero —not a single
+    ; line gets drawn—. See `fundido_de_pelea.s`.
     jsl f:ba_t_vblank
     jsl f:ba_t_ppu
     lda #0
@@ -84,10 +84,11 @@ sin_pagina_al_empezar:
 
 espera:
     jsl f:ba_t_vblank
-    jsl f:ba_t_pad                ; el control antes del DMA, como en la tienda
+    jsl f:ba_t_pad                ; the controller before the DMA, as in the
+                                  ; shop
     jsl f:ba_t_subir
-    jsr ba_sacudir              ; la sacudida, antes de que se acabe el vblank
-    jsr escena_tick             ; todavía en el vblank: un enemigo que murió
+    jsr ba_sacudir              ; the shake, before the vblank ends
+    jsr escena_tick             ; still in the vblank: an enemy that died
     lda pad
     eor pad_ant
     and pad
@@ -116,7 +117,7 @@ espera:
     jmp modo_pagina
 :   jmp modo_fin
 
-    ; --- eligiendo la orden ---
+    ; --- choosing the command ---
 espera5:
     jmp espera
 modo_orden:
@@ -160,9 +161,8 @@ o_no_ataca:
 o_no_defiende:
     cmp #BA_ORDEN_USAR
     bne o_no_usa
-    ; `Use Item`: la lista de lo que se puede usar. Vacía, no pasa nada, que
-    ; es lo que hace el menú de pausa con una orden que no lleva a ningún
-    ; lado.
+    ; `Use Item`: the list of what can be used. Empty, nothing happens, which
+    ; is what the pause menu does with a command that leads nowhere.
     jsr ba_items_lista
     lda BA_ITEM_N
     beq espera5
@@ -175,9 +175,9 @@ o_no_defiende:
 o_no_usa:
     cmp #BA_ORDEN_HABILIDAD
     bne o_no_habilidad
-    ; La lista de habilidades del que ordena. Vacía —Talan, que es de nivel
-    ; 1— no pasa nada, que es lo que el menú hace con una orden que no lleva a
-    ; ningún lado.
+    ; The skill list of whoever is giving the command. Empty —Talan, who is
+    ; level 1— nothing happens, which is what the menu does with a command that
+    ; leads nowhere.
     jsr ba_hab_lista
     lda BA_HAB_N
     beq espera5
@@ -200,7 +200,7 @@ o_huye:
     jsr ba_mostrar
     rep #$20
 .a16
-    lda #BA_SE_HUIR             ; el escape_se de `Scene_Battle_Rpg2k`
+    lda #BA_SE_HUIR             ; the escape_se of `Scene_Battle_Rpg2k`
     jsl f:ba_t_sonido
 .a8
     lda #BA_M_FIN
@@ -215,7 +215,7 @@ o_no_huyo:
 espera2:
     jmp espera
 
-    ; --- eligiendo el blanco ---
+    ; --- choosing the target ---
 modo_blanco:
     lda titulo_flancos
     and #PAD_UP
@@ -242,8 +242,8 @@ b_mira_a:
     clc
     adc #BA_GRUPO_MAX
     sta BA_T0
-    ; El modo del blanco lo comparten atacar y una habilidad que apunta a los
-    ; enemigos; cuál de las dos es lo dice `BA_ORDEN`, que sigue puesto.
+    ; The target mode is shared by attacking and by a skill that targets the
+    ; enemies; which of the two it is says `BA_ORDEN`, which is still set.
     lda BA_ORDEN
     cmp #BA_ORDEN_HABILIDAD
     bne b_ataca
@@ -253,9 +253,9 @@ b_ataca:
     lda #BA_ATACAR
 b_anota:
     jsr ba_anotar
-    jmp siguiente_actor         ; los dos modos de abajo quedaron en el medio
+    jmp siguiente_actor         ; the two modes below ended up in between
 
-    ; --- eligiendo qué ítem ---
+    ; --- choosing which item ---
 modo_item:
     lda titulo_flancos
     and #PAD_UP
@@ -286,9 +286,9 @@ i_no_abajo:
 i_mira_a:
     jsr ba_flanco_a
     beq espera4
-    ; A quién dárselo: al primero del grupo al que le sirve —en pie para una
-    ; poción, caído para un elixir—. Si no le sirve a nadie, A no pasa de la
-    ; lista: ver `ba_item_sirve_sobre`.
+    ; Whom to give it to: the first in the party it is good for —standing for
+    ; a potion, fallen for an elixir—. If it is good for nobody, A does not get
+    ; past the list: see `ba_item_sirve_sobre`.
     lda #0
     sta BA_ACTOR2
 busca_vivo:
@@ -308,7 +308,7 @@ hay_blanco_act:
 espera4:
     jmp espera
 
-    ; --- eligiendo a quién se le da ---
+    ; --- choosing whom it is given to ---
 modo_actor:
     lda titulo_flancos
     and #PAD_UP
@@ -325,7 +325,7 @@ a_no_abajo:
     lda titulo_flancos
     and #PAD_B
     beq a_mira_a
-    ; B vuelve a la lista de la que se vino: la de ítems o la de habilidades.
+    ; B goes back to the list it came from: the item list or the skill list.
     lda BA_ORDEN
     cmp #BA_ORDEN_HABILIDAD
     bne a_vuelve_a_items
@@ -348,9 +348,9 @@ a_mira_a:
     jsr ba_anotar
     jmp siguiente_actor
 a_es_item:
-    ; Se anota la orden y **se gasta el ítem ya**, que es lo que hace RM2k al
-    ; elegirlo: si no, el último de un ítem se podría repartir entre dos
-    ; actores en el mismo turno.
+    ; The command is recorded and **the item is spent right away**, which is
+    ; what RM2k does on choosing it: otherwise the last one of an item could be
+    ; handed out to two actors in the same turn.
     lda BA_ITEM_SEL
     jsr ba_item_de_lista
     pha
@@ -365,10 +365,10 @@ a_es_item:
     jsr ba_anotar
     jmp siguiente_actor
 
-    ; --- eligiendo qué habilidad ---
+    ; --- choosing which skill ---
     ;
-    ; La lista es de dos columnas y se lee por filas, así que izquierda y
-    ; derecha se mueven de a uno y arriba y abajo de a dos.
+    ; The list has two columns and reads by rows, so left and right move by
+    ; one and up and down by two.
 modo_hab:
     lda titulo_flancos
     and #PAD_LEFT
@@ -423,9 +423,9 @@ h_no_abajo:
 h_mira_a:
     jsr ba_flanco_a
     beq espera7
-    ; La que no se puede pagar no se elige, que es lo que RM2k hace con una
-    ; habilidad en gris. El costo se descuenta **al ejecutarla** y no acá:
-    ; `Skill::vStart` corre cuando le toca el turno.
+    ; One that cannot be paid for is not chosen, which is what RM2k does with
+    ; a greyed-out skill. The cost is deducted **when it executes** and not
+    ; here: `Skill::vStart` runs when its turn comes.
     lda BA_HAB_SEL
     jsr ba_hab_de_lista
     sta BA_S0
@@ -435,13 +435,14 @@ h_mira_a:
     jsr ba_ax
     lda BA_S0
     sta BA_ACC_HAB, x
-    ; Una de switch **no pide blanco**, apunte a donde apunte su `scope`:
-    ; `Scene_Battle::AssignSkill` la anota sobre el que la usa y sigue. Sin
-    ; esto, Detect Aura —`scope` 0, un enemigo— pedía elegir uno, y si ése se
-    ; moría antes del turno la habilidad se perdía, que en RM2k no pasa.
+    ; A switch skill **asks for no target**, whatever its `scope` points at:
+    ; `Scene_Battle::AssignSkill` records it on its user and moves on. Without
+    ; this, Detect Aura —`scope` 0, one enemy— asked to choose one, and if that
+    ; one died before the turn the skill was lost, which does not happen in
+    ; RM2k.
     ;
-    ; Tampoco las de a muchos ni las de uno mismo, cuyo blanco lo decide el
-    ; alcance: sólo `enemy` y `ally` lo piden —`batalla.pide_blanco`—.
+    ; Nor do the ones on many or on oneself, whose target is decided by the
+    ; scope: only `enemy` and `ally` ask for it —`batalla.pide_blanco`—.
     lda BA_S0
     jsr ba_ax
     lda f:hab_tipo, x
@@ -459,7 +460,7 @@ h_sin_blanco:
     jsr ba_anotar
     jmp siguiente_actor
 h_con_blanco:
-    ; A quién apunta: el bit 6 de `hab_afecta` es `SkillTargetsEnemies`.
+    ; Whom it targets: bit 6 of `hab_afecta` is `SkillTargetsEnemies`.
     lda BA_S0
     jsr ba_ax
     lda f:hab_afecta, x
@@ -473,13 +474,14 @@ h_con_blanco:
     sta BA_MODO
     jmp recomponer
 h_a_un_aliado:
-    ; Al primero vivo del grupo, como con un ítem.
+    ; The first one alive in the party, as with an item.
     lda #0
     sta BA_ACTOR2
 h_busca_vivo:
     lda BA_ACTOR2
     cmp BA_NACT
-    bcs espera7                 ; no puede pasar: el que ordena está vivo
+    bcs espera7                 ; cannot happen: whoever gives the command is
+                                ; alive
     lda BA_ACTOR2
     jsr ba_vivo
     bne h_hay_blanco
@@ -495,7 +497,7 @@ h_hay_blanco:
     jmp recomponer
 
 siguiente_actor:
-    ; Al que sigue; si no queda ninguno, empieza el turno.
+    ; On to the next one; if none is left, the turn starts.
     jsr ba_actor_siguiente
     cmp #$FF
     beq arranca_turno
@@ -508,7 +510,7 @@ arranca_turno:
     jsr ba_empezar_turno
     jmp espera
 
-    ; --- un mensaje en pantalla ---
+    ; --- a message on screen ---
 modo_mensaje:
     jsr ba_flanco_a
     bne pasa
@@ -516,9 +518,9 @@ modo_mensaje:
     lda BA_ESPERA
     cmp #BA_SE2_CUADROS
     bne sin_segundo
-    ; El segundo efecto del golpe, el que RM2k toca en el sub-estado del
-    ; mensaje. Se saca de `BA_SE2` al dispararlo para que no vuelva a salir si
-    ; el mensaje se alarga.
+    ; The hit's second sound effect, the one RM2k plays in the message
+    ; sub-state. It is taken out of `BA_SE2` when fired so it does not come out
+    ; again if the message runs longer.
     rep #$20
 .a16
     lda BA_SE2
@@ -534,11 +536,12 @@ pasa:
 espera3:
     jmp espera
 
-    ; --- una página de tropa ---
+    ; --- a troop page ---
     ;
-    ; Con un mensaje suyo en pantalla, se espera la A **sin tope de tiempo**:
-    ; es un `ShowMessage`, que en RM2k no se cierra solo, y no uno de los de la
-    ; pelea, que sí. Sin mensaje, la página sigue.
+    ; With one of its messages on screen, it waits for A **with no time
+    ; limit**: it is a `ShowMessage`, which in RM2k does not close by itself,
+    ; and not one of the battle's, which does. Without a message, the page
+    ; carries on.
 modo_pagina:
     rep #$20
 .a16
@@ -559,18 +562,18 @@ p_sigue:
     jsr ba_pag_paso
     jmp espera
 
-    ; --- la pelea terminó ---
+    ; --- the battle is over ---
 modo_fin:
     jsr ba_flanco_a
     beq espera3
-    ; La victoria tiene más de una página: "N EXP", y una por cada actor que
-    ; subió de nivel.
+    ; Victory has more than one page: "N EXP", and one for each actor who
+    ; leveled up.
     jsr ba_vic_siguiente
     beq cerrar
     jmp recomponer
 cerrar:
-    ; Los HP y los SP del grupo vuelven a la partida: desde que hay batallas
-    ; son estado de verdad y viajan en la ranura de SRAM.
+    ; The party's HP and SP go back to the saved game: since there are battles
+    ; they are real state and travel in the SRAM slot.
     lda #0
     sta BA_S0
 guarda:
@@ -609,8 +612,8 @@ recomponer:
     jsr ba_componer
     jmp espera
 
-; Z=0 si A se acaba de apretar. Es el mismo de la tienda: `pad_a` y su anterior
-; los pone `read_pad`.
+; Z=0 if A was just pressed. It is the same one as the shop's: `pad_a` and its
+; previous value are set by `read_pad`.
 ba_flanco_a:
     lda pad_a
     beq no_a
@@ -623,34 +626,35 @@ si_a:
     lda #1
     rts
 
-; Que el ítem marcado se vea: corre la ventana de ocho renglones lo justo.
+; Makes the highlighted item visible: scrolls the eight-line window just
+; enough.
 ba_item_ver:
     lda BA_ITEM_SEL
     cmp BA_ITEM_ARR
     bcs ver_abajo
-    sta BA_ITEM_ARR             ; se fue por arriba: la ventana lo sigue
+    sta BA_ITEM_ARR             ; it went off the top: the window follows it
     rts
 ver_abajo:
     sec
     sbc #BA_ENEMIGOS_MAX
-    bcc listo_ver               ; entra sin mover nada
-    inc a                       ; el primero que tendría que verse
+    bcc listo_ver               ; it fits without moving anything
+    inc a                       ; the first one that should be visible
     cmp BA_ITEM_ARR
     bcc listo_ver
     sta BA_ITEM_ARR
 listo_ver:
     rts
 
-; El cursor de a quién se le da el ítem, al actor de arriba o de abajo en el
-; que puede pararse —ver `ba_blanco_act_sirve`—. Si para ese lado no queda
-; ninguno, se queda donde está. Es el hermano de `ba_blanco_arriba`, sobre el
-; grupo en vez de sobre la tropa.
+; The cursor for whom the item goes to, to the actor above or below where it
+; can stop —see `ba_blanco_act_sirve`—. If none is left in that direction, it
+; stays where it is. It is the sibling of `ba_blanco_arriba`, over the party
+; instead of over the troop.
 ba_blanco_act_arriba:
     lda BA_ITEM_BLA
 mira_arriba_act:
     beq nada_act
     dec a
-    sta BA_ACTOR2               ; `ba_item_sirve_sobre` se lleva `BA_S0`
+    sta BA_ACTOR2               ; `ba_item_sirve_sobre` clobbers `BA_S0`
     jsr ba_blanco_act_sirve
     bne pone_act
     lda BA_ACTOR2
@@ -672,11 +676,11 @@ pone_act:
 nada_act:
     rts
 
-; Si el cursor de a quién puede pararse en el actor A8: Z=0 si sí. Lo
-; comparten un ítem y una habilidad que apunta al grupo, y cuál de los dos es
-; lo dice `BA_ORDEN`. Una habilidad sólo sobre los que están en pie, que es lo
-; que `Skill::IsTargetValid` deja con las de este port —ninguna saca la
-; muerte—; un ítem, sobre el que le sirva, que puede ser un caído.
+; Whether the "whom" cursor can stop on actor A8: Z=0 if so. It is shared by an
+; item and a skill that targets the party, and which of the two it is says
+; `BA_ORDEN`. A skill only on those standing, which is what
+; `Skill::IsTargetValid` allows with this port's skills —none removes
+; death—; an item, on whoever it is good for, who may be a fallen one.
 ba_blanco_act_sirve:
     pha
     lda BA_ORDEN
@@ -688,8 +692,8 @@ sirve_hab:
     pla
     jmp ba_vivo
 
-; El cursor del blanco, al enemigo vivo de arriba o de abajo. Si para ese lado
-; no queda ninguno vivo, se queda donde está.
+; The target cursor, to the living enemy above or below. If no living one is
+; left in that direction, it stays where it is.
 ba_blanco_arriba:
     lda BA_BLANCO
 mira_arriba:
@@ -722,12 +726,13 @@ nada:
     rts
 .endproc
 
-; La sacudida de pantalla en la pelea: un cuadro de `sacudida_tick` y su
-; posición en el scroll de la escena. Es de `Game_Screen` y no del mapa, así
-; que en RM2k sigue en la pelea, y la arranca el `ShakeScreen` de una página de
-; tropa —el despegue de la pelea de los agentes—. Mueve el fondo y los
-; battlers, que es lo que `Spriteset_Battle` corre con `GetShakeOffsetX`; las
-; ventanas quedan quietas, y acá el texto, que es BG2, también.
+; The screen shake in battle: one frame of `sacudida_tick` and its position in
+; the scene's scroll. It belongs to `Game_Screen` and not to the map, so in
+; RM2k it carries on into the battle, and it is started by the `ShakeScreen`
+; of a troop page —the takeoff in the agents' battle—. It moves the background
+; and the battlers, which is what `Spriteset_Battle` runs with
+; `GetShakeOffsetX`; the windows stay still, and here so does the text, which
+; is BG2.
 .proc ba_sacudir
 .a8
 .i16
@@ -736,7 +741,7 @@ nada:
     cmp #$FF
     beq listo
     lda sacudida_pos
-    sta f:BG1HOFS               ; `stz` y `sta` absolutos caerían en la WRAM
+    sta f:BG1HOFS               ; absolute `stz` and `sta` would land in WRAM
     lda sacudida_pos + 1
     sta f:BG1HOFS
 listo:
