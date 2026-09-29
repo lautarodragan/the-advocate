@@ -24,7 +24,7 @@ def test_arranca_en_cero(partida):
 
 def test_el_tope_es_el_de_rm2k(partida):
     una = partida()
-    assert una.simbolos["ORO_MAX"] == ORO_MAX, \
+    assert una.simbolos["GOLD_MAX"] == ORO_MAX, \
         "el tope que la ROM lleva no es el de `MaxGoldValue()`"
 
 
@@ -40,7 +40,7 @@ def test_la_escena_del_despertar_le_da_cien(partida):
     for _ in range(400):
         if una.oro() == 100:
             break
-        if una.byte("msg_abierto"):
+        if una.byte("msg_open"):
             una.tocar_ticks("a")
         else:
             una.correr(1)
@@ -70,7 +70,7 @@ def test_el_peaje_cobra_si_alcanza_y_no_da_la_vuelta_si_no(partida):
             for _ in range(40):
                 if una.oro() != antes:
                     break
-                if una.byte("msg_abierto"):
+                if una.byte("msg_open"):
                     una.tocar_ticks("a")
                 else:
                     una.correr(1)

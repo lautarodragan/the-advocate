@@ -80,7 +80,7 @@ LEVEL_COL = (SLOT_X + 2 * font.WIDTH) // CELL       # 8
 # console.
 FACE_PALETTES_MAX = 7
 # How many tiles fit in the screen's bank: the converter checks it against
-# the VRAM layout, see RANURA_MAP there.
+# the VRAM layout, see SLOT_MAP there.
 SLOT_TILES_MAX = 448
 
 # --- what depends on the actor, composed with glyphs ---------------------------
@@ -190,7 +190,7 @@ def name_text(db, actor, cols=None):
 def level_text(db, actor, level=None):
     """The two digits of the level, as RM2k says them: right-aligned. Without
     `level`, the starting one; the ROM composes the current one with the
-    same, `texto_nivel`."""
+    same, `text_level`."""
     if level is None:
         level = level_of(db.actors[actor]) if actor in db.actors else 0
     return ("%*d" % (LEVEL_DIGITS, level))[-LEVEL_DIGITS:]
@@ -200,7 +200,7 @@ def max_text(db, actor, level=None):
     """The actor's max HP after its slash: "/168". They go next to the
     current HP, which the ROM writes with the same glyphs. Without `level`,
     those of the starting one; the ROM composes those of the current one,
-    `texto_maximo`."""
+    `text_max`."""
     maximum = (param_of(db.actors[actor], "maxhp", level)
                if actor in db.actors else 0)
     return ("/%d" % maximum).ljust(MENU_MAX_DIGITS)[:MENU_MAX_DIGITS]
@@ -408,7 +408,7 @@ MENU_MAX_DIGITS = 4             # the slash and up to three digits: "/168"
 # row's 56 pixels. In sprites it goes wherever needed: twelve pixels below
 # the HP, which is the font's pitch, and at the font's six pixels and not the
 # cells' eight —at eight, the thirteen letters went off the screen—. The
-# tiles are the bank's own glyphs: the sprites read VRAM from `RANURA_VRAM`,
+# tiles are the bank's own glyphs: the sprites read VRAM from `SLOT_VRAM`,
 # so a glyph's tile is the same number.
 #
 # Twelve and not sixteen pixels below the HP leaves one pixel of space above
@@ -471,7 +471,7 @@ ITEM_WHITE, ITEM_GRAY, ITEM_UP, ITEM_RED = range(4)
 ITEM_UP_CHARS = "0123456789 "
 # How far the font bank can grow: the battle uploads it and then writes its
 # scene's tilemap at VRAM word $3800, which is tile 384 counting from
-# `RANURA_VRAM`. Whatever goes past there would be overwritten.
+# `SLOT_VRAM`. Whatever goes past there would be overwritten.
 ITEMS_TILES_MAX = (0x3800 - 0x2000) // 16
 
 # The screen's windows, like `Scene_Item`: the help one on top and the list
@@ -485,7 +485,7 @@ ITEMS_TILES_MAX = (0x3800 - 0x2000) // 16
 # as before: that way the text does not have to know anything about the
 # windows, and the description, which is uploaded in whole rows, does not
 # erase the frame. The glyphs already carry the priority bit —see
-# `item_glifo_celdas` in the converter—, so the text stays above the band of
+# `item_glyph_cells` in the converter—, so the text stays above the band of
 # the background that crosses it, as in RM2k. At 8bpp a pixel is directly its
 # CGRAM entry: the frame's colors go from `ITEM_BORDER_CGRAM`, after the four
 # text palettes, and black is 0, the transparent one, which lets the backdrop
@@ -761,7 +761,7 @@ def menu_hp(db, actor, hp=None):
 def _paste_hp(paste, menu, row, how_much):
     """The HP digits of a party row, right-aligned.
 
-    It is what the ROM does in `menu_hp_escribir`, with the same cells and in
+    It is what the ROM does in `menu_hp_write`, with the same cells and in
     the same columns; what is left over on the left stays blank.
     """
     digits = digits_of(how_much, MENU_HP_DIGITS)
@@ -845,7 +845,7 @@ def slots_screen(sys_img, db, slots, font_id=None, actors=(),
                 image, sys_img, MENU_OPT_COL * CELL,
                 MENU_OPT_Y + option * MENU_OPT_STEP + 2, text,
                 color=3 if disabled else 0, font_id=font_id)
-            layers.append(("menu_opcion", (option, disabled), image))
+            layers.append(("menu_option", (option, disabled), image))
     image = layer()
     write(image, MENU_CURSOR_COL * CELL, MENU_OPT_Y + 2, ">")
     layers.append(("menu_cursor", None, image))
@@ -858,10 +858,10 @@ def slots_screen(sys_img, db, slots, font_id=None, actors=(),
     window_mod.draw_line(image, sys_img, MENU_CURRENCY_COL * CELL,
                           MENU_GOLD_Y + 2, db.term_gold, color=1,
                           font_id=font_id)
-    layers.append(("menu_moneda", None, image))
+    layers.append(("menu_currency", None, image))
     image = layer()
     _write_menu_row(image, sys_img, db, font_id)
-    layers.append(("menu_fila", None, image))
+    layers.append(("menu_row", None, image))
     # The experience term, loose like a glyph: sprites draw it. Up to two
     # letters, which are the twelve pixels `DrawActorExp` leaves it before
     # the digits.
@@ -870,13 +870,13 @@ def slots_screen(sys_img, db, slots, font_id=None, actors=(),
                           GLYPH_ROW * CELL + GLYPH_DY,
                           (db.term_exp_short or "")[:2], color=1,
                           font_id=font_id)
-    layers.append(("menu_exp_termino", None, image))
+    layers.append(("menu_exp_finished", None, image))
 
     # The disabled commands go in **their own palette**, number 1: system
     # color 3 is a gradient that, added to the text's, gives 18 colors, and
     # 4bpp fits 15. It costs the faces one palette.
     def gray(kind, key):
-        return kind == "menu_opcion" and key[1]
+        return kind == "menu_option" and key[1]
 
     seen, seen_gray = collections.Counter(), collections.Counter()
     for kind, key, image in layers:
@@ -902,7 +902,7 @@ def slots_screen(sys_img, db, slots, font_id=None, actors=(),
     menu = {"opciones": [[None, None] for _ in range(MENU_OPTIONS)],
             "cursor": None, "glifos": {}, "moneda": None, "fila": None}
     for kind, key, image in layers:
-        if kind == "menu_opcion":
+        if kind == "menu_option":
             option, disabled = key
             menu["opciones"][option][disabled] = _cell_block(
                 image, (MENU_OPT_Y + option * MENU_OPT_STEP) // CELL, 2, tiles,
@@ -915,15 +915,15 @@ def slots_screen(sys_img, db, slots, font_id=None, actors=(),
         elif kind == "menu_glifo":
             menu["glifos"][key] = _cell_block(
                 image, GLYPH_ROW, 2, tiles, offset, index, GLYPH_COL, 1)
-        elif kind == "menu_moneda":
+        elif kind == "menu_currency":
             menu["moneda"] = _cell_block(
                 image, MENU_GOLD_Y // CELL, 2, tiles, offset, index,
                 MENU_CURRENCY_COL, MENU_CURRENCY_COLS)
-        elif kind == "menu_fila":
+        elif kind == "menu_row":
             menu["fila"] = _cell_block(
                 image, 0, MENU_ACTOR_ROWS, tiles, offset, index,
                 MENU_ACTOR_COL, MENU_ACTOR_COLS)
-        elif kind == "menu_exp_termino":
+        elif kind == "menu_exp_finished":
             menu["exp_termino"] = _cell_block(
                 image, GLYPH_ROW, 2, tiles, offset, index, GLYPH_COL,
                 MENU_EXP_TERM_CELLS)
@@ -1017,7 +1017,7 @@ def _paste_sprite(outside, tiles, palettes, word, x, y):
 
 def _paste_exp(outside, tiles, palettes, menu, row, text):
     """The experience line of a party row, in sprites: the term and the
-    thirteen letters of `text`, at six pixels. It is what `menu_exp_pintar`
+    thirteen letters of `text`, at six pixels. It is what `menu_exp_paint`
     does in the ROM; spaces get no sprite."""
     y = row * MENU_ACTOR_ROWS * CELL + MENU_EXP_Y - GLYPH_DY
     for n, word in enumerate(menu["exp_termino"]):
@@ -1042,7 +1042,7 @@ def _paste_text(paste, menu, text, row, col):
 def _paste_actor_row(paste, menu, faces, db, row, actor, hp=None,
                      levels=None):
     """A row of the party panel: the fixed block, the face and the three
-    strips that depend on the actor. It is what `menu_grupo_pintar` does, in
+    strips that depend on the actor. It is what `menu_party_paint` does, in
     the same order, and that is why the menu and the actor choice share
     it."""
     row0 = row * MENU_ACTOR_ROWS
@@ -1133,8 +1133,8 @@ def render_menu(sys_img, db, slots, party, gold, chosen=0,
 # the left: there is no item.
 #
 # A uses the medicine on the marked row and the screen stays, with that row's
-# HP and the quantity up to date: see `medicina_usar` in
-# tools/runtime/medicina.s. This draws the HP passed in `hp`, so after healing
+# HP and the quantity up to date: see `medicine_use` in
+# tools/runtime/medicine.s. This draws the HP passed in `hp`, so after healing
 # it is enough to pass the new ones.
 TARGET_LEFT = 104
 TARGET_NAME_HEIGHT = 48
@@ -1158,7 +1158,7 @@ TARGET_COUNT_COL = TARGET_NAME_COL + TARGET_NAME_WIDTH - 2    # 10
 # the HP letters.
 TARGET_BAR = (MENU_TEXT_X - 4, 2, WIDTH - MENU_TEXT_X, 3 * LINE - 2)
 # BG1's colors go in 128..143: they are those of sprite palette 0, which on
-# this screen are off, and which `menu_exp_cerrar` restores on closing the
+# this screen are off, and which `menu_exp_close` restores on closing the
 # menu. There is no room in 0..127: they are the menu bank's palettes.
 TARGET_CGRAM = 128
 TARGET_COLORS_MAX = 16
@@ -1292,7 +1292,7 @@ def render_target(sys_img, db, slots, party, chosen=0, font_id=None,
     """The actor choice as the console has to show it.
 
     It shares the party panel with the menu, so it also writes the HP:
-    `menu_grupo_pintar` paints them, which is the same routine on both
+    `menu_party_paint` paints them, which is the same routine on both
     sides. `item` is the medicine being used, with `amount` how many are
     left; without it, it is the choice of whom to equip.
     """

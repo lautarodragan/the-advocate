@@ -27,7 +27,7 @@ from rpgmaker import rm2k
 
 # The opcodes' numbers, lengths and layout. **They are not declared here**:
 # they come from `tools/protocol/events.toml`, which belongs to both sides —this
-# one and the interpreter in tools/runtime/interprete*.s— and to neither. See
+# one and the interpreter in tools/runtime/interpreter*.s— and to neither. See
 # tools/protocol/README.md.
 from port.event_opcodes import *   # noqa: F401,F403
 from port.event_opcodes import OPCODE_SIZE, opcode_size  # noqa: F401
@@ -257,7 +257,7 @@ def min_frequency(frequency, commands, repeats=False):
     """The lowest frequency a route with commands 30 and 31 goes through.
 
     It is what decides whether the route can be compiled: with frequency 1
-    the wait after a step is 256 frames and the `ruta_tras_paso` byte cannot
+    the wait after a step is 256 frames and the `route_after_step` byte cannot
     hold it, so a route that goes down that far is rejected whole.
 
     `commands` are bare codes, without operands: the two callers pass what
@@ -357,7 +357,7 @@ STEP_PER_SPEED = (4, 8, 16, 32, 64, 128)
 # `jump_speed[move_speed - 1]` per frame. At speed 4 —the hero's at the
 # start— that is 24 per frame, that is eleven frames, and **it does not
 # depend on the distance**: jumping five cells costs the same as jumping in
-# place. The ROM has the same table in `salto_por_vel`; this is the one the
+# place. The ROM has the same table in `jump_per_speed`; this is the one the
 # tests look at.
 JUMP_STEP = 256
 JUMP_PER_SPEED = (8, 12, 16, 24, 32, 64)
@@ -523,7 +523,7 @@ IGNORABLE = {
 #
 # PlayBGM changes the song that plays, and it is no longer one of these: it is
 # done, see OP_BGM. Each map uploads its audio package to ARAM, with the songs
-# its pages can turn on —`paquete_cargar`, in tools/runtime/paquete_de_audio.s—,
+# its pages can turn on —`package_load`, in tools/runtime/audio_package.s—,
 # and each sample's budget is that of its worst pack: see
 # `workflow/decisiones/un-solo-banco-de-muestras.md`. It is accepted without
 # being done only when compiling without a song registry.
@@ -561,8 +561,8 @@ WEATHER_EFFECTS = 11070
 # sound.
 #
 # What made it costly was ARAM. The effects go in each map's audio package,
-# together with its songs —`paquete_cargar`, in
-# tools/runtime/paquete_de_audio.s—, with the same per-pack budget as the
+# together with its songs —`package_load`, in
+# tools/runtime/audio_package.s—, with the same per-pack budget as the
 # music's samples: `workflow/decisiones/un-solo-banco-de-muestras.md`. One
 # that does not fit in its pack does not sound.
 #
@@ -686,10 +686,10 @@ CHANGE_HERO_TITLE = 10620
 # encounter. Nineteen occurrences on nine maps, and thirteen of them set it to
 # **zero**, which in RM2k is turning them off. Until 2026-09-27 it was left out
 # because "there are no random encounters"; there are since 2026-09-13 —see
-# `tools/runtime/encuentros.s`— and Dalia's trip to Tasgarde asked for it, the
+# `tools/runtime/encounters.s`— and Dalia's trip to Tasgarde asked for it, the
 # automatic `DaliaGoingToTasgarde` on map 66, which turns them off before
 # forcing the hero's route. It compiles to OP_ENCOUNTER_STEPS: see
-# `encuentro_pasos`.
+# `encounter_steps`.
 CHANGE_ENCOUNTER_STEPS = 11740
 
 ACCEPTED_UNDONE = {
@@ -712,7 +712,7 @@ class Songs:
 
     It is the sibling of `Messages`: the bytecode carries an index and not a
     name, and the converter is the one that resolves the index. The ROM
-    carries **the first `TEMA_TOTAL`**, which are the ones that fit in ARAM:
+    carries **the first `SONG_TOTAL`**, which are the ones that fit in ARAM:
     all of them share the samples and the shared bank lives in the SPC700's
     64 KB, which are uploaded only once at boot. A higher index is a song
     that did not fit and does not sound.
@@ -733,7 +733,7 @@ class Songs:
         # And who asks for what: the converter puts in `game_map` the index of the
         # map it is compiling, and each song and each effect is noted in its
         # own, in the order they appear. It is what builds each map's audio
-        # package: see `paquete_cargar` in tools/runtime/paquete_de_audio.s.
+        # package: see `package_load` in tools/runtime/audio_package.s.
         # And which ROM maps each one jumps to —`destinos`, indices into the
         # map table—, which is where it comes from which song may be playing
         # when a package is loaded: see `inherited_songs` in snes_convert.py.
@@ -793,8 +793,8 @@ class Songs:
         sequence of effects, when none is left to play, and the map is left
         right away. So it has no reason to fit in ARAM with those effects: it
         goes in the **separate** package, it is uploaded if there is room,
-        and if not its `PlayBGM` uploads it —see `extra_de_salida` in
-        tools/runtime/paquete_de_audio.s—. It is from 2026-09-26."""
+        and if not its `PlayBGM` uploads it —see `exit_extra` in
+        tools/runtime/audio_package.s—. It is from 2026-09-26."""
         return [t for t, is_exit in self.exits.get(game_map, {}).items() if is_exit]
 
     def sound(self, name, volume, tempo, balance, in_package=True):
@@ -951,12 +951,12 @@ def sprite_associations(game_maps, extra=()):
 # OP_SHAKE: power (byte), speed (byte), frames (word):
 #     `ShakeOnce`. With zero frames it is `ShakeEnd`: the
 #     screen goes back to its place. The math is
-#     `sacudida_tick` in tools/runtime/camara.s.
+#     `shake_tick` in tools/runtime/camera.s.
 #
 # OP_FLASH_SCREEN: r, g, b, power (a byte each, 0..31) and frames
 #     (byte): `FlashOnce`, the whole-screen flash. The
-#     math is `destello_tick` in
-#     tools/runtime/destello_de_pantalla.s.
+#     math is `flash_tick` in
+#     tools/runtime/screen_flash.s.
 #
 # OP_IF: kind (byte), operand (word), polarity (byte),
 #     destination (word):
@@ -980,8 +980,8 @@ def sprite_associations(game_maps, extra=()):
 # OP_SAVE: no operands: the save to the cartridge's SRAM.
 #     It is `OpenSaveMenu`, but without a menu: there is
 #     a single slot and the event overwrites it. What is
-#     saved is said by `partida_tabla` in
-#     tools/runtime/banco1.s, which is the only place
+#     saved is said by `save_table` in
+#     tools/runtime/bank1.s, which is the only place
 #     where it is written. It costs no frame: in RM2k the
 #     menu blocks, and here there is nothing to look at.
 #
@@ -991,7 +991,7 @@ def sprite_associations(game_maps, extra=()):
 #     whole value: there is a command that gives exactly
 #     that.
 #
-#     The ROM clamps to [0, ORO_MAX] like
+#     The ROM clamps to [0, GOLD_MAX] like
 #     `Game_Party::GainGold`. There is still nowhere to
 #     show it —the menu does not exist— but there is who
 #     asks for it: the gold branch of `ConditionalBranch`.
@@ -1014,7 +1014,7 @@ def sprite_associations(game_maps, extra=()):
 #     OP_IF's, and each option's body ends in an OP_GOTO
 #     to the end of the choice.
 #
-# OP_PAN: operation (byte: PAN_CORRER or PAN_VOLVER), how far
+# OP_PAN: operation (byte: PAN_RUN or PAN_RETURN), how far
 #     the destination moves in x and in y (a signed word
 #     each, in 1/16 of a pixel), the step per frame
 #     (byte) and whether the page waits (byte).
@@ -1041,7 +1041,7 @@ def sprite_associations(game_maps, extra=()):
 #     `fade_step` does it.
 #
 # OP_BGM: the song's index in `Songs` (byte). The ROM plays the
-#     ones it carried —the first `TEMA_TOTAL`— and with
+#     ones it carried —the first `SONG_TOTAL`— and with
 #     any other it does nothing. See `Songs`.
 #
 # OP_TIMER: operation (byte), seconds (word), visible (byte).
@@ -1061,7 +1061,7 @@ def sprite_associations(game_maps, extra=()):
 # Sixteen bits are enough because the block has to fit in a 32 KB bank:
 # `lda [msg_ptr], y` reads it with a pointer that increments one byte at a
 # time and does **not** carry into the bank byte, so `bloque()` emits it with
-# `.bloque`, which keeps it whole in one bank. If some day it does not fit,
+# `.block`, which keeps it whole in one bank. If some day it does not fit,
 # what has to grow is the pointer, not the operand.
 
 # TimerOperation. The parameters are (operation, where the seconds come from,
@@ -1129,10 +1129,10 @@ BRIGHTNESS_MAX = 15
 # Wick's hideout: zoom (16) to go to the vidcasts, mosaic (17) inside, and fade
 # (0) on the way back. It is state that crosses the teleport, and in RM2k it
 # travels in the save; here it does not —see `TRANSITION_ERASE` in
-# tools/runtime/ram_lejana.s—.
+# tools/runtime/far_ram.s—.
 #
 # The ROM does two: **the mosaic**, with the PPU's MOSAIC register tied to the
-# brightness ramp —like the battle's, `fundido_de_pelea.s`, and for the same
+# brightness ramp —like the battle's, `battle_fade.s`, and for the same
 # reason: the map load has to fall inside the black—, and **the fade**, which
 # is what goes for the ones the console does not do (the zoom is mode 7, and
 # the map is in mode 3): taro decided it on 2026-09-26. See
@@ -1180,7 +1180,7 @@ def fade_ramp():
 
     It is a rounded straight line over the sixteen steps the master
     brightness has. The ROM does not compute it: the converter emits it in
-    `mapdata.inc` as `fundido_rampa`, so the number lives in a single
+    `mapdata.inc` as `fade_ramp`, so the number lives in a single
     place.
     """
     last = FADE_RAMP - 1
@@ -1206,7 +1206,7 @@ TRIGGERS = (TRIGGER_ACTION, TRIGGER_TOUCH_HERO, TRIGGER_AUTOSTART,
 # `SetFacing(GetDirectionToCharacter(GetPlayer()))` of
 # `Game_Event::ScheduleForegroundExecution`. Since 2026-09-11 it is done, on
 # both sides —before, it answered facing wherever it was—. The rules, which
-# the ROM follows in `giro_disparar` and company:
+# the ROM follows in `turn_fire` and company:
 #
 # * It turns if its page turns —a CharSet and an animation that does not fix
 #   the direction, `pagina["gira"]`— and it has no route: with a route, the
@@ -1417,7 +1417,7 @@ class Messages:
         """How many pauses that box carries and whether it closes on its own.
 
         It comes from **the same bytes the ROM reads** and not from a
-        parallel dictionary: `msg_empezar` decodes that header byte with the
+        parallel dictionary: `msg_start` decodes that header byte with the
         same masks. A format read in two different ways is exactly the
         failure mode this repo has already paid for twice.
         """
@@ -1457,7 +1457,7 @@ class Messages:
 #     bits 4-7   how many pauses, from 0 to 15: the `\|`s
 #
 # The order is not arbitrary: the lines go at the bottom because it is what
-# the ROM reads in the compositor's loop —`and #CABECERA_LINEAS` and done— and
+# the ROM reads in the compositor's loop —`and #HEADER_LINES` and done— and
 # the pauses at the top because they are read only once, on opening, where an
 # extra `lsr` does not show.
 HEADER_LINES = 0x07
@@ -1472,8 +1472,8 @@ HEADER_AUTO_CLOSE = 0x08
 # multiplication by three in the ROM) and a 24-bit operand (no padding but one
 # more byte for each `OP_MESSAGE`, which outnumber the boxes), and neither
 # saves what it complicates: see `workflow/tasks/*/mundo-3-el-espacio.md`.
-# `msg_empezar` multiplies it by four, and an `.assert` there enforces that
-# both sides of the math are the same: `MENSAJES_TOPE`.
+# `msg_start` multiplies it by four, and an `.assert` there enforces that
+# both sides of the math are the same: `MESSAGES_CAP`.
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 MESSAGES_STEP = 4
@@ -1609,7 +1609,7 @@ COND_GOLD = 3
 # 2026-09-10— so the line above is stale: the item branch is
 # `GetItemCount(id) > 0`, exactly the same question as the page condition by
 # item, which the ROM already answers by reading `FAR_ITEMS`. Equipment does
-# not count, as in `condiciones_ok`: `GetEquippedItemCount` asks for
+# not count, as in `conditions_ok`: `GetEquippedItemCount` asks for
 # equipment, which there is none.
 COND_ITEM = 4
 COND_ACTOR = 5
@@ -1625,13 +1625,13 @@ COND_ACTOR = 5
 # game, the four together cut **zero** pages.
 COND_ACTOR_IN_PARTY = 0
 # `actor->IsSkillLearned(p[3])`. Since 2026-09-21 it is state: the bit of the
-# (actor, skill) pair in `FAR_HAB`, which starts with what
+# (actor, skill) pair in `FAR_SKILL`, which starts with what
 # `rules.learned_skills` says from the LDB and which `ChangeSkills` turns on
 # and off. The operand that travels is the pair's slot and not the skill; see
 # `SKILL_SLOT`.
 COND_ACTOR_SKILL = 4
 # easyrpg's five `Get*Id()`s compared against `p[3]`: weapon, shield, armor,
-# helmet and accessory. This **is** real state —`FAR_EQUIPO`, which the
+# helmet and accessory. This **is** real state —`FAR_EQUIPMENT`, which the
 # equipment screen writes and which travels in the save— and it starts from
 # the LDB's `initial_equipment`. Asking about item 0 says yes as soon as there
 # is an empty slot, which is what RM2k does; no page of the game does it.
@@ -1713,7 +1713,7 @@ ITEMS_N = 451       # the LDB's 450 items plus 0, which is not used;
 ITEM_MAX = 99
 # `ChangeSaveAccess`, `ChangeMainMenuAccess` and `ChangeEscapeAccess`, since
 # there is a pause menu: **the bit** of the permission and whether it stays
-# allowed. The ROM stores it in `FAR_ACCESO`. Saving from the save point does
+# allowed. The ROM stores it in `FAR_ACCESS`. Saving from the save point does
 # not look at it, like `OpenSaveMenu` in RM2k.
 #
 # The operand is the bit and not the permission's number, and that is from the
@@ -1722,7 +1722,7 @@ ITEM_MAX = 99
 # other two things at once. With the bit set by the converter the opcode has
 # no math to do and accepts whatever permissions are needed.
 #
-# OP_ACCESS: the bit in FAR_ACCESO (byte), allowed (byte)
+# OP_ACCESS: the bit in FAR_ACCESS (byte), allowed (byte)
 # HP, SP and states. Until 2026-09-12 outside battle they never went down
 # —measured over the 328 maps: the 11 `ChangeHP`s add, the 16
 # `ChangeCondition`s remove a state and the 54 `FullHeal`s fill up— so the
@@ -1813,8 +1813,8 @@ def rain_pixels(x, y):
 # single one at a time —`Game_Screen::ShowBattleAnimation` replaces the
 # previous one— and it advances once per frame **before** the flashes, which
 # is where `Game_Screen::Update` puts it. With "wait", the page waits for as
-# long as it lasts: two frames per animation frame. See `animacion_tick` in
-# tools/runtime/animacion_de_batalla.s.
+# long as it lasts: two frames per animation frame. See `battle_anim_tick` in
+# tools/runtime/battle_animation.s.
 #
 # The flash is not exactly RM2k's: there the power is
 # `min((7 - (d + 1) / 2) * potencia / 6, 31)` for ten frames, in steps; here
@@ -1827,7 +1827,7 @@ ANIM_ENTRY_BYTES = 8
 ANIM_SOUND, ANIM_SCREEN_FLASH, ANIM_FLASH = 0, 1, 2
 # Ten, which is how long RM2k's lasts, and **even** on purpose: the screen
 # flash works in two phases according to the parity of what it has left —see
-# `destello_tick`—, and a `FlashScreen` of the game always lasts tenths times
+# `flash_tick`—, and a `FlashScreen` of the game always lasts tenths times
 # six. With eleven the first phase was the even one, a path no page takes and
 # that therefore tests nothing: `animacion` showed it.
 ANIM_FLASH_FRAMES = 10
@@ -1835,7 +1835,7 @@ ANIMATIONS = {}
 # The **drawing**, since 2026-09-12. The opcode carries two more bytes: the
 # RM2k animation number as is —180 at most, so it fits in one— and what it is
 # drawn over. The number goes raw and not as an index of ours on purpose: the
-# ROM looks it up in `anim_batalla_de`, a table by number, so neither end has
+# ROM looks it up in `anim_battle`, a table by number, so neither end has
 # to carry a counter the other one guesses. See `animation.py`.
 #
 # `ANIM_NO_DRAWING` is "this animation is not drawn", and it is used by the
@@ -1894,7 +1894,7 @@ PICTURE_FRAMES_MAX = 255
 # at all the pages, and if the bytecode carried the index, the same number
 # would mean another troop depending on which maps each ROM carries. With the
 # RM2k number inside, a page's bytecode is always the same; the ROM resolves
-# it by looking it up in `tropa_id`, and a troop that is not there is a battle
+# it by looking it up in `troop_id`, and a troop that is not there is a battle
 # that does not happen and goes out through the victory branch.
 #
 # The destinations are **absolute within the page**, like `OP_IF`'s. A
@@ -1915,7 +1915,7 @@ BATTLE_LOSE = 0xFFFF
 # hero and on each event, and what cancelling means is written only once: it
 # is **the same as what happens when the route ends on its own** —whoever had
 # a page route of its own goes back to it, whoever did not stands still— and
-# that is why the ROM calls `retomar_pagina`.
+# that is why the ROM calls `resume_page`.
 #
 # What it **does not** touch, same as `CancelMoveRoute`: the step or jump in
 # progress are finished, and where each one faces stays where the route left
@@ -1932,7 +1932,7 @@ BATTLE_LOSE = 0xFFFF
 # it have this item equipped?" and "does it know this skill?". They do not fit
 # because they carry **two** operands —the actor and the item or the skill—
 # and `OP_IF` has a single one; the actor fits in a byte because the LDB has
-# 60 and `ACTORES_N` counts them, and the data does not, because the items go
+# 60 and `ACTORS_N` counts them, and the data does not, because the items go
 # up to 450.
 #
 # It carries no polarity: RM2k gives none to these two —the branch below is
@@ -1970,7 +1970,7 @@ CHANGE_PBG = 11720
 #   numbering.
 # * **It is stored per actor and shows only if that actor leads.** The one
 #   that does not lead is not drawn, so the change stays waiting; the ROM
-#   resolves it in `elegir_grafico_heroe`, which is the only one that decides
+#   resolves it in `pick_hero_graphic`, which is the only one that decides
 #   what the hero is drawn with.
 #
 # And one thing that **is not** done: if the graphic is not in the map's
@@ -2012,7 +2012,7 @@ CHANGE_PBG = 11720
 # opcodes and not a state byte because the interpreter has nowhere to keep
 # it: the one that waits **rewinds its own cursor** and runs again frame after
 # frame, so it cannot tell the first turn from the others.
-KEY_WAIT   = 0x01    # bit 0 on purpose: `tecla_valor` reads it with an `lsr`
+KEY_WAIT   = 0x01    # bit 0 on purpose: `key_value` reads it with an `lsr`
 KEY_DIRS     = 0x02
 KEY_DECISION = 0x04
 KEY_CANCEL = 0x08
@@ -2055,7 +2055,7 @@ KEY_VALUE_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
 #     which —`PLACE_JUMP`—, and when recalling bits 7, 6 and 5 are the
 #     VAR_REFRESH of each of the three writes. **The map in the variable is
 #     the RM2k id**, which is what any other page reads and writes; the ROM
-#     translates it with `mapa_rm2k`. They unlock 55 pages of Lashe City's
+#     translates it with `map_rm2k`. They unlock 55 pages of Lashe City's
 #     milestone 3 —the plant's floors, 28 on 60 and 26 on 62, and the droid
 #     tutorial— and they are what holds back the most pages in the whole
 #     game.
@@ -2366,7 +2366,7 @@ FULL_HEAL = 10490
 CHANGE_MENU_ACCESS = 11960
 CHANGE_ESCAPE_ACCESS = 11840
 ACCESS_SAVE, ACCESS_MENU, ACCESS_ESCAPE = 0, 1, 2
-# Each one's bit in `FAR_ACCESO`, and the bits mean "forbidden" so that the
+# Each one's bit in `FAR_ACCESS`, and the bits mean "forbidden" so that the
 # reset's zero is "everything allowed", which is how RM2k starts. $80 is the
 # menu request —`menu_calling`— and it is not a permission.
 ACCESS_BIT = (0x01, 0x02, 0x04)
@@ -2576,8 +2576,8 @@ COMMON_EVENTS = {}            # RM2k common event -> its commands
 # enough to run it **when they change**: when the switch turns on —the
 # converter pastes the body after the `ControlSwitches` that turns it on, like
 # a `CallEvent`— and when closing the menu, which is where the equipment is
-# changed —the ROM runs it from `menu_pantalla`, see `comunes_del_equipo` in
-# tools/runtime/equipo_desde_eventos.s—. It is what the droid tutorial says:
+# changed —the ROM runs it from `menu_screen`, see `equipment_commons` in
+# tools/runtime/equipment_from_events.s—. It is what the droid tutorial says:
 # "these abilities become available once you equip a particular component and
 # exit the menu".
 #
@@ -2724,7 +2724,7 @@ def index_terms(game_dir):
 #
 # OP_SKILL: pair slot (word), learns (byte: 1 learns, 0 forgets)
 SKILL_SLOT = {}   # (actor, skill) -> slot
-# The ceiling: the bits live in `FAR_HAB`, which has 256 bytes in the far RAM
+# The ceiling: the bits live in `FAR_SKILL`, which has 256 bytes in the far RAM
 # map. Today the game uses far fewer; if some day they are not enough, the
 # converter stops instead of overwriting the neighbor.
 SKILL_SLOTS_MAX = 256 * 8
@@ -2797,7 +2797,7 @@ def index_skills(game_dir, extra=()):
     SKILL_SLOT.clear()
     SKILL_SLOT.update(skill_pairs(game_dir, extra))
     if len(SKILL_SLOT) > SKILL_SLOTS_MAX:
-        raise SystemExit("there are %d skill pairs and `FAR_HAB` holds %d"
+        raise SystemExit("there are %d skill pairs and `FAR_SKILL` holds %d"
                          % (len(SKILL_SLOT), SKILL_SLOTS_MAX))
     return dict(SKILL_SLOT)
 
@@ -3048,12 +3048,12 @@ class Troops:
 # --- the troops' event pages -------------------------------------------------
 #
 # `Game_Interpreter_Battle`: each troop brings its pages, and the battle runs
-# them **with the same interpreter as the maps**, `correr_codigo`, so they are
+# them **with the same interpreter as the maps**, `run_code`, so they are
 # compiled with the same `compile_page`. The only thing that changes is
 # what is accepted: see `TROOP_COMMANDS`.
 #
 # When each one runs is decided by the ROM and it is copied from
-# `Scene_Battle_Rpg2k`; see `ba_pag_probar` in tools/runtime/batalla_tropa.s.
+# `Scene_Battle_Rpg2k`; see `ba_page_test` in tools/runtime/battle_troop.s.
 
 # The battle's three branch commands, with their map twin. Of the six
 # questions of `CommandConditionalBranchBattle` the game uses **only two** —the
@@ -3068,7 +3068,7 @@ BATTLE_BRANCH_KINDS = (COND_SWITCH, COND_VARIABLE)
 
 # `ShowHiddenMonster`, which only exists in battle: the troop member in that
 # place —from 0, in troop order— stops being hidden. See OP_SHOW_ENEMY and
-# `ba_mostrar_oculto`.
+# `ba_show_hidden`.
 SHOW_HIDDEN_MONSTER = 13150
 
 # What a troop page can do in this port. **It is a list of the ones that do,
@@ -3079,10 +3079,10 @@ SHOW_HIDDEN_MONSTER = 13150
 #
 # `PlaySound` sounds in the battle's audio package if its effect fits there
 # —see `TroopPages.compile`—, and `ShakeScreen` moves the scene: see
-# `ba_sacudir`. Its wait, an OP_DELAY, is counted by `ba_pag_paso`.
+# `ba_shake`. Its wait, an OP_DELAY, is counted by `ba_page_step`.
 #
 # The ones left out that the game uses, in case someone wants to add them:
-# `ChangeHP` and `FullHeal` —in battle HP lives in `BA_UNO` and `FAR_HP` is
+# `ChangeHP` and `FullHeal` —in battle HP lives in `BA_ONE` and `FAR_HP` is
 # overwritten when closing it—, `ChangePartyMembers`, `ChangeEquipment`,
 # `Wait`, `TintScreen` and five of the six that only exist in battle.
 TROOP_COMMANDS = ({END, SHOW_MESSAGE, SHOW_MESSAGE_2, CONTROL_SWITCHES,
@@ -3091,7 +3091,7 @@ TROOP_COMMANDS = ({END, SHOW_MESSAGE, SHOW_MESSAGE_2, CONTROL_SWITCHES,
                    COND_BRANCH, COND_ELSE, COND_END} | IGNORABLE)
 
 # Which triggers the ROM knows how to look at, with their bit in
-# `tpag_flags`: RM2k's six. The three from 2003 —an actor's or an enemy's
+# `tpage_flags`: RM2k's six. The three from 2003 —an actor's or an enemy's
 # turn, fatigue and an actor's command— do not exist in a 2000 game, and a
 # page that asked for them is left out.
 TROOP_TRIGGER_SWITCH_A = 0x01
@@ -3107,14 +3107,14 @@ TROOP_TRIGGERS = {"switch_a": TROOP_TRIGGER_SWITCH_A,
                   "enemy_hp": TROOP_TRIGGER_ENEMY,
                   "actor_hp": TROOP_TRIGGER_ACTOR}
 # How many pages of a troop the battle notes as "already ran this turn", one
-# byte each in `BA_PAG_HECHA`. It is a far RAM cap and not the game's: the
+# byte each in `BA_PAGE_DONE`. It is a far RAM cap and not the game's: the
 # converter stops if any troop goes over.
 TROOP_PAGES_MAX = 32
 
 # The triggers that carry a **header**: the turn and HP numbers do not go in
 # per-page tables in bank 1 —which no longer has room for ten bytes for each
-# of the five hundred— but in front of the page's code, in `tropa_codigo`,
-# which is in RODATA. See `troop_header` and `ba_pag_cabecera`.
+# of the five hundred— but in front of the page's code, in `troop_code`,
+# which is in RODATA. See `troop_header` and `ba_page_header`.
 TROOP_WITH_HEADER = (TROOP_TRIGGER_TURN | TROOP_TRIGGER_ENEMY
                      | TROOP_TRIGGER_ACTOR)
 TROOP_HEADER_BYTES = 10
@@ -3125,7 +3125,7 @@ def troop_header(trigger):
     the turn or the HP: the turn's base and multiple, a word each, and the
     enemy's place, the actor and their ranges, a byte each. Empty if it looks
     at none of that. The order is `BA_COND`'s in
-    tools/runtime/ram_lejana.s."""
+    tools/runtime/far_ram.s."""
     if not trigger.flags & TROOP_WITH_HEADER:
         return b""
     d = trigger
@@ -3237,7 +3237,7 @@ class TroopPages:
     troop —4588 pages and 295 distinct bodies—, so the key is the already
     compiled bytecode, same as `Materials` with the map's blocks.
 
-    The messages go to **their own block**, `mensajes_tropa`, and not to the
+    The messages go to **their own block**, `messages_troop`, and not to the
     maps': `OP_MESSAGE` carries a sixteen-bit offset and the maps' block of
     the test cartridge is already around 65 KB. The battle draws them on its
     screen and not in the map's window, so reading them from elsewhere costs
@@ -3654,8 +3654,8 @@ def _patch(pieces, open_at, dest):
 CELL_DEST_A = 10
 CELL_DEST_B = 16
 # The top two bits of each `OP_CELL_TEST` write, over the variable's offset:
-# y instead of x, and the refresh. See `celda_probar` in
-# tools/runtime/interprete_celdas.s.
+# y instead of x, and the refresh. See `cell_test` in
+# tools/runtime/interpreter_cells.s.
 CELL_Y = 0x4000
 CELL_REFRESH = 0x8000
 
@@ -3671,7 +3671,7 @@ def fadable_cells(commands):
     characters touch: the forty of each lap of the race, the lights of map 11
     and some two hundred more in the game. Fused, it runs in a single turn of
     the interpreter instead of four, and it is what keeps the race at 60
-    frames: see `celda_probar` in tools/runtime/interprete_celdas.s.
+    frames: see `cell_test` in tools/runtime/interpreter_cells.s.
 
     Only the shape is looked at here; whether the operands compile is said
     by `_cell_test_piece`, which is the one that emits.
@@ -4578,7 +4578,7 @@ def _compile(cmd, map_index, messages=None, extra=(),
             # over the pad— and then, when the reference went away, because
             # nobody had looked at it again. On accepting it two things of the
             # ROM that no compiled page exercised showed up: that `op_key`
-            # looked at edges in this form too —see `tecla_valor`— and that
+            # looked at edges in this form too —see `key_value`— and that
             # a `Teleport` from a parallel page was not handled with the
             # foreground idle —see the main loop—.
             # `test_recorrido_carrera_golden.py` enforces it.
@@ -4832,7 +4832,7 @@ def _compile(cmd, map_index, messages=None, extra=(),
             if target is None:
                 raise CannotCompile()   # a vehicle, or an event that does not exist
             # **A flash on an event that shares a palette is emitted anyway.**
-            # On the console the flash is a CGRAM tint —`pintar_flash`
+            # On the console the flash is a CGRAM tint —`paint_flash`
             # uploads the whole row— so two events with the same graphic
             # flash together. Until 2026-09-13 that cut the page, and the cut
             # cost **51 pages**, measured, and one of them is map 20's
@@ -5000,7 +5000,7 @@ def _compile(cmd, map_index, messages=None, extra=(),
                 # And the hero diagonally: the ROM does not know how to do it
                 # and none of the game's 26 routes with diagonals is the
                 # hero's. Without this cut the ROM would go left —the `mover`
-                # of `paso_de_ruta` falls into `try_left` by elimination—.
+                # of `step_route` falls into `try_left` by elimination—.
                 raise CannotCompile()
             if command == ROUTE_CHANGE_GRAPHIC:
                 # The only command with an operand: after 34 goes the
@@ -5012,8 +5012,8 @@ def _compile(cmd, map_index, messages=None, extra=(),
                 # **On the hero too**, since 2026-09-12. Its graphic comes
                 # from the actor table, but the actor's twelve poses are
                 # written with the same shape as an `npc_poses` entry, so the
-                # ROM changes the pointer and that is it: see `grafico_heroe`
-                # in tools/runtime/ruta_del_heroe.s. They are +29 pages of the
+                # ROM changes the pointer and that is it: see `graphic_hero`
+                # in tools/runtime/hero_route.s. They are +29 pages of the
                 # game, and among them the three of map 8's `EV0047`, which
                 # could not be interacted with.
                 if graphics is None or len(extras) < 2:
@@ -5108,7 +5108,7 @@ def _compile(cmd, map_index, messages=None, extra=(),
     if cmd.code == SHOW_HIDDEN_MONSTER:
         # It only arrives from a troop page: see `TROOP_COMMANDS`. A place
         # the troop does not have does nothing in easyrpg —`GetEnemy` gives
-        # null—, and the ROM checks it against `BA_NENE`.
+        # null—, and the ROM checks it against `BA_KID`.
         if len(p) < 1 or not 0 <= p[0] < 256:
             raise CannotCompile("ShowHiddenMonster without a place")
         return bytes([OP_SHOW_ENEMY, p[0]])
@@ -5421,13 +5421,13 @@ def map_pages(game_map, map_index, messages=None, songs=None,
                 # never turns on. The pages below keep winning when their turn
                 # comes, which is what RM2k does while the item is not there.
                 party.append({
-                    "evento": event_number, "pagina": page_number,
+                    "event": event_number, "pagina": page_number,
                     "trigger": page.trigger,
                     "switch_a": SWITCH_IMPOSSIBLE, "switch_b": 0, "actor": 0,
                     "variable": None, "item": 0,
                     "capa": page.layer, "frecuencia": page.move_frequency,
-                    "velocidad": page.move_speed, "codigo": None,
-                    "ruta_propia": None, "grafico": None, "tile_pasa": None,
+                    "speed": page.move_speed, "codigo": None,
+                    "ruta_propia": None, "grafico": None, "tile_pass": None,
                     "gira": False,
                 })
                 continue
@@ -5468,7 +5468,7 @@ def map_pages(game_map, map_index, messages=None, songs=None,
                         TRIGGER_AUTOSTART, TRIGGER_PARALLEL):
                     code = None
             party.append({
-                "evento": event_number,
+                "event": event_number,
                 "pagina": page_number,
                 "trigger": page.trigger,
                 "switch_a": cond.ids["switch_a"] if "switch_a" in cond.active else 0,
@@ -5480,14 +5480,14 @@ def map_pages(game_map, map_index, messages=None, songs=None,
                 "item": cond.ids["item"] if "item" in cond.active else 0,
                 "capa": page.layer,
                 "frecuencia": page.move_frequency,
-                "velocidad": page.move_speed,
+                "speed": page.move_speed,
                 "codigo": code,
                 "ruta_propia": own_route(page),
                 # What the page draws and what its tile imposes on the cell:
-                # see `rm2k.collect_npcs`, and `pasa_con_evento` in
-                # tools/runtime/heroe.s, which is the one that applies them.
+                # see `rm2k.collect_npcs`, and `pass_with_event` in
+                # tools/runtime/hero.s, which is the one that applies them.
                 "grafico": graphic,
-                "tile_pasa": (rm2k.event_tile_passability(game_map, graphic[0],
+                "tile_pass": (rm2k.event_tile_passability(game_map, graphic[0],
                                                           page.layer)
                               if graphic is not None else None),
                 # Whether the event turns around toward the hero with this
@@ -5555,12 +5555,12 @@ def own_route(page):
     return {
         "ordenes": commands,
         "frecuencia": page.move_frequency,
-        "velocidad": page.move_speed,
+        "speed": page.move_speed,
         "repite": page.move_route.repeat,
         "saltable": page.move_route.skippable,
         "dir_fija": page.animation_type in (ANIM_FIXED_NOT_CONTINUOUS,
                                            ANIM_FIXED_CONTINUOUS,
                                            ANIM_FIXED_GRAPHIC),
-        "anim_continua": page.animation_type in (ANIM_CONTINUOUS_KIND,
+        "anim_continues": page.animation_type in (ANIM_CONTINUOUS_KIND,
                                                 ANIM_FIXED_CONTINUOUS),
     }

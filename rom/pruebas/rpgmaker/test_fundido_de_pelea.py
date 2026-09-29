@@ -5,10 +5,10 @@ el del mapa: la ARAM casi entera cada vez, que tarda de medio segundo a uno y
 medio según el cartucho. Hasta el 2026-09-26 eso se veía como la pantalla
 congelada —el mapa al entrar, la pelea al salir—; desde ese día la transición
 de RM2k apaga la pantalla antes de cargar y la prende después. Ver
-`runtime/fundido_de_pelea.s`.
+`runtime/battle_fade.s`.
 
 Lo que se cobra es exactamente eso: **cada cuadro en el que el paquete avanza
-se ve negro**. Que el paquete avanza lo dicen `PAQ_DEST` y `PAQ_S` —dónde va
+se ve negro**. Que el paquete avanza lo dicen `PKG_DEST` y `PKG_S` —dónde va
 la muestra que se sube y cuál es—, que cambian a lo largo de toda la carga y
 en ningún otro momento de la pelea. Negro es negro de verdad: ningún canal de
 ningún pixel por encima de cero.
@@ -33,8 +33,8 @@ class Grabador:
     def _leer_paquete(self):
         s = self.una.simbolos
         c = self.una.consola
-        return (bytes(c.ram(en_la_wram(s["PAQ_DEST"]), 2))
-                + bytes(c.ram(en_la_wram(s["PAQ_S"]), 2)))
+        return (bytes(c.ram(en_la_wram(s["PKG_DEST"]), 2))
+                + bytes(c.ram(en_la_wram(s["PKG_S"]), 2)))
 
     def cuadro(self, *botones):
         self.una.consola.hold(*botones)
@@ -62,9 +62,9 @@ def _entrar(una, tope=2000):
     grabador = Grabador(una)
     grabador.tocar_cuadros("a")         # hablarle al droide
     for _ in range(tope):
-        if una.byte("menu_abierto"):
+        if una.byte("menu_open"):
             return grabador
-        if una.byte("msg_abierto"):
+        if una.byte("msg_open"):
             grabador.tocar_cuadros("a")
         else:
             grabador.cuadro()
@@ -74,15 +74,15 @@ def _entrar(una, tope=2000):
 def _salir(una, tope=600):
     pelea = Pelea(una)
     for _ in range(6):
-        if pelea.modo() == "FIN":
+        if pelea.modo() == "END":
             break
         pelea.turno(3)
-    pelea.esperar("FIN")
-    vueltas = una.palabra("vueltas")
+    pelea.esperar("END")
+    vueltas = una.palabra("ticks")
     grabador = Grabador(una)
     grabador.tocar_cuadros("a")         # el mensaje de la victoria
     for _ in range(tope):
-        if una.palabra("vueltas") != vueltas:
+        if una.palabra("ticks") != vueltas:
             return grabador             # el mapa volvió a correr
         grabador.cuadro()
     raise AssertionError("el mapa no volvió a correr")

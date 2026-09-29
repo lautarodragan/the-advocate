@@ -44,10 +44,10 @@ def _pasar_un_cuadro(una):
     """Un toque de A cuando el mensaje terminó de componerse.
 
     Un toque que cae antes no hace nada —la ROM ignora el botón mientras
-    `msg_abierto` esté en cero—, así que se espera a que la ventana esté.
+    `msg_open` esté en cero—, así que se espera a que la ventana esté.
     """
     for _ in range(TICKS_POR_CUADRO):
-        if una.byte("msg_abierto"):
+        if una.byte("msg_open"):
             una.tocar_ticks("a")
             return
         una.correr(1)
@@ -60,7 +60,7 @@ def hasta_la_eleccion(una):
     for _ in range(CUADROS_DEL_SALUDO):
         _pasar_un_cuadro(una)
     for _ in range(TICKS_POR_CUADRO):
-        if una.byte("eleg_activo") and una.byte("msg_abierto"):
+        if una.byte("pick_active") and una.byte("msg_open"):
             return una
         una.correr(1)
     raise AssertionError("la posada no abrió su elección")

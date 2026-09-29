@@ -42,33 +42,33 @@ def a_la_pelea(una, tope=600):
     for _ in range(tope):
         una.consola.run(1)
         if una.menu_abierto():
-            return Pelea(una).esperar("ORDEN")
+            return Pelea(una).esperar("COMMAND")
     raise AssertionError("la página no abrió la pelea")
 
 
 def flags(una, k):
     s = una.simbolos
-    return una.consola.ram(s["BA_UNO"] + k * s["BA_BYTES"] + s["BA_FLAGS"],
+    return una.consola.ram(s["BA_ONE"] + k * s["BA_BYTES"] + s["BA_FLAGS"],
                            1)[0]
 
 
 def ocultos_de_la_rom(una, cuantos):
-    g = una.simbolos["BA_GRUPO_MAX"]
-    return [bool(flags(una, g + k) & una.simbolos["BAF_OCULTO"])
+    g = una.simbolos["BA_PARTY_MAX"]
+    return [bool(flags(una, g + k) & una.simbolos["BAF_HIDDEN"])
             for k in range(cuantos)]
 
 
 def dibujados(una):
-    return una.consola.ram(una.simbolos["ESC_VIS"], 1)[0]
+    return una.consola.ram(una.simbolos["SCN_VIS"], 1)[0]
 
 
 def pintado(una):
     """Cuántos bytes de la escena compuesta difieren del fondo limpio: los dos
-    búferes de 32 KB del banco $7F —`ESC_ESCENA` y `ESC_LIMPIO`—. Es lo que
+    búferes de 32 KB del banco $7F —`SCN_SCENE` y `SCN_CLEAN`—. Es lo que
     tapan los battlers que están dibujados, **en los pixeles** y no en el bit
-    de `ESC_VIS`, que podría decir una cosa y la escena otra."""
-    limpio = una.consola.ram(una.simbolos["ESC_LIMPIO"] & 0x1FFFF, 0x8000)
-    escena = una.consola.ram(una.simbolos["ESC_ESCENA"] & 0x1FFFF, 0x8000)
+    de `SCN_VIS`, que podría decir una cosa y la escena otra."""
+    limpio = una.consola.ram(una.simbolos["SCN_CLEAN"] & 0x1FFFF, 0x8000)
+    escena = una.consola.ram(una.simbolos["SCN_SCENE"] & 0x1FFFF, 0x8000)
     return sum(1 for a, b in zip(limpio, escena) if a != b)
 
 
@@ -90,7 +90,7 @@ def paginas_del_modelo(base, tropa):
 def turno_contando(una, pelea, ordenes, tope=3000, cada_cuadro=None):
     """Da las órdenes —una tupla de `Pelea.ordenar` por actor vivo— y pasa el
     turno hasta que vuelve a pedir órdenes o termina. Devuelve los mensajes de
-    página que salieron, en orden, y el `BA_TURNO` con que salió cada uno.
+    página que salieron, en orden, y el `BA_TURN` con que salió cada uno.
     `cada_cuadro()` corre antes de cada cuadro del turno."""
     for orden in ordenes:
         pelea.ordenar(orden)
@@ -99,13 +99,13 @@ def turno_contando(una, pelea, ordenes, tope=3000, cada_cuadro=None):
     for n in range(tope):
         if cada_cuadro:
             cada_cuadro()
-        if pelea.modo() in ("ORDEN", "FIN"):
+        if pelea.modo() in ("COMMAND", "END"):
             return vistos
-        msg = pelea.palabra(una.simbolos["BA_PAG_MSG"])
-        if pelea.modo() == "PAGINA" and msg != 0xFFFF and msg != antes:
+        msg = pelea.palabra(una.simbolos["BA_PAGE_MSG"])
+        if pelea.modo() == "PAGE" and msg != 0xFFFF and msg != antes:
             vistos.append((mensaje_en_pantalla(una, pelea),
-                           pelea.palabra(una.simbolos["BA_TURNO"])))
-        antes = msg if pelea.modo() == "PAGINA" else 0xFFFF
+                           pelea.palabra(una.simbolos["BA_TURN"])))
+        antes = msg if pelea.modo() == "PAGE" else 0xFFFF
         una.consola.hold(*(("a",) if n % 6 < 2 else ()))
         una.consola.run(1)
     raise AssertionError("el turno no terminó")
@@ -162,7 +162,7 @@ def test_el_rat_king_empieza_solo_y_llama_a_sus_ratas(partida):
     esperado = modelo_de(base, (AG7,), TROPA_RAT_KING,
                          pages=paginas_del_modelo(base, TROPA_RAT_KING))
     esperado.start()
-    g = una.simbolos["BA_GRUPO_MAX"]
+    g = una.simbolos["BA_PARTY_MAX"]
     assert ocultos_de_la_rom(una, 3) == [False, True, True]
     una.consola.run(4)
     assert dibujados(una) == 0b001, "al empezar se dibuja sólo el rey"
@@ -171,7 +171,7 @@ def test_el_rat_king_empieza_solo_y_llama_a_sus_ratas(partida):
     aparecio = {}
     dichos = []
     for turno in range(1, 20):
-        if pelea.modo() == "FIN":
+        if pelea.modo() == "END":
             break
         blanco = [i for i, e in enumerate(esperado.enemies) if e.alive][0]
         dichos += [m for m, _t in turno_contando(una, pelea, [("atacar", 0)])]
@@ -193,7 +193,7 @@ def test_el_rat_king_empieza_solo_y_llama_a_sus_ratas(partida):
         una.consola.run(30)      # lo que tarda en subir un battler
         pintados[turno] = pintado(una)
         vivos = sum(1 << k for k, e in enumerate(esperado.enemies) if e.alive)
-        if pelea.modo() != "FIN":
+        if pelea.modo() != "END":
             assert dibujados(una) == vivos, (
                 "turno %d: la escena dibuja $%02X y en la pelea están $%02X"
                 % (turno, dibujados(una), vivos))
@@ -224,19 +224,19 @@ def test_un_oculto_no_es_blanco_ni_cuenta_para_ganar(partida):
     for _ in range(5):
         pelea.tocar_cuadros("left")
     pelea.tocar_cuadros()
-    pelea.esperar("BLANCO")
-    primero = pelea.byte("BA_BLANCO")
+    pelea.esperar("TARGET")
+    primero = pelea.byte("BA_TARGET")
     for _ in range(3):
         pelea.tocar_cuadros("down")
-        assert pelea.byte("BA_BLANCO") == primero, \
+        assert pelea.byte("BA_TARGET") == primero, \
             "el cursor de blanco llegó a una rata oculta"
     pelea.tocar_cuadros("b")
-    pelea.esperar("ORDEN")
+    pelea.esperar("COMMAND")
     for _ in range(30):
-        if pelea.modo() == "FIN":
+        if pelea.modo() == "END":
             break
         turno_contando(una, pelea, [("atacar", 0)])
-    assert pelea.modo() == "FIN"
+    assert pelea.modo() == "END"
     assert pelea.byte("BA_RESULT") == modelo.VICTORY
     assert ocultos_de_la_rom(una, 3) == [False, True, True]
     esperado = modelo_de(base, (KERSH,), TROPA_RAT_KING)
@@ -265,31 +265,31 @@ def test_el_despegue_sale_en_el_turno_uno_con_su_sacudida(partida):
     despegue = la_pagina_del_despegue(base)
     una = partida(caso="pelea-102")
     pelea = a_la_pelea(una)
-    assert pelea.palabra(una.simbolos["BA_PAG_MSG"]) == 0xFFFF, \
+    assert pelea.palabra(una.simbolos["BA_PAGE_MSG"]) == 0xFFFF, \
         "en el turno 0 no hay ningún mensaje de página"
     pelea.ordenar(("defender",))
     # La sacudida, antes del mensaje.
     sacudio = False
     for _ in range(400):
-        if pelea.palabra(una.simbolos["BA_PAG_MSG"]) != 0xFFFF:
+        if pelea.palabra(una.simbolos["BA_PAGE_MSG"]) != 0xFFFF:
             break
-        if una.palabra("sacudida_resta"):
+        if una.palabra("shake_remain"):
             sacudio = True
         una.consola.run(1)
     assert sacudio, "el ShakeScreen de la página no sacudió"
-    assert pelea.modo() == "PAGINA"
-    assert pelea.palabra(una.simbolos["BA_TURNO"]) == 1
-    hpmax = pelea.palabra(una.simbolos["BA_UNO"] + una.simbolos["BA_HPMAX"])
+    assert pelea.modo() == "PAGE"
+    assert pelea.palabra(una.simbolos["BA_TURN"]) == 1
+    hpmax = pelea.palabra(una.simbolos["BA_ONE"] + una.simbolos["BA_HPMAX"])
     assert pelea.hp_del_combatiente(0) == hpmax, \
         "la página corre antes de la primera acción: nadie le pegó a Kersh"
     assert mensaje_en_pantalla(una, pelea) == lo_que_dicen(despegue)[0]
     # Y en el turno 2, nada.
     for n in range(3000):
-        if pelea.modo() in ("ORDEN", "FIN"):
+        if pelea.modo() in ("COMMAND", "END"):
             break
         una.consola.hold(*(("a",) if n % 6 < 2 else ()))
         una.consola.run(1)
-    assert pelea.modo() == "ORDEN"
+    assert pelea.modo() == "COMMAND"
     assert turno_contando(una, pelea, [("defender",)]) == []
 
 
@@ -309,15 +309,15 @@ def test_el_despegue_pide_su_efecto(partida):
         i = en_la_rom(s[simbolo]) + 2 * k
         return rom[i] | rom[i + 1] << 8
 
-    tropas = [palabra("tropa_id", k) for k in range(80)]
+    tropas = [palabra("troop_id", k) for k in range(80)]
     k = tropas.index(TROPA_AGENTES)
-    ini, n = palabra("tropa_pag_ini", k), rom[en_la_rom(s["tropa_pag_n"]) + k]
+    ini, n = palabra("troop_page_init", k), rom[en_la_rom(s["troop_page_n"]) + k]
     con_turno = [j for j in range(ini, ini + n)
-                 if rom[en_la_rom(s["tpag_flags"]) + j] & s["TPAG_TURNO"]]
+                 if rom[en_la_rom(s["tpage_flags"]) + j] & s["TPAGE_TURN"]]
     codigos = []
     for j in con_turno:
-        ofs = palabra("tpag_cod", j) - (s["tropa_codigo"] & 0xFFFF)
-        codigos.append(rom[en_la_rom(s["tropa_codigo"]) + ofs:][:3])
+        ofs = palabra("tpage_code", j) - (s["troop_code"] & 0xFFFF)
+        codigos.append(rom[en_la_rom(s["troop_code"]) + ofs:][:3])
     import json
     import os
     with open(os.path.join(os.path.dirname(una.sfc), "efectos.json")) as f:
@@ -345,7 +345,7 @@ def test_la_pagina_de_los_lazer_teeth_vuelve_cada_tres_turnos(partida):
 
     def llenos():
         for k in range(2):
-            d = s["BA_UNO"] + k * s["BA_BYTES"]
+            d = s["BA_ONE"] + k * s["BA_BYTES"]
             una.consola.write_ram(d + s["BA_HP"],
                                   una.consola.ram(d + s["BA_HPMAX"], 2))
 
@@ -355,7 +355,7 @@ def test_la_pagina_de_los_lazer_teeth_vuelve_cada_tres_turnos(partida):
                                 cada_cuadro=llenos)
         salieron[turno] = [m for m, t in vistos]
         assert all(t == turno for _m, t in vistos)
-        assert pelea.modo() == "ORDEN"
+        assert pelea.modo() == "COMMAND"
     esperados = {t: (lo_que_dicen(primera)
                      if modelo._turns(t, 1, 3) else [])
                  for t in range(1, 6)}

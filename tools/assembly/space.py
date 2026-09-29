@@ -21,14 +21,14 @@ What it prints, and where each thing comes from:
   banks `$7E`/`$7F` are not ROM.
 * **Gaps**: what is left over inside the used ones. With `banks.py`'s
   packing almost all of it is the end of the last one; see `resolve`.
-* **Bank 0**: the `.cfg`'s `ROM` area minus `CODE` and `TABLAS`, which share
+* **Bank 0**: the `.cfg`'s `ROM` area minus `CODE` and `TABLES`, which share
   it.
-* **Bank 1**: what the `.align $8000` in `cabecera.s` pads, which is what
+* **Bank 1**: what the `.align $8000` in `header.s` pads, which is what
   closes `FAR`. It is recognized by the source line and not by the position:
   if `FAR` filled the bank exactly, there would be no padding and it would
   give zero.
 * **BSS and ZEROPAGE**: their `.cfg` areas minus what they take.
-* **Texts**: `MENSAJES_BYTES` against `MENSAJES_TOPE`, which the converter
+* **Texts**: `MESSAGES_BYTES` against `MESSAGES_CAP`, which the converter
   emits next to the block; see `events.MESSAGES_STEP`.
 """
 
@@ -67,12 +67,12 @@ def _areas(cfg):
 
 
 def _far_padding(dbg):
-    """How much the `.align $8000` in `cabecera.s` pads, in bytes."""
-    with open(os.path.join(project.runtime(), "cabecera.s")) as handle:
+    """How much the `.align $8000` in `header.s` pads, in bytes."""
+    with open(os.path.join(project.runtime(), "header.s")) as handle:
         lines = [n + 1 for n, l in enumerate(handle)
                  if l.split(";")[0].strip().startswith(".align")]
     files = {f["id"] for f in _records(dbg, "file")
-             if f["name"].endswith("cabecera.s")}
+             if f["name"].endswith("header.s")}
     spans = set()
     for line in _records(dbg, "line"):
         if line["file"] in files and int(line["line"]) in lines \
@@ -101,12 +101,12 @@ def measure(sfc):
         "free": len([b for b in data_banks if b > last]),
         "gaps": sum(gaps),
         "largest_gap": max(gaps, default=0),
-        "bank0": areas["ROM"] - used.get("CODE", 0) - used.get("TABLAS", 0),
+        "bank0": areas["ROM"] - used.get("CODE", 0) - used.get("TABLES", 0),
         "bank1": _far_padding(dbg),
         "bss": areas["RAM"] - used.get("BSS", 0),
         "zeropage": areas["ZP"] - used.get("ZEROPAGE", 0),
-        "texts": symbols.get("MENSAJES_BYTES"),
-        "texts_cap": symbols.get("MENSAJES_TOPE"),
+        "texts": symbols.get("MESSAGES_BYTES"),
+        "texts_cap": symbols.get("MESSAGES_CAP"),
     }
 
 

@@ -73,7 +73,7 @@ def test_la_referencia_lee_los_cinco_comandos_y_los_encabezados_largos():
 
 def test_un_fondo_de_mas_de_un_buffer_va_en_dos_flujos_y_de_tres_no_arma():
     """El fondo se parte en tramos de `LZ2_CAP_BACKDROP` exactos, que es lo que
-    `lz2_fondo` supone para saber cuántos tiles trae cada flujo; uno que entra
+    `lz2_backdrop` supone para saber cuántos tiles trae cada flujo; uno que entra
     en el buffer va entero, como antes. Y la ROM lee dos: con tres, el
     conversor se niega en vez de dejar un fondo a medias."""
     tope = LZ2_CAP_BACKDROP

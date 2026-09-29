@@ -283,7 +283,7 @@ techos *args: _herramientas_del_checkout
 # está —ver `docs/port/msu-datos.md`—. Las renderiza `rm2k-snes-msu` con
 # fluidsynth, y sólo las que cambiaron: una
 # pista depende del MIDI, del soundfont, del sintetizador y de cómo se
-# normaliza, no del cartucho. Con `SIN_CACHE=1` se rehacen todas.
+# normaliza, no del cartucho. Con `NO_CACHE=1` se rehacen todas.
 #
 # Que estén en `release/` no le cambia nada a la tanda, y fue lo que las tuvo
 # en otro directorio hasta el 2026-09-25: el emulador busca el `.msu` al lado

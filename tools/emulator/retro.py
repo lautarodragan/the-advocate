@@ -84,7 +84,7 @@ CORE_OPTIONS = {
     # And the entropy goes to the maximum on purpose, which is the reason this
     # core is worth it: bsnes fills the WRAM with garbage at power-on, like
     # the real console, and snes9x leaves it at zero. Commenting out the two
-    # lines that initialize `ruta_n`/`ruta_i` in tools/runtime/ —the bug taro
+    # lines that initialize `route_n`/`route_i` in tools/runtime/ —the bug taro
     # found while playing and the suite did not see— over 20 runs of map 7:
     # with "None" they differ in 0, with "Low" in 3 and with "High" in 11. With
     # the healthy ROM, 20 runs out of 20 give the same frame, so this does not

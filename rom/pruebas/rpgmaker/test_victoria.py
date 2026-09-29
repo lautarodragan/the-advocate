@@ -6,10 +6,10 @@ término de la victoria, la experiencia, el oro y un renglón por ítem que
 soltaron los enemigos, de a cuatro renglones por página; después cada actor que subió
 de nivel tiene la suya, con "<nombre> LEVEL <n> achieved!" y una línea por
 habilidad aprendida. Acá van en los cuatro renglones del grupo —ver
-`batalla_victoria.s`—.
+`battle_victory.s`—.
 
 No se compara contra una golden sino **contra el texto**: se lee el tilemap de
-la pantalla, `texto_buf`, y se traduce cada celda con la tabla de glifos del
+la pantalla, `text_buf`, y se traduce cada celda con la tabla de glifos del
 cartucho. Así la prueba dice qué renglón está mal y con qué letras, y los
 renglones esperados salen de `screens.renglon_de_*`, que es el armado de
 `game_message_terms.cpp` y lo mismo con que el conversor cobra que entren. Los
@@ -35,7 +35,7 @@ def ganar_hasta_el_fin(una, grupo):
     grupo que siguen en pie."""
     pelea = Pelea(una).abrir()
     for _ in range(30):
-        if pelea.modo() == "FIN":
+        if pelea.modo() == "END":
             return pelea
         vivos = sum(1 for k in range(len(grupo))
                     if pelea.hp_del_combatiente(k) > 0)
@@ -139,7 +139,7 @@ def test_las_habilidades_que_no_entran_siguen_en_otra_pagina(partida):
 #
 # Tres Crazed Marauder, que dan 95 de oro cada uno y sueltan una Healing
 # Draught-HP con chance 35: tres tiros de botín, uno por enemigo. **La semilla
-# la elige el modelo**: se escribe en `BA_SEM` al abrir la pelea, y es la
+# la elige el modelo**: se escribe en `BA_SEED` al abrir la pelea, y es la
 # primera con la que `battle.Battle` gana sin que caiga nadie y alguno suelta
 # su ítem y otro no. Así la prueba pasa por los dos lados del tiro y no depende
 # de que la semilla de fábrica caiga en uno. Los tres enemigos arrancan con 1
@@ -200,13 +200,13 @@ def a_los_merodeadores(partida, semilla, tope=600):
             break
     else:
         raise AssertionError("la página no abrió la pelea")
-    pelea = Pelea(una).esperar("ORDEN")
-    una.consola.write_ram(una.simbolos["BA_SEM"],
+    pelea = Pelea(una).esperar("COMMAND")
+    una.consola.write_ram(una.simbolos["BA_SEED"],
                           [semilla & 0xFF, semilla >> 8])
-    g = una.simbolos["BA_GRUPO_MAX"]
+    g = una.simbolos["BA_PARTY_MAX"]
     for k in range(3):
         una.consola.write_ram(
-            una.simbolos["BA_UNO"] + (g + k) * una.simbolos["BA_BYTES"],
+            una.simbolos["BA_ONE"] + (g + k) * una.simbolos["BA_BYTES"],
             [1, 0])
     return una, pelea
 
@@ -224,12 +224,12 @@ def test_la_victoria_da_el_oro_y_los_items_y_los_cuenta(partida):
     oro_antes = una.oro()
     items_antes = una.item(HEALING_DRAUGHT)
     for _ in range(10):
-        if pelea.modo() == "FIN":
+        if pelea.modo() == "END":
             break
         vivos = sum(1 for k in range(len(GRUPO))
                     if pelea.hp_del_combatiente(k) > 0)
         pelea.turno(vivos)
-    assert pelea.modo() == "FIN"
+    assert pelea.modo() == "END"
     assert pelea.byte("BA_RESULT") == modelo.VICTORY
     assert una.oro() == oro_antes + 285
     assert una.item(HEALING_DRAUGHT) == items_antes + len(esperado.drops), \
@@ -254,10 +254,10 @@ def test_el_item_que_sale_no_pasa_del_tope(partida):
     una.consola.write_ram(una.simbolos["FAR_ITEMS"] + HEALING_DRAUGHT,
                           [tope])
     for _ in range(10):
-        if pelea.modo() == "FIN":
+        if pelea.modo() == "END":
             break
         pelea.turno(len(GRUPO))
-    assert pelea.modo() == "FIN"
+    assert pelea.modo() == "END"
     assert esperado.drops
     assert una.item(HEALING_DRAUGHT) == tope
-    assert pelea.byte("BA_BOTIN_N") == len(esperado.drops)
+    assert pelea.byte("BA_DROP_N") == len(esperado.drops)

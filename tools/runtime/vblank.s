@@ -13,19 +13,19 @@
 .a8
 .i16
     jsr push_oam
-    lda destello_listo
-    beq sin_destello
-    jsr subir_destello          ; the flash, or the tint, go before the
+    lda flash_ready
+    beq no_flash2
+    jsr upload_flash            ; the flash, or the tint, go before the
     lda #2                      ; poses and eat into their budget in this
-    sta vq_tope                 ; same vblank
-    bra sin_tinte
-sin_destello:
-    lda tinte_listo
-    beq sin_tinte
-    jsr subir_tinte
+    sta vq_cap                  ; same vblank
+    bra no_tint
+no_flash2:
+    lda tint_ready
+    beq no_tint
+    jsr upload_tint
     lda #2
-    sta vq_tope
-sin_tinte:
+    sta vq_cap
+no_tint:
     ; And a window line waiting also eats into their budget: it is 1920 bytes
     ; in a single DMA, almost four poses. With the usual five the vblank ends
     ; in the middle and the rest of the line is written with the screen on,
@@ -34,11 +34,11 @@ sin_tinte:
     ; Lashe City on 2026-09-08 talking to the mechanic and the hobo; it showed
     ; up with the parallel events, which added nine characters that move and
     ; therefore nine poses to upload.
-    lda msg_subir
-    beq sin_renglon
+    lda msg_upload
+    beq no_line
     lda #1
-    sta vq_tope
-sin_renglon:
+    sta vq_cap
+no_line:
     ; And a map strip waiting —the row or column the camera uncovered— too:
     ; `push_strips` runs after the poses and until 2026-09-10 it did not
     ; subtract anything, so in a vblank with all five poses its DMAs landed
@@ -52,12 +52,12 @@ sin_renglon:
     ora row_addr + 1
     ora col_addr
     ora col_addr + 1
-    beq sin_tira
-    lda vq_tope
-    beq sin_tira
+    beq no_strip
+    lda vq_cap
+    beq no_strip
     dec a
-    sta vq_tope
-sin_tira:
+    sta vq_cap
+no_strip:
     ; And a step of the ChipSet animation, which also comes out of this vblank:
     ; up to 26 background tiles, that is 1664 bytes, which is more than three
     ; poses. It is subtracted from the budget instead of setting it, so it adds
@@ -66,25 +66,25 @@ sin_tira:
     ; And the 2 KB of the battle animation's frame, if the tick asked for a
     ; new one. It is the most expensive thing uploaded in a vblank —four poses
     ; of the five— and it happens once every two frames. It goes **before**
-    ; `vram_drenar` for the same reason as `anim_flush`: what it takes has to
-    ; come out of this vblank's budget, and three lines further down `vq_tope`
-    ; is already reset for the next one. See `animacion_dibujo_dma`.
-    lda f:ANIMB_SUBIR
-    beq sin_anim_cuadro
+    ; `vram_drain` for the same reason as `anim_flush`: what it takes has to
+    ; come out of this vblank's budget, and three lines further down `vq_cap`
+    ; is already reset for the next one. See `anim_drawing_dma`.
+    lda f:ANIMB_UPLOAD
+    beq no_anim_frame
     lda #0
-    sta f:ANIMB_SUBIR
-    jsr animacion_dibujo_dma
-sin_anim_cuadro:
-    jsr vram_drenar             ; the poses this OAM already takes as uploaded
-    lda #VQ_POR_CUADRO
-    sta vq_tope                 ; the coming vblank starts with everything
+    sta f:ANIMB_UPLOAD
+    jsr anim_drawing_dma
+no_anim_frame:
+    jsr vram_drain              ; the poses this OAM already takes as uploaded
+    lda #VQ_PER_FRAME
+    sta vq_cap                  ; the coming vblank starts with everything
 
     ; The flash palettes left pending from the previous frame, **all of
     ; them**: one per slot. See FAR_FLASH_PAL.
     ldx #$0000
-otro_flash:
+other_flash:
     lda flash_ev + 7, x
-    beq sin_flash
+    beq no_flash
     stz flash_ev + 7, x
     sta CGADD
     rep #$20
@@ -107,7 +107,7 @@ otro_flash:
     sta BBAD0
     lda #$01
     sta MDMAEN
-sin_flash:
+no_flash:
     rep #$20
 .a16
     txa
@@ -117,21 +117,21 @@ sin_flash:
     cmp #FLASH_MAX * FLASH_STRIDE
     sep #$20
 .a8
-    bcc otro_flash
+    bcc other_flash
 
     ; And the picture's palette, if the ramp rebuilt it this frame. It is
     ; thirty-two bytes and goes separately from the map's three: the picture's
-    ; entry falls above `SPRITE_CGRAM`, that is, outside what `subir_paletas`
+    ; entry falls above `SPRITE_CGRAM`, that is, outside what `upload_palettes`
     ; uploads.
-    lda f:CARTEL_LISTO
-    beq sin_imagen
+    lda f:PICTURE_READY
+    beq no_picture
     lda #0
-    sta f:CARTEL_LISTO
-    lda #(128 + 16 * IMAGEN_PAL)
+    sta f:PICTURE_READY
+    lda #(128 + 16 * PICTURE_PAL)
     sta CGADD
     rep #$20
 .a16
-    lda #.loword(cgram_sombra + 2 * (128 + 16 * IMAGEN_PAL))
+    lda #.loword(cgram_shadow + 2 * (128 + 16 * PICTURE_PAL))
     sta A1T0L
     lda #32
     sta DAS0L
@@ -144,22 +144,22 @@ sin_flash:
     sta BBAD0
     lda #$01
     sta MDMAEN
-sin_imagen:
+no_picture:
 
     ; And the battle animation's palette, if one just started. It is the same
     ; thirty-two bytes as the picture's and for the same reason: its entry falls
-    ; above `SPRITE_CGRAM` and `subir_paletas` does not touch it.
+    ; above `SPRITE_CGRAM` and `upload_palettes` does not touch it.
     lda f:ANIMB_PAL
-    beq sin_anim_pal
+    beq no_anim_pal
     lda #0
     sta f:ANIMB_PAL
     lda f:ANIMB_CGADD
     sta CGADD
     rep #$20
 .a16
-    lda f:ANIMB_SOMBRA
+    lda f:ANIMB_SHADOW
     clc
-    adc #.loword(cgram_sombra)
+    adc #.loword(cgram_shadow)
     sta A1T0L
     lda #32
     sta DAS0L
@@ -172,7 +172,7 @@ sin_imagen:
     sta BBAD0
     lda #$01
     sta MDMAEN
-sin_anim_pal:
+no_anim_pal:
 
     ; The two scroll registers are write-twice: first the low byte and then
     ; the high one.
@@ -180,13 +180,13 @@ sin_anim_pal:
     ; share a single latch among all planes, so interleaving the writes —BG1
     ; low, BG2 low, BG1 high, BG2 high— mixes the values and the plane ends up
     ; shifted within its cell, moving in place.
-    lda pantalla_x              ; the camera plus the shake, if any
+    lda screen_x                ; the camera plus the shake, if any
     sta BG1HOFS
-    lda pantalla_x + 1
+    lda screen_x + 1
     sta BG1HOFS
-    lda pantalla_x
+    lda screen_x
     sta BG2HOFS
-    lda pantalla_x + 1
+    lda screen_x + 1
     sta BG2HOFS
 
     lda scroll_y
@@ -209,24 +209,24 @@ sin_anim_pal:
     ; line 0 and nothing changes. What changes is from line 144 down.
     ; First the compositor: the line it left ready, and the whole window when
     ; none are left.
-    lda msg_subir
-    beq sin_subir
-    jsr subir_linea
-sin_subir:
-    lda msg_estado
+    lda msg_upload
+    beq no_upload
+    jsr upload_line
+no_upload:
+    lda msg_state
     cmp #2
-    bne no_termino
-    stz msg_estado
+    bne no_finished
+    stz msg_state
     lda #1
-    sta msg_abierto
-no_termino:
+    sta msg_open
+no_finished:
 
-    lda msg_abierto
-    beq sin_ventana
-    lda pantalla_x
+    lda msg_open
+    beq no_window
+    lda screen_x
     sta hdma_ofs + 1
     sta hdma_ofs + 6
-    lda pantalla_x + 1
+    lda screen_x + 1
     sta hdma_ofs + 2
     sta hdma_ofs + 7
     lda scroll_y
@@ -235,10 +235,10 @@ no_termino:
     lda scroll_y + 1
     sta hdma_ofs + 4
     sta hdma_ofs + 9
-    lda #HDMA_VENTANA
+    lda #HDMA_WINDOW
     sta HDMAEN
-    bra prender
-sin_ventana:
+    bra on
+no_window:
     stz HDMAEN
     ; Without HDMA the object mask stays as the last line left it, which is
     ; on: it is turned off by hand, like BG2SC down here.
@@ -260,13 +260,13 @@ sin_ventana:
     ; is, mid-frame, and on top of that with the old map's scroll and OAM,
     ; because those are also written here and only in the vblank.
     ;
-    ; Whoever wants to change the brightness writes `brillo` and waits for the
+    ; Whoever wants to change the brightness writes `brightness` and waits for the
     ; next vblank, just as whoever moves a sprite writes OAM and waits. The only
-    ; exception is a load's forced blank, which `fundido_tick` writes by hand:
+    ; exception is a load's forced blank, which `fade_tick` writes by hand:
     ; there the screen is already black and the change does not show.
-prender:
-    jsl f:fundido_mosaico       ; the teleport's, if it asks for it
-    lda brillo
+on:
+    jsl f:fade_mosaic           ; the teleport's, if it asks for it
+    lda brightness
     sta INIDISP
     rts
 .endproc
@@ -276,7 +276,7 @@ prender:
 .a8
 .i16
     stx A1T0L
-    lda tira_banco              ; 0 this pass's strip, $7E the spare one
+    lda strip_bank              ; 0 this pass's strip, $7E the spare one
     sta A1B0
     sty DAS0L
     lda #$01
@@ -298,40 +298,40 @@ prender:
     ; ones it left saved if the camera uncovered two on one axis. Each one is
     ; uploaded on its own, and an address at zero means there is none.
     ldx col_addr_b
-    beq sin_columna_b
-    stx tira_vram
-    ldx #.loword(FAR_TIRA_COL)
-    stx tira_de
-    lda #^FAR_TIRA_COL
-    sta tira_banco
-    jsr push_una_columna
-sin_columna_b:
+    beq no_column_b
+    stx strip_vram
+    ldx #.loword(FAR_STRIP_COL)
+    stx strip_of
+    lda #^FAR_STRIP_COL
+    sta strip_bank
+    jsr push_one_column
+no_column_b:
     ldx col_addr
-    beq sin_columna
-    stx tira_vram
-    ldx #.loword(tira_col)
-    stx tira_de
-    stz tira_banco
-    jsr push_una_columna
-sin_columna:
+    beq no_column
+    stx strip_vram
+    ldx #.loword(strip_col)
+    stx strip_of
+    stz strip_bank
+    jsr push_one_column
+no_column:
 
     ldx row_addr_b
-    beq sin_fila_b
-    stx tira_vram
-    ldx #.loword(FAR_TIRA_ROW)
-    stx tira_de
-    lda #^FAR_TIRA_ROW
-    sta tira_banco
-    jsr push_una_fila
-sin_fila_b:
+    beq no_row_b
+    stx strip_vram
+    ldx #.loword(FAR_STRIP_ROW)
+    stx strip_of
+    lda #^FAR_STRIP_ROW
+    sta strip_bank
+    jsr push_one_row
+no_row_b:
     ldx row_addr
-    beq sin_fila
-    stx tira_vram
-    ldx #.loword(tira_row)
-    stx tira_de
-    stz tira_banco
-    jsr push_una_fila
-sin_fila:
+    beq no_row
+    stx strip_vram
+    ldx #.loword(strip_row)
+    stx strip_of
+    stz strip_bank
+    jsr push_one_row
+no_row:
     ; All four consumed, also discarding the ones that were not uploaded for
     ; being at zero: what was not built this pass is not built on the next.
     rep #$20
@@ -345,8 +345,8 @@ sin_fila:
     rts
 .endproc
 
-; One tilemap column to VRAM: to word `tira_vram`, from `tira_de` in bank
-; `tira_banco`. It takes one DMA per layer, because the PPU can advance by 32
+; One tilemap column to VRAM: to word `strip_vram`, from `strip_of` in bank
+; `strip_bank`. It takes one DMA per layer, because the PPU can advance by 32
 ; words after each write, which is exactly what a tilemap row measures.
 ;
 ; The two variables **advance as the strip is consumed**, and `temp` is not
@@ -354,14 +354,14 @@ sin_fila:
 ; column number it is on and reads it **after** calling `push_strips`, so
 ; overwriting it breaks its loop. It cost a whole suite run with all 957
 ; visible cells different, on 2026-09-22.
-.proc push_una_columna
+.proc push_one_column
 .a8
 .i16
     lda #$81                    ; advance 32 words after the high byte
     sta VMAIN
-    ldx tira_vram
+    ldx strip_vram
     stx VMADDL
-    ldx tira_de
+    ldx strip_of
     ldy #(WINDOW_ROWS * 2)
     jsr dma_a_vram
 
@@ -372,19 +372,19 @@ sin_fila:
     ; multiples of 2048 words, which the converter checks for the background's.
     rep #$20
 .a16
-    lda tira_vram
+    lda strip_vram
     and #(WINDOW_COLS * WINDOW_ROWS - 1)
     ora #VRAM_ABOVE_MAP
-    sta tira_vram
-    lda tira_de
+    sta strip_vram
+    lda strip_of
     clc
     adc #(WINDOW_ROWS * 2)
-    sta tira_de
+    sta strip_of
     sep #$20
 .a8
-    ldx tira_vram
+    ldx strip_vram
     stx VMADDL
-    ldx tira_de
+    ldx strip_of
     ldy #(WINDOW_ROWS * 2)
     jsr dma_a_vram
     rts
@@ -396,32 +396,32 @@ sin_fila:
 ; right, and each step advances both variables.
 ;
 ; The upper layer is reached by masking the address, here and in
-; `push_una_columna`, and that requires its tilemap to start at a multiple of
+; `push_one_column`, and that requires its tilemap to start at a multiple of
 ; the window's size.
 .assert VRAM_ABOVE_MAP .mod (WINDOW_COLS * WINDOW_ROWS) = 0, error, "the upper tilemap cannot be masked"
-.proc push_una_fila
+.proc push_one_row
 .a8
 .i16
     lda #$80                    ; advance one word: the row is contiguous
     sta VMAIN
-    ldx tira_vram
+    ldx strip_vram
     stx VMADDL
-    ldx tira_de
+    ldx strip_of
     ldy #WINDOW_COLS            ; slots 0 to 31, the left screen
     jsr dma_a_vram
     rep #$20
 .a16
     lda #1024                   ; the right screen lives here
-    jsr fila_siguiente
+    jsr row_next
     ; And the upper layer: the same row on its tilemap's left screen. It is
     ; masked with ten bits and not eleven to take off the 1024 the previous
     ; step already added.
-    lda tira_vram
+    lda strip_vram
     and #(WINDOW_COLS * WINDOW_ROWS / 2 - 1)
     ora #VRAM_ABOVE_MAP
-    jsr fila_en_a
+    jsr row_in_a
     lda #1024                   ; and its right half
-    jsr fila_siguiente
+    jsr row_next
     sep #$20
 .a8
     rts
@@ -430,27 +430,27 @@ sin_fila:
 ; The next half row: moves VRAM by what A says —in words— and the source by the
 ; 64 bytes half a row measures, and uploads it. It enters and leaves with a
 ; sixteen-bit A, which is what lets the three calls above be chained.
-.proc fila_siguiente
+.proc row_next
 .a16
 .i16
     clc
-    adc tira_vram
-    ; And it falls through into `fila_en_a`, which is the same step with the
+    adc strip_vram
+    ; And it falls through into `row_in_a`, which is the same step with the
     ; address already done.
 .endproc
-.proc fila_en_a
+.proc row_in_a
 .a16
 .i16
-    sta tira_vram
-    lda tira_de
+    sta strip_vram
+    lda strip_of
     clc
     adc #WINDOW_COLS
-    sta tira_de
+    sta strip_of
     sep #$20
 .a8
-    ldx tira_vram
+    ldx strip_vram
     stx VMADDL
-    ldx tira_de
+    ldx strip_of
     ldy #WINDOW_COLS
     jsr dma_a_vram
     rep #$20

@@ -5,8 +5,8 @@ variables al correr, y `MemorizeLocation` escribe esas tres con el lugar del
 héroe. **En las variables el mapa es el id de RM2k**, no el índice del
 cartucho: los pisos que se rompen de la planta de reciclaje (mapas 60 y 62)
 lo cargan con un `ControlVars` y enseguida saltan, así que la ROM lo traduce
-con la tabla `mapa_rm2k`. Ver `lugar_recordado` en
-runtime/lugar_y_tema_recordados.s.
+con la tabla `map_rm2k`. Ver `remembered_place` en
+runtime/remembered_place_and_song.s.
 
 Los casos:
 
@@ -87,7 +87,7 @@ def test_recordar_un_mapa_que_no_esta_no_salta(partida):
     assert una.mapa() == 6 and celda(una) == (22, 12), (
         "un `RecallToLocation` a un mapa ausente no salta: quedó en el %d, %s"
         % (una.mapa(), celda(una)))
-    assert not una.byte("salto_hay")
+    assert not una.byte("jump_has")
 
 
 def test_el_tema_recordado_vuelve(partida):
@@ -96,16 +96,16 @@ def test_el_tema_recordado_vuelve(partida):
     una = partida(caso="tema-recordado")
     evilrhys = indice_del_tema(una, "evilrhys")
     lufsorr = indice_del_tema(una, "lufsorr")
-    esperar(una, lambda u: u.palabra("tema_actual") == lufsorr, 200,
+    esperar(una, lambda u: u.palabra("song_current") == lufsorr, 200,
             "que suene lufsorr")
     recordado = una.consola.ram(
-        en_la_wram(una.simbolos["TEMA_RECORDADO"]), 1)[0]
+        en_la_wram(una.simbolos["REMEMBERED_SONG"]), 1)[0]
     assert recordado == evilrhys, (
         "el tema recordado es el %d y tendría que ser evilrhys, el %d"
         % (recordado, evilrhys))
-    esperar(una, lambda u: u.palabra("tema_actual") == evilrhys, 200,
+    esperar(una, lambda u: u.palabra("song_current") == evilrhys, 200,
             "que vuelva evilrhys")
-    assert not una.byte("music_apagada")
+    assert not una.byte("music_off")
 
 
 def puntero_del_stream(una):
@@ -118,7 +118,7 @@ def test_poner_el_tema_recordado_que_ya_suena_no_lo_reinicia(partida):
     Si se reiniciara, el stream volvería atrás en algún cuadro."""
     una = partida(caso="tema-recordado-el-mismo")
     evilrhys = indice_del_tema(una, "evilrhys")
-    esperar(una, lambda u: u.palabra("tema_actual") == evilrhys, 200,
+    esperar(una, lambda u: u.palabra("song_current") == evilrhys, 200,
             "que suene evilrhys")
     antes = puntero_del_stream(una)
     for _ in range(420):
@@ -129,4 +129,4 @@ def test_poner_el_tema_recordado_que_ya_suena_no_lo_reinicia(partida):
             "reinició, y en RM2k el mismo tema sigue sonando" % (antes, ahora))
         antes = ahora
     assert not una.corriendo_una_pagina(), "la página no llegó al final"
-    assert una.palabra("tema_actual") == evilrhys
+    assert una.palabra("song_current") == evilrhys

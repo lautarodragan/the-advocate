@@ -62,7 +62,7 @@ def test_sorbe_fits_the_layout_with_a_256_upper_layer():
 
 
 def test_each_window_base_has_its_plane():
-    """`estampar_ventana` chooses between two cell plans, and the layouts cannot
+    """`stamp_window` chooses between two cell plans, and the layouts cannot
     put the window at a third distance from BG2's base."""
     assert {S.window_base(layout) for _n, layout in S.LAYOUTS} == set(
         S.WINDOW_BASES)

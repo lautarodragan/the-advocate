@@ -7,7 +7,7 @@ que sostiene que eso no cambie nada son dos invariantes, y las dos se miran acá
 porque ninguna se ve en una captura:
 
 * **la pasabilidad de la celda no cambia.** La fila del evento imponía los bits
-  de su tile (`rm2k.event_tile_passability`) y `pasa_con_evento` saltea las
+  de su tile (`rm2k.event_tile_passability`) y `pass_with_event` saltea las
   filas escondidas, así que si la tabla del mapa no llegara al mismo valor, la
   celda pasaría a pasarse distinto y no habría un pixel que lo delatara;
 * **el tile tapa las 16x16.** Un pixel transparente deja ver el tile de abajo,
@@ -71,7 +71,7 @@ def test_lo_que_se_hornea_tapa_la_celda_entera():
 def test_hornear_no_cambia_la_pasabilidad_de_la_celda():
     """La tabla del mapa tiene que dar lo mismo que imponía la fila del evento.
 
-    Es la invariante que permite esconder la fila: `pasa_con_evento` no mira las
+    Es la invariante que permite esconder la fila: `pass_with_event` no mira las
     escondidas, así que el valor tiene que estar en la tabla.
     """
     renderer = Renderer()
@@ -84,8 +84,8 @@ def test_hornear_no_cambia_la_pasabilidad_de_la_celda():
         # Lo que la fila imponía, antes de hornear.
         antes = {}
         for npc in snes_convert.collect_npcs(game_map):
-            if npc["evento"] in horneados:
-                antes[npc["evento"]] = rm2k.event_tile_passability(
+            if npc["event"] in horneados:
+                antes[npc["event"]] = rm2k.event_tile_passability(
                     game_map, npc["charset"], npc["layer"])
         snes_convert.bake_into_map(game_map, horneados)
         pasable = rm2k.passability_map(game_map, flags)

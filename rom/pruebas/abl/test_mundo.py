@@ -1,7 +1,7 @@
 """El mundo, el mapa 66: el que estrena el quinto reparto de VRAM
 (`LAYOUT_WINDOW_BG_CEILING`, 544 tiles de fondo) y el único de `release`
 con el fondo en dos flujos de LZ2 —527 tiles de 8bpp son más que el buffer de
-carga: ver `lz2_fondo` en runtime/descomprimir.s—.
+carga: ver `lz2_backdrop` en runtime/decompress.s—.
 
 Se llega como llega el juego, a la celda del `Teleport [66, 71, 29]` de la
 despedida del 64, pero con `ir_al_mapa`: la despedida la juega
@@ -49,22 +49,22 @@ def test_el_mundo_recien_llegado():
 
 
 def test_una_pelea_en_el_mundo_vuelve_al_mapa_bien_dibujado():
-    """`mundo-66-despues-de-pelear`: un encuentro pedido con `ENC_PIDE`, que
+    """`mundo-66-despues-de-pelear`: un encuentro pedido con `ENC_ASKS`, que
     Kersh gana a fuerza de A, y la vuelta al mapa.
 
-    Es el camino de `volver_de_batalla`: la escena de la pelea pisa el banco de
+    Es el camino de `back_from_battle`: la escena de la pelea pisa el banco de
     tiles de BG1 y la mitad alta del $7F, y `load_map` vuelve a subir el fondo
-    —de a dos flujos— y `lz2_grilla` la grilla."""
+    —de a dos flujos— y `lz2_grid` la grilla."""
     p = llegar(KERSH)
     s = p.simbolos
-    p.consola.write_ram(en_la_wram(s["ENC_PIDE"]), [1])
+    p.consola.write_ram(en_la_wram(s["ENC_ASKS"]), [1])
     abierta = False
     # En cuadros de hardware: la pelea no cuenta ticks. A cada nueve cuadros,
     # que es lo que pasa los mensajes y elige atacar.
     for cuadros in range(1, 4000):
         p.consola.hold(*(("a",) if cuadros % 9 < 2 else ()))
         p.consola.run(1)
-        if p.byte("menu_abierto"):
+        if p.byte("menu_open"):
             abierta = True
         elif abierta:
             break

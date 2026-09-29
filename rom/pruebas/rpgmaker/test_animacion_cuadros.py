@@ -10,7 +10,7 @@ ninguna de las rutinas de la ROM.
 
 Las goldens de `animacion-dibujo` miran cinco cuadros de una animación; esto
 mira todos. Para llegar a las que ningún caso muestra, se le cambia a la ROM la
-fila de la animación que está dibujando —`ANIMB_FILA`, `ANIMB_N`— y se la deja
+fila de la animación que está dibujando —`ANIMB_ROW`, `ANIMB_N`— y se la deja
 correr: el tick arma cada cuadro con el mismo camino que usa el juego. Es
 escribir el estado y preguntarle a la ROM qué hace con él, no saltearse el
 camino que se prueba.
@@ -53,10 +53,10 @@ def _byte(p, nombre, valor=None):
 
 
 def _animaciones_del_cartucho(p):
-    """{número de RM2k: fila en `anim_batalla_tabla`}, leído de la ROM."""
+    """{número de RM2k: fila en `anim_battle_table`}, leído de la ROM."""
     with open(p.sfc, "rb") as archivo:
         rom = archivo.read()
-    de = en_la_rom(p.simbolos["anim_batalla_de"])
+    de = en_la_rom(p.simbolos["anim_battle"])
     return {n: rom[de + n] for n in range(p.simbolos["ANIM_B_MAX"])
             if rom[de + n] != SIN_DIBUJO}
 
@@ -73,20 +73,20 @@ def _caja(p, nucleo):
 def _correr_la_animacion(p, nucleo, fila, cuadros):
     """Pone a dibujar la animación de la fila `fila` desde su primer cuadro y
     devuelve {cuadro: lo que quedó en la caja después de subirlo}."""
-    _palabra(p, "ANIMB_FILA", fila * ANIM_B_STRIDE)
+    _palabra(p, "ANIMB_ROW", fila * ANIM_B_STRIDE)
     _palabra(p, "ANIMB_N", cuadros)
     _palabra(p, "ANIMB_T", 0)
-    _palabra(p, "ANIMB_CUADRO", 0xFFFF)
-    _byte(p, "ANIMB_ACTIVA", 1)
+    _palabra(p, "ANIMB_FRAME", 0xFFFF)
+    _byte(p, "ANIMB_ACTIVE", 1)
     vistos = {}
     for _ in range(2 * cuadros + 4):
         p.correr(1)
-        if not _byte(p, "ANIMB_ACTIVA"):
+        if not _byte(p, "ANIMB_ACTIVE"):
             break
         # Recién elegido y todavía no subido: la caja tiene el anterior.
-        if _byte(p, "ANIMB_SUBIR"):
+        if _byte(p, "ANIMB_UPLOAD"):
             continue
-        vistos.setdefault(_palabra(p, "ANIMB_CUADRO"), _caja(p, nucleo))
+        vistos.setdefault(_palabra(p, "ANIMB_FRAME"), _caja(p, nucleo))
     return vistos
 
 
@@ -102,7 +102,7 @@ def esperados():
 def test_la_caja_tiene_cada_cuadro_de_cada_animacion(esperados, nucleo):
     p = partida(CASO, nucleo=nucleo)
     p.correr(20)
-    assert _byte(p, "ANIMB_ACTIVA"), (
+    assert _byte(p, "ANIMB_ACTIVE"), (
         "la 78 no se está dibujando: el caso %s dejó de mostrarla" % CASO)
     filas = _animaciones_del_cartucho(p)
     assert len(filas) > 1, "el cartucho lleva una sola animación: esto no mira nada"

@@ -42,7 +42,7 @@ from tramo_sorbe import (
 EISEN_ACTOR = 23
 TASGARDE, EL_LABORATORIO = 74, 85
 # Lo que guarda la ROM para el corte de `ChangeScreenTransitions`: ver
-# `TRANSICION_CORTE` en tools/port/events.py.
+# `TRANSITION_CUTOFF` en tools/port/events.py.
 CORTE = 2
 INTO_THE_MACHINE = 95
 LA_CASA_DE_VAGO = 81
@@ -132,8 +132,8 @@ def dejar_crujir(r, momentos):
 
     def listo(p):
         visto[0] += 1
-        return (visto[0] > 40 and not p.byte("menu_abierto")
-                and not p.corriendo_una_pagina() and not p.byte("fundido"))
+        return (visto[0] > 40 and not p.byte("menu_open")
+                and not p.corriendo_una_pagina() and not p.byte("fade"))
     jugar(r, "un crujido del puente", listo, momentos=momentos)
 
 
@@ -162,7 +162,7 @@ def test_tasgarde_eisen_y_el_puente(recorrido):
     r.caminar_a(AL_LABORATORIO, hasta=lambda p: p.corriendo_una_pagina())
     jugar(r, "la llegada al laboratorio",
           lambda p: p.mapa() == EL_LABORATORIO and not p.corriendo_una_pagina()
-          and not p.byte("fundido"))
+          and not p.byte("fade"))
     r.foto("el-laboratorio")
 
     r.empezar("Eisen en su simulación")
@@ -170,7 +170,7 @@ def test_tasgarde_eisen_y_el_puente(recorrido):
               and not p.corriendo_una_pagina())
     r.activar(EL_INTERRUPTOR, lambda p: p.mapa() != EL_LABORATORIO)
     jugar(r, "la historia de Eisen", lambda p: p.mapa() == INTO_THE_MACHINE
-          and not p.corriendo_una_pagina() and not p.byte("fundido"),
+          and not p.corriendo_una_pagina() and not p.byte("fade"),
           fotos={"la-historia-de-eisen-%d" % m: lambda p, m=m: p.mapa() == m
                  for m in (86, 89, 93)})
     assert grupo_de(p) == [EISEN_ACTOR], r.estado()
@@ -201,7 +201,7 @@ def test_tasgarde_eisen_y_el_puente(recorrido):
     r.empezar("la escotilla y el final de la historia de Eisen")
     r.caminar_a(LA_ESCOTILLA, hasta=lambda p: p.mapa() != INTO_THE_MACHINE)
     jugar(r, "el final de la historia", lambda p: p.mapa() == LA_CASA_DE_VAGO
-          and not p.byte("fundido"), tope=120000,
+          and not p.byte("fade"), tope=120000,
           fotos={"el-final-de-la-historia-%d" % m: lambda p, m=m: p.mapa() == m
                  for m in (99, 100, 101, 102)})
     assert grupo_de(p) == [TALAN], r.estado()
@@ -222,14 +222,14 @@ def test_tasgarde_eisen_y_el_puente(recorrido):
     sin_encuentros(p)
     r.viajar(EL_PUENTE)
     jugar(r, "la llegada al puente", lambda p: not p.corriendo_una_pagina()
-          and not p.byte("fundido"))
+          and not p.byte("fade"))
     r.foto("el-puente")
 
     r.empezar("el plan de Arden")
     r.caminar_a(EL_PLAN_DE_ARDEN, hasta=lambda p: p.corriendo_una_pagina())
     r.elegir(VAMOS)
     jugar(r, "la bajada", lambda p: p.mapa() == DEBAJO_DEL_PUENTE
-          and not p.corriendo_una_pagina() and not p.byte("fundido"))
+          and not p.corriendo_una_pagina() and not p.byte("fade"))
     r.foto("debajo-del-puente")
 
     r.empezar("por debajo del puente")
@@ -246,7 +246,7 @@ def test_tasgarde_eisen_y_el_puente(recorrido):
     r.caminar_a(DEL_OTRO_LADO, evitar=crujidos,
                 hasta=lambda p: p.mapa() != DEBAJO_DEL_PUENTE)
     jugar(r, "del otro lado", lambda p: p.mapa() == EL_MUNDO
-          and not p.corriendo_una_pagina() and not p.byte("fundido"))
+          and not p.corriendo_una_pagina() and not p.byte("fade"))
     assert p.switch(CRUZARON), r.estado()
     r.foto("del-otro-lado")
 
@@ -262,7 +262,7 @@ def test_tasgarde_eisen_y_el_puente(recorrido):
         mensajes.append((grupo_de(p), p.heroe()))
         return False
     jugar(r, "el fin de la demo hasta el título",
-          lambda p: len(mensajes) >= 3 and not p.byte("msg_abierto"),
+          lambda p: len(mensajes) >= 3 and not p.byte("msg_open"),
           fotos={"contar": contar,
                  "el-bosque": lambda p: len(mensajes) == 1,
                  "el-fin-de-la-demo": lambda p: len(mensajes) == 3})
@@ -271,5 +271,5 @@ def test_tasgarde_eisen_y_el_puente(recorrido):
         "a la entrada del bosque salen dos mensajes de Talan y el cartel del "
         "fin, con el grupo de Talan y Arden parado en %s; salieron %s. %s"
         % (EL_BOSQUE, mensajes, r.estado()))
-    p.consola.run(p.simbolos["BOOT_CUADROS"] + 60)
+    p.consola.run(p.simbolos["BOOT_FRAMES"] + 60)
     r.foto("el-titulo-despues-del-fin", asentar=False)

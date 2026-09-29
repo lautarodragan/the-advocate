@@ -3,7 +3,7 @@
 Lo usan las pruebas de todo lo que se abre desde el menú —ítems, equipo,
 curar, guardar— y la de la tienda, que es otra pantalla con el mismo reloj.
 
-**Todo en cuadros de hardware**: mientras el menú está abierto `vueltas` no
+**Todo en cuadros de hardware**: mientras el menú está abierto `ticks` no
 avanza, así que `Partida.correr` esperaría un tick que no llega. Los toques son
 `Partida.tocar_cuadros`, y no `Partida.tocar_ticks`, por lo mismo.
 """
@@ -43,7 +43,7 @@ def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
     from port import menus
     from rpgmaker.resources import GAME_DIR
     db, skin = datos.base(), datos.skin()
-    esperada = menus.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
+    esperada = menus.render_menu(skin, db, una.simbolos["SRAM_SLOTS"],
                                   GRUPO, ORO, elegida, guardar, db.font_id,
                                   None, GAME_DIR, hp)
     comparar_pantalla(una, esperada, nombre,

@@ -131,7 +131,7 @@ def track_numbers(game_dir=None):
         system_songs = sorted(({n.lower() for n in lcf.system_songs(ldb)}
                                - names) & from_rtp)
         order = sorted(names) + system_songs
-        # The number goes in a byte of `tema_msu`, and $FF is "no track".
+        # The number goes in a byte of `song_msu`, and $FF is "no track".
         if len(order) > 0xFE:
             raise SystemExit("Music/ has %d songs and the track goes in a byte"
                              % len(order))
@@ -185,8 +185,8 @@ def msu_track(name, game_dir=None):
 #
 # The three ARAM ones exist because of each map's audio package: the samples
 # are uploaded while the music plays, so the driver has to be able to receive
-# them without stopping serving the DSP. See `paquete_cargar` in
-# tools/runtime/paquete_de_audio.s. The pointer and the count live at $00-$03
+# them without stopping serving the DSP. See `package_load` in
+# tools/runtime/audio_package.s. The pointer and the count live at $00-$03
 # of the zero page, which the boot ROM uses and leaves free.
 #
 # The music keeps sending 0 commands without touching port 2: whoever
@@ -273,7 +273,7 @@ terna:
 # The ones that do not fit do not play, and the converter says so.
 SE_ARAM = 16 * 1024
 SE_RATE = 6000
-SE_MAX_SECONDS = 0.75           # since the per-map package: see `paquete_cargar`
+SE_MAX_SECONDS = 0.75           # since the per-map package: see `package_load`
 SE_LOOP_SECONDS = 0.4
 SE_VOICE = 7                      # the one stolen from the music
 # And the second, so two sound effects can play at once —the opening's rain
@@ -332,8 +332,8 @@ def se_troop_in_package():
 def separate_songs():
     """{map id: names} of the separate songs: they do not go with the other
     songs of their map's package, their `PlayBGM` uploads them alone with the
-    package's sound effects —see `extra_aparte` in
-    tools/runtime/paquete_de_audio.s—, and they are not inherited by the maps
+    package's sound effects —see `extra_separate` in
+    tools/runtime/audio_package.s—, and they are not inherited by the maps
     you exit to —see `inherited_songs` in snes_convert.py—. From
     `[music] apart_themes`."""
     return {m["map"]: set(m["themes"])
@@ -485,7 +485,7 @@ def assign(notes):
 
 # The voices that sound effects take from the music: `SE_VOICE` and
 # `SE_VOICE2`. While a sound effect plays, what the music writes to its voice
-# goes to the shadow and not to the DSP —see `dsp_musica`—, so whatever note
+# goes to the shadow and not to the DSP —see `dsp_music`—, so whatever note
 # was there goes silent. That is why percussion hits, which last half a
 # second, go there first, and melodic notes only if no other voice is free:
 # that is what happened when the drums had those two voices fixed.
@@ -802,7 +802,7 @@ def constraints_for(assignment, groups, free):
 # —see `effect_places`— together.
 DIRECTORY_MAX = 255
 # How many directory places can belong to sound effects: the ROM records
-# which sound effect is in each one in `FAR_EFECTO_EN`, which has that size.
+# which sound effect is in each one in `FAR_EFFECT_IN`, which has that size.
 SE_PLACES_MAX = 48
 # No copy is made for a sample that already plays at nearly its rate: a
 # directory entry is worth more than that.
@@ -981,8 +981,8 @@ def effect_places(packages, names):
     many places as the most loaded package has sound effects are enough.
 
     The ROM cannot tell from the entry which sound effect is there: it
-    records it when uploading it (`FAR_EFECTO_EN`, in
-    tools/runtime/paquete_de_audio.s).
+    records it when uploading it (`FAR_EFFECT_IN`, in
+    tools/runtime/audio_package.s).
     """
     touches = {n: set() for n in names}
     for own in packages:
@@ -1066,7 +1066,7 @@ class Bank:
     the SRCN the stream writes is the sample's index in the cartridge, so
     two songs that play piano point to the same one. But **it is not
     uploaded whole**: the ARAM gets packages, one per map —see
-    `paquete_cargar` in tools/runtime/paquete_de_audio.s—, so what has to
+    `package_load` in tools/runtime/audio_package.s—, so what has to
     fit in the 64 KB is not the bank but each package, with its sound
     effects.
 
@@ -1753,7 +1753,7 @@ def pack(frames, length, init):
 
 def decode(stream, sounds):
     """The model of the 65816's decoder —`music_frame`, in
-    tools/runtime/musica.s—, step by step: what the stream writes, (frame,
+    tools/runtime/music.s—, step by step: what the stream writes, (frame,
     register, value), up to its `OP_END`. It has to give the same as
     `writes`.
 
@@ -2068,10 +2068,10 @@ def build_all(names, game_dir=None, effects=(), packages=None,
     sound effects.
 
     `inheritance` are pairs (name of a package, index of a song that may be
-    playing when it loads). `paquete_cargar_ya` does not move the samples of
+    playing when it loads). `package_load_done` does not move the samples of
     the song that is playing, so the package's have to fit alongside; **the
     sound effects do not**: if they do not fit, they wait for the next
-    `PlayBGM`, which completes the package —see `tema_asegurar`—. It is the
+    `PlayBGM`, which completes the package —see `song_ensure`—. It is the
     decision `workflow/decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`.
 
     `ceilings` is each song's headroom, by name —if not given, the versioned
@@ -2110,7 +2110,7 @@ def build_all(names, game_dir=None, effects=(), packages=None,
         packages = [(name, [i], []) for i, name in enumerate(names)]
     # What has to fit together: each package with its sound effects; each
     # exit song alone —its `PlayBGM` uploads it, silencing the rest: see
-    # `extra_de_salida` in tools/runtime/paquete_de_audio.s—; and each
+    # `exit_extra` in tools/runtime/audio_package.s—; and each
     # package with the song that may be playing when it loads, without its
     # sound effects.
     # And the same ones with what the sound effects really take, which is
@@ -2162,7 +2162,7 @@ def build_all(names, game_dir=None, effects=(), packages=None,
     # The sound effects go after the bank in the same directory, in its
     # `places` entries: their `V_SRCN` is the place each one got after the
     # music's samples. And each one also has its sound effect number, which
-    # is what the package lists carry, and its `muestra_tabla` row after the
+    # is what the package lists carry, and its `sample_table` row after the
     # music's: see `effect_places`.
     bank.places = places
     bank.effects = {e.name: (len(bank.voices) + place[e.name], e)
@@ -2307,7 +2307,7 @@ def song_samples(song):
 
 # What uploading to the SPC700 costs, in frames, for the boot count. A
 # package's samples go in triplets through the driver's command 3 —see
-# `subir_muestra` in tools/runtime/paquete_de_audio.s—: measured in the ROM
+# `upload_sample` in tools/runtime/audio_package.s—: measured in the ROM
 # on 2026-09-26, from 1.33 to 1.42 frames per KB across eighteen packages,
 # and a bit more goes here. The driver and the directory go byte by byte
 # through the IPL, which measured 1.4. And loading the map, without audio
@@ -2317,8 +2317,8 @@ def song_samples(song):
 FRAMES_PER_KB_PACKAGE = 1.45
 FRAMES_PER_KB_IPL = 1.5
 MAP_FRAMES = 10
-# Where `BOOT_CUADROS` lives, which belongs to the ROM and not here.
-FAR_RAM = os.path.join(project.runtime(), "ram_lejana.s")
+# Where `BOOT_FRAMES` lives, which belongs to the ROM and not here.
+FAR_RAM = os.path.join(project.runtime(), "far_ram.s")
 
 
 def boot_frames_estimate(driver, voices, songs, package, decompress=0.0,
@@ -2348,10 +2348,10 @@ def boot_frames_estimate(driver, voices, songs, package, decompress=0.0,
 
 
 def boot_frames(path=FAR_RAM):
-    """The ROM's `BOOT_CUADROS`, read from the source."""
+    """The ROM's `BOOT_FRAMES`, read from the source."""
     import re
     with open(path) as handle:
-        return int(re.search(r"^BOOT_CUADROS\s*=\s*(\d+)", handle.read(),
+        return int(re.search(r"^BOOT_FRAMES\s*=\s*(\d+)", handle.read(),
                              re.M).group(1))
 
 
@@ -2368,12 +2368,12 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     by the sound effects. None is uploaded at boot: they go to the SPC700 in
     **packages**, one per map —`packages`, in map table order, each with its
     songs, its sound effects' samples and its exit songs—, and the directory
-    starts with all of them pointing to the silence. See `paquete_cargar` in
-    tools/runtime/paquete_de_audio.s.
+    starts with all of them pointing to the silence. See `package_load` in
+    tools/runtime/audio_package.s.
 
     `map_song` is the song each map turns on when entered, in the same
     order, or $FF if entering does not change what is playing. See
-    `mapa_tema_callar`.
+    `map_song_mute`.
 
     `directory` is (music samples, sound effect places): the directory's
     entries are those and not one per voice, because sound effects share
@@ -2382,7 +2382,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     `V_SRCN`. The sound effect lists in `packages` go by number.
     """
     def block(label, data, as_block=False):
-        # No `.bloque` except on the samples, and `.cruza` instead: the
+        # No `.block` except on the samples, and `.crossbank` instead: the
         # driver goes byte by byte through the ports —`spc_block` does the
         # bank jump by hand— and the stream is walked by `advance`, which
         # does the same jump, so they can end up split. The samples do carry
@@ -2390,19 +2390,19 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
         # jump banks, in exchange for being shorter. See `resolve` in
         # tools/assembly/banks.py, which does not let one through with
         # neither of the two.
-        out = ([".bloque %d" % len(data)] if as_block else [".cruza"]) \
+        out = ([".block %d" % len(data)] if as_block else [".crossbank"]) \
             + ["%s:" % label]
         for i in range(0, len(data), 16):
             out.append("    .byte " + ",".join("$%02X" % b for b in data[i:i + 16]))
         return "\n".join(out)
 
-    labels = ["tema_stream_%d" % i for i in range(len(songs))] or \
-        ["tema_stream_0"]
+    labels = ["song_stream_%d" % i for i in range(len(songs))] or \
+        ["song_stream_0"]
     streams = [t["stream"] for t in songs] or [bytes([OP_END])]
     table = "\n".join(
         "%s:\n    .byte %s" % (name, ", ".join(prefix + e for e in labels))
-        for name, prefix in (("tema_lo", "<"), ("tema_hi", ">"),
-                             ("tema_bk", "^")))
+        for name, prefix in (("song_lo", "<"), ("song_hi", ">"),
+                             ("song_bk", "^")))
     # The DSP prologue, for the MSU-1 path. With a track the stream never
     # runs, and it is the start of the stream that takes the DSP out of the
     # mute the SPC700 boots with, sets its master volume and tells it where
@@ -2410,7 +2410,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     # mute DSP and are not heard.
     #
     # KON and KOF are left out on purpose: with a track, the ROM leaves KOF
-    # at $FF so the music's voices do not play, and `se_despues` clears it
+    # at $FF so the music's voices do not play, and `se_after` clears it
     # only when a sound effect starts. Writing KOF as zero here would turn
     # back on the voices of a song that is not playing.
     #
@@ -2423,18 +2423,18 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     table += "\ndsp_init_val:\n    .byte " + ", ".join(
         "$%02X" % v for _, v in init) + ", $00"
     # And which MSU-1 track each one gets, or $FF: see `msu_track`.
-    table += "\ntema_msu:\n    .byte " + ", ".join(
+    table += "\nsong_msu:\n    .byte " + ", ".join(
         "$%02X" % (t.get("pista") or 0xFF)
         for t in (songs or [{"nombre": ""}]))
     # And each map's own song. Outside bank 0: it is read once per teleport,
-    # with `lda f:mapa_tema, x`.
+    # with `lda f:map_song, x`.
     per_map = list(map_song) or [0xFF]
-    map_song_table = ".bloque %d\nmapa_tema:\n    .byte " % len(per_map) \
+    map_song_table = ".block %d\nmap_song:\n      .byte " % len(per_map) \
         + ", ".join("$%02X" % t for t in per_map)
     # And the music's sounds —`pack`'s: six bytes, the pitch, SRCN, ADSR1,
     # ADSR2 and the release GAIN—, those of every song in one table and
     # where each one's start. In a single bank, because `music_frame`
-    # reaches them with `lda f:musica_sonidos, x` and a sixteen-bit X does
+    # reaches them with `lda f:music_sounds, x` and a sixteen-bit X does
     # not cross banks.
     body, bases = bytearray(), []
     for t in songs:
@@ -2444,27 +2444,27 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     if len(body) > 0x8000:
         raise SystemExit("the music's sounds go over one bank: %d B"
                          % len(body))
-    map_song_table += ("\n.bloque %d\ntema_sonidos:\n    .word "
+    map_song_table += ("\n.block %d\nsong_sounds:\n      .word "
                        % (2 * len(bases or [0]))
                        + ", ".join("%d" % b for b in bases or [0]) + "\n"
-                       + block("musica_sonidos", bytes(body) or bytes(6),
+                       + block("music_sounds", bytes(body) or bytes(6),
                                as_block=True))
     # And the sound effects: seven bytes per entry of `Songs.sounds`.
-    # Outside bank 0: `op_sound` reads them with `lda f:sonido_tabla, x`.
+    # Outside bank 0: `op_sound` reads them with `lda f:sound_table, x`.
     rows = list(sounds) or [(0xFF, 0, 0, 0, 0, 0xFF)]
-    se_table = ".bloque %d\nsonido_tabla:\n" % (7 * len(rows)) + "\n".join(
+    se_table = ".block %d\nsound_table:\n" % (7 * len(rows)) + "\n".join(
         "    .byte $%02X, <%d, >%d, %d, %d, <%d, >%d" % (
             srcn, pitch, pitch, left, right, n_frames, n_frames)
         for srcn, pitch, left, right, n_frames, _e in rows)
     # And which sound effect each row is, separately so as not to touch the
-    # seven columns `sonido_tocar` and efectos_con_msu.s walk: the row's
-    # sample is a place several sound effects share, and `sonido_tocar` asks
+    # seven columns `sound_play` and msu_effects.s walk: the row's
+    # sample is a place several sound effects share, and `sound_play` asks
     # with this whether the one in the ARAM is its own. And each sound
     # effect's place, which is what the package uses to upload it.
-    se_table += "\n.bloque %d\nsonido_efecto:\n    .byte " % len(rows) \
+    se_table += "\n.block %d\nsound_effect:\n      .byte " % len(rows) \
         + ", ".join("$%02X" % row[5] for row in rows)
     se_places = list(effect_place) or [0xFF]
-    se_table += "\n.bloque %d\nefecto_lugar:\n    .byte " % len(se_places) \
+    se_table += "\n.block %d\neffect_place:\n     .byte " % len(se_places) \
         + ", ".join("$%02X" % l for l in se_places)
 
     # The SPC700 directory, with all of them on the silence, and the silence
@@ -2479,20 +2479,20 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
                          % (len(voices) - music_n))
     if places > SE_PLACES_MAX:
         raise SystemExit("the sound effects ask for %d directory places and the ROM "
-                         "records %d: see FAR_EFECTO_EN" % (places,
+                         "records %d: see FAR_EFFECT_IN" % (places,
                                                             SE_PLACES_MAX))
     silence = SAMPLES_ADDR + 4 * n
     data = silence + len(SILENCE)
     directory_bytes = (silence.to_bytes(2, "little") * 2) * n + SILENCE
     # Each sample, on its own, and its row: the pointer, its length and
     # where it loops back to.
-    samples = [block("muestra_%d" % i, v.data, as_block=True)
-               for i, v in enumerate(voices)] or [block("muestra_0", SILENCE)]
+    samples = [block("sample_%d" % i, v.data, as_block=True)
+               for i, v in enumerate(voices)] or [block("sample_0", SILENCE)]
     sample_rows = []
     for i, v in enumerate(voices or [None]):
         length = len(v.data) if v is not None else len(SILENCE)
         loop = v.loop_block * brr_samples.BLOCK_BYTES if v is not None else 0
-        sample_rows.append("    .byte <(muestra_%d), >(muestra_%d), ^(muestra_%d), "
+        sample_rows.append("    .byte <(sample_%d), >(sample_%d), ^(sample_%d), "
                            "<%d, >%d, <%d, >%d" % (i, i, i, length, length, loop, loop))
     # Which samples each song uses, and each map's package. Two blocks with
     # an index of offsets in front, and each list terminated with $FF.
@@ -2505,36 +2505,36 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
         data_ = b"".join(o.to_bytes(2, "little") for o in ofs) + bytes(body)
         return block(label, data_ or b"\xFF", as_block=True)
     # Decoding the streams to find out is pure and costly: in parallel.
-    song_samples_block = lists("tema_muestras", [
+    song_samples_block = lists("song_samples", [
         [m] for m in in_parallel(lambda i: song_samples(songs[i]),
                                  range(len(songs)))] or [[[]]])
     # Each package, four lists: its songs, its sound effects' samples, its
-    # exit songs and its separate songs —see `extra_de_salida` and
-    # `extra_aparte` in tools/runtime/paquete_de_audio.s—.
+    # exit songs and its separate songs —see `exit_extra` and
+    # `extra_separate` in tools/runtime/audio_package.s—.
     packages = [tuple(p) + ((),) * (4 - len(p)) for p in packages] or \
         [([], [], [], [])]
-    packages_block = lists("paquetes", [[list(t), list(m), list(s),
+    packages_block = lists("packages", [[list(t), list(m), list(s),
                                             list(a)]
                                            for t, m, s, a in packages])
 
     with open(path, "w") as handle:
         handle.write(
             "; Generated by tools/audio/snes_music.py. Do not edit.\n"
-            # The next line and the "sin música" below stay in Spanish on
-            # purpose: they are data. `tools/audio/ceilings.py` reads them with
-            # a regex, and `rom/pruebas/arnes/consola.py`, `test_msu.py` and
-            # `test_msu_efectos.py` look for "; Temas: ".
-            "; Temas: %s\n\n"
+            # The next line, with the "no music" below, is data:
+            # `tools/audio/ceilings.py` reads it with a regex, and
+            # `rom/pruebas/arnes/consola.py`, `test_msu.py` and
+            # `test_msu_efectos.py` look for "; Songs: ".
+            "; Songs: %s\n\n"
             "; How many songs the cartridge carries and which one plays from boot.\n"
-            "; The indices are those of `Temas` in eventos.py, that is, the ones\n"
+            "; The indices are those of `Songs` in events.py, that is, the ones\n"
             "; the PlayBGM bytecode already has emitted.\n"
-            "; $FF in TEMA_ARRANQUE means 'the ROM boots silent': the song of the\n"
+            "; $FF in SONG_BOOT means 'the ROM boots silent': the song of the\n"
             "; map it boots in does not exist, so an event has to turn it on.\n"
-            "TEMA_TOTAL       = %d\n"
-            "TEMA_ARRANQUE    = $%02X\n"
+            "SONG_TOTAL       = %d\n"
+            "SONG_BOOT        = $%02X\n"
             "; And the title screen's, which comes from the LDB's `title_music`.\n"
             "; $FF means this ROM has no title screen.\n"
-            "TEMA_TITULO      = $%02X\n"
+            "SONG_TITLE       = $%02X\n"
             # `rom/src/` and not `tools/runtime/`, here and six lines further
             # down, on purpose: it is text that goes into the `.inc`, and the
             # paths in what is emitted are not changed yet
@@ -2542,52 +2542,52 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
             "; And the Game Over screen's —`gameover_music`— with its package,\n"
             "; which goes after all the others: the song alone. $FF and $FFFF\n"
             "; if this ROM has no such screen. See rom/src/game_over.s.\n"
-            "TEMA_GAME_OVER   = $%02X\n"
-            "PAQUETE_GAME_OVER = $%04X\n"
+            "SONG_GAME_OVER   = $%02X\n"
+            "PACKAGE_GAME_OVER = $%04X\n"
             "; The master volume the song plays at and the two DSP registers it\n"
             "; goes in. `sdsp.py` emits them, since that is where they come\n"
             "; from: the stream already writes them at start, and a `FadeOutBGM`\n"
             "; writes them again lowering them. Writing them in rom/src/ too\n"
             "; would be two sides that can be wrong in the same way.\n"
-            "TEMA_VOLUMEN     = $%02X\n"
+            "SONG_VOLUME      = $%02X\n"
             "DSP_MVOL_L       = $%02X\n"
             "DSP_MVOL_R       = $%02X\n"
             "SPC_DRIVER_ADDR  = $%04X\n"
             "SPC_DRIVER_SIZE  = %d\n"
             "SPC_SAMPLES_ADDR = $%04X\n"
             "SPC_SAMPLES_SIZE = %d\n"
-            "; Samples go to the SPC700 in packages: see `paquete_cargar`.\n"
+            "; Samples go to the SPC700 in packages: see `package_load`.\n"
             "; The directory is at SPC_SAMPLES_ADDR, the silence after it, and\n"
-            "; the samples are placed between ARAM_DATOS and ARAM_FIN.\n"
-            "; MUESTRAS_N is the directory's entries: the music's, and from\n"
-            "; SE_PRIMERA on the SE_LUGARES the sound effects share.\n"
-            "; Each sound effect has its number —EFECTOS_N in total, which is\n"
-            "; what the package lists carry— and its `muestra_tabla` row at\n"
-            "; SE_PRIMERA plus that number. See `lugares_de_efectos`.\n"
-            "MUESTRAS_N       = %d\n"
-            "SE_PRIMERA       = %d\n"
-            "SE_LUGARES       = %d\n"
-            "EFECTOS_N        = %d\n"
-            "ARAM_SILENCIO    = $%04X\n"
-            "ARAM_DATOS       = $%04X\n"
-            "ARAM_FIN         = $%04X\n"
-            "PAQUETES_N       = %d\n"
+            "; the samples are placed between ARAM_DATA and ARAM_END.\n"
+            "; SAMPLES_N is the directory's entries: the music's, and from\n"
+            "; SE_FIRST on the SE_PLACES the sound effects share.\n"
+            "; Each sound effect has its number —EFFECTS_N in total, which is\n"
+            "; what the package lists carry— and its `sample_table` row at\n"
+            "; SE_FIRST plus that number. See `lugares_de_efectos`.\n"
+            "SAMPLES_N        = %d\n"
+            "SE_FIRST         = %d\n"
+            "SE_PLACES        = %d\n"
+            "EFFECTS_N        = %d\n"
+            "ARAM_SILENCE     = $%04X\n"
+            "ARAM_DATA        = $%04X\n"
+            "ARAM_END         = $%04X\n"
+            "PACKAGES_N       = %d\n"
             "; The sound effects: which voice they play on and how many entries\n"
-            "; `sonido_tabla` has. See `build_efectos`.\n"
-            "SE_VOZ           = %d\n"
+            "; `sound_table` has. See `build_efectos`.\n"
+            "SE_VOICE         = %d\n"
             "SE_BIT           = $%02X\n"
             "SE_REG           = $%02X\n"
             "SE2_BIT          = $%02X\n"
             "SE2_REG          = $%02X\n"
-            "SONIDOS_N        = %d\n\n"
+            "SOUNDS_N         = %d\n\n"
             "; Where each song's stream starts, split into three tables\n"
             "; because they are read with an index: they go in bank 0 like\n"
             "; everything the CPU walks with `lda tabla, x`.\n"
-            '.segment "TABLAS"\n%s\n\n'
+            '.segment "TABLES"\n%s\n\n'
             '.segment "RODATA"\n%s\n%s\n%s\n%s\n'
-            '.bloque %d\nmuestra_tabla:\n%s\n%s\n%s\n%s\n%s\n'
-            % (", ".join(t["nombre"] or "sin música" for t in songs)
-               or "ninguno",
+            '.block %d\nsample_table:\n%s\n%s\n%s\n%s\n%s\n'
+            % (", ".join(t["nombre"] or "no music" for t in songs)
+               or "none",
                len(songs), boot, title, game_over[0], game_over[1],
                sdsp.MASTER, sdsp.MVOL_L, sdsp.MVOL_R,
                DRIVER_ADDR, len(driver),

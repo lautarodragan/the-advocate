@@ -4,8 +4,8 @@ Desde el 2026-09-27 los enemigos eligen qué hacer como `Game_Enemy`: la
 lista de acciones del LDB, el `rating` de cada una y
 `SelectEnemyAiActionRpgRtCompat` de easyrpg —cada posible pesa
 `max(0, rating - máximo + 10)`— y usan habilidades. Lo decide
-`batalla.accion_del_enemigo` y lo copia `ba_accion_enemiga`
-(`tools/runtime/batalla.s`). Lo que queda distinto:
+`batalla.accion_del_enemigo` y lo copia `ba_enemy_action`
+(`tools/runtime/battle.s`). Lo que queda distinto:
 
 * **Con una sola acción de peso no se tira el dado.** RM2k tira
   `rand(0, suma - 1)` igual. Es la misma distribución, y deja el azar de las
@@ -31,7 +31,7 @@ hasta ese día.
 
 # Medido
 
-El 2026-09-27, sobre las tropas de `release` (`tropa_id` del `mapdata.inc`),
+El 2026-09-27, sobre las tropas de `release` (`troop_id` del `mapdata.inc`),
 16 enemigos traían algo más que el ataque solo. Con los pesos de RM2k **usan una habilidad
 cuatro**: el Tangle Wire (`ShortCircuit`, la mitad de las veces), el KingRat
 de los Rat Tracks (`RoyalRatBite`, la mitad: su ataque doble es de turno y

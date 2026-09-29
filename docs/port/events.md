@@ -3,9 +3,9 @@
 Cada página de evento que se puede compilar viaja en el cartucho como
 **bytecode**, y ese bytecode tiene tres dueños que no se pisan:
 
-    tools/protocol/events.toml  lo declara: cada opcode, su número y los bytes que lleva
-    tools/port/events.py       lo emite: `_compilar`, un caso por comando de RM2k
-    tools/runtime/interprete*.s       lo ejecuta: `correr_codigo` y un `.proc op_*` por opcode
+    tools/protocol/events.toml    lo declara: cada opcode, su número y los bytes que lleva
+    tools/port/events.py          lo emite: `_compilar`, un caso por comando de RM2k
+    tools/runtime/interpreter*.s  lo ejecuta: `run_code` y un `.proc op_*` por opcode
 
 De `tools/protocol/events.toml` salen generados `tools/port/event_opcodes.py` y
 `tools/runtime/event_opcodes.inc`; ver `tools/protocol/README.md`, que está en inglés porque
@@ -15,7 +15,7 @@ intérprete adentro de `mapdata.inc`, y así dos ramas eligieron el mismo sin qu
 git viera nada.
 
 **Del lado de la ROM, un opcode nuevo es su `.proc` y nada más.** El despacho
-de `correr_codigo` es un `jmp (tabla, x)` y la tabla la emite el mismo
+de `run_code` es un `jmp (tabla, x)` y la tabla la emite el mismo
 generador —la macro `EVENT_HANDLERS` de `event_opcodes.inc`, con
 `--jump-table`—, con una regla para el nombre: el manejador de `OP_X` se llama
 `op_x`, y si no existe la ROM no ensambla. Eso pide que los números de
@@ -68,27 +68,27 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 
 | Mecánica | en `tools/runtime/` | quién la compila, o quién la mide |
 | --- | --- | --- |
-| Pisar un evento, y pisarlo al final de una ruta forzada —una puerta es eso: una página de contacto con un `Teleport` adentro— | `probar_contacto`, `accion_en_celda` | — |
-| Hablarle a un evento con la tecla de acción | `probar_accion`, `encolar_por_accion` | — |
-| Una página esperando turno es un bit por evento, no una cola | `marcar_esperando` | — |
-| Qué página está activa, congelada hasta el refresco | `elegir_paginas`, `aplicar_paginas` | — |
-| Las rutas propias de la página, y la velocidad que traen | `rutas_de_pagina`, `animar_ruta_ev` | `own_route` |
-| La frecuencia de la ruta, y encarar al héroe | `paso_de_ruta`, `hacia_el_heroe`, `tras_paso`, `tras_giro` | `wait_after_step`, `wait_after_turn` |
-| La frecuencia se sube y se baja a mitad de una ruta (las órdenes 30 y 31) | `paso_de_ruta` | `min_frequency` |
-| Las diagonales, y hacia dónde dejan mirando | `puede_celda_diag`, `encarar_diagonal` | — |
-| Cambiar el gráfico a mitad de una ruta (la orden 34) | `load_ruta_graficos`, `refrescar_npc` | `Graphics` |
-| La colisión con los eventos | `celda_bloqueada`, `atraviesa_el_evento` | — |
-| El gráfico sigue a la página, y el tile manda sobre el terreno | `grafico_de_pagina`, `pasa_con_evento`, `acomodar_npc` | `drawable_npcs` |
+| Pisar un evento, y pisarlo al final de una ruta forzada —una puerta es eso: una página de contacto con un `Teleport` adentro— | `try_touch`, `action_in_cell` | — |
+| Hablarle a un evento con la tecla de acción | `try_action`, `queue_by_action` | — |
+| Una página esperando turno es un bit por evento, no una cola | `mark_waiting` | — |
+| Qué página está activa, congelada hasta el refresco | `pick_pages`, `apply_pages` | — |
+| Las rutas propias de la página, y la velocidad que traen | `page_routes`, `animate_ev_route` | `own_route` |
+| La frecuencia de la ruta, y encarar al héroe | `step_route`, `toward_hero`, `after_step`, `after_turn` | `wait_after_step`, `wait_after_turn` |
+| La frecuencia se sube y se baja a mitad de una ruta (las órdenes 30 y 31) | `step_route` | `min_frequency` |
+| Las diagonales, y hacia dónde dejan mirando | `cell_allowed_diag`, `face_diagonal` | — |
+| Cambiar el gráfico a mitad de una ruta (la orden 34) | `load_route_graphics`, `refresh_npc` | `Graphics` |
+| La colisión con los eventos | `cell_blocked`, `event_crossable` | — |
+| El gráfico sigue a la página, y el tile manda sobre el terreno | `page_graphic`, `pass_with_event`, `fit_npc` | `drawable_npcs` |
 | Los eventos dibujados con un tile del chipset | `load_npcs` | `drawable_npcs`, `Charsets` en `tools/render/render_map.py` |
 | Los que además son opacos y fijos: horneados en el mapa y sin fila que dibujar | `build_oam` saltea la fila escondida | `bakeable_events` |
-| El fundido de los teletransportes, con el mapa cargando adentro del negro | `empezar_fundido`, `fundido_tick` | `fade_ramp`, y las constantes `FADE_*` |
-| El tope de teletransportes encadenados | `SALTOS_MAX` y sus usos | lo cobra `rom/pruebas/rpgmaker/test_saltos.py` |
+| El fundido de los teletransportes, con el mapa cargando adentro del negro | `start_fade`, `fade_tick` | `fade_ramp`, y las constantes `FADE_*` |
+| El tope de teletransportes encadenados | `JUMPS_MAX` y sus usos | lo cobra `rom/pruebas/rpgmaker/test_saltos.py` |
 | La pantalla se prende en el vblank y en ningún otro lado | `flush_video` | — |
-| La ventana de mensaje, clavada abajo por HDMA | `armar_hdma`, `msg_empezar`, `msg_ptr_sig` | `tools/port/window.py`, `Messages` |
-| El texto compuesto en caliente, con los glifos ya pre-renderizados | `mensaje_tick`, `componer_char`, `cebar_linea` | `font_prerender` en `tools/port/snes_convert.py` |
-| El arranque dura siempre lo mismo | `BOOT_CUADROS` | lo corre `Partida` en `rom/pruebas/arnes/consola.py` |
-| Los cuadros perdidos se cuentan | `contar_perdidos` | los lee `Partida.cuadros_perdidos` de la WRAM |
-| La música no espera al lazo: va en una IRQ vertical | `irq_musica`, `IRQ_LINEA` | — |
+| La ventana de mensaje, clavada abajo por HDMA | `build_hdma`, `msg_start`, `msg_ptr_next` | `tools/port/window.py`, `Messages` |
+| El texto compuesto en caliente, con los glifos ya pre-renderizados | `message_tick`, `compose_char`, `prime_line` | `font_prerender` en `tools/port/snes_convert.py` |
+| El arranque dura siempre lo mismo | `BOOT_FRAMES` | lo corre `Partida` en `rom/pruebas/arnes/consola.py` |
+| Los cuadros perdidos se cuentan | `count_lost` | los lee `Partida.cuadros_perdidos` de la WRAM |
+| La música no espera al lazo: va en una IRQ vertical | `irq_music`, `IRQ_LINE` | — |
 
 Lo que hace que el lazo entre en un cuadro —FastROM, los glifos precompuestos,
 la tabla de productos del destello, la lluvia más barata— no cambia qué se

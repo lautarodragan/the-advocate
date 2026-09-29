@@ -22,7 +22,7 @@ def test_la_camara_llega_a_dos_filas_por_vuelta(partida):
     """El peor caso del juego son **dos** filas o columnas por vuelta.
 
     Se suman dos cosas en el mismo eje: el héroe a velocidad 6 camina 8 px por
-    cuadro —`paso_medio_por_vel` llega a 64 octavos— y un `PanScreen` a
+    cuadro —`half_step_per_speed` llega a 64 octavos— y un `PanScreen` a
     velocidad 6 corre la cámara otros 8 —`2 << 6` dieciseisavos—. Son 16 px, o
     sea dos celdas de 8. El salto del héroe no llega: el más largo del juego es
     de 5 celdas en 11 cuadros, 7,3 px por cuadro.
@@ -31,7 +31,7 @@ def test_la_camara_llega_a_dos_filas_por_vuelta(partida):
     abajo sigan reproduciendo el error: si alguien les baja la velocidad, esto
     falla en vez de que los otros dos pasen sin probar nada.
     """
-    for caso, eje in (("camara-veloz", "camara_y"), ("camara-veloz-x", "camara_x")):
+    for caso, eje in (("camara-veloz", "camera_y"), ("camara-veloz-x", "camera_x")):
         una = partida(caso=caso)
         peor = 0
         anterior = None
@@ -60,7 +60,7 @@ def test_la_ventana_sigue_a_la_camara_que_baja_rapido(partida):
 
 
 def test_la_ventana_sigue_a_la_camara_que_va_a_la_derecha_rapido(partida):
-    """Lo mismo por el otro eje: `MARGEN_COLS` tapa cuatro columnas de atraso,
+    """Lo mismo por el otro eje: `MARGIN_COLS` tapa cuatro columnas de atraso,
     pero un pan sostenido las gasta en cuatro cuadros."""
     una = partida(caso="camara-veloz-x")
     una.correr(120)

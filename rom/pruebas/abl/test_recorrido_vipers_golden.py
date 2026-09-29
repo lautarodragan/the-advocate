@@ -27,10 +27,10 @@ El camino es el del juego, y cada tramo lo mueve el evento que lo mueve:
 héroe una ruta forzada de un salto **en el lugar** —`begin_jump` y `end_jump`
 pegados, que es Talan saltando del susto cuando el Gang Member le grita "Hold
 it!"— y ese salto es la última orden de su ruta. Sin el arreglo nadie baja el
-descuento: `ruta_salto` se queda en 232 con `ruta_i == ruta_n` durante **49
+descuento: `route_jump` se queda en 232 con `route_i == route_n` durante **49
 muestras seguidas** del vigilante, seis de ellas con un mensaje en pantalla;
 con el arreglo la racha más larga es de **una**. Ojo con que ese salto no se
-**ve**: sin desplazamiento, `salto_posicion_heroe` deja `hero_y` en su lugar, así
+**ve**: sin desplazamiento, `jump_hero_position` deja `hero_y` en su lugar, así
 que lo único que lo delata es el estado.
 
 **Y lo que no caza, medido también**: el mapa dibujado corrido —el arreglo de
@@ -106,9 +106,9 @@ CAMINAR_POR_LA_CALLE = (30, 12)
 def sin_quedarse_en_el_aire(partida, a_cada=A_CADA):
     """Un vigilante para `esperar(mirando=...)`: el héroe aterriza siempre.
 
-    Lo que mira es `ruta_salto`, el descuento del arco, y lo que le tolera es
+    Lo que mira es `route_jump`, el descuento del arco, y lo que le tolera es
     **lo que dura un salto y una muestra más**, contado de los símbolos de la
-    ROM y de la velocidad del héroe, no a ojo: `SALTO_PASO` sobre lo que baja
+    ROM y de la velocidad del héroe, no a ojo: `JUMP_STEP` sobre lo que baja
     el salto a esa velocidad son las vueltas que tarda en aterrizar, y el
     vigilante corre una vez cada `a_cada`. Si una ruta le cambia la velocidad,
     el tope se mueve solo.
@@ -121,10 +121,10 @@ def sin_quedarse_en_el_aire(partida, a_cada=A_CADA):
     seguidas = [0]
 
     def mirar(p):
-        if not p.byte("ruta_salto"):
+        if not p.byte("route_jump"):
             seguidas[0] = 0
             return
-        dura = -(-partida.simbolos["SALTO_PASO"]
+        dura = -(-partida.simbolos["JUMP_STEP"]
                  // events.JUMP_PER_SPEED[p.velocidad_del_heroe() - 1])
         tope = -(-dura // a_cada) + 1
         seguidas[0] += 1
@@ -133,8 +133,8 @@ def sin_quedarse_en_el_aire(partida, a_cada=A_CADA):
             "%d: le queda %d de arco con la ruta en %d de %d órdenes, o sea que "
             "nadie le va a bajar el descuento. Es el salto en el lugar de la "
             "cinemática de los Neon Vipers, que es la última orden de su ruta"
-            % (seguidas[0], a_cada, dura, p.byte("ruta_salto"),
-               p.byte("ruta_i"), p.byte("ruta_n")))
+            % (seguidas[0], a_cada, dura, p.byte("route_jump"),
+               p.byte("route_i"), p.byte("route_n")))
 
     return mirar
 
@@ -151,7 +151,7 @@ def quedarse_quieto(p, tope=60):
     """
     anterior = None
     for _ in range(tope):
-        ahora = (p.palabra("camara_x"), p.palabra("camara_y"))
+        ahora = (p.palabra("camera_x"), p.palabra("camera_y"))
         if ahora == anterior:
             return
         anterior = ahora
@@ -182,9 +182,9 @@ def test_del_cano_de_lashe_city_al_hq_de_los_neon_vipers(recorrido):
                                   p.palabra("tile_y")) == EN_EL_TECHO
               and not p.corriendo_una_pagina())
     assert r.celda() == EN_EL_TECHO, r.estado()
-    assert r.p.byte("ruta_salto") == 0, (
+    assert r.p.byte("route_jump") == 0, (
         "el caño termina en un salto de tres celdas y el héroe quedó con %d de "
-        "arco. %s" % (r.p.byte("ruta_salto"), r.estado()))
+        "arco. %s" % (r.p.byte("route_jump"), r.estado()))
     r.foto("en-el-techo")
 
     r.empezar("cruzar el techo hasta el del HQ")
@@ -192,7 +192,7 @@ def test_del_cano_de_lashe_city_al_hq_de_los_neon_vipers(recorrido):
                                           p.palabra("tile_y"))
               == EN_EL_TECHO_DEL_HQ and not p.corriendo_una_pagina())
     assert r.celda() == EN_EL_TECHO_DEL_HQ, r.estado()
-    assert r.p.byte("ruta_salto") == 0, r.estado()
+    assert r.p.byte("route_jump") == 0, r.estado()
     r.foto("el-techo-del-hq")
 
     r.empezar("entrar al HQ por la puerta de arriba")
@@ -216,7 +216,7 @@ def test_del_cano_de_lashe_city_al_hq_de_los_neon_vipers(recorrido):
               mirando=sin_quedarse_en_el_aire(r.p))
     r.esperar_el_control(tope=4000)
     assert r.celda() == DE_VUELTA_EN_LA_CALLE, r.estado()
-    assert r.p.byte("ruta_salto") == 0, r.estado()
+    assert r.p.byte("route_jump") == 0, r.estado()
     r.foto("de-vuelta-en-la-calle")
     mirar_la_ventana(r)
 

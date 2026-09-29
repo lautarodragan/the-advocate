@@ -1,6 +1,6 @@
 # Qué
 
-En la consola `FlashSprite` es **un tinte de CGRAM**: `pintar_flash` sube la
+En la consola `FlashSprite` es **un tinte de CGRAM**: `paint_flash` sube la
 paleta entera del personaje, así que tiñe todo lo que la comparta —otro evento
 con el mismo gráfico, uno al que le prestaron la paleta, o el héroe cuando el
 líder es además NPC del mapa—. **RM2k lo aplica sobre la imagen del sprite**, o

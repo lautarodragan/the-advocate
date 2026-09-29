@@ -88,11 +88,11 @@ def _pelea(tmp_path, nombre, nucleo, msu, lugar=SECTOR_27, antes=0,
     if antes:
         una.correr(antes)
     s = uno.simbolos
-    una.consola.write_ram(en_la_wram(s["ENC_SEM"]),
+    una.consola.write_ram(en_la_wram(s["ENC_RNG"]),
                           [semilla & 0xFF, semilla >> 8])
-    una.consola.write_ram(en_la_wram(s["ENC_PIDE"]), [1])
+    una.consola.write_ram(en_la_wram(s["ENC_ASKS"]), [1])
     for _ in range(400):
-        if una.byte("menu_abierto"):
+        if una.byte("menu_open"):
             break
         una.consola.run(1)
     else:
@@ -105,8 +105,8 @@ def _pelea(tmp_path, nombre, nucleo, msu, lugar=SECTOR_27, antes=0,
     # y bsnes pasan el mismo color de 15 bits a 24 de distinta manera —98 y
     # 99—, y esta prueba corre en los dos contra la misma golden.
     imagen = una.consola.image().convert("RGB").point(lambda v: v & 0xF8)
-    limpio = una.consola.ram(en_la_wram(s["ESC_LIMPIO"]), scene.TILES * 64)
-    return (tanda.quince_bits(imagen), byte("ESC_MSU"), byte("ESC_FONDO"),
+    limpio = una.consola.ram(en_la_wram(s["SCN_CLEAN"]), scene.TILES * 64)
+    return (tanda.quince_bits(imagen), byte("SCN_MSU"), byte("SCN_BACKDROP"),
             imagen, bytes(limpio))
 
 
@@ -150,7 +150,7 @@ def test_msu_cada_camino_dibuja_su_fondo(tmp_path, nucleo):
     assert de_donde == 0, "sin MSU-1, la ROM dice que leyó el fondo del .msu"
     assert limpio == _fondo_8bpp(liviano=True), (
         "sin MSU-1 el fondo de la WRAM no es el respaldo liviano agrandado a "
-        "8bpp y al doble: `esc_llenar` o `esc_doblar` no andan")
+        "8bpp y al doble: `scn_fill` o `scn_double` no andan")
     tanda.golden("msu-datos-rom", imagen)
 
     con, de_donde, _fondo, imagen, limpio = _pelea(tmp_path, "con", nucleo,
@@ -257,7 +257,7 @@ def test_msu_una_pelea_del_mundo_lee_su_terreno(tmp_path, nucleo):
 
 def test_msu_la_rom_sabe_donde_esta_cada_fondo():
     """La firma que la ROM espera es la del `.msu` de su cartucho, y
-    `msu_fondo_pos` apunta a las entradas de su índice, que miden lo que la
+    `msu_backdrop_pos` apunta a las entradas de su índice, que miden lo que la
     ROM lee de ahí: 512 tiles de 8bpp y 96 colores. Y el `.msu` lleva **todos
     los fondos del juego**, cada uno en su lugar fijo: el mismo en todos los
     cartuchos, con los mismos bytes, lleve cada uno los mapas que lleve. Sin
@@ -273,27 +273,27 @@ def test_msu_la_rom_sabe_donde_esta_cada_fondo():
             msu = archivo.read()
         indice = msu_data.index(msu)
         s = uno.simbolos
-        assert msu[:msu_data.SIGNATURE_SIZE] == rom[en_la_rom(s["msu_datos_firma"]):][
+        assert msu[:msu_data.SIGNATURE_SIZE] == rom[en_la_rom(s["msu_data_signature"]):][
             :msu_data.SIGNATURE_SIZE], "%s: la firma de la ROM no es la del .msu" % nombre
-        assert s["MSU_FONDOS_N"] == s["FONDOS_JUEGO"] == len(juego), (
+        assert s["MSU_BACKDROPS_N"] == s["BACKDROPS_GAME"] == len(juego), (
             "%s: el .msu lleva %d fondos, la ROM cuenta con %d y el juego "
-            "tiene %d" % (nombre, s["MSU_FONDOS_N"], s["FONDOS_JUEGO"],
+            "tiene %d" % (nombre, s["MSU_BACKDROPS_N"], s["BACKDROPS_GAME"],
                           len(juego)))
-        pos = en_la_rom(s["msu_fondo_pos"])
+        pos = en_la_rom(s["msu_backdrop_pos"])
         # Los fondos van primero, dos entradas cada uno, y detrás los efectos
         # de sonido de calidad: ver `write_msu` en snes_convert.py.
-        assert len(indice) == 2 * s["MSU_FONDOS_N"] + s["MSU_EFECTOS_N"], (
+        assert len(indice) == 2 * s["MSU_BACKDROPS_N"] + s["MSU_EFFECTS_N"], (
             "%s: el .msu tiene %d entradas y la ROM cuenta con %d fondos y %d "
-            "efectos" % (nombre, len(indice), s["MSU_FONDOS_N"],
-                         s["MSU_EFECTOS_N"]))
-        for k in range(s["MSU_FONDOS_N"]):
+            "efectos" % (nombre, len(indice), s["MSU_BACKDROPS_N"],
+                         s["MSU_EFFECTS_N"]))
+        for k in range(s["MSU_BACKDROPS_N"]):
             (dt, lt), (dc, lc) = indice[2 * k], indice[2 * k + 1]
             assert (dt, dc) == (msu_data.backdrop_offset(k),
                                 msu_data.backdrop_offset(k) + msu_data.COLORS_AT), (
                 "%s: el fondo %d no está en su lugar fijo" % (nombre, k))
             assert rom[pos + 8 * k:pos + 8 * k + 8] == (
                 dt.to_bytes(4, "little") + dc.to_bytes(4, "little")), (
-                "%s: msu_fondo_pos del fondo %d no apunta a sus entradas"
+                "%s: msu_backdrop_pos del fondo %d no apunta a sus entradas"
                 % (nombre, k))
             assert (lt, lc) == (scene.TILES * 64, scene.COLORS * 2), (
                 "%s: el fondo %d del .msu mide %d y %d" % (nombre, k, lt, lc))

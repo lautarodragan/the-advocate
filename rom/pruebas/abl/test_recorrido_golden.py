@@ -100,7 +100,7 @@ def test_de_la_casa_de_talan_al_auditorio(recorrido):
     # del mapa 7 y es lo que abre su puerta y arranca el cronómetro.
     r.esperar_switch(24, tope=4000)
     r.esperar_el_control(tope=3000)
-    assert (r.p.byte("timer_activo"), r.p.palabra("timer_seg")) == (1, 600), (
+    assert (r.p.byte("timer_active"), r.p.palabra("timer_sec")) == (1, 600), (
         "el despertador tiene que haber arrancado la cuenta atrás de diez "
         "minutos. %s" % r.estado())
     r.foto("talan-despierto")
@@ -118,9 +118,9 @@ def test_de_la_casa_de_talan_al_auditorio(recorrido):
     # **El cronómetro tiene que haber quedado parado**, porque lo para la
     # escena del mapa 16: es la única prueba de que la cinemática corrió entera
     # y no que el mapa 17 se cargó por otro lado.
-    assert not r.p.byte("timer_activo"), (
+    assert not r.p.byte("timer_active"), (
         "la corrida al trabajo tiene que parar el cronómetro. %s" % r.estado())
-    assert 0 < r.p.palabra("timer_seg") < 600, r.estado()
+    assert 0 < r.p.palabra("timer_sec") < 600, r.estado()
     r.foto("fabrica-de-delcentric")
 
     r.empezar("el guardia que abre el auditorio")

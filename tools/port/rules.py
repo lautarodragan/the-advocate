@@ -84,38 +84,38 @@ def equipped_params(db, actor, equipment, level=None):
 # `ldb/chunks.h`, with the name beside them in a comment; today the name is
 # the data and the comment is what the term says in the game.
 BATTLE_TERMS = (
-    ("atacar", "command_attack"),        # "Attack"
-    ("defender", "command_defend"),      # "Defend"
-    ("huir", "battle_escape"),           # "Escape"
+    ("attack", "command_attack"),        # "Attack"
+    ("defend", "command_defend"),        # "Defend"
+    ("escape", "battle_escape"),         # "Escape"
     ("hp", "hp_short"),                  # "HP"
-    ("ataca", "attacking"),              # " attacks the enemy"
-    ("defiende", "defending"),
-    ("critico", "actor_critical"),
-    ("dano_enemigo", "enemy_damaged"),   # " health lost."
-    ("sin_dano_enemigo", "enemy_undamaged"),
-    ("dano_actor", "actor_damaged"),
-    ("sin_dano_actor", "actor_undamaged"),
-    ("victoria", "victory"),
-    ("derrota", "defeat"),
-    ("huyo", "escape_success"),
-    ("no_huyo", "escape_failure"),
+    ("attacks", "attacking"),            # " attacks the enemy"
+    ("defends", "defending"),
+    ("critical", "actor_critical"),
+    ("damage_enemy", "enemy_damaged"),   # " health lost."
+    ("no_damage_enemy", "enemy_undamaged"),
+    ("damage_actor", "actor_damaged"),
+    ("no_damage_actor", "actor_undamaged"),
+    ("victory", "victory"),
+    ("defeat", "defeat"),
+    ("fled", "escape_success"),
+    ("no_fled", "escape_failure"),
     # The four from 2026-09-13: the two missing commands and the two lines
     # of the use-an-item message.
-    ("usar", "command_item"),            # "Use Item"
-    ("habilidad", "command_skill"),      # "Tech Skill"
-    ("uso", "use_item"),                 # " used."
-    ("recupero", "hp_recovery"),         # " Recovered"
+    ("use", "command_item"),             # "Use Item"
+    ("skill", "command_skill"),          # "Tech Skill"
+    ("uses", "use_item"),                # " used."
+    ("recovered", "hp_recovery"),        # " Recovered"
     # The four of what the victory reports, since 2026-09-26: see
-    # `ba_vic_mensaje` in batalla_victoria.s.
-    ("exp_recibida", "exp_received"),    # " EXP"
-    ("nivel", "level"),                  # "LEVEL"
-    ("subio", "level_up"),               # " achieved!"
-    ("aprendio", "skill_learned"),       # " acquired!"
+    # `ba_vic_message` in battle_victory.s.
+    ("exp_received", "exp_received"),    # " EXP"
+    ("level", "level"),                  # "LEVEL"
+    ("level_up", "level_up"),            # " achieved!"
+    ("learned", "skill_learned"),        # " acquired!"
     # And those of the gold and items won, since 2026-09-27.
-    ("oro_a", "gold_recieved_a"),        # " You found"
-    ("moneda", "gold"),                  # "Cr"
-    ("oro_b", "gold_recieved_b"),        # " credits!"
-    ("obtenido", "item_recieved"),       # " obtained!"
+    ("gold_a", "gold_recieved_a"),       # " You found"
+    ("currency", "gold"),                # "Cr"
+    ("gold_b", "gold_recieved_b"),       # " credits!"
+    ("obtained", "item_recieved"),       # " obtained!"
 )
 
 

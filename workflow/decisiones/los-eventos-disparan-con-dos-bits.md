@@ -2,7 +2,7 @@
 
 **Los eventos disparan con dos bits cada uno, no con una cola.** Es el
 `waiting_execution` de `Game_Event`: `FLAG_AUTO` dice si la página activa del
-evento es una automática que compiló, y `FLAG_ESPERA` si tiene una página
+evento es una automática que compiló, y `FLAG_WAIT` si tiene una página
 esperando turno —la haya puesto el barrido de las automáticas, la tecla de
 acción o un contacto—.
 

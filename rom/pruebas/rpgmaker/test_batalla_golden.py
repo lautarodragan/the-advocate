@@ -6,7 +6,7 @@ y `test_titulo_golden.py`: lo que los junta no es de qué habla cada caso sino
 cómo hay que correrlo.
 
 En todos los demás, un tick de la ROM es una vuelta del lazo principal y
-`vueltas` lo cuenta; acá no: la pantalla de batalla corre su propio lazo, y el
+`ticks` lo cuenta; acá no: la pantalla de batalla corre su propio lazo, y el
 menú de pausa, la lista de ranuras y la de título no son el juego. Esperar un
 tick ahí adentro no termina nunca —el 2026-09-10 una captura sin ese cuidado se
 comió una hora de CPU y 42 GiB antes de que alguien la viera en `ps`—.
@@ -43,7 +43,7 @@ from tanda import (consola_cruda, correr_hardware, golden, partida,
 #
 # La pelea de `batalla` recién toma el control en el cuadro 186: antes van la
 # transición de entrada —dos destellos, el fundido del mapa, la carga del
-# paquete de audio en negro y el mosaico, ver `fundido_de_pelea.s`— y un toque
+# paquete de audio en negro y el mosaico, ver `battle_fade.s`— y un toque
 # que caiga ahí se pierde. Hasta el 2026-09-26 la tomaba en el 118, y todos
 # los números de acá se corrieron 68 cuadros sin que cambiara ninguna golden.
 BATALLAS = (
@@ -108,13 +108,13 @@ BATALLAS = (
 def test_batalla(nombre, caso, cuantos, toques, en):
     """`batalla`: la pantalla de la pelea.
 
-    **La pelea no cuesta ningún tick**: `batalla_correr` corre su propio lazo y
-    `vueltas` no avanza mientras dura, así que todo acá va en cuadros de
+    **La pelea no cuesta ningún tick**: `battle_run` corre su propio lazo y
+    `ticks` no avanza mientras dura, así que todo acá va en cuadros de
     hardware, los toques incluidos.
 
     El grupo son tres actores y no el de los demás casos: la pantalla muestra
     a los tres. La pelea es la misma todas las veces porque el azar está
-    clavado en `BATALLA_SEMILLA`.
+    clavado en `BATTLE_SEED`.
     """
     consola = consola_cruda(caso, en=en)
     correr_hardware(consola, cuantos, toques_hardware=toques)

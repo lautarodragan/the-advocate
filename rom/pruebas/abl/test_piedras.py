@@ -75,7 +75,7 @@ def test_con_a_y_una_direccion_la_piedra_sale_volando(partida):
     # del motor y de nadie más: el `KeyInputProc` de la dirección, que el
     # motor ejecuta en ese mismo tick, hace `Input::ResetTriggerKeys()` y el
     # héroe ya no ve el flanco. Si lo viera, la reja volvería a hablar.
-    assert not p.byte("ev_activo") and not p.byte("msg_estado"), (
+    assert not p.byte("ev_active") and not p.byte("msg_state"), (
         "la A que prepara la piedra le habló también a la reja")
     assert (p.variable(ranura(6)), p.variable(ranura(7))) == DEBAJO_DE_LA_REJA, (
         "las variables 6 y 7 tendrían que traer la celda del héroe")
@@ -137,7 +137,7 @@ def tirarle_a_la_pc(p):
     p.correr(4)
     p.tocar_ticks("up")
     for _ in range(TOPE_HASTA_EL_MENSAJE):
-        if p.byte("msg_abierto"):
+        if p.byte("msg_open"):
             break
         p.correr(1)
     else:
@@ -148,7 +148,7 @@ def tirarle_a_la_pc(p):
     # quede otra vez parado en el `KeyInputProc` de la A, que es donde el
     # toque que cierra el mensaje lo encontraba.
     p.correr(90)
-    assert p.byte("msg_abierto"), "el mensaje se cerró sin que nadie tocara A"
+    assert p.byte("msg_open"), "el mensaje se cerró sin que nadie tocara A"
     return p
 
 
@@ -165,7 +165,7 @@ def test_la_a_que_cierra_el_mensaje_no_saca_una_piedra(partida):
     assert lejos != FRENTE_A_LA_PC
 
     p.tocar_ticks("a")
-    assert not p.byte("msg_abierto"), "el toque de A tendría que cerrarlo"
+    assert not p.byte("msg_open"), "el toque de A tendría que cerrarlo"
     p.correr(30)
     assert p.variable(ranura(5)) == 0, (
         "el A que cerró el mensaje lo leyó también el motor de las piedras: "
@@ -193,8 +193,8 @@ def test_la_a_que_cierra_el_mensaje_no_le_habla_al_de_enfrente(partida):
     """El A que cierra un mensaje queda consumido: el héroe no lo ve.
 
     El mensaje es de un paralelo —el de la PC rota—, así que al cerrarlo no
-    queda ninguna página de primer plano corriendo y `eventos_tick` sigue de
-    largo hasta `probar_accion` en el mismo cuadro, con el flanco de A
+    queda ninguna página de primer plano corriendo y `events_tick` sigue de
+    largo hasta `try_action` en el mismo cuadro, con el flanco de A
     todavía ahí. En RM2k eso no pasa: el mensaje sigue "activo" unos ocho
     cuadros después de cerrarse, mientras se anima el cierre, y con un
     mensaje activo el héroe no busca eventos de acción (easyrpg
@@ -214,21 +214,21 @@ def test_la_a_que_cierra_el_mensaje_no_le_habla_al_de_enfrente(partida):
         "el héroe tendría que mirar a EV0060")
     assert eventos_del_11().for_event(1).route_target(EV0060)
     for _ in range(TOPE_HASTA_EL_MENSAJE):
-        if p.byte("msg_abierto"):
+        if p.byte("msg_open"):
             break
         p.correr(1)
     else:
         raise AssertionError(
             "la piedra tirada hacia la izquierda tendría que haber roto la PC")
     p.correr(60)
-    assert p.byte("msg_abierto")
-    assert not p.byte("ev_activo"), (
+    assert p.byte("msg_open")
+    assert not p.byte("ev_active"), (
         "el mensaje es del paralelo: no tendría que haber una página de "
         "primer plano corriendo")
 
     p.tocar_ticks("a")
-    assert not p.byte("msg_abierto"), "el toque de A tendría que cerrarlo"
-    assert not p.byte("ev_activo") and not p.byte("msg_estado"), (
+    assert not p.byte("msg_open"), "el toque de A tendría que cerrarlo"
+    assert not p.byte("ev_active") and not p.byte("msg_state"), (
         "el A que cerró el mensaje le habló también a EV0060, que el héroe "
         "tenía enfrente")
 
@@ -258,7 +258,7 @@ def test_un_paralelo_espera_a_su_propio_mensaje(partida):
             "`ShowMessage`" % numero)
 
     p.tocar_ticks("a")
-    assert not p.byte("msg_abierto"), "el toque de A tendría que cerrarlo"
+    assert not p.byte("msg_open"), "el toque de A tendría que cerrarlo"
     p.correr(10)
     for numero in SWITCHES_DEL_GUARDIA:
         assert p.switch(numero), (

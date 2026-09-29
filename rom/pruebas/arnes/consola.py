@@ -11,8 +11,8 @@ Lo que hace posible preguntar es que `tools/assembly/assemble.py` deja al lado d
 la tabla de símbolos que sale de `runtime/` de verdad, con las direcciones de la
 RAM **y** las constantes del ensamblador:
 
-    mapa_actual 90
-    BOOT_CUADROS 40
+    map_current 90
+    BOOT_FRAMES 40
     FLAG_AUTO 2
 
 Por eso acá no hay ninguna dirección escrita a mano. Si alguien renombra una
@@ -43,7 +43,7 @@ NUCLEO = os.environ.get(
 # El cuadro que se ve en pantalla muestra el estado de la vuelta ANTERIOR del
 # lazo principal: `flush_video` sube el OAM que armó `build_oam` la vuelta
 # pasada, y por eso está al principio del lazo y no al final. De ahí sale este
-# +1, que no es un ajuste sino una consecuencia del orden del lazo, en runtime/arranque.s.
+# +1, que no es un ajuste sino una consecuencia del orden del lazo, en runtime/boot.s.
 #
 # Con eso, para ver al héroe con N pixeles de avance hay que correr N/2 + 1
 # cuadros desde que se aprieta: se mueve WALK_SPEED = 2 por cuadro. Medido en el
@@ -62,10 +62,10 @@ WRAM = 0x20000
 EFECTO = 0x100
 
 # La marca de una ranura con partida. **No sale de la tabla de símbolos porque
-# la ROM no la tiene como símbolo**: `ranura_llena` la compara con cuatro
-# `cmp #` inmediatos, y `guardar_partida` la escribe igual. Sale del archivo
+# la ROM no la tiene como símbolo**: `slot_full` la compara con cuatro
+# `cmp #` inmediatos, y `save_game` la escribe igual. Sale del archivo
 # de proyecto, de donde la saca el conversor. Lo que sí es símbolo es dónde
-# va, `SRAM_MAGIA`.
+# va, `SRAM_MAGIC`.
 MAGIA = settings.ascii("rom", "sram_signature", length=4).encode()
 
 
@@ -131,7 +131,7 @@ class Partida:
     Un tick es una vuelta del lazo principal, o sea un paso de lógica de RM2k.
     Normalmente es un cuadro de hardware, y se separan cuando una vuelta se
     pasa del cuadro: al entrar a Lashe City las dos primeras miden 370 y 386
-    líneas de las 262 que hay. La ROM lleva la cuenta en `vueltas` y acá se la
+    líneas de las 262 que hay. La ROM lleva la cuenta en `ticks` y acá se la
     pregunta, en vez de suponer que un cuadro es un tick.
     """
 
@@ -142,7 +142,7 @@ class Partida:
         # ver `muestras_del_tema`.
         self.sfc = sfc
         # Los ids de mapa de RM2k en el orden de la tabla de la ROM, que es lo
-        # que `mapa_actual` indexa. Sale del `mapdata.inc` generado y no de
+        # que `map_current` indexa. Sale del `mapdata.inc` generado y no de
         # rehacer la convención de "el de --map-id primero": ya está escrita
         # en el conversor, y una segunda copia sería una segunda manera de
         # equivocarse igual en los dos lados.
@@ -173,7 +173,7 @@ class Partida:
         # Y el contador **no** lo cuenta: los números de `apretar_a` se cuentan
         # desde el primer cuadro de juego. Contándolo, cada toque caía ciento
         # quince cuadros antes de tiempo y la escena no avanzaba.
-        self.consola.run(self.simbolos["BOOT_CUADROS"])
+        self.consola.run(self.simbolos["BOOT_FRAMES"])
         # Con pantalla de título el arranque no termina en el mapa sino en el
         # menú, y el primer cuadro de juego es el de después de elegir.
         self.titulo = titulo
@@ -204,10 +204,10 @@ class Partida:
             # primera vuelta del lazo termina tres cuadros más tarde que en
             # uno de un mapa. Se espera a que haya corrido.
             for _ in range(60):
-                if self.palabra("vueltas"):
+                if self.palabra("ticks"):
                     break
                 self.consola.run(1)
-            if not self.byte("fundido"):
+            if not self.byte("fade"):
                 raise AssertionError(
                     "el caso %d empieza con un Teleport y la ROM no está "
                     "fundiendo después del primer tick" % caso)
@@ -215,7 +215,7 @@ class Partida:
         # Los cuadros de hardware corridos desde que terminó el arranque. Es el
         # reloj de los toques de `toques_hardware`, y es otro que el de los
         # ticks: adentro de una pantalla que congela el juego —la de ranuras
-        # del save point— `vueltas` no avanza y éste sí, así que es el único
+        # del save point— `ticks` no avanza y éste sí, así que es el único
         # que puede decir cuándo apretar ahí.
         self.hardware = 0
 
@@ -234,17 +234,17 @@ class Partida:
         ésa el mundo corre por primera vez en el mapa nuevo, que es lo que en
         una partida que arranca ahí es el tick 1.
         """
-        antes = self.palabra("vueltas")
+        antes = self.palabra("ticks")
         for _ in range(600):
-            if not self.byte("fundido"):
+            if not self.byte("fade"):
                 break
             self.consola.run(1)
         else:
             raise RuntimeError("el Teleport del caso no terminó de fundir")
-        apagado = self.palabra("vueltas")
-        while self.palabra("vueltas") <= apagado:
+        apagado = self.palabra("ticks")
+        while self.palabra("ticks") <= apagado:
             self.consola.run(1)
-        self.llegada = self.palabra("vueltas") - antes
+        self.llegada = self.palabra("ticks") - antes
 
     def _bajar_y_elegir(self, cuantas):
         """`cuantas` toques de abajo y después A.
@@ -270,10 +270,10 @@ class Partida:
         ranuras, así que elegirla son dos menús y no uno. `ranura` dice cuál se
         elige ahí; con la primera opción no se mira.
         """
-        # Unos cuadros de aire primero: `pantalla_titulo` corre **después** de
-        # que el arranque contó sus BOOT_CUADROS, y antes de llegar a su lazo
+        # Unos cuadros de aire primero: `title_screen` corre **después** de
+        # que el arranque contó sus BOOT_FRAMES, y antes de llegar a su lazo
         # sube 33 KB a la VRAM con la pantalla apagada. Un toque en el cuadro
-        # BOOT_CUADROS justo cae ahí y se pierde. La pantalla de ranuras sube
+        # BOOT_FRAMES justo cae ahí y se pierde. La pantalla de ranuras sube
         # bastante menos, pero el aire no cuesta nada y se le da el mismo.
         self.consola.run(TITULO_AIRE)
         self._bajar_y_elegir(opcion)
@@ -284,11 +284,11 @@ class Partida:
     def esperar_la_pantalla_de_ranuras(self, tope=120):
         """Cuadros de hardware hasta que la pantalla de ranuras esté a la vista.
 
-        Se mira `menu_abierto`, que la ROM pone para esto: mientras la pantalla
-        se ve `vueltas` no avanza, así que esperar por ticks se colgaría.
+        Se mira `menu_open`, que la ROM pone para esto: mientras la pantalla
+        se ve `ticks` no avanza, así que esperar por ticks se colgaría.
         """
         for _ in range(tope):
-            if self.byte("menu_abierto"):
+            if self.byte("menu_open"):
                 return self
             self.consola.run(1)
         raise RuntimeError(
@@ -312,11 +312,11 @@ class Partida:
         """El grupo, por ids de actor, escrito en la RAM como lo dejaría un
         `ChangePartyMembers`. Es lo que la partida guarda y la pantalla de
         ranuras muestra."""
-        largo = self.simbolos["GRUPO_MAX"]
+        largo = self.simbolos["PARTY_MAX"]
         assert len(actores) <= largo
-        self.consola.write_ram(self.simbolos["grupo"],
+        self.consola.write_ram(self.simbolos["party"],
                                list(actores) + [0] * (largo - len(actores)))
-        self.consola.write_ram(self.simbolos["grupo_n"],
+        self.consola.write_ram(self.simbolos["party_n"],
                                [len(actores), 0])
         return self
 
@@ -364,22 +364,22 @@ class Partida:
         prender un switch: lo que se prueba después es que la partida vuelva,
         no el permiso —ése lo cobran las pruebas del menú—.
         """
-        acceso = self.simbolos["FAR_ACCESO"]
+        acceso = self.simbolos["FAR_ACCESS"]
         permiso = self.consola.ram(acceso, 1)[0]
         self.consola.write_ram(
-            acceso, [permiso & ~self.simbolos["ACCESO_SIN_GUARDAR"] & 0xFF])
+            acceso, [permiso & ~self.simbolos["ACCESS_NO_SAVE"] & 0xFF])
         self.consola.hold("b")
         self.consola.run(2)
         self.consola.hold()
         for _ in range(120):
-            if self.byte("menu_abierto"):
+            if self.byte("menu_open"):
                 break
             self.consola.run(1)
         else:
             raise RuntimeError("B no abrió el menú de pausa: ¿el héroe tenía "
                                "el control?")
         self.consola.run(TITULO_AIRE)
-        self._bajar_y_elegir(self.simbolos["MENU_GUARDAR"])
+        self._bajar_y_elegir(self.simbolos["MENU_SAVE"])
         # La pantalla de ranuras, arriba del menú: el menú sigue abierto
         # abajo, así que no hay bandera que esperar, y se le da el aire del
         # título, que sube más.
@@ -390,7 +390,7 @@ class Partida:
         self.consola.run(2)
         self.consola.hold()
         for _ in range(120):
-            if not self.byte("menu_abierto"):
+            if not self.byte("menu_open"):
                 break
             self.consola.run(1)
         else:
@@ -401,7 +401,7 @@ class Partida:
     def _resetear(self):
         """El botón de reset y el arranque, con los relojes de la prueba en
         cero. `llegada` es la del `Teleport` del caso **antes** del reset:
-        restada a un `vueltas` que arranca de nuevo, un `correr(10)` corría
+        restada a un `ticks` que arranca de nuevo, un `correr(10)` corría
         ochenta ticks.
 
         **La WRAM se pisa antes**, con el `$55` con que snes9x la enciende:
@@ -416,7 +416,7 @@ class Partida:
         self.cuadro = 0
         self.llegada = 0
         self.hardware = 0
-        self.consola.run(self.simbolos["BOOT_CUADROS"])
+        self.consola.run(self.simbolos["BOOT_FRAMES"])
 
     def reiniciar(self, opcion=None, ranura=0):
         """El botón de reset: la SRAM del cartucho sobrevive y la WRAM no.
@@ -451,9 +451,9 @@ class Partida:
         if self.caso:
             self.consola.write_ram(
                 self.simbolos["FAR_VARIABLES"]
-                + 2 * self.simbolos["CASO_RANURA"],
+                + 2 * self.simbolos["CASE_SLOT"],
                 [self.caso & 0xFF, self.caso >> 8])
-            self.consola.write_ram(self.simbolos["refresco"], [1])
+            self.consola.write_ram(self.simbolos["refresh"], [1])
 
     def sram(self, direccion=0, largo=None):
         """La SRAM del cartucho, que es lo que un frontend vuelca a un `.srm`."""
@@ -466,7 +466,7 @@ class Partida:
 
     def magia(self, ranura=0):
         """Los cuatro bytes de la marca de la ranura, en la SRAM."""
-        return self.sram(self.simbolos["SRAM_MAGIA"]
+        return self.sram(self.simbolos["SRAM_MAGIC"]
                          + ranura * self.simbolos["SRAM_STRIDE"], 4)
 
     def hay_partida(self, ranura=0):
@@ -491,7 +491,7 @@ class Partida:
                               menú: los menús miran **flancos**, así que
                               sostener abajo mueve el cursor una sola vez
                               —hasta los 23 cuadros, cuando empieza la
-                              repetición de `flechas_repetir`—.
+                              repetición de `arrows_repeat`—.
             tocar             en ticks, un tick antes por `RETRASO_DE_PANTALLA`,
                               igual que `apretar_a`. Existe porque la forma de
                               `KeyInputProc` que espera la cruceta necesita un
@@ -531,7 +531,7 @@ class Partida:
         self.consola.run(1)
         self.hardware += 1
         # El cuadro 0 es el tick 1.
-        self.cuadro = self.palabra("vueltas") - 1 - self.llegada
+        self.cuadro = self.palabra("ticks") - 1 - self.llegada
 
     def _un_tick(self):
         """Cuadros hasta que el juego avance una vuelta."""
@@ -545,7 +545,7 @@ class Partida:
     # --- las preguntas -----------------------------------------------------
     #
     # Cada símbolo se nombra en un solo lugar, acá. Un test dice `.mapa()`, no
-    # `"mapa_actual"`, así que renombrar la variable en `runtime/` se arregla en
+    # `"map_current"`, así que renombrar la variable en `runtime/` se arregla en
     # una línea y no en veinte.
 
     def byte(self, nombre):
@@ -569,7 +569,7 @@ class Partida:
         los ponen en un tick dado de antemano—, para ir tocando a medida que
         se mira el estado —el cursor de `ShowChoice`, un mensaje—. **No sirve
         con una pantalla que congela el reloj** —el menú, la tienda, la pelea,
-        el título—: ahí `vueltas` no avanza y el segundo tick no llega nunca.
+        el título—: ahí `ticks` no avanza y el segundo tick no llega nunca.
         Para ésas está `tocar_cuadros`.
         """
         self.consola.hold(*botones)
@@ -614,18 +614,18 @@ class Partida:
 
     def velocidad_del_heroe(self):
         """La velocidad de RM2k del héroe, de 1 a 6, leída de la RAM lejana."""
-        return self.consola.ram(self.simbolos["FAR_HERO_VEL"], 1)[0]
+        return self.consola.ram(self.simbolos["FAR_HERO_SPEED"], 1)[0]
 
     def poner_velocidad_del_heroe(self, velocidad):
         """Lo que una ruta con 28 o 29 le deja al héroe, sin correr la ruta."""
-        self.consola.write_ram(self.simbolos["FAR_HERO_VEL"], [velocidad])
+        self.consola.write_ram(self.simbolos["FAR_HERO_SPEED"], [velocidad])
         return self
 
     def poner_byte(self, nombre, valor):
         """Escribe un byte de la RAM de la ROM, por nombre de símbolo.
 
         Es para poner a la partida en un estado al que llegar jugando costaría
-        media hora: `saltos_restantes` bajo, por ejemplo, que es lo que deja una
+        media hora: `jumps_left` bajo, por ejemplo, que es lo que deja una
         partida larga. Lo que se escribe acá **no** es una aserción: se escribe
         el estado y después se le pregunta a la ROM qué hace con él.
         """
@@ -645,11 +645,11 @@ class Partida:
         return (b[0] | (b[1] << 8), b[2] | (b[3] << 8))
 
     def oro(self):
-        b = self.consola.ram(self.simbolos["oro"], 3)
+        b = self.consola.ram(self.simbolos["gold"], 3)
         return b[0] | (b[1] << 8) | (b[2] << 16)
 
     def poner_oro(self, cuanto):
-        self.consola.write_ram(self.simbolos["oro"],
+        self.consola.write_ram(self.simbolos["gold"],
                                [cuanto & 0xFF, (cuanto >> 8) & 0xFF,
                                 (cuanto >> 16) & 0xFF])
         return self
@@ -658,7 +658,7 @@ class Partida:
     # número de actor. Es lo que guarda la SRAM, lo que dibuja el menú y lo que
     # tocan `FullHeal` y la posada. Los de adentro de una pelea son otros —uno
     # por puesto de combatiente, `Pelea.hp_del_combatiente`— y llegan acá
-    # recién cuando `modo_fin` los copia al terminar.
+    # recién cuando `mode_end` los copia al terminar.
 
     def hp(self, actor):
         return self._palabra_del_actor("FAR_HP", actor)
@@ -682,8 +682,8 @@ class Partida:
         return self
 
     def equipo(self, actor):
-        """Las cinco ranuras de equipo del actor, leídas de `FAR_EQUIPO`."""
-        datos = self.consola.ram(self.simbolos["FAR_EQUIPO"] + actor * 10, 10)
+        """Las cinco ranuras de equipo del actor, leídas de `FAR_EQUIPMENT`."""
+        datos = self.consola.ram(self.simbolos["FAR_EQUIPMENT"] + actor * 10, 10)
         return [datos[2 * r] | (datos[2 * r + 1] << 8) for r in range(5)]
 
     def celdas_mal_dibujadas(self):
@@ -698,20 +698,20 @@ class Partida:
         comparación no compararía lo mismo. Eso se cobra acá.
         """
         antes = self.ventana()
-        camara = (self.palabra("camara_x"), self.palabra("camara_y"))
+        camara = (self.palabra("camera_x"), self.palabra("camera_y"))
         self.ir_al_mapa(self.mapa(), self.palabra("tile_x"),
                         self.palabra("tile_y"))
         self.correr(10)
-        assert (self.palabra("camara_x"), self.palabra("camara_y")) == camara, (
+        assert (self.palabra("camera_x"), self.palabra("camera_y")) == camara, (
             "el teletransporte dejó la cámara en %s y antes estaba en %s: la "
-            "referencia no sirve" % ((self.palabra("camara_x"),
-                                      self.palabra("camara_y")), camara))
+            "referencia no sirve" % ((self.palabra("camera_x"),
+                                      self.palabra("camera_y")), camara))
         despues = self.ventana()
         return [c for c in antes if antes[c] != despues[c]], antes
 
     def mapa(self):
         """En qué mapa de RM2k está parada la partida."""
-        indice = self.palabra("mapa_actual")
+        indice = self.palabra("map_current")
         if indice >= len(self.mapas):
             raise AssertionError(
                 "la ROM dice estar en el mapa índice %d y su tabla tiene %d: "
@@ -734,15 +734,15 @@ class Partida:
         """
         win_col = self.palabra("win_col")
         win_row = self.palabra("win_row")
-        ancho = self.palabra("mapa_cw")
-        alto = self.palabra("mapa_ch")
+        ancho = self.palabra("map_cw")
+        alto = self.palabra("map_ch")
         cols, filas = self.simbolos["WINDOW_COLS"], self.simbolos["WINDOW_ROWS"]
         # Las dos pantallas de 32x32 del tilemap no son contiguas: la de la
         # derecha vive 1024 palabras más adelante, que es como las escribe
         # `push_strips`. Dónde está el del fondo depende del reparto del mapa,
-        # y la ROM lo deja en `FAR_VRAM_MAPA`.
+        # y la ROM lo deja en `FAR_VRAM_MAP`.
         bajo, alto_ = self.consola.ram(
-            en_la_wram(self.simbolos["FAR_VRAM_MAPA"]), 2)
+            en_la_wram(self.simbolos["FAR_VRAM_MAP"]), 2)
         fondo = self.consola.vram(bajo | (alto_ << 8), 32 * 32 * 2)
         encima = self.consola.vram(self.simbolos["VRAM_ABOVE_MAP"], 32 * 32 * 2)
         visto = {}
@@ -788,7 +788,7 @@ class Partida:
             direccion = base + numero // 8
             octeto = self.consola.ram(direccion, 1)[0] | (1 << (numero % 8))
             self.consola.write_ram(direccion, [octeto])
-        self.consola.write_ram(self.simbolos["refresco"], [1])
+        self.consola.write_ram(self.simbolos["refresh"], [1])
         return self
 
     def apagar(self, *numeros):
@@ -805,14 +805,14 @@ class Partida:
             direccion = base + numero // 8
             octeto = self.consola.ram(direccion, 1)[0] & ~(1 << (numero % 8))
             self.consola.write_ram(direccion, [octeto & 0xFF])
-        self.consola.write_ram(self.simbolos["refresco"], [1])
+        self.consola.write_ram(self.simbolos["refresh"], [1])
         return self
 
     def ir_al_mapa(self, map_id, x, y, cuadros=90, tinte=True):
         """Teletransporta a la partida, como lo haría una puerta del juego.
 
         No hay atajo acá: se le pide a la ROM el mismo fundido que pide una
-        puerta —`empezar_fundido` con `FUNDIDO_PUERTA`— y la carga del mapa la
+        puerta —`start_fade` con `FADE_DOOR`— y la carga del mapa la
         hace ella, por su camino. Lo único que se escribe desde afuera es el
         pedido: a dónde, a qué celda, y la bandera.
 
@@ -828,21 +828,21 @@ class Partida:
         # OP_TELEPORT lo es. Escribiendo uno solo, el alto se queda con lo que
         # hubiera antes y la ROM carga cualquier mapa.
         indice = self.mapas.index(map_id)
-        self.consola.write_ram(self.simbolos["fundido_mapa"],
+        self.consola.write_ram(self.simbolos["fade_map"],
                                [indice & 0xFF, indice >> 8])
-        for nombre, valor in (("entrada_x", x), ("entrada_y", y)):
+        for nombre, valor in (("entry_x", x), ("entry_y", y)):
             self.consola.write_ram(self.simbolos[nombre],
                                    [valor & 0xFF, valor >> 8])
-        # `empezar_fundido`, desde afuera: qué fundido es, que hay uno, y el
+        # `start_fade`, desde afuera: qué fundido es, que hay uno, y el
         # reloj, que son **vueltas del lazo** —ticks— desde el 2026-09-08. Con
-        # `boot_cuadros`, que es lo que decía antes, la resta daba cualquier
+        # `boot_frames`, que es lo que decía antes, la resta daba cualquier
         # cosa y el fundido no terminaba nunca: la partida se quedaba en el
         # mapa de arranque y catorce pruebas fallaban sin decir por qué.
-        self.consola.write_ram(self.simbolos["fundido_que"],
-                               [self.simbolos["FUNDIDO_PUERTA"]])
-        self.consola.write_ram(self.simbolos["fundido"], [1])
-        self.consola.write_ram(self.simbolos["fundido_base"],
-                               [self.palabra("vueltas") & 0xFF])
+        self.consola.write_ram(self.simbolos["fade_kind"],
+                               [self.simbolos["FADE_DOOR"]])
+        self.consola.write_ram(self.simbolos["fade"], [1])
+        self.consola.write_ram(self.simbolos["fade_base"],
+                               [self.palabra("ticks") & 0xFF])
         # Y la pantalla se destiñe, que es lo único que este salto hace y una
         # puerta de verdad no.
         #
@@ -856,9 +856,9 @@ class Partida:
         # `tinte=False` se conserva, para una prueba que quiera justamente
         # mirar que sobrevive.
         if tinte:
-            for nombre in ("tinte_r", "tinte_g", "tinte_b", "tinte_s"):
+            for nombre in ("tint_r", "tint_g", "tint_b", "tint_s"):
                 self.consola.write_ram(self.simbolos[nombre],
-                                       [self.simbolos["TINTE_NEUTRO"]])
+                                       [self.simbolos["TINT_NEUTRAL"]])
         self.correr(cuadros)
         return self
 
@@ -882,43 +882,43 @@ class Partida:
     def muestras_en_la_aram(self):
         """Qué muestras dice la ROM tener subidas al SPC700.
 
-        Es `FAR_ARAM_DE`, una palabra por muestra con dónde quedó cada una en
-        la ARAM, o cero si no está: la lee `paquete_cargar` y la escribe
-        `colocar_muestra`. Un número que **no** está acá es una muestra cuya
+        Es `FAR_ARAM_OF`, una palabra por muestra con dónde quedó cada una en
+        la ARAM, o cero si no está: la lee `package_load` y la escribe
+        `place_sample`. Un número que **no** está acá es una muestra cuya
         entrada del directorio del SPC700 apunta al silencio, o sea una nota
         que no suena.
 
-        Las entradas desde `SE_PRIMERA` son lugares que comparten los
+        Las entradas desde `SE_FIRST` son lugares que comparten los
         efectos, así que la entrada sola no dice cuál está: de ésas sale el
-        efecto anotado en `FAR_EFECTO_EN`, como `EFECTO + su número`, que es
+        efecto anotado en `FAR_EFFECT_IN`, como `EFECTO + su número`, que es
         como los cuenta `muestras_del_paquete`.
         """
         s = self.simbolos
-        n = s["MUESTRAS_N"]
-        crudo = self.consola.ram(en_la_wram(s["FAR_ARAM_DE"]), 2 * n)
-        anotados = self.consola.ram(en_la_wram(s["FAR_EFECTO_EN"]),
-                                    max(1, s["SE_LUGARES"]))
-        return {i if i < s["SE_PRIMERA"]
-                else EFECTO + anotados[i - s["SE_PRIMERA"]]
+        n = s["SAMPLES_N"]
+        crudo = self.consola.ram(en_la_wram(s["FAR_ARAM_OF"]), 2 * n)
+        anotados = self.consola.ram(en_la_wram(s["FAR_EFFECT_IN"]),
+                                    max(1, s["SE_PLACES"]))
+        return {i if i < s["SE_FIRST"]
+                else EFECTO + anotados[i - s["SE_FIRST"]]
                 for i in range(n) if crudo[2 * i] | (crudo[2 * i + 1] << 8)}
 
     def muestras_del_tema(self, indice):
-        """Qué muestras necesita el tema, leídas de `tema_muestras` **en el
+        """Qué muestras necesita el tema, leídas de `song_samples` **en el
         cartucho**.
 
-        Es la misma tabla que mira `tema_asegurar`, y se lee de la ROM en vez
+        Es la misma tabla que mira `song_ensure`, y se lee de la ROM en vez
         de recalcularla con `snes_music.song_samples`: recalcularla
         sería una segunda manera de contestar la pregunta, y las dos se pueden
         equivocar igual. Un índice de desplazamientos de dos bytes por tema
-        —`TEMA_TOTAL` de ellos— y detrás una lista por tema cerrada con $FF.
+        —`SONG_TOTAL` de ellos— y detrás una lista por tema cerrada con $FF.
         """
         with open(self.sfc, "rb") as archivo:
             rom = archivo.read()
-        base = en_la_rom(self.simbolos["tema_muestras"])
-        if not 0 <= indice < self.simbolos["TEMA_TOTAL"]:
+        base = en_la_rom(self.simbolos["song_samples"])
+        if not 0 <= indice < self.simbolos["SONG_TOTAL"]:
             raise AssertionError(
                 "el tema %d no está en esta ROM, que lleva %d"
-                % (indice, self.simbolos["TEMA_TOTAL"]))
+                % (indice, self.simbolos["SONG_TOTAL"]))
         salto = base + 2 * indice
         lista = base + (rom[salto] | (rom[salto + 1] << 8))
         muestras = []
@@ -933,7 +933,7 @@ class Partida:
     def muestras_del_paquete(self, indice):
         """(los temas, las muestras de sus efectos) del paquete de audio
         `indice` —el de un mapa, en el orden de la tabla de mapas—, leídos de
-        `paquetes` en el cartucho, que es lo que recorre `paquete_cargar_ya`:
+        `paquetes` en el cartucho, que es lo que recorre `package_load_done`:
         un índice de desplazamientos de dos bytes y detrás, por paquete,
         cuatro listas cerradas con $FF. La tercera, los temas de salida, la
         da `temas_de_salida`, y la cuarta `temas_aparte`: ésos no tienen por
@@ -944,20 +944,20 @@ class Partida:
 
     def temas_de_salida(self, indice):
         """Los temas de salida del paquete `indice`: los que el mapa prende
-        sólo para irse, que se suben si hay lugar. Ver `extra_de_salida` en
-        runtime/paquete_de_audio.s."""
+        sólo para irse, que se suben si hay lugar. Ver `exit_extra` en
+        runtime/audio_package.s."""
         return self._listas_del_paquete(indice)[2]
 
     def temas_aparte(self, indice):
         """Los temas aparte del paquete `indice`: los que su `PlayBGM` sube
-        solos con los efectos del paquete. Ver `extra_aparte` en
-        runtime/paquete_de_audio.s."""
+        solos con los efectos del paquete. Ver `extra_separate` en
+        runtime/audio_package.s."""
         return self._listas_del_paquete(indice)[3]
 
     def _listas_del_paquete(self, indice):
         with open(self.sfc, "rb") as archivo:
             rom = archivo.read()
-        base = en_la_rom(self.simbolos["paquetes"])
+        base = en_la_rom(self.simbolos["packages"])
         salto = base + 2 * indice
         lista = base + (rom[salto] | (rom[salto + 1] << 8))
         partes = []
@@ -972,15 +972,15 @@ class Partida:
 
     def stream_del_tema(self, indice):
         """(dirección del stream, sus sonidos) del tema, leídos **del
-        cartucho** con las mismas tablas que usa `music_start_ya`: `tema_lo`,
-        `tema_hi` y `tema_bk`, y `tema_sonidos` dentro de `musica_sonidos`."""
+        cartucho** con las mismas tablas que usa `music_start_done`: `song_lo`,
+        `song_hi` y `song_bk`, y `song_sounds` dentro de `music_sounds`."""
         s = self.simbolos
         with open(self.sfc, "rb") as archivo:
             rom = archivo.read()
         lo, hi, bk = (rom[en_la_rom(s[t] + indice)]
-                      for t in ("tema_lo", "tema_hi", "tema_bk"))
-        base = en_la_rom(s["tema_sonidos"] + 2 * indice)
-        desde = en_la_rom(s["musica_sonidos"]) + (rom[base] | rom[base + 1] << 8)
+                      for t in ("song_lo", "song_hi", "song_bk"))
+        base = en_la_rom(s["song_sounds"] + 2 * indice)
+        desde = en_la_rom(s["music_sounds"]) + (rom[base] | rom[base + 1] << 8)
         sonidos = [tuple(rom[desde + 6 * i:desde + 6 * i + 6])
                    for i in range(256)]
         return lo | hi << 8 | bk << 16, sonidos
@@ -998,23 +998,23 @@ class Partida:
     def acceso(self):
         """El byte de permisos: bit 0 guardar prohibido, bit 1 el menú
         prohibido, bit 7 el menú pedido."""
-        return self.consola.ram(self.simbolos["FAR_ACCESO"], 1)[0]
+        return self.consola.ram(self.simbolos["FAR_ACCESS"], 1)[0]
 
     def menu_abierto(self):
-        return bool(self.byte("menu_abierto"))
+        return bool(self.byte("menu_open"))
 
     def item(self, numero):
         """Cuántos hay del ítem, leído de la RAM lejana."""
         return self.consola.ram(self.simbolos["FAR_ITEMS"] + numero, 1)[0]
 
     def corriendo_una_pagina(self):
-        return bool(self.byte("ev_activo"))
+        return bool(self.byte("ev_active"))
 
     def cuadros_perdidos(self):
         """Cuántos cuadros no le alcanzaron al lazo principal. No es una
         aserción por sí solo —un teletransporte pierde algunos— pero un salto
         grande dice que algo se volvió caro."""
-        return self.byte("cuadros_perdidos")
+        return self.byte("lost_frames")
 
 
 # --- la pila, marcada para poder medirla ------------------------------------
@@ -1073,7 +1073,7 @@ def en_la_wram(direccion):
     """De una dirección larga del banco $7E al desplazamiento que pide
     `retro.Console.ram`.
 
-    Las de la RAM lejana están escritas de las dos maneras en `runtime/ram_lejana.s` —unas
+    Las de la RAM lejana están escritas de las dos maneras en `runtime/far_ram.s` —unas
     con el banco adelante (`$7E3100`) y otras sin él (`$2600`)—, así que el
     símbolo se enmascara en vez de suponerse.
     """
@@ -1082,13 +1082,13 @@ def en_la_wram(direccion):
 
 def indice_del_tema(una, nombre):
     """El índice del tema en el cartucho, leído de la cabecera del
-    `musicdata.inc` que se armó con él: `; Temas: a, b, …`, en el orden de
+    `musicdata.inc` que se armó con él: `; Songs: a, b, …`, en el orden de
     `Songs`."""
     inc = os.path.join(os.path.dirname(una.sfc), "musicdata.inc")
     with open(inc) as archivo:
         for linea in archivo:
-            if linea.startswith("; Temas: "):
-                nombres = linea[len("; Temas: "):].strip().split(", ")
+            if linea.startswith("; Songs: "):
+                nombres = linea[len("; Songs: "):].strip().split(", ")
                 break
         else:
             raise AssertionError("no encontré la lista de temas en %s" % inc)
@@ -1102,7 +1102,7 @@ class DelCartucho:
     """Los bytes del cartucho desde `direccion`, como una secuencia. En LoROM
     el byte que sigue a $xxFFFF está en $(xx+1)8000, que en el archivo es el
     siguiente, así que alcanza con el desplazamiento: es el salto de banco de
-    `advance` en runtime/musica.s, visto desde el archivo."""
+    `advance` en runtime/music.s, visto desde el archivo."""
 
     def __init__(self, rom, direccion):
         self.rom, self.base = rom, en_la_rom(direccion)
@@ -1122,13 +1122,13 @@ def en_la_rom(direccion):
 def mapas_de(inc):
     """El orden de la tabla de mapas, leído del `mapdata.inc` generado.
 
-    El conversor deja un comentario por entrada —`--- 4: mapa 5 'Core
+    El conversor deja un comentario por entrada —`--- 4: map 5 'Core
     Retrospective' ---`— y de ahí sale, en vez de rehacer la convención.
     """
     with open(inc) as archivo:
         texto = archivo.read()
     orden = {}
-    for indice, map_id in re.findall(r"^; --- (\d+): mapa (\d+) ", texto,
+    for indice, map_id in re.findall(r"^; --- (\d+): map (\d+) ", texto,
                                      re.MULTILINE):
         orden[int(indice)] = int(map_id)
     if not orden:

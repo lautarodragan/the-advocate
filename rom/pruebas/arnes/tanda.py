@@ -22,8 +22,8 @@ Tres cosas que este archivo hace y conviene tener a la vista:
   `grupo-11-en-<mapa>` para el mismo grupo en otro lugar. Con el 10 el líder
   es otro, el sprite es otro, y las goldens no dan.
 * **El arranque de `Partida` es el `--arranque 115` del corredor**, que era
-  `tools/snes_correr.py` y es con lo que se sacaron las goldens: `BOOT_CUADROS`
-  más tres, y de ahí en más se cuentan ticks de `vueltas` con la misma
+  `tools/snes_correr.py` y es con lo que se sacaron las goldens: `BOOT_FRAMES`
+  más tres, y de ahí en más se cuentan ticks de `ticks` con la misma
   convención —el cuadro N de aquella referencia es el tick N+1— y se aprieta A un
   tick antes por `RETRASO_DE_PANTALLA`. O sea que para un caso de caminata con
   toques de A, `Partida.correr` **es** el lazo de aquel corredor, y por eso las
@@ -158,7 +158,7 @@ def partida(caso, nucleo=None, en=None, switches=(), titulo=None, pila=False,
 def consola_cruda(caso, en=None, pila=False):
     """La ROM con el arranque pasado y **sin reloj de juego**.
 
-    Es el `--sin-contador` del corredor: hace falta donde `vueltas` no avanza
+    Es el `--sin-contador` del corredor: hace falta donde `ticks` no avanza
     —la pantalla de ranuras, el menú de pausa, la de batalla—, que no son el
     juego. Ahí un `Partida.correr` no termina nunca, porque espera un tick que
     no va a llegar.
@@ -203,14 +203,14 @@ def cuadro_de_texto(cartucho, renglon):
     `.sym` más los bytes son las dos cosas que la ROM misma usa.
 
     El bloque se recorre desde el principio, cuadro por cuadro, con el formato
-    que emite `events.message_bytes` y que lee `msg_empezar`: un byte de
+    que emite `events.message_bytes` y que lee `msg_start`: un byte de
     cabecera con los renglones en los tres bits de abajo, y cada renglón con
     su largo delante. Cada cuadro arranca en un múltiplo del paso, así que
     entre uno y otro puede haber relleno, y se saltea. Se para al primer byte
     que no puede ser una cabecera, que es lo que hay detrás del último cuadro.
     """
     from port.events import MESSAGES_STEP
-    base = cartucho.simbolos["mensajes"]
+    base = cartucho.simbolos["messages"]
     archivo = en_la_rom(base)
     with open(cartucho.sfc, "rb") as sfc:
         datos = sfc.read()

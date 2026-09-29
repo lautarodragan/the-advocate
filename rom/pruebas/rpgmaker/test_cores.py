@@ -8,7 +8,7 @@ puede equivocar.
 Por qué vale la pena: **bsnes llena la WRAM
 de basura al encender** —`bsnes_entropy`, que `retro.py` pone en "High"—, que es
 lo que hace la consola de verdad; snes9x la deja siempre en el mismo estado, y
-por eso la tanda entera daba verde con `ruta_n`/`ruta_i` sin inicializar, que sin
+por eso la tanda entera daba verde con `route_n`/`route_i` sin inicializar, que sin
 inicializar quedan iguales entre sí. Si las dos capturas difieren, **la ROM
 depende de memoria que nadie escribió**: no es ruido del emulador y no se
 arregla con tolerancia. No lo agarra siempre —la basura tiene que caer en un
@@ -41,10 +41,10 @@ del frontend.
     evento        tiñe la pantalla desde un evento: CGRAM y el intérprete.
     caminando     camina: la RAM del control, que es la que tenía el error.
     cerrar        el mensaje. Es el código que más CGRAM y VRAM toca con la
-                  pantalla apagada —`load_ventana` sube tiles y una paleta
-                  entera, `estampar_ventana` escribe su tilemap—, que es justo
+                  pantalla apagada —`load_window` sube tiles y una paleta
+                  entera, `stamp_window` escribe su tilemap—, que es justo
                   la clase de escritura que snes9x perdona y ahí ya nos mordió
-                  dos veces. De paso trae `msg_abierto`, una variable de RAM que
+                  dos veces. De paso trae `msg_open`, una variable de RAM que
                   si nadie pone en cero deja la página bloqueada para siempre.
     escena        la pelea compuesta: lo que más memoria nueva estrena. Ver su
                   docstring.
@@ -52,14 +52,14 @@ del frontend.
                   `read_pad` con su contador, que ninguno de los otros aprieta.
     transicion    un salto a mitad del fundido, en mosaico y en el de
                   siempre: la transición elegida vive en la RAM lejana
-                  —`TRANSICION_BORRAR` y `TRANSICION_MOSTRAR`—, y si el reset no
+                  —`TRANSITION_ERASE` y `TRANSITION_SHOW`—, y si el reset no
                   la pusiera, bsnes podía pixelar un salto que no lo pidió.
     planta        tres turnos de la pelea de la tropa 113, a fuerza de A: la
                   elección de los enemigos, que pesa sus acciones en
-                  `BA_HAB_LISTA`, y el SP del arma en `BA_ARMA_SP`, que
-                  `ba_armar` escribe al empezar cada pelea y el reset no toca.
+                  `BA_SKILL_LIST`, y el SP del arma en `BA_WEAPON_SP`, que
+                  `ba_build` escribe al empezar cada pelea y el reset no toca.
     game-over     la pantalla de Game Over después de perder una pelea: el
-                  destino de la derrota que anota `game_over_anotar`, el
+                  destino de la derrota que anota `game_over_record`, el
                   flujo que se descomprime en el banco $7F —el mismo que
                   bsnes enciende con basura— y los registros del PPU que la
                   pelea dejó puestos.
@@ -151,7 +151,7 @@ def test_caminando():
 
     El avance no es un número de ticks sino la cuenta de `ticks_de_avance`, y
     errarle por uno mueve media pantalla. Es el caso que mira el movimiento en
-    sí, o sea la RAM del control: es ahí donde vivía `ruta_n`/`ruta_i` sin
+    sí, o sea la RAM del control: es ahí donde vivía `route_n`/`route_i` sin
     inicializar, que es el error que estrenó esta comparación.
     """
     iguales("caminando-73-right-60",
@@ -184,8 +184,8 @@ def test_autofire():
 
 
 def test_lugar_recordado():
-    """Recordar en el 6, ir al 61 y volver: la tabla `mapa_rm2k` y las
-    variables que `lugar_recordado` lee y escribe directo en la RAM lejana,
+    """Recordar en el 6, ir al 61 y volver: la tabla `map_rm2k` y las
+    variables que `remembered_place` lee y escribe directo en la RAM lejana,
     en los dos cores. A los 600 ticks ya volvió al 6."""
     iguales("lugar-ida-y-vuelta-600",
             *dos_cores("lugar-ida-y-vuelta", 600))
@@ -245,16 +245,16 @@ def test_escena_de_la_pelea():
         una = partida("en-5", nucleo=nucleo)
         una.ir_al_mapa(28, 20, 30)
         s = una.simbolos
-        una.consola.write_ram(en_la_wram(s["ENC_SEM"]), [22, 0])
-        una.consola.write_ram(en_la_wram(s["ENC_PIDE"]), [1])
+        una.consola.write_ram(en_la_wram(s["ENC_RNG"]), [22, 0])
+        una.consola.write_ram(en_la_wram(s["ENC_ASKS"]), [1])
         # Con la transición de entrada adelante: los destellos, el fundido, la
-        # carga en negro y el mosaico. Ver `fundido_de_pelea.s`.
+        # carga en negro y el mosaico. Ver `battle_fade.s`.
         una.consola.run(200)
-        assert una.byte("menu_abierto"), "la pelea no se abrió"
-        donde = s["BA_UNO"] + (s["BA_GRUPO_MAX"] + 1) * s["BA_BYTES"]
+        assert una.byte("menu_open"), "la pelea no se abrió"
+        donde = s["BA_ONE"] + (s["BA_PARTY_MAX"] + 1) * s["BA_BYTES"]
         una.consola.write_ram(en_la_wram(donde), [0, 0])
         una.consola.run(60)
-        assert una.consola.ram(en_la_wram(s["ESC_VIS"]), 1)[0] == 0b101, \
+        assert una.consola.ram(en_la_wram(s["SCN_VIS"]), 1)[0] == 0b101, \
             "el enemigo del medio no se borró: la prueba no mide lo que dice"
         imagenes.append(una.imagen())
     iguales("escena", *imagenes)
@@ -274,7 +274,7 @@ def test_la_pelea_de_la_planta():
         una = partida("pelea-113", nucleo=nucleo)
         for _ in range(600):
             una.consola.run(1)
-            if una.byte("menu_abierto"):
+            if una.byte("menu_open"):
                 break
         else:
             raise AssertionError("la página no abrió la pelea")
@@ -283,7 +283,7 @@ def test_la_pelea_de_la_planta():
             pelea.ordenar(("defender",))
             pelea.ordenar(("defender",))
             pelea.correr_turno()
-        pelea.esperar("ORDEN")
+        pelea.esperar("COMMAND")
         imagenes.append(una.imagen())
     iguales("planta", *imagenes)
 

@@ -19,7 +19,7 @@ packages that have room to spare: that same day, 48 of the 159 (package,
 sound effect) pairs of `release` lost out. What it costs is that the ROM
 uploads the sound effects again on every package even if they were already
 in the ARAM, because it has nowhere to record which version was left: see
-`se_msu_preparar` in tools/runtime/efectos_con_msu.s.
+`se_msu_prepare` in tools/runtime/msu_effects.s.
 
 **Always whole, and at the highest rate that fits**: the same for all the
 sound effects of the package —`RATES`, from the WAVs' rate downwards— unless

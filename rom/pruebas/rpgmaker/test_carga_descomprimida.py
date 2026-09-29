@@ -3,17 +3,17 @@ por byte, lo que el conversor dice que tiene que haber.
 
 Desde el 2026-09-26 los tiles del mapa, de los sprites, de la capa de encima y
 de la animación del ChipSet viajan en el cartucho comprimidos en LZ2, y la ROM
-los descomprime al cargar el mapa —ver `lz2_descomprimir` en
-runtime/descomprimir.s—. La propiedad que hace verificable ese cambio es que
+los descomprime al cargar el mapa —ver `lz2_decompress` en
+runtime/decompress.s—. La propiedad que hace verificable ese cambio es que
 **lo que llega a la VRAM no cambió**, y eso es lo que se mira acá, en todos los
 mapas de `release`: contra `crudos/`, que el conversor deja al lado del
 cartucho sin comprimir —ver `write_raw`— y no contra nada que salga de la
 ROM.
 
-Se mira justo después de la carga, en el primer cuadro en que `fundido_que`
+Se mira justo después de la carga, en el primer cuadro en que `fade_kind`
 volvió a cero: el fundido congela el juego, así que hasta que termine nadie
 pisa lo que se subió. Dos cosas sí cambian y se miran por su lado: la corrida
-animada del ChipSet, que `anim_cargar` pisa con el dibujo que le toca al reloj
+animada del ChipSet, que `anim_load` pisa con el dibujo que le toca al reloj
 —tiene que ser **uno** de los dibujos del bloque—, y la pose del héroe, que
 `place_hero` puede cambiar ya en ese cuadro si no mira hacia abajo.
 
@@ -42,12 +42,12 @@ def _crudo(p, indice, clase):
 
 
 class Registro:
-    """El registro de un mapa en `mapa_tabla`, leído del cartucho."""
+    """El registro de un mapa en `map_table`, leído del cartucho."""
 
     def __init__(self, p, rom, indice):
         self.s = p.simbolos
-        self.base = (en_la_rom(self.s["mapa_tabla"])
-                     + indice * self.s["MAPA_STRIDE"])
+        self.base = (en_la_rom(self.s["map_table"])
+                     + indice * self.s["MAP_STRIDE"])
         self.rom = rom
 
     def palabra(self, campo):
@@ -60,11 +60,11 @@ class Registro:
 
 def _corridas_animadas(p, rom, indice):
     """[(palabra de VRAM, bytes por dibujo, desplazamiento del dibujo 0)] de
-    las familias que animan en este mapa, leídas de `anim_tabla`."""
+    las familias que animan en este mapa, leídas de `anim_table`."""
     s = p.simbolos
     corridas = []
-    for familia in range(s["ANIM_FAMILIAS"]):
-        k = (en_la_rom(s["anim_tabla"]) + indice * s["ANIM_STRIDE"]
+    for familia in range(s["ANIM_FAMILIES"]):
+        k = (en_la_rom(s["anim_table"]) + indice * s["ANIM_STRIDE"]
              + familia * s["ANIM_FAM_STRIDE"])
         vram, cero, largo = (rom[k] | rom[k + 1] << 8, rom[k + 2] | rom[k + 3] << 8,
                              rom[k + 4] | rom[k + 5] << 8)
@@ -87,13 +87,13 @@ def _cargar(p, map_id):
     x = registro.palabra("M_HERO_START_X") // 16
     y = registro.palabra("M_HERO_START_Y") // 16
     p.ir_al_mapa(map_id, x, y, cuadros=0)
-    antes = p.palabra("vueltas")
+    antes = p.palabra("ticks")
     for cuadros in range(1, 400):
         p.consola.run(1)
-        if not p.byte("fundido_que"):
+        if not p.byte("fade_kind"):
             assert p.mapa() == map_id, (
                 "pedí el mapa %d y la ROM cargó el %d" % (map_id, p.mapa()))
-            return cuadros - (p.palabra("vueltas") - antes) + 1
+            return cuadros - (p.palabra("ticks") - antes) + 1
     raise AssertionError("el mapa %d no terminó de cargar en 400 cuadros" % map_id)
 
 
@@ -164,18 +164,18 @@ def _mirar_la_vram(p, indice):
 
 def _grilla(p):
     """La grilla que hay en la WRAM, con el largo de la del mapa: la mitad
-    alta del banco $7E y, si pasa de 32 KB, la del $7F. Ver `GRILLA`."""
+    alta del banco $7E y, si pasa de 32 KB, la del $7F. Ver `GRID`."""
     s = p.simbolos
-    largo = p.palabra("mapa_ancho") * p.palabra("mapa_alto") * 2
-    mitad = s["GRILLA_FIN"] - s["GRILLA"]
-    baja = p.consola.ram(en_la_wram(s["GRILLA"]), min(largo, mitad))
-    alta = (p.consola.ram(en_la_wram(s["GRILLA_ALTA"]), largo - mitad)
+    largo = p.palabra("map_width") * p.palabra("map_height") * 2
+    mitad = s["GRID_END"] - s["GRID"]
+    baja = p.consola.ram(en_la_wram(s["GRID"]), min(largo, mitad))
+    alta = (p.consola.ram(en_la_wram(s["GRID_HIGH"]), largo - mitad)
             if largo > mitad else b"")
     return bytes(baja) + bytes(alta)
 
 
 def _mirar_la_grilla(p, indice):
-    crudo = _crudo(p, indice, "map_celdas")
+    crudo = _crudo(p, indice, "map_cells")
     visto = _grilla(p)
     if visto == crudo:
         return []
@@ -189,10 +189,10 @@ def _mirar_la_grilla(p, indice):
 def _mirar_la_wram(p, indice):
     """Lo que no coincide en la WRAM: la grilla, los dibujos de la animación,
     que quedan todo lo que dure el mapa, y el buffer de carga, que tiene lo
-    último que se descomprimió —los sprites: ver `cargar_mapa_sin_eventos`—."""
+    último que se descomprimió —los sprites: ver `enter_map_no_events`—."""
     s = p.simbolos
     mal = _mirar_la_grilla(p, indice)
-    for simbolo, clase in (("ANIM_DIBUJOS", "anim_tiles"),
+    for simbolo, clase in (("ANIM_DRAWINGS", "anim_tiles"),
                            ("LZ2_BUFFER", "sprite_tiles")):
         crudo = _crudo(p, indice, clase)
         visto = p.consola.ram(en_la_wram(s[simbolo]), len(crudo))
@@ -228,8 +228,8 @@ def test_lo_cargado_es_lo_que_el_conversor_dice_en_cada_mapa(nucleo):
 # --- la grilla y la pelea -----------------------------------------------------
 #
 # La mitad alta del banco $7F es a la vez el final de las grillas de más de 32
-# KB y `ESC_ESCENA`, la escena compuesta de la pelea: pelear la pisa, y
-# `volver_de_batalla` vuelve a descomprimir la grilla. El mapa 52 es el de la
+# KB y `SCN_SCENE`, la escena compuesta de la pelea: pelear la pisa, y
+# `back_from_battle` vuelve a descomprimir la grilla. El mapa 52 es el de la
 # grilla más grande, 40.000 B, y el caso `pelea-en-52` pelea ahí contra el
 # droide con Kersh, que lo gana.
 
@@ -241,20 +241,20 @@ def test_la_grilla_vuelve_entera_de_una_pelea(nucleo):
     p = partida(PELEA_EN_52, nucleo=nucleo)
     s = p.simbolos
     indice = p.mapas.index(52)
-    crudo = _crudo(p, indice, "map_celdas")
-    mitad = s["GRILLA_FIN"] - s["GRILLA"]
+    crudo = _crudo(p, indice, "map_cells")
+    mitad = s["GRID_END"] - s["GRID"]
     assert len(crudo) > mitad, (
         "la grilla del mapa 52 mide %d: no llega a la mitad del $7F y esto no "
         "prueba nada" % len(crudo))
     assert _grilla(p) == crudo, "la grilla ya estaba mal antes de pelear"
-    alta = en_la_wram(s["GRILLA_ALTA"])
+    alta = en_la_wram(s["GRID_HIGH"])
     pisada, cuadros = False, 0
     # Todo en cuadros de hardware: la pelea no cuenta ticks. A cada nueve
     # cuadros, que es lo que pasa los mensajes y elige atacar.
     for cuadros in range(1, 4000):
         p.consola.hold(*(("a",) if cuadros % 9 < 2 else ()))
         p.consola.run(1)
-        if p.byte("menu_abierto"):
+        if p.byte("menu_open"):
             pisada = pisada or (bytes(p.consola.ram(alta, len(crudo) - mitad))
                                 != crudo[mitad:])
         elif pisada:
@@ -264,11 +264,11 @@ def test_la_grilla_vuelve_entera_de_una_pelea(nucleo):
     p.consola.hold()
     assert pisada, (
         "la pelea no pisó la mitad alta del $7F: si la escena se mudó, esta "
-        "prueba ya no mira el camino de `volver_de_batalla`")
-    antes = p.palabra("vueltas")
+        "prueba ya no mira el camino de `back_from_battle`")
+    antes = p.palabra("ticks")
     for _ in range(240):
         p.consola.run(1)
-        if p.palabra("vueltas") - antes >= 2:
+        if p.palabra("ticks") - antes >= 2:
             break
     assert p.mapa() == 52, "la pelea no volvió al mapa 52: volvió al %d" % p.mapa()
     mal = _mirar_la_grilla(p, indice)
@@ -277,12 +277,12 @@ def test_la_grilla_vuelve_entera_de_una_pelea(nucleo):
 
 # --- el fondo de dos flujos ----------------------------------------------------
 #
-# Un fondo de más de `LZ2_TOPE_FONDO` bytes va en dos flujos, y `lz2_fondo`
+# Un fondo de más de `LZ2_CAP_BACKDROP` bytes va en dos flujos, y `lz2_backdrop`
 # sube el primero antes de descomprimir el segundo en el mismo lugar. Antes de
 # eso el fondo del 66 se descomprimía entero y lo que no entraba en el buffer
-# de carga caía en `GRILLA_ALTA`: en el 66, que usa sólo la mitad baja, andaba
+# de carga caía en `GRID_HIGH`: en el 66, que usa sólo la mitad baja, andaba
 # de casualidad. La prueba de arriba mira que llegue entero a la VRAM; ésta,
-# con un testigo escrito en `GRILLA_ALTA`, que no se salga del buffer.
+# con un testigo escrito en `GRID_HIGH`, que no se salga del buffer.
 
 
 def test_un_fondo_de_dos_flujos_no_se_sale_del_buffer():
@@ -291,22 +291,22 @@ def test_un_fondo_de_dos_flujos_no_se_sale_del_buffer():
         p.rom = f.read()
     s = p.simbolos
     grandes = [m for k, m in enumerate(p.mapas)
-               if len(_crudo(p, k, "map_tiles")) > s["LZ2_TOPE_FONDO"]]
+               if len(_crudo(p, k, "map_tiles")) > s["LZ2_CAP_BACKDROP"]]
     assert grandes, (
         "ningún mapa de `release` tiene el fondo en dos flujos: esta prueba "
-        "no mira el camino de dos de `lz2_fondo`")
+        "no mira el camino de dos de `lz2_backdrop`")
     map_id = grandes[0]
     indice = p.mapas.index(map_id)
-    mitad = s["GRILLA_FIN"] - s["GRILLA"]
-    assert len(_crudo(p, indice, "map_celdas")) <= mitad, (
+    mitad = s["GRID_END"] - s["GRID"]
+    assert len(_crudo(p, indice, "map_cells")) <= mitad, (
         "la grilla del mapa %d usa la mitad alta, y ahí el testigo lo pisaría "
         "ella: hace falta otro mapa" % map_id)
-    alta = en_la_wram(s["GRILLA_ALTA"])
+    alta = en_la_wram(s["GRID_HIGH"])
     testigo = bytes(range(256)) * 16
     p.consola.write_ram(alta, list(testigo))
     _cargar(p, map_id)
     assert bytes(p.consola.ram(alta, len(testigo))) == testigo, (
-        "cargar el mapa %d pisó `GRILLA_ALTA`: el fondo se salió del buffer "
+        "cargar el mapa %d pisó `GRID_HIGH`: el fondo se salió del buffer "
         "de carga" % map_id)
     mal = _mirar_la_vram(p, indice)
     assert not mal, "el mapa %d: %s" % (map_id, "; ".join(mal))

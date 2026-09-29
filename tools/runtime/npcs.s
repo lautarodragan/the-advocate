@@ -2,18 +2,18 @@
 
 ; Uploads pose A of the NPC in row Y, unless it is the one already in VRAM.
 ;
-; It came out of `refrescar_npc`, which was the only one that needed it, the
-; day there was a second one: `animar_quietos`. `npc_fila` has to hold the
+; It came out of `refresh_npc`, which was the only one that needed it, the
+; day there was a second one: `animate_still`. `npc_row` has to hold the
 ; same row as Y, which is how it came in.
-.proc subir_pose_npc
+.proc upload_npc_pose
 .a8
 .i16
     ; The row's tile is fixed —it is its slot— and what changes are the slot's
     ; tiles, which are queued here and go up in the next vblank with the OAM.
     cmp npc_buf + 12, y
-    bne cambia
+    bne changes
     rts
-cambia:
+changes:
     sta npc_buf + 12, y
     sta temp                    ; the pose
 
@@ -52,7 +52,7 @@ cambia:
 
     ; The destination: its slot, which is the row's tile times sixteen words
     ; from where the sprite bank starts.
-    ldy npc_fila
+    ldy npc_row
     lda npc_buf + 7, y
     and #$01                    ; bit 8 of the tile lives in the attributes
     xba
@@ -63,19 +63,19 @@ cambia:
     asl a
     asl a
     asl a                       ; sixteen words per tile
-    ldx mapa_ofs
+    ldx map_ofs
     clc
-    adc f:mapa_tabla + M_VRAM_SPRITE, x
+    adc f:map_table + M_VRAM_SPRITE, x
     sta vq_dest
     sep #$20
 .a8
-    jsr vram_encolar
-    bne listo
+    jsr vram_queue
+    bne ready
     ; The queue was full: it is asked for again next frame.
-    ldy npc_fila
+    ldy npc_row
     lda #$FF
     sta npc_buf + 12, y
-listo:
+ready:
     rts
 .endproc
 
@@ -86,16 +86,16 @@ listo:
 ; only part of that table this touches: it is a shadow of what is in VRAM,
 ; not game state.
 ;
-; With $FF no pose matches, so each row's next `subir_pose_npc` queues it
+; With $FF no pose matches, so each row's next `upload_npc_pose` queues it
 ; again. Without this the shadow would lie and an NPC that was already in its
 ; pose would keep the cartridge's forever.
-.proc poses_npc_olvidar
+.proc npc_poses_forget
 .a8
 .i16
     ldy #$0000
-otra:
+other:
     cpy npc_total               ; comes in bytes, not rows
-    beq listo
+    beq ready
     lda #$FF
     sta npc_buf + 12, y
     rep #$20
@@ -106,8 +106,8 @@ otra:
     tay
     sep #$20
 .a8
-    bra otra
-listo:
+    bra other
+ready:
     rts
 .endproc
 
@@ -118,17 +118,17 @@ listo:
 ; after that does it use X for something else. It is longer to read and much
 ; harder to break: three routines are called inside and all of them use
 ; indexes.
-.proc refrescar_npc
+.proc refresh_npc
 .a8
 .i16
-    stz salto_alto
-    stz salto_alto + 1
-    jsr celda_del_evento        ; leaves its cell in celda_x/celda_y, and uses X
-    lda ruta_ev + 7, x
-    sta slot_cuadros            ; whether there is a step in progress
+    stz jump_height
+    stz jump_height + 1
+    jsr event_cell              ; leaves its cell in cell_x/cell_y, and uses X
+    lda route_ev + 7, x
+    sta slot_frames             ; whether there is a step in progress
     rep #$20
 .a16
-    lda ruta_ev + 22, x         ; and how much it has left, at 256 per cell: to
+    lda route_ev + 22, x        ; and how much it has left, at 256 per cell: to
     lsr a                       ; pixels, dropping the sixteenths
     lsr a
     lsr a
@@ -136,30 +136,30 @@ listo:
     sta slot_px
     sep #$20
 .a8
-    lda ruta_ev + 8, x
-    sta slot_mira
-    lda ruta_ev + 30, x
+    lda route_ev + 8, x
+    sta slot_facing
+    lda route_ev + 30, x
     sta slot_dir                ; the direction of the step in progress
-    lda ruta_ev + 10, x
-    sta slot_paso
-    jsl f:npc_de_ranura + RAPIDO  ; `npc_de_evento`, remembered in the slot
-    sty npc_fila
+    lda route_ev + 10, x
+    sta slot_step
+    jsl f:slot_npc + FAST         ; `event_npc`, remembered in the slot
+    sty npc_row
     cpy #$FFFF
-    bne hay_fila
+    bne has_row
     rts                         ; the event has no graphic: nothing to move
-hay_fila:
+has_row:
 
     ; Where it is, in pixels: the cell times sixteen, minus what the step in
     ; progress has left at WALK_SPEED per frame.
     rep #$20
 .a16
-    lda celda_x
+    lda cell_x
     asl a
     asl a
     asl a
     asl a
     sta npc_px
-    lda celda_y
+    lda cell_y
     asl a
     asl a
     asl a
@@ -169,34 +169,34 @@ hay_fila:
     sta temp
     sep #$20
 .a8
-    lda slot_cuadros
-    beq sin_paso_npc            ; no step in progress, it is already on its cell
-    bra con_paso_npc
-sin_paso_npc:
+    lda slot_frames
+    beq no_step_npc             ; no step in progress, it is already on its cell
+    bra with_step_npc
+no_step_npc:
     ; Is it jumping? Then the cell is the destination and the drawing lags
     ; behind, with the arc on top. The sort key comes from the position
     ; **without** the arc: it is `GetScreenY(false)`, so whoever is in the air
     ; does not move ahead.
-    lda ruta_ev + 13, x
-    beq puesto
-    sta salto_resta
-    lda ruta_ev + 14, x
-    sta salto_dx
-    lda ruta_ev + 15, x
-    sta salto_dy
+    lda route_ev + 13, x
+    beq set
+    sta jump_remain
+    lda route_ev + 14, x
+    sta jump_dx
+    lda route_ev + 15, x
+    sta jump_dy
     phx
-    jsr salto_posicion_npc
-    jsr alto_del_salto
+    jsr jump_npc_position
+    jsr jump_height_of
     plx
-    bra puesto
-con_paso_npc:
+    bra set
+with_step_npc:
 
     ; The direction of the step, which is separate from which way it faces:
     ; with its facing locked —the droids on map 2— it goes up facing down. By
     ; table, because diagonally both axes have to be discounted: the pixels
     ; left are subtracted along the step's direction, so whoever is going
     ; right is still drawn to the left of its cell. X is clobbered and nobody
-    ; else needs it: from here on the index is `npc_fila`.
+    ; else needs it: from here on the index is `npc_row`.
     lda slot_dir
     rep #$20
 .a16
@@ -204,25 +204,25 @@ con_paso_npc:
     tax
     sep #$20
 .a8
-    lda f:paso_dx, x
-    beq sin_dx_npc
-    bmi mas_px                  ; $FF, that is, to the left
-    jsr restar_a_px
-    bra sin_dx_npc
-mas_px:
-    jsr sumar_a_px
-sin_dx_npc:
-    lda f:paso_dy, x
-    beq puesto
-    bmi mas_py                  ; it came from below: it still has to go up
-    jsr restar_a_py
-    bra puesto
-mas_py:
-    jsr sumar_a_py
+    lda f:step_dx_table, x
+    beq no_dx_npc
+    bmi more_px                 ; $FF, that is, to the left
+    jsr sub_a_from_px
+    bra no_dx_npc
+more_px:
+    jsr add_a_to_px
+no_dx_npc:
+    lda f:step_dy_table, x
+    beq set
+    bmi more_py                 ; it came from below: it still has to go up
+    jsr sub_a_from_py
+    bra set
+more_py:
+    jsr add_a_to_py
 
-puesto:
+set:
     ; Into the row: the position, and the key with the layer it already had.
-    ldy npc_fila
+    ldy npc_row
     rep #$20
 .a16
     lda npc_px
@@ -231,7 +231,7 @@ puesto:
     sta npc_buf + 2, y
     sep #$20
 .a8
-    lda salto_alto
+    lda jump_height
     sta npc_buf + 11, y         ; how much to raise the drawing, without touching the key
     rep #$20
 .a16
@@ -248,53 +248,53 @@ puesto:
     ; The pose: which way it faces times three, plus the cycle's column.
     ; Column 3 draws the same as column 1, which is how RM2k builds a cycle of
     ; four out of three columns.
-    lda slot_mira
-    cmp #RUTA_EV_SIN_MIRAR
-    bne tiene_dir
+    lda slot_facing
+    cmp #ROUTE_EV_NO_FACE
+    bne has_dir
     lda npc_buf + 10, y         ; has not turned yet: faces where its page says
-tiene_dir:
+has_dir:
     ; And if it is the one facing the hero, where the turn says: its slot is
     ; free, because with a route running it does not turn. See
-    ; `giro_disparar`.
+    ; `turn_fire`.
     pha
-    lda f:GIRO_EV
+    lda f:TURN_EV
     cmp npc_buf + 8, y
-    bne sin_giro
+    bne no_turn
     pla
-    lda f:GIRO_DIR
+    lda f:TURN_DIR
     pha
-sin_giro:
+no_turn:
     pla
     sta temp
     asl a
     clc
     adc temp                    ; times three
     sta temp
-    lda slot_paso
+    lda slot_step
     cmp #$03
-    bne sin_ajuste
+    bne no_adjust
     lda #$01
-sin_ajuste:
+no_adjust:
     clc
     adc temp                    ; the pose, 0 to 11
-    jsr subir_pose_npc
-acomodar:
-    jmp acomodar_npc            ; and the row, to wherever it belongs now
+    jsr upload_npc_pose
+fit:
+    jmp fit_npc                 ; and the row, to wherever it belongs now
 .endproc
 
-; Puts row `npc_fila` where it belongs now, with the table already sorted:
-; see `acomodar_lejos`, in bank 1.
-.proc acomodar_npc
+; Puts row `npc_row` where it belongs now, with the table already sorted:
+; see `fit_far`, in bank 1.
+.proc fit_npc
 .a8
 .i16
-    jsl f:acomodar_lejos + RAPIDO   ; see MEMSEL
+    jsl f:fit_far + FAST            ; see MEMSEL
     rts
 .endproc
 
 ; The four additions for the step in progress, with `temp` holding the pixels
 ; left. They are separate because the `rep`/`sep` of each one inside the `cmp`
 ; made the procedure so long that the branches did not reach.
-.proc sumar_a_py
+.proc add_a_to_py
 .a8
 .i16
     rep #$20
@@ -308,7 +308,7 @@ acomodar:
     rts
 .endproc
 
-.proc restar_a_py
+.proc sub_a_from_py
 .a8
 .i16
     rep #$20
@@ -322,7 +322,7 @@ acomodar:
     rts
 .endproc
 
-.proc sumar_a_px
+.proc add_a_to_px
 .a8
 .i16
     rep #$20
@@ -336,7 +336,7 @@ acomodar:
     rts
 .endproc
 
-.proc restar_a_px
+.proc sub_a_from_px
 .a8
 .i16
     rep #$20

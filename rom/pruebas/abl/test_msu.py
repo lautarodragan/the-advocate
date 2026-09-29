@@ -68,7 +68,7 @@ def test_las_pistas_de_release_no_llegan_al_core(tmp_path):
 # Lo pidió taro el 2026-09-26: con MSU-1, **todos** los temas suenan desde su
 # pista. El número lo da `snes_music.msu_track` y las pistas las arma
 # `tools/audio/msu.py` al lado de `release`; esto mira las tres cosas juntas
-# —el `musica.json` del conversor, la `tema_msu` de la ROM y los `.pcm`—,
+# —el `musica.json` del conversor, la `song_msu` de la ROM y los `.pcm`—,
 # porque cada una por separado puede estar bien y no coincidir con las otras.
 
 
@@ -80,7 +80,7 @@ def test_todo_tema_tiene_su_pista():
         temas = json.load(archivo)["temas"]
     with open(uno.sfc, "rb") as archivo:
         rom = archivo.read()
-    tabla = en_la_rom(uno.simbolos["tema_msu"])
+    tabla = en_la_rom(uno.simbolos["song_msu"])
     hay = pistas_de(base)
     sin, mal, faltan = [], [], []
     for i, tema in enumerate(temas):
@@ -97,7 +97,7 @@ def test_todo_tema_tiene_su_pista():
         elif numero not in hay:
             faltan.append("%s-%d.pcm (%s)" % (base, numero, tema["nombre"]))
     assert not sin, "estos temas entraron en el cartucho sin pista: %s" % sin
-    assert not mal, "la `tema_msu` de la ROM no es la del conversor: %s" % mal
+    assert not mal, "la `song_msu` de la ROM no es la del conversor: %s" % mal
     assert not faltan, (
         "faltan las pistas %s: las arma `just build release`, ver "
         "tools/audio/msu.py" % ", ".join(faltan))
@@ -113,10 +113,10 @@ def test_todo_tema_tiene_su_pista():
 
 # --- con MSU-1, el paquete no sube las muestras de los temas con pista -------
 #
-# Ver `tema_por_msu` en runtime/paquete_de_audio.s. Estas corren **con** el
+# Ver `song_per_msu` en runtime/audio_package.s. Estas corren **con** el
 # MSU-1, al revés que la tanda: sobre una copia de `release` en un directorio
 # propio, con enlaces a sus pistas —a todas o a todas menos una— y, para el
-# tema sin pista, con su entrada de `tema_msu` borrada en la copia.
+# tema sin pista, con su entrada de `song_msu` borrada en la copia.
 #
 # Los dos mapas son los de los temas que se prenden solos al llegar: el 26
 # prende `KSSMKEND`, que es el único tema de su paquete, y el 19 prende
@@ -137,7 +137,7 @@ def _con_pistas(tmp_path, sin_pista=(), sin_tema_msu=(), caso=ARRANQUE,
     with open(uno.sfc, "rb") as archivo:
         rom = bytearray(archivo.read())
     nombres = _temas(uno.sfc)
-    pistas = en_la_rom(uno.simbolos["tema_msu"])
+    pistas = en_la_rom(uno.simbolos["song_msu"])
     faltan = {rom[pistas + nombres.index(t)] for t in sin_pista}
     for tema in sin_tema_msu:
         rom[pistas + nombres.index(tema)] = 0xFF
@@ -162,8 +162,8 @@ def _con_pistas(tmp_path, sin_pista=(), sin_tema_msu=(), caso=ARRANQUE,
 def _temas(sfc):
     with open(os.path.join(os.path.dirname(sfc), "musicdata.inc")) as archivo:
         for linea in archivo:
-            if linea.startswith("; Temas: "):
-                return linea[len("; Temas: "):].strip().split(", ")
+            if linea.startswith("; Songs: "):
+                return linea[len("; Songs: "):].strip().split(", ")
     raise AssertionError("el musicdata.inc de %s no dice sus temas" % sfc)
 
 
@@ -180,11 +180,11 @@ def test_con_msu_el_paquete_no_sube_las_muestras_del_tema_con_pista(tmp_path):
     """El mapa 26 con todas las pistas: `KSSMKEND` suena por el MSU-1 y sus
     muestras no están en la ARAM; los efectos del paquete, todos."""
     una = _con_pistas(tmp_path)
-    assert _lejano(una, "MSU_HAY")[0], (
+    assert _lejano(una, "MSU_HAS")[0], (
         "el MSU-1 no se encendió: esta prueba no mide nada")
     indice = _llegar(una, 26)
     tema = indice_del_tema(una, "KSSMKEND")
-    assert una.palabra("tema_actual") == tema and _lejano(una, "MSU_SUENA")[0], (
+    assert una.palabra("song_current") == tema and _lejano(una, "MSU_PLAYING")[0], (
         "llegando al mapa 26 tenía que sonar KSSMKEND por el MSU-1")
 
     temas, efectos = una.muestras_del_paquete(indice)
@@ -195,7 +195,7 @@ def test_con_msu_el_paquete_no_sube_las_muestras_del_tema_con_pista(tmp_path):
     subidas = sorted((set(una.muestras_del_tema(tema)) - set(efectos)) & aram)
     assert not subidas, (
         "con MSU-1 y la pista en la tarjeta, el paquete del 26 subió las "
-        "muestras %s de KSSMKEND, que suena por la pista: `tema_por_msu` no "
+        "muestras %s de KSSMKEND, que suena por la pista: `song_per_msu` no "
         "las salteó" % subidas)
 
 
@@ -208,8 +208,8 @@ def test_con_msu_el_tema_sin_pista_del_paquete_sube_sus_muestras(tmp_path):
     gaden = indice_del_tema(una, "Gaden")
     galax = indice_del_tema(una, "3D-Galax")
     assert sorted(una.muestras_del_paquete(indice)[0]) == sorted([gaden, galax])
-    assert una.palabra("tema_actual") == gaden, "en el 19 no prendió Gaden"
-    assert not _lejano(una, "MSU_SUENA")[0] and not una.byte("music_apagada"), (
+    assert una.palabra("song_current") == gaden, "en el 19 no prendió Gaden"
+    assert not _lejano(una, "MSU_PLAYING")[0] and not una.byte("music_off"), (
         "Gaden no tiene pista y no está sonando por el SPC700")
 
     aram = una.muestras_en_la_aram()
@@ -228,30 +228,30 @@ def test_con_msu_el_tema_sin_pista_del_paquete_sube_sus_muestras(tmp_path):
 def test_con_msu_la_pista_que_falta_cae_al_spc700_con_sus_muestras(tmp_path):
     """El mapa 26 sin la pista de `KSSMKEND` en la tarjeta: el MSU-1 dice que
     no está, el tema suena por el SPC700, y como el paquete no la había subido
-    —contaba con la pista—, `tema_asegurar` la sube al prenderlo. Y queda
-    anotado en MSU_FALTA, para que los paquetes que siguen la suban de
+    —contaba con la pista—, `song_ensure` la sube al prenderlo. Y queda
+    anotado en MSU_MISSING, para que los paquetes que siguen la suban de
     entrada."""
     una = _con_pistas(tmp_path, sin_pista=["KSSMKEND"])
     _llegar(una, 26)
     tema = indice_del_tema(una, "KSSMKEND")
-    assert una.palabra("tema_actual") == tema
-    assert not _lejano(una, "MSU_SUENA")[0] and not una.byte("music_apagada"), (
+    assert una.palabra("song_current") == tema
+    assert not _lejano(una, "MSU_PLAYING")[0] and not una.byte("music_off"), (
         "sin su pista en la tarjeta KSSMKEND tenía que caer al SPC700")
     faltan = sorted(set(una.muestras_del_tema(tema))
                     - una.muestras_en_la_aram())
     assert not faltan, (
         "KSSMKEND cayó al SPC700 sin las muestras %s: nadie las subió al ver "
         "que la pista faltaba" % faltan)
-    falta = _lejano(una, "MSU_FALTA", (tema >> 3) + 1)[tema >> 3]
+    falta = _lejano(una, "MSU_MISSING", (tema >> 3) + 1)[tema >> 3]
     assert falta & (1 << (tema & 7)), (
-        "la pista de KSSMKEND faltó y MSU_FALTA no lo anotó")
+        "la pista de KSSMKEND faltó y MSU_MISSING no lo anotó")
 
 
 # --- con MSU-1, la pista del título se calla al empezar -----------------------
 #
-# Al elegir "Begin the Story", `pantalla_titulo` llama a `music_boot`, que con
+# Al elegir "Begin the Story", `title_screen` llama a `music_boot`, que con
 # el mapa inicial callado —el de la apertura no trae tema: lo prende un
-# `PlayBGM`— marcaba `music_apagada` y nada más. El SPC700 quedaba callado,
+# `PlayBGM`— marcaba `music_off` y nada más. El SPC700 quedaba callado,
 # pero la pista del título seguía sonando por el MSU-1 hasta el primer
 # `PlayBGM`, y una pelea en el medio la anotaba como el tema a reponer.
 
@@ -263,21 +263,21 @@ AL_EMPEZAR = 120
 def test_con_msu_la_pista_del_titulo_no_sigue_en_la_partida(tmp_path):
     una = _con_pistas(tmp_path, caso=None, titulo=False)
     una.consola.run(TITULO_AIRE)
-    titulo = una.simbolos["TEMA_TITULO"]
-    assert una.palabra("tema_actual") == titulo and _lejano(
-        una, "MSU_SUENA")[0], (
+    titulo = una.simbolos["SONG_TITLE"]
+    assert una.palabra("song_current") == titulo and _lejano(
+        una, "MSU_PLAYING")[0], (
         "la pantalla de título no está tocando su pista por el MSU-1: esta "
         "prueba no mide nada")
 
     una.titulo = EMPEZAR
     una.pasar_el_titulo(EMPEZAR)
     una.consola.run(AL_EMPEZAR)
-    assert una.byte("music_apagada"), (
+    assert una.byte("music_off"), (
         "la partida no arrancó con el SPC700 callado: o el mapa inicial "
         "trae tema, o un `PlayBGM` ya sonó, y el caso no pasa por el camino "
         "callado de `music_boot`")
-    sigue = _lejano(una, "MSU_SUENA")[0] and una.palabra(
-        "tema_actual") == titulo
+    sigue = _lejano(una, "MSU_PLAYING")[0] and una.palabra(
+        "song_current") == titulo
     assert not sigue, (
         "%d cuadros después de empezar la partida la pista del título sigue "
         "sonando por el MSU-1: `music_boot` calló el SPC700 y no la pista"
@@ -287,7 +287,7 @@ def test_con_msu_la_pista_del_titulo_no_sigue_en_la_partida(tmp_path):
 # --- con MSU-1, el `FadeOutBGM` baja la pista y no los efectos ---------------
 #
 # El caso de `pruebas/rpgmaker/test_fundido_del_tema.py`, con las pistas al
-# lado: `evilrhys` tiene pista, así que el fundido baja MSU_VOLUMEN y al
+# lado: `evilrhys` tiene pista, así que el fundido baja MSU_VOLUME y al
 # llegar a cero la para, y el volumen general del DSP no se toca. Lo que se
 # pide es eso, y que el efecto de después del fundido suene: con la pista
 # parada, lo único que se oye es él.
@@ -302,14 +302,14 @@ def test_con_msu_el_fundido_para_la_pista_y_los_efectos_siguen(tmp_path):
     efectos, actual = [], None
     for _ in range(900):
         antes = len(una.consola.audio)
-        suena = _lejano(una, "MSU_SUENA")[0]
+        suena = _lejano(una, "MSU_PLAYING")[0]
         sonaba |= bool(suena)
         una.correr(1)
         ocupada = any(_lejano(una, v, 3) != b"\0\0\0"
-                      for v in ("SE_CUADROS", "SE2_CUADROS"))
+                      for v in ("SE_FRAMES", "SE2_FRAMES"))
         if ocupada:
             if actual is None:
-                actual = [antes, suena, una.byte("bgm_fundido")]
+                actual = [antes, suena, una.byte("bgm_fade")]
                 efectos.append(actual)
             actual[3:] = [len(una.consola.audio)]
         else:
@@ -332,11 +332,11 @@ def test_con_msu_el_fundido_para_la_pista_y_los_efectos_siguen(tmp_path):
 
 # --- con MSU-1, la partida guardada con pista no arranca muda ----------------
 #
-# Con una pista sonando, `music_apagada` vale 1: el SPC700 está callado a
+# Con una pista sonando, `music_off` vale 1: el SPC700 está callado a
 # propósito. La partida guarda ese byte como "no suena nada", y al cargarla
-# `music_boot_ya` tomaba el camino callado. Lo que viaja tiene que ser la
+# `music_boot_done` tomaba el camino callado. Lo que viaja tiene que ser la
 # respuesta a "¿está sonando?", que no depende de por dónde: ver
-# `guardar_partida`.
+# `save_game`.
 #
 # Se guarda en el mapa 26, que prende `KSSMKEND` —con pista— al llegar, y se
 # carga en las cuatro combinaciones de con y sin MSU-1. La partida viaja de una
@@ -366,8 +366,8 @@ def test_la_partida_guardada_vuelve_con_su_tema(tmp_path, guarda, carga):
         una = _la_misma_rom(una, msu=False)
     _llegar(una, 26)
     tema = indice_del_tema(una, "KSSMKEND")
-    assert una.palabra("tema_actual") == tema, "en el 26 no prendió KSSMKEND"
-    assert bool(_lejano(una, "MSU_SUENA")[0]) == guarda, (
+    assert una.palabra("song_current") == tema, "en el 26 no prendió KSSMKEND"
+    assert bool(_lejano(una, "MSU_PLAYING")[0]) == guarda, (
         "KSSMKEND tenía que sonar %s al guardar: el caso no es el que dice"
         % ("por la pista" if guarda else "por el SPC700"))
     una.guardar_por_el_menu()
@@ -380,17 +380,17 @@ def test_la_partida_guardada_vuelve_con_su_tema(tmp_path, guarda, carga):
     una.reiniciar(SEGUIR)
     una.consola.run(AL_CARGAR)
     assert una.mapa() == 26, "la partida no cargó en el mapa 26"
-    assert una.palabra("tema_actual") == tema, (
+    assert una.palabra("song_current") == tema, (
         "la partida cargó con el tema %d y no con KSSMKEND"
-        % una.palabra("tema_actual"))
-    pista = bool(_lejano(una, "MSU_SUENA")[0])
-    spc700 = not una.byte("music_apagada")
+        % una.palabra("song_current"))
+    pista = bool(_lejano(una, "MSU_PLAYING")[0])
+    spc700 = not una.byte("music_off")
     if carga:
         assert pista, (
             "la partida guardada %s cargó con MSU-1 y KSSMKEND no suena por "
-            "la pista (music_apagada en %d)"
+            "la pista (music_off en %d)"
             % ("con la pista sonando" if guarda else "sin MSU-1",
-               una.byte("music_apagada")))
+               una.byte("music_off")))
     else:
         assert spc700 and not pista, (
             "la partida guardada con la pista sonando cargó sin MSU-1 y "

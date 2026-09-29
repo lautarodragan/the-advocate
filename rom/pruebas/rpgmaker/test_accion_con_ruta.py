@@ -37,14 +37,14 @@ def arrancados(p, periodo, cuadros):
     por cuadro. Devuelve la lista de (cuadro, evento, celda del héroe) de cada
     página que arrancó."""
     lista = []
-    antes = (p.byte("ev_activo"), p.byte("ev_corriendo"))
+    antes = (p.byte("ev_active"), p.byte("ev_running"))
     for k in range(cuadros):
         p.consola.hold(*(("a",) if (k // periodo) % 2 == 0 else ()))
         p._un_cuadro()
-        ahora = (p.byte("ev_activo"), p.byte("ev_corriendo"))
+        ahora = (p.byte("ev_active"), p.byte("ev_running"))
         # Una página de un solo `MoveEvent` arranca y termina en el mismo
-        # cuadro, así que `ev_activo` no llega a verse prendido: lo que queda
-        # es `ev_corriendo`, que dice cuál fue la última.
+        # cuadro, así que `ev_active` no llega a verse prendido: lo que queda
+        # es `ev_running`, que dice cuál fue la última.
         if ahora[1] != antes[1] or (ahora[0] and not antes[0]):
             lista.append((k, ahora[1], p.heroe()))
         antes = ahora

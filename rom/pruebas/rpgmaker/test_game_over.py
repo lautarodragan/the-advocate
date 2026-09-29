@@ -17,8 +17,8 @@ demás es estado: que la ROM espere la tecla, se reinicie y vuelva a correr.
 Sin estas pruebas, el `jml reset` sería exactamente lo que AGENTS.md llama "un
 camino que ninguna prueba ejecuta".
 
-**Cómo se pierde sin pelear**: con todo el grupo en cero HP, `batalla_correr`
-contesta derrota antes de abrir la pantalla —el `ba_actor_siguiente` que
+**Cómo se pierde sin pelear**: con todo el grupo en cero HP, `battle_run`
+contesta derrota antes de abrir la pantalla —el `ba_next_actor` que
 devuelve $FF, "nadie en pie: se pierde sin pelear"—. Así la prueba no depende
 de ningún tiro de dado.
 
@@ -69,7 +69,7 @@ def la_pantalla(una):
 
 def pasar_el_arranque(una):
     """Del otro lado de un reinicio de la ROM, los cuadros del arranque: los
-    mismos que corre `Partida` al encender, `BOOT_CUADROS` y tres, con la
+    mismos que corre `Partida` al encender, `BOOT_FRAMES` y tres, con la
     pantalla de título en el medio si el cartucho la tiene."""
     pasar_el_titulo(una)
     una.consola.run(3)
@@ -126,8 +126,8 @@ def test_perder_sin_manejador_muestra_el_game_over(partida):
     la_pantalla(una)
     # Y su tema, por el SPC700 —la tanda corre sin MSU-1—, con las muestras
     # arriba: el paquete de la pantalla, que se sube desde el de la pelea.
-    tema = una.simbolos["TEMA_GAME_OVER"]
-    assert una.byte("tema_actual") == tema and not una.byte("music_apagada"), (
+    tema = una.simbolos["SONG_GAME_OVER"]
+    assert una.byte("song_current") == tema and not una.byte("music_off"), (
         "la pantalla de Game Over no prendió su tema")
     faltan = set(una.muestras_del_tema(tema)) - una.muestras_en_la_aram()
     assert not faltan, (
@@ -148,7 +148,7 @@ def test_perder_sin_manejador_vuelve_al_arranque(partida):
     # Y lo que hay del otro lado del reinicio es el arranque de siempre: la
     # cuenta de cuadros vuelve a empezar y el mapa es el primero de la tabla.
     pasar_el_arranque(una)
-    assert una.palabra("mapa_actual") == 0
+    assert una.palabra("map_current") == 0
 
 
 def test_perder_con_manejador_no_es_game_over(partida):
@@ -177,7 +177,7 @@ def test_el_cofre_trampa_compila():
 def test_el_game_over_vuelve_al_juego(partida):
     """Y del otro lado del reinicio **el juego corre**, que es lo que faltaba.
 
-    `test_perder_sin_manejador_vuelve_al_arranque` mira que `vueltas` se vaya
+    `test_perder_sin_manejador_vuelve_al_arranque` mira que `ticks` se vaya
     para atrás, o sea que el `jml reset` haya salido; con eso alcanzaba para
     creer que el Game Over andaba, y no andaba. El arranque se quedaba clavado
     en `spc_upload`, esperando el $AA/$BB de una ROM de IPL que ya no corría:
@@ -186,7 +186,7 @@ def test_el_game_over_vuelve_al_juego(partida):
     el mapa dibujado y el juego muerto, que es lo que taro reportó del cofre
     trampa de los Rat Tracks como "pantalla en negro, softlock o crash".
 
-    `mapa_actual` no lo ve: `cargar_mapa` corre **antes** de la subida al
+    `map_current` no lo ve: `enter_map` corre **antes** de la subida al
     SPC700. Lo único que dice que el arranque terminó es que el lazo vuelva a
     contar vueltas.
     """
@@ -204,13 +204,13 @@ def test_el_game_over_vuelve_al_juego(partida):
 #
 # En una página, `op_battle` anota el destino de la derrota y `BATTLE_LOSE`
 # la manda a la pantalla de Game Over. El encuentro al azar arranca la pelea
-# **sin bytecode** —`pelea_arrancar` desde `move_hero`—, así que no hay
+# **sin bytecode** —`battle_start` desde `move_hero`—, así que no hay
 # `op_battle` que anote nada: si nadie más lo hace, perder devuelve el control
 # al mapa.
 #
 # Lo que eso deja puesto es lo que taro reportó jugando: el grupo vuelve al
-# mapa con todos en cero HP, `modo_fin` los guarda así en `FAR_HP`, y de ahí en
-# más **cada pelea se pierde sola antes de abrirse**, porque `batalla_correr`
+# mapa con todos en cero HP, `mode_end` los guarda así en `FAR_HP`, y de ahí en
+# más **cada pelea se pierde sola antes de abrirse**, porque `battle_run`
 # contesta derrota con nadie en pie. O sea que los tres síntomas —no hay Game
 # Over, el grupo queda en cero, y toda pelea siguiente se pierde— son este solo
 # defecto.
@@ -234,16 +234,16 @@ def caminar(una, cuadros, tope_sin_reinicio=False):
     """Camina con el pad en cuadros de hardware y dice en cuál llegó al Game
     Over —o se reinició, que sin la pantalla era lo mismo—.
 
-    No se puede caminar por ticks: la pelea corre su propio lazo y `vueltas`
+    No se puede caminar por ticks: la pelea corre su propio lazo y `ticks`
     no avanza mientras dura, así que `_un_tick` se quedaría esperando. Se
     cambia de dirección cada cuarenta cuadros para no clavarse contra una
     pared del mapa.
     """
-    alto = una.palabra("vueltas")
+    alto = una.palabra("ticks")
     for n in range(cuadros):
         una.consola.hold(DIRECCIONES[(n // 40) % 4])
         una.consola.run(1)
-        ahora = una.palabra("vueltas")
+        ahora = una.palabra("ticks")
         if ahora + 5 < alto or en_el_game_over(una):
             una.consola.hold()
             return n
@@ -265,7 +265,7 @@ def test_perder_un_encuentro_al_azar_es_game_over(partida):
     la_pantalla(una)
     assert pasar_el_game_over(una, GAME_OVER_TOPE) is not None
     pasar_el_arranque(una)
-    assert una.palabra("mapa_actual") == 0
+    assert una.palabra("map_current") == 0
 
 
 def test_ganar_encuentros_al_azar_no_reinicia(partida):
@@ -303,7 +303,7 @@ def test_game_over_vuelve_al_titulo(partida):
     assert cuadros_hasta_volver(una) is not None, (
         "después del GameOver el arranque no volvió a correr en %d cuadros"
         % VOLVER_TOPE)
-    assert una.palabra("mapa_actual") == 0
+    assert una.palabra("map_current") == 0
 
 
 def test_sin_game_over_no_reinicia(partida):
@@ -324,9 +324,9 @@ def test_volver_al_titulo_no_pasa_por_el_game_over(partida):
     visto = False
     for _ in range(300):
         visto = visto or en_el_game_over(una)
-        antes = una.palabra("vueltas")
+        antes = una.palabra("ticks")
         una.consola.run(1)
-        if una.palabra("vueltas") < antes:
+        if una.palabra("ticks") < antes:
             break
     else:
         raise AssertionError("la página llamó a ReturntoTitleScreen y la ROM "

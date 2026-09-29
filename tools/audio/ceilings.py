@@ -72,7 +72,7 @@ MARGIN = 10 ** (-0.5 / 20)
 # MVOL/128.
 CAP = 32767 * sdsp.MASTER >> 7
 
-# How many frames before the end of boot —`BOOT_CUADROS`, read from the ROM—
+# How many frames before the end of boot —`BOOT_FRAMES`, read from the ROM—
 # recording starts: the title screen starts its song afterwards, so it is
 # slack. It used to be a fixed 90 frames from power-on, with boot at 112,
 # which is what the script that measured step 5 expected; since boot got
@@ -86,8 +86,8 @@ def song_names(directory):
     """The names of the cartridge's songs, in the order of their indices."""
     with open(os.path.join(directory, "musicdata.inc")) as handle:
         inc = handle.read()
-    names = re.search(r"^; Temas: (.*)$", inc, re.M).group(1).split(", ")
-    return ["" if n == "sin música" else n for n in names]
+    names = re.search(r"^; Songs: (.*)$", inc, re.M).group(1).split(", ")
+    return ["" if n == "no music" else n for n in names]
 
 
 def symbols_of(sfc):
@@ -101,13 +101,13 @@ def symbols_of(sfc):
 
 def with_song_on_title(rom, symbols, song):
     """The ROM with the title screen playing `song`: the immediate of the
-    `lda #TEMA_TITULO` it starts it with is changed. It is the only way for a
+    `lda #SONG_TITLE` it starts it with is changed. It is the only way for a
     song to play on its own, with its samples uploaded, without playing
     anything."""
-    pattern = bytes([0xA9, symbols["TEMA_TITULO"], 0xC9, 0xFF, 0xF0])
+    pattern = bytes([0xA9, symbols["SONG_TITLE"], 0xC9, 0xFF, 0xF0])
     where = rom.find(pattern)
     assert where >= 0 and rom.find(pattern, where + 1) < 0, (
-        "cannot find the title screen's `lda #TEMA_TITULO`: how it starts "
+        "cannot find the title screen's `lda #SONG_TITLE`: how it starts "
         "its song has changed, and this has to change too")
     patched = bytearray(rom)
     patched[where + 1] = song
@@ -128,7 +128,7 @@ def play(sfc, song, n_frames):
             handle.write(rom)
         console = retro.Console(path, msu=False)
         rate = console.sample_rate()
-        console.run(symbols["BOOT_CUADROS"] - BEFORE_TITLE)
+        console.run(symbols["BOOT_FRAMES"] - BEFORE_TITLE)
         console.audio = bytearray()
         parts = []
         for _ in range(n_frames):
@@ -240,7 +240,7 @@ def write(ceilings, measured, fingerprints, path=None):
         "# peak; and `huella`, that of `mix_fingerprint`.",
         "",
         "[medida]",
-        "aire_de_medida = %s" % MEASURING_HEADROOM,
+        "measuring_headroom = %s" % MEASURING_HEADROOM,
         "margen_db = -0.5",
         "",
     ]

@@ -6,31 +6,31 @@
 ; inventory list with how many there are. It has **its own tile bank**,
 ; `items_tiles`: each font character in two cells, in white and in gray, and
 ; the text —name and two lines of description per item— goes in ASCII in
-; `item_textos`. Writing a letter is two tilemap words. The geometry comes
-; from `titulo.py` and `render_items` is the reference.
+; `item_texts`. Writing a letter is two tilemap words. The geometry comes
+; from `menus.py` and `render_items` is the reference.
 ;
 ; The windows and the cursor —the System's bar— go on BG1, and belong to
-; `banco_de_la_pantalla.s`: the BG2 text knows nothing about them.
+; `screen_bank.s`: the BG2 text knows nothing about them.
 ;
 ; The list is built on entering: the items there are and that this ROM knows,
 ; in number order like `Game_Party`, stored as their place `k` in the
-; converter's tables, in `FAR_ITEM_LISTA`. How many there are, the first one
-; visible and the cursor go in borrowed variables: `eleg_n`, `eleg_sel` and
-; `titulo_sel`. The choice cannot be open with the menu —the menu does not
-; open with a message up— so its bytes are free; `eleg_cancel`, `eleg_flancos`
-; and `eleg_tabla` serve as scratch, and `msg_ptr` points to the text being
+; converter's tables, in `FAR_ITEM_LIST`. How many there are, the first one
+; visible and the cursor go in borrowed variables: `pick_n`, `pick_sel` and
+; `title_sel`. The choice cannot be open with the menu —the menu does not
+; open with a message up— so its bytes are free; `pick_cancel`, `pick_edges`
+; and `pick_table` serve as scratch, and `msg_ptr` points to the text being
 ; written.
-FAR_ITEM_LISTA = $2A00
+FAR_ITEM_LIST = $2A00
 
 ; A: a place in the list. Returns with A = its `k`. Only A.
-.proc item_de_lista
+.proc item_from_list
 .a8
 .i16
     rep #$20
 .a16
     and #$00FF
     clc
-    adc #FAR_ITEM_LISTA
+    adc #FAR_ITEM_LIST
     sta WMADDL
     sep #$20
 .a8
@@ -40,7 +40,7 @@ FAR_ITEM_LISTA = $2A00
 .endproc
 
 ; A: a `k`. Returns with A = how many of that item there are. Clobbers X.
-.proc item_cuantos
+.proc item_count
 .a8
 .i16
     rep #$20
@@ -59,13 +59,13 @@ FAR_ITEM_LISTA = $2A00
     rts
 .endproc
 
-; The list, into `FAR_ITEM_LISTA`, and how many there are into `eleg_n`.
-.proc items_armar_lista
+; The list, into `FAR_ITEM_LIST`, and how many there are into `pick_n`.
+.proc items_build_list
 .a8
 .i16
-    stz eleg_n
+    stz pick_n
     ldx #1
-otro:
+other:
     rep #$20
 .a16
     txa
@@ -76,51 +76,51 @@ otro:
 .a8
     stz WMADDH
     lda WMDATA
-    beq siguiente
+    beq next
     lda f:item_k, x
     cmp #$FF
-    beq siguiente               ; one this ROM does not know how to show
+    beq next                    ; one this ROM does not know how to show
     pha
     rep #$20
 .a16
-    lda eleg_n
+    lda pick_n
     and #$00FF
     clc
-    adc #FAR_ITEM_LISTA
+    adc #FAR_ITEM_LIST
     sta WMADDL
     sep #$20
 .a8
     pla
     sta WMDATA
-    inc eleg_n
-siguiente:
+    inc pick_n
+next:
     inx
     cpx #ITEMS_N
-    bcc otro
+    bcc other
     rts
 .endproc
 
 ; One letter: A the character, Y the address of the upper cell and `temp + 1`
 ; the variant, 0 white and 1 gray. Clobbers X.
-.proc glifo_par
+.proc glyph_pair
 .a8
 .i16
     rep #$20
 .a16
     and #$00FF
     sec
-    sbc #ITEM_PRIMER_CARACTER
+    sbc #ITEM_FIRST_CHAR
     asl a
     asl a                       ; four bytes per character
     tax
     lda temp + 1
     and #$00FF
-    beq blanco
+    beq target
     txa
     clc
-    adc #ITEM_GLIFOS_GRIS
+    adc #ITEM_GLYPHS_GRAY
     tax
-blanco:
+target:
     sep #$20
 .a8
     lda #$80
@@ -128,13 +128,13 @@ blanco:
     rep #$20
 .a16
     sty VMADDL
-    lda f:item_glifo_celdas, x
+    lda f:item_glyph_cells, x
     sta VMDATAL
     tya
     clc
     adc #32
     sta VMADDL
-    lda f:item_glifo_celdas + 2, x
+    lda f:item_glyph_cells + 2, x
     sta VMDATAL
     sep #$20
 .a8
@@ -142,10 +142,10 @@ blanco:
 .endproc
 
 ; One of an item's texts: X the text number —`3k` the name, `3k + 1` and
-; `3k + 2` the description lines—, `eleg_tabla` the address of the upper cell
+; `3k + 2` the description lines—, `pick_table` the address of the upper cell
 ; of its first letter and `temp + 1` the variant. First the upper cells of all
 ; the letters, which are contiguous in VRAM, and then the lower ones.
-.proc texto_escribir
+.proc text_write
 .a8
 .i16
     lda f:item_txt_lo, x
@@ -156,41 +156,41 @@ blanco:
     sta msg_ptr + 2
     lda f:item_txt_n, x
     sta temp                    ; how many letters
-    beq listo
+    beq ready
     lda #$80
     sta VMAIN
     rep #$20
 .a16
     lda #0                      ; the upper cells
     sta temp + 2
-    lda eleg_tabla
+    lda pick_table
     sta VMADDL
     sep #$20
 .a8
-    jsr renglon
+    jsr line
     rep #$20
 .a16
     lda #2                      ; and the lower ones
     sta temp + 2
-    lda eleg_tabla
+    lda pick_table
     clc
     adc #32
     sta VMADDL
     sep #$20
 .a8
-    jsr renglon
-listo:
+    jsr line
+ready:
     rts
 
-renglon:
+line:
     ldy #0
-letra:
+letter:
     lda [msg_ptr], y
     rep #$20
 .a16
     and #$00FF
     sec
-    sbc #ITEM_PRIMER_CARACTER
+    sbc #ITEM_FIRST_CHAR
     asl a
     asl a
     clc
@@ -198,45 +198,45 @@ letra:
     tax
     lda temp + 1
     and #$00FF
-    beq en_blanco
+    beq in_target
     txa
     clc
-    adc #ITEM_GLIFOS_GRIS
+    adc #ITEM_GLYPHS_GRAY
     tax
-en_blanco:
-    lda f:item_glifo_celdas, x
+in_target:
+    lda f:item_glyph_cells, x
     sta VMDATAL                 ; and VRAM advances one word
     sep #$20
 .a8
     iny
     tya                         ; one letter at a time: there are fewer than 256
     cmp temp
-    bcc letra
+    bcc letter
     rts
 .endproc
 
-; The description of the item under the cursor, composed in `texto_buf` and
+; The description of the item under the cursor, composed in `text_buf` and
 ; not in VRAM: it is four rows of whole cells —256 bytes— that
-; `items_desc_subir` uploads in one DMA. Writing them one word at a time did
+; `items_desc_upload` uploads in one DMA. Writing them one word at a time did
 ; not fit in vblank: when moving the cursor the second line came out cut off,
 ; because VRAM ignores what is written to it while the screen is drawing. The
 ; buffer is the message composer's, which does not exist with the menu open.
 ; With the list empty it stays blank.
 ITEM_DESC_BYTES = 4 * 64
 
-.proc items_desc_pintar
+.proc items_desc_paint
 .a8
 .i16
     ldx #0
-borrar:
-    stz texto_buf, x
+erase:
+    stz text_buf, x
     inx
     cpx #ITEM_DESC_BYTES
-    bcc borrar
-    lda eleg_n
-    beq listo
-    lda titulo_sel
-    jsr item_de_lista
+    bcc erase
+    lda pick_n
+    beq ready
+    lda title_sel
+    jsr item_from_list
     rep #$20
 .a16
     and #$00FF
@@ -247,26 +247,26 @@ borrar:
     inc a                       ; 3k + 1, the first line
     tax
     lda #(ITEM_DESC_COL * 2)
-    sta eleg_tabla              ; where it goes, in buffer bytes
+    sta pick_table              ; where it goes, in buffer bytes
     sep #$20
 .a8
     phx
-    jsr renglon
+    jsr line
     plx
     inx                         ; 3k + 2, the second
     rep #$20
 .a16
     lda #(128 + ITEM_DESC_COL * 2)
-    sta eleg_tabla
+    sta pick_table
     sep #$20
 .a8
-    jsr renglon
-listo:
+    jsr line
+ready:
     rts
 
-; Text X into the buffer, starting at byte `eleg_tabla`: each letter's upper
+; Text X into the buffer, starting at byte `pick_table`: each letter's upper
 ; cell there and the lower one 64 bytes further on.
-renglon:
+line:
     lda f:item_txt_lo, x
     sta msg_ptr
     lda f:item_txt_hi, x
@@ -275,41 +275,41 @@ renglon:
     sta msg_ptr + 2
     lda f:item_txt_n, x
     sta temp                    ; how many letters
-    beq fin
+    beq end
     ldy #0
-letra:
+letter:
     lda [msg_ptr], y
     rep #$20
 .a16
     and #$00FF
     sec
-    sbc #ITEM_PRIMER_CARACTER
+    sbc #ITEM_FIRST_CHAR
     asl a
     asl a
     tax
-    lda f:item_glifo_celdas, x
+    lda f:item_glyph_cells, x
     pha
-    lda f:item_glifo_celdas + 2, x
-    ldx eleg_tabla
-    sta texto_buf + 64, x
+    lda f:item_glyph_cells + 2, x
+    ldx pick_table
+    sta text_buf + 64, x
     pla
-    sta texto_buf, x
+    sta text_buf, x
     inx
     inx
-    stx eleg_tabla
+    stx pick_table
     sep #$20
 .a8
     iny
     tya                         ; one letter at a time: there are fewer than 256
     cmp temp
-    bcc letra
-fin:
+    bcc letter
+end:
     rts
 .endproc
 
 ; Uploads the composed description: a 256-byte DMA, which fits in any
 ; vblank.
-.proc items_desc_subir
+.proc items_desc_upload
 .a8
 .i16
     lda #$80
@@ -318,7 +318,7 @@ fin:
 .a16
     lda #(ITEM_DESC_VRAM - ITEM_DESC_COL)
     sta VMADDL
-    lda #.loword(texto_buf)
+    lda #.loword(text_buf)
     sta A1T0L
     lda #ITEM_DESC_BYTES
     sta DAS0L
@@ -336,48 +336,48 @@ fin:
 
 ; Screen row A, which has to have an item: the cursor if it applies, the
 ; name, the colon and the quantity, in gray if A does not use it.
-.proc items_fila_pintar
+.proc items_row_paint
 .a8
 .i16
-    sta eleg_cancel             ; the row
-    lda eleg_cancel
+    sta pick_cancel             ; the row
+    lda pick_cancel
     clc
-    adc eleg_sel                ; its place in the list
+    adc pick_sel                ; its place in the list
     pha
-    jsr item_de_lista
-    sta eleg_flancos            ; its `k`
+    jsr item_from_list
+    sta pick_edges              ; its `k`
     pla
-    cmp titulo_sel
-    bne sin_cursor
+    cmp title_sel
+    bne no_cursor
     lda #1
     sta temp + 3
-    lda eleg_cancel
-    jsl f:items_barra
-sin_cursor:
+    lda pick_cancel
+    jsl f:items_bar
+no_cursor:
     ; --- the color: gray if A does not use it ---
-    lda eleg_flancos
+    lda pick_edges
     rep #$20
 .a16
     and #$00FF
     tax
     sep #$20
 .a8
-    lda item_uso, x
+    lda item_use, x
     and #1
     eor #1
     sta temp + 1
     ; --- the name ---
-    lda eleg_cancel
+    lda pick_cancel
     rep #$20
 .a16
     and #$00FF
     asl a
     tax
-    lda item_fila_vram, x
+    lda item_row_vram, x
     clc
-    adc #ITEM_NOMBRE_COL
-    sta eleg_tabla
-    lda eleg_flancos
+    adc #ITEM_NAME_COL
+    sta pick_table
+    lda pick_edges
     and #$00FF
     sta temp + 2
     asl a
@@ -386,54 +386,54 @@ sin_cursor:
     tax                         ; 3k, the name
     sep #$20
 .a8
-    jsr texto_escribir
+    jsr text_write
     ; --- the colon and the quantity ---
-    lda eleg_flancos
-    jsr item_cuantos
+    lda pick_edges
+    jsr item_count
     cmp #100
-    bcc cabe
+    bcc fits
     lda #99
-cabe:
+fits:
     stz temp + 3                ; the tens
-decenas:
+tens:
     cmp #10
-    bcc unidades
+    bcc units
     sbc #10                     ; the `cmp` left carry set
     inc temp + 3
-    bra decenas
-unidades:
+    bra tens
+units:
     pha                         ; the units
-    lda eleg_cancel
+    lda pick_cancel
     rep #$20
 .a16
     and #$00FF
     asl a
     tax
-    lda item_fila_vram, x
+    lda item_row_vram, x
     clc
-    adc #ITEM_DOS_PUNTOS_COL
-    sta eleg_tabla
+    adc #ITEM_TWO_POINTS_COL
+    sta pick_table
     tay
     sep #$20
 .a8
     lda #$3A                    ; ':'
-    jsr glifo_par
+    jsr glyph_pair
     rep #$20
 .a16
-    lda eleg_tabla
+    lda pick_table
     inc a
     tay
     sep #$20
 .a8
     lda temp + 3
-    beq sin_decenas             ; a 7 is " 7", not "07"
+    beq no_tens                 ; a 7 is " 7", not "07"
     clc
     adc #$30                    ; '0'
-    jsr glifo_par
-sin_decenas:
+    jsr glyph_pair
+no_tens:
     rep #$20
 .a16
-    lda eleg_tabla
+    lda pick_table
     inc a
     inc a
     tay
@@ -442,31 +442,31 @@ sin_decenas:
     pla
     clc
     adc #$30                    ; '0'
-    jmp glifo_par
+    jmp glyph_pair
 .endproc
 
 
 ; The visible rows, over the blank tilemap.
-.proc items_filas_pintar
+.proc items_rows_paint
 .a8
 .i16
     lda #0
-fila:
+row:
     pha
     clc
-    adc eleg_sel
-    bcs termina
-    cmp eleg_n
-    bcs termina                 ; no more items
+    adc pick_sel
+    bcs ends
+    cmp pick_n
+    bcs ends                    ; no more items
     pla
     pha
-    jsr items_fila_pintar
+    jsr items_row_paint
     pla
     inc a
-    cmp #ITEM_FILAS
-    bcc fila
+    cmp #ITEM_ROWS
+    bcc row
     rts
-termina:
+ends:
     pla
     rts
 .endproc
@@ -474,129 +474,129 @@ termina:
 ; The items screen, until the player goes back with B —A = 0, to the menu— or
 ; uses an item —A = 1: RM2k goes straight back to the map,
 ; `PopUntil(Scene::Map)`—.
-.proc items_pantalla
+.proc items_screen
 .a8
 .i16
-    jsr items_armar_lista
-    stz titulo_sel
-    stz eleg_sel
+    jsr items_build_list
+    stz title_sel
+    stz pick_sel
     lda #$80
     sta INIDISP
     stz HDMAEN
     stz TM
-    jsl f:items_pantalla_subir
-    jsr items_desc_pintar
-    jsr items_desc_subir
-    jsr items_filas_pintar
-    jsl f:items_ppu_prender
+    jsl f:items_screen_upload
+    jsr items_desc_paint
+    jsr items_desc_upload
+    jsr items_rows_paint
+    jsl f:items_ppu_on
     lda #1
-    sta menu_abierto
-espera:
+    sta menu_open
+wait:
     jsr wait_vblank
-    jsr items_desc_subir        ; first thing in vblank: the description
+    jsr items_desc_upload       ; first thing in vblank: the description
     jsr read_pad
     lda pad
-    eor pad_ant
+    eor pad_prev
     and pad
-    sta titulo_flancos
+    sta title_edges
     and #PAD_UP
-    beq no_arriba
-    lda titulo_sel
-    beq espera                  ; RM2k does not wrap around in a list
+    beq no_up
+    lda title_sel
+    beq wait                    ; RM2k does not wrap around in a list
     dec a
-    jsr mover
-    bra espera
-no_arriba:
-    lda titulo_flancos
+    jsr move
+    bra wait
+no_up:
+    lda title_edges
     and #PAD_DOWN
-    beq no_abajo
-    lda titulo_sel
+    beq no_down
+    lda title_sel
     inc a
-    cmp eleg_n
-    bcs espera
-    jsr mover
-    bra espera
-no_abajo:
-    lda titulo_flancos
+    cmp pick_n
+    bcs wait
+    jsr move
+    bra wait
+no_down:
+    lda title_edges
     and #PAD_B
-    beq mira_a
+    beq faces_a
     lda #0
     rts
-mira_a:
+faces_a:
     lda pad_a
-    beq espera
-    lda pad_a_ant
-    bne espera                  ; it was already held: not an edge
-    lda eleg_n
-    beq espera                  ; the list is empty
-    lda titulo_sel
-    jsr item_de_lista
-    sta eleg_flancos            ; its `k`
+    beq wait
+    lda pad_a_prev
+    bne wait                    ; it was already held: not an edge
+    lda pick_n
+    beq wait                    ; the list is empty
+    lda title_sel
+    jsr item_from_list
+    sta pick_edges              ; its `k`
     rep #$20
 .a16
     and #$00FF
     tax
     sep #$20
 .a8
-    lda item_uso, x
+    lda item_use, x
     and #1
-    beq espera                  ; grayed out: RM2k plays a sound and does nothing
-    lda item_uso, x
+    beq wait                    ; grayed out: RM2k plays a sound and does nothing
+    lda item_use, x
     and #4
-    beq de_switch
+    beq from_switch
     ; A medicine: the actor choice, and back to the list with the cursor where
-    ; it was. The choice uses `titulo_sel`, so it is saved.
-    lda titulo_sel
+    ; it was. The choice uses `title_sel`, so it is saved.
+    lda title_sel
     pha
-    lda eleg_sel
+    lda pick_sel
     pha
-    stz eleg_cancel             ; for a medicine, the one in `eleg_flancos`
-    jsr objetivo_pantalla
+    stz pick_cancel             ; for a medicine, the one in `pick_edges`
+    jsr target_screen
     pla
-    sta eleg_sel
+    sta pick_sel
     pla
-    sta titulo_sel
+    sta title_sel
     ; The list again, which is `Scene_Item::Continue`: the medicine may have
     ; been used up entirely. A cursor left outside goes to the last one, the
     ; `SetIndex(min(index, item_max - 1))` over there, and the view follows it.
-    jsr items_armar_lista
-    lda eleg_n
-    beq vacia
-    lda titulo_sel
-    cmp eleg_n
-    bcc cursor_listo
-    lda eleg_n
+    jsr items_build_list
+    lda pick_n
+    beq empty
+    lda title_sel
+    cmp pick_n
+    bcc cursor_ready
+    lda pick_n
     dec a
-    sta titulo_sel
-    bra cursor_listo
-vacia:
-    stz titulo_sel
-cursor_listo:
-    lda titulo_sel
-    cmp eleg_sel
-    bcs vista_lista
-    sta eleg_sel
-vista_lista:
+    sta title_sel
+    bra cursor_ready
+empty:
+    stz title_sel
+cursor_ready:
+    lda title_sel
+    cmp pick_sel
+    bcs view_list
+    sta pick_sel
+view_list:
     lda #$80
     sta INIDISP
-    jsl f:items_pantalla_subir
-    jsr items_desc_pintar
-    jsr items_desc_subir
-    jsr items_filas_pintar
-    jsl f:items_ppu_prender
-    jmp espera
-de_switch:
+    jsl f:items_screen_upload
+    jsr items_desc_paint
+    jsr items_desc_upload
+    jsr items_rows_paint
+    jsl f:items_ppu_on
+    jmp wait
+from_switch:
     ; A switch item: `ConsumeItemUse` if it has uses, the switch turned on and
-    ; straight to the map. `poner_switch` asks for the page refresh, which is
+    ; straight to the map. `set_switch` asks for the page refresh, which is
     ; the `SetNeedRefresh(true)` over there.
-    lda item_uso, x
+    lda item_use, x
     and #2
-    beq sin_gastar
-    lda eleg_flancos
-    jsr item_cuantos
+    beq no_consume
+    lda pick_edges
+    jsr item_count
     dec a
     pha
-    lda eleg_flancos
+    lda pick_edges
     rep #$20
 .a16
     and #$00FF
@@ -610,8 +610,8 @@ de_switch:
 .a8
     pla
     sta WMDATA
-sin_gastar:
-    lda eleg_flancos
+no_consume:
+    lda pick_edges
     rep #$20
 .a16
     and #$00FF
@@ -622,51 +622,51 @@ sin_gastar:
     sep #$20
 .a8
     lda #1
-    jsr poner_switch
+    jsr set_switch
     lda #1
     rts
 
 ; The cursor to the place given in A. If it stays in view the cursor moves and
 ; the description changes, inside vblank; if not, the list scrolls and is
 ; repainted whole with the screen off, which is one black frame.
-mover:
+move:
     pha
     stz temp + 3
-    lda titulo_sel
+    lda title_sel
     sec
-    sbc eleg_sel
-    jsl f:items_barra
+    sbc pick_sel
+    jsl f:items_bar
     pla
-    sta titulo_sel
-    cmp eleg_sel
-    bcc sube_la_vista
+    sta title_sel
+    cmp pick_sel
+    bcc uploads_view
     sec
-    sbc eleg_sel
-    cmp #ITEM_FILAS
-    bcs baja_la_vista
+    sbc pick_sel
+    cmp #ITEM_ROWS
+    bcs low_view
     lda #1
     sta temp + 3
-    lda titulo_sel
+    lda title_sel
     sec
-    sbc eleg_sel
-    jsl f:items_barra
-    jmp items_desc_pintar
-sube_la_vista:
-    lda titulo_sel
-    sta eleg_sel
-    bra repintar
-baja_la_vista:
-    lda titulo_sel
+    sbc pick_sel
+    jsl f:items_bar
+    jmp items_desc_paint
+uploads_view:
+    lda title_sel
+    sta pick_sel
+    bra repaint
+low_view:
+    lda title_sel
     sec
-    sbc #(ITEM_FILAS - 1)
-    sta eleg_sel
-repintar:
+    sbc #(ITEM_ROWS - 1)
+    sta pick_sel
+repaint:
     lda #$80
     sta INIDISP
-    jsl f:items_pantalla_subir  ; the blank tilemap, and the rest along with it
-    jsr items_desc_pintar
-    jsr items_desc_subir
-    jsr items_filas_pintar
+    jsl f:items_screen_upload   ; the blank tilemap, and the rest along with it
+    jsr items_desc_paint
+    jsr items_desc_upload
+    jsr items_rows_paint
     lda #$0F
     sta INIDISP
     rts

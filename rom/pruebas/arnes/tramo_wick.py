@@ -6,12 +6,12 @@ Vivía en `abl/test_recorrido_lashe_wick_golden.py` hasta el 2026-09-29.
 
 from consola import en_la_wram
 
-# Lo que la ROM guarda de `ChangeScreenTransitions`: ver `transicion_poner`.
+# Lo que la ROM guarda de `ChangeScreenTransitions`: ver `transition_set`.
 MOSAICO = 1
 FUNDIDO = 0
 
 
 def transiciones(p):
     borrar, mostrar = (p.consola.ram(en_la_wram(p.simbolos[n]), 1)[0]
-                       for n in ("TRANSICION_BORRAR", "TRANSICION_MOSTRAR"))
+                       for n in ("TRANSITION_ERASE", "TRANSITION_SHOW"))
     return borrar, mostrar

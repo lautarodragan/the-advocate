@@ -148,7 +148,7 @@ def hero_start(passable, width, height, blocked=()):
 # GetAnimationSpeed`— and it is also at the default throughout the game.
 #
 # The clock is the system's frame counter, which is not reset when changing
-# maps. Here that clock is the tick, which in the ROM is `vueltas` —see
+# maps. Here that clock is the tick, which in the ROM is `ticks` —see
 # `Partida` in rom/pruebas/arnes/consola.py, which is what reads it—. The
 # absolute phase against the original game means nothing, because our boot
 # does not take the same time; what has to match is the cadence and that both
@@ -156,7 +156,7 @@ def hero_start(passable, width, height, blocked=()):
 # The two families, with how many drawings each one has. The order is that of
 # the tile runs in VRAM; see `convert` in snes_convert.py.
 ANIMATED_FAMILIES = (("agua", 3), ("animado", 4))
-# The ROM's clock is `vueltas`, sixteen bits, so it wraps around every 65536
+# The ROM's clock is `ticks`, sixteen bits, so it wraps around every 65536
 # ticks —eighteen minutes— and there the cycle skips a drawing; RM2k's is
 # thirty-two bits. The reference wraps around the same way on purpose: what
 # has to match is what both sides draw, and losing one water step once every
@@ -251,7 +251,7 @@ COPY_SUFFIX = "~aparte"
 
 # Which dither. The options are in `render_map.DITHERS`; it is chosen by
 # looking at a CRT TV, which is where this shows.
-DITHER_PATTERN = os.environ.get("TRAMA_PATRON", "cinco_de_ocho")
+DITHER_PATTERN = os.environ.get("DITHER_PATTERN", "five_of_eight")
 
 
 # The opacity RM2k draws a translucent page with: 160 out of 255.
@@ -274,9 +274,9 @@ TRANSLUCENT_OPACITY = 160
 # `render_map.Charsets` builds the image.
 BAKED_SUFFIX = "~horneado"
 
-# Which of the two paths runs. It is switched with MODO_TRANSLUCIDO=trama to
+# Which of the two paths runs. It is switched with TRANSLUCENT_MODE=dither to
 # be able to compare both on the same tree.
-TRANSLUCENT_MODE = os.environ.get("MODO_TRANSLUCIDO", "horneado")
+TRANSLUCENT_MODE = os.environ.get("TRANSLUCENT_MODE", "baked")
 
 
 def baked_name(name, map_id, x, y):
@@ -314,12 +314,12 @@ def decorate_translucent(name, map_id, x, y):
     Three ways out, and the first one wins: those in `opaque_charsets()` are
     drawn **opaque** even though their page says translucent —taro's
     decision, see the list—, the rest go baked against their cell's
-    background, and `MODO_TRANSLUCIDO=trama` goes back to the checkerboard to
+    background, and `TRANSLUCENT_MODE=dither` goes back to the checkerboard to
     be able to compare both on the same tree.
     """
     if name.lower() in opaque_charsets():
         return name
-    if TRANSLUCENT_MODE == "trama":
+    if TRANSLUCENT_MODE == "dither":
         return name + DITHER_SUFFIX
     return baked_name(name, map_id, x, y)
 
@@ -334,7 +334,7 @@ def tile_name(chipset, index):
 # table, the ROM cannot know which one is active, so it neither changes
 # graphic nor blocks. "variable" since the night of 2026-09-10: the page
 # carries the slot, the comparison and the value, and the ROM checks them in
-# `condiciones_ok`. The timer is missing, which only one page of the game
+# `conditions_ok`. The timer is missing, which only one page of the game
 # asks for, page 81 of map 312.
 SUPPORTED_CONDITIONS = ("switch_a", "switch_b", "actor", "variable", "item")
 # And the ones the port **can never meet**. The item one was for a day:
@@ -451,10 +451,10 @@ def collect_npcs(game_map):
     Every event with a graphic on **some** page gets in, even if the one
     active at load has none: this game's doors are exactly that, a page
     without a graphic and another with the rubble tile. `visible` says
-    whether it is seen at load, and `cambia` whether the graphic follows the
+    whether it is seen at load, and `changes` whether the graphic follows the
     active page: it is what the ROM refreshes with the switches, and it only
-    applies to events whose conditions it understands. `graficos` carries
-    each page's graphic, or None, and `capas` each one's layer.
+    applies to events whose conditions it understands. `graphics` carries
+    each page's graphic, or None, and `layers` each one's layer.
     """
     npcs = []
     chipset = getattr(game_map, "chipset_filename", None)
@@ -470,7 +470,7 @@ def collect_npcs(game_map):
         # That "nothing" is one more state.
         #
         # Without counting it, an event with a single conditioned page ends
-        # up with a single possible graphic, `cambia` comes out false, and
+        # up with a single possible graphic, `changes` comes out false, and
         # since it is not visible when the map loads either, it is skipped
         # entirely: there is no row to update when the switch turns on. taro
         # saw it on 2026-09-07 with map 8's `TalDoorBottom`, which can be
@@ -494,7 +494,7 @@ def collect_npcs(game_map):
             # The index in the map's event table, which is what the bytecode
             # of a forced route carries. **It is not the RM2k id**: there are
             # maps with gaps in the numbering.
-            "evento": number,
+            "event": number,
             "x": event.x, "y": event.y,
             "charset": charset, "index": index, "pose": pose,
             "layer": page.layer,
@@ -502,16 +502,16 @@ def collect_npcs(game_map):
             # Its page's speed, which is what a forced route on it carries:
             # RM2k sets it in `SetupFromPage` and `ForceMoveRoute` does not
             # touch it. By default it is 3, sixteen frames per cell.
-            "velocidad": page.move_speed,
+            "speed": page.move_speed,
             # Whether its page asks for continuous animation. Those that also
             # walk carry it inside their route slot; this is for the still
             # ones.
-            "anima": page.animation_type in CONTINUOUS_ANIMATION,
+            "animates": page.animation_type in CONTINUOUS_ANIMATION,
             "visible": visible,
-            "cambia": changes,
-            "graficos": graphics,
-            "capas": [p.layer for p in event.pages],
-            "tile_pasa": event_tile_passability(game_map, charset, page.layer)
+            "changes": changes,
+            "graphics": graphics,
+            "layers": [p.layer for p in event.pages],
+            "tile_pass": event_tile_passability(game_map, charset, page.layer)
                          if visible else None,
         })
     return npcs

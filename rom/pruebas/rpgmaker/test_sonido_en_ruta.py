@@ -4,8 +4,8 @@ En RM2k suena cuando la ruta llega a ese paso (`Game_Character::
 UpdateMoveRoute`, `play_sound_effect`), sin costar un cuadro: la orden que
 sigue corre en el mismo. Hasta el 2026-09-27 el conversor lo tiraba. Ahora va
 con el índice del efecto detrás —el mismo de `OP_SOUND`— y la ROM lo toca con
-`sonido_tocar`, sobre el héroe (`sonido_heroe`) y sobre un evento
-(`sonido_ev`): son dos caminos y cada uno tiene su caso.
+`sound_play`, sobre el héroe (`sound_hero`) y sobre un evento
+(`sound_ev`): son dos caminos y cada uno tiene su caso.
 
 Los casos son del mapa 10 con `Close1`, que ya está en su paquete de audio
 por las páginas del mapa: así el caso no le agrega un efecto al paquete ni le
@@ -18,7 +18,7 @@ mueve el reparto de la música a nadie.
   suma los pasos hasta el `end_jump`— y el conversor lo tira.
 
 Lo que se mira es el estado de las dos voces de efectos en la RAM lejana
-(`SE_CUADROS` y `SE_NUEVO`, ver runtime/efectos_de_sonido.s): un efecto
+(`SE_FRAMES` y `SE_NEW`, ver runtime/sound_effects.s): un efecto
 arranca cuando los cuadros que le quedan a una voz suben.
 """
 
@@ -31,7 +31,7 @@ EFECTO = ("Close1", 100, 100, 50)
 
 
 def fila(una, sonido=EFECTO):
-    """La fila de `sonido_tabla` del efecto: la muestra, la altura, el volumen
+    """La fila de `sound_table` del efecto: la muestra, la altura, el volumen
     de cada lado y los cuadros que dura. El índice sale de `efectos.json`, que
     el conversor escribe al lado del cartucho en el orden de `Songs.sounds`."""
     with open(os.path.join(os.path.dirname(una.sfc), "efectos.json")) as a:
@@ -39,15 +39,15 @@ def fila(una, sonido=EFECTO):
     k = sonidos.index(sonido)
     with open(una.sfc, "rb") as a:
         rom = a.read()
-    base = en_la_rom(una.simbolos["sonido_tabla"]) + 7 * k
+    base = en_la_rom(una.simbolos["sound_table"]) + 7 * k
     return rom[base:base + 7]
 
 
 def _voces(una):
     """(cuadros que le quedan, muestra) de cada una de las dos voces."""
     voces = []
-    for cuadros, nuevo in (("SE_CUADROS", "SE_NUEVO"),
-                           ("SE2_CUADROS", "SE2_NUEVO")):
+    for cuadros, nuevo in (("SE_FRAMES", "SE_NEW"),
+                           ("SE2_FRAMES", "SE2_NEW")):
         c = una.consola.ram(en_la_wram(una.simbolos[cuadros]), 2)
         n = una.consola.ram(en_la_wram(una.simbolos[nuevo]), 1)
         voces.append((c[0] | (c[1] << 8), n[0]))
@@ -92,7 +92,7 @@ def test_sobre_el_heroe_suena_en_su_paso(partida):
 
 
 def test_sobre_un_evento_suena(partida):
-    """Suena una vez, con la muestra de `Close1`: es `sonido_ev`, el camino
+    """Suena una vez, con la muestra de `Close1`: es `sound_ev`, el camino
     de los eventos, que lee el operando del bytecode con la ranura en X."""
     una = partida(caso="sonido-en-ruta-evento")
     esperada = fila(una)

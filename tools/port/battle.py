@@ -32,7 +32,7 @@ Three things are **not** RM2k's, and all three are on purpose:
 * **The randomness.** RPG_RT draws from a generator we cannot reproduce.
   Here the randomness is the same sixteen-bit xorshift the port already uses
   for `ControlVars` —`events.next_random`—, but with **its own seed**:
-  `BATTLE_SEED`. Having its own and not sharing `FAR_AZAR` is what keeps
+  `BATTLE_SEED`. Having its own and not sharing `FAR_RANDOM` is what keeps
   a battle from advancing the map's randomness: a random `ControlVars` gives
   the same with or without a battle in between.
 
@@ -121,8 +121,8 @@ def item_usable_in_battle(item):
 
 def revives(item):
     """Whether the item removes the dead state: the first of its
-    `state_set`, which is state 1. It is the `MED_LEVANTA` bit of
-    `item_medicina`."""
+    `state_set`, which is state 1. It is the `MED_RAISES` bit of
+    `item_medicine`."""
     return item.state_set[:1] == [True]
 
 
@@ -237,7 +237,7 @@ def skill_works_alone(skill):
 ACTION_KIND_BASIC, ACTION_KIND_SKILL = 0, 1
 ACTION_BASIC_ATTACK = 0
 ACTION_CONDITION_ALWAYS = 0
-# How many actions an enemy can carry: the ROM weighs them in `BA_HAB_LISTA`,
+# How many actions an enemy can carry: the ROM weighs them in `BA_SKILL_LIST`,
 # which is that long. The converter stops if one carries more.
 ACTIONS_MAX = 16
 # The rating of the action set when the enemy has none left: with a single
@@ -347,7 +347,7 @@ def skill_command_name(db, number):
     actor = db.actors[number]
     if actor.rename_skill and actor.skill_name:
         return actor.skill_name
-    return rules.battle_terms(db)["habilidad"]
+    return rules.battle_terms(db)["skill"]
 
 
 def cost_of(skill):
@@ -514,7 +514,7 @@ class Combatant:
         """`Exists()`: it has HP left and is not hidden. Everything that
         chooses a target, hands out actions or decides victory looks at
         this, so a hidden one counts for nothing until it appears —which is
-        what the ROM does by leaving it without `BAF_HAY`—."""
+        what the ROM does by leaving it without `BAF_HAS`—."""
         return self.hp > 0 and not self.hidden
 
     # The four parameters as a computation sees them: `AdjustParam` from
@@ -661,7 +661,7 @@ class TroopPage:
                     <= c["enemy_hp_max"]):
                 return False
         if "actor_hp" in self.active:
-            # Only if it is in the party, like the ROM: see `ba_pag_cumple`.
+            # Only if it is in the party, like the ROM: see `ba_page_met`.
             matching = [a for a in battle.actors if a.number == c["actor_id"]]
             if not matching:
                 return False
@@ -839,7 +839,7 @@ class Battle:
         """`CheckBattleEndAndScheduleEvents` until none is left: with a whole
         side out nothing runs; otherwise, the first page that is met and has
         not run this turn, and then again from the first. The ROM does it in
-        `ba_pag_probar`."""
+        `ba_page_test`."""
         while self.living(self.enemies) and self.living(self.actors):
             for i, page in enumerate(self.pages):
                 if i not in self.done_pages and page.met(self):
@@ -1073,7 +1073,7 @@ class Battle:
     def experience(self):
         """`Game_EnemyParty::GetExp` on winning: that of the dead, which are
         all except those that stayed hidden. The ROM subtracts these from the
-        troop's: `ba_sin_ocultos`."""
+        troop's: `ba_no_hidden`."""
         return sum(e.exp for e in self.enemies if not e.hidden)
 
     def gold(self):

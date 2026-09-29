@@ -89,7 +89,7 @@ def test_con_arden_la_puerta_de_stash_esta_cerrada(recorrido):
     r.p.ir_al_mapa(48, 6, 55)
     r.esperar_el_control()
     r.empezar("la puerta cerrada")
-    r.activar(LA_PUERTA_DE_STASH, lambda p: p.byte("msg_abierto"), tope=6000)
+    r.activar(LA_PUERTA_DE_STASH, lambda p: p.byte("msg_open"), tope=6000)
     r.foto("cerrado")
     r.esperar_el_control()
     assert r.p.mapa() == 48, (

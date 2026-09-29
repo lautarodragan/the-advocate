@@ -12,7 +12,7 @@ in another category and with another key; the two expire together because
 both carry `version()`.
 
 **The two memories are what make one process per sample viable.** Measured
-on 2026-09-15 over a whole conversion of `abl` with `SIN_CACHE=1`: the
+on 2026-09-15 over a whole conversion of `abl` with `NO_CACHE=1`: the
 converter asks for 34,493 encodings for **608 distinct samples** and 70,279
 SoundFont zones for **100 distinct selectors**. Without memory that would be
 104,772 process launches; with it they are 708, and the 708 —binary,

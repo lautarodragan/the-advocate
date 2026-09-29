@@ -16,7 +16,7 @@ Y el pan se queda pegado porque así es RM2k: la cámara **se lo sigue llevando
 mientras el héroe camina** —`Game_Player::UpdateScroll` le resta el pan al
 objetivo, y sólo lo saltea si el pan está fijado— y lo único que lo borra es
 cambiar de mapa, en `PerformTeleport` con `map_changed`. Las dos cosas son las
-que hace `tools/runtime/camara.s`, así que el port lo copia bien.
+que hace `tools/runtime/camera.s`, así que el port lo copia bien.
 
 taro lo jugó en el RPG_RT original el 2026-09-23 —el de 2000, el que trae el
 juego, corriendo con Wine— y la cámara queda igual de corrida.

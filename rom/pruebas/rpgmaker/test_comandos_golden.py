@@ -83,7 +83,7 @@ TEXTOS = (
     ("texto-cruza", "grupo-11-en-255", "test-special", (60,), PRIMER_CUADRO,
      "cruza"),
     # Y el cuadro que sigue, que en el mismo cartucho cae entero del otro lado
-    # del borde: ahí `msg_empezar` sumaba el desplazamiento de dieciséis bits
+    # del borde: ahí `msg_start` sumaba el desplazamiento de dieciséis bits
     # al puntero y perdía el acarreo. Verificado en rojo con esa suma: 3404
     # pixeles. Son las dos posiciones de un solo empujón, y por eso un cartucho
     # solo donde antes hacían falta dos rellenos que no convivían.
@@ -106,7 +106,7 @@ def test_texto(nombre, caso, en, cuadros, renglon, donde):
     switch** son dos cuadros de texto seguidos y un switch, y de ahí salen tres
     cosas que ningún otro caso mira. Los **desplazamientos**: el segundo
     mensaje no empieza en cero, así que si el operando se ignorara se vería el
-    primero dos veces. Los **cuatro renglones**, que ejercitan `msg_lineas`
+    primero dos veces. Los **cuatro renglones**, que ejercitan `msg_lines`
     entero. Y el **encadenado**: al apretar A el primero se cierra y el segundo
     se abre en el mismo tick.
 
@@ -124,8 +124,8 @@ def test_texto(nombre, caso, en, cuadros, renglon, donde):
         cruza = byte >> 15 != (byte + largo - 1) >> 15
         # Y "del otro lado" es que el operando de 16 bits sumado a la
         # dirección del bloque se pase de $FFFF, que es la cuenta que hace
-        # `msg_empezar`.
-        lejos = (cartucho(en).simbolos["mensajes"] & 0xFFFF) \
+        # `msg_start`.
+        lejos = (cartucho(en).simbolos["messages"] & 0xFFFF) \
             + desplazamiento > 0xFFFF
         porque = (
             "el cuadro %r del cartucho %r cae en el byte $%06X del archivo, "
@@ -166,8 +166,8 @@ VARIABLES = (
     # el número se ve en los dígitos: si la ROM lee otra cosa, se nota.
     #
     # `var-heroe-x` lee la x del héroe, que está en (22,12): muestra 22 y no
-    # 12. Verificado en rojo con el `cmp #PERSONAJE_X` de
-    # `var_personaje_heroe` cambiado por PERSONAJE_Y: 48 pixeles en el cuadro
+    # 12. Verificado en rojo con el `cmp #CHARACTER_X` de
+    # `var_character_hero` cambiado por CHARACTER_Y: 48 pixeles en el cuadro
     # 30.
     ("var-heroe-x", (2, 30)),
     # `var-evento-y` lee la y de Kersh —el evento 3, blanco 4— **después** de
@@ -204,7 +204,7 @@ DESTELLOS = ("destello", "destello-compartido")
 def test_destello(nombre):
     """`destello`: `FlashSprite`, el destello de un personaje.
 
-    En la consola es un tinte de CGRAM —`pintar_flash` sube la paleta entera
+    En la consola es un tinte de CGRAM —`paint_flash` sube la paleta entera
     del personaje— y en RM2k es sobre la **imagen** del sprite. Son dos cosas
     distintas, y la única razón por la que no se ven distintas es que ningún
     caso tiene un segundo sprite visible compartiendo la paleta del que
@@ -290,7 +290,7 @@ def test_rama_item(nombre):
     Los dos casos son la misma página con y sin el `ChangeItems` que le da el
     Idol al grupo, así que **la diferencia entre ellos es la respuesta de la
     rama**: 40012 pixeles, el 69,78%. Verificado en rojo con el
-    `beq si_item_no` de la ROM cambiado por `bra`, o sea contestando siempre
+    `beq if_item_no` de la ROM cambiado por `bra`, o sea contestando siempre
     que no lo tiene: el caso con el ítem da esos mismos 40012.
     """
     for cuadro in (2, 30):
@@ -313,7 +313,7 @@ def test_rama_actor(nombre):
     rama**: 40012 pixeles, el 69,78%. Kersh es el actor 11: lleva puesto el
     ítem 82 y no el 84, y a su nivel del LDB sabe la habilidad 131 y no la 152.
 
-    Verificado en rojo de las dos maneras, con el `beq sia_si` de cada camino
+    Verificado en rojo de las dos maneras, con el `beq sia_yes` de cada camino
     cambiado por un `bra`: contestando siempre que sí, `rama-equipo-no` y
     `rama-hab-no` dan 40012 pixeles; contestando siempre que no, los dan
     `rama-equipo` y `rama-hab`.
@@ -392,7 +392,7 @@ ANIMACIONES = (
     # más cargados.
     ("animacion-dibujo", (1, 15, 33, 37, 41, 47)),
     # La misma sobre un **evento**, que en la ROM es otro camino: el héroe sale
-    # de `hero_x` y el evento de su fila de NPC, por `npc_de_evento`. Es sobre
+    # de `hero_x` y el evento de su fila de NPC, por `event_npc`. Es sobre
     # Manta, que está pegada al borde izquierdo: la caja arranca en -18 y
     # `emit_object` la recorta. El objetivo es ella y no Kersh a propósito:
     # Kersh es el líder, comparte paleta con el héroe, y el destello del
@@ -421,7 +421,7 @@ def test_cerrar(direccion, cuadro):
     """`cerrar`: la ventana de mensaje abierta, y cerrada con A.
 
     Dos ticks, y el segundo es el único que ejercita el cierre: `flush_video`
-    apaga el HDMA de la ventana cuando `msg_abierto` vuelve a cero.
+    apaga el HDMA de la ventana cuando `msg_open` vuelve a cero.
 
         60    la ventana en pantalla y la página frenada: el tinte que viene
               después del mensaje todavía no se aplicó
@@ -569,12 +569,12 @@ def _el_borrar(nombre, desde=25, hasta=60):
     p.correr(desde)
     arranco = llego = cargo = None
     for tick in range(desde, hasta):
-        if arranco is None and p.byte("fundido"):
+        if arranco is None and p.byte("fade"):
             arranco = tick
         if arranco is not None:
-            if llego is None and p.byte("brillo") == 0:
+            if llego is None and p.byte("brightness") == 0:
                 llego = tick - arranco
-            if cargo is None and not p.byte("fundido_que"):
+            if cargo is None and not p.byte("fade_kind"):
                 cargo = tick - arranco
         if cargo is not None and llego is not None:
             break
@@ -591,7 +591,7 @@ def test_borrar_con_el_corte(nombre):
     `RM2K_CUT_TRANSITIONS` en tools/port/events.py—: el primer tick del
     fundido ya es negro y ya cargó el mapa. Lo piden el 93 y el 95. "El
     primero" es el tick siguiente al que ve prendido `fundido`: el salto lo
-    pide al final de una vuelta y `fundido_tick` corre en la que sigue.
+    pide al final de una vuelta y `fade_tick` corre en la que sigue.
 
     No hay golden: lo que se ve es negro, y el mostrar es el fundido de
     siempre. Lo filoso es el contraste con el fundido del mismo salto, que

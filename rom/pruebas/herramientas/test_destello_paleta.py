@@ -1,7 +1,7 @@
 """Nadie comparte la paleta de sprite de un líder posible.
 
 El destello de un evento —`FlashSprite`, la orden 11320— en la consola es un
-tinte de CGRAM: `pintar_flash` sube la paleta del personaje con el color
+tinte de CGRAM: `paint_flash` sube la paleta del personaje con el color
 mezclado, así que **tiñe la paleta entera** y con ella todo lo que la comparta.
 RM2k no: aplica el destello sobre la imagen del sprite.
 

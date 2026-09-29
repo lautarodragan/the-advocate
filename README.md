@@ -105,7 +105,7 @@ a medias con facilidad, porque lo que sigue funcionando son las escrituras
 directas y los borrados por DMA, que llevan el banco explícito: alcanza para
 que la corrupción de pantalla desaparezca y el error de fondo quede.
 
-Así que hay un segmento `TABLAS` que el enlazador pone en el banco 0, y todo lo
+Así que hay un segmento `TABLES` que el enlazador pone en el banco 0, y todo lo
 que la CPU recorra con un índice tiene que estar ahí. **Y el banco 0 son 32 KB,
 así que la tabla que crece con el contenido se muda**: se lee con
 `lda f:tabla, x`, que lleva el banco en la instrucción; cuesta un byte por
@@ -117,14 +117,14 @@ celdas de un mapa grande no entra, y se lee con un puntero de 24 bits. Vive
 descomprimida en la mitad alta de los dos bancos de la WRAM —ver
 `workflow/decisiones/la-grilla-vive-en-la-wram.md` y `docs/port/maps.md`—,
 que tiene la misma forma que LoROM: pasarse del `$FFFF` no lleva al `$0000`
-del banco siguiente sino a su `$8000`. `ptr_mas` y `ptr_menos` son las únicas
+del banco siguiente sino a su `$8000`. `ptr_more` y `ptr_minus` son las únicas
 rutinas que saben eso; todo lo demás las usa y se olvida del tema.
 
 Y una tabla mudada, o una que se recorra con `[ptr], y`, **tiene que
-declararse con `.bloque`** para no quedar partida entre dos bancos: ver
+declararse con `.block`** para no quedar partida entre dos bancos: ver
 `bloque` en `tools/port/snes_convert.py`. El acomodo se niega a armar con una
 etiqueta de RODATA sin declarar, y lo que cruza a propósito —el stream de la
-música, lo que se sube al SPC700— lleva `.cruza`: ver `resolve` en
+música, lo que se sube al SPC700— lleva `.crossbank`: ver `resolve` en
 `tools/assembly/banks.py`.
 
 ## Lo que falta

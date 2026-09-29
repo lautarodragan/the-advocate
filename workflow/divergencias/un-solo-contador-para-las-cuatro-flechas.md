@@ -2,7 +2,7 @@
 
 RM2k lleva un `press_time` por botón —easyrpg, `src/input.cpp`—, así que
 cada flecha tiene su propia espera de repetición. La ROM lleva **uno solo para
-las cuatro**, `flechas_cuadros` en `flechas_repetir` (`tools/runtime/control.s`):
+las cuatro**, `arrows_frames` en `arrows_repeat` (`tools/runtime/control.s`):
 apretar una flecha nueva lo pone en cero aunque otra siga sostenida.
 
 Lo que se ve distinto: sosteniendo abajo, con la repetición ya andando, tocar
@@ -20,4 +20,4 @@ cuadro en todas las pantallas.
 
 Nada: no hay prueba que sostenga dos flechas, ni caso del juego donde se
 note. Si alguien lo nota jugando, el arreglo es un contador por flecha en
-`flechas_repetir`; las pantallas no se enteran.
+`arrows_repeat`; las pantallas no se enteran.

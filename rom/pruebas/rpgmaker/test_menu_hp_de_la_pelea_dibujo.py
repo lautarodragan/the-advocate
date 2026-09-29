@@ -10,11 +10,11 @@ igual**.
 
 Lo que se mide acá es la cadena completa:
 
-    la pelea baja los HP  ->  `modo_fin` los guarda en `FAR_HP`
+    la pelea baja los HP  ->  `mode_end` los guarda en `FAR_HP`
     -> el menú los lee    ->  y dibuja los de ahora, no los del bloque
 
 La pelea es la del droide del mapa 2 contra Kersh y Core, que es determinista:
-`batalla_correr` arranca el azar con `BATALLA_SEMILLA` en cada pelea, así que
+`battle_run` arranca el azar con `BATTLE_SEED` en cada pelea, así que
 sale siempre igual. Medido el 2026-09-13: gana el grupo, Kersh no pierde un HP
 y Core queda en 79 de 127. Que el número esté escrito acá no es adorno: si
 alguna vez cambia, cambió una fórmula de la pelea y hay que saberlo.
@@ -39,30 +39,30 @@ MAXIMOS = {11: 168, 12: 127}
 def pelear(una, tope=20000):
     """Abre la pelea de la página y la juega a fuerza de A.
 
-    Todo en cuadros de hardware: la pelea corre su propio lazo y `vueltas` no
+    Todo en cuadros de hardware: la pelea corre su propio lazo y `ticks` no
     avanza mientras dura, así que contar ticks se quedaría esperando. Se sabe
-    que empezó y que terminó por `menu_abierto`, que es lo que la ROM prende
+    que empezó y que terminó por `menu_open`, que es lo que la ROM prende
     mientras una pantalla propia está a la vista.
     """
     for _ in range(600):
         una.consola.run(1)
-        if una.byte("menu_abierto"):
+        if una.byte("menu_open"):
             break
     else:
         raise AssertionError("la página no abrió la pelea")
     for n in range(tope):
         una.consola.hold(*(("a",) if n % 6 < 2 else ()))
         una.consola.run(1)
-        if not una.byte("menu_abierto"):
+        if not una.byte("menu_open"):
             una.consola.hold()
             # Y hasta que el lazo del mapa vuelva a correr: la vuelta de la
             # pelea descomprime los tiles del mapa y dura unos cuadros, y un B
             # apretado mientras tanto no lo ve nadie. Eran diez cuadros fijos
             # hasta que la carga creció, el 2026-09-26.
-            antes = una.palabra("vueltas")
+            antes = una.palabra("ticks")
             for _ in range(240):
                 una.consola.run(1)
-                if una.palabra("vueltas") - antes >= 2:
+                if una.palabra("ticks") - antes >= 2:
                     break
             una.consola.run(10)
             return una
@@ -74,7 +74,7 @@ def hp_de(una):
 
 
 def test_la_pelea_baja_los_hp_y_los_deja_en_la_partida(partida):
-    """La primera mitad: `modo_fin` guarda lo que quedó en `FAR_HP`."""
+    """La primera mitad: `mode_end` guarda lo que quedó en `FAR_HP`."""
     una = pelear(partida(caso="pelea-82-grupo-11-12"))
     assert hp_de(una) == DESPUES, (
         "la pelea del droide contra Kersh y Core dejó %s y venía dejando %s: "
@@ -85,8 +85,8 @@ def test_la_pelea_baja_los_hp_y_los_deja_en_la_partida(partida):
 def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     """Y la segunda: el menú abierto en el mapa dibuja esos mismos números.
 
-    **Comprobado en rojo con la ROM de antes** —sin el `jsl menu_hp_escribir`
-    de `menu_grupo_pintar`—: 111 pixeles de diferencia, los de las cifras que
+    **Comprobado en rojo con la ROM de antes** —sin el `jsl menu_hp_write`
+    de `menu_party_paint`—: 111 pixeles de diferencia, los de las cifras que
     nadie escribía.
     """
     from port import menus
@@ -101,7 +101,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     abrir(una)
     db, skin = datos.base(), datos.skin()
     oro = una.oro()
-    esperada = menus.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
+    esperada = menus.render_menu(skin, db, una.simbolos["SRAM_SLOTS"],
                                   GRUPO, oro, 0, True, db.font_id, None,
                                   GAME_DIR, quedo, niveles, exps)
     comparar_pantalla(una, esperada, "menu-tras-pelea",
@@ -109,7 +109,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     # Y que la comparación de arriba mida algo: con los HP llenos la referencia
     # dibuja **otra** imagen. Sin esto, una ROM que volviera a hornear el
     # máximo pasaría el caso el día que la referencia se equivocara igual.
-    llena = menus.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
+    llena = menus.render_menu(skin, db, una.simbolos["SRAM_SLOTS"],
                                GRUPO, oro, 0, True, db.font_id, None,
                                GAME_DIR, MAXIMOS, niveles, exps)
     assert pixeles_distintos(llena, esperada) > 20, (
@@ -121,12 +121,12 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
 # El cuarto síntoma del reporte —*"varios enemigos empezaban con HP bajo a
 # partir de la segunda batalla aleatoria... se guarda el HP asociado a un
 # índice de enemigo y no se reinicia"*— **no era un defecto**, y esto es lo que
-# lo deja medido en vez de razonado: `ba_armar` vacía las doce ranuras y
-# rellena los HP de cada enemigo desde `enemigo_hp` del cartucho en cada pelea.
+# lo deja medido en vez de razonado: `ba_build` vacía las doce ranuras y
+# rellena los HP de cada enemigo desde `enemy_hp` del cartucho en cada pelea.
 #
 # Lo que taro vio es de los datos del juego: las tropas de Rat Tracks B1 son
 # GiantRat (20 HP), MutantMouse (25) y HairyVermin (40), y la pantalla de la
-# pelea muestra el HP de cada enemigo —el máximo no, `BA_CONMAX` en cero—. O
+# pelea muestra el HP de cada enemigo —el máximo no, `BA_WITHMAX` en cero—. O
 # sea que un GiantRat dice "20" porque tiene 20, y no porque le haya quedado
 # eso de la pelea anterior.
 
@@ -138,13 +138,13 @@ def enemigos_de(una):
     sim = una.simbolos
     salida = []
     for ranura in range(sim["BA_COMB_MAX"]):
-        base = sim["BA_UNO"] + ranura * sim["BA_BYTES"]
+        base = sim["BA_ONE"] + ranura * sim["BA_BYTES"]
         banderas = una.consola.ram(base + sim["BA_FLAGS"], 1)[0]
-        if not banderas & sim["BAF_HAY"] or banderas & sim["BAF_ACTOR"]:
+        if not banderas & sim["BAF_HAS"] or banderas & sim["BAF_ACTOR"]:
             continue
         hp, hpmax = (una.consola.ram(base + campo, 2)
                      for campo in (sim["BA_HP"], sim["BA_HPMAX"]))
-        salida.append((una.consola.ram(base + sim["BA_NUMERO"], 1)[0],
+        salida.append((una.consola.ram(base + sim["BA_NUMBER"], 1)[0],
                        hp[0] | (hp[1] << 8), hpmax[0] | (hpmax[1] << 8)))
     return salida
 
@@ -154,7 +154,7 @@ def hasta_que_se_abra(una, cuadros=900):
     for n in range(cuadros):
         una.consola.hold(("up", "down", "left", "right")[(n // 40) % 4])
         una.consola.run(1)
-        if una.byte("menu_abierto"):
+        if una.byte("menu_open"):
             una.consola.hold()
             return una
     raise AssertionError("no salió ningún encuentro en %d cuadros" % cuadros)
@@ -164,7 +164,7 @@ def ganarla(una, tope=20000):
     for n in range(tope):
         una.consola.hold(*(("a",) if n % 6 < 2 else ()))
         una.consola.run(1)
-        if not una.byte("menu_abierto"):
+        if not una.byte("menu_open"):
             una.consola.hold()
             return una
     raise AssertionError("la pelea no terminó")

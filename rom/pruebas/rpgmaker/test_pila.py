@@ -159,9 +159,9 @@ def _tropa():
     """Una página de tropa corriendo adentro de la pelea: la de Detect Aura.
 
     Es la cadena más honda, y por construcción: la pelea
-    se abre desde un manejador de `correr_codigo` —`op_battle`—, cruza al banco 1,
-    y desde ahí vuelve al banco 0 por `ba_t_pagina` a correr **otra vez**
-    `correr_codigo`, con el contexto del mapa guardado en la pila. Ver
+    se abre desde un manejador de `run_code` —`op_battle`—, cruza al banco 1,
+    y desde ahí vuelve al banco 0 por `ba_t_page` a correr **otra vez**
+    `run_code`, con el contexto del mapa guardado en la pila. Ver
     `pruebas/rpgmaker/test_tropa.py`, que recorre lo mismo mirando qué hace.
     """
     una = partida("tropa-talan-aura", pila=True)
@@ -179,8 +179,8 @@ def _tropa():
     corrio = False
     for boton in ("right", "a", "a") + ("a",) * 40:
         _tocar_cuadros(consola, boton)
-        corrio = corrio or any(consola.ram(una.simbolos["BA_PAG_HECHA"],
-                                           una.simbolos["TROPA_PAG_MAX"]))
+        corrio = corrio or any(consola.ram(una.simbolos["BA_PAGE_DONE"],
+                                           una.simbolos["TROOP_PAGE_MAX"]))
     assert corrio, (
         "no corrió ninguna página de la tropa, así que esto mediría la pelea "
         "y no la página")

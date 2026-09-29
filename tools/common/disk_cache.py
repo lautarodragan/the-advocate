@@ -22,7 +22,7 @@ what I would make".
 
 It lives in `rom/build/cache/`, which git ignores and which exists on both
 sides —the host and the container—, because the recipes are run from both.
-It can be moved with `--cache` and turned off with `SIN_CACHE=1`, which is
+It can be moved with `--cache` and turned off with `NO_CACHE=1`, which is
 what is used to check that with and without the cache **the same `.sfc` comes
 out byte for byte**: that is the only honest verification of a cache.
 
@@ -38,7 +38,7 @@ import tempfile
 from common import environment
 from common import project
 
-DISABLED = os.environ.get("SIN_CACHE") == "1"
+DISABLED = os.environ.get("NO_CACHE") == "1"
 
 
 def directory():

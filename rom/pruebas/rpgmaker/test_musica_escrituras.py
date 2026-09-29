@@ -3,19 +3,19 @@ cuadro por cuadro.
 
 El stream de música es por nota desde el 2026-09-26 —ver "el formato por
 nota" en `tools/audio/snes_music.py`— y lo expande `music_frame`
-(runtime/musica.s) a escrituras al DSP. La propiedad que sostiene el formato
+(runtime/music.s) a escrituras al DSP. La propiedad que sostiene el formato
 es que esas escrituras sean **exactamente** las de `snes_music.writes`:
 mismo registro, mismo valor, mismo orden y mismo cuadro. Hay dos redes:
 
 * el conversor decodifica cada tema con `snes_music.decode`, el modelo
   del decodificador, y se corta si no da `writes` (`check_format`);
 * y ésta, que cobra lo que el modelo no ve: el 65816. Toca cada tema entero
-  en la ROM, anota lo que llega a `dsp_musica` —la bitácora, `MUS_BITACORA`,
+  en la ROM, anota lo que llega a `dsp_music` —la bitácora, `MUS_LOG`,
   que la prueba prende— y lo compara contra el modelo corriendo sobre los
   bytes **del cartucho**.
 
-Lo que se mira es la entrada de `dsp_musica` y no el DSP: el emulador no
-expone la memoria del SPC700, y lo que pasa después de `dsp_musica` —la
+Lo que se mira es la entrada de `dsp_music` y no el DSP: el emulador no
+expone la memoria del SPC700, y lo que pasa después de `dsp_music` —la
 sombra de las voces de los efectos, el acuse del SPC700— no cambió con el
 formato y lo cubre `test_bateria_suena.py`.
 
@@ -71,10 +71,10 @@ def _escribir(una, direccion, datos):
 
 def _leer_bitacora(una, desde):
     s = una.simbolos
-    largo = s["MUS_BITACORA_LARGO"]
-    i = una.consola.ram(en_la_wram(s["MUS_BITACORA_I"]), 2)
+    largo = s["MUS_LOG_LENGTH"]
+    i = una.consola.ram(en_la_wram(s["MUS_LOG_I"]), 2)
     hasta = i[0] | i[1] << 8
-    crudo = una.consola.ram(en_la_wram(s["MUS_BITACORA"]), largo)
+    crudo = una.consola.ram(en_la_wram(s["MUS_LOG"]), largo)
     pares, j = [], desde
     while j != hasta:
         pares.append((crudo[j], crudo[j + 1]))
@@ -83,14 +83,14 @@ def _leer_bitacora(una, desde):
 
 
 def _cuadros_de_la_rom(una, hasta, j=0, cuadros=None):
-    """Lo que `dsp_musica` recibió, por cuadro de música, hasta tener
+    """Lo que `dsp_music` recibió, por cuadro de música, hasta tener
     `hasta` cuadros.
 
     Se parte por las marcas de cuadro y no por los cuadros del emulador: un
     cuadro pesado —la vuelta al principio del de batalla, con el arranque y
     cuatro notas— termina después de que el emulador entregó el suyo.
     """
-    marca = una.simbolos["MUS_BITACORA_MARCA"]
+    marca = una.simbolos["MUS_LOG_MARK"]
     cuadros = [] if cuadros is None else cuadros
     for _ in range(2 * hasta):
         if len(cuadros) > hasta:
@@ -128,10 +128,10 @@ def _comparar(nombre, cuadros, vuelta):
 @pytest.mark.parametrize("nombre", TEMAS)
 def test_la_rom_escribe_lo_que_el_stream_dice(partida, nombre):
     """Cada tema arranca por el camino del loop: se apunta el stream a su
-    `OP_END` con el tema en `tema_actual`, así que en el cuadro siguiente
-    `music_frame` vuelve al principio con `music_start_ya`, que es lo mismo
+    `OP_END` con el tema en `song_current`, así que en el cuadro siguiente
+    `music_frame` vuelve al principio con `music_start_done`, que es lo mismo
     que hace al terminar cada vuelta. Las muestras no se suben
-    —`tema_asegurar` no corre—, así que no suena lo que se toca; las
+    —`song_ensure` no corre—, así que no suena lo que se toca; las
     escrituras son las mismas."""
     una = partida(titulo=EMPEZAR).quedarse_en_el_titulo()
     s = una.simbolos
@@ -143,13 +143,13 @@ def test_la_rom_escribe_lo_que_el_stream_dice(partida, nombre):
 
     # Todo entre dos cuadros, que es cuando la consola no está corriendo.
     _escribir(una, s["music"], [fin & 0xFF, fin >> 8 & 0xFF, fin >> 16])
-    _escribir(una, s["tema_actual"], [tema, 0])
-    _escribir(una, s["MUS_ESPERA"], [0, 0])
-    _escribir(una, s["MUS_SONANDO"], [0])
+    _escribir(una, s["song_current"], [tema, 0])
+    _escribir(una, s["MUS_WAIT"], [0, 0])
+    _escribir(una, s["MUS_PLAYING"], [0])
     _escribir(una, s["MUS_KON"], [0])
-    _escribir(una, s["music_apagada"], [0])
-    _escribir(una, s["MUS_BITACORA_I"], [0, 0])
-    _escribir(una, s["MUS_BITACORA_SI"], [1])
+    _escribir(una, s["music_off"], [0])
+    _escribir(una, s["MUS_LOG_I"], [0, 0])
+    _escribir(una, s["MUS_LOG_YES"], [1])
     cuadros = _cuadros_de_la_rom(una, vuelta[-1][0] + DESPUES_DEL_FINAL)
     _comparar(nombre, cuadros, vuelta)
 
@@ -158,7 +158,7 @@ def test_el_tema_del_titulo_desde_el_encendido(partida):
     """El otro camino: el tema lo prende el código principal —`music_start`
     desde la pantalla de título, como un `PlayBGM`—, y no la IRQ. Ahí los
     registros traen lo que dejó el juego, y así apareció el primer error del
-    decodificador: `music_start_ya` ponía la espera en cero con un `lda #0`
+    decodificador: `music_start_done` ponía la espera en cero con un `lda #0`
     de ocho bits y un `sta` de dieciséis, y B traía basura. El tema esperaba
     miles de cuadros antes de la primera nota, y el camino de la IRQ, donde B
     llega en cero, no lo veía.
@@ -168,18 +168,18 @@ def test_el_tema_del_titulo_desde_el_encendido(partida):
     """
     una = partida(titulo=EMPEZAR)
     s = una.simbolos
-    tema = s["TEMA_TITULO"]
+    tema = s["SONG_TITLE"]
     vuelta = una.escrituras_del_tema(tema)
     una.consola.write_ram(0, bytes([0x55]) * WRAM)
     una.consola.reset()
-    for _ in range(s["BOOT_CUADROS"] + TITULO_AIRE):
-        _escribir(una, s["MUS_BITACORA_I"], [0, 0])
-        _escribir(una, s["MUS_BITACORA_SI"], [1])
+    for _ in range(s["BOOT_FRAMES"] + TITULO_AIRE):
+        _escribir(una, s["MUS_LOG_I"], [0, 0])
+        _escribir(una, s["MUS_LOG_YES"], [1])
         una.consola.run(1)
         if _leer_bitacora(una, 0)[1]:
             break
     else:
         raise AssertionError("la pantalla de título no prendió su tema")
-    assert una.palabra("tema_actual") == tema
+    assert una.palabra("song_current") == tema
     cuadros = _cuadros_de_la_rom(una, vuelta[-1][0] + DESPUES_DEL_FINAL)
     _comparar("el tema del título", cuadros, vuelta)

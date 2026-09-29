@@ -1,19 +1,20 @@
-# La decisión artística de la animación 9: **a qué tamaño se dibuja**
-# en la consola. Lo escribe el conversor y lo regenera `just parches`,
-# que es lo que hay que correr cuando un cambio lo mueve; `just parches
-# --check` —y la tanda— fallan si quedó viejo. Ver `rm2k-snes-patches`.
+# The artistic decision of animation 9: **at what size it is drawn**
+# on the console. The converter writes it and `just parches`
+# regenerates it, which is what has to be run when a change moves it;
+# `just parches --check` —and the suite— fail if it is stale. See
+# `rm2k-snes-patches`.
 
 animacion = 9
 nombre = "Spear A"
 hoja = "Spear"
 
-# Lo decidido: el rectángulo, en pixeles de la consola, al que se
-# achica la animación entera para entrar en la caja de 64 x 64. Es lo
-# que la fase 2 va a leer en vez de volver a calcularlo.
+# What was decided: the rectangle, in console pixels, the whole
+# animation is shrunk to so it fits in the 64 x 64 box. It is what
+# phase 2 will read instead of computing it again.
 tamano = [64, 64]
 
-# De qué venía: la unión de todas las celdas de todos sus cuadros en
-# pixeles de RM2k, y cuántos cuadros son. No se decide, se mide, y
-# está para que el diff diga por qué cambió el tamaño.
+# What it came from: the union of all the cells of all its frames in
+# RM2k pixels, and how many frames there are. It is not decided, it is
+# measured, and it is here so the diff says why the size changed.
 original = [120, 120]
 cuadros = 10

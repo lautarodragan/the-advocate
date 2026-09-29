@@ -32,7 +32,7 @@ ARRANQUE_CON_TITULO = 150
 def test_titulo(nombre, sosteniendo, toques):
     """`titulo`: la pantalla de título, contra la imagen del LDB.
 
-    Es el caso que **más necesita** el reloj de cuadros: ahí `vueltas` no
+    Es el caso que **más necesita** el reloj de cuadros: ahí `ticks` no
     avanza, porque el título no es el juego —una ROM con título corre el mapa
     igual que una sin él—, así que esperar un tick no termina jamás.
 

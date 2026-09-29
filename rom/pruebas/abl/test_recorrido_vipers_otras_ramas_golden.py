@@ -18,9 +18,9 @@ cosas de la misma zona, y las tres necesitan `Recorrido.elegir`:
                 página 2 es automática y termina en un `Teleport` al 14. La
                 cinemática del 14 corre sola y termina en el 16
 
-Los saltos largos son el caso extremo de `salto_avanzar_heroe`, y el salto
+Los saltos largos son el caso extremo de `jump_advance_hero`, y el salto
 colgado de la semana del 2026-09-22 vivía justo ahí: cada salto se cobra con el
-vigilante de `sin_quedarse_en_el_aire` y con `ruta_salto` en cero al final. El
+vigilante de `sin_quedarse_en_el_aire` y con `route_jump` en cero al final. El
 de cinco celdas, medido tick por tick el 2026-09-26 a la velocidad 4, que es la
 del héroe acá: once vueltas de 7 u 8 px, con la cámara detrás a lo mismo, así
 que **tampoco** llega a los más de 8 px por vuelta que hacen falta para dejar
@@ -32,7 +32,7 @@ medido"—.
 **adentro** del salto: RM2k lo ignora ahí —`Game_Character` sólo suma los
 movimientos y los giros entre el par, y el resto se consume sin efecto—, así
 que salta sin atravesar, a (1,49), que no es pisable, y el salto falla. La ROM
-lo saltea igual —`acumular_salto` no mira la 36—, el héroe se queda en (1,47) y
+lo saltea igual —`accumulate_jump` no mira la 36—, el héroe se queda en (1,47) y
 el `Teleport` lo saca de ahí. Por eso no se le cobra la celda.
 
 **No se arranca desde la calle.** El camino del caño y los techos ya lo juega
@@ -110,18 +110,18 @@ def sin_quedarse_en_el_aire(partida, a_cada=A_CADA):
     seguidas = [0]
 
     def mirar(p):
-        if not p.byte("ruta_salto"):
+        if not p.byte("route_jump"):
             seguidas[0] = 0
             return
-        dura = -(-partida.simbolos["SALTO_PASO"]
+        dura = -(-partida.simbolos["JUMP_STEP"]
                  // events.JUMP_PER_SPEED[p.velocidad_del_heroe() - 1])
         tope = -(-dura // a_cada) + 1
         seguidas[0] += 1
         assert seguidas[0] <= tope, (
             "el héroe lleva %d muestras de %d ticks en el aire y un salto dura "
             "%d: le queda %d de arco con la ruta en %d de %d órdenes"
-            % (seguidas[0], a_cada, dura, p.byte("ruta_salto"),
-               p.byte("ruta_i"), p.byte("ruta_n")))
+            % (seguidas[0], a_cada, dura, p.byte("route_jump"),
+               p.byte("route_i"), p.byte("route_n")))
 
     return mirar
 
@@ -159,7 +159,7 @@ def aterrizar_afuera(r, que):
     assert r.celda() == DESPUES_DEL_SALTO, (
         "el salto de la reja termina cinco celdas abajo de %s. %s"
         % (AFUERA_DE_LA_REJA, r.estado()))
-    assert r.p.byte("ruta_salto") == 0, r.estado()
+    assert r.p.byte("route_jump") == 0, r.estado()
     assert r.p.palabra("hero_y") == DESPUES_DEL_SALTO[1] * 16, (
         "el héroe quedó en la celda pero no en su pixel: hero_y es %d. %s"
         % (r.p.palabra("hero_y"), r.estado()))

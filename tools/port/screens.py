@@ -4,7 +4,7 @@ They are pure text screens, so they carry no blocks drawn in advance like
 the slots or the menu: they use the item screen's font —each character in
 two cells, in white and in gray, see `menus.items_screen`— and are
 composed **whole**. The ROM builds the complete tilemap, 32 by 28 cells, in
-`texto_buf` and uploads it with one DMA per frame: it is 1792 bytes and fits
+`text_buf` and uploads it with one DMA per frame: it is 1792 bytes and fits
 in vblank, so there is no need to be careful about what is written when.
 Here `TextGrid` is the same: a grid of (character, gray) painted with the same
 cells.
@@ -152,7 +152,7 @@ def bar_row(bar):
 def equipment_layers(sys_img):
     """What `menus.borders` needs from this screen: the windows without a
     cursor and with each cursor —the slots and then the list rows—, in the
-    order the ROM indexes them: see `eq_barra`."""
+    order the ROM indexes them: see `eq_bar`."""
     return (equipment_windows(sys_img),
             [(equipment_windows(sys_img, k), bar_row(k))
              for k in range(EQUIPMENT_SLOTS + EQ_LIST_ROWS)])
@@ -164,7 +164,7 @@ def new_value_color(now, then):
     3 if it goes down. In ABL's skin 2 is a peach and 3 the "cannot" gray;
     that is how the original shows it, captured with the 2015 RPG_RT on
     2026-09-28. Returns the font variant —`menus.ITEM_*`—, which is what the
-    ROM compares in `eq_componer`."""
+    ROM compares in `eq_compose`."""
     if then == now:
         return menus.ITEM_WHITE
     return menus.ITEM_UP if then > now else menus.ITEM_GRAY
@@ -699,11 +699,11 @@ BA_COMMAND_WIDTH = 10
 # the middle and Defend starts one cell further. ABL's other four words are
 # eight or less.
 BA_COMMANDS = (
-    ("atacar", 0, 1),
-    ("habilidad", 0, 11),
-    ("defender", 0, 22),
-    ("usar", 1, 1),
-    ("huir", 1, 13),
+    ("attack", 0, 1),
+    ("skill", 0, 11),
+    ("defend", 0, 22),
+    ("use", 1, 1),
+    ("escape", 1, 13),
 )
 
 # No command is unimplemented since 2026-09-13: the skill was the only one and
@@ -804,18 +804,18 @@ def victory_lines(term, width=BA_PAGE_MSG_WIDTH):
 def exp_line(term, exp):
     """RM2k's `GetExperienceGainedMessage` without placeholders: the number
     stuck to the term. The `\\.` easyrpg adds is a wait, not a letter."""
-    return "%d%s" % (exp, term["exp_recibida"])
+    return "%d%s" % (exp, term["exp_received"])
 
 
 def level_line(term, name, level):
     """RM2k's `GetLevelUpMessage` in English: "<name> <level> <n><level_up>",
     which in ABL is "Kersh LEVEL 21 achieved!"."""
-    return "%s %s %d%s" % (name, term["nivel"], level, term["subio"])
+    return "%s %s %d%s" % (name, term["level"], level, term["level_up"])
 
 
 def skill_line(term, skill):
     """`GetLearningMessage`: the name stuck to the term."""
-    return skill + term["aprendio"]
+    return skill + term["learned"]
 
 
 def gold_line(term, gold):
@@ -823,7 +823,7 @@ def gold_line(term, gold):
     `gold_recieved_a`, a space, the number stuck to `gold` and
     `gold_recieved_b`. In ABL, " You found 285Cr credits!": the currency and
     "credits" both go, which is what RM2k builds with these terms."""
-    return "%s %d%s%s" % (term["oro_a"], gold, term["moneda"], term["oro_b"])
+    return "%s %d%s%s" % (term["gold_a"], gold, term["currency"], term["gold_b"])
 
 
 def item_line(term, name):
@@ -832,7 +832,7 @@ def item_line(term, name):
     ROM carries, cut to `ITEM_NAME_WIDTH`."""
     from port import menus
     return menus.item_text(name, menus.ITEM_NAME_WIDTH) \
-        + term["obtenido"]
+        + term["obtained"]
 
 
 def collect_victory(term, exp_max, actors, skills, gold_max=0,

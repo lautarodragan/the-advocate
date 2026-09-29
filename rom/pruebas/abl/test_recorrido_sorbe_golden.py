@@ -92,8 +92,8 @@ def test_sorbe_la_curacion_y_el_viaje_de_dalia(recorrido):
     r.foto("sorbe")
 
     r.empezar("la vieja de Sorbe")
-    r.activar(LA_VIEJA, lambda p: p.byte("msg_abierto")
-              and p.byte("msg_estado") != 1)
+    r.activar(LA_VIEJA, lambda p: p.byte("msg_open")
+              and p.byte("msg_state") != 1)
     r.foto("la-vieja", asentar=False)
     r.esperar("el switch de la vieja", lambda p: p.switch(HABLO_CON_LA_VIEJA)
               and not p.corriendo_una_pagina(), tope=3000)
@@ -139,7 +139,7 @@ def test_sorbe_la_curacion_y_el_viaje_de_dalia(recorrido):
         "la oficina termina con Dalia sola en el grupo: %s. %s"
         % (grupo_de(p), r.estado()))
     jugar(r, "la llegada a la fábrica",
-          lambda p: not p.corriendo_una_pagina() and not p.byte("fundido"))
+          lambda p: not p.corriendo_una_pagina() and not p.byte("fade"))
     r.foto("la-fabrica")
 
     r.empezar("la fábrica")
@@ -159,7 +159,7 @@ def test_sorbe_la_curacion_y_el_viaje_de_dalia(recorrido):
     r.empezar("el viaje de Dalia hasta Tasgarde")
     vio = []
     jugar(r, "el viaje de Dalia hasta Tasgarde",
-          lambda p: p.mapa() == TASGARDE and not p.byte("fundido"),
+          lambda p: p.mapa() == TASGARDE and not p.byte("fade"),
           momentos={"el-auto-de-dalia":
                         lambda p: grupo_de(p) == [EL_AUTO]
                         and p.heroe()[1] <= 10,

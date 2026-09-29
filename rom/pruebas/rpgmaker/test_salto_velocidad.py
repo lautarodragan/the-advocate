@@ -7,9 +7,9 @@ contando el del aterrizaje, y `remaining_step` es distinto de cero en todos
 menos en ése: el primer descuento cae en el mismo cuadro que arma el salto.
 
 Hasta el 2026-09-26 el héroe usaba una constante, la de la velocidad 4, y los
-eventos ya la sacaban de `salto_por_vel`: con `increase_movement_speed` delante
+eventos ya la sacaban de `jump_per_speed`: con `increase_movement_speed` delante
 el héroe caminaba a la velocidad nueva y saltaba en los once cuadros de
-siempre. Lo que se cuenta acá son los ticks con `ruta_salto` distinto de cero.
+siempre. Lo que se cuenta acá son los ticks con `route_jump` distinto de cero.
 """
 
 import pytest
@@ -18,11 +18,11 @@ from port import events
 
 
 def cuadros_en_el_aire(una, tope=200):
-    """Los ticks seguidos con `ruta_salto` distinto de cero, desde el primero."""
+    """Los ticks seguidos con `route_jump` distinto de cero, desde el primero."""
     en_el_aire = 0
     for _ in range(tope):
         una.correr(1)
-        if una.byte("ruta_salto"):
+        if una.byte("route_jump"):
             en_el_aire += 1
         elif en_el_aire:
             return en_el_aire

@@ -3,7 +3,7 @@
 El save point de Lashe City —`SaveByTalansPad0`, el evento 67 del mapa 8— pide
 `OpenSaveMenu`, y eso abre la pantalla de ranuras adentro del intérprete: se
 elige una con el cursor, se guarda ahí y la página sigue. Lo que se guarda lo
-dice `partida_tabla` en `runtime/banco1.s`; cómo se ve la pantalla lo cobra
+dice `save_table` en `runtime/bank1.s`; cómo se ve la pantalla lo cobra
 `test_guardar_golden.py`.
 
 Esto no lo puede cubrir la tanda de pixeles: guardar no cambia un pixel. Lo que
@@ -80,7 +80,7 @@ def test_sin_partida_arranca_de_cero(partida):
 
 def _base(simbolos, ranura):
     """Dónde arranca la ranura en la SRAM, con los números de la ROM."""
-    return simbolos["SRAM_MAGIA"] + ranura * simbolos["SRAM_STRIDE"]
+    return simbolos["SRAM_MAGIC"] + ranura * simbolos["SRAM_STRIDE"]
 
 
 def test_guardar_escribe_en_la_ranura_elegida(partida):
@@ -91,7 +91,7 @@ def test_guardar_escribe_en_la_ranura_elegida(partida):
     escribirían en la primera y este caso pasaría a medias: por eso se
     comprueba **las dos** cosas, que la elegida tenga la magia y que la otra
     no. Y de paso cobra que el número que elige el cursor llegue hasta
-    `guardar_partida`, que es el camino del save point de verdad.
+    `save_game`, que es el camino del save point de verdad.
     """
     for elegida in (0, 1):
         una = partida(caso="guardar-198")
@@ -109,18 +109,18 @@ def test_guardar_escribe_en_la_ranura_elegida(partida):
 def test_cancelar_no_guarda_ni_cambia_la_ranura(partida):
     """B cierra la pantalla sin escribir nada, y `ranura` queda como estaba.
 
-    Lo segundo no es obvio: pintar la lista pisa `ranura` —`ranura_llena` la
+    Lo segundo no es obvio: pintar la lista pisa `ranura` —`slot_full` la
     usa para direccionar la SRAM— y sin reponerla al salir, cancelar dejaría a
     la partida "cargada" de la última fila pintada. Verificado que da rojo
     sacando el `pla; sta ranura` de `cerrar`: queda en 3.
     """
     una = partida(caso="guardar-198")
     una.guardar_en(cancelar=True)
-    assert una.byte("menu_abierto") == 0, "la pantalla sigue abierta"
-    assert una.byte("ranura") == 0xFF, (
+    assert una.byte("menu_open") == 0, "la pantalla sigue abierta"
+    assert una.byte("slot") == 0xFF, (
         "cancelar dejó `ranura` en %d y la partida no venía de ninguna"
-        % una.byte("ranura"))
-    for n in range(una.simbolos["SRAM_RANURAS"]):
+        % una.byte("slot"))
+    for n in range(una.simbolos["SRAM_SLOTS"]):
         assert not una.hay_partida(n), (
             "se canceló y la ranura %d quedó escrita igual" % n)
 
@@ -129,16 +129,16 @@ def test_las_cuatro_ranuras_entran_en_la_sram(partida):
     """La última ranura termina adentro de los 32 KB de SRAM del cartucho.
 
     Es una cuenta y no una medición, pero conviene que la haga la prueba y no
-    yo: `PARTIDA_BYTES` crece cada vez que se agrega un campo a la partida —ya
+    yo: `SAVE_BYTES` crece cada vez que se agrega un campo a la partida —ya
     pasó con la música— y el día que pase de `SRAM_STRIDE` cada ranura empezaría
     a pisar el final de la anterior **sin que nada avise**.
     """
     una = partida()
     simbolos = una.simbolos
-    largo = simbolos["PARTIDA_BYTES"]
+    largo = simbolos["SAVE_BYTES"]
     stride = simbolos["SRAM_STRIDE"]
-    ranuras = simbolos["SRAM_RANURAS"]
-    assert simbolos["SRAM_DATOS"] - simbolos["SRAM_MAGIA"] + largo <= stride, (
+    ranuras = simbolos["SRAM_SLOTS"]
+    assert simbolos["SRAM_DATA"] - simbolos["SRAM_MAGIC"] + largo <= stride, (
         "una partida ocupa %d bytes y las ranuras van cada %d: la %d pisaría "
         "el final de la anterior" % (largo, stride, ranuras))
     fin = _base(simbolos, ranuras - 1) + stride

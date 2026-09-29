@@ -29,7 +29,7 @@ Es el hito 1 de `workflow/tasks/*/la-carrera-y-lo-que-sigue.md`. El recorrido:
 paralela**, con el primer plano quieto, y el volante es el `KeyInputProc` que
 no espera y mira lo apretado. Las dos cosas las estrenó este recorrido: hasta
 el 2026-09-27 ninguna página de `release` las usaba, y la ROM no hacía
-ninguna de las dos —ver el lazo principal y `tecla_valor`—.
+ninguna de las dos —ver el lazo principal y `key_value`—.
 
 El volante se maneja **sosteniendo** arriba o abajo con el arnés, y quien
 decide es `piloto`: mira en la RAM la celda de cada auto y la del héroe, y se
@@ -116,20 +116,20 @@ VIENTOS = 6
 
 def muestra_de(p, sonido):
     """La muestra con que suena `sonido` —(nombre, volumen, tempo, paneo)—:
-    la primera columna de su fila de `sonido_tabla`. El índice sale de
+    la primera columna de su fila de `sound_table`. El índice sale de
     `efectos.json`, que el conversor deja al lado del cartucho."""
     with open(os.path.join(os.path.dirname(p.sfc), "efectos.json")) as a:
         sonidos = [tuple(s) for s in json.load(a)["sonidos"]]
     with open(p.sfc, "rb") as a:
         rom = a.read()
-    return rom[en_la_rom(p.simbolos["sonido_tabla"]) + 7 * sonidos.index(sonido)]
+    return rom[en_la_rom(p.simbolos["sound_table"]) + 7 * sonidos.index(sonido)]
 
 
 class Oido:
     """Anota cada efecto que arranca —(muestra, cuadros)— mirando las dos
     voces de efectos en la RAM lejana, y junta el audio para guardarlo: un
     efecto arranca cuando los cuadros que le quedan a su voz suben. Ver
-    runtime/efectos_de_sonido.s."""
+    runtime/sound_effects.s."""
 
     def __init__(self, p):
         self.p = p
@@ -139,8 +139,8 @@ class Oido:
 
     def _voces(self):
         voces = []
-        for cuadros, nuevo in (("SE_CUADROS", "SE_NUEVO"),
-                               ("SE2_CUADROS", "SE2_NUEVO")):
+        for cuadros, nuevo in (("SE_FRAMES", "SE_NEW"),
+                               ("SE2_FRAMES", "SE2_NEW")):
             c = self.p.consola.ram(en_la_wram(self.p.simbolos[cuadros]), 2)
             n = self.p.consola.ram(en_la_wram(self.p.simbolos[nuevo]), 1)
             voces.append((c[0] | (c[1] << 8), n[0]))
@@ -219,7 +219,7 @@ def pasar_mensajes(r, cuantos, fotos=None, tope=3000):
     for _ in range(tope):
         if visto >= cuantos:
             return
-        if p.byte("msg_abierto") and p.byte("msg_estado") != 1:
+        if p.byte("msg_open") and p.byte("msg_state") != 1:
             visto += 1
             if visto in fotos:
                 r.foto(fotos[visto], asentar=False)
@@ -228,7 +228,7 @@ def pasar_mensajes(r, cuantos, fotos=None, tope=3000):
             p.consola.hold()
             # Hasta que se cierra: el cuadro siguiente puede tardar en abrir.
             for _ in range(60):
-                if not p.byte("msg_abierto"):
+                if not p.byte("msg_open"):
                     break
                 p.consola.run(1)
         else:
@@ -284,23 +284,23 @@ def manejar(r, mundo, hasta, tope=6000, sin_volante=False, choques=None,
             if m == EL_CHOQUE and choques is not None:
                 choques.append(p.cuadro)
         antes = p.cuadro
-        if m in LAS_VUELTAS + (EL_PUENTE_MAPA,) and not p.byte("msg_abierto"):
+        if m in LAS_VUELTAS + (EL_PUENTE_MAPA,) and not p.byte("msg_open"):
             if m not in cache:
                 cache[m] = autos(mundo, m)
             tecla = None if sin_volante else piloto(p, cache[m])
-            manejando = (p.switch(CORRIENDO) and not p.byte("fundido")
-                         and not p.byte("msg_estado")
+            manejando = (p.switch(CORRIENDO) and not p.byte("fade")
+                         and not p.byte("msg_state")
                          and p.heroe()[0] >= LA_LARGADA_X)
             hardware = p.hardware
             p.correr(1, sosteniendo=(tecla,) if tecla else ())
             if (cuadros is not None and manejando and p.mapa() == m
-                    and p.switch(CORRIENDO) and not p.byte("fundido")):
+                    and p.switch(CORRIENDO) and not p.byte("fade")):
                 cuenta = cuadros.setdefault(m, [0, 0])
                 cuenta[0] += p.cuadro - antes
                 cuenta[1] += p.hardware - hardware
         else:
             p.correr(4, apretar_a=(p.cuadro + 3,)
-                     if p.byte("msg_abierto") else ())
+                     if p.byte("msg_open") else ())
         gastado += p.cuadro - antes
         if mirando is not None:
             mirando(p)

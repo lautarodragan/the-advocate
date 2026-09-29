@@ -12,8 +12,8 @@ together: a 32 KB image **per troop**, with the backdrop and the battlers
 already on top. That multiplied images per combination —six in `abl`, over
 four backdrops— and a dead enemy was still visible. Since that day, taro's
 idea, the cartridge carries **each backdrop once and each battler once**,
-and the console composites them when the battle starts. See `escena_subir`
-in tools/runtime/batalla_escena.s.
+and the console composites them when the battle starts. See `scene_upload`
+in tools/runtime/battle_scene.s.
 
 It is still a single 8bpp layer on BG1, and that is what buys the same as
 before:
@@ -74,14 +74,14 @@ does not go past because it has another eighty pixels of screen below.
   128 to 255. Those are the map objects' ones, and the battle draws no
   objects; returning to the map did not restore them whole —the picture and
   the battle animation are uploaded only when they change—, so now
-  `volver_de_batalla` uploads the 128 from `cgram_sombra` before anything
+  `back_from_battle` uploads the 128 from `cgram_shadow` before anything
   else.
 * **WRAM**: the clean backdrop at `$7F0000` and the composited scene at
   `$7F8000`, 32 KB each. The clean one is what allows recompositing the
   cells of a dead enemy without reading anything from the cartridge again:
-  see `escena_tick`.
+  see `scene_tick`.
 * In the battle's VRAM everything fits without fighting anything: the battle
-  screen **does not share VRAM with the map**, because `volver_de_batalla`
+  screen **does not share VRAM with the map**, because `back_from_battle`
   redoes it entirely on the way out. The text tiles live at $2000, their
   tilemap at $3C00, the scene's at $3800 and the scene's tiles at $4000.
 
@@ -141,8 +141,8 @@ fills the two WRAM buffers with those fixed planes, by DMA, and then
 doubles the small one with the CPU: each pixel twice across and each row
 twice down. From there on everything is the same —compositing, erasing a
 dead one, uploading to VRAM—, because what is left in WRAM is an 8bpp
-backdrop like the `.msu` one. See `esc_llenar` and `esc_doblar` in
-tools/runtime/batalla_escena.s, and `fallback_bytes` in snes_convert.py for
+backdrop like the `.msu` one. See `scn_fill` and `scn_double` in
+tools/runtime/battle_scene.s, and `fallback_bytes` in snes_convert.py for
 the order the bytes travel in, which is the one that saves the ROM math.
 
 The other way out was for the `.msu` to carry 4bpp too, "more quality within
@@ -181,7 +181,7 @@ FALLBACK_COLORS = 16
 FALLBACK_PLANES = 4
 assert CGRAM_BASE % FALLBACK_COLORS == 0
 # And it goes at half resolution: the ROM doubles each pixel across and down.
-# `esc_doblar` is written for double and nothing else.
+# `scn_double` is written for double and nothing else.
 FALLBACK_SCALE = 2
 FALLBACK_WIDTH = WIDTH // FALLBACK_SCALE
 FALLBACK_HEIGHT = HEIGHT // FALLBACK_SCALE
@@ -494,7 +494,7 @@ def columns(info):
 
 
 def battler_bytes(info):
-    """A battler in the format `escena_poner` reads.
+    """A battler in the format `scene_set` reads.
 
     **Plane by plane**, and within each plane row by row: the mask first and
     then the four planes of the drawing. Each row of a plane is

@@ -1,0 +1,386 @@
+.segment "FAR"
+
+; --- the actor choice windows ------------------------------------------------
+;
+; `Scene_ActorTarget` with the System windows on BG1, like items and
+; equipment: on the left the medicine's name and "Owned Items" with the count,
+; on the right the party, and the red bar over the selected row. The screen is
+; still `target_screen`, in bank 0, with the menu's bank on BG2; this is
+; what it adds, outside bank 0. The geometry and the why are in
+; `TARGET_WINDOWS`, in menus.py, and `render_target` is the reference.
+;
+; BG1 has **its own base**, `TARGET_VRAM`, behind the menu's tilemap: there
+; is no room left in BG2's, because the menu's bank reaches almost up to its
+; tilemap. Everything falls in what `load_map` restores when the menu closes
+; —`_check_target` checks it—, and the colors go in 128..143, which are
+; the menu sprites' and are restored by `menu_exp_close`.
+;
+; `pick_cancel` says which one: at 0, for the medicine in `pick_edges`, with
+; the two windows on the left; otherwise, for choosing whom to equip, without
+; them. Entered with `jsl`, with the data bank at 0: the registers and
+; `item_id` are addressed absolute.
+
+; The windows, and the name and count if it is a medicine. With the screen
+; off, after `slot_bank_upload`.
+.proc target_upload
+.a8
+.i16
+    lda #$80
+    sta VMAIN
+    rep #$20
+.a16
+    lda #TARGET_VRAM
+    sta VMADDL
+    lda #(TARGET_TILES * 64)
+    sta DAS0L
+    lda #.loword(target_tiles)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(target_tiles)
+    sta A1B0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    ; The tilemap, which is a single one: the one with an item. Without an
+    ; item, the cells of the two left windows are erased —see
+    ; `compact_target`—.
+    rep #$20
+.a16
+    lda #TARGET_MAP
+    sta VMADDL
+    lda #(32 * 28 * 2)
+    sta DAS0L
+    lda #.loword(target_map)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(target_map)
+    sta A1B0
+    lda #$01
+    sta MDMAEN
+    lda pick_cancel
+    beq colors
+    rep #$20
+.a16
+    lda #TARGET_MAP
+erase_row:
+    sta VMADDL
+    ldx #TARGET_ERASE_COLS
+erase_cell:
+    stz VMDATAL                 ; both halves of the word: 16-bit A
+    dex
+    bne erase_cell
+    clc
+    adc #32
+    cmp #(TARGET_MAP + TARGET_ERASE_ROWS * 32)
+    bcc erase_row
+    sep #$20
+.a8
+colors:
+    ; The colors.
+    lda #TARGET_CGRAM
+    sta CGADD
+    rep #$20
+.a16
+    lda #(TARGET_COLORS * 2)
+    sta DAS0L
+    lda #.loword(target_cgram)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(target_cgram)
+    sta A1B0
+    stz DMAP0
+    lda #$22
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    lda pick_cancel
+    beq name
+    rtl
+name:
+    ; The two lines of the name: `target_names` has
+    ; 2 * TARGET_NAME_WIDTH letters per medicine, and `target_name`
+    ; says which one belongs to `k`.
+    rep #$20
+.a16
+    lda pick_edges
+    and #$00FF
+    tax
+    lda f:target_name, x
+    and #$00FF
+    sta temp
+    asl a
+    asl a
+    clc
+    adc temp                    ; k * 5
+    asl a
+    asl a
+    clc
+    adc temp                    ; k * 21
+    clc
+    adc temp                    ; k * 22
+    .assert TARGET_NAME_WIDTH = 11, error, "the name is indexed by k * 22"
+    tax
+    ldy #TARGET_NAME_VRAM
+    jsr line
+    rep #$20
+.a16
+    txa
+    clc
+    adc #TARGET_NAME_WIDTH
+    tax
+    ldy #(TARGET_NAME_VRAM + 64)
+    jsr line
+    jmp target_count
+
+; One line: X its first letter in `target_names`, Y the cell. The top
+; cells of all the letters and then the bottom ones, like
+; `slot_text_write`. Leaves X as it was and returns with an 8-bit A.
+line:
+    sep #$20
+.a8
+    sty VMADDL
+    stz temp + 2                ; the top cells
+    stz temp + 3
+    jsr pass
+    rep #$20
+.a16
+    tya
+    clc
+    adc #32                     ; and the bottom ones
+    sta VMADDL
+    sep #$20
+.a8
+    lda #2
+    sta temp + 2
+pass:
+    phx
+    lda #TARGET_NAME_WIDTH
+    sta temp
+letter:
+    lda f:target_names, x
+    phx
+    rep #$20
+.a16
+    and #$00FF
+    sec
+    sbc #ITEM_FIRST_CHAR
+    asl a
+    asl a                       ; four bytes per glyph
+    clc
+    adc temp + 2
+    tax
+    lda f:slot_glyph_cells, x
+    sta VMDATAL
+    sep #$20
+.a8
+    plx
+    inx
+    dec temp
+    bne letter
+    plx
+    rts
+.endproc
+
+; How many are left of the medicine in `pick_edges`, in two digits —the tens
+; digit blank if it is zero—, next to "Owned Items". In the vblank after using
+; it, or with the screen off when opening. Without a medicine, nothing.
+.proc target_count
+.a8
+.i16
+    lda pick_cancel
+    beq medicine
+    rtl
+medicine:
+    rep #$20
+.a16
+    lda pick_edges
+    and #$00FF
+    asl a
+    tax
+    lda item_id, x
+    clc
+    adc #FAR_ITEMS
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    lda WMDATA
+    ldx #0
+ten:
+    cmp #10
+    bcc units
+    sbc #10
+    inx
+    bra ten
+units:
+    sta temp + 1                ; the units
+    txa
+    sta temp                    ; and the tens
+    lda #$80
+    sta VMAIN
+    rep #$20
+.a16
+    lda #TARGET_COUNT_VRAM
+    sta VMADDL
+    sep #$20
+.a8
+    stz temp + 2                ; the top cells
+    jsr two
+    rep #$20
+.a16
+    lda #(TARGET_COUNT_VRAM + 32)
+    sta VMADDL
+    sep #$20
+.a8
+    lda #2                      ; and the bottom ones
+    sta temp + 2
+    jsr two
+    rtl
+
+two:
+    lda temp
+    beq target
+    clc
+    adc #('0' - ITEM_FIRST_CHAR)
+target:                         ; the space is the first glyph
+    jsr glyph
+    lda temp + 1
+    clc
+    adc #('0' - ITEM_FIRST_CHAR)
+glyph:
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    clc
+    adc temp + 2
+    and #$00FF                  ; `temp + 3` is not part of the offset
+    tax
+    lda f:slot_glyph_cells, x
+    sta VMDATAL
+    sep #$20
+.a8
+    rts
+.endproc
+
+; The bar on party row A: `temp + 3` at 1 paints it and at 0 erases it. Both
+; are a copy of the BG1 rectangle where the bar changes something
+; —`TARGET_BAR_ROWS` by `TARGET_BAR_COLS` cells, see
+; `compact_target`—: from `target_bars`, which has it with the bar, or
+; from the tilemap. One DMA per row of cells, which fit in the vblank with the
+; erasing one and the painting one. With an item or without it is the same:
+; the rectangle does not touch the left windows. It clobbers `temp` through
+; `temp + 3`: the caller sets `temp + 3` again before each time.
+BAR_BYTES = TARGET_BAR_ROWS * TARGET_BAR_COLS * 2
+.proc target_bar
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:row_vram, x           ; the rectangle's first cell
+    sta temp                    ; `temp` and `temp + 1`
+    sep #$20
+.a8
+    lda #$80
+    sta VMAIN
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda temp + 3
+    beq erase
+    lda #^(target_bars)
+    sta A1B0
+    rep #$20
+.a16
+    lda f:bar_ofs, x
+    clc
+    adc #.loword(target_bars)
+    ldy #(TARGET_BAR_COLS * 2) ; the rectangle is contiguous
+    bra rows
+.a8
+erase:
+    lda #^(target_map)
+    sta A1B0
+    rep #$20
+.a16
+    lda temp
+    sec
+    sbc #TARGET_MAP
+    asl a                       ; from VRAM words to tilemap bytes
+    clc
+    adc #.loword(target_map)
+    ldy #64                     ; a whole tilemap row
+rows:
+    sty temp + 2                ; how much the source advances per row
+    ldx #TARGET_BAR_ROWS
+row:
+    sta A1T0L
+    pha
+    lda temp
+    sta VMADDL
+    clc
+    adc #32
+    sta temp
+    lda #(TARGET_BAR_COLS * 2)
+    sta DAS0L
+    sep #$20
+.a8
+    lda #$01
+    sta MDMAEN
+    rep #$20
+.a16
+    pla
+    clc
+    adc temp + 2
+    dex
+    bne row
+    sep #$20
+.a8
+    rtl
+
+FIRST = TARGET_MAP + TARGET_BAR_ROW0 * 32 + TARGET_BAR_COL0
+ROW = MENU_ACTOR_ROWS * 32
+row_vram:
+    .word FIRST, FIRST + ROW, FIRST + 2 * ROW, FIRST + 3 * ROW
+bar_ofs:
+    .word 0, BAR_BYTES, 2 * BAR_BYTES, 3 * BAR_BYTES
+    .assert MENU_ROWS_PARTY = 4, error, "one word per party row"
+.endproc
+
+; BG2 with the party and BG1 with the windows, each with its own base, and the
+; screen on. It is `slot_ppu_on` plus BG1.
+.proc target_ppu_on
+.a8
+.i16
+    lda #(SLOT_MAP / 1024 * 4)
+    sta BG2SC
+    lda #(TARGET_MAP / 1024 * 4)
+    sta BG1SC
+    lda #(SLOT_VRAM / 4096 * 16 + TARGET_VRAM / 4096)
+    sta BG12NBA
+    stz BG2HOFS
+    stz BG2HOFS
+    stz BG1HOFS
+    stz BG1HOFS
+    lda #$FF
+    sta BG2VOFS
+    sta BG2VOFS
+    sta BG1VOFS
+    sta BG1VOFS
+    lda #$03
+    sta TM
+    lda #$0F
+    sta INIDISP
+    rtl
+.endproc

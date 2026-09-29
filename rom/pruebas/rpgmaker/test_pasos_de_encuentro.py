@@ -3,8 +3,8 @@
 Es `Game_Map::SetEncounterSteps`: cambia el `encounter_steps` del mapa hasta
 que se cargue otro. En la ROM son dos cosas que salen del mismo número —la
 chance del paso, `ENC_BASE`, y en qué paso se cruza cada fila de la tabla,
-`ENC_UMB`— y el conversor las calcula las dos: ver `encuentro_pasos` en
-runtime/encuentros.s y `Encounters.set_steps`, que es el modelo.
+`ENC_THR`— y el conversor las calcula las dos: ver `encounter_steps` en
+runtime/encounters.s y `Encounters.set_steps`, que es el modelo.
 
 Lo pidió el viaje de Dalia a Tasgarde (la automática 14 del mundo, el 66), que
 los pone en cero antes de forzarle una ruta al héroe. Los tres casos van en el
@@ -31,10 +31,10 @@ TICKS = 20
 
 
 def leer(p):
-    """(ENC_BASE, los ocho bytes de ENC_UMB, ENC_REG)."""
+    """(ENC_BASE, los ocho bytes de ENC_THR, ENC_REG)."""
     s = p.simbolos
     base = p.consola.ram(en_la_wram(s["ENC_BASE"]), 2)
-    umbrales = list(p.consola.ram(en_la_wram(s["ENC_UMB"]), 8))
+    umbrales = list(p.consola.ram(en_la_wram(s["ENC_THR"]), 8))
     registro = p.consola.ram(en_la_wram(s["ENC_REG"]), 1)[0]
     return base[0] | (base[1] << 8), umbrales, registro
 
@@ -86,6 +86,6 @@ def test_en_un_mapa_sin_encuentros_no_prende_nada():
     p.correr(TICKS)
     assert p.mapa() == 5, p.mapa()
     base, _, registro = leer(p)
-    assert registro == p.simbolos["ENC_SIN"] and base == 0, (
+    assert registro == p.simbolos["ENC_NONE"] and base == 0, (
         "en el 5, sin encuentros, ChangeEncounterSteps de 10 dejó ENC_REG en "
         "$%02X y ENC_BASE en %d" % (registro, base))

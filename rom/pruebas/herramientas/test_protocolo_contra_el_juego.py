@@ -31,20 +31,20 @@ def desde_la_rom(datos, direccion):
 
 @pytest.mark.parametrize("nombre", sorted(cartridges.CARTRIDGES))
 def test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k(nombre):
-    """El despacho de `correr_codigo` es `jmp (manejadores_de_opcode, x)`.
+    """El despacho de `run_code` es `jmp (opcode_handlers, x)`.
 
     Que cada `op_x` exista lo cobra el ensamblador: la tabla es una macro que
     los nombra. Esto mira la ROM armada: que la entrada k, leída como la lee
     el `jmp`, sea la dirección del manejador del opcode k, y que ése esté en
-    el banco de `correr_codigo`, porque la entrada es de dieciséis bits y el
+    el banco de `run_code`, porque la entrada es de dieciséis bits y el
     `jmp` salta adentro del banco del programa. Un manejador que alguien
     mande a otro banco ensamblaría igual si el `.addr` lo trunca.
     """
     uno = tanda.cartucho(nombre)
     with open(uno.sfc, "rb") as archivo:
         datos = archivo.read()
-    tabla = uno.simbolos["manejadores_de_opcode"]
-    banco = uno.simbolos["correr_codigo"] >> 16
+    tabla = uno.simbolos["opcode_handlers"]
+    banco = uno.simbolos["run_code"] >> 16
     codigos = {v: n for n, v in declarados(event_opcodes).items()}
     assert sorted(codigos) == list(range(len(codigos))), (
         "los números de events.toml tienen huecos: la tabla no puede ser")
@@ -57,7 +57,7 @@ def test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k(nombre):
             "la entrada $%02X de la tabla apunta a $%04X y %s está en $%06X"
             % (k, entrada, manejador, direccion))
         assert direccion >> 16 == banco, (
-            "%s está en el banco $%02X y correr_codigo en el $%02X: el `jmp` "
+            "%s está en el banco $%02X y run_code en el $%02X: el `jmp` "
             "de la tabla no llega" % (manejador, direccion >> 16, banco))
 
 

@@ -39,7 +39,7 @@ def jugar(r, que, hasta, tope=60000, fotos=None, momentos=None):
     mensaje con A cuando terminó de componerse, y en una pelea toca A cada
     `BOTON_CADA` cuadros —que pasa los mensajes y elige atacar—.
 
-    De a cuadros y no de a ticks porque la pelea no hace correr `vueltas`, y
+    De a cuadros y no de a ticks porque la pelea no hace correr `ticks`, y
     una espera por ticks se planta ahí. `fotos` es {nombre: cond}: la primera
     vez que un mensaje está compuesto con `cond(partida)` verdadera, se saca
     esa foto antes de cerrarlo. `momentos` es lo mismo en cualquier cuadro,
@@ -54,11 +54,11 @@ def jugar(r, que, hasta, tope=60000, fotos=None, momentos=None):
             if cond(p):
                 r.foto(nombre, asentar=False)
                 del momentos[nombre]
-        if p.byte("menu_abierto"):
+        if p.byte("menu_open"):
             p.consola.hold(*(("a",) if cuadro % BOTON_CADA < 2 else ()))
             p._un_cuadro()
             continue
-        if p.byte("msg_abierto") and p.byte("msg_estado") != 1:
+        if p.byte("msg_open") and p.byte("msg_state") != 1:
             for nombre, cond in list(pendientes.items()):
                 if cond(p):
                     r.foto(nombre, asentar=False)
@@ -68,7 +68,7 @@ def jugar(r, que, hasta, tope=60000, fotos=None, momentos=None):
             p._un_cuadro()
             p.consola.hold()
             for _ in range(60):
-                if not p.byte("msg_abierto"):
+                if not p.byte("msg_open"):
                     break
                 p._un_cuadro()
             continue
@@ -84,6 +84,6 @@ def en_pelea_hace(cuadros):
     visto = [0]
 
     def cond(p):
-        visto[0] = visto[0] + 1 if p.byte("menu_abierto") else 0
+        visto[0] = visto[0] + 1 if p.byte("menu_open") else 0
         return visto[0] >= cuadros
     return cond

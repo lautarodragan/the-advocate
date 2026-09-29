@@ -4,7 +4,7 @@ Las demás pruebas de guardar usan la *página de prueba* de los casos
 `guardar*`; ésta usa el `OpenSaveMenu` del juego, que es el que juega taro. Con
 pantalla de título se midió que la página de prueba no llegaba a guardar si la
 partida cambiaba de mapa —es una automática con espera, y el doble
-`cargar_mapa` del menú la reinicia—, y eso no decía nada del camino del juego.
+`enter_map` del menú la reinicia—, y eso no decía nada del camino del juego.
 
 El save point es `SaveByTalansPad0`, el evento de índice **66** del mapa 8 —el
 editor de RM2k lo numera 67, desde uno—, en la celda (9,56), con tres
@@ -28,7 +28,7 @@ del mapa 8, a dos mapas de distancia, y no la rampa del fundido con que se
 entra al 4.
 
 **Nada de lo que espera al menú abierto puede contarse en ticks**, y ésa fue la
-única dificultad: mientras la pantalla de ranuras se ve `vueltas` no avanza
+única dificultad: mientras la pantalla de ranuras se ve `ticks` no avanza
 —`OpenSaveMenu` bloquea adentro del intérprete, como `Scene_Save` en RM2k— así
 que `Partida.correr` se planta con "la ROM no llegó al tick N", y ese error es
 el **éxito** disfrazado. Por eso guardar acá no pasa por `Recorrido.activar`
@@ -86,7 +86,7 @@ def test_el_save_point_guarda_llegando_por_un_caso(partida, mundo):
     p = guardar(r)
     assert p.hay_partida(), (
         "se eligió la ranura y la partida no quedó en la SRAM. %s" % r.estado())
-    assert not p.byte("menu_abierto"), (
+    assert not p.byte("menu_open"), (
         "la pantalla de ranuras no se cerró al elegir. %s" % r.estado())
     assert p.mapa() == MAPA, (
         "guardar tiene que devolver al mapa donde está el save point, y quedó "
@@ -137,7 +137,7 @@ def test_el_cursor_de_guardar_arranca_en_la_ranura_en_uso(partida, mundo):
     sola a los 198 ticks, y la razón es del mapa y no del título: el cartucho
     con pantalla arranca en el 4, que es el enrutador del juego, y al volver de
     cargar su página automática se lleva la partida al mapa 1 antes de que la
-    de prueba llegue al `OpenSaveMenu` —medido: `ev_activo` en 1, el mapa en 1
+    de prueba llegue al `OpenSaveMenu` —medido: `ev_active` en 1, el mapa en 1
     y la pantalla sin abrir a las 874 vueltas—. Así que el cursor se mira
     donde el jugador lo ve, que es el save point de verdad: la
     partida vuelve de la ranura 2 parada encima de él, y volver a tocarle A
@@ -150,16 +150,16 @@ def test_el_cursor_de_guardar_arranca_en_la_ranura_en_uso(partida, mundo):
         "no quedó nada en la ranura 2. %s" % r.estado())
 
     p.reiniciar(SEGUIR, ranura=2)
-    assert p.byte("ranura") == 2, "no se cargó de la ranura 2"
+    assert p.byte("slot") == 2, "no se cargó de la ranura 2"
     assert (p.palabra("tile_x"), p.palabra("tile_y")) == CELDA, (
         "la partida cargada tenía que quedar parada en el save point, en %s, "
         "y quedó en %s"
         % (CELDA, (p.palabra("tile_x"), p.palabra("tile_y"))))
 
     # Y se le toca A otra vez, sin moverse: la pantalla de ranuras del save
-    # point, con el cursor donde lo dejó `cargar_partida`.
+    # point, con el cursor donde lo dejó `load_game`.
     r.p = p
     r.abrir_el_save_point()
-    assert p.byte("titulo_sel") == 2, (
+    assert p.byte("title_sel") == 2, (
         "el cursor arrancó en la ranura %d y la partida vino de la 2"
-        % p.byte("titulo_sel"))
+        % p.byte("title_sel"))

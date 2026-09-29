@@ -102,7 +102,7 @@ def cruzar(r, puerta):
 
 def talan_se_ve(r):
     """Talan de líder, y con las poses de su gráfico: sin entrada en la tabla
-    de actores del cartucho, `elegir_grafico_heroe` deja `hero_poses` en
+    de actores del cartucho, `pick_hero_graphic` deja `hero_poses` en
     cero y el héroe no se dibuja."""
     grupo = grupo_de(r.p)
     assert grupo and grupo[0] == TALAN, (
@@ -287,8 +287,8 @@ def test_la_carrera_sin_companero_no_salta(mundo):
     nada."""
     r = entrar(mundo)
     r.empezar("la puerta de la carrera sin compañero")
-    r.caminar_a(PUERTAS[CARRERA], hasta=lambda p: p.byte("msg_abierto"))
-    r.esperar("el cartel", lambda p: p.byte("msg_abierto"), tope=200,
+    r.caminar_a(PUERTAS[CARRERA], hasta=lambda p: p.byte("msg_open"))
+    r.esperar("el cartel", lambda p: p.byte("msg_open"), tope=200,
               a_cada=0)
     r.esperar_el_control()
     assert r.p.mapa() == EL_MAPA, r.estado()

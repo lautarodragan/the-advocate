@@ -33,24 +33,24 @@
     sep #$20
 .a8
     ; The timer goes before anyone: its objects are the lowest-indexed and
-    ; therefore the ones shown in front. It leaves `obj_grande` at 32x32.
+    ; therefore the ones shown in front. It leaves `obj_big` at 32x32.
     lda #$02
-    sta obj_grande
+    sta obj_big
     jsr timer_oam
-    jsr imagen_oam              ; and the picture behind it: see `imagen_oam`
-    jsr animacion_dibujo_oam    ; and the battle animation behind the picture:
+    jsr picture_oam             ; and the picture behind it: see `picture_oam`
+    jsr anim_drawing_oam        ; and the battle animation behind the picture:
                                 ; `Priority_BattleAnimation` is 110 against
                                 ; `Priority_PictureOld`'s 120
 
-recorrer:
+walk:
     ; Each row, with X on it. `place_hero` and `place_npc` clobber X, so it is
     ; reloaded from `npc_ofs` on every pass.
     ldx npc_ofs
     cpx npc_total
-    beq ultimos
+    beq last
 
     lda hero_drawn
-    bne toca_npc
+    bne touches_npc
     ; Does the hero go before this NPC? Yes if its key is greater or equal,
     ; because the table goes from greater to smaller.
     rep #$20
@@ -59,13 +59,13 @@ recorrer:
     cmp npc_buf + 4, x
     sep #$20
 .a8
-    bcc toca_npc
+    bcc touches_npc
     jsr place_hero
-    bra recorrer
+    bra walk
 
-toca_npc:
+touches_npc:
     lda npc_buf + 14, x
-    beq escondido               ; its active page draws nothing
+    beq hidden                  ; its active page draws nothing
     ; What `emit_object` was going to discard is discarded **here**, with the
     ; same comparison and before building the rest of the row. It discards the
     ; same as before, object by object, so the OAM comes out identical; what
@@ -79,7 +79,7 @@ toca_npc:
 .a16
     lda npc_buf + 0, x          ; its position on the map
     sec
-    sbc pantalla_x
+    sbc screen_x
     sec
     sbc #SPRITE_OFF_X
     sta obj_x
@@ -88,9 +88,9 @@ toca_npc:
     cmp #(256 + 32)
     sep #$20
 .a8
-    bcs escondido               ; `sep` does not touch the carry
+    bcs hidden                  ; `sep` does not touch the carry
     jsr place_npc
-escondido:
+hidden:
     rep #$20
 .a16
     lda npc_ofs
@@ -99,14 +99,14 @@ escondido:
     sta npc_ofs
     sep #$20
 .a8
-    bra recorrer
+    bra walk
 
-ultimos:
+last:
     lda hero_drawn
-    bne cerrar
+    bne close
     jsr place_hero
-cerrar:
-    jsr lluvia_oam              ; the drops, at the very end
+close:
+    jsr rain_oam                ; the drops, at the very end
     jsr flush_high
     rts
 .endproc
@@ -114,94 +114,94 @@ cerrar:
 ; The hero's jump: consumes the move commands up to `end_jump`, adds up what
 ; they contribute and puts it on the other side at once. How long it lasts
 ; does not depend on the distance: `remaining_step` goes down from 256 to 0 by
-; `salto_del_heroe` per frame, whether it jumps one cell or five; at speed 4
+; `hero_jump` per frame, whether it jumps one cell or five; at speed 4
 ; it is eleven frames.
-.proc armar_salto_heroe
+.proc build_hero_jump
 .a8
 .i16
-    stz salto_dx
-    stz salto_dy
-buscar:
-    lda ruta_i
-    cmp ruta_n
-    bcs sin_fin
-    jsr orden_del_heroe
+    stz jump_dx
+    stz jump_dy
+seek:
+    lda route_i
+    cmp route_n
+    bcs no_end
+    jsr hero_command
     cmp #25
-    beq con_fin
-    jsr acumular_salto
-    bra buscar
-sin_fin:
+    beq with_end
+    jsr accumulate_jump
+    bra seek
+no_end:
     ; Without `end_jump` the jump is skipped and whatever was left of the move
     ; route is lost, which is what RM2k does on reaching the end.
-    stz ruta_salto
+    stz route_jump
     rts
 
-con_fin:
-    jsr salto_a_celdas          ; the offset, signed and in sixteen bits
+with_end:
+    jsr jump_to_cells           ; the offset, signed and in sixteen bits
     rep #$20
 .a16
     lda tile_x
     clc
-    adc salto_dx16
-    sta celda_x
+    adc jump_dx16
+    sta cell_x
     lda tile_y
     clc
-    adc salto_dy16
-    sta celda_y
+    adc jump_dy16
+    sta cell_y
     sep #$20
 .a8
     ; Walking through walls it lands on any cell: it is the same
     ; `if (self.GetThrough()) return true;` that a step looks at, and
-    ; `puede_caer` reads it from `atravesando`, which nobody was setting here.
+    ; `can_fall` reads it from `crossing`, which nobody was setting here.
     ; The move route of EV0041 on map 8 —`through`, a one-cell jump over the
     ; fence, four steps— jumps in RM2k and walked in the ROM: the jump was
     ; skipped because of the fence and the steps after it did go through.
     ; Measured on 2026-09-10, 40840 pixels on frame 60.
-    lda ruta_atraviesa
-    beq sin_atravesar
+    lda route_crosses
+    beq no_cross
     lda #1
-sin_atravesar:
-    sta atravesando
-    stz atravesando + 1
-    jsr puede_caer
+no_cross:
+    sta crossing
+    stz crossing + 1
+    jsr can_fall
     php
-    stz atravesando
-    stz atravesando + 1
+    stz crossing
+    stz crossing + 1
     plp
-    bne se_puede
-    stz ruta_salto              ; it cannot land there: the jump is skipped
+    bne se_can
+    stz route_jump              ; it cannot land there: the jump is skipped
     rts
-se_puede:
+se_can:
     rep #$20
 .a16
-    lda celda_x
+    lda cell_x
     sta tile_x
-    lda celda_y
+    lda cell_y
     sta tile_y
     sep #$20
 .a8
     jsr init_hero_ptr
     ; Which way it ends up facing. In place nothing changes: RM2k only sets
     ; the facing when the jump moves.
-    lda salto_dx
-    ora salto_dy
-    beq sin_girar
-    jsr direccion_del_salto
+    lda jump_dx
+    ora jump_dy
+    beq no_turn
+    jsr jump_direction
     sta hero_dir
-sin_girar:
+no_turn:
     ; The first decrement goes in the same frame that builds the jump, as in
     ; `Game_Character::Update`, which after `UpdateNextMovementAction` already
-    ; sees it jumping and calls `UpdateMovement`. SALTO_PASO is 256 and does
+    ; sees it jumping and calls `UpdateMovement`. JUMP_STEP is 256 and does
     ; not fit in a byte: `256 - s` in eight bits is the two's complement of
     ; `s`, which is never zero.
-    jsr salto_del_heroe
+    jsr hero_jump
     eor #$FF
     inc a
-    sta ruta_salto
+    sta route_jump
     ; The cell is already the target one and the pixels trail behind, same as
     ; in a step: that way the camera follows the arc instead of jumping at
     ; once.
-    jsr salto_posicion_heroe
+    jsr jump_hero_position
     rts
 .endproc
 
@@ -209,12 +209,12 @@ sin_girar:
 ; redraws it where it belongs. The cell already moved at the start, so the
 ; only thing that happens here is the pixels.
 ;
-; It lives outside `paso_de_ruta` —and `move_hero` calls it— because in RM2k
+; It lives outside `step_route` —and `move_hero` calls it— because in RM2k
 ; the one that lowers the jump is `Game_Character::Update`, which checks
 ; `IsJumping()` **before** asking whether move commands are left, and the one
-; that turns it off is `UpdateMovement`. While it was inside `paso_de_ruta`,
+; that turns it off is `UpdateMovement`. While it was inside `step_route`,
 ; a jump that was the last move command of the move route was lowered by
-; nobody: `move_hero` only went in there with `ruta_i < ruta_n`, and with the
+; nobody: `move_hero` only went in there with `route_i < route_n`, and with the
 ; jump at the end the counter was already at its limit on the next frame. The
 ; hero stayed floating mid-arc forever, and 196 of the game's 410 move routes
 ; with a jump end on the jump. See `test_salto_colgado.py`.
@@ -223,40 +223,40 @@ sin_girar:
 ; which calls `GetMoveSpeed()` every time. Until 2026-09-26 it was the
 ; constant for speed 4 and an `increase_movement_speed` on the hero changed
 ; its step and not its jump. See `test_salto_velocidad.py`.
-.proc salto_avanzar_heroe
+.proc jump_advance_hero
 .a8
 .i16
-    ; `ruta_salto - s` without storing `s` anywhere: `~s + 1` with the carry
+    ; `route_jump - s` without storing `s` anywhere: `~s + 1` with the carry
     ; set is the subtraction, and the carry comes out clear if there was a
     ; borrow.
-    jsr salto_del_heroe
+    jsr hero_jump
     eor #$FF
     sec
-    adc ruta_salto
-    bcs guardar
+    adc route_jump
+    bcs save
     lda #0
-guardar:
-    sta ruta_salto
-    jmp salto_posicion_heroe
+save:
+    sta route_jump
+    jmp jump_hero_position
 .endproc
 
 ; `hero_x` and `hero_y` from the target cell and what is left of the jump. It
 ; is RM2k's `GetSpriteX`: `x * 256 - dx * remaining` and **then** the division
 ; by sixteen, which is what avoids the pixel too many or too few every time
 ; the decrement is not a multiple of sixteen.
-.proc salto_posicion_heroe
+.proc jump_hero_position
 .a8
 .i16
-    jsr salto_a_celdas
-    lda ruta_salto
-    sta salto_resta
+    jsr jump_to_cells
+    lda route_jump
+    sta jump_remain
     rep #$20
 .a16
-    lda salto_dx16
-    sta salto_val
+    lda jump_dx16
+    sta jump_val
     sep #$20
 .a8
-    jsr producto_salto
+    jsr jump_product
     rep #$20
 .a16
     lda tile_x
@@ -269,17 +269,17 @@ guardar:
     asl a
     asl a                       ; the cell in RM2k units: times 256
     sec
-    sbc salto_prod
+    sbc jump_prod
     lsr a
     lsr a
     lsr a
     lsr a
     sta hero_x
-    lda salto_dy16
-    sta salto_val
+    lda jump_dy16
+    sta jump_val
     sep #$20
 .a8
-    jsr producto_salto
+    jsr jump_product
     rep #$20
 .a16
     lda tile_y
@@ -292,7 +292,7 @@ guardar:
     asl a
     asl a
     sec
-    sbc salto_prod
+    sbc jump_prod
     lsr a
     lsr a
     lsr a
@@ -303,26 +303,26 @@ guardar:
     rts
 .endproc
 
-; `salto_dx` and `salto_dy` sign-extended to sixteen bits.
-.proc salto_a_celdas
+; `jump_dx` and `jump_dy` sign-extended to sixteen bits.
+.proc jump_to_cells
 .a8
 .i16
     rep #$20
 .a16
-    lda salto_dx
+    lda jump_dx
     and #$00FF
     cmp #$0080
-    bcc dx_positivo
+    bcc dx_positive
     ora #$FF00
-dx_positivo:
-    sta salto_dx16
-    lda salto_dy
+dx_positive:
+    sta jump_dx16
+    lda jump_dy
     and #$00FF
     cmp #$0080
-    bcc dy_positivo
+    bcc dy_positive
     ora #$FF00
-dy_positivo:
-    sta salto_dy16
+dy_positive:
+    sta jump_dy16
     sep #$20
 .a8
     rts
@@ -331,112 +331,112 @@ dy_positivo:
 ; Which way the jumper ends up facing: the axis with the longer travel wins,
 ; and on a tie the vertical. It is the `if (abs(dy) >= abs(dx))` of
 ; `Game_Character::Jump`.
-.proc direccion_del_salto
+.proc jump_direction
 .a8
 .i16
     rep #$20
 .a16
-    lda salto_dx16
+    lda jump_dx16
     bpl dx_pos
     eor #$FFFF
     inc a
 dx_pos:
-    sta mirar_abs
-    lda salto_dy16
+    sta facing_abs
+    lda jump_dy16
     bpl dy_pos
     eor #$FFFF
     inc a
 dy_pos:
-    cmp mirar_abs
+    cmp facing_abs
     bcc horizontal
-    lda salto_dy16
+    lda jump_dy16
     sep #$20
 .a8
-    bmi arriba
+    bmi up
     lda #DIR_DOWN
     rts
-arriba:
+up:
     lda #DIR_UP
     rts
 .a16
 horizontal:
-    lda salto_dx16
+    lda jump_dx16
     sep #$20
 .a8
-    bmi izquierda
+    bmi left
     lda #DIR_RIGHT
     rts
-izquierda:
+left:
     lda #DIR_LEFT
     rts
 .endproc
 
-; Moves `salto_px`/`salto_py` back by what the jump has left and leaves in
-; `salto_alto` how much the drawing has to be raised.
+; Moves `jump_px`/`jump_py` back by what the jump has left and leaves in
+; `jump_height` how much the drawing has to be raised.
 ;
 ; The height is `GetJumpHeight`: it goes up and down with what is left, and
 ; the curve is not linear but RM2k's table. It only moves the **drawing**:
 ; the order against the others comes from `GetScreenY(false)`, that is,
 ; without the jump, so whoever is in the air does not move ahead.
-.proc alto_del_salto
+.proc jump_height_of
 .a8
 .i16
-    stz salto_alto
-    stz salto_alto + 1
-    lda salto_resta
-    bne hay
+    stz jump_height
+    stz jump_height + 1
+    lda jump_remain
+    bne has
     rts
-hay:
+has:
     ; What is left or what was traveled, the smaller of the two, over eight;
     ; and then RM2k's table, which is not linear. It is `GetJumpHeight`, and it
     ; only moves the **drawing**: the order against the others comes from
     ; `GetScreenY(false)`, that is, without the jump, so whoever is in the air
     ; does not move ahead.
-    cmp #(SALTO_PASO / 2)
-    bcc de_bajada
+    cmp #(JUMP_STEP / 2)
+    bcc from_down
     eor #$FF                    ; 256 - remaining, with a one-byte remaining
     inc a
-de_bajada:
+from_down:
     lsr a
     lsr a
     lsr a
     cmp #5
-    bcs mediana
+    bcs medium
     asl a                       ; less than five: double
-    bra guardar
-mediana:
+    bra save
+medium:
     cmp #13
-    bcs tope
+    bcs cap
     clc
     adc #4                      ; five to twelve: plus four
-    bra guardar
-tope:
+    bra save
+cap:
     lda #16
-guardar:
-    sta salto_alto
+save:
+    sta jump_height
     rts
 .endproc
 
-; `salto_val` times `salto_resta`, signed, into `salto_prod`. The console's
+; `jump_val` times `jump_remain`, signed, into `jump_prod`. The console's
 ; unit multiplies unsigned and eight bits at a time, so it is done on the
 ; absolute value and the sign is given back at the end.
-.proc producto_salto
+.proc jump_product
 .a8
 .i16
     rep #$20
 .a16
-    lda salto_val
-    sta salto_signo
-    bpl positivo
+    lda jump_val
+    sta jump_sign
+    bpl positive
     eor #$FFFF
     inc a
-    sta salto_val
-positivo:
+    sta jump_val
+positive:
     sep #$20
 .a8
-    lda salto_val
+    lda jump_val
     sta WRMPYA
-    lda salto_resta
+    lda jump_remain
     sta WRMPYB                  ; starts it: the product takes eight cycles
     nop
     nop
@@ -445,14 +445,14 @@ positivo:
     rep #$20
 .a16
     lda RDMPYL
-    sta salto_prod
-    lda salto_signo
-    bpl listo
+    sta jump_prod
+    lda jump_sign
+    bpl ready
     lda #0
     sec
-    sbc salto_prod
-    sta salto_prod
-listo:
+    sbc jump_prod
+    sta jump_prod
+ready:
     sep #$20
 .a8
     rts
@@ -461,115 +461,115 @@ listo:
 ; An event's jump. Same as the hero's, but reading the move route from the
 ; cartridge and keeping the state in the slot. X is the slot and it has to be
 ; returned intact.
-.proc armar_salto_ev
+.proc build_ev_jump
 .a8
 .i16
-    stz salto_dx
-    stz salto_dy
-    stz salto_trabado
-buscar:
-    lda ruta_ev + 5, x
-    cmp ruta_ev + 4, x
-    bcs sin_fin
+    stz jump_dx
+    stz jump_dy
+    stz jump_stuck
+seek:
+    lda route_ev + 5, x
+    cmp route_ev + 4, x
+    bcs no_end
     rep #$20
 .a16
     and #$00FF
     tay
     sep #$20
 .a8
-    lda [ruta_ptr], y
-    inc ruta_ev + 5, x
+    lda [route_ptr], y
+    inc route_ev + 5, x
     cmp #25
-    beq con_fin
+    beq with_end
     phx
-    jsr acumular_salto
+    jsr accumulate_jump
     plx
-    bra buscar
-sin_fin:
+    bra seek
+no_end:
     ; Without `end_jump` the jump is skipped and whatever was left of the move
     ; route is lost.
-    stz ruta_ev + 13, x
+    stz route_ev + 13, x
     rts
 
-con_fin:
+with_end:
     ; `walk_everywhere`: `CheckOrMakeWayEx` returns early with
     ; `if (self.GetThrough()) return true;` right after the bounds check, so
     ; one walking through walls lands anywhere. Without this, the stone in
     ; Core's memory is a closed cell and the jump is skipped; taro saw it as
     ; Core moving on top of his little island and never jumping, and the move
     ; route that moves him starts precisely with an `atravesar_on`.
-    lda ruta_ev + 12, x
+    lda route_ev + 12, x
     and #$01
-    sta atravesando
-    stz atravesando + 1
+    sta crossing
+    stz crossing + 1
     phx
-    jsr celda_del_evento        ; its cell, which `puede_caer` needs
-    jsr salto_a_celdas
+    jsr event_cell              ; its cell, which `can_fall` needs
+    jsr jump_to_cells
     rep #$20
 .a16
-    lda celda_x
+    lda cell_x
     clc
-    adc salto_dx16
-    sta celda_x
-    lda celda_y
+    adc jump_dx16
+    sta cell_x
+    lda cell_y
     clc
-    adc salto_dy16
-    sta celda_y
+    adc jump_dy16
+    sta cell_y
     sep #$20
 .a8
-    jsr puede_caer
+    jsr can_fall
     plx
-    stz atravesando
-    stz atravesando + 1
+    stz crossing
+    stz crossing + 1
     cmp #0                      ; `plx` sets Z from what it pulls off the stack
-    bne se_puede
-    stz ruta_ev + 13, x
-    inc salto_trabado           ; there was an `end_jump` and the cell is taken
+    bne se_can
+    stz route_ev + 13, x
+    inc jump_stuck              ; there was an `end_jump` and the cell is taken
     rts
-se_puede:
-    ; The target cell, which `celda_del_evento` left in celda_x/celda_y.
+se_can:
+    ; The target cell, which `event_cell` left in cell_x/cell_y.
     phx
-    jsr mover_celda_a_evento
+    jsr move_cell_to_event
     plx
-    lda salto_dx
-    sta ruta_ev + 14, x
-    lda salto_dy
-    sta ruta_ev + 15, x
+    lda jump_dx
+    sta route_ev + 14, x
+    lda jump_dy
+    sta route_ev + 15, x
     ; Which way it ends up facing. In place nothing changes.
-    lda salto_dx
-    ora salto_dy
-    beq sin_girar
+    lda jump_dx
+    ora jump_dy
+    beq no_turn
     phx
-    jsr direccion_del_salto
+    jsr jump_direction
     plx
-    sta ruta_ev + 8, x
-sin_girar:
-    jsr salto_de_ranura
+    sta route_ev + 8, x
+no_turn:
+    jsr slot_jump
     sta temp
     lda #0                      ; 256 minus this frame's, in eight bits
     sec
     sbc temp
-    sta ruta_ev + 13, x
+    sta route_ev + 13, x
     rts
 .endproc
 
 ; `npc_px` and `npc_py` from the target cell and what is left of the jump. It
-; is the same computation as `salto_posicion_heroe`, with the division at the
+; is the same computation as `jump_hero_position`, with the division at the
 ; end.
-.proc salto_posicion_npc
+.proc jump_npc_position
 .a8
 .i16
-    jsr salto_a_celdas
+    jsr jump_to_cells
     rep #$20
 .a16
-    lda salto_dx16
-    sta salto_val
+    lda jump_dx16
+    sta jump_val
     sep #$20
 .a8
-    jsr producto_salto
+    jsr jump_product
     rep #$20
 .a16
-    lda celda_x
+    lda cell_x
     asl a
     asl a
     asl a
@@ -579,20 +579,20 @@ sin_girar:
     asl a
     asl a                       ; the cell in RM2k units: times 256
     sec
-    sbc salto_prod
+    sbc jump_prod
     lsr a
     lsr a
     lsr a
     lsr a
     sta npc_px
-    lda salto_dy16
-    sta salto_val
+    lda jump_dy16
+    sta jump_val
     sep #$20
 .a8
-    jsr producto_salto
+    jsr jump_product
     rep #$20
 .a16
-    lda celda_y
+    lda cell_y
     asl a
     asl a
     asl a
@@ -602,7 +602,7 @@ sin_girar:
     asl a
     asl a
     sec
-    sbc salto_prod
+    sbc jump_prod
     lsr a
     lsr a
     lsr a
@@ -620,12 +620,12 @@ sin_girar:
 ; Everything else —a wait, stopping the animation, changing the speed— RM2k
 ; consumes in there without doing anything, and the game puts in all three.
 ;
-; A comes in with the move command's code; leaves `salto_dx` and `salto_dy`.
-.proc acumular_salto
+; A comes in with the move command's code; leaves `jump_dx` and `jump_dy`.
+.proc accumulate_jump
 .a8
 .i16
     cmp #8                      ; the four straight ones and the four diagonals:
-    bcs no_mueve                ; inside a jump a diagonal contributes its
+    bcs no_moves                ; inside a jump a diagonal contributes its
                                 ; two axes, which is what RM2k adds
     rep #$20
 .a16
@@ -633,56 +633,56 @@ sin_girar:
     tax
     sep #$20
 .a8
-    lda salto_dx
+    lda jump_dx
     clc
-    adc f:paso_dx, x
-    sta salto_dx
-    lda salto_dy
+    adc f:step_dx_table, x
+    sta jump_dx
+    lda jump_dy
     clc
-    adc f:paso_dy, x
-    sta salto_dy
+    adc f:step_dy_table, x
+    sta jump_dy
     rts
-no_mueve:
+no_moves:
     ; The `face_*` contribute no offset, and turning without moving is not
     ; compiled, so inside a jump there is nothing else to do: RM2k consumes
     ; the rest without touching anything, not even a `wait`.
     rts
 .endproc
 
-; Can it land on cell `celda_x`, `celda_y`? Returns with Z=0 if so.
+; Can it land on cell `cell_x`, `cell_y`? Returns with Z=0 if so.
 ;
 ; It is not the same as being able to step on it walking: it is
 ; `CheckOrMakeWayEx` with the character jumping, which **skips the face being
 ; left** —hence one can jump from a place one could not walk out of— and asks
 ; for the target to be passable from all four sides, not only from the one
 ; being entered.
-.proc puede_caer
+.proc can_fall
 .a8
 .i16
     rep #$20
 .a16
-    lda celda_x
+    lda cell_x
     bmi no_16
-    cmp mapa_ancho
+    cmp map_width
     bcs no_16
-    lda celda_y
+    lda cell_y
     bmi no_16
-    cmp mapa_alto
+    cmp map_height
     bcs no_16
     sep #$20
 .a8
     ; One who walks through walls lands on any cell of the map: it is the
     ; `if (self.GetThrough()) return true;` of `CheckOrMakeWayEx`, which comes
     ; **after** checking the bounds and before everything else.
-    lda atravesando
-    beq mira_el_paso
+    lda crossing
+    beq faces_step
     lda #1
     rts
-mira_el_paso:
-    jsr ptr_de_celda
+faces_step:
+    jsr cell_ptr
     rep #$20
 .a16
-    jsr pass_del_ptr
+    jsr pass_of_ptr
     sep #$20
 .a8
     and #(PASS_UP | PASS_DOWN | PASS_LEFT | PASS_RIGHT)
@@ -692,13 +692,13 @@ mira_el_paso:
     ; looks at the others the same as a step does.
     rep #$20
 .a16
-    lda celda_x
+    lda cell_x
     sta dest_x
-    lda celda_y
+    lda cell_y
     sta dest_y
     sep #$20
 .a8
-    jsr celda_bloqueada
+    jsr cell_blocked
     bne no
     lda #1
     rts
@@ -723,7 +723,7 @@ no:
 .a16
     lda npc_buf + 2, x
     sec
-    sbc camara_y
+    sbc camera_y
     sec
     sbc #SPRITE_OFF_Y
     sta obj_y
@@ -746,7 +746,7 @@ no:
     clc
     adc #32
     cmp #(224 + 32)
-    bcs fuera
+    bcs outside
     sep #$20
 .a8
     lda npc_buf + 6, x
@@ -756,7 +756,7 @@ no:
     jsr emit_object
     rts
 .a16
-fuera:
+outside:
     sep #$20
 .a8
     rts
@@ -772,9 +772,9 @@ fuera:
     ; are both the middle pose.
     lda anim_step
     cmp #$03
-    bne sin_ajuste
+    bne no_adjust
     lda #$01
-sin_ajuste:
+no_adjust:
     sta temp
 
     ; The pose is direction*3 + frame, and which tile it gets is said by the
@@ -790,15 +790,15 @@ sin_ajuste:
     adc hero_dir                ; direction * 3
     clc
     adc temp                    ; plus the frame
-    sta pose_heroe
+    sta hero_pose
     ; With no party the pointer to the table stays at zero: nothing is drawn.
     lda hero_poses + 2
-    beq sin_dibujar
+    beq no_draw
     ; The pointer to the pose: three bytes per pose in the actor's table.
-    lda pose_heroe
+    lda hero_pose
     asl a
     clc
-    adc pose_heroe              ; times three
+    adc hero_pose               ; times three
     rep #$20
 .a16
     and #$00FF
@@ -817,7 +817,7 @@ sin_ajuste:
     lda vq_src
     and vq_src + 1
     cmp #$FF
-    beq sin_dibujar
+    beq no_draw
 
     ; The tile is fixed: the hero lives in block 0 of the bank, and what
     ; changes are the block's tiles. If the pose in VRAM is a different one,
@@ -827,50 +827,50 @@ sin_ajuste:
     lda #HERO_PRIORITY          ; below the layer that covers it
     ora hero_pal
     sta obj_attr
-    lda pose_heroe
+    lda hero_pose
     cmp hero_pose_vram
-    beq misma_pose
+    beq same_pose
     sta hero_pose_vram
-    ldx mapa_ofs
+    ldx map_ofs
     rep #$20
 .a16
-    lda f:mapa_tabla + M_VRAM_SPRITE, x
+    lda f:map_table + M_VRAM_SPRITE, x
     sta vq_dest
     sep #$20
 .a8
-    jsr vram_encolar
-    bne misma_pose
+    jsr vram_queue
+    bne same_pose
     lda #$FF
     sta hero_pose_vram          ; the queue was full: next frame
-misma_pose:
+same_pose:
 
     ; A jump in progress moves the drawing back and raises it. The position is
     ; RM2k's, with the division **at the end**: `x * 256 - dx * remaining`
     ; over 16. Dividing the decrement separately gives a pixel too many or too
     ; few every time it is not a multiple of 16, that is, half of the frames.
-    lda ruta_salto
-    sta salto_resta
-    jsr alto_del_salto
+    lda route_jump
+    sta jump_remain
+    jsr jump_height_of
     rep #$20
 .a16
     lda hero_x
     sec
-    sbc pantalla_x
+    sbc screen_x
     sec
     sbc #SPRITE_OFF_X
     sta obj_x
     lda hero_y
     sec
-    sbc camara_y
+    sbc camera_y
     sec
     sbc #SPRITE_OFF_Y
     sec
-    sbc salto_alto              ; the arc raises the drawing, not the order
+    sbc jump_height             ; the arc raises the drawing, not the order
     sta obj_y
     sep #$20
 .a8
     jsr emit_object
-sin_dibujar:
+no_draw:
     rts
 .endproc
 
@@ -893,7 +893,7 @@ sin_dibujar:
     cmp #(256 + 32)
     sep #$20
 .a8
-    bcs fuera
+    bcs outside
     rep #$20
 .a16
     lda obj_y
@@ -912,7 +912,7 @@ sin_dibujar:
     cmp #(224 + 32)
     sep #$20
 .a8
-    bcs fuera
+    bcs outside
 
     rep #$20
 .a16
@@ -934,14 +934,14 @@ sin_dibujar:
     ; Its two bits in the small table: X's ninth and the size.
     lda obj_x + 1
     and #$01
-    ora obj_grande              ; 32x32 the characters, 8x8 the digits
+    ora obj_big                 ; 32x32 the characters, 8x8 the digits
     jsr push_high
     rep #$20
 .a16
     inc oam_slot
     sep #$20
 .a8
-fuera:
+outside:
     rts
 .endproc
 
@@ -968,9 +968,9 @@ fuera:
     lda oam_slot
     and #$03
     cmp #$03
-    bne listo                   ; the byte is not complete yet
+    bne ready                   ; the byte is not complete yet
     jsr store_high
-listo:
+ready:
     rts
 .endproc
 
@@ -994,10 +994,10 @@ listo:
 .proc flush_high
 .a8
 .i16
-completar:
+complete:
     lda oam_slot
     and #$03
-    beq listo
+    beq ready
     lda #$02
     jsr push_high
     rep #$20
@@ -1005,8 +1005,8 @@ completar:
     inc oam_slot
     sep #$20
 .a8
-    bra completar
-listo:
+    bra complete
+ready:
     rts
 .endproc
 

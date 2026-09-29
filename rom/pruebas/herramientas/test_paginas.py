@@ -21,7 +21,7 @@ def paginas_de(map_id, evento_id):
     numero = [n for n, e in enumerate(game_map.events) if e.id == evento_id][0]
     return [p for p in events.map_pages(game_map, indices.get,
                                         events.Messages())
-            if p["evento"] == numero]
+            if p["event"] == numero]
 
 
 def test_la_pagina_con_item_lleva_el_item():
@@ -187,8 +187,8 @@ def test_la_ruta_propia_apunta_al_bloque_que_recibe():
     tienen que salir de la etiqueta que `page_table` recibe, no del
     número del mapa. La etiqueta la pone `Materials`, que numera por clase y
     comparte los bloques iguales: con un bloque de código compartido antes
-    que el de este mapa, `evcodigo_<mapa>` es el de **otro** mapa, o no
-    existe y `ca65` se cae con "Symbol 'evcodigo_82' is undefined".
+    que el de este mapa, `evcode_<mapa>` es el de **otro** mapa, o no
+    existe y `ca65` se cae con "Symbol 'evcode_82' is undefined".
 
     El +16 rearmaba el nombre hasta el 2026-09-27: la deduplicación del
     2026-09-07 arregló el +8 y no lo vio, porque ningún cartucho tenía un
@@ -197,19 +197,19 @@ def test_la_ruta_propia_apunta_al_bloque_que_recibe():
     tabla es texto, y lo que importa es a qué símbolo nombra.
     """
     pagina = {
-        "evento": 0, "pagina": 1, "trigger": events.TRIGGER_PARALLEL,
+        "event": 0, "pagina": 1, "trigger": events.TRIGGER_PARALLEL,
         "switch_a": 0, "switch_b": 0, "actor": 0, "capa": 1, "item": 0,
         "codigo": b"\x00", "offset": 0, "ruta_offset": 1,
-        "frecuencia": 3, "velocidad": 4,
+        "frecuencia": 3, "speed": 4,
         "ruta_propia": {"repite": True, "saltable": False, "dir_fija": False,
-                        "anim_continua": False, "frecuencia": 3,
-                        "velocidad": 4, "ordenes": [0]},
+                        "anim_continues": False, "frecuencia": 3,
+                        "speed": 4, "ordenes": [0]},
     }
-    tabla = snes_convert.page_table({"paginas": [pagina]}, 7,
-                                    "evcodigo_3")
-    nombrados = set(re.findall(r"evcodigo_\d+", tabla))
-    assert nombrados == {"evcodigo_3"}, (
-        "la tabla del mapa 7, cuyo código es el bloque evcodigo_3, nombra %s"
+    tabla = snes_convert.page_table({"pages": [pagina]}, 7,
+                                    "evcode_3")
+    nombrados = set(re.findall(r"evcode_\d+", tabla))
+    assert nombrados == {"evcode_3"}, (
+        "la tabla del mapa 7, cuyo código es el bloque evcode_3, nombra %s"
         % sorted(nombrados))
 
 

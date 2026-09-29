@@ -15,7 +15,7 @@
 # `huella`, la de `mix_fingerprint`.
 
 [medida]
-aire_de_medida = 0.25
+measuring_headroom = 0.25
 margen_db = -0.5
 
 [temas."11h035"]

@@ -147,8 +147,8 @@ cualquier decisión de ésas deshace el diseño, aunque sea cómodo.
 ## El número de un opcode se elige en la declaración
 
 En `tools/protocol/` y en ningún otro lado. Hay dos declaraciones:
-`tools/protocol/events.toml`, el bytecode que interpreta `correr_codigo`, y
-`tools/protocol/music.toml`, el stream que lee `irq_musica`. Los dos caen en el mismo
+`tools/protocol/events.toml`, el bytecode que interpreta `run_code`, y
+`tools/protocol/music.toml`, el stream que lee `irq_music`. Los dos caen en el mismo
 espacio de símbolos del ensamblador, así que dos opcodes de bytecodes distintos
 pueden compartir **número** pero no **nombre** —por eso `OP_FIN` se llama
 `OP_DONE`: `OP_END` ya era del stream de música—, y eso lo cuida una prueba.
@@ -162,7 +162,7 @@ sub-agentes sigue valiendo repartir los números de antemano, pero ahora la
 colisión es un conflicto de git en un archivo y no un bug que viaja adentro de
 un merge.
 
-Del de eventos sale también **la tabla del despacho** de `correr_codigo`
+Del de eventos sale también **la tabla del despacho** de `run_code`
 (`--jump-table`), así que un opcode nuevo es su entrada en `events.toml` y su
 `.proc op_x`, con el nombre del opcode en minúsculas; el despacho no se toca.
 Eso pide **números contiguos desde 0**: si se saca un opcode, el hueco hay que
@@ -201,8 +201,8 @@ archivos.
 nada**: fue un commit de `git mv` solo, sin tocar una línea, y `blame` sigue
 los renombres sin opciones. Con las de arriba, cada línea de
 `tools/runtime/` sale con el mismo commit que daba en `rom/src/` antes de
-mudarse: medido sobre `main.s`, `heroe.s`, `interprete.s`, `batalla.s`,
-`registros.s`, `paquete_de_audio.s` y `event_opcodes.inc`, cuatro mil
+mudarse: medido sobre `main.s`, `hero.s`, `interpreter.s`, `battle.s`,
+`registers.s`, `audio_package.s` y `event_opcodes.inc`, cuatro mil
 líneas. Con `data/`, `parches/` y `pruebas/`, que se mudaron adentro de
 `rom/` en el mismo commit, alcanza el `blame` sin opciones: medido sobre
 `rom/pruebas/arnes/consola.py`.
@@ -410,7 +410,7 @@ no puede, que es una ROM que no linkea: ahí `ld65` dice por cuánto se pasa.
 muestras ya preparadas y capas convertidas— y su clave lleva el hash de los
 fuentes **y el de los binarios que producen lo guardado**, así que no hay que
 borrarlo al tocar código. Lo único que pide es que cualquier cambio en lo que
-se cachea se verifique con `SIN_CACHE=1`: las dos ROMs tienen que ser byte por
+se cachea se verifique con `NO_CACHE=1`: las dos ROMs tienen que ser byte por
 byte iguales. Ver `tools/common/disk_cache.py`.
 
 **Mientras corren las pruebas no se toca ningún fuente.** `cartridges.fingerprint()` cubre
@@ -568,7 +568,7 @@ propio archivo, ni dos definiciones muertas de otros, ni un parámetro muerto.
 
 Dos ramas que cambian **la misma convención en archivos o líneas distintas**
 mergean limpio y git no dice nada. Pasó el 2026-09-13: una rama hizo que
-`paquete_cargar` leyera el mapa de `mapa_actual` en vez de A, la otra trajo un
+`package_load` leyera el mapa de `map_current` en vez de A, la otra trajo un
 llamador que se lo seguía pasando en A, y desde ese merge la pelea cargaba el
 paquete de audio del mapa. Las dos pruebas que lo cobraban estuvieron en rojo
 un día entero y **tres informes seguidos las dieron por "preexistentes"** —lo
@@ -655,7 +655,7 @@ Van cuatro veces, y las cuatro se veían como cualquier otra cosa menos como lo
 que eran:
 
 * ninguna ruta se movía nunca, porque la ranura 0 daba "bloqueado" siempre
-  (el `cmp #0` de `cuadro_de_ruta_ev`, con su comentario);
+  (el `cmp #0` de `ev_route_frame`, con su comentario);
 * la pantalla de título se quedó sin música un día entero, porque la pregunta
   "¿esta muestra está en la ARAM?" contestaba siempre que sí;
 * `ConditionalBranch` por variable **tomaba siempre la rama**, con la variable

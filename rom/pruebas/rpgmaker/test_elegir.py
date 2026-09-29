@@ -30,19 +30,19 @@ USADO = 25                  # el que prende la rama "Yes"
 def abierta(una):
     """Si la elección está en pantalla y lista para que alguien elija.
 
-    Los dos, y no sólo `eleg_activo`: el cuadro de texto tarda unos cuadros en
+    Los dos, y no sólo `pick_active`: el cuadro de texto tarda unos cuadros en
     componerse, y mientras tanto la ROM no mira el pad —igual que con un
     mensaje común—. Apretar ahí no hace nada, y una prueba que lo hiciera
     estaría midiendo su propio apuro.
     """
-    return bool(una.byte("eleg_activo") and una.byte("msg_abierto"))
+    return bool(una.byte("pick_active") and una.byte("msg_open"))
 
 
 def pasar_mensajes(una, cuantos):
     """Cierra `cuantos` mensajes, esperando a que cada uno esté en pantalla."""
     for _ in range(cuantos):
         for _ in range(200):
-            if una.byte("msg_abierto"):
+            if una.byte("msg_open"):
                 break
             una.correr(1)
         else:
@@ -73,8 +73,8 @@ def frente_al_shave(partida):
 
 def test_la_eleccion_se_abre_con_el_cursor_en_la_primera(partida):
     una = frente_al_shave(partida)
-    assert una.byte("eleg_n") == 2, "no leyó las dos opciones"
-    assert una.byte("eleg_sel") == 0, \
+    assert una.byte("pick_n") == 2, "no leyó las dos opciones"
+    assert una.byte("pick_sel") == 0, \
         "el cursor no arranca en la primera opción, como `Window_Selectable`"
 
 
@@ -91,7 +91,7 @@ def test_a_elige_la_marcada(partida):
 def test_abajo_mueve_el_cursor_y_elige_la_otra(partida):
     una = frente_al_shave(partida)
     una.tocar_ticks("down")
-    assert una.byte("eleg_sel") == 1, "abajo no movió el cursor"
+    assert una.byte("pick_sel") == 1, "abajo no movió el cursor"
     una.tocar_ticks("a")
     pasar_mensajes(una, 1)
     una.correr(60)
@@ -105,9 +105,9 @@ def test_el_cursor_da_la_vuelta(partida):
     """Arriba desde la primera va a la última, que es `column_max` en uno."""
     una = frente_al_shave(partida)
     una.tocar_ticks("up")
-    assert una.byte("eleg_sel") == 1, "arriba no dio la vuelta"
+    assert una.byte("pick_sel") == 1, "arriba no dio la vuelta"
     una.tocar_ticks("down")
-    assert una.byte("eleg_sel") == 0, "abajo no dio la vuelta"
+    assert una.byte("pick_sel") == 0, "abajo no dio la vuelta"
 
 
 def test_cancelar_elige_la_que_dice_el_dato(partida):
@@ -116,7 +116,7 @@ def test_cancelar_elige_la_que_dice_el_dato(partida):
     Es `choice_result = GetChoiceCancelType() - 1` de `Window_Message`.
     """
     una = frente_al_shave(partida)
-    assert una.byte("eleg_cancel") == 2, "no leyó el `cancel_type` del dato"
+    assert una.byte("pick_cancel") == 2, "no leyó el `cancel_type` del dato"
     una.tocar_ticks("b")
     pasar_mensajes(una, 1)
     una.correr(60)

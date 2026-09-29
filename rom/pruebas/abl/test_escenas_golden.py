@@ -10,7 +10,7 @@ Dos cosas del arnés:
   Los primeros son `apretar_a`, con su tick de corrimiento por
   `RETRASO_DE_PANTALLA`; los segundos son `toques_hardware`, que es lo único
   que puede apretar adentro de la pantalla de ranuras del save point, donde
-  `vueltas` no avanza. Ver `Partida.correr`.
+  `ticks` no avanza. Ver `Partida.correr`.
 * **`toques_hardware` ignoraba `apretar_a`** hasta el 2026-09-10, así que
   `savepoint-guarda` nunca apretaba el A que abre el save point. Pasaba en
   verde igual porque guardar no cambia un pixel. Acá los cuatro caminos de

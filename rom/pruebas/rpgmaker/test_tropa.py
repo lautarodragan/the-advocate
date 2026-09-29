@@ -8,7 +8,7 @@ apaga el 134. Después usa `Absorb Aura`, que prende el 135, y la página de és
 le enseña las técnicas del enemigo, cuenta cuántas veces absorbió cada una y
 apaga el 135. Es lo que pasa en RM2k, y lo que cuándo corre cada página está
 copiado de `Scene_Battle_Rpg2k` y `Game_Interpreter_Battle` de easyrpg: ver
-`ba_pag_probar` en runtime/batalla_tropa.s.
+`ba_page_test` en runtime/battle_troop.s.
 
 **Lo que se espera no se escribe a mano: se lee de la página del LDB**, con
 un recorrido de sus comandos que no comparte nada con el compilador —el texto
@@ -95,10 +95,10 @@ def lo_que_cuenta(pagina):
 def hasta_el_mensaje(una, pelea, tope=1500):
     """Pasa los mensajes de la pelea hasta que una página muestre el suyo."""
     for n in range(tope):
-        if (pelea.modo() == "PAGINA"
-                and pelea.palabra(una.simbolos["BA_PAG_MSG"]) != 0xFFFF):
+        if (pelea.modo() == "PAGE"
+                and pelea.palabra(una.simbolos["BA_PAGE_MSG"]) != 0xFFFF):
             return
-        if pelea.modo() in ("ORDEN", "FIN"):
+        if pelea.modo() in ("COMMAND", "END"):
             raise AssertionError("el turno terminó sin que corriera ninguna "
                                  "página de la tropa")
         una.consola.hold(*(("a",) if n % 6 < 2 else ()))
@@ -108,9 +108,9 @@ def hasta_el_mensaje(una, pelea, tope=1500):
 
 def cerrar_y_esperar_ordenes(una, pelea, tope=1500):
     for n in range(tope):
-        if pelea.modo() == "ORDEN":
+        if pelea.modo() == "COMMAND":
             return
-        assert pelea.modo() != "FIN", "la pelea terminó"
+        assert pelea.modo() != "END", "la pelea terminó"
         una.consola.hold(*(("a",) if n % 6 < 2 else ()))
         una.consola.run(1)
     raise AssertionError("la pelea no volvió a pedir órdenes")
@@ -118,16 +118,16 @@ def cerrar_y_esperar_ordenes(una, pelea, tope=1500):
 
 def lugar_en_la_lista(una, pelea, habilidad):
     """En qué lugar de la lista de la pelea está esa habilidad, o None."""
-    lista = una.consola.ram(una.simbolos["BA_HAB_LISTA"],
-                            pelea.byte("BA_HAB_N"))
+    lista = una.consola.ram(una.simbolos["BA_SKILL_LIST"],
+                            pelea.byte("BA_SKILL_N"))
     numeros = [hab_id(una, k) for k in lista]
     return numeros.index(habilidad) if habilidad in numeros else None
 
 
 def abrir_la_lista(una, pelea):
     """Entra a la lista de habilidades de Talan y vuelve a las órdenes, para
-    que la ROM la arme: `BA_HAB_LISTA` se arma al entrar."""
-    pelea.esperar("ORDEN")
+    que la ROM la arme: `BA_SKILL_LIST` se arma al entrar."""
+    pelea.esperar("COMMAND")
     for _ in range(5):
         pelea.tocar_cuadros("left")
     pelea.tocar_cuadros("right")
@@ -159,7 +159,7 @@ def test_el_sistema_de_batalla_de_talan(partida):
         una.consola.run(1)
     else:
         raise AssertionError("la página no abrió la pelea")
-    assert pelea.byte("BA_NACT") == 1
+    assert pelea.byte("BA_NACTORS") == 1
 
     # --- Detect Aura ---
     assert (sabe(una, TALAN, DETECT_AURA)
@@ -231,19 +231,19 @@ def test_cada_pagina_corre_una_vez_por_turno(partida):
     # sigue y lo apaga, así que se prende después, con el mensaje cerrado.
     vistos = 1
     for n in range(1500):
-        if pelea.modo() == "ORDEN":
+        if pelea.modo() == "COMMAND":
             break
-        if (pelea.modo() != "PAGINA"
-                or pelea.palabra(una.simbolos["BA_PAG_MSG"]) == 0xFFFF):
+        if (pelea.modo() != "PAGE"
+                or pelea.palabra(una.simbolos["BA_PAGE_MSG"]) == 0xFFFF):
             s = una.simbolos["switches"] + 134 // 8
             octeto = una.consola.ram(s, 1)[0] | (1 << (134 % 8))
             una.consola.write_ram(s, [octeto])
-        antes = pelea.palabra(una.simbolos["BA_PAG_MSG"])
+        antes = pelea.palabra(una.simbolos["BA_PAGE_MSG"])
         una.consola.hold(*(("a",) if n % 6 < 2 else ()))
         una.consola.run(1)
-        if (pelea.modo() == "PAGINA" and antes == 0xFFFF
-                and pelea.palabra(una.simbolos["BA_PAG_MSG"]) != 0xFFFF):
+        if (pelea.modo() == "PAGE" and antes == 0xFFFF
+                and pelea.palabra(una.simbolos["BA_PAGE_MSG"]) != 0xFFFF):
             vistos += 1
-    assert pelea.modo() == "ORDEN"
+    assert pelea.modo() == "COMMAND"
     assert vistos == 1, "la página de Detect Aura corrió %d veces en el " \
         "turno" % vistos

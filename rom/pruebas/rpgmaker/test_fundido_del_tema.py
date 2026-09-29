@@ -19,7 +19,7 @@ general en cero el primero y el tercero daban cero muestras, y el segundo,
 fundido, a lo sumo un 15%.
 
 Qué cuadros son de cada efecto lo dice la ROM, no un número copiado: una voz
-de efecto está ocupada mientras `SE_CUADROS` —o su pendiente— no es cero.
+de efecto está ocupada mientras `SE_FRAMES` —o su pendiente— no es cero.
 """
 
 from array import array
@@ -38,7 +38,7 @@ PROPORCION = 0.6
 def _ocupadas(una):
     s = una.simbolos
     ocupada = 0
-    for base in ("SE_CUADROS", "SE2_CUADROS"):
+    for base in ("SE_FRAMES", "SE2_FRAMES"):
         cuadros = una.consola.ram(en_la_wram(s[base]), 3)
         ocupada |= cuadros[0] | cuadros[1] | cuadros[2]   # y el pendiente
     return bool(ocupada)
@@ -56,8 +56,8 @@ def test_los_efectos_suenan_durante_y_despues_del_fundido(partida):
     ticks = []
     for _ in range(900):
         antes = len(una.consola.audio)
-        fundiendo = una.byte("bgm_fundido")
-        callado = una.byte("music_apagada")
+        fundiendo = una.byte("bgm_fade")
+        callado = una.byte("music_off")
         una.correr(1)
         ticks.append((antes, len(una.consola.audio), _ocupadas(una),
                       fundiendo, callado))

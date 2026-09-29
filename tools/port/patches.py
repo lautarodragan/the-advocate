@@ -170,11 +170,11 @@ def map_text(map_id, name, summary):
     """
     merges = summary.get("fusiones", {"fondo": [], "encima": []})
     lines = [
-        "# Las decisiones artísticas del mapa %d: qué se pierde al pasarlo a la"
+        "# The artistic decisions of map %d: what is lost when taking it to the"
         % map_id,
-        "# SNES. Lo escribe el conversor y lo regenera `just parches`, que es lo",
-        "# que hay que correr cuando un cambio lo mueve; `just parches --check`",
-        "# —y la tanda— fallan si quedó viejo. Ver `rm2k-snes-patches`.",
+        "# SNES. The converter writes it and `just parches` regenerates it,",
+        "# which is what has to be run when a change moves it; `just parches",
+        "# --check` —and the suite— fail if it is stale. See `rm2k-snes-patches`.",
         "",
         "mapa = %d" % map_id,
         "nombre = %s" % _toml_string(name),
@@ -184,15 +184,15 @@ def map_text(map_id, name, summary):
         lines += ["", "[capas.%s]" % layer]
         if layer == "fondo":
             lines += [
-                "# Cuántos colores distintos traía el dibujo y cuántas entradas",
-                "# de CGRAM le dejó la capa de encima.",
+                "# How many distinct colors the drawing brought and how many",
+                "# CGRAM entries the upper layer left it.",
                 "colores = %d" % summary["colores"],
                 "presupuesto = %d" % count,
             ]
         lines += [
-            "# Cada fusión manda el color `de` al color `a`, en RGB de 15 bits,",
-            "# y `pixeles` es cuántos movía cuando se decidió. Van **en orden**:",
-            "# aplicarlas de arriba a abajo reconstruye el mapeo entero.",
+            "# Each merge sends color `de` to color `a`, in 15-bit RGB, and",
+            "# `pixeles` is how many it moved when it was decided. They go **in",
+            "# order**: applying them top to bottom rebuilds the whole mapping.",
         ]
         own = merges.get(layer, [])
         if not own:
@@ -262,25 +262,26 @@ def animation_text(data):
     width, height = data["original"]
     box_w, box_h = data["caja"]
     return "\n".join([
-        "# La decisión artística de la animación %d: **a qué tamaño se dibuja**"
+        "# The artistic decision of animation %d: **at what size it is drawn**"
         % data["animacion"],
-        "# en la consola. Lo escribe el conversor y lo regenera `just parches`,",
-        "# que es lo que hay que correr cuando un cambio lo mueve; `just parches",
-        "# --check` —y la tanda— fallan si quedó viejo. Ver `rm2k-snes-patches`.",
+        "# on the console. The converter writes it and `just parches`",
+        "# regenerates it, which is what has to be run when a change moves it;",
+        "# `just parches --check` —and the suite— fail if it is stale. See",
+        "# `rm2k-snes-patches`.",
         "",
         "animacion = %d" % data["animacion"],
         "nombre = %s" % _toml_string(data["nombre"]),
         "hoja = %s" % _toml_string(data["hoja"]),
         "",
-        "# Lo decidido: el rectángulo, en pixeles de la consola, al que se",
-        "# achica la animación entera para entrar en la caja de %d x %d. Es lo"
+        "# What was decided: the rectangle, in console pixels, the whole",
+        "# animation is shrunk to so it fits in the %d x %d box. It is what"
         % (data["lado"], data["lado"]),
-        "# que la fase 2 va a leer en vez de volver a calcularlo.",
+        "# phase 2 will read instead of computing it again.",
         "tamano = [%d, %d]" % (box_w, box_h),
         "",
-        "# De qué venía: la unión de todas las celdas de todos sus cuadros en",
-        "# pixeles de RM2k, y cuántos cuadros son. No se decide, se mide, y",
-        "# está para que el diff diga por qué cambió el tamaño.",
+        "# What it came from: the union of all the cells of all its frames in",
+        "# RM2k pixels, and how many frames there are. It is not decided, it is",
+        "# measured, and it is here so the diff says why the size changed.",
         "original = [%d, %d]" % (width, height),
         "cuadros = %d" % data["cuadros"],
         "",
@@ -334,23 +335,24 @@ def battler_text(info):
     """A battler's file, exactly as it goes to disk. `info` is the one
     `scene.battler` returns."""
     lines = [
-        "# La decisión artística del battler %s: **qué colores se pierden** al"
+        "# The artistic decision of battler %s: **which colors are lost** when"
         % info["clave"],
-        "# llevarlo a quince, que es lo que la escena de la pelea le deja a cada",
-        "# uno. Lo escribe el conversor y lo regenera `just parches`, que es lo",
-        "# que hay que correr cuando un cambio lo mueve; `just parches --check`",
-        "# —y la tanda— fallan si quedó viejo. Ver `rm2k-snes-patches`.",
+        "# taking it to fifteen, which is what the battle scene leaves each one.",
+        "# The converter writes it and `just parches` regenerates it, which is",
+        "# what has to be run when a change moves it; `just parches --check`",
+        "# —and the suite— fail if it is stale. See `rm2k-snes-patches`.",
         "",
         "battler = %s" % _toml_string(info["clave"]),
         "imagen = %s" % _toml_string(info["imagen"]),
         "tono = %d" % info["tono"],
         "",
-        "# De qué venía, ya achicado al 80%: el tamaño en pixeles de la escena y",
-        "# cuántos colores distintos de 15 bits traía. No se decide, se mide.",
+        "# What it came from, already shrunk to 80%: the size in scene pixels",
+        "# and how many distinct 15-bit colors it brought. It is not decided, it",
+        "# is measured.",
         "tamano = [%d, %d]" % (info["ancho"], info["alto"]),
         "colores = %d" % info["colores"],
         "",
-        "# Lo que quedó, en el orden de la paleta: el índice 1 es el primero.",
+        "# What remained, in palette order: index 1 is the first one.",
         "paleta = [",
     ]
     for color in info["paleta"]:
@@ -365,9 +367,9 @@ def battler_text(info):
     lines += [
         "]",
         "",
-        "# Cuántas fusiones hicieron falta para llegar ahí, con",
-        "# `asignador.merge_least_visible`: cada una manda al color que menos",
-        "# se nota a su vecino más cercano.",
+        "# How many merges it took to get there, with",
+        "# `allocator.merge_least_visible`: each one sends the least noticeable",
+        "# color to its nearest neighbor.",
         "fusiones = %d" % len(info["fusiones"]),
     ]
     return "\n".join(lines) + "\n"

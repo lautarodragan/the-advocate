@@ -7,7 +7,7 @@ CGRAM**. Mientras el cronómetro se ve, esa entrada va sin teñir, porque en RM2
 los dígitos no se tiñen; así que ese color del personaje tampoco se tiñe.
 
 El resto del personaje sí, y sin cronómetro en pantalla, todo: lo hace
-`subir_timer_pal`, que sube sin teñir sólo las entradas de los dígitos y sólo
+`upload_timer_pal`, que sube sin teñir sólo las entradas de los dígitos y sólo
 mientras se ven.
 
 # Medido

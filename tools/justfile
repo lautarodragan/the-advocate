@@ -29,7 +29,7 @@ rust_projects := "protocol gunter ditto voodoo lz2"
 # `tools/runtime/` are generated, all committed. There are two declarations:
 # the event bytecode and the music stream the SPC700 reads.
 #
-# The event one takes `--jump-table`: that produces `correr_codigo`'s dispatch
+# The event one takes `--jump-table`: that produces `run_code`'s dispatch
 # table, so a new opcode touches the interpreter only in its `.proc op_x`.
 # The music one cannot —it ends at 0xFF— and does not need it.
 #

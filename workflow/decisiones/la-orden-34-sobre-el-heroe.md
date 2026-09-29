@@ -21,10 +21,10 @@ subirlo.
   gráfico nuevo**, que es una de las ocho de sprite del mapa, y no con la
   ranura propia del líder. `hero_cgram` se apaga al cambiar: dejarlo puesto le
   escribiría los quince colores de Talan encima a la paleta del gráfico, porque
-  `aplicar_tinte` los sube **en la fila que dice `hero_pal`**.
+  `apply_tint` los sube **en la fila que dice `hero_pal`**.
 * **No sobrevive al cambio de mapa.** Las poses viven en el banco de sprites
   del mapa, así que el gráfico de allá no existe acá; la ROM lo repone en
-  `elegir_grafico_heroe`. En RM2k `Game_Player` se lo lleva. No se nota: la
+  `pick_hero_graphic`. En RM2k `Game_Player` se lo lleva. No se nota: la
   única página del juego que cambia el gráfico del héroe y después salta lo
   vuelve a poner en el comando siguiente al teletransporte.
 * **En el cartucho**, medido sobre `abl`: el gráfico al que una ruta cambia al
