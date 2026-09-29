@@ -109,7 +109,7 @@ are:
     rm2k-snes-convert           port/snes_convert.py
     rm2k-snes-patches           port/parches.py
     rm2k-snes-msu               audio/msu.py
-    rm2k-snes-volume-ceilings   audio/techos.py
+    rm2k-snes-volume-ceilings   audio/ceilings.py
     abl-entregar                ensamblado/entregar.py
 
 The reason for the names is in `tools/justfile`. A new one is added in

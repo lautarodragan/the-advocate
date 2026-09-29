@@ -7326,7 +7326,7 @@ def parser_de_flags():
     parser.add_argument("--aire-de-medida", type=float, metavar="HEADROOM",
                         help="the same headroom for every song, instead of "
                              "the volume ceiling table: it is what "
-                             "`tools/audio/techos.py` builds the ROM where it "
+                             "`tools/audio/ceilings.py` builds the ROM where it "
                              "measures each song's peak with. See "
                              "`read_ceilings` in tools/audio/snes_music.py")
     parser.add_argument("--hp-de-enemigos", action="store_true",
@@ -8273,7 +8273,7 @@ def main():
     driver, muestras, hechos, banco = snes_music.build_all(
         pedidos, args.game_dir, pedidos_se, por_nombre, herencia,
         measuring_headroom=args.aire_de_medida)
-    # And what `tools/audio/techos.py` needs from each song —how long it lasts
+    # And what `tools/audio/ceilings.py` needs from each song —how long it lasts
     # and the fingerprint of its mix—, written next to it: the bank can no
     # longer be rebuilt without compiling the pages, which is where the
     # packages come from.

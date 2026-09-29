@@ -4,20 +4,20 @@
     rm2k-snes-volume-ceilings            measures, writes the table and
                                          rebuilds `release` with it:
                                          `just techos`
-    rm2k-snes-volume-ceilings --medir    only measures the `release` that
+    rm2k-snes-volume-ceilings --measure  only measures the `release` that
                                          is built, and writes nothing
 
 The reason for the table is in `read_ceilings` (tools/audio/snes_music.py).
 This is how it comes out:
 
 1. **A copy of `release` with every song at half the headroom**
-   (`AIRE_DE_MEDIDA`), in `rom/build/techos/`. With that none clips, so the
-   peak measured is the true one, and since each voice's volume is linear in
-   the ceiling, each song's with the full headroom is double.
+   (`MEASURING_HEADROOM`), in `rom/build/techos/`. With that none clips, so
+   the peak measured is the true one, and since each voice's volume is
+   linear in the ceiling, each song's with the full headroom is double.
 2. **Each whole song on the title screen**, in snes9x without MSU-1, and its
-   peak. Each one's headroom is the highest that keeps that peak `MARGEN`
-   below the cap, without going past `sdsp.HEADROOM`: the ones that do not clip
-   stay as they were.
+   peak. Each one's headroom is the highest that keeps that peak `MARGIN`
+   below the cap, without going past `sdsp.HEADROOM`: the ones that do not
+   clip stay as they were.
 3. **The table is written, `release` is rebuilt and measured again**. Each
    voice's volume is rounded to an integer, so the arithmetic is
    approximate: if some song still clipped, it is lowered by as much as it
@@ -50,155 +50,155 @@ from common import settings                              # noqa: E402
 from common import project                              # noqa: E402
 
 # `--project` is read before anything else: this module reads the project
-# file when imported —`NOMBRE_DE_LA_ROM`—, and `main`'s `parse_args` comes
+# file when imported —`ROM_NAME`—, and `main`'s `parse_args` comes
 # too late.
 if __name__ == "__main__":
     project.from_command_line()
 
 # Half the usual headroom: measured on 2026-09-26, with 0.25 none of the 32
 # songs of `release` clips, and the loudest one stays 3.9 dB below the cap.
-AIRE_DE_MEDIDA = sdsp.HEADROOM / 2
+MEASURING_HEADROOM = sdsp.HEADROOM / 2
 
 # What the measured ROM is called: the game's, in its project file.
-NOMBRE_DE_LA_ROM = settings.value("rom", "name", kind=str)
+ROM_NAME = settings.value("rom", "name", kind=str)
 
 # How far the peak is allowed to go: 0.5 dB below the cap. What it absorbs is
 # the rounding of each voice's volume to an integer, which makes the peak not
 # scale exactly with the headroom.
-MARGEN = 10 ** (-0.5 / 20)
+MARGIN = 10 ** (-0.5 / 20)
 
 # Where the cap lies in what comes out of the console: the DSP saturates the
 # sum of the voices at 16 bits and then multiplies it by the master volume,
 # MVOL/128.
-TOPE = 32767 * sdsp.MASTER >> 7
+CAP = 32767 * sdsp.MASTER >> 7
 
 # How many frames before the end of boot —`BOOT_CUADROS`, read from the ROM—
 # recording starts: the title screen starts its song afterwards, so it is
 # slack. It used to be a fixed 90 frames from power-on, with boot at 112,
 # which is what the script that measured step 5 expected; since boot got
 # shorter, a fixed number would cut off the start of each song.
-ANTES_DEL_TITULO = 22
+BEFORE_TITLE = 22
 
 # How many frames past the peak the test plays.
-DESPUES_DEL_PICO = 60
+AFTER_PEAK = 60
 
-def temas_de(directorio):
+def song_names(directory):
     """The names of the cartridge's songs, in the order of their indices."""
-    with open(os.path.join(directorio, "musicdata.inc")) as archivo:
-        inc = archivo.read()
-    nombres = re.search(r"^; Temas: (.*)$", inc, re.M).group(1).split(", ")
-    return ["" if n == "sin música" else n for n in nombres]
+    with open(os.path.join(directory, "musicdata.inc")) as handle:
+        inc = handle.read()
+    names = re.search(r"^; Temas: (.*)$", inc, re.M).group(1).split(", ")
+    return ["" if n == "sin música" else n for n in names]
 
 
-def simbolos_de(sfc):
-    tabla = {}
-    with open(sfc + ".sym") as archivo:
-        for linea in archivo:
-            nombre, valor = linea.split()
-            tabla[nombre] = int(valor)
-    return tabla
+def symbols_of(sfc):
+    table = {}
+    with open(sfc + ".sym") as handle:
+        for line in handle:
+            name, value = line.split()
+            table[name] = int(value)
+    return table
 
 
-def con_el_tema_en_el_titulo(rom, simbolos, tema):
-    """The ROM with the title screen playing `tema`: the immediate of the
+def with_song_on_title(rom, symbols, song):
+    """The ROM with the title screen playing `song`: the immediate of the
     `lda #TEMA_TITULO` it starts it with is changed. It is the only way for a
     song to play on its own, with its samples uploaded, without playing
     anything."""
-    patron = bytes([0xA9, simbolos["TEMA_TITULO"], 0xC9, 0xFF, 0xF0])
-    donde = rom.find(patron)
-    assert donde >= 0 and rom.find(patron, donde + 1) < 0, (
+    pattern = bytes([0xA9, symbols["TEMA_TITULO"], 0xC9, 0xFF, 0xF0])
+    where = rom.find(pattern)
+    assert where >= 0 and rom.find(pattern, where + 1) < 0, (
         "cannot find the title screen's `lda #TEMA_TITULO`: how it starts "
         "its song has changed, and this has to change too")
-    parchada = bytearray(rom)
-    parchada[donde + 1] = tema
-    return bytes(parchada)
+    patched = bytearray(rom)
+    patched[where + 1] = song
+    return bytes(patched)
 
 
-def tocar(sfc, tema, cuadros):
-    """(the samples, interleaved stereo, and the rate): `cuadros` frames of
+def play(sfc, song, n_frames):
+    """(the samples, interleaved stereo, and the rate): `n_frames` frames of
     the song from when the title starts it, in snes9x without MSU-1."""
     import numpy as np
     from emulator import retro
-    simbolos = simbolos_de(sfc)
-    with open(sfc, "rb") as archivo:
-        rom = con_el_tema_en_el_titulo(archivo.read(), simbolos, tema)
+    symbols = symbols_of(sfc)
+    with open(sfc, "rb") as handle:
+        rom = with_song_on_title(handle.read(), symbols, song)
     with tempfile.TemporaryDirectory() as tmp:
-        ruta = os.path.join(tmp, "tema.sfc")
-        with open(ruta, "wb") as archivo:
-            archivo.write(rom)
-        consola = retro.Console(ruta, msu=False)
-        tasa = consola.sample_rate()
-        consola.run(simbolos["BOOT_CUADROS"] - ANTES_DEL_TITULO)
-        consola.audio = bytearray()
-        partes = []
-        for _ in range(cuadros):
-            consola.run(1)
-            if len(consola.audio) > 1 << 20:
-                partes.append(bytes(consola.audio))
-                consola.audio = bytearray()
-        partes.append(bytes(consola.audio))
-    return np.frombuffer(b"".join(partes), dtype="<i2"), tasa
+        path = os.path.join(tmp, "tema.sfc")
+        with open(path, "wb") as handle:
+            handle.write(rom)
+        console = retro.Console(path, msu=False)
+        rate = console.sample_rate()
+        console.run(symbols["BOOT_CUADROS"] - BEFORE_TITLE)
+        console.audio = bytearray()
+        parts = []
+        for _ in range(n_frames):
+            console.run(1)
+            if len(console.audio) > 1 << 20:
+                parts.append(bytes(console.audio))
+                console.audio = bytearray()
+        parts.append(bytes(console.audio))
+    return np.frombuffer(b"".join(parts), dtype="<i2"), rate
 
 
-def recortes(muestras):
+def clipped(samples):
     """How many samples ended up at the cap."""
-    return int(((muestras >= TOPE) | (muestras <= -TOPE - 1)).sum())
+    return int(((samples >= CAP) | (samples <= -CAP - 1)).sum())
 
 
-def cuadros_del_tema(directorio, tema):
+def song_frames(directory, song):
     """How long one pass of the song lasts, from the writes the converter
     emitted —they are measured in the same process that built it—, plus one
     second."""
-    return _largos[directorio][tema] + 60
+    return _lengths[directory][song] + 60
 
 
-_largos = {}
+_lengths = {}
 
 
-def _medir_uno(trabajo):
+def _measure_one(job):
     import numpy as np
-    directorio, tema, cuadros, lufs = trabajo
-    x, tasa = tocar(os.path.join(directorio, NOMBRE_DE_LA_ROM + ".sfc"),
-                    tema, cuadros)
-    absoluto = np.abs(x.astype(np.int32))
-    pico = int(absoluto.max()) if len(x) else 0
+    directory, song, n_frames, lufs = job
+    x, rate = play(os.path.join(directory, ROM_NAME + ".sfc"),
+                   song, n_frames)
+    magnitude = np.abs(x.astype(np.int32))
+    peak = int(magnitude.max()) if len(x) else 0
     # The frame of the peak: the samples are left/right pairs.
-    cuadro = int(absoluto.argmax()) // 2 * 60 // int(round(tasa))
-    fila = {"recortes": recortes(x), "pico": pico, "cuadro": cuadro}
+    frame_no = int(magnitude.argmax()) // 2 * 60 // int(round(rate))
+    row = {"recortes": clipped(x), "pico": peak, "cuadro": frame_no}
     if lufs:
-        fila["lufs"] = _lufs(x, tasa)
-    return tema, fila
+        row["lufs"] = _lufs(x, rate)
+    return song, row
 
 
-def _lufs(x, tasa):
+def _lufs(x, rate):
     with tempfile.TemporaryDirectory() as tmp:
-        ruta = os.path.join(tmp, "t.wav")
-        w = wave.open(ruta, "wb")
+        path = os.path.join(tmp, "t.wav")
+        w = wave.open(path, "wb")
         w.setnchannels(2)
         w.setsampwidth(2)
-        w.setframerate(int(round(tasa)))
+        w.setframerate(int(round(rate)))
         w.writeframes(x.tobytes())
         w.close()
-        hecho = subprocess.run(["ffmpeg", "-nostats", "-i", ruta, "-af",
-                                "ebur128", "-f", "null", "-"],
-                               capture_output=True, text=True)
-    return float(re.findall(r"I:\s+(-?[\d.]+) LUFS", hecho.stderr)[-1])
+        result = subprocess.run(["ffmpeg", "-nostats", "-i", path, "-af",
+                                 "ebur128", "-f", "null", "-"],
+                                capture_output=True, text=True)
+    return float(re.findall(r"I:\s+(-?[\d.]+) LUFS", result.stderr)[-1])
 
 
-def medir(directorio, lufs=False):
+def measure(directory, lufs=False):
     """{song: {recortes, pico, cuadro[, lufs]}}: each whole song, once."""
-    nombres = temas_de(directorio)
-    hechos = temas_armados(directorio)
-    _largos[directorio] = {i: t["largo"]
-                           for i, t in enumerate(hechos) if t["largo"]}
-    trabajos = [(directorio, i, cuadros_del_tema(directorio, i), lufs)
-                for i, n in enumerate(nombres) if n and i in _largos[directorio]]
+    names = song_names(directory)
+    built = built_songs(directory)
+    _lengths[directory] = {i: t["largo"]
+                           for i, t in enumerate(built) if t["largo"]}
+    jobs = [(directory, i, song_frames(directory, i), lufs)
+            for i, n in enumerate(names) if n and i in _lengths[directory]]
     with Pool(int(os.environ.get("PROCESOS", "8"))) as pool:
-        filas = dict(pool.map(_medir_uno, trabajos))
-    return {nombres[i]: fila for i, fila in filas.items()}
+        rows = dict(pool.map(_measure_one, jobs))
+    return {names[i]: row for i, row in rows.items()}
 
 
-def temas_armados(directorio):
+def built_songs(directory):
     """The cartridge's songs as the converter built them, in the order of
     their indices: the name, the length in frames and the fingerprint of
     each. The converter writes them in `musica.json`, next to
@@ -210,18 +210,18 @@ def temas_armados(directorio):
     song may be playing in each one, which come from compiling the pages:
     rebuilding it here would be a second way of answering the same thing."""
     import json
-    with open(os.path.join(directorio, "musica.json")) as archivo:
-        return json.load(archivo)["temas"]
+    with open(os.path.join(directory, "musica.json")) as handle:
+        return json.load(handle)["temas"]
 
 
-def db(pico):
-    return 20 * math.log10(max(pico, 1) / float(TOPE))
+def db(peak):
+    return 20 * math.log10(max(peak, 1) / float(CAP))
 
 
-def escribir(techos, medido, huellas, ruta=None):
+def write(ceilings, measured, fingerprints, path=None):
     """The table, with its reason on top."""
-    ruta = ruta or snes_music.ceilings_path()
-    lineas = [
+    path = path or snes_music.ceilings_path()
+    lines = [
         "# The volume ceiling of each song of `release`: the headroom",
         "# `build_all` builds its stream with, instead of `sdsp.HEADROOM`.",
         "#",
@@ -240,33 +240,33 @@ def escribir(techos, medido, huellas, ruta=None):
         "# peak; and `huella`, that of `mix_fingerprint`.",
         "",
         "[medida]",
-        "aire_de_medida = %s" % AIRE_DE_MEDIDA,
+        "aire_de_medida = %s" % MEASURING_HEADROOM,
         "margen_db = -0.5",
         "",
     ]
-    for nombre in sorted(techos):
-        fila = medido[nombre]
-        lineas += [
-            "[temas.\"%s\"]" % nombre,
-            "aire = %.3f" % techos[nombre],
-            "pico = %.1f" % db(fila["pico"]),
-            "lufs = %.1f" % fila["lufs"],
-            "hasta = %d" % (fila["cuadro"] + DESPUES_DEL_PICO),
-            'huella = "%s"' % huellas[nombre],
+    for name in sorted(ceilings):
+        row = measured[name]
+        lines += [
+            "[temas.\"%s\"]" % name,
+            "aire = %.3f" % ceilings[name],
+            "pico = %.1f" % db(row["pico"]),
+            "lufs = %.1f" % row["lufs"],
+            "hasta = %d" % (row["cuadro"] + AFTER_PEAK),
+            'huella = "%s"' % fingerprints[name],
             "",
         ]
-    os.makedirs(os.path.dirname(ruta), exist_ok=True)
-    with open(ruta, "w") as archivo:
-        archivo.write("\n".join(lineas))
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as handle:
+        handle.write("\n".join(lines))
 
 
-def imprimir(medido, techos=None):
-    for nombre in sorted(medido):
-        fila = medido[nombre]
+def report(measured, ceilings=None):
+    for name in sorted(measured):
+        row = measured[name]
         print("  %-45s %s peak %+5.1f dB, %5d clipped%s" % (
-            nombre[:45], "headroom %.3f," % techos[nombre] if techos else "",
-            db(fila["pico"]), fila["recortes"],
-            ", %.1f LUFS" % fila["lufs"] if "lufs" in fila else ""))
+            name[:45], "headroom %.3f," % ceilings[name] if ceilings else "",
+            db(row["pico"]), row["recortes"],
+            ", %.1f LUFS" % row["lufs"] if "lufs" in row else ""))
 
 
 def main():
@@ -274,56 +274,56 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     project.add_argument(parser)
     environment.add_arguments(parser, *cartuchos.AL_CONVERSOR)
-    parser.add_argument("--medir", action="store_true",
+    parser.add_argument("--measure", action="store_true",
                         help="only measure the built `release`: clipping, "
                              "peak and LUFS of each song")
     args = parser.parse_args()
     environment.from_arguments(args, *cartuchos.AL_CONVERSOR)
     release = cartuchos.directorio(cartuchos.RELEASE)
-    if args.medir:
-        imprimir(medir(release, lufs=True))
+    if args.measure:
+        report(measure(release, lufs=True))
         return
 
     # The half-volume copy, in its own build directory.
-    medida = os.path.join(project.build(), "techos")
+    measure_dir = os.path.join(project.build(), "techos")
     print("a copy of release with the headroom at %s, in %s"
-          % (AIRE_DE_MEDIDA, medida))
-    cartuchos.convertir(cartuchos.RELEASE, medida,
-                        os.path.join(medida, NOMBRE_DE_LA_ROM + ".sfc"),
-                        ["--aire-de-medida", str(AIRE_DE_MEDIDA)])
-    a_medias = medir(medida)
-    recortan = [n for n, f in a_medias.items() if f["recortes"]]
-    if recortan:
-        sys.exit("with the headroom at %s these clip: %s: lower AIRE_DE_MEDIDA"
-                 % (AIRE_DE_MEDIDA, ", ".join(recortan)))
-    techos = {}
-    for nombre, fila in a_medias.items():
-        entero = fila["pico"] * sdsp.HEADROOM / AIRE_DE_MEDIDA
-        techos[nombre] = min(sdsp.HEADROOM, math.floor(
-            1000 * sdsp.HEADROOM * TOPE * MARGEN / max(entero, 1)) / 1000.0)
+          % (MEASURING_HEADROOM, measure_dir))
+    cartuchos.convertir(cartuchos.RELEASE, measure_dir,
+                        os.path.join(measure_dir, ROM_NAME + ".sfc"),
+                        ["--aire-de-medida", str(MEASURING_HEADROOM)])
+    at_half = measure(measure_dir)
+    clipping = [n for n, f in at_half.items() if f["recortes"]]
+    if clipping:
+        sys.exit("with the headroom at %s these clip: %s: lower MEASURING_HEADROOM"
+                 % (MEASURING_HEADROOM, ", ".join(clipping)))
+    ceilings = {}
+    for name, row in at_half.items():
+        full = row["pico"] * sdsp.HEADROOM / MEASURING_HEADROOM
+        ceilings[name] = min(sdsp.HEADROOM, math.floor(
+            1000 * sdsp.HEADROOM * CAP * MARGIN / max(full, 1)) / 1000.0)
 
-    for vuelta in range(4):
-        escribir(techos, {n: dict(f, lufs=0.0) for n, f in a_medias.items()},
-                 {n: "" for n in techos})
-        print("release with the table, round %d" % (vuelta + 1))
+    for attempt in range(4):
+        write(ceilings, {n: dict(f, lufs=0.0) for n, f in at_half.items()},
+              {n: "" for n in ceilings})
+        print("release with the table, round %d" % (attempt + 1))
         cartuchos.armar(cartuchos.RELEASE, cartuchos.huella())
-        medido = medir(release, lufs=True)
-        recortan = {n: f for n, f in medido.items() if f["recortes"]}
-        if not recortan:
+        measured = measure(release, lufs=True)
+        clipping = {n: f for n, f in measured.items() if f["recortes"]}
+        if not clipping:
             break
-        for nombre, fila in recortan.items():
-            techos[nombre] = math.floor(
-                1000 * techos[nombre] * TOPE * MARGEN / fila["pico"]) / 1000.0
+        for name, row in clipping.items():
+            ceilings[name] = math.floor(
+                1000 * ceilings[name] * CAP * MARGIN / row["pico"]) / 1000.0
     else:
         sys.exit("after four rounds these still clip: %s"
-                 % ", ".join(recortan))
-    huellas = {t["nombre"]: t["huella"]
-               for t in temas_armados(release) if t["largo"]}
+                 % ", ".join(clipping))
+    fingerprints = {t["nombre"]: t["huella"]
+                    for t in built_songs(release) if t["largo"]}
     # What is rewritten now —the peaks, the fingerprints— does not change the
     # headrooms, so the cartridge just measured is still up to date: its
     # stamp looks only at the table's headrooms (see `cartuchos.huella`).
-    escribir(techos, medido, huellas)
-    imprimir(medido, techos)
+    write(ceilings, measured, fingerprints)
+    report(measured, ceilings)
     print("-> %s" % os.path.relpath(snes_music.ceilings_path()))
 
 

@@ -187,7 +187,7 @@ _instalar raiz *proyectos:
   ln -sfn "{{justfile_directory()}}/port/snes_convert.py" "{{raiz}}/bin/rm2k-snes-convert"
   ln -sfn "{{justfile_directory()}}/port/parches.py" "{{raiz}}/bin/rm2k-snes-patches"
   ln -sfn "{{justfile_directory()}}/audio/msu.py" "{{raiz}}/bin/rm2k-snes-msu"
-  ln -sfn "{{justfile_directory()}}/audio/techos.py" "{{raiz}}/bin/rm2k-snes-volume-ceilings"
+  ln -sfn "{{justfile_directory()}}/audio/ceilings.py" "{{raiz}}/bin/rm2k-snes-volume-ceilings"
   ln -sfn "{{justfile_directory()}}/ensamblado/entregar.py" "{{raiz}}/bin/abl-entregar"
   echo "in {{raiz}}/bin: the eight Python ones, and from Rust: {{ if proyectos == "" { "none" } else { proyectos } }}"
 

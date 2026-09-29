@@ -49,3 +49,6 @@ ejecutable corrido por su nombre desde /tmp con `--project`.
   la ruta vieja: tocar un `.s` cambia el `.dbg`, y el runtime es la última
   área.
 - `audio/msu.py`: los nombres, y `--ganancia` pasa a `--gain`.
+- `audio/techos.py` → `audio/ceilings.py`, con sus nombres, y `--medir`
+  pasa a `--measure`. El symlink de `rm2k-snes-volume-ceilings` cambia de
+  destino: el global queda roto hasta reinstalar los scripts.

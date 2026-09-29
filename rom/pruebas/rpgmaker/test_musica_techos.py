@@ -4,7 +4,7 @@ versionada (`parches/auto/musica/techos.toml`), y que la tabla no esté vieja.
 El DSP suma las ocho voces y satura la suma antes del volumen general, así
 que lo que evita el recorte es el techo de cada voz, y desde el 2026-09-26
 hay uno por tema: el más alto que no recorta, medido tocando cada tema en la
-ROM —`just techos`, ver tools/audio/techos.py—. Medirlo cuesta unos cuatro
+ROM —`just techos`, ver tools/audio/ceilings.py—. Medirlo cuesta unos cuatro
 minutos, así que acá no se mide: se cobra que lo medido siga valiendo.
 
 * **La huella**: lo que el pico de un tema puede mover —lo que le escribe al
@@ -26,10 +26,10 @@ import pytest
 
 import tanda
 
-from audio import snes_music, techos
+from audio import snes_music, ceilings
 
 # A cuántos dB del tope un tema se toca en la prueba. La tabla los deja a
-# 0,5 dB (`techos.MARGEN`); lo que hace falta es que entren ésos con margen.
+# 0,5 dB (`ceilings.MARGIN`); lo que hace falta es que entren ésos con margen.
 CERCA = 1.5
 
 
@@ -45,7 +45,7 @@ def _cerca():
 def test_la_tabla_de_techos_es_la_de_esta_mezcla():
     release = tanda.cartucho()
     tabla = _tabla()
-    hechos = {t["nombre"]: t for t in techos.temas_armados(release.dir)
+    hechos = {t["nombre"]: t for t in ceilings.built_songs(release.dir)
               if t["largo"]}
     assert sorted(hechos) == sorted(tabla), (
         "los temas del release no son los de la tabla de techos: sobran %s, "
@@ -63,9 +63,9 @@ def test_la_tabla_de_techos_es_la_de_esta_mezcla():
 def test_el_tema_no_recorta_en_su_pico(nombre):
     release = tanda.cartucho()
     fila = _tabla()[nombre]
-    tema = techos.temas_de(release.dir).index(nombre)
-    muestras, _tasa = techos.tocar(release.sfc, tema, fila["hasta"])
-    recortes = techos.recortes(muestras)
+    tema = ceilings.song_names(release.dir).index(nombre)
+    muestras, _tasa = ceilings.play(release.sfc, tema, fila["hasta"])
+    recortes = ceilings.clipped(muestras)
     assert not recortes, (
         "%s recorta %d muestras en sus primeros %d cuadros, con el aire en "
         "%.3f: correr `just techos`" % (nombre, recortes, fila["hasta"],

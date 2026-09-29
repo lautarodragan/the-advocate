@@ -260,7 +260,7 @@ parches-check *builds: _herramientas_del_checkout
 # deliberado como `parches`: lo que se mira es el diff de la tabla, y hay que
 # correrlo con cada cambio de la mezcla —las muestras, las envolventes, el
 # reparto—, que es cuando `test_musica_techos.py` avisa que quedó vieja. El
-# porqué, en `read_ceilings`, que es donde el conversor la lee. `--medir` sólo
+# porqué, en `read_ceilings`, que es donde el conversor la lee. `--measure` sólo
 # mide el `release` armado, sin escribir nada: recortes, pico y LUFS por tema.
 techos *args: _herramientas_del_checkout
   rm2k-snes-volume-ceilings {{al_conversor}} {{args}}

@@ -362,7 +362,7 @@ def armar(nombre, fuentes):
 def convertir(nombre, destino, sfc, extra=()):
     """Converts and assembles the cartridge in `destino`, without a stamp and
     even if it is up to date. `extra` are extra flags for the converter:
-    that is how `tools/audio/techos.py` builds a copy of `release` with
+    that is how `tools/audio/ceilings.py` builds a copy of `release` with
     another volume, without touching the real one."""
     flags, _casos = CARTUCHOS[nombre]
     os.makedirs(destino, exist_ok=True)
