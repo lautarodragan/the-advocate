@@ -38,3 +38,9 @@ de tocar nada.
   `; --- N: mapa M 'nombre' ---` de `mapa_tabla`, que `mapas_de` en
   `rom/pruebas/arnes/consola.py` lee con una regex que espera "mapa". Lo
   dice un comentario al lado.
+- Líneas 4043–5419 (de `tabla_de_paginas` a la mitad de `emit`, con la
+  cabecera del `.inc`): hecho. `.sfc`, `.msu` y `.pcm` iguales. Los
+  `mapdata.inc` sin comentarios dan igual salvo el texto del `.assert` de
+  `TITULO_MENU_CGRAM`, que es un mensaje del ensamblador. Los `.dbg` cambian
+  de ids además de líneas —ld65 numera las `line` en orden de línea—, así
+  que se comparan resolviendo ids: iguales.

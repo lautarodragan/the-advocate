@@ -4096,51 +4096,54 @@ def bloque(label, data, per_line=16, alinear=None, acomodar=True):
 
 
 def tabla_de_paginas(mapa, numero, evcodigo):
-    """Las páginas de evento del mapa, con el puntero a su código.
+    """The map's event pages, with the pointer to their code.
 
-    `evcodigo` es la **etiqueta** del bloque de código, que ya no se puede
-    rearmar acá: dos mapas cuyos eventos compilan a los mismos bytes comparten
-    el bloque y la etiqueta no lleva el número de este mapa. Rearmarla era lo
-    que hacía —`"evcodigo_%d" % numero`— y al encender la deduplicación la
-    tanda lo cobró enseguida: `varios` no ensamblaba porque nombraba un
-    `evcodigo_2` que ya no existía.
+    `evcodigo` is the **label** of the code block, which can no longer be
+    rebuilt here: two maps whose events compile to the same bytes share the
+    block and the label doesn't carry this map's number. Rebuilding it is what
+    it did —`"evcodigo_%d" % numero`— and when deduplication was turned on the
+    suite charged it right away: `varios` didn't assemble because it named an
+    `evcodigo_2` that no longer existed.
 
-    No pasa por `bloque()` porque sus punteros son simbólicos: apuntan adentro
-    del bloque de código, que el enlazador ubica. Pero **sí se declara** con
-    `.bloque`: la ROM la recorre con `[pag_ptr], y`, y una tabla que cruce de
-    banco sigue en `$03:0000`, que en LoROM no es ROM sino el espejo de la
-    WRAM. Sin la declaración pasó de verdad: al crecer los sprites del mapa 2
-    con los eventos dibujados con un tile, la tabla quedó a caballo de
-    `$02FFFF`, la ROM leyó basura en vez de las últimas páginas —entre ellas la
-    de prueba— y la sacudida al borde del mapa no arrancaba nunca. La tanda lo
-    cobró en pixeles sin decir por qué; lo dijo la RAM del emulador.
+    It doesn't go through `bloque()` because its pointers are symbolic: they
+    point inside the code block, which the linker places. But it **is
+    declared** with `.bloque`: the ROM walks it with `[pag_ptr], y`, and a
+    table that crosses a bank continues at `$03:0000`, which in LoROM isn't
+    ROM but the WRAM mirror. Without the declaration it really happened: when
+    map 2's sprites grew with the events drawn with a tile, the table ended up
+    straddling `$02FFFF`, the ROM read garbage instead of the last pages
+    —among them the test one— and the shake at the edge of the map never
+    started. The suite charged it in pixels without saying why; the
+    emulator's RAM said it.
     """
     out = [".bloque %d" % (PAGINA_BYTES * len(mapa["paginas"])),
            "paginas_%d:" % numero]
-    # Qué eventos tienen alguna página con ruta propia: el refresco de la ROM
-    # sólo mira las páginas de ésos, y con los demás no gasta ni una lectura.
+    # Which events have some page with its own route: the ROM's refresh only
+    # looks at the pages of those, and doesn't spend a single read on the rest.
     con_ruta = {p["evento"] for p in mapa["paginas"] if p.get("ruta_propia")}
-    # Y cuáles cambian de gráfico con la página: el refresco también mira las
-    # de ésos, bit 5, y les copia a la fila lo que la página activa dibuja.
+    # And which ones change graphic with the page: the refresh also looks at
+    # those, bit 5, and copies to the row what the active page draws.
     cambian = mapa.get("cambian", set())
-    # Y cuáles sólo aparecen y desaparecen con ella: los que caminan. Van por
-    # el **mismo** bit 5, porque en +13 no queda ninguno libre —con ruta propia
-    # los cinco de abajo son las banderas de la ruta, y el 4 es "la animación
-    # sigue quieto"—. Quien los distingue es la ROM, que ya sabe si la fila
-    # camina: `npc_buf + 9` vale NPC_QUIETO o el banco de sus doce poses. Ver
-    # `grafico_de_pagina` en tools/runtime/paginas_de_eventos.s.
+    # And which ones only appear and disappear with it: the ones that walk.
+    # They go by the **same** bit 5, because none is left free in +13 —with an
+    # own route the five low ones are the route's flags, and 4 is "the
+    # animation continues while still"—. The one telling them apart is the
+    # ROM, which already knows whether the row walks: `npc_buf + 9` holds
+    # NPC_QUIETO or the bank of its twelve poses. See `grafico_de_pagina` in
+    # tools/runtime/paginas_de_eventos.s.
     aparecen = mapa.get("aparecen", set())
-    # Y cuáles tienen alguna página automática que compiló: bit 7. El refresco
-    # de la ROM tiene que saber si la página activa de un evento es automática
-    # —de ahí sale qué arranca solo— y con esto se ahorra leer las páginas de
-    # los eventos que no pueden serlo nunca. Es el mismo truco que el bit 6.
+    # And which ones have some automatic page that compiled: bit 7. The ROM's
+    # refresh has to know whether an event's active page is automatic —that
+    # is where what starts on its own comes from— and with this it saves
+    # reading the pages of the events that can never be. It is the same trick
+    # as bit 6.
     #
-    # Las **paralelas** van por este mismo bit, y no por uno propio: en +13 no
-    # queda ninguno libre. El bit quiere decir "mirale las páginas a este
-    # evento en el refresco", que es lo que las dos necesitan; quién es
-    # automática y quién paralela lo dice el trigger de la que gane. Sin esto,
-    # `elegir_paginas` ni siquiera anota cuál es la activa —filtra por $E0— y
-    # `paralelos_tick` no tendría de dónde sacar su código.
+    # The **parallel** ones go by this same bit, and not by one of their own:
+    # none is left free in +13. The bit means "look at this event's pages in
+    # the refresh", which is what both need; which is automatic and which is
+    # parallel is said by the trigger of the one that wins. Without this,
+    # `elegir_paginas` doesn't even note which one is active —it filters by
+    # $E0— and `paralelos_tick` would have nowhere to get its code from.
     con_auto = {p["evento"] for p in mapa["paginas"]
                 if p["trigger"] in (eventos.TRIGGER_AUTOMATICO,
                                     eventos.TRIGGER_PARALELO) and p["codigo"]}
@@ -4149,24 +4152,24 @@ def tabla_de_paginas(mapa, numero, evcodigo):
             destino = "%s + %d" % (evcodigo, pagina["offset"])
             puntero = "<(%s), >(%s), ^(%s)" % (destino, destino, destino)
         else:
-            puntero = "$00, $00, $00"   # sin código: no hay nada que correr
-        out.append("    .word %-4d ; +0  el evento al que pertenece"
+            puntero = "$00, $00, $00"   # no code: nothing to run
+        out.append("    .word %-4d ; +0  the event it belongs to"
                    % pagina["evento"])
-        out.append("    .byte %-4d ; +2  su número de página" % pagina["pagina"])
-        out.append("    .byte %-4d ; +3  qué la dispara" % pagina["trigger"])
-        out.append("    .word %-4d ; +4  switch que pide, o 0" % pagina["switch_a"])
-        out.append("    .word %-4d ; +6  el segundo, o 0" % pagina["switch_b"])
-        out.append("    .byte %s ; +8  su código" % puntero)
-        out.append("    .byte %-4d ; +11 el actor que pide en el grupo, o 0"
+        out.append("    .byte %-4d ; +2  its page number" % pagina["pagina"])
+        out.append("    .byte %-4d ; +3  what triggers it" % pagina["trigger"])
+        out.append("    .word %-4d ; +4  switch it asks for, or 0" % pagina["switch_a"])
+        out.append("    .word %-4d ; +6  the second, or 0" % pagina["switch_b"])
+        out.append("    .byte %s ; +8  its code" % puntero)
+        out.append("    .byte %-4d ; +11 the actor it asks for in the party, or 0"
                    % pagina["actor"])
-        out.append("    .byte %-4d ; +12 su capa: 1 es la del héroe, la que "
-                   "le cierra el paso" % pagina["capa"])
+        out.append("    .byte %-4d ; +12 its layer: 1 is the hero's, the one "
+                   "that blocks its way" % pagina["capa"])
         propia = pagina.get("ruta_propia")
         if propia:
-            # La ruta propia de la página, la que camina sola: ver
-            # `eventos.ruta_propia`. Las banderas: bit 0 la tiene, 1 se
-            # repite, 2 se saltea lo bloqueado, 3 mira siempre igual, 4 la
-            # animación sigue quieto.
+            # The page's own route, the one it walks by itself: see
+            # `eventos.ruta_propia`. The flags: bit 0 it has one, 1 it
+            # repeats, 2 it skips what is blocked, 3 it always faces the same
+            # way, 4 the animation continues while still.
             banderas = (1 | (2 if propia["repite"] else 0)
                         | (4 if propia["saltable"] else 0)
                         | (8 if propia["dir_fija"] else 0)
@@ -4175,85 +4178,87 @@ def tabla_de_paginas(mapa, numero, evcodigo):
                                  or pagina["evento"] in aparecen else 0)
                         | (128 if pagina["evento"] in con_auto else 0))
             destino = "%s + %d" % (evcodigo, pagina["ruta_offset"])
-            out.append("    .byte %-4d ; +13 las banderas de su ruta propia"
+            out.append("    .byte %-4d ; +13 the flags of its own route"
                        % banderas)
-            out.append("    .byte %-4d ; +14 su frecuencia" % propia["frecuencia"])
-            out.append("    .byte %-4d ; +15 y su velocidad" % propia["velocidad"])
-            out.append("    .byte <(%s), >(%s), ^(%s) ; +16 sus órdenes"
+            out.append("    .byte %-4d ; +14 its frequency" % propia["frecuencia"])
+            out.append("    .byte %-4d ; +15 and its speed" % propia["velocidad"])
+            out.append("    .byte <(%s), >(%s), ^(%s) ; +16 its commands"
                        % (destino, destino, destino))
-            out.append("    .byte %-4d ; +19 cuántas" % len(propia["ordenes"]))
+            out.append("    .byte %-4d ; +19 how many" % len(propia["ordenes"]))
         else:
-            out.append("    .byte %-4d ; +13 sin ruta propia; el bit 6 dice si "
-                       "otra página del evento la tiene, el 5 si el gráfico "
-                       "sigue a la página, el 7 si el evento tiene alguna "
-                       "automática"
+            out.append("    .byte %-4d ; +13 no own route; bit 6 says whether "
+                       "another page of the event has one, 5 whether the "
+                       "graphic follows the page, 7 whether the event has some "
+                       "automatic one"
                        % ((64 if pagina["evento"] in con_ruta else 0)
                           | (32 if pagina["evento"] in cambian
                                    or pagina["evento"] in aparecen else 0)
                           | (128 if pagina["evento"] in con_auto else 0)))
-            out.append("    .byte %-4d ; +14 su frecuencia" % pagina["frecuencia"])
-            out.append("    .byte %-4d ; +15 y su velocidad, la de una ruta "
-                       "forzada sobre el evento" % pagina["velocidad"])
+            out.append("    .byte %-4d ; +14 its frequency" % pagina["frecuencia"])
+            out.append("    .byte %-4d ; +15 and its speed, that of a route "
+                       "forced on the event" % pagina["velocidad"])
             out.append("    .byte 0,0,0,0")
-        # +20..+23: lo que dibuja la página, para los eventos que cambian de
-        # gráfico: el tile, los atributos con la paleta y la prioridad de su
-        # capa, la pose con el bit 7 puesto si hay gráfico, y los bits de
-        # paso de su tile o $FF. Es lo que el refresco copia a la fila.
+        # +20..+23: what the page draws, for the events that change graphic:
+        # the tile, the attributes with the palette and the priority of its
+        # layer, the pose with bit 7 set if there is a graphic, and the
+        # passage bits of its tile or $FF. It is what the refresh copies to
+        # the row.
         oam = pagina.get("oam")
         if oam is None:
-            out.append("    .byte $00, $00, $00, $FF ; +20 sin gráfico")
+            out.append("    .byte $00, $00, $00, $FF ; +20 no graphic")
         else:
-            out.append("    .byte $%02X, $%02X, $%02X, $%02X ; +20 su gráfico: "
-                       "tile, atributos, pose, paso" % oam)
-        # +24..+27: la condición por variable: la ranura o $FF, cómo se
-        # compara —==, >=, <=, >, <, !=— y contra qué, con signo. Es lo que
-        # `condiciones_ok` le pasa a `comparar_var`.
+            out.append("    .byte $%02X, $%02X, $%02X, $%02X ; +20 its graphic: "
+                       "tile, attributes, pose, passage" % oam)
+        # +24..+27: the variable condition: the slot or $FF, how it is
+        # compared —==, >=, <=, >, <, !=— and against what, signed. It is what
+        # `condiciones_ok` passes to `comparar_var`.
         variable = pagina.get("variable")
         if variable is None:
-            out.append("    .byte $FF, 0 ; +24 sin condición por variable")
+            out.append("    .byte $FF, 0 ; +24 no variable condition")
             out.append("    .word 0")
         else:
             ranura, comparacion, contra = variable
-            out.append("    .byte %d, %d ; +24 la variable que pide y la "
-                       "comparación" % (ranura, comparacion))
-            out.append("    .word %d ; +26 contra qué" % (contra & 0xFFFF))
-        # +28: el ítem que pide tener, o 0: `condiciones_ok` mira su cuenta
-        # en `FAR_ITEMS`.
-        out.append("    .word %-4d ; +28 el ítem que pide, o 0" % pagina["item"])
-        # +30 y +31: el giro hacia el héroe. En qué entrada de `npc_poses`
-        # están las poses de su gráfico, o $FF si la página no gira, y su
-        # pose. Al dispararse, la ROM sube la que mira al héroe; en un
-        # refresco, un cambio a una página que no gira o con otro gráfico
-        # deshace el giro. Ver GIRO en eventos.py.
+            out.append("    .byte %d, %d ; +24 the variable it asks for and the "
+                       "comparison" % (ranura, comparacion))
+            out.append("    .word %d ; +26 against what" % (contra & 0xFFFF))
+        # +28: the item it asks to have, or 0: `condiciones_ok` looks at its
+        # count in `FAR_ITEMS`.
+        out.append("    .word %-4d ; +28 the item it asks for, or 0" % pagina["item"])
+        # +30 and +31: the turn toward the hero. Which entry of `npc_poses`
+        # the poses of its graphic are in, or $FF if the page doesn't turn,
+        # and its pose. When triggered, the ROM uploads the one facing the
+        # hero; on a refresh, a change to a page that doesn't turn or has
+        # another graphic undoes the turn. See GIRO in eventos.py.
         grafico = pagina.get("grafico")
         k = (mapa.get("giro_k", {}).get(tuple(grafico[:2]))
              if pagina.get("gira") and grafico and pagina["evento"] in
              mapa.get("giran", ()) else None)
-        out.append("    .byte $%02X, %d ; +30 el giro: sus poses y su pose"
+        out.append("    .byte $%02X, %d ; +30 the turn: its poses and its pose"
                    % (0xFF if k is None else k, grafico[2] if k is not None else 0))
         assert PAGINA_BYTES == 32
     if not mapa["paginas"]:
-        out.append("    .byte $00")     # una etiqueta no puede quedar vacía
+        out.append("    .byte $00")     # a label can't be left empty
     return "\n".join(out)
 
 
 class Materiales:
-    """Los bloques de datos de la ROM, con identidad propia y no del mapa.
+    """The ROM's data blocks, with an identity of their own and not the map's.
 
-    Antes cada mapa emitía sus bloques con su número pegado —`map_tiles_0`,
-    `map_tiles_1`— y el registro del mapa armaba el nombre del puntero con esa
-    misma cuenta. O sea que la identidad de un bloque **era** el mapa que lo
-    pidió, y dos mapas con los mismos tiles se los pagaban dos veces sin que
-    hubiera dónde notarlo.
+    Each map used to emit its blocks with its number attached —`map_tiles_0`,
+    `map_tiles_1`— and the map record built the pointer's name with that same
+    computation. That is, a block's identity **was** the map that asked for
+    it, and two maps with the same tiles paid for them twice without anywhere
+    to notice.
 
-    Acá el bloque tiene nombre propio y el mapa guarda a cuál apunta, que es lo
-    que hay que tener antes de poder compartir nada. La numeración sigue siendo
-    por clase y en orden de mapa, así que sin deduplicar los nombres son los
-    mismos de siempre y la ROM sale byte por byte igual: es a propósito, para
-    que este paso se pueda verificar sin depender de la tanda.
+    Here the block has a name of its own and the map stores which one it
+    points to, which is what is needed before anything can be shared. The
+    numbering is still per class and in map order, so without deduplicating
+    the names are the usual ones and the ROM comes out byte for byte the
+    same: it is on purpose, so that this step can be verified without
+    depending on the suite.
 
-    Las poses ya funcionaban así desde antes —`indice_global` en `emit`— y es
-    de donde sale la forma.
+    The poses already worked this way from before —`indice_global` in `emit`—
+    and that is where the shape comes from.
     """
 
     def __init__(self, deduplicar=False, comprimidos=None):
@@ -4262,18 +4267,18 @@ class Materiales:
         self.cuantos = collections.Counter()
         self.ahorro = collections.Counter()
         self.repetidos = collections.Counter()
-        # {bytes crudos: su flujo LZ2}, ya comprimidos de una vez: ver
-        # `comprimir_los_bloques`. Y cuánto pesaba y pesa cada clase, de los
-        # bloques que sí se emitieron.
+        # {raw bytes: their LZ2 stream}, already compressed in one go: see
+        # `comprimir_los_bloques`. And how much each class weighed and weighs,
+        # of the blocks that were emitted.
         self.comprimidos = comprimidos or {}
         self.crudo = collections.Counter()
         self.lz2 = collections.Counter()
 
     def guardar_comprimido(self, clase, datos):
-        """Como `guardar`, pero lo que va al cartucho es su flujo LZ2, o sus
-        flujos pegados si el bloque va en trozos: ver `partes_comprimidas`.
-        Se deduplica por el contenido crudo, que es lo mismo que por el
-        flujo."""
+        """Like `guardar`, but what goes to the cartridge is its LZ2 stream, or
+        its streams stuck together if the block goes in pieces: see
+        `partes_comprimidas`. It is deduplicated by the raw content, which is
+        the same as by the stream."""
         datos = bytes(datos)
         flujo = b"".join(self.comprimidos[parte]
                          for parte in partes_comprimidas(clase, datos))
@@ -4284,11 +4289,12 @@ class Materiales:
         return etiqueta, texto
 
     def guardar(self, clase, datos, alinear=None):
-        """(etiqueta, el asm a emitir). El asm es vacío si el bloque ya estaba.
+        """(label, the asm to emit). The asm is empty if the block was already
+        there.
 
-        La clave incluye la clase y el acomodo, no sólo el contenido: dos
-        bloques con los mismos bytes pero distinto `.bloque` o `.align` no
-        son el mismo bloque para el enlazador.
+        The key includes the class and the placement, not only the content:
+        two blocks with the same bytes but a different `.bloque` or `.align`
+        aren't the same block for the linker.
         """
         datos = bytes(datos)
         clave = (clase, alinear, datos)
@@ -4303,35 +4309,35 @@ class Materiales:
         return etiqueta, bloque(etiqueta, datos, alinear=alinear)
 
     def informe(self):
-        """Qué se compartió y cuánto se comprimió, para que el ahorro sea un
-        número y no una idea."""
-        lineas = ["  %-14s %6.1f KB en LZ2, eran %6.1f"
+        """What was shared and how much was compressed, so that the saving is a
+        number and not an idea."""
+        lineas = ["  %-14s %6.1f KB in LZ2, was %6.1f"
                   % (clase, self.lz2[clase] / 1024.0,
                      self.crudo[clase] / 1024.0)
                   for clase in CLASES_COMPRIMIDAS if self.crudo[clase]]
         if self.crudo:
-            lineas.append("  %-14s %6.1f KB en LZ2, eran %6.1f: %.1f KB menos"
+            lineas.append("  %-14s %6.1f KB in LZ2, was %6.1f: %.1f KB less"
                           % ("", sum(self.lz2.values()) / 1024.0,
                              sum(self.crudo.values()) / 1024.0,
                              (sum(self.crudo.values())
                               - sum(self.lz2.values())) / 1024.0))
         if not self.deduplicar or not self.ahorro:
             return lineas
-        return lineas + ["  %-14s %2d bloque(s) compartido(s), %6.1f KB"
+        return lineas + ["  %-14s %2d shared block(s), %6.1f KB"
                 % (clase, self.repetidos[clase], self.ahorro[clase] / 1024.0)
                 for clase, _ in self.ahorro.most_common()] + [
-            "  %-14s %2d              %6.1f KB en total"
+            "  %-14s %2d              %6.1f KB in total"
             % ("", sum(self.repetidos.values()),
                sum(self.ahorro.values()) / 1024.0)]
 
 
 def terreno_plano(mapa):
-    """El terreno que tiene todo el mapa, o 0 si tiene más de uno.
+    """The terrain the whole map has, or 0 if it has more than one.
 
-    El 0 no es un terreno: los de RM2k son índices de `Data.terrains` y
-    empiezan en 1, así que sirve de "acá hay tabla" sin gastar otro campo. Un
-    mapa con el terreno en 0 —que no existe— cae en la rama de la tabla, que
-    contesta lo mismo.
+    0 isn't a terrain: RM2k's are indices into `Data.terrains` and start at 1,
+    so it serves as "there is a table here" without spending another field. A
+    map with terrain 0 —which doesn't exist— falls into the table branch,
+    which answers the same.
     """
     unicos = set(mapa["terreno"])
     return unicos.pop() if len(unicos) == 1 else 0
@@ -4342,37 +4348,40 @@ def terreno_del_mapa(mapa):
             else bytes(mapa["terreno"]))
 
 
-# Lo que la ROM descomprime al cargar un mapa, por clase de bloque. Ver
-# `lz2_descomprimir` en tools/runtime/descomprimir.s.
+# What the ROM decompresses when loading a map, per block class. See
+# `lz2_descomprimir` in tools/runtime/descomprimir.s.
 CLASES_COMPRIMIDAS = ("map_tiles", "above_tiles", "sprite_tiles", "anim_tiles",
                       "map_celdas")
 
-# Lo más grande que puede medir cada flujo descomprimido, por dónde cae en la
-# WRAM: ver la reserva de LZ2 en tools/runtime/ram_lejana.s, que es de donde salen, y
-# `.assert` de descomprimir.s, que los cobra contra los de acá. Los tiles del
-# fondo se descomprimen antes que los dibujos de la animación y pueden pisar
-# su lugar; la capa de encima y los sprites van después y no.
+# The largest each decompressed stream can be, by where it lands in WRAM: see
+# the LZ2 reservation in tools/runtime/ram_lejana.s, which is where they come
+# from, and the `.assert` in descomprimir.s, which checks them against the
+# ones here. The background tiles are decompressed before the animation
+# drawings and can step on their place; the upper layer and the sprites go
+# after and can't.
 #
-# El del fondo es **por flujo**, no por bloque: un fondo de más de 32 KB —el
-# del mapa 66, con el reparto de 544 tiles— va en dos, y la ROM descomprime y
-# sube el primero antes de descomprimir el segundo encima: ver `lz2_fondo`.
+# The background's is **per stream**, not per block: a background of more
+# than 32 KB —that of map 66, with the 544-tile layout— goes in two, and the
+# ROM decompresses and uploads the first before decompressing the second on
+# top of it: see `lz2_fondo`.
 LZ2_TOPE_FONDO = 0x8000
 LZ2_TOPE_ENCIMA_Y_SPRITES = 0x6000
 LZ2_TOPE_ANIM = 0x2000
-LZ2_TOPE_GRILLA = 0x10000       # dos mitades de GRILLA_MITAD
+LZ2_TOPE_GRILLA = 0x10000       # two halves of GRILLA_MITAD
 
 
-# Lo que cuesta descomprimir en la ROM, en ciclos maestros, **por lo alto**:
-# medido el 2026-09-26 sobre los cuarenta mapas de `release`, contra la carga
-# sin comprimir, lo medido no pasa de este modelo por más de medio cuadro. Un
-# cuadro de NTSC son 357.954 ciclos maestros. Lo usa la cuenta del arranque.
+# What decompressing costs in the ROM, in master cycles, **on the high side**:
+# measured on 2026-09-26 over the forty maps of `release`, against loading
+# uncompressed, what was measured doesn't exceed this model by more than half
+# a frame. An NTSC frame is 357,954 master cycles. The boot computation uses
+# it.
 LZ2_CICLOS_POR_COMANDO = 700
 LZ2_CICLOS_POR_BYTE = 60
 CICLOS_POR_CUADRO = 357954
 
 
 def cuadros_de_descomprimir(mapa, comprimidos):
-    """Cuántos cuadros se lleva descomprimir los bloques de un mapa."""
+    """How many frames decompressing a map's blocks takes."""
     ciclos = 0
     for clase, datos in crudos_del_mapa(mapa).items():
         if clase not in CLASES_COMPRIMIDAS:
@@ -4385,8 +4394,9 @@ def cuadros_de_descomprimir(mapa, comprimidos):
 
 
 def comprimir_los_bloques(mapas):
-    """{bytes crudos: flujo LZ2} de todo lo que el cartucho lleva comprimido,
-    con un solo proceso de `lz2`. De paso cobra los topes de la WRAM."""
+    """{raw bytes: LZ2 stream} of everything the cartridge carries
+    compressed, with a single `lz2` process. Along the way it enforces the
+    WRAM caps."""
     partes = []
     for mapa in mapas:
         for clase, datos in crudos_del_mapa(mapa).items():
@@ -4398,21 +4408,21 @@ def comprimir_los_bloques(mapas):
     return dict(zip(partes, comprimir.comprimir_varios(partes)))
 
 
-# La grilla va a la mitad alta de los dos bancos de la WRAM —ver
-# `lz2_grilla`—, así que se comprime en dos flujos de hasta 32 KB: cada uno cae
-# entero en un banco, y el descompresor no tiene que saber cruzar.
+# The grid goes to the upper half of the two WRAM banks —see `lz2_grilla`—, so
+# it is compressed in two streams of up to 32 KB: each one lands whole in one
+# bank, and the decompressor doesn't have to know how to cross.
 GRILLA_MITAD = 0x8000
 
 
-# Y los tiles del fondo, en flujos de a lo que entra en el buffer de carga: la
-# ROM descomprime uno, lo sube por DMA y recién ahí descomprime el siguiente
-# en el mismo lugar —ver `lz2_fondo`—. Un fondo que entra en uno va en uno, y
-# eso deja a los mapas de siempre con el flujo de siempre.
-FONDO_FLUJOS_MAX = 2            # los que lee `lz2_fondo`
+# And the background tiles, in streams of whatever fits in the load buffer:
+# the ROM decompresses one, uploads it by DMA and only then decompresses the
+# next in the same place —see `lz2_fondo`—. A background that fits in one
+# goes in one, and that leaves the usual maps with the usual stream.
+FONDO_FLUJOS_MAX = 2            # the ones `lz2_fondo` reads
 
 
 def partes_comprimidas(clase, datos):
-    """Los trozos de un bloque que se comprimen cada uno en su flujo."""
+    """The pieces of a block that are each compressed in their own stream."""
     if clase == "map_celdas":
         return [datos[:GRILLA_MITAD], datos[GRILLA_MITAD:]]
     if clase == "map_tiles" and len(datos) > LZ2_TOPE_FONDO:
@@ -4421,9 +4431,9 @@ def partes_comprimidas(clase, datos):
     return [datos]
 
 
-# Cuánto entra en la WRAM de cada flujo, y cuántos flujos lee la ROM por
-# bloque. La grilla va siempre en dos, uno por mitad; los demás en uno, salvo
-# el fondo.
+# How much of each stream fits in WRAM, and how many streams the ROM reads per
+# block. The grid always goes in two, one per half; the rest in one, except
+# the background.
 TOPES_POR_FLUJO = {"map_tiles": (LZ2_TOPE_FONDO, FONDO_FLUJOS_MAX),
                    "above_tiles": (LZ2_TOPE_ENCIMA_Y_SPRITES, 1),
                    "sprite_tiles": (LZ2_TOPE_ENCIMA_Y_SPRITES, 1),
@@ -4432,26 +4442,27 @@ TOPES_POR_FLUJO = {"map_tiles": (LZ2_TOPE_FONDO, FONDO_FLUJOS_MAX),
 
 
 def controlar_flujos(map_id, clase, datos):
-    """Que cada flujo del bloque entre en su lugar de la WRAM, y que no haya
-    más flujos que los que la ROM lee. Un flujo que se pasa no rompe nada al
-    armar: la ROM lo descomprime igual y pisa lo que haya detrás —con el fondo
-    del 66, la mitad alta de la grilla—, y se ve o no según el mapa."""
+    """That each stream of the block fits in its WRAM place, and that there
+    aren't more streams than the ROM reads. A stream that goes over breaks
+    nothing when building: the ROM decompresses it anyway and steps on
+    whatever is behind —with map 66's background, the upper half of the
+    grid—, and it shows or not depending on the map."""
     tope, cuantos = TOPES_POR_FLUJO[clase]
     partes = partes_comprimidas(clase, datos)
     for parte in partes:
         if len(parte) > tope:
             raise SystemExit(
-                "mapa %d: un flujo de %s mide %d bytes y en la WRAM entran %d: "
-                "ver la reserva de LZ2 en tools/runtime/ram_lejana.s"
+                "map %d: a stream of %s is %d bytes and %d fit in WRAM: "
+                "see the LZ2 reservation in tools/runtime/ram_lejana.s"
                 % (map_id, clase, len(parte), tope))
     if len(partes) > cuantos:
         raise SystemExit(
-            "mapa %d: %s mide %d bytes, que son %d flujos, y la ROM lee %d"
+            "map %d: %s is %d bytes, which is %d streams, and the ROM reads %d"
             % (map_id, clase, len(datos), len(partes), cuantos))
 
 
 def crudos_del_mapa(mapa):
-    """{clase: los bytes sin comprimir} de un mapa, para `CLASES_COMPRIMIDAS`."""
+    """{class: the uncompressed bytes} of a map, for `CLASES_COMPRIMIDAS`."""
     above, sprite = mapa["above"], mapa["sprite"]
     return {"map_tiles": bytes(mapa["tiles"]),
             "above_tiles": bytes(above[0]),
@@ -4461,17 +4472,17 @@ def crudos_del_mapa(mapa):
 
 
 def escribir_crudos(directorio, mapas):
-    """Deja en `directorio/crudos/` lo que la ROM tiene que tener en la VRAM y
-    en la WRAM después de cargar cada mapa, sin comprimir: `<índice>.<clase>
-    .bin`, con el índice del mapa en la ROM.
+    """Leaves in `directorio/crudos/` what the ROM has to have in VRAM and in
+    WRAM after loading each map, uncompressed: `<index>.<class>.bin`, with the
+    map's index in the ROM.
 
-    Es la otra punta de las pruebas de la compresión: `test_lz2.py` hace la ida
-    y vuelta de cada bloque, y `test_carga_descomprimida.py` compara contra
-    esto lo que la ROM descomprimió. Viene del conversor y no de la ROM
-    justamente para que no sea la ROM la que se contesta a sí misma.
+    It is the other end of the compression tests: `test_lz2.py` does the round
+    trip of each block, and `test_carga_descomprimida.py` compares what the
+    ROM decompressed against this. It comes from the converter and not from
+    the ROM precisely so that it isn't the ROM answering itself.
 
-    Se borra entero antes de escribir: un mapa que salió del cartucho dejaría
-    su archivo, y una prueba que recorra el directorio lo miraría.
+    It is deleted entirely before writing: a map that left the cartridge would
+    leave its file, and a test that walks the directory would look at it.
     """
     donde = os.path.join(directorio, "crudos")
     if os.path.isdir(donde):
@@ -4485,11 +4496,11 @@ def escribir_crudos(directorio, mapas):
 
 
 def datos_del_mapa(mapa, numero, indice_global, materiales):
-    """Los bloques de datos de un mapa, con el número pegado a cada etiqueta.
+    """A map's data blocks, with the number attached to each label.
 
-    `indice_global` son las etiquetas de las doce poses de cada (CharSet,
-    índice) **tal como este mapa lo cuantizó**: ver `banco_de_poses`, y el
-    reparto de poses en `emit`.
+    `indice_global` are the labels of the twelve poses of each (CharSet,
+    index) **as this map quantized it**: see `banco_de_poses`, and the pose
+    split in `emit`.
     """
     above, sprite = mapa["above"], mapa["sprite"]
     pares = [
@@ -4501,16 +4512,16 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
         ("sprite_cgram", sprite_colors_bytes(sprite)),
         ("map_bloques", mapa["bloques"]),
         ("bloque_pass", mapa["pass"]),
-        # El terreno por bloque. Un mapa cuyo terreno es el mismo en todos
-        # lados —los 328 de este juego, que lo tienen en 1— emite **un byte**
-        # y `TERRENO_PLANO` dice cuál: la tabla entera serían unos ocho
-        # kilobytes de la nada repartidos entre los cuarenta mapas. El byte lo
-        # deduplica `materiales`, así que todos los mapas planos con el mismo
-        # terreno comparten el mismo.
+        # The terrain per block. A map whose terrain is the same everywhere
+        # —the 328 of this game, which have it at 1— emits **one byte** and
+        # `TERRENO_PLANO` says which: the whole table would be about eight
+        # kilobytes of nothing spread over the forty maps. The byte is
+        # deduplicated by `materiales`, so all flat maps with the same terrain
+        # share the same one.
         ("bloque_terreno", terreno_del_mapa(mapa)),
         ("npc_table", npc_bytes(sprite[3]) if sprite else b""),
-        # Dos bytes por gráfico de la orden 34: su entrada en `npc_poses` —o
-        # $FF, que es esconder— y su paleta. Ver `Graficos` en eventos.py.
+        # Two bytes per graphic of command 34: its entry in `npc_poses` —or
+        # $FF, which is hiding— and its palette. See `Graficos` in eventos.py.
         ("ruta_grafico",
          bytes(b for par in (sprite[9] if sprite else []) for b in par)),
         ("ev_pos", mapa["ev_pos"]),
@@ -4525,42 +4536,43 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
             etiquetas[nombre], texto = materiales.guardar(nombre, datos)
         if texto:
             out.append(texto)
-    # Las dos tablas de punteros a las poses de la ROM: la de los NPCs que
-    # caminan y la de los candidatos a líder.
+    # The two tables of pointers to the ROM's poses: that of the NPCs that
+    # walk and that of the leader candidates.
     animados = sprite[7] if sprite else []
     out.append(npc_poses_asm(numero, animados, indice_global))
     out.append(actor_table_asm(numero, sprite[4] if sprite else [],
                                animados, indice_global))
-    # La grilla, en sus dos flujos: ver `lz2_grilla`. Entera en un banco, como
-    # todo lo comprimido, porque el descompresor no cruza.
+    # The grid, in its two streams: see `lz2_grilla`. Whole within one bank,
+    # like everything compressed, because the decompressor doesn't cross.
     etiquetas["map_celdas"], texto = materiales.guardar_comprimido(
         "map_celdas", mapa["celdas"])
     if texto:
         out.append(texto)
     out.append(tabla_de_paginas(mapa, numero, etiquetas["evcodigo"]))
-    # Las tres que no se comparten son las que llevan **punteros simbólicos**
-    # adentro —a las poses de la ROM, al código de los eventos—: sus bytes los
-    # pone el enlazador, así que acá no hay contenido con el cual compararlas.
+    # The three that aren't shared are the ones that carry **symbolic
+    # pointers** inside —to the ROM's poses, to the events' code—: their bytes
+    # are set by the linker, so here there is no content to compare them by.
     for nombre in ("npc_poses", "actor_table", "paginas"):
         etiquetas[nombre] = "%s_%d" % (nombre, numero)
     return "\n".join(out), etiquetas
 
 
 def encuentros_de_la_rom(mapas, tree, pasos_de_prueba, tropas):
-    """Los encuentros al azar de cada mapa del cartucho, listos para emitir.
+    """The random encounters of each map of the cartridge, ready to emit.
 
-    Los datos viven en el árbol y no en el `.lmu`: cada nodo trae su lista de
-    tropas, cada cuántos pasos, y —si es un área— el rectángulo que tapa. Ver
-    `eventos.zonas_de_encuentro`.
+    The data lives in the tree and not in the `.lmu`: each node brings its
+    list of troops, every how many steps, and —if it is an area— the
+    rectangle it covers. See `eventos.zonas_de_encuentro`.
 
-    De paso **pide las tropas**, que es lo que hace que el cartucho lleve sus
-    enemigos y el paquete de audio de la pelea: sin eso un encuentro arrancaría
-    una batalla contra una tropa que no está en ninguna tabla.
+    Along the way it **asks for the troops**, which is what makes the
+    cartridge carry their enemies and the battle's audio package: without
+    that an encounter would start a battle against a troop that isn't in any
+    table.
 
-    `pasos_de_prueba` reemplaza el `encounter_steps` de todos los mapas. Es
-    para las ROMs de prueba: con los del juego —de 25 a 85— un encuentro tarda
-    más de cien pasos, que es lo que se quiere jugando y no lo que se quiere
-    en un caso de la tanda.
+    `pasos_de_prueba` replaces the `encounter_steps` of every map. It is for
+    the test ROMs: with the game's —from 25 to 85— an encounter takes more than
+    a hundred steps, which is what is wanted when playing and not what is
+    wanted in a case of the suite.
     """
     registros, zonas, tropas_de_zona, por_mapa = [], [], [], []
     for mapa in mapas:
@@ -4586,30 +4598,31 @@ def encuentros_de_la_rom(mapas, tree, pasos_de_prueba, tropas):
             tropas_de_zona += cuales
         registros.append(registro)
     if len(registros) > 0xFF or len(zonas) > 0xFF or len(tropas_de_zona) > 0xFF:
-        # Las tres tablas se indexan con un byte. Con los 53 mapas del juego
-        # entero son 53 registros, 56 zonas y 322 tropas, así que la que puede
-        # pasarse es la última —y hoy sólo en un cartucho que los lleve todos—.
-        sys.exit("los encuentros no entran en tablas de un byte: %d "
-                 "registro(s), %d zona(s), %d tropa(s)"
+        # The three tables are indexed with one byte. With the 53 maps of the
+        # whole game it is 53 records, 56 zones and 322 troops, so the one
+        # that can go over is the last —and today only in a cartridge that
+        # carries all of them—.
+        sys.exit("the encounters don't fit in one-byte tables: %d "
+                 "record(s), %d zone(s), %d troop(s)"
                  % (len(registros), len(zonas), len(tropas_de_zona)))
     return {"por_mapa": por_mapa, "registros": registros, "zonas": zonas,
             "tropas": tropas_de_zona}
 
 
-# El título de la cabecera de una ROM de SNES: 21 bytes, en `$FFC0`.
+# The header title of a SNES ROM: 21 bytes, at `$FFC0`.
 TITULO_CABECERA = 21
 
 
 def identidad_de_la_rom():
-    """Lo que la ROM dice de sí misma, del `[rom]` del archivo de proyecto:
-    el título de la cabecera, ya rellenado con blancos, y la firma de la
-    partida en la SRAM. Son `.define` porque son texto: `cabecera.s` y
-    `partida.s` los usan, y hasta el 2026-09-29 los tenían escritos."""
+    """What the ROM says about itself, from the `[rom]` of the project file:
+    the header title, already padded with blanks, and the save signature in
+    SRAM. They are `.define`s because they are text: `cabecera.s` and
+    `partida.s` use them, and until 2026-09-29 they had them written in."""
     titulo = perillas.ascii("rom", "title", hasta=TITULO_CABECERA)
     firma = perillas.ascii("rom", "sram_signature", largo=4)
-    return ("; Quién es la ROM, del archivo de proyecto: el título de la\n"
-            "; cabecera y la firma con que la SRAM dice que una ranura tiene\n"
-            "; una partida de este juego.\n"
+    return ("; Who the ROM is, from the project file: the header title and\n"
+            "; the signature with which the SRAM says a slot holds a save of\n"
+            "; this game.\n"
             '.define ROM_TITULO "%s"\n'
             '.define SRAM_MAGIA_TEXTO "%s"\n\n'
             % (titulo.ljust(TITULO_CABECERA), firma))
@@ -4620,19 +4633,20 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
          animaciones=None, tropas=(), audio_batalla=None, escenas=None,
          encuentros=None, paginas_tropa=None, comprimidos=None,
          hp_de_enemigos=False, game_over=None):
-    """El .inc que se ensambla junto con main.s.
+    """The .inc that is assembled together with main.s.
 
-    `hp_de_enemigos` es `--hp-de-enemigos`: si la pelea dibuja los HP de los
-    enemigos, que RM2k no muestra.
+    `hp_de_enemigos` is `--hp-de-enemigos`: whether the battle draws the
+    enemies' HP, which RM2k doesn't show.
 
-    `comprimidos` es lo de `comprimir_los_bloques`; si falta se comprime acá.
+    `comprimidos` is what `comprimir_los_bloques` returns; if missing it is
+    compressed here.
 
-    `titulo` es la pantalla de título —la imagen y su menú— y puede faltar;
-    `game_over`, la de Game Over, también: es lo de
-    `pantalla_completa.comprimida`.
-    `ranuras` es la pantalla de ranuras y **va siempre**: la abre el save point
-    desde adentro del juego, tenga la ROM título o no. Ver `pantalla_ranuras`
-    en menus.py.
+    `titulo` is the title screen —the image and its menu— and may be missing;
+    `game_over`, the Game Over one, too: it is what
+    `pantalla_completa.comprimida` returns.
+    `ranuras` is the slots screen and **always goes**: the save point opens it
+    from inside the game, whether the ROM has a title or not. See
+    `pantalla_ranuras` in menus.py.
     """
     for numero, mapa in enumerate(mapas):
         layout = mapa["layout"]
@@ -4643,14 +4657,14 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                  "sprites")):
             if cuantos > layout[nombre][1]:
                 raise SystemExit(
-                    "mapa %d: con este reparto de VRAM, %s necesita %d tiles y "
-                    "entran %d" % (mapa["id"], nombre, cuantos,
-                                   layout[nombre][1]))
+                    "map %d: with this VRAM layout, %s needs %d tiles and "
+                    "%d fit" % (mapa["id"], nombre, cuantos,
+                                layout[nombre][1]))
 
-    # Dónde quedó el cartel: el mapa de la tabla que se llevó sus tiles, y en
-    # qué tile y con qué paleta. Sale de los mapas ya convertidos y no de una
-    # variable que haya que ir pasando: el que lo tiene es el único con
-    # `imagen_base` distinto de cero.
+    # Where the sign ended up: the map of the table that took its tiles, and
+    # at which tile and with which palette. It comes from the already
+    # converted maps and not from a variable that has to be passed around: the
+    # one that has it is the only one with a nonzero `imagen_base`.
     cartel_base, cartel_pal = 0, 0
     for mapa in mapas:
         if mapa["sprite"] and mapa["sprite"][13]:
@@ -4658,56 +4672,57 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             break
 
     cabecera = (
-        "; Generado por tools/port/snes_convert.py. No editar.\n"
-        "; Mapas: %s\n\n"
+        "; Generated by tools/port/snes_convert.py. Do not edit.\n"
+        "; Maps: %s\n\n"
         "MAPA_COUNT   = %d\n"
         "MAPA_STRIDE  = %d\n"
         "MAPA_INICIAL = %d\n"
-        "; Lo que no depende del mapa: el tilemap de la capa de encima vive\n"
-        "; siempre en el mismo lugar de la VRAM —el del fondo lo elige el\n"
-        "; reparto, M_VRAM_MAP—, y el paso de la tabla de NPCs no cambia.\n"
+        "; What doesn't depend on the map: the upper layer's tilemap always\n"
+        "; lives in the same place in VRAM —the background's is chosen by the\n"
+        "; layout, M_VRAM_MAP—, and the NPC table's stride doesn't change.\n"
         "VRAM_ABOVE_MAP = $%04X\n"
         "MAP_LAYOUT  = %d\n"
         "NPC_STRIDE  = %d\n"
         "NPC_MAX     = %d\n"
         "NPC_QUIETO  = $%02X\n"
-        "; La tabla de posiciones de eventos, y cuántas rutas forzadas\n"
-        "; pueden estar corriendo a la vez sobre ellos.\n"
+        "; The event position table, and how many forced routes can be\n"
+        "; running on them at once.\n"
         "EV_STRIDE   = %d\n"
         "EV_MAX      = %d\n"
         "RUTA_EV_MAX = %d\n"
         "PAGINA_BYTES = %d\n"
         "GIRO_NINGUNO = $%04X\n"
-        "; Y cuántos gráficos distintos puede pedir la orden 34 en un mapa:\n"
-        "; su tabla se copia a la RAM como la de NPCs.\n"
+        "; And how many distinct graphics command 34 can ask for in a map:\n"
+        "; its table is copied to RAM like the NPC one.\n"
         "RUTA_GRAF_MAX = %d\n"
-        "; La cabecera de un cuadro de texto, que es el primer byte del que\n"
-        "; `OP_MESSAGE` nombra: los renglones en los tres bits de abajo, el\n"
-        "; autocierre del `\\^` en el bit 3 y cuantas pausas de `\\|` lleva en\n"
-        "; el nibble de arriba. Y cuanto dura cada pausa, que son 61 cuadros y\n"
-        "; no 60: ver CUADROS_DE_PAUSA en eventos.py.\n"
+        "; The header of a text box, which is the first byte of the one\n"
+        "; `OP_MESSAGE` names: the lines in the low three bits, the\n"
+        "; auto-close of `\\^` in bit 3 and how many `\\|` pauses it carries in\n"
+        "; the high nibble. And how long each pause lasts, which is 61 frames\n"
+        "; and not 60: see CUADROS_DE_PAUSA in eventos.py.\n"
         "CABECERA_LINEAS     = $%02X\n"
         "CABECERA_AUTOCIERRE = $%02X\n"
         "CUADROS_DE_PAUSA    = %d\n"
-        "; El bit de arriba del byte de banderas de los opcodes que escriben\n"
-        "; una variable: si la escritura pide el refresco de páginas. Lo\n"
-        "; resuelve el conversor mirando qué variables miran las condiciones\n"
-        "; de página de este mapa; `var_apuntar` enmascara la ranura con\n"
-        "; VAR_RANURA. Ver VAR_REFRESCO en eventos.py: sin esto media Lashe\n"
-        "; City corría a 30 cuadros.\n"
+        "; The top bit of the flags byte of the opcodes that write a\n"
+        "; variable: whether the write asks for the page refresh. The\n"
+        "; converter resolves it by looking at which variables this map's\n"
+        "; page conditions look at; `var_apuntar` masks the slot with\n"
+        "; VAR_RANURA. See VAR_REFRESCO in eventos.py: without this half of\n"
+        "; Lashe City ran at 30 frames.\n"
         "VAR_REFRESCO = $%02X\n"
         "VAR_RANURA   = $%02X\n"
         "ANIM_ENTRADA = %d\n"
         "ANIM_SONIDO  = %d\n"
         "ANIM_DESTELLO = %d\n"
-        "; El cartel del ShowPicture: dónde cae su esquina en la pantalla\n"
-        "; de la consola y cuántos objetos de 32x32 mide.\n"
-        "; Las coordenadas ya vienen escaladas de 320x240 a 256x224 y la X\n"
-        "; puede ser negativa: el cartel del \"1 year earlier\" se sale por la\n"
-        "; izquierda, que es lo que RM2k muestra. Ver tools/port/imagen.py.\n"
-        "; Las banderas de `KeyInputProc`, que van en el segundo byte de\n"
-        # `rom/src/` a propósito: va al `.inc`, que no se toca todavía.
-        "; OP_KEY. Ver `op_key` en rom/src/interprete_teclas_y_esperas.s.\n"
+        "; The ShowPicture sign: where its corner falls on the console's\n"
+        "; screen and how many 32x32 objects it measures.\n"
+        "; The coordinates already come scaled from 320x240 to 256x224 and X\n"
+        "; can be negative: the \"1 year earlier\" sign goes off the left\n"
+        "; edge, which is what RM2k shows. See tools/port/imagen.py.\n"
+        "; The flags of `KeyInputProc`, which go in the second byte of\n"
+        # `rom/src/` on purpose: it goes into the `.inc`, which isn't touched
+        # yet.
+        "; OP_KEY. See `op_key` in rom/src/interprete_teclas_y_esperas.s.\n"
         "TECLA_ESPERA   = $%02X\n"
         "TECLA_DIRS     = $%02X\n"
         "TECLA_DECISION = $%02X\n"
@@ -4715,30 +4730,30 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "TECLA_ARRANCA  = $%02X\n"
         "TECLA_VALOR_DECISION = %d\n"
         "TECLA_VALOR_CANCELAR = %d\n"
-        "; Y las cuatro direcciones, con el mismo número que les da\n"
-        "; `CheckInput`. El orden en que se miran sale de acá: de mayor a\n"
-        "; menor, que es lo que dice \"RPG processes keys from highest\n"
-        "; variable value to lowest\".\n"
+        "; And the four directions, with the same number `CheckInput` gives\n"
+        "; them. The order they are checked in comes from here: from highest\n"
+        "; to lowest, which is what \"RPG processes keys from highest\n"
+        "; variable value to lowest\" says.\n"
         "TECLA_VALOR_ARRIBA   = %d\n"
         "TECLA_VALOR_DERECHA  = %d\n"
         "TECLA_VALOR_IZQUIERDA = %d\n"
         "TECLA_VALOR_ABAJO    = %d\n"
-        "; En qué tile de su banco de sprites arranca y con qué paleta.\n"
-        "; Van de globales y no en el registro del mapa porque el cartel es\n"
-        "; **uno solo por ROM** y vive en un solo mapa: los dos campos\n"
-        "; ocupaban los últimos bytes libres de MAPA_STRIDE, y agrandar el\n"
-        "; registro para eso habría sido caro por nada. Que ningún otro mapa\n"
-        "; lo muestre lo controla el conversor, que corta.\n"
+        "; Which tile of its sprite bank it starts at and with which palette.\n"
+        "; They are globals and not in the map record because the sign is\n"
+        "; **a single one per ROM** and lives in a single map: the two fields\n"
+        "; took the last free bytes of MAPA_STRIDE, and growing the record\n"
+        "; for that would have been expensive for nothing. That no other map\n"
+        "; shows it is enforced by the converter, which stops.\n"
         "IMAGEN_BASE = %d\n"
         "IMAGEN_PAL  = %d\n"
         "IMAGEN_X    = %d\n"
         "IMAGEN_Y    = %d\n"
         "IMAGEN_OBJETOS = %d\n"
-        "; Cuántos tiles de la grilla de nombres hay que saltear para pasar\n"
-        "; de un objeto al siguiente, y de una fila de cuatro a la que sigue.\n"
+        "; How many tiles of the name grid have to be skipped to go from one\n"
+        "; object to the next, and from a row of four to the following one.\n"
         "IMAGEN_PASO = %d\n"
         "IMAGEN_FILA = %d\n"
-        "; La lluvia: ver OP_WEATHER en eventos.py.\n"
+        "; The rain: see OP_WEATHER in eventos.py.\n"
         "LLUVIA_GOTAS_MAX = %d\n"
         "LLUVIA_GOTAS_0 = %d\n"
         "LLUVIA_GOTAS_1 = %d\n"
@@ -4747,161 +4762,162 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "LLUVIA_NACE   = %d\n"
         "LLUVIA_SEMILLA = $%04X\n"
         "CLIMA_LLUVIA  = %d\n"
-        "; El inventario: un byte por ítem del LDB y el tope de RM2k. Ver\n"
-        "; OP_ITEM en eventos.py.\n"
+        "; The inventory: one byte per item of the LDB and RM2k's cap. See\n"
+        "; OP_ITEM in eventos.py.\n"
         "ITEMS_N       = %d\n"
         "ITEM_MAX      = %d\n"
-        "; Las variables: cuántas ranuras lleva esta ROM —al menos una, porque\n"
-        "; un largo cero cerraría la tabla de la partida—, las clases de\n"
-        "; operando de ControlVars que la ROM distingue, la suma, y la\n"
-        "; semilla del azar. Ver 'las variables de RM2k' en eventos.py.\n"
+        "; The variables: how many slots this ROM carries —at least one,\n"
+        "; because a zero length would close the save table—, the ControlVars\n"
+        "; operand classes the ROM distinguishes, the sum, and the random\n"
+        "; seed. See 'las variables de RM2k' in eventos.py.\n"
         "VARIABLES_N   = %d\n"
         "VAR_SUMAR     = %d\n"
         "VAR_VARIABLE  = %d\n"
         "VAR_AZAR      = %d\n"
         "VAR_OTRO      = %d\n"
-        "; La clase 6, las coordenadas de un personaje: el blanco va como el de\n"
-        "; OP_ROUTE —0 el héroe, el índice del evento más uno— y el otro operando\n"
-        "; dice cuál coordenada. Ver VAR_PERSONAJE en eventos.py.\n"
+        "; Class 6, a character's coordinates: the target goes like that of\n"
+        "; OP_ROUTE —0 the hero, the event's index plus one— and the other\n"
+        "; operand says which coordinate. See VAR_PERSONAJE in eventos.py.\n"
         "VAR_PERSONAJE = %d\n"
         "PERSONAJE_X   = %d\n"
         "PERSONAJE_Y   = %d\n"
-        "; Los bits de arriba de cada escritura de OP_CELL_TEST. Ver CELDA_Y en\n"
+        "; The high bits of each OP_CELL_TEST write. See CELDA_Y in\n"
         "; eventos.py.\n"
         "CELDA_Y       = $%04X\n"
         "CELDA_REFRESCO = $%04X\n"
         "AZAR_SEMILLA  = $%04X\n"
-        "; Y la del azar de los encuentros, que es otra a propósito: caminar no\n"
-        "; le corre el azar al mapa. Ver ENC_SEMILLA en eventos.py.\n"
+        "; And the one for the encounters' randomness, which is a different\n"
+        "; one on purpose: walking doesn't advance the map's randomness. See\n"
+        "; ENC_SEMILLA in eventos.py.\n"
         "ENC_SEMILLA   = $%04X\n"
         "TIMER_PONER_VAR = %d\n"
-        "; Las clases de condición de ConditionalBranch que sabemos,\n"
-        "; con el número de RM2k tal cual.\n"
+        "; The ConditionalBranch condition classes we know, with the RM2k\n"
+        "; number as is.\n"
         "COND_ORO    = %d\n"
         "COND_ITEM   = %d\n"
         "COND_ACTOR  = %d\n"
-        "; Y las dos preguntas de actor que llevan dos operandos, con su\n"
-        "; opcode propio: ver OP_IF_ACTOR en eventos.py.\n"
+        "; And the two actor questions that carry two operands, with their\n"
+        "; own opcode: see OP_IF_ACTOR in eventos.py.\n"
         "COND_ACTOR_HABILIDAD = %d\n"
         "COND_ACTOR_EQUIPO    = %d\n"
         "ORO_MAX     = %d\n"
-        "; Las dos operaciones de PanScreen que compilan.\n"
+        "; The two PanScreen operations that compile.\n"
         "PAN_CORRER  = %d\n"
         "PAN_VOLVER  = %d\n"
-        "; Las tres operaciones del cronómetro.\n"
+        "; The three timer operations.\n"
         "TIMER_PONER    = %d\n"
         "TIMER_ARRANCAR = %d\n"
-        "; Y sus cinco glifos en pantalla: dónde va el primero y cuánto\n"
-        "; mide cada uno. El de los dos puntos es el número 10.\n"
+        "; And its five glyphs on screen: where the first goes and how wide\n"
+        "; each one is. The colon's is number 10.\n"
         "TIMER_X        = %d\n"
         "TIMER_Y        = %d\n"
         "TIMER_GLIFO_W  = %d\n"
         "TIMER_DOS_PUNTOS = %d\n"
-        "; Cuántos cuadros entran en un segundo, y los que `SetTimer` le\n"
-        "; suma de más para que el primer segundo se vea entero.\n"
+        "; How many frames fit in a second, and the extra ones `SetTimer`\n"
+        "; adds so that the first second shows whole.\n"
         "TIMER_CUADROS  = %d\n"
         "TIMER_DE_MAS   = %d\n"
-        "; Cuántos destellos pueden estar corriendo a la vez.\n"
+        "; How many flashes can be running at once.\n"
         "FLASH_MAX   = %d\n"
-        "; Cuántos eventos con página paralela puede haber en un mapa.\n"
+        "; How many events with a parallel page there can be in a map.\n"
         "PARALELO_MAX = %d\n"
         "TRIGGER_AUTOMATICO = %d\n"
         "TRIGGER_ACCION     = %d\n"
         "TRIGGER_TOCA_HEROE = %d\n"
         "TRIGGER_PARALELO   = %d\n"
-        "; Cuántos cuadros dura un paso de una celda. Sale de eventos.py y no\n"
-        "; de una cuenta en la ROM.\n"
+        "; How many frames a one-cell step lasts. It comes from eventos.py and\n"
+        "; not from a computation in the ROM.\n"
         "CUADROS_POR_CELDA = %d\n"
-        "; La frecuencia más alta de una ruta, que es donde topan las\n"
-        "; órdenes 30 y 31. La más baja la topa la ROM en 1, como RM2k;\n"
-        "; lo que garantiza que no se llegue es el conversor, que rechaza\n"
-        "; la ruta.\n"
+        "; A route's highest frequency, which is where commands 30 and 31\n"
+        "; cap. The lowest is capped by the ROM at 1, like RM2k; what\n"
+        "; guarantees it isn't reached is the converter, which rejects the\n"
+        "; route.\n"
         "RUTA_FRECUENCIA = %d\n"
-        "; Y cuánto cuesta un `wait` adentro de una ruta forzada. **No es un\n"
-        "; cuadro**: en RM2k es `SetMaxStopCountForWait`, o sea\n"
-        "; `20 + (1 << (8 - frecuencia))`, y con la frecuencia 8 —la única\n"
-        "; que el conversor deja pasar— son veinte.\n"
+        "; And how much a `wait` inside a forced route costs. **It isn't one\n"
+        "; frame**: in RM2k it is `SetMaxStopCountForWait`, that is\n"
+        "; `20 + (1 << (8 - frecuencia))`, and with frequency 8 —the only\n"
+        "; one the converter lets through— it is twenty.\n"
         "RUTA_ESPERA = %d\n"
-        "; Y el salto: cuánto le queda al arrancar. Cuánto baja por cuadro\n"
-        "; depende de la velocidad —`salto_por_vel`— y no de la distancia.\n"
+        "; And the jump: how much is left when it starts. How much it drops\n"
+        "; per frame depends on the speed —`salto_por_vel`— and not on the\n"
+        "; distance.\n"
         "SALTO_PASO = %d\n"
         "TINTE_NEUTRO = %d\n"
-        "; El fundido de los teletransportes: 35 cuadros de ida y 35 de\n"
-        "; vuelta, como RM2k, y de cada 35 la rampa son 24. El mapa se carga\n"
-        "; en el primer cuadro negro, que es el %d. Estos números y la tabla\n"
-        "; de más abajo salen de las constantes del fundido de\n"
-        "; tools/port/eventos.py.\n"
+        "; The teleport fade: 35 frames out and 35 back, like RM2k, and of\n"
+        "; each 35 the ramp is 24. The map is loaded on the first black\n"
+        "; frame, which is number %d. These numbers and the table below come\n"
+        "; from the fade constants of tools/port/eventos.py.\n"
         "FUNDIDO_CUADROS = %d\n"
         "FUNDIDO_TOTAL   = %d\n"
         "FUNDIDO_RAMPA   = %d\n"
         "FUNDIDO_NEGRO   = %d\n"
         "FUNDIDO_CARGA   = %d\n"
         "BRILLO_MAX      = %d\n"
-        "; Las transiciones del teletransporte que la ROM hace con el mosaico\n"
-        "; y con el corte; cualquier otra es el fundido. Ver\n"
-        "; `ChangeScreenTransitions` en tools/port/eventos.py.\n"
+        "; The teleport transitions the ROM does with the mosaic and with\n"
+        "; the cut; any other is the fade. See `ChangeScreenTransitions` in\n"
+        "; tools/port/eventos.py.\n"
         "TRANSICION_MOSAICO = %d\n"
         "TRANSICION_CORTE   = %d\n"
-        "; Los pesos de luminancia del Y'CbCr, que son con los que RM2k\n"
-        "; satura. Suman 65536 exactos, así que sobre canales de cinco bits\n"
-        "; dan una luminancia de cinco bits sin reescalar nada.\n"
+        "; The Y'CbCr luminance weights, which are the ones RM2k saturates\n"
+        "; with. They add up to exactly 65536, so over five-bit channels they\n"
+        "; give a five-bit luminance without rescaling anything.\n"
         "LUZ_R = %d\n"
         "LUZ_G = %d\n"
         "LUZ_B = %d\n"
-        "; Un bit por switch. El más alto que el juego consulta es el 1003.\n"
+        "; One bit per switch. The highest the game checks is 1003.\n"
         "SWITCH_BYTES = %d\n"
-        "; El grupo con el que arranca la partida, y su tope. En RM2k el\n"
-        "; gráfico del héroe es el del primero, así que esto decide qué\n"
-        "; sprite se dibuja; `ChangePartyMembers` lo mueve en caliente.\n"
+        "; The party the game starts with, and its cap. In RM2k the hero's\n"
+        "; graphic is the first one's, so this decides which sprite is\n"
+        "; drawn; `ChangePartyMembers` moves it on the fly.\n"
         "GRUPO_MAX      = %d\n"
         "GRUPO_INICIAL_N = %d\n"
         "ACTOR_BYTES    = %d\n"
-        "; Cuántos bytes de esa entrada son los quince colores del\n"
-        "; actor: la ROM los sube a la ranura que los líderes\n"
-        "; comparten. Ver `elegir_grafico_heroe`.\n"
+        "; How many bytes of that entry are the actor's fifteen colors: the\n"
+        "; ROM uploads them to the slot the leaders share. See\n"
+        "; `elegir_grafico_heroe`.\n"
         "ACTOR_COLORES  = %d\n"
         "OBJ_COLORS     = %d\n"
-        "; La capa del héroe, para ordenarlo contra los NPCs.\n"
+        "; The hero's layer, to sort it against the NPCs.\n"
         "HERO_LAYER  = %d\n"
-        "; Su prioridad de objeto. $10 —debajo de la capa de encima— en\n"
-        "; toda ROM que no sea la de `encima`, que la sube a $20\n"
-        "; para ejercitar la prioridad 2. Ningún evento del juego llega\n"
-        "; a ejercitarla: ver `test_encima` en test_caminar_golden.py.\n"
+        "; Its object priority. $10 —below the upper layer— in every ROM\n"
+        "; other than `encima`'s, which raises it to $20 to exercise priority\n"
+        "; 2. No event of the game gets to exercise it: see `test_encima` in\n"
+        "; test_caminar_golden.py.\n"
         "HERO_PRIORITY = $%02X\n"
-        "; La ventana de mensaje: sus tiles viven en la segunda mitad del\n"
-        "; banco de BG2, o sea a partir del índice 256, y sus celdas ya\n"
-        "; vienen armadas con ese corrimiento y con la prioridad de la capa\n"
-        "; de encima.\n"
-"; Y dónde arranca el fondo en CGRAM: abajo de él viven el color de\n"
-        "; fondo de la pantalla y la paleta de la ventana de mensaje, que\n"
-        "; son de toda la ROM. El fondo va a 8 bits y direcciona CGRAM en\n"
-        "; directo, así que le alcanza con arrancar corrido.\n"
+        "; The message window: its tiles live in the second half of the BG2\n"
+        "; bank, that is from index 256, and its cells already come built\n"
+        "; with that shift and with the upper layer's priority.\n"
+"; And where the background starts in CGRAM: below it live the\n"
+        "; screen's backdrop color and the message window's palette, which\n"
+        "; belong to the whole ROM. The background goes at 8 bits and\n"
+        "; addresses CGRAM directly, so it is enough for it to start shifted.\n"
         "CGRAM_BASE     = %d\n"
 "VENTANA_CGADD  = %d\n"
         "VENTANA_TILES  = %d\n"
         "VENTANA_FILAS_ = %d\n"
         "VENTANA_COLS   = %d\n"
-        "; El área de texto: dónde arranca en el banco de tiles de la\n"
-        "; ventana y qué celdas ocupa. Sus tiles no están deduplicados —la\n"
-        "; ROM los reescribe— y de ahí sale el tope de caracteres por línea.\n"
+        "; The text area: where it starts in the window's tile bank and\n"
+        "; which cells it takes. Its tiles aren't deduplicated —the ROM\n"
+        "; rewrites them— and that is where the cap of characters per line\n"
+        "; comes from.\n"
         "VENTANA_TEXTO_BASE = %d\n"
         "VENTANA_TEXTO_FILA = %d\n"
         "VENTANA_TEXTO_FILAS = %d\n"
         "VENTANA_TEXTO_COL  = %d\n"
         "VENTANA_TEXTO_COLS = %d\n"
         "MENSAJE_COLS   = %d\n"
-        "; La fuente: 95 glifos ASCII de seis bits por doce filas, y el\n"
-        "; índice de paleta de la sombra. El de cada fila del glifo está en\n"
+        "; The font: 95 ASCII glyphs of six bits by twelve rows, and the\n"
+        "; shadow's palette index. That of each row of the glyph is in\n"
         "; fuente_color.\n"
         "FUENTE_ALTO    = %d\n"
         "FUENTE_ANCHO   = %d\n"
         "FUENTE_SOMBRA  = %d\n"
         "FUENTE_PRE_FILAS = %d\n"
         "FUENTE_PRE_CHAR  = %d\n"
-        "; La animación del ChipSet. Cada mapa tiene una entrada en\n"
-        "; `anim_tabla` con sus dos corridas y un bloque con los dibujos;\n"
-        "; ver `anim_tabla` en snes_convert.py. Las cadencias y el ciclo\n"
-        "; del agua salen de `rm2k.py`.\n"
+        "; The ChipSet animation. Each map has an entry in `anim_tabla` with\n"
+        "; its two runs and a block with the drawings; see `anim_tabla` in\n"
+        "; snes_convert.py. The cadences and the water cycle come from\n"
+        "; `rm2k.py`.\n"
         "ANIM_FAMILIAS  = %d\n"
         "ANIM_STRIDE    = %d\n"
         "ANIM_FAM_STRIDE = %d\n"
@@ -4911,49 +4927,51 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "ANIMADO_CUADROS = %d\n"
         "ANIMADO_PASOS  = %d\n"
         "BYTES_POR_TILE = %d\n"
-        "; La pantalla de título. TITULO_TILES en 0 quiere decir que esta ROM\n"
-        "; no la lleva y que los bloques de abajo son un byte de relleno; el\n"
-        # `rom/src/` a propósito: va al `.inc`, que no se toca todavía.
-        "; código de rom/src/ se apaga solo con eso. Vive sola en la VRAM —no\n"
-        "; comparte con ningún mapa, porque mientras se ve no hay mapa\n"
-        "; cargado— así que sus direcciones son fijas y no salen del reparto\n"
-        "; de `vram_layout`. La imagen la sube `pantalla_subir`, desde su fila\n"
-        "; en `pantallas_tabla`: los tiles desde $0000 y el tilemap en\n"
-        "; PANTALLA_MAPA.\n"
+        "; The title screen. TITULO_TILES at 0 means this ROM doesn't carry\n"
+        "; it and the blocks below are one byte of padding; the code in\n"
+        # `rom/src/` on purpose: it goes into the `.inc`, which isn't touched
+        # yet.
+        "; rom/src/ turns itself off with that. It lives alone in VRAM —it\n"
+        "; shares with no map, because while it is shown there is no map\n"
+        "; loaded— so its addresses are fixed and don't come from the\n"
+        "; `vram_layout` layout. The image is uploaded by `pantalla_subir`,\n"
+        "; from its row in `pantallas_tabla`: the tiles from $0000 and the\n"
+        "; tilemap at PANTALLA_MAPA.\n"
         "TITULO_TILES   = %d\n"
-        "; El menú, en BG2 a cuatro bits por pixel: su banco de tiles, cuántas\n"
-        "; opciones tiene y cuál está elegida al entrar. El cursor no se dibuja\n"
-        "; aparte: hay un tilemap por opción y moverlo es subir el otro.\n"
+        "; The menu, on BG2 at four bits per pixel: its tile bank, how many\n"
+        "; options it has and which is selected on entering. The cursor isn't\n"
+        "; drawn separately: there is one tilemap per option and moving it is\n"
+        "; uploading the other.\n"
         ";\n"
-        "; El reparto de la VRAM en esta pantalla, en palabras, y por qué cada\n"
-        "; uno está donde está: los tiles de la imagen arrancan en 0 y se\n"
-        "; llevan 15872, así que todo lo demás va **arriba** de eso. La base de\n"
-        "; tiles de un BG va de a 4096 palabras, que es lo que fija $5000 para\n"
-        "; el menú; los tilemaps van de a 1024 y entran en el hueco de al lado.\n"
+        "; The VRAM layout on this screen, in words, and why each one is\n"
+        "; where it is: the image tiles start at 0 and take 15872, so\n"
+        "; everything else goes **above** that. A BG's tile base goes in\n"
+        "; steps of 4096 words, which is what fixes $5000 for the menu; the\n"
+        "; tilemaps go in steps of 1024 and fit in the gap next to it.\n"
         ";\n"
-        ";   $0000 .. $3E00   los 496 tiles de la imagen, a 8bpp\n"
-        ";   $4400 .. $4800   el tilemap del menú\n"
-        ";   $5000 ..         los tiles del menú, a 4bpp\n"
-        ";   $7C00 .. $8000   el de la imagen, PANTALLA_MAPA de game_over.s\n"
+        ";   $0000 .. $3E00   the image's 496 tiles, at 8bpp\n"
+        ";   $4400 .. $4800   the menu's tilemap\n"
+        ";   $5000 ..         the menu's tiles, at 4bpp\n"
+        ";   $7C00 .. $8000   the image's, PANTALLA_MAPA of game_over.s\n"
         "TITULO_MENU_CGRAM = %d\n"
         "TITULO_MENU_TILES = %d\n"
         "TITULO_MENU_VRAM  = $5000\n"
         "TITULO_MENU_MAP   = $4400\n"
         "TITULO_MENU_N     = %d\n"
-        "; La pantalla de ranuras, que usan las dos puntas: 'Resume the Story'\n"
-        "; y el save point. Es una pantalla propia —no una capa encima del\n"
-        "; título— así que se sube entera al entrar. **Va en toda ROM**, con\n"
-        "; título o sin él: el save point la abre desde adentro del juego, y\n"
-        "; por eso sus direcciones de VRAM son suyas y no las del menú: caen\n"
-        "; en el banco de tiles de BG1 de todos los repartos, que es lo que\n"
-        "; `volver_al_mapa` repone con `load_map`. Ver RANURA_MAP en el\n"
-        "; conversor.\n"
+        "; The slots screen, which both ends use: 'Resume the Story' and the\n"
+        "; save point. It is a screen of its own —not a layer over the\n"
+        "; title— so it is uploaded whole on entering. **It goes in every\n"
+        "; ROM**, with a title or without: the save point opens it from\n"
+        "; inside the game, and that is why its VRAM addresses are its own\n"
+        "; and not the menu's: they fall in the BG1 tile bank of every\n"
+        "; layout, which is what `volver_al_mapa` restores with `load_map`.\n"
+        "; See RANURA_MAP in the converter.\n"
         "RANURA_VRAM       = $%04X\n"
         "RANURA_MAP        = $%04X\n"
         ";\n"
-        "; Los bloques de celdas: la cabecera tiene dos variantes —cargar y\n"
-        "; guardar— y cada ranura cuatro —vacía o llena, con cursor o sin él—.\n"
-        "; Mover el cursor es reescribir dos filas y no un tilemap entero.\n"
+        "; The cell blocks: the header has two variants —load and save— and\n"
+        "; each slot four —empty or full, with cursor or without—. Moving the\n"
+        "; cursor is rewriting two rows and not a whole tilemap.\n"
         "SRAM_RANURAS_N    = %d\n"
         "RANURA_TILES      = %d\n"
         "RANURA_CAB_FILA   = %d\n"
@@ -4963,53 +4981,54 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "RANURA_SALTO      = %d\n"
         "RANURA_FILAS      = %d\n"
         "RANURA_CELDAS     = %d\n"
-        "; Y dónde va cada fila en el tilemap, en palabras. También sale de una\n"
-        "; tabla: la cuenta es RANURA_FILA0 + n * RANURA_SALTO, por 32, y\n"
-        "; escribirla en el 65816 sería el cuarto lugar donde equivocarse.\n"
+        "; And where each row goes in the tilemap, in words. It also comes\n"
+        "; from a table: the computation is RANURA_FILA0 + n * RANURA_SALTO,\n"
+        "; times 32, and writing it in the 65816 would be the fourth place to\n"
+        "; get it wrong.\n"
         "RANURA_CAB_VRAM   = %d\n"
-        "; Cuántos bloques hay antes del primero de las filas: son las dos\n"
-        "; cabeceras, cargar y guardar.\n"
+        "; How many blocks there are before the first of the rows: they are\n"
+        "; the two headers, load and save.\n"
         "RANURA_BLOQUE_FILAS = 2\n"
-        "; El grupo de la partida guardada, encima de la fila: las caras de\n"
-        "; hasta RANURA_CARAS_MAX, de RANURA_CARA_COLS por RANURA_CARA_FILAS\n"
-        "; celdas, y el nombre y el nivel del primero. Qué bloque de cara le\n"
-        "; toca a cada actor lo dice `ranura_cara_bloque`, por id de actor\n"
-        "; hasta RANURA_ACTORES_N, con $FF para 'no tiene'; y a dónde van,\n"
-        "; `ranura_cara_vram` —de a cuatro por ranura— y `ranura_nombre_vram`.\n"
+        "; The saved game's party, above the row: the faces of up to\n"
+        "; RANURA_CARAS_MAX, of RANURA_CARA_COLS by RANURA_CARA_FILAS cells,\n"
+        "; and the first one's name and level. Which face block each actor\n"
+        "; gets is said by `ranura_cara_bloque`, by actor id up to\n"
+        "; RANURA_ACTORES_N, with $FF for 'has none'; and where they go,\n"
+        "; `ranura_cara_vram` —four per slot— and `ranura_nombre_vram`.\n"
         ";\n"
-        "; El nombre y el nivel no son bloques: se componen de a una letra por\n"
-        "; celda con `ranura_glifo_celdas`, y el texto de cada actor sale de\n"
-        "; su fila de `ranura_actor_texto` —el nombre, las dos cifras del\n"
-        "; nivel y el máximo de HP, uno detrás del otro—. Ver 'lo que depende\n"
-        "; del actor' en titulo.py: es lo que hace que el banco de tiles no\n"
-        "; crezca con la cantidad de actores.\n"
+        "; The name and the level aren't blocks: they are composed one letter\n"
+        "; per cell with `ranura_glifo_celdas`, and each actor's text comes\n"
+        "; from its row of `ranura_actor_texto` —the name, the two digits of\n"
+        "; the level and max HP, one after the other—. See 'lo que depende\n"
+        "; del actor' in titulo.py: it is what keeps the tile bank from\n"
+        "; growing with the number of actors.\n"
         "RANURA_CARAS_MAX  = %d\n"
         "RANURA_CARA_COLS  = %d\n"
         "RANURA_CARA_FILAS = %d\n"
         "RANURA_NOMBRE_COLS  = %d\n"
-        "; Cuánto mide la fila de un actor en `ranura_actor_texto` y dónde\n"
-        "; arranca cada tira adentro de ella. El ancho es una potencia de dos\n"
-        "; aunque sobren bytes: así el índice sale de corrimientos y no de una\n"
-        "; multiplicación.\n"
+        "; How long an actor's row is in `ranura_actor_texto` and where each\n"
+        "; strip starts inside it. The width is a power of two even if bytes\n"
+        "; are left over: that way the index comes from shifts and not from a\n"
+        "; multiplication.\n"
         "RANURA_TEXTO_ANCHO  = %d\n"
         "RANURA_TEXTO_NOMBRE = 0\n"
         "RANURA_TEXTO_NIVEL  = %d\n"
         "RANURA_TEXTO_MAX    = %d\n"
         "RANURA_NIVEL_CIFRAS = %d\n"
-        "; A cuántas celdas del nombre cae la primera cifra del nivel.\n"
+        "; How many cells from the name the first digit of the level falls.\n"
         "RANURA_NIVEL_DESPL  = %d\n"
-        "; Y dónde arranca la cifra 0 adentro de `ranura_glifo_celdas`, que\n"
-        "; está indexada por carácter: es de ahí de donde el oro y los HP\n"
-        "; sacan sus dígitos.\n"
+        "; And where digit 0 starts inside `ranura_glifo_celdas`, which is\n"
+        "; indexed by character: it is where the gold and the HP get their\n"
+        "; digits from.\n"
         "GLIFO_CIFRA_0     = %d\n"
         "RANURA_ACTORES_N  = %d\n"
-        "; Cuántas entradas de CGRAM sube la pantalla de ranuras: la paleta 0\n"
-        "; del texto y una por cara, de dieciséis cada una.\n"
+        "; How many CGRAM entries the slots screen uploads: palette 0 for\n"
+        "; the text and one per face, of sixteen each.\n"
         "RANURA_CGRAM_N    = %d\n"
-        "; Cuántas entradas de CGRAM usa el menú del título: una paleta de\n"
-        "; dieciséis, la 0. Ya está definida más arriba, con la pantalla de\n"
-        "; título; esto confirma que las dos cuentas den lo mismo.\n"
-        ".assert TITULO_MENU_CGRAM = %d, error, \"dos cuentas del CGRAM del menú\"\n\n"
+        "; How many CGRAM entries the title menu uses: one palette of\n"
+        "; sixteen, number 0. It is already defined above, with the title\n"
+        "; screen; this confirms both computations give the same.\n"
+        ".assert TITULO_MENU_CGRAM = %d, error, \"two computations of the menu's CGRAM\"\n\n"
         % (", ".join("%d %s" % (m["id"], m["nombre"]) for m in mapas),
            len(mapas), MAPA_STRIDE, inicial,
            VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
@@ -5114,29 +5133,29 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write(identidad_de_la_rom())
         handle.write(desplazamientos())
         handle.write("\n\n")
-        # La rampa del fundido, en el banco 0 porque `fundido_tick` la lee con
-        # `lda fundido_rampa, x`. Sale de `eventos.rampa_de_fundido()`:
-        # escribirla también en tools/runtime/ sería tener dos copias que se pueden
-        # desincronizar sin que nada lo note.
+        # The fade ramp, in bank 0 because `fundido_tick` reads it with
+        # `lda fundido_rampa, x`. It comes from `eventos.rampa_de_fundido()`:
+        # writing it in tools/runtime/ too would be having two copies that can
+        # get out of sync without anything noticing.
         handle.write('.segment "TABLAS"\n'
-                     '; El brillo maestro en cada cuadro de la rampa, de negro\n'
-                     '; a lleno. Bajando se lee al revés.\n'
+                     '; The master brightness on each frame of the ramp, from\n'
+                     '; black to full. Going down it is read backwards.\n'
                      'fundido_rampa:\n    .byte %s\n\n'
                      % ",".join(str(v) for v in eventos.rampa_de_fundido()))
-        # Los datos van en RODATA, que el enlazador reparte por los bancos de
-        # arriba. Lo que queda en TABLAS —o sea en el banco 0— es lo que la ROM
-        # recorre con `lda tabla, x` a secas, que direcciona el banco de datos.
-        # `mapa_tabla` ya no está entre ésas: ver `tabla_de_mapas`.
+        # The data goes in RODATA, which the linker spreads over the upper
+        # banks. What stays in TABLAS —that is, in bank 0— is what the ROM
+        # walks with a bare `lda tabla, x`, which addresses the data bank.
+        # `mapa_tabla` is no longer among those: see `tabla_de_mapas`.
         handle.write('.segment "RODATA"\n')
-        # Las doce poses de cada personaje que cambia de pose, **una vez por
-        # cuantización** y no una por ROM: dos mapas que dibujen al mismo
-        # personaje con la misma paleta comparten el banco, y si uno lo
-        # cuantizó distinto —porque le prestó una paleta ajena, como el mapa 8
-        # a Chara2:0, o le bajó un color— lleva el suyo. Hasta el 2026-09-10
-        # esto era un `sys.exit`, y el reparto de paletas tenía una regla para
-        # esquivarlo que el préstamo no miraba: agregar Lashe City 33,36 a la
-        # demo cortaba ahí. Un banco de más son 6 KB de cartucho; un corte es
-        # un mapa que no entra.
+        # The twelve poses of each character that changes pose, **once per
+        # quantization** and not once per ROM: two maps that draw the same
+        # character with the same palette share the bank, and if one quantized
+        # it differently —because it lent it someone else's palette, as map 8
+        # does to Chara2:0, or took a color off— it carries its own. Until
+        # 2026-09-10 this was a `sys.exit`, and the palette split had a rule to
+        # dodge it that the lending didn't look at: adding Lashe City 33,36 to
+        # the demo stopped there. One extra bank is 6 KB of cartridge; a stop
+        # is a map that doesn't fit.
         indice_global, bancos, indice_por_mapa = {}, [], []
         for mapa in mapas:
             propio = {}
@@ -5145,22 +5164,22 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                 clave = (par, datos)
                 if clave not in indice_global:
                     if any(k[0] == par for k in indice_global):
-                        print("  mapa %d: %s:%d va con un banco de poses "
-                              "propio, cuantizado distinto que en otro mapa"
+                        print("  map %d: %s:%d goes with a pose bank of its "
+                              "own, quantized differently than in another map"
                               % (mapa["id"], par[0], par[1]))
                     indice_global[clave] = len(bancos)
                     bancos.append(datos)
                 propio[par] = indice_global[clave]
             indice_por_mapa.append(propio)
-        handle.write("; --- las poses de los personajes que cambian de pose, "
-                     "de toda la ROM ---\n")
-        # **Cada pose una vez**, aunque la repitan varios personajes o el
-        # mismo: las tablas de poses llevan un puntero por pose —`npc_poses`,
-        # `actor_table`—, así que dos iguales apuntan al mismo bloque y la ROM
-        # sube los mismos bytes desde otro lugar. Pasa mucho: los cuadros de
-        # caminata iguales de un mismo CharSet, y los personajes que se
-        # repiten entre mapas con otra cuantización que no cambió una pose.
-        # Cada una con su `.bloque`, porque se sube por DMA.
+        handle.write("; --- the poses of the characters that change pose, "
+                     "for the whole ROM ---\n")
+        # **Each pose once**, even if several characters or the same one
+        # repeat it: the pose tables carry one pointer per pose —`npc_poses`,
+        # `actor_table`—, so two equal ones point to the same block and the
+        # ROM uploads the same bytes from another place. It happens a lot: the
+        # equal walking frames of the same CharSet, and the characters that
+        # repeat across maps with another quantization that didn't change a
+        # pose. Each one with its `.bloque`, because it is uploaded by DMA.
         etiqueta_de_pose, poses_de_banco = {}, []
         for datos in bancos:
             suyas = []
@@ -5172,7 +5191,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                 suyas.append(etiqueta_de_pose[bytes_])
             poses_de_banco.append(suyas)
         handle.write("\n")
-        print("  poses: %d distintas de %d, %.1f KB menos"
+        print("  poses: %d distinct out of %d, %.1f KB less"
               % (len(etiqueta_de_pose), SPRITE_POSES * len(bancos),
                  (SPRITE_POSES * len(bancos) - len(etiqueta_de_pose))
                  * POSE_BYTES / 1024.0))
@@ -5182,7 +5201,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         materiales = Materiales(deduplicar=True,
                                 comprimidos=comprimidos
                                 or comprimir_los_bloques(mapas))
-        handle.write("; Los topes de LZ2, que cobra descomprimir.s\n"
+        handle.write("; The LZ2 caps, which descomprimir.s enforces\n"
                      "LZ2_TOPE_FONDO = $%04X\n"
                      "LZ2_TOPE_ENCIMA_Y_SPRITES = $%04X\n"
                      "LZ2_TOPE_ANIM = $%04X\n"
@@ -5191,6 +5210,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                         LZ2_TOPE_ANIM, LZ2_TOPE_GRILLA))
         etiquetas = []
         for numero, mapa in enumerate(mapas):
+            # Stays in Spanish: `mapas_de` in rom/pruebas/arnes/consola.py
+            # reads the table order from this line with a regex that expects
+            # "mapa".
             handle.write("; --- %d: mapa %d %r ---\n"
                          % (numero, mapa["id"], mapa["nombre"]))
             texto, suyas = datos_del_mapa(mapa, numero,
@@ -5199,118 +5221,121 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             handle.write(texto)
             handle.write("\n")
         if True:
-            # La ventana de mensaje es una sola para toda la ROM —el mismo
-            # skin, el mismo tamaño— así que va como bloque global y no en la
-            # tabla de mapas. Lo único que depende del mapa es en qué paleta
-            # entra, y eso se resuelve arriba, al elegir el reparto de CGRAM.
+            # The message window is a single one for the whole ROM —the same
+            # skin, the same size— so it goes as a global block and not in the
+            # map table. The only thing that depends on the map is which
+            # palette it goes in, and that is resolved above, when choosing the
+            # CGRAM split.
             #
-            # BG2 va en 4 bits, así que su celda **sí** usa los tres bits de
-            # paleta —a diferencia del fondo, que va en 8 y los ignora—. La
-            # ventana va en la 0 y es la misma para todos los mapas: sus celdas
-            # se emiten una sola vez. Que el fondo no la pise sale del reparto
-            # —arranca en `CGRAM_RESERVADAS`— pero se controla igual: si la
-            # pisara, la ventana saldría con los colores del mapa y ninguna
-            # comparación de un solo mapa lo vería.
+            # BG2 goes at 4 bits, so its cell **does** use the three palette
+            # bits —unlike the background, which goes at 8 and ignores them—.
+            # The window goes in 0 and is the same for every map: its cells
+            # are emitted only once. That the background doesn't step on it
+            # comes from the split —it starts at `CGRAM_RESERVADAS`— but it is
+            # checked anyway: if it stepped on it, the window would come out
+            # with the map's colors and no single-map comparison would see it.
             paleta = paleta_de_la_ventana()
             for m in mapas:
                 if len(m["cram_words"]) + CGRAM_RESERVADAS > \
                         m["above"][3] * COLORS_PER_PALETTE:
                     raise SystemExit(
-                        "el fondo del mapa %d usa %d entradas de CGRAM desde "
-                        "la %d y pisa la capa de encima, que arranca en la %d"
+                        "the background of map %d uses %d CGRAM entries from "
+                        "%d and steps on the upper layer, which starts at %d"
                         % (m["id"], len(m["cram_words"]), CGRAM_RESERVADAS,
                            m["above"][3] * COLORS_PER_PALETTE))
-            handle.write("\n; --- la ventana de mensaje ---\n")
+            handle.write("\n; --- the message window ---\n")
             handle.write(bloque("ventana_tiles", ventana["tiles"]) + "\n")
-            # Sólo las `CGRAM_RESERVADAS` de abajo: de la 8 para arriba es
-            # del fondo, y subir las dieciséis se lo borraría.
+            # Only the `CGRAM_RESERVADAS` at the bottom: from 8 up it belongs
+            # to the background, and uploading all sixteen would erase it.
             handle.write(bloque("ventana_cgram",
                                 b"".join(w.to_bytes(2, "little")
                                          for w in ventana["cram"]
                                          [:CGRAM_RESERVADAS])) + "\n")
-            # Un plano por cada base de la ventana que usan los repartos: el
-            # índice de tile va corrido detrás de la capa de encima, y la
-            # capa de encima mide 128 o 256 según el reparto. Ver
-            # `VENTANA_BASES` y `estampar_ventana`.
+            # One layout for each window base the VRAM layouts use: the tile
+            # index goes shifted behind the upper layer, and the upper layer
+            # measures 128 or 256 depending on the layout. See
+            # `VENTANA_BASES` and `estampar_ventana`.
             for base, etiqueta in zip(VENTANA_BASES, ("ventana_celdas",
                                                       "ventana_celdas_256")):
                 plano = bytearray()
                 for fila in ventana["celdas"]:
                     for celda in fila:
-                        # Con la prioridad de la capa de encima para que tape
-                        # al héroe y a los NPCs.
+                        # With the upper layer's priority so that it covers
+                        # the hero and the NPCs.
                         plano += (entry(base + celda, False, False,
                                         PRIORITY_ABOVE)
                                   | (paleta << 10)).to_bytes(2, "little")
                 handle.write(bloque(etiqueta, bytes(plano)) + "\n")
-            # El área de texto sin texto: los 240 tiles que la ROM copia al
-            # buffer antes de dibujar encima. Van en el orden en que la ROM los
-            # necesita, o sea el de las celdas.
+            # The text area without text: the 240 tiles the ROM copies to the
+            # buffer before drawing on top. They go in the order the ROM needs
+            # them, that is the cells' order.
             handle.write(bloque("ventana_fondo", ventana["fondo"]) + "\n")
-            # La fuente y los colores. `fuente_color` es el índice de paleta de
-            # cada una de las doce filas del glifo: el degradé de RM2k sale de
-            # una máscara de 16x16, pero cada fila es de un solo color, así que
-            # doce bytes alcanzan y la ROM no tiene que muestrear nada.
+            # The font and the colors. `fuente_color` is the palette index of
+            # each of the glyph's twelve rows: RM2k's gradient comes from a
+            # 16x16 mask, but each row is a single color, so twelve bytes are
+            # enough and the ROM doesn't have to sample anything.
             handle.write(bloque("fuente_tabla", ventana["fuente"]) + "\n")
             pre = fuente_prerender(ventana["fuente"], ventana["color"],
                                    ventana["sombra"])
             for fase, datos in enumerate(pre):
                 handle.write(bloque("fuente_pre%d" % fase, datos) + "\n")
             handle.write(bloque("mensajes", ventana["mensajes"]) + "\n")
-            # Cuánto mide y cuánto puede medir: la ROM no los usa, los lee
-            # `just espacio` de la tabla de símbolos. El tope es lo que
-            # alcanza el operando de `OP_MESSAGE`, de 16 bits y de a
+            # How big it is and how big it can be: the ROM doesn't use them,
+            # `just espacio` reads them from the symbol table. The cap is what
+            # the operand of `OP_MESSAGE` reaches, 16 bits and in steps of
             # `MENSAJES_PASO` bytes.
             handle.write("MENSAJES_BYTES = %d\nMENSAJES_TOPE = %d\n"
                          % (len(ventana["mensajes"]),
                             0x10000 * eventos.MENSAJES_PASO))
-        # --- el cartel del ShowPicture ---
+        # --- the ShowPicture sign ---
         #
-        # Sus quince colores tal cual salieron de `imagen.convertir`, en el
-        # orden en que los tiles los indexan. Van en un bloque global y no en
-        # la tabla de mapas porque el cartel es uno solo por ROM; lo que sí es
-        # del mapa es en qué tile y en qué paleta quedó, que va en el registro.
+        # Its fifteen colors as they came out of `imagen.convertir`, in the
+        # order the tiles index them. They go in a global block and not in the
+        # map table because the sign is a single one per ROM; what does belong
+        # to the map is which tile and which palette it ended up in, which
+        # goes in the record.
         #
-        # La entrada 0 va también, en negro, y no porque se dibuje —el índice 0
-        # de un sprite es transparente— sino para que la ROM suba las dieciséis
-        # de una: el DMA arranca en la entrada de la paleta, no una más
-        # adelante, y descontar uno acá es justo la cuenta que se escribe bien
-        # de un lado y mal del otro.
-        handle.write("\n; --- el cartel del ShowPicture ---\n")
+        # Entry 0 goes too, in black, and not because it is drawn —a sprite's
+        # index 0 is transparent— but so that the ROM uploads all sixteen at
+        # once: the DMA starts at the palette's entry, not one further on, and
+        # subtracting one here is exactly the kind of computation that is
+        # written right on one side and wrong on the other.
+        handle.write("\n; --- the ShowPicture sign ---\n")
         colores = ([(0, 0, 0)] + list(cartel["paleta"])) if cartel else [(0, 0, 0)]
         handle.write(bloque("imagen_cgram",
                             b"".join(cgram_word(c).to_bytes(2, "little")
                                      for c in colores)) + "\n")
-        # Los productos del destello de pantalla: `d * nivel // 31` para d y
-        # nivel de 0 a 31, en la fila del nivel. Es la cuenta de
-        # `destellar_canal`, y la ROM la leía del multiplicador y el divisor
-        # para cada una de las 96 entradas de sus tablas en cada cuadro
-        # impar: ver `una_tabla_de_destello`.
+        # The screen flash products: `d * nivel // 31` for d and level from 0
+        # to 31, in the level's row. It is `destellar_canal`'s computation, and
+        # the ROM read it from the multiplier and the divider for each of the
+        # 96 entries of its tables on every odd frame: see
+        # `una_tabla_de_destello`.
         handle.write(bloque("prod31_tabla", bytes(
             d * n // 31 for n in range(32) for d in range(32))) + "\n")
         handle.write(animaciones_asm(animaciones or {}, mapas))
-        # --- la pantalla de título ---
+        # --- the title screen ---
         #
-        # Va entera en BG1, que en modo 3 tiene ocho bits por pixel: la imagen
-        # direcciona CGRAM en directo y no hay que repartirla en paletas de
-        # dieciséis, que es lo que un mapa sí tiene que hacer porque los
-        # sprites necesitan las suyas. Acá no hay sprites.
+        # It goes entirely on BG1, which in mode 3 has eight bits per pixel:
+        # the image addresses CGRAM directly and doesn't have to be split into
+        # palettes of sixteen, which is what a map does have to do because the
+        # sprites need theirs. There are no sprites here.
         #
-        # Los tiles se deduplican como los del mapa. La imagen tiene mucho negro
-        # —la mitad de abajo, que es donde va el menú— así que de las 1024
-        # celdas quedan menos de 500.
+        # The tiles are deduplicated like the map's. The image has a lot of
+        # black —the bottom half, which is where the menu goes— so of the 1024
+        # cells fewer than 500 are left.
         #
-        # La imagen va comprimida, junto con los colores del menú, en su fila
-        # de `pantallas_tabla`: ver "las pantallas completas", abajo. Acá
-        # queda el menú, que no es de la imagen.
-        handle.write("\n; --- la pantalla de título ---\n")
+        # The image goes compressed, together with the menu's colors, in its
+        # row of `pantallas_tabla`: see "the full screens", below. What stays
+        # here is the menu, which isn't part of the image.
+        handle.write("\n; --- the title screen ---\n")
         if titulo is None:
             handle.write(bloque("titulo_menu_tiles", b"\x00") + "\n")
             handle.write(bloque("titulo_menu_celdas", b"\x00") + "\n")
         else:
-            # El menú: un banco de tiles de 4 bits y un tilemap por opción
-            # seleccionada. Mover el cursor es subir el otro tilemap, y por eso
-            # van seguidos y del mismo tamaño: la ROM los indexa multiplicando.
+            # The menu: a 4-bit tile bank and one tilemap per selected option.
+            # Moving the cursor is uploading the other tilemap, and that is why
+            # they go one after the other and the same size: the ROM indexes
+            # them by multiplying.
             menu = bytearray()
             for celda in titulo["menu_tiles"]:
                 menu += pack_tile(celda, planes=4)
@@ -5322,16 +5347,16 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                    PRIORITY_ABOVE).to_bytes(2, "little")
             handle.write(bloque("titulo_menu_celdas", bytes(plano)) + "\n")
 
-        # --- las pantallas completas: la de Game Over y la de título ---
+        # --- the full screens: Game Over and the title ---
         #
-        # Cada una es un flujo LZ2 con los tiles, el tilemap y los colores, y
-        # su fila en `pantallas_tabla`, que es lo que lee `pantalla_subir`: ver
-        # tools/port/pantalla_completa.py. Sin imagen de Game Over,
-        # GAME_OVER_TILES en 0 y la ROM vuelve al título sin pantalla, como
-        # hasta el 2026-09-28; sin pantalla de título, TITULO_TILES en 0 y
-        # ninguna fila. Sin ninguna de las dos PANTALLA_FILA no se define, y
-        # `pantalla_subir` no se arma.
-        handle.write("\n; --- las pantallas completas ---\n")
+        # Each one is an LZ2 stream with the tiles, the tilemap and the
+        # colors, and its row in `pantallas_tabla`, which is what
+        # `pantalla_subir` reads: see tools/port/pantalla_completa.py. Without
+        # a Game Over image, GAME_OVER_TILES at 0 and the ROM goes back to the
+        # title without a screen, as until 2026-09-28; without a title screen,
+        # TITULO_TILES at 0 and no row. Without either of them PANTALLA_FILA
+        # isn't defined, and `pantalla_subir` isn't assembled.
+        handle.write("\n; --- the full screens ---\n")
         handle.write("GAME_OVER_TILES = %d\n"
                      % (0 if game_over is None else game_over["tiles"]))
         filas = []
@@ -5343,9 +5368,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             handle.write(bloque("pantallas_tabla", b"\x00") + "\n")
         else:
             handle.write(
-                "; La fila de cada pantalla en `pantallas_tabla`: dónde está su\n"
-                "; flujo, cuántos bytes de tiles y de colores trae, y desde qué\n"
-                "; color de CGRAM van. Ver `pantalla_subir`.\n"
+                "; Each screen's row in `pantallas_tabla`: where its stream is,\n"
+                "; how many bytes of tiles and colors it brings, and from which\n"
+                "; CGRAM color they go. See `pantalla_subir`.\n"
                 "PANTALLA_FILA = 8\n")
             for numero, (nombre, _, _) in enumerate(filas):
                 handle.write("PANTALLA_%s = %d\n" % (nombre, numero))
@@ -5361,29 +5386,30 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             for _, etiqueta, datos in filas:
                 handle.write(bloque(etiqueta, datos["flujo"]) + "\n")
 
-        # La pantalla de ranuras, que **va en toda ROM** y no sólo en las que
-        # llevan título: la abre el save point desde adentro del juego. Hasta
-        # el 2026-09-10 salía sólo con la pantalla de título y sin ella quedaba un byte
-        # de relleno con `RANURA_TILES` en cero; y un DMA de "cero bytes" son
-        # 65536, así que abrirla desde una ROM sin título llenaba la VRAM de
-        # basura. Es la "pantalla negra con basura arriba" que durante un
-        # tiempo se anotó como un misterio del contexto del intérprete.
+        # The slots screen, which **goes in every ROM** and not only in the
+        # ones that carry a title: the save point opens it from inside the
+        # game. Until 2026-09-10 it came out only with the title screen and
+        # without it a byte of padding was left with `RANURA_TILES` at zero;
+        # and a DMA of "zero bytes" is 65536, so opening it from a ROM without
+        # a title filled VRAM with garbage. It is the "black screen with
+        # garbage on top" that for a while was noted down as a mystery of the
+        # interpreter's context.
         #
-        # Su banco de tiles es propio: comparte la dirección de VRAM con el del
-        # menú del título, pero no los tiles, porque las dos pantallas se suben
-        # enteras cada vez que se entra a una.
-        handle.write("\n; --- la pantalla de ranuras ---\n")
+        # Its tile bank is its own: it shares the VRAM address with the title
+        # menu's, but not the tiles, because both screens are uploaded whole
+        # every time one is entered.
+        handle.write("\n; --- the slots screen ---\n")
         datos = bytearray()
         for celda in ranuras["tiles"]:
             datos += pack_tile(celda, planes=4)
         handle.write(bloque("ranura_tiles", bytes(datos)) + "\n")
 
-        # El banco de las ranuras y del menú va **con el bit de prioridad
-        # puesto**, como los glifos de ítems: la elección de actor prende
-        # BG1 con sus ventanas, y en modo 3 BG1 de prioridad 0 queda arriba
-        # de BG2 de prioridad 0 —la barra roja taparía la fila—. En las
-        # demás pantallas de este banco BG1 está apagado y el bit no cambia
-        # un pixel; los sprites de la experiencia lo descartan.
+        # The bank of the slots and the menu goes **with the priority bit
+        # set**, like the item glyphs: the actor choice turns on BG1 with its
+        # windows, and in mode 3 BG1 at priority 0 stays above BG2 at priority
+        # 0 —the red bar would cover the row—. In the other screens of this
+        # bank BG1 is off and the bit doesn't change a pixel; the experience
+        # sprites discard it.
         def celdas_asm(bloques):
             plano = bytearray()
             for celdas in bloques:
@@ -5392,16 +5418,15 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                    priority=1).to_bytes(2, "little")
             return bytes(plano)
 
-        # Cada bloque de celdas va con etiqueta propia y se nombra por una
-        # tabla de punteros, igual que los temas de música. Es más ROM que
-        # calcular el desplazamiento con corrimientos —tres tablas de un byte
-        # por bloque— y a cambio la ROM no tiene que multiplicar por 96 ni por
-        # 192 en ningún lado. Esa multiplicación estaría escrita acá y allá,
-        # que es exactamente la forma de error que este repo ya pagó tres
-        # veces.
+        # Each cell block goes with its own label and is named by a pointer
+        # table, just like the music songs. It is more ROM than computing the
+        # offset with shifts —three one-byte tables per block— and in exchange
+        # the ROM doesn't have to multiply by 96 or by 192 anywhere. That
+        # multiplication would be written here and there, which is exactly
+        # the shape of error this repo has already paid for three times.
         #
-        # El orden: primero las dos cabeceras —cargar y guardar— y después, por
-        # ranura, las cuatro variantes como llena * 2 + cursor.
+        # The order: first the two headers —load and save— and then, per slot,
+        # the four variants as full * 2 + cursor.
         bloques_ranura = []
         for modo, celdas in enumerate(ranuras["cabeceras"]):
             nombre = "ranura_cab_%d" % modo
@@ -5415,14 +5440,14 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                         bloque(nombre, celdas_asm([fila[llena][cursor]]))
                         + "\n")
                     bloques_ranura.append(nombre)
-        # Y detrás, por actor que pueda entrar al grupo, su cara: la ROM la
-        # escribe encima de la fila según lo que la partida guardó. Las celdas
-        # de las caras llevan la paleta en sus tres bits, que acá sí se usan:
-        # es BG2 a 4bpp.
+        # And behind, per actor that can join the party, its face: the ROM
+        # writes it over the row according to what the save stored. The face
+        # cells carry the palette in their three bits, which are used here: it
+        # is BG2 at 4bpp.
         #
-        # Su nombre y su nivel **no** son bloques: los compone la ROM con
-        # glifos, ver "lo que depende del actor" en menus.py. Eso es lo que
-        # hace que el banco no crezca con la cantidad de actores.
+        # Its name and its level are **not** blocks: the ROM composes them with
+        # glyphs, see "lo que depende del actor" in menus.py. That is what
+        # keeps the bank from growing with the number of actors.
         bloque_de_cara = {}
         for actor in sorted(ranuras["caras"]):
             nombre = "ranura_cara_%d" % actor
@@ -5430,12 +5455,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                          + "\n")
             bloque_de_cara[actor] = len(bloques_ranura)
             bloques_ranura.append(nombre)
-        # Y los del menú de pausa, que viven en el mismo banco de tiles: cada
-        # orden en sus dos variantes —la 1 es deshabilitada, en la paleta de
-        # lo gris—, la moneda, y el texto de una fila del grupo, que es uno
-        # solo para las cuatro y para todos los actores. El cursor y los
-        # glifos no van como bloques: son dos celdas cada uno y la ROM las
-        # escribe palabra por palabra, ver `ranura_glifo_celdas`.
+        # And the pause menu's, which live in the same tile bank: each command
+        # in its two variants —1 is disabled, in the gray palette—, the coin,
+        # and the text of a party row, which is a single one for the four and
+        # for every actor. The cursor and the glyphs don't go as blocks: they
+        # are two cells each and the ROM writes them word by word, see
+        # `ranura_glifo_celdas`.
         menu = ranuras["menu"]
         bloque_menu_opcion = len(bloques_ranura)
         for orden, variantes in enumerate(menu["opciones"]):
@@ -5450,9 +5475,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         bloque_menu_fila = len(bloques_ranura)
         handle.write(bloque("menu_fila", celdas_asm([menu["fila"]])) + "\n")
         bloques_ranura.append("menu_fila")
-        # Y la pantalla de ítems, que tiene banco propio: la fuente de a una
-        # letra por celda, sus dos paletas, y el texto de cada ítem que la ROM
-        # conoce —nombre y dos renglones de descripción—, en ASCII.
+        # And the item screen, which has a bank of its own: the font one
+        # letter per cell, its two palettes, and the text of each item the ROM
+        # knows —name and two lines of description—, in ASCII.
         datos = bytearray()
         for celda in ranuras["items_tiles"]:
             datos += pack_tile(celda, planes=4)
@@ -5463,11 +5488,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                 for c in list(paleta) + [(0, 0, 0)] * (constantes.MENU_CGRAM
                                                        - len(paleta)))
 
-        # Las dos primeras, que suben con el banco en todas las pantallas que
-        # lo usan; la de "sube" y la roja van aparte y las sube sólo la de
-        # equipo, porque en la pelea las entradas de la tercera paleta en
-        # adelante son las del fondo —`escena.CGRAM_BASE`— y subirlas ahí no
-        # le serviría a nadie.
+        # The first two, which are uploaded with the bank on every screen that
+        # uses it; the "goes up" one and the red one go separately and only
+        # the equipment screen uploads them, because in battle the entries
+        # from the third palette on are the backdrop's —`escena.CGRAM_BASE`—
+        # and uploading them there wouldn't help anyone.
         handle.write(bloque("items_cgram", paletas_cgram(
             ranuras["items_paletas"][:menus_mod.ITEM_SUBE])) + "\n")
         handle.write(bloque("item_cgram_sube", paletas_cgram(
