@@ -105,7 +105,7 @@ are:
 
     rm2k-snes-cartridges        assembly/cartuchos.py
     rm2k-snes-assemble          assembly/assemble.py
-    rm2k-snes-space             assembly/espacio.py
+    rm2k-snes-space             assembly/space.py
     rm2k-snes-convert           port/snes_convert.py
     rm2k-snes-patches           port/parches.py
     rm2k-snes-msu               audio/msu.py

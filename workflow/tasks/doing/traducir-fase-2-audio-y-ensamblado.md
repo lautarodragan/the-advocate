@@ -58,3 +58,5 @@ ejecutable corrido por su nombre desde /tmp con `--project`.
 - `assembly/bancos.py` → `assembly/banks.py`, con sus nombres.
 - `assembly/ensamblar.py` → `assembly/assemble.py`, con sus nombres, y
   `--simbolos` pasa a `--symbols`.
+- `assembly/espacio.py` → `assembly/space.py`, con sus nombres y las
+  claves de `measure`, que lee `test_espacio.py`.

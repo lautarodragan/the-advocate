@@ -14,7 +14,7 @@ import subprocess
 import pytest
 
 from assembly import cartuchos
-from assembly import espacio
+from assembly import space
 
 
 def _libre_con_res(sfc, segmento, tmp_path, n):
@@ -40,13 +40,13 @@ def _libre_con_res(sfc, segmento, tmp_path, n):
 
 
 @pytest.mark.parametrize("segmento,clave,n", [
-    ("TABLAS", "banco0", 40000),
+    ("TABLAS", "bank0", 40000),
     ("BSS", "bss", 20000),
     ("ZEROPAGE", "zeropage", 1000),
 ])
 def test_lo_libre_es_lo_que_dice_ld65(segmento, clave, n, tmp_path):
     sfc = cartuchos.rom_de(cartuchos.RELEASE)
-    assert espacio.medir(sfc)[clave] == _libre_con_res(sfc, segmento,
+    assert space.measure(sfc)[clave] == _libre_con_res(sfc, segmento,
                                                         tmp_path, n)
 
 
@@ -57,12 +57,12 @@ def test_el_banco_1_es_lo_que_rellena_el_align():
     sfc = cartuchos.rom_de(cartuchos.RELEASE)
     with open(sfc, "rb") as archivo:
         banco1 = archivo.read()[0x8000:0x10000]
-    assert espacio.medir(sfc)["banco1"] == len(banco1) - len(banco1.rstrip(b"\0"))
+    assert space.measure(sfc)["bank1"] == len(banco1) - len(banco1.rstrip(b"\0"))
 
 
 def test_los_textos_son_el_bloque_entero():
     """`MENSAJES_BYTES` y `MENSAJES_TOPE` los emite el conversor al lado de
     `mensajes`: sin ellos la receta diría que la ROM no sabe cuánto miden."""
     sfc = cartuchos.rom_de(cartuchos.RELEASE)
-    medido = espacio.medir(sfc)
-    assert 0 < medido["textos"] <= medido["textos_tope"]
+    medido = space.measure(sfc)
+    assert 0 < medido["texts"] <= medido["texts_cap"]
